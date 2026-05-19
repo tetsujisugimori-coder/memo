@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Memo Nexus</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <aside class="sidebar">
+    <div class="toolbar">
+      <button id="newBtn" title="新規メモ">+</button>
+      <button id="todayBtn" title="今日メモ">Today</button>
+      <button id="backupBtn" title="Markdown ZIP出力">ZIP</button>
+      <button id="graphBtn" title="グラフを開く">Graph</button>
+    </div>
+    <input id="searchInput" type="search" placeholder="検索" autocomplete="off">
+    <div id="levelPanel" class="level-panel"></div>
+    <div id="memoList" class="memo-list"></div>
+  </aside>
+
+  <main class="workspace">
+    <section class="editor-card">
+      <input id="titleInput" class="title-input" placeholder="無題メモ" autocomplete="off">
+      <textarea id="editor" placeholder="すぐ書けます。[[足利尊氏]] のように書くとリンクになります。"></textarea>
+    </section>
+    <section class="preview-card">
+      <div class="preview-head">
+        <span>カード表示</span>
+        <span id="saveStatus">保存済み</span>
+      </div>
+      <div id="preview" class="preview"></div>
+    </section>
+  </main>
+
+  <aside class="related-panel">
+    <h2>関連メモ</h2>
+    <div id="relatedList" class="related-list"></div>
+    <div id="discoveryPanel" class="discovery-panel"></div>
+  </aside>
+
+  <dialog id="graphDialog">
+    <div class="dialog-head">
+      <strong>知識グラフ</strong>
+      <button id="closeGraphBtn" title="閉じる">×</button>
+    </div>
+    <canvas id="graphCanvas" width="900" height="560"></canvas>
+  </dialog>
+
+  <script src="app.js"></script>
+</body>
+</html>
