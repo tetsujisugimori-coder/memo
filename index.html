@@ -21,7 +21,10 @@
 
   <main class="workspace">
     <section class="editor-card">
-      <input id="titleInput" class="title-input" placeholder="無題メモ" autocomplete="off">
+      <div class="title-row">
+        <input id="titleInput" class="title-input" placeholder="無題メモ" autocomplete="off">
+        <div id="noteMeta" class="note-meta"></div>
+      </div>
       <textarea id="editor" placeholder="すぐ書けます。[[足利尊氏]] のように書くとリンクになります。"></textarea>
     </section>
     <section class="preview-card">

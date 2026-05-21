@@ -165,10 +165,18 @@ button:hover {
   flex-direction: column;
 }
 
+.title-row {
+  width: 100%;
+  border-bottom: 1px solid var(--line);
+  border-radius: 8px 8px 0 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+}
+
 .title-input {
   width: 100%;
   border: 0;
-  border-bottom: 1px solid var(--line);
   border-radius: 8px 8px 0 0;
   padding: 18px 18px 14px;
   outline: none;
@@ -176,6 +184,16 @@ button:hover {
   color: var(--ink);
   font-size: 26px;
   font-weight: 800;
+}
+
+.note-meta {
+  max-width: 240px;
+  padding: 12px 16px 10px 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
+  text-align: right;
+  white-space: nowrap;
 }
 
 #editor {
@@ -319,6 +337,16 @@ button:hover {
     height: auto;
     min-height: 70vh;
     grid-template-columns: 1fr;
+  }
+
+  .title-row {
+    grid-template-columns: 1fr;
+  }
+
+  .note-meta {
+    max-width: none;
+    padding: 0 18px 12px;
+    text-align: left;
   }
 
   .related-panel {

@@ -17,6 +17,7 @@ const searchInput = $("searchInput");
 const levelPanel = $("levelPanel");
 const memoList = $("memoList");
 const titleInput = $("titleInput");
+const noteMeta = $("noteMeta");
 const editor = $("editor");
 const preview = $("preview");
 const saveStatus = $("saveStatus");
@@ -125,6 +126,7 @@ async function createNote(title = "新規メモ", body = "") {
     title: uniqueTitle(title),
     body,
     createdAt: now,
+    bodyUpdatedAt: now,
     updatedAt: now
   };
 
@@ -135,7 +137,7 @@ async function createNote(title = "新規メモ", body = "") {
 
 // 同名タイトルがあるとリンク先が曖昧になるので、末尾に番号を付けて重複を避けます。
 function uniqueTitle(base) {
-  const clean = base.trim() || "無題メモ";
+  const clean = base || "無題メモ";
   const titles = new Set(notes.map((note) => note.title));
   if (!titles.has(clean)) return clean;
 
@@ -148,6 +150,7 @@ function uniqueTitle(base) {
 function renderAll() {
   renderLevel();
   renderList();
+  renderNoteMeta();
   renderRelated();
   renderDiscovery();
 }
@@ -208,6 +211,7 @@ function openNote(id) {
   titleInput.value = note.title;
   editor.value = note.body;
   saveStatus.textContent = "保存済み";
+  renderNoteMeta();
   renderList();
   renderPreview();
   renderRelated();
@@ -236,8 +240,12 @@ async function saveCurrentNote() {
   if (!note) return;
 
   const beforeLinks = collectLinks(notes).length;
-  note.body = editor.value;
-  note.title = titleInput.value.trim() || titleFromBody(note.body) || "無題メモ";
+  const nextBody = editor.value;
+  const bodyChanged = note.body !== nextBody;
+  note.body = nextBody;
+  note.title = titleInput.value || titleFromBody(note.body) || "無題メモ";
+  if (!note.createdAt) note.createdAt = Date.now();
+  if (!note.bodyUpdatedAt || bodyChanged) note.bodyUpdatedAt = Date.now();
   note.updatedAt = Date.now();
 
   await putNote(note);
@@ -449,12 +457,13 @@ function makeZip(files) {
     const name = encoder.encode(file.name);
     const data = encoder.encode(file.content);
     const crc = crc32(data);
+    const utf8Flag = 0x0800;
     const local = concatBytes([
-      u32(0x04034b50), u16(20), u16(0), u16(0), u16(0), u16(0),
+      u32(0x04034b50), u16(20), u16(utf8Flag), u16(0), u16(0), u16(0),
       u32(crc), u32(data.length), u32(data.length), u16(name.length), u16(0), name, data
     ]);
     const central = concatBytes([
-      u32(0x02014b50), u16(20), u16(20), u16(0), u16(0), u16(0), u16(0),
+      u32(0x02014b50), u16(20), u16(20), u16(utf8Flag), u16(0), u16(0), u16(0),
       u32(crc), u32(data.length), u32(data.length), u16(name.length), u16(0),
       u16(0), u16(0), u16(0), u32(0), u32(offset), name
     ]);
@@ -567,6 +576,25 @@ function drawGraph() {
 // Markdownファイル名として危ない文字を置き換えます。
 function safeFileName(name) {
   return name.replace(/[\\/:*?"<>|]/g, "_").slice(0, 80) || "untitled";
+}
+
+// タイトル右側に、作成日と本文の最終変更日時を表示します。
+function renderNoteMeta() {
+  const note = currentNote();
+  if (!note) {
+    noteMeta.textContent = "";
+    return;
+  }
+
+  noteMeta.innerHTML = `
+    <div>作成: ${escapeHtml(formatDateTime(note.createdAt))}</div>
+    <div>変更: ${escapeHtml(formatDateTime(note.bodyUpdatedAt || note.updatedAt))}</div>
+  `;
+}
+
+function formatDateTime(value) {
+  const date = new Date(value || Date.now());
+  return `${date.getFullYear()}/${String(date.getMonth() + 1).padStart(2, "0")}/${String(date.getDate()).padStart(2, "0")} ${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
 }
 
 // バックアップZIP名に使う日付文字列を作ります。
