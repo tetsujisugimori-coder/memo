@@ -67,10 +67,19 @@ button:hover {
 
 .toolbar {
   display: grid;
-  grid-template-columns: 42px 1fr 54px 68px;
+  grid-template-columns: 42px 1fr 54px 68px 42px;
   gap: 8px;
   padding: 12px;
   border-bottom: 1px solid var(--line);
+}
+
+.danger-button {
+  color: var(--danger);
+}
+
+.danger-button:hover {
+  border-color: var(--danger);
+  color: var(--danger);
 }
 
 #searchInput {

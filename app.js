@@ -12,6 +12,7 @@ const newBtn = $("newBtn");
 const todayBtn = $("todayBtn");
 const backupBtn = $("backupBtn");
 const graphBtn = $("graphBtn");
+const deleteBtn = $("deleteBtn");
 const closeGraphBtn = $("closeGraphBtn");
 const searchInput = $("searchInput");
 const levelPanel = $("levelPanel");
@@ -86,6 +87,14 @@ function putNote(note) {
   return new Promise((resolve, reject) => {
     const request = tx("readwrite").put(note);
     request.onsuccess = () => resolve(note);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+function deleteNote(id) {
+  return new Promise((resolve, reject) => {
+    const request = tx("readwrite").delete(id);
+    request.onsuccess = () => resolve();
     request.onerror = () => reject(request.error);
   });
 }
@@ -260,6 +269,33 @@ async function saveCurrentNote() {
   titleInput.value = note.title;
   saveStatus.textContent = "保存済み";
   renderAll();
+}
+
+async function deleteCurrentNote() {
+  const note = currentNote();
+  if (!note) return;
+
+  const confirmed = confirm(`「${note.title}」を削除しますか？\nこの操作は元に戻せません。`);
+  if (!confirmed) return;
+
+  clearTimeout(saveTimer);
+  const currentIndex = notes.findIndex((item) => item.id === note.id);
+  saveStatus.textContent = "削除中...";
+
+  await deleteNote(note.id);
+  notes = await getAllNotes();
+
+  if (!notes.length) {
+    const nextNote = await createNote("新規メモ", "");
+    notes = await getAllNotes();
+    renderAll();
+    openNote(nextNote.id);
+    return;
+  }
+
+  const nextNote = notes[Math.min(currentIndex, notes.length - 1)] || notes[0];
+  renderAll();
+  openNote(nextNote.id);
 }
 
 // タイトル欄が空のとき、本文の最初の空でない行をタイトル候補にします。
@@ -634,6 +670,9 @@ todayBtn.addEventListener("click", async () => {
 });
 
 backupBtn.addEventListener("click", downloadMarkdownZip);
+if (deleteBtn) {
+  deleteBtn.addEventListener("click", deleteCurrentNote);
+}
 
 graphBtn.addEventListener("click", () => {
   graphDialog.showModal();
