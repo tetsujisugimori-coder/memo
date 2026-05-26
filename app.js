@@ -13,6 +13,8 @@ const todayBtn = $("todayBtn");
 const backupBtn = $("backupBtn");
 const graphBtn = $("graphBtn");
 const deleteBtn = $("deleteBtn");
+const importAiBtn = $("importAiBtn");
+const importAiInput = $("importAiInput");
 const closeGraphBtn = $("closeGraphBtn");
 const searchInput = $("searchInput");
 const levelPanel = $("levelPanel");
@@ -97,6 +99,117 @@ function deleteNote(id) {
     request.onsuccess = () => resolve();
     request.onerror = () => reject(request.error);
   });
+}
+
+async function importAiNewsFile(file) {
+  if (!file) return;
+
+  await saveCurrentNote();
+  const text = await file.text();
+  const imported = parseImportedNote(file.name, text);
+  const note = await createNote(imported.title, imported.body);
+  notes = await getAllNotes();
+  renderAll();
+  openNote(note.id);
+  saveStatus.textContent = "AI朝刊を取り込みました";
+}
+
+function parseImportedNote(fileName, text) {
+  const trimmed = text.trim();
+  const looksLikeJson = fileName.toLowerCase().endsWith(".json") || /^[\[{]/.test(trimmed);
+
+  if (!looksLikeJson) {
+    return buildPlainTextImport(fileName, text);
+  }
+
+  try {
+    const payload = JSON.parse(text);
+    return buildNewsNoteFromJson(fileName, payload);
+  } catch (error) {
+    return buildPlainTextImport(fileName, text);
+  }
+}
+
+function buildPlainTextImport(fileName, text) {
+  const base = fileName.replace(/\.[^.]+$/, "") || "AI news";
+  return {
+    title: uniqueTitle(base),
+    body: text.trim() || "(empty import)"
+  };
+}
+
+function buildNewsNoteFromJson(fileName, payload) {
+  const normalized = normalizeNewsPayload(payload);
+  if (!normalized.items.length) {
+    return buildPlainTextImport(fileName, JSON.stringify(payload, null, 2));
+  }
+
+  const heading = normalized.title || "AI最新ニュース朝刊";
+  const noteDate = normalized.date || todayStampDashed();
+  const body = [
+    `# ${heading}`,
+    "",
+    `日付: ${noteDate}`,
+    ""
+  ];
+
+  normalized.items.forEach((item, index) => {
+    body.push(`${index + 1}. ${item.heading}`);
+    body.push("");
+    item.points.forEach((point) => body.push(`- ${point}`));
+    if (item.whyImportant) {
+      body.push(`- なぜ重要か: ${item.whyImportant}`);
+    }
+    if (item.sourceLabel || item.sourceUrl) {
+      const label = item.sourceLabel || item.sourceUrl;
+      body.push(`- 情報源: ${label}${item.sourceUrl ? ` (${item.sourceUrl})` : ""}`);
+    }
+    body.push("");
+  });
+
+  if (normalized.trendSummary) {
+    body.push("## 全体傾向");
+    body.push("");
+    body.push(normalized.trendSummary);
+    body.push("");
+  }
+
+  return {
+    title: uniqueTitle(`AI朝刊 ${noteDate}`),
+    body: body.join("\n").trim()
+  };
+}
+
+function normalizeNewsPayload(payload) {
+  const root = Array.isArray(payload) ? { items: payload } : (payload || {});
+  const items = Array.isArray(root.items) ? root.items : Array.isArray(root.newsItems) ? root.newsItems : Array.isArray(root.articles) ? root.articles : [];
+
+  return {
+    title: root.title || root.headline || root.name || root["見出し"] || "",
+    date: root.date || root.publishedAt || root.day || root["日付"] || "",
+    trendSummary: root.trendSummary || root.summary || root.overview || root["全体傾向"] || "",
+    items: items.map(normalizeNewsItem).filter((item) => item.heading)
+  };
+}
+
+function normalizeNewsItem(item) {
+  const points = []
+    .concat(item.points || [])
+    .concat(item.summary ? [item.summary] : [])
+    .concat(item.keyPoints || [])
+    .concat(item.details || [])
+    .concat(item["要点"] || [])
+    .filter(Boolean)
+    .map((value) => String(value).trim())
+    .filter(Boolean);
+
+  return {
+    heading: String(item.heading || item.title || item.headline || item["見出し"] || "").trim(),
+    points,
+    whyImportant: String(item.whyImportant || item.importance || item.why || item["なぜ重要か"] || "").trim(),
+    sourceLabel: String(item.sourceLabel || item.source || item["情報源"] || "").trim(),
+    sourceUrl: String(item.sourceUrl || item.url || item.link || item["情報源リンク"] || "").trim()
+  };
 }
 
 // 起動時に最低限の「新規メモ」と「今日メモ」がある状態を保証します。
@@ -639,6 +752,11 @@ function todayStamp() {
   return `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}`;
 }
 
+function todayStampDashed() {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+}
+
 // ユーザー入力をHTMLへ混ぜる前に無害化します。
 function escapeHtml(value) {
   return String(value).replace(/[&<>"']/g, (char) => ({
@@ -672,6 +790,21 @@ todayBtn.addEventListener("click", async () => {
 backupBtn.addEventListener("click", downloadMarkdownZip);
 if (deleteBtn) {
   deleteBtn.addEventListener("click", deleteCurrentNote);
+}
+if (importAiBtn && importAiInput) {
+  importAiBtn.addEventListener("click", () => importAiInput.click());
+  importAiInput.addEventListener("change", async () => {
+    const [file] = importAiInput.files || [];
+    if (!file) return;
+
+    try {
+      await importAiNewsFile(file);
+    } catch (error) {
+      alert(`Import failed: ${error.message}`);
+    } finally {
+      importAiInput.value = "";
+    }
+  });
 }
 
 graphBtn.addEventListener("click", () => {

@@ -82,6 +82,21 @@ button:hover {
   color: var(--danger);
 }
 
+.import-ai-fallback {
+  margin: 0 12px 12px;
+  border-style: dashed;
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.import-ai-fallback:hover {
+  border-color: var(--accent);
+  background: #eef8f9;
+  color: var(--accent);
+}
+
 #searchInput {
   margin: 12px;
   min-height: 40px;

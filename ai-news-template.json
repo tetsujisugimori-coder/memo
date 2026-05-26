@@ -1,0 +1,27 @@
+{
+  "title": "AI最新ニュース朝刊",
+  "date": "2026-05-27",
+  "items": [
+    {
+      "heading": "OpenAIの推論モデルが80年来の離散幾何の予想を覆す",
+      "points": [
+        "汎用推論モデルが長年の有力予想を破る証明を見つけた。",
+        "外部の数学者による検証が進み、研究支援を超えた貢献として注目されている。"
+      ],
+      "whyImportant": "AIが最先端研究の発見フェーズに入りつつあることを示す。",
+      "sourceLabel": "OpenAI",
+      "sourceUrl": "https://openai.com/index/model-disproves-discrete-geometry-conjecture/"
+    },
+    {
+      "heading": "GoogleがI/O 2026でGemini新機能を発表",
+      "points": [
+        "Gemini 3.5 FlashやGemini Omniなどを発表した。",
+        "速度と日常利用を重視した配布戦略が強まっている。"
+      ],
+      "whyImportant": "AI競争がモデル単体から巨大プロダクト配布競争へ移っている。",
+      "sourceLabel": "Google",
+      "sourceUrl": "https://blog.google/innovation-and-ai/technology/ai/google-io-2026-all-our-announcements/"
+    }
+  ],
+  "trendSummary": "研究ブレークスルーと実運用の両輪で、AI各社の競争がさらに加速している。"
+}
