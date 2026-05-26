@@ -149,7 +149,10 @@ function buildPlainTextImport(fileName, text) {
 }
 
 function extractJsonCodeBlock(text) {
-  const match = text.match(/(?:^|\n)```json[ \t]*\n([\s\S]*?)\n```/i);
+  let match = text.match(/(?:^|\n)```json[ \t]*\n([\s\S]*?)\n```/i);
+  if (!match) {
+    match = text.match(/```json\s*([\s\S]*?)```/i);
+  }
   return match ? match[1].trim() : "";
 }
 
