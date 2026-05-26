@@ -10,5 +10,13 @@ AI朝刊の取り込みに対応しました。
 
 補足:
 
-- `.md` と `.txt` も取り込めます。この場合は本文をそのままメモ化します。
+- `.md` と `.txt` も取り込めます。
+- `.md` や `.txt` の中に ```json ... ``` のコードブロックがあれば、その JSON を優先して朝刊メモ化します。
 - JSONの見本は [`ai-news-template.json`](C:\Users\tetsu\Documents\Codex\メモ帳\ai-news-template.json) に置いてあります。
+- オートメーション向けの出力仕様は [`ai-news-automation-format.md`](C:\Users\tetsu\Documents\Codex\メモ帳\ai-news-automation-format.md) に置いてあります。
+
+JSON生成コード:
+
+- 朝刊本文から取込用JSONを作るには `node build-ai-news-json.js input.md output.json` を使います。
+- 入力が `.json` の場合は正規化して出力します。
+- 入力が `.md` や `.txt` で、その中に ```json ... ``` があれば、そのJSONを抽出して出力します。

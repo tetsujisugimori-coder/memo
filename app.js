@@ -116,6 +116,16 @@ async function importAiNewsFile(file) {
 
 function parseImportedNote(fileName, text) {
   const trimmed = text.trim();
+  const fencedJson = extractJsonCodeBlock(text);
+  if (fencedJson) {
+    try {
+      const payload = JSON.parse(fencedJson);
+      return buildNewsNoteFromJson(fileName, payload);
+    } catch (error) {
+      // Fall through to other parsers when the fenced block is not valid JSON.
+    }
+  }
+
   const looksLikeJson = fileName.toLowerCase().endsWith(".json") || /^[\[{]/.test(trimmed);
 
   if (!looksLikeJson) {
@@ -136,6 +146,11 @@ function buildPlainTextImport(fileName, text) {
     title: uniqueTitle(base),
     body: text.trim() || "(empty import)"
   };
+}
+
+function extractJsonCodeBlock(text) {
+  const match = text.match(/(?:^|\n)```json[ \t]*\n([\s\S]*?)\n```/i);
+  return match ? match[1].trim() : "";
 }
 
 function buildNewsNoteFromJson(fileName, payload) {
