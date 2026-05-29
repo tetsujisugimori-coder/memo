@@ -1,0 +1,57 @@
+{
+  "title": "AI最新ニュース朝刊",
+  "date": "2026-05-29",
+  "items": [
+    {
+      "heading": "Anthropicが650億ドルを調達、企業向けAI競争がさらに加速",
+      "points": [
+        "Anthropicは2026年5月28日、Series Hで650億ドルを調達し、ポストマネー評価額は9650億ドルになったと発表しました。",
+        "同社はClaudeの需要拡大を背景に、安全性・解釈可能性研究、計算資源の拡充、製品とパートナーシップの拡大に資金を投じる方針です。"
+      ],
+      "whyImportant": "巨額調達は、最先端モデルの開発競争が研究力だけでなく計算資源と企業導入体制の勝負に入っていることを示します。AI業界の寡占化と投資規模の拡大を占う動きです。",
+      "sourceLabel": "Anthropic",
+      "sourceUrl": "https://www.anthropic.com/news/series-h"
+    },
+    {
+      "heading": "Google I/O 2026でGemini OmniとAI検索強化を打ち出す",
+      "points": [
+        "Googleは2026年5月28日、I/O 2026の主要発表を公開し、Gemini Omniによる動画起点のマルチモーダル生成や、新しいインテリジェント検索ボックスを紹介しました。",
+        "あわせてSynthIDの検証機能をSearchとChromeへ広げ、AI生成コンテンツの識別基盤も拡張するとしています。"
+      ],
+      "whyImportant": "生成AIの主戦場がチャット単体から、検索、ブラウザ、動画生成、真正性確認まで一体化した体験へ移っていることを示します。Googleの配信面と利用基盤の強さが改めて見えます。",
+      "sourceLabel": "Google Blog",
+      "sourceUrl": "https://blog.google/innovation-and-ai/technology/ai/io-2026-keynote-moment-videos/"
+    },
+    {
+      "heading": "OpenAIが2026年選挙向けのAI安全策を公表",
+      "points": [
+        "OpenAIは2026年5月27日、世界各地の選挙に向けた安全策を発表し、投票情報の案内、サイバー防御支援、AI生成コンテンツの透明性強化を重点に挙げました。",
+        "同社は画像透かしの強化や、不正利用の監視、政治的中立性の維持にも継続して取り組むと説明しています。"
+      ],
+      "whyImportant": "選挙期のAI利用は社会的影響が大きく、各社の安全対策は規制や信頼性評価に直結します。生成AIの普及が進むほど、誤情報対策は製品競争力そのものになります。",
+      "sourceLabel": "OpenAI",
+      "sourceUrl": "https://openai.com/index/election-safeguards-2026/"
+    },
+    {
+      "heading": "OpenAIがSynthID対応と検証ツールで真正性対策を前進",
+      "points": [
+        "OpenAIは2026年5月19日、C2PA準拠の強化、GoogleのSynthIDによる画像透かし、画像がOpenAI由来か確認できる公開検証ツールのプレビューを発表しました。",
+        "AI生成物の来歴情報を他社ツールや他プラットフォームでも扱いやすくし、より広いエコシステムでの識別を狙っています。"
+      ],
+      "whyImportant": "AIコンテンツの信頼性は今後の普及拡大の前提です。単独企業の対策ではなく、標準規格と相互運用へ進んだ点が大きく、報道・広告・SNS運営への影響が広がります。",
+      "sourceLabel": "OpenAI",
+      "sourceUrl": "https://openai.com/index/advancing-content-provenance/"
+    },
+    {
+      "heading": "MicrosoftとEYが10億ドル超を投じ、企業AI導入を本格拡大",
+      "points": [
+        "Microsoftは2026年5月21日、EYと共同で10億ドル超を投資し、企業が単発のAI実験から全社展開へ進むための新たな取り組みを始めると発表しました。",
+        "Azure、Microsoft 365 Copilot、Foundry、Fabric、セキュリティを束ね、現場導入まで一体で支援する体制を強調しています。"
+      ],
+      "whyImportant": "AI活用の焦点が『モデル性能』から『企業内でどう埋め込むか』へ移っていることを示すニュースです。大手SI・コンサルと基盤企業の連携強化は、法人市場の競争構造を変えます。",
+      "sourceLabel": "Microsoft Blog",
+      "sourceUrl": "https://blogs.microsoft.com/blog/2026/05/21/from-ai-pilots-to-enterprise-impact-why-execution-is-the-new-differentiator/"
+    }
+  ],
+  "trendSummary": "足元のAI業界は、モデルそのものの進化だけでなく、資金調達、企業導入、検索やブラウザへの統合、そして生成物の真正性確保が同時並行で進んでいます。『高性能モデルを作る競争』から、『社会と業務の中で安全に大規模運用する競争』へ軸足が移っているのが今週の大きな流れです。"
+}

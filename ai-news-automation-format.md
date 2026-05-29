@@ -45,5 +45,12 @@
 必要なら、保存した本文からあとで JSON ファイルだけを作ることもできます。
 
 ```powershell
-node build-ai-news-json.js morning-news.md ai-news-2026-05-27.json
+node build-ai-news-json.js morning-news.md "C:\Users\tetsu\Documents\Codex\メモ帳\IMPORT\ai-news-2026-05-27.json"
 ```
+
+オートメーションで自動保存する場合の推奨保存先:
+
+- `C:\Users\tetsu\Documents\Codex\メモ帳\IMPORT\ai-news-YYYY-MM-DD.json`
+- `C:\Users\tetsu\Documents\Codex\メモ帳\IMPORT\ai-news-latest.json`
+
+この `IMPORT` フォルダは、AI朝刊以外の取込ファイルもまとめて置く前提です。

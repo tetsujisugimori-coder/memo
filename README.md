@@ -5,13 +5,14 @@ AI朝刊の取り込みに対応しました。
 使い方:
 
 1. アプリ左側の `AI Import` ボタンを押します。
-2. `ai-news-template.json` と同じ形式の `json` を選びます。
+2. `C:\Users\tetsu\Documents\Codex\メモ帳\IMPORT` に保存された `json` を選びます。
 3. `AI朝刊 YYYY-MM-DD` という新規メモが追加されます。
 
 補足:
 
 - `.md` と `.txt` も取り込めます。
 - `.md` や `.txt` の中に ```json ... ``` のコードブロックがあれば、その JSON を優先して朝刊メモ化します。
+- AI朝刊などの取込ファイル保存先は `C:\Users\tetsu\Documents\Codex\メモ帳\IMPORT` を想定しています。
 - JSONの見本は [`ai-news-template.json`](C:\Users\tetsu\Documents\Codex\メモ帳\ai-news-template.json) に置いてあります。
 - オートメーション向けの出力仕様は [`ai-news-automation-format.md`](C:\Users\tetsu\Documents\Codex\メモ帳\ai-news-automation-format.md) に置いてあります。
 

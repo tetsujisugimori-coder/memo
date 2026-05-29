@@ -1,0 +1,58 @@
+{
+  "title": "AI最新ニュース朝刊",
+  "date": "2026-05-28",
+  "items": [
+    {
+      "heading": "OpenAIが2026年の選挙向け安全対策を発表",
+      "points": [
+        "OpenAIは2026年5月27日、各国の選挙に向けた新たな安全対策を公表した。",
+        "米国とブラジルではAPの開票速報表示、米国ではDemocracy Worksと連携した投票情報案内を進める。",
+        "AI生成コンテンツの来歴確認やサイバー防御支援も強化する方針を示した。"
+      ],
+      "whyImportant": "生成AIが社会インフラに近づく中で、選挙の信頼性とAIの透明性をどう両立するかは最重要テーマの一つだから。",
+      "sourceLabel": "OpenAI",
+      "sourceUrl": "https://openai.com/index/election-safeguards-2026/"
+    },
+    {
+      "heading": "AnthropicのProject Glasswingが重大脆弱性を1万件超発見",
+      "points": [
+        "Anthropicは2026年5月22日、Project Glasswingの初期成果として1万件超の高深刻度・重大脆弱性を見つけたと発表した。",
+        "約50のパートナーとともに重要ソフトウェアを調査し、課題は発見から修正処理へ移ったと説明している."
+      ],
+      "whyImportant": "AIがサイバー防御を大幅に加速させる一方で、検証・開示・修正の社会的処理能力が新しい制約になっていることを示すため。",
+      "sourceLabel": "Anthropic",
+      "sourceUrl": "https://www.anthropic.com/research/glasswing-initial-update"
+    },
+    {
+      "heading": "OpenAIの汎用推論モデルが80年来の離散幾何の予想を覆す",
+      "points": [
+        "OpenAIは2026年5月20日、汎用推論モデルが離散幾何の著名な未解決問題で有力予想を破る証明を見つけたと発表した。",
+        "外部の数学者による検証が進んでおり、特化型でないモデルが研究の前線で成果を出した点が注目されている。"
+      ],
+      "whyImportant": "AIの価値が効率化支援から、新しい科学的知見の創出へ広がっていることを示す象徴的な事例だから。",
+      "sourceLabel": "OpenAI",
+      "sourceUrl": "https://openai.com/index/model-disproves-discrete-geometry-conjecture/"
+    },
+    {
+      "heading": "GoogleがI/O 2026でよりエージェント的なGeminiを前面化",
+      "points": [
+        "Googleは2026年5月19日から20日にかけて、Gemini 3.5 Flash、Gemini Omni、Gemini Spark、Daily Briefなどを発表した。",
+        "Geminiを単なる会話AIではなく、常時支援や先回り提案を行うagenticな体験へ広げる流れを打ち出している。"
+      ],
+      "whyImportant": "AI競争の軸がモデル性能だけでなく、巨大な既存製品群にどう組み込み日常利用へ浸透させるかに移っているため。",
+      "sourceLabel": "Google",
+      "sourceUrl": "https://blog.google/innovation-and-ai/technology/ai/google-io-2026-all-our-announcements/"
+    },
+    {
+      "heading": "OpenAIがAI生成コンテンツの来歴確認を強化",
+      "points": [
+        "OpenAIは2026年5月19日、C2PA準拠の来歴情報、Google SynthIDによる画像ウォーターマーク、一般向け検証ツールのプレビューを発表した。",
+        "画像がOpenAI由来かを確認しやすくし、AI生成コンテンツの信頼性を高める取り組みを進めている。"
+      ],
+      "whyImportant": "生成AIの普及で、性能向上と同じくらい真正性確認の仕組みが重要になっており、選挙・報道・SNS運用にも直結する基盤だから。",
+      "sourceLabel": "OpenAI",
+      "sourceUrl": "https://openai.com/index/advancing-content-provenance/"
+    }
+  ],
+  "trendSummary": "今週のAIニュースは、モデル性能の前進だけでなく、選挙対策、サイバー防御、コンテンツ真正性確認など社会実装と安全運用に重心が移っている。AI各社は研究成果を競う段階から、公共性の高い現場でどう安全に使うかを同時に問われるフェーズへ入っている。"
+}
