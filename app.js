@@ -504,13 +504,8 @@ function collectLinkStats() {
       const title = rawTitle.trim();
       if (title) candidateTitles.add(title);
     });
-    // 本文とタイトルをトークン化して、本文だけに現れる語句も候補に追加する
-    tokenize(`${note.title} ${note.body}`).forEach((token) => {
-      const t = String(token).trim();
-      if (t) candidateTitles.add(t);
-    });
   });
-  // 既存メモのタイトルも候補に追加（既に追加済みの可能性あり）
+  // 既存メモのタイトルも候補に追加
   titleSet.forEach((title) => {
     if (title) candidateTitles.add(title);
   });
