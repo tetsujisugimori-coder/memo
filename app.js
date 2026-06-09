@@ -460,7 +460,8 @@ function renderPreview() {
     return;
   }
 
-  const paragraphs = note.body.split(/\n{2,}/).map((part) => part.trim()).filter(Boolean);
+  const body = (note.id === currentId ? editor.value : note.body);
+  const paragraphs = body.split(/\n{2,}/).map((part) => part.trim()).filter(Boolean);
   preview.innerHTML = paragraphs.length
     ? paragraphs.map((part) => `<p>${renderRichText(part)}</p>`).join("")
     : `<p class="empty">本文を書くとカード表示されます。</p>`;
