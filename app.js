@@ -12,6 +12,7 @@ const newBtn = $("newBtn");
 const todayBtn = $("todayBtn");
 const backupBtn = $("backupBtn");
 const graphBtn = $("graphBtn");
+const linkStatsBtn = $("linkStatsBtn");
 const deleteBtn = $("deleteBtn");
 const importAiBtn = $("importAiBtn");
 const importAiInput = $("importAiInput");
@@ -26,6 +27,7 @@ const preview = $("preview");
 const saveStatus = $("saveStatus");
 const relatedList = $("relatedList");
 const discoveryPanel = $("discoveryPanel");
+const linkStatsPanel = $("linkStatsPanel");
 const graphDialog = $("graphDialog");
 const graphCanvas = $("graphCanvas");
 
@@ -36,6 +38,7 @@ let notes = [];
 let currentId = null;
 let saveTimer = null;
 let lastDiscovery = "";
+let linkStatsVisible = false;
 
 // ページ読み込み後、すぐにアプリを起動します。
 init();
@@ -293,6 +296,7 @@ function renderAll() {
   renderNoteMeta();
   renderRelated();
   renderDiscovery();
+  renderLinkStats();
 }
 
 // RPG風の知識レベル欄を更新します。
@@ -452,6 +456,7 @@ function renderPreview() {
   if (!note) {
     preview.innerHTML = "";
     renderLinkList();
+    renderLinkStats();
     return;
   }
 
@@ -464,8 +469,102 @@ function renderPreview() {
     button.addEventListener("click", () => openOrCreateLinkedNote(button.dataset.title));
   });
   renderLinkList();
+  renderLinkStats();
 }
 
+function collectLinkStats() {
+  const current = currentNote();
+  const effectiveNotes = notes.map((note) => {
+    if (!current || note.id !== current.id) return note;
+    return {
+      ...note,
+      title: titleInput.value || titleFromBody(editor.value) || "無題メモ",
+      body: editor.value
+    };
+  });
+
+  const titleSet = new Set(effectiveNotes.map((note) => note.title.trim()));
+  const stats = new Map();
+
+  effectiveNotes.forEach((note) => {
+    const seenInNote = new Set();
+    extractLinks(note.body).forEach((rawTitle) => {
+      const title = rawTitle.trim();
+      if (!title) return;
+
+      const entry = stats.get(title) || { title, count: 0, noteCount: 0, missing: false };
+      entry.count += 1;
+      if (!seenInNote.has(title)) {
+        entry.noteCount += 1;
+        seenInNote.add(title);
+      }
+      stats.set(title, entry);
+    });
+  });
+
+  return [...stats.values()]
+    .map((item) => ({
+      ...item,
+      missing: !titleSet.has(item.title)
+    }))
+    .sort((a, b) => b.count - a.count || b.noteCount - a.noteCount || a.title.localeCompare(b.title));
+}
+
+function renderLinkStats() {
+  if (!linkStatsPanel) return;
+  if (!linkStatsVisible) {
+    linkStatsPanel.innerHTML = "";
+    return;
+  }
+
+  const stats = collectLinkStats();
+  if (!stats.length) {
+    linkStatsPanel.innerHTML = `<div class="empty">[[語句]] の統計はまだありません。</div>`;
+    return;
+  }
+
+  linkStatsPanel.innerHTML = `
+    <div class="link-stats-header">
+      <strong>語句統計</strong>
+      <button id="closeLinkStatsBtn" class="link-stats-close" title="閉じる">×</button>
+    </div>
+    <div class="link-stats-table">
+      <div class="link-stats-row link-stats-heading">
+        <span>語句</span>
+        <span>使用回数</span>
+        <span>使用メモ数</span>
+        <span>状態</span>
+      </div>
+      ${stats
+        .map(
+          (item) => `
+        <div class="link-stats-row">
+          <span>${escapeHtml(item.title)}</span>
+          <span>${item.count}</span>
+          <span>${item.noteCount}</span>
+          <span>${item.missing ? "未作成" : "既存"}</span>
+        </div>
+      `
+        )
+        .join("")}
+    </div>
+  `;
+
+  const closeButton = $("closeLinkStatsBtn");
+  if (closeButton) {
+    closeButton.addEventListener("click", () => {
+      linkStatsVisible = false;
+      if (linkStatsBtn) linkStatsBtn.classList.remove("active");
+      renderLinkStats();
+    });
+  }
+}
+
+function toggleLinkStats() {
+  linkStatsVisible = !linkStatsVisible;
+  if (linkStatsBtn) linkStatsBtn.classList.toggle("active", linkStatsVisible);
+  renderLinkStats();
+}
 function renderLinkList() {
   const note = currentNote();
   const linkList = $("linkList");
@@ -849,6 +948,8 @@ if (importAiBtn && importAiInput) {
     }
   });
 }
+
+linkStatsBtn.addEventListener("click", () => toggleLinkStats());
 
 graphBtn.addEventListener("click", () => {
   graphDialog.showModal();

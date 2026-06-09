@@ -67,7 +67,7 @@ button:hover {
 
 .toolbar {
   display: grid;
-  grid-template-columns: 42px 1fr 54px 68px 42px;
+  grid-template-columns: repeat(6, minmax(42px, auto));
   gap: 8px;
   padding: 12px;
   border-bottom: 1px solid var(--line);
@@ -287,6 +287,61 @@ button:hover {
 
 .link-chip:hover {
   border-color: var(--accent);
+}
+
+.toolbar button.active {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.link-stats {
+  padding: 16px 18px 22px;
+  border-top: 1px solid var(--line);
+  background: #f9fbfa;
+}
+
+.link-stats-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+  font-size: 14px;
+}
+
+.link-stats-close {
+  min-width: 36px;
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: #fff;
+}
+
+.link-stats-table {
+  display: grid;
+  gap: 8px;
+}
+
+.link-stats-row {
+  display: grid;
+  grid-template-columns: 1.7fr 0.8fr 0.8fr 0.9fr;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #ffffff;
+  align-items: center;
+}
+
+.link-stats-heading {
+  font-weight: 700;
+  color: var(--muted);
+  background: var(--paper);
+}
+
+.link-stats-row span {
+  overflow-wrap: anywhere;
 }
 
 .wiki-link {
