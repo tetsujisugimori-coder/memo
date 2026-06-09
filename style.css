@@ -256,6 +256,39 @@ button:hover {
   white-space: pre-wrap;
 }
 
+.link-list {
+  padding: 0 18px 18px;
+  border-top: 1px solid var(--line);
+  margin-top: -1px;
+}
+
+.link-list-header {
+  margin: 0 0 10px;
+  font-size: 13px;
+  color: var(--muted);
+  letter-spacing: 0.03em;
+}
+
+.link-chip-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.link-chip {
+  border: 1px solid var(--line);
+  background: var(--accent-soft);
+  color: var(--accent);
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.link-chip:hover {
+  border-color: var(--accent);
+}
+
 .wiki-link {
   border: 0;
   border-bottom: 1px solid currentColor;

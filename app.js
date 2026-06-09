@@ -451,6 +451,7 @@ function renderPreview() {
   const note = currentNote();
   if (!note) {
     preview.innerHTML = "";
+    renderLinkList();
     return;
   }
 
@@ -460,6 +461,30 @@ function renderPreview() {
     : `<p class="empty">本文を書くとカード表示されます。</p>`;
 
   preview.querySelectorAll(".wiki-link").forEach((button) => {
+    button.addEventListener("click", () => openOrCreateLinkedNote(button.dataset.title));
+  });
+  renderLinkList();
+}
+
+function renderLinkList() {
+  const note = currentNote();
+  const linkList = $("linkList");
+  if (!note) {
+    linkList.innerHTML = "";
+    return;
+  }
+
+  const links = [...new Set(extractLinks(note.body))];
+  linkList.innerHTML = links.length
+    ? `
+      <div class="link-list-header">[[語句一覧]]</div>
+      <div class="link-chip-list">
+        ${links.map((title) => `<button class="link-chip" data-title="${escapeAttr(title)}">${escapeHtml(title)}</button>`).join("")}
+      </div>
+    `
+    : `<div class="empty">[[語句]]を本文に書くと、ここに一覧が表示されます。</div>`;
+
+  linkList.querySelectorAll(".link-chip").forEach((button) => {
     button.addEventListener("click", () => openOrCreateLinkedNote(button.dataset.title));
   });
 }
