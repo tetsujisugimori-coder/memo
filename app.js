@@ -472,6 +472,19 @@ function renderPreview() {
   renderLinkStats();
 }
 
+function countPhraseOccurrences(text, phrase) {
+  if (!phrase) return 0;
+  let count = 0;
+  let index = 0;
+  while (true) {
+    index = text.indexOf(phrase, index);
+    if (index === -1) break;
+    count += 1;
+    index += phrase.length;
+  }
+  return count;
+}
+
 function collectLinkStats() {
   const current = currentNote();
   const effectiveNotes = notes.map((note) => {
@@ -484,16 +497,26 @@ function collectLinkStats() {
   });
 
   const titleSet = new Set(effectiveNotes.map((note) => note.title.trim()));
-  const stats = new Map();
-
+  const candidateTitles = new Set();
   effectiveNotes.forEach((note) => {
-    const seenInNote = new Set();
     extractLinks(note.body).forEach((rawTitle) => {
       const title = rawTitle.trim();
-      if (!title) return;
+      if (title) candidateTitles.add(title);
+    });
+  });
+  titleSet.forEach((title) => {
+    if (title) candidateTitles.add(title);
+  });
+
+  const stats = new Map();
+  effectiveNotes.forEach((note) => {
+    const seenInNote = new Set();
+    candidateTitles.forEach((title) => {
+      const count = countPhraseOccurrences(note.body, title);
+      if (!count) return;
 
       const entry = stats.get(title) || { title, count: 0, noteCount: 0, missing: false };
-      entry.count += 1;
+      entry.count += count;
       if (!seenInNote.has(title)) {
         entry.noteCount += 1;
         seenInNote.add(title);
