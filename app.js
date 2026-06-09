@@ -505,10 +505,7 @@ function collectLinkStats() {
       if (title) candidateTitles.add(title);
     });
   });
-  // 既存メモのタイトルも候補に追加
-  titleSet.forEach((title) => {
-    if (title) candidateTitles.add(title);
-  });
+  // 候補は本文中の [[...]] のみとする（既存タイトルは missing 判定にのみ使う）
 
   const stats = new Map();
   effectiveNotes.forEach((note) => {
