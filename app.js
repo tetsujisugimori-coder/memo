@@ -39,6 +39,8 @@ let currentId = null;
 let saveTimer = null;
 let lastDiscovery = "";
 let linkStatsVisible = false;
+let saveStatusState = "saved";
+let saveStatusTime = null;
 
 // ページ読み込み後、すぐにアプリを起動します。
 init();
@@ -354,7 +356,7 @@ function openNote(id) {
   currentId = note.id;
   titleInput.value = note.title;
   editor.value = note.body;
-  saveStatus.textContent = "保存済み";
+  setSaveStatus("saved", note.updatedAt);
   renderNoteMeta();
   renderList();
   renderPreview();
@@ -371,7 +373,7 @@ function currentNote() {
 // 入力のたびに即保存すると重いので、少し待ってから保存する予約をします。
 function scheduleSave() {
   clearTimeout(saveTimer);
-  saveStatus.textContent = "保存中...";
+  setSaveStatus("editing");
   saveTimer = setTimeout(saveCurrentNote, 280);
   renderPreview();
   renderRelated();
@@ -383,6 +385,7 @@ async function saveCurrentNote() {
   const note = currentNote();
   if (!note) return;
 
+  setSaveStatus("saving");
   const beforeLinks = collectLinks(notes).length;
   const nextBody = editor.value;
   const bodyChanged = note.body !== nextBody;
@@ -392,18 +395,23 @@ async function saveCurrentNote() {
   if (!note.bodyUpdatedAt || bodyChanged) note.bodyUpdatedAt = Date.now();
   note.updatedAt = Date.now();
 
-  await putNote(note);
-  notes = await getAllNotes();
-  currentId = note.id;
+  try {
+    await putNote(note);
+    notes = await getAllNotes();
+    currentId = note.id;
 
-  const afterLinks = collectLinks(notes).length;
-  if (afterLinks > beforeLinks) {
-    lastDiscovery = buildDiscoveryMessage(note);
+    const afterLinks = collectLinks(notes).length;
+    if (afterLinks > beforeLinks) {
+      lastDiscovery = buildDiscoveryMessage(note);
+    }
+
+    titleInput.value = note.title;
+    setSaveStatus("saved", note.updatedAt);
+    renderAll();
+  } catch (error) {
+    setSaveStatus("error");
+    throw error;
   }
-
-  titleInput.value = note.title;
-  saveStatus.textContent = "保存済み";
-  renderAll();
 }
 
 async function deleteCurrentNote() {
@@ -911,6 +919,53 @@ function formatDateTime(value) {
   return `${date.getFullYear()}/${String(date.getMonth() + 1).padStart(2, "0")}/${String(date.getDate()).padStart(2, "0")} ${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
 }
 
+function setSaveStatus(state, savedAt = saveStatusTime) {
+  saveStatusState = state;
+  if (state === "saved") {
+    saveStatusTime = savedAt || Date.now();
+  }
+  renderSaveStatus();
+}
+
+function renderSaveStatus() {
+  if (saveStatusState === "editing") {
+    saveStatus.textContent = "編集中...";
+    return;
+  }
+
+  if (saveStatusState === "saving") {
+    saveStatus.textContent = "保存中...";
+    return;
+  }
+
+  if (saveStatusState === "error") {
+    saveStatus.textContent = "保存エラー";
+    return;
+  }
+
+  saveStatus.textContent = isCompactSaveStatus()
+    ? `保存済み ${formatSavedTime(saveStatusTime)}`
+    : `保存済み: ${formatSavedDateTime(saveStatusTime)}`;
+}
+
+function isCompactSaveStatus() {
+  return window.matchMedia("(max-width: 980px)").matches;
+}
+
+function formatSavedDateTime(value) {
+  const date = new Date(value || Date.now());
+  return `${date.getFullYear()}-${padDatePart(date.getMonth() + 1)}-${padDatePart(date.getDate())} ${formatSavedTime(date)}`;
+}
+
+function formatSavedTime(value) {
+  const date = value instanceof Date ? value : new Date(value || Date.now());
+  return `${padDatePart(date.getHours())}:${padDatePart(date.getMinutes())}:${padDatePart(date.getSeconds())}`;
+}
+
+function padDatePart(value) {
+  return String(value).padStart(2, "0");
+}
+
 // バックアップZIP名に使う日付文字列を作ります。
 function todayStamp() {
   const now = new Date();
@@ -983,3 +1038,4 @@ closeGraphBtn.addEventListener("click", () => graphDialog.close());
 searchInput.addEventListener("input", renderList);
 titleInput.addEventListener("input", scheduleSave);
 editor.addEventListener("input", scheduleSave);
+window.addEventListener("resize", renderSaveStatus);

@@ -27,14 +27,16 @@
     <section class="editor-card">
       <div class="title-row">
         <input id="titleInput" class="title-input" placeholder="無題メモ" autocomplete="off">
-        <div id="noteMeta" class="note-meta"></div>
+        <div class="title-side">
+          <div id="saveStatus" class="save-status">保存済み</div>
+          <div id="noteMeta" class="note-meta"></div>
+        </div>
       </div>
       <textarea id="editor" placeholder="すぐ書けます。[[足利尊氏]] のように書くとリンクになります。"></textarea>
     </section>
     <section class="preview-card">
       <div class="preview-head">
         <span>カード表示</span>
-        <span id="saveStatus">保存済み</span>
       </div>
       <div id="preview" class="preview"></div>
       <div id="linkList" class="link-list"></div>
