@@ -16,6 +16,13 @@ const linkStatsBtn = $("linkStatsBtn");
 const deleteBtn = $("deleteBtn");
 const importAiBtn = $("importAiBtn");
 const importAiInput = $("importAiInput");
+const pasteJsonBtn = $("pasteJsonBtn");
+const jsonImportDialog = $("jsonImportDialog");
+const closeJsonImportBtn = $("closeJsonImportBtn");
+const cancelJsonImportBtn = $("cancelJsonImportBtn");
+const runJsonImportBtn = $("runJsonImportBtn");
+const jsonImportText = $("jsonImportText");
+const jsonImportError = $("jsonImportError");
 const closeGraphBtn = $("closeGraphBtn");
 const searchInput = $("searchInput");
 const levelPanel = $("levelPanel");
@@ -117,6 +124,148 @@ async function importAiNewsFile(file) {
   renderAll();
   openNote(note.id);
   saveStatus.textContent = "AI朝刊を取り込みました";
+}
+
+async function importPastedItNewsJson() {
+  clearJsonImportError();
+  const text = jsonImportText.value.trim();
+  if (!text) {
+    showJsonImportError("JSONを貼り付けてください。");
+    return;
+  }
+
+  let built;
+  try {
+    built = buildItNewsNotes(parseItNewsJson(text));
+  } catch (error) {
+    showJsonImportError(error.message);
+    return;
+  }
+
+  try {
+    await saveCurrentNote();
+    const createdItems = [];
+    for (const item of built.items) {
+      createdItems.push(await createNote(item.title, item.body));
+    }
+    const parentNote = await createNote(built.parent.title, built.parent.body);
+    notes = await getAllNotes();
+    renderAll();
+    openNote(parentNote.id);
+    closeJsonImportDialog();
+    saveStatus.textContent = `${createdItems.length}件のニュースメモを作成しました`;
+  } catch (error) {
+    showJsonImportError(`保存に失敗しました: ${error.message}`);
+  }
+}
+
+function parseItNewsJson(text) {
+  try {
+    const payload = JSON.parse(text);
+    if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+      throw new Error("JSONのルートはオブジェクトにしてください。");
+    }
+    if (!Array.isArray(payload.items)) {
+      throw new Error("items が存在しない、または配列ではありません。");
+    }
+    if (!payload.items.length) {
+      throw new Error("items にニュースがありません。");
+    }
+    return payload;
+  } catch (error) {
+    if (error instanceof SyntaxError) {
+      throw new Error(`JSONの解析に失敗しました: ${error.message}`);
+    }
+    throw error;
+  }
+}
+
+function buildItNewsNotes(payload) {
+  const date = String(payload.date || todayStampDashed()).trim();
+  const parentTitle = `IT技術ニュース ${date}`;
+  const items = payload.items.map(normalizeItNewsItem);
+  const missingTitleIndex = items.findIndex((item) => !item.title);
+  if (missingTitleIndex >= 0) {
+    throw new Error(`items[${missingTitleIndex}] の title が空です。`);
+  }
+
+  return {
+    parent: {
+      title: parentTitle,
+      body: buildItNewsParentBody(parentTitle, payload.trend_summary || payload.trendSummary || "", items)
+    },
+    items: items.map((item) => ({
+      title: item.title,
+      body: buildItNewsItemBody(item, date)
+    }))
+  };
+}
+
+function normalizeItNewsItem(item) {
+  const source = item && typeof item === "object" ? item : {};
+  return {
+    title: String(source.title || "").trim(),
+    category: String(source.category || "").trim(),
+    summary: String(source.summary || "").trim(),
+    impact: String(source.impact || "").trim(),
+    urgency: String(source.urgency || "").trim(),
+    source: String(source.source || "").trim()
+  };
+}
+
+function buildItNewsItemBody(item, date) {
+  return [
+    `# ${item.title}`,
+    "",
+    `日付: ${date}`,
+    `カテゴリ: ${item.category}`,
+    `緊急度: ${item.urgency}`,
+    `タグ: #ITニュース ${categoryTag(item.category)}`,
+    "",
+    "## 要約",
+    item.summary,
+    "",
+    "## 実務への影響",
+    item.impact,
+    "",
+    "## 情報源",
+    item.source
+  ].join("\n").trim();
+}
+
+function buildItNewsParentBody(title, trendSummary, items) {
+  return [
+    `# ${title}`,
+    "",
+    "## 全体傾向",
+    String(trendSummary || "").trim(),
+    "",
+    "## 個別ニュース",
+    ...items.map((item) => `- ${item.title}`)
+  ].join("\n").trim();
+}
+
+function categoryTag(category) {
+  const clean = String(category || "").replace(/\s+/g, "");
+  return clean ? `#${clean}` : "#未分類";
+}
+
+function openJsonImportDialog() {
+  clearJsonImportError();
+  jsonImportDialog.showModal();
+  jsonImportText.focus();
+}
+
+function closeJsonImportDialog() {
+  jsonImportDialog.close();
+}
+
+function showJsonImportError(message) {
+  jsonImportError.textContent = message;
+}
+
+function clearJsonImportError() {
+  jsonImportError.textContent = "";
 }
 
 function parseImportedNote(fileName, text) {
@@ -1025,6 +1174,12 @@ if (importAiBtn && importAiInput) {
       importAiInput.value = "";
     }
   });
+}
+if (pasteJsonBtn && jsonImportDialog) {
+  pasteJsonBtn.addEventListener("click", openJsonImportDialog);
+  closeJsonImportBtn.addEventListener("click", closeJsonImportDialog);
+  cancelJsonImportBtn.addEventListener("click", closeJsonImportDialog);
+  runJsonImportBtn.addEventListener("click", importPastedItNewsJson);
 }
 
 linkStatsBtn.addEventListener("click", () => toggleLinkStats());
