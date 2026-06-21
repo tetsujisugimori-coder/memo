@@ -162,6 +162,15 @@ button:hover {
   text-align: center;
 }
 
+.app-version-mobile {
+  display: none;
+}
+
+.app-version-desktop {
+  padding: 0 0 10px;
+  text-align: left;
+}
+
 .memo-item {
   width: 100%;
   margin-bottom: 8px;
@@ -589,5 +598,13 @@ button:hover {
 
   .related-panel {
     border-top: 1px solid var(--line);
+  }
+
+  .app-version-mobile {
+    display: block;
+  }
+
+  .app-version-desktop {
+    display: none;
   }
 }

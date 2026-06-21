@@ -37,7 +37,7 @@ const noteMeta = $("noteMeta");
 const editor = $("editor");
 const preview = $("preview");
 const saveStatus = $("saveStatus");
-const appVersion = $("appVersion");
+const appVersionDisplays = document.querySelectorAll(".app-version");
 const storageWarning = $("storageWarning");
 const relatedList = $("relatedList");
 const discoveryPanel = $("discoveryPanel");
@@ -63,9 +63,9 @@ init();
 async function init() {
   console.log(`Memo Nexus v${APP_VERSION} "${APP_LABEL}" (${APP_BUILD})`);
   console.log("Memo Nexus URL:", location.href);
-  if (appVersion) {
-    appVersion.textContent = `v${APP_VERSION} "${APP_LABEL}"`;
-  }
+  appVersionDisplays.forEach((element) => {
+    element.textContent = `v${APP_VERSION} "${APP_LABEL}"`;
+  });
 
   const localStorageAvailable = checkLocalStorageAvailable();
   db = await openDb();
