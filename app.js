@@ -3,6 +3,8 @@
 const DB_NAME = "memo-nexus";
 const STORE_NAME = "notes";
 const DB_VERSION = 1;
+const DRAFT_STORAGE_KEY = "memo-nexus-current-draft";
+const DRAFT_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
 
 // HTML要素を短く取得するための小さなヘルパー。
 const $ = (id) => document.getElementById(id);
@@ -56,9 +58,18 @@ init();
 async function init() {
   db = await openDb();
   notes = await getAllNotes();
+  console.log("IndexedDB notes count", notes.length);
+  const restoredDraftId = await restoreCurrentDraftMirror();
+  if (restoredDraftId) {
+    notes = await getAllNotes();
+  }
   await ensureStartupNotes();
   renderAll();
-  openNote(getTodayNote().id);
+  const restoredNote = restoredDraftId && notes.find((note) => note.id === restoredDraftId);
+  openNote(restoredNote ? restoredNote.id : getTodayNote().id);
+  if (restoredNote) {
+    saveStatus.textContent = "前回の編集中メモを復元しました";
+  }
   titleInput.focus();
   titleInput.select();
 }
@@ -115,6 +126,103 @@ function deleteNote(id) {
     transaction.onerror = () => reject(transaction.error || request.error);
     transaction.onabort = () => reject(transaction.error || request.error);
   });
+}
+
+// 現在編集中の1件だけを、IndexedDB保存前の保険としてlocalStorageへ退避します。
+function saveCurrentDraftMirror() {
+  const note = currentNote();
+  if (!note) return;
+
+  const now = Date.now();
+  const draft = {
+    id: note.id,
+    title: titleInput.value || titleFromBody(editor.value) || "無題メモ",
+    body: editor.value,
+    createdAt: note.createdAt || now,
+    bodyUpdatedAt: now,
+    updatedAt: now,
+    draftSavedAt: now
+  };
+
+  try {
+    localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draft));
+    console.log("Draft mirror saved", { id: draft.id, title: draft.title });
+  } catch (error) {
+    console.warn("Draft mirror save failed", error);
+  }
+}
+
+// IndexedDBより新しいドラフトだけを復元し、古すぎるものは削除します。
+async function restoreCurrentDraftMirror() {
+  let rawDraft;
+  try {
+    rawDraft = localStorage.getItem(DRAFT_STORAGE_KEY);
+  } catch (error) {
+    console.warn("Draft mirror read failed", error);
+    return null;
+  }
+
+  if (!rawDraft) return null;
+
+  let draft;
+  try {
+    draft = JSON.parse(rawDraft);
+  } catch (error) {
+    console.warn("Draft mirror parse failed", error);
+    return null;
+  }
+
+  if (!draft || typeof draft !== "object" || !draft.id) return null;
+
+  const now = Date.now();
+  const draftSavedAt = Number(draft.draftSavedAt);
+  if (Number.isFinite(draftSavedAt) && now - draftSavedAt >= DRAFT_MAX_AGE_MS) {
+    try {
+      localStorage.removeItem(DRAFT_STORAGE_KEY);
+      console.log("Old draft mirror removed", { id: draft.id });
+    } catch (error) {
+      console.warn("Old draft mirror removal failed", error);
+    }
+    return null;
+  }
+
+  const existingNote = notes.find((note) => note.id === draft.id);
+  if (existingNote && (!Number.isFinite(draftSavedAt) || draftSavedAt <= Number(existingNote.updatedAt || 0))) {
+    return null;
+  }
+
+  const draftUpdatedAt = Number(draft.updatedAt);
+  const restoredUpdatedAt = Math.max(
+    Number.isFinite(draftUpdatedAt) ? draftUpdatedAt : 0,
+    Number.isFinite(draftSavedAt) ? draftSavedAt : now
+  );
+  const restoredNote = {
+    ...(existingNote || {}),
+    id: draft.id,
+    title: String(draft.title || "無題メモ"),
+    body: String(draft.body || ""),
+    createdAt: draft.createdAt || existingNote?.createdAt || now,
+    bodyUpdatedAt: draft.bodyUpdatedAt || restoredUpdatedAt,
+    updatedAt: restoredUpdatedAt
+  };
+
+  await putNote(restoredNote);
+  console.log("Draft mirror restored", { id: restoredNote.id, title: restoredNote.title });
+  return restoredNote.id;
+}
+
+// 削除したメモが次回起動時にドラフトから復活しないよう、一致する1件だけを消します。
+function removeDraftMirrorForNote(id) {
+  try {
+    const rawDraft = localStorage.getItem(DRAFT_STORAGE_KEY);
+    if (!rawDraft) return;
+    const draft = JSON.parse(rawDraft);
+    if (draft?.id === id) {
+      localStorage.removeItem(DRAFT_STORAGE_KEY);
+    }
+  } catch (error) {
+    console.warn("Draft mirror removal failed", error);
+  }
 }
 
 async function importAiNewsFile(file) {
@@ -525,6 +633,7 @@ function currentNote() {
 
 // 入力のたびに即保存すると重いので、少し待ってから保存する予約をします。
 function scheduleSave() {
+  saveCurrentDraftMirror();
   clearTimeout(saveTimer);
   setSaveStatus("editing");
   saveTimer = setTimeout(() => {
@@ -593,6 +702,7 @@ async function deleteCurrentNote() {
   saveStatus.textContent = "削除中...";
 
   await deleteNote(note.id);
+  removeDraftMirrorForNote(note.id);
   notes = await getAllNotes();
 
   if (!notes.length) {
@@ -1250,6 +1360,7 @@ titleInput.addEventListener("input", scheduleSave);
 editor.addEventListener("input", scheduleSave);
 window.addEventListener("resize", renderSaveStatus);
 window.addEventListener("pagehide", () => {
+  saveCurrentDraftMirror();
   if (saveTimer) {
     clearTimeout(saveTimer);
     saveTimer = null;
@@ -1257,9 +1368,12 @@ window.addEventListener("pagehide", () => {
   }
 });
 document.addEventListener("visibilitychange", () => {
-  if (document.visibilityState === "hidden" && saveTimer) {
-    clearTimeout(saveTimer);
-    saveTimer = null;
-    saveCurrentNote().catch((error) => console.error("Hidden page save failed", error));
+  if (document.visibilityState === "hidden") {
+    saveCurrentDraftMirror();
+    if (saveTimer) {
+      clearTimeout(saveTimer);
+      saveTimer = null;
+      saveCurrentNote().catch((error) => console.error("Hidden page save failed", error));
+    }
   }
 });
