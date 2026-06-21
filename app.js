@@ -99,17 +99,21 @@ function getAllNotes() {
 // メモを1件保存します。idが同じなら上書き、なければ新規追加になります。
 function putNote(note) {
   return new Promise((resolve, reject) => {
-    const request = tx("readwrite").put(note);
-    request.onsuccess = () => resolve(note);
-    request.onerror = () => reject(request.error);
+    const transaction = db.transaction(STORE_NAME, "readwrite");
+    const request = transaction.objectStore(STORE_NAME).put(note);
+    transaction.oncomplete = () => resolve(note);
+    transaction.onerror = () => reject(transaction.error || request.error);
+    transaction.onabort = () => reject(transaction.error || request.error);
   });
 }
 
 function deleteNote(id) {
   return new Promise((resolve, reject) => {
-    const request = tx("readwrite").delete(id);
-    request.onsuccess = () => resolve();
-    request.onerror = () => reject(request.error);
+    const transaction = db.transaction(STORE_NAME, "readwrite");
+    const request = transaction.objectStore(STORE_NAME).delete(id);
+    transaction.oncomplete = () => resolve();
+    transaction.onerror = () => reject(transaction.error || request.error);
+    transaction.onabort = () => reject(transaction.error || request.error);
   });
 }
 
@@ -523,10 +527,22 @@ function currentNote() {
 function scheduleSave() {
   clearTimeout(saveTimer);
   setSaveStatus("editing");
-  saveTimer = setTimeout(saveCurrentNote, 280);
+  saveTimer = setTimeout(() => {
+    saveTimer = null;
+    saveCurrentNote().catch((error) => console.error("Scheduled save failed", error));
+  }, 280);
   renderPreview();
   renderRelated();
   renderLevel();
+}
+
+// 遅延保存の予約を解除し、現在の入力内容をすぐに保存します。
+async function flushSave() {
+  if (saveTimer) {
+    clearTimeout(saveTimer);
+    saveTimer = null;
+  }
+  await saveCurrentNote();
 }
 
 // タイトルと本文を現在のメモへ反映し、IndexedDBへ保存します。
@@ -546,6 +562,7 @@ async function saveCurrentNote() {
 
   try {
     await putNote(note);
+    console.log("Memo saved", { id: note.id, title: note.title });
     notes = await getAllNotes();
     currentId = note.id;
 
@@ -571,6 +588,7 @@ async function deleteCurrentNote() {
   if (!confirmed) return;
 
   clearTimeout(saveTimer);
+  saveTimer = null;
   const currentIndex = notes.findIndex((item) => item.id === note.id);
   saveStatus.textContent = "削除中...";
 
@@ -903,11 +921,16 @@ function buildDiscoveryMessage(note) {
 
 // 全メモをMarkdownファイルに変換し、ZIPとしてダウンロードします。
 async function downloadMarkdownZip() {
-  await saveCurrentNote();
-  const files = notes.map((note) => ({
+  await flushSave();
+  const files = uniqueZipFileNames(notes.map((note) => ({
     name: `${safeFileName(note.title)}.md`,
-    content: `# ${note.title}\n\n${note.body}\n`
-  }));
+    content: `# ${note.title}\n\n${note.body}\n`,
+    updatedAt: note.bodyUpdatedAt || note.updatedAt || note.createdAt || Date.now()
+  })));
+  console.log("ZIP backup", {
+    fileCount: files.length,
+    fileNames: files.map((file) => file.name)
+  });
   const blob = makeZip(files);
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
@@ -929,12 +952,13 @@ function makeZip(files) {
     const data = encoder.encode(file.content);
     const crc = crc32(data);
     const utf8Flag = 0x0800;
+    const { dosTime, dosDate } = zipDosDateTime(file.updatedAt);
     const local = concatBytes([
-      u32(0x04034b50), u16(20), u16(utf8Flag), u16(0), u16(0), u16(0),
+      u32(0x04034b50), u16(20), u16(utf8Flag), u16(0), u16(dosTime), u16(dosDate),
       u32(crc), u32(data.length), u32(data.length), u16(name.length), u16(0), name, data
     ]);
     const central = concatBytes([
-      u32(0x02014b50), u16(20), u16(20), u16(utf8Flag), u16(0), u16(0), u16(0),
+      u32(0x02014b50), u16(20), u16(20), u16(utf8Flag), u16(0), u16(dosTime), u16(dosDate),
       u32(crc), u32(data.length), u32(data.length), u16(name.length), u16(0),
       u16(0), u16(0), u16(0), u32(0), u32(offset), name
     ]);
@@ -1047,6 +1071,37 @@ function drawGraph() {
 // Markdownファイル名として危ない文字を置き換えます。
 function safeFileName(name) {
   return name.replace(/[\\/:*?"<>|]/g, "_").slice(0, 80) || "untitled";
+}
+
+// 同名タイトルや置換後に同名になるファイルへ連番を付けます。
+function uniqueZipFileNames(items) {
+  const usedNames = new Set();
+
+  return items.map((item) => {
+    const extensionIndex = item.name.lastIndexOf(".");
+    const baseName = extensionIndex > 0 ? item.name.slice(0, extensionIndex) : item.name;
+    const extension = extensionIndex > 0 ? item.name.slice(extensionIndex) : "";
+    let name = item.name;
+    let suffix = 2;
+
+    while (usedNames.has(name.toLocaleLowerCase())) {
+      name = `${baseName}-${suffix}${extension}`;
+      suffix += 1;
+    }
+
+    usedNames.add(name.toLocaleLowerCase());
+    return { ...item, name };
+  });
+}
+
+// JavaScriptの日時をZIPヘッダーで使うDOS日時へ変換します。
+function zipDosDateTime(value) {
+  const date = new Date(value);
+  const safe = value == null || Number.isNaN(date.getTime()) ? new Date() : date;
+  const year = Math.max(1980, safe.getFullYear());
+  const dosTime = (safe.getHours() << 11) | (safe.getMinutes() << 5) | Math.floor(safe.getSeconds() / 2);
+  const dosDate = ((year - 1980) << 9) | ((safe.getMonth() + 1) << 5) | safe.getDate();
+  return { dosTime, dosDate };
 }
 
 // タイトル右側に、作成日と本文の最終変更日時を表示します。
@@ -1194,3 +1249,17 @@ searchInput.addEventListener("input", renderList);
 titleInput.addEventListener("input", scheduleSave);
 editor.addEventListener("input", scheduleSave);
 window.addEventListener("resize", renderSaveStatus);
+window.addEventListener("pagehide", () => {
+  if (saveTimer) {
+    clearTimeout(saveTimer);
+    saveTimer = null;
+    saveCurrentNote().catch((error) => console.error("Page hide save failed", error));
+  }
+});
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "hidden" && saveTimer) {
+    clearTimeout(saveTimer);
+    saveTimer = null;
+    saveCurrentNote().catch((error) => console.error("Hidden page save failed", error));
+  }
+});
