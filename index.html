@@ -22,9 +22,11 @@
     <button id="pasteJsonBtn" class="import-json-button" title="JSONを貼り付けて取り込み">JSON取り込み</button>
     <div id="levelPanel" class="level-panel"></div>
     <div id="memoList" class="memo-list"></div>
+    <div id="appVersion" class="app-version"></div>
   </aside>
 
   <main class="workspace">
+    <div id="storageWarning" class="storage-warning" role="status" hidden></div>
     <section class="editor-card">
       <div class="title-row">
         <input id="titleInput" class="title-input" placeholder="無題メモ" autocomplete="off">

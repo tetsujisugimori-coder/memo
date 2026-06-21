@@ -149,8 +149,16 @@ button:hover {
 }
 
 .memo-list {
+  flex: 1;
   overflow-y: auto;
   padding: 0 12px 16px;
+}
+
+.app-version {
+  padding: 8px 12px 12px;
+  color: var(--muted);
+  font-size: 11px;
+  text-align: center;
 }
 
 .memo-item {
@@ -192,8 +200,30 @@ button:hover {
   height: 100vh;
   display: grid;
   grid-template-columns: minmax(320px, 1fr) minmax(280px, 0.8fr);
+  grid-template-rows: auto minmax(0, 1fr);
   gap: 16px;
   padding: 16px;
+}
+
+.storage-warning {
+  grid-column: 1 / -1;
+  padding: 9px 12px;
+  border: 1px solid #d8b46a;
+  border-radius: 8px;
+  background: #fff8e7;
+  color: #755116;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.storage-warning-strong {
+  border-color: #c87676;
+  background: #fff0f0;
+  color: var(--danger);
+}
+
+.storage-warning[hidden] {
+  display: none;
 }
 
 .editor-card,
@@ -536,6 +566,7 @@ button:hover {
     height: auto;
     min-height: 70vh;
     grid-template-columns: 1fr;
+    grid-template-rows: auto;
   }
 
   .title-row {

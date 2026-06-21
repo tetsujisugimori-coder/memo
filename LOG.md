@@ -73,3 +73,42 @@
 * ZIP内ファイル名の重複回避とZIPヘッダーのDOS日時が維持されていることを確認
 * `git diff --check` で差分の空白エラーがないことを確認
 * iPhone Safari/PWAでの実機確認は未実施
+
+## v0.3.1 "Draft Mirror" - 2026-06-21
+
+### 変更内容
+
+* アプリバージョン APP_VERSION / APP_LABEL / APP_BUILD を追加
+* 画面上に v0.3.1 "Draft Mirror" を表示
+* 起動時にバージョン、URL、IndexedDBメモ件数を console.log に出力
+* localStorage が利用可能か確認する checkLocalStorageAvailable() を追加
+* プライベートブラウズ、別タブグループ、Safari版とホーム画面PWA版の保存領域違いに関する注意表示を追加
+* 保存リスクがある場合、storageWarning に警告を表示
+* README.md にv0.3.1のバージョン表示と保存領域警告を追記
+
+### 修正理由
+
+* iPhone Safariでは通常ブラウズ、プライベートブラウズ、タブグループ、ホーム画面PWAで保存領域が分かれる場合があるため
+* メモが消えたように見えても、別の保存領域を見ているだけの場合があるため
+* 今後、ユーザーがプライベートブラウズや別領域で誤って使うことを避けるため
+* iPhoneで古いコードや別URLを開いているかを確認しやすくするため
+
+### 確認方法
+
+* PCブラウザでアプリを開き、画面上に v0.3.1 "Draft Mirror" が表示されること
+* console.log にバージョン、URL、IndexedDBメモ件数が表示されること
+* iPhone Safari通常ブラウズで開き、既存メモが残っていること
+* iPhone Safariプライベートブラウズ、または保存が不安定な環境では注意表示が出ること
+* ZIPバックアップの日付修正が維持されていること
+* 既存のメモ作成、編集、削除、検索、Markdownプレビュー、Wikiリンクが壊れていないこと
+
+### 確認結果
+
+* `node --check app.js` でJavaScript構文エラーがないことを確認
+* APP_VERSION / APP_LABEL / APP_BUILD と画面表示用要素が正しく設定されていることを確認
+* localStorage試し書きの成功・失敗と、失敗時の警告表示を確認
+* IndexedDBメモ件数が0～1件の場合は控えめな保存領域確認を表示し、通常件数では非表示になることを確認
+* DB_NAME / STORE_NAME / DB_VERSION が従来値のまま変更されていないことを確認
+* ZIPヘッダーのDOS日時処理が維持されていることを確認
+* `git diff --check` で差分の空白エラーがないことを確認
+* iPhone Safari/PWAでの実機確認は未実施

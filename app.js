@@ -3,6 +3,9 @@
 const DB_NAME = "memo-nexus";
 const STORE_NAME = "notes";
 const DB_VERSION = 1;
+const APP_VERSION = "0.3.1";
+const APP_LABEL = "Draft Mirror";
+const APP_BUILD = "2026-06-21";
 const DRAFT_STORAGE_KEY = "memo-nexus-current-draft";
 const DRAFT_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
 
@@ -34,6 +37,8 @@ const noteMeta = $("noteMeta");
 const editor = $("editor");
 const preview = $("preview");
 const saveStatus = $("saveStatus");
+const appVersion = $("appVersion");
+const storageWarning = $("storageWarning");
 const relatedList = $("relatedList");
 const discoveryPanel = $("discoveryPanel");
 const linkStatsPanel = $("linkStatsPanel");
@@ -56,9 +61,17 @@ init();
 
 // 起動処理。DBを開き、初期メモを用意し、今日メモを開いて即入力できる状態にします。
 async function init() {
+  console.log(`Memo Nexus v${APP_VERSION} "${APP_LABEL}" (${APP_BUILD})`);
+  console.log("Memo Nexus URL:", location.href);
+  if (appVersion) {
+    appVersion.textContent = `v${APP_VERSION} "${APP_LABEL}"`;
+  }
+
+  const localStorageAvailable = checkLocalStorageAvailable();
   db = await openDb();
   notes = await getAllNotes();
-  console.log("IndexedDB notes count", notes.length);
+  console.log("IndexedDB notes count:", notes.length);
+  warnIfStorageRisky(localStorageAvailable, notes.length);
   const restoredDraftId = await restoreCurrentDraftMirror();
   if (restoredDraftId) {
     notes = await getAllNotes();
@@ -72,6 +85,42 @@ async function init() {
   }
   titleInput.focus();
   titleInput.select();
+}
+
+// localStorageへ試し書きし、現在の保存領域で利用できるかを確認します。
+function checkLocalStorageAvailable() {
+  try {
+    const key = "memo-nexus-storage-test";
+    localStorage.setItem(key, "1");
+    localStorage.removeItem(key);
+    return true;
+  } catch (error) {
+    console.warn("localStorage unavailable", error);
+    return false;
+  }
+}
+
+// 保存領域が分かれている可能性を断定せず、必要な場合だけ画面上へ注意を表示します。
+function warnIfStorageRisky(localStorageAvailable, noteCount) {
+  if (!storageWarning) return;
+
+  if (!localStorageAvailable) {
+    storageWarning.textContent = "保存注意: この環境ではドラフト退避を利用できません。プライベートブラウズ、別タブグループ、ホーム画面版とSafari版の違いにより、メモが残らない・別保存になる場合があります。通常ブラウズ、または同じホーム画面アイコンから開いて使ってください。";
+    storageWarning.hidden = false;
+    storageWarning.classList.add("storage-warning-strong");
+    return;
+  }
+
+  if (noteCount <= 1) {
+    storageWarning.textContent = "保存領域の確認: メモ件数が少ない状態です。プライベートブラウズや別タブグループでは、メモが別保存に見える場合があります。普段と同じ開き方か確認してください。";
+    storageWarning.hidden = false;
+    storageWarning.classList.remove("storage-warning-strong");
+    return;
+  }
+
+  storageWarning.hidden = true;
+  storageWarning.textContent = "";
+  storageWarning.classList.remove("storage-warning-strong");
 }
 
 // IndexedDBを開きます。初回起動時だけnotesストアと検索用indexを作ります。
