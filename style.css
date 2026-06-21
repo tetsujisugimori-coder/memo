@@ -155,7 +155,8 @@ button:hover {
 }
 
 .app-version {
-  padding: 8px 12px 12px;
+  padding: 7px 12px;
+  border-bottom: 1px solid var(--line);
   color: var(--muted);
   font-size: 11px;
   text-align: center;
