@@ -112,7 +112,7 @@ function warnIfStorageRisky(localStorageAvailable, noteCount) {
   }
 
   if (noteCount <= 1) {
-    storageWarning.textContent = "保存領域の確認: メモ件数が少ない状態です。プライベートブラウズや別タブグループでは、メモが別保存に見える場合があります。普段と同じ開き方か確認してください。";
+    storageWarning.textContent = "保存注意：プライベートブラウズで開いている可能性があります。\n通常ブラウズ側のメモとは別に保存される場合があります。\nいつもと同じ開き方で開き直してください。";
     storageWarning.hidden = false;
     storageWarning.classList.remove("storage-warning-strong");
     return;
