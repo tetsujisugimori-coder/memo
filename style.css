@@ -67,14 +67,14 @@ button:hover {
 
 .toolbar {
   display: grid;
-  grid-template-columns: repeat(6, minmax(42px, auto));
+  grid-template-columns: repeat(auto-fit, minmax(54px, 1fr));
   gap: 8px;
   padding: 12px;
   border-bottom: 1px solid var(--line);
 }
 
 .toolbar button {
-  min-width: 56px;
+  min-width: 0;
 }
 
 .danger-button {
@@ -84,35 +84,6 @@ button:hover {
 .danger-button:hover {
   border-color: var(--danger);
   color: var(--danger);
-}
-
-.import-ai-fallback {
-  margin: 0 12px 12px;
-  border-style: dashed;
-  border-color: var(--accent);
-  background: var(--accent-soft);
-  color: var(--accent);
-  font-weight: 700;
-}
-
-.import-ai-fallback:hover {
-  border-color: var(--accent);
-  background: #eef8f9;
-  color: var(--accent);
-}
-
-.import-json-button {
-  margin: 0 12px 12px;
-  border-color: var(--accent);
-  background: #ffffff;
-  color: var(--accent);
-  font-weight: 700;
-}
-
-.import-json-button:hover {
-  border-color: var(--accent);
-  background: var(--accent-soft);
-  color: var(--accent);
 }
 
 #searchInput {
@@ -130,22 +101,6 @@ button:hover {
 #editor:focus {
   border-color: var(--accent);
   box-shadow: 0 0 0 3px var(--accent-soft);
-}
-
-.level-panel {
-  margin: 0 12px 12px;
-  padding: 12px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: var(--paper);
-  color: var(--muted);
-  line-height: 1.55;
-}
-
-.level-panel strong {
-  display: block;
-  color: var(--ink);
-  font-size: 15px;
 }
 
 .memo-list {
@@ -471,7 +426,8 @@ button:hover {
   line-height: 1.55;
 }
 
-#graphDialog {
+#graphDialog,
+.settings-dialog {
   width: min(960px, calc(100vw - 32px));
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -479,8 +435,14 @@ button:hover {
   background: var(--paper);
 }
 
-#graphDialog::backdrop {
+#graphDialog::backdrop,
+.settings-dialog::backdrop {
   background: rgba(20, 25, 22, 0.45);
+}
+
+.settings-dialog {
+  width: min(760px, calc(100vw - 32px));
+  max-height: calc(100vh - 32px);
 }
 
 .json-import-dialog {
@@ -504,7 +466,8 @@ button:hover {
   justify-content: space-between;
 }
 
-#closeGraphBtn {
+#closeGraphBtn,
+#closeSettingsBtn {
   width: 36px;
   font-size: 22px;
   line-height: 1;
@@ -514,6 +477,83 @@ button:hover {
   width: 36px;
   font-size: 22px;
   line-height: 1;
+}
+
+.settings-body {
+  display: grid;
+  gap: 12px;
+  max-height: calc(100vh - 82px);
+  overflow: auto;
+  padding: 14px;
+}
+
+.settings-section {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 12px;
+}
+
+.settings-section h2 {
+  margin: 0 0 10px;
+  color: var(--ink);
+  font-size: 15px;
+}
+
+.settings-details {
+  display: grid;
+  grid-template-columns: 132px minmax(0, 1fr);
+  gap: 8px 12px;
+  margin: 0;
+  color: var(--ink);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.settings-details dt {
+  color: var(--muted);
+}
+
+.settings-details dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.settings-note {
+  margin: 10px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.settings-note:empty {
+  display: none;
+}
+
+.settings-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.soon-button {
+  color: var(--muted);
+  cursor: not-allowed;
+}
+
+.soon-button span,
+.soon-list span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.soon-list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding-left: 18px;
+  color: var(--ink);
+  line-height: 1.5;
 }
 
 .json-import-body {
@@ -607,5 +647,14 @@ button:hover {
 
   .app-version-desktop {
     display: none;
+  }
+
+  .settings-details {
+    grid-template-columns: 1fr;
+    gap: 2px 0;
+  }
+
+  .settings-actions {
+    flex-direction: column;
   }
 }

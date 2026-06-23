@@ -18,10 +18,17 @@ const todayBtn = $("todayBtn");
 const backupBtn = $("backupBtn");
 const graphBtn = $("graphBtn");
 const linkStatsBtn = $("linkStatsBtn");
+const settingsBtn = $("settingsBtn");
 const deleteBtn = $("deleteBtn");
-const importAiBtn = $("importAiBtn");
 const importAiInput = $("importAiInput");
-const pasteJsonBtn = $("pasteJsonBtn");
+const settingsImportAiBtn = $("settingsImportAiBtn");
+const settingsPasteJsonBtn = $("settingsPasteJsonBtn");
+const settingsBackupBtn = $("settingsBackupBtn");
+const reloadAppBtn = $("reloadAppBtn");
+const settingsDialog = $("settingsDialog");
+const closeSettingsBtn = $("closeSettingsBtn");
+const storageStatusDetails = $("storageStatusDetails");
+const storageEstimateMessage = $("storageEstimateMessage");
 const jsonImportDialog = $("jsonImportDialog");
 const closeJsonImportBtn = $("closeJsonImportBtn");
 const cancelJsonImportBtn = $("cancelJsonImportBtn");
@@ -30,7 +37,6 @@ const jsonImportText = $("jsonImportText");
 const jsonImportError = $("jsonImportError");
 const closeGraphBtn = $("closeGraphBtn");
 const searchInput = $("searchInput");
-const levelPanel = $("levelPanel");
 const memoList = $("memoList");
 const titleInput = $("titleInput");
 const noteMeta = $("noteMeta");
@@ -603,31 +609,11 @@ function uniqueTitle(base) {
 
 // 画面全体の再描画をまとめて呼ぶ入口です。
 function renderAll() {
-  renderLevel();
   renderList();
   renderNoteMeta();
   renderRelated();
   renderDiscovery();
   renderLinkStats();
-}
-
-// RPG風の知識レベル欄を更新します。
-function renderLevel() {
-  const historyCount = notes.filter((note) => hasHistorySignal(note)).length;
-  const links = collectLinks(notes);
-  const connected = new Set(links.flatMap((link) => [link.from, link.to]));
-
-  levelPanel.innerHTML = `
-    <strong>知識レベル</strong>
-    歴史: ${historyCount}ノート<br>
-    接続: ${links.length}リンク<br>
-    発見済み: ${connected.size}項目
-  `;
-}
-
-// 歴史っぽい語句を含むメモ数をざっくり数えるための判定です。
-function hasHistorySignal(note) {
-  return /歴史|時代|幕府|天皇|戦国|鎌倉|室町|江戸|明治|太平記|足利|源氏|平氏/.test(`${note.title}\n${note.body}`);
 }
 
 // 左側のメモ一覧を描画します。検索欄に入力があればタイトル・本文から絞り込みます。
@@ -691,7 +677,6 @@ function scheduleSave() {
   }, 280);
   renderPreview();
   renderRelated();
-  renderLevel();
 }
 
 // 遅延保存の予約を解除し、現在の入力内容をすぐに保存します。
@@ -1340,6 +1325,54 @@ function todayStampDashed() {
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
 }
 
+async function openSettingsDialog() {
+  await renderStorageStatus();
+  settingsDialog.showModal();
+}
+
+async function renderStorageStatus() {
+  if (!storageStatusDetails || !storageEstimateMessage) return;
+
+  const rows = [
+    ["保存方式", "IndexedDB"],
+    ["DB名", DB_NAME],
+    ["ストア名", STORE_NAME],
+    ["メモ件数", `${notes.length}件`],
+    ["使用容量", "取得未対応"],
+    ["上限目安", "取得未対応"],
+    ["使用率", "取得未対応"],
+    ["アプリバージョン", `v${APP_VERSION} "${APP_LABEL}" (${APP_BUILD})`],
+    ["現在のURL", location.href]
+  ];
+
+  storageEstimateMessage.textContent = "";
+
+  if (navigator.storage && typeof navigator.storage.estimate === "function") {
+    try {
+      const estimate = await navigator.storage.estimate();
+      const usage = estimate.usage || 0;
+      const quota = estimate.quota || 0;
+      rows[4][1] = `${formatMegabytes(usage)} MB`;
+      rows[5][1] = quota ? `${formatMegabytes(quota)} MB` : "不明";
+      rows[6][1] = quota ? `${((usage / quota) * 100).toFixed(2)}%` : "不明";
+    } catch (error) {
+      console.warn("Storage estimate failed", error);
+      storageEstimateMessage.textContent = "保存容量を取得できませんでした";
+    }
+  } else {
+    storageEstimateMessage.textContent = "このブラウザでは保存容量の取得に対応していません";
+  }
+
+  storageStatusDetails.innerHTML = rows.map(([label, value]) => `
+    <dt>${escapeHtml(label)}</dt>
+    <dd>${escapeHtml(value)}</dd>
+  `).join("");
+}
+
+function formatMegabytes(bytes) {
+  return (bytes / 1024 / 1024).toFixed(2);
+}
+
 // ユーザー入力をHTMLへ混ぜる前に無害化します。
 function escapeHtml(value) {
   return String(value).replace(/[&<>"']/g, (char) => ({
@@ -1371,11 +1404,18 @@ todayBtn.addEventListener("click", async () => {
 });
 
 backupBtn.addEventListener("click", downloadMarkdownZip);
+settingsBtn.addEventListener("click", () => {
+  openSettingsDialog().catch((error) => {
+    console.error("Settings dialog failed", error);
+    alert(`設定を開けませんでした: ${error.message}`);
+  });
+});
+closeSettingsBtn.addEventListener("click", () => settingsDialog.close());
 if (deleteBtn) {
   deleteBtn.addEventListener("click", deleteCurrentNote);
 }
-if (importAiBtn && importAiInput) {
-  importAiBtn.addEventListener("click", () => importAiInput.click());
+if (settingsImportAiBtn && importAiInput) {
+  settingsImportAiBtn.addEventListener("click", () => importAiInput.click());
   importAiInput.addEventListener("change", async () => {
     const [file] = importAiInput.files || [];
     if (!file) return;
@@ -1389,11 +1429,20 @@ if (importAiBtn && importAiInput) {
     }
   });
 }
-if (pasteJsonBtn && jsonImportDialog) {
-  pasteJsonBtn.addEventListener("click", openJsonImportDialog);
+if (settingsPasteJsonBtn && jsonImportDialog) {
+  settingsPasteJsonBtn.addEventListener("click", () => {
+    settingsDialog.close();
+    openJsonImportDialog();
+  });
   closeJsonImportBtn.addEventListener("click", closeJsonImportDialog);
   cancelJsonImportBtn.addEventListener("click", closeJsonImportDialog);
   runJsonImportBtn.addEventListener("click", importPastedItNewsJson);
+}
+if (settingsBackupBtn) {
+  settingsBackupBtn.addEventListener("click", downloadMarkdownZip);
+}
+if (reloadAppBtn) {
+  reloadAppBtn.addEventListener("click", () => location.reload());
 }
 
 linkStatsBtn.addEventListener("click", () => toggleLinkStats());

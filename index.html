@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Memo Nexus</title>
-  <link rel="stylesheet" href="style.css?v=0.3.1-3">
+  <link rel="stylesheet" href="style.css?v=0.3.1-4">
 </head>
 <body>
   <aside class="sidebar">
@@ -14,14 +14,11 @@
       <button id="backupBtn" title="Markdown ZIP出力">ZIP</button>
       <button id="linkStatsBtn" title="語句統計">語句</button>
       <button id="graphBtn" title="グラフを開く">Graph</button>
+      <button id="settingsBtn" title="設定">設定</button>
       <button id="deleteBtn" class="danger-button" title="メモを削除">Del</button>
     </div>
     <div class="app-version app-version-mobile"></div>
     <input id="searchInput" type="search" placeholder="検索" autocomplete="off">
-    <button id="importAiBtn" class="import-ai-fallback" title="Import AI news">AI Import</button>
-    <input id="importAiInput" type="file" accept=".json,.md,.txt,application/json,text/markdown,text/plain" hidden>
-    <button id="pasteJsonBtn" class="import-json-button" title="JSONを貼り付けて取り込み">JSON取り込み</button>
-    <div id="levelPanel" class="level-panel"></div>
     <div id="memoList" class="memo-list"></div>
   </aside>
 
@@ -62,6 +59,53 @@
     <canvas id="graphCanvas" width="900" height="560"></canvas>
   </dialog>
 
+  <dialog id="settingsDialog" class="settings-dialog">
+    <div class="dialog-head">
+      <strong>設定</strong>
+      <button id="closeSettingsBtn" title="閉じる">×</button>
+    </div>
+    <div class="settings-body">
+      <section class="settings-section">
+        <h2>保存状態</h2>
+        <dl id="storageStatusDetails" class="settings-details"></dl>
+        <p id="storageEstimateMessage" class="settings-note"></p>
+      </section>
+      <section class="settings-section">
+        <h2>取り込み</h2>
+        <div class="settings-actions">
+          <button id="settingsImportAiBtn" type="button">AIニュースファイル取り込み</button>
+          <input id="importAiInput" type="file" accept=".json,.md,.txt,application/json,text/markdown,text/plain" hidden>
+          <button id="settingsPasteJsonBtn" type="button">JSON貼り付け取り込み</button>
+        </div>
+      </section>
+      <section class="settings-section">
+        <h2>バックアップ</h2>
+        <div class="settings-actions">
+          <button id="settingsBackupBtn" type="button">Markdown ZIPを書き出す</button>
+          <button type="button" class="soon-button" disabled>JSON全体を書き出す <span>Coming soon</span></button>
+        </div>
+      </section>
+      <section class="settings-section">
+        <h2>表示</h2>
+        <ul class="soon-list">
+          <li>フォントサイズ <span>Coming soon</span></li>
+          <li>行間 <span>Coming soon</span></li>
+          <li>エディタ幅 <span>Coming soon</span></li>
+          <li>プレビュー表示切替 <span>Coming soon</span></li>
+          <li>関連メモ表示切替 <span>Coming soon</span></li>
+          <li>レトロモード <span>Coming soon</span></li>
+        </ul>
+      </section>
+      <section class="settings-section">
+        <h2>データ管理</h2>
+        <div class="settings-actions">
+          <button id="reloadAppBtn" type="button">アプリを再読み込み</button>
+          <button type="button" class="soon-button danger-button" disabled>全データ削除 <span>危険操作のため未実装</span></button>
+        </div>
+      </section>
+    </div>
+  </dialog>
+
   <dialog id="jsonImportDialog" class="json-import-dialog">
     <div class="dialog-head">
       <strong>JSON取り込み</strong>
@@ -77,6 +121,6 @@
     </div>
   </dialog>
 
-  <script src="app.js?v=0.3.1-3"></script>
+  <script src="app.js?v=0.3.1-4"></script>
 </body>
 </html>
