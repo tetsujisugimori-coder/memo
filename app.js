@@ -346,16 +346,12 @@ async function importPastedItNewsJson() {
 
   try {
     await saveCurrentNote();
-    const createdItems = [];
-    for (const item of built.items) {
-      createdItems.push(await createNote(item.title, item.body));
-    }
-    const parentNote = await createNote(built.parent.title, built.parent.body);
+    const note = await createNote(built.title, built.body);
     notes = await getAllNotes();
     renderAll();
-    openNote(parentNote.id);
+    openNote(note.id);
     closeJsonImportDialog();
-    saveStatus.textContent = `${createdItems.length}件のニュースメモを作成しました`;
+    saveStatus.textContent = "JSONから1件のニュースメモを作成しました";
   } catch (error) {
     showJsonImportError(`保存に失敗しました: ${error.message}`);
   }
@@ -383,73 +379,141 @@ function parseItNewsJson(text) {
 }
 
 function buildItNewsNotes(payload) {
-  const date = String(payload.date || todayStampDashed()).trim();
-  const parentTitle = `IT技術ニュース ${date}`;
+  const date = pickFirstString(payload, ["date", "publishedAt", "day", "日付"]) || todayStampDashed();
+  const baseTitle = pickFirstString(payload, ["title", "heading", "headline", "見出し", "name"]) || "ニュースメモ";
+  const title = `${baseTitle} ${date}`;
+  const trendSummary = pickFirstTextLines(payload, ["trend_summary", "trendSummary", "summary", "overview", "全体傾向"]);
   const items = payload.items.map(normalizeItNewsItem);
-  const missingTitleIndex = items.findIndex((item) => !item.title);
-  if (missingTitleIndex >= 0) {
-    throw new Error(`items[${missingTitleIndex}] の title が空です。`);
+  const missingHeadingIndex = items.findIndex((item) => !item.heading);
+  if (missingHeadingIndex >= 0) {
+    throw new Error(`items[${missingHeadingIndex}] の見出しが空です。`);
   }
 
   return {
-    parent: {
-      title: parentTitle,
-      body: buildItNewsParentBody(parentTitle, payload.trend_summary || payload.trendSummary || "", items)
-    },
-    items: items.map((item) => ({
-      title: item.title,
-      body: buildItNewsItemBody(item, date)
-    }))
+    title,
+    body: buildItNewsParentBody(title, date, trendSummary, items)
   };
 }
 
 function normalizeItNewsItem(item) {
   const source = item && typeof item === "object" ? item : {};
+  const sourceValue = source.source && typeof source.source === "object" ? source.source : {};
   return {
-    title: String(source.title || "").trim(),
-    category: String(source.category || "").trim(),
-    summary: String(source.summary || "").trim(),
-    impact: String(source.impact || "").trim(),
-    urgency: String(source.urgency || "").trim(),
-    source: String(source.source || "").trim()
+    heading: pickFirstString(source, ["title", "heading", "headline", "見出し"]),
+    category: pickFirstString(source, ["category", "カテゴリ"]),
+    period: pickFirstString(source, ["period", "era", "時代", "期間"]),
+    importance: pickFirstString(source, ["importance", "重要度"]),
+    urgency: pickFirstString(source, ["urgency", "緊急度"]),
+    summary: pickFirstTextLines(source, ["summary", "overview", "points", "keyPoints", "details", "要点"]),
+    impact: pickFirstTextLines(source, ["impact", "whyImportant", "why", "実務への影響", "なぜ重要か"]),
+    sourceLabel: pickFirstString(source, ["sourceLabel", "source", "情報源"]) || pickFirstString(sourceValue, ["label", "title", "name"]),
+    sourceUrl: pickFirstString(source, ["sourceUrl", "url", "link", "情報源リンク"]) || pickFirstString(sourceValue, ["url", "link"]),
+    tags: normalizeTags(source.tags || source["カテゴリタグ"])
   };
 }
 
-function buildItNewsItemBody(item, date) {
-  return [
-    `# ${item.title}`,
-    "",
-    `日付: ${date}`,
-    `カテゴリ: ${item.category}`,
-    `緊急度: ${item.urgency}`,
-    `タグ: #ITニュース ${categoryTag(item.category)}`,
-    "",
-    "## 要約",
-    item.summary,
-    "",
-    "## 実務への影響",
-    item.impact,
-    "",
-    "## 情報源",
-    item.source
-  ].join("\n").trim();
-}
-
-function buildItNewsParentBody(title, trendSummary, items) {
-  return [
+function buildItNewsParentBody(title, date, trendSummary, items) {
+  const body = [
     `# ${title}`,
     "",
-    "## 全体傾向",
-    String(trendSummary || "").trim(),
-    "",
-    "## 個別ニュース",
-    ...items.map((item) => `- ${item.title}`)
-  ].join("\n").trim();
+    `日付: ${date}`,
+    ""
+  ];
+
+  items.forEach((item, index) => {
+    body.push(`${index + 1}. ${item.heading}`, "");
+
+    appendBulletIfPresent(body, "カテゴリ", item.category);
+    appendBulletIfPresent(body, "時代", item.period);
+    appendBulletIfPresent(body, "重要度", item.importance);
+    appendBulletIfPresent(body, "緊急度", item.urgency);
+    appendBulletIfPresent(body, "タグ", formatTags(item.tags));
+    item.summary.forEach((line) => body.push(`- ${line}`));
+    item.impact.forEach((line) => body.push(`- なぜ重要か: ${line}`));
+
+    const sourceLine = formatSource(item);
+    if (sourceLine) {
+      body.push(`- 情報源: ${sourceLine}`);
+    }
+
+    body.push("");
+  });
+
+  if (trendSummary.length) {
+    body.push("## 全体傾向", "");
+    appendTextLines(body, trendSummary);
+    body.push("");
+  }
+
+  return body.join("\n").trim();
 }
 
-function categoryTag(category) {
-  const clean = String(category || "").replace(/\s+/g, "");
-  return clean ? `#${clean}` : "#未分類";
+function pickFirstString(source, keys) {
+  const value = pickFirstValue(source, keys);
+  if (value === null || value === undefined || typeof value === "object") return "";
+  return String(value).trim();
+}
+
+function pickFirstTextLines(source, keys) {
+  for (const key of keys) {
+    const lines = normalizeTextLines(source?.[key]);
+    if (lines.length) return lines;
+  }
+  return [];
+}
+
+function pickFirstValue(source, keys) {
+  if (!source || typeof source !== "object") return "";
+  for (const key of keys) {
+    if (source[key] !== undefined && source[key] !== null && source[key] !== "") {
+      return source[key];
+    }
+  }
+  return "";
+}
+
+function normalizeTextLines(value) {
+  if (Array.isArray(value)) {
+    return value.flatMap(normalizeTextLines);
+  }
+  if (value === null || value === undefined) return [];
+  if (typeof value === "object") {
+    return [JSON.stringify(value)];
+  }
+  return String(value)
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+}
+
+function appendTextLines(body, lines) {
+  lines.forEach((line) => body.push(line));
+}
+
+function appendBulletIfPresent(body, label, value) {
+  if (value) {
+    body.push(`- ${label}: ${value}`);
+  }
+}
+
+function normalizeTags(value) {
+  const rawTags = Array.isArray(value)
+    ? value
+    : String(value || "").split(/[\s,、]+/);
+  return [...new Set(rawTags
+    .map((tag) => String(tag).replace(/^#/, "").trim())
+    .filter(Boolean))];
+}
+
+function formatTags(tags) {
+  return tags.map((tag) => `#${tag.replace(/\s+/g, "")}`).join(" ");
+}
+
+function formatSource(item) {
+  if (item.sourceLabel && item.sourceUrl) {
+    return `${item.sourceLabel} (${item.sourceUrl})`;
+  }
+  return item.sourceLabel || item.sourceUrl || "";
 }
 
 function openJsonImportDialog() {
