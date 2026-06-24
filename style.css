@@ -2,6 +2,18 @@
   color-scheme: light;
   --bg: #f6f7f4;
   --paper: #fffdf7;
+  --panel: #fbfbf7;
+  --section-bg: #ffffff;
+  --input-bg: #ffffff;
+  --button-bg: #ffffff;
+  --stats-bg: #f9fbfa;
+  --discovery-bg: #f7fbf2;
+  --warning-bg: #fff8e7;
+  --warning-ink: #755116;
+  --warning-border: #d8b46a;
+  --warning-strong-bg: #fff0f0;
+  --warning-strong-border: #c87676;
+  --dialog-backdrop: rgba(20, 25, 22, 0.45);
   --ink: #222522;
   --muted: #73796f;
   --line: #dedfd6;
@@ -10,6 +22,32 @@
   --gold: #a66b1f;
   --green: #497346;
   --danger: #9b3131;
+}
+
+body.dark {
+  color-scheme: dark;
+  --bg: #111513;
+  --paper: #1b211d;
+  --panel: #171c19;
+  --section-bg: #202721;
+  --input-bg: #151a17;
+  --button-bg: #222922;
+  --stats-bg: #151b17;
+  --discovery-bg: #172118;
+  --warning-bg: #2a2315;
+  --warning-ink: #f1c76e;
+  --warning-border: #6b5425;
+  --warning-strong-bg: #2b1818;
+  --warning-strong-border: #7b3f3f;
+  --dialog-backdrop: rgba(0, 0, 0, 0.58);
+  --ink: #e7ece7;
+  --muted: #a9b1aa;
+  --line: #3a443d;
+  --accent: #75c7ce;
+  --accent-soft: #153b40;
+  --gold: #e2aa54;
+  --green: #90c986;
+  --danger: #ef8f8f;
 }
 
 * {
@@ -36,7 +74,7 @@ button {
   min-height: 36px;
   border: 1px solid var(--line);
   border-radius: 7px;
-  background: #ffffff;
+  background: var(--button-bg);
   color: var(--ink);
   cursor: pointer;
 }
@@ -50,7 +88,7 @@ button:hover {
 .related-panel {
   min-height: 100vh;
   border-color: var(--line);
-  background: #fbfbf7;
+  background: var(--panel);
   display: flex;
   flex-direction: column;
 }
@@ -93,7 +131,8 @@ button:hover {
   border-radius: 7px;
   padding: 0 12px;
   outline: none;
-  background: #fff;
+  background: var(--input-bg);
+  color: var(--ink);
 }
 
 #searchInput:focus,
@@ -173,18 +212,18 @@ button:hover {
 .storage-warning {
   grid-column: 1 / -1;
   padding: 9px 12px;
-  border: 1px solid #d8b46a;
+  border: 1px solid var(--warning-border);
   border-radius: 8px;
-  background: #fff8e7;
-  color: #755116;
+  background: var(--warning-bg);
+  color: var(--warning-ink);
   font-size: 13px;
   line-height: 1.5;
   white-space: pre-line;
 }
 
 .storage-warning-strong {
-  border-color: #c87676;
-  background: #fff0f0;
+  border-color: var(--warning-strong-border);
+  background: var(--warning-strong-bg);
   color: var(--danger);
 }
 
@@ -324,7 +363,7 @@ button:hover {
 .link-stats {
   padding: 16px 18px 22px;
   border-top: 1px solid var(--line);
-  background: #f9fbfa;
+  background: var(--stats-bg);
 }
 
 .link-stats-header {
@@ -341,7 +380,7 @@ button:hover {
   padding: 6px 10px;
   border: 1px solid var(--line);
   border-radius: 7px;
-  background: #fff;
+  background: var(--button-bg);
 }
 
 .link-stats-table {
@@ -356,7 +395,7 @@ button:hover {
   padding: 10px 12px;
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: #ffffff;
+  background: var(--section-bg);
   align-items: center;
 }
 
@@ -421,7 +460,7 @@ button:hover {
   padding: 12px;
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: #f7fbf2;
+  background: var(--discovery-bg);
   color: var(--green);
   line-height: 1.55;
 }
@@ -437,7 +476,7 @@ button:hover {
 
 #graphDialog::backdrop,
 .settings-dialog::backdrop {
-  background: rgba(20, 25, 22, 0.45);
+  background: var(--dialog-backdrop);
 }
 
 .settings-dialog {
@@ -454,7 +493,7 @@ button:hover {
 }
 
 .json-import-dialog::backdrop {
-  background: rgba(20, 25, 22, 0.45);
+  background: var(--dialog-backdrop);
 }
 
 .dialog-head {
@@ -490,7 +529,7 @@ button:hover {
 .settings-section {
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: #ffffff;
+  background: var(--section-bg);
   padding: 12px;
 }
 
@@ -536,6 +575,29 @@ button:hover {
   gap: 8px;
 }
 
+.theme-setting {
+  display: grid;
+  grid-template-columns: 132px minmax(160px, 240px);
+  gap: 8px 12px;
+  align-items: center;
+  margin-bottom: 12px;
+  color: var(--ink);
+  font-size: 13px;
+}
+
+.theme-setting span {
+  color: var(--muted);
+}
+
+.theme-setting select {
+  min-height: 36px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  padding: 0 10px;
+  background: var(--input-bg);
+  color: var(--ink);
+}
+
 .soon-button {
   color: var(--muted);
   cursor: not-allowed;
@@ -570,7 +632,7 @@ button:hover {
   padding: 12px;
   resize: vertical;
   outline: none;
-  background: #ffffff;
+  background: var(--input-bg);
   color: var(--ink);
   font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
   font-size: 13px;
@@ -599,7 +661,7 @@ button:hover {
   display: block;
   width: 100%;
   max-height: calc(100vh - 120px);
-  background: #fbfbf7;
+  background: var(--panel);
 }
 
 @media (max-width: 980px) {
@@ -656,5 +718,10 @@ button:hover {
 
   .settings-actions {
     flex-direction: column;
+  }
+
+  .theme-setting {
+    grid-template-columns: 1fr;
+    gap: 4px;
   }
 }

@@ -7,6 +7,7 @@ const APP_VERSION = "0.3.1";
 const APP_LABEL = "Draft Mirror";
 const APP_BUILD = "2026-06-21";
 const DRAFT_STORAGE_KEY = "memo-nexus-current-draft";
+const THEME_STORAGE_KEY = "memo-nexus-theme";
 const DRAFT_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
 
 // HTML要素を短く取得するための小さなヘルパー。
@@ -27,6 +28,7 @@ const settingsBackupBtn = $("settingsBackupBtn");
 const reloadAppBtn = $("reloadAppBtn");
 const settingsDialog = $("settingsDialog");
 const closeSettingsBtn = $("closeSettingsBtn");
+const themeSelect = $("themeSelect");
 const storageStatusDetails = $("storageStatusDetails");
 const storageEstimateMessage = $("storageEstimateMessage");
 const jsonImportDialog = $("jsonImportDialog");
@@ -72,6 +74,7 @@ async function init() {
   appVersionDisplays.forEach((element) => {
     element.textContent = `v${APP_VERSION} "${APP_LABEL}"`;
   });
+  restoreTheme();
 
   const localStorageAvailable = checkLocalStorageAvailable();
   db = await openDb();
@@ -127,6 +130,38 @@ function warnIfStorageRisky(localStorageAvailable, noteCount) {
   storageWarning.hidden = true;
   storageWarning.textContent = "";
   storageWarning.classList.remove("storage-warning-strong");
+}
+
+function restoreTheme() {
+  let savedTheme = "light";
+  try {
+    const storedTheme = localStorage.getItem(THEME_STORAGE_KEY);
+    if (storedTheme === "dark" || storedTheme === "light") {
+      savedTheme = storedTheme;
+    }
+  } catch (error) {
+    console.warn("Theme restore failed", error);
+  }
+
+  applyTheme(savedTheme);
+}
+
+function applyTheme(theme) {
+  const nextTheme = theme === "dark" ? "dark" : "light";
+  document.body.classList.toggle("dark", nextTheme === "dark");
+  if (themeSelect) {
+    themeSelect.value = nextTheme;
+  }
+}
+
+function saveTheme(theme) {
+  const nextTheme = theme === "dark" ? "dark" : "light";
+  applyTheme(nextTheme);
+  try {
+    localStorage.setItem(THEME_STORAGE_KEY, nextTheme);
+  } catch (error) {
+    console.warn("Theme save failed", error);
+  }
 }
 
 // IndexedDBを開きます。初回起動時だけnotesストアと検索用indexを作ります。
@@ -1326,6 +1361,7 @@ function todayStampDashed() {
 }
 
 async function openSettingsDialog() {
+  restoreTheme();
   await renderStorageStatus();
   settingsDialog.showModal();
 }
@@ -1411,6 +1447,9 @@ settingsBtn.addEventListener("click", () => {
   });
 });
 closeSettingsBtn.addEventListener("click", () => settingsDialog.close());
+if (themeSelect) {
+  themeSelect.addEventListener("change", () => saveTheme(themeSelect.value));
+}
 if (deleteBtn) {
   deleteBtn.addEventListener("click", deleteCurrentNote);
 }

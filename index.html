@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Memo Nexus</title>
-  <link rel="stylesheet" href="style.css?v=0.3.1-4">
+  <link rel="stylesheet" href="style.css?v=0.3.1-5">
 </head>
 <body>
   <aside class="sidebar">
@@ -87,6 +87,13 @@
       </section>
       <section class="settings-section">
         <h2>表示</h2>
+        <label class="theme-setting" for="themeSelect">
+          <span>テーマ</span>
+          <select id="themeSelect">
+            <option value="light">ライト</option>
+            <option value="dark">ダーク</option>
+          </select>
+        </label>
         <ul class="soon-list">
           <li>フォントサイズ <span>Coming soon</span></li>
           <li>行間 <span>Coming soon</span></li>
@@ -121,6 +128,6 @@
     </div>
   </dialog>
 
-  <script src="app.js?v=0.3.1-4"></script>
+  <script src="app.js?v=0.3.1-5"></script>
 </body>
 </html>
