@@ -685,11 +685,15 @@ function todayTitle() {
 }
 
 // 新しいメモを作ってIndexedDBへ保存します。
-async function createNote(title = "新規メモ", body = "") {
+async function createNote(title = "新規メモ", body = "", options = {}) {
   const now = Date.now();
+  const resolvedTitle = title || temporaryMemoTitle();
+  const noteTitle = options.avoidDuplicateTitle === false
+    ? resolvedTitle
+    : uniqueTitle(resolvedTitle);
   const note = {
     id: crypto.randomUUID(),
-    title: uniqueTitle(title),
+    title: noteTitle,
     body,
     createdAt: now,
     bodyUpdatedAt: now,
@@ -699,6 +703,10 @@ async function createNote(title = "新規メモ", body = "") {
   await putNote(note);
   notes.unshift(note);
   return note;
+}
+
+function temporaryMemoTitle() {
+  return `memo${notes.length + 1}`;
 }
 
 // 同名タイトルがあるとリンク先が曖昧になるので、末尾に番号を付けて重複を避けます。
@@ -1665,7 +1673,7 @@ function escapeAttr(value) {
 
 // ここから下は、画面操作と処理を結びつけるイベント設定です。
 newBtn.addEventListener("click", async () => {
-  const note = await createNote("新規メモ", "");
+  const note = await createNote("", "", { avoidDuplicateTitle: false });
   notes = await getAllNotes();
   renderAll();
   openNote(note.id);
