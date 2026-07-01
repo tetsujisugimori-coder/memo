@@ -48,6 +48,7 @@ const noteMeta = $("noteMeta");
 const editor = $("editor");
 const preview = $("preview");
 const saveStatus = $("saveStatus");
+const deleteUndoNotice = $("deleteUndoNotice");
 const appVersionDisplays = document.querySelectorAll(".app-version");
 const storageWarning = $("storageWarning");
 const relatedList = $("relatedList");
@@ -69,6 +70,7 @@ let saveStatusTime = null;
 let mermaidInitialized = false;
 let undoStack = [];
 let lastUndoSnapshotAt = 0;
+let deletedNoteSnapshot = null;
 
 // ページ読み込み後、すぐにアプリを起動します。
 init();
@@ -919,6 +921,8 @@ async function deleteCurrentNote() {
   clearTimeout(saveTimer);
   saveTimer = null;
   const currentIndex = notes.findIndex((item) => item.id === note.id);
+  const deletedSnapshot = { ...note };
+  deletedNoteSnapshot = deletedSnapshot;
   saveStatus.textContent = "削除中...";
 
   await deleteNote(note.id);
@@ -930,12 +934,62 @@ async function deleteCurrentNote() {
     notes = await getAllNotes();
     renderAll();
     openNote(nextNote.id);
+    showDeleteUndoMessage(deletedSnapshot);
     return;
   }
 
   const nextNote = notes[Math.min(currentIndex, notes.length - 1)] || notes[0];
   renderAll();
   openNote(nextNote.id);
+  showDeleteUndoMessage(deletedSnapshot);
+}
+
+function showDeleteUndoMessage(note) {
+  if (!deleteUndoNotice || !note) return;
+
+  deleteUndoNotice.hidden = false;
+  deleteUndoNotice.innerHTML = `
+    <span>削除しました。</span>
+    <button id="restoreDeletedNoteBtn" type="button">元に戻す</button>
+    <button id="closeDeleteUndoNoticeBtn" class="delete-undo-close" type="button" title="閉じる">×</button>
+  `;
+
+  const restoreButton = $("restoreDeletedNoteBtn");
+  if (restoreButton) {
+    restoreButton.addEventListener("click", () => {
+      restoreDeletedNote().catch((error) => {
+        console.error("Delete undo failed", error);
+        setSaveStatus("error");
+      });
+    });
+  }
+
+  const closeButton = $("closeDeleteUndoNoticeBtn");
+  if (closeButton) {
+    closeButton.addEventListener("click", clearDeleteUndoMessage);
+  }
+}
+
+async function restoreDeletedNote() {
+  if (!deletedNoteSnapshot) return;
+
+  const snapshot = { ...deletedNoteSnapshot };
+  const existing = notes.find((note) => note.id === snapshot.id);
+  if (!existing) {
+    await putNote(snapshot);
+    notes = await getAllNotes();
+  }
+
+  clearDeleteUndoMessage();
+  renderAll();
+  openNote(snapshot.id);
+}
+
+function clearDeleteUndoMessage() {
+  deletedNoteSnapshot = null;
+  if (!deleteUndoNotice) return;
+  deleteUndoNotice.hidden = true;
+  deleteUndoNotice.innerHTML = "";
 }
 
 // タイトル欄が空のとき、本文の最初の空でない行をタイトル候補にします。
@@ -1038,8 +1092,152 @@ function splitFencedBlocks(body) {
 }
 
 function renderTextBlock(text) {
-  const paragraphs = text.split(/\n{2,}/).map((part) => part.trim()).filter(Boolean);
-  return paragraphs.map((part) => `<p>${renderRichText(part)}</p>`).join("");
+  const lines = String(text).replace(/\r\n?/g, "\n").split("\n");
+  return renderMarkdownLines(lines);
+}
+
+function renderMarkdownLines(lines) {
+  const html = [];
+  let paragraphLines = [];
+  let index = 0;
+
+  const flushParagraph = () => {
+    const paragraph = paragraphLines.join("\n").trim();
+    if (paragraph) {
+      html.push(`<p>${renderMarkdownInline(paragraph)}</p>`);
+    }
+    paragraphLines = [];
+  };
+
+  while (index < lines.length) {
+    const line = lines[index];
+    const trimmed = line.trim();
+
+    if (!trimmed) {
+      flushParagraph();
+      index += 1;
+      continue;
+    }
+
+    const heading = trimmed.match(/^(#{1,3})\s+(.+)$/);
+    if (heading) {
+      flushParagraph();
+      const level = heading[1].length;
+      html.push(`<h${level}>${renderMarkdownInline(heading[2].trim())}</h${level}>`);
+      index += 1;
+      continue;
+    }
+
+    if (/^-\s+/.test(trimmed)) {
+      flushParagraph();
+      const listLines = [];
+      while (index < lines.length && /^-\s+/.test(lines[index].trim())) {
+        listLines.push(lines[index].trim());
+        index += 1;
+      }
+      html.push(renderListBlock(listLines));
+      continue;
+    }
+
+    if (/^>\s?/.test(trimmed)) {
+      flushParagraph();
+      const quoteLines = [];
+      while (index < lines.length && /^>\s?/.test(lines[index].trim())) {
+        quoteLines.push(lines[index].trim());
+        index += 1;
+      }
+      html.push(renderQuoteBlock(quoteLines));
+      continue;
+    }
+
+    paragraphLines.push(line.trimEnd());
+    index += 1;
+  }
+
+  flushParagraph();
+  return html.join("");
+}
+
+function renderListBlock(lines) {
+  return `<ul>${lines
+    .map((line) => `<li>${renderMarkdownInline(line.replace(/^-\s+/, ""))}</li>`)
+    .join("")}</ul>`;
+}
+
+function renderQuoteBlock(lines) {
+  const content = lines
+    .map((line) => renderMarkdownInline(line.replace(/^>\s?/, "")))
+    .join("<br>");
+  return `<blockquote>${content}</blockquote>`;
+}
+
+function renderMarkdownInline(text) {
+  let html = "";
+  let index = 0;
+
+  while (index < text.length) {
+    const token = findNextInlineToken(text, index);
+    if (!token) {
+      html += escapeHtml(text.slice(index));
+      break;
+    }
+
+    html += escapeHtml(text.slice(index, token.start));
+    if (token.type === "code") {
+      html += `<code class="inline-code">${escapeHtml(token.content)}</code>`;
+    } else if (token.type === "wiki") {
+      html += renderWikiButton(token.content);
+    } else if (token.type === "bold") {
+      html += `<strong>${renderMarkdownInline(token.content)}</strong>`;
+    }
+    index = token.end;
+  }
+
+  return html;
+}
+
+function findNextInlineToken(text, fromIndex) {
+  const tokens = [];
+
+  const codeStart = text.indexOf("`", fromIndex);
+  if (codeStart !== -1) {
+    const codeEnd = text.indexOf("`", codeStart + 1);
+    if (codeEnd !== -1) {
+      tokens.push({
+        type: "code",
+        start: codeStart,
+        end: codeEnd + 1,
+        content: text.slice(codeStart + 1, codeEnd)
+      });
+    }
+  }
+
+  const wikiPattern = /\[\[([^\]]+)\]\]/g;
+  wikiPattern.lastIndex = fromIndex;
+  const wikiMatch = wikiPattern.exec(text);
+  if (wikiMatch) {
+    tokens.push({
+      type: "wiki",
+      start: wikiMatch.index,
+      end: wikiPattern.lastIndex,
+      content: wikiMatch[1]
+    });
+  }
+
+  const boldStart = text.indexOf("**", fromIndex);
+  if (boldStart !== -1) {
+    const boldEnd = text.indexOf("**", boldStart + 2);
+    if (boldEnd !== -1) {
+      tokens.push({
+        type: "bold",
+        start: boldStart,
+        end: boldEnd + 2,
+        content: text.slice(boldStart + 2, boldEnd)
+      });
+    }
+  }
+
+  return tokens.sort((a, b) => a.start - b.start || a.end - b.end)[0] || null;
 }
 
 function renderCodeBlock(code, language) {
@@ -1051,6 +1249,7 @@ function renderMermaidBlock(code, index) {
   return `
     <div class="mermaid-block">
       <div class="mermaid-diagram" id="mermaid-diagram-${index}">${escapeHtml(code)}</div>
+      <pre class="mermaid-source" hidden><code>${escapeHtml(code)}</code></pre>
     </div>
   `;
 }
@@ -1064,12 +1263,39 @@ function renderMermaidDiagrams() {
       window.mermaid.initialize({ startOnLoad: false, securityLevel: "strict" });
       mermaidInitialized = true;
     }
-    const renderResult = window.mermaid.run({ nodes: diagrams });
-    if (renderResult && typeof renderResult.catch === "function") {
-      renderResult.catch((error) => console.error("Mermaid render failed", error));
-    }
   } catch (error) {
     console.error("Mermaid render failed", error);
+    return;
+  }
+
+  diagrams.forEach((diagram) => renderMermaidDiagram(diagram));
+}
+
+async function renderMermaidDiagram(diagram) {
+  const block = diagram.closest(".mermaid-block");
+
+  try {
+    await window.mermaid.run({ nodes: [diagram] });
+  } catch (error) {
+    console.error("Mermaid render failed", error);
+    showMermaidError(block);
+  }
+}
+
+function showMermaidError(block) {
+  if (!block) return;
+
+  block.classList.add("mermaid-error-block");
+  if (!block.querySelector(".mermaid-error")) {
+    const message = document.createElement("div");
+    message.className = "mermaid-error";
+    message.textContent = "Mermaid構文エラー";
+    block.prepend(message);
+  }
+
+  const source = block.querySelector(".mermaid-source");
+  if (source) {
+    source.hidden = false;
   }
 }
 

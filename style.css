@@ -315,6 +315,45 @@ button:hover {
   white-space: nowrap;
 }
 
+.delete-undo-notice[hidden] {
+  display: none;
+}
+
+.delete-undo-notice {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 8px 12px 0;
+  padding: 7px 8px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--section-bg);
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.delete-undo-notice span {
+  min-width: 0;
+  flex: 1;
+}
+
+.delete-undo-notice button {
+  min-height: 28px;
+  padding: 2px 8px;
+  border-color: var(--accent);
+  color: var(--accent);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.delete-undo-notice .delete-undo-close {
+  width: 28px;
+  padding: 0;
+  border-color: var(--line);
+  color: var(--muted);
+}
+
 #editor {
   flex: 1;
   width: 100%;
@@ -349,6 +388,58 @@ button:hover {
 .preview p {
   margin: 0 0 14px;
   white-space: pre-wrap;
+}
+
+.preview h1,
+.preview h2,
+.preview h3 {
+  margin: 18px 0 10px;
+  line-height: 1.35;
+  color: var(--ink);
+}
+
+.preview h1 {
+  font-size: 24px;
+}
+
+.preview h2 {
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--line);
+  font-size: 20px;
+}
+
+.preview h3 {
+  font-size: 17px;
+}
+
+.preview strong {
+  font-weight: 800;
+}
+
+.preview .inline-code {
+  padding: 2px 5px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: var(--input-bg);
+  font-family: Consolas, "Courier New", monospace;
+  font-size: 0.9em;
+}
+
+.preview ul {
+  margin: 0 0 14px;
+  padding-left: 24px;
+}
+
+.preview li {
+  margin: 4px 0;
+}
+
+.preview blockquote {
+  margin: 0 0 14px;
+  padding: 8px 12px;
+  border-left: 4px solid var(--accent);
+  background: var(--section-bg);
+  color: var(--muted);
 }
 
 .link-list {
@@ -481,6 +572,32 @@ button:hover {
 .mermaid-diagram {
   min-width: 260px;
   text-align: center;
+}
+
+.mermaid-error-block {
+  border-color: var(--danger);
+}
+
+.mermaid-error {
+  margin-bottom: 8px;
+  color: var(--danger);
+  font-weight: 700;
+}
+
+.mermaid-source {
+  margin: 8px 0 0;
+  padding: 10px 12px;
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--input-bg);
+  text-align: left;
+}
+
+.mermaid-source code {
+  font-family: Consolas, "Courier New", monospace;
+  font-size: 13px;
+  white-space: pre;
 }
 
 .related-panel h2 {
