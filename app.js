@@ -63,6 +63,7 @@ let lastDiscovery = "";
 let linkStatsVisible = false;
 let saveStatusState = "saved";
 let saveStatusTime = null;
+let mermaidInitialized = false;
 
 // ページ読み込み後、すぐにアプリを起動します。
 init();
@@ -879,16 +880,111 @@ function renderPreview() {
   }
 
   const body = (note.id === currentId ? editor.value : note.body);
-  const paragraphs = body.split(/\n{2,}/).map((part) => part.trim()).filter(Boolean);
-  preview.innerHTML = paragraphs.length
-    ? paragraphs.map((part) => `<p>${renderRichText(part)}</p>`).join("")
-    : `<p class="empty">本文を書くとカード表示されます。</p>`;
+  preview.innerHTML = renderPreviewHtml(body);
 
   preview.querySelectorAll(".wiki-link").forEach((button) => {
     button.addEventListener("click", () => openOrCreateLinkedNote(button.dataset.title));
   });
+  renderMermaidDiagrams();
   renderLinkList();
   renderLinkStats();
+}
+
+function renderPreviewHtml(body) {
+  const blocks = splitFencedBlocks(body);
+  const html = blocks
+    .map((block, index) => {
+      if (block.type === "code") {
+        return block.language.toLowerCase() === "mermaid"
+          ? renderMermaidBlock(block.code, index)
+          : renderCodeBlock(block.code, block.language);
+      }
+      return renderTextBlock(block.text);
+    })
+    .filter(Boolean)
+    .join("");
+
+  return html || `<p class="empty">本文を書くとカード表示されます。</p>`;
+}
+
+function splitFencedBlocks(body) {
+  const lines = String(body).replace(/\r\n?/g, "\n").split("\n");
+  const blocks = [];
+  let textLines = [];
+  let codeLines = [];
+  let language = "";
+  let inCode = false;
+
+  lines.forEach((line) => {
+    const fence = line.match(/^```\s*([^\s`]*)\s*$/);
+    if (fence) {
+      if (inCode) {
+        blocks.push({ type: "code", code: codeLines.join("\n"), language });
+        codeLines = [];
+        language = "";
+        inCode = false;
+        return;
+      }
+
+      if (textLines.length) {
+        blocks.push({ type: "text", text: textLines.join("\n") });
+        textLines = [];
+      }
+      language = fence[1] || "";
+      inCode = true;
+      return;
+    }
+
+    if (inCode) {
+      codeLines.push(line);
+    } else {
+      textLines.push(line);
+    }
+  });
+
+  if (inCode) {
+    blocks.push({ type: "code", code: codeLines.join("\n"), language });
+  } else if (textLines.length) {
+    blocks.push({ type: "text", text: textLines.join("\n") });
+  }
+
+  return blocks;
+}
+
+function renderTextBlock(text) {
+  const paragraphs = text.split(/\n{2,}/).map((part) => part.trim()).filter(Boolean);
+  return paragraphs.map((part) => `<p>${renderRichText(part)}</p>`).join("");
+}
+
+function renderCodeBlock(code, language) {
+  const languageClass = language ? ` class="language-${escapeAttr(language)}"` : "";
+  return `<pre class="code-block"><code${languageClass}>${escapeHtml(code)}</code></pre>`;
+}
+
+function renderMermaidBlock(code, index) {
+  return `
+    <div class="mermaid-block">
+      <div class="mermaid-diagram" id="mermaid-diagram-${index}">${escapeHtml(code)}</div>
+    </div>
+  `;
+}
+
+function renderMermaidDiagrams() {
+  const diagrams = preview.querySelectorAll(".mermaid-diagram");
+  if (!diagrams.length || !window.mermaid) return;
+
+  try {
+    if (!mermaidInitialized) {
+      window.mermaid.initialize({ startOnLoad: false, securityLevel: "strict" });
+      mermaidInitialized = true;
+    }
+    const renderResult = window.mermaid.run({ nodes: diagrams });
+    if (renderResult && typeof renderResult.catch === "function") {
+      renderResult.catch((error) => console.error("Mermaid render failed", error));
+    }
+  } catch (error) {
+    console.error("Mermaid render failed", error);
+  }
 }
 
 function countPhraseOccurrences(text, phrase) {

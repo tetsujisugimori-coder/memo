@@ -423,6 +423,36 @@ button:hover {
   color: var(--gold);
 }
 
+.code-block {
+  margin: 12px 0;
+  padding: 12px 14px;
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--input-bg);
+  line-height: 1.55;
+}
+
+.code-block code {
+  font-family: Consolas, "Courier New", monospace;
+  font-size: 13px;
+  white-space: pre;
+}
+
+.mermaid-block {
+  margin: 12px 0;
+  padding: 12px;
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--section-bg);
+}
+
+.mermaid-diagram {
+  min-width: 260px;
+  text-align: center;
+}
+
 .related-panel h2 {
   margin: 0;
   font-size: 18px;

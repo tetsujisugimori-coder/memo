@@ -347,3 +347,37 @@
 * `git diff --check` で差分の空白エラーがないことを確認
 * ブラウザ上でのJSON貼り付け取り込み実操作確認は未実施
 * PCブラウザおよびiPhone Safari/PWAでの実機確認は未実施
+
+## 2026-07-01 プレビューのfenced code block / Mermaid対応
+
+### 変更内容
+
+* 右側プレビューで Markdown風の fenced code block を扱う renderPreviewHtml() を追加
+* 本文を通常テキストとコードブロックへ分割する splitFencedBlocks() を追加
+* 通常テキスト用の renderTextBlock() を追加し、既存の renderRichText() を通常文章用として維持
+* コード表示用の renderCodeBlock() を追加し、```js / ```html / ```css / ```json などを `<pre><code>` で表示
+* Mermaid表示用の renderMermaidBlock() / renderMermaidDiagrams() を追加
+* renderPreview() から renderPreviewHtml(body) を呼ぶ構造に整理
+* Mermaid.js を index.html で読み込むよう追加
+* コードブロックと Mermaid 図用の最小スタイルを style.css に追加
+
+### 修正理由
+
+* メモ本文にコードや Mermaid 図をそのまま書き、右側プレビューで読みやすく確認できるようにするため
+* コードブロック内の `[[...]]` が知識リンクとして誤ってボタン化されないようにするため
+* IndexedDB の保存形式や saveCurrentNote() を変更せず、表示処理だけで対応するため
+
+### 確認方法
+
+* ```js の中身がコードブロックとして表示されること
+* ```mermaid の中身が Mermaid.js により図として表示されること
+* Mermaid がないメモでも従来どおりプレビュー表示されること
+* 普通の文章中の `[[リンク]]` が従来どおりクリックできること
+* コードブロック内の `[[リンク]]` がクリックボタン化されないこと
+
+### 確認結果
+
+* `node --check app.js` でJavaScript構文エラーがないことを確認
+* `saveCurrentNote()` と IndexedDB 保存形式に差分がないことを確認
+* `git diff -- app.js index.html style.css` で変更内容を確認
+* ブラウザ上での Mermaid 描画実機確認は未実施
