@@ -9,6 +9,8 @@ const APP_BUILD = "2026-06-21";
 const DRAFT_STORAGE_KEY = "memo-nexus-current-draft";
 const THEME_STORAGE_KEY = "memo-nexus-theme";
 const DRAFT_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
+const UNDO_LIMIT = 50;
+const UNDO_INPUT_INTERVAL_MS = 800;
 
 // HTML要素を短く取得するための小さなヘルパー。
 const $ = (id) => document.getElementById(id);
@@ -16,6 +18,7 @@ const $ = (id) => document.getElementById(id);
 // 画面上のボタンや入力欄をJavaScriptから操作できるように取得します。
 const newBtn = $("newBtn");
 const todayBtn = $("todayBtn");
+const undoBtn = $("undoBtn");
 const backupBtn = $("backupBtn");
 const graphBtn = $("graphBtn");
 const linkStatsBtn = $("linkStatsBtn");
@@ -64,6 +67,8 @@ let linkStatsVisible = false;
 let saveStatusState = "saved";
 let saveStatusTime = null;
 let mermaidInitialized = false;
+let undoStack = [];
+let lastUndoSnapshotAt = 0;
 
 // ページ読み込み後、すぐにアプリを起動します。
 init();
@@ -714,6 +719,7 @@ function renderAll() {
   renderRelated();
   renderDiscovery();
   renderLinkStats();
+  updateUndoButton();
 }
 
 // 左側のメモ一覧を描画します。検索欄に入力があればタイトル・本文から絞り込みます。
@@ -752,12 +758,14 @@ function openNote(id) {
   currentId = note.id;
   titleInput.value = note.title;
   editor.value = note.body;
+  lastUndoSnapshotAt = 0;
   setSaveStatus("saved", note.updatedAt);
   renderNoteMeta();
   renderList();
   renderPreview();
   renderRelated();
   renderDiscovery();
+  updateUndoButton();
   editor.focus();
 }
 
@@ -777,6 +785,76 @@ function scheduleSave() {
   }, 280);
   renderPreview();
   renderRelated();
+  updateUndoButton();
+}
+
+function captureUndoSnapshot(event) {
+  if (!currentId) return;
+
+  const now = Date.now();
+  const force = shouldForceUndoSnapshot(event && event.inputType);
+  if (!force && now - lastUndoSnapshotAt < UNDO_INPUT_INTERVAL_MS) return;
+
+  pushUndoSnapshot({
+    noteId: currentId,
+    title: titleInput.value,
+    body: editor.value,
+    savedAt: now
+  });
+}
+
+function shouldForceUndoSnapshot(inputType) {
+  return [
+    "deleteContentBackward",
+    "deleteContentForward",
+    "deleteByCut",
+    "insertFromPaste",
+    "insertFromDrop"
+  ].includes(inputType);
+}
+
+function pushUndoSnapshot(snapshot) {
+  const previous = undoStack[undoStack.length - 1];
+  if (
+    previous &&
+    previous.noteId === snapshot.noteId &&
+    previous.title === snapshot.title &&
+    previous.body === snapshot.body
+  ) {
+    lastUndoSnapshotAt = snapshot.savedAt;
+    return;
+  }
+
+  undoStack.push(snapshot);
+  if (undoStack.length > UNDO_LIMIT) {
+    undoStack = undoStack.slice(undoStack.length - UNDO_LIMIT);
+  }
+  lastUndoSnapshotAt = snapshot.savedAt;
+  updateUndoButton();
+}
+
+function undoLastEdit() {
+  if (!currentId) return;
+
+  const index = undoStack.map((snapshot) => snapshot.noteId).lastIndexOf(currentId);
+  if (index === -1) {
+    updateUndoButton();
+    return;
+  }
+
+  const [snapshot] = undoStack.splice(index, 1);
+  titleInput.value = snapshot.title;
+  editor.value = snapshot.body;
+  lastUndoSnapshotAt = 0;
+  scheduleSave();
+  renderNoteMeta();
+  renderList();
+  updateUndoButton();
+}
+
+function updateUndoButton() {
+  if (!undoBtn) return;
+  undoBtn.disabled = !currentId || !undoStack.some((snapshot) => snapshot.noteId === currentId);
 }
 
 // 遅延保存の予約を解除し、現在の入力内容をすぐに保存します。
@@ -1600,6 +1678,9 @@ todayBtn.addEventListener("click", async () => {
 });
 
 backupBtn.addEventListener("click", downloadMarkdownZip);
+if (undoBtn) {
+  undoBtn.addEventListener("click", undoLastEdit);
+}
 settingsBtn.addEventListener("click", () => {
   openSettingsDialog().catch((error) => {
     console.error("Settings dialog failed", error);
@@ -1653,6 +1734,8 @@ graphBtn.addEventListener("click", () => {
 
 closeGraphBtn.addEventListener("click", () => graphDialog.close());
 searchInput.addEventListener("input", renderList);
+titleInput.addEventListener("beforeinput", captureUndoSnapshot);
+editor.addEventListener("beforeinput", captureUndoSnapshot);
 titleInput.addEventListener("input", scheduleSave);
 editor.addEventListener("input", scheduleSave);
 window.addEventListener("resize", renderSaveStatus);

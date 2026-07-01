@@ -381,3 +381,35 @@
 * `saveCurrentNote()` と IndexedDB 保存形式に差分がないことを確認
 * `git diff -- app.js index.html style.css` で変更内容を確認
 * ブラウザ上での Mermaid 描画実機確認は未実施
+
+## 2026-07-01 スマホ向けUndoボタン追加
+
+### 実装した内容
+
+* `index.html` の上部ツールバーに `undoBtn` を追加
+* `style.css` でツールバーボタンの最小高さを調整し、スマホでもUndoを押しやすくした
+* `app.js` に `undoStack`、`UNDO_LIMIT`、`lastUndoSnapshotAt` を追加
+* `titleInput` と `editor` の `beforeinput` で変更前のタイトル・本文をUndo履歴へ保存
+* 削除、切り取り、貼り付け、ドロップは間隔に関係なくUndo履歴を保存
+* 通常入力は800ms間隔で履歴を保存し、連続する同一内容は保存しないようにした
+* Undoボタンで現在メモIDに対応する直近履歴を復元し、保存予約・プレビュー・関連メモ・保存状態を更新
+
+### 変更したファイル
+
+* `index.html`
+* `style.css`
+* `app.js`
+* `LOG.md`
+
+### 確認した動作
+
+* `node --check app.js` でJavaScript構文エラーがないことを確認
+* Undo履歴が最大50件に制限される実装であることを確認
+* `keydown` で Ctrl+Z を奪っていないことを確認
+* IndexedDBの保存形式と既存メモデータ構造を変更していないことを確認
+
+### 未対応事項
+
+* Redoは未実装
+* ブラウザ上でのスマホ実機操作確認は未実施
+* Excelのような完全な操作履歴は未実装

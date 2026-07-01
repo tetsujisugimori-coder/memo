@@ -113,6 +113,22 @@ button:hover {
 
 .toolbar button {
   min-width: 0;
+  min-height: 42px;
+  padding: 7px 8px;
+}
+
+.toolbar button:disabled {
+  cursor: default;
+  opacity: 0.48;
+}
+
+.toolbar button:disabled:hover {
+  border-color: var(--line);
+  color: var(--ink);
+}
+
+.undo-button {
+  font-weight: 700;
 }
 
 .danger-button {
@@ -710,6 +726,14 @@ button:hover {
     min-height: 70vh;
     grid-template-columns: 1fr;
     grid-template-rows: auto;
+  }
+
+  .toolbar {
+    grid-template-columns: repeat(auto-fit, minmax(64px, 1fr));
+  }
+
+  .toolbar button {
+    min-height: 46px;
   }
 
   .title-row {
