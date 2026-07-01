@@ -127,6 +127,20 @@ button:hover {
   color: var(--ink);
 }
 
+#undoBtn,
+.undo-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#undoBtn:disabled,
+.undo-button:disabled {
+  display: inline-flex;
+  opacity: 0.48;
+  cursor: default;
+}
+
 .undo-button {
   font-weight: 700;
 }
