@@ -346,7 +346,7 @@ async function importPastedItNewsJson() {
 
   let built;
   try {
-    built = buildItNewsNotes(parseItNewsJson(text));
+    built = parsePastedJson(text);
   } catch (error) {
     showJsonImportError(error.message);
     return;
@@ -359,31 +359,64 @@ async function importPastedItNewsJson() {
     renderAll();
     openNote(note.id);
     closeJsonImportDialog();
-    saveStatus.textContent = "JSONから1件のニュースメモを作成しました";
+    saveStatus.textContent = built.importMessage || "JSONから1件のメモを作成しました";
   } catch (error) {
     showJsonImportError(`保存に失敗しました: ${error.message}`);
   }
 }
 
+function parsePastedJson(text) {
+  let payload;
+  try {
+    payload = JSON.parse(text);
+  } catch (error) {
+    throw new Error("JSONの読み込みに失敗しました。JSONの構文を確認してください。");
+  }
+
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+    throw new Error("JSONのルートはオブジェクトにしてください。");
+  }
+
+  if (Array.isArray(payload.items)) {
+    return {
+      ...buildItNewsNotes(validateItNewsJsonPayload(payload)),
+      importMessage: "JSONから1件のニュースメモを作成しました"
+    };
+  }
+
+  if (isLangBenchResultJson(payload)) {
+    return {
+      ...buildLangBenchResultNote(payload),
+      importMessage: "JSONから1件のLangBench結果メモを作成しました"
+    };
+  }
+
+  throw new Error("対応していないJSON形式です。items配列を持つニュースJSON、または type: \"langbench_result\" を持つLangBench結果JSONを貼り付けてください。");
+}
+
 function parseItNewsJson(text) {
   try {
     const payload = JSON.parse(text);
-    if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
-      throw new Error("JSONのルートはオブジェクトにしてください。");
-    }
-    if (!Array.isArray(payload.items)) {
-      throw new Error("items が存在しない、または配列ではありません。");
-    }
-    if (!payload.items.length) {
-      throw new Error("items にニュースがありません。");
-    }
-    return payload;
+    return validateItNewsJsonPayload(payload);
   } catch (error) {
     if (error instanceof SyntaxError) {
       throw new Error(`JSONの解析に失敗しました: ${error.message}`);
     }
     throw error;
   }
+}
+
+function validateItNewsJsonPayload(payload) {
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+    throw new Error("JSONのルートはオブジェクトにしてください。");
+  }
+  if (!Array.isArray(payload.items)) {
+    throw new Error("items が存在しない、または配列ではありません。");
+  }
+  if (!payload.items.length) {
+    throw new Error("items にニュースがありません。");
+  }
+  return payload;
 }
 
 function buildItNewsNotes(payload) {
@@ -522,6 +555,118 @@ function formatSource(item) {
     return `${item.sourceLabel} (${item.sourceUrl})`;
   }
   return item.sourceLabel || item.sourceUrl || "";
+}
+
+function isLangBenchResultJson(payload) {
+  return Boolean(
+    payload &&
+    typeof payload === "object" &&
+    payload.type === "langbench_result" &&
+    Array.isArray(payload.samples)
+  );
+}
+
+function buildLangBenchResultNote(payload) {
+  const language = formatLangBenchLanguage(payload.language);
+  const experimentId = formatLangBenchValue(payload.experiment);
+  const experimentLabel = formatLangBenchValue(payload.experiment_label || payload.experiment);
+  const createdAt = formatLangBenchValue(payload.created_at);
+  const status = formatLangBenchValue(payload.status);
+  const project = formatLangBenchValue(payload.project || "LangBench Live");
+  const title = `LangBench Live 測定結果: ${language}`;
+  const body = [
+    `# ${title}`,
+    "",
+    `[[LangBench Live]] [[${experimentLabel}]] [[${language}]]`,
+    "",
+    "## 概要",
+    `- プロジェクト: ${project}`,
+    `- 実験ID: ${experimentId}`,
+    `- 実験名: ${experimentLabel}`,
+    `- 言語: ${language}`,
+    `- ステータス: ${status}`,
+    `- 作成日時: ${createdAt}`,
+    "",
+    "## 測定結果",
+    ""
+  ];
+
+  payload.samples.forEach((sample, index) => {
+    appendLangBenchSample(body, sample, index);
+  });
+
+  body.push(
+    "## 注意",
+    "smallのような小さいデータは処理時間が短すぎるため、OSキャッシュ、ファイルオープン、測定処理そのものの影響を受けやすいです。  ",
+    "今回の結果は、この実装・この環境・このデータ条件での結果として扱います。"
+  );
+
+  return {
+    title,
+    body: body.join("\n").trim()
+  };
+}
+
+function appendLangBenchSample(body, sample, index) {
+  const source = sample && typeof sample === "object" ? sample : {};
+  const sampleName = formatLangBenchValue(source.name || `sample-${index + 1}`);
+  const expected = source.expected && typeof source.expected === "object" ? source.expected : {};
+  const runs = Array.isArray(source.runs) ? source.runs : [];
+
+  body.push(
+    `### ${sampleName}`,
+    `- 入力ファイル: ${formatLangBenchValue(source.input)}`,
+    `- 想定データ行数: ${formatLangBenchValue(expected.data_rows)}`,
+    ""
+  );
+
+  if (runs.length) {
+    body.push(
+      "| run | elapsed_ms | line_count |",
+      "|---:|---:|---:|"
+    );
+
+    runs.forEach((run, runIndex) => {
+      const runSource = run && typeof run === "object" ? run : {};
+      const metrics = runSource.metrics && typeof runSource.metrics === "object" ? runSource.metrics : {};
+      body.push(`| ${formatLangBenchTableValue(runSource.run || runIndex + 1)} | ${formatLangBenchTableValue(runSource.elapsed_ms)} | ${formatLangBenchTableValue(metrics.line_count)} |`);
+    });
+
+    body.push("");
+  } else {
+    body.push("- runs: 不明", "");
+  }
+
+  if (source.summary && typeof source.summary === "object") {
+    body.push(
+      "#### summary",
+      `- 回数: ${formatLangBenchValue(source.summary.count)}`,
+      `- 平均: ${formatLangBenchValue(source.summary.average_ms)} ms`,
+      `- 中央値: ${formatLangBenchValue(source.summary.median_ms)} ms`,
+      `- 最速: ${formatLangBenchValue(source.summary.fastest_ms)} ms`,
+      `- 最遅: ${formatLangBenchValue(source.summary.slowest_ms)} ms`,
+      ""
+    );
+  }
+}
+
+function formatLangBenchLanguage(value) {
+  const raw = formatLangBenchValue(value);
+  const lower = raw.toLowerCase();
+  if (lower === "javascript") return "JavaScript";
+  if (lower === "python") return "Python";
+  if (raw === "不明") return raw;
+  return raw.charAt(0).toUpperCase() + raw.slice(1);
+}
+
+function formatLangBenchValue(value) {
+  if (value === null || value === undefined || value === "") return "不明";
+  if (typeof value === "object") return JSON.stringify(value);
+  return String(value);
+}
+
+function formatLangBenchTableValue(value) {
+  return formatLangBenchValue(value).replace(/\|/g, "\\|");
 }
 
 function openJsonImportDialog() {

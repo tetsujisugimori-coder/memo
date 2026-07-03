@@ -510,3 +510,29 @@
 ### 未対応・今後の検討事項
 
 * ブラウザ上での削除、復元、閉じる操作の実操作確認は未実施
+
+## 2026-07-03 JSON貼り付け取り込みのLangBench Live対応
+
+### 変更内容
+
+* JSON貼り付け取り込みの入口でJSON形式判定を追加
+* `items` 配列を持つ既存ニュースJSONは、従来のニュース取り込み処理へ渡す形を維持
+* `type: "langbench_result"` と `samples` 配列を持つLangBench Live結果JSONに対応
+* LangBench結果JSONを1件のMarkdownメモに変換する処理を追加
+* LangBench結果本文に `[[LangBench Live]]`、実験名、言語名のWikiリンク、各sample/run/summaryの測定値、注意書きを含めるようにした
+
+### 変更したファイル
+
+* `app.js`
+* `LOG.md`
+
+### 確認した動作
+
+* `node --check app.js` でJavaScript構文エラーがないことを確認
+* ニュースJSONは `items` 配列判定後に既存の `buildItNewsNotes()` へ渡す構造を確認
+* Python / JavaScript のLangBench結果JSONを想定し、言語表示が `Python` / `JavaScript` になることを確認
+* 不正なJSON構文と未知形式JSONで、それぞれ分かりやすいエラーメッセージを出す分岐を確認
+
+### 未対応・今後の検討事項
+
+* ブラウザ上での貼り付け取り込み実操作確認は未実施
