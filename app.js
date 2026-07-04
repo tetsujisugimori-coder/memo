@@ -573,19 +573,55 @@ function buildLangBenchResultNote(payload) {
   const createdAt = formatLangBenchValue(payload.created_at);
   const status = formatLangBenchValue(payload.status);
   const project = formatLangBenchValue(payload.project || "LangBench Live");
-  const title = `LangBench Live 測定結果: ${language}`;
+  const execution = payload.execution && typeof payload.execution === "object" ? payload.execution : {};
+  const runtime = payload.runtime && typeof payload.runtime === "object" ? payload.runtime : {};
+  const environment = payload.environment && typeof payload.environment === "object" ? payload.environment : {};
+  const runnerLabel = formatLangBenchRunnerLabel(execution.runner_label);
+  const title = runnerLabel === "不明"
+    ? `LangBench Live 測定結果: ${language}`
+    : `LangBench Live 測定結果: ${language} / ${runnerLabel}`;
+  const wikiLinks = [
+    "LangBench Live",
+    formatLangBenchWikiLabel(experimentLabel),
+    formatLangBenchWikiLabel(language)
+  ];
+  if (runnerLabel !== "不明") {
+    wikiLinks.push(formatLangBenchWikiLabel(runnerLabel));
+  }
+
   const body = [
     `# ${title}`,
     "",
-    `[[LangBench Live]] [[${experimentLabel}]] [[${language}]]`,
+    wikiLinks.map((label) => `[[${label}]]`).join(" "),
     "",
     "## 概要",
     `- プロジェクト: ${project}`,
+    `- type: ${formatLangBenchValue(payload.type)}`,
     `- 実験ID: ${experimentId}`,
     `- 実験名: ${experimentLabel}`,
     `- 言語: ${language}`,
     `- ステータス: ${status}`,
     `- 作成日時: ${createdAt}`,
+    "",
+    "## 実行条件",
+    `- runner: ${formatLangBenchValue(execution.runner)}`,
+    `- runner_label: ${runnerLabel}`,
+    `- cwd: ${formatLangBenchValue(execution.cwd)}`,
+    `- command: ${formatLangBenchValue(execution.command)}`,
+    `- script_path: ${formatLangBenchValue(execution.script_path)}`,
+    `- argv: ${formatLangBenchArgv(execution.argv)}`,
+    "",
+    "## ランタイム",
+    `- name: ${formatLangBenchValue(runtime.name)}`,
+    `- version: ${formatLangBenchValue(runtime.version)}`,
+    "",
+    "## 実行環境",
+    `- OS名: ${formatLangBenchValue(environment.os_name)}`,
+    `- OS platform: ${formatLangBenchValue(environment.os_platform)}`,
+    `- OS version: ${formatLangBenchValue(environment.os_version || environment.os_release)}`,
+    `- CPU: ${formatLangBenchValue(environment.cpu_model)}`,
+    `- CPU threads: ${formatLangBenchValue(environment.cpu_threads)}`,
+    `- メモリ: ${formatLangBenchBytes(environment.memory_total_bytes)}`,
     "",
     "## 測定結果",
     ""
@@ -598,7 +634,7 @@ function buildLangBenchResultNote(payload) {
   body.push(
     "## 注意",
     "smallのような小さいデータは処理時間が短すぎるため、OSキャッシュ、ファイルオープン、測定処理そのものの影響を受けやすいです。  ",
-    "今回の結果は、この実装・この環境・このデータ条件での結果として扱います。"
+    "今回の結果は、このコード・この実行条件・このランタイム・このPC環境・この入力CSV条件での結果として扱います。"
   );
 
   return {
@@ -612,11 +648,18 @@ function appendLangBenchSample(body, sample, index) {
   const sampleName = formatLangBenchValue(source.name || `sample-${index + 1}`);
   const expected = source.expected && typeof source.expected === "object" ? source.expected : {};
   const runs = Array.isArray(source.runs) ? source.runs : [];
+  const sampleAverage = source.average_ms !== undefined ? source.average_ms : source.summary?.average_ms;
+  const sampleMedian = source.median_ms !== undefined ? source.median_ms : source.summary?.median_ms;
 
   body.push(
     `### ${sampleName}`,
-    `- 入力ファイル: ${formatLangBenchValue(source.input)}`,
+    `- 入力: ${formatLangBenchValue(source.input)}`,
+    `- 入力ファイル: ${formatLangBenchValue(pickLangBenchSampleInput(source))}`,
+    `- 入力ファイルサイズ: ${formatLangBenchBytes(source.input_file_size_bytes)}`,
     `- 想定データ行数: ${formatLangBenchValue(expected.data_rows)}`,
+    `- 行数: ${formatLangBenchValue(source.line_count)}`,
+    `- 平均: ${formatLangBenchValue(sampleAverage)} ms`,
+    `- 中央値: ${formatLangBenchValue(sampleMedian)} ms`,
     ""
   );
 
@@ -628,8 +671,7 @@ function appendLangBenchSample(body, sample, index) {
 
     runs.forEach((run, runIndex) => {
       const runSource = run && typeof run === "object" ? run : {};
-      const metrics = runSource.metrics && typeof runSource.metrics === "object" ? runSource.metrics : {};
-      body.push(`| ${formatLangBenchTableValue(runSource.run || runIndex + 1)} | ${formatLangBenchTableValue(runSource.elapsed_ms)} | ${formatLangBenchTableValue(metrics.line_count)} |`);
+      body.push(`| ${formatLangBenchTableValue(runSource.run || runIndex + 1)} | ${formatLangBenchTableValue(runSource.elapsed_ms)} | ${formatLangBenchTableValue(pickLangBenchLineCount(source, runSource))} |`);
     });
 
     body.push("");
@@ -657,6 +699,49 @@ function formatLangBenchLanguage(value) {
   if (lower === "python") return "Python";
   if (raw === "不明") return raw;
   return raw.charAt(0).toUpperCase() + raw.slice(1);
+}
+
+function formatLangBenchBytes(value) {
+  if (value === null || value === undefined || value === "") return "不明";
+  const bytes = Number(value);
+  if (!Number.isFinite(bytes)) return formatLangBenchValue(value);
+  const units = [
+    { label: "GB", size: 1024 ** 3 },
+    { label: "MB", size: 1024 ** 2 }
+  ];
+  const unit = units.find((entry) => Math.abs(bytes) >= entry.size);
+  if (!unit) return `${bytes} bytes`;
+  return `${bytes} bytes（約${(bytes / unit.size).toFixed(2)} ${unit.label}）`;
+}
+
+function formatLangBenchRunnerLabel(value) {
+  return formatLangBenchValue(value);
+}
+
+function formatLangBenchWikiLabel(value) {
+  return formatLangBenchValue(value).replace(/\//g, " ").replace(/\s+/g, " ").trim();
+}
+
+function formatLangBenchArgv(value) {
+  if (Array.isArray(value)) {
+    return value.map(formatLangBenchValue).join(" ");
+  }
+  return formatLangBenchValue(value);
+}
+
+function pickLangBenchSampleInput(sample) {
+  return sample.input_file || sample.input;
+}
+
+function pickLangBenchLineCount(sample, run) {
+  if (run.line_count !== undefined && run.line_count !== null && run.line_count !== "") {
+    return run.line_count;
+  }
+  const metrics = run.metrics && typeof run.metrics === "object" ? run.metrics : {};
+  if (metrics.line_count !== undefined && metrics.line_count !== null && metrics.line_count !== "") {
+    return metrics.line_count;
+  }
+  return sample.line_count;
 }
 
 function formatLangBenchValue(value) {

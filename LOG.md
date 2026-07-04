@@ -536,3 +536,31 @@
 ### 未対応・今後の検討事項
 
 * ブラウザ上での貼り付け取り込み実操作確認は未実施
+
+## 2026-07-04 LangBench Live新結果JSON対応
+
+### 変更内容
+
+* LangBench結果メモのタイトルに `runner_label` を含めるよう拡張
+* 本文冒頭のWikiリンクに `runner_label` を追加し、Wikiリンク内の `/` はスペースへ置換するようにした
+* LangBench結果本文に `type`、実行条件、ランタイム、実行環境セクションを追加
+* `memory_total_bytes` は bytes と概算MB/GBを併記するようにした
+* sample表示で `input` / `input_file` / `input_file_size_bytes` / sample直下の `line_count` / `average_ms` / `median_ms` に対応
+* run表示で `run.line_count` と `run.metrics.line_count` の両方に対応
+* 注意文に、コード、ランタイム、実行条件、PC環境、入力CSV条件へ依存する旨を追記
+
+### 変更したファイル
+
+* `app.js`
+* `LOG.md`
+
+### 確認した動作
+
+* `node --check app.js` でJavaScript構文エラーがないことを確認
+* ニュースJSONは従来どおり `items` 配列判定後に既存処理へ渡す構造のまま変更していないことを確認
+* LangBench結果JSON判定は `payload.type === "langbench_result"` と `payload.samples` 配列の条件を維持していることを確認
+
+### 未対応・今後の検討事項
+
+* ブラウザ上での `javascript_result.json` / `python_result.json` 貼り付け取り込み実操作確認は未実施
+* 既存ニュースJSONのブラウザ上での貼り付け取り込み実操作確認は未実施
