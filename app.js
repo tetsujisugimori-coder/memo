@@ -377,17 +377,17 @@ function parsePastedJson(text) {
     throw new Error("JSONのルートはオブジェクトにしてください。");
   }
 
+  if (isLangBenchResultJson(payload)) {
+    return {
+      ...buildLangBenchResultNote(payload),
+      importMessage: "LangBench Result を取り込みました。"
+    };
+  }
+
   if (Array.isArray(payload.items)) {
     return {
       ...buildItNewsNotes(validateItNewsJsonPayload(payload)),
       importMessage: "JSONから1件のニュースメモを作成しました"
-    };
-  }
-
-  if (isLangBenchResultJson(payload)) {
-    return {
-      ...buildLangBenchResultNote(payload),
-      importMessage: "JSONから1件のLangBench結果メモを作成しました"
     };
   }
 
@@ -561,197 +561,206 @@ function isLangBenchResultJson(payload) {
   return Boolean(
     payload &&
     typeof payload === "object" &&
-    payload.type === "langbench_result" &&
-    Array.isArray(payload.samples)
+    payload.type === "langbench_result"
   );
 }
 
 function buildLangBenchResultNote(payload) {
-  const language = formatLangBenchLanguage(payload.language);
-  const experimentId = formatLangBenchValue(payload.experiment);
-  const experimentLabel = formatLangBenchValue(payload.experiment_label || payload.experiment);
-  const createdAt = formatLangBenchValue(payload.created_at);
-  const status = formatLangBenchValue(payload.status);
-  const project = formatLangBenchValue(payload.project || "LangBench Live");
-  const execution = payload.execution && typeof payload.execution === "object" ? payload.execution : {};
-  const runtime = payload.runtime && typeof payload.runtime === "object" ? payload.runtime : {};
-  const environment = payload.environment && typeof payload.environment === "object" ? payload.environment : {};
-  const runnerLabel = formatLangBenchRunnerLabel(execution.runner_label);
-  const title = runnerLabel === "不明"
-    ? `LangBench Live 測定結果: ${language}`
-    : `LangBench Live 測定結果: ${language} / ${runnerLabel}`;
-  const wikiLinks = [
-    "LangBench Live",
-    formatLangBenchWikiLabel(experimentLabel),
-    formatLangBenchWikiLabel(language)
-  ];
-  if (runnerLabel !== "不明") {
-    wikiLinks.push(formatLangBenchWikiLabel(runnerLabel));
-  }
-
-  const body = [
-    `# ${title}`,
-    "",
-    wikiLinks.map((label) => `[[${label}]]`).join(" "),
-    "",
-    "## 概要",
-    `- プロジェクト: ${project}`,
-    `- type: ${formatLangBenchValue(payload.type)}`,
-    `- 実験ID: ${experimentId}`,
-    `- 実験名: ${experimentLabel}`,
-    `- 言語: ${language}`,
-    `- ステータス: ${status}`,
-    `- 作成日時: ${createdAt}`,
-    "",
-    "## 実行条件",
-    `- runner: ${formatLangBenchValue(execution.runner)}`,
-    `- runner_label: ${runnerLabel}`,
-    `- cwd: ${formatLangBenchValue(execution.cwd)}`,
-    `- command: ${formatLangBenchValue(execution.command)}`,
-    `- script_path: ${formatLangBenchValue(execution.script_path)}`,
-    `- argv: ${formatLangBenchArgv(execution.argv)}`,
-    "",
-    "## ランタイム",
-    `- name: ${formatLangBenchValue(runtime.name)}`,
-    `- version: ${formatLangBenchValue(runtime.version)}`,
-    "",
-    "## 実行環境",
-    `- OS名: ${formatLangBenchValue(environment.os_name)}`,
-    `- OS platform: ${formatLangBenchValue(environment.os_platform)}`,
-    `- OS version: ${formatLangBenchValue(environment.os_version || environment.os_release)}`,
-    `- CPU: ${formatLangBenchValue(environment.cpu_model)}`,
-    `- CPU threads: ${formatLangBenchValue(environment.cpu_threads)}`,
-    `- メモリ: ${formatLangBenchBytes(environment.memory_total_bytes)}`,
-    "",
-    "## 測定結果",
-    ""
-  ];
-
-  payload.samples.forEach((sample, index) => {
-    appendLangBenchSample(body, sample, index);
-  });
-
-  body.push(
-    "## 注意",
-    "smallのような小さいデータは処理時間が短すぎるため、OSキャッシュ、ファイルオープン、測定処理そのものの影響を受けやすいです。  ",
-    "今回の結果は、このコード・この実行条件・このランタイム・このPC環境・この入力CSV条件での結果として扱います。"
-  );
-
   return {
-    title,
-    body: body.join("\n").trim()
+    title: buildLangBenchNoteTitle(payload),
+    body: buildLangBenchNoteBody(payload)
   };
 }
 
-function appendLangBenchSample(body, sample, index) {
-  const source = sample && typeof sample === "object" ? sample : {};
-  const sampleName = formatLangBenchValue(source.name || `sample-${index + 1}`);
-  const expected = source.expected && typeof source.expected === "object" ? source.expected : {};
-  const runs = Array.isArray(source.runs) ? source.runs : [];
-  const sampleAverage = source.average_ms !== undefined ? source.average_ms : source.summary?.average_ms;
-  const sampleMedian = source.median_ms !== undefined ? source.median_ms : source.summary?.median_ms;
-
-  body.push(
-    `### ${sampleName}`,
-    `- 入力: ${formatLangBenchValue(source.input)}`,
-    `- 入力ファイル: ${formatLangBenchValue(pickLangBenchSampleInput(source))}`,
-    `- 入力ファイルサイズ: ${formatLangBenchBytes(source.input_file_size_bytes)}`,
-    `- 想定データ行数: ${formatLangBenchValue(expected.data_rows)}`,
-    `- 行数: ${formatLangBenchValue(source.line_count)}`,
-    `- 平均: ${formatLangBenchValue(sampleAverage)} ms`,
-    `- 中央値: ${formatLangBenchValue(sampleMedian)} ms`,
-    ""
-  );
-
-  if (runs.length) {
-    body.push(
-      "| run | elapsed_ms | line_count |",
-      "|---:|---:|---:|"
-    );
-
-    runs.forEach((run, runIndex) => {
-      const runSource = run && typeof run === "object" ? run : {};
-      body.push(`| ${formatLangBenchTableValue(runSource.run || runIndex + 1)} | ${formatLangBenchTableValue(runSource.elapsed_ms)} | ${formatLangBenchTableValue(pickLangBenchLineCount(source, runSource))} |`);
-    });
-
-    body.push("");
-  } else {
-    body.push("- runs: 不明", "");
-  }
-
-  if (source.summary && typeof source.summary === "object") {
-    body.push(
-      "#### summary",
-      `- 回数: ${formatLangBenchValue(source.summary.count)}`,
-      `- 平均: ${formatLangBenchValue(source.summary.average_ms)} ms`,
-      `- 中央値: ${formatLangBenchValue(source.summary.median_ms)} ms`,
-      `- 最速: ${formatLangBenchValue(source.summary.fastest_ms)} ms`,
-      `- 最遅: ${formatLangBenchValue(source.summary.slowest_ms)} ms`,
-      ""
-    );
-  }
+function buildLangBenchNoteTitle(payload) {
+  const benchmark = langBenchText(payload.benchmark || payload.experiment || "unknown_benchmark", "unknown_benchmark");
+  const language = langBenchText(payload.language || "unknown_language", "unknown_language");
+  const createdAt = langBenchText(payload.created_at || new Date().toISOString(), new Date().toISOString());
+  return `LangBench: ${benchmark} / ${language} / ${createdAt}`;
 }
 
-function formatLangBenchLanguage(value) {
-  const raw = formatLangBenchValue(value);
-  const lower = raw.toLowerCase();
-  if (lower === "javascript") return "JavaScript";
-  if (lower === "python") return "Python";
-  if (raw === "不明") return raw;
-  return raw.charAt(0).toUpperCase() + raw.slice(1);
-}
+function buildLangBenchNoteBody(payload) {
+  const benchmark = langBenchText(payload.benchmark || payload.experiment || "unknown_benchmark", "unknown_benchmark");
+  const language = langBenchText(payload.language || "unknown_language", "unknown_language");
+  const execution = payload.execution && typeof payload.execution === "object" ? payload.execution : {};
+  const runtime = payload.runtime && typeof payload.runtime === "object" ? payload.runtime : {};
+  const engine = payload.engine && typeof payload.engine === "object" ? payload.engine : {};
+  const environment = payload.environment && typeof payload.environment === "object" ? payload.environment : {};
+  const summary = payload.summary && typeof payload.summary === "object" ? payload.summary : {};
 
-function formatLangBenchBytes(value) {
-  if (value === null || value === undefined || value === "") return "不明";
-  const bytes = Number(value);
-  if (!Number.isFinite(bytes)) return formatLangBenchValue(value);
-  const units = [
-    { label: "GB", size: 1024 ** 3 },
-    { label: "MB", size: 1024 ** 2 }
+  const body = [
+    `# LangBench Result: ${benchmark} / ${language}`,
+    "",
+    "## Basic Info",
+    `- Project: ${langBenchValue(payload.project)}`,
+    `- Benchmark: ${langBenchValue(payload.benchmark)}`,
+    `- Experiment: ${langBenchValue(payload.experiment)}`,
+    `- Language: ${langBenchValue(payload.language)}`,
+    `- Created: ${langBenchValue(payload.created_at)}`,
+    `- Status: ${langBenchValue(payload.status)}`,
+    `- Schema version: ${langBenchValue(payload.schema_version)}`,
+    "",
+    "## Runtime / Engine",
+    `- Runtime: ${langBenchValue(runtime.name || engine.runtime)}`,
+    `- Runtime version: ${langBenchValue(runtime.version)}`,
+    `- Node version: ${langBenchValue(engine.node_version)}`,
+    `- V8 version: ${langBenchValue(engine.v8_version)}`,
+    "",
+    "## Execution",
+    `- Runner: ${langBenchValue(execution.runner)}`,
+    `- Runner label: ${langBenchValue(execution.runner_label)}`,
+    `- CWD: ${langBenchValue(execution.cwd)}`,
+    `- Command: ${langBenchValue(execution.command)}`,
+    `- Script path: ${langBenchValue(execution.script_path)}`,
+    `- Output file: ${langBenchValue(payload.output_file)}`,
+    "",
+    "## Environment",
+    `- OS: ${langBenchValue(environment.os_name)}`,
+    `- OS platform: ${langBenchValue(environment.os_platform)}`,
+    `- OS version: ${langBenchValue(environment.os_version)}`,
+    `- CPU model: ${langBenchValue(environment.cpu_model)}`,
+    `- CPU threads: ${langBenchValue(environment.cpu_threads)}`,
+    `- Memory total bytes: ${langBenchValue(environment.memory_total_bytes)}`,
+    "",
+    "## Benchmark Settings",
+    `- Array size: ${langBenchValue(payload.array_size)}`,
+    `- Iterations: ${langBenchValue(payload.iterations)}`,
+    `- Setup ms: ${langBenchValue(payload.setup_ms)}`,
+    `- Expected checksum: ${langBenchValue(payload.expected_checksum)}`,
+    "",
+    "## Summary",
+    `- Count: ${langBenchValue(summary.count)}`,
+    `- Average ms: ${langBenchValue(summary.average_ms)}`,
+    `- Median ms: ${langBenchValue(summary.median_ms)}`,
+    `- Fastest ms: ${langBenchValue(summary.fastest_ms)}`,
+    `- Slowest ms: ${langBenchValue(summary.slowest_ms)}`,
+    "",
+    "## Observations",
+    buildLangBenchObservations(payload),
+    "",
+    "## Results Detail",
+    buildLangBenchResultsTable(payload.results),
+    "",
+    "## Raw JSON",
+    "```json",
+    JSON.stringify(payload, null, 2),
+    "```"
   ];
-  const unit = units.find((entry) => Math.abs(bytes) >= entry.size);
-  if (!unit) return `${bytes} bytes`;
-  return `${bytes} bytes（約${(bytes / unit.size).toFixed(2)} ${unit.label}）`;
+
+  return body.join("\n").trim();
 }
 
-function formatLangBenchRunnerLabel(value) {
-  return formatLangBenchValue(value);
-}
-
-function formatLangBenchWikiLabel(value) {
-  return formatLangBenchValue(value).replace(/\//g, " ").replace(/\s+/g, " ").trim();
-}
-
-function formatLangBenchArgv(value) {
-  if (Array.isArray(value)) {
-    return value.map(formatLangBenchValue).join(" ");
+function buildLangBenchObservations(payload) {
+  const results = Array.isArray(payload.results) ? payload.results : [];
+  if (!results.length) {
+    return "results 配列がないため、iteration ごとの詳細分析はできません。";
   }
-  return formatLangBenchValue(value);
-}
 
-function pickLangBenchSampleInput(sample) {
-  return sample.input_file || sample.input;
-}
+  const elapsedRows = results
+    .map((result, index) => ({
+      index,
+      elapsedMs: langBenchNumber(result && typeof result === "object" ? result.elapsed_ms : undefined)
+    }))
+    .filter((row) => row.elapsedMs !== null);
+  const firstRow = elapsedRows.find((row) => row.index === 0);
+  const afterFirst = elapsedRows.filter((row) => row.index > 0).map((row) => row.elapsedMs);
+  const afterFirstAverage = afterFirst.length ? averageNumbers(afterFirst) : null;
+  const expectedChecksum = payload.expected_checksum;
+  const hasExpectedChecksum = expectedChecksum !== null && expectedChecksum !== undefined && expectedChecksum !== "";
+  const checksumMismatchCount = hasExpectedChecksum
+    ? results.filter((result) => {
+      if (!result || typeof result !== "object") return false;
+      if (result.checksum === null || result.checksum === undefined) return false;
+      return String(result.checksum) !== String(expectedChecksum);
+    }).length
+    : null;
+  const firstGap = firstRow && afterFirstAverage !== null ? firstRow.elapsedMs - afterFirstAverage : null;
 
-function pickLangBenchLineCount(sample, run) {
-  if (run.line_count !== undefined && run.line_count !== null && run.line_count !== "") {
-    return run.line_count;
+  const lines = [
+    `- First iteration elapsed ms: ${firstRow ? formatLangBenchNumber(firstRow.elapsedMs) : ""}`,
+    `- Average ms after first iteration: ${afterFirstAverage === null ? "not enough data" : formatLangBenchNumber(afterFirstAverage)}`,
+    `- Fastest ms after first iteration: ${afterFirst.length ? formatLangBenchNumber(Math.min(...afterFirst)) : "not enough data"}`,
+    `- Slowest ms after first iteration: ${afterFirst.length ? formatLangBenchNumber(Math.max(...afterFirst)) : "not enough data"}`,
+    `- First iteration gap: ${firstGap === null ? "not enough data" : formatLangBenchNumber(firstGap)}`,
+    `- Checksum mismatches: ${hasExpectedChecksum ? checksumMismatchCount : "unknown"}`,
+    ""
+  ];
+
+  if (firstGap !== null && firstGap > 0) {
+    lines.push("初回実行が2回目以降の平均より大きく、ウォームアップやJIT最適化前の影響を疑う余地があります。");
   }
-  const metrics = run.metrics && typeof run.metrics === "object" ? run.metrics : {};
-  if (metrics.line_count !== undefined && metrics.line_count !== null && metrics.line_count !== "") {
-    return metrics.line_count;
+
+  if (afterFirst.length >= 2 && Math.max(...afterFirst) !== Math.min(...afterFirst)) {
+    lines.push("途中の elapsed_ms に変動があるため、実行環境や最適化状態の変化も含めて確認する価値があります。");
   }
-  return sample.line_count;
+
+  if (lines[lines.length - 1] === "") {
+    lines.push("elapsed_ms の傾向は、実行環境や測定条件と合わせて確認してください。");
+  }
+
+  return lines.join("\n");
 }
 
-function formatLangBenchValue(value) {
-  if (value === null || value === undefined || value === "") return "不明";
+function buildLangBenchResultsTable(results) {
+  if (!Array.isArray(results) || !results.length) {
+    return "results がありません";
+  }
+
+  const rows = [
+    "| Iteration | Elapsed ms | Checksum |",
+    "|---:|---:|---:|"
+  ];
+
+  const visibleResults = results.length <= 200
+    ? results.map((result) => ({ result }))
+    : [
+      ...results.slice(0, 100).map((result) => ({ result })),
+      { omitted: true },
+      ...results.slice(-100).map((result) => ({ result }))
+    ];
+
+  visibleResults.forEach((entry) => {
+    if (entry.omitted) {
+      rows.push("| ... | ... | ... |");
+      return;
+    }
+    const result = entry.result && typeof entry.result === "object" ? entry.result : {};
+    rows.push(`| ${langBenchTableValue(result.iteration)} | ${langBenchTableValue(result.elapsed_ms)} | ${langBenchTableValue(result.checksum)} |`);
+  });
+
+  return rows.join("\n");
+}
+
+function averageNumbers(values) {
+  return values.reduce((sum, value) => sum + value, 0) / values.length;
+}
+
+function langBenchNumber(value) {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string" && value.trim() !== "") {
+    const number = Number(value);
+    if (Number.isFinite(number)) return number;
+  }
+  return null;
+}
+
+function formatLangBenchNumber(value) {
+  return Number.isInteger(value) ? String(value) : value.toFixed(3).replace(/\.?0+$/, "");
+}
+
+function langBenchText(value, fallback = "unknown") {
+  if (value === null || value === undefined || value === "") return fallback;
   if (typeof value === "object") return JSON.stringify(value);
   return String(value);
 }
 
-function formatLangBenchTableValue(value) {
-  return formatLangBenchValue(value).replace(/\|/g, "\\|");
+function langBenchValue(value) {
+  return langBenchText(value, "unknown");
+}
+
+function langBenchTableValue(value) {
+  if (value === null || value === undefined) return "";
+  return langBenchText(value, "").replace(/\|/g, "\\|");
 }
 
 function openJsonImportDialog() {
@@ -815,6 +824,10 @@ function extractJsonCodeBlock(text) {
 }
 
 function buildNewsNoteFromJson(fileName, payload) {
+  if (isLangBenchResultJson(payload)) {
+    return buildLangBenchResultNote(payload);
+  }
+
   const normalized = normalizeNewsPayload(payload);
   if (!normalized.items.length) {
     return buildPlainTextImport(fileName, JSON.stringify(payload, null, 2));

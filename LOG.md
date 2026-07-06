@@ -564,3 +564,29 @@
 
 * ブラウザ上での `javascript_result.json` / `python_result.json` 貼り付け取り込み実操作確認は未実施
 * 既存ニュースJSONのブラウザ上での貼り付け取り込み実操作確認は未実施
+
+## 2026-07-07 LangBench Result JSON取り込みのresults展開対応
+
+### 変更内容
+
+* LangBench Result JSON の取り込み対応を更新
+* `type === "langbench_result"` による判定へ変更
+* Markdown形式でのメモ生成を追加
+* summary の表示を追加
+* results の各 iteration を Markdown 表として表示
+* results が多い場合は先頭100件と末尾100件に省略
+* results から簡易 Observations を生成
+* checksum mismatch 件数の表示を追加
+* Raw JSON をコードブロックとして保持
+* 既存JSON取り込み処理を壊さないよう分岐追加
+
+### 確認した動作
+
+* `type === "langbench_result"` の場合だけ LangBench Result として扱う構造を確認
+* ニュースJSONは従来どおり `items` 配列判定後に既存処理へ渡す構造を維持
+* results がない場合でも本文に「results がありません」と表示する構造を確認
+
+### 未対応・今後の検討事項
+
+* ブラウザ上での貼り付け取り込み実操作確認は未実施
+* ファイル取り込みでの LangBench JSON 実操作確認は未実施
