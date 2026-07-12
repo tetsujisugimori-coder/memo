@@ -11,6 +11,18 @@ const THEME_STORAGE_KEY = "memo-nexus-theme";
 const DRAFT_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
 const UNDO_LIMIT = 50;
 const UNDO_INPUT_INTERVAL_MS = 800;
+const HIGHLIGHT_AUTO_MIN_RELEVANCE = 2;
+const HIGHLIGHT_LANGUAGE_ALIASES = {
+  js: "javascript",
+  ts: "typescript",
+  html: "xml",
+  py: "python",
+  sh: "bash",
+  shell: "bash",
+  ps: "powershell",
+  md: "markdown",
+  yml: "yaml"
+};
 
 // HTML要素を短く取得するための小さなヘルパー。
 const $ = (id) => document.getElementById(id);
@@ -1268,6 +1280,7 @@ function renderPreview() {
   preview.querySelectorAll(".wiki-link").forEach((button) => {
     button.addEventListener("click", () => openOrCreateLinkedNote(button.dataset.title));
   });
+  highlightCodeBlocks();
   renderMermaidDiagrams();
   renderLinkList();
   renderLinkStats();
@@ -1484,8 +1497,56 @@ function findNextInlineToken(text, fromIndex) {
 }
 
 function renderCodeBlock(code, language) {
-  const languageClass = language ? ` class="language-${escapeAttr(language)}"` : "";
-  return `<pre class="code-block"><code${languageClass}>${escapeHtml(code)}</code></pre>`;
+  const normalizedLanguage = normalizeHighlightLanguage(language);
+  const languageClass = normalizedLanguage ? ` language-${escapeAttr(normalizedLanguage)}` : "";
+  const languageLabel = language ? ` data-language="${escapeAttr(language)}"` : "";
+  return `<pre class="code-block"${languageLabel}><code class="code-content${languageClass}">${escapeHtml(code)}</code></pre>`;
+}
+
+function normalizeHighlightLanguage(language) {
+  const normalized = String(language || "").trim().toLowerCase();
+  return HIGHLIGHT_LANGUAGE_ALIASES[normalized] || normalized;
+}
+
+function highlightCodeBlocks() {
+  preview.querySelectorAll("pre.code-block > code.code-content").forEach((codeElement) => {
+    highlightCodeBlock(codeElement);
+  });
+}
+
+function highlightCodeBlock(codeElement) {
+  const code = codeElement.textContent;
+  if (!code || !window.hljs) return;
+
+  const languageClass = [...codeElement.classList]
+    .find((className) => className.startsWith("language-"));
+  const language = languageClass ? languageClass.slice("language-".length) : "";
+
+  try {
+    if (language) {
+      if (!window.hljs.getLanguage(language)) return;
+      const result = window.hljs.highlight(code, {
+        language,
+        ignoreIllegals: true
+      });
+      applyHighlightResult(codeElement, result.value, language);
+      return;
+    }
+
+    const result = window.hljs.highlightAuto(code);
+    if (!result.language || result.relevance < HIGHLIGHT_AUTO_MIN_RELEVANCE) return;
+    applyHighlightResult(codeElement, result.value, result.language);
+  } catch (error) {
+    console.warn("Code highlight failed; showing plain code", error);
+    codeElement.textContent = code;
+    codeElement.classList.remove("hljs");
+  }
+}
+
+function applyHighlightResult(codeElement, highlightedHtml, language) {
+  codeElement.innerHTML = highlightedHtml;
+  codeElement.classList.add("hljs");
+  codeElement.dataset.highlightedLanguage = language;
 }
 
 function renderMermaidBlock(code, index) {

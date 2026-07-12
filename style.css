@@ -22,6 +22,12 @@
   --gold: #a66b1f;
   --green: #497346;
   --danger: #9b3131;
+  --code-comment: #6f776f;
+  --code-keyword: #7a3e9d;
+  --code-string: #28734f;
+  --code-number: #9a4f18;
+  --code-title: #176b87;
+  --code-meta: #8a5d19;
 }
 
 body.dark {
@@ -48,6 +54,12 @@ body.dark {
   --gold: #e2aa54;
   --green: #90c986;
   --danger: #ef8f8f;
+  --code-comment: #9aa69d;
+  --code-keyword: #d5a6ff;
+  --code-string: #8bd5b0;
+  --code-number: #f3b47b;
+  --code-title: #86d4ea;
+  --code-meta: #e6c27a;
 }
 
 * {
@@ -545,6 +557,7 @@ button:hover {
 }
 
 .code-block {
+  position: relative;
   margin: 12px 0;
   padding: 12px 14px;
   overflow-x: auto;
@@ -554,10 +567,81 @@ button:hover {
   line-height: 1.55;
 }
 
+.code-block[data-language] {
+  padding-top: 32px;
+}
+
+.code-block[data-language]::before {
+  content: attr(data-language);
+  position: absolute;
+  top: 7px;
+  right: 12px;
+  color: var(--muted);
+  font-family: Consolas, "Courier New", monospace;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
 .code-block code {
   font-family: Consolas, "Courier New", monospace;
   font-size: 13px;
   white-space: pre;
+}
+
+.code-block .hljs {
+  display: block;
+  overflow-x: visible;
+  padding: 0;
+  background: transparent;
+  color: var(--ink);
+}
+
+.code-block .hljs-comment,
+.code-block .hljs-quote {
+  color: var(--code-comment);
+  font-style: italic;
+}
+
+.code-block .hljs-keyword,
+.code-block .hljs-selector-tag,
+.code-block .hljs-literal,
+.code-block .hljs-type {
+  color: var(--code-keyword);
+}
+
+.code-block .hljs-string,
+.code-block .hljs-regexp,
+.code-block .hljs-attribute {
+  color: var(--code-string);
+}
+
+.code-block .hljs-number,
+.code-block .hljs-symbol,
+.code-block .hljs-bullet {
+  color: var(--code-number);
+}
+
+.code-block .hljs-title,
+.code-block .hljs-section,
+.code-block .hljs-selector-id,
+.code-block .hljs-selector-class,
+.code-block .hljs-name {
+  color: var(--code-title);
+}
+
+.code-block .hljs-meta,
+.code-block .hljs-built_in,
+.code-block .hljs-variable,
+.code-block .hljs-params {
+  color: var(--code-meta);
+}
+
+.code-block .hljs-emphasis {
+  font-style: italic;
+}
+
+.code-block .hljs-strong {
+  font-weight: 700;
 }
 
 .mermaid-block {
