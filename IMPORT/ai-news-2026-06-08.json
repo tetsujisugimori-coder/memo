@@ -1,0 +1,42 @@
+{
+  "title": "AI最新ニュース朝刊",
+  "date": "2026-06-08",
+  "items": [
+    {
+      "heading": "NVIDIAとSK hynixがAIファクトリー向け次世代メモリで複数年提携",
+      "points": "NVIDIAとSK hynixは2026年6月7日、AIファクトリー向け次世代メモリを共同開発する複数年提携を発表した。対象はVera Rubin AIスーパーコンピュータ、Vera CPU、RTX Spark PC、Jetson Thorまで広く、半導体設計や工場運営にもAIを適用する。AIインフラのボトルネックである高性能メモリ供給を、ロードマップ段階から押さえにいく動きだ。",
+      "whyImportant": "生成AIの競争軸がモデル性能だけでなく、メモリ供給と製造能力を含むフルスタックの確保に移っているため。",
+      "sourceLabel": "NVIDIA Newsroom",
+      "sourceUrl": "https://nvidianews.nvidia.com/news/sk-hynix-ai-factory"
+    },
+    {
+      "heading": "AlphabetがAI計算資源拡張へ800億ドル規模の資本増強を表明",
+      "points": "Alphabetは2026年6月1日、AIインフラと計算資源拡大のため800億ドルのエクイティ調達案を発表し、6月3日の投資家説明では総額見込みを約850億ドルと示した。Sundar Pichai氏は企業と消費者のAI需要が供給能力を上回っていると説明し、2026年の設備投資は1800億〜1900億ドル規模になる見通しを示した。検索、クラウド、Geminiを支える基盤投資を一段と前倒しする姿勢が鮮明だ。",
+      "whyImportant": "AI覇権争いがモデル開発から、電力・GPU・データセンターをどれだけ先回り確保できるかという資本戦に深く入ったことを示すため。",
+      "sourceLabel": "Alphabet Investor Relations / Google Blog",
+      "sourceUrl": "https://abc.xyz/investor/news/news-details/2026/Alphabet-Announces-Proposed-80-Billion-Equity-Capital-Raise-to-Expand-AI-Infrastructure-and-Compute-2026-b0myAMewCa/default.aspx"
+    },
+    {
+      "heading": "MicrosoftがProject Solaraを披露しエージェント専用デバイス構想を前面化",
+      "points": "MicrosoftはBuild 2026で、チップからクラウドまでをまたぐ新プラットフォームProject Solaraの初期構想を公開した。外出時向けのバッジ型端末と、常時待機するデスク端末という2つの参考設計を示し、アプリ中心ではなくエージェント中心の利用形態を想定している。AIエージェントをPCの中の機能から、常時接続の専用体験へ押し出す狙いが見える。",
+      "whyImportant": "今後の競争が『どのモデルが賢いか』だけでなく、『どのOS・端末・常時体験にAIを定着させるか』へ広がっているため。",
+      "sourceLabel": "Microsoft Build Live",
+      "sourceUrl": "https://news.microsoft.com/build-2026-live-blog/"
+    },
+    {
+      "heading": "Metaが中小企業から大企業まで使えるBusiness Agentをグローバル展開",
+      "points": "Metaは2026年6月3日、WhatsApp、Messenger、Instagram上で顧客対応を自動化するMeta Business Agentを発表した。FAQ対応、商品推薦、予約、リード選別、販売支援まで担い、同時にShopifyやZendeskなど外部システムとつなぐBusiness Agent Platformも投入する。メッセージング基盤にAI接客を直接埋め込むことで、企業の導入障壁を下げにきた。",
+      "whyImportant": "消費者向けAIが検索やチャットから、売上直結の会話型業務ソフトへ移行していることを示す大型展開だから。",
+      "sourceLabel": "Meta Newsroom",
+      "sourceUrl": "https://about.fb.com/news/2026/06/meta-business-agent/"
+    },
+    {
+      "heading": "OpenAIがChatGPTのメモリ強化と新セキュリティ機能を順次展開",
+      "points": "OpenAIは2026年6月4日付のリリースノートで、ChatGPTのメモリ更新を自動化し、文脈の鮮度を保ちやすくする改良を公開した。あわせて全ログインユーザー向けにLockdown Modeを提供し、6月2日には不審なログインを確認して切断できるActive sessionsも導入している。使いやすさの向上と同時に、エージェント化で増える安全管理の面も強化している。",
+      "whyImportant": "AIアシスタントが長期記憶と外部接続を強めるほど、利便性と同じ重さでセキュリティ設計が差別化要因になるため。",
+      "sourceLabel": "OpenAI Help Center",
+      "sourceUrl": "https://help.openai.com/en/articles/6825453-chatgpt-release-notes"
+    }
+  ],
+  "trendSummary": "足元のAIニュースは、モデルそのものよりも『インフラ確保』『エージェントの実運用』『常時接続の新しい利用面』『安全性の組み込み』に重心が移っている。巨大資本投下、専用ハード、業務導入、セキュリティ強化が同時進行しており、2026年6月時点の競争は性能比較から産業実装フェーズへ明確に進んでいる。"
+}

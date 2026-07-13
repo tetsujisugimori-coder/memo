@@ -2,10 +2,13 @@
 // バージョンを上げると、あとで保存形式の変更処理を追加できます。
 const DB_NAME = "memo-nexus";
 const STORE_NAME = "notes";
-const DB_VERSION = 1;
-const APP_VERSION = "0.3.1";
-const APP_LABEL = "Draft Mirror";
-const APP_BUILD = "2026-06-21";
+const COLLECTION_STORE_NAME = "collections";
+const DB_VERSION = 2;
+const APP_VERSION = "0.4.0";
+const APP_LABEL = "Collection Explorer";
+const APP_BUILD = "2026-07-13";
+const UNCLASSIFIED_COLLECTION_ID = "system-unclassified";
+const MAX_COLLECTION_DEPTH = 5;
 const DRAFT_STORAGE_KEY = "memo-nexus-current-draft";
 const THEME_STORAGE_KEY = "memo-nexus-theme";
 const DRAFT_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
@@ -36,6 +39,23 @@ const graphBtn = $("graphBtn");
 const linkStatsBtn = $("linkStatsBtn");
 const settingsBtn = $("settingsBtn");
 const deleteBtn = $("deleteBtn");
+const collectionsBtn = $("collectionsBtn");
+const collectionExplorer = $("collectionExplorer");
+const collectionBackdrop = $("collectionBackdrop");
+const closeCollectionsBtn = $("closeCollectionsBtn");
+const addCollectionBtn = $("addCollectionBtn");
+const collectionAddMenuBtn = $("collectionAddMenuBtn");
+const collectionAddMenu = $("collectionAddMenu");
+const collectionTree = $("collectionTree");
+const collectionMenu = $("collectionMenu");
+const collectionSelectionBar = $("collectionSelectionBar");
+const collectionToast = $("collectionToast");
+const collectionMoveDialog = $("collectionMoveDialog");
+const collectionMoveTitle = $("collectionMoveTitle");
+const collectionMoveSelect = $("collectionMoveSelect");
+const closeCollectionMoveBtn = $("closeCollectionMoveBtn");
+const cancelCollectionMoveBtn = $("cancelCollectionMoveBtn");
+const runCollectionMoveBtn = $("runCollectionMoveBtn");
 const importAiInput = $("importAiInput");
 const settingsImportAiBtn = $("settingsImportAiBtn");
 const settingsPasteJsonBtn = $("settingsPasteJsonBtn");
@@ -73,6 +93,7 @@ const graphCanvas = $("graphCanvas");
 // notesはIndexedDBから読み込んだメモ一覧のメモリ上コピーです。
 let db;
 let notes = [];
+let collections = [];
 let currentId = null;
 let saveTimer = null;
 let lastDiscovery = "";
@@ -83,6 +104,16 @@ let mermaidInitialized = false;
 let undoStack = [];
 let lastUndoSnapshotAt = 0;
 let deletedNoteSnapshot = null;
+let selectedCollectionId = null;
+let expandedCollectionIds = new Set([UNCLASSIFIED_COLLECTION_ID]);
+let selectedMemoIds = new Set();
+let selectionAnchorId = null;
+let pendingMoveMemoIds = [];
+let pendingMoveCollectionId = null;
+let collectionToastTimer = null;
+let editingCollectionId = null;
+let draggedCollectionId = null;
+let draggedMemoIds = [];
 
 // ページ読み込み後、すぐにアプリを起動します。
 init();
@@ -98,6 +129,10 @@ async function init() {
 
   const localStorageAvailable = checkLocalStorageAvailable();
   db = await openDb();
+  collections = await getAllCollections();
+  await ensureInitialCollections();
+  notes = await getAllNotes();
+  await migrateLegacyNotesToUnclassified();
   notes = await getAllNotes();
   console.log("IndexedDB notes count:", notes.length);
   warnIfStorageRisky(localStorageAvailable, notes.length);
@@ -196,6 +231,11 @@ function openDb() {
         store.createIndex("updatedAt", "updatedAt");
         store.createIndex("title", "title");
       }
+      if (!database.objectStoreNames.contains(COLLECTION_STORE_NAME)) {
+        const collectionStore = database.createObjectStore(COLLECTION_STORE_NAME, { keyPath: "id" });
+        collectionStore.createIndex("parentId", "parentId");
+        collectionStore.createIndex("sortOrder", "sortOrder");
+      }
     };
 
     request.onsuccess = () => resolve(request.result);
@@ -228,6 +268,101 @@ function putNote(note) {
   });
 }
 
+function collectionTx(mode = "readonly") {
+  return db.transaction(COLLECTION_STORE_NAME, mode).objectStore(COLLECTION_STORE_NAME);
+}
+
+function getAllCollections() {
+  return new Promise((resolve, reject) => {
+    const request = collectionTx().getAll();
+    request.onsuccess = () => resolve(request.result.sort(compareCollections));
+    request.onerror = () => reject(request.error);
+  });
+}
+
+function putCollection(collection) {
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(COLLECTION_STORE_NAME, "readwrite");
+    const request = transaction.objectStore(COLLECTION_STORE_NAME).put(collection);
+    transaction.oncomplete = () => resolve(collection);
+    transaction.onerror = () => reject(transaction.error || request.error);
+    transaction.onabort = () => reject(transaction.error || request.error);
+  });
+}
+
+function deleteCollectionRecord(id) {
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(COLLECTION_STORE_NAME, "readwrite");
+    const request = transaction.objectStore(COLLECTION_STORE_NAME).delete(id);
+    transaction.oncomplete = resolve;
+    transaction.onerror = () => reject(transaction.error || request.error);
+    transaction.onabort = () => reject(transaction.error || request.error);
+  });
+}
+
+function activeNotes() {
+  return notes.filter((note) => !note.deletedAt);
+}
+
+function initialCollections() {
+  const now = new Date().toISOString();
+  return [
+    ["collection-history", "歴史", 10],
+    ["collection-programming", "プログラミング", 20],
+    ["collection-it", "IT技術", 30],
+    ["collection-technology-history", "技術史", 40],
+    ["collection-trivia", "雑学", 50],
+    [UNCLASSIFIED_COLLECTION_ID, "未分類", 100000]
+  ].map(([id, name, sortOrder]) => ({
+    id,
+    name,
+    parentId: null,
+    sortOrder,
+    isSystem: id === UNCLASSIFIED_COLLECTION_ID,
+    createdAt: now,
+    updatedAt: now
+  }));
+}
+
+async function ensureInitialCollections() {
+  const existingIds = new Set(collections.map((collection) => collection.id));
+  for (const collection of initialCollections()) {
+    if (!existingIds.has(collection.id)) await putCollection(collection);
+  }
+  collections = await getAllCollections();
+}
+
+async function migrateLegacyNotesToUnclassified() {
+  const legacy = notes.filter((note) => !collectionExists(note.collectionId) || !Object.prototype.hasOwnProperty.call(note, "deletedAt"));
+  if (!legacy.length) return;
+
+  await updateNotesTransaction(legacy.map((note) => ({
+    ...note,
+    collectionId: collectionExists(note.collectionId) ? note.collectionId : UNCLASSIFIED_COLLECTION_ID,
+    deletedAt: note.deletedAt || null
+  })));
+  console.log("Collection migration", { assignedToUnclassified: legacy.length });
+}
+
+function updateNotesTransaction(items) {
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(STORE_NAME, "readwrite");
+    const store = transaction.objectStore(STORE_NAME);
+    items.forEach((note) => store.put(note));
+    transaction.oncomplete = resolve;
+    transaction.onerror = () => reject(transaction.error);
+    transaction.onabort = () => reject(transaction.error);
+  });
+}
+
+function collectionExists(id) {
+  return collections.some((collection) => collection.id === id);
+}
+
+function compareCollections(a, b) {
+  return Number(a.sortOrder || 0) - Number(b.sortOrder || 0) || String(a.name).localeCompare(String(b.name), "ja");
+}
+
 function deleteNote(id) {
   return new Promise((resolve, reject) => {
     const transaction = db.transaction(STORE_NAME, "readwrite");
@@ -248,6 +383,8 @@ function saveCurrentDraftMirror() {
     id: note.id,
     title: titleInput.value || titleFromBody(editor.value) || "無題メモ",
     body: editor.value,
+    collectionId: note.collectionId || UNCLASSIFIED_COLLECTION_ID,
+    deletedAt: note.deletedAt || null,
     createdAt: note.createdAt || now,
     bodyUpdatedAt: now,
     updatedAt: now,
@@ -311,6 +448,10 @@ async function restoreCurrentDraftMirror() {
     id: draft.id,
     title: String(draft.title || "無題メモ"),
     body: String(draft.body || ""),
+    collectionId: collectionExists(draft.collectionId || existingNote?.collectionId)
+      ? (draft.collectionId || existingNote.collectionId)
+      : UNCLASSIFIED_COLLECTION_ID,
+    deletedAt: draft.deletedAt || existingNote?.deletedAt || null,
     createdAt: draft.createdAt || existingNote?.createdAt || now,
     bodyUpdatedAt: draft.bodyUpdatedAt || restoredUpdatedAt,
     updatedAt: restoredUpdatedAt
@@ -915,7 +1056,7 @@ function normalizeNewsItem(item) {
 
 // 起動時に最低限の「新規メモ」と「今日メモ」がある状態を保証します。
 async function ensureStartupNotes() {
-  if (!notes.length) {
+  if (!activeNotes().length) {
     await createNote("新規メモ", "");
   }
 
@@ -929,7 +1070,7 @@ async function ensureStartupNotes() {
 // 今日の日付に対応する日次メモを探します。
 function getTodayNote() {
   const title = todayTitle();
-  return notes.find((note) => note.title === title);
+  return activeNotes().find((note) => note.title === title);
 }
 
 // 今日メモのタイトルを YYYY-MM-DD 今日メモ の形で作ります。
@@ -952,6 +1093,8 @@ async function createNote(title = "新規メモ", body = "", options = {}) {
     id: crypto.randomUUID(),
     title: noteTitle,
     body,
+    collectionId: resolveNewNoteCollection(options.collectionId),
+    deletedAt: null,
     createdAt: now,
     bodyUpdatedAt: now,
     updatedAt: now
@@ -963,13 +1106,21 @@ async function createNote(title = "新規メモ", body = "", options = {}) {
 }
 
 function temporaryMemoTitle() {
-  return `memo${notes.length + 1}`;
+  return `memo${activeNotes().length + 1}`;
+}
+
+function resolveNewNoteCollection(requestedId) {
+  const candidate = requestedId || selectedCollectionId;
+  if (!candidate || candidate === "trash" || candidate === UNCLASSIFIED_COLLECTION_ID) {
+    return UNCLASSIFIED_COLLECTION_ID;
+  }
+  return collectionExists(candidate) ? candidate : UNCLASSIFIED_COLLECTION_ID;
 }
 
 // 同名タイトルがあるとリンク先が曖昧になるので、末尾に番号を付けて重複を避けます。
 function uniqueTitle(base) {
   const clean = base || "無題メモ";
-  const titles = new Set(notes.map((note) => note.title));
+  const titles = new Set(activeNotes().map((note) => note.title));
   if (!titles.has(clean)) return clean;
 
   let index = 2;
@@ -980,6 +1131,7 @@ function uniqueTitle(base) {
 // 画面全体の再描画をまとめて呼ぶ入口です。
 function renderAll() {
   renderList();
+  renderCollectionExplorer();
   renderNoteMeta();
   renderRelated();
   renderDiscovery();
@@ -990,7 +1142,7 @@ function renderAll() {
 // 左側のメモ一覧を描画します。検索欄に入力があればタイトル・本文から絞り込みます。
 function renderList() {
   const query = searchInput.value.trim().toLowerCase();
-  const filtered = notes.filter((note) => {
+  const filtered = activeNotes().filter((note) => {
     const haystack = `${note.title}\n${note.body}`.toLowerCase();
     return !query || haystack.includes(query);
   });
@@ -1027,6 +1179,7 @@ function openNote(id) {
   setSaveStatus("saved", note.updatedAt);
   renderNoteMeta();
   renderList();
+  renderCollectionExplorer();
   renderPreview();
   renderRelated();
   renderDiscovery();
@@ -1137,7 +1290,7 @@ async function saveCurrentNote() {
   if (!note) return;
 
   setSaveStatus("saving");
-  const beforeLinks = collectLinks(notes).length;
+  const beforeLinks = collectLinks(activeNotes()).length;
   const nextBody = editor.value;
   const bodyChanged = note.body !== nextBody;
   note.body = nextBody;
@@ -1152,7 +1305,7 @@ async function saveCurrentNote() {
     notes = await getAllNotes();
     currentId = note.id;
 
-    const afterLinks = collectLinks(notes).length;
+    const afterLinks = collectLinks(activeNotes()).length;
     if (afterLinks > beforeLinks) {
       lastDiscovery = buildDiscoveryMessage(note);
     }
@@ -1170,33 +1323,40 @@ async function deleteCurrentNote() {
   const note = currentNote();
   if (!note) return;
 
-  const confirmed = confirm(`「${note.title}」を削除しますか？\nこの操作は元に戻せません。`);
+  if (note.deletedAt) {
+    await permanentlyDeleteMemos([note.id]);
+    return;
+  }
+
+  const confirmed = confirm(`「${note.title}」をゴミ箱へ移動しますか？`);
   if (!confirmed) return;
 
-  clearTimeout(saveTimer);
-  saveTimer = null;
-  const currentIndex = notes.findIndex((item) => item.id === note.id);
-  const deletedSnapshot = { ...note };
-  deletedNoteSnapshot = deletedSnapshot;
+  await flushSave();
+  const normalBefore = activeNotes();
+  const currentIndex = normalBefore.findIndex((item) => item.id === note.id);
+  deletedNoteSnapshot = { id: note.id };
   saveStatus.textContent = "削除中...";
 
-  await deleteNote(note.id);
+  note.deletedAt = new Date().toISOString();
+  note.updatedAt = Date.now();
+  await putNote(note);
   removeDraftMirrorForNote(note.id);
   notes = await getAllNotes();
 
-  if (!notes.length) {
+  if (!activeNotes().length) {
     const nextNote = await createNote("新規メモ", "");
     notes = await getAllNotes();
     renderAll();
     openNote(nextNote.id);
-    showDeleteUndoMessage(deletedSnapshot);
+    showDeleteUndoMessage(note);
     return;
   }
 
-  const nextNote = notes[Math.min(currentIndex, notes.length - 1)] || notes[0];
+  const normalAfter = activeNotes();
+  const nextNote = normalAfter[Math.min(currentIndex, normalAfter.length - 1)] || normalAfter[0];
   renderAll();
   openNote(nextNote.id);
-  showDeleteUndoMessage(deletedSnapshot);
+  showDeleteUndoMessage(note);
 }
 
 function showDeleteUndoMessage(note) {
@@ -1228,16 +1388,18 @@ function showDeleteUndoMessage(note) {
 async function restoreDeletedNote() {
   if (!deletedNoteSnapshot) return;
 
-  const snapshot = { ...deletedNoteSnapshot };
-  const existing = notes.find((note) => note.id === snapshot.id);
-  if (!existing) {
-    await putNote(snapshot);
-    notes = await getAllNotes();
-  }
+  const id = deletedNoteSnapshot.id;
+  const existing = notes.find((note) => note.id === id);
+  if (!existing) return;
+  existing.collectionId = collectionExists(existing.collectionId) ? existing.collectionId : UNCLASSIFIED_COLLECTION_ID;
+  existing.deletedAt = null;
+  existing.updatedAt = Date.now();
+  await putNote(existing);
+  notes = await getAllNotes();
 
   clearDeleteUndoMessage();
   renderAll();
-  openNote(snapshot.id);
+  openNote(existing.id);
 }
 
 function clearDeleteUndoMessage() {
@@ -1618,7 +1780,7 @@ function countPhraseOccurrences(text, phrase) {
 
 function collectLinkStats() {
   const current = currentNote();
-  const effectiveNotes = notes.map((note) => {
+  const effectiveNotes = activeNotes().map((note) => {
     if (!current || note.id !== current.id) return note;
     return {
       ...note,
@@ -1761,14 +1923,14 @@ function renderRichText(text) {
 // Wikiリンク1個分のHTMLを作ります。未作成リンクは色を変えるためmissingを付けます。
 function renderWikiButton(rawTitle) {
     const title = rawTitle.trim();
-    const exists = notes.some((note) => note.title === title);
+    const exists = activeNotes().some((note) => note.title === title);
     const className = exists ? "wiki-link" : "wiki-link missing";
     return `<button class="${className}" data-title="${escapeAttr(title)}">${escapeHtml(title)}</button>`;
 }
 
 // Wikiリンクをクリックしたとき、既存メモがあれば開き、なければ新規作成します。
 async function openOrCreateLinkedNote(title) {
-  const existing = notes.find((note) => note.title === title);
+  const existing = activeNotes().find((note) => note.title === title);
   if (existing) {
     openNote(existing.id);
     return;
@@ -1808,7 +1970,7 @@ function findRelated(source) {
   const sourceLinks = new Set(extractLinks(source.body));
   const sourceWords = new Set(tokenize(`${source.title} ${source.body}`));
 
-  return notes
+  return activeNotes()
     .filter((note) => note.id !== source.id)
     .map((note) => {
       const links = extractLinks(note.body);
@@ -1877,11 +2039,7 @@ function buildDiscoveryMessage(note) {
 // 全メモをMarkdownファイルに変換し、ZIPとしてダウンロードします。
 async function downloadMarkdownZip() {
   await flushSave();
-  const files = uniqueZipFileNames(notes.map((note) => ({
-    name: `${safeFileName(note.title)}.md`,
-    content: `# ${note.title}\n\n${note.body}\n`,
-    updatedAt: note.bodyUpdatedAt || note.updatedAt || note.createdAt || Date.now()
-  })));
+  const files = buildCollectionZipFiles();
   console.log("ZIP backup", {
     fileCount: files.length,
     fileNames: files.map((file) => file.name)
@@ -1983,8 +2141,9 @@ function drawGraph() {
   const height = graphCanvas.height;
   context.clearRect(0, 0, width, height);
 
-  const links = collectLinks(notes);
-  const names = [...new Set([...notes.map((note) => note.title), ...links.map((link) => link.to)])];
+  const visibleNotes = activeNotes();
+  const links = collectLinks(visibleNotes);
+  const names = [...new Set([...visibleNotes.map((note) => note.title), ...links.map((link) => link.to)])];
   const radius = Math.min(width, height) * 0.38;
   const centerX = width / 2;
   const centerY = height / 2;
@@ -2012,7 +2171,7 @@ function drawGraph() {
 
   names.forEach((name) => {
     const point = points.get(name);
-    const exists = notes.some((note) => note.title === name);
+    const exists = visibleNotes.some((note) => note.title === name);
     context.beginPath();
     context.fillStyle = exists ? "#236c73" : "#a66b1f";
     context.arc(point.x, point.y, exists ? 8 : 6, 0, Math.PI * 2);
@@ -2149,7 +2308,7 @@ async function renderStorageStatus() {
     ["保存方式", "IndexedDB"],
     ["DB名", DB_NAME],
     ["ストア名", STORE_NAME],
-    ["メモ件数", `${notes.length}件`],
+    ["メモ件数", `${activeNotes().length}件`],
     ["使用容量", "取得未対応"],
     ["上限目安", "取得未対応"],
     ["使用率", "取得未対応"],
@@ -2185,6 +2344,723 @@ function formatMegabytes(bytes) {
   return (bytes / 1024 / 1024).toFixed(2);
 }
 
+function toggleCollectionExplorer(force) {
+  const open = typeof force === "boolean" ? force : !document.body.classList.contains("collections-open");
+  document.body.classList.toggle("collections-open", open);
+  collectionExplorer.setAttribute("aria-hidden", String(!open));
+  collectionsBtn.setAttribute("aria-expanded", String(open));
+  collectionBackdrop.hidden = !open || window.matchMedia("(min-width: 1201px)").matches;
+  if (open) {
+    renderCollectionExplorer();
+    collectionTree.focus();
+  } else {
+    closeCollectionMenus();
+  }
+}
+
+function renderCollectionExplorer() {
+  if (!collectionTree) return;
+  const countMap = buildCollectionCountMap();
+  const roots = collections.filter((collection) => collection.parentId === null && !collection.isSystem).sort(compareCollections);
+  collectionTree.innerHTML = "";
+  roots.forEach((collection) => collectionTree.appendChild(renderCollectionNode(collection, 1, countMap)));
+
+  const unclassified = collections.find((collection) => collection.id === UNCLASSIFIED_COLLECTION_ID);
+  if (unclassified) collectionTree.appendChild(renderCollectionNode(unclassified, 1, countMap));
+  collectionTree.appendChild(renderTrashNode());
+  renderSelectionBar();
+
+  if (editingCollectionId) {
+    requestAnimationFrame(() => {
+      const input = collectionTree.querySelector(`[data-edit-collection-id="${CSS.escape(editingCollectionId)}"]`);
+      if (input) {
+        input.focus();
+        input.select();
+      }
+    });
+  }
+}
+
+function buildCollectionCountMap() {
+  const counts = new Map(collections.map((collection) => [collection.id, 0]));
+  activeNotes().forEach((note) => {
+    let id = collectionExists(note.collectionId) ? note.collectionId : UNCLASSIFIED_COLLECTION_ID;
+    const seen = new Set();
+    while (id && !seen.has(id)) {
+      seen.add(id);
+      counts.set(id, (counts.get(id) || 0) + 1);
+      id = collections.find((collection) => collection.id === id)?.parentId || null;
+    }
+  });
+  return counts;
+}
+
+function renderCollectionNode(collection, depth, countMap) {
+  const node = document.createElement("div");
+  node.className = "collection-node";
+  node.dataset.collectionId = collection.id;
+  const children = childCollections(collection.id);
+  const directNotes = activeNotes().filter((note) => normalizedCollectionId(note) === collection.id);
+  const expanded = expandedCollectionIds.has(collection.id);
+  const row = document.createElement("div");
+  row.className = "collection-row";
+  row.draggable = !collection.isSystem;
+  row.tabIndex = 0;
+  row.setAttribute("role", "treeitem");
+  row.setAttribute("aria-level", String(depth));
+  row.setAttribute("aria-expanded", String(expanded));
+  row.setAttribute("aria-selected", String(selectedCollectionId === collection.id));
+  row.style.paddingLeft = `${Math.max(4, (depth - 1) * 18 + 4)}px`;
+  row.innerHTML = `
+    <span class="collection-toggle" aria-hidden="true">${expanded ? "▼" : "▶"}</span>
+    <span class="collection-icon" aria-hidden="true">▱</span>
+    <span class="collection-label">${editingCollectionId === collection.id
+      ? `<input class="collection-inline-name" data-edit-collection-id="${escapeAttr(collection.id)}" value="${escapeAttr(collection.name)}" aria-label="コレクション名">`
+      : escapeHtml(collection.name)}</span>
+    <span class="collection-count">(${countMap.get(collection.id) || 0})</span>
+    ${collection.isSystem ? "" : `<button class="collection-more" type="button" aria-label="${escapeAttr(collection.name)}の操作">…</button>`}
+  `;
+
+  const toggle = row.querySelector(".collection-toggle");
+  toggle.addEventListener("click", (event) => {
+    event.stopPropagation();
+    toggleCollectionExpanded(collection.id);
+  });
+  row.addEventListener("click", (event) => {
+    if (event.target.closest("button,input")) return;
+    selectedCollectionId = collection.id;
+    selectedMemoIds.clear();
+    renderCollectionExplorer();
+  });
+  row.addEventListener("dblclick", () => toggleCollectionExpanded(collection.id));
+  row.addEventListener("keydown", (event) => handleCollectionRowKeydown(event, collection.id));
+  const more = row.querySelector(".collection-more");
+  if (more) more.addEventListener("click", (event) => showCollectionMenu(event, collection.id));
+  if (!collection.isSystem) row.addEventListener("contextmenu", (event) => showCollectionMenu(event, collection.id));
+  wireCollectionDrag(row, collection);
+  node.appendChild(row);
+
+  const input = row.querySelector(".collection-inline-name");
+  if (input) wireInlineCollectionName(input, collection);
+
+  if (expanded) {
+    directNotes.forEach((note) => node.appendChild(renderCollectionMemo(note, depth + 1)));
+    children.forEach((child) => node.appendChild(renderCollectionNode(child, depth + 1, countMap)));
+  }
+  return node;
+}
+
+function renderTrashNode() {
+  const node = document.createElement("div");
+  node.className = "collection-node collection-trash-separator";
+  const deleted = notes.filter((note) => note.deletedAt);
+  const expanded = expandedCollectionIds.has("trash");
+  const row = document.createElement("div");
+  row.className = "collection-row";
+  row.tabIndex = 0;
+  row.setAttribute("role", "treeitem");
+  row.setAttribute("aria-level", "1");
+  row.setAttribute("aria-expanded", String(expanded));
+  row.setAttribute("aria-selected", String(selectedCollectionId === "trash"));
+  row.innerHTML = `<span class="collection-toggle">${expanded ? "▼" : "▶"}</span><span class="collection-icon">♲</span><span class="collection-label">ゴミ箱</span><span class="collection-count">(${deleted.length})</span>`;
+  row.addEventListener("click", () => {
+    selectedCollectionId = "trash";
+    selectedMemoIds.clear();
+    toggleCollectionExpanded("trash", true);
+  });
+  row.addEventListener("keydown", (event) => handleCollectionRowKeydown(event, "trash"));
+  node.appendChild(row);
+  if (expanded) deleted.forEach((note) => node.appendChild(renderCollectionMemo(note, 2, true)));
+  return node;
+}
+
+function renderCollectionMemo(note, depth, isDeleted = false) {
+  const row = document.createElement("div");
+  row.className = "collection-memo-row";
+  row.dataset.memoId = note.id;
+  row.draggable = !isDeleted;
+  row.tabIndex = 0;
+  row.setAttribute("role", "treeitem");
+  row.setAttribute("aria-level", String(depth));
+  row.setAttribute("aria-selected", String(selectedMemoIds.has(note.id)));
+  const created = formatExplorerDate(note.createdAt);
+  row.innerHTML = `<span class="collection-memo-main"><span class="collection-memo-title">${escapeHtml(note.title)}</span><span class="collection-memo-date">${created ? `作成 ${created}` : "作成日不明"}</span></span><button class="collection-memo-more" type="button" aria-label="${escapeAttr(note.title)}の操作">…</button>`;
+  row.addEventListener("click", (event) => handleMemoSelection(event, note.id, isDeleted));
+  row.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") openNote(note.id);
+    if (event.key === " ") {
+      event.preventDefault();
+      handleMemoSelection(event, note.id, isDeleted);
+    }
+  });
+  row.querySelector(".collection-memo-more").addEventListener("click", (event) => {
+    event.stopPropagation();
+    showMemoMenu(event, note, isDeleted);
+  });
+  if (!isDeleted) wireMemoDrag(row, note.id);
+  return row;
+}
+
+function formatExplorerDate(value) {
+  if (value == null || Number.isNaN(new Date(value).getTime())) return "";
+  const date = new Date(value);
+  return `${date.getFullYear()}/${padDatePart(date.getMonth() + 1)}/${padDatePart(date.getDate())}`;
+}
+
+function normalizedCollectionId(note) {
+  return collectionExists(note.collectionId) ? note.collectionId : UNCLASSIFIED_COLLECTION_ID;
+}
+
+function childCollections(parentId) {
+  return collections.filter((collection) => collection.parentId === parentId && !collection.isSystem).sort(compareCollections);
+}
+
+function toggleCollectionExpanded(id, forceOpen = false) {
+  if (forceOpen || !expandedCollectionIds.has(id)) expandedCollectionIds.add(id);
+  else expandedCollectionIds.delete(id);
+  renderCollectionExplorer();
+}
+
+function handleCollectionRowKeydown(event, id) {
+  if (event.key === "ArrowRight") {
+    event.preventDefault();
+    expandedCollectionIds.add(id);
+    renderCollectionExplorer();
+  } else if (event.key === "ArrowLeft") {
+    event.preventDefault();
+    expandedCollectionIds.delete(id);
+    renderCollectionExplorer();
+  } else if (event.key === "Enter" || event.key === " ") {
+    event.preventDefault();
+    selectedCollectionId = id;
+    renderCollectionExplorer();
+  } else if ((event.key === "ContextMenu" || (event.shiftKey && event.key === "F10")) && id !== "trash" && id !== UNCLASSIFIED_COLLECTION_ID) {
+    event.preventDefault();
+    showCollectionMenu(event, id);
+  }
+}
+
+function handleMemoSelection(event, id, isDeleted) {
+  const visibleIds = getVisibleMemoIds(isDeleted);
+  if (event.shiftKey && selectionAnchorId && visibleIds.includes(selectionAnchorId)) {
+    const start = visibleIds.indexOf(selectionAnchorId);
+    const end = visibleIds.indexOf(id);
+    const range = visibleIds.slice(Math.min(start, end), Math.max(start, end) + 1);
+    if (!event.ctrlKey && !event.metaKey) selectedMemoIds.clear();
+    range.forEach((memoId) => selectedMemoIds.add(memoId));
+  } else if (event.ctrlKey || event.metaKey) {
+    if (selectedMemoIds.has(id)) selectedMemoIds.delete(id);
+    else selectedMemoIds.add(id);
+    selectionAnchorId = id;
+  } else {
+    selectedMemoIds.clear();
+    selectedMemoIds.add(id);
+    selectionAnchorId = id;
+    openNote(id);
+  }
+  renderCollectionExplorer();
+}
+
+function getVisibleMemoIds(deletedOnly = false) {
+  return [...collectionTree.querySelectorAll(".collection-memo-row")]
+    .map((row) => row.dataset.memoId)
+    .filter((id) => Boolean(notes.find((note) => note.id === id)?.deletedAt) === deletedOnly);
+}
+
+function renderSelectionBar() {
+  const selected = [...selectedMemoIds].filter((id) => notes.some((note) => note.id === id));
+  selectedMemoIds = new Set(selected);
+  if (!selected.length) {
+    collectionSelectionBar.hidden = true;
+    collectionSelectionBar.innerHTML = "";
+    return;
+  }
+  const hasDeleted = selected.some((id) => notes.find((note) => note.id === id)?.deletedAt);
+  collectionSelectionBar.hidden = false;
+  collectionSelectionBar.innerHTML = `<strong>${selected.length}件選択中</strong>${hasDeleted ? "" : '<button type="button" data-action="move">移動</button><button type="button" data-action="delete">削除</button>'}<button type="button" data-action="clear">選択解除</button>`;
+  collectionSelectionBar.querySelector('[data-action="move"]')?.addEventListener("click", () => openMemoMoveDialog(selected));
+  collectionSelectionBar.querySelector('[data-action="delete"]')?.addEventListener("click", () => moveMemosToTrash(selected));
+  collectionSelectionBar.querySelector('[data-action="clear"]').addEventListener("click", () => {
+    selectedMemoIds.clear();
+    renderCollectionExplorer();
+  });
+}
+
+async function createCollection(parentId = defaultNewCollectionParent()) {
+  if (parentId && (!collectionExists(parentId) || parentId === UNCLASSIFIED_COLLECTION_ID || collectionDepth(parentId) >= MAX_COLLECTION_DEPTH)) {
+    showCollectionToast(parentId && collectionDepth(parentId) >= MAX_COLLECTION_DEPTH ? "コレクションは5階層まで作成できます" : "この場所には作成できません");
+    return;
+  }
+  const siblings = collections.filter((collection) => collection.parentId === parentId);
+  const now = new Date().toISOString();
+  const collection = {
+    id: crypto.randomUUID(),
+    name: uniqueCollectionName("新しいコレクション", parentId),
+    parentId,
+    sortOrder: Math.max(0, ...siblings.map((item) => Number(item.sortOrder || 0))) + 10,
+    isSystem: false,
+    createdAt: now,
+    updatedAt: now
+  };
+  await putCollection(collection);
+  collections = await getAllCollections();
+  if (parentId) expandedCollectionIds.add(parentId);
+  editingCollectionId = collection.id;
+  selectedCollectionId = collection.id;
+  renderCollectionExplorer();
+}
+
+function defaultNewCollectionParent() {
+  return selectedCollectionId && collectionExists(selectedCollectionId) && selectedCollectionId !== UNCLASSIFIED_COLLECTION_ID
+    ? selectedCollectionId
+    : null;
+}
+
+function uniqueCollectionName(base, parentId, exceptId = null) {
+  const names = new Set(collections.filter((collection) => collection.parentId === parentId && collection.id !== exceptId).map((collection) => collection.name.toLocaleLowerCase()));
+  if (!names.has(base.toLocaleLowerCase())) return base;
+  let index = 2;
+  while (names.has(`${base} ${index}`.toLocaleLowerCase())) index += 1;
+  return `${base} ${index}`;
+}
+
+function wireInlineCollectionName(input, collection) {
+  let committed = false;
+  const commit = async () => {
+    if (committed) return;
+    committed = true;
+    const name = input.value.trim();
+    if (!name) {
+      showCollectionToast("コレクション名を入力してください");
+      editingCollectionId = collection.id;
+      renderCollectionExplorer();
+      return;
+    }
+    const duplicate = collections.some((item) => item.id !== collection.id && item.parentId === collection.parentId && item.name.toLocaleLowerCase() === name.toLocaleLowerCase());
+    if (duplicate) {
+      showCollectionToast("同じ場所に同名のコレクションがあります");
+      editingCollectionId = collection.id;
+      renderCollectionExplorer();
+      return;
+    }
+    collection.name = name;
+    collection.updatedAt = new Date().toISOString();
+    await putCollection(collection);
+    collections = await getAllCollections();
+    editingCollectionId = null;
+    renderCollectionExplorer();
+  };
+  input.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") commit().catch(showCollectionError);
+    if (event.key === "Escape") {
+      committed = true;
+      editingCollectionId = null;
+      renderCollectionExplorer();
+    }
+  });
+  input.addEventListener("blur", () => commit().catch(showCollectionError));
+}
+
+function showCollectionMenu(event, collectionId) {
+  event.preventDefault();
+  event.stopPropagation();
+  const collection = collections.find((item) => item.id === collectionId);
+  if (!collection || collection.isSystem) return;
+  selectedCollectionId = collectionId;
+  collectionMenu.innerHTML = `
+    <button type="button" data-action="child">子コレクションを作成</button>
+    <button type="button" data-action="rename">名前を変更</button>
+    <button type="button" data-action="move">移動</button>
+    <button type="button" data-action="export">エクスポート</button>
+    <button type="button" data-action="delete" class="danger-button">削除</button>`;
+  positionPopup(collectionMenu, event);
+  collectionMenu.querySelector('[data-action="child"]').disabled = collectionDepth(collectionId) >= MAX_COLLECTION_DEPTH;
+  collectionMenu.querySelector('[data-action="child"]').addEventListener("click", () => runMenuAction(() => createCollection(collectionId)));
+  collectionMenu.querySelector('[data-action="rename"]').addEventListener("click", () => {
+    editingCollectionId = collectionId;
+    closeCollectionMenus();
+    renderCollectionExplorer();
+  });
+  collectionMenu.querySelector('[data-action="move"]').addEventListener("click", () => {
+    closeCollectionMenus();
+    openCollectionMoveDialog(collectionId);
+  });
+  collectionMenu.querySelector('[data-action="export"]').addEventListener("click", () => runMenuAction(() => downloadCollectionZip(collectionId)));
+  collectionMenu.querySelector('[data-action="delete"]').addEventListener("click", () => runMenuAction(() => deleteCollectionSafely(collectionId)));
+}
+
+function showMemoMenu(event, note, isDeleted) {
+  collectionMenu.innerHTML = isDeleted
+    ? '<button type="button" data-action="restore">元のコレクションへ復元</button><button type="button" data-action="permanent" class="danger-button">完全に削除</button>'
+    : '<button type="button" data-action="move">コレクションへ移動</button><button type="button" data-action="trash" class="danger-button">ゴミ箱へ移動</button>';
+  positionPopup(collectionMenu, event);
+  if (isDeleted) {
+    collectionMenu.querySelector('[data-action="restore"]').addEventListener("click", () => runMenuAction(() => restoreMemos([note.id])));
+    collectionMenu.querySelector('[data-action="permanent"]').addEventListener("click", () => runMenuAction(() => permanentlyDeleteMemos([note.id])));
+  } else {
+    const ids = selectedMemoIds.has(note.id) ? [...selectedMemoIds] : [note.id];
+    collectionMenu.querySelector('[data-action="move"]').addEventListener("click", () => {
+      closeCollectionMenus();
+      openMemoMoveDialog(ids);
+    });
+    collectionMenu.querySelector('[data-action="trash"]').addEventListener("click", () => runMenuAction(() => moveMemosToTrash(ids)));
+  }
+}
+
+function positionPopup(menu, event) {
+  closeCollectionMenus();
+  menu.hidden = false;
+  const x = Math.min(event.clientX || 20, window.innerWidth - 230);
+  const y = Math.min(event.clientY || 60, window.innerHeight - 260);
+  menu.style.left = `${Math.max(8, x)}px`;
+  menu.style.top = `${Math.max(8, y)}px`;
+}
+
+function closeCollectionMenus() {
+  collectionMenu.hidden = true;
+  collectionAddMenu.hidden = true;
+}
+
+function runMenuAction(action) {
+  closeCollectionMenus();
+  Promise.resolve(action()).catch(showCollectionError);
+}
+
+function showCollectionError(error) {
+  console.error("Collection operation failed", error);
+  showCollectionToast(`操作に失敗しました: ${error.message || error}`);
+}
+
+function showCollectionToast(message) {
+  clearTimeout(collectionToastTimer);
+  collectionToast.textContent = message;
+  collectionToast.hidden = false;
+  collectionToastTimer = setTimeout(() => { collectionToast.hidden = true; }, 3500);
+}
+
+function collectionDepth(id) {
+  let depth = 0;
+  let current = collections.find((collection) => collection.id === id);
+  const seen = new Set();
+  while (current && !seen.has(current.id)) {
+    seen.add(current.id);
+    depth += 1;
+    current = collections.find((collection) => collection.id === current.parentId);
+  }
+  return depth;
+}
+
+function subtreeHeight(id) {
+  const children = childCollections(id);
+  return children.length ? 1 + Math.max(...children.map((child) => subtreeHeight(child.id))) : 1;
+}
+
+function descendantCollectionIds(id) {
+  const result = [];
+  const visit = (parentId) => childCollections(parentId).forEach((child) => {
+    result.push(child.id);
+    visit(child.id);
+  });
+  visit(id);
+  return result;
+}
+
+function validateCollectionMove(id, parentId) {
+  const collection = collections.find((item) => item.id === id);
+  if (!collection || collection.isSystem) return "このコレクションは移動できません";
+  if (parentId === id || descendantCollectionIds(id).includes(parentId)) return "自分自身や子孫へは移動できません";
+  if (parentId === UNCLASSIFIED_COLLECTION_ID || parentId === "trash" || (parentId && !collectionExists(parentId))) return "この場所へは移動できません";
+  const baseDepth = parentId ? collectionDepth(parentId) : 0;
+  if (baseDepth + subtreeHeight(id) > MAX_COLLECTION_DEPTH) return "コレクションは5階層まで作成できます";
+  return "";
+}
+
+async function moveCollection(id, parentId, beforeId = null, afterId = null) {
+  const error = validateCollectionMove(id, parentId);
+  if (error) {
+    showCollectionToast(error);
+    return false;
+  }
+  const moving = collections.find((collection) => collection.id === id);
+  const siblings = collections.filter((collection) => collection.parentId === parentId && !collection.isSystem && collection.id !== id).sort(compareCollections);
+  let index = siblings.length;
+  if (beforeId) index = Math.max(0, siblings.findIndex((item) => item.id === beforeId));
+  if (afterId) index = Math.max(0, siblings.findIndex((item) => item.id === afterId) + 1);
+  siblings.splice(index, 0, moving);
+  const now = new Date().toISOString();
+  siblings.forEach((item, order) => {
+    item.parentId = parentId;
+    item.sortOrder = (order + 1) * 10;
+    item.updatedAt = now;
+  });
+  await updateCollectionsTransaction(siblings);
+  collections = await getAllCollections();
+  if (parentId) expandedCollectionIds.add(parentId);
+  renderCollectionExplorer();
+  showCollectionToast(`「${moving.name}」を移動しました`);
+  return true;
+}
+
+function updateCollectionsTransaction(items) {
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(COLLECTION_STORE_NAME, "readwrite");
+    const store = transaction.objectStore(COLLECTION_STORE_NAME);
+    items.forEach((item) => store.put(item));
+    transaction.oncomplete = resolve;
+    transaction.onerror = () => reject(transaction.error);
+    transaction.onabort = () => reject(transaction.error);
+  });
+}
+
+async function moveMemosToCollection(memoIds, collectionId) {
+  if (!collectionExists(collectionId)) throw new Error("移動先コレクションが存在しません");
+  const targets = [...new Set(memoIds)].map((id) => notes.find((note) => note.id === id)).filter((note) => note && !note.deletedAt);
+  if (!targets.length) return;
+  if (targets.some((note) => note.id === currentId)) {
+    await flushSave();
+  }
+  const now = Date.now();
+  const updated = targets.map((note) => ({ ...note, collectionId, updatedAt: now }));
+  await updateNotesTransaction(updated);
+  notes = await getAllNotes();
+  selectedMemoIds = new Set(updated.map((note) => note.id));
+  expandedCollectionIds.add(collectionId);
+  renderAll();
+  showCollectionToast(`${updated.length}件を「${collections.find((item) => item.id === collectionId).name}」へ移動しました`);
+}
+
+async function moveMemosToTrash(memoIds) {
+  const targets = [...new Set(memoIds)].map((id) => notes.find((note) => note.id === id)).filter((note) => note && !note.deletedAt);
+  if (!targets.length || !confirm(`${targets.length}件をゴミ箱へ移動しますか？`)) return;
+  if (targets.some((note) => note.id === currentId)) {
+    await flushSave();
+  }
+  const deletedAt = new Date().toISOString();
+  await updateNotesTransaction(targets.map((note) => ({ ...note, deletedAt, updatedAt: Date.now() })));
+  targets.forEach((note) => removeDraftMirrorForNote(note.id));
+  notes = await getAllNotes();
+  selectedMemoIds.clear();
+  if (targets.some((note) => note.id === currentId)) {
+    const next = activeNotes()[0] || await createNote("新規メモ", "");
+    notes = await getAllNotes();
+    openNote(next.id);
+  }
+  renderAll();
+  showCollectionToast(`${targets.length}件をゴミ箱へ移動しました`);
+}
+
+async function restoreMemos(memoIds) {
+  const targets = memoIds.map((id) => notes.find((note) => note.id === id)).filter((note) => note?.deletedAt);
+  const updated = targets.map((note) => ({ ...note, collectionId: collectionExists(note.collectionId) ? note.collectionId : UNCLASSIFIED_COLLECTION_ID, deletedAt: null, updatedAt: Date.now() }));
+  await updateNotesTransaction(updated);
+  notes = await getAllNotes();
+  selectedMemoIds.clear();
+  renderAll();
+  if (updated[0]) openNote(updated[0].id);
+  showCollectionToast(`${updated.length}件を復元しました`);
+}
+
+async function permanentlyDeleteMemos(memoIds) {
+  const targets = memoIds.map((id) => notes.find((note) => note.id === id)).filter((note) => note?.deletedAt);
+  if (!targets.length || !confirm(`${targets.length}件を完全に削除しますか？\nこの操作は元に戻せません。`)) return;
+  await new Promise((resolve, reject) => {
+    const transaction = db.transaction(STORE_NAME, "readwrite");
+    const store = transaction.objectStore(STORE_NAME);
+    targets.forEach((note) => store.delete(note.id));
+    transaction.oncomplete = resolve;
+    transaction.onerror = () => reject(transaction.error);
+    transaction.onabort = () => reject(transaction.error);
+  });
+  targets.forEach((note) => removeDraftMirrorForNote(note.id));
+  notes = await getAllNotes();
+  selectedMemoIds.clear();
+  if (targets.some((note) => note.id === currentId)) {
+    let next = activeNotes()[0];
+    if (!next) {
+      next = await createNote("新規メモ", "");
+      notes = await getAllNotes();
+    }
+    openNote(next.id);
+  }
+  renderAll();
+  showCollectionToast(`${targets.length}件を完全に削除しました`);
+}
+
+async function deleteCollectionSafely(id) {
+  const collection = collections.find((item) => item.id === id);
+  if (!collection || collection.isSystem) return;
+  const subtreeIds = [id, ...descendantCollectionIds(id)];
+  const affected = activeNotes().filter((note) => subtreeIds.includes(normalizedCollectionId(note)));
+  if (!confirm(`「${collection.name}」と子コレクションを削除しますか？\n配下のメモ ${affected.length}件は未分類へ移動します。メモ本体は削除されません。`)) return;
+  await new Promise((resolve, reject) => {
+    const transaction = db.transaction([STORE_NAME, COLLECTION_STORE_NAME], "readwrite");
+    const noteStore = transaction.objectStore(STORE_NAME);
+    const collectionStore = transaction.objectStore(COLLECTION_STORE_NAME);
+    affected.forEach((note) => noteStore.put({ ...note, collectionId: UNCLASSIFIED_COLLECTION_ID, updatedAt: Date.now() }));
+    subtreeIds.forEach((collectionId) => collectionStore.delete(collectionId));
+    transaction.oncomplete = resolve;
+    transaction.onerror = () => reject(transaction.error);
+    transaction.onabort = () => reject(transaction.error);
+  });
+  collections = await getAllCollections();
+  notes = await getAllNotes();
+  selectedCollectionId = UNCLASSIFIED_COLLECTION_ID;
+  expandedCollectionIds.add(UNCLASSIFIED_COLLECTION_ID);
+  renderAll();
+  showCollectionToast(`「${collection.name}」を削除し、メモを未分類へ移動しました`);
+}
+
+function openMemoMoveDialog(ids) {
+  pendingMoveMemoIds = ids;
+  pendingMoveCollectionId = null;
+  collectionMoveTitle.textContent = `${ids.length}件をコレクションへ移動`;
+  fillCollectionMoveSelect();
+  collectionMoveDialog.showModal();
+}
+
+function openCollectionMoveDialog(id) {
+  pendingMoveMemoIds = [];
+  pendingMoveCollectionId = id;
+  collectionMoveTitle.textContent = "コレクションを移動";
+  fillCollectionMoveSelect(id, true);
+  collectionMoveDialog.showModal();
+}
+
+function fillCollectionMoveSelect(excludeId = null, allowRoot = false) {
+  const excluded = new Set(excludeId ? [excludeId, ...descendantCollectionIds(excludeId)] : []);
+  const options = [];
+  if (allowRoot) options.push('<option value="">ルート</option>');
+  collectionOptions().forEach(({ collection, depth }) => {
+    if (!collection.isSystem && !excluded.has(collection.id)) options.push(`<option value="${escapeAttr(collection.id)}">${escapeHtml(`${"　".repeat(depth - 1)}${collection.name}`)}</option>`);
+    if (!allowRoot && collection.id === UNCLASSIFIED_COLLECTION_ID) options.push(`<option value="${escapeAttr(collection.id)}">${escapeHtml(collection.name)}</option>`);
+  });
+  collectionMoveSelect.innerHTML = options.join("");
+}
+
+function collectionOptions() {
+  const result = [];
+  const visit = (parentId, depth) => childCollections(parentId).forEach((collection) => {
+    result.push({ collection, depth });
+    visit(collection.id, depth + 1);
+  });
+  visit(null, 1);
+  const unclassified = collections.find((collection) => collection.id === UNCLASSIFIED_COLLECTION_ID);
+  if (unclassified) result.push({ collection: unclassified, depth: 1 });
+  return result;
+}
+
+async function runPendingMove() {
+  const destination = collectionMoveSelect.value || null;
+  if (pendingMoveCollectionId) await moveCollection(pendingMoveCollectionId, destination);
+  else await moveMemosToCollection(pendingMoveMemoIds, destination);
+  collectionMoveDialog.close();
+}
+
+function wireMemoDrag(row, noteId) {
+  row.addEventListener("dragstart", (event) => {
+    draggedMemoIds = selectedMemoIds.has(noteId) ? [...selectedMemoIds] : [noteId];
+    event.dataTransfer.effectAllowed = "move";
+    event.dataTransfer.setData("text/plain", draggedMemoIds.join(","));
+    row.style.opacity = "0.5";
+  });
+  row.addEventListener("dragend", () => {
+    row.style.opacity = "";
+    draggedMemoIds = [];
+    clearDropIndicators();
+  });
+}
+
+function wireCollectionDrag(row, collection) {
+  if (!collection.isSystem) {
+    row.addEventListener("dragstart", (event) => {
+      if (event.target.closest("button,input")) {
+        event.preventDefault();
+        return;
+      }
+      draggedCollectionId = collection.id;
+      event.dataTransfer.effectAllowed = "move";
+      event.dataTransfer.setData("text/plain", collection.id);
+      row.style.opacity = "0.5";
+    });
+    row.addEventListener("dragend", () => {
+      row.style.opacity = "";
+      draggedCollectionId = null;
+      clearDropIndicators();
+    });
+  }
+  row.addEventListener("dragover", (event) => {
+    if (collection.isSystem || (!draggedCollectionId && !draggedMemoIds.length)) return;
+    event.preventDefault();
+    clearDropIndicators();
+    const rect = row.getBoundingClientRect();
+    const ratio = (event.clientY - rect.top) / rect.height;
+    row.classList.add(draggedMemoIds.length ? "drop-inside" : ratio < 0.25 ? "drop-before" : ratio > 0.75 ? "drop-after" : "drop-inside");
+  });
+  row.addEventListener("dragleave", () => row.classList.remove("drop-inside", "drop-before", "drop-after"));
+  row.addEventListener("drop", (event) => {
+    event.preventDefault();
+    const before = row.classList.contains("drop-before");
+    const after = row.classList.contains("drop-after");
+    clearDropIndicators();
+    if (draggedMemoIds.length) {
+      moveMemosToCollection(draggedMemoIds, collection.id).catch(showCollectionError);
+      return;
+    }
+    if (!draggedCollectionId) return;
+    const parentId = before || after ? collection.parentId : collection.id;
+    moveCollection(draggedCollectionId, parentId, before ? collection.id : null, after ? collection.id : null).catch(showCollectionError);
+  });
+}
+
+function clearDropIndicators() {
+  collectionTree.querySelectorAll(".drop-inside,.drop-before,.drop-after").forEach((row) => row.classList.remove("drop-inside", "drop-before", "drop-after"));
+}
+
+function collectionPath(id, includeSelf = true) {
+  const path = [];
+  let current = collections.find((collection) => collection.id === id);
+  const seen = new Set();
+  while (current && !seen.has(current.id)) {
+    seen.add(current.id);
+    if (includeSelf || current.id !== id) path.unshift(safeFileName(current.name));
+    current = collections.find((collection) => collection.id === current.parentId);
+  }
+  return path;
+}
+
+function buildCollectionZipFiles(rootCollectionId = null) {
+  const allowedIds = rootCollectionId ? new Set([rootCollectionId, ...descendantCollectionIds(rootCollectionId)]) : null;
+  const rootPath = rootCollectionId ? collectionPath(rootCollectionId).slice(0, -1) : [];
+  const items = activeNotes().filter((note) => !allowedIds || allowedIds.has(normalizedCollectionId(note))).map((note) => {
+    let path = collectionPath(normalizedCollectionId(note));
+    if (rootPath.length) path = path.slice(rootPath.length);
+    return {
+      name: `${path.join("/")}/${safeFileName(note.title)}.md`,
+      content: `# ${note.title}\n\n${note.body}\n`,
+      updatedAt: note.bodyUpdatedAt || note.updatedAt || note.createdAt || Date.now()
+    };
+  });
+  return uniqueZipFileNames(items);
+}
+
+async function downloadCollectionZip(id) {
+  const collection = collections.find((item) => item.id === id);
+  if (!collection) throw new Error("コレクションが存在しません");
+  await flushSave();
+  const files = buildCollectionZipFiles(id);
+  const blob = makeZip(files);
+  downloadBlob(blob, `Memo-Nexus_${safeFileName(collection.name)}_${todayStampDashed()}.zip`);
+}
+
+function downloadBlob(blob, fileName) {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = fileName;
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(url), 0);
+}
+
 // ユーザー入力をHTMLへ混ぜる前に無害化します。
 function escapeHtml(value) {
   return String(value).replace(/[&<>"']/g, (char) => ({
@@ -2208,6 +3084,24 @@ newBtn.addEventListener("click", async () => {
   renderAll();
   openNote(note.id);
 });
+
+if (collectionsBtn) collectionsBtn.addEventListener("click", () => toggleCollectionExplorer());
+if (closeCollectionsBtn) closeCollectionsBtn.addEventListener("click", () => toggleCollectionExplorer(false));
+if (collectionBackdrop) collectionBackdrop.addEventListener("click", () => toggleCollectionExplorer(false));
+if (addCollectionBtn) addCollectionBtn.addEventListener("click", () => createCollection().catch(showCollectionError));
+if (collectionAddMenuBtn) {
+  collectionAddMenuBtn.addEventListener("click", (event) => {
+    event.stopPropagation();
+    const selectedCanContain = Boolean(defaultNewCollectionParent()) && collectionDepth(defaultNewCollectionParent()) < MAX_COLLECTION_DEPTH;
+    collectionAddMenu.innerHTML = `<button type="button" data-place="root">ルートにコレクションを作成</button><button type="button" data-place="selected"${selectedCanContain ? "" : " disabled"}>選択中のコレクション内に作成</button>`;
+    positionPopup(collectionAddMenu, event);
+    collectionAddMenu.querySelector('[data-place="root"]').addEventListener("click", () => runMenuAction(() => createCollection(null)));
+    collectionAddMenu.querySelector('[data-place="selected"]').addEventListener("click", () => runMenuAction(() => createCollection(defaultNewCollectionParent())));
+  });
+}
+if (closeCollectionMoveBtn) closeCollectionMoveBtn.addEventListener("click", () => collectionMoveDialog.close());
+if (cancelCollectionMoveBtn) cancelCollectionMoveBtn.addEventListener("click", () => collectionMoveDialog.close());
+if (runCollectionMoveBtn) runCollectionMoveBtn.addEventListener("click", () => runPendingMove().catch(showCollectionError));
 
 todayBtn.addEventListener("click", async () => {
   notes = await getAllNotes();
@@ -2276,7 +3170,31 @@ titleInput.addEventListener("beforeinput", captureUndoSnapshot);
 editor.addEventListener("beforeinput", captureUndoSnapshot);
 titleInput.addEventListener("input", scheduleSave);
 editor.addEventListener("input", scheduleSave);
-window.addEventListener("resize", renderSaveStatus);
+window.addEventListener("resize", () => {
+  renderSaveStatus();
+  if (document.body.classList.contains("collections-open")) {
+    collectionBackdrop.hidden = window.matchMedia("(min-width: 1201px)").matches;
+  }
+});
+document.addEventListener("click", (event) => {
+  if (!event.target.closest(".collection-popup-menu,.collection-more,.collection-memo-more,#collectionAddMenuBtn")) closeCollectionMenus();
+});
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && document.body.classList.contains("collections-open") && !collectionMoveDialog.open) {
+    toggleCollectionExplorer(false);
+    return;
+  }
+  if (!collectionTree.contains(document.activeElement)) return;
+  const visible = getVisibleMemoIds(false);
+  if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "a") {
+    event.preventDefault();
+    visible.forEach((id) => selectedMemoIds.add(id));
+    renderCollectionExplorer();
+  } else if (event.key === "Delete" && selectedMemoIds.size) {
+    event.preventDefault();
+    moveMemosToTrash([...selectedMemoIds]).catch(showCollectionError);
+  }
+});
 window.addEventListener("pagehide", () => {
   saveCurrentDraftMirror();
   if (saveTimer) {

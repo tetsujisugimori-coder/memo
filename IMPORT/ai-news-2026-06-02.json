@@ -1,0 +1,62 @@
+{
+  "title": "AI最新ニュース朝刊",
+  "date": "2026-06-02",
+  "items": [
+    {
+      "heading": "AnthropicがIPOを非公開申請、巨大資金調達の直後に上場準備が前進",
+      "points": [
+        "Anthropicは2026年6月1日、米証券当局にIPOの confidential filing を行ったと報じられました。",
+        "これは5月28日に65 billionドルを調達し、965 billionドル評価を付けた直後の動きです。",
+        "公開S-1はまだ出ていませんが、AI大手の資本市場入りが現実的な段階に入ったことを示しています."
+      ],
+      "whyImportant": "AI企業の競争軸がモデル性能だけでなく、巨額の計算資源を継続調達できる資本力に移っていることを示します。Anthropicの上場準備が進めば、AI企業の評価基準や投資マネーの流れに大きな影響が出ます。",
+      "sourceLabel": "Axios",
+      "sourceUrl": "https://www.axios.com/2026/06/01/anthropic-ipo-openai"
+    },
+    {
+      "heading": "OpenAIが生成コンテンツの来歴確認を強化、C2PA準拠とSynthIDを組み合わせ",
+      "points": [
+        "OpenAIは2026年5月19日、AI生成メディアの来歴を示す仕組みを強化すると発表しました。",
+        "Content Credentialsに加えてC2PA準拠を進め、さらにGoogle DeepMindのSynthIDをChatGPT、Codex、API経由の画像へ導入します。",
+        "あわせて、画像がOpenAI由来かを一般利用者が確認できる検証ツールのプレビューも示しました."
+      ],
+      "whyImportant": "生成AIの普及で、何が本物で何がAI加工かを判定する仕組みは社会インフラになりつつあります。OpenAIが標準化と相互運用を前に出したことで、今後はモデル性能だけでなく真正性の実装が競争条件になります。",
+      "sourceLabel": "OpenAI",
+      "sourceUrl": "https://openai.com/index/advancing-content-provenance/"
+    },
+    {
+      "heading": "GoogleがGeminiを一段とエージェント化、Daily BriefとSparkを展開",
+      "points": [
+        "Googleは2026年5月19日、Geminiアプリの新機能としてDaily BriefとGemini Sparkを発表しました。",
+        "Daily BriefはGmailやCalendarなどの接続先を横断して朝の要点を整理し、Sparkは継続実行するクラウド型エージェントとして複数ステップの仕事を肩代わりします。",
+        "Gemini Omniによる動画生成も加わり、Geminiは質問応答アプリから常時稼働の作業代理人へ寄せられています."
+      ],
+      "whyImportant": "AIの価値が『答えること』から『継続的に仕事を進めること』へ移っている流れを象徴します。Googleが個人向けプロダクトでこの形を前面化したことで、エージェントUXの主戦場が本格的に消費者側へ広がっています。",
+      "sourceLabel": "Google Blog",
+      "sourceUrl": "https://blog.google/innovation-and-ai/products/gemini-app/next-evolution-gemini-app/"
+    },
+    {
+      "heading": "Microsoftが米英のAI評価機関と連携拡大、先端モデルのテスト基盤を強化",
+      "points": [
+        "Microsoftは2026年5月5日、米国のCAISIと英国のAISIとの新たな合意を公表しました。",
+        "同社の frontier models を対象に、安全策の有効性や高リスク能力、国家安全保障・大規模公共安全リスクに関する評価を共同で進める計画です。",
+        "共有フレームワーク、データセット、ワークフローを含む再現可能な評価手法づくりも打ち出しています."
+      ],
+      "whyImportant": "先端AIでは、社内評価だけでなく政府や外部機関と組んだ検証体制が信頼の前提になりつつあります。評価方法そのものを標準化する動きは、規制対応や企業導入のスピードを左右します。",
+      "sourceLabel": "Microsoft On the Issues",
+      "sourceUrl": "https://blogs.microsoft.com/on-the-issues/2026/05/05/advancing-ai-evaluation-with-the-center-for-ai-standards-us-and-innovation-and-the-ai-security-institute-uk/"
+    },
+    {
+      "heading": "Metaが『完全に非公開のAIチャット』を投入、プライバシーを差別化軸に",
+      "points": [
+        "Metaは2026年5月13日、WhatsAppとMeta AIアプリ向けに Incognito Chat with Meta AI を発表しました。",
+        "会話はPrivate Processing上の安全な実行環境で処理され、Meta自身も内容を読めず、保存されず、既定で消える設計です。",
+        "今後はWhatsApp上の会話文脈を扱うSide Chatも同じ保護枠組みで提供する方針です."
+      ],
+      "whyImportant": "AIアシスタントが個人の深い相談先になるほど、性能だけでなく『誰が中身を見られるのか』が採用条件になります。Metaはプライバシー保護を前面に出し、消費者向けAIの信頼競争を強めています。",
+      "sourceLabel": "Meta Newsroom",
+      "sourceUrl": "https://about.fb.com/news/2026/05/incognito-chat-whatsapp-meta-ai/"
+    }
+  ],
+  "trendSummary": "2026年6月初めのAI業界は、モデルそのものの新規性よりも、資本調達、エージェント化、真正性、外部評価、プライバシーといった『実運用の土台』が前面に出ています。AIは実験段階を越え、社会実装に必要な資金・信頼・継続運用の仕組みをどこまで握れるかの競争に入っています。"
+}

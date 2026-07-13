@@ -1,0 +1,57 @@
+{
+  "title": "AI最新ニュース朝刊",
+  "date": "2026-07-02",
+  "items": [
+    {
+      "heading": "AnthropicのFable 5とMythos 5が規制解除で再開",
+      "points": [
+        "Anthropicは米政府との調整を経て、国家安全保障上の懸念から制限されていたFable 5とMythos 5へのアクセス再開を発表した。",
+        "同社は安全分類器の強化や監視体制の追加を進め、政府との事前評価や業界横断の安全基準づくりにも関与する見通しだ。"
+      ],
+      "whyImportant": "最先端モデルの公開可否が企業判断だけでなく政府の安全保障レビューに左右される段階へ入ったことを示す。今後のモデル公開スケジュール、企業向け提供、国際競争に直接影響する。",
+      "sourceLabel": "The Guardian",
+      "sourceUrl": "https://www.theguardian.com/technology/2026/jul/01/anthropic-fable-mythos-ai-models-us-export-controls-lifted"
+    },
+    {
+      "heading": "AI半導体スタートアップEtchedが8億ドルを調達",
+      "points": [
+        "AI推論向けチップを開発するEtchedが、Jane StreetやTSMC系投資家を含む出資陣から総額8億ドルを調達したと報じられた。",
+        "モデル競争だけでなく、専用推論ハードウェアへの資金流入が再加速しており、NVIDIA一強に対抗する新たなインフラ賭けが鮮明になっている。"
+      ],
+      "whyImportant": "AI競争の主戦場がモデルそのものから、推論コストと供給能力を左右する半導体スタックへ広がっている。資本市場が次のボトルネックを『計算資源』と見ていることの表れだ。",
+      "sourceLabel": "Economic Times",
+      "sourceUrl": "https://m.economictimes.com/markets/us-stocks/news/jane-street-tsmc-linked-ai-startup-etched-raises-800-m/articleshow/132103929.cms"
+    },
+    {
+      "heading": "国連とITUがAI for Goodグローバル委員会を発足",
+      "points": [
+        "国連と国際電気通信連合は、各国首脳と主要テック企業を結ぶ『AI for Good Global Commission』を立ち上げると報じられた。",
+        "7月8日の初会合に向け、分断が進むAIルール形成を国際レベルで接続し直す狙いがある。"
+      ],
+      "whyImportant": "AIガバナンスの議論が各国規制や企業自主基準だけでなく、国際協調の場へ再編されつつある。標準、透明性、責任分担の国際ルールづくりに波及しうる。",
+      "sourceLabel": "Axios",
+      "sourceUrl": "https://www.axios.com/2026/07/01/un-ai-commission-ceos-world-leaders"
+    },
+    {
+      "heading": "米議会でAIクラウド安全保障法案が提出へ",
+      "points": [
+        "米下院の超党派議員が、先端AI計算資源の外国悪用をクラウド経由でも把握しやすくするCloud Security Actを打ち出した。",
+        "輸出規制で半導体を止めても、米クラウド利用を通じた迂回を防ぎ切れないという懸念が立法化の背景にある。"
+      ],
+      "whyImportant": "AI覇権競争の焦点がチップ輸出だけでなく、クラウド利用監視へ広がっている。米系クラウドと基盤モデル企業の顧客管理・報告義務が強化される可能性が高い。",
+      "sourceLabel": "Axios",
+      "sourceUrl": "https://www.axios.com/2026/06/26/gottheimer-moolenaar-ai-cloud-security-bill"
+    },
+    {
+      "heading": "MetaがVirtue AI創業陣を引き抜き安全性を補強",
+      "points": [
+        "Meta Superintelligence Labsは、AIセキュリティ企業Virtue AIの共同創業者らを迎え入れ、安全性チームを強化したと報じられた。",
+        "能力競争だけでなく、レッドチーミングや防御設計の人材獲得が大手各社の最優先課題になっていることがうかがえる。"
+      ],
+      "whyImportant": "大手AI企業の競争軸が『モデル性能』から『安全に運用できる体制』へ拡張している。人材移動そのものが、今後のリリース品質と規制対応力を左右する。",
+      "sourceLabel": "Axios",
+      "sourceUrl": "https://www.axios.com/2026/06/25/meta-hires-virtue-ai-founders-security"
+    }
+  ],
+  "trendSummary": "2026年7月初頭のAI業界は、単純なモデル性能競争から、公開統制・安全保障・国際ルール形成・計算資源投資へと争点が広がっている。つまり『より賢いモデルを作る』だけでは差別化できず、誰が安全に配り、どう統治し、どの計算基盤を握るかが同時に勝負になっている。"
+}

@@ -1,0 +1,42 @@
+{
+  "title": "AI最新ニュース朝刊",
+  "date": "2026-07-01",
+  "items": [
+    {
+      "heading": "OpenAIがGPT-5.6を限定公開、米政府要請で段階展開へ",
+      "points": "OpenAIは2026年6月26日、GPT-5.6シリーズ（Sol、Terra、Luna）の限定プレビュー開始を発表した。米政府に事前共有したうえで、まずは政府と共有済みの少数パートナーに絞って提供し、一般公開は今後数週間で広げる方針だ。政府による事前レビューが常態化するべきではないという懸念も同時に示している。",
+      "whyImportant": "最先端モデルの公開手順そのものが変わり始めており、性能競争だけでなく国家安全保障と供給管理が製品投入スケジュールを左右する段階に入ったため。",
+      "sourceLabel": "Business Insider",
+      "sourceUrl": "https://www.businessinsider.com/openai-gpt-5-6-limited-preview-us-government-ai-security-2026-6"
+    },
+    {
+      "heading": "AnthropicがClaude Sonnet 5を投入、エージェント機能を低コスト化",
+      "points": "Anthropicは2026年6月30日、Claude Sonnet 5を公開した。ブラウザ操作、計画、コーディング、知識労働などの自律タスクを扱える一方、上位のOpusやMythosより危険なサイバー能力を抑えた設計だと説明している。Claude FreeとProの標準モデルになり、TeamやEnterpriseにも広がる。",
+      "whyImportant": "AIの主戦場が単純なチャットから実作業を任せるエージェントへ移る中で、性能だけでなく価格と安全性のバランスを取った普及モデルが市場標準になりうるため。",
+      "sourceLabel": "Axios",
+      "sourceUrl": "https://www.axios.com/2026/06/30/anthropic-sonnet-5-agents-mythos-fable"
+    },
+    {
+      "heading": "Anthropicが製薬向け「Claude Science」を公開、科学研究用途を本格開拓",
+      "points": "Anthropicは2026年6月30日、科学者や製薬業界向けの専用製品Claude Scienceを立ち上げた。3Dタンパク質モデリングや創薬支援などを想定し、より高リスクな生物系能力についてはアクセス管理を強める考えも示している。個人と企業の有料契約向けにグローバル提供する。",
+      "whyImportant": "汎用チャットAIから、創薬や研究開発のような高単価・高規制の業務特化市場へ競争軸が移っていることを示す動きだから。",
+      "sourceLabel": "Financial Times",
+      "sourceUrl": "https://www.ft.com/content/50c10721-bda6-439e-a6c3-755311e4b505"
+    },
+    {
+      "heading": "ホワイトハウスがMetaに先端AIモデルの事前審査参加を要請",
+      "points": "米政権はMetaに対し、公開前の先端AIモデルを政府レビューに自主的に提出するよう求めている。OpenAI、Anthropic、Google、Microsoft、xAIなどはすでに同種の枠組みに参加しており、Metaも近く合意する可能性がある。焦点は能力評価だけでなく、サイバー攻撃や重要インフラへの悪用可能性だ。",
+      "whyImportant": "主要AI企業のモデル公開前レビューが業界標準になれば、米国の事実上の審査制度が市場慣行化し、開発競争と規制の力関係を大きく変えるため。",
+      "sourceLabel": "TechRadar",
+      "sourceUrl": "https://www.techradar.com/pro/we-hope-to-sign-the-agreement-soon-white-house-calls-on-meta-to-submit-ai-models-for-review-citing-abilities-and-vulnerabilities-evaluation"
+    },
+    {
+      "heading": "OpenAIとAnthropicがAI雇用対策基金「Raise Us」を後押し",
+      "points": "米商務長官経験者らが2026年6月25日、AIによる雇用変化に備える基金Raise Usを始動した。AnthropicとOpenAI Foundationが支援し、すでに5億ドルを確保、賃金保険や再訓練、AIキャリア支援などを4州で試す。AI企業自身が雇用ショックへの備えに資金を出す構図が鮮明になっている。",
+      "whyImportant": "AI導入の論点が『何ができるか』から『働き方と雇用をどう移行させるか』へ移っており、政策と企業投資が同時に動き始めた象徴的な案件だから。",
+      "sourceLabel": "Axios",
+      "sourceUrl": "https://www.axios.com/2026/06/25/anthropic-labor-market-ai-jobs-crisis"
+    }
+  ],
+  "trendSummary": "直近のAIニュースは、モデル性能そのものよりも『どう公開するか』『どの業務に深く入るか』『雇用や安全保障にどう備えるか』へ軸足が移っている。汎用モデルの競争は続きつつも、政府レビュー、業界特化製品、労働移行策が同時進行しており、AIは技術トピックから産業政策トピックへ一段深く入りつつある。"
+}

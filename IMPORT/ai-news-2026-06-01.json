@@ -1,0 +1,62 @@
+{
+  "title": "AI最新ニュース朝刊",
+  "date": "2026-06-01",
+  "items": [
+    {
+      "heading": "NVIDIAが自動運転向けの推論VLAモデル「Alpamayo 2 Super」を公開",
+      "points": [
+        "NVIDIAは2026年6月1日、32B規模の推論型 vision-language-action モデル「Alpamayo 2 Super」を発表しました。",
+        "同時に、閉ループ強化学習フレームワーク「AlpaGym」と、長尾ケースを大量生成できる世界モデル「OmniDreams」も公開し、学習から検証までの一連の基盤を揃えました。",
+        "同社はこれにより、ロボタクシー開発で必要な推論、計画、実行、データ生成をオープン基盤としてまとめて提供する構図を打ち出しています。"
+      ],
+      "whyImportant": "生成AIの主戦場がチャットだけでなく、物理世界で動く自律システムへ広がっていることを示します。自動運転では安全性の説明責任が重く、モデル単体ではなく訓練・評価基盤まで一体で提供される意味が大きいです。",
+      "sourceLabel": "NVIDIA Newsroom",
+      "sourceUrl": "https://nvidianews.nvidia.com/news/nvidia-alpamayo-2-super-robotaxis"
+    },
+    {
+      "heading": "NVIDIAが研究向けオープン humanoid 参照機「Isaac GR00T Reference Humanoid Robot」を発表",
+      "points": [
+        "NVIDIAは2026年6月1日、Jetson Thor と Isaac GR00T 開発基盤を土台にした、研究用途向けのオープン humanoid 参照設計を公表しました。",
+        "Unitree H2 Plus と五指ハンドを組み合わせた設計で、Ai2、ETH Zurich、Stanford、UC San Diego などが利用予定とされています。",
+        "単なるモデル公開ではなく、データ収集、生成、評価、配備までを含む開発土台として位置づけられています。"
+      ],
+      "whyImportant": "ロボットAIはモデル精度だけでなく、再現可能なハードウェアと評価環境が普及の鍵です。研究機関が共通基盤を使えるようになると、physical AI の進展速度が一段上がりやすくなります。",
+      "sourceLabel": "NVIDIA Newsroom",
+      "sourceUrl": "https://nvidianews.nvidia.com/news/nvidia-announces-nvidia-isaac-gr00t-reference-humanoid-robot-for-academic-research"
+    },
+    {
+      "heading": "OpenAIが「Frontier Governance Framework」を公表し、規制対応の公開枠組みを提示",
+      "points": [
+        "OpenAIは2026年5月28日、先端モデルの安全・セキュリティ運用を法規制要件にどう対応させるかを示す「Frontier Governance Framework」を公開しました。",
+        "カリフォルニア州法案やEU AI Actの実務を見据え、サイバー攻撃、CBRN、 harmful manipulation、loss of control などのリスク評価と緩和策の整理を含めています。",
+        "既存の Preparedness Framework を土台にしつつ、対外説明用のガバナンス文書として前面に出した形です。"
+      ],
+      "whyImportant": "AI企業の競争が性能だけでなく、規制適合をどう透明化するかにも移っていることを示します。今後は大手モデル事業者に対して、公開可能な運用基準を持つこと自体が市場参入条件になりやすいです。",
+      "sourceLabel": "OpenAI",
+      "sourceUrl": "https://openai.com/index/openai-frontier-governance-framework/"
+    },
+    {
+      "heading": "OpenAIが第三者評価の実務指針を公開、エージェント時代の評価基準見直しを提案",
+      "points": [
+        "OpenAIは2026年5月29日、先端AIモデルの能力や安全策を第三者が検証する際の設計指針をまとめた文書を公開しました。",
+        "同社は、いまの frontier model はツール利用や長い手順実行を前提とするため、単純なQ&A型評価では妥当な比較にならないと説明しています。",
+        "評価では、何を検証したいのか、どの harness で能力を引き出したのか、結果の妥当性をどう確認したのかを明示すべきだと提案しました。"
+      ],
+      "whyImportant": "AI評価は規制、調達、研究比較の共通基盤です。モデルがエージェント化するほど、テスト設計次第で結果が大きく変わるため、評価方法そのものの標準化が重要になります。",
+      "sourceLabel": "OpenAI",
+      "sourceUrl": "https://openai.com/index/trustworthy-third-party-evaluations-foundations/"
+    },
+    {
+      "heading": "GoogleがGemini APIで「Managed Agents」を発表、隔離実行環境つきのエージェント基盤を提供",
+      "points": [
+        "Googleは2026年5月19日、Gemini API向けに Managed Agents を投入し、単一API呼び出しで推論・ツール利用・コード実行を行うエージェントを立ち上げられるようにしました。",
+        "エージェントは隔離された一時的Linux環境で動作し、ファイルや状態を保持したまま継続実行できます。",
+        "独自エージェントは AGENTS.md と SKILL.md で定義でき、Google AI Studio と企業向け Gemini Enterprise Agent Platform でも順次扱える構成です。"
+      ],
+      "whyImportant": "AI開発の価値が、モデル単体よりも『安全な実行環境つきエージェント基盤』へ移っていることを示します。GoogleがAPIレベルで運用基盤まで抱えることで、開発者はオーケストレーションより実アプリ設計に集中しやすくなります。",
+      "sourceLabel": "Google Blog",
+      "sourceUrl": "https://blog.google/innovation-and-ai/technology/developers-tools/managed-agents-gemini-api/"
+    }
+  ],
+  "trendSummary": "足元のAI業界は、単に新モデルを出す競争から、エージェントを安全に動かす実行基盤、第三者が検証できる評価枠組み、そして physical AI まで含む産業基盤の競争へ進んでいます。ソフトウェア内のAIと現実世界で動くAIが同時に前進しており、今は『賢さ』以上に『動かせる形にする仕組み』が差別化要因になっています。"
+}

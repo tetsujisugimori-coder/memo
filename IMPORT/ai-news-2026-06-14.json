@@ -1,0 +1,57 @@
+{
+  "title": "AI最新ニュース朝刊",
+  "date": "2026-06-14",
+  "items": [
+    {
+      "heading": "Apple、WWDC 2026で「Siri AI」を正式披露",
+      "points": [
+        "AppleはWWDC 2026で、会話性と画面文脈理解を強化した新しい『Siri AI』を発表した。",
+        "iPhone、iPad、Mac、Apple Watch、Vision Proへ横断展開し、専用アプリやSafari/写真/ショートカット連携も打ち出した。"
+      ],
+      "whyImportant": "AppleがAI競争で後手から本格反攻に入ったことを示す。巨大な端末基盤にAI機能が標準搭載されるため、消費者向けAIの利用習慣が一段広がる可能性が高い。",
+      "sourceLabel": "The Verge",
+      "sourceUrl": "https://www.theverge.com/tech/945693/apple-wwdc-2026-biggest-announcements-ios-27"
+    },
+    {
+      "heading": "Anthropic、AIの雇用影響研究に2億ドルを拠出",
+      "points": [
+        "AnthropicはAIが雇用へ与える影響を調べるため2億ドル規模の研究投資を表明した。",
+        "あわせてDario Amodei氏は、雇用インセンティブやUBIを含む政策対応の選択肢を提示した。"
+      ],
+      "whyImportant": "AIの論点が性能競争だけでなく、雇用再分配と社会制度設計へ移っている。主要モデル企業自身が雇用ショックを政策課題として前面化した意味は大きい。",
+      "sourceLabel": "AP News",
+      "sourceUrl": "https://apnews.com/article/afeb5279eef406980dffa46ff91495e0"
+    },
+    {
+      "heading": "Bezos新会社Prometheus、120億ドル調達で工業AIを加速",
+      "points": [
+        "Jeff Bezos氏とVik Bajaj氏のPrometheusは、シリーズBで120億ドルを調達し評価額は410億ドルに達した。",
+        "同社はチャットボットではなく、製造業や航空宇宙向けの『artificial general engineer』を掲げている。"
+      ],
+      "whyImportant": "資金の重心が会話AIから設計・製造の産業AIへ広がっている。AIの価値創出がソフトウェア支援から実世界の製品開発へ移る流れを象徴する案件だ。",
+      "sourceLabel": "Axios",
+      "sourceUrl": "https://www.axios.com/2026/06/11/prometheus-bezos-industrial-ai"
+    },
+    {
+      "heading": "Meta、Manus買収の巻き戻しを開始",
+      "points": [
+        "Metaは中国当局の命令を受け、中国発AI企業Manusの買収巻き戻し作業を始めたと報じられた。",
+        "Manus側の社内システム遮断やデータ共有停止が進み、AI人材・IPの越境移転リスクが表面化している。"
+      ],
+      "whyImportant": "AIの競争軸がモデル性能だけでなく、国境をまたぐM&A、IP管理、国家安全保障に直結していることを示す。米中AI覇権戦の実務面に影響するニュースだ。",
+      "sourceLabel": "Tom's Hardware",
+      "sourceUrl": "https://www.tomshardware.com/tech-industry/artificial-intelligence/meta-cuts-manus-off-from-its-internal-systems-as-china-ordered-breakup-of-2-billion-ai-deal-begins"
+    },
+    {
+      "heading": "NVIDIA、AIエージェント向けPCを正式投入",
+      "points": [
+        "NVIDIAはComputexで、AIエージェント実行を主目的にした初のPC群を公開した。",
+        "新しいRTX Spark系チップを軸に、Dell、Lenovo、HPなど複数OEMが薄型・軽量機を展開する。"
+      ],
+      "whyImportant": "AIエージェントの実行場所がクラウド中心から端末側へ広がり始めた。推論コスト、遅延、プライバシーの観点で『エージェントPC』は次のデバイス競争を作る可能性がある。",
+      "sourceLabel": "The Wall Street Journal",
+      "sourceUrl": "https://www.wsj.com/tech/ai/nvidia-introduces-first-pcs-designed-for-ai-agents-47445bcd"
+    }
+  ],
+  "trendSummary": "直近のAIニュースは、性能競争そのものよりも『配布先』『実装先』『社会的な受け皿』へ重心が移っている。Appleは端末常駐AI、NVIDIAはエージェントPC、Prometheusは産業設計、Anthropicは雇用政策、Metaは地政学リスクという形で、AIが次の局面で制度・産業・ハードウェアと強く結びつき始めた。"
+}

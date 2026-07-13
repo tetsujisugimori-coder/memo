@@ -1,0 +1,62 @@
+{
+  "title": "AI最新ニュース朝刊",
+  "date": "2026-06-18",
+  "items": [
+    {
+      "heading": "OpenAI、AI化学者が創薬向け反応改善を実証",
+      "points": [
+        "OpenAIは6月17日、GPT-5.4をMolecule.oneの自動化実験基盤と組み合わせ、創薬で重要なChan-Lam couplingの改善案を生成したと発表した。",
+        "AIが提案したTEMPO系添加剤により、検証した基質の大半で収率が改善し、ベンチスケール再現でも14組中11組で向上が確認された。",
+        "単なる文献要約ではなく、仮説立案から実験設計、データ解釈、追試提案までをAIが担った点が焦点だ。"
+      ],
+      "whyImportant": "AIが研究補助から実験ループの中核へ近づいていることを示す。医薬探索のボトルネックである合成最適化に効けば、AIの産業価値はソフトウェア以外にも一気に広がる。",
+      "sourceLabel": "OpenAI",
+      "sourceUrl": "https://openai.com/index/ai-chemist-improves-reaction/"
+    },
+    {
+      "heading": "OpenAI、公開前モデルを実運用会話で再現評価する安全手法を導入",
+      "points": [
+        "OpenAIは6月16日、過去の会話文脈を匿名・保護した形で新モデルに再生し、公開前の挙動を推定するDeployment Simulationを紹介した。",
+        "GPT-5系Thinkingモデルの複数展開で、望ましくない挙動の発見精度が上がり、モデルが『評価されている』と気づきにくい環境を作れたとしている。",
+        "標準チャットだけでなく、ツール利用を伴うエージェント型運用にも適用した点が特徴だ。"
+      ],
+      "whyImportant": "フロンティアモデルの競争が速まるほど、公開後に問題を直すのでは遅い。事前評価を実運用に近づける手法は、AI安全の実務標準になり得る。",
+      "sourceLabel": "OpenAI",
+      "sourceUrl": "https://openai.com/index/deployment-simulation/"
+    },
+    {
+      "heading": "Anthropic、ソウル拠点を開設し韓国AIエコシステムを拡大",
+      "points": [
+        "Anthropicは6月17日、ソウルオフィス開設とあわせて韓国の企業・開発者との連携拡大を公表した。",
+        "NAVERがClaude Codeを全エンジニアに展開し、Samsung SDSやLG CNS、Hanwha Solutionsなど大手でもClaude活用が広がっているという。",
+        "単発導入ではなく、開発・業務・エージェント運用まで含む地域展開として位置づけられている。"
+      ],
+      "whyImportant": "米国中心だった生成AI競争が、アジアの大企業導入と開発者基盤の取り込みへ進んでいる。Anthropicにとっては規制逆風下でも商用地盤を広げる動きだ。",
+      "sourceLabel": "Anthropic",
+      "sourceUrl": "https://www.anthropic.com/news/seoul-office-partnerships-korean-ai-ecosystem"
+    },
+    {
+      "heading": "G7でAI規制協調が主要議題に、Macron氏とAltman氏が国際枠組みを要求",
+      "points": [
+        "AP通信によると、6月18日のG7関連会合でフランスのMacron大統領は、先端AIを米国だけで囲い込まず、民主主義国が共同で規制協調すべきだと訴えた。",
+        "OpenAIのSam Altman氏も、能力評価やリスク分析の共通基準を扱う国際フォーラムが必要だと表明した。",
+        "背景には、米政府がAnthropicの先端モデル利用停止を命じたことで、欧州側の不信感が強まっていることがある。"
+      ],
+      "whyImportant": "AI競争の争点が性能だけでなく『誰がアクセスを管理するか』へ移っている。各国の安全保障と産業政策が正面から結びつき始めた。",
+      "sourceLabel": "AP News",
+      "sourceUrl": "https://apnews.com/article/g7-france-ai-sovereignty-7d783c6de4356962e338b8b8563d48ea"
+    },
+    {
+      "heading": "Google、Gemini搭載Home Speakerを発売へ",
+      "points": [
+        "WIREDによると、Googleは6月17日にGemini搭載の新しいGoogle Home Speakerの予約を開始し、6月25日に100ドルで発売する。",
+        "自然会話型のGemini、Gemini Live、Matter/Thread対応ハブ機能、ローカルモデルによる音声分離などを前面に出し、Assistant世代からの刷新を打ち出した。",
+        "Googleによれば、Gemini対応Google Homeはすでに350万超の家庭が試しており、利用者の反応を踏まえ2,500件超の修正を行った。"
+      ],
+      "whyImportant": "生成AIがスマホや検索だけでなく家庭内デバイスの標準UIへ入り始めた。GoogleがGeminiを常時接続の生活インターフェースに押し広げる一手といえる。",
+      "sourceLabel": "WIRED",
+      "sourceUrl": "https://www.wired.com/story/the-gemini-powered-google-home-speaker-is-finally-here/"
+    }
+  ],
+  "trendSummary": "足元のAIニュースは、研究自動化の前進、公開前安全評価の高度化、アジアでの商用展開、そしてG7レベルの規制協調論が同時進行しているのが特徴だ。つまりAIの主戦場はモデル性能の競争だけではなく、実験現場・家庭内デバイス・各国制度設計へと一段深く広がっている。"
+}

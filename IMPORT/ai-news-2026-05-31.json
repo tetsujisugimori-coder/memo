@@ -1,0 +1,62 @@
+{
+  "title": "AI最新ニュース朝刊",
+  "date": "2026-05-31",
+  "items": [
+    {
+      "heading": "Anthropicが650億ドルを調達し、評価額は9650億ドルに",
+      "points": [
+        "Anthropicは2026年5月28日、Series Hで650億ドルを調達し、ポストマネー評価額が9650億ドルになったと発表しました。",
+        "同社はこの資金を、安全性と解釈可能性の研究、Claude需要に対応する計算資源の拡張、製品と提携の拡大に充てる方針です。",
+        "あわせてAmazon、GoogleとBroadcom、SpaceXとの大規模な計算資源契約も示し、供給力の確保を前面に出しました."
+      ],
+      "whyImportant": "最先端AIの競争が、モデル性能だけでなく資金調達力と計算資源の確保に強く依存していることを示しました。企業向けAIの勢力図や価格競争にも直結する動きです。",
+      "sourceLabel": "Anthropic",
+      "sourceUrl": "https://www.anthropic.com/news/series-h"
+    },
+    {
+      "heading": "AnthropicがClaude Opus 4.8を公開し、長時間エージェント作業を強化",
+      "points": [
+        "Anthropicは2026年5月28日、Claude Opus 4.8を公開し、コーディング、エージェント作業、専門業務での性能向上を打ち出しました。",
+        "同社は、コードの不備を見逃す頻度が前世代より大きく減り、整合性評価でも誤った振る舞いが下がったと説明しています。",
+        "同日、Claude Code向けに多数の並列サブエージェントを走らせるdynamic workflowsも研究プレビューとして投入しました。"
+      ],
+      "whyImportant": "AI活用の中心が単発の応答から、長時間の自律実行へ移っていることを示す更新です。性能だけでなく、信頼性や自己点検の改善が前面に出ている点も実務導入では大きいです。",
+      "sourceLabel": "Anthropic",
+      "sourceUrl": "https://www.anthropic.com/news/claude-opus-4-8"
+    },
+    {
+      "heading": "GoogleがGeminiを常時稼働型エージェントへ拡張",
+      "points": [
+        "Googleは2026年5月19日、Geminiアプリの大規模更新を発表し、動画生成向けのGemini Omni、朝の要約を作るDaily Brief、常時動くエージェントGemini Sparkを公開しました。",
+        "Daily BriefはGmailやCalendarなどの接続アプリを横断して朝のブリーフを組み立て、Sparkはバックグラウンドで継続作業を進める設計です。",
+        "Gemini Omniは同日から順次展開、Sparkはまずテスターと米国の一部上位プラン向けに広がるとされています。"
+      ],
+      "whyImportant": "大手各社の競争軸が『質問に答えるAI』から『裏で継続的に動くAI』へ移っていることを示します。検索、業務支援、個人アシスタントが一体化する流れの中で、Googleの配信面の強さが効いてきます。",
+      "sourceLabel": "Google Blog",
+      "sourceUrl": "https://blog.google/innovation-and-ai/products/gemini-app/next-evolution-gemini-app/"
+    },
+    {
+      "heading": "OpenAIがAI生成画像の真正性対策を強化",
+      "points": [
+        "OpenAIは2026年5月19日、C2PA準拠の強化に加え、Google DeepMindのSynthIDをChatGPT、Codex、OpenAI APIの画像に導入すると発表しました。",
+        "さらに、画像に来歴シグナルが含まれているかを確認する公開検証ツールのプレビューも案内しました。",
+        "メタデータだけでなく透かしを重ねる多層構成にすることで、加工や再投稿後も生成元を判定しやすくする狙いです。"
+      ],
+      "whyImportant": "AI画像の見分けやすさは、報道、選挙、SNS、広告の信頼性に直結します。単独機能ではなく、業界標準と相互運用を意識した実装に進んだ点が重要です。",
+      "sourceLabel": "OpenAI",
+      "sourceUrl": "https://openai.com/index/advancing-content-provenance/"
+    },
+    {
+      "heading": "OpenAIが2026年選挙向けの安全策を公表",
+      "points": [
+        "OpenAIは2026年5月27日、各国選挙に向けた新しい安全策を公表し、米国とブラジルで開票時にAPのライブ結果を提供する計画を示しました。",
+        "米国ではDemocracy Worksと連携し、投票場所や登録情報などの信頼できる案内を表示する方針です。",
+        "同時に、選挙インフラの防御支援やAI生成コンテンツの透明性向上も柱に据えています。"
+      ],
+      "whyImportant": "2026年は主要な選挙年であり、生成AIの誤情報対策は社会インフラの問題です。AI企業が情報案内、サイバー防御、透明性をまとめて打ち出した点は政策面でも影響が大きいです。",
+      "sourceLabel": "OpenAI",
+      "sourceUrl": "https://openai.com/index/election-safeguards-2026/"
+    }
+  ],
+  "trendSummary": "直近のAI業界は、より賢いモデルを出す競争だけでなく、巨額の資金調達、長時間動くエージェント化、生成物の真正性対策、社会的な安全策までを同時に競う段階に入っています。性能そのものより、運用に耐える信頼性と配信面をどう押さえるかが、各社の差になりつつあります。"
+}

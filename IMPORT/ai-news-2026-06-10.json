@@ -1,0 +1,42 @@
+{
+  "title": "AI最新ニュース朝刊",
+  "date": "2026-06-10",
+  "items": [
+    {
+      "heading": "AnthropicがClaude Fable 5を一般公開",
+      "points": "Anthropicは2026年6月9日、Mythos級の基盤能力を持つ新モデル「Fable 5」を一般向けに公開した。高リスクなサイバー・生物・化学関連の問い合わせは下位モデルへ自動迂回させる設計で、一般公開と高性能の両立を狙っている。並行して、より制限の少ないClaude Mythos 5は一部の信頼済みパートナー向けに維持される。",
+      "whyImportant": "最先端モデルの公開基準が、性能競争だけでなく『どの能力を一般公開し、どこを制限付きにするか』という配布設計の競争へ移っているため。",
+      "sourceLabel": "Axios",
+      "sourceUrl": "https://www.axios.com/2026/06/09/anthropic-mythos-class-safeguards"
+    },
+    {
+      "heading": "AppleがWWDC 2026でSiri AIを正式披露",
+      "points": "Appleは2026年6月8日のWWDC 2026で、長く遅延していた新しい「Siri AI」を発表した。Appleのソフトウェアに統合されるだけでなく単体アプリとしても提供され、個人コンテキストを使った検索や共有、音声表現の強化、精度向上したディクテーションが打ち出された。初期提供は英語中心で、EUと中国では当初提供しない方針だ。",
+      "whyImportant": "Appleが巨大な端末基盤へ本格的な生成AI体験を載せ始めたことで、AI競争がクラウド中心からOS・端末体験の主戦場へさらに移るため。",
+      "sourceLabel": "Business Insider",
+      "sourceUrl": "https://www.businessinsider.com/apple-new-siri-ai-chatbot-app-wwdc-2026-6"
+    },
+    {
+      "heading": "Broadcom・Apollo・Blackstoneが350億ドルのAIインフラ枠組みを始動",
+      "points": "BroadcomはApolloとBlackstoneと組み、初期資金350億ドルの「AI XPV Platform」を立ち上げた。2028年までに20GW超の計算能力整備を目指し、AnthropicやOpenAI向けを含む大規模AI計算基盤にチップとネットワークを供給する構想だ。初期案件ではAnthropicの1GW超の拡張計画支援も想定されている。",
+      "whyImportant": "AI競争の勝敗がモデル性能だけでなく、電力・資金・設備調達を束ねる金融スキームで決まり始めていることを示す大型案件だから。",
+      "sourceLabel": "Wall Street Journal",
+      "sourceUrl": "https://www.wsj.com/tech/ai/broadcom-apollo-blackstone-launch-35-billion-ai-infrastructure-platform-8fc8f65e"
+    },
+    {
+      "heading": "米政界で州AI規制を止める連邦主導の動きが再浮上",
+      "points": "Axiosによると、ホワイトハウスと連邦議会は2026年6月8日、州ごとのAI規制を連邦レベルで抑え込む取り組みを再始動させた。背景には各州で厳格化が進むAI法制への企業側の警戒があり、同時に事前評価やサイバー基準の詰めも進んでいる。包括法案の成立はなお不透明だが、規制の主導権争いは再び激しくなっている。",
+      "whyImportant": "AI事業者にとって最大の不確実性の一つは規制の分裂であり、州法を抑える連邦主導の動きは開発速度とコンプライアンス負担の両方を左右するため。",
+      "sourceLabel": "Axios",
+      "sourceUrl": "https://www.axios.com/2026/06/08/white-house-hill-relaunch-effort-block-state-ai-laws"
+    },
+    {
+      "heading": "GoogleがSpaceXから月額9.2億ドルでAI計算能力を確保",
+      "points": "Business Insiderが2026年6月5日付で報じたSpaceXのSEC提出資料によると、Googleは2026年10月から2029年6月まで月額9.2億ドルで計算能力を確保する契約を結んだ。対象には約11万基のNVIDIA GPUを含む計算資源が含まれ、GoogleはGemini Enterpriseの需要急増に対応するためのブリッジ容量だと説明している。",
+      "whyImportant": "大手AI企業ですら需要を自前設備だけで吸収できず、外部から巨額でGPUを確保する段階に入っていることが明確になったため。",
+      "sourceLabel": "Business Insider",
+      "sourceUrl": "https://www.businessinsider.com/google-spacex-deal-920-million-month-compute-capacity-gemini-enterprise-2026-6"
+    }
+  ],
+  "trendSummary": "足元のAI業界は、モデル公開そのものよりも『どう安全に出すか』『どれだけの計算資源を押さえられるか』『規制を誰が主導するか』へ重心が移っている。製品面ではAppleのような端末統合、供給面ではBroadcomやSpaceXのような計算基盤、制度面では米連邦と州の主導権争いが同時進行しており、AI競争が技術単体から産業構造全体の競争へ広がっている。"
+}

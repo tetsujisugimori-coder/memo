@@ -1,0 +1,42 @@
+{
+  "title": "AI最新ニュース朝刊",
+  "date": "2026-06-06",
+  "items": [
+    {
+      "heading": "米ホワイトハウスがAI国家安全保障メモを発表",
+      "points": "2026年6月5日、ホワイトハウスは国家安全保障分野でのAI導入を加速する大統領覚書と関連ファクトシートを公表した。複数ベンダーの先端モデルを迅速に取り込み、高セキュリティ計算基盤の整備や民間専門家による戦略リザーブ創設まで含む枠組みになっている。さらに、戦闘員が依存するAIを外部が無断で停止・改変できない統制原則も明示した。",
+      "whyImportant": "AI政策が実験段階から防衛・情報実務の配備段階に移っていることを示す。安全保障向け調達、評価、運用統制の標準が民間AI企業にも直接影響しやすくなる。",
+      "sourceLabel": "The White House",
+      "sourceUrl": "https://www.whitehouse.gov/fact-sheets/2026/06/fact-sheet-president-donald-j-trump-signs-historic-directive-on-ai-in-the-national-security-enterprise/"
+    },
+    {
+      "heading": "米政権がAIイノベーションとサイバー防御の大統領令を発動",
+      "points": "2026年6月2日、ホワイトハウスはAIのイノベーション促進と安全保障を両立させる大統領令を公表した。30日以内に連邦・重要インフラの防御強化、AI脆弱性検出支援、官民連携のAIサイバーセキュリティ・クリアリングハウス創設を進めるほか、機密扱いのフロンティアモデル評価プロセス整備も求めている。",
+      "whyImportant": "AIモデルそのものだけでなく、AIを使う国家システム全体の防御を政策対象に引き上げた点が大きい。今後は高性能モデルの公開前評価や重要インフラ向け支援が市場ルール化する可能性がある。",
+      "sourceLabel": "The White House",
+      "sourceUrl": "https://www.whitehouse.gov/presidential-actions/2026/06/promoting-advanced-artificial-intelligence-innovation-and-security/"
+    },
+    {
+      "heading": "OpenAIがフロンティアAIの連邦ガバナンス青写真を提示",
+      "points": "OpenAIは2026年6月3日、フロンティアAIを統治する米連邦枠組みの青写真を公開した。州法の収れんを土台にしつつ、CAISIを中核機関として強化し、国家安全保障と公共安全にまたがるレジリエンス計画を整える3本柱を提案している。",
+      "whyImportant": "主要モデル企業が安全性や規制の受け身対応ではなく、制度設計そのものに踏み込んでいる。今後の米国AI規制は、州ごとの断片対応から連邦レベルの常設制度に寄る可能性が高い。",
+      "sourceLabel": "OpenAI",
+      "sourceUrl": "https://openai.com/index/frontier-safety-blueprint/"
+    },
+    {
+      "heading": "GoogleがGemma 4のQAT版を公開、1GB級ローカル実行を前進",
+      "points": "Google DeepMindは2026年6月5日、Gemma 4向けのQuantization-Aware Training版チェックポイントを公開した。Q4_0形式とモバイル向け新形式を用い、Gemma 4 E2Bのメモリ使用量を1GBまで圧縮しつつ品質低下を抑えるとしている。llama.cpp、Ollama、vLLMなど主要なローカル実行系も初日から対応する。",
+      "whyImportant": "高性能モデルの価値がクラウド大型GPUだけでなく、手元のPCやモバイルに降りてきている。エッジAIの実用性が上がることで、配布コスト、プライバシー、オフライン運用の競争軸が一段強くなる。",
+      "sourceLabel": "Google Blog",
+      "sourceUrl": "https://blog.google/innovation-and-ai/technology/developers-tools/quantization-aware-training-gemma-4/"
+    },
+    {
+      "heading": "Microsoftが『単体モデルより運用システム』への軸足を鮮明化",
+      "points": "Microsoftは2026年6月2日、企業向けAIの勝負はモデル単体ではなく、データ・モデル・エージェント・統制を束ねる運用システムだと打ち出した。Azure、GitHub、Fabric、Foundry、Microsoft 365、Securityなどを一体のエージェント基盤として位置づけ、長時間業務を任せられる実運用を前面に出している。",
+      "whyImportant": "AI導入の競争が『どのモデルを使うか』から『どう統制付きで回し続けるか』へ移っている。企業ITではモデル性能差より、ガバナンスと接続性を備えた実装基盤が選定の中心になりやすい。",
+      "sourceLabel": "Microsoft Blog",
+      "sourceUrl": "https://blogs.microsoft.com/blog/2026/06/02/ai-alone-wont-change-your-business-the-system-running-it-will/"
+    }
+  ],
+  "trendSummary": "直近のAIニュースは、性能競争そのものよりも『国家インフラ化』と『実運用化』が前面に出ている。政府はサイバー防御と国家安全保障の制度整備を急ぎ、民間大手はエージェント運用基盤やローカル実行の効率化を進めており、AIは研究成果の発表フェーズから配備・統制・普及フェーズへ本格的に移行している。"
+}

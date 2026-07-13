@@ -1,0 +1,42 @@
+{
+  "title": "AI最新ニュース朝刊",
+  "date": "2026-06-16",
+  "items": [
+    {
+      "heading": "OpenAIがグローバルなパートナーネットワークを始動",
+      "points": "OpenAIは6月14日、コンサルティングやSI企業向けの「OpenAI Partner Network」を発表した。企業導入を加速するために1億5000万ドルを投じ、2026年末までに30万人の認定コンサルタント育成を目指す。単なるモデル提供から、導入・運用・変革支援まで含むエコシステム拡大に軸足を移した。",
+      "whyImportant": "AIの勝負がモデル性能だけでなく、企業導入の実装力と販売網に移っていることを示す。OpenAIが大手パートナー網を押さえると、企業向けAI案件の標準ポジションをさらに固める可能性が高い。",
+      "sourceLabel": "OpenAI",
+      "sourceUrl": "https://openai.com/index/introducing-openai-partner-network/"
+    },
+    {
+      "heading": "Anthropicが米国民5.2万人規模のAI意識調査を公表",
+      "points": "Anthropicは6月12日、約5万1993人の米国在住者を対象にした「Anthropic Public Record」の初回結果を公開した。AIによる雇用喪失を恐れる人は64%に達し、70%超が政府の規制関与を支持した一方、AI企業を信頼するとの回答は15%にとどまった。期待は医療や障害支援に集まる一方、信頼と責任を巡るギャップが鮮明になった。",
+      "whyImportant": "AI普及の次の争点が技術力ではなく社会的受容と制度設計にあることを示すデータだ。規制、責任、雇用影響への対応が企業価値や製品展開に直結しやすくなる。",
+      "sourceLabel": "Anthropic",
+      "sourceUrl": "https://www.anthropic.com/news/anthropic-public-record"
+    },
+    {
+      "heading": "AnthropicとTCSが規制産業向けClaude展開で提携",
+      "points": "Anthropicは6月12日、Tata Consultancy Servicesと提携し、Claudeを規制産業向けに拡大すると発表した。TCSは56カ国の自社従業員5万人にClaudeを展開し、金融、医療、公共など向けに業界特化ソリューションを構築する。保険金請求や融資助言など、監査性と精度が重い業務での実装が前面に出ている。",
+      "whyImportant": "生成AIがPoC段階から、規制産業の本番業務へ入っていく流れを示す。グローバルSIと組んだ展開は、AIベンダーの収益化が大企業の基幹業務に広がるシグナルになる。",
+      "sourceLabel": "Anthropic",
+      "sourceUrl": "https://www.anthropic.com/news/tcs-anthropic-partnership"
+    },
+    {
+      "heading": "MetaがFacebookにAI検索モードと生成支援機能を投入",
+      "points": "Metaは6月15日、FacebookにMeta AIベースの「AI Mode」を導入し、公開投稿やグループ、Reels上の文脈を使って回答する検索体験を打ち出した。あわせて、写真や動画の自動コラージュ、映像トランジション、服装変更などの生成編集機能も追加した。カメラロール由来の提案はオプトインで、プライバシー制御も明示している。",
+      "whyImportant": "SNSがAI検索と生成UIの主要配信面になり始めている。Metaは検索・投稿・編集を一体化し、AI利用時間そのものを自社アプリ内に囲い込もうとしている。",
+      "sourceLabel": "Meta Newsroom",
+      "sourceUrl": "https://about.fb.com/news/2026/06/new-ai-tools-to-help-you-make-things-happen-on-facebook/"
+    },
+    {
+      "heading": "SalesforceがAIエージェント企業Finを36億ドルで買収へ",
+      "points": "6月15日、SalesforceはAIエージェント企業Finの買収を発表した。取引規模は36億ドルで、Finの独自モデルとマルチチャネル顧客対応機能をAgentforce群に取り込む狙いがある。従来SaaSがAIに侵食される懸念が強まる中で、防衛と拡張を兼ねた大型再編として受け止められている。",
+      "whyImportant": "AIネイティブ企業を既存ソフト大手が取り込む再編が本格化している。エージェント機能がCRMやサポート基盤の中心に入るなら、企業ソフト市場の競争軸そのものが変わる。",
+      "sourceLabel": "Barron's",
+      "sourceUrl": "https://www.barrons.com/articles/salesforce-stock-buying-ai-company-fin-a170b125"
+    }
+  ],
+  "trendSummary": "直近のAIニュースは、モデル新発表そのものよりも、企業導入網の拡大、規制産業への実装、社会的受容の把握、そしてアプリ内体験やM&Aによる囲い込みに重心が移っている。AI市場は『性能競争』から『流通・実装・制度・配信面を押さえる競争』へ明確に進んでいる。"
+}

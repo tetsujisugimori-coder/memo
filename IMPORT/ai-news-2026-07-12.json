@@ -1,0 +1,79 @@
+{
+  "title": "AI最新ニュース朝刊",
+  "date": "2026-07-12",
+  "generatedAt": "2026-07-12T05:32:31+09:00",
+  "searchWindowDays": 7,
+  "items": [
+    {
+      "heading": "xAIがGrok 4.5を公開、APIとGrok Buildで提供開始",
+      "category": "モデル",
+      "publishedDate": "2026-07-08",
+      "newsType": "新規",
+      "importance": "S",
+      "points": "xAIは、コーディング、エージェント、知識作業向けの新モデルGrok 4.5を公開した。Grok Build、Cursor、xAI APIコンソールで利用でき、APIのモデル名はgrok-4.5。価格は100万入力トークン2ドル、100万出力トークン6ドルで、EUでは7月中旬の提供見込み。",
+      "whyImportant": "主要AIモデルの新バージョンで、実装、ターミナル作業、Office文書生成、エージェント作業を一体で狙っている。価格と提供先が明示され、既存の開発エージェントやAPIコストと比較しやすい。",
+      "impact": "開発者はxAI APIやCursorでGrok 4.5を試せる。Grok Build利用者は既定モデル変更により、アプリ生成やOffice系ワークフローの品質とコストを再評価する必要がある。",
+      "sourceLabel": "xAI News",
+      "sourceUrl": "https://x.ai/news/grok-4-5",
+      "tags": ["xAI", "Grok 4.5", "API", "コーディングエージェント"],
+      "reasonForSelection": "新しい主要モデルの公開で、API、価格、提供先、EU提供条件まで確認できるため。"
+    },
+    {
+      "heading": "MetaがMuse Spark 1.1とMeta Model APIプレビューを公開",
+      "category": "モデル",
+      "publishedDate": "2026-07-09",
+      "newsType": "新規",
+      "importance": "S",
+      "points": "Metaは、エージェント作業向けのマルチモーダル推論モデルMuse Spark 1.1を発表した。1Mトークンのコンテキスト管理、MCPサーバーやカスタムスキルへの汎化、サブエージェント委譲、Computer Use、コーディング、画像・動画・PDF理解を強化。Meta Model APIのパブリックプレビューで開発者提供も始まった。",
+      "whyImportant": "Metaがアプリ内モデルだけでなく、開発者が触れるAPIとしてエージェント基盤モデルを公開した点が大きい。OpenAI互換パッケージや並列ツール呼び出しをうたっており、既存のエージェント実装に組み込みやすい可能性がある。",
+      "impact": "開発者はMeta Model APIでMuse Spark 1.1を評価できる。長時間エージェント、Computer Use、マルチモーダル入力を使うワークフローで、比較対象となるモデルが増える。",
+      "sourceLabel": "AI at Meta Blog",
+      "sourceUrl": "https://ai.meta.com/blog/introducing-muse-spark-meta-model-api/",
+      "tags": ["Meta", "Muse Spark 1.1", "Meta Model API", "Computer Use", "MCP"],
+      "reasonForSelection": "新モデルと新API公開が同時に発表され、開発者が実際に試せる更新であるため。"
+    },
+    {
+      "heading": "OpenAIのGPT-5.6がMicrosoft 365 Copilotの優先モデルに",
+      "category": "製品・サービス",
+      "publishedDate": "2026-07-09",
+      "newsType": "続報",
+      "importance": "A",
+      "points": "OpenAIは、GPT-5.6がMicrosoft 365 Copilotの新しい優先モデルになると発表した。対象はWord、Excel、PowerPoint、Copilot Chat、Cowork。MicrosoftはOpenAI API経由でもGPT-5.6をMicrosoft 365顧客へ提供する。",
+      "whyImportant": "GPT-5.6本体公開に続き、実際の業務アプリへ既定級に組み込まれる点が大きい。文書、表計算、スライド生成の品質やコスト効率が既存ワークフローに直接反映される可能性がある。",
+      "impact": "Microsoft 365 Copilot利用組織は、同じプロンプトでも出力品質やトークン効率が変わる可能性がある。管理者や導入担当者は生成品質と利用量を再確認するとよい。",
+      "sourceLabel": "OpenAI",
+      "sourceUrl": "https://openai.com/index/gpt-5-6-preferred-model-microsoft-365-copilot/",
+      "tags": ["OpenAI", "GPT-5.6", "Microsoft 365 Copilot", "Copilot"],
+      "reasonForSelection": "既掲載のGPT-5.6本体公開からの実質的な続報で、主要業務サービスへの適用範囲が明確になったため。"
+    },
+    {
+      "heading": "GitHub CodeQL 2.26.0がAIシステムプロンプト注入検出を追加",
+      "category": "セキュリティ",
+      "publishedDate": "2026-07-10",
+      "newsType": "新規",
+      "importance": "A",
+      "points": "GitHubはCodeQL 2.26.0を公開し、JavaScript/TypeScript向けにjs/system-prompt-injectionクエリを追加した。信頼できないユーザー入力がAIモデルのシステムプロンプトへ流れる経路を検出する。OpenAI、Anthropic、Google GenAI SDKの追加APIに対するプロンプト注入sinkも拡充された。",
+      "whyImportant": "AIアプリの脆弱性を静的解析で検出する実務的な更新で、LLMアプリ開発のセキュリティレビューに直接効く。GitHub code scanning利用者には新バージョンが自動展開される。",
+      "impact": "JavaScript/TypeScriptでAI SDKを使う開発チームは、CodeQLの新アラートをCIやコードスキャンで確認できる。システムプロンプトへの入力混入やSDK別の危険経路を見直す契機になる。",
+      "sourceLabel": "GitHub Changelog",
+      "sourceUrl": "https://github.blog/changelog/2026-07-10-codeql-2-26-0-adds-kotlin-2-4-0-support-and-ai-prompt-injection-detection/",
+      "tags": ["GitHub", "CodeQL", "prompt injection", "AIセキュリティ"],
+      "reasonForSelection": "AIアプリ固有の重大リスクであるプロンプト注入を開発者ツールが直接検出する更新であるため。"
+    },
+    {
+      "heading": "GitHub Copilotデスクトップアプリが全Copilotプランで利用可能に",
+      "category": "AIエージェント",
+      "publishedDate": "2026-07-07",
+      "newsType": "新規",
+      "importance": "A",
+      "points": "GitHubは、GitHub Copilot appをすべてのCopilotプランで利用可能にした。macOS、Windows、Linuxで提供され、Copilot FreeとGitHub Educationも対象。Copilotプランがなくても、BYOKで自分のモデルプロバイダーを使ったセッション実行が可能とされている。",
+      "whyImportant": "エージェント型開発環境が有料上位プランだけでなく広い利用者層へ開かれる。BYOK対応により、企業や個人が自前のモデル契約やポリシーに合わせて開発エージェントを試せる。",
+      "impact": "開発者はデスクトップからエージェント駆動の開発セッションを開始しやすくなる。Business、Enterpriseでは管理者がCopilot CLIポリシーを有効化する必要がある。",
+      "sourceLabel": "GitHub Changelog",
+      "sourceUrl": "https://github.blog/changelog/2026-07-07-github-copilot-app-available-to-all/",
+      "tags": ["GitHub", "GitHub Copilot app", "AIエージェント", "BYOK"],
+      "reasonForSelection": "エージェント型開発ツールの提供対象拡大で、実際に使える利用者が大きく増えるため。"
+    }
+  ],
+  "trendSummary": "直近7日は、GPT-5.6、Grok 4.5、Muse Spark 1.1のように、エージェント、コーディング、知識作業、Computer Useを前提にしたモデル競争がさらに実装段階へ進んだ。加えて、Microsoft 365 CopilotやGitHub Copilot appのような既存ワークフローへの組み込み、CodeQLによるAI固有リスク検出など、モデル単体の性能発表から運用・統制・安全な開発へ焦点が広がっている。"
+}

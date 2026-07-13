@@ -1,0 +1,42 @@
+{
+  "title": "AI最新ニュース朝刊",
+  "date": "2026-06-24",
+  "items": [
+    {
+      "heading": "Google DeepMindの人材流出が加速、OpenAIとAnthropicが引き抜き",
+      "points": "6月23日時点で、Google DeepMindからNoam ShazeerがOpenAIへ移り、John JumperのAnthropic移籍と合わせてGoogleの人材流出が改めて注目された。市場ではGoogleのAI主導力に対する懸念が強まり、AI競争が計算資源だけでなくトップ研究者の争奪戦であることが鮮明になった。",
+      "whyImportant": "最先端AIの競争優位がモデル性能だけでなく、研究人材の確保に直結していることを示す重大な続報だから。",
+      "sourceLabel": "Axios (2026-06-23)",
+      "sourceUrl": "https://www.axios.com/2026/06/23/ai-lab-agi-google-deepmind-departures"
+    },
+    {
+      "heading": "Microsoftが低価格AI路線を鮮明化、AI寡占への対抗姿勢",
+      "points": "6月22日公開のWall Street Journalインタビューで、Satya NadellaはOpenAI、Anthropic、Googleのような少数企業への集中を批判し、より安価で選択肢のあるAI市場を訴えた。Microsoftは法人向けに低コストモデルを前面に出し、最先端モデル一辺倒ではない競争軸を作ろうとしている。",
+      "whyImportant": "AI市場が性能競争だけでなく、価格・配布・顧客支配力の競争に移っていることを示すため。",
+      "sourceLabel": "The Wall Street Journal (2026-06-22)",
+      "sourceUrl": "https://www.wsj.com/tech/ai/microsofts-satya-nadella-we-cant-let-ai-giants-eat-the-economy-b9d33b9f"
+    },
+    {
+      "heading": "中国のGLM-5.2が存在感、米中AI競争が安全保障論争と直結",
+      "points": "6月23日のAxios報道では、中国のオープンモデルGLM-5.2がエージェント性能で西側有力モデルに迫っているとして注目された。米国側ではサイバー防衛や安全規制の議論と結びつき、中国勢の追い上げをどう扱うかが政策論点になっている。",
+      "whyImportant": "AI競争が企業間の製品競争を超え、サイバー安全保障と地政学の問題になっているから。",
+      "sourceLabel": "Axios (2026-06-23)",
+      "sourceUrl": "https://www.axios.com/2026/06/23/china-us-ai-race-glm-anthropic"
+    },
+    {
+      "heading": "Oracle、AI投資の裏で2.1万人削減",
+      "points": "6月23日のSan Francisco Chronicleは、Oracleの年間報告書をもとに従業員数が約16.2万人から14.1万人へ減少したと報じた。Oracle自身がAI導入による人員削減を明記しており、同時にデータセンター拡張で巨額投資を続けている。",
+      "whyImportant": "AIが単なる新規投資テーマではなく、既存の雇用構造と企業コスト配分を直接変え始めていることを示すため。",
+      "sourceLabel": "San Francisco Chronicle (2026-06-23)",
+      "sourceUrl": "https://www.sfchronicle.com/tech/article/oracle-ai-workforce-cuts-22317134.php"
+    },
+    {
+      "heading": "TencentがWeixin向けAIを本格化、検索・買い物まで統合へ",
+      "points": "6月22日のWSJ Market Talkによると、TencentはWeixin上でAIをメッセージング、検索、買い物にまたがって試験し、JD.comやMeituanとも連携している。Q4投入観測もあり、AIが単体チャットから巨大生活アプリ内の行動支援へ広がる流れが見えてきた。",
+      "whyImportant": "AIの主戦場が単独アプリではなく、巨大エコシステムへの埋め込みと日常導線の支配に移る可能性が高いから。",
+      "sourceLabel": "The Wall Street Journal Market Talk (2026-06-22)",
+      "sourceUrl": "https://www.wsj.com/business/tech-media-telecom-roundup-market-talk-96b71b5f"
+    }
+  ],
+  "trendSummary": "直近のAIニュースでは、モデル性能そのものよりも、人材、価格戦略、地政学、雇用再編、巨大プラットフォームへの組み込みが焦点になっている。要するにAI競争は『どのモデルが賢いか』から、『誰が人材を握るか、どこで配るか、どの国家・産業構造を動かすか』へ一段進んでいる。"
+}

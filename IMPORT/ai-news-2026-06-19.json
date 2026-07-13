@@ -1,0 +1,62 @@
+{
+  "title": "AI最新ニュース朝刊",
+  "date": "2026-06-19",
+  "items": [
+    {
+      "heading": "OpenAI、ChatGPTの医療応答性能を大幅改善",
+      "points": [
+        "OpenAIは2026年6月18日、GPT-5.5 InstantによりChatGPTの医療関連応答を改善したと発表した。",
+        "週2億3000万人超が健康相談に使う中で、緊急受診の見極め、追加質問、不確実性の説明が強化され、HealthBench系評価では最前線のThinkingモデル並みの水準に達したとしている。",
+        "本番トラフィックの監視では、医療応答に少なくとも1件の事実性問題が含まれる率が直近2カ月で71%低下した。"
+      ],
+      "whyImportant": "生成AIが一般利用の健康相談インターフェースとして定着しつつあり、品質改善がそのまま大規模な実利用へ波及する段階に入ったため。",
+      "sourceLabel": "OpenAI",
+      "sourceUrl": "https://openai.com/index/improving-health-intelligence-in-chatgpt/"
+    },
+    {
+      "heading": "OpenAIとBoston Children's Hospital、希少遺伝病の再診断で追加18件を確認",
+      "points": [
+        "OpenAIは2026年6月18日、Boston Children's HospitalやHarvard Universityと連携し、未解決だった小児希少遺伝病376症例をo3 Deep Researchで再解析したと公表した。",
+        "専門医レビューと追加検査を経て18症例で新たな診断が確定し、従来解析後の追加診断率は4.8%だった。",
+        "モデルは患者を直接診断したのではなく、臨床家が検証できる証拠付き仮説を提示する役割として使われた。"
+      ],
+      "whyImportant": "AIが医療現場の文書要約を超え、見逃された診断候補の発見支援まで踏み込んだ。専門家主導の再解析を拡張できれば、希少疾患領域の診断遅延を縮める可能性がある。",
+      "sourceLabel": "OpenAI",
+      "sourceUrl": "https://openai.com/index/diagnose-rare-childhood-diseases/"
+    },
+    {
+      "heading": "OpenAI、創薬研究向け評価基盤LifeSciBenchを公開",
+      "points": [
+        "OpenAIは2026年6月17日、実験設計やエビデンス評価を含む実務的なライフサイエンス研究を測る新ベンチマークLifeSciBenchを公開した。",
+        "173人の専門家が750タスクを作成し、453人のレビューを経た構成で、PDFや図表、配列、化学構造など1,062件の付随資料を含む。",
+        "単純な知識問題ではなく、不完全な証拠の扱い、実験最適化、翻訳可能性判断まで測る設計が特徴だ。"
+      ],
+      "whyImportant": "AIの科学性能評価がベンチマーク遊びから実研究の再現へ移りつつある。創薬・生命科学での導入判断に直結する基盤になり得る。",
+      "sourceLabel": "OpenAI",
+      "sourceUrl": "https://openai.com/index/introducing-life-sci-bench/"
+    },
+    {
+      "heading": "Anthropicと米ホワイトハウス、AIモデル脆弱性の共通評価ルール策定へ",
+      "points": [
+        "Business Insiderが2026年6月18日に報じたところによると、ホワイトハウスとAnthropicは新モデルのセキュリティ欠陥の深刻度を判定する共通枠組みの策定を進めている。",
+        "背景には、Fable 5とMythos 5の脱獄脆弱性を巡る見解相違と、それを受けた米政府の輸出規制措置がある。",
+        "協議では、どこまで安全策が破られたか、どの能力が露出したか、実害がどれほどかを共通指標で測る案が議論されている。"
+      ],
+      "whyImportant": "フロンティアAIの安全規制が抽象論ではなく、脆弱性の評価基準という運用レベルに降りてきた。今後のモデル公開ルールや国際標準に直結する可能性が高い。",
+      "sourceLabel": "Business Insider",
+      "sourceUrl": "https://www.businessinsider.com/white-house-talks-anthropic-ai-security-rules-2026-6"
+    },
+    {
+      "heading": "Googleの共同創業級研究者Noam Shazeer氏がOpenAIへ移籍",
+      "points": [
+        "Axiosは2026年6月18日、Geminiの共同リードでありCharacterAI共同創業者でもあるNoam Shazeer氏がGoogleを離れOpenAIへ移ると報じた。",
+        "Googleは2年前にCharacterAIの一部チーム獲得へ27億ドルを投じてShazeer氏を呼び戻しており、その後の再流出となる。",
+        "報道では、事前学習分野の最重要研究者の一人を巡る獲得競争として、OpenAIにとって大きな上積みだと位置づけられている。"
+      ],
+      "whyImportant": "AI競争の主戦場がモデル性能だけでなく、トップ研究者の確保へさらに先鋭化していることを示す。人材移動は次世代モデルの競争力に直接響く。",
+      "sourceLabel": "Axios",
+      "sourceUrl": "https://www.axios.com/2026/06/18/noam-shazeer-google-openai-characterai"
+    }
+  ],
+  "trendSummary": "直近のAIニュースは、医療と生命科学への実装が一段進む一方で、最先端モデルの安全基準と人材争奪が同時に激化している。つまり2026年6月時点の焦点は、AIをどこまで現場投入できるかと、その能力を誰が安全に支配できるかの二本柱に移っている。"
+}

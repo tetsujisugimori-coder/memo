@@ -1,0 +1,109 @@
+{
+  "title": "AI最新ニュース朝刊",
+  "date": "2026-07-11",
+  "generatedAt": "2026-07-11T05:33:15+09:00",
+  "searchWindowDays": 7,
+  "items": [
+    {
+      "heading": "OpenAIがChatGPT Workを発表、Codex内蔵の長時間実行エージェントへ",
+      "category": "AIエージェント",
+      "publishedDate": "2026-07-09",
+      "newsType": "新規",
+      "importance": "S",
+      "points": "OpenAIは、ChatGPT内でアプリやファイルを横断して作業し、必要に応じて数時間プロジェクトを継続できるChatGPT Workを発表した。Codex技術を内蔵し、シート、スライド、ドキュメント、Webアプリ作成などの成果物生成までを対象にする。GPT-5.6を基盤に、進捗確認、方向転換、重要操作の承認も組み込む。",
+      "whyImportant": "ChatGPTが回答ツールから業務実行エージェントへ踏み込む更新で、Codexの適用範囲が開発以外の業務にも広がる。",
+      "impact": "導入企業は、調査、資料化、定型ワークフローをChatGPTへ委任する設計を検討しやすくなる一方、承認フロー、接続アプリ権限、成果物レビューの運用設計が重要になる。",
+      "sourceLabel": "OpenAI",
+      "sourceUrl": "https://openai.com/index/chatgpt-for-your-most-ambitious-work/",
+      "tags": [
+        "OpenAI",
+        "ChatGPT Work",
+        "Codex",
+        "GPT-5.6",
+        "AIエージェント"
+      ],
+      "reasonForSelection": "主要AIサービスのエージェント化とCodexの横展開に関わる実用的な新製品発表のため。"
+    },
+    {
+      "heading": "OpenAIがGPT-Liveを発表、ChatGPT Voiceを全二重の音声モデルへ刷新",
+      "category": "製品・サービス",
+      "publishedDate": "2026-07-08",
+      "newsType": "新規",
+      "importance": "A",
+      "points": "OpenAIは、自然な人間とAIの会話を狙う新世代音声モデルGPT-Liveを発表した。GPT-Live-1とGPT-Live-1 miniはグローバルにChatGPT Voiceへ展開され、全二重アーキテクチャで聞きながら話し、必要な場合は背後の frontier model へ推論や検索を委譲する。API提供も予定されている。",
+      "whyImportant": "音声AIが単発応答から継続的な会話・委譲・長時間作業へ進む更新で、マルチモーダルエージェントの入口になる。",
+      "impact": "利用者はより自然な音声操作を使える。開発者はAPI提供後、通話型サポート、リアルタイム翻訳、音声エージェントの設計を見直す必要がある。",
+      "sourceLabel": "OpenAI",
+      "sourceUrl": "https://openai.com/index/introducing-gpt-live/",
+      "tags": [
+        "OpenAI",
+        "GPT-Live",
+        "ChatGPT Voice",
+        "音声AI",
+        "マルチモーダル"
+      ],
+      "reasonForSelection": "ChatGPTの主要インターフェースである音声体験と将来のAPI利用に直接影響するため。"
+    },
+    {
+      "heading": "OpenAIがSWE-Bench Proを監査、約30%のタスク破損を指摘",
+      "category": "研究",
+      "publishedDate": "2026-07-08",
+      "newsType": "新規",
+      "importance": "A",
+      "points": "OpenAIは、コーディング評価ベンチマークSWE-Bench Proを監査し、公開分割のうち約30%のタスクに問題があると推定した。厳しすぎるテスト、仕様不足、低カバレッジ、誤解を招くプロンプトなどが主な原因として挙げられている。調査には自動フィルタ、Codexベースの調査エージェント、人間のソフトウェアエンジニアによるレビューを組み合わせた。",
+      "whyImportant": "コーディングエージェントの性能比較で使われるベンチマークの信頼性に関わり、モデル選定や安全性判断に影響する。",
+      "impact": "開発者や企業は、SWE-Bench系の単一スコアだけでモデルを選ばず、タスク品質や自社ワークロードでの検証を重視する必要がある。",
+      "sourceLabel": "OpenAI",
+      "sourceUrl": "https://openai.com/index/separating-signal-from-noise-coding-evaluations/",
+      "tags": [
+        "OpenAI",
+        "SWE-Bench Pro",
+        "Codex",
+        "評価",
+        "コーディングエージェント"
+      ],
+      "reasonForSelection": "AIコーディングモデル評価の前提を揺るがす実務上重要な研究発表のため。"
+    },
+    {
+      "heading": "AnthropicがClaude ConsoleでAPIキー期限設定に対応",
+      "category": "API・SDK",
+      "publishedDate": "2026-07-08",
+      "newsType": "新規",
+      "importance": "B",
+      "points": "AnthropicはClaude ConsoleでAPIキーとAdmin APIキーの作成時に有効期限を設定できるようにした。プリセット、カスタム期間、無期限を選べ、7日以上のキーでは失効前に作成者へメール通知される。Admin APIでは各キーのexpires_atフィールドも確認できる。",
+      "whyImportant": "AI APIキーの長期放置や漏えいリスクを減らす基本機能で、企業運用のセキュリティ管理に直結する。",
+      "impact": "Claude API利用者はキーのローテーションポリシーを運用に組み込みやすくなる。管理者は既存キーには影響しない点を踏まえて棚卸しが必要になる。",
+      "sourceLabel": "Anthropic Claude Platform Docs",
+      "sourceUrl": "https://platform.claude.com/docs/en/release-notes/overview",
+      "tags": [
+        "Anthropic",
+        "Claude API",
+        "Claude Console",
+        "Admin API",
+        "セキュリティ"
+      ],
+      "reasonForSelection": "API利用者の認証情報管理に直接効く公式リリースノートの更新のため。"
+    },
+    {
+      "heading": "GitHubがCopilot系予算のユーザー別消費状況をREST APIで一括取得可能に",
+      "category": "API・SDK",
+      "publishedDate": "2026-07-10",
+      "newsType": "新規",
+      "importance": "B",
+      "points": "GitHubは、Enterprise Cloudのmulti-user budgetについて、各ユーザーの消費額と割当上限を単一REST APIエンドポイントで取得できるようにした。消費率でのフィルタ、特定ユーザーへの絞り込み、消費量順ソート、個別上限オーバーライドの確認に対応する。Universal budgetとcost center単位のper-user budgetの両方で使える。",
+      "whyImportant": "CopilotやAIクレジット利用が大規模化すると、利用量監視と上限管理が導入継続の前提になる。",
+      "impact": "企業管理者は、ユーザーごとのAI利用コストを自動監視し、上限に近い利用者の検出や通知を既存の管理ワークフローへ組み込みやすくなる。",
+      "sourceLabel": "GitHub Changelog",
+      "sourceUrl": "https://github.blog/changelog/2026-07-10-per-user-states-for-multi-user-budgets-in-the-rest-api/",
+      "tags": [
+        "GitHub",
+        "GitHub Copilot",
+        "REST API",
+        "AI credit",
+        "Enterprise Cloud"
+      ],
+      "reasonForSelection": "AI利用コストの管理APIであり、Copilotの企業導入・運用に実務的影響があるため。"
+    }
+  ],
+  "trendSummary": "今朝は、モデル単体の発表よりも、既存サービスへAIを深く組み込む更新が目立った。OpenAIはChatGPT WorkとGPT-Liveで、デスクトップ・業務アプリ・音声会話を横断するエージェント体験を強めている。一方で、AnthropicとGitHubはAPIキー期限やAI予算管理APIを整え、企業がAIを大規模運用するための統制機能を拡充している。"
+}

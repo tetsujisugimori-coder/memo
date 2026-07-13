@@ -1,0 +1,42 @@
+{
+  "title": "AI最新ニュース朝刊",
+  "date": "2026-07-06",
+  "items": [
+    {
+      "heading": "AnthropicがFable 5の追加安全策と脱獄評価枠組みを公表",
+      "points": "Anthropicは2026年7月2日、Fable 5の再展開後に追加したサイバー安全策の詳細と、脱獄の深刻度を評価する業界横断フレームワーク案を公表した。Amazon、Microsoft、GoogleなどのGlasswing参加企業と足並みをそろえ、モデルの危険な使われ方を共通尺度で評価したい考えを示している。6月の政府介入を受けた後続対応として、単なる再開ではなく運用ルール作りまで踏み込んだ点が大きい。",
+      "whyImportant": "最先端モデルの公開可否が能力競争だけでなく、安全評価の標準化で左右される流れを示しているため。",
+      "sourceLabel": "Anthropic Newsroom",
+      "sourceUrl": "https://www.anthropic.com/news"
+    },
+    {
+      "heading": "Metaの次期AI「Watermelon」がOpenAI級に接近と報道",
+      "points": "Business Insiderは2026年7月4日、Meta Superintelligence Labsを率いるAlexandr Wang氏が社内集会で、開発中モデル『Watermelon』はOpenAIのGPT-5.5級に達したと説明したと報じた。コーディングとエージェント性能の強化も示唆されており、Metaの巨額投資がようやくモデル競争力に反映され始めた可能性がある。現時点ではMetaの公式性能公開ではなく報道ベースである点には留意が必要だ。",
+      "whyImportant": "Metaが再び最前線モデル競争に戻るなら、計算資源・人材・価格競争がさらに激化するため。",
+      "sourceLabel": "Business Insider",
+      "sourceUrl": "https://www.businessinsider.com/meta-ai-model-catches-up-openai-gpt-5-says-2026-7"
+    },
+    {
+      "heading": "Microsoft展開研究、CLI型AIコーディング導入でPR数が約24%増",
+      "points": "7月1日公開のarXiv論文では、Microsoftでの2026年前半のClaude CodeとGitHub Copilot CLI導入を分析し、採用者は反実仮想比で約24%多くPRをマージしたと報告した。初回利用は同僚ネットワーク経由で広がり、継続利用は属性より日常のコーディング量と結びついていたという。AIエージェント導入効果を大規模組織データで示した点が注目される。",
+      "whyImportant": "開発現場でのAI投資判断が、宣伝や感覚論ではなく実運用データで比較される段階に入りつつあるため。",
+      "sourceLabel": "arXiv",
+      "sourceUrl": "https://arxiv.org/abs/2607.01418"
+    },
+    {
+      "heading": "新研究、AIコード生成は人のレビュー速度を上回り始めたと示唆",
+      "points": "7月2日公開の別のarXiv研究は、AI導入を強く進めた企業で1人あたりのマージ済みPRが最終的に2.09倍になった一方、レビュー負荷はおおむね倍増し、自動レビューが人手レビューを上回ったと報告した。マージ率やリバート率は大きく悪化していないが、ボトルネックが『書くこと』から『確認すること』へ移った構図が見える。AI普及の次の課題が品質管理体制にあると示す内容だ。",
+      "whyImportant": "AIで生成量だけ増やしても、レビュー体制を再設計しない組織はすぐに詰まることを示しているため。",
+      "sourceLabel": "arXiv",
+      "sourceUrl": "https://arxiv.org/abs/2607.01904"
+    },
+    {
+      "heading": "マルチエージェント基盤の新分析、人気指標だけでは選べない実態",
+      "points": "7月2日のarXiv研究は、主要オープンソースのAIエージェント基盤15件を長期分析し、GitHubスター数は採用の深さをほとんど保証しないと報告した。LangChainは横断的な貢献者を最も多く引きつける共有基盤として強く、AutoGPTのように話題先行で貢献密度が低い例も確認された。フレームワーク選定で『勢い』より維持率や貢献密度を見るべきだという実証的な材料になっている。",
+      "whyImportant": "企業や開発チームがエージェント基盤を選ぶ際の基準が、スター数中心から実利用中心へ変わる可能性があるため。",
+      "sourceLabel": "arXiv",
+      "sourceUrl": "https://arxiv.org/abs/2607.02453"
+    }
+  ],
+  "trendSummary": "足元のAIニュースは、新モデルの能力競争そのものよりも、その運用条件をどう標準化し、現場導入の生産性と品質管理をどう両立させるかに重心が移っている。最前線モデルは引き続き激しく競争している一方、企業現場ではレビュー負荷や基盤選定のような『導入後の現実』が主要論点になりつつある。"
+}

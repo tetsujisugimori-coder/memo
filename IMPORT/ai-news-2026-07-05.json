@@ -1,0 +1,62 @@
+{
+  "title": "AI最新ニュース朝刊",
+  "date": "2026-07-05",
+  "items": [
+    {
+      "heading": "英Stargate計画に実体面の疑義、OpenAIの対英AI投資に再検証圧力",
+      "points": [
+        "The Guardianは7月4日、英政府が大きく打ち出したStargate UK構想について、主要候補地への現地確認や実投資の裏付けが弱く、計画の実体に疑義が出ていると報じました。",
+        "報道では、巨額とされた投資額の一部は確定資金ではなく想定コストベースで、OpenAI側も4月時点で計画を一時停止していたとされています。",
+        "AIインフラ計画は、GPUや電力だけでなく、用地・系統接続・政策整合まで含めた実行力が問われる局面に入っています."
+      ],
+      "whyImportant": "AI競争の本丸がモデル性能からインフラ実装へ移る中で、象徴案件の実現性に疑問が付いた意味は大きいです。各国の『AI投資発表』を額面通りに見ず、電力・用地・資金確度まで精査すべきだと示しています。",
+      "sourceLabel": "The Guardian",
+      "sourceUrl": "https://www.theguardian.com/technology/2026/jul/04/openai-apparent-failure-visit-key-site-questions-stargate-uk-project"
+    },
+    {
+      "heading": "国連・ITUが「AI for Good Global Commission」を始動",
+      "points": [
+        "Axiosは7月1日、国連と国際電気通信連合が、国家首脳級と主要AI企業を交えた「AI for Good Global Commission」を立ち上げると報じました。",
+        "7月8日の初会合に向け、各国でばらつくAI統治の溝を埋める場として設計されており、規制・標準・公共利益の接点づくりが主眼です。",
+        "民間主導で先行してきたAI議論を、国際制度設計へ引き戻す動きとして注目されます."
+      ],
+      "whyImportant": "生成AIの影響が安全保障、行政、教育、労働へ広がるなか、国際協調の枠組みが不足していました。実効性は未知数でも、AIガバナンスを『各社の自主対応』だけで終わらせない流れが強まっています。",
+      "sourceLabel": "Axios",
+      "sourceUrl": "https://www.axios.com/2026/07/01/un-ai-commission-ceos-world-leaders"
+    },
+    {
+      "heading": "Anthropicが日常業務向けの「Claude Sonnet 5」を前面投入",
+      "points": [
+        "Axiosは6月30日、Anthropicが日常業務向けの主力モデルとしてClaude Sonnet 5を投入し、Claudeの標準体験をこのモデルへ切り替えたと報じました。",
+        "上位のFableやMythosほど強力ではない一方、ブラウズ、計画、コーディングなどエージェント的な実務性能を広く使える価格帯で提供するのが狙いです。",
+        "最先端モデルを一部だけに閉じず、まず実務利用の裾野を広げる戦略が鮮明になっています."
+      ],
+      "whyImportant": "AI市場は『最強モデル競争』だけでは伸びません。企業導入が進むのは、コストと安全性を抑えながら実務自動化に耐える中位モデルであり、その主戦場をAnthropicが押さえにきた動きです。",
+      "sourceLabel": "Axios",
+      "sourceUrl": "https://www.axios.com/2026/06/30/anthropic-sonnet-5-agents-mythos-fable"
+    },
+    {
+      "heading": "AnthropicのFable 5が再開、政府によるモデル公開介入の前例が残る",
+      "points": [
+        "Axiosは7月1日、Anthropicの高性能モデルFable 5が再公開されたと報じました。直前まで安全保障上の懸念で提供が抑えられていました。",
+        "再開にあたりAnthropicは追加の安全対策を入れ、一部の高リスク問い合わせでは能力の低いモデルへ迂回させる仕組みを残しています。",
+        "全面禁止ではなく、条件付き公開と安全策の上乗せで折り合う形が見えてきました."
+      ],
+      "whyImportant": "最先端モデルの公開可否が、企業判断だけでなく政府判断でも左右される前例が積み上がっています。今後は性能発表そのものより、どの条件で公開できるかが競争力と直結します。",
+      "sourceLabel": "Axios",
+      "sourceUrl": "https://www.axios.com/2026/07/01/anthropic-fable-5-back-online-trump-export-controls-lifted"
+    },
+    {
+      "heading": "OpenAIの政府持ち分案とGPT-5.6遅延報道、AI産業政策が新段階へ",
+      "points": [
+        "Tom's Hardwareは7月3日、OpenAIが米政府に約5%の持ち分を持たせる案を初期検討しており、その直前にGPT-5.6の一般公開が政府判断で遅れたと報じました。",
+        "報道ベースでは、AIの利益を市民還元する公的基金のような構想も議論されており、補助金や規制だけでない『持ち分参加型』の産業政策が浮上しています。",
+        "現時点では構想段階ですが、政府とフロンティアAI企業の関係が一段と資本政策寄りになりつつあります."
+      ],
+      "whyImportant": "AIを単なる民間技術ではなく、国家的な基幹産業として扱う流れが強まっています。公開審査、出資、利益配分が一体化すれば、主要ラボの意思決定と上場戦略に直接響きます。",
+      "sourceLabel": "Tom's Hardware",
+      "sourceUrl": "https://www.tomshardware.com/tech-industry/artificial-intelligence/openai-floats-5-percent-government-stake-days-after-washington-delayed-gpt-5-6"
+    }
+  ],
+  "trendSummary": "足元のAIニュースは、モデルの新機能競争よりも、公開の可否を誰が決めるのか、巨大投資が本当に実装へ進むのか、そして国際統治をどう作るのかに重心が移っています。つまりAIは『賢いモデルを出す競争』から、『国家・規制・資本・電力とどう接続するか』の競争へ明確に入っています。"
+}

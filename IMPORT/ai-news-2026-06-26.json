@@ -1,0 +1,42 @@
+{
+  "title": "AI最新ニュース朝刊",
+  "date": "2026-06-26",
+  "items": [
+    {
+      "heading": "AIエージェントは実験段階から実務段階へ",
+      "points": "6月25日に報じられたOpenAI関連の共同レポートでは、CodexのようなAIエージェントが30分超の人間作業に相当する委任タスクをすでに多く処理していることが示された。利用者数自体はまだ限定的だが、使う人ほど深く使う傾向が強く、チャット中心から『任せるAI』への移行が始まっている。",
+      "whyImportant": "生成AIの価値が回答品質だけでなく、実際の業務代行に移り始めたことを示す。今後の競争軸はモデル性能だけでなく、どこまで安全に長時間タスクを引き受けられるかになる。",
+      "sourceLabel": "Axios",
+      "sourceUrl": "https://www.axios.com/2026/06/25/codex-agents-growth-openai"
+    },
+    {
+      "heading": "AnthropicがSlack常駐型の『Claude Tag』を投入",
+      "points": "Anthropicは6月23日、チームがSlack上でClaudeを呼び出して共同作業できる新製品『Claude Tag』を発表した。単発のQ&Aではなく、会話文脈を引き継ぎながらチャンネル単位でタスクを進める方向を打ち出している。",
+      "whyImportant": "AIが個人アシスタントから『チームの同僚』へ進化する流れを象徴する。Slackのような既存ワークフローに深く入り込めるかが、企業向けAIの定着を左右する。",
+      "sourceLabel": "Anthropic Newsroom",
+      "sourceUrl": "https://www.anthropic.com/news"
+    },
+    {
+      "heading": "AnthropicがAlibabaによる大規模なモデル蒸留攻撃を告発",
+      "points": "6月25日報道によると、AnthropicはAlibaba側が約2万5,000の不正アカウントを使い、約2,880万回のやり取りでClaudeの能力を抽出しようとしたと米上院向け書簡で主張した。狙いは推論、ソフトウェア工学、長時間タスクといった高付加価値能力だったとされる。",
+      "whyImportant": "AI競争が『学習データ』や『半導体』だけでなく、他社モデルの出力を巡る防衛戦に入ったことを示す。国家安全保障、知財、API防御が今後の主要論点になる。",
+      "sourceLabel": "Financial Times",
+      "sourceUrl": "https://www.ft.com/content/8496c940-fdc7-4554-bc8d-7bcc93e7d75c"
+    },
+    {
+      "heading": "OpenAIやAnthropicが雇用転換基金『Raise Us』を後押し",
+      "points": "6月25日に報じられた新団体『Raise Us』は、OpenAIやAnthropic、Amazon、Microsoftなどの支援で5億ドル規模から始動した。まず4州で、再訓練支援、賃金保険、AIキャリア支援などを試す構想だ。",
+      "whyImportant": "AI企業自身が雇用置換の社会コストを正面から認め始めた動きとして重い。規制回避の広報にとどまるのか、実効的な再教育モデルになるのかが次の焦点になる。",
+      "sourceLabel": "Associated Press",
+      "sourceUrl": "https://apnews.com/article/929986c149d415cd2ef4dc3eaf66ca8c"
+    },
+    {
+      "heading": "医療AIが診断・治療方針で医師に並ぶ研究が相次ぐ",
+      "points": "6月17日に報じられたNature掲載研究では、ドイツのMiraとGoogle系のAmieが、特定条件下で医師と同等または一部で上回る診断・治療提案を示した。研究者は現場導入には慎重姿勢を崩していないが、臨床支援AIの実用化が一段近づいた。",
+      "whyImportant": "AIの本命用途の一つである医療で、性能の議論が『ベンチマーク』から『専門家比較』へ進んでいる。実運用には安全性と責任分界が必要だが、病院・保険・規制への影響は大きい。",
+      "sourceLabel": "Financial Times",
+      "sourceUrl": "https://www.ft.com/content/734a45ee-86c4-47e1-8323-569bc14dcdd7"
+    }
+  ],
+  "trendSummary": "足元のAIニュースは、エージェントの実務投入、職場常駐型プロダクト、モデル蒸留を巡る防衛、雇用対策、医療応用の前進が同時進行している。つまり競争の中心は、単なるモデル公開から『仕事をどう変えるか』『その副作用をどう抑えるか』へ明確に移りつつある。"
+}

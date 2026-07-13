@@ -1,0 +1,42 @@
+{
+  "title": "AI最新ニュース朝刊",
+  "date": "2026-06-22",
+  "items": [
+    {
+      "heading": "OpenAIがIPO準備へ、米SECに非公開で上場書類を提出",
+      "points": "OpenAIは米証券取引委員会（SEC）に非公開で上場準備書類を提出し、株式公開の選択肢を正式に持った。時価総額はAP報道時点で約8520億ドルとされ、巨額の計算資源投資を支えるために公開市場へのアクセスを確保する狙いが鮮明になっている。",
+      "whyImportant": "生成AIの競争はモデル性能だけでなく、資本調達力の競争に移っている。OpenAIのIPO準備は、AI大手がインフラ投資を恒常的に市場から調達する段階に入ったことを示す。",
+      "sourceLabel": "AP News",
+      "sourceUrl": "https://apnews.com/article/openai-ipo-chatgpt-c7583994426b1b097120786d6a0b8308"
+    },
+    {
+      "heading": "Google DeepMindが自律AIエージェント向けの『AI Control Roadmap』を公表",
+      "points": "Google DeepMindは6月18日、将来の高性能エージェントを『内部脅威』に近い前提で扱う安全運用の青写真を公表した。監視、アラート、リアルタイム停止まで段階的に防御を強める考えで、既にGemini Spark向けのライブ監視にも知見を反映している。",
+      "whyImportant": "AI業界の主戦場がチャットから自律エージェントへ移る中、安全対策も『出力の良し悪し』から『行動の監督』へ進んでいる。大手研究所が運用レベルの制御を前面に出した点は、企業導入基準に影響しやすい。",
+      "sourceLabel": "Axios",
+      "sourceUrl": "https://www.axios.com/2026/06/18/google-deepmind-prepares-for-rogue-ai-agents"
+    },
+    {
+      "heading": "米FERCがAIデータセンター向け送電網接続の迅速化を指示",
+      "points": "米連邦エネルギー規制委員会（FERC）は6月18日、6つの広域送電運用者に対し、AIデータセンターなど大口需要家を電力網へ迅速に接続できる仕組み整備を命じた。接続に必要な系統増強費用はデータセンター側が負担する一方、州の料金権限は維持される。",
+      "whyImportant": "AIの制約条件が半導体から電力へ広がっていることを示す政策変更だ。今後のAI投資はモデル性能だけでなく、電力確保・系統接続・地域受容まで含めたインフラ競争になる。",
+      "sourceLabel": "AP News",
+      "sourceUrl": "https://apnews.com/article/power-electricity-ai-plants-data-centers-grid-506e3d206871111f15c3c62fc5368be5"
+    },
+    {
+      "heading": "Nvidiaが約200億ドルの社債発行へ、AI設備投資の資金調達が加速",
+      "points": "Nvidiaは約200億ドル規模の社債発行に動き、AI投資ブームが株式だけでなく社債市場にも波及していることが鮮明になった。Axiosは、ハイパースケーラー各社の2026年設備投資が営業キャッシュフロー並みに膨らみ、負債や増資で賄う流れが広がっていると伝えている。",
+      "whyImportant": "AIブームの継続性を判断する軸が『需要』だけでなく『資金繰り』にも移っている。Nvidia級の潤沢な現金保有企業まで借り入れに動くのは、AIインフラ競争の資本集約度が一段上がったサインだ。",
+      "sourceLabel": "Axios",
+      "sourceUrl": "https://www.axios.com/2026/06/16/ai-nvidia-bonds-debt"
+    },
+    {
+      "heading": "Anthropicが非営利向けAI活用支援『Claude Corps』を開始",
+      "points": "Anthropicは1,000人規模のフェローを非営利団体へ派遣する『Claude Corps』を発表し、少なくとも400団体に1万ドルの助成金とClaude利用クレジットを付与する。総額1.5億ドル規模で、AI導入の担い手を現場に送り込む実装重視の取り組みだ。",
+      "whyImportant": "AI普及のボトルネックが『モデルへのアクセス』から『現場で使える人材と運用設計』へ移っている。企業の社会実装戦略として、人材供給まで含めて囲い込む動きは今後ほかのAI企業にも波及しうる。",
+      "sourceLabel": "AP News",
+      "sourceUrl": "https://apnews.com/article/anthropic-ai-claude-corps-daniela-amodei-b1c130a08417d13e1256f8982d233b0e"
+    }
+  ],
+  "trendSummary": "足元のAI業界は、モデル発表そのものよりも、資本市場、電力網、安全運用、人材配置といった“実装インフラ”の争いが前面に出ている。大手各社は性能競争を続けつつ、上場準備、電力確保、エージェント監督、導入支援まで含めた総力戦に入っている。"
+}
