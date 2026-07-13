@@ -1,0 +1,79 @@
+{
+  "title": "AI最新ニュース朝刊",
+  "date": "2026-07-10",
+  "generatedAt": "2026-07-10T06:12:20+09:00",
+  "searchWindowDays": 7,
+  "items": [
+    {
+      "heading": "OpenAIがGPT-5.6のAPI利用ガイドを公開、Sol・Terra・Lunaと新しい推論機能を提示",
+      "category": "モデル",
+      "publishedDate": "2026-07-09",
+      "newsType": "続報",
+      "importance": "S",
+      "points": "OpenAIの公式APIドキュメントでGPT-5.6モデルファミリーの利用ガイドが確認できるようになりました。gpt-5.6 aliasはgpt-5.6-solにルーティングされ、低コスト寄りのTerra、高スループット向けのLunaも選べます。Programmatic Tool Calling、Multi-agent beta、明示的なprompt caching、persisted reasoning、max reasoning effort、pro modeが新機能として示されています。",
+      "whyImportant": "前回は広範公開の見通しが報じられた段階でしたが、今回は開発者が実装で使うモデル名、移行方針、推論・キャッシュ制御まで公式に確認できる続報です。",
+      "impact": "API利用者はモデルslug、reasoning.effort、reasoning.mode、reasoning.context、prompt_cache_optionsを見直す必要があります。ツール呼び出しや長いワークフローを持つアプリでは、Multi-agent betaやpersisted reasoningの評価が優先課題になります。",
+      "sourceLabel": "OpenAI API Docs",
+      "sourceUrl": "https://developers.openai.com/api/docs/guides/latest-model",
+      "tags": ["OpenAI", "GPT-5.6", "Responses API", "Programmatic Tool Calling", "Multi-agent"],
+      "reasonForSelection": "新モデルの公式API仕様と移行上の注意が確認でき、開発者への影響が最も大きい"
+    },
+    {
+      "heading": "GitHub CopilotでOpenAI GPT-5.6 Sol・Terra・Lunaが利用可能に",
+      "category": "製品・サービス",
+      "publishedDate": "2026-07-09",
+      "newsType": "新規",
+      "importance": "A",
+      "points": "GitHubはGPT-5.6 Sol、Terra、LunaをGitHub Copilotに順次展開すると発表しました。Solは複雑な大規模コードベースや長時間のエージェント作業、Terraは日常的な対話・エージェント型コーディング、Lunaは小さく高速な低コスト用途と位置づけられています。VS Code、Visual Studio、Copilot CLI、cloud agent、github.com、Mobile、JetBrains、Xcode、Eclipseのモデルピッカーで選択可能になります。",
+      "whyImportant": "GPT-5.6が単体APIだけでなく、主要な開発者ワークフローに直接入る更新です。企業プランでは管理者がポリシーを有効化する必要があり、導入判断とコスト管理に直結します。",
+      "impact": "Copilot利用者は用途別にモデルを選び、Business/Enterprise管理者はGPT-5.6モデルの利用ポリシーを確認する必要があります。Usage Based Billingでprovider list pricingが適用されるため、モデル選択と予算管理がより重要になります。",
+      "sourceLabel": "GitHub Changelog",
+      "sourceUrl": "https://github.blog/changelog/2026-07-09-openais-gpt-5-6-sol-terra-and-luna-are-now-available-in-github-copilot/",
+      "tags": ["GitHub", "GitHub Copilot", "OpenAI", "GPT-5.6", "Copilot CLI"],
+      "reasonForSelection": "主要AIコーディング環境への新モデル展開で、実利用者と管理者の双方に影響する"
+    },
+    {
+      "heading": "GitHub Copilotが初見リポジトリの概要生成に対応",
+      "category": "AIエージェント",
+      "publishedDate": "2026-07-09",
+      "newsType": "新規",
+      "importance": "B",
+      "points": "GitHubはgithub.com上で、初めて見るリポジトリについてCopilotに高レベル概要を生成させる機能を追加しました。Copilot Chatがリポジトリの目的、使用技術、貢献ガイドラインを文脈からまとめます。READMEがないリポジトリではREADME生成にもつなげられ、全Copilotプランで利用できます。",
+      "whyImportant": "コード理解の入口をIDE外のリポジトリ閲覧体験に広げる更新です。オンボーディング、OSS調査、依存先調査の初動を短縮できます。",
+      "impact": "開発者は未知のリポジトリを読む前に、Copilotで構造と貢献方法を把握できます。チームでは新規参加者のキャッチアップやレビュー前の文脈取得に使いやすくなります。",
+      "sourceLabel": "GitHub Changelog",
+      "sourceUrl": "https://github.blog/changelog/2026-07-09-ask-copilot-for-a-repository-overview/",
+      "tags": ["GitHub", "GitHub Copilot", "Copilot Chat", "Repository overview"],
+      "reasonForSelection": "日常的な開発導線で使えるCopilot新機能で、全プラン対象のため影響範囲が広い"
+    },
+    {
+      "heading": "GitHub Copilotの管理設定をMDMやファイルでVS Code・CLIへ配布可能に",
+      "category": "開発技術",
+      "publishedDate": "2026-07-08",
+      "newsType": "新規",
+      "importance": "B",
+      "points": "GitHub Copilot CLIとVS Codeで、企業管理者がMDMやファイルベース設定を通じて管理設定を端末へ配布できるようになりました。Microsoft Intune、Jamf、Group Policy、Chef、Puppet、Ansibleなど既存の端末管理経路を使えます。モデル、プラグイン、権限バイパス抑止、OpenTelemetry関連設定などを同じキーで統制できます。",
+      "whyImportant": "AIコーディングツールの導入が個人利用から企業統制の段階へ進んでいることを示す更新です。サインイン方法に依存せず端末側でポリシーを適用できる点が実務上大きいです。",
+      "impact": "企業の開発基盤チームはCopilotのモデル選択、プラグイン許可、テレメトリ送信先、権限モードを端末管理ポリシーに組み込めます。規制業界や大規模組織では導入時の監査・統制設計がしやすくなります。",
+      "sourceLabel": "GitHub Changelog",
+      "sourceUrl": "https://github.blog/changelog/2026-07-08-deploy-managed-copilot-settings-via-mdm-in-vs-code-and-cli/",
+      "tags": ["GitHub", "GitHub Copilot", "MDM", "VS Code", "Copilot CLI", "Enterprise management"],
+      "reasonForSelection": "AI開発ツールの企業展開に必要な管理・ガバナンス機能で実務影響が大きい"
+    },
+    {
+      "heading": "Gemini APIのInteractions APIログがAI Studioで確認可能に",
+      "category": "API・SDK",
+      "publishedDate": "2026-07-06",
+      "newsType": "新規",
+      "importance": "B",
+      "points": "GoogleはGemini APIのリリースノートで、Interactions API呼び出しのDeveloper logsをAI Studio dashboardで確認できるようにしたと発表しました。Interactions APIは最新機能とモデルへアクセスする推奨APIとして位置づけられています。エージェントやツール連携を含む呼び出しの観測性を高める更新です。",
+      "whyImportant": "エージェント型アプリでは、モデル出力だけでなくツール呼び出しや状態遷移の追跡が品質改善と障害調査に重要です。ログ可視化が公式ダッシュボードに入ることで、開発・検証の摩擦が下がります。",
+      "impact": "Gemini API利用者はInteractions APIのデバッグ、利用状況確認、失敗調査をAI Studio上で行いやすくなります。既存のGenerateContent中心の実装からInteractions APIへ移行する判断材料にもなります。",
+      "sourceLabel": "Google AI for Developers",
+      "sourceUrl": "https://ai.google.dev/gemini-api/docs/changelog",
+      "tags": ["Google", "Gemini API", "Interactions API", "AI Studio", "Developer logs"],
+      "reasonForSelection": "主要APIの観測性向上で、エージェント開発とデバッグに直接効く"
+    }
+  ],
+  "trendSummary": "直近の重要更新は、新モデル公開そのものに加えて、モデルを開発者の実作業へ入れる統合、企業管理、観測性へ広がっています。GPT-5.6はAPI仕様とCopilot統合が同時に前進し、GitHubはリポジトリ理解や端末管理までCopilotの利用面を拡張しました。GoogleのInteractions APIログ対応も含め、エージェント型AIを本番運用するためのモデル選択、制御、監査、デバッグが主要テーマになっています。"
+}

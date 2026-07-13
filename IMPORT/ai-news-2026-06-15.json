@@ -1,0 +1,57 @@
+{
+  "title": "AI最新ニュース朝刊",
+  "date": "2026-06-15",
+  "items": [
+    {
+      "heading": "Anthropic、Fable 5とMythos 5停止の解除へ向けホワイトハウス対応を本格化",
+      "points": [
+        "Anthropicは、米政府の停止命令でオフラインになった最上位モデルFable 5とMythos 5を巡り、上級技術スタッフをワシントンD.C.に派遣しました。",
+        "Axiosによると、政権側はAnthropicの対応が不十分だとみていた一方、両者とも早期解決を望んでおり、仮想会議を含む協議が続いています。"
+      ],
+      "whyImportant": "最先端モデルの提供停止が安全性評価だけでなく輸出規制や国家安全保障判断で左右される段階に入ったことを示し、今後のモデル公開プロセス全体に影響するためです。",
+      "sourceLabel": "Axios",
+      "sourceUrl": "https://www.axios.com/2026/06/14/anthropic-white-house-mythos-fable"
+    },
+    {
+      "heading": "OpenAI、企業向けAI定着を狙うOpenAI Academy新講座を開始",
+      "points": [
+        "OpenAIは6月12日、AI Foundations、Applied AI Foundations、Agents and Workflowsの3講座を公開し、個人のプロンプト活用から再利用可能なエージェント業務設計までを体系化しました。",
+        "BCG、Accenture、BBVAなどと連携し、受講証明や組織導入も用意しており、AI導入を試験運用から全社運用へ移す狙いが明確です。"
+      ],
+      "whyImportant": "AI競争の焦点がモデル性能だけでなく、企業内で安全かつ再現可能に使いこなす人材育成へ移っていることを示すためです。",
+      "sourceLabel": "OpenAI",
+      "sourceUrl": "https://openai.com/index/academy-courses-applying-ai-at-work/"
+    },
+    {
+      "heading": "NVIDIA Blackwell、初のエージェントAI基盤ベンチマークで効率首位",
+      "points": [
+        "NVIDIAは6月12日、Artificial Analysisの新ベンチマークAgentPerfで、GB300 NVL72がHopper世代比で最大20倍のagents-per-megawattを記録したと発表しました。",
+        "評価は実際のコーディングエージェント軌跡を模した長時間・多段ツール利用ワークロードで行われ、会話AIではなく実運用エージェント負荷を前提にしています。"
+      ],
+      "whyImportant": "企業が大量のAIエージェントを動かす局面では、モデル精度以上に電力当たり処理量が投資判断を左右するため、インフラ競争の評価軸が一段具体化しました。",
+      "sourceLabel": "NVIDIA Blog",
+      "sourceUrl": "https://blogs.nvidia.com/blog/nvidia-blackwell-agentperf-artificial-analysis/"
+    },
+    {
+      "heading": "Google、Gemini 3.5 Live Translateを70超言語で展開",
+      "points": [
+        "Googleは6月9日、Gemini 3.5 Live Translateを発表し、70超言語の音声対音声翻訳を数秒遅れで継続的に返せるようにしました。",
+        "開発者向けにはGemini Live APIとAI Studioで公開し、Google Meetでは今月から企業向け限定プレビュー、Google翻訳アプリでは一般提供を始めています。"
+      ],
+      "whyImportant": "リアルタイム多言語音声がAPI、会議、消費者アプリに同時展開されることで、生成AIが汎用会話から基盤的な通信インフラへ広がっているためです。",
+      "sourceLabel": "Google Blog",
+      "sourceUrl": "https://blog.google/innovation-and-ai/models-and-research/gemini-models/gemini-live-3-5-translate/"
+    },
+    {
+      "heading": "Meta、Relianceとインド初のAI対応データセンター契約",
+      "points": [
+        "MetaはReliance Industriesと提携し、インド・グジャラート州ジャムナガルの168MWデータセンターを賃借する契約を公表しました。",
+        "再生可能エネルギーと海水淡水化冷却を前提にしつつ、インドでのAI基盤を現地化し、必要に応じてさらに拡張できる設計です。"
+      ],
+      "whyImportant": "AIインフラ競争が米国中心から巨大利用市場の近くへ広がり、各社がモデルだけでなく地域別の計算資源確保でも先手を争っているためです。",
+      "sourceLabel": "Meta Newsroom",
+      "sourceUrl": "https://about.fb.com/news/2026/06/meta-partners-with-reliance-on-ai-enabled-data-center-in-india/"
+    }
+  ],
+  "trendSummary": "足元のAIニュースは、モデルそのものの新規発表よりも、運用規制、企業内定着、人材育成、リアルタイム翻訳のような実装機能、そして各地域での計算基盤確保に重心が移っています。AIの競争軸が「より賢いモデル」単体から、「安全に公開できるか」「誰が使いこなせるか」「どこで安定稼働させるか」へ広がっているのが今週の特徴です。"
+}

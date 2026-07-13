@@ -1,0 +1,69 @@
+{
+  "title": "AI最新ニュース朝刊",
+  "date": "2026-07-08",
+  "generatedAt": "2026-07-08T14:54:06+09:00",
+  "searchWindowDays": 7,
+  "items": [
+    {
+      "heading": "OpenAIのGPT-5.6、米政府の制限解除で広範公開へ",
+      "category": "モデル",
+      "publishedDate": "2026-07-08",
+      "newsType": "続報",
+      "importance": "S",
+      "points": "Axiosによると、米政府はOpenAIのGPT-5.6の広範公開を認めた。6月末の限定プレビューではSol、Terra、Lunaの3モデルが政府承認済みの一部企業向けに制限されていたが、OpenAIは木曜日から一般提供すると確認した。",
+      "whyImportant": "最先端モデルの公開可否が政府レビューに左右される流れの中で、実利用者と開発者がGPT-5.6系列にアクセスできる見通しが立ったため。",
+      "impact": "ChatGPTやAPIでの新モデル利用、特にコーディング、サイバー、長期エージェント作業の検証計画を再開しやすくなる。一方で、今後のフロンティアモデル公開では政府評価や段階展開が運用上の前提になる可能性がある。",
+      "sourceLabel": "Axios",
+      "sourceUrl": "https://www.axios.com/2026/07/08/openai-gpt-trump-ban-lifted",
+      "tags": [
+        "OpenAI",
+        "GPT-5.6",
+        "ChatGPT",
+        "API",
+        "規制"
+      ],
+      "reasonForSelection": "前回掲載済みの限定公開から、広範公開が認められたという実質的な新情報があり、利用者と開発者への影響が大きい。"
+    },
+    {
+      "heading": "AnthropicのClaude Cowork、モバイルとWebに拡大しクラウド実行を標準化",
+      "category": "AIエージェント",
+      "publishedDate": "2026-07-07",
+      "newsType": "新規",
+      "importance": "A",
+      "points": "AnthropicはClaude CoworkをiOS、Android、Webへ拡大し、まずMax加入者から提供を始めた。Coworkセッションはクラウド実行が標準となり、端末を閉じてもバックグラウンドで継続し、承認が必要な場合はモバイル通知できる。",
+      "whyImportant": "エージェント型作業がデスクトップ常駐からクラウド継続型へ移り、複数端末をまたいだ実務ワークフローに近づくため。",
+      "impact": "利用者は外出中でもタスク進行やレビュー待ちの通知を受けられる。開発者やチームは、ローカルファイルアクセスが必要な作業とクラウドで継続できる作業を分けて運用する必要がある。",
+      "sourceLabel": "The Verge",
+      "sourceUrl": "https://www.theverge.com/ai-artificial-intelligence/961978/anthropic-claude-cowork-mobile-web",
+      "tags": [
+        "Anthropic",
+        "Claude",
+        "Claude Cowork",
+        "AIエージェント",
+        "モバイル"
+      ],
+      "reasonForSelection": "Claudeのエージェント機能が利用端末と実行形態を拡大する更新で、実務利用への影響が直接的に大きい。"
+    },
+    {
+      "heading": "MetaがMuse Imageを投入、InstagramやWhatsAppの画像生成基盤に",
+      "category": "モデル",
+      "publishedDate": "2026-07-07",
+      "newsType": "新規",
+      "importance": "A",
+      "points": "MetaはSuperintelligence Labs発の画像生成モデルMuse Imageを発表し、Meta AI、Instagram、WhatsAppの画像生成や30以上のAI効果に使う。報道によると、Muse Sparkと連携してプロンプトを推論、検索、計画してから生成する設計で、Muse Videoも開発中とされる。",
+      "whyImportant": "主要SNSの画像生成基盤が新モデルへ切り替わり、消費者向け生成AIと広告制作ワークフローに直接入るため。",
+      "impact": "利用者はInstagram上で人物タグや公開写真を使った生成機能に触れる機会が増える。開発者向け外部提供は未定だが、MetaがLlama中心のオープン路線とは別に、閉じたマルチモーダル製品モデルを強めている点は注視が必要。",
+      "sourceLabel": "The Verge",
+      "sourceUrl": "https://www.theverge.com/tech/962485/meta-muse-image-ai-model-instagram",
+      "tags": [
+        "Meta",
+        "Muse Image",
+        "Instagram",
+        "WhatsApp",
+        "画像生成"
+      ],
+      "reasonForSelection": "Metaの新しい画像生成モデルが大規模SNS製品に直接組み込まれる発表で、マルチモーダルAIの利用面と競争環境への影響が大きい。"
+    }
+  ],
+  "trendSummary": "今回は、既に同日朝刊で扱ったGitHub CopilotやGoogle Genkit系を除くと、フロンティアモデルの公開制限解除、エージェントのクラウド継続実行、SNS組み込み型の画像生成モデルが目立った。AI更新は単なるモデル性能だけでなく、提供条件、端末をまたぐ実行形態、既存アプリへの深い統合が実用上の差分になっている。"
+}

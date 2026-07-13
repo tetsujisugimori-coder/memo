@@ -1,0 +1,57 @@
+{
+  "title": "AI最新ニュース朝刊",
+  "date": "2026-07-03",
+  "items": [
+    {
+      "heading": "国連とITUが「AI for Good Global Commission」を始動",
+      "points": [
+        "国連と国際電気通信連合（ITU）は、AI規制が各国で分断される中、主要テック企業の経営陣と各国首脳を同じ場に集める新たな委員会を立ち上げた。",
+        "初会合は2026年7月8日にジュネーブで予定されており、その直前の7月6日から7日に国連のAIガバナンス対話も開かれる予定だ。"
+      ],
+      "whyImportant": "AIの競争軸がモデル性能だけでなく国際ルール形成に移っていることを示す。主要企業の製品戦略や各国の制度設計に直結しやすい。",
+      "sourceLabel": "Axios",
+      "sourceUrl": "https://www.axios.com/2026/07/01/un-ai-commission-ceos-world-leaders"
+    },
+    {
+      "heading": "xAIがノーコードの「Voice Agent Builder」をベータ公開",
+      "points": [
+        "xAIは2026年7月1日、Grok Voice上で本番向け音声エージェントを構築できるノーコード環境を発表した。",
+        "電話連携、検索、ツール接続、MCP、ガードレール、可観測性を1つにまとめ、数分で音声エージェントを立ち上げられる構成を打ち出している。"
+      ],
+      "whyImportant": "音声AIの競争がモデル単体から、運用基盤込みのエージェント提供へ移っている。コールセンターや予約受付など、実運用導入の障壁を下げる動きとして重要だ。",
+      "sourceLabel": "xAI",
+      "sourceUrl": "https://x.ai/news/grok-voice-agent-builder"
+    },
+    {
+      "heading": "OpenAIとBroadcomが推論特化チップ「Jalapeño」を公開",
+      "points": [
+        "OpenAIは2026年6月24日、Broadcomと共同でLLM推論向けアクセラレータ「Jalapeño」を公開し、自社インフラの垂直統合を前面に出した。",
+        "同社は初代チップで現行最先端を上回る電力効率を見込むとし、2026年末からの初期配備と複数世代の展開計画を示している。"
+      ],
+      "whyImportant": "AI競争の主戦場が半導体と電力効率に広がっていることを示す。推論コストが下がれば、エージェントやAPIの価格・供給力に直接効く。",
+      "sourceLabel": "OpenAI",
+      "sourceUrl": "https://openai.com/index/openai-broadcom-jalapeno-inference-chip/"
+    },
+    {
+      "heading": "OpenAIが生物学向け評価基盤「GeneBench-Pro」を発表",
+      "points": [
+        "OpenAIは2026年6月30日、計算生物学でAIエージェントが曖昧さを含む判断をどこまで扱えるか測る研究用ベンチマーク「GeneBench-Pro」を公開した。",
+        "129問を10領域にまたがって用意し、単なる知識再生ではなく、分析方針の修正や結果の意思決定可能性まで評価対象にしている。"
+      ],
+      "whyImportant": "AIを科学研究へ本格投入するには、精度だけでなく判断の質を測る尺度が不可欠だ。創薬・ゲノム解析など高付加価値分野での実用化に向けた基盤整備として重要性が高い。",
+      "sourceLabel": "OpenAI",
+      "sourceUrl": "https://openai.com/index/introducing-genebench-pro/"
+    },
+    {
+      "heading": "GoogleがGemini 3.5 Flashに「computer use」を統合",
+      "points": [
+        "Googleは2026年6月24日、Gemini 3.5 Flashにブラウザ、モバイル、デスクトップをまたいで操作できるcomputer use機能を組み込んだ。",
+        "同時に、機密操作の明示確認や間接的プロンプトインジェクション検知で自動停止する企業向け保護策も用意し、APIとEnterprise Agent Platformから利用可能にした。"
+      ],
+      "whyImportant": "エージェントの価値が『答えるAI』から『操作するAI』へ進んでいる。安全策込みで提供された点は、実業務への導入ペースを左右する。 ",
+      "sourceLabel": "Google",
+      "sourceUrl": "https://blog.google/innovation-and-ai/models-and-research/gemini-models/introducing-computer-use-gemini-3-5-flash/"
+    }
+  ],
+  "trendSummary": "足元のAI市場は、モデル性能そのものよりも、実運用を支える周辺基盤の競争が強まっている。具体的には、国際ガバナンス、音声エージェント運用基盤、推論用半導体、科学研究向け評価、そしてPCや業務アプリを直接操作するエージェント機能が同時に前進しており、AIが『賢いソフト』から『社会実装されるインフラ』へ移る流れが鮮明だ。"
+}

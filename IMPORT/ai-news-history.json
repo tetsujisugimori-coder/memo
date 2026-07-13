@@ -1,0 +1,2963 @@
+{
+  "schemaVersion": "1.0",
+  "updatedAt": "2026-07-08T06:12:00+09:00",
+  "articles": [
+    {
+      "heading": "Anthropicが650億ドルを調達、企業向けAI競争がさらに加速",
+      "normalizedHeading": "anthropicが650億ドルを調達企業向けai競争がさらに加速",
+      "publishedDate": "",
+      "selectedDate": "2026-05-29",
+      "sourceUrl": "https://www.anthropic.com/news/series-h",
+      "topicKey": "",
+      "companyNames": [
+        "Anthropic"
+      ],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "Anthropicは2026年5月28日、Series Hで650億ドルを調達し、ポストマネー評価額は9650億ドルになったと発表しました。"
+    },
+    {
+      "heading": "Meta、AI学習用の社員行動トラッキング計画を一時停止",
+      "normalizedHeading": "metaai学習用の社員行動トラッキング計画を一時停止",
+      "publishedDate": "",
+      "selectedDate": "2026-06-25",
+      "sourceUrl": "https://www.theguardian.com/technology/2026/jun/24/meta-pauses-employee-tracker-for-ai-training-amid-privacy-concerns",
+      "topicKey": "",
+      "companyNames": [
+        "Meta"
+      ],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "The Guardianの6月24日報道によると、Metaは社員のキーストロークや画面内容を集める社内プログラムを停止した。約1,600人の社員がプライバシーと同意の問題を訴え、内部データへのアクセス懸念も浮上していた。"
+    },
+    {
+      "heading": "GoogleのGemini 3.5 Proは7月へ延期と報道",
+      "normalizedHeading": "googleのgemini35proは7月へ延期と報道",
+      "publishedDate": "",
+      "selectedDate": "2026-06-25",
+      "sourceUrl": "https://www.businessinsider.com/google-3-5-pro-july-release-tokens-ai-agents-model-2026-6",
+      "topicKey": "",
+      "companyNames": [
+        "Google"
+      ],
+      "productNames": [
+        "Gemini"
+      ],
+      "category": "",
+      "summaryFingerprint": "Business Insiderは6月24日、GoogleがGemini 3.5 Proの公開時期を6月から7月へずらしたと報じた。報道ベースでは、早期テスターの実運用フィードバックを反映し、長時間タスクやエージェント用途の調整を続けているという。"
+    },
+    {
+      "heading": "QualcommがAIソフト企業Modularを約39億ドルで買収へ",
+      "normalizedHeading": "qualcommがaiソフト企業modularを約39億ドルで買収へ",
+      "publishedDate": "",
+      "selectedDate": "2026-06-25",
+      "sourceUrl": "https://www.wsj.com/tech/ai/qualcomm-to-acquire-ai-software-firm-modular-in-3-9-billion-stock-deal-7b620c7c",
+      "topicKey": "",
+      "companyNames": [],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "Wall Street Journalの6月24日報道によると、QualcommはAIインフラ向けソフトウェア企業Modularを約39億ドルで買収する。狙いは、端末からデータセンターまでAIをより安く速く動かすためのソフト基盤を強化することだ。"
+    },
+    {
+      "heading": "Microsoft、AIデータセンターの水使用抑制を前面に",
+      "normalizedHeading": "microsoftaiデータセンターの水使用抑制を前面に",
+      "publishedDate": "",
+      "selectedDate": "2026-06-25",
+      "sourceUrl": "https://www.axios.com/2026/06/24/microsoft-lower-water-use-ai",
+      "topicKey": "",
+      "companyNames": [
+        "Microsoft"
+      ],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "Axiosの6月24日報道によると、Microsoftは新しいAI向けデータセンターで冷却水の常時消費を避ける設計を採用していると説明した。地域社会で水資源や電力需要への反発が強まるなか、同社は既存設備の多くも低水使用型へ寄せていると訴えている。"
+    },
+    {
+      "heading": "AIエージェントは実験段階から実務段階へ",
+      "normalizedHeading": "aiエージェントは実験段階から実務段階へ",
+      "publishedDate": "",
+      "selectedDate": "2026-06-26",
+      "sourceUrl": "https://www.axios.com/2026/06/25/codex-agents-growth-openai",
+      "topicKey": "",
+      "companyNames": [
+        "OpenAI"
+      ],
+      "productNames": [
+        "Codex"
+      ],
+      "category": "",
+      "summaryFingerprint": "6月25日に報じられたOpenAI関連の共同レポートでは、CodexのようなAIエージェントが30分超の人間作業に相当する委任タスクをすでに多く処理していることが示された。利用者数自体はまだ限定的だが、使う人ほど深く使う傾向が強く、チャット中心から『任せるAI』への移行が始まっている。"
+    },
+    {
+      "heading": "AnthropicがSlack常駐型の『Claude Tag』を投入",
+      "normalizedHeading": "anthropicがslack常駐型のclaudetagを投入",
+      "publishedDate": "",
+      "selectedDate": "2026-06-26",
+      "sourceUrl": "https://www.anthropic.com/news",
+      "topicKey": "",
+      "companyNames": [
+        "Anthropic"
+      ],
+      "productNames": [
+        "Claude",
+        "Claude Tag"
+      ],
+      "category": "",
+      "summaryFingerprint": "Anthropicは6月23日、チームがSlack上でClaudeを呼び出して共同作業できる新製品『Claude Tag』を発表した。単発のQ&Aではなく、会話文脈を引き継ぎながらチャンネル単位でタスクを進める方向を打ち出している。"
+    },
+    {
+      "heading": "AnthropicがAlibabaによる大規模なモデル蒸留攻撃を告発",
+      "normalizedHeading": "anthropicがalibabaによる大規模なモデル蒸留攻撃を告発",
+      "publishedDate": "",
+      "selectedDate": "2026-06-26",
+      "sourceUrl": "https://www.ft.com/content/8496c940-fdc7-4554-bc8d-7bcc93e7d75c",
+      "topicKey": "",
+      "companyNames": [
+        "Anthropic"
+      ],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "6月25日報道によると、AnthropicはAlibaba側が約2万5,000の不正アカウントを使い、約2,880万回のやり取りでClaudeの能力を抽出しようとしたと米上院向け書簡で主張した。狙いは推論、ソフトウェア工学、長時間タスクといった高付加価値能力だったとされる。"
+    },
+    {
+      "heading": "OpenAIやAnthropicが雇用転換基金『Raise Us』を後押し",
+      "normalizedHeading": "openaiやanthropicが雇用転換基金raiseusを後押し",
+      "publishedDate": "",
+      "selectedDate": "2026-06-26",
+      "sourceUrl": "https://apnews.com/article/929986c149d415cd2ef4dc3eaf66ca8c",
+      "topicKey": "",
+      "companyNames": [
+        "OpenAI",
+        "Anthropic"
+      ],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "6月25日に報じられた新団体『Raise Us』は、OpenAIやAnthropic、Amazon、Microsoftなどの支援で5億ドル規模から始動した。まず4州で、再訓練支援、賃金保険、AIキャリア支援などを試す構想だ。"
+    },
+    {
+      "heading": "医療AIが診断・治療方針で医師に並ぶ研究が相次ぐ",
+      "normalizedHeading": "医療aiが診断治療方針で医師に並ぶ研究が相次ぐ",
+      "publishedDate": "",
+      "selectedDate": "2026-06-26",
+      "sourceUrl": "https://www.ft.com/content/734a45ee-86c4-47e1-8323-569bc14dcdd7",
+      "topicKey": "",
+      "companyNames": [],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "6月17日に報じられたNature掲載研究では、ドイツのMiraとGoogle系のAmieが、特定条件下で医師と同等または一部で上回る診断・治療提案を示した。研究者は現場導入には慎重姿勢を崩していないが、臨床支援AIの実用化が一段近づいた。"
+    },
+    {
+      "heading": "OpenAI、GPT-5.6の公開を米政府要請で段階配布へ",
+      "normalizedHeading": "openaigpt56の公開を米政府要請で段階配布へ",
+      "publishedDate": "",
+      "selectedDate": "2026-06-27",
+      "sourceUrl": "https://apnews.com/article/065d5398baac7f16c8265c2cb8ba2baa",
+      "topicKey": "",
+      "companyNames": [
+        "OpenAI"
+      ],
+      "productNames": [
+        "GPT-5.6"
+      ],
+      "category": "",
+      "summaryFingerprint": "6月26日の報道によると、OpenAIは最新モデルGPT-5.6のうち主力版を、米政府承認済みの限定パートナー向けに先行公開した。背景には高度モデルのサイバー安全保障リスクを30日以内で審査する新しい米連邦レビュー枠組みがある。"
+    },
+    {
+      "heading": "AnthropicのMythos問題が長期化、AI輸出管理の不透明さが露呈",
+      "normalizedHeading": "anthropicのmythos問題が長期化ai輸出管理の不透明さが露呈",
+      "publishedDate": "",
+      "selectedDate": "2026-06-27",
+      "sourceUrl": "https://www.theverge.com/ai-artificial-intelligence/957327/anthropic-mythos-fable-ai-trump-administration-negotiations",
+      "topicKey": "",
+      "companyNames": [
+        "Anthropic"
+      ],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "6月26日のThe Verge報道では、AnthropicのMythos 5とFable 5が安全保障懸念で止められてから2週間たっても解決していない。外国籍従業員を含む利用制限や、AIモデルに既存の輸出管理をどう適用するかが未整理なまま交渉が続いている。"
+    },
+    {
+      "heading": "OpenAI・Anthropic・Microsoft・AmazonがAI雇用対策で共同基金",
+      "normalizedHeading": "openaianthropicmicrosoftamazonがai雇用対策で共同基金",
+      "publishedDate": "",
+      "selectedDate": "2026-06-27",
+      "sourceUrl": "https://apnews.com/article/929986c149d415cd2ef4dc3eaf66ca8c",
+      "topicKey": "",
+      "companyNames": [
+        "OpenAI",
+        "Anthropic",
+        "Microsoft",
+        "Amazon"
+      ],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "6月25日、超党派の新組織RAISE USが発足し、初期資金5億ドル超で米労働者のAI移行支援を始めると報じられた。アーカンソー、メリーランド、ユタ、コネティカットの4州で、再訓練やAIキャリア支援、賃金保険などの実証が始まる。"
+    },
+    {
+      "heading": "GoogleからOpenAI・Anthropicへの人材流出が市場を直撃",
+      "normalizedHeading": "googleからopenaianthropicへの人材流出が市場を直撃",
+      "publishedDate": "",
+      "selectedDate": "2026-06-27",
+      "sourceUrl": "https://www.businessinsider.com/google-ai-talent-wars-anthropic-jumper-shazeer-karpathy-openai-2026-6",
+      "topicKey": "",
+      "companyNames": [
+        "OpenAI",
+        "Anthropic",
+        "Google"
+      ],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "6月22日から23日にかけて、Gemini共同責任者のNoam ShazeerがOpenAIへ、DeepMind幹部でノーベル賞受賞者のJohn JumperがAnthropicへ移る動きが伝わった。Alphabet株は急落し、AI競争で最重要資源が計算資源だけでなく超一流研究者であることを改めて示した。"
+    },
+    {
+      "heading": "AI向けメモリ逼迫でAppleとMicrosoftが値上げ、消費者負担が表面化",
+      "normalizedHeading": "ai向けメモリ逼迫でappleとmicrosoftが値上げ消費者負担が表面化",
+      "publishedDate": "",
+      "selectedDate": "2026-06-27",
+      "sourceUrl": "https://www.axios.com/2026/06/26/apple-microsoft-prices-ai",
+      "topicKey": "",
+      "companyNames": [
+        "Microsoft",
+        "Apple"
+      ],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "6月26日のAxios報道によると、AIデータセンター需要でメモリ価格が急騰し、Appleは一部MacBookとiPadを、Microsoftも関連製品を値上げした。AIの影響が雇用不安だけでなく、ハード価格上昇という形で一般消費者に及び始めている。"
+    },
+    {
+      "heading": "OpenAIとBroadcomが推論専用AIチップ「Jalapeño」を発表",
+      "normalizedHeading": "openaiとbroadcomが推論専用aiチップjalapeñoを発表",
+      "publishedDate": "",
+      "selectedDate": "2026-06-28",
+      "sourceUrl": "https://openai.com/index/openai-broadcom-jalapeno-inference-chip/",
+      "topicKey": "",
+      "companyNames": [
+        "OpenAI"
+      ],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "OpenAIは6月24日、Broadcomと共同でLLM推論向け専用チップ「Jalapeño」を公開した。初代チップは現行最先端を上回る電力効率を狙い、2026年末の初期配備と複数世代にわたる展開計画を打ち出している。"
+    },
+    {
+      "heading": "OpenAIが「Daybreak」を拡張し、AIによる脆弱性修正自動化を前面に",
+      "normalizedHeading": "openaiがdaybreakを拡張しaiによる脆弱性修正自動化を前面に",
+      "publishedDate": "",
+      "selectedDate": "2026-06-28",
+      "sourceUrl": "https://openai.com/index/daybreak-securing-the-world/",
+      "topicKey": "",
+      "companyNames": [
+        "OpenAI"
+      ],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "OpenAIは6月22日、セキュリティ施策「Daybreak」を拡張し、Codex Securityの更新版とGPT-5.5-Cyberの全面展開を発表した。脆弱性の発見だけでなく、パッチ生成と適用までを機械速度で進める方向を強く打ち出している。"
+    },
+    {
+      "heading": "GoogleがGemini向け「Interactions API」を正式化、エージェント開発の標準に",
+      "normalizedHeading": "googleがgemini向けinteractionsapiを正式化エージェント開発の標準に",
+      "publishedDate": "",
+      "selectedDate": "2026-06-28",
+      "sourceUrl": "https://blog.google/innovation-and-ai/technology/developers-tools/interactions-api-general-availability/",
+      "topicKey": "",
+      "companyNames": [
+        "Google"
+      ],
+      "productNames": [
+        "Gemini"
+      ],
+      "category": "",
+      "summaryFingerprint": "GoogleはGeminiモデルとエージェント向けのInteractions APIを一般提供に移行し、今後の主要インターフェースに据えると発表した。Managed Agents、バックグラウンド実行、複数ツール統合、メディア生成などを1つのAPI系統に集約している。"
+    },
+    {
+      "heading": "中国のZhipu AI「GLM-5.2」がサイバー分野でAnthropic級に接近",
+      "normalizedHeading": "中国のzhipuaiglm52がサイバー分野でanthropic級に接近",
+      "publishedDate": "",
+      "selectedDate": "2026-06-28",
+      "sourceUrl": "https://www.wsj.com/tech/ai/chinese-ai-anthropic-mythos-cybersecurity-574b02c2",
+      "topicKey": "",
+      "companyNames": [
+        "Anthropic"
+      ],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "6月28日付のWall Street Journal報道によると、中国のZhipu AIが公開したGLM-5.2は、脆弱性検出などサイバーセキュリティ領域でAnthropicの最上位級モデルに匹敵する水準を示した。しかもオープンウェイトで広く使える点が競争環境を変えつつある。"
+    },
+    {
+      "heading": "Samsung Electronicsが全社規模でChatGPT EnterpriseとCodexを導入",
+      "normalizedHeading": "samsungelectronicsが全社規模でchatgptenterpriseとcodexを導入",
+      "publishedDate": "",
+      "selectedDate": "2026-06-28",
+      "sourceUrl": "https://openai.com/index/samsung-electronics-chatgpt-codex-deployment/",
+      "topicKey": "",
+      "companyNames": [
+        "OpenAI"
+      ],
+      "productNames": [
+        "ChatGPT",
+        "Codex"
+      ],
+      "category": "",
+      "summaryFingerprint": "OpenAIは6月21日、Samsung Electronicsが韓国内の全従業員と世界のDX部門従業員向けにChatGPT EnterpriseとCodexを展開すると発表した。R&D、製造、マーケティング、社内業務まで横断的に使う大型導入案件となる。"
+    },
+    {
+      "heading": "OpenAIが次世代モデル「GPT-5.6 Sol」を限定プレビュー開始",
+      "normalizedHeading": "openaiが次世代モデルgpt56solを限定プレビュー開始",
+      "publishedDate": "",
+      "selectedDate": "2026-06-29",
+      "sourceUrl": "https://openai.com/index/previewing-gpt-5-6-sol/",
+      "topicKey": "",
+      "companyNames": [
+        "OpenAI"
+      ],
+      "productNames": [
+        "GPT-5.6"
+      ],
+      "category": "",
+      "summaryFingerprint": "OpenAIは6月26日、旗艦モデル「GPT-5.6 Sol」と、低コスト版のTerra・Lunaを限定プレビューとして公開した。Solは高リスクなサイバー関連要求への保護を強化したうえで、まず政府と共有済みの信頼できる少数パートナーから提供を始め、数週間以内の一般提供を予定している。"
+    },
+    {
+      "heading": "米商務省がAnthropic「Mythos 5」の一部アクセス再開を承認",
+      "normalizedHeading": "米商務省がanthropicmythos5の一部アクセス再開を承認",
+      "publishedDate": "",
+      "selectedDate": "2026-06-29",
+      "sourceUrl": "https://www.axios.com/2026/06/27/commerce-anthropic-mythos-restrictions-lift",
+      "topicKey": "",
+      "companyNames": [
+        "Anthropic"
+      ],
+      "productNames": [
+        "Mythos 5"
+      ],
+      "category": "",
+      "summaryFingerprint": "Axiosが6月26日付で報じたところによると、米商務省はAnthropicが安全対策を前進させたとして、停止されていたMythos 5へのアクセスを一部の承認先に限って再開した。Fable 5への制限は残り、当局は状況次第で再評価すると明記している。"
+    },
+    {
+      "heading": "OpenAIが初の自社AI推論チップ「Jalapeño」をテスト開始",
+      "normalizedHeading": "openaiが初の自社ai推論チップjalapeñoをテスト開始",
+      "publishedDate": "",
+      "selectedDate": "2026-06-25",
+      "sourceUrl": "https://www.axios.com/2026/06/24/openai-jalapeno-ai-chip-broadcom-nvidia",
+      "topicKey": "",
+      "companyNames": [
+        "OpenAI",
+        "NVIDIA"
+      ],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "OpenAIは6月24日、Broadcomと開発した自社製AIチップ「Jalapeño」のテスト開始を明らかにした。まずは学習用ではなく推論用として使い、年内に顧客向け問い合わせ処理へ投入する計画で、将来的な量産拡大も見据える。"
+    },
+    {
+      "heading": "TencentがWeixin向けAIを本格化、検索・買い物まで統合へ",
+      "normalizedHeading": "tencentがweixin向けaiを本格化検索買い物まで統合へ",
+      "publishedDate": "",
+      "selectedDate": "2026-06-24",
+      "sourceUrl": "https://www.wsj.com/business/tech-media-telecom-roundup-market-talk-96b71b5f",
+      "topicKey": "",
+      "companyNames": [],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "6月22日のWSJ Market Talkによると、TencentはWeixin上でAIをメッセージング、検索、買い物にまたがって試験し、JD.comやMeituanとも連携している。Q4投入観測もあり、AIが単体チャットから巨大生活アプリ内の行動支援へ広がる流れが見えてきた。"
+    },
+    {
+      "heading": "Oracle、AI投資の裏で2.1万人削減",
+      "normalizedHeading": "oracleai投資の裏で21万人削減",
+      "publishedDate": "",
+      "selectedDate": "2026-06-24",
+      "sourceUrl": "https://www.sfchronicle.com/tech/article/oracle-ai-workforce-cuts-22317134.php",
+      "topicKey": "",
+      "companyNames": [
+        "Oracle"
+      ],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "6月23日のSan Francisco Chronicleは、Oracleの年間報告書をもとに従業員数が約16.2万人から14.1万人へ減少したと報じた。Oracle自身がAI導入による人員削減を明記しており、同時にデータセンター拡張で巨額投資を続けている。"
+    },
+    {
+      "heading": "中国のGLM-5.2が存在感、米中AI競争が安全保障論争と直結",
+      "normalizedHeading": "中国のglm52が存在感米中ai競争が安全保障論争と直結",
+      "publishedDate": "",
+      "selectedDate": "2026-06-24",
+      "sourceUrl": "https://www.axios.com/2026/06/23/china-us-ai-race-glm-anthropic",
+      "topicKey": "",
+      "companyNames": [
+        "Anthropic"
+      ],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "6月23日のAxios報道では、中国のオープンモデルGLM-5.2がエージェント性能で西側有力モデルに迫っているとして注目された。米国側ではサイバー防衛や安全規制の議論と結びつき、中国勢の追い上げをどう扱うかが政策論点になっている。"
+    },
+    {
+      "heading": "OpenAI、ChatGPTの医療応答性能を大幅改善",
+      "normalizedHeading": "openaichatgptの医療応答性能を大幅改善",
+      "publishedDate": "",
+      "selectedDate": "2026-06-19",
+      "sourceUrl": "https://openai.com/index/improving-health-intelligence-in-chatgpt/",
+      "topicKey": "",
+      "companyNames": [
+        "OpenAI"
+      ],
+      "productNames": [
+        "ChatGPT"
+      ],
+      "category": "",
+      "summaryFingerprint": "OpenAIは2026年6月18日、GPT-5.5 InstantによりChatGPTの医療関連応答を改善したと発表した。"
+    },
+    {
+      "heading": "OpenAIとBoston Children's Hospital、希少遺伝病の再診断で追加18件を確認",
+      "normalizedHeading": "openaiとbostonchildrenshospital希少遺伝病の再診断で追加18件を確認",
+      "publishedDate": "",
+      "selectedDate": "2026-06-19",
+      "sourceUrl": "https://openai.com/index/diagnose-rare-childhood-diseases/",
+      "topicKey": "",
+      "companyNames": [
+        "OpenAI"
+      ],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "OpenAIは2026年6月18日、Boston Children's HospitalやHarvard Universityと連携し、未解決だった小児希少遺伝病376症例をo3 Deep Researchで再解析したと公表した。"
+    },
+    {
+      "heading": "OpenAI、創薬研究向け評価基盤LifeSciBenchを公開",
+      "normalizedHeading": "openai創薬研究向け評価基盤lifescibenchを公開",
+      "publishedDate": "",
+      "selectedDate": "2026-06-19",
+      "sourceUrl": "https://openai.com/index/introducing-life-sci-bench/",
+      "topicKey": "",
+      "companyNames": [
+        "OpenAI"
+      ],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "OpenAIは2026年6月17日、実験設計やエビデンス評価を含む実務的なライフサイエンス研究を測る新ベンチマークLifeSciBenchを公開した。"
+    },
+    {
+      "heading": "Anthropicと米ホワイトハウス、AIモデル脆弱性の共通評価ルール策定へ",
+      "normalizedHeading": "anthropicと米ホワイトハウスaiモデル脆弱性の共通評価ルール策定へ",
+      "publishedDate": "",
+      "selectedDate": "2026-06-19",
+      "sourceUrl": "https://www.businessinsider.com/white-house-talks-anthropic-ai-security-rules-2026-6",
+      "topicKey": "",
+      "companyNames": [
+        "Anthropic"
+      ],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "Business Insiderが2026年6月18日に報じたところによると、ホワイトハウスとAnthropicは新モデルのセキュリティ欠陥の深刻度を判定する共通枠組みの策定を進めている。"
+    },
+    {
+      "heading": "Googleの共同創業級研究者Noam Shazeer氏がOpenAIへ移籍",
+      "normalizedHeading": "googleの共同創業級研究者noamshazeer氏がopenaiへ移籍",
+      "publishedDate": "",
+      "selectedDate": "2026-06-19",
+      "sourceUrl": "https://www.axios.com/2026/06/18/noam-shazeer-google-openai-characterai",
+      "topicKey": "",
+      "companyNames": [
+        "OpenAI",
+        "Google"
+      ],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "Axiosは2026年6月18日、Geminiの共同リードでありCharacterAI共同創業者でもあるNoam Shazeer氏がGoogleを離れOpenAIへ移ると報じた。"
+    },
+    {
+      "heading": "トランプ政権、Anthropicへの強硬姿勢を一部緩和",
+      "normalizedHeading": "トランプ政権anthropicへの強硬姿勢を一部緩和",
+      "publishedDate": "",
+      "selectedDate": "2026-06-20",
+      "sourceUrl": "https://www.axios.com/2026/06/19/trump-anthropic-national-security-the-axios-show",
+      "topicKey": "",
+      "companyNames": [
+        "Anthropic"
+      ],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "Axiosが2026年6月19日に報じたところによると、トランプ大統領は先週Anthropicを国家安全保障上の脅威と見ていたが、G7後は関係が改善したと述べた。"
+    },
+    {
+      "heading": "Google、Nvidia対抗へTPU外販と資金支援を拡大",
+      "normalizedHeading": "googlenvidia対抗へtpu外販と資金支援を拡大",
+      "publishedDate": "",
+      "selectedDate": "2026-06-20",
+      "sourceUrl": "https://www.wsj.com/tech/ai/google-is-using-nvidias-playbook-to-build-a-rival-ai-chip-business-1eac86f9",
+      "topicKey": "",
+      "companyNames": [
+        "Google",
+        "NVIDIA"
+      ],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "ウォール・ストリート・ジャーナルが2026年6月19日に報じたところによると、GoogleはTPU事業を外販本格化し、Nvidia型の資金支援モデルまで取り入れている。"
+    },
+    {
+      "heading": "OpenAI、デバイス部門の体制強化でハードウェア計画を前進",
+      "normalizedHeading": "openaiデバイス部門の体制強化でハードウェア計画を前進",
+      "publishedDate": "",
+      "selectedDate": "2026-06-20",
+      "sourceUrl": "https://www.axios.com/2026/06/18/openai-devices-ha-thai",
+      "topicKey": "",
+      "companyNames": [
+        "OpenAI"
+      ],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "Axiosは2026年6月18日、MetaのReality Labsで広報を率いたHa Thai氏がOpenAIに移り、デバイス部門のコミュニケーション責任者になると報じた。"
+    },
+    {
+      "heading": "AlphaFoldのJohn Jumper氏がDeepMindを離れAnthropicへ",
+      "normalizedHeading": "alphafoldのjohnjumper氏がdeepmindを離れanthropicへ",
+      "publishedDate": "",
+      "selectedDate": "2026-06-20",
+      "sourceUrl": "https://www.businessinsider.com/alphafold-john-jumper-leaves-google-deepmind-anthropic-demis-hassabis-nobel-2026-6",
+      "topicKey": "",
+      "companyNames": [
+        "Anthropic",
+        "Google"
+      ],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "Business Insiderは2026年6月19日、AlphaFoldを率いて2024年ノーベル化学賞をDemis Hassabis氏と共同受賞したJohn Jumper氏がGoogle DeepMindを退社し、Anthropicへ移ると報じた。"
+    },
+    {
+      "heading": "SpaceX、AIコーディング企業Cursorを600億ドルで買収へ",
+      "normalizedHeading": "spacexaiコーディング企業cursorを600億ドルで買収へ",
+      "publishedDate": "",
+      "selectedDate": "2026-06-20",
+      "sourceUrl": "https://www.axios.com/2026/06/16/spacex-cursor-60-billion-musk",
+      "topicKey": "",
+      "companyNames": [
+        "SpaceX"
+      ],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "Axiosが2026年6月16日に報じたところによると、SpaceXはAIコーディング企業Cursorに対するコールオプションを行使し、600億ドルで買収する。"
+    },
+    {
+      "heading": "HPがOpenAIとの「Frontier」提携を全社展開フェーズへ拡大",
+      "normalizedHeading": "hpがopenaiとのfrontier提携を全社展開フェーズへ拡大",
+      "publishedDate": "",
+      "selectedDate": "2026-06-29",
+      "sourceUrl": "https://openai.com/index/hp-frontier-partnership/",
+      "topicKey": "",
+      "companyNames": [
+        "OpenAI"
+      ],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "OpenAIは6月28日、HPがパイロット導入の成果を受けて、OpenAI Frontier戦略提携の適用範囲を全社規模へ広げると発表した。対象は顧客向け体験、テレメトリー分析、従業員生産性、ソフトウェア開発まで横断している。"
+    },
+    {
+      "heading": "OpenAIがIPO準備へ、米SECに非公開で上場書類を提出",
+      "normalizedHeading": "openaiがipo準備へ米secに非公開で上場書類を提出",
+      "publishedDate": "",
+      "selectedDate": "2026-06-22",
+      "sourceUrl": "https://apnews.com/article/openai-ipo-chatgpt-c7583994426b1b097120786d6a0b8308",
+      "topicKey": "",
+      "companyNames": [
+        "OpenAI"
+      ],
+      "productNames": [
+        "ChatGPT"
+      ],
+      "category": "",
+      "summaryFingerprint": "OpenAIは米証券取引委員会（SEC）に非公開で上場準備書類を提出し、株式公開の選択肢を正式に持った。時価総額はAP報道時点で約8520億ドルとされ、巨額の計算資源投資を支えるために公開市場へのアクセスを確保する狙いが鮮明になっている。"
+    },
+    {
+      "heading": "米FERCがAIデータセンター向け送電網接続の迅速化を指示",
+      "normalizedHeading": "米fercがaiデータセンター向け送電網接続の迅速化を指示",
+      "publishedDate": "",
+      "selectedDate": "2026-06-22",
+      "sourceUrl": "https://apnews.com/article/power-electricity-ai-plants-data-centers-grid-506e3d206871111f15c3c62fc5368be5",
+      "topicKey": "",
+      "companyNames": [],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "米連邦エネルギー規制委員会（FERC）は6月18日、6つの広域送電運用者に対し、AIデータセンターなど大口需要家を電力網へ迅速に接続できる仕組み整備を命じた。接続に必要な系統増強費用はデータセンター側が負担する一方、州の料金権限は維持される。"
+    },
+    {
+      "heading": "Nvidiaが約200億ドルの社債発行へ、AI設備投資の資金調達が加速",
+      "normalizedHeading": "nvidiaが約200億ドルの社債発行へai設備投資の資金調達が加速",
+      "publishedDate": "",
+      "selectedDate": "2026-06-22",
+      "sourceUrl": "https://www.axios.com/2026/06/16/ai-nvidia-bonds-debt",
+      "topicKey": "",
+      "companyNames": [
+        "NVIDIA"
+      ],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "Nvidiaは約200億ドル規模の社債発行に動き、AI投資ブームが株式だけでなく社債市場にも波及していることが鮮明になった。Axiosは、ハイパースケーラー各社の2026年設備投資が営業キャッシュフロー並みに膨らみ、負債や増資で賄う流れが広がっていると伝えている。"
+    },
+    {
+      "heading": "Anthropicが非営利向けAI活用支援『Claude Corps』を開始",
+      "normalizedHeading": "anthropicが非営利向けai活用支援claudecorpsを開始",
+      "publishedDate": "",
+      "selectedDate": "2026-06-22",
+      "sourceUrl": "https://apnews.com/article/anthropic-ai-claude-corps-daniela-amodei-b1c130a08417d13e1256f8982d233b0e",
+      "topicKey": "",
+      "companyNames": [
+        "Anthropic"
+      ],
+      "productNames": [
+        "Claude"
+      ],
+      "category": "",
+      "summaryFingerprint": "Anthropicは1,000人規模のフェローを非営利団体へ派遣する『Claude Corps』を発表し、少なくとも400団体に1万ドルの助成金とClaude利用クレジットを付与する。総額1.5億ドル規模で、AI導入の担い手を現場に送り込む実装重視の取り組みだ。"
+    },
+    {
+      "heading": "OpenAIがサイバー防衛向けGPT-5.5-Cyberを強化",
+      "normalizedHeading": "openaiがサイバー防衛向けgpt55cyberを強化",
+      "publishedDate": "",
+      "selectedDate": "2026-06-23",
+      "sourceUrl": "https://www.axios.com/2026/06/22/openai-rolls-out-more-capable-version-of-cyber-model",
+      "topicKey": "",
+      "companyNames": [
+        "OpenAI"
+      ],
+      "productNames": [
+        "GPT-5.5"
+      ],
+      "category": "",
+      "summaryFingerprint": "OpenAIは2026年6月22日、認証済みのサイバー防衛企業・研究者向けにGPT-5.5-Cyberの強化版を公開した。従来より高性能かつ利用許容範囲を広げつつ、利用先は審査制に限定している。あわせて各国政府や研究機関との協力枠組みも広げ、攻撃側だけでなく防御側にも先端AIを配備する流れを強めている。"
+    },
+    {
+      "heading": "Getty ImagesがOpenAIと提携し、ChatGPTの検索表示に画像提供",
+      "normalizedHeading": "gettyimagesがopenaiと提携しchatgptの検索表示に画像提供",
+      "publishedDate": "",
+      "selectedDate": "2026-06-23",
+      "sourceUrl": "https://www.wsj.com/livecoverage/stock-market-today-dow-sp-500-nasdaq-06-22-2026/card/getty-images-stock-jumps-following-openai-partnership-J6D5bCBqHA0Lijt1yUhf",
+      "topicKey": "",
+      "companyNames": [
+        "OpenAI"
+      ],
+      "productNames": [
+        "ChatGPT"
+      ],
+      "category": "",
+      "summaryFingerprint": "Getty Imagesは2026年6月22日、OpenAIと複数年の提携を結び、ライセンス画像をChatGPTの検索・発見機能に提供する方向を打ち出した。学習用途ではなく表示用途の契約とされ、市場はこの提携を高く評価し、Getty株は急騰した。著作権者とAI企業の関係が対立一辺倒ではなく、配信契約へ移る流れが鮮明になっている。"
+    },
+    {
+      "heading": "MicronがAnthropic向けにHBM・DRAM・SSD供給を含む戦略提携",
+      "normalizedHeading": "micronがanthropic向けにhbmdramssd供給を含む戦略提携",
+      "publishedDate": "",
+      "selectedDate": "2026-06-23",
+      "sourceUrl": "https://www.marketwatch.com/story/microns-stock-momentum-builds-as-the-company-inks-a-new-anthropic-partnership-484e3845",
+      "topicKey": "",
+      "companyNames": [
+        "Anthropic"
+      ],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "Micronは2026年6月22日、Anthropic向けに高帯域幅メモリ、DRAM、SSDを設計・供給する戦略提携を公表した。AIモデル運用の性能・効率・コストを改善する狙いで、Anthropicの長期拡大を支えるインフラ契約として受け止められている。発表を受けてMicron株は上昇し、AIメモリ需要の強さを改めて印象づけた。"
+    },
+    {
+      "heading": "Five Eyesが“数カ月以内に政府や企業を揺るがすAIが出る”と警告",
+      "normalizedHeading": "fiveeyesが数カ月以内に政府や企業を揺るがすaiが出ると警告",
+      "publishedDate": "",
+      "selectedDate": "2026-06-23",
+      "sourceUrl": "https://www.theguardian.com/technology/2026/jun/22/anthropic-claude-fable-ai-model-artificial-intelligence-national-security",
+      "topicKey": "",
+      "companyNames": [
+        "Anthropic"
+      ],
+      "productNames": [
+        "Claude"
+      ],
+      "category": "",
+      "summaryFingerprint": "米英豪加NZの情報同盟Five Eyesは2026年6月22日までに、国家や企業に深刻な打撃を与え得るAIモデルが数カ月以内に現れうるとする異例の警告を出した。とくにサイバー分野では、防御強化と同時に攻撃自動化も進むとして、経営レベルでの対応を急ぐよう促している。AIリスクが研究者だけでなく安全保障・事業継続の問題として扱われ始めた形だ。"
+    },
+    {
+      "heading": "G7でマクロン氏が先端AI共有と民主主義国の規制協調を提唱",
+      "normalizedHeading": "g7でマクロン氏が先端ai共有と民主主義国の規制協調を提唱",
+      "publishedDate": "",
+      "selectedDate": "2026-06-23",
+      "sourceUrl": "https://apnews.com/article/7d783c6de4356962e338b8b8563d48ea",
+      "topicKey": "",
+      "companyNames": [],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "2026年6月17日、フランスのマクロン大統領はG7の場で、最先端AIを米国だけで囲い込まず民主主義国間で共有し、規制も協調して進めるべきだと訴えた。報道によれば、OpenAIのサム・アルトマン氏も国際的な安全基準づくりの必要性を支持した。AI覇権競争が企業間競争から同盟国間の制度設計にまで広がっている。"
+    },
+    {
+      "heading": "Google DeepMindの人材流出が加速、OpenAIとAnthropicが引き抜き",
+      "normalizedHeading": "googledeepmindの人材流出が加速openaiとanthropicが引き抜き",
+      "publishedDate": "",
+      "selectedDate": "2026-06-24",
+      "sourceUrl": "https://www.axios.com/2026/06/23/ai-lab-agi-google-deepmind-departures",
+      "topicKey": "",
+      "companyNames": [
+        "OpenAI",
+        "Anthropic",
+        "Google",
+        "Google DeepMind"
+      ],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "6月23日時点で、Google DeepMindからNoam ShazeerがOpenAIへ移り、John JumperのAnthropic移籍と合わせてGoogleの人材流出が改めて注目された。市場ではGoogleのAI主導力に対する懸念が強まり、AI競争が計算資源だけでなくトップ研究者の争奪戦であることが鮮明になった。"
+    },
+    {
+      "heading": "Microsoftが低価格AI路線を鮮明化、AI寡占への対抗姿勢",
+      "normalizedHeading": "microsoftが低価格ai路線を鮮明化ai寡占への対抗姿勢",
+      "publishedDate": "",
+      "selectedDate": "2026-06-24",
+      "sourceUrl": "https://www.wsj.com/tech/ai/microsofts-satya-nadella-we-cant-let-ai-giants-eat-the-economy-b9d33b9f",
+      "topicKey": "",
+      "companyNames": [
+        "Microsoft"
+      ],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "6月22日公開のWall Street Journalインタビューで、Satya NadellaはOpenAI、Anthropic、Googleのような少数企業への集中を批判し、より安価で選択肢のあるAI市場を訴えた。Microsoftは法人向けに低コストモデルを前面に出し、最先端モデル一辺倒ではない競争軸を作ろうとしている。"
+    },
+    {
+      "heading": "Google DeepMindが自律AIエージェント向けの『AI Control Roadmap』を公表",
+      "normalizedHeading": "googledeepmindが自律aiエージェント向けのaicontrolroadmapを公表",
+      "publishedDate": "",
+      "selectedDate": "2026-06-22",
+      "sourceUrl": "https://www.axios.com/2026/06/18/google-deepmind-prepares-for-rogue-ai-agents",
+      "topicKey": "",
+      "companyNames": [
+        "Google",
+        "Google DeepMind"
+      ],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "Google DeepMindは6月18日、将来の高性能エージェントを『内部脅威』に近い前提で扱う安全運用の青写真を公表した。監視、アラート、リアルタイム停止まで段階的に防御を強める考えで、既にGemini Spark向けのライブ監視にも知見を反映している。"
+    },
+    {
+      "heading": "Google、Gemini搭載Home Speakerを発売へ",
+      "normalizedHeading": "googlegemini搭載homespeakerを発売へ",
+      "publishedDate": "",
+      "selectedDate": "2026-06-18",
+      "sourceUrl": "https://www.wired.com/story/the-gemini-powered-google-home-speaker-is-finally-here/",
+      "topicKey": "",
+      "companyNames": [
+        "Google"
+      ],
+      "productNames": [
+        "Gemini"
+      ],
+      "category": "",
+      "summaryFingerprint": "WIREDによると、Googleは6月17日にGemini搭載の新しいGoogle Home Speakerの予約を開始し、6月25日に100ドルで発売する。"
+    },
+    {
+      "heading": "AnthropicがSlack常駐型の共同作業機能「Claude Tag」をベータ公開",
+      "normalizedHeading": "anthropicがslack常駐型の共同作業機能claudetagをベータ公開",
+      "publishedDate": "",
+      "selectedDate": "2026-06-29",
+      "sourceUrl": "https://www.anthropic.com/news/introducing-claude-tag",
+      "topicKey": "",
+      "companyNames": [
+        "Anthropic"
+      ],
+      "productNames": [
+        "Claude",
+        "Claude Tag"
+      ],
+      "category": "",
+      "summaryFingerprint": "Anthropicは6月23日、ClaudeをSlackのチームメンバーとして招き、チャンネル内で @Claude を付けて仕事を委任できる「Claude Tag」を発表した。社内ではプロダクトチームのコードの65%が内部版Claude Tagで作られているとしており、将来はSlack以外にも広げる方針だ。"
+    },
+    {
+      "heading": "カリフォルニア州、Anthropicと提携しClaudeを州・地方政府へ半額提供",
+      "normalizedHeading": "カリフォルニア州anthropicと提携しclaudeを州地方政府へ半額提供",
+      "publishedDate": "",
+      "selectedDate": "2026-06-30",
+      "sourceUrl": "https://www.businessinsider.com/newsom-anthropic-ink-deal-expand-government-use-2026-6",
+      "topicKey": "",
+      "companyNames": [
+        "Anthropic"
+      ],
+      "productNames": [
+        "Claude"
+      ],
+      "category": "",
+      "summaryFingerprint": "カリフォルニア州のギャビン・ニューサム知事は、Anthropicと契約し、Claudeを州政府機関と地方自治体向けに50%割引で提供する枠組みを打ち出した。"
+    },
+    {
+      "heading": "Anthropicが日常業務向けの「Claude Sonnet 5」を前面投入",
+      "normalizedHeading": "anthropicが日常業務向けのclaudesonnet5を前面投入",
+      "publishedDate": "",
+      "selectedDate": "2026-07-05",
+      "sourceUrl": "https://www.axios.com/2026/06/30/anthropic-sonnet-5-agents-mythos-fable",
+      "topicKey": "",
+      "companyNames": [
+        "Anthropic"
+      ],
+      "productNames": [
+        "Claude"
+      ],
+      "category": "",
+      "summaryFingerprint": "Axiosは6月30日、Anthropicが日常業務向けの主力モデルとしてClaude Sonnet 5を投入し、Claudeの標準体験をこのモデルへ切り替えたと報じました。"
+    },
+    {
+      "heading": "AnthropicのFable 5が再開、政府によるモデル公開介入の前例が残る",
+      "normalizedHeading": "anthropicのfable5が再開政府によるモデル公開介入の前例が残る",
+      "publishedDate": "",
+      "selectedDate": "2026-07-05",
+      "sourceUrl": "https://www.axios.com/2026/07/01/anthropic-fable-5-back-online-trump-export-controls-lifted",
+      "topicKey": "",
+      "companyNames": [
+        "Anthropic"
+      ],
+      "productNames": [
+        "Fable 5"
+      ],
+      "category": "",
+      "summaryFingerprint": "Axiosは7月1日、Anthropicの高性能モデルFable 5が再公開されたと報じました。直前まで安全保障上の懸念で提供が抑えられていました。"
+    },
+    {
+      "heading": "OpenAIの政府持ち分案とGPT-5.6遅延報道、AI産業政策が新段階へ",
+      "normalizedHeading": "openaiの政府持ち分案とgpt56遅延報道ai産業政策が新段階へ",
+      "publishedDate": "",
+      "selectedDate": "2026-07-05",
+      "sourceUrl": "https://www.tomshardware.com/tech-industry/artificial-intelligence/openai-floats-5-percent-government-stake-days-after-washington-delayed-gpt-5-6",
+      "topicKey": "",
+      "companyNames": [
+        "OpenAI"
+      ],
+      "productNames": [
+        "GPT-5.6"
+      ],
+      "category": "",
+      "summaryFingerprint": "Tom's Hardwareは7月3日、OpenAIが米政府に約5%の持ち分を持たせる案を初期検討しており、その直前にGPT-5.6の一般公開が政府判断で遅れたと報じました。"
+    },
+    {
+      "heading": "AnthropicがFable 5の追加安全策と脱獄評価枠組みを公表",
+      "normalizedHeading": "anthropicがfable5の追加安全策と脱獄評価枠組みを公表",
+      "publishedDate": "",
+      "selectedDate": "2026-07-06",
+      "sourceUrl": "https://www.anthropic.com/news",
+      "topicKey": "",
+      "companyNames": [
+        "Anthropic"
+      ],
+      "productNames": [
+        "Fable 5"
+      ],
+      "category": "",
+      "summaryFingerprint": "Anthropicは2026年7月2日、Fable 5の再展開後に追加したサイバー安全策の詳細と、脱獄の深刻度を評価する業界横断フレームワーク案を公表した。Amazon、Microsoft、GoogleなどのGlasswing参加企業と足並みをそろえ、モデルの危険な使われ方を共通尺度で評価したい考えを示している。6月の政府介入を受けた後続対応として、単なる再開ではなく運用ルール作りまで踏み込んだ点が大きい。"
+    },
+    {
+      "heading": "Metaの次期AI「Watermelon」がOpenAI級に接近と報道",
+      "normalizedHeading": "metaの次期aiwatermelonがopenai級に接近と報道",
+      "publishedDate": "",
+      "selectedDate": "2026-07-06",
+      "sourceUrl": "https://www.businessinsider.com/meta-ai-model-catches-up-openai-gpt-5-says-2026-7",
+      "topicKey": "",
+      "companyNames": [
+        "OpenAI",
+        "Meta"
+      ],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "Business Insiderは2026年7月4日、Meta Superintelligence Labsを率いるAlexandr Wang氏が社内集会で、開発中モデル『Watermelon』はOpenAIのGPT-5.5級に達したと説明したと報じた。コーディングとエージェント性能の強化も示唆されており、Metaの巨額投資がようやくモデル競争力に反映され始めた可能性がある。現時点ではMetaの公式性能公開ではなく報道ベースである点には留意が必要だ。"
+    },
+    {
+      "heading": "Microsoft展開研究、CLI型AIコーディング導入でPR数が約24%増",
+      "normalizedHeading": "microsoft展開研究cli型aiコーディング導入でpr数が約24増",
+      "publishedDate": "",
+      "selectedDate": "2026-07-06",
+      "sourceUrl": "https://arxiv.org/abs/2607.01418",
+      "topicKey": "",
+      "companyNames": [
+        "Microsoft"
+      ],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "7月1日公開のarXiv論文では、Microsoftでの2026年前半のClaude CodeとGitHub Copilot CLI導入を分析し、採用者は反実仮想比で約24%多くPRをマージしたと報告した。初回利用は同僚ネットワーク経由で広がり、継続利用は属性より日常のコーディング量と結びついていたという。AIエージェント導入効果を大規模組織データで示した点が注目される。"
+    },
+    {
+      "heading": "新研究、AIコード生成は人のレビュー速度を上回り始めたと示唆",
+      "normalizedHeading": "新研究aiコード生成は人のレビュー速度を上回り始めたと示唆",
+      "publishedDate": "",
+      "selectedDate": "2026-07-06",
+      "sourceUrl": "https://arxiv.org/abs/2607.01904",
+      "topicKey": "",
+      "companyNames": [],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "7月2日公開の別のarXiv研究は、AI導入を強く進めた企業で1人あたりのマージ済みPRが最終的に2.09倍になった一方、レビュー負荷はおおむね倍増し、自動レビューが人手レビューを上回ったと報告した。マージ率やリバート率は大きく悪化していないが、ボトルネックが『書くこと』から『確認すること』へ移った構図が見える。AI普及の次の課題が品質管理体制にあると示す内容だ。"
+    },
+    {
+      "heading": "マルチエージェント基盤の新分析、人気指標だけでは選べない実態",
+      "normalizedHeading": "マルチエージェント基盤の新分析人気指標だけでは選べない実態",
+      "publishedDate": "",
+      "selectedDate": "2026-07-06",
+      "sourceUrl": "https://arxiv.org/abs/2607.02453",
+      "topicKey": "",
+      "companyNames": [],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "7月2日のarXiv研究は、主要オープンソースのAIエージェント基盤15件を長期分析し、GitHubスター数は採用の深さをほとんど保証しないと報告した。LangChainは横断的な貢献者を最も多く引きつける共有基盤として強く、AutoGPTのように話題先行で貢献密度が低い例も確認された。フレームワーク選定で『勢い』より維持率や貢献密度を見るべきだという実証的な材料になっている。"
+    },
+    {
+      "heading": "AnthropicがTeraWulfと20年・190億ドル規模のAIデータセンター契約",
+      "normalizedHeading": "anthropicがterawulfと20年190億ドル規模のaiデータセンター契約",
+      "publishedDate": "",
+      "selectedDate": "2026-07-07",
+      "sourceUrl": "https://www.wsj.com/finance/investing/terawulf-signs-19-billion-lease-with-anthropic-for-ai-infrastructure-campus-ef26be27",
+      "topicKey": "",
+      "companyNames": [
+        "Anthropic"
+      ],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "AnthropicはTeraWulfと、ケンタッキー州HawesvilleのAIインフラ拠点を対象に20年契約を締結したと報じられた。"
+    },
+    {
+      "heading": "SpaceXが軌道上AI計算向け『Starmind』衛星構想を公開",
+      "normalizedHeading": "spacexが軌道上ai計算向けstarmind衛星構想を公開",
+      "publishedDate": "",
+      "selectedDate": "2026-07-07",
+      "sourceUrl": "https://www.barrons.com/articles/spacex-stock-price-satellite-deorbit-ai-0b1e8869",
+      "topicKey": "",
+      "companyNames": [
+        "SpaceX"
+      ],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "SpaceXは、AI計算向けの軌道上データセンターとして機能する『Starmind』衛星群の構想を明らかにしたと報じられた。"
+    },
+    {
+      "heading": "国連が『AI for Good Global Commission』を立ち上げ",
+      "normalizedHeading": "国連がaiforgoodglobalcommissionを立ち上げ",
+      "publishedDate": "",
+      "selectedDate": "2026-07-07",
+      "sourceUrl": "https://www.axios.com/2026/07/01/un-ai-commission-ceos-world-leaders",
+      "topicKey": "",
+      "companyNames": [],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "国連とITUは、AI開発企業の経営陣と各国首脳を同じ場に集める『AI for Good Global Commission』を発足させた。"
+    },
+    {
+      "heading": "Metaが余剰AI計算資源の外販『Meta Compute』を検討",
+      "normalizedHeading": "metaが余剰ai計算資源の外販metacomputeを検討",
+      "publishedDate": "",
+      "selectedDate": "2026-07-07",
+      "sourceUrl": "https://www.tomshardware.com/tech-industry/meta-reportedly-plans-to-rent-out-its-ai-compute",
+      "topicKey": "",
+      "companyNames": [
+        "Meta"
+      ],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "Metaは社内向けに積み上げたAI計算資源を外部販売する新クラウド事業『Meta Compute』を検討中と報じられた。"
+    },
+    {
+      "heading": "OpenAIがCodex向け新ハードウェアを予告",
+      "normalizedHeading": "openaiがcodex向け新ハードウェアを予告",
+      "publishedDate": "",
+      "selectedDate": "2026-07-07",
+      "sourceUrl": "https://www.theverge.com/ai-artificial-intelligence/959174/openai-codex-hardware-work-louder",
+      "topicKey": "",
+      "companyNames": [
+        "OpenAI"
+      ],
+      "productNames": [
+        "Codex"
+      ],
+      "category": "",
+      "summaryFingerprint": "OpenAIはCodex向けの新ハードウェアを予告し、2026年7月15日に詳細公開すると報じられた。"
+    },
+    {
+      "heading": "主要AI企業の安全誓約が後退したとの監視報告",
+      "normalizedHeading": "主要ai企業の安全誓約が後退したとの監視報告",
+      "publishedDate": "",
+      "selectedDate": "2026-07-08",
+      "sourceUrl": "https://www.axios.com/2026/07/07/report-ai-safety-pledges",
+      "topicKey": "",
+      "companyNames": [],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "Future of Life Instituteの最新AI Safety Indexでは、Anthropic、OpenAI、Google DeepMind、Metaなどが以前より強い停止条件や安全誓約を弱めたと指摘された。Anthropicが首位でも評価はC+にとどまり、OpenAIとGoogle DeepMindもC評価だった。政府規制が整う前に、自主的な安全ガードレールの実効性が落ちているという構図が鮮明になった。"
+    },
+    {
+      "heading": "DeepSeekがNvidia・Huawei依存を減らす自前AIチップを開発中",
+      "normalizedHeading": "deepseekがnvidiahuawei依存を減らす自前aiチップを開発中",
+      "publishedDate": "",
+      "selectedDate": "2026-07-08",
+      "sourceUrl": "https://timesofindia.indiatimes.com/technology/tech-news/chinas-deepseek-developing-its-own-ai-chip-to-cut-reliance-on-nvidia-huawei-report/articleshow/132238576.cms",
+      "topicKey": "",
+      "companyNames": [
+        "DeepSeek",
+        "NVIDIA"
+      ],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "Reuters報道として、DeepSeekが推論向けAIチップを独自開発していると伝えられた。計画はまだ初期段階だが、外部パートナーと組みつつチップ設計体制を拡大しているという。対米規制や供給制約を受け、中国AI企業がハードウェア自立へ踏み込む流れを示す動きだ。"
+    },
+    {
+      "heading": "AnthropicがClaude内部の思考ワークスペース「J-Space」を説明",
+      "normalizedHeading": "anthropicがclaude内部の思考ワークスペースjspaceを説明",
+      "publishedDate": "",
+      "selectedDate": "2026-07-08",
+      "sourceUrl": "https://www.axios.com/2026/07/06/anthropic-claude-ai-conscious",
+      "topicKey": "",
+      "companyNames": [
+        "Anthropic"
+      ],
+      "productNames": [
+        "Claude"
+      ],
+      "category": "",
+      "summaryFingerprint": "Anthropicは、Claudeが言語化されない内部ワークスペースで概念を保持し操作していると説明した。公開されるchain of thoughtとは別に、戦略立案や注意の切り替えに使われる領域があるという。意識の有無を主張したわけではないが、モデル内部状態の観測が安全監視に使える可能性を示した。"
+    },
+    {
+      "heading": "Microsoft TeamsでCopilotなど会議AIを無効化しやすくする方向へ",
+      "normalizedHeading": "microsoftteamsでcopilotなど会議aiを無効化しやすくする方向へ",
+      "publishedDate": "",
+      "selectedDate": "2026-07-08",
+      "sourceUrl": "https://www.windowscentral.com/software-apps/microsoft-teams-just-made-it-easier-to-shut-down-copilot-and-other-ai-tools",
+      "topicKey": "",
+      "companyNames": [
+        "Microsoft"
+      ],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "Microsoft Teamsでは、会議主催者や管理者がCopilot、Facilitator、Intelligent RecapなどのMeeting AI機能を個別または一括で無効化しやすくなると報じられた。生産性向上の期待がある一方、常時AI要約や自動介入への反発も強く、導入の現実解として制御権の強化が進んでいる。企業内でのAI常時適用に対し、オンオフ管理を前提にした設計へ寄っている。"
+    },
+    {
+      "heading": "AI向けデータセンター拡大で大手テックの気候目標が圧迫",
+      "normalizedHeading": "ai向けデータセンター拡大で大手テックの気候目標が圧迫",
+      "publishedDate": "",
+      "selectedDate": "2026-07-08",
+      "sourceUrl": "https://www.theguardian.com/technology/2026/jul/06/ai-climate-crisis",
+      "topicKey": "",
+      "companyNames": [],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "Google、Amazon、Microsoft、Metaの排出量増加が、AIインフラ増強で一段と重くなっているとGuardianが報じた。再エネ投資だけでは追いつかず、電力確保のため化石燃料由来の発電にも依存が残っている。AIの成長が収益だけでなく、電力・排出・立地摩擦という実体コストを押し上げている。"
+    },
+    {
+      "heading": "GitHub Copilotアプリが全Copilotプランで利用可能に",
+      "normalizedHeading": "copilotアプリが全copilotプランで利用可能に",
+      "publishedDate": "2026-07-07",
+      "selectedDate": "2026-07-08",
+      "sourceUrl": "https://github.blog/changelog/2026-07-07-github-copilot-app-available-to-all/",
+      "topicKey": "",
+      "companyNames": [
+        "GitHub"
+      ],
+      "productNames": [
+        "GitHub Copilot",
+        "Copilot app"
+      ],
+      "category": "製品・サービス",
+      "summaryFingerprint": "GitHub CopilotアプリがFree、Education、Business、Enterpriseを含む全Copilotプランで使えるようになった。Windows・macOS・Linuxに対応し、Copilot契約がなくてもBYOKで独自モデルを接続してエージェント開発を始められる。"
+    },
+    {
+      "heading": "GitHub Copilotのブラウザ操作ツールがVS Codeで一般提供",
+      "normalizedHeading": "copilotのブラウザ操作ツールがvscodeで一般提供",
+      "publishedDate": "2026-07-01",
+      "selectedDate": "2026-07-08",
+      "sourceUrl": "https://github.blog/changelog/2026-07-01-browser-tools-for-github-copilot-in-vs-code-are-generally-available/",
+      "topicKey": "",
+      "companyNames": [
+        "GitHub"
+      ],
+      "productNames": [
+        "GitHub Copilot",
+        "VS Code"
+      ],
+      "category": "AIエージェント",
+      "summaryFingerprint": "VS CodeのGitHub Copilotエージェントが実ブラウザを開き、ページ遷移、クリック、入力、スクリーンショット取得、コンソール確認まで行える機能が一般提供になった。共有していない既存タブには触れず、エージェントが開くタブは通常ブラウジングのCookieや保存領域から分離される。"
+    },
+    {
+      "heading": "GitHub Copilot Visionが一般提供、画像とPDFを全プランで添付可能に",
+      "normalizedHeading": "copilotvisionが一般提供画像とpdfを全プランで添付可能に",
+      "publishedDate": "2026-07-01",
+      "selectedDate": "2026-07-08",
+      "sourceUrl": "https://github.blog/changelog/2026-07-01-copilot-vision-is-generally-available/",
+      "topicKey": "",
+      "companyNames": [
+        "GitHub"
+      ],
+      "productNames": [
+        "GitHub Copilot",
+        "VS Code"
+      ],
+      "category": "製品・サービス",
+      "summaryFingerprint": "Copilot Visionが一般提供となり、チャットに画像やPDFを直接添付してコードと合わせて推論できるようになった。VS Code、github.com、Copilot CLIで利用でき、FreeからEnterpriseまで全Copilotプランで既定有効になった。"
+    },
+    {
+      "heading": "国連・ITUが「AI for Good Global Commission」を始動",
+      "normalizedHeading": "国連ituがaiforgoodglobalcommissionを始動",
+      "publishedDate": "",
+      "selectedDate": "2026-07-05",
+      "sourceUrl": "https://www.axios.com/2026/07/01/un-ai-commission-ceos-world-leaders",
+      "topicKey": "",
+      "companyNames": [],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "Axiosは7月1日、国連と国際電気通信連合が、国家首脳級と主要AI企業を交えた「AI for Good Global Commission」を立ち上げると報じました。"
+    },
+    {
+      "heading": "英Stargate計画に実体面の疑義、OpenAIの対英AI投資に再検証圧力",
+      "normalizedHeading": "英stargate計画に実体面の疑義openaiの対英ai投資に再検証圧力",
+      "publishedDate": "",
+      "selectedDate": "2026-07-05",
+      "sourceUrl": "https://www.theguardian.com/technology/2026/jul/04/openai-apparent-failure-visit-key-site-questions-stargate-uk-project",
+      "topicKey": "",
+      "companyNames": [
+        "OpenAI"
+      ],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "The Guardianは7月4日、英政府が大きく打ち出したStargate UK構想について、主要候補地への現地確認や実投資の裏付けが弱く、計画の実体に疑義が出ていると報じました。"
+    },
+    {
+      "heading": "ReflectionがSpaceXの大規模計算資源を確保し、オープンAI陣営が増勢",
+      "normalizedHeading": "reflectionがspacexの大規模計算資源を確保しオープンai陣営が増勢",
+      "publishedDate": "",
+      "selectedDate": "2026-07-04",
+      "sourceUrl": "https://www.axios.com/2026/06/22/open-source-ai-gets-more-compute-from-spacex",
+      "topicKey": "",
+      "companyNames": [
+        "SpaceX"
+      ],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "オープンソースAI企業Reflectionは、SpaceXAIのColossus 2データセンターから大規模な計算資源を確保する契約を結びました。"
+    },
+    {
+      "heading": "中国勢がサイバー領域でAnthropic級に接近との報道",
+      "normalizedHeading": "中国勢がサイバー領域でanthropic級に接近との報道",
+      "publishedDate": "",
+      "selectedDate": "2026-07-04",
+      "sourceUrl": "https://www.wsj.com/tech/ai/chinese-ai-anthropic-mythos-cybersecurity-574b02c2",
+      "topicKey": "",
+      "companyNames": [
+        "Anthropic"
+      ],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "Wall Street Journalは、中国のZ.aiが脆弱性発見などのサイバー用途でAnthropicの上位モデルに匹敵する水準へ近づいたと報じました。"
+    },
+    {
+      "heading": "OpenAI、推論専用の自社AIチップ「Jalapeño」テスト開始",
+      "normalizedHeading": "openai推論専用の自社aiチップjalapeñoテスト開始",
+      "publishedDate": "",
+      "selectedDate": "2026-06-30",
+      "sourceUrl": "https://www.axios.com/2026/06/24/openai-jalapeno-ai-chip-broadcom-nvidia",
+      "topicKey": "",
+      "companyNames": [
+        "OpenAI",
+        "NVIDIA"
+      ],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "OpenAIはBroadcom支援のもとで開発した初の自社製AIチップ「Jalapeño」の試験運用を始め、年内に顧客向け推論処理へ使い始める計画を示した。"
+    },
+    {
+      "heading": "Meta、Virtue AI創業陣を引き抜きエージェント安全性を強化",
+      "normalizedHeading": "metavirtueai創業陣を引き抜きエージェント安全性を強化",
+      "publishedDate": "",
+      "selectedDate": "2026-06-30",
+      "sourceUrl": "https://www.axios.com/2026/06/25/meta-hires-virtue-ai-founders-security",
+      "topicKey": "",
+      "companyNames": [
+        "Meta"
+      ],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "Meta Superintelligence Labsは、AIセキュリティ企業Virtue AIの共同創業者Bo Li、Dawn Song、Sanmi Koyejoらと周辺チームを採用した。"
+    },
+    {
+      "heading": "米国で最先端AIの公開制限を巡る対立が表面化",
+      "normalizedHeading": "米国で最先端aiの公開制限を巡る対立が表面化",
+      "publishedDate": "",
+      "selectedDate": "2026-06-30",
+      "sourceUrl": "https://www.axios.com/2026/06/29/trump-ai-model-release-delays-tech-backlash",
+      "topicKey": "",
+      "companyNames": [],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "トランプ政権がOpenAIやAnthropicの高性能モデル公開に段階的な制限を求めたことで、国家安全保障を優先する立場と、対中競争力を守る立場の衝突が強まっている。"
+    },
+    {
+      "heading": "中国Z.aiのGLM-5.2、サイバー分野で米最先端に接近",
+      "normalizedHeading": "中国zaiのglm52サイバー分野で米最先端に接近",
+      "publishedDate": "",
+      "selectedDate": "2026-06-30",
+      "sourceUrl": "https://www.theverge.com/ai-artificial-intelligence/958804/chinas-z-ai-glm-52-mythos-cybersecurity",
+      "topicKey": "",
+      "companyNames": [],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "中国のZ.aiはオープンウェイトモデルGLM-5.2を公開し、一部研究者はバグ発見やサイバーセキュリティ用途でAnthropicのMythos級に迫るとみている。"
+    },
+    {
+      "heading": "OpenAIがGPT-5.6を限定公開、米政府要請で段階展開へ",
+      "normalizedHeading": "openaiがgpt56を限定公開米政府要請で段階展開へ",
+      "publishedDate": "",
+      "selectedDate": "2026-07-01",
+      "sourceUrl": "https://www.businessinsider.com/openai-gpt-5-6-limited-preview-us-government-ai-security-2026-6",
+      "topicKey": "",
+      "companyNames": [
+        "OpenAI"
+      ],
+      "productNames": [
+        "GPT-5.6"
+      ],
+      "category": "",
+      "summaryFingerprint": "OpenAIは2026年6月26日、GPT-5.6シリーズ（Sol、Terra、Luna）の限定プレビュー開始を発表した。米政府に事前共有したうえで、まずは政府と共有済みの少数パートナーに絞って提供し、一般公開は今後数週間で広げる方針だ。政府による事前レビューが常態化するべきではないという懸念も同時に示している。"
+    },
+    {
+      "heading": "AnthropicがClaude Sonnet 5を投入、エージェント機能を低コスト化",
+      "normalizedHeading": "anthropicがclaudesonnet5を投入エージェント機能を低コスト化",
+      "publishedDate": "",
+      "selectedDate": "2026-07-01",
+      "sourceUrl": "https://www.axios.com/2026/06/30/anthropic-sonnet-5-agents-mythos-fable",
+      "topicKey": "",
+      "companyNames": [
+        "Anthropic"
+      ],
+      "productNames": [
+        "Claude"
+      ],
+      "category": "",
+      "summaryFingerprint": "Anthropicは2026年6月30日、Claude Sonnet 5を公開した。ブラウザ操作、計画、コーディング、知識労働などの自律タスクを扱える一方、上位のOpusやMythosより危険なサイバー能力を抑えた設計だと説明している。Claude FreeとProの標準モデルになり、TeamやEnterpriseにも広がる。"
+    },
+    {
+      "heading": "Anthropicが製薬向け「Claude Science」を公開、科学研究用途を本格開拓",
+      "normalizedHeading": "anthropicが製薬向けclaudescienceを公開科学研究用途を本格開拓",
+      "publishedDate": "",
+      "selectedDate": "2026-07-01",
+      "sourceUrl": "https://www.ft.com/content/50c10721-bda6-439e-a6c3-755311e4b505",
+      "topicKey": "",
+      "companyNames": [
+        "Anthropic"
+      ],
+      "productNames": [
+        "Claude",
+        "Claude Science"
+      ],
+      "category": "",
+      "summaryFingerprint": "Anthropicは2026年6月30日、科学者や製薬業界向けの専用製品Claude Scienceを立ち上げた。3Dタンパク質モデリングや創薬支援などを想定し、より高リスクな生物系能力についてはアクセス管理を強める考えも示している。個人と企業の有料契約向けにグローバル提供する。"
+    },
+    {
+      "heading": "ホワイトハウスがMetaに先端AIモデルの事前審査参加を要請",
+      "normalizedHeading": "ホワイトハウスがmetaに先端aiモデルの事前審査参加を要請",
+      "publishedDate": "",
+      "selectedDate": "2026-07-01",
+      "sourceUrl": "https://www.techradar.com/pro/we-hope-to-sign-the-agreement-soon-white-house-calls-on-meta-to-submit-ai-models-for-review-citing-abilities-and-vulnerabilities-evaluation",
+      "topicKey": "",
+      "companyNames": [
+        "Meta"
+      ],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "米政権はMetaに対し、公開前の先端AIモデルを政府レビューに自主的に提出するよう求めている。OpenAI、Anthropic、Google、Microsoft、xAIなどはすでに同種の枠組みに参加しており、Metaも近く合意する可能性がある。焦点は能力評価だけでなく、サイバー攻撃や重要インフラへの悪用可能性だ。"
+    },
+    {
+      "heading": "OpenAIとAnthropicがAI雇用対策基金「Raise Us」を後押し",
+      "normalizedHeading": "openaiとanthropicがai雇用対策基金raiseusを後押し",
+      "publishedDate": "",
+      "selectedDate": "2026-07-01",
+      "sourceUrl": "https://www.axios.com/2026/06/25/anthropic-labor-market-ai-jobs-crisis",
+      "topicKey": "",
+      "companyNames": [
+        "OpenAI",
+        "Anthropic"
+      ],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "米商務長官経験者らが2026年6月25日、AIによる雇用変化に備える基金Raise Usを始動した。AnthropicとOpenAI Foundationが支援し、すでに5億ドルを確保、賃金保険や再訓練、AIキャリア支援などを4州で試す。AI企業自身が雇用ショックへの備えに資金を出す構図が鮮明になっている。"
+    },
+    {
+      "heading": "AnthropicのFable 5とMythos 5が規制解除で再開",
+      "normalizedHeading": "anthropicのfable5とmythos5が規制解除で再開",
+      "publishedDate": "",
+      "selectedDate": "2026-07-02",
+      "sourceUrl": "https://www.theguardian.com/technology/2026/jul/01/anthropic-fable-mythos-ai-models-us-export-controls-lifted",
+      "topicKey": "",
+      "companyNames": [
+        "Anthropic"
+      ],
+      "productNames": [
+        "Fable 5",
+        "Mythos 5"
+      ],
+      "category": "",
+      "summaryFingerprint": "Anthropicは米政府との調整を経て、国家安全保障上の懸念から制限されていたFable 5とMythos 5へのアクセス再開を発表した。"
+    },
+    {
+      "heading": "OpenAIがGPT-5による免疫学研究の新発見事例を公開",
+      "normalizedHeading": "openaiがgpt5による免疫学研究の新発見事例を公開",
+      "publishedDate": "",
+      "selectedDate": "2026-06-29",
+      "sourceUrl": "https://openai.com/index/gpt-5-immunology-mystery/",
+      "topicKey": "",
+      "companyNames": [
+        "OpenAI"
+      ],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "OpenAIは6月23日、免疫学者Derya Unutmaz氏がGPT-5 Proを使って、3年間解けなかったT細胞分化の謎を再解釈できた事例を紹介した。未公開実験の帰結予測でも一致が見られ、仮説生成と実験優先順位づけの加速効果が示された。"
+    },
+    {
+      "heading": "AI半導体スタートアップEtchedが8億ドルを調達",
+      "normalizedHeading": "ai半導体スタートアップetchedが8億ドルを調達",
+      "publishedDate": "",
+      "selectedDate": "2026-07-02",
+      "sourceUrl": "https://m.economictimes.com/markets/us-stocks/news/jane-street-tsmc-linked-ai-startup-etched-raises-800-m/articleshow/132103929.cms",
+      "topicKey": "",
+      "companyNames": [],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "AI推論向けチップを開発するEtchedが、Jane StreetやTSMC系投資家を含む出資陣から総額8億ドルを調達したと報じられた。"
+    },
+    {
+      "heading": "米議会でAIクラウド安全保障法案が提出へ",
+      "normalizedHeading": "米議会でaiクラウド安全保障法案が提出へ",
+      "publishedDate": "",
+      "selectedDate": "2026-07-02",
+      "sourceUrl": "https://www.axios.com/2026/06/26/gottheimer-moolenaar-ai-cloud-security-bill",
+      "topicKey": "",
+      "companyNames": [],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "米下院の超党派議員が、先端AI計算資源の外国悪用をクラウド経由でも把握しやすくするCloud Security Actを打ち出した。"
+    },
+    {
+      "heading": "MetaがVirtue AI創業陣を引き抜き安全性を補強",
+      "normalizedHeading": "metaがvirtueai創業陣を引き抜き安全性を補強",
+      "publishedDate": "",
+      "selectedDate": "2026-07-02",
+      "sourceUrl": "https://www.axios.com/2026/06/25/meta-hires-virtue-ai-founders-security",
+      "topicKey": "",
+      "companyNames": [
+        "Meta"
+      ],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "Meta Superintelligence Labsは、AIセキュリティ企業Virtue AIの共同創業者らを迎え入れ、安全性チームを強化したと報じられた。"
+    },
+    {
+      "heading": "国連とITUが「AI for Good Global Commission」を始動",
+      "normalizedHeading": "国連とituがaiforgoodglobalcommissionを始動",
+      "publishedDate": "",
+      "selectedDate": "2026-07-03",
+      "sourceUrl": "https://www.axios.com/2026/07/01/un-ai-commission-ceos-world-leaders",
+      "topicKey": "",
+      "companyNames": [],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "国連と国際電気通信連合（ITU）は、AI規制が各国で分断される中、主要テック企業の経営陣と各国首脳を同じ場に集める新たな委員会を立ち上げた。"
+    },
+    {
+      "heading": "xAIがノーコードの「Voice Agent Builder」をベータ公開",
+      "normalizedHeading": "xaiがノーコードのvoiceagentbuilderをベータ公開",
+      "publishedDate": "",
+      "selectedDate": "2026-07-03",
+      "sourceUrl": "https://x.ai/news/grok-voice-agent-builder",
+      "topicKey": "",
+      "companyNames": [
+        "xAI"
+      ],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "xAIは2026年7月1日、Grok Voice上で本番向け音声エージェントを構築できるノーコード環境を発表した。"
+    },
+    {
+      "heading": "OpenAIとBroadcomが推論特化チップ「Jalapeño」を公開",
+      "normalizedHeading": "openaiとbroadcomが推論特化チップjalapeñoを公開",
+      "publishedDate": "",
+      "selectedDate": "2026-07-03",
+      "sourceUrl": "https://openai.com/index/openai-broadcom-jalapeno-inference-chip/",
+      "topicKey": "",
+      "companyNames": [
+        "OpenAI"
+      ],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "OpenAIは2026年6月24日、Broadcomと共同でLLM推論向けアクセラレータ「Jalapeño」を公開し、自社インフラの垂直統合を前面に出した。"
+    },
+    {
+      "heading": "OpenAIが生物学向け評価基盤「GeneBench-Pro」を発表",
+      "normalizedHeading": "openaiが生物学向け評価基盤genebenchproを発表",
+      "publishedDate": "",
+      "selectedDate": "2026-07-03",
+      "sourceUrl": "https://openai.com/index/introducing-genebench-pro/",
+      "topicKey": "",
+      "companyNames": [
+        "OpenAI"
+      ],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "OpenAIは2026年6月30日、計算生物学でAIエージェントが曖昧さを含む判断をどこまで扱えるか測る研究用ベンチマーク「GeneBench-Pro」を公開した。"
+    },
+    {
+      "heading": "GoogleがGemini 3.5 Flashに「computer use」を統合",
+      "normalizedHeading": "googleがgemini35flashにcomputeruseを統合",
+      "publishedDate": "",
+      "selectedDate": "2026-07-03",
+      "sourceUrl": "https://blog.google/innovation-and-ai/models-and-research/gemini-models/introducing-computer-use-gemini-3-5-flash/",
+      "topicKey": "",
+      "companyNames": [
+        "Google"
+      ],
+      "productNames": [
+        "Gemini"
+      ],
+      "category": "",
+      "summaryFingerprint": "Googleは2026年6月24日、Gemini 3.5 Flashにブラウザ、モバイル、デスクトップをまたいで操作できるcomputer use機能を組み込んだ。"
+    },
+    {
+      "heading": "MetaがAIエージェントの進捗遅れを社内で認める",
+      "normalizedHeading": "metaがaiエージェントの進捗遅れを社内で認める",
+      "publishedDate": "",
+      "selectedDate": "2026-07-04",
+      "sourceUrl": "https://www.barrons.com/articles/meta-stock-ai-agents-1d9a080a",
+      "topicKey": "",
+      "companyNames": [
+        "Meta"
+      ],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "Metaのマーク・ザッカーバーグCEOは社内タウンホールで、AIエージェント分野の進展が想定より遅かったと認めました。"
+    },
+    {
+      "heading": "米政権が重いAI規制に否定的な姿勢を改めて明言",
+      "normalizedHeading": "米政権が重いai規制に否定的な姿勢を改めて明言",
+      "publishedDate": "",
+      "selectedDate": "2026-07-04",
+      "sourceUrl": "https://www.ft.com/content/5128e476-db8b-48ac-a8fb-0f16d0f5c2ed",
+      "topicKey": "",
+      "companyNames": [],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "トランプ政権の退任予定の技術顧問Sriram Krishnan氏は、FDA型の中央集権的なAI認可制度には反対だと述べました。"
+    },
+    {
+      "heading": "NvidiaがAIクラウド向けに収益分配型の新金融モデルを拡大",
+      "normalizedHeading": "nvidiaがaiクラウド向けに収益分配型の新金融モデルを拡大",
+      "publishedDate": "",
+      "selectedDate": "2026-07-04",
+      "sourceUrl": "https://www.tomshardware.com/tech-industry/nvidia-to-take-a-cut-of-ai-cloud-revenue-on-top-of-hardware-sales",
+      "topicKey": "",
+      "companyNames": [
+        "NVIDIA"
+      ],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "Nvidiaは、GPU販売だけでなくAIクラウド事業者の将来売上の一部を受け取る選択制の資金支援モデルを打ち出しました。"
+    },
+    {
+      "heading": "国連とITUがAI for Goodグローバル委員会を発足",
+      "normalizedHeading": "国連とituがaiforgoodグローバル委員会を発足",
+      "publishedDate": "",
+      "selectedDate": "2026-07-02",
+      "sourceUrl": "https://www.axios.com/2026/07/01/un-ai-commission-ceos-world-leaders",
+      "topicKey": "",
+      "companyNames": [],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "国連と国際電気通信連合は、各国首脳と主要テック企業を結ぶ『AI for Good Global Commission』を立ち上げると報じられた。"
+    },
+    {
+      "heading": "G7でAI規制協調が主要議題に、Macron氏とAltman氏が国際枠組みを要求",
+      "normalizedHeading": "g7でai規制協調が主要議題にmacron氏とaltman氏が国際枠組みを要求",
+      "publishedDate": "",
+      "selectedDate": "2026-06-18",
+      "sourceUrl": "https://apnews.com/article/g7-france-ai-sovereignty-7d783c6de4356962e338b8b8563d48ea",
+      "topicKey": "",
+      "companyNames": [],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "AP通信によると、6月18日のG7関連会合でフランスのMacron大統領は、先端AIを米国だけで囲い込まず、民主主義国が共同で規制協調すべきだと訴えた。"
+    },
+    {
+      "heading": "Anthropic、ソウル拠点を開設し韓国AIエコシステムを拡大",
+      "normalizedHeading": "anthropicソウル拠点を開設し韓国aiエコシステムを拡大",
+      "publishedDate": "",
+      "selectedDate": "2026-06-18",
+      "sourceUrl": "https://www.anthropic.com/news/seoul-office-partnerships-korean-ai-ecosystem",
+      "topicKey": "",
+      "companyNames": [
+        "Anthropic"
+      ],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "Anthropicは6月17日、ソウルオフィス開設とあわせて韓国の企業・開発者との連携拡大を公表した。"
+    },
+    {
+      "heading": "OpenAI、公開前モデルを実運用会話で再現評価する安全手法を導入",
+      "normalizedHeading": "openai公開前モデルを実運用会話で再現評価する安全手法を導入",
+      "publishedDate": "",
+      "selectedDate": "2026-06-18",
+      "sourceUrl": "https://openai.com/index/deployment-simulation/",
+      "topicKey": "",
+      "companyNames": [
+        "OpenAI"
+      ],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "OpenAIは6月16日、過去の会話文脈を匿名・保護した形で新モデルに再生し、公開前の挙動を推定するDeployment Simulationを紹介した。"
+    },
+    {
+      "heading": "NVIDIAがJetson向けにエージェントAI基盤を拡張、物理世界への実装を加速",
+      "normalizedHeading": "nvidiaがjetson向けにエージェントai基盤を拡張物理世界への実装を加速",
+      "publishedDate": "",
+      "selectedDate": "2026-06-03",
+      "sourceUrl": "https://blogs.nvidia.com/blog/jetson-agentic-ai-physical-world/",
+      "topicKey": "",
+      "companyNames": [
+        "NVIDIA"
+      ],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "NVIDIAは2026年6月1日、JetPack 7.2とNemoClawのJetson対応を発表し、エージェントAIをロボティクスや産業機器の現場へ広げました。"
+    },
+    {
+      "heading": "GoogleがGemini for Scienceを発表、仮説生成から文献整理まで研究作業を自動化",
+      "normalizedHeading": "googleがgeminiforscienceを発表仮説生成から文献整理まで研究作業を自動化",
+      "publishedDate": "",
+      "selectedDate": "2026-06-03",
+      "sourceUrl": "https://blog.google/innovation-and-ai/technology/research/gemini-for-science-io-2026/",
+      "topicKey": "",
+      "companyNames": [
+        "Google"
+      ],
+      "productNames": [
+        "Gemini"
+      ],
+      "category": "",
+      "summaryFingerprint": "GoogleはI/O 2026関連で、Gemini for Scienceとして仮説生成、計算探索、文献分析を支援する複数の実験ツール群を公開しました。"
+    },
+    {
+      "heading": "AnthropicがAI悪用のサイバー脅威分析を公開、攻撃の自動化が進行",
+      "normalizedHeading": "anthropicがai悪用のサイバー脅威分析を公開攻撃の自動化が進行",
+      "publishedDate": "",
+      "selectedDate": "2026-06-04",
+      "sourceUrl": "https://www.anthropic.com/news/AI-enabled-cyber-threats-mitre-attack",
+      "topicKey": "",
+      "companyNames": [
+        "Anthropic"
+      ],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "Anthropicは2026年6月3日、2025年3月から2026年3月までに悪質なサイバー活動で停止した832アカウントを分析した報告を公開しました。"
+    },
+    {
+      "heading": "MicrosoftがBuild 2026で企業向けAI基盤を拡張、Scoutと独自推論モデルを投入",
+      "normalizedHeading": "microsoftがbuild2026で企業向けai基盤を拡張scoutと独自推論モデルを投入",
+      "publishedDate": "",
+      "selectedDate": "2026-06-04",
+      "sourceUrl": "https://blogs.microsoft.com/blog/2026/06/02/microsoft-build-2026-be-yourself-at-work/",
+      "topicKey": "",
+      "companyNames": [
+        "Microsoft"
+      ],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "Microsoftは2026年6月2日、Build 2026でWork IQ APIs、Web IQ、Microsoft Scout、MAI-Thinking-1などをまとめて発表しました。"
+    },
+    {
+      "heading": "OpenAIのフロンティアモデルとCodexがAWSで一般提供開始",
+      "normalizedHeading": "openaiのフロンティアモデルとcodexがawsで一般提供開始",
+      "publishedDate": "",
+      "selectedDate": "2026-06-04",
+      "sourceUrl": "https://openai.com/index/openai-frontier-models-and-codex-are-now-available-on-aws/",
+      "topicKey": "",
+      "companyNames": [
+        "OpenAI"
+      ],
+      "productNames": [
+        "Codex"
+      ],
+      "category": "",
+      "summaryFingerprint": "OpenAIは2026年6月1日、OpenAIのフロンティアモデル群とCodexがAWS上で一般提供になったと発表しました。"
+    },
+    {
+      "heading": "NVIDIAとMicrosoftが端末からクラウドまでのエージェントAI共通基盤を拡大",
+      "normalizedHeading": "nvidiaとmicrosoftが端末からクラウドまでのエージェントai共通基盤を拡大",
+      "publishedDate": "",
+      "selectedDate": "2026-06-04",
+      "sourceUrl": "https://blogs.nvidia.com/blog/microsoft-build-windows-local-cloud-devices/",
+      "topicKey": "",
+      "companyNames": [
+        "Microsoft",
+        "NVIDIA"
+      ],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "NVIDIAは2026年6月2日、Microsoftとの連携拡大として、RTX Spark、DGX Station for Windows、Microsoft Foundry上のNVIDIAモデル、GitHub Copilot向けOpenShellなどを発表しました。"
+    },
+    {
+      "heading": "OpenAIがG7を前に若年層AI安全の国際枠組みを提唱",
+      "normalizedHeading": "openaiがg7を前に若年層ai安全の国際枠組みを提唱",
+      "publishedDate": "",
+      "selectedDate": "2026-06-04",
+      "sourceUrl": "https://openai.com/index/advancing-youth-safety-and-opportunity-through-global-leadership/",
+      "topicKey": "",
+      "companyNames": [
+        "OpenAI"
+      ],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "OpenAIは2026年6月2日、G7首脳会議を前に、若年層のAI安全を継続的に扱う国際的なAI Safety Instituteの設立を呼びかけました。"
+    },
+    {
+      "heading": "OpenAIとNVIDIAが10GW級AI基盤で戦略提携",
+      "normalizedHeading": "openaiとnvidiaが10gw級ai基盤で戦略提携",
+      "publishedDate": "",
+      "selectedDate": "2026-06-05",
+      "sourceUrl": "https://nvidianews.nvidia.com/_gallery/download_pdf/68d173273d633288cb44040b/",
+      "topicKey": "",
+      "companyNames": [
+        "OpenAI",
+        "NVIDIA"
+      ],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "OpenAIとNVIDIAは2026年6月5日、少なくとも10ギガワット規模のNVIDIAシステムをOpenAI向け次世代AI基盤として配備する意向を公表した。"
+    },
+    {
+      "heading": "ChatGPTの新メモリ機能「Dreaming」が拡大展開",
+      "normalizedHeading": "chatgptの新メモリ機能dreamingが拡大展開",
+      "publishedDate": "",
+      "selectedDate": "2026-06-05",
+      "sourceUrl": "https://openai.com/index/chatgpt-memory-dreaming/",
+      "topicKey": "",
+      "companyNames": [
+        "OpenAI"
+      ],
+      "productNames": [
+        "ChatGPT"
+      ],
+      "category": "",
+      "summaryFingerprint": "OpenAIは2026年6月4日、ChatGPTの記憶機能を強化する「Dreaming」を発表し、鮮度・継続性・関連性を改善する新しいメモリ統合方式を導入した。"
+    },
+    {
+      "heading": "OpenAIが生命科学向けGPT-Rosalindを強化",
+      "normalizedHeading": "openaiが生命科学向けgptrosalindを強化",
+      "publishedDate": "",
+      "selectedDate": "2026-06-05",
+      "sourceUrl": "https://openai.com/index/introducing-new-capabilities-to-gpt-rosalind/",
+      "topicKey": "",
+      "companyNames": [
+        "OpenAI"
+      ],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "OpenAIは2026年6月3日、生命科学研究向けモデルGPT-Rosalindの更新版を発表し、創薬・ゲノミクス・実験ワークフローでの性能向上を打ち出した。"
+    },
+    {
+      "heading": "Google DeepMindがGemma 4 12Bを公開",
+      "normalizedHeading": "googledeepmindがgemma412bを公開",
+      "publishedDate": "",
+      "selectedDate": "2026-06-05",
+      "sourceUrl": "https://blog.google/innovation-and-ai/technology/developers-tools/introducing-gemma-4-12B/",
+      "topicKey": "",
+      "companyNames": [
+        "Google",
+        "Google DeepMind"
+      ],
+      "productNames": [
+        "Gemma"
+      ],
+      "category": "",
+      "summaryFingerprint": "Google DeepMindは2026年6月3日、16GB級のVRAMやユニファイドメモリ環境でも動かせるオープンモデル「Gemma 4 12B」を公開した。"
+    },
+    {
+      "heading": "MicrosoftがAI時代のバイオセキュリティ強化策を提示",
+      "normalizedHeading": "microsoftがai時代のバイオセキュリティ強化策を提示",
+      "publishedDate": "",
+      "selectedDate": "2026-06-05",
+      "sourceUrl": "https://blogs.microsoft.com/on-the-issues/2026/06/04/strengthening-biosecurity-in-the-era-of-ai/",
+      "topicKey": "",
+      "companyNames": [
+        "Microsoft"
+      ],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "Microsoftは2026年6月4日、AIとバイオ技術の収束によるリスク上昇を踏まえ、核酸合成スクリーニングを中心とするバイオセキュリティ強化を提言した。"
+    },
+    {
+      "heading": "米ホワイトハウスがAI国家安全保障メモを発表",
+      "normalizedHeading": "米ホワイトハウスがai国家安全保障メモを発表",
+      "publishedDate": "",
+      "selectedDate": "2026-06-06",
+      "sourceUrl": "https://www.whitehouse.gov/fact-sheets/2026/06/fact-sheet-president-donald-j-trump-signs-historic-directive-on-ai-in-the-national-security-enterprise/",
+      "topicKey": "",
+      "companyNames": [],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "2026年6月5日、ホワイトハウスは国家安全保障分野でのAI導入を加速する大統領覚書と関連ファクトシートを公表した。複数ベンダーの先端モデルを迅速に取り込み、高セキュリティ計算基盤の整備や民間専門家による戦略リザーブ創設まで含む枠組みになっている。さらに、戦闘員が依存するAIを外部が無断で停止・改変できない統制原則も明示した。"
+    },
+    {
+      "heading": "米政権がAIイノベーションとサイバー防御の大統領令を発動",
+      "normalizedHeading": "米政権がaiイノベーションとサイバー防御の大統領令を発動",
+      "publishedDate": "",
+      "selectedDate": "2026-06-06",
+      "sourceUrl": "https://www.whitehouse.gov/presidential-actions/2026/06/promoting-advanced-artificial-intelligence-innovation-and-security/",
+      "topicKey": "",
+      "companyNames": [],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "2026年6月2日、ホワイトハウスはAIのイノベーション促進と安全保障を両立させる大統領令を公表した。30日以内に連邦・重要インフラの防御強化、AI脆弱性検出支援、官民連携のAIサイバーセキュリティ・クリアリングハウス創設を進めるほか、機密扱いのフロンティアモデル評価プロセス整備も求めている。"
+    },
+    {
+      "heading": "OpenAIがフロンティアAIの連邦ガバナンス青写真を提示",
+      "normalizedHeading": "openaiがフロンティアaiの連邦ガバナンス青写真を提示",
+      "publishedDate": "",
+      "selectedDate": "2026-06-06",
+      "sourceUrl": "https://openai.com/index/frontier-safety-blueprint/",
+      "topicKey": "",
+      "companyNames": [
+        "OpenAI"
+      ],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "OpenAIは2026年6月3日、フロンティアAIを統治する米連邦枠組みの青写真を公開した。州法の収れんを土台にしつつ、CAISIを中核機関として強化し、国家安全保障と公共安全にまたがるレジリエンス計画を整える3本柱を提案している。"
+    },
+    {
+      "heading": "GoogleがGemma 4のQAT版を公開、1GB級ローカル実行を前進",
+      "normalizedHeading": "googleがgemma4のqat版を公開1gb級ローカル実行を前進",
+      "publishedDate": "",
+      "selectedDate": "2026-06-06",
+      "sourceUrl": "https://blog.google/innovation-and-ai/technology/developers-tools/quantization-aware-training-gemma-4/",
+      "topicKey": "",
+      "companyNames": [
+        "Google"
+      ],
+      "productNames": [
+        "Gemma"
+      ],
+      "category": "",
+      "summaryFingerprint": "Google DeepMindは2026年6月5日、Gemma 4向けのQuantization-Aware Training版チェックポイントを公開した。Q4_0形式とモバイル向け新形式を用い、Gemma 4 E2Bのメモリ使用量を1GBまで圧縮しつつ品質低下を抑えるとしている。llama.cpp、Ollama、vLLMなど主要なローカル実行系も初日から対応する。"
+    },
+    {
+      "heading": "Microsoftが『単体モデルより運用システム』への軸足を鮮明化",
+      "normalizedHeading": "microsoftが単体モデルより運用システムへの軸足を鮮明化",
+      "publishedDate": "",
+      "selectedDate": "2026-06-06",
+      "sourceUrl": "https://blogs.microsoft.com/blog/2026/06/02/ai-alone-wont-change-your-business-the-system-running-it-will/",
+      "topicKey": "",
+      "companyNames": [
+        "Microsoft"
+      ],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "Microsoftは2026年6月2日、企業向けAIの勝負はモデル単体ではなく、データ・モデル・エージェント・統制を束ねる運用システムだと打ち出した。Azure、GitHub、Fabric、Foundry、Microsoft 365、Securityなどを一体のエージェント基盤として位置づけ、長時間業務を任せられる実運用を前面に出している。"
+    },
+    {
+      "heading": "Anthropicが高度AIの一時停止メカニズムを提案",
+      "normalizedHeading": "anthropicが高度aiの一時停止メカニズムを提案",
+      "publishedDate": "",
+      "selectedDate": "2026-06-07",
+      "sourceUrl": "https://www.anthropic.com/institute/recursive-self-improvement",
+      "topicKey": "",
+      "companyNames": [
+        "Anthropic"
+      ],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "Anthropicは、AIがAIを開発する再帰的自己改善が現実味を帯びてきたとして、フロンティアAIの開発を減速または一時停止できる国際的な仕組みが必要だと主張した。"
+    },
+    {
+      "heading": "OpenAIがAI時代のバイオ防衛行動計画を公表",
+      "normalizedHeading": "openaiがai時代のバイオ防衛行動計画を公表",
+      "publishedDate": "",
+      "selectedDate": "2026-06-07",
+      "sourceUrl": "https://openai.com/index/biodefense-in-the-intelligence-age/",
+      "topicKey": "",
+      "companyNames": [
+        "OpenAI"
+      ],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "OpenAIは6月4日、GPT-RosalindとRosalind Biodefenseを踏まえ、AIを病原体対策やパンデミック対応に生かすための行動計画を公開した。"
+    },
+    {
+      "heading": "GoogleがGeminiの利用規模と収益化の新指標を開示",
+      "normalizedHeading": "googleがgeminiの利用規模と収益化の新指標を開示",
+      "publishedDate": "",
+      "selectedDate": "2026-06-07",
+      "sourceUrl": "https://blog.google/alphabet/investor-presentation-june-2026/",
+      "topicKey": "",
+      "companyNames": [
+        "Google"
+      ],
+      "productNames": [
+        "Gemini"
+      ],
+      "category": "",
+      "summaryFingerprint": "Googleは6月公表の投資家向け資料で、AI Overviewsの月間利用者が25億人超、AI Modeが月間10億人超、Geminiアプリが月間9億人超に達したと示した。"
+    },
+    {
+      "heading": "NVIDIAとMicrosoftが“個人向けAI PC”基盤を発表",
+      "normalizedHeading": "nvidiaとmicrosoftが個人向けaipc基盤を発表",
+      "publishedDate": "",
+      "selectedDate": "2026-06-07",
+      "sourceUrl": "https://investor.nvidia.com/news/press-release-details/2026/NVIDIA-and-Microsoft-Reinvent-Windows-PCs-for-the-Age-of-Personal-AI/default.aspx",
+      "topicKey": "",
+      "companyNames": [
+        "Microsoft",
+        "NVIDIA"
+      ],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "NVIDIAは6月1日、Microsoftと組んで、個人エージェント向けWindows PC基盤『RTX Spark』を発表した。1ペタフロップ級性能、最大128GB統合メモリ、ローカルで120B級モデル実行をうたう。"
+    },
+    {
+      "heading": "Mayo ClinicとMicrosoftが医療特化のフロンティアAIモデルを共同開発",
+      "normalizedHeading": "mayoclinicとmicrosoftが医療特化のフロンティアaiモデルを共同開発",
+      "publishedDate": "",
+      "selectedDate": "2026-06-03",
+      "sourceUrl": "https://news.microsoft.com/source/2026/06/02/mayo-clinic-and-microsoft-collaborate-to-develop-a-frontier-ai-model-for-healthcare/",
+      "topicKey": "",
+      "companyNames": [
+        "Microsoft"
+      ],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "Mayo ClinicとMicrosoftは2026年6月2日、医療向けのフロンティアAIモデルを共同で開発・展開すると発表しました。"
+    },
+    {
+      "heading": "AnthropicがProject Glasswingを3倍規模へ拡大、重要インフラの脆弱性発見を加速",
+      "normalizedHeading": "anthropicがprojectglasswingを3倍規模へ拡大重要インフラの脆弱性発見を加速",
+      "publishedDate": "",
+      "selectedDate": "2026-06-03",
+      "sourceUrl": "https://www.anthropic.com/news/expanding-project-glasswing",
+      "topicKey": "",
+      "companyNames": [
+        "Anthropic"
+      ],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "Anthropicは2026年6月2日、重要ソフトウェアの安全性向上を狙うProject Glasswingを約50組織から約150組織へ拡大すると発表しました。"
+    },
+    {
+      "heading": "OpenAIがCodexを非開発職へ本格拡張、役割別プラグインと共有サイトを投入",
+      "normalizedHeading": "openaiがcodexを非開発職へ本格拡張役割別プラグインと共有サイトを投入",
+      "publishedDate": "",
+      "selectedDate": "2026-06-03",
+      "sourceUrl": "https://openai.com/index/codex-for-every-role-tool-workflow/",
+      "topicKey": "",
+      "companyNames": [
+        "OpenAI"
+      ],
+      "productNames": [
+        "Codex"
+      ],
+      "category": "",
+      "summaryFingerprint": "OpenAIは2026年6月2日、Codex向けに役割別プラグイン、注釈機能、共有可能なSitesプレビューを発表しました。"
+    },
+    {
+      "heading": "Metaが『完全に非公開のAIチャット』を投入、プライバシーを差別化軸に",
+      "normalizedHeading": "metaが完全に非公開のaiチャットを投入プライバシーを差別化軸に",
+      "publishedDate": "",
+      "selectedDate": "2026-06-02",
+      "sourceUrl": "https://about.fb.com/news/2026/05/incognito-chat-whatsapp-meta-ai/",
+      "topicKey": "",
+      "companyNames": [
+        "Meta"
+      ],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "Metaは2026年5月13日、WhatsAppとMeta AIアプリ向けに Incognito Chat with Meta AI を発表しました。"
+    },
+    {
+      "heading": "Google I/O 2026でGemini OmniとAI検索強化を打ち出す",
+      "normalizedHeading": "googleio2026でgeminiomniとai検索強化を打ち出す",
+      "publishedDate": "",
+      "selectedDate": "2026-05-29",
+      "sourceUrl": "https://blog.google/innovation-and-ai/technology/ai/io-2026-keynote-moment-videos/",
+      "topicKey": "",
+      "companyNames": [
+        "Google"
+      ],
+      "productNames": [
+        "Gemini"
+      ],
+      "category": "",
+      "summaryFingerprint": "Googleは2026年5月28日、I/O 2026の主要発表を公開し、Gemini Omniによる動画起点のマルチモーダル生成や、新しいインテリジェント検索ボックスを紹介しました。"
+    },
+    {
+      "heading": "OpenAIが2026年選挙向けのAI安全策を公表",
+      "normalizedHeading": "openaiが2026年選挙向けのai安全策を公表",
+      "publishedDate": "",
+      "selectedDate": "2026-05-29",
+      "sourceUrl": "https://openai.com/index/election-safeguards-2026/",
+      "topicKey": "",
+      "companyNames": [
+        "OpenAI"
+      ],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "OpenAIは2026年5月27日、世界各地の選挙に向けた安全策を発表し、投票情報の案内、サイバー防御支援、AI生成コンテンツの透明性強化を重点に挙げました。"
+    },
+    {
+      "heading": "OpenAIがSynthID対応と検証ツールで真正性対策を前進",
+      "normalizedHeading": "openaiがsynthid対応と検証ツールで真正性対策を前進",
+      "publishedDate": "",
+      "selectedDate": "2026-05-29",
+      "sourceUrl": "https://openai.com/index/advancing-content-provenance/",
+      "topicKey": "",
+      "companyNames": [
+        "OpenAI"
+      ],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "OpenAIは2026年5月19日、C2PA準拠の強化、GoogleのSynthIDによる画像透かし、画像がOpenAI由来か確認できる公開検証ツールのプレビューを発表しました。"
+    },
+    {
+      "heading": "MicrosoftとEYが10億ドル超を投じ、企業AI導入を本格拡大",
+      "normalizedHeading": "microsoftとeyが10億ドル超を投じ企業ai導入を本格拡大",
+      "publishedDate": "",
+      "selectedDate": "2026-05-29",
+      "sourceUrl": "https://blogs.microsoft.com/blog/2026/05/21/from-ai-pilots-to-enterprise-impact-why-execution-is-the-new-differentiator/",
+      "topicKey": "",
+      "companyNames": [
+        "Microsoft"
+      ],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "Microsoftは2026年5月21日、EYと共同で10億ドル超を投資し、企業が単発のAI実験から全社展開へ進むための新たな取り組みを始めると発表しました。"
+    },
+    {
+      "heading": "Anthropicが650億ドルを調達し、評価額は9650億ドルに",
+      "normalizedHeading": "anthropicが650億ドルを調達し評価額は9650億ドルに",
+      "publishedDate": "",
+      "selectedDate": "2026-05-30",
+      "sourceUrl": "https://www.anthropic.com/news/series-h",
+      "topicKey": "",
+      "companyNames": [
+        "Anthropic"
+      ],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "Anthropicは2026年5月28日、Series Hで650億ドルを調達し、ポストマネー評価額が9650億ドルになったと発表しました。"
+    },
+    {
+      "heading": "Google I/O 2026でGemini Omniと検索エージェントを前面に",
+      "normalizedHeading": "googleio2026でgeminiomniと検索エージェントを前面に",
+      "publishedDate": "",
+      "selectedDate": "2026-05-30",
+      "sourceUrl": "https://blog.google/innovation-and-ai/technology/ai/io-2026-keynote-moment-videos/",
+      "topicKey": "",
+      "companyNames": [
+        "Google"
+      ],
+      "productNames": [
+        "Gemini"
+      ],
+      "category": "",
+      "summaryFingerprint": "Googleは2026年5月28日にI/O 2026の主要発表を整理し、動画から始まるマルチモーダル生成モデル「Gemini Omni」と、新しいGemini 3.5 Flashを打ち出しました。"
+    },
+    {
+      "heading": "MicrosoftがCopilot Studioでコンピューター操作エージェントをGA化",
+      "normalizedHeading": "microsoftがcopilotstudioでコンピューター操作エージェントをga化",
+      "publishedDate": "",
+      "selectedDate": "2026-05-30",
+      "sourceUrl": "https://www.microsoft.com/en-us/microsoft-copilot/blog/copilot-studio/new-and-improved-computer-using-agents-a-new-workflows-experience-and-real-time-voice-experiences/",
+      "topicKey": "",
+      "companyNames": [
+        "Microsoft"
+      ],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "Microsoftは2026年5月26日、Copilot Studioの5月更新として、画面UIを直接操作するcomputer-using agentsの一般提供開始を発表しました。"
+    },
+    {
+      "heading": "OpenAIがAI生成物の真正性対策を強化、SynthIDと検証ツールを導入",
+      "normalizedHeading": "openaiがai生成物の真正性対策を強化synthidと検証ツールを導入",
+      "publishedDate": "",
+      "selectedDate": "2026-05-30",
+      "sourceUrl": "https://openai.com/index/advancing-content-provenance/",
+      "topicKey": "",
+      "companyNames": [
+        "OpenAI"
+      ],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "OpenAIは2026年5月19日、C2PA準拠の強化、Google DeepMindのSynthIDによる画像透かし、公開検証ツールのプレビューを発表しました。"
+    },
+    {
+      "heading": "OpenAIがGPT-5.5 Instantを更新、o3とGPT-4.5のChatGPT提供終了日も告知",
+      "normalizedHeading": "openaiがgpt55instantを更新o3とgpt45のchatgpt提供終了日も告知",
+      "publishedDate": "",
+      "selectedDate": "2026-05-30",
+      "sourceUrl": "https://help.openai.com/en/articles/6825453-chatgpt-plus-upgrade-faq",
+      "topicKey": "",
+      "companyNames": [
+        "OpenAI"
+      ],
+      "productNames": [
+        "ChatGPT",
+        "GPT-5.5"
+      ],
+      "category": "",
+      "summaryFingerprint": "OpenAIは2026年5月28日付のChatGPTリリースノートで、GPT-5.5 Instantの応答品質を改善し、より自然で簡潔な応答にしたと案内しました。"
+    },
+    {
+      "heading": "AnthropicがClaude Opus 4.8を公開し、長時間エージェント作業を強化",
+      "normalizedHeading": "anthropicがclaudeopus48を公開し長時間エージェント作業を強化",
+      "publishedDate": "",
+      "selectedDate": "2026-05-31",
+      "sourceUrl": "https://www.anthropic.com/news/claude-opus-4-8",
+      "topicKey": "",
+      "companyNames": [
+        "Anthropic"
+      ],
+      "productNames": [
+        "Claude"
+      ],
+      "category": "",
+      "summaryFingerprint": "Anthropicは2026年5月28日、Claude Opus 4.8を公開し、コーディング、エージェント作業、専門業務での性能向上を打ち出しました。"
+    },
+    {
+      "heading": "MistralがAI Now Summitで産業特化AIと自前基盤を前面化",
+      "normalizedHeading": "mistralがainowsummitで産業特化aiと自前基盤を前面化",
+      "publishedDate": "",
+      "selectedDate": "2026-06-07",
+      "sourceUrl": "https://mistral.ai/news/ai-now-summit-2026/",
+      "topicKey": "",
+      "companyNames": [
+        "Mistral"
+      ],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "Mistralは5月28日のAI Now Summitで、産業エンジニアリング向けAIスタック、長時間業務を担う統合エージェント『Vibe』、そして推論専用のLes Ulis 10MWデータセンター計画をまとめて打ち出した。"
+    },
+    {
+      "heading": "GoogleがGeminiを常時稼働型エージェントへ拡張",
+      "normalizedHeading": "googleがgeminiを常時稼働型エージェントへ拡張",
+      "publishedDate": "",
+      "selectedDate": "2026-05-31",
+      "sourceUrl": "https://blog.google/innovation-and-ai/products/gemini-app/next-evolution-gemini-app/",
+      "topicKey": "",
+      "companyNames": [
+        "Google"
+      ],
+      "productNames": [
+        "Gemini"
+      ],
+      "category": "",
+      "summaryFingerprint": "Googleは2026年5月19日、Geminiアプリの大規模更新を発表し、動画生成向けのGemini Omni、朝の要約を作るDaily Brief、常時動くエージェントGemini Sparkを公開しました。"
+    },
+    {
+      "heading": "OpenAIが2026年選挙向けの安全策を公表",
+      "normalizedHeading": "openaiが2026年選挙向けの安全策を公表",
+      "publishedDate": "",
+      "selectedDate": "2026-05-31",
+      "sourceUrl": "https://openai.com/index/election-safeguards-2026/",
+      "topicKey": "",
+      "companyNames": [
+        "OpenAI"
+      ],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "OpenAIは2026年5月27日、各国選挙に向けた新しい安全策を公表し、米国とブラジルで開票時にAPのライブ結果を提供する計画を示しました。"
+    },
+    {
+      "heading": "NVIDIAが自動運転向けの推論VLAモデル「Alpamayo 2 Super」を公開",
+      "normalizedHeading": "nvidiaが自動運転向けの推論vlaモデルalpamayo2superを公開",
+      "publishedDate": "",
+      "selectedDate": "2026-06-01",
+      "sourceUrl": "https://nvidianews.nvidia.com/news/nvidia-alpamayo-2-super-robotaxis",
+      "topicKey": "",
+      "companyNames": [
+        "NVIDIA"
+      ],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "NVIDIAは2026年6月1日、32B規模の推論型 vision-language-action モデル「Alpamayo 2 Super」を発表しました。"
+    },
+    {
+      "heading": "NVIDIAが研究向けオープン humanoid 参照機「Isaac GR00T Reference Humanoid Robot」を発表",
+      "normalizedHeading": "nvidiaが研究向けオープンhumanoid参照機isaacgr00treferencehumanoidrobotを発表",
+      "publishedDate": "",
+      "selectedDate": "2026-06-01",
+      "sourceUrl": "https://nvidianews.nvidia.com/news/nvidia-announces-nvidia-isaac-gr00t-reference-humanoid-robot-for-academic-research",
+      "topicKey": "",
+      "companyNames": [
+        "NVIDIA"
+      ],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "NVIDIAは2026年6月1日、Jetson Thor と Isaac GR00T 開発基盤を土台にした、研究用途向けのオープン humanoid 参照設計を公表しました。"
+    },
+    {
+      "heading": "OpenAIが「Frontier Governance Framework」を公表し、規制対応の公開枠組みを提示",
+      "normalizedHeading": "openaiがfrontiergovernanceframeworkを公表し規制対応の公開枠組みを提示",
+      "publishedDate": "",
+      "selectedDate": "2026-06-01",
+      "sourceUrl": "https://openai.com/index/openai-frontier-governance-framework/",
+      "topicKey": "",
+      "companyNames": [
+        "OpenAI"
+      ],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "OpenAIは2026年5月28日、先端モデルの安全・セキュリティ運用を法規制要件にどう対応させるかを示す「Frontier Governance Framework」を公開しました。"
+    },
+    {
+      "heading": "OpenAIが第三者評価の実務指針を公開、エージェント時代の評価基準見直しを提案",
+      "normalizedHeading": "openaiが第三者評価の実務指針を公開エージェント時代の評価基準見直しを提案",
+      "publishedDate": "",
+      "selectedDate": "2026-06-01",
+      "sourceUrl": "https://openai.com/index/trustworthy-third-party-evaluations-foundations/",
+      "topicKey": "",
+      "companyNames": [
+        "OpenAI"
+      ],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "OpenAIは2026年5月29日、先端AIモデルの能力や安全策を第三者が検証する際の設計指針をまとめた文書を公開しました。"
+    },
+    {
+      "heading": "GoogleがGemini APIで「Managed Agents」を発表、隔離実行環境つきのエージェント基盤を提供",
+      "normalizedHeading": "googleがgeminiapiでmanagedagentsを発表隔離実行環境つきのエージェント基盤を提供",
+      "publishedDate": "",
+      "selectedDate": "2026-06-01",
+      "sourceUrl": "https://blog.google/innovation-and-ai/technology/developers-tools/managed-agents-gemini-api/",
+      "topicKey": "",
+      "companyNames": [
+        "Google"
+      ],
+      "productNames": [
+        "Gemini"
+      ],
+      "category": "",
+      "summaryFingerprint": "Googleは2026年5月19日、Gemini API向けに Managed Agents を投入し、単一API呼び出しで推論・ツール利用・コード実行を行うエージェントを立ち上げられるようにしました。"
+    },
+    {
+      "heading": "AnthropicがIPOを非公開申請、巨大資金調達の直後に上場準備が前進",
+      "normalizedHeading": "anthropicがipoを非公開申請巨大資金調達の直後に上場準備が前進",
+      "publishedDate": "",
+      "selectedDate": "2026-06-02",
+      "sourceUrl": "https://www.axios.com/2026/06/01/anthropic-ipo-openai",
+      "topicKey": "",
+      "companyNames": [
+        "OpenAI",
+        "Anthropic"
+      ],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "Anthropicは2026年6月1日、米証券当局にIPOの confidential filing を行ったと報じられました。"
+    },
+    {
+      "heading": "OpenAIが生成コンテンツの来歴確認を強化、C2PA準拠とSynthIDを組み合わせ",
+      "normalizedHeading": "openaiが生成コンテンツの来歴確認を強化c2pa準拠とsynthidを組み合わせ",
+      "publishedDate": "",
+      "selectedDate": "2026-06-02",
+      "sourceUrl": "https://openai.com/index/advancing-content-provenance/",
+      "topicKey": "",
+      "companyNames": [
+        "OpenAI"
+      ],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "OpenAIは2026年5月19日、AI生成メディアの来歴を示す仕組みを強化すると発表しました。"
+    },
+    {
+      "heading": "GoogleがGeminiを一段とエージェント化、Daily BriefとSparkを展開",
+      "normalizedHeading": "googleがgeminiを一段とエージェント化dailybriefとsparkを展開",
+      "publishedDate": "",
+      "selectedDate": "2026-06-02",
+      "sourceUrl": "https://blog.google/innovation-and-ai/products/gemini-app/next-evolution-gemini-app/",
+      "topicKey": "",
+      "companyNames": [
+        "Google"
+      ],
+      "productNames": [
+        "Gemini"
+      ],
+      "category": "",
+      "summaryFingerprint": "Googleは2026年5月19日、Geminiアプリの新機能としてDaily BriefとGemini Sparkを発表しました。"
+    },
+    {
+      "heading": "Microsoftが米英のAI評価機関と連携拡大、先端モデルのテスト基盤を強化",
+      "normalizedHeading": "microsoftが米英のai評価機関と連携拡大先端モデルのテスト基盤を強化",
+      "publishedDate": "",
+      "selectedDate": "2026-06-02",
+      "sourceUrl": "https://blogs.microsoft.com/on-the-issues/2026/05/05/advancing-ai-evaluation-with-the-center-for-ai-standards-us-and-innovation-and-the-ai-security-institute-uk/",
+      "topicKey": "",
+      "companyNames": [
+        "Microsoft"
+      ],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "Microsoftは2026年5月5日、米国のCAISIと英国のAISIとの新たな合意を公表しました。"
+    },
+    {
+      "heading": "OpenAIがAI生成画像の真正性対策を強化",
+      "normalizedHeading": "openaiがai生成画像の真正性対策を強化",
+      "publishedDate": "",
+      "selectedDate": "2026-05-31",
+      "sourceUrl": "https://openai.com/index/advancing-content-provenance/",
+      "topicKey": "",
+      "companyNames": [
+        "OpenAI"
+      ],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "OpenAIは2026年5月19日、C2PA準拠の強化に加え、Google DeepMindのSynthIDをChatGPT、Codex、OpenAI APIの画像に導入すると発表しました。"
+    },
+    {
+      "heading": "NVIDIAとSK hynixがAIファクトリー向け次世代メモリで複数年提携",
+      "normalizedHeading": "nvidiaとskhynixがaiファクトリー向け次世代メモリで複数年提携",
+      "publishedDate": "",
+      "selectedDate": "2026-06-08",
+      "sourceUrl": "https://nvidianews.nvidia.com/news/sk-hynix-ai-factory",
+      "topicKey": "",
+      "companyNames": [
+        "NVIDIA"
+      ],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "NVIDIAとSK hynixは2026年6月7日、AIファクトリー向け次世代メモリを共同開発する複数年提携を発表した。対象はVera Rubin AIスーパーコンピュータ、Vera CPU、RTX Spark PC、Jetson Thorまで広く、半導体設計や工場運営にもAIを適用する。AIインフラのボトルネックである高性能メモリ供給を、ロードマップ段階から押さえにいく動きだ。"
+    },
+    {
+      "heading": "AlphabetがAI計算資源拡張へ800億ドル規模の資本増強を表明",
+      "normalizedHeading": "alphabetがai計算資源拡張へ800億ドル規模の資本増強を表明",
+      "publishedDate": "",
+      "selectedDate": "2026-06-08",
+      "sourceUrl": "https://abc.xyz/investor/news/news-details/2026/Alphabet-Announces-Proposed-80-Billion-Equity-Capital-Raise-to-Expand-AI-Infrastructure-and-Compute-2026-b0myAMewCa/default.aspx",
+      "topicKey": "",
+      "companyNames": [],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "Alphabetは2026年6月1日、AIインフラと計算資源拡大のため800億ドルのエクイティ調達案を発表し、6月3日の投資家説明では総額見込みを約850億ドルと示した。Sundar Pichai氏は企業と消費者のAI需要が供給能力を上回っていると説明し、2026年の設備投資は1800億〜1900億ドル規模になる見通しを示した。検索、クラウド、Geminiを支える基盤投資を一段と前倒しする姿勢が鮮明だ。"
+    },
+    {
+      "heading": "MicrosoftがProject Solaraを披露しエージェント専用デバイス構想を前面化",
+      "normalizedHeading": "microsoftがprojectsolaraを披露しエージェント専用デバイス構想を前面化",
+      "publishedDate": "",
+      "selectedDate": "2026-06-08",
+      "sourceUrl": "https://news.microsoft.com/build-2026-live-blog/",
+      "topicKey": "",
+      "companyNames": [
+        "Microsoft"
+      ],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "MicrosoftはBuild 2026で、チップからクラウドまでをまたぐ新プラットフォームProject Solaraの初期構想を公開した。外出時向けのバッジ型端末と、常時待機するデスク端末という2つの参考設計を示し、アプリ中心ではなくエージェント中心の利用形態を想定している。AIエージェントをPCの中の機能から、常時接続の専用体験へ押し出す狙いが見える。"
+    },
+    {
+      "heading": "新研究がAgentic AI基盤の安全設計不足を指摘",
+      "normalizedHeading": "新研究がagenticai基盤の安全設計不足を指摘",
+      "publishedDate": "",
+      "selectedDate": "2026-06-13",
+      "sourceUrl": "https://arxiv.org/abs/2606.12797",
+      "topicKey": "",
+      "companyNames": [],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "2026-06-11公開の研究『The Containment Gap』は、LangChain、AutoGPT、OpenAI Agents SDKを監査し、公開向け高リスク運用に必要な構造的安全性が標準では備わっていないと報告した。特にメモリ汚染への防御不足が、政策判断や給付判定のような用途で深刻な偏りを生み得るとする。"
+    },
+    {
+      "heading": "Apple、WWDC 2026で「Siri AI」を正式披露",
+      "normalizedHeading": "applewwdc2026でsiriaiを正式披露",
+      "publishedDate": "",
+      "selectedDate": "2026-06-14",
+      "sourceUrl": "https://www.theverge.com/tech/945693/apple-wwdc-2026-biggest-announcements-ios-27",
+      "topicKey": "",
+      "companyNames": [
+        "Apple"
+      ],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "AppleはWWDC 2026で、会話性と画面文脈理解を強化した新しい『Siri AI』を発表した。"
+    },
+    {
+      "heading": "Anthropic、AIの雇用影響研究に2億ドルを拠出",
+      "normalizedHeading": "anthropicaiの雇用影響研究に2億ドルを拠出",
+      "publishedDate": "",
+      "selectedDate": "2026-06-14",
+      "sourceUrl": "https://apnews.com/article/afeb5279eef406980dffa46ff91495e0",
+      "topicKey": "",
+      "companyNames": [
+        "Anthropic"
+      ],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "AnthropicはAIが雇用へ与える影響を調べるため2億ドル規模の研究投資を表明した。"
+    },
+    {
+      "heading": "Bezos新会社Prometheus、120億ドル調達で工業AIを加速",
+      "normalizedHeading": "bezos新会社prometheus120億ドル調達で工業aiを加速",
+      "publishedDate": "",
+      "selectedDate": "2026-06-14",
+      "sourceUrl": "https://www.axios.com/2026/06/11/prometheus-bezos-industrial-ai",
+      "topicKey": "",
+      "companyNames": [],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "Jeff Bezos氏とVik Bajaj氏のPrometheusは、シリーズBで120億ドルを調達し評価額は410億ドルに達した。"
+    },
+    {
+      "heading": "Meta、Manus買収の巻き戻しを開始",
+      "normalizedHeading": "metamanus買収の巻き戻しを開始",
+      "publishedDate": "",
+      "selectedDate": "2026-06-14",
+      "sourceUrl": "https://www.tomshardware.com/tech-industry/artificial-intelligence/meta-cuts-manus-off-from-its-internal-systems-as-china-ordered-breakup-of-2-billion-ai-deal-begins",
+      "topicKey": "",
+      "companyNames": [
+        "Meta"
+      ],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "Metaは中国当局の命令を受け、中国発AI企業Manusの買収巻き戻し作業を始めたと報じられた。"
+    },
+    {
+      "heading": "NVIDIA、AIエージェント向けPCを正式投入",
+      "normalizedHeading": "nvidiaaiエージェント向けpcを正式投入",
+      "publishedDate": "",
+      "selectedDate": "2026-06-14",
+      "sourceUrl": "https://www.wsj.com/tech/ai/nvidia-introduces-first-pcs-designed-for-ai-agents-47445bcd",
+      "topicKey": "",
+      "companyNames": [
+        "NVIDIA"
+      ],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "NVIDIAはComputexで、AIエージェント実行を主目的にした初のPC群を公開した。"
+    },
+    {
+      "heading": "Anthropic、Fable 5とMythos 5停止の解除へ向けホワイトハウス対応を本格化",
+      "normalizedHeading": "anthropicfable5とmythos5停止の解除へ向けホワイトハウス対応を本格化",
+      "publishedDate": "",
+      "selectedDate": "2026-06-15",
+      "sourceUrl": "https://www.axios.com/2026/06/14/anthropic-white-house-mythos-fable",
+      "topicKey": "",
+      "companyNames": [
+        "Anthropic"
+      ],
+      "productNames": [
+        "Fable 5",
+        "Mythos 5"
+      ],
+      "category": "",
+      "summaryFingerprint": "Anthropicは、米政府の停止命令でオフラインになった最上位モデルFable 5とMythos 5を巡り、上級技術スタッフをワシントンD.C.に派遣しました。"
+    },
+    {
+      "heading": "OpenAI、企業向けAI定着を狙うOpenAI Academy新講座を開始",
+      "normalizedHeading": "openai企業向けai定着を狙うopenaiacademy新講座を開始",
+      "publishedDate": "",
+      "selectedDate": "2026-06-15",
+      "sourceUrl": "https://openai.com/index/academy-courses-applying-ai-at-work/",
+      "topicKey": "",
+      "companyNames": [
+        "OpenAI"
+      ],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "OpenAIは6月12日、AI Foundations、Applied AI Foundations、Agents and Workflowsの3講座を公開し、個人のプロンプト活用から再利用可能なエージェント業務設計までを体系化しました。"
+    },
+    {
+      "heading": "NVIDIA Blackwell、初のエージェントAI基盤ベンチマークで効率首位",
+      "normalizedHeading": "nvidiablackwell初のエージェントai基盤ベンチマークで効率首位",
+      "publishedDate": "",
+      "selectedDate": "2026-06-15",
+      "sourceUrl": "https://blogs.nvidia.com/blog/nvidia-blackwell-agentperf-artificial-analysis/",
+      "topicKey": "",
+      "companyNames": [
+        "NVIDIA"
+      ],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "NVIDIAは6月12日、Artificial Analysisの新ベンチマークAgentPerfで、GB300 NVL72がHopper世代比で最大20倍のagents-per-megawattを記録したと発表しました。"
+    },
+    {
+      "heading": "Google、Gemini 3.5 Live Translateを70超言語で展開",
+      "normalizedHeading": "googlegemini35livetranslateを70超言語で展開",
+      "publishedDate": "",
+      "selectedDate": "2026-06-15",
+      "sourceUrl": "https://blog.google/innovation-and-ai/models-and-research/gemini-models/gemini-live-3-5-translate/",
+      "topicKey": "",
+      "companyNames": [
+        "Google"
+      ],
+      "productNames": [
+        "Gemini"
+      ],
+      "category": "",
+      "summaryFingerprint": "Googleは6月9日、Gemini 3.5 Live Translateを発表し、70超言語の音声対音声翻訳を数秒遅れで継続的に返せるようにしました。"
+    },
+    {
+      "heading": "SciConBench公開、AIエージェントの科学的結論生成は依然不安定",
+      "normalizedHeading": "sciconbench公開aiエージェントの科学的結論生成は依然不安定",
+      "publishedDate": "",
+      "selectedDate": "2026-06-13",
+      "sourceUrl": "https://arxiv.org/abs/2606.11337",
+      "topicKey": "",
+      "companyNames": [],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "2026-06-09公開の研究『Can AI Agents Synthesize Scientific Conclusions?』は、9,000件超の体系的レビューを使って科学的結論生成を評価した。クリーンルーム条件では最良エージェントでも事実的F1が0.337にとどまり、医療など高リスク領域での信頼性不足が示された。"
+    },
+    {
+      "heading": "Meta、Relianceとインド初のAI対応データセンター契約",
+      "normalizedHeading": "metarelianceとインド初のai対応データセンター契約",
+      "publishedDate": "",
+      "selectedDate": "2026-06-15",
+      "sourceUrl": "https://about.fb.com/news/2026/06/meta-partners-with-reliance-on-ai-enabled-data-center-in-india/",
+      "topicKey": "",
+      "companyNames": [
+        "Meta"
+      ],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "MetaはReliance Industriesと提携し、インド・グジャラート州ジャムナガルの168MWデータセンターを賃借する契約を公表しました。"
+    },
+    {
+      "heading": "Anthropicが米国民5.2万人規模のAI意識調査を公表",
+      "normalizedHeading": "anthropicが米国民52万人規模のai意識調査を公表",
+      "publishedDate": "",
+      "selectedDate": "2026-06-16",
+      "sourceUrl": "https://www.anthropic.com/news/anthropic-public-record",
+      "topicKey": "",
+      "companyNames": [
+        "Anthropic"
+      ],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "Anthropicは6月12日、約5万1993人の米国在住者を対象にした「Anthropic Public Record」の初回結果を公開した。AIによる雇用喪失を恐れる人は64%に達し、70%超が政府の規制関与を支持した一方、AI企業を信頼するとの回答は15%にとどまった。期待は医療や障害支援に集まる一方、信頼と責任を巡るギャップが鮮明になった。"
+    },
+    {
+      "heading": "AnthropicとTCSが規制産業向けClaude展開で提携",
+      "normalizedHeading": "anthropicとtcsが規制産業向けclaude展開で提携",
+      "publishedDate": "",
+      "selectedDate": "2026-06-16",
+      "sourceUrl": "https://www.anthropic.com/news/tcs-anthropic-partnership",
+      "topicKey": "",
+      "companyNames": [
+        "Anthropic"
+      ],
+      "productNames": [
+        "Claude"
+      ],
+      "category": "",
+      "summaryFingerprint": "Anthropicは6月12日、Tata Consultancy Servicesと提携し、Claudeを規制産業向けに拡大すると発表した。TCSは56カ国の自社従業員5万人にClaudeを展開し、金融、医療、公共など向けに業界特化ソリューションを構築する。保険金請求や融資助言など、監査性と精度が重い業務での実装が前面に出ている。"
+    },
+    {
+      "heading": "MetaがFacebookにAI検索モードと生成支援機能を投入",
+      "normalizedHeading": "metaがfacebookにai検索モードと生成支援機能を投入",
+      "publishedDate": "",
+      "selectedDate": "2026-06-16",
+      "sourceUrl": "https://about.fb.com/news/2026/06/new-ai-tools-to-help-you-make-things-happen-on-facebook/",
+      "topicKey": "",
+      "companyNames": [
+        "Meta"
+      ],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "Metaは6月15日、FacebookにMeta AIベースの「AI Mode」を導入し、公開投稿やグループ、Reels上の文脈を使って回答する検索体験を打ち出した。あわせて、写真や動画の自動コラージュ、映像トランジション、服装変更などの生成編集機能も追加した。カメラロール由来の提案はオプトインで、プライバシー制御も明示している。"
+    },
+    {
+      "heading": "SalesforceがAIエージェント企業Finを36億ドルで買収へ",
+      "normalizedHeading": "salesforceがaiエージェント企業finを36億ドルで買収へ",
+      "publishedDate": "",
+      "selectedDate": "2026-06-16",
+      "sourceUrl": "https://www.barrons.com/articles/salesforce-stock-buying-ai-company-fin-a170b125",
+      "topicKey": "",
+      "companyNames": [],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "6月15日、SalesforceはAIエージェント企業Finの買収を発表した。取引規模は36億ドルで、Finの独自モデルとマルチチャネル顧客対応機能をAgentforce群に取り込む狙いがある。従来SaaSがAIに侵食される懸念が強まる中で、防衛と拡張を兼ねた大型再編として受け止められている。"
+    },
+    {
+      "heading": "Anthropicの最先端モデルに米政権が輸出規制を適用",
+      "normalizedHeading": "anthropicの最先端モデルに米政権が輸出規制を適用",
+      "publishedDate": "",
+      "selectedDate": "2026-06-17",
+      "sourceUrl": "https://www.axios.com/2026/06/16/ai-anthropic-export-controls",
+      "topicKey": "",
+      "companyNames": [
+        "Anthropic"
+      ],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "米政権がAnthropicの最新モデルへのアクセスを輸出規制の形で制限し、同社の海外展開と収益化に不確実性が生じた。"
+    },
+    {
+      "heading": "NVIDIAがAI投資拡大を支える200億ドル級の社債発行へ",
+      "normalizedHeading": "nvidiaがai投資拡大を支える200億ドル級の社債発行へ",
+      "publishedDate": "",
+      "selectedDate": "2026-06-17",
+      "sourceUrl": "https://www.axios.com/2026/06/16/ai-nvidia-bonds-debt",
+      "topicKey": "",
+      "companyNames": [
+        "NVIDIA"
+      ],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "NVIDIAは2026年6月16日、約200億ドルの社債発行に動き、AIインフラ拡張の資金調達競争に本格参加した。"
+    },
+    {
+      "heading": "最新研究でAIが専門家人間より説得力で上回る結果",
+      "normalizedHeading": "最新研究でaiが専門家人間より説得力で上回る結果",
+      "publishedDate": "",
+      "selectedDate": "2026-06-17",
+      "sourceUrl": "https://arxiv.org/abs/2606.16475",
+      "topicKey": "",
+      "companyNames": [],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "6月15日公開の研究は、6,923人・18,978会話の事前登録実験で、フロンティアAIが世界級ディベーターや職業的説得者より高い説得性能を示したと報告した。"
+    },
+    {
+      "heading": "米国の対中AI抑制策が中国のオープンAI生態系を逆に加速との分析",
+      "normalizedHeading": "米国の対中ai抑制策が中国のオープンai生態系を逆に加速との分析",
+      "publishedDate": "",
+      "selectedDate": "2026-06-17",
+      "sourceUrl": "https://arxiv.org/abs/2606.15999",
+      "topicKey": "",
+      "companyNames": [],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "6月14日公開の研究は、米国の半導体・計算資源の輸出規制が、中国でオープンかつローカル適応型AIの戦略的重要性を高めたと分析した。"
+    },
+    {
+      "heading": "ジュネーブで軍事AI規制の正式交渉に向けた機運が拡大",
+      "normalizedHeading": "ジュネーブで軍事ai規制の正式交渉に向けた機運が拡大",
+      "publishedDate": "",
+      "selectedDate": "2026-06-17",
+      "sourceUrl": "https://www.lemonde.fr/en/international/article/2026/06/15/regulating-military-ai-a-challenge-debated-in-geneva-alongside-the-g7_6754479_4.html",
+      "topicKey": "",
+      "companyNames": [],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "6月15日からジュネーブで開かれた国連協議では、AIの軍事利用を巡る正式交渉開始に向けた議論が進み、130か国超の枠組みで過半が交渉入りを支持している。"
+    },
+    {
+      "heading": "OpenAI、AI化学者が創薬向け反応改善を実証",
+      "normalizedHeading": "openaiai化学者が創薬向け反応改善を実証",
+      "publishedDate": "",
+      "selectedDate": "2026-06-18",
+      "sourceUrl": "https://openai.com/index/ai-chemist-improves-reaction/",
+      "topicKey": "",
+      "companyNames": [
+        "OpenAI"
+      ],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "OpenAIは6月17日、GPT-5.4をMolecule.oneの自動化実験基盤と組み合わせ、創薬で重要なChan-Lam couplingの改善案を生成したと発表した。"
+    },
+    {
+      "heading": "OpenAIがグローバルなパートナーネットワークを始動",
+      "normalizedHeading": "openaiがグローバルなパートナーネットワークを始動",
+      "publishedDate": "",
+      "selectedDate": "2026-06-16",
+      "sourceUrl": "https://openai.com/index/introducing-openai-partner-network/",
+      "topicKey": "",
+      "companyNames": [
+        "OpenAI"
+      ],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "OpenAIは6月14日、コンサルティングやSI企業向けの「OpenAI Partner Network」を発表した。企業導入を加速するために1億5000万ドルを投じ、2026年末までに30万人の認定コンサルタント育成を目指す。単なるモデル提供から、導入・運用・変革支援まで含むエコシステム拡大に軸足を移した。"
+    },
+    {
+      "heading": "Copilot CLIがGitHub ActionsでPAT不要に",
+      "normalizedHeading": "copilotcliがgithubactionsでpat不要に",
+      "publishedDate": "2026-07-02",
+      "selectedDate": "2026-07-08",
+      "sourceUrl": "https://github.blog/changelog/2026-07-02-copilot-cli-no-longer-needs-a-personal-access-token-in-github-actions/",
+      "topicKey": "",
+      "companyNames": [
+        "GitHub"
+      ],
+      "productNames": [
+        "GitHub Copilot",
+        "Copilot CLI"
+      ],
+      "category": "API・SDK",
+      "summaryFingerprint": "GitHub Actions上でCopilot CLIを動かす際、長期保管のPATではなく組み込みの`GITHUB_TOKEN`で認証できるようになった。組織所有リポジトリではAIクレジットを組織へ直接課金でき、追加シークレットなしで自動化に組み込みやすい。"
+    },
+    {
+      "heading": "TCSとAnthropicが企業向けAI拡大で戦略提携",
+      "normalizedHeading": "tcsとanthropicが企業向けai拡大で戦略提携",
+      "publishedDate": "",
+      "selectedDate": "2026-06-13",
+      "sourceUrl": "https://m.economictimes.com/tech/information-tech/tcs-and-anthropic-launch-global-premier-partnership-to-drive-enterprise-ai-scaling/articleshow/131649971.cms",
+      "topicKey": "",
+      "companyNames": [
+        "Anthropic"
+      ],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "Tata Consultancy Servicesは2026-06-11、Anthropicとのグローバル戦略提携を発表した。TCSの顧客基盤と業界知見を使い、Anthropicのモデルを大企業の業務変革や実運用に組み込む狙いだ。"
+    },
+    {
+      "heading": "Anthropicが最新モデルを一時停止、米政府の輸出規制対応へ",
+      "normalizedHeading": "anthropicが最新モデルを一時停止米政府の輸出規制対応へ",
+      "publishedDate": "",
+      "selectedDate": "2026-06-13",
+      "sourceUrl": "https://apnews.com/article/d9cc7df5c02e93837d0f0bfb24d5cfd2",
+      "topicKey": "",
+      "companyNames": [
+        "Anthropic"
+      ],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "Anthropicは2026-06-13、米政府の新たな指示に従い、最新モデル『Fable 5』と『Mythos 5』へのアクセスを停止した。報道によれば、外国籍利用者への提供制限が理由で、同社は措置に従いつつも判断には異議を唱えている。"
+    },
+    {
+      "heading": "Metaが中小企業から大企業まで使えるBusiness Agentをグローバル展開",
+      "normalizedHeading": "metaが中小企業から大企業まで使えるbusinessagentをグローバル展開",
+      "publishedDate": "",
+      "selectedDate": "2026-06-08",
+      "sourceUrl": "https://about.fb.com/news/2026/06/meta-business-agent/",
+      "topicKey": "",
+      "companyNames": [
+        "Meta"
+      ],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "Metaは2026年6月3日、WhatsApp、Messenger、Instagram上で顧客対応を自動化するMeta Business Agentを発表した。FAQ対応、商品推薦、予約、リード選別、販売支援まで担い、同時にShopifyやZendeskなど外部システムとつなぐBusiness Agent Platformも投入する。メッセージング基盤にAI接客を直接埋め込むことで、企業の導入障壁を下げにきた。"
+    },
+    {
+      "heading": "OpenAIがChatGPTのメモリ強化と新セキュリティ機能を順次展開",
+      "normalizedHeading": "openaiがchatgptのメモリ強化と新セキュリティ機能を順次展開",
+      "publishedDate": "",
+      "selectedDate": "2026-06-08",
+      "sourceUrl": "https://help.openai.com/en/articles/6825453-chatgpt-release-notes",
+      "topicKey": "",
+      "companyNames": [
+        "OpenAI"
+      ],
+      "productNames": [
+        "ChatGPT"
+      ],
+      "category": "",
+      "summaryFingerprint": "OpenAIは2026年6月4日付のリリースノートで、ChatGPTのメモリ更新を自動化し、文脈の鮮度を保ちやすくする改良を公開した。あわせて全ログインユーザー向けにLockdown Modeを提供し、6月2日には不審なログインを確認して切断できるActive sessionsも導入している。使いやすさの向上と同時に、エージェント化で増える安全管理の面も強化している。"
+    },
+    {
+      "heading": "OpenAIがSECにS-1草案を秘密提出",
+      "normalizedHeading": "openaiがsecにs1草案を秘密提出",
+      "publishedDate": "",
+      "selectedDate": "2026-06-09",
+      "sourceUrl": "https://openai.com/index/openai-submits-confidential-s-1/",
+      "topicKey": "",
+      "companyNames": [
+        "OpenAI"
+      ],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "OpenAIは2026年6月8日、米SECにS-1草案を秘密提出したと発表した。上場時期は未定としつつ、非公開企業のまま進めたい施策もあるため、機動性を残したまま将来のIPOオプションを確保した形だ。"
+    },
+    {
+      "heading": "OpenAIが『第三フェーズ』戦略を公表",
+      "normalizedHeading": "openaiが第三フェーズ戦略を公表",
+      "publishedDate": "",
+      "selectedDate": "2026-06-09",
+      "sourceUrl": "https://openai.com/index/built-to-benefit-everyone-our-plan/",
+      "topicKey": "",
+      "companyNames": [
+        "OpenAI"
+      ],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "OpenAIは2026年6月8日、AIを『誰でも使える豊富で安価かつ安全な基盤』にする第三フェーズへ入ると表明した。AI研究をAIで加速させる自動化研究者、経済成長の加速、全人類へのパーソナルAGI提供を3本柱に据えている。"
+    },
+    {
+      "heading": "OpenAIが経済影響研究の外部連携制度を開始",
+      "normalizedHeading": "openaiが経済影響研究の外部連携制度を開始",
+      "publishedDate": "",
+      "selectedDate": "2026-06-09",
+      "sourceUrl": "https://openai.com/index/economic-research-exchange/",
+      "topicKey": "",
+      "companyNames": [
+        "OpenAI"
+      ],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "OpenAIは2026年6月8日、AIが労働、市場、生産性、教育などへ与える影響を実証研究するための『OpenAI Economic Research Exchange』を開始した。選抜研究者はプライバシー保護とガバナンスを前提に、OpenAIと構造化された共同研究を進める。"
+    },
+    {
+      "heading": "NVIDIAとSK hynixが次世代AIメモリで複数年提携",
+      "normalizedHeading": "nvidiaとskhynixが次世代aiメモリで複数年提携",
+      "publishedDate": "",
+      "selectedDate": "2026-06-09",
+      "sourceUrl": "https://nvidianews.nvidia.com/news/sk-hynix-ai-factory",
+      "topicKey": "",
+      "companyNames": [
+        "NVIDIA"
+      ],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "NVIDIAとSK hynixは2026年6月7日、AIファクトリー向け次世代メモリを共同開発する複数年提携を発表した。対象はVera Rubin、Vera CPU、RTX Spark搭載PC、Jetson Thorまで広く、半導体設計や製造にもAIとデジタルツインを導入する。"
+    },
+    {
+      "heading": "AnthropicがClaude導入パートナー制度を本格拡張",
+      "normalizedHeading": "anthropicがclaude導入パートナー制度を本格拡張",
+      "publishedDate": "",
+      "selectedDate": "2026-06-09",
+      "sourceUrl": "https://www.anthropic.com/news/services-track-partner-hub",
+      "topicKey": "",
+      "companyNames": [
+        "Anthropic"
+      ],
+      "productNames": [
+        "Claude"
+      ],
+      "category": "",
+      "summaryFingerprint": "Anthropicは2026年6月3日、Claude Partner NetworkにServices TrackとPartner Hubを追加した。3段階の認定制度を設け、40,000社超の応募と10,000人超の認定コンサルタントを背景に、企業が本番導入実績のある支援会社を選びやすくする。"
+    },
+    {
+      "heading": "AnthropicがClaude Fable 5を一般公開",
+      "normalizedHeading": "anthropicがclaudefable5を一般公開",
+      "publishedDate": "",
+      "selectedDate": "2026-06-10",
+      "sourceUrl": "https://www.axios.com/2026/06/09/anthropic-mythos-class-safeguards",
+      "topicKey": "",
+      "companyNames": [
+        "Anthropic"
+      ],
+      "productNames": [
+        "Claude",
+        "Fable 5"
+      ],
+      "category": "",
+      "summaryFingerprint": "Anthropicは2026年6月9日、Mythos級の基盤能力を持つ新モデル「Fable 5」を一般向けに公開した。高リスクなサイバー・生物・化学関連の問い合わせは下位モデルへ自動迂回させる設計で、一般公開と高性能の両立を狙っている。並行して、より制限の少ないClaude Mythos 5は一部の信頼済みパートナー向けに維持される。"
+    },
+    {
+      "heading": "AppleがWWDC 2026でSiri AIを正式披露",
+      "normalizedHeading": "appleがwwdc2026でsiriaiを正式披露",
+      "publishedDate": "",
+      "selectedDate": "2026-06-10",
+      "sourceUrl": "https://www.businessinsider.com/apple-new-siri-ai-chatbot-app-wwdc-2026-6",
+      "topicKey": "",
+      "companyNames": [
+        "Apple"
+      ],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "Appleは2026年6月8日のWWDC 2026で、長く遅延していた新しい「Siri AI」を発表した。Appleのソフトウェアに統合されるだけでなく単体アプリとしても提供され、個人コンテキストを使った検索や共有、音声表現の強化、精度向上したディクテーションが打ち出された。初期提供は英語中心で、EUと中国では当初提供しない方針だ。"
+    },
+    {
+      "heading": "Broadcom・Apollo・Blackstoneが350億ドルのAIインフラ枠組みを始動",
+      "normalizedHeading": "broadcomapolloblackstoneが350億ドルのaiインフラ枠組みを始動",
+      "publishedDate": "",
+      "selectedDate": "2026-06-10",
+      "sourceUrl": "https://www.wsj.com/tech/ai/broadcom-apollo-blackstone-launch-35-billion-ai-infrastructure-platform-8fc8f65e",
+      "topicKey": "",
+      "companyNames": [],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "BroadcomはApolloとBlackstoneと組み、初期資金350億ドルの「AI XPV Platform」を立ち上げた。2028年までに20GW超の計算能力整備を目指し、AnthropicやOpenAI向けを含む大規模AI計算基盤にチップとネットワークを供給する構想だ。初期案件ではAnthropicの1GW超の拡張計画支援も想定されている。"
+    },
+    {
+      "heading": "OpenAIに対し米州司法当局が調査開始",
+      "normalizedHeading": "openaiに対し米州司法当局が調査開始",
+      "publishedDate": "",
+      "selectedDate": "2026-06-13",
+      "sourceUrl": "https://www.wsj.com/tech/openai-investigated-by-coalition-of-state-attorneys-general-088a3928",
+      "topicKey": "",
+      "companyNames": [
+        "OpenAI"
+      ],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "Wall Street Journalは2026-06-12付で、複数州の司法長官がOpenAIに対する調査を始め、広告、データ慣行、未成年者や高齢者への影響、モデル挙動に関する文書提出を求めたと報じた。OpenAIは懸念を重く受け止め、当局と建設的に協議する意向を示している。"
+    },
+    {
+      "heading": "米政界で州AI規制を止める連邦主導の動きが再浮上",
+      "normalizedHeading": "米政界で州ai規制を止める連邦主導の動きが再浮上",
+      "publishedDate": "",
+      "selectedDate": "2026-06-10",
+      "sourceUrl": "https://www.axios.com/2026/06/08/white-house-hill-relaunch-effort-block-state-ai-laws",
+      "topicKey": "",
+      "companyNames": [],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "Axiosによると、ホワイトハウスと連邦議会は2026年6月8日、州ごとのAI規制を連邦レベルで抑え込む取り組みを再始動させた。背景には各州で厳格化が進むAI法制への企業側の警戒があり、同時に事前評価やサイバー基準の詰めも進んでいる。包括法案の成立はなお不透明だが、規制の主導権争いは再び激しくなっている。"
+    },
+    {
+      "heading": "OpenAI、Oracleの既存クラウド契約からモデルとCodexを利用可能に",
+      "normalizedHeading": "openaioracleの既存クラウド契約からモデルとcodexを利用可能に",
+      "publishedDate": "",
+      "selectedDate": "2026-06-11",
+      "sourceUrl": "https://openai.com/index/openai-on-oracle-cloud/",
+      "topicKey": "",
+      "companyNames": [
+        "OpenAI",
+        "Oracle"
+      ],
+      "productNames": [
+        "Codex"
+      ],
+      "category": "",
+      "summaryFingerprint": "OpenAIは2026年6月10日、Oracle Cloud Infrastructureの既存コミットメント経由でOpenAIの先端モデルとCodexを使えるようにすると発表した。Oracle Universal Creditsを充当できるため、新たな購買経路を作らずに企業導入を進めやすくなる。提供開始は今後数週間以内の予定。"
+    },
+    {
+      "heading": "Anthropic、危険なAI配備を政府が止められる新政策枠組みを提案",
+      "normalizedHeading": "anthropic危険なai配備を政府が止められる新政策枠組みを提案",
+      "publishedDate": "",
+      "selectedDate": "2026-06-11",
+      "sourceUrl": "https://www.anthropic.com/policy-on-the-ai-exponential",
+      "topicKey": "",
+      "companyNames": [
+        "Anthropic"
+      ],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "Anthropicは2026年6月10日、Advanced AI FrameworkとEconomic Policy Frameworkからなる政策提案を公表した。一定規模以上のフロンティアAI開発企業に対し、透明性、独立評価、強固なセキュリティ、さらに危険な配備を政府が阻止・抑止できる権限を求めている。労働市場や利益配分まで含めた経済面の備えも提案した。"
+    },
+    {
+      "heading": "Google DeepMind、DiffusionGemmaを公開しGPU上で最大4倍高速なテキスト生成を提示",
+      "normalizedHeading": "googledeepminddiffusiongemmaを公開しgpu上で最大4倍高速なテキスト生成を提示",
+      "publishedDate": "",
+      "selectedDate": "2026-06-11",
+      "sourceUrl": "https://blog.google/innovation-and-ai/technology/developers-tools/diffusion-gemma-faster-text-generation/",
+      "topicKey": "",
+      "companyNames": [
+        "Google",
+        "Google DeepMind"
+      ],
+      "productNames": [
+        "Gemma"
+      ],
+      "category": "",
+      "summaryFingerprint": "Googleは2026年6月10日、実験的オープンモデルDiffusionGemmaを発表した。従来の1トークンずつの自己回帰型ではなく、テキストのブロックを並列生成する拡散型アプローチを採用し、専用GPU上で最大4倍高速な推論をうたう。Apache 2.0ライセンスで公開され、ローカルかつ低遅延のワークフローを狙う。"
+    },
+    {
+      "heading": "Google、Geminiに中小企業向け機能を追加し業務文脈を直接取り込めるように",
+      "normalizedHeading": "googlegeminiに中小企業向け機能を追加し業務文脈を直接取り込めるように",
+      "publishedDate": "",
+      "selectedDate": "2026-06-11",
+      "sourceUrl": "https://blog.google/innovation-and-ai/products/gemini-app/gemini-features-for-businesses/",
+      "topicKey": "",
+      "companyNames": [
+        "Google"
+      ],
+      "productNames": [
+        "Gemini"
+      ],
+      "category": "",
+      "summaryFingerprint": "Googleは2026年6月10日、GeminiにGoogle Business Profile連携とBusiness notebooksを追加すると発表した。ブランド情報や顧客接点の文脈をGeminiが理解し、運用タスク整理やコンテンツ生成を支援する。今月中にグローバル展開予定としている。"
+    },
+    {
+      "heading": "NVIDIA、AppleのPrivate Cloud Compute拡張を支える機密推論基盤を公表",
+      "normalizedHeading": "nvidiaappleのprivatecloudcompute拡張を支える機密推論基盤を公表",
+      "publishedDate": "",
+      "selectedDate": "2026-06-11",
+      "sourceUrl": "https://blogs.nvidia.com/blog/nvidia-confidential-computing-apple-private-cloud-compute/",
+      "topicKey": "",
+      "companyNames": [
+        "NVIDIA",
+        "Apple"
+      ],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "NVIDIAは2026年6月9日、AppleのPrivate Cloud ComputeでNVIDIAのConfidential Computing対応GPUが利用されると明らかにした。Apple Intelligenceのサーバー側推論を支え、Appleのデータセンター外ではGoogle Cloud上でも機密推論を実現する。改ざん検知やリモートアテステーションにより、処理中データの秘匿性を担保する設計だ。"
+    },
+    {
+      "heading": "OpenAIがOna買収を発表、Codexを長時間稼働エージェント基盤へ拡張",
+      "normalizedHeading": "openaiがona買収を発表codexを長時間稼働エージェント基盤へ拡張",
+      "publishedDate": "",
+      "selectedDate": "2026-06-12",
+      "sourceUrl": "https://openai.com/index/openai-to-acquire-ona/",
+      "topicKey": "",
+      "companyNames": [
+        "OpenAI"
+      ],
+      "productNames": [
+        "Codex"
+      ],
+      "category": "",
+      "summaryFingerprint": "OpenAIは6月11日、クラウド実行・オーケストレーション企業Onaの買収を発表した。Onaの技術を取り込むことで、Codexを単発セッション中心の補助ツールから、顧客クラウド内で継続稼働できる長時間エージェント基盤へ広げる狙いだ。OpenAIはCodexの週間利用者が500万人超まで拡大したとも明かした。"
+    },
+    {
+      "heading": "AnthropicとDXCが複数年提携、Claudeを規制産業の基幹システムへ導入",
+      "normalizedHeading": "anthropicとdxcが複数年提携claudeを規制産業の基幹システムへ導入",
+      "publishedDate": "",
+      "selectedDate": "2026-06-12",
+      "sourceUrl": "https://www.anthropic.com/news/dxc-anthropic-alliance",
+      "topicKey": "",
+      "companyNames": [
+        "Anthropic"
+      ],
+      "productNames": [
+        "Claude"
+      ],
+      "category": "",
+      "summaryFingerprint": "Anthropicは6月11日、DXC Technologyとの複数年グローバル提携を発表した。DXCは数万人規模のClaude認定エンジニアを育成し、銀行、航空、保険、製造、政府機関向けの運用システムにClaudeを組み込む。DXCは自社の新AI運用基盤OASISでもClaudeを中核に据え、95%以上のコード生成に活用したとしている。"
+    },
+    {
+      "heading": "Anthropicが1.5億ドル規模の『Claude Corps』を開始、AI移行の人材再配分に踏み込む",
+      "normalizedHeading": "anthropicが15億ドル規模のclaudecorpsを開始ai移行の人材再配分に踏み込む",
+      "publishedDate": "",
+      "selectedDate": "2026-06-12",
+      "sourceUrl": "https://www.anthropic.com/news/claude-corps",
+      "topicKey": "",
+      "companyNames": [
+        "Anthropic"
+      ],
+      "productNames": [
+        "Claude"
+      ],
+      "category": "",
+      "summaryFingerprint": "Anthropicは6月11日、若手人材1,000人を非営利団体へ1年間派遣するフェローシップ『Claude Corps』を発表した。初期投資は1.5億ドルで、参加者にはAI活用訓練、年8.5万ドルの給与、トークン予算を提供し、少なくとも400の非営利組織を支援する計画だ。"
+    },
+    {
+      "heading": "GoogleがAIインフラ向け技能労働者育成に5000万ドル、30万人超の訓練へ",
+      "normalizedHeading": "googleがaiインフラ向け技能労働者育成に5000万ドル30万人超の訓練へ",
+      "publishedDate": "",
+      "selectedDate": "2026-06-12",
+      "sourceUrl": "https://www.axios.com/2026/06/11/google-trade-worker-initiative-ai",
+      "topicKey": "",
+      "companyNames": [
+        "Google"
+      ],
+      "productNames": [],
+      "category": "",
+      "summaryFingerprint": "GoogleはGoogle.orgを通じて、米国の技能労働者育成に5000万ドルを投じ、30万人超の訓練を支援する。対象は電気工、配管工、溶接工などで、データセンターや電力設備などAIインフラ建設の人手不足を埋める狙いだ。"
+    },
+    {
+      "heading": "GoogleがApple開発者向けにGemini接続を拡大、XcodeとFirebase経由で統合",
+      "normalizedHeading": "googleがapple開発者向けにgemini接続を拡大xcodeとfirebase経由で統合",
+      "publishedDate": "",
+      "selectedDate": "2026-06-12",
+      "sourceUrl": "https://blog.google/innovation-and-ai/technology/developers-tools/bringing-gemini-models-to-apple-developers/",
+      "topicKey": "",
+      "companyNames": [
+        "Google",
+        "Apple"
+      ],
+      "productNames": [
+        "Gemini"
+      ],
+      "category": "",
+      "summaryFingerprint": "Googleは6月8日付で、AppleのFoundation Models framework経由でクラウド版Geminiを呼び出せるようにすると発表した。Firebase Apple SDKを通じてiOSやmacOSアプリへ組み込みやすくし、Xcode内でもGeminiを使ったコーディング支援を提供する。"
+    },
+    {
+      "heading": "GoogleがSpaceXから月額9.2億ドルでAI計算能力を確保",
+      "normalizedHeading": "googleがspacexから月額92億ドルでai計算能力を確保",
+      "publishedDate": "",
+      "selectedDate": "2026-06-10",
+      "sourceUrl": "https://www.businessinsider.com/google-spacex-deal-920-million-month-compute-capacity-gemini-enterprise-2026-6",
+      "topicKey": "",
+      "companyNames": [
+        "Google",
+        "SpaceX"
+      ],
+      "productNames": [
+        "Gemini"
+      ],
+      "category": "",
+      "summaryFingerprint": "Business Insiderが2026年6月5日付で報じたSpaceXのSEC提出資料によると、Googleは2026年10月から2029年6月まで月額9.2億ドルで計算能力を確保する契約を結んだ。対象には約11万基のNVIDIA GPUを含む計算資源が含まれ、GoogleはGemini Enterpriseの需要急増に対応するためのブリッジ容量だと説明している。"
+    },
+    {
+      "heading": "GitHub Modelsが7月30日に完全終了、推論APIとBYOKも停止へ",
+      "normalizedHeading": "githubmodelsが7月30日に完全終了推論apiとbyokも停止へ",
+      "publishedDate": "2026-07-01",
+      "selectedDate": "2026-07-08",
+      "sourceUrl": "https://github.blog/changelog/2026-07-01-github-models-is-being-fully-retired-on-july-30-2026/",
+      "topicKey": "",
+      "companyNames": [
+        "GitHub"
+      ],
+      "productNames": [
+        "GitHub Models"
+      ],
+      "category": "API・SDK",
+      "summaryFingerprint": "GitHub Modelsは2026年7月30日に完全終了し、プレイグラウンド、モデルカタログ、推論API、BYOKエンドポイントがすべて使えなくなる。7月16日と23日には事前のブラウンアウトも予定されており、既存ユーザーにも例外はない。"
+    }
+  ]
+}

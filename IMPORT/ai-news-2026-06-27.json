@@ -1,0 +1,42 @@
+{
+  "title": "AI最新ニュース朝刊",
+  "date": "2026-06-27",
+  "items": [
+    {
+      "heading": "OpenAI、GPT-5.6の公開を米政府要請で段階配布へ",
+      "points": "6月26日の報道によると、OpenAIは最新モデルGPT-5.6のうち主力版を、米政府承認済みの限定パートナー向けに先行公開した。背景には高度モデルのサイバー安全保障リスクを30日以内で審査する新しい米連邦レビュー枠組みがある。",
+      "whyImportant": "最先端モデルの公開が、性能競争だけでなく国家安全保障レビューの対象になった。今後はモデルの一般公開速度そのものが政策判断に左右される可能性が高い。",
+      "sourceLabel": "AP News / 2026-06-26",
+      "sourceUrl": "https://apnews.com/article/065d5398baac7f16c8265c2cb8ba2baa"
+    },
+    {
+      "heading": "AnthropicのMythos問題が長期化、AI輸出管理の不透明さが露呈",
+      "points": "6月26日のThe Verge報道では、AnthropicのMythos 5とFable 5が安全保障懸念で止められてから2週間たっても解決していない。外国籍従業員を含む利用制限や、AIモデルに既存の輸出管理をどう適用するかが未整理なまま交渉が続いている。",
+      "whyImportant": "AIモデルそのものを輸出管理や国家安全保障の枠にどう入れるかが未確立で、米AI企業全体の事業リスクになっている。OpenAI側の段階配布とも連動し、規制の実務が産業競争力を直接左右し始めた。",
+      "sourceLabel": "The Verge / 2026-06-26",
+      "sourceUrl": "https://www.theverge.com/ai-artificial-intelligence/957327/anthropic-mythos-fable-ai-trump-administration-negotiations"
+    },
+    {
+      "heading": "OpenAI・Anthropic・Microsoft・AmazonがAI雇用対策で共同基金",
+      "points": "6月25日、超党派の新組織RAISE USが発足し、初期資金5億ドル超で米労働者のAI移行支援を始めると報じられた。アーカンソー、メリーランド、ユタ、コネティカットの4州で、再訓練やAIキャリア支援、賃金保険などの実証が始まる。",
+      "whyImportant": "主要AI企業が、AIで生まれる収益だけでなく雇用転換コストも正面から扱い始めた。生成AIの社会実装が、技術導入フェーズから制度設計フェーズへ移っている。",
+      "sourceLabel": "AP News / 2026-06-25",
+      "sourceUrl": "https://apnews.com/article/929986c149d415cd2ef4dc3eaf66ca8c"
+    },
+    {
+      "heading": "GoogleからOpenAI・Anthropicへの人材流出が市場を直撃",
+      "points": "6月22日から23日にかけて、Gemini共同責任者のNoam ShazeerがOpenAIへ、DeepMind幹部でノーベル賞受賞者のJohn JumperがAnthropicへ移る動きが伝わった。Alphabet株は急落し、AI競争で最重要資源が計算資源だけでなく超一流研究者であることを改めて示した。",
+      "whyImportant": "モデル性能や設備投資だけではなく、トップ研究者の移籍が企業価値を大きく動かす段階に入っている。今後のAI覇権は、資本力に加えて人材の囲い込みで決まりやすくなる。",
+      "sourceLabel": "Business Insider / 2026-06-23",
+      "sourceUrl": "https://www.businessinsider.com/google-ai-talent-wars-anthropic-jumper-shazeer-karpathy-openai-2026-6"
+    },
+    {
+      "heading": "AI向けメモリ逼迫でAppleとMicrosoftが値上げ、消費者負担が表面化",
+      "points": "6月26日のAxios報道によると、AIデータセンター需要でメモリ価格が急騰し、Appleは一部MacBookとiPadを、Microsoftも関連製品を値上げした。AIの影響が雇用不安だけでなく、ハード価格上昇という形で一般消費者に及び始めている。",
+      "whyImportant": "AI投資のコストがサプライチェーン経由で実物価格に転嫁され始めた。AIブームが企業の研究開発競争から、家計に見えるインフレ圧力へ広がっている。",
+      "sourceLabel": "Axios / 2026-06-26",
+      "sourceUrl": "https://www.axios.com/2026/06/26/apple-microsoft-prices-ai"
+    }
+  ],
+  "trendSummary": "足元のAIニュースは、性能競争そのものよりも、公開規制・雇用移行・人材争奪・部材コストという現実的な制約が前面に出ている。最先端モデルは国家安全保障の審査対象になり、企業は労働移行対策や人材確保に巨額を投じ、同時にインフラ需要のひずみが価格上昇として消費者にも波及し始めた。"
+}

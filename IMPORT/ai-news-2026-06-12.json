@@ -1,0 +1,42 @@
+{
+  "title": "AI最新ニュース朝刊",
+  "date": "2026-06-12",
+  "items": [
+    {
+      "heading": "OpenAIがOna買収を発表、Codexを長時間稼働エージェント基盤へ拡張",
+      "points": "OpenAIは6月11日、クラウド実行・オーケストレーション企業Onaの買収を発表した。Onaの技術を取り込むことで、Codexを単発セッション中心の補助ツールから、顧客クラウド内で継続稼働できる長時間エージェント基盤へ広げる狙いだ。OpenAIはCodexの週間利用者が500万人超まで拡大したとも明かした。",
+      "whyImportant": "AIエージェント競争がモデル性能だけでなく、実運用に耐える実行環境とガバナンスへ移っていることを示す。特に企業導入では『どこで動くか』『誰が制御できるか』が勝負になり、OpenAIがその基盤を垂直統合し始めた意味は大きい。",
+      "sourceLabel": "OpenAI",
+      "sourceUrl": "https://openai.com/index/openai-to-acquire-ona/"
+    },
+    {
+      "heading": "AnthropicとDXCが複数年提携、Claudeを規制産業の基幹システムへ導入",
+      "points": "Anthropicは6月11日、DXC Technologyとの複数年グローバル提携を発表した。DXCは数万人規模のClaude認定エンジニアを育成し、銀行、航空、保険、製造、政府機関向けの運用システムにClaudeを組み込む。DXCは自社の新AI運用基盤OASISでもClaudeを中核に据え、95%以上のコード生成に活用したとしている。",
+      "whyImportant": "生成AIが『PoC止まり』ではなく、厳格なコンプライアンス下の本番システムへ本格浸透する流れを裏づける。特にDXCのような大規模SI・運用企業が前面に立つことで、金融や公共など保守的な業界でもAI導入の速度が上がりやすくなる。",
+      "sourceLabel": "Anthropic",
+      "sourceUrl": "https://www.anthropic.com/news/dxc-anthropic-alliance"
+    },
+    {
+      "heading": "Anthropicが1.5億ドル規模の『Claude Corps』を開始、AI移行の人材再配分に踏み込む",
+      "points": "Anthropicは6月11日、若手人材1,000人を非営利団体へ1年間派遣するフェローシップ『Claude Corps』を発表した。初期投資は1.5億ドルで、参加者にはAI活用訓練、年8.5万ドルの給与、トークン予算を提供し、少なくとも400の非営利組織を支援する計画だ。",
+      "whyImportant": "AIの社会実装が雇用や地域格差に与える影響を、企業が人材育成と再配置で緩和しようとする具体策として注目できる。安全性や性能だけでなく、『誰がAIの恩恵を受けるか』が競争軸に入り始めた。",
+      "sourceLabel": "Anthropic",
+      "sourceUrl": "https://www.anthropic.com/news/claude-corps"
+    },
+    {
+      "heading": "GoogleがAIインフラ向け技能労働者育成に5000万ドル、30万人超の訓練へ",
+      "points": "GoogleはGoogle.orgを通じて、米国の技能労働者育成に5000万ドルを投じ、30万人超の訓練を支援する。対象は電気工、配管工、溶接工などで、データセンターや電力設備などAIインフラ建設の人手不足を埋める狙いだ。",
+      "whyImportant": "AI競争の制約が半導体やモデルだけではなく、建設・電力・現場労働へ広がっていることを示す。今後のAI供給力は、ソフトウェア企業が物理インフラと労働市場をどこまで押さえられるかにも左右される。",
+      "sourceLabel": "Axios",
+      "sourceUrl": "https://www.axios.com/2026/06/11/google-trade-worker-initiative-ai"
+    },
+    {
+      "heading": "GoogleがApple開発者向けにGemini接続を拡大、XcodeとFirebase経由で統合",
+      "points": "Googleは6月8日付で、AppleのFoundation Models framework経由でクラウド版Geminiを呼び出せるようにすると発表した。Firebase Apple SDKを通じてiOSやmacOSアプリへ組み込みやすくし、Xcode内でもGeminiを使ったコーディング支援を提供する。",
+      "whyImportant": "AIの主戦場が自社アプリから他社プラットフォーム上の開発者獲得へ移っている。Appleが枠組みを開き、Googleが最前線で入り込む構図は、モバイルAIの覇権争いがOS・SDKレイヤーに深く食い込んできたことを示す。",
+      "sourceLabel": "Google",
+      "sourceUrl": "https://blog.google/innovation-and-ai/technology/developers-tools/bringing-gemini-models-to-apple-developers/"
+    }
+  ],
+  "trendSummary": "足元のAIニュースは、モデル性能競争そのものよりも、実運用基盤、人材供給、導入パートナー網、開発者囲い込みへ重心が移っている。各社は『より賢いモデル』だけでは差別化しにくくなり、長時間エージェントの実行環境、規制産業への導入能力、インフラ建設を支える労働力、他社エコシステム上での存在感まで含めて覇権を争う段階に入っている。"
+}

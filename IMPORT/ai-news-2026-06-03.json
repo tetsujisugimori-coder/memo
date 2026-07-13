@@ -1,0 +1,62 @@
+{
+  "title": "AI最新ニュース朝刊",
+  "date": "2026-06-03",
+  "items": [
+    {
+      "heading": "OpenAIがCodexを非開発職へ本格拡張、役割別プラグインと共有サイトを投入",
+      "points": [
+        "OpenAIは2026年6月2日、Codex向けに役割別プラグイン、注釈機能、共有可能なSitesプレビューを発表しました。",
+        "対象は分析、営業、クリエイティブ、投資、プロダクト設計などで、非開発者の利用比率は全体の約20%まで伸びているとしています。",
+        "AIコーディング支援がエンジニア専用ツールから、部門横断の業務プラットフォームへ広がる流れが明確になりました。"
+      ],
+      "whyImportant": "生成AIの主戦場が『コードを書く支援』から『チームの仕事そのものを形にする支援』へ移っていることを示します。今後はモデル性能だけでなく、役割別ワークフローや社内ツール接続が導入競争の中心になります。",
+      "sourceLabel": "OpenAI",
+      "sourceUrl": "https://openai.com/index/codex-for-every-role-tool-workflow/"
+    },
+    {
+      "heading": "AnthropicがProject Glasswingを3倍規模へ拡大、重要インフラの脆弱性発見を加速",
+      "points": [
+        "Anthropicは2026年6月2日、重要ソフトウェアの安全性向上を狙うProject Glasswingを約50組織から約150組織へ拡大すると発表しました。",
+        "初期参加者はClaude Mythos Previewを使って、これまでに1万件超の高重大度またはクリティカルな脆弱性を見つけたとしています。",
+        "新規参加組織は15か国超にまたがり、電力、水道、医療、通信、ハードウェアなど、より広い重要インフラ分野を含みます。"
+      ],
+      "whyImportant": "AIの価値が一般的な生産性向上だけでなく、国家・社会インフラの防御に直結し始めています。安全保障とサイバー防衛の現場でAIが標準装備になっていく流れを示す重要な続報です。",
+      "sourceLabel": "Anthropic",
+      "sourceUrl": "https://www.anthropic.com/news/expanding-project-glasswing"
+    },
+    {
+      "heading": "Mayo ClinicとMicrosoftが医療特化のフロンティアAIモデルを共同開発",
+      "points": [
+        "Mayo ClinicとMicrosoftは2026年6月2日、医療向けのフロンティアAIモデルを共同で開発・展開すると発表しました。",
+        "Mayoの臨床知見や匿名化データと、MicrosoftのAI・クラウド・エンジニアリング基盤を組み合わせ、診断支援や個別化治療の判断を強化する狙いです。",
+        "モデルの所有権はMayo Clinicが持ち、Azure Foundry APIを通じた提供も計画されています。"
+      ],
+      "whyImportant": "汎用モデルではなく、業界ごとの高信頼な基盤モデルへ市場が進んでいることを示します。とくに医療分野では、データ統治、責任所在、実運用環境での検証が競争優位そのものになります。",
+      "sourceLabel": "Microsoft Source",
+      "sourceUrl": "https://news.microsoft.com/source/2026/06/02/mayo-clinic-and-microsoft-collaborate-to-develop-a-frontier-ai-model-for-healthcare/"
+    },
+    {
+      "heading": "NVIDIAがJetson向けにエージェントAI基盤を拡張、物理世界への実装を加速",
+      "points": [
+        "NVIDIAは2026年6月1日、JetPack 7.2とNemoClawのJetson対応を発表し、エージェントAIをロボティクスや産業機器の現場へ広げました。",
+        "Jetson Orin向けCUDA 13、Jetson Thor向けMIG対応、Linux最適化やメモリ調整などの agent skills も加わり、開発から配備までを短縮します。",
+        "単なるクラウド上のAIエージェントではなく、視覚・制御を伴う『物理AIエージェント』を量産しやすい形に寄せています。"
+      ],
+      "whyImportant": "AIの競争軸がチャットUIからロボット、検査装置、医療機器などの現場へ広がっていることを示します。今後はモデル単体より、エッジ配備と実世界制御まで含めたフルスタック実装力が重要になります。",
+      "sourceLabel": "NVIDIA Blog",
+      "sourceUrl": "https://blogs.nvidia.com/blog/jetson-agentic-ai-physical-world/"
+    },
+    {
+      "heading": "GoogleがGemini for Scienceを発表、仮説生成から文献整理まで研究作業を自動化",
+      "points": [
+        "GoogleはI/O 2026関連で、Gemini for Scienceとして仮説生成、計算探索、文献分析を支援する複数の実験ツール群を公開しました。",
+        "Co-Scientist、AlphaEvolve、ERA、NotebookLMを組み合わせ、Google Labs経由で段階的に公開し、企業向けにはGoogle Cloud経由の提供も進めます。",
+        "加えてScience Skillsにより、30超の生命科学データベースやツールと接続し、これまで数時間かかった解析を数分に短縮した事例も示しました。"
+      ],
+      "whyImportant": "AIの適用先が一般事務やソフト開発だけでなく、研究そのものの進め方へ深く入り始めています。科学研究で使える形に整えられたAI基盤は、製薬、材料、エネルギーなど広範な産業競争力に直結します。",
+      "sourceLabel": "Google Blog",
+      "sourceUrl": "https://blog.google/innovation-and-ai/technology/research/gemini-for-science-io-2026/"
+    }
+  ],
+  "trendSummary": "2026年6月初旬のAI業界は、単なる新モデル競争よりも、現場導入の深さと産業特化の実装力が前面に出ています。業務部門向けプラットフォーム化、重要インフラ防御、医療特化モデル、物理エージェント、科学研究支援といった動きから、AIは『使えるか』ではなく『どの業界のどの実務にどこまで入り込めるか』の競争段階に入っています。"
+}

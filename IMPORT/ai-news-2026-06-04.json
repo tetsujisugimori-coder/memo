@@ -1,0 +1,62 @@
+{
+  "title": "AI最新ニュース朝刊",
+  "date": "2026-06-04",
+  "items": [
+    {
+      "heading": "AnthropicがAI悪用のサイバー脅威分析を公開、攻撃の自動化が進行",
+      "points": [
+        "Anthropicは2026年6月3日、2025年3月から2026年3月までに悪質なサイバー活動で停止した832アカウントを分析した報告を公開しました。",
+        "報告では、560件がマルウェア作成など攻撃準備にAIを使い、後半6か月では中リスク以上の比率が33%から56%へ上がったとしています。",
+        "同社は、AIが攻撃の複数工程をつなげることで、従来の脅威分類や評価枠組みだけでは実態を捉えにくくなっていると指摘しました。"
+      ],
+      "whyImportant": "生成AIの脅威は「文章を作る」段階から、より複雑な攻撃支援へ進んでいます。企業や政府はモデルの性能評価だけでなく、実運用での悪用監視や防御体制を急いで更新する必要があります。",
+      "sourceLabel": "Anthropic",
+      "sourceUrl": "https://www.anthropic.com/news/AI-enabled-cyber-threats-mitre-attack"
+    },
+    {
+      "heading": "MicrosoftがBuild 2026で企業向けAI基盤を拡張、Scoutと独自推論モデルを投入",
+      "points": [
+        "Microsoftは2026年6月2日、Build 2026でWork IQ APIs、Web IQ、Microsoft Scout、MAI-Thinking-1などをまとめて発表しました。",
+        "ScoutはTeamsやOutlookを使う常時稼働型の個人向け業務エージェントで、MAI-Thinking-1は35Bアクティブパラメータ、256Kコンテキストの独自推論モデルとしてFoundryでプレビュー提供されます。",
+        "あわせてAgent 365やASSERTなど、エージェントの評価・統制・セキュリティを一体で扱う構想も打ち出しました。"
+      ],
+      "whyImportant": "企業向けAI競争が、単体モデルの賢さから「安全に動かせる業務基盤」へ移っていることを示します。今後の導入差は、推論性能だけでなく、社内データ接続、統制、継続運用まで含めた総合力で決まりやすくなります。",
+      "sourceLabel": "Microsoft",
+      "sourceUrl": "https://blogs.microsoft.com/blog/2026/06/02/microsoft-build-2026-be-yourself-at-work/"
+    },
+    {
+      "heading": "OpenAIのフロンティアモデルとCodexがAWSで一般提供開始",
+      "points": [
+        "OpenAIは2026年6月1日、OpenAIのフロンティアモデル群とCodexがAWS上で一般提供になったと発表しました。",
+        "Amazon Bedrock経由でモデルを使えるほか、CodexもAWS環境に入り、既存の調達、請求、セキュリティ、ガバナンスの流れのまま導入しやすくなります。",
+        "対象は商用リージョンに加えGovCloudも含まれ、企業はOpenAIを既存のAWS運用基盤の中で本番展開しやすくなります。"
+      ],
+      "whyImportant": "先端モデルの勝負は性能だけでなく、どの既存クラウド運用に自然に入るかが重要です。OpenAIがAWS経由で入りやすくなったことで、企業導入は評価段階から本番実装へ進みやすくなります。",
+      "sourceLabel": "OpenAI",
+      "sourceUrl": "https://openai.com/index/openai-frontier-models-and-codex-are-now-available-on-aws/"
+    },
+    {
+      "heading": "NVIDIAとMicrosoftが端末からクラウドまでのエージェントAI共通基盤を拡大",
+      "points": [
+        "NVIDIAは2026年6月2日、Microsoftとの連携拡大として、RTX Spark、DGX Station for Windows、Microsoft Foundry上のNVIDIAモデル、GitHub Copilot向けOpenShellなどを発表しました。",
+        "Windows端末、Azure、ローカル実行までをまたぐ構成で、個人向けエージェントPCから企業向け常時稼働エージェントまでを同じ流れで構築できるようにします。",
+        "Foundry上ではNVIDIA、Anthropic、OpenAI系モデルを組み合わせる前提も示され、モデル単独ではなくスタック全体での競争が鮮明になっています。"
+      ],
+      "whyImportant": "AIエージェントが実務で広がるには、モデルだけでなく、端末、推論基盤、セキュアな実行環境が一体で必要です。NVIDIAとMicrosoftの提携強化は、そのフルスタック競争が本格化したことを示します。",
+      "sourceLabel": "NVIDIA",
+      "sourceUrl": "https://blogs.nvidia.com/blog/microsoft-build-windows-local-cloud-devices/"
+    },
+    {
+      "heading": "OpenAIがG7を前に若年層AI安全の国際枠組みを提唱",
+      "points": [
+        "OpenAIは2026年6月2日、G7首脳会議を前に、若年層のAI安全を継続的に扱う国際的なAI Safety Instituteの設立を呼びかけました。",
+        "提案には、年齢推定、年次リスク評価、保護者向け設定、重大事案対応、未成年の個人情報保護、独立監査などの原則が含まれます。",
+        "同社はすでに18歳未満向け保護強化、保護者通知、年齢推定の導入を進めており、教育現場での実証も根拠として示しました。"
+      ],
+      "whyImportant": "AIの普及が進むほど、性能競争だけではなく未成年保護の制度設計が避けられません。国際共通ルールづくりが進めば、各社の製品設計や規制対応に直接影響します。",
+      "sourceLabel": "OpenAI",
+      "sourceUrl": "https://openai.com/index/advancing-youth-safety-and-opportunity-through-global-leadership/"
+    }
+  ],
+  "trendSummary": "2026年6月4日時点のAI業界は、単なる新モデル発表よりも「本番導入の土台」をどう押さえるかが主戦場です。企業向けエージェント基盤、既存クラウドへの実装、サイバー防御、未成年保護といった論点が前面に出ており、AIは便利さの競争から、社会と業務に安全に組み込む競争へと段階を進めています。"
+}

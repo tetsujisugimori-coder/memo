@@ -1,0 +1,62 @@
+{
+  "title": "AI最新ニュース朝刊",
+  "date": "2026-06-05",
+  "items": [
+    {
+      "heading": "OpenAIとNVIDIAが10GW級AI基盤で戦略提携",
+      "points": [
+        "OpenAIとNVIDIAは2026年6月5日、少なくとも10ギガワット規模のNVIDIAシステムをOpenAI向け次世代AI基盤として配備する意向を公表した。",
+        "NVIDIAは各ギガワットの配備進捗に応じて最大1000億ドルをOpenAIへ投じる方針で、第1弾は2026年後半にVera Rubin基盤で立ち上げる計画だ。",
+        "OpenAIはNVIDIAを優先的な計算・ネットワーク戦略パートナーとし、モデルとインフラの共同最適化を進める。"
+      ],
+      "whyImportant": "AI競争の主戦場がモデル単体から電力・GPU・ネットワークを含む超大型基盤整備へ移っていることを示す。資本力と供給網を握る企業が次世代モデル性能と供給能力を左右する局面がさらに強まる。",
+      "sourceLabel": "NVIDIA Newsroom",
+      "sourceUrl": "https://nvidianews.nvidia.com/_gallery/download_pdf/68d173273d633288cb44040b/"
+    },
+    {
+      "heading": "ChatGPTの新メモリ機能「Dreaming」が拡大展開",
+      "points": [
+        "OpenAIは2026年6月4日、ChatGPTの記憶機能を強化する「Dreaming」を発表し、鮮度・継続性・関連性を改善する新しいメモリ統合方式を導入した。",
+        "米国のPlusとProで提供を開始し、今後数週間で追加地域とFree/Goにも広げる予定としている。",
+        "提供コストを約5分の1に下げたことで、無料層まで含む大規模展開が現実的になった。"
+      ],
+      "whyImportant": "対話AIの差別化が一回限りの応答品質から、長期的な文脈保持と個別最適化へ移っている。継続利用の体験改善は、利用時間・定着率・個人アシスタント化に直結する。",
+      "sourceLabel": "OpenAI",
+      "sourceUrl": "https://openai.com/index/chatgpt-memory-dreaming/"
+    },
+    {
+      "heading": "OpenAIが生命科学向けGPT-Rosalindを強化",
+      "points": [
+        "OpenAIは2026年6月3日、生命科学研究向けモデルGPT-Rosalindの更新版を発表し、創薬・ゲノミクス・実験ワークフローでの性能向上を打ち出した。",
+        "新ベンチマークでは、MedChemBenchやGeneBench、LabWorkBenchでGPT-5.5比の精度向上とトークン効率改善を示している。",
+        "Codex向けの生命科学プラグインや生物学的ファイルビューアも合わせて提供し、研究作業の実行層までつなげる構成にした。"
+      ],
+      "whyImportant": "汎用AIの競争が、医療・創薬のような高付加価値な専門領域での実運用へ踏み込んでいる。研究現場の再現性や証跡管理まで含めた製品化は、産業向けAIの収益化を前進させる。",
+      "sourceLabel": "OpenAI",
+      "sourceUrl": "https://openai.com/index/introducing-new-capabilities-to-gpt-rosalind/"
+    },
+    {
+      "heading": "Google DeepMindがGemma 4 12Bを公開",
+      "points": [
+        "Google DeepMindは2026年6月3日、16GB級のVRAMやユニファイドメモリ環境でも動かせるオープンモデル「Gemma 4 12B」を公開した。",
+        "エンコーダ不要の統合マルチモーダル構成を採り、同社中規模モデルとして初めてネイティブ音声入力に対応した。",
+        "高性能をローカル実行に寄せることで、開発者がノートPC上で推論・コード・音声を扱う用途を狙っている。"
+      ],
+      "whyImportant": "高性能モデルのローカル化は、クラウド依存を減らし、コスト・遅延・データ管理の面で企業導入の幅を広げる。オープンモデル陣営の競争力強化にも直結する。",
+      "sourceLabel": "Google Blog",
+      "sourceUrl": "https://blog.google/innovation-and-ai/technology/developers-tools/introducing-gemma-4-12B/"
+    },
+    {
+      "heading": "MicrosoftがAI時代のバイオセキュリティ強化策を提示",
+      "points": [
+        "Microsoftは2026年6月4日、AIとバイオ技術の収束によるリスク上昇を踏まえ、核酸合成スクリーニングを中心とするバイオセキュリティ強化を提言した。",
+        "一般モデル、専門的生物設計ツール、実験自動化、エージェント型システムが重なって能力スタックを形成しつつあると整理している。",
+        "同社はParaphrase Projectで既存スクリーニングの弱点と改善可能性を検証し、業界・政府・研究コミュニティの連携を促した。"
+      ],
+      "whyImportant": "AI安全の論点が情報漏えいや著作権から、生物リスクの現実的な制御点へ広がっている。今後の規制や企業の安全投資が、モデル単体ではなく利用経路全体を対象にし始める可能性が高い。",
+      "sourceLabel": "Microsoft On the Issues",
+      "sourceUrl": "https://blogs.microsoft.com/on-the-issues/2026/06/04/strengthening-biosecurity-in-the-era-of-ai/"
+    }
+  ],
+  "trendSummary": "2026年6月上旬のAIニュースは、巨大計算基盤への投資加速、個人向けAIの長期記憶化、そして生命科学やバイオセキュリティのような高インパクト領域への本格進出が同時進行しているのが特徴だ。モデル性能競争だけでなく、インフラ、専門用途、安全統治まで含めた総力戦へ移っている。"
+}

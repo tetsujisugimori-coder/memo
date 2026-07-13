@@ -1,0 +1,42 @@
+{
+  "title": "AI最新ニュース朝刊",
+  "date": "2026-06-11",
+  "items": [
+    {
+      "heading": "OpenAI、Oracleの既存クラウド契約からモデルとCodexを利用可能に",
+      "points": "OpenAIは2026年6月10日、Oracle Cloud Infrastructureの既存コミットメント経由でOpenAIの先端モデルとCodexを使えるようにすると発表した。Oracle Universal Creditsを充当できるため、新たな購買経路を作らずに企業導入を進めやすくなる。提供開始は今後数週間以内の予定。",
+      "whyImportant": "生成AIの本格導入で最大の摩擦になりやすい調達とガバナンスの問題を下げる動きであり、OpenAIの企業普及がクラウド契約の再活用を通じて一段と進む可能性が高い。",
+      "sourceLabel": "OpenAI",
+      "sourceUrl": "https://openai.com/index/openai-on-oracle-cloud/"
+    },
+    {
+      "heading": "Anthropic、危険なAI配備を政府が止められる新政策枠組みを提案",
+      "points": "Anthropicは2026年6月10日、Advanced AI FrameworkとEconomic Policy Frameworkからなる政策提案を公表した。一定規模以上のフロンティアAI開発企業に対し、透明性、独立評価、強固なセキュリティ、さらに危険な配備を政府が阻止・抑止できる権限を求めている。労働市場や利益配分まで含めた経済面の備えも提案した。",
+      "whyImportant": "AI安全論が自主規制から制度設計の段階へ進んでいることを示す。今後の米国連邦法や州法、他国の規制議論に直接影響しうる。",
+      "sourceLabel": "Anthropic",
+      "sourceUrl": "https://www.anthropic.com/policy-on-the-ai-exponential"
+    },
+    {
+      "heading": "Google DeepMind、DiffusionGemmaを公開しGPU上で最大4倍高速なテキスト生成を提示",
+      "points": "Googleは2026年6月10日、実験的オープンモデルDiffusionGemmaを発表した。従来の1トークンずつの自己回帰型ではなく、テキストのブロックを並列生成する拡散型アプローチを採用し、専用GPU上で最大4倍高速な推論をうたう。Apache 2.0ライセンスで公開され、ローカルかつ低遅延のワークフローを狙う。",
+      "whyImportant": "高速化の競争がモデル精度だけでなく推論方式そのものへ広がっている。ローカルAIやエージェント実行の体感性能に直結するため、開発者基盤への影響が大きい。",
+      "sourceLabel": "Google",
+      "sourceUrl": "https://blog.google/innovation-and-ai/technology/developers-tools/diffusion-gemma-faster-text-generation/"
+    },
+    {
+      "heading": "Google、Geminiに中小企業向け機能を追加し業務文脈を直接取り込めるように",
+      "points": "Googleは2026年6月10日、GeminiにGoogle Business Profile連携とBusiness notebooksを追加すると発表した。ブランド情報や顧客接点の文脈をGeminiが理解し、運用タスク整理やコンテンツ生成を支援する。今月中にグローバル展開予定としている。",
+      "whyImportant": "AIの価値が「汎用チャット」から業務固有データに密着した支援へ移っていることを示す。中小企業でも導入しやすい導線が整うと、利用裾野が一段広がる。",
+      "sourceLabel": "Google",
+      "sourceUrl": "https://blog.google/innovation-and-ai/products/gemini-app/gemini-features-for-businesses/"
+    },
+    {
+      "heading": "NVIDIA、AppleのPrivate Cloud Compute拡張を支える機密推論基盤を公表",
+      "points": "NVIDIAは2026年6月9日、AppleのPrivate Cloud ComputeでNVIDIAのConfidential Computing対応GPUが利用されると明らかにした。Apple Intelligenceのサーバー側推論を支え、Appleのデータセンター外ではGoogle Cloud上でも機密推論を実現する。改ざん検知やリモートアテステーションにより、処理中データの秘匿性を担保する設計だ。",
+      "whyImportant": "生成AIの普及で最大の論点であるプライバシーとクラウド推論の両立に対し、実運用レベルの構成が見えてきた。Apple、Google、NVIDIAの三者連携はAIインフラの新しい標準像を示している。",
+      "sourceLabel": "NVIDIA",
+      "sourceUrl": "https://blogs.nvidia.com/blog/nvidia-confidential-computing-apple-private-cloud-compute/"
+    }
+  ],
+  "trendSummary": "足元のAI業界は、モデル性能競争そのものよりも、企業導入の摩擦低減、ローカル高速推論、プライバシー保護付きクラウド実行、そして安全保障を含む制度設計へと重心が移っている。大手各社は単体モデルの優劣ではなく、既存業務やOS、クラウド、規制環境にどう深く埋め込むかで差を広げようとしている。"
+}

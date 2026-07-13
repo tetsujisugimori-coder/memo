@@ -1,0 +1,42 @@
+{
+  "title": "AI最新ニュース朝刊",
+  "date": "2026-06-25",
+  "items": [
+    {
+      "heading": "OpenAIが初の自社AI推論チップ「Jalapeño」をテスト開始",
+      "points": "OpenAIは6月24日、Broadcomと開発した自社製AIチップ「Jalapeño」のテスト開始を明らかにした。まずは学習用ではなく推論用として使い、年内に顧客向け問い合わせ処理へ投入する計画で、将来的な量産拡大も見据える。",
+      "whyImportant": "AI各社の競争軸がモデル性能だけでなく半導体と電力効率まで広がっていることを示す。Nvidia依存を減らせれば、OpenAIのコスト構造と供給安定性に大きな影響が出る。",
+      "sourceLabel": "Axios",
+      "sourceUrl": "https://www.axios.com/2026/06/24/openai-jalapeno-ai-chip-broadcom-nvidia"
+    },
+    {
+      "heading": "Meta、AI学習用の社員行動トラッキング計画を一時停止",
+      "points": "The Guardianの6月24日報道によると、Metaは社員のキーストロークや画面内容を集める社内プログラムを停止した。約1,600人の社員がプライバシーと同意の問題を訴え、内部データへのアクセス懸念も浮上していた。",
+      "whyImportant": "AI開発で高品質データをどう集めるかは各社の競争力に直結する一方、社内データであっても取得方法次第で強い反発を招くことが分かる。企業内AIの拡大で、データガバナンスと労務リスクが経営課題になっている。",
+      "sourceLabel": "The Guardian",
+      "sourceUrl": "https://www.theguardian.com/technology/2026/jun/24/meta-pauses-employee-tracker-for-ai-training-amid-privacy-concerns"
+    },
+    {
+      "heading": "GoogleのGemini 3.5 Proは7月へ延期と報道",
+      "points": "Business Insiderは6月24日、GoogleがGemini 3.5 Proの公開時期を6月から7月へずらしたと報じた。報道ベースでは、早期テスターの実運用フィードバックを反映し、長時間タスクやエージェント用途の調整を続けているという。",
+      "whyImportant": "最先端モデル競争では、発表よりも実運用品質の確保が難所になっていることを示す。Googleが慎重姿勢を取るなら、OpenAIやAnthropicとの企業向け争いにも影響する。",
+      "sourceLabel": "Business Insider",
+      "sourceUrl": "https://www.businessinsider.com/google-3-5-pro-july-release-tokens-ai-agents-model-2026-6"
+    },
+    {
+      "heading": "QualcommがAIソフト企業Modularを約39億ドルで買収へ",
+      "points": "Wall Street Journalの6月24日報道によると、QualcommはAIインフラ向けソフトウェア企業Modularを約39億ドルで買収する。狙いは、端末からデータセンターまでAIをより安く速く動かすためのソフト基盤を強化することだ。",
+      "whyImportant": "AIの競争はモデル企業だけでなく、半導体企業がソフトウェア層まで取り込む段階に入っている。CUDA一強への対抗や、ハードをまたぐ実行基盤の主導権争いとして見る価値がある。",
+      "sourceLabel": "The Wall Street Journal",
+      "sourceUrl": "https://www.wsj.com/tech/ai/qualcomm-to-acquire-ai-software-firm-modular-in-3-9-billion-stock-deal-7b620c7c"
+    },
+    {
+      "heading": "Microsoft、AIデータセンターの水使用抑制を前面に",
+      "points": "Axiosの6月24日報道によると、Microsoftは新しいAI向けデータセンターで冷却水の常時消費を避ける設計を採用していると説明した。地域社会で水資源や電力需要への反発が強まるなか、同社は既存設備の多くも低水使用型へ寄せていると訴えている。",
+      "whyImportant": "AIインフラ拡張のボトルネックがGPUだけでなく、水・電力・地域受容性に広がっている。今後のAI投資では、性能や資本支出だけでなく環境負荷説明責任が競争条件になる。",
+      "sourceLabel": "Axios",
+      "sourceUrl": "https://www.axios.com/2026/06/24/microsoft-lower-water-use-ai"
+    }
+  ],
+  "trendSummary": "6月24日から25日にかけてのAIニュースは、モデルそのものよりも、その周辺インフラと実装運用に重心が移っている。自社チップ、実行基盤ソフト、データ収集の統治、モデル公開の品質管理、水・電力制約といった論点が前面に出ており、AI競争が『より賢いモデル』から『より持続可能で制御しやすい供給網と運用体制』へ拡張している。"
+}

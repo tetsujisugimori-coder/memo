@@ -4,12 +4,13 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Memo Nexus</title>
-  <link rel="stylesheet" href="style.css?v=0.3.1-10">
+  <link rel="stylesheet" href="style.css?v=0.4.0-1">
 </head>
 <body>
   <aside class="sidebar">
     <div class="toolbar">
       <button id="newBtn" title="新規メモ">+</button>
+      <button id="collectionsBtn" title="コレクションを開く" aria-controls="collectionExplorer" aria-expanded="false">▱ コレクション</button>
       <button id="todayBtn" title="今日メモ">Today</button>
       <button id="undoBtn" class="undo-button" title="元に戻す" disabled>Undo</button>
       <button id="backupBtn" title="Markdown ZIP出力">ZIP</button>
@@ -22,6 +23,23 @@
     <div id="deleteUndoNotice" class="delete-undo-notice" hidden></div>
     <input id="searchInput" type="search" placeholder="検索" autocomplete="off">
     <div id="memoList" class="memo-list"></div>
+  </aside>
+
+  <div id="collectionBackdrop" class="collection-backdrop" hidden></div>
+  <aside id="collectionExplorer" class="collection-explorer" aria-label="コレクション・エクスプローラ" aria-hidden="true">
+    <div class="collection-head">
+      <strong>コレクション</strong>
+      <div class="collection-head-actions">
+        <button id="addCollectionBtn" type="button" title="コレクションを作成" aria-label="コレクションを作成">＋</button>
+        <button id="collectionAddMenuBtn" type="button" title="作成場所を選ぶ" aria-label="作成場所を選ぶ">▾</button>
+        <button id="closeCollectionsBtn" type="button" title="閉じる" aria-label="コレクションを閉じる">×</button>
+      </div>
+    </div>
+    <div id="collectionAddMenu" class="collection-popup-menu" hidden></div>
+    <div id="collectionSelectionBar" class="collection-selection-bar" hidden></div>
+    <div id="collectionTree" class="collection-tree" role="tree" tabindex="0" aria-label="コレクション一覧"></div>
+    <div id="collectionMenu" class="collection-popup-menu collection-context-menu" hidden></div>
+    <div id="collectionToast" class="collection-toast" role="status" aria-live="polite" hidden></div>
   </aside>
 
   <main class="workspace">
@@ -130,8 +148,23 @@
     </div>
   </dialog>
 
+  <dialog id="collectionMoveDialog" class="collection-action-dialog">
+    <div class="dialog-head">
+      <strong id="collectionMoveTitle">コレクションへ移動</strong>
+      <button id="closeCollectionMoveBtn" title="閉じる">×</button>
+    </div>
+    <div class="collection-dialog-body">
+      <label for="collectionMoveSelect">移動先</label>
+      <select id="collectionMoveSelect"></select>
+      <div class="collection-dialog-actions">
+        <button id="cancelCollectionMoveBtn" type="button">キャンセル</button>
+        <button id="runCollectionMoveBtn" type="button">移動</button>
+      </div>
+    </div>
+  </dialog>
+
   <script src="https://cdn.jsdelivr.net/npm/@highlightjs/cdn-assets@11.11.1/highlight.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
-  <script src="app.js?v=0.3.1-10"></script>
+  <script src="app.js?v=0.4.0-1"></script>
 </body>
 </html>

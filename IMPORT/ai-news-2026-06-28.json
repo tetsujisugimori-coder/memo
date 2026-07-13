@@ -1,0 +1,42 @@
+{
+  "title": "AI最新ニュース朝刊",
+  "date": "2026-06-28",
+  "items": [
+    {
+      "heading": "OpenAIとBroadcomが推論専用AIチップ「Jalapeño」を発表",
+      "points": "OpenAIは6月24日、Broadcomと共同でLLM推論向け専用チップ「Jalapeño」を公開した。初代チップは現行最先端を上回る電力効率を狙い、2026年末の初期配備と複数世代にわたる展開計画を打ち出している。",
+      "whyImportant": "AI競争の焦点がモデル性能だけでなく、推論コストと供給網の自前化へ移っていることを示すため。推論インフラの差は、サービス価格・応答速度・供給安定性に直結する。",
+      "sourceLabel": "OpenAI",
+      "sourceUrl": "https://openai.com/index/openai-broadcom-jalapeno-inference-chip/"
+    },
+    {
+      "heading": "OpenAIが「Daybreak」を拡張し、AIによる脆弱性修正自動化を前面に",
+      "points": "OpenAIは6月22日、セキュリティ施策「Daybreak」を拡張し、Codex Securityの更新版とGPT-5.5-Cyberの全面展開を発表した。脆弱性の発見だけでなく、パッチ生成と適用までを機械速度で進める方向を強く打ち出している。",
+      "whyImportant": "生成AIの実運用価値が、文章生成から守りの自動化へ広がっているため。企業ITでは開発支援より先に、セキュリティ運用の変化がROIを左右する可能性が高い。",
+      "sourceLabel": "OpenAI",
+      "sourceUrl": "https://openai.com/index/daybreak-securing-the-world/"
+    },
+    {
+      "heading": "GoogleがGemini向け「Interactions API」を正式化、エージェント開発の標準に",
+      "points": "GoogleはGeminiモデルとエージェント向けのInteractions APIを一般提供に移行し、今後の主要インターフェースに据えると発表した。Managed Agents、バックグラウンド実行、複数ツール統合、メディア生成などを1つのAPI系統に集約している。",
+      "whyImportant": "AI活用の中心が単発推論から状態を持つエージェントへ移る中で、開発標準を握るAPIは強い影響力を持つため。Googleがエージェント実装の土台を押さえにきた動きとして重要。",
+      "sourceLabel": "Google Blog",
+      "sourceUrl": "https://blog.google/innovation-and-ai/technology/developers-tools/interactions-api-general-availability/"
+    },
+    {
+      "heading": "中国のZhipu AI「GLM-5.2」がサイバー分野でAnthropic級に接近",
+      "points": "6月28日付のWall Street Journal報道によると、中国のZhipu AIが公開したGLM-5.2は、脆弱性検出などサイバーセキュリティ領域でAnthropicの最上位級モデルに匹敵する水準を示した。しかもオープンウェイトで広く使える点が競争環境を変えつつある。",
+      "whyImportant": "最先端AIの優位が米国大手に固定されないことを示す材料だから。安全保障と産業競争の両面で、中国勢の追い上げを無視できない段階に入っている。",
+      "sourceLabel": "The Wall Street Journal",
+      "sourceUrl": "https://www.wsj.com/tech/ai/chinese-ai-anthropic-mythos-cybersecurity-574b02c2"
+    },
+    {
+      "heading": "Samsung Electronicsが全社規模でChatGPT EnterpriseとCodexを導入",
+      "points": "OpenAIは6月21日、Samsung Electronicsが韓国内の全従業員と世界のDX部門従業員向けにChatGPT EnterpriseとCodexを展開すると発表した。R&D、製造、マーケティング、社内業務まで横断的に使う大型導入案件となる。",
+      "whyImportant": "AIが実験導入の段階を越え、製造業の中核企業で全社基盤として採用され始めているため。今後はモデル性能競争だけでなく、社内定着と業務設計の巧拙が勝負になる。",
+      "sourceLabel": "OpenAI",
+      "sourceUrl": "https://openai.com/index/samsung-electronics-chatgpt-codex-deployment/"
+    }
+  ],
+  "trendSummary": "今週末時点の流れは、AIの競争軸が「高性能モデルの発表」から「推論インフラの自前化」「セキュリティ自動化」「エージェント開発基盤」「大企業への本格導入」に広がっていることだ。加えて、中国勢の追い上げがサイバー領域で可視化され、AIは純粋なプロダクト競争ではなく、供給網・安全保障・企業実装まで含む総力戦に入っている。"
+}

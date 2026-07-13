@@ -1,0 +1,62 @@
+{
+  "title": "AI最新ニュース朝刊",
+  "date": "2026-05-30",
+  "items": [
+    {
+      "heading": "Anthropicが650億ドルを調達し、評価額は9650億ドルに",
+      "points": [
+        "Anthropicは2026年5月28日、Series Hで650億ドルを調達し、ポストマネー評価額が9650億ドルになったと発表しました。",
+        "同社はClaudeの需要増を受け、安全性・解釈可能性の研究、計算資源の拡張、製品とパートナーシップの拡大に資金を充てる方針です。",
+        "あわせてAmazon、Google/Broadcom、SpaceXとの計算資源契約も示し、クラウド横断での供給確保を前面に出しました."
+      ],
+      "whyImportant": "最先端AIの競争軸が、モデル性能だけでなく資本力と計算資源の確保にあることを改めて示しました。企業向けAI市場の寡占化と、巨額投資を前提にした開発競争がさらに進みそうです。",
+      "sourceLabel": "Anthropic",
+      "sourceUrl": "https://www.anthropic.com/news/series-h"
+    },
+    {
+      "heading": "Google I/O 2026でGemini Omniと検索エージェントを前面に",
+      "points": [
+        "Googleは2026年5月28日にI/O 2026の主要発表を整理し、動画から始まるマルチモーダル生成モデル「Gemini Omni」と、新しいGemini 3.5 Flashを打ち出しました。",
+        "検索では、複数モダリティをまたぐ新しい検索ボックスに加え、継続的に情報収集する「information agents」をこの夏から展開するとしています。",
+        "Searchそのものが動的なUIや小さな専用体験を生成する方向も示されました。"
+      ],
+      "whyImportant": "生成AIの主戦場が単体チャットから、検索、ブラウザ、動画生成、継続監視へ広がっていることを示す発表です。Googleの配信面と利用基盤を使った一体化戦略が、今後の利用動線を大きく変える可能性があります。",
+      "sourceLabel": "Google Blog",
+      "sourceUrl": "https://blog.google/innovation-and-ai/technology/ai/io-2026-keynote-moment-videos/"
+    },
+    {
+      "heading": "MicrosoftがCopilot Studioでコンピューター操作エージェントをGA化",
+      "points": [
+        "Microsoftは2026年5月26日、Copilot Studioの5月更新として、画面UIを直接操作するcomputer-using agentsの一般提供開始を発表しました。",
+        "あわせて、ワークフロー新設計、Work IQのREST API/CLI、MCPサーバー対応、agent-to-agent通信の一般提供も進めています。",
+        "APIがない古い業務システムやWeb画面にも、より実務的にAIエージェントを入れやすくする狙いです。"
+      ],
+      "whyImportant": "企業のAI活用が、会話ボットから実作業を担うエージェントへ移っていることを示す動きです。UI操作、MCP、エージェント連携が揃うと、既存業務への導入ハードルが大きく下がります。",
+      "sourceLabel": "Microsoft Copilot Blog",
+      "sourceUrl": "https://www.microsoft.com/en-us/microsoft-copilot/blog/copilot-studio/new-and-improved-computer-using-agents-a-new-workflows-experience-and-real-time-voice-experiences/"
+    },
+    {
+      "heading": "OpenAIがAI生成物の真正性対策を強化、SynthIDと検証ツールを導入",
+      "points": [
+        "OpenAIは2026年5月19日、C2PA準拠の強化、Google DeepMindのSynthIDによる画像透かし、公開検証ツールのプレビューを発表しました。",
+        "ChatGPT、Codex、OpenAI APIで生成された画像に対して、来歴情報をより他社プラットフォームでも扱いやすくする狙いがあります。",
+        "メタデータだけでは失われやすい情報を、透かしとの組み合わせで補完する設計です。"
+      ],
+      "whyImportant": "AI生成コンテンツの信頼性は、報道、広告、SNS、選挙対策まで広く影響します。単独企業の機能追加ではなく、標準規格と相互運用へ進んだ点に大きな意味があります。",
+      "sourceLabel": "OpenAI",
+      "sourceUrl": "https://openai.com/index/advancing-content-provenance/"
+    },
+    {
+      "heading": "OpenAIがGPT-5.5 Instantを更新、o3とGPT-4.5のChatGPT提供終了日も告知",
+      "points": [
+        "OpenAIは2026年5月28日付のChatGPTリリースノートで、GPT-5.5 Instantの応答品質を改善し、より自然で簡潔な応答にしたと案内しました。",
+        "同時に、ChatGPT上でOpenAI o3を2026年8月26日、GPT-4.5を2026年6月27日に終了すると告知しています。",
+        "canvasはGPT-5.5 InstantとGPT-5.5 Thinkingでは利用できなくなり、文章作成やコーディングは通常のチャット応答内に寄せる方向です。"
+      ],
+      "whyImportant": "主要サービスの既定体験とモデル整理が同時に進んでおり、ユーザー体験と開発リソースを新世代モデルへ集中させる流れが見えます。モデル寿命が短くなり、運用側も追随前提で考える必要があります。",
+      "sourceLabel": "OpenAI Help Center",
+      "sourceUrl": "https://help.openai.com/en/articles/6825453-chatgpt-plus-upgrade-faq"
+    }
+  ],
+  "trendSummary": "今週の大きな流れは、AIが『高性能モデルを出す競争』から『巨大資本で計算資源を押さえ、検索や業務システムに深く埋め込み、生成物の信頼性まで含めて運用する競争』へ進んでいることです。資金、配信面、エージェント実装、真正性の4つが同時に強化されているのが特徴です。"
+}

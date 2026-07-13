@@ -1,0 +1,42 @@
+{
+  "title": "AI最新ニュース朝刊",
+  "date": "2026-06-13",
+  "items": [
+    {
+      "heading": "Anthropicが最新モデルを一時停止、米政府の輸出規制対応へ",
+      "points": "Anthropicは2026-06-13、米政府の新たな指示に従い、最新モデル『Fable 5』と『Mythos 5』へのアクセスを停止した。報道によれば、外国籍利用者への提供制限が理由で、同社は措置に従いつつも判断には異議を唱えている。",
+      "whyImportant": "先端モデルの公開可否が企業判断だけでなく安全保障・輸出管理に左右される局面に入った。AIの国際展開、研究者アクセス、企業導入の前提条件が一段と不安定になる。",
+      "sourceLabel": "AP News",
+      "sourceUrl": "https://apnews.com/article/d9cc7df5c02e93837d0f0bfb24d5cfd2"
+    },
+    {
+      "heading": "OpenAIに対し米州司法当局が調査開始",
+      "points": "Wall Street Journalは2026-06-12付で、複数州の司法長官がOpenAIに対する調査を始め、広告、データ慣行、未成年者や高齢者への影響、モデル挙動に関する文書提出を求めたと報じた。OpenAIは懸念を重く受け止め、当局と建設的に協議する意向を示している。",
+      "whyImportant": "生成AIの競争軸が性能だけでなく、消費者保護と説明責任へ移っていることを示す。今後の規制や訴訟リスクが、製品設計と収益化の両方に直結する。",
+      "sourceLabel": "The Wall Street Journal",
+      "sourceUrl": "https://www.wsj.com/tech/openai-investigated-by-coalition-of-state-attorneys-general-088a3928"
+    },
+    {
+      "heading": "TCSとAnthropicが企業向けAI拡大で戦略提携",
+      "points": "Tata Consultancy Servicesは2026-06-11、Anthropicとのグローバル戦略提携を発表した。TCSの顧客基盤と業界知見を使い、Anthropicのモデルを大企業の業務変革や実運用に組み込む狙いだ。",
+      "whyImportant": "基盤モデル競争が『誰のモデルが強いか』から『誰が実装・運用まで握るか』に広がっている。大手SIerとの提携は、Anthropicの企業浸透を加速させる現実的な販路になる。",
+      "sourceLabel": "The Economic Times",
+      "sourceUrl": "https://m.economictimes.com/tech/information-tech/tcs-and-anthropic-launch-global-premier-partnership-to-drive-enterprise-ai-scaling/articleshow/131649971.cms"
+    },
+    {
+      "heading": "SciConBench公開、AIエージェントの科学的結論生成は依然不安定",
+      "points": "2026-06-09公開の研究『Can AI Agents Synthesize Scientific Conclusions?』は、9,000件超の体系的レビューを使って科学的結論生成を評価した。クリーンルーム条件では最良エージェントでも事実的F1が0.337にとどまり、医療など高リスク領域での信頼性不足が示された。",
+      "whyImportant": "AIエージェントを医療・研究支援へ広げる流れに対し、現状の性能限界を具体的な指標で突きつけた。『検索できる』ことと『正しく統合して結論できる』ことは別問題だと分かる。",
+      "sourceLabel": "arXiv",
+      "sourceUrl": "https://arxiv.org/abs/2606.11337"
+    },
+    {
+      "heading": "新研究がAgentic AI基盤の安全設計不足を指摘",
+      "points": "2026-06-11公開の研究『The Containment Gap』は、LangChain、AutoGPT、OpenAI Agents SDKを監査し、公開向け高リスク運用に必要な構造的安全性が標準では備わっていないと報告した。特にメモリ汚染への防御不足が、政策判断や給付判定のような用途で深刻な偏りを生み得るとする。",
+      "whyImportant": "企業がエージェント導入を急ぐ一方で、フレームワーク層の安全性が追いついていない可能性を示す。アプリ単体ではなく基盤設計そのものの見直しが必要になる。",
+      "sourceLabel": "arXiv",
+      "sourceUrl": "https://arxiv.org/abs/2606.12797"
+    }
+  ],
+  "trendSummary": "2026-06-13時点のAIニュースは、性能競争そのものよりも『先端モデルを誰がどの条件で使えるか』と『実運用に耐える安全性・説明責任があるか』へ重心が移っている。輸出規制、州当局の調査、企業導入の大型提携、研究による性能限界と安全欠陥の可視化が同時進行しており、AIは技術プロダクトから社会インフラへ近づくほど統治コストが前面化している。"
+}

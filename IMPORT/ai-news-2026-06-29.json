@@ -1,0 +1,42 @@
+{
+  "title": "AI最新ニュース朝刊",
+  "date": "2026-06-29",
+  "items": [
+    {
+      "heading": "OpenAIが次世代モデル「GPT-5.6 Sol」を限定プレビュー開始",
+      "points": "OpenAIは6月26日、旗艦モデル「GPT-5.6 Sol」と、低コスト版のTerra・Lunaを限定プレビューとして公開した。Solは高リスクなサイバー関連要求への保護を強化したうえで、まず政府と共有済みの信頼できる少数パートナーから提供を始め、数週間以内の一般提供を予定している。",
+      "whyImportant": "最先端モデルの公開が性能競争だけでなく、政府との事前調整や段階的展開を前提に進み始めたことを示すため。今後はモデルの能力だけでなく、配布プロセスそのものが競争力と規制対応の核心になる。",
+      "sourceLabel": "OpenAI",
+      "sourceUrl": "https://openai.com/index/previewing-gpt-5-6-sol/"
+    },
+    {
+      "heading": "米商務省がAnthropic「Mythos 5」の一部アクセス再開を承認",
+      "points": "Axiosが6月26日付で報じたところによると、米商務省はAnthropicが安全対策を前進させたとして、停止されていたMythos 5へのアクセスを一部の承認先に限って再開した。Fable 5への制限は残り、当局は状況次第で再評価すると明記している。",
+      "whyImportant": "先端AIが通常の製品リリースではなく、輸出管理と国家安全保障の枠組みで運用され始めているため。企業や各国の利用可否がモデル性能ではなく政策判断に左右される局面が強まっている。",
+      "sourceLabel": "Axios",
+      "sourceUrl": "https://www.axios.com/2026/06/27/commerce-anthropic-mythos-restrictions-lift"
+    },
+    {
+      "heading": "HPがOpenAIとの「Frontier」提携を全社展開フェーズへ拡大",
+      "points": "OpenAIは6月28日、HPがパイロット導入の成果を受けて、OpenAI Frontier戦略提携の適用範囲を全社規模へ広げると発表した。対象は顧客向け体験、テレメトリー分析、従業員生産性、ソフトウェア開発まで横断している。",
+      "whyImportant": "AI導入の焦点が実験から業務基盤化へ移っていることを示す大型事例だから。今後の差は「使うかどうか」ではなく、どこまで組織横断で埋め込めるかで開く。",
+      "sourceLabel": "OpenAI",
+      "sourceUrl": "https://openai.com/index/hp-frontier-partnership/"
+    },
+    {
+      "heading": "AnthropicがSlack常駐型の共同作業機能「Claude Tag」をベータ公開",
+      "points": "Anthropicは6月23日、ClaudeをSlackのチームメンバーとして招き、チャンネル内で @Claude を付けて仕事を委任できる「Claude Tag」を発表した。社内ではプロダクトチームのコードの65%が内部版Claude Tagで作られているとしており、将来はSlack以外にも広げる方針だ。",
+      "whyImportant": "AIが個人用チャットボットから、チームの文脈を保持して働く実務メンバーへ進化しているため。コラボレーション基盤にAIが常駐すると、ソフト開発だけでなくサポートや分析の仕事設計も変わる。",
+      "sourceLabel": "Anthropic",
+      "sourceUrl": "https://www.anthropic.com/news/introducing-claude-tag"
+    },
+    {
+      "heading": "OpenAIがGPT-5による免疫学研究の新発見事例を公開",
+      "points": "OpenAIは6月23日、免疫学者Derya Unutmaz氏がGPT-5 Proを使って、3年間解けなかったT細胞分化の謎を再解釈できた事例を紹介した。未公開実験の帰結予測でも一致が見られ、仮説生成と実験優先順位づけの加速効果が示された。",
+      "whyImportant": "生成AIの価値が要約やコーディング支援を越え、専門研究で仮説形成そのものを補助する段階に入っているため。創薬・免疫・生命科学の研究速度を変える可能性があり、産業インパクトが大きい。",
+      "sourceLabel": "OpenAI",
+      "sourceUrl": "https://openai.com/index/gpt-5-immunology-mystery/"
+    }
+  ],
+  "trendSummary": "足元のAI業界は、モデル性能の更新だけでなく、国家安全保障を意識した公開管理、企業への全社導入、チーム常駐型エージェント、科学研究への深い組み込みが同時進行している。単発の高性能デモより、どの現場にどう埋め込まれるか、そして誰がアクセスを管理するかが次の競争軸になっている。"
+}

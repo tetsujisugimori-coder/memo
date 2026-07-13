@@ -1,0 +1,57 @@
+{
+  "title": "AI最新ニュース朝刊",
+  "date": "2026-07-07",
+  "items": [
+    {
+      "heading": "AnthropicがTeraWulfと20年・190億ドル規模のAIデータセンター契約",
+      "points": [
+        "AnthropicはTeraWulfと、ケンタッキー州HawesvilleのAIインフラ拠点を対象に20年契約を締結したと報じられた。",
+        "供給能力は約401メガワットで、2027年後半に一部稼働、2028年初頭のフル稼働が見込まれる。"
+      ],
+      "whyImportant": "生成AIの競争軸がモデル性能だけでなく、長期の電力・用地・冷却確保に移っていることを示す大型案件だから。",
+      "sourceLabel": "The Wall Street Journal",
+      "sourceUrl": "https://www.wsj.com/finance/investing/terawulf-signs-19-billion-lease-with-anthropic-for-ai-infrastructure-campus-ef26be27"
+    },
+    {
+      "heading": "SpaceXが軌道上AI計算向け『Starmind』衛星構想を公開",
+      "points": [
+        "SpaceXは、AI計算向けの軌道上データセンターとして機能する『Starmind』衛星群の構想を明らかにしたと報じられた。",
+        "地上データセンターの電力・水・立地制約を避ける発想で、2028年以降の展開が想定されている。"
+      ],
+      "whyImportant": "AI計算資源の制約が深刻化する中で、インフラ競争が地上の新設DCから宇宙ベース構想にまで広がっているため。",
+      "sourceLabel": "Barron's",
+      "sourceUrl": "https://www.barrons.com/articles/spacex-stock-price-satellite-deorbit-ai-0b1e8869"
+    },
+    {
+      "heading": "国連が『AI for Good Global Commission』を立ち上げ",
+      "points": [
+        "国連とITUは、AI開発企業の経営陣と各国首脳を同じ場に集める『AI for Good Global Commission』を発足させた。",
+        "初会合は2026年7月8日にジュネーブで予定され、分断が進むAIガバナンスの国際協調を狙う。"
+      ],
+      "whyImportant": "AIの主戦場が企業の製品競争だけでなく、国際ルール形成と地政学の調整に本格的に移っているから。",
+      "sourceLabel": "Axios",
+      "sourceUrl": "https://www.axios.com/2026/07/01/un-ai-commission-ceos-world-leaders"
+    },
+    {
+      "heading": "Metaが余剰AI計算資源の外販『Meta Compute』を検討",
+      "points": [
+        "Metaは社内向けに積み上げたAI計算資源を外部販売する新クラウド事業『Meta Compute』を検討中と報じられた。",
+        "自社モデル提供型か、生の計算資源賃貸型かの両案があり、既存クラウドやneocloud各社への競争圧力が強まる可能性がある。"
+      ],
+      "whyImportant": "ハイパースケーラーがAI投資を回収するため、モデル提供企業から計算資源販売企業へも拡張し始めた兆候だから。",
+      "sourceLabel": "Tom's Hardware",
+      "sourceUrl": "https://www.tomshardware.com/tech-industry/meta-reportedly-plans-to-rent-out-its-ai-compute"
+    },
+    {
+      "heading": "OpenAIがCodex向け新ハードウェアを予告",
+      "points": [
+        "OpenAIはCodex向けの新ハードウェアを予告し、2026年7月15日に詳細公開すると報じられた。",
+        "Work Louderとの協業が示されており、専用入力デバイスやショートカット操作の強化が焦点とみられる。"
+      ],
+      "whyImportant": "AI活用がソフトウェア単体から、専用UI・周辺機器を含む『作業体験』の最適化競争へ進んでいることを示すため。",
+      "sourceLabel": "The Verge",
+      "sourceUrl": "https://www.theverge.com/ai-artificial-intelligence/959174/openai-codex-hardware-work-louder"
+    }
+  ],
+  "trendSummary": "今週前半のAIニュースは、モデルそのものよりも『計算資源の確保』『インフラの差別化』『国際ルール形成』に重心が移っている。巨大データセンター契約、余剰計算資源の外販、宇宙インフラ構想、国連主導の調整枠組みが同時進行しており、AI競争が研究開発から産業基盤と制度設計の段階へ一段深く入っている。"
+}

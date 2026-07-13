@@ -1,0 +1,42 @@
+{
+  "title": "AI最新ニュース朝刊",
+  "date": "2026-06-23",
+  "items": [
+    {
+      "heading": "OpenAIがサイバー防衛向けGPT-5.5-Cyberを強化",
+      "points": "OpenAIは2026年6月22日、認証済みのサイバー防衛企業・研究者向けにGPT-5.5-Cyberの強化版を公開した。従来より高性能かつ利用許容範囲を広げつつ、利用先は審査制に限定している。あわせて各国政府や研究機関との協力枠組みも広げ、攻撃側だけでなく防御側にも先端AIを配備する流れを強めている。",
+      "whyImportant": "生成AIの主戦場が汎用チャットから実戦的なサイバー防衛に広がっていることを示す。高性能モデルの公開範囲をどう管理するかという安全保障上の論点も一段と重くなる。",
+      "sourceLabel": "Axios",
+      "sourceUrl": "https://www.axios.com/2026/06/22/openai-rolls-out-more-capable-version-of-cyber-model"
+    },
+    {
+      "heading": "Getty ImagesがOpenAIと提携し、ChatGPTの検索表示に画像提供",
+      "points": "Getty Imagesは2026年6月22日、OpenAIと複数年の提携を結び、ライセンス画像をChatGPTの検索・発見機能に提供する方向を打ち出した。学習用途ではなく表示用途の契約とされ、市場はこの提携を高く評価し、Getty株は急騰した。著作権者とAI企業の関係が対立一辺倒ではなく、配信契約へ移る流れが鮮明になっている。",
+      "whyImportant": "AI検索やアシスタントが信頼できる商用コンテンツをどう扱うかの先例になる。著作権リスクを回避しながら高品質データを組み込む収益モデルとして、他社にも波及しやすい。",
+      "sourceLabel": "Wall Street Journal",
+      "sourceUrl": "https://www.wsj.com/livecoverage/stock-market-today-dow-sp-500-nasdaq-06-22-2026/card/getty-images-stock-jumps-following-openai-partnership-J6D5bCBqHA0Lijt1yUhf"
+    },
+    {
+      "heading": "MicronがAnthropic向けにHBM・DRAM・SSD供給を含む戦略提携",
+      "points": "Micronは2026年6月22日、Anthropic向けに高帯域幅メモリ、DRAM、SSDを設計・供給する戦略提携を公表した。AIモデル運用の性能・効率・コストを改善する狙いで、Anthropicの長期拡大を支えるインフラ契約として受け止められている。発表を受けてMicron株は上昇し、AIメモリ需要の強さを改めて印象づけた。",
+      "whyImportant": "AI競争のボトルネックがモデル性能だけでなく、メモリやストレージを含む実装インフラにあることを示す。今後の優位は半導体供給網を押さえた企業に傾きやすい。",
+      "sourceLabel": "MarketWatch",
+      "sourceUrl": "https://www.marketwatch.com/story/microns-stock-momentum-builds-as-the-company-inks-a-new-anthropic-partnership-484e3845"
+    },
+    {
+      "heading": "Five Eyesが“数カ月以内に政府や企業を揺るがすAIが出る”と警告",
+      "points": "米英豪加NZの情報同盟Five Eyesは2026年6月22日までに、国家や企業に深刻な打撃を与え得るAIモデルが数カ月以内に現れうるとする異例の警告を出した。とくにサイバー分野では、防御強化と同時に攻撃自動化も進むとして、経営レベルでの対応を急ぐよう促している。AIリスクが研究者だけでなく安全保障・事業継続の問題として扱われ始めた形だ。",
+      "whyImportant": "AIの危険性に関する議論が抽象論ではなく、具体的なサイバー脅威評価へ移っている。企業にとってもAI導入とAI防衛を同時に進める必要があることを意味する。",
+      "sourceLabel": "The Guardian",
+      "sourceUrl": "https://www.theguardian.com/technology/2026/jun/22/anthropic-claude-fable-ai-model-artificial-intelligence-national-security"
+    },
+    {
+      "heading": "G7でマクロン氏が先端AI共有と民主主義国の規制協調を提唱",
+      "points": "2026年6月17日、フランスのマクロン大統領はG7の場で、最先端AIを米国だけで囲い込まず民主主義国間で共有し、規制も協調して進めるべきだと訴えた。報道によれば、OpenAIのサム・アルトマン氏も国際的な安全基準づくりの必要性を支持した。AI覇権競争が企業間競争から同盟国間の制度設計にまで広がっている。",
+      "whyImportant": "AIを巡る主導権争いが技術や資本だけでなく、同盟・規制・アクセス条件の問題になっている。各国のルール形成が市場アクセスや研究協力を左右する局面に入った。",
+      "sourceLabel": "AP News",
+      "sourceUrl": "https://apnews.com/article/7d783c6de4356962e338b8b8563d48ea"
+    }
+  ],
+  "trendSummary": "足元のAIニュースは、モデル性能そのものよりも、サイバー安全保障、著作権処理済みコンテンツ、HBMなどの半導体供給網、そして民主主義国間のルール形成へ重心が移っている。つまりAIの競争軸は『どのモデルが賢いか』から、『誰が安全に運用し、必要なデータと計算資源を押さえ、国際制度の中で展開できるか』へ広がっている。"
+}
