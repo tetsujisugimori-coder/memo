@@ -381,6 +381,35 @@ body.collections-open .collection-explorer {
   padding: 3px 7px;
 }
 
+.collection-sort-bar {
+  min-height: 38px;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 2px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.collection-sort-select {
+  max-width: 110px;
+  min-height: 28px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 2px 6px;
+  background: var(--input-bg);
+  color: var(--ink);
+  font: inherit;
+}
+
+.collection-sort-select:focus {
+  border-color: var(--accent);
+  outline: none;
+  box-shadow: 0 0 0 2px var(--accent-soft);
+}
+
 .collection-toast {
   position: absolute;
   left: 12px;

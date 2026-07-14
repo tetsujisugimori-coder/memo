@@ -11,6 +11,7 @@ const UNCLASSIFIED_COLLECTION_ID = "system-unclassified";
 const MAX_COLLECTION_DEPTH = 5;
 const DRAFT_STORAGE_KEY = "memo-nexus-current-draft";
 const THEME_STORAGE_KEY = "memo-nexus-theme";
+const COLLECTION_SORT_STORAGE_KEY = "memo-nexus-collection-sort";
 const DRAFT_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
 const UNDO_LIMIT = 50;
 const UNDO_INPUT_INTERVAL_MS = 800;
@@ -49,6 +50,7 @@ const collectionAddMenu = $("collectionAddMenu");
 const collectionTree = $("collectionTree");
 const collectionMenu = $("collectionMenu");
 const collectionSelectionBar = $("collectionSelectionBar");
+const collectionSortSelect = $("collectionSortSelect");
 const collectionToast = $("collectionToast");
 const collectionMoveDialog = $("collectionMoveDialog");
 const collectionMoveTitle = $("collectionMoveTitle");
@@ -105,6 +107,7 @@ let undoStack = [];
 let lastUndoSnapshotAt = 0;
 let deletedNoteSnapshot = null;
 let selectedCollectionId = null;
+let collectionSortOrder = "newest";
 let expandedCollectionIds = new Set([UNCLASSIFIED_COLLECTION_ID]);
 let selectedMemoIds = new Set();
 let selectionAnchorId = null;
@@ -126,6 +129,7 @@ async function init() {
     element.textContent = `v${APP_VERSION} "${APP_LABEL}"`;
   });
   restoreTheme();
+  restoreCollectionSortOrder();
 
   const localStorageAvailable = checkLocalStorageAvailable();
   db = await openDb();
@@ -217,6 +221,35 @@ function saveTheme(theme) {
   } catch (error) {
     console.warn("Theme save failed", error);
   }
+}
+
+function normalizeCollectionSortOrder(value) {
+  return value === "oldest" ? "oldest" : "newest";
+}
+
+function applyCollectionSortOrder(value) {
+  collectionSortOrder = normalizeCollectionSortOrder(value);
+  if (collectionSortSelect) collectionSortSelect.value = collectionSortOrder;
+}
+
+function restoreCollectionSortOrder() {
+  let savedOrder = "newest";
+  try {
+    savedOrder = normalizeCollectionSortOrder(localStorage.getItem(COLLECTION_SORT_STORAGE_KEY));
+  } catch (error) {
+    console.warn("Collection sort restore failed", error);
+  }
+  applyCollectionSortOrder(savedOrder);
+}
+
+function saveCollectionSortOrder(value) {
+  applyCollectionSortOrder(value);
+  try {
+    localStorage.setItem(COLLECTION_SORT_STORAGE_KEY, collectionSortOrder);
+  } catch (error) {
+    console.warn("Collection sort save failed", error);
+  }
+  renderCollectionExplorer();
 }
 
 // IndexedDBを開きます。初回起動時だけnotesストアと検索用indexを作ります。
@@ -2400,7 +2433,9 @@ function renderCollectionNode(collection, depth, countMap) {
   node.className = "collection-node";
   node.dataset.collectionId = collection.id;
   const children = childCollections(collection.id);
-  const directNotes = activeNotes().filter((note) => normalizedCollectionId(note) === collection.id);
+  const directNotes = sortCollectionMemos(
+    activeNotes().filter((note) => normalizedCollectionId(note) === collection.id)
+  );
   const expanded = expandedCollectionIds.has(collection.id);
   const row = document.createElement("div");
   row.className = "collection-row";
@@ -2448,6 +2483,33 @@ function renderCollectionNode(collection, depth, countMap) {
     children.forEach((child) => node.appendChild(renderCollectionNode(child, depth + 1, countMap)));
   }
   return node;
+}
+
+function sortCollectionMemos(memos) {
+  return [...memos].sort(compareCollectionMemos);
+}
+
+function compareCollectionMemos(a, b) {
+  const aCreatedAt = collectionMemoCreatedAt(a);
+  const bCreatedAt = collectionMemoCreatedAt(b);
+
+  if (aCreatedAt === null && bCreatedAt !== null) return 1;
+  if (aCreatedAt !== null && bCreatedAt === null) return -1;
+
+  if (aCreatedAt !== null && bCreatedAt !== null && aCreatedAt !== bCreatedAt) {
+    return collectionSortOrder === "oldest"
+      ? aCreatedAt - bCreatedAt
+      : bCreatedAt - aCreatedAt;
+  }
+
+  return String(a.id).localeCompare(String(b.id));
+}
+
+function collectionMemoCreatedAt(note) {
+  const value = note.createdAt;
+  if (value == null || (typeof value === "string" && !value.trim())) return null;
+  const timestamp = new Date(value).getTime();
+  return Number.isFinite(timestamp) ? timestamp : null;
 }
 
 function renderTrashNode() {
@@ -3122,6 +3184,9 @@ settingsBtn.addEventListener("click", () => {
 closeSettingsBtn.addEventListener("click", () => settingsDialog.close());
 if (themeSelect) {
   themeSelect.addEventListener("change", () => saveTheme(themeSelect.value));
+}
+if (collectionSortSelect) {
+  collectionSortSelect.addEventListener("change", () => saveCollectionSortOrder(collectionSortSelect.value));
 }
 if (deleteBtn) {
   deleteBtn.addEventListener("click", deleteCurrentNote);
