@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Memo Nexus</title>
-  <link rel="stylesheet" href="style.css?v=0.4.0-2">
+  <link rel="stylesheet" href="style.css?v=0.4.0-3">
 </head>
 <body>
   <aside class="sidebar">
@@ -37,6 +37,13 @@
     </div>
     <div id="collectionAddMenu" class="collection-popup-menu" hidden></div>
     <div id="collectionSelectionBar" class="collection-selection-bar" hidden></div>
+    <div class="collection-sort-bar">
+      <label for="collectionSortSelect">作成日：</label>
+      <select id="collectionSortSelect" class="collection-sort-select" aria-label="コレクション内メモの並び順">
+        <option value="newest">新しい順</option>
+        <option value="oldest">古い順</option>
+      </select>
+    </div>
     <div id="collectionTree" class="collection-tree" role="tree" tabindex="0" aria-label="コレクション一覧"></div>
     <div id="collectionMenu" class="collection-popup-menu collection-context-menu" hidden></div>
     <div id="collectionToast" class="collection-toast" role="status" aria-live="polite" hidden></div>
@@ -165,6 +172,6 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@highlightjs/cdn-assets@11.11.1/highlight.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
-  <script src="app.js?v=0.4.0-2"></script>
+  <script src="app.js?v=0.4.0-3"></script>
 </body>
 </html>
