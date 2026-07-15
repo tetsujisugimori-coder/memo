@@ -27,6 +27,13 @@ const HIGHLIGHT_LANGUAGE_ALIASES = {
   md: "markdown",
   yml: "yaml"
 };
+const {
+  buildCollectionLocalPlan,
+  hasNameCollision,
+  sanitizeWindowsName,
+  supportsDirectoryPicker,
+  uniqueFileName
+} = window.MemoNexusExportUtils;
 
 // HTML要素を短く取得するための小さなヘルパー。
 const $ = (id) => document.getElementById(id);
@@ -78,6 +85,7 @@ const closeGraphBtn = $("closeGraphBtn");
 const searchInput = $("searchInput");
 const memoList = $("memoList");
 const titleInput = $("titleInput");
+const noteExportBtn = $("noteExportBtn");
 const noteMeta = $("noteMeta");
 const editor = $("editor");
 const preview = $("preview");
@@ -90,6 +98,17 @@ const discoveryPanel = $("discoveryPanel");
 const linkStatsPanel = $("linkStatsPanel");
 const graphDialog = $("graphDialog");
 const graphCanvas = $("graphCanvas");
+const exportDialog = $("exportDialog");
+const exportDialogTitle = $("exportDialogTitle");
+const exportDescription = $("exportDescription");
+const exportLocalNameRow = $("exportLocalNameRow");
+const exportLocalName = $("exportLocalName");
+const exportStatus = $("exportStatus");
+const exportFailures = $("exportFailures");
+const closeExportBtn = $("closeExportBtn");
+const cancelExportBtn = $("cancelExportBtn");
+const downloadExportBtn = $("downloadExportBtn");
+const localExportBtn = $("localExportBtn");
 
 // アプリ全体で共有する状態。
 // notesはIndexedDBから読み込んだメモ一覧のメモリ上コピーです。
@@ -117,6 +136,7 @@ let collectionToastTimer = null;
 let editingCollectionId = null;
 let draggedCollectionId = null;
 let draggedMemoIds = [];
+let pendingExport = null;
 
 // ページ読み込み後、すぐにアプリを起動します。
 init();
@@ -1310,11 +1330,16 @@ function updateUndoButton() {
 
 // 遅延保存の予約を解除し、現在の入力内容をすぐに保存します。
 async function flushSave() {
+  const note = currentNote();
+  const hasUnsavedChanges = Boolean(note) && (
+    note.body !== editor.value ||
+    note.title !== (titleInput.value || titleFromBody(editor.value) || "無題メモ")
+  );
   if (saveTimer) {
     clearTimeout(saveTimer);
     saveTimer = null;
   }
-  await saveCurrentNote();
+  if (hasUnsavedChanges) await saveCurrentNote();
 }
 
 // タイトルと本文を現在のメモへ反映し、IndexedDBへ保存します。
@@ -2215,9 +2240,9 @@ function drawGraph() {
   });
 }
 
-// Markdownファイル名として危ない文字を置き換えます。
+// Markdownやコレクション名をWindowsでも安全な名前へ変換します。
 function safeFileName(name) {
-  return name.replace(/[\\/:*?"<>|]/g, "_").slice(0, 80) || "untitled";
+  return sanitizeWindowsName(name, "untitled");
 }
 
 // 同名タイトルや置換後に同名になるファイルへ連番を付けます。
@@ -2747,7 +2772,10 @@ function showCollectionMenu(event, collectionId) {
     closeCollectionMenus();
     openCollectionMoveDialog(collectionId);
   });
-  collectionMenu.querySelector('[data-action="export"]').addEventListener("click", () => runMenuAction(() => downloadCollectionZip(collectionId)));
+  collectionMenu.querySelector('[data-action="export"]').addEventListener("click", () => {
+    closeCollectionMenus();
+    openCollectionExportDialog(collectionId);
+  });
   collectionMenu.querySelector('[data-action="delete"]').addEventListener("click", () => runMenuAction(() => deleteCollectionSafely(collectionId)));
 }
 
@@ -3123,6 +3151,228 @@ function downloadBlob(blob, fileName) {
   setTimeout(() => URL.revokeObjectURL(url), 0);
 }
 
+function clearExportResult() {
+  exportStatus.textContent = "";
+  exportStatus.classList.remove("error");
+  exportFailures.innerHTML = "";
+  exportFailures.hidden = true;
+}
+
+function showExportResult(message, failures = [], isError = false) {
+  exportStatus.textContent = message;
+  exportStatus.classList.toggle("error", isError);
+  exportFailures.innerHTML = "";
+  failures.forEach((failure) => {
+    const item = document.createElement("li");
+    item.textContent = failure;
+    exportFailures.appendChild(item);
+  });
+  exportFailures.hidden = failures.length === 0;
+}
+
+function openNoteExportDialog() {
+  const note = currentNote();
+  if (!note) return;
+  pendingExport = { type: "note", noteId: note.id, directoryHandle: null };
+  exportDialogTitle.textContent = "このメモをエクスポート";
+  exportDescription.textContent = "Markdown本文を変更せず、1つの .md ファイルとして保存します。";
+  exportLocalNameRow.hidden = true;
+  localExportBtn.hidden = !supportsDirectoryPicker();
+  clearExportResult();
+  exportDialog.showModal();
+}
+
+function openCollectionExportDialog(collectionId) {
+  const collection = collections.find((item) => item.id === collectionId);
+  if (!collection) return;
+  pendingExport = { type: "collection", collectionId, directoryHandle: null };
+  exportDialogTitle.textContent = "コレクションをエクスポート";
+  exportDescription.textContent = "ZIPをダウンロードするか、対応ブラウザでは階層をローカルフォルダへ書き出せます。ローカル書き出しは同期ではありません。";
+  exportLocalName.value = sanitizeWindowsName(collection.name, "無題のコレクション");
+  exportLocalNameRow.hidden = false;
+  localExportBtn.hidden = !supportsDirectoryPicker();
+  clearExportResult();
+  exportDialog.showModal();
+}
+
+async function runDownloadExport() {
+  if (!pendingExport) return;
+  downloadExportBtn.disabled = true;
+  try {
+    if (pendingExport.type === "collection") {
+      await downloadCollectionZip(pendingExport.collectionId);
+    } else {
+      await flushSave();
+      const note = notes.find((item) => item.id === pendingExport.noteId);
+      if (!note) throw new Error("メモが存在しません");
+      const fileName = `${sanitizeWindowsName(note.title, "無題のメモ")}.md`;
+      downloadBlob(new Blob([note.body], { type: "text/markdown;charset=utf-8" }), fileName);
+    }
+    exportDialog.close();
+  } catch (error) {
+    console.error("Export download failed", error);
+    showExportResult(`ダウンロードに失敗しました: ${error.message || error}`, [], true);
+  } finally {
+    downloadExportBtn.disabled = false;
+  }
+}
+
+function isPickerCancellation(error) {
+  return error && error.name === "AbortError";
+}
+
+async function ensureDirectoryWritePermission(directoryHandle) {
+  if (!directoryHandle.queryPermission || !directoryHandle.requestPermission) return true;
+  const options = { mode: "readwrite" };
+  if (await directoryHandle.queryPermission(options) === "granted") return true;
+  return await directoryHandle.requestPermission(options) === "granted";
+}
+
+async function directoryEntryNames(directoryHandle) {
+  const names = new Set();
+  if (typeof directoryHandle.keys === "function") {
+    for await (const name of directoryHandle.keys()) names.add(name.toLocaleLowerCase());
+  }
+  return names;
+}
+
+async function entryNameExists(directoryHandle, name) {
+  const names = await directoryEntryNames(directoryHandle);
+  if (names.size) return hasNameCollision(names, name);
+
+  for (const getter of ["getDirectoryHandle", "getFileHandle"]) {
+    try {
+      await directoryHandle[getter](name);
+      return true;
+    } catch (error) {
+      if (error.name !== "NotFoundError" && error.name !== "TypeMismatchError") throw error;
+    }
+  }
+  return false;
+}
+
+async function availableFileName(directoryHandle, requestedName) {
+  const usedNames = await directoryEntryNames(directoryHandle);
+  if (usedNames.size) return uniqueFileName(requestedName, usedNames);
+  if (!await entryNameExists(directoryHandle, requestedName)) return requestedName;
+
+  const extensionIndex = requestedName.lastIndexOf(".");
+  const baseName = extensionIndex > 0 ? requestedName.slice(0, extensionIndex) : requestedName;
+  const extension = extensionIndex > 0 ? requestedName.slice(extensionIndex) : "";
+  let suffix = 2;
+  let candidate = `${baseName} (${suffix})${extension}`;
+  while (await entryNameExists(directoryHandle, candidate)) {
+    suffix += 1;
+    candidate = `${baseName} (${suffix})${extension}`;
+  }
+  return candidate;
+}
+
+async function writeMarkdownFile(directoryHandle, fileName, content) {
+  const fileHandle = await directoryHandle.getFileHandle(fileName, { create: true });
+  const writable = await fileHandle.createWritable();
+  await writable.write(content);
+  await writable.close();
+}
+
+async function nestedDirectory(rootHandle, path) {
+  let current = rootHandle;
+  for (const name of path) current = await current.getDirectoryHandle(name, { create: true });
+  return current;
+}
+
+async function chooseExportDirectory() {
+  if (!pendingExport.directoryHandle) {
+    pendingExport.directoryHandle = await window.showDirectoryPicker({ mode: "readwrite" });
+  }
+  const allowed = await ensureDirectoryWritePermission(pendingExport.directoryHandle);
+  if (!allowed) throw new Error("保存先フォルダへの書き込み権限が許可されませんでした");
+  return pendingExport.directoryHandle;
+}
+
+async function exportNoteToLocalDirectory() {
+  const directoryHandle = await chooseExportDirectory();
+  await flushSave();
+  const note = notes.find((item) => item.id === pendingExport.noteId);
+  if (!note) throw new Error("メモが存在しません");
+  const requestedName = `${sanitizeWindowsName(note.title, "無題のメモ")}.md`;
+  const fileName = await availableFileName(directoryHandle, requestedName);
+  await writeMarkdownFile(directoryHandle, fileName, note.body);
+  showExportResult(`「${fileName}」を書き出しました。`);
+}
+
+async function exportCollectionToLocalDirectory() {
+  const collection = collections.find((item) => item.id === pendingExport.collectionId);
+  if (!collection) throw new Error("コレクションが存在しません");
+  const requestedName = exportLocalName.value;
+  if (!requestedName.trim()) {
+    showExportResult("ローカル保存名を入力してください。", [], true);
+    exportLocalName.focus();
+    return;
+  }
+
+  const localName = sanitizeWindowsName(requestedName, "無題のコレクション");
+  exportLocalName.value = localName;
+  const parentHandle = await chooseExportDirectory();
+  if (await entryNameExists(parentHandle, localName)) {
+    showExportResult(`「${localName}」というフォルダは既に存在します。\n別の保存名を指定してください。`, [], true);
+    exportLocalName.focus();
+    exportLocalName.select();
+    return;
+  }
+
+  await flushSave();
+  const plan = buildCollectionLocalPlan(collections, notes, collection.id);
+  const rootHandle = await parentHandle.getDirectoryHandle(localName, { create: true });
+  const directoryFailures = [];
+  for (const path of plan.directories) {
+    try {
+      await nestedDirectory(rootHandle, path);
+    } catch (error) {
+      directoryFailures.push(`${path.join("/")}: ${error.message || error}`);
+    }
+  }
+
+  let savedCount = 0;
+  const fileFailures = [];
+  for (const file of plan.files) {
+    const relativeName = [...file.directoryPath, file.name].join("/");
+    try {
+      const directoryHandle = await nestedDirectory(rootHandle, file.directoryPath);
+      await writeMarkdownFile(directoryHandle, file.name, file.content);
+      savedCount += 1;
+    } catch (error) {
+      fileFailures.push(`${relativeName}: ${error.message || error}`);
+    }
+  }
+
+  const failures = [...directoryFailures, ...fileFailures];
+  const resultLines = [`${plan.files.length}件中${savedCount}件のメモを書き出しました。`];
+  if (fileFailures.length) resultLines.push(`${fileFailures.length}件のファイル保存に失敗しました。`);
+  if (directoryFailures.length) resultLines.push(`${directoryFailures.length}件のフォルダ作成に失敗しました。`);
+  const message = resultLines.join("\n");
+  showExportResult(message, failures, failures.length > 0);
+}
+
+async function runLocalExport() {
+  if (!pendingExport || !supportsDirectoryPicker()) return;
+  localExportBtn.disabled = true;
+  clearExportResult();
+  try {
+    if (pendingExport.type === "collection") await exportCollectionToLocalDirectory();
+    else await exportNoteToLocalDirectory();
+  } catch (error) {
+    if (isPickerCancellation(error)) {
+      showExportResult("フォルダの選択をキャンセルしました。");
+      return;
+    }
+    console.error("Local export failed", error);
+    showExportResult(`ローカル保存に失敗しました: ${error.message || error}`, [], true);
+  } finally {
+    localExportBtn.disabled = false;
+  }
+}
+
 // ユーザー入力をHTMLへ混ぜる前に無害化します。
 function escapeHtml(value) {
   return String(value).replace(/[&<>"']/g, (char) => ({
@@ -3164,6 +3414,12 @@ if (collectionAddMenuBtn) {
 if (closeCollectionMoveBtn) closeCollectionMoveBtn.addEventListener("click", () => collectionMoveDialog.close());
 if (cancelCollectionMoveBtn) cancelCollectionMoveBtn.addEventListener("click", () => collectionMoveDialog.close());
 if (runCollectionMoveBtn) runCollectionMoveBtn.addEventListener("click", () => runPendingMove().catch(showCollectionError));
+if (noteExportBtn) noteExportBtn.addEventListener("click", openNoteExportDialog);
+if (closeExportBtn) closeExportBtn.addEventListener("click", () => exportDialog.close());
+if (cancelExportBtn) cancelExportBtn.addEventListener("click", () => exportDialog.close());
+if (downloadExportBtn) downloadExportBtn.addEventListener("click", runDownloadExport);
+if (localExportBtn) localExportBtn.addEventListener("click", runLocalExport);
+if (exportDialog) exportDialog.addEventListener("close", () => { pendingExport = null; });
 
 todayBtn.addEventListener("click", async () => {
   notes = await getAllNotes();

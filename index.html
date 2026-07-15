@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Memo Nexus</title>
-  <link rel="stylesheet" href="style.css?v=0.4.0-3">
+  <link rel="stylesheet" href="style.css?v=0.4.0-5">
 </head>
 <body>
   <aside class="sidebar">
@@ -55,7 +55,10 @@
       <div class="title-row">
         <input id="titleInput" class="title-input" placeholder="無題メモ" autocomplete="off">
         <div class="title-side">
-          <div id="saveStatus" class="save-status">保存済み</div>
+          <div class="title-side-head">
+            <button id="noteExportBtn" class="note-export-button" type="button" title="このメモをエクスポート" aria-label="このメモをエクスポート">…</button>
+            <div id="saveStatus" class="save-status">保存済み</div>
+          </div>
           <div id="noteMeta" class="note-meta"></div>
         </div>
       </div>
@@ -170,8 +173,31 @@
     </div>
   </dialog>
 
+  <dialog id="exportDialog" class="collection-action-dialog export-dialog">
+    <div class="dialog-head">
+      <strong id="exportDialogTitle">エクスポート</strong>
+      <button id="closeExportBtn" type="button" title="閉じる">×</button>
+    </div>
+    <div class="collection-dialog-body">
+      <p id="exportDescription" class="export-description"></p>
+      <label id="exportLocalNameRow" class="export-name-row" for="exportLocalName" hidden>
+        <span>ローカル保存名</span>
+        <input id="exportLocalName" type="text" autocomplete="off">
+        <small>Memo Nexus内のコレクション名は変更されません。</small>
+      </label>
+      <div id="exportStatus" class="export-status" role="status" aria-live="polite"></div>
+      <ul id="exportFailures" class="export-failures" hidden></ul>
+      <div class="collection-dialog-actions export-dialog-actions">
+        <button id="cancelExportBtn" type="button">キャンセル</button>
+        <button id="downloadExportBtn" type="button">ダウンロード</button>
+        <button id="localExportBtn" type="button">ローカルフォルダへ保存</button>
+      </div>
+    </div>
+  </dialog>
+
   <script src="https://cdn.jsdelivr.net/npm/@highlightjs/cdn-assets@11.11.1/highlight.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
-  <script src="app.js?v=0.4.0-3"></script>
+  <script src="export-utils.js?v=0.4.0-5"></script>
+  <script src="app.js?v=0.4.0-5"></script>
 </body>
 </html>
