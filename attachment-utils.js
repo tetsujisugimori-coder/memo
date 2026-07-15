@@ -67,6 +67,88 @@
     return String(value).replace(/([\\\[\]])/g, "\\$1");
   }
 
+  function unescapeMarkdownLabel(value) {
+    return String(value).replace(/\\([\\\[\]])/g, "$1");
+  }
+
+  function attachmentReferencePattern() {
+    return /!\[((?:\\.|[^\]\\\n])*)\]\(attachment:\/\/([A-Za-z0-9-]+)\)/g;
+  }
+
+  function attachmentMarkdownReference(attachment) {
+    const id = String(attachment && attachment.id || "").trim();
+    if (!id || !/^[A-Za-z0-9-]+$/.test(id)) throw new Error("画像参照IDが不正です");
+    const plainLabel = String(attachment.fileName || "画像").replace(/[\r\n]+/g, " ").trim() || "画像";
+    const label = escapeMarkdownLabel(plainLabel);
+    return `![${label}](attachment://${id})`;
+  }
+
+  function insertAttachmentReferences(markdown, selectionStart, selectionEnd, attachments) {
+    const source = String(markdown || "");
+    const requestedStart = Math.min(source.length, Math.max(0, Number(selectionStart) || 0));
+    const requestedEnd = Math.min(source.length, Math.max(requestedStart, Number(selectionEnd) || requestedStart));
+    const start = safeAttachmentReferenceBoundary(source, requestedStart);
+    const end = safeAttachmentReferenceBoundary(source, Math.max(start, requestedEnd));
+    const references = (Array.isArray(attachments) ? attachments : [])
+      .filter((attachment) => attachment && attachment.kind === "image")
+      .map(attachmentMarkdownReference)
+      .join("\n");
+    const prefix = references && start > 0 && source[start - 1] !== "\n" ? "\n" : "";
+    const suffix = references && end < source.length && source[end] !== "\n" ? "\n" : "";
+    const insertedText = `${prefix}${references}${suffix}`;
+    return {
+      value: `${source.slice(0, start)}${insertedText}${source.slice(end)}`,
+      selectionStart: start + insertedText.length,
+      selectionEnd: start + insertedText.length,
+      insertedText
+    };
+  }
+
+  function safeAttachmentReferenceBoundary(markdown, position) {
+    let fromIndex = 0;
+    let reference;
+    while ((reference = findAttachmentReference(markdown, fromIndex))) {
+      if (position > reference.start && position < reference.end) return reference.end;
+      if (reference.start >= position) break;
+      fromIndex = reference.end;
+    }
+    return position;
+  }
+
+  function findAttachmentReference(markdown, fromIndex = 0) {
+    const pattern = attachmentReferencePattern();
+    pattern.lastIndex = Math.max(0, Number(fromIndex) || 0);
+    const match = pattern.exec(String(markdown || ""));
+    if (!match) return null;
+    return {
+      start: match.index,
+      end: pattern.lastIndex,
+      alt: unescapeMarkdownLabel(match[1]),
+      id: match[2]
+    };
+  }
+
+  function extractAttachmentReferenceIds(markdown) {
+    const ids = new Set();
+    let fromIndex = 0;
+    let reference;
+    while ((reference = findAttachmentReference(markdown, fromIndex))) {
+      ids.add(reference.id);
+      fromIndex = reference.end;
+    }
+    return ids;
+  }
+
+  function replaceAttachmentReferencesForExport(markdown, exportedAttachments) {
+    const fileNamesById = new Map(exportedAttachments
+      .filter(({ attachment }) => attachment && attachment.id)
+      .map(({ attachment, fileName }) => [attachment.id, fileName]));
+    return String(markdown || "").replace(attachmentReferencePattern(), (match, escapedAlt, id) => {
+      const fileName = fileNamesById.get(id);
+      return fileName ? `![${escapedAlt}](<attachments/${fileName}>)` : match;
+    });
+  }
+
   function appendAttachmentReferences(markdown, exportedAttachments) {
     if (!exportedAttachments.length) return String(markdown || "");
     const lines = ["## 添付ファイル", ""];
@@ -108,7 +190,12 @@
       const safeName = sanitizeWindowsName(attachment.fileName, fallback, 140);
       return { attachment, fileName: uniqueAttachmentFileName(safeName, usedAttachmentNames) };
     });
-    const exportedMarkdown = appendAttachmentReferences(markdownContent, exportedAttachments);
+    const referencedIds = extractAttachmentReferenceIds(markdownContent);
+    const markdownWithExportPaths = replaceAttachmentReferencesForExport(markdownContent, exportedAttachments);
+    const exportedMarkdown = appendAttachmentReferences(
+      markdownWithExportPaths,
+      exportedAttachments.filter(({ attachment }) => !referencedIds.has(attachment.id))
+    );
     const files = [{
       name: `${folderPath}/${folderName}.md`,
       content: exportedMarkdown
@@ -126,10 +213,14 @@
   const api = {
     MAX_ATTACHMENT_TOTAL_BYTES,
     attachmentCapacity,
+    attachmentMarkdownReference,
     buildMemoExportBundle,
     classifyAttachment,
+    extractAttachmentReferenceIds,
     fileExtension,
+    findAttachmentReference,
     formatAttachmentBytes,
+    insertAttachmentReferences,
     uniqueAttachmentFileName
   };
 

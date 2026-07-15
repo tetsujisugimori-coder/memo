@@ -1007,6 +1007,28 @@ body.collections-open .collection-explorer {
   height: auto;
 }
 
+.preview .inline-attachment-image {
+  display: block;
+  max-width: 100%;
+  margin: 10px 0;
+}
+
+.preview .inline-attachment-image img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  border-radius: 7px;
+}
+
+.preview .inline-attachment-image.missing {
+  padding: 10px 12px;
+  border: 1px dashed var(--line);
+  border-radius: 7px;
+  background: var(--section-bg);
+  color: var(--muted);
+  font-size: 13px;
+}
+
 .preview h1 {
   font-size: 24px;
 }

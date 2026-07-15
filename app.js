@@ -42,7 +42,10 @@ const {
   attachmentCapacity,
   buildMemoExportBundle,
   classifyAttachment,
-  formatAttachmentBytes
+  extractAttachmentReferenceIds,
+  findAttachmentReference,
+  formatAttachmentBytes,
+  insertAttachmentReferences
 } = window.MemoNexusAttachmentUtils;
 
 // HTML要素を短く取得するための小さなヘルパー。
@@ -1562,6 +1565,7 @@ function renderPreview() {
 
   const body = (note.id === currentId ? editor.value : note.body);
   preview.innerHTML = renderPreviewHtml(body);
+  hydrateInlineAttachmentImages();
 
   preview.querySelectorAll(".wiki-link").forEach((button) => {
     button.addEventListener("click", () => openOrCreateLinkedNote(button.dataset.title));
@@ -1593,6 +1597,41 @@ function revokeAttachmentObjectUrl(id) {
   pdfObjectUrlTimers.delete(id);
 }
 
+function getOrCreateAttachmentObjectUrl(attachment) {
+  let objectUrl = attachmentObjectUrls.get(attachment.id);
+  if (!objectUrl) {
+    objectUrl = URL.createObjectURL(attachment.blob);
+    attachmentObjectUrls.set(attachment.id, objectUrl);
+  }
+  return objectUrl;
+}
+
+function hydrateInlineAttachmentImages() {
+  preview.querySelectorAll(".inline-attachment-image").forEach((container) => {
+    const attachment = currentAttachments.find((item) => item.id === container.dataset.attachmentId && item.kind === "image");
+    if (!attachment) {
+      container.classList.add("missing");
+      container.textContent = container.dataset.alt
+        ? `画像を表示できません: ${container.dataset.alt}`
+        : "画像を表示できません";
+      return;
+    }
+
+    try {
+      const image = document.createElement("img");
+      image.src = getOrCreateAttachmentObjectUrl(attachment);
+      image.alt = container.dataset.alt || attachment.fileName || "添付画像";
+      image.loading = "lazy";
+      container.classList.remove("missing");
+      container.replaceChildren(image);
+    } catch (error) {
+      console.error("Inline attachment image failed", error);
+      container.classList.add("missing");
+      container.textContent = "画像を表示できません";
+    }
+  });
+}
+
 function cleanupAttachmentObjectUrls() {
   [...attachmentObjectUrls.keys(), ...pdfObjectUrls.keys()].forEach(revokeAttachmentObjectUrl);
   if (imagePreviewDialog.open) imagePreviewDialog.close();
@@ -1617,6 +1656,7 @@ async function renderAttachmentsForCurrentNote() {
     if (token !== attachmentRenderToken || currentId !== note.id) return;
     currentAttachments = items;
     renderAttachmentList();
+    hydrateInlineAttachmentImages();
     setAttachmentStatus(note.deletedAt ? "ゴミ箱内のメモには添付を追加できません。復元後に追加してください。" : "");
   } catch (error) {
     console.error("Attachment load failed", error);
@@ -1652,8 +1692,7 @@ function renderAttachmentList() {
 
     if (attachment.kind === "image") {
       try {
-        const objectUrl = URL.createObjectURL(attachment.blob);
-        attachmentObjectUrls.set(attachment.id, objectUrl);
+        const objectUrl = getOrCreateAttachmentObjectUrl(attachment);
         const openButton = document.createElement("button");
         openButton.type = "button";
         openButton.className = "attachment-thumbnail-button";
@@ -1728,12 +1767,19 @@ function openPdfAttachment(attachment) {
 }
 
 async function deleteAttachment(attachment) {
-  if (!confirm(`「${attachment.fileName}」を削除しますか？`)) return;
+  const note = currentNote();
+  const isReferenced = attachment.kind === "image"
+    && extractAttachmentReferenceIds(note && note.id === currentId ? editor.value : note?.body).has(attachment.id);
+  const message = isReferenced
+    ? `「${attachment.fileName}」は本文内で参照されています。\n削除後は本文の参照位置に「画像を表示できません」と表示されます。\n\n削除しますか？`
+    : `「${attachment.fileName}」を削除しますか？`;
+  if (!confirm(message)) return;
   try {
     await deleteAttachmentRecord(attachment.id);
     revokeAttachmentObjectUrl(attachment.id);
     currentAttachments = currentAttachments.filter((item) => item.id !== attachment.id);
     renderAttachmentList();
+    renderPreview();
     setAttachmentStatus(`「${attachment.fileName}」を削除しました。`);
   } catch (error) {
     console.error("Attachment delete failed", error);
@@ -1741,10 +1787,10 @@ async function deleteAttachment(attachment) {
   }
 }
 
-async function handleAttachmentFiles(fileList) {
+async function handleAttachmentFiles(fileList, options = {}) {
   const note = currentNote();
   const files = Array.from(fileList || []);
-  if (!note || note.deletedAt || !files.length) return;
+  if (!note || note.deletedAt || !files.length) return [];
   addAttachmentBtn.disabled = true;
   attachmentInput.disabled = true;
   setAttachmentStatus(`${files.length}件の添付ファイルを確認しています...`);
@@ -1774,16 +1820,36 @@ async function handleAttachmentFiles(fileList) {
     await putAttachments(prepared);
     if (currentId === note.id) {
       await renderAttachmentsForCurrentNote();
+      if (options.insertIntoEditor) {
+        await insertStoredImageReferences(prepared, options);
+      }
       setAttachmentStatus(`${prepared.length}件の添付ファイルを追加しました。`);
     }
+    return prepared;
   } catch (error) {
     console.error("Attachment add failed", error);
     setAttachmentStatus(error.message || String(error), true);
+    return [];
   } finally {
     const current = currentNote();
     addAttachmentBtn.disabled = !current || Boolean(current.deletedAt);
     attachmentInput.disabled = false;
   }
+}
+
+async function insertStoredImageReferences(attachments, options) {
+  const result = insertAttachmentReferences(
+    editor.value,
+    options.selectionStart,
+    options.selectionEnd,
+    attachments
+  );
+  if (!result.insertedText) return;
+  captureUndoSnapshot({ inputType: options.inputType || "insertFromPaste" });
+  editor.value = result.value;
+  editor.setSelectionRange(result.selectionStart, result.selectionEnd);
+  scheduleSave();
+  await flushSave();
 }
 
 async function prepareAttachmentFile(file, kind, memoId) {
@@ -1884,21 +1950,67 @@ function canvasToBlob(canvas, type, quality) {
 }
 
 function handleClipboardAttachmentPaste(event) {
-  const imageItems = Array.from(event.clipboardData && event.clipboardData.items || [])
-    .filter((item) => item.kind === "file" && ["image/jpeg", "image/png", "image/webp"].includes(item.type));
-  if (!imageItems.length) return;
+  const clipboardData = event.clipboardData;
+  const supportedTypes = ["image/jpeg", "image/png", "image/webp"];
+  const imageItems = Array.from(clipboardData && clipboardData.items || [])
+    .filter((item) => item.kind === "file" && supportedTypes.includes(item.type));
+  const clipboardFiles = Array.from(clipboardData && clipboardData.files || [])
+    .filter((file) => supportedTypes.includes(file.type));
+  const plainText = clipboardData ? clipboardData.getData("text/plain").trim() : "";
+  if (!imageItems.length && !clipboardFiles.length) {
+    if (plainText.startsWith("blob:")) {
+      event.preventDefault();
+      setAttachmentStatus("一時的なblob URLは本文へ貼り付けられません。画像データをコピーし直してください。", true);
+    }
+    return;
+  }
   const note = currentNote();
   if (!note || note.deletedAt) return;
-  const files = imageItems.map((item, index) => {
+  event.preventDefault();
+  const selectionStart = editor.selectionStart;
+  const selectionEnd = editor.selectionEnd;
+  const itemFiles = imageItems.map((item, index) => {
     const blob = item.getAsFile();
     if (!blob) return null;
     const extension = item.type === "image/jpeg" ? "jpg" : item.type.split("/")[1];
     const stamp = new Date().toISOString().replace(/[:.]/g, "-");
     return new File([blob], `clipboard-${stamp}-${index + 1}.${extension}`, { type: item.type });
   }).filter(Boolean);
-  if (!files.length) return;
+  const files = itemFiles.length ? itemFiles : clipboardFiles;
+  if (!files.length) {
+    setAttachmentStatus("クリップボードから画像データを取得できませんでした。画像をコピーし直してください。", true);
+    return;
+  }
+  handleAttachmentFiles(files, {
+    insertIntoEditor: true,
+    inputType: "insertFromPaste",
+    selectionStart,
+    selectionEnd
+  });
+}
+
+function editorDropHasFiles(event) {
+  const dataTransfer = event.dataTransfer;
+  return Boolean(dataTransfer) && (
+    Array.from(dataTransfer.files || []).length > 0
+    || Array.from(dataTransfer.types || []).includes("Files")
+  );
+}
+
+function handleEditorAttachmentDrop(event) {
+  if (!editorDropHasFiles(event)) return;
+  const note = currentNote();
+  if (!note || note.deletedAt) return;
   event.preventDefault();
-  handleAttachmentFiles(files);
+  event.stopPropagation();
+  const files = Array.from(event.dataTransfer.files || []);
+  if (!files.length) return;
+  handleAttachmentFiles(files, {
+    insertIntoEditor: true,
+    inputType: "insertFromDrop",
+    selectionStart: editor.selectionStart,
+    selectionEnd: editor.selectionEnd
+  });
 }
 
 function renderPreviewHtml(body) {
@@ -2060,6 +2172,8 @@ function renderMarkdownInline(text) {
       html += renderWikiButton(token.content);
     } else if (token.type === "bold") {
       html += `<strong>${renderMarkdownInline(token.content)}</strong>`;
+    } else if (token.type === "attachment") {
+      html += `<span class="inline-attachment-image" data-attachment-id="${escapeAttr(token.id)}" data-alt="${escapeAttr(token.alt)}" role="img" aria-label="${escapeAttr(token.alt || "添付画像")}">画像を読み込み中...</span>`;
     }
     index = token.end;
   }
@@ -2069,6 +2183,17 @@ function renderMarkdownInline(text) {
 
 function findNextInlineToken(text, fromIndex) {
   const tokens = [];
+
+  const attachmentReference = findAttachmentReference(text, fromIndex);
+  if (attachmentReference) {
+    tokens.push({
+      type: "attachment",
+      start: attachmentReference.start,
+      end: attachmentReference.end,
+      alt: attachmentReference.alt,
+      id: attachmentReference.id
+    });
+  }
 
   const codeStart = text.indexOf("`", fromIndex);
   if (codeStart !== -1) {
@@ -3986,6 +4111,10 @@ searchInput.addEventListener("input", renderList);
 titleInput.addEventListener("beforeinput", captureUndoSnapshot);
 editor.addEventListener("beforeinput", captureUndoSnapshot);
 editor.addEventListener("paste", handleClipboardAttachmentPaste);
+editor.addEventListener("dragover", (event) => {
+  if (editorDropHasFiles(event)) event.preventDefault();
+});
+editor.addEventListener("drop", handleEditorAttachmentDrop);
 titleInput.addEventListener("input", scheduleSave);
 editor.addEventListener("input", scheduleSave);
 window.addEventListener("resize", () => {
