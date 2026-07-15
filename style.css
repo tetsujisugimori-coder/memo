@@ -1177,9 +1177,11 @@ body.collections-open .collection-explorer {
 
 .code-block {
   position: relative;
+  box-sizing: border-box;
+  max-width: min(100%, calc(100vw - 36px));
   margin: 12px 0;
   padding: 12px 14px;
-  overflow-x: auto;
+  overflow-x: hidden;
   border: 1px solid var(--line);
   border-radius: 8px;
   background: var(--input-bg);
@@ -1204,7 +1206,9 @@ body.collections-open .collection-explorer {
 .code-block code {
   font-family: Consolas, "Courier New", monospace;
   font-size: 13px;
-  white-space: pre;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: normal;
 }
 
 .code-block .hljs {
