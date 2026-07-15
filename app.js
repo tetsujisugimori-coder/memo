@@ -3,10 +3,11 @@
 const DB_NAME = "memo-nexus";
 const STORE_NAME = "notes";
 const COLLECTION_STORE_NAME = "collections";
-const DB_VERSION = 2;
+const ATTACHMENT_STORE_NAME = "attachments";
+const DB_VERSION = 3;
 const APP_VERSION = "0.4.0";
 const APP_LABEL = "Waypoint";
-const APP_BUILD = "2026-07-13";
+const APP_BUILD = "2026-07-15";
 const UNCLASSIFIED_COLLECTION_ID = "system-unclassified";
 const MAX_COLLECTION_DEPTH = 5;
 const DRAFT_STORAGE_KEY = "memo-nexus-current-draft";
@@ -16,6 +17,8 @@ const DRAFT_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
 const UNDO_LIMIT = 50;
 const UNDO_INPUT_INTERVAL_MS = 800;
 const HIGHLIGHT_AUTO_MIN_RELEVANCE = 2;
+const MAX_ATTACHMENT_IMAGE_DIMENSION = 1800;
+const ATTACHMENT_IMAGE_QUALITY = 0.86;
 const HIGHLIGHT_LANGUAGE_ALIASES = {
   js: "javascript",
   ts: "typescript",
@@ -34,6 +37,13 @@ const {
   supportsDirectoryPicker,
   uniqueFileName
 } = window.MemoNexusExportUtils;
+const {
+  MAX_ATTACHMENT_TOTAL_BYTES,
+  attachmentCapacity,
+  buildMemoExportBundle,
+  classifyAttachment,
+  formatAttachmentBytes
+} = window.MemoNexusAttachmentUtils;
 
 // HTML要素を短く取得するための小さなヘルパー。
 const $ = (id) => document.getElementById(id);
@@ -98,6 +108,18 @@ const discoveryPanel = $("discoveryPanel");
 const linkStatsPanel = $("linkStatsPanel");
 const graphDialog = $("graphDialog");
 const graphCanvas = $("graphCanvas");
+const attachmentSection = $("attachmentSection");
+const attachmentCount = $("attachmentCount");
+const attachmentUsage = $("attachmentUsage");
+const attachmentStatus = $("attachmentStatus");
+const attachmentDropZone = $("attachmentDropZone");
+const attachmentList = $("attachmentList");
+const addAttachmentBtn = $("addAttachmentBtn");
+const attachmentInput = $("attachmentInput");
+const imagePreviewDialog = $("imagePreviewDialog");
+const imagePreviewTitle = $("imagePreviewTitle");
+const imagePreview = $("imagePreview");
+const closeImagePreviewBtn = $("closeImagePreviewBtn");
 const exportDialog = $("exportDialog");
 const exportDialogTitle = $("exportDialogTitle");
 const exportDescription = $("exportDescription");
@@ -137,6 +159,11 @@ let editingCollectionId = null;
 let draggedCollectionId = null;
 let draggedMemoIds = [];
 let pendingExport = null;
+let currentAttachments = [];
+let attachmentRenderToken = 0;
+let attachmentObjectUrls = new Map();
+let pdfObjectUrls = new Map();
+let pdfObjectUrlTimers = new Map();
 
 // ページ読み込み後、すぐにアプリを起動します。
 init();
@@ -289,6 +316,11 @@ function openDb() {
         collectionStore.createIndex("parentId", "parentId");
         collectionStore.createIndex("sortOrder", "sortOrder");
       }
+      if (!database.objectStoreNames.contains(ATTACHMENT_STORE_NAME)) {
+        const attachmentStore = database.createObjectStore(ATTACHMENT_STORE_NAME, { keyPath: "id" });
+        attachmentStore.createIndex("memoId", "memoId");
+        attachmentStore.createIndex("createdAt", "createdAt");
+      }
     };
 
     request.onsuccess = () => resolve(request.result);
@@ -316,6 +348,39 @@ function putNote(note) {
     const transaction = db.transaction(STORE_NAME, "readwrite");
     const request = transaction.objectStore(STORE_NAME).put(note);
     transaction.oncomplete = () => resolve(note);
+    transaction.onerror = () => reject(transaction.error || request.error);
+    transaction.onabort = () => reject(transaction.error || request.error);
+  });
+}
+
+function attachmentTx(mode = "readonly") {
+  return db.transaction(ATTACHMENT_STORE_NAME, mode).objectStore(ATTACHMENT_STORE_NAME);
+}
+
+function getAttachmentsForMemo(memoId) {
+  return new Promise((resolve, reject) => {
+    const request = attachmentTx().index("memoId").getAll(memoId);
+    request.onsuccess = () => resolve(request.result.sort((a, b) => String(a.createdAt).localeCompare(String(b.createdAt))));
+    request.onerror = () => reject(request.error);
+  });
+}
+
+function putAttachments(items) {
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(ATTACHMENT_STORE_NAME, "readwrite");
+    const store = transaction.objectStore(ATTACHMENT_STORE_NAME);
+    items.forEach((item) => store.put(item));
+    transaction.oncomplete = () => resolve(items);
+    transaction.onerror = () => reject(transaction.error);
+    transaction.onabort = () => reject(transaction.error);
+  });
+}
+
+function deleteAttachmentRecord(id) {
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(ATTACHMENT_STORE_NAME, "readwrite");
+    const request = transaction.objectStore(ATTACHMENT_STORE_NAME).delete(id);
+    transaction.oncomplete = resolve;
     transaction.onerror = () => reject(transaction.error || request.error);
     transaction.onabort = () => reject(transaction.error || request.error);
   });
@@ -1234,6 +1299,7 @@ function openNote(id) {
   renderList();
   renderCollectionExplorer();
   renderPreview();
+  renderAttachmentsForCurrentNote();
   renderRelated();
   renderDiscovery();
   updateUndoButton();
@@ -1504,6 +1570,335 @@ function renderPreview() {
   renderMermaidDiagrams();
   renderLinkList();
   renderLinkStats();
+}
+
+function attachmentTotalSize(items = currentAttachments) {
+  return items.reduce((sum, attachment) => sum + (Number(attachment.size) || 0), 0);
+}
+
+function setAttachmentStatus(message = "", isError = false) {
+  attachmentStatus.textContent = message;
+  attachmentStatus.classList.toggle("error", isError);
+}
+
+function revokeAttachmentObjectUrl(id) {
+  const imageUrl = attachmentObjectUrls.get(id);
+  if (imageUrl) URL.revokeObjectURL(imageUrl);
+  attachmentObjectUrls.delete(id);
+  const pdfUrl = pdfObjectUrls.get(id);
+  if (pdfUrl) URL.revokeObjectURL(pdfUrl);
+  pdfObjectUrls.delete(id);
+  const timer = pdfObjectUrlTimers.get(id);
+  if (timer) clearTimeout(timer);
+  pdfObjectUrlTimers.delete(id);
+}
+
+function cleanupAttachmentObjectUrls() {
+  [...attachmentObjectUrls.keys(), ...pdfObjectUrls.keys()].forEach(revokeAttachmentObjectUrl);
+  if (imagePreviewDialog.open) imagePreviewDialog.close();
+  imagePreview.removeAttribute("src");
+}
+
+async function renderAttachmentsForCurrentNote() {
+  const note = currentNote();
+  const token = ++attachmentRenderToken;
+  cleanupAttachmentObjectUrls();
+  currentAttachments = [];
+  attachmentList.innerHTML = "";
+  attachmentCount.textContent = "0件";
+  attachmentUsage.textContent = `使用容量 0 B / ${formatAttachmentBytes(MAX_ATTACHMENT_TOTAL_BYTES)}`;
+  addAttachmentBtn.disabled = !note || Boolean(note.deletedAt);
+  attachmentDropZone.classList.toggle("disabled", !note || Boolean(note.deletedAt));
+  if (!note) return;
+
+  setAttachmentStatus("添付ファイルを読み込み中...");
+  try {
+    const items = await getAttachmentsForMemo(note.id);
+    if (token !== attachmentRenderToken || currentId !== note.id) return;
+    currentAttachments = items;
+    renderAttachmentList();
+    setAttachmentStatus(note.deletedAt ? "ゴミ箱内のメモには添付を追加できません。復元後に追加してください。" : "");
+  } catch (error) {
+    console.error("Attachment load failed", error);
+    if (token === attachmentRenderToken) setAttachmentStatus(`添付ファイルを読み込めませんでした: ${error.message || error}`, true);
+  }
+}
+
+function renderAttachmentList() {
+  attachmentList.innerHTML = "";
+  attachmentCount.textContent = `${currentAttachments.length}件`;
+  attachmentUsage.textContent = `使用容量 ${formatAttachmentBytes(attachmentTotalSize())} / ${formatAttachmentBytes(MAX_ATTACHMENT_TOTAL_BYTES)}`;
+  if (!currentAttachments.length) {
+    const empty = document.createElement("p");
+    empty.className = "attachment-empty";
+    empty.textContent = "添付ファイルはありません。";
+    attachmentList.appendChild(empty);
+    return;
+  }
+
+  currentAttachments.forEach((attachment) => {
+    const card = document.createElement("article");
+    card.className = `attachment-card attachment-${attachment.kind}`;
+    const details = document.createElement("div");
+    details.className = "attachment-details";
+    const name = document.createElement("div");
+    name.className = "attachment-file-name";
+    name.textContent = attachment.fileName;
+    name.title = attachment.fileName;
+    const size = document.createElement("div");
+    size.className = "attachment-file-size";
+    size.textContent = formatAttachmentBytes(attachment.size);
+    details.append(name, size);
+
+    if (attachment.kind === "image") {
+      try {
+        const objectUrl = URL.createObjectURL(attachment.blob);
+        attachmentObjectUrls.set(attachment.id, objectUrl);
+        const openButton = document.createElement("button");
+        openButton.type = "button";
+        openButton.className = "attachment-thumbnail-button";
+        openButton.setAttribute("aria-label", `${attachment.fileName}を拡大表示`);
+        const image = document.createElement("img");
+        image.src = objectUrl;
+        image.alt = `${attachment.fileName}のサムネイル`;
+        image.loading = "lazy";
+        openButton.appendChild(image);
+        openButton.addEventListener("click", () => openImagePreview(attachment));
+        card.appendChild(openButton);
+      } catch (error) {
+        console.error("Image URL creation failed", error);
+        card.appendChild(document.createTextNode("画像を表示できません"));
+      }
+    } else {
+      const icon = document.createElement("div");
+      icon.className = "attachment-pdf-icon";
+      icon.setAttribute("aria-hidden", "true");
+      icon.textContent = "PDF";
+      card.appendChild(icon);
+    }
+
+    const actions = document.createElement("div");
+    actions.className = "attachment-actions";
+    const openButton = document.createElement("button");
+    openButton.type = "button";
+    openButton.textContent = "開く";
+    openButton.setAttribute("aria-label", `${attachment.fileName}を開く`);
+    openButton.addEventListener("click", () => attachment.kind === "image" ? openImagePreview(attachment) : openPdfAttachment(attachment));
+    const deleteButton = document.createElement("button");
+    deleteButton.type = "button";
+    deleteButton.className = "danger-button";
+    deleteButton.textContent = "削除";
+    deleteButton.setAttribute("aria-label", `${attachment.fileName}を削除`);
+    deleteButton.addEventListener("click", () => deleteAttachment(attachment));
+    actions.append(openButton, deleteButton);
+    card.append(details, actions);
+    attachmentList.appendChild(card);
+  });
+}
+
+function openImagePreview(attachment) {
+  const objectUrl = attachmentObjectUrls.get(attachment.id);
+  if (!objectUrl) {
+    setAttachmentStatus(`「${attachment.fileName}」を表示できませんでした。`, true);
+    return;
+  }
+  imagePreviewTitle.textContent = attachment.fileName;
+  imagePreview.alt = attachment.fileName;
+  imagePreview.src = objectUrl;
+  imagePreviewDialog.showModal();
+  closeImagePreviewBtn.focus();
+}
+
+function openPdfAttachment(attachment) {
+  try {
+    revokeAttachmentObjectUrl(attachment.id);
+    const objectUrl = URL.createObjectURL(attachment.blob);
+    pdfObjectUrls.set(attachment.id, objectUrl);
+    const opened = window.open(objectUrl, "_blank");
+    if (!opened) {
+      revokeAttachmentObjectUrl(attachment.id);
+      throw new Error("ポップアップがブロックされました");
+    }
+    opened.opener = null;
+    pdfObjectUrlTimers.set(attachment.id, setTimeout(() => revokeAttachmentObjectUrl(attachment.id), 5 * 60 * 1000));
+  } catch (error) {
+    console.error("PDF open failed", error);
+    setAttachmentStatus(`PDFを開けませんでした: ${error.message || error}`, true);
+  }
+}
+
+async function deleteAttachment(attachment) {
+  if (!confirm(`「${attachment.fileName}」を削除しますか？`)) return;
+  try {
+    await deleteAttachmentRecord(attachment.id);
+    revokeAttachmentObjectUrl(attachment.id);
+    currentAttachments = currentAttachments.filter((item) => item.id !== attachment.id);
+    renderAttachmentList();
+    setAttachmentStatus(`「${attachment.fileName}」を削除しました。`);
+  } catch (error) {
+    console.error("Attachment delete failed", error);
+    setAttachmentStatus(`添付ファイルを削除できませんでした: ${error.message || error}`, true);
+  }
+}
+
+async function handleAttachmentFiles(fileList) {
+  const note = currentNote();
+  const files = Array.from(fileList || []);
+  if (!note || note.deletedAt || !files.length) return;
+  addAttachmentBtn.disabled = true;
+  attachmentInput.disabled = true;
+  setAttachmentStatus(`${files.length}件の添付ファイルを確認しています...`);
+  try {
+    const prepared = [];
+    for (let index = 0; index < files.length; index += 1) {
+      const file = files[index];
+      const kind = classifyAttachment(file);
+      setAttachmentStatus(`${files.length}件中${index + 1}件を処理しています...`);
+      prepared.push(await prepareAttachmentFile(file, kind, note.id));
+    }
+
+    const existing = await getAttachmentsForMemo(note.id);
+    const currentBytes = attachmentTotalSize(existing);
+    const additionalBytes = attachmentTotalSize(prepared);
+    const capacity = attachmentCapacity(currentBytes, additionalBytes);
+    if (!capacity.allowed) {
+      throw new Error([
+        "添付できません。",
+        `添付後の合計容量が${formatAttachmentBytes(capacity.total)}となり、上限${formatAttachmentBytes(capacity.limit)}を超えます。`,
+        `現在の使用量: ${formatAttachmentBytes(capacity.current)}`,
+        `追加ファイル: ${formatAttachmentBytes(capacity.additional)}`,
+        `超過容量: ${formatAttachmentBytes(capacity.exceededBy)}`
+      ].join("\n"));
+    }
+
+    await putAttachments(prepared);
+    if (currentId === note.id) {
+      await renderAttachmentsForCurrentNote();
+      setAttachmentStatus(`${prepared.length}件の添付ファイルを追加しました。`);
+    }
+  } catch (error) {
+    console.error("Attachment add failed", error);
+    setAttachmentStatus(error.message || String(error), true);
+  } finally {
+    const current = currentNote();
+    addAttachmentBtn.disabled = !current || Boolean(current.deletedAt);
+    attachmentInput.disabled = false;
+  }
+}
+
+async function prepareAttachmentFile(file, kind, memoId) {
+  const now = new Date().toISOString();
+  if (kind === "pdf") {
+    await validatePdfBlob(file);
+    return {
+      id: crypto.randomUUID(),
+      memoId,
+      kind,
+      fileName: file.name,
+      mimeType: "application/pdf",
+      size: file.size,
+      blob: file.slice(0, file.size, "application/pdf"),
+      createdAt: now
+    };
+  }
+
+  const compressed = await compressAttachmentImage(file);
+  return {
+    id: crypto.randomUUID(),
+    memoId,
+    kind,
+    fileName: file.name,
+    mimeType: compressed.blob.type || file.type,
+    size: compressed.blob.size,
+    originalSize: file.size,
+    blob: compressed.blob,
+    width: compressed.width,
+    height: compressed.height,
+    createdAt: now
+  };
+}
+
+async function validatePdfBlob(file) {
+  const headerBytes = new Uint8Array(await file.slice(0, 1024).arrayBuffer());
+  const header = new TextDecoder("latin1").decode(headerBytes);
+  if (!header.includes("%PDF-")) throw new Error(`「${file.name}」は有効なPDFとして認識できません`);
+}
+
+async function compressAttachmentImage(file) {
+  let decoded;
+  try {
+    decoded = await decodeAttachmentImage(file);
+    const scale = Math.min(1, MAX_ATTACHMENT_IMAGE_DIMENSION / Math.max(decoded.width, decoded.height));
+    const width = Math.max(1, Math.round(decoded.width * scale));
+    const height = Math.max(1, Math.round(decoded.height * scale));
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const context = canvas.getContext("2d", { alpha: file.type !== "image/jpeg" });
+    if (!context) throw new Error("画像処理用Canvasを利用できません");
+    context.drawImage(decoded.source, 0, 0, width, height);
+    const candidate = await canvasToBlob(canvas, file.type, file.type === "image/png" ? undefined : ATTACHMENT_IMAGE_QUALITY);
+    if (!candidate || !candidate.size) throw new Error("画像の圧縮結果を生成できません");
+    if (candidate.type !== file.type) throw new Error(`${file.type}形式で圧縮できません`);
+    const blob = scale < 1 || candidate.size < file.size
+      ? candidate
+      : file.slice(0, file.size, file.type);
+    return { blob, width, height };
+  } catch (error) {
+    throw new Error(`「${file.name}」の画像圧縮に失敗しました: ${error.message || error}`);
+  } finally {
+    if (decoded && typeof decoded.close === "function") decoded.close();
+  }
+}
+
+async function decodeAttachmentImage(file) {
+  if (typeof createImageBitmap === "function") {
+    const bitmap = await createImageBitmap(file, { imageOrientation: "from-image" });
+    if (!bitmap.width || !bitmap.height) {
+      bitmap.close();
+      throw new Error("画像サイズを取得できません");
+    }
+    return { source: bitmap, width: bitmap.width, height: bitmap.height, close: () => bitmap.close() };
+  }
+
+  const objectUrl = URL.createObjectURL(file);
+  try {
+    const image = new Image();
+    image.decoding = "async";
+    await new Promise((resolve, reject) => {
+      image.onload = resolve;
+      image.onerror = () => reject(new Error("画像を読み込めません"));
+      image.src = objectUrl;
+    });
+    if (!image.naturalWidth || !image.naturalHeight) throw new Error("画像サイズを取得できません");
+    return { source: image, width: image.naturalWidth, height: image.naturalHeight };
+  } finally {
+    URL.revokeObjectURL(objectUrl);
+  }
+}
+
+function canvasToBlob(canvas, type, quality) {
+  return new Promise((resolve, reject) => {
+    canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error("画像をBlobへ変換できません")), type, quality);
+  });
+}
+
+function handleClipboardAttachmentPaste(event) {
+  const imageItems = Array.from(event.clipboardData && event.clipboardData.items || [])
+    .filter((item) => item.kind === "file" && ["image/jpeg", "image/png", "image/webp"].includes(item.type));
+  if (!imageItems.length) return;
+  const note = currentNote();
+  if (!note || note.deletedAt) return;
+  const files = imageItems.map((item, index) => {
+    const blob = item.getAsFile();
+    if (!blob) return null;
+    const extension = item.type === "image/jpeg" ? "jpg" : item.type.split("/")[1];
+    const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+    return new File([blob], `clipboard-${stamp}-${index + 1}.${extension}`, { type: item.type });
+  }).filter(Boolean);
+  if (!files.length) return;
+  event.preventDefault();
+  handleAttachmentFiles(files);
 }
 
 function renderPreviewHtml(body) {
@@ -2096,31 +2491,31 @@ function buildDiscoveryMessage(note) {
 
 // 全メモをMarkdownファイルに変換し、ZIPとしてダウンロードします。
 async function downloadMarkdownZip() {
-  await flushSave();
-  const files = buildCollectionZipFiles();
-  console.log("ZIP backup", {
-    fileCount: files.length,
-    fileNames: files.map((file) => file.name)
-  });
-  const blob = makeZip(files);
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = `memo-nexus-${todayStamp()}.zip`;
-  link.click();
-  URL.revokeObjectURL(url);
+  try {
+    await flushSave();
+    const files = await buildCollectionZipFiles();
+    console.log("ZIP backup", {
+      fileCount: files.length,
+      fileNames: files.map((file) => file.name)
+    });
+    const blob = await makeZip(files);
+    downloadBlob(blob, `memo-nexus-${todayStamp()}.zip`);
+  } catch (error) {
+    console.error("ZIP backup failed", error);
+    alert(`ZIPバックアップに失敗しました: ${error.message || error}`);
+  }
 }
 
 // 追加ライブラリなしでZIPを作る処理です。各Markdownを無圧縮のZIPエントリにします。
-function makeZip(files) {
+async function makeZip(files) {
   const encoder = new TextEncoder();
   const localParts = [];
   const centralParts = [];
   let offset = 0;
 
-  files.forEach((file) => {
+  for (const file of files) {
     const name = encoder.encode(file.name);
-    const data = encoder.encode(file.content);
+    const data = await exportFileBytes(file.content, encoder);
     const crc = crc32(data);
     const utf8Flag = 0x0800;
     const { dosTime, dosDate } = zipDosDateTime(file.updatedAt);
@@ -2136,7 +2531,7 @@ function makeZip(files) {
     localParts.push(local);
     centralParts.push(central);
     offset += local.length;
-  });
+  }
 
   const centralSize = centralParts.reduce((sum, part) => sum + part.length, 0);
   const end = concatBytes([
@@ -2145,6 +2540,13 @@ function makeZip(files) {
   ]);
 
   return new Blob([...localParts, ...centralParts, end], { type: "application/zip" });
+}
+
+async function exportFileBytes(content, encoder = new TextEncoder()) {
+  if (content instanceof Uint8Array) return content;
+  if (content instanceof ArrayBuffer) return new Uint8Array(content);
+  if (content instanceof Blob) return new Uint8Array(await content.arrayBuffer());
+  return encoder.encode(String(content == null ? "" : content));
 }
 
 // ZIP形式で必要になるCRC32チェックサムを計算します。
@@ -2365,7 +2767,7 @@ async function renderStorageStatus() {
   const rows = [
     ["保存方式", "IndexedDB"],
     ["DB名", DB_NAME],
-    ["ストア名", STORE_NAME],
+    ["ストア名", `${STORE_NAME} / ${COLLECTION_STORE_NAME} / ${ATTACHMENT_STORE_NAME}`],
     ["メモ件数", `${activeNotes().length}件`],
     ["使用容量", "取得未対応"],
     ["上限目安", "取得未対応"],
@@ -2954,9 +3356,19 @@ async function permanentlyDeleteMemos(memoIds) {
   const targets = memoIds.map((id) => notes.find((note) => note.id === id)).filter((note) => note?.deletedAt);
   if (!targets.length || !confirm(`${targets.length}件を完全に削除しますか？\nこの操作は元に戻せません。`)) return;
   await new Promise((resolve, reject) => {
-    const transaction = db.transaction(STORE_NAME, "readwrite");
-    const store = transaction.objectStore(STORE_NAME);
-    targets.forEach((note) => store.delete(note.id));
+    const transaction = db.transaction([STORE_NAME, ATTACHMENT_STORE_NAME], "readwrite");
+    const noteStore = transaction.objectStore(STORE_NAME);
+    const attachmentIndex = transaction.objectStore(ATTACHMENT_STORE_NAME).index("memoId");
+    targets.forEach((note) => {
+      noteStore.delete(note.id);
+      const request = attachmentIndex.openKeyCursor(IDBKeyRange.only(note.id));
+      request.onsuccess = () => {
+        const cursor = request.result;
+        if (!cursor) return;
+        transaction.objectStore(ATTACHMENT_STORE_NAME).delete(cursor.primaryKey);
+        cursor.continue();
+      };
+    });
     transaction.oncomplete = resolve;
     transaction.onerror = () => reject(transaction.error);
     transaction.onabort = () => reject(transaction.error);
@@ -3118,27 +3530,64 @@ function collectionPath(id, includeSelf = true) {
   return path;
 }
 
-function buildCollectionZipFiles(rootCollectionId = null) {
+async function buildCollectionZipFiles(rootCollectionId = null, options = {}) {
   const allowedIds = rootCollectionId ? new Set([rootCollectionId, ...descendantCollectionIds(rootCollectionId)]) : null;
-  const rootPath = rootCollectionId ? collectionPath(rootCollectionId).slice(0, -1) : [];
+  const rootPath = rootCollectionId
+    ? (options.relativeToRoot ? collectionPath(rootCollectionId) : collectionPath(rootCollectionId).slice(0, -1))
+    : [];
   const items = activeNotes().filter((note) => !allowedIds || allowedIds.has(normalizedCollectionId(note))).map((note) => {
     let path = collectionPath(normalizedCollectionId(note));
     if (rootPath.length) path = path.slice(rootPath.length);
     return {
-      name: `${path.join("/")}/${safeFileName(note.title)}.md`,
+      memoId: note.id,
+      name: [...path, `${safeFileName(note.title)}.md`].join("/"),
       content: `# ${note.title}\n\n${note.body}\n`,
       updatedAt: note.bodyUpdatedAt || note.updatedAt || note.createdAt || Date.now()
     };
   });
-  return uniqueZipFileNames(items);
+  const uniqueItems = uniqueZipFileNames(items);
+  const reservedDirectoryPaths = new Set(collections.map((collection) => {
+    let path = collectionPath(collection.id);
+    if (rootPath.length) path = path.slice(rootPath.length);
+    return path.join("/").toLocaleLowerCase();
+  }).filter(Boolean));
+  const files = [];
+  for (const item of uniqueItems) {
+    const attachments = await getAttachmentsForMemo(item.memoId);
+    const bundle = buildMemoExportBundle({
+      markdownPath: item.name,
+      markdownContent: item.content,
+      attachments,
+      reservedDirectoryPaths
+    });
+    if (bundle.folderPath) reservedDirectoryPaths.add(bundle.folderPath.toLocaleLowerCase());
+    bundle.files.forEach((file) => files.push({ ...file, updatedAt: file.updatedAt || item.updatedAt }));
+  }
+  return files;
+}
+
+async function buildSingleNoteExportBundle(note) {
+  const attachments = await getAttachmentsForMemo(note.id);
+  const bundle = buildMemoExportBundle({
+    markdownPath: `${sanitizeWindowsName(note.title, "無題のメモ")}.md`,
+    markdownContent: note.body,
+    attachments
+  });
+  return {
+    ...bundle,
+    files: bundle.files.map((file) => ({
+      ...file,
+      updatedAt: file.updatedAt || note.bodyUpdatedAt || note.updatedAt || note.createdAt || Date.now()
+    }))
+  };
 }
 
 async function downloadCollectionZip(id) {
   const collection = collections.find((item) => item.id === id);
   if (!collection) throw new Error("コレクションが存在しません");
   await flushSave();
-  const files = buildCollectionZipFiles(id);
-  const blob = makeZip(files);
+  const files = await buildCollectionZipFiles(id);
+  const blob = await makeZip(files);
   downloadBlob(blob, `Memo-Nexus_${safeFileName(collection.name)}_${todayStampDashed()}.zip`);
 }
 
@@ -3175,7 +3624,7 @@ function openNoteExportDialog() {
   if (!note) return;
   pendingExport = { type: "note", noteId: note.id, directoryHandle: null };
   exportDialogTitle.textContent = "このメモをエクスポート";
-  exportDescription.textContent = "Markdown本文を変更せず、1つの .md ファイルとして保存します。";
+  exportDescription.textContent = "Markdown本文を変更せず保存します。添付がある場合は、Markdownと添付ファイルをまとめたZIPをダウンロードできます。";
   exportLocalNameRow.hidden = true;
   localExportBtn.hidden = !supportsDirectoryPicker();
   clearExportResult();
@@ -3205,8 +3654,13 @@ async function runDownloadExport() {
       await flushSave();
       const note = notes.find((item) => item.id === pendingExport.noteId);
       if (!note) throw new Error("メモが存在しません");
-      const fileName = `${sanitizeWindowsName(note.title, "無題のメモ")}.md`;
-      downloadBlob(new Blob([note.body], { type: "text/markdown;charset=utf-8" }), fileName);
+      const bundle = await buildSingleNoteExportBundle(note);
+      const baseName = sanitizeWindowsName(note.title, "無題のメモ");
+      if (!bundle.folderPath) {
+        downloadBlob(new Blob([note.body], { type: "text/markdown;charset=utf-8" }), `${baseName}.md`);
+      } else {
+        downloadBlob(await makeZip(bundle.files), `${baseName}.zip`);
+      }
     }
     exportDialog.close();
   } catch (error) {
@@ -3268,7 +3722,7 @@ async function availableFileName(directoryHandle, requestedName) {
   return candidate;
 }
 
-async function writeMarkdownFile(directoryHandle, fileName, content) {
+async function writeExportFile(directoryHandle, fileName, content) {
   const fileHandle = await directoryHandle.getFileHandle(fileName, { create: true });
   const writable = await fileHandle.createWritable();
   await writable.write(content);
@@ -3291,14 +3745,28 @@ async function chooseExportDirectory() {
 }
 
 async function exportNoteToLocalDirectory() {
-  const directoryHandle = await chooseExportDirectory();
+  const parentHandle = await chooseExportDirectory();
   await flushSave();
   const note = notes.find((item) => item.id === pendingExport.noteId);
   if (!note) throw new Error("メモが存在しません");
+  const bundle = await buildSingleNoteExportBundle(note);
   const requestedName = `${sanitizeWindowsName(note.title, "無題のメモ")}.md`;
-  const fileName = await availableFileName(directoryHandle, requestedName);
-  await writeMarkdownFile(directoryHandle, fileName, note.body);
-  showExportResult(`「${fileName}」を書き出しました。`);
+  if (!bundle.folderPath) {
+    const fileName = await availableFileName(parentHandle, requestedName);
+    await writeExportFile(parentHandle, fileName, note.body);
+    showExportResult(`「${fileName}」を書き出しました。`);
+    return;
+  }
+
+  const folderName = await availableFileName(parentHandle, bundle.folderPath);
+  const rootHandle = await parentHandle.getDirectoryHandle(folderName, { create: true });
+  for (const file of bundle.files) {
+    const relativeParts = file.name.split("/").slice(1);
+    const fileName = relativeParts.pop();
+    const directoryHandle = await nestedDirectory(rootHandle, relativeParts);
+    await writeExportFile(directoryHandle, fileName, file.content);
+  }
+  showExportResult(`「${folderName}」へ${bundle.files.length}件を書き出しました。`);
 }
 
 async function exportCollectionToLocalDirectory() {
@@ -3323,6 +3791,7 @@ async function exportCollectionToLocalDirectory() {
 
   await flushSave();
   const plan = buildCollectionLocalPlan(collections, notes, collection.id);
+  const exportFiles = await buildCollectionZipFiles(collection.id, { relativeToRoot: true });
   const rootHandle = await parentHandle.getDirectoryHandle(localName, { create: true });
   const directoryFailures = [];
   for (const path of plan.directories) {
@@ -3335,11 +3804,13 @@ async function exportCollectionToLocalDirectory() {
 
   let savedCount = 0;
   const fileFailures = [];
-  for (const file of plan.files) {
-    const relativeName = [...file.directoryPath, file.name].join("/");
+  for (const file of exportFiles) {
+    const parts = file.name.split("/").filter(Boolean);
+    const fileName = parts.pop();
+    const relativeName = [...parts, fileName].join("/");
     try {
-      const directoryHandle = await nestedDirectory(rootHandle, file.directoryPath);
-      await writeMarkdownFile(directoryHandle, file.name, file.content);
+      const directoryHandle = await nestedDirectory(rootHandle, parts);
+      await writeExportFile(directoryHandle, fileName, file.content);
       savedCount += 1;
     } catch (error) {
       fileFailures.push(`${relativeName}: ${error.message || error}`);
@@ -3347,7 +3818,7 @@ async function exportCollectionToLocalDirectory() {
   }
 
   const failures = [...directoryFailures, ...fileFailures];
-  const resultLines = [`${plan.files.length}件中${savedCount}件のメモを書き出しました。`];
+  const resultLines = [`${exportFiles.length}件中${savedCount}件のファイルを書き出しました。`];
   if (fileFailures.length) resultLines.push(`${fileFailures.length}件のファイル保存に失敗しました。`);
   if (directoryFailures.length) resultLines.push(`${directoryFailures.length}件のフォルダ作成に失敗しました。`);
   const message = resultLines.join("\n");
@@ -3420,6 +3891,31 @@ if (cancelExportBtn) cancelExportBtn.addEventListener("click", () => exportDialo
 if (downloadExportBtn) downloadExportBtn.addEventListener("click", runDownloadExport);
 if (localExportBtn) localExportBtn.addEventListener("click", runLocalExport);
 if (exportDialog) exportDialog.addEventListener("close", () => { pendingExport = null; });
+if (addAttachmentBtn && attachmentInput) addAttachmentBtn.addEventListener("click", () => attachmentInput.click());
+if (attachmentInput) attachmentInput.addEventListener("change", () => {
+  handleAttachmentFiles(attachmentInput.files).finally(() => { attachmentInput.value = ""; });
+});
+if (attachmentDropZone) {
+  ["dragenter", "dragover"].forEach((type) => attachmentDropZone.addEventListener(type, (event) => {
+    event.preventDefault();
+    if (!attachmentDropZone.classList.contains("disabled")) attachmentDropZone.classList.add("drag-over");
+  }));
+  ["dragleave", "drop"].forEach((type) => attachmentDropZone.addEventListener(type, (event) => {
+    event.preventDefault();
+    attachmentDropZone.classList.remove("drag-over");
+  }));
+  attachmentDropZone.addEventListener("drop", (event) => {
+    if (!attachmentDropZone.classList.contains("disabled")) handleAttachmentFiles(event.dataTransfer.files);
+  });
+  attachmentDropZone.addEventListener("keydown", (event) => {
+    if ((event.key === "Enter" || event.key === " ") && !attachmentDropZone.classList.contains("disabled")) {
+      event.preventDefault();
+      attachmentInput.click();
+    }
+  });
+}
+if (closeImagePreviewBtn) closeImagePreviewBtn.addEventListener("click", () => imagePreviewDialog.close());
+if (imagePreviewDialog) imagePreviewDialog.addEventListener("close", () => imagePreview.removeAttribute("src"));
 
 todayBtn.addEventListener("click", async () => {
   notes = await getAllNotes();
@@ -3489,6 +3985,7 @@ closeGraphBtn.addEventListener("click", () => graphDialog.close());
 searchInput.addEventListener("input", renderList);
 titleInput.addEventListener("beforeinput", captureUndoSnapshot);
 editor.addEventListener("beforeinput", captureUndoSnapshot);
+editor.addEventListener("paste", handleClipboardAttachmentPaste);
 titleInput.addEventListener("input", scheduleSave);
 editor.addEventListener("input", scheduleSave);
 window.addEventListener("resize", () => {
@@ -3517,6 +4014,7 @@ document.addEventListener("keydown", (event) => {
   }
 });
 window.addEventListener("pagehide", () => {
+  cleanupAttachmentObjectUrls();
   saveCurrentDraftMirror();
   if (saveTimer) {
     clearTimeout(saveTimer);

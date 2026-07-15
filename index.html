@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Memo Nexus</title>
-  <link rel="stylesheet" href="style.css?v=0.4.0-5">
+  <link rel="stylesheet" href="style.css?v=0.4.0-6">
 </head>
 <body>
   <aside class="sidebar">
@@ -71,6 +71,20 @@
       <div id="preview" class="preview"></div>
       <div id="linkList" class="link-list"></div>
       <div id="linkStatsPanel" class="link-stats"></div>
+      <section id="attachmentSection" class="attachment-section" aria-labelledby="attachmentHeading">
+        <div class="attachment-head">
+          <div>
+            <strong id="attachmentHeading">添付ファイル</strong>
+            <span id="attachmentCount">0件</span>
+          </div>
+          <button id="addAttachmentBtn" type="button">ファイルを追加</button>
+          <input id="attachmentInput" type="file" accept=".jpg,.jpeg,.png,.webp,.pdf,image/jpeg,image/png,image/webp,application/pdf" multiple hidden>
+        </div>
+        <div id="attachmentUsage" class="attachment-usage">使用容量 0 B / 20.0 MB</div>
+        <div id="attachmentStatus" class="attachment-status" role="status" aria-live="polite"></div>
+        <div id="attachmentDropZone" class="attachment-drop-zone" tabindex="0">画像またはPDFを選択するか、ここへドロップ</div>
+        <div id="attachmentList" class="attachment-list"></div>
+      </section>
     </section>
   </main>
 
@@ -195,9 +209,20 @@
     </div>
   </dialog>
 
+  <dialog id="imagePreviewDialog" class="image-preview-dialog">
+    <div class="dialog-head">
+      <strong id="imagePreviewTitle">画像を表示</strong>
+      <button id="closeImagePreviewBtn" type="button" title="閉じる" aria-label="画像を閉じる">×</button>
+    </div>
+    <div class="image-preview-body">
+      <img id="imagePreview" alt="">
+    </div>
+  </dialog>
+
   <script src="https://cdn.jsdelivr.net/npm/@highlightjs/cdn-assets@11.11.1/highlight.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
-  <script src="export-utils.js?v=0.4.0-5"></script>
-  <script src="app.js?v=0.4.0-5"></script>
+  <script src="export-utils.js?v=0.4.0-6"></script>
+  <script src="attachment-utils.js?v=0.4.0-6"></script>
+  <script src="app.js?v=0.4.0-6"></script>
 </body>
 </html>
