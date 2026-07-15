@@ -42,6 +42,20 @@
     };
   }
 
+  function createKeyedSerialQueue() {
+    const tails = new Map();
+    return function enqueue(key, task) {
+      const previous = tails.get(key) || Promise.resolve();
+      const run = previous.then(() => task());
+      const tail = run.then(() => undefined, () => undefined);
+      tails.set(key, tail);
+      tail.then(() => {
+        if (tails.get(key) === tail) tails.delete(key);
+      });
+      return run;
+    };
+  }
+
   function formatAttachmentBytes(bytes) {
     const value = Math.max(0, Number(bytes) || 0);
     if (value < 1024) return `${value} B`;
@@ -216,6 +230,7 @@
     attachmentMarkdownReference,
     buildMemoExportBundle,
     classifyAttachment,
+    createKeyedSerialQueue,
     extractAttachmentReferenceIds,
     fileExtension,
     findAttachmentReference,

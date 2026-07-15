@@ -8,6 +8,7 @@ const {
   attachmentMarkdownReference,
   buildMemoExportBundle,
   classifyAttachment,
+  createKeyedSerialQueue,
   extractAttachmentReferenceIds,
   findAttachmentReference,
   formatAttachmentBytes,
@@ -41,6 +42,26 @@ test("複数追加は合計容量を一括判定する", () => {
   const result = attachmentCapacity(12 * 1024 * 1024, 9 * 1024 * 1024);
   assert.equal(result.allowed, false);
   assert.equal(result.total, 21 * 1024 * 1024);
+});
+
+test("同一メモへの連続追加を直列化し、2回目の20MB超過を拒否する", async () => {
+  const enqueue = createKeyedSerialQueue();
+  let storedBytes = 0;
+  const add = (bytes) => enqueue("memo-1", async () => {
+    const capacity = attachmentCapacity(storedBytes, bytes);
+    await Promise.resolve();
+    if (!capacity.allowed) return false;
+    storedBytes = capacity.total;
+    return true;
+  });
+
+  const results = await Promise.all([
+    add(12 * 1024 * 1024),
+    add(9 * 1024 * 1024)
+  ]);
+
+  assert.deepEqual(results, [true, false]);
+  assert.equal(storedBytes, 12 * 1024 * 1024);
 });
 
 test("添付ファイル名は同一フォルダ内で _2 形式の連番を付ける", () => {

@@ -42,6 +42,7 @@ const {
   attachmentCapacity,
   buildMemoExportBundle,
   classifyAttachment,
+  createKeyedSerialQueue,
   extractAttachmentReferenceIds,
   findAttachmentReference,
   formatAttachmentBytes,
@@ -167,6 +168,8 @@ let attachmentRenderToken = 0;
 let attachmentObjectUrls = new Map();
 let pdfObjectUrls = new Map();
 let pdfObjectUrlTimers = new Map();
+const enqueueAttachmentAddition = createKeyedSerialQueue();
+const pendingAttachmentAdditions = new Map();
 
 // ページ読み込み後、すぐにアプリを起動します。
 init();
@@ -1585,6 +1588,19 @@ function setAttachmentStatus(message = "", isError = false) {
   attachmentStatus.classList.toggle("error", isError);
 }
 
+function updateAttachmentAdditionCount(memoId, difference) {
+  const next = Math.max(0, (pendingAttachmentAdditions.get(memoId) || 0) + difference);
+  if (next) pendingAttachmentAdditions.set(memoId, next);
+  else pendingAttachmentAdditions.delete(memoId);
+}
+
+function syncAttachmentAddControls(note = currentNote()) {
+  const disabled = !note || Boolean(note.deletedAt) || pendingAttachmentAdditions.has(note.id);
+  addAttachmentBtn.disabled = disabled;
+  attachmentInput.disabled = disabled;
+  attachmentDropZone.classList.toggle("disabled", disabled);
+}
+
 function revokeAttachmentObjectUrl(id) {
   const imageUrl = attachmentObjectUrls.get(id);
   if (imageUrl) URL.revokeObjectURL(imageUrl);
@@ -1646,8 +1662,7 @@ async function renderAttachmentsForCurrentNote() {
   attachmentList.innerHTML = "";
   attachmentCount.textContent = "0件";
   attachmentUsage.textContent = `使用容量 0 B / ${formatAttachmentBytes(MAX_ATTACHMENT_TOTAL_BYTES)}`;
-  addAttachmentBtn.disabled = !note || Boolean(note.deletedAt);
-  attachmentDropZone.classList.toggle("disabled", !note || Boolean(note.deletedAt));
+  syncAttachmentAddControls(note);
   if (!note) return;
 
   setAttachmentStatus("添付ファイルを読み込み中...");
@@ -1657,7 +1672,9 @@ async function renderAttachmentsForCurrentNote() {
     currentAttachments = items;
     renderAttachmentList();
     hydrateInlineAttachmentImages();
-    setAttachmentStatus(note.deletedAt ? "ゴミ箱内のメモには添付を追加できません。復元後に追加してください。" : "");
+    setAttachmentStatus(note.deletedAt
+      ? "ゴミ箱内のメモには添付を追加できません。復元後に追加してください。"
+      : pendingAttachmentAdditions.has(note.id) ? "添付ファイルを処理しています..." : "");
   } catch (error) {
     console.error("Attachment load failed", error);
     if (token === attachmentRenderToken) setAttachmentStatus(`添付ファイルを読み込めませんでした: ${error.message || error}`, true);
@@ -1791,15 +1808,23 @@ async function handleAttachmentFiles(fileList, options = {}) {
   const note = currentNote();
   const files = Array.from(fileList || []);
   if (!note || note.deletedAt || !files.length) return [];
-  addAttachmentBtn.disabled = true;
-  attachmentInput.disabled = true;
-  setAttachmentStatus(`${files.length}件の添付ファイルを確認しています...`);
+  updateAttachmentAdditionCount(note.id, 1);
+  syncAttachmentAddControls();
+  if (currentId === note.id) setAttachmentStatus(`${files.length}件の添付ファイルを確認しています...`);
+  return enqueueAttachmentAddition(note.id, () => addAttachmentFilesForNote(note, files, options))
+    .finally(() => {
+      updateAttachmentAdditionCount(note.id, -1);
+      syncAttachmentAddControls();
+    });
+}
+
+async function addAttachmentFilesForNote(note, files, options) {
   try {
     const prepared = [];
     for (let index = 0; index < files.length; index += 1) {
       const file = files[index];
       const kind = classifyAttachment(file);
-      setAttachmentStatus(`${files.length}件中${index + 1}件を処理しています...`);
+      if (currentId === note.id) setAttachmentStatus(`${files.length}件中${index + 1}件を処理しています...`);
       prepared.push(await prepareAttachmentFile(file, kind, note.id));
     }
 
@@ -1828,12 +1853,8 @@ async function handleAttachmentFiles(fileList, options = {}) {
     return prepared;
   } catch (error) {
     console.error("Attachment add failed", error);
-    setAttachmentStatus(error.message || String(error), true);
+    if (currentId === note.id) setAttachmentStatus(error.message || String(error), true);
     return [];
-  } finally {
-    const current = currentNote();
-    addAttachmentBtn.disabled = !current || Boolean(current.deletedAt);
-    attachmentInput.disabled = false;
   }
 }
 
