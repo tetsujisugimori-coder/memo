@@ -107,6 +107,12 @@ const saveStatus = $("saveStatus");
 const deleteUndoNotice = $("deleteUndoNotice");
 const appVersionDisplays = document.querySelectorAll(".app-version");
 const storageWarning = $("storageWarning");
+const relatedToggleBtn = $("relatedToggleBtn");
+const relatedCount = $("relatedCount");
+const relatedBackdrop = $("relatedBackdrop");
+const auxiliaryPanel = $("auxiliaryPanel");
+const closeRelatedPanelBtn = $("closeRelatedPanelBtn");
+const relatedLimitNotice = $("relatedLimitNotice");
 const relatedList = $("relatedList");
 const discoveryPanel = $("discoveryPanel");
 const linkStatsPanel = $("linkStatsPanel");
@@ -1296,6 +1302,7 @@ function openNote(id) {
   const note = notes.find((item) => item.id === id);
   if (!note) return;
 
+  setRelatedDrawerOpen(false, { restoreFocus: false });
   currentId = note.id;
   titleInput.value = note.title;
   editor.value = note.body;
@@ -2542,25 +2549,62 @@ async function openOrCreateLinkedNote(title) {
   openNote(note.id);
 }
 
-// 右側の関連メモ一覧を描画します。
+function isRelatedDrawerOpen() {
+  return document.body.classList.contains("related-open");
+}
+
+function setRelatedDrawerOpen(open, options = {}) {
+  const wasOpen = isRelatedDrawerOpen();
+  document.body.classList.toggle("related-open", open);
+  auxiliaryPanel.setAttribute("aria-hidden", String(!open));
+  auxiliaryPanel.inert = !open;
+  relatedBackdrop.setAttribute("aria-hidden", String(!open));
+  relatedToggleBtn.setAttribute("aria-expanded", String(open));
+  relatedToggleBtn.setAttribute("aria-label", open ? "関連メモパネルを閉じる" : "関連メモパネルを開く");
+
+  if (open) {
+    closeRelatedPanelBtn.focus();
+  } else if (wasOpen && options.restoreFocus !== false) {
+    relatedToggleBtn.focus();
+  }
+}
+
+function updateRelatedToggle(count) {
+  relatedCount.textContent = String(count);
+  relatedToggleBtn.title = `関連メモ ${count}件`;
+}
+
+// 右ドロワー内の関連メモ一覧を描画します。
 function renderRelated() {
   const note = currentNote();
   relatedList.innerHTML = "";
+  relatedLimitNotice.hidden = true;
+  relatedLimitNotice.textContent = "";
 
-  if (!note) return;
+  if (!note) {
+    updateRelatedToggle(0);
+    return;
+  }
 
-  const related = findRelated(note).slice(0, 8);
+  const allRelated = findRelated(note);
+  const related = allRelated.slice(0, 8);
+  updateRelatedToggle(allRelated.length);
+  if (allRelated.length > related.length) {
+    relatedLimitNotice.textContent = `${allRelated.length}件中、${related.length}件表示`;
+    relatedLimitNotice.hidden = false;
+  }
   if (!related.length) {
-    relatedList.innerHTML = `<div class="empty">[[名前]]でつなぐと、ここに関連メモが出ます。</div>`;
+    relatedList.innerHTML = `<div class="empty related-empty"><strong>関連メモはありません。</strong><span>本文中に [[メモ名]] の形式でリンクを書くと、本文リンク・逆リンク・共通リンク・共通語句から関連するメモが表示されます。</span></div>`;
     return;
   }
 
   related.forEach(({ note: item, reason }) => {
-    const div = document.createElement("div");
-    div.className = "related-item";
-    div.innerHTML = `<strong>${escapeHtml(item.title)}</strong><span>${escapeHtml(reason)}</span>`;
-    div.addEventListener("click", () => openNote(item.id));
-    relatedList.appendChild(div);
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "related-item";
+    button.innerHTML = `<strong>${escapeHtml(item.title)}</strong><span>${escapeHtml(reason)}</span>`;
+    button.addEventListener("click", () => openNote(item.id));
+    relatedList.appendChild(button);
   });
 }
 
@@ -4128,6 +4172,9 @@ graphBtn.addEventListener("click", () => {
 });
 
 closeGraphBtn.addEventListener("click", () => graphDialog.close());
+relatedToggleBtn.addEventListener("click", () => setRelatedDrawerOpen(!isRelatedDrawerOpen()));
+closeRelatedPanelBtn.addEventListener("click", () => setRelatedDrawerOpen(false));
+relatedBackdrop.addEventListener("click", () => setRelatedDrawerOpen(false));
 searchInput.addEventListener("input", renderList);
 titleInput.addEventListener("beforeinput", captureUndoSnapshot);
 editor.addEventListener("beforeinput", captureUndoSnapshot);
@@ -4148,6 +4195,11 @@ document.addEventListener("click", (event) => {
   if (!event.target.closest(".collection-popup-menu,.collection-more,.collection-memo-more,#collectionAddMenuBtn")) closeCollectionMenus();
 });
 document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && isRelatedDrawerOpen() && !document.querySelector("dialog[open]")) {
+    event.preventDefault();
+    setRelatedDrawerOpen(false);
+    return;
+  }
   if (event.key === "Escape" && document.body.classList.contains("collections-open") && !collectionMoveDialog.open) {
     toggleCollectionExplorer(false);
     return;
