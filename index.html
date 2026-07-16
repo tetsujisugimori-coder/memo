@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Memo Nexus</title>
-  <link rel="stylesheet" href="style.css?v=0.4.0-11">
+  <link rel="stylesheet" href="style.css?v=0.4.0-12">
 </head>
 <body>
   <aside class="sidebar">
@@ -149,6 +149,15 @@
             <option value="dark">ダーク</option>
           </select>
         </label>
+        <label class="theme-setting" for="imageBlockSizeSelect">
+          <span>カード内画像サイズ</span>
+          <select id="imageBlockSizeSelect">
+            <option value="small">小</option>
+            <option value="medium" selected>標準</option>
+            <option value="large">大</option>
+          </select>
+        </label>
+        <p class="settings-note image-size-setting-note">本文に挿入した画像のカード内での大きさを変更します。説明文がある場合は、表示幅に応じて画像の横または下に表示されます。添付ファイル自体のデータや画質は変更されません。</p>
         <ul class="soon-list">
           <li>フォントサイズ <span>Coming soon</span></li>
           <li>行間 <span>Coming soon</span></li>
@@ -230,11 +239,12 @@
       <img id="imagePreview" alt="">
     </div>
   </dialog>
+  <input id="imageBlockInput" type="file" accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp" hidden>
 
   <script src="https://cdn.jsdelivr.net/npm/@highlightjs/cdn-assets@11.11.1/highlight.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
   <script src="export-utils.js?v=0.4.0-8"></script>
-  <script src="attachment-utils.js?v=0.4.0-8"></script>
-  <script src="app.js?v=0.4.0-10"></script>
+  <script src="attachment-utils.js?v=0.4.0-9"></script>
+  <script src="app.js?v=0.4.0-11"></script>
 </body>
 </html>

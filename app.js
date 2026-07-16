@@ -13,6 +13,7 @@ const MAX_COLLECTION_DEPTH = 5;
 const DRAFT_STORAGE_KEY = "memo-nexus-current-draft";
 const THEME_STORAGE_KEY = "memo-nexus-theme";
 const COLLECTION_SORT_STORAGE_KEY = "memo-nexus-collection-sort";
+const IMAGE_BLOCK_SIZE_STORAGE_KEY = "memo-nexus-image-block-size";
 const DRAFT_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
 const UNDO_LIMIT = 50;
 const UNDO_INPUT_INTERVAL_MS = 800;
@@ -46,7 +47,11 @@ const {
   extractAttachmentReferenceIds,
   findAttachmentReference,
   formatAttachmentBytes,
-  insertAttachmentReferences
+  insertAttachmentReferences,
+  normalizeImageBlockSize,
+  renderImageCaptionMarkdown,
+  replaceImageBlock,
+  splitImageBlocks
 } = window.MemoNexusAttachmentUtils;
 
 // HTML要素を短く取得するための小さなヘルパー。
@@ -87,6 +92,7 @@ const reloadAppBtn = $("reloadAppBtn");
 const settingsDialog = $("settingsDialog");
 const closeSettingsBtn = $("closeSettingsBtn");
 const themeSelect = $("themeSelect");
+const imageBlockSizeSelect = $("imageBlockSizeSelect");
 const storageStatusDetails = $("storageStatusDetails");
 const storageEstimateMessage = $("storageEstimateMessage");
 const jsonImportDialog = $("jsonImportDialog");
@@ -130,6 +136,7 @@ const imagePreviewDialog = $("imagePreviewDialog");
 const imagePreviewTitle = $("imagePreviewTitle");
 const imagePreview = $("imagePreview");
 const closeImagePreviewBtn = $("closeImagePreviewBtn");
+const imageBlockInput = $("imageBlockInput");
 const exportDialog = $("exportDialog");
 const exportDialogTitle = $("exportDialogTitle");
 const exportDescription = $("exportDescription");
@@ -170,6 +177,8 @@ let draggedCollectionId = null;
 let draggedMemoIds = [];
 let pendingExport = null;
 let currentAttachments = [];
+let imageBlockSize = "medium";
+let pendingImageBlockTarget = null;
 let attachmentRenderToken = 0;
 let attachmentObjectUrls = new Map();
 let pdfObjectUrls = new Map();
@@ -188,6 +197,7 @@ async function init() {
     element.textContent = `v${APP_VERSION} "${APP_LABEL}"`;
   });
   restoreTheme();
+  restoreImageBlockSize();
   restoreCollectionSortOrder();
 
   const localStorageAvailable = checkLocalStorageAvailable();
@@ -280,6 +290,32 @@ function saveTheme(theme) {
   } catch (error) {
     console.warn("Theme save failed", error);
   }
+}
+
+function restoreImageBlockSize() {
+  let savedSize = "medium";
+  try {
+    savedSize = normalizeImageBlockSize(localStorage.getItem(IMAGE_BLOCK_SIZE_STORAGE_KEY));
+  } catch (error) {
+    console.warn("Image block size restore failed", error);
+  }
+  applyImageBlockSize(savedSize);
+}
+
+function applyImageBlockSize(value) {
+  imageBlockSize = normalizeImageBlockSize(value);
+  if (imageBlockSizeSelect) imageBlockSizeSelect.value = imageBlockSize;
+  if (preview) preview.dataset.imageSize = imageBlockSize;
+}
+
+function saveImageBlockSize(value) {
+  applyImageBlockSize(value);
+  try {
+    localStorage.setItem(IMAGE_BLOCK_SIZE_STORAGE_KEY, imageBlockSize);
+  } catch (error) {
+    console.warn("Image block size save failed", error);
+  }
+  renderPreview();
 }
 
 function normalizeCollectionSortOrder(value) {
@@ -1576,6 +1612,7 @@ function renderPreview() {
   const body = (note.id === currentId ? editor.value : note.body);
   preview.innerHTML = renderPreviewHtml(body);
   hydrateInlineAttachmentImages();
+  bindImageBlockControls();
 
   preview.querySelectorAll(".wiki-link").forEach((button) => {
     button.addEventListener("click", () => openOrCreateLinkedNote(button.dataset.title));
@@ -1655,6 +1692,108 @@ function hydrateInlineAttachmentImages() {
   });
 }
 
+function currentImageBlock(element) {
+  const figure = element.closest(".image-block");
+  const index = Number(figure && figure.dataset.imageBlockIndex);
+  const segment = splitImageBlocks(editor.value)[index];
+  return segment && segment.type === "image" ? segment : null;
+}
+
+function commitImageBlockChange(block, images, caption) {
+  if (!block) return;
+  captureUndoSnapshot({ inputType: "insertText" });
+  try {
+    editor.value = replaceImageBlock(editor.value, block, images, caption);
+    scheduleSave();
+  } catch (error) {
+    alert(error.message || String(error));
+    renderPreview();
+  }
+}
+
+function bindImageBlockControls() {
+  preview.querySelectorAll(".image-block-open").forEach((button) => {
+    button.addEventListener("click", () => {
+      const attachment = currentAttachments.find((item) => item.id === button.dataset.imageId && item.kind === "image");
+      if (attachment) openImagePreview(attachment);
+    });
+  });
+
+  preview.querySelectorAll(".image-block-add").forEach((button) => {
+    button.addEventListener("click", () => {
+      const block = currentImageBlock(button);
+      if (!block || block.images.length >= 2 || !imageBlockInput) return;
+      pendingImageBlockTarget = { raw: block.raw, imageIds: block.images.map((image) => image.id) };
+      imageBlockInput.click();
+    });
+  });
+
+  preview.querySelectorAll(".image-block-swap").forEach((button) => {
+    button.addEventListener("click", () => {
+      const block = currentImageBlock(button);
+      if (!block || block.images.length !== 2) return;
+      commitImageBlockChange(block, [...block.images].reverse(), block.caption);
+    });
+  });
+
+  preview.querySelectorAll(".image-block-remove").forEach((button) => {
+    button.addEventListener("click", () => {
+      const block = currentImageBlock(button);
+      const imageIndex = Number(button.dataset.imageIndex);
+      if (!block || !block.images[imageIndex]) return;
+      if (!confirm(`画像${imageIndex + 1}を本文の画像ブロックから外しますか？\n添付ファイル欄の元データは削除されません。`)) return;
+      commitImageBlockChange(block, block.images.filter((_, index) => index !== imageIndex), block.caption);
+    });
+  });
+
+  preview.querySelectorAll(".image-block-edit-caption").forEach((button) => {
+    button.addEventListener("click", () => openImageCaptionEditor(button));
+  });
+}
+
+function openImageCaptionEditor(button) {
+  const block = currentImageBlock(button);
+  const figure = button.closest(".image-block");
+  if (!block || !figure || figure.querySelector(".image-caption-editor")) return;
+  const editorPanel = document.createElement("div");
+  editorPanel.className = "image-caption-editor";
+  const textarea = document.createElement("textarea");
+  textarea.value = block.caption;
+  textarea.rows = 5;
+  textarea.placeholder = "画像ブロック全体の説明文（改行、太字、斜体、インラインコード、リンク、箇条書きに対応）";
+  textarea.setAttribute("aria-label", "画像ブロックの説明文");
+  const actions = document.createElement("div");
+  actions.className = "image-caption-editor-actions";
+  const cancel = document.createElement("button");
+  cancel.type = "button";
+  cancel.textContent = "キャンセル";
+  const save = document.createElement("button");
+  save.type = "button";
+  save.textContent = "説明文を保存";
+  cancel.addEventListener("click", () => editorPanel.remove());
+  save.addEventListener("click", () => commitImageBlockChange(block, block.images, textarea.value));
+  actions.append(cancel, save);
+  editorPanel.append(textarea, actions);
+  figure.appendChild(editorPanel);
+  textarea.focus();
+}
+
+function findPendingImageBlock(target) {
+  if (!target) return null;
+  return splitImageBlocks(editor.value).find((segment) => segment.type === "image"
+    && segment.raw === target.raw
+    && segment.images.map((image) => image.id).join("\n") === target.imageIds.join("\n"));
+}
+
+function insertStoredImageIntoBlock(attachments, target) {
+  const block = findPendingImageBlock(target);
+  const image = attachments.find((attachment) => attachment.kind === "image");
+  if (!block || !image || block.images.length >= 2) {
+    throw new Error("画像ブロックが変更されたため2枚目を追加できませんでした。添付ファイル欄には保存されています");
+  }
+  commitImageBlockChange(block, [...block.images, { id: image.id, alt: image.fileName }], block.caption);
+}
+
 function cleanupAttachmentObjectUrls() {
   [...attachmentObjectUrls.keys(), ...pdfObjectUrls.keys()].forEach(revokeAttachmentObjectUrl);
   if (imagePreviewDialog.open) imagePreviewDialog.close();
@@ -1703,6 +1842,7 @@ function renderAttachmentList() {
   currentAttachments.forEach((attachment) => {
     const card = document.createElement("article");
     card.className = `attachment-card attachment-${attachment.kind}`;
+    card.dataset.attachmentId = attachment.id;
     const details = document.createElement("div");
     details.className = "attachment-details";
     const name = document.createElement("div");
@@ -1852,7 +1992,9 @@ async function addAttachmentFilesForNote(note, files, options) {
     await putAttachments(prepared);
     if (currentId === note.id) {
       await renderAttachmentsForCurrentNote();
-      if (options.insertIntoEditor) {
+      if (options.imageBlockTarget) {
+        insertStoredImageIntoBlock(prepared, options.imageBlockTarget);
+      } else if (options.insertIntoEditor) {
         await insertStoredImageReferences(prepared, options);
       }
       setAttachmentStatus(`${prepared.length}件の添付ファイルを追加しました。`);
@@ -2042,20 +2184,49 @@ function handleEditorAttachmentDrop(event) {
 }
 
 function renderPreviewHtml(body) {
-  const blocks = splitFencedBlocks(body);
-  const html = blocks
-    .map((block, index) => {
-      if (block.type === "code") {
-        return block.language.toLowerCase() === "mermaid"
-          ? renderMermaidBlock(block.code, index)
+  let codeBlockIndex = 0;
+  const html = splitImageBlocks(body)
+    .map((segment, imageBlockIndex) => {
+      if (segment.type === "image") return renderImageBlock(segment, imageBlockIndex);
+      return splitFencedBlocks(segment.text).map((block) => {
+        if (block.type !== "code") return renderTextBlock(block.text);
+        const rendered = block.language.toLowerCase() === "mermaid"
+          ? renderMermaidBlock(block.code, codeBlockIndex)
           : renderCodeBlock(block.code, block.language);
-      }
-      return renderTextBlock(block.text);
+        codeBlockIndex += 1;
+        return rendered;
+      }).join("");
     })
     .filter(Boolean)
     .join("");
 
   return html || `<p class="empty">本文を書くとカード表示されます。</p>`;
+}
+
+function renderImageBlock(block, blockIndex) {
+  const count = block.images.length;
+  const images = block.images.map((image, imageIndex) => `
+    <div class="image-block-item">
+      <button class="image-block-open" type="button" data-image-id="${escapeAttr(image.id)}" aria-label="${escapeAttr(image.alt || "添付画像")}を拡大表示">
+        <span class="inline-attachment-image" data-attachment-id="${escapeAttr(image.id)}" data-alt="${escapeAttr(image.alt)}" role="img" aria-label="${escapeAttr(image.alt || "添付画像")}">画像を読み込み中...</span>
+      </button>
+      <button class="image-block-remove" type="button" data-image-index="${imageIndex}">画像${imageIndex + 1}を外す</button>
+    </div>
+  `).join("");
+  const caption = block.caption
+    ? `<figcaption class="image-block-caption">${renderImageCaptionMarkdown(block.caption)}</figcaption>`
+    : "";
+  return `
+    <figure class="image-block image-count-${count} image-size-${imageBlockSize}${block.caption ? " has-caption" : ""}" data-image-block-index="${blockIndex}">
+      <div class="image-block-media">${images}</div>
+      ${caption}
+      <div class="image-block-actions" aria-label="画像ブロック操作">
+        ${count < 2 ? '<button class="image-block-add" type="button">画像を追加</button>' : ""}
+        ${count === 2 ? '<button class="image-block-swap" type="button">左右を入れ替える</button>' : ""}
+        <button class="image-block-edit-caption" type="button">${block.caption ? "説明文を編集" : "説明文を追加"}</button>
+      </div>
+    </figure>
+  `;
 }
 
 function splitFencedBlocks(body) {
@@ -4085,6 +4256,16 @@ if (addAttachmentBtn && attachmentInput) addAttachmentBtn.addEventListener("clic
 if (attachmentInput) attachmentInput.addEventListener("change", () => {
   handleAttachmentFiles(attachmentInput.files).finally(() => { attachmentInput.value = ""; });
 });
+if (imageBlockInput) imageBlockInput.addEventListener("change", () => {
+  const [file] = imageBlockInput.files || [];
+  const target = pendingImageBlockTarget;
+  pendingImageBlockTarget = null;
+  if (!file || !target) {
+    imageBlockInput.value = "";
+    return;
+  }
+  handleAttachmentFiles([file], { imageBlockTarget: target }).finally(() => { imageBlockInput.value = ""; });
+});
 if (attachmentDropZone) {
   ["dragenter", "dragover"].forEach((type) => attachmentDropZone.addEventListener(type, (event) => {
     event.preventDefault();
@@ -4126,6 +4307,9 @@ settingsBtn.addEventListener("click", () => {
 closeSettingsBtn.addEventListener("click", () => settingsDialog.close());
 if (themeSelect) {
   themeSelect.addEventListener("change", () => saveTheme(themeSelect.value));
+}
+if (imageBlockSizeSelect) {
+  imageBlockSizeSelect.addEventListener("change", () => saveImageBlockSize(imageBlockSizeSelect.value));
 }
 if (collectionSortSelect) {
   collectionSortSelect.addEventListener("change", () => saveCollectionSortOrder(collectionSortSelect.value));
