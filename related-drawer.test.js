@@ -24,14 +24,18 @@ test("ボタン、閉じる、外側、Esc、メモ切替で同じ開閉処理�
 });
 
 test("関連メモ抽出と最大8件の既存仕様を維持し件数を表示する", () => {
+  assert.match(html, /id="relatedLimitNotice"[^>]*class="related-limit-notice"[^>]*hidden/);
   assert.match(app, /const allRelated = findRelated\(note\);\s*const related = allRelated\.slice\(0, 8\);\s*updateRelatedToggle\(allRelated\.length\);/);
   assert.match(app, /relatedCount\.textContent = String\(count\)/);
+  assert.match(app, /if \(allRelated\.length > related\.length\) \{\s*relatedLimitNotice\.textContent = `\$\{allRelated\.length\}件中、\$\{related\.length\}件表示`;\s*relatedLimitNotice\.hidden = false;/);
+  assert.match(app, /relatedLimitNotice\.hidden = true;\s*relatedLimitNotice\.textContent = "";/);
   assert.match(app, /関連メモはありません。/);
 });
 
 test("右パネルは本文幅を変えない固定オーバーレイで内部だけスクロールする", () => {
   assert.match(css, /\.related-panel\s*\{[^}]*position:\s*fixed;[^}]*width:\s*min\(340px, 90vw\);[^}]*transform:\s*translateX\(100%\)/s);
   assert.match(css, /\.auxiliary-panel-scroll\s*\{[^}]*overflow-y:\s*auto;[^}]*overscroll-behavior:\s*contain;/s);
+  assert.match(css, /\.related-limit-notice\s*\{[^}]*color:\s*var\(--muted\);[^}]*font-size:\s*12px;[^}]*white-space:\s*nowrap;/s);
   assert.match(css, /body\.related-open\s*\{[^}]*overflow:\s*hidden;/s);
   assert.match(css, /@media \(prefers-reduced-motion: reduce\)/);
 });

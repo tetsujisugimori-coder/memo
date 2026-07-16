@@ -1424,6 +1424,14 @@ body.related-open .related-toggle {
   gap: 8px;
 }
 
+.related-limit-notice {
+  margin: 0 0 -6px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
 .related-item {
   width: 100%;
   min-height: 0;

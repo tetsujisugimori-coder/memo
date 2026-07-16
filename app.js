@@ -112,6 +112,7 @@ const relatedCount = $("relatedCount");
 const relatedBackdrop = $("relatedBackdrop");
 const auxiliaryPanel = $("auxiliaryPanel");
 const closeRelatedPanelBtn = $("closeRelatedPanelBtn");
+const relatedLimitNotice = $("relatedLimitNotice");
 const relatedList = $("relatedList");
 const discoveryPanel = $("discoveryPanel");
 const linkStatsPanel = $("linkStatsPanel");
@@ -2577,6 +2578,8 @@ function updateRelatedToggle(count) {
 function renderRelated() {
   const note = currentNote();
   relatedList.innerHTML = "";
+  relatedLimitNotice.hidden = true;
+  relatedLimitNotice.textContent = "";
 
   if (!note) {
     updateRelatedToggle(0);
@@ -2586,6 +2589,10 @@ function renderRelated() {
   const allRelated = findRelated(note);
   const related = allRelated.slice(0, 8);
   updateRelatedToggle(allRelated.length);
+  if (allRelated.length > related.length) {
+    relatedLimitNotice.textContent = `${allRelated.length}件中、${related.length}件表示`;
+    relatedLimitNotice.hidden = false;
+  }
   if (!related.length) {
     relatedList.innerHTML = `<div class="empty related-empty"><strong>関連メモはありません。</strong><span>本文中に [[メモ名]] の形式でリンクを書くと、本文リンク・逆リンク・共通リンク・共通語句から関連するメモが表示されます。</span></div>`;
     return;
