@@ -16,6 +16,7 @@ const {
   normalizeImageBlockSize,
   renderImageCaptionMarkdown,
   replaceImageBlock,
+  saveAttachmentAdditionWithRollback,
   serializeImageBlock,
   splitImageBlocks,
   uniqueAttachmentFileName
@@ -197,6 +198,19 @@ test("既存の単独画像参照を説明文なしの画像ブロックとし�
   assert.equal(block.explicit, false);
 });
 
+test("既存の連続画像2枚を別々の1枚ブロックとして解釈する", () => {
+  const segments = splitImageBlocks([
+    "![画像1](attachment://legacy-one)",
+    "![画像2](attachment://legacy-two)"
+  ].join("\n")).filter((segment) => segment.type === "image");
+  assert.equal(segments.length, 2);
+  assert.deepEqual(segments.map((segment) => segment.images.map((image) => image.id)), [
+    ["legacy-one"],
+    ["legacy-two"]
+  ]);
+  assert.deepEqual(segments.map((segment) => segment.explicit), [false, false]);
+});
+
 test("コードフェンス内の画像参照や専用コメントとは衝突しない", () => {
   const markdown = [
     "```markdown",
@@ -230,6 +244,29 @@ test("3枚の挿入は最大2枚ずつの画像ブロックへ分割する", () 
   ]);
   const blocks = splitImageBlocks(result.value).filter((segment) => segment.type === "image");
   assert.deepEqual(blocks.map((block) => block.images.length), [2, 1]);
+});
+
+test("2枚目追加の保存後検証に失敗した場合は今回の添付だけをロールバックする", async () => {
+  const storedIds = ["existing-id"];
+  const additions = [{ id: "new-image-id" }];
+  let validationCount = 0;
+  await assert.rejects(() => saveAttachmentAdditionWithRollback({
+    attachments: additions,
+    validate: () => {
+      validationCount += 1;
+      if (validationCount === 2) throw new Error("画像ブロックが変更されました");
+    },
+    save: async (items) => storedIds.push(...items.map((item) => item.id)),
+    apply: async () => assert.fail("保存後検証に失敗した場合は本文へ適用しない"),
+    rollback: async (items) => {
+      const rollbackIds = new Set(items.map((item) => item.id));
+      for (let index = storedIds.length - 1; index >= 0; index -= 1) {
+        if (rollbackIds.has(storedIds[index])) storedIds.splice(index, 1);
+      }
+    }
+  }), /画像ブロックが変更されました/);
+  assert.equal(validationCount, 2);
+  assert.deepEqual(storedIds, ["existing-id"]);
 });
 
 test("説明文は許可したMarkdownだけを安全なHTMLとして描画する", () => {

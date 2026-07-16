@@ -1011,11 +1011,12 @@ body.collections-open .collection-explorer {
 }
 
 .preview .image-block {
+  position: relative;
   display: grid;
   grid-template-areas:
     "media"
     "caption"
-    "actions";
+    "editor";
   gap: 12px;
   max-width: 100%;
   margin: 12px 0 18px;
@@ -1026,14 +1027,14 @@ body.collections-open .collection-explorer {
   grid-template-columns: minmax(0, 35fr) minmax(0, 65fr);
   grid-template-areas:
     "media caption"
-    "actions actions";
+    "editor editor";
 }
 
 .preview .image-block.image-count-1.has-caption.image-size-medium {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   grid-template-areas:
     "media caption"
-    "actions actions";
+    "editor editor";
 }
 
 .preview .image-block-media {
@@ -1110,11 +1111,52 @@ body.collections-open .collection-explorer {
   margin-bottom: 0;
 }
 
+.preview .image-block-menu-shell {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  z-index: 2;
+}
+
+.preview .image-block-menu-shell[hidden],
+.preview .image-block-actions[hidden] {
+  display: none;
+}
+
+.preview .image-block-menu-toggle {
+  width: 34px;
+  min-height: 32px;
+  padding: 0 8px;
+  opacity: 0;
+  pointer-events: none;
+  background: var(--paper);
+  color: var(--muted);
+  font-weight: 700;
+  transition: opacity 120ms ease;
+}
+
+.preview .image-block:hover .image-block-menu-toggle,
+.preview .image-block:focus-within .image-block-menu-toggle,
+.preview .image-block.menu-visible .image-block-menu-toggle,
+.preview .image-block.menu-open .image-block-menu-toggle {
+  opacity: 1;
+  pointer-events: auto;
+}
+
 .preview .image-block-actions {
-  grid-area: actions;
+  position: absolute;
+  top: 38px;
+  left: 0;
   display: flex;
-  flex-wrap: wrap;
+  width: max-content;
+  max-width: min(260px, calc(100vw - 48px));
+  flex-direction: column;
   gap: 6px;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--paper);
+  box-shadow: 0 8px 24px var(--dialog-backdrop);
 }
 
 .preview .image-block-actions button,
@@ -1127,13 +1169,11 @@ body.collections-open .collection-explorer {
 }
 
 .preview .image-block-remove {
-  min-height: 28px;
-  border: 0;
-  background: transparent;
+  min-height: 32px;
 }
 
 .preview .image-caption-editor {
-  grid-area: actions;
+  grid-area: editor;
   display: grid;
   gap: 8px;
   min-width: 0;
@@ -1167,7 +1207,7 @@ body.collections-open .collection-explorer {
     grid-template-areas:
       "media"
       "caption"
-      "actions";
+      "editor";
   }
 
   .preview .image-block.image-count-2 .image-block-media {

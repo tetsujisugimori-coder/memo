@@ -51,6 +51,7 @@ const {
   normalizeImageBlockSize,
   renderImageCaptionMarkdown,
   replaceImageBlock,
+  saveAttachmentAdditionWithRollback,
   splitImageBlocks
 } = window.MemoNexusAttachmentUtils;
 
@@ -431,6 +432,19 @@ function deleteAttachmentRecord(id) {
     transaction.oncomplete = resolve;
     transaction.onerror = () => reject(transaction.error || request.error);
     transaction.onabort = () => reject(transaction.error || request.error);
+  });
+}
+
+function deleteAttachmentRecords(ids) {
+  const targets = new Set(Array.isArray(ids) ? ids : []);
+  if (!targets.size) return Promise.resolve();
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(ATTACHMENT_STORE_NAME, "readwrite");
+    const store = transaction.objectStore(ATTACHMENT_STORE_NAME);
+    targets.forEach((id) => store.delete(id));
+    transaction.oncomplete = resolve;
+    transaction.onerror = () => reject(transaction.error);
+    transaction.onabort = () => reject(transaction.error);
   });
 }
 
@@ -1361,7 +1375,7 @@ function currentNote() {
 }
 
 // 入力のたびに即保存すると重いので、少し待ってから保存する予約をします。
-function scheduleSave() {
+function scheduleSave({ render = true } = {}) {
   saveCurrentDraftMirror();
   clearTimeout(saveTimer);
   setSaveStatus("editing");
@@ -1369,7 +1383,7 @@ function scheduleSave() {
     saveTimer = null;
     saveCurrentNote().catch((error) => console.error("Scheduled save failed", error));
   }, 280);
-  renderPreview();
+  if (render) renderPreview();
   renderRelated();
   updateUndoButton();
 }
@@ -1699,19 +1713,65 @@ function currentImageBlock(element) {
   return segment && segment.type === "image" ? segment : null;
 }
 
-function commitImageBlockChange(block, images, caption) {
-  if (!block) return;
-  captureUndoSnapshot({ inputType: "insertText" });
+function commitImageBlockChange(block, images, caption, { throwOnError = false } = {}) {
+  if (!block) return false;
   try {
-    editor.value = replaceImageBlock(editor.value, block, images, caption);
-    scheduleSave();
+    const nextBody = replaceImageBlock(editor.value, block, images, caption);
+    captureUndoSnapshot({ inputType: "insertText" });
+    editor.value = nextBody;
+    renderPreview();
+    scheduleSave({ render: false });
+    return true;
   } catch (error) {
+    if (throwOnError) throw error;
     alert(error.message || String(error));
     renderPreview();
+    return false;
   }
 }
 
+function setImageBlockMenuOpen(figure, open) {
+  const toggle = figure && figure.querySelector(".image-block-menu-toggle");
+  const menu = figure && figure.querySelector(".image-block-actions");
+  if (!toggle || !menu) return;
+  toggle.setAttribute("aria-expanded", String(Boolean(open)));
+  menu.hidden = !open;
+  figure.classList.toggle("menu-open", Boolean(open));
+}
+
+function setImageCaptionEditing(figure, editorPanel, editing) {
+  const menuShell = figure && figure.querySelector(".image-block-menu-shell");
+  if (!figure || !menuShell) return;
+  figure.classList.toggle("editing", Boolean(editing));
+  menuShell.hidden = Boolean(editing);
+  if (!editing && editorPanel) editorPanel.remove();
+}
+
 function bindImageBlockControls() {
+  preview.querySelectorAll(".image-block").forEach((figure) => {
+    figure.addEventListener("click", () => figure.classList.add("menu-visible"));
+    figure.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") {
+        setImageBlockMenuOpen(figure, false);
+        figure.classList.remove("menu-visible");
+        return;
+      }
+      if (event.target === figure && (event.key === "Enter" || event.key === " ")) {
+        event.preventDefault();
+        figure.classList.add("menu-visible");
+        setImageBlockMenuOpen(figure, true);
+      }
+    });
+  });
+
+  preview.querySelectorAll(".image-block-menu-toggle").forEach((button) => {
+    button.addEventListener("click", (event) => {
+      event.stopPropagation();
+      const figure = button.closest(".image-block");
+      setImageBlockMenuOpen(figure, button.getAttribute("aria-expanded") !== "true");
+    });
+  });
+
   preview.querySelectorAll(".image-block-open").forEach((button) => {
     button.addEventListener("click", () => {
       const attachment = currentAttachments.find((item) => item.id === button.dataset.imageId && item.kind === "image");
@@ -1723,7 +1783,12 @@ function bindImageBlockControls() {
     button.addEventListener("click", () => {
       const block = currentImageBlock(button);
       if (!block || block.images.length >= 2 || !imageBlockInput) return;
-      pendingImageBlockTarget = { raw: block.raw, imageIds: block.images.map((image) => image.id) };
+      pendingImageBlockTarget = {
+        memoId: currentId,
+        start: block.start,
+        raw: block.raw,
+        imageIds: block.images.map((image) => image.id)
+      };
       imageBlockInput.click();
     });
   });
@@ -1770,28 +1835,57 @@ function openImageCaptionEditor(button) {
   const save = document.createElement("button");
   save.type = "button";
   save.textContent = "説明文を保存";
-  cancel.addEventListener("click", () => editorPanel.remove());
+  cancel.addEventListener("click", () => {
+    setImageCaptionEditing(figure, editorPanel, false);
+    const toggle = figure.querySelector(".image-block-menu-toggle");
+    if (toggle) toggle.focus();
+  });
   save.addEventListener("click", () => commitImageBlockChange(block, block.images, textarea.value));
   actions.append(cancel, save);
   editorPanel.append(textarea, actions);
   figure.appendChild(editorPanel);
+  setImageBlockMenuOpen(figure, false);
+  setImageCaptionEditing(figure, editorPanel, true);
   textarea.focus();
 }
 
 function findPendingImageBlock(target) {
-  if (!target) return null;
+  if (!target || target.memoId !== currentId) return null;
   return splitImageBlocks(editor.value).find((segment) => segment.type === "image"
+    && segment.start === target.start
     && segment.raw === target.raw
     && segment.images.map((image) => image.id).join("\n") === target.imageIds.join("\n"));
 }
 
-function insertStoredImageIntoBlock(attachments, target) {
+function validatePendingImageBlock(target) {
   const block = findPendingImageBlock(target);
-  const image = attachments.find((attachment) => attachment.kind === "image");
-  if (!block || !image || block.images.length >= 2) {
-    throw new Error("画像ブロックが変更されたため2枚目を追加できませんでした。添付ファイル欄には保存されています");
+  if (!block || block.images.length >= 2) {
+    throw new Error("画像ブロックが変更されたため2枚目を追加できませんでした");
   }
-  commitImageBlockChange(block, [...block.images, { id: image.id, alt: image.fileName }], block.caption);
+  return block;
+}
+
+function insertStoredImageIntoBlock(attachments, target) {
+  const block = validatePendingImageBlock(target);
+  const image = attachments.find((attachment) => attachment.kind === "image");
+  if (!image) throw new Error("追加する画像を確認できませんでした");
+  commitImageBlockChange(
+    block,
+    [...block.images, { id: image.id, alt: image.fileName }],
+    block.caption,
+    { throwOnError: true }
+  );
+}
+
+async function rollbackImageBlockAttachments(attachments) {
+  const ids = attachments.map((attachment) => attachment.id);
+  await deleteAttachmentRecords(ids);
+  ids.forEach(revokeAttachmentObjectUrl);
+  currentAttachments = currentAttachments.filter((attachment) => !ids.includes(attachment.id));
+  if (currentNote()) {
+    renderAttachmentList();
+    renderPreview();
+  }
 }
 
 function cleanupAttachmentObjectUrls() {
@@ -1967,6 +2061,7 @@ async function handleAttachmentFiles(fileList, options = {}) {
 
 async function addAttachmentFilesForNote(note, files, options) {
   try {
+    if (options.imageBlockTarget) validatePendingImageBlock(options.imageBlockTarget);
     const prepared = [];
     for (let index = 0; index < files.length; index += 1) {
       const file = files[index];
@@ -1989,12 +2084,29 @@ async function addAttachmentFilesForNote(note, files, options) {
       ].join("\n"));
     }
 
-    await putAttachments(prepared);
+    if (options.imageBlockTarget) {
+      await saveAttachmentAdditionWithRollback({
+        attachments: prepared,
+        validate: () => validatePendingImageBlock(options.imageBlockTarget),
+        save: putAttachments,
+        apply: (items) => {
+          currentAttachments = [
+            ...currentAttachments.filter((attachment) => !items.some((item) => item.id === attachment.id)),
+            ...items
+          ];
+          renderAttachmentList();
+          insertStoredImageIntoBlock(items, options.imageBlockTarget);
+        },
+        rollback: rollbackImageBlockAttachments
+      });
+    } else {
+      await putAttachments(prepared);
+      if (currentId === note.id) {
+        await renderAttachmentsForCurrentNote();
+      }
+    }
     if (currentId === note.id) {
-      await renderAttachmentsForCurrentNote();
-      if (options.imageBlockTarget) {
-        insertStoredImageIntoBlock(prepared, options.imageBlockTarget);
-      } else if (options.insertIntoEditor) {
+      if (options.insertIntoEditor && !options.imageBlockTarget) {
         await insertStoredImageReferences(prepared, options);
       }
       setAttachmentStatus(`${prepared.length}件の添付ファイルを追加しました。`);
@@ -2002,7 +2114,8 @@ async function addAttachmentFilesForNote(note, files, options) {
     return prepared;
   } catch (error) {
     console.error("Attachment add failed", error);
-    if (currentId === note.id) setAttachmentStatus(error.message || String(error), true);
+    const rollbackMessage = error.rollbackError ? "（追加画像のロールバックにも失敗しました）" : "";
+    if (currentId === note.id) setAttachmentStatus(`${error.message || String(error)}${rollbackMessage}`, true);
     return [];
   }
 }
@@ -2205,25 +2318,28 @@ function renderPreviewHtml(body) {
 
 function renderImageBlock(block, blockIndex) {
   const count = block.images.length;
-  const images = block.images.map((image, imageIndex) => `
+  const images = block.images.map((image) => `
     <div class="image-block-item">
       <button class="image-block-open" type="button" data-image-id="${escapeAttr(image.id)}" aria-label="${escapeAttr(image.alt || "添付画像")}を拡大表示">
         <span class="inline-attachment-image" data-attachment-id="${escapeAttr(image.id)}" data-alt="${escapeAttr(image.alt)}" role="img" aria-label="${escapeAttr(image.alt || "添付画像")}">画像を読み込み中...</span>
       </button>
-      <button class="image-block-remove" type="button" data-image-index="${imageIndex}">画像${imageIndex + 1}を外す</button>
     </div>
   `).join("");
   const caption = block.caption
     ? `<figcaption class="image-block-caption">${renderImageCaptionMarkdown(block.caption)}</figcaption>`
     : "";
   return `
-    <figure class="image-block image-count-${count} image-size-${imageBlockSize}${block.caption ? " has-caption" : ""}" data-image-block-index="${blockIndex}">
+    <figure class="image-block image-count-${count} image-size-${imageBlockSize}${block.caption ? " has-caption" : ""}" data-image-block-index="${blockIndex}" tabindex="0">
       <div class="image-block-media">${images}</div>
       ${caption}
-      <div class="image-block-actions" aria-label="画像ブロック操作">
-        ${count < 2 ? '<button class="image-block-add" type="button">画像を追加</button>' : ""}
-        ${count === 2 ? '<button class="image-block-swap" type="button">左右を入れ替える</button>' : ""}
-        <button class="image-block-edit-caption" type="button">${block.caption ? "説明文を編集" : "説明文を追加"}</button>
+      <div class="image-block-menu-shell">
+        <button class="image-block-menu-toggle" type="button" aria-label="画像ブロック操作メニュー" aria-expanded="false" aria-controls="image-block-menu-${blockIndex}">…</button>
+        <div id="image-block-menu-${blockIndex}" class="image-block-actions" aria-label="画像ブロック操作" hidden>
+          ${count < 2 ? '<button class="image-block-add" type="button">画像を追加</button>' : ""}
+          ${count === 2 ? '<button class="image-block-swap" type="button">左右を入れ替える</button>' : ""}
+          <button class="image-block-edit-caption" type="button">${block.caption ? "説明文を編集" : "説明文を追加"}</button>
+          ${block.images.map((_, imageIndex) => `<button class="image-block-remove" type="button" data-image-index="${imageIndex}">画像${imageIndex + 1}を外す</button>`).join("")}
+        </div>
       </div>
     </figure>
   `;
@@ -4261,6 +4377,13 @@ if (imageBlockInput) imageBlockInput.addEventListener("change", () => {
   const target = pendingImageBlockTarget;
   pendingImageBlockTarget = null;
   if (!file || !target) {
+    imageBlockInput.value = "";
+    return;
+  }
+  try {
+    validatePendingImageBlock(target);
+  } catch (error) {
+    setAttachmentStatus(error.message || String(error), true);
     imageBlockInput.value = "";
     return;
   }

@@ -187,16 +187,8 @@
 
       const firstImage = parseImageReferenceLine(lines[index]);
       if (firstImage) {
-        const images = [firstImage];
-        let endLine = index;
-        while (images.length < 2 && endLine + 1 < lines.length) {
-          const nextImage = parseImageReferenceLine(lines[endLine + 1]);
-          if (!nextImage) break;
-          images.push(nextImage);
-          endLine += 1;
-        }
-        pushImage(index, endLine, images, "", false);
-        index = endLine + 1;
+        pushImage(index, index, [firstImage], "", false);
+        index += 1;
         continue;
       }
       index += 1;
@@ -204,6 +196,24 @@
 
     pushText(source.length);
     return segments;
+  }
+
+  async function saveAttachmentAdditionWithRollback({ attachments, validate, save, apply, rollback }) {
+    const additions = Array.isArray(attachments) ? attachments : [];
+    validate();
+    await save(additions);
+    try {
+      validate();
+      await apply(additions);
+      return additions;
+    } catch (error) {
+      try {
+        await rollback(additions);
+      } catch (rollbackError) {
+        error.rollbackError = rollbackError;
+      }
+      throw error;
+    }
   }
 
   function replaceImageBlock(markdown, block, images, caption = "") {
@@ -443,6 +453,7 @@
     normalizeImageBlockSize,
     renderImageCaptionMarkdown,
     replaceImageBlock,
+    saveAttachmentAdditionWithRollback,
     serializeImageBlock,
     splitImageBlocks,
     uniqueAttachmentFileName
