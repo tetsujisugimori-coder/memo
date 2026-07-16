@@ -6,6 +6,10 @@
     : globalScope.MemoNexusExportUtils;
   const { sanitizeWindowsName } = exportUtils;
   const MAX_ATTACHMENT_TOTAL_BYTES = 20 * 1024 * 1024;
+  const IMAGE_BLOCK_START = "<!-- memo-nexus:image-block -->";
+  const IMAGE_BLOCK_CAPTION = "<!-- memo-nexus:image-caption -->";
+  const IMAGE_BLOCK_END = "<!-- /memo-nexus:image-block -->";
+  const IMAGE_BLOCK_SIZES = new Set(["small", "medium", "large"]);
   const IMAGE_TYPES = new Map([
     ["image/jpeg", new Set(["jpg", "jpeg"])],
     ["image/png", new Set(["png"])],
@@ -97,16 +101,226 @@
     return `![${label}](attachment://${id})`;
   }
 
+  function normalizeImageBlockSize(value) {
+    return IMAGE_BLOCK_SIZES.has(value) ? value : "medium";
+  }
+
+  function parseImageReferenceLine(line) {
+    const source = String(line || "");
+    const reference = findAttachmentReference(source, 0);
+    if (!reference || source.slice(0, reference.start).trim() || source.slice(reference.end).trim()) return null;
+    return { id: reference.id, alt: reference.alt };
+  }
+
+  function serializeImageBlock(images, caption = "") {
+    const normalizedImages = (Array.isArray(images) ? images : [])
+      .filter((image) => image && image.id)
+      .slice(0, 2)
+      .map((image) => ({ id: String(image.id), fileName: image.alt || image.fileName || "画像" }));
+    if (!normalizedImages.length) return "";
+    const lines = [IMAGE_BLOCK_START, ...normalizedImages.map(attachmentMarkdownReference)];
+    const normalizedCaption = String(caption || "").replace(/\r\n?/g, "\n").trim();
+    if (normalizedCaption) lines.push("", IMAGE_BLOCK_CAPTION, normalizedCaption);
+    lines.push(IMAGE_BLOCK_END);
+    return lines.join("\n");
+  }
+
+  function splitImageBlocks(markdown) {
+    const source = String(markdown || "").replace(/\r\n?/g, "\n");
+    const lines = source.split("\n");
+    const offsets = [];
+    let offset = 0;
+    lines.forEach((line, index) => {
+      offsets.push(offset);
+      offset += line.length + (index < lines.length - 1 ? 1 : 0);
+    });
+    const segments = [];
+    let textStart = 0;
+    let index = 0;
+    let inCodeFence = false;
+
+    const pushText = (end) => {
+      if (end > textStart) segments.push({ type: "text", text: source.slice(textStart, end), start: textStart, end });
+    };
+    const pushImage = (startLine, endLine, images, caption, explicit) => {
+      const start = offsets[startLine];
+      const end = endLine < lines.length - 1 ? offsets[endLine] + lines[endLine].length + 1 : source.length;
+      pushText(start);
+      segments.push({
+        type: "image",
+        start,
+        end,
+        raw: source.slice(start, end).replace(/\n$/, ""),
+        images,
+        caption,
+        explicit
+      });
+      textStart = end;
+    };
+
+    while (index < lines.length) {
+      if (/^```/.test(lines[index].trim())) {
+        inCodeFence = !inCodeFence;
+        index += 1;
+        continue;
+      }
+      if (inCodeFence) {
+        index += 1;
+        continue;
+      }
+      if (lines[index].trim() === IMAGE_BLOCK_START) {
+        let endLine = index + 1;
+        while (endLine < lines.length && lines[endLine].trim() !== IMAGE_BLOCK_END) endLine += 1;
+        if (endLine < lines.length) {
+          const content = lines.slice(index + 1, endLine);
+          const captionIndex = content.findIndex((line) => line.trim() === IMAGE_BLOCK_CAPTION);
+          const imageLines = captionIndex === -1 ? content : content.slice(0, captionIndex);
+          const images = imageLines.map(parseImageReferenceLine).filter(Boolean);
+          if (images.length >= 1 && images.length <= 2 && images.length === imageLines.filter((line) => line.trim()).length) {
+            const caption = captionIndex === -1 ? "" : content.slice(captionIndex + 1).join("\n").trim();
+            pushImage(index, endLine, images, caption, true);
+            index = endLine + 1;
+            continue;
+          }
+        }
+      }
+
+      const firstImage = parseImageReferenceLine(lines[index]);
+      if (firstImage) {
+        pushImage(index, index, [firstImage], "", false);
+        index += 1;
+        continue;
+      }
+      index += 1;
+    }
+
+    pushText(source.length);
+    return segments;
+  }
+
+  async function saveAttachmentAdditionWithRollback({ attachments, validate, save, apply, rollback }) {
+    const additions = Array.isArray(attachments) ? attachments : [];
+    validate();
+    await save(additions);
+    try {
+      validate();
+      await apply(additions);
+      return additions;
+    } catch (error) {
+      try {
+        await rollback(additions);
+      } catch (rollbackError) {
+        error.rollbackError = rollbackError;
+      }
+      throw error;
+    }
+  }
+
+  function replaceImageBlock(markdown, block, images, caption = "") {
+    const source = String(markdown || "").replace(/\r\n?/g, "\n");
+    if (!block || source.slice(block.start, block.end).replace(/\n$/, "") !== block.raw) {
+      throw new Error("画像ブロックが更新されたため操作できません。もう一度お試しください");
+    }
+    const replacement = serializeImageBlock(images, caption);
+    const prefix = replacement && block.start > 0 && source[block.start - 1] !== "\n" ? "\n" : "";
+    const suffix = replacement && block.end < source.length && source[block.end] !== "\n" ? "\n" : "";
+    return `${source.slice(0, block.start)}${prefix}${replacement}${suffix}${source.slice(block.end)}`;
+  }
+
+  function escapeCaptionHtml(value) {
+    return String(value).replace(/[&<>"']/g, (character) => ({
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#39;"
+    })[character]);
+  }
+
+  function safeCaptionHref(value) {
+    const href = String(value || "").trim();
+    return /^(https?:\/\/|mailto:|#)/i.test(href) ? href : "";
+  }
+
+  function renderImageCaptionInline(text) {
+    const source = String(text || "");
+    const patterns = [
+      { type: "code", pattern: /`([^`\n]+)`/ },
+      { type: "bold", pattern: /\*\*([^*\n]+)\*\*/ },
+      { type: "italic", pattern: /\*([^*\n]+)\*/ },
+      { type: "link", pattern: /(^|[^!])\[([^\]\n]+)\]\(([^)\s]+)\)/ }
+    ];
+    let html = "";
+    let index = 0;
+    while (index < source.length) {
+      const matches = patterns.map(({ type, pattern }) => {
+        const match = pattern.exec(source.slice(index));
+        return match ? { type, match, start: index + match.index, end: index + match.index + match[0].length } : null;
+      }).filter(Boolean).sort((a, b) => a.start - b.start || a.end - b.end);
+      const token = matches[0];
+      if (!token) {
+        html += escapeCaptionHtml(source.slice(index));
+        break;
+      }
+      html += escapeCaptionHtml(source.slice(index, token.start));
+      if (token.type === "code") html += `<code class="inline-code">${escapeCaptionHtml(token.match[1])}</code>`;
+      if (token.type === "bold") html += `<strong>${renderImageCaptionInline(token.match[1])}</strong>`;
+      if (token.type === "italic") html += `<em>${renderImageCaptionInline(token.match[1])}</em>`;
+      if (token.type === "link") {
+        const prefix = token.match[1];
+        const label = token.match[2];
+        const href = safeCaptionHref(token.match[3]);
+        html += escapeCaptionHtml(prefix);
+        html += href
+          ? `<a href="${escapeCaptionHtml(href)}" target="_blank" rel="noopener noreferrer">${escapeCaptionHtml(label)}</a>`
+          : escapeCaptionHtml(`[${label}](${token.match[3]})`);
+      }
+      index = token.end;
+    }
+    return html;
+  }
+
+  function renderImageCaptionMarkdown(markdown) {
+    const lines = String(markdown || "").replace(/\r\n?/g, "\n").split("\n");
+    const html = [];
+    let index = 0;
+    while (index < lines.length) {
+      if (!lines[index].trim()) {
+        index += 1;
+        continue;
+      }
+      if (/^\s*-\s+/.test(lines[index])) {
+        const items = [];
+        while (index < lines.length && /^\s*-\s+/.test(lines[index])) {
+          items.push(`<li>${renderImageCaptionInline(lines[index].replace(/^\s*-\s+/, ""))}</li>`);
+          index += 1;
+        }
+        html.push(`<ul>${items.join("")}</ul>`);
+        continue;
+      }
+      const paragraph = [];
+      while (index < lines.length && lines[index].trim() && !/^\s*-\s+/.test(lines[index])) {
+        paragraph.push(renderImageCaptionInline(lines[index]));
+        index += 1;
+      }
+      html.push(`<p>${paragraph.join("<br>")}</p>`);
+    }
+    return html.join("");
+  }
+
   function insertAttachmentReferences(markdown, selectionStart, selectionEnd, attachments) {
     const source = String(markdown || "");
     const requestedStart = Math.min(source.length, Math.max(0, Number(selectionStart) || 0));
     const requestedEnd = Math.min(source.length, Math.max(requestedStart, Number(selectionEnd) || requestedStart));
     const start = safeAttachmentReferenceBoundary(source, requestedStart);
     const end = safeAttachmentReferenceBoundary(source, Math.max(start, requestedEnd));
-    const references = (Array.isArray(attachments) ? attachments : [])
-      .filter((attachment) => attachment && attachment.kind === "image")
-      .map(attachmentMarkdownReference)
-      .join("\n");
+    const images = (Array.isArray(attachments) ? attachments : [])
+      .filter((attachment) => attachment && attachment.kind === "image");
+    const imageBlocks = [];
+    for (let index = 0; index < images.length; index += 2) {
+      imageBlocks.push(serializeImageBlock(images.slice(index, index + 2)));
+    }
+    const references = imageBlocks.join("\n\n");
     const prefix = references && start > 0 && source[start - 1] !== "\n" ? "\n" : "";
     const suffix = references && end < source.length && source[end] !== "\n" ? "\n" : "";
     const insertedText = `${prefix}${references}${suffix}`;
@@ -236,6 +450,12 @@
     findAttachmentReference,
     formatAttachmentBytes,
     insertAttachmentReferences,
+    normalizeImageBlockSize,
+    renderImageCaptionMarkdown,
+    replaceImageBlock,
+    saveAttachmentAdditionWithRollback,
+    serializeImageBlock,
+    splitImageBlocks,
     uniqueAttachmentFileName
   };
 
