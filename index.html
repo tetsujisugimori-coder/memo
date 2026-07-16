@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Memo Nexus</title>
-  <link rel="stylesheet" href="style.css?v=0.4.0-9">
+  <link rel="stylesheet" href="style.css?v=0.4.0-10">
 </head>
 <body>
   <aside class="sidebar">
@@ -88,11 +88,21 @@
     </section>
   </main>
 
-  <aside class="related-panel">
-    <h2>関連メモ</h2>
-    <div class="app-version app-version-desktop"></div>
-    <div id="relatedList" class="related-list"></div>
-    <div id="discoveryPanel" class="discovery-panel"></div>
+  <button id="relatedBackdrop" class="related-backdrop" type="button" tabindex="-1" aria-label="関連メモパネルを閉じる" aria-hidden="true"></button>
+  <button id="relatedToggleBtn" class="related-toggle" type="button" aria-controls="auxiliaryPanel" aria-expanded="false" aria-label="関連メモパネルを開く">
+    <span>関連</span>
+    <span id="relatedCount" class="related-toggle-count">0</span>
+  </button>
+  <aside id="auxiliaryPanel" class="auxiliary-panel related-panel" aria-labelledby="relatedPanelTitle" aria-hidden="true" inert>
+    <div class="auxiliary-panel-head">
+      <h2 id="relatedPanelTitle">関連メモ</h2>
+      <button id="closeRelatedPanelBtn" type="button" title="閉じる" aria-label="関連メモパネルを閉じる">×</button>
+    </div>
+    <div class="auxiliary-panel-scroll">
+      <div class="app-version app-version-desktop"></div>
+      <div id="relatedList" class="related-list"></div>
+      <div id="discoveryPanel" class="discovery-panel"></div>
+    </div>
   </aside>
 
   <dialog id="graphDialog">
@@ -224,6 +234,6 @@
   <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
   <script src="export-utils.js?v=0.4.0-8"></script>
   <script src="attachment-utils.js?v=0.4.0-8"></script>
-  <script src="app.js?v=0.4.0-8"></script>
+  <script src="app.js?v=0.4.0-9"></script>
 </body>
 </html>
