@@ -79,7 +79,7 @@ const cardPaneBtn = $("cardPaneBtn");
 const cardPaneButtonLabel = $("cardPaneButtonLabel");
 const closeCardPaneBtn = $("closeCardPaneBtn");
 const layoutBackdrop = $("layoutBackdrop");
-const memoListScopeLabel = $("memoListScopeLabel");
+const memoListHeading = $("memoListHeading");
 const addCollectionBtn = $("addCollectionBtn");
 const collectionAddMenuBtn = $("collectionAddMenuBtn");
 const collectionAddMenu = $("collectionAddMenu");
@@ -1451,7 +1451,7 @@ function renderAll() {
 function renderList() {
   const query = searchInput.value.trim().toLowerCase();
   const listView = buildMemoListView(notes, selectedCollectionId);
-  renderMemoListScopeLabel(listView.label);
+  renderMemoListHeading(listView.heading);
   const filtered = listView.notes.filter((note) => {
     const haystack = `${note.title}\n${note.body}`.toLowerCase();
     return !query || haystack.includes(query);
@@ -1474,10 +1474,10 @@ function renderList() {
   });
 }
 
-function renderMemoListScopeLabel(label) {
-  if (!memoListScopeLabel) return;
-  memoListScopeLabel.textContent = label;
-  memoListScopeLabel.title = `メモ一覧の表示範囲: ${label}`;
+function renderMemoListHeading(heading) {
+  if (!memoListHeading) return;
+  memoListHeading.textContent = heading;
+  memoSidebar.setAttribute("aria-label", heading);
 }
 
 // メモ一覧カードに出す短い本文プレビューを作ります。

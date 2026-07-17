@@ -18,30 +18,30 @@ function ids(view) {
 
 test("通常のメモ一覧はすべての未削除メモと一致する", () => {
   const view = buildMemoListView(notes, null);
-  assert.equal(view.label, "すべてのメモ");
+  assert.equal(view.heading, "メモ一覧");
   assert.deepEqual(ids(view), ["history", "child", "unclassified"]);
 });
 
 test("通常コレクション選択は従来どおり左一覧を絞り込まない", () => {
   const view = buildMemoListView(notes, "history");
-  assert.equal(view.label, "すべてのメモ");
+  assert.equal(view.heading, "メモ一覧");
   assert.deepEqual(ids(view), ["history", "child", "unclassified"]);
 });
 
 test("未分類選択も従来どおり左一覧を絞り込まない", () => {
   const view = buildMemoListView(notes, "system-unclassified");
-  assert.equal(view.label, "すべてのメモ");
+  assert.equal(view.heading, "メモ一覧");
   assert.deepEqual(ids(view), ["history", "child", "unclassified"]);
 });
 
-test("ゴミ箱は削除済みメモだけを表示してラベルと一致する", () => {
+test("ゴミ箱は削除済みメモだけを表示して見出しと一致する", () => {
   const view = buildMemoListView(notes, "trash");
-  assert.equal(view.label, "ゴミ箱");
+  assert.equal(view.heading, "ゴミ箱");
   assert.deepEqual(ids(view), ["deleted-history", "deleted-unclassified"]);
 });
 
-test("長いコレクション名を選択しても上部用の省略ラベルを生成しない", () => {
+test("長いコレクション名を選択しても通常の見出しを維持する", () => {
   const view = buildMemoListView(notes, "非常に長いコレクション名が続いても上部へは表示しない");
-  assert.equal(view.label, "すべてのメモ");
+  assert.equal(view.heading, "メモ一覧");
   assert.deepEqual(ids(view), ["history", "child", "unclassified"]);
 });

@@ -16,13 +16,26 @@ test("共通ペインとアクセシブルな開閉操作を持つ", () => {
   assert.equal((html.match(/id="previewCard"/g) || []).length, 1);
 });
 
-test("メモ一覧の表示範囲はサイドバー内に置き上部バーへ残さない", () => {
+test("メモ一覧は単一見出しだけを持ち不要な表示範囲ラベルを残さない", () => {
   const sidebar = html.match(/<aside id="memoSidebar"[\s\S]*?<\/aside>/)?.[0] || "";
   const appHeader = html.match(/<header class="app-header">[\s\S]*?<\/header>/)?.[0] || "";
-  assert.match(sidebar, /id="memoListScopeLabel"[^>]*>すべてのメモ<\/span>/);
-  assert.doesNotMatch(appHeader, /memoListScopeLabel|currentCollectionLabel|current-collection/);
-  assert.doesNotMatch(html, /id="currentCollectionLabel"/);
-  assert.match(css, /\.memo-list-scope\s*\{[^}]*text-overflow:\s*ellipsis;[^}]*white-space:\s*nowrap;/s);
+  assert.match(sidebar, /<strong id="memoListHeading">メモ一覧<\/strong>/);
+  assert.doesNotMatch(html, /すべてのメモ|memoListScopeLabel|currentCollectionLabel/);
+  assert.doesNotMatch(css, /\.memo-list-scope|\.current-collection/);
+  assert.doesNotMatch(appHeader, /memoListHeading/);
+  assert.match(app, /memoListHeading\.textContent = heading;\s*memoSidebar\.setAttribute\("aria-label", heading\);/);
+});
+
+test("主要操作はペイン操作の後ろへ左寄せで既存順序のまま並ぶ", () => {
+  const appHeader = html.match(/<header class="app-header">[\s\S]*?<\/header>/)?.[0] || "";
+  const orderedIds = ["memoPaneBtn", "cardPaneBtn", "newBtn", "collectionsBtn", "todayBtn", "undoBtn", "backupBtn", "linkStatsBtn", "graphBtn", "settingsBtn", "deleteBtn"];
+  orderedIds.reduce((previousIndex, id) => {
+    const index = appHeader.indexOf(`id="${id}"`);
+    assert.ok(index > previousIndex, `${id}の順序が維持されている`);
+    return index;
+  }, -1);
+  assert.match(css, /\.app-header \.toolbar\s*\{[^}]*flex:\s*1;[^}]*justify-content:\s*flex-start;/s);
+  assert.match(css, /\.toolbar\s*\{[^}]*overflow-x:\s*auto;/s);
 });
 
 test("コンテナ幅から3モードを判定しモード変更時に既定状態へ戻す", () => {

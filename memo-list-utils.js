@@ -4,7 +4,7 @@
   function buildMemoListView(notes, selectedCollectionId) {
     const trashSelected = selectedCollectionId === "trash";
     return {
-      label: trashSelected ? "ゴミ箱" : "すべてのメモ",
+      heading: trashSelected ? "ゴミ箱" : "メモ一覧",
       notes: notes.filter((note) => trashSelected ? Boolean(note.deletedAt) : !note.deletedAt)
     };
   }
