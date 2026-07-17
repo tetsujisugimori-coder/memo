@@ -10,6 +10,7 @@
   <aside id="memoSidebar" class="sidebar" aria-label="メモ一覧" aria-hidden="false">
     <div class="memo-drawer-head">
       <strong>メモ一覧</strong>
+      <span id="memoListScopeLabel" class="memo-list-scope" title="メモ一覧の表示範囲">すべてのメモ</span>
       <button id="closeMemoPaneBtn" type="button" title="メモ一覧を閉じる" aria-label="メモ一覧を閉じる">×</button>
     </div>
     <div class="app-version app-version-mobile"></div>
@@ -47,7 +48,6 @@
       <div class="layout-primary-actions">
         <button id="memoPaneBtn" class="layout-pane-button" type="button" title="メモ一覧を開く" aria-label="メモ一覧を開く" aria-controls="memoSidebar" aria-expanded="false">☰ <span>メモ一覧</span></button>
         <button id="cardPaneBtn" class="layout-pane-button" type="button" title="カード表示を収納する" aria-label="カード表示を収納する" aria-controls="previewCard" aria-expanded="true">▤ <span id="cardPaneButtonLabel">カードを閉じる</span></button>
-        <span id="currentCollectionLabel" class="current-collection" title="現在のコレクション">すべてのメモ</span>
       </div>
       <div class="toolbar" aria-label="主要操作">
         <button id="newBtn" title="新規メモ">+</button>
@@ -259,6 +259,7 @@
   <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
   <script src="export-utils.js?v=0.4.0-8"></script>
   <script src="attachment-utils.js?v=0.4.0-10"></script>
-  <script src="app.js?v=0.4.0-13"></script>
+  <script src="memo-list-utils.js?v=0.4.0-1"></script>
+  <script src="app.js?v=0.4.0-14"></script>
 </body>
 </html>

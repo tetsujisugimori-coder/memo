@@ -16,12 +16,28 @@ test("共通ペインとアクセシブルな開閉操作を持つ", () => {
   assert.equal((html.match(/id="previewCard"/g) || []).length, 1);
 });
 
+test("メモ一覧の表示範囲はサイドバー内に置き上部バーへ残さない", () => {
+  const sidebar = html.match(/<aside id="memoSidebar"[\s\S]*?<\/aside>/)?.[0] || "";
+  const appHeader = html.match(/<header class="app-header">[\s\S]*?<\/header>/)?.[0] || "";
+  assert.match(sidebar, /id="memoListScopeLabel"[^>]*>すべてのメモ<\/span>/);
+  assert.doesNotMatch(appHeader, /memoListScopeLabel|currentCollectionLabel|current-collection/);
+  assert.doesNotMatch(html, /id="currentCollectionLabel"/);
+  assert.match(css, /\.memo-list-scope\s*\{[^}]*text-overflow:\s*ellipsis;[^}]*white-space:\s*nowrap;/s);
+});
+
 test("コンテナ幅から3モードを判定しモード変更時に既定状態へ戻す", () => {
   assert.match(css, /container:\s*app-width\s*\/\s*inline-size/);
   assert.match(css, /@container app-width \(max-width: 1039\.98px\)/);
   assert.match(css, /@container app-width \(max-width: 719\.98px\)/);
   assert.match(app, /if \(width < 720\) return "mobile";\s*if \(width < 1040\) return "compact";\s*return "wide";/);
   assert.match(app, /memoPaneOpen = false;\s*mobileCardOpen = false;\s*compactCardVisible = true;/);
+
+  const modeFunctionSource = app.match(/function layoutModeForWidth\(width\) \{[\s\S]*?\n\}/)?.[0] || "";
+  const layoutModeForWidth = Function(`${modeFunctionSource}; return layoutModeForWidth;`)();
+  assert.equal(layoutModeForWidth(719), "mobile");
+  assert.equal(layoutModeForWidth(720), "compact");
+  assert.equal(layoutModeForWidth(1039), "compact");
+  assert.equal(layoutModeForWidth(1040), "wide");
 });
 
 test("Compactカード収納とMobile左右ドロワーの排他制御を行う", () => {

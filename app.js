@@ -54,6 +54,7 @@ const {
   saveAttachmentAdditionWithRollback,
   splitImageBlocks
 } = window.MemoNexusAttachmentUtils;
+const { buildMemoListView } = window.MemoNexusMemoListUtils;
 
 // HTML要素を短く取得するための小さなヘルパー。
 const $ = (id) => document.getElementById(id);
@@ -78,7 +79,7 @@ const cardPaneBtn = $("cardPaneBtn");
 const cardPaneButtonLabel = $("cardPaneButtonLabel");
 const closeCardPaneBtn = $("closeCardPaneBtn");
 const layoutBackdrop = $("layoutBackdrop");
-const currentCollectionLabel = $("currentCollectionLabel");
+const memoListScopeLabel = $("memoListScopeLabel");
 const addCollectionBtn = $("addCollectionBtn");
 const collectionAddMenuBtn = $("collectionAddMenuBtn");
 const collectionAddMenu = $("collectionAddMenu");
@@ -1439,7 +1440,6 @@ function uniqueTitle(base) {
 function renderAll() {
   renderList();
   renderCollectionExplorer();
-  renderCurrentCollectionLabel();
   renderNoteMeta();
   renderRelated();
   renderDiscovery();
@@ -1450,11 +1450,9 @@ function renderAll() {
 // 左側のメモ一覧を描画します。検索欄に入力があればタイトル・本文から絞り込みます。
 function renderList() {
   const query = searchInput.value.trim().toLowerCase();
-  const selectedCollection = collections.find((collection) => collection.id === selectedCollectionId);
-  const availableNotes = selectedCollection
-    ? activeNotes().filter((note) => normalizedCollectionId(note) === selectedCollection.id)
-    : activeNotes();
-  const filtered = availableNotes.filter((note) => {
+  const listView = buildMemoListView(notes, selectedCollectionId);
+  renderMemoListScopeLabel(listView.label);
+  const filtered = listView.notes.filter((note) => {
     const haystack = `${note.title}\n${note.body}`.toLowerCase();
     return !query || haystack.includes(query);
   });
@@ -1476,12 +1474,10 @@ function renderList() {
   });
 }
 
-function renderCurrentCollectionLabel() {
-  if (!currentCollectionLabel) return;
-  const collection = collections.find((item) => item.id === selectedCollectionId);
-  const label = collection?.name || (selectedCollectionId === "trash" ? "ゴミ箱" : "すべてのメモ");
-  currentCollectionLabel.textContent = label;
-  currentCollectionLabel.title = `現在のコレクション: ${label}`;
+function renderMemoListScopeLabel(label) {
+  if (!memoListScopeLabel) return;
+  memoListScopeLabel.textContent = label;
+  memoListScopeLabel.title = `メモ一覧の表示範囲: ${label}`;
 }
 
 // メモ一覧カードに出す短い本文プレビューを作ります。
@@ -3441,7 +3437,6 @@ function toggleCollectionExplorer(force) {
 
 function renderCollectionExplorer() {
   if (!collectionTree) return;
-  renderCurrentCollectionLabel();
   const countMap = buildCollectionCountMap();
   const roots = collections.filter((collection) => collection.parentId === null && !collection.isSystem).sort(compareCollections);
   collectionTree.innerHTML = "";

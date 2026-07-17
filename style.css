@@ -135,6 +135,18 @@ button:hover {
   min-height: 40px;
 }
 
+.memo-list-scope {
+  min-width: 0;
+  margin-left: auto;
+  padding-left: 10px;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .toolbar {
   min-width: 0;
   display: flex;
@@ -688,17 +700,6 @@ body.collections-open .collection-explorer {
   display: none;
   min-height: 40px;
   padding: 7px 10px;
-  white-space: nowrap;
-}
-
-.current-collection {
-  min-width: 0;
-  max-width: 190px;
-  overflow: hidden;
-  color: var(--muted);
-  font-size: 13px;
-  font-weight: 700;
-  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
@@ -2033,10 +2034,6 @@ body.related-open .related-toggle {
     gap: 8px;
   }
 
-  .current-collection {
-    max-width: 150px;
-  }
-
   body.compact-card-hidden .workspace {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -2078,12 +2075,6 @@ body.related-open .related-toggle {
   .layout-pane-button {
     flex: 0 0 auto;
     min-height: 44px;
-  }
-
-  .current-collection {
-    flex: 1;
-    max-width: none;
-    text-align: right;
   }
 
   .app-header .toolbar {
