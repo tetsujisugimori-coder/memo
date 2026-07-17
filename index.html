@@ -4,20 +4,13 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Memo Nexus</title>
-  <link rel="stylesheet" href="style.css?v=0.4.0-13">
+  <link rel="stylesheet" href="style.css?v=0.4.0-14">
 </head>
 <body>
-  <aside class="sidebar">
-    <div class="toolbar">
-      <button id="newBtn" title="新規メモ">+</button>
-      <button id="collectionsBtn" title="コレクションを開く" aria-controls="collectionExplorer" aria-expanded="false">▱ コレクション</button>
-      <button id="todayBtn" title="今日メモ">Today</button>
-      <button id="undoBtn" class="undo-button" title="元に戻す" disabled>Undo</button>
-      <button id="backupBtn" title="Markdown ZIP出力">ZIP</button>
-      <button id="linkStatsBtn" title="語句統計">語句</button>
-      <button id="graphBtn" title="グラフを開く">Graph</button>
-      <button id="settingsBtn" title="設定">設定</button>
-      <button id="deleteBtn" class="danger-button" title="メモを削除">Del</button>
+  <aside id="memoSidebar" class="sidebar" aria-label="メモ一覧" aria-hidden="false">
+    <div class="memo-drawer-head">
+      <strong>メモ一覧</strong>
+      <button id="closeMemoPaneBtn" type="button" title="メモ一覧を閉じる" aria-label="メモ一覧を閉じる">×</button>
     </div>
     <div class="app-version app-version-mobile"></div>
     <div id="deleteUndoNotice" class="delete-undo-notice" hidden></div>
@@ -50,6 +43,24 @@
   </aside>
 
   <main class="workspace">
+    <header class="app-header">
+      <div class="layout-primary-actions">
+        <button id="memoPaneBtn" class="layout-pane-button" type="button" title="メモ一覧を開く" aria-label="メモ一覧を開く" aria-controls="memoSidebar" aria-expanded="false">☰ <span>メモ一覧</span></button>
+        <button id="cardPaneBtn" class="layout-pane-button" type="button" title="カード表示を収納する" aria-label="カード表示を収納する" aria-controls="previewCard" aria-expanded="true">▤ <span id="cardPaneButtonLabel">カードを閉じる</span></button>
+        <span id="currentCollectionLabel" class="current-collection" title="現在のコレクション">すべてのメモ</span>
+      </div>
+      <div class="toolbar" aria-label="主要操作">
+        <button id="newBtn" title="新規メモ">+</button>
+        <button id="collectionsBtn" title="コレクションを開く" aria-controls="collectionExplorer" aria-expanded="false">▱ コレクション</button>
+        <button id="todayBtn" title="今日メモ">Today</button>
+        <button id="undoBtn" class="undo-button" title="元に戻す" disabled>Undo</button>
+        <button id="backupBtn" title="Markdown ZIP出力">ZIP</button>
+        <button id="linkStatsBtn" title="語句統計">語句</button>
+        <button id="graphBtn" title="グラフを開く">Graph</button>
+        <button id="settingsBtn" title="設定">設定</button>
+        <button id="deleteBtn" class="danger-button" title="メモを削除">Del</button>
+      </div>
+    </header>
     <div id="storageWarning" class="storage-warning" role="status" hidden></div>
     <section class="editor-card">
       <div class="title-row">
@@ -64,9 +75,10 @@
       </div>
       <textarea id="editor" placeholder="すぐ書けます。[[足利尊氏]] のように書くとリンクになります。"></textarea>
     </section>
-    <section class="preview-card">
+    <section id="previewCard" class="preview-card" aria-hidden="false">
       <div class="preview-head">
         <span>カード表示</span>
+        <button id="closeCardPaneBtn" class="close-card-pane" type="button" title="カード表示を閉じる" aria-label="カード表示を閉じる">×</button>
       </div>
       <div id="preview" class="preview"></div>
       <div id="linkList" class="link-list"></div>
@@ -87,6 +99,8 @@
       </section>
     </section>
   </main>
+
+  <button id="layoutBackdrop" class="layout-backdrop" type="button" tabindex="-1" aria-label="開いているパネルを閉じる" hidden></button>
 
   <button id="relatedBackdrop" class="related-backdrop" type="button" tabindex="-1" aria-label="関連メモパネルを閉じる" aria-hidden="true"></button>
   <button id="relatedToggleBtn" class="related-toggle" type="button" aria-controls="auxiliaryPanel" aria-expanded="false" aria-label="関連メモパネルを開く">
@@ -245,6 +259,6 @@
   <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
   <script src="export-utils.js?v=0.4.0-8"></script>
   <script src="attachment-utils.js?v=0.4.0-10"></script>
-  <script src="app.js?v=0.4.0-12"></script>
+  <script src="app.js?v=0.4.0-13"></script>
 </body>
 </html>

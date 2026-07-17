@@ -71,6 +71,14 @@ const collectionsBtn = $("collectionsBtn");
 const collectionExplorer = $("collectionExplorer");
 const collectionBackdrop = $("collectionBackdrop");
 const closeCollectionsBtn = $("closeCollectionsBtn");
+const memoSidebar = $("memoSidebar");
+const memoPaneBtn = $("memoPaneBtn");
+const closeMemoPaneBtn = $("closeMemoPaneBtn");
+const cardPaneBtn = $("cardPaneBtn");
+const cardPaneButtonLabel = $("cardPaneButtonLabel");
+const closeCardPaneBtn = $("closeCardPaneBtn");
+const layoutBackdrop = $("layoutBackdrop");
+const currentCollectionLabel = $("currentCollectionLabel");
 const addCollectionBtn = $("addCollectionBtn");
 const collectionAddMenuBtn = $("collectionAddMenuBtn");
 const collectionAddMenu = $("collectionAddMenu");
@@ -109,7 +117,10 @@ const titleInput = $("titleInput");
 const noteExportBtn = $("noteExportBtn");
 const noteMeta = $("noteMeta");
 const editor = $("editor");
+const editorCard = document.querySelector(".editor-card");
+const appHeader = document.querySelector(".app-header");
 const preview = $("preview");
+const previewCard = $("previewCard");
 const saveStatus = $("saveStatus");
 const deleteUndoNotice = $("deleteUndoNotice");
 const appVersionDisplays = document.querySelectorAll(".app-version");
@@ -184,6 +195,10 @@ let attachmentRenderToken = 0;
 let attachmentObjectUrls = new Map();
 let pdfObjectUrls = new Map();
 let pdfObjectUrlTimers = new Map();
+let layoutMode = "wide";
+let memoPaneOpen = false;
+let mobileCardOpen = false;
+let compactCardVisible = true;
 const enqueueAttachmentAddition = createKeyedSerialQueue();
 const pendingAttachmentAdditions = new Map();
 
@@ -200,6 +215,7 @@ async function init() {
   restoreTheme();
   restoreImageBlockSize();
   restoreCollectionSortOrder();
+  initializeResponsiveLayout();
 
   const localStorageAvailable = checkLocalStorageAvailable();
   db = await openDb();
@@ -346,6 +362,117 @@ function saveCollectionSortOrder(value) {
     console.warn("Collection sort save failed", error);
   }
   renderCollectionExplorer();
+}
+
+function layoutModeForWidth(width) {
+  if (width < 720) return "mobile";
+  if (width < 1040) return "compact";
+  return "wide";
+}
+
+function initializeResponsiveLayout() {
+  syncLayoutMode(true);
+  if (typeof ResizeObserver === "function") {
+    const observer = new ResizeObserver((entries) => {
+      const width = entries[0]?.contentRect.width || document.body.clientWidth;
+      syncLayoutMode(false, width);
+    });
+    observer.observe(document.body);
+  }
+}
+
+function syncLayoutMode(force = false, width = document.body.clientWidth) {
+  const nextMode = layoutModeForWidth(width);
+  if (!force && nextMode === layoutMode) return;
+
+  layoutMode = nextMode;
+  memoPaneOpen = false;
+  mobileCardOpen = false;
+  compactCardVisible = true;
+  document.body.dataset.layoutMode = layoutMode;
+  document.body.classList.remove("memo-pane-open", "mobile-card-open", "compact-card-hidden");
+  if (document.body.classList.contains("collections-open")) toggleCollectionExplorer(false);
+  updateResponsiveLayoutUi();
+}
+
+function setMemoPaneOpen(open, { restoreFocus = true } = {}) {
+  if (layoutMode === "wide") open = false;
+  memoPaneOpen = Boolean(open);
+  if (memoPaneOpen) {
+    mobileCardOpen = false;
+    if (document.body.classList.contains("collections-open")) toggleCollectionExplorer(false);
+    setRelatedDrawerOpen(false, { restoreFocus: false });
+  }
+  updateResponsiveLayoutUi();
+  if (memoPaneOpen) focusLayoutPanel(memoSidebar);
+  else if (restoreFocus && layoutMode !== "wide") memoPaneBtn.focus();
+}
+
+function setCardPaneOpen(open, { restoreFocus = true } = {}) {
+  if (layoutMode === "wide") return;
+  if (layoutMode === "compact") {
+    compactCardVisible = Boolean(open);
+  } else {
+    mobileCardOpen = Boolean(open);
+    if (mobileCardOpen) {
+      memoPaneOpen = false;
+      if (document.body.classList.contains("collections-open")) toggleCollectionExplorer(false);
+      setRelatedDrawerOpen(false, { restoreFocus: false });
+    }
+  }
+  updateResponsiveLayoutUi();
+  if (layoutMode === "mobile" && mobileCardOpen) focusLayoutPanel(previewCard);
+  else if (restoreFocus) cardPaneBtn.focus();
+}
+
+function closeLayoutOverlays({ restoreFocus = true } = {}) {
+  if (memoPaneOpen) {
+    setMemoPaneOpen(false, { restoreFocus });
+    return true;
+  }
+  if (mobileCardOpen) {
+    setCardPaneOpen(false, { restoreFocus });
+    return true;
+  }
+  return false;
+}
+
+function updateResponsiveLayoutUi() {
+  const sidebarVisible = layoutMode === "wide" || memoPaneOpen;
+  const cardVisible = layoutMode === "wide"
+    || (layoutMode === "compact" && compactCardVisible)
+    || (layoutMode === "mobile" && mobileCardOpen);
+  const overlayOpen = memoPaneOpen || (layoutMode === "mobile" && mobileCardOpen);
+
+  document.body.classList.toggle("memo-pane-open", memoPaneOpen);
+  document.body.classList.toggle("mobile-card-open", layoutMode === "mobile" && mobileCardOpen);
+  document.body.classList.toggle("compact-card-hidden", layoutMode === "compact" && !compactCardVisible);
+  document.body.classList.toggle("layout-overlay-open", overlayOpen);
+
+  memoSidebar.setAttribute("aria-hidden", String(!sidebarVisible));
+  memoSidebar.inert = !sidebarVisible;
+  memoPaneBtn.setAttribute("aria-expanded", String(memoPaneOpen));
+  memoPaneBtn.title = memoPaneOpen ? "メモ一覧を閉じる" : "メモ一覧を開く";
+  memoPaneBtn.setAttribute("aria-label", memoPaneBtn.title);
+
+  previewCard.setAttribute("aria-hidden", String(!cardVisible));
+  previewCard.inert = !cardVisible || memoPaneOpen;
+  cardPaneBtn.setAttribute("aria-expanded", String(cardVisible));
+  const cardAction = layoutMode === "compact" && cardVisible ? "カード表示を収納する" : cardVisible ? "カード表示を閉じる" : "カード表示を開く";
+  cardPaneBtn.title = cardAction;
+  cardPaneBtn.setAttribute("aria-label", cardAction);
+  cardPaneButtonLabel.textContent = cardVisible ? "カードを閉じる" : "カードを表示";
+
+  layoutBackdrop.hidden = !overlayOpen;
+  editorCard.inert = overlayOpen;
+  appHeader.inert = overlayOpen;
+}
+
+function focusLayoutPanel(panel) {
+  requestAnimationFrame(() => {
+    const target = panel.querySelector("button:not([disabled]), input:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex=\"-1\"])");
+    if (target) target.focus();
+  });
 }
 
 // IndexedDBを開きます。初回起動時だけnotesストアと検索用indexを作ります。
@@ -1312,6 +1439,7 @@ function uniqueTitle(base) {
 function renderAll() {
   renderList();
   renderCollectionExplorer();
+  renderCurrentCollectionLabel();
   renderNoteMeta();
   renderRelated();
   renderDiscovery();
@@ -1322,7 +1450,11 @@ function renderAll() {
 // 左側のメモ一覧を描画します。検索欄に入力があればタイトル・本文から絞り込みます。
 function renderList() {
   const query = searchInput.value.trim().toLowerCase();
-  const filtered = activeNotes().filter((note) => {
+  const selectedCollection = collections.find((collection) => collection.id === selectedCollectionId);
+  const availableNotes = selectedCollection
+    ? activeNotes().filter((note) => normalizedCollectionId(note) === selectedCollection.id)
+    : activeNotes();
+  const filtered = availableNotes.filter((note) => {
     const haystack = `${note.title}\n${note.body}`.toLowerCase();
     return !query || haystack.includes(query);
   });
@@ -1336,9 +1468,20 @@ function renderList() {
       <div class="memo-title">${escapeHtml(note.title)}</div>
       <div class="memo-snippet">${escapeHtml(snippet(note.body))}</div>
     `;
-    item.addEventListener("click", () => openNote(note.id));
+    item.addEventListener("click", () => {
+      openNote(note.id);
+      setMemoPaneOpen(false, { restoreFocus: false });
+    });
     memoList.appendChild(item);
   });
+}
+
+function renderCurrentCollectionLabel() {
+  if (!currentCollectionLabel) return;
+  const collection = collections.find((item) => item.id === selectedCollectionId);
+  const label = collection?.name || (selectedCollectionId === "trash" ? "ゴミ箱" : "すべてのメモ");
+  currentCollectionLabel.textContent = label;
+  currentCollectionLabel.title = `現在のコレクション: ${label}`;
 }
 
 // メモ一覧カードに出す短い本文プレビューを作ります。
@@ -3204,7 +3347,7 @@ function renderSaveStatus() {
 }
 
 function isCompactSaveStatus() {
-  return window.matchMedia("(max-width: 980px)").matches;
+  return window.matchMedia("(max-width: 1039px)").matches;
 }
 
 function formatSavedDateTime(value) {
@@ -3283,6 +3426,7 @@ function formatMegabytes(bytes) {
 
 function toggleCollectionExplorer(force) {
   const open = typeof force === "boolean" ? force : !document.body.classList.contains("collections-open");
+  if (open) closeLayoutOverlays({ restoreFocus: false });
   document.body.classList.toggle("collections-open", open);
   collectionExplorer.setAttribute("aria-hidden", String(!open));
   collectionsBtn.setAttribute("aria-expanded", String(open));
@@ -3297,6 +3441,7 @@ function toggleCollectionExplorer(force) {
 
 function renderCollectionExplorer() {
   if (!collectionTree) return;
+  renderCurrentCollectionLabel();
   const countMap = buildCollectionCountMap();
   const roots = collections.filter((collection) => collection.parentId === null && !collection.isSystem).sort(compareCollections);
   collectionTree.innerHTML = "";
@@ -3369,6 +3514,7 @@ function renderCollectionNode(collection, depth, countMap) {
     if (event.target.closest("button,input")) return;
     selectedCollectionId = collection.id;
     selectedMemoIds.clear();
+    renderList();
     renderCollectionExplorer();
   });
   row.addEventListener("dblclick", () => toggleCollectionExpanded(collection.id));
@@ -3432,6 +3578,7 @@ function renderTrashNode() {
   row.addEventListener("click", () => {
     selectedCollectionId = "trash";
     selectedMemoIds.clear();
+    renderList();
     toggleCollectionExpanded("trash", true);
   });
   row.addEventListener("keydown", (event) => handleCollectionRowKeydown(event, "trash"));
@@ -3499,6 +3646,7 @@ function handleCollectionRowKeydown(event, id) {
   } else if (event.key === "Enter" || event.key === " ") {
     event.preventDefault();
     selectedCollectionId = id;
+    renderList();
     renderCollectionExplorer();
   } else if ((event.key === "ContextMenu" || (event.shiftKey && event.key === "F10")) && id !== "trash" && id !== UNCLASSIFIED_COLLECTION_ID) {
     event.preventDefault();
@@ -4348,6 +4496,14 @@ newBtn.addEventListener("click", async () => {
 if (collectionsBtn) collectionsBtn.addEventListener("click", () => toggleCollectionExplorer());
 if (closeCollectionsBtn) closeCollectionsBtn.addEventListener("click", () => toggleCollectionExplorer(false));
 if (collectionBackdrop) collectionBackdrop.addEventListener("click", () => toggleCollectionExplorer(false));
+if (memoPaneBtn) memoPaneBtn.addEventListener("click", () => setMemoPaneOpen(!memoPaneOpen));
+if (closeMemoPaneBtn) closeMemoPaneBtn.addEventListener("click", () => setMemoPaneOpen(false));
+if (cardPaneBtn) cardPaneBtn.addEventListener("click", () => {
+  const open = layoutMode === "compact" ? !compactCardVisible : !mobileCardOpen;
+  setCardPaneOpen(open);
+});
+if (closeCardPaneBtn) closeCardPaneBtn.addEventListener("click", () => setCardPaneOpen(false));
+if (layoutBackdrop) layoutBackdrop.addEventListener("click", () => closeLayoutOverlays());
 if (addCollectionBtn) addCollectionBtn.addEventListener("click", () => createCollection().catch(showCollectionError));
 if (collectionAddMenuBtn) {
   collectionAddMenuBtn.addEventListener("click", (event) => {
@@ -4493,6 +4649,7 @@ editor.addEventListener("drop", handleEditorAttachmentDrop);
 titleInput.addEventListener("input", scheduleSave);
 editor.addEventListener("input", scheduleSave);
 window.addEventListener("resize", () => {
+  syncLayoutMode();
   renderSaveStatus();
   if (document.body.classList.contains("collections-open")) {
     collectionBackdrop.hidden = window.matchMedia("(min-width: 1201px)").matches;
@@ -4502,6 +4659,10 @@ document.addEventListener("click", (event) => {
   if (!event.target.closest(".collection-popup-menu,.collection-more,.collection-memo-more,#collectionAddMenuBtn")) closeCollectionMenus();
 });
 document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && closeLayoutOverlays()) {
+    event.preventDefault();
+    return;
+  }
   if (event.key === "Escape" && isRelatedDrawerOpen() && !document.querySelector("dialog[open]")) {
     event.preventDefault();
     setRelatedDrawerOpen(false);
