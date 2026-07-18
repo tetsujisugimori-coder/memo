@@ -821,6 +821,7 @@ async function importPastedItNewsJson() {
     openNote(note.id);
     closeJsonImportDialog();
     saveStatus.textContent = built.importMessage || "JSONから1件のメモを作成しました";
+    jsonImportText.value = "";
   } catch (error) {
     showJsonImportError(`保存に失敗しました: ${error.message}`);
   }
