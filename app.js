@@ -226,6 +226,7 @@ let saveStatusTime = null;
 let mermaidInitialized = false;
 let mermaidRenderGeneration = 0;
 let mermaidRenderQueue = Promise.resolve();
+let mermaidSvgRenderSequence = 0;
 let undoStack = [];
 let lastUndoSnapshotAt = 0;
 let deletedNoteSnapshot = null;
@@ -1819,7 +1820,7 @@ function renderPreview() {
   }
 
   const body = (note.id === currentId ? editor.value : note.body);
-  preview.innerHTML = renderPreviewHtml(body, note.id);
+  preview.innerHTML = renderPreviewHtml(body, note.id, renderGeneration);
   hydrateInlineAttachmentImages();
   bindImageBlockControls();
 
@@ -2491,7 +2492,7 @@ function handleEditorAttachmentDrop(event) {
   });
 }
 
-function renderPreviewHtml(body, noteId = "preview") {
+function renderPreviewHtml(body, noteId = "preview", renderGeneration = 0) {
   let codeBlockIndex = 0;
   const html = splitImageBlocks(body)
     .map((segment, imageBlockIndex) => {
@@ -2499,7 +2500,7 @@ function renderPreviewHtml(body, noteId = "preview") {
       return splitFencedBlocks(segment.text).map((block) => {
         if (block.type !== "code") return renderTextBlock(block.text);
         const rendered = block.language.toLowerCase() === "mermaid"
-          ? renderMermaidBlock(block.code, noteId, codeBlockIndex)
+          ? renderMermaidBlock(block.code, noteId, renderGeneration, codeBlockIndex)
           : renderCodeBlock(block.code, block.language);
         codeBlockIndex += 1;
         return rendered;
@@ -2799,14 +2800,18 @@ function applyHighlightResult(codeElement, highlightedHtml, language) {
   codeElement.dataset.highlightedLanguage = language;
 }
 
-function renderMermaidBlock(code, noteId, index) {
-  const diagramId = `mermaid-diagram-${stableMermaidIdPart(noteId)}-${index}`;
+function renderMermaidBlock(code, noteId, renderGeneration, index) {
+  const diagramId = mermaidDiagramDomId(noteId, renderGeneration, index);
   return `
     <div class="mermaid-block">
       <div class="mermaid-diagram" id="${diagramId}">${escapeHtml(code)}</div>
       <pre class="mermaid-source" hidden><code>${escapeHtml(code)}</code></pre>
     </div>
   `;
+}
+
+function mermaidDiagramDomId(noteId, renderGeneration, index) {
+  return `mermaid-diagram-${stableMermaidIdPart(noteId)}-g${renderGeneration}-b${index}`;
 }
 
 function stableMermaidIdPart(value) {
@@ -2831,34 +2836,15 @@ async function renderMermaidDiagrams(previewRoot, renderGeneration) {
       mermaidInitialized = true;
     }
 
-    const validDiagrams = [];
-    for (const diagram of diagrams) {
-      if (!isCurrentMermaidPreview(previewRoot, renderGeneration)) return;
-
-      const source = diagram.textContent;
-      try {
-        const parsed = typeof window.mermaid.parse === "function"
-          ? await window.mermaid.parse(source, { suppressErrors: true })
-          : true;
-        if (parsed) {
-          validDiagrams.push(diagram);
-        } else {
-          showMermaidError(diagram.closest(".mermaid-block"));
-        }
-      } catch (error) {
-        console.error("Mermaid parse failed", error);
-        showMermaidError(diagram.closest(".mermaid-block"));
-      }
-    }
-
-    if (!validDiagrams.length || !isCurrentMermaidPreview(previewRoot, renderGeneration)) return;
-
-    await window.mermaid.run({ nodes: validDiagrams, suppressErrors: true });
-    if (!isCurrentMermaidPreview(previewRoot, renderGeneration)) return;
-
-    validDiagrams.forEach((diagram) => {
-      if (!diagram.querySelector("svg")) {
-        showMermaidError(diagram.closest(".mermaid-block"));
+    await renderMermaidGeneration({
+      diagrams,
+      mermaid: window.mermaid,
+      isCurrent: () => isCurrentMermaidPreview(previewRoot, renderGeneration),
+      createRenderHost: createMermaidRenderHost,
+      nextRenderId: (index) => nextMermaidSvgRenderId(renderGeneration, index),
+      onError: (block, error) => {
+        console.error("Mermaid render failed", error);
+        showMermaidError(block);
       }
     });
   });
@@ -2875,6 +2861,54 @@ async function renderMermaidDiagrams(previewRoot, renderGeneration) {
       }
     });
   }
+}
+
+async function renderMermaidGeneration({
+  diagrams,
+  mermaid,
+  isCurrent,
+  createRenderHost,
+  nextRenderId,
+  onError
+}) {
+  for (const [index, diagram] of diagrams.entries()) {
+    if (!isCurrent()) return;
+
+    const block = diagram.closest(".mermaid-block");
+    const source = diagram.textContent;
+    const renderId = nextRenderId(index);
+    const renderHost = createRenderHost(renderId);
+
+    try {
+      const { svg, bindFunctions } = await mermaid.render(renderId, source, renderHost);
+      if (!isCurrent()) return;
+
+      diagram.innerHTML = svg;
+      if (diagram.querySelectorAll("svg").length !== 1) {
+        diagram.innerHTML = "";
+        throw new Error("Mermaid must render exactly one SVG per block");
+      }
+      if (bindFunctions) bindFunctions(diagram);
+    } catch (error) {
+      if (isCurrent()) onError(block, error);
+    } finally {
+      renderHost.remove();
+    }
+  }
+}
+
+function createMermaidRenderHost(renderId) {
+  const renderHost = document.createElement("div");
+  renderHost.id = `mermaid-render-host-${renderId}`;
+  renderHost.setAttribute("aria-hidden", "true");
+  renderHost.style.cssText = "position:fixed;left:-100000px;top:0;visibility:hidden;pointer-events:none;";
+  document.body.append(renderHost);
+  return renderHost;
+}
+
+function nextMermaidSvgRenderId(renderGeneration, index) {
+  mermaidSvgRenderSequence += 1;
+  return `mermaid-svg-g${renderGeneration}-b${index}-r${mermaidSvgRenderSequence}`;
 }
 
 function isCurrentMermaidPreview(previewRoot, renderGeneration) {
