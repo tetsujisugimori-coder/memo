@@ -31,6 +31,51 @@ const HIGHLIGHT_LANGUAGE_ALIASES = {
   md: "markdown",
   yml: "yaml"
 };
+const SYNTAX_GUIDE_ITEMS = [
+  { category: "markdown", name: "見出し1", syntax: "# 見出し", description: "最も大きな見出しです。", notes: "行頭に#と半角スペースを書きます。" },
+  { category: "markdown", name: "見出し2", syntax: "## 見出し", description: "2段階目の見出しです。", notes: "行頭に##と半角スペースを書きます。" },
+  { category: "markdown", name: "見出し3", syntax: "### 見出し", description: "3段階目の見出しです。", notes: "行頭に###と半角スペースを書きます。" },
+  { category: "markdown", name: "太字", syntax: "**重要**", description: "文字を太字で強調します。", notes: "文字の前後を**で囲みます。" },
+  { category: "markdown", name: "インラインコード", syntax: "`const value = 1;`", description: "文中の短いコードを表示します。", notes: "文字列をバッククォート1個ずつで囲みます。" },
+  { category: "markdown", name: "箇条書き", syntax: "- 項目", description: "項目を箇条書きで表示します。", notes: "行頭に-と半角スペースを書きます。" },
+  { category: "markdown", name: "引用", syntax: "> 引用文", description: "引用文として表示します。", notes: "行頭に>と半角スペースを書きます。" },
+  { category: "markdown", name: "Wikiリンク", syntax: "[[メモ名]]", description: "同名メモへの知識リンクを作ります。", notes: "メモ名を二重の角括弧で囲みます。" },
+  {
+    category: "code",
+    name: "JavaScriptコードブロック",
+    syntax: ["```javascript", "const greeting = \"Hello, Memo Nexus!\";", "console.log(greeting);", "```"].join("\n"),
+    description: "開始側のバッククォート3個の直後に言語名を書き、終了側はバッククォート3個だけを書きます。",
+    notes: "言語名を省略するとhighlight.jsが自動判定を試み、判定できない場合は色を付けずに表示します。コードは実行されません。"
+  },
+  {
+    category: "mermaid",
+    name: "フローチャート",
+    syntax: ["```mermaid", "flowchart TD", "  A[処理を開始] --> B{条件を満たす?}", "  B -- はい --> C[保存する]", "  B -- いいえ --> D[見直す]", "  D --> B", "```"].join("\n"),
+    description: "flowchart TDは上から下の流れ、-->は矢印、{ }は条件分岐を表します。",
+    notes: "-- はい --> のように矢印へ分岐ラベルを付けられます。"
+  },
+  {
+    category: "mermaid",
+    name: "シーケンス図",
+    syntax: ["```mermaid", "sequenceDiagram", "  participant User as ユーザー", "  participant App as Memo Nexus", "  User->>App: メモを保存", "  App-->>User: 保存完了", "```"].join("\n"),
+    description: "participantで登場者を定義し、->>で送信、-->>で応答を表します。",
+    notes: "矢印の後ろにコロンとメッセージを書きます。"
+  },
+  {
+    category: "mermaid",
+    name: "状態遷移図",
+    syntax: ["```mermaid", "stateDiagram-v2", "  [*] --> 編集中", "  編集中 --> 保存中", "  保存中 --> 保存済み", "  保存済み --> [*]", "```"].join("\n"),
+    description: "[*]は開始・終了状態、-->は状態の移り変わりを表します。",
+    notes: "状態名を矢印で結ぶと遷移を追加できます。"
+  },
+  {
+    category: "mermaid",
+    name: "クラス図",
+    syntax: ["```mermaid", "classDiagram", "  class Memo {", "    +String title", "    +save()", "  }", "  class Attachment {", "    +String fileName", "  }", "  Memo \"1\" --> \"0..*\" Attachment : contains", "```"].join("\n"),
+    description: "classでクラスを定義し、+は公開プロパティ・メソッド、-->は関係を表します。",
+    notes: "1と0..*は、1件のメモが複数の添付を持てる関係です。"
+  }
+];
 const {
   buildCollectionLocalPlan,
   hasNameCollision,
@@ -161,6 +206,11 @@ const closeExportBtn = $("closeExportBtn");
 const cancelExportBtn = $("cancelExportBtn");
 const downloadExportBtn = $("downloadExportBtn");
 const localExportBtn = $("localExportBtn");
+const syntaxGuideBtn = $("syntaxGuideBtn");
+const syntaxGuideDialog = $("syntaxGuideDialog");
+const closeSyntaxGuideBtn = $("closeSyntaxGuideBtn");
+const syntaxGuideBody = $("syntaxGuideBody");
+const syntaxGuideStatus = $("syntaxGuideStatus");
 
 // アプリ全体で共有する状態。
 // notesはIndexedDBから読み込んだメモ一覧のメモリ上コピーです。
@@ -189,6 +239,8 @@ let editingCollectionId = null;
 let draggedCollectionId = null;
 let draggedMemoIds = [];
 let pendingExport = null;
+let syntaxGuideRendered = false;
+const syntaxGuideCopyTimers = new WeakMap();
 let currentAttachments = [];
 let imageBlockSize = "medium";
 let pendingImageBlockTarget = null;
@@ -4481,6 +4533,152 @@ function escapeAttr(value) {
   return escapeHtml(value).replace(/`/g, "&#96;");
 }
 
+function createSyntaxGuideCopyButton(item) {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "syntax-guide-copy";
+  button.textContent = "コピー";
+  button.setAttribute("aria-label", `${item.name}の記法をコピー`);
+  button.addEventListener("click", () => copySyntaxGuideItem(item, button));
+  return button;
+}
+
+function createSyntaxGuideItem(item) {
+  const article = document.createElement("article");
+  article.className = "syntax-guide-item";
+
+  const heading = document.createElement("div");
+  heading.className = "syntax-guide-item-head";
+  const name = document.createElement("h3");
+  name.textContent = item.name;
+  heading.append(name, createSyntaxGuideCopyButton(item));
+
+  const code = document.createElement("code");
+  code.textContent = item.syntax;
+  const pre = document.createElement("pre");
+  pre.append(code);
+
+  const description = document.createElement("p");
+  description.textContent = item.description;
+  const notes = document.createElement("p");
+  notes.className = "syntax-guide-notes";
+  notes.textContent = item.notes;
+  article.append(heading, pre, description, notes);
+  return article;
+}
+
+function renderSyntaxGuide() {
+  if (!syntaxGuideBody || syntaxGuideRendered) return;
+  const sectionDetails = [
+    { category: "markdown", title: "Markdown", intro: "Memo Nexusのプレビューが現在対応している記法です。" },
+    { category: "code", title: "コードブロック", intro: "バッククォート3個で囲んだ完成例です。" },
+    { category: "mermaid", title: "Mermaid", intro: "コードブロックの開始部分にmermaidと書くと図として表示します。" }
+  ];
+
+  sectionDetails.forEach(({ category, title, intro }) => {
+    const section = document.createElement("section");
+    section.className = `syntax-guide-section syntax-guide-${category}`;
+    const heading = document.createElement("h2");
+    heading.textContent = title;
+    const lead = document.createElement("p");
+    lead.className = "syntax-guide-lead";
+    lead.textContent = intro;
+    const items = document.createElement("div");
+    items.className = "syntax-guide-items";
+    SYNTAX_GUIDE_ITEMS.filter((item) => item.category === category).forEach((item) => {
+      items.append(createSyntaxGuideItem(item));
+    });
+    section.append(heading, lead, items);
+
+    if (category === "code") {
+      const aliasHeading = document.createElement("h3");
+      aliasHeading.className = "syntax-guide-alias-heading";
+      aliasHeading.textContent = "言語の短縮名";
+      const aliases = document.createElement("dl");
+      aliases.className = "syntax-guide-aliases";
+      Object.entries(HIGHLIGHT_LANGUAGE_ALIASES).forEach(([alias, language]) => {
+        const term = document.createElement("dt");
+        term.textContent = alias;
+        const description = document.createElement("dd");
+        description.textContent = language;
+        aliases.append(term, description);
+      });
+      section.append(aliasHeading, aliases);
+    }
+    syntaxGuideBody.append(section);
+  });
+  syntaxGuideRendered = true;
+}
+
+function fallbackCopyText(text) {
+  const previousActiveElement = document.activeElement;
+  const textarea = document.createElement("textarea");
+  textarea.value = text;
+  textarea.setAttribute("readonly", "");
+  textarea.className = "syntax-guide-copy-fallback";
+  const copyContainer = syntaxGuideDialog?.open ? syntaxGuideDialog : document.body;
+  copyContainer.append(textarea);
+  try {
+    textarea.focus({ preventScroll: true });
+    textarea.select();
+    if (typeof textarea.setSelectionRange === "function") textarea.setSelectionRange(0, textarea.value.length);
+    if (!document.execCommand("copy")) throw new Error("コピー操作が拒否されました");
+  } finally {
+    textarea.remove();
+    if (previousActiveElement?.isConnected && typeof previousActiveElement.focus === "function") {
+      try {
+        previousActiveElement.focus({ preventScroll: true });
+      } catch (error) {
+        console.warn("Could not restore focus after fallback copy", error);
+      }
+    }
+  }
+}
+
+async function writeSyntaxGuideText(text) {
+  if (navigator.clipboard && typeof navigator.clipboard.writeText === "function") {
+    try {
+      await navigator.clipboard.writeText(text);
+      return;
+    } catch (error) {
+      console.warn("Clipboard API failed; trying fallback", error);
+    }
+  }
+  fallbackCopyText(text);
+}
+
+async function copySyntaxGuideItem(item, button) {
+  const originalLabel = "コピー";
+  const previousTimer = syntaxGuideCopyTimers.get(button);
+  if (previousTimer) clearTimeout(previousTimer);
+  if (syntaxGuideStatus) syntaxGuideStatus.textContent = "";
+  try {
+    await writeSyntaxGuideText(item.syntax);
+    button.textContent = "コピーしました";
+    const timer = setTimeout(() => {
+      button.textContent = originalLabel;
+      syntaxGuideCopyTimers.delete(button);
+    }, 1800);
+    syntaxGuideCopyTimers.set(button, timer);
+  } catch (error) {
+    console.error("Syntax guide copy failed", error);
+    button.textContent = originalLabel;
+    if (syntaxGuideStatus) syntaxGuideStatus.textContent = "コピーできませんでした。記法を選択してコピーしてください。";
+  }
+}
+
+function openSyntaxGuide() {
+  if (!syntaxGuideDialog || !syntaxGuideBtn) return;
+  renderSyntaxGuide();
+  if (syntaxGuideStatus) syntaxGuideStatus.textContent = "";
+  syntaxGuideBtn.setAttribute("aria-expanded", "true");
+  if (!syntaxGuideDialog.open) syntaxGuideDialog.showModal();
+}
+
+function closeSyntaxGuide() {
+  if (syntaxGuideDialog?.open) syntaxGuideDialog.close();
+}
+
 // ここから下は、画面操作と処理を結びつけるイベント設定です。
 newBtn.addEventListener("click", async () => {
   const note = await createNote("", "", { avoidDuplicateTitle: false });
@@ -4562,6 +4760,11 @@ if (attachmentDropZone) {
 }
 if (closeImagePreviewBtn) closeImagePreviewBtn.addEventListener("click", () => imagePreviewDialog.close());
 if (imagePreviewDialog) imagePreviewDialog.addEventListener("close", () => imagePreview.removeAttribute("src"));
+if (syntaxGuideBtn && syntaxGuideDialog) syntaxGuideBtn.addEventListener("click", openSyntaxGuide);
+if (closeSyntaxGuideBtn && syntaxGuideDialog) closeSyntaxGuideBtn.addEventListener("click", closeSyntaxGuide);
+if (syntaxGuideDialog) syntaxGuideDialog.addEventListener("close", () => {
+  if (syntaxGuideBtn) syntaxGuideBtn.setAttribute("aria-expanded", "false");
+});
 
 todayBtn.addEventListener("click", async () => {
   notes = await getAllNotes();
