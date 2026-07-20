@@ -798,6 +798,23 @@ body.collections-open .collection-explorer {
   margin-top: 4px;
 }
 
+.editor-tools {
+  min-height: 38px;
+  padding: 5px 10px;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--section-bg);
+}
+
+.editor-tools button {
+  min-height: 28px;
+  padding: 3px 9px;
+  color: var(--accent);
+  font-size: 12px;
+}
+
 .delete-undo-notice[hidden] {
   display: none;
 }
@@ -1816,6 +1833,161 @@ body.related-open .related-toggle {
   background: var(--dialog-backdrop);
 }
 
+.syntax-guide-dialog {
+  width: min(860px, calc(100vw - 32px));
+  max-height: calc(100vh - 32px);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0;
+  overflow: hidden;
+  background: var(--paper);
+  color: var(--ink);
+}
+
+.syntax-guide-dialog::backdrop {
+  background: var(--dialog-backdrop);
+}
+
+#closeSyntaxGuideBtn {
+  width: 40px;
+  min-height: 40px;
+  padding: 0;
+  font-size: 24px;
+  line-height: 1;
+}
+
+.syntax-guide-body {
+  max-height: calc(100vh - 126px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 14px;
+}
+
+.syntax-guide-section + .syntax-guide-section {
+  margin-top: 20px;
+}
+
+.syntax-guide-section > h2 {
+  margin: 0 0 5px;
+  font-size: 19px;
+}
+
+.syntax-guide-lead {
+  margin: 0 0 10px;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.syntax-guide-items {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.syntax-guide-item {
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--section-bg);
+}
+
+.syntax-guide-item-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.syntax-guide-item h3 {
+  margin: 0;
+  font-size: 15px;
+}
+
+.syntax-guide-copy {
+  min-width: 76px;
+  min-height: 36px;
+  flex: 0 0 auto;
+  padding: 5px 9px;
+  color: var(--accent);
+  font-size: 12px;
+}
+
+.syntax-guide-item pre {
+  max-width: 100%;
+  margin: 0 0 8px;
+  padding: 10px;
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--input-bg);
+  color: var(--ink);
+  white-space: pre;
+}
+
+.syntax-guide-item code {
+  font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.syntax-guide-item p {
+  margin: 0;
+  line-height: 1.55;
+}
+
+.syntax-guide-notes {
+  margin-top: 5px !important;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.syntax-guide-alias-heading {
+  margin: 12px 0 7px;
+  font-size: 15px;
+}
+
+.syntax-guide-aliases {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto minmax(0, 1fr) auto minmax(0, 1fr);
+  gap: 1px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--line);
+}
+
+.syntax-guide-aliases dt,
+.syntax-guide-aliases dd {
+  margin: 0;
+  padding: 7px 9px;
+  background: var(--section-bg);
+}
+
+.syntax-guide-aliases dt {
+  color: var(--accent);
+  font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+  font-weight: 700;
+}
+
+.syntax-guide-aliases dd {
+  color: var(--muted);
+}
+
+.syntax-guide-status {
+  min-height: 30px;
+  padding: 6px 14px;
+  border-top: 1px solid var(--line);
+  color: var(--danger);
+  font-size: 13px;
+}
+
+.syntax-guide-copy-fallback {
+  position: fixed;
+  inset: auto auto 0 -9999px;
+}
+
 .dialog-head {
   height: 48px;
   padding: 0 14px;
@@ -2130,6 +2302,36 @@ body.related-open .related-toggle {
   #editor {
     padding: 14px 12px;
     font-size: 16px;
+  }
+
+  .editor-tools {
+    min-height: 44px;
+    padding: 5px 8px;
+  }
+
+  .editor-tools button,
+  .syntax-guide-copy {
+    min-height: 40px;
+  }
+
+  .syntax-guide-dialog {
+    width: calc(100vw - 16px);
+    max-height: calc(100vh - 16px);
+  }
+
+  .syntax-guide-body {
+    max-height: calc(100vh - 110px);
+    padding: 10px;
+  }
+
+  .syntax-guide-items,
+  .syntax-guide-aliases {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .syntax-guide-item pre {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
   }
 
   .attachment-section {
