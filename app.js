@@ -4611,16 +4611,27 @@ function renderSyntaxGuide() {
 }
 
 function fallbackCopyText(text) {
+  const previousActiveElement = document.activeElement;
   const textarea = document.createElement("textarea");
   textarea.value = text;
   textarea.setAttribute("readonly", "");
   textarea.className = "syntax-guide-copy-fallback";
-  document.body.append(textarea);
-  textarea.select();
+  const copyContainer = syntaxGuideDialog?.open ? syntaxGuideDialog : document.body;
+  copyContainer.append(textarea);
   try {
+    textarea.focus({ preventScroll: true });
+    textarea.select();
+    if (typeof textarea.setSelectionRange === "function") textarea.setSelectionRange(0, textarea.value.length);
     if (!document.execCommand("copy")) throw new Error("コピー操作が拒否されました");
   } finally {
     textarea.remove();
+    if (previousActiveElement?.isConnected && typeof previousActiveElement.focus === "function") {
+      try {
+        previousActiveElement.focus({ preventScroll: true });
+      } catch (error) {
+        console.warn("Could not restore focus after fallback copy", error);
+      }
+    }
   }
 }
 

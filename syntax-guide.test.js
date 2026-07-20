@@ -14,6 +14,102 @@ function readConstant(name) {
   return Function(`return (${match[1]});`)();
 }
 
+function readFunctionSource(name) {
+  const functionStart = app.indexOf(`function ${name}(`);
+  assert.ok(functionStart >= 0, `${name}を読み取れる`);
+  const start = app.slice(functionStart - 6, functionStart) === "async " ? functionStart - 6 : functionStart;
+  const openingBrace = app.indexOf("{", start);
+  let depth = 0;
+  for (let index = openingBrace; index < app.length; index += 1) {
+    if (app[index] === "{") depth += 1;
+    if (app[index] === "}") depth -= 1;
+    if (depth === 0) return app.slice(start, index + 1);
+  }
+  throw new Error(`${name}の終端を読み取れません`);
+}
+
+function createCopyHarness({ dialogOpen = false, clipboardWriteText, execResult = true, execError } = {}) {
+  const appendHistory = [];
+  const createdElements = [];
+  const execCommands = [];
+  const warnings = [];
+  const documentMock = { activeElement: null };
+
+  class TestElement {
+    constructor(tagName) {
+      this.tagName = tagName.toUpperCase();
+      this.children = [];
+      this.isConnected = false;
+      this.focusCalls = [];
+      this.value = "";
+    }
+
+    setAttribute(name, value) {
+      this[name] = value;
+    }
+
+    append(child) {
+      child.parentElement = this;
+      child.isConnected = true;
+      this.children.push(child);
+      appendHistory.push({ container: this, child });
+    }
+
+    focus(options) {
+      this.focusCalls.push(options);
+      documentMock.activeElement = this;
+    }
+
+    select() {
+      this.selectCalled = true;
+    }
+
+    setSelectionRange(start, end) {
+      this.selectionRange = [start, end];
+    }
+
+    remove() {
+      if (this.parentElement) {
+        this.parentElement.children = this.parentElement.children.filter((child) => child !== this);
+      }
+      this.parentElement = null;
+      this.isConnected = false;
+      this.removeCalled = true;
+    }
+  }
+
+  documentMock.createElement = (tagName) => {
+    const element = new TestElement(tagName);
+    createdElements.push(element);
+    return element;
+  };
+  documentMock.execCommand = (command) => {
+    execCommands.push(command);
+    if (execError) throw execError;
+    return execResult;
+  };
+  documentMock.body = new TestElement("body");
+  documentMock.body.isConnected = true;
+
+  const dialog = new TestElement("dialog");
+  dialog.isConnected = true;
+  dialog.open = dialogOpen;
+  const originalFocus = new TestElement("button");
+  originalFocus.isConnected = true;
+  documentMock.activeElement = originalFocus;
+  const navigatorMock = clipboardWriteText ? { clipboard: { writeText: clipboardWriteText } } : {};
+  const consoleMock = { warn: (...args) => warnings.push(args) };
+  const functions = Function(
+    "document",
+    "navigator",
+    "syntaxGuideDialog",
+    "console",
+    `"use strict"; ${readFunctionSource("fallbackCopyText")} ${readFunctionSource("writeSyntaxGuideText")} return { fallbackCopyText, writeSyntaxGuideText };`
+  )(documentMock, navigatorMock, dialog, consoleMock);
+
+  return { appendHistory, createdElements, dialog, documentMock, execCommands, functions, originalFocus, warnings };
+}
+
 const items = readConstant("SYNTAX_GUIDE_ITEMS");
 const aliases = readConstant("HIGHLIGHT_LANGUAGE_ALIASES");
 
@@ -92,6 +188,85 @@ test("コピーはClipboard APIとフォールバック、成功復帰、失敗�
   assert.match(app, /console\.error\("Syntax guide copy failed", error\)/);
   assert.match(app, /コピーできませんでした。記法を選択してコピーしてください。/);
   assert.match(app, /setAttribute\("aria-label", `\$\{item\.name\}の記法をコピー`\)/);
+});
+
+test("モーダル表示中のフォールバックはdialog内で選択し元のフォーカスを復元する", () => {
+  const harness = createCopyHarness({ dialogOpen: true });
+  harness.functions.fallbackCopyText("モーダル内コピー");
+
+  const textarea = harness.createdElements[0];
+  assert.equal(harness.appendHistory[0].container, harness.dialog);
+  assert.equal(textarea.focusCalls.length, 1);
+  assert.equal(textarea.selectCalled, true);
+  assert.deepEqual(textarea.selectionRange, [0, "モーダル内コピー".length]);
+  assert.deepEqual(harness.execCommands, ["copy"]);
+  assert.equal(textarea.removeCalled, true);
+  assert.equal(harness.dialog.children.length, 0);
+  assert.equal(harness.documentMock.activeElement, harness.originalFocus);
+  assert.equal(harness.originalFocus.focusCalls.length, 1);
+});
+
+test("ダイアログが閉じている場合のフォールバックはbodyを安全な追加先にする", () => {
+  const harness = createCopyHarness({ dialogOpen: false });
+  harness.functions.fallbackCopyText("bodyでコピー");
+
+  assert.equal(harness.appendHistory[0].container, harness.documentMock.body);
+  assert.equal(harness.documentMock.body.children.length, 0);
+});
+
+test("Clipboard API成功時はフォールバックを呼ばない", async () => {
+  const clipboardCalls = [];
+  const harness = createCopyHarness({ clipboardWriteText: async (text) => clipboardCalls.push(text) });
+  await harness.functions.writeSyntaxGuideText("Clipboard API");
+
+  assert.deepEqual(clipboardCalls, ["Clipboard API"]);
+  assert.equal(harness.createdElements.length, 0);
+  assert.equal(harness.execCommands.length, 0);
+});
+
+test("Clipboard API失敗時はモーダル内フォールバックへ進む", async () => {
+  const harness = createCopyHarness({
+    dialogOpen: true,
+    clipboardWriteText: async () => { throw new Error("Clipboard API failed"); }
+  });
+  await harness.functions.writeSyntaxGuideText("fallback");
+
+  assert.equal(harness.warnings.length, 1);
+  assert.equal(harness.appendHistory[0].container, harness.dialog);
+  assert.deepEqual(harness.execCommands, ["copy"]);
+  assert.equal(harness.createdElements[0].removeCalled, true);
+});
+
+test("execCommandのfalseと例外は失敗扱いにし一時textareaを必ず削除する", () => {
+  const falseHarness = createCopyHarness({ execResult: false });
+  assert.throws(() => falseHarness.functions.fallbackCopyText("false"), /コピー操作が拒否されました/);
+  assert.equal(falseHarness.createdElements[0].removeCalled, true);
+  assert.equal(falseHarness.documentMock.body.children.length, 0);
+
+  const thrownHarness = createCopyHarness({ execError: new Error("execCommand failed") });
+  assert.throws(() => thrownHarness.functions.fallbackCopyText("throw"), /execCommand failed/);
+  assert.equal(thrownHarness.createdElements[0].removeCalled, true);
+  assert.equal(thrownHarness.documentMock.body.children.length, 0);
+  assert.equal(thrownHarness.documentMock.activeElement, thrownHarness.originalFocus);
+});
+
+test("フォールバックコピーは本文・選択範囲・スクロール位置を変更しない", () => {
+  const harness = createCopyHarness();
+  const editor = harness.originalFocus;
+  Object.assign(editor, {
+    value: "変更しない本文",
+    selectionStart: 3,
+    selectionEnd: 8,
+    scrollTop: 120
+  });
+  const before = { value: editor.value, selectionStart: editor.selectionStart, selectionEnd: editor.selectionEnd, scrollTop: editor.scrollTop };
+  harness.functions.fallbackCopyText("copy only");
+
+  assert.deepEqual(
+    { value: editor.value, selectionStart: editor.selectionStart, selectionEnd: editor.selectionEnd, scrollTop: editor.scrollTop },
+    before
+  );
+  assert.equal(harness.documentMock.activeElement, editor);
 });
 
 test("開閉はaria-expandedを同期し本文・保存・Undo処理から独立する", () => {
