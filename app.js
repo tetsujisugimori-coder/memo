@@ -224,6 +224,8 @@ let linkStatsVisible = false;
 let saveStatusState = "saved";
 let saveStatusTime = null;
 let mermaidInitialized = false;
+let mermaidRenderGeneration = 0;
+let mermaidRenderQueue = Promise.resolve();
 let undoStack = [];
 let lastUndoSnapshotAt = 0;
 let deletedNoteSnapshot = null;
@@ -1807,6 +1809,7 @@ function titleFromBody(body) {
 
 // 右側のカード表示を更新します。本文中の[[名前]]はクリック可能なリンクに変換します。
 function renderPreview() {
+  const renderGeneration = ++mermaidRenderGeneration;
   const note = currentNote();
   if (!note) {
     preview.innerHTML = "";
@@ -1816,7 +1819,7 @@ function renderPreview() {
   }
 
   const body = (note.id === currentId ? editor.value : note.body);
-  preview.innerHTML = renderPreviewHtml(body);
+  preview.innerHTML = renderPreviewHtml(body, note.id);
   hydrateInlineAttachmentImages();
   bindImageBlockControls();
 
@@ -1824,7 +1827,7 @@ function renderPreview() {
     button.addEventListener("click", () => openOrCreateLinkedNote(button.dataset.title));
   });
   highlightCodeBlocks();
-  renderMermaidDiagrams();
+  void renderMermaidDiagrams(preview, renderGeneration);
   renderLinkList();
   renderLinkStats();
 }
@@ -2488,7 +2491,7 @@ function handleEditorAttachmentDrop(event) {
   });
 }
 
-function renderPreviewHtml(body) {
+function renderPreviewHtml(body, noteId = "preview") {
   let codeBlockIndex = 0;
   const html = splitImageBlocks(body)
     .map((segment, imageBlockIndex) => {
@@ -2496,7 +2499,7 @@ function renderPreviewHtml(body) {
       return splitFencedBlocks(segment.text).map((block) => {
         if (block.type !== "code") return renderTextBlock(block.text);
         const rendered = block.language.toLowerCase() === "mermaid"
-          ? renderMermaidBlock(block.code, codeBlockIndex)
+          ? renderMermaidBlock(block.code, noteId, codeBlockIndex)
           : renderCodeBlock(block.code, block.language);
         codeBlockIndex += 1;
         return rendered;
@@ -2796,47 +2799,94 @@ function applyHighlightResult(codeElement, highlightedHtml, language) {
   codeElement.dataset.highlightedLanguage = language;
 }
 
-function renderMermaidBlock(code, index) {
+function renderMermaidBlock(code, noteId, index) {
+  const diagramId = `mermaid-diagram-${stableMermaidIdPart(noteId)}-${index}`;
   return `
     <div class="mermaid-block">
-      <div class="mermaid-diagram" id="mermaid-diagram-${index}">${escapeHtml(code)}</div>
+      <div class="mermaid-diagram" id="${diagramId}">${escapeHtml(code)}</div>
       <pre class="mermaid-source" hidden><code>${escapeHtml(code)}</code></pre>
     </div>
   `;
 }
 
-function renderMermaidDiagrams() {
-  const diagrams = preview.querySelectorAll(".mermaid-diagram");
-  if (!diagrams.length || !window.mermaid) return;
+function stableMermaidIdPart(value) {
+  const text = String(value ?? "preview");
+  let hash = 2166136261;
+  for (let index = 0; index < text.length; index += 1) {
+    hash ^= text.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  return (hash >>> 0).toString(36);
+}
 
-  try {
+async function renderMermaidDiagrams(previewRoot, renderGeneration) {
+  const renderTask = mermaidRenderQueue.then(async () => {
+    if (!isCurrentMermaidPreview(previewRoot, renderGeneration) || !window.mermaid) return;
+
+    const diagrams = Array.from(previewRoot.querySelectorAll(".mermaid-diagram"));
+    if (!diagrams.length) return;
+
     if (!mermaidInitialized) {
       window.mermaid.initialize({ startOnLoad: false, securityLevel: "strict" });
       mermaidInitialized = true;
     }
-  } catch (error) {
-    console.error("Mermaid render failed", error);
-    return;
-  }
 
-  diagrams.forEach((diagram) => renderMermaidDiagram(diagram));
-}
+    const validDiagrams = [];
+    for (const diagram of diagrams) {
+      if (!isCurrentMermaidPreview(previewRoot, renderGeneration)) return;
 
-async function renderMermaidDiagram(diagram) {
-  const block = diagram.closest(".mermaid-block");
+      const source = diagram.textContent;
+      try {
+        const parsed = typeof window.mermaid.parse === "function"
+          ? await window.mermaid.parse(source, { suppressErrors: true })
+          : true;
+        if (parsed) {
+          validDiagrams.push(diagram);
+        } else {
+          showMermaidError(diagram.closest(".mermaid-block"));
+        }
+      } catch (error) {
+        console.error("Mermaid parse failed", error);
+        showMermaidError(diagram.closest(".mermaid-block"));
+      }
+    }
+
+    if (!validDiagrams.length || !isCurrentMermaidPreview(previewRoot, renderGeneration)) return;
+
+    await window.mermaid.run({ nodes: validDiagrams, suppressErrors: true });
+    if (!isCurrentMermaidPreview(previewRoot, renderGeneration)) return;
+
+    validDiagrams.forEach((diagram) => {
+      if (!diagram.querySelector("svg")) {
+        showMermaidError(diagram.closest(".mermaid-block"));
+      }
+    });
+  });
 
   try {
-    await window.mermaid.run({ nodes: [diagram] });
+    mermaidRenderQueue = renderTask.catch(() => {});
+    await renderTask;
   } catch (error) {
     console.error("Mermaid render failed", error);
-    showMermaidError(block);
+    if (!isCurrentMermaidPreview(previewRoot, renderGeneration)) return;
+    previewRoot.querySelectorAll(".mermaid-diagram").forEach((diagram) => {
+      if (!diagram.querySelector("svg")) {
+        showMermaidError(diagram.closest(".mermaid-block"));
+      }
+    });
   }
+}
+
+function isCurrentMermaidPreview(previewRoot, renderGeneration) {
+  return previewRoot === preview && renderGeneration === mermaidRenderGeneration;
 }
 
 function showMermaidError(block) {
   if (!block) return;
 
   block.classList.add("mermaid-error-block");
+  const diagram = block.querySelector(".mermaid-diagram");
+  if (diagram) diagram.hidden = true;
   if (!block.querySelector(".mermaid-error")) {
     const message = document.createElement("div");
     message.className = "mermaid-error";
