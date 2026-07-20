@@ -1080,3 +1080,13 @@
 * 今回は本文への自動挿入、Markdownレンダリング、highlight.js、Mermaid初期化、IndexedDB、添付、Wikiリンク、保存、Undo、エクスポート、取り込みの各処理を変更していない
 * PRレビュー対応として、モーダル表示中のフォールバック用textareaを記法ガイドdialog内へ追加し、コピー後は必ず削除して元のフォーカスへ戻すよう修正した。dialog外では従来どおりbodyを安全な追加先にする
 * Clipboard API成功・拒否、`execCommand("copy")` の成功・失敗・例外、textareaのcleanup、フォーカス復元、本文状態の維持を実関数テストで確認した。ブラウザではPermissions-PolicyによるClipboard拒否時もコピー成功表示、表示復帰、継続操作を確認し、実機iPhone／iPad Safariは未確認
+
+## 2026-07-21 PR #23 Mermaid複数描画の再修正
+
+* PR #23ではMermaid処理をキュー化したが、`mermaid-diagram-${noteId}-${index}` 相当のDOM IDがプレビュー再生成後も同一で、実行中の旧世代と新世代をDOM IDで隔離できていなかった。実ブラウザで再描画前後の4 IDがすべて同一になることを確認した
+* PR #23で `app.js` を変更した際に `index.html` の `app.js?v=0.4.0-16` を更新しておらず、配信済み画面が修正前の並列 `mermaid.run()` をキャッシュから継続利用できる状態だった。クエリを `0.4.0-17` へ更新した
+* MermaidブロックのDOM IDへ `renderGeneration` を含め、同じメモ・同じブロック番号でも世代間で重複しないようにした。Mermaid内部へ渡すSVG IDにも世代、ブロック番号、通し番号を含めた
+* 画面上の `.mermaid-diagram` を `mermaid.run()` の直接描画先にする処理を廃止した。各ソースを画面外の一意なホストへ `mermaid.render()` で1個ずつ直列描画し、完了後も現行世代である場合だけ対応ブロックへSVGを反映する。旧世代は処理中の1件が戻った時点で残りを打ち切り、ホストは成功・失敗・失効のすべてで削除する
+* 各ブロックへ反映するSVGが厳密に1個であることを検査し、構文エラーはそのブロックだけ既存の「Mermaid構文エラー」と元ソース表示へ切り替える。CSSの高さ、余白、overflowは変更していない
+* `mermaid-rendering.test.js` を非同期Mermaid APIテストダブルとDOMダブルによる競合テストへ変更した。旧描画中の世代交代、4ブロック・各SVG1個、sequence／flowchartの内容非混在、空ブロックなし、DOM ID非重複、構文エラー後の残り3図、空行あり・なしを結果DOMから確認する
+* `node --check`、既存テストを含む全72件、`git diff --check` が成功した。Chromeでは空行あり・なし、重い旧描画中の連続入力、保存、メモ切り替え、再読み込みを確認し、常に4ブロック・各SVG1個、空ブロック0、sequence／flowchart相互混入なし、旧テキスト混入なし、画面外ホスト残存0となった。構文エラー時はSVG数 `[1,0,1,1]`、エラーと元ソースは該当ブロックだけだった
