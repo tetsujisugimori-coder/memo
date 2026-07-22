@@ -28,7 +28,7 @@ function readFunctionSource(name) {
   throw new Error(`${name}の終端を読み取れません`);
 }
 
-function createCopyHarness({ dialogOpen = false, clipboardWriteText, execResult = true, execError } = {}) {
+function createCopyHarness({ dialogOpen = false, detailDialogOpen = false, clipboardWriteText, execResult = true, execError } = {}) {
   const appendHistory = [];
   const createdElements = [];
   const execCommands = [];
@@ -94,6 +94,9 @@ function createCopyHarness({ dialogOpen = false, clipboardWriteText, execResult 
   const dialog = new TestElement("dialog");
   dialog.isConnected = true;
   dialog.open = dialogOpen;
+  const detailDialog = new TestElement("dialog");
+  detailDialog.isConnected = true;
+  detailDialog.open = detailDialogOpen;
   const originalFocus = new TestElement("button");
   originalFocus.isConnected = true;
   documentMock.activeElement = originalFocus;
@@ -103,15 +106,20 @@ function createCopyHarness({ dialogOpen = false, clipboardWriteText, execResult 
     "document",
     "navigator",
     "syntaxGuideDialog",
+    "mermaidTemplateDialog",
     "console",
     `"use strict"; ${readFunctionSource("fallbackCopyText")} ${readFunctionSource("writeSyntaxGuideText")} return { fallbackCopyText, writeSyntaxGuideText };`
-  )(documentMock, navigatorMock, dialog, consoleMock);
+  )(documentMock, navigatorMock, dialog, detailDialog, consoleMock);
 
-  return { appendHistory, createdElements, dialog, documentMock, execCommands, functions, originalFocus, warnings };
+  return { appendHistory, createdElements, detailDialog, dialog, documentMock, execCommands, functions, originalFocus, warnings };
 }
 
 const items = readConstant("SYNTAX_GUIDE_ITEMS");
 const aliases = readConstant("HIGHLIGHT_LANGUAGE_ALIASES");
+const mermaidTypes = readConstant("MERMAID_TEMPLATE_TYPES");
+const mermaidItemsSource = app.match(/const MERMAID_TEMPLATE_ITEMS = ([\s\S]*?\n\]);/)?.[1];
+assert.ok(mermaidItemsSource, "MERMAID_TEMPLATE_ITEMSを読み取れる");
+const mermaidItems = Function(`${readFunctionSource("createMermaidTemplate")} return (${mermaidItemsSource});`)();
 
 test("エディタ直下の操作列にアクセシブルな記法ガイドボタンを持つ", () => {
   const editorCard = html.match(/<section class="editor-card">[\s\S]*?<\/section>/)?.[0] || "";
@@ -131,6 +139,16 @@ test("専用dialogに見出し、閉じるボタン、スクロール本文、�
   assert.match(dialog, /id="syntaxGuideStatus"[^>]*role="status"[^>]*aria-live="polite"/);
   assert.match(css, /\.syntax-guide-body\s*\{[^}]*overflow-y:\s*auto;/s);
   assert.match(css, /\.syntax-guide-dialog::backdrop\s*\{[^}]*var\(--dialog-backdrop\)/s);
+});
+
+test("Mermaid詳細dialogにタイトル、閉じるボタン、内部スクロール、ライブ領域を持つ", () => {
+  const dialog = html.match(/<dialog id="mermaidTemplateDialog"[\s\S]*?<\/dialog>/)?.[0] || "";
+  assert.match(dialog, /aria-labelledby="mermaidTemplateTitle"/);
+  assert.match(dialog, /id="mermaidTemplateTitle">Mermaidテンプレート/);
+  assert.match(dialog, /id="closeMermaidTemplateBtn"[^>]*aria-label="Mermaidテンプレート詳細を閉じる"/);
+  assert.match(dialog, /id="mermaidTemplateBody"/);
+  assert.match(dialog, /id="mermaidTemplateStatus"[^>]*role="status"[^>]*aria-live="polite"/);
+  assert.match(css, /\.mermaid-template-body\s*\{[^}]*overflow-y:\s*auto;/s);
 });
 
 test("現在対応するMarkdown記法だけを掲載する", () => {
@@ -166,18 +184,50 @@ test("コードブロックの完成例、説明、実装中の短縮名を掲�
   });
 });
 
-test("Mermaidの4種類はmermaid指定を含む完成例になっている", () => {
-  const mermaid = items.filter((item) => item.category === "mermaid");
-  assert.deepEqual(mermaid.map((item) => item.name), ["フローチャート", "シーケンス図", "状態遷移図", "クラス図"]);
-  mermaid.forEach((item) => {
+test("Mermaidの9種類に各5個の完成テンプレートを持つ", () => {
+  assert.deepEqual(mermaidTypes, [
+    { type: "flowchart", name: "フローチャート" },
+    { type: "sequenceDiagram", name: "シーケンス図" },
+    { type: "stateDiagram-v2", name: "状態遷移図" },
+    { type: "classDiagram", name: "クラス図" },
+    { type: "erDiagram", name: "ER図" },
+    { type: "gantt", name: "ガントチャート" },
+    { type: "gitGraph", name: "Gitグラフ" },
+    { type: "timeline", name: "タイムライン" },
+    { type: "mindmap", name: "マインドマップ" }
+  ]);
+  assert.equal(mermaidItems.length, 45);
+  mermaidTypes.forEach(({ type }) => assert.equal(mermaidItems.filter((item) => item.type === type).length, 5));
+  mermaidItems.forEach((item) => {
+    assert.equal(item.category, "mermaid");
     assert.match(item.syntax, /^```mermaid\n/);
     assert.match(item.syntax, /\n```$/);
-    assert.ok(item.description && item.notes);
+    assert.ok(item.type && item.name && item.description && item.notes);
   });
-  assert.match(mermaid[0].syntax, /flowchart TD[\s\S]*\{条件を満たす\?\}[\s\S]*はい[\s\S]*いいえ/);
-  assert.match(mermaid[1].syntax, /sequenceDiagram[\s\S]*participant[\s\S]*->>[\s\S]*-->>/);
-  assert.match(mermaid[2].syntax, /stateDiagram-v2[\s\S]*\[\*\][\s\S]*編集中[\s\S]*保存中[\s\S]*保存済み/);
-  assert.match(mermaid[3].syntax, /classDiagram[\s\S]*class Memo[\s\S]*class Attachment[\s\S]*-->/);
+});
+
+test("追加した5種類を含め、各テンプレートは分類名と一致するMermaid宣言を持つ", () => {
+  mermaidItems.forEach((item) => {
+    const source = item.syntax.split("\n").slice(1, -1).join("\n");
+    const expectedDeclaration = item.type === "flowchart" ? /^flowchart\s+(TD|LR)/ : new RegExp(`^${item.type}(?:\\s|$)`);
+    assert.match(source, expectedDeclaration, `${item.type}: ${item.name}`);
+  });
+  assert.match(mermaidItems.find((item) => item.type === "erDiagram").syntax, /erDiagram[\s\S]*\|\|--o\{/);
+  assert.match(mermaidItems.find((item) => item.type === "gantt").syntax, /gantt[\s\S]*dateFormat YYYY-MM-DD/);
+  assert.match(mermaidItems.find((item) => item.type === "gitGraph").syntax, /gitGraph[\s\S]*commit id:/);
+  assert.match(mermaidItems.find((item) => item.type === "timeline").syntax, /timeline[\s\S]*title/);
+  assert.match(mermaidItems.find((item) => item.type === "mindmap").syntax, /mindmap[\s\S]*root\(\(/);
+});
+
+test("Mermaid一覧は9種類の詳細ボタンを作り、選択種類だけを詳細表示する", () => {
+  const listSource = readFunctionSource("createMermaidTypeList");
+  const detailsSource = readFunctionSource("renderMermaidTemplateDetails");
+  assert.match(listSource, /MERMAID_TEMPLATE_TYPES\.forEach/);
+  assert.match(listSource, /button\.textContent = "詳細"/);
+  assert.match(listSource, /`\$\{templateType\.name\}のテンプレート詳細を開く`/);
+  assert.match(listSource, /aria-controls", "mermaidTemplateDialog"/);
+  assert.match(detailsSource, /item\.type === templateType\.type/);
+  assert.match(detailsSource, /createSyntaxGuideItem\(item, mermaidTemplateStatus\)/);
 });
 
 test("コピーはClipboard APIとフォールバック、成功復帰、失敗案内を持つ", () => {
@@ -204,6 +254,14 @@ test("モーダル表示中のフォールバックはdialog内で選択し元�
   assert.equal(harness.dialog.children.length, 0);
   assert.equal(harness.documentMock.activeElement, harness.originalFocus);
   assert.equal(harness.originalFocus.focusCalls.length, 1);
+});
+
+test("Mermaid詳細表示中のフォールバックは最前面の詳細dialogを追加先にする", () => {
+  const harness = createCopyHarness({ dialogOpen: true, detailDialogOpen: true });
+  harness.functions.fallbackCopyText("詳細からコピー");
+  assert.equal(harness.appendHistory[0].container, harness.detailDialog);
+  assert.equal(harness.detailDialog.children.length, 0);
+  assert.equal(harness.documentMock.activeElement, harness.originalFocus);
 });
 
 test("ダイアログが閉じている場合のフォールバックはbodyを安全な追加先にする", () => {
@@ -275,6 +333,8 @@ test("開閉はaria-expandedを同期し本文・保存・Undo処理から独立
   assert.match(app, /syntaxGuideDialog\.addEventListener\("close", \(\) => \{[\s\S]*aria-expanded", "false"/);
   const guideFunctions = app.match(/function createSyntaxGuideCopyButton[\s\S]*?function closeSyntaxGuide\(\) \{[\s\S]*?\n\}/)?.[0] || "";
   assert.doesNotMatch(guideFunctions, /editor\.value|titleInput\.value|scheduleSave|captureUndoSnapshot|undoStack|scrollTop/);
+  assert.match(app, /closeMermaidTemplateBtn[\s\S]*addEventListener\("click", closeMermaidTemplateDetails\)/);
+  assert.match(app, /mermaidTemplateDialog\.addEventListener\("close"[\s\S]*trigger\.focus\(\{ preventScroll: true \}\)/);
 });
 
 test("ライト・ダーク共通変数と狭幅container queryで表示する", () => {
@@ -283,6 +343,15 @@ test("ライト・ダーク共通変数と狭幅container queryで表示する",
   assert.match(guideCss, /var\(--ink\)/);
   assert.match(guideCss, /var\(--line\)/);
   assert.match(guideCss, /var\(--section-bg\)/);
-  assert.match(css, /@container app-width \(max-width: 719\.98px\)[\s\S]*\.syntax-guide-dialog\s*\{[^}]*width:\s*calc\(100vw - 16px\)/s);
-  assert.match(css, /@container app-width \(max-width: 719\.98px\)[\s\S]*\.syntax-guide-items,[\s\S]*\.syntax-guide-aliases\s*\{[^}]*grid-template-columns:\s*minmax\(0, 1fr\)/s);
+  assert.match(css, /@container app-width \(max-width: 719\.98px\)[\s\S]*\.syntax-guide-dialog,[\s\S]*\.mermaid-template-dialog\s*\{[^}]*width:\s*calc\(100vw - 16px\)/s);
+  assert.match(css, /@container app-width \(max-width: 719\.98px\)[\s\S]*\.syntax-guide-items,[\s\S]*\.mermaid-type-list,[\s\S]*\.syntax-guide-aliases\s*\{[^}]*grid-template-columns:\s*minmax\(0, 1fr\)/s);
+  assert.match(css, /\.mermaid-template-dialog \.syntax-guide-item pre\s*\{[^}]*white-space:\s*pre;[^}]*overflow-wrap:\s*normal;/s);
+});
+
+test("app.jsのキャッシュ番号を更新し、PR #24の画面外Mermaid描画経路を維持する", () => {
+  assert.match(html, /app\.js\?v=0\.4\.0-18/);
+  assert.match(app, /mermaid\.render\(/);
+  assert.doesNotMatch(app, /mermaid\.run\(/);
+  assert.match(app, /mermaidRenderGeneration/);
+  assert.match(app, /mermaidRenderQueue/);
 });

@@ -245,5 +245,5 @@ test("プレビュー世代をDOM IDへ渡し、配信時にapp.jsのキャッ�
   assert.match(app, /renderPreviewHtml\(body, note\.id, renderGeneration\)/);
   assert.match(app, /renderMermaidBlock\(block\.code, noteId, renderGeneration, codeBlockIndex\)/);
   assert.match(app, /mermaid-diagram-\$\{stableMermaidIdPart\(noteId\)\}-g\$\{renderGeneration\}-b\$\{index\}/);
-  assert.match(indexHtml, /<script src="app\.js\?v=0\.4\.0-17"><\/script>/);
+  assert.match(indexHtml, /<script src="app\.js\?v=0\.4\.0-18"><\/script>/);
 });

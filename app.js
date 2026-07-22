@@ -31,6 +31,17 @@ const HIGHLIGHT_LANGUAGE_ALIASES = {
   md: "markdown",
   yml: "yaml"
 };
+function createMermaidTemplate(type, name, description, lines, notes) {
+  return {
+    category: "mermaid",
+    type,
+    name,
+    description,
+    syntax: ["```mermaid", ...lines, "```"].join("\n"),
+    notes
+  };
+}
+
 const SYNTAX_GUIDE_ITEMS = [
   { category: "markdown", name: "見出し1", syntax: "# 見出し", description: "最も大きな見出しです。", notes: "行頭に#と半角スペースを書きます。" },
   { category: "markdown", name: "見出し2", syntax: "## 見出し", description: "2段階目の見出しです。", notes: "行頭に##と半角スペースを書きます。" },
@@ -46,35 +57,163 @@ const SYNTAX_GUIDE_ITEMS = [
     syntax: ["```javascript", "const greeting = \"Hello, Memo Nexus!\";", "console.log(greeting);", "```"].join("\n"),
     description: "開始側のバッククォート3個の直後に言語名を書き、終了側はバッククォート3個だけを書きます。",
     notes: "言語名を省略するとhighlight.jsが自動判定を試み、判定できない場合は色を付けずに表示します。コードは実行されません。"
-  },
-  {
-    category: "mermaid",
-    name: "フローチャート",
-    syntax: ["```mermaid", "flowchart TD", "  A[処理を開始] --> B{条件を満たす?}", "  B -- はい --> C[保存する]", "  B -- いいえ --> D[見直す]", "  D --> B", "```"].join("\n"),
-    description: "flowchart TDは上から下の流れ、-->は矢印、{ }は条件分岐を表します。",
-    notes: "-- はい --> のように矢印へ分岐ラベルを付けられます。"
-  },
-  {
-    category: "mermaid",
-    name: "シーケンス図",
-    syntax: ["```mermaid", "sequenceDiagram", "  participant User as ユーザー", "  participant App as Memo Nexus", "  User->>App: メモを保存", "  App-->>User: 保存完了", "```"].join("\n"),
-    description: "participantで登場者を定義し、->>で送信、-->>で応答を表します。",
-    notes: "矢印の後ろにコロンとメッセージを書きます。"
-  },
-  {
-    category: "mermaid",
-    name: "状態遷移図",
-    syntax: ["```mermaid", "stateDiagram-v2", "  [*] --> 編集中", "  編集中 --> 保存中", "  保存中 --> 保存済み", "  保存済み --> [*]", "```"].join("\n"),
-    description: "[*]は開始・終了状態、-->は状態の移り変わりを表します。",
-    notes: "状態名を矢印で結ぶと遷移を追加できます。"
-  },
-  {
-    category: "mermaid",
-    name: "クラス図",
-    syntax: ["```mermaid", "classDiagram", "  class Memo {", "    +String title", "    +save()", "  }", "  class Attachment {", "    +String fileName", "  }", "  Memo \"1\" --> \"0..*\" Attachment : contains", "```"].join("\n"),
-    description: "classでクラスを定義し、+は公開プロパティ・メソッド、-->は関係を表します。",
-    notes: "1と0..*は、1件のメモが複数の添付を持てる関係です。"
   }
+];
+const MERMAID_TEMPLATE_TYPES = [
+  { type: "flowchart", name: "フローチャート" },
+  { type: "sequenceDiagram", name: "シーケンス図" },
+  { type: "stateDiagram-v2", name: "状態遷移図" },
+  { type: "classDiagram", name: "クラス図" },
+  { type: "erDiagram", name: "ER図" },
+  { type: "gantt", name: "ガントチャート" },
+  { type: "gitGraph", name: "Gitグラフ" },
+  { type: "timeline", name: "タイムライン" },
+  { type: "mindmap", name: "マインドマップ" }
+];
+const MERMAID_TEMPLATE_ITEMS = [
+  createMermaidTemplate("flowchart", "基本的な処理の流れ", "開始から完了までの処理順序を表す例です。", [
+    "flowchart TD", "  Start([開始]) --> Input[内容を入力]", "  Input --> Save[保存する]", "  Save --> End([完了])"
+  ], "TDは上から下、矢印は処理の進行方向を表します。"),
+  createMermaidTemplate("flowchart", "条件分岐", "条件によって処理先が分かれる例です。", [
+    "flowchart TD", "  A[内容を確認] --> B{条件を満たす?}", "  B -- はい --> C[保存する]", "  B -- いいえ --> D[見直す]", "  D --> A", "  C --> E([完了])"
+  ], "{ }は判断、矢印上の文字は分岐条件を表します。"),
+  createMermaidTemplate("flowchart", "繰り返し", "全項目を処理するまで繰り返す例です。", [
+    "flowchart TD", "  A[最初の項目] --> B{未処理の項目がある?}", "  B -- はい --> C[項目を処理]", "  C --> D[次の項目へ]", "  D --> B", "  B -- いいえ --> E([終了])"
+  ], "判断ノードへ矢印を戻すと繰り返しを表現できます。"),
+  createMermaidTemplate("flowchart", "サブグラフ", "関連する工程をグループ化する例です。", [
+    "flowchart LR", "  A[依頼] --> B", "  subgraph Review[レビュー工程]", "    B[内容確認] --> C[承認]", "  end", "  C --> D[公開]"
+  ], "subgraphとendの間にまとめたい処理を書きます。"),
+  createMermaidTemplate("flowchart", "エラー処理", "成功時と失敗時の処理を分ける例です。", [
+    "flowchart TD", "  A[保存を開始] --> B{保存成功?}", "  B -- はい --> C[完了を通知]", "  B -- いいえ --> D[エラーを記録]", "  D --> E[再試行を案内]", "  C --> F([終了])", "  E --> F"
+  ], "正常系と異常系を別の矢印で示すと流れを追いやすくなります。"),
+
+  createMermaidTemplate("sequenceDiagram", "基本的な通信", "利用者とアプリ間の要求・応答を表す例です。", [
+    "sequenceDiagram", "  participant User as ユーザー", "  participant App as Memo Nexus", "  User->>App: メモを保存", "  App-->>User: 保存完了"
+  ], "->>は要求、-->>は応答を表します。"),
+  createMermaidTemplate("sequenceDiagram", "複数の参加者", "画面、API、データベースの連携を表す例です。", [
+    "sequenceDiagram", "  actor User as ユーザー", "  participant App as アプリ", "  participant API as API", "  participant DB as データベース", "  User->>App: 保存", "  App->>API: 保存要求", "  API->>DB: データ登録", "  DB-->>API: 登録結果", "  API-->>App: 成功", "  App-->>User: 完了表示"
+  ], "actorとparticipantで役割を区別できます。"),
+  createMermaidTemplate("sequenceDiagram", "条件分岐（alt）", "結果に応じて応答が変わる例です。", [
+    "sequenceDiagram", "  participant App as アプリ", "  participant Server as サーバー", "  App->>Server: 認証を要求", "  alt 認証成功", "    Server-->>App: トークンを返す", "  else 認証失敗", "    Server-->>App: エラーを返す", "  end"
+  ], "alt、else、endで条件分岐を囲みます。"),
+  createMermaidTemplate("sequenceDiagram", "繰り返し（loop）", "複数項目を順番に送信する例です。", [
+    "sequenceDiagram", "  participant App as アプリ", "  participant Server as サーバー", "  loop 未送信項目ごと", "    App->>Server: 項目を送信", "    Server-->>App: 受信確認", "  end"
+  ], "loopとendの間が繰り返される処理です。"),
+  createMermaidTemplate("sequenceDiagram", "非同期処理", "受付後にバックグラウンド処理が進む例です。", [
+    "sequenceDiagram", "  participant User as ユーザー", "  participant App as アプリ", "  participant Worker as ワーカー", "  User->>App: エクスポート要求", "  App-)Worker: 非同期ジョブを開始", "  App-->>User: 受付完了", "  Worker-->>App: 処理完了"
+  ], ")で終わる矢印は非同期メッセージを表します。"),
+
+  createMermaidTemplate("stateDiagram-v2", "基本的な状態遷移", "開始から終了までの状態変化を表す例です。", [
+    "stateDiagram-v2", "  [*] --> 待機中", "  待機中 --> 実行中 : 開始", "  実行中 --> 完了 : 正常終了", "  完了 --> [*]"
+  ], "[*]は開始状態または終了状態を表します。"),
+  createMermaidTemplate("stateDiagram-v2", "保存状態", "メモの編集・保存状態を表す例です。", [
+    "stateDiagram-v2", "  [*] --> 未変更", "  未変更 --> 編集中 : 入力", "  編集中 --> 保存中 : 保存", "  保存中 --> 保存済み : 成功", "  保存中 --> 編集中 : 失敗", "  保存済み --> 編集中 : 再編集"
+  ], "矢印の後ろにコロンで遷移のきっかけを書けます。"),
+  createMermaidTemplate("stateDiagram-v2", "認証状態", "ログインからログアウトまでの状態を表す例です。", [
+    "stateDiagram-v2", "  [*] --> 未認証", "  未認証 --> 認証中 : ログイン", "  認証中 --> 認証済み : 成功", "  認証中 --> 未認証 : 失敗", "  認証済み --> 未認証 : ログアウト"
+  ], "失敗時に元の状態へ戻る流れも表せます。"),
+  createMermaidTemplate("stateDiagram-v2", "処理状態", "キュー処理の待機・実行・再試行を表す例です。", [
+    "stateDiagram-v2", "  [*] --> キュー待ち", "  キュー待ち --> 実行中", "  実行中 --> 成功", "  実行中 --> 再試行 : 一時エラー", "  再試行 --> 実行中", "  再試行 --> 失敗 : 上限到達", "  成功 --> [*]", "  失敗 --> [*]"
+  ], "複数の終了経路を別々に示せます。"),
+  createMermaidTemplate("stateDiagram-v2", "複合状態", "大きな状態の内部に複数状態を持つ例です。", [
+    "stateDiagram-v2", "  [*] --> 編集", "  state 編集 {", "    [*] --> 入力中", "    入力中 --> 確認中 : プレビュー", "    確認中 --> 入力中 : 修正", "  }", "  編集 --> 公開済み : 公開", "  公開済み --> [*]"
+  ], "state名と波括弧で状態を入れ子にできます。"),
+
+  createMermaidTemplate("classDiagram", "基本的なクラス", "プロパティとメソッドを持つクラスの例です。", [
+    "classDiagram", "  class Memo {", "    +String title", "    +String body", "    +save()", "  }"
+  ], "+は公開メンバーを表します。"),
+  createMermaidTemplate("classDiagram", "クラス間の関連", "メモと添付ファイルの関連を表す例です。", [
+    "classDiagram", "  class Memo", "  class Attachment", "  Memo \"1\" --> \"0..*\" Attachment : contains"
+  ], "1と0..*で1件対複数件の関係を表します。"),
+  createMermaidTemplate("classDiagram", "継承", "基底クラスと派生クラスを表す例です。", [
+    "classDiagram", "  class Document {", "    +String title", "    +save()", "  }", "  class Memo", "  class DailyNote", "  Document <|-- Memo", "  Document <|-- DailyNote"
+  ], "<|--の三角側が継承元です。"),
+  createMermaidTemplate("classDiagram", "複数クラスの関係", "利用者、メモ、コレクションの関係を表す例です。", [
+    "classDiagram", "  class User", "  class Memo", "  class Collection", "  User \"1\" --> \"0..*\" Memo : owns", "  Collection \"1\" o-- \"0..*\" Memo : groups"
+  ], "-->は関連、o--は集約を表します。"),
+  createMermaidTemplate("classDiagram", "インターフェース", "インターフェースを実装するクラスの例です。", [
+    "classDiagram", "  class Repository {", "    <<interface>>", "    +save(memo)", "    +find(id)", "  }", "  class IndexedDbRepository", "  Repository <|.. IndexedDbRepository"
+  ], "<<interface>>で種別を示し、<|..で実装関係を表します。"),
+
+  createMermaidTemplate("erDiagram", "基本的なテーブル関係", "複数のテーブルと関係を表す例です。", [
+    "erDiagram", "  USER ||--o{ MEMO : owns", "  COLLECTION ||--o{ MEMO : contains", "  MEMO ||--o{ ATTACHMENT : has"
+  ], "||--o{は1対多の関係を表します。"),
+  createMermaidTemplate("erDiagram", "1対多", "1つの著者が複数の記事を書く関係の例です。", [
+    "erDiagram", "  AUTHOR ||--o{ ARTICLE : writes", "  AUTHOR {", "    int id PK", "    string name", "  }", "  ARTICLE {", "    int id PK", "    int author_id FK", "    string title", "  }"
+  ], "PKは主キー、FKは外部キーを表します。"),
+  createMermaidTemplate("erDiagram", "多対多", "学生と講座を中間テーブルで結ぶ例です。", [
+    "erDiagram", "  STUDENT ||--o{ ENROLLMENT : registers", "  COURSE ||--o{ ENROLLMENT : includes", "  STUDENT { int id PK }", "  COURSE { int id PK }", "  ENROLLMENT {", "    int student_id FK", "    int course_id FK", "  }"
+  ], "多対多は中間エンティティを2つの1対多で表します。"),
+  createMermaidTemplate("erDiagram", "ユーザーと注文", "顧客、注文、注文明細、商品の関係を表す例です。", [
+    "erDiagram", "  USER ||--o{ ORDER : places", "  ORDER ||--|{ ORDER_ITEM : contains", "  PRODUCT ||--o{ ORDER_ITEM : referenced_by", "  USER { int id PK }", "  ORDER { int id PK }", "  ORDER_ITEM { int quantity }", "  PRODUCT { int id PK }"
+  ], "|{は1件以上、o{は0件以上を表します。"),
+  createMermaidTemplate("erDiagram", "メモ・コレクション・添付ファイル", "Memo Nexusの主要データ関係を表す例です。", [
+    "erDiagram", "  COLLECTION ||--o{ MEMO : contains", "  MEMO ||--o{ ATTACHMENT : has", "  MEMO ||--o{ WIKI_LINK : references", "  COLLECTION { string id PK }", "  MEMO { string id PK }", "  ATTACHMENT { string id PK }", "  WIKI_LINK { string target_title }"
+  ], "アプリ固有のデータ構造を整理するときに使える例です。"),
+
+  createMermaidTemplate("gantt", "基本的な予定", "日付と期間を持つ作業予定の例です。", [
+    "gantt", "  title 基本的な予定", "  dateFormat YYYY-MM-DD", "  section 作業", "  要件整理 :done, task1, 2026-08-01, 3d", "  実装 :active, task2, after task1, 5d", "  確認 :task3, after task2, 2d"
+  ], "dateFormatに合わせて開始日を書きます。"),
+  createMermaidTemplate("gantt", "依存関係", "前の作業が終わってから次へ進む例です。", [
+    "gantt", "  title 依存関係", "  dateFormat YYYY-MM-DD", "  section 開発", "  設計 :design, 2026-08-01, 4d", "  実装 :build, after design, 7d", "  テスト :test, after build, 3d", "  公開 :after test, 1d"
+  ], "after IDで前のタスクへの依存を指定します。"),
+  createMermaidTemplate("gantt", "マイルストーン", "重要な到達点を含む予定の例です。", [
+    "gantt", "  title リリース計画", "  dateFormat YYYY-MM-DD", "  section リリース", "  候補版 :release_candidate, 2026-09-01, 5d", "  v1.0公開 :milestone, release, after release_candidate, 0d", "  振り返り :after release, 2d"
+  ], "milestoneと期間0dで到達点を表します。"),
+  createMermaidTemplate("gantt", "複数セクション", "担当領域ごとに予定を分ける例です。", [
+    "gantt", "  title 複数チームの予定", "  dateFormat YYYY-MM-DD", "  section デザイン", "  画面設計 :ui, 2026-08-01, 5d", "  section 開発", "  実装 :dev, after ui, 7d", "  section 品質確認", "  テスト :qa, after dev, 3d"
+  ], "sectionでタスクを領域別に整理できます。"),
+  createMermaidTemplate("gantt", "プロジェクト進行", "計画からリリースまでの全体工程の例です。", [
+    "gantt", "  title プロジェクト進行", "  dateFormat YYYY-MM-DD", "  excludes weekends", "  section 計画", "  要件定義 :done, req, 2026-08-03, 5d", "  section 制作", "  開発 :active, dev, after req, 10d", "  section 公開", "  受入確認 :accept, after dev, 3d", "  リリース :milestone, after accept, 0d"
+  ], "excludes weekendsで土日を期間計算から除外できます。"),
+
+  createMermaidTemplate("gitGraph", "基本的なブランチ", "mainから作業ブランチを作る例です。", [
+    "gitGraph", "  commit id: \"初期\"", "  branch feature", "  checkout feature", "  commit id: \"機能追加\""
+  ], "branchで作成し、checkoutで作業先を切り替えます。"),
+  createMermaidTemplate("gitGraph", "featureブランチとマージ", "機能ブランチをmainへ統合する例です。", [
+    "gitGraph", "  commit id: \"開始\"", "  branch feature", "  checkout feature", "  commit id: \"実装\"", "  commit id: \"テスト\"", "  checkout main", "  merge feature", "  commit id: \"公開準備\""
+  ], "mergeの後ろに統合するブランチ名を書きます。"),
+  createMermaidTemplate("gitGraph", "複数ブランチ", "開発とドキュメントを並行して進める例です。", [
+    "gitGraph", "  commit id: \"開始\"", "  branch develop", "  checkout develop", "  commit id: \"開発\"", "  checkout main", "  branch docs", "  checkout docs", "  commit id: \"文書更新\"", "  checkout main", "  merge docs", "  merge develop"
+  ], "checkoutで複数ブランチを行き来できます。"),
+  createMermaidTemplate("gitGraph", "タグ付きリリース", "リリースコミットへタグを付ける例です。", [
+    "gitGraph", "  commit id: \"初期版\"", "  branch release", "  checkout release", "  commit id: \"調整\"", "  checkout main", "  merge release", "  commit id: \"v1公開\" tag: \"v1.0.0\""
+  ], "commitへtagを付けるとリリース点を明示できます。"),
+  createMermaidTemplate("gitGraph", "hotfix", "公開後の緊急修正をmainへ戻す例です。", [
+    "gitGraph", "  commit id: \"v1.0\" tag: \"v1.0.0\"", "  branch hotfix", "  checkout hotfix", "  commit id: \"緊急修正\"", "  checkout main", "  merge hotfix", "  commit id: \"v1.0.1\" tag: \"v1.0.1\""
+  ], "hotfixブランチの短い修正履歴を表せます。"),
+
+  createMermaidTemplate("timeline", "年表", "年ごとの主な出来事を並べる例です。", [
+    "timeline", "  title サービス年表", "  2024 : 構想開始", "  2025 : 試作版を公開", "  2026 : 正式版を公開"
+  ], "時点の後ろにコロンで出来事を書きます。"),
+  createMermaidTemplate("timeline", "プロジェクト履歴", "プロジェクトの段階を時系列でまとめる例です。", [
+    "timeline", "  title プロジェクト履歴", "  企画 : 要件を整理", "  設計 : 画面とデータを設計", "  開発 : 機能を実装", "  公開 : 利用を開始"
+  ], "日付以外の段階名も時点として使用できます。"),
+  createMermaidTemplate("timeline", "技術の発展", "技術選定の変化を年ごとに示す例です。", [
+    "timeline", "  title 技術の発展", "  2023 : ローカル保存を採用", "  2024 : Markdown表示を追加", "       : Wikiリンクを追加", "  2025 : Mermaid表示を追加"
+  ], "同じ時点へ複数の出来事を追加できます。"),
+  createMermaidTemplate("timeline", "リリース履歴", "バージョンごとの変更点をまとめる例です。", [
+    "timeline", "  title リリース履歴", "  v0.1 : メモ編集", "  v0.2 : 添付ファイル", "  v0.3 : コレクション", "  v0.4 : Mermaidテンプレート"
+  ], "バージョン名を時点として使うと変更履歴を整理できます。"),
+  createMermaidTemplate("timeline", "出来事と説明", "各時点に複数の説明を添える例です。", [
+    "timeline", "  title 開発の節目", "  7月 : 課題を発見", "      : 再現条件を整理", "  8月 : 修正を実装", "      : 自動テストを追加", "  9月 : 利用者へ公開"
+  ], "同じインデントのコロン行で説明を追加できます。"),
+
+  createMermaidTemplate("mindmap", "基本的な階層", "中心テーマから項目を枝分かれさせる例です。", [
+    "mindmap", "  root((中心テーマ))", "    項目A", "      詳細A1", "      詳細A2", "    項目B", "      詳細B1"
+  ], "インデントを深くすると子要素になります。"),
+  createMermaidTemplate("mindmap", "プロジェクト整理", "プロジェクトの要素を領域別に整理する例です。", [
+    "mindmap", "  root((プロジェクト))", "    目的", "      解決する課題", "      成功条件", "    作業", "      設計", "      実装", "      テスト", "    関係者", "      利用者", "      開発者"
+  ], "大きな分類から具体的な項目へ展開します。"),
+  createMermaidTemplate("mindmap", "学習計画", "学ぶ内容と実践方法を整理する例です。", [
+    "mindmap", "  root((学習計画))", "    基礎", "      用語", "      文法", "    実践", "      小さな課題", "      成果物", "    振り返り", "      理解度確認", "      次の目標"
+  ], "学習段階ごとに枝を分けると進め方が見えます。"),
+  createMermaidTemplate("mindmap", "アイデア整理", "検討中のアイデアを観点別に広げる例です。", [
+    "mindmap", "  root((新しい機能))", "    利用者", "      困りごと", "      期待", "    価値", "      時間短縮", "      ミス削減", "    実現方法", "      UI", "      データ", "      テスト"
+  ], "最初は広く枝を作り、あとから具体化できます。"),
+  createMermaidTemplate("mindmap", "知識分類", "知識を分野と具体例に分類する例です。", [
+    "mindmap", "  root((知識))", "    データ構造", "      配列", "      木", "      グラフ", "    アルゴリズム", "      探索", "      並べ替え", "    品質", "      テスト", "      レビュー"
+  ], "階層構造を使って関連知識を俯瞰できます。")
 ];
 const {
   buildCollectionLocalPlan,
@@ -211,6 +350,11 @@ const syntaxGuideDialog = $("syntaxGuideDialog");
 const closeSyntaxGuideBtn = $("closeSyntaxGuideBtn");
 const syntaxGuideBody = $("syntaxGuideBody");
 const syntaxGuideStatus = $("syntaxGuideStatus");
+const mermaidTemplateDialog = $("mermaidTemplateDialog");
+const mermaidTemplateTitle = $("mermaidTemplateTitle");
+const closeMermaidTemplateBtn = $("closeMermaidTemplateBtn");
+const mermaidTemplateBody = $("mermaidTemplateBody");
+const mermaidTemplateStatus = $("mermaidTemplateStatus");
 
 // アプリ全体で共有する状態。
 // notesはIndexedDBから読み込んだメモ一覧のメモリ上コピーです。
@@ -244,6 +388,7 @@ let draggedMemoIds = [];
 let pendingExport = null;
 let syntaxGuideRendered = false;
 const syntaxGuideCopyTimers = new WeakMap();
+let mermaidTemplateTrigger = null;
 let currentAttachments = [];
 let imageBlockSize = "medium";
 let pendingImageBlockTarget = null;
@@ -4617,17 +4762,65 @@ function escapeAttr(value) {
   return escapeHtml(value).replace(/`/g, "&#96;");
 }
 
-function createSyntaxGuideCopyButton(item) {
+function createSyntaxGuideCopyButton(item, statusElement = syntaxGuideStatus) {
   const button = document.createElement("button");
   button.type = "button";
   button.className = "syntax-guide-copy";
   button.textContent = "コピー";
   button.setAttribute("aria-label", `${item.name}の記法をコピー`);
-  button.addEventListener("click", () => copySyntaxGuideItem(item, button));
+  button.addEventListener("click", () => copySyntaxGuideItem(item, button, statusElement));
   return button;
 }
 
-function createSyntaxGuideItem(item) {
+function createMermaidTypeList() {
+  const list = document.createElement("div");
+  list.className = "mermaid-type-list";
+  MERMAID_TEMPLATE_TYPES.forEach((templateType) => {
+    const row = document.createElement("div");
+    row.className = "mermaid-type-row";
+    const name = document.createElement("span");
+    name.textContent = templateType.name;
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "mermaid-detail-button";
+    button.textContent = "詳細";
+    button.setAttribute("aria-label", `${templateType.name}のテンプレート詳細を開く`);
+    button.setAttribute("aria-controls", "mermaidTemplateDialog");
+    button.addEventListener("click", () => openMermaidTemplateDetails(templateType, button));
+    row.append(name, button);
+    list.append(row);
+  });
+  return list;
+}
+
+function renderMermaidTemplateDetails(templateType) {
+  if (!mermaidTemplateBody || !mermaidTemplateTitle) return;
+  mermaidTemplateTitle.textContent = `${templateType.name}のテンプレート`;
+  mermaidTemplateBody.replaceChildren();
+  const intro = document.createElement("p");
+  intro.className = "mermaid-template-intro";
+  intro.textContent = "完成したコードをコピーし、Memo Nexusの本文へそのまま貼り付けられます。";
+  const items = document.createElement("div");
+  items.className = "mermaid-template-items";
+  MERMAID_TEMPLATE_ITEMS.filter((item) => item.type === templateType.type).forEach((item) => {
+    items.append(createSyntaxGuideItem(item, mermaidTemplateStatus));
+  });
+  mermaidTemplateBody.append(intro, items);
+}
+
+function openMermaidTemplateDetails(templateType, trigger) {
+  if (!mermaidTemplateDialog) return;
+  mermaidTemplateTrigger = trigger;
+  renderMermaidTemplateDetails(templateType);
+  if (mermaidTemplateStatus) mermaidTemplateStatus.textContent = "";
+  if (!mermaidTemplateDialog.open) mermaidTemplateDialog.showModal();
+}
+
+function closeMermaidTemplateDetails() {
+  if (mermaidTemplateDialog?.open) mermaidTemplateDialog.close();
+}
+
+function createSyntaxGuideItem(item, statusElement = syntaxGuideStatus) {
   const article = document.createElement("article");
   article.className = "syntax-guide-item";
 
@@ -4635,7 +4828,7 @@ function createSyntaxGuideItem(item) {
   heading.className = "syntax-guide-item-head";
   const name = document.createElement("h3");
   name.textContent = item.name;
-  heading.append(name, createSyntaxGuideCopyButton(item));
+  heading.append(name, createSyntaxGuideCopyButton(item, statusElement));
 
   const code = document.createElement("code");
   code.textContent = item.syntax;
@@ -4667,11 +4860,13 @@ function renderSyntaxGuide() {
     const lead = document.createElement("p");
     lead.className = "syntax-guide-lead";
     lead.textContent = intro;
-    const items = document.createElement("div");
-    items.className = "syntax-guide-items";
-    SYNTAX_GUIDE_ITEMS.filter((item) => item.category === category).forEach((item) => {
-      items.append(createSyntaxGuideItem(item));
-    });
+    const items = category === "mermaid" ? createMermaidTypeList() : document.createElement("div");
+    if (category !== "mermaid") {
+      items.className = "syntax-guide-items";
+      SYNTAX_GUIDE_ITEMS.filter((item) => item.category === category).forEach((item) => {
+        items.append(createSyntaxGuideItem(item));
+      });
+    }
     section.append(heading, lead, items);
 
     if (category === "code") {
@@ -4700,7 +4895,9 @@ function fallbackCopyText(text) {
   textarea.value = text;
   textarea.setAttribute("readonly", "");
   textarea.className = "syntax-guide-copy-fallback";
-  const copyContainer = syntaxGuideDialog?.open ? syntaxGuideDialog : document.body;
+  const copyContainer = mermaidTemplateDialog?.open
+    ? mermaidTemplateDialog
+    : (syntaxGuideDialog?.open ? syntaxGuideDialog : document.body);
   copyContainer.append(textarea);
   try {
     textarea.focus({ preventScroll: true });
@@ -4731,11 +4928,11 @@ async function writeSyntaxGuideText(text) {
   fallbackCopyText(text);
 }
 
-async function copySyntaxGuideItem(item, button) {
+async function copySyntaxGuideItem(item, button, statusElement = syntaxGuideStatus) {
   const originalLabel = "コピー";
   const previousTimer = syntaxGuideCopyTimers.get(button);
   if (previousTimer) clearTimeout(previousTimer);
-  if (syntaxGuideStatus) syntaxGuideStatus.textContent = "";
+  if (statusElement) statusElement.textContent = "";
   try {
     await writeSyntaxGuideText(item.syntax);
     button.textContent = "コピーしました";
@@ -4747,7 +4944,7 @@ async function copySyntaxGuideItem(item, button) {
   } catch (error) {
     console.error("Syntax guide copy failed", error);
     button.textContent = originalLabel;
-    if (syntaxGuideStatus) syntaxGuideStatus.textContent = "コピーできませんでした。記法を選択してコピーしてください。";
+    if (statusElement) statusElement.textContent = "コピーできませんでした。記法を選択してコピーしてください。";
   }
 }
 
@@ -4846,6 +5043,13 @@ if (closeImagePreviewBtn) closeImagePreviewBtn.addEventListener("click", () => i
 if (imagePreviewDialog) imagePreviewDialog.addEventListener("close", () => imagePreview.removeAttribute("src"));
 if (syntaxGuideBtn && syntaxGuideDialog) syntaxGuideBtn.addEventListener("click", openSyntaxGuide);
 if (closeSyntaxGuideBtn && syntaxGuideDialog) closeSyntaxGuideBtn.addEventListener("click", closeSyntaxGuide);
+if (closeMermaidTemplateBtn && mermaidTemplateDialog) closeMermaidTemplateBtn.addEventListener("click", closeMermaidTemplateDetails);
+if (mermaidTemplateDialog) mermaidTemplateDialog.addEventListener("close", () => {
+  if (mermaidTemplateStatus) mermaidTemplateStatus.textContent = "";
+  const trigger = mermaidTemplateTrigger;
+  mermaidTemplateTrigger = null;
+  if (trigger?.isConnected) trigger.focus({ preventScroll: true });
+});
 if (syntaxGuideDialog) syntaxGuideDialog.addEventListener("close", () => {
   if (syntaxGuideBtn) syntaxGuideBtn.setAttribute("aria-expanded", "false");
 });
