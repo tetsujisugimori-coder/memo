@@ -70,8 +70,8 @@ const SYNTAX_GUIDE_ITEMS = [
       "└────────┴────────┘",
       "出典や補足を入力"
     ].join("\n"),
-    description: "エディタ上部の［表］からカーソル位置へ挿入し、説明・セル・出典や補足を編集します。行・列の追加と削除、見出し行のオン／オフ、表全体の削除は各表の操作メニューから行えます。",
-    notes: "セルはプレーンテキスト専用です。Tabで右へ、Shift+Tabで左へ移動し、最後のセルでTabを押すと行を追加します。カードでは空の説明や補足を隠し、狭い画面では表だけを横スクロールできます。数式・計算・セル結合・色指定・並べ替え・絞り込みには未対応です。外部表のコピーや計算機能は将来拡張の対象です。",
+    description: "エディタ上部の［表］からカーソル位置へ挿入し、説明・セル・出典や補足を編集します。左端の行番号または上端の列記号を押して対象を選び、操作メニューから選択位置の直後へ追加したり、確認画面を経て削除したりできます。",
+    notes: "行と列は同時には選択されません。最後の1行・1列は削除できません。セルはプレーンテキスト専用です。Tabで右へ、Shift+Tabで左へ移動し、最後のセルでTabを押すと行を追加します。見出し行のオン／オフと表全体の削除も操作メニューから行えます。カードでは空の説明や補足を隠し、狭い画面では表だけを横スクロールできます。数式・計算・セル結合・色指定・並べ替え・絞り込みには未対応です。外部表のコピーや計算機能は将来拡張の対象です。",
     copyable: false
   }
 ];
@@ -266,6 +266,7 @@ const {
   normalizeTableBlock,
   replaceTableBlock,
   splitTableBlocks,
+  tableColumnLabel,
   tableBlockPlainText,
   updateTableCell
 } = window.MemoNexusTableBlockUtils;
@@ -334,6 +335,12 @@ const noteMeta = $("noteMeta");
 const editor = $("editor");
 const insertTableBtn = $("insertTableBtn");
 const tableBlockEditors = $("tableBlockEditors");
+const tableAxisDeleteDialog = $("tableAxisDeleteDialog");
+const tableAxisDeleteTitle = $("tableAxisDeleteTitle");
+const tableAxisDeleteMessage = $("tableAxisDeleteMessage");
+const closeTableAxisDeleteBtn = $("closeTableAxisDeleteBtn");
+const cancelTableAxisDeleteBtn = $("cancelTableAxisDeleteBtn");
+const confirmTableAxisDeleteBtn = $("confirmTableAxisDeleteBtn");
 const editorCard = document.querySelector(".editor-card");
 const appHeader = document.querySelector(".app-header");
 const preview = $("preview");
@@ -421,6 +428,8 @@ let pendingExport = null;
 let syntaxGuideRendered = false;
 const syntaxGuideCopyTimers = new WeakMap();
 let activeTableCell = null;
+const tableAxisSelections = new Map();
+let pendingTableAxisDeletion = null;
 let mermaidTemplateTrigger = null;
 let currentAttachments = [];
 let imageBlockSize = "medium";
@@ -1733,6 +1742,8 @@ function openNote(id) {
 
   setRelatedDrawerOpen(false, { restoreFocus: false });
   currentId = note.id;
+  tableAxisSelections.clear();
+  pendingTableAxisDeletion = null;
   titleInput.value = note.title;
   editor.value = note.body;
   lastUndoSnapshotAt = 0;
@@ -2034,8 +2045,37 @@ function tableEditorButton(label, action, danger = false) {
   return button;
 }
 
+function tableAxisSelection(tableId) {
+  return tableAxisSelections.get(tableId) || null;
+}
+
+function tableAxisSelector(type, index, label, selected) {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "table-axis-selector";
+  button.textContent = label;
+  button.dataset.tableAxis = type;
+  button.dataset.tableAxisIndex = String(index);
+  button.setAttribute("aria-pressed", String(selected));
+  button.setAttribute("aria-label", type === "row" ? `${label}行目を選択` : `${label}列を選択`);
+  return button;
+}
+
+function setTableEditorStatus(editorBlock, message) {
+  const status = editorBlock && editorBlock.querySelector(".table-block-operation-status");
+  if (status) status.textContent = message;
+}
+
+function focusTableAxisHeader(tableId, type, index) {
+  requestAnimationFrame(() => {
+    const selector = `.table-block-editor[data-table-id="${CSS.escape(tableId)}"] .table-axis-selector[data-table-axis="${type}"][data-table-axis-index="${index}"]`;
+    tableBlockEditors?.querySelector(selector)?.focus({ preventScroll: true });
+  });
+}
+
 function createTableEditor(tableValue, blockIndex) {
   const table = normalizeTableBlock(tableValue, `table-${blockIndex + 1}`);
+  const selection = tableAxisSelection(table.id);
   const article = document.createElement("article");
   article.className = "table-block-editor";
   article.dataset.tableId = table.id;
@@ -2060,8 +2100,12 @@ function createTableEditor(tableValue, blockIndex) {
     tableEditorButton(table.hasHeader ? "見出し行をオフ" : "見出し行をオン", "toggle-header"),
     tableEditorButton("表を削除", "delete-table", true)
   );
-  actions.querySelector('[data-table-action="delete-row"]').disabled = table.rows.length <= 1;
-  actions.querySelector('[data-table-action="delete-column"]').disabled = table.rows[0].length <= 1;
+  actions.querySelector('[data-table-action="delete-row"]').title = selection?.type === "row"
+    ? `${selection.index + 1}行目を削除`
+    : "削除する行を選択してください";
+  actions.querySelector('[data-table-action="delete-column"]').title = selection?.type === "column"
+    ? `${tableColumnLabel(selection.index)}列を削除`
+    : "削除する列を選択してください";
   menu.append(summary, actions);
   header.append(title, menu);
 
@@ -2077,10 +2121,35 @@ function createTableEditor(tableValue, blockIndex) {
   scroll.className = "table-block-editor-scroll";
   const tableElement = document.createElement("table");
   tableElement.setAttribute("aria-label", `表${blockIndex + 1}のセル編集`);
+  const tableHead = document.createElement("thead");
+  const columnHeaderRow = document.createElement("tr");
+  const corner = document.createElement("th");
+  corner.className = "table-axis-corner";
+  corner.setAttribute("aria-hidden", "true");
+  columnHeaderRow.append(corner);
+  table.rows[0].forEach((_, columnIndex) => {
+    const selected = selection?.type === "column" && selection.index === columnIndex;
+    const headerCell = document.createElement("th");
+    headerCell.className = "table-axis-header table-column-header";
+    if (selected) headerCell.classList.add("is-selected");
+    headerCell.append(tableAxisSelector("column", columnIndex, tableColumnLabel(columnIndex), selected));
+    columnHeaderRow.append(headerCell);
+  });
+  tableHead.append(columnHeaderRow);
+  const tableBody = document.createElement("tbody");
   table.rows.forEach((row, rowIndex) => {
     const rowElement = document.createElement("tr");
+    const rowSelected = selection?.type === "row" && selection.index === rowIndex;
+    const rowHeader = document.createElement("th");
+    rowHeader.className = "table-axis-header table-row-header";
+    if (rowSelected) rowHeader.classList.add("is-selected");
+    rowHeader.append(tableAxisSelector("row", rowIndex, String(rowIndex + 1), rowSelected));
+    rowElement.append(rowHeader);
     row.forEach((cell, columnIndex) => {
       const cellElement = document.createElement(table.hasHeader && rowIndex === 0 ? "th" : "td");
+      if (rowSelected || (selection?.type === "column" && selection.index === columnIndex)) {
+        cellElement.classList.add("is-axis-selected");
+      }
       const input = document.createElement("input");
       input.type = "text";
       input.className = "table-block-cell-input";
@@ -2091,9 +2160,15 @@ function createTableEditor(tableValue, blockIndex) {
       cellElement.append(input);
       rowElement.append(cellElement);
     });
-    tableElement.append(rowElement);
+    tableBody.append(rowElement);
   });
+  tableElement.append(tableHead, tableBody);
   scroll.append(tableElement);
+
+  const operationStatus = document.createElement("p");
+  operationStatus.className = "table-block-operation-status";
+  operationStatus.setAttribute("role", "status");
+  operationStatus.setAttribute("aria-live", "polite");
 
   const note = document.createElement("input");
   note.type = "text";
@@ -2102,7 +2177,7 @@ function createTableEditor(tableValue, blockIndex) {
   note.value = table.note;
   note.placeholder = "出典や補足を入力";
   note.setAttribute("aria-label", `表${blockIndex + 1}の出典や補足`);
-  article.append(header, caption, scroll, note);
+  article.append(header, caption, scroll, operationStatus, note);
   return article;
 }
 
@@ -2212,6 +2287,82 @@ function handleTableEditorKeydown(event) {
   focusTableCell(blockIndex, movement.rowIndex, movement.columnIndex);
 }
 
+function handleTableAxisSelection(event) {
+  const button = event.target.closest(".table-axis-selector");
+  if (!button) return;
+  const editorBlock = button.closest(".table-block-editor");
+  const tableId = editorBlock.dataset.tableId;
+  const type = button.dataset.tableAxis;
+  const index = Number(button.dataset.tableAxisIndex);
+  const current = tableAxisSelection(tableId);
+  if (current?.type === type && current.index === index) {
+    tableAxisSelections.delete(tableId);
+  } else {
+    tableAxisSelections.set(tableId, { type, index });
+  }
+  renderTableBlockEditors();
+  focusTableAxisHeader(tableId, type, index);
+}
+
+function closeTableAxisDeleteDialog() {
+  if (tableAxisDeleteDialog?.open) tableAxisDeleteDialog.close();
+}
+
+function requestTableAxisDeletion(editorBlock, type, index) {
+  const label = type === "row" ? `${index + 1}行目` : `${tableColumnLabel(index)}列`;
+  pendingTableAxisDeletion = {
+    blockIndex: Number(editorBlock.dataset.tableIndex),
+    tableId: editorBlock.dataset.tableId,
+    type,
+    index,
+    restoreFocus: true,
+    trigger: editorBlock.querySelector(`[data-table-action="delete-${type}"]`)
+  };
+  tableAxisDeleteTitle.textContent = type === "row" ? "行を削除" : "列を削除";
+  tableAxisDeleteMessage.textContent = `${label}を削除しますか？`;
+  tableAxisDeleteDialog.showModal();
+  cancelTableAxisDeleteBtn.focus();
+}
+
+function confirmTableAxisDeletion() {
+  const pending = pendingTableAxisDeletion;
+  if (!pending) return;
+  const block = currentTableBlock(pending.blockIndex, pending.tableId);
+  const editorBlock = tableBlockEditors?.querySelector(`.table-block-editor[data-table-index="${pending.blockIndex}"]`);
+  if (!block) {
+    pending.restoreFocus = false;
+    closeTableAxisDeleteDialog();
+    return;
+  }
+  const selection = tableAxisSelection(pending.tableId);
+  if (selection?.type !== pending.type || selection.index !== pending.index) {
+    pending.restoreFocus = false;
+    closeTableAxisDeleteDialog();
+    setTableEditorStatus(editorBlock, "選択対象が変わりました。もう一度選択してください");
+    return;
+  }
+  const isRow = pending.type === "row";
+  const count = isRow ? block.table.rows.length : block.table.rows[0].length;
+  if (count <= 1) {
+    pending.restoreFocus = false;
+    closeTableAxisDeleteDialog();
+    setTableEditorStatus(editorBlock, isRow
+      ? "表には最低1行必要なため削除できません"
+      : "表には最低1列必要なため削除できません");
+    return;
+  }
+  const next = isRow
+    ? deleteTableRow(block.table, pending.index)
+    : deleteTableColumn(block.table, pending.index);
+  const nextIndex = Math.min(pending.index, count - 2);
+  tableAxisSelections.set(pending.tableId, { type: pending.type, index: nextIndex });
+  pending.restoreFocus = false;
+  closeTableAxisDeleteDialog();
+  if (commitTableBlockChange(pending.blockIndex, pending.tableId, next, { rerenderEditors: true })) {
+    focusTableAxisHeader(pending.tableId, pending.type, nextIndex);
+  }
+}
+
 function handleTableEditorAction(event) {
   const button = event.target.closest("[data-table-action]");
   if (!button) return;
@@ -2220,29 +2371,44 @@ function handleTableEditorAction(event) {
   const tableId = editorBlock.dataset.tableId;
   const block = currentTableBlock(blockIndex, tableId);
   if (!block) return;
-  const active = activeTableCell && activeTableCell.blockIndex === blockIndex
-    ? activeTableCell
-    : { rowIndex: block.table.rows.length - 1, columnIndex: block.table.rows[0].length - 1 };
+  const selection = tableAxisSelection(tableId);
   let next = block.table;
-  let focusRow = active.rowIndex;
-  let focusColumn = active.columnIndex;
+  let focusSelection = null;
   switch (button.dataset.tableAction) {
-    case "add-row":
-      next = addTableRow(next, active.rowIndex);
-      focusRow = Math.min(active.rowIndex + 1, next.rows.length - 1);
+    case "add-row": {
+      const afterIndex = selection?.type === "row" ? selection.index : next.rows.length - 1;
+      next = addTableRow(next, afterIndex);
+      focusSelection = { type: "row", index: Math.min(afterIndex + 1, next.rows.length - 1) };
       break;
+    }
     case "delete-row":
-      next = deleteTableRow(next, active.rowIndex);
-      focusRow = Math.min(active.rowIndex, next.rows.length - 1);
+      if (selection?.type !== "row") {
+        setTableEditorStatus(editorBlock, "削除する行を選択してください");
+        return;
+      }
+      if (next.rows.length <= 1) {
+        setTableEditorStatus(editorBlock, "表には最低1行必要なため削除できません");
+        return;
+      }
+      requestTableAxisDeletion(editorBlock, "row", selection.index);
+      return;
+    case "add-column": {
+      const afterIndex = selection?.type === "column" ? selection.index : next.rows[0].length - 1;
+      next = addTableColumn(next, afterIndex);
+      focusSelection = { type: "column", index: Math.min(afterIndex + 1, next.rows[0].length - 1) };
       break;
-    case "add-column":
-      next = addTableColumn(next, active.columnIndex);
-      focusColumn = Math.min(active.columnIndex + 1, next.rows[0].length - 1);
-      break;
+    }
     case "delete-column":
-      next = deleteTableColumn(next, active.columnIndex);
-      focusColumn = Math.min(active.columnIndex, next.rows[0].length - 1);
-      break;
+      if (selection?.type !== "column") {
+        setTableEditorStatus(editorBlock, "削除する列を選択してください");
+        return;
+      }
+      if (next.rows[0].length <= 1) {
+        setTableEditorStatus(editorBlock, "表には最低1列必要なため削除できません");
+        return;
+      }
+      requestTableAxisDeletion(editorBlock, "column", selection.index);
+      return;
     case "toggle-header":
       next = normalizeTableBlock({ ...next, hasHeader: !next.hasHeader }, tableId);
       break;
@@ -2251,6 +2417,7 @@ function handleTableEditorAction(event) {
       captureUndoSnapshot({ inputType: "deleteContentForward" });
       editor.value = replaceTableBlock(editor.value, block, null);
       activeTableCell = null;
+      tableAxisSelections.delete(tableId);
       renderTableBlockEditors();
       renderPreview();
       scheduleSave({ render: false });
@@ -2259,8 +2426,9 @@ function handleTableEditorAction(event) {
     default:
       return;
   }
+  if (focusSelection) tableAxisSelections.set(tableId, focusSelection);
   if (commitTableBlockChange(blockIndex, tableId, next, { rerenderEditors: true })) {
-    focusTableCell(blockIndex, focusRow, focusColumn);
+    if (focusSelection) focusTableAxisHeader(tableId, focusSelection.type, focusSelection.index);
   }
 }
 
@@ -5435,8 +5603,17 @@ if (tableBlockEditors) {
   tableBlockEditors.addEventListener("input", handleTableEditorInput);
   tableBlockEditors.addEventListener("focusin", handleTableEditorFocus);
   tableBlockEditors.addEventListener("keydown", handleTableEditorKeydown);
+  tableBlockEditors.addEventListener("click", handleTableAxisSelection);
   tableBlockEditors.addEventListener("click", handleTableEditorAction);
 }
+if (closeTableAxisDeleteBtn) closeTableAxisDeleteBtn.addEventListener("click", closeTableAxisDeleteDialog);
+if (cancelTableAxisDeleteBtn) cancelTableAxisDeleteBtn.addEventListener("click", closeTableAxisDeleteDialog);
+if (confirmTableAxisDeleteBtn) confirmTableAxisDeleteBtn.addEventListener("click", confirmTableAxisDeletion);
+if (tableAxisDeleteDialog) tableAxisDeleteDialog.addEventListener("close", () => {
+  const pending = pendingTableAxisDeletion;
+  pendingTableAxisDeletion = null;
+  if (pending?.restoreFocus && pending.trigger?.isConnected) pending.trigger.focus({ preventScroll: true });
+});
 if (closeSyntaxGuideBtn && syntaxGuideDialog) closeSyntaxGuideBtn.addEventListener("click", closeSyntaxGuide);
 if (closeMermaidTemplateBtn && mermaidTemplateDialog) closeMermaidTemplateBtn.addEventListener("click", closeMermaidTemplateDetails);
 if (mermaidTemplateDialog) mermaidTemplateDialog.addEventListener("close", () => {

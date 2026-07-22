@@ -205,6 +205,17 @@
     return next;
   }
 
+  function tableColumnLabel(columnIndex) {
+    let value = Math.max(0, Number(columnIndex) || 0) + 1;
+    let label = "";
+    while (value > 0) {
+      value -= 1;
+      label = String.fromCharCode(65 + (value % 26)) + label;
+      value = Math.floor(value / 26);
+    }
+    return label;
+  }
+
   function moveTableCell(table, rowIndex, columnIndex, backwards = false) {
     let next = normalizeTableBlock(table, table && table.id);
     const columnCount = next.rows[0].length;
@@ -245,6 +256,7 @@
     replaceTableBlock,
     serializeTableBlock,
     splitTableBlocks,
+    tableColumnLabel,
     tableBlockPlainText,
     updateTableCell
   };

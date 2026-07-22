@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Memo Nexus</title>
-  <link rel="stylesheet" href="style.css?v=0.4.0-17">
+  <link rel="stylesheet" href="style.css?v=0.4.0-18">
 </head>
 <body>
   <aside id="memoSidebar" class="sidebar" aria-label="メモ一覧" aria-hidden="false">
@@ -258,6 +258,20 @@
     </div>
   </dialog>
 
+  <dialog id="tableAxisDeleteDialog" class="table-axis-delete-dialog" aria-labelledby="tableAxisDeleteTitle">
+    <div class="dialog-head">
+      <strong id="tableAxisDeleteTitle">行を削除</strong>
+      <button id="closeTableAxisDeleteBtn" type="button" title="閉じる" aria-label="削除確認を閉じる">×</button>
+    </div>
+    <div class="table-axis-delete-body">
+      <p id="tableAxisDeleteMessage"></p>
+      <div class="collection-dialog-actions">
+        <button id="cancelTableAxisDeleteBtn" type="button">キャンセル</button>
+        <button id="confirmTableAxisDeleteBtn" class="danger-button" type="button">削除</button>
+      </div>
+    </div>
+  </dialog>
+
   <dialog id="syntaxGuideDialog" class="syntax-guide-dialog" aria-labelledby="syntaxGuideTitle">
     <div class="dialog-head">
       <strong id="syntaxGuideTitle">記法ガイド</strong>
@@ -281,8 +295,8 @@
   <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
   <script src="export-utils.js?v=0.4.0-8"></script>
   <script src="attachment-utils.js?v=0.4.0-10"></script>
-  <script src="table-block-utils.js?v=0.4.0-1"></script>
+  <script src="table-block-utils.js?v=0.4.0-2"></script>
   <script src="memo-list-utils.js?v=0.4.0-2"></script>
-  <script src="app.js?v=0.4.0-21"></script>
+  <script src="app.js?v=0.4.0-22"></script>
 </body>
 </html>

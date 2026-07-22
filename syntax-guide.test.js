@@ -135,8 +135,10 @@ test("記法ガイドに表ブロックの挿入・編集・制約をデータ�
   assert.ok(table);
   assert.equal(table.name, "表ブロック");
   assert.match(table.description, /［表］.*カーソル位置.*説明.*セル.*出典や補足/);
-  assert.match(table.description, /行・列の追加と削除.*見出し行.*表全体の削除/);
+  assert.match(table.description, /左端の行番号.*上端の列記号.*選び.*選択位置の直後.*確認画面.*削除/);
   assert.match(table.notes, /Tab.*Shift\+Tab.*最後のセル.*行を追加/);
+  assert.match(table.notes, /行と列は同時には選択されません.*最後の1行・1列は削除できません/);
+  assert.match(table.notes, /見出し行のオン／オフ.*表全体の削除/);
   assert.match(table.notes, /プレーンテキスト.*数式・計算・セル結合・色指定・並べ替え・絞り込みには未対応/);
   assert.match(table.notes, /狭い画面.*表だけを横スクロール/);
   assert.equal(table.copyable, false);
@@ -362,7 +364,8 @@ test("ライト・ダーク共通変数と狭幅container queryで表示する",
 });
 
 test("app.jsのキャッシュ番号を更新し、PR #24の画面外Mermaid描画経路を維持する", () => {
-  assert.match(html, /app\.js\?v=0\.4\.0-21/);
+  assert.match(html, /app\.js\?v=0\.4\.0-22/);
+  assert.match(html, /table-block-utils\.js\?v=0\.4\.0-2/);
   assert.match(app, /mermaid\.render\(/);
   assert.doesNotMatch(app, /mermaid\.run\(/);
   assert.match(app, /mermaidRenderGeneration/);

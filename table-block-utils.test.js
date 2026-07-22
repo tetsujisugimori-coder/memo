@@ -18,6 +18,7 @@ const {
   replaceTableBlock,
   serializeTableBlock,
   splitTableBlocks,
+  tableColumnLabel,
   tableBlockPlainText,
   updateTableCell
 } = require("./table-block-utils.js");
@@ -152,6 +153,10 @@ test("最後の1列は削除しない", () => {
   assert.deepEqual(deleteTableColumn(table, 0).rows, [["keep"], ["value"]]);
 });
 
+test("列記号はZの次をAA、ABとして生成する", () => {
+  assert.deepEqual([0, 25, 26, 27, 51, 52].map(tableColumnLabel), ["A", "Z", "AA", "AB", "AZ", "BA"]);
+});
+
 test("見出し行オン・オフを保存復元できる", () => {
   const table = normalizeTableBlock({ ...createTableBlock("header"), hasHeader: false });
   assert.equal(parseTableBlockLine(serializeTableBlock(table)).hasHeader, false);
@@ -245,15 +250,59 @@ test("カード描画は意味的tableとHTMLエスケープを使い編集UIを
   assert.doesNotMatch(source, /input|button|contenteditable/);
 });
 
-test("表全体の削除だけが確認を要求し、行列操作は即時反映する", () => {
+test("行列見出しはbuttonとaria-pressedを使いデータセルとは分離する", () => {
+  const app = fs.readFileSync("app.js", "utf8");
+  const start = app.indexOf("function createTableEditor(");
+  const end = app.indexOf("\nfunction renderTableBlockEditors(", start);
+  const source = app.slice(start, end);
+  assert.match(source, /tableAxisSelector\("column"/);
+  assert.match(source, /tableAxisSelector\("row"/);
+  assert.match(app, /button\.setAttribute\("aria-pressed", String\(selected\)\)/);
+  assert.match(app, /`\$\{label\}行目を選択`.*`\$\{label\}列を選択`/s);
+  assert.match(source, /tableElement\.append\(tableHead, tableBody\)/);
+});
+
+test("行列選択は表IDごとに保持し同じ見出しの再押下で解除する", () => {
+  const app = fs.readFileSync("app.js", "utf8");
+  const start = app.indexOf("function handleTableAxisSelection(");
+  const end = app.indexOf("\nfunction closeTableAxisDeleteDialog(", start);
+  const source = app.slice(start, end);
+  assert.match(app, /const tableAxisSelections = new Map\(\)/);
+  assert.match(source, /current\?\.type === type && current\.index === index/);
+  assert.match(source, /tableAxisSelections\.delete\(tableId\)/);
+  assert.match(source, /tableAxisSelections\.set\(tableId, \{ type, index \}\)/);
+  assert.match(source, /renderTableBlockEditors\(\);\s*focusTableAxisHeader\(tableId, type, index\)/);
+});
+
+test("未選択の行列削除は末尾へフォールバックせず案内する", () => {
   const app = fs.readFileSync("app.js", "utf8");
   const start = app.indexOf("function handleTableEditorAction(");
   const end = app.indexOf("\nfunction ", start + 10);
   const source = app.slice(start, end);
   assert.equal((source.match(/confirm\(/g) || []).length, 1);
   assert.match(source, /case "delete-table":[\s\S]*confirm\("この表ブロックを削除しますか？"\)/);
-  assert.match(source, /case "add-row":[\s\S]*addTableRow/);
-  assert.match(source, /case "delete-row":[\s\S]*deleteTableRow/);
-  assert.match(source, /case "add-column":[\s\S]*addTableColumn/);
-  assert.match(source, /case "delete-column":[\s\S]*deleteTableColumn/);
+  assert.match(source, /case "delete-row":[\s\S]*削除する行を選択してください/);
+  assert.match(source, /case "delete-column":[\s\S]*削除する列を選択してください/);
+  assert.doesNotMatch(source, /activeTableCell[\s\S]*rows\.length - 1/);
+});
+
+test("追加は選択位置の直後、未選択では末尾とし新しい行列を選択する", () => {
+  const app = fs.readFileSync("app.js", "utf8");
+  const start = app.indexOf("function handleTableEditorAction(");
+  const end = app.indexOf("\nfunction ", start + 10);
+  const source = app.slice(start, end);
+  assert.match(source, /selection\?\.type === "row" \? selection\.index : next\.rows\.length - 1/);
+  assert.match(source, /selection\?\.type === "column" \? selection\.index : next\.rows\[0\]\.length - 1/);
+  assert.match(source, /focusSelection = \{ type: "row"/);
+  assert.match(source, /focusSelection = \{ type: "column"/);
+});
+
+test("行列削除は日本語dialogで確認し削除後に近い見出しを選択する", () => {
+  const app = fs.readFileSync("app.js", "utf8");
+  const html = fs.readFileSync("index.html", "utf8");
+  assert.match(html, /id="tableAxisDeleteDialog"[\s\S]*id="cancelTableAxisDeleteBtn"[^>]*>キャンセル<[\s\S]*id="confirmTableAxisDeleteBtn"[^>]*>削除</);
+  assert.match(app, /tableAxisDeleteMessage\.textContent = `\$\{label\}を削除しますか？`/);
+  assert.match(app, /const nextIndex = Math\.min\(pending\.index, count - 2\)/);
+  assert.match(app, /表には最低1行必要なため削除できません/);
+  assert.match(app, /表には最低1列必要なため削除できません/);
 });
