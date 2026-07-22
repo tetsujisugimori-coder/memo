@@ -2,6 +2,7 @@
   "use strict";
 
   const TABLE_BLOCK_VERSION = 1;
+  const TABLE_PASTE_LIMITS = Object.freeze({ rows: 100, columns: 30, cells: 3000 });
   const TABLE_BLOCK_PATTERN = /^\s*<!-- memo-nexus:table-block:([0-9a-f]+) -->\s*$/i;
   const IMAGE_BLOCK_START = "<!-- memo-nexus:image-block -->";
   const IMAGE_BLOCK_END = "<!-- /memo-nexus:image-block -->";
@@ -28,6 +29,176 @@
     return value == null ? "" : String(value).replace(/\r\n?/g, "\n");
   }
 
+  function normalizePastedTableRows(value) {
+    if (!Array.isArray(value)) return [];
+    const rows = value.map((row) => Array.from(Array.isArray(row) ? row : [row], normalizedCell));
+    while (rows.length && rows[rows.length - 1].every((cell) => cell === "")) rows.pop();
+    if (!rows.length) return [];
+    let columnCount = Math.max(0, ...rows.map((row) => row.length));
+    while (columnCount > 0 && rows.every((row) => (row[columnCount - 1] || "") === "")) columnCount -= 1;
+    if (!columnCount) return [];
+    return rows.map((row) => Array.from({ length: columnCount }, (_, index) => normalizedCell(row[index])));
+  }
+
+  function parseTabSeparatedTable(text) {
+    const source = normalizedCell(text).replace(/^\n+|\n+$/g, "");
+    if (!source.includes("\t")) return null;
+    const rows = normalizePastedTableRows(source.split("\n").map((line) => line.split("\t")));
+    if (!rows.length) return null;
+    return {
+      format: "tab-separated",
+      formatLabel: "スプレッドシート形式",
+      rows,
+      hasHeader: true,
+      alignments: [],
+      hasMergedCells: false
+    };
+  }
+
+  function markdownLineHasTrailingPipe(line) {
+    if (!line.endsWith("|")) return false;
+    let slashCount = 0;
+    for (let index = line.length - 2; index >= 0 && line[index] === "\\"; index -= 1) slashCount += 1;
+    return slashCount % 2 === 0;
+  }
+
+  function splitMarkdownTableRow(line) {
+    let source = normalizedCell(line).trim();
+    if (source.startsWith("|")) source = source.slice(1);
+    if (markdownLineHasTrailingPipe(source)) source = source.slice(0, -1);
+    const cells = [];
+    let cell = "";
+    for (let index = 0; index < source.length; index += 1) {
+      const character = source[index];
+      if (character === "\\" && ["|", "\\"].includes(source[index + 1])) {
+        cell += source[index + 1];
+        index += 1;
+      } else if (character === "|") {
+        cells.push(cell.trim());
+        cell = "";
+      } else {
+        cell += character;
+      }
+    }
+    cells.push(cell.trim());
+    return cells;
+  }
+
+  function markdownAlignment(value) {
+    const marker = String(value || "").trim();
+    if (!/^:?-{3,}:?$/.test(marker)) return null;
+    if (marker.startsWith(":") && marker.endsWith(":")) return "center";
+    if (marker.endsWith(":")) return "right";
+    if (marker.startsWith(":")) return "left";
+    return null;
+  }
+
+  function parseMarkdownTable(text) {
+    const lines = normalizedCell(text).replace(/^\n+|\n+$/g, "").split("\n").filter((line) => line.trim() !== "");
+    if (lines.length < 2) return null;
+    const header = splitMarkdownTableRow(lines[0]);
+    const separator = splitMarkdownTableRow(lines[1]);
+    if (header.length < 2 || separator.length !== header.length) return null;
+    const alignments = separator.map(markdownAlignment);
+    if (alignments.some((alignment, index) => alignment === null && !/^-{3,}$/.test(separator[index]))) return null;
+    const dataRows = lines.slice(2).map(splitMarkdownTableRow);
+    if (dataRows.some((row) => row.length !== header.length)) return null;
+    const rows = normalizePastedTableRows([header, ...dataRows]);
+    if (!rows.length) return null;
+    return {
+      format: "markdown",
+      formatLabel: "Markdown表",
+      rows,
+      hasHeader: true,
+      alignments,
+      hasMergedCells: false
+    };
+  }
+
+  function htmlCellText(cell) {
+    const clone = cell.cloneNode(true);
+    clone.querySelectorAll("script, style, template").forEach((node) => node.remove());
+    clone.querySelectorAll("br").forEach((node) => node.replaceWith("\n"));
+    return normalizedCell(clone.textContent).replace(/\u00a0/g, " ").trim();
+  }
+
+  function parseHtmlTable(html, Parser = globalScope && globalScope.DOMParser) {
+    if (typeof Parser !== "function" || !/<table(?:\s|>)/i.test(String(html || ""))) return null;
+    try {
+      const documentNode = new Parser().parseFromString(String(html), "text/html");
+      const table = documentNode && documentNode.querySelector("table");
+      if (!table) return null;
+      const sourceRows = Array.from(table.querySelectorAll("tr"))
+        .filter((row) => !row.closest || row.closest("table") === table);
+      if (!sourceRows.length) return null;
+      const rows = [];
+      let hasMergedCells = false;
+      sourceRows.forEach((rowElement, rowIndex) => {
+        if (!rows[rowIndex]) rows[rowIndex] = [];
+        const cells = Array.from(rowElement.children || [])
+          .filter((cell) => ["TH", "TD"].includes(String(cell.tagName || "").toUpperCase()));
+        let columnIndex = 0;
+        cells.forEach((cell) => {
+          while (rows[rowIndex][columnIndex] !== undefined) columnIndex += 1;
+          const rowSpan = Math.max(1, Number.parseInt(cell.getAttribute("rowspan"), 10) || 1);
+          const columnSpan = Math.max(1, Number.parseInt(cell.getAttribute("colspan"), 10) || 1);
+          if (rowSpan > 1 || columnSpan > 1) hasMergedCells = true;
+          for (let rowOffset = 0; rowOffset < rowSpan; rowOffset += 1) {
+            const targetRowIndex = rowIndex + rowOffset;
+            if (!rows[targetRowIndex]) rows[targetRowIndex] = [];
+            for (let columnOffset = 0; columnOffset < columnSpan; columnOffset += 1) {
+              rows[targetRowIndex][columnIndex + columnOffset] = rowOffset === 0 && columnOffset === 0
+                ? htmlCellText(cell)
+                : "";
+            }
+          }
+          columnIndex += columnSpan;
+        });
+      });
+      const normalizedRows = normalizePastedTableRows(rows);
+      if (!normalizedRows.length) return null;
+      const firstRowCells = Array.from(sourceRows[0].children || [])
+        .filter((cell) => ["TH", "TD"].includes(String(cell.tagName || "").toUpperCase()));
+      return {
+        format: "html",
+        formatLabel: "HTML表",
+        rows: normalizedRows,
+        hasHeader: firstRowCells.some((cell) => String(cell.tagName || "").toUpperCase() === "TH"),
+        alignments: [],
+        hasMergedCells
+      };
+    } catch (error) {
+      return null;
+    }
+  }
+
+  function detectPastedTable({ html = "", text = "" } = {}, Parser) {
+    const htmlTable = parseHtmlTable(html, Parser);
+    if (htmlTable) return { ...htmlTable, plainText: normalizedCell(text) || htmlTable.rows.map((row) => row.join("\t")).join("\n") };
+    const markdownTable = parseMarkdownTable(text);
+    if (markdownTable) return { ...markdownTable, plainText: normalizedCell(text) };
+    const tabSeparatedTable = parseTabSeparatedTable(text);
+    if (tabSeparatedTable) return { ...tabSeparatedTable, plainText: normalizedCell(text) };
+    return null;
+  }
+
+  function validatePastedTableSize(rows, limits = TABLE_PASTE_LIMITS) {
+    const normalizedRows = normalizePastedTableRows(rows);
+    const rowCount = normalizedRows.length;
+    const columnCount = rowCount ? normalizedRows[0].length : 0;
+    const cellCount = rowCount * columnCount;
+    return {
+      allowed: rowCount > 0
+        && rowCount <= limits.rows
+        && columnCount <= limits.columns
+        && cellCount <= limits.cells,
+      rowCount,
+      columnCount,
+      cellCount,
+      limits
+    };
+  }
+
   function normalizeTableBlock(value, fallbackId = "table") {
     const source = value && typeof value === "object" && !Array.isArray(value) ? value : {};
     const sourceRows = Array.isArray(source.rows) && source.rows.length ? source.rows : [[""]];
@@ -37,7 +208,7 @@
       while (cells.length < columnCount) cells.push("");
       return cells;
     });
-    return {
+    const normalized = {
       ...source,
       type: "table",
       id: normalizedCell(source.id).trim() || normalizedCell(fallbackId).trim() || "table",
@@ -47,6 +218,13 @@
       version: Number.isInteger(source.version) && source.version > 0 ? source.version : TABLE_BLOCK_VERSION,
       rows
     };
+    if (Array.isArray(source.alignments)) {
+      normalized.alignments = Array.from({ length: columnCount }, (_, index) => {
+        const alignment = source.alignments[index];
+        return ["left", "center", "right"].includes(alignment) ? alignment : null;
+      });
+    }
+    return normalized;
   }
 
   function createTableBlock(id) {
@@ -194,6 +372,7 @@
       cells.splice(index, 0, "");
       return cells;
     });
+    if (Array.isArray(next.alignments)) next.alignments.splice(index, 0, null);
     return next;
   }
 
@@ -202,6 +381,7 @@
     if (next.rows[0].length <= 1) return next;
     const index = Math.min(next.rows[0].length - 1, Math.max(0, Number(columnIndex) || 0));
     next.rows = next.rows.map((row) => row.filter((_, currentIndex) => currentIndex !== index));
+    if (Array.isArray(next.alignments)) next.alignments.splice(index, 1);
     return next;
   }
 
@@ -214,6 +394,141 @@
       value = Math.floor(value / 26);
     }
     return label;
+  }
+
+  function tableRowsForCopy(rows) {
+    const sourceRows = Array.isArray(rows) && rows.length ? rows : [[""]];
+    const columnCount = Math.max(1, ...sourceRows.map((row) => Array.isArray(row) ? row.length : 0));
+    return sourceRows.map((row) => Array.from(
+      { length: columnCount },
+      (_, columnIndex) => normalizedCell(Array.isArray(row) ? row[columnIndex] : "")
+    ));
+  }
+
+  function tableRowsToTabSeparated(rows) {
+    return tableRowsForCopy(rows).map((row) => row.join("\t")).join("\n");
+  }
+
+  function copyColumnAlignment(table, columnIndex) {
+    const alignment = Array.isArray(table.alignments) ? table.alignments[columnIndex] : null;
+    return ["left", "center", "right"].includes(alignment) ? alignment : null;
+  }
+
+  function escapeTableHtmlCell(value) {
+    return normalizedCell(value)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;")
+      .replace(/\n/g, "<br>");
+  }
+
+  function tableBlockToHtml(tableValue) {
+    const table = normalizeTableBlock(tableValue, tableValue && tableValue.id);
+    const rows = tableRowsForCopy(table.rows);
+    const renderRows = (sourceRows, cellTag) => sourceRows.map((row) => [
+      "    <tr>",
+      ...row.map((cell, columnIndex) => {
+        const alignment = copyColumnAlignment(table, columnIndex);
+        const style = alignment ? ` style="text-align: ${alignment}"` : "";
+        return `      <${cellTag}${style}>${escapeTableHtmlCell(cell)}</${cellTag}>`;
+      }),
+      "    </tr>"
+    ].join("\n")).join("\n");
+    const lines = ["<table>"];
+    if (table.hasHeader) {
+      lines.push("  <thead>", renderRows(rows.slice(0, 1), "th"), "  </thead>");
+    }
+    lines.push("  <tbody>");
+    const bodyRows = table.hasHeader ? rows.slice(1) : rows;
+    if (bodyRows.length) lines.push(renderRows(bodyRows, "td"));
+    lines.push("  </tbody>", "</table>");
+    return lines.join("\n");
+  }
+
+  function escapeMarkdownTableCell(value) {
+    return normalizedCell(value)
+      .replace(/\\/g, "\\\\")
+      .replace(/\|/g, "\\|")
+      .replace(/\n/g, " ");
+  }
+
+  function markdownAlignmentMarker(alignment) {
+    if (alignment === "left") return ":---";
+    if (alignment === "center") return ":---:";
+    if (alignment === "right") return "---:";
+    return "---";
+  }
+
+  function markdownTableRow(row) {
+    return `| ${row.map(escapeMarkdownTableCell).join(" | ")} |`;
+  }
+
+  function tableBlockToMarkdown(tableValue) {
+    const table = normalizeTableBlock(tableValue, tableValue && tableValue.id);
+    const rows = tableRowsForCopy(table.rows);
+    const columnCount = rows[0].length;
+    const header = table.hasHeader
+      ? rows[0]
+      : Array.from({ length: columnCount }, (_, index) => tableColumnLabel(index));
+    const bodyRows = table.hasHeader ? rows.slice(1) : rows;
+    return [
+      markdownTableRow(header),
+      markdownTableRow(Array.from(
+        { length: columnCount },
+        (_, index) => markdownAlignmentMarker(copyColumnAlignment(table, index))
+      )),
+      ...bodyRows.map(markdownTableRow)
+    ].join("\n");
+  }
+
+  async function writeTextToClipboard(text, options = {}) {
+    const clipboard = options.clipboard || (globalScope && globalScope.navigator && globalScope.navigator.clipboard);
+    let clipboardError = null;
+    if (clipboard && typeof clipboard.writeText === "function") {
+      try {
+        await clipboard.writeText(String(text));
+        return { mode: "text", text: String(text) };
+      } catch (error) {
+        clipboardError = error;
+      }
+    }
+    if (typeof options.fallbackCopyText === "function") {
+      await options.fallbackCopyText(String(text));
+      return { mode: "fallback", text: String(text) };
+    }
+    throw clipboardError || new Error("クリップボードへコピーできませんでした");
+  }
+
+  async function writeTableToClipboard(table, options = {}) {
+    const plainText = tableRowsToTabSeparated(table && table.rows);
+    const htmlText = tableBlockToHtml(table);
+    const clipboard = options.clipboard || (globalScope && globalScope.navigator && globalScope.navigator.clipboard);
+    const ClipboardItemCtor = options.ClipboardItem || (globalScope && globalScope.ClipboardItem);
+    const BlobCtor = options.Blob || (globalScope && globalScope.Blob);
+    if (
+      clipboard
+      && typeof clipboard.write === "function"
+      && typeof ClipboardItemCtor === "function"
+      && typeof BlobCtor === "function"
+    ) {
+      try {
+        const item = new ClipboardItemCtor({
+          "text/plain": new BlobCtor([plainText], { type: "text/plain" }),
+          "text/html": new BlobCtor([htmlText], { type: "text/html" })
+        });
+        await clipboard.write([item]);
+        return { mode: "rich", plainText, htmlText };
+      } catch (error) {
+        if (typeof options.onRichCopyError === "function") options.onRichCopyError(error);
+      }
+    }
+    const result = await writeTextToClipboard(plainText, {
+      clipboard,
+      fallbackCopyText: options.fallbackCopyText
+    });
+    return { mode: result.mode, plainText, htmlText };
   }
 
   function moveTableCell(table, rowIndex, columnIndex, backwards = false) {
@@ -244,21 +559,33 @@
 
   const api = {
     TABLE_BLOCK_VERSION,
+    TABLE_PASTE_LIMITS,
     addTableColumn,
     addTableRow,
     createTableBlock,
+    detectPastedTable,
     deleteTableColumn,
     deleteTableRow,
     insertTableBlock,
     moveTableCell,
     normalizeTableBlock,
+    normalizePastedTableRows,
+    parseHtmlTable,
+    parseMarkdownTable,
     parseTableBlockLine,
+    parseTabSeparatedTable,
     replaceTableBlock,
     serializeTableBlock,
     splitTableBlocks,
     tableColumnLabel,
     tableBlockPlainText,
-    updateTableCell
+    tableBlockToHtml,
+    tableBlockToMarkdown,
+    updateTableCell,
+    validatePastedTableSize,
+    tableRowsToTabSeparated,
+    writeTableToClipboard,
+    writeTextToClipboard
   };
 
   if (typeof module !== "undefined" && module.exports) module.exports = api;

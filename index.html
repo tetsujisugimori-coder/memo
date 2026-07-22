@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Memo Nexus</title>
-  <link rel="stylesheet" href="style.css?v=0.4.0-18">
+  <link rel="stylesheet" href="style.css?v=0.4.0-20">
 </head>
 <body>
   <aside id="memoSidebar" class="sidebar" aria-label="メモ一覧" aria-hidden="false">
@@ -272,6 +272,27 @@
     </div>
   </dialog>
 
+  <dialog id="tablePasteDialog" class="table-paste-dialog" aria-labelledby="tablePasteTitle">
+    <div class="dialog-head">
+      <strong id="tablePasteTitle">表として貼り付けますか？</strong>
+      <button id="closeTablePasteBtn" type="button" title="閉じる" aria-label="表の貼り付け確認を閉じる">×</button>
+    </div>
+    <div class="table-paste-body">
+      <p id="tablePasteSummary"></p>
+      <p id="tablePasteFormat" class="table-paste-format"></p>
+      <p id="tablePasteWarning" class="table-paste-warning" role="alert" hidden></p>
+      <label id="tablePasteHeaderOption" class="table-paste-header-option">
+        <input id="tablePasteHeaderCheckbox" type="checkbox">
+        <span>1行目を見出しにする</span>
+      </label>
+      <div class="table-paste-actions">
+        <button id="confirmTablePasteBtn" type="button">表として貼り付け</button>
+        <button id="pasteTableAsTextBtn" type="button">テキストとして貼り付け</button>
+        <button id="cancelTablePasteBtn" type="button">キャンセル</button>
+      </div>
+    </div>
+  </dialog>
+
   <dialog id="syntaxGuideDialog" class="syntax-guide-dialog" aria-labelledby="syntaxGuideTitle">
     <div class="dialog-head">
       <strong id="syntaxGuideTitle">記法ガイド</strong>
@@ -295,8 +316,8 @@
   <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
   <script src="export-utils.js?v=0.4.0-8"></script>
   <script src="attachment-utils.js?v=0.4.0-10"></script>
-  <script src="table-block-utils.js?v=0.4.0-2"></script>
+  <script src="table-block-utils.js?v=0.4.0-4"></script>
   <script src="memo-list-utils.js?v=0.4.0-2"></script>
-  <script src="app.js?v=0.4.0-23"></script>
+  <script src="app.js?v=0.4.0-25"></script>
 </body>
 </html>
