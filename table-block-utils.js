@@ -70,8 +70,8 @@
     let cell = "";
     for (let index = 0; index < source.length; index += 1) {
       const character = source[index];
-      if (character === "\\" && source[index + 1] === "|") {
-        cell += "|";
+      if (character === "\\" && ["|", "\\"].includes(source[index + 1])) {
+        cell += source[index + 1];
         index += 1;
       } else if (character === "|") {
         cells.push(cell.trim());
@@ -396,6 +396,141 @@
     return label;
   }
 
+  function tableRowsForCopy(rows) {
+    const sourceRows = Array.isArray(rows) && rows.length ? rows : [[""]];
+    const columnCount = Math.max(1, ...sourceRows.map((row) => Array.isArray(row) ? row.length : 0));
+    return sourceRows.map((row) => Array.from(
+      { length: columnCount },
+      (_, columnIndex) => normalizedCell(Array.isArray(row) ? row[columnIndex] : "")
+    ));
+  }
+
+  function tableRowsToTabSeparated(rows) {
+    return tableRowsForCopy(rows).map((row) => row.join("\t")).join("\n");
+  }
+
+  function copyColumnAlignment(table, columnIndex) {
+    const alignment = Array.isArray(table.alignments) ? table.alignments[columnIndex] : null;
+    return ["left", "center", "right"].includes(alignment) ? alignment : null;
+  }
+
+  function escapeTableHtmlCell(value) {
+    return normalizedCell(value)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;")
+      .replace(/\n/g, "<br>");
+  }
+
+  function tableBlockToHtml(tableValue) {
+    const table = normalizeTableBlock(tableValue, tableValue && tableValue.id);
+    const rows = tableRowsForCopy(table.rows);
+    const renderRows = (sourceRows, cellTag) => sourceRows.map((row) => [
+      "    <tr>",
+      ...row.map((cell, columnIndex) => {
+        const alignment = copyColumnAlignment(table, columnIndex);
+        const style = alignment ? ` style="text-align: ${alignment}"` : "";
+        return `      <${cellTag}${style}>${escapeTableHtmlCell(cell)}</${cellTag}>`;
+      }),
+      "    </tr>"
+    ].join("\n")).join("\n");
+    const lines = ["<table>"];
+    if (table.hasHeader) {
+      lines.push("  <thead>", renderRows(rows.slice(0, 1), "th"), "  </thead>");
+    }
+    lines.push("  <tbody>");
+    const bodyRows = table.hasHeader ? rows.slice(1) : rows;
+    if (bodyRows.length) lines.push(renderRows(bodyRows, "td"));
+    lines.push("  </tbody>", "</table>");
+    return lines.join("\n");
+  }
+
+  function escapeMarkdownTableCell(value) {
+    return normalizedCell(value)
+      .replace(/\\/g, "\\\\")
+      .replace(/\|/g, "\\|")
+      .replace(/\n/g, " ");
+  }
+
+  function markdownAlignmentMarker(alignment) {
+    if (alignment === "left") return ":---";
+    if (alignment === "center") return ":---:";
+    if (alignment === "right") return "---:";
+    return "---";
+  }
+
+  function markdownTableRow(row) {
+    return `| ${row.map(escapeMarkdownTableCell).join(" | ")} |`;
+  }
+
+  function tableBlockToMarkdown(tableValue) {
+    const table = normalizeTableBlock(tableValue, tableValue && tableValue.id);
+    const rows = tableRowsForCopy(table.rows);
+    const columnCount = rows[0].length;
+    const header = table.hasHeader
+      ? rows[0]
+      : Array.from({ length: columnCount }, (_, index) => tableColumnLabel(index));
+    const bodyRows = table.hasHeader ? rows.slice(1) : rows;
+    return [
+      markdownTableRow(header),
+      markdownTableRow(Array.from(
+        { length: columnCount },
+        (_, index) => markdownAlignmentMarker(copyColumnAlignment(table, index))
+      )),
+      ...bodyRows.map(markdownTableRow)
+    ].join("\n");
+  }
+
+  async function writeTextToClipboard(text, options = {}) {
+    const clipboard = options.clipboard || (globalScope && globalScope.navigator && globalScope.navigator.clipboard);
+    let clipboardError = null;
+    if (clipboard && typeof clipboard.writeText === "function") {
+      try {
+        await clipboard.writeText(String(text));
+        return { mode: "text", text: String(text) };
+      } catch (error) {
+        clipboardError = error;
+      }
+    }
+    if (typeof options.fallbackCopyText === "function") {
+      await options.fallbackCopyText(String(text));
+      return { mode: "fallback", text: String(text) };
+    }
+    throw clipboardError || new Error("クリップボードへコピーできませんでした");
+  }
+
+  async function writeTableToClipboard(table, options = {}) {
+    const plainText = tableRowsToTabSeparated(table && table.rows);
+    const htmlText = tableBlockToHtml(table);
+    const clipboard = options.clipboard || (globalScope && globalScope.navigator && globalScope.navigator.clipboard);
+    const ClipboardItemCtor = options.ClipboardItem || (globalScope && globalScope.ClipboardItem);
+    const BlobCtor = options.Blob || (globalScope && globalScope.Blob);
+    if (
+      clipboard
+      && typeof clipboard.write === "function"
+      && typeof ClipboardItemCtor === "function"
+      && typeof BlobCtor === "function"
+    ) {
+      try {
+        const item = new ClipboardItemCtor({
+          "text/plain": new BlobCtor([plainText], { type: "text/plain" }),
+          "text/html": new BlobCtor([htmlText], { type: "text/html" })
+        });
+        await clipboard.write([item]);
+        return { mode: "rich", plainText, htmlText };
+      } catch (error) {
+        if (typeof options.onRichCopyError === "function") options.onRichCopyError(error);
+      }
+    }
+    const result = await writeTextToClipboard(plainText, {
+      clipboard,
+      fallbackCopyText: options.fallbackCopyText
+    });
+    return { mode: result.mode, plainText, htmlText };
+  }
+
   function moveTableCell(table, rowIndex, columnIndex, backwards = false) {
     let next = normalizeTableBlock(table, table && table.id);
     const columnCount = next.rows[0].length;
@@ -444,8 +579,13 @@
     splitTableBlocks,
     tableColumnLabel,
     tableBlockPlainText,
+    tableBlockToHtml,
+    tableBlockToMarkdown,
     updateTableCell,
-    validatePastedTableSize
+    validatePastedTableSize,
+    tableRowsToTabSeparated,
+    writeTableToClipboard,
+    writeTextToClipboard
   };
 
   if (typeof module !== "undefined" && module.exports) module.exports = api;

@@ -140,6 +140,8 @@ test("記法ガイドに表ブロックの挿入・編集・制約をデータ�
   assert.match(table.description, /削除時は確認画面/);
   assert.match(table.description, /Excel.*Googleスプレッドシート.*タブ区切り.*Markdown表.*HTML表/);
   assert.match(table.description, /表またはテキスト.*1行目を見出し/);
+  assert.match(table.description, /操作メニュー.*Excel.*Googleスプレッドシート.*表全体コピー.*Markdown表として.*HTML対応アプリ/);
+  assert.match(table.notes, /説明文と補足文.*含みません.*行や列を選択.*表全体/);
   assert.match(table.notes, /100行・30列・3000セル/);
   assert.match(table.notes, /CSV.*自動判定しません/);
   assert.match(table.notes, /結合セル.*完全には再現されません/);
@@ -371,8 +373,8 @@ test("ライト・ダーク共通変数と狭幅container queryで表示する",
 });
 
 test("app.jsのキャッシュ番号を更新し、PR #24の画面外Mermaid描画経路を維持する", () => {
-  assert.match(html, /app\.js\?v=0\.4\.0-24/);
-  assert.match(html, /table-block-utils\.js\?v=0\.4\.0-3/);
+  assert.match(html, /app\.js\?v=0\.4\.0-25/);
+  assert.match(html, /table-block-utils\.js\?v=0\.4\.0-4/);
   assert.match(app, /mermaid\.render\(/);
   assert.doesNotMatch(app, /mermaid\.run\(/);
   assert.match(app, /mermaidRenderGeneration/);

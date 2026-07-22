@@ -1018,6 +1018,10 @@ body.collections-open .collection-explorer {
   line-height: 1.4;
 }
 
+.table-block-operation-status.success {
+  color: var(--accent);
+}
+
 .delete-undo-notice[hidden] {
   display: none;
 }

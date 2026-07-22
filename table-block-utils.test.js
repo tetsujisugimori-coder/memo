@@ -26,8 +26,13 @@ const {
   splitTableBlocks,
   tableColumnLabel,
   tableBlockPlainText,
+  tableBlockToHtml,
+  tableBlockToMarkdown,
+  tableRowsToTabSeparated,
   updateTableCell,
-  validatePastedTableSize
+  validatePastedTableSize,
+  writeTableToClipboard,
+  writeTextToClipboard
 } = require("./table-block-utils.js");
 
 class HtmlTableTestParser {
@@ -303,6 +308,123 @@ test("Markdown由来の列配置は保存復元と列追加・削除に追従す
   const added = addTableColumn(table, 0);
   assert.deepEqual(added.alignments, ["left", null, "right"]);
   assert.deepEqual(deleteTableColumn(added, 1).alignments, ["left", "right"]);
+});
+
+test("表の行列を空セルと文字列表現を保ったタブ区切りへ変換する", () => {
+  const rows = [
+    ["商品コード", "商品名", "数量"],
+    ["00123", "りんご", "12"],
+    ["00007", "", "1-2"],
+    ["TRUE", "2行\nセル", ""]
+  ];
+  assert.equal(
+    tableRowsToTabSeparated(rows),
+    "商品コード\t商品名\t数量\n00123\tりんご\t12\n00007\t\t1-2\nTRUE\t2行\nセル\t"
+  );
+});
+
+test("HTMLコピーは見出し、配置、改行を表現しセルを安全にエスケープする", () => {
+  const table = normalizeTableBlock({
+    id: "secret-id",
+    caption: "コピーしない説明",
+    note: "コピーしない補足",
+    hasHeader: true,
+    alignments: ["left", "center", "right"],
+    rows: [
+      ["<見出し>", "\"中央\"", "右"],
+      ["<script>alert(1)</script>", "A&B", "2行\nセル"]
+    ]
+  });
+  const html = tableBlockToHtml(table);
+  assert.match(html, /<thead>[\s\S]*<th style="text-align: left">&lt;見出し&gt;<\/th>/);
+  assert.match(html, /<th style="text-align: center">&quot;中央&quot;<\/th>/);
+  assert.match(html, /<tbody>[\s\S]*<td style="text-align: right">2行<br>セル<\/td>/);
+  assert.match(html, /&lt;script&gt;alert\(1\)&lt;\/script&gt;/);
+  assert.match(html, /A&amp;B/);
+  assert.doesNotMatch(html, /secret-id|コピーしない説明|コピーしない補足|onerror|memo-nexus/);
+  assert.doesNotMatch(html, /<script>/);
+});
+
+test("見出しなしHTMLコピーは全行をtbodyとtdで出力する", () => {
+  const html = tableBlockToHtml(normalizeTableBlock({ id: "no-header", hasHeader: false, rows: [["A", "B"], ["1", "2"]] }));
+  assert.doesNotMatch(html, /<thead>|<th/);
+  assert.equal((html.match(/<td/g) || []).length, 4);
+  assert.match(html, /<tbody>/);
+});
+
+test("Markdownコピーは見出し、配置、パイプ、バックスラッシュ、改行を安全に変換する", () => {
+  const table = normalizeTableBlock({
+    id: "markdown-copy",
+    hasHeader: true,
+    alignments: ["left", "center", "right", null],
+    rows: [["A", "B", "C", "D"], ["a|b", "C:\\temp", "2行\nセル", "00123"]]
+  });
+  const markdown = tableBlockToMarkdown(table);
+  assert.equal(markdown, [
+    "| A | B | C | D |",
+    "| :--- | :---: | ---: | --- |",
+    "| a\\|b | C:\\\\temp | 2行 セル | 00123 |"
+  ].join("\n"));
+  assert.deepEqual(parseMarkdownTable(markdown).rows[1], ["a|b", "C:\\temp", "2行 セル", "00123"]);
+});
+
+test("見出しなしMarkdownコピーは列記号を仮見出しにして元の先頭行を残す", () => {
+  const markdown = tableBlockToMarkdown(normalizeTableBlock({
+    id: "markdown-no-header",
+    hasHeader: false,
+    rows: [["先頭A", "先頭B"], ["次A", "次B"]]
+  }));
+  assert.equal(markdown, [
+    "| A | B |",
+    "| --- | --- |",
+    "| 先頭A | 先頭B |",
+    "| 次A | 次B |"
+  ].join("\n"));
+});
+
+test("複数MIME対応時はtext/plainとtext/htmlを1回のClipboard書き込みへ渡す", async () => {
+  const writes = [];
+  class ClipboardItemMock {
+    constructor(items) { this.items = items; }
+  }
+  const table = normalizeTableBlock({ id: "rich", rows: [["A", "B"], ["00123", "x"]] });
+  const original = JSON.parse(JSON.stringify(table));
+  const result = await writeTableToClipboard(table, {
+    clipboard: { write: async (items) => writes.push(items) },
+    ClipboardItem: ClipboardItemMock,
+    Blob
+  });
+  assert.equal(result.mode, "rich");
+  assert.equal(writes.length, 1);
+  assert.deepEqual(Object.keys(writes[0][0].items).sort(), ["text/html", "text/plain"]);
+  assert.equal(await writes[0][0].items["text/plain"].text(), "A\tB\n00123\tx");
+  assert.match(await writes[0][0].items["text/html"].text(), /<table>/);
+  assert.deepEqual(table, original);
+});
+
+test("複数MIME非対応時はwriteText、Clipboard API失敗時は既存フォールバックを使う", async () => {
+  const textWrites = [];
+  const table = normalizeTableBlock({ id: "fallback", rows: [["A", "B"]] });
+  const textResult = await writeTableToClipboard(table, {
+    clipboard: { writeText: async (text) => textWrites.push(text) }
+  });
+  assert.equal(textResult.mode, "text");
+  assert.deepEqual(textWrites, ["A\tB"]);
+
+  const fallbackWrites = [];
+  const fallbackResult = await writeTextToClipboard("Markdown", {
+    clipboard: { writeText: async () => { throw new Error("denied"); } },
+    fallbackCopyText: (text) => fallbackWrites.push(text)
+  });
+  assert.equal(fallbackResult.mode, "fallback");
+  assert.deepEqual(fallbackWrites, ["Markdown"]);
+});
+
+test("Clipboard APIとフォールバックが失敗した場合はコピー失敗を返す", async () => {
+  await assert.rejects(
+    writeTextToClipboard("失敗", { clipboard: { writeText: async () => { throw new Error("denied"); } } }),
+    /denied/
+  );
 });
 
 test("Tabは右隣、行末では次行先頭へ移動する", () => {

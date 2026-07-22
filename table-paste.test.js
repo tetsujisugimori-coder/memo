@@ -103,8 +103,38 @@ test("確認dialogは既存テーマ変数、内部スクロール、モバイ�
   assert.match(css, /env\(safe-area-inset-bottom\)/);
 });
 
+test("各表の操作メニューへ表コピーとMarkdownコピーを追加する", () => {
+  const start = app.indexOf("function createTableEditor(");
+  const end = app.indexOf("\nfunction renderTableBlockEditors(", start);
+  const source = app.slice(start, end);
+  assert.match(source, /tableEditorButton\("表をコピー", "copy-table"\)/);
+  assert.match(source, /tableEditorButton\("Markdown表としてコピー", "copy-markdown"\)/);
+});
+
+test("コピー直前は対象表DOMの最新セル値だけを複製し本文へ書き戻さない", () => {
+  const source = functionSource("tableSnapshotForCopy", "showTableCopyStatus");
+  assert.match(source, /table\.rows\.map\(\(row\) => \[\.\.\.row\]\)/);
+  assert.match(source, /editorBlock\.querySelectorAll\("\.table-block-cell-input"\)/);
+  assert.match(source, /rows\[rowIndex\]\[columnIndex\] = input\.value/);
+  assert.doesNotMatch(source, /editor\.value|captureUndoSnapshot|scheduleSave/);
+});
+
+test("表コピーは選択・Undo・保存を変更せず成功または失敗を表付近へ表示する", () => {
+  const copySource = functionSource("copyTableBlock", "focusTableAxisHeader");
+  const actionSource = functionSource("handleTableEditorAction");
+  assert.match(copySource, /writeTableToClipboard\(table/);
+  assert.match(copySource, /writeTextToClipboard\(tableBlockToMarkdown\(table\)/);
+  assert.match(copySource, /表をコピーしました/);
+  assert.match(copySource, /Markdown表をコピーしました/);
+  assert.match(copySource, /表をコピーできませんでした/);
+  assert.doesNotMatch(copySource, /captureUndoSnapshot|scheduleSave|tableAxisSelections\.(?:set|delete)/);
+  assert.match(actionSource, /case "copy-table":[\s\S]*copyTableBlock\(editorBlock, block\.table, "table"\)/);
+  assert.match(actionSource, /case "copy-markdown":[\s\S]*copyTableBlock\(editorBlock, block\.table, "markdown"\)/);
+  assert.match(css, /\.table-block-operation-status\.success\s*\{[^}]*color:\s*var\(--accent\)/s);
+});
+
 test("配信キャッシュ番号を貼り付け機能の変更に合わせて更新する", () => {
-  assert.match(html, /style\.css\?v=0\.4\.0-19/);
-  assert.match(html, /table-block-utils\.js\?v=0\.4\.0-3/);
-  assert.match(html, /app\.js\?v=0\.4\.0-24/);
+  assert.match(html, /style\.css\?v=0\.4\.0-20/);
+  assert.match(html, /table-block-utils\.js\?v=0\.4\.0-4/);
+  assert.match(html, /app\.js\?v=0\.4\.0-25/);
 });

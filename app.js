@@ -70,8 +70,8 @@ const SYNTAX_GUIDE_ITEMS = [
       "└────────┴────────┘",
       "出典や補足を入力"
     ].join("\n"),
-    description: "エディタ上部の［表］からカーソル位置へ挿入し、説明・セル・出典や補足を編集できます。Excel・Googleスプレッドシートのタブ区切りデータ、Markdown表、WebページのHTML表を本文へ貼り付け、表またはテキストとして挿入することもできます。貼り付け前に1行目を見出しにするか選べます。左端の行番号または上端の列記号を押すと、選択中の行・列の直後へ追加できます。未選択時は末尾へ追加され、追加後は選択が解除されて新しい行・列の先頭セルへカーソルが移ります。削除時は確認画面を表示します。",
-    notes: "貼り付け上限は100行・30列・3000セルです。CSVは通常文章との誤判定を避けるため自動判定しません。HTMLの結合セルは左上へ値を置き、残りを空セルにしますが、元の結合表示は完全には再現されません。行と列は同時には選択されません。最後の1行・1列は削除できません。セルはプレーンテキスト専用です。Tabで右へ、Shift+Tabで左へ移動し、最後のセルでTabを押すと行を追加します。見出し行のオン／オフと表全体の削除も操作メニューから行えます。カードでは空の説明や補足を隠し、狭い画面では表だけを横スクロールできます。数式・計算・セル結合・色指定・並べ替え・絞り込みには未対応です。",
+    description: "エディタ上部の［表］からカーソル位置へ挿入し、説明・セル・出典や補足を編集できます。Excel・Googleスプレッドシートのタブ区切りデータ、Markdown表、WebページのHTML表を本文へ貼り付け、表またはテキストとして挿入することもできます。貼り付け前に1行目を見出しにするか選べます。表の操作メニューから、Excel・Googleスプレッドシート向けの表全体コピーと、Markdown表としてのコピーができます。HTML対応アプリでは表として貼り付けられる場合があります。左端の行番号または上端の列記号を押すと、選択中の行・列の直後へ追加できます。未選択時は末尾へ追加され、追加後は選択が解除されて新しい行・列の先頭セルへカーソルが移ります。削除時は確認画面を表示します。",
+    notes: "コピー対象はセルだけで、説明文と補足文は含みません。行や列を選択していても現時点では表全体をコピーします。貼り付け上限は100行・30列・3000セルです。CSVは通常文章との誤判定を避けるため自動判定しません。HTMLの結合セルは左上へ値を置き、残りを空セルにしますが、元の結合表示は完全には再現されません。行と列は同時には選択されません。最後の1行・1列は削除できません。セルはプレーンテキスト専用です。Tabで右へ、Shift+Tabで左へ移動し、最後のセルでTabを押すと行を追加します。見出し行のオン／オフと表全体の削除も操作メニューから行えます。カードでは空の説明や補足を隠し、狭い画面では表だけを横スクロールできます。数式・計算・セル結合・色指定・並べ替え・絞り込みには未対応です。",
     copyable: false
   }
 ];
@@ -270,8 +270,11 @@ const {
   splitTableBlocks,
   tableColumnLabel,
   tableBlockPlainText,
+  tableBlockToMarkdown,
   updateTableCell,
-  validatePastedTableSize
+  validatePastedTableSize,
+  writeTableToClipboard,
+  writeTextToClipboard
 } = window.MemoNexusTableBlockUtils;
 
 // HTML要素を短く取得するための小さなヘルパー。
@@ -441,6 +444,7 @@ let draggedMemoIds = [];
 let pendingExport = null;
 let syntaxGuideRendered = false;
 const syntaxGuideCopyTimers = new WeakMap();
+const tableCopyStatusTimers = new WeakMap();
 let activeTableCell = null;
 const tableAxisSelections = new Map();
 let pendingTableAxisDeletion = null;
@@ -2086,6 +2090,53 @@ function setTableEditorStatus(editorBlock, message) {
   if (status) status.textContent = message;
 }
 
+function tableSnapshotForCopy(editorBlock, tableValue) {
+  const table = normalizeTableBlock(tableValue, tableValue && tableValue.id);
+  const rows = table.rows.map((row) => [...row]);
+  editorBlock.querySelectorAll(".table-block-cell-input").forEach((input) => {
+    const rowIndex = Number(input.dataset.rowIndex);
+    const columnIndex = Number(input.dataset.columnIndex);
+    if (rows[rowIndex] && columnIndex >= 0 && columnIndex < rows[rowIndex].length) {
+      rows[rowIndex][columnIndex] = input.value;
+    }
+  });
+  return normalizeTableBlock({ ...table, rows }, table.id);
+}
+
+function showTableCopyStatus(editorBlock, message, success) {
+  const status = editorBlock && editorBlock.querySelector(".table-block-operation-status");
+  if (!status) return;
+  const previousTimer = tableCopyStatusTimers.get(status);
+  if (previousTimer) clearTimeout(previousTimer);
+  status.textContent = message;
+  status.classList.toggle("success", success);
+  const timer = setTimeout(() => {
+    if (status.textContent === message) status.textContent = "";
+    status.classList.remove("success");
+    tableCopyStatusTimers.delete(status);
+  }, 2200);
+  tableCopyStatusTimers.set(status, timer);
+}
+
+async function copyTableBlock(editorBlock, tableValue, format) {
+  const table = tableSnapshotForCopy(editorBlock, tableValue);
+  try {
+    if (format === "markdown") {
+      await writeTextToClipboard(tableBlockToMarkdown(table), { fallbackCopyText });
+      showTableCopyStatus(editorBlock, "Markdown表をコピーしました", true);
+      return;
+    }
+    await writeTableToClipboard(table, {
+      fallbackCopyText,
+      onRichCopyError: (error) => console.warn("Rich table copy failed; trying text fallback", error)
+    });
+    showTableCopyStatus(editorBlock, "表をコピーしました", true);
+  } catch (error) {
+    console.error("Table copy failed", error);
+    showTableCopyStatus(editorBlock, "表をコピーできませんでした", false);
+  }
+}
+
 function focusTableAxisHeader(tableId, type, index) {
   requestAnimationFrame(() => {
     const selector = `.table-block-editor[data-table-id="${CSS.escape(tableId)}"] .table-axis-selector[data-table-axis="${type}"][data-table-axis-index="${index}"]`;
@@ -2117,6 +2168,8 @@ function createTableEditor(tableValue, blockIndex) {
     tableEditorButton("行を削除", "delete-row"),
     tableEditorButton("列を追加", "add-column"),
     tableEditorButton("列を削除", "delete-column"),
+    tableEditorButton("表をコピー", "copy-table"),
+    tableEditorButton("Markdown表としてコピー", "copy-markdown"),
     tableEditorButton(table.hasHeader ? "見出し行をオフ" : "見出し行をオン", "toggle-header"),
     tableEditorButton("表を削除", "delete-table", true)
   );
@@ -2393,6 +2446,12 @@ function handleTableEditorAction(event) {
   let next = block.table;
   let focusCell = null;
   switch (button.dataset.tableAction) {
+    case "copy-table":
+      void copyTableBlock(editorBlock, block.table, "table");
+      return;
+    case "copy-markdown":
+      void copyTableBlock(editorBlock, block.table, "markdown");
+      return;
     case "add-row": {
       const afterIndex = selection?.type === "row" ? selection.index : next.rows.length - 1;
       next = addTableRow(next, afterIndex);
