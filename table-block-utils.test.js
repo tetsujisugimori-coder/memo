@@ -286,15 +286,30 @@ test("未選択の行列削除は末尾へフォールバックせず案内す�
   assert.doesNotMatch(source, /activeTableCell[\s\S]*rows\.length - 1/);
 });
 
-test("追加は選択位置の直後、未選択では末尾とし新しい行列を選択する", () => {
+test("追加は選択位置の直後または末尾とし選択解除後に新しい先頭セルへフォーカスする", () => {
   const app = fs.readFileSync("app.js", "utf8");
   const start = app.indexOf("function handleTableEditorAction(");
   const end = app.indexOf("\nfunction ", start + 10);
   const source = app.slice(start, end);
   assert.match(source, /selection\?\.type === "row" \? selection\.index : next\.rows\.length - 1/);
   assert.match(source, /selection\?\.type === "column" \? selection\.index : next\.rows\[0\]\.length - 1/);
-  assert.match(source, /focusSelection = \{ type: "row"/);
-  assert.match(source, /focusSelection = \{ type: "column"/);
+  assert.match(source, /focusCell = \{ rowIndex: Math\.min\(afterIndex \+ 1, next\.rows\.length - 1\), columnIndex: 0 \}/);
+  assert.match(source, /focusCell = \{ rowIndex: 0, columnIndex: Math\.min\(afterIndex \+ 1, next\.rows\[0\]\.length - 1\) \}/);
+  assert.match(source, /if \(focusCell\) tableAxisSelections\.delete\(tableId\)/);
+  assert.match(source, /focusTableCell\(tableId, focusCell\.rowIndex, focusCell\.columnIndex\)/);
+  assert.doesNotMatch(source, /tableAxisSelections\.set\(tableId, focusSelection\)/);
+});
+
+test("セルフォーカスは再描画後に対象表IDと座標で一意に特定する", () => {
+  const app = fs.readFileSync("app.js", "utf8");
+  const start = app.indexOf("function focusTableCell(");
+  const end = app.indexOf("\nfunction insertTableAtSelection(", start);
+  const source = app.slice(start, end);
+  assert.match(source, /requestAnimationFrame/);
+  assert.match(source, /data-table-id="\$\{CSS\.escape\(tableId\)\}"/);
+  assert.match(source, /data-row-index="\$\{rowIndex\}"/);
+  assert.match(source, /data-column-index="\$\{columnIndex\}"/);
+  assert.match(source, /input\.focus\(\)/);
 });
 
 test("行列削除は日本語dialogで確認し削除後に近い見出しを選択する", () => {

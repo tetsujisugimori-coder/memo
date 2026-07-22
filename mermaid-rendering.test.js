@@ -400,5 +400,5 @@ test("プレビュー世代をDOM IDへ渡し、配信時にapp.jsのキャッ�
   assert.match(app, /mermaid-diagram-\$\{stableMermaidIdPart\(noteId\)\}-g\$\{renderGeneration\}-b\$\{index\}/);
   assert.match(app, /if \(nextTheme !== previousTheme\) renderPreview\(\)/);
   assert.match(app, /<pre class="mermaid-source" hidden><code>\$\{escapeHtml\(code\)\}<\/code><\/pre>/);
-  assert.match(indexHtml, /<script src="app\.js\?v=0\.4\.0-22"><\/script>/);
+  assert.match(indexHtml, /<script src="app\.js\?v=0\.4\.0-23"><\/script>/);
 });

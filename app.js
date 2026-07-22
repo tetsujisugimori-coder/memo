@@ -70,7 +70,7 @@ const SYNTAX_GUIDE_ITEMS = [
       "└────────┴────────┘",
       "出典や補足を入力"
     ].join("\n"),
-    description: "エディタ上部の［表］からカーソル位置へ挿入し、説明・セル・出典や補足を編集します。左端の行番号または上端の列記号を押して対象を選び、操作メニューから選択位置の直後へ追加したり、確認画面を経て削除したりできます。",
+    description: "エディタ上部の［表］からカーソル位置へ挿入し、説明・セル・出典や補足を編集します。左端の行番号または上端の列記号を押すと、選択中の行・列の直後へ追加できます。未選択時は末尾へ追加され、追加後は選択が解除されて新しい行・列の先頭セルへカーソルが移ります。削除時は確認画面を表示します。",
     notes: "行と列は同時には選択されません。最後の1行・1列は削除できません。セルはプレーンテキスト専用です。Tabで右へ、Shift+Tabで左へ移動し、最後のセルでTabを押すと行を追加します。見出し行のオン／オフと表全体の削除も操作メニューから行えます。カードでは空の説明や補足を隠し、狭い画面では表だけを横スクロールできます。数式・計算・セル結合・色指定・並べ替え・絞り込みには未対応です。外部表のコピーや計算機能は将来拡張の対象です。",
     copyable: false
   }
@@ -2214,11 +2214,11 @@ function commitTableBlockChange(blockIndex, tableId, nextTable, { rerenderEditor
   }
 }
 
-function focusTableCell(blockIndex, rowIndex, columnIndex) {
+function focusTableCell(tableId, rowIndex, columnIndex) {
   requestAnimationFrame(() => {
-    const selector = `.table-block-editor[data-table-index="${blockIndex}"] .table-block-cell-input[data-row-index="${rowIndex}"][data-column-index="${columnIndex}"]`;
+    const selector = `.table-block-editor[data-table-id="${CSS.escape(tableId)}"] .table-block-cell-input[data-row-index="${rowIndex}"][data-column-index="${columnIndex}"]`;
     const input = tableBlockEditors && tableBlockEditors.querySelector(selector);
-    if (input) input.focus({ preventScroll: true });
+    if (input) input.focus();
   });
 }
 
@@ -2232,10 +2232,7 @@ function insertTableAtSelection() {
   renderTableBlockEditors();
   renderPreview();
   scheduleSave({ render: false });
-  const blockIndex = splitTableBlocks(editor.value)
-    .filter((segment) => segment.type === "table")
-    .findIndex((segment) => segment.table.id === table.id);
-  focusTableCell(blockIndex, 0, 0);
+  focusTableCell(table.id, 0, 0);
 }
 
 function handleTableEditorInput(event) {
@@ -2284,7 +2281,7 @@ function handleTableEditorKeydown(event) {
   if (movement.rowAdded) {
     commitTableBlockChange(blockIndex, tableId, movement.table, { rerenderEditors: true });
   }
-  focusTableCell(blockIndex, movement.rowIndex, movement.columnIndex);
+  focusTableCell(tableId, movement.rowIndex, movement.columnIndex);
 }
 
 function handleTableAxisSelection(event) {
@@ -2373,12 +2370,12 @@ function handleTableEditorAction(event) {
   if (!block) return;
   const selection = tableAxisSelection(tableId);
   let next = block.table;
-  let focusSelection = null;
+  let focusCell = null;
   switch (button.dataset.tableAction) {
     case "add-row": {
       const afterIndex = selection?.type === "row" ? selection.index : next.rows.length - 1;
       next = addTableRow(next, afterIndex);
-      focusSelection = { type: "row", index: Math.min(afterIndex + 1, next.rows.length - 1) };
+      focusCell = { rowIndex: Math.min(afterIndex + 1, next.rows.length - 1), columnIndex: 0 };
       break;
     }
     case "delete-row":
@@ -2395,7 +2392,7 @@ function handleTableEditorAction(event) {
     case "add-column": {
       const afterIndex = selection?.type === "column" ? selection.index : next.rows[0].length - 1;
       next = addTableColumn(next, afterIndex);
-      focusSelection = { type: "column", index: Math.min(afterIndex + 1, next.rows[0].length - 1) };
+      focusCell = { rowIndex: 0, columnIndex: Math.min(afterIndex + 1, next.rows[0].length - 1) };
       break;
     }
     case "delete-column":
@@ -2426,9 +2423,9 @@ function handleTableEditorAction(event) {
     default:
       return;
   }
-  if (focusSelection) tableAxisSelections.set(tableId, focusSelection);
+  if (focusCell) tableAxisSelections.delete(tableId);
   if (commitTableBlockChange(blockIndex, tableId, next, { rerenderEditors: true })) {
-    if (focusSelection) focusTableAxisHeader(tableId, focusSelection.type, focusSelection.index);
+    if (focusCell) focusTableCell(tableId, focusCell.rowIndex, focusCell.columnIndex);
   }
 }
 
