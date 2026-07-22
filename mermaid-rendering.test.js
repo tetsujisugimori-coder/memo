@@ -251,17 +251,22 @@ test("描画途中の旧世代を失効し、新世代の4ブロックへ対応S
 });
 
 test("ライト・ダークに応じたMermaid標準テーマ設定を返す", () => {
+  const fontFamily = '"Yu Gothic UI", "Hiragino Sans", Meiryo, system-ui, sans-serif';
   assert.deepEqual(getMermaidConfig("light"), {
     startOnLoad: false,
     theme: "default",
     darkMode: false,
-    securityLevel: "strict"
+    securityLevel: "strict",
+    fontFamily,
+    themeVariables: { fontFamily, fontSize: "16px" }
   });
   assert.deepEqual(getMermaidConfig("dark"), {
     startOnLoad: false,
     theme: "dark",
     darkMode: true,
-    securityLevel: "strict"
+    securityLevel: "strict",
+    fontFamily,
+    themeVariables: { fontFamily, fontSize: "16px" }
   });
 });
 
@@ -280,6 +285,8 @@ test("Mermaid初期化は初回とテーマ変更時だけ行う", () => {
     ["dark", true]
   ]);
   assert.ok(initializeCalls.every((config) => config.securityLevel === "strict"));
+  assert.ok(initializeCalls.every((config) => config.fontFamily === config.themeVariables.fontFamily));
+  assert.ok(initializeCalls.every((config) => config.themeVariables.fontSize === "16px"));
 });
 
 test("Mermaid内部のIDと参照を図ごとの名前空間へ分離する", () => {
@@ -393,5 +400,5 @@ test("プレビュー世代をDOM IDへ渡し、配信時にapp.jsのキャッ�
   assert.match(app, /mermaid-diagram-\$\{stableMermaidIdPart\(noteId\)\}-g\$\{renderGeneration\}-b\$\{index\}/);
   assert.match(app, /if \(nextTheme !== previousTheme\) renderPreview\(\)/);
   assert.match(app, /<pre class="mermaid-source" hidden><code>\$\{escapeHtml\(code\)\}<\/code><\/pre>/);
-  assert.match(indexHtml, /<script src="app\.js\?v=0\.4\.0-19"><\/script>/);
+  assert.match(indexHtml, /<script src="app\.js\?v=0\.4\.0-20"><\/script>/);
 });
