@@ -2977,11 +2977,17 @@ function stableMermaidIdPart(value) {
 
 function getMermaidConfig(theme = currentTheme()) {
   const isDarkMode = theme === "dark";
+  const fontFamily = '"Yu Gothic UI", "Hiragino Sans", Meiryo, system-ui, sans-serif';
   return {
     startOnLoad: false,
     theme: isDarkMode ? "dark" : "default",
     darkMode: isDarkMode,
-    securityLevel: "strict"
+    securityLevel: "strict",
+    fontFamily,
+    themeVariables: {
+      fontFamily,
+      fontSize: "16px"
+    }
   };
 }
 
