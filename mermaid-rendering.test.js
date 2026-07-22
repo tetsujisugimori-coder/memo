@@ -22,11 +22,63 @@ const renderMermaidGeneration = Function(
   `${functionSource("renderMermaidGeneration", "createMermaidRenderHost")}; return renderMermaidGeneration;`
 )();
 
+const namespaceMermaidSvgIds = Function(
+  `${functionSource("namespaceMermaidSvgIds", "createMermaidRenderHost")}; return namespaceMermaidSvgIds;`
+)();
+
 const mermaidDiagramDomId = Function(
   `${functionSource("mermaidDiagramDomId", "stableMermaidIdPart")}
    ${functionSource("stableMermaidIdPart", "renderMermaidDiagrams")}
    return mermaidDiagramDomId;`
 )();
+
+const getMermaidConfig = Function(
+  `${functionSource("getMermaidConfig", "configureMermaidForTheme")}; return getMermaidConfig;`
+)();
+
+const configureMermaidForTheme = Function(
+  `${functionSource("getMermaidConfig", "configureMermaidForTheme")}
+   ${functionSource("configureMermaidForTheme", "renderMermaidDiagrams")}
+   return configureMermaidForTheme;`
+)();
+
+function createThemeHarness(initialTheme = "light") {
+  const classes = new Set(initialTheme === "dark" ? ["dark"] : []);
+  const renderCalls = [];
+  const stored = [];
+  const document = {
+    body: {
+      classList: {
+        contains: (name) => classes.has(name),
+        toggle(name, enabled) {
+          if (enabled) classes.add(name);
+          else classes.delete(name);
+        }
+      }
+    }
+  };
+  const themeSelect = { value: initialTheme };
+  const saveTheme = Function(
+    "document",
+    "themeSelect",
+    "localStorage",
+    "THEME_STORAGE_KEY",
+    "renderPreview",
+    "console",
+    `${functionSource("currentTheme", "applyTheme")}
+     ${functionSource("applyTheme", "saveTheme")}
+     ${functionSource("saveTheme", "restoreImageBlockSize")}
+     return saveTheme;`
+  )(
+    document,
+    themeSelect,
+    { setItem: (key, value) => stored.push([key, value]) },
+    "memo-nexus-theme",
+    () => renderCalls.push(themeSelect.value),
+    { warn() {} }
+  );
+  return { classes, renderCalls, saveTheme, stored, themeSelect };
+}
 
 class FakeDiagram {
   constructor(id, source) {
@@ -198,6 +250,100 @@ test("描画途中の旧世代を失効し、新世代の4ブロックへ対応S
   assert.equal(new Set([...oldRenderIds, ...newRenderIds]).size, oldRenderIds.length + newRenderIds.length);
 });
 
+test("ライト・ダークに応じたMermaid標準テーマ設定を返す", () => {
+  assert.deepEqual(getMermaidConfig("light"), {
+    startOnLoad: false,
+    theme: "default",
+    darkMode: false,
+    securityLevel: "strict"
+  });
+  assert.deepEqual(getMermaidConfig("dark"), {
+    startOnLoad: false,
+    theme: "dark",
+    darkMode: true,
+    securityLevel: "strict"
+  });
+});
+
+test("Mermaid初期化は初回とテーマ変更時だけ行う", () => {
+  const initializeCalls = [];
+  const mermaid = { initialize: (config) => initializeCalls.push(config) };
+  let configuredTheme = null;
+
+  configuredTheme = configureMermaidForTheme(mermaid, "light", configuredTheme);
+  configuredTheme = configureMermaidForTheme(mermaid, "light", configuredTheme);
+  configuredTheme = configureMermaidForTheme(mermaid, "dark", configuredTheme);
+
+  assert.equal(configuredTheme, "dark");
+  assert.deepEqual(initializeCalls.map((config) => [config.theme, config.darkMode]), [
+    ["default", false],
+    ["dark", true]
+  ]);
+  assert.ok(initializeCalls.every((config) => config.securityLevel === "strict"));
+});
+
+test("Mermaid内部のIDと参照を図ごとの名前空間へ分離する", () => {
+  class FakeSvgElement {
+    constructor(attributes = {}) {
+      this.values = { ...attributes };
+      this.textContent = "";
+    }
+
+    get id() { return this.values.id || ""; }
+    set id(value) { this.values.id = value; }
+    get attributes() {
+      return Object.entries(this.values).map(([name, value]) => ({ name, value }));
+    }
+    setAttribute(name, value) { this.values[name] = value; }
+  }
+
+  class FakeSvg extends FakeSvgElement {
+    constructor(children) {
+      super({ id: "root-svg" });
+      this.children = children;
+    }
+
+    querySelectorAll(selector) {
+      if (selector === "[id]") return this.children.filter((child) => child.id);
+      if (selector === "*") return this.children;
+      if (selector === "style") return [];
+      return [];
+    }
+  }
+
+  const marker = new FakeSvgElement({ id: "arrowhead" });
+  const path = new FakeSvgElement({ "marker-end": "url(#arrowhead)" });
+  const firstNode = new FakeSvgElement({ id: "node-undefined" });
+  const secondNode = new FakeSvgElement({ id: "node-undefined" });
+  const svg = new FakeSvg([marker, path, firstNode, secondNode]);
+
+  namespaceMermaidSvgIds(svg, "mermaid-svg-g4-b2-r9");
+
+  assert.equal(marker.id, "mermaid-svg-g4-b2-r9-arrowhead");
+  assert.equal(path.values["marker-end"], "url(#mermaid-svg-g4-b2-r9-arrowhead)");
+  assert.equal(firstNode.id, "mermaid-svg-g4-b2-r9-node-undefined");
+  assert.equal(secondNode.id, "mermaid-svg-g4-b2-r9-node-undefined-2");
+});
+
+test("テーマ変更時だけプレビューを元本文から再描画する", () => {
+  const harness = createThemeHarness("light");
+  const originalBody = "```mermaid\nflowchart TD\n  A --> B\n```";
+
+  harness.saveTheme("dark");
+  harness.saveTheme("dark");
+  harness.saveTheme("light");
+
+  assert.equal(harness.classes.has("dark"), false);
+  assert.equal(harness.themeSelect.value, "light");
+  assert.deepEqual(harness.renderCalls, ["dark", "light"]);
+  assert.deepEqual(harness.stored, [
+    ["memo-nexus-theme", "dark"],
+    ["memo-nexus-theme", "dark"],
+    ["memo-nexus-theme", "light"]
+  ]);
+  assert.equal(originalBody, "```mermaid\nflowchart TD\n  A --> B\n```");
+});
+
 test("1ブロックの構文エラー後も残りの図を直列描画する", async () => {
   const preview = makePreview("memo-error", 3, diagramSources);
   const calls = [];
@@ -245,5 +391,7 @@ test("プレビュー世代をDOM IDへ渡し、配信時にapp.jsのキャッ�
   assert.match(app, /renderPreviewHtml\(body, note\.id, renderGeneration\)/);
   assert.match(app, /renderMermaidBlock\(block\.code, noteId, renderGeneration, codeBlockIndex\)/);
   assert.match(app, /mermaid-diagram-\$\{stableMermaidIdPart\(noteId\)\}-g\$\{renderGeneration\}-b\$\{index\}/);
-  assert.match(indexHtml, /<script src="app\.js\?v=0\.4\.0-18"><\/script>/);
+  assert.match(app, /if \(nextTheme !== previousTheme\) renderPreview\(\)/);
+  assert.match(app, /<pre class="mermaid-source" hidden><code>\$\{escapeHtml\(code\)\}<\/code><\/pre>/);
+  assert.match(indexHtml, /<script src="app\.js\?v=0\.4\.0-19"><\/script>/);
 });
