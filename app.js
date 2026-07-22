@@ -367,7 +367,7 @@ let lastDiscovery = "";
 let linkStatsVisible = false;
 let saveStatusState = "saved";
 let saveStatusTime = null;
-let mermaidInitialized = false;
+let mermaidConfiguredTheme = null;
 let mermaidRenderGeneration = 0;
 let mermaidRenderQueue = Promise.resolve();
 let mermaidSvgRenderSequence = 0;
@@ -492,6 +492,10 @@ function restoreTheme() {
   applyTheme(savedTheme);
 }
 
+function currentTheme() {
+  return document.body.classList.contains("dark") ? "dark" : "light";
+}
+
 function applyTheme(theme) {
   const nextTheme = theme === "dark" ? "dark" : "light";
   document.body.classList.toggle("dark", nextTheme === "dark");
@@ -502,12 +506,14 @@ function applyTheme(theme) {
 
 function saveTheme(theme) {
   const nextTheme = theme === "dark" ? "dark" : "light";
+  const previousTheme = currentTheme();
   applyTheme(nextTheme);
   try {
     localStorage.setItem(THEME_STORAGE_KEY, nextTheme);
   } catch (error) {
     console.warn("Theme save failed", error);
   }
+  if (nextTheme !== previousTheme) renderPreview();
 }
 
 function restoreImageBlockSize() {
@@ -2969,6 +2975,22 @@ function stableMermaidIdPart(value) {
   return (hash >>> 0).toString(36);
 }
 
+function getMermaidConfig(theme = currentTheme()) {
+  const isDarkMode = theme === "dark";
+  return {
+    startOnLoad: false,
+    theme: isDarkMode ? "dark" : "default",
+    darkMode: isDarkMode,
+    securityLevel: "strict"
+  };
+}
+
+function configureMermaidForTheme(mermaid, theme, configuredTheme) {
+  if (configuredTheme === theme) return configuredTheme;
+  mermaid.initialize(getMermaidConfig(theme));
+  return theme;
+}
+
 async function renderMermaidDiagrams(previewRoot, renderGeneration) {
   const renderTask = mermaidRenderQueue.then(async () => {
     if (!isCurrentMermaidPreview(previewRoot, renderGeneration) || !window.mermaid) return;
@@ -2976,10 +2998,11 @@ async function renderMermaidDiagrams(previewRoot, renderGeneration) {
     const diagrams = Array.from(previewRoot.querySelectorAll(".mermaid-diagram"));
     if (!diagrams.length) return;
 
-    if (!mermaidInitialized) {
-      window.mermaid.initialize({ startOnLoad: false, securityLevel: "strict" });
-      mermaidInitialized = true;
-    }
+    mermaidConfiguredTheme = configureMermaidForTheme(
+      window.mermaid,
+      currentTheme(),
+      mermaidConfiguredTheme
+    );
 
     await renderMermaidGeneration({
       diagrams,
@@ -2987,6 +3010,7 @@ async function renderMermaidDiagrams(previewRoot, renderGeneration) {
       isCurrent: () => isCurrentMermaidPreview(previewRoot, renderGeneration),
       createRenderHost: createMermaidRenderHost,
       nextRenderId: (index) => nextMermaidSvgRenderId(renderGeneration, index),
+      namespaceSvgIds: namespaceMermaidSvgIds,
       onError: (block, error) => {
         console.error("Mermaid render failed", error);
         showMermaidError(block);
@@ -3014,6 +3038,7 @@ async function renderMermaidGeneration({
   isCurrent,
   createRenderHost,
   nextRenderId,
+  namespaceSvgIds = () => {},
   onError
 }) {
   for (const [index, diagram] of diagrams.entries()) {
@@ -3033,6 +3058,7 @@ async function renderMermaidGeneration({
         diagram.innerHTML = "";
         throw new Error("Mermaid must render exactly one SVG per block");
       }
+      namespaceSvgIds(diagram.querySelector("svg"), renderId);
       if (bindFunctions) bindFunctions(diagram);
     } catch (error) {
       if (isCurrent()) onError(block, error);
@@ -3040,6 +3066,45 @@ async function renderMermaidGeneration({
       renderHost.remove();
     }
   }
+}
+
+function namespaceMermaidSvgIds(svg, namespace) {
+  if (!svg) return;
+
+  const idMap = new Map();
+  const idCounts = new Map();
+  svg.querySelectorAll("[id]").forEach((element) => {
+    const oldId = element.id;
+    const count = (idCounts.get(oldId) || 0) + 1;
+    idCounts.set(oldId, count);
+    const newId = `${namespace}-${oldId}${count > 1 ? `-${count}` : ""}`;
+    if (!idMap.has(oldId)) idMap.set(oldId, newId);
+    element.id = newId;
+  });
+
+  const replaceReferences = (value, attributeName) => {
+    let nextValue = value;
+    idMap.forEach((newId, oldId) => {
+      nextValue = nextValue.split(`url(#${oldId})`).join(`url(#${newId})`);
+      if (nextValue === `#${oldId}`) nextValue = `#${newId}`;
+    });
+    if (attributeName === "aria-labelledby" || attributeName === "aria-describedby") {
+      nextValue = nextValue.split(/\s+/).map((id) => idMap.get(id) || id).join(" ");
+    }
+    return nextValue;
+  };
+
+  [svg, ...svg.querySelectorAll("*")].forEach((element) => {
+    Array.from(element.attributes || []).forEach((attribute) => {
+      if (attribute.name === "id") return;
+      const nextValue = replaceReferences(attribute.value, attribute.name);
+      if (nextValue !== attribute.value) element.setAttribute(attribute.name, nextValue);
+    });
+  });
+
+  svg.querySelectorAll("style").forEach((style) => {
+    style.textContent = replaceReferences(style.textContent, "style");
+  });
 }
 
 function createMermaidRenderHost(renderId) {
