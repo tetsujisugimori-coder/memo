@@ -57,6 +57,22 @@ const SYNTAX_GUIDE_ITEMS = [
     syntax: ["```javascript", "const greeting = \"Hello, Memo Nexus!\";", "console.log(greeting);", "```"].join("\n"),
     description: "開始側のバッククォート3個の直後に言語名を書き、終了側はバッククォート3個だけを書きます。",
     notes: "言語名を省略するとhighlight.jsが自動判定を試み、判定できない場合は色を付けずに表示します。コードは実行されません。"
+  },
+  {
+    category: "table",
+    name: "表ブロック",
+    syntax: [
+      "表の説明を入力",
+      "┌────────┬────────┐",
+      "│ 見出し1 │ 見出し2 │",
+      "├────────┼────────┤",
+      "│ セル     │ セル     │",
+      "└────────┴────────┘",
+      "出典や補足を入力"
+    ].join("\n"),
+    description: "エディタ上部の［表］からカーソル位置へ挿入し、説明・セル・出典や補足を編集します。行・列の追加と削除、見出し行のオン／オフ、表全体の削除は各表の操作メニューから行えます。",
+    notes: "セルはプレーンテキスト専用です。Tabで右へ、Shift+Tabで左へ移動し、最後のセルでTabを押すと行を追加します。カードでは空の説明や補足を隠し、狭い画面では表だけを横スクロールできます。数式・計算・セル結合・色指定・並べ替え・絞り込みには未対応です。外部表のコピーや計算機能は将来拡張の対象です。",
+    copyable: false
   }
 ];
 const MERMAID_TEMPLATE_TYPES = [
@@ -239,6 +255,20 @@ const {
   splitImageBlocks
 } = window.MemoNexusAttachmentUtils;
 const { buildMemoListView } = window.MemoNexusMemoListUtils;
+const {
+  addTableColumn,
+  addTableRow,
+  createTableBlock,
+  deleteTableColumn,
+  deleteTableRow,
+  insertTableBlock,
+  moveTableCell,
+  normalizeTableBlock,
+  replaceTableBlock,
+  splitTableBlocks,
+  tableBlockPlainText,
+  updateTableCell
+} = window.MemoNexusTableBlockUtils;
 
 // HTML要素を短く取得するための小さなヘルパー。
 const $ = (id) => document.getElementById(id);
@@ -302,6 +332,8 @@ const titleInput = $("titleInput");
 const noteExportBtn = $("noteExportBtn");
 const noteMeta = $("noteMeta");
 const editor = $("editor");
+const insertTableBtn = $("insertTableBtn");
+const tableBlockEditors = $("tableBlockEditors");
 const editorCard = document.querySelector(".editor-card");
 const appHeader = document.querySelector(".app-header");
 const preview = $("preview");
@@ -388,6 +420,7 @@ let draggedMemoIds = [];
 let pendingExport = null;
 let syntaxGuideRendered = false;
 const syntaxGuideCopyTimers = new WeakMap();
+let activeTableCell = null;
 let mermaidTemplateTrigger = null;
 let currentAttachments = [];
 let imageBlockSize = "medium";
@@ -1689,7 +1722,7 @@ function renderMemoListHeading(heading) {
 
 // メモ一覧カードに出す短い本文プレビューを作ります。
 function snippet(body) {
-  const text = body.replace(/\[\[|\]\]|#/g, "").trim();
+  const text = tableBlockPlainText(body).replace(/\[\[|\]\]|#/g, "").trim();
   return text || "空のカード";
 }
 
@@ -1707,6 +1740,7 @@ function openNote(id) {
   renderNoteMeta();
   renderList();
   renderCollectionExplorer();
+  renderTableBlockEditors();
   renderPreview();
   renderAttachmentsForCurrentNote();
   renderRelated();
@@ -1792,6 +1826,7 @@ function undoLastEdit() {
   titleInput.value = snapshot.title;
   editor.value = snapshot.body;
   lastUndoSnapshotAt = 0;
+  renderTableBlockEditors();
   scheduleSave();
   renderNoteMeta();
   renderList();
@@ -1982,6 +2017,251 @@ function renderPreview() {
   void renderMermaidDiagrams(preview, renderGeneration);
   renderLinkList();
   renderLinkStats();
+}
+
+function currentTableBlock(blockIndex, tableId) {
+  const blocks = splitTableBlocks(editor.value).filter((segment) => segment.type === "table");
+  const block = blocks[Number(blockIndex)];
+  return block && block.table.id === tableId ? block : null;
+}
+
+function tableEditorButton(label, action, danger = false) {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.textContent = label;
+  button.dataset.tableAction = action;
+  if (danger) button.classList.add("danger-button");
+  return button;
+}
+
+function createTableEditor(tableValue, blockIndex) {
+  const table = normalizeTableBlock(tableValue, `table-${blockIndex + 1}`);
+  const article = document.createElement("article");
+  article.className = "table-block-editor";
+  article.dataset.tableId = table.id;
+  article.dataset.tableIndex = String(blockIndex);
+
+  const header = document.createElement("div");
+  header.className = "table-block-editor-head";
+  const title = document.createElement("strong");
+  title.textContent = `表 ${blockIndex + 1}`;
+  const menu = document.createElement("details");
+  menu.className = "table-block-editor-menu";
+  const summary = document.createElement("summary");
+  summary.setAttribute("aria-label", `表${blockIndex + 1}の操作メニュー`);
+  summary.textContent = "操作";
+  const actions = document.createElement("div");
+  actions.className = "table-block-editor-actions";
+  actions.append(
+    tableEditorButton("行を追加", "add-row"),
+    tableEditorButton("行を削除", "delete-row"),
+    tableEditorButton("列を追加", "add-column"),
+    tableEditorButton("列を削除", "delete-column"),
+    tableEditorButton(table.hasHeader ? "見出し行をオフ" : "見出し行をオン", "toggle-header"),
+    tableEditorButton("表を削除", "delete-table", true)
+  );
+  actions.querySelector('[data-table-action="delete-row"]').disabled = table.rows.length <= 1;
+  actions.querySelector('[data-table-action="delete-column"]').disabled = table.rows[0].length <= 1;
+  menu.append(summary, actions);
+  header.append(title, menu);
+
+  const caption = document.createElement("input");
+  caption.type = "text";
+  caption.className = "table-block-comment table-block-caption-input";
+  caption.dataset.tableField = "caption";
+  caption.value = table.caption;
+  caption.placeholder = "表の説明を入力";
+  caption.setAttribute("aria-label", `表${blockIndex + 1}の説明`);
+
+  const scroll = document.createElement("div");
+  scroll.className = "table-block-editor-scroll";
+  const tableElement = document.createElement("table");
+  tableElement.setAttribute("aria-label", `表${blockIndex + 1}のセル編集`);
+  table.rows.forEach((row, rowIndex) => {
+    const rowElement = document.createElement("tr");
+    row.forEach((cell, columnIndex) => {
+      const cellElement = document.createElement(table.hasHeader && rowIndex === 0 ? "th" : "td");
+      const input = document.createElement("input");
+      input.type = "text";
+      input.className = "table-block-cell-input";
+      input.value = cell;
+      input.dataset.rowIndex = String(rowIndex);
+      input.dataset.columnIndex = String(columnIndex);
+      input.setAttribute("aria-label", `表${blockIndex + 1} ${rowIndex + 1}行${columnIndex + 1}列`);
+      cellElement.append(input);
+      rowElement.append(cellElement);
+    });
+    tableElement.append(rowElement);
+  });
+  scroll.append(tableElement);
+
+  const note = document.createElement("input");
+  note.type = "text";
+  note.className = "table-block-comment table-block-note-input";
+  note.dataset.tableField = "note";
+  note.value = table.note;
+  note.placeholder = "出典や補足を入力";
+  note.setAttribute("aria-label", `表${blockIndex + 1}の出典や補足`);
+  article.append(header, caption, scroll, note);
+  return article;
+}
+
+function renderTableBlockEditors() {
+  if (!tableBlockEditors) return;
+  const blocks = splitTableBlocks(editor.value).filter((segment) => segment.type === "table");
+  tableBlockEditors.replaceChildren();
+  tableBlockEditors.hidden = blocks.length === 0;
+  if (!blocks.length) {
+    activeTableCell = null;
+    return;
+  }
+  const heading = document.createElement("div");
+  heading.className = "table-block-editors-heading";
+  heading.textContent = `本文内の表（${blocks.length}件）`;
+  tableBlockEditors.append(heading);
+  blocks.forEach((block, blockIndex) => tableBlockEditors.append(createTableEditor(block.table, blockIndex)));
+}
+
+function commitTableBlockChange(blockIndex, tableId, nextTable, { rerenderEditors = false } = {}) {
+  const block = currentTableBlock(blockIndex, tableId);
+  if (!block) return false;
+  try {
+    captureUndoSnapshot({ inputType: "insertText" });
+    editor.value = replaceTableBlock(editor.value, block, nextTable);
+    if (rerenderEditors) renderTableBlockEditors();
+    renderPreview();
+    scheduleSave({ render: false });
+    return true;
+  } catch (error) {
+    alert(error.message || String(error));
+    renderTableBlockEditors();
+    return false;
+  }
+}
+
+function focusTableCell(blockIndex, rowIndex, columnIndex) {
+  requestAnimationFrame(() => {
+    const selector = `.table-block-editor[data-table-index="${blockIndex}"] .table-block-cell-input[data-row-index="${rowIndex}"][data-column-index="${columnIndex}"]`;
+    const input = tableBlockEditors && tableBlockEditors.querySelector(selector);
+    if (input) input.focus({ preventScroll: true });
+  });
+}
+
+function insertTableAtSelection() {
+  if (!currentNote() || currentNote().deletedAt) return;
+  const table = createTableBlock(crypto.randomUUID());
+  const result = insertTableBlock(editor.value, editor.selectionStart, editor.selectionEnd, table);
+  captureUndoSnapshot({ inputType: "insertText" });
+  editor.value = result.value;
+  editor.setSelectionRange(result.selectionStart, result.selectionEnd);
+  renderTableBlockEditors();
+  renderPreview();
+  scheduleSave({ render: false });
+  const blockIndex = splitTableBlocks(editor.value)
+    .filter((segment) => segment.type === "table")
+    .findIndex((segment) => segment.table.id === table.id);
+  focusTableCell(blockIndex, 0, 0);
+}
+
+function handleTableEditorInput(event) {
+  const editorBlock = event.target.closest(".table-block-editor");
+  if (!editorBlock) return;
+  const blockIndex = Number(editorBlock.dataset.tableIndex);
+  const tableId = editorBlock.dataset.tableId;
+  const block = currentTableBlock(blockIndex, tableId);
+  if (!block) return;
+  let next = block.table;
+  if (event.target.matches(".table-block-cell-input")) {
+    next = updateTableCell(next, Number(event.target.dataset.rowIndex), Number(event.target.dataset.columnIndex), event.target.value);
+  } else if (event.target.dataset.tableField) {
+    next = normalizeTableBlock({ ...next, [event.target.dataset.tableField]: event.target.value }, tableId);
+  } else {
+    return;
+  }
+  commitTableBlockChange(blockIndex, tableId, next);
+}
+
+function handleTableEditorFocus(event) {
+  if (!event.target.matches(".table-block-cell-input")) return;
+  const editorBlock = event.target.closest(".table-block-editor");
+  activeTableCell = {
+    blockIndex: Number(editorBlock.dataset.tableIndex),
+    tableId: editorBlock.dataset.tableId,
+    rowIndex: Number(event.target.dataset.rowIndex),
+    columnIndex: Number(event.target.dataset.columnIndex)
+  };
+}
+
+function handleTableEditorKeydown(event) {
+  if (event.key !== "Tab" || !event.target.matches(".table-block-cell-input")) return;
+  const editorBlock = event.target.closest(".table-block-editor");
+  const blockIndex = Number(editorBlock.dataset.tableIndex);
+  const tableId = editorBlock.dataset.tableId;
+  const block = currentTableBlock(blockIndex, tableId);
+  if (!block) return;
+  event.preventDefault();
+  const movement = moveTableCell(
+    block.table,
+    Number(event.target.dataset.rowIndex),
+    Number(event.target.dataset.columnIndex),
+    event.shiftKey
+  );
+  if (movement.rowAdded) {
+    commitTableBlockChange(blockIndex, tableId, movement.table, { rerenderEditors: true });
+  }
+  focusTableCell(blockIndex, movement.rowIndex, movement.columnIndex);
+}
+
+function handleTableEditorAction(event) {
+  const button = event.target.closest("[data-table-action]");
+  if (!button) return;
+  const editorBlock = button.closest(".table-block-editor");
+  const blockIndex = Number(editorBlock.dataset.tableIndex);
+  const tableId = editorBlock.dataset.tableId;
+  const block = currentTableBlock(blockIndex, tableId);
+  if (!block) return;
+  const active = activeTableCell && activeTableCell.blockIndex === blockIndex
+    ? activeTableCell
+    : { rowIndex: block.table.rows.length - 1, columnIndex: block.table.rows[0].length - 1 };
+  let next = block.table;
+  let focusRow = active.rowIndex;
+  let focusColumn = active.columnIndex;
+  switch (button.dataset.tableAction) {
+    case "add-row":
+      next = addTableRow(next, active.rowIndex);
+      focusRow = Math.min(active.rowIndex + 1, next.rows.length - 1);
+      break;
+    case "delete-row":
+      next = deleteTableRow(next, active.rowIndex);
+      focusRow = Math.min(active.rowIndex, next.rows.length - 1);
+      break;
+    case "add-column":
+      next = addTableColumn(next, active.columnIndex);
+      focusColumn = Math.min(active.columnIndex + 1, next.rows[0].length - 1);
+      break;
+    case "delete-column":
+      next = deleteTableColumn(next, active.columnIndex);
+      focusColumn = Math.min(active.columnIndex, next.rows[0].length - 1);
+      break;
+    case "toggle-header":
+      next = normalizeTableBlock({ ...next, hasHeader: !next.hasHeader }, tableId);
+      break;
+    case "delete-table":
+      if (!confirm("この表ブロックを削除しますか？")) return;
+      captureUndoSnapshot({ inputType: "deleteContentForward" });
+      editor.value = replaceTableBlock(editor.value, block, null);
+      activeTableCell = null;
+      renderTableBlockEditors();
+      renderPreview();
+      scheduleSave({ render: false });
+      editor.focus();
+      return;
+    default:
+      return;
+  }
+  if (commitTableBlockChange(blockIndex, tableId, next, { rerenderEditors: true })) {
+    focusTableCell(blockIndex, focusRow, focusColumn);
+  }
 }
 
 function attachmentTotalSize(items = currentAttachments) {
@@ -2645,22 +2925,57 @@ function handleEditorAttachmentDrop(event) {
 
 function renderPreviewHtml(body, noteId = "preview", renderGeneration = 0) {
   let codeBlockIndex = 0;
+  let tableBlockIndex = 0;
   const html = splitImageBlocks(body)
     .map((segment, imageBlockIndex) => {
       if (segment.type === "image") return renderImageBlock(segment, imageBlockIndex);
-      return splitFencedBlocks(segment.text).map((block) => {
-        if (block.type !== "code") return renderTextBlock(block.text);
-        const rendered = block.language.toLowerCase() === "mermaid"
-          ? renderMermaidBlock(block.code, noteId, renderGeneration, codeBlockIndex)
-          : renderCodeBlock(block.code, block.language);
-        codeBlockIndex += 1;
-        return rendered;
+      return splitTableBlocks(segment.text).map((tableSegment) => {
+        if (tableSegment.type === "table") {
+          const rendered = renderTableBlock(tableSegment.table, tableBlockIndex);
+          tableBlockIndex += 1;
+          return rendered;
+        }
+        return splitFencedBlocks(tableSegment.text).map((block) => {
+          if (block.type !== "code") return renderTextBlock(block.text);
+          const rendered = block.language.toLowerCase() === "mermaid"
+            ? renderMermaidBlock(block.code, noteId, renderGeneration, codeBlockIndex)
+            : renderCodeBlock(block.code, block.language);
+          codeBlockIndex += 1;
+          return rendered;
+        }).join("");
       }).join("");
     })
     .filter(Boolean)
     .join("");
 
   return html || `<p class="empty">本文を書くとカード表示されます。</p>`;
+}
+
+function renderTableBlock(tableValue, blockIndex) {
+  const table = normalizeTableBlock(tableValue, `table-${blockIndex + 1}`);
+  const headerRows = table.hasHeader ? table.rows.slice(0, 1) : [];
+  const bodyRows = table.hasHeader ? table.rows.slice(1) : table.rows;
+  const renderRows = (rows, cellTag) => rows.map((row) => `<tr>${row
+    .map((cell) => `<${cellTag}>${escapeHtml(cell)}</${cellTag}>`)
+    .join("")}</tr>`).join("");
+  const caption = table.caption
+    ? `<figcaption class="table-block-caption">${escapeHtml(table.caption)}</figcaption>`
+    : "";
+  const note = table.note
+    ? `<p class="table-block-note">${escapeHtml(table.note)}</p>`
+    : "";
+  const thead = headerRows.length ? `<thead>${renderRows(headerRows, "th")}</thead>` : "";
+  const tbody = `<tbody>${renderRows(bodyRows, "td")}</tbody>`;
+  const label = table.caption.trim() || `表ブロック${blockIndex + 1}`;
+  return `
+    <figure class="table-block" data-table-id="${escapeAttr(table.id)}">
+      ${caption}
+      <div class="table-block-scroll" tabindex="0" role="region" aria-label="${escapeAttr(label)}">
+        <table aria-label="${escapeAttr(label)}">${thead}${tbody}</table>
+      </div>
+      ${note}
+    </figure>
+  `;
 }
 
 function renderImageBlock(block, blockIndex) {
@@ -4899,7 +5214,8 @@ function createSyntaxGuideItem(item, statusElement = syntaxGuideStatus) {
   heading.className = "syntax-guide-item-head";
   const name = document.createElement("h3");
   name.textContent = item.name;
-  heading.append(name, createSyntaxGuideCopyButton(item, statusElement));
+  heading.append(name);
+  if (item.copyable !== false) heading.append(createSyntaxGuideCopyButton(item, statusElement));
 
   const code = document.createElement("code");
   code.textContent = item.syntax;
@@ -4920,6 +5236,7 @@ function renderSyntaxGuide() {
   const sectionDetails = [
     { category: "markdown", title: "Markdown", intro: "Memo Nexusのプレビューが現在対応している記法です。" },
     { category: "code", title: "コードブロック", intro: "バッククォート3個で囲んだ完成例です。" },
+    { category: "table", title: "表ブロック", intro: "本文の任意位置へ、セルを直接編集できる構造化された表を挿入します。" },
     { category: "mermaid", title: "Mermaid", intro: "コードブロックの開始部分にmermaidと書くと図として表示します。" }
   ];
 
@@ -5113,6 +5430,13 @@ if (attachmentDropZone) {
 if (closeImagePreviewBtn) closeImagePreviewBtn.addEventListener("click", () => imagePreviewDialog.close());
 if (imagePreviewDialog) imagePreviewDialog.addEventListener("close", () => imagePreview.removeAttribute("src"));
 if (syntaxGuideBtn && syntaxGuideDialog) syntaxGuideBtn.addEventListener("click", openSyntaxGuide);
+if (insertTableBtn) insertTableBtn.addEventListener("click", insertTableAtSelection);
+if (tableBlockEditors) {
+  tableBlockEditors.addEventListener("input", handleTableEditorInput);
+  tableBlockEditors.addEventListener("focusin", handleTableEditorFocus);
+  tableBlockEditors.addEventListener("keydown", handleTableEditorKeydown);
+  tableBlockEditors.addEventListener("click", handleTableEditorAction);
+}
 if (closeSyntaxGuideBtn && syntaxGuideDialog) closeSyntaxGuideBtn.addEventListener("click", closeSyntaxGuide);
 if (closeMermaidTemplateBtn && mermaidTemplateDialog) closeMermaidTemplateBtn.addEventListener("click", closeMermaidTemplateDetails);
 if (mermaidTemplateDialog) mermaidTemplateDialog.addEventListener("close", () => {
@@ -5205,7 +5529,10 @@ editor.addEventListener("dragover", (event) => {
 });
 editor.addEventListener("drop", handleEditorAttachmentDrop);
 titleInput.addEventListener("input", scheduleSave);
-editor.addEventListener("input", scheduleSave);
+editor.addEventListener("input", () => {
+  renderTableBlockEditors();
+  scheduleSave();
+});
 window.addEventListener("resize", () => {
   syncLayoutMode();
   renderSaveStatus();
