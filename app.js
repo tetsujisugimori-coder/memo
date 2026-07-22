@@ -70,8 +70,8 @@ const SYNTAX_GUIDE_ITEMS = [
       "└────────┴────────┘",
       "出典や補足を入力"
     ].join("\n"),
-    description: "エディタ上部の［表］からカーソル位置へ挿入し、説明・セル・出典や補足を編集します。左端の行番号または上端の列記号を押すと、選択中の行・列の直後へ追加できます。未選択時は末尾へ追加され、追加後は選択が解除されて新しい行・列の先頭セルへカーソルが移ります。削除時は確認画面を表示します。",
-    notes: "行と列は同時には選択されません。最後の1行・1列は削除できません。セルはプレーンテキスト専用です。Tabで右へ、Shift+Tabで左へ移動し、最後のセルでTabを押すと行を追加します。見出し行のオン／オフと表全体の削除も操作メニューから行えます。カードでは空の説明や補足を隠し、狭い画面では表だけを横スクロールできます。数式・計算・セル結合・色指定・並べ替え・絞り込みには未対応です。外部表のコピーや計算機能は将来拡張の対象です。",
+    description: "エディタ上部の［表］からカーソル位置へ挿入し、説明・セル・出典や補足を編集できます。Excel・Googleスプレッドシートのタブ区切りデータ、Markdown表、WebページのHTML表を本文へ貼り付け、表またはテキストとして挿入することもできます。貼り付け前に1行目を見出しにするか選べます。左端の行番号または上端の列記号を押すと、選択中の行・列の直後へ追加できます。未選択時は末尾へ追加され、追加後は選択が解除されて新しい行・列の先頭セルへカーソルが移ります。削除時は確認画面を表示します。",
+    notes: "貼り付け上限は100行・30列・3000セルです。CSVは通常文章との誤判定を避けるため自動判定しません。HTMLの結合セルは左上へ値を置き、残りを空セルにしますが、元の結合表示は完全には再現されません。行と列は同時には選択されません。最後の1行・1列は削除できません。セルはプレーンテキスト専用です。Tabで右へ、Shift+Tabで左へ移動し、最後のセルでTabを押すと行を追加します。見出し行のオン／オフと表全体の削除も操作メニューから行えます。カードでは空の説明や補足を隠し、狭い画面では表だけを横スクロールできます。数式・計算・セル結合・色指定・並べ替え・絞り込みには未対応です。",
     copyable: false
   }
 ];
@@ -256,11 +256,13 @@ const {
 } = window.MemoNexusAttachmentUtils;
 const { buildMemoListView } = window.MemoNexusMemoListUtils;
 const {
+  TABLE_PASTE_LIMITS,
   addTableColumn,
   addTableRow,
   createTableBlock,
   deleteTableColumn,
   deleteTableRow,
+  detectPastedTable,
   insertTableBlock,
   moveTableCell,
   normalizeTableBlock,
@@ -268,7 +270,8 @@ const {
   splitTableBlocks,
   tableColumnLabel,
   tableBlockPlainText,
-  updateTableCell
+  updateTableCell,
+  validatePastedTableSize
 } = window.MemoNexusTableBlockUtils;
 
 // HTML要素を短く取得するための小さなヘルパー。
@@ -341,6 +344,17 @@ const tableAxisDeleteMessage = $("tableAxisDeleteMessage");
 const closeTableAxisDeleteBtn = $("closeTableAxisDeleteBtn");
 const cancelTableAxisDeleteBtn = $("cancelTableAxisDeleteBtn");
 const confirmTableAxisDeleteBtn = $("confirmTableAxisDeleteBtn");
+const tablePasteDialog = $("tablePasteDialog");
+const tablePasteTitle = $("tablePasteTitle");
+const tablePasteSummary = $("tablePasteSummary");
+const tablePasteFormat = $("tablePasteFormat");
+const tablePasteWarning = $("tablePasteWarning");
+const tablePasteHeaderOption = $("tablePasteHeaderOption");
+const tablePasteHeaderCheckbox = $("tablePasteHeaderCheckbox");
+const closeTablePasteBtn = $("closeTablePasteBtn");
+const confirmTablePasteBtn = $("confirmTablePasteBtn");
+const pasteTableAsTextBtn = $("pasteTableAsTextBtn");
+const cancelTablePasteBtn = $("cancelTablePasteBtn");
 const editorCard = document.querySelector(".editor-card");
 const appHeader = document.querySelector(".app-header");
 const preview = $("preview");
@@ -430,6 +444,7 @@ const syntaxGuideCopyTimers = new WeakMap();
 let activeTableCell = null;
 const tableAxisSelections = new Map();
 let pendingTableAxisDeletion = null;
+let pendingTablePaste = null;
 let mermaidTemplateTrigger = null;
 let currentAttachments = [];
 let imageBlockSize = "medium";
@@ -2049,6 +2064,11 @@ function tableAxisSelection(tableId) {
   return tableAxisSelections.get(tableId) || null;
 }
 
+function tableColumnAlignment(table, columnIndex) {
+  const alignment = Array.isArray(table.alignments) ? table.alignments[columnIndex] : null;
+  return ["left", "center", "right"].includes(alignment) ? alignment : "";
+}
+
 function tableAxisSelector(type, index, label, selected) {
   const button = document.createElement("button");
   button.type = "button";
@@ -2157,6 +2177,7 @@ function createTableEditor(tableValue, blockIndex) {
       input.dataset.rowIndex = String(rowIndex);
       input.dataset.columnIndex = String(columnIndex);
       input.setAttribute("aria-label", `表${blockIndex + 1} ${rowIndex + 1}行${columnIndex + 1}列`);
+      input.style.textAlign = tableColumnAlignment(table, columnIndex);
       cellElement.append(input);
       rowElement.append(cellElement);
     });
@@ -3036,11 +3057,12 @@ function handleClipboardAttachmentPaste(event) {
     if (plainText.startsWith("blob:")) {
       event.preventDefault();
       setAttachmentStatus("一時的なblob URLは本文へ貼り付けられません。画像データをコピーし直してください。", true);
+      return true;
     }
-    return;
+    return false;
   }
   const note = currentNote();
-  if (!note || note.deletedAt) return;
+  if (!note || note.deletedAt) return false;
   event.preventDefault();
   const selectionStart = editor.selectionStart;
   const selectionEnd = editor.selectionEnd;
@@ -3054,7 +3076,7 @@ function handleClipboardAttachmentPaste(event) {
   const files = itemFiles.length ? itemFiles : clipboardFiles;
   if (!files.length) {
     setAttachmentStatus("クリップボードから画像データを取得できませんでした。画像をコピーし直してください。", true);
-    return;
+    return true;
   }
   handleAttachmentFiles(files, {
     insertIntoEditor: true,
@@ -3062,6 +3084,138 @@ function handleClipboardAttachmentPaste(event) {
     selectionStart,
     selectionEnd
   });
+  return true;
+}
+
+function restoreTablePasteEditorContext(pending) {
+  if (!pending || currentId !== pending.noteId) return;
+  editor.focus({ preventScroll: true });
+  editor.setSelectionRange(pending.selectionStart, pending.selectionEnd);
+}
+
+function closeTablePasteDialog({ restoreFocus = true } = {}) {
+  const pending = pendingTablePaste;
+  pendingTablePaste = null;
+  if (tablePasteDialog?.open) tablePasteDialog.close();
+  if (restoreFocus) requestAnimationFrame(() => restoreTablePasteEditorContext(pending));
+}
+
+function openTablePasteDialog(detected, selectionStart, selectionEnd) {
+  const note = currentNote();
+  if (!note || note.deletedAt || !tablePasteDialog) return;
+  const size = validatePastedTableSize(detected.rows);
+  pendingTablePaste = {
+    noteId: note.id,
+    editorValue: editor.value,
+    selectionStart,
+    selectionEnd,
+    detected,
+    size
+  };
+  const exceedsLimit = !size.allowed;
+  tablePasteTitle.textContent = exceedsLimit ? "貼り付ける表が上限を超えています" : "表として貼り付けますか？";
+  tablePasteSummary.textContent = exceedsLimit
+    ? `検出したサイズ：${size.rowCount}行 × ${size.columnCount}列（${size.cellCount}セル）`
+    : `${size.rowCount}行 × ${size.columnCount}列のデータを検出しました。`;
+  tablePasteFormat.textContent = `検出形式：${detected.formatLabel}`;
+  const warnings = [];
+  if (exceedsLimit) {
+    warnings.push(
+      `貼り付け可能な上限：${TABLE_PASTE_LIMITS.rows}行 × ${TABLE_PASTE_LIMITS.columns}列（${TABLE_PASTE_LIMITS.cells}セル）`,
+      "データは変更されていません。"
+    );
+  } else if (detected.hasMergedCells) {
+    warnings.push("結合セルは左上セルへ値を置き、残りを空セルとして変換します。元の結合表示は完全には再現されません。");
+  }
+  tablePasteWarning.textContent = warnings.join("\n");
+  tablePasteWarning.hidden = warnings.length === 0;
+  tablePasteHeaderOption.hidden = exceedsLimit;
+  tablePasteHeaderCheckbox.checked = detected.hasHeader !== false;
+  confirmTablePasteBtn.hidden = exceedsLimit;
+  tablePasteDialog.showModal();
+  (exceedsLimit ? pasteTableAsTextBtn : confirmTablePasteBtn).focus();
+}
+
+function pendingTablePasteIsCurrent(pending) {
+  return Boolean(pending)
+    && currentId === pending.noteId
+    && editor.value === pending.editorValue
+    && currentNote()
+    && !currentNote().deletedAt;
+}
+
+function insertPastedPlainText() {
+  const pending = pendingTablePaste;
+  if (!pendingTablePasteIsCurrent(pending)) {
+    closeTablePasteDialog({ restoreFocus: false });
+    alert("貼り付け先のメモが変更されたため、貼り付けをキャンセルしました。");
+    return;
+  }
+  const text = pending.detected.plainText;
+  captureUndoSnapshot({ inputType: "insertFromPaste" });
+  editor.value = `${editor.value.slice(0, pending.selectionStart)}${text}${editor.value.slice(pending.selectionEnd)}`;
+  const nextPosition = pending.selectionStart + text.length;
+  closeTablePasteDialog({ restoreFocus: false });
+  renderTableBlockEditors();
+  renderPreview();
+  scheduleSave({ render: false });
+  editor.focus();
+  editor.setSelectionRange(nextPosition, nextPosition);
+}
+
+function insertPastedTable() {
+  const pending = pendingTablePaste;
+  if (!pendingTablePasteIsCurrent(pending) || !pending.size.allowed) {
+    closeTablePasteDialog({ restoreFocus: false });
+    alert("貼り付け先のメモが変更されたため、貼り付けをキャンセルしました。");
+    return;
+  }
+  const tableId = crypto.randomUUID();
+  const table = normalizeTableBlock({
+    ...createTableBlock(tableId),
+    rows: pending.detected.rows,
+    hasHeader: tablePasteHeaderCheckbox.checked,
+    alignments: pending.detected.alignments
+  }, tableId);
+  const result = insertTableBlock(
+    editor.value,
+    pending.selectionStart,
+    pending.selectionEnd,
+    table
+  );
+  captureUndoSnapshot({ inputType: "insertFromPaste" });
+  editor.value = result.value;
+  editor.setSelectionRange(result.selectionStart, result.selectionEnd);
+  tableAxisSelections.delete(table.id);
+  closeTablePasteDialog({ restoreFocus: false });
+  renderTableBlockEditors();
+  renderPreview();
+  scheduleSave({ render: false });
+  focusTableCell(table.id, 0, 0);
+}
+
+function editorSelectionIsInsideCodeFence() {
+  const lines = editor.value.slice(0, editor.selectionStart).replace(/\r\n?/g, "\n").split("\n");
+  let inCodeFence = false;
+  lines.forEach((line) => {
+    if (/^\s*```/.test(line)) inCodeFence = !inCodeFence;
+  });
+  return inCodeFence;
+}
+
+function handleEditorPaste(event) {
+  if (handleClipboardAttachmentPaste(event)) return;
+  const clipboardData = event.clipboardData;
+  if (!clipboardData || editorSelectionIsInsideCodeFence()) return;
+  const detected = detectPastedTable({
+    html: clipboardData.getData("text/html"),
+    text: clipboardData.getData("text/plain")
+  });
+  if (!detected) return;
+  const note = currentNote();
+  if (!note || note.deletedAt) return;
+  event.preventDefault();
+  openTablePasteDialog(detected, editor.selectionStart, editor.selectionEnd);
 }
 
 function editorDropHasFiles(event) {
@@ -3121,7 +3275,11 @@ function renderTableBlock(tableValue, blockIndex) {
   const headerRows = table.hasHeader ? table.rows.slice(0, 1) : [];
   const bodyRows = table.hasHeader ? table.rows.slice(1) : table.rows;
   const renderRows = (rows, cellTag) => rows.map((row) => `<tr>${row
-    .map((cell) => `<${cellTag}>${escapeHtml(cell)}</${cellTag}>`)
+    .map((cell, columnIndex) => {
+      const alignment = tableColumnAlignment(table, columnIndex);
+      const style = alignment ? ` style="text-align: ${alignment}"` : "";
+      return `<${cellTag}${style}>${escapeHtml(cell)}</${cellTag}>`;
+    })
     .join("")}</tr>`).join("");
   const caption = table.caption
     ? `<figcaption class="table-block-caption">${escapeHtml(table.caption)}</figcaption>`
@@ -5611,6 +5769,27 @@ if (tableAxisDeleteDialog) tableAxisDeleteDialog.addEventListener("close", () =>
   pendingTableAxisDeletion = null;
   if (pending?.restoreFocus && pending.trigger?.isConnected) pending.trigger.focus({ preventScroll: true });
 });
+if (closeTablePasteBtn) closeTablePasteBtn.addEventListener("click", () => closeTablePasteDialog());
+if (cancelTablePasteBtn) cancelTablePasteBtn.addEventListener("click", () => closeTablePasteDialog());
+if (confirmTablePasteBtn) confirmTablePasteBtn.addEventListener("click", insertPastedTable);
+if (pasteTableAsTextBtn) pasteTableAsTextBtn.addEventListener("click", insertPastedPlainText);
+if (tablePasteDialog) {
+  tablePasteDialog.addEventListener("cancel", (event) => {
+    event.preventDefault();
+    closeTablePasteDialog();
+  });
+  tablePasteDialog.addEventListener("keydown", (event) => {
+    if (event.key !== "Enter" || event.target.closest("button") || confirmTablePasteBtn.hidden) return;
+    event.preventDefault();
+    insertPastedTable();
+  });
+  tablePasteDialog.addEventListener("close", () => {
+    if (!pendingTablePaste) return;
+    const pending = pendingTablePaste;
+    pendingTablePaste = null;
+    requestAnimationFrame(() => restoreTablePasteEditorContext(pending));
+  });
+}
 if (closeSyntaxGuideBtn && syntaxGuideDialog) closeSyntaxGuideBtn.addEventListener("click", closeSyntaxGuide);
 if (closeMermaidTemplateBtn && mermaidTemplateDialog) closeMermaidTemplateBtn.addEventListener("click", closeMermaidTemplateDetails);
 if (mermaidTemplateDialog) mermaidTemplateDialog.addEventListener("close", () => {
@@ -5697,7 +5876,7 @@ relatedBackdrop.addEventListener("click", () => setRelatedDrawerOpen(false));
 searchInput.addEventListener("input", renderList);
 titleInput.addEventListener("beforeinput", captureUndoSnapshot);
 editor.addEventListener("beforeinput", captureUndoSnapshot);
-editor.addEventListener("paste", handleClipboardAttachmentPaste);
+editor.addEventListener("paste", handleEditorPaste);
 editor.addEventListener("dragover", (event) => {
   if (editorDropHasFiles(event)) event.preventDefault();
 });

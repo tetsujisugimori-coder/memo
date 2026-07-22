@@ -6,22 +6,71 @@ const test = require("node:test");
 const { buildMemoExportBundle } = require("./attachment-utils.js");
 const {
   TABLE_BLOCK_VERSION,
+  TABLE_PASTE_LIMITS,
   addTableColumn,
   addTableRow,
   createTableBlock,
+  detectPastedTable,
   deleteTableColumn,
   deleteTableRow,
   insertTableBlock,
   moveTableCell,
   normalizeTableBlock,
+  normalizePastedTableRows,
+  parseHtmlTable,
+  parseMarkdownTable,
   parseTableBlockLine,
+  parseTabSeparatedTable,
   replaceTableBlock,
   serializeTableBlock,
   splitTableBlocks,
   tableColumnLabel,
   tableBlockPlainText,
-  updateTableCell
+  updateTableCell,
+  validatePastedTableSize
 } = require("./table-block-utils.js");
+
+class HtmlTableTestParser {
+  parseFromString(html) {
+    const tableMatch = String(html).match(/<table\b[^>]*>([\s\S]*?)<\/table>/i);
+    if (!tableMatch) return { querySelector: () => null };
+    const table = { querySelectorAll: () => rows };
+    const rows = Array.from(tableMatch[1].matchAll(/<tr\b[^>]*>([\s\S]*?)<\/tr>/gi)).map((rowMatch) => ({
+      closest: () => table,
+      children: Array.from(rowMatch[1].matchAll(/<(th|td)\b([^>]*)>([\s\S]*?)<\/\1>/gi)).map((cellMatch) => {
+        const attributes = cellMatch[2];
+        return {
+          tagName: cellMatch[1].toUpperCase(),
+          getAttribute(name) {
+            const match = attributes.match(new RegExp(`${name}=["']?(\\d+)`, "i"));
+            return match ? match[1] : null;
+          },
+          cloneNode() {
+            let content = cellMatch[3];
+            const clone = {
+              querySelectorAll(selector) {
+                if (selector === "script, style, template") {
+                  const matches = Array.from(content.matchAll(/<(script|style|template)\b[^>]*>[\s\S]*?<\/\1>/gi));
+                  return matches.map((match) => ({ remove: () => { content = content.replace(match[0], ""); } }));
+                }
+                if (selector === "br") {
+                  const matches = Array.from(content.matchAll(/<br\s*\/?\s*>/gi));
+                  return matches.map((match) => ({ replaceWith: (value) => { content = content.replace(match[0], value); } }));
+                }
+                return [];
+              },
+              get textContent() {
+                return content.replace(/<[^>]+>/g, "").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&");
+              }
+            };
+            return clone;
+          }
+        };
+      })
+    }));
+    return { querySelector: (selector) => selector === "table" ? table : null };
+  }
+}
 
 function tableBlocks(markdown) {
   return splitTableBlocks(markdown).filter((segment) => segment.type === "table");
@@ -157,9 +206,103 @@ test("列記号はZの次をAA、ABとして生成する", () => {
   assert.deepEqual([0, 25, 26, 27, 51, 52].map(tableColumnLabel), ["A", "Z", "AA", "AB", "AZ", "BA"]);
 });
 
+test("タブ区切りは空セルと文字列表現を保ち矩形へ正規化する", () => {
+  const parsed = parseTabSeparatedTable("商品\tコード\t数量\nりんご\t00123\t2\nみかん\t\t5");
+  assert.equal(parsed.format, "tab-separated");
+  assert.deepEqual(parsed.rows, [
+    ["商品", "コード", "数量"],
+    ["りんご", "00123", "2"],
+    ["みかん", "", "5"]
+  ]);
+  assert.equal(parseTabSeparatedTable("1行目\n2行目"), null);
+  assert.deepEqual(parseTabSeparatedTable("A\tB").rows, [["A", "B"]]);
+  assert.equal(detectPastedTable({ text: "価格は1,200円です。CSVではありません。" }), null);
+});
+
+test("タブ区切りの不揃いな行は不足セルを補い途中の空行を保つ", () => {
+  const parsed = parseTabSeparatedTable("A\tB\tC\n1\t2\n\t\t\n3\t4\t5");
+  assert.deepEqual(parsed.rows, [
+    ["A", "B", "C"],
+    ["1", "2", ""],
+    ["", "", ""],
+    ["3", "4", "5"]
+  ]);
+});
+
+test("Markdown表は区切り行を除き配置指定とエスケープ済みパイプを取得する", () => {
+  const parsed = parseMarkdownTable("名前 | 説明 | 金額\n:--- | :---: | ---:\nりんご | 赤\\|青 | 300");
+  assert.equal(parsed.format, "markdown");
+  assert.deepEqual(parsed.alignments, ["left", "center", "right"]);
+  assert.deepEqual(parsed.rows, [["名前", "説明", "金額"], ["りんご", "赤|青", "300"]]);
+  assert.equal(parseMarkdownTable("通常文章 | 区切りだけ"), null);
+});
+
+test("Markdown表は先頭と末尾のパイプの有無を問わず見出しを取得する", () => {
+  assert.deepEqual(parseMarkdownTable("| A | B |\n| --- | --- |\n| 1 | 2 |").rows, [["A", "B"], ["1", "2"]]);
+  assert.deepEqual(parseMarkdownTable("A | B\n--- | ---\n1 | 2").rows, [["A", "B"], ["1", "2"]]);
+});
+
+test("HTML表はタグとscriptを残さずth、改行、結合セルを安全な文字列へ変換する", () => {
+  const parsed = parseHtmlTable(
+    "<table><thead><tr><th>名前</th><th>説明<script>throw 1</script></th></tr></thead><tbody><tr><td rowspan=\"2\">A<br>B</td><td>1</td></tr><tr><td>2</td></tr></tbody></table>",
+    HtmlTableTestParser
+  );
+  assert.equal(parsed.format, "html");
+  assert.equal(parsed.hasHeader, true);
+  assert.equal(parsed.hasMergedCells, true);
+  assert.deepEqual(parsed.rows, [["名前", "説明"], ["A\nB", "1"], ["", "2"]]);
+  assert.doesNotMatch(parsed.rows.flat().join(" "), /script|throw/);
+});
+
+test("HTMLしかないクリップボードでは抽出済みセルをテキスト貼り付け用に保持する", () => {
+  const parsed = detectPastedTable({ html: "<table><tr><td>A</td><td>B</td></tr></table>" }, HtmlTableTestParser);
+  assert.equal(parsed.format, "html");
+  assert.equal(parsed.plainText, "A\tB");
+});
+
+test("HTML解析不能時はMarkdown、タブ区切りの順へフォールバックする", () => {
+  class BrokenParser { parseFromString() { throw new Error("broken"); } }
+  const markdown = detectPastedTable({ html: "<table>", text: "A | B\n--- | ---\n1 | 2" }, BrokenParser);
+  const tabs = detectPastedTable({ html: "<table>", text: "A\tB\n1\t2" }, BrokenParser);
+  assert.equal(markdown.format, "markdown");
+  assert.equal(tabs.format, "tab-separated");
+});
+
+test("貼り付けデータは末尾の空行・空列だけ除き途中の空行・空列と型を保つ", () => {
+  assert.deepEqual(normalizePastedTableRows([
+    ["00123", "", "TRUE", ""],
+    ["", "", "", ""],
+    ["1-2", "", "=SUM(A1:A2)", ""],
+    ["", "", "", ""]
+  ]), [
+    ["00123", "", "TRUE"],
+    ["", "", ""],
+    ["1-2", "", "=SUM(A1:A2)"]
+  ]);
+});
+
+test("表貼り付け上限は100行、30列、3000セルを切り捨てず判定する", () => {
+  assert.deepEqual(TABLE_PASTE_LIMITS, { rows: 100, columns: 30, cells: 3000 });
+  assert.equal(validatePastedTableSize(Array.from({ length: 100 }, () => Array(30).fill("x"))).allowed, true);
+  const tooManyRows = validatePastedTableSize(Array.from({ length: 101 }, () => ["x"]));
+  const tooManyColumns = validatePastedTableSize([Array(31).fill("x")]);
+  assert.equal(tooManyRows.allowed, false);
+  assert.equal(tooManyRows.rowCount, 101);
+  assert.equal(tooManyColumns.allowed, false);
+  assert.equal(tooManyColumns.columnCount, 31);
+});
+
 test("見出し行オン・オフを保存復元できる", () => {
   const table = normalizeTableBlock({ ...createTableBlock("header"), hasHeader: false });
   assert.equal(parseTableBlockLine(serializeTableBlock(table)).hasHeader, false);
+});
+
+test("Markdown由来の列配置は保存復元と列追加・削除に追従する", () => {
+  const table = normalizeTableBlock({ id: "alignment", rows: [["A", "B"]], alignments: ["left", "right"] });
+  assert.deepEqual(parseTableBlockLine(serializeTableBlock(table)).alignments, ["left", "right"]);
+  const added = addTableColumn(table, 0);
+  assert.deepEqual(added.alignments, ["left", null, "right"]);
+  assert.deepEqual(deleteTableColumn(added, 1).alignments, ["left", "right"]);
 });
 
 test("Tabは右隣、行末では次行先頭へ移動する", () => {

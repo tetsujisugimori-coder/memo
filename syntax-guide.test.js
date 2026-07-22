@@ -138,6 +138,11 @@ test("記法ガイドに表ブロックの挿入・編集・制約をデータ�
   assert.match(table.description, /左端の行番号.*上端の列記号.*選択中の行・列の直後/);
   assert.match(table.description, /未選択時は末尾.*追加後は選択が解除.*新しい行・列の先頭セルへカーソル/);
   assert.match(table.description, /削除時は確認画面/);
+  assert.match(table.description, /Excel.*Googleスプレッドシート.*タブ区切り.*Markdown表.*HTML表/);
+  assert.match(table.description, /表またはテキスト.*1行目を見出し/);
+  assert.match(table.notes, /100行・30列・3000セル/);
+  assert.match(table.notes, /CSV.*自動判定しません/);
+  assert.match(table.notes, /結合セル.*完全には再現されません/);
   assert.match(table.notes, /Tab.*Shift\+Tab.*最後のセル.*行を追加/);
   assert.match(table.notes, /行と列は同時には選択されません.*最後の1行・1列は削除できません/);
   assert.match(table.notes, /見出し行のオン／オフ.*表全体の削除/);
@@ -360,14 +365,14 @@ test("ライト・ダーク共通変数と狭幅container queryで表示する",
   assert.match(guideCss, /var\(--ink\)/);
   assert.match(guideCss, /var\(--line\)/);
   assert.match(guideCss, /var\(--section-bg\)/);
-  assert.match(css, /@container app-width \(max-width: 719\.98px\)[\s\S]*\.syntax-guide-dialog,[\s\S]*\.mermaid-template-dialog\s*\{[^}]*width:\s*calc\(100vw - 16px\)/s);
+  assert.match(css, /@container app-width \(max-width: 719\.98px\)[\s\S]*\.syntax-guide-dialog,[\s\S]*\.mermaid-template-dialog,[\s\S]*\.table-paste-dialog\s*\{[^}]*width:\s*calc\(100vw - 16px\)/s);
   assert.match(css, /@container app-width \(max-width: 719\.98px\)[\s\S]*\.syntax-guide-items,[\s\S]*\.mermaid-type-list,[\s\S]*\.syntax-guide-aliases\s*\{[^}]*grid-template-columns:\s*minmax\(0, 1fr\)/s);
   assert.match(css, /\.mermaid-template-dialog \.syntax-guide-item pre\s*\{[^}]*white-space:\s*pre;[^}]*overflow-wrap:\s*normal;/s);
 });
 
 test("app.jsのキャッシュ番号を更新し、PR #24の画面外Mermaid描画経路を維持する", () => {
-  assert.match(html, /app\.js\?v=0\.4\.0-23/);
-  assert.match(html, /table-block-utils\.js\?v=0\.4\.0-2/);
+  assert.match(html, /app\.js\?v=0\.4\.0-24/);
+  assert.match(html, /table-block-utils\.js\?v=0\.4\.0-3/);
   assert.match(app, /mermaid\.render\(/);
   assert.doesNotMatch(app, /mermaid\.run\(/);
   assert.match(app, /mermaidRenderGeneration/);
