@@ -57,6 +57,22 @@ const SYNTAX_GUIDE_ITEMS = [
     syntax: ["```javascript", "const greeting = \"Hello, Memo Nexus!\";", "console.log(greeting);", "```"].join("\n"),
     description: "開始側のバッククォート3個の直後に言語名を書き、終了側はバッククォート3個だけを書きます。",
     notes: "言語名を省略するとhighlight.jsが自動判定を試み、判定できない場合は色を付けずに表示します。コードは実行されません。"
+  },
+  {
+    category: "table",
+    name: "表ブロック",
+    syntax: [
+      "表の説明を入力",
+      "┌────────┬────────┐",
+      "│ 見出し1 │ 見出し2 │",
+      "├────────┼────────┤",
+      "│ セル     │ セル     │",
+      "└────────┴────────┘",
+      "出典や補足を入力"
+    ].join("\n"),
+    description: "エディタ上部の［表］からカーソル位置へ挿入し、説明・セル・出典や補足を編集します。左端の行番号または上端の列記号を押すと、選択中の行・列の直後へ追加できます。未選択時は末尾へ追加され、追加後は選択が解除されて新しい行・列の先頭セルへカーソルが移ります。削除時は確認画面を表示します。",
+    notes: "行と列は同時には選択されません。最後の1行・1列は削除できません。セルはプレーンテキスト専用です。Tabで右へ、Shift+Tabで左へ移動し、最後のセルでTabを押すと行を追加します。見出し行のオン／オフと表全体の削除も操作メニューから行えます。カードでは空の説明や補足を隠し、狭い画面では表だけを横スクロールできます。数式・計算・セル結合・色指定・並べ替え・絞り込みには未対応です。外部表のコピーや計算機能は将来拡張の対象です。",
+    copyable: false
   }
 ];
 const MERMAID_TEMPLATE_TYPES = [
@@ -239,6 +255,21 @@ const {
   splitImageBlocks
 } = window.MemoNexusAttachmentUtils;
 const { buildMemoListView } = window.MemoNexusMemoListUtils;
+const {
+  addTableColumn,
+  addTableRow,
+  createTableBlock,
+  deleteTableColumn,
+  deleteTableRow,
+  insertTableBlock,
+  moveTableCell,
+  normalizeTableBlock,
+  replaceTableBlock,
+  splitTableBlocks,
+  tableColumnLabel,
+  tableBlockPlainText,
+  updateTableCell
+} = window.MemoNexusTableBlockUtils;
 
 // HTML要素を短く取得するための小さなヘルパー。
 const $ = (id) => document.getElementById(id);
@@ -302,6 +333,14 @@ const titleInput = $("titleInput");
 const noteExportBtn = $("noteExportBtn");
 const noteMeta = $("noteMeta");
 const editor = $("editor");
+const insertTableBtn = $("insertTableBtn");
+const tableBlockEditors = $("tableBlockEditors");
+const tableAxisDeleteDialog = $("tableAxisDeleteDialog");
+const tableAxisDeleteTitle = $("tableAxisDeleteTitle");
+const tableAxisDeleteMessage = $("tableAxisDeleteMessage");
+const closeTableAxisDeleteBtn = $("closeTableAxisDeleteBtn");
+const cancelTableAxisDeleteBtn = $("cancelTableAxisDeleteBtn");
+const confirmTableAxisDeleteBtn = $("confirmTableAxisDeleteBtn");
 const editorCard = document.querySelector(".editor-card");
 const appHeader = document.querySelector(".app-header");
 const preview = $("preview");
@@ -388,6 +427,9 @@ let draggedMemoIds = [];
 let pendingExport = null;
 let syntaxGuideRendered = false;
 const syntaxGuideCopyTimers = new WeakMap();
+let activeTableCell = null;
+const tableAxisSelections = new Map();
+let pendingTableAxisDeletion = null;
 let mermaidTemplateTrigger = null;
 let currentAttachments = [];
 let imageBlockSize = "medium";
@@ -1689,7 +1731,7 @@ function renderMemoListHeading(heading) {
 
 // メモ一覧カードに出す短い本文プレビューを作ります。
 function snippet(body) {
-  const text = body.replace(/\[\[|\]\]|#/g, "").trim();
+  const text = tableBlockPlainText(body).replace(/\[\[|\]\]|#/g, "").trim();
   return text || "空のカード";
 }
 
@@ -1700,6 +1742,8 @@ function openNote(id) {
 
   setRelatedDrawerOpen(false, { restoreFocus: false });
   currentId = note.id;
+  tableAxisSelections.clear();
+  pendingTableAxisDeletion = null;
   titleInput.value = note.title;
   editor.value = note.body;
   lastUndoSnapshotAt = 0;
@@ -1707,6 +1751,7 @@ function openNote(id) {
   renderNoteMeta();
   renderList();
   renderCollectionExplorer();
+  renderTableBlockEditors();
   renderPreview();
   renderAttachmentsForCurrentNote();
   renderRelated();
@@ -1792,6 +1837,7 @@ function undoLastEdit() {
   titleInput.value = snapshot.title;
   editor.value = snapshot.body;
   lastUndoSnapshotAt = 0;
+  renderTableBlockEditors();
   scheduleSave();
   renderNoteMeta();
   renderList();
@@ -1982,6 +2028,405 @@ function renderPreview() {
   void renderMermaidDiagrams(preview, renderGeneration);
   renderLinkList();
   renderLinkStats();
+}
+
+function currentTableBlock(blockIndex, tableId) {
+  const blocks = splitTableBlocks(editor.value).filter((segment) => segment.type === "table");
+  const block = blocks[Number(blockIndex)];
+  return block && block.table.id === tableId ? block : null;
+}
+
+function tableEditorButton(label, action, danger = false) {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.textContent = label;
+  button.dataset.tableAction = action;
+  if (danger) button.classList.add("danger-button");
+  return button;
+}
+
+function tableAxisSelection(tableId) {
+  return tableAxisSelections.get(tableId) || null;
+}
+
+function tableAxisSelector(type, index, label, selected) {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "table-axis-selector";
+  button.textContent = label;
+  button.dataset.tableAxis = type;
+  button.dataset.tableAxisIndex = String(index);
+  button.setAttribute("aria-pressed", String(selected));
+  button.setAttribute("aria-label", type === "row" ? `${label}行目を選択` : `${label}列を選択`);
+  return button;
+}
+
+function setTableEditorStatus(editorBlock, message) {
+  const status = editorBlock && editorBlock.querySelector(".table-block-operation-status");
+  if (status) status.textContent = message;
+}
+
+function focusTableAxisHeader(tableId, type, index) {
+  requestAnimationFrame(() => {
+    const selector = `.table-block-editor[data-table-id="${CSS.escape(tableId)}"] .table-axis-selector[data-table-axis="${type}"][data-table-axis-index="${index}"]`;
+    tableBlockEditors?.querySelector(selector)?.focus({ preventScroll: true });
+  });
+}
+
+function createTableEditor(tableValue, blockIndex) {
+  const table = normalizeTableBlock(tableValue, `table-${blockIndex + 1}`);
+  const selection = tableAxisSelection(table.id);
+  const article = document.createElement("article");
+  article.className = "table-block-editor";
+  article.dataset.tableId = table.id;
+  article.dataset.tableIndex = String(blockIndex);
+
+  const header = document.createElement("div");
+  header.className = "table-block-editor-head";
+  const title = document.createElement("strong");
+  title.textContent = `表 ${blockIndex + 1}`;
+  const menu = document.createElement("details");
+  menu.className = "table-block-editor-menu";
+  const summary = document.createElement("summary");
+  summary.setAttribute("aria-label", `表${blockIndex + 1}の操作メニュー`);
+  summary.textContent = "操作";
+  const actions = document.createElement("div");
+  actions.className = "table-block-editor-actions";
+  actions.append(
+    tableEditorButton("行を追加", "add-row"),
+    tableEditorButton("行を削除", "delete-row"),
+    tableEditorButton("列を追加", "add-column"),
+    tableEditorButton("列を削除", "delete-column"),
+    tableEditorButton(table.hasHeader ? "見出し行をオフ" : "見出し行をオン", "toggle-header"),
+    tableEditorButton("表を削除", "delete-table", true)
+  );
+  actions.querySelector('[data-table-action="delete-row"]').title = selection?.type === "row"
+    ? `${selection.index + 1}行目を削除`
+    : "削除する行を選択してください";
+  actions.querySelector('[data-table-action="delete-column"]').title = selection?.type === "column"
+    ? `${tableColumnLabel(selection.index)}列を削除`
+    : "削除する列を選択してください";
+  menu.append(summary, actions);
+  header.append(title, menu);
+
+  const caption = document.createElement("input");
+  caption.type = "text";
+  caption.className = "table-block-comment table-block-caption-input";
+  caption.dataset.tableField = "caption";
+  caption.value = table.caption;
+  caption.placeholder = "表の説明を入力";
+  caption.setAttribute("aria-label", `表${blockIndex + 1}の説明`);
+
+  const scroll = document.createElement("div");
+  scroll.className = "table-block-editor-scroll";
+  const tableElement = document.createElement("table");
+  tableElement.setAttribute("aria-label", `表${blockIndex + 1}のセル編集`);
+  const tableHead = document.createElement("thead");
+  const columnHeaderRow = document.createElement("tr");
+  const corner = document.createElement("th");
+  corner.className = "table-axis-corner";
+  corner.setAttribute("aria-hidden", "true");
+  columnHeaderRow.append(corner);
+  table.rows[0].forEach((_, columnIndex) => {
+    const selected = selection?.type === "column" && selection.index === columnIndex;
+    const headerCell = document.createElement("th");
+    headerCell.className = "table-axis-header table-column-header";
+    if (selected) headerCell.classList.add("is-selected");
+    headerCell.append(tableAxisSelector("column", columnIndex, tableColumnLabel(columnIndex), selected));
+    columnHeaderRow.append(headerCell);
+  });
+  tableHead.append(columnHeaderRow);
+  const tableBody = document.createElement("tbody");
+  table.rows.forEach((row, rowIndex) => {
+    const rowElement = document.createElement("tr");
+    const rowSelected = selection?.type === "row" && selection.index === rowIndex;
+    const rowHeader = document.createElement("th");
+    rowHeader.className = "table-axis-header table-row-header";
+    if (rowSelected) rowHeader.classList.add("is-selected");
+    rowHeader.append(tableAxisSelector("row", rowIndex, String(rowIndex + 1), rowSelected));
+    rowElement.append(rowHeader);
+    row.forEach((cell, columnIndex) => {
+      const cellElement = document.createElement(table.hasHeader && rowIndex === 0 ? "th" : "td");
+      if (rowSelected || (selection?.type === "column" && selection.index === columnIndex)) {
+        cellElement.classList.add("is-axis-selected");
+      }
+      const input = document.createElement("input");
+      input.type = "text";
+      input.className = "table-block-cell-input";
+      input.value = cell;
+      input.dataset.rowIndex = String(rowIndex);
+      input.dataset.columnIndex = String(columnIndex);
+      input.setAttribute("aria-label", `表${blockIndex + 1} ${rowIndex + 1}行${columnIndex + 1}列`);
+      cellElement.append(input);
+      rowElement.append(cellElement);
+    });
+    tableBody.append(rowElement);
+  });
+  tableElement.append(tableHead, tableBody);
+  scroll.append(tableElement);
+
+  const operationStatus = document.createElement("p");
+  operationStatus.className = "table-block-operation-status";
+  operationStatus.setAttribute("role", "status");
+  operationStatus.setAttribute("aria-live", "polite");
+
+  const note = document.createElement("input");
+  note.type = "text";
+  note.className = "table-block-comment table-block-note-input";
+  note.dataset.tableField = "note";
+  note.value = table.note;
+  note.placeholder = "出典や補足を入力";
+  note.setAttribute("aria-label", `表${blockIndex + 1}の出典や補足`);
+  article.append(header, caption, scroll, operationStatus, note);
+  return article;
+}
+
+function renderTableBlockEditors() {
+  if (!tableBlockEditors) return;
+  const blocks = splitTableBlocks(editor.value).filter((segment) => segment.type === "table");
+  tableBlockEditors.replaceChildren();
+  tableBlockEditors.hidden = blocks.length === 0;
+  if (!blocks.length) {
+    activeTableCell = null;
+    return;
+  }
+  const heading = document.createElement("div");
+  heading.className = "table-block-editors-heading";
+  heading.textContent = `本文内の表（${blocks.length}件）`;
+  tableBlockEditors.append(heading);
+  blocks.forEach((block, blockIndex) => tableBlockEditors.append(createTableEditor(block.table, blockIndex)));
+}
+
+function commitTableBlockChange(blockIndex, tableId, nextTable, { rerenderEditors = false } = {}) {
+  const block = currentTableBlock(blockIndex, tableId);
+  if (!block) return false;
+  try {
+    captureUndoSnapshot({ inputType: "insertText" });
+    editor.value = replaceTableBlock(editor.value, block, nextTable);
+    if (rerenderEditors) renderTableBlockEditors();
+    renderPreview();
+    scheduleSave({ render: false });
+    return true;
+  } catch (error) {
+    alert(error.message || String(error));
+    renderTableBlockEditors();
+    return false;
+  }
+}
+
+function focusTableCell(tableId, rowIndex, columnIndex) {
+  requestAnimationFrame(() => {
+    const selector = `.table-block-editor[data-table-id="${CSS.escape(tableId)}"] .table-block-cell-input[data-row-index="${rowIndex}"][data-column-index="${columnIndex}"]`;
+    const input = tableBlockEditors && tableBlockEditors.querySelector(selector);
+    if (input) input.focus();
+  });
+}
+
+function insertTableAtSelection() {
+  if (!currentNote() || currentNote().deletedAt) return;
+  const table = createTableBlock(crypto.randomUUID());
+  const result = insertTableBlock(editor.value, editor.selectionStart, editor.selectionEnd, table);
+  captureUndoSnapshot({ inputType: "insertText" });
+  editor.value = result.value;
+  editor.setSelectionRange(result.selectionStart, result.selectionEnd);
+  renderTableBlockEditors();
+  renderPreview();
+  scheduleSave({ render: false });
+  focusTableCell(table.id, 0, 0);
+}
+
+function handleTableEditorInput(event) {
+  const editorBlock = event.target.closest(".table-block-editor");
+  if (!editorBlock) return;
+  const blockIndex = Number(editorBlock.dataset.tableIndex);
+  const tableId = editorBlock.dataset.tableId;
+  const block = currentTableBlock(blockIndex, tableId);
+  if (!block) return;
+  let next = block.table;
+  if (event.target.matches(".table-block-cell-input")) {
+    next = updateTableCell(next, Number(event.target.dataset.rowIndex), Number(event.target.dataset.columnIndex), event.target.value);
+  } else if (event.target.dataset.tableField) {
+    next = normalizeTableBlock({ ...next, [event.target.dataset.tableField]: event.target.value }, tableId);
+  } else {
+    return;
+  }
+  commitTableBlockChange(blockIndex, tableId, next);
+}
+
+function handleTableEditorFocus(event) {
+  if (!event.target.matches(".table-block-cell-input")) return;
+  const editorBlock = event.target.closest(".table-block-editor");
+  activeTableCell = {
+    blockIndex: Number(editorBlock.dataset.tableIndex),
+    tableId: editorBlock.dataset.tableId,
+    rowIndex: Number(event.target.dataset.rowIndex),
+    columnIndex: Number(event.target.dataset.columnIndex)
+  };
+}
+
+function handleTableEditorKeydown(event) {
+  if (event.key !== "Tab" || !event.target.matches(".table-block-cell-input")) return;
+  const editorBlock = event.target.closest(".table-block-editor");
+  const blockIndex = Number(editorBlock.dataset.tableIndex);
+  const tableId = editorBlock.dataset.tableId;
+  const block = currentTableBlock(blockIndex, tableId);
+  if (!block) return;
+  event.preventDefault();
+  const movement = moveTableCell(
+    block.table,
+    Number(event.target.dataset.rowIndex),
+    Number(event.target.dataset.columnIndex),
+    event.shiftKey
+  );
+  if (movement.rowAdded) {
+    commitTableBlockChange(blockIndex, tableId, movement.table, { rerenderEditors: true });
+  }
+  focusTableCell(tableId, movement.rowIndex, movement.columnIndex);
+}
+
+function handleTableAxisSelection(event) {
+  const button = event.target.closest(".table-axis-selector");
+  if (!button) return;
+  const editorBlock = button.closest(".table-block-editor");
+  const tableId = editorBlock.dataset.tableId;
+  const type = button.dataset.tableAxis;
+  const index = Number(button.dataset.tableAxisIndex);
+  const current = tableAxisSelection(tableId);
+  if (current?.type === type && current.index === index) {
+    tableAxisSelections.delete(tableId);
+  } else {
+    tableAxisSelections.set(tableId, { type, index });
+  }
+  renderTableBlockEditors();
+  focusTableAxisHeader(tableId, type, index);
+}
+
+function closeTableAxisDeleteDialog() {
+  if (tableAxisDeleteDialog?.open) tableAxisDeleteDialog.close();
+}
+
+function requestTableAxisDeletion(editorBlock, type, index) {
+  const label = type === "row" ? `${index + 1}行目` : `${tableColumnLabel(index)}列`;
+  pendingTableAxisDeletion = {
+    blockIndex: Number(editorBlock.dataset.tableIndex),
+    tableId: editorBlock.dataset.tableId,
+    type,
+    index,
+    restoreFocus: true,
+    trigger: editorBlock.querySelector(`[data-table-action="delete-${type}"]`)
+  };
+  tableAxisDeleteTitle.textContent = type === "row" ? "行を削除" : "列を削除";
+  tableAxisDeleteMessage.textContent = `${label}を削除しますか？`;
+  tableAxisDeleteDialog.showModal();
+  cancelTableAxisDeleteBtn.focus();
+}
+
+function confirmTableAxisDeletion() {
+  const pending = pendingTableAxisDeletion;
+  if (!pending) return;
+  const block = currentTableBlock(pending.blockIndex, pending.tableId);
+  const editorBlock = tableBlockEditors?.querySelector(`.table-block-editor[data-table-index="${pending.blockIndex}"]`);
+  if (!block) {
+    pending.restoreFocus = false;
+    closeTableAxisDeleteDialog();
+    return;
+  }
+  const selection = tableAxisSelection(pending.tableId);
+  if (selection?.type !== pending.type || selection.index !== pending.index) {
+    pending.restoreFocus = false;
+    closeTableAxisDeleteDialog();
+    setTableEditorStatus(editorBlock, "選択対象が変わりました。もう一度選択してください");
+    return;
+  }
+  const isRow = pending.type === "row";
+  const count = isRow ? block.table.rows.length : block.table.rows[0].length;
+  if (count <= 1) {
+    pending.restoreFocus = false;
+    closeTableAxisDeleteDialog();
+    setTableEditorStatus(editorBlock, isRow
+      ? "表には最低1行必要なため削除できません"
+      : "表には最低1列必要なため削除できません");
+    return;
+  }
+  const next = isRow
+    ? deleteTableRow(block.table, pending.index)
+    : deleteTableColumn(block.table, pending.index);
+  const nextIndex = Math.min(pending.index, count - 2);
+  tableAxisSelections.set(pending.tableId, { type: pending.type, index: nextIndex });
+  pending.restoreFocus = false;
+  closeTableAxisDeleteDialog();
+  if (commitTableBlockChange(pending.blockIndex, pending.tableId, next, { rerenderEditors: true })) {
+    focusTableAxisHeader(pending.tableId, pending.type, nextIndex);
+  }
+}
+
+function handleTableEditorAction(event) {
+  const button = event.target.closest("[data-table-action]");
+  if (!button) return;
+  const editorBlock = button.closest(".table-block-editor");
+  const blockIndex = Number(editorBlock.dataset.tableIndex);
+  const tableId = editorBlock.dataset.tableId;
+  const block = currentTableBlock(blockIndex, tableId);
+  if (!block) return;
+  const selection = tableAxisSelection(tableId);
+  let next = block.table;
+  let focusCell = null;
+  switch (button.dataset.tableAction) {
+    case "add-row": {
+      const afterIndex = selection?.type === "row" ? selection.index : next.rows.length - 1;
+      next = addTableRow(next, afterIndex);
+      focusCell = { rowIndex: Math.min(afterIndex + 1, next.rows.length - 1), columnIndex: 0 };
+      break;
+    }
+    case "delete-row":
+      if (selection?.type !== "row") {
+        setTableEditorStatus(editorBlock, "削除する行を選択してください");
+        return;
+      }
+      if (next.rows.length <= 1) {
+        setTableEditorStatus(editorBlock, "表には最低1行必要なため削除できません");
+        return;
+      }
+      requestTableAxisDeletion(editorBlock, "row", selection.index);
+      return;
+    case "add-column": {
+      const afterIndex = selection?.type === "column" ? selection.index : next.rows[0].length - 1;
+      next = addTableColumn(next, afterIndex);
+      focusCell = { rowIndex: 0, columnIndex: Math.min(afterIndex + 1, next.rows[0].length - 1) };
+      break;
+    }
+    case "delete-column":
+      if (selection?.type !== "column") {
+        setTableEditorStatus(editorBlock, "削除する列を選択してください");
+        return;
+      }
+      if (next.rows[0].length <= 1) {
+        setTableEditorStatus(editorBlock, "表には最低1列必要なため削除できません");
+        return;
+      }
+      requestTableAxisDeletion(editorBlock, "column", selection.index);
+      return;
+    case "toggle-header":
+      next = normalizeTableBlock({ ...next, hasHeader: !next.hasHeader }, tableId);
+      break;
+    case "delete-table":
+      if (!confirm("この表ブロックを削除しますか？")) return;
+      captureUndoSnapshot({ inputType: "deleteContentForward" });
+      editor.value = replaceTableBlock(editor.value, block, null);
+      activeTableCell = null;
+      tableAxisSelections.delete(tableId);
+      renderTableBlockEditors();
+      renderPreview();
+      scheduleSave({ render: false });
+      editor.focus();
+      return;
+    default:
+      return;
+  }
+  if (focusCell) tableAxisSelections.delete(tableId);
+  if (commitTableBlockChange(blockIndex, tableId, next, { rerenderEditors: true })) {
+    if (focusCell) focusTableCell(tableId, focusCell.rowIndex, focusCell.columnIndex);
+  }
 }
 
 function attachmentTotalSize(items = currentAttachments) {
@@ -2645,22 +3090,57 @@ function handleEditorAttachmentDrop(event) {
 
 function renderPreviewHtml(body, noteId = "preview", renderGeneration = 0) {
   let codeBlockIndex = 0;
+  let tableBlockIndex = 0;
   const html = splitImageBlocks(body)
     .map((segment, imageBlockIndex) => {
       if (segment.type === "image") return renderImageBlock(segment, imageBlockIndex);
-      return splitFencedBlocks(segment.text).map((block) => {
-        if (block.type !== "code") return renderTextBlock(block.text);
-        const rendered = block.language.toLowerCase() === "mermaid"
-          ? renderMermaidBlock(block.code, noteId, renderGeneration, codeBlockIndex)
-          : renderCodeBlock(block.code, block.language);
-        codeBlockIndex += 1;
-        return rendered;
+      return splitTableBlocks(segment.text).map((tableSegment) => {
+        if (tableSegment.type === "table") {
+          const rendered = renderTableBlock(tableSegment.table, tableBlockIndex);
+          tableBlockIndex += 1;
+          return rendered;
+        }
+        return splitFencedBlocks(tableSegment.text).map((block) => {
+          if (block.type !== "code") return renderTextBlock(block.text);
+          const rendered = block.language.toLowerCase() === "mermaid"
+            ? renderMermaidBlock(block.code, noteId, renderGeneration, codeBlockIndex)
+            : renderCodeBlock(block.code, block.language);
+          codeBlockIndex += 1;
+          return rendered;
+        }).join("");
       }).join("");
     })
     .filter(Boolean)
     .join("");
 
   return html || `<p class="empty">本文を書くとカード表示されます。</p>`;
+}
+
+function renderTableBlock(tableValue, blockIndex) {
+  const table = normalizeTableBlock(tableValue, `table-${blockIndex + 1}`);
+  const headerRows = table.hasHeader ? table.rows.slice(0, 1) : [];
+  const bodyRows = table.hasHeader ? table.rows.slice(1) : table.rows;
+  const renderRows = (rows, cellTag) => rows.map((row) => `<tr>${row
+    .map((cell) => `<${cellTag}>${escapeHtml(cell)}</${cellTag}>`)
+    .join("")}</tr>`).join("");
+  const caption = table.caption
+    ? `<figcaption class="table-block-caption">${escapeHtml(table.caption)}</figcaption>`
+    : "";
+  const note = table.note
+    ? `<p class="table-block-note">${escapeHtml(table.note)}</p>`
+    : "";
+  const thead = headerRows.length ? `<thead>${renderRows(headerRows, "th")}</thead>` : "";
+  const tbody = `<tbody>${renderRows(bodyRows, "td")}</tbody>`;
+  const label = table.caption.trim() || `表ブロック${blockIndex + 1}`;
+  return `
+    <figure class="table-block" data-table-id="${escapeAttr(table.id)}">
+      ${caption}
+      <div class="table-block-scroll" tabindex="0" role="region" aria-label="${escapeAttr(label)}">
+        <table aria-label="${escapeAttr(label)}">${thead}${tbody}</table>
+      </div>
+      ${note}
+    </figure>
+  `;
 }
 
 function renderImageBlock(block, blockIndex) {
@@ -4899,7 +5379,8 @@ function createSyntaxGuideItem(item, statusElement = syntaxGuideStatus) {
   heading.className = "syntax-guide-item-head";
   const name = document.createElement("h3");
   name.textContent = item.name;
-  heading.append(name, createSyntaxGuideCopyButton(item, statusElement));
+  heading.append(name);
+  if (item.copyable !== false) heading.append(createSyntaxGuideCopyButton(item, statusElement));
 
   const code = document.createElement("code");
   code.textContent = item.syntax;
@@ -4920,6 +5401,7 @@ function renderSyntaxGuide() {
   const sectionDetails = [
     { category: "markdown", title: "Markdown", intro: "Memo Nexusのプレビューが現在対応している記法です。" },
     { category: "code", title: "コードブロック", intro: "バッククォート3個で囲んだ完成例です。" },
+    { category: "table", title: "表ブロック", intro: "本文の任意位置へ、セルを直接編集できる構造化された表を挿入します。" },
     { category: "mermaid", title: "Mermaid", intro: "コードブロックの開始部分にmermaidと書くと図として表示します。" }
   ];
 
@@ -5113,6 +5595,22 @@ if (attachmentDropZone) {
 if (closeImagePreviewBtn) closeImagePreviewBtn.addEventListener("click", () => imagePreviewDialog.close());
 if (imagePreviewDialog) imagePreviewDialog.addEventListener("close", () => imagePreview.removeAttribute("src"));
 if (syntaxGuideBtn && syntaxGuideDialog) syntaxGuideBtn.addEventListener("click", openSyntaxGuide);
+if (insertTableBtn) insertTableBtn.addEventListener("click", insertTableAtSelection);
+if (tableBlockEditors) {
+  tableBlockEditors.addEventListener("input", handleTableEditorInput);
+  tableBlockEditors.addEventListener("focusin", handleTableEditorFocus);
+  tableBlockEditors.addEventListener("keydown", handleTableEditorKeydown);
+  tableBlockEditors.addEventListener("click", handleTableAxisSelection);
+  tableBlockEditors.addEventListener("click", handleTableEditorAction);
+}
+if (closeTableAxisDeleteBtn) closeTableAxisDeleteBtn.addEventListener("click", closeTableAxisDeleteDialog);
+if (cancelTableAxisDeleteBtn) cancelTableAxisDeleteBtn.addEventListener("click", closeTableAxisDeleteDialog);
+if (confirmTableAxisDeleteBtn) confirmTableAxisDeleteBtn.addEventListener("click", confirmTableAxisDeletion);
+if (tableAxisDeleteDialog) tableAxisDeleteDialog.addEventListener("close", () => {
+  const pending = pendingTableAxisDeletion;
+  pendingTableAxisDeletion = null;
+  if (pending?.restoreFocus && pending.trigger?.isConnected) pending.trigger.focus({ preventScroll: true });
+});
 if (closeSyntaxGuideBtn && syntaxGuideDialog) closeSyntaxGuideBtn.addEventListener("click", closeSyntaxGuide);
 if (closeMermaidTemplateBtn && mermaidTemplateDialog) closeMermaidTemplateBtn.addEventListener("click", closeMermaidTemplateDetails);
 if (mermaidTemplateDialog) mermaidTemplateDialog.addEventListener("close", () => {
@@ -5205,7 +5703,10 @@ editor.addEventListener("dragover", (event) => {
 });
 editor.addEventListener("drop", handleEditorAttachmentDrop);
 titleInput.addEventListener("input", scheduleSave);
-editor.addEventListener("input", scheduleSave);
+editor.addEventListener("input", () => {
+  renderTableBlockEditors();
+  scheduleSave();
+});
 window.addEventListener("resize", () => {
   syncLayoutMode();
   renderSaveStatus();

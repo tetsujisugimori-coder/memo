@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Memo Nexus</title>
-  <link rel="stylesheet" href="style.css?v=0.4.0-16">
+  <link rel="stylesheet" href="style.css?v=0.4.0-18">
 </head>
 <body>
   <aside id="memoSidebar" class="sidebar" aria-label="メモ一覧" aria-hidden="false">
@@ -73,8 +73,10 @@
         </div>
       </div>
       <div class="editor-tools" aria-label="エディタ操作">
+        <button id="insertTableBtn" type="button" title="カーソル位置へ表ブロックを挿入" aria-label="表ブロックを挿入">表</button>
         <button id="syntaxGuideBtn" type="button" title="Markdown・コードブロック・Mermaidの記法を確認" aria-label="記法ガイドを開く" aria-controls="syntaxGuideDialog" aria-expanded="false">記法ガイド</button>
       </div>
+      <div id="tableBlockEditors" class="table-block-editors" role="region" aria-label="表ブロック編集" hidden></div>
       <textarea id="editor" placeholder="すぐ書けます。[[足利尊氏]] のように書くとリンクになります。"></textarea>
     </section>
     <section id="previewCard" class="preview-card" aria-hidden="false">
@@ -256,6 +258,20 @@
     </div>
   </dialog>
 
+  <dialog id="tableAxisDeleteDialog" class="table-axis-delete-dialog" aria-labelledby="tableAxisDeleteTitle">
+    <div class="dialog-head">
+      <strong id="tableAxisDeleteTitle">行を削除</strong>
+      <button id="closeTableAxisDeleteBtn" type="button" title="閉じる" aria-label="削除確認を閉じる">×</button>
+    </div>
+    <div class="table-axis-delete-body">
+      <p id="tableAxisDeleteMessage"></p>
+      <div class="collection-dialog-actions">
+        <button id="cancelTableAxisDeleteBtn" type="button">キャンセル</button>
+        <button id="confirmTableAxisDeleteBtn" class="danger-button" type="button">削除</button>
+      </div>
+    </div>
+  </dialog>
+
   <dialog id="syntaxGuideDialog" class="syntax-guide-dialog" aria-labelledby="syntaxGuideTitle">
     <div class="dialog-head">
       <strong id="syntaxGuideTitle">記法ガイド</strong>
@@ -279,7 +295,8 @@
   <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
   <script src="export-utils.js?v=0.4.0-8"></script>
   <script src="attachment-utils.js?v=0.4.0-10"></script>
+  <script src="table-block-utils.js?v=0.4.0-2"></script>
   <script src="memo-list-utils.js?v=0.4.0-2"></script>
-  <script src="app.js?v=0.4.0-20"></script>
+  <script src="app.js?v=0.4.0-23"></script>
 </body>
 </html>

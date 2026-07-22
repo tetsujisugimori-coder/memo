@@ -130,6 +130,23 @@ test("エディタ直下の操作列にアクセシブルな記法ガイドボ�
   assert.match(html, /id="syntaxGuideBtn"[^>]*type="button"[^>]*title="[^"]+"[^>]*aria-label="記法ガイドを開く"[^>]*aria-controls="syntaxGuideDialog"[^>]*aria-expanded="false"/);
 });
 
+test("記法ガイドに表ブロックの挿入・編集・制約をデータとして掲載する", () => {
+  const [table] = items.filter((item) => item.category === "table");
+  assert.ok(table);
+  assert.equal(table.name, "表ブロック");
+  assert.match(table.description, /［表］.*カーソル位置.*説明.*セル.*出典や補足/);
+  assert.match(table.description, /左端の行番号.*上端の列記号.*選択中の行・列の直後/);
+  assert.match(table.description, /未選択時は末尾.*追加後は選択が解除.*新しい行・列の先頭セルへカーソル/);
+  assert.match(table.description, /削除時は確認画面/);
+  assert.match(table.notes, /Tab.*Shift\+Tab.*最後のセル.*行を追加/);
+  assert.match(table.notes, /行と列は同時には選択されません.*最後の1行・1列は削除できません/);
+  assert.match(table.notes, /見出し行のオン／オフ.*表全体の削除/);
+  assert.match(table.notes, /プレーンテキスト.*数式・計算・セル結合・色指定・並べ替え・絞り込みには未対応/);
+  assert.match(table.notes, /狭い画面.*表だけを横スクロール/);
+  assert.equal(table.copyable, false);
+  assert.match(app, /category: "table", title: "表ブロック"/);
+});
+
 test("専用dialogに見出し、閉じるボタン、スクロール本文、ライブ領域を持つ", () => {
   const dialog = html.match(/<dialog id="syntaxGuideDialog"[\s\S]*?<\/dialog>/)?.[0] || "";
   assert.match(dialog, /aria-labelledby="syntaxGuideTitle"/);
@@ -349,7 +366,8 @@ test("ライト・ダーク共通変数と狭幅container queryで表示する",
 });
 
 test("app.jsのキャッシュ番号を更新し、PR #24の画面外Mermaid描画経路を維持する", () => {
-  assert.match(html, /app\.js\?v=0\.4\.0-20/);
+  assert.match(html, /app\.js\?v=0\.4\.0-23/);
+  assert.match(html, /table-block-utils\.js\?v=0\.4\.0-2/);
   assert.match(app, /mermaid\.render\(/);
   assert.doesNotMatch(app, /mermaid\.run\(/);
   assert.match(app, /mermaidRenderGeneration/);
