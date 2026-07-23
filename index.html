@@ -4,7 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Memo Nexus</title>
-  <link rel="stylesheet" href="style.css?v=0.4.0-21">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css">
+  <link rel="stylesheet" href="style.css?v=0.4.0-22">
 </head>
 <body>
   <aside id="memoSidebar" class="sidebar" aria-label="メモ一覧" aria-hidden="false">
@@ -74,7 +75,7 @@
       </div>
       <div class="editor-tools" aria-label="エディタ操作">
         <button id="insertTableBtn" type="button" title="カーソル位置へ表ブロックを挿入" aria-label="表ブロックを挿入">表</button>
-        <button id="syntaxGuideBtn" type="button" title="Markdown・コードブロック・Mermaidの記法を確認" aria-label="記法ガイドを開く" aria-controls="syntaxGuideDialog" aria-expanded="false">記法ガイド</button>
+        <button id="syntaxGuideBtn" type="button" title="Markdown・数式・計算ブロック・コード・Mermaidの記法を確認" aria-label="記法ガイドを開く" aria-controls="syntaxGuideDialog" aria-expanded="false">記法ガイド</button>
       </div>
       <textarea id="editor" placeholder="すぐ書けます。[[足利尊氏]] のように書くとリンクになります。"></textarea>
       <div id="tableBlockEditors" class="table-block-editors" role="region" aria-label="表ブロック編集" hidden></div>
@@ -314,10 +315,13 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@highlightjs/cdn-assets@11.11.1/highlight.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjs@15.2.0/lib/browser/math.js"></script>
   <script src="export-utils.js?v=0.4.0-8"></script>
   <script src="attachment-utils.js?v=0.4.0-10"></script>
   <script src="table-block-utils.js?v=0.4.0-4"></script>
   <script src="memo-list-utils.js?v=0.4.0-2"></script>
-  <script src="app.js?v=0.4.0-26"></script>
+  <script src="calculation-engine.js?v=0.4.0-1"></script>
+  <script src="app.js?v=0.4.0-27"></script>
 </body>
 </html>

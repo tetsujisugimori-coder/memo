@@ -73,7 +73,36 @@ const SYNTAX_GUIDE_ITEMS = [
     description: "エディタ上部の［表］からカーソル位置へ挿入し、説明・セル・出典や補足を編集できます。Excel・Googleスプレッドシートのタブ区切りデータ、Markdown表、WebページのHTML表を本文へ貼り付け、表またはテキストとして挿入することもできます。貼り付け前に1行目を見出しにするか選べます。表の操作メニューから、Excel・Googleスプレッドシート向けの表全体コピーと、Markdown表としてのコピーができます。HTML対応アプリでは表として貼り付けられる場合があります。左端の行番号または上端の列記号を押すと、選択中の行・列の直後へ追加できます。未選択時は末尾へ追加され、追加後は選択が解除されて新しい行・列の先頭セルへカーソルが移ります。削除時は確認画面を表示します。",
     notes: "コピー対象はセルだけで、説明文と補足文は含みません。行や列を選択していても現時点では表全体をコピーします。貼り付け上限は100行・30列・3000セルです。CSVは通常文章との誤判定を避けるため自動判定しません。HTMLの結合セルは左上へ値を置き、残りを空セルにしますが、元の結合表示は完全には再現されません。行と列は同時には選択されません。最後の1行・1列は削除できません。セルはプレーンテキスト専用です。Tabで右へ、Shift+Tabで左へ移動し、最後のセルでTabを押すと行を追加します。見出し行のオン／オフと表全体の削除も操作メニューから行えます。カードでは空の説明や補足を隠し、狭い画面では表だけを横スクロールできます。数式・計算・セル結合・色指定・並べ替え・絞り込みには未対応です。",
     copyable: false
-  }
+  },
+  { category: "math", name: "インライン数式", syntax: "円の面積は $A = \\pi r^2$ です。", description: "文章中に短い数式を表示します。", notes: "数式記法はKaTeXによる表示用で、自動計算は行いません。" },
+  { category: "math", name: "ブロック数式", syntax: ["$$", "E = mc^2", "$$"].join("\n"), description: "数式を独立したブロックとして表示します。", notes: "長い数式は数式部分だけを横スクロールできます。" },
+  { category: "math", name: "分数", syntax: "\\frac{a}{b}", description: "分数を表示します。", notes: "ブロック数式またはインライン数式の内側で使用します。" },
+  { category: "math", name: "平方根", syntax: "\\sqrt{x}", description: "平方根を表示します。", notes: "表示専用です。計算ブロックのsqrt()には対応していません。" },
+  { category: "math", name: "累乗", syntax: "x^2", description: "累乗を表示します。", notes: "表示専用です。計算ブロックの^には対応していません。" },
+  { category: "math", name: "添字", syntax: "a_n", description: "添字を表示します。", notes: "数式の内側で使用します。" },
+  { category: "math", name: "円周率", syntax: "\\pi", description: "円周率の記号を表示します。", notes: "数式の内側で使用します。" },
+  { category: "math", name: "掛け算記号", syntax: "\\times", description: "掛け算記号を表示します。", notes: "数式の内側で使用します。" },
+  { category: "math", name: "割り算記号", syntax: "\\div", description: "割り算記号を表示します。", notes: "数式の内側で使用します。" },
+  { category: "math", name: "プラスマイナス", syntax: "\\pm", description: "プラスマイナス記号を表示します。", notes: "数式の内側で使用します。" },
+  { category: "math", name: "等しくない", syntax: "\\neq", description: "等しくない記号を表示します。", notes: "数式の内側で使用します。" },
+  { category: "math", name: "およそ等しい", syntax: "\\approx", description: "およそ等しい記号を表示します。", notes: "数式の内側で使用します。" },
+  { category: "math", name: "以下", syntax: "\\le", description: "以下の記号を表示します。", notes: "数式の内側で使用します。" },
+  { category: "math", name: "以上", syntax: "\\ge", description: "以上の記号を表示します。", notes: "数式の内側で使用します。" },
+  { category: "math", name: "総和", syntax: "\\sum_{i=1}^{n} i", description: "総和を表示します。", notes: "数式を表示するだけで、合計は計算しません。" },
+  { category: "math", name: "積分", syntax: "\\int_a^b f(x)\\,dx", description: "積分を表示します。", notes: "数式を表示するだけで、積分値は計算しません。" },
+  { category: "math", name: "極限", syntax: "\\lim_{x \\to 0} f(x)", description: "極限を表示します。", notes: "数式を表示するだけで、極限値は計算しません。" },
+  { category: "math", name: "括弧", syntax: "\\left( \\frac{a}{b} \\right)", description: "内容に合う大きさの括弧を表示します。", notes: "数式の内側で使用します。" },
+  { category: "math", name: "行列", syntax: ["\\begin{pmatrix}", "a & b \\\\", "c & d", "\\end{pmatrix}"].join("\n"), description: "行列を表示します。", notes: "ブロック数式の内側で使用すると読みやすく表示できます。" },
+  { category: "math", name: "複数行の式", syntax: ["\\begin{aligned}", "a &= b + c \\\\", "  &= d + e", "\\end{aligned}"].join("\n"), description: "位置を揃えた複数行の式を表示します。", notes: "ブロック数式の内側で使用します。コードブロック内では数式に変換されません。" },
+  { category: "calculation", name: "基本構文", syntax: [":::calc", "100 * 1.08", ":::"].join("\n"), description: "1つの独立した式を計算し、式と結果を表示します。", notes: "数式ブロックは表示用、計算ブロックは計算用です。仕様はCalculator Memoの現在のmainに合わせています。" },
+  { category: "calculation", name: "加算", syntax: [":::calc", "100 + 200", ":::"].join("\n"), description: "加算を計算します。", notes: "1ブロックにつき1つの式だけ使用できます。" },
+  { category: "calculation", name: "減算", syntax: [":::calc", "500 - 120", ":::"].join("\n"), description: "減算を計算します。", notes: "負数にも対応します。" },
+  { category: "calculation", name: "乗算", syntax: [":::calc", "25 * 4", ":::"].join("\n"), description: "乗算を計算します。", notes: "表示時だけ*を×として見せ、元の式を計算に使用します。" },
+  { category: "calculation", name: "除算", syntax: [":::calc", "100 / 4", ":::"].join("\n"), description: "除算を計算します。", notes: "表示時だけ/を÷として見せます。0では割れません。" },
+  { category: "calculation", name: "括弧", syntax: [":::calc", "(12 + 18) / 3", ":::"].join("\n"), description: "括弧内を先に計算します。", notes: "括弧の対応が不正な式は計算できません。" },
+  { category: "calculation", name: "小数", syntax: [":::calc", "12.5 * 4", ":::"].join("\n"), description: "小数を含む式を計算します。", notes: "結果はCalculator Memoと同じ方法で整形します。" },
+  { category: "calculation", name: "パーセント", syntax: [":::calc", "200 * 10%", ":::"].join("\n"), description: "Calculator Memoと同じく、10%を10÷100として扱うため結果は20です。", notes: "加減算でも相対増減にはせず、200 + 10% は200.1です。独自の%解釈は行いません。" },
+  { category: "calculation", name: "非対応項目", syntax: [":::calc", "2^10", ":::", "", ":::calc", "sqrt(2)", ":::"].join("\n"), description: "累乗、平方根、数学関数、変数、複数式、複数行計算、ブロック間参照には対応していません。", notes: "KaTeXで表示できる式が計算ブロックでも計算できるとは限りません。コードブロック内の計算記法は実行されません。", copyable: false }
 ];
 const MERMAID_TEMPLATE_TYPES = [
   { type: "flowchart", name: "フローチャート" },
@@ -2037,6 +2066,7 @@ function renderPreview() {
 
   const body = (note.id === currentId ? editor.value : note.body);
   preview.innerHTML = renderPreviewHtml(body, note.id, renderGeneration);
+  hydrateMathExpressions();
   hydrateInlineAttachmentImages();
   bindImageBlockControls();
 
@@ -3314,7 +3344,13 @@ function renderPreviewHtml(body, noteId = "preview", renderGeneration = 0) {
           return rendered;
         }
         return splitFencedBlocks(tableSegment.text).map((block) => {
-          if (block.type !== "code") return renderTextBlock(block.text);
+          if (block.type !== "code") {
+            return splitMathAndCalculationBlocks(block.text).map((richBlock) => {
+              if (richBlock.type === "math") return renderMathBlock(richBlock.source);
+              if (richBlock.type === "calculation") return renderCalculationBlock(richBlock.source);
+              return renderTextBlock(richBlock.text);
+            }).join("");
+          }
           const rendered = block.language.toLowerCase() === "mermaid"
             ? renderMermaidBlock(block.code, noteId, renderGeneration, codeBlockIndex)
             : renderCodeBlock(block.code, block.language);
@@ -3433,6 +3469,112 @@ function splitFencedBlocks(body) {
   return blocks;
 }
 
+function splitMathAndCalculationBlocks(text) {
+  const lines = String(text).replace(/\r\n?/g, "\n").split("\n");
+  const blocks = [];
+  let textLines = [];
+  let index = 0;
+
+  const flushText = () => {
+    if (!textLines.length) return;
+    blocks.push({ type: "text", text: textLines.join("\n") });
+    textLines = [];
+  };
+
+  while (index < lines.length) {
+    const marker = lines[index].trim();
+    const type = marker === "$$" ? "math" : (marker === ":::calc" ? "calculation" : "");
+    if (!type) {
+      textLines.push(lines[index]);
+      index += 1;
+      continue;
+    }
+
+    const closingMarker = type === "math" ? "$$" : ":::";
+    let closingIndex = index + 1;
+    while (closingIndex < lines.length && lines[closingIndex].trim() !== closingMarker) {
+      closingIndex += 1;
+    }
+
+    if (closingIndex >= lines.length) {
+      textLines.push(lines[index]);
+      index += 1;
+      continue;
+    }
+
+    flushText();
+    blocks.push({
+      type,
+      source: lines.slice(index + 1, closingIndex).join("\n").trim()
+    });
+    index = closingIndex + 1;
+  }
+
+  flushText();
+  return blocks;
+}
+
+function renderMathBlock(source) {
+  return `<div class="math-block" data-math-source="${escapeAttr(source)}" data-math-display="block">${escapeHtml(source)}</div>`;
+}
+
+function renderCalculationBlock(source) {
+  const expression = String(source || "").trim();
+  const nonEmptyLines = expression.split("\n").filter((line) => line.trim());
+  const engine = typeof window === "object" ? window.MemoCalculationEngine : null;
+  const evaluator = typeof window === "object" && window.math ? window.math.evaluate.bind(window.math) : null;
+
+  try {
+    if (nonEmptyLines.length !== 1) {
+      throw new Error(nonEmptyLines.length ? "複数行計算には対応していません" : "式を入力してください");
+    }
+    if (!engine) throw new Error("計算エンジンを利用できません");
+    const calculation = engine.evaluateExpression(nonEmptyLines[0].trim(), evaluator);
+    return `
+      <section class="calculation-block" aria-label="計算結果">
+        <span class="calculation-label">計算</span>
+        <div class="calculation-expression">${escapeHtml(calculation.displayExpression)}</div>
+        <div class="calculation-result"><span aria-hidden="true">=</span> ${escapeHtml(calculation.result)}</div>
+      </section>
+    `;
+  } catch (error) {
+    console.error("Calculation block failed", { expression, error });
+    return `
+      <section class="calculation-block calculation-error" aria-label="計算エラー">
+        <span class="calculation-label">計算</span>
+        <strong>計算できません</strong>
+        <code>${escapeHtml(expression)}</code>
+      </section>
+    `;
+  }
+}
+
+function hydrateMathExpressions() {
+  preview.querySelectorAll("[data-math-source]").forEach((element) => {
+    const source = element.dataset.mathSource || "";
+    const displayMode = element.dataset.mathDisplay === "block";
+    try {
+      if (!window.katex) throw new Error("KaTeXを利用できません");
+      window.katex.render(source, element, {
+        displayMode,
+        throwOnError: true,
+        strict: "warn",
+        trust: false,
+        output: "htmlAndMathml"
+      });
+    } catch (error) {
+      console.error("KaTeX render failed", { source, error });
+      element.textContent = "";
+      element.classList.add("math-error", displayMode ? "math-error-block" : "math-error-inline");
+      const message = document.createElement("strong");
+      message.textContent = "数式を表示できません";
+      const original = document.createElement("code");
+      original.textContent = source;
+      element.append(message, original);
+    }
+  });
+}
+
 function renderTextBlock(text) {
   const lines = String(text).replace(/\r\n?/g, "\n").split("\n");
   return renderMarkdownLines(lines);
@@ -3533,6 +3675,8 @@ function renderMarkdownInline(text) {
       html += `<strong>${renderMarkdownInline(token.content)}</strong>`;
     } else if (token.type === "attachment") {
       html += `<span class="inline-attachment-image" data-attachment-id="${escapeAttr(token.id)}" data-alt="${escapeAttr(token.alt)}" role="img" aria-label="${escapeAttr(token.alt || "添付画像")}">画像を読み込み中...</span>`;
+    } else if (token.type === "math") {
+      html += `<span class="math-inline" data-math-source="${escapeAttr(token.content)}">${escapeHtml(token.content)}</span>`;
     }
     index = token.end;
   }
@@ -3567,6 +3711,9 @@ function findNextInlineToken(text, fromIndex) {
     }
   }
 
+  const mathToken = findInlineMathToken(text, fromIndex);
+  if (mathToken) tokens.push(mathToken);
+
   const wikiPattern = /\[\[([^\]]+)\]\]/g;
   wikiPattern.lastIndex = fromIndex;
   const wikiMatch = wikiPattern.exec(text);
@@ -3593,6 +3740,26 @@ function findNextInlineToken(text, fromIndex) {
   }
 
   return tokens.sort((a, b) => a.start - b.start || a.end - b.end)[0] || null;
+}
+
+function findInlineMathToken(text, fromIndex) {
+  const isEscaped = (index) => {
+    let slashCount = 0;
+    for (let cursor = index - 1; cursor >= 0 && text[cursor] === "\\"; cursor -= 1) slashCount += 1;
+    return slashCount % 2 === 1;
+  };
+
+  for (let start = fromIndex; start < text.length; start += 1) {
+    if (text[start] !== "$" || isEscaped(start) || text[start + 1] === "$" || text[start - 1] === "$") continue;
+    for (let end = start + 1; end < text.length; end += 1) {
+      if (text[end] === "\n") break;
+      if (text[end] !== "$" || isEscaped(end) || text[end + 1] === "$") continue;
+      const content = text.slice(start + 1, end);
+      if (!content.trim()) break;
+      return { type: "math", start, end: end + 1, content };
+    }
+  }
+  return null;
 }
 
 function renderCodeBlock(code, language) {
@@ -5640,6 +5807,8 @@ function renderSyntaxGuide() {
   if (!syntaxGuideBody || syntaxGuideRendered) return;
   const sectionDetails = [
     { category: "markdown", title: "Markdown", intro: "Memo Nexusのプレビューが現在対応している記法です。" },
+    { category: "math", title: "数式", intro: "KaTeX記法を読みやすく表示します。数式の計算は行いません。" },
+    { category: "calculation", title: "計算ブロック", intro: "Calculator Memoの現在のmainと同じ規則で、1つの独立した式を計算します。" },
     { category: "code", title: "コードブロック", intro: "バッククォート3個で囲んだ完成例です。" },
     { category: "table", title: "表ブロック", intro: "本文の任意位置へ、セルを直接編集できる構造化された表を挿入します。" },
     { category: "mermaid", title: "Mermaid", intro: "コードブロックの開始部分にmermaidと書くと図として表示します。" }
