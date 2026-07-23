@@ -3681,6 +3681,11 @@ function getMermaidConfig(theme = currentTheme()) {
     darkMode: isDarkMode,
     securityLevel: "strict",
     fontFamily,
+    markdownAutoWrap: true,
+    flowchart: {
+      htmlLabels: false,
+      wrappingWidth: 200
+    },
     themeVariables: {
       fontFamily,
       fontSize: "16px"
@@ -3692,6 +3697,22 @@ function configureMermaidForTheme(mermaid, theme, configuredTheme) {
   if (configuredTheme === theme) return configuredTheme;
   mermaid.initialize(getMermaidConfig(theme));
   return theme;
+}
+
+function prepareMermaidSource(source) {
+  const text = String(source ?? "");
+  if (!/^\s*(?:flowchart|graph)\b/i.test(text)) return text;
+
+  const wrapLongLabel = (match, prefix, label, suffix) => (
+    label.trim().length >= 20 ? `${prefix}\`${label}\`${suffix}` : match
+  );
+  const quotedLabel = /([A-Za-z0-9_-]+\s*[\[{]\s*")([^"`<>\r\n]+)("\s*[\]}])/g;
+  const plainLabel = /([A-Za-z0-9_-]+\s*[\[{]\s*)(?!["`])([^"`<>\r\n]+?)(\s*[\]}])/g;
+  return text
+    .replace(quotedLabel, wrapLongLabel)
+    .replace(plainLabel, (match, prefix, label, suffix) => (
+      label.trim().length >= 20 ? `${prefix}"\`${label.trim()}\`"${suffix}` : match
+    ));
 }
 
 async function renderMermaidDiagrams(previewRoot, renderGeneration) {
@@ -3713,6 +3734,7 @@ async function renderMermaidDiagrams(previewRoot, renderGeneration) {
       isCurrent: () => isCurrentMermaidPreview(previewRoot, renderGeneration),
       createRenderHost: createMermaidRenderHost,
       nextRenderId: (index) => nextMermaidSvgRenderId(renderGeneration, index),
+      prepareSource: prepareMermaidSource,
       namespaceSvgIds: namespaceMermaidSvgIds,
       onError: (block, error) => {
         console.error("Mermaid render failed", error);
@@ -3741,6 +3763,7 @@ async function renderMermaidGeneration({
   isCurrent,
   createRenderHost,
   nextRenderId,
+  prepareSource = (source) => source,
   namespaceSvgIds = () => {},
   onError
 }) {
@@ -3748,7 +3771,7 @@ async function renderMermaidGeneration({
     if (!isCurrent()) return;
 
     const block = diagram.closest(".mermaid-block");
-    const source = diagram.textContent;
+    const source = prepareSource(diagram.textContent);
     const renderId = nextRenderId(index);
     const renderHost = createRenderHost(renderId);
 

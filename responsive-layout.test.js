@@ -16,6 +16,21 @@ test("共通ペインとアクセシブルな開閉操作を持つ", () => {
   assert.equal((html.match(/id="previewCard"/g) || []).length, 1);
 });
 
+test("本文入力欄の後ろに表ブロック編集領域と境界余白を置く", () => {
+  const editorCard = html.match(/<section class="editor-card">[\s\S]*?<\/section>/)?.[0] || "";
+  const editorIndex = editorCard.indexOf('id="editor"');
+  const tableEditorsIndex = editorCard.indexOf('id="tableBlockEditors"');
+
+  assert.ok(editorIndex >= 0);
+  assert.ok(tableEditorsIndex > editorIndex);
+  assert.match(css, /\.table-block-editors\s*\{[^}]*margin-top:\s*10px;[^}]*border-top:\s*1px solid var\(--line\);/s);
+  assert.doesNotMatch(css, /\.table-block-editors\s*\{[^}]*border-bottom:/s);
+});
+
+test("Mermaid表示用CSSの配信キャッシュを更新する", () => {
+  assert.match(html, /style\.css\?v=0\.4\.0-21/);
+});
+
 test("メモ一覧は単一見出しだけを持ち不要な表示範囲ラベルを残さない", () => {
   const sidebar = html.match(/<aside id="memoSidebar"[\s\S]*?<\/aside>/)?.[0] || "";
   const appHeader = html.match(/<header class="app-header">[\s\S]*?<\/header>/)?.[0] || "";
