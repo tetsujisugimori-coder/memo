@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Memo Nexus</title>
-  <link rel="stylesheet" href="style.css?v=0.4.0-20">
+  <link rel="stylesheet" href="style.css?v=0.4.0-21">
 </head>
 <body>
   <aside id="memoSidebar" class="sidebar" aria-label="メモ一覧" aria-hidden="false">
@@ -76,8 +76,8 @@
         <button id="insertTableBtn" type="button" title="カーソル位置へ表ブロックを挿入" aria-label="表ブロックを挿入">表</button>
         <button id="syntaxGuideBtn" type="button" title="Markdown・コードブロック・Mermaidの記法を確認" aria-label="記法ガイドを開く" aria-controls="syntaxGuideDialog" aria-expanded="false">記法ガイド</button>
       </div>
-      <div id="tableBlockEditors" class="table-block-editors" role="region" aria-label="表ブロック編集" hidden></div>
       <textarea id="editor" placeholder="すぐ書けます。[[足利尊氏]] のように書くとリンクになります。"></textarea>
+      <div id="tableBlockEditors" class="table-block-editors" role="region" aria-label="表ブロック編集" hidden></div>
     </section>
     <section id="previewCard" class="preview-card" aria-hidden="false">
       <div class="preview-head">
@@ -318,6 +318,6 @@
   <script src="attachment-utils.js?v=0.4.0-10"></script>
   <script src="table-block-utils.js?v=0.4.0-4"></script>
   <script src="memo-list-utils.js?v=0.4.0-2"></script>
-  <script src="app.js?v=0.4.0-25"></script>
+  <script src="app.js?v=0.4.0-26"></script>
 </body>
 </html>

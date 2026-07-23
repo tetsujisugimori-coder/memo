@@ -42,6 +42,10 @@ const configureMermaidForTheme = Function(
    return configureMermaidForTheme;`
 )();
 
+const prepareMermaidSource = Function(
+  `${functionSource("prepareMermaidSource", "renderMermaidDiagrams")}; return prepareMermaidSource;`
+)();
+
 function createThemeHarness(initialTheme = "light") {
   const classes = new Set(initialTheme === "dark" ? ["dark"] : []);
   const renderCalls = [];
@@ -258,6 +262,8 @@ test("ライト・ダークに応じたMermaid標準テーマ設定を返す", (
     darkMode: false,
     securityLevel: "strict",
     fontFamily,
+    markdownAutoWrap: true,
+    flowchart: { htmlLabels: false, wrappingWidth: 200 },
     themeVariables: { fontFamily, fontSize: "16px" }
   });
   assert.deepEqual(getMermaidConfig("dark"), {
@@ -266,6 +272,8 @@ test("ライト・ダークに応じたMermaid標準テーマ設定を返す", (
     darkMode: true,
     securityLevel: "strict",
     fontFamily,
+    markdownAutoWrap: true,
+    flowchart: { htmlLabels: false, wrappingWidth: 200 },
     themeVariables: { fontFamily, fontSize: "16px" }
   });
 });
@@ -287,6 +295,27 @@ test("Mermaid初期化は初回とテーマ変更時だけ行う", () => {
   assert.ok(initializeCalls.every((config) => config.securityLevel === "strict"));
   assert.ok(initializeCalls.every((config) => config.fontFamily === config.themeVariables.fontFamily));
   assert.ok(initializeCalls.every((config) => config.themeVariables.fontSize === "16px"));
+  assert.ok(initializeCalls.every((config) => config.markdownAutoWrap === true));
+  assert.ok(initializeCalls.every((config) => config.flowchart.htmlLabels === false));
+  assert.ok(initializeCalls.every((config) => config.flowchart.wrappingWidth === 200));
+});
+
+test("フローチャートの長い従来ラベルだけを描画時に自動折り返し形式へ変換する", () => {
+  const source = [
+    "flowchart TD",
+    '  A[短いラベル] --> B[これは日本語とVeryLongEnglishIdentifier1234567890が混在する長いラベルです]',
+    '  B --> C{"保存処理が完了して次の画面へ移動できる状態です"}',
+    '  C --> D["手動<br/>改行はそのまま"]',
+    '  D --> E["`既存のMarkdownラベルはそのまま維持します`"]'
+  ].join("\n");
+  const prepared = prepareMermaidSource(source);
+
+  assert.match(prepared, /A\[短いラベル\]/);
+  assert.match(prepared, /B\["`これは日本語とVeryLongEnglishIdentifier1234567890が混在する長いラベルです`"\]/);
+  assert.match(prepared, /C\{"`保存処理が完了して次の画面へ移動できる状態です`"\}/);
+  assert.match(prepared, /D\["手動<br\/>改行はそのまま"\]/);
+  assert.match(prepared, /E\["`既存のMarkdownラベルはそのまま維持します`"\]/);
+  assert.equal(prepareMermaidSource("sequenceDiagram\n  A->>B: とても長いメッセージです"), "sequenceDiagram\n  A->>B: とても長いメッセージです");
 });
 
 test("Mermaid内部のIDと参照を図ごとの名前空間へ分離する", () => {
@@ -399,6 +428,7 @@ test("プレビュー世代をDOM IDへ渡し、配信時にapp.jsのキャッ�
   assert.match(app, /renderMermaidBlock\(block\.code, noteId, renderGeneration, codeBlockIndex\)/);
   assert.match(app, /mermaid-diagram-\$\{stableMermaidIdPart\(noteId\)\}-g\$\{renderGeneration\}-b\$\{index\}/);
   assert.match(app, /if \(nextTheme !== previousTheme\) renderPreview\(\)/);
+  assert.match(app, /prepareSource: prepareMermaidSource/);
   assert.match(app, /<pre class="mermaid-source" hidden><code>\$\{escapeHtml\(code\)\}<\/code><\/pre>/);
-  assert.match(indexHtml, /<script src="app\.js\?v=0\.4\.0-25"><\/script>/);
+  assert.match(indexHtml, /<script src="app\.js\?v=0\.4\.0-26"><\/script>/);
 });

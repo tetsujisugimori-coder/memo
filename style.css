@@ -823,8 +823,9 @@ body.collections-open .collection-explorer {
   max-height: min(42%, 380px);
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding: 8px 10px 10px;
-  border-bottom: 1px solid var(--line);
+  margin-top: 10px;
+  padding: 10px;
+  border-top: 1px solid var(--line);
   background: var(--panel);
 }
 
