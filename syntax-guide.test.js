@@ -201,6 +201,20 @@ test("数式カテゴリにKaTeXの表示例と表示専用である注意を掲
     "以下", "以上", "総和", "積分", "極限", "括弧", "行列", "複数行の式"
   ].forEach((name) => assert.ok(names.includes(name), `${name}を掲載する`));
   assert.equal(math.find((item) => item.name === "インライン数式").syntax, "円の面積は $A = \\pi r^2$ です。");
+  const inlineExamples = ["分数", "平方根", "累乗", "添字", "円周率", "掛け算記号", "割り算記号", "プラスマイナス", "等しくない", "およそ等しい", "以下", "以上", "括弧"];
+  inlineExamples.forEach((name) => {
+    const syntax = math.find((item) => item.name === name).syntax;
+    assert.ok(syntax.startsWith("$") && syntax.endsWith("$") && !syntax.startsWith("$$"), `${name}をインライン数式の完成形にする`);
+  });
+  const blockExamples = ["ブロック数式", "総和", "積分", "極限", "行列", "複数行の式"];
+  blockExamples.forEach((name) => {
+    const syntax = math.find((item) => item.name === name).syntax;
+    assert.ok(syntax.startsWith("$$\n") && syntax.endsWith("\n$$"), `${name}をブロック数式の完成形にする`);
+  });
+  assert.equal(math.find((item) => item.name === "分数").syntax, "$\\frac{a}{b}$");
+  assert.equal(math.find((item) => item.name === "平方根").syntax, "$\\sqrt{x}$");
+  assert.equal(math.find((item) => item.name === "累乗").syntax, "$x^2$");
+  assert.match(math.find((item) => item.name === "行列").syntax, /^\$\$\n\\begin\{pmatrix\}[\s\S]*\\end\{pmatrix\}\n\$\$$/);
   assert.match(math.find((item) => item.name === "平方根").notes, /表示専用.*sqrt\(\).*対応していません/);
   assert.match(math.find((item) => item.name === "累乗").notes, /表示専用.*\^.*対応していません/);
   assert.match(app, /category: "math", title: "数式"[\s\S]*KaTeX記法.*計算は行いません/);
