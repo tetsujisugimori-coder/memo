@@ -192,6 +192,50 @@ test("現在対応するMarkdown記法だけを掲載する", () => {
   unsupported.forEach((name) => assert.ok(!markdown.some((item) => item.name === name)));
 });
 
+test("数式カテゴリにKaTeXの表示例と表示専用である注意を掲載する", () => {
+  const math = items.filter((item) => item.category === "math");
+  const names = math.map((item) => item.name);
+  [
+    "インライン数式", "ブロック数式", "分数", "平方根", "累乗", "添字", "円周率",
+    "掛け算記号", "割り算記号", "プラスマイナス", "等しくない", "およそ等しい",
+    "以下", "以上", "総和", "積分", "極限", "括弧", "行列", "複数行の式"
+  ].forEach((name) => assert.ok(names.includes(name), `${name}を掲載する`));
+  assert.equal(math.find((item) => item.name === "インライン数式").syntax, "円の面積は $A = \\pi r^2$ です。");
+  const inlineExamples = ["分数", "平方根", "累乗", "添字", "円周率", "掛け算記号", "割り算記号", "プラスマイナス", "等しくない", "およそ等しい", "以下", "以上", "括弧"];
+  inlineExamples.forEach((name) => {
+    const syntax = math.find((item) => item.name === name).syntax;
+    assert.ok(syntax.startsWith("$") && syntax.endsWith("$") && !syntax.startsWith("$$"), `${name}をインライン数式の完成形にする`);
+  });
+  const blockExamples = ["ブロック数式", "総和", "積分", "極限", "行列", "複数行の式"];
+  blockExamples.forEach((name) => {
+    const syntax = math.find((item) => item.name === name).syntax;
+    assert.ok(syntax.startsWith("$$\n") && syntax.endsWith("\n$$"), `${name}をブロック数式の完成形にする`);
+  });
+  assert.equal(math.find((item) => item.name === "分数").syntax, "$\\frac{a}{b}$");
+  assert.equal(math.find((item) => item.name === "平方根").syntax, "$\\sqrt{x}$");
+  assert.equal(math.find((item) => item.name === "累乗").syntax, "$x^2$");
+  assert.match(math.find((item) => item.name === "行列").syntax, /^\$\$\n\\begin\{pmatrix\}[\s\S]*\\end\{pmatrix\}\n\$\$$/);
+  assert.match(math.find((item) => item.name === "平方根").notes, /表示専用.*sqrt\(\).*対応していません/);
+  assert.match(math.find((item) => item.name === "累乗").notes, /表示専用.*\^.*対応していません/);
+  assert.match(app, /category: "math", title: "数式"[\s\S]*KaTeX記法.*計算は行いません/);
+});
+
+test("計算ブロックカテゴリにCalculator Memo準拠の対応範囲と制限を掲載する", () => {
+  const calculation = items.filter((item) => item.category === "calculation");
+  const names = calculation.map((item) => item.name);
+  ["基本構文", "加算", "減算", "乗算", "除算", "括弧", "小数", "パーセント", "非対応項目"]
+    .forEach((name) => assert.ok(names.includes(name), `${name}を掲載する`));
+  const percent = calculation.find((item) => item.name === "パーセント");
+  assert.match(percent.syntax, /200 \* 10%/);
+  assert.match(percent.description, /10÷100.*結果は20/);
+  assert.match(percent.notes, /200 \+ 10% は200\.1/);
+  const unsupported = calculation.find((item) => item.name === "非対応項目");
+  assert.match(unsupported.syntax, /2\^10[\s\S]*sqrt\(2\)/);
+  assert.match(unsupported.description, /累乗.*平方根.*数学関数.*変数.*複数式.*複数行計算.*ブロック間参照/);
+  assert.match(unsupported.notes, /KaTeX.*計算ブロック.*コードブロック内.*実行されません/);
+  assert.match(app, /category: "calculation", title: "計算ブロック"[\s\S]*Calculator Memo.*1つの独立した式/);
+});
+
 test("コードブロックの完成例、説明、実装中の短縮名を掲載する", () => {
   const [code] = items.filter((item) => item.category === "code");
   assert.equal(code.syntax, [
@@ -373,7 +417,7 @@ test("ライト・ダーク共通変数と狭幅container queryで表示する",
 });
 
 test("app.jsのキャッシュ番号を更新し、PR #24の画面外Mermaid描画経路を維持する", () => {
-  assert.match(html, /app\.js\?v=0\.4\.0-26/);
+  assert.match(html, /app\.js\?v=0\.4\.0-27/);
   assert.match(html, /table-block-utils\.js\?v=0\.4\.0-4/);
   assert.match(app, /mermaid\.render\(/);
   assert.doesNotMatch(app, /mermaid\.run\(/);

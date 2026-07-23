@@ -1724,6 +1724,139 @@ body.collections-open .collection-explorer {
   font-size: 0.9em;
 }
 
+.preview .math-inline {
+  display: inline;
+  color: var(--ink);
+  white-space: normal;
+}
+
+.preview .math-inline .katex {
+  font-size: 1em;
+  line-height: 1.2;
+}
+
+.preview .math-block {
+  max-width: 100%;
+  margin: 16px 0;
+  padding: 6px 2px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-inline: contain;
+  color: var(--ink);
+  text-align: center;
+}
+
+.preview .math-block .katex-display {
+  width: max-content;
+  min-width: 100%;
+  margin: 0;
+  padding: 2px 0;
+}
+
+.preview .katex,
+.preview .katex * {
+  color: inherit;
+  border-color: currentColor;
+}
+
+.preview .math-error {
+  color: var(--danger);
+}
+
+.preview .math-error strong,
+.preview .math-error code {
+  display: inline;
+}
+
+.preview .math-error code {
+  margin-left: 0.5em;
+  color: var(--ink);
+  font-family: Consolas, "Courier New", monospace;
+  overflow-wrap: anywhere;
+}
+
+.preview .math-error-block {
+  display: grid;
+  justify-items: start;
+  gap: 6px;
+  padding: 10px 12px;
+  overflow-x: auto;
+  border: 1px solid var(--danger);
+  border-radius: 8px;
+  background: var(--section-bg);
+  text-align: left;
+}
+
+.preview .math-error-block code {
+  margin-left: 0;
+  white-space: pre;
+  overflow-wrap: normal;
+}
+
+.calculation-block {
+  min-width: 0;
+  max-width: 100%;
+  margin: 16px 0;
+  padding: 11px 13px 12px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--section-bg);
+  color: var(--ink);
+}
+
+.calculation-label {
+  display: block;
+  margin-bottom: 5px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.calculation-expression,
+.calculation-result,
+.calculation-error code {
+  max-width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+  white-space: nowrap;
+  font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+}
+
+.calculation-expression {
+  padding-bottom: 7px;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.calculation-result {
+  padding-top: 7px;
+  border-top: 1px solid var(--line);
+  color: var(--ink);
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.calculation-error {
+  border-color: var(--danger);
+}
+
+.calculation-error strong {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--danger);
+}
+
+.calculation-error code {
+  display: block;
+  padding: 7px 9px;
+  border-radius: 6px;
+  background: var(--input-bg);
+  color: var(--ink);
+  font-size: 13px;
+}
+
 .preview ul {
   margin: 0 0 14px;
   padding-left: 24px;
