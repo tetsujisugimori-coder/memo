@@ -102,6 +102,7 @@ const SYNTAX_GUIDE_ITEMS = [
   { category: "calculation", name: "括弧", syntax: [":::calc", "(12 + 18) / 3", ":::"].join("\n"), description: "括弧内を先に計算します。", notes: "括弧の対応が不正な式は計算できません。" },
   { category: "calculation", name: "小数", syntax: [":::calc", "12.5 * 4", ":::"].join("\n"), description: "小数を含む式を計算します。", notes: "結果はCalculator Memoと同じ方法で整形します。" },
   { category: "calculation", name: "パーセント", syntax: [":::calc", "200 * 10%", ":::"].join("\n"), description: "Calculator Memoと同じく、10%を10÷100として扱うため結果は20です。", notes: "加減算でも相対増減にはせず、200 + 10% は200.1です。独自の%解釈は行いません。" },
+  { category: "calculation", name: "Calculator Memoで計算", syntax: "2 * (5 + 3)", description: "本文中の計算式を選択して［計算］を押すと、Calculator Memoに式を渡して新しいタブで開きます。", notes: "文字列を選択していない場合は、空のCalculator Memoを開きます。", copyable: false },
   { category: "calculation", name: "非対応項目", syntax: [":::calc", "2^10", ":::", "", ":::calc", "sqrt(2)", ":::"].join("\n"), description: "累乗、平方根、数学関数、変数、複数式、複数行計算、ブロック間参照には対応していません。", notes: "KaTeXで表示できる式が計算ブロックでも計算できるとは限りません。コードブロック内の計算記法は実行されません。", copyable: false }
 ];
 const MERMAID_TEMPLATE_TYPES = [
@@ -284,6 +285,7 @@ const {
   splitImageBlocks
 } = window.MemoNexusAttachmentUtils;
 const { buildMemoListView } = window.MemoNexusMemoListUtils;
+const { openCalculatorMemo } = window.MemoNexusCalculatorLink;
 const {
   TABLE_PASTE_LIMITS,
   addTableColumn,
@@ -369,6 +371,7 @@ const noteExportBtn = $("noteExportBtn");
 const noteMeta = $("noteMeta");
 const editor = $("editor");
 const insertTableBtn = $("insertTableBtn");
+const calculatorLinkBtn = $("calculatorLinkBtn");
 const tableBlockEditors = $("tableBlockEditors");
 const tableAxisDeleteDialog = $("tableAxisDeleteDialog");
 const tableAxisDeleteTitle = $("tableAxisDeleteTitle");
@@ -5922,6 +5925,14 @@ function closeSyntaxGuide() {
   if (syntaxGuideDialog?.open) syntaxGuideDialog.close();
 }
 
+function openCalculatorMemoFromSelection() {
+  try {
+    openCalculatorMemo(editor);
+  } catch (error) {
+    alert(error instanceof Error ? error.message : "Calculator Memoを開けませんでした");
+  }
+}
+
 // ここから下は、画面操作と処理を結びつけるイベント設定です。
 newBtn.addEventListener("click", async () => {
   const note = await createNote("", "", { avoidDuplicateTitle: false });
@@ -6005,6 +6016,7 @@ if (closeImagePreviewBtn) closeImagePreviewBtn.addEventListener("click", () => i
 if (imagePreviewDialog) imagePreviewDialog.addEventListener("close", () => imagePreview.removeAttribute("src"));
 if (syntaxGuideBtn && syntaxGuideDialog) syntaxGuideBtn.addEventListener("click", openSyntaxGuide);
 if (insertTableBtn) insertTableBtn.addEventListener("click", insertTableAtSelection);
+if (calculatorLinkBtn) calculatorLinkBtn.addEventListener("click", openCalculatorMemoFromSelection);
 if (tableBlockEditors) {
   tableBlockEditors.addEventListener("input", handleTableEditorInput);
   tableBlockEditors.addEventListener("focusin", handleTableEditorFocus);

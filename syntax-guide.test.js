@@ -223,7 +223,7 @@ test("数式カテゴリにKaTeXの表示例と表示専用である注意を掲
 test("計算ブロックカテゴリにCalculator Memo準拠の対応範囲と制限を掲載する", () => {
   const calculation = items.filter((item) => item.category === "calculation");
   const names = calculation.map((item) => item.name);
-  ["基本構文", "加算", "減算", "乗算", "除算", "括弧", "小数", "パーセント", "非対応項目"]
+  ["基本構文", "加算", "減算", "乗算", "除算", "括弧", "小数", "パーセント", "Calculator Memoで計算", "非対応項目"]
     .forEach((name) => assert.ok(names.includes(name), `${name}を掲載する`));
   const percent = calculation.find((item) => item.name === "パーセント");
   assert.match(percent.syntax, /200 \* 10%/);
@@ -233,6 +233,9 @@ test("計算ブロックカテゴリにCalculator Memo準拠の対応範囲と�
   assert.match(unsupported.syntax, /2\^10[\s\S]*sqrt\(2\)/);
   assert.match(unsupported.description, /累乗.*平方根.*数学関数.*変数.*複数式.*複数行計算.*ブロック間参照/);
   assert.match(unsupported.notes, /KaTeX.*計算ブロック.*コードブロック内.*実行されません/);
+  const calculatorLink = calculation.find((item) => item.name === "Calculator Memoで計算");
+  assert.match(calculatorLink.description, /本文中の計算式を選択.*［計算］.*新しいタブ/);
+  assert.match(calculatorLink.notes, /選択していない場合.*空のCalculator Memo/);
   assert.match(app, /category: "calculation", title: "計算ブロック"[\s\S]*Calculator Memo.*1つの独立した式/);
 });
 
@@ -417,7 +420,7 @@ test("ライト・ダーク共通変数と狭幅container queryで表示する",
 });
 
 test("app.jsのキャッシュ番号を更新し、PR #24の画面外Mermaid描画経路を維持する", () => {
-  assert.match(html, /app\.js\?v=0\.4\.0-27/);
+  assert.match(html, /app\.js\?v=0\.4\.0-28/);
   assert.match(html, /table-block-utils\.js\?v=0\.4\.0-4/);
   assert.match(app, /mermaid\.render\(/);
   assert.doesNotMatch(app, /mermaid\.run\(/);
