@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Memo Nexus</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css">
-  <link rel="stylesheet" href="style.css?v=0.4.0-22">
+  <link rel="stylesheet" href="style.css?v=0.4.0-23">
 </head>
 <body>
   <aside id="memoSidebar" class="sidebar" aria-label="メモ一覧" aria-hidden="false">
@@ -179,7 +179,6 @@
         </label>
         <p class="settings-note image-size-setting-note">本文に挿入した画像のカード内での大きさを変更します。説明文がある場合は、表示幅に応じて画像の横または下に表示されます。添付ファイル自体のデータや画質は変更されません。</p>
         <ul class="soon-list">
-          <li>フォントサイズ <span>Coming soon</span></li>
           <li>行間 <span>Coming soon</span></li>
           <li>エディタ幅 <span>Coming soon</span></li>
           <li>プレビュー表示切替 <span>Coming soon</span></li>
@@ -187,6 +186,98 @@
           <li>コードブロックの折り返し <span>Coming soon</span></li>
           <li>レトロモード <span>Coming soon</span></li>
         </ul>
+      </section>
+      <section class="settings-section font-settings-section" aria-labelledby="fontSettingsHeading">
+        <h2 id="fontSettingsHeading">フォント設定</h2>
+        <p class="settings-note font-settings-intro">本文・見出し・コードの表示を変更します。操作ボタンや数式・図のフォントには影響しません。</p>
+
+        <fieldset class="font-settings-group">
+          <legend>全体設定</legend>
+          <div class="font-setting-row">
+            <label for="globalBodyFontSelect">本文フォント</label>
+            <select id="globalBodyFontSelect"></select>
+            <button type="button" class="font-compare-button" data-font-scope="global" data-font-target="body" title="本文フォントをFont Comparisonの別タブで比較">フォントを比較して選ぶ</button>
+          </div>
+          <div class="font-setting-row">
+            <label for="globalBodyFontSizeSelect">本文サイズ</label>
+            <select id="globalBodyFontSizeSelect"></select>
+            <span class="font-setting-unit">px</span>
+          </div>
+          <div class="font-setting-row">
+            <label for="globalHeadingFontSelect">見出しフォント</label>
+            <select id="globalHeadingFontSelect"></select>
+            <button type="button" class="font-compare-button" data-font-scope="global" data-font-target="heading" title="見出しフォントをFont Comparisonの別タブで比較">フォントを比較して選ぶ</button>
+          </div>
+          <div class="font-setting-row">
+            <label for="globalCodeFontSelect">コードフォント</label>
+            <select id="globalCodeFontSelect"></select>
+            <button type="button" class="font-compare-button" data-font-scope="global" data-font-target="code" title="コードフォントをFont Comparisonの別タブで比較">フォントを比較して選ぶ</button>
+          </div>
+          <div class="font-setting-row">
+            <label for="globalCodeFontSizeSelect">コードサイズ</label>
+            <select id="globalCodeFontSizeSelect"></select>
+            <span class="font-setting-unit">px</span>
+          </div>
+        </fieldset>
+
+        <label class="font-note-override">
+          <input id="noteFontOverrideEnabled" type="checkbox">
+          <span>このメモでは個別のフォント設定を使用する</span>
+        </label>
+        <fieldset id="noteFontSettingsGroup" class="font-settings-group">
+          <legend>このメモの設定</legend>
+          <div class="font-setting-row">
+            <label for="noteBodyFontSelect">本文フォント</label>
+            <select id="noteBodyFontSelect"></select>
+            <button type="button" class="font-compare-button" data-font-scope="note" data-font-target="body" title="このメモの本文フォントをFont Comparisonの別タブで比較">フォントを比較して選ぶ</button>
+          </div>
+          <div class="font-setting-row">
+            <label for="noteBodyFontSizeSelect">本文サイズ</label>
+            <select id="noteBodyFontSizeSelect"></select>
+            <span class="font-setting-unit">px</span>
+          </div>
+          <div class="font-setting-row">
+            <label for="noteHeadingFontSelect">見出しフォント</label>
+            <select id="noteHeadingFontSelect"></select>
+            <button type="button" class="font-compare-button" data-font-scope="note" data-font-target="heading" title="このメモの見出しフォントをFont Comparisonの別タブで比較">フォントを比較して選ぶ</button>
+          </div>
+          <div class="font-setting-row">
+            <label for="noteCodeFontSelect">コードフォント</label>
+            <select id="noteCodeFontSelect"></select>
+            <button type="button" class="font-compare-button" data-font-scope="note" data-font-target="code" title="このメモのコードフォントをFont Comparisonの別タブで比較">フォントを比較して選ぶ</button>
+          </div>
+          <div class="font-setting-row">
+            <label for="noteCodeFontSizeSelect">コードサイズ</label>
+            <select id="noteCodeFontSizeSelect"></select>
+            <span class="font-setting-unit">px</span>
+          </div>
+        </fieldset>
+
+        <label class="font-sample-setting" for="fontComparisonSample">
+          <span>比較用の文章（任意）</span>
+          <textarea id="fontComparisonSample" maxlength="700" rows="3" placeholder="未入力の場合は現在のメモ本文、本文も空の場合は標準サンプルを使用します"></textarea>
+        </label>
+        <p class="settings-note">［比較］を押すと、比較文章（最大700文字）と現在の設定をURLに含めてFont Comparisonを新しいタブで開きます。</p>
+
+        <div id="receivedFontSelection" class="received-font-selection" hidden>
+          <strong>Font Comparisonから選択を受け取りました</strong>
+          <p id="receivedFontSelectionDetails"></p>
+          <div class="settings-actions">
+            <button id="useReceivedFontBtn" type="button">この設定を使用</button>
+            <button id="cancelReceivedFontBtn" type="button">キャンセル</button>
+          </div>
+        </div>
+
+        <div id="fontSettingsPreview" class="font-settings-preview" aria-label="フォント設定のプレビュー">
+          <h3>見出しのプレビュー</h3>
+          <p>日本語の本文と The quick brown fox 123。、！？「」+-×÷=% を確認できます。</p>
+          <code>const total = price * 1.1;</code>
+        </div>
+        <div class="settings-actions font-settings-actions">
+          <button id="saveFontSettingsBtn" type="button">フォント設定を保存</button>
+          <button id="resetFontSettingsBtn" type="button">初期設定に戻す</button>
+        </div>
+        <p id="fontSettingsStatus" class="settings-note" role="status" aria-live="polite"></p>
       </section>
       <section class="settings-section">
         <h2>データ管理</h2>
@@ -324,6 +415,7 @@
   <script src="memo-list-utils.js?v=0.4.0-2"></script>
   <script src="calculation-engine.js?v=0.4.0-1"></script>
   <script src="calculator-link.js?v=0.4.0-1"></script>
-  <script src="app.js?v=0.4.0-28"></script>
+  <script src="font-settings.js?v=0.4.0-1"></script>
+  <script src="app.js?v=0.4.0-29"></script>
 </body>
 </html>

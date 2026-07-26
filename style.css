@@ -28,6 +28,11 @@
   --code-number: #9a4f18;
   --code-title: #176b87;
   --code-meta: #8a5d19;
+  --memo-body-font-family: "Yu Gothic UI", "Hiragino Sans", Meiryo, system-ui, sans-serif;
+  --memo-body-font-size: 17px;
+  --memo-heading-font-family: "Yu Gothic UI", "Hiragino Sans", Meiryo, system-ui, sans-serif;
+  --memo-code-font-family: Consolas, "Courier New", monospace;
+  --memo-code-font-size: 13px;
 }
 
 body.dark {
@@ -1072,7 +1077,8 @@ body.collections-open .collection-explorer {
   outline: none;
   background: transparent;
   color: var(--ink);
-  font-size: 17px;
+  font-family: var(--memo-body-font-family);
+  font-size: var(--memo-body-font-size);
   line-height: 1.75;
 }
 
@@ -1119,6 +1125,8 @@ body.collections-open .collection-explorer {
   container-type: inline-size;
   overflow-y: auto;
   padding: 18px;
+  font-family: var(--memo-body-font-family);
+  font-size: var(--memo-body-font-size);
   line-height: 1.8;
 }
 
@@ -1133,6 +1141,7 @@ body.collections-open .collection-explorer {
   margin: 18px 0 10px;
   line-height: 1.35;
   color: var(--ink);
+  font-family: var(--memo-heading-font-family);
 }
 
 .preview .table-block {
@@ -1720,13 +1729,15 @@ body.collections-open .collection-explorer {
   border: 1px solid var(--line);
   border-radius: 5px;
   background: var(--input-bg);
-  font-family: Consolas, "Courier New", monospace;
+  font-family: var(--memo-code-font-family);
   font-size: 0.9em;
 }
 
 .preview .math-inline {
   display: inline;
   color: var(--ink);
+  font-family: "Yu Gothic UI", "Hiragino Sans", Meiryo, system-ui, sans-serif;
+  font-size: 17px;
   white-space: normal;
 }
 
@@ -1743,6 +1754,8 @@ body.collections-open .collection-explorer {
   overflow-y: hidden;
   overscroll-behavior-inline: contain;
   color: var(--ink);
+  font-family: "Yu Gothic UI", "Hiragino Sans", Meiryo, system-ui, sans-serif;
+  font-size: 17px;
   text-align: center;
 }
 
@@ -1999,14 +2012,14 @@ body.collections-open .collection-explorer {
   top: 7px;
   right: 12px;
   color: var(--muted);
-  font-family: Consolas, "Courier New", monospace;
+  font-family: var(--memo-code-font-family);
   font-size: 11px;
   line-height: 1.4;
 }
 
 .code-block code {
-  font-family: Consolas, "Courier New", monospace;
-  font-size: 13px;
+  font-family: var(--memo-code-font-family);
+  font-size: var(--memo-code-font-size);
   white-space: pre-wrap;
   overflow-wrap: anywhere;
   word-break: normal;
@@ -2075,6 +2088,8 @@ body.collections-open .collection-explorer {
   border: 1px solid var(--line);
   border-radius: 8px;
   background: var(--section-bg);
+  font-family: "Yu Gothic UI", "Hiragino Sans", Meiryo, system-ui, sans-serif;
+  font-size: 17px;
 }
 
 .mermaid-diagram {
@@ -2665,6 +2680,168 @@ body.related-open .related-toggle {
   padding-left: 18px;
   color: var(--ink);
   line-height: 1.5;
+}
+
+.font-settings-section {
+  display: grid;
+  gap: 12px;
+}
+
+.font-settings-section .font-settings-intro {
+  margin-top: -4px;
+}
+
+.font-settings-group {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  margin: 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px;
+}
+
+.font-settings-group:disabled {
+  opacity: 0.62;
+}
+
+.font-settings-group legend {
+  padding: 0 5px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.font-setting-row {
+  display: grid;
+  grid-template-columns: 132px minmax(150px, 240px) minmax(50px, auto);
+  gap: 8px 12px;
+  align-items: center;
+  color: var(--ink);
+  font-size: 13px;
+}
+
+.font-setting-row label {
+  color: var(--muted);
+}
+
+.font-setting-row select {
+  width: 100%;
+  min-height: 36px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  padding: 0 10px;
+  background: var(--input-bg);
+  color: var(--ink);
+}
+
+.font-compare-button {
+  min-width: 146px;
+  padding: 5px 10px;
+  color: var(--accent);
+  white-space: nowrap;
+}
+
+.font-setting-unit {
+  color: var(--muted);
+}
+
+.font-note-override {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ink);
+  font-size: 13px;
+}
+
+.font-note-override input {
+  width: 18px;
+  height: 18px;
+}
+
+.font-sample-setting {
+  display: grid;
+  gap: 7px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.font-sample-setting textarea {
+  width: 100%;
+  min-height: 76px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  padding: 9px 10px;
+  resize: vertical;
+  background: var(--input-bg);
+  color: var(--ink);
+  line-height: 1.55;
+}
+
+.received-font-selection {
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  padding: 10px;
+  background: var(--accent-soft);
+  color: var(--ink);
+  font-size: 13px;
+}
+
+.received-font-selection[hidden] {
+  display: none;
+}
+
+.received-font-selection p {
+  margin: 6px 0 10px;
+  line-height: 1.5;
+}
+
+.font-settings-preview {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px;
+  overflow-wrap: anywhere;
+  background: var(--paper);
+  color: var(--ink);
+}
+
+.font-settings-preview h3 {
+  margin: 0 0 8px;
+  font-family: var(--memo-heading-font-family);
+  font-size: 18px;
+}
+
+.font-settings-preview p {
+  margin: 0 0 9px;
+  font-family: var(--memo-body-font-family);
+  font-size: var(--memo-body-font-size);
+  line-height: 1.65;
+}
+
+.font-settings-preview code {
+  display: block;
+  overflow-x: auto;
+  font-family: var(--memo-code-font-family);
+  font-size: var(--memo-code-font-size);
+  white-space: pre;
+}
+
+.font-settings-actions {
+  margin-top: 0;
+}
+
+@media (max-width: 620px) {
+  .font-setting-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .font-setting-row label {
+    grid-column: 1 / -1;
+  }
+
+  .font-setting-row select {
+    min-width: 0;
+  }
 }
 
 .json-import-body {

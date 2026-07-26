@@ -28,7 +28,7 @@ test("本文入力欄の後ろに表ブロック編集領域と境界余白を�
 });
 
 test("Mermaid表示用CSSの配信キャッシュを更新する", () => {
-  assert.match(html, /style\.css\?v=0\.4\.0-22/);
+  assert.match(html, /style\.css\?v=0\.4\.0-23/);
 });
 
 test("メモ一覧は単一見出しだけを持ち不要な表示範囲ラベルを残さない", () => {
