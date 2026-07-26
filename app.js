@@ -287,6 +287,23 @@ const {
 const { buildMemoListView } = window.MemoNexusMemoListUtils;
 const { openCalculatorMemo } = window.MemoNexusCalculatorLink;
 const {
+  BODY_FONT_SIZES,
+  CODE_FONT_SIZES,
+  DEFAULT_FONT_SETTINGS,
+  FONT_OPTIONS,
+  FONT_SETTINGS_STORAGE_KEY,
+  buildFontComparisonUrl,
+  comparisonSample,
+  effectiveFontSettings,
+  fontOption,
+  normalizeFontSettings,
+  normalizeNoteFontSettings,
+  noteFontSettingsEqual,
+  readFontSelection,
+  TITLE_FONT_SIZES,
+  withoutFontSelectionParams
+} = window.MemoNexusFontSettings;
+const {
   TABLE_PASTE_LIMITS,
   addTableColumn,
   addTableRow,
@@ -357,6 +374,32 @@ const themeSelect = $("themeSelect");
 const imageBlockSizeSelect = $("imageBlockSizeSelect");
 const storageStatusDetails = $("storageStatusDetails");
 const storageEstimateMessage = $("storageEstimateMessage");
+const globalTitleFontSelect = $("globalTitleFontSelect");
+const globalTitleFontSizeSelect = $("globalTitleFontSizeSelect");
+const globalBodyFontSelect = $("globalBodyFontSelect");
+const globalBodyFontSizeSelect = $("globalBodyFontSizeSelect");
+const globalHeadingFontSelect = $("globalHeadingFontSelect");
+const globalCodeFontSelect = $("globalCodeFontSelect");
+const globalCodeFontSizeSelect = $("globalCodeFontSizeSelect");
+const noteFontOverrideEnabled = $("noteFontOverrideEnabled");
+const noteFontSettingsGroup = $("noteFontSettingsGroup");
+const noteTitleFontSelect = $("noteTitleFontSelect");
+const noteTitleFontSizeSelect = $("noteTitleFontSizeSelect");
+const noteBodyFontSelect = $("noteBodyFontSelect");
+const noteBodyFontSizeSelect = $("noteBodyFontSizeSelect");
+const noteHeadingFontSelect = $("noteHeadingFontSelect");
+const noteCodeFontSelect = $("noteCodeFontSelect");
+const noteCodeFontSizeSelect = $("noteCodeFontSizeSelect");
+const fontComparisonSample = $("fontComparisonSample");
+const receivedFontSelection = $("receivedFontSelection");
+const receivedFontSelectionDetails = $("receivedFontSelectionDetails");
+const useReceivedFontBtn = $("useReceivedFontBtn");
+const cancelReceivedFontBtn = $("cancelReceivedFontBtn");
+const fontSettingsPreview = $("fontSettingsPreview");
+const saveFontSettingsBtn = $("saveFontSettingsBtn");
+const resetFontSettingsBtn = $("resetFontSettingsBtn");
+const fontSettingsStatus = $("fontSettingsStatus");
+const fontCompareButtons = document.querySelectorAll(".font-compare-button");
 const jsonImportDialog = $("jsonImportDialog");
 const closeJsonImportBtn = $("closeJsonImportBtn");
 const cancelJsonImportBtn = $("cancelJsonImportBtn");
@@ -493,6 +536,10 @@ let layoutMode = "wide";
 let memoPaneOpen = false;
 let mobileCardOpen = false;
 let compactCardVisible = true;
+let globalFontSettings = { ...DEFAULT_FONT_SETTINGS };
+let fontSettingsDraft = null;
+let pendingFontSelection = null;
+let fontSelectionMessage = "";
 const enqueueAttachmentAddition = createKeyedSerialQueue();
 const pendingAttachmentAdditions = new Map();
 
@@ -509,6 +556,8 @@ async function init() {
   restoreTheme();
   restoreImageBlockSize();
   restoreCollectionSortOrder();
+  restoreGlobalFontSettings();
+  consumeReturnedFontSelection();
   initializeResponsiveLayout();
 
   const localStorageAvailable = checkLocalStorageAvailable();
@@ -525,14 +574,21 @@ async function init() {
     notes = await getAllNotes();
   }
   await ensureStartupNotes();
+  validatePendingFontSelectionMemo();
   renderAll();
+  const returnedNote = pendingFontSelection?.memoId && notes.find((note) => note.id === pendingFontSelection.memoId);
   const restoredNote = restoredDraftId && notes.find((note) => note.id === restoredDraftId);
-  openNote(restoredNote ? restoredNote.id : getTodayNote().id);
-  if (restoredNote) {
+  openNote(returnedNote?.id || restoredNote?.id || getTodayNote().id);
+  if (restoredNote && !returnedNote) {
     saveStatus.textContent = "前回の編集中メモを復元しました";
   }
-  titleInput.focus();
-  titleInput.select();
+  if (pendingFontSelection || fontSelectionMessage) {
+    await openSettingsDialog();
+  }
+  if (!settingsDialog.open) {
+    titleInput.focus();
+    titleInput.select();
+  }
 }
 
 // localStorageへ試し書きし、現在の保存領域で利用できるかを確認します。
@@ -1803,6 +1859,7 @@ function openNote(id) {
   renderList();
   renderCollectionExplorer();
   renderTableBlockEditors();
+  applyEffectiveFontSettings();
   renderPreview();
   renderAttachmentsForCurrentNote();
   renderRelated();
@@ -4616,8 +4673,280 @@ function todayStampDashed() {
 
 async function openSettingsDialog() {
   restoreTheme();
+  prepareFontSettingsDialog();
   await renderStorageStatus();
   settingsDialog.showModal();
+}
+
+function restoreGlobalFontSettings() {
+  try {
+    const stored = localStorage.getItem(FONT_SETTINGS_STORAGE_KEY);
+    globalFontSettings = normalizeFontSettings(stored ? JSON.parse(stored) : null);
+  } catch (error) {
+    console.warn("Font settings restore failed", error);
+    globalFontSettings = normalizeFontSettings(null);
+  }
+}
+
+function consumeReturnedFontSelection() {
+  const hasFontReturn = new URLSearchParams(location.search).has("fontSource");
+  if (!hasFontReturn) return;
+
+  try {
+    pendingFontSelection = readFontSelection(location.search);
+    if (!pendingFontSelection) {
+      fontSelectionMessage = "フォント選択の送信元を確認できませんでした。";
+    }
+  } catch (error) {
+    pendingFontSelection = null;
+    fontSelectionMessage = error.message || "フォント選択を読み込めませんでした。";
+  } finally {
+    history.replaceState(history.state, "", withoutFontSelectionParams(location.href));
+  }
+}
+
+function validatePendingFontSelectionMemo() {
+  if (!pendingFontSelection || pendingFontSelection.scope !== "note") return;
+  const matchingNote = notes.find((note) => note.id === pendingFontSelection.memoId && !note.deletedAt);
+  if (matchingNote) return;
+  pendingFontSelection = null;
+  fontSelectionMessage = "対象メモを確認できないため、受け取ったフォントは適用していません。";
+}
+
+function populateFontSettingOptions() {
+  const fontSelects = [
+    globalTitleFontSelect,
+    globalBodyFontSelect,
+    globalHeadingFontSelect,
+    globalCodeFontSelect,
+    noteTitleFontSelect,
+    noteBodyFontSelect,
+    noteHeadingFontSelect,
+    noteCodeFontSelect
+  ];
+  fontSelects.forEach((select) => {
+    if (!select || select.options.length) return;
+    FONT_OPTIONS.forEach((font) => select.add(new Option(font.label, font.id)));
+  });
+
+  [
+    [globalTitleFontSizeSelect, TITLE_FONT_SIZES],
+    [noteTitleFontSizeSelect, TITLE_FONT_SIZES],
+    [globalBodyFontSizeSelect, BODY_FONT_SIZES],
+    [noteBodyFontSizeSelect, BODY_FONT_SIZES],
+    [globalCodeFontSizeSelect, CODE_FONT_SIZES],
+    [noteCodeFontSizeSelect, CODE_FONT_SIZES]
+  ].forEach(([select, sizes]) => {
+    if (!select || select.options.length) return;
+    sizes.forEach((size) => select.add(new Option(String(size), String(size))));
+  });
+}
+
+function setFontSettingFields(prefix, settings) {
+  const normalized = normalizeFontSettings(settings);
+  const fields = prefix === "note"
+    ? {
+        titleFont: noteTitleFontSelect,
+        titleSize: noteTitleFontSizeSelect,
+        bodyFont: noteBodyFontSelect,
+        bodySize: noteBodyFontSizeSelect,
+        headingFont: noteHeadingFontSelect,
+        codeFont: noteCodeFontSelect,
+        codeSize: noteCodeFontSizeSelect
+      }
+    : {
+        titleFont: globalTitleFontSelect,
+        titleSize: globalTitleFontSizeSelect,
+        bodyFont: globalBodyFontSelect,
+        bodySize: globalBodyFontSizeSelect,
+        headingFont: globalHeadingFontSelect,
+        codeFont: globalCodeFontSelect,
+        codeSize: globalCodeFontSizeSelect
+      };
+  fields.titleFont.value = normalized.titleFontId;
+  fields.titleSize.value = String(normalized.titleFontSize);
+  fields.bodyFont.value = normalized.bodyFontId;
+  fields.bodySize.value = String(normalized.bodyFontSize);
+  fields.headingFont.value = normalized.headingFontId;
+  fields.codeFont.value = normalized.codeFontId;
+  fields.codeSize.value = String(normalized.codeFontSize);
+}
+
+function readFontSettingFields(prefix) {
+  const noteFields = prefix === "note";
+  return normalizeFontSettings({
+    titleFontId: (noteFields ? noteTitleFontSelect : globalTitleFontSelect).value,
+    titleFontSize: (noteFields ? noteTitleFontSizeSelect : globalTitleFontSizeSelect).value,
+    bodyFontId: (noteFields ? noteBodyFontSelect : globalBodyFontSelect).value,
+    bodyFontSize: (noteFields ? noteBodyFontSizeSelect : globalBodyFontSizeSelect).value,
+    headingFontId: (noteFields ? noteHeadingFontSelect : globalHeadingFontSelect).value,
+    codeFontId: (noteFields ? noteCodeFontSelect : globalCodeFontSelect).value,
+    codeFontSize: (noteFields ? noteCodeFontSizeSelect : globalCodeFontSizeSelect).value
+  });
+}
+
+function prepareFontSettingsDialog() {
+  populateFontSettingOptions();
+  const noteSettings = normalizeNoteFontSettings(currentNote()?.fontSettings);
+  fontSettingsDraft = {
+    global: normalizeFontSettings(globalFontSettings),
+    note: normalizeFontSettings(noteSettings || globalFontSettings),
+    noteEnabled: Boolean(noteSettings)
+  };
+  setFontSettingFields("global", fontSettingsDraft.global);
+  setFontSettingFields("note", fontSettingsDraft.note);
+  noteFontOverrideEnabled.checked = fontSettingsDraft.noteEnabled;
+  noteFontSettingsGroup.disabled = !fontSettingsDraft.noteEnabled;
+  renderPendingFontSelection();
+  fontSettingsStatus.textContent = fontSelectionMessage;
+  updateFontSettingsPreview();
+}
+
+function currentFontDraft() {
+  if (!fontSettingsDraft) prepareFontSettingsDialog();
+  fontSettingsDraft.global = readFontSettingFields("global");
+  fontSettingsDraft.note = readFontSettingFields("note");
+  fontSettingsDraft.noteEnabled = noteFontOverrideEnabled.checked;
+  return fontSettingsDraft;
+}
+
+function setFontVariables(element, settings) {
+  if (!element) return;
+  const normalized = normalizeFontSettings(settings);
+  element.style.setProperty("--memo-title-font-family", fontOption(normalized.titleFontId).cssFamily);
+  element.style.setProperty("--memo-title-font-size", `${normalized.titleFontSize}px`);
+  element.style.setProperty("--memo-body-font-family", fontOption(normalized.bodyFontId).cssFamily);
+  element.style.setProperty("--memo-body-font-size", `${normalized.bodyFontSize}px`);
+  element.style.setProperty("--memo-heading-font-family", fontOption(normalized.headingFontId).cssFamily);
+  element.style.setProperty("--memo-code-font-family", fontOption(normalized.codeFontId).cssFamily);
+  element.style.setProperty("--memo-code-font-size", `${normalized.codeFontSize}px`);
+}
+
+function applyEffectiveFontSettings() {
+  const settings = effectiveFontSettings(globalFontSettings, currentNote()?.fontSettings);
+  setFontVariables(editorCard, settings);
+  setFontVariables(previewCard, settings);
+}
+
+function updateFontSettingsPreview() {
+  const draft = currentFontDraft();
+  const settings = draft.noteEnabled ? draft.note : draft.global;
+  setFontVariables(fontSettingsPreview, settings);
+}
+
+function renderPendingFontSelection() {
+  if (!pendingFontSelection) {
+    receivedFontSelection.hidden = true;
+    receivedFontSelectionDetails.textContent = "";
+    return;
+  }
+  const targetLabels = { body: "本文", heading: "見出し", code: "コード" };
+  const scopeLabel = pendingFontSelection.scope === "note" ? "このメモ" : "全体設定";
+  receivedFontSelectionDetails.textContent = `${scopeLabel}の${targetLabels[pendingFontSelection.target]}: ${pendingFontSelection.label}`;
+  receivedFontSelection.hidden = false;
+}
+
+function applyPendingFontSelectionToDraft() {
+  if (!pendingFontSelection) return;
+  const selectMap = {
+    global: {
+      body: globalBodyFontSelect,
+      heading: globalHeadingFontSelect,
+      code: globalCodeFontSelect
+    },
+    note: {
+      body: noteBodyFontSelect,
+      heading: noteHeadingFontSelect,
+      code: noteCodeFontSelect
+    }
+  };
+  if (pendingFontSelection.scope === "note") {
+    noteFontOverrideEnabled.checked = true;
+    noteFontSettingsGroup.disabled = false;
+  }
+  selectMap[pendingFontSelection.scope][pendingFontSelection.target].value = pendingFontSelection.fontId;
+  pendingFontSelection = null;
+  fontSelectionMessage = "選択をプレビューへ反映しました。保存すると確定します。";
+  fontSettingsStatus.textContent = fontSelectionMessage;
+  renderPendingFontSelection();
+  updateFontSettingsPreview();
+}
+
+function discardPendingFontSelection() {
+  pendingFontSelection = null;
+  fontSelectionMessage = "受け取ったフォント選択をキャンセルしました。";
+  fontSettingsStatus.textContent = fontSelectionMessage;
+  renderPendingFontSelection();
+}
+
+function openFontComparison(event) {
+  const button = event.currentTarget;
+  const target = button.dataset.fontTarget;
+  const scope = button.dataset.fontScope;
+  const draft = currentFontDraft();
+  const settings = scope === "note" ? draft.note : draft.global;
+  const currentFontId = target === "heading"
+    ? settings.headingFontId
+    : target === "code"
+      ? settings.codeFontId
+      : settings.bodyFontId;
+  const returnPath = withoutFontSelectionParams(location.href);
+  const url = buildFontComparisonUrl({
+    target,
+    scope,
+    currentFontId,
+    returnUrl: new URL(returnPath, location.origin).toString(),
+    sample: comparisonSample(fontComparisonSample.value, editor.value, target),
+    memoId: scope === "note" ? currentId : ""
+  });
+  const opened = window.open(url, "_blank", "noopener,noreferrer");
+  if (opened) opened.opener = null;
+  else fontSettingsStatus.textContent = "新しいタブを開けませんでした。ブラウザのポップアップ設定を確認してください。";
+}
+
+async function saveFontSettings() {
+  const draft = currentFontDraft();
+  globalFontSettings = normalizeFontSettings(draft.global);
+  localStorage.setItem(FONT_SETTINGS_STORAGE_KEY, JSON.stringify(globalFontSettings));
+
+  const note = currentNote();
+  if (note) {
+    const previousNoteSettings = normalizeNoteFontSettings(note.fontSettings);
+    const nextNoteSettings = draft.noteEnabled
+      ? { enabled: true, ...normalizeFontSettings(draft.note) }
+      : null;
+    if (!noteFontSettingsEqual(previousNoteSettings, nextNoteSettings)) {
+      if (nextNoteSettings) note.fontSettings = nextNoteSettings;
+      else delete note.fontSettings;
+      note.updatedAt = Date.now();
+      await putNote(note);
+      notes = await getAllNotes();
+      currentId = note.id;
+    }
+  }
+  applyEffectiveFontSettings();
+  renderPreview();
+  fontSelectionMessage = "フォント設定を保存しました。";
+  fontSettingsStatus.textContent = fontSelectionMessage;
+}
+
+async function resetFontSettings() {
+  if (!confirm("全体と各メモのフォント設定を初期設定へ戻しますか？")) return;
+  localStorage.removeItem(FONT_SETTINGS_STORAGE_KEY);
+  globalFontSettings = normalizeFontSettings(null);
+  const updatedNotes = notes.map((note) => {
+    if (!Object.prototype.hasOwnProperty.call(note, "fontSettings")) return note;
+    const updated = { ...note };
+    delete updated.fontSettings;
+    return updated;
+  });
+  await updateNotesTransaction(updatedNotes);
+  notes = await getAllNotes();
+  prepareFontSettingsDialog();
+  applyEffectiveFontSettings();
+  renderPreview();
+  fontSelectionMessage = "フォント設定を初期設定へ戻しました。";
+  fontSettingsStatus.textContent = fontSelectionMessage;
 }
 
 async function renderStorageStatus() {
@@ -6087,6 +6416,47 @@ if (themeSelect) {
 }
 if (imageBlockSizeSelect) {
   imageBlockSizeSelect.addEventListener("change", () => saveImageBlockSize(imageBlockSizeSelect.value));
+}
+[
+  globalTitleFontSelect,
+  globalTitleFontSizeSelect,
+  globalBodyFontSelect,
+  globalBodyFontSizeSelect,
+  globalHeadingFontSelect,
+  globalCodeFontSelect,
+  globalCodeFontSizeSelect,
+  noteTitleFontSelect,
+  noteTitleFontSizeSelect,
+  noteBodyFontSelect,
+  noteBodyFontSizeSelect,
+  noteHeadingFontSelect,
+  noteCodeFontSelect,
+  noteCodeFontSizeSelect
+].forEach((select) => select?.addEventListener("change", updateFontSettingsPreview));
+if (noteFontOverrideEnabled) {
+  noteFontOverrideEnabled.addEventListener("change", () => {
+    noteFontSettingsGroup.disabled = !noteFontOverrideEnabled.checked;
+    updateFontSettingsPreview();
+  });
+}
+fontCompareButtons.forEach((button) => button.addEventListener("click", openFontComparison));
+if (useReceivedFontBtn) useReceivedFontBtn.addEventListener("click", applyPendingFontSelectionToDraft);
+if (cancelReceivedFontBtn) cancelReceivedFontBtn.addEventListener("click", discardPendingFontSelection);
+if (saveFontSettingsBtn) {
+  saveFontSettingsBtn.addEventListener("click", () => {
+    saveFontSettings().catch((error) => {
+      console.error("Font settings save failed", error);
+      fontSettingsStatus.textContent = `フォント設定を保存できませんでした: ${error.message || error}`;
+    });
+  });
+}
+if (resetFontSettingsBtn) {
+  resetFontSettingsBtn.addEventListener("click", () => {
+    resetFontSettings().catch((error) => {
+      console.error("Font settings reset failed", error);
+      fontSettingsStatus.textContent = `フォント設定を初期化できませんでした: ${error.message || error}`;
+    });
+  });
 }
 if (collectionSortSelect) {
   collectionSortSelect.addEventListener("change", () => saveCollectionSortOrder(collectionSortSelect.value));
