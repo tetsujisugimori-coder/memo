@@ -8,10 +8,12 @@ const {
   DEFAULT_FONT_SETTINGS,
   FONT_COMPARISON_URL,
   MAX_FONT_SAMPLE_LENGTH,
+  TITLE_FONT_SIZES,
   buildFontComparisonUrl,
   comparisonSample,
   effectiveFontSettings,
   normalizeFontSettings,
+  noteFontSettingsEqual,
   readFontSelection,
   withoutFontSelectionParams
 } = require("./font-settings");
@@ -47,10 +49,54 @@ test("比較文章は任意文章、メモ本文、標準文章の順で選び�
 });
 
 test("全体設定と有効なメモ個別設定を正規化して切り替える", () => {
-  const global = normalizeFontSettings({ bodyFontId: "meiryo", bodyFontSize: 20 });
+  const global = normalizeFontSettings({
+    titleFontId: "meiryo",
+    titleFontSize: 28,
+    bodyFontId: "meiryo",
+    bodyFontSize: 20
+  });
+  assert.equal(effectiveFontSettings(global, null).titleFontId, "meiryo");
+  assert.equal(effectiveFontSettings(global, null).titleFontSize, 28);
   assert.equal(effectiveFontSettings(global, null).bodyFontId, "meiryo");
-  assert.equal(effectiveFontSettings(global, { enabled: true, bodyFontId: "segoe-ui" }).bodyFontId, "segoe-ui");
+  const note = effectiveFontSettings(global, {
+    enabled: true,
+    titleFontId: "ms-mincho",
+    titleFontSize: 24,
+    bodyFontId: "segoe-ui"
+  });
+  assert.equal(note.titleFontId, "ms-mincho");
+  assert.equal(note.titleFontSize, 24);
+  assert.equal(note.bodyFontId, "segoe-ui");
   assert.deepEqual(normalizeFontSettings({ bodyFontId: "unknown", bodyFontSize: 999 }), DEFAULT_FONT_SETTINGS);
+  assert.equal(normalizeFontSettings({ titleFontId: "unknown", titleFontSize: 999 }).titleFontSize, 26);
+  assert.deepEqual(TITLE_FONT_SIZES, [18, 20, 21, 24, 26, 28, 32]);
+});
+
+test("既存メモの題名設定は現在の既定値へ補完される", () => {
+  const oldSettings = {
+    enabled: true,
+    bodyFontId: "meiryo",
+    bodyFontSize: 18,
+    headingFontId: "meiryo",
+    codeFontId: "consolas",
+    codeFontSize: 14
+  };
+  const normalized = effectiveFontSettings(DEFAULT_FONT_SETTINGS, oldSettings);
+  assert.equal(normalized.titleFontId, DEFAULT_FONT_SETTINGS.titleFontId);
+  assert.equal(normalized.titleFontSize, DEFAULT_FONT_SETTINGS.titleFontSize);
+});
+
+test("メモ個別設定の実質的な変更だけを判定する", () => {
+  assert.equal(noteFontSettingsEqual(null, undefined), true);
+  assert.equal(noteFontSettingsEqual(
+    { enabled: true, bodyFontId: "meiryo" },
+    { enabled: true, bodyFontId: "meiryo", titleFontId: "yu-gothic-ui", titleFontSize: 26 }
+  ), true);
+  assert.equal(noteFontSettingsEqual(
+    { enabled: true, titleFontId: "yu-gothic-ui", titleFontSize: 26 },
+    { enabled: true, titleFontId: "ms-mincho", titleFontSize: 24 }
+  ), false);
+  assert.equal(noteFontSettingsEqual({ enabled: true }, null), false);
 });
 
 test("戻り値は送信元・用途・登録済みfont-familyを検証する", () => {
@@ -77,8 +123,12 @@ test("処理済みの戻り値だけをURLから除去する", () => {
 });
 
 test("設定UIは明示保存・個別設定・比較・受取確認を持つ", () => {
+  assert.match(html, /id="globalTitleFontSelect"/);
+  assert.match(html, /id="globalTitleFontSizeSelect"/);
   assert.match(html, /id="globalBodyFontSelect"/);
   assert.match(html, /id="noteFontOverrideEnabled"/);
+  assert.match(html, /id="noteTitleFontSelect"/);
+  assert.match(html, /id="noteTitleFontSizeSelect"/);
   assert.match(html, /data-font-scope="global" data-font-target="body"[^>]*>フォントを比較して選ぶ<\/button>/);
   assert.match(html, /id="receivedFontSelection"[^>]*hidden/);
   assert.match(html, /id="saveFontSettingsBtn"/);
@@ -86,7 +136,10 @@ test("設定UIは明示保存・個別設定・比較・受取確認を持つ", 
   assert.match(app, /選択をプレビューへ反映しました。保存すると確定します。/);
 });
 
-test("本文・見出し・コードだけに専用CSS変数を適用する", () => {
+test("題名入力・本文・見出し・コードだけに専用CSS変数を適用する", () => {
+  assert.match(css, /\.title-input\s*\{[^}]*font-family:\s*var\(--memo-title-font-family\)[^}]*font-size:\s*var\(--memo-title-font-size\)/s);
+  const memoTitleRule = css.match(/\.memo-title\s*\{[^}]*\}/s)?.[0] || "";
+  assert.doesNotMatch(memoTitleRule, /--memo-title-font-/);
   assert.match(css, /#editor\s*\{[^}]*font-family:\s*var\(--memo-body-font-family\)/s);
   assert.match(css, /\.preview h1,[\s\S]*?font-family:\s*var\(--memo-heading-font-family\)/);
   assert.match(css, /\.code-block code\s*\{[^}]*font-family:\s*var\(--memo-code-font-family\)/s);
@@ -96,8 +149,17 @@ test("本文・見出し・コードだけに専用CSS変数を適用する", ()
   assert.match(css, /\.mermaid-block\s*\{[^}]*font-size:\s*17px/s);
 });
 
-test("フォント設定保存は本文値を書き換えない", () => {
+test("狭幅画面では題名サイズを既存の21px以内に収める", () => {
+  assert.match(css, /@container app-width \(max-width: 719\.98px\)[\s\S]*?\.title-input\s*\{[^}]*font-size:\s*min\(var\(--memo-title-font-size\), 21px\)/);
+});
+
+test("フォント設定保存は本文値を書き換えず、個別設定が変わった時だけ更新日時を変更する", () => {
   const source = app.match(/async function saveFontSettings\(\) \{[\s\S]*?\n\}/)?.[0] || "";
   assert.doesNotMatch(source, /editor\.value\s*=/);
   assert.doesNotMatch(source, /note\.body\s*=/);
+  assert.match(
+    source,
+    /if \(!noteFontSettingsEqual\(previousNoteSettings, nextNoteSettings\)\) \{[\s\S]*?note\.updatedAt = Date\.now\(\);[\s\S]*?await putNote\(note\);/
+  );
+  assert.equal((source.match(/note\.updatedAt = Date\.now\(\)/g) || []).length, 1);
 });

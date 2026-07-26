@@ -28,6 +28,8 @@
   --code-number: #9a4f18;
   --code-title: #176b87;
   --code-meta: #8a5d19;
+  --memo-title-font-family: "Yu Gothic UI", "Hiragino Sans", Meiryo, system-ui, sans-serif;
+  --memo-title-font-size: 26px;
   --memo-body-font-family: "Yu Gothic UI", "Hiragino Sans", Meiryo, system-ui, sans-serif;
   --memo-body-font-size: 17px;
   --memo-heading-font-family: "Yu Gothic UI", "Hiragino Sans", Meiryo, system-ui, sans-serif;
@@ -750,6 +752,7 @@ body.collections-open .collection-explorer {
 }
 
 .title-input {
+  min-width: 0;
   width: 100%;
   border: 0;
   border-radius: 8px 8px 0 0;
@@ -757,7 +760,8 @@ body.collections-open .collection-explorer {
   outline: none;
   background: transparent;
   color: var(--ink);
-  font-size: 26px;
+  font-family: var(--memo-title-font-family);
+  font-size: var(--memo-title-font-size);
   font-weight: 800;
 }
 
@@ -2805,6 +2809,15 @@ body.related-open .related-toggle {
   color: var(--ink);
 }
 
+.font-title-preview {
+  margin: 0 0 8px;
+  font-family: var(--memo-title-font-family);
+  font-size: var(--memo-title-font-size);
+  font-weight: 800;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
 .font-settings-preview h3 {
   margin: 0 0 8px;
   font-family: var(--memo-heading-font-family);
@@ -3015,7 +3028,7 @@ body.related-open .related-toggle {
 
   .title-input {
     padding: 14px 12px 10px;
-    font-size: 21px;
+    font-size: min(var(--memo-title-font-size), 21px);
   }
 
   .title-side {

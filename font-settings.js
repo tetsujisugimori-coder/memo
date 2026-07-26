@@ -4,6 +4,7 @@
   const FONT_COMPARISON_URL = "https://tetsujisugimori-coder.github.io/font-comparison/";
   const FONT_SETTINGS_STORAGE_KEY = "memo-nexus-font-settings";
   const MAX_FONT_SAMPLE_LENGTH = 700;
+  const TITLE_FONT_SIZES = [18, 20, 21, 24, 26, 28, 32];
   const BODY_FONT_SIZES = [13, 14, 15, 16, 17, 18, 20];
   const CODE_FONT_SIZES = [13, 14, 15, 16, 17, 18, 20];
   const FONT_TARGETS = ["body", "heading", "code"];
@@ -30,6 +31,8 @@
   ];
 
   const DEFAULT_FONT_SETTINGS = Object.freeze({
+    titleFontId: "yu-gothic-ui",
+    titleFontSize: 26,
     bodyFontId: "yu-gothic-ui",
     bodyFontSize: 17,
     headingFontId: "yu-gothic-ui",
@@ -70,6 +73,8 @@
   function normalizeFontSettings(value) {
     const source = value && typeof value === "object" ? value : {};
     return {
+      titleFontId: normalizeFontId(source.titleFontId, DEFAULT_FONT_SETTINGS.titleFontId),
+      titleFontSize: normalizeSize(source.titleFontSize, TITLE_FONT_SIZES, DEFAULT_FONT_SETTINGS.titleFontSize),
       bodyFontId: normalizeFontId(source.bodyFontId, DEFAULT_FONT_SETTINGS.bodyFontId),
       bodyFontSize: normalizeSize(source.bodyFontSize, BODY_FONT_SIZES, DEFAULT_FONT_SETTINGS.bodyFontSize),
       headingFontId: normalizeFontId(source.headingFontId, DEFAULT_FONT_SETTINGS.headingFontId),
@@ -85,6 +90,13 @@
 
   function effectiveFontSettings(globalSettings, noteSettings) {
     return normalizeNoteFontSettings(noteSettings) || normalizeFontSettings(globalSettings);
+  }
+
+  function noteFontSettingsEqual(first, second) {
+    const normalizedFirst = normalizeNoteFontSettings(first);
+    const normalizedSecond = normalizeNoteFontSettings(second);
+    if (!normalizedFirst || !normalizedSecond) return normalizedFirst === normalizedSecond;
+    return Object.keys(DEFAULT_FONT_SETTINGS).every((key) => normalizedFirst[key] === normalizedSecond[key]);
   }
 
   function fontFamilyForTarget(settings, target) {
@@ -173,6 +185,7 @@
     FONT_TARGETS,
     MAX_FONT_SAMPLE_LENGTH,
     STANDARD_FONT_SAMPLE,
+    TITLE_FONT_SIZES,
     buildFontComparisonUrl,
     comparisonSample,
     effectiveFontSettings,
@@ -180,6 +193,7 @@
     fontOption,
     normalizeFontSettings,
     normalizeNoteFontSettings,
+    noteFontSettingsEqual,
     readFontSelection,
     withoutFontSelectionParams
   };

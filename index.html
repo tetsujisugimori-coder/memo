@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Memo Nexus</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css">
-  <link rel="stylesheet" href="style.css?v=0.4.0-23">
+  <link rel="stylesheet" href="style.css?v=0.4.0-24">
 </head>
 <body>
   <aside id="memoSidebar" class="sidebar" aria-label="メモ一覧" aria-hidden="false">
@@ -189,10 +189,19 @@
       </section>
       <section class="settings-section font-settings-section" aria-labelledby="fontSettingsHeading">
         <h2 id="fontSettingsHeading">フォント設定</h2>
-        <p class="settings-note font-settings-intro">本文・見出し・コードの表示を変更します。操作ボタンや数式・図のフォントには影響しません。</p>
+        <p class="settings-note font-settings-intro">編集画面の題名、本文、見出し、コードの表示を変更します。メモ一覧、操作ボタン、数式・図のフォントには影響しません。</p>
 
         <fieldset class="font-settings-group">
           <legend>全体設定</legend>
+          <div class="font-setting-row">
+            <label for="globalTitleFontSelect">題名フォント</label>
+            <select id="globalTitleFontSelect"></select>
+          </div>
+          <div class="font-setting-row">
+            <label for="globalTitleFontSizeSelect">題名サイズ</label>
+            <select id="globalTitleFontSizeSelect"></select>
+            <span class="font-setting-unit">px</span>
+          </div>
           <div class="font-setting-row">
             <label for="globalBodyFontSelect">本文フォント</label>
             <select id="globalBodyFontSelect"></select>
@@ -226,6 +235,15 @@
         </label>
         <fieldset id="noteFontSettingsGroup" class="font-settings-group">
           <legend>このメモの設定</legend>
+          <div class="font-setting-row">
+            <label for="noteTitleFontSelect">題名フォント</label>
+            <select id="noteTitleFontSelect"></select>
+          </div>
+          <div class="font-setting-row">
+            <label for="noteTitleFontSizeSelect">題名サイズ</label>
+            <select id="noteTitleFontSizeSelect"></select>
+            <span class="font-setting-unit">px</span>
+          </div>
           <div class="font-setting-row">
             <label for="noteBodyFontSelect">本文フォント</label>
             <select id="noteBodyFontSelect"></select>
@@ -269,6 +287,7 @@
         </div>
 
         <div id="fontSettingsPreview" class="font-settings-preview" aria-label="フォント設定のプレビュー">
+          <div class="font-title-preview">メモ題名のプレビュー 123</div>
           <h3>見出しのプレビュー</h3>
           <p>日本語の本文と The quick brown fox 123。、！？「」+-×÷=% を確認できます。</p>
           <code>const total = price * 1.1;</code>
@@ -415,7 +434,7 @@
   <script src="memo-list-utils.js?v=0.4.0-2"></script>
   <script src="calculation-engine.js?v=0.4.0-1"></script>
   <script src="calculator-link.js?v=0.4.0-1"></script>
-  <script src="font-settings.js?v=0.4.0-1"></script>
-  <script src="app.js?v=0.4.0-29"></script>
+  <script src="font-settings.js?v=0.4.0-2"></script>
+  <script src="app.js?v=0.4.0-30"></script>
 </body>
 </html>

@@ -298,7 +298,9 @@ const {
   fontOption,
   normalizeFontSettings,
   normalizeNoteFontSettings,
+  noteFontSettingsEqual,
   readFontSelection,
+  TITLE_FONT_SIZES,
   withoutFontSelectionParams
 } = window.MemoNexusFontSettings;
 const {
@@ -372,6 +374,8 @@ const themeSelect = $("themeSelect");
 const imageBlockSizeSelect = $("imageBlockSizeSelect");
 const storageStatusDetails = $("storageStatusDetails");
 const storageEstimateMessage = $("storageEstimateMessage");
+const globalTitleFontSelect = $("globalTitleFontSelect");
+const globalTitleFontSizeSelect = $("globalTitleFontSizeSelect");
 const globalBodyFontSelect = $("globalBodyFontSelect");
 const globalBodyFontSizeSelect = $("globalBodyFontSizeSelect");
 const globalHeadingFontSelect = $("globalHeadingFontSelect");
@@ -379,6 +383,8 @@ const globalCodeFontSelect = $("globalCodeFontSelect");
 const globalCodeFontSizeSelect = $("globalCodeFontSizeSelect");
 const noteFontOverrideEnabled = $("noteFontOverrideEnabled");
 const noteFontSettingsGroup = $("noteFontSettingsGroup");
+const noteTitleFontSelect = $("noteTitleFontSelect");
+const noteTitleFontSizeSelect = $("noteTitleFontSizeSelect");
 const noteBodyFontSelect = $("noteBodyFontSelect");
 const noteBodyFontSizeSelect = $("noteBodyFontSizeSelect");
 const noteHeadingFontSelect = $("noteHeadingFontSelect");
@@ -4709,9 +4715,11 @@ function validatePendingFontSelectionMemo() {
 
 function populateFontSettingOptions() {
   const fontSelects = [
+    globalTitleFontSelect,
     globalBodyFontSelect,
     globalHeadingFontSelect,
     globalCodeFontSelect,
+    noteTitleFontSelect,
     noteBodyFontSelect,
     noteHeadingFontSelect,
     noteCodeFontSelect
@@ -4722,6 +4730,8 @@ function populateFontSettingOptions() {
   });
 
   [
+    [globalTitleFontSizeSelect, TITLE_FONT_SIZES],
+    [noteTitleFontSizeSelect, TITLE_FONT_SIZES],
     [globalBodyFontSizeSelect, BODY_FONT_SIZES],
     [noteBodyFontSizeSelect, BODY_FONT_SIZES],
     [globalCodeFontSizeSelect, CODE_FONT_SIZES],
@@ -4736,6 +4746,8 @@ function setFontSettingFields(prefix, settings) {
   const normalized = normalizeFontSettings(settings);
   const fields = prefix === "note"
     ? {
+        titleFont: noteTitleFontSelect,
+        titleSize: noteTitleFontSizeSelect,
         bodyFont: noteBodyFontSelect,
         bodySize: noteBodyFontSizeSelect,
         headingFont: noteHeadingFontSelect,
@@ -4743,12 +4755,16 @@ function setFontSettingFields(prefix, settings) {
         codeSize: noteCodeFontSizeSelect
       }
     : {
+        titleFont: globalTitleFontSelect,
+        titleSize: globalTitleFontSizeSelect,
         bodyFont: globalBodyFontSelect,
         bodySize: globalBodyFontSizeSelect,
         headingFont: globalHeadingFontSelect,
         codeFont: globalCodeFontSelect,
         codeSize: globalCodeFontSizeSelect
       };
+  fields.titleFont.value = normalized.titleFontId;
+  fields.titleSize.value = String(normalized.titleFontSize);
   fields.bodyFont.value = normalized.bodyFontId;
   fields.bodySize.value = String(normalized.bodyFontSize);
   fields.headingFont.value = normalized.headingFontId;
@@ -4759,6 +4775,8 @@ function setFontSettingFields(prefix, settings) {
 function readFontSettingFields(prefix) {
   const noteFields = prefix === "note";
   return normalizeFontSettings({
+    titleFontId: (noteFields ? noteTitleFontSelect : globalTitleFontSelect).value,
+    titleFontSize: (noteFields ? noteTitleFontSizeSelect : globalTitleFontSizeSelect).value,
     bodyFontId: (noteFields ? noteBodyFontSelect : globalBodyFontSelect).value,
     bodyFontSize: (noteFields ? noteBodyFontSizeSelect : globalBodyFontSizeSelect).value,
     headingFontId: (noteFields ? noteHeadingFontSelect : globalHeadingFontSelect).value,
@@ -4795,6 +4813,8 @@ function currentFontDraft() {
 function setFontVariables(element, settings) {
   if (!element) return;
   const normalized = normalizeFontSettings(settings);
+  element.style.setProperty("--memo-title-font-family", fontOption(normalized.titleFontId).cssFamily);
+  element.style.setProperty("--memo-title-font-size", `${normalized.titleFontSize}px`);
   element.style.setProperty("--memo-body-font-family", fontOption(normalized.bodyFontId).cssFamily);
   element.style.setProperty("--memo-body-font-size", `${normalized.bodyFontSize}px`);
   element.style.setProperty("--memo-heading-font-family", fontOption(normalized.headingFontId).cssFamily);
@@ -4891,12 +4911,18 @@ async function saveFontSettings() {
 
   const note = currentNote();
   if (note) {
-    if (draft.noteEnabled) note.fontSettings = { enabled: true, ...normalizeFontSettings(draft.note) };
-    else delete note.fontSettings;
-    note.updatedAt = Date.now();
-    await putNote(note);
-    notes = await getAllNotes();
-    currentId = note.id;
+    const previousNoteSettings = normalizeNoteFontSettings(note.fontSettings);
+    const nextNoteSettings = draft.noteEnabled
+      ? { enabled: true, ...normalizeFontSettings(draft.note) }
+      : null;
+    if (!noteFontSettingsEqual(previousNoteSettings, nextNoteSettings)) {
+      if (nextNoteSettings) note.fontSettings = nextNoteSettings;
+      else delete note.fontSettings;
+      note.updatedAt = Date.now();
+      await putNote(note);
+      notes = await getAllNotes();
+      currentId = note.id;
+    }
   }
   applyEffectiveFontSettings();
   renderPreview();
@@ -6392,11 +6418,15 @@ if (imageBlockSizeSelect) {
   imageBlockSizeSelect.addEventListener("change", () => saveImageBlockSize(imageBlockSizeSelect.value));
 }
 [
+  globalTitleFontSelect,
+  globalTitleFontSizeSelect,
   globalBodyFontSelect,
   globalBodyFontSizeSelect,
   globalHeadingFontSelect,
   globalCodeFontSelect,
   globalCodeFontSizeSelect,
+  noteTitleFontSelect,
+  noteTitleFontSizeSelect,
   noteBodyFontSelect,
   noteBodyFontSizeSelect,
   noteHeadingFontSelect,
