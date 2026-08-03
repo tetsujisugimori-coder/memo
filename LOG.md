@@ -1259,3 +1259,12 @@
 * 変更ファイルは `app.js`、`ollama-adapter.js`、`ollama-adapter.test.js`、`ai-ui.test.js`、`README.md`、`LOG.md`。IMPORT配下は変更していない。
 * `node --check app.js ai-provider.js ollama-adapter.js ai-prompts.js`、`node --test`、`git diff --check` を実行し、全件成功を確認した。
 * 未実装事項は従来どおり、Ollama／モデルの自動導入、クラウドAI、会話履歴永続化など。設定ドラフトの視覚的な差分表示は今後の調整候補とする。
+
+## 2026-08-04 PR #44 追加レビュー対応
+
+* 原因は、保存時に接続確認済みのURL・モデル一覧・状態を判定する前に、保存済みURLとの差分を理由として破棄していたこと。
+* `resolveSavedAiState` を追加し、保存するドラフトURLと確認済みURLが一致し、接続成功・モデル一覧あり・AI有効である場合は、モデル一覧とCONNECTED状態を保存後も維持するようにした。選択モデルが一覧にない場合はMODEL_REQUIREDへ留める。
+* 未確認、失敗、URL変更、空モデル一覧、AI無効の場合は確認結果を破棄し、DISCONNECTEDまたはDISABLEDへ遷移する。
+* 新しいURLでの確認後保存、モデル一覧・選択モデル維持、URL再変更、未選択・無効・不正モデルの状態遷移を純粋関数テストへ追加した。
+* `node --check app.js ai-provider.js ollama-adapter.js ai-prompts.js`、`node --test`、`git diff --check` を実行した。
+* 未実装事項は従来どおり、Ollama／モデル自動導入、クラウドAI、会話履歴永続化など。

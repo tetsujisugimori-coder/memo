@@ -55,8 +55,8 @@ test("closing the panel does not stop generation while page exit does", () => {
 
 test("AI settings keep an unsaved draft separate from runtime settings", () => {
   assert.match(app, /let aiSettingsDraft = \{ \.\.\.DEFAULT_AI_SETTINGS \}/);
-  assert.match(app, /aiSettingsDraft = readAiSettingsForm\(\)/);
-  assert.match(app, /aiSettings = \{ \.\.\.aiSettingsDraft \}/);
+  assert.match(app, /const draftSettings = readAiSettingsForm\(\)/);
+  assert.match(app, /aiSettings = \{ \.\.\.draftSettings \}/);
   assert.match(app, /aiModelsEndpoint/);
   assert.doesNotMatch(app.match(/async function checkAiConnection[\s\S]*?\n}\n\nfunction beginAiSettingsSession/)?.[0] || "", /aiSettings = candidate/);
 });
@@ -67,4 +67,13 @@ test("connection checks are latest-request-wins and invalid draft models do not 
   assert.match(app, /requestId !== aiConnectionRequestId \|\| sessionId !== aiSettingsSessionId/);
   assert.match(app, /aiSettingsDraft = \{ \.\.\.candidate, selectedModel: "" \}/);
   assert.doesNotMatch(app.match(/async function checkAiConnection[\s\S]*?\n}\n\nfunction beginAiSettingsSession/)?.[0] || "", /aiAssistantState\.connection = AI_CONNECTION_STATES\.CONNECTED/);
+});
+
+test("saving resolves verified draft state before clearing model results", () => {
+  const saveFunction = app.match(/function saveAiSettings\(\)[\s\S]*?\n}\n\nfunction renderAiSettings/)?.[0] || "";
+  assert.match(saveFunction, /const verifiedEndpoint = aiModelsEndpoint/);
+  assert.match(saveFunction, /const verifiedModels = \[\.\.\.aiModels\]/);
+  assert.match(saveFunction, /resolveSavedAiState\(/);
+  assert.match(saveFunction, /aiModels = verifiedModels/);
+  assert.match(saveFunction, /aiAssistantState\.generation = savedState\.generation/);
 });

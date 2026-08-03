@@ -160,6 +160,28 @@
     return "AI処理でエラーが発生しました。Ollamaとモデルの状態を確認してください。";
   }
 
+  function resolveSavedAiState({ draftSettings, modelsEndpoint, draftConnection, models } = {}) {
+    const settings = normalizeAiSettings(draftSettings);
+    const verifiedModels = normalizeModels(models);
+    const endpointVerified = String(modelsEndpoint || "") === settings.baseUrl;
+    const connectionVerified = draftConnection === AI_CONNECTION_STATES.CONNECTED;
+    const hasModels = verifiedModels.length > 0;
+    const selectedModelVerified = Boolean(settings.selectedModel)
+      && verifiedModels.some((model) => model.id === settings.selectedModel);
+    const preserveModels = settings.enabled && endpointVerified && connectionVerified && hasModels;
+    if (!settings.enabled) {
+      return { preserveModels: false, connection: AI_CONNECTION_STATES.UNCHECKED, generation: AI_GENERATION_STATES.DISABLED };
+    }
+    if (!preserveModels) {
+      return { preserveModels: false, connection: AI_CONNECTION_STATES.UNCHECKED, generation: AI_GENERATION_STATES.DISCONNECTED };
+    }
+    return {
+      preserveModels: true,
+      connection: AI_CONNECTION_STATES.CONNECTED,
+      generation: selectedModelVerified ? AI_GENERATION_STATES.IDLE : AI_GENERATION_STATES.MODEL_REQUIRED
+    };
+  }
+
   const api = {
     AI_CONNECTION_STATES,
     AI_GENERATION_STATES,
@@ -174,7 +196,8 @@
     normalizeAiSettings,
     normalizeBaseUrl,
     normalizeModel,
-    normalizeModels
+    normalizeModels,
+    resolveSavedAiState
   };
 
   if (typeof module !== "undefined" && module.exports) module.exports = api;

@@ -332,7 +332,8 @@ const {
   friendlyAiError,
   groupModels,
   isLoopbackBaseUrl,
-  normalizeAiSettings
+  normalizeAiSettings,
+  resolveSavedAiState
 } = window.MemoNexusAiProvider;
 const { OllamaAdapter } = window.MemoNexusOllamaAdapter;
 const { aiAppendMarkdown, aiMemoTitle, buildAiMessages } = window.MemoNexusAiPrompts;
@@ -4392,14 +4393,18 @@ function readAiSettingsForm() {
 }
 
 function saveAiSettings() {
-  aiSettingsDraft = readAiSettingsForm();
-  const previousBaseUrl = aiSettings.baseUrl;
-  aiSettings = { ...aiSettingsDraft };
-  if (aiSettings.baseUrl !== previousBaseUrl) {
-    aiModels = [];
-    aiModelsEndpoint = "";
-    aiAssistantState.connection = AI_CONNECTION_STATES.UNCHECKED;
-  }
+  const verifiedEndpoint = aiModelsEndpoint;
+  const draftConnection = aiDraftConnection;
+  const verifiedModels = [...aiModels];
+  const draftSettings = readAiSettingsForm();
+  const savedState = resolveSavedAiState({
+    draftSettings,
+    modelsEndpoint: verifiedEndpoint,
+    draftConnection,
+    models: verifiedModels
+  });
+  aiSettingsDraft = draftSettings;
+  aiSettings = { ...draftSettings };
   try {
     localStorage.setItem(AI_SETTINGS_STORAGE_KEY, JSON.stringify(aiSettings));
     aiDraftConnectionMessage = "AI設定を保存しました。";
@@ -4412,20 +4417,17 @@ function saveAiSettings() {
   if (!aiSettings.enabled) {
     aiAssistantState.requestId += 1;
     stopAiGeneration();
-    aiAssistantState.connection = AI_CONNECTION_STATES.UNCHECKED;
-    aiAssistantState.generation = AI_GENERATION_STATES.DISABLED;
-  } else if (!aiSettings.selectedModel) {
-    aiAssistantState.generation = AI_GENERATION_STATES.MODEL_REQUIRED;
-  } else if (aiAssistantState.connection === AI_CONNECTION_STATES.CONNECTED) {
-    aiAssistantState.generation = AI_GENERATION_STATES.IDLE;
-  } else {
-    aiAssistantState.generation = AI_GENERATION_STATES.DISCONNECTED;
   }
-  aiDraftConnection = aiModelsEndpoint === aiSettings.baseUrl
-    ? aiDraftConnection
-    : AI_CONNECTION_STATES.UNCHECKED;
-  if (aiDraftConnection === AI_CONNECTION_STATES.CONNECTED && aiSettings.enabled && aiSettings.selectedModel) {
-    aiAssistantState.connection = AI_CONNECTION_STATES.CONNECTED;
+  aiAssistantState.connection = savedState.connection;
+  aiAssistantState.generation = savedState.generation;
+  if (savedState.preserveModels) {
+    aiModels = verifiedModels;
+    aiModelsEndpoint = verifiedEndpoint;
+    aiDraftConnection = AI_CONNECTION_STATES.CONNECTED;
+  } else {
+    aiModels = [];
+    aiModelsEndpoint = "";
+    aiDraftConnection = AI_CONNECTION_STATES.UNCHECKED;
   }
   renderAiSettings();
   renderAiUi();
