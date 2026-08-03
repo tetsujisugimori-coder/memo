@@ -5,6 +5,7 @@ const fs = require("node:fs");
 const html = fs.readFileSync("index.html", "utf8");
 const app = fs.readFileSync("app.js", "utf8");
 const css = fs.readFileSync("style.css", "utf8");
+const context = fs.readFileSync("ai-context.js", "utf8");
 
 test("local AI scripts and disabled-by-default settings are connected", () => {
   assert.match(html, /ai-provider\.js/);
@@ -33,7 +34,7 @@ test("AI panel provides required purposes, controls, and explicit result actions
 });
 
 test("single chat panel supports explicit reference modes and normal launch resets to none", () => {
-  ["参照なし", "現在のメモ", "選択した文章", "指定したメモ", "参照を解除"].forEach((label) => {
+  ["参照なし", "現在のメモ", "選択した文章", "指定したメモ", "すべてのメモ", "選択したコレクション", "参照を解除"].forEach((label) => {
     assert.match(html, new RegExp(label));
   });
   assert.equal((html.match(/id="aiPanel"/g) || []).length, 1);
@@ -41,6 +42,9 @@ test("single chat panel supports explicit reference modes and normal launch rese
   assert.match(app, /referenceMode = AI_REFERENCE_MODES\.NONE/);
   assert.match(app, /selectedTextSnapshot/);
   assert.match(app, /activeNotes\(\).*\.filter/);
+  assert.match(app, /selectCollectionReferenceNotes\(notes, collections, collection\.id\)/);
+  assert.match(app, /AI_REFERENCE_MAX_CHARS/);
+  assert.match(html, /id="aiCollectionSearch"/);
 });
 
 test("chat history stores the send-time reference snapshot", () => {
@@ -48,6 +52,17 @@ test("chat history stores the send-time reference snapshot", () => {
   assert.match(app, /reference: referenceSnapshot/);
   assert.match(app, /sentAt: Date\.now\(\)/);
   assert.match(app, /aiReferenceLabel\(message\.reference\)/);
+});
+
+test("multiple reference labels and structured memo fields are part of the UI contract", () => {
+  assert.match(context, /すべてのメモ：/);
+  assert.match(context, /コレクション：/);
+  assert.match(app, /noteCount/);
+  assert.match(app, /totalCharacters/);
+  assert.match(context, /メモID:/);
+  assert.match(context, /所属コレクションID:/);
+  assert.match(context, /所属コレクション名:/);
+  assert.match(app, /送信を停止しました/);
 });
 
 test("existing memo list is placed at the furthest right without duplication", () => {

@@ -162,12 +162,18 @@
           <option value="current-note">現在のメモ</option>
           <option value="selected-text">選択した文章</option>
           <option value="specified-note">指定したメモ</option>
+          <option value="all-notes">すべてのメモ</option>
+          <option value="collection">選択したコレクション</option>
         </select>
       </label>
       <p id="aiTargetPreview" class="ai-target-preview">対象メモを確認しています。</p>
       <div id="aiSpecifiedNotePicker" class="ai-specified-note-picker" hidden>
         <label class="ai-field" for="aiSpecifiedNoteSearch"><span>メモタイトルで検索</span><input id="aiSpecifiedNoteSearch" type="search" autocomplete="off"></label>
         <div id="aiSpecifiedNoteList" class="ai-specified-note-list" role="listbox" aria-label="参照するメモ"></div>
+      </div>
+      <div id="aiCollectionPicker" class="ai-specified-note-picker" hidden>
+        <label class="ai-field" for="aiCollectionSearch"><span>コレクションを検索</span><input id="aiCollectionSearch" type="search" autocomplete="off"></label>
+        <div id="aiCollectionList" class="ai-specified-note-list" role="listbox" aria-label="参照するコレクション"></div>
       </div>
       <select id="aiPurposeSelect" hidden aria-label="AIタスク"><option value="question">自由質問</option><option value="summarize">要約</option><option value="organize">整理</option><option value="translate">翻訳</option></select>
       <label id="aiTranslationRow" class="ai-field" for="aiTranslationSelect" hidden>
@@ -548,7 +554,8 @@
   <script src="ai-provider.js?v=0.4.0-2"></script>
   <script src="ollama-adapter.js?v=0.4.0-1"></script>
   <script src="ai-context.js?v=0.4.0-1"></script>
+  <script src="ai-reference-selection.js?v=0.4.0-1"></script>
   <script src="ai-prompts.js?v=0.4.0-2"></script>
-  <script src="app.js?v=0.4.0-32"></script>
+  <script src="app.js?v=0.4.0-33"></script>
 </body>
 </html>

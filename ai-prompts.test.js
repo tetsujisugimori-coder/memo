@@ -51,6 +51,24 @@ test("all sends require a user question or instruction", () => {
   assert.throws(() => buildAiMessages({ purpose: "question", reference: { mode: "none" } }), /質問または指示/);
 });
 
+test("multiple memo reference stays in one separate system message", () => {
+  const messages = buildAiMessages({
+    purpose: "question",
+    reference: {
+      mode: "all-notes",
+      notes: [
+        { id: "1", title: "A", collectionId: "c1", collectionName: "未分類", body: "本文A" },
+        { id: "2", title: "B", collectionId: "c2", collectionName: "IT", body: "本文B" }
+      ]
+    },
+    userInstruction: "比較してください"
+  });
+  assert.equal(messages.filter((message) => message.role === "system").length, 1);
+  assert.match(messages[0].content, /\[参照メモ 1\]/);
+  assert.match(messages[0].content, /\[参照メモ 2\]/);
+  assert.equal(messages.at(-1).content, "比較してください");
+});
+
 test("AI result helpers create append body and a bounded title", () => {
   assert.equal(aiAppendMarkdown("回答"), "\n\n## AI回答\n\n回答");
   assert.match(aiMemoTitle("summarize", "会議"), /会議.*要約/);

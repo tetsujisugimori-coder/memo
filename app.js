@@ -339,11 +339,17 @@ const { OllamaAdapter } = window.MemoNexusOllamaAdapter;
 const { aiAppendMarkdown, aiMemoTitle, buildAiMessages } = window.MemoNexusAiPrompts;
 const {
   AI_REFERENCE_MODES,
+  AI_REFERENCE_MAX_CHARS,
   aiReferenceLabel,
   aiReferenceSnapshot,
   createAiReferenceContext,
-  emptyAiReference
+  emptyAiReference,
+  isAiReferenceWithinLimit
 } = window.MemoNexusAiContext;
+const {
+  selectAllReferenceNotes,
+  selectCollectionReferenceNotes
+} = window.MemoNexusAiReferenceSelection;
 
 // HTML要素を短く取得するための小さなヘルパー。
 const $ = (id) => document.getElementById(id);
@@ -521,6 +527,9 @@ const aiClearReferenceBtn = $("aiClearReferenceBtn");
 const aiSpecifiedNotePicker = $("aiSpecifiedNotePicker");
 const aiSpecifiedNoteSearch = $("aiSpecifiedNoteSearch");
 const aiSpecifiedNoteList = $("aiSpecifiedNoteList");
+const aiCollectionPicker = $("aiCollectionPicker");
+const aiCollectionSearch = $("aiCollectionSearch");
+const aiCollectionList = $("aiCollectionList");
 const aiChatHistory = $("aiChatHistory");
 const aiPurposeSelect = $("aiPurposeSelect");
 const aiTranslationRow = $("aiTranslationRow");
@@ -623,6 +632,7 @@ let aiAssistantState = {
   reference: emptyAiReference(),
   selectedTextSnapshot: "",
   specifiedNoteId: null,
+  collectionId: null,
   history: []
 };
 const enqueueAttachmentAddition = createKeyedSerialQueue();
@@ -4586,21 +4596,65 @@ function snapshotSpecifiedNoteReference(noteId) {
   }) : emptyAiReference();
 }
 
+function aiReferenceNoteSnapshot(note) {
+  const current = note.id === currentId ? { ...note, title: titleInput.value || note.title, body: editor.value } : note;
+  const collectionId = normalizedCollectionId(current);
+  const collection = collections.find((item) => item.id === collectionId);
+  return {
+    id: current.id,
+    title: current.title,
+    collectionId,
+    collectionName: collection?.name || "未分類",
+    content: current.body || ""
+  };
+}
+
+function snapshotAllNotesReference() {
+  return createAiReferenceContext({
+    mode: AI_REFERENCE_MODES.ALL_NOTES,
+    notes: selectAllReferenceNotes(notes).map(aiReferenceNoteSnapshot)
+  });
+}
+
+function snapshotCollectionReference(collectionId) {
+  const collection = collections.find((item) => item.id === collectionId);
+  if (!collection || collection.id === "trash") return createAiReferenceContext({ mode: AI_REFERENCE_MODES.COLLECTION, notes: [] });
+  return createAiReferenceContext({
+    mode: AI_REFERENCE_MODES.COLLECTION,
+    collectionId: collection.id,
+    collectionName: collection.name,
+    notes: selectCollectionReferenceNotes(notes, collections, collection.id).map(aiReferenceNoteSnapshot)
+  });
+}
+
 function setAiReferenceMode(mode) {
   aiAssistantState.referenceMode = mode;
   aiAssistantState.error = "";
   aiAssistantState.specifiedNoteId = mode === AI_REFERENCE_MODES.SPECIFIED_NOTE
     ? aiAssistantState.specifiedNoteId
     : null;
+  aiAssistantState.collectionId = mode === AI_REFERENCE_MODES.COLLECTION
+    ? aiAssistantState.collectionId
+    : null;
   if (mode === AI_REFERENCE_MODES.CURRENT_NOTE) aiAssistantState.reference = snapshotCurrentNoteReference();
   else if (mode === AI_REFERENCE_MODES.SELECTED_TEXT) aiAssistantState.reference = snapshotSelectedTextReference();
   else if (mode === AI_REFERENCE_MODES.SPECIFIED_NOTE) {
     aiAssistantState.reference = snapshotSpecifiedNoteReference(aiAssistantState.specifiedNoteId);
+  } else if (mode === AI_REFERENCE_MODES.ALL_NOTES) {
+    aiAssistantState.reference = snapshotAllNotesReference();
+  } else if (mode === AI_REFERENCE_MODES.COLLECTION) {
+    aiAssistantState.reference = snapshotCollectionReference(aiAssistantState.collectionId);
   } else aiAssistantState.reference = emptyAiReference();
   if (aiAssistantState.reference.mode === AI_REFERENCE_MODES.NONE && mode !== AI_REFERENCE_MODES.NONE) {
     aiAssistantState.error = mode === AI_REFERENCE_MODES.SELECTED_TEXT
       ? "本文で文章を選択してから、もう一度選んでください。"
-      : mode === AI_REFERENCE_MODES.SPECIFIED_NOTE ? "参照するメモを選択してください。" : "現在のメモがありません。";
+      : mode === AI_REFERENCE_MODES.SPECIFIED_NOTE ? "参照するメモを選択してください。"
+        : mode === AI_REFERENCE_MODES.COLLECTION ? "参照するコレクションを選択してください。" : "現在のメモがありません。";
+  } else if ((mode === AI_REFERENCE_MODES.ALL_NOTES || mode === AI_REFERENCE_MODES.COLLECTION)
+      && aiAssistantState.reference.noteCount === 0) {
+    aiAssistantState.error = mode === AI_REFERENCE_MODES.ALL_NOTES
+      ? "参照できる有効なメモがありません。"
+      : "選択したコレクションに対象メモがありません。";
   }
   renderAiUi();
 }
@@ -4624,6 +4678,7 @@ function setAiPanelOpen(open, { restoreFocus = true, launchMode = null } = {}) {
     aiAssistantState.referenceMode = AI_REFERENCE_MODES.NONE;
     aiAssistantState.reference = emptyAiReference();
     aiAssistantState.specifiedNoteId = null;
+    aiAssistantState.collectionId = null;
   }
   aiAssistantState.panelOpen = Boolean(open);
   document.body.classList.toggle("ai-open", aiAssistantState.panelOpen);
@@ -4709,7 +4764,42 @@ function renderAiReferenceUi() {
   aiReferenceBadge.dataset.mode = reference.mode;
   aiClearReferenceBtn.hidden = reference.mode === AI_REFERENCE_MODES.NONE;
   aiSpecifiedNotePicker.hidden = aiTargetSelect.value !== AI_REFERENCE_MODES.SPECIFIED_NOTE;
+  aiCollectionPicker.hidden = aiTargetSelect.value !== AI_REFERENCE_MODES.COLLECTION;
   renderAiSpecifiedNoteList();
+  renderAiCollectionList();
+}
+
+function renderAiCollectionList() {
+  if (aiCollectionPicker.hidden) return;
+  const query = aiCollectionSearch.value.trim().toLocaleLowerCase();
+  const matches = collections
+    .filter((collection) => collection.id !== "trash")
+    .filter((collection) => !query || collection.name.toLocaleLowerCase().includes(query))
+    .sort(compareCollections);
+  aiCollectionList.replaceChildren();
+  matches.forEach((collection) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "ai-specified-note-option";
+    button.setAttribute("role", "option");
+    button.setAttribute("aria-selected", String(collection.id === aiAssistantState.collectionId));
+    const depth = collectionDepth(collection.id);
+    button.textContent = `${"　".repeat(Math.max(0, depth - 1))}${collection.name}`;
+    button.addEventListener("click", () => {
+      aiAssistantState.collectionId = collection.id;
+      aiAssistantState.reference = snapshotCollectionReference(collection.id);
+      aiAssistantState.error = aiAssistantState.reference.noteCount
+        ? "" : "選択したコレクションに対象メモがありません。";
+      renderAiUi();
+    });
+    aiCollectionList.appendChild(button);
+  });
+  if (!matches.length) {
+    const empty = document.createElement("p");
+    empty.className = "ai-chat-empty";
+    empty.textContent = "一致するコレクションがありません。";
+    aiCollectionList.appendChild(empty);
+  }
 }
 
 function renderAiSpecifiedNoteList() {
@@ -4782,7 +4872,7 @@ function updateAiTargetPreview() {
   const reference = createAiReferenceContext(aiAssistantState.reference);
   aiTargetPreview.textContent = reference.mode === AI_REFERENCE_MODES.NONE
     ? "送信データにメモのタイトル・本文・選択文章は含まれません。"
-    : `${aiReferenceLabel(reference)}を送信時の参照内容として保持しています。`;
+    : `${aiReferenceLabel(reference)}を送信時の参照内容として保持しています。${(reference.mode === AI_REFERENCE_MODES.ALL_NOTES || reference.mode === AI_REFERENCE_MODES.COLLECTION) && reference.totalCharacters > AI_REFERENCE_MAX_CHARS ? ` 上限（${AI_REFERENCE_MAX_CHARS.toLocaleString("ja-JP")}文字）を超えているため送信できません。` : ""}`;
 }
 
 async function startAiGeneration() {
@@ -4813,6 +4903,22 @@ async function startAiGeneration() {
     aiAssistantState.generation = AI_GENERATION_STATES.ERROR;
     renderAiUi();
     return;
+  }
+  if (reference.mode === AI_REFERENCE_MODES.ALL_NOTES || reference.mode === AI_REFERENCE_MODES.COLLECTION) {
+    if (!reference.noteCount) {
+      aiAssistantState.error = reference.mode === AI_REFERENCE_MODES.ALL_NOTES
+        ? "参照できる有効なメモがありません。"
+        : "選択したコレクションに対象メモがありません。";
+      aiAssistantState.generation = AI_GENERATION_STATES.ERROR;
+      renderAiUi();
+      return;
+    }
+    if (!isAiReferenceWithinLimit(reference, AI_REFERENCE_MAX_CHARS)) {
+      aiAssistantState.error = `参照本文が上限を超えています（${reference.totalCharacters.toLocaleString("ja-JP")} / ${AI_REFERENCE_MAX_CHARS.toLocaleString("ja-JP")}文字）。送信を停止しました。`;
+      aiAssistantState.generation = AI_GENERATION_STATES.ERROR;
+      renderAiUi();
+      return;
+    }
   }
   const question = aiInstructionInput.value.trim();
   let messages;
@@ -7133,6 +7239,7 @@ if (aiPurposeSelect) aiPurposeSelect.addEventListener("change", renderAiUi);
 if (aiTargetSelect) aiTargetSelect.addEventListener("change", () => setAiReferenceMode(aiTargetSelect.value));
 if (aiClearReferenceBtn) aiClearReferenceBtn.addEventListener("click", () => setAiReferenceMode(AI_REFERENCE_MODES.NONE));
 if (aiSpecifiedNoteSearch) aiSpecifiedNoteSearch.addEventListener("input", renderAiSpecifiedNoteList);
+if (aiCollectionSearch) aiCollectionSearch.addEventListener("input", renderAiCollectionList);
 if (aiSummarizeNoteBtn) aiSummarizeNoteBtn.addEventListener("click", () => {
   openAiAssistant({ mode: AI_REFERENCE_MODES.CURRENT_NOTE, purpose: "summarize", prompt: "このメモを要約してください。" });
 });
