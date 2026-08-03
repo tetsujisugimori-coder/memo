@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Memo Nexus</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css">
-  <link rel="stylesheet" href="style.css?v=0.4.0-24">
+  <link rel="stylesheet" href="style.css?v=0.4.0-25">
 </head>
 <body>
   <aside id="memoSidebar" class="sidebar" aria-label="メモ一覧" aria-hidden="false">
@@ -123,6 +123,74 @@
       <div id="relatedLimitNotice" class="related-limit-notice" hidden></div>
       <div id="relatedList" class="related-list"></div>
       <div id="discoveryPanel" class="discovery-panel"></div>
+    </div>
+  </aside>
+
+  <button id="aiBackdrop" class="ai-backdrop" type="button" tabindex="-1" aria-label="AIアシスタントを閉じる" hidden></button>
+  <button id="aiRobotBtn" class="ai-robot-button" type="button" aria-controls="aiPanel" aria-expanded="false" aria-label="AIアシスタントを開く">
+    <span class="ai-robot" aria-hidden="true">
+      <span class="ai-robot-antenna"></span>
+      <span class="ai-robot-head"><span class="ai-robot-eye"></span><span class="ai-robot-eye"></span></span>
+      <span class="ai-robot-body"><span class="ai-robot-lamp"></span></span>
+    </span>
+    <span id="aiRobotStatus" class="ai-robot-status">AI無効</span>
+  </button>
+  <aside id="aiPanel" class="ai-panel" aria-labelledby="aiPanelTitle" aria-hidden="true" inert>
+    <div class="ai-panel-head">
+      <div>
+        <span class="ai-panel-eyebrow">LOCAL ASSISTANT</span>
+        <h2 id="aiPanelTitle">Memo AI</h2>
+      </div>
+      <button id="closeAiPanelBtn" type="button" title="閉じる" aria-label="AIアシスタントを閉じる">×</button>
+    </div>
+    <div class="ai-panel-scroll">
+      <div class="ai-runtime-summary">
+        <span id="aiConnectionBadge" class="ai-status-badge" data-state="unchecked">未確認</span>
+        <span id="aiActiveModel">モデル未選択</span>
+      </div>
+      <label class="ai-field" for="aiTargetSelect">
+        <span>対象範囲</span>
+        <select id="aiTargetSelect">
+          <option value="memo">メモ全体</option>
+          <option value="selection">選択範囲</option>
+        </select>
+      </label>
+      <p id="aiTargetPreview" class="ai-target-preview">対象メモを確認しています。</p>
+      <label class="ai-field" for="aiPurposeSelect">
+        <span>用途</span>
+        <select id="aiPurposeSelect">
+          <option value="summarize">要約</option>
+          <option value="organize">整理</option>
+          <option value="translate">翻訳</option>
+          <option value="question">自由質問</option>
+        </select>
+      </label>
+      <label id="aiTranslationRow" class="ai-field" for="aiTranslationSelect" hidden>
+        <span>翻訳先</span>
+        <select id="aiTranslationSelect">
+          <option value="en">英語</option>
+          <option value="ja">日本語</option>
+        </select>
+      </label>
+      <label class="ai-field" for="aiInstructionInput">
+        <span>追加指示・自由質問</span>
+        <textarea id="aiInstructionInput" rows="4" placeholder="必要な条件や質問を入力"></textarea>
+      </label>
+      <div class="ai-request-actions">
+        <button id="aiSendBtn" type="button">送信</button>
+        <button id="aiStopBtn" type="button" disabled>停止</button>
+      </div>
+      <p id="aiGenerationStatus" class="ai-generation-status" role="status" aria-live="polite">設定でローカルAIを有効にしてください。</p>
+      <section class="ai-answer-section" aria-labelledby="aiAnswerHeading">
+        <h3 id="aiAnswerHeading">AI回答</h3>
+        <pre id="aiAnswer" tabindex="0">回答はここに表示されます。</pre>
+        <div class="ai-answer-actions">
+          <button id="aiCopyBtn" type="button" disabled>コピー</button>
+          <button id="aiAppendBtn" type="button" disabled>現在のメモへ追記</button>
+          <button id="aiSaveNewBtn" type="button" disabled>新規メモとして保存</button>
+        </div>
+      </section>
+      <p class="ai-privacy-note">内容は設定したOllamaへだけ送信します。AI回答は確認後に手動で反映してください。</p>
     </div>
   </aside>
 
@@ -298,6 +366,40 @@
         </div>
         <p id="fontSettingsStatus" class="settings-note" role="status" aria-live="polite"></p>
       </section>
+      <section class="settings-section ai-settings-section" aria-labelledby="aiSettingsHeading">
+        <h2 id="aiSettingsHeading">ローカルAI</h2>
+        <label class="ai-enable-setting" for="aiEnabledInput">
+          <input id="aiEnabledInput" type="checkbox">
+          <span>Ollamaを使うAI機能を有効にする</span>
+        </label>
+        <p class="settings-note">初期状態は無効です。APIキーは不要で、入力内容は設定したOllamaサーバーへ送信されます。</p>
+        <label class="ai-settings-field" for="aiBaseUrlInput">
+          <span>Ollama URL</span>
+          <input id="aiBaseUrlInput" type="url" value="http://127.0.0.1:11434" spellcheck="false">
+        </label>
+        <p id="aiExternalUrlWarning" class="settings-note ai-external-warning" hidden>ローカル以外のURLです。メモ内容の送信先を確認してください。</p>
+        <div class="settings-actions">
+          <button id="aiCheckConnectionBtn" type="button">接続確認</button>
+          <button id="aiRefreshModelsBtn" type="button">モデル一覧を更新</button>
+        </div>
+        <p id="aiSettingsConnectionStatus" class="settings-note" role="status" aria-live="polite">未確認</p>
+        <label class="ai-settings-field" for="aiModelSelect">
+          <span>使用モデル</span>
+          <select id="aiModelSelect"><option value="">モデル未選択</option></select>
+        </label>
+        <p class="settings-note">Qwen・Phi・Granite系は確認済み候補として表示します。他のモデルも選択できますが動作未確認です。</p>
+        <label class="ai-settings-field" for="aiTimeoutInput">
+          <span>タイムアウト（秒）</span>
+          <input id="aiTimeoutInput" type="number" min="5" max="300" step="5" value="60">
+        </label>
+        <label class="ai-settings-field" for="aiSystemInstructionInput">
+          <span>システム指示</span>
+          <textarea id="aiSystemInstructionInput" rows="3"></textarea>
+        </label>
+        <div class="settings-actions">
+          <button id="aiSaveSettingsBtn" type="button">AI設定を保存</button>
+        </div>
+      </section>
       <section class="settings-section">
         <h2>データ管理</h2>
         <div class="settings-actions">
@@ -435,6 +537,9 @@
   <script src="calculation-engine.js?v=0.4.0-1"></script>
   <script src="calculator-link.js?v=0.4.0-1"></script>
   <script src="font-settings.js?v=0.4.0-2"></script>
-  <script src="app.js?v=0.4.0-30"></script>
+  <script src="ai-provider.js?v=0.4.0-1"></script>
+  <script src="ollama-adapter.js?v=0.4.0-1"></script>
+  <script src="ai-prompts.js?v=0.4.0-1"></script>
+  <script src="app.js?v=0.4.0-31"></script>
 </body>
 </html>
