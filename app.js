@@ -324,6 +324,18 @@ const {
   writeTableToClipboard,
   writeTextToClipboard
 } = window.MemoNexusTableBlockUtils;
+const {
+  AI_CONNECTION_STATES,
+  AI_GENERATION_STATES,
+  AI_SETTINGS_STORAGE_KEY,
+  DEFAULT_AI_SETTINGS,
+  friendlyAiError,
+  groupModels,
+  isLoopbackBaseUrl,
+  normalizeAiSettings
+} = window.MemoNexusAiProvider;
+const { OllamaAdapter } = window.MemoNexusOllamaAdapter;
+const { aiAppendMarkdown, aiMemoTitle, buildAiMessages } = window.MemoNexusAiPrompts;
 
 // HTML要素を短く取得するための小さなヘルパー。
 const $ = (id) => document.getElementById(id);
@@ -486,6 +498,36 @@ const mermaidTemplateTitle = $("mermaidTemplateTitle");
 const closeMermaidTemplateBtn = $("closeMermaidTemplateBtn");
 const mermaidTemplateBody = $("mermaidTemplateBody");
 const mermaidTemplateStatus = $("mermaidTemplateStatus");
+const aiRobotBtn = $("aiRobotBtn");
+const aiRobotStatus = $("aiRobotStatus");
+const aiBackdrop = $("aiBackdrop");
+const aiPanel = $("aiPanel");
+const closeAiPanelBtn = $("closeAiPanelBtn");
+const aiConnectionBadge = $("aiConnectionBadge");
+const aiActiveModel = $("aiActiveModel");
+const aiTargetSelect = $("aiTargetSelect");
+const aiTargetPreview = $("aiTargetPreview");
+const aiPurposeSelect = $("aiPurposeSelect");
+const aiTranslationRow = $("aiTranslationRow");
+const aiTranslationSelect = $("aiTranslationSelect");
+const aiInstructionInput = $("aiInstructionInput");
+const aiSendBtn = $("aiSendBtn");
+const aiStopBtn = $("aiStopBtn");
+const aiGenerationStatus = $("aiGenerationStatus");
+const aiAnswer = $("aiAnswer");
+const aiCopyBtn = $("aiCopyBtn");
+const aiAppendBtn = $("aiAppendBtn");
+const aiSaveNewBtn = $("aiSaveNewBtn");
+const aiEnabledInput = $("aiEnabledInput");
+const aiBaseUrlInput = $("aiBaseUrlInput");
+const aiExternalUrlWarning = $("aiExternalUrlWarning");
+const aiCheckConnectionBtn = $("aiCheckConnectionBtn");
+const aiRefreshModelsBtn = $("aiRefreshModelsBtn");
+const aiSettingsConnectionStatus = $("aiSettingsConnectionStatus");
+const aiModelSelect = $("aiModelSelect");
+const aiTimeoutInput = $("aiTimeoutInput");
+const aiSystemInstructionInput = $("aiSystemInstructionInput");
+const aiSaveSettingsBtn = $("aiSaveSettingsBtn");
 
 // アプリ全体で共有する状態。
 // notesはIndexedDBから読み込んだメモ一覧のメモリ上コピーです。
@@ -540,6 +582,20 @@ let globalFontSettings = { ...DEFAULT_FONT_SETTINGS };
 let fontSettingsDraft = null;
 let pendingFontSelection = null;
 let fontSelectionMessage = "";
+let aiSettings = { ...DEFAULT_AI_SETTINGS };
+let aiModels = [];
+let aiAbortController = null;
+let aiAssistantState = {
+  panelOpen: false,
+  connection: AI_CONNECTION_STATES.UNCHECKED,
+  generation: AI_GENERATION_STATES.DISABLED,
+  answer: "",
+  error: "",
+  requestId: 0,
+  requestNoteId: null,
+  requestNoteTitle: "",
+  requestPurpose: "summarize"
+};
 const enqueueAttachmentAddition = createKeyedSerialQueue();
 const pendingAttachmentAdditions = new Map();
 
@@ -557,8 +613,11 @@ async function init() {
   restoreImageBlockSize();
   restoreCollectionSortOrder();
   restoreGlobalFontSettings();
+  restoreAiSettings();
   consumeReturnedFontSelection();
   initializeResponsiveLayout();
+  renderAiSettings();
+  renderAiUi();
 
   const localStorageAvailable = checkLocalStorageAvailable();
   db = await openDb();
@@ -749,6 +808,7 @@ function syncLayoutMode(force = false, width = document.body.clientWidth) {
   document.body.classList.remove("memo-pane-open", "mobile-card-open", "compact-card-hidden");
   if (document.body.classList.contains("collections-open")) toggleCollectionExplorer(false);
   updateResponsiveLayoutUi();
+  if (aiAssistantState.panelOpen) aiBackdrop.hidden = layoutMode === "wide";
 }
 
 function setMemoPaneOpen(open, { restoreFocus = true } = {}) {
@@ -1865,6 +1925,7 @@ function openNote(id) {
   renderRelated();
   renderDiscovery();
   updateUndoButton();
+  renderAiUi();
   editor.focus();
 }
 
@@ -4295,6 +4356,347 @@ function setRelatedDrawerOpen(open, options = {}) {
   }
 }
 
+function restoreAiSettings() {
+  try {
+    const stored = localStorage.getItem(AI_SETTINGS_STORAGE_KEY);
+    aiSettings = normalizeAiSettings(stored ? JSON.parse(stored) : null);
+  } catch (error) {
+    console.warn("AI settings restore failed", error);
+    aiSettings = normalizeAiSettings(null);
+  }
+  aiAssistantState.generation = aiSettings.enabled
+    ? AI_GENERATION_STATES.DISCONNECTED
+    : AI_GENERATION_STATES.DISABLED;
+}
+
+function readAiSettingsForm() {
+  return normalizeAiSettings({
+    enabled: aiEnabledInput.checked,
+    baseUrl: aiBaseUrlInput.value,
+    selectedModel: aiModelSelect.value,
+    timeoutMs: Number(aiTimeoutInput.value) * 1000,
+    systemInstruction: aiSystemInstructionInput.value
+  });
+}
+
+function saveAiSettings() {
+  const previousBaseUrl = aiSettings.baseUrl;
+  aiSettings = readAiSettingsForm();
+  if (aiSettings.baseUrl !== previousBaseUrl) {
+    aiModels = [];
+    aiAssistantState.connection = AI_CONNECTION_STATES.UNCHECKED;
+  }
+  try {
+    localStorage.setItem(AI_SETTINGS_STORAGE_KEY, JSON.stringify(aiSettings));
+    aiSettingsConnectionStatus.textContent = "AI設定を保存しました。";
+  } catch (error) {
+    console.warn("AI settings save failed", error);
+    aiSettingsConnectionStatus.textContent = "設定を保存できませんでした。このタブでは現在の設定を使用します。";
+  }
+  if (!aiSettings.enabled) {
+    aiAssistantState.requestId += 1;
+    stopAiGeneration();
+    aiAssistantState.connection = AI_CONNECTION_STATES.UNCHECKED;
+    aiAssistantState.generation = AI_GENERATION_STATES.DISABLED;
+  } else if (!aiSettings.selectedModel) {
+    aiAssistantState.generation = AI_GENERATION_STATES.MODEL_REQUIRED;
+  } else if (aiAssistantState.connection === AI_CONNECTION_STATES.CONNECTED) {
+    aiAssistantState.generation = AI_GENERATION_STATES.IDLE;
+  } else {
+    aiAssistantState.generation = AI_GENERATION_STATES.DISCONNECTED;
+  }
+  renderAiSettings();
+  renderAiUi();
+}
+
+function renderAiSettings() {
+  aiEnabledInput.checked = aiSettings.enabled;
+  aiBaseUrlInput.value = aiSettings.baseUrl;
+  aiTimeoutInput.value = String(Math.round(aiSettings.timeoutMs / 1000));
+  aiSystemInstructionInput.value = aiSettings.systemInstruction;
+  aiExternalUrlWarning.hidden = isLoopbackBaseUrl(aiBaseUrlInput.value);
+  renderAiModelOptions();
+}
+
+function renderAiModelOptions() {
+  const selected = aiSettings.selectedModel;
+  const groups = groupModels(aiModels);
+  aiModelSelect.innerHTML = "";
+  const placeholder = document.createElement("option");
+  placeholder.value = "";
+  placeholder.textContent = aiModels.length ? "モデルを選択" : "モデル一覧を更新してください";
+  aiModelSelect.appendChild(placeholder);
+  const appendGroup = (label, models) => {
+    if (!models.length) return;
+    const group = document.createElement("optgroup");
+    group.label = label;
+    models.forEach((model) => {
+      const option = document.createElement("option");
+      option.value = model.id;
+      option.textContent = model.displayName;
+      group.appendChild(option);
+    });
+    aiModelSelect.appendChild(group);
+  };
+  appendGroup("確認済みモデル系統", groups.verified);
+  appendGroup("その他（動作未確認）", groups.other);
+  if (selected && !aiModels.some((model) => model.id === selected)) {
+    const option = document.createElement("option");
+    option.value = selected;
+    option.textContent = `${selected}（未確認）`;
+    aiModelSelect.appendChild(option);
+  }
+  aiModelSelect.value = selected;
+}
+
+async function checkAiConnection({ useForm = true } = {}) {
+  const candidate = useForm ? readAiSettingsForm() : aiSettings;
+  aiAssistantState.connection = AI_CONNECTION_STATES.CHECKING;
+  aiSettingsConnectionStatus.textContent = "Ollamaへ接続しています…";
+  renderAiUi();
+  try {
+    const adapter = new OllamaAdapter(candidate);
+    const result = await adapter.checkConnection();
+    aiModels = result.models;
+    aiAssistantState.connection = result.hasModels ? AI_CONNECTION_STATES.CONNECTED : AI_CONNECTION_STATES.NO_MODELS;
+    aiSettingsConnectionStatus.textContent = result.hasModels
+      ? `接続しました。${result.models.length}モデルを利用できます。`
+      : "Ollamaへ接続しましたが、利用できるモデルがありません。";
+    if (candidate.selectedModel && !aiModels.some((model) => model.id === candidate.selectedModel)) {
+      candidate.selectedModel = "";
+    }
+    aiSettings = candidate;
+    aiAssistantState.generation = !candidate.enabled
+      ? AI_GENERATION_STATES.DISABLED
+      : candidate.selectedModel && result.hasModels
+        ? AI_GENERATION_STATES.IDLE
+        : AI_GENERATION_STATES.MODEL_REQUIRED;
+    renderAiModelOptions();
+  } catch (error) {
+    aiModels = [];
+    aiAssistantState.connection = AI_CONNECTION_STATES.UNAVAILABLE;
+    aiAssistantState.generation = candidate.enabled ? AI_GENERATION_STATES.DISCONNECTED : AI_GENERATION_STATES.DISABLED;
+    aiSettingsConnectionStatus.textContent = friendlyAiError(error);
+    renderAiModelOptions();
+  }
+  renderAiUi();
+}
+
+function setAiPanelOpen(open, { restoreFocus = true } = {}) {
+  const wasOpen = aiAssistantState.panelOpen;
+  aiAssistantState.panelOpen = Boolean(open);
+  document.body.classList.toggle("ai-open", aiAssistantState.panelOpen);
+  aiPanel.setAttribute("aria-hidden", String(!aiAssistantState.panelOpen));
+  aiPanel.inert = !aiAssistantState.panelOpen;
+  aiRobotBtn.setAttribute("aria-expanded", String(aiAssistantState.panelOpen));
+  aiRobotBtn.setAttribute("aria-label", aiAssistantState.panelOpen ? "AIアシスタントを閉じる" : "AIアシスタントを開く");
+  aiBackdrop.hidden = !aiAssistantState.panelOpen || layoutMode === "wide";
+  if (aiAssistantState.panelOpen) {
+    setRelatedDrawerOpen(false, { restoreFocus: false });
+    closeLayoutOverlays({ restoreFocus: false });
+    if (document.body.classList.contains("collections-open")) toggleCollectionExplorer(false);
+    memoSidebar.setAttribute("aria-hidden", "true");
+    memoSidebar.inert = true;
+    closeAiPanelBtn.focus();
+  } else {
+    updateResponsiveLayoutUi();
+    if (wasOpen && restoreFocus) aiRobotBtn.focus();
+  }
+  renderAiUi();
+}
+
+function aiStatusText() {
+  const state = aiAssistantState.generation;
+  if (state === AI_GENERATION_STATES.STREAMING) return "生成中";
+  if (state === AI_GENERATION_STATES.COMPLETED) return "回答完了";
+  if (state === AI_GENERATION_STATES.STOPPED) return "停止済み";
+  if (state === AI_GENERATION_STATES.ERROR) return "エラー";
+  if (state === AI_GENERATION_STATES.DISABLED) return "AI無効";
+  if (state === AI_GENERATION_STATES.MODEL_REQUIRED) return "モデル未選択";
+  if (state === AI_GENERATION_STATES.DISCONNECTED) return "未接続";
+  return "待機中";
+}
+
+function connectionStatusText() {
+  const state = aiAssistantState.connection;
+  if (state === AI_CONNECTION_STATES.CHECKING) return "接続確認中";
+  if (state === AI_CONNECTION_STATES.CONNECTED) return "接続済み";
+  if (state === AI_CONNECTION_STATES.NO_MODELS) return "モデルなし";
+  if (state === AI_CONNECTION_STATES.UNAVAILABLE || state === AI_CONNECTION_STATES.ERROR) return "接続エラー";
+  return "未確認";
+}
+
+function renderAiUi() {
+  const state = aiAssistantState.generation;
+  const streaming = state === AI_GENERATION_STATES.STREAMING;
+  const hasAnswer = Boolean(aiAssistantState.answer.trim());
+  aiRobotBtn.dataset.state = state;
+  aiRobotStatus.textContent = aiStatusText();
+  aiConnectionBadge.dataset.state = aiAssistantState.connection;
+  aiConnectionBadge.textContent = connectionStatusText();
+  aiActiveModel.textContent = aiSettings.selectedModel || "モデル未選択";
+  aiGenerationStatus.dataset.state = state;
+  aiGenerationStatus.textContent = aiAssistantState.error || ({
+    [AI_GENERATION_STATES.DISABLED]: "設定でローカルAIを有効にしてください。",
+    [AI_GENERATION_STATES.DISCONNECTED]: "設定からOllamaへの接続を確認してください。",
+    [AI_GENERATION_STATES.MODEL_REQUIRED]: "設定で使用モデルを選択してください。",
+    [AI_GENERATION_STATES.IDLE]: "入力待ちです。AI回答はメモへ自動反映されません。",
+    [AI_GENERATION_STATES.STREAMING]: `「${aiAssistantState.requestNoteTitle}」について生成しています…`,
+    [AI_GENERATION_STATES.STOPPED]: "生成を停止しました。途中までの回答は確認できます。",
+    [AI_GENERATION_STATES.COMPLETED]: "回答が完了しました。内容を確認してから利用してください。",
+    [AI_GENERATION_STATES.ERROR]: "AI処理でエラーが発生しました。"
+  }[state] || "入力待ちです。");
+  aiAnswer.textContent = hasAnswer ? aiAssistantState.answer : "回答はここに表示されます。";
+  aiSendBtn.disabled = streaming || !aiSettings.enabled || !aiSettings.selectedModel;
+  aiStopBtn.disabled = !streaming;
+  aiCopyBtn.disabled = !hasAnswer;
+  aiAppendBtn.disabled = !hasAnswer || currentId !== aiAssistantState.requestNoteId;
+  aiSaveNewBtn.disabled = !hasAnswer;
+  aiTranslationRow.hidden = aiPurposeSelect.value !== "translate";
+  updateAiTargetPreview();
+}
+
+function updateAiTargetPreview() {
+  const note = currentNote();
+  if (!note) {
+    aiTargetPreview.textContent = "対象メモがありません。";
+    return;
+  }
+  const selectedLength = Math.max(0, editor.selectionEnd - editor.selectionStart);
+  aiTargetPreview.textContent = aiTargetSelect.value === "selection"
+    ? selectedLength ? `「${note.title}」の選択範囲 ${selectedLength}文字` : "本文で対象範囲を選択してください。"
+    : `「${note.title}」全体 ${editor.value.length}文字`;
+}
+
+function currentAiTargetText() {
+  if (aiTargetSelect.value === "selection") {
+    return editor.value.slice(editor.selectionStart, editor.selectionEnd).trim();
+  }
+  return editor.value.trim();
+}
+
+async function startAiGeneration() {
+  if (aiAssistantState.generation === AI_GENERATION_STATES.STREAMING) return;
+  if (!aiSettings.enabled) {
+    aiAssistantState.generation = AI_GENERATION_STATES.DISABLED;
+    renderAiUi();
+    return;
+  }
+  if (!aiSettings.selectedModel) {
+    aiAssistantState.generation = AI_GENERATION_STATES.MODEL_REQUIRED;
+    renderAiUi();
+    return;
+  }
+  const note = currentNote();
+  const targetText = currentAiTargetText();
+  if (!note || !targetText) {
+    aiAssistantState.error = aiTargetSelect.value === "selection" ? "本文で対象範囲を選択してください。" : "AIへ送るメモ本文が空です。";
+    aiAssistantState.generation = AI_GENERATION_STATES.ERROR;
+    renderAiUi();
+    return;
+  }
+  let messages;
+  try {
+    messages = buildAiMessages({
+      purpose: aiPurposeSelect.value,
+      targetText,
+      userInstruction: aiInstructionInput.value,
+      translationLanguage: aiTranslationSelect.value,
+      systemInstruction: aiSettings.systemInstruction
+    });
+  } catch (error) {
+    aiAssistantState.error = error.message;
+    aiAssistantState.generation = AI_GENERATION_STATES.ERROR;
+    renderAiUi();
+    return;
+  }
+  await flushSave();
+  const requestId = aiAssistantState.requestId + 1;
+  aiAbortController = new AbortController();
+  aiAssistantState = {
+    ...aiAssistantState,
+    generation: AI_GENERATION_STATES.STREAMING,
+    answer: "",
+    error: "",
+    requestId,
+    requestNoteId: note.id,
+    requestNoteTitle: note.title,
+    requestPurpose: aiPurposeSelect.value
+  };
+  renderAiUi();
+  try {
+    const adapter = new OllamaAdapter(aiSettings);
+    for await (const event of adapter.generate({
+      model: aiSettings.selectedModel,
+      messages,
+      signal: aiAbortController.signal,
+      timeoutMs: aiSettings.timeoutMs
+    })) {
+      if (requestId !== aiAssistantState.requestId) return;
+      if (event.type === "text") {
+        aiAssistantState.connection = AI_CONNECTION_STATES.CONNECTED;
+        aiAssistantState.answer += event.content;
+        renderAiUi();
+      }
+    }
+    if (requestId === aiAssistantState.requestId) {
+      aiAssistantState.connection = AI_CONNECTION_STATES.CONNECTED;
+      aiAssistantState.generation = AI_GENERATION_STATES.COMPLETED;
+      renderAiUi();
+    }
+  } catch (error) {
+    if (requestId !== aiAssistantState.requestId) return;
+    aiAssistantState.generation = error?.code === "aborted" ? AI_GENERATION_STATES.STOPPED : AI_GENERATION_STATES.ERROR;
+    aiAssistantState.error = error?.code === "aborted" ? "" : friendlyAiError(error);
+    if (error?.code === "connection") aiAssistantState.connection = AI_CONNECTION_STATES.UNAVAILABLE;
+    renderAiUi();
+  } finally {
+    if (requestId === aiAssistantState.requestId) aiAbortController = null;
+  }
+}
+
+function stopAiGeneration() {
+  if (aiAbortController) aiAbortController.abort();
+}
+
+async function copyAiAnswer() {
+  if (!aiAssistantState.answer.trim()) return;
+  try {
+    await writeTextToClipboard(aiAssistantState.answer, { fallbackCopyText });
+    aiGenerationStatus.textContent = "AI回答をコピーしました。";
+  } catch (error) {
+    aiGenerationStatus.textContent = "コピーできませんでした。回答を選択してコピーしてください。";
+  }
+}
+
+async function appendAiAnswerToCurrentNote() {
+  const answer = aiAssistantState.answer.trim();
+  if (!answer) return;
+  if (currentId !== aiAssistantState.requestNoteId) {
+    aiAssistantState.error = "回答を生成したメモと現在のメモが異なるため追記できません。元のメモを開いてください。";
+    aiAssistantState.generation = AI_GENERATION_STATES.ERROR;
+    renderAiUi();
+    return;
+  }
+  if (!confirm(`AI回答を「${titleInput.value || "無題メモ"}」へ追記しますか？`)) return;
+  pushUndoSnapshot({ noteId: currentId, title: titleInput.value, body: editor.value, savedAt: Date.now() });
+  editor.value += aiAppendMarkdown(answer);
+  renderTableBlockEditors();
+  scheduleSave();
+  aiGenerationStatus.textContent = "AI回答を現在のメモへ追記しました。";
+}
+
+async function saveAiAnswerAsNewNote() {
+  const answer = aiAssistantState.answer.trim();
+  if (!answer) return;
+  const title = aiMemoTitle(aiAssistantState.requestPurpose, aiAssistantState.requestNoteTitle);
+  const note = await createNote(title, answer);
+  notes = await getAllNotes();
+  renderAll();
+  openNote(note.id);
+  aiGenerationStatus.textContent = "AI回答を新規メモとして保存しました。";
+}
+
 function updateRelatedToggle(count) {
   relatedCount.textContent = String(count);
   relatedToggleBtn.title = `関連メモ ${count}件`;
@@ -4674,6 +5076,8 @@ function todayStampDashed() {
 async function openSettingsDialog() {
   restoreTheme();
   prepareFontSettingsDialog();
+  renderAiSettings();
+  renderAiUi();
   await renderStorageStatus();
   settingsDialog.showModal();
 }
@@ -6458,6 +6862,39 @@ if (resetFontSettingsBtn) {
     });
   });
 }
+if (aiRobotBtn) aiRobotBtn.addEventListener("click", () => setAiPanelOpen(!aiAssistantState.panelOpen));
+if (closeAiPanelBtn) closeAiPanelBtn.addEventListener("click", () => setAiPanelOpen(false));
+if (aiBackdrop) aiBackdrop.addEventListener("click", () => setAiPanelOpen(false));
+if (aiEnabledInput) aiEnabledInput.addEventListener("change", () => {
+  const enabled = aiEnabledInput.checked;
+  aiAssistantState.generation = enabled ? AI_GENERATION_STATES.DISCONNECTED : AI_GENERATION_STATES.DISABLED;
+  renderAiUi();
+});
+if (aiBaseUrlInput) aiBaseUrlInput.addEventListener("input", () => {
+  aiExternalUrlWarning.hidden = isLoopbackBaseUrl(aiBaseUrlInput.value);
+});
+if (aiCheckConnectionBtn) aiCheckConnectionBtn.addEventListener("click", () => checkAiConnection());
+if (aiRefreshModelsBtn) aiRefreshModelsBtn.addEventListener("click", () => checkAiConnection());
+if (aiSaveSettingsBtn) aiSaveSettingsBtn.addEventListener("click", saveAiSettings);
+if (aiPurposeSelect) aiPurposeSelect.addEventListener("change", renderAiUi);
+if (aiTargetSelect) aiTargetSelect.addEventListener("change", updateAiTargetPreview);
+if (aiSendBtn) aiSendBtn.addEventListener("click", () => {
+  startAiGeneration().catch((error) => {
+    console.error("AI generation failed", error);
+    aiAssistantState.error = "メモの保存またはAI生成を開始できませんでした。";
+    aiAssistantState.generation = AI_GENERATION_STATES.ERROR;
+    renderAiUi();
+  });
+});
+if (aiStopBtn) aiStopBtn.addEventListener("click", stopAiGeneration);
+if (aiCopyBtn) aiCopyBtn.addEventListener("click", copyAiAnswer);
+if (aiAppendBtn) aiAppendBtn.addEventListener("click", () => appendAiAnswerToCurrentNote());
+if (aiSaveNewBtn) aiSaveNewBtn.addEventListener("click", () => {
+  saveAiAnswerAsNewNote().catch((error) => {
+    console.error("AI answer note save failed", error);
+    aiGenerationStatus.textContent = "AI回答を新規メモとして保存できませんでした。";
+  });
+});
 if (collectionSortSelect) {
   collectionSortSelect.addEventListener("change", () => saveCollectionSortOrder(collectionSortSelect.value));
 }
@@ -6518,7 +6955,9 @@ titleInput.addEventListener("input", scheduleSave);
 editor.addEventListener("input", () => {
   renderTableBlockEditors();
   scheduleSave();
+  updateAiTargetPreview();
 });
+editor.addEventListener("select", updateAiTargetPreview);
 window.addEventListener("resize", () => {
   syncLayoutMode();
   renderSaveStatus();
@@ -6530,6 +6969,11 @@ document.addEventListener("click", (event) => {
   if (!event.target.closest(".collection-popup-menu,.collection-more,.collection-memo-more,#collectionAddMenuBtn")) closeCollectionMenus();
 });
 document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && aiAssistantState.panelOpen && !document.querySelector("dialog[open]")) {
+    event.preventDefault();
+    setAiPanelOpen(false);
+    return;
+  }
   if (event.key === "Escape" && closeLayoutOverlays()) {
     event.preventDefault();
     return;
@@ -6555,6 +6999,7 @@ document.addEventListener("keydown", (event) => {
   }
 });
 window.addEventListener("pagehide", () => {
+  stopAiGeneration();
   cleanupAttachmentObjectUrls();
   saveCurrentDraftMirror();
   if (saveTimer) {

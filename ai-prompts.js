@@ -1,0 +1,82 @@
+(function initAiPrompts(globalScope) {
+  "use strict";
+
+  const AI_PROMPTS = Object.freeze({
+    summarize: Object.freeze({
+      id: "summarize",
+      name: "要約",
+      category: "memo",
+      template: "内容の重要な点を失わないように、日本語で簡潔に要約してください。見出しや箇条書きを使い、読みやすく整理してください。本文にない事実を追加しないでください。",
+      inputVariables: ["memo", "instruction"],
+      outputFormat: "Markdown",
+      version: 1
+    }),
+    organize: Object.freeze({
+      id: "organize",
+      name: "整理",
+      category: "memo",
+      template: "内容を確認し、話題ごとに見出しを付けて整理してください。決定事項、未解決事項、TODOがあれば分けてください。本文にない事実を追加しないでください。",
+      inputVariables: ["memo", "instruction"],
+      outputFormat: "Markdown",
+      version: 1
+    }),
+    translate: Object.freeze({
+      id: "translate",
+      name: "翻訳",
+      category: "language",
+      template: "意味、固有名詞、コード、Markdown構造を可能な限り保って{{language}}へ翻訳してください。不要な解説は追加せず、翻訳結果だけを返してください。",
+      inputVariables: ["memo", "instruction", "language"],
+      outputFormat: "Markdown",
+      version: 1
+    }),
+    question: Object.freeze({
+      id: "question",
+      name: "自由質問",
+      category: "question",
+      template: "対象メモを参考資料として使い、利用者の質問へ答えてください。対象メモにない内容を推測する場合は、そのことが分かるようにしてください。",
+      inputVariables: ["memo", "instruction"],
+      outputFormat: "Markdown",
+      version: 1
+    })
+  });
+
+  function promptPreset(purpose) {
+    return AI_PROMPTS[purpose] || AI_PROMPTS.summarize;
+  }
+
+  function buildAiMessages(options = {}) {
+    const preset = promptPreset(options.purpose);
+    const targetText = String(options.targetText || "").trim();
+    const userInstruction = String(options.userInstruction || "").trim();
+    const language = options.translationLanguage === "en" ? "英語" : "日本語";
+    if (!targetText) throw new Error("AIへ送る対象メモが空です。");
+    if (preset.id === "question" && !userInstruction) throw new Error("自由質問を入力してください。");
+    const purposeInstruction = preset.template.replace("{{language}}", language);
+    const parts = [
+      `[用途]\n${purposeInstruction}`,
+      `[追加指示]\n${userInstruction || "なし"}`,
+      `[対象メモ]\n${targetText}`
+    ];
+    return [
+      { role: "system", content: String(options.systemInstruction || "").trim() },
+      { role: "user", content: parts.join("\n\n") }
+    ].filter((message) => message.content);
+  }
+
+  function aiAppendMarkdown(answer, heading = "AI回答") {
+    const content = String(answer || "").trim();
+    return content ? `\n\n## ${heading}\n\n${content}` : "";
+  }
+
+  function aiMemoTitle(purpose, sourceTitle, maxLength = 60) {
+    const name = String(sourceTitle || "無題メモ").trim() || "無題メモ";
+    const preset = promptPreset(purpose);
+    const prefix = preset.id === "question" ? "AI回答" : preset.name;
+    const title = preset.id === "question" ? `${prefix}: ${name}` : `「${name}」の${prefix}`;
+    return title.length <= maxLength ? title : `${title.slice(0, Math.max(1, maxLength - 1)).trimEnd()}…`;
+  }
+
+  const api = { AI_PROMPTS, aiAppendMarkdown, aiMemoTitle, buildAiMessages, promptPreset };
+  if (typeof module !== "undefined" && module.exports) module.exports = api;
+  if (globalScope) globalScope.MemoNexusAiPrompts = api;
+})(typeof window !== "undefined" ? window : globalThis);

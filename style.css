@@ -86,7 +86,7 @@ body {
   height: 100dvh;
   overflow: hidden;
   display: grid;
-  grid-template-columns: 300px minmax(360px, 1fr);
+  grid-template-columns: minmax(360px, 1fr) 300px;
   background: var(--bg);
   color: var(--ink);
   font-family: "Yu Gothic UI", "Hiragino Sans", Meiryo, system-ui, sans-serif;
@@ -124,7 +124,8 @@ button:hover {
 }
 
 .sidebar {
-  border-right: 1px solid var(--line);
+  grid-column: 2;
+  border-left: 1px solid var(--line);
 }
 
 .memo-drawer-head {
@@ -558,16 +559,16 @@ body.collections-open .collection-explorer {
 
 @media (min-width: 1201px) {
   body.collections-open {
-    grid-template-columns: 300px 320px minmax(360px, 1fr);
+    grid-template-columns: 320px minmax(360px, 1fr) 300px;
   }
 
   body.collections-open .collection-explorer {
-    grid-column: 2;
+    grid-column: 1;
     grid-row: 1;
   }
 
   body.collections-open .workspace {
-    grid-column: 3;
+    grid-column: 2;
   }
 
   body.collections-open .collection-backdrop {
@@ -661,6 +662,7 @@ body.collections-open .collection-explorer {
 }
 
 .workspace {
+  grid-column: 1;
   min-width: 0;
   height: 100vh;
   height: 100dvh;
@@ -670,6 +672,345 @@ body.collections-open .collection-explorer {
   gap: 16px;
   padding: 16px;
 }
+
+.ai-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 64;
+  min-height: 0;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  background: var(--dialog-backdrop);
+}
+
+.ai-robot-button {
+  position: fixed;
+  right: -34px;
+  bottom: max(26px, env(safe-area-inset-bottom));
+  z-index: 66;
+  width: 84px;
+  min-height: 98px;
+  border: 0;
+  border-radius: 20px 0 0 20px;
+  padding: 7px 5px 5px;
+  background: transparent;
+  color: var(--ink);
+  display: grid;
+  place-items: center;
+  gap: 3px;
+  filter: drop-shadow(-4px 6px 9px rgba(0, 0, 0, 0.2));
+  transition: right 180ms ease, transform 180ms ease;
+}
+
+.ai-robot-button:hover,
+.ai-robot-button:focus-visible {
+  right: -14px;
+  color: var(--ink);
+  outline: 3px solid var(--accent-soft);
+  outline-offset: 2px;
+}
+
+.ai-robot {
+  width: 66px;
+  height: 70px;
+  display: grid;
+  justify-items: center;
+  align-content: end;
+}
+
+.ai-robot-antenna {
+  width: 4px;
+  height: 11px;
+  border-radius: 3px;
+  background: var(--accent);
+  position: relative;
+}
+
+.ai-robot-antenna::before {
+  content: "";
+  position: absolute;
+  top: -4px;
+  left: -3px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--gold);
+}
+
+.ai-robot-head {
+  width: 58px;
+  height: 34px;
+  border: 2px solid var(--ink);
+  border-radius: 14px 14px 9px 9px;
+  background: var(--paper);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+}
+
+.ai-robot-eye {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.ai-robot-body {
+  width: 50px;
+  height: 25px;
+  margin-top: 1px;
+  border: 2px solid var(--ink);
+  border-radius: 6px 6px 13px 13px;
+  background: var(--panel);
+  display: grid;
+  place-items: center;
+}
+
+.ai-robot-lamp {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--muted);
+}
+
+.ai-robot-status {
+  max-width: 74px;
+  border-radius: 999px;
+  padding: 2px 6px;
+  background: var(--panel);
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.ai-robot-button[data-state="streaming"] .ai-robot-eye,
+.ai-robot-button[data-state="streaming"] .ai-robot-lamp {
+  background: var(--gold);
+  animation: ai-pulse 900ms ease-in-out infinite alternate;
+}
+
+.ai-robot-button[data-state="completed"] .ai-robot-lamp,
+.ai-robot-button[data-state="idle"] .ai-robot-lamp {
+  background: var(--green);
+}
+
+.ai-robot-button[data-state="completed"] .ai-robot {
+  animation: ai-complete-pop 220ms ease-out 1;
+}
+
+.ai-robot-button[data-state="error"] .ai-robot-lamp,
+.ai-robot-button[data-state="disconnected"] .ai-robot-lamp {
+  background: var(--danger);
+}
+
+.ai-robot-button[data-state="disabled"] .ai-robot-eye {
+  width: 11px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--muted);
+}
+
+@keyframes ai-pulse {
+  from { opacity: 0.45; }
+  to { opacity: 1; }
+}
+
+@keyframes ai-complete-pop {
+  50% { transform: translateX(-3px) scale(1.03); }
+}
+
+.ai-panel {
+  position: fixed;
+  inset: 0 0 0 auto;
+  z-index: 65;
+  width: 300px;
+  height: 100vh;
+  height: 100dvh;
+  min-height: 0;
+  border-left: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--ink);
+  display: flex;
+  flex-direction: column;
+  box-shadow: -10px 0 28px rgba(0, 0, 0, 0.24);
+  transform: translateX(102%);
+  visibility: hidden;
+  transition: transform 180ms ease, visibility 0s linear 180ms;
+}
+
+body.ai-open .ai-panel {
+  transform: translateX(0);
+  visibility: visible;
+  transition-delay: 0s;
+}
+
+body.ai-open .sidebar {
+  visibility: hidden;
+}
+
+body.ai-open .ai-robot-button {
+  right: 300px;
+}
+
+body.ai-open .related-toggle {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.ai-panel-head {
+  min-height: 64px;
+  border-bottom: 1px solid var(--line);
+  padding: 10px 12px 10px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.ai-panel-head h2 {
+  margin: 2px 0 0;
+  font-size: 19px;
+}
+
+.ai-panel-eyebrow {
+  color: var(--accent);
+  font-family: Consolas, "Courier New", monospace;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+}
+
+.ai-panel-head button {
+  width: 40px;
+  min-height: 40px;
+  font-size: 22px;
+}
+
+.ai-panel-scroll {
+  min-height: 0;
+  flex: 1;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 14px 14px calc(20px + env(safe-area-inset-bottom));
+  display: grid;
+  align-content: start;
+  gap: 13px;
+}
+
+.ai-runtime-summary,
+.ai-request-actions,
+.ai-answer-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.ai-status-badge {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 3px 8px;
+  background: var(--input-bg);
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.ai-status-badge[data-state="connected"] { color: var(--green); border-color: var(--green); }
+.ai-status-badge[data-state="unavailable"],
+.ai-status-badge[data-state="error"] { color: var(--danger); border-color: var(--danger); }
+
+#aiActiveModel {
+  min-width: 0;
+  color: var(--muted);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.ai-field,
+.ai-settings-field {
+  display: grid;
+  gap: 5px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.ai-field[hidden] {
+  display: none;
+}
+
+.ai-field select,
+.ai-field textarea,
+.ai-settings-field select,
+.ai-settings-field input,
+.ai-settings-field textarea {
+  width: 100%;
+  min-height: 40px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  padding: 8px 10px;
+  background: var(--input-bg);
+  color: var(--ink);
+  outline: none;
+}
+
+.ai-field textarea,
+.ai-settings-field textarea {
+  resize: vertical;
+  line-height: 1.5;
+}
+
+.ai-field :focus,
+.ai-settings-field :focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.ai-target-preview,
+.ai-generation-status,
+.ai-privacy-note {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.ai-generation-status[data-state="error"] { color: var(--danger); }
+.ai-generation-status[data-state="completed"] { color: var(--green); }
+
+.ai-answer-section {
+  min-width: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.ai-answer-section h3 { margin: 0; font-size: 15px; }
+
+#aiAnswer {
+  min-height: 150px;
+  max-height: 42vh;
+  margin: 0;
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 11px;
+  background: var(--input-bg);
+  color: var(--ink);
+  font-family: var(--memo-body-font-family);
+  font-size: 13px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.ai-answer-actions button { flex: 1 1 100%; }
+.ai-enable-setting { display: flex; align-items: center; gap: 8px; font-weight: 700; }
+.ai-enable-setting input { width: 18px; height: 18px; }
+.ai-external-warning { color: var(--warning-ink); }
 
 .app-header {
   min-width: 0;
@@ -2910,12 +3251,12 @@ body.related-open .related-toggle {
 
   .sidebar {
     position: fixed;
-    inset: 0 auto 0 0;
+    inset: 0 0 0 auto;
     z-index: 60;
     width: min(340px, 90vw);
-    border-right: 1px solid var(--line);
-    box-shadow: 10px 0 28px rgba(0, 0, 0, 0.28);
-    transform: translateX(-102%);
+    border-left: 1px solid var(--line);
+    box-shadow: -10px 0 28px rgba(0, 0, 0, 0.28);
+    transform: translateX(102%);
     transition: transform 160ms ease;
   }
 
@@ -2959,6 +3300,18 @@ body.related-open .related-toggle {
 
   .app-version-desktop {
     display: none;
+  }
+
+  body.ai-open .sidebar {
+    visibility: hidden;
+  }
+
+  .ai-panel {
+    width: min(380px, 92vw);
+  }
+
+  body.ai-open .ai-robot-button {
+    right: min(380px, 92vw);
   }
 }
 
@@ -3146,6 +3499,38 @@ body.related-open .related-toggle {
     grid-template-columns: 1fr;
     gap: 4px;
   }
+
+  .ai-robot-button {
+    right: -25px;
+    bottom: max(12px, env(safe-area-inset-bottom));
+    width: 64px;
+    min-height: 76px;
+    transform: scale(0.82);
+    transform-origin: right bottom;
+  }
+
+  .ai-robot-button:hover,
+  .ai-robot-button:focus-visible {
+    right: -5px;
+  }
+
+  .ai-panel {
+    width: 100vw;
+  }
+
+  body.ai-open .ai-robot-button {
+    right: 8px;
+    bottom: auto;
+    top: max(66px, env(safe-area-inset-top));
+  }
+
+  .ai-panel-scroll {
+    padding-bottom: calc(24px + env(safe-area-inset-bottom));
+  }
+
+  #aiInstructionInput {
+    min-height: 96px;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -3153,7 +3538,18 @@ body.related-open .related-toggle {
   .preview-card,
   .related-toggle,
   .related-backdrop,
-  .related-panel {
+  .related-panel,
+  .ai-panel,
+  .ai-robot-button {
     transition: none;
+  }
+
+  .ai-robot-button[data-state="streaming"] .ai-robot-eye,
+  .ai-robot-button[data-state="streaming"] .ai-robot-lamp {
+    animation: none;
+  }
+
+  .ai-robot-button[data-state="completed"] .ai-robot {
+    animation: none;
   }
 }
