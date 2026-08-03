@@ -337,6 +337,13 @@ const {
 } = window.MemoNexusAiProvider;
 const { OllamaAdapter } = window.MemoNexusOllamaAdapter;
 const { aiAppendMarkdown, aiMemoTitle, buildAiMessages } = window.MemoNexusAiPrompts;
+const {
+  AI_REFERENCE_MODES,
+  aiReferenceLabel,
+  aiReferenceSnapshot,
+  createAiReferenceContext,
+  emptyAiReference
+} = window.MemoNexusAiContext;
 
 // HTML要素を短く取得するための小さなヘルパー。
 const $ = (id) => document.getElementById(id);
@@ -508,6 +515,13 @@ const aiConnectionBadge = $("aiConnectionBadge");
 const aiActiveModel = $("aiActiveModel");
 const aiTargetSelect = $("aiTargetSelect");
 const aiTargetPreview = $("aiTargetPreview");
+const aiChatModeTitle = $("aiChatModeTitle");
+const aiReferenceBadge = $("aiReferenceBadge");
+const aiClearReferenceBtn = $("aiClearReferenceBtn");
+const aiSpecifiedNotePicker = $("aiSpecifiedNotePicker");
+const aiSpecifiedNoteSearch = $("aiSpecifiedNoteSearch");
+const aiSpecifiedNoteList = $("aiSpecifiedNoteList");
+const aiChatHistory = $("aiChatHistory");
 const aiPurposeSelect = $("aiPurposeSelect");
 const aiTranslationRow = $("aiTranslationRow");
 const aiTranslationSelect = $("aiTranslationSelect");
@@ -519,6 +533,8 @@ const aiAnswer = $("aiAnswer");
 const aiCopyBtn = $("aiCopyBtn");
 const aiAppendBtn = $("aiAppendBtn");
 const aiSaveNewBtn = $("aiSaveNewBtn");
+const aiSummarizeNoteBtn = $("aiSummarizeNoteBtn");
+const aiSendSelectionBtn = $("aiSendSelectionBtn");
 const aiEnabledInput = $("aiEnabledInput");
 const aiBaseUrlInput = $("aiBaseUrlInput");
 const aiExternalUrlWarning = $("aiExternalUrlWarning");
@@ -602,7 +618,12 @@ let aiAssistantState = {
   requestId: 0,
   requestNoteId: null,
   requestNoteTitle: "",
-  requestPurpose: "summarize"
+  requestPurpose: "question",
+  referenceMode: AI_REFERENCE_MODES.NONE,
+  reference: emptyAiReference(),
+  selectedTextSnapshot: "",
+  specifiedNoteId: null,
+  history: []
 };
 const enqueueAttachmentAddition = createKeyedSerialQueue();
 const pendingAttachmentAdditions = new Map();
@@ -4532,8 +4553,78 @@ function beginAiSettingsSession() {
   aiDraftConnectionMessage = "";
 }
 
-function setAiPanelOpen(open, { restoreFocus = true } = {}) {
+function snapshotCurrentNoteReference() {
+  const note = currentNote();
+  if (!note || note.deletedAt) return emptyAiReference();
+  return createAiReferenceContext({
+    mode: AI_REFERENCE_MODES.CURRENT_NOTE,
+    noteId: note.id,
+    noteTitle: titleInput.value || note.title,
+    content: editor.value
+  });
+}
+
+function snapshotSelectedTextReference() {
+  const note = currentNote();
+  const content = aiAssistantState.selectedTextSnapshot
+    || editor.value.slice(editor.selectionStart, editor.selectionEnd);
+  return createAiReferenceContext({
+    mode: AI_REFERENCE_MODES.SELECTED_TEXT,
+    noteId: note?.id,
+    noteTitle: titleInput.value || note?.title,
+    content
+  });
+}
+
+function snapshotSpecifiedNoteReference(noteId) {
+  const note = activeNotes().find((item) => item.id === noteId);
+  return note ? createAiReferenceContext({
+    mode: AI_REFERENCE_MODES.SPECIFIED_NOTE,
+    noteId: note.id,
+    noteTitle: note.title,
+    content: note.body
+  }) : emptyAiReference();
+}
+
+function setAiReferenceMode(mode) {
+  aiAssistantState.referenceMode = mode;
+  aiAssistantState.error = "";
+  aiAssistantState.specifiedNoteId = mode === AI_REFERENCE_MODES.SPECIFIED_NOTE
+    ? aiAssistantState.specifiedNoteId
+    : null;
+  if (mode === AI_REFERENCE_MODES.CURRENT_NOTE) aiAssistantState.reference = snapshotCurrentNoteReference();
+  else if (mode === AI_REFERENCE_MODES.SELECTED_TEXT) aiAssistantState.reference = snapshotSelectedTextReference();
+  else if (mode === AI_REFERENCE_MODES.SPECIFIED_NOTE) {
+    aiAssistantState.reference = snapshotSpecifiedNoteReference(aiAssistantState.specifiedNoteId);
+  } else aiAssistantState.reference = emptyAiReference();
+  if (aiAssistantState.reference.mode === AI_REFERENCE_MODES.NONE && mode !== AI_REFERENCE_MODES.NONE) {
+    aiAssistantState.error = mode === AI_REFERENCE_MODES.SELECTED_TEXT
+      ? "本文で文章を選択してから、もう一度選んでください。"
+      : mode === AI_REFERENCE_MODES.SPECIFIED_NOTE ? "参照するメモを選択してください。" : "現在のメモがありません。";
+  }
+  renderAiUi();
+}
+
+function openAiAssistant(options = {}) {
+  const mode = options.mode || AI_REFERENCE_MODES.NONE;
+  aiAssistantState.selectedTextSnapshot = mode === AI_REFERENCE_MODES.SELECTED_TEXT
+    ? editor.value.slice(editor.selectionStart, editor.selectionEnd)
+    : "";
+  aiPurposeSelect.value = options.purpose || "question";
+  if (options.prompt !== undefined) aiInstructionInput.value = options.prompt;
+  setAiReferenceMode(mode);
+  setAiPanelOpen(true, { launchMode: mode });
+}
+
+function setAiPanelOpen(open, { restoreFocus = true, launchMode = null } = {}) {
   const wasOpen = aiAssistantState.panelOpen;
+  if (open && !wasOpen && launchMode === null) {
+    aiPurposeSelect.value = "question";
+    aiAssistantState.selectedTextSnapshot = "";
+    aiAssistantState.referenceMode = AI_REFERENCE_MODES.NONE;
+    aiAssistantState.reference = emptyAiReference();
+    aiAssistantState.specifiedNoteId = null;
+  }
   aiAssistantState.panelOpen = Boolean(open);
   document.body.classList.toggle("ai-open", aiAssistantState.panelOpen);
   aiPanel.setAttribute("aria-hidden", String(!aiAssistantState.panelOpen));
@@ -4591,7 +4682,7 @@ function renderAiUi() {
     [AI_GENERATION_STATES.DISCONNECTED]: "設定からOllamaへの接続を確認してください。",
     [AI_GENERATION_STATES.MODEL_REQUIRED]: "設定で使用モデルを選択してください。",
     [AI_GENERATION_STATES.IDLE]: "入力待ちです。AI回答はメモへ自動反映されません。",
-    [AI_GENERATION_STATES.STREAMING]: `「${aiAssistantState.requestNoteTitle}」について生成しています…`,
+    [AI_GENERATION_STATES.STREAMING]: "回答を生成しています…",
     [AI_GENERATION_STATES.STOPPED]: "生成を停止しました。途中までの回答は確認できます。",
     [AI_GENERATION_STATES.COMPLETED]: "回答が完了しました。内容を確認してから利用してください。",
     [AI_GENERATION_STATES.ERROR]: "AI処理でエラーが発生しました。"
@@ -4600,29 +4691,98 @@ function renderAiUi() {
   aiSendBtn.disabled = streaming || !aiSettings.enabled || !aiSettings.selectedModel;
   aiStopBtn.disabled = !streaming;
   aiCopyBtn.disabled = !hasAnswer;
-  aiAppendBtn.disabled = !hasAnswer || currentId !== aiAssistantState.requestNoteId;
+  aiAppendBtn.disabled = !hasAnswer || !currentNote() || Boolean(currentNote()?.deletedAt);
   aiSaveNewBtn.disabled = !hasAnswer;
   aiTranslationRow.hidden = aiPurposeSelect.value !== "translate";
+  renderAiReferenceUi();
+  renderAiChatHistory();
   updateAiTargetPreview();
 }
 
-function updateAiTargetPreview() {
-  const note = currentNote();
-  if (!note) {
-    aiTargetPreview.textContent = "対象メモがありません。";
-    return;
-  }
-  const selectedLength = Math.max(0, editor.selectionEnd - editor.selectionStart);
-  aiTargetPreview.textContent = aiTargetSelect.value === "selection"
-    ? selectedLength ? `「${note.title}」の選択範囲 ${selectedLength}文字` : "本文で対象範囲を選択してください。"
-    : `「${note.title}」全体 ${editor.value.length}文字`;
+function renderAiReferenceUi() {
+  const reference = createAiReferenceContext(aiAssistantState.reference);
+  aiTargetSelect.value = aiAssistantState.referenceMode;
+  aiChatModeTitle.textContent = reference.mode === AI_REFERENCE_MODES.NONE ? "自由チャット" : "メモアシスタント";
+  aiReferenceBadge.textContent = reference.mode === AI_REFERENCE_MODES.NONE
+    ? "メモは参照していません"
+    : aiReferenceLabel(reference);
+  aiReferenceBadge.dataset.mode = reference.mode;
+  aiClearReferenceBtn.hidden = reference.mode === AI_REFERENCE_MODES.NONE;
+  aiSpecifiedNotePicker.hidden = aiTargetSelect.value !== AI_REFERENCE_MODES.SPECIFIED_NOTE;
+  renderAiSpecifiedNoteList();
 }
 
-function currentAiTargetText() {
-  if (aiTargetSelect.value === "selection") {
-    return editor.value.slice(editor.selectionStart, editor.selectionEnd).trim();
+function renderAiSpecifiedNoteList() {
+  if (aiSpecifiedNotePicker.hidden) return;
+  const query = aiSpecifiedNoteSearch.value.trim().toLocaleLowerCase();
+  const matches = activeNotes().filter((note) => !query || note.title.toLocaleLowerCase().includes(query)).slice(0, 30);
+  aiSpecifiedNoteList.replaceChildren();
+  matches.forEach((note) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "ai-specified-note-option";
+    button.setAttribute("role", "option");
+    button.setAttribute("aria-selected", String(note.id === aiAssistantState.specifiedNoteId));
+    button.textContent = note.title;
+    button.addEventListener("click", () => {
+      aiAssistantState.specifiedNoteId = note.id;
+      aiAssistantState.reference = snapshotSpecifiedNoteReference(note.id);
+      aiAssistantState.error = "";
+      renderAiUi();
+    });
+    aiSpecifiedNoteList.appendChild(button);
+  });
+  if (!matches.length) {
+    const empty = document.createElement("p");
+    empty.className = "ai-chat-empty";
+    empty.textContent = "一致するメモがありません。";
+    aiSpecifiedNoteList.appendChild(empty);
   }
-  return editor.value.trim();
+}
+
+function renderAiChatHistory() {
+  aiChatHistory.replaceChildren();
+  if (!aiAssistantState.history.length) {
+    const empty = document.createElement("p");
+    empty.className = "ai-chat-empty";
+    empty.textContent = "質問を入力して会話を始められます。";
+    aiChatHistory.appendChild(empty);
+    return;
+  }
+  aiAssistantState.history.forEach((message) => {
+    const article = document.createElement("article");
+    article.className = `ai-chat-message ${message.role}`;
+    const meta = document.createElement("div");
+    meta.className = "ai-chat-message-meta";
+    meta.textContent = message.role === "user"
+      ? `あなた · ${aiReferenceLabel(message.reference)}`
+      : "AI";
+    const content = document.createElement("pre");
+    content.textContent = message.content || (message.role === "assistant" ? "生成中…" : "");
+    article.append(meta, content);
+    if (message.role === "assistant" && message.content) {
+      const actions = document.createElement("div");
+      actions.className = "ai-chat-message-actions";
+      const copy = document.createElement("button");
+      copy.type = "button";
+      copy.textContent = "コピー";
+      copy.addEventListener("click", async () => {
+        try { await writeTextToClipboard(message.content, { fallbackCopyText }); }
+        catch (_error) { aiGenerationStatus.textContent = "コピーできませんでした。"; }
+      });
+      actions.appendChild(copy);
+      article.appendChild(actions);
+    }
+    aiChatHistory.appendChild(article);
+  });
+  aiChatHistory.scrollTop = aiChatHistory.scrollHeight;
+}
+
+function updateAiTargetPreview() {
+  const reference = createAiReferenceContext(aiAssistantState.reference);
+  aiTargetPreview.textContent = reference.mode === AI_REFERENCE_MODES.NONE
+    ? "送信データにメモのタイトル・本文・選択文章は含まれません。"
+    : `${aiReferenceLabel(reference)}を送信時の参照内容として保持しています。`;
 }
 
 async function startAiGeneration() {
@@ -4638,21 +4798,32 @@ async function startAiGeneration() {
     return;
   }
   const note = currentNote();
-  const targetText = currentAiTargetText();
-  if (!note || !targetText) {
-    aiAssistantState.error = aiTargetSelect.value === "selection" ? "本文で対象範囲を選択してください。" : "AIへ送るメモ本文が空です。";
+  const reference = createAiReferenceContext(aiAssistantState.reference);
+  if (aiTargetSelect.value !== AI_REFERENCE_MODES.NONE && reference.mode === AI_REFERENCE_MODES.NONE) {
+    aiAssistantState.error = aiTargetSelect.value === AI_REFERENCE_MODES.SELECTED_TEXT
+      ? "選択文章を取得できませんでした。本文で文章を選択してください。"
+      : "参照対象を選択してください。";
     aiAssistantState.generation = AI_GENERATION_STATES.ERROR;
     renderAiUi();
     return;
   }
+  if ((reference.mode === AI_REFERENCE_MODES.CURRENT_NOTE || reference.mode === AI_REFERENCE_MODES.SPECIFIED_NOTE)
+      && !activeNotes().some((item) => item.id === reference.noteId)) {
+    aiAssistantState.error = "参照対象のメモが削除されたため送信できません。参照範囲を選び直してください。";
+    aiAssistantState.generation = AI_GENERATION_STATES.ERROR;
+    renderAiUi();
+    return;
+  }
+  const question = aiInstructionInput.value.trim();
   let messages;
   try {
     messages = buildAiMessages({
       purpose: aiPurposeSelect.value,
-      targetText,
-      userInstruction: aiInstructionInput.value,
+      reference,
+      userInstruction: question,
       translationLanguage: aiTranslationSelect.value,
-      systemInstruction: aiSettings.systemInstruction
+      systemInstruction: aiSettings.systemInstruction,
+      history: aiAssistantState.history.filter((message) => message.content).map(({ role, content }) => ({ role, content }))
     });
   } catch (error) {
     aiAssistantState.error = error.message;
@@ -4660,8 +4831,11 @@ async function startAiGeneration() {
     renderAiUi();
     return;
   }
-  await flushSave();
+  if (note) await flushSave();
   const requestId = aiAssistantState.requestId + 1;
+  const referenceSnapshot = aiReferenceSnapshot(reference);
+  const userMessage = { role: "user", content: question, reference: referenceSnapshot, sentAt: Date.now() };
+  const assistantMessage = { role: "assistant", content: "", reference: referenceSnapshot, sentAt: Date.now() };
   aiAbortController = new AbortController();
   aiAssistantState = {
     ...aiAssistantState,
@@ -4669,10 +4843,12 @@ async function startAiGeneration() {
     answer: "",
     error: "",
     requestId,
-    requestNoteId: note.id,
-    requestNoteTitle: note.title,
-    requestPurpose: aiPurposeSelect.value
+    requestNoteId: note?.id || null,
+    requestNoteTitle: reference.noteTitle || note?.title || "自由チャット",
+    requestPurpose: aiPurposeSelect.value,
+    history: [...aiAssistantState.history, userMessage, assistantMessage]
   };
+  aiInstructionInput.value = "";
   renderAiUi();
   try {
     const adapter = new OllamaAdapter(aiSettings);
@@ -4686,6 +4862,7 @@ async function startAiGeneration() {
       if (event.type === "text") {
         aiAssistantState.connection = AI_CONNECTION_STATES.CONNECTED;
         aiAssistantState.answer += event.content;
+        aiAssistantState.history.at(-1).content = aiAssistantState.answer;
         renderAiUi();
       }
     }
@@ -4722,24 +4899,32 @@ async function copyAiAnswer() {
 async function appendAiAnswerToCurrentNote() {
   const answer = aiAssistantState.answer.trim();
   if (!answer) return;
-  if (currentId !== aiAssistantState.requestNoteId) {
-    aiAssistantState.error = "回答を生成したメモと現在のメモが異なるため追記できません。元のメモを開いてください。";
+  const note = currentNote();
+  if (!note || note.deletedAt) {
+    aiAssistantState.error = "現在のメモが存在しないため挿入できません。";
     aiAssistantState.generation = AI_GENERATION_STATES.ERROR;
     renderAiUi();
     return;
   }
-  if (!confirm(`AI回答を「${titleInput.value || "無題メモ"}」へ追記しますか？`)) return;
+  const insertion = prompt(`AI回答を「${titleInput.value || "無題メモ"}」へ挿入します。\n1: カーソル位置\n2: 本文末尾`, "2");
+  if (insertion !== "1" && insertion !== "2") return;
   pushUndoSnapshot({ noteId: currentId, title: titleInput.value, body: editor.value, savedAt: Date.now() });
-  editor.value += aiAppendMarkdown(answer);
+  if (insertion === "1") {
+    const position = editor.selectionStart;
+    editor.value = `${editor.value.slice(0, position)}${answer}${editor.value.slice(position)}`;
+    editor.setSelectionRange(position + answer.length, position + answer.length);
+  } else {
+    editor.value += aiAppendMarkdown(answer);
+  }
   renderTableBlockEditors();
   scheduleSave();
-  aiGenerationStatus.textContent = "AI回答を現在のメモへ追記しました。";
+  aiGenerationStatus.textContent = "AI回答を現在のメモへ挿入しました。";
 }
 
 async function saveAiAnswerAsNewNote() {
   const answer = aiAssistantState.answer.trim();
   if (!answer) return;
-  const title = aiMemoTitle(aiAssistantState.requestPurpose, aiAssistantState.requestNoteTitle);
+  const title = aiMemoTitle(aiAssistantState.requestPurpose, aiAssistantState.requestNoteTitle || "自由チャット");
   const note = await createNote(title, answer);
   notes = await getAllNotes();
   renderAll();
@@ -6919,7 +7104,10 @@ if (resetFontSettingsBtn) {
     });
   });
 }
-if (aiRobotBtn) aiRobotBtn.addEventListener("click", () => setAiPanelOpen(!aiAssistantState.panelOpen));
+if (aiRobotBtn) aiRobotBtn.addEventListener("click", () => {
+  if (aiAssistantState.panelOpen) setAiPanelOpen(false);
+  else openAiAssistant();
+});
 if (closeAiPanelBtn) closeAiPanelBtn.addEventListener("click", () => setAiPanelOpen(false));
 if (aiBackdrop) aiBackdrop.addEventListener("click", () => setAiPanelOpen(false));
 if (aiEnabledInput) aiEnabledInput.addEventListener("change", () => {
@@ -6942,7 +7130,15 @@ if (aiCheckConnectionBtn) aiCheckConnectionBtn.addEventListener("click", () => c
 if (aiRefreshModelsBtn) aiRefreshModelsBtn.addEventListener("click", () => checkAiConnection());
 if (aiSaveSettingsBtn) aiSaveSettingsBtn.addEventListener("click", saveAiSettings);
 if (aiPurposeSelect) aiPurposeSelect.addEventListener("change", renderAiUi);
-if (aiTargetSelect) aiTargetSelect.addEventListener("change", updateAiTargetPreview);
+if (aiTargetSelect) aiTargetSelect.addEventListener("change", () => setAiReferenceMode(aiTargetSelect.value));
+if (aiClearReferenceBtn) aiClearReferenceBtn.addEventListener("click", () => setAiReferenceMode(AI_REFERENCE_MODES.NONE));
+if (aiSpecifiedNoteSearch) aiSpecifiedNoteSearch.addEventListener("input", renderAiSpecifiedNoteList);
+if (aiSummarizeNoteBtn) aiSummarizeNoteBtn.addEventListener("click", () => {
+  openAiAssistant({ mode: AI_REFERENCE_MODES.CURRENT_NOTE, purpose: "summarize", prompt: "このメモを要約してください。" });
+});
+if (aiSendSelectionBtn) aiSendSelectionBtn.addEventListener("click", () => {
+  openAiAssistant({ mode: AI_REFERENCE_MODES.SELECTED_TEXT, purpose: "question", prompt: "選択した文章について" });
+});
 if (aiSendBtn) aiSendBtn.addEventListener("click", () => {
   startAiGeneration().catch((error) => {
     console.error("AI generation failed", error);

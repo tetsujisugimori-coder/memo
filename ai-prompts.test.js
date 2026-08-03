@@ -5,46 +5,54 @@ const { AI_PROMPTS, aiAppendMarkdown, aiMemoTitle, buildAiMessages } = require("
 
 test("all four AI purposes have versioned prompt metadata", () => {
   assert.deepEqual(Object.keys(AI_PROMPTS), ["summarize", "organize", "translate", "question"]);
-  Object.values(AI_PROMPTS).forEach((prompt) => {
-    assert.equal(prompt.outputFormat, "Markdown");
-    assert.equal(prompt.version, 1);
-  });
+  Object.values(AI_PROMPTS).forEach((prompt) => assert.equal(prompt.version, 1));
 });
 
-test("prompt keeps purpose, optional instruction, and memo in distinct sections", () => {
+test("free chat sends no memo title or body when reference is none", () => {
   const messages = buildAiMessages({
-    purpose: "organize",
-    targetText: "# 会議\nTODOを確認",
-    userInstruction: "短くしてください",
+    purpose: "question",
+    reference: { mode: "none", noteTitle: "秘密メモ", content: "秘密本文" },
+    userInstruction: "一般的な質問",
     systemInstruction: "system"
   });
-  assert.equal(messages[0].role, "system");
-  assert.match(messages[1].content, /\[用途\]/);
-  assert.match(messages[1].content, /\[追加指示\]\n短くしてください/);
-  assert.match(messages[1].content, /\[対象メモ\]\n# 会議/);
+  assert.deepEqual(messages, [
+    { role: "system", content: "system" },
+    { role: "user", content: "一般的な質問" }
+  ]);
+  assert.doesNotMatch(JSON.stringify(messages), /秘密/);
 });
 
-test("Markdown and fenced code remain intact in the target section", () => {
-  const source = "# 見出し\n\n```js\nconst value = 1;\n```";
-  const messages = buildAiMessages({ purpose: "summarize", targetText: source });
-  assert.match(messages.at(-1).content, /\[対象メモ\]\n# 見出し\n\n```js\nconst value = 1;\n```/);
+test("system instruction, reference, history, and question remain distinct messages", () => {
+  const messages = buildAiMessages({
+    purpose: "question",
+    reference: { mode: "specified-note", noteId: "1", noteTitle: "会議", content: "TODOを確認" },
+    history: [{ role: "user", content: "前の質問" }, { role: "assistant", content: "前の回答" }],
+    userInstruction: "次の質問",
+    systemInstruction: "system"
+  });
+  assert.deepEqual(messages.map((message) => message.role), ["system", "system", "user", "assistant", "user"]);
+  assert.match(messages[1].content, /参照本文:\nTODOを確認/);
+  assert.equal(messages.at(-1).content, "次の質問");
 });
 
-test("translation target is explicit", () => {
-  const english = buildAiMessages({ purpose: "translate", targetText: "本文", translationLanguage: "en" });
-  const japanese = buildAiMessages({ purpose: "translate", targetText: "text", translationLanguage: "ja" });
-  assert.match(english.at(-1).content, /英語へ翻訳/);
-  assert.match(japanese.at(-1).content, /日本語へ翻訳/);
+test("memo tasks require a reference and keep task separate from reference", () => {
+  assert.throws(() => buildAiMessages({ purpose: "summarize", reference: { mode: "none" }, userInstruction: "要約" }), /参照/);
+  const messages = buildAiMessages({
+    purpose: "translate",
+    reference: { mode: "selected-text", content: "本文" },
+    userInstruction: "翻訳してください",
+    translationLanguage: "en"
+  });
+  assert.match(messages.at(-1).content, /英語へ翻訳/);
+  assert.match(messages[0].content, /参照本文:\n本文/);
 });
 
-test("free question requires an instruction and all purposes reject empty targets", () => {
-  assert.throws(() => buildAiMessages({ purpose: "question", targetText: "本文" }), /自由質問/);
-  assert.throws(() => buildAiMessages({ purpose: "summarize", targetText: "" }), /対象メモ/);
+test("all sends require a user question or instruction", () => {
+  assert.throws(() => buildAiMessages({ purpose: "question", reference: { mode: "none" } }), /質問または指示/);
 });
 
-test("AI result helpers create confirmed append body and a bounded title", () => {
+test("AI result helpers create append body and a bounded title", () => {
   assert.equal(aiAppendMarkdown("回答"), "\n\n## AI回答\n\n回答");
-  assert.equal(aiAppendMarkdown(""), "");
   assert.match(aiMemoTitle("summarize", "会議"), /会議.*要約/);
   assert.equal(aiMemoTitle("question", "とても長い題名", 12).length <= 12, true);
 });

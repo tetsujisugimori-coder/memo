@@ -77,6 +77,8 @@
         <button id="insertTableBtn" type="button" title="カーソル位置へ表ブロックを挿入" aria-label="表ブロックを挿入">表</button>
         <button id="calculatorLinkBtn" type="button" title="選択中の式をCalculator Memoで開く" aria-label="選択中の式をCalculator Memoで開く">計算</button>
         <button id="syntaxGuideBtn" type="button" title="Markdown・数式・計算ブロック・コード・Mermaidの記法を確認" aria-label="記法ガイドを開く" aria-controls="syntaxGuideDialog" aria-expanded="false">記法ガイド</button>
+        <button id="aiSummarizeNoteBtn" type="button">このメモを要約</button>
+        <button id="aiSendSelectionBtn" type="button">選択範囲をAIに送る</button>
       </div>
       <textarea id="editor" placeholder="すぐ書けます。[[足利尊氏]] のように書くとリンクになります。"></textarea>
       <div id="tableBlockEditors" class="table-block-editors" role="region" aria-label="表ブロック編集" hidden></div>
@@ -148,23 +150,26 @@
         <span id="aiConnectionBadge" class="ai-status-badge" data-state="unchecked">未確認</span>
         <span id="aiActiveModel">モデル未選択</span>
       </div>
+      <div id="aiReferenceHeading" class="ai-reference-heading">
+        <strong id="aiChatModeTitle">自由チャット</strong>
+        <span id="aiReferenceBadge" class="ai-reference-badge">メモは参照していません</span>
+        <button id="aiClearReferenceBtn" type="button" hidden>参照を解除</button>
+      </div>
       <label class="ai-field" for="aiTargetSelect">
-        <span>対象範囲</span>
+        <span>参照範囲</span>
         <select id="aiTargetSelect">
-          <option value="memo">メモ全体</option>
-          <option value="selection">選択範囲</option>
+          <option value="none">参照なし</option>
+          <option value="current-note">現在のメモ</option>
+          <option value="selected-text">選択した文章</option>
+          <option value="specified-note">指定したメモ</option>
         </select>
       </label>
       <p id="aiTargetPreview" class="ai-target-preview">対象メモを確認しています。</p>
-      <label class="ai-field" for="aiPurposeSelect">
-        <span>用途</span>
-        <select id="aiPurposeSelect">
-          <option value="summarize">要約</option>
-          <option value="organize">整理</option>
-          <option value="translate">翻訳</option>
-          <option value="question">自由質問</option>
-        </select>
-      </label>
+      <div id="aiSpecifiedNotePicker" class="ai-specified-note-picker" hidden>
+        <label class="ai-field" for="aiSpecifiedNoteSearch"><span>メモタイトルで検索</span><input id="aiSpecifiedNoteSearch" type="search" autocomplete="off"></label>
+        <div id="aiSpecifiedNoteList" class="ai-specified-note-list" role="listbox" aria-label="参照するメモ"></div>
+      </div>
+      <select id="aiPurposeSelect" hidden aria-label="AIタスク"><option value="question">自由質問</option><option value="summarize">要約</option><option value="organize">整理</option><option value="translate">翻訳</option></select>
       <label id="aiTranslationRow" class="ai-field" for="aiTranslationSelect" hidden>
         <span>翻訳先</span>
         <select id="aiTranslationSelect">
@@ -172,9 +177,12 @@
           <option value="ja">日本語</option>
         </select>
       </label>
+      <section class="ai-chat-section" aria-label="チャット履歴">
+        <div id="aiChatHistory" class="ai-chat-history"><p class="ai-chat-empty">質問を入力して会話を始められます。</p></div>
+      </section>
       <label class="ai-field" for="aiInstructionInput">
-        <span>追加指示・自由質問</span>
-        <textarea id="aiInstructionInput" rows="4" placeholder="必要な条件や質問を入力"></textarea>
+        <span>質問・指示</span>
+        <textarea id="aiInstructionInput" rows="4" placeholder="質問や依頼を入力"></textarea>
       </label>
       <div class="ai-request-actions">
         <button id="aiSendBtn" type="button">送信</button>
@@ -186,7 +194,7 @@
         <pre id="aiAnswer" tabindex="0">回答はここに表示されます。</pre>
         <div class="ai-answer-actions">
           <button id="aiCopyBtn" type="button" disabled>コピー</button>
-          <button id="aiAppendBtn" type="button" disabled>現在のメモへ追記</button>
+          <button id="aiAppendBtn" type="button" disabled>現在のメモへ挿入</button>
           <button id="aiSaveNewBtn" type="button" disabled>新規メモとして保存</button>
         </div>
       </section>
@@ -537,9 +545,10 @@
   <script src="calculation-engine.js?v=0.4.0-1"></script>
   <script src="calculator-link.js?v=0.4.0-1"></script>
   <script src="font-settings.js?v=0.4.0-2"></script>
-  <script src="ai-provider.js?v=0.4.0-1"></script>
+  <script src="ai-provider.js?v=0.4.0-2"></script>
   <script src="ollama-adapter.js?v=0.4.0-1"></script>
-  <script src="ai-prompts.js?v=0.4.0-1"></script>
-  <script src="app.js?v=0.4.0-31"></script>
+  <script src="ai-context.js?v=0.4.0-1"></script>
+  <script src="ai-prompts.js?v=0.4.0-2"></script>
+  <script src="app.js?v=0.4.0-32"></script>
 </body>
 </html>

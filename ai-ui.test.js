@@ -18,17 +18,36 @@ test("local AI scripts and disabled-by-default settings are connected", () => {
 test("robot is an accessible button and controls the single AI panel", () => {
   assert.match(html, /<button id="aiRobotBtn"[^>]+aria-controls="aiPanel"[^>]+aria-expanded="false"[^>]+aria-label=/);
   assert.match(html, /<aside id="aiPanel"[^>]+aria-hidden="true" inert>/);
-  assert.match(app, /aiRobotBtn\.addEventListener\("click", \(\) => setAiPanelOpen/);
+  assert.match(app, /aiRobotBtn\.addEventListener\("click"[\s\S]{0,160}openAiAssistant\(\)/);
   assert.match(app, /closeAiPanelBtn\.addEventListener\("click", \(\) => setAiPanelOpen\(false\)\)/);
 });
 
 test("AI panel provides required purposes, controls, and explicit result actions", () => {
-  ["要約", "整理", "翻訳", "自由質問", "送信", "停止", "コピー", "現在のメモへ追記", "新規メモとして保存"].forEach((label) => {
+  ["要約", "整理", "翻訳", "自由質問", "送信", "停止", "コピー", "現在のメモへ挿入", "新規メモとして保存"].forEach((label) => {
     assert.match(html, new RegExp(label));
   });
-  assert.match(app, /confirm\(`AI回答を/);
-  assert.match(app, /currentId !== aiAssistantState\.requestNoteId/);
+  assert.match(app, /prompt\(`AI回答を/);
+  assert.match(app, /1: カーソル位置/);
+  assert.match(app, /2: 本文末尾/);
   assert.doesNotMatch(app, /event\.type === "text"[\s\S]{0,200}editor\.value/);
+});
+
+test("single chat panel supports explicit reference modes and normal launch resets to none", () => {
+  ["参照なし", "現在のメモ", "選択した文章", "指定したメモ", "参照を解除"].forEach((label) => {
+    assert.match(html, new RegExp(label));
+  });
+  assert.equal((html.match(/id="aiPanel"/g) || []).length, 1);
+  assert.match(app, /openAiAssistant\(\)/);
+  assert.match(app, /referenceMode = AI_REFERENCE_MODES\.NONE/);
+  assert.match(app, /selectedTextSnapshot/);
+  assert.match(app, /activeNotes\(\).*\.filter/);
+});
+
+test("chat history stores the send-time reference snapshot", () => {
+  assert.match(app, /aiReferenceSnapshot\(reference\)/);
+  assert.match(app, /reference: referenceSnapshot/);
+  assert.match(app, /sentAt: Date\.now\(\)/);
+  assert.match(app, /aiReferenceLabel\(message\.reference\)/);
 });
 
 test("existing memo list is placed at the furthest right without duplication", () => {
@@ -50,7 +69,7 @@ test("closing the panel does not stop generation while page exit does", () => {
   const panelFunction = app.match(/function setAiPanelOpen[\s\S]*?\n}\n\nfunction aiStatusText/)?.[0] || "";
   assert.doesNotMatch(panelFunction, /abort\(/);
   assert.match(app, /window\.addEventListener\("pagehide"[\s\S]*?stopAiGeneration\(\)/);
-  assert.match(app, /requestNoteId:\s*note\.id/);
+  assert.match(app, /requestNoteId:\s*note\?\.id/);
 });
 
 test("AI settings keep an unsaved draft separate from runtime settings", () => {
@@ -70,7 +89,7 @@ test("connection checks are latest-request-wins and invalid draft models do not 
 });
 
 test("saving resolves verified draft state before clearing model results", () => {
-  const saveFunction = app.match(/function saveAiSettings\(\)[\s\S]*?\n}\n\nfunction renderAiSettings/)?.[0] || "";
+  const saveFunction = app.match(/function saveAiSettings\(\)[\s\S]*?\r?\n}\r?\n\r?\nfunction renderAiSettings/)?.[0] || "";
   assert.match(saveFunction, /const verifiedEndpoint = aiModelsEndpoint/);
   assert.match(saveFunction, /const verifiedModels = \[\.\.\.aiModels\]/);
   assert.match(saveFunction, /resolveSavedAiState\(/);
