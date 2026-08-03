@@ -583,7 +583,14 @@ let fontSettingsDraft = null;
 let pendingFontSelection = null;
 let fontSelectionMessage = "";
 let aiSettings = { ...DEFAULT_AI_SETTINGS };
+let aiSettingsDraft = { ...DEFAULT_AI_SETTINGS };
 let aiModels = [];
+let aiModelsEndpoint = "";
+let aiDraftConnection = AI_CONNECTION_STATES.UNCHECKED;
+let aiDraftConnectionMessage = "";
+let aiConnectionRequestId = 0;
+let aiConnectionAbortController = null;
+let aiSettingsSessionId = 0;
 let aiAbortController = null;
 let aiAssistantState = {
   panelOpen: false,
@@ -4364,6 +4371,11 @@ function restoreAiSettings() {
     console.warn("AI settings restore failed", error);
     aiSettings = normalizeAiSettings(null);
   }
+  aiSettingsDraft = { ...aiSettings };
+  aiModels = [];
+  aiModelsEndpoint = "";
+  aiDraftConnection = AI_CONNECTION_STATES.UNCHECKED;
+  aiDraftConnectionMessage = "";
   aiAssistantState.generation = aiSettings.enabled
     ? AI_GENERATION_STATES.DISCONNECTED
     : AI_GENERATION_STATES.DISABLED;
@@ -4380,18 +4392,22 @@ function readAiSettingsForm() {
 }
 
 function saveAiSettings() {
+  aiSettingsDraft = readAiSettingsForm();
   const previousBaseUrl = aiSettings.baseUrl;
-  aiSettings = readAiSettingsForm();
+  aiSettings = { ...aiSettingsDraft };
   if (aiSettings.baseUrl !== previousBaseUrl) {
     aiModels = [];
+    aiModelsEndpoint = "";
     aiAssistantState.connection = AI_CONNECTION_STATES.UNCHECKED;
   }
   try {
     localStorage.setItem(AI_SETTINGS_STORAGE_KEY, JSON.stringify(aiSettings));
-    aiSettingsConnectionStatus.textContent = "AI設定を保存しました。";
+    aiDraftConnectionMessage = "AI設定を保存しました。";
+    aiSettingsConnectionStatus.textContent = aiDraftConnectionMessage;
   } catch (error) {
     console.warn("AI settings save failed", error);
-    aiSettingsConnectionStatus.textContent = "設定を保存できませんでした。このタブでは現在の設定を使用します。";
+    aiDraftConnectionMessage = "設定を保存できませんでした。このタブでは現在の設定を使用します。";
+    aiSettingsConnectionStatus.textContent = aiDraftConnectionMessage;
   }
   if (!aiSettings.enabled) {
     aiAssistantState.requestId += 1;
@@ -4405,21 +4421,30 @@ function saveAiSettings() {
   } else {
     aiAssistantState.generation = AI_GENERATION_STATES.DISCONNECTED;
   }
+  aiDraftConnection = aiModelsEndpoint === aiSettings.baseUrl
+    ? aiDraftConnection
+    : AI_CONNECTION_STATES.UNCHECKED;
+  if (aiDraftConnection === AI_CONNECTION_STATES.CONNECTED && aiSettings.enabled && aiSettings.selectedModel) {
+    aiAssistantState.connection = AI_CONNECTION_STATES.CONNECTED;
+  }
   renderAiSettings();
   renderAiUi();
 }
 
 function renderAiSettings() {
-  aiEnabledInput.checked = aiSettings.enabled;
-  aiBaseUrlInput.value = aiSettings.baseUrl;
-  aiTimeoutInput.value = String(Math.round(aiSettings.timeoutMs / 1000));
-  aiSystemInstructionInput.value = aiSettings.systemInstruction;
+  aiEnabledInput.checked = aiSettingsDraft.enabled;
+  aiBaseUrlInput.value = aiSettingsDraft.baseUrl;
+  aiTimeoutInput.value = String(Math.round(aiSettingsDraft.timeoutMs / 1000));
+  aiSystemInstructionInput.value = aiSettingsDraft.systemInstruction;
   aiExternalUrlWarning.hidden = isLoopbackBaseUrl(aiBaseUrlInput.value);
   renderAiModelOptions();
+  aiCheckConnectionBtn.disabled = aiDraftConnection === AI_CONNECTION_STATES.CHECKING;
+  aiRefreshModelsBtn.disabled = aiDraftConnection === AI_CONNECTION_STATES.CHECKING;
+  if (aiDraftConnectionMessage) aiSettingsConnectionStatus.textContent = aiDraftConnectionMessage;
 }
 
 function renderAiModelOptions() {
-  const selected = aiSettings.selectedModel;
+  const selected = aiSettingsDraft.selectedModel;
   const groups = groupModels(aiModels);
   aiModelSelect.innerHTML = "";
   const placeholder = document.createElement("option");
@@ -4450,36 +4475,59 @@ function renderAiModelOptions() {
 }
 
 async function checkAiConnection({ useForm = true } = {}) {
-  const candidate = useForm ? readAiSettingsForm() : aiSettings;
-  aiAssistantState.connection = AI_CONNECTION_STATES.CHECKING;
-  aiSettingsConnectionStatus.textContent = "Ollamaへ接続しています…";
-  renderAiUi();
+  const sessionId = aiSettingsSessionId;
+  const requestId = ++aiConnectionRequestId;
+  aiConnectionAbortController?.abort();
+  const abortController = new AbortController();
+  aiConnectionAbortController = abortController;
+  const candidate = normalizeAiSettings(useForm ? readAiSettingsForm() : aiSettingsDraft);
+  aiSettingsDraft = candidate;
+  aiDraftConnection = AI_CONNECTION_STATES.CHECKING;
+  aiDraftConnectionMessage = "Ollamaへ接続しています…";
+  renderAiSettings();
   try {
     const adapter = new OllamaAdapter(candidate);
-    const result = await adapter.checkConnection();
+    const result = await adapter.checkConnection({ signal: abortController.signal });
+    if (requestId !== aiConnectionRequestId || sessionId !== aiSettingsSessionId) return;
     aiModels = result.models;
-    aiAssistantState.connection = result.hasModels ? AI_CONNECTION_STATES.CONNECTED : AI_CONNECTION_STATES.NO_MODELS;
-    aiSettingsConnectionStatus.textContent = result.hasModels
+    aiModelsEndpoint = candidate.baseUrl;
+    aiDraftConnection = result.hasModels ? AI_CONNECTION_STATES.CONNECTED : AI_CONNECTION_STATES.NO_MODELS;
+    aiDraftConnectionMessage = result.hasModels
       ? `接続しました。${result.models.length}モデルを利用できます。`
       : "Ollamaへ接続しましたが、利用できるモデルがありません。";
     if (candidate.selectedModel && !aiModels.some((model) => model.id === candidate.selectedModel)) {
-      candidate.selectedModel = "";
+      aiSettingsDraft = { ...candidate, selectedModel: "" };
     }
-    aiSettings = candidate;
-    aiAssistantState.generation = !candidate.enabled
-      ? AI_GENERATION_STATES.DISABLED
-      : candidate.selectedModel && result.hasModels
-        ? AI_GENERATION_STATES.IDLE
-        : AI_GENERATION_STATES.MODEL_REQUIRED;
-    renderAiModelOptions();
+    renderAiSettings();
   } catch (error) {
+    if (requestId !== aiConnectionRequestId || sessionId !== aiSettingsSessionId) return;
     aiModels = [];
-    aiAssistantState.connection = AI_CONNECTION_STATES.UNAVAILABLE;
-    aiAssistantState.generation = candidate.enabled ? AI_GENERATION_STATES.DISCONNECTED : AI_GENERATION_STATES.DISABLED;
-    aiSettingsConnectionStatus.textContent = friendlyAiError(error);
-    renderAiModelOptions();
+    aiModelsEndpoint = candidate.baseUrl;
+    aiDraftConnection = AI_CONNECTION_STATES.UNAVAILABLE;
+    aiDraftConnectionMessage = friendlyAiError(error);
+    renderAiSettings();
+  } finally {
+    if (requestId === aiConnectionRequestId) {
+      aiConnectionAbortController = null;
+      if (sessionId === aiSettingsSessionId && aiDraftConnection === AI_CONNECTION_STATES.CHECKING) {
+        aiDraftConnection = AI_CONNECTION_STATES.UNAVAILABLE;
+        aiDraftConnectionMessage = "接続確認を完了できませんでした。";
+        renderAiSettings();
+      }
+    }
   }
-  renderAiUi();
+}
+
+function beginAiSettingsSession() {
+  aiSettingsSessionId += 1;
+  aiConnectionRequestId += 1;
+  aiConnectionAbortController?.abort();
+  aiConnectionAbortController = null;
+  aiSettingsDraft = { ...aiSettings };
+  aiModels = [];
+  aiModelsEndpoint = "";
+  aiDraftConnection = AI_CONNECTION_STATES.UNCHECKED;
+  aiDraftConnectionMessage = "";
 }
 
 function setAiPanelOpen(open, { restoreFocus = true } = {}) {
@@ -5076,6 +5124,7 @@ function todayStampDashed() {
 async function openSettingsDialog() {
   restoreTheme();
   prepareFontSettingsDialog();
+  beginAiSettingsSession();
   renderAiSettings();
   renderAiUi();
   await renderStorageStatus();
@@ -6814,7 +6863,13 @@ settingsBtn.addEventListener("click", () => {
     alert(`設定を開けませんでした: ${error.message}`);
   });
 });
-closeSettingsBtn.addEventListener("click", () => settingsDialog.close());
+closeSettingsBtn.addEventListener("click", () => {
+  aiSettingsSessionId += 1;
+  aiConnectionRequestId += 1;
+  aiConnectionAbortController?.abort();
+  aiConnectionAbortController = null;
+  settingsDialog.close();
+});
 if (themeSelect) {
   themeSelect.addEventListener("change", () => saveTheme(themeSelect.value));
 }
@@ -6866,12 +6921,20 @@ if (aiRobotBtn) aiRobotBtn.addEventListener("click", () => setAiPanelOpen(!aiAss
 if (closeAiPanelBtn) closeAiPanelBtn.addEventListener("click", () => setAiPanelOpen(false));
 if (aiBackdrop) aiBackdrop.addEventListener("click", () => setAiPanelOpen(false));
 if (aiEnabledInput) aiEnabledInput.addEventListener("change", () => {
-  const enabled = aiEnabledInput.checked;
-  aiAssistantState.generation = enabled ? AI_GENERATION_STATES.DISCONNECTED : AI_GENERATION_STATES.DISABLED;
-  renderAiUi();
+  aiSettingsDraft.enabled = aiEnabledInput.checked;
 });
 if (aiBaseUrlInput) aiBaseUrlInput.addEventListener("input", () => {
   aiExternalUrlWarning.hidden = isLoopbackBaseUrl(aiBaseUrlInput.value);
+  aiSettingsDraft.baseUrl = aiBaseUrlInput.value;
+});
+if (aiModelSelect) aiModelSelect.addEventListener("change", () => {
+  aiSettingsDraft.selectedModel = aiModelSelect.value;
+});
+if (aiTimeoutInput) aiTimeoutInput.addEventListener("input", () => {
+  aiSettingsDraft.timeoutMs = Number(aiTimeoutInput.value) * 1000;
+});
+if (aiSystemInstructionInput) aiSystemInstructionInput.addEventListener("input", () => {
+  aiSettingsDraft.systemInstruction = aiSystemInstructionInput.value;
 });
 if (aiCheckConnectionBtn) aiCheckConnectionBtn.addEventListener("click", () => checkAiConnection());
 if (aiRefreshModelsBtn) aiRefreshModelsBtn.addEventListener("click", () => checkAiConnection());

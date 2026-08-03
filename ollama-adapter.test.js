@@ -1,7 +1,7 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 
-const { OllamaAdapter } = require("./ollama-adapter");
+const { OllamaAdapter, combinedAbortSignal } = require("./ollama-adapter");
 
 function jsonResponse(payload, options = {}) {
   return {
@@ -11,7 +11,7 @@ function jsonResponse(payload, options = {}) {
   };
 }
 
-function streamResponse(chunks) {
+function streamResponse(chunks, delayMs = 0) {
   let index = 0;
   const encoder = new TextEncoder();
   return {
@@ -22,6 +22,7 @@ function streamResponse(chunks) {
         return {
           async read() {
             if (index >= chunks.length) return { done: true, value: undefined };
+            if (delayMs) await new Promise((resolve) => setTimeout(resolve, delayMs));
             return { done: false, value: encoder.encode(chunks[index++]) };
           }
         };
@@ -113,4 +114,56 @@ test("external abort stops generation", async () => {
   })();
   controller.abort();
   await assert.rejects(generation, (error) => error.code === "aborted");
+});
+
+test("stream activity resets the inactivity timeout", async () => {
+  const adapter = new OllamaAdapter({
+    timeoutMs: 15,
+    fetchImpl: async () => streamResponse([
+      '{"message":{"content":"a"}}\n',
+      '{"message":{"content":"b"}}\n',
+      '{"done":true}\n'
+    ], 10)
+  });
+  const events = [];
+  for await (const event of adapter.generate({ model: "qwen", messages: [] })) events.push(event);
+  assert.equal(events.filter((event) => event.type === "text").map((event) => event.content).join(""), "ab");
+});
+
+test("stream reader is cancelled when generation is stopped early", async () => {
+  let cancelled = false;
+  const encoder = new TextEncoder();
+  const adapter = new OllamaAdapter({
+    fetchImpl: async () => ({ ok: true, status: 200, body: { getReader: () => ({
+      read: async () => ({ done: false, value: encoder.encode('{"message":{"content":"a"}}\n') }),
+      cancel: async () => { cancelled = true; }
+    }) } })
+  });
+  const generation = adapter.generate({ model: "qwen", messages: [] });
+  await generation.next();
+  await generation.return();
+  assert.equal(cancelled, true);
+});
+
+test("inactivity watchdog can be reset and cleaned up", () => {
+  const originalSetTimeout = global.setTimeout;
+  const originalClearTimeout = global.clearTimeout;
+  const timers = new Map();
+  let nextId = 0;
+  global.setTimeout = (callback) => { const id = ++nextId; timers.set(id, callback); return id; };
+  global.clearTimeout = (id) => timers.delete(id);
+  try {
+    const state = combinedAbortSignal(null, 100);
+    assert.equal(timers.size, 1);
+    state.markActivity();
+    assert.equal(timers.size, 1);
+    const callback = [...timers.values()][0];
+    callback();
+    assert.equal(state.didTimeout(), true);
+    state.cleanup();
+    assert.equal(timers.size, 0);
+  } finally {
+    global.setTimeout = originalSetTimeout;
+    global.clearTimeout = originalClearTimeout;
+  }
 });

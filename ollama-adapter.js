@@ -9,10 +9,17 @@
   function combinedAbortSignal(externalSignal, timeoutMs) {
     const controller = new AbortController();
     let timedOut = false;
-    const timeoutId = setTimeout(() => {
-      timedOut = true;
-      controller.abort();
-    }, timeoutMs);
+    let timeoutId = null;
+    let cleaned = false;
+    const scheduleInactivityTimeout = () => {
+      if (cleaned) return;
+      if (timeoutId !== null) clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => {
+        timedOut = true;
+        controller.abort();
+      }, timeoutMs);
+    };
+    scheduleInactivityTimeout();
     const abortFromExternal = () => controller.abort();
     if (externalSignal) {
       if (externalSignal.aborted) controller.abort();
@@ -21,8 +28,11 @@
     return {
       signal: controller.signal,
       didTimeout: () => timedOut,
+      markActivity: scheduleInactivityTimeout,
+      resetTimeout: scheduleInactivityTimeout,
       cleanup() {
-        clearTimeout(timeoutId);
+        cleaned = true;
+        if (timeoutId !== null) clearTimeout(timeoutId);
         externalSignal?.removeEventListener("abort", abortFromExternal);
       }
     };
@@ -63,7 +73,9 @@
       try {
         const response = await this.fetchImpl(`${this.baseUrl}/api/tags`, { method: "GET", signal: signalState.signal });
         if (!response.ok) throw await responseError(response);
+        signalState.markActivity();
         const payload = await response.json();
+        signalState.markActivity();
         if (!payload || !Array.isArray(payload.models)) throw new AiProviderError("invalid_response", "モデル一覧の形式が不正です。");
         return normalizeModels(payload.models);
       } catch (error) {
@@ -83,6 +95,8 @@
       const signalState = combinedAbortSignal(request.signal, request.timeoutMs || this.timeoutMs);
       const parser = createNdjsonParser();
       const decoder = new TextDecoder();
+      let reader = null;
+      let readerDone = false;
       try {
         const response = await this.fetchImpl(`${this.baseUrl}/api/chat`, {
           method: "POST",
@@ -99,11 +113,13 @@
         if (!response.body || typeof response.body.getReader !== "function") {
           throw new AiProviderError("invalid_response", "ストリーミング応答を利用できません。");
         }
-        const reader = response.body.getReader();
+        reader = response.body.getReader();
         let done = false;
         while (!done) {
           const result = await reader.read();
           done = result.done;
+          if (!done) signalState.markActivity();
+          else readerDone = true;
           const events = parser.push(decoder.decode(result.value || new Uint8Array(), { stream: !done }));
           for (const event of events) {
             if (event.error) throw new AiProviderError(/model.*not found/i.test(event.error) ? "model_missing" : "provider", "Ollamaがエラーを返しました。");
@@ -121,6 +137,9 @@
       } catch (error) {
         throw providerError(error, signalState);
       } finally {
+        if (reader && !readerDone) {
+          try { await reader.cancel(); } catch (_error) { /* cleanup best effort */ }
+        }
         signalState.cleanup();
       }
     }
