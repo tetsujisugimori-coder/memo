@@ -19,7 +19,7 @@ test("local AI scripts and disabled-by-default settings are connected", () => {
 test("robot is an accessible button and controls the single AI panel", () => {
   assert.match(html, /<button id="aiRobotBtn"[^>]+aria-controls="aiPanel"[^>]+aria-expanded="false"[^>]+aria-label=/);
   assert.match(html, /<aside id="aiPanel"[^>]+aria-hidden="true" inert>/);
-  assert.match(app, /aiRobotBtn\.addEventListener\("click"[\s\S]{0,160}openAiAssistant\(\)/);
+  assert.match(app, /aiRobotBtn\.addEventListener\("click"[\s\S]{0,320}openAiAssistant\(\)/);
   assert.match(app, /closeAiPanelBtn\.addEventListener\("click", \(\) => setAiPanelOpen\(false\)\)/);
 });
 
@@ -53,13 +53,70 @@ test("purpose and reference remain independently selectable, including shortcut 
 });
 
 test("normal robot launch starts a fresh free chat while shortcuts preserve launch parameters", () => {
-  assert.match(app, /setAiPanelOpen\(true, \{ launchMode: options\.mode \? mode : null \}\)/);
-  const reset = app.match(/function resetAiAssistantConversation\(\)[\s\S]*?\n}\n\nfunction setAiPanelOpen/)?.[0] || "";
+  assert.match(app, /setAiPanelOpen\(true, \{ launchMode: resume \? "resume" : options\.mode \? mode : null \}\)/);
+  const reset = app.match(/function resetAiAssistantConversation\(\)[\s\S]*?\r?\n}\r?\n\r?\nfunction setAiPanelOpen/)?.[0] || "";
   ["referenceMode: AI_REFERENCE_MODES.NONE", "reference: emptyAiReference\(\)", "specifiedNoteId: null", "collectionId: null", "selectedTextSnapshot: \"\"", "history: \[\]", "answer: \"\"", "error: \"\"", "requestPurpose: \"question\"", "aiInstructionInput.value = \"\""].forEach((fragment) => {
     assert.match(reset, new RegExp(fragment.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
   });
   assert.match(app, /openAiAssistant\(\{ mode: AI_REFERENCE_MODES\.CURRENT_NOTE, purpose: "summarize", prompt:/);
   assert.match(app, /openAiAssistant\(\{ mode: AI_REFERENCE_MODES\.SELECTED_TEXT, purpose: "question", prompt:/);
+});
+
+test("右パネルを閉じてもAIタブの会話を再開でき、AI状態だけを同期する", () => {
+  const contextOpen = app.match(/function setContextPanelOpen\([\s\S]*?\n}\n\nfunction setContextPanelTab/)?.[0] || "";
+  assert.match(contextOpen, /if \(aiAssistantState\.panelOpen\) setAiAssistantPanelActive\(false\);/);
+  assert.match(contextOpen, /contextPanelTab === "ai" \? aiRobotBtn/);
+  assert.match(app, /else if \(!contextPanelOpen && contextPanelTab === "ai"\) openAiAssistant\(\{ resume: true \}\);/);
+  assert.match(app, /const resume = options\.resume === true;/);
+});
+
+test("right context panel contains one active view for collection, AI, and memo list", () => {
+  assert.match(html, /id="contextPanel" class="context-panel"/);
+  assert.match(html, /id="contextCollectionTab"[^>]+aria-selected="true"/);
+  assert.match(html, /id="contextAiTab"/);
+  assert.match(html, /id="contextMemoListTab"[^>]+aria-controls="memoSidebar"/);
+  assert.match(html, />メモ一覧\s*<span id="memoListCount"/);
+  assert.doesNotMatch(html, /newMemosPanel|contextNewMemosTab/);
+  assert.match(app, /let contextPanelTab = "collection"/);
+  assert.match(app, /contextPanel\.append\(collectionExplorer, aiPanel, memoSidebar\)/);
+  assert.match(app, /\["memo-list", memoSidebar, contextMemoListTab\]/);
+  assert.match(app, /setContextPanelTab\("collection"/);
+  assert.match(app, /panel\.hidden = !selected/);
+  assert.match(css, /\.context-panel\s*\{/);
+  assert.match(css, /grid-template-columns:\s*minmax\(0, 1fr\) 340px/);
+  assert.match(css, /body\.context-panel-closed\s*\{\s*grid-template-columns:\s*minmax\(0, 1fr\)/s);
+});
+
+test("AI起動は狭幅の右コンテキストパネルを閉じない", () => {
+  const panelStart = app.indexOf("function setAiPanelOpen");
+  const panelEnd = app.indexOf("function aiStatusText");
+  const panelFunction = panelStart >= 0 && panelEnd > panelStart ? app.slice(panelStart, panelEnd) : "";
+  assert.match(panelFunction, /if \(mobileCardOpen\) setCardPaneOpen\(false, \{ restoreFocus: false \}\);/);
+  assert.doesNotMatch(panelFunction, /closeLayoutOverlays\(/);
+});
+
+test("memo list is moved rather than duplicated and keeps search and selection behavior", () => {
+  assert.equal((html.match(/id="memoSidebar"/g) || []).length, 1);
+  assert.match(html, /id="searchInput" type="search"/);
+  assert.match(app, /function renderMemoListPanel\(\)/);
+  assert.match(app, /renderMemoListPanel\(\)/);
+  assert.match(app, /searchInput\.value\.trim\(\)\.toLowerCase\(\)/);
+  assert.match(app, /\.sort\(\(a, b\) => Number\(b\.createdAt \|\| 0\) - Number\(a\.createdAt \|\| 0\)\)/);
+  assert.match(app, /openNote\(note\.id\);\s*if \(layoutMode !== "wide"\) \{\s*setContextPanelOpen\(false, \{ restoreFocus: false, explicit: false \}\);/s);
+  assert.doesNotMatch(app, /function renderNewMemosPanel/);
+});
+
+test("closing collection context actually closes the panel", () => {
+  const toggle = app.match(/function toggleCollectionExplorer\(force\)[\s\S]*?\r?\n}\r?\n\r?\nfunction renderCollectionExplorer/)?.[0] || "";
+  assert.match(toggle, /setContextPanelOpen\(false/);
+  assert.doesNotMatch(toggle, /else\s*\{[\s\S]*setContextPanelTab\("collection"/);
+});
+
+test("memo selection only auto-closes the narrow drawer and wide selection keeps context open", () => {
+  assert.match(app, /if \(layoutMode !== "wide"\) \{\s*setContextPanelOpen\(false, \{ restoreFocus: false, explicit: false \}\);/s);
+  assert.match(app, /let contextPanelUserClosed = false/);
+  assert.match(app, /if \(layoutMode === "wide" && !contextPanelOpen && !contextPanelUserClosed\)/);
+  assert.match(app, /setContextPanelOpen\(true, \{ restoreFocus: false, explicit: false \}\)/);
 });
 
 test("single chat panel supports explicit reference modes and normal launch resets to none", () => {

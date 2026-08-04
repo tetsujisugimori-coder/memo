@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Memo Nexus</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css">
-  <link rel="stylesheet" href="style.css?v=0.4.0-25">
+  <link rel="stylesheet" href="style.css?v=0.4.0-26">
 </head>
 <body>
   <aside id="memoSidebar" class="sidebar" aria-label="メモ一覧" aria-hidden="false">
@@ -46,12 +46,12 @@
   <main class="workspace">
     <header class="app-header">
       <div class="layout-primary-actions">
-        <button id="memoPaneBtn" class="layout-pane-button" type="button" title="メモ一覧を開く" aria-label="メモ一覧を開く" aria-controls="memoSidebar" aria-expanded="false">☰ <span>メモ一覧</span></button>
+        <button id="memoPaneBtn" class="layout-pane-button" type="button" title="メモ一覧を表示" aria-label="メモ一覧を表示" aria-controls="memoSidebar" aria-expanded="false">☰ <span>メモ一覧</span></button>
         <button id="cardPaneBtn" class="layout-pane-button" type="button" title="カード表示を収納する" aria-label="カード表示を収納する" aria-controls="previewCard" aria-expanded="true">▤ <span id="cardPaneButtonLabel">カードを閉じる</span></button>
       </div>
       <div class="toolbar" aria-label="主要操作">
         <button id="newBtn" title="新規メモ">+</button>
-        <button id="collectionsBtn" title="コレクションを開く" aria-controls="collectionExplorer" aria-expanded="false">▱ コレクション</button>
+        <button id="collectionsBtn" title="コレクションを表示" aria-controls="contextPanel" aria-expanded="true">▱ コレクション</button>
         <button id="todayBtn" title="今日メモ">Today</button>
         <button id="undoBtn" class="undo-button" title="元に戻す" disabled>Undo</button>
         <button id="backupBtn" title="Markdown ZIP出力">ZIP</button>
@@ -107,6 +107,15 @@
       </section>
     </section>
   </main>
+
+  <aside id="contextPanel" class="context-panel" aria-label="右側コンテキストパネル">
+    <div class="context-panel-tabs" role="tablist" aria-label="右側パネル切り替え">
+      <button id="contextCollectionTab" class="context-panel-tab" type="button" role="tab" aria-controls="collectionExplorer" aria-selected="true">コレクション</button>
+      <button id="contextAiTab" class="context-panel-tab" type="button" role="tab" aria-controls="aiPanel" aria-selected="false">AI</button>
+      <button id="contextMemoListTab" class="context-panel-tab" type="button" role="tab" aria-controls="memoSidebar" aria-selected="false">メモ一覧 <span id="memoListCount" class="context-panel-tab-count" hidden>0</span></button>
+      <button id="closeContextPanelBtn" class="context-panel-close" type="button" title="右側パネルを閉じる" aria-label="右側パネルを閉じる">×</button>
+    </div>
+  </aside>
 
   <button id="layoutBackdrop" class="layout-backdrop" type="button" tabindex="-1" aria-label="開いているパネルを閉じる" hidden></button>
 
@@ -564,6 +573,6 @@
   <script src="ai-context.js?v=0.4.0-1"></script>
   <script src="ai-reference-selection.js?v=0.4.0-1"></script>
   <script src="ai-prompts.js?v=0.4.0-2"></script>
-  <script src="app.js?v=0.4.0-33"></script>
+  <script src="app.js?v=0.4.0-36"></script>
 </body>
 </html>

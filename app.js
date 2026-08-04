@@ -367,6 +367,12 @@ const collectionsBtn = $("collectionsBtn");
 const collectionExplorer = $("collectionExplorer");
 const collectionBackdrop = $("collectionBackdrop");
 const closeCollectionsBtn = $("closeCollectionsBtn");
+const contextPanel = $("contextPanel");
+const contextCollectionTab = $("contextCollectionTab");
+const contextAiTab = $("contextAiTab");
+const contextMemoListTab = $("contextMemoListTab");
+const closeContextPanelBtn = $("closeContextPanelBtn");
+const memoListCount = $("memoListCount");
 const memoSidebar = $("memoSidebar");
 const memoPaneBtn = $("memoPaneBtn");
 const closeMemoPaneBtn = $("closeMemoPaneBtn");
@@ -601,9 +607,11 @@ let attachmentObjectUrls = new Map();
 let pdfObjectUrls = new Map();
 let pdfObjectUrlTimers = new Map();
 let layoutMode = "wide";
-let memoPaneOpen = false;
 let mobileCardOpen = false;
 let compactCardVisible = true;
+let contextPanelTab = "collection";
+let contextPanelOpen = true;
+let contextPanelUserClosed = false;
 let globalFontSettings = { ...DEFAULT_FONT_SETTINGS };
 let fontSettingsDraft = null;
 let pendingFontSelection = null;
@@ -638,7 +646,14 @@ let aiAssistantState = {
 const enqueueAttachmentAddition = createKeyedSerialQueue();
 const pendingAttachmentAdditions = new Map();
 
+function mountContextPanel() {
+  if (!contextPanel) return;
+  contextPanel.append(collectionExplorer, aiPanel, memoSidebar);
+  setContextPanelTab("collection", { focus: false });
+}
+
 // ページ読み込み後、すぐにアプリを起動します。
+mountContextPanel();
 init();
 
 // 起動処理。DBを開き、初期メモを用意し、今日メモを開いて即入力できる状態にします。
@@ -840,27 +855,97 @@ function syncLayoutMode(force = false, width = document.body.clientWidth) {
   if (!force && nextMode === layoutMode) return;
 
   layoutMode = nextMode;
-  memoPaneOpen = false;
   mobileCardOpen = false;
   compactCardVisible = true;
   document.body.dataset.layoutMode = layoutMode;
-  document.body.classList.remove("memo-pane-open", "mobile-card-open", "compact-card-hidden");
-  if (document.body.classList.contains("collections-open")) toggleCollectionExplorer(false);
+  document.body.classList.remove("mobile-card-open", "compact-card-hidden");
   updateResponsiveLayoutUi();
-  if (aiAssistantState.panelOpen) aiBackdrop.hidden = layoutMode === "wide";
+  if (layoutMode === "wide" && !contextPanelOpen && !contextPanelUserClosed) {
+    setContextPanelOpen(true, { restoreFocus: false, explicit: false });
+    setAiAssistantPanelActive(contextPanelTab === "ai");
+  }
 }
 
-function setMemoPaneOpen(open, { restoreFocus = true } = {}) {
-  if (layoutMode === "wide") open = false;
-  memoPaneOpen = Boolean(open);
-  if (memoPaneOpen) {
-    mobileCardOpen = false;
-    if (document.body.classList.contains("collections-open")) toggleCollectionExplorer(false);
-    setRelatedDrawerOpen(false, { restoreFocus: false });
+function setContextPanelOpen(open, { restoreFocus = true, explicit = true } = {}) {
+  let focusTarget = null;
+  contextPanelOpen = Boolean(open);
+  if (contextPanelOpen) contextPanelUserClosed = false;
+  else if (explicit) contextPanelUserClosed = true;
+  contextPanel?.classList.toggle("context-panel-closed", !contextPanelOpen);
+  document.body.classList.toggle("context-panel-closed", !contextPanelOpen);
+  contextPanel?.setAttribute("aria-hidden", String(!contextPanelOpen));
+  if (!contextPanelOpen) {
+    contextPanel?.setAttribute("inert", "");
+    if (aiAssistantState.panelOpen) setAiAssistantPanelActive(false);
+    if (restoreFocus && layoutMode !== "wide") {
+      focusTarget = contextPanelTab === "ai" ? aiRobotBtn : contextPanelTab === "memo-list" ? memoPaneBtn : collectionsBtn;
+    }
+  } else {
+    contextPanel?.removeAttribute("inert");
   }
   updateResponsiveLayoutUi();
-  if (memoPaneOpen) focusLayoutPanel(memoSidebar);
-  else if (restoreFocus && layoutMode !== "wide") memoPaneBtn.focus();
+  focusTarget?.focus();
+}
+
+function setContextPanelTab(tab, { focus = true } = {}) {
+  const nextTab = ["collection", "ai", "memo-list"].includes(tab) ? tab : "collection";
+  contextPanelTab = nextTab;
+  setContextPanelOpen(true, { restoreFocus: false });
+  const panels = [
+    ["collection", collectionExplorer, contextCollectionTab],
+    ["ai", aiPanel, contextAiTab],
+    ["memo-list", memoSidebar, contextMemoListTab]
+  ];
+  panels.forEach(([id, panel, button]) => {
+    const selected = id === nextTab;
+    if (panel) {
+      panel.hidden = !selected;
+      panel.setAttribute("aria-hidden", String(!selected));
+      panel.inert = !selected;
+    }
+    button?.setAttribute("aria-selected", String(selected));
+    button?.classList.toggle("active", selected);
+  });
+  setAiAssistantPanelActive(nextTab === "ai");
+  collectionsBtn?.setAttribute("aria-expanded", String(nextTab === "collection"));
+  if (nextTab === "collection") renderCollectionExplorer();
+  if (nextTab === "memo-list") renderMemoListPanel();
+  if (focus) {
+    const button = nextTab === "collection" ? contextCollectionTab : nextTab === "ai" ? contextAiTab : contextMemoListTab;
+    button?.focus();
+  }
+}
+
+function setAiAssistantPanelActive(active) {
+  aiAssistantState.panelOpen = Boolean(active);
+  document.body.classList.toggle("ai-open", aiAssistantState.panelOpen);
+  aiPanel.setAttribute("aria-hidden", String(!aiAssistantState.panelOpen));
+  aiPanel.inert = !aiAssistantState.panelOpen;
+  aiRobotBtn.setAttribute("aria-expanded", String(aiAssistantState.panelOpen));
+  aiRobotBtn.setAttribute("aria-label", aiAssistantState.panelOpen ? "AIアシスタントを閉じる" : "AIアシスタントを開く");
+  aiBackdrop.hidden = true;
+}
+
+function renderMemoListPanel() {
+  renderList();
+  if (memoListCount) {
+    const total = activeNotes().length;
+    memoListCount.textContent = String(total);
+    memoListCount.hidden = total === 0;
+  }
+}
+
+function setMemoListPanelOpen(open, { restoreFocus = true } = {}) {
+  if (open) {
+    mobileCardOpen = false;
+    setContextPanelTab("memo-list", { focus: false });
+    setRelatedDrawerOpen(false, { restoreFocus: false });
+  } else if (contextPanelTab === "memo-list") {
+    setContextPanelOpen(false, { restoreFocus: false });
+  }
+  updateResponsiveLayoutUi();
+  if (open) focusLayoutPanel(memoSidebar);
+  else if (restoreFocus) memoPaneBtn.focus();
 }
 
 function setCardPaneOpen(open, { restoreFocus = true } = {}) {
@@ -870,8 +955,7 @@ function setCardPaneOpen(open, { restoreFocus = true } = {}) {
   } else {
     mobileCardOpen = Boolean(open);
     if (mobileCardOpen) {
-      memoPaneOpen = false;
-      if (document.body.classList.contains("collections-open")) toggleCollectionExplorer(false);
+      setContextPanelOpen(false, { restoreFocus: false, explicit: false });
       setRelatedDrawerOpen(false, { restoreFocus: false });
     }
   }
@@ -881,8 +965,8 @@ function setCardPaneOpen(open, { restoreFocus = true } = {}) {
 }
 
 function closeLayoutOverlays({ restoreFocus = true } = {}) {
-  if (memoPaneOpen) {
-    setMemoPaneOpen(false, { restoreFocus });
+  if (layoutMode !== "wide" && contextPanelOpen) {
+    setContextPanelOpen(false, { restoreFocus });
     return true;
   }
   if (mobileCardOpen) {
@@ -893,25 +977,23 @@ function closeLayoutOverlays({ restoreFocus = true } = {}) {
 }
 
 function updateResponsiveLayoutUi() {
-  const sidebarVisible = layoutMode === "wide" || memoPaneOpen;
   const cardVisible = layoutMode === "wide"
     || (layoutMode === "compact" && compactCardVisible)
     || (layoutMode === "mobile" && mobileCardOpen);
-  const overlayOpen = memoPaneOpen || (layoutMode === "mobile" && mobileCardOpen);
+  const contextPanelOverlayOpen = layoutMode !== "wide" && contextPanelOpen;
+  const overlayOpen = contextPanelOverlayOpen || (layoutMode === "mobile" && mobileCardOpen);
 
-  document.body.classList.toggle("memo-pane-open", memoPaneOpen);
   document.body.classList.toggle("mobile-card-open", layoutMode === "mobile" && mobileCardOpen);
   document.body.classList.toggle("compact-card-hidden", layoutMode === "compact" && !compactCardVisible);
   document.body.classList.toggle("layout-overlay-open", overlayOpen);
 
-  memoSidebar.setAttribute("aria-hidden", String(!sidebarVisible));
-  memoSidebar.inert = !sidebarVisible;
-  memoPaneBtn.setAttribute("aria-expanded", String(memoPaneOpen));
-  memoPaneBtn.title = memoPaneOpen ? "メモ一覧を閉じる" : "メモ一覧を開く";
+  const memoListVisible = contextPanelOpen && contextPanelTab === "memo-list";
+  memoPaneBtn.setAttribute("aria-expanded", String(memoListVisible));
+  memoPaneBtn.title = memoListVisible ? "メモ一覧を閉じる" : "メモ一覧を表示";
   memoPaneBtn.setAttribute("aria-label", memoPaneBtn.title);
 
   previewCard.setAttribute("aria-hidden", String(!cardVisible));
-  previewCard.inert = !cardVisible || memoPaneOpen;
+  previewCard.inert = !cardVisible || contextPanelOverlayOpen;
   cardPaneBtn.setAttribute("aria-expanded", String(cardVisible));
   const cardAction = layoutMode === "compact" && cardVisible ? "カード表示を収納する" : cardVisible ? "カード表示を閉じる" : "カード表示を開く";
   cardPaneBtn.title = cardAction;
@@ -1893,8 +1975,8 @@ function uniqueTitle(base) {
 
 // 画面全体の再描画をまとめて呼ぶ入口です。
 function renderAll() {
-  renderList();
   renderCollectionExplorer();
+  renderMemoListPanel();
   renderNoteMeta();
   renderRelated();
   renderDiscovery();
@@ -1910,7 +1992,7 @@ function renderList() {
   const filtered = listView.notes.filter((note) => {
     const haystack = `${note.title}\n${note.body}`.toLowerCase();
     return !query || haystack.includes(query);
-  });
+  }).sort((a, b) => Number(b.createdAt || 0) - Number(a.createdAt || 0));
 
   memoList.innerHTML = "";
 
@@ -1923,7 +2005,9 @@ function renderList() {
     `;
     item.addEventListener("click", () => {
       openNote(note.id);
-      setMemoPaneOpen(false, { restoreFocus: false });
+      if (layoutMode !== "wide") {
+        setContextPanelOpen(false, { restoreFocus: false, explicit: false });
+      }
     });
     memoList.appendChild(item);
   });
@@ -4660,14 +4744,17 @@ function setAiReferenceMode(mode) {
 }
 
 function openAiAssistant(options = {}) {
+  const resume = options.resume === true;
   const mode = options.mode || AI_REFERENCE_MODES.NONE;
-  aiAssistantState.selectedTextSnapshot = mode === AI_REFERENCE_MODES.SELECTED_TEXT
-    ? editor.value.slice(editor.selectionStart, editor.selectionEnd)
-    : "";
-  aiPurposeSelect.value = options.purpose || "question";
-  if (options.prompt !== undefined) aiInstructionInput.value = options.prompt;
-  setAiReferenceMode(mode);
-  setAiPanelOpen(true, { launchMode: options.mode ? mode : null });
+  if (!resume) {
+    aiAssistantState.selectedTextSnapshot = mode === AI_REFERENCE_MODES.SELECTED_TEXT
+      ? editor.value.slice(editor.selectionStart, editor.selectionEnd)
+      : "";
+    aiPurposeSelect.value = options.purpose || "question";
+    if (options.prompt !== undefined) aiInstructionInput.value = options.prompt;
+    setAiReferenceMode(mode);
+  }
+  setAiPanelOpen(true, { launchMode: resume ? "resume" : options.mode ? mode : null });
 }
 
 function resetAiAssistantConversation() {
@@ -4696,19 +4783,12 @@ function setAiPanelOpen(open, { restoreFocus = true, launchMode = null } = {}) {
   if (open && !wasOpen && launchMode === null) {
     resetAiAssistantConversation();
   }
-  aiAssistantState.panelOpen = Boolean(open);
-  document.body.classList.toggle("ai-open", aiAssistantState.panelOpen);
-  aiPanel.setAttribute("aria-hidden", String(!aiAssistantState.panelOpen));
-  aiPanel.inert = !aiAssistantState.panelOpen;
-  aiRobotBtn.setAttribute("aria-expanded", String(aiAssistantState.panelOpen));
-  aiRobotBtn.setAttribute("aria-label", aiAssistantState.panelOpen ? "AIアシスタントを閉じる" : "AIアシスタントを開く");
-  aiBackdrop.hidden = !aiAssistantState.panelOpen || layoutMode === "wide";
+  if (open) setContextPanelTab("ai", { focus: false });
+  else if (contextPanelTab === "ai") setContextPanelTab("collection", { focus: false });
+  else setAiAssistantPanelActive(false);
   if (aiAssistantState.panelOpen) {
     setRelatedDrawerOpen(false, { restoreFocus: false });
-    closeLayoutOverlays({ restoreFocus: false });
-    if (document.body.classList.contains("collections-open")) toggleCollectionExplorer(false);
-    memoSidebar.setAttribute("aria-hidden", "true");
-    memoSidebar.inert = true;
+    if (mobileCardOpen) setCardPaneOpen(false, { restoreFocus: false });
     closeAiPanelBtn.focus();
   } else {
     updateResponsiveLayoutUi();
@@ -5767,16 +5847,13 @@ function formatMegabytes(bytes) {
 }
 
 function toggleCollectionExplorer(force) {
-  const open = typeof force === "boolean" ? force : !document.body.classList.contains("collections-open");
-  if (open) closeLayoutOverlays({ restoreFocus: false });
-  document.body.classList.toggle("collections-open", open);
-  collectionExplorer.setAttribute("aria-hidden", String(!open));
-  collectionsBtn.setAttribute("aria-expanded", String(open));
-  collectionBackdrop.hidden = !open || window.matchMedia("(min-width: 1201px)").matches;
+  const open = typeof force === "boolean" ? force : contextPanelTab !== "collection" || !contextPanelOpen;
   if (open) {
-    renderCollectionExplorer();
+    closeLayoutOverlays({ restoreFocus: false });
+    setContextPanelTab("collection", { focus: false });
     collectionTree.focus();
   } else {
+    setContextPanelOpen(false, { restoreFocus: false });
     closeCollectionMenus();
   }
 }
@@ -7044,11 +7121,18 @@ newBtn.addEventListener("click", async () => {
   openNote(note.id);
 });
 
-if (collectionsBtn) collectionsBtn.addEventListener("click", () => toggleCollectionExplorer());
-if (closeCollectionsBtn) closeCollectionsBtn.addEventListener("click", () => toggleCollectionExplorer(false));
+if (collectionsBtn) collectionsBtn.addEventListener("click", () => setContextPanelTab("collection"));
+if (contextCollectionTab) contextCollectionTab.addEventListener("click", () => setContextPanelTab("collection"));
+if (contextAiTab) contextAiTab.addEventListener("click", () => {
+  if (!aiAssistantState.panelOpen) openAiAssistant();
+  else setContextPanelTab("ai");
+});
+if (contextMemoListTab) contextMemoListTab.addEventListener("click", () => setContextPanelTab("memo-list"));
+if (closeContextPanelBtn) closeContextPanelBtn.addEventListener("click", () => setContextPanelOpen(false));
+if (closeCollectionsBtn) closeCollectionsBtn.addEventListener("click", () => setContextPanelOpen(false));
 if (collectionBackdrop) collectionBackdrop.addEventListener("click", () => toggleCollectionExplorer(false));
-if (memoPaneBtn) memoPaneBtn.addEventListener("click", () => setMemoPaneOpen(!memoPaneOpen));
-if (closeMemoPaneBtn) closeMemoPaneBtn.addEventListener("click", () => setMemoPaneOpen(false));
+if (memoPaneBtn) memoPaneBtn.addEventListener("click", () => setMemoListPanelOpen(!(contextPanelOpen && contextPanelTab === "memo-list")));
+if (closeMemoPaneBtn) closeMemoPaneBtn.addEventListener("click", () => setMemoListPanelOpen(false));
 if (cardPaneBtn) cardPaneBtn.addEventListener("click", () => {
   const open = layoutMode === "compact" ? !compactCardVisible : !mobileCardOpen;
   setCardPaneOpen(open);
@@ -7240,6 +7324,7 @@ if (resetFontSettingsBtn) {
 }
 if (aiRobotBtn) aiRobotBtn.addEventListener("click", () => {
   if (aiAssistantState.panelOpen) setAiPanelOpen(false);
+  else if (!contextPanelOpen && contextPanelTab === "ai") openAiAssistant({ resume: true });
   else openAiAssistant();
 });
 if (closeAiPanelBtn) closeAiPanelBtn.addEventListener("click", () => setAiPanelOpen(false));
@@ -7357,21 +7442,18 @@ editor.addEventListener("select", updateAiTargetPreview);
 window.addEventListener("resize", () => {
   syncLayoutMode();
   renderSaveStatus();
-  if (document.body.classList.contains("collections-open")) {
-    collectionBackdrop.hidden = window.matchMedia("(min-width: 1201px)").matches;
-  }
 });
 document.addEventListener("click", (event) => {
   if (!event.target.closest(".collection-popup-menu,.collection-more,.collection-memo-more,#collectionAddMenuBtn")) closeCollectionMenus();
 });
 document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && !document.querySelector("dialog[open]") && closeLayoutOverlays()) {
+    event.preventDefault();
+    return;
+  }
   if (event.key === "Escape" && aiAssistantState.panelOpen && !document.querySelector("dialog[open]")) {
     event.preventDefault();
     setAiPanelOpen(false);
-    return;
-  }
-  if (event.key === "Escape" && closeLayoutOverlays()) {
-    event.preventDefault();
     return;
   }
   if (event.key === "Escape" && isRelatedDrawerOpen() && !document.querySelector("dialog[open]")) {
@@ -7379,8 +7461,8 @@ document.addEventListener("keydown", (event) => {
     setRelatedDrawerOpen(false);
     return;
   }
-  if (event.key === "Escape" && document.body.classList.contains("collections-open") && !collectionMoveDialog.open) {
-    toggleCollectionExplorer(false);
+  if (event.key === "Escape" && contextPanelOpen && contextPanelTab === "collection" && !collectionMoveDialog.open) {
+    setContextPanelOpen(false);
     return;
   }
   if (!collectionTree.contains(document.activeElement)) return;

@@ -841,25 +841,6 @@ body.collections-open .collection-explorer {
   transition: transform 180ms ease, visibility 0s linear 180ms;
 }
 
-body.ai-open .ai-panel {
-  transform: translateX(0);
-  visibility: visible;
-  transition-delay: 0s;
-}
-
-body.ai-open .sidebar {
-  visibility: hidden;
-}
-
-body.ai-open .ai-robot-button {
-  right: 300px;
-}
-
-body.ai-open .related-toggle {
-  opacity: 0;
-  pointer-events: none;
-}
-
 .ai-panel-head {
   min-height: 64px;
   border-bottom: 1px solid var(--line);
@@ -3353,10 +3334,6 @@ body.related-open .related-toggle {
     transition: transform 160ms ease;
   }
 
-  body.memo-pane-open .sidebar {
-    transform: translateX(0);
-  }
-
   .memo-drawer-head button,
   .layout-pane-button {
     display: inline-flex;
@@ -3395,16 +3372,8 @@ body.related-open .related-toggle {
     display: none;
   }
 
-  body.ai-open .sidebar {
-    visibility: hidden;
-  }
-
   .ai-panel {
     width: min(380px, 92vw);
-  }
-
-  body.ai-open .ai-robot-button {
-    right: min(380px, 92vw);
   }
 }
 
@@ -3611,12 +3580,6 @@ body.related-open .related-toggle {
     width: 100vw;
   }
 
-  body.ai-open .ai-robot-button {
-    right: 8px;
-    bottom: auto;
-    top: max(66px, env(safe-area-inset-top));
-  }
-
   .ai-panel-scroll {
     padding-bottom: calc(24px + env(safe-area-inset-bottom));
   }
@@ -3644,5 +3607,189 @@ body.related-open .related-toggle {
 
   .ai-robot-button[data-state="completed"] .ai-robot {
     animation: none;
+  }
+}
+
+/* 右側コンテキストパネル：コレクション、AI、メモ一覧を同じ領域で切り替える。 */
+body {
+  grid-template-columns: minmax(0, 1fr) 340px;
+}
+
+body.context-panel-closed {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.workspace {
+  grid-column: 1;
+}
+
+.context-panel {
+  grid-column: 2;
+  grid-row: 1;
+  min-width: 0;
+  min-height: 0;
+  height: 100vh;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  border-left: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--ink);
+  z-index: 65;
+  overflow: hidden;
+}
+
+.context-panel.context-panel-closed {
+  display: none;
+}
+
+.context-panel-tabs {
+  flex: 0 0 auto;
+  min-height: 52px;
+  display: flex;
+  align-items: stretch;
+  gap: 4px;
+  padding: 8px;
+  border-bottom: 1px solid var(--line);
+  background: var(--panel);
+}
+
+.context-panel-tab {
+  min-height: 36px;
+  flex: 1 1 0;
+  padding: 5px 7px;
+  border-color: transparent;
+  background: transparent;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.context-panel-tab.active,
+.context-panel-tab[aria-selected="true"] {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.context-panel-tab-count {
+  display: inline-grid;
+  min-width: 20px;
+  height: 20px;
+  margin-left: 3px;
+  padding: 0 4px;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--paper);
+  font-size: 12px;
+  line-height: 1;
+}
+
+.context-panel-close {
+  flex: 0 0 36px;
+  min-height: 36px;
+  padding: 4px;
+}
+
+.context-panel > .collection-explorer,
+.context-panel > .ai-panel,
+.context-panel > .sidebar {
+  position: static;
+  inset: auto;
+  z-index: auto;
+  width: auto;
+  max-width: none;
+  min-width: 0;
+  min-height: 0;
+  height: auto;
+  flex: 1 1 auto;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  transform: none;
+  visibility: visible;
+  transition: none;
+}
+
+.context-panel > [hidden] {
+  display: none !important;
+}
+
+.context-panel > .collection-explorer {
+  display: flex;
+  overflow: hidden;
+}
+
+.context-panel > .ai-panel,
+.context-panel > .sidebar {
+  display: flex;
+  overflow: hidden;
+}
+
+.context-panel > .ai-panel .ai-panel-scroll {
+  min-height: 0;
+}
+
+@container app-width (max-width: 1039.98px) {
+  body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .workspace {
+    grid-column: 1 / -1;
+  }
+
+  .context-panel {
+    position: fixed;
+    inset: 0 0 0 auto;
+    width: min(380px, 92vw);
+    height: 100vh;
+    height: 100dvh;
+    border-left: 1px solid var(--line);
+    box-shadow: -10px 0 28px rgba(0, 0, 0, 0.28);
+    transform: translateX(0);
+    transition: transform 180ms ease, visibility 0s linear 180ms;
+  }
+
+  .context-panel.context-panel-closed {
+    display: flex;
+    visibility: hidden;
+    transform: translateX(102%);
+    transition-delay: 180ms;
+  }
+
+  .context-panel-tabs {
+    padding-top: max(8px, env(safe-area-inset-top));
+  }
+
+  .context-panel > .collection-explorer,
+  .context-panel > .ai-panel,
+  .context-panel > .sidebar {
+    width: auto;
+  }
+}
+
+@container app-width (max-width: 719.98px) {
+  .context-panel {
+    width: 100vw;
+    max-width: 100vw;
+  }
+
+  .context-panel-tab {
+    padding-inline: 4px;
+    font-size: 13px;
+  }
+}
+
+/* The context panel is the sole owner of the right-side surface. */
+body.ai-open .context-panel,
+body.collections-open .context-panel {
+  visibility: visible;
+}
+
+@container app-width (max-width: 1039.98px) {
+  .context-panel:not(.context-panel-closed) {
+    z-index: 80;
   }
 }
