@@ -47,6 +47,20 @@ test("memo tasks require a reference and keep task separate from reference", () 
   assert.match(messages[0].content, /参照本文:\n本文/);
 });
 
+test("every purpose can be combined with a selected reference mode", () => {
+  ["current-note", "selected-text", "specified-note", "all-notes", "collection"].forEach((mode) => {
+    ["question", "summarize", "organize", "translate"].forEach((purpose) => {
+      const messages = buildAiMessages({
+        purpose,
+        reference: { mode, noteId: "1", noteTitle: "対象", content: "本文" },
+        userInstruction: "実行してください",
+        translationLanguage: "en"
+      });
+      assert.equal(messages.at(-1).role, "user");
+    });
+  });
+});
+
 test("all sends require a user question or instruction", () => {
   assert.throws(() => buildAiMessages({ purpose: "question", reference: { mode: "none" } }), /質問または指示/);
 });

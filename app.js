@@ -336,7 +336,7 @@ const {
   resolveSavedAiState
 } = window.MemoNexusAiProvider;
 const { OllamaAdapter } = window.MemoNexusOllamaAdapter;
-const { aiAppendMarkdown, aiMemoTitle, buildAiMessages } = window.MemoNexusAiPrompts;
+const { AI_PROMPTS, aiAppendMarkdown, aiMemoTitle, buildAiMessages } = window.MemoNexusAiPrompts;
 const {
   AI_REFERENCE_MODES,
   AI_REFERENCE_MAX_CHARS,
@@ -4722,17 +4722,26 @@ function connectionStatusText() {
   return "未確認";
 }
 
+function aiPurposeRequiresReference(purpose) {
+  const preset = AI_PROMPTS[purpose] || AI_PROMPTS.question;
+  return preset.id !== "question";
+}
+
 function renderAiUi() {
   const state = aiAssistantState.generation;
   const streaming = state === AI_GENERATION_STATES.STREAMING;
   const hasAnswer = Boolean(aiAssistantState.answer.trim());
+  const reference = createAiReferenceContext(aiAssistantState.reference);
+  const purposeNeedsReference = aiPurposeRequiresReference(aiPurposeSelect.value);
   aiRobotBtn.dataset.state = state;
   aiRobotStatus.textContent = aiStatusText();
   aiConnectionBadge.dataset.state = aiAssistantState.connection;
   aiConnectionBadge.textContent = connectionStatusText();
   aiActiveModel.textContent = aiSettings.selectedModel || "モデル未選択";
   aiGenerationStatus.dataset.state = state;
-  aiGenerationStatus.textContent = aiAssistantState.error || ({
+  aiGenerationStatus.textContent = aiAssistantState.error || (purposeNeedsReference && reference.mode === AI_REFERENCE_MODES.NONE
+    ? "この用途には参照範囲の選択が必要です。"
+    : ({
     [AI_GENERATION_STATES.DISABLED]: "設定でローカルAIを有効にしてください。",
     [AI_GENERATION_STATES.DISCONNECTED]: "設定からOllamaへの接続を確認してください。",
     [AI_GENERATION_STATES.MODEL_REQUIRED]: "設定で使用モデルを選択してください。",
@@ -4741,7 +4750,7 @@ function renderAiUi() {
     [AI_GENERATION_STATES.STOPPED]: "生成を停止しました。途中までの回答は確認できます。",
     [AI_GENERATION_STATES.COMPLETED]: "回答が完了しました。内容を確認してから利用してください。",
     [AI_GENERATION_STATES.ERROR]: "AI処理でエラーが発生しました。"
-  }[state] || "入力待ちです。");
+  }[state] || "入力待ちです。"));
   aiAnswer.textContent = hasAnswer ? aiAssistantState.answer : "回答はここに表示されます。";
   aiSendBtn.disabled = streaming || !aiSettings.enabled || !aiSettings.selectedModel;
   aiStopBtn.disabled = !streaming;
@@ -4870,8 +4879,11 @@ function renderAiChatHistory() {
 
 function updateAiTargetPreview() {
   const reference = createAiReferenceContext(aiAssistantState.reference);
+  const noReferenceText = aiPurposeRequiresReference(aiPurposeSelect.value)
+    ? "この用途には参照範囲の選択が必要です。"
+    : "送信データにメモのタイトル・本文・選択文章は含まれません。";
   aiTargetPreview.textContent = reference.mode === AI_REFERENCE_MODES.NONE
-    ? "送信データにメモのタイトル・本文・選択文章は含まれません。"
+    ? noReferenceText
     : `${aiReferenceLabel(reference)}を送信時の参照内容として保持しています。${(reference.mode === AI_REFERENCE_MODES.ALL_NOTES || reference.mode === AI_REFERENCE_MODES.COLLECTION) && reference.totalCharacters > AI_REFERENCE_MAX_CHARS ? ` 上限（${AI_REFERENCE_MAX_CHARS.toLocaleString("ja-JP")}文字）を超えているため送信できません。` : ""}`;
 }
 

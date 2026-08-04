@@ -33,6 +33,25 @@ test("AI panel provides required purposes, controls, and explicit result actions
   assert.doesNotMatch(app, /event\.type === "text"[\s\S]{0,200}editor\.value/);
 });
 
+test("purpose selection is visible and translation destination is purpose-specific", () => {
+  assert.match(html, /<label class="ai-field" for="aiPurposeSelect">[\s\S]*用途[\s\S]*<select id="aiPurposeSelect"(?! hidden)/);
+  assert.match(html, /value="question">自由質問/);
+  assert.match(html, /value="summarize">要約/);
+  assert.match(html, /value="organize">整理/);
+  assert.match(html, /value="translate">翻訳/);
+  assert.match(html, /id="aiTranslationRow" class="ai-field"[^>]+hidden/);
+  assert.match(app, /aiTranslationRow\.hidden = aiPurposeSelect\.value !== "translate"/);
+  assert.match(app, /AI_PROMPTS/);
+  assert.match(app, /この用途には参照範囲の選択が必要です/);
+});
+
+test("purpose and reference remain independently selectable, including shortcut contracts", () => {
+  assert.match(app, /openAiAssistant\(\{ mode: AI_REFERENCE_MODES\.CURRENT_NOTE, purpose: "summarize", prompt: "このメモを要約してください。" \}\)/);
+  assert.match(app, /openAiAssistant\(\{ mode: AI_REFERENCE_MODES\.SELECTED_TEXT, purpose: "question"/);
+  assert.match(app, /purpose: aiPurposeSelect\.value,[\s\S]{0,120}reference,/);
+  assert.match(app, /preset\.id !== "question"/);
+});
+
 test("single chat panel supports explicit reference modes and normal launch resets to none", () => {
   ["参照なし", "現在のメモ", "選択した文章", "指定したメモ", "すべてのメモ", "選択したコレクション", "参照を解除"].forEach((label) => {
     assert.match(html, new RegExp(label));
