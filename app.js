@@ -4667,18 +4667,34 @@ function openAiAssistant(options = {}) {
   aiPurposeSelect.value = options.purpose || "question";
   if (options.prompt !== undefined) aiInstructionInput.value = options.prompt;
   setAiReferenceMode(mode);
-  setAiPanelOpen(true, { launchMode: mode });
+  setAiPanelOpen(true, { launchMode: options.mode ? mode : null });
+}
+
+function resetAiAssistantConversation() {
+  aiAssistantState = {
+    ...aiAssistantState,
+    generation: aiSettings.enabled ? AI_GENERATION_STATES.DISCONNECTED : AI_GENERATION_STATES.DISABLED,
+    answer: "",
+    error: "",
+    requestId: aiAssistantState.requestId + 1,
+    requestNoteId: null,
+    requestNoteTitle: "",
+    requestPurpose: "question",
+    referenceMode: AI_REFERENCE_MODES.NONE,
+    reference: emptyAiReference(),
+    selectedTextSnapshot: "",
+    specifiedNoteId: null,
+    collectionId: null,
+    history: []
+  };
+  aiPurposeSelect.value = "question";
+  aiInstructionInput.value = "";
 }
 
 function setAiPanelOpen(open, { restoreFocus = true, launchMode = null } = {}) {
   const wasOpen = aiAssistantState.panelOpen;
   if (open && !wasOpen && launchMode === null) {
-    aiPurposeSelect.value = "question";
-    aiAssistantState.selectedTextSnapshot = "";
-    aiAssistantState.referenceMode = AI_REFERENCE_MODES.NONE;
-    aiAssistantState.reference = emptyAiReference();
-    aiAssistantState.specifiedNoteId = null;
-    aiAssistantState.collectionId = null;
+    resetAiAssistantConversation();
   }
   aiAssistantState.panelOpen = Boolean(open);
   document.body.classList.toggle("ai-open", aiAssistantState.panelOpen);

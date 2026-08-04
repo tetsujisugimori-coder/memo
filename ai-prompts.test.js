@@ -36,7 +36,7 @@ test("system instruction, reference, history, and question remain distinct messa
 });
 
 test("memo tasks require a reference and keep task separate from reference", () => {
-  assert.throws(() => buildAiMessages({ purpose: "summarize", reference: { mode: "none" }, userInstruction: "要約" }), /参照/);
+  assert.throws(() => buildAiMessages({ purpose: "summarize", reference: { mode: "none" } }), /参照/);
   const messages = buildAiMessages({
     purpose: "translate",
     reference: { mode: "selected-text", content: "本文" },
@@ -45,6 +45,18 @@ test("memo tasks require a reference and keep task separate from reference", () 
   });
   assert.match(messages.at(-1).content, /英語へ翻訳/);
   assert.match(messages[0].content, /参照本文:\n本文/);
+});
+
+test("free questions require input while memo tasks allow optional additional instructions", () => {
+  assert.throws(() => buildAiMessages({ purpose: "question", reference: { mode: "none" } }), /自由質問を入力してください/);
+  assert.throws(() => buildAiMessages({ purpose: "question", reference: { mode: "none" }, userInstruction: "  " }), /自由質問を入力してください/);
+  ["summarize", "organize", "translate"].forEach((purpose) => {
+    const messages = buildAiMessages({ purpose, reference: { mode: "current-note", content: "本文" }, translationLanguage: "en" });
+    assert.match(messages.at(-1).content, /^\[タスク\]/);
+    assert.doesNotMatch(messages.at(-1).content, /利用者の追加指示|なし/);
+  });
+  const withInstruction = buildAiMessages({ purpose: "summarize", reference: { mode: "current-note", content: "本文" }, userInstruction: "箇条書きで" });
+  assert.match(withInstruction.at(-1).content, /\[利用者の追加指示\]\n箇条書きで/);
 });
 
 test("every purpose can be combined with a selected reference mode", () => {
@@ -61,8 +73,8 @@ test("every purpose can be combined with a selected reference mode", () => {
   });
 });
 
-test("all sends require a user question or instruction", () => {
-  assert.throws(() => buildAiMessages({ purpose: "question", reference: { mode: "none" } }), /質問または指示/);
+test("free question with input remains sendable without a reference", () => {
+  assert.equal(buildAiMessages({ purpose: "question", reference: { mode: "none" }, userInstruction: "質問" }).at(-1).content, "質問");
 });
 
 test("multiple memo reference stays in one separate system message", () => {

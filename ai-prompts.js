@@ -57,7 +57,7 @@
       : createAiReferenceContext({ mode: "current-note", content: options.targetText });
     const userInstruction = String(options.userInstruction || "").trim();
     const language = options.translationLanguage === "en" ? "英語" : "日本語";
-    if (!userInstruction) throw new Error("質問または指示を入力してください。");
+    if (preset.id === "question" && !userInstruction) throw new Error("自由質問を入力してください。");
     if (preset.id !== "question" && reference.mode === "none") throw new Error("この操作には参照する文章が必要です。");
     const purposeInstruction = preset.template.replace("{{language}}", language);
     const messages = [];
@@ -71,11 +71,11 @@
         messages.push({ role: message.role, content: String(message.content) });
       }
     });
+    const taskContent = [`[タスク]\n${purposeInstruction}`];
+    if (userInstruction) taskContent.push(`[利用者の追加指示]\n${userInstruction}`);
     messages.push({
       role: "user",
-      content: preset.id === "question"
-        ? userInstruction
-        : `[タスク]\n${purposeInstruction}\n\n[利用者の指示]\n${userInstruction}`
+      content: preset.id === "question" ? userInstruction : taskContent.join("\n\n")
     });
     return messages;
   }

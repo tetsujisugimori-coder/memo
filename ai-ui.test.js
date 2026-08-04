@@ -52,13 +52,23 @@ test("purpose and reference remain independently selectable, including shortcut 
   assert.match(app, /preset\.id !== "question"/);
 });
 
+test("normal robot launch starts a fresh free chat while shortcuts preserve launch parameters", () => {
+  assert.match(app, /setAiPanelOpen\(true, \{ launchMode: options\.mode \? mode : null \}\)/);
+  const reset = app.match(/function resetAiAssistantConversation\(\)[\s\S]*?\n}\n\nfunction setAiPanelOpen/)?.[0] || "";
+  ["referenceMode: AI_REFERENCE_MODES.NONE", "reference: emptyAiReference\(\)", "specifiedNoteId: null", "collectionId: null", "selectedTextSnapshot: \"\"", "history: \[\]", "answer: \"\"", "error: \"\"", "requestPurpose: \"question\"", "aiInstructionInput.value = \"\""].forEach((fragment) => {
+    assert.match(reset, new RegExp(fragment.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+  });
+  assert.match(app, /openAiAssistant\(\{ mode: AI_REFERENCE_MODES\.CURRENT_NOTE, purpose: "summarize", prompt:/);
+  assert.match(app, /openAiAssistant\(\{ mode: AI_REFERENCE_MODES\.SELECTED_TEXT, purpose: "question", prompt:/);
+});
+
 test("single chat panel supports explicit reference modes and normal launch resets to none", () => {
   ["参照なし", "現在のメモ", "選択した文章", "指定したメモ", "すべてのメモ", "選択したコレクション", "参照を解除"].forEach((label) => {
     assert.match(html, new RegExp(label));
   });
   assert.equal((html.match(/id="aiPanel"/g) || []).length, 1);
   assert.match(app, /openAiAssistant\(\)/);
-  assert.match(app, /referenceMode = AI_REFERENCE_MODES\.NONE/);
+  assert.match(app, /referenceMode: AI_REFERENCE_MODES\.NONE/);
   assert.match(app, /selectedTextSnapshot/);
   assert.match(app, /activeNotes\(\).*\.filter/);
   assert.match(app, /selectCollectionReferenceNotes\(notes, collections, collection\.id\)/);
