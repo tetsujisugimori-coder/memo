@@ -862,11 +862,12 @@ function syncLayoutMode(force = false, width = document.body.clientWidth) {
   updateResponsiveLayoutUi();
   if (layoutMode === "wide" && !contextPanelOpen && !contextPanelUserClosed) {
     setContextPanelOpen(true, { restoreFocus: false, explicit: false });
+    setAiAssistantPanelActive(contextPanelTab === "ai");
   }
-  if (aiAssistantState.panelOpen) aiBackdrop.hidden = layoutMode === "wide";
 }
 
 function setContextPanelOpen(open, { restoreFocus = true, explicit = true } = {}) {
+  let focusTarget = null;
   contextPanelOpen = Boolean(open);
   if (contextPanelOpen) contextPanelUserClosed = false;
   else if (explicit) contextPanelUserClosed = true;
@@ -875,11 +876,15 @@ function setContextPanelOpen(open, { restoreFocus = true, explicit = true } = {}
   contextPanel?.setAttribute("aria-hidden", String(!contextPanelOpen));
   if (!contextPanelOpen) {
     contextPanel?.setAttribute("inert", "");
-    if (restoreFocus && layoutMode !== "wide") collectionsBtn?.focus();
+    if (aiAssistantState.panelOpen) setAiAssistantPanelActive(false);
+    if (restoreFocus && layoutMode !== "wide") {
+      focusTarget = contextPanelTab === "ai" ? aiRobotBtn : contextPanelTab === "memo-list" ? memoPaneBtn : collectionsBtn;
+    }
   } else {
     contextPanel?.removeAttribute("inert");
   }
   updateResponsiveLayoutUi();
+  focusTarget?.focus();
 }
 
 function setContextPanelTab(tab, { focus = true } = {}) {
@@ -914,9 +919,11 @@ function setContextPanelTab(tab, { focus = true } = {}) {
 function setAiAssistantPanelActive(active) {
   aiAssistantState.panelOpen = Boolean(active);
   document.body.classList.toggle("ai-open", aiAssistantState.panelOpen);
+  aiPanel.setAttribute("aria-hidden", String(!aiAssistantState.panelOpen));
+  aiPanel.inert = !aiAssistantState.panelOpen;
   aiRobotBtn.setAttribute("aria-expanded", String(aiAssistantState.panelOpen));
   aiRobotBtn.setAttribute("aria-label", aiAssistantState.panelOpen ? "AIアシスタントを閉じる" : "AIアシスタントを開く");
-  aiBackdrop.hidden = !aiAssistantState.panelOpen || layoutMode === "wide";
+  aiBackdrop.hidden = true;
 }
 
 function renderMemoListPanel() {
@@ -958,6 +965,10 @@ function setCardPaneOpen(open, { restoreFocus = true } = {}) {
 }
 
 function closeLayoutOverlays({ restoreFocus = true } = {}) {
+  if (layoutMode !== "wide" && contextPanelOpen) {
+    setContextPanelOpen(false, { restoreFocus });
+    return true;
+  }
   if (mobileCardOpen) {
     setCardPaneOpen(false, { restoreFocus });
     return true;
@@ -969,7 +980,8 @@ function updateResponsiveLayoutUi() {
   const cardVisible = layoutMode === "wide"
     || (layoutMode === "compact" && compactCardVisible)
     || (layoutMode === "mobile" && mobileCardOpen);
-  const overlayOpen = layoutMode === "mobile" && mobileCardOpen;
+  const contextPanelOverlayOpen = layoutMode !== "wide" && contextPanelOpen;
+  const overlayOpen = contextPanelOverlayOpen || (layoutMode === "mobile" && mobileCardOpen);
 
   document.body.classList.toggle("mobile-card-open", layoutMode === "mobile" && mobileCardOpen);
   document.body.classList.toggle("compact-card-hidden", layoutMode === "compact" && !compactCardVisible);
@@ -981,7 +993,7 @@ function updateResponsiveLayoutUi() {
   memoPaneBtn.setAttribute("aria-label", memoPaneBtn.title);
 
   previewCard.setAttribute("aria-hidden", String(!cardVisible));
-  previewCard.inert = !cardVisible;
+  previewCard.inert = !cardVisible || contextPanelOverlayOpen;
   cardPaneBtn.setAttribute("aria-expanded", String(cardVisible));
   const cardAction = layoutMode === "compact" && cardVisible ? "カード表示を収納する" : cardVisible ? "カード表示を閉じる" : "カード表示を開く";
   cardPaneBtn.title = cardAction;
@@ -4732,14 +4744,17 @@ function setAiReferenceMode(mode) {
 }
 
 function openAiAssistant(options = {}) {
+  const resume = options.resume === true;
   const mode = options.mode || AI_REFERENCE_MODES.NONE;
-  aiAssistantState.selectedTextSnapshot = mode === AI_REFERENCE_MODES.SELECTED_TEXT
-    ? editor.value.slice(editor.selectionStart, editor.selectionEnd)
-    : "";
-  aiPurposeSelect.value = options.purpose || "question";
-  if (options.prompt !== undefined) aiInstructionInput.value = options.prompt;
-  setAiReferenceMode(mode);
-  setAiPanelOpen(true, { launchMode: options.mode ? mode : null });
+  if (!resume) {
+    aiAssistantState.selectedTextSnapshot = mode === AI_REFERENCE_MODES.SELECTED_TEXT
+      ? editor.value.slice(editor.selectionStart, editor.selectionEnd)
+      : "";
+    aiPurposeSelect.value = options.purpose || "question";
+    if (options.prompt !== undefined) aiInstructionInput.value = options.prompt;
+    setAiReferenceMode(mode);
+  }
+  setAiPanelOpen(true, { launchMode: resume ? "resume" : options.mode ? mode : null });
 }
 
 function resetAiAssistantConversation() {
@@ -4773,7 +4788,7 @@ function setAiPanelOpen(open, { restoreFocus = true, launchMode = null } = {}) {
   else setAiAssistantPanelActive(false);
   if (aiAssistantState.panelOpen) {
     setRelatedDrawerOpen(false, { restoreFocus: false });
-    closeLayoutOverlays({ restoreFocus: false });
+    if (mobileCardOpen) setCardPaneOpen(false, { restoreFocus: false });
     closeAiPanelBtn.focus();
   } else {
     updateResponsiveLayoutUi();
@@ -7309,6 +7324,7 @@ if (resetFontSettingsBtn) {
 }
 if (aiRobotBtn) aiRobotBtn.addEventListener("click", () => {
   if (aiAssistantState.panelOpen) setAiPanelOpen(false);
+  else if (!contextPanelOpen && contextPanelTab === "ai") openAiAssistant({ resume: true });
   else openAiAssistant();
 });
 if (closeAiPanelBtn) closeAiPanelBtn.addEventListener("click", () => setAiPanelOpen(false));
@@ -7431,13 +7447,13 @@ document.addEventListener("click", (event) => {
   if (!event.target.closest(".collection-popup-menu,.collection-more,.collection-memo-more,#collectionAddMenuBtn")) closeCollectionMenus();
 });
 document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && !document.querySelector("dialog[open]") && closeLayoutOverlays()) {
+    event.preventDefault();
+    return;
+  }
   if (event.key === "Escape" && aiAssistantState.panelOpen && !document.querySelector("dialog[open]")) {
     event.preventDefault();
     setAiPanelOpen(false);
-    return;
-  }
-  if (event.key === "Escape" && closeLayoutOverlays()) {
-    event.preventDefault();
     return;
   }
   if (event.key === "Escape" && isRelatedDrawerOpen() && !document.querySelector("dialog[open]")) {

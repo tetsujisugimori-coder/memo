@@ -62,6 +62,17 @@ test("AIタブからメモ一覧へ戻ると旧AIドロワー状態を残さな�
   assert.doesNotMatch(css, /body\.ai-open \.sidebar/);
 });
 
+test("狭幅の右コンテキストパネルをオーバーレイとして閉じる", () => {
+  const responsiveUi = app.match(/function updateResponsiveLayoutUi\([\s\S]*?function focusLayoutPanel/)?.[0] || "";
+  const closeOverlays = app.match(/function closeLayoutOverlays\([\s\S]*?function updateResponsiveLayoutUi/)?.[0] || "";
+  assert.match(responsiveUi, /const contextPanelOverlayOpen = layoutMode !== "wide" && contextPanelOpen;/);
+  assert.match(responsiveUi, /const overlayOpen = contextPanelOverlayOpen \|\| \(layoutMode === "mobile" && mobileCardOpen\);/);
+  assert.match(responsiveUi, /layoutBackdrop\.hidden = !overlayOpen;/);
+  assert.match(responsiveUi, /editorCard\.inert = overlayOpen;/);
+  assert.match(responsiveUi, /previewCard\.inert = !cardVisible \|\| contextPanelOverlayOpen;/);
+  assert.match(closeOverlays, /layoutMode !== "wide" && contextPanelOpen[\s\S]*?setContextPanelOpen\(false, \{ restoreFocus \}\)/);
+});
+
 test("メモ一覧は単一見出しだけを持ち不要な表示範囲ラベルを残さない", () => {
   const sidebar = html.match(/<aside id="memoSidebar"[\s\S]*?<\/aside>/)?.[0] || "";
   const appHeader = html.match(/<header class="app-header">[\s\S]*?<\/header>/)?.[0] || "";
@@ -104,7 +115,7 @@ test("Compactカード収納とMobile左右ドロワーの排他制御を行う"
   assert.match(css, /body\.mobile-card-open \.preview-card\s*\{[^}]*transform:\s*translateX\(0\)/s);
   assert.match(app, /function setMemoListPanelOpen\(open/);
   assert.match(app, /if \(mobileCardOpen\) \{\s*setContextPanelOpen\(false/s);
-  assert.match(app, /event\.key === "Escape" && closeLayoutOverlays\(\)/);
+  assert.match(app, /event\.key === "Escape" && !document\.querySelector\("dialog\[open\]"\) && closeLayoutOverlays\(\)/);
   assert.match(app, /layoutBackdrop\.addEventListener\("click", \(\) => closeLayoutOverlays\(\)\)/);
 });
 
