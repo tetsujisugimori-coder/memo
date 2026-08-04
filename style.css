@@ -3647,21 +3647,21 @@ body.related-open .related-toggle {
   }
 }
 
-/* 右側コンテキストパネル：コレクション、AI、新規メモを同じ領域で切り替える。 */
+/* 右側コンテキストパネル：コレクション、AI、メモ一覧を同じ領域で切り替える。 */
 body {
-  grid-template-columns: 300px minmax(360px, 1fr) 340px;
+  grid-template-columns: minmax(0, 1fr) 340px;
 }
 
-.sidebar {
-  grid-column: 1;
+body.context-panel-closed {
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .workspace {
-  grid-column: 2;
+  grid-column: 1;
 }
 
 .context-panel {
-  grid-column: 3;
+  grid-column: 2;
   grid-row: 1;
   min-width: 0;
   min-height: 0;
@@ -3731,7 +3731,7 @@ body {
 
 .context-panel > .collection-explorer,
 .context-panel > .ai-panel,
-.context-panel > .new-memos-panel {
+.context-panel > .sidebar {
   position: static;
   inset: auto;
   z-index: auto;
@@ -3758,85 +3758,14 @@ body {
   overflow: hidden;
 }
 
-.context-panel > .ai-panel {
+.context-panel > .ai-panel,
+.context-panel > .sidebar {
   display: flex;
   overflow: hidden;
 }
 
 .context-panel > .ai-panel .ai-panel-scroll {
   min-height: 0;
-}
-
-.new-memos-panel {
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  padding: 12px;
-}
-
-.new-memos-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid var(--line);
-}
-
-.new-memos-head h2 {
-  margin: 2px 0 0;
-  font-size: 19px;
-}
-
-.context-panel-eyebrow {
-  color: var(--accent);
-  font-family: Consolas, "Courier New", monospace;
-  font-size: 10px;
-  letter-spacing: 0.12em;
-}
-
-.new-memos-list {
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  overflow: auto;
-  padding-top: 10px;
-}
-
-.new-memo-item {
-  min-height: 54px;
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  gap: 3px;
-  padding: 8px 10px;
-  text-align: left;
-  overflow: hidden;
-}
-
-.new-memo-item strong,
-.new-memo-item span {
-  overflow-wrap: anywhere;
-}
-
-.new-memo-item span {
-  color: var(--muted);
-  font-size: 12px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.new-memo-item.active {
-  border-color: var(--accent);
-  background: var(--accent-soft);
-}
-
-.new-memos-empty {
-  margin: 16px 0;
-  color: var(--muted);
-  font-size: 13px;
 }
 
 @container app-width (max-width: 1039.98px) {
@@ -3872,7 +3801,8 @@ body {
   }
 
   .context-panel > .collection-explorer,
-  .context-panel > .ai-panel {
+  .context-panel > .ai-panel,
+  .context-panel > .sidebar {
     width: auto;
   }
 }

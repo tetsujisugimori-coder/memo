@@ -46,7 +46,7 @@
   <main class="workspace">
     <header class="app-header">
       <div class="layout-primary-actions">
-        <button id="memoPaneBtn" class="layout-pane-button" type="button" title="メモ一覧を開く" aria-label="メモ一覧を開く" aria-controls="memoSidebar" aria-expanded="false">☰ <span>メモ一覧</span></button>
+        <button id="memoPaneBtn" class="layout-pane-button" type="button" title="メモ一覧を表示" aria-label="メモ一覧を表示" aria-controls="memoSidebar" aria-expanded="false">☰ <span>メモ一覧</span></button>
         <button id="cardPaneBtn" class="layout-pane-button" type="button" title="カード表示を収納する" aria-label="カード表示を収納する" aria-controls="previewCard" aria-expanded="true">▤ <span id="cardPaneButtonLabel">カードを閉じる</span></button>
       </div>
       <div class="toolbar" aria-label="主要操作">
@@ -112,20 +112,9 @@
     <div class="context-panel-tabs" role="tablist" aria-label="右側パネル切り替え">
       <button id="contextCollectionTab" class="context-panel-tab" type="button" role="tab" aria-controls="collectionExplorer" aria-selected="true">コレクション</button>
       <button id="contextAiTab" class="context-panel-tab" type="button" role="tab" aria-controls="aiPanel" aria-selected="false">AI</button>
-      <button id="contextNewMemosTab" class="context-panel-tab" type="button" role="tab" aria-controls="newMemosPanel" aria-selected="false">新規メモ <span id="newMemosCount" class="context-panel-tab-count" hidden>0</span></button>
+      <button id="contextMemoListTab" class="context-panel-tab" type="button" role="tab" aria-controls="memoSidebar" aria-selected="false">メモ一覧 <span id="memoListCount" class="context-panel-tab-count" hidden>0</span></button>
       <button id="closeContextPanelBtn" class="context-panel-close" type="button" title="右側パネルを閉じる" aria-label="右側パネルを閉じる">×</button>
     </div>
-    <section id="newMemosPanel" class="new-memos-panel" role="tabpanel" aria-labelledby="contextNewMemosTab" hidden>
-      <div class="new-memos-head">
-        <div>
-          <span class="context-panel-eyebrow">QUICK ACCESS</span>
-          <h2>新規メモ</h2>
-        </div>
-        <button id="newMemoFromPanelBtn" type="button" title="新規メモを作成" aria-label="新規メモを作成">＋</button>
-      </div>
-      <p id="newMemosEmpty" class="new-memos-empty">新規メモはありません。</p>
-      <div id="newMemosList" class="new-memos-list" role="list"></div>
-    </section>
   </aside>
 
   <button id="layoutBackdrop" class="layout-backdrop" type="button" tabindex="-1" aria-label="開いているパネルを閉じる" hidden></button>

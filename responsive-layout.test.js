@@ -35,9 +35,17 @@ test("右側コンテキストパネルは単一の固定列とモバイルド�
   assert.match(html, /id="contextPanel" class="context-panel"/);
   assert.match(app, /let contextPanelTab = "collection"/);
   assert.match(app, /setContextPanelTab\("collection"/);
-  assert.match(css, /grid-template-columns:\s*300px minmax\(360px, 1fr\) 340px/);
+  assert.match(css, /grid-template-columns:\s*minmax\(0, 1fr\) 340px/);
+  assert.match(css, /body\.context-panel-closed\s*\{\s*grid-template-columns:\s*minmax\(0, 1fr\)/s);
   assert.match(css, /\.context-panel\.context-panel-closed\s*\{\s*display:\s*none/);
   assert.match(css, /@container app-width \(max-width: 719\.98px\)[\s\S]*?width:\s*100vw/);
+});
+
+test("desktop has one memo list owner and no fixed blank context column when closed", () => {
+  assert.match(app, /contextPanel\.append\(collectionExplorer, aiPanel, memoSidebar\)/);
+  assert.doesNotMatch(html, /newMemosPanel|contextNewMemosTab/);
+  assert.match(css, /body\.context-panel-closed\s*\{\s*grid-template-columns:\s*minmax\(0, 1fr\)/s);
+  assert.match(app, /document\.body\.classList\.toggle\("context-panel-closed", !contextPanelOpen\)/);
 });
 
 test("メモ一覧は単一見出しだけを持ち不要な表示範囲ラベルを残さない", () => {
@@ -80,15 +88,15 @@ test("コンテナ幅から3モードを判定しモード変更時に既定状�
 test("Compactカード収納とMobile左右ドロワーの排他制御を行う", () => {
   assert.match(css, /body\.compact-card-hidden \.preview-card\s*\{[^}]*display:\s*none;/s);
   assert.match(css, /body\.mobile-card-open \.preview-card\s*\{[^}]*transform:\s*translateX\(0\)/s);
-  assert.match(app, /if \(memoPaneOpen\) \{\s*mobileCardOpen = false;/s);
-  assert.match(app, /if \(mobileCardOpen\) \{\s*memoPaneOpen = false;/s);
+  assert.match(app, /setContextPanelTab\("memo-list"/);
+  assert.match(app, /if \(mobileCardOpen\) \{\s*memoPaneOpen = false;\s*setContextPanelOpen\(false/s);
   assert.match(app, /event\.key === "Escape" && closeLayoutOverlays\(\)/);
   assert.match(app, /layoutBackdrop\.addEventListener\("click", \(\) => closeLayoutOverlays\(\)\)/);
 });
 
 test("メモ選択で一覧ドロワーを閉じ、背景の誤操作を抑止する", () => {
   assert.match(app, /openNote\(note\.id\);\s*setMemoPaneOpen\(false, \{ restoreFocus: false \}\);/);
-  assert.match(app, /memoSidebar\.inert = !sidebarVisible;/);
+  assert.match(app, /contextPanelTab === "memo-list"/);
   assert.match(app, /editorCard\.inert = overlayOpen;/);
   assert.match(css, /@media \(prefers-reduced-motion: reduce\)[^{]*\{[^}]*\.sidebar,[^}]*\.preview-card,/s);
 });
