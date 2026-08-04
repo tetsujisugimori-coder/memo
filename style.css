@@ -841,25 +841,6 @@ body.collections-open .collection-explorer {
   transition: transform 180ms ease, visibility 0s linear 180ms;
 }
 
-body.ai-open .ai-panel {
-  transform: translateX(0);
-  visibility: visible;
-  transition-delay: 0s;
-}
-
-body.ai-open .sidebar {
-  visibility: hidden;
-}
-
-body.ai-open .ai-robot-button {
-  right: 300px;
-}
-
-body.ai-open .related-toggle {
-  opacity: 0;
-  pointer-events: none;
-}
-
 .ai-panel-head {
   min-height: 64px;
   border-bottom: 1px solid var(--line);
@@ -3353,10 +3334,6 @@ body.related-open .related-toggle {
     transition: transform 160ms ease;
   }
 
-  body.memo-pane-open .sidebar {
-    transform: translateX(0);
-  }
-
   .memo-drawer-head button,
   .layout-pane-button {
     display: inline-flex;
@@ -3395,16 +3372,8 @@ body.related-open .related-toggle {
     display: none;
   }
 
-  body.ai-open .sidebar {
-    visibility: hidden;
-  }
-
   .ai-panel {
     width: min(380px, 92vw);
-  }
-
-  body.ai-open .ai-robot-button {
-    right: min(380px, 92vw);
   }
 }
 
@@ -3609,12 +3578,6 @@ body.related-open .related-toggle {
 
   .ai-panel {
     width: 100vw;
-  }
-
-  body.ai-open .ai-robot-button {
-    right: 8px;
-    bottom: auto;
-    top: max(66px, env(safe-area-inset-top));
   }
 
   .ai-panel-scroll {

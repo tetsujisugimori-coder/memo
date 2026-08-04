@@ -607,7 +607,6 @@ let attachmentObjectUrls = new Map();
 let pdfObjectUrls = new Map();
 let pdfObjectUrlTimers = new Map();
 let layoutMode = "wide";
-let memoPaneOpen = false;
 let mobileCardOpen = false;
 let compactCardVisible = true;
 let contextPanelTab = "collection";
@@ -856,11 +855,10 @@ function syncLayoutMode(force = false, width = document.body.clientWidth) {
   if (!force && nextMode === layoutMode) return;
 
   layoutMode = nextMode;
-  memoPaneOpen = false;
   mobileCardOpen = false;
   compactCardVisible = true;
   document.body.dataset.layoutMode = layoutMode;
-  document.body.classList.remove("memo-pane-open", "mobile-card-open", "compact-card-hidden");
+  document.body.classList.remove("mobile-card-open", "compact-card-hidden");
   updateResponsiveLayoutUi();
   if (layoutMode === "wide" && !contextPanelOpen && !contextPanelUserClosed) {
     setContextPanelOpen(true, { restoreFocus: false, explicit: false });
@@ -903,6 +901,7 @@ function setContextPanelTab(tab, { focus = true } = {}) {
     button?.setAttribute("aria-selected", String(selected));
     button?.classList.toggle("active", selected);
   });
+  setAiAssistantPanelActive(nextTab === "ai");
   collectionsBtn?.setAttribute("aria-expanded", String(nextTab === "collection"));
   if (nextTab === "collection") renderCollectionExplorer();
   if (nextTab === "memo-list") renderMemoListPanel();
@@ -910,6 +909,14 @@ function setContextPanelTab(tab, { focus = true } = {}) {
     const button = nextTab === "collection" ? contextCollectionTab : nextTab === "ai" ? contextAiTab : contextMemoListTab;
     button?.focus();
   }
+}
+
+function setAiAssistantPanelActive(active) {
+  aiAssistantState.panelOpen = Boolean(active);
+  document.body.classList.toggle("ai-open", aiAssistantState.panelOpen);
+  aiRobotBtn.setAttribute("aria-expanded", String(aiAssistantState.panelOpen));
+  aiRobotBtn.setAttribute("aria-label", aiAssistantState.panelOpen ? "AIアシスタントを閉じる" : "AIアシスタントを開く");
+  aiBackdrop.hidden = !aiAssistantState.panelOpen || layoutMode === "wide";
 }
 
 function renderMemoListPanel() {
@@ -921,8 +928,7 @@ function renderMemoListPanel() {
   }
 }
 
-function setMemoPaneOpen(open, { restoreFocus = true } = {}) {
-  memoPaneOpen = false;
+function setMemoListPanelOpen(open, { restoreFocus = true } = {}) {
   if (open) {
     mobileCardOpen = false;
     setContextPanelTab("memo-list", { focus: false });
@@ -942,7 +948,6 @@ function setCardPaneOpen(open, { restoreFocus = true } = {}) {
   } else {
     mobileCardOpen = Boolean(open);
     if (mobileCardOpen) {
-      memoPaneOpen = false;
       setContextPanelOpen(false, { restoreFocus: false, explicit: false });
       setRelatedDrawerOpen(false, { restoreFocus: false });
     }
@@ -953,10 +958,6 @@ function setCardPaneOpen(open, { restoreFocus = true } = {}) {
 }
 
 function closeLayoutOverlays({ restoreFocus = true } = {}) {
-  if (memoPaneOpen) {
-    setMemoPaneOpen(false, { restoreFocus });
-    return true;
-  }
   if (mobileCardOpen) {
     setCardPaneOpen(false, { restoreFocus });
     return true;
@@ -968,9 +969,8 @@ function updateResponsiveLayoutUi() {
   const cardVisible = layoutMode === "wide"
     || (layoutMode === "compact" && compactCardVisible)
     || (layoutMode === "mobile" && mobileCardOpen);
-  const overlayOpen = memoPaneOpen || (layoutMode === "mobile" && mobileCardOpen);
+  const overlayOpen = layoutMode === "mobile" && mobileCardOpen;
 
-  document.body.classList.toggle("memo-pane-open", memoPaneOpen);
   document.body.classList.toggle("mobile-card-open", layoutMode === "mobile" && mobileCardOpen);
   document.body.classList.toggle("compact-card-hidden", layoutMode === "compact" && !compactCardVisible);
   document.body.classList.toggle("layout-overlay-open", overlayOpen);
@@ -4768,15 +4768,9 @@ function setAiPanelOpen(open, { restoreFocus = true, launchMode = null } = {}) {
   if (open && !wasOpen && launchMode === null) {
     resetAiAssistantConversation();
   }
-  aiAssistantState.panelOpen = Boolean(open);
-  if (aiAssistantState.panelOpen) setContextPanelTab("ai", { focus: false });
+  if (open) setContextPanelTab("ai", { focus: false });
   else if (contextPanelTab === "ai") setContextPanelTab("collection", { focus: false });
-  document.body.classList.toggle("ai-open", aiAssistantState.panelOpen);
-  aiPanel.setAttribute("aria-hidden", String(!aiAssistantState.panelOpen));
-  aiPanel.inert = !aiAssistantState.panelOpen;
-  aiRobotBtn.setAttribute("aria-expanded", String(aiAssistantState.panelOpen));
-  aiRobotBtn.setAttribute("aria-label", aiAssistantState.panelOpen ? "AIアシスタントを閉じる" : "AIアシスタントを開く");
-  aiBackdrop.hidden = !aiAssistantState.panelOpen || layoutMode === "wide";
+  else setAiAssistantPanelActive(false);
   if (aiAssistantState.panelOpen) {
     setRelatedDrawerOpen(false, { restoreFocus: false });
     closeLayoutOverlays({ restoreFocus: false });
@@ -7122,8 +7116,8 @@ if (contextMemoListTab) contextMemoListTab.addEventListener("click", () => setCo
 if (closeContextPanelBtn) closeContextPanelBtn.addEventListener("click", () => setContextPanelOpen(false));
 if (closeCollectionsBtn) closeCollectionsBtn.addEventListener("click", () => setContextPanelOpen(false));
 if (collectionBackdrop) collectionBackdrop.addEventListener("click", () => toggleCollectionExplorer(false));
-if (memoPaneBtn) memoPaneBtn.addEventListener("click", () => setMemoPaneOpen(!(contextPanelOpen && contextPanelTab === "memo-list")));
-if (closeMemoPaneBtn) closeMemoPaneBtn.addEventListener("click", () => setMemoPaneOpen(false));
+if (memoPaneBtn) memoPaneBtn.addEventListener("click", () => setMemoListPanelOpen(!(contextPanelOpen && contextPanelTab === "memo-list")));
+if (closeMemoPaneBtn) closeMemoPaneBtn.addEventListener("click", () => setMemoListPanelOpen(false));
 if (cardPaneBtn) cardPaneBtn.addEventListener("click", () => {
   const open = layoutMode === "compact" ? !compactCardVisible : !mobileCardOpen;
   setCardPaneOpen(open);

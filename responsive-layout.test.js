@@ -55,6 +55,13 @@ test("memo selection closes only the narrow drawer and preserves wide context st
   assert.match(app, /layoutMode === "wide" && !contextPanelOpen && !contextPanelUserClosed/);
 });
 
+test("AIタブからメモ一覧へ戻ると旧AIドロワー状態を残さない", () => {
+  assert.match(app, /setAiAssistantPanelActive\(nextTab === "ai"\)/);
+  assert.match(app, /function setAiAssistantPanelActive\(active\) \{[\s\S]*?document\.body\.classList\.toggle\("ai-open", aiAssistantState\.panelOpen\)/);
+  assert.doesNotMatch(app, /memoPaneOpen/);
+  assert.doesNotMatch(css, /body\.ai-open \.sidebar/);
+});
+
 test("メモ一覧は単一見出しだけを持ち不要な表示範囲ラベルを残さない", () => {
   const sidebar = html.match(/<aside id="memoSidebar"[\s\S]*?<\/aside>/)?.[0] || "";
   const appHeader = html.match(/<header class="app-header">[\s\S]*?<\/header>/)?.[0] || "";
@@ -82,7 +89,7 @@ test("コンテナ幅から3モードを判定しモード変更時に既定状�
   assert.match(css, /@container app-width \(max-width: 1039\.98px\)/);
   assert.match(css, /@container app-width \(max-width: 719\.98px\)/);
   assert.match(app, /if \(width < 720\) return "mobile";\s*if \(width < 1040\) return "compact";\s*return "wide";/);
-  assert.match(app, /memoPaneOpen = false;\s*mobileCardOpen = false;\s*compactCardVisible = true;/);
+  assert.match(app, /mobileCardOpen = false;\s*compactCardVisible = true;/);
 
   const modeFunctionSource = app.match(/function layoutModeForWidth\(width\) \{[\s\S]*?\n\}/)?.[0] || "";
   const layoutModeForWidth = Function(`${modeFunctionSource}; return layoutModeForWidth;`)();
@@ -95,8 +102,8 @@ test("コンテナ幅から3モードを判定しモード変更時に既定状�
 test("Compactカード収納とMobile左右ドロワーの排他制御を行う", () => {
   assert.match(css, /body\.compact-card-hidden \.preview-card\s*\{[^}]*display:\s*none;/s);
   assert.match(css, /body\.mobile-card-open \.preview-card\s*\{[^}]*transform:\s*translateX\(0\)/s);
-  assert.match(app, /setContextPanelTab\("memo-list"/);
-  assert.match(app, /if \(mobileCardOpen\) \{\s*memoPaneOpen = false;\s*setContextPanelOpen\(false/s);
+  assert.match(app, /function setMemoListPanelOpen\(open/);
+  assert.match(app, /if \(mobileCardOpen\) \{\s*setContextPanelOpen\(false/s);
   assert.match(app, /event\.key === "Escape" && closeLayoutOverlays\(\)/);
   assert.match(app, /layoutBackdrop\.addEventListener\("click", \(\) => closeLayoutOverlays\(\)\)/);
 });
