@@ -367,6 +367,16 @@ const collectionsBtn = $("collectionsBtn");
 const collectionExplorer = $("collectionExplorer");
 const collectionBackdrop = $("collectionBackdrop");
 const closeCollectionsBtn = $("closeCollectionsBtn");
+const contextPanel = $("contextPanel");
+const contextCollectionTab = $("contextCollectionTab");
+const contextAiTab = $("contextAiTab");
+const contextNewMemosTab = $("contextNewMemosTab");
+const closeContextPanelBtn = $("closeContextPanelBtn");
+const newMemosPanel = $("newMemosPanel");
+const newMemosList = $("newMemosList");
+const newMemosEmpty = $("newMemosEmpty");
+const newMemosCount = $("newMemosCount");
+const newMemoFromPanelBtn = $("newMemoFromPanelBtn");
 const memoSidebar = $("memoSidebar");
 const memoPaneBtn = $("memoPaneBtn");
 const closeMemoPaneBtn = $("closeMemoPaneBtn");
@@ -604,6 +614,8 @@ let layoutMode = "wide";
 let memoPaneOpen = false;
 let mobileCardOpen = false;
 let compactCardVisible = true;
+let contextPanelTab = "collection";
+let contextPanelOpen = true;
 let globalFontSettings = { ...DEFAULT_FONT_SETTINGS };
 let fontSettingsDraft = null;
 let pendingFontSelection = null;
@@ -638,7 +650,14 @@ let aiAssistantState = {
 const enqueueAttachmentAddition = createKeyedSerialQueue();
 const pendingAttachmentAdditions = new Map();
 
+function mountContextPanel() {
+  if (!contextPanel) return;
+  contextPanel.append(collectionExplorer, aiPanel, newMemosPanel);
+  setContextPanelTab("collection", { focus: false });
+}
+
 // ページ読み込み後、すぐにアプリを起動します。
+mountContextPanel();
 init();
 
 // 起動処理。DBを開き、初期メモを用意し、今日メモを開いて即入力できる状態にします。
@@ -845,9 +864,67 @@ function syncLayoutMode(force = false, width = document.body.clientWidth) {
   compactCardVisible = true;
   document.body.dataset.layoutMode = layoutMode;
   document.body.classList.remove("memo-pane-open", "mobile-card-open", "compact-card-hidden");
-  if (document.body.classList.contains("collections-open")) toggleCollectionExplorer(false);
   updateResponsiveLayoutUi();
   if (aiAssistantState.panelOpen) aiBackdrop.hidden = layoutMode === "wide";
+}
+
+function setContextPanelOpen(open, { restoreFocus = true } = {}) {
+  contextPanelOpen = Boolean(open);
+  contextPanel?.classList.toggle("context-panel-closed", !contextPanelOpen);
+  contextPanel?.setAttribute("aria-hidden", String(!contextPanelOpen));
+  if (!contextPanelOpen) {
+    contextPanel?.setAttribute("inert", "");
+    if (restoreFocus && layoutMode !== "wide") collectionsBtn?.focus();
+  } else {
+    contextPanel?.removeAttribute("inert");
+  }
+}
+
+function setContextPanelTab(tab, { focus = true } = {}) {
+  const nextTab = ["collection", "ai", "new-memos"].includes(tab) ? tab : "collection";
+  contextPanelTab = nextTab;
+  setContextPanelOpen(true, { restoreFocus: false });
+  const panels = [
+    ["collection", collectionExplorer, contextCollectionTab],
+    ["ai", aiPanel, contextAiTab],
+    ["new-memos", newMemosPanel, contextNewMemosTab]
+  ];
+  panels.forEach(([id, panel, button]) => {
+    const selected = id === nextTab;
+    if (panel) {
+      panel.hidden = !selected;
+      panel.setAttribute("aria-hidden", String(!selected));
+      panel.inert = !selected;
+    }
+    button?.setAttribute("aria-selected", String(selected));
+    button?.classList.toggle("active", selected);
+  });
+  collectionsBtn?.setAttribute("aria-expanded", String(nextTab === "collection"));
+  if (nextTab === "collection") renderCollectionExplorer();
+  if (nextTab === "new-memos") renderNewMemosPanel();
+  if (focus) {
+    const button = nextTab === "collection" ? contextCollectionTab : nextTab === "ai" ? contextAiTab : contextNewMemosTab;
+    button?.focus();
+  }
+}
+
+function renderNewMemosPanel() {
+  if (!newMemosList || !newMemosEmpty) return;
+  const recent = activeNotes().slice().sort((a, b) => Number(b.createdAt || 0) - Number(a.createdAt || 0));
+  newMemosList.replaceChildren();
+  newMemosCount.textContent = String(recent.length);
+  newMemosCount.hidden = recent.length === 0;
+  newMemosEmpty.hidden = recent.length > 0;
+  recent.slice(0, 30).forEach((note) => {
+    const item = document.createElement("button");
+    item.type = "button";
+    item.className = "new-memo-item";
+    item.setAttribute("role", "listitem");
+    item.classList.toggle("active", note.id === currentId);
+    item.innerHTML = `<strong>${escapeHtml(note.title || "無題メモ")}</strong><span>${escapeHtml(snippet(note.body))}</span>`;
+    item.addEventListener("click", () => openNote(note.id));
+    newMemosList.appendChild(item);
+  });
 }
 
 function setMemoPaneOpen(open, { restoreFocus = true } = {}) {
@@ -855,7 +932,7 @@ function setMemoPaneOpen(open, { restoreFocus = true } = {}) {
   memoPaneOpen = Boolean(open);
   if (memoPaneOpen) {
     mobileCardOpen = false;
-    if (document.body.classList.contains("collections-open")) toggleCollectionExplorer(false);
+    setContextPanelOpen(false, { restoreFocus: false });
     setRelatedDrawerOpen(false, { restoreFocus: false });
   }
   updateResponsiveLayoutUi();
@@ -871,7 +948,7 @@ function setCardPaneOpen(open, { restoreFocus = true } = {}) {
     mobileCardOpen = Boolean(open);
     if (mobileCardOpen) {
       memoPaneOpen = false;
-      if (document.body.classList.contains("collections-open")) toggleCollectionExplorer(false);
+      setContextPanelOpen(false, { restoreFocus: false });
       setRelatedDrawerOpen(false, { restoreFocus: false });
     }
   }
@@ -1895,6 +1972,7 @@ function uniqueTitle(base) {
 function renderAll() {
   renderList();
   renderCollectionExplorer();
+  renderNewMemosPanel();
   renderNoteMeta();
   renderRelated();
   renderDiscovery();
@@ -4697,6 +4775,8 @@ function setAiPanelOpen(open, { restoreFocus = true, launchMode = null } = {}) {
     resetAiAssistantConversation();
   }
   aiAssistantState.panelOpen = Boolean(open);
+  if (aiAssistantState.panelOpen) setContextPanelTab("ai", { focus: false });
+  else if (contextPanelTab === "ai") setContextPanelTab("collection", { focus: false });
   document.body.classList.toggle("ai-open", aiAssistantState.panelOpen);
   aiPanel.setAttribute("aria-hidden", String(!aiAssistantState.panelOpen));
   aiPanel.inert = !aiAssistantState.panelOpen;
@@ -4706,7 +4786,6 @@ function setAiPanelOpen(open, { restoreFocus = true, launchMode = null } = {}) {
   if (aiAssistantState.panelOpen) {
     setRelatedDrawerOpen(false, { restoreFocus: false });
     closeLayoutOverlays({ restoreFocus: false });
-    if (document.body.classList.contains("collections-open")) toggleCollectionExplorer(false);
     memoSidebar.setAttribute("aria-hidden", "true");
     memoSidebar.inert = true;
     closeAiPanelBtn.focus();
@@ -5767,16 +5846,13 @@ function formatMegabytes(bytes) {
 }
 
 function toggleCollectionExplorer(force) {
-  const open = typeof force === "boolean" ? force : !document.body.classList.contains("collections-open");
-  if (open) closeLayoutOverlays({ restoreFocus: false });
-  document.body.classList.toggle("collections-open", open);
-  collectionExplorer.setAttribute("aria-hidden", String(!open));
-  collectionsBtn.setAttribute("aria-expanded", String(open));
-  collectionBackdrop.hidden = !open || window.matchMedia("(min-width: 1201px)").matches;
+  const open = typeof force === "boolean" ? force : contextPanelTab !== "collection" || !contextPanelOpen;
   if (open) {
-    renderCollectionExplorer();
+    closeLayoutOverlays({ restoreFocus: false });
+    setContextPanelTab("collection", { focus: false });
     collectionTree.focus();
   } else {
+    setContextPanelTab("collection", { focus: false });
     closeCollectionMenus();
   }
 }
@@ -7044,8 +7120,21 @@ newBtn.addEventListener("click", async () => {
   openNote(note.id);
 });
 
-if (collectionsBtn) collectionsBtn.addEventListener("click", () => toggleCollectionExplorer());
-if (closeCollectionsBtn) closeCollectionsBtn.addEventListener("click", () => toggleCollectionExplorer(false));
+if (collectionsBtn) collectionsBtn.addEventListener("click", () => setContextPanelTab("collection"));
+if (contextCollectionTab) contextCollectionTab.addEventListener("click", () => setContextPanelTab("collection"));
+if (contextAiTab) contextAiTab.addEventListener("click", () => {
+  if (!aiAssistantState.panelOpen) openAiAssistant();
+  else setContextPanelTab("ai");
+});
+if (contextNewMemosTab) contextNewMemosTab.addEventListener("click", () => setContextPanelTab("new-memos"));
+if (closeContextPanelBtn) closeContextPanelBtn.addEventListener("click", () => setContextPanelOpen(false));
+if (closeCollectionsBtn) closeCollectionsBtn.addEventListener("click", () => setContextPanelOpen(false));
+if (newMemoFromPanelBtn) newMemoFromPanelBtn.addEventListener("click", async () => {
+  const note = await createNote("新規メモ", "");
+  notes = await getAllNotes();
+  renderAll();
+  openNote(note.id);
+});
 if (collectionBackdrop) collectionBackdrop.addEventListener("click", () => toggleCollectionExplorer(false));
 if (memoPaneBtn) memoPaneBtn.addEventListener("click", () => setMemoPaneOpen(!memoPaneOpen));
 if (closeMemoPaneBtn) closeMemoPaneBtn.addEventListener("click", () => setMemoPaneOpen(false));
@@ -7357,9 +7446,6 @@ editor.addEventListener("select", updateAiTargetPreview);
 window.addEventListener("resize", () => {
   syncLayoutMode();
   renderSaveStatus();
-  if (document.body.classList.contains("collections-open")) {
-    collectionBackdrop.hidden = window.matchMedia("(min-width: 1201px)").matches;
-  }
 });
 document.addEventListener("click", (event) => {
   if (!event.target.closest(".collection-popup-menu,.collection-more,.collection-memo-more,#collectionAddMenuBtn")) closeCollectionMenus();
@@ -7379,8 +7465,8 @@ document.addEventListener("keydown", (event) => {
     setRelatedDrawerOpen(false);
     return;
   }
-  if (event.key === "Escape" && document.body.classList.contains("collections-open") && !collectionMoveDialog.open) {
-    toggleCollectionExplorer(false);
+  if (event.key === "Escape" && contextPanelOpen && contextPanelTab === "collection" && !collectionMoveDialog.open) {
+    setContextPanelOpen(false);
     return;
   }
   if (!collectionTree.contains(document.activeElement)) return;

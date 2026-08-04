@@ -54,12 +54,25 @@ test("purpose and reference remain independently selectable, including shortcut 
 
 test("normal robot launch starts a fresh free chat while shortcuts preserve launch parameters", () => {
   assert.match(app, /setAiPanelOpen\(true, \{ launchMode: options\.mode \? mode : null \}\)/);
-  const reset = app.match(/function resetAiAssistantConversation\(\)[\s\S]*?\n}\n\nfunction setAiPanelOpen/)?.[0] || "";
+  const reset = app.match(/function resetAiAssistantConversation\(\)[\s\S]*?\r?\n}\r?\n\r?\nfunction setAiPanelOpen/)?.[0] || "";
   ["referenceMode: AI_REFERENCE_MODES.NONE", "reference: emptyAiReference\(\)", "specifiedNoteId: null", "collectionId: null", "selectedTextSnapshot: \"\"", "history: \[\]", "answer: \"\"", "error: \"\"", "requestPurpose: \"question\"", "aiInstructionInput.value = \"\""].forEach((fragment) => {
     assert.match(reset, new RegExp(fragment.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
   });
   assert.match(app, /openAiAssistant\(\{ mode: AI_REFERENCE_MODES\.CURRENT_NOTE, purpose: "summarize", prompt:/);
   assert.match(app, /openAiAssistant\(\{ mode: AI_REFERENCE_MODES\.SELECTED_TEXT, purpose: "question", prompt:/);
+});
+
+test("right context panel contains one active view for collection, AI, and new memos", () => {
+  assert.match(html, /id="contextPanel" class="context-panel"/);
+  assert.match(html, /id="contextCollectionTab"[^>]+aria-selected="true"/);
+  assert.match(html, /id="contextAiTab"/);
+  assert.match(html, /id="contextNewMemosTab"/);
+  assert.match(html, /id="newMemosPanel"[^>]+hidden/);
+  assert.match(app, /let contextPanelTab = "collection"/);
+  assert.match(app, /setContextPanelTab\("collection"/);
+  assert.match(app, /panel\.hidden = !selected/);
+  assert.match(css, /\.context-panel\s*\{/);
+  assert.match(css, /grid-template-columns:\s*300px minmax\(360px, 1fr\) 340px/);
 });
 
 test("single chat panel supports explicit reference modes and normal launch resets to none", () => {

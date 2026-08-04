@@ -28,7 +28,16 @@ test("本文入力欄の後ろに表ブロック編集領域と境界余白を�
 });
 
 test("Mermaid表示用CSSの配信キャッシュを更新する", () => {
-  assert.match(html, /style\.css\?v=0\.4\.0-25/);
+  assert.match(html, /style\.css\?v=0\.4\.0-26/);
+});
+
+test("右側コンテキストパネルは単一の固定列とモバイルドロワーを持つ", () => {
+  assert.match(html, /id="contextPanel" class="context-panel"/);
+  assert.match(app, /let contextPanelTab = "collection"/);
+  assert.match(app, /setContextPanelTab\("collection"/);
+  assert.match(css, /grid-template-columns:\s*300px minmax\(360px, 1fr\) 340px/);
+  assert.match(css, /\.context-panel\.context-panel-closed\s*\{\s*display:\s*none/);
+  assert.match(css, /@container app-width \(max-width: 719\.98px\)[\s\S]*?width:\s*100vw/);
 });
 
 test("メモ一覧は単一見出しだけを持ち不要な表示範囲ラベルを残さない", () => {
