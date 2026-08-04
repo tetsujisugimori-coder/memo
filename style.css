@@ -909,6 +909,98 @@ body.ai-open .related-toggle {
   gap: 8px;
 }
 
+.ai-reference-heading {
+  display: grid;
+  gap: 6px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  padding: 10px;
+  background: var(--section-bg);
+}
+
+.ai-reference-heading strong { font-size: 15px; }
+
+.ai-reference-badge {
+  width: fit-content;
+  max-width: 100%;
+  border-radius: 999px;
+  padding: 4px 9px;
+  background: var(--input-bg);
+  color: var(--muted);
+  font-size: 11px;
+  overflow-wrap: anywhere;
+}
+
+.ai-reference-badge:not([data-mode="none"]) {
+  border: 1px solid var(--accent);
+  color: var(--accent);
+}
+
+.ai-reference-heading button { justify-self: start; }
+
+.ai-specified-note-picker {
+  display: grid;
+  gap: 7px;
+}
+
+.ai-specified-note-picker[hidden] { display: none; }
+
+.ai-specified-note-list {
+  max-height: 170px;
+  overflow-y: auto;
+  display: grid;
+  gap: 4px;
+}
+
+.ai-specified-note-option {
+  width: 100%;
+  justify-content: flex-start;
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+
+.ai-specified-note-option[aria-selected="true"] {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.ai-chat-history {
+  min-height: 180px;
+  max-height: 44vh;
+  overflow-y: auto;
+  display: grid;
+  align-content: start;
+  gap: 10px;
+}
+
+.ai-chat-empty {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.ai-chat-message {
+  min-width: 0;
+  display: grid;
+  gap: 5px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  padding: 9px;
+  background: var(--section-bg);
+}
+
+.ai-chat-message.user { background: var(--accent-soft); }
+.ai-chat-message-meta { color: var(--muted); font-size: 10px; font-weight: 800; }
+.ai-chat-message pre {
+  margin: 0;
+  color: var(--ink);
+  font: inherit;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.ai-chat-message-actions { display: flex; justify-content: flex-end; }
+.ai-chat-message-actions button { min-height: 32px; padding: 4px 8px; }
+
 .ai-status-badge {
   border: 1px solid var(--line);
   border-radius: 999px;
@@ -944,6 +1036,7 @@ body.ai-open .related-toggle {
 }
 
 .ai-field select,
+.ai-field input,
 .ai-field textarea,
 .ai-settings-field select,
 .ai-settings-field input,

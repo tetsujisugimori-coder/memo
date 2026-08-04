@@ -1,6 +1,11 @@
 (function initAiPrompts(globalScope) {
   "use strict";
 
+  const contextApi = typeof module !== "undefined" && module.exports
+    ? require("./ai-context")
+    : globalScope.MemoNexusAiContext;
+  const { buildReferenceMessage, createAiReferenceContext } = contextApi;
+
   const AI_PROMPTS = Object.freeze({
     summarize: Object.freeze({
       id: "summarize",
@@ -45,22 +50,34 @@
   }
 
   function buildAiMessages(options = {}) {
-    const preset = promptPreset(options.purpose);
-    const targetText = String(options.targetText || "").trim();
+    const purpose = options.purpose || "question";
+    const preset = promptPreset(purpose);
+    const reference = options.reference
+      ? createAiReferenceContext(options.reference)
+      : createAiReferenceContext({ mode: "current-note", content: options.targetText });
     const userInstruction = String(options.userInstruction || "").trim();
     const language = options.translationLanguage === "en" ? "英語" : "日本語";
-    if (!targetText) throw new Error("AIへ送る対象メモが空です。");
     if (preset.id === "question" && !userInstruction) throw new Error("自由質問を入力してください。");
+    if (preset.id !== "question" && reference.mode === "none") throw new Error("この操作には参照する文章が必要です。");
     const purposeInstruction = preset.template.replace("{{language}}", language);
-    const parts = [
-      `[用途]\n${purposeInstruction}`,
-      `[追加指示]\n${userInstruction || "なし"}`,
-      `[対象メモ]\n${targetText}`
-    ];
-    return [
-      { role: "system", content: String(options.systemInstruction || "").trim() },
-      { role: "user", content: parts.join("\n\n") }
-    ].filter((message) => message.content);
+    const messages = [];
+    const systemInstruction = String(options.systemInstruction || "").trim();
+    if (systemInstruction) messages.push({ role: "system", content: systemInstruction });
+    const referenceMessage = buildReferenceMessage(reference);
+    if (referenceMessage) messages.push(referenceMessage);
+    const history = Array.isArray(options.history) ? options.history : [];
+    history.forEach((message) => {
+      if ((message?.role === "user" || message?.role === "assistant") && String(message.content || "").trim()) {
+        messages.push({ role: message.role, content: String(message.content) });
+      }
+    });
+    const taskContent = [`[タスク]\n${purposeInstruction}`];
+    if (userInstruction) taskContent.push(`[利用者の追加指示]\n${userInstruction}`);
+    messages.push({
+      role: "user",
+      content: preset.id === "question" ? userInstruction : taskContent.join("\n\n")
+    });
+    return messages;
   }
 
   function aiAppendMarkdown(answer, heading = "AI回答") {

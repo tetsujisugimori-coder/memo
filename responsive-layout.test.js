@@ -35,7 +35,7 @@ test("メモ一覧は単一見出しだけを持ち不要な表示範囲ラベ�
   const sidebar = html.match(/<aside id="memoSidebar"[\s\S]*?<\/aside>/)?.[0] || "";
   const appHeader = html.match(/<header class="app-header">[\s\S]*?<\/header>/)?.[0] || "";
   assert.match(sidebar, /<strong id="memoListHeading">メモ一覧<\/strong>/);
-  assert.doesNotMatch(html, /すべてのメモ|memoListScopeLabel|currentCollectionLabel/);
+  assert.doesNotMatch(sidebar, /memoListScopeLabel|currentCollectionLabel/);
   assert.doesNotMatch(css, /\.memo-list-scope|\.current-collection/);
   assert.doesNotMatch(appHeader, /memoListHeading/);
   assert.match(app, /memoListHeading\.textContent = heading;\s*memoSidebar\.setAttribute\("aria-label", heading\);/);

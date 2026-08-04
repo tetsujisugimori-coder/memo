@@ -8,7 +8,7 @@
     baseUrl: "http://127.0.0.1:11434",
     selectedModel: "",
     timeoutMs: 60000,
-    systemInstruction: "あなたはメモ整理を支援するアシスタントです。対象メモにない事実を断定せず、生成結果だけを返してください。"
+    systemInstruction: "あなたは利用者の質問や文章作成を支援するアシスタントです。参照コンテキストがある場合だけ、その内容を資料として使用してください。"
   });
 
   const AI_CONNECTION_STATES = Object.freeze({
