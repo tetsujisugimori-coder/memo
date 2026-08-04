@@ -48,6 +48,13 @@ test("desktop has one memo list owner and no fixed blank context column when clo
   assert.match(app, /document\.body\.classList\.toggle\("context-panel-closed", !contextPanelOpen\)/);
 });
 
+test("memo selection closes only the narrow drawer and preserves wide context state", () => {
+  assert.match(app, /openNote\(note\.id\);\s*if \(layoutMode !== "wide"\)/s);
+  assert.match(app, /setContextPanelOpen\(false, \{ restoreFocus: false, explicit: false \}\)/);
+  assert.match(app, /let contextPanelUserClosed = false/);
+  assert.match(app, /layoutMode === "wide" && !contextPanelOpen && !contextPanelUserClosed/);
+});
+
 test("メモ一覧は単一見出しだけを持ち不要な表示範囲ラベルを残さない", () => {
   const sidebar = html.match(/<aside id="memoSidebar"[\s\S]*?<\/aside>/)?.[0] || "";
   const appHeader = html.match(/<header class="app-header">[\s\S]*?<\/header>/)?.[0] || "";
@@ -95,7 +102,7 @@ test("Compactカード収納とMobile左右ドロワーの排他制御を行う"
 });
 
 test("メモ選択で一覧ドロワーを閉じ、背景の誤操作を抑止する", () => {
-  assert.match(app, /openNote\(note\.id\);\s*setMemoPaneOpen\(false, \{ restoreFocus: false \}\);/);
+  assert.match(app, /openNote\(note\.id\);\s*if \(layoutMode !== "wide"\) \{\s*setContextPanelOpen\(false/s);
   assert.match(app, /contextPanelTab === "memo-list"/);
   assert.match(app, /editorCard\.inert = overlayOpen;/);
   assert.match(css, /@media \(prefers-reduced-motion: reduce\)[^{]*\{[^}]*\.sidebar,[^}]*\.preview-card,/s);

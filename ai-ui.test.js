@@ -86,7 +86,7 @@ test("memo list is moved rather than duplicated and keeps search and selection b
   assert.match(app, /renderMemoListPanel\(\)/);
   assert.match(app, /searchInput\.value\.trim\(\)\.toLowerCase\(\)/);
   assert.match(app, /\.sort\(\(a, b\) => Number\(b\.createdAt \|\| 0\) - Number\(a\.createdAt \|\| 0\)\)/);
-  assert.match(app, /openNote\(note\.id\);\s*setMemoPaneOpen\(false/);
+  assert.match(app, /openNote\(note\.id\);\s*if \(layoutMode !== "wide"\) \{\s*setContextPanelOpen\(false, \{ restoreFocus: false, explicit: false \}\);/s);
   assert.doesNotMatch(app, /function renderNewMemosPanel/);
 });
 
@@ -94,6 +94,13 @@ test("closing collection context actually closes the panel", () => {
   const toggle = app.match(/function toggleCollectionExplorer\(force\)[\s\S]*?\r?\n}\r?\n\r?\nfunction renderCollectionExplorer/)?.[0] || "";
   assert.match(toggle, /setContextPanelOpen\(false/);
   assert.doesNotMatch(toggle, /else\s*\{[\s\S]*setContextPanelTab\("collection"/);
+});
+
+test("memo selection only auto-closes the narrow drawer and wide selection keeps context open", () => {
+  assert.match(app, /if \(layoutMode !== "wide"\) \{\s*setContextPanelOpen\(false, \{ restoreFocus: false, explicit: false \}\);/s);
+  assert.match(app, /let contextPanelUserClosed = false/);
+  assert.match(app, /if \(layoutMode === "wide" && !contextPanelOpen && !contextPanelUserClosed\)/);
+  assert.match(app, /setContextPanelOpen\(true, \{ restoreFocus: false, explicit: false \}\)/);
 });
 
 test("single chat panel supports explicit reference modes and normal launch resets to none", () => {

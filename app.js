@@ -612,6 +612,7 @@ let mobileCardOpen = false;
 let compactCardVisible = true;
 let contextPanelTab = "collection";
 let contextPanelOpen = true;
+let contextPanelUserClosed = false;
 let globalFontSettings = { ...DEFAULT_FONT_SETTINGS };
 let fontSettingsDraft = null;
 let pendingFontSelection = null;
@@ -861,11 +862,16 @@ function syncLayoutMode(force = false, width = document.body.clientWidth) {
   document.body.dataset.layoutMode = layoutMode;
   document.body.classList.remove("memo-pane-open", "mobile-card-open", "compact-card-hidden");
   updateResponsiveLayoutUi();
+  if (layoutMode === "wide" && !contextPanelOpen && !contextPanelUserClosed) {
+    setContextPanelOpen(true, { restoreFocus: false, explicit: false });
+  }
   if (aiAssistantState.panelOpen) aiBackdrop.hidden = layoutMode === "wide";
 }
 
-function setContextPanelOpen(open, { restoreFocus = true } = {}) {
+function setContextPanelOpen(open, { restoreFocus = true, explicit = true } = {}) {
   contextPanelOpen = Boolean(open);
+  if (contextPanelOpen) contextPanelUserClosed = false;
+  else if (explicit) contextPanelUserClosed = true;
   contextPanel?.classList.toggle("context-panel-closed", !contextPanelOpen);
   document.body.classList.toggle("context-panel-closed", !contextPanelOpen);
   contextPanel?.setAttribute("aria-hidden", String(!contextPanelOpen));
@@ -937,7 +943,7 @@ function setCardPaneOpen(open, { restoreFocus = true } = {}) {
     mobileCardOpen = Boolean(open);
     if (mobileCardOpen) {
       memoPaneOpen = false;
-      setContextPanelOpen(false, { restoreFocus: false });
+      setContextPanelOpen(false, { restoreFocus: false, explicit: false });
       setRelatedDrawerOpen(false, { restoreFocus: false });
     }
   }
@@ -1987,7 +1993,9 @@ function renderList() {
     `;
     item.addEventListener("click", () => {
       openNote(note.id);
-      setMemoPaneOpen(false, { restoreFocus: false });
+      if (layoutMode !== "wide") {
+        setContextPanelOpen(false, { restoreFocus: false, explicit: false });
+      }
     });
     memoList.appendChild(item);
   });
