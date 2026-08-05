@@ -7,13 +7,28 @@ const app = fs.readFileSync("app.js", "utf8");
 const css = fs.readFileSync("style.css", "utf8");
 const context = fs.readFileSync("ai-context.js", "utf8");
 
-test("local AI scripts and disabled-by-default settings are connected", () => {
+test("AI provider scripts and disabled-by-default settings are connected", () => {
   assert.match(html, /ai-provider\.js/);
   assert.match(html, /ollama-adapter\.js/);
+  assert.match(html, /gemini-adapter\.js/);
   assert.match(html, /ai-prompts\.js/);
   assert.match(html, /id="aiEnabledInput" type="checkbox"/);
   assert.match(html, /http:\/\/127\.0\.0\.1:11434/);
   assert.match(app, /AI_SETTINGS_STORAGE_KEY/);
+});
+
+test("AI settings select an independent provider and keep Gemini credentials private", () => {
+  assert.match(html, /id="aiProviderSelect"/);
+  assert.match(html, /value="ollama">Ollama/);
+  assert.match(html, /value="gemini">Gemini API/);
+  assert.match(html, /id="aiGeminiApiKeyInput" type="password" autocomplete="off"/);
+  assert.match(html, /APIキーはこの端末のブラウザ内に保存されます/);
+  assert.match(app, /function createAiAdapter\(settings\)/);
+  assert.match(app, /new GeminiAdapter\(\{ geminiApiKey: settings\.geminiApiKey/);
+  assert.match(app, /const gemini = aiSettingsDraft\.provider === "gemini"/);
+  assert.match(app, /aiBaseUrlField\.hidden = gemini/);
+  assert.match(app, /aiGeminiApiKeyField\.hidden = !gemini/);
+  assert.match(app, /withAiProviderSettings\(aiSettingsDraft, aiProviderSelect\.value\)/);
 });
 
 test("robot is an accessible button and controls the single AI panel", () => {
@@ -185,7 +200,7 @@ test("connection checks are latest-request-wins and invalid draft models do not 
   assert.match(app, /const requestId = \+\+aiConnectionRequestId/);
   assert.match(app, /aiConnectionAbortController\?\.abort\(\)/);
   assert.match(app, /requestId !== aiConnectionRequestId \|\| sessionId !== aiSettingsSessionId/);
-  assert.match(app, /aiSettingsDraft = \{ \.\.\.candidate, selectedModel: "" \}/);
+  assert.match(app, /withAiProviderSettings\(candidate, candidate\.provider, \{ selectedModel: "" \}\)/);
   assert.doesNotMatch(app.match(/async function checkAiConnection[\s\S]*?\n}\n\nfunction beginAiSettingsSession/)?.[0] || "", /aiAssistantState\.connection = AI_CONNECTION_STATES\.CONNECTED/);
 });
 

@@ -10,15 +10,50 @@ const {
   isLoopbackBaseUrl,
   normalizeAiSettings,
   normalizeModels,
-  resolveSavedAiState
+  resolveSavedAiState,
+  withAiProviderSettings
 } = require("./ai-provider");
 
 test("AI settings default to disabled local Ollama", () => {
   const settings = normalizeAiSettings({});
   assert.equal(settings.enabled, false);
+  assert.equal(settings.provider, "ollama");
   assert.equal(settings.baseUrl, "http://127.0.0.1:11434");
   assert.equal(isLoopbackBaseUrl(settings.baseUrl), true);
   assert.equal(isLoopbackBaseUrl("https://ollama.example.com"), false);
+});
+
+test("legacy AI settings migrate into the Ollama provider settings", () => {
+  const settings = normalizeAiSettings({
+    enabled: true,
+    baseUrl: "http://localhost:11434",
+    selectedModel: "qwen3.5:latest"
+  });
+  assert.equal(settings.provider, "ollama");
+  assert.equal(settings.providers.ollama.baseUrl, "http://localhost:11434");
+  assert.equal(settings.providers.ollama.selectedModel, "qwen3.5:latest");
+  assert.equal(settings.geminiApiKey, "");
+});
+
+test("provider-specific settings survive switching between Ollama and Gemini", () => {
+  const ollama = normalizeAiSettings({ baseUrl: "http://localhost:11434", selectedModel: "phi4-mini" });
+  const gemini = normalizeAiSettings(withAiProviderSettings(ollama, "gemini", {
+    apiKey: "test-key",
+    selectedModel: "models/gemini-3.6-flash"
+  }));
+  const returned = normalizeAiSettings(withAiProviderSettings(gemini, "ollama"));
+  assert.equal(gemini.provider, "gemini");
+  assert.equal(gemini.geminiApiKey, "test-key");
+  assert.equal(returned.provider, "ollama");
+  assert.equal(returned.baseUrl, "http://localhost:11434");
+  assert.equal(returned.selectedModel, "phi4-mini");
+  assert.equal(returned.providers.gemini.selectedModel, "models/gemini-3.6-flash");
+});
+
+test("clearing an invalid provider model does not restore the previous selection", () => {
+  const settings = withAiProviderSettings({ provider: "gemini", geminiApiKey: "test-key", selectedModel: "models/removed" }, "gemini", { selectedModel: "" });
+  assert.equal(settings.selectedModel, "");
+  assert.equal(settings.providers.gemini.selectedModel, "");
 });
 
 const verifiedDraft = (overrides = {}) => ({
@@ -83,6 +118,17 @@ test("disabled AI always resolves to disabled without preserving models", () => 
     models: verifiedModels
   });
   assert.deepEqual(state, { preserveModels: false, connection: AI_CONNECTION_STATES.UNCHECKED, generation: AI_GENERATION_STATES.DISABLED });
+});
+
+test("a verified Gemini endpoint preserves Gemini models", () => {
+  const state = resolveSavedAiState({
+    draftSettings: normalizeAiSettings({ enabled: true, provider: "gemini", geminiApiKey: "test-key", selectedModel: "models/gemini-3.6-flash" }),
+    modelsEndpoint: "gemini",
+    draftConnection: AI_CONNECTION_STATES.CONNECTED,
+    models: [{ name: "models/gemini-3.6-flash" }]
+  });
+  assert.equal(state.preserveModels, true);
+  assert.equal(state.generation, AI_GENERATION_STATES.IDLE);
 });
 
 test("verified model families are detected case-insensitively", () => {
