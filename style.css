@@ -32,6 +32,7 @@
   --z-related-backdrop: 90;
   --z-related-drawer: 91;
   --z-related-trigger: 92;
+  --z-ai-trigger: 93;
   --memo-title-font-family: "Yu Gothic UI", "Hiragino Sans", Meiryo, system-ui, sans-serif;
   --memo-title-font-size: 26px;
   --memo-body-font-family: "Yu Gothic UI", "Hiragino Sans", Meiryo, system-ui, sans-serif;
@@ -690,9 +691,9 @@ body.collections-open .collection-explorer {
 
 .ai-robot-button {
   position: fixed;
-  right: -34px;
-  bottom: max(26px, env(safe-area-inset-bottom));
-  z-index: 66;
+  right: 0;
+  bottom: calc(28px + env(safe-area-inset-bottom));
+  z-index: var(--z-ai-trigger);
   width: 84px;
   min-height: 98px;
   border: 0;
@@ -709,7 +710,7 @@ body.collections-open .collection-explorer {
 
 .ai-robot-button:hover,
 .ai-robot-button:focus-visible {
-  right: -14px;
+  right: 0;
   color: var(--ink);
   outline: 3px solid var(--accent-soft);
   outline-offset: 2px;
@@ -2577,7 +2578,7 @@ body.collections-open .collection-explorer {
 
 .related-toggle {
   position: fixed;
-  top: 50%;
+  top: 40vh;
   right: 0;
   /* 右側コンテキストパネルとは独立した、画面端の常設操作です。 */
   z-index: var(--z-related-trigger);
@@ -2662,7 +2663,7 @@ body.related-open .related-panel {
 }
 
 body.related-open .related-toggle {
-  right: min(340px, 90vw);
+  right: 0;
 }
 
 .auxiliary-panel-head {
@@ -3597,8 +3598,8 @@ body.related-open .related-toggle {
   }
 
   .ai-robot-button {
-    right: -25px;
-    bottom: max(12px, env(safe-area-inset-bottom));
+    right: 0;
+    bottom: calc(24px + env(safe-area-inset-bottom));
     width: 64px;
     min-height: 76px;
     transform: scale(0.82);
@@ -3607,7 +3608,7 @@ body.related-open .related-toggle {
 
   .ai-robot-button:hover,
   .ai-robot-button:focus-visible {
-    right: -5px;
+    right: 0;
   }
 
   .ai-panel {
