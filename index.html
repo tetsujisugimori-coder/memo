@@ -216,7 +216,7 @@
         <button id="aiSendBtn" type="button">送信</button>
         <button id="aiStopBtn" type="button" disabled>停止</button>
       </div>
-      <p id="aiGenerationStatus" class="ai-generation-status" role="status" aria-live="polite">設定でローカルAIを有効にしてください。</p>
+      <p id="aiGenerationStatus" class="ai-generation-status" role="status" aria-live="polite">設定でAI機能を有効にしてください。</p>
       <section class="ai-answer-section" aria-labelledby="aiAnswerHeading">
         <h3 id="aiAnswerHeading">AI回答</h3>
         <pre id="aiAnswer" tabindex="0">回答はここに表示されます。</pre>
@@ -226,7 +226,7 @@
           <button id="aiSaveNewBtn" type="button" disabled>新規メモとして保存</button>
         </div>
       </section>
-      <p class="ai-privacy-note">内容は設定したOllamaへだけ送信します。AI回答は確認後に手動で反映してください。</p>
+      <p class="ai-privacy-note">内容は設定したAIプロバイダへ送信します。AI回答は確認後に手動で反映してください。</p>
     </div>
   </aside>
 
@@ -403,17 +403,29 @@
         <p id="fontSettingsStatus" class="settings-note" role="status" aria-live="polite"></p>
       </section>
       <section class="settings-section ai-settings-section" aria-labelledby="aiSettingsHeading">
-        <h2 id="aiSettingsHeading">ローカルAI</h2>
+        <h2 id="aiSettingsHeading">AIアシスタント</h2>
         <label class="ai-enable-setting" for="aiEnabledInput">
           <input id="aiEnabledInput" type="checkbox">
-          <span>Ollamaを使うAI機能を有効にする</span>
+          <span>AI機能を有効にする</span>
         </label>
-        <p class="settings-note">初期状態は無効です。APIキーは不要で、入力内容は設定したOllamaサーバーへ送信されます。</p>
-        <label class="ai-settings-field" for="aiBaseUrlInput">
+        <label class="ai-settings-field" for="aiProviderSelect">
+          <span>AIプロバイダ</span>
+          <select id="aiProviderSelect">
+            <option value="ollama">Ollama（ローカル）</option>
+            <option value="gemini">Gemini API（クラウド）</option>
+          </select>
+        </label>
+        <p id="aiProviderDescription" class="settings-note">初期状態は無効です。OllamaはAPIキー不要で、入力内容は設定したOllamaサーバーへ送信されます。</p>
+        <label id="aiBaseUrlField" class="ai-settings-field" for="aiBaseUrlInput">
           <span>Ollama URL</span>
           <input id="aiBaseUrlInput" type="url" value="http://127.0.0.1:11434" spellcheck="false">
         </label>
         <p id="aiExternalUrlWarning" class="settings-note ai-external-warning" hidden>ローカル以外のURLです。メモ内容の送信先を確認してください。</p>
+        <label id="aiGeminiApiKeyField" class="ai-settings-field" for="aiGeminiApiKeyInput" hidden>
+          <span>Gemini APIキー</span>
+          <input id="aiGeminiApiKeyInput" type="password" autocomplete="off" spellcheck="false">
+        </label>
+        <p id="aiGeminiPrivacyNote" class="settings-note" hidden>APIキーはこの端末のブラウザのlocalStorageに保存されます。PCとiPhoneなど別端末では共有されないため、それぞれ入力してください。共有端末やプライベートブラウズでの保存可否に注意してください。</p>
         <div class="settings-actions">
           <button id="aiCheckConnectionBtn" type="button">接続確認</button>
           <button id="aiRefreshModelsBtn" type="button">モデル一覧を更新</button>
@@ -423,7 +435,7 @@
           <span>使用モデル</span>
           <select id="aiModelSelect"><option value="">モデル未選択</option></select>
         </label>
-        <p class="settings-note">Qwen・Phi・Granite系は確認済み候補として表示します。他のモデルも選択できますが動作未確認です。</p>
+        <p id="aiModelHelp" class="settings-note">Qwen・Phi・Granite系は確認済み候補として表示します。他のモデルも選択できますが動作未確認です。</p>
         <label class="ai-settings-field" for="aiTimeoutInput">
           <span>タイムアウト（秒）</span>
           <input id="aiTimeoutInput" type="number" min="5" max="300" step="5" value="60">
@@ -583,11 +595,12 @@
   <script src="calculator-link.js?v=0.4.0-1"></script>
   <script src="font-settings.js?v=0.4.0-2"></script>
   <script src="markdown-enhancements-utils.js?v=0.4.0-4"></script>
-  <script src="ai-provider.js?v=0.4.0-2"></script>
+  <script src="ai-provider.js?v=0.4.0-3"></script>
   <script src="ollama-adapter.js?v=0.4.0-1"></script>
+  <script src="gemini-adapter.js?v=0.4.0-1"></script>
   <script src="ai-context.js?v=0.4.0-1"></script>
   <script src="ai-reference-selection.js?v=0.4.0-1"></script>
   <script src="ai-prompts.js?v=0.4.0-2"></script>
-  <script src="app.js?v=0.4.0-42"></script>
+  <script src="app.js?v=0.4.0-46"></script>
 </body>
 </html>

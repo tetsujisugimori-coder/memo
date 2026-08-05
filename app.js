@@ -341,9 +341,11 @@ const {
   groupModels,
   isLoopbackBaseUrl,
   normalizeAiSettings,
-  resolveSavedAiState
+  resolveSavedAiState,
+  withAiProviderSettings
 } = window.MemoNexusAiProvider;
 const { OllamaAdapter } = window.MemoNexusOllamaAdapter;
+const { GeminiAdapter, groupGeminiModels } = window.MemoNexusGeminiAdapter;
 const { AI_PROMPTS, aiAppendMarkdown, aiMemoTitle, buildAiMessages } = window.MemoNexusAiPrompts;
 const {
   AI_REFERENCE_MODES,
@@ -570,12 +572,19 @@ const aiSaveNewBtn = $("aiSaveNewBtn");
 const aiSummarizeNoteBtn = $("aiSummarizeNoteBtn");
 const aiSendSelectionBtn = $("aiSendSelectionBtn");
 const aiEnabledInput = $("aiEnabledInput");
+const aiProviderSelect = $("aiProviderSelect");
+const aiProviderDescription = $("aiProviderDescription");
+const aiBaseUrlField = $("aiBaseUrlField");
 const aiBaseUrlInput = $("aiBaseUrlInput");
 const aiExternalUrlWarning = $("aiExternalUrlWarning");
+const aiGeminiApiKeyField = $("aiGeminiApiKeyField");
+const aiGeminiApiKeyInput = $("aiGeminiApiKeyInput");
+const aiGeminiPrivacyNote = $("aiGeminiPrivacyNote");
 const aiCheckConnectionBtn = $("aiCheckConnectionBtn");
 const aiRefreshModelsBtn = $("aiRefreshModelsBtn");
 const aiSettingsConnectionStatus = $("aiSettingsConnectionStatus");
 const aiModelSelect = $("aiModelSelect");
+const aiModelHelp = $("aiModelHelp");
 const aiTimeoutInput = $("aiTimeoutInput");
 const aiSystemInstructionInput = $("aiSystemInstructionInput");
 const aiSaveSettingsBtn = $("aiSaveSettingsBtn");
@@ -640,6 +649,7 @@ let aiSettings = { ...DEFAULT_AI_SETTINGS };
 let aiSettingsDraft = { ...DEFAULT_AI_SETTINGS };
 let aiModels = [];
 let aiModelsEndpoint = "";
+let aiVerifiedModelId = "";
 let aiDraftConnection = AI_CONNECTION_STATES.UNCHECKED;
 let aiDraftConnectionMessage = "";
 let aiConnectionRequestId = 0;
@@ -4649,6 +4659,7 @@ function restoreAiSettings() {
   aiSettingsDraft = { ...aiSettings };
   aiModels = [];
   aiModelsEndpoint = "";
+  aiVerifiedModelId = "";
   aiDraftConnection = AI_CONNECTION_STATES.UNCHECKED;
   aiDraftConnectionMessage = "";
   aiAssistantState.generation = aiSettings.enabled
@@ -4657,13 +4668,29 @@ function restoreAiSettings() {
 }
 
 function readAiSettingsForm() {
-  return normalizeAiSettings({
-    enabled: aiEnabledInput.checked,
+  const provider = aiProviderSelect.value;
+  const providerSettings = withAiProviderSettings(aiSettingsDraft, provider, {
     baseUrl: aiBaseUrlInput.value,
-    selectedModel: aiModelSelect.value,
+    apiKey: aiGeminiApiKeyInput.value,
+    selectedModel: aiModelSelect.value
+  });
+  return normalizeAiSettings({
+    ...providerSettings,
+    enabled: aiEnabledInput.checked,
+    provider,
     timeoutMs: Number(aiTimeoutInput.value) * 1000,
     systemInstruction: aiSystemInstructionInput.value
   });
+}
+
+function createAiAdapter(settings) {
+  return settings.provider === "gemini"
+    ? new GeminiAdapter({ geminiApiKey: settings.geminiApiKey, timeoutMs: settings.timeoutMs })
+    : new OllamaAdapter(settings);
+}
+
+function aiProviderConnectionKey(settings) {
+  return settings.provider === "gemini" ? "gemini" : settings.baseUrl;
 }
 
 function saveAiSettings() {
@@ -4675,7 +4702,8 @@ function saveAiSettings() {
     draftSettings,
     modelsEndpoint: verifiedEndpoint,
     draftConnection,
-    models: verifiedModels
+    models: verifiedModels,
+    verifiedModelId: aiVerifiedModelId
   });
   aiSettingsDraft = draftSettings;
   aiSettings = { ...draftSettings };
@@ -4701,6 +4729,7 @@ function saveAiSettings() {
   } else {
     aiModels = [];
     aiModelsEndpoint = "";
+    aiVerifiedModelId = "";
     aiDraftConnection = AI_CONNECTION_STATES.UNCHECKED;
   }
   renderAiSettings();
@@ -4709,10 +4738,22 @@ function saveAiSettings() {
 
 function renderAiSettings() {
   aiEnabledInput.checked = aiSettingsDraft.enabled;
+  aiProviderSelect.value = aiSettingsDraft.provider;
   aiBaseUrlInput.value = aiSettingsDraft.baseUrl;
+  aiGeminiApiKeyInput.value = aiSettingsDraft.geminiApiKey;
   aiTimeoutInput.value = String(Math.round(aiSettingsDraft.timeoutMs / 1000));
   aiSystemInstructionInput.value = aiSettingsDraft.systemInstruction;
-  aiExternalUrlWarning.hidden = isLoopbackBaseUrl(aiBaseUrlInput.value);
+  const gemini = aiSettingsDraft.provider === "gemini";
+  aiBaseUrlField.hidden = gemini;
+  aiExternalUrlWarning.hidden = gemini || isLoopbackBaseUrl(aiBaseUrlInput.value);
+  aiGeminiApiKeyField.hidden = !gemini;
+  aiGeminiPrivacyNote.hidden = !gemini;
+  aiProviderDescription.textContent = gemini
+    ? "Gemini APIはクラウドAIです。質問・指示、選択したメモ本文・文章、AI用参照コンテキスト、会話履歴はGoogle Gemini APIへ送信されます。"
+    : "初期状態は無効です。OllamaはAPIキー不要で、入力内容は設定したOllamaサーバーへ送信されます。";
+  aiModelHelp.textContent = gemini
+    ? "接続確認で、このAPIキーで利用できるテキスト生成モデルを取得します。"
+    : "Qwen・Phi・Granite系は確認済み候補として表示します。他のモデルも選択できますが動作未確認です。";
   renderAiModelOptions();
   aiCheckConnectionBtn.disabled = aiDraftConnection === AI_CONNECTION_STATES.CHECKING;
   aiRefreshModelsBtn.disabled = aiDraftConnection === AI_CONNECTION_STATES.CHECKING;
@@ -4739,12 +4780,19 @@ function renderAiModelOptions() {
     });
     aiModelSelect.appendChild(group);
   };
-  appendGroup("確認済みモデル系統", groups.verified);
-  appendGroup("その他（動作未確認）", groups.other);
+  if (aiSettingsDraft.provider === "gemini") {
+    const geminiGroups = groupGeminiModels(aiModels);
+    appendGroup("利用可能なGeminiモデル", geminiGroups.stable);
+    appendGroup("Preview", geminiGroups.preview);
+    appendGroup("Experimental", geminiGroups.experimental);
+  } else {
+    appendGroup("確認済みモデル系統", groups.verified);
+    appendGroup("その他（動作未確認）", groups.other);
+  }
   if (selected && !aiModels.some((model) => model.id === selected)) {
     const option = document.createElement("option");
     option.value = selected;
-    option.textContent = `${selected}（未確認）`;
+    option.textContent = aiSettingsDraft.provider === "gemini" ? `${selected.replace(/^models\//, "")}（生成未検証）` : `${selected}（未確認）`;
     aiModelSelect.appendChild(option);
   }
   aiModelSelect.value = selected;
@@ -4759,27 +4807,29 @@ async function checkAiConnection({ useForm = true } = {}) {
   const candidate = normalizeAiSettings(useForm ? readAiSettingsForm() : aiSettingsDraft);
   aiSettingsDraft = candidate;
   aiDraftConnection = AI_CONNECTION_STATES.CHECKING;
-  aiDraftConnectionMessage = "Ollamaへ接続しています…";
+  aiDraftConnectionMessage = candidate.provider === "gemini" ? "Gemini APIへ接続しています…" : "Ollamaへ接続しています…";
   renderAiSettings();
   try {
-    const adapter = new OllamaAdapter(candidate);
-    const result = await adapter.checkConnection({ signal: abortController.signal });
+    const adapter = createAiAdapter(candidate);
+    const result = await adapter.checkConnection({ signal: abortController.signal, model: candidate.selectedModel });
     if (requestId !== aiConnectionRequestId || sessionId !== aiSettingsSessionId) return;
     aiModels = result.models;
-    aiModelsEndpoint = candidate.baseUrl;
+    aiModelsEndpoint = aiProviderConnectionKey(candidate);
     aiDraftConnection = result.hasModels ? AI_CONNECTION_STATES.CONNECTED : AI_CONNECTION_STATES.NO_MODELS;
+    aiVerifiedModelId = candidate.provider === "gemini" && result.modelVerified ? result.verifiedModelId : "";
     aiDraftConnectionMessage = result.hasModels
-      ? `接続しました。${result.models.length}モデルを利用できます。`
-      : "Ollamaへ接続しましたが、利用できるモデルがありません。";
+      ? candidate.provider === "gemini" && candidate.selectedModel ? `接続しました。${result.models.length}モデルを利用でき、選択モデルの生成を確認しました。` : `接続しました。${result.models.length}モデルを利用できます。`
+      : candidate.provider === "gemini" ? "Gemini APIへ接続しましたが、利用できるモデルがありません。" : "Ollamaへ接続しましたが、利用できるモデルがありません。";
     if (candidate.selectedModel && !aiModels.some((model) => model.id === candidate.selectedModel)) {
-      aiSettingsDraft = { ...candidate, selectedModel: "" };
+      aiSettingsDraft = withAiProviderSettings(candidate, candidate.provider, { selectedModel: "" });
     }
     renderAiSettings();
   } catch (error) {
     if (requestId !== aiConnectionRequestId || sessionId !== aiSettingsSessionId) return;
-    aiModels = [];
-    aiModelsEndpoint = candidate.baseUrl;
+    aiModels = error?.models || aiModels;
+    aiModelsEndpoint = aiProviderConnectionKey(candidate);
     aiDraftConnection = AI_CONNECTION_STATES.UNAVAILABLE;
+    aiVerifiedModelId = "";
     aiDraftConnectionMessage = friendlyAiError(error);
     renderAiSettings();
   } finally {
@@ -4997,8 +5047,8 @@ function renderAiUi() {
   aiGenerationStatus.textContent = aiAssistantState.error || (purposeNeedsReference && reference.mode === AI_REFERENCE_MODES.NONE
     ? "この用途には参照範囲の選択が必要です。"
     : ({
-    [AI_GENERATION_STATES.DISABLED]: "設定でローカルAIを有効にしてください。",
-    [AI_GENERATION_STATES.DISCONNECTED]: "設定からOllamaへの接続を確認してください。",
+    [AI_GENERATION_STATES.DISABLED]: "設定でAI機能を有効にしてください。",
+    [AI_GENERATION_STATES.DISCONNECTED]: `設定から${aiSettings.provider === "gemini" ? "Gemini API" : "Ollama"}への接続を確認してください。`,
     [AI_GENERATION_STATES.MODEL_REQUIRED]: "設定で使用モデルを選択してください。",
     [AI_GENERATION_STATES.IDLE]: "入力待ちです。AI回答はメモへ自動反映されません。",
     [AI_GENERATION_STATES.STREAMING]: "回答を生成しています…",
@@ -5007,7 +5057,8 @@ function renderAiUi() {
     [AI_GENERATION_STATES.ERROR]: "AI処理でエラーが発生しました。"
   }[state] || "入力待ちです。"));
   aiAnswer.textContent = hasAnswer ? aiAssistantState.answer : "回答はここに表示されます。";
-  aiSendBtn.disabled = streaming || !aiSettings.enabled || !aiSettings.selectedModel;
+  aiSendBtn.disabled = streaming || !aiSettings.enabled || !aiSettings.selectedModel
+    || (aiSettings.provider === "gemini" && (!aiSettings.geminiApiKey || aiVerifiedModelId !== aiSettings.selectedModel));
   aiStopBtn.disabled = !streaming;
   aiCopyBtn.disabled = !hasAnswer;
   aiAppendBtn.disabled = !hasAnswer || !currentNote() || Boolean(currentNote()?.deletedAt);
@@ -5224,7 +5275,7 @@ async function startAiGeneration() {
   aiInstructionInput.value = "";
   renderAiUi();
   try {
-    const adapter = new OllamaAdapter(aiSettings);
+    const adapter = createAiAdapter(aiSettings);
     for await (const event of adapter.generate({
       model: aiSettings.selectedModel,
       messages,
@@ -7558,20 +7609,50 @@ if (aiRobotBtn) aiRobotBtn.addEventListener("click", () => {
 if (closeAiPanelBtn) closeAiPanelBtn.addEventListener("click", () => setAiPanelOpen(false));
 if (aiBackdrop) aiBackdrop.addEventListener("click", () => setAiPanelOpen(false));
 if (aiEnabledInput) aiEnabledInput.addEventListener("change", () => {
-  aiSettingsDraft.enabled = aiEnabledInput.checked;
+  aiSettingsDraft = { ...readAiSettingsForm(), enabled: aiEnabledInput.checked };
+});
+if (aiProviderSelect) aiProviderSelect.addEventListener("change", () => {
+  if (aiAssistantState.generation === AI_GENERATION_STATES.STREAMING) {
+    aiProviderSelect.value = aiSettingsDraft.provider;
+    return;
+  }
+  aiSettingsDraft = withAiProviderSettings(aiSettingsDraft, aiProviderSelect.value);
+  aiModels = [];
+  aiModelsEndpoint = "";
+  aiVerifiedModelId = "";
+  aiDraftConnection = AI_CONNECTION_STATES.UNCHECKED;
+  aiDraftConnectionMessage = "";
+  renderAiSettings();
 });
 if (aiBaseUrlInput) aiBaseUrlInput.addEventListener("input", () => {
   aiExternalUrlWarning.hidden = isLoopbackBaseUrl(aiBaseUrlInput.value);
-  aiSettingsDraft.baseUrl = aiBaseUrlInput.value;
+  aiSettingsDraft = readAiSettingsForm();
+});
+if (aiGeminiApiKeyInput) aiGeminiApiKeyInput.addEventListener("input", () => {
+  aiSettingsDraft = readAiSettingsForm();
+  aiConnectionRequestId += 1;
+  aiConnectionAbortController?.abort();
+  aiConnectionAbortController = null;
+  aiModelsEndpoint = "";
+  aiVerifiedModelId = "";
+  aiDraftConnection = AI_CONNECTION_STATES.UNCHECKED;
+  aiDraftConnectionMessage = "APIキーを変更しました。接続確認を行ってください。";
+  renderAiSettings();
 });
 if (aiModelSelect) aiModelSelect.addEventListener("change", () => {
-  aiSettingsDraft.selectedModel = aiModelSelect.value;
+  aiSettingsDraft = readAiSettingsForm();
+  if (aiSettingsDraft.provider === "gemini") {
+    aiVerifiedModelId = "";
+    aiDraftConnection = AI_CONNECTION_STATES.UNCHECKED;
+    aiDraftConnectionMessage = "モデルを変更しました。選択モデルで接続確認を行ってください。";
+    renderAiSettings();
+  }
 });
 if (aiTimeoutInput) aiTimeoutInput.addEventListener("input", () => {
-  aiSettingsDraft.timeoutMs = Number(aiTimeoutInput.value) * 1000;
+  aiSettingsDraft = readAiSettingsForm();
 });
 if (aiSystemInstructionInput) aiSystemInstructionInput.addEventListener("input", () => {
-  aiSettingsDraft.systemInstruction = aiSystemInstructionInput.value;
+  aiSettingsDraft = readAiSettingsForm();
 });
 if (aiCheckConnectionBtn) aiCheckConnectionBtn.addEventListener("click", () => checkAiConnection());
 if (aiRefreshModelsBtn) aiRefreshModelsBtn.addEventListener("click", () => checkAiConnection());
