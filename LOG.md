@@ -1393,7 +1393,7 @@
 
 * AI設定へ `Ollama（ローカル）` と `Gemini API（クラウド）` のプロバイダ選択を追加した。旧AI設定はOllama設定として移行し、各プロバイダのモデル・接続先・Gemini APIキーを独立して保持する。
 * `gemini-adapter.js` はGemini APIのモデル取得、`streamGenerateContent` のSSE逐次受信、AbortControllerによる停止、認証・権限・モデル不存在・429・割り当て上限・5xxなどの共通エラー分類を担当する。APIキーはHTTPヘッダーにのみ使用し、ソース、ログ、テスト、表示用データへ出力しない。
-* `ai-provider.test.js`、`gemini-adapter.test.js`、既存Ollamaテストで設定移行、プロバイダ切替、モデル正規化、SSE分割受信、中断、エラー分類、OllamaのNDJSON回帰を確認する。実Gemini APIへの手動接続はAPIキーを扱わないため未実施。
+* `ai-provider.test.js`、`gemini-adapter.test.js`、既存Ollamaテストで設定移行、プロバイダ切替、モデル正規化、SSE分割受信、中断、エラー分類、OllamaのNDJSON回帰を確認する。
 * 配信キャッシュを `ai-provider.js?v=0.4.0-3`、`gemini-adapter.js?v=0.4.0-1`、`app.js?v=0.4.0-44` へ更新した。
 * GitHub Pagesへ`config.js`やフロントエンド環境変数としてAPIキーを配信しない。Gemini APIキーは設定画面から端末ごとのlocalStorageへ保存する。PCとiPhoneなど別端末では共有されず、Safariのプライベートブラウズ、CORS、SSE、停止、再読み込み、ホーム画面追加は実機未確認として扱う。
 * Gemini選択時は、質問・指示、選択したメモ本文・文章、AI用参照コンテキスト、会話履歴がGoogle Gemini APIへ送信されることを設定画面とREADMEで明示した。SDKは追加せず、公式REST APIと`fetch`を使用する。料金や無料枠は固定記載しない。
@@ -1404,5 +1404,6 @@
 * 接続確認でテキスト生成対応モデルを取得し、選択モデルに短い`generateContent`生成を行う。モデル変更後は再確認を必須にし、未検証モデルの送信を無効化する。
 * `streamGenerateContent?alt=sse`はSSE専用Acceptヘッダー、CRLF/LF、コメント、複数data行、UTF-8 flush、最終イベント、usageのみ・finishReasonのみのイベントを扱う。初回応答、チャンク間無通信、全体上限を別タイマーで管理する。
 * Geminiモデルは`generateContent`を明示するテキストモデルだけを残し、表示名から`models/`を除く。Ollama用の「未確認」は表示せず、安定版／Preview／Experimentalへ分ける。
-* 実APIの有効キーをCodexは扱わないため、実APIによる最終手動確認は利用者側で未確認。診断エラーはprovider、code、HTTP status、model、phaseを内部情報として保持し、APIキー・本文・回答は記録しない。
-* 配信キャッシュを`app.js?v=0.4.0-45`へ更新した。
+* 利用者環境で、Gemini APIキーによる接続確認、選択モデルの最小生成、通常質問の回答表示まで確認された。CodexはAPIキーを扱わず、Safari実機、生成停止、再読み込み後の復元は未確認として扱う。診断エラーはprovider、code、HTTP status、model、phaseを内部情報として保持し、APIキー・本文・回答は記録しない。
+* APIキー入力が変わった場合も、進行中の接続確認を中断して接続先識別子、選択モデルの生成確認、接続状態を必ず破棄する。保存後・送信前には新しいAPIキーで再度接続確認が必要になる。
+* 配信キャッシュを`app.js?v=0.4.0-46`へ更新した。

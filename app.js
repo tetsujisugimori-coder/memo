@@ -7630,6 +7630,14 @@ if (aiBaseUrlInput) aiBaseUrlInput.addEventListener("input", () => {
 });
 if (aiGeminiApiKeyInput) aiGeminiApiKeyInput.addEventListener("input", () => {
   aiSettingsDraft = readAiSettingsForm();
+  aiConnectionRequestId += 1;
+  aiConnectionAbortController?.abort();
+  aiConnectionAbortController = null;
+  aiModelsEndpoint = "";
+  aiVerifiedModelId = "";
+  aiDraftConnection = AI_CONNECTION_STATES.UNCHECKED;
+  aiDraftConnectionMessage = "APIキーを変更しました。接続確認を行ってください。";
+  renderAiSettings();
 });
 if (aiModelSelect) aiModelSelect.addEventListener("change", () => {
   aiSettingsDraft = readAiSettingsForm();

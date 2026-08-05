@@ -38,6 +38,17 @@ test("AI settings select an independent provider and keep Gemini credentials pri
   assert.match(app, /aiVerifiedModelId !== aiSettings\.selectedModel/);
 });
 
+test("Gemini API key changes discard prior connection and model verification", () => {
+  const keyInputHandler = app.match(/if \(aiGeminiApiKeyInput\) aiGeminiApiKeyInput\.addEventListener\("input", \(\) => \{[\s\S]*?\n}\);/)?.[0] || "";
+  assert.match(keyInputHandler, /aiConnectionRequestId \+= 1/);
+  assert.match(keyInputHandler, /aiConnectionAbortController\?\.abort\(\)/);
+  assert.match(keyInputHandler, /aiModelsEndpoint = ""/);
+  assert.match(keyInputHandler, /aiVerifiedModelId = ""/);
+  assert.match(keyInputHandler, /aiDraftConnection = AI_CONNECTION_STATES\.UNCHECKED/);
+  assert.match(keyInputHandler, /APIキーを変更しました。接続確認を行ってください。/);
+  assert.doesNotMatch(keyInputHandler, /aiDraftConnectionMessage\s*=\s*aiGeminiApiKeyInput\.value/);
+});
+
 test("robot is an accessible button and controls the single AI panel", () => {
   assert.match(html, /<button id="aiRobotBtn"[^>]+aria-controls="aiPanel"[^>]+aria-expanded="false"[^>]+aria-label=/);
   assert.match(html, /<aside id="aiPanel"[^>]+aria-hidden="true" inert>/);
