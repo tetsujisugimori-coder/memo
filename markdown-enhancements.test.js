@@ -70,22 +70,35 @@ test("コードフェンス内のチェックリスト風文字列を除外し�
   assert.match(app, /updateChecklistAt\(editor\.value, entry\.markerStart, checkbox\.checked\)/);
 });
 
-test("同じ語句の2番目の出現位置をマーカー対象として識別する", () => {
-  const body = "保存を開始します。\n保存を完了します。";
-  const start = body.lastIndexOf("保存");
-  assert.equal(enhancements.targetOccurrenceOrdinal(body, "保存", start), 1);
+test("Markdownリンクと画像URLを表示位置の出現回数へ含めず、正しい対象を識別する", () => {
+  const linked = "[保存](https://example.com/保存) 保存";
+  const linkedStart = linked.lastIndexOf("保存");
+  assert.equal(enhancements.visibleTargetOrdinal(linked, "保存", linkedStart, linkedStart + 2), 1);
+  const image = "![説明](https://example.com/保存.png) 保存";
+  const imageStart = image.lastIndexOf("保存");
+  assert.equal(enhancements.visibleTargetOrdinal(image, "保存", imageStart, imageStart + 2), 0);
   assert.match(app, /insertExplanationMarker\(explanation, index \+ 1, resolved, body\)/);
-  assert.match(app, /targetOccurrenceOrdinal\(body, target, resolved\.start\)/);
+  assert.match(app, /visibleTargetOrdinal\(body, target, resolved\.start, resolved\.end\)/);
 });
 
-test("解説カードの折りたたみ状態を永続保存する", () => {
-  assert.match(app, /saveExplanationCollapsedState\(explanation, !details\.open\)/);
+test("再特定は一意な文脈または一意な対象だけを採用し、曖昧なら孤立する", () => {
+  const body = "保存して閉じる。\n設定を保存する。";
+  assert.deepEqual(enhancements.resolveExplanationTarget(body, { target: "保存", start: 999, end: 1001, before: "設定を", after: "する。" }), { start: body.lastIndexOf("保存"), end: body.lastIndexOf("保存") + 2, matched: true });
+  assert.deepEqual(enhancements.resolveExplanationTarget("保存する。\n保存する。", { target: "保存", start: 999, end: 1001 }), { start: -1, end: -1, matched: false });
+  assert.deepEqual(enhancements.resolveExplanationTarget("保存する。", { target: "保存", start: 999, end: 1001 }), { start: 0, end: 2, matched: true });
+});
+
+test("折りたたみ状態は利用者操作で変わった場合だけ保存対象になる", () => {
+  assert.equal(enhancements.shouldPersistCollapsedState(undefined, false, false), false);
+  assert.equal(enhancements.shouldPersistCollapsedState(false, true, true), true);
+  assert.equal(enhancements.shouldPersistCollapsedState(true, true, true), false);
+  assert.match(app, /details\.addEventListener\("click", \(\) => \{ userToggled = true; \}\)/);
+  assert.match(app, /shouldPersistCollapsedState\(explanation\.collapsed, collapsed, userToggled\)/);
   assert.match(app, /function saveExplanationCollapsedState[\s\S]*?putNote\(note\)/);
 });
 
-test("解説カードは位置ずれ後も対象本文と文脈から再特定し、見失っても保持する", () => {
-  assert.match(app, /function resolveExplanationTarget[\s\S]*?body\.slice\(start, end\) === target/);
-  assert.match(app, /function resolveExplanationTarget[\s\S]*?body\.indexOf\(target\)/);
-  assert.match(app, /contextual = body\.indexOf/);
-  assert.match(app, /return found === -1 \? \{ start: -1, end: -1, matched: false \}/);
+test("インラインコードと通常本文の同じ語句を別の表示位置として数える", () => {
+  const body = "`保存` 保存";
+  const start = body.lastIndexOf("保存");
+  assert.equal(enhancements.visibleTargetOrdinal(body, "保存", start, start + 2), 1);
 });

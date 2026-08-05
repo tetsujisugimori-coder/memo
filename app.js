@@ -358,7 +358,7 @@ const {
   selectAllReferenceNotes,
   selectCollectionReferenceNotes
 } = window.MemoNexusAiReferenceSelection;
-const { buildCalloutMarkdown, checklistEntries, updateChecklistAt, targetOccurrenceOrdinal } = window.MemoNexusMarkdownEnhancements;
+const { buildCalloutMarkdown, checklistEntries, updateChecklistAt, visibleTargetOrdinal, resolveExplanationTarget: resolveExplanationTargetFromSource, shouldPersistCollapsedState } = window.MemoNexusMarkdownEnhancements;
 
 // HTML要素を短く取得するための小さなヘルパー。
 const $ = (id) => document.getElementById(id);
@@ -3943,20 +3943,6 @@ function normalizeExplanations(note) {
   return note.explanations;
 }
 
-function resolveExplanationTarget(body, explanation) {
-  const target = String(explanation.target || "");
-  if (!target) return { start: -1, end: -1, matched: false };
-  const start = Number(explanation.start);
-  const end = Number(explanation.end);
-  if (Number.isInteger(start) && Number.isInteger(end) && body.slice(start, end) === target) return { start, end, matched: true };
-  let found = body.indexOf(target);
-  if (found !== -1 && explanation.before) {
-    const contextual = body.indexOf(`${explanation.before}${target}${explanation.after || ""}`);
-    if (contextual !== -1) found = contextual + explanation.before.length;
-  }
-  return found === -1 ? { start: -1, end: -1, matched: false } : { start: found, end: found + target.length, matched: true };
-}
-
 function hydrateExplanationCards(note, body) {
   const explanations = normalizeExplanations(note);
   if (!explanations.length) return;
@@ -3964,7 +3950,7 @@ function hydrateExplanationCards(note, body) {
   cards.className = "explanation-cards";
   cards.setAttribute("aria-label", "解説カード");
   explanations.forEach((explanation, index) => {
-    const resolved = resolveExplanationTarget(body, explanation);
+    const resolved = resolveExplanationTargetFromSource(body, explanation);
     explanation.orphaned = !resolved.matched;
     insertExplanationMarker(explanation, index + 1, resolved, body);
     cards.append(createExplanationCard(explanation, index + 1));
@@ -3976,7 +3962,7 @@ function insertExplanationMarker(explanation, number, resolved, body) {
   if (!resolved.matched) return;
   const walker = document.createTreeWalker(preview, NodeFilter.SHOW_TEXT);
   const target = String(explanation.target || "");
-  const ordinal = targetOccurrenceOrdinal(body, target, resolved.start);
+  const ordinal = visibleTargetOrdinal(body, target, resolved.start, resolved.end);
   if (ordinal < 0) return;
   let occurrences = 0;
   let node;
@@ -4007,8 +3993,17 @@ function createExplanationCard(explanation, number) {
   article.id = `explanation-card-${explanation.id}`;
   article.className = `explanation-card${explanation.orphaned ? " explanation-orphaned" : ""}`;
   const details = document.createElement("details");
+  let userToggled = false;
+  details.addEventListener("click", () => { userToggled = true; });
+  details.addEventListener("keydown", (event) => {
+    if (event.key === "Enter" || event.key === " ") userToggled = true;
+  });
   details.open = explanation.collapsed !== true;
-  details.addEventListener("toggle", () => saveExplanationCollapsedState(explanation, !details.open));
+  details.addEventListener("toggle", () => {
+    const collapsed = !details.open;
+    if (shouldPersistCollapsedState(explanation.collapsed, collapsed, userToggled)) saveExplanationCollapsedState(explanation, collapsed);
+    userToggled = false;
+  });
   const summary = document.createElement("summary");
   summary.textContent = `解説カード${number}：${explanation.type || "補足"}`;
   const target = document.createElement("p");
@@ -4035,7 +4030,7 @@ function saveExplanationCollapsedState(explanation, collapsed) {
   const note = currentNote();
   if (!note) return;
   const stored = normalizeExplanations(note).find((item) => item.id === explanation.id);
-  if (!stored || stored.collapsed === collapsed) return;
+  if (!stored || !shouldPersistCollapsedState(stored.collapsed, collapsed, true)) return;
   stored.collapsed = collapsed;
   stored.updatedAt = Date.now();
   note.updatedAt = Date.now();
@@ -4103,6 +4098,8 @@ function renderMarkdownInline(text) {
       html += `<del>${renderMarkdownInline(token.content)}</del>`;
     } else if (token.type === "link") {
       html += `<a class="markdown-link" href="${escapeAttr(token.href)}" target="_blank" rel="noopener noreferrer">${renderMarkdownInline(token.content)}</a>`;
+    } else if (token.type === "image") {
+      html += `<span class="markdown-image-alt" role="img" aria-label="${escapeAttr(token.alt || "画像")}">${renderMarkdownInline(token.alt || "画像")}</span>`;
     } else if (token.type === "attachment") {
       html += `<span class="inline-attachment-image" data-attachment-id="${escapeAttr(token.id)}" data-alt="${escapeAttr(token.alt)}" role="img" aria-label="${escapeAttr(token.alt || "添付画像")}">画像を読み込み中...</span>`;
     } else if (token.type === "math") {
@@ -4161,6 +4158,13 @@ function findNextInlineToken(text, fromIndex) {
   const linkMatch = linkPattern.exec(text);
   if (linkMatch && safeExternalUrl(linkMatch[2])) {
     tokens.push({ type: "link", start: linkMatch.index, end: linkPattern.lastIndex, content: linkMatch[1], href: linkMatch[2] });
+  }
+
+  const imagePattern = /!\[([^\]]*)\]\(([^\s)]+)\)/g;
+  imagePattern.lastIndex = fromIndex;
+  const imageMatch = imagePattern.exec(text);
+  if (imageMatch && safeExternalUrl(imageMatch[2])) {
+    tokens.push({ type: "image", start: imageMatch.index, end: imagePattern.lastIndex, alt: imageMatch[1] });
   }
 
   const boldStart = text.indexOf("**", fromIndex);
