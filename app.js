@@ -358,6 +358,7 @@ const {
   selectAllReferenceNotes,
   selectCollectionReferenceNotes
 } = window.MemoNexusAiReferenceSelection;
+const { buildCalloutMarkdown, checklistEntries, updateChecklistAt, targetOccurrenceOrdinal } = window.MemoNexusMarkdownEnhancements;
 
 // HTML要素を短く取得するための小さなヘルパー。
 const $ = (id) => document.getElementById(id);
@@ -3965,20 +3966,29 @@ function hydrateExplanationCards(note, body) {
   explanations.forEach((explanation, index) => {
     const resolved = resolveExplanationTarget(body, explanation);
     explanation.orphaned = !resolved.matched;
-    insertExplanationMarker(explanation, index + 1, resolved.matched);
+    insertExplanationMarker(explanation, index + 1, resolved, body);
     cards.append(createExplanationCard(explanation, index + 1));
   });
   preview.append(cards);
 }
 
-function insertExplanationMarker(explanation, number, matched) {
-  if (!matched) return;
+function insertExplanationMarker(explanation, number, resolved, body) {
+  if (!resolved.matched) return;
   const walker = document.createTreeWalker(preview, NodeFilter.SHOW_TEXT);
   const target = String(explanation.target || "");
+  const ordinal = targetOccurrenceOrdinal(body, target, resolved.start);
+  if (ordinal < 0) return;
+  let occurrences = 0;
   let node;
   while ((node = walker.nextNode())) {
-    const offset = node.nodeValue.indexOf(target);
-    if (offset === -1) continue;
+    if (node.parentElement?.closest(".explanation-cards,.explanation-marker")) continue;
+    let offset = node.nodeValue.indexOf(target);
+    while (offset !== -1) {
+      if (occurrences === ordinal) break;
+      occurrences += 1;
+      offset = node.nodeValue.indexOf(target, offset + target.length);
+    }
+    if (offset === -1 || occurrences !== ordinal) continue;
     const marker = document.createElement("button");
     marker.type = "button";
     marker.className = "explanation-marker";
@@ -3998,7 +4008,7 @@ function createExplanationCard(explanation, number) {
   article.className = `explanation-card${explanation.orphaned ? " explanation-orphaned" : ""}`;
   const details = document.createElement("details");
   details.open = explanation.collapsed !== true;
-  details.addEventListener("toggle", () => { explanation.collapsed = !details.open; });
+  details.addEventListener("toggle", () => saveExplanationCollapsedState(explanation, !details.open));
   const summary = document.createElement("summary");
   summary.textContent = `解説カード${number}：${explanation.type || "補足"}`;
   const target = document.createElement("p");
@@ -4021,14 +4031,24 @@ function createExplanationCard(explanation, number) {
   return article;
 }
 
+function saveExplanationCollapsedState(explanation, collapsed) {
+  const note = currentNote();
+  if (!note) return;
+  const stored = normalizeExplanations(note).find((item) => item.id === explanation.id);
+  if (!stored || stored.collapsed === collapsed) return;
+  stored.collapsed = collapsed;
+  stored.updatedAt = Date.now();
+  note.updatedAt = Date.now();
+  void putNote(note).then(async () => { notes = await getAllNotes(); });
+}
+
 function bindChecklistControls(note) {
+  const entries = checklistEntries(editor.value);
   preview.querySelectorAll(".task-list-checkbox").forEach((checkbox) => checkbox.addEventListener("change", () => {
     const targetIndex = Number(checkbox.dataset.taskIndex);
-    let index = -1;
-    const nextBody = String(editor.value).replace(/^- \[([ xX])\](?=\s)/gm, (match) => {
-      index += 1;
-      return index === targetIndex ? `- [${checkbox.checked ? "x" : " "}]` : match;
-    });
+    const entry = entries[targetIndex];
+    if (!entry) return;
+    const nextBody = updateChecklistAt(editor.value, entry.markerStart, checkbox.checked);
     if (nextBody !== editor.value && note.id === currentId) {
       captureUndoSnapshot();
       editor.value = nextBody;
@@ -7323,9 +7343,9 @@ function openCalculatorMemoFromSelection() {
 
 function insertCalloutAtSelection() {
   const type = calloutTypeSelect?.value || "NOTE";
-  const value = `> [!${type}]\n> `;
   const start = editor.selectionStart;
   const end = editor.selectionEnd;
+  const value = buildCalloutMarkdown(editor.value.slice(start, end), type);
   captureUndoSnapshot();
   editor.setRangeText(value, start, end, "end");
   editor.focus();

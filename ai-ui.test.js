@@ -63,7 +63,7 @@ test("normal robot launch starts a fresh free chat while shortcuts preserve laun
 });
 
 test("右パネルを閉じてもAIタブの会話を再開でき、AI状態だけを同期する", () => {
-  const contextOpen = app.match(/function setContextPanelOpen\([\s\S]*?\n}\n\nfunction setContextPanelTab/)?.[0] || "";
+  const contextOpen = app.match(/function setContextPanelOpen\([\s\S]*?function setContextPanelTab/)?.[0] || "";
   assert.match(contextOpen, /if \(aiAssistantState\.panelOpen\) setAiAssistantPanelActive\(false\);/);
   assert.match(contextOpen, /contextPanelTab === "ai" \? aiRobotBtn/);
   assert.match(app, /else if \(!contextPanelOpen && contextPanelTab === "ai"\) openAiAssistant\(\{ resume: true \}\);/);
