@@ -31,6 +31,11 @@ test("AI settings select an independent provider and keep Gemini credentials pri
   assert.match(app, /aiGeminiApiKeyField\.hidden = !gemini/);
   assert.match(app, /質問・指示、選択したメモ本文・文章、AI用参照コンテキスト、会話履歴はGoogle Gemini APIへ送信されます/);
   assert.match(app, /withAiProviderSettings\(aiSettingsDraft, aiProviderSelect\.value\)/);
+  assert.match(app, /groupGeminiModels\(aiModels\)/);
+  assert.match(app, /生成未検証/);
+  assert.match(app, /adapter\.checkConnection\(\{ signal: abortController\.signal, model: candidate\.selectedModel \}\)/);
+  assert.match(app, /モデルを変更しました。選択モデルで接続確認を行ってください。/);
+  assert.match(app, /aiVerifiedModelId !== aiSettings\.selectedModel/);
 });
 
 test("robot is an accessible button and controls the single AI panel", () => {

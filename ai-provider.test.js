@@ -125,7 +125,8 @@ test("a verified Gemini endpoint preserves Gemini models", () => {
     draftSettings: normalizeAiSettings({ enabled: true, provider: "gemini", geminiApiKey: "test-key", selectedModel: "models/gemini-3.6-flash" }),
     modelsEndpoint: "gemini",
     draftConnection: AI_CONNECTION_STATES.CONNECTED,
-    models: [{ name: "models/gemini-3.6-flash" }]
+    models: [{ name: "models/gemini-3.6-flash" }],
+    verifiedModelId: "models/gemini-3.6-flash"
   });
   assert.equal(state.preserveModels, true);
   assert.equal(state.generation, AI_GENERATION_STATES.IDLE);

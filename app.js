@@ -345,7 +345,7 @@ const {
   withAiProviderSettings
 } = window.MemoNexusAiProvider;
 const { OllamaAdapter } = window.MemoNexusOllamaAdapter;
-const { GeminiAdapter } = window.MemoNexusGeminiAdapter;
+const { GeminiAdapter, groupGeminiModels } = window.MemoNexusGeminiAdapter;
 const { AI_PROMPTS, aiAppendMarkdown, aiMemoTitle, buildAiMessages } = window.MemoNexusAiPrompts;
 const {
   AI_REFERENCE_MODES,
@@ -649,6 +649,7 @@ let aiSettings = { ...DEFAULT_AI_SETTINGS };
 let aiSettingsDraft = { ...DEFAULT_AI_SETTINGS };
 let aiModels = [];
 let aiModelsEndpoint = "";
+let aiVerifiedModelId = "";
 let aiDraftConnection = AI_CONNECTION_STATES.UNCHECKED;
 let aiDraftConnectionMessage = "";
 let aiConnectionRequestId = 0;
@@ -4658,6 +4659,7 @@ function restoreAiSettings() {
   aiSettingsDraft = { ...aiSettings };
   aiModels = [];
   aiModelsEndpoint = "";
+  aiVerifiedModelId = "";
   aiDraftConnection = AI_CONNECTION_STATES.UNCHECKED;
   aiDraftConnectionMessage = "";
   aiAssistantState.generation = aiSettings.enabled
@@ -4700,7 +4702,8 @@ function saveAiSettings() {
     draftSettings,
     modelsEndpoint: verifiedEndpoint,
     draftConnection,
-    models: verifiedModels
+    models: verifiedModels,
+    verifiedModelId: aiVerifiedModelId
   });
   aiSettingsDraft = draftSettings;
   aiSettings = { ...draftSettings };
@@ -4726,6 +4729,7 @@ function saveAiSettings() {
   } else {
     aiModels = [];
     aiModelsEndpoint = "";
+    aiVerifiedModelId = "";
     aiDraftConnection = AI_CONNECTION_STATES.UNCHECKED;
   }
   renderAiSettings();
@@ -4777,7 +4781,10 @@ function renderAiModelOptions() {
     aiModelSelect.appendChild(group);
   };
   if (aiSettingsDraft.provider === "gemini") {
-    appendGroup("利用可能なGeminiモデル", aiModels);
+    const geminiGroups = groupGeminiModels(aiModels);
+    appendGroup("利用可能なGeminiモデル", geminiGroups.stable);
+    appendGroup("Preview", geminiGroups.preview);
+    appendGroup("Experimental", geminiGroups.experimental);
   } else {
     appendGroup("確認済みモデル系統", groups.verified);
     appendGroup("その他（動作未確認）", groups.other);
@@ -4785,7 +4792,7 @@ function renderAiModelOptions() {
   if (selected && !aiModels.some((model) => model.id === selected)) {
     const option = document.createElement("option");
     option.value = selected;
-    option.textContent = `${selected}（未確認）`;
+    option.textContent = aiSettingsDraft.provider === "gemini" ? `${selected.replace(/^models\//, "")}（生成未検証）` : `${selected}（未確認）`;
     aiModelSelect.appendChild(option);
   }
   aiModelSelect.value = selected;
@@ -4804,13 +4811,14 @@ async function checkAiConnection({ useForm = true } = {}) {
   renderAiSettings();
   try {
     const adapter = createAiAdapter(candidate);
-    const result = await adapter.checkConnection({ signal: abortController.signal });
+    const result = await adapter.checkConnection({ signal: abortController.signal, model: candidate.selectedModel });
     if (requestId !== aiConnectionRequestId || sessionId !== aiSettingsSessionId) return;
     aiModels = result.models;
     aiModelsEndpoint = aiProviderConnectionKey(candidate);
     aiDraftConnection = result.hasModels ? AI_CONNECTION_STATES.CONNECTED : AI_CONNECTION_STATES.NO_MODELS;
+    aiVerifiedModelId = candidate.provider === "gemini" && result.modelVerified ? result.verifiedModelId : "";
     aiDraftConnectionMessage = result.hasModels
-      ? `接続しました。${result.models.length}モデルを利用できます。`
+      ? candidate.provider === "gemini" && candidate.selectedModel ? `接続しました。${result.models.length}モデルを利用でき、選択モデルの生成を確認しました。` : `接続しました。${result.models.length}モデルを利用できます。`
       : candidate.provider === "gemini" ? "Gemini APIへ接続しましたが、利用できるモデルがありません。" : "Ollamaへ接続しましたが、利用できるモデルがありません。";
     if (candidate.selectedModel && !aiModels.some((model) => model.id === candidate.selectedModel)) {
       aiSettingsDraft = withAiProviderSettings(candidate, candidate.provider, { selectedModel: "" });
@@ -4818,9 +4826,10 @@ async function checkAiConnection({ useForm = true } = {}) {
     renderAiSettings();
   } catch (error) {
     if (requestId !== aiConnectionRequestId || sessionId !== aiSettingsSessionId) return;
-    aiModels = [];
+    aiModels = error?.models || aiModels;
     aiModelsEndpoint = aiProviderConnectionKey(candidate);
     aiDraftConnection = AI_CONNECTION_STATES.UNAVAILABLE;
+    aiVerifiedModelId = "";
     aiDraftConnectionMessage = friendlyAiError(error);
     renderAiSettings();
   } finally {
@@ -5049,7 +5058,7 @@ function renderAiUi() {
   }[state] || "入力待ちです。"));
   aiAnswer.textContent = hasAnswer ? aiAssistantState.answer : "回答はここに表示されます。";
   aiSendBtn.disabled = streaming || !aiSettings.enabled || !aiSettings.selectedModel
-    || (aiSettings.provider === "gemini" && !aiSettings.geminiApiKey);
+    || (aiSettings.provider === "gemini" && (!aiSettings.geminiApiKey || aiVerifiedModelId !== aiSettings.selectedModel));
   aiStopBtn.disabled = !streaming;
   aiCopyBtn.disabled = !hasAnswer;
   aiAppendBtn.disabled = !hasAnswer || !currentNote() || Boolean(currentNote()?.deletedAt);
@@ -7610,6 +7619,7 @@ if (aiProviderSelect) aiProviderSelect.addEventListener("change", () => {
   aiSettingsDraft = withAiProviderSettings(aiSettingsDraft, aiProviderSelect.value);
   aiModels = [];
   aiModelsEndpoint = "";
+  aiVerifiedModelId = "";
   aiDraftConnection = AI_CONNECTION_STATES.UNCHECKED;
   aiDraftConnectionMessage = "";
   renderAiSettings();
@@ -7623,6 +7633,12 @@ if (aiGeminiApiKeyInput) aiGeminiApiKeyInput.addEventListener("input", () => {
 });
 if (aiModelSelect) aiModelSelect.addEventListener("change", () => {
   aiSettingsDraft = readAiSettingsForm();
+  if (aiSettingsDraft.provider === "gemini") {
+    aiVerifiedModelId = "";
+    aiDraftConnection = AI_CONNECTION_STATES.UNCHECKED;
+    aiDraftConnectionMessage = "モデルを変更しました。選択モデルで接続確認を行ってください。";
+    renderAiSettings();
+  }
 });
 if (aiTimeoutInput) aiTimeoutInput.addEventListener("input", () => {
   aiSettingsDraft = readAiSettingsForm();

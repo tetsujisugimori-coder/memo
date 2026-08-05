@@ -5,6 +5,8 @@ const {
   GeminiAdapter,
   createSseParser,
   extractGeminiText,
+  groupGeminiModels,
+  normalizeGeminiModels,
   toGeminiRequest
 } = require("./gemini-adapter");
 
@@ -52,6 +54,33 @@ test("Gemini model check sends the API key as a header and normalizes models", a
   assert.equal(request.url.endsWith("/models"), true);
   assert.equal(request.options.headers["x-goog-api-key"], "test-key");
   assert.deepEqual(result.models.map((model) => model.id), ["models/gemini-3.6-flash"]);
+});
+
+test("Gemini models keep only explicit text-generation models and use display names without models prefix", () => {
+  const models = normalizeGeminiModels({ models: [
+    { name: "models/gemini-3.5-flash-lite", supportedGenerationMethods: ["generateContent"] },
+    { name: "models/text-with-empty-methods", supportedGenerationMethods: [] },
+    { name: "models/embedding-001", supportedGenerationMethods: ["generateContent"] },
+    { name: "models/imagen-4", supportedGenerationMethods: ["generateContent"] },
+    { name: "models/gemini-preview", supportedGenerationMethods: ["generateContent"] }
+  ] });
+  assert.deepEqual(models.map((model) => model.id), ["models/gemini-3.5-flash-lite", "models/gemini-preview"]);
+  assert.equal(models[0].displayName, "gemini-3.5-flash-lite");
+  assert.equal(groupGeminiModels(models).preview[0].displayName, "gemini-preview");
+});
+
+test("Gemini connection checks the selected model with a bounded non-streaming generation", async () => {
+  const requests = [];
+  const adapter = new GeminiAdapter({ apiKey: "test-key", fetchImpl: async (url, options) => {
+    requests.push({ url, options });
+    return url.endsWith("/models")
+      ? jsonResponse({ models: [{ name: "models/gemini-3.5-flash-lite", supportedGenerationMethods: ["generateContent"] }] })
+      : jsonResponse({ candidates: [{ content: { parts: [{ text: "OK" }] } }] });
+  } });
+  const result = await adapter.checkConnection({ model: "models/gemini-3.5-flash-lite" });
+  assert.equal(result.modelVerified, true);
+  assert.match(requests[1].url, /:generateContent$/);
+  assert.equal(JSON.parse(requests[1].options.body).generationConfig.maxOutputTokens, 8);
 });
 
 test("Gemini request keeps system instructions separate and maps assistant role", () => {
@@ -137,4 +166,11 @@ test("Gemini SSE parser retains a fragmented event until it is complete", () => 
   const parser = createSseParser();
   assert.deepEqual(parser.push('data: {"candidates":'), []);
   assert.equal(parser.push('[{"content":{"parts":[{"text":"ok"}]}}]}\n\n')[0].candidates[0].content.parts[0].text, "ok");
+});
+
+test("Gemini SSE parser supports CRLF, comments, multiple data lines, and final flush", () => {
+  const parser = createSseParser();
+  assert.deepEqual(parser.push(': keep-alive\r\ndata: {"usageMetadata":{"totalTokenCount":2}\r\ndata: }\r\n\r\n'), [{ usageMetadata: { totalTokenCount: 2 } }]);
+  assert.deepEqual(parser.push('data: {"candidates":[] }'), []);
+  assert.deepEqual(parser.finish(), [{ candidates: [] }]);
 });

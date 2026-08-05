@@ -1397,3 +1397,12 @@
 * 配信キャッシュを `ai-provider.js?v=0.4.0-3`、`gemini-adapter.js?v=0.4.0-1`、`app.js?v=0.4.0-44` へ更新した。
 * GitHub Pagesへ`config.js`やフロントエンド環境変数としてAPIキーを配信しない。Gemini APIキーは設定画面から端末ごとのlocalStorageへ保存する。PCとiPhoneなど別端末では共有されず、Safariのプライベートブラウズ、CORS、SSE、停止、再読み込み、ホーム画面追加は実機未確認として扱う。
 * Gemini選択時は、質問・指示、選択したメモ本文・文章、AI用参照コンテキスト、会話履歴がGoogle Gemini APIへ送信されることを設定画面とREADMEで明示した。SDKは追加せず、公式REST APIと`fetch`を使用する。料金や無料枠は固定記載しない。
+
+## 2026-08-06 Gemini生成・モデル検証の修正
+
+* 症状は、モデル一覧取得だけを接続成功としていたため選択モデルの生成可否を検証せず、SSEの`Accept: text/event-stream`と初回応答・無通信・全体のタイムアウト設計も不足していたことだった。
+* 接続確認でテキスト生成対応モデルを取得し、選択モデルに短い`generateContent`生成を行う。モデル変更後は再確認を必須にし、未検証モデルの送信を無効化する。
+* `streamGenerateContent?alt=sse`はSSE専用Acceptヘッダー、CRLF/LF、コメント、複数data行、UTF-8 flush、最終イベント、usageのみ・finishReasonのみのイベントを扱う。初回応答、チャンク間無通信、全体上限を別タイマーで管理する。
+* Geminiモデルは`generateContent`を明示するテキストモデルだけを残し、表示名から`models/`を除く。Ollama用の「未確認」は表示せず、安定版／Preview／Experimentalへ分ける。
+* 実APIの有効キーをCodexは扱わないため、実APIによる最終手動確認は利用者側で未確認。診断エラーはprovider、code、HTTP status、model、phaseを内部情報として保持し、APIキー・本文・回答は記録しない。
+* 配信キャッシュを`app.js?v=0.4.0-45`へ更新した。

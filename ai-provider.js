@@ -39,6 +39,9 @@
       this.code = code;
       this.status = options.status || null;
       this.provider = options.provider || null;
+      this.model = options.model || null;
+      this.phase = options.phase || null;
+      this.models = options.models || null;
       this.cause = options.cause;
     }
   }
@@ -199,7 +202,10 @@
       if (code === "timeout") return "Geminiからの応答がタイムアウトしました。";
       if (code === "aborted") return "生成を停止しました。";
       if (code === "safety_blocked") return "安全性設定によりGeminiの応答が生成されませんでした。";
-      if (code === "invalid_response") return "Geminiからの応答を読み取れませんでした。";
+      if (code === "empty_response") return "Gemini APIから応答がありませんでした。";
+      if (code === "stream_parse") return "Geminiのストリーム応答を解析できませんでした。";
+      if (code === "stream_content_type") return "Geminiのストリーム応答形式が不正です。";
+      if (code === "invalid_response" || code === "invalid_request") return "Geminiからの応答を読み取れませんでした。";
       if (code === "server_error") return "Gemini APIで一時的なエラーが発生しました。";
       return "Gemini APIへ接続できません。接続状態を確認してください。";
     }
@@ -212,7 +218,7 @@
     return "AI処理でエラーが発生しました。Ollamaとモデルの状態を確認してください。";
   }
 
-  function resolveSavedAiState({ draftSettings, modelsEndpoint, draftConnection, models } = {}) {
+  function resolveSavedAiState({ draftSettings, modelsEndpoint, draftConnection, models, verifiedModelId } = {}) {
     const settings = normalizeAiSettings(draftSettings);
     const verifiedModels = normalizeModels(models);
     const endpointVerified = settings.provider === "gemini"
@@ -220,8 +226,8 @@
       : String(modelsEndpoint || "") === settings.baseUrl;
     const connectionVerified = draftConnection === AI_CONNECTION_STATES.CONNECTED;
     const hasModels = verifiedModels.length > 0;
-    const selectedModelVerified = Boolean(settings.selectedModel)
-      && verifiedModels.some((model) => model.id === settings.selectedModel);
+    const selectedModelVerified = Boolean(settings.selectedModel) && verifiedModels.some((model) => model.id === settings.selectedModel)
+      && (settings.provider !== "gemini" || verifiedModelId === settings.selectedModel);
     const preserveModels = settings.enabled && endpointVerified && connectionVerified && hasModels;
     if (!settings.enabled) {
       return { preserveModels: false, connection: AI_CONNECTION_STATES.UNCHECKED, generation: AI_GENERATION_STATES.DISABLED };
