@@ -425,7 +425,7 @@
           <span>Gemini APIキー</span>
           <input id="aiGeminiApiKeyInput" type="password" autocomplete="off" spellcheck="false">
         </label>
-        <p id="aiGeminiPrivacyNote" class="settings-note" hidden>APIキーはこの端末のブラウザ内に保存されます。共有端末では保存しないでください。</p>
+        <p id="aiGeminiPrivacyNote" class="settings-note" hidden>APIキーはこの端末のブラウザのlocalStorageに保存されます。PCとiPhoneなど別端末では共有されないため、それぞれ入力してください。共有端末やプライベートブラウズでの保存可否に注意してください。</p>
         <div class="settings-actions">
           <button id="aiCheckConnectionBtn" type="button">接続確認</button>
           <button id="aiRefreshModelsBtn" type="button">モデル一覧を更新</button>
@@ -601,6 +601,6 @@
   <script src="ai-context.js?v=0.4.0-1"></script>
   <script src="ai-reference-selection.js?v=0.4.0-1"></script>
   <script src="ai-prompts.js?v=0.4.0-2"></script>
-  <script src="app.js?v=0.4.0-43"></script>
+  <script src="app.js?v=0.4.0-44"></script>
 </body>
 </html>

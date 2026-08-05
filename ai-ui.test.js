@@ -22,12 +22,14 @@ test("AI settings select an independent provider and keep Gemini credentials pri
   assert.match(html, /value="ollama">Ollama/);
   assert.match(html, /value="gemini">Gemini API/);
   assert.match(html, /id="aiGeminiApiKeyInput" type="password" autocomplete="off"/);
-  assert.match(html, /APIキーはこの端末のブラウザ内に保存されます/);
+  assert.match(html, /APIキーはこの端末のブラウザのlocalStorageに保存されます/);
+  assert.match(html, /PCとiPhoneなど別端末では共有されない/);
   assert.match(app, /function createAiAdapter\(settings\)/);
   assert.match(app, /new GeminiAdapter\(\{ geminiApiKey: settings\.geminiApiKey/);
   assert.match(app, /const gemini = aiSettingsDraft\.provider === "gemini"/);
   assert.match(app, /aiBaseUrlField\.hidden = gemini/);
   assert.match(app, /aiGeminiApiKeyField\.hidden = !gemini/);
+  assert.match(app, /質問・指示、選択したメモ本文・文章、AI用参照コンテキスト、会話履歴はGoogle Gemini APIへ送信されます/);
   assert.match(app, /withAiProviderSettings\(aiSettingsDraft, aiProviderSelect\.value\)/);
 });
 

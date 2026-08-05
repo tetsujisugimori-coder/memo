@@ -4745,7 +4745,7 @@ function renderAiSettings() {
   aiGeminiApiKeyField.hidden = !gemini;
   aiGeminiPrivacyNote.hidden = !gemini;
   aiProviderDescription.textContent = gemini
-    ? "Gemini APIはクラウドAIです。入力内容はGoogle Gemini APIへ送信されます。"
+    ? "Gemini APIはクラウドAIです。質問・指示、選択したメモ本文・文章、AI用参照コンテキスト、会話履歴はGoogle Gemini APIへ送信されます。"
     : "初期状態は無効です。OllamaはAPIキー不要で、入力内容は設定したOllamaサーバーへ送信されます。";
   aiModelHelp.textContent = gemini
     ? "接続確認で、このAPIキーで利用できるテキスト生成モデルを取得します。"

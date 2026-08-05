@@ -1394,4 +1394,6 @@
 * AI設定へ `Ollama（ローカル）` と `Gemini API（クラウド）` のプロバイダ選択を追加した。旧AI設定はOllama設定として移行し、各プロバイダのモデル・接続先・Gemini APIキーを独立して保持する。
 * `gemini-adapter.js` はGemini APIのモデル取得、`streamGenerateContent` のSSE逐次受信、AbortControllerによる停止、認証・権限・モデル不存在・429・割り当て上限・5xxなどの共通エラー分類を担当する。APIキーはHTTPヘッダーにのみ使用し、ソース、ログ、テスト、表示用データへ出力しない。
 * `ai-provider.test.js`、`gemini-adapter.test.js`、既存Ollamaテストで設定移行、プロバイダ切替、モデル正規化、SSE分割受信、中断、エラー分類、OllamaのNDJSON回帰を確認する。実Gemini APIへの手動接続はAPIキーを扱わないため未実施。
-* 配信キャッシュを `ai-provider.js?v=0.4.0-3`、`gemini-adapter.js?v=0.4.0-1`、`app.js?v=0.4.0-43` へ更新した。
+* 配信キャッシュを `ai-provider.js?v=0.4.0-3`、`gemini-adapter.js?v=0.4.0-1`、`app.js?v=0.4.0-44` へ更新した。
+* GitHub Pagesへ`config.js`やフロントエンド環境変数としてAPIキーを配信しない。Gemini APIキーは設定画面から端末ごとのlocalStorageへ保存する。PCとiPhoneなど別端末では共有されず、Safariのプライベートブラウズ、CORS、SSE、停止、再読み込み、ホーム画面追加は実機未確認として扱う。
+* Gemini選択時は、質問・指示、選択したメモ本文・文章、AI用参照コンテキスト、会話履歴がGoogle Gemini APIへ送信されることを設定画面とREADMEで明示した。SDKは追加せず、公式REST APIと`fetch`を使用する。料金や無料枠は固定記載しない。
