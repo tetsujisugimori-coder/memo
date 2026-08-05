@@ -2050,7 +2050,11 @@ function openNote(id) {
   const note = notes.find((item) => item.id === id);
   if (!note) return;
 
-  setRelatedDrawerOpen(false, { restoreFocus: false });
+  // 関連ドロワーは広い画面では本文と並べて使えるため維持します。
+  // 狭幅では本文を見やすくするため、メモ選択後だけ一時的に閉じます。
+  if (layoutMode !== "wide") {
+    setRelatedDrawerOpen(false, { restoreFocus: false });
+  }
   currentId = note.id;
   tableAxisSelections.clear();
   pendingTableAxisDeletion = null;
@@ -5315,6 +5319,7 @@ function renderRelated() {
 
   if (!note) {
     updateRelatedToggle(0);
+    relatedList.innerHTML = `<div class="empty related-empty"><strong>メモを選択すると関連メモが表示されます。</strong><span>メモを開くと、本文リンク・逆リンク・共通リンク・共通語句から関連するメモを探します。</span></div>`;
     return;
   }
 
