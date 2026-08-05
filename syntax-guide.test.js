@@ -175,21 +175,32 @@ test("Mermaid詳細dialogにタイトル、閉じるボタン、内部スクロ�
   assert.match(css, /\.mermaid-template-body\s*\{[^}]*overflow-y:\s*auto;/s);
 });
 
-test("現在対応するMarkdown記法だけを掲載する", () => {
+test("対応するMarkdown記法とMemo Nexus独自機能を掲載する", () => {
   const markdown = items.filter((item) => item.category === "markdown");
   assert.deepEqual(markdown.map((item) => item.syntax), [
     "# 見出し",
     "## 見出し",
     "### 見出し",
     "**重要**",
+    "*強調* または _強調_",
+    "~~削除予定~~",
+    "1. 1つ目\n2. 2つ目",
+    "- [ ] 未完了\n- [x] 完了",
+    "---",
+    "[OpenAI](https://openai.com)",
+    "> [!NOTE]\n> 補足情報です。",
+    "本文を選択して［解説を追加］",
     "`const value = 1;`",
     "- 項目",
     "> 引用文",
     "[[メモ名]]"
   ]);
   assert.ok(markdown.every((item) => item.name && item.description && item.notes));
-  const unsupported = ["斜体", "取り消し線", "番号付きリスト", "チェックボックス", "Markdownリンク", "水平線", "Markdown表"];
-  unsupported.forEach((name) => assert.ok(!markdown.some((item) => item.name === name)));
+  ["斜体", "打ち消し線", "番号付きリスト", "チェックリスト", "通常リンク", "水平線", "注意書き", "解説カード"].forEach((name) => {
+    assert.ok(markdown.some((item) => item.name === name));
+  });
+  assert.match(markdown.find((item) => item.name === "通常リンク").notes, /javascript/);
+  assert.equal(markdown.find((item) => item.name === "解説カード").copyable, false);
 });
 
 test("数式カテゴリにKaTeXの表示例と表示専用である注意を掲載する", () => {
@@ -420,7 +431,7 @@ test("ライト・ダーク共通変数と狭幅container queryで表示する",
 });
 
 test("app.jsのキャッシュ番号を更新し、PR #24の画面外Mermaid描画経路を維持する", () => {
-  assert.match(html, /app\.js\?v=0\.4\.0-36/);
+  assert.match(html, /app\.js\?v=0\.4\.0-41/);
   assert.match(html, /table-block-utils\.js\?v=0\.4\.0-4/);
   assert.match(app, /mermaid\.render\(/);
   assert.doesNotMatch(app, /mermaid\.run\(/);

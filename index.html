@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Memo Nexus</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css">
-  <link rel="stylesheet" href="style.css?v=0.4.0-26">
+  <link rel="stylesheet" href="style.css?v=0.4.0-27">
 </head>
 <body>
   <aside id="memoSidebar" class="sidebar" aria-label="メモ一覧" aria-hidden="false">
@@ -75,6 +75,11 @@
       </div>
       <div class="editor-tools" aria-label="エディタ操作">
         <button id="insertTableBtn" type="button" title="カーソル位置へ表ブロックを挿入" aria-label="表ブロックを挿入">表</button>
+        <label class="callout-tool" for="calloutTypeSelect">注意書き
+          <select id="calloutTypeSelect" aria-label="注意書きの種類"><option value="NOTE">NOTE</option><option value="TIP">TIP</option><option value="IMPORTANT">IMPORTANT</option><option value="WARNING">WARNING</option></select>
+        </label>
+        <button id="insertCalloutBtn" type="button" title="カーソル位置へ注意書きを挿入">追加</button>
+        <button id="addExplanationBtn" type="button" title="選択した本文またはコードへ解説カードを追加">解説を追加</button>
         <button id="calculatorLinkBtn" type="button" title="選択中の式をCalculator Memoで開く" aria-label="選択中の式をCalculator Memoで開く">計算</button>
         <button id="syntaxGuideBtn" type="button" title="Markdown・数式・計算ブロック・コード・Mermaidの記法を確認" aria-label="記法ガイドを開く" aria-controls="syntaxGuideDialog" aria-expanded="false">記法ガイド</button>
         <button id="aiSummarizeNoteBtn" type="button">このメモを要約</button>
@@ -546,6 +551,15 @@
     <div id="syntaxGuideBody" class="syntax-guide-body"></div>
     <div id="syntaxGuideStatus" class="syntax-guide-status" role="status" aria-live="polite"></div>
   </dialog>
+  <dialog id="explanationDialog" class="explanation-dialog" aria-labelledby="explanationDialogTitle">
+    <div class="dialog-head"><strong id="explanationDialogTitle">解説カードを追加</strong><button id="closeExplanationDialogBtn" type="button" aria-label="解説カードを閉じる">×</button></div>
+    <form id="explanationForm" method="dialog" class="explanation-form">
+      <label>種類<select id="explanationTypeSelect"><option value="用語解説">用語解説</option><option value="補足">補足</option><option value="具体例">具体例</option><option value="注意">注意</option></select></label>
+      <p id="explanationTarget" class="explanation-target"></p>
+      <label>解説<textarea id="explanationBodyInput" required maxlength="4000" placeholder="選択箇所の解説を書きます"></textarea></label>
+      <div class="dialog-actions"><button id="cancelExplanationBtn" type="button">キャンセル</button><button id="saveExplanationBtn" type="submit">保存</button></div>
+    </form>
+  </dialog>
 
   <dialog id="mermaidTemplateDialog" class="syntax-guide-dialog mermaid-template-dialog" aria-labelledby="mermaidTemplateTitle">
     <div class="dialog-head">
@@ -568,11 +582,12 @@
   <script src="calculation-engine.js?v=0.4.0-1"></script>
   <script src="calculator-link.js?v=0.4.0-1"></script>
   <script src="font-settings.js?v=0.4.0-2"></script>
+  <script src="markdown-enhancements-utils.js?v=0.4.0-4"></script>
   <script src="ai-provider.js?v=0.4.0-2"></script>
   <script src="ollama-adapter.js?v=0.4.0-1"></script>
   <script src="ai-context.js?v=0.4.0-1"></script>
   <script src="ai-reference-selection.js?v=0.4.0-1"></script>
   <script src="ai-prompts.js?v=0.4.0-2"></script>
-  <script src="app.js?v=0.4.0-36"></script>
+  <script src="app.js?v=0.4.0-41"></script>
 </body>
 </html>
