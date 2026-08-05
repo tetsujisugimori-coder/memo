@@ -10,6 +10,7 @@ const css = fs.readFileSync("style.css", "utf8");
 
 test("関連メモドロワーは初期状態で閉じ、必要なARIA関係を持つ", () => {
   assert.match(html, /id="relatedToggleBtn"[^>]*aria-controls="auxiliaryPanel"[^>]*aria-expanded="false"/);
+  assert.match(html, /id="relatedToggleBtn"[\s\S]*?<span>関連メモ<\/span>/);
   assert.match(html, /id="auxiliaryPanel"[^>]*aria-labelledby="relatedPanelTitle"[^>]*aria-hidden="true"[^>]*inert/);
   assert.match(html, /id="relatedBackdrop"[^>]*aria-label="関連メモパネルを閉じる"/);
   assert.match(html, /id="closeRelatedPanelBtn"[^>]*aria-label="関連メモパネルを閉じる"/);
@@ -20,7 +21,16 @@ test("ボタン、閉じる、外側、Esc、メモ切替で同じ開閉処理�
   assert.match(app, /closeRelatedPanelBtn\.addEventListener\("click", \(\) => setRelatedDrawerOpen\(false\)\)/);
   assert.match(app, /relatedBackdrop\.addEventListener\("click", \(\) => setRelatedDrawerOpen\(false\)\)/);
   assert.match(app, /event\.key === "Escape" && isRelatedDrawerOpen\(\)/);
-  assert.match(app, /setRelatedDrawerOpen\(false, \{ restoreFocus: false \}\);\s*currentId = note\.id;/);
+  assert.match(app, /function openNote\(id\) \{[\s\S]*?if \(layoutMode !== "wide"\) \{\s*setRelatedDrawerOpen\(false, \{ restoreFocus: false \}\);\s*\}[\s\S]*?currentId = note\.id;/);
+});
+
+test("関連メモの選択は広い画面ではドロワーを維持し、狭幅だけ閉じる", () => {
+  assert.match(app, /if \(layoutMode !== "wide"\) \{\s*setRelatedDrawerOpen\(false, \{ restoreFocus: false \}\);\s*\}/);
+  assert.doesNotMatch(app, /function openNote\(id\) \{[\s\S]{0,180}setRelatedDrawerOpen\(false, \{ restoreFocus: false \}\);\s*currentId/s);
+});
+
+test("選択中メモがない場合も案内を表示する", () => {
+  assert.match(app, /メモを選択すると関連メモが表示されます。/);
 });
 
 test("関連メモ抽出と最大8件の既存仕様を維持し件数を表示する", () => {
@@ -38,4 +48,21 @@ test("右パネルは本文幅を変えない固定オーバーレイで内部�
   assert.match(css, /\.related-limit-notice\s*\{[^}]*color:\s*var\(--muted\);[^}]*font-size:\s*12px;[^}]*white-space:\s*nowrap;/s);
   assert.match(css, /body\.related-open\s*\{[^}]*overflow:\s*hidden;/s);
   assert.match(css, /@media \(prefers-reduced-motion: reduce\)/);
+});
+
+test("関連メモUIはモバイルを含む全幅で一元管理した階層順になる", () => {
+  const readZ = (name) => Number(css.match(new RegExp(`--z-${name}:\\s*(\\d+)`))?.[1]);
+  const context = readZ("context-panel");
+  const backdrop = readZ("related-backdrop");
+  const drawer = readZ("related-drawer");
+  const trigger = readZ("related-trigger");
+  assert.ok(Number.isFinite(context));
+  assert.equal(drawer > backdrop, true);
+  assert.equal(backdrop > context, true);
+  assert.equal(trigger > drawer, true);
+  assert.match(css, /\.context-panel\s*\{[^}]*z-index:\s*var\(--z-context-panel\)/s);
+  assert.match(css, /\.related-backdrop\s*\{[^}]*z-index:\s*var\(--z-related-backdrop\)/s);
+  assert.match(css, /\.related-panel\s*\{[^}]*z-index:\s*var\(--z-related-drawer\)/s);
+  assert.match(css, /\.related-toggle\s*\{[^}]*z-index:\s*var\(--z-related-trigger\)/s);
+  assert.doesNotMatch(css, /@container app-width \(max-width: 1039\.98px\)[\s\S]*?\.context-panel[^}]*z-index:\s*80/);
 });
