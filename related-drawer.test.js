@@ -50,8 +50,19 @@ test("右パネルは本文幅を変えない固定オーバーレイで内部�
   assert.match(css, /@media \(prefers-reduced-motion: reduce\)/);
 });
 
-test("関連メモUIは右側コンテキストパネルより前面に表示する", () => {
-  assert.match(css, /\.related-toggle\s*\{[^}]*z-index:\s*72;/s);
-  assert.match(css, /\.related-backdrop\s*\{[^}]*z-index:\s*70;/s);
-  assert.match(css, /\.related-panel\s*\{[^}]*z-index:\s*71;/s);
+test("関連メモUIはモバイルを含む全幅で一元管理した階層順になる", () => {
+  const readZ = (name) => Number(css.match(new RegExp(`--z-${name}:\\s*(\\d+)`))?.[1]);
+  const context = readZ("context-panel");
+  const backdrop = readZ("related-backdrop");
+  const drawer = readZ("related-drawer");
+  const trigger = readZ("related-trigger");
+  assert.ok(Number.isFinite(context));
+  assert.equal(drawer > backdrop, true);
+  assert.equal(backdrop > context, true);
+  assert.equal(trigger > drawer, true);
+  assert.match(css, /\.context-panel\s*\{[^}]*z-index:\s*var\(--z-context-panel\)/s);
+  assert.match(css, /\.related-backdrop\s*\{[^}]*z-index:\s*var\(--z-related-backdrop\)/s);
+  assert.match(css, /\.related-panel\s*\{[^}]*z-index:\s*var\(--z-related-drawer\)/s);
+  assert.match(css, /\.related-toggle\s*\{[^}]*z-index:\s*var\(--z-related-trigger\)/s);
+  assert.doesNotMatch(css, /@container app-width \(max-width: 1039\.98px\)[\s\S]*?\.context-panel[^}]*z-index:\s*80/);
 });

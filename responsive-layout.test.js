@@ -28,7 +28,7 @@ test("本文入力欄の後ろに表ブロック編集領域と境界余白を�
 });
 
 test("Mermaid表示用CSSの配信キャッシュを更新する", () => {
-  assert.match(html, /style\.css\?v=0\.4\.0-28/);
+  assert.match(html, /style\.css\?v=0\.4\.0-29/);
 });
 
 test("右側コンテキストパネルは単一の固定列とモバイルドロワーを持つ", () => {
