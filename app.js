@@ -47,6 +47,14 @@ const SYNTAX_GUIDE_ITEMS = [
   { category: "markdown", name: "見出し2", syntax: "## 見出し", description: "2段階目の見出しです。", notes: "行頭に##と半角スペースを書きます。" },
   { category: "markdown", name: "見出し3", syntax: "### 見出し", description: "3段階目の見出しです。", notes: "行頭に###と半角スペースを書きます。" },
   { category: "markdown", name: "太字", syntax: "**重要**", description: "文字を太字で強調します。", notes: "文字の前後を**で囲みます。" },
+  { category: "markdown", name: "斜体", syntax: "*強調* または _強調_", description: "文字を斜体で強調します。", notes: "単語の途中のアンダースコア、コード、エスケープした記号は変換しません。" },
+  { category: "markdown", name: "打ち消し線", syntax: "~~削除予定~~", description: "文字に打ち消し線を付けます。", notes: "コード内では変換しません。" },
+  { category: "markdown", name: "番号付きリスト", syntax: "1. 1つ目\n2. 2つ目", description: "連続した項目を番号付きリストで表示します。", notes: "番号はHTMLの自然な番号付きリストとして表示されます。" },
+  { category: "markdown", name: "チェックリスト", syntax: "- [ ] 未完了\n- [x] 完了", description: "完了状態を持つ項目を表示します。", notes: "プレビューのチェック操作は、現在開いているメモの本文だけを更新します。" },
+  { category: "markdown", name: "水平線", syntax: "---", description: "内容の区切り線を表示します。", notes: "行全体をハイフン3個以上にします。" },
+  { category: "markdown", name: "通常リンク", syntax: "[OpenAI](https://openai.com)", description: "http/httpsの外部リンクを安全に新しいタブで開きます。", notes: "javascript:など危険なURLはリンクにしません。Wikiリンクとは別の一般的なMarkdownです。" },
+  { category: "markdown", name: "注意書き", syntax: "> [!NOTE]\n> 補足情報です。", description: "NOTE、TIP、IMPORTANT、WARNINGを色とアイコン付きで表示します。", notes: "Memo NexusではGitHub形式をそのまま本文へ保存するため、Markdown出力でも読めます。" },
+  { category: "markdown", name: "解説カード", syntax: "本文を選択して［解説を追加］", description: "選択箇所に紐付く独立した解説カードを追加します。", notes: "Memo Nexus独自機能です。本文とは別にメモデータへ保存され、対象が見つからない場合も削除されません。", copyable: false },
   { category: "markdown", name: "インラインコード", syntax: "`const value = 1;`", description: "文中の短いコードを表示します。", notes: "文字列をバッククォート1個ずつで囲みます。" },
   { category: "markdown", name: "箇条書き", syntax: "- 項目", description: "項目を箇条書きで表示します。", notes: "行頭に-と半角スペースを書きます。" },
   { category: "markdown", name: "引用", syntax: "> 引用文", description: "引用文として表示します。", notes: "行頭に>と半角スペースを書きます。" },
@@ -446,6 +454,16 @@ const noteExportBtn = $("noteExportBtn");
 const noteMeta = $("noteMeta");
 const editor = $("editor");
 const insertTableBtn = $("insertTableBtn");
+const calloutTypeSelect = $("calloutTypeSelect");
+const insertCalloutBtn = $("insertCalloutBtn");
+const addExplanationBtn = $("addExplanationBtn");
+const explanationDialog = $("explanationDialog");
+const explanationForm = $("explanationForm");
+const explanationTypeSelect = $("explanationTypeSelect");
+const explanationBodyInput = $("explanationBodyInput");
+const explanationTarget = $("explanationTarget");
+const closeExplanationDialogBtn = $("closeExplanationDialogBtn");
+const cancelExplanationBtn = $("cancelExplanationBtn");
 const calculatorLinkBtn = $("calculatorLinkBtn");
 const tableBlockEditors = $("tableBlockEditors");
 const tableAxisDeleteDialog = $("tableAxisDeleteDialog");
@@ -593,6 +611,7 @@ let draggedMemoIds = [];
 let pendingExport = null;
 let syntaxGuideRendered = false;
 const syntaxGuideCopyTimers = new WeakMap();
+let pendingExplanation = null;
 const tableCopyStatusTimers = new WeakMap();
 let activeTableCell = null;
 const tableAxisSelections = new Map();
@@ -2309,10 +2328,13 @@ function renderPreview() {
   }
 
   const body = (note.id === currentId ? editor.value : note.body);
+  checklistRenderIndex = 0;
   preview.innerHTML = renderPreviewHtml(body, note.id, renderGeneration);
   hydrateMathExpressions();
   hydrateInlineAttachmentImages();
   bindImageBlockControls();
+  hydrateExplanationCards(note, body);
+  bindChecklistControls(note);
 
   preview.querySelectorAll(".wiki-link").forEach((button) => {
     button.addEventListener("click", () => openOrCreateLinkedNote(button.dataset.title));
@@ -3867,6 +3889,17 @@ function renderMarkdownLines(lines) {
       continue;
     }
 
+    if (/^\d+\.\s+/.test(trimmed)) {
+      flushParagraph();
+      const listLines = [];
+      while (index < lines.length && /^\d+\.\s+/.test(lines[index].trim())) {
+        listLines.push(lines[index].trim());
+        index += 1;
+      }
+      html.push(renderOrderedListBlock(listLines));
+      continue;
+    }
+
     if (/^>\s?/.test(trimmed)) {
       flushParagraph();
       const quoteLines = [];
@@ -3874,7 +3907,14 @@ function renderMarkdownLines(lines) {
         quoteLines.push(lines[index].trim());
         index += 1;
       }
-      html.push(renderQuoteBlock(quoteLines));
+      html.push(renderQuoteOrCalloutBlock(quoteLines));
+      continue;
+    }
+
+    if (/^(---+|\*\*\*+|___+)$/.test(trimmed)) {
+      flushParagraph();
+      html.push("<hr>");
+      index += 1;
       continue;
     }
 
@@ -3887,12 +3927,132 @@ function renderMarkdownLines(lines) {
 }
 
 function renderListBlock(lines) {
-  return `<ul>${lines
-    .map((line) => `<li>${renderMarkdownInline(line.replace(/^-\s+/, ""))}</li>`)
-    .join("")}</ul>`;
+  return `<ul>${lines.map((line) => {
+    const content = line.replace(/^-\s+/, "");
+    const task = content.match(/^\[([ xX])\]\s+(.*)$/);
+    if (!task) return `<li>${renderMarkdownInline(content)}</li>`;
+    const taskIndex = nextChecklistIndex();
+    const checked = task[1].toLowerCase() === "x";
+    return `<li class="task-list-item"><input class="task-list-checkbox" type="checkbox" data-task-index="${taskIndex}"${checked ? " checked" : ""} aria-label="${checked ? "完了" : "未完了"}"><span>${renderMarkdownInline(task[2])}</span></li>`;
+  }).join("")}</ul>`;
 }
 
-function renderQuoteBlock(lines) {
+function normalizeExplanations(note) {
+  if (!Array.isArray(note.explanations)) note.explanations = [];
+  return note.explanations;
+}
+
+function resolveExplanationTarget(body, explanation) {
+  const target = String(explanation.target || "");
+  if (!target) return { start: -1, end: -1, matched: false };
+  const start = Number(explanation.start);
+  const end = Number(explanation.end);
+  if (Number.isInteger(start) && Number.isInteger(end) && body.slice(start, end) === target) return { start, end, matched: true };
+  let found = body.indexOf(target);
+  if (found !== -1 && explanation.before) {
+    const contextual = body.indexOf(`${explanation.before}${target}${explanation.after || ""}`);
+    if (contextual !== -1) found = contextual + explanation.before.length;
+  }
+  return found === -1 ? { start: -1, end: -1, matched: false } : { start: found, end: found + target.length, matched: true };
+}
+
+function hydrateExplanationCards(note, body) {
+  const explanations = normalizeExplanations(note);
+  if (!explanations.length) return;
+  const cards = document.createElement("section");
+  cards.className = "explanation-cards";
+  cards.setAttribute("aria-label", "解説カード");
+  explanations.forEach((explanation, index) => {
+    const resolved = resolveExplanationTarget(body, explanation);
+    explanation.orphaned = !resolved.matched;
+    insertExplanationMarker(explanation, index + 1, resolved.matched);
+    cards.append(createExplanationCard(explanation, index + 1));
+  });
+  preview.append(cards);
+}
+
+function insertExplanationMarker(explanation, number, matched) {
+  if (!matched) return;
+  const walker = document.createTreeWalker(preview, NodeFilter.SHOW_TEXT);
+  const target = String(explanation.target || "");
+  let node;
+  while ((node = walker.nextNode())) {
+    const offset = node.nodeValue.indexOf(target);
+    if (offset === -1) continue;
+    const marker = document.createElement("button");
+    marker.type = "button";
+    marker.className = "explanation-marker";
+    marker.textContent = `①`.replace("①", String(number));
+    marker.setAttribute("aria-label", `解説カード${number}を表示`);
+    marker.addEventListener("click", () => document.getElementById(`explanation-card-${explanation.id}`)?.scrollIntoView({ behavior: "smooth", block: "nearest" }));
+    const after = node.splitText(offset + target.length);
+    node.splitText(offset);
+    node.parentNode.insertBefore(marker, after);
+    return;
+  }
+}
+
+function createExplanationCard(explanation, number) {
+  const article = document.createElement("article");
+  article.id = `explanation-card-${explanation.id}`;
+  article.className = `explanation-card${explanation.orphaned ? " explanation-orphaned" : ""}`;
+  const details = document.createElement("details");
+  details.open = explanation.collapsed !== true;
+  details.addEventListener("toggle", () => { explanation.collapsed = !details.open; });
+  const summary = document.createElement("summary");
+  summary.textContent = `解説カード${number}：${explanation.type || "補足"}`;
+  const target = document.createElement("p");
+  target.className = "explanation-card-target";
+  target.textContent = `対象：${explanation.target || "（対象なし）"}`;
+  const body = document.createElement("p");
+  body.textContent = explanation.body || "";
+  const status = document.createElement("p");
+  status.className = "explanation-card-status";
+  status.textContent = explanation.orphaned ? "対象箇所を確認してください。カードは保持されています。" : "";
+  const actions = document.createElement("div");
+  actions.className = "explanation-card-actions";
+  const edit = document.createElement("button"); edit.type = "button"; edit.textContent = "編集";
+  edit.addEventListener("click", () => openExplanationDialog(explanation));
+  const remove = document.createElement("button"); remove.type = "button"; remove.textContent = "削除";
+  remove.addEventListener("click", () => deleteExplanation(explanation.id));
+  actions.append(edit, remove);
+  details.append(summary, target, body, status, actions);
+  article.append(details);
+  return article;
+}
+
+function bindChecklistControls(note) {
+  preview.querySelectorAll(".task-list-checkbox").forEach((checkbox) => checkbox.addEventListener("change", () => {
+    const targetIndex = Number(checkbox.dataset.taskIndex);
+    let index = -1;
+    const nextBody = String(editor.value).replace(/^- \[([ xX])\](?=\s)/gm, (match) => {
+      index += 1;
+      return index === targetIndex ? `- [${checkbox.checked ? "x" : " "}]` : match;
+    });
+    if (nextBody !== editor.value && note.id === currentId) {
+      captureUndoSnapshot();
+      editor.value = nextBody;
+      scheduleSave();
+    }
+  }));
+}
+
+let checklistRenderIndex = 0;
+function nextChecklistIndex() { const index = checklistRenderIndex; checklistRenderIndex += 1; return index; }
+
+function renderOrderedListBlock(lines) {
+  return `<ol>${lines.map((line) => `<li>${renderMarkdownInline(line.replace(/^\d+\.\s+/, ""))}</li>`).join("")}</ol>`;
+}
+
+function renderQuoteOrCalloutBlock(lines) {
+  const rawLines = lines.map((line) => line.replace(/^>\s?/, ""));
+  const callout = rawLines[0].match(/^\[!(NOTE|TIP|IMPORTANT|WARNING)\]\s*$/i);
+  if (callout) {
+    const type = callout[1].toUpperCase();
+    const icons = { NOTE: "ℹ", TIP: "✦", IMPORTANT: "❗", WARNING: "⚠" };
+    const content = rawLines.slice(1).map(renderMarkdownInline).join("<br>");
+    return `<aside class="callout callout-${type.toLowerCase()}" role="note"><strong class="callout-title"><span aria-hidden="true">${icons[type]}</span> ${type}</strong><div>${content}</div></aside>`;
+  }
   const content = lines
     .map((line) => renderMarkdownInline(line.replace(/^>\s?/, "")))
     .join("<br>");
@@ -3917,6 +4077,12 @@ function renderMarkdownInline(text) {
       html += renderWikiButton(token.content);
     } else if (token.type === "bold") {
       html += `<strong>${renderMarkdownInline(token.content)}</strong>`;
+    } else if (token.type === "italic") {
+      html += `<em>${renderMarkdownInline(token.content)}</em>`;
+    } else if (token.type === "strike") {
+      html += `<del>${renderMarkdownInline(token.content)}</del>`;
+    } else if (token.type === "link") {
+      html += `<a class="markdown-link" href="${escapeAttr(token.href)}" target="_blank" rel="noopener noreferrer">${renderMarkdownInline(token.content)}</a>`;
     } else if (token.type === "attachment") {
       html += `<span class="inline-attachment-image" data-attachment-id="${escapeAttr(token.id)}" data-alt="${escapeAttr(token.alt)}" role="img" aria-label="${escapeAttr(token.alt || "添付画像")}">画像を読み込み中...</span>`;
     } else if (token.type === "math") {
@@ -3970,6 +4136,13 @@ function findNextInlineToken(text, fromIndex) {
     });
   }
 
+  const linkPattern = /(?<!!)\[([^\]]+)\]\(([^\s)]+)\)/g;
+  linkPattern.lastIndex = fromIndex;
+  const linkMatch = linkPattern.exec(text);
+  if (linkMatch && safeExternalUrl(linkMatch[2])) {
+    tokens.push({ type: "link", start: linkMatch.index, end: linkPattern.lastIndex, content: linkMatch[1], href: linkMatch[2] });
+  }
+
   const boldStart = text.indexOf("**", fromIndex);
   if (boldStart !== -1) {
     const boldEnd = text.indexOf("**", boldStart + 2);
@@ -3983,7 +4156,42 @@ function findNextInlineToken(text, fromIndex) {
     }
   }
 
+  const strike = findDelimitedInlineToken(text, fromIndex, "~~", "strike");
+  if (strike) tokens.push(strike);
+  const italicStar = findDelimitedInlineToken(text, fromIndex, "*", "italic", { rejectDouble: true });
+  const italicUnderscore = findDelimitedInlineToken(text, fromIndex, "_", "italic", { wordBoundary: true });
+  if (italicStar) tokens.push(italicStar);
+  if (italicUnderscore) tokens.push(italicUnderscore);
+
   return tokens.sort((a, b) => a.start - b.start || a.end - b.end)[0] || null;
+}
+
+function findDelimitedInlineToken(text, fromIndex, delimiter, type, options = {}) {
+  for (let start = text.indexOf(delimiter, fromIndex); start !== -1; start = text.indexOf(delimiter, start + delimiter.length)) {
+    if (isEscapedMarkdownCharacter(text, start)) continue;
+    if (options.rejectDouble && (text[start - 1] === "*" || text[start + 1] === "*")) continue;
+    if (options.wordBoundary && /[\p{L}\p{N}]/u.test(text[start - 1] || "")) continue;
+    const end = text.indexOf(delimiter, start + delimiter.length);
+    if (end === -1 || isEscapedMarkdownCharacter(text, end)) continue;
+    if (options.rejectDouble && (text[end - 1] === "*" || text[end + 1] === "*")) continue;
+    if (options.wordBoundary && /[\p{L}\p{N}]/u.test(text[end + 1] || "")) continue;
+    const content = text.slice(start + delimiter.length, end);
+    if (content.trim()) return { type, start, end: end + delimiter.length, content };
+  }
+  return null;
+}
+
+function isEscapedMarkdownCharacter(text, index) {
+  let count = 0;
+  for (let cursor = index - 1; cursor >= 0 && text[cursor] === "\\"; cursor -= 1) count += 1;
+  return count % 2 === 1;
+}
+
+function safeExternalUrl(value) {
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" || url.protocol === "http:";
+  } catch { return false; }
 }
 
 function findInlineMathToken(text, fromIndex) {
@@ -7113,6 +7321,68 @@ function openCalculatorMemoFromSelection() {
   }
 }
 
+function insertCalloutAtSelection() {
+  const type = calloutTypeSelect?.value || "NOTE";
+  const value = `> [!${type}]\n> `;
+  const start = editor.selectionStart;
+  const end = editor.selectionEnd;
+  captureUndoSnapshot();
+  editor.setRangeText(value, start, end, "end");
+  editor.focus();
+  scheduleSave();
+}
+
+function openExplanationDialog(existing = null) {
+  const note = currentNote();
+  if (!note || !explanationDialog) return;
+  if (existing) {
+    pendingExplanation = { existing };
+    explanationTypeSelect.value = existing.type || "補足";
+    explanationBodyInput.value = existing.body || "";
+    explanationTarget.textContent = `対象：${existing.target || "（対象箇所を確認してください）"}`;
+  } else {
+    const start = editor.selectionStart;
+    const end = editor.selectionEnd;
+    const target = editor.value.slice(start, end);
+    if (!target.trim()) { alert("本文またはコードの解説したい範囲を選択してください。"); return; }
+    pendingExplanation = { start, end, target, before: editor.value.slice(Math.max(0, start - 40), start), after: editor.value.slice(end, end + 40) };
+    explanationTypeSelect.value = "用語解説";
+    explanationBodyInput.value = "";
+    explanationTarget.textContent = `対象：${target}`;
+  }
+  if (!explanationDialog.open) explanationDialog.showModal();
+  explanationBodyInput.focus();
+}
+
+function saveExplanationFromDialog(event) {
+  event.preventDefault();
+  const note = currentNote();
+  if (!note || !pendingExplanation || !explanationBodyInput.value.trim()) return;
+  const explanations = normalizeExplanations(note);
+  const base = pendingExplanation.existing || pendingExplanation;
+  const explanation = {
+    ...base,
+    id: base.id || crypto.randomUUID(),
+    type: explanationTypeSelect.value,
+    body: explanationBodyInput.value.trim(),
+    source: base.source || "manual",
+    updatedAt: Date.now()
+  };
+  const index = explanations.findIndex((item) => item.id === explanation.id);
+  if (index === -1) explanations.push(explanation); else explanations[index] = explanation;
+  note.updatedAt = Date.now();
+  void putNote(note).then(async () => { notes = await getAllNotes(); renderPreview(); });
+  explanationDialog.close();
+}
+
+function deleteExplanation(id) {
+  const note = currentNote();
+  if (!note || !confirm("この解説カードを削除しますか？")) return;
+  note.explanations = normalizeExplanations(note).filter((item) => item.id !== id);
+  note.updatedAt = Date.now();
+  void putNote(note).then(async () => { notes = await getAllNotes(); renderPreview(); });
+}
+
 // ここから下は、画面操作と処理を結びつけるイベント設定です。
 newBtn.addEventListener("click", async () => {
   const note = await createNote("", "", { avoidDuplicateTitle: false });
@@ -7203,6 +7473,12 @@ if (closeImagePreviewBtn) closeImagePreviewBtn.addEventListener("click", () => i
 if (imagePreviewDialog) imagePreviewDialog.addEventListener("close", () => imagePreview.removeAttribute("src"));
 if (syntaxGuideBtn && syntaxGuideDialog) syntaxGuideBtn.addEventListener("click", openSyntaxGuide);
 if (insertTableBtn) insertTableBtn.addEventListener("click", insertTableAtSelection);
+if (insertCalloutBtn) insertCalloutBtn.addEventListener("click", insertCalloutAtSelection);
+if (addExplanationBtn) addExplanationBtn.addEventListener("click", () => openExplanationDialog());
+if (explanationForm) explanationForm.addEventListener("submit", saveExplanationFromDialog);
+if (closeExplanationDialogBtn) closeExplanationDialogBtn.addEventListener("click", () => explanationDialog.close());
+if (cancelExplanationBtn) cancelExplanationBtn.addEventListener("click", () => explanationDialog.close());
+if (explanationDialog) explanationDialog.addEventListener("close", () => { pendingExplanation = null; });
 if (calculatorLinkBtn) calculatorLinkBtn.addEventListener("click", openCalculatorMemoFromSelection);
 if (tableBlockEditors) {
   tableBlockEditors.addEventListener("input", handleTableEditorInput);
