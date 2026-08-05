@@ -358,7 +358,7 @@ const {
   selectAllReferenceNotes,
   selectCollectionReferenceNotes
 } = window.MemoNexusAiReferenceSelection;
-const { buildCalloutMarkdown, checklistEntries, updateChecklistAt, visibleTargetForSourceRange, insertExplanationMarkerIntoDom, resolveExplanationTarget: resolveExplanationTargetFromSource, shouldPersistCollapsedState } = window.MemoNexusMarkdownEnhancements;
+const { buildCalloutMarkdown, checklistEntries, updateChecklistAt, createExplanationCollapsedStateSaver, hydrateExplanationCardsIntoDom } = window.MemoNexusMarkdownEnhancements;
 
 // HTML要素を短く取得するための小さなヘルパー。
 const $ = (id) => document.getElementById(id);
@@ -3943,78 +3943,21 @@ function normalizeExplanations(note) {
   return note.explanations;
 }
 
+const saveExplanationCollapsedState = createExplanationCollapsedStateSaver({
+  getNote: (noteId) => notes.find((note) => note.id === noteId),
+  putNote,
+  now: () => Date.now(),
+  afterSave: async () => { notes = await getAllNotes(); }
+});
+
 function hydrateExplanationCards(note, body) {
   const explanations = normalizeExplanations(note);
-  if (!explanations.length) return;
-  const cards = document.createElement("section");
-  cards.className = "explanation-cards";
-  cards.setAttribute("aria-label", "解説カード");
-  explanations.forEach((explanation, index) => {
-    const resolved = resolveExplanationTargetFromSource(body, explanation);
-    const visibleTarget = resolved.matched ? visibleTargetForSourceRange(body, resolved.start, resolved.end) : { matched: false };
-    explanation.orphaned = !visibleTarget.matched || !insertExplanationMarker(explanation, index + 1, visibleTarget);
-    cards.append(createExplanationCard(explanation, index + 1));
+  hydrateExplanationCardsIntoDom(preview, body, explanations, {
+    onMarkerActivate: (explanation) => document.getElementById(`explanation-card-${explanation.id}`)?.scrollIntoView({ behavior: "smooth", block: "nearest" }),
+    onPersistCollapsed: (explanation, collapsed) => saveExplanationCollapsedState(note.id, explanation.id, collapsed),
+    onEdit: (explanation) => openExplanationDialog(explanation),
+    onDelete: (id) => deleteExplanation(id)
   });
-  preview.append(cards);
-}
-
-function insertExplanationMarker(explanation, number, visibleTarget) {
-  if (!visibleTarget.matched) return false;
-  return insertExplanationMarkerIntoDom(preview, {
-    displayText: visibleTarget.displayText,
-    ordinal: visibleTarget.ordinal,
-    number,
-    onActivate: () => document.getElementById(`explanation-card-${explanation.id}`)?.scrollIntoView({ behavior: "smooth", block: "nearest" })
-  });
-}
-
-function createExplanationCard(explanation, number) {
-  const article = document.createElement("article");
-  article.id = `explanation-card-${explanation.id}`;
-  article.className = `explanation-card${explanation.orphaned ? " explanation-orphaned" : ""}`;
-  const details = document.createElement("details");
-  const summary = document.createElement("summary");
-  summary.textContent = `解説カード${number}：${explanation.type || "補足"}`;
-  let userToggled = false;
-  summary.addEventListener("click", () => { userToggled = true; });
-  summary.addEventListener("keydown", (event) => {
-    if (event.key === "Enter" || event.key === " ") userToggled = true;
-  });
-  details.open = explanation.collapsed !== true;
-  details.addEventListener("toggle", () => {
-    const collapsed = !details.open;
-    if (shouldPersistCollapsedState(explanation.collapsed, collapsed, userToggled)) saveExplanationCollapsedState(explanation, collapsed);
-    userToggled = false;
-  });
-  const target = document.createElement("p");
-  target.className = "explanation-card-target";
-  target.textContent = `対象：${explanation.target || "（対象なし）"}`;
-  const body = document.createElement("p");
-  body.textContent = explanation.body || "";
-  const status = document.createElement("p");
-  status.className = "explanation-card-status";
-  status.textContent = explanation.orphaned ? "対象箇所を確認してください。カードは保持されています。" : "";
-  const actions = document.createElement("div");
-  actions.className = "explanation-card-actions";
-  const edit = document.createElement("button"); edit.type = "button"; edit.textContent = "編集";
-  edit.addEventListener("click", () => openExplanationDialog(explanation));
-  const remove = document.createElement("button"); remove.type = "button"; remove.textContent = "削除";
-  remove.addEventListener("click", () => deleteExplanation(explanation.id));
-  actions.append(edit, remove);
-  details.append(summary, target, body, status, actions);
-  article.append(details);
-  return article;
-}
-
-function saveExplanationCollapsedState(explanation, collapsed) {
-  const note = currentNote();
-  if (!note) return;
-  const stored = normalizeExplanations(note).find((item) => item.id === explanation.id);
-  if (!stored || !shouldPersistCollapsedState(stored.collapsed, collapsed, true)) return;
-  stored.collapsed = collapsed;
-  stored.updatedAt = Date.now();
-  note.updatedAt = Date.now();
-  void putNote(note).then(async () => { notes = await getAllNotes(); });
 }
 
 function bindChecklistControls(note) {

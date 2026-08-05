@@ -50,7 +50,7 @@ const MemoNexusMarkdownEnhancements = (() => {
       const token = nextVisibleInlineToken(text, index);
       if (!token) { pushPlain(text.length); break; }
       pushPlain(token.start);
-      segments.push({ sourceStart: sourceStart + token.contentStart, sourceEnd: sourceStart + token.contentEnd, text: token.content });
+      segments.push({ sourceStart: sourceStart + token.contentStart, sourceEnd: sourceStart + token.contentEnd, text: token.content, ambiguous: token.ambiguous === true });
       index = token.end;
     }
   }
@@ -68,7 +68,14 @@ const MemoNexusMarkdownEnhancements = (() => {
     const matches = patterns.map(({ pattern, group, contentOffset }) => {
       pattern.lastIndex = from;
       const match = pattern.exec(text);
-      return match ? { start: match.index, end: pattern.lastIndex, content: match[group], contentStart: match.index + contentOffset, contentEnd: match.index + contentOffset + match[group].length } : null;
+      return match ? {
+        start: match.index,
+        end: pattern.lastIndex,
+        content: match[group],
+        contentStart: match.index + contentOffset,
+        contentEnd: match.index + contentOffset + match[group].length,
+        ambiguous: /!?\[[^\]]*\]\([^)]*\)|`|\*\*|~~|(?<!\\)[*_]/.test(match[group])
+      } : null;
     }).filter(Boolean);
     return matches.sort((a, b) => a.start - b.start || a.end - b.end)[0] || null;
   }
@@ -77,6 +84,7 @@ const MemoNexusMarkdownEnhancements = (() => {
     if (!target || start < 0 || end !== start + target.length) return -1;
     let ordinal = 0;
     for (const segment of visibleTextSegments(body)) {
+      if (segment.ambiguous) return -1;
       let offset = segment.text.indexOf(target);
       while (offset !== -1) {
         const sourceMatchStart = segment.sourceStart + offset;
@@ -102,7 +110,8 @@ const MemoNexusMarkdownEnhancements = (() => {
         end: overlapEnd
       };
     }).filter(Boolean);
-    if (overlaps.length !== 1 || !overlaps[0].displayText) {
+    const overlappingSegments = visibleTextSegments(body).filter((segment) => segment.sourceEnd > start && segment.sourceStart < end);
+    if (overlaps.length !== 1 || overlappingSegments.some((segment) => segment.ambiguous) || !overlaps[0].displayText) {
       return { displayText: "", ordinal: -1, matched: false };
     }
     const match = overlaps[0];
@@ -165,7 +174,108 @@ const MemoNexusMarkdownEnhancements = (() => {
     return userInitiated === true && previous !== next;
   }
 
-  return { buildCalloutMarkdown, checklistEntries, updateChecklistAt, visibleTextSegments, visibleTargetOrdinal, visibleTargetForSourceRange, insertExplanationMarkerIntoDom, resolveExplanationTarget, shouldPersistCollapsedState };
+  function createExplanationCollapsedStateSaver(options = {}) {
+    let queue = Promise.resolve();
+    const save = (noteId, explanationId, collapsed) => {
+      const operation = queue.then(async () => {
+        const note = options.getNote?.(noteId);
+        if (!note || note.id !== noteId || !Array.isArray(note.explanations)) return false;
+        const explanation = note.explanations.find((item) => item.id === explanationId);
+        if (!explanation || explanation.collapsed === collapsed) return false;
+        const timestamp = options.now?.() ?? Date.now();
+        explanation.collapsed = collapsed;
+        explanation.updatedAt = timestamp;
+        note.updatedAt = timestamp;
+        await options.putNote?.(note);
+        await options.afterSave?.(noteId);
+        return true;
+      });
+      queue = operation.catch(() => {});
+      return operation;
+    };
+    save.whenIdle = () => queue;
+    return save;
+  }
+
+  function bindExplanationCollapseInteractions(details, summary, explanation, onPersist) {
+    let renderedCollapsed = explanation.collapsed;
+    let expectedUserOpen = null;
+    details.open = explanation.collapsed !== true;
+    summary.addEventListener("click", () => { expectedUserOpen = !details.open; });
+    details.addEventListener("toggle", () => {
+      const nextCollapsed = !details.open;
+      const userInitiated = expectedUserOpen === details.open;
+      expectedUserOpen = null;
+      if (shouldPersistCollapsedState(renderedCollapsed, nextCollapsed, userInitiated)) {
+        renderedCollapsed = nextCollapsed;
+        onPersist?.(nextCollapsed);
+      }
+    });
+  }
+
+  function createExplanationCardElement(documentRef, explanation, number, options = {}) {
+    const article = documentRef.createElement("article");
+    article.id = `explanation-card-${explanation.id}`;
+    article.className = `explanation-card${options.orphaned ? " explanation-orphaned" : ""}`;
+    const details = documentRef.createElement("details");
+    const summary = documentRef.createElement("summary");
+    summary.textContent = `解説カード${number}：${explanation.type || "補足"}`;
+    bindExplanationCollapseInteractions(details, summary, explanation, (collapsed) => options.onPersistCollapsed?.(explanation, collapsed));
+    const target = documentRef.createElement("p");
+    target.className = "explanation-card-target";
+    target.textContent = `対象：${explanation.target || "（対象なし）"}`;
+    const body = documentRef.createElement("p");
+    body.className = "explanation-card-body";
+    body.textContent = explanation.body || "";
+    const status = documentRef.createElement("p");
+    status.className = "explanation-card-status";
+    status.textContent = options.orphaned ? "対象箇所を確認してください。カードは保持されています。" : "";
+    const actions = documentRef.createElement("div");
+    actions.className = "explanation-card-actions";
+    const edit = documentRef.createElement("button");
+    edit.type = "button";
+    edit.textContent = "編集";
+    edit.addEventListener("click", () => options.onEdit?.(explanation));
+    const remove = documentRef.createElement("button");
+    remove.type = "button";
+    remove.textContent = "削除";
+    remove.addEventListener("click", () => options.onDelete?.(explanation.id));
+    actions.append(edit, remove);
+    details.append(summary, target, body, status, actions);
+    article.append(details);
+    return article;
+  }
+
+  function hydrateExplanationCardsIntoDom(root, body, explanations, options = {}) {
+    const documentRef = root?.ownerDocument;
+    if (!documentRef || !Array.isArray(explanations) || !explanations.length) return [];
+    const cards = documentRef.createElement("section");
+    cards.className = "explanation-cards";
+    cards.setAttribute("aria-label", "解説カード");
+    const results = explanations.map((explanation, index) => {
+      const number = index + 1;
+      const resolved = resolveExplanationTarget(body, explanation);
+      const visibleTarget = resolved.matched ? visibleTargetForSourceRange(body, resolved.start, resolved.end) : { matched: false };
+      const markerInserted = visibleTarget.matched && insertExplanationMarkerIntoDom(root, {
+        displayText: visibleTarget.displayText,
+        ordinal: visibleTarget.ordinal,
+        number,
+        onActivate: () => options.onMarkerActivate?.(explanation)
+      });
+      const orphaned = !markerInserted;
+      cards.append(createExplanationCardElement(documentRef, explanation, number, {
+        orphaned,
+        onPersistCollapsed: options.onPersistCollapsed,
+        onEdit: options.onEdit,
+        onDelete: options.onDelete
+      }));
+      return { explanation, resolved, visibleTarget, markerInserted, orphaned };
+    });
+    root.append(cards);
+    return results;
+  }
+
+  return { buildCalloutMarkdown, checklistEntries, updateChecklistAt, visibleTextSegments, visibleTargetOrdinal, visibleTargetForSourceRange, insertExplanationMarkerIntoDom, resolveExplanationTarget, shouldPersistCollapsedState, createExplanationCollapsedStateSaver, bindExplanationCollapseInteractions, createExplanationCardElement, hydrateExplanationCardsIntoDom };
 })();
 
 if (typeof window !== "undefined") window.MemoNexusMarkdownEnhancements = MemoNexusMarkdownEnhancements;
