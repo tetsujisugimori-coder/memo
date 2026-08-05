@@ -88,6 +88,59 @@ const MemoNexusMarkdownEnhancements = (() => {
     return -1;
   }
 
+  function visibleTargetForSourceRange(body, start, end) {
+    if (!Number.isInteger(start) || !Number.isInteger(end) || start < 0 || end <= start) {
+      return { displayText: "", ordinal: -1, matched: false };
+    }
+    const overlaps = visibleTextSegments(body).map((segment) => {
+      const overlapStart = Math.max(start, segment.sourceStart);
+      const overlapEnd = Math.min(end, segment.sourceEnd);
+      if (overlapEnd <= overlapStart) return null;
+      return {
+        displayText: segment.text.slice(overlapStart - segment.sourceStart, overlapEnd - segment.sourceStart),
+        start: overlapStart,
+        end: overlapEnd
+      };
+    }).filter(Boolean);
+    if (overlaps.length !== 1 || !overlaps[0].displayText) {
+      return { displayText: "", ordinal: -1, matched: false };
+    }
+    const match = overlaps[0];
+    const ordinal = visibleTargetOrdinal(body, match.displayText, match.start, match.end);
+    return { displayText: match.displayText, ordinal, matched: ordinal >= 0 };
+  }
+
+  function insertExplanationMarkerIntoDom(root, options = {}) {
+    const target = String(options.displayText || "");
+    const ordinal = Number(options.ordinal);
+    const documentRef = root?.ownerDocument;
+    if (!documentRef || !target || !Number.isInteger(ordinal) || ordinal < 0) return false;
+    const walker = documentRef.createTreeWalker(root, 4);
+    let occurrences = 0;
+    let node;
+    while ((node = walker.nextNode())) {
+      if (node.parentElement?.closest(".explanation-cards,.explanation-marker")) continue;
+      let offset = String(node.nodeValue || "").indexOf(target);
+      while (offset !== -1) {
+        if (occurrences === ordinal) break;
+        occurrences += 1;
+        offset = node.nodeValue.indexOf(target, offset + target.length);
+      }
+      if (offset === -1 || occurrences !== ordinal) continue;
+      const marker = documentRef.createElement("button");
+      marker.type = "button";
+      marker.className = "explanation-marker";
+      marker.textContent = String(options.number || "");
+      marker.setAttribute("aria-label", `解説カード${options.number}を表示`);
+      if (typeof options.onActivate === "function") marker.addEventListener("click", options.onActivate);
+      const after = node.splitText(offset + target.length);
+      node.splitText(offset);
+      node.parentNode.insertBefore(marker, after);
+      return true;
+    }
+    return false;
+  }
+
   function resolveExplanationTarget(body, explanation) {
     const text = String(body || "");
     const target = String(explanation?.target || "");
@@ -112,7 +165,7 @@ const MemoNexusMarkdownEnhancements = (() => {
     return userInitiated === true && previous !== next;
   }
 
-  return { buildCalloutMarkdown, checklistEntries, updateChecklistAt, visibleTextSegments, visibleTargetOrdinal, resolveExplanationTarget, shouldPersistCollapsedState };
+  return { buildCalloutMarkdown, checklistEntries, updateChecklistAt, visibleTextSegments, visibleTargetOrdinal, visibleTargetForSourceRange, insertExplanationMarkerIntoDom, resolveExplanationTarget, shouldPersistCollapsedState };
 })();
 
 if (typeof window !== "undefined") window.MemoNexusMarkdownEnhancements = MemoNexusMarkdownEnhancements;

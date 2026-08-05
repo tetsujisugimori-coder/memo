@@ -358,7 +358,7 @@ const {
   selectAllReferenceNotes,
   selectCollectionReferenceNotes
 } = window.MemoNexusAiReferenceSelection;
-const { buildCalloutMarkdown, checklistEntries, updateChecklistAt, visibleTargetOrdinal, resolveExplanationTarget: resolveExplanationTargetFromSource, shouldPersistCollapsedState } = window.MemoNexusMarkdownEnhancements;
+const { buildCalloutMarkdown, checklistEntries, updateChecklistAt, visibleTargetForSourceRange, insertExplanationMarkerIntoDom, resolveExplanationTarget: resolveExplanationTargetFromSource, shouldPersistCollapsedState } = window.MemoNexusMarkdownEnhancements;
 
 // HTML要素を短く取得するための小さなヘルパー。
 const $ = (id) => document.getElementById(id);
@@ -3951,41 +3951,21 @@ function hydrateExplanationCards(note, body) {
   cards.setAttribute("aria-label", "解説カード");
   explanations.forEach((explanation, index) => {
     const resolved = resolveExplanationTargetFromSource(body, explanation);
-    explanation.orphaned = !resolved.matched;
-    insertExplanationMarker(explanation, index + 1, resolved, body);
+    const visibleTarget = resolved.matched ? visibleTargetForSourceRange(body, resolved.start, resolved.end) : { matched: false };
+    explanation.orphaned = !visibleTarget.matched || !insertExplanationMarker(explanation, index + 1, visibleTarget);
     cards.append(createExplanationCard(explanation, index + 1));
   });
   preview.append(cards);
 }
 
-function insertExplanationMarker(explanation, number, resolved, body) {
-  if (!resolved.matched) return;
-  const walker = document.createTreeWalker(preview, NodeFilter.SHOW_TEXT);
-  const target = String(explanation.target || "");
-  const ordinal = visibleTargetOrdinal(body, target, resolved.start, resolved.end);
-  if (ordinal < 0) return;
-  let occurrences = 0;
-  let node;
-  while ((node = walker.nextNode())) {
-    if (node.parentElement?.closest(".explanation-cards,.explanation-marker")) continue;
-    let offset = node.nodeValue.indexOf(target);
-    while (offset !== -1) {
-      if (occurrences === ordinal) break;
-      occurrences += 1;
-      offset = node.nodeValue.indexOf(target, offset + target.length);
-    }
-    if (offset === -1 || occurrences !== ordinal) continue;
-    const marker = document.createElement("button");
-    marker.type = "button";
-    marker.className = "explanation-marker";
-    marker.textContent = `①`.replace("①", String(number));
-    marker.setAttribute("aria-label", `解説カード${number}を表示`);
-    marker.addEventListener("click", () => document.getElementById(`explanation-card-${explanation.id}`)?.scrollIntoView({ behavior: "smooth", block: "nearest" }));
-    const after = node.splitText(offset + target.length);
-    node.splitText(offset);
-    node.parentNode.insertBefore(marker, after);
-    return;
-  }
+function insertExplanationMarker(explanation, number, visibleTarget) {
+  if (!visibleTarget.matched) return false;
+  return insertExplanationMarkerIntoDom(preview, {
+    displayText: visibleTarget.displayText,
+    ordinal: visibleTarget.ordinal,
+    number,
+    onActivate: () => document.getElementById(`explanation-card-${explanation.id}`)?.scrollIntoView({ behavior: "smooth", block: "nearest" })
+  });
 }
 
 function createExplanationCard(explanation, number) {
@@ -3993,9 +3973,11 @@ function createExplanationCard(explanation, number) {
   article.id = `explanation-card-${explanation.id}`;
   article.className = `explanation-card${explanation.orphaned ? " explanation-orphaned" : ""}`;
   const details = document.createElement("details");
+  const summary = document.createElement("summary");
+  summary.textContent = `解説カード${number}：${explanation.type || "補足"}`;
   let userToggled = false;
-  details.addEventListener("click", () => { userToggled = true; });
-  details.addEventListener("keydown", (event) => {
+  summary.addEventListener("click", () => { userToggled = true; });
+  summary.addEventListener("keydown", (event) => {
     if (event.key === "Enter" || event.key === " ") userToggled = true;
   });
   details.open = explanation.collapsed !== true;
@@ -4004,8 +3986,6 @@ function createExplanationCard(explanation, number) {
     if (shouldPersistCollapsedState(explanation.collapsed, collapsed, userToggled)) saveExplanationCollapsedState(explanation, collapsed);
     userToggled = false;
   });
-  const summary = document.createElement("summary");
-  summary.textContent = `解説カード${number}：${explanation.type || "補足"}`;
   const target = document.createElement("p");
   target.className = "explanation-card-target";
   target.textContent = `対象：${explanation.target || "（対象なし）"}`;
