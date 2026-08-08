@@ -609,6 +609,9 @@ let collections = [];
 let currentId = null;
 let saveTimer = null;
 let pendingMemoSync = null;
+let isLocalMemoDirty = false;
+let localDirtyMemoId = null;
+let localMemoEditVersion = 0;
 let lastDiscovery = "";
 let linkStatsVisible = false;
 let saveStatusState = "saved";
@@ -2091,6 +2094,7 @@ function openNote(id) {
     setRelatedDrawerOpen(false, { restoreFocus: false });
   }
   currentId = note.id;
+  if (localDirtyMemoId) clearLocalMemoDirty(localDirtyMemoId);
   pendingMemoSync = null;
   renderMemoSyncNotice();
   tableAxisSelections.clear();
@@ -2117,6 +2121,19 @@ function openNote(id) {
 // 今開いているメモ本体をnotes配列から取り出します。
 function currentNote() {
   return notes.find((note) => note.id === currentId);
+}
+
+function markLocalMemoDirty() {
+  if (!currentId) return;
+  isLocalMemoDirty = true;
+  localDirtyMemoId = currentId;
+  localMemoEditVersion += 1;
+}
+
+function clearLocalMemoDirty(memoId = currentId) {
+  if (localDirtyMemoId !== memoId) return;
+  isLocalMemoDirty = false;
+  localDirtyMemoId = null;
 }
 
 function popoutUrlForMemo(memoId) {
@@ -2157,16 +2174,27 @@ function openMemoPopout() {
   const note = currentNote();
   if (!note) return;
 
-  const opened = window.open(popoutUrlForMemo(note.id), `memo-nexus-popout-${note.id}`, popoutWindowFeatures());
+  const opened = window.open("", `memo-nexus-popout-${note.id}`, popoutWindowFeatures());
   if (!opened) {
     setSaveStatus("error");
     saveStatus.textContent = "別ウィンドウを開けませんでした";
     return;
   }
   const ghost = createPopoutGhost(editorCard.ownerDocument, editorCard.getBoundingClientRect(), titleInput.value, editor.value);
-  if (!ghost.isConnected) return;
-  opened.focus();
-  flushSave().catch((error) => console.warn("Save before popout failed", error));
+  const navigate = () => {
+    if (!opened.closed) opened.location.href = popoutUrlForMemo(note.id);
+    opened.focus();
+  };
+  if (!isLocalMemoDirty || localDirtyMemoId !== note.id) {
+    navigate();
+    return;
+  }
+  flushSave().then(navigate).catch((error) => {
+    ghost.remove();
+    opened.close();
+    setSaveStatus("error");
+    console.warn("Save before popout failed", error);
+  });
 }
 
 function savePopoutWindowOptions() {
@@ -2221,8 +2249,8 @@ async function refreshMemoFromOtherWindow(message) {
     pendingUpdatedAt: pendingMemoSync?.updatedAt,
     note,
     currentId,
-    title: titleInput.value,
-    body: editor.value
+    isLocalMemoDirty,
+    localDirtyMemoId
   });
 
   if (decision === "ignore") return;
@@ -2246,6 +2274,7 @@ async function refreshMemoFromOtherWindow(message) {
 function applyMemoSync(note) {
   titleInput.value = note.title;
   editor.value = note.body;
+  clearLocalMemoDirty(note.id);
   pendingMemoSync = null;
   renderMemoSyncNotice();
   setSaveStatus("saved", note.updatedAt);
@@ -2272,6 +2301,7 @@ function loadPendingMemoSync() {
 
 // 入力のたびに即保存すると重いので、少し待ってから保存する予約をします。
 function scheduleSave({ render = true } = {}) {
+  markLocalMemoDirty();
   saveCurrentDraftMirror();
   clearTimeout(saveTimer);
   setSaveStatus("editing");
@@ -2372,6 +2402,7 @@ async function flushSave() {
 async function saveCurrentNote() {
   const note = currentNote();
   if (!note) return;
+  const savedEditVersion = localMemoEditVersion;
 
   setSaveStatus("saving");
   const beforeLinks = collectLinks(activeNotes()).length;
@@ -2395,6 +2426,9 @@ async function saveCurrentNote() {
     }
 
     titleInput.value = note.title;
+    if (localDirtyMemoId === note.id && localMemoEditVersion === savedEditVersion) {
+      clearLocalMemoDirty(note.id);
+    }
     if (pendingMemoSync?.memoId === note.id) {
       pendingMemoSync = null;
       renderMemoSyncNotice();

@@ -1,17 +1,13 @@
 "use strict";
 
 (function attachMemoPopoutUtils(global) {
-  function hasUnsavedMemoInput(note, title, body) {
-    return Boolean(note) && (note.title !== title || note.body !== body);
-  }
-
-  function getMemoSyncDecision({ message, knownUpdatedAt = 0, note, currentId, title, body, pendingUpdatedAt = 0 }) {
+  function getMemoSyncDecision({ message, knownUpdatedAt = 0, note, currentId, isLocalMemoDirty = false, localDirtyMemoId = null, pendingUpdatedAt = 0 }) {
     if (message?.type !== "memo-changed" || !message.memoId) return "ignore";
     const updatedAt = Number(message.updatedAt) || 0;
     if (updatedAt <= Math.max(Number(knownUpdatedAt) || 0, Number(pendingUpdatedAt) || 0)) return "ignore";
     if (!note || note.deletedAt) return "unavailable";
     if (currentId !== message.memoId) return "refresh-list";
-    return hasUnsavedMemoInput(note, title, body) ? "pending" : "apply";
+    return isLocalMemoDirty && localDirtyMemoId === message.memoId ? "pending" : "apply";
   }
 
   function createPopoutGhost(documentRef, sourceRect, title, body) {
@@ -35,7 +31,7 @@
     return String(value).replace(/[&<>"']/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[character]);
   }
 
-  const api = { createPopoutGhost, getMemoSyncDecision, hasUnsavedMemoInput };
+  const api = { createPopoutGhost, getMemoSyncDecision };
   global.MemoNexusPopoutUtils = api;
   if (typeof module !== "undefined") module.exports = api;
 })(typeof window === "undefined" ? globalThis : window);
