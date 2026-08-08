@@ -120,6 +120,7 @@ function sourceOf(name) {
 }
 
 const safeExternalUrl = Function(`${sourceOf("safeExternalUrl")} return safeExternalUrl;`)();
+const renderOrderedListBlock = Function("renderMarkdownInline", `${sourceOf("renderOrderedListBlock")} return renderOrderedListBlock;`)((text) => text);
 
 test("通常リンクはhttp/httpsだけを許可する", () => {
   assert.equal(safeExternalUrl("https://openai.com/a_b"), true);
@@ -135,10 +136,17 @@ test("斜体トークンは単語内アンダースコア、太字、エスケ�
 });
 
 test("行レンダラは番号付きリスト、チェックリスト、水平線、Calloutを区別する", () => {
-  assert.match(app, /function renderOrderedListBlock[\s\S]*?<ol>/);
+  assert.match(app, /function renderOrderedListBlock[\s\S]*?startAttribute/);
   assert.match(app, /task-list-checkbox[\s\S]*data-task-index/);
   assert.match(app, /\^\(---\+\|\\\*\\\*\\\*\+\|___\+\)\$/);
   ["NOTE", "TIP", "IMPORTANT", "WARNING"].forEach((type) => assert.match(css, new RegExp(`callout-${type.toLowerCase()}`)));
+});
+
+test("分割された番号付きリストもMarkdownの開始番号をカード表示に保持する", () => {
+  assert.equal(renderOrderedListBlock(["1. OpenAIのニュース"]), "<ol><li>OpenAIのニュース</li></ol>");
+  assert.equal(renderOrderedListBlock(["2. Anthropicのニュース"]), "<ol start=\"2\"><li>Anthropicのニュース</li></ol>");
+  assert.equal(renderOrderedListBlock(["3. Metaのニュース"]), "<ol start=\"3\"><li>Metaのニュース</li></ol>");
+  assert.equal(renderOrderedListBlock(["4. 続き", "5. 次の項目"]), "<ol start=\"4\"><li>続き</li><li>次の項目</li></ol>");
 });
 
 test("Callout操作と解説カードの独立保存UIを提供する", () => {
@@ -411,7 +419,7 @@ test("折りたたみ保存はメモIDとカードIDを固定し、短時間の�
 
 test("Markdown拡張スクリプトとapp.jsは更新済みキャッシュ番号で読み込む", () => {
   assert.match(html, /markdown-enhancements-utils\.js\?v=0\.4\.0-4/);
-  assert.match(html, /app\.js\?v=0\.4\.0-51/);
+  assert.match(html, /app\.js\?v=0\.4\.0-52/);
   assert.doesNotMatch(html, /app\.js\?v=0\.4\.0-40/);
 });
 
