@@ -111,11 +111,11 @@ body.dark {
   pointer-events: none;
   border: 1px solid var(--line);
   border-radius: 12px;
-  background: var(--paper);
-  box-shadow: 0 10px 22px rgba(20, 25, 22, 0.16);
+  background: var(--bg);
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.16);
   color: var(--ink);
   transform-origin: 100% 0;
-  animation: memo-popout-ghost 260ms ease-out forwards;
+  animation: memo-popout-ghost 300ms cubic-bezier(0.22, 0.72, 0.24, 1) forwards;
 }
 
 .popout-ghost span {
@@ -126,9 +126,21 @@ body.dark {
 }
 
 @keyframes memo-popout-ghost {
+  28% {
+    opacity: 1;
+    border-radius: 18px;
+    box-shadow: 0 16px 28px rgba(0, 0, 0, 0.22);
+    transform: translate(0, -2px) scale(1.025);
+  }
+  52% {
+    opacity: 0.94;
+    border-radius: 16px;
+    transform: translate(18px, -13px) scale(0.9);
+  }
   to {
     opacity: 0;
-    box-shadow: 0 18px 34px rgba(20, 25, 22, 0.26);
+    border-radius: 14px;
+    box-shadow: 0 18px 34px rgba(0, 0, 0, 0.24);
     transform: translate(72px, -42px) scale(0.56);
   }
 }
@@ -218,7 +230,7 @@ body.popout-window .popout-unavailable {
 
 @media (prefers-reduced-motion: reduce) {
   .popout-ghost {
-    animation: memo-popout-ghost-fade 100ms linear forwards;
+    animation: memo-popout-ghost-fade 120ms linear forwards;
   }
 
   @keyframes memo-popout-ghost-fade {

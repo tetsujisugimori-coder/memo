@@ -411,7 +411,7 @@ test("折りたたみ保存はメモIDとカードIDを固定し、短時間の�
 
 test("Markdown拡張スクリプトとapp.jsは更新済みキャッシュ番号で読み込む", () => {
   assert.match(html, /markdown-enhancements-utils\.js\?v=0\.4\.0-4/);
-  assert.match(html, /app\.js\?v=0\.4\.0-50/);
+  assert.match(html, /app\.js\?v=0\.4\.0-51/);
   assert.doesNotMatch(html, /app\.js\?v=0\.4\.0-40/);
 });
 

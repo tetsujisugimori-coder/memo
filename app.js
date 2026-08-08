@@ -2204,7 +2204,14 @@ function openMemoPopout() {
     saveStatus.textContent = "別ウィンドウを開けませんでした";
     return;
   }
-  const ghost = createPopoutGhost(editorCard.ownerDocument, editorCard.getBoundingClientRect(), titleInput.value, editor.value);
+  writePopoutInitialShell(opened);
+  const ghost = createPopoutGhost(
+    editorCard.ownerDocument,
+    editorCard.getBoundingClientRect(),
+    titleInput.value,
+    editor.value,
+    getPopoutGhostVisualStyle(editorCard)
+  );
   const navigate = () => {
     if (!opened.closed) opened.location.href = popoutUrlForMemo(note.id);
     opened.focus();
@@ -2219,6 +2226,31 @@ function openMemoPopout() {
     setSaveStatus("error");
     console.warn("Save before popout failed", error);
   });
+}
+
+function getPopoutGhostVisualStyle(source) {
+  const style = getComputedStyle(source);
+  return {
+    backgroundColor: style.backgroundColor,
+    color: style.color,
+    borderColor: style.borderColor,
+    borderRadius: style.borderRadius,
+    boxShadow: style.boxShadow === "none" ? "0 10px 22px rgba(0, 0, 0, 0.16)" : style.boxShadow
+  };
+}
+
+function writePopoutInitialShell(opened) {
+  try {
+    const style = getComputedStyle(document.body);
+    const background = style.backgroundColor;
+    const color = style.color;
+    const scheme = currentTheme();
+    opened.document.open();
+    opened.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Memo Nexus</title><style>html,body{margin:0;width:100%;height:100%;background:${background};color:${color};color-scheme:${scheme};font-family:system-ui,sans-serif}</style></head><body></body></html>`);
+    opened.document.close();
+  } catch (error) {
+    console.warn("Popout initial shell failed", error);
+  }
 }
 
 function savePopoutWindowOptions() {

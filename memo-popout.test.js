@@ -106,12 +106,20 @@ test("2画面の保存・同期では未編集を自動反映し、編集中だ�
   assert.equal(main.body, "ポップアウトから保存");
 });
 
-test("ゴースト演出要素は生成され、animationend後に削除される", () => {
+test("ゴースト演出要素は元カードの色を保って生成され、animationend後に削除される", () => {
   const documentRef = createFakeDocument();
-  const ghost = createPopoutGhost(documentRef, { width: 500, height: 300, left: 20, top: 40 }, "題名", "本文");
+  const ghost = createPopoutGhost(
+    documentRef,
+    { width: 500, height: 300, left: 20, top: 40 },
+    "題名",
+    "本文",
+    { backgroundColor: "rgb(27, 33, 29)", color: "rgb(231, 236, 231)", borderColor: "rgb(58, 68, 61)" }
+  );
 
   assert.equal(documentRef.body.children.length, 1);
   assert.equal(ghost.style.width, "500px");
+  assert.equal(ghost.style.backgroundColor, "rgb(27, 33, 29)");
+  assert.equal(ghost.style.color, "rgb(231, 236, 231)");
   assert.equal(ghost.isConnected, true);
   ghost.dispatch("animationend");
   assert.equal(ghost.isConnected, false);
@@ -121,4 +129,7 @@ test("reduced motionではゴーストの移動・縮小をフェードへ置き
   assert.match(css, /@media \(prefers-reduced-motion: reduce\)[\s\S]*?memo-popout-ghost-fade/);
   assert.match(css, /@keyframes memo-popout-ghost-fade[\s\S]*?opacity:\s*0/);
   assert.match(html, /id="memoSyncNotice"[\s\S]*?id="loadMemoSyncBtn"/);
+  assert.match(app, /function writePopoutInitialShell\(opened\)[\s\S]*?opened\.document\.write/);
+  assert.match(html, /data-initial-theme="dark"/);
+  assert.match(css, /28%[\s\S]*?scale\(1\.025\)[\s\S]*?52%[\s\S]*?scale\(0\.9\)/);
 });

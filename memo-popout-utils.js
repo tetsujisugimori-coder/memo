@@ -10,7 +10,7 @@
     return isLocalMemoDirty && localDirtyMemoId === message.memoId ? "pending" : "apply";
   }
 
-  function createPopoutGhost(documentRef, sourceRect, title, body) {
+  function createPopoutGhost(documentRef, sourceRect, title, body, visualStyle = {}) {
     const ghost = documentRef.createElement("div");
     ghost.className = "popout-ghost";
     ghost.setAttribute("aria-hidden", "true");
@@ -18,6 +18,7 @@
     ghost.style.height = `${sourceRect.height}px`;
     ghost.style.left = `${sourceRect.left}px`;
     ghost.style.top = `${sourceRect.top}px`;
+    Object.assign(ghost.style, visualStyle);
     ghost.innerHTML = `<strong>${escapeHtml(title || "無題メモ")}</strong><span>${escapeHtml(body || "空のメモ")}</span>`;
     documentRef.body.appendChild(ghost);
 

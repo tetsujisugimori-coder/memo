@@ -4,8 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Memo Nexus</title>
+  <script>try { document.documentElement.dataset.initialTheme = localStorage.getItem("memo-nexus-theme") === "dark" ? "dark" : "light"; } catch (_) { document.documentElement.dataset.initialTheme = "light"; }</script>
+  <style>html,body{background:#f6f7f4;color:#222522;color-scheme:light}html[data-initial-theme="dark"],html[data-initial-theme="dark"] body{background:#111513;color:#e7ece7;color-scheme:dark}</style>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css">
-  <link rel="stylesheet" href="style.css?v=0.4.0-33">
+  <link rel="stylesheet" href="style.css?v=0.4.0-34">
 </head>
 <body>
   <aside id="memoSidebar" class="sidebar" aria-label="メモ一覧" aria-hidden="false">
@@ -611,7 +613,7 @@
   <script src="ai-context.js?v=0.4.0-1"></script>
   <script src="ai-reference-selection.js?v=0.4.0-1"></script>
   <script src="ai-prompts.js?v=0.4.0-2"></script>
-  <script src="memo-popout-utils.js?v=0.4.0-2"></script>
-  <script src="app.js?v=0.4.0-50"></script>
+  <script src="memo-popout-utils.js?v=0.4.0-3"></script>
+  <script src="app.js?v=0.4.0-51"></script>
 </body>
 </html>
