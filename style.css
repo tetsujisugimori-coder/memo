@@ -74,6 +74,88 @@ body.dark {
   --code-meta: #e6c27a;
 }
 
+/* 別ウィンドウは同じエディタを使い、本文編集に不要な周辺UIだけを省きます。 */
+.popout-back-button,
+.popout-unavailable {
+  display: none;
+}
+
+body.popout-window {
+  display: block;
+  overflow: auto;
+  min-width: 320px;
+}
+
+body.popout-window > :not(.workspace) {
+  display: none !important;
+}
+
+body.popout-window .workspace {
+  display: block;
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+body.popout-window .app-header,
+body.popout-window .preview-card,
+body.popout-window .popout-memo-button,
+body.popout-window .note-export-button,
+body.popout-window .editor-tools > #aiSummarizeNoteBtn,
+body.popout-window .editor-tools > #aiSendSelectionBtn {
+  display: none;
+}
+
+body.popout-window .editor-card {
+  min-height: 100vh;
+  min-height: 100dvh;
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+}
+
+body.popout-window .title-row {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--paper);
+}
+
+body.popout-window .popout-back-button {
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+}
+
+body.popout-window .title-side-head {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+body.popout-window .popout-unavailable {
+  display: grid;
+  min-height: 100vh;
+  place-content: center;
+  gap: 16px;
+  padding: 24px;
+  text-align: center;
+}
+
+@media (max-width: 480px) {
+  body.popout-window .title-row {
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  body.popout-window .title-side {
+    min-width: 0;
+  }
+
+  body.popout-window .popout-back-button {
+    padding-inline: 8px;
+    font-size: 13px;
+  }
+}
+
 * {
   box-sizing: border-box;
 }

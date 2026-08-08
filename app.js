@@ -11,6 +11,8 @@ const APP_BUILD = "2026-07-15";
 const UNCLASSIFIED_COLLECTION_ID = "system-unclassified";
 const MAX_COLLECTION_DEPTH = 5;
 const DRAFT_STORAGE_KEY = "memo-nexus-current-draft";
+const POPOUT_WINDOW_STORAGE_KEY = "memo-nexus-popout-window";
+const POPOUT_SYNC_CHANNEL = "memo-nexus-sync";
 const THEME_STORAGE_KEY = "memo-nexus-theme";
 const COLLECTION_SORT_STORAGE_KEY = "memo-nexus-collection-sort";
 const IMAGE_BLOCK_SIZE_STORAGE_KEY = "memo-nexus-image-block-size";
@@ -364,6 +366,9 @@ const { buildCalloutMarkdown, checklistEntries, updateChecklistAt, createExplana
 
 // HTML要素を短く取得するための小さなヘルパー。
 const $ = (id) => document.getElementById(id);
+const popoutMemoId = new URLSearchParams(location.search).get("popout");
+const isPopoutWindow = Boolean(popoutMemoId);
+const memoSyncChannel = typeof BroadcastChannel === "undefined" ? null : new BroadcastChannel(POPOUT_SYNC_CHANNEL);
 
 // 画面上のボタンや入力欄をJavaScriptから操作できるように取得します。
 const newBtn = $("newBtn");
@@ -454,6 +459,10 @@ const searchInput = $("searchInput");
 const memoList = $("memoList");
 const titleInput = $("titleInput");
 const noteExportBtn = $("noteExportBtn");
+const popoutMemoBtn = $("popoutMemoBtn");
+const popoutBackBtn = $("popoutBackBtn");
+const popoutUnavailable = $("popoutUnavailable");
+const popoutUnavailableBackBtn = $("popoutUnavailableBackBtn");
 const noteMeta = $("noteMeta");
 const editor = $("editor");
 const insertTableBtn = $("insertTableBtn");
@@ -685,6 +694,9 @@ function mountContextPanel() {
 // ページ読み込み後、すぐにアプリを起動します。
 mountContextPanel();
 init();
+memoSyncChannel?.addEventListener("message", (event) => {
+  refreshMemoFromOtherWindow(event.data).catch((error) => console.warn("Memo sync failed", error));
+});
 
 // 起動処理。DBを開き、初期メモを用意し、今日メモを開いて即入力できる状態にします。
 async function init() {
@@ -694,6 +706,7 @@ async function init() {
     element.textContent = `v${APP_VERSION} "${APP_LABEL}"`;
   });
   restoreTheme();
+  if (isPopoutWindow) document.body.classList.add("popout-window");
   restoreImageBlockSize();
   restoreCollectionSortOrder();
   restoreGlobalFontSettings();
@@ -721,7 +734,9 @@ async function init() {
   renderAll();
   const returnedNote = pendingFontSelection?.memoId && notes.find((note) => note.id === pendingFontSelection.memoId);
   const restoredNote = restoredDraftId && notes.find((note) => note.id === restoredDraftId);
-  openNote(returnedNote?.id || restoredNote?.id || getTodayNote().id);
+  const popoutNote = isPopoutWindow && notes.find((note) => note.id === popoutMemoId && !note.deletedAt);
+  openNote(popoutNote?.id || returnedNote?.id || restoredNote?.id || getTodayNote().id);
+  if (isPopoutWindow && !popoutNote) showPopoutUnavailable();
   if (restoredNote && !returnedNote) {
     saveStatus.textContent = "前回の編集中メモを復元しました";
   }
@@ -1090,7 +1105,10 @@ function putNote(note) {
   return new Promise((resolve, reject) => {
     const transaction = db.transaction(STORE_NAME, "readwrite");
     const request = transaction.objectStore(STORE_NAME).put(note);
-    transaction.oncomplete = () => resolve(note);
+    transaction.oncomplete = () => {
+      notifyMemoChanged(note);
+      resolve(note);
+    };
     transaction.onerror = () => reject(transaction.error || request.error);
     transaction.onabort = () => reject(transaction.error || request.error);
   });
@@ -1223,7 +1241,10 @@ function updateNotesTransaction(items) {
     const transaction = db.transaction(STORE_NAME, "readwrite");
     const store = transaction.objectStore(STORE_NAME);
     items.forEach((note) => store.put(note));
-    transaction.oncomplete = resolve;
+    transaction.oncomplete = () => {
+      items.forEach((note) => notifyMemoChanged(note));
+      resolve();
+    };
     transaction.onerror = () => reject(transaction.error);
     transaction.onabort = () => reject(transaction.error);
   });
@@ -2083,12 +2104,125 @@ function openNote(id) {
   renderDiscovery();
   updateUndoButton();
   renderAiUi();
+  if (isPopoutWindow) document.title = `${note.title} — Memo Nexus`;
   editor.focus();
 }
 
 // 今開いているメモ本体をnotes配列から取り出します。
 function currentNote() {
   return notes.find((note) => note.id === currentId);
+}
+
+function popoutUrlForMemo(memoId) {
+  const url = new URL(location.href);
+  url.search = "";
+  url.hash = "";
+  url.searchParams.set("popout", memoId);
+  return url.href;
+}
+
+function readPopoutWindowOptions() {
+  const fallback = { width: 540, height: 720 };
+  try {
+    const saved = JSON.parse(localStorage.getItem(POPOUT_WINDOW_STORAGE_KEY) || "null");
+    if (!saved || typeof saved !== "object") return fallback;
+    return {
+      width: Math.max(360, Number(saved.width) || fallback.width),
+      height: Math.max(480, Number(saved.height) || fallback.height),
+      left: Number.isFinite(Number(saved.left)) ? Number(saved.left) : undefined,
+      top: Number.isFinite(Number(saved.top)) ? Number(saved.top) : undefined
+    };
+  } catch (error) {
+    console.warn("Popout window options read failed", error);
+    return fallback;
+  }
+}
+
+function popoutWindowFeatures(options = readPopoutWindowOptions()) {
+  const width = Math.min(options.width, Math.max(360, screen.availWidth - 24));
+  const height = Math.min(options.height, Math.max(480, screen.availHeight - 24));
+  const features = [`width=${width}`, `height=${height}`, "resizable=yes", "scrollbars=yes"];
+  if (Number.isFinite(options.left)) features.push(`left=${options.left}`);
+  if (Number.isFinite(options.top)) features.push(`top=${options.top}`);
+  return features.join(",");
+}
+
+function openMemoPopout() {
+  const note = currentNote();
+  if (!note) return;
+
+  const opened = window.open(popoutUrlForMemo(note.id), `memo-nexus-popout-${note.id}`, popoutWindowFeatures());
+  if (!opened) {
+    setSaveStatus("error");
+    saveStatus.textContent = "別ウィンドウを開けませんでした";
+    return;
+  }
+  opened.focus();
+  flushSave().catch((error) => console.warn("Save before popout failed", error));
+}
+
+function savePopoutWindowOptions() {
+  if (!isPopoutWindow) return;
+  try {
+    localStorage.setItem(POPOUT_WINDOW_STORAGE_KEY, JSON.stringify({
+      width: window.outerWidth,
+      height: window.outerHeight,
+      left: window.screenX,
+      top: window.screenY
+    }));
+  } catch (error) {
+    console.warn("Popout window options save failed", error);
+  }
+}
+
+function returnFromPopout() {
+  if (window.opener && !window.opener.closed) {
+    window.opener.focus();
+    window.close();
+    return;
+  }
+  const url = new URL(location.href);
+  url.search = "";
+  location.href = url.href;
+}
+
+function showPopoutUnavailable() {
+  if (!isPopoutWindow || !popoutUnavailable) return;
+  editorCard.hidden = true;
+  popoutUnavailable.hidden = false;
+}
+
+function notifyMemoChanged(note) {
+  if (!note?.id) return;
+  memoSyncChannel?.postMessage({
+    type: "memo-changed",
+    memoId: note.id,
+    updatedAt: note.updatedAt || Date.now(),
+    deletedAt: note.deletedAt || null
+  });
+}
+
+async function refreshMemoFromOtherWindow(message) {
+  if (!db || message?.type !== "memo-changed" || !message.memoId) return;
+  notes = await getAllNotes();
+  const note = notes.find((item) => item.id === message.memoId);
+
+  if (isPopoutWindow && message.memoId === popoutMemoId && (!note || note.deletedAt)) {
+    showPopoutUnavailable();
+    return;
+  }
+  if (!note || note.deletedAt || currentId !== note.id) {
+    renderAll();
+    return;
+  }
+
+  titleInput.value = note.title;
+  editor.value = note.body;
+  setSaveStatus("saved", note.updatedAt);
+  renderAll();
+  renderTableBlockEditors();
+  renderPreview();
+  if (isPopoutWindow) document.title = `${note.title} — Memo Nexus`;
 }
 
 // 入力のたびに即保存すると重いので、少し待ってから保存する予約をします。
@@ -7691,6 +7825,9 @@ if (collectionSortSelect) {
 if (deleteBtn) {
   deleteBtn.addEventListener("click", deleteCurrentNote);
 }
+if (popoutMemoBtn) popoutMemoBtn.addEventListener("click", openMemoPopout);
+if (popoutBackBtn) popoutBackBtn.addEventListener("click", returnFromPopout);
+if (popoutUnavailableBackBtn) popoutUnavailableBackBtn.addEventListener("click", returnFromPopout);
 if (settingsImportAiBtn && importAiInput) {
   settingsImportAiBtn.addEventListener("click", () => importAiInput.click());
   importAiInput.addEventListener("change", async () => {
@@ -7751,6 +7888,11 @@ editor.addEventListener("select", updateAiTargetPreview);
 window.addEventListener("resize", () => {
   syncLayoutMode();
   renderSaveStatus();
+  savePopoutWindowOptions();
+});
+window.addEventListener("beforeunload", () => {
+  savePopoutWindowOptions();
+  memoSyncChannel?.close();
 });
 document.addEventListener("click", (event) => {
   if (!event.target.closest(".collection-popup-menu,.collection-more,.collection-memo-more,#collectionAddMenuBtn")) closeCollectionMenus();
