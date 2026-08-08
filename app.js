@@ -363,6 +363,7 @@ const {
   selectCollectionReferenceNotes
 } = window.MemoNexusAiReferenceSelection;
 const { buildCalloutMarkdown, checklistEntries, updateChecklistAt, createExplanationCollapsedStateSaver, hydrateExplanationCardsIntoDom } = window.MemoNexusMarkdownEnhancements;
+const { createPopoutGhost, getMemoSyncDecision } = window.MemoNexusPopoutUtils;
 
 // HTML要素を短く取得するための小さなヘルパー。
 const $ = (id) => document.getElementById(id);
@@ -463,6 +464,8 @@ const popoutMemoBtn = $("popoutMemoBtn");
 const popoutBackBtn = $("popoutBackBtn");
 const popoutUnavailable = $("popoutUnavailable");
 const popoutUnavailableBackBtn = $("popoutUnavailableBackBtn");
+const memoSyncNotice = $("memoSyncNotice");
+const loadMemoSyncBtn = $("loadMemoSyncBtn");
 const noteMeta = $("noteMeta");
 const editor = $("editor");
 const insertTableBtn = $("insertTableBtn");
@@ -605,6 +608,7 @@ let notes = [];
 let collections = [];
 let currentId = null;
 let saveTimer = null;
+let pendingMemoSync = null;
 let lastDiscovery = "";
 let linkStatsVisible = false;
 let saveStatusState = "saved";
@@ -2087,6 +2091,8 @@ function openNote(id) {
     setRelatedDrawerOpen(false, { restoreFocus: false });
   }
   currentId = note.id;
+  pendingMemoSync = null;
+  renderMemoSyncNotice();
   tableAxisSelections.clear();
   pendingTableAxisDeletion = null;
   titleInput.value = note.title;
@@ -2157,6 +2163,8 @@ function openMemoPopout() {
     saveStatus.textContent = "別ウィンドウを開けませんでした";
     return;
   }
+  const ghost = createPopoutGhost(editorCard.ownerDocument, editorCard.getBoundingClientRect(), titleInput.value, editor.value);
+  if (!ghost.isConnected) return;
   opened.focus();
   flushSave().catch((error) => console.warn("Save before popout failed", error));
 }
@@ -2204,25 +2212,62 @@ function notifyMemoChanged(note) {
 
 async function refreshMemoFromOtherWindow(message) {
   if (!db || message?.type !== "memo-changed" || !message.memoId) return;
+  const knownNote = notes.find((item) => item.id === message.memoId);
   notes = await getAllNotes();
   const note = notes.find((item) => item.id === message.memoId);
+  const decision = getMemoSyncDecision({
+    message,
+    knownUpdatedAt: knownNote?.updatedAt,
+    pendingUpdatedAt: pendingMemoSync?.updatedAt,
+    note,
+    currentId,
+    title: titleInput.value,
+    body: editor.value
+  });
 
-  if (isPopoutWindow && message.memoId === popoutMemoId && (!note || note.deletedAt)) {
+  if (decision === "ignore") return;
+  if (decision === "unavailable" && isPopoutWindow && message.memoId === popoutMemoId) {
     showPopoutUnavailable();
     return;
   }
-  if (!note || note.deletedAt || currentId !== note.id) {
+  if (decision === "pending") {
+    pendingMemoSync = { memoId: message.memoId, updatedAt: Number(message.updatedAt) || Date.now() };
+    renderMemoSyncNotice();
+    return;
+  }
+  if (decision === "refresh-list" || !note || note.deletedAt) {
     renderAll();
     return;
   }
 
+  applyMemoSync(note);
+}
+
+function applyMemoSync(note) {
   titleInput.value = note.title;
   editor.value = note.body;
+  pendingMemoSync = null;
+  renderMemoSyncNotice();
   setSaveStatus("saved", note.updatedAt);
   renderAll();
   renderTableBlockEditors();
   renderPreview();
   if (isPopoutWindow) document.title = `${note.title} — Memo Nexus`;
+}
+
+function renderMemoSyncNotice() {
+  if (!memoSyncNotice) return;
+  memoSyncNotice.hidden = !pendingMemoSync || pendingMemoSync.memoId !== currentId;
+}
+
+function loadPendingMemoSync() {
+  if (!pendingMemoSync || pendingMemoSync.memoId !== currentId) return;
+  const note = notes.find((item) => item.id === currentId);
+  if (!note || note.deletedAt) {
+    if (isPopoutWindow) showPopoutUnavailable();
+    return;
+  }
+  applyMemoSync(note);
 }
 
 // 入力のたびに即保存すると重いので、少し待ってから保存する予約をします。
@@ -2350,6 +2395,10 @@ async function saveCurrentNote() {
     }
 
     titleInput.value = note.title;
+    if (pendingMemoSync?.memoId === note.id) {
+      pendingMemoSync = null;
+      renderMemoSyncNotice();
+    }
     setSaveStatus("saved", note.updatedAt);
     renderAll();
   } catch (error) {
@@ -7828,6 +7877,7 @@ if (deleteBtn) {
 if (popoutMemoBtn) popoutMemoBtn.addEventListener("click", openMemoPopout);
 if (popoutBackBtn) popoutBackBtn.addEventListener("click", returnFromPopout);
 if (popoutUnavailableBackBtn) popoutUnavailableBackBtn.addEventListener("click", returnFromPopout);
+if (loadMemoSyncBtn) loadMemoSyncBtn.addEventListener("click", loadPendingMemoSync);
 if (settingsImportAiBtn && importAiInput) {
   settingsImportAiBtn.addEventListener("click", () => importAiInput.click());
   importAiInput.addEventListener("change", async () => {

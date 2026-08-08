@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Memo Nexus</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css">
-  <link rel="stylesheet" href="style.css?v=0.4.0-31">
+  <link rel="stylesheet" href="style.css?v=0.4.0-32">
 </head>
 <body>
   <aside id="memoSidebar" class="sidebar" aria-label="メモ一覧" aria-hidden="false">
@@ -71,6 +71,10 @@
             <button id="popoutBackBtn" class="popout-back-button" type="button" title="Memo Nexus本体へ戻る">本体へ戻る</button>
             <button id="noteExportBtn" class="note-export-button" type="button" title="このメモをエクスポート" aria-label="このメモをエクスポート">…</button>
             <div id="saveStatus" class="save-status">保存済み</div>
+          </div>
+          <div id="memoSyncNotice" class="memo-sync-notice" role="status" hidden>
+            <span>別ウィンドウで更新があります</span>
+            <button id="loadMemoSyncBtn" type="button">更新を読み込む</button>
           </div>
           <div id="noteMeta" class="note-meta"></div>
         </div>
@@ -607,6 +611,7 @@
   <script src="ai-context.js?v=0.4.0-1"></script>
   <script src="ai-reference-selection.js?v=0.4.0-1"></script>
   <script src="ai-prompts.js?v=0.4.0-2"></script>
-  <script src="app.js?v=0.4.0-47"></script>
+  <script src="memo-popout-utils.js?v=0.4.0-1"></script>
+  <script src="app.js?v=0.4.0-48"></script>
 </body>
 </html>
