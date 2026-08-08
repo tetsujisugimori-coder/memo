@@ -74,6 +74,170 @@ body.dark {
   --code-meta: #e6c27a;
 }
 
+/* 別ウィンドウは同じエディタを使い、本文編集に不要な周辺UIだけを省きます。 */
+.popout-back-button,
+.popout-unavailable {
+  display: none;
+}
+
+.popout-unavailable[hidden] {
+  display: none !important;
+}
+
+.memo-sync-notice {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.memo-sync-notice button {
+  min-height: 28px;
+  padding: 3px 8px;
+  font-size: 12px;
+}
+
+.popout-ghost {
+  position: fixed;
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow: hidden;
+  padding: 16px;
+  pointer-events: none;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--bg);
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.16);
+  color: var(--ink);
+  transform-origin: 100% 0;
+  animation: memo-popout-ghost 300ms cubic-bezier(0.22, 0.72, 0.24, 1) forwards;
+}
+
+.popout-ghost span {
+  overflow: hidden;
+  color: var(--muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@keyframes memo-popout-ghost {
+  28% {
+    opacity: 1;
+    border-radius: 18px;
+    box-shadow: 0 16px 28px rgba(0, 0, 0, 0.22);
+    transform: translate(0, -2px) scale(1.025);
+  }
+  52% {
+    opacity: 0.94;
+    border-radius: 16px;
+    transform: translate(18px, -13px) scale(0.9);
+  }
+  to {
+    opacity: 0;
+    border-radius: 14px;
+    box-shadow: 0 18px 34px rgba(0, 0, 0, 0.24);
+    transform: translate(72px, -42px) scale(0.56);
+  }
+}
+
+body.popout-window {
+  display: block;
+  overflow: auto;
+  min-width: 320px;
+}
+
+body.popout-window > :not(.workspace) {
+  display: none !important;
+}
+
+body.popout-window .workspace {
+  display: block;
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+body.popout-window .app-header,
+body.popout-window .preview-card,
+body.popout-window .popout-memo-button,
+body.popout-window .note-export-button,
+body.popout-window .editor-tools > #aiSummarizeNoteBtn,
+body.popout-window .editor-tools > #aiSendSelectionBtn {
+  display: none;
+}
+
+body.popout-window .editor-card {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  min-height: 100dvh;
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+}
+
+body.popout-window #editor {
+  min-height: 0;
+  flex: 1 1 auto;
+}
+
+body.popout-window .title-row {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--paper);
+}
+
+body.popout-window .popout-back-button {
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+}
+
+body.popout-window .title-side-head {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+body.popout-window .popout-unavailable {
+  display: grid;
+  min-height: 100vh;
+  place-content: center;
+  gap: 16px;
+  padding: 24px;
+  text-align: center;
+}
+
+@media (max-width: 480px) {
+  body.popout-window .title-row {
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  body.popout-window .title-side {
+    min-width: 0;
+  }
+
+  body.popout-window .popout-back-button {
+    padding-inline: 8px;
+    font-size: 13px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .popout-ghost {
+    animation: memo-popout-ghost-fade 120ms linear forwards;
+  }
+
+  @keyframes memo-popout-ghost-fade {
+    to { opacity: 0; }
+  }
+}
+
 * {
   box-sizing: border-box;
 }
