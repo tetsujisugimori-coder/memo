@@ -1,6 +1,6 @@
 const assert = require("node:assert/strict");
 const test = require("node:test");
-const { bodyContainsRegisteredTerm, buildTermRelationIndex, termColor } = require("./term-link-utils.js");
+const { bodyContainsRegisteredTerm, buildTermRelationIndex, createTermRelationCache, termColor } = require("./term-link-utils.js");
 
 test("明示語句は本文に含まれる別メモへ自動関連として表示する", () => {
   const index = buildTermRelationIndex([
@@ -43,10 +43,46 @@ test("複数の登録済み語句は同じ色を保ち、1メモへ個別に並�
   assert.equal(terms[0].color, index.byNoteId.get("a").terms[0].color);
 });
 
-test("語句色は英字・数字・かな・漢字で再現可能に決まる", () => {
-  assert.equal(termColor("JavaScript"), termColor("JavaScript"));
+test("invalidate後は配列参照を変えずに本文を保存した場合も自動関連を再構築する", () => {
+  const notes = [{ id: "a", body: "[[JavaScript]]" }, { id: "b", body: "本文" }];
+  const cache = createTermRelationCache();
+  assert.deepEqual(cache.get(notes).byNoteId.get("b").automaticTerms, []);
+  notes[1].body = "JavaScriptではDOMを扱う";
+  cache.invalidate();
+  const added = cache.get(notes).byNoteId.get("b");
+  assert.deepEqual(added.automaticTerms, ["JavaScript"]);
+  assert.equal(added.terms[0].color, cache.get(notes).byNoteId.get("a").terms[0].color);
+  notes[1].body = "本文へ戻す";
+  cache.invalidate();
+  assert.deepEqual(cache.get(notes).byNoteId.get("b").automaticTerms, []);
+});
+
+test("新しい明示語句の追加と最後の削除は別メモの自動関連へ反映される", () => {
+  const notes = [{ id: "a", body: "準備中" }, { id: "b", body: "DOM API" }];
+  const cache = createTermRelationCache();
+  assert.deepEqual(cache.get(notes).registeredTerms, []);
+  notes[0].body = "[[DOM]]";
+  cache.invalidate();
+  assert.deepEqual(cache.get(notes).byNoteId.get("b").automaticTerms, ["DOM"]);
+  notes[0].body = "DOM";
+  cache.invalidate();
+  assert.deepEqual(cache.get(notes).byNoteId.get("b").terms, []);
+});
+
+test("語句色は正式な英字・数字・かな規則と漢字の安定ハッシュで決まる", () => {
+  ["Apple", "CSS", "GitHub"].forEach((term) => assert.equal(termColor(term), termColor("Apple")));
+  ["HTML", "JavaScript", "Node"].forEach((term) => assert.equal(termColor(term), termColor("HTML")));
+  ["OpenAI", "TypeScript"].forEach((term) => assert.equal(termColor(term), termColor("OpenAI")));
+  ["Ubuntu", "Zebra"].forEach((term) => assert.equal(termColor(term), termColor("Ubuntu")));
+  assert.equal(termColor("JavaScript"), termColor("javascript"));
   assert.equal(termColor("42番"), termColor("42番"));
-  assert.equal(termColor("かきくけこ"), termColor("かきくけこ"));
+  assert.equal(termColor("あ"), termColor("ア"));
+  ["か", "カ", "が", "ガ"].forEach((term) => assert.equal(termColor(term), termColor("か")));
+  ["は", "ハ", "ば", "バ", "ぱ", "パ"].forEach((term) => assert.equal(termColor(term), termColor("は")));
+  ["っ", "ッ"].forEach((term) => assert.equal(termColor(term), termColor("た")));
+  ["ゃ", "ャ"].forEach((term) => assert.equal(termColor(term), termColor("や")));
+  ["ヴ", "う", "ウ"].forEach((term) => assert.equal(termColor(term), termColor("あ")));
+  assert.equal(termColor("JavaScript"), termColor("JavaScript"));
   assert.equal(termColor("漢字"), termColor("漢字"));
   assert.notEqual(termColor("JavaScript"), termColor("DOM"));
 });

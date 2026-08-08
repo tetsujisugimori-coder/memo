@@ -4,7 +4,8 @@
   root.MemoNexusTermLinkUtils = api;
 })(typeof window !== "undefined" ? window : globalThis, () => {
   const TERM_PATTERN = /\[\[([^\]]+)\]\]/g;
-  const TERM_COLORS = ["#287c88", "#5e6db8", "#9b5f9a", "#a66b1f", "#497346", "#17728d", "#8a5d19", "#7a3e9d"];
+  // 0-3は英字、4は数字、5-14は五十音行用の固定パレットです。
+  const TERM_COLORS = ["#287c88", "#5e6db8", "#9b5f9a", "#a66b1f", "#497346", "#17728d", "#8a5d19", "#7a3e9d", "#a44b57", "#427b59", "#4c6f9e", "#9a6c2d", "#6e599b", "#3d7d73", "#9b5d7b"];
 
   function extractExplicitTerms(body) {
     return [...String(body || "").matchAll(TERM_PATTERN)].map((match) => match[1].trim()).filter(Boolean);
@@ -39,7 +40,8 @@
   function kanaRowIndex(character) {
     const code = character.codePointAt(0);
     const hiragana = code >= 0x30a1 && code <= 0x30f6 ? String.fromCodePoint(code - 0x60) : character;
-    const rows = ["あいうえおぁぃぅぇぉ", "かきくけこがぎぐげご", "さしすせそざじずぜぞ", "たちつてとだぢづでど", "なにぬねの", "はひふへほばびぶべぼぱぴぷぺぽ", "まみむめも", "やゆよゃゅょ", "らりるれろ", "わをん"];
+    if (hiragana === "ゔ") return 0;
+    const rows = ["あいうえおぁぃぅぇぉ", "かきくけこがぎぐげご", "さしすせそざじずぜぞ", "たちつてとだぢづでどっ", "なにぬねの", "はひふへほばびぶべぼぱぴぷぺぽ", "まみむめも", "やゆよゃゅょ", "らりるれろ", "わをん"];
     return rows.findIndex((row) => row.includes(hiragana));
   }
 
@@ -48,11 +50,14 @@
     const first = normalized[0] || "";
     if (/^[A-Za-z]$/.test(first)) {
       const code = first.toUpperCase().charCodeAt(0) - 65;
-      return TERM_COLORS[Math.floor(code / 4) % TERM_COLORS.length];
+      if (code <= 6) return TERM_COLORS[0];
+      if (code <= 13) return TERM_COLORS[1];
+      if (code <= 19) return TERM_COLORS[2];
+      return TERM_COLORS[3];
     }
     if (/^\d$/.test(first)) return TERM_COLORS[4];
     const kanaIndex = kanaRowIndex(first);
-    if (kanaIndex !== -1) return TERM_COLORS[kanaIndex % TERM_COLORS.length];
+    if (kanaIndex !== -1) return TERM_COLORS[5 + kanaIndex];
     return TERM_COLORS[stableHash(normalized) % TERM_COLORS.length];
   }
 
@@ -75,5 +80,18 @@
     return { registeredTerms, byNoteId };
   }
 
-  return { bodyContainsRegisteredTerm, buildTermRelationIndex, extractExplicitTerms, termColor };
+  function createTermRelationCache() {
+    let index = null;
+    return {
+      get(notes) {
+        if (!index) index = buildTermRelationIndex(notes);
+        return index;
+      },
+      invalidate() {
+        index = null;
+      }
+    };
+  }
+
+  return { bodyContainsRegisteredTerm, buildTermRelationIndex, createTermRelationCache, extractExplicitTerms, termColor };
 });

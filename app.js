@@ -295,7 +295,7 @@ const {
   splitImageBlocks
 } = window.MemoNexusAttachmentUtils;
 const { buildMemoListView } = window.MemoNexusMemoListUtils;
-const { buildTermRelationIndex, extractExplicitTerms, termColor } = window.MemoNexusTermLinkUtils;
+const { createTermRelationCache, extractExplicitTerms, termColor } = window.MemoNexusTermLinkUtils;
 const { openCalculatorMemo } = window.MemoNexusCalculatorLink;
 const {
   BODY_FONT_SIZES,
@@ -615,8 +615,7 @@ let localDirtyMemoId = null;
 let localMemoEditVersion = 0;
 let lastDiscovery = "";
 let linkStatsVisible = false;
-let termRelationNotes = null;
-let termRelationIndex = { registeredTerms: [], byNoteId: new Map() };
+const termRelationCache = createTermRelationCache();
 let saveStatusState = "saved";
 let saveStatusTime = null;
 let mermaidConfiguredTheme = null;
@@ -2010,6 +2009,7 @@ async function createNote(title = "新規メモ", body = "", options = {}) {
 
   await putNote(note);
   notes.unshift(note);
+  invalidateTermRelationIndex();
   return note;
 }
 
@@ -2088,11 +2088,11 @@ function renderList() {
 }
 
 function currentTermRelationIndex() {
-  if (termRelationNotes !== notes) {
-    termRelationNotes = notes;
-    termRelationIndex = buildTermRelationIndex(activeNotes());
-  }
-  return termRelationIndex;
+  return termRelationCache.get(activeNotes());
+}
+
+function invalidateTermRelationIndex() {
+  termRelationCache.invalidate();
 }
 
 function renderMemoListHeading(heading) {
@@ -2320,6 +2320,7 @@ async function refreshMemoFromOtherWindow(message) {
   if (!db || message?.type !== "memo-changed" || !message.memoId) return;
   const knownNote = notes.find((item) => item.id === message.memoId);
   notes = await getAllNotes();
+  invalidateTermRelationIndex();
   const note = notes.find((item) => item.id === message.memoId);
   const decision = getMemoSyncDecision({
     message,
@@ -2502,6 +2503,7 @@ async function saveCurrentNote() {
     await putNote(note);
     console.log("Memo saved", { id: note.id, title: note.title });
     notes = await getAllNotes();
+    invalidateTermRelationIndex();
     currentId = note.id;
 
     const afterLinks = collectLinks(activeNotes()).length;
@@ -2553,6 +2555,7 @@ async function deleteCurrentNote() {
   await putNote(note);
   removeDraftMirrorForNote(note.id);
   notes = await getAllNotes();
+  invalidateTermRelationIndex();
 
   if (!activeNotes().length) {
     const nextNote = await createNote("新規メモ", "");
@@ -2607,6 +2610,7 @@ async function restoreDeletedNote() {
   existing.updatedAt = Date.now();
   await putNote(existing);
   notes = await getAllNotes();
+  invalidateTermRelationIndex();
 
   clearDeleteUndoMessage();
   renderAll();
@@ -6900,6 +6904,7 @@ async function moveMemosToTrash(memoIds) {
   await updateNotesTransaction(targets.map((note) => ({ ...note, deletedAt, updatedAt: Date.now() })));
   targets.forEach((note) => removeDraftMirrorForNote(note.id));
   notes = await getAllNotes();
+  invalidateTermRelationIndex();
   selectedMemoIds.clear();
   if (targets.some((note) => note.id === currentId)) {
     const next = activeNotes()[0] || await createNote("新規メモ", "");
@@ -6915,6 +6920,7 @@ async function restoreMemos(memoIds) {
   const updated = targets.map((note) => ({ ...note, collectionId: collectionExists(note.collectionId) ? note.collectionId : UNCLASSIFIED_COLLECTION_ID, deletedAt: null, updatedAt: Date.now() }));
   await updateNotesTransaction(updated);
   notes = await getAllNotes();
+  invalidateTermRelationIndex();
   selectedMemoIds.clear();
   renderAll();
   if (updated[0]) openNote(updated[0].id);
@@ -6944,6 +6950,7 @@ async function permanentlyDeleteMemos(memoIds) {
   });
   targets.forEach((note) => removeDraftMirrorForNote(note.id));
   notes = await getAllNotes();
+  invalidateTermRelationIndex();
   selectedMemoIds.clear();
   if (targets.some((note) => note.id === currentId)) {
     let next = activeNotes()[0];
