@@ -797,6 +797,7 @@ body.collections-open .collection-explorer {
 }
 
 .memo-item {
+  position: relative;
   width: 100%;
   margin-bottom: 8px;
   padding: 11px 12px;
@@ -805,6 +806,36 @@ body.collections-open .collection-explorer {
   background: var(--paper);
   cursor: pointer;
 }
+
+.memo-item.has-term-relations { padding-bottom: 9px; }
+
+.term-card-footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  margin-top: 8px;
+}
+
+.term-accent-list { display: inline-flex; flex: 0 0 auto; gap: 2px; align-items: center; }
+.term-accent-list i { display: block; width: 4px; height: 20px; border-radius: 999px; background: var(--term-color); }
+.term-accent-list b { color: var(--muted); font-size: 11px; font-weight: 700; }
+.term-chip-list { display: flex; min-width: 0; flex-wrap: wrap; gap: 4px; }
+.term-chip {
+  min-height: 24px;
+  max-width: 132px;
+  overflow: hidden;
+  border: 1px solid var(--term-color);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ink);
+  font-size: 11px;
+  line-height: 1.2;
+  padding: 3px 7px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.term-chip:hover { background: color-mix(in srgb, var(--term-color) 16%, transparent); }
 
 .memo-item:hover {
   border-color: var(--accent);
@@ -2536,6 +2567,24 @@ body.collections-open .collection-explorer {
 .link-chip:hover {
   border-color: var(--accent);
 }
+
+.term-link-chip {
+  border-color: var(--term-color);
+  background: color-mix(in srgb, var(--term-color) 14%, var(--section-bg));
+  color: var(--ink);
+}
+
+.term-link-chip::before {
+  content: "";
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-right: 5px;
+  border-radius: 50%;
+  background: var(--term-color);
+}
+
+.term-link-chip:hover { border-color: var(--term-color); }
 
 .toolbar button.active {
   border-color: var(--accent);
