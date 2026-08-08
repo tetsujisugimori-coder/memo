@@ -4277,7 +4277,10 @@ let checklistRenderIndex = 0;
 function nextChecklistIndex() { const index = checklistRenderIndex; checklistRenderIndex += 1; return index; }
 
 function renderOrderedListBlock(lines) {
-  return `<ol>${lines.map((line) => `<li>${renderMarkdownInline(line.replace(/^\d+\.\s+/, ""))}</li>`).join("")}</ol>`;
+  const firstItem = lines[0]?.match(/^(\d+)\.\s+/);
+  const start = firstItem ? Number.parseInt(firstItem[1], 10) : 1;
+  const startAttribute = start > 1 ? ` start="${start}"` : "";
+  return `<ol${startAttribute}>${lines.map((line) => `<li>${renderMarkdownInline(line.replace(/^\d+\.\s+/, ""))}</li>`).join("")}</ol>`;
 }
 
 function renderQuoteOrCalloutBlock(lines) {
