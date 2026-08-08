@@ -699,7 +699,7 @@ function mountContextPanel() {
 }
 
 // ページ読み込み後、すぐにアプリを起動します。
-mountContextPanel();
+if (!isPopoutWindow) mountContextPanel();
 init();
 memoSyncChannel?.addEventListener("message", (event) => {
   refreshMemoFromOtherWindow(event.data).catch((error) => console.warn("Memo sync failed", error));
@@ -714,6 +714,10 @@ async function init() {
   });
   restoreTheme();
   if (isPopoutWindow) document.body.classList.add("popout-window");
+  if (isPopoutWindow) {
+    await initPopout();
+    return;
+  }
   restoreImageBlockSize();
   restoreCollectionSortOrder();
   restoreGlobalFontSettings();
@@ -741,9 +745,7 @@ async function init() {
   renderAll();
   const returnedNote = pendingFontSelection?.memoId && notes.find((note) => note.id === pendingFontSelection.memoId);
   const restoredNote = restoredDraftId && notes.find((note) => note.id === restoredDraftId);
-  const popoutNote = isPopoutWindow && notes.find((note) => note.id === popoutMemoId && !note.deletedAt);
-  openNote(popoutNote?.id || returnedNote?.id || restoredNote?.id || getTodayNote().id);
-  if (isPopoutWindow && !popoutNote) showPopoutUnavailable();
+  openNote(returnedNote?.id || restoredNote?.id || getTodayNote().id);
   if (restoredNote && !returnedNote) {
     saveStatus.textContent = "前回の編集中メモを復元しました";
   }
@@ -2118,6 +2120,28 @@ function openNote(id) {
   editor.focus();
 }
 
+// ポップアウトは本体のペイン・AI・モーダルを初期化せず、同じメモの編集だけを起動します。
+async function initPopout() {
+  restoreGlobalFontSettings();
+  db = await openDb();
+  notes = await getAllNotes();
+  const note = notes.find((item) => item.id === popoutMemoId && !item.deletedAt);
+  if (!note) {
+    showPopoutUnavailable();
+    return;
+  }
+
+  currentId = note.id;
+  titleInput.value = note.title;
+  editor.value = note.body;
+  setSaveStatus("saved", note.updatedAt);
+  renderNoteMeta();
+  renderTableBlockEditors();
+  applyEffectiveFontSettings();
+  document.title = `${note.title} — Memo Nexus`;
+  requestAnimationFrame(() => editor.focus());
+}
+
 // 今開いているメモ本体をnotes配列から取り出します。
 function currentNote() {
   return notes.find((note) => note.id === currentId);
@@ -2278,6 +2302,12 @@ function applyMemoSync(note) {
   pendingMemoSync = null;
   renderMemoSyncNotice();
   setSaveStatus("saved", note.updatedAt);
+  if (isPopoutWindow) {
+    renderNoteMeta();
+    renderTableBlockEditors();
+    document.title = `${note.title} — Memo Nexus`;
+    return;
+  }
   renderAll();
   renderTableBlockEditors();
   renderPreview();
@@ -2434,7 +2464,12 @@ async function saveCurrentNote() {
       renderMemoSyncNotice();
     }
     setSaveStatus("saved", note.updatedAt);
-    renderAll();
+    if (isPopoutWindow) {
+      renderNoteMeta();
+      document.title = `${note.title} — Memo Nexus`;
+    } else {
+      renderAll();
+    }
   } catch (error) {
     setSaveStatus("error");
     throw error;
@@ -7970,8 +8005,10 @@ editor.addEventListener("input", () => {
 });
 editor.addEventListener("select", updateAiTargetPreview);
 window.addEventListener("resize", () => {
-  syncLayoutMode();
-  renderSaveStatus();
+  if (!isPopoutWindow) {
+    syncLayoutMode();
+    renderSaveStatus();
+  }
   savePopoutWindowOptions();
 });
 window.addEventListener("beforeunload", () => {

@@ -80,6 +80,10 @@ body.dark {
   display: none;
 }
 
+.popout-unavailable[hidden] {
+  display: none !important;
+}
+
 .memo-sync-notice {
   display: flex;
   align-items: center;
