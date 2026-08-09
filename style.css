@@ -1350,23 +1350,24 @@ body.collections-open .collection-explorer {
 .memo-nexus-logo.is-animating[data-logo-animation="typewriter"] .memo-nexus-logo-letter,
 .memo-nexus-logo.is-animating[data-logo-animation="nexus"] .memo-nexus-logo-letter { opacity: 0.32; transform: translateX(-3px); animation: memo-nexus-logo-type-in 110ms ease-out forwards; animation-delay: calc(80ms + var(--memo-nexus-logo-delay) * 75ms); }
 .memo-nexus-logo.is-animating[data-logo-animation="typewriter"] .memo-nexus-logo-caret { background: currentColor; animation: memo-nexus-logo-caret 190ms step-end 790ms 2; }
-.memo-nexus-logo.is-animating[data-logo-animation="nexus"] .memo-nexus-logo-nexus { animation: memo-nexus-logo-nexus-fade 1180ms ease-out forwards; }
+.memo-nexus-logo.is-animating[data-logo-animation="nexus"] .memo-nexus-logo-nexus { animation: memo-nexus-logo-nexus-fade 1320ms ease-out forwards; }
 .memo-nexus-logo.is-animating[data-logo-animation="nexus"] .memo-nexus-logo-frame-left,
 .memo-nexus-logo.is-animating[data-logo-animation="nexus"] .memo-nexus-logo-frame-top { animation: memo-nexus-logo-frame-start 520ms ease-out 80ms forwards; }
 .memo-nexus-logo.is-animating[data-logo-animation="nexus"] .memo-nexus-logo-frame-right,
-.memo-nexus-logo.is-animating[data-logo-animation="nexus"] .memo-nexus-logo-frame-bottom { animation: memo-nexus-logo-frame-finish 320ms ease-out 720ms forwards; }
+.memo-nexus-logo.is-animating[data-logo-animation="nexus"] .memo-nexus-logo-frame-bottom { animation: memo-nexus-logo-frame-finish 270ms ease-out 830ms forwards; }
 .memo-nexus-logo.is-animating[data-logo-animation="nexus"] .memo-nexus-logo-nexus i { animation: memo-nexus-logo-node 1040ms ease-out forwards; }
-.memo-nexus-logo.is-animating[data-logo-animation="nexus"] .memo-nexus-logo-node-end { animation-delay: 960ms; }
-.memo-nexus-logo.is-animating[data-logo-animation="nexus"] .memo-nexus-logo-text { animation: memo-nexus-logo-nexus-glow 190ms ease-out 1040ms; }
+.memo-nexus-logo.is-animating[data-logo-animation="nexus"] .memo-nexus-logo-node-end { animation: memo-nexus-logo-node-arrive 120ms ease-out 1100ms forwards; }
+.memo-nexus-logo.is-animating[data-logo-animation="nexus"] .memo-nexus-logo-text { animation: memo-nexus-logo-nexus-glow 190ms ease-out 1100ms; }
 .memo-nexus-logo.is-animating[data-logo-animation="scan"] .memo-nexus-logo-scan { animation: memo-nexus-logo-scan 760ms ease-out 120ms forwards; }
 
 @keyframes memo-nexus-logo-cycle { from { opacity: 0.999; } to { opacity: 1; } }
 @keyframes memo-nexus-logo-type-in { to { opacity: 1; transform: translateX(0); } }
 @keyframes memo-nexus-logo-caret { 50% { background: transparent; } }
-@keyframes memo-nexus-logo-nexus-fade { 8%, 88% { opacity: 1; } to { opacity: 0; } }
+@keyframes memo-nexus-logo-nexus-fade { 8%, 98% { opacity: 1; } to { opacity: 0; } }
 @keyframes memo-nexus-logo-frame-start { to { opacity: 1; transform: scaleX(1) scaleY(1); } }
 @keyframes memo-nexus-logo-frame-finish { to { opacity: 1; transform: scaleX(1) scaleY(1); } }
 @keyframes memo-nexus-logo-node { 8%, 88% { opacity: 1; transform: scale(1); } to { opacity: 0; transform: scale(0.7); } }
+@keyframes memo-nexus-logo-node-arrive { to { opacity: 1; transform: scale(1); } }
 @keyframes memo-nexus-logo-nexus-glow { 45% { color: var(--accent); text-shadow: 0 0 8px color-mix(in srgb, var(--accent) 42%, transparent); } }
 @keyframes memo-nexus-logo-scan { 8% { opacity: 0; } 24%, 70% { opacity: 1; } to { opacity: 0; transform: translateX(210px) skewX(-16deg); } }
 

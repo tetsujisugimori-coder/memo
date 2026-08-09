@@ -100,6 +100,15 @@ test("3種類のロゴ演出は有限で専用クラスに限定する", () => {
   assert.doesNotMatch(css, /memo-nexus-logo[^\{]*\{[^}]*animation:[^;}]*infinite/s);
 });
 
+test("Nexusの枠完成とグローは最後の文字の表示後に始まる", () => {
+  const lastLetterEndMs = 80 + 8 * 75 + 110;
+  const rightAndBottomDelay = Number(css.match(/memo-nexus-logo-frame-bottom \{ animation: memo-nexus-logo-frame-finish 270ms ease-out (\d+)ms forwards; \}/)?.[1]);
+  const nodeAndGlowDelay = Number(css.match(/memo-nexus-logo-node-end \{ animation: memo-nexus-logo-node-arrive 120ms ease-out (\d+)ms forwards; \}/)?.[1]);
+  assert.ok(rightAndBottomDelay > lastLetterEndMs);
+  assert.equal(nodeAndGlowDelay, rightAndBottomDelay + 270);
+  assert.match(css, /memo-nexus-logo-text \{ animation: memo-nexus-logo-nexus-glow 190ms ease-out 1100ms; \}/);
+});
+
 test("クリックは設定を保存せず次の演出へ安全に循環する", () => {
   const fixture = createLogoController({ storedValue: "typewriter" });
   fixture.controller.restoreLogoAnimationSetting();
