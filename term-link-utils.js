@@ -53,20 +53,41 @@
     return matches;
   }
 
-  // 重なった候補は長い語句を優先し、同一位置の二重リンクを作らない。
+  function findEmbeddedTermMatches(source, term) {
+    const phrase = String(term || "").trim();
+    if (!phrase || phrase === "C" || !/^[A-Za-z0-9]+$/.test(phrase)) return [];
+
+    const matches = [];
+    const pattern = new RegExp(escapeRegExp(phrase), "g");
+    let match;
+    while ((match = pattern.exec(source))) {
+      matches.push({ start: match.index, end: match.index + phrase.length, term: phrase });
+    }
+    return matches;
+  }
+
+  // 表示では長い語句を先に確保し、開始位置がずれた重複も二重リンクにしない。
   function findAutomaticTermMatches(text, terms) {
     const source = String(text || "");
-    const candidates = uniqueTerms(terms).flatMap((term) => findTermMatches(source, term));
-    candidates.sort((a, b) => a.start - b.start || b.end - a.end || a.term.localeCompare(b.term));
+    const registeredTerms = uniqueTerms(terms);
+    const directCandidates = registeredTerms.flatMap((term) => findTermMatches(source, term));
+    const embeddedCandidates = registeredTerms.flatMap((term) => findEmbeddedTermMatches(source, term));
+    const hasSameRange = (matches, candidate) => matches.some((match) => match.start === candidate.start && match.end === candidate.end && match.term === candidate.term);
+    // 英数字の埋め込み候補は、別の登録済み語句と重なる場合だけ表示候補にする。
+    // これにより abc / bcde のようなずれた重複を扱いつつ、単独の AI を FAIL 内で表示しない。
+    const candidates = [
+      ...directCandidates,
+      ...embeddedCandidates.filter((candidate) => !hasSameRange(directCandidates, candidate) && [...directCandidates, ...embeddedCandidates].some((other) => other.term !== candidate.term && candidate.start < other.end && other.start < candidate.end))
+    ];
+    candidates.sort((a, b) => (b.end - b.start) - (a.end - a.start) || a.start - b.start || a.term.normalize("NFKC").localeCompare(b.term.normalize("NFKC")));
     const matches = [];
-    let end = -1;
     candidates.forEach((candidate) => {
-      if (candidate.start >= end) {
+      const overlaps = matches.some((accepted) => candidate.start < accepted.end && accepted.start < candidate.end);
+      if (!overlaps) {
         matches.push(candidate);
-        end = candidate.end;
       }
     });
-    return matches;
+    return matches.sort((a, b) => a.start - b.start || a.end - b.end || a.term.normalize("NFKC").localeCompare(b.term.normalize("NFKC")));
   }
 
   // 集計は表示と異なり、登録済みの長い語句に含まれる短い語句も数える。
@@ -146,7 +167,7 @@
     usableNotes.forEach((note) => {
       const explicitTerms = uniqueTerms(extractExplicitTerms(note.body));
       const explicitSet = new Set(explicitTerms);
-      const automaticCandidates = registeredTerms.filter((term) => !explicitSet.has(term) && bodyContainsRegisteredTerm(note.body, term));
+      const automaticCandidates = registeredTerms.filter((term) => !explicitSet.has(term));
       const automaticTerms = uniqueTerms(findAutomaticTermMatches(note.body, automaticCandidates).map((match) => match.term));
       const terms = [
         ...explicitTerms.map((term) => ({ term, source: "explicit", color: termColor(term) })),

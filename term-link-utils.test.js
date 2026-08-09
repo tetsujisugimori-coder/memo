@@ -48,6 +48,12 @@ test("重複した登録語句は表示では最長一致、カードでも最�
   ]);
 });
 
+test("開始位置がずれた重複候補でも表示は長い語句を優先する", () => {
+  const matches = findAutomaticTermMatches("abcde", ["abc", "bcde"]);
+  assert.deepEqual(matches.map((match) => match.term), ["bcde"]);
+  assert.deepEqual(matches.map(({ start, end }) => ({ start, end })), [{ start: 1, end: 5 }]);
+});
+
 test("重複した登録語句は集計では短い語句も個別に数える", () => {
   const terms = ["GPT5.6", "GPT5.6 sol"];
   assert.equal(findTermCountMatches("GPT5.6 sol", "GPT5.6 sol", terms).length, 1);
