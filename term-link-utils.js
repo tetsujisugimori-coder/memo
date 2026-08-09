@@ -19,16 +19,62 @@
     return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   }
 
+  // "C" は一般的な英字境界だけでは CSS や C++ まで拾うため、
+  // 登録済み語句としての自動検出に限り、メモで使う自然な文脈へ絞る。
+  function findSpecialCTermMatches(source) {
+    const matches = [];
+    const pattern = /(^|[\s　、。．，！!？?：:；;（(\[\]{}「」『』【】〈〉《》“”"'`])C(?=言語|について|$|[\s　、。．，！!？?：:；;）)\]}`〉》」』】\"'`]|[をのはがにとへもで])/g;
+    let match;
+    while ((match = pattern.exec(source))) {
+      matches.push({ start: match.index + match[1].length, end: match.index + match[1].length + 1, term: "C" });
+    }
+    return matches;
+  }
+
+  function matchesSpecialCTerm(body) {
+    return findSpecialCTermMatches(String(body || "")).length > 0;
+  }
+
+  function findTermMatches(source, term) {
+    const phrase = String(term || "").trim();
+    if (!phrase) return [];
+    if (phrase === "C") return findSpecialCTermMatches(source);
+
+    const matches = [];
+    const pattern = /^[A-Za-z0-9]+$/.test(phrase)
+      ? new RegExp(`(^|[^A-Za-z0-9_])(${escapeRegExp(phrase)})(?=$|[^A-Za-z0-9_])`, "g")
+      : new RegExp(escapeRegExp(phrase), "g");
+    let match;
+    while ((match = pattern.exec(source))) {
+      const text = match[2] || match[0];
+      const start = match[2] ? match.index + match[1].length : match.index;
+      matches.push({ start, end: start + text.length, term: phrase });
+    }
+    return matches;
+  }
+
+  // 重なった候補は長い語句を優先し、同一位置の二重リンクを作らない。
+  function findAutomaticTermMatches(text, terms) {
+    const source = String(text || "");
+    const candidates = uniqueTerms(terms).flatMap((term) => findTermMatches(source, term));
+    candidates.sort((a, b) => a.start - b.start || b.end - a.end || a.term.localeCompare(b.term));
+    const matches = [];
+    let end = -1;
+    candidates.forEach((candidate) => {
+      if (candidate.start >= end) {
+        matches.push(candidate);
+        end = candidate.end;
+      }
+    });
+    return matches;
+  }
+
   function bodyContainsRegisteredTerm(body, term) {
     const source = String(body || "");
     const phrase = String(term || "").trim();
     if (!phrase) return false;
 
-    // 英数字だけの短い語句は、他の英数字・アンダースコアの一部を拾わない。
-    if (/^[A-Za-z0-9]+$/.test(phrase)) {
-      return new RegExp(`(^|[^A-Za-z0-9_])${escapeRegExp(phrase)}(?=$|[^A-Za-z0-9_])`).test(source);
-    }
-    return source.includes(phrase);
+    return findTermMatches(source, phrase).length > 0;
   }
 
   function stableHash(value) {
@@ -93,5 +139,5 @@
     };
   }
 
-  return { bodyContainsRegisteredTerm, buildTermRelationIndex, createTermRelationCache, extractExplicitTerms, termColor };
+  return { bodyContainsRegisteredTerm, buildTermRelationIndex, createTermRelationCache, extractExplicitTerms, findAutomaticTermMatches, matchesSpecialCTerm, termColor };
 });

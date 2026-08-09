@@ -2655,6 +2655,12 @@ body.collections-open .collection-explorer {
   color: var(--gold);
 }
 
+/* 本文の明示・自動語句リンクは、リンク種別ではなく語句ごとの固定色を使う。 */
+.wiki-link.term-wiki-link {
+  color: var(--term-color);
+  border-bottom-color: var(--term-color);
+}
+
 .code-block {
   position: relative;
   box-sizing: border-box;
