@@ -12,7 +12,7 @@
   }
 
   function uniqueTerms(terms) {
-    return [...new Set(terms.map((term) => String(term || "").trim()).filter(Boolean))];
+    return [...new Set(Array.from(terms || [], (term) => String(term || "").trim()).filter(Boolean))];
   }
 
   function escapeRegExp(value) {
@@ -69,6 +69,37 @@
     return matches;
   }
 
+  // 集計は表示と異なり、登録済みの長い語句に含まれる短い語句も数える。
+  // ただし、任意の単純部分一致には戻さず、長い語句自体は共通の境界判定を通す。
+  function findTermCountMatches(text, term, registeredTerms) {
+    const source = String(text || "");
+    const phrase = String(term || "").trim();
+    if (!phrase) return [];
+
+    const matches = findTermMatches(source, phrase);
+    if (phrase === "C") return matches;
+
+    uniqueTerms(registeredTerms)
+      .filter((registeredTerm) => registeredTerm !== phrase && registeredTerm.includes(phrase))
+      .forEach((registeredTerm) => {
+        findTermMatches(source, registeredTerm).forEach((container) => {
+          let offset = container.term.indexOf(phrase);
+          while (offset !== -1) {
+            matches.push({ start: container.start + offset, end: container.start + offset + phrase.length, term: phrase });
+            offset = container.term.indexOf(phrase, offset + phrase.length);
+          }
+        });
+      });
+
+    const seen = new Set();
+    return matches.filter((match) => {
+      const key = `${match.start}:${match.end}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    }).sort((a, b) => a.start - b.start || a.end - b.end);
+  }
+
   function bodyContainsRegisteredTerm(body, term) {
     const source = String(body || "");
     const phrase = String(term || "").trim();
@@ -115,7 +146,8 @@
     usableNotes.forEach((note) => {
       const explicitTerms = uniqueTerms(extractExplicitTerms(note.body));
       const explicitSet = new Set(explicitTerms);
-      const automaticTerms = registeredTerms.filter((term) => !explicitSet.has(term) && bodyContainsRegisteredTerm(note.body, term));
+      const automaticCandidates = registeredTerms.filter((term) => !explicitSet.has(term) && bodyContainsRegisteredTerm(note.body, term));
+      const automaticTerms = uniqueTerms(findAutomaticTermMatches(note.body, automaticCandidates).map((match) => match.term));
       const terms = [
         ...explicitTerms.map((term) => ({ term, source: "explicit", color: termColor(term) })),
         ...automaticTerms.map((term) => ({ term, source: "automatic", color: termColor(term) }))
@@ -139,5 +171,5 @@
     };
   }
 
-  return { bodyContainsRegisteredTerm, buildTermRelationIndex, createTermRelationCache, extractExplicitTerms, findAutomaticTermMatches, matchesSpecialCTerm, termColor };
+  return { bodyContainsRegisteredTerm, buildTermRelationIndex, createTermRelationCache, extractExplicitTerms, findAutomaticTermMatches, findTermCountMatches, matchesSpecialCTerm, termColor };
 });

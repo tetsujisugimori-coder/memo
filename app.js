@@ -295,7 +295,7 @@ const {
   splitImageBlocks
 } = window.MemoNexusAttachmentUtils;
 const { buildMemoListView } = window.MemoNexusMemoListUtils;
-const { createTermRelationCache, extractExplicitTerms, findAutomaticTermMatches, termColor } = window.MemoNexusTermLinkUtils;
+const { createTermRelationCache, extractExplicitTerms, findAutomaticTermMatches, findTermCountMatches, termColor } = window.MemoNexusTermLinkUtils;
 const { openCalculatorMemo } = window.MemoNexusCalculatorLink;
 const {
   BODY_FONT_SIZES,
@@ -4780,8 +4780,8 @@ function showMermaidError(block) {
   }
 }
 
-function countPhraseOccurrences(text, phrase) {
-  return findAutomaticTermMatches(text, [phrase]).length;
+function countPhraseOccurrences(text, phrase, registeredTerms) {
+  return findTermCountMatches(text, phrase, registeredTerms).length;
 }
 
 function collectLinkStats() {
@@ -4809,7 +4809,7 @@ function collectLinkStats() {
   effectiveNotes.forEach((note) => {
     const seenInNote = new Set();
     candidateTitles.forEach((title) => {
-      const count = countPhraseOccurrences(note.body, title);
+      const count = countPhraseOccurrences(note.body, title, candidateTitles);
       if (!count) return;
 
       const entry = stats.get(title) || { title, count: 0, noteCount: 0, missing: false };
