@@ -32,7 +32,7 @@ test("自動表示用の一致範囲は複数語句を保ち、長い語句を�
 });
 
 test("C の自動検出は自然な文脈だけに限定し、明示リンクはそのまま登録する", () => {
-  ["C言語", " C ", "Cについて", "（C）", "Cを学ぶ", "Cの本"].forEach((body) => {
+  ["C言語", " C ", "Cについて", "（C）", "Cを学ぶ", "Cの本", "C言語とCを学ぶ"].forEach((body) => {
     assert.equal(matchesSpecialCTerm(body), true, body);
     assert.equal(bodyContainsRegisteredTerm(body, "C"), true, body);
   });

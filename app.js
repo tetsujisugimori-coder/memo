@@ -4781,16 +4781,7 @@ function showMermaidError(block) {
 }
 
 function countPhraseOccurrences(text, phrase) {
-  if (!phrase) return 0;
-  let count = 0;
-  let index = 0;
-  while (true) {
-    index = text.indexOf(phrase, index);
-    if (index === -1) break;
-    count += 1;
-    index += phrase.length;
-  }
-  return count;
+  return findAutomaticTermMatches(text, [phrase]).length;
 }
 
 function collectLinkStats() {

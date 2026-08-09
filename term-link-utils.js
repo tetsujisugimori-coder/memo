@@ -23,7 +23,7 @@
   // 登録済み語句としての自動検出に限り、メモで使う自然な文脈へ絞る。
   function findSpecialCTermMatches(source) {
     const matches = [];
-    const pattern = /(^|[\s　、。．，！!？?：:；;（(\[\]{}「」『』【】〈〉《》“”"'`])C(?=言語|について|$|[\s　、。．，！!？?：:；;）)\]}`〉》」』】\"'`]|[をのはがにとへもで])/g;
+    const pattern = /(^|[\s　、。．，！!？?：:；;（(\[\]{}「」『』【】〈〉《》“”"'`をのはがにとへもで])C(?=言語|について|$|[\s　、。．，！!？?：:；;）)\]}`〉》」』】\"'`]|[をのはがにとへもで])/g;
     let match;
     while ((match = pattern.exec(source))) {
       matches.push({ start: match.index + match[1].length, end: match.index + match[1].length + 1, term: "C" });
