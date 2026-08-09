@@ -366,7 +366,7 @@ const {
 } = window.MemoNexusAiReferenceSelection;
 const { buildCalloutMarkdown, checklistEntries, updateChecklistAt, createExplanationCollapsedStateSaver, hydrateExplanationCardsIntoDom } = window.MemoNexusMarkdownEnhancements;
 const { createPopoutGhost, getMemoSyncDecision } = window.MemoNexusPopoutUtils;
-const { normalizeLogoAnimation, resolveLogoAnimation } = window.MemoNexusLogoAnimationUtils;
+const { nextLogoAnimation: nextLogoAnimationInCycle, normalizeLogoAnimation, resolveLogoAnimation } = window.MemoNexusLogoAnimationUtils;
 
 // HTML要素を短く取得するための小さなヘルパー。
 const $ = (id) => document.getElementById(id);
@@ -654,6 +654,7 @@ let mermaidTemplateTrigger = null;
 let currentAttachments = [];
 let imageBlockSize = "medium";
 let logoAnimationSetting = "daily";
+let logoAnimationSessionOverride = null;
 let logoAnimationCleanupTimer = null;
 let logoInitialAnimationScheduled = false;
 let logoAnimationRequestId = 0;
@@ -930,16 +931,32 @@ function restoreLogoAnimationSetting() {
 function applyLogoAnimationSetting(value) {
   logoAnimationSetting = normalizeLogoAnimation(value);
   if (logoAnimationSelect) logoAnimationSelect.value = logoAnimationSetting;
+  updateLogoAnimationLabel();
 }
 
 function saveLogoAnimationSetting(value) {
   applyLogoAnimationSetting(value);
+  logoAnimationSessionOverride = null;
+  updateLogoAnimationLabel();
   try {
     localStorage.setItem(LOGO_ANIMATION_STORAGE_KEY, logoAnimationSetting);
   } catch (error) {
     console.warn("Logo animation save failed", error);
   }
   if (logoAnimationSetting === "off") finishLogoAnimation();
+}
+
+function currentLogoAnimation() {
+  return logoAnimationSessionOverride || resolveLogoAnimation(logoAnimationSetting);
+}
+
+function updateLogoAnimationLabel() {
+  if (!memoNexusLogo) return;
+  if (logoAnimationSetting === "off") {
+    memoNexusLogo.setAttribute("aria-label", "ロゴアニメーションはオフです");
+    return;
+  }
+  memoNexusLogo.setAttribute("aria-label", "次のロゴアニメーションを表示（現在: " + currentLogoAnimation() + "）");
 }
 
 function prefersReducedMotion() {
@@ -955,24 +972,31 @@ function finishLogoAnimation() {
   delete memoNexusLogo.dataset.logoAnimation;
 }
 
-function playLogoAnimation() {
-  if (!memoNexusLogo || prefersReducedMotion()) return;
-  const animation = resolveLogoAnimation(logoAnimationSetting);
+function playLogoAnimation(animation = currentLogoAnimation()) {
+  if (!memoNexusLogo) return;
   if (animation === "off") return;
 
   finishLogoAnimation();
-  const requestId = ++logoAnimationRequestId;
   memoNexusLogo.dataset.logoAnimation = animation;
+  if (prefersReducedMotion()) return;
+  const requestId = ++logoAnimationRequestId;
   requestAnimationFrame(() => {
     if (requestId === logoAnimationRequestId) memoNexusLogo.classList.add("is-animating");
   });
   logoAnimationCleanupTimer = window.setTimeout(finishLogoAnimation, 1400);
 }
 
+function cycleLogoAnimation() {
+  if (logoAnimationSetting === "off") return;
+  logoAnimationSessionOverride = nextLogoAnimationInCycle(currentLogoAnimation());
+  updateLogoAnimationLabel();
+  playLogoAnimation(logoAnimationSessionOverride);
+}
+
 function scheduleInitialLogoAnimation() {
   if (logoInitialAnimationScheduled) return;
   logoInitialAnimationScheduled = true;
-  requestAnimationFrame(playLogoAnimation);
+  requestAnimationFrame(() => playLogoAnimation());
 }
 
 function syncLayoutMode(force = false, width = document.body.clientWidth) {
@@ -7962,7 +7986,7 @@ if (logoAnimationSelect) {
   logoAnimationSelect.addEventListener("change", () => saveLogoAnimationSetting(logoAnimationSelect.value));
 }
 if (memoNexusLogo) {
-  memoNexusLogo.addEventListener("click", playLogoAnimation);
+  memoNexusLogo.addEventListener("click", cycleLogoAnimation);
   memoNexusLogo.addEventListener("animationend", (event) => {
     if (event.target === memoNexusLogo && event.animationName === "memo-nexus-logo-cycle") finishLogoAnimation();
   });

@@ -4,7 +4,10 @@
   root.MemoNexusLogoAnimationUtils = api;
 })(typeof window !== "undefined" ? window : globalThis, () => {
   const LOGO_ANIMATION_SETTINGS = ["daily", "typewriter", "nexus", "scan", "off"];
-  const DAILY_LOGO_ANIMATIONS = ["typewriter", "nexus", "scan"];
+  // This is also the header interaction order. Keeping the daily resolver on
+  // this list lets an in-page cycle continue from today's selected effect.
+  const LOGO_ANIMATION_CYCLE = ["typewriter", "nexus", "scan"];
+  const DAILY_LOGO_ANIMATIONS = LOGO_ANIMATION_CYCLE;
 
   function normalizeLogoAnimation(value) {
     return LOGO_ANIMATION_SETTINGS.includes(value) ? value : "daily";
@@ -28,5 +31,10 @@
     return normalized === "daily" ? DAILY_LOGO_ANIMATIONS[stableDayIndex(date)] : normalized;
   }
 
-  return { DAILY_LOGO_ANIMATIONS, LOGO_ANIMATION_SETTINGS, localDateKey, normalizeLogoAnimation, resolveLogoAnimation, stableDayIndex };
+  function nextLogoAnimation(value) {
+    const index = LOGO_ANIMATION_CYCLE.indexOf(value);
+    return LOGO_ANIMATION_CYCLE[(index + 1 + LOGO_ANIMATION_CYCLE.length) % LOGO_ANIMATION_CYCLE.length];
+  }
+
+  return { DAILY_LOGO_ANIMATIONS, LOGO_ANIMATION_CYCLE, LOGO_ANIMATION_SETTINGS, localDateKey, nextLogoAnimation, normalizeLogoAnimation, resolveLogoAnimation, stableDayIndex };
 });
