@@ -1,6 +1,6 @@
 const assert = require("node:assert/strict");
 const test = require("node:test");
-const { bodyContainsRegisteredTerm, buildTermRelationIndex, createTermRelationCache, findAutomaticTermMatches, matchesSpecialCTerm, termColor } = require("./term-link-utils.js");
+const { bodyContainsRegisteredTerm, buildTermRelationIndex, createTermRelationCache, findAutomaticTermMatches, findTermCountMatches, matchesSpecialCTerm, termColor } = require("./term-link-utils.js");
 
 test("明示語句は本文に含まれる別メモへ自動関連として表示する", () => {
   const index = buildTermRelationIndex([
@@ -31,6 +31,39 @@ test("自動表示用の一致範囲は複数語句を保ち、長い語句を�
   ]);
 });
 
+test("重複した登録語句は表示では最長一致、カードでも最長語句だけにする", () => {
+  assert.deepEqual(findAutomaticTermMatches("GPT5.6 sol", ["GPT5.6", "GPT5.6 sol"]).map((match) => match.term), ["GPT5.6 sol"]);
+  assert.deepEqual(findAutomaticTermMatches("GPT5.6 と GPT5.6 sol", ["GPT5.6", "GPT5.6 sol"]).map((match) => match.term), ["GPT5.6", "GPT5.6 sol"]);
+  assert.deepEqual(findAutomaticTermMatches("JavaScript", ["Java", "JavaScript"]).map((match) => match.term), ["JavaScript"]);
+  assert.deepEqual(findAutomaticTermMatches("[[GPT5.6]] sol", ["GPT5.6 sol"]).map((match) => match.term), []);
+
+  const index = buildTermRelationIndex([
+    { id: "short", body: "[[GPT5.6]]" },
+    { id: "long", body: "[[GPT5.6 sol]]" },
+    { id: "plain", body: "GPT5.6 sol" }
+  ]);
+  assert.deepEqual(index.byNoteId.get("plain").automaticTerms, ["GPT5.6 sol"]);
+  assert.deepEqual(index.byNoteId.get("plain").terms.map((entry) => ({ term: entry.term, color: entry.color })), [
+    { term: "GPT5.6 sol", color: termColor("GPT5.6 sol") }
+  ]);
+});
+
+test("開始位置がずれた重複候補でも表示は長い語句を優先する", () => {
+  const matches = findAutomaticTermMatches("abcde", ["abc", "bcde"]);
+  assert.deepEqual(matches.map((match) => match.term), ["bcde"]);
+  assert.deepEqual(matches.map(({ start, end }) => ({ start, end })), [{ start: 1, end: 5 }]);
+});
+
+test("重複した登録語句は集計では短い語句も個別に数える", () => {
+  const terms = ["GPT5.6", "GPT5.6 sol"];
+  assert.equal(findTermCountMatches("GPT5.6 sol", "GPT5.6 sol", terms).length, 1);
+  assert.equal(findTermCountMatches("GPT5.6 sol", "GPT5.6", terms).length, 1);
+  assert.equal(findTermCountMatches("GPT5.6 sol と GPT5.6 を比較し、再び GPT5.6 sol を使う。", "GPT5.6 sol", terms).length, 2);
+  assert.equal(findTermCountMatches("GPT5.6 sol と GPT5.6 を比較し、再び GPT5.6 sol を使う。", "GPT5.6", terms).length, 3);
+  assert.equal(findTermCountMatches("JavaScript", "Java", ["Java", "JavaScript"]).length, 1);
+  assert.equal(findTermCountMatches("JavaScript", "JavaScript", ["Java", "JavaScript"]).length, 1);
+});
+
 test("C の自動検出は自然な文脈だけに限定し、明示リンクはそのまま登録する", () => {
   ["C言語", " C ", "Cについて", "（C）", "Cを学ぶ", "Cの本", "C言語とCを学ぶ"].forEach((body) => {
     assert.equal(matchesSpecialCTerm(body), true, body);
@@ -43,6 +76,14 @@ test("C の自動検出は自然な文脈だけに限定し、明示リンクは
   const index = buildTermRelationIndex([{ id: "a", body: "[[C]]" }, { id: "b", body: "C言語" }]);
   assert.deepEqual(index.byNoteId.get("a").explicitTerms, ["C"]);
   assert.deepEqual(index.byNoteId.get("b").automaticTerms, ["C"]);
+});
+
+test("C と C言語が重複した場合も表示は最長、集計は両方で C の除外規則を保つ", () => {
+  const terms = ["C", "C言語"];
+  assert.deepEqual(findAutomaticTermMatches("C言語を学ぶ", terms).map((match) => match.term), ["C言語"]);
+  assert.equal(findTermCountMatches("C言語を学ぶ", "C言語", terms).length, 1);
+  assert.equal(findTermCountMatches("C言語を学ぶ", "C", terms).length, 1);
+  ["CSS", "Complete", "C++", "C#"].forEach((body) => assert.equal(findTermCountMatches(body, "C", terms).length, 0, body));
 });
 
 test("明示語句が残る限り登録は維持され、削除後は自動関連も消える", () => {
