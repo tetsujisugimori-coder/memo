@@ -1,6 +1,6 @@
 const assert = require("node:assert/strict");
 const test = require("node:test");
-const { bodyContainsRegisteredTerm, buildTermRelationIndex, createTermRelationCache, termColor } = require("./term-link-utils.js");
+const { bodyContainsRegisteredTerm, buildTermRelationIndex, createTermRelationCache, findAutomaticTermMatches, matchesSpecialCTerm, termColor } = require("./term-link-utils.js");
 
 test("明示語句は本文に含まれる別メモへ自動関連として表示する", () => {
   const index = buildTermRelationIndex([
@@ -20,6 +20,29 @@ test("登録済みでない語句は自動関連にせず、短い英数字は�
   assert.equal(bodyContainsRegisteredTerm("AIの利用", "AI"), true);
   assert.equal(bodyContainsRegisteredTerm("FAIL", "AI"), false);
   assert.equal(bodyContainsRegisteredTerm("Web_kit", "Web"), false);
+});
+
+test("自動表示用の一致範囲は複数語句を保ち、長い語句を優先する", () => {
+  const body = "JavaScriptとDOM、JavaScript";
+  assert.deepEqual(findAutomaticTermMatches(body, ["Java", "JavaScript", "DOM"]).map(({ term, start, end }) => ({ term, text: body.slice(start, end) })), [
+    { term: "JavaScript", text: "JavaScript" },
+    { term: "DOM", text: "DOM" },
+    { term: "JavaScript", text: "JavaScript" }
+  ]);
+});
+
+test("C の自動検出は自然な文脈だけに限定し、明示リンクはそのまま登録する", () => {
+  ["C言語", " C ", "Cについて", "（C）", "Cを学ぶ", "Cの本"].forEach((body) => {
+    assert.equal(matchesSpecialCTerm(body), true, body);
+    assert.equal(bodyContainsRegisteredTerm(body, "C"), true, body);
+  });
+  ["CSS", "ABC", "Cドライブ", "Cクラス", "C++", "C#"].forEach((body) => {
+    assert.equal(matchesSpecialCTerm(body), false, body);
+    assert.equal(bodyContainsRegisteredTerm(body, "C"), false, body);
+  });
+  const index = buildTermRelationIndex([{ id: "a", body: "[[C]]" }, { id: "b", body: "C言語" }]);
+  assert.deepEqual(index.byNoteId.get("a").explicitTerms, ["C"]);
+  assert.deepEqual(index.byNoteId.get("b").automaticTerms, ["C"]);
 });
 
 test("明示語句が残る限り登録は維持され、削除後は自動関連も消える", () => {

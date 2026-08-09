@@ -295,7 +295,7 @@ const {
   splitImageBlocks
 } = window.MemoNexusAttachmentUtils;
 const { buildMemoListView } = window.MemoNexusMemoListUtils;
-const { createTermRelationCache, extractExplicitTerms, termColor } = window.MemoNexusTermLinkUtils;
+const { createTermRelationCache, extractExplicitTerms, findAutomaticTermMatches, termColor } = window.MemoNexusTermLinkUtils;
 const { openCalculatorMemo } = window.MemoNexusCalculatorLink;
 const {
   BODY_FONT_SIZES,
@@ -616,6 +616,7 @@ let localMemoEditVersion = 0;
 let lastDiscovery = "";
 let linkStatsVisible = false;
 const termRelationCache = createTermRelationCache();
+let previewAutomaticTerms = [];
 let saveStatusState = "saved";
 let saveStatusTime = null;
 let mermaidConfiguredTheme = null;
@@ -2653,6 +2654,7 @@ function renderPreview() {
   }
 
   const body = (note.id === currentId ? editor.value : note.body);
+  previewAutomaticTerms = currentTermRelationIndex().byNoteId.get(note.id)?.automaticTerms || [];
   checklistRenderIndex = 0;
   preview.innerHTML = renderPreviewHtml(body, note.id, renderGeneration);
   hydrateMathExpressions();
@@ -4324,32 +4326,47 @@ function renderQuoteOrCalloutBlock(lines) {
   return `<blockquote>${content}</blockquote>`;
 }
 
-function renderMarkdownInline(text) {
+function renderAutomaticTermText(text, automaticTerms) {
+  const matches = findAutomaticTermMatches(text, automaticTerms);
+  if (!matches.length) return escapeHtml(text);
+
+  let html = "";
+  let index = 0;
+  matches.forEach((match) => {
+    html += escapeHtml(text.slice(index, match.start));
+    html += renderWikiButton(match.term, "automatic");
+    index = match.end;
+  });
+  return html + escapeHtml(text.slice(index));
+}
+
+function renderMarkdownInline(text, { automaticTerms = previewAutomaticTerms, automaticEnabled = true } = {}) {
+  const renderPlainText = (value) => automaticEnabled ? renderAutomaticTermText(value, automaticTerms) : escapeHtml(value);
   let html = "";
   let index = 0;
 
   while (index < text.length) {
     const token = findNextInlineToken(text, index);
     if (!token) {
-      html += escapeHtml(text.slice(index));
+      html += renderPlainText(text.slice(index));
       break;
     }
 
-    html += escapeHtml(text.slice(index, token.start));
+    html += renderPlainText(text.slice(index, token.start));
     if (token.type === "code") {
       html += `<code class="inline-code">${escapeHtml(token.content)}</code>`;
     } else if (token.type === "wiki") {
       html += renderWikiButton(token.content);
     } else if (token.type === "bold") {
-      html += `<strong>${renderMarkdownInline(token.content)}</strong>`;
+      html += `<strong>${renderMarkdownInline(token.content, { automaticTerms, automaticEnabled })}</strong>`;
     } else if (token.type === "italic") {
-      html += `<em>${renderMarkdownInline(token.content)}</em>`;
+      html += `<em>${renderMarkdownInline(token.content, { automaticTerms, automaticEnabled })}</em>`;
     } else if (token.type === "strike") {
-      html += `<del>${renderMarkdownInline(token.content)}</del>`;
+      html += `<del>${renderMarkdownInline(token.content, { automaticTerms, automaticEnabled })}</del>`;
     } else if (token.type === "link") {
-      html += `<a class="markdown-link" href="${escapeAttr(token.href)}" target="_blank" rel="noopener noreferrer">${renderMarkdownInline(token.content)}</a>`;
+      html += `<a class="markdown-link" href="${escapeAttr(token.href)}" target="_blank" rel="noopener noreferrer">${renderMarkdownInline(token.content, { automaticTerms, automaticEnabled: false })}</a>`;
     } else if (token.type === "image") {
-      html += `<span class="markdown-image-alt" role="img" aria-label="${escapeAttr(token.alt || "画像")}">${renderMarkdownInline(token.alt || "画像")}</span>`;
+      html += `<span class="markdown-image-alt" role="img" aria-label="${escapeAttr(token.alt || "画像")}">${renderMarkdownInline(token.alt || "画像", { automaticTerms, automaticEnabled: false })}</span>`;
     } else if (token.type === "attachment") {
       html += `<span class="inline-attachment-image" data-attachment-id="${escapeAttr(token.id)}" data-alt="${escapeAttr(token.alt)}" role="img" aria-label="${escapeAttr(token.alt || "添付画像")}">画像を読み込み中...</span>`;
     } else if (token.type === "math") {
@@ -4925,11 +4942,11 @@ function renderRichText(text) {
 }
 
 // Wikiリンク1個分のHTMLを作ります。未作成リンクは色を変えるためmissingを付けます。
-function renderWikiButton(rawTitle) {
-    const title = rawTitle.trim();
-    const exists = activeNotes().some((note) => note.title === title);
-    const className = exists ? "wiki-link" : "wiki-link missing";
-    return `<button class="${className}" data-title="${escapeAttr(title)}">${escapeHtml(title)}</button>`;
+function renderWikiButton(rawTitle, source = "explicit") {
+  const title = rawTitle.trim();
+  const exists = activeNotes().some((note) => note.title === title);
+  const className = `${exists ? "wiki-link" : "wiki-link missing"} term-wiki-link ${source === "automatic" ? "automatic-term-link" : "explicit-term-link"}`;
+  return `<button class="${className}" data-title="${escapeAttr(title)}" data-term-source="${source}" style="--term-color:${escapeAttr(termColor(title))}">${escapeHtml(title)}</button>`;
 }
 
 // Wikiリンクをクリックしたとき、既存メモがあれば開き、なければ新規作成します。
