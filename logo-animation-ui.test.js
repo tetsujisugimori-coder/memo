@@ -58,6 +58,7 @@ test("設定、初回再生、クリック再生、終了時解除とreduced mot
   assert.match(app, /const LOGO_ANIMATION_STORAGE_KEY = "memo-nexus-logo-animation"/);
   assert.match(app, /restoreLogoAnimationSetting\(\);/);
   assert.match(app, /scheduleInitialLogoAnimation\(\);/);
+  assert.match(app, /requestAnimationFrame\(\(\) => playLogoAnimation\(\)\);/);
   assert.match(app, /memoNexusLogo\.addEventListener\("click", cycleLogoAnimation\)/);
   assert.match(app, /const \{ nextLogoAnimation: nextLogoAnimationInCycle,/);
   assert.match(app, /event\.animationName === "memo-nexus-logo-cycle"\) finishLogoAnimation\(\)/);
@@ -75,8 +76,8 @@ test("初回・再生・オフ・reduced motionのロゴ状態を安全に切り
   fixture.controller.scheduleInitialLogoAnimation();
   fixture.controller.scheduleInitialLogoAnimation();
   assert.equal(fixture.frames.length, 1);
-  fixture.frames.shift()();
-  fixture.frames.shift()();
+  fixture.frames.shift()(123.45);
+  fixture.frames.shift()(124);
   assert.equal(fixture.classes.has("is-animating"), true);
   fixture.controller.finishLogoAnimation();
   assert.equal(fixture.classes.has("is-animating"), false);
@@ -90,6 +91,24 @@ test("初回・再生・オフ・reduced motionのロゴ状態を安全に切り
   reduced.controller.playLogoAnimation();
   assert.equal(reduced.frames.length, 0);
   assert.equal(reduced.classes.has("is-animating"), false);
+});
+
+test("初回予約はRAF時刻を演出名として渡さず、設定済み演出だけを再生する", () => {
+  const configured = createLogoController({ storedValue: "scan" });
+  configured.controller.restoreLogoAnimationSetting();
+  configured.controller.scheduleInitialLogoAnimation();
+  configured.frames.shift()(987.65);
+  assert.equal(configured.logo.dataset.logoAnimation, "scan");
+  configured.frames.shift()(1004);
+  assert.equal(configured.classes.has("is-animating"), true);
+
+  const off = createLogoController({ storedValue: "off" });
+  off.controller.restoreLogoAnimationSetting();
+  off.controller.scheduleInitialLogoAnimation();
+  off.frames.shift()(987.65);
+  assert.equal("logoAnimation" in off.logo.dataset, false);
+  assert.equal(off.classes.has("is-animating"), false);
+  assert.equal(off.frames.length, 0);
 });
 
 test("3種類のロゴ演出は有限で専用クラスに限定する", () => {

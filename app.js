@@ -996,7 +996,7 @@ function cycleLogoAnimation() {
 function scheduleInitialLogoAnimation() {
   if (logoInitialAnimationScheduled) return;
   logoInitialAnimationScheduled = true;
-  requestAnimationFrame(playLogoAnimation);
+  requestAnimationFrame(() => playLogoAnimation());
 }
 
 function syncLayoutMode(force = false, width = document.body.clientWidth) {
