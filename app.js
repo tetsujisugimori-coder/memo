@@ -368,7 +368,7 @@ const {
 const { buildCalloutMarkdown, checklistEntries, updateChecklistAt, createExplanationCollapsedStateSaver, hydrateExplanationCardsIntoDom } = window.MemoNexusMarkdownEnhancements;
 const { createPopoutGhost, getMemoSyncDecision } = window.MemoNexusPopoutUtils;
 const { nextLogoAnimation: nextLogoAnimationInCycle, normalizeLogoAnimation, resolveLogoAnimation } = window.MemoNexusLogoAnimationUtils;
-const { canPlayEditorCaretAnimation, normalizeEditorCaretAnimationSettings } = window.MemoNexusEditorCaretAnimationUtils;
+const { EDITOR_CARET_REPEAT_DELAY, canPlayEditorCaretAnimation, normalizeEditorCaretAnimationSettings } = window.MemoNexusEditorCaretAnimationUtils;
 
 // HTML要素を短く取得するための小さなヘルパー。
 const $ = (id) => document.getElementById(id);
@@ -667,7 +667,8 @@ let logoAnimationRequestId = 0;
 let editorCaretAnimationSettings = normalizeEditorCaretAnimationSettings(null);
 let editorCaretIdleTimer = null;
 let editorCaretAnimationTimer = null;
-let editorCaretAnimationPlayed = false;
+let editorCaretAnimationRequestId = 0;
+let editorCaretAnimationActive = false;
 let editorCaretCompositionActive = false;
 let pendingImageBlockTarget = null;
 let attachmentRenderToken = 0;
@@ -1066,10 +1067,12 @@ function editorCaretAnimationIsBlocked() {
 }
 
 function stopEditorCaretAnimation() {
+  editorCaretAnimationRequestId += 1;
   if (editorCaretIdleTimer) window.clearTimeout(editorCaretIdleTimer);
   if (editorCaretAnimationTimer) window.clearTimeout(editorCaretAnimationTimer);
   editorCaretIdleTimer = null;
   editorCaretAnimationTimer = null;
+  editorCaretAnimationActive = false;
   editor?.classList.remove("is-caret-animating");
   if (!editorCaretAnimation) return;
   editorCaretAnimation.classList.remove("is-animating");
@@ -1119,24 +1122,45 @@ function getEditorCaretPosition() {
 
 function playEditorCaretAnimation() {
   editorCaretIdleTimer = null;
-  if (editorCaretAnimationPlayed || editorCaretAnimationIsBlocked()) return;
+  if (editorCaretAnimationIsBlocked()) return;
   const position = getEditorCaretPosition();
   if (!position || !editorCaretAnimation) return;
-  editorCaretAnimationPlayed = true;
+  const requestId = ++editorCaretAnimationRequestId;
+  editorCaretAnimationActive = true;
   editorCaretAnimation.style.left = `${position.left}px`;
   editorCaretAnimation.style.top = `${position.top}px`;
   editorCaretAnimation.style.setProperty("--editor-caret-height", `${position.height}px`);
   editor.classList.add("is-caret-animating");
   editorCaretAnimation.hidden = false;
-  requestAnimationFrame(() => editorCaretAnimation.classList.add("is-animating"));
-  editorCaretAnimationTimer = window.setTimeout(stopEditorCaretAnimation, 700);
+  requestAnimationFrame(() => {
+    if (requestId === editorCaretAnimationRequestId) editorCaretAnimation.classList.add("is-animating");
+  });
+  editorCaretAnimationTimer = window.setTimeout(finishEditorCaretAnimation, 700);
+}
+
+function scheduleEditorCaretAnimation(delay) {
+  if (editorCaretIdleTimer) window.clearTimeout(editorCaretIdleTimer);
+  editorCaretIdleTimer = null;
+  if (editorCaretAnimationIsBlocked()) return;
+  editorCaretIdleTimer = window.setTimeout(playEditorCaretAnimation, delay);
+}
+
+function finishEditorCaretAnimation() {
+  if (!editorCaretAnimationActive) return;
+  editorCaretAnimationActive = false;
+  if (editorCaretAnimationTimer) window.clearTimeout(editorCaretAnimationTimer);
+  editorCaretAnimationTimer = null;
+  editor?.classList.remove("is-caret-animating");
+  if (editorCaretAnimation) {
+    editorCaretAnimation.classList.remove("is-animating");
+    editorCaretAnimation.hidden = true;
+  }
+  scheduleEditorCaretAnimation(EDITOR_CARET_REPEAT_DELAY);
 }
 
 function resetEditorCaretIdle() {
   stopEditorCaretAnimation();
-  editorCaretAnimationPlayed = false;
-  if (editorCaretAnimationIsBlocked()) return;
-  editorCaretIdleTimer = window.setTimeout(playEditorCaretAnimation, editorCaretAnimationSettings.idleDelay);
+  scheduleEditorCaretAnimation(editorCaretAnimationSettings.idleDelay);
 }
 
 function syncLayoutMode(force = false, width = document.body.clientWidth) {
@@ -8346,7 +8370,7 @@ editor.addEventListener("select", () => {
 editorCaretAnimationEnabled?.addEventListener("change", saveEditorCaretAnimationSettings);
 editorCaretAnimationDelay?.addEventListener("change", saveEditorCaretAnimationSettings);
 editorCaretAnimationReducedMotion?.addEventListener("change", saveEditorCaretAnimationSettings);
-editorCaretAnimation?.addEventListener("animationend", stopEditorCaretAnimation);
+editorCaretAnimation?.addEventListener("animationend", finishEditorCaretAnimation);
 window.addEventListener("resize", () => {
   stopEditorCaretAnimation();
   if (!isPopoutWindow) {

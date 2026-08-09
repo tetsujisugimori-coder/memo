@@ -24,7 +24,11 @@ test("アイドル監視はIME、選択、操作、非表示で中止される",
   assert.match(app, /document\.visibilityState !== "visible"/);
   assert.match(app, /selectionStart\) && selectionStart === selectionEnd/);
   assert.match(app, /AI_GENERATION_STATES\.STREAMING/);
-  assert.match(app, /window\.setTimeout\(playEditorCaretAnimation, editorCaretAnimationSettings\.idleDelay\)/);
+  assert.match(app, /scheduleEditorCaretAnimation\(editorCaretAnimationSettings\.idleDelay\)/);
+  assert.match(app, /function finishEditorCaretAnimation\(\)/);
+  assert.match(app, /scheduleEditorCaretAnimation\(EDITOR_CARET_REPEAT_DELAY\)/);
+  assert.match(app, /editorCaretAnimationRequestId \+= 1/);
+  assert.match(app, /if \(!editorCaretAnimationActive\) return;/);
 });
 
 test("設定UIとReduced Motionの保護を持つ", () => {

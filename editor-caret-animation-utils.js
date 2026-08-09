@@ -8,6 +8,7 @@
     idleDelay: 4000,
     respectReducedMotion: true
   });
+  const EDITOR_CARET_REPEAT_DELAY = 20000;
 
   function normalizeEditorCaretAnimationSettings(value) {
     const source = value && typeof value === "object" ? value : {};
@@ -33,5 +34,9 @@
     );
   }
 
-  return { DEFAULT_EDITOR_CARET_ANIMATION_SETTINGS, canPlayEditorCaretAnimation, normalizeEditorCaretAnimationSettings };
+  function editorCaretDelayForCycle({ repeated = false, idleDelay } = {}) {
+    return repeated ? EDITOR_CARET_REPEAT_DELAY : normalizeEditorCaretAnimationSettings({ idleDelay }).idleDelay;
+  }
+
+  return { DEFAULT_EDITOR_CARET_ANIMATION_SETTINGS, EDITOR_CARET_REPEAT_DELAY, canPlayEditorCaretAnimation, editorCaretDelayForCycle, normalizeEditorCaretAnimationSettings };
 });
