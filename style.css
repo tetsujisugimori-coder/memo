@@ -1802,6 +1802,27 @@ body.collections-open .collection-explorer {
   line-height: 1.75;
 }
 
+#editor.is-caret-animating { caret-color: transparent; }
+
+.editor-caret-animation {
+  position: fixed;
+  z-index: 30;
+  width: 2px;
+  height: var(--editor-caret-height, 1em);
+  border-radius: 1px;
+  background: var(--ink);
+  pointer-events: none;
+  transform: translateX(-1px);
+  transform-origin: 50% 50%;
+}
+
+.editor-caret-animation.is-animating { animation: editor-caret-idle-spin 600ms cubic-bezier(.36, .04, .22, 1) both; }
+
+@keyframes editor-caret-idle-spin {
+  from { transform: translateX(-1px) rotate(0deg); }
+  to { transform: translateX(-1px) rotate(360deg); }
+}
+
 .preview-head {
   min-height: 44px;
   padding: 0 14px;
@@ -3405,6 +3426,21 @@ body.related-open .related-toggle {
   padding: 0 10px;
   background: var(--input-bg);
   color: var(--ink);
+}
+
+.editor-caret-animation-setting {
+  align-items: start;
+  border: 0;
+  padding: 0;
+}
+
+.editor-caret-animation-setting legend { color: var(--muted); }
+.editor-caret-animation-setting label { display: block; color: var(--ink); font-size: 13px; }
+.editor-caret-animation-setting label + label { margin-top: 6px; }
+.editor-caret-animation-setting select { min-height: 30px; margin-left: 4px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .editor-caret-animation { animation: none !important; }
 }
 
 .soon-button {

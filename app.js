@@ -17,6 +17,7 @@ const THEME_STORAGE_KEY = "memo-nexus-theme";
 const COLLECTION_SORT_STORAGE_KEY = "memo-nexus-collection-sort";
 const IMAGE_BLOCK_SIZE_STORAGE_KEY = "memo-nexus-image-block-size";
 const LOGO_ANIMATION_STORAGE_KEY = "memo-nexus-logo-animation";
+const EDITOR_CARET_ANIMATION_STORAGE_KEY = "memo-nexus-editor-caret-animation";
 const DRAFT_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
 const UNDO_LIMIT = 50;
 const UNDO_INPUT_INTERVAL_MS = 800;
@@ -367,6 +368,7 @@ const {
 const { buildCalloutMarkdown, checklistEntries, updateChecklistAt, createExplanationCollapsedStateSaver, hydrateExplanationCardsIntoDom } = window.MemoNexusMarkdownEnhancements;
 const { createPopoutGhost, getMemoSyncDecision } = window.MemoNexusPopoutUtils;
 const { nextLogoAnimation: nextLogoAnimationInCycle, normalizeLogoAnimation, resolveLogoAnimation } = window.MemoNexusLogoAnimationUtils;
+const { canPlayEditorCaretAnimation, normalizeEditorCaretAnimationSettings } = window.MemoNexusEditorCaretAnimationUtils;
 
 // HTML要素を短く取得するための小さなヘルパー。
 const $ = (id) => document.getElementById(id);
@@ -426,6 +428,10 @@ const themeSelect = $("themeSelect");
 const imageBlockSizeSelect = $("imageBlockSizeSelect");
 const memoNexusLogo = $("memoNexusLogo");
 const logoAnimationSelect = $("logoAnimationSelect");
+const editorCaretAnimationEnabled = $("editorCaretAnimationEnabled");
+const editorCaretAnimationDelay = $("editorCaretAnimationDelay");
+const editorCaretAnimationReducedMotion = $("editorCaretAnimationReducedMotion");
+const editorCaretAnimation = $("editorCaretAnimation");
 const storageStatusDetails = $("storageStatusDetails");
 const storageEstimateMessage = $("storageEstimateMessage");
 const globalTitleFontSelect = $("globalTitleFontSelect");
@@ -658,6 +664,11 @@ let logoAnimationSessionOverride = null;
 let logoAnimationCleanupTimer = null;
 let logoInitialAnimationScheduled = false;
 let logoAnimationRequestId = 0;
+let editorCaretAnimationSettings = normalizeEditorCaretAnimationSettings(null);
+let editorCaretIdleTimer = null;
+let editorCaretAnimationTimer = null;
+let editorCaretAnimationPlayed = false;
+let editorCaretCompositionActive = false;
 let pendingImageBlockTarget = null;
 let attachmentRenderToken = 0;
 let attachmentObjectUrls = new Map();
@@ -726,6 +737,7 @@ async function init() {
   });
   restoreTheme();
   restoreLogoAnimationSetting();
+  restoreEditorCaretAnimationSettings();
   if (isPopoutWindow) document.body.classList.add("popout-window");
   if (isPopoutWindow) {
     await initPopout();
@@ -997,6 +1009,134 @@ function scheduleInitialLogoAnimation() {
   if (logoInitialAnimationScheduled) return;
   logoInitialAnimationScheduled = true;
   requestAnimationFrame(() => playLogoAnimation());
+}
+
+function restoreEditorCaretAnimationSettings() {
+  let saved = null;
+  try {
+    const raw = localStorage.getItem(EDITOR_CARET_ANIMATION_STORAGE_KEY);
+    saved = raw ? JSON.parse(raw) : null;
+  } catch (error) {
+    console.warn("Editor caret animation restore failed", error);
+  }
+  applyEditorCaretAnimationSettings(saved);
+}
+
+function applyEditorCaretAnimationSettings(value) {
+  editorCaretAnimationSettings = normalizeEditorCaretAnimationSettings(value);
+  if (editorCaretAnimationEnabled) editorCaretAnimationEnabled.checked = editorCaretAnimationSettings.enabled;
+  if (editorCaretAnimationDelay) editorCaretAnimationDelay.value = String(editorCaretAnimationSettings.idleDelay);
+  if (editorCaretAnimationReducedMotion) editorCaretAnimationReducedMotion.checked = editorCaretAnimationSettings.respectReducedMotion;
+}
+
+function saveEditorCaretAnimationSettings() {
+  applyEditorCaretAnimationSettings({
+    enabled: editorCaretAnimationEnabled?.checked,
+    idleDelay: Number(editorCaretAnimationDelay?.value),
+    respectReducedMotion: editorCaretAnimationReducedMotion?.checked
+  });
+  try {
+    localStorage.setItem(EDITOR_CARET_ANIMATION_STORAGE_KEY, JSON.stringify(editorCaretAnimationSettings));
+  } catch (error) {
+    console.warn("Editor caret animation save failed", error);
+  }
+  resetEditorCaretIdle();
+}
+
+function hasDesktopEditorCaretPointer() {
+  return typeof window.matchMedia === "function" && window.matchMedia("(hover: hover) and (pointer: fine)").matches;
+}
+
+function editorCaretAnimationIsBlocked() {
+  const selectionStart = editor?.selectionStart;
+  const selectionEnd = editor?.selectionEnd;
+  return !canPlayEditorCaretAnimation({
+    enabled: editorCaretAnimationSettings.enabled,
+    desktopPointer: hasDesktopEditorCaretPointer(),
+    focused: document.activeElement === editor,
+    collapsed: Number.isInteger(selectionStart) && selectionStart === selectionEnd,
+    composing: editorCaretCompositionActive,
+    hidden: document.visibilityState !== "visible",
+    modalOpen: Boolean(document.querySelector("dialog[open]")),
+    popout: isPopoutWindow,
+    aiBusy: aiAssistantState.panelOpen || aiAssistantState.generation === AI_GENERATION_STATES.STREAMING,
+    respectReducedMotion: editorCaretAnimationSettings.respectReducedMotion,
+    reducedMotion: prefersReducedMotion()
+  });
+}
+
+function stopEditorCaretAnimation() {
+  if (editorCaretIdleTimer) window.clearTimeout(editorCaretIdleTimer);
+  if (editorCaretAnimationTimer) window.clearTimeout(editorCaretAnimationTimer);
+  editorCaretIdleTimer = null;
+  editorCaretAnimationTimer = null;
+  editor?.classList.remove("is-caret-animating");
+  if (!editorCaretAnimation) return;
+  editorCaretAnimation.classList.remove("is-animating");
+  editorCaretAnimation.hidden = true;
+}
+
+function getEditorCaretPosition() {
+  if (!editor || editor.selectionStart !== editor.selectionEnd) return null;
+  const editorRect = editor.getBoundingClientRect();
+  const style = window.getComputedStyle(editor);
+  const mirror = document.createElement("div");
+  const marker = document.createElement("span");
+  Object.assign(mirror.style, {
+    position: "fixed",
+    left: `${editorRect.left}px`,
+    top: `${editorRect.top - editor.scrollTop}px`,
+    width: `${editor.clientWidth}px`,
+    boxSizing: "border-box",
+    overflow: "hidden",
+    visibility: "hidden",
+    whiteSpace: "pre-wrap",
+    overflowWrap: "break-word",
+    wordBreak: style.wordBreak,
+    fontFamily: style.fontFamily,
+    fontSize: style.fontSize,
+    fontWeight: style.fontWeight,
+    fontStyle: style.fontStyle,
+    letterSpacing: style.letterSpacing,
+    lineHeight: style.lineHeight,
+    textTransform: style.textTransform,
+    textIndent: style.textIndent,
+    padding: style.padding,
+    border: style.border
+  });
+  mirror.textContent = editor.value.slice(0, editor.selectionStart);
+  marker.textContent = editor.value.slice(editor.selectionStart, editor.selectionStart + 1) || "\u200b";
+  marker.style.display = "inline-block";
+  marker.style.width = "1px";
+  mirror.append(marker);
+  document.body.append(mirror);
+  const markerRect = marker.getBoundingClientRect();
+  mirror.remove();
+  const lineHeight = Number.parseFloat(style.lineHeight) || Number.parseFloat(style.fontSize) * 1.75;
+  if (!Number.isFinite(markerRect.left) || markerRect.left < editorRect.left || markerRect.left > editorRect.right || markerRect.top < editorRect.top || markerRect.top + lineHeight > editorRect.bottom) return null;
+  return { left: markerRect.left, top: markerRect.top, height: lineHeight };
+}
+
+function playEditorCaretAnimation() {
+  editorCaretIdleTimer = null;
+  if (editorCaretAnimationPlayed || editorCaretAnimationIsBlocked()) return;
+  const position = getEditorCaretPosition();
+  if (!position || !editorCaretAnimation) return;
+  editorCaretAnimationPlayed = true;
+  editorCaretAnimation.style.left = `${position.left}px`;
+  editorCaretAnimation.style.top = `${position.top}px`;
+  editorCaretAnimation.style.setProperty("--editor-caret-height", `${position.height}px`);
+  editor.classList.add("is-caret-animating");
+  editorCaretAnimation.hidden = false;
+  requestAnimationFrame(() => editorCaretAnimation.classList.add("is-animating"));
+  editorCaretAnimationTimer = window.setTimeout(stopEditorCaretAnimation, 700);
+}
+
+function resetEditorCaretIdle() {
+  stopEditorCaretAnimation();
+  editorCaretAnimationPlayed = false;
+  if (editorCaretAnimationIsBlocked()) return;
+  editorCaretIdleTimer = window.setTimeout(playEditorCaretAnimation, editorCaretAnimationSettings.idleDelay);
 }
 
 function syncLayoutMode(force = false, width = document.body.clientWidth) {
@@ -8171,6 +8311,22 @@ relatedBackdrop.addEventListener("click", () => setRelatedDrawerOpen(false));
 searchInput.addEventListener("input", renderList);
 titleInput.addEventListener("beforeinput", captureUndoSnapshot);
 editor.addEventListener("beforeinput", captureUndoSnapshot);
+editor.addEventListener("beforeinput", resetEditorCaretIdle);
+editor.addEventListener("focus", resetEditorCaretIdle);
+editor.addEventListener("blur", stopEditorCaretAnimation);
+editor.addEventListener("keydown", resetEditorCaretIdle);
+editor.addEventListener("pointerdown", resetEditorCaretIdle);
+editor.addEventListener("touchstart", resetEditorCaretIdle, { passive: true });
+editor.addEventListener("scroll", resetEditorCaretIdle, { passive: true });
+editor.addEventListener("compositionstart", () => {
+  editorCaretCompositionActive = true;
+  stopEditorCaretAnimation();
+});
+editor.addEventListener("compositionend", () => {
+  editorCaretCompositionActive = false;
+  resetEditorCaretIdle();
+});
+editor.addEventListener("paste", resetEditorCaretIdle);
 editor.addEventListener("paste", handleEditorPaste);
 editor.addEventListener("dragover", (event) => {
   if (editorDropHasFiles(event)) event.preventDefault();
@@ -8178,12 +8334,21 @@ editor.addEventListener("dragover", (event) => {
 editor.addEventListener("drop", handleEditorAttachmentDrop);
 titleInput.addEventListener("input", scheduleSave);
 editor.addEventListener("input", () => {
+  resetEditorCaretIdle();
   renderTableBlockEditors();
   scheduleSave();
   updateAiTargetPreview();
 });
-editor.addEventListener("select", updateAiTargetPreview);
+editor.addEventListener("select", () => {
+  resetEditorCaretIdle();
+  updateAiTargetPreview();
+});
+editorCaretAnimationEnabled?.addEventListener("change", saveEditorCaretAnimationSettings);
+editorCaretAnimationDelay?.addEventListener("change", saveEditorCaretAnimationSettings);
+editorCaretAnimationReducedMotion?.addEventListener("change", saveEditorCaretAnimationSettings);
+editorCaretAnimation?.addEventListener("animationend", stopEditorCaretAnimation);
 window.addEventListener("resize", () => {
+  stopEditorCaretAnimation();
   if (!isPopoutWindow) {
     syncLayoutMode();
     renderSaveStatus();
@@ -8191,6 +8356,7 @@ window.addEventListener("resize", () => {
   savePopoutWindowOptions();
 });
 window.addEventListener("beforeunload", () => {
+  stopEditorCaretAnimation();
   savePopoutWindowOptions();
   memoSyncChannel?.close();
 });
@@ -8239,6 +8405,7 @@ window.addEventListener("pagehide", () => {
 });
 document.addEventListener("visibilitychange", () => {
   if (document.visibilityState === "hidden") {
+    stopEditorCaretAnimation();
     saveCurrentDraftMirror();
     if (saveTimer) {
       clearTimeout(saveTimer);
@@ -8247,3 +8414,12 @@ document.addEventListener("visibilitychange", () => {
     }
   }
 });
+document.addEventListener("selectionchange", () => {
+  if (document.activeElement === editor) resetEditorCaretIdle();
+});
+document.addEventListener("pointerdown", () => {
+  if (document.activeElement === editor) resetEditorCaretIdle();
+}, { passive: true });
+window.addEventListener("scroll", () => {
+  if (document.activeElement === editor) resetEditorCaretIdle();
+}, { passive: true, capture: true });

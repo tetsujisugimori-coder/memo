@@ -7,7 +7,7 @@
   <script>try { document.documentElement.dataset.initialTheme = localStorage.getItem("memo-nexus-theme") === "dark" ? "dark" : "light"; } catch (_) { document.documentElement.dataset.initialTheme = "light"; }</script>
   <style>html,body{background:#f6f7f4;color:#222522;color-scheme:light}html[data-initial-theme="dark"],html[data-initial-theme="dark"] body{background:#111513;color:#e7ece7;color-scheme:dark}</style>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css">
-  <link rel="stylesheet" href="style.css?v=0.4.0-36">
+  <link rel="stylesheet" href="style.css?v=0.4.0-37">
 </head>
 <body>
   <aside id="memoSidebar" class="sidebar" aria-label="メモ一覧" aria-hidden="false">
@@ -301,6 +301,12 @@
             <option value="off">オフ</option>
           </select>
         </label>
+        <fieldset class="theme-setting editor-caret-animation-setting">
+          <legend>エディタ演出</legend>
+          <label><input id="editorCaretAnimationEnabled" type="checkbox" checked> カーソルアニメーション</label>
+          <label>入力停止から再生まで <select id="editorCaretAnimationDelay"><option value="4000" selected>4秒</option></select></label>
+          <label><input id="editorCaretAnimationReducedMotion" type="checkbox" checked> 動きを減らす設定を尊重</label>
+        </fieldset>
         <label class="theme-setting" for="imageBlockSizeSelect">
           <span>カード内画像サイズ</span>
           <select id="imageBlockSizeSelect">
@@ -620,7 +626,9 @@
   <script src="table-block-utils.js?v=0.4.0-4"></script>
   <script src="memo-list-utils.js?v=0.4.0-2"></script>
   <script src="term-link-utils.js?v=0.4.0-5"></script>
+  <span id="editorCaretAnimation" class="editor-caret-animation" aria-hidden="true" hidden></span>
   <script src="logo-animation-utils.js?v=0.4.0-2"></script>
+  <script src="editor-caret-animation-utils.js?v=0.4.0-1"></script>
   <script src="calculation-engine.js?v=0.4.0-1"></script>
   <script src="calculator-link.js?v=0.4.0-1"></script>
   <script src="font-settings.js?v=0.4.0-2"></script>
@@ -632,6 +640,6 @@
   <script src="ai-reference-selection.js?v=0.4.0-1"></script>
   <script src="ai-prompts.js?v=0.4.0-2"></script>
   <script src="memo-popout-utils.js?v=0.4.0-3"></script>
-  <script src="app.js?v=0.4.0-59"></script>
+  <script src="app.js?v=0.4.0-60"></script>
 </body>
 </html>
