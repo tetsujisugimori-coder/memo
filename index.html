@@ -7,7 +7,7 @@
   <script>try { document.documentElement.dataset.initialTheme = localStorage.getItem("memo-nexus-theme") === "dark" ? "dark" : "light"; } catch (_) { document.documentElement.dataset.initialTheme = "light"; }</script>
   <style>html,body{background:#f6f7f4;color:#222522;color-scheme:light}html[data-initial-theme="dark"],html[data-initial-theme="dark"] body{background:#111513;color:#e7ece7;color-scheme:dark}</style>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css">
-  <link rel="stylesheet" href="style.css?v=0.4.0-35">
+  <link rel="stylesheet" href="style.css?v=0.4.0-36">
 </head>
 <body>
   <aside id="memoSidebar" class="sidebar" aria-label="メモ一覧" aria-hidden="false">
@@ -47,10 +47,10 @@
 
   <main class="workspace">
     <header class="app-header">
-      <button id="memoNexusLogo" class="memo-nexus-logo" type="button" aria-label="Memo Nexus のロゴアニメーションを再生">
+      <button id="memoNexusLogo" class="memo-nexus-logo" type="button" aria-label="次のロゴアニメーションを表示">
         <span class="memo-nexus-logo-text" aria-hidden="true"><span class="memo-nexus-logo-letter" style="--memo-nexus-logo-delay:0">M</span><span class="memo-nexus-logo-letter" style="--memo-nexus-logo-delay:1">e</span><span class="memo-nexus-logo-letter" style="--memo-nexus-logo-delay:2">m</span><span class="memo-nexus-logo-letter" style="--memo-nexus-logo-delay:3">o</span><span class="memo-nexus-logo-space"> </span><span class="memo-nexus-logo-letter" style="--memo-nexus-logo-delay:4">N</span><span class="memo-nexus-logo-letter" style="--memo-nexus-logo-delay:5">e</span><span class="memo-nexus-logo-letter" style="--memo-nexus-logo-delay:6">x</span><span class="memo-nexus-logo-letter" style="--memo-nexus-logo-delay:7">u</span><span class="memo-nexus-logo-letter" style="--memo-nexus-logo-delay:8">s</span></span>
         <span class="memo-nexus-logo-caret" aria-hidden="true"></span>
-        <span class="memo-nexus-logo-nexus" aria-hidden="true"><i></i><i></i><i></i></span>
+        <span class="memo-nexus-logo-nexus" aria-hidden="true"><i class="memo-nexus-logo-node memo-nexus-logo-node-start"></i><i class="memo-nexus-logo-node memo-nexus-logo-node-end"></i><b class="memo-nexus-logo-frame memo-nexus-logo-frame-left"></b><b class="memo-nexus-logo-frame memo-nexus-logo-frame-top"></b><b class="memo-nexus-logo-frame memo-nexus-logo-frame-right"></b><b class="memo-nexus-logo-frame memo-nexus-logo-frame-bottom"></b></span>
         <span class="memo-nexus-logo-scan" aria-hidden="true"></span>
       </button>
       <div class="layout-primary-actions">
@@ -620,7 +620,7 @@
   <script src="table-block-utils.js?v=0.4.0-4"></script>
   <script src="memo-list-utils.js?v=0.4.0-2"></script>
   <script src="term-link-utils.js?v=0.4.0-5"></script>
-  <script src="logo-animation-utils.js?v=0.4.0-1"></script>
+  <script src="logo-animation-utils.js?v=0.4.0-2"></script>
   <script src="calculation-engine.js?v=0.4.0-1"></script>
   <script src="calculator-link.js?v=0.4.0-1"></script>
   <script src="font-settings.js?v=0.4.0-2"></script>
@@ -632,6 +632,6 @@
   <script src="ai-reference-selection.js?v=0.4.0-1"></script>
   <script src="ai-prompts.js?v=0.4.0-2"></script>
   <script src="memo-popout-utils.js?v=0.4.0-3"></script>
-  <script src="app.js?v=0.4.0-58"></script>
+  <script src="app.js?v=0.4.0-59"></script>
 </body>
 </html>

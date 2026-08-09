@@ -1,6 +1,6 @@
 const assert = require("node:assert/strict");
 const test = require("node:test");
-const { localDateKey, normalizeLogoAnimation, resolveLogoAnimation, stableDayIndex } = require("./logo-animation-utils.js");
+const { localDateKey, nextLogoAnimation, normalizeLogoAnimation, resolveLogoAnimation, stableDayIndex } = require("./logo-animation-utils.js");
 
 test("ロゴアニメーション設定は日替わりへ安全に正規化する", () => {
   assert.equal(normalizeLogoAnimation("daily"), "daily");
@@ -10,6 +10,12 @@ test("ロゴアニメーション設定は日替わりへ安全に正規化す�
   assert.equal(normalizeLogoAnimation("off"), "off");
   assert.equal(normalizeLogoAnimation("unknown"), "daily");
   assert.equal(normalizeLogoAnimation(null), "daily");
+});
+
+test("ロゴの操作順は固定で循環する", () => {
+  assert.equal(nextLogoAnimation("typewriter"), "nexus");
+  assert.equal(nextLogoAnimation("nexus"), "scan");
+  assert.equal(nextLogoAnimation("scan"), "typewriter");
 });
 
 test("日替わりロゴはローカル日付から決定論的に選ばれる", () => {
