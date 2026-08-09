@@ -100,6 +100,11 @@ test("3種類のロゴ演出は有限で専用クラスに限定する", () => {
   assert.doesNotMatch(css, /memo-nexus-logo[^\{]*\{[^}]*animation:[^;}]*infinite/s);
 });
 
+test("タイプライターとNexusの未表示文字は完全に隠す", () => {
+  assert.match(css, /data-logo-animation="typewriter"\] \.memo-nexus-logo-letter,[\s\S]*?data-logo-animation="nexus"\] \.memo-nexus-logo-letter \{ opacity: 0;/);
+  assert.match(css, /@keyframes memo-nexus-logo-type-in \{ to \{ opacity: 1; transform: translateX\(0\); \} \}/);
+});
+
 test("Nexusの枠完成とグローは最後の文字の表示後に始まる", () => {
   const lastLetterEndMs = 80 + 8 * 75 + 110;
   const rightAndBottomDelay = Number(css.match(/memo-nexus-logo-frame-bottom \{ animation: memo-nexus-logo-frame-finish 270ms ease-out (\d+)ms forwards; \}/)?.[1]);
