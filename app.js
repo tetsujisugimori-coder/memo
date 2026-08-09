@@ -16,6 +16,7 @@ const POPOUT_SYNC_CHANNEL = "memo-nexus-sync";
 const THEME_STORAGE_KEY = "memo-nexus-theme";
 const COLLECTION_SORT_STORAGE_KEY = "memo-nexus-collection-sort";
 const IMAGE_BLOCK_SIZE_STORAGE_KEY = "memo-nexus-image-block-size";
+const LOGO_ANIMATION_STORAGE_KEY = "memo-nexus-logo-animation";
 const DRAFT_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
 const UNDO_LIMIT = 50;
 const UNDO_INPUT_INTERVAL_MS = 800;
@@ -365,6 +366,7 @@ const {
 } = window.MemoNexusAiReferenceSelection;
 const { buildCalloutMarkdown, checklistEntries, updateChecklistAt, createExplanationCollapsedStateSaver, hydrateExplanationCardsIntoDom } = window.MemoNexusMarkdownEnhancements;
 const { createPopoutGhost, getMemoSyncDecision } = window.MemoNexusPopoutUtils;
+const { normalizeLogoAnimation, resolveLogoAnimation } = window.MemoNexusLogoAnimationUtils;
 
 // HTML要素を短く取得するための小さなヘルパー。
 const $ = (id) => document.getElementById(id);
@@ -422,6 +424,8 @@ const settingsDialog = $("settingsDialog");
 const closeSettingsBtn = $("closeSettingsBtn");
 const themeSelect = $("themeSelect");
 const imageBlockSizeSelect = $("imageBlockSizeSelect");
+const memoNexusLogo = $("memoNexusLogo");
+const logoAnimationSelect = $("logoAnimationSelect");
 const storageStatusDetails = $("storageStatusDetails");
 const storageEstimateMessage = $("storageEstimateMessage");
 const globalTitleFontSelect = $("globalTitleFontSelect");
@@ -649,6 +653,10 @@ let pendingTablePaste = null;
 let mermaidTemplateTrigger = null;
 let currentAttachments = [];
 let imageBlockSize = "medium";
+let logoAnimationSetting = "daily";
+let logoAnimationCleanupTimer = null;
+let logoInitialAnimationScheduled = false;
+let logoAnimationRequestId = 0;
 let pendingImageBlockTarget = null;
 let attachmentRenderToken = 0;
 let attachmentObjectUrls = new Map();
@@ -716,12 +724,14 @@ async function init() {
     element.textContent = `v${APP_VERSION} "${APP_LABEL}"`;
   });
   restoreTheme();
+  restoreLogoAnimationSetting();
   if (isPopoutWindow) document.body.classList.add("popout-window");
   if (isPopoutWindow) {
     await initPopout();
     return;
   }
   restoreImageBlockSize();
+  scheduleInitialLogoAnimation();
   restoreCollectionSortOrder();
   restoreGlobalFontSettings();
   restoreAiSettings();
@@ -905,6 +915,64 @@ function initializeResponsiveLayout() {
     });
     observer.observe(document.body);
   }
+}
+
+function restoreLogoAnimationSetting() {
+  let savedSetting = "daily";
+  try {
+    savedSetting = normalizeLogoAnimation(localStorage.getItem(LOGO_ANIMATION_STORAGE_KEY));
+  } catch (error) {
+    console.warn("Logo animation restore failed", error);
+  }
+  applyLogoAnimationSetting(savedSetting);
+}
+
+function applyLogoAnimationSetting(value) {
+  logoAnimationSetting = normalizeLogoAnimation(value);
+  if (logoAnimationSelect) logoAnimationSelect.value = logoAnimationSetting;
+}
+
+function saveLogoAnimationSetting(value) {
+  applyLogoAnimationSetting(value);
+  try {
+    localStorage.setItem(LOGO_ANIMATION_STORAGE_KEY, logoAnimationSetting);
+  } catch (error) {
+    console.warn("Logo animation save failed", error);
+  }
+  if (logoAnimationSetting === "off") finishLogoAnimation();
+}
+
+function prefersReducedMotion() {
+  return typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
+
+function finishLogoAnimation() {
+  if (!memoNexusLogo) return;
+  logoAnimationRequestId += 1;
+  window.clearTimeout(logoAnimationCleanupTimer);
+  logoAnimationCleanupTimer = null;
+  memoNexusLogo.classList.remove("is-animating");
+  delete memoNexusLogo.dataset.logoAnimation;
+}
+
+function playLogoAnimation() {
+  if (!memoNexusLogo || prefersReducedMotion()) return;
+  const animation = resolveLogoAnimation(logoAnimationSetting);
+  if (animation === "off") return;
+
+  finishLogoAnimation();
+  const requestId = ++logoAnimationRequestId;
+  memoNexusLogo.dataset.logoAnimation = animation;
+  requestAnimationFrame(() => {
+    if (requestId === logoAnimationRequestId) memoNexusLogo.classList.add("is-animating");
+  });
+  logoAnimationCleanupTimer = window.setTimeout(finishLogoAnimation, 1400);
+}
+
+function scheduleInitialLogoAnimation() {
+  if (logoInitialAnimationScheduled) return;
+  logoInitialAnimationScheduled = true;
+  requestAnimationFrame(playLogoAnimation);
 }
 
 function syncLayoutMode(force = false, width = document.body.clientWidth) {
@@ -7889,6 +7957,15 @@ if (themeSelect) {
 }
 if (imageBlockSizeSelect) {
   imageBlockSizeSelect.addEventListener("change", () => saveImageBlockSize(imageBlockSizeSelect.value));
+}
+if (logoAnimationSelect) {
+  logoAnimationSelect.addEventListener("change", () => saveLogoAnimationSetting(logoAnimationSelect.value));
+}
+if (memoNexusLogo) {
+  memoNexusLogo.addEventListener("click", playLogoAnimation);
+  memoNexusLogo.addEventListener("animationend", (event) => {
+    if (event.target === memoNexusLogo && event.animationName === "memo-nexus-logo-cycle") finishLogoAnimation();
+  });
 }
 [
   globalTitleFontSelect,
