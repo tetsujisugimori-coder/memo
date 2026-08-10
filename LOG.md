@@ -1462,3 +1462,8 @@
 * `extensions/web-clipper`へChrome／Edge共通のManifest V3拡張を追加した。ユーザーが拡張アイコンを押したタブだけの`activeTab`権限で選択文、タイトル、URL、ホスト名、取得日時を取得し、本文をURLパラメータに含めず、受取画面の準備完了後に`window.postMessage`で送信する。選択なしではURLクリップ候補として送信できる。
 * 本体側は`web-clipper-config.js`で設定した拡張originだけを受信許可する。拡張の開発URL・本番URL・host permission・拡張ID設定、Chrome／Edgeへの開発版インストール手順は拡張READMEへ記載した。
 * 画像クリップ、本文全体抽出、ダウンロード、AI要約、iPhone／iPad Safari拡張は未対応とする。`node --test`は348件成功し、構文確認、Manifest JSON確認、`git diff --check`も成功した。実ブラウザでの拡張インストールを伴う手動確認は、この作業環境にブラウザ自動操作CLIがないため未実施とする。
+
+## 2026-08-10 Web ClipperのChrome／Edge許可origin設定
+
+* `web-clipper-config.js`の許可originへ、Edge版`opejammnohhbjflpbhmmdlknhjkhfhdp`とChrome版`mhfbofiokmppgdliakminbgdgcmbhbac`を追加した。既存の`chrome-extension://<32文字ID>`形式による厳格なorigin検証、URL制限、受信処理は変更していない。
+* 設定ファイルに両IDだけが登録され、プレースホルダーを残さず、受信側のorigin形式検証が維持されていることを回帰テストで確認する。
