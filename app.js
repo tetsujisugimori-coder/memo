@@ -297,6 +297,7 @@ const {
   splitImageBlocks
 } = window.MemoNexusAttachmentUtils;
 const { buildMemoListView } = window.MemoNexusMemoListUtils;
+const { safeExternalUrl: safeWebClipUrl, normalizeWebClip, buildWebClipMarkdown } = window.MemoNexusWebClipUtils;
 const { createTermRelationCache, extractExplicitTerms, findAutomaticTermMatches, findTermCountMatches, termColor } = window.MemoNexusTermLinkUtils;
 const { openCalculatorMemo } = window.MemoNexusCalculatorLink;
 const {
@@ -418,6 +419,19 @@ const closeCollectionMoveBtn = $("closeCollectionMoveBtn");
 const cancelCollectionMoveBtn = $("cancelCollectionMoveBtn");
 const runCollectionMoveBtn = $("runCollectionMoveBtn");
 const importAiInput = $("importAiInput");
+const webClipBtn = $("webClipBtn");
+const webClipDialog = $("webClipDialog");
+const webClipForm = $("webClipForm");
+const closeWebClipBtn = $("closeWebClipBtn");
+const cancelWebClipBtn = $("cancelWebClipBtn");
+const webClipTitle = $("webClipTitle");
+const webClipUrl = $("webClipUrl");
+const webClipHost = $("webClipHost");
+const webClipSelection = $("webClipSelection");
+const webClipCapturedAt = $("webClipCapturedAt");
+const webClipCollection = $("webClipCollection");
+const webClipError = $("webClipError");
+const webClipReceivedStatus = $("webClipReceivedStatus");
 const settingsImportAiBtn = $("settingsImportAiBtn");
 const settingsPasteJsonBtn = $("settingsPasteJsonBtn");
 const settingsBackupBtn = $("settingsBackupBtn");
@@ -644,6 +658,7 @@ let selectionAnchorId = null;
 let pendingMoveMemoIds = [];
 let pendingMoveCollectionId = null;
 let collectionToastTimer = null;
+let webClipReceiverReady = false;
 let editingCollectionId = null;
 let draggedCollectionId = null;
 let draggedMemoIds = [];
@@ -779,6 +794,9 @@ async function init() {
   if (pendingFontSelection || fontSelectionMessage) {
     await openSettingsDialog();
   }
+  webClipReceiverReady = true;
+  if (new URLSearchParams(location.search).has("web-clip")) openWebClipDialog();
+  notifyWebClipOpenerReady();
   if (!settingsDialog.open) {
     titleInput.focus();
     titleInput.select();
@@ -2263,11 +2281,83 @@ async function createNote(title = "新規メモ", body = "", options = {}) {
     bodyUpdatedAt: now,
     updatedAt: now
   };
+  if (options.source) note.source = options.source;
 
   await putNote(note);
   notes.unshift(note);
   invalidateTermRelationIndex();
   return note;
+}
+
+function allowedWebClipperOrigins() {
+  const configured = window.MemoNexusWebClipperConfig?.allowedExtensionOrigins;
+  return (Array.isArray(configured) ? configured : []).filter((origin) => /^chrome-extension:\/\/[a-p]{32}$/.test(origin));
+}
+
+function notifyWebClipOpenerReady() {
+  if (!window.opener) return;
+  allowedWebClipperOrigins().forEach((origin) => {
+    window.opener.postMessage({ type: "memo-nexus-web-clip-ready" }, origin);
+  });
+}
+
+function fillWebClipCollection(selectedId) {
+  if (!webClipCollection) return;
+  webClipCollection.innerHTML = collectionOptions()
+    .filter(({ collection }) => collection.id !== "trash")
+    .map(({ collection, depth }) => `<option value="${escapeAttr(collection.id)}">${escapeHtml(`${"　".repeat(depth - 1)}${collection.name}`)}</option>`)
+    .join("");
+  webClipCollection.value = resolveNewNoteCollection(selectedId);
+}
+
+function openWebClipDialog(clip = null) {
+  if (!webClipDialog || !webClipReceiverReady) return;
+  const normalized = normalizeWebClip(clip || { capturedAt: new Date().toISOString() });
+  webClipTitle.value = normalized.title;
+  webClipUrl.value = normalized.url;
+  webClipHost.value = normalized.host || (normalized.url ? new URL(normalized.url).hostname : "");
+  webClipSelection.value = normalized.selection;
+  webClipCapturedAt.value = normalized.capturedAt;
+  webClipError.textContent = "";
+  webClipReceivedStatus.textContent = clip ? "拡張からクリップ候補を受け取りました。内容を確認して保存してください。" : "タイトル・URL・本文を入力して、通常メモとして保存できます。";
+  fillWebClipCollection(selectedCollectionId);
+  if (!webClipDialog.open) webClipDialog.showModal();
+  webClipTitle.focus();
+}
+
+async function saveWebClipFromDialog(event) {
+  event.preventDefault();
+  const rawUrl = webClipUrl.value.trim();
+  const safeUrl = safeWebClipUrl(rawUrl);
+  if (rawUrl && !safeUrl) {
+    webClipError.textContent = "URLは http:// または https:// のみ保存できます。";
+    webClipUrl.focus();
+    return;
+  }
+  const clip = normalizeWebClip({
+    title: webClipTitle.value,
+    url: safeUrl,
+    host: webClipHost.value,
+    selection: webClipSelection.value,
+    capturedAt: webClipCapturedAt.value
+  });
+  const title = clip.title || clip.host || "Webクリップ";
+  const source = { type: "web-clip", title: clip.title, url: clip.url || null, host: clip.host || null, capturedAt: clip.capturedAt };
+  try {
+    const note = await createNote(title, buildWebClipMarkdown(clip), { collectionId: webClipCollection.value, source });
+    notes = await getAllNotes();
+    webClipDialog.close();
+    renderAll();
+    openNote(note.id);
+  } catch (error) {
+    webClipError.textContent = `保存に失敗しました: ${error.message || error}`;
+  }
+}
+
+function receiveWebClipMessage(event) {
+  if (!webClipReceiverReady || !allowedWebClipperOrigins().includes(event.origin)) return;
+  if (event.data?.type !== "memo-nexus-web-clip") return;
+  openWebClipDialog(event.data.clip);
 }
 
 function temporaryMemoTitle() {
@@ -8012,6 +8102,11 @@ if (collectionAddMenuBtn) {
 if (closeCollectionMoveBtn) closeCollectionMoveBtn.addEventListener("click", () => collectionMoveDialog.close());
 if (cancelCollectionMoveBtn) cancelCollectionMoveBtn.addEventListener("click", () => collectionMoveDialog.close());
 if (runCollectionMoveBtn) runCollectionMoveBtn.addEventListener("click", () => runPendingMove().catch(showCollectionError));
+if (webClipBtn) webClipBtn.addEventListener("click", () => openWebClipDialog());
+if (closeWebClipBtn) closeWebClipBtn.addEventListener("click", () => webClipDialog.close());
+if (cancelWebClipBtn) cancelWebClipBtn.addEventListener("click", () => webClipDialog.close());
+if (webClipForm) webClipForm.addEventListener("submit", saveWebClipFromDialog);
+window.addEventListener("message", receiveWebClipMessage);
 if (noteExportBtn) noteExportBtn.addEventListener("click", openNoteExportDialog);
 if (closeExportBtn) closeExportBtn.addEventListener("click", () => exportDialog.close());
 if (cancelExportBtn) cancelExportBtn.addEventListener("click", () => exportDialog.close());
