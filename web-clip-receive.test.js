@@ -5,6 +5,7 @@ const assert = require("node:assert/strict");
 const app = fs.readFileSync("app.js", "utf8");
 const popup = fs.readFileSync("extensions/web-clipper/popup.js", "utf8");
 const config = fs.readFileSync("extensions/web-clipper/config.js", "utf8");
+const manifest = fs.readFileSync("extensions/web-clipper/manifest.json", "utf8");
 
 test("本体はフラグメントを消費して履歴からクリップpayloadを除去する", () => {
   assert.match(app, /function consumeWebClipFragment\(\)/);
@@ -16,7 +17,11 @@ test("本体はフラグメントを消費して履歴からクリップpayload�
 test("拡張は選択した接続先のURLへフラグメントpayloadで遷移する", () => {
   assert.match(popup, /MemoNexusClipPayload\.buildWebClipDestination\(destination, clip\)/);
   assert.doesNotMatch(popup, /receiver\.postMessage\(/);
-  assert.match(config, /development: "http:\/\/localhost:5500\/"/);
+  assert.match(config, /development: "http:\/\/127\.0\.0\.1:5500\/"/);
+  assert.doesNotMatch(config, /localhost:5500/);
+  assert.match(manifest, /http:\/\/127\.0\.0\.1:5500\/\*/);
+  assert.doesNotMatch(manifest, /localhost:5500/);
+  assert.match(popup, /開発環境（127\.0\.0\.1:5500）/);
   assert.match(config, /production: "https:\/\/tetsujisugimori-coder\.github\.io\/memo\/"/);
 });
 

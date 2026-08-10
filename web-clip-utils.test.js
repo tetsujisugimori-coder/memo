@@ -45,11 +45,14 @@ test("拡張payloadを本体が日本語・改行・絵文字を含めて復元�
 
 test("拡張payloadを本体が選択本文なしでも復元できる", () => {
   const clip = { title: "URLクリップ", url: "https://example.com/", host: "example.com", selection: "", capturedAt: "2026-08-11T01:23:45.000Z" };
-  const destination = buildWebClipDestination("http://localhost:5500/", clip);
-  assert.deepEqual(readWebClipFragment(new URL(destination).hash).clip, normalizeWebClip(clip));
+  const destination = buildWebClipDestination("http://127.0.0.1:5500/", clip);
+  const url = new URL(destination);
+  assert.equal(url.origin, "http://127.0.0.1:5500");
+  assert.equal(url.searchParams.get("web-clip"), "1");
+  assert.deepEqual(readWebClipFragment(url.hash).clip, normalizeWebClip(clip));
 });
 
 test("拡張は既存の選択本文上限を長文クリップとして分類する", () => {
   const clip = { title: "長文", url: "https://example.com/", host: "example.com", selection: "x".repeat(100001), capturedAt: "2026-08-11T01:23:45.000Z" };
-  assert.throws(() => buildWebClipDestination("http://localhost:5500/", clip), (error) => error.code === "clip-too-large");
+  assert.throws(() => buildWebClipDestination("http://127.0.0.1:5500/", clip), (error) => error.code === "clip-too-large");
 });

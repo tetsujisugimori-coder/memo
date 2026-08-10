@@ -10,7 +10,7 @@ let clip = null;
 Object.entries(config.targets).forEach(([key, value]) => {
   const option = document.createElement("option");
   option.value = key;
-  option.textContent = key === "development" ? "開発環境" : "本番環境";
+  option.textContent = key === "development" ? "開発環境（127.0.0.1:5500）" : "本番環境";
   option.dataset.url = value;
   target.append(option);
 });
