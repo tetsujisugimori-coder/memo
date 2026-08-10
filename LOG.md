@@ -1479,3 +1479,14 @@
 * 選択本文が既存上限を超えた場合は、技術的な`clip too large`を表示せず「選択範囲が長すぎてクリップできません。範囲を短くして再度お試しください。」と案内するようにした。予期しない失敗の詳細はconsoleへ残し、画面には簡潔な案内だけを表示する。
 * 拡張側で生成したUTF-8 base64url payloadを本体側で実際に復元する統合テストを追加し、日本語、URL、改行、絵文字、選択なしを確認した。壊れたpayloadの安全な処理も維持する。
 * 開発環境の接続先とManifest許可URLを`http://127.0.0.1:5500/`へ統一し、接続先表示を「開発環境（127.0.0.1:5500）」へ変更した。本番URLは変更していない。`localhost:5500`へ戻らないことを回帰テストで確認し、開発本体はHTTP 200で応答することを確認した。
+
+## 2026-08-11 Web Clipper payloadエラー改善の検証記録
+
+* コミット`517db1e fix: clarify web clipper payload errors`で、長文選択時は指定の利用者向け文言を表示し、予期しないエラーはconsoleへ記録して画面には安全な案内のみを表示するようにした。
+* 拡張側payloadを本体側で実際に復元する統合テストを追加し、日本語、URL、改行、絵文字、選択本文なしを確認した。既存の壊れたpayloadを安全に扱うテストも維持する。
+* `node --test`は357件成功し、構文確認と`git diff --check`も成功した。`package.json`がないためlint設定はない。実機拡張確認は、この環境でブラウザ自動操作ツールを利用できず未実施とし、PR本文へ記載した。
+
+## 2026-08-11 Web Clipper Chrome拡張ID修正
+
+* 本体が受信を許可するChrome拡張originを、誤登録の`chrome-extension://mhfbofiokmppgdliakminbgdgcmbhbac`からMemo-Nexus用の`chrome-extension://aelacnladkiohkhbjhfbmeknbfgpcmlh`へ置き換えた。Edge版`chrome-extension://opejammnohhbjflpbhmmdlknhjkhfhdp`は維持した。
+* 許可originが上記2件だけであり、誤ID・プレースホルダー・ワイルドカードが含まれず、`chrome-extension://<32文字ID>`形式の検証を維持するテストを追加した。
