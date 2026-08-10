@@ -297,7 +297,7 @@ const {
   splitImageBlocks
 } = window.MemoNexusAttachmentUtils;
 const { buildMemoListView } = window.MemoNexusMemoListUtils;
-const { safeExternalUrl: safeWebClipUrl, normalizeWebClip, buildWebClipMarkdown } = window.MemoNexusWebClipUtils;
+const { safeExternalUrl: safeWebClipUrl, normalizeWebClip, buildWebClipMarkdown, readWebClipFragment } = window.MemoNexusWebClipUtils;
 const { createTermRelationCache, extractExplicitTerms, findAutomaticTermMatches, findTermCountMatches, termColor } = window.MemoNexusTermLinkUtils;
 const { openCalculatorMemo } = window.MemoNexusCalculatorLink;
 const {
@@ -795,7 +795,10 @@ async function init() {
     await openSettingsDialog();
   }
   webClipReceiverReady = true;
-  if (new URLSearchParams(location.search).has("web-clip")) openWebClipDialog();
+  const webClipFragment = consumeWebClipFragment();
+  if (new URLSearchParams(location.search).has("web-clip") || webClipFragment.present) {
+    openWebClipDialog(webClipFragment.clip, webClipFragment.error);
+  }
   notifyWebClipOpenerReady();
   if (!settingsDialog.open) {
     titleInput.focus();
@@ -2310,7 +2313,18 @@ function fillWebClipCollection(selectedId) {
   webClipCollection.value = resolveNewNoteCollection(selectedId);
 }
 
-function openWebClipDialog(clip = null) {
+function consumeWebClipFragment() {
+  const result = readWebClipFragment(location.hash);
+  if (!result.present) return { present: false, clip: null, error: "" };
+  const url = new URL(location.href);
+  url.hash = "";
+  history.replaceState(history.state, "", `${url.pathname}${url.search}`);
+  return result.clip
+    ? { present: true, clip: result.clip, error: "" }
+    : { present: true, clip: null, error: "クリップデータを読み取れませんでした。元のページからもう一度実行してください。" };
+}
+
+function openWebClipDialog(clip = null, receiveError = "") {
   if (!webClipDialog || !webClipReceiverReady) return;
   const normalized = normalizeWebClip(clip || { capturedAt: new Date().toISOString() });
   webClipTitle.value = normalized.title;
@@ -2319,7 +2333,7 @@ function openWebClipDialog(clip = null) {
   webClipSelection.value = normalized.selection;
   webClipCapturedAt.value = normalized.capturedAt;
   webClipError.textContent = "";
-  webClipReceivedStatus.textContent = clip ? "拡張からクリップ候補を受け取りました。内容を確認して保存してください。" : "タイトル・URL・本文を入力して、通常メモとして保存できます。";
+  webClipReceivedStatus.textContent = receiveError || (clip ? "拡張からクリップ候補を受け取りました。内容を確認して保存してください。" : "タイトル・URL・本文を入力して、通常メモとして保存できます。");
   fillWebClipCollection(selectedCollectionId);
   if (!webClipDialog.open) webClipDialog.showModal();
   webClipTitle.focus();

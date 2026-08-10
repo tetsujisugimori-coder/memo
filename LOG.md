@@ -1467,3 +1467,9 @@
 
 * `web-clipper-config.js`の許可originへ、Edge版`opejammnohhbjflpbhmmdlknhjkhfhdp`とChrome版`mhfbofiokmppgdliakminbgdgcmbhbac`を追加した。既存の`chrome-extension://<32文字ID>`形式による厳格なorigin検証、URL制限、受信処理は変更していない。
 * 設定ファイルに両IDだけが登録され、プレースホルダーを残さず、受信側のorigin形式検証が維持されていることを回帰テストで確認する。
+
+## 2026-08-10 Web Clipperフラグメント受け渡し修正
+
+* 拡張ポップアップが本体の受信準備を待つ`postMessage`経路だけに依存していたため、ポップアップの終了タイミングによって本体が空欄で開く問題があった。選択した接続先URLに`?web-clip=1#clip=<base64url>`を付加し、タイトル、URL、ホスト名、選択本文、取得日時をUTF-8のbase64url payloadとして渡すよう変更した。
+* 本体は初回表示でフラグメントをデコード・検証して確認画面へ反映し、成功・失敗を問わず`history.replaceState()`でクリップpayloadをURLと履歴から除去する。不正payload、必須情報の欠落、本文上限超過はクラッシュさせず、再実行を案内する。選択なしでは本文だけ空として扱う。
+* 拡張のスクリプト注入不可ページは技術的な例外を表示せず、通常のWebページで試すよう案内する。URL長にはブラウザ／OSごとの上限が残るため、長すぎる選択範囲は短くする必要がある。

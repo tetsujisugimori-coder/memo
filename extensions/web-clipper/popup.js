@@ -43,30 +43,15 @@ function showClip(nextClip) {
 
 async function sendToMemoNexus() {
   const destination = config.targets[target.value];
-  const destinationOrigin = new URL(destination).origin;
   error.textContent = "";
   send.disabled = true;
-  let receiver = null;
-  function onMessage(event) {
-    if (event.origin !== destinationOrigin || event.source !== receiver || event.data?.type !== "memo-nexus-web-clip-ready") return;
-    clearTimeout(timeout);
-    window.removeEventListener("message", onMessage);
-    receiver.postMessage({ type: "memo-nexus-web-clip", clip }, destinationOrigin);
-    window.close();
-  }
-  window.addEventListener("message", onMessage);
-  receiver = window.open(`${destination}${destination.includes("?") ? "&" : "?"}web-clip=1`, "_blank");
+  const receiver = window.open(MemoNexusClipPayload.buildWebClipDestination(destination, clip), "_blank");
   if (!receiver) throw new Error("Memo-Nexusを開けませんでした。ポップアップの許可を確認してください。");
-
-  const timeout = setTimeout(() => {
-    window.removeEventListener("message", onMessage);
-    error.textContent = "Memo-Nexusの受信準備を確認できませんでした。拡張IDと接続先の設定を確認してください。";
-    send.disabled = false;
-  }, 8000);
+  window.close();
 }
 
-readActivePage().then(showClip).catch((cause) => {
-  error.textContent = `ページ情報を取得できませんでした: ${cause.message || cause}`;
+readActivePage().then(showClip).catch(() => {
+  error.textContent = "このページはクリップできません。通常のWebページでお試しください。";
   selectionStatus.textContent = "このページではクリップできません。";
 });
 send.addEventListener("click", () => sendToMemoNexus().catch((cause) => {

@@ -7,7 +7,7 @@ Chrome / Edge 共通の Manifest V3 開発版拡張です。選択テキスト�
 1. Memo-Nexus本体を `http://localhost:5500/` で開けるようにします（別のURLを使う場合は下記設定を先に変更します）。
 2. Chrome は `chrome://extensions`、Edge は `edge://extensions` を開き、開発者モードを有効にします。
 3. 「パッケージ化されていない拡張機能を読み込む」を選び、この `extensions/web-clipper` フォルダを指定します。
-4. 表示された拡張IDをコピーし、本体側の `web-clipper-config.js` の `YOUR_DEVELOPMENT_EXTENSION_ID` をそのIDへ置き換えます。公開用IDも使う場合だけ `YOUR_PRODUCTION_EXTENSION_ID` を置き換えます。
+4. 本体側の `web-clipper-config.js` に利用する拡張IDが登録されていることを確認します。
 5. 本体ページを再読み込みします。
 
 ## 接続先の設定
@@ -26,9 +26,10 @@ URLを変更する場合は、`config.js` と `manifest.json` を同じ値に更
 4. 本体の確認画面でタイトル、本文、コレクションを確認・編集して保存します。保存前に自動保存はされません。
 5. 選択なしでも同じ操作でURLクリップ候補を開けます。
 
-本文はURLパラメータに入れず、受信準備完了後に `window.postMessage` で渡します。受信側は設定済みの `chrome-extension://<ID>` origin 以外を拒否します。
+本文は通常のURLパラメータへ入れません。選択した接続先の `?web-clip=1#clip=<base64url>` のフラグメントへUTF-8のbase64url形式で入れます。フラグメントはGitHub Pagesを含むサーバーへのリクエストに送信されず、本体は初回読取後にブラウザURLと履歴から削除します。旧来の`postMessage`受信経路は設定済みの `chrome-extension://<ID>` origin だけを許可したまま維持します。
 
 ## 制約
 
 - 画像のクリップ、画像ダウンロード、本文全体の抽出、AI要約は未対応です。
 - iPhone / iPad のSafari拡張には未対応です。
+- 長い選択本文はブラウザやOSのURL長上限に依存します。上限を超える場合はクリップできないため、範囲を短くして再実行してください。
