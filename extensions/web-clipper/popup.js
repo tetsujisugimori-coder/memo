@@ -10,7 +10,7 @@ let clip = null;
 Object.entries(config.targets).forEach(([key, value]) => {
   const option = document.createElement("option");
   option.value = key;
-  option.textContent = key === "development" ? "開発環境" : "本番環境";
+  option.textContent = key === "development" ? "開発環境（127.0.0.1:5500）" : "本番環境";
   option.dataset.url = value;
   target.append(option);
 });
@@ -43,33 +43,22 @@ function showClip(nextClip) {
 
 async function sendToMemoNexus() {
   const destination = config.targets[target.value];
-  const destinationOrigin = new URL(destination).origin;
   error.textContent = "";
   send.disabled = true;
-  let receiver = null;
-  function onMessage(event) {
-    if (event.origin !== destinationOrigin || event.source !== receiver || event.data?.type !== "memo-nexus-web-clip-ready") return;
-    clearTimeout(timeout);
-    window.removeEventListener("message", onMessage);
-    receiver.postMessage({ type: "memo-nexus-web-clip", clip }, destinationOrigin);
-    window.close();
-  }
-  window.addEventListener("message", onMessage);
-  receiver = window.open(`${destination}${destination.includes("?") ? "&" : "?"}web-clip=1`, "_blank");
+  const receiver = window.open(MemoNexusClipPayload.buildWebClipDestination(destination, clip), "_blank");
   if (!receiver) throw new Error("Memo-Nexusを開けませんでした。ポップアップの許可を確認してください。");
-
-  const timeout = setTimeout(() => {
-    window.removeEventListener("message", onMessage);
-    error.textContent = "Memo-Nexusの受信準備を確認できませんでした。拡張IDと接続先の設定を確認してください。";
-    send.disabled = false;
-  }, 8000);
+  window.close();
 }
 
 readActivePage().then(showClip).catch((cause) => {
-  error.textContent = `ページ情報を取得できませんでした: ${cause.message || cause}`;
+  console.error("Memo-Nexus Web Clipper could not read the active page", cause);
+  error.textContent = "このページはクリップできません。通常のWebページでお試しください。";
   selectionStatus.textContent = "このページではクリップできません。";
 });
 send.addEventListener("click", () => sendToMemoNexus().catch((cause) => {
-  error.textContent = cause.message || String(cause);
+  console.error("Memo-Nexus Web Clipper could not open Memo-Nexus", cause);
+  error.textContent = cause?.code === "clip-too-large"
+    ? "選択範囲が長すぎてクリップできません。範囲を短くして再度お試しください。"
+    : "クリップを開始できませんでした。もう一度お試しください。";
   send.disabled = false;
 }));
