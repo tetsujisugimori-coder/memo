@@ -2,6 +2,12 @@
   const MAX_WEB_CLIP_SELECTION_LENGTH = 100000;
   const MAX_WEB_CLIP_FRAGMENT_LENGTH = 600000;
 
+  function clipPayloadError(code) {
+    const error = new Error(code);
+    error.code = code;
+    return error;
+  }
+
   function validClip(clip) {
     return clip && typeof clip === "object"
       && typeof clip.title === "string" && Boolean(clip.title.trim())
@@ -12,12 +18,15 @@
   }
 
   function encodeWebClipPayload(clip) {
-    if (!validClip(clip)) throw new Error("invalid clip");
+    if (typeof clip?.selection === "string" && clip.selection.length > MAX_WEB_CLIP_SELECTION_LENGTH) {
+      throw clipPayloadError("clip-too-large");
+    }
+    if (!validClip(clip)) throw clipPayloadError("invalid-clip");
     const bytes = new TextEncoder().encode(JSON.stringify(clip));
     let binary = "";
     bytes.forEach((byte) => { binary += String.fromCharCode(byte); });
     const payload = btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
-    if (payload.length > MAX_WEB_CLIP_FRAGMENT_LENGTH) throw new Error("clip too large");
+    if (payload.length > MAX_WEB_CLIP_FRAGMENT_LENGTH) throw clipPayloadError("clip-too-large");
     return payload;
   }
 
@@ -28,5 +37,7 @@
     return url.toString();
   }
 
-  root.MemoNexusClipPayload = { buildWebClipDestination };
+  const api = { buildWebClipDestination, encodeWebClipPayload };
+  if (typeof module !== "undefined" && module.exports) module.exports = api;
+  root.MemoNexusClipPayload = api;
 })(globalThis);

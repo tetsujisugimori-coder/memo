@@ -50,11 +50,15 @@ async function sendToMemoNexus() {
   window.close();
 }
 
-readActivePage().then(showClip).catch(() => {
+readActivePage().then(showClip).catch((cause) => {
+  console.error("Memo-Nexus Web Clipper could not read the active page", cause);
   error.textContent = "このページはクリップできません。通常のWebページでお試しください。";
   selectionStatus.textContent = "このページではクリップできません。";
 });
 send.addEventListener("click", () => sendToMemoNexus().catch((cause) => {
-  error.textContent = cause.message || String(cause);
+  console.error("Memo-Nexus Web Clipper could not open Memo-Nexus", cause);
+  error.textContent = cause?.code === "clip-too-large"
+    ? "選択範囲が長すぎてクリップできません。範囲を短くして再度お試しください。"
+    : "クリップを開始できませんでした。もう一度お試しください。";
   send.disabled = false;
 }));

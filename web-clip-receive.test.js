@@ -19,3 +19,9 @@ test("拡張は選択した接続先のURLへフラグメントpayloadで遷移�
   assert.match(config, /development: "http:\/\/localhost:5500\/"/);
   assert.match(config, /production: "https:\/\/tetsujisugimori-coder\.github\.io\/memo\/"/);
 });
+
+test("拡張は長文と予期しない失敗を技術的な文言なしで案内する", () => {
+  assert.match(popup, /選択範囲が長すぎてクリップできません。範囲を短くして再度お試しください。/);
+  assert.match(popup, /クリップを開始できませんでした。もう一度お試しください。/);
+  assert.match(popup, /console\.error\("Memo-Nexus Web Clipper could not open Memo-Nexus", cause\)/);
+});

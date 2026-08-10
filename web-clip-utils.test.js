@@ -1,6 +1,7 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const { safeExternalUrl, normalizeWebClip, buildWebClipMarkdown, encodeWebClipPayload, decodeWebClipPayload, readWebClipFragment } = require("./web-clip-utils.js");
+const { buildWebClipDestination } = require("./extensions/web-clipper/clip-payload.js");
 
 test("web clip accepts only http and https URLs", () => {
   assert.equal(safeExternalUrl("https://example.com/a"), "https://example.com/a");
@@ -27,4 +28,28 @@ test("web clip payload accepts an empty selection but rejects broken or incomple
   assert.equal(readWebClipFragment(`#clip=${payload}`).clip.selection, "");
   assert.equal(decodeWebClipPayload("not-a-valid-payload"), null);
   assert.throws(() => encodeWebClipPayload({ ...clip, title: "" }));
+});
+
+test("拡張payloadを本体が日本語・改行・絵文字を含めて復元できる", () => {
+  const clip = {
+    title: "日本語タイトル 📝",
+    url: "https://example.com/articles/web-clip?lang=ja",
+    host: "日本語サイト名",
+    selection: "1行目\n2行目 😀",
+    capturedAt: "2026-08-11T01:23:45.000Z"
+  };
+  const destination = buildWebClipDestination("https://tetsujisugimori-coder.github.io/memo/", clip);
+  const decoded = readWebClipFragment(new URL(destination).hash).clip;
+  assert.deepEqual(decoded, normalizeWebClip(clip));
+});
+
+test("拡張payloadを本体が選択本文なしでも復元できる", () => {
+  const clip = { title: "URLクリップ", url: "https://example.com/", host: "example.com", selection: "", capturedAt: "2026-08-11T01:23:45.000Z" };
+  const destination = buildWebClipDestination("http://localhost:5500/", clip);
+  assert.deepEqual(readWebClipFragment(new URL(destination).hash).clip, normalizeWebClip(clip));
+});
+
+test("拡張は既存の選択本文上限を長文クリップとして分類する", () => {
+  const clip = { title: "長文", url: "https://example.com/", host: "example.com", selection: "x".repeat(100001), capturedAt: "2026-08-11T01:23:45.000Z" };
+  assert.throws(() => buildWebClipDestination("http://localhost:5500/", clip), (error) => error.code === "clip-too-large");
 });
