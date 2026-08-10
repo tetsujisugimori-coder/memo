@@ -1540,6 +1540,15 @@ body.collections-open .collection-explorer {
 .explanation-target { max-height: 7em; margin: 0; overflow: auto; padding: 8px; border-radius: 6px; background: var(--section-bg); white-space: pre-wrap; overflow-wrap: anywhere; }
 .explanation-form .dialog-actions { display: flex; justify-content: flex-end; gap: 8px; }
 
+.web-clip-dialog { width: min(620px, calc(100vw - 24px)); max-height: calc(100dvh - 24px); padding: 0; border: 1px solid var(--line); border-radius: 12px; background: var(--paper); color: var(--ink); }
+.web-clip-dialog::backdrop { background: var(--dialog-backdrop); }
+.web-clip-form { display: grid; gap: 12px; padding: 16px; overflow: auto; max-height: calc(100dvh - 90px); }
+.web-clip-form label { display: grid; gap: 6px; font-weight: 600; }
+.web-clip-form input, .web-clip-form textarea, .web-clip-form select { width: 100%; box-sizing: border-box; font: inherit; }
+.web-clip-form textarea { resize: vertical; min-height: 8em; }
+.web-clip-status { margin: 0; color: var(--muted); font-size: .9rem; }
+.web-clip-error { min-height: 1.2em; margin: 0; color: var(--danger, #b42318); }
+
 .table-block-editors[hidden] {
   display: none;
 }

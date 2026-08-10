@@ -1,0 +1,15 @@
+{
+  "manifest_version": 3,
+  "name": "Memo-Nexus Web Clipper",
+  "version": "0.1.0",
+  "description": "選択したテキストをMemo-Nexusの確認画面へ渡します。",
+  "action": {
+    "default_title": "Memo-Nexus Web Clipper",
+    "default_popup": "popup.html"
+  },
+  "permissions": ["activeTab", "scripting", "tabs"],
+  "host_permissions": [
+    "http://localhost:5500/*",
+    "https://tetsujisugimori-coder.github.io/memo/*"
+  ]
+}

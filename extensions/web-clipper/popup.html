@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Memo-Nexus Web Clipper</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <main>
+    <h1>Memo-Nexus Web Clipper</h1>
+    <p id="selectionStatus" class="status">ページ情報を取得中…</p>
+    <dl>
+      <div><dt>タイトル</dt><dd id="title">—</dd></div>
+      <div><dt>URL</dt><dd id="url">—</dd></div>
+    </dl>
+    <label>接続先<select id="target"></select></label>
+    <button id="send" type="button" disabled>Memo-Nexusで確認する</button>
+    <p id="error" class="error" role="alert"></p>
+  </main>
+  <script src="config.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>
