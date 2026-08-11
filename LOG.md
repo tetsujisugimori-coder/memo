@@ -1514,3 +1514,8 @@
 
 * 本体が受信を許可するChrome拡張originを、誤登録の`chrome-extension://mhfbofiokmppgdliakminbgdgcmbhbac`からMemo-Nexus用の`chrome-extension://aelacnladkiohkhbjhfbmeknbfgpcmlh`へ置き換えた。Edge版`chrome-extension://opejammnohhbjflpbhmmdlknhjkhfhdp`は維持した。
 * 許可originが上記2件だけであり、誤ID・プレースホルダー・ワイルドカードが含まれず、`chrome-extension://<32文字ID>`形式の検証を維持するテストを追加した。
+## 2026-08-12 Web Clipper設定画面の整理
+
+* 設定画面へWeb Clipperの専用欄を追加し、`allowedExtensionOrigins`から参照した許可済みOrigin全体と拡張ID、現在のMemo-NexusアプリURLをコピー操作付きで表示するようにした。Origin文字列からChrome／Edgeを判定する表示は行わない。
+* 最後に受信したWeb ClipperメッセージのOriginと受信日時をlocalStorageへ記録し、現在の許可一覧に照らした許可済み／未許可／未受信を表示する。メモ保存、受信ダイアログ、保存先の既存挙動は変更していない。
+* 検証では`node --check app.js`、`node --check web-clipper-config.js`、`node --test`（363件成功）、`git diff --check`を実行した。型チェック・lintは設定ファイルまたは実行スクリプトがないため実行対象なし。Playwright E2Eはこの環境に`playwright`パッケージがなく起動できなかった。
