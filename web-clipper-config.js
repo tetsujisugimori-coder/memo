@@ -3,6 +3,7 @@
 window.MemoNexusWebClipperConfig = {
   allowedExtensionOrigins: [
     "chrome-extension://opejammnohhbjflpbhmmdlknhjkhfhdp",
-    "chrome-extension://aelacnladkiohkhbjhfbmeknbfgpcmlh"
+    "chrome-extension://aelacnladkiohkhbjhfbmeknbfgpcmlh",
+    "chrome-extension://aelacnladkiohkhbjhfbmekpbfgpcmlh"
   ]
 };

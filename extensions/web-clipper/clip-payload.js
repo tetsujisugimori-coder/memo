@@ -13,7 +13,7 @@
       && typeof clip.title === "string" && Boolean(clip.title.trim())
       && /^https?:\/\//i.test(String(clip.url || ""))
       && typeof clip.host === "string" && Boolean(clip.host.trim())
-      && typeof clip.selection === "string" && clip.selection.length <= MAX_WEB_CLIP_SELECTION_LENGTH
+      && typeof clip.selection === "string" && (clip.clipMode === "page" || clip.selection.length <= MAX_WEB_CLIP_SELECTION_LENGTH)
       && Number.isFinite(Date.parse(clip.capturedAt));
   }
 
@@ -30,10 +30,10 @@
     return payload;
   }
 
-  function buildWebClipDestination(destination, clip) {
+  function buildWebClipDestination(destination, clip, options = {}) {
     const url = new URL(destination);
     url.searchParams.set("web-clip", "1");
-    url.hash = `clip=${encodeWebClipPayload(clip)}`;
+    url.hash = options.transfer ? `clip-transfer=${encodeURIComponent(options.transferId)}` : `clip=${encodeWebClipPayload(clip)}`;
     return url.toString();
   }
 

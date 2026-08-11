@@ -428,6 +428,9 @@ const webClipTitle = $("webClipTitle");
 const webClipUrl = $("webClipUrl");
 const webClipHost = $("webClipHost");
 const webClipSelection = $("webClipSelection");
+const webClipMode = $("webClipMode");
+const webClipUserMemo = $("webClipUserMemo");
+const webClipUserMemoRow = $("webClipUserMemoRow");
 const webClipCapturedAt = $("webClipCapturedAt");
 const webClipCollection = $("webClipCollection");
 const webClipError = $("webClipError");
@@ -798,6 +801,7 @@ async function init() {
   const webClipFragment = consumeWebClipFragment();
   if (new URLSearchParams(location.search).has("web-clip") || webClipFragment.present) {
     openWebClipDialog(webClipFragment.clip, webClipFragment.error);
+    if (webClipFragment.transferId) window.postMessage({ type: "memo-nexus-web-clip-content-ready", transferId: webClipFragment.transferId }, location.origin);
   }
   notifyWebClipOpenerReady();
   if (!settingsDialog.open) {
@@ -2315,6 +2319,12 @@ function fillWebClipCollection(selectedId) {
 
 function consumeWebClipFragment() {
   const result = readWebClipFragment(location.hash);
+  const transferId = new URLSearchParams(location.hash.replace(/^#/, "")).get("clip-transfer");
+  if (transferId) {
+    const url = new URL(location.href); url.hash = "";
+    history.replaceState(history.state, "", `${url.pathname}${url.search}`);
+    return { present: true, clip: null, error: "ページ本文を受信しています。", transferId };
+  }
   if (!result.present) return { present: false, clip: null, error: "" };
   const url = new URL(location.href);
   url.hash = "";
@@ -2331,6 +2341,9 @@ function openWebClipDialog(clip = null, receiveError = "") {
   webClipUrl.value = normalized.url;
   webClipHost.value = normalized.host || (normalized.url ? new URL(normalized.url).hostname : "");
   webClipSelection.value = normalized.selection;
+  webClipMode.value = normalized.clipMode;
+  webClipUserMemo.value = normalized.userMemo;
+  webClipUserMemoRow.hidden = normalized.clipMode !== "memo";
   webClipCapturedAt.value = normalized.capturedAt;
   webClipError.textContent = "";
   webClipReceivedStatus.textContent = receiveError || (clip ? "拡張からクリップ候補を受け取りました。内容を確認して保存してください。" : "タイトル・URL・本文を入力して、通常メモとして保存できます。");
@@ -2353,10 +2366,12 @@ async function saveWebClipFromDialog(event) {
     url: safeUrl,
     host: webClipHost.value,
     selection: webClipSelection.value,
+    clipMode: webClipMode.value,
+    userMemo: webClipUserMemo.value,
     capturedAt: webClipCapturedAt.value
   });
   const title = clip.title || clip.host || "Webクリップ";
-  const source = { type: "web-clip", title: clip.title, url: clip.url || null, host: clip.host || null, capturedAt: clip.capturedAt };
+  const source = { type: "web-clip", clipMode: clip.clipMode, userMemo: clip.userMemo || null, title: clip.title, url: clip.url || null, host: clip.host || null, capturedAt: clip.capturedAt };
   try {
     const note = await createNote(title, buildWebClipMarkdown(clip), { collectionId: webClipCollection.value, source });
     notes = await getAllNotes();
@@ -2369,6 +2384,15 @@ async function saveWebClipFromDialog(event) {
 }
 
 function receiveWebClipMessage(event) {
+  if (event.source === window && event.origin === location.origin && event.data?.type === "memo-nexus-web-clip-transfer") {
+    if (!/^[a-f0-9-]{36}$/i.test(event.data.transferId || "")) return;
+    openWebClipDialog(event.data.clip);
+    window.postMessage({ type: "memo-nexus-web-clip-transfer-ack", transferId: event.data.transferId }, location.origin);
+    return;
+  }
+  if (event.source === window && event.origin === location.origin && event.data?.type === "memo-nexus-web-clip-transfer-error") {
+    openWebClipDialog(null, "ページ本文を取得できませんでした。もう一度お試しください。"); return;
+  }
   if (!webClipReceiverReady || !allowedWebClipperOrigins().includes(event.origin)) return;
   if (event.data?.type !== "memo-nexus-web-clip") return;
   openWebClipDialog(event.data.clip);
@@ -8120,6 +8144,7 @@ if (webClipBtn) webClipBtn.addEventListener("click", () => openWebClipDialog());
 if (closeWebClipBtn) closeWebClipBtn.addEventListener("click", () => webClipDialog.close());
 if (cancelWebClipBtn) cancelWebClipBtn.addEventListener("click", () => webClipDialog.close());
 if (webClipForm) webClipForm.addEventListener("submit", saveWebClipFromDialog);
+if (webClipMode) webClipMode.addEventListener("change", () => { webClipUserMemoRow.hidden = webClipMode.value !== "memo"; });
 window.addEventListener("message", receiveWebClipMessage);
 if (noteExportBtn) noteExportBtn.addEventListener("click", openNoteExportDialog);
 if (closeExportBtn) closeExportBtn.addEventListener("click", () => exportDialog.close());

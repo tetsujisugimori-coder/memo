@@ -30,6 +30,16 @@ test("web clip payload accepts an empty selection but rejects broken or incomple
   assert.throws(() => encodeWebClipPayload({ ...clip, title: "" }));
 });
 
+test("リンクのみ・メモ付き・ページ全文のclipModeをMarkdownとメタデータ用に正規化する", () => {
+  const link = normalizeWebClip({ title: "リンク", url: "https://example.com", host: "example.com", selection: "", clipMode: "link", capturedAt: "2026-08-11T01:23:45.000Z" });
+  const memo = normalizeWebClip({ ...link, clipMode: "memo", selection: "選択", userMemo: "あとで確認 😀" });
+  const page = normalizeWebClip({ ...link, clipMode: "page", selection: "# 見出し\n\n本文" });
+  assert.match(buildWebClipMarkdown(link), /出典: リンク/);
+  assert.match(buildWebClipMarkdown(memo), /メモ: あとで確認 😀/);
+  assert.match(buildWebClipMarkdown(page), /# 見出し/);
+  assert.equal(page.clipMode, "page");
+});
+
 test("拡張payloadを本体が日本語・改行・絵文字を含めて復元できる", () => {
   const clip = {
     title: "日本語タイトル 📝",

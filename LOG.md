@@ -1,3 +1,27 @@
+## 2026-08-12 PR #78 Web Clipper 実ブラウザE2E
+
+* Playwright 1.56.1付属Chromium 141.0.7390.37をpersistent contextで起動し、`--disable-extensions-except`と`--load-extension`で`extensions/web-clipper`を実際に読み込んだ。Computer Use、Google Chrome、Edgeは使用していない。
+* 拡張Service Workerの実URLからID `aelacnladkiohkhbjhfbmekpbfgpcmlh` を取得した。このIDを取得できるよう、転送処理を変更しない最小のbackground Service Worker定義を追加した。
+* `http://127.0.0.1:5500/`のMemo-Nexusと、見出し・複数段落・リスト・リンク・固有文字列・約16万文字の長文を含むローカル取得元ページで、実際の拡張ポップアップ画面と確認dialogを操作した。
+* ページ全文、選択部分、リンクのみ、メモ付き、タイトル・URL・本文反映、受信待ち文言の解消、ACKなし再送、ACK前の`storage.local`保持、ACK後削除、重複受信、タイムアウト、長文記事をすべて確認した。`node --test`は361件成功、`node --check web-clipper.e2e.js`と`git diff --check`も成功した。
+* E2Eは`web-clipper.e2e.js`として追加し、ページ本文受信後とACKなしタイムアウト受信先のスクリーンショットを`e2e-artifacts/`へ保存した。コミット`934e074 test: add web clipper browser e2e`でPR #78へ反映し、実施結果と証跡をPRコメントへ追記した。未確認事項はない。
+
+## 2026-08-12 Web Clipper Chrome拡張ID追加
+
+* Chrome版Web Clipper `aelacnladkiohkhbjhfbmekpbfgpcmlh` のoriginを許可一覧へ追加した。既存のEdge版およびChrome版originは維持し、厳格な`chrome-extension://<32文字ID>`検証は変更していない。
+
+## 2026-08-11 Web Clipper ページ全文抽出の自己完結化
+
+* `executeScript`へ渡す本文抽出関数の除外セレクタとスコアリングを関数内へ移し、対象ページ上で外部の`score`や`EXCLUDE`を参照しないよう修正した。本文候補がない場合は空文字を返し、利用者には既存のフォールバック案内を表示する。
+* localhost／127.0.0.1の開発サーバー向けhost permissionを追加し、注入失敗、本文候補なし、Markdown変換後の空を利用者向けに区別して表示するようにした。
+* ページ全文はポップアップ寿命に依存せず、`storage.local`の一時データをMemo-Nexus限定Content Scriptが転送し、ack後に削除する方式へ変更した。
+* Content ScriptはACKまで400ms間隔・最大約12秒で再送し、初期化順序による一度きりの通知取りこぼしを回避する。タイムアウト時は利用者向けエラーへ切り替える。
+
+## 2026-08-11 Web Clipper 第2段階
+
+* 選択部分、ページ全文、リンクのみ、メモ付きの4方式を追加した。ページ全文は主要コンテンツを抽出して安全なMarkdownへ変換し、巨大なURLフラグメントには載せず、originを限定した`postMessage`で本体へ渡す。
+* `source.type = "web-clip"`を維持し、任意の`clipMode`と`userMemo`を追加した。Chrome/Edgeの許可origin、http/https制限、短文のフラグメント経路は維持する。
+
 ## 2026-08-05 PR #48: 狭幅コンテキストパネルの開閉同期
 
 ### 変更内容
