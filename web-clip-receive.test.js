@@ -45,8 +45,10 @@ test("4方式とページ全文の小さいフラグメント受け渡しを維�
   assert.match(popupHtml, /value="link"/);
   assert.match(popupHtml, /value="memo"/);
   assert.match(popup, /clipMode\.value = hasSelection \? "selection" : "link"/);
-  assert.match(clipPayload, /clip-transfer=1/);
+  assert.match(clipPayload, /clip-transfer=\$\{encodeURIComponent\(options\.transferId\)\}/);
   assert.match(popup, /receiver\.postMessage\(\{ type: "memo-nexus-web-clip"/);
   assert.match(app, /clipMode: clip\.clipMode/);
   assert.match(app, /clip-transfer/);
+  assert.match(manifest, /"storage"/);
+  assert.match(manifest, /transfer-content\.js/);
 });

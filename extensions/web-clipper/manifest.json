@@ -7,11 +7,16 @@
     "default_title": "Memo-Nexus Web Clipper",
     "default_popup": "popup.html"
   },
-  "permissions": ["activeTab", "scripting", "tabs"],
+  "permissions": ["activeTab", "scripting", "tabs", "storage"],
   "host_permissions": [
     "http://localhost/*",
     "http://127.0.0.1/*",
     "http://127.0.0.1:5500/*",
     "https://tetsujisugimori-coder.github.io/memo/*"
-  ]
+  ],
+  "content_scripts": [{
+    "matches": ["http://localhost/*", "http://127.0.0.1/*", "https://tetsujisugimori-coder.github.io/memo/*"],
+    "js": ["transfer-content.js"],
+    "run_at": "document_start"
+  }]
 }

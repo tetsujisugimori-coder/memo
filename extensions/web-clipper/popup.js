@@ -72,18 +72,14 @@ async function sendToMemoNexus() {
   error.textContent = "";
   send.disabled = true;
   const payload = await buildClipForMode();
-  const receiver = window.open(MemoNexusClipPayload.buildWebClipDestination(destination, payload.clip, { transfer: payload.transfer }), "_blank");
-  if (!receiver) throw new Error("Memo-Nexusを開けませんでした。ポップアップの許可を確認してください。");
+  let transferId = "";
   if (payload.transfer) {
-    const expectedOrigin = new URL(destination).origin;
-    const receive = (event) => {
-      if (event.origin !== expectedOrigin || event.data?.type !== "memo-nexus-web-clip-ready") return;
-      receiver.postMessage({ type: "memo-nexus-web-clip", clip: payload.clip }, expectedOrigin);
-      window.removeEventListener("message", receive);
-      window.close();
-    };
-    window.addEventListener("message", receive);
-  } else window.close();
+    transferId = crypto.randomUUID();
+    await chrome.storage.local.set({ [`memoNexusTransfer:${transferId}`]: { clip: payload.clip, createdAt: Date.now() } });
+  }
+  const receiver = window.open(MemoNexusClipPayload.buildWebClipDestination(destination, payload.clip, { transfer: payload.transfer, transferId }), "_blank");
+  if (!receiver) throw new Error("Memo-Nexusを開けませんでした。ポップアップの許可を確認してください。");
+  window.close();
 }
 
 readActivePage().then(showClip).catch((cause) => {

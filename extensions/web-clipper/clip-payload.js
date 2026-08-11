@@ -33,7 +33,7 @@
   function buildWebClipDestination(destination, clip, options = {}) {
     const url = new URL(destination);
     url.searchParams.set("web-clip", "1");
-    url.hash = options.transfer ? "clip-transfer=1" : `clip=${encodeWebClipPayload(clip)}`;
+    url.hash = options.transfer ? `clip-transfer=${encodeURIComponent(options.transferId)}` : `clip=${encodeWebClipPayload(clip)}`;
     return url.toString();
   }
 

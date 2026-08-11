@@ -801,6 +801,7 @@ async function init() {
   const webClipFragment = consumeWebClipFragment();
   if (new URLSearchParams(location.search).has("web-clip") || webClipFragment.present) {
     openWebClipDialog(webClipFragment.clip, webClipFragment.error);
+    if (webClipFragment.transferId) window.postMessage({ type: "memo-nexus-web-clip-content-ready", transferId: webClipFragment.transferId }, location.origin);
   }
   notifyWebClipOpenerReady();
   if (!settingsDialog.open) {
@@ -2318,10 +2319,11 @@ function fillWebClipCollection(selectedId) {
 
 function consumeWebClipFragment() {
   const result = readWebClipFragment(location.hash);
-  if (new URLSearchParams(location.hash.replace(/^#/, "")).has("clip-transfer")) {
+  const transferId = new URLSearchParams(location.hash.replace(/^#/, "")).get("clip-transfer");
+  if (transferId) {
     const url = new URL(location.href); url.hash = "";
     history.replaceState(history.state, "", `${url.pathname}${url.search}`);
-    return { present: true, clip: null, error: "ページ本文を受信しています。" };
+    return { present: true, clip: null, error: "ページ本文を受信しています。", transferId };
   }
   if (!result.present) return { present: false, clip: null, error: "" };
   const url = new URL(location.href);
@@ -2382,6 +2384,15 @@ async function saveWebClipFromDialog(event) {
 }
 
 function receiveWebClipMessage(event) {
+  if (event.source === window && event.origin === location.origin && event.data?.type === "memo-nexus-web-clip-transfer") {
+    if (!/^[a-f0-9-]{36}$/i.test(event.data.transferId || "")) return;
+    openWebClipDialog(event.data.clip);
+    window.postMessage({ type: "memo-nexus-web-clip-transfer-ack", transferId: event.data.transferId }, location.origin);
+    return;
+  }
+  if (event.source === window && event.origin === location.origin && event.data?.type === "memo-nexus-web-clip-transfer-error") {
+    openWebClipDialog(null, "ページ本文を取得できませんでした。もう一度お試しください。"); return;
+  }
   if (!webClipReceiverReady || !allowedWebClipperOrigins().includes(event.origin)) return;
   if (event.data?.type !== "memo-nexus-web-clip") return;
   openWebClipDialog(event.data.clip);
