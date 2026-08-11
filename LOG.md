@@ -1,3 +1,11 @@
+## 2026-08-12 PR #78 Web Clipper 実ブラウザE2E
+
+* Playwright 1.56.1付属Chromium 141.0.7390.37をpersistent contextで起動し、`--disable-extensions-except`と`--load-extension`で`extensions/web-clipper`を実際に読み込んだ。Computer Use、Google Chrome、Edgeは使用していない。
+* 拡張Service Workerの実URLからID `aelacnladkiohkhbjhfbmekpbfgpcmlh` を取得した。このIDを取得できるよう、転送処理を変更しない最小のbackground Service Worker定義を追加した。
+* `http://127.0.0.1:5500/`のMemo-Nexusと、見出し・複数段落・リスト・リンク・固有文字列・約16万文字の長文を含むローカル取得元ページで、実際の拡張ポップアップ画面と確認dialogを操作した。
+* ページ全文、選択部分、リンクのみ、メモ付き、タイトル・URL・本文反映、受信待ち文言の解消、ACKなし再送、ACK前の`storage.local`保持、ACK後削除、重複受信、タイムアウト、長文記事をすべて確認した。`node --test`は361件成功、`node --check web-clipper.e2e.js`と`git diff --check`も成功した。
+* E2Eは`web-clipper.e2e.js`として追加し、ページ本文受信後とACKなしタイムアウト受信先のスクリーンショットを`e2e-artifacts/`へ保存した。コミット`934e074 test: add web clipper browser e2e`でPR #78へ反映し、実施結果と証跡をPRコメントへ追記した。未確認事項はない。
+
 ## 2026-08-12 Web Clipper Chrome拡張ID追加
 
 * Chrome版Web Clipper `aelacnladkiohkhbjhfbmekpbfgpcmlh` のoriginを許可一覧へ追加した。既存のEdge版およびChrome版originは維持し、厳格な`chrome-extension://<32文字ID>`検証は変更していない。
