@@ -1,5 +1,6 @@
 (function (root) {
   const MAX_WEB_CLIP_SELECTION_LENGTH = 100000;
+  const MAX_WEB_CLIP_PAGE_LENGTH = 500000;
   const MAX_WEB_CLIP_FRAGMENT_LENGTH = 600000;
   function safeExternalUrl(value) {
     try {
@@ -21,7 +22,9 @@
       title: cleanText(input.title, 300),
       url,
       host: cleanText(input.host, 255),
-      selection: cleanText(input.selection, MAX_WEB_CLIP_SELECTION_LENGTH),
+      clipMode: ["selection", "page", "link", "memo"].includes(input.clipMode) ? input.clipMode : "selection",
+      userMemo: cleanText(input.userMemo, 1000),
+      selection: cleanText(input.selection, input.clipMode === "page" ? MAX_WEB_CLIP_PAGE_LENGTH : MAX_WEB_CLIP_SELECTION_LENGTH),
       capturedAt: Number.isFinite(Date.parse(input.capturedAt)) ? new Date(input.capturedAt).toISOString() : new Date().toISOString()
     };
   }
@@ -34,8 +37,9 @@
   function buildWebClipMarkdown(clip) {
     const normalized = normalizeWebClip(clip);
     const lines = [];
-    const quote = quoteMarkdown(normalized.selection);
+    const quote = normalized.clipMode === "page" ? normalized.selection : quoteMarkdown(normalized.selection);
     if (quote) lines.push(quote, "");
+    if (normalized.userMemo) lines.push(`メモ: ${normalized.userMemo}`, "");
     if (normalized.title) lines.push(`出典: ${normalized.title}`);
     if (normalized.url) lines.push(`URL: [${normalized.url}](${normalized.url})`);
     lines.push(`取得日時: ${normalized.capturedAt}`);
@@ -47,7 +51,8 @@
     if (typeof value.title !== "string" || !value.title.trim()) return false;
     if (!safeExternalUrl(value.url)) return false;
     if (typeof value.host !== "string" || !value.host.trim()) return false;
-    if (typeof value.selection !== "string" || value.selection.length > MAX_WEB_CLIP_SELECTION_LENGTH) return false;
+    const mode = ["selection", "page", "link", "memo"].includes(value.clipMode) ? value.clipMode : "selection";
+    if (typeof value.selection !== "string" || value.selection.length > (mode === "page" ? MAX_WEB_CLIP_PAGE_LENGTH : MAX_WEB_CLIP_SELECTION_LENGTH)) return false;
     return Number.isFinite(Date.parse(value.capturedAt));
   }
 
@@ -89,7 +94,7 @@
     return { present: true, clip: decodeWebClipPayload(params.get("clip")) };
   }
 
-  const api = { MAX_WEB_CLIP_SELECTION_LENGTH, MAX_WEB_CLIP_FRAGMENT_LENGTH, safeExternalUrl, normalizeWebClip, buildWebClipMarkdown, encodeWebClipPayload, decodeWebClipPayload, readWebClipFragment };
+  const api = { MAX_WEB_CLIP_SELECTION_LENGTH, MAX_WEB_CLIP_PAGE_LENGTH, MAX_WEB_CLIP_FRAGMENT_LENGTH, safeExternalUrl, normalizeWebClip, buildWebClipMarkdown, encodeWebClipPayload, decodeWebClipPayload, readWebClipFragment };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   root.MemoNexusWebClipUtils = api;
 })(typeof window !== "undefined" ? window : globalThis);

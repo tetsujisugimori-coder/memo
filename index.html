@@ -518,7 +518,9 @@
       <label>タイトル<input id="webClipTitle" type="text" maxlength="300" autocomplete="off" placeholder="ページタイトル"></label>
       <label>URL<input id="webClipUrl" type="url" maxlength="2000" inputmode="url" placeholder="https://example.com/"></label>
       <label>サイト名 / ホスト名<input id="webClipHost" type="text" maxlength="255" autocomplete="off" placeholder="example.com"></label>
-      <label>選択した本文<textarea id="webClipSelection" rows="8" maxlength="100000" placeholder="選択文、またはメモしたい本文"></textarea></label>
+      <label>クリップ方式<select id="webClipMode"><option value="selection">選択部分</option><option value="page">ページ全文</option><option value="link">リンクのみ</option><option value="memo">メモ付き</option></select></label>
+      <label>本文 / 選択文<textarea id="webClipSelection" rows="8" maxlength="500000" placeholder="選択文、ページ本文、またはメモしたい本文"></textarea></label>
+      <label id="webClipUserMemoRow">メモ<textarea id="webClipUserMemo" rows="3" maxlength="1000" placeholder="あとで確認、重要な理由など"></textarea></label>
       <label>取得日時<input id="webClipCapturedAt" type="text" readonly></label>
       <label>保存先コレクション<select id="webClipCollection"></select></label>
       <p id="webClipError" class="web-clip-error" role="alert"></p>

@@ -1,3 +1,8 @@
+## 2026-08-11 Web Clipper 第2段階
+
+* 選択部分、ページ全文、リンクのみ、メモ付きの4方式を追加した。ページ全文は主要コンテンツを抽出して安全なMarkdownへ変換し、巨大なURLフラグメントには載せず、originを限定した`postMessage`で本体へ渡す。
+* `source.type = "web-clip"`を維持し、任意の`clipMode`と`userMemo`を追加した。Chrome/Edgeの許可origin、http/https制限、短文のフラグメント経路は維持する。
+
 ## 2026-08-05 PR #48: 狭幅コンテキストパネルの開閉同期
 
 ### 変更内容

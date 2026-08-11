@@ -5,6 +5,10 @@ const url = document.getElementById("url");
 const target = document.getElementById("target");
 const send = document.getElementById("send");
 const error = document.getElementById("error");
+const clipMode = document.getElementById("clipMode");
+const userMemo = document.getElementById("userMemo");
+const userMemoRow = document.getElementById("userMemoRow");
+const modeStatus = document.getElementById("modeStatus");
 let clip = null;
 
 Object.entries(config.targets).forEach(([key, value]) => {
@@ -38,16 +42,46 @@ function showClip(nextClip) {
   selectionStatus.textContent = hasSelection ? `選択文あり（${clip.selection.length.toLocaleString()}文字）` : "選択文なし（URLとタイトルを渡します）";
   title.textContent = clip.title || "（タイトルなし）";
   url.textContent = clip.url || "（URLなし）";
+  clipMode.value = hasSelection ? "selection" : "link";
+  updateModeUi();
   send.disabled = false;
+}
+
+function updateModeUi() {
+  const mode = clipMode.value;
+  userMemoRow.hidden = mode !== "memo";
+  modeStatus.textContent = mode === "page" ? "ページ本文を取得します" : mode === "link" ? "本文は取得せず、リンク情報を保存します" : "";
+}
+
+async function buildClipForMode() {
+  const mode = clipMode.value;
+  const base = { ...clip, clipMode: mode, userMemo: mode === "memo" ? userMemo.value : "" };
+  if (mode !== "page") return { clip: { ...base, selection: mode === "link" ? "" : base.selection }, transfer: false };
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  const [page] = await chrome.scripting.executeScript({ target: { tabId: tab.id }, func: MemoNexusPageExtractor.extractPageHtml })
+    .catch(() => { throw new Error("page-extract-failed"); });
+  const markdown = MemoNexusHtmlToMarkdown.htmlToMarkdown(page.result);
+  if (!markdown) throw new Error("page-extract-failed");
+  return { clip: { ...base, selection: markdown }, transfer: true };
 }
 
 async function sendToMemoNexus() {
   const destination = config.targets[target.value];
   error.textContent = "";
   send.disabled = true;
-  const receiver = window.open(MemoNexusClipPayload.buildWebClipDestination(destination, clip), "_blank");
+  const payload = await buildClipForMode();
+  const receiver = window.open(MemoNexusClipPayload.buildWebClipDestination(destination, payload.clip, { transfer: payload.transfer }), "_blank");
   if (!receiver) throw new Error("Memo-Nexusを開けませんでした。ポップアップの許可を確認してください。");
-  window.close();
+  if (payload.transfer) {
+    const expectedOrigin = new URL(destination).origin;
+    const receive = (event) => {
+      if (event.origin !== expectedOrigin || event.data?.type !== "memo-nexus-web-clip-ready") return;
+      receiver.postMessage({ type: "memo-nexus-web-clip", clip: payload.clip }, expectedOrigin);
+      window.removeEventListener("message", receive);
+      window.close();
+    };
+    window.addEventListener("message", receive);
+  } else window.close();
 }
 
 readActivePage().then(showClip).catch((cause) => {
@@ -55,10 +89,13 @@ readActivePage().then(showClip).catch((cause) => {
   error.textContent = "このページはクリップできません。通常のWebページでお試しください。";
   selectionStatus.textContent = "このページではクリップできません。";
 });
+clipMode.addEventListener("change", updateModeUi);
 send.addEventListener("click", () => sendToMemoNexus().catch((cause) => {
   console.error("Memo-Nexus Web Clipper could not open Memo-Nexus", cause);
   error.textContent = cause?.code === "clip-too-large"
     ? "選択範囲が長すぎてクリップできません。範囲を短くして再度お試しください。"
+    : cause?.message === "page-extract-failed"
+      ? "ページ本文を取得できませんでした。選択部分またはリンクのみでお試しください。"
     : "クリップを開始できませんでした。もう一度お試しください。";
   send.disabled = false;
 }));
