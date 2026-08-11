@@ -22,6 +22,8 @@ test("拡張は選択した接続先のURLへフラグメントpayloadで遷移�
   assert.match(config, /development: "http:\/\/127\.0\.0\.1:5500\/"/);
   assert.doesNotMatch(config, /localhost:5500/);
   assert.match(manifest, /http:\/\/127\.0\.0\.1:5500\/\*/);
+  assert.match(manifest, /http:\/\/localhost\/\*/);
+  assert.match(manifest, /http:\/\/127\.0\.0\.1\/\*/);
   assert.doesNotMatch(manifest, /localhost:5500/);
   assert.match(popup, /開発環境（127\.0\.0\.1:5500）/);
   assert.match(config, /production: "https:\/\/tetsujisugimori-coder\.github\.io\/memo\/"/);
@@ -31,6 +33,9 @@ test("拡張は長文と予期しない失敗を技術的な文言なしで案�
   assert.match(popup, /選択範囲が長すぎてクリップできません。範囲を短くして再度お試しください。/);
   assert.match(popup, /クリップを開始できませんでした。もう一度お試しください。/);
   assert.match(popup, /ページ本文を取得できませんでした。選択部分またはリンクのみでお試しください。/);
+  assert.match(popup, /page-injection-failed/);
+  assert.match(popup, /page-content-empty/);
+  assert.match(popup, /page-markdown-empty/);
   assert.match(popup, /console\.error\("Memo-Nexus Web Clipper could not open Memo-Nexus", cause\)/);
 });
 

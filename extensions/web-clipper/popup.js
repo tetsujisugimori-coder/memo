@@ -58,10 +58,12 @@ async function buildClipForMode() {
   const base = { ...clip, clipMode: mode, userMemo: mode === "memo" ? userMemo.value : "" };
   if (mode !== "page") return { clip: { ...base, selection: mode === "link" ? "" : base.selection }, transfer: false };
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (!tab?.id) throw new Error("page-injection-failed");
   const [page] = await chrome.scripting.executeScript({ target: { tabId: tab.id }, func: MemoNexusPageExtractor.extractPageHtml })
-    .catch(() => { throw new Error("page-extract-failed"); });
+    .catch((cause) => { console.error("Memo-Nexus Web Clipper page injection failed", cause); throw new Error("page-injection-failed"); });
+  if (!page?.result) throw new Error("page-content-empty");
   const markdown = MemoNexusHtmlToMarkdown.htmlToMarkdown(page.result);
-  if (!markdown) throw new Error("page-extract-failed");
+  if (!markdown) throw new Error("page-markdown-empty");
   return { clip: { ...base, selection: markdown }, transfer: true };
 }
 
@@ -96,6 +98,12 @@ send.addEventListener("click", () => sendToMemoNexus().catch((cause) => {
     ? "選択範囲が長すぎてクリップできません。範囲を短くして再度お試しください。"
     : cause?.message === "page-extract-failed"
       ? "ページ本文を取得できませんでした。選択部分またはリンクのみでお試しください。"
+    : cause?.message === "page-injection-failed"
+      ? "ページ本文を取得できませんでした（拡張の権限または注入を確認してください）。"
+    : cause?.message === "page-content-empty"
+      ? "ページ本文の候補が見つかりませんでした。選択部分またはリンクのみでお試しください。"
+    : cause?.message === "page-markdown-empty"
+      ? "ページ本文をMarkdownへ変換できませんでした。選択部分またはリンクのみでお試しください。"
     : "クリップを開始できませんでした。もう一度お試しください。";
   send.disabled = false;
 }));
