@@ -1,3 +1,7 @@
+## 2026-08-12 Web Clipper Chrome拡張ID追加
+
+* Chrome版Web Clipper `aelacnladkiohkhbjhfbmekpbfgpcmlh` のoriginを許可一覧へ追加した。既存のEdge版およびChrome版originは維持し、厳格な`chrome-extension://<32文字ID>`検証は変更していない。
+
 ## 2026-08-11 Web Clipper ページ全文抽出の自己完結化
 
 * `executeScript`へ渡す本文抽出関数の除外セレクタとスコアリングを関数内へ移し、対象ページ上で外部の`score`や`EXCLUDE`を参照しないよう修正した。本文候補がない場合は空文字を返し、利用者には既存のフォールバック案内を表示する。
