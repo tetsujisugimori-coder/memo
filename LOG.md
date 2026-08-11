@@ -1,49 +1,3 @@
-## 2026-08-12 PR #78 Web Clipper 実ブラウザE2E
-
-* Playwright 1.56.1付属Chromium 141.0.7390.37をpersistent contextで起動し、`--disable-extensions-except`と`--load-extension`で`extensions/web-clipper`を実際に読み込んだ。Computer Use、Google Chrome、Edgeは使用していない。
-* 拡張Service Workerの実URLからID `aelacnladkiohkhbjhfbmekpbfgpcmlh` を取得した。このIDを取得できるよう、転送処理を変更しない最小のbackground Service Worker定義を追加した。
-* `http://127.0.0.1:5500/`のMemo-Nexusと、見出し・複数段落・リスト・リンク・固有文字列・約16万文字の長文を含むローカル取得元ページで、実際の拡張ポップアップ画面と確認dialogを操作した。
-* ページ全文、選択部分、リンクのみ、メモ付き、タイトル・URL・本文反映、受信待ち文言の解消、ACKなし再送、ACK前の`storage.local`保持、ACK後削除、重複受信、タイムアウト、長文記事をすべて確認した。`node --test`は361件成功、`node --check web-clipper.e2e.js`と`git diff --check`も成功した。
-* E2Eは`web-clipper.e2e.js`として追加し、ページ本文受信後とACKなしタイムアウト受信先のスクリーンショットを`e2e-artifacts/`へ保存した。コミット`934e074 test: add web clipper browser e2e`でPR #78へ反映し、実施結果と証跡をPRコメントへ追記した。未確認事項はない。
-
-## 2026-08-12 Web Clipper Chrome拡張ID追加
-
-* Chrome版Web Clipper `aelacnladkiohkhbjhfbmekpbfgpcmlh` のoriginを許可一覧へ追加した。既存のEdge版およびChrome版originは維持し、厳格な`chrome-extension://<32文字ID>`検証は変更していない。
-
-## 2026-08-11 Web Clipper ページ全文抽出の自己完結化
-
-* `executeScript`へ渡す本文抽出関数の除外セレクタとスコアリングを関数内へ移し、対象ページ上で外部の`score`や`EXCLUDE`を参照しないよう修正した。本文候補がない場合は空文字を返し、利用者には既存のフォールバック案内を表示する。
-* localhost／127.0.0.1の開発サーバー向けhost permissionを追加し、注入失敗、本文候補なし、Markdown変換後の空を利用者向けに区別して表示するようにした。
-* ページ全文はポップアップ寿命に依存せず、`storage.local`の一時データをMemo-Nexus限定Content Scriptが転送し、ack後に削除する方式へ変更した。
-* Content ScriptはACKまで400ms間隔・最大約12秒で再送し、初期化順序による一度きりの通知取りこぼしを回避する。タイムアウト時は利用者向けエラーへ切り替える。
-
-## 2026-08-11 Web Clipper 第2段階
-
-* 選択部分、ページ全文、リンクのみ、メモ付きの4方式を追加した。ページ全文は主要コンテンツを抽出して安全なMarkdownへ変換し、巨大なURLフラグメントには載せず、originを限定した`postMessage`で本体へ渡す。
-* `source.type = "web-clip"`を維持し、任意の`clipMode`と`userMemo`を追加した。Chrome/Edgeの許可origin、http/https制限、短文のフラグメント経路は維持する。
-
-## 2026-08-05 PR #48: 狭幅コンテキストパネルの開閉同期
-
-### 変更内容
-
-* 狭幅で開いた右側コンテキストパネルをオーバーレイドロワーとして扱い、背景、背後領域の `inert`、背景クリック、`Escape` を同じ開閉経路へ接続した
-* 右上の×でパネル全体を閉じる際、AI内部の開閉状態、`body.ai-open`、ロボットのARIA状態も同期して閉じるようにした
-* AIタブを×で閉じた後は、会話や入力内容を破棄せず、ロボットボタン1回でAIタブを再開するようにした
-* `app.js` の配信キャッシュ番号を `0.4.0-34` から `0.4.0-36` へ更新した
-
-## 2026-08-04 PR #48: 右側メモ一覧の表示安定化
-
-### 変更内容
-
-* `app.js` の配信キャッシュ番号を `0.4.0-33` から `0.4.0-34` へ更新し、右側コンテキストパネルの修正後に古いJavaScriptが残らないようにした
-* タブ切り替え時にAIパネルの開閉状態を同期し、AIからメモ一覧へ戻った後に旧 `body.ai-open .sidebar` スタイルで一覧が不可視のまま残る問題を解消した
-* 旧モバイル用の `memoPaneOpen` 状態と関連CSSを除去し、メモ一覧の開閉はコンテキストパネル状態だけで管理するようにした
-
-### 確認結果
-
-* 実ブラウザで、複数メモの選択、コレクション・AI・メモ一覧のタブ往復、検索の入力と解除、パネルの閉じ・再表示を確認した
-* 広い画面ではメモ選択後もパネルを維持し、狭幅では選択後にドロワーを閉じても再表示時に一覧が残ることを確認した
-
 ## 2026-06-21 Memo Nexus 保存安定化・ZIP修正
 
 ### 変更内容
@@ -1297,6 +1251,19 @@
 * ローカルOllamaで `qwen3.5:latest` の要約と英訳、`phi4-mini:latest` の自由質問、`granite4.1:8b` の整理を合成テキストで確認した。実OllamaへのAbortは `aborted` として分類された。ストリーム分割、受信済み文章保持、接続失敗、モデルなし、選択モデル削除、不正応答、タイムアウトはモック単体テストで確認した。利用者の実メモは手動モデル確認へ送信していない。
 * 未実装はOllama／モデルの自動導入、クラウドAI、APIキー管理、複数メモ横断、RAG／ベクトル検索、自動タグ付け、会話履歴永続化、本文自動上書き・回答自動保存、携帯端末上のローカルAI実行、外部プロンプト管理アプリ本体。Qwen・Phi・Granite以外のモデルは選択可能だが未検証とする。
 
+## 2026-08-04 PR #48: 右側メモ一覧の表示安定化
+
+### 変更内容
+
+* `app.js` の配信キャッシュ番号を `0.4.0-33` から `0.4.0-34` へ更新し、右側コンテキストパネルの修正後に古いJavaScriptが残らないようにした
+* タブ切り替え時にAIパネルの開閉状態を同期し、AIからメモ一覧へ戻った後に旧 `body.ai-open .sidebar` スタイルで一覧が不可視のまま残る問題を解消した
+* 旧モバイル用の `memoPaneOpen` 状態と関連CSSを除去し、メモ一覧の開閉はコンテキストパネル状態だけで管理するようにした
+
+### 確認結果
+
+* 実ブラウザで、複数メモの選択、コレクション・AI・メモ一覧のタブ往復、検索の入力と解除、パネルの閉じ・再表示を確認した
+* 広い画面ではメモ選択後もパネルを維持し、狭幅では選択後にドロワーを閉じても再表示時に一覧が残ることを確認した
+
 ## 2026-08-04 PR #44 レビュー対応
 
 * 保存済み `aiSettings` と設定画面の未保存ドラフトを分離し、接続確認・モデル更新はドラフトだけを更新するようにした。明示的な設定保存時のみAIパネルの実行設定とlocalStorageへ反映する。
@@ -1370,6 +1337,15 @@
 * メモ一覧の選択後に旧 `setMemoPaneOpen(false)` がPCの右パネルまで閉じていたため、メモ選択時の自動クローズを `layoutMode !== "wide"` の場合だけへ限定した。PCでは本文を更新しつつ右パネルと選択状態を維持する。
 * 狭幅での自動クローズは `explicit: false` として記録し、PC幅へ戻ったときは右パネルを再表示する。利用者が×ボタンで閉じた場合は `contextPanelUserClosed` で閉じた状態を尊重する。
 * メモ選択後のwide／compact／mobile分岐、幅変更時の再表示、フォーカスとARIA状態の契約テストを追加した。
+
+## 2026-08-05 PR #48: 狭幅コンテキストパネルの開閉同期
+
+### 変更内容
+
+* 狭幅で開いた右側コンテキストパネルをオーバーレイドロワーとして扱い、背景、背後領域の `inert`、背景クリック、`Escape` を同じ開閉経路へ接続した
+* 右上の×でパネル全体を閉じる際、AI内部の開閉状態、`body.ai-open`、ロボットのARIA状態も同期して閉じるようにした
+* AIタブを×で閉じた後は、会話や入力内容を破棄せず、ロボットボタン1回でAIタブを再開するようにした
+* `app.js` の配信キャッシュ番号を `0.4.0-34` から `0.4.0-36` へ更新した
 
 ## 2026-08-05 Markdown拡張・注意書き・解説カード
 
@@ -1498,6 +1474,18 @@
 * 本体は初回表示でフラグメントをデコード・検証して確認画面へ反映し、成功・失敗を問わず`history.replaceState()`でクリップpayloadをURLと履歴から除去する。不正payload、必須情報の欠落、本文上限超過はクラッシュさせず、再実行を案内する。選択なしでは本文だけ空として扱う。
 * 拡張のスクリプト注入不可ページは技術的な例外を表示せず、通常のWebページで試すよう案内する。URL長にはブラウザ／OSごとの上限が残るため、長すぎる選択範囲は短くする必要がある。
 
+## 2026-08-11 Web Clipper ページ全文抽出の自己完結化
+
+* `executeScript`へ渡す本文抽出関数の除外セレクタとスコアリングを関数内へ移し、対象ページ上で外部の`score`や`EXCLUDE`を参照しないよう修正した。本文候補がない場合は空文字を返し、利用者には既存のフォールバック案内を表示する。
+* localhost／127.0.0.1の開発サーバー向けhost permissionを追加し、注入失敗、本文候補なし、Markdown変換後の空を利用者向けに区別して表示するようにした。
+* ページ全文はポップアップ寿命に依存せず、`storage.local`の一時データをMemo-Nexus限定Content Scriptが転送し、ack後に削除する方式へ変更した。
+* Content ScriptはACKまで400ms間隔・最大約12秒で再送し、初期化順序による一度きりの通知取りこぼしを回避する。タイムアウト時は利用者向けエラーへ切り替える。
+
+## 2026-08-11 Web Clipper 第2段階
+
+* 選択部分、ページ全文、リンクのみ、メモ付きの4方式を追加した。ページ全文は主要コンテンツを抽出して安全なMarkdownへ変換し、巨大なURLフラグメントには載せず、originを限定した`postMessage`で本体へ渡す。
+* `source.type = "web-clip"`を維持し、任意の`clipMode`と`userMemo`を追加した。Chrome/Edgeの許可origin、http/https制限、短文のフラグメント経路は維持する。
+
 ## 2026-08-11 Web Clipperのエラー案内と開発接続先修正
 
 * 選択本文が既存上限を超えた場合は、技術的な`clip too large`を表示せず「選択範囲が長すぎてクリップできません。範囲を短くして再度お試しください。」と案内するようにした。予期しない失敗の詳細はconsoleへ残し、画面には簡潔な案内だけを表示する。
@@ -1514,3 +1502,21 @@
 
 * 本体が受信を許可するChrome拡張originを、誤登録の`chrome-extension://mhfbofiokmppgdliakminbgdgcmbhbac`からMemo-Nexus用の`chrome-extension://aelacnladkiohkhbjhfbmeknbfgpcmlh`へ置き換えた。Edge版`chrome-extension://opejammnohhbjflpbhmmdlknhjkhfhdp`は維持した。
 * 許可originが上記2件だけであり、誤ID・プレースホルダー・ワイルドカードが含まれず、`chrome-extension://<32文字ID>`形式の検証を維持するテストを追加した。
+
+## 2026-08-12 PR #78 Web Clipper 実ブラウザE2E
+
+* Playwright 1.56.1付属Chromium 141.0.7390.37をpersistent contextで起動し、`--disable-extensions-except`と`--load-extension`で`extensions/web-clipper`を実際に読み込んだ。Computer Use、Google Chrome、Edgeは使用していない。
+* 拡張Service Workerの実URLからID `aelacnladkiohkhbjhfbmekpbfgpcmlh` を取得した。このIDを取得できるよう、転送処理を変更しない最小のbackground Service Worker定義を追加した。
+* `http://127.0.0.1:5500/`のMemo-Nexusと、見出し・複数段落・リスト・リンク・固有文字列・約16万文字の長文を含むローカル取得元ページで、実際の拡張ポップアップ画面と確認dialogを操作した。
+* ページ全文、選択部分、リンクのみ、メモ付き、タイトル・URL・本文反映、受信待ち文言の解消、ACKなし再送、ACK前の`storage.local`保持、ACK後削除、重複受信、タイムアウト、長文記事をすべて確認した。`node --test`は361件成功、`node --check web-clipper.e2e.js`と`git diff --check`も成功した。
+* E2Eは`web-clipper.e2e.js`として追加し、ページ本文受信後とACKなしタイムアウト受信先のスクリーンショットを`e2e-artifacts/`へ保存した。コミット`934e074 test: add web clipper browser e2e`でPR #78へ反映し、実施結果と証跡をPRコメントへ追記した。未確認事項はない。
+
+## 2026-08-12 Web Clipper Chrome拡張ID追加
+
+* Chrome版Web Clipper `aelacnladkiohkhbjhfbmekpbfgpcmlh` のoriginを許可一覧へ追加した。既存のEdge版およびChrome版originは維持し、厳格な`chrome-extension://<32文字ID>`検証は変更していない。
+
+## 2026-08-12 Web Clipper設定画面の整理
+
+* 設定画面へWeb Clipperの専用欄を追加し、`allowedExtensionOrigins`から参照した許可済みOrigin全体と拡張ID、現在のMemo-NexusアプリURLをコピー操作付きで表示するようにした。Origin文字列からChrome／Edgeを判定する表示は行わない。
+* 最後に受信したWeb ClipperメッセージのOriginと受信日時をlocalStorageへ記録し、現在の許可一覧に照らした許可済み／未許可／未受信を表示する。メモ保存、受信ダイアログ、保存先の既存挙動は変更していない。
+* 検証では`node --check app.js`、`node --check web-clipper-config.js`、`node --test`（363件成功）、`git diff --check`を実行した。型チェック・lintは設定ファイルまたは実行スクリプトがないため実行対象なし。Playwright E2Eはこの環境に`playwright`パッケージがなく起動できなかった。

@@ -451,6 +451,7 @@ const editorCaretAnimationReducedMotion = $("editorCaretAnimationReducedMotion")
 const editorCaretAnimation = $("editorCaretAnimation");
 const storageStatusDetails = $("storageStatusDetails");
 const storageEstimateMessage = $("storageEstimateMessage");
+const webClipperSettingsDetails = $("webClipperSettingsDetails");
 const globalTitleFontSelect = $("globalTitleFontSelect");
 const globalTitleFontSizeSelect = $("globalTitleFontSizeSelect");
 const globalBodyFontSelect = $("globalBodyFontSelect");
@@ -662,6 +663,7 @@ let pendingMoveMemoIds = [];
 let pendingMoveCollectionId = null;
 let collectionToastTimer = null;
 let webClipReceiverReady = false;
+const WEB_CLIPPER_RECEIPT_STORAGE_KEY = "memoNexusWebClipperLastReceipt";
 let editingCollectionId = null;
 let draggedCollectionId = null;
 let draggedMemoIds = [];
@@ -2298,7 +2300,82 @@ async function createNote(title = "新規メモ", body = "", options = {}) {
 
 function allowedWebClipperOrigins() {
   const configured = window.MemoNexusWebClipperConfig?.allowedExtensionOrigins;
-  return (Array.isArray(configured) ? configured : []).filter((origin) => /^chrome-extension:\/\/[a-p]{32}$/.test(origin));
+  return (Array.isArray(configured) ? configured : []).filter(isWebClipperOrigin);
+}
+
+function isWebClipperOrigin(origin) {
+  return /^chrome-extension:\/\/[a-p]{32}$/.test(origin);
+}
+
+function webClipperAppUrl() {
+  const url = new URL(location.href);
+  url.search = "";
+  url.hash = "";
+  return url.href;
+}
+
+function readLastWebClipperReceipt() {
+  try {
+    const receipt = JSON.parse(localStorage.getItem(WEB_CLIPPER_RECEIPT_STORAGE_KEY) || "null");
+    if (!isWebClipperOrigin(receipt?.origin) || !Number.isFinite(Date.parse(receipt.receivedAt))) return null;
+    return { origin: receipt.origin, receivedAt: new Date(receipt.receivedAt).toISOString() };
+  } catch (_) {
+    return null;
+  }
+}
+
+function recordWebClipperReceipt(origin) {
+  const receipt = { origin, receivedAt: new Date().toISOString() };
+  try {
+    localStorage.setItem(WEB_CLIPPER_RECEIPT_STORAGE_KEY, JSON.stringify(receipt));
+  } catch (_) {
+    // 保存できない環境でも、既存のWeb Clipper受信処理は継続します。
+  }
+  renderWebClipperSettings();
+}
+
+function renderWebClipperSettings() {
+  if (!webClipperSettingsDetails) return;
+  const origins = allowedWebClipperOrigins();
+  const receipt = readLastWebClipperReceipt();
+  const status = receipt ? (origins.includes(receipt.origin) ? "許可済み" : "未許可") : "未受信";
+  const originRows = origins.length
+    ? origins.map((origin) => {
+      const extensionId = origin.slice("chrome-extension://".length);
+      return `<div class="web-clipper-origin-row"><span>Origin</span><code>${escapeHtml(origin)}</code><button type="button" data-web-clipper-copy="${escapeAttr(origin)}">コピー</button><span>拡張ID</span><code>${escapeHtml(extensionId)}</code><button type="button" data-web-clipper-copy="${escapeAttr(extensionId)}">コピー</button></div>`;
+    }).join("")
+    : '<p class="settings-note">許可済みのWeb Clipper送信元はありません。</p>';
+  const lastReceivedAt = receipt
+    ? new Intl.DateTimeFormat("ja-JP", { dateStyle: "medium", timeStyle: "medium" }).format(new Date(receipt.receivedAt))
+    : "まだ受信していません";
+  webClipperSettingsDetails.innerHTML = `
+    <section class="web-clipper-settings-group" aria-labelledby="webClipperOriginsHeading">
+      <h3 id="webClipperOriginsHeading">許可済みWeb Clipper送信元</h3>
+      ${originRows}
+    </section>
+    <section class="web-clipper-settings-group" aria-labelledby="webClipperDestinationHeading">
+      <h3 id="webClipperDestinationHeading">連携先</h3>
+      <div class="web-clipper-value-row"><code>${escapeHtml(webClipperAppUrl())}</code><button type="button" data-web-clipper-copy="${escapeAttr(webClipperAppUrl())}">コピー</button></div>
+    </section>
+    <section class="web-clipper-settings-group" aria-labelledby="webClipperConnectionHeading">
+      <h3 id="webClipperConnectionHeading">接続状態</h3>
+      <dl class="settings-details web-clipper-connection-details" role="status" aria-live="polite">
+        <dt>最後に受信した送信元Origin</dt><dd>${escapeHtml(receipt?.origin || "まだ受信していません")}</dd>
+        <dt>状態</dt><dd>${status}</dd>
+        <dt>最終受信日時</dt><dd>${lastReceivedAt}</dd>
+      </dl>
+    </section>`;
+}
+
+async function copyWebClipperSetting(value, button) {
+  try {
+    await writeTextToClipboard(value, { fallbackCopyText });
+    const label = button.textContent;
+    button.textContent = "コピーしました";
+    setTimeout(() => { button.textContent = label; }, 1600);
+  } catch (_) {
+    button.textContent = "コピーできませんでした";
+  }
 }
 
 function notifyWebClipOpenerReady() {
@@ -2393,8 +2470,10 @@ function receiveWebClipMessage(event) {
   if (event.source === window && event.origin === location.origin && event.data?.type === "memo-nexus-web-clip-transfer-error") {
     openWebClipDialog(null, "ページ本文を取得できませんでした。もう一度お試しください。"); return;
   }
-  if (!webClipReceiverReady || !allowedWebClipperOrigins().includes(event.origin)) return;
   if (event.data?.type !== "memo-nexus-web-clip") return;
+  if (!isWebClipperOrigin(event.origin)) return;
+  recordWebClipperReceipt(event.origin);
+  if (!webClipReceiverReady || !allowedWebClipperOrigins().includes(event.origin)) return;
   openWebClipDialog(event.data.clip);
 }
 
@@ -6450,6 +6529,7 @@ async function openSettingsDialog() {
   beginAiSettingsSession();
   renderAiSettings();
   renderAiUi();
+  renderWebClipperSettings();
   await renderStorageStatus();
   settingsDialog.showModal();
 }
@@ -8273,6 +8353,11 @@ closeSettingsBtn.addEventListener("click", () => {
   aiConnectionAbortController?.abort();
   aiConnectionAbortController = null;
   settingsDialog.close();
+});
+webClipperSettingsDetails?.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-web-clipper-copy]");
+  if (!button) return;
+  copyWebClipperSetting(button.dataset.webClipperCopy, button);
 });
 if (themeSelect) {
   themeSelect.addEventListener("change", () => saveTheme(themeSelect.value));
