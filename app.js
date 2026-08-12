@@ -2853,6 +2853,15 @@ function renderNoteFlagButton(note = currentNote()) {
   noteFlagBtn.title = label;
 }
 
+function playNoteFlagAnimation(isFlagged) {
+  if (!noteFlagBtn) return;
+  noteFlagBtn.classList.remove("flag-rises", "flag-returns");
+  void noteFlagBtn.offsetWidth;
+  const animationClass = isFlagged ? "flag-rises" : "flag-returns";
+  noteFlagBtn.classList.add(animationClass);
+  noteFlagBtn.addEventListener("animationend", () => noteFlagBtn.classList.remove(animationClass), { once: true });
+}
+
 async function toggleCurrentNoteFlag() {
   const note = currentNote();
   if (!note) return;
@@ -8263,6 +8272,7 @@ if (webClipMode) webClipMode.addEventListener("change", () => { webClipUserMemoR
 window.addEventListener("message", receiveWebClipMessage);
 if (noteExportBtn) noteExportBtn.addEventListener("click", openNoteExportDialog);
 if (noteFlagBtn) noteFlagBtn.addEventListener("click", () => {
+  playNoteFlagAnimation(!Boolean(currentNote()?.isFlagged));
   toggleCurrentNoteFlag().catch((error) => {
     console.error("Note flag toggle failed", error);
     setSaveStatus("error");

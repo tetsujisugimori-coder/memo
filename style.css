@@ -27,6 +27,8 @@
   --gold: #a66b1f;
   --green: #497346;
   --danger: #9b3131;
+  --note-flag: #c8323a;
+  --note-flag-soft: #fde8e9;
   --code-comment: #6f776f;
   --code-keyword: #7a3e9d;
   --code-string: #28734f;
@@ -76,6 +78,8 @@ body.dark {
   --gold: #e2aa54;
   --green: #90c986;
   --danger: #ef8f8f;
+  --note-flag: #ff7b85;
+  --note-flag-soft: #54272c;
   --code-comment: #9aa69d;
   --code-keyword: #d5a6ff;
   --code-string: #8bd5b0;
@@ -864,7 +868,7 @@ body.collections-open .collection-explorer {
   overflow-wrap: anywhere;
 }
 
-.note-flag-indicator { flex: 0 0 auto; color: var(--accent); font-size: 15px; line-height: 1; }
+.note-flag-indicator { flex: 0 0 auto; color: var(--note-flag); font-size: 15px; line-height: 1; }
 
 .memo-snippet {
   margin-top: 5px;
@@ -1501,9 +1505,28 @@ body.collections-open .collection-explorer {
   font-size: 17px;
   line-height: 1;
 }
-.note-flag-button:hover, .note-flag-button:focus-visible { border-color: var(--accent); color: var(--accent); }
-.note-flag-button:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--accent-soft); }
-.note-flag-button.is-flagged { border-color: var(--accent); background: var(--accent); color: var(--paper); }
+.note-flag-button > span { display: inline-block; }
+.note-flag-button:hover, .note-flag-button:focus-visible { border-color: var(--note-flag); color: var(--note-flag); }
+.note-flag-button:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--note-flag-soft); }
+.note-flag-button.is-flagged { border-color: var(--note-flag); background: var(--note-flag); color: var(--paper); }
+.note-flag-button.flag-rises > span { animation: note-flag-rise 260ms cubic-bezier(.2, .8, .25, 1); }
+.note-flag-button.flag-returns > span { animation: note-flag-return 220ms ease-out; }
+
+@keyframes note-flag-rise {
+  0% { transform: translateY(4px) scale(.9); opacity: .7; }
+  62% { transform: translateY(-2px) scale(1.08); opacity: 1; }
+  100% { transform: translateY(0) scale(1); }
+}
+
+@keyframes note-flag-return {
+  0% { transform: translateY(-1px) scale(1.04); }
+  100% { transform: translateY(2px) scale(.96); opacity: .82; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .note-flag-button.flag-rises > span,
+  .note-flag-button.flag-returns > span { animation: none; }
+}
 
 .save-status {
   color: var(--accent);
