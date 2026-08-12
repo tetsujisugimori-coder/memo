@@ -2864,10 +2864,8 @@ function playNoteFlagAnimation(isFlagged) {
   nextIcon.dataset.animationToken = String(noteFlagAnimationToken);
   noteFlagBtn.replaceChild(nextIcon, icon);
   const animationClass = isFlagged ? "flag-rises" : "flag-returns";
-  requestAnimationFrame(() => {
-    if (nextIcon.dataset.animationToken !== String(noteFlagAnimationToken)) return;
-    nextIcon.classList.add(animationClass);
-  });
+  void nextIcon.offsetWidth;
+  nextIcon.classList.add(animationClass);
   nextIcon.addEventListener("animationend", (event) => {
     if (event.target === nextIcon) nextIcon.classList.remove(animationClass);
   }, { once: true });

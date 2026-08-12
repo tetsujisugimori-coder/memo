@@ -12,14 +12,15 @@ test("旗だけを再マウントして毎回アニメーションを再生す�
   assert.match(html, /class="note-flag-icon"/);
   assert.match(app, /const nextIcon = icon\.cloneNode\(true\)/);
   assert.match(app, /noteFlagBtn\.replaceChild\(nextIcon, icon\)/);
-  assert.match(app, /requestAnimationFrame\(\(\) =>/);
+  assert.match(app, /void nextIcon\.offsetWidth/);
   assert.match(app, /nextIcon\.classList\.remove\(animationClass\)/);
   assert.match(app, /prefers-reduced-motion: reduce/);
 });
 
 test("タイトル操作部と保存状態は固定領域で、旗だけを変形する", () => {
-  assert.match(css, /\.title-side-head\s*\{[^}]*grid-template-columns:\s*30px 30px 30px 126px/s);
-  assert.match(css, /\.save-status\s*\{[^}]*width:\s*126px/s);
+  assert.match(css, /\.title-side\s*\{[^}]*box-sizing:\s*border-box[^}]*width:\s*254px[^}]*padding:\s*12px 16px 10px 0/s);
+  assert.match(css, /\.title-side-head\s*\{[^}]*grid-template-columns:\s*30px 30px 30px minmax\(0, 1fr\)/s);
+  assert.match(css, /\.save-status\s*\{[^}]*min-width:\s*0[^}]*overflow:\s*hidden[^}]*text-overflow:\s*ellipsis/s);
   assert.match(css, /\.note-flag-icon\.flag-rises\s*\{[^}]*animation:/s);
   assert.doesNotMatch(css, /\.note-flag-button\.flag-rises\s*\{/);
   assert.match(css, /@media \(prefers-reduced-motion: reduce\)/);
@@ -28,6 +29,7 @@ test("タイトル操作部と保存状態は固定領域で、旗だけを変�
 test("タイトルのフォーカス枠は専用ラッパーだけに収める", () => {
   assert.match(html, /<div class="title-input-wrap"><input id="titleInput"/);
   assert.match(css, /\.title-input-wrap\s*\{[^}]*min-width:\s*0/s);
+  assert.match(css, /\.title-input-wrap\s*\{[^}]*overflow:\s*hidden/s);
   assert.match(css, /\.title-input-wrap:focus-within\s*\{[^}]*border-color:\s*var\(--accent\)/s);
   assert.doesNotMatch(css, /\.title-input:focus,/);
   assert.match(css, /\.title-input\s*\{[^}]*box-sizing:\s*border-box/s);
