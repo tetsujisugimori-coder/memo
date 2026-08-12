@@ -649,6 +649,7 @@ const termRelationCache = createTermRelationCache();
 let previewAutomaticTerms = [];
 let saveStatusState = "saved";
 let saveStatusTime = null;
+let noteFlagAnimationToken = 0;
 let mermaidConfiguredTheme = null;
 let mermaidRenderGeneration = 0;
 let mermaidRenderQueue = Promise.resolve();
@@ -2855,11 +2856,21 @@ function renderNoteFlagButton(note = currentNote()) {
 
 function playNoteFlagAnimation(isFlagged) {
   if (!noteFlagBtn) return;
-  noteFlagBtn.classList.remove("flag-rises", "flag-returns");
-  void noteFlagBtn.offsetWidth;
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const icon = noteFlagBtn.querySelector(".note-flag-icon");
+  if (!icon) return;
+  const nextIcon = icon.cloneNode(true);
+  noteFlagAnimationToken += 1;
+  nextIcon.dataset.animationToken = String(noteFlagAnimationToken);
+  noteFlagBtn.replaceChild(nextIcon, icon);
   const animationClass = isFlagged ? "flag-rises" : "flag-returns";
-  noteFlagBtn.classList.add(animationClass);
-  noteFlagBtn.addEventListener("animationend", () => noteFlagBtn.classList.remove(animationClass), { once: true });
+  requestAnimationFrame(() => {
+    if (nextIcon.dataset.animationToken !== String(noteFlagAnimationToken)) return;
+    nextIcon.classList.add(animationClass);
+  });
+  nextIcon.addEventListener("animationend", (event) => {
+    if (event.target === nextIcon) nextIcon.classList.remove(animationClass);
+  }, { once: true });
 }
 
 async function toggleCurrentNoteFlag() {
