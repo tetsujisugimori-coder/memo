@@ -307,7 +307,9 @@ const {
   buildWebClipMarkdown,
   replaceWebClipImageMarkers,
   webClipImageFailureMarkdown,
-  readWebClipFragment
+  readWebClipFragment,
+  isWebClipperVersionCompatible,
+  webClipUrlWithoutLaunchMarker
 } = window.MemoNexusWebClipUtils;
 const { createTermRelationCache, extractExplicitTerms, findAutomaticTermMatches, findTermCountMatches, termColor } = window.MemoNexusTermLinkUtils;
 const { openCalculatorMemo } = window.MemoNexusCalculatorLink;
@@ -692,6 +694,7 @@ let collectionToastTimer = null;
 let webClipReceiverReady = false;
 let pendingWebClipImages = [];
 let pendingWebClipOmittedImageCount = 0;
+let pendingWebClipDiagnostics = {};
 const WEB_CLIPPER_RECEIPT_STORAGE_KEY = "memoNexusWebClipperLastReceipt";
 let editingCollectionId = null;
 let draggedCollectionId = null;
@@ -829,10 +832,16 @@ async function init() {
     await openSettingsDialog();
   }
   webClipReceiverReady = true;
+  const webClipLaunchRequested = new URLSearchParams(location.search).has("web-clip");
   const webClipFragment = consumeWebClipFragment();
-  if (new URLSearchParams(location.search).has("web-clip") || webClipFragment.present) {
-    openWebClipDialog(webClipFragment.clip, webClipFragment.error);
-    if (webClipFragment.transferId) window.postMessage({ type: "memo-nexus-web-clip-content-ready", transferId: webClipFragment.transferId }, location.origin);
+  try {
+    if (webClipLaunchRequested || webClipFragment.present) {
+      if (webClipFragment.clip) recordWebClipperReceipt(null, webClipFragment.clip);
+      openWebClipDialog(webClipFragment.clip, webClipFragment.error);
+      if (webClipFragment.transferId) window.postMessage({ type: "memo-nexus-web-clip-content-ready", transferId: webClipFragment.transferId }, location.origin);
+    }
+  } finally {
+    if (webClipLaunchRequested) consumeWebClipLaunchMarker();
   }
   notifyWebClipOpenerReady();
   if (!settingsDialog.open) {
@@ -2415,15 +2424,30 @@ function webClipperAppUrl() {
 function readLastWebClipperReceipt() {
   try {
     const receipt = JSON.parse(localStorage.getItem(WEB_CLIPPER_RECEIPT_STORAGE_KEY) || "null");
-    if (!isWebClipperOrigin(receipt?.origin) || !Number.isFinite(Date.parse(receipt.receivedAt))) return null;
-    return { origin: receipt.origin, receivedAt: new Date(receipt.receivedAt).toISOString() };
+    if ((receipt?.origin && !isWebClipperOrigin(receipt.origin)) || !Number.isFinite(Date.parse(receipt?.receivedAt))) return null;
+    return {
+      origin: receipt.origin || "",
+      receivedAt: new Date(receipt.receivedAt).toISOString(),
+      extensionVersion: String(receipt.extensionVersion || "").slice(0, 40),
+      manifestVersion: Math.max(0, Math.floor(Number(receipt.manifestVersion) || 0)),
+      browserFamily: String(receipt.browserFamily || "").slice(0, 40),
+      targetEnvironment: ["development", "production"].includes(receipt.targetEnvironment) ? receipt.targetEnvironment : ""
+    };
   } catch (_) {
     return null;
   }
 }
 
-function recordWebClipperReceipt(origin) {
-  const receipt = { origin, receivedAt: new Date().toISOString() };
+function recordWebClipperReceipt(origin, clip = {}) {
+  const normalized = normalizeWebClip(clip);
+  const receipt = {
+    origin: isWebClipperOrigin(origin) ? origin : "",
+    receivedAt: new Date().toISOString(),
+    extensionVersion: normalized.extensionVersion,
+    manifestVersion: normalized.manifestVersion,
+    browserFamily: normalized.browserFamily,
+    targetEnvironment: normalized.targetEnvironment
+  };
   try {
     localStorage.setItem(WEB_CLIPPER_RECEIPT_STORAGE_KEY, JSON.stringify(receipt));
   } catch (_) {
@@ -2436,7 +2460,7 @@ function renderWebClipperSettings() {
   if (!webClipperSettingsDetails) return;
   const origins = allowedWebClipperOrigins();
   const receipt = readLastWebClipperReceipt();
-  const status = receipt ? (origins.includes(receipt.origin) ? "許可済み" : "未許可") : "未受信";
+  const status = receipt ? (!receipt.origin ? "転送受信済み" : origins.includes(receipt.origin) ? "許可済み" : "未許可") : "未受信";
   const originRows = origins.length
     ? origins.map((origin) => {
       const extensionId = origin.slice("chrome-extension://".length);
@@ -2458,7 +2482,11 @@ function renderWebClipperSettings() {
     <section class="web-clipper-settings-group" aria-labelledby="webClipperConnectionHeading">
       <h3 id="webClipperConnectionHeading">接続状態</h3>
       <dl class="settings-details web-clipper-connection-details" role="status" aria-live="polite">
-        <dt>最後に受信した送信元Origin</dt><dd>${escapeHtml(receipt?.origin || "まだ受信していません")}</dd>
+        <dt>最後に受信した送信元Origin</dt><dd>${escapeHtml(receipt?.origin || (receipt ? "転送経路（Originなし）" : "まだ受信していません"))}</dd>
+        <dt>拡張バージョン</dt><dd>${escapeHtml(receipt?.extensionVersion || (receipt ? "不明（旧版）" : "まだ受信していません"))}</dd>
+        <dt>Manifest</dt><dd>${receipt?.manifestVersion || "—"}</dd>
+        <dt>ブラウザ</dt><dd>${escapeHtml(receipt?.browserFamily || "—")}</dd>
+        <dt>接続先</dt><dd>${escapeHtml(receipt?.targetEnvironment || "—")}</dd>
         <dt>状態</dt><dd>${status}</dd>
         <dt>最終受信日時</dt><dd>${lastReceivedAt}</dd>
       </dl>
@@ -2690,6 +2718,20 @@ function consumeWebClipFragment() {
     : { present: true, clip: null, error: "クリップデータを読み取れませんでした。元のページからもう一度実行してください。" };
 }
 
+function consumeWebClipLaunchMarker() {
+  if (!new URLSearchParams(location.search).has("web-clip")) return false;
+  history.replaceState(history.state, "", webClipUrlWithoutLaunchMarker(location.href));
+  return true;
+}
+
+function webClipperCompatibilityWarning(clip) {
+  if (!clip) return "";
+  const minimum = window.MemoNexusWebClipperConfig?.minimumCompatibleVersion || "0.3.0";
+  const current = String(clip.extensionVersion || "").trim();
+  if (isWebClipperVersionCompatible(current, minimum)) return "";
+  return `古いWeb Clipperが動作しています。拡張機能を更新してください。現在: ${current || "不明"}／必要: ${minimum}以上`;
+}
+
 function openWebClipDialog(clip = null, receiveError = "") {
   if (!webClipDialog || !webClipReceiverReady) return;
   const normalized = normalizeWebClip(clip || { capturedAt: new Date().toISOString() });
@@ -2700,11 +2742,19 @@ function openWebClipDialog(clip = null, receiveError = "") {
   webClipMode.value = normalized.clipMode;
   pendingWebClipImages = normalized.images;
   pendingWebClipOmittedImageCount = normalized.omittedImageCount;
+  pendingWebClipDiagnostics = {
+    extensionVersion: normalized.extensionVersion,
+    manifestVersion: normalized.manifestVersion,
+    browserFamily: normalized.browserFamily,
+    targetEnvironment: normalized.targetEnvironment
+  };
   webClipUserMemo.value = normalized.userMemo;
   webClipUserMemoRow.hidden = normalized.clipMode !== "memo";
   webClipCapturedAt.value = normalized.capturedAt;
   webClipError.textContent = "";
-  webClipReceivedStatus.textContent = receiveError || (clip ? "拡張からクリップ候補を受け取りました。内容を確認して保存してください。" : "タイトル・URL・本文を入力して、通常メモとして保存できます。");
+  const compatibilityWarning = webClipperCompatibilityWarning(clip ? normalized : null);
+  webClipReceivedStatus.textContent = [receiveError, compatibilityWarning].filter(Boolean).join(" ")
+    || (clip ? "拡張からクリップ候補を受け取りました。内容を確認して保存してください。" : "タイトル・URL・本文を入力して、通常メモとして保存できます。");
   fillWebClipCollection(selectedCollectionId);
   renderWebClipImages();
   if (!webClipDialog.open) webClipDialog.showModal();
@@ -2728,11 +2778,17 @@ async function saveWebClip({ textOnly = false } = {}) {
     clipMode: webClipMode.value,
     userMemo: webClipUserMemo.value,
     capturedAt: webClipCapturedAt.value,
+    ...pendingWebClipDiagnostics,
     images: textOnly ? pendingWebClipImages.map((image) => ({ ...image, selected: false })) : pendingWebClipImages,
     omittedImageCount: pendingWebClipOmittedImageCount
   });
   const title = clip.title || clip.host || "Webクリップ";
-  const source = { type: "web-clip", clipMode: clip.clipMode, userMemo: clip.userMemo || null, title: clip.title, url: clip.url || null, host: clip.host || null, capturedAt: clip.capturedAt };
+  const source = {
+    type: "web-clip", clipMode: clip.clipMode, userMemo: clip.userMemo || null, title: clip.title,
+    url: clip.url || null, host: clip.host || null, capturedAt: clip.capturedAt,
+    extensionVersion: clip.extensionVersion || null, manifestVersion: clip.manifestVersion || null,
+    browserFamily: clip.browserFamily || null, targetEnvironment: clip.targetEnvironment || null
+  };
   webClipError.textContent = "";
   if (saveWebClipBtn) saveWebClipBtn.disabled = true;
   if (saveWebClipTextOnlyBtn) saveWebClipTextOnlyBtn.disabled = true;
@@ -2765,6 +2821,7 @@ async function saveWebClipFromDialog(event) {
 function receiveWebClipMessage(event) {
   if (event.source === window && event.origin === location.origin && event.data?.type === "memo-nexus-web-clip-transfer") {
     if (!/^[a-f0-9-]{36}$/i.test(event.data.transferId || "")) return;
+    recordWebClipperReceipt(null, event.data.clip);
     openWebClipDialog(event.data.clip);
     window.postMessage({ type: "memo-nexus-web-clip-transfer-ack", transferId: event.data.transferId }, location.origin);
     return;
@@ -2774,7 +2831,7 @@ function receiveWebClipMessage(event) {
   }
   if (event.data?.type !== "memo-nexus-web-clip") return;
   if (!isWebClipperOrigin(event.origin)) return;
-  recordWebClipperReceipt(event.origin);
+  recordWebClipperReceipt(event.origin, event.data.clip);
   if (!webClipReceiverReady || !allowedWebClipperOrigins().includes(event.origin)) return;
   openWebClipDialog(event.data.clip);
 }

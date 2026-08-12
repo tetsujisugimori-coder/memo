@@ -10,7 +10,11 @@ const userMemo = document.getElementById("userMemo");
 const userMemoRow = document.getElementById("userMemoRow");
 const modeStatus = document.getElementById("modeStatus");
 const extensionVersion = document.getElementById("extensionVersion");
+const environmentStatus = document.getElementById("environmentStatus");
+const updateStatus = document.getElementById("updateStatus");
+const updateManager = globalThis.MemoNexusClipperUpdateManager;
 let clip = null;
+let clipOperationActive = false;
 
 extensionVersion.textContent = chrome.runtime.getManifest().version;
 
@@ -22,6 +26,101 @@ Object.entries(config.targets).forEach(([key, value]) => {
   target.append(option);
 });
 target.value = config.defaultTarget;
+
+function browserFamily() {
+  const userAgent = navigator.userAgent || "";
+  if (/Edg\//.test(userAgent)) return "Edge";
+  if (/Chrome\//.test(userAgent)) return "Chrome";
+  if (/Firefox\//.test(userAgent)) return "Firefox";
+  return "Chromium";
+}
+
+function extensionDiagnostics() {
+  const manifest = chrome.runtime.getManifest();
+  return {
+    extensionVersion: manifest.version,
+    manifestVersion: manifest.manifest_version,
+    browserFamily: browserFamily(),
+    targetEnvironment: target.value
+  };
+}
+
+function updateEnvironmentStatus() {
+  environmentStatus.textContent = target.value === "development"
+    ? "開発環境・自動更新確認あり"
+    : "本番環境・Edge自動更新";
+}
+
+async function restoreTargetEnvironment() {
+  const key = config.storage.targetKey;
+  try {
+    const stored = await chrome.storage.local.get(key);
+    if (Object.hasOwn(config.targets, stored[key])) target.value = stored[key];
+  } catch (_) {}
+  updateEnvironmentStatus();
+}
+
+async function saveTargetEnvironment() {
+  await chrome.storage.local.set({ [config.storage.targetKey]: target.value });
+  updateEnvironmentStatus();
+}
+
+async function hasPendingClipTransfer() {
+  if (clipOperationActive) return true;
+  const stored = await chrome.storage.local.get(null);
+  return Object.keys(stored).some((key) => key.startsWith("memoNexusTransfer:"));
+}
+
+async function checkDevelopmentUpdate() {
+  updateEnvironmentStatus();
+  if (target.value !== "development") {
+    updateStatus.textContent = "更新はEdgeアドオンの標準機構に任せます。";
+    return false;
+  }
+  const settings = config.updates.development;
+  if (settings?.strategy !== "local-manifest") return false;
+  try {
+    const response = await fetch(settings.manifestUrl, { cache: "no-store" });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const remoteManifest = await response.json();
+    const attemptKey = config.storage.reloadAttemptKey;
+    const stored = await chrome.storage.local.get(attemptKey);
+    const decision = updateManager.decideDevelopmentUpdate({
+      environment: target.value,
+      currentVersion: chrome.runtime.getManifest().version,
+      latestVersion: remoteManifest.version,
+      previousAttempt: stored[attemptKey],
+      hasPendingTransfer: await hasPendingClipTransfer()
+    });
+    if (decision.action === "continue") {
+      updateStatus.textContent = decision.reason === "up-to-date" ? "ローカル開発版は最新です。" : "開発版のバージョンを確認できませんでした。";
+      if (decision.reason === "up-to-date" && stored[attemptKey]) await chrome.storage.local.remove(attemptKey);
+      return false;
+    }
+    if (decision.action === "defer") {
+      updateStatus.textContent = `開発版 ${decision.targetVersion} への更新はクリップ転送完了後に確認します。`;
+      return false;
+    }
+    if (decision.action === "manual") {
+      updateStatus.textContent = `開発版 ${decision.targetVersion} を反映できませんでした。Edgeが別の拡張機能フォルダを読み込んでいる可能性があります。edge://extensions/ で読み込み元を確認してください。`;
+      return false;
+    }
+    if (decision.action === "reload") {
+      updateStatus.textContent = `開発版 ${decision.targetVersion} を検出しました。拡張機能を再読み込みします。完了後に拡張アイコンをもう一度押してください。`;
+      await chrome.storage.local.set({
+        [attemptKey]: { targetVersion: decision.targetVersion, sourceVersion: chrome.runtime.getManifest().version, attemptedAt: new Date().toISOString() }
+      });
+      await new Promise((resolve) => setTimeout(resolve, 450));
+      chrome.runtime.reload();
+      return true;
+    }
+    return false;
+  } catch (cause) {
+    console.info("Memo-Nexus Web Clipper development update check skipped", cause);
+    updateStatus.textContent = "開発サーバーへ接続できないため更新確認を省略しました。クリップ機能は通常どおり利用できます。";
+    return false;
+  }
+}
 
 async function readActivePage() {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -58,7 +157,7 @@ function updateModeUi() {
 
 async function buildClipForMode() {
   const mode = clipMode.value;
-  const base = { ...clip, clipMode: mode, userMemo: mode === "memo" ? userMemo.value : "" };
+  const base = { ...clip, ...extensionDiagnostics(), clipMode: mode, userMemo: mode === "memo" ? userMemo.value : "" };
   if (mode === "link" || mode === "memo") return { clip: { ...base, selection: mode === "link" ? "" : base.selection, images: [] }, transfer: false };
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   if (!tab?.id) throw new Error("page-injection-failed");
@@ -155,23 +254,48 @@ async function sendToMemoNexus() {
   const destination = config.targets[target.value];
   error.textContent = "";
   send.disabled = true;
-  const payload = await buildClipForMode();
-  let transferId = "";
-  if (payload.transfer) {
-    transferId = crypto.randomUUID();
-    await chrome.storage.local.set({ [`memoNexusTransfer:${transferId}`]: { clip: payload.clip, createdAt: Date.now() } });
+  clipOperationActive = true;
+  try {
+    const payload = await buildClipForMode();
+    let transferId = "";
+    if (payload.transfer) {
+      transferId = crypto.randomUUID();
+      await chrome.storage.local.set({ [`memoNexusTransfer:${transferId}`]: { clip: payload.clip, createdAt: Date.now() } });
+    }
+    const receiver = window.open(MemoNexusClipPayload.buildWebClipDestination(destination, payload.clip, { transfer: payload.transfer, transferId }), "_blank");
+    if (!receiver) throw new Error("Memo-Nexusを開けませんでした。ポップアップの許可を確認してください。");
+    window.close();
+  } catch (cause) {
+    clipOperationActive = false;
+    throw cause;
   }
-  const receiver = window.open(MemoNexusClipPayload.buildWebClipDestination(destination, payload.clip, { transfer: payload.transfer, transferId }), "_blank");
-  if (!receiver) throw new Error("Memo-Nexusを開けませんでした。ポップアップの許可を確認してください。");
-  window.close();
 }
 
-readActivePage().then(showClip).catch((cause) => {
-  console.error("Memo-Nexus Web Clipper could not read the active page", cause);
-  error.textContent = "このページはクリップできません。通常のWebページでお試しください。";
-  selectionStatus.textContent = "このページではクリップできません。";
-});
+async function initializePopup() {
+  await restoreTargetEnvironment();
+  if (await checkDevelopmentUpdate()) return;
+  try {
+    showClip(await readActivePage());
+  } catch (cause) {
+    console.error("Memo-Nexus Web Clipper could not read the active page", cause);
+    error.textContent = "このページはクリップできません。通常のWebページでお試しください。";
+    selectionStatus.textContent = "このページではクリップできません。";
+  }
+}
+
+initializePopup();
 clipMode.addEventListener("change", updateModeUi);
+target.addEventListener("change", async () => {
+  send.disabled = true;
+  try {
+    await saveTargetEnvironment();
+    const reloading = await checkDevelopmentUpdate();
+    if (!reloading && clip) send.disabled = false;
+  } catch (cause) {
+    console.info("Memo-Nexus Web Clipper target setting could not be saved", cause);
+    if (clip) send.disabled = false;
+  }
+});
 send.addEventListener("click", () => sendToMemoNexus().catch((cause) => {
   console.error("Memo-Nexus Web Clipper could not open Memo-Nexus", cause);
   error.textContent = cause?.code === "clip-too-large"
@@ -186,4 +310,5 @@ send.addEventListener("click", () => sendToMemoNexus().catch((cause) => {
       ? "ページ本文をMarkdownへ変換できませんでした。選択部分またはリンクのみでお試しください。"
     : "クリップを開始できませんでした。もう一度お試しください。";
   send.disabled = false;
+  clipOperationActive = false;
 }));

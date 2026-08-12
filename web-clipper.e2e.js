@@ -59,6 +59,8 @@ const avifImage = Buffer.from(fs.readFileSync(path.join(root, "extensions", "web
 const svgImage = Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" width="160" height="120"><script>fetch("http://127.0.0.1:5501/svg-script-called")</script><image href="http://127.0.0.1:5501/svg-external" width="10" height="10"/><rect width="160" height="120" fill="#d33"/><text x="12" y="65" fill="white">SVG</text></svg>');
 const generatedRaster = { jpeg: Buffer.alloc(0), webp: Buffer.alloc(0) };
 let unsafeSvgRequests = 0;
+let developmentManifestRequests = 0;
+let developmentManifestUnavailable = false;
 
 function articleHtml() {
   const decorativeSvg = Array.from({ length: 25 }, (_, index) => `<img class="share-icon" src="${appUrl}safe.svg?icon=${index}" alt="共有アイコン" width="160" height="120">`).join("");
@@ -95,6 +97,13 @@ function server() {
     if (url.pathname === "/sample.avif") {
       response.writeHead(200, { "content-type": "image/avif", "content-length": avifImage.length });
       return response.end(avifImage);
+    }
+    if (url.pathname === "/extensions/web-clipper/manifest.json") {
+      developmentManifestRequests += 1;
+      if (developmentManifestUnavailable) {
+        response.writeHead(503, { "content-type": "application/json" });
+        return response.end('{"error":"development server unavailable"}');
+      }
     }
     if (url.pathname === "/no-ack.html") {
       response.writeHead(200, { "content-type": "text/html; charset=utf-8" });
@@ -160,7 +169,7 @@ async function openPopup(context, worker, extensionId) {
   const popup = await popupPromise;
   try {
     await popup.locator("#send:not([disabled])").waitFor({ timeout: 5000 });
-    assert.equal(await popup.locator("#extensionVersion").textContent(), "0.3.0");
+    assert.equal(await popup.locator("#extensionVersion").textContent(), "0.3.1");
   } catch (cause) {
     throw new Error(`popup did not become ready: status=${await popup.locator("#selectionStatus").textContent()} error=${await popup.locator("#error").textContent()} (${cause.message})`);
   }
@@ -236,16 +245,53 @@ async function main() {
       const range = document.createRange(); range.selectNodeContents(node); const selection = getSelection(); selection.removeAllRanges(); selection.addRange(range);
     }, selectionText);
 
+    developmentManifestUnavailable = true;
+    const offlineDevelopmentPopup = await openPopup(context, worker, extensionId);
+    assert.match(await offlineDevelopmentPopup.locator("#updateStatus").textContent(), /更新確認を省略しました。クリップ機能は通常どおり利用できます/);
+    developmentManifestUnavailable = false;
+    await offlineDevelopmentPopup.close();
+
+    const targetPopup = await openPopup(context, worker, extensionId);
+    assert.match(await targetPopup.locator("#environmentStatus").textContent(), /開発環境・自動更新確認あり/);
+    await targetPopup.selectOption("#target", "production");
+    await targetPopup.waitForFunction(() => document.querySelector("#environmentStatus")?.textContent.includes("本番環境・Edge自動更新"));
+    const manifestRequestsBeforeProductionReopen = developmentManifestRequests;
+    await targetPopup.close();
+    const persistedTargetPopup = await openPopup(context, worker, extensionId);
+    assert.equal(await persistedTargetPopup.locator("#target").inputValue(), "production");
+    assert.match(await persistedTargetPopup.locator("#environmentStatus").textContent(), /本番環境・Edge自動更新/);
+    assert.equal(developmentManifestRequests, manifestRequestsBeforeProductionReopen, "production popup contacted the development manifest");
+    await persistedTargetPopup.selectOption("#target", "development");
+    await persistedTargetPopup.waitForFunction(() => document.querySelector("#environmentStatus")?.textContent.includes("開発環境・自動更新確認あり"));
+    await persistedTargetPopup.close();
+
     for (const mode of ["selection", "link", "memo"]) {
       const { popup, receiver } = await capture(context, worker, extensionId, mode);
+      assert.equal(new URL(receiver.url()).searchParams.has("web-clip"), false, "one-time launch marker remained in the URL");
+      assert.equal(new URL(receiver.url()).hash, "", "clip payload remained in the URL");
       assert.equal(await receiver.locator("#webClipMode").inputValue(), mode);
       assert.equal(await receiver.locator("#webClipTitle").inputValue(), "E2E記事タイトル");
       assert.equal(await receiver.locator("#webClipUrl").inputValue(), articleUrl);
       if (mode === "link") assert.equal(await receiver.locator("#webClipSelection").inputValue(), "");
       else assert.match(await receiver.locator("#webClipSelection").inputValue(), new RegExp(selectionText));
       if (mode === "memo") assert.equal(await receiver.locator("#webClipUserMemo").inputValue(), "E2Eメモ: あとで確認");
+      if (mode === "link") {
+        await receiver.locator("#cancelWebClipBtn").click();
+        await receiver.reload();
+        assert.equal(await receiver.locator("#webClipDialog").getAttribute("open"), null, "web clip dialog reopened after marker consumption");
+      }
       if (!popup.isClosed()) await popup.close(); await receiver.close();
     }
+
+    const invalidLaunch = await context.newPage();
+    await invalidLaunch.goto(`${appUrl}?foo=bar&web-clip=1&web-clip=2#clip=invalid`);
+    await invalidLaunch.locator("#webClipDialog[open]").waitFor();
+    assert.equal(invalidLaunch.url(), `${appUrl}?foo=bar`, "failed clip receipt did not consume only the launch marker");
+    assert.match(await invalidLaunch.locator("#webClipReceivedStatus").textContent(), /クリップデータを読み取れませんでした/);
+    await invalidLaunch.locator("#cancelWebClipBtn").click();
+    await invalidLaunch.reload();
+    assert.equal(await invalidLaunch.locator("#webClipDialog").getAttribute("open"), null, "failed clip dialog reopened after reload");
+    await invalidLaunch.close();
 
     const cdp = await context.newCDPSession(source);
     const targets = await cdp.send("Target.getTargets");
@@ -313,6 +359,20 @@ async function main() {
     const savedBody = await receiver.locator("#editor").inputValue();
     assert.match(savedBody, /attachment:\/\//);
     assert.match(savedBody, /画像を保存できませんでした: 取得失敗画像/);
+    const savedClipSource = await receiver.evaluate(() => new Promise((resolve, reject) => {
+      const request = indexedDB.open("memo-nexus");
+      request.onerror = () => reject(request.error);
+      request.onsuccess = () => {
+        const all = request.result.transaction("notes").objectStore("notes").getAll();
+        all.onerror = () => reject(all.error);
+        all.onsuccess = () => resolve(all.result.find((note) => note.source?.type === "web-clip" && note.source?.clipMode === "page")?.source || null);
+      };
+    }));
+    assert.deepEqual({
+      extensionVersion: savedClipSource?.extensionVersion,
+      manifestVersion: savedClipSource?.manifestVersion,
+      targetEnvironment: savedClipSource?.targetEnvironment
+    }, { extensionVersion: "0.3.1", manifestVersion: 3, targetEnvironment: "development" });
     const storedAttachments = await receiver.evaluate(() => new Promise((resolve, reject) => {
       const request = indexedDB.open("memo-nexus");
       request.onerror = () => reject(request.error);

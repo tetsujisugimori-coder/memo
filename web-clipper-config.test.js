@@ -22,12 +22,15 @@ test("Web Clipperは登録済みの拡張originだけを許可する", () => {
   assert.ok(app.includes("^chrome-extension:\\/\\/[a-p]{32}$"));
 });
 
-test("設定画面は許可判定と同じOrigin一覧・接続状態だけを表示する", () => {
+test("設定画面は許可判定と同じOrigin一覧・接続状態・受信版を表示する", () => {
   assert.match(app, /const origins = allowedWebClipperOrigins\(\);/);
   assert.match(app, /許可済みWeb Clipper送信元/);
   assert.match(app, /最後に受信した送信元Origin/);
   assert.match(app, /まだ受信していません/);
-  assert.match(app, /recordWebClipperReceipt\(event\.origin\)/);
+  assert.match(app, /recordWebClipperReceipt\(event\.origin, event\.data\.clip\)/);
+  assert.match(app, /拡張バージョン/);
+  assert.match(config, /minimumCompatibleVersion: "0\.3\.0"/);
+  assert.match(app, /古いWeb Clipperが動作しています。拡張機能を更新してください。/);
   assert.doesNotMatch(app, /Memo-Nexus独自の受信ID/);
 });
 

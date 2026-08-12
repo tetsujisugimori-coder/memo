@@ -18,6 +18,44 @@
     return String(value || "").replace(/\u0000/g, "").trim().slice(0, limit);
   }
 
+  function parseSemanticVersion(value) {
+    const match = String(value || "").trim().match(/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-([0-9A-Za-z.-]+))?(?:\+[0-9A-Za-z.-]+)?$/);
+    if (!match) return null;
+    return { numbers: match.slice(1, 4).map(Number), prerelease: match[4] ? match[4].split(".") : [] };
+  }
+
+  function compareSemanticVersions(left, right) {
+    const a = parseSemanticVersion(left);
+    const b = parseSemanticVersion(right);
+    if (!a || !b) return null;
+    for (let index = 0; index < 3; index += 1) {
+      if (a.numbers[index] !== b.numbers[index]) return a.numbers[index] > b.numbers[index] ? 1 : -1;
+    }
+    if (!a.prerelease.length || !b.prerelease.length) return a.prerelease.length === b.prerelease.length ? 0 : a.prerelease.length ? -1 : 1;
+    const maximum = Math.max(a.prerelease.length, b.prerelease.length);
+    for (let index = 0; index < maximum; index += 1) {
+      if (a.prerelease[index] === undefined) return -1;
+      if (b.prerelease[index] === undefined) return 1;
+      const aNumber = /^\d+$/.test(a.prerelease[index]);
+      const bNumber = /^\d+$/.test(b.prerelease[index]);
+      if (aNumber && bNumber && Number(a.prerelease[index]) !== Number(b.prerelease[index])) return Number(a.prerelease[index]) > Number(b.prerelease[index]) ? 1 : -1;
+      if (aNumber !== bNumber) return aNumber ? -1 : 1;
+      if (a.prerelease[index] !== b.prerelease[index]) return a.prerelease[index] > b.prerelease[index] ? 1 : -1;
+    }
+    return 0;
+  }
+
+  function isWebClipperVersionCompatible(currentVersion, minimumVersion) {
+    const comparison = compareSemanticVersions(currentVersion, minimumVersion);
+    return comparison !== null && comparison >= 0;
+  }
+
+  function webClipUrlWithoutLaunchMarker(value) {
+    const url = new URL(String(value || ""), "http://localhost/");
+    url.searchParams.delete("web-clip");
+    return `${url.pathname}${url.search}${url.hash}`;
+  }
+
   function normalizeWebClipImage(value, index) {
     const input = value && typeof value === "object" ? value : {};
     const token = /^web-clip-image-[1-9][0-9]*$/.test(String(input.token || ""))
@@ -66,6 +104,10 @@
       host: cleanText(input.host, 255),
       clipMode,
       userMemo: cleanText(input.userMemo, 1000),
+      extensionVersion: cleanText(input.extensionVersion, 40),
+      manifestVersion: Math.max(0, Math.floor(Number(input.manifestVersion) || 0)),
+      browserFamily: cleanText(input.browserFamily, 40),
+      targetEnvironment: ["development", "production"].includes(input.targetEnvironment) ? input.targetEnvironment : "",
       selection: cleanText(input.selection, input.clipMode === "page" ? MAX_WEB_CLIP_PAGE_LENGTH : MAX_WEB_CLIP_SELECTION_LENGTH),
       capturedAt: Number.isFinite(Date.parse(input.capturedAt)) ? new Date(input.capturedAt).toISOString() : new Date().toISOString(),
       images,
@@ -171,6 +213,10 @@
     MAX_WEB_CLIP_FRAGMENT_LENGTH,
     MAX_WEB_CLIP_IMAGES,
     MAX_WEB_CLIP_IMAGE_BYTES,
+    compareSemanticVersions,
+    isWebClipperVersionCompatible,
+    parseSemanticVersion,
+    webClipUrlWithoutLaunchMarker,
     safeExternalUrl,
     normalizeWebClip,
     buildWebClipMarkdown,

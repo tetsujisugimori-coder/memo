@@ -1596,3 +1596,12 @@
 * GIFを既存画像添付へ追加し、署名と縦横サイズを検証してCanvas圧縮を通さず元バイト列のまま保存・表示・Markdown ZIP往復できるようにした。SVGとAVIFは追加した`offscreen`権限で必要時だけOffscreen Documentを作り、SVGのスクリプト、イベント、`foreignObject`、アニメーション要素、外部参照を除去してからWebP（利用不可時はPNG）へ変換する。AVIFもデコード可能な環境では同じ変換経路を使い、元MIMEと変換有無を添付メタデータへ保持する。
 * Playwright 1.56.1付属Chromium 141のpersistent contextへ実際のManifest V3拡張を読み込み、2オリジン間のリダイレクトJPEG、octet-stream PNG、クエリ付きWebP、複数フレームGIF、安全化SVG、AVIF、HTTP 404、15秒タイムアウト、装飾SVG 25件、Service Worker停止・再起動を検証した。6画像のIndexedDB保存、`attachment://`置換、再読み込み後の6画像表示、GIF元データ一致、SVG外部通信0件、保存失敗時のダイアログ維持、本文のみ保存の明示操作まで成功した。
 * `node --test`は398件成功し、全JavaScriptの`node --check`、Manifest JSON解析、`git diff --check`も成功した。`package.json`がないためlint・typecheck・buildは実行対象なし。Google Chrome／Edgeへの開発版手動インストールと日文研の実ページ確認は未実施で、READMEの手順に従う手動確認対象として残す。
+
+## 2026-08-12 Web Clipper起動URL消費・開発／本番更新管理
+
+* `?web-clip=1`を確認画面の一回限りの起動目印として扱い、起動判定を保持して画面を開いた後、受信成功・失敗のどちらでも`history.replaceState()`により`web-clip`だけを全件削除する。他のquery、popout、クリップ転送のhashは維持し、閉じる・保存後の再読み込みで空の確認画面を再表示しない。
+* 拡張版を`0.3.1`へ更新し、manifestを正として拡張バージョン、Manifestバージョン、ブラウザ種別、development／production接続先をすべての受信データへ付ける。本体はSemVerで最低互換版`0.3.0`と比較し、欠落または古い版には更新警告を表示する。設定画面にも最後に受信した診断情報を残すが、旧版の本文クリップ自体は拒否しない。
+* development選択時だけ、ポップアップ起動直後に開発サーバーのmanifestを`no-store`で確認する。新しい版では保留中の転送がない時だけ一度reloadし、対象版と試行時刻を保存する。同じ対象版のままなら別フォルダ読込の手動確認へ止め、新しい対象版なら再び一度試せる。接続先は拡張ストレージへ保存し、サーバー停止時は通常のクリップ処理を継続する。
+* production選択時はlocalhostのmanifest取得、独自の更新確認、無条件reloadを行わず、将来のEdgeアドオン（Hidden公開可）の標準更新を前提とする。公開更新はmanifest版を上げてPartner Centerへ再提出する手順をREADMEへ記録し、未登録の現状ではストア更新を確認済みとしていない。自動更新機能を持たない従来のローカル開発版から導入する時だけ、利用者による最後の一度の手動再読み込みが必要になる。
+* 利用者の実ブラウザ確認ではRenderの記事で画像候補14件、保存可能13件、`UNSUPPORTED_FORMAT` 1件へ確定し、13件の保存、メモ再表示、ブラウザ再読み込み後の維持まで成功した。画像取得、IndexedDB、`attachment://`、再表示の主要経路が動作することを確認済みの前提として、今回の変更ではその保存経路を変更していない。
+* 自動テストは`node --test` 410件が成功した。Playwright付属Chromiumへ実際のManifest V3拡張`0.3.1`を読み込み、起動URLの成功・失敗時消費と再読込時の非再表示、他query維持、開発manifestの503時もクリップ継続、development／production選択の永続化、production再起動時の開発manifestアクセス0件、既存の6画像保存・IndexedDB・`attachment://`・再読込表示を確認した。Edgeアドオンの登録・ストア配信と、Google Chrome／Microsoft Edge実機での今回の更新検出は未確認とする。

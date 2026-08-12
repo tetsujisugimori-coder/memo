@@ -5,5 +5,16 @@ globalThis.MEMO_NEXUS_CLIPPER_CONFIG = {
     development: "http://127.0.0.1:5500/",
     production: "https://tetsujisugimori-coder.github.io/memo/"
   },
-  defaultTarget: "development"
+  defaultTarget: "development",
+  storage: {
+    targetKey: "memoNexusClipperTargetEnvironment",
+    reloadAttemptKey: "memoNexusClipperReloadAttempt"
+  },
+  updates: {
+    development: {
+      strategy: "local-manifest",
+      manifestUrl: "http://127.0.0.1:5500/extensions/web-clipper/manifest.json"
+    },
+    production: { strategy: "browser-managed" }
+  }
 };
