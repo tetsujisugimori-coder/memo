@@ -498,6 +498,10 @@ const popoutUnavailableBackBtn = $("popoutUnavailableBackBtn");
 const memoSyncNotice = $("memoSyncNotice");
 const loadMemoSyncBtn = $("loadMemoSyncBtn");
 const noteMeta = $("noteMeta");
+const textStatsBtn = $("textStatsBtn");
+const textStatsPopover = $("textStatsPopover");
+const textStatsBody = $("textStatsBody");
+const closeTextStatsBtn = $("closeTextStatsBtn");
 const editor = $("editor");
 const insertTableBtn = $("insertTableBtn");
 const calloutTypeSelect = $("calloutTypeSelect");
@@ -2513,6 +2517,7 @@ function renderAll() {
   renderCollectionExplorer();
   renderMemoListPanel();
   renderNoteMeta();
+  renderTextStats();
   renderRelated();
   renderDiscovery();
   renderLinkStats();
@@ -2601,6 +2606,7 @@ function openNote(id) {
   lastUndoSnapshotAt = 0;
   setSaveStatus("saved", note.updatedAt);
   renderNoteMeta();
+  renderTextStats();
   renderList();
   renderCollectionExplorer();
   renderTableBlockEditors();
@@ -2632,6 +2638,7 @@ async function initPopout() {
   renderNoteFlagButton(note);
   setSaveStatus("saved", note.updatedAt);
   renderNoteMeta();
+  renderTextStats();
   renderTableBlockEditors();
   applyEffectiveFontSettings();
   document.title = `${note.title} — Memo Nexus`;
@@ -2903,6 +2910,7 @@ function loadPendingMemoSync() {
 // 入力のたびに即保存すると重いので、少し待ってから保存する予約をします。
 function scheduleSave({ render = true } = {}) {
   markLocalMemoDirty();
+  renderTextStats();
   saveCurrentDraftMirror();
   clearTimeout(saveTimer);
   setSaveStatus("editing");
@@ -6509,6 +6517,36 @@ function renderNoteMeta() {
   noteMeta.textContent = `作成: ${formatDateTime(note.createdAt)}　更新: ${formatDateTime(note.bodyUpdatedAt || note.updatedAt)}`;
 }
 
+function formatTextStatsNumber(value) {
+  return new Intl.NumberFormat("ja-JP").format(value);
+}
+
+function renderTextStats() {
+  if (!textStatsBtn || !textStatsBody || !globalThis.TextStatsUtils) return;
+  const stats = globalThis.TextStatsUtils.calculateTextStats(editor.value);
+  textStatsBtn.textContent = `${formatTextStatsNumber(stats.charactersWithoutWhitespace)}文字`;
+  textStatsBtn.setAttribute("aria-label", `文章統計を開く。空白なし${formatTextStatsNumber(stats.charactersWithoutWhitespace)}文字`);
+  textStatsBody.innerHTML = [
+    ["文字数", stats.charactersWithoutWhitespace],
+    ["文字数（空白込み）", stats.charactersWithWhitespace],
+    ["段落数", stats.paragraphs],
+    ["推定読了時間", stats.label]
+  ].map(([label, value]) => `<div class="text-stats-row"><span>${label}</span><span>${typeof value === "number" ? formatTextStatsNumber(value) : value}</span></div>`).join("") + `
+    <div class="text-stats-section"><strong>文字種別</strong>
+      ${[["漢字", "kanji"], ["ひらがな", "hiragana"], ["カタカナ", "katakana"], ["アルファベット", "alphabet"], ["アラビア数字", "digits"], ["記号", "symbols"], ["空白", "whitespace"], ["その他", "other"]]
+        .map(([label, key]) => `<div class="text-stats-row"><span>${label}</span><span>${formatTextStatsNumber(stats.characterTypes[key])}</span></div>`).join("")}
+    </div>`;
+}
+
+function setTextStatsOpen(open) {
+  if (!textStatsBtn || !textStatsPopover) return;
+  textStatsPopover.hidden = !open;
+  textStatsBtn.setAttribute("aria-expanded", String(open));
+  if (open) renderTextStats();
+  if (open) closeTextStatsBtn?.focus();
+  else textStatsBtn.focus();
+}
+
 function formatDateTime(value) {
   const date = new Date(value || Date.now());
   return `${date.getFullYear()}/${String(date.getMonth() + 1).padStart(2, "0")}/${String(date.getDate()).padStart(2, "0")} ${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
@@ -8630,6 +8668,17 @@ editor.addEventListener("input", () => {
 editor.addEventListener("select", () => {
   resetEditorCaretIdle();
   updateAiTargetPreview();
+});
+textStatsBtn?.addEventListener("click", () => setTextStatsOpen(textStatsPopover.hidden));
+closeTextStatsBtn?.addEventListener("click", () => setTextStatsOpen(false));
+document.addEventListener("pointerdown", (event) => {
+  if (!textStatsPopover?.hidden && !document.querySelector(".note-meta-actions")?.contains(event.target)) setTextStatsOpen(false);
+});
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && !textStatsPopover?.hidden) {
+    event.preventDefault();
+    setTextStatsOpen(false);
+  }
 });
 editorCaretAnimationEnabled?.addEventListener("change", saveEditorCaretAnimationSettings);
 editorCaretAnimationDelay?.addEventListener("change", saveEditorCaretAnimationSettings);
