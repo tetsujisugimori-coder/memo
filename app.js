@@ -6544,9 +6544,15 @@ function renderSaveStatus() {
     return;
   }
 
-  saveStatus.textContent = isCompactSaveStatus()
+  saveStatus.textContent = isNarrowSaveStatus()
+    ? "保存済み"
+    : isCompactSaveStatus()
     ? `保存済み ${formatSavedTime(saveStatusTime)}`
     : `保存済み: ${formatSavedDateTime(saveStatusTime)}`;
+}
+
+function isNarrowSaveStatus() {
+  return window.matchMedia("(max-width: 719px)").matches;
 }
 
 function isCompactSaveStatus() {

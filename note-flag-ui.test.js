@@ -24,3 +24,12 @@ test("タイトル操作部と保存状態は固定領域で、旗だけを変�
   assert.doesNotMatch(css, /\.note-flag-button\.flag-rises\s*\{/);
   assert.match(css, /@media \(prefers-reduced-motion: reduce\)/);
 });
+
+test("タイトルのフォーカス枠は専用ラッパーだけに収める", () => {
+  assert.match(html, /<div class="title-input-wrap"><input id="titleInput"/);
+  assert.match(css, /\.title-input-wrap\s*\{[^}]*min-width:\s*0/s);
+  assert.match(css, /\.title-input-wrap:focus-within\s*\{[^}]*border-color:\s*var\(--accent\)/s);
+  assert.doesNotMatch(css, /\.title-input:focus,/);
+  assert.match(css, /\.title-input\s*\{[^}]*box-sizing:\s*border-box/s);
+  assert.match(app, /function isNarrowSaveStatus\(\)/);
+});
