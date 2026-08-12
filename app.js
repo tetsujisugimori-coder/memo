@@ -294,11 +294,21 @@ const {
   renderImageCaptionMarkdown,
   replaceImageBlock,
   saveAttachmentAdditionWithRollback,
+  serializeImageBlock,
   splitImageBlocks
 } = window.MemoNexusAttachmentUtils;
 const { buildMemoListView } = window.MemoNexusMemoListUtils;
+const { buildMarkdownBundleImport, parseStoredZipEntries } = window.MemoNexusMarkdownBundleUtils;
 const { parseFlaggedMarkdown, serializeNoteForMarkdown, withNormalizedFlag } = window.MemoNexusNoteFlagUtils;
-const { safeExternalUrl: safeWebClipUrl, normalizeWebClip, buildWebClipMarkdown, readWebClipFragment } = window.MemoNexusWebClipUtils;
+const {
+  MAX_WEB_CLIP_IMAGE_BYTES,
+  safeExternalUrl: safeWebClipUrl,
+  normalizeWebClip,
+  buildWebClipMarkdown,
+  replaceWebClipImageMarkers,
+  webClipImageFailureMarkdown,
+  readWebClipFragment
+} = window.MemoNexusWebClipUtils;
 const { createTermRelationCache, extractExplicitTerms, findAutomaticTermMatches, findTermCountMatches, termColor } = window.MemoNexusTermLinkUtils;
 const { openCalculatorMemo } = window.MemoNexusCalculatorLink;
 const {
@@ -420,6 +430,8 @@ const closeCollectionMoveBtn = $("closeCollectionMoveBtn");
 const cancelCollectionMoveBtn = $("cancelCollectionMoveBtn");
 const runCollectionMoveBtn = $("runCollectionMoveBtn");
 const importAiInput = $("importAiInput");
+const settingsImportMarkdownZipBtn = $("settingsImportMarkdownZipBtn");
+const importMarkdownZipInput = $("importMarkdownZipInput");
 const webClipBtn = $("webClipBtn");
 const webClipDialog = $("webClipDialog");
 const webClipForm = $("webClipForm");
@@ -430,6 +442,12 @@ const webClipUrl = $("webClipUrl");
 const webClipHost = $("webClipHost");
 const webClipSelection = $("webClipSelection");
 const webClipMode = $("webClipMode");
+const webClipImagesSection = $("webClipImagesSection");
+const webClipImagesCount = $("webClipImagesCount");
+const webClipImagesSummary = $("webClipImagesSummary");
+const webClipImagesList = $("webClipImagesList");
+const selectAllWebClipImagesBtn = $("selectAllWebClipImagesBtn");
+const clearAllWebClipImagesBtn = $("clearAllWebClipImagesBtn");
 const webClipUserMemo = $("webClipUserMemo");
 const webClipUserMemoRow = $("webClipUserMemoRow");
 const webClipCapturedAt = $("webClipCapturedAt");
@@ -670,6 +688,8 @@ let pendingMoveMemoIds = [];
 let pendingMoveCollectionId = null;
 let collectionToastTimer = null;
 let webClipReceiverReady = false;
+let pendingWebClipImages = [];
+let pendingWebClipOmittedImageCount = 0;
 const WEB_CLIPPER_RECEIPT_STORAGE_KEY = "memoNexusWebClipperLastReceipt";
 let editingCollectionId = null;
 let draggedCollectionId = null;
@@ -1688,6 +1708,70 @@ async function importAiNewsFile(file) {
   saveStatus.textContent = "AI朝刊を取り込みました";
 }
 
+function replaceImportedMissingImage(markdown, attachmentId, reason) {
+  const escapedId = String(attachmentId).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return String(markdown || "").replace(
+    new RegExp(`!\\[((?:\\\\.|[^\\]\\\\\\n])*)\\]\\(attachment:\\/\\/${escapedId}\\)`, "g"),
+    (_match, alt) => `> 画像を保存できませんでした: ${alt || "画像"}（${reason}）`
+  );
+}
+
+async function importMarkdownZip(file) {
+  if (!file) return;
+  await saveCurrentNote();
+  const entries = parseStoredZipEntries(new Uint8Array(await file.arrayBuffer()));
+  const plans = buildMarkdownBundleImport(entries, () => crypto.randomUUID());
+  const importedNotes = [];
+  let failedImages = 0;
+
+  for (const plan of plans) {
+    const memoId = crypto.randomUUID();
+    const flagged = parseFlaggedMarkdown(plan.body);
+    let body = flagged.body;
+    const prepared = [];
+    let preparedBytes = 0;
+    for (const image of plan.attachments) {
+      try {
+        const fileImage = new File([image.data], image.fileName, { type: image.mimeType });
+        const attachment = await prepareAttachmentFile(fileImage, "image", memoId);
+        const capacity = attachmentCapacity(preparedBytes, attachment.size, MAX_ATTACHMENT_TOTAL_BYTES);
+        if (!capacity.allowed) throw new Error("1メモ20MBの上限を超えています");
+        preparedBytes = capacity.total;
+        prepared.push({ ...attachment, id: image.id });
+      } catch (error) {
+        failedImages += 1;
+        body = replaceImportedMissingImage(body, image.id, error.message || "画像を取り込めませんでした");
+      }
+    }
+
+    let stored = [];
+    if (prepared.length) {
+      try {
+        await putAttachments(prepared);
+        stored = prepared;
+      } catch (_) {
+        prepared.forEach((attachment) => {
+          failedImages += 1;
+          body = replaceImportedMissingImage(body, attachment.id, "ローカル保存に失敗しました");
+        });
+      }
+    }
+
+    try {
+      const note = await createNote(plan.title, body, { id: memoId, isFlagged: flagged.isFlagged });
+      importedNotes.push(note);
+    } catch (error) {
+      if (stored.length) await deleteAttachmentRecords(stored.map((attachment) => attachment.id)).catch(() => {});
+      throw error;
+    }
+  }
+
+  notes = await getAllNotes();
+  renderAll();
+  if (importedNotes[0]) openNote(importedNotes[0].id);
+  saveStatus.textContent = `${importedNotes.length}件のMarkdownを取り込みました${failedImages ? `（画像${failedImages}件は取り込めませんでした）` : ""}`;
+}
+
 async function importPastedItNewsJson() {
   clearJsonImportError();
   const text = jsonImportText.value.trim();
@@ -2292,7 +2376,7 @@ async function createNote(title = "新規メモ", body = "", options = {}) {
     ? resolvedTitle
     : uniqueTitle(resolvedTitle);
   const note = {
-    id: crypto.randomUUID(),
+    id: options.id || crypto.randomUUID(),
     title: noteTitle,
     body,
     collectionId: resolveNewNoteCollection(options.collectionId),
@@ -2406,6 +2490,170 @@ function fillWebClipCollection(selectedId) {
   webClipCollection.value = resolveNewNoteCollection(selectedId);
 }
 
+function webClipImageStatusLabel(image) {
+  if (image.status === "ready") return "保存できます";
+  if (image.status === "unsupported") return "対応外形式";
+  if (image.status === "too-large") return "容量上限超過";
+  return "取得失敗";
+}
+
+function renderWebClipImages() {
+  if (!webClipImagesSection || !webClipImagesList) return;
+  const supportsImages = webClipMode.value === "page" || webClipMode.value === "selection";
+  const hasImages = pendingWebClipImages.length > 0 || pendingWebClipOmittedImageCount > 0;
+  webClipImagesSection.hidden = !supportsImages || !hasImages;
+  webClipImagesList.replaceChildren();
+  if (webClipImagesSection.hidden) return;
+  const ready = pendingWebClipImages.filter((image) => image.status === "ready");
+  const selected = ready.filter((image) => image.selected);
+  webClipImagesCount.textContent = `${pendingWebClipImages.length}件`;
+  webClipImagesSummary.textContent = [
+    `${selected.length}/${ready.length}件を保存対象にしています。`,
+    pendingWebClipOmittedImageCount ? `候補上限を超えた${pendingWebClipOmittedImageCount}件は除外しました。` : ""
+  ].filter(Boolean).join(" ");
+  selectAllWebClipImagesBtn.disabled = !ready.length;
+  clearAllWebClipImagesBtn.disabled = !ready.length;
+
+  pendingWebClipImages.forEach((image, index) => {
+    const card = document.createElement("article");
+    card.className = `web-clip-image-card status-${image.status}`;
+    const selector = document.createElement("label");
+    selector.className = "web-clip-image-selector";
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.checked = Boolean(image.selected && image.status === "ready");
+    checkbox.disabled = image.status !== "ready";
+    checkbox.dataset.webClipImageIndex = String(index);
+    const label = document.createElement("span");
+    label.textContent = image.alt || image.caption || image.fileName || `画像${index + 1}`;
+    selector.append(checkbox, label);
+    card.append(selector);
+
+    if (image.dataBase64 && image.mimeType) {
+      const preview = document.createElement("img");
+      preview.src = `data:${image.mimeType};base64,${image.dataBase64}`;
+      preview.alt = image.alt || `画像${index + 1}のプレビュー`;
+      preview.loading = "lazy";
+      card.append(preview);
+    }
+
+    const details = document.createElement("dl");
+    details.className = "web-clip-image-details";
+    [
+      ["状態", `${webClipImageStatusLabel(image)}${image.error ? `: ${image.error}` : ""}`],
+      ["説明", image.alt || "—"],
+      ["キャプション", image.caption || "—"],
+      ["形式・容量", `${image.mimeType || "不明"}${image.size ? ` / ${formatAttachmentBytes(image.size)}` : ""}`],
+      ["元URL", image.url || "—"]
+    ].forEach(([term, value]) => {
+      const dt = document.createElement("dt");
+      const dd = document.createElement("dd");
+      dt.textContent = term;
+      dd.textContent = value;
+      if (term === "元URL") dd.title = value;
+      details.append(dt, dd);
+    });
+    card.append(details);
+    webClipImagesList.append(card);
+  });
+}
+
+function setAllWebClipImagesSelected(selected) {
+  pendingWebClipImages = pendingWebClipImages.map((image) => ({ ...image, selected: image.status === "ready" ? selected : false }));
+  renderWebClipImages();
+}
+
+function webClipImageBlob(image) {
+  if (image.status !== "ready" || !image.dataBase64 || !image.mimeType) throw new Error(image.error || "画像データがありません");
+  const binary = atob(image.dataBase64);
+  if (!binary.length || binary.length > MAX_WEB_CLIP_IMAGE_BYTES) throw new Error("1画像5MBの上限を超えています");
+  const bytes = Uint8Array.from(binary, (character) => character.charCodeAt(0));
+  return new File([bytes], image.fileName || "web-clip-image", { type: image.mimeType });
+}
+
+function webClipImageSourceMetadata(image, capturedAt, extra = {}) {
+  return {
+    token: image.token,
+    originalUrl: image.url || null,
+    alt: image.alt || null,
+    caption: image.caption || null,
+    capturedAt,
+    status: image.status,
+    ...extra
+  };
+}
+
+async function createWebClipNoteWithImages(title, clip, source, collectionId) {
+  const memoId = crypto.randomUUID();
+  const replacements = new Map();
+  const prepared = [];
+  const sourceImages = [];
+  let preparedBytes = 0;
+
+  for (const image of clip.images) {
+    if (image.status !== "ready") {
+      replacements.set(image.token, webClipImageFailureMarkdown(image, image.error));
+      sourceImages.push(webClipImageSourceMetadata(image, clip.capturedAt, { saved: false, reason: image.error || webClipImageStatusLabel(image) }));
+      continue;
+    }
+    if (!image.selected) {
+      replacements.set(image.token, "");
+      sourceImages.push(webClipImageSourceMetadata(image, clip.capturedAt, { saved: false, reason: "確認画面で除外" }));
+      continue;
+    }
+    try {
+      const attachment = await prepareAttachmentFile(webClipImageBlob(image), "image", memoId);
+      const capacity = attachmentCapacity(preparedBytes, attachment.size, MAX_ATTACHMENT_TOTAL_BYTES);
+      if (!capacity.allowed) throw new Error("クリップ画像合計20MBの上限を超えています");
+      preparedBytes = capacity.total;
+      attachment.source = {
+        type: "web-clip",
+        originalUrl: image.url || null,
+        alt: image.alt || null,
+        caption: image.caption || null,
+        capturedAt: clip.capturedAt,
+        token: image.token
+      };
+      prepared.push(attachment);
+      replacements.set(image.token, serializeImageBlock([{ ...attachment, alt: image.alt || attachment.fileName }], image.caption));
+      sourceImages.push(webClipImageSourceMetadata(image, clip.capturedAt, { saved: true, attachmentId: attachment.id }));
+    } catch (error) {
+      const reason = error.message || String(error);
+      replacements.set(image.token, webClipImageFailureMarkdown(image, reason));
+      sourceImages.push(webClipImageSourceMetadata(image, clip.capturedAt, { saved: false, reason }));
+    }
+  }
+
+  let body = replaceWebClipImageMarkers(buildWebClipMarkdown(clip), replacements, clip.images);
+  let storedAttachments = [];
+  if (prepared.length) {
+    try {
+      await putAttachments(prepared);
+      storedAttachments = prepared;
+    } catch (_) {
+      prepared.forEach((attachment) => {
+        const image = clip.images.find((candidate) => candidate.token === attachment.source?.token);
+        if (image) replacements.set(image.token, webClipImageFailureMarkdown(image, "ローカル保存に失敗しました"));
+      });
+      sourceImages.forEach((image) => {
+        if (image.saved) Object.assign(image, { saved: false, attachmentId: undefined, reason: "ローカル保存に失敗しました" });
+      });
+      body = replaceWebClipImageMarkers(buildWebClipMarkdown(clip), replacements, clip.images);
+    }
+  }
+
+  try {
+    return await createNote(title, body, {
+      id: memoId,
+      collectionId,
+      source: { ...source, webClipVersion: 3, images: sourceImages }
+    });
+  } catch (error) {
+    if (storedAttachments.length) await deleteAttachmentRecords(storedAttachments.map((attachment) => attachment.id)).catch(() => {});
+    throw error;
+  }
+}
+
 function consumeWebClipFragment() {
   const result = readWebClipFragment(location.hash);
   const transferId = new URLSearchParams(location.hash.replace(/^#/, "")).get("clip-transfer");
@@ -2431,12 +2679,15 @@ function openWebClipDialog(clip = null, receiveError = "") {
   webClipHost.value = normalized.host || (normalized.url ? new URL(normalized.url).hostname : "");
   webClipSelection.value = normalized.selection;
   webClipMode.value = normalized.clipMode;
+  pendingWebClipImages = normalized.images;
+  pendingWebClipOmittedImageCount = normalized.omittedImageCount;
   webClipUserMemo.value = normalized.userMemo;
   webClipUserMemoRow.hidden = normalized.clipMode !== "memo";
   webClipCapturedAt.value = normalized.capturedAt;
   webClipError.textContent = "";
   webClipReceivedStatus.textContent = receiveError || (clip ? "拡張からクリップ候補を受け取りました。内容を確認して保存してください。" : "タイトル・URL・本文を入力して、通常メモとして保存できます。");
   fillWebClipCollection(selectedCollectionId);
+  renderWebClipImages();
   if (!webClipDialog.open) webClipDialog.showModal();
   webClipTitle.focus();
 }
@@ -2457,12 +2708,16 @@ async function saveWebClipFromDialog(event) {
     selection: webClipSelection.value,
     clipMode: webClipMode.value,
     userMemo: webClipUserMemo.value,
-    capturedAt: webClipCapturedAt.value
+    capturedAt: webClipCapturedAt.value,
+    images: pendingWebClipImages,
+    omittedImageCount: pendingWebClipOmittedImageCount
   });
   const title = clip.title || clip.host || "Webクリップ";
   const source = { type: "web-clip", clipMode: clip.clipMode, userMemo: clip.userMemo || null, title: clip.title, url: clip.url || null, host: clip.host || null, capturedAt: clip.capturedAt };
   try {
-    const note = await createNote(title, buildWebClipMarkdown(clip), { collectionId: webClipCollection.value, source });
+    const note = clip.images.length
+      ? await createWebClipNoteWithImages(title, clip, source, webClipCollection.value)
+      : await createNote(title, buildWebClipMarkdown(clip), { collectionId: webClipCollection.value, source });
     notes = await getAllNotes();
     webClipDialog.close();
     renderAll();
@@ -8300,7 +8555,20 @@ if (webClipBtn) webClipBtn.addEventListener("click", () => openWebClipDialog());
 if (closeWebClipBtn) closeWebClipBtn.addEventListener("click", () => webClipDialog.close());
 if (cancelWebClipBtn) cancelWebClipBtn.addEventListener("click", () => webClipDialog.close());
 if (webClipForm) webClipForm.addEventListener("submit", saveWebClipFromDialog);
-if (webClipMode) webClipMode.addEventListener("change", () => { webClipUserMemoRow.hidden = webClipMode.value !== "memo"; });
+if (webClipMode) webClipMode.addEventListener("change", () => {
+  webClipUserMemoRow.hidden = webClipMode.value !== "memo";
+  renderWebClipImages();
+});
+selectAllWebClipImagesBtn?.addEventListener("click", () => setAllWebClipImagesSelected(true));
+clearAllWebClipImagesBtn?.addEventListener("click", () => setAllWebClipImagesSelected(false));
+webClipImagesList?.addEventListener("change", (event) => {
+  const checkbox = event.target.closest("input[data-web-clip-image-index]");
+  if (!checkbox) return;
+  const index = Number(checkbox.dataset.webClipImageIndex);
+  if (!pendingWebClipImages[index] || pendingWebClipImages[index].status !== "ready") return;
+  pendingWebClipImages[index] = { ...pendingWebClipImages[index], selected: checkbox.checked };
+  renderWebClipImages();
+});
 window.addEventListener("message", receiveWebClipMessage);
 if (noteExportBtn) noteExportBtn.addEventListener("click", openNoteExportDialog);
 if (noteFlagBtn) noteFlagBtn.addEventListener("click", () => {
@@ -8604,6 +8872,21 @@ if (settingsImportAiBtn && importAiInput) {
       alert(`Import failed: ${error.message}`);
     } finally {
       importAiInput.value = "";
+    }
+  });
+}
+if (settingsImportMarkdownZipBtn && importMarkdownZipInput) {
+  settingsImportMarkdownZipBtn.addEventListener("click", () => importMarkdownZipInput.click());
+  importMarkdownZipInput.addEventListener("change", async () => {
+    const [file] = importMarkdownZipInput.files || [];
+    if (!file) return;
+    try {
+      await importMarkdownZip(file);
+      settingsDialog.close();
+    } catch (error) {
+      alert(`Markdown ZIPの取り込みに失敗しました: ${error.message || error}`);
+    } finally {
+      importMarkdownZipInput.value = "";
     }
   });
 }

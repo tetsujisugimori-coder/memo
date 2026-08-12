@@ -56,15 +56,36 @@ function updateModeUi() {
 async function buildClipForMode() {
   const mode = clipMode.value;
   const base = { ...clip, clipMode: mode, userMemo: mode === "memo" ? userMemo.value : "" };
-  if (mode !== "page") return { clip: { ...base, selection: mode === "link" ? "" : base.selection }, transfer: false };
+  if (mode === "link" || mode === "memo") return { clip: { ...base, selection: mode === "link" ? "" : base.selection, images: [] }, transfer: false };
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   if (!tab?.id) throw new Error("page-injection-failed");
-  const [page] = await chrome.scripting.executeScript({ target: { tabId: tab.id }, func: MemoNexusPageExtractor.extractPageHtml })
+  const extractor = mode === "page" ? MemoNexusPageExtractor.extractPageContent : MemoNexusPageExtractor.extractSelectionContent;
+  const [page] = await chrome.scripting.executeScript({ target: { tabId: tab.id }, func: extractor })
     .catch((cause) => { console.error("Memo-Nexus Web Clipper page injection failed", cause); throw new Error("page-injection-failed"); });
-  if (!page?.result) throw new Error("page-content-empty");
-  const markdown = MemoNexusHtmlToMarkdown.htmlToMarkdown(page.result);
+  const content = page?.result;
+  if (!content?.html) {
+    if (mode === "selection") return { clip: { ...base, images: [] }, transfer: false };
+    throw new Error("page-content-empty");
+  }
+  const markdown = MemoNexusHtmlToMarkdown.htmlToMarkdown(content.html);
   if (!markdown) throw new Error("page-markdown-empty");
-  return { clip: { ...base, selection: markdown }, transfer: true };
+  let images = [];
+  if (content.images?.length) {
+    modeStatus.textContent = `${content.images.length}枚の画像を取得しています…`;
+    const [result] = await chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      func: MemoNexusClipImageFetcher.fetchClipImages,
+      args: [content.images, { perImageLimit: 5 * 1024 * 1024, totalLimit: 20 * 1024 * 1024, timeoutMs: 15000 }]
+    }).catch((cause) => {
+      console.error("Memo-Nexus Web Clipper image fetch failed", cause);
+      return [{ result: content.images.map((image) => ({ ...image, status: "failed", error: "画像取得処理を開始できませんでした" })) }];
+    });
+    images = result?.result || [];
+  }
+  return {
+    clip: { ...base, selection: markdown, images, omittedImageCount: content.omittedImageCount || 0 },
+    transfer: mode === "page" || images.length > 0
+  };
 }
 
 async function sendToMemoNexus() {

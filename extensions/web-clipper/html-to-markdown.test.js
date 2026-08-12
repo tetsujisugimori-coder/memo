@@ -1,13 +1,15 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const { htmlToMarkdown } = require("./html-to-markdown.js");
-const { extractPageHtml } = require("./page-extractor.js");
+const { extractPageContent, extractSelectionContent } = require("./page-extractor.js");
 
 test("ページ抽出関数はexecuteScriptで単独実行できる自己完結関数である", () => {
-  const source = extractPageHtml.toString();
+  const source = extractPageContent.toString();
   assert.match(source, /const exclude/);
   assert.match(source, /const score/);
+  assert.match(source, /data-memo-nexus-clip-image/);
   assert.doesNotMatch(source, /EXCLUDE/);
+  assert.match(extractSelectionContent.toString(), /getSelection/);
 });
 
 test("ページ本文の主要なHTMLを安全なMarkdownへ変換する", () => {
@@ -19,4 +21,10 @@ test("ページ本文の主要なHTMLを安全なMarkdownへ変換する", () =>
   assert.match(markdown, /> 引用/);
   assert.match(markdown, /```/);
   assert.doesNotMatch(markdown, /menu|alert|footer/);
+});
+
+test("本文画像は位置マーカーへ変換し、未採用画像タグは外部URLとして残さない", () => {
+  const markdown = htmlToMarkdown('<p>前</p><img data-memo-nexus-clip-image="web-clip-image-1" src="https://example.com/a.jpg"><p>後</p><img src="https://example.com/logo.png">');
+  assert.match(markdown, /前[\s\S]*<!-- memo-nexus:web-clip-image:web-clip-image-1 -->[\s\S]*後/);
+  assert.doesNotMatch(markdown, /logo\.png|!\[/);
 });

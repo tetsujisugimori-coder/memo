@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Memo-Nexus Web Clipper",
-  "version": "0.1.0",
-  "description": "選択したテキストをMemo-Nexusの確認画面へ渡します。",
+  "version": "0.2.0",
+  "description": "記事本文と選択範囲を画像候補付きでMemo-Nexusの確認画面へ渡します。",
   "action": {
     "default_title": "Memo-Nexus Web Clipper",
     "default_popup": "popup.html"
@@ -10,7 +10,7 @@
   "background": {
     "service_worker": "background.js"
   },
-  "permissions": ["activeTab", "scripting", "tabs", "storage"],
+  "permissions": ["activeTab", "scripting", "tabs", "storage", "unlimitedStorage"],
   "host_permissions": [
     "http://localhost/*",
     "http://127.0.0.1/*",
