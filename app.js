@@ -297,6 +297,7 @@ const {
   splitImageBlocks
 } = window.MemoNexusAttachmentUtils;
 const { buildMemoListView } = window.MemoNexusMemoListUtils;
+const { parseFlaggedMarkdown, serializeNoteForMarkdown, withNormalizedFlag } = window.MemoNexusNoteFlagUtils;
 const { safeExternalUrl: safeWebClipUrl, normalizeWebClip, buildWebClipMarkdown, readWebClipFragment } = window.MemoNexusWebClipUtils;
 const { createTermRelationCache, extractExplicitTerms, findAutomaticTermMatches, findTermCountMatches, termColor } = window.MemoNexusTermLinkUtils;
 const { openCalculatorMemo } = window.MemoNexusCalculatorLink;
@@ -489,6 +490,7 @@ const searchInput = $("searchInput");
 const memoList = $("memoList");
 const titleInput = $("titleInput");
 const noteExportBtn = $("noteExportBtn");
+const noteFlagBtn = $("noteFlagBtn");
 const popoutMemoBtn = $("popoutMemoBtn");
 const popoutBackBtn = $("popoutBackBtn");
 const popoutUnavailable = $("popoutUnavailable");
@@ -1390,7 +1392,7 @@ function tx(mode = "readonly") {
 function getAllNotes() {
   return new Promise((resolve, reject) => {
     const request = tx().getAll();
-    request.onsuccess = () => resolve(request.result.sort((a, b) => b.updatedAt - a.updatedAt));
+    request.onsuccess = () => resolve(request.result.map(withNormalizedFlag).sort((a, b) => b.updatedAt - a.updatedAt));
     request.onerror = () => reject(request.error);
   });
 }
@@ -1578,6 +1580,7 @@ function saveCurrentDraftMirror() {
     createdAt: note.createdAt || now,
     bodyUpdatedAt: now,
     updatedAt: now,
+    isFlagged: Boolean(note.isFlagged),
     draftSavedAt: now
   };
 
@@ -1644,7 +1647,8 @@ async function restoreCurrentDraftMirror() {
     deletedAt: draft.deletedAt || existingNote?.deletedAt || null,
     createdAt: draft.createdAt || existingNote?.createdAt || now,
     bodyUpdatedAt: draft.bodyUpdatedAt || restoredUpdatedAt,
-    updatedAt: restoredUpdatedAt
+    updatedAt: restoredUpdatedAt,
+    isFlagged: Boolean(draft.isFlagged)
   };
 
   await putNote(restoredNote);
@@ -1672,7 +1676,7 @@ async function importAiNewsFile(file) {
   await saveCurrentNote();
   const text = await file.text();
   const imported = parseImportedNote(file.name, text);
-  const note = await createNote(imported.title, imported.body);
+  const note = await createNote(imported.title, imported.body, { isFlagged: imported.isFlagged });
   notes = await getAllNotes();
   renderAll();
   openNote(note.id);
@@ -2126,12 +2130,14 @@ function clearJsonImportError() {
 }
 
 function parseImportedNote(fileName, text) {
+  const flagged = parseFlaggedMarkdown(text);
+  text = flagged.body;
   const trimmed = text.trim();
   const fencedJson = extractJsonCodeBlock(text);
   if (fencedJson) {
     try {
       const payload = JSON.parse(fencedJson);
-      return buildNewsNoteFromJson(fileName, payload);
+      return { ...buildNewsNoteFromJson(fileName, payload), isFlagged: flagged.isFlagged };
     } catch (error) {
       // Fall through to other parsers when the fenced block is not valid JSON.
     }
@@ -2140,14 +2146,14 @@ function parseImportedNote(fileName, text) {
   const looksLikeJson = fileName.toLowerCase().endsWith(".json") || /^[\[{]/.test(trimmed);
 
   if (!looksLikeJson) {
-    return buildPlainTextImport(fileName, text);
+    return { ...buildPlainTextImport(fileName, text), isFlagged: flagged.isFlagged };
   }
 
   try {
     const payload = JSON.parse(text);
-    return buildNewsNoteFromJson(fileName, payload);
+    return { ...buildNewsNoteFromJson(fileName, payload), isFlagged: flagged.isFlagged };
   } catch (error) {
-    return buildPlainTextImport(fileName, text);
+    return { ...buildPlainTextImport(fileName, text), isFlagged: flagged.isFlagged };
   }
 }
 
@@ -2288,7 +2294,8 @@ async function createNote(title = "新規メモ", body = "", options = {}) {
     deletedAt: null,
     createdAt: now,
     bodyUpdatedAt: now,
-    updatedAt: now
+    updatedAt: now,
+    isFlagged: Boolean(options.isFlagged)
   };
   if (options.source) note.source = options.source;
 
@@ -2531,7 +2538,7 @@ function renderList() {
     const item = document.createElement("div");
     item.className = `memo-item${note.id === currentId ? " active" : ""}${relation.terms.length ? " has-term-relations" : ""}`;
     item.innerHTML = `
-      <div class="memo-title">${escapeHtml(note.title)}</div>
+      <div class="memo-title">${note.isFlagged ? '<span class="note-flag-indicator" title="フラグ付き" aria-label="フラグ付き">⚑</span>' : ""}${escapeHtml(note.title)}</div>
       <div class="memo-snippet">${escapeHtml(snippet(note.body))}</div>
       ${relation.terms.length ? `<div class="term-card-footer"><span class="term-accent-list" aria-hidden="true">${visibleTerms.map((entry) => `<i style="--term-color:${entry.color}"></i>`).join("")}${hiddenTermCount ? `<b>+${hiddenTermCount}</b>` : ""}</span><span class="term-chip-list">${visibleTerms.map((entry) => `<button type="button" class="term-chip" data-title="${escapeAttr(entry.term)}" data-term-source="${entry.source}" style="--term-color:${entry.color}">${escapeHtml(entry.term)}</button>`).join("")}</span></div>` : ""}
     `;
@@ -2589,6 +2596,7 @@ function openNote(id) {
   pendingTableAxisDeletion = null;
   titleInput.value = note.title;
   editor.value = note.body;
+  renderNoteFlagButton(note);
   lastUndoSnapshotAt = 0;
   setSaveStatus("saved", note.updatedAt);
   renderNoteMeta();
@@ -2620,6 +2628,7 @@ async function initPopout() {
   currentId = note.id;
   titleInput.value = note.title;
   editor.value = note.body;
+  renderNoteFlagButton(note);
   setSaveStatus("saved", note.updatedAt);
   renderNoteMeta();
   renderTableBlockEditors();
@@ -2817,6 +2826,7 @@ async function refreshMemoFromOtherWindow(message) {
 function applyMemoSync(note) {
   titleInput.value = note.title;
   editor.value = note.body;
+  renderNoteFlagButton(note);
   clearLocalMemoDirty(note.id);
   pendingMemoSync = null;
   renderMemoSyncNotice();
@@ -2831,6 +2841,31 @@ function applyMemoSync(note) {
   renderTableBlockEditors();
   renderPreview();
   if (isPopoutWindow) document.title = `${note.title} — Memo Nexus`;
+}
+
+function renderNoteFlagButton(note = currentNote()) {
+  if (!noteFlagBtn) return;
+  const isFlagged = Boolean(note?.isFlagged);
+  const label = isFlagged ? "フラグを外す" : "フラグを付ける";
+  noteFlagBtn.classList.toggle("is-flagged", isFlagged);
+  noteFlagBtn.setAttribute("aria-pressed", String(isFlagged));
+  noteFlagBtn.setAttribute("aria-label", label);
+  noteFlagBtn.title = label;
+}
+
+async function toggleCurrentNoteFlag() {
+  const note = currentNote();
+  if (!note) return;
+  await flushSave();
+  note.isFlagged = !note.isFlagged;
+  note.updatedAt = Date.now();
+  setSaveStatus("saving");
+  await putNote(note);
+  notes = await getAllNotes();
+  currentId = note.id;
+  renderNoteFlagButton(currentNote());
+  setSaveStatus("saved", note.updatedAt);
+  if (isPopoutWindow) renderNoteMeta(); else renderAll();
 }
 
 function renderMemoSyncNotice() {
@@ -7589,7 +7624,7 @@ async function buildCollectionZipFiles(rootCollectionId = null, options = {}) {
     return {
       memoId: note.id,
       name: [...path, `${safeFileName(note.title)}.md`].join("/"),
-      content: `# ${note.title}\n\n${note.body}\n`,
+      content: serializeNoteForMarkdown(note, note.body, { includeTitle: true }),
       updatedAt: note.bodyUpdatedAt || note.updatedAt || note.createdAt || Date.now()
     };
   });
@@ -7618,7 +7653,7 @@ async function buildSingleNoteExportBundle(note) {
   const attachments = await getAttachmentsForMemo(note.id);
   const bundle = buildMemoExportBundle({
     markdownPath: `${sanitizeWindowsName(note.title, "無題のメモ")}.md`,
-    markdownContent: note.body,
+    markdownContent: serializeNoteForMarkdown(note, note.body),
     attachments
   });
   return {
@@ -7705,7 +7740,7 @@ async function runDownloadExport() {
       const bundle = await buildSingleNoteExportBundle(note);
       const baseName = sanitizeWindowsName(note.title, "無題のメモ");
       if (!bundle.folderPath) {
-        downloadBlob(new Blob([note.body], { type: "text/markdown;charset=utf-8" }), `${baseName}.md`);
+        downloadBlob(new Blob([serializeNoteForMarkdown(note, note.body)], { type: "text/markdown;charset=utf-8" }), `${baseName}.md`);
       } else {
         downloadBlob(await makeZip(bundle.files), `${baseName}.zip`);
       }
@@ -7801,7 +7836,7 @@ async function exportNoteToLocalDirectory() {
   const requestedName = `${sanitizeWindowsName(note.title, "無題のメモ")}.md`;
   if (!bundle.folderPath) {
     const fileName = await availableFileName(parentHandle, requestedName);
-    await writeExportFile(parentHandle, fileName, note.body);
+    await writeExportFile(parentHandle, fileName, serializeNoteForMarkdown(note, note.body));
     showExportResult(`「${fileName}」を書き出しました。`);
     return;
   }
@@ -8227,6 +8262,12 @@ if (webClipForm) webClipForm.addEventListener("submit", saveWebClipFromDialog);
 if (webClipMode) webClipMode.addEventListener("change", () => { webClipUserMemoRow.hidden = webClipMode.value !== "memo"; });
 window.addEventListener("message", receiveWebClipMessage);
 if (noteExportBtn) noteExportBtn.addEventListener("click", openNoteExportDialog);
+if (noteFlagBtn) noteFlagBtn.addEventListener("click", () => {
+  toggleCurrentNoteFlag().catch((error) => {
+    console.error("Note flag toggle failed", error);
+    setSaveStatus("error");
+  });
+});
 if (closeExportBtn) closeExportBtn.addEventListener("click", () => exportDialog.close());
 if (cancelExportBtn) cancelExportBtn.addEventListener("click", () => exportDialog.close());
 if (downloadExportBtn) downloadExportBtn.addEventListener("click", runDownloadExport);

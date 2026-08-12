@@ -857,9 +857,14 @@ body.collections-open .collection-explorer {
 }
 
 .memo-title {
+  display: flex;
+  align-items: center;
+  gap: 5px;
   font-weight: 700;
   overflow-wrap: anywhere;
 }
+
+.note-flag-indicator { flex: 0 0 auto; color: var(--accent); font-size: 15px; line-height: 1; }
 
 .memo-snippet {
   margin-top: 5px;
@@ -1481,6 +1486,24 @@ body.collections-open .collection-explorer {
   color: var(--muted);
   line-height: 1;
 }
+
+.note-flag-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 30px;
+  min-height: 30px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 17px;
+  line-height: 1;
+}
+.note-flag-button:hover, .note-flag-button:focus-visible { border-color: var(--accent); color: var(--accent); }
+.note-flag-button:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--accent-soft); }
+.note-flag-button.is-flagged { border-color: var(--accent); background: var(--accent); color: var(--paper); }
 
 .save-status {
   color: var(--accent);
@@ -3888,6 +3911,8 @@ body.related-open .related-toggle {
   .title-side-head {
     gap: 4px;
   }
+
+  .note-flag-button { min-width: 40px; min-height: 40px; }
 
   .note-meta {
     max-width: 116px;
