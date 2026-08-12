@@ -7,7 +7,7 @@
   <script>try { document.documentElement.dataset.initialTheme = localStorage.getItem("memo-nexus-theme") === "dark" ? "dark" : "light"; } catch (_) { document.documentElement.dataset.initialTheme = "light"; }</script>
   <style>html,body{background:#f6f7f4;color:#222522;color-scheme:light}html[data-initial-theme="dark"],html[data-initial-theme="dark"] body{background:#111513;color:#e7ece7;color-scheme:dark}</style>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css">
-  <link rel="stylesheet" href="style.css?v=0.4.0-37">
+  <link rel="stylesheet" href="style.css?v=0.4.0-44">
 </head>
 <body>
   <aside id="memoSidebar" class="sidebar" aria-label="メモ一覧" aria-hidden="false">
@@ -72,20 +72,18 @@
     <div id="storageWarning" class="storage-warning" role="status" hidden></div>
     <section class="editor-card">
       <div class="title-row">
-        <input id="titleInput" class="title-input" placeholder="無題メモ" autocomplete="off">
         <div class="title-side">
           <div class="title-side-head">
-            <button id="popoutMemoBtn" class="popout-memo-button" type="button" title="このメモを別ウィンドウで開く" aria-label="このメモを別ウィンドウで開く">↗</button>
-            <button id="popoutBackBtn" class="popout-back-button" type="button" title="Memo Nexus本体へ戻る">本体へ戻る</button>
-            <button id="noteExportBtn" class="note-export-button" type="button" title="このメモをエクスポート" aria-label="このメモをエクスポート">…</button>
+            <div class="title-actions" aria-label="メモ操作">
+              <button id="noteFlagBtn" class="note-flag-button" type="button" title="フラグを付ける" aria-label="フラグを付ける" aria-pressed="false"><span class="note-flag-icon" aria-hidden="true">⚑</span></button>
+              <button id="popoutMemoBtn" class="popout-memo-button" type="button" title="このメモを別ウィンドウで開く" aria-label="このメモを別ウィンドウで開く">↗</button>
+              <button id="popoutBackBtn" class="popout-back-button" type="button" title="Memo Nexus本体へ戻る">本体へ戻る</button>
+              <button id="noteExportBtn" class="note-export-button" type="button" title="このメモをエクスポート" aria-label="このメモをエクスポート">…</button>
+            </div>
             <div id="saveStatus" class="save-status">保存済み</div>
           </div>
-          <div id="memoSyncNotice" class="memo-sync-notice" role="status" hidden>
-            <span>別ウィンドウで更新があります</span>
-            <button id="loadMemoSyncBtn" type="button">更新を読み込む</button>
-          </div>
-          <div id="noteMeta" class="note-meta"></div>
         </div>
+        <div class="title-input-wrap"><input id="titleInput" class="title-input" placeholder="無題メモ" autocomplete="off"></div>
       </div>
       <div class="editor-tools" aria-label="エディタ操作">
         <button id="insertTableBtn" type="button" title="カーソル位置へ表ブロックを挿入" aria-label="表ブロックを挿入">表</button>
@@ -101,6 +99,10 @@
       </div>
       <textarea id="editor" placeholder="すぐ書けます。[[足利尊氏]] のように書くとリンクになります。"></textarea>
       <div id="tableBlockEditors" class="table-block-editors" role="region" aria-label="表ブロック編集" hidden></div>
+      <div class="note-meta-bar">
+        <div class="note-meta-actions" aria-hidden="true"></div>
+        <div id="noteMeta" class="note-meta" aria-label="メモの日時"></div>
+      </div>
     </section>
     <section id="popoutUnavailable" class="popout-unavailable" hidden>
       <h1>このメモは削除されたか、現在利用できません</h1>
@@ -667,6 +669,7 @@
   <script src="ai-reference-selection.js?v=0.4.0-1"></script>
   <script src="ai-prompts.js?v=0.4.0-2"></script>
   <script src="memo-popout-utils.js?v=0.4.0-3"></script>
-  <script src="app.js?v=0.4.0-62"></script>
+  <script src="note-flag-utils.js?v=0.4.0-1"></script>
+  <script src="app.js?v=0.4.0-66"></script>
 </body>
 </html>

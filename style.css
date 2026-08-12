@@ -27,6 +27,8 @@
   --gold: #a66b1f;
   --green: #497346;
   --danger: #9b3131;
+  --note-flag: #c8323a;
+  --note-flag-soft: #fde8e9;
   --code-comment: #6f776f;
   --code-keyword: #7a3e9d;
   --code-string: #28734f;
@@ -76,6 +78,8 @@ body.dark {
   --gold: #e2aa54;
   --green: #90c986;
   --danger: #ef8f8f;
+  --note-flag: #ff7b85;
+  --note-flag-soft: #54272c;
   --code-comment: #9aa69d;
   --code-keyword: #d5a6ff;
   --code-string: #8bd5b0;
@@ -92,22 +96,6 @@ body.dark {
 
 .popout-unavailable[hidden] {
   display: none !important;
-}
-
-.memo-sync-notice {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 8px;
-  margin-top: 6px;
-  color: var(--muted);
-  font-size: 12px;
-}
-
-.memo-sync-notice button {
-  min-height: 28px;
-  padding: 3px 8px;
-  font-size: 12px;
 }
 
 .popout-ghost {
@@ -206,11 +194,6 @@ body.popout-window .popout-back-button {
   display: inline-flex;
   align-items: center;
   white-space: nowrap;
-}
-
-body.popout-window .title-side-head {
-  flex-wrap: wrap;
-  justify-content: flex-end;
 }
 
 body.popout-window .popout-unavailable {
@@ -777,7 +760,6 @@ body.collections-open .collection-explorer {
 }
 
 #searchInput:focus,
-.title-input:focus,
 #editor:focus {
   border-color: var(--accent);
   box-shadow: 0 0 0 3px var(--accent-soft);
@@ -857,9 +839,14 @@ body.collections-open .collection-explorer {
 }
 
 .memo-title {
+  display: flex;
+  align-items: center;
+  gap: 5px;
   font-weight: 700;
   overflow-wrap: anywhere;
 }
+
+.note-flag-indicator { flex: 0 0 auto; color: var(--note-flag); font-size: 15px; line-height: 1; }
 
 .memo-snippet {
   margin-top: 5px;
@@ -1433,14 +1420,27 @@ body.collections-open .collection-explorer {
   width: 100%;
   border-bottom: 1px solid var(--line);
   border-radius: 8px 8px 0 0;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(170px, auto);
-  align-items: center;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.title-input-wrap {
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid transparent;
+  border-radius: 8px 8px 0 0;
+}
+
+.title-input-wrap:focus-within {
+  border-color: var(--accent);
+  box-shadow: inset 0 0 0 2px var(--accent-soft);
 }
 
 .title-input {
   min-width: 0;
   width: 100%;
+  box-sizing: border-box;
   border: 0;
   border-radius: 8px 8px 0 0;
   padding: 18px 18px 14px;
@@ -1452,46 +1452,123 @@ body.collections-open .collection-explorer {
   font-weight: 800;
 }
 
+.note-meta-bar {
+  flex: 0 0 auto;
+  border-top: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 30px;
+  padding: 4px 16px;
+}
+
+.note-meta-actions {
+  min-width: 40px;
+  min-height: 24px;
+}
+
 .note-meta {
-  max-width: 240px;
   color: var(--muted);
-  font-size: 12px;
-  line-height: 1.45;
+  font-size: 11px;
+  line-height: 1.35;
   text-align: right;
   white-space: nowrap;
 }
 
 .title-side {
-  padding: 12px 16px 10px 0;
+  width: 100%;
+  padding: 10px 16px 6px;
+  min-width: 0;
 }
 
 .title-side-head {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
-  gap: 7px;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.title-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
 }
 
 .note-export-button {
-  min-width: 30px;
-  min-height: 26px;
-  padding: 0 7px;
+  width: 40px;
+  min-width: 40px;
+  min-height: 40px;
+  padding: 0;
   border-color: var(--line);
   background: var(--section-bg);
   color: var(--muted);
   line-height: 1;
 }
 
+.popout-memo-button {
+  width: 40px;
+  min-width: 40px;
+  min-height: 40px;
+  padding: 0;
+}
+
+.note-flag-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  min-width: 40px;
+  min-height: 40px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 1;
+  position: relative;
+}
+.note-flag-icon { display: inline-block; position: relative; z-index: 1; transform: translateZ(0); }
+.note-flag-button:hover, .note-flag-button:focus-visible { border-color: var(--note-flag); color: var(--note-flag); }
+.note-flag-button:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--note-flag-soft); }
+.note-flag-button.is-flagged { border-color: transparent; background: transparent; color: var(--paper); }
+.note-flag-button.is-flagged::before {
+  content: "";
+  position: absolute;
+  width: 32px;
+  height: 32px;
+  border-radius: 7px;
+  background: var(--note-flag);
+}
+.note-flag-icon.flag-rises { animation: note-flag-rise 260ms cubic-bezier(.2, .8, .25, 1); }
+.note-flag-icon.flag-returns { animation: note-flag-return 220ms ease-out; }
+
+@keyframes note-flag-rise {
+  0% { transform: translateY(4px) scale(.9); opacity: .7; }
+  62% { transform: translateY(-2px) scale(1.08); opacity: 1; }
+  100% { transform: translateY(0) scale(1); }
+}
+
+@keyframes note-flag-return {
+  0% { transform: translateY(-1px) scale(1.04); }
+  100% { transform: translateY(2px) scale(.96); opacity: .82; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .note-flag-icon.flag-rises,
+  .note-flag-icon.flag-returns { animation: none; }
+}
+
 .save-status {
+  display: block;
+  flex: 0 0 104px;
+  width: 104px;
   color: var(--accent);
   font-size: 12px;
   line-height: 1.3;
   text-align: right;
   white-space: nowrap;
-}
-
-.title-side-head + .note-meta {
-  margin-top: 4px;
 }
 
 .editor-tools {
@@ -3871,29 +3948,27 @@ body.related-open .related-toggle {
     justify-content: center;
   }
 
-  .title-row {
-    grid-template-columns: minmax(0, 1fr) auto;
-  }
-
   .title-input {
     padding: 14px 12px 10px;
     font-size: min(var(--memo-title-font-size), 21px);
   }
 
   .title-side {
-    max-width: 126px;
-    padding: 8px 10px 8px 0;
+    padding: 8px 10px 6px;
   }
 
   .title-side-head {
     gap: 4px;
   }
 
-  .note-meta {
-    max-width: 116px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
+  .note-flag-button,
+  .popout-memo-button,
+  .note-export-button { width: 40px; min-width: 40px; min-height: 40px; padding-inline: 0; }
+
+  .save-status { font-size: 11px; }
+
+  .note-meta-bar { padding: 4px 12px; }
+  .note-meta { font-size: 10px; }
 
   #editor {
     padding: 14px 12px;

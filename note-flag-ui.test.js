@@ -1,0 +1,52 @@
+"use strict";
+
+const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const test = require("node:test");
+
+const app = fs.readFileSync("app.js", "utf8");
+const css = fs.readFileSync("style.css", "utf8");
+const html = fs.readFileSync("index.html", "utf8");
+
+test("旗だけを再マウントして毎回アニメーションを再生する", () => {
+  assert.match(html, /class="note-flag-icon"/);
+  assert.match(app, /const nextIcon = icon\.cloneNode\(true\)/);
+  assert.match(app, /noteFlagBtn\.replaceChild\(nextIcon, icon\)/);
+  assert.match(app, /void nextIcon\.offsetWidth/);
+  assert.match(app, /nextIcon\.classList\.remove\(animationClass\)/);
+  assert.match(app, /prefers-reduced-motion: reduce/);
+});
+
+test("タイトル操作部と保存状態を上段へ分離し、旗だけを変形する", () => {
+  assert.match(html, /<div class="title-side">[\s\S]*<div class="title-actions"[\s\S]*<div id="saveStatus" class="save-status">[\s\S]*<div class="title-input-wrap">/);
+  assert.match(css, /\.title-row\s*\{[^}]*display:\s*flex[^}]*flex-direction:\s*column/s);
+  assert.match(css, /\.title-side-head\s*\{[^}]*display:\s*flex[^}]*justify-content:\s*space-between/s);
+  assert.match(css, /\.title-actions\s*\{[^}]*display:\s*flex/s);
+  assert.match(css, /\.save-status\s*\{[^}]*flex:\s*0 0 104px[^}]*width:\s*104px/s);
+  assert.doesNotMatch(css, /\.save-status\s*\{[^}]*text-overflow:\s*ellipsis/s);
+  assert.match(css, /\.note-flag-button\s*\{[^}]*width:\s*40px[^}]*min-height:\s*40px/s);
+  assert.match(css, /\.note-flag-button\.is-flagged::before\s*\{[^}]*width:\s*32px[^}]*height:\s*32px/s);
+  assert.match(css, /\.note-flag-icon\.flag-rises\s*\{[^}]*animation:/s);
+  assert.doesNotMatch(css, /\.note-flag-button\.flag-rises\s*\{/);
+  assert.match(css, /@media \(prefers-reduced-motion: reduce\)/);
+});
+
+test("タイトルのフォーカス枠は専用ラッパーだけに収める", () => {
+  assert.match(html, /<div class="title-input-wrap"><input id="titleInput"/);
+  assert.match(css, /\.title-input-wrap\s*\{[^}]*min-width:\s*0/s);
+  assert.match(css, /\.title-input-wrap\s*\{[^}]*overflow:\s*hidden/s);
+  assert.match(css, /\.title-input-wrap:focus-within\s*\{[^}]*border-color:\s*var\(--accent\)/s);
+  assert.doesNotMatch(css, /\.title-input:focus,/);
+  assert.match(css, /\.title-input\s*\{[^}]*box-sizing:\s*border-box/s);
+  assert.match(app, /`保存済み \$\{formatSavedTime\(saveStatusTime\)\}`/);
+  assert.doesNotMatch(app, /function isNarrowSaveStatus\(\)/);
+});
+
+test("メモ日時はタイトル操作部ではなくエディタ末尾へ置く", () => {
+  assert.match(html, /<div id="tableBlockEditors"[\s\S]*<div class="note-meta-bar">[\s\S]*<div class="note-meta-actions"[\s\S]*<div id="noteMeta" class="note-meta"/);
+  assert.ok(html.indexOf('<div id="noteMeta"') > html.indexOf('<div id="tableBlockEditors"'));
+  assert.doesNotMatch(html, /別ウィンドウで更新があります/);
+  assert.match(css, /\.note-meta-bar\s*\{[^}]*border-top:[^}]*display:\s*flex[^}]*justify-content:\s*space-between/s);
+  assert.match(css, /\.note-meta-actions\s*\{[^}]*min-width:\s*40px/s);
+  assert.match(app, /作成: \$\{formatDateTime\(note\.createdAt\)\}　更新:/);
+});
