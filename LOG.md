@@ -1588,3 +1588,11 @@
 * 形式判定はURL拡張子ではなくHTTP `Content-Type`とマジックバイトを使い、`application/octet-stream`でもJPEG、PNG、WebPの実体なら保存可能にした。AVIF、SVG、GIFは変換せず「対応外形式」として確定する。保存可能画像は初期選択し、候補総数・保存可能数・選択数を分けて表示する。
 * 選択画像のデコードまたはIndexedDB保存に失敗した場合はメモを作成せず確認画面を維持し、画像ごとの理由を表示して再試行できるようにした。利用者が明示的に「本文のみ保存」を選んだ場合だけ画像なしで保存し、添付保存後のメモ作成失敗では添付をロールバックする。
 * Service Worker取得、同一ドメインJPEG、別ドメインのoctet-stream PNG、混在失敗、権限不足、タイムアウト、本文位置の`attachment://`置換を実処理テストへ追加し、`node --test`は393件成功した。実拡張E2EにはIndexedDB保存、再読み込み表示、全解除、保存失敗時のダイアログ維持を追加したが、検証用Playwrightの一時取得がネットワーク待ちで完了せず今回は未実行。Chrome／Edgeの実ブラウザでは本体確認画面の形式・容量・選択、保存・再読み込み表示を確認し、Chromeでは保存失敗・再試行・本文のみ保存も確認した。
+
+## 2026-08-12 Web Clipper画像取得確定・GIF／SVG／AVIF対応
+
+* ポップアップの画像取得を、リクエストID付きの画像単位メッセージと最大3件の並行処理へ変更した。`chrome.runtime.lastError`、応答ID不一致、受信先なし、権限、HTTP、ネットワーク、MIME、デコード、容量、変換、タイムアウトをエラーコード付きの確定状態へ変え、Service Worker停止・再起動後も再取得できるようにした。拡張バージョンをポップアップへ表示し、状態欄は省略せず折り返しと`title`で全文を確認できるようにした。
+* 候補抽出はページへ`page-extractor.js`をファイル注入し、補助関数を含む抽出APIを実行する。`article`／`main`、`figure`／`figcaption`、実寸を評価し、ロゴ・広告・SNS・プロフィール・追跡用小画像などを除外してURL重複排除後に20件上限を適用する。抽出順と本文中の位置マーカーは維持する。
+* GIFを既存画像添付へ追加し、署名と縦横サイズを検証してCanvas圧縮を通さず元バイト列のまま保存・表示・Markdown ZIP往復できるようにした。SVGとAVIFは追加した`offscreen`権限で必要時だけOffscreen Documentを作り、SVGのスクリプト、イベント、`foreignObject`、アニメーション要素、外部参照を除去してからWebP（利用不可時はPNG）へ変換する。AVIFもデコード可能な環境では同じ変換経路を使い、元MIMEと変換有無を添付メタデータへ保持する。
+* Playwright 1.56.1付属Chromium 141のpersistent contextへ実際のManifest V3拡張を読み込み、2オリジン間のリダイレクトJPEG、octet-stream PNG、クエリ付きWebP、複数フレームGIF、安全化SVG、AVIF、HTTP 404、15秒タイムアウト、装飾SVG 25件、Service Worker停止・再起動を検証した。6画像のIndexedDB保存、`attachment://`置換、再読み込み後の6画像表示、GIF元データ一致、SVG外部通信0件、保存失敗時のダイアログ維持、本文のみ保存の明示操作まで成功した。
+* `node --test`は398件成功し、全JavaScriptの`node --check`、Manifest JSON解析、`git diff --check`も成功した。`package.json`がないためlint・typecheck・buildは実行対象なし。Google Chrome／Edgeへの開発版手動インストールと日文研の実ページ確認は未実施で、READMEの手順に従う手動確認対象として残す。

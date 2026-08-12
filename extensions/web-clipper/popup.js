@@ -9,7 +9,10 @@ const clipMode = document.getElementById("clipMode");
 const userMemo = document.getElementById("userMemo");
 const userMemoRow = document.getElementById("userMemoRow");
 const modeStatus = document.getElementById("modeStatus");
+const extensionVersion = document.getElementById("extensionVersion");
 let clip = null;
+
+extensionVersion.textContent = chrome.runtime.getManifest().version;
 
 Object.entries(config.targets).forEach(([key, value]) => {
   const option = document.createElement("option");
@@ -59,8 +62,15 @@ async function buildClipForMode() {
   if (mode === "link" || mode === "memo") return { clip: { ...base, selection: mode === "link" ? "" : base.selection, images: [] }, transfer: false };
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   if (!tab?.id) throw new Error("page-injection-failed");
-  const extractor = mode === "page" ? MemoNexusPageExtractor.extractPageContent : MemoNexusPageExtractor.extractSelectionContent;
-  const [page] = await chrome.scripting.executeScript({ target: { tabId: tab.id }, func: extractor })
+  await chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ["page-extractor.js"] })
+    .catch((cause) => { console.error("Memo-Nexus Web Clipper extractor injection failed", cause); throw new Error("page-injection-failed"); });
+  const [page] = await chrome.scripting.executeScript({
+    target: { tabId: tab.id },
+    func: (clipModeValue) => clipModeValue === "page"
+      ? MemoNexusPageExtractor.extractPageContent()
+      : MemoNexusPageExtractor.extractSelectionContent(),
+    args: [mode]
+  })
     .catch((cause) => { console.error("Memo-Nexus Web Clipper page injection failed", cause); throw new Error("page-injection-failed"); });
   const content = page?.result;
   if (!content?.html) {
@@ -85,33 +95,60 @@ async function buildClipForMode() {
 }
 
 async function fetchImagesInServiceWorker(candidates) {
-  const timeoutMs = 20000;
-  let timer = 0;
-  try {
-    const response = await Promise.race([
-      chrome.runtime.sendMessage({
-        type: "memo-nexus-fetch-clip-images",
-        candidates,
-        options: { perImageLimit: 5 * 1024 * 1024, totalLimit: 20 * 1024 * 1024, timeoutMs: 15000 }
-      }),
-      new Promise((_, reject) => { timer = setTimeout(() => reject(Object.assign(new Error("image-fetch-timeout"), { name: "AbortError" })), timeoutMs); })
-    ]);
-    if (!response?.ok || !Array.isArray(response.images)) throw new Error(response?.error || "image-fetch-response-invalid");
-    const results = new Map(response.images.map((image) => [image.token, image]));
-    return candidates.map((candidate) => results.get(candidate.token)
-      || { ...candidate, status: "failed", selected: false, error: "画像取得結果を受信できませんでした" });
-  } catch (cause) {
-    console.error("Memo-Nexus Web Clipper Service Worker image fetch failed", cause);
-    const timedOut = cause?.name === "AbortError";
-    return candidates.map((candidate) => ({
-      ...candidate,
-      status: timedOut ? "timeout" : "failed",
-      selected: false,
-      error: timedOut ? "画像取得がタイムアウトしました" : "画像取得処理を開始できませんでした"
-    }));
-  } finally {
-    if (timer) clearTimeout(timer);
+  const perImageLimit = 5 * 1024 * 1024;
+  const totalLimit = 20 * 1024 * 1024;
+  const failure = (candidate, status, errorCode, message) => ({ ...candidate, status, selected: false, dataBase64: "", errorCode, error: message });
+  const fetchOne = (candidate) => new Promise((resolve) => {
+    const requestId = crypto.randomUUID();
+    let settled = false;
+    const finish = (value) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      resolve(value);
+    };
+    const timer = setTimeout(() => finish(failure(candidate, "timeout", "TIMEOUT", "画像取得がタイムアウトしました")), 20000);
+    chrome.runtime.sendMessage({
+      type: "memo-nexus-fetch-clip-image",
+      requestId,
+      candidate,
+      options: { perImageLimit, totalLimit, timeoutMs: 15000, concurrency: 1 }
+    }, (response) => {
+      const runtimeError = chrome.runtime.lastError;
+      if (runtimeError) {
+        const noReceiver = /Receiving end does not exist/i.test(runtimeError.message || "");
+        finish(failure(candidate, "failed", noReceiver ? "NO_RECEIVER" : "RUNTIME_MESSAGE_ERROR", runtimeError.message || "Service Workerへ接続できません"));
+        return;
+      }
+      if (response?.requestId !== requestId) {
+        finish(failure(candidate, "failed", "RESPONSE_ID_MISMATCH", "画像取得の応答IDが一致しません"));
+        return;
+      }
+      const image = Array.isArray(response?.images) ? response.images[0] : null;
+      if (!response?.ok || !image) {
+        finish(failure(candidate, "failed", response?.errorCode || "RESPONSE_MISSING", response?.error || "画像取得結果を受信できませんでした"));
+        return;
+      }
+      finish(image);
+    });
+  });
+  const results = new Array(candidates.length);
+  let cursor = 0;
+  async function worker() {
+    while (cursor < candidates.length) {
+      const index = cursor;
+      cursor += 1;
+      results[index] = await fetchOne(candidates[index]);
+    }
   }
+  await Promise.all(Array.from({ length: Math.min(3, candidates.length) }, () => worker()));
+  let total = 0;
+  return results.map((image) => {
+    if (image.status !== "ready") return image;
+    if (total + image.size > totalLimit) return failure(image, "too-large", "TOTAL_LIMIT_EXCEEDED", "クリップ画像合計20MBの上限を超えています");
+    total += image.size;
+    return image;
+  });
 }
 
 async function sendToMemoNexus() {

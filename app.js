@@ -2494,6 +2494,7 @@ function fillWebClipCollection(selectedId) {
 
 function webClipImageStatusLabel(image) {
   if (image.saveError) return "保存失敗";
+  if (image.status === "pending") return "取得中";
   if (image.status === "ready") return "保存できます";
   if (image.status === "unsupported") return "対応外形式";
   if (image.status === "too-large") return "容量上限超過";
@@ -2547,7 +2548,7 @@ function renderWebClipImages() {
     const details = document.createElement("dl");
     details.className = "web-clip-image-details";
     [
-      ["状態", `${webClipImageStatusLabel(image)}${image.saveError || image.error ? `: ${image.saveError || image.error}` : ""}`],
+      ["状態", `${webClipImageStatusLabel(image)}${image.errorCode ? ` [${image.errorCode}]` : ""}${image.saveError || image.error ? `: ${image.saveError || image.error}` : ""}`],
       ["説明", image.alt || "—"],
       ["キャプション", image.caption || "—"],
       ["形式・容量", `${image.mimeType || "不明"}${image.size ? ` / ${formatAttachmentBytes(image.size)}` : ""}`],
@@ -2557,7 +2558,8 @@ function renderWebClipImages() {
       const dd = document.createElement("dd");
       dt.textContent = term;
       dd.textContent = value;
-      if (term === "元URL") dd.title = value;
+      dd.className = term === "状態" ? "web-clip-image-state" : term === "元URL" ? "web-clip-image-source-url" : "";
+      if (term === "元URL" || term === "状態") dd.title = value;
       details.append(dt, dd);
     });
     card.append(details);
@@ -2586,6 +2588,9 @@ function webClipImageSourceMetadata(image, capturedAt, extra = {}) {
     caption: image.caption || null,
     capturedAt,
     status: image.status,
+    sourceMimeType: image.sourceMimeType || image.mimeType || null,
+    storedMimeType: image.mimeType || null,
+    converted: Boolean(image.converted),
     ...extra
   };
 }
@@ -2620,7 +2625,9 @@ async function createWebClipNoteWithImages(title, clip, source, collectionId) {
         alt: image.alt || null,
         caption: image.caption || null,
         capturedAt: clip.capturedAt,
-        token: image.token
+        token: image.token,
+        sourceMimeType: image.sourceMimeType || image.mimeType || null,
+        converted: Boolean(image.converted)
       };
       prepared.push(attachment);
       replacements.set(image.token, serializeImageBlock([{ ...attachment, alt: image.alt || attachment.fileName }], image.caption));
@@ -4449,6 +4456,28 @@ async function prepareAttachmentFile(file, kind, memoId) {
       size: file.size,
       blob: file.slice(0, file.size, "application/pdf"),
       createdAt: now
+    };
+  }
+
+  if (file.type === "image/gif") {
+    const header = new Uint8Array(await file.slice(0, 10).arrayBuffer());
+    const signature = String.fromCharCode(...header.subarray(0, 6));
+    const headerWidth = header[6] | (header[7] << 8);
+    const headerHeight = header[8] | (header[9] << 8);
+    if (!/^(?:GIF87a|GIF89a)$/.test(signature) || !headerWidth || !headerHeight) throw new Error(`「${file.name}」は有効なGIFとして認識できません`);
+    let decoded;
+    try {
+      decoded = await decodeAttachmentImage(file);
+    } catch (_) {
+      throw new Error(`「${file.name}」はGIF画像としてデコードできません`);
+    } finally {
+      decoded?.close?.();
+    }
+    const width = decoded?.width || headerWidth;
+    const height = decoded?.height || headerHeight;
+    return {
+      id: crypto.randomUUID(), memoId, kind, fileName: file.name, mimeType: "image/gif",
+      size: file.size, originalSize: file.size, blob: file.slice(0, file.size, "image/gif"), width, height, createdAt: now
     };
   }
 

@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Memo-Nexus Web Clipper",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "記事本文と選択範囲を画像候補付きでMemo-Nexusの確認画面へ渡します。",
   "action": {
     "default_title": "Memo-Nexus Web Clipper",
@@ -10,7 +10,7 @@
   "background": {
     "service_worker": "background.js"
   },
-  "permissions": ["activeTab", "scripting", "tabs", "storage", "unlimitedStorage"],
+  "permissions": ["activeTab", "scripting", "tabs", "storage", "unlimitedStorage", "offscreen"],
   "host_permissions": [
     "http://*/*",
     "https://*/*"

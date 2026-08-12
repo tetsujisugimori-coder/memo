@@ -7,7 +7,7 @@ const {
   webClipImageFailureMarkdown
 } = require("./web-clip-utils.js");
 const { serializeImageBlock } = require("./attachment-utils.js");
-const { fetchClipImages } = require("./extensions/web-clipper/image-fetcher.js");
+const { fetchClipImages, sniffImageType, gifDimensions } = require("./extensions/web-clipper/image-fetcher.js");
 const { fetchImagesForMessage } = require("./extensions/web-clipper/background.js");
 
 const capturedAt = "2026-08-12T00:00:00.000Z";
@@ -161,4 +161,54 @@ test("画像取得タイムアウトは必ずtimeoutへ確定する", async () =
   assert.equal(images[0].status, "timeout");
   assert.equal(images[0].selected, false);
   assert.match(images[0].error, /タイムアウト/);
+});
+
+test("アニメーションGIFはフレームを潰さず取得バイト列をそのまま保存対象にする", async () => {
+  const gif = Uint8Array.from(Buffer.from("R0lGODlhZAAyAPAAAAD/AAAAACH5BAABAAAAIf8LTkVUU0NBUEUyLjADAQAAACwAAAAAZAAyAAACTYSPqcvtD6OctNqLs968+w+G4kiW5omm6sq27gvH8kzX9o3n+s73/g8MCofEovGITCqXzKbzCY1Kp9Sq9YrNarfcrvcLDovH5LL5bCsAACH5BAAQJwAALAAAAABkADIAgP8AAAAAAAJNhI+py+0Po5y02ouz3rz7D4biSJbmiabqyrbuC8fyTNf2jef6zvf+DwwKh8Si8YhMKpfMpvMJjUqn1Kr1is1qt9yu9wsOi8fksvlsKwAAOw==", "base64"));
+  const [image] = await fetchClipImages([{ token: "web-clip-image-1", url: "https://example.com/animated.bin" }], {
+    fetchImpl: async () => new Response(gif, { headers: { "content-type": "application/octet-stream" } }),
+    decodeImage: async () => ({ width: 100, height: 50 })
+  });
+  assert.equal(sniffImageType(gif), "image/gif");
+  assert.deepEqual(gifDimensions(gif), { width: 100, height: 50 });
+  assert.equal(image.status, "ready");
+  assert.equal(image.mimeType, "image/gif");
+  assert.deepEqual(Buffer.from(image.dataBase64, "base64"), Buffer.from(gif));
+  assert.ok([...gif].filter((byte) => byte === 0x2c).length >= 2);
+});
+
+test("GIF署名だけを装いデコードできないデータは保存対象から除外する", async () => {
+  const fake = Uint8Array.from([...Buffer.from("GIF89a", "ascii"), 2, 0, 2, 0, 0, 0]);
+  const [image] = await fetchClipImages([{ token: "web-clip-image-1", url: "https://example.com/fake.gif" }], {
+    fetchImpl: async () => new Response(fake, { headers: { "content-type": "image/gif" } }),
+    decodeImage: async () => { throw new Error("broken"); }
+  });
+  assert.equal(image.status, "unsupported");
+  assert.equal(image.errorCode, "DECODE_FAILED");
+});
+
+test("SVGとAVIFは変換器の安全なWebP結果だけを保存対象へ渡す", async () => {
+  const svg = new TextEncoder().encode('<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>');
+  const avif = Uint8Array.from([0, 0, 0, 24, 0x66, 0x74, 0x79, 0x70, 0x61, 0x76, 0x69, 0x66, 0, 0, 0, 0]);
+  const stored = Uint8Array.from([0x52, 0x49, 0x46, 0x46, 0, 0, 0, 0, 0x57, 0x45, 0x42, 0x50]);
+  const convertedTypes = [];
+  const images = await fetchClipImages([
+    { token: "web-clip-image-1", url: "https://example.com/a.svg" },
+    { token: "web-clip-image-2", url: "https://example.com/a.avif" }
+  ], {
+    fetchImpl: async (url) => new Response(url.endsWith("svg") ? svg : avif, { headers: { "content-type": url.endsWith("svg") ? "image/svg+xml" : "image/avif" } }),
+    convertImage: async ({ mimeType }) => { convertedTypes.push(mimeType); return { bytes: stored, mimeType: "image/webp", width: 100, height: 80 }; }
+  });
+  assert.deepEqual(convertedTypes.sort(), ["image/avif", "image/svg+xml"]);
+  assert.deepEqual(images.map((image) => image.status), ["ready", "ready"]);
+  assert.ok(images.every((image) => image.mimeType === "image/webp" && image.converted));
+});
+
+test("変換器が使えないSVG/AVIFも取得中のままにせず対応外へ確定する", async () => {
+  const svg = new TextEncoder().encode('<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10"/>');
+  const [image] = await fetchClipImages([{ token: "web-clip-image-1", url: "https://example.com/a.svg" }], {
+    fetchImpl: async () => new Response(svg, { headers: { "content-type": "image/svg+xml" } })
+  });
+  assert.equal(image.status, "unsupported");
+  assert.equal(image.errorCode, "CONVERSION_UNAVAILABLE");
 });

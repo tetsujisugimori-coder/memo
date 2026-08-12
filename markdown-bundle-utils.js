@@ -6,7 +6,8 @@
     ["jpg", "image/jpeg"],
     ["jpeg", "image/jpeg"],
     ["png", "image/png"],
-    ["webp", "image/webp"]
+    ["webp", "image/webp"],
+    ["gif", "image/gif"]
   ]);
 
   function readU16(view, offset) { return view.getUint16(offset, true); }

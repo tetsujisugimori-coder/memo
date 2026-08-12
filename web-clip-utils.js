@@ -23,8 +23,8 @@
     const token = /^web-clip-image-[1-9][0-9]*$/.test(String(input.token || ""))
       ? String(input.token)
       : `web-clip-image-${index + 1}`;
-    const status = ["ready", "failed", "unsupported", "too-large", "permission-denied", "timeout"].includes(input.status) ? input.status : "failed";
-    const supportedMimeType = ["image/jpeg", "image/png", "image/webp"].includes(input.mimeType);
+    const status = ["pending", "ready", "failed", "unsupported", "too-large", "permission-denied", "timeout"].includes(input.status) ? input.status : "failed";
+    const supportedMimeType = ["image/jpeg", "image/png", "image/webp", "image/gif"].includes(input.mimeType);
     const mimeType = supportedMimeType ? input.mimeType : cleanText(input.mimeType, 100);
     const size = Math.max(0, Number(input.size) || 0);
     const dataBase64 = status === "ready" && typeof input.dataBase64 === "string" && /^[A-Za-z0-9+/]*={0,2}$/.test(input.dataBase64)
@@ -41,8 +41,11 @@
       width: Math.max(0, Number(input.width) || 0),
       height: Math.max(0, Number(input.height) || 0),
       status: resolvedStatus,
+      errorCode: cleanText(input.errorCode, 80),
       error: cleanText(input.error, 500),
       mimeType,
+      sourceMimeType: cleanText(input.sourceMimeType, 100),
+      converted: Boolean(input.converted),
       size,
       fileName: cleanText(input.fileName, 140),
       dataBase64,

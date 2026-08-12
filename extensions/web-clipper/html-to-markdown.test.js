@@ -1,14 +1,15 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
+const fs = require("node:fs");
 const { htmlToMarkdown } = require("./html-to-markdown.js");
 const { extractPageContent, extractSelectionContent } = require("./page-extractor.js");
 
-test("ページ抽出関数はexecuteScriptで単独実行できる自己完結関数である", () => {
-  const source = extractPageContent.toString();
-  assert.match(source, /const exclude/);
-  assert.match(source, /const score/);
-  assert.match(source, /data-memo-nexus-clip-image/);
-  assert.doesNotMatch(source, /EXCLUDE/);
+test("ページ抽出APIは補助関数ごと対象タブへファイル注入して実行する", () => {
+  const popup = fs.readFileSync("extensions/web-clipper/popup.js", "utf8");
+  assert.match(popup, /files:\s*\["page-extractor\.js"\]/);
+  assert.match(popup, /MemoNexusPageExtractor\.extractPageContent\(\)/);
+  assert.match(popup, /MemoNexusPageExtractor\.extractSelectionContent\(\)/);
+  assert.match(extractPageContent.toString(), /collectImages/);
   assert.match(extractSelectionContent.toString(), /getSelection/);
 });
 

@@ -13,7 +13,8 @@
   const IMAGE_TYPES = new Map([
     ["image/jpeg", new Set(["jpg", "jpeg"])],
     ["image/png", new Set(["png"])],
-    ["image/webp", new Set(["webp"])]
+    ["image/webp", new Set(["webp"])],
+    ["image/gif", new Set(["gif"])]
   ]);
 
   function fileExtension(fileName) {
@@ -29,7 +30,7 @@
     }
     if (IMAGE_TYPES.has(mimeType) && IMAGE_TYPES.get(mimeType).has(extension)) return "image";
     if (mimeType === "application/pdf" && extension === "pdf") return "pdf";
-    throw new Error(`「${file.name || "名称不明"}」は対応していない形式です。JPEG、PNG、WebP、PDFを選択してください`);
+    throw new Error(`「${file.name || "名称不明"}」は対応していない形式です。JPEG、PNG、WebP、GIF、PDFを選択してください`);
   }
 
   function attachmentCapacity(existingBytes, additionalBytes, limit = MAX_ATTACHMENT_TOTAL_BYTES) {

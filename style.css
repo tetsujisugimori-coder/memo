@@ -1695,6 +1695,8 @@ body.collections-open .collection-explorer {
 .web-clip-image-details { display: grid; grid-template-columns: max-content minmax(0, 1fr); align-content: start; gap: 2px 7px; min-width: 0; margin: 0; font-size: 11px; }
 .web-clip-image-details dt { color: var(--muted); }
 .web-clip-image-details dd { min-width: 0; margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.web-clip-image-details dd.web-clip-image-state { overflow: visible; color: var(--ink); overflow-wrap: anywhere; text-overflow: clip; white-space: normal; }
+.web-clip-image-card:not(.status-ready) .web-clip-image-state { color: var(--danger); }
 
 @media (max-width: 640px) {
   .web-clip-images-head { align-items: flex-start; }
