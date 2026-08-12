@@ -72,20 +72,46 @@ async function buildClipForMode() {
   let images = [];
   if (content.images?.length) {
     modeStatus.textContent = `${content.images.length}枚の画像を取得しています…`;
-    const [result] = await chrome.scripting.executeScript({
-      target: { tabId: tab.id },
-      func: MemoNexusClipImageFetcher.fetchClipImages,
-      args: [content.images, { perImageLimit: 5 * 1024 * 1024, totalLimit: 20 * 1024 * 1024, timeoutMs: 15000 }]
-    }).catch((cause) => {
-      console.error("Memo-Nexus Web Clipper image fetch failed", cause);
-      return [{ result: content.images.map((image) => ({ ...image, status: "failed", error: "画像取得処理を開始できませんでした" })) }];
-    });
-    images = result?.result || [];
+    images = await fetchImagesInServiceWorker(content.images);
+    const readyCount = images.filter((image) => image.status === "ready").length;
+    modeStatus.textContent = readyCount
+      ? `${readyCount}/${images.length}枚の画像を保存できます`
+      : `${images.length}枚の画像を確認しましたが、保存できる画像はありません`;
   }
   return {
     clip: { ...base, selection: markdown, images, omittedImageCount: content.omittedImageCount || 0 },
     transfer: mode === "page" || images.length > 0
   };
+}
+
+async function fetchImagesInServiceWorker(candidates) {
+  const timeoutMs = 20000;
+  let timer = 0;
+  try {
+    const response = await Promise.race([
+      chrome.runtime.sendMessage({
+        type: "memo-nexus-fetch-clip-images",
+        candidates,
+        options: { perImageLimit: 5 * 1024 * 1024, totalLimit: 20 * 1024 * 1024, timeoutMs: 15000 }
+      }),
+      new Promise((_, reject) => { timer = setTimeout(() => reject(Object.assign(new Error("image-fetch-timeout"), { name: "AbortError" })), timeoutMs); })
+    ]);
+    if (!response?.ok || !Array.isArray(response.images)) throw new Error(response?.error || "image-fetch-response-invalid");
+    const results = new Map(response.images.map((image) => [image.token, image]));
+    return candidates.map((candidate) => results.get(candidate.token)
+      || { ...candidate, status: "failed", selected: false, error: "画像取得結果を受信できませんでした" });
+  } catch (cause) {
+    console.error("Memo-Nexus Web Clipper Service Worker image fetch failed", cause);
+    const timedOut = cause?.name === "AbortError";
+    return candidates.map((candidate) => ({
+      ...candidate,
+      status: timedOut ? "timeout" : "failed",
+      selected: false,
+      error: timedOut ? "画像取得がタイムアウトしました" : "画像取得処理を開始できませんでした"
+    }));
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
 }
 
 async function sendToMemoNexus() {

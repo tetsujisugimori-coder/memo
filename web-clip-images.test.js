@@ -8,6 +8,7 @@ const {
 } = require("./web-clip-utils.js");
 const { serializeImageBlock } = require("./attachment-utils.js");
 const { fetchClipImages } = require("./extensions/web-clipper/image-fetcher.js");
+const { fetchImagesForMessage } = require("./extensions/web-clipper/background.js");
 
 const capturedAt = "2026-08-12T00:00:00.000Z";
 const readyImage = (token, overrides = {}) => ({
@@ -106,4 +107,58 @@ test("画像取得は対応形式を保持し、形式外・合計上限・取�
   assert.equal(images[1].status, "too-large");
   assert.equal(images[2].status, "unsupported");
   assert.equal(images[3].status, "failed");
+});
+
+test("同一ドメインJPEGと別ドメインCDNのPNGをService Worker取得結果として保存対象にできる", async () => {
+  const jpeg = Uint8Array.from([0xff, 0xd8, 0xff, 0xe0, 1, 2]);
+  const png = Uint8Array.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 1, 2]);
+  const images = await fetchImagesForMessage({
+    candidates: [
+      { token: "web-clip-image-1", url: "https://article.example/photo" },
+      { token: "web-clip-image-2", url: "https://cdn.example/image.bin" }
+    ]
+  }, {
+    hasPermission: async () => true,
+    fetchImages: (candidates, options) => fetchClipImages(candidates, {
+      ...options,
+      decodeImage: async () => {},
+      fetchImpl: async (url) => new Response(url.includes("cdn.example") ? png : jpeg, {
+        status: 200,
+        headers: { "content-type": url.includes("cdn.example") ? "application/octet-stream" : "image/jpeg" }
+      })
+    })
+  });
+  assert.deepEqual(images.map((image) => image.status), ["ready", "ready"]);
+  assert.deepEqual(images.map((image) => image.mimeType), ["image/jpeg", "image/png"]);
+  assert.ok(images.every((image) => image.selected && image.size > 0 && image.dataBase64));
+});
+
+test("権限不足と一部取得失敗があっても成功画像は選択可能な確定状態になる", async () => {
+  const candidates = [
+    { token: "web-clip-image-1", url: "https://allowed.example/a.png" },
+    { token: "web-clip-image-2", url: "https://allowed.example/missing.png" },
+    { token: "web-clip-image-3", url: "https://denied.example/private.png" }
+  ];
+  const images = await fetchImagesForMessage({ candidates }, {
+    hasPermission: async (origin) => !origin.includes("denied.example"),
+    fetchImages: async (allowed) => allowed.map((candidate, index) => index === 0
+      ? { ...candidate, status: "ready", selected: true, mimeType: "image/png", size: 10, dataBase64: "AA==" }
+      : { ...candidate, status: "failed", selected: false, error: "HTTP 404で取得できません" })
+  });
+  assert.deepEqual(images.map((image) => image.status), ["ready", "failed", "permission-denied"]);
+  assert.equal(images[0].selected, true);
+  assert.ok(images.slice(1).every((image) => image.selected === false));
+  assert.ok(images.every((image) => image.status !== "pending"));
+});
+
+test("画像取得タイムアウトは必ずtimeoutへ確定する", async () => {
+  const images = await fetchClipImages([{ token: "web-clip-image-1", url: "https://slow.example/a.png" }], {
+    timeoutMs: 1000,
+    fetchImpl: async (_url, { signal }) => new Promise((_resolve, reject) => {
+      signal.addEventListener("abort", () => reject(Object.assign(new Error("aborted"), { name: "AbortError" })), { once: true });
+    })
+  });
+  assert.equal(images[0].status, "timeout");
+  assert.equal(images[0].selected, false);
+  assert.match(images[0].error, /タイムアウト/);
 });

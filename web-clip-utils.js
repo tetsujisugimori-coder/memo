@@ -23,7 +23,7 @@
     const token = /^web-clip-image-[1-9][0-9]*$/.test(String(input.token || ""))
       ? String(input.token)
       : `web-clip-image-${index + 1}`;
-    const status = ["ready", "failed", "unsupported", "too-large"].includes(input.status) ? input.status : "failed";
+    const status = ["ready", "failed", "unsupported", "too-large", "permission-denied", "timeout"].includes(input.status) ? input.status : "failed";
     const supportedMimeType = ["image/jpeg", "image/png", "image/webp"].includes(input.mimeType);
     const mimeType = supportedMimeType ? input.mimeType : cleanText(input.mimeType, 100);
     const size = Math.max(0, Number(input.size) || 0);

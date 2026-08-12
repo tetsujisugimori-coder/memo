@@ -7,7 +7,7 @@
   <script>try { document.documentElement.dataset.initialTheme = localStorage.getItem("memo-nexus-theme") === "dark" ? "dark" : "light"; } catch (_) { document.documentElement.dataset.initialTheme = "light"; }</script>
   <style>html,body{background:#f6f7f4;color:#222522;color-scheme:light}html[data-initial-theme="dark"],html[data-initial-theme="dark"] body{background:#111513;color:#e7ece7;color-scheme:dark}</style>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css">
-  <link rel="stylesheet" href="style.css?v=0.4.0-46">
+  <link rel="stylesheet" href="style.css?v=0.4.0-47">
 </head>
 <body>
   <aside id="memoSidebar" class="sidebar" aria-label="メモ一覧" aria-hidden="false">
@@ -546,7 +546,7 @@
       <label>取得日時<input id="webClipCapturedAt" type="text" readonly></label>
       <label>保存先コレクション<select id="webClipCollection"></select></label>
       <p id="webClipError" class="web-clip-error" role="alert"></p>
-      <div class="dialog-actions"><button id="cancelWebClipBtn" type="button">キャンセル</button><button type="submit">通常メモとして保存</button></div>
+      <div class="dialog-actions"><button id="cancelWebClipBtn" type="button">キャンセル</button><button id="saveWebClipTextOnlyBtn" type="button" hidden>本文のみ保存</button><button id="saveWebClipBtn" type="submit">通常メモとして保存</button></div>
     </form>
   </dialog>
 
@@ -665,7 +665,7 @@
   <script src="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/mathjs@15.2.0/lib/browser/math.js"></script>
   <script src="export-utils.js?v=0.4.0-8"></script>
-  <script src="web-clip-utils.js?v=0.1.0-3"></script>
+  <script src="web-clip-utils.js?v=0.1.0-4"></script>
   <script src="web-clipper-config.js?v=0.1.0-1"></script>
   <script src="attachment-utils.js?v=0.4.0-10"></script>
   <script src="table-block-utils.js?v=0.4.0-4"></script>
@@ -688,6 +688,6 @@
   <script src="note-flag-utils.js?v=0.4.0-1"></script>
   <script src="text-stats-utils.js?v=0.4.0-1"></script>
   <script src="markdown-bundle-utils.js?v=0.1.0-1"></script>
-  <script src="app.js?v=0.4.0-68"></script>
+  <script src="app.js?v=0.4.0-69"></script>
 </body>
 </html>

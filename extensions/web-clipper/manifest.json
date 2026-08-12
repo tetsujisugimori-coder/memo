@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Memo-Nexus Web Clipper",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "記事本文と選択範囲を画像候補付きでMemo-Nexusの確認画面へ渡します。",
   "action": {
     "default_title": "Memo-Nexus Web Clipper",
@@ -12,10 +12,8 @@
   },
   "permissions": ["activeTab", "scripting", "tabs", "storage", "unlimitedStorage"],
   "host_permissions": [
-    "http://localhost/*",
-    "http://127.0.0.1/*",
-    "http://127.0.0.1:5500/*",
-    "https://tetsujisugimori-coder.github.io/memo/*"
+    "http://*/*",
+    "https://*/*"
   ],
   "content_scripts": [{
     "matches": ["http://localhost/*", "http://127.0.0.1/*", "https://tetsujisugimori-coder.github.io/memo/*"],

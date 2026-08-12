@@ -1684,7 +1684,10 @@ body.collections-open .collection-explorer {
 .web-clip-image-card { display: grid; grid-template-columns: 88px minmax(0, 1fr); gap: 8px; min-width: 0; padding: 8px; border: 1px solid var(--line); border-radius: 7px; background: var(--paper); }
 .web-clip-image-card.status-failed,
 .web-clip-image-card.status-unsupported,
-.web-clip-image-card.status-too-large { opacity: .78; }
+.web-clip-image-card.status-too-large,
+.web-clip-image-card.status-permission-denied,
+.web-clip-image-card.status-timeout { opacity: .78; }
+.web-clip-image-card.has-save-error { border-color: var(--danger); }
 .web-clip-form .web-clip-image-selector { grid-column: 1 / -1; display: flex; flex-direction: row; align-items: center; gap: 7px; min-width: 0; font-weight: 600; }
 .web-clip-image-selector input { flex: 0 0 auto; width: 20px; height: 20px; margin: 0; }
 .web-clip-image-selector span { min-width: 0; overflow-wrap: anywhere; }

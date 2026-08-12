@@ -8,18 +8,55 @@ const fs = require("node:fs");
 const http = require("node:http");
 const os = require("node:os");
 const path = require("node:path");
+const zlib = require("node:zlib");
 const { chromium } = require("playwright");
 
 const root = __dirname;
 const artifacts = path.join(root, "e2e-artifacts");
 const appUrl = "http://127.0.0.1:5500/";
 const articleUrl = "http://127.0.0.1:5500/e2e-source.html";
+const cdnUrl = "http://127.0.0.1:5501/cdn-image.png";
 const marker = "E2E確認用固有文字列: memo-nexus-web-clipper-78";
 const selectionText = "選択確認用の段落です。";
 const longText = "長文確認用テキスト ".repeat(16000);
 
+function crc32(buffer) {
+  let crc = 0xffffffff;
+  for (const byte of buffer) {
+    crc ^= byte;
+    for (let bit = 0; bit < 8; bit += 1) crc = (crc >>> 1) ^ (crc & 1 ? 0xedb88320 : 0);
+  }
+  return (crc ^ 0xffffffff) >>> 0;
+}
+
+function pngChunk(type, data) {
+  const name = Buffer.from(type);
+  const chunk = Buffer.alloc(12 + data.length);
+  chunk.writeUInt32BE(data.length, 0); name.copy(chunk, 4); data.copy(chunk, 8);
+  chunk.writeUInt32BE(crc32(Buffer.concat([name, data])), 8 + data.length);
+  return chunk;
+}
+
+function pngImage(red, green, blue) {
+  const width = 32; const height = 24;
+  const raw = Buffer.alloc(height * (1 + width * 4));
+  for (let y = 0; y < height; y += 1) {
+    const row = y * (1 + width * 4); raw[row] = 0;
+    for (let x = 0; x < width; x += 1) {
+      const pixel = row + 1 + x * 4;
+      raw[pixel] = red; raw[pixel + 1] = green; raw[pixel + 2] = blue; raw[pixel + 3] = 255;
+    }
+  }
+  const header = Buffer.alloc(13);
+  header.writeUInt32BE(width, 0); header.writeUInt32BE(height, 4); header[8] = 8; header[9] = 6;
+  return Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), pngChunk("IHDR", header), pngChunk("IDAT", zlib.deflateSync(raw)), pngChunk("IEND", Buffer.alloc(0))]);
+}
+
+const localImage = pngImage(208, 62, 62);
+const cdnImage = pngImage(55, 112, 210);
+
 function articleHtml() {
-  return `<!doctype html><meta charset="utf-8"><title>E2E記事タイトル</title><article><h1>取得元の見出し</h1><p>${selectionText}</p><p>複数段落の二段落目です。${marker}</p><ul><li>リスト項目 一</li><li>リスト項目 二</li></ul><p><a href="https://example.test/reference">確認用リンク</a></p><p>${longText}</p></article>`;
+  return `<!doctype html><meta charset="utf-8"><title>E2E記事タイトル</title><article><h1>取得元の見出し</h1><p>${selectionText}</p><figure><img src="${appUrl}local-image.png" alt="同一ドメイン画像" width="32" height="24"><figcaption>同一ドメイン画像の説明</figcaption></figure><p>画像間の段落です。${marker}</p><figure><img src="${cdnUrl}" alt="CDN画像" width="32" height="24"><figcaption>CDN画像の説明</figcaption></figure><img src="http://127.0.0.1:5501/missing.png" alt="取得失敗画像" width="32" height="24"><ul><li>リスト項目 一</li><li>リスト項目 二</li></ul><p><a href="https://example.test/reference">確認用リンク</a></p><p>${longText}</p></article>`;
 }
 
 function server() {
@@ -28,6 +65,10 @@ function server() {
     if (url.pathname === "/e2e-source.html") {
       response.writeHead(200, { "content-type": "text/html; charset=utf-8" });
       return response.end(articleHtml());
+    }
+    if (url.pathname === "/local-image.png") {
+      response.writeHead(200, { "content-type": "image/png", "content-length": localImage.length });
+      return response.end(localImage);
     }
     if (url.pathname === "/no-ack.html") {
       response.writeHead(200, { "content-type": "text/html; charset=utf-8" });
@@ -41,6 +82,16 @@ function server() {
     const mime = file.endsWith(".html") ? "text/html" : file.endsWith(".js") ? "text/javascript" : file.endsWith(".css") ? "text/css" : "application/octet-stream";
     response.writeHead(200, { "content-type": `${mime}; charset=utf-8` });
     response.end(fs.readFileSync(file));
+  });
+}
+
+function cdnServer() {
+  return http.createServer((request, response) => {
+    if (request.url === "/cdn-image.png") {
+      response.writeHead(200, { "content-type": "application/octet-stream", "content-length": cdnImage.length });
+      return response.end(cdnImage);
+    }
+    response.writeHead(404, { "content-type": "text/plain" }); response.end("missing");
   });
 }
 
@@ -80,13 +131,13 @@ async function waitForClipPage(context, before) {
 
 async function capture(context, worker, extensionId, mode) {
   const before = new Set(context.pages());
-  const popup = await openPopup(context, worker, extensionId);
-  await popup.selectOption("#clipMode", mode);
-  if (mode === "memo") await popup.locator("#userMemo").fill("E2Eメモ: あとで確認");
   await worker.evaluate(async (url) => {
     const [tab] = await chrome.tabs.query({ url });
     if (tab?.id) await chrome.tabs.update(tab.id, { active: true });
   }, articleUrl);
+  const popup = await openPopup(context, worker, extensionId);
+  await popup.selectOption("#clipMode", mode);
+  if (mode === "memo") await popup.locator("#userMemo").fill("E2Eメモ: あとで確認");
   await Promise.all([waitForClipPage(context, before), popup.locator("#send").click()]);
   const receiver = context.pages().find((page) => !before.has(page) && page.url().startsWith(appUrl));
   assert(receiver, "Memo-Nexus confirmation page was not opened");
@@ -97,7 +148,9 @@ async function capture(context, worker, extensionId, mode) {
 async function main() {
   fs.mkdirSync(artifacts, { recursive: true });
   const httpServer = server();
+  const imageServer = cdnServer();
   await new Promise((resolve) => httpServer.listen(5500, "127.0.0.1", resolve));
+  await new Promise((resolve) => imageServer.listen(5501, "127.0.0.1", resolve));
   const profile = fs.mkdtempSync(path.join(os.tmpdir(), "memo-nexus-web-clipper-"));
   let context;
   try {
@@ -155,11 +208,73 @@ async function main() {
     assert.match(body, /- リスト項目 一/);
     assert.match(body, /\[確認用リンク\]\(https:\/\/example\.test\/reference\)/);
     assert(body.length > 100000, "long article was not transferred");
+    await receiver.locator("#webClipImagesSummary").waitFor({ state: "visible" });
+    assert.match(await receiver.locator("#webClipImagesSummary").textContent(), /候補3件のうち、保存可能2件・選択2件/);
+    const imageCards = receiver.locator(".web-clip-image-card");
+    assert.equal(await imageCards.count(), 3);
+    assert.equal(await receiver.locator('.web-clip-image-card.status-ready input[type="checkbox"]:enabled').count(), 2);
+    assert.equal(await receiver.locator(".web-clip-image-card.status-failed").count(), 1);
+    assert.match(await imageCards.nth(0).textContent(), /image\/png \/ \d+ B/);
+    assert.match(await imageCards.nth(1).textContent(), /image\/png \/ \d+ B/);
+    assert.doesNotMatch(await receiver.locator("#webClipImagesList").textContent(), /取得…/);
     await receiver.screenshot({ path: path.join(artifacts, "web-clipper-page-transfer.png"), fullPage: true });
     await receiver.evaluate(() => window.__memoNexusOriginalPostMessage({ type: "memo-nexus-web-clip-transfer-ack", transferId: window.__memoNexusTransferId }, location.origin));
     await receiver.waitForTimeout(250);
     assert.equal(await storage(worker, transferKey), undefined, "storage.local entry remains after ACK");
+    await receiver.locator('.web-clip-image-card.status-ready input[type="checkbox"]').nth(1).uncheck();
+    await receiver.locator("#saveWebClipBtn").click();
+    await receiver.locator("#webClipDialog").waitFor({ state: "hidden" });
+    await receiver.locator("#attachmentCount").waitFor({ state: "visible" });
+    assert.equal(await receiver.locator("#attachmentCount").textContent(), "1件");
+    const savedBody = await receiver.locator("#editor").inputValue();
+    assert.match(savedBody, /attachment:\/\//);
+    assert.match(savedBody, /画像を保存できませんでした: 取得失敗画像/);
+    const storedAttachmentCount = await receiver.evaluate(() => new Promise((resolve, reject) => {
+      const request = indexedDB.open("memo-nexus");
+      request.onerror = () => reject(request.error);
+      request.onsuccess = () => {
+        const count = request.result.transaction("attachments").objectStore("attachments").count();
+        count.onerror = () => reject(count.error); count.onsuccess = () => resolve(count.result);
+      };
+    }));
+    assert.equal(storedAttachmentCount, 1, "selected image was not saved to IndexedDB");
+    await receiver.reload();
+    await receiver.locator(".image-block img").waitFor({ state: "visible" });
+    assert.equal(await receiver.locator("#attachmentCount").textContent(), "1件");
+    assert.match(await receiver.locator("#editor").inputValue(), /attachment:\/\//);
     await popup.close(); await receiver.close();
+
+    const { popup: textOnlyPopup, receiver: textOnlyReceiver } = await capture(context, worker, extensionId, "page");
+    await textOnlyReceiver.locator("#clearAllWebClipImagesBtn").click();
+    assert.match(await textOnlyReceiver.locator("#webClipImagesSummary").textContent(), /保存可能2件・選択0件/);
+    await textOnlyReceiver.locator("#saveWebClipBtn").click();
+    await textOnlyReceiver.locator("#webClipDialog").waitFor({ state: "hidden" });
+    assert.equal(await textOnlyReceiver.locator("#attachmentCount").textContent(), "0件");
+    assert.doesNotMatch(await textOnlyReceiver.locator("#editor").inputValue(), /attachment:\/\//);
+    await textOnlyPopup.close(); await textOnlyReceiver.close();
+
+    const invalidImageId = crypto.randomUUID();
+    const invalidImageKey = `memoNexusTransfer:${invalidImageId}`;
+    await setStorage(worker, invalidImageKey, {
+      createdAt: Date.now(),
+      clip: {
+        title: "画像保存失敗確認", url: articleUrl, host: "127.0.0.1", clipMode: "page", capturedAt: new Date().toISOString(),
+        selection: "本文前\n\n<!-- memo-nexus:web-clip-image:web-clip-image-1 -->\n\n本文後",
+        images: [{ token: "web-clip-image-1", url: `${appUrl}broken.png`, alt: "壊れた画像", caption: "", status: "ready", mimeType: "image/png", size: 7, fileName: "broken.png", dataBase64: "aW52YWxpZA==", selected: true }]
+      }
+    });
+    const failedSave = await context.newPage();
+    await failedSave.goto(`${appUrl}#clip-transfer=${invalidImageId}`);
+    await failedSave.locator("#webClipDialog[open]").waitFor();
+    await failedSave.locator("#saveWebClipBtn").click();
+    await failedSave.locator("#webClipError").filter({ hasText: "保存に失敗しました" }).waitFor();
+    assert(await failedSave.locator("#webClipDialog").getAttribute("open") !== null, "dialog closed after selected image save failed");
+    assert.equal(await failedSave.locator(".web-clip-image-card.has-save-error").count(), 1);
+    assert(await failedSave.locator("#saveWebClipBtn").isEnabled(), "retry button was not re-enabled");
+    await failedSave.locator("#saveWebClipTextOnlyBtn").click();
+    await failedSave.locator("#webClipDialog").waitFor({ state: "hidden" });
+    assert.equal(await failedSave.locator("#attachmentCount").textContent(), "0件");
+    await failedSave.close();
 
     // A real content script on a local receiver page retries without ACK and
     // eventually emits its timeout message; the entry is deliberately retained.
@@ -177,6 +292,7 @@ async function main() {
   } finally {
     if (context) await context.close();
     await new Promise((resolve) => httpServer.close(resolve));
+    await new Promise((resolve) => imageServer.close(resolve));
     fs.rmSync(profile, { recursive: true, force: true });
   }
 }
