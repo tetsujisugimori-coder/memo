@@ -2887,8 +2887,7 @@ async function toggleCurrentNoteFlag() {
 }
 
 function renderMemoSyncNotice() {
-  if (!memoSyncNotice) return;
-  memoSyncNotice.hidden = !pendingMemoSync || pendingMemoSync.memoId !== currentId;
+  // 同期の保留状態は従来どおり維持し、タイトル上の補足表示は行わない。
 }
 
 function loadPendingMemoSync() {
@@ -6499,7 +6498,7 @@ function zipDosDateTime(value) {
   return { dosTime, dosDate };
 }
 
-// タイトル右側に、作成日と本文の最終変更日時を表示します。
+// エディタ末尾に、作成日と本文の最終変更日時を表示します。
 function renderNoteMeta() {
   const note = currentNote();
   if (!note) {
@@ -6507,10 +6506,7 @@ function renderNoteMeta() {
     return;
   }
 
-  noteMeta.innerHTML = `
-    <div>作成: ${escapeHtml(formatDateTime(note.createdAt))}</div>
-    <div>変更: ${escapeHtml(formatDateTime(note.bodyUpdatedAt || note.updatedAt))}</div>
-  `;
+  noteMeta.textContent = `作成: ${formatDateTime(note.createdAt)}　更新: ${formatDateTime(note.bodyUpdatedAt || note.updatedAt)}`;
 }
 
 function formatDateTime(value) {

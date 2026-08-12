@@ -98,22 +98,6 @@ body.dark {
   display: none !important;
 }
 
-.memo-sync-notice {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 8px;
-  margin-top: 6px;
-  color: var(--muted);
-  font-size: 12px;
-}
-
-.memo-sync-notice button {
-  min-height: 28px;
-  padding: 3px 8px;
-  font-size: 12px;
-}
-
 .popout-ghost {
   position: fixed;
   z-index: 200;
@@ -1468,13 +1452,25 @@ body.collections-open .collection-explorer {
   font-weight: 800;
 }
 
-.note-meta {
+.note-meta-bar {
   flex: 0 0 auto;
-  padding: 8px 16px 10px;
   border-top: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 30px;
+  padding: 4px 16px;
+}
+
+.note-meta-actions {
+  min-width: 40px;
+  min-height: 24px;
+}
+
+.note-meta {
   color: var(--muted);
-  font-size: 12px;
-  line-height: 1.45;
+  font-size: 11px;
+  line-height: 1.35;
   text-align: right;
   white-space: nowrap;
 }
@@ -1573,10 +1569,6 @@ body.collections-open .collection-explorer {
   line-height: 1.3;
   text-align: right;
   white-space: nowrap;
-}
-
-.title-side-head + .memo-sync-notice {
-  margin-top: 4px;
 }
 
 .editor-tools {
@@ -3975,7 +3967,8 @@ body.related-open .related-toggle {
 
   .save-status { font-size: 11px; }
 
-  .note-meta { padding: 8px 12px 10px; font-size: 11px; }
+  .note-meta-bar { padding: 4px 12px; }
+  .note-meta { font-size: 10px; }
 
   #editor {
     padding: 14px 12px;

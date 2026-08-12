@@ -43,7 +43,10 @@ test("タイトルのフォーカス枠は専用ラッパーだけに収める",
 });
 
 test("メモ日時はタイトル操作部ではなくエディタ末尾へ置く", () => {
-  assert.match(html, /<div id="tableBlockEditors"[\s\S]*<div id="noteMeta" class="note-meta"/);
+  assert.match(html, /<div id="tableBlockEditors"[\s\S]*<div class="note-meta-bar">[\s\S]*<div class="note-meta-actions"[\s\S]*<div id="noteMeta" class="note-meta"/);
   assert.ok(html.indexOf('<div id="noteMeta"') > html.indexOf('<div id="tableBlockEditors"'));
-  assert.match(css, /\.note-meta\s*\{[^}]*flex:\s*0 0 auto[^}]*border-top:/s);
+  assert.doesNotMatch(html, /別ウィンドウで更新があります/);
+  assert.match(css, /\.note-meta-bar\s*\{[^}]*border-top:[^}]*display:\s*flex[^}]*justify-content:\s*space-between/s);
+  assert.match(css, /\.note-meta-actions\s*\{[^}]*min-width:\s*40px/s);
+  assert.match(app, /作成: \$\{formatDateTime\(note\.createdAt\)\}　更新:/);
 });

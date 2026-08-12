@@ -46,7 +46,8 @@ test("同期判定はDBとの差ではなく明示的なローカル編集状態
   assert.match(app, /function markLocalMemoDirty\(\)[\s\S]*?isLocalMemoDirty = true/);
   assert.match(app, /function scheduleSave\([\s\S]*?markLocalMemoDirty\(\)/);
   assert.match(app, /localMemoEditVersion === savedEditVersion/);
-  assert.match(app, /loadMemoSyncBtn\.addEventListener\("click", loadPendingMemoSync\)/);
+  assert.doesNotMatch(html, /id="memoSyncNotice"/);
+  assert.match(app, /function renderMemoSyncNotice\(\)[\s\S]*?同期の保留状態は従来どおり維持/);
   assert.match(app, /function loadPendingMemoSync\(\)[\s\S]*?applyMemoSync\(note\)/);
 });
 
@@ -128,7 +129,7 @@ test("ゴースト演出要素は元カードの色を保って生成され、an
 test("reduced motionではゴーストの移動・縮小をフェードへ置き換える", () => {
   assert.match(css, /@media \(prefers-reduced-motion: reduce\)[\s\S]*?memo-popout-ghost-fade/);
   assert.match(css, /@keyframes memo-popout-ghost-fade[\s\S]*?opacity:\s*0/);
-  assert.match(html, /id="memoSyncNotice"[\s\S]*?id="loadMemoSyncBtn"/);
+  assert.doesNotMatch(html, /id="memoSyncNotice"|別ウィンドウで更新があります/);
   assert.match(app, /function writePopoutInitialShell\(opened\)[\s\S]*?opened\.document\.write/);
   assert.match(html, /data-initial-theme="dark"/);
   assert.match(css, /28%[\s\S]*?scale\(1\.025\)[\s\S]*?52%[\s\S]*?scale\(0\.9\)/);
