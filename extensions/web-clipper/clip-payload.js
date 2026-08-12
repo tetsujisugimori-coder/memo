@@ -14,6 +14,7 @@
       && /^https?:\/\//i.test(String(clip.url || ""))
       && typeof clip.host === "string" && Boolean(clip.host.trim())
       && typeof clip.selection === "string" && (clip.clipMode === "page" || clip.selection.length <= MAX_WEB_CLIP_SELECTION_LENGTH)
+      && (!clip.images || Array.isArray(clip.images))
       && Number.isFinite(Date.parse(clip.capturedAt));
   }
 

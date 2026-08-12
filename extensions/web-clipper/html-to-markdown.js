@@ -3,6 +3,10 @@
   const text = (node) => String(node?.textContent || "").replace(/\s+/g, " ").trim();
 
   function escapeMarkdown(value) { return String(value || "").replace(/([\\`])/g, "\\$1"); }
+  function imageMarker(token) {
+    const normalized = String(token || "").trim();
+    return /^web-clip-image-[1-9][0-9]*$/.test(normalized) ? `\n\n<!-- memo-nexus:web-clip-image:${normalized} -->\n\n` : "";
+  }
   function nodeToMarkdown(node, depth = 0) {
     if (!node) return "";
     if (node.nodeType === 3) return escapeMarkdown(node.nodeValue);
@@ -17,6 +21,7 @@
     if (tag === "EM" || tag === "I") return `*${children.trim()}*`;
     if (tag === "CODE" && node.parentElement?.tagName !== "PRE") return `\`${text(node).replace(/`/g, "\\`")}\``;
     if (tag === "PRE") return `\n\n\`\`\`\n${node.textContent.trim()}\n\`\`\`\n\n`;
+    if (tag === "IMG") return imageMarker(node.getAttribute("data-memo-nexus-clip-image"));
     if (tag === "A") { const href = /^https?:/i.test(node.getAttribute("href") || "") ? node.href : ""; return href ? `[${children.trim() || href}](${href})` : children; }
     if (tag === "BLOCKQUOTE") return `\n\n${text(node).split("\n").map((line) => `> ${line}`).join("\n")}\n\n`;
     if (tag === "LI") return `\n${"  ".repeat(depth)}- ${children.trim()}`;
@@ -25,6 +30,8 @@
   }
   function fallbackHtmlToMarkdown(html) {
     return String(html || "").replace(/<(script|style|nav|header|footer|aside)[^>]*>[\s\S]*?<\/\1>/gi, "")
+      .replace(/<img\b[^>]*data-memo-nexus-clip-image=["']web-clip-image-([1-9][0-9]*)["'][^>]*>/gi, (_, number) => `\n\nMEMO_NEXUS_WEB_CLIP_IMAGE_${number}\n\n`)
+      .replace(/<img\b[^>]*>/gi, "")
       .replace(/<br\s*\/?>/gi, "\n").replace(/<hr\s*\/?>/gi, "\n\n---\n\n")
       .replace(/<h([1-6])[^>]*>([\s\S]*?)<\/h\1>/gi, (_, n, v) => `\n\n${"#".repeat(Number(n))} ${v.replace(/<[^>]+>/g, "").trim()}\n\n`)
       .replace(/<(strong|b)[^>]*>([\s\S]*?)<\/\1>/gi, "**$2**").replace(/<(em|i)[^>]*>([\s\S]*?)<\/\1>/gi, "*$2*")
@@ -34,6 +41,7 @@
       .replace(/<li[^>]*>([\s\S]*?)<\/li>/gi, (_, v) => `\n- ${v.replace(/<[^>]+>/g, "").trim()}`)
       .replace(/<(p|div)[^>]*>([\s\S]*?)<\/\1>/gi, (_, _tag, v) => `\n\n${v.replace(/<[^>]+>/g, "").trim()}\n\n`)
       .replace(/<[^>]+>/g, "").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">")
+      .replace(/MEMO_NEXUS_WEB_CLIP_IMAGE_([1-9][0-9]*)/g, (_, number) => imageMarker(`web-clip-image-${number}`).trim())
       .replace(/\n{3,}/g, "\n\n").trim();
   }
   function htmlToMarkdown(htmlOrNode) {
@@ -41,7 +49,7 @@
     const rootNode = typeof htmlOrNode === "string" ? new DOMParser().parseFromString(htmlOrNode, "text/html").body : htmlOrNode;
     return nodeToMarkdown(rootNode).replace(/[ \t]+\n/g, "\n").replace(/\n{3,}/g, "\n\n").trim();
   }
-  const api = { htmlToMarkdown, fallbackHtmlToMarkdown };
+  const api = { htmlToMarkdown, fallbackHtmlToMarkdown, imageMarker };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   root.MemoNexusHtmlToMarkdown = api;
 })(globalThis);

@@ -1,6 +1,9 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { safeExternalUrl, normalizeWebClip, buildWebClipMarkdown, encodeWebClipPayload, decodeWebClipPayload, readWebClipFragment } = require("./web-clip-utils.js");
+const {
+  safeExternalUrl, normalizeWebClip, buildWebClipMarkdown, encodeWebClipPayload, decodeWebClipPayload,
+  readWebClipFragment, compareSemanticVersions, isWebClipperVersionCompatible, webClipUrlWithoutLaunchMarker
+} = require("./web-clip-utils.js");
 const { buildWebClipDestination } = require("./extensions/web-clipper/clip-payload.js");
 
 test("web clip accepts only http and https URLs", () => {
@@ -65,4 +68,29 @@ test("拡張payloadを本体が選択本文なしでも復元できる", () => {
 test("拡張は既存の選択本文上限を長文クリップとして分類する", () => {
   const clip = { title: "長文", url: "https://example.com/", host: "example.com", selection: "x".repeat(100001), capturedAt: "2026-08-11T01:23:45.000Z" };
   assert.throws(() => buildWebClipDestination("http://127.0.0.1:5500/", clip), (error) => error.code === "clip-too-large");
+});
+
+test("web-clip起動目印だけを全件削除し、他のqueryとhashを維持する", () => {
+  assert.equal(webClipUrlWithoutLaunchMarker("https://memo.test/?web-clip=1"), "/");
+  assert.equal(webClipUrlWithoutLaunchMarker("https://memo.test/?web-clip=1&foo=bar"), "/?foo=bar");
+  assert.equal(webClipUrlWithoutLaunchMarker("https://memo.test/?foo=bar&web-clip=1&web-clip=2"), "/?foo=bar");
+  assert.equal(webClipUrlWithoutLaunchMarker("https://memo.test/?popout=abc&web-clip=1#clip-transfer=id"), "/?popout=abc#clip-transfer=id");
+});
+
+test("Web Clipper最低互換版をSemVerで比較し、欠落を旧版として扱う", () => {
+  assert.equal(compareSemanticVersions("0.1.0", "0.3.0"), -1);
+  assert.equal(compareSemanticVersions("0.3.0", "0.3.0"), 0);
+  assert.equal(compareSemanticVersions("0.3.1", "0.3.0"), 1);
+  assert.equal(compareSemanticVersions("0.10.0", "0.3.0"), 1);
+  assert.equal(isWebClipperVersionCompatible("", "0.3.0"), false);
+  assert.equal(isWebClipperVersionCompatible("0.1.0", "0.3.0"), false);
+  assert.equal(isWebClipperVersionCompatible("0.3.0", "0.3.0"), true);
+});
+
+test("Web Clipper診断情報をpayload往復で維持する", () => {
+  const clip = {
+    title: "診断", url: "https://example.com/", host: "example.com", selection: "本文", capturedAt: "2026-08-12T00:00:00.000Z",
+    extensionVersion: "0.3.2", manifestVersion: 3, browserFamily: "Edge", targetEnvironment: "development", distributionChannel: "unpacked-development"
+  };
+  assert.deepEqual(decodeWebClipPayload(encodeWebClipPayload(clip)), normalizeWebClip(clip));
 });

@@ -22,6 +22,10 @@ const {
   uniqueAttachmentFileName
 } = require("./attachment-utils.js");
 
+test("GIFを既存画像添付として分類する", () => {
+  assert.equal(classifyAttachment({ name: "animated.gif", type: "image/gif", size: 128 }), "image");
+});
+
 function mockFile(name, type, size = 100) {
   return { name, type, size };
 }
