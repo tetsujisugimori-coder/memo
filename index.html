@@ -100,7 +100,13 @@
       <textarea id="editor" placeholder="すぐ書けます。[[足利尊氏]] のように書くとリンクになります。"></textarea>
       <div id="tableBlockEditors" class="table-block-editors" role="region" aria-label="表ブロック編集" hidden></div>
       <div class="note-meta-bar">
-        <div class="note-meta-actions" aria-hidden="true"></div>
+        <div class="note-meta-actions">
+          <button id="textStatsBtn" class="text-stats-button" type="button" aria-label="文章統計を開く" aria-haspopup="dialog" aria-expanded="false" aria-controls="textStatsPopover">0文字</button>
+          <section id="textStatsPopover" class="text-stats-popover" role="dialog" aria-labelledby="textStatsTitle" hidden>
+            <div class="text-stats-head"><strong id="textStatsTitle">文章統計</strong><button id="closeTextStatsBtn" type="button" aria-label="文章統計を閉じる">×</button></div>
+            <div id="textStatsBody" class="text-stats-body"></div>
+          </section>
+        </div>
         <div id="noteMeta" class="note-meta" aria-label="メモの日時"></div>
       </div>
     </section>
@@ -670,6 +676,7 @@
   <script src="ai-prompts.js?v=0.4.0-2"></script>
   <script src="memo-popout-utils.js?v=0.4.0-3"></script>
   <script src="note-flag-utils.js?v=0.4.0-1"></script>
-  <script src="app.js?v=0.4.0-66"></script>
+  <script src="text-stats-utils.js?v=0.4.0-1"></script>
+  <script src="app.js?v=0.4.0-67"></script>
 </body>
 </html>

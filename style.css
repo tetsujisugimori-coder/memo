@@ -1463,9 +1463,58 @@ body.collections-open .collection-explorer {
 }
 
 .note-meta-actions {
+  position: relative;
   min-width: 40px;
   min-height: 24px;
 }
+
+.text-stats-button {
+  min-height: 24px;
+  padding: 2px 7px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+}
+
+.text-stats-button:hover,
+.text-stats-button:focus-visible,
+.text-stats-button[aria-expanded="true"] {
+  border-color: var(--line);
+  background: var(--section-bg);
+  color: var(--accent);
+}
+
+.text-stats-button:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--accent-soft); }
+.text-stats-button:active { transform: translateY(1px); }
+
+.text-stats-popover {
+  position: absolute;
+  z-index: 20;
+  bottom: calc(100% + 6px);
+  left: 0;
+  width: min(360px, calc(100vw - 32px));
+  max-height: min(420px, 62vh);
+  overflow: auto;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--paper);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.16);
+  color: var(--ink);
+}
+
+.text-stats-popover[hidden] { display: none; }
+.text-stats-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.text-stats-head button { min-width: 28px; min-height: 28px; padding: 0; }
+.text-stats-section { margin-top: 10px; }
+.text-stats-section + .text-stats-section { padding-top: 10px; border-top: 1px solid var(--line); }
+.text-stats-section strong { display: block; margin-bottom: 4px; color: var(--muted); font-size: 11px; }
+.text-stats-row { display: flex; justify-content: space-between; gap: 16px; padding: 2px 0; font-size: 12px; }
+.text-stats-row span:last-child { font-variant-numeric: tabular-nums; text-align: right; }
 
 .note-meta {
   color: var(--muted);
@@ -3968,6 +4017,7 @@ body.related-open .related-toggle {
   .save-status { font-size: 11px; }
 
   .note-meta-bar { padding: 4px 12px; }
+  .text-stats-popover { width: min(360px, calc(100vw - 24px)); max-height: 54vh; }
   .note-meta { font-size: 10px; }
 
   #editor {
