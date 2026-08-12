@@ -108,6 +108,7 @@
       manifestVersion: Math.max(0, Math.floor(Number(input.manifestVersion) || 0)),
       browserFamily: cleanText(input.browserFamily, 40),
       targetEnvironment: ["development", "production"].includes(input.targetEnvironment) ? input.targetEnvironment : "",
+      distributionChannel: ["unpacked-development", "edge-store"].includes(input.distributionChannel) ? input.distributionChannel : "",
       selection: cleanText(input.selection, input.clipMode === "page" ? MAX_WEB_CLIP_PAGE_LENGTH : MAX_WEB_CLIP_SELECTION_LENGTH),
       capturedAt: Number.isFinite(Date.parse(input.capturedAt)) ? new Date(input.capturedAt).toISOString() : new Date().toISOString(),
       images,

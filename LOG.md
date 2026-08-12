@@ -1605,3 +1605,10 @@
 * production選択時はlocalhostのmanifest取得、独自の更新確認、無条件reloadを行わず、将来のEdgeアドオン（Hidden公開可）の標準更新を前提とする。公開更新はmanifest版を上げてPartner Centerへ再提出する手順をREADMEへ記録し、未登録の現状ではストア更新を確認済みとしていない。自動更新機能を持たない従来のローカル開発版から導入する時だけ、利用者による最後の一度の手動再読み込みが必要になる。
 * 利用者の実ブラウザ確認ではRenderの記事で画像候補14件、保存可能13件、`UNSUPPORTED_FORMAT` 1件へ確定し、13件の保存、メモ再表示、ブラウザ再読み込み後の維持まで成功した。画像取得、IndexedDB、`attachment://`、再表示の主要経路が動作することを確認済みの前提として、今回の変更ではその保存経路を変更していない。
 * 自動テストは`node --test` 410件が成功した。Playwright付属Chromiumへ実際のManifest V3拡張`0.3.1`を読み込み、起動URLの成功・失敗時消費と再読込時の非再表示、他query維持、開発manifestの503時もクリップ継続、development／production選択の永続化、production再起動時の開発manifestアクセス0件、既存の6画像保存・IndexedDB・`attachment://`・再読込表示を確認した。Edgeアドオンの登録・ストア配信と、Google Chrome／Microsoft Edge実機での今回の更新検出は未確認とする。
+
+## 2026-08-12 Web Clipper転送清掃・配布方式分離
+
+* 拡張版を`0.3.2`へ上げ、転送レコードの10分TTL、キー形式、clip形式の検証を共通ユーティリティへ集約した。更新確認では全転送キーを調べ、期限切れ、`createdAt`欠落、不正clipだけを削除し、10分以内の正常な転送が1件以上ある場合だけreloadを延期する。
+* 転送用`window.open()`が失敗した場合とACKなしで再送がタイムアウトした場合は、今回作成した転送キーだけを削除してからエラーを通知する。ACK成功時の削除は維持し、同時に存在する別の正常な転送は削除しない。
+* 接続先と配布方式を分離し、現在の設定を`unpacked-development`（ローカル開発版、初期接続先development）と明示した。productionへ接続してもローカル版表示を維持し、localhost更新確認は行わない。将来の`edge-store`は初期接続先production、Edge標準更新とする設定位置を用意したが、ストアパッケージ作成・登録・自動更新は未確認とする。画像取得・保存と`?web-clip`消費処理は変更していない。
+* `node --test`は416件成功した。Playwright付属Chromiumの実Manifest V3 E2Eでは、期限切れ転送だけの清掃、正常転送の保持、`window.open()`失敗後の残存0件、ACKタイムアウト後の該当キー削除と別正常キー保持、ローカル版の本番接続表示、production時の開発manifestアクセス0件を確認した。従来のJPEG／PNG／WebP／GIF／SVG／AVIF、6画像のIndexedDB保存、`attachment://`置換、再読み込み表示も成功した。

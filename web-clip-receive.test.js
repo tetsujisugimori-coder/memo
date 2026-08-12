@@ -37,7 +37,7 @@ test("拡張は選択した接続先のURLへフラグメントpayloadで遷移�
   assert.match(config, /production: "https:\/\/tetsujisugimori-coder\.github\.io\/memo\/"/);
   assert.match(config, /manifestUrl: "http:\/\/127\.0\.0\.1:5500\/extensions\/web-clipper\/manifest\.json"/);
   assert.match(popup, /cache: "no-store"/);
-  assert.match(popup, /target\.value !== "development"/);
+  assert.match(popup, /settings\?\.strategy !== "local-manifest"/);
   assert.doesNotMatch(popup, /requestUpdateCheck/);
   assert.match(updateManager, /environment !== "development"/);
 });
@@ -68,16 +68,34 @@ test("4方式とページ全文の小さいフラグメント受け渡しを維�
 });
 
 test("拡張はmanifest由来の診断情報と保存済み接続先を全方式へ付与する", () => {
-  assert.match(manifest, /"version": "0\.3\.1"/);
+  assert.match(manifest, /"version": "0\.3\.2"/);
   assert.match(popup, /extensionVersion: manifest\.version/);
   assert.match(popup, /manifestVersion: manifest\.manifest_version/);
   assert.match(popup, /browserFamily: browserFamily\(\)/);
   assert.match(popup, /targetEnvironment: target\.value/);
+  assert.match(popup, /distributionChannel: config\.distributionChannel/);
   assert.match(popup, /const base = \{ \.\.\.clip, \.\.\.extensionDiagnostics\(\), clipMode: mode/);
   assert.match(popup, /chrome\.storage\.local\.get\(key\)/);
   assert.match(popup, /chrome\.storage\.local\.set\(\{ \[config\.storage\.targetKey\]: target\.value \}\)/);
   assert.match(app, /pendingWebClipDiagnostics = \{/);
   assert.match(app, /\.\.\.pendingWebClipDiagnostics/);
+});
+
+test("接続先と配布方式を分離し、現在版をローカル展開として扱う", () => {
+  assert.match(config, /distributionChannel: "unpacked-development"/);
+  assert.match(config, /"unpacked-development": \{ label: "ローカル開発版", defaultTarget: "development" \}/);
+  assert.match(config, /"edge-store": \{ label: "Edgeアドオン版", defaultTarget: "production" \}/);
+  assert.match(popup, /config\.updates\[config\.distributionChannel\]\?\.\[target\.value\]/);
+  assert.match(popup, /接続先: \$\{targetLabel\}／\$\{updateLabel\}/);
+  assert.doesNotMatch(popup, /本番環境・Edge自動更新/);
+});
+
+test("転送レコードをTTLで清掃し、open失敗時は今回のキーだけ削除する", () => {
+  assert.match(popupHtml, /transfer-lifecycle\.js/);
+  assert.match(manifest, /"transfer-lifecycle\.js", "transfer-content\.js"/);
+  assert.match(popup, /inspectTransferEntries\(stored\)/);
+  assert.match(popup, /chrome\.storage\.local\.remove\(inspection\.invalidKeys\)/);
+  assert.match(popup, /if \(transferKey\) await chrome\.storage\.local\.remove\(transferKey\)/);
 });
 
 test("開発版更新は転送中を避け、同一対象版の連続reloadを止める", () => {

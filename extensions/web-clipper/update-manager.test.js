@@ -6,10 +6,12 @@ test("開発版更新はSemVerで0.10.0を0.3.0より新しいと判定する", 
   assert.equal(compareSemanticVersions("0.1.0", "0.3.0"), -1);
   assert.equal(compareSemanticVersions("0.3.0", "0.3.0"), 0);
   assert.equal(compareSemanticVersions("0.3.1", "0.3.0"), 1);
+  assert.equal(compareSemanticVersions("0.3.2", "0.3.1"), 1);
   assert.equal(compareSemanticVersions("0.10.0", "0.3.0"), 1);
 });
 
 test("開発サーバー側だけが新しい場合に一度だけreloadを選ぶ", () => {
+  assert.equal(decideDevelopmentUpdate({ environment: "development", currentVersion: "0.3.1", latestVersion: "0.3.2" }).action, "reload");
   assert.equal(decideDevelopmentUpdate({ environment: "development", currentVersion: "0.3.0", latestVersion: "0.3.1" }).action, "reload");
   assert.equal(decideDevelopmentUpdate({ environment: "development", currentVersion: "0.3.1", latestVersion: "0.3.1" }).action, "continue");
 });
@@ -35,7 +37,9 @@ test("クリップ転送中は開発版reloadを延期する", () => {
   assert.equal(decision.action, "defer");
 });
 
-test("productionでは独自更新を行わずブラウザ管理とする", () => {
-  const decision = decideDevelopmentUpdate({ environment: "production", currentVersion: "0.1.0", latestVersion: "9.0.0" });
-  assert.deepEqual(decision, { action: "browser-managed", reason: "production" });
+test("ローカル版のproduction接続は独自更新せず、Edgeアドオン版だけをブラウザ管理とする", () => {
+  const local = decideDevelopmentUpdate({ environment: "production", distributionChannel: "unpacked-development", currentVersion: "0.1.0", latestVersion: "9.0.0" });
+  const store = decideDevelopmentUpdate({ environment: "production", distributionChannel: "edge-store", currentVersion: "0.1.0", latestVersion: "9.0.0" });
+  assert.deepEqual(local, { action: "continue", reason: "non-development-target" });
+  assert.deepEqual(store, { action: "browser-managed", reason: "distribution" });
 });

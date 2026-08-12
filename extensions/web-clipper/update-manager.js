@@ -26,8 +26,9 @@
     return 0;
   }
 
-  function decideDevelopmentUpdate({ environment, currentVersion, latestVersion, previousAttempt, hasPendingTransfer }) {
-    if (environment !== "development") return { action: "browser-managed", reason: "production" };
+  function decideDevelopmentUpdate({ environment, distributionChannel = "unpacked-development", currentVersion, latestVersion, previousAttempt, hasPendingTransfer }) {
+    if (distributionChannel === "edge-store") return { action: "browser-managed", reason: "distribution" };
+    if (environment !== "development") return { action: "continue", reason: "non-development-target" };
     const comparison = compareSemanticVersions(latestVersion, currentVersion);
     if (comparison === null) return { action: "continue", reason: "version-unavailable" };
     if (comparison <= 0) return { action: "continue", reason: "up-to-date" };

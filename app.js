@@ -2431,7 +2431,8 @@ function readLastWebClipperReceipt() {
       extensionVersion: String(receipt.extensionVersion || "").slice(0, 40),
       manifestVersion: Math.max(0, Math.floor(Number(receipt.manifestVersion) || 0)),
       browserFamily: String(receipt.browserFamily || "").slice(0, 40),
-      targetEnvironment: ["development", "production"].includes(receipt.targetEnvironment) ? receipt.targetEnvironment : ""
+      targetEnvironment: ["development", "production"].includes(receipt.targetEnvironment) ? receipt.targetEnvironment : "",
+      distributionChannel: ["unpacked-development", "edge-store"].includes(receipt.distributionChannel) ? receipt.distributionChannel : ""
     };
   } catch (_) {
     return null;
@@ -2446,7 +2447,8 @@ function recordWebClipperReceipt(origin, clip = {}) {
     extensionVersion: normalized.extensionVersion,
     manifestVersion: normalized.manifestVersion,
     browserFamily: normalized.browserFamily,
-    targetEnvironment: normalized.targetEnvironment
+    targetEnvironment: normalized.targetEnvironment,
+    distributionChannel: normalized.distributionChannel
   };
   try {
     localStorage.setItem(WEB_CLIPPER_RECEIPT_STORAGE_KEY, JSON.stringify(receipt));
@@ -2487,6 +2489,7 @@ function renderWebClipperSettings() {
         <dt>Manifest</dt><dd>${receipt?.manifestVersion || "—"}</dd>
         <dt>ブラウザ</dt><dd>${escapeHtml(receipt?.browserFamily || "—")}</dd>
         <dt>接続先</dt><dd>${escapeHtml(receipt?.targetEnvironment || "—")}</dd>
+        <dt>配布方式</dt><dd>${escapeHtml(receipt?.distributionChannel || "—")}</dd>
         <dt>状態</dt><dd>${status}</dd>
         <dt>最終受信日時</dt><dd>${lastReceivedAt}</dd>
       </dl>
@@ -2746,7 +2749,8 @@ function openWebClipDialog(clip = null, receiveError = "") {
     extensionVersion: normalized.extensionVersion,
     manifestVersion: normalized.manifestVersion,
     browserFamily: normalized.browserFamily,
-    targetEnvironment: normalized.targetEnvironment
+    targetEnvironment: normalized.targetEnvironment,
+    distributionChannel: normalized.distributionChannel
   };
   webClipUserMemo.value = normalized.userMemo;
   webClipUserMemoRow.hidden = normalized.clipMode !== "memo";
@@ -2787,7 +2791,8 @@ async function saveWebClip({ textOnly = false } = {}) {
     type: "web-clip", clipMode: clip.clipMode, userMemo: clip.userMemo || null, title: clip.title,
     url: clip.url || null, host: clip.host || null, capturedAt: clip.capturedAt,
     extensionVersion: clip.extensionVersion || null, manifestVersion: clip.manifestVersion || null,
-    browserFamily: clip.browserFamily || null, targetEnvironment: clip.targetEnvironment || null
+    browserFamily: clip.browserFamily || null, targetEnvironment: clip.targetEnvironment || null,
+    distributionChannel: clip.distributionChannel || null
   };
   webClipError.textContent = "";
   if (saveWebClipBtn) saveWebClipBtn.disabled = true;

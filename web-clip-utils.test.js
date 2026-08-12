@@ -90,7 +90,7 @@ test("Web Clipper最低互換版をSemVerで比較し、欠落を旧版として
 test("Web Clipper診断情報をpayload往復で維持する", () => {
   const clip = {
     title: "診断", url: "https://example.com/", host: "example.com", selection: "本文", capturedAt: "2026-08-12T00:00:00.000Z",
-    extensionVersion: "0.3.1", manifestVersion: 3, browserFamily: "Edge", targetEnvironment: "development"
+    extensionVersion: "0.3.2", manifestVersion: 3, browserFamily: "Edge", targetEnvironment: "development", distributionChannel: "unpacked-development"
   };
   assert.deepEqual(decodeWebClipPayload(encodeWebClipPayload(clip)), normalizeWebClip(clip));
 });

@@ -156,6 +156,10 @@ async function setStorage(worker, key, value) {
   await worker.evaluate(async ({ keyName, item }) => chrome.storage.local.set({ [keyName]: item }), { keyName: key, item: value });
 }
 
+async function transferKeys(worker) {
+  return worker.evaluate(async () => Object.keys(await chrome.storage.local.get(null)).filter((key) => key.startsWith("memoNexusTransfer:")).sort());
+}
+
 async function waitForWorker(context) {
   return context.serviceWorkers()[0] || await context.waitForEvent("serviceworker");
 }
@@ -169,7 +173,7 @@ async function openPopup(context, worker, extensionId) {
   const popup = await popupPromise;
   try {
     await popup.locator("#send:not([disabled])").waitFor({ timeout: 5000 });
-    assert.equal(await popup.locator("#extensionVersion").textContent(), "0.3.1");
+    assert.equal(await popup.locator("#extensionVersion").textContent(), "0.3.2");
   } catch (cause) {
     throw new Error(`popup did not become ready: status=${await popup.locator("#selectionStatus").textContent()} error=${await popup.locator("#error").textContent()} (${cause.message})`);
   }
@@ -251,18 +255,30 @@ async function main() {
     developmentManifestUnavailable = false;
     await offlineDevelopmentPopup.close();
 
+    const activeCleanupId = crypto.randomUUID();
+    const activeCleanupKey = `memoNexusTransfer:${activeCleanupId}`;
+    const expiredCleanupKey = `memoNexusTransfer:${crypto.randomUUID()}`;
+    const cleanupClip = { title: "清掃確認", url: articleUrl, host: "127.0.0.1", selection: "本文", clipMode: "page", capturedAt: new Date().toISOString() };
+    await setStorage(worker, activeCleanupKey, { clip: cleanupClip, createdAt: Date.now() });
+    await setStorage(worker, expiredCleanupKey, { clip: cleanupClip, createdAt: Date.now() - 10 * 60 * 1000 - 1 });
+    const cleanupPopup = await openPopup(context, worker, extensionId);
+    assert.equal(await storage(worker, expiredCleanupKey), undefined, "expired transfer was not cleaned during update check");
+    assert(await storage(worker, activeCleanupKey), "active transfer was removed during stale cleanup");
+    await worker.evaluate(async (key) => chrome.storage.local.remove(key), activeCleanupKey);
+    await cleanupPopup.close();
+
     const targetPopup = await openPopup(context, worker, extensionId);
-    assert.match(await targetPopup.locator("#environmentStatus").textContent(), /開発環境・自動更新確認あり/);
+    assert.equal(await targetPopup.locator("#environmentStatus").textContent(), "接続先: 開発環境／ローカル開発版・更新確認あり");
     await targetPopup.selectOption("#target", "production");
-    await targetPopup.waitForFunction(() => document.querySelector("#environmentStatus")?.textContent.includes("本番環境・Edge自動更新"));
+    await targetPopup.waitForFunction(() => document.querySelector("#environmentStatus")?.textContent === "接続先: 本番環境／ローカル開発版");
     const manifestRequestsBeforeProductionReopen = developmentManifestRequests;
     await targetPopup.close();
     const persistedTargetPopup = await openPopup(context, worker, extensionId);
     assert.equal(await persistedTargetPopup.locator("#target").inputValue(), "production");
-    assert.match(await persistedTargetPopup.locator("#environmentStatus").textContent(), /本番環境・Edge自動更新/);
+    assert.equal(await persistedTargetPopup.locator("#environmentStatus").textContent(), "接続先: 本番環境／ローカル開発版");
     assert.equal(developmentManifestRequests, manifestRequestsBeforeProductionReopen, "production popup contacted the development manifest");
     await persistedTargetPopup.selectOption("#target", "development");
-    await persistedTargetPopup.waitForFunction(() => document.querySelector("#environmentStatus")?.textContent.includes("開発環境・自動更新確認あり"));
+    await persistedTargetPopup.waitForFunction(() => document.querySelector("#environmentStatus")?.textContent === "接続先: 開発環境／ローカル開発版・更新確認あり");
     await persistedTargetPopup.close();
 
     for (const mode of ["selection", "link", "memo"]) {
@@ -282,6 +298,16 @@ async function main() {
       }
       if (!popup.isClosed()) await popup.close(); await receiver.close();
     }
+
+    await source.bringToFront();
+    const failedOpenPopup = await openPopup(context, worker, extensionId);
+    await failedOpenPopup.selectOption("#clipMode", "page");
+    const transferKeysBeforeOpenFailure = await transferKeys(worker);
+    await failedOpenPopup.evaluate(() => { window.open = () => null; });
+    await failedOpenPopup.locator("#send").click();
+    await failedOpenPopup.locator("#error").filter({ hasText: "クリップを開始できませんでした" }).waitFor({ timeout: 30000 });
+    assert.deepEqual(await transferKeys(worker), transferKeysBeforeOpenFailure, "window.open failure left its transfer entry");
+    await failedOpenPopup.close();
 
     const invalidLaunch = await context.newPage();
     await invalidLaunch.goto(`${appUrl}?foo=bar&web-clip=1&web-clip=2#clip=invalid`);
@@ -371,8 +397,9 @@ async function main() {
     assert.deepEqual({
       extensionVersion: savedClipSource?.extensionVersion,
       manifestVersion: savedClipSource?.manifestVersion,
-      targetEnvironment: savedClipSource?.targetEnvironment
-    }, { extensionVersion: "0.3.1", manifestVersion: 3, targetEnvironment: "development" });
+      targetEnvironment: savedClipSource?.targetEnvironment,
+      distributionChannel: savedClipSource?.distributionChannel
+    }, { extensionVersion: "0.3.2", manifestVersion: 3, targetEnvironment: "development", distributionChannel: "unpacked-development" });
     const storedAttachments = await receiver.evaluate(() => new Promise((resolve, reject) => {
       const request = indexedDB.open("memo-nexus");
       request.onerror = () => reject(request.error);
@@ -432,17 +459,21 @@ async function main() {
     assert.equal(await failedSave.locator("#attachmentCount").textContent(), "0件");
     await failedSave.close();
 
-    // A real content script on a local receiver page retries without ACK and
-    // eventually emits its timeout message; the entry is deliberately retained.
+    // A real content script retries without ACK and removes only its transfer
+    // entry before emitting the timeout message.
     const timeoutId = crypto.randomUUID();
     const timeoutKey = `memoNexusTransfer:${timeoutId}`;
+    const otherTransferKey = `memoNexusTransfer:${crypto.randomUUID()}`;
     await setStorage(worker, timeoutKey, { clip: { title: "timeout", url: articleUrl, host: "127.0.0.1", selection: "timeout", clipMode: "page", capturedAt: new Date().toISOString() }, createdAt: Date.now() });
+    await setStorage(worker, otherTransferKey, { clip: { title: "other", url: articleUrl, host: "127.0.0.1", selection: "other", clipMode: "page", capturedAt: new Date().toISOString() }, createdAt: Date.now() });
     const noAck = await context.newPage();
     await noAck.goto(`${appUrl}no-ack.html#clip-transfer=${timeoutId}`);
     await noAck.waitForFunction(() => window.transferEvents >= 2, null, { timeout: 5000 });
     assert(await storage(worker, timeoutKey), "storage.local entry was removed without ACK");
     await noAck.waitForFunction(() => window.timeoutSeen === true, null, { timeout: 14000 });
-    assert(await storage(worker, timeoutKey), "timeout must not delete storage.local entry");
+    assert.equal(await storage(worker, timeoutKey), undefined, "timeout transfer entry remains in storage.local");
+    assert(await storage(worker, otherTransferKey), "timeout cleanup removed another active transfer");
+    await worker.evaluate(async (key) => chrome.storage.local.remove(key), otherTransferKey);
     await noAck.screenshot({ path: path.join(artifacts, "web-clipper-timeout.png"), fullPage: true });
     console.log("PASS: actual MV3 extension, Service Worker restart, JPEG/PNG/WebP/GIF/SVG/AVIF, IndexedDB, reload, failure, ACK lifecycle, and long article");
   } finally {

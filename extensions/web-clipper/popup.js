@@ -13,6 +13,7 @@ const extensionVersion = document.getElementById("extensionVersion");
 const environmentStatus = document.getElementById("environmentStatus");
 const updateStatus = document.getElementById("updateStatus");
 const updateManager = globalThis.MemoNexusClipperUpdateManager;
+const transferLifecycle = globalThis.MemoNexusClipperTransferLifecycle;
 let clip = null;
 let clipOperationActive = false;
 
@@ -25,7 +26,8 @@ Object.entries(config.targets).forEach(([key, value]) => {
   option.dataset.url = value;
   target.append(option);
 });
-target.value = config.defaultTarget;
+const distribution = config.distributions[config.distributionChannel] || config.distributions["unpacked-development"];
+target.value = distribution.defaultTarget;
 
 function browserFamily() {
   const userAgent = navigator.userAgent || "";
@@ -41,14 +43,17 @@ function extensionDiagnostics() {
     extensionVersion: manifest.version,
     manifestVersion: manifest.manifest_version,
     browserFamily: browserFamily(),
-    targetEnvironment: target.value
+    targetEnvironment: target.value,
+    distributionChannel: config.distributionChannel
   };
 }
 
 function updateEnvironmentStatus() {
-  environmentStatus.textContent = target.value === "development"
-    ? "開発環境・自動更新確認あり"
-    : "本番環境・Edge自動更新";
+  const targetLabel = target.value === "development" ? "開発環境" : "本番環境";
+  const updateLabel = config.distributionChannel === "unpacked-development" && target.value === "development"
+    ? `${distribution.label}・更新確認あり`
+    : config.distributionChannel === "edge-store" ? `${distribution.label}自動更新` : distribution.label;
+  environmentStatus.textContent = `接続先: ${targetLabel}／${updateLabel}`;
 }
 
 async function restoreTargetEnvironment() {
@@ -68,17 +73,20 @@ async function saveTargetEnvironment() {
 async function hasPendingClipTransfer() {
   if (clipOperationActive) return true;
   const stored = await chrome.storage.local.get(null);
-  return Object.keys(stored).some((key) => key.startsWith("memoNexusTransfer:"));
+  const inspection = transferLifecycle.inspectTransferEntries(stored);
+  if (inspection.invalidKeys.length) await chrome.storage.local.remove(inspection.invalidKeys);
+  return inspection.hasActiveTransfer;
 }
 
 async function checkDevelopmentUpdate() {
   updateEnvironmentStatus();
-  if (target.value !== "development") {
-    updateStatus.textContent = "更新はEdgeアドオンの標準機構に任せます。";
+  const settings = config.updates[config.distributionChannel]?.[target.value];
+  if (settings?.strategy !== "local-manifest") {
+    updateStatus.textContent = settings?.strategy === "browser-managed"
+      ? "更新はEdgeアドオンの標準機構を使用します。"
+      : "この接続先ではローカル開発版の更新確認を行いません。";
     return false;
   }
-  const settings = config.updates.development;
-  if (settings?.strategy !== "local-manifest") return false;
   try {
     const response = await fetch(settings.manifestUrl, { cache: "no-store" });
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
@@ -87,6 +95,7 @@ async function checkDevelopmentUpdate() {
     const stored = await chrome.storage.local.get(attemptKey);
     const decision = updateManager.decideDevelopmentUpdate({
       environment: target.value,
+      distributionChannel: config.distributionChannel,
       currentVersion: chrome.runtime.getManifest().version,
       latestVersion: remoteManifest.version,
       previousAttempt: stored[attemptKey],
@@ -255,17 +264,20 @@ async function sendToMemoNexus() {
   error.textContent = "";
   send.disabled = true;
   clipOperationActive = true;
+  let transferKey = "";
   try {
     const payload = await buildClipForMode();
     let transferId = "";
     if (payload.transfer) {
       transferId = crypto.randomUUID();
-      await chrome.storage.local.set({ [`memoNexusTransfer:${transferId}`]: { clip: payload.clip, createdAt: Date.now() } });
+      transferKey = transferLifecycle.transferStorageKey(transferId);
+      await chrome.storage.local.set({ [transferKey]: { clip: payload.clip, createdAt: Date.now() } });
     }
     const receiver = window.open(MemoNexusClipPayload.buildWebClipDestination(destination, payload.clip, { transfer: payload.transfer, transferId }), "_blank");
     if (!receiver) throw new Error("Memo-Nexusを開けませんでした。ポップアップの許可を確認してください。");
     window.close();
   } catch (cause) {
+    if (transferKey) await chrome.storage.local.remove(transferKey).catch(() => {});
     clipOperationActive = false;
     throw cause;
   }
