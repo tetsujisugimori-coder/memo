@@ -6542,24 +6542,7 @@ function renderSaveStatus() {
     return;
   }
 
-  saveStatus.textContent = isNarrowSaveStatus()
-    ? "保存済み"
-    : isCompactSaveStatus()
-    ? `保存済み ${formatSavedTime(saveStatusTime)}`
-    : `保存済み: ${formatSavedDateTime(saveStatusTime)}`;
-}
-
-function isNarrowSaveStatus() {
-  return window.matchMedia("(max-width: 719px)").matches;
-}
-
-function isCompactSaveStatus() {
-  return window.matchMedia("(max-width: 1039px)").matches;
-}
-
-function formatSavedDateTime(value) {
-  const date = new Date(value || Date.now());
-  return `${date.getFullYear()}-${padDatePart(date.getMonth() + 1)}-${padDatePart(date.getDate())} ${formatSavedTime(date)}`;
+  saveStatus.textContent = `保存済み ${formatSavedTime(saveStatusTime)}`;
 }
 
 function formatSavedTime(value) {

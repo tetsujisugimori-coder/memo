@@ -17,10 +17,13 @@ test("旗だけを再マウントして毎回アニメーションを再生す�
   assert.match(app, /prefers-reduced-motion: reduce/);
 });
 
-test("タイトル操作部と保存状態は固定領域で、旗だけを変形する", () => {
-  assert.match(css, /\.title-side\s*\{[^}]*box-sizing:\s*border-box[^}]*width:\s*254px[^}]*padding:\s*12px 16px 10px 0/s);
-  assert.match(css, /\.title-side-head\s*\{[^}]*grid-template-columns:\s*30px 30px 30px minmax\(0, 1fr\)/s);
-  assert.match(css, /\.save-status\s*\{[^}]*min-width:\s*0[^}]*overflow:\s*hidden[^}]*text-overflow:\s*ellipsis/s);
+test("タイトル操作部と保存状態を上段へ分離し、旗だけを変形する", () => {
+  assert.match(html, /<div class="title-side">[\s\S]*<div class="title-actions"[\s\S]*<div id="saveStatus" class="save-status">[\s\S]*<div class="title-input-wrap">/);
+  assert.match(css, /\.title-row\s*\{[^}]*display:\s*flex[^}]*flex-direction:\s*column/s);
+  assert.match(css, /\.title-side-head\s*\{[^}]*display:\s*flex[^}]*justify-content:\s*space-between/s);
+  assert.match(css, /\.title-actions\s*\{[^}]*display:\s*flex/s);
+  assert.match(css, /\.save-status\s*\{[^}]*flex:\s*0 0 104px[^}]*width:\s*104px/s);
+  assert.doesNotMatch(css, /\.save-status\s*\{[^}]*text-overflow:\s*ellipsis/s);
   assert.match(css, /\.note-flag-icon\.flag-rises\s*\{[^}]*animation:/s);
   assert.doesNotMatch(css, /\.note-flag-button\.flag-rises\s*\{/);
   assert.match(css, /@media \(prefers-reduced-motion: reduce\)/);
@@ -33,5 +36,6 @@ test("タイトルのフォーカス枠は専用ラッパーだけに収める",
   assert.match(css, /\.title-input-wrap:focus-within\s*\{[^}]*border-color:\s*var\(--accent\)/s);
   assert.doesNotMatch(css, /\.title-input:focus,/);
   assert.match(css, /\.title-input\s*\{[^}]*box-sizing:\s*border-box/s);
-  assert.match(app, /function isNarrowSaveStatus\(\)/);
+  assert.match(app, /`保存済み \$\{formatSavedTime\(saveStatusTime\)\}`/);
+  assert.doesNotMatch(app, /function isNarrowSaveStatus\(\)/);
 });
