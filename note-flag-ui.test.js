@@ -24,6 +24,8 @@ test("タイトル操作部と保存状態を上段へ分離し、旗だけを�
   assert.match(css, /\.title-actions\s*\{[^}]*display:\s*flex/s);
   assert.match(css, /\.save-status\s*\{[^}]*flex:\s*0 0 104px[^}]*width:\s*104px/s);
   assert.doesNotMatch(css, /\.save-status\s*\{[^}]*text-overflow:\s*ellipsis/s);
+  assert.match(css, /\.note-flag-button\s*\{[^}]*width:\s*40px[^}]*min-height:\s*40px/s);
+  assert.match(css, /\.note-flag-button\.is-flagged::before\s*\{[^}]*width:\s*32px[^}]*height:\s*32px/s);
   assert.match(css, /\.note-flag-icon\.flag-rises\s*\{[^}]*animation:/s);
   assert.doesNotMatch(css, /\.note-flag-button\.flag-rises\s*\{/);
   assert.match(css, /@media \(prefers-reduced-motion: reduce\)/);
@@ -38,4 +40,10 @@ test("タイトルのフォーカス枠は専用ラッパーだけに収める",
   assert.match(css, /\.title-input\s*\{[^}]*box-sizing:\s*border-box/s);
   assert.match(app, /`保存済み \$\{formatSavedTime\(saveStatusTime\)\}`/);
   assert.doesNotMatch(app, /function isNarrowSaveStatus\(\)/);
+});
+
+test("メモ日時はタイトル操作部ではなくエディタ末尾へ置く", () => {
+  assert.match(html, /<div id="tableBlockEditors"[\s\S]*<div id="noteMeta" class="note-meta"/);
+  assert.ok(html.indexOf('<div id="noteMeta"') > html.indexOf('<div id="tableBlockEditors"'));
+  assert.match(css, /\.note-meta\s*\{[^}]*flex:\s*0 0 auto[^}]*border-top:/s);
 });

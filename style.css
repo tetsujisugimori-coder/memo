@@ -1469,7 +1469,9 @@ body.collections-open .collection-explorer {
 }
 
 .note-meta {
-  max-width: 240px;
+  flex: 0 0 auto;
+  padding: 8px 16px 10px;
+  border-top: 1px solid var(--line);
   color: var(--muted);
   font-size: 12px;
   line-height: 1.45;
@@ -1527,13 +1529,22 @@ body.collections-open .collection-explorer {
   border-radius: 7px;
   background: transparent;
   color: var(--muted);
-  font-size: 17px;
+  font-size: 15px;
   line-height: 1;
+  position: relative;
 }
-.note-flag-icon { display: inline-block; transform: translateZ(0); }
+.note-flag-icon { display: inline-block; position: relative; z-index: 1; transform: translateZ(0); }
 .note-flag-button:hover, .note-flag-button:focus-visible { border-color: var(--note-flag); color: var(--note-flag); }
 .note-flag-button:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--note-flag-soft); }
-.note-flag-button.is-flagged { border-color: var(--note-flag); background: var(--note-flag); color: var(--paper); }
+.note-flag-button.is-flagged { border-color: transparent; background: transparent; color: var(--paper); }
+.note-flag-button.is-flagged::before {
+  content: "";
+  position: absolute;
+  width: 32px;
+  height: 32px;
+  border-radius: 7px;
+  background: var(--note-flag);
+}
 .note-flag-icon.flag-rises { animation: note-flag-rise 260ms cubic-bezier(.2, .8, .25, 1); }
 .note-flag-icon.flag-returns { animation: note-flag-return 220ms ease-out; }
 
@@ -1564,8 +1575,7 @@ body.collections-open .collection-explorer {
   white-space: nowrap;
 }
 
-.title-side-head + .memo-sync-notice,
-.title-side-head + .note-meta {
+.title-side-head + .memo-sync-notice {
   margin-top: 4px;
 }
 
@@ -3965,11 +3975,7 @@ body.related-open .related-toggle {
 
   .save-status { font-size: 11px; }
 
-  .note-meta {
-    max-width: 116px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
+  .note-meta { padding: 8px 12px 10px; font-size: 11px; }
 
   #editor {
     padding: 14px 12px;
