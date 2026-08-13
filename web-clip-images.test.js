@@ -163,6 +163,16 @@ test("画像取得タイムアウトは必ずtimeoutへ確定する", async () =
   assert.match(images[0].error, /タイムアウト/);
 });
 
+test("HTTP失敗をログイン要求・期限切れ・アクセス拒否として分類する", async () => {
+  for (const [status, code] of [[401, "AUTH_REQUIRED"], [404, "URL_EXPIRED"], [429, "ACCESS_DENIED"]]) {
+    const [image] = await fetchClipImages([{ token: "web-clip-image-1", url: "https://example.com/image" }], {
+      fetchImpl: async () => new Response("", { status })
+    });
+    assert.equal(image.errorCode, code);
+    assert.equal(image.url, "https://example.com/image");
+  }
+});
+
 test("アニメーションGIFはフレームを潰さず取得バイト列をそのまま保存対象にする", async () => {
   const gif = Uint8Array.from(Buffer.from("R0lGODlhZAAyAPAAAAD/AAAAACH5BAABAAAAIf8LTkVUU0NBUEUyLjADAQAAACwAAAAAZAAyAAACTYSPqcvtD6OctNqLs968+w+G4kiW5omm6sq27gvH8kzX9o3n+s73/g8MCofEovGITCqXzKbzCY1Kp9Sq9YrNarfcrvcLDovH5LL5bCsAACH5BAAQJwAALAAAAABkADIAgP8AAAAAAAJNhI+py+0Po5y02ouz3rz7D4biSJbmiabqyrbuC8fyTNf2jef6zvf+DwwKh8Si8YhMKpfMpvMJjUqn1Kr1is1qt9yu9wsOi8fksvlsKwAAOw==", "base64"));
   const [image] = await fetchClipImages([{ token: "web-clip-image-1", url: "https://example.com/animated.bin" }], {

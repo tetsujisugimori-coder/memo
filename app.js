@@ -303,6 +303,7 @@ const { parseFlaggedMarkdown, serializeNoteForMarkdown, withNormalizedFlag } = w
 const {
   MAX_WEB_CLIP_IMAGE_BYTES,
   safeExternalUrl: safeWebClipUrl,
+  normalizeWebClipComparisonUrl,
   normalizeWebClip,
   buildWebClipMarkdown,
   replaceWebClipImageMarkers,
@@ -441,6 +442,12 @@ const closeWebClipBtn = $("closeWebClipBtn");
 const cancelWebClipBtn = $("cancelWebClipBtn");
 const saveWebClipTextOnlyBtn = $("saveWebClipTextOnlyBtn");
 const saveWebClipBtn = $("saveWebClipBtn");
+const retryFailedWebClipImagesBtn = $("retryFailedWebClipImagesBtn");
+const webClipExistingNoteSection = $("webClipExistingNoteSection");
+const webClipExistingNoteSummary = $("webClipExistingNoteSummary");
+const webClipExistingNoteSelectRow = $("webClipExistingNoteSelectRow");
+const webClipExistingNoteSelect = $("webClipExistingNoteSelect");
+const webClipSaveAsUpdate = $("webClipSaveAsUpdate");
 const webClipTitle = $("webClipTitle");
 const webClipUrl = $("webClipUrl");
 const webClipHost = $("webClipHost");
@@ -696,6 +703,7 @@ let webClipReceiverReady = false;
 let pendingWebClipImages = [];
 let pendingWebClipOmittedImageCount = 0;
 let pendingWebClipDiagnostics = {};
+let pendingWebClipMatches = [];
 const WEB_CLIPPER_RECEIPT_STORAGE_KEY = "memoNexusWebClipperLastReceipt";
 let editingCollectionId = null;
 let draggedCollectionId = null;
@@ -2543,12 +2551,53 @@ function webClipImageStatusLabel(image) {
   return "取得失敗";
 }
 
+function webClipImageFailureReason(image) {
+  const labels = {
+    PERMISSION_DENIED: "画像ホストへのアクセス権限がありません",
+    AUTH_REQUIRED: "画像を取得するにはログインが必要です",
+    URL_EXPIRED: "画像URLの有効期限が切れている可能性があります",
+    ACCESS_DENIED: "画像サーバーがアクセスを拒否しました",
+    TIMEOUT: "画像取得がタイムアウトしました",
+    NETWORK_ERROR: "ネットワーク経由で画像を取得できませんでした",
+    TOO_LARGE: "画像が容量上限を超えています",
+    TOTAL_LIMIT_EXCEEDED: "画像合計が容量上限を超えています",
+    UNSUPPORTED_FORMAT: "対応していない画像形式です"
+  };
+  return image.saveError || labels[image.errorCode] || image.error || "画像を取得できませんでした";
+}
+
+function findMatchingWebClipNotes(url) {
+  const normalized = normalizeWebClipComparisonUrl(url);
+  if (!normalized) return [];
+  return activeNotes().filter((note) => normalizeWebClipComparisonUrl(note.source?.url) === normalized);
+}
+
+function renderWebClipExistingNoteChoice() {
+  if (!webClipExistingNoteSection) return;
+  const matches = pendingWebClipMatches;
+  webClipExistingNoteSection.hidden = !matches.length;
+  if (!matches.length) return;
+  webClipExistingNoteSummary.textContent = matches.length === 1
+    ? `「${matches[0].title || "無題"}」を更新します。メモID、コレクション、フラグと追加メタデータは維持されます。`
+    : `同じURLのWebクリップが${matches.length}件あります。更新対象を選ぶか、新しいメモとして保存してください。`;
+  webClipExistingNoteSelect.replaceChildren(...matches.map((note) => {
+    const option = document.createElement("option");
+    option.value = note.id;
+    option.textContent = `${note.title || "無題"}（更新: ${note.updatedAt || "不明"}）`;
+    return option;
+  }));
+  webClipExistingNoteSelectRow.hidden = matches.length < 2;
+  if (webClipSaveAsUpdate) webClipSaveAsUpdate.checked = true;
+}
+
 function renderWebClipImages() {
   if (!webClipImagesSection || !webClipImagesList) return;
   const supportsImages = webClipMode.value === "page" || webClipMode.value === "selection";
   const hasImages = pendingWebClipImages.length > 0 || pendingWebClipOmittedImageCount > 0;
   webClipImagesSection.hidden = !supportsImages || !hasImages;
   if (saveWebClipTextOnlyBtn) saveWebClipTextOnlyBtn.hidden = !supportsImages || !pendingWebClipImages.length;
+  const failed = pendingWebClipImages.filter((image) => image.status !== "ready");
+  if (retryFailedWebClipImagesBtn) retryFailedWebClipImagesBtn.hidden = !failed.length;
   webClipImagesList.replaceChildren();
   if (webClipImagesSection.hidden) return;
   const ready = pendingWebClipImages.filter((image) => image.status === "ready");
@@ -2588,7 +2637,7 @@ function renderWebClipImages() {
     const details = document.createElement("dl");
     details.className = "web-clip-image-details";
     [
-      ["状態", `${webClipImageStatusLabel(image)}${image.errorCode ? ` [${image.errorCode}]` : ""}${image.saveError || image.error ? `: ${image.saveError || image.error}` : ""}`],
+      ["状態", `${webClipImageStatusLabel(image)}${image.errorCode ? ` [${image.errorCode}]` : ""}${image.status === "ready" ? "" : `: ${webClipImageFailureReason(image)}`}`],
       ["説明", image.alt || "—"],
       ["キャプション", image.caption || "—"],
       ["形式・容量", `${image.mimeType || "不明"}${image.size ? ` / ${formatAttachmentBytes(image.size)}` : ""}`],
@@ -2635,8 +2684,8 @@ function webClipImageSourceMetadata(image, capturedAt, extra = {}) {
   };
 }
 
-async function createWebClipNoteWithImages(title, clip, source, collectionId) {
-  const memoId = crypto.randomUUID();
+async function createWebClipNoteWithImages(title, clip, source, collectionId, existingNote = null) {
+  const memoId = existingNote?.id || crypto.randomUUID();
   const replacements = new Map();
   const prepared = [];
   const sourceImages = [];
@@ -2685,7 +2734,10 @@ async function createWebClipNoteWithImages(title, clip, source, collectionId) {
   }
 
   const body = replaceWebClipImageMarkers(buildWebClipMarkdown(clip), replacements, clip.images);
-  if (prepared.length) {
+  const previousWebClipAttachments = existingNote
+    ? (await getAttachmentsForMemo(memoId)).filter((attachment) => attachment.source?.type === "web-clip")
+    : [];
+  if (prepared.length && !existingNote) {
     try {
       await putAttachments(prepared);
     } catch (cause) {
@@ -2702,11 +2754,29 @@ async function createWebClipNoteWithImages(title, clip, source, collectionId) {
   }
 
   try {
-    return await createNote(title, body, {
-      id: memoId,
-      collectionId,
-      source: { ...source, webClipVersion: 3, images: sourceImages }
-    });
+    if (existingNote) {
+      const note = {
+        ...existingNote,
+        title,
+        body,
+        collectionId: existingNote.collectionId,
+        source: { ...existingNote.source, ...source, webClipVersion: 3, images: sourceImages },
+        updatedAt: new Date().toISOString()
+      };
+      await new Promise((resolve, reject) => {
+        const transaction = db.transaction([STORE_NAME, ATTACHMENT_STORE_NAME], "readwrite");
+        const attachmentStore = transaction.objectStore(ATTACHMENT_STORE_NAME);
+        prepared.forEach((attachment) => attachmentStore.put(attachment));
+        previousWebClipAttachments.forEach((attachment) => attachmentStore.delete(attachment.id));
+        transaction.objectStore(STORE_NAME).put(note);
+        transaction.oncomplete = resolve;
+        transaction.onerror = () => reject(transaction.error);
+        transaction.onabort = () => reject(transaction.error);
+      });
+      notifyMemoChanged(note);
+      return note;
+    }
+    return await createNote(title, body, { id: memoId, collectionId, source: { ...source, webClipVersion: 3, images: sourceImages } });
   } catch (error) {
     if (prepared.length) await deleteAttachmentRecords(prepared.map((attachment) => attachment.id)).catch(() => {});
     throw error;
@@ -2763,6 +2833,7 @@ function openWebClipDialog(clip = null, receiveError = "") {
     targetEnvironment: normalized.targetEnvironment,
     distributionChannel: normalized.distributionChannel
   };
+  pendingWebClipMatches = clip ? findMatchingWebClipNotes(normalized.url) : [];
   webClipUserMemo.value = normalized.userMemo;
   webClipUserMemoRow.hidden = normalized.clipMode !== "memo";
   webClipCapturedAt.value = normalized.capturedAt;
@@ -2771,9 +2842,48 @@ function openWebClipDialog(clip = null, receiveError = "") {
   webClipReceivedStatus.textContent = [receiveError, compatibilityWarning].filter(Boolean).join(" ")
     || (clip ? "拡張からクリップ候補を受け取りました。内容を確認して保存してください。" : "タイトル・URL・本文を入力して、通常メモとして保存できます。");
   fillWebClipCollection(selectedCollectionId);
+  renderWebClipExistingNoteChoice();
   renderWebClipImages();
   if (!webClipDialog.open) webClipDialog.showModal();
   webClipTitle.focus();
+}
+
+function selectedWebClipUpdateTarget() {
+  const mode = document.querySelector('input[name="webClipSaveMode"]:checked')?.value;
+  if (mode !== "update" || !pendingWebClipMatches.length) return null;
+  const id = pendingWebClipMatches.length === 1 ? pendingWebClipMatches[0].id : webClipExistingNoteSelect?.value;
+  return pendingWebClipMatches.find((note) => note.id === id) || null;
+}
+
+function retryFailedWebClipImages() {
+  const failed = pendingWebClipImages.filter((image) => image.status !== "ready" && image.url);
+  if (!failed.length) return;
+  const requestId = crypto.randomUUID();
+  pendingWebClipImages = pendingWebClipImages.map((image) => failed.some((item) => item.token === image.token)
+    ? { ...image, status: "pending", error: "", errorCode: "", saveError: "", selected: false }
+    : image);
+  renderWebClipImages();
+  webClipError.textContent = "失敗した画像だけを拡張機能で再取得しています。";
+  const timer = setTimeout(() => finish(new Error("再試行がタイムアウトしました")), 20000);
+  function finish(error, images = []) {
+    clearTimeout(timer);
+    window.removeEventListener("message", receive);
+    if (error) {
+      pendingWebClipImages = pendingWebClipImages.map((image) => image.status === "pending" ? { ...image, status: "failed", error: error.message, errorCode: "RETRY_FAILED" } : image);
+      webClipError.textContent = `${error.message}。画像なしで保存することもできます。`;
+    } else {
+      const results = new Map(images.map((image) => [image.token, image]));
+      pendingWebClipImages = pendingWebClipImages.map((image) => results.get(image.token) || image);
+      webClipError.textContent = "画像の再試行が完了しました。";
+    }
+    renderWebClipImages();
+  }
+  function receive(event) {
+    if (event.source !== window || event.origin !== location.origin || event.data?.type !== "memo-nexus-web-clip-retry-images-result" || event.data.requestId !== requestId) return;
+    finish(event.data.ok ? null : new Error(event.data.error || "画像を再取得できませんでした"), event.data.images);
+  }
+  window.addEventListener("message", receive);
+  window.postMessage({ type: "memo-nexus-web-clip-retry-images", requestId, candidates: failed }, location.origin);
 }
 
 async function saveWebClip({ textOnly = false } = {}) {
@@ -2809,8 +2919,9 @@ async function saveWebClip({ textOnly = false } = {}) {
   if (saveWebClipBtn) saveWebClipBtn.disabled = true;
   if (saveWebClipTextOnlyBtn) saveWebClipTextOnlyBtn.disabled = true;
   try {
-    const note = clip.images.length
-      ? await createWebClipNoteWithImages(title, clip, source, webClipCollection.value)
+    const updateTarget = selectedWebClipUpdateTarget();
+    const note = clip.images.length || updateTarget
+      ? await createWebClipNoteWithImages(title, clip, source, webClipCollection.value, updateTarget)
       : await createNote(title, buildWebClipMarkdown(clip), { collectionId: webClipCollection.value, source });
     notes = await getAllNotes();
     webClipDialog.close();
@@ -8686,6 +8797,7 @@ if (closeWebClipBtn) closeWebClipBtn.addEventListener("click", () => webClipDial
 if (cancelWebClipBtn) cancelWebClipBtn.addEventListener("click", () => webClipDialog.close());
 if (webClipForm) webClipForm.addEventListener("submit", saveWebClipFromDialog);
 saveWebClipTextOnlyBtn?.addEventListener("click", () => saveWebClip({ textOnly: true }));
+retryFailedWebClipImagesBtn?.addEventListener("click", retryFailedWebClipImages);
 if (webClipMode) webClipMode.addEventListener("change", () => {
   if (webClipMode.disabled) return;
   webClipUserMemoRow.hidden = webClipMode.value !== "memo";

@@ -1,7 +1,20 @@
 (() => {
+  function installRetryBridge() {
+    window.addEventListener("message", (event) => {
+      if (event.source !== window || event.origin !== location.origin || event.data?.type !== "memo-nexus-web-clip-retry-images") return;
+      const requestId = String(event.data.requestId || "");
+      const candidates = Array.isArray(event.data.candidates) ? event.data.candidates.slice(0, 20).filter((candidate) => /^https?:\/\//i.test(String(candidate?.url || ""))) : [];
+      if (!requestId || !candidates.length) return;
+      chrome.runtime.sendMessage({ type: "memo-nexus-fetch-clip-images", requestId, candidates }, (response) => {
+        const error = chrome.runtime.lastError;
+        window.postMessage({ type: "memo-nexus-web-clip-retry-images-result", requestId, ok: !error && response?.ok, images: response?.images || [], error: error?.message || response?.error || "画像を再取得できませんでした" }, location.origin);
+      });
+    });
+  }
   const id = new URLSearchParams(location.hash.slice(1)).get("clip-transfer");
   const lifecycle = globalThis.MemoNexusClipperTransferLifecycle;
   const key = lifecycle.transferStorageKey(id);
+  installRetryBridge();
   if (!key) return;
   let timer = 0;
   let attempts = 0;

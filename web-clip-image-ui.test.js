@@ -45,6 +45,22 @@ test("選択画像の保存失敗では確認画面を維持し、本文のみ�
   assert.match(app, /deleteAttachmentRecords\(prepared\.map/);
 });
 
+test("同一URLの再クリップは既存メモの更新または新規保存を選べ、失敗画像だけ再試行できる", () => {
+  assert.match(html, /id="webClipExistingNoteSection"[\s\S]*webClipSaveMode[\s\S]*value="update"[\s\S]*value="new"/);
+  assert.match(html, /id="retryFailedWebClipImagesBtn"/);
+  assert.match(app, /normalizeWebClipComparisonUrl/);
+  assert.match(app, /db\.transaction\(\[STORE_NAME, ATTACHMENT_STORE_NAME\], "readwrite"\)/);
+  assert.match(app, /previousWebClipAttachments/);
+  assert.match(app, /memo-nexus-web-clip-retry-images/);
+  assert.match(app, /画像なしで保存/);
+});
+
+test("展開読み込み版のmanifestとREADMEの現在版は一致する", () => {
+  const readme = fs.readFileSync("extensions/web-clipper/README.md", "utf8");
+  const version = JSON.parse(manifest).version;
+  assert.ok(readme.includes(`ローカル開発版\`${version}\``));
+});
+
 test("確認画面はモバイルで1列になり内部スクロールする", () => {
   assert.match(css, /\.web-clip-images-list[^}]*overflow:\s*auto/);
   assert.match(css, /@media \(max-width: 640px\)[\s\S]*\.web-clip-images-list\s*\{[^}]*grid-template-columns:\s*1fr/);

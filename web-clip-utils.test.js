@@ -2,7 +2,8 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const {
   safeExternalUrl, normalizeWebClip, buildWebClipMarkdown, encodeWebClipPayload, decodeWebClipPayload,
-  readWebClipFragment, compareSemanticVersions, isWebClipperVersionCompatible, webClipUrlWithoutLaunchMarker
+  readWebClipFragment, compareSemanticVersions, isWebClipperVersionCompatible, webClipUrlWithoutLaunchMarker,
+  normalizeWebClipComparisonUrl
 } = require("./web-clip-utils.js");
 const { buildWebClipDestination } = require("./extensions/web-clipper/clip-payload.js");
 
@@ -10,6 +11,12 @@ test("web clip accepts only http and https URLs", () => {
   assert.equal(safeExternalUrl("https://example.com/a"), "https://example.com/a");
   assert.equal(safeExternalUrl("javascript:alert(1)"), "");
   assert.equal(safeExternalUrl("data:text/plain,test"), "");
+});
+
+test("再クリップ比較URLはfragmentと末尾slashだけを正規化し、queryは維持する", () => {
+  assert.equal(normalizeWebClipComparisonUrl("https://example.com/article/#section"), "https://example.com/article");
+  assert.equal(normalizeWebClipComparisonUrl("https://example.com/article"), "https://example.com/article");
+  assert.notEqual(normalizeWebClipComparisonUrl("https://example.com/article?lang=ja"), normalizeWebClipComparisonUrl("https://example.com/article?lang=en"));
 });
 
 test("web clip markdown quotes Japanese selections and keeps metadata", () => {

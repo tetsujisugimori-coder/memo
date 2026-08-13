@@ -173,7 +173,7 @@ async function openPopup(context, worker, extensionId) {
   const popup = await popupPromise;
   try {
     await popup.locator("#send:not([disabled])").waitFor({ timeout: 5000 });
-    assert.equal(await popup.locator("#extensionVersion").textContent(), "0.3.2");
+    assert.equal(await popup.locator("#extensionVersion").textContent(), "0.3.5");
   } catch (cause) {
     throw new Error(`popup did not become ready: status=${await popup.locator("#selectionStatus").textContent()} error=${await popup.locator("#error").textContent()} (${cause.message})`);
   }

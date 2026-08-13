@@ -81,7 +81,7 @@ test("4方式はポップアップで取得してから確認画面へ渡す", (
 });
 
 test("拡張はmanifest由来の診断情報と保存済み接続先を全方式へ付与する", () => {
-  assert.match(manifest, /"version": "0\.3\.4"/);
+  assert.match(manifest, /"version": "0\.3\.5"/);
   assert.match(popupHtml, /拡張機能バージョン:/);
   assert.match(popup, /const currentExtensionManifest = chrome\.runtime\.getManifest\(\);/);
   assert.match(popup, /extensionVersion\.textContent = currentExtensionManifest\.version/);

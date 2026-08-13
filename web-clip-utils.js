@@ -14,6 +14,16 @@
     }
   }
 
+  // 比較専用のURLです。取得元の意味を変えるqueryは保持し、同じ記事の再クリップだけを検出します。
+  function normalizeWebClipComparisonUrl(value) {
+    const safe = safeExternalUrl(value);
+    if (!safe) return "";
+    const url = new URL(safe);
+    url.hash = "";
+    if (url.pathname.length > 1) url.pathname = url.pathname.replace(/\/+$/, "") || "/";
+    return url.href;
+  }
+
   function cleanText(value, limit) {
     return String(value || "").replace(/\u0000/g, "").trim().slice(0, limit);
   }
@@ -219,6 +229,7 @@
     parseSemanticVersion,
     webClipUrlWithoutLaunchMarker,
     safeExternalUrl,
+    normalizeWebClipComparisonUrl,
     normalizeWebClip,
     buildWebClipMarkdown,
     replaceWebClipImageMarkers,
