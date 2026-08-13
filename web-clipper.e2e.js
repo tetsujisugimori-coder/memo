@@ -399,7 +399,7 @@ async function main() {
       manifestVersion: savedClipSource?.manifestVersion,
       targetEnvironment: savedClipSource?.targetEnvironment,
       distributionChannel: savedClipSource?.distributionChannel
-    }, { extensionVersion: "0.3.2", manifestVersion: 3, targetEnvironment: "development", distributionChannel: "unpacked-development" });
+    }, { extensionVersion: "0.3.5", manifestVersion: 3, targetEnvironment: "development", distributionChannel: "unpacked-development" });
     const storedAttachments = await receiver.evaluate(() => new Promise((resolve, reject) => {
       const request = indexedDB.open("memo-nexus");
       request.onerror = () => reject(request.error);
@@ -425,6 +425,92 @@ async function main() {
     assert.equal(await receiver.locator(".image-block img").count(), 6);
     assert.equal(await receiver.locator("#attachmentCount").textContent(), "6件");
     assert.match(await receiver.locator("#editor").inputValue(), /attachment:\/\//);
+
+    const originalClip = await receiver.evaluate(() => new Promise((resolve, reject) => {
+      const request = indexedDB.open("memo-nexus");
+      request.onerror = () => reject(request.error);
+      request.onsuccess = () => {
+        const database = request.result;
+        const transaction = database.transaction(["notes", "attachments"], "readwrite");
+        const noteStore = transaction.objectStore("notes");
+        const getNotes = noteStore.getAll();
+        getNotes.onerror = () => reject(getNotes.error);
+        getNotes.onsuccess = () => {
+          const note = getNotes.result.find((item) => item.source?.type === "web-clip" && item.source?.clipMode === "page");
+          note.isFlagged = true;
+          note.reclipTestMetadata = { keep: "yes" };
+          noteStore.put(note);
+          const attachments = transaction.objectStore("attachments").index("memoId").getAll(note.id);
+          attachments.onsuccess = () => resolve({ id: note.id, collectionId: note.collectionId, oldAttachmentIds: attachments.result.map((item) => item.id) });
+        };
+      };
+    }));
+    const replacementId = crypto.randomUUID();
+    await setStorage(worker, `memoNexusTransfer:${replacementId}`, {
+      createdAt: Date.now(),
+      clip: {
+        title: "再クリップ更新", url: `${articleUrl}#reclip`, host: "127.0.0.1", clipMode: "page", capturedAt: new Date().toISOString(),
+        selection: "新しい本文\n\n<!-- memo-nexus:web-clip-image:web-clip-image-1 -->",
+        images: [{ token: "web-clip-image-1", url: `${appUrl}local-image.png`, alt: "新しい画像", caption: "", status: "ready", mimeType: "image/png", size: localImage.length, fileName: "replacement.png", dataBase64: localImage.toString("base64"), selected: true }]
+      }
+    });
+    const replacementReceiver = await context.newPage();
+    await replacementReceiver.goto(`${appUrl}#clip-transfer=${replacementId}`);
+    await replacementReceiver.locator("#webClipDialog[open]").waitFor();
+    assert.equal(await replacementReceiver.locator('input[name="webClipSaveMode"][value="update"]').isChecked(), true);
+    await replacementReceiver.locator("#saveWebClipBtn").click();
+    await replacementReceiver.locator("#webClipDialog").waitFor({ state: "hidden" });
+    const replacementResult = await replacementReceiver.evaluate(({ oldIds, existingId }) => new Promise((resolve, reject) => {
+      const request = indexedDB.open("memo-nexus");
+      request.onerror = () => reject(request.error);
+      request.onsuccess = () => {
+        const database = request.result;
+        const transaction = database.transaction(["notes", "attachments"]);
+        const notesRequest = transaction.objectStore("notes").getAll();
+        const attachmentsRequest = transaction.objectStore("attachments").getAll();
+        transaction.onerror = () => reject(transaction.error);
+        transaction.oncomplete = () => {
+          const note = notesRequest.result.find((item) => item.id === existingId) || notesRequest.result.find((item) => item.reclipTestMetadata?.keep === "yes");
+          resolve({ note, attachments: attachmentsRequest.result.map((item) => item.id), oldIds });
+        };
+      };
+    }), { oldIds: originalClip.oldAttachmentIds, existingId: originalClip.id });
+    assert.equal(replacementResult.note.id, originalClip.id, "reclip update changed the memo ID");
+    assert.equal(replacementResult.note.collectionId, originalClip.collectionId, "reclip update changed the collection");
+    assert.equal(replacementResult.note.isFlagged, true, "reclip update changed the flag");
+    assert.deepEqual(replacementResult.note.reclipTestMetadata, { keep: "yes" }, "reclip update removed unrelated metadata");
+    assert.match(replacementResult.note.body, /新しい本文/);
+    assert.equal(replacementResult.attachments.length, 1, "reclip update did not replace old Web Clipper attachments");
+    assert.equal(replacementResult.oldIds.some((id) => replacementResult.attachments.includes(id)), false, "old Web Clipper attachments remain after replacement");
+    await replacementReceiver.close();
+
+    const newSaveId = crypto.randomUUID();
+    await setStorage(worker, `memoNexusTransfer:${newSaveId}`, { createdAt: Date.now(), clip: { title: "再クリップ新規保存", url: articleUrl, host: "127.0.0.1", clipMode: "link", selection: "", capturedAt: new Date().toISOString() } });
+    const newSaveReceiver = await context.newPage();
+    await newSaveReceiver.goto(`${appUrl}#clip-transfer=${newSaveId}`);
+    await newSaveReceiver.locator("#webClipDialog[open]").waitFor();
+    await newSaveReceiver.locator('input[name="webClipSaveMode"][value="new"]').check();
+    await newSaveReceiver.locator("#saveWebClipBtn").click();
+    await newSaveReceiver.locator("#webClipDialog").waitFor({ state: "hidden" });
+    const newSaveResult = await newSaveReceiver.evaluate((existingId) => new Promise((resolve, reject) => {
+      const request = indexedDB.open("memo-nexus"); request.onerror = () => reject(request.error);
+      request.onsuccess = () => { const all = request.result.transaction("notes").objectStore("notes").getAll(); all.onsuccess = () => resolve(all.result.filter((note) => note.source?.url === "http://127.0.0.1:5500/e2e-source.html" || note.id === existingId)); };
+    }), originalClip.id);
+    assert.equal(newSaveResult.length, 2, "new reclip save did not create a separate note");
+    assert.equal(newSaveResult.find((note) => note.id === originalClip.id).title, "再クリップ更新", "new reclip save changed the existing note");
+    await newSaveReceiver.close();
+
+    const retryId = crypto.randomUUID();
+    await setStorage(worker, `memoNexusTransfer:${retryId}`, { createdAt: Date.now(), clip: { title: "再試行確認", url: `${articleUrl}?retry=1`, host: "127.0.0.1", clipMode: "page", capturedAt: new Date().toISOString(), selection: "<!-- memo-nexus:web-clip-image:web-clip-image-1 -->", images: [{ token: "web-clip-image-1", url: `${appUrl}local-image.png`, alt: "再試行画像", caption: "", status: "failed", errorCode: "NETWORK_ERROR", error: "一時失敗", selected: false }] } });
+    const retryReceiver = await context.newPage();
+    await retryReceiver.goto(`${appUrl}#clip-transfer=${retryId}`);
+    await retryReceiver.locator("#webClipDialog[open]").waitFor();
+    await retryReceiver.locator("#retryFailedWebClipImagesBtn").click();
+    await retryReceiver.locator('.web-clip-image-card.status-ready input[type="checkbox"]:checked').waitFor({ state: "visible", timeout: 10000 });
+    await retryReceiver.locator("#saveWebClipBtn").click();
+    await retryReceiver.locator("#webClipDialog").waitFor({ state: "hidden" });
+    assert.equal(await retryReceiver.locator("#attachmentCount").textContent(), "1件", "retried image was not saved as an attachment");
+    await retryReceiver.close();
     if (!popup.isClosed()) await popup.close(); await receiver.close();
 
     const { popup: textOnlyPopup, receiver: textOnlyReceiver } = await capture(context, worker, extensionId, "page");
