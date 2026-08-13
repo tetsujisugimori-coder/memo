@@ -1612,3 +1612,9 @@
 * 転送用`window.open()`が失敗した場合とACKなしで再送がタイムアウトした場合は、今回作成した転送キーだけを削除してからエラーを通知する。ACK成功時の削除は維持し、同時に存在する別の正常な転送は削除しない。
 * 接続先と配布方式を分離し、現在の設定を`unpacked-development`（ローカル開発版、初期接続先development）と明示した。productionへ接続してもローカル版表示を維持し、localhost更新確認は行わない。将来の`edge-store`は初期接続先production、Edge標準更新とする設定位置を用意したが、ストアパッケージ作成・登録・自動更新は未確認とする。画像取得・保存と`?web-clip`消費処理は変更していない。
 * `node --test`は416件成功した。Playwright付属Chromiumの実Manifest V3 E2Eでは、期限切れ転送だけの清掃、正常転送の保持、`window.open()`失敗後の残存0件、ACKタイムアウト後の該当キー削除と別正常キー保持、ローカル版の本番接続表示、production時の開発manifestアクセス0件を確認した。従来のJPEG／PNG／WebP／GIF／SVG／AVIF、6画像のIndexedDB保存、`attachment://`置換、再読み込み表示も成功した。
+
+## 2026-08-13 Web Clipper Edge設定復旧
+
+* 設定の「データ管理」内へWeb Clipper欄を配置し、許可済み拡張機能IDをOriginとともに一覧表示するよう明確化した。各IDの既存コピー操作を維持し、Edgeで拡張機能が見つからない場合に、拡張機能一覧を開く、有効化または「展開して読み込み」で再登録する、表示IDと許可IDを照合する、という復旧手順を追加した。
+* Edge用の`opejamnnohhbjflpbhnmdlknhjkfhfdp`を許可originへ追加した。既存の許可originは削除せず、テストで同IDが1回だけ登録されることを確認する。既存の厳格な`chrome-extension://<32文字ID>`検証とChrome／Edge共通の受信経路は変更していない。
+* `node --check app.js`、`node --check web-clipper-config.js`、`node --test`（416件成功）、`git diff --check`を実行した。Web Clipperの受信ペイロード復元、起動URL消費、転送保持の既存テストは成功した。実Manifest V3を読み込む`node web-clipper.e2e.js`は、この環境に`playwright`がなく起動できず、一時導入もネットワーク待ちで完了しなかったため未実施とする。
