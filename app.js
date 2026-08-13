@@ -446,6 +446,7 @@ const webClipUrl = $("webClipUrl");
 const webClipHost = $("webClipHost");
 const webClipSelection = $("webClipSelection");
 const webClipMode = $("webClipMode");
+const webClipModeLockedNote = $("webClipModeLockedNote");
 const webClipImagesSection = $("webClipImagesSection");
 const webClipImagesCount = $("webClipImagesCount");
 const webClipImagesSummary = $("webClipImagesSummary");
@@ -2751,6 +2752,8 @@ function openWebClipDialog(clip = null, receiveError = "") {
   webClipHost.value = normalized.host || (normalized.url ? new URL(normalized.url).hostname : "");
   webClipSelection.value = normalized.selection;
   webClipMode.value = normalized.clipMode;
+  webClipMode.disabled = Boolean(clip);
+  if (webClipModeLockedNote) webClipModeLockedNote.hidden = !clip;
   pendingWebClipImages = normalized.images;
   pendingWebClipOmittedImageCount = normalized.omittedImageCount;
   pendingWebClipDiagnostics = {
@@ -8684,6 +8687,7 @@ if (cancelWebClipBtn) cancelWebClipBtn.addEventListener("click", () => webClipDi
 if (webClipForm) webClipForm.addEventListener("submit", saveWebClipFromDialog);
 saveWebClipTextOnlyBtn?.addEventListener("click", () => saveWebClip({ textOnly: true }));
 if (webClipMode) webClipMode.addEventListener("change", () => {
+  if (webClipMode.disabled) return;
   webClipUserMemoRow.hidden = webClipMode.value !== "memo";
   renderWebClipImages();
 });

@@ -8,6 +8,7 @@ const popupHtml = fs.readFileSync("extensions/web-clipper/popup.html", "utf8");
 const clipPayload = fs.readFileSync("extensions/web-clipper/clip-payload.js", "utf8");
 const config = fs.readFileSync("extensions/web-clipper/config.js", "utf8");
 const manifest = fs.readFileSync("extensions/web-clipper/manifest.json", "utf8");
+const readme = fs.readFileSync("extensions/web-clipper/README.md", "utf8");
 const updateManager = fs.readFileSync("extensions/web-clipper/update-manager.js", "utf8");
 
 test("本体はフラグメントを消費して履歴からクリップpayloadを除去する", () => {
@@ -35,6 +36,7 @@ test("拡張は選択した接続先のURLへフラグメントpayloadで遷移�
   assert.doesNotMatch(manifest, /localhost:5500/);
   assert.match(popup, /開発環境（127\.0\.0\.1:5500）/);
   assert.match(config, /production: "https:\/\/tetsujisugimori-coder\.github\.io\/memo\/"/);
+  assert.match(popup, /const destination = config\.targets\[target\.value\];/);
   assert.match(config, /manifestUrl: "http:\/\/127\.0\.0\.1:5500\/extensions\/web-clipper\/manifest\.json"/);
   assert.match(popup, /cache: "no-store"/);
   assert.match(popup, /settings\?\.strategy !== "local-manifest"/);
@@ -42,22 +44,33 @@ test("拡張は選択した接続先のURLへフラグメントpayloadで遷移�
   assert.match(updateManager, /environment !== "development"/);
 });
 
-test("拡張は長文と予期しない失敗を技術的な文言なしで案内する", () => {
+test("拡張は選択なしをリンクのみに切り替えず、取得失敗を案内する", () => {
   assert.match(popup, /選択範囲が長すぎてクリップできません。範囲を短くして再度お試しください。/);
   assert.match(popup, /クリップを開始できませんでした。もう一度お試しください。/);
   assert.match(popup, /ページ本文を取得できませんでした。選択部分またはリンクのみでお試しください。/);
   assert.match(popup, /page-injection-failed/);
   assert.match(popup, /page-content-empty/);
   assert.match(popup, /page-markdown-empty/);
+  assert.match(popup, /selection-required/);
+  assert.match(popup, /選択部分をクリップするには、ページ上で文章を選択してください。/);
+  assert.match(popup, /clipMode\.value = "selection"/);
+  assert.doesNotMatch(popup, /clipMode\.value = hasSelection \? "selection" : "link"/);
   assert.match(popup, /console\.error\("Memo-Nexus Web Clipper could not open Memo-Nexus", cause\)/);
 });
 
-test("4方式とページ全文の小さいフラグメント受け渡しを維持する", () => {
+test("4方式はポップアップで取得してから確認画面へ渡す", () => {
   assert.match(popupHtml, /value="selection"/);
   assert.match(popupHtml, /value="page"/);
   assert.match(popupHtml, /value="link"/);
   assert.match(popupHtml, /value="memo"/);
-  assert.match(popup, /clipMode\.value = hasSelection \? "selection" : "link"/);
+  assert.match(popupHtml, /クリップ方式/);
+  assert.match(popup, /ページ本文を取得しています…/);
+  assert.match(popup, /MemoNexusPageExtractor\.extractPageContent\(\)/);
+  assert.match(popup, /fetchImagesInServiceWorker\(content\.images\)/);
+  assert.match(popup, /Memo-Nexusの確認画面を開きます…/);
+  assert.ok(popup.indexOf("fetchImagesInServiceWorker(content.images)") < popup.indexOf("window.open(MemoNexusClipPayload.buildWebClipDestination"));
+  assert.match(popup, /mode === "link" \|\| mode === "memo"/);
+  assert.match(popup, /selection: mode === "link" \? "" : base\.selection, images: \[\]/);
   assert.match(clipPayload, /clip-transfer=\$\{encodeURIComponent\(options\.transferId\)\}/);
   assert.match(popup, /chrome\.storage\.local\.set/);
   assert.doesNotMatch(popup, /receiver\.postMessage\(/);
@@ -68,7 +81,10 @@ test("4方式とページ全文の小さいフラグメント受け渡しを維�
 });
 
 test("拡張はmanifest由来の診断情報と保存済み接続先を全方式へ付与する", () => {
-  assert.match(manifest, /"version": "0\.3\.2"/);
+  assert.match(manifest, /"version": "0\.3\.4"/);
+  assert.match(popupHtml, /拡張機能バージョン:/);
+  assert.match(popup, /const currentExtensionManifest = chrome\.runtime\.getManifest\(\);/);
+  assert.match(popup, /extensionVersion\.textContent = currentExtensionManifest\.version/);
   assert.match(popup, /extensionVersion: manifest\.version/);
   assert.match(popup, /manifestVersion: manifest\.manifest_version/);
   assert.match(popup, /browserFamily: browserFamily\(\)/);
@@ -79,6 +95,28 @@ test("拡張はmanifest由来の診断情報と保存済み接続先を全方式
   assert.match(popup, /chrome\.storage\.local\.set\(\{ \[config\.storage\.targetKey\]: target\.value \}\)/);
   assert.match(app, /pendingWebClipDiagnostics = \{/);
   assert.match(app, /\.\.\.pendingWebClipDiagnostics/);
+});
+
+test("ポップアップの方式一覧とREADMEの展開読み込み更新手順は現在版と一致する", () => {
+  const manifestVersion = manifest.match(/"version": "([^"]+)"/)?.[1];
+  assert.ok(manifestVersion);
+  assert.match(popupHtml, /選択部分/);
+  assert.match(popupHtml, /ページ全文（本文・画像を取得してから確認画面を開く）/);
+  assert.match(popupHtml, /リンクのみ/);
+  assert.match(popupHtml, /メモ付き/);
+  assert.ok(readme.includes(`現在の展開読み込み版はローカル開発版\`${manifestVersion}\``));
+  assert.match(readme, /GitHubでPRをマージしても、PC内へ展開読み込みした拡張機能は自動では更新されません。/);
+  assert.match(readme, /edge:\/\/extensions/);
+  assert.ok(readme.includes(`\`${manifestVersion}\`より古ければ、そのカードの「再読み込み」を押します。`));
+  assert.match(readme, /現在のMemo-Nexusリポジトリの`extensions\/web-clipper`フォルダを「展開して読み込み」で登録し直します。/);
+  assert.match(readme, /設定 → データ管理 → Web Clipper/);
+});
+
+test("拡張から受信したクリップ方式は確認画面で変更せず、再取得は拡張へ戻るよう案内する", () => {
+  const index = fs.readFileSync("index.html", "utf8");
+  assert.match(app, /webClipMode\.disabled = Boolean\(clip\)/);
+  assert.match(app, /webClipModeLockedNote\.hidden = !clip/);
+  assert.match(index, /クリップ方式は拡張機能で確定済みです。本文や画像を別の方式で取得するには、拡張機能へ戻ってください。/);
 });
 
 test("接続先と配布方式を分離し、現在版をローカル展開として扱う", () => {

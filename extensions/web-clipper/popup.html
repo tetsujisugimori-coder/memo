@@ -9,11 +9,12 @@
 <body>
   <main>
     <h1>Memo-Nexus Web Clipper</h1>
-    <p class="version">拡張バージョン <span id="extensionVersion">—</span></p>
+    <p class="version">拡張機能バージョン: <span id="extensionVersion">—</span></p>
     <p id="environmentStatus" class="environment-status">接続先を確認中…</p>
     <p id="updateStatus" class="update-status" role="status" aria-live="polite"></p>
     <p id="selectionStatus" class="status">ページ情報を取得中…</p>
-    <label>保存方法<select id="clipMode"><option value="selection">選択部分</option><option value="page">ページ全文</option><option value="link">リンクのみ</option><option value="memo">メモ付き</option></select></label>
+    <label>クリップ方式<select id="clipMode"><option value="selection">選択部分</option><option value="page">ページ全文</option><option value="link">リンクのみ</option><option value="memo">メモ付き</option></select></label>
+    <ul class="status" aria-label="利用できるクリップ方式"><li>選択部分</li><li>ページ全文（本文・画像を取得してから確認画面を開く）</li><li>リンクのみ</li><li>メモ付き</li></ul>
     <p id="modeStatus" class="status"></p>
     <dl>
       <div><dt>タイトル</dt><dd id="title">—</dd></div>

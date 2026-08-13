@@ -17,7 +17,8 @@ const transferLifecycle = globalThis.MemoNexusClipperTransferLifecycle;
 let clip = null;
 let clipOperationActive = false;
 
-extensionVersion.textContent = chrome.runtime.getManifest().version;
+const currentExtensionManifest = chrome.runtime.getManifest();
+extensionVersion.textContent = currentExtensionManifest.version;
 
 Object.entries(config.targets).forEach(([key, value]) => {
   const option = document.createElement("option");
@@ -150,23 +151,31 @@ async function readActivePage() {
 function showClip(nextClip) {
   clip = nextClip;
   const hasSelection = Boolean(clip.selection.trim());
-  selectionStatus.textContent = hasSelection ? `選択文あり（${clip.selection.length.toLocaleString()}文字）` : "選択文なし（URLとタイトルを渡します）";
+  selectionStatus.textContent = hasSelection ? `選択文あり（${clip.selection.length.toLocaleString()}文字）` : "選択文なし。選択部分をクリップするにはページ上で文章を選択してください。";
   title.textContent = clip.title || "（タイトルなし）";
   url.textContent = clip.url || "（URLなし）";
-  clipMode.value = hasSelection ? "selection" : "link";
+  clipMode.value = "selection";
   updateModeUi();
-  send.disabled = false;
 }
 
 function updateModeUi() {
   const mode = clipMode.value;
+  const selectionRequired = mode === "selection" && !clip?.selection.trim();
   userMemoRow.hidden = mode !== "memo";
-  modeStatus.textContent = mode === "page" ? "ページ本文を取得します" : mode === "link" ? "本文は取得せず、リンク情報を保存します" : "";
+  modeStatus.textContent = selectionRequired
+    ? "選択文がありません。ページ上で文章を選択するか、別のクリップ方式を選んでください。"
+    : mode === "page"
+      ? "確認画面を開く前にページ本文と画像を取得します"
+      : mode === "link"
+        ? "本文と画像は取得せず、URLとタイトルだけを保存します"
+        : "";
+  send.disabled = !clip || selectionRequired;
 }
 
 async function buildClipForMode() {
   const mode = clipMode.value;
   const base = { ...clip, ...extensionDiagnostics(), clipMode: mode, userMemo: mode === "memo" ? userMemo.value : "" };
+  if (mode === "selection" && !base.selection.trim()) throw new Error("selection-required");
   if (mode === "link" || mode === "memo") return { clip: { ...base, selection: mode === "link" ? "" : base.selection, images: [] }, transfer: false };
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   if (!tab?.id) throw new Error("page-injection-failed");
@@ -182,11 +191,12 @@ async function buildClipForMode() {
     .catch((cause) => { console.error("Memo-Nexus Web Clipper page injection failed", cause); throw new Error("page-injection-failed"); });
   const content = page?.result;
   if (!content?.html) {
-    if (mode === "selection") return { clip: { ...base, images: [] }, transfer: false };
+    if (mode === "selection") throw new Error("selection-required");
     throw new Error("page-content-empty");
   }
+  modeStatus.textContent = mode === "page" ? "ページ本文を抽出しました。画像を確認しています…" : "選択部分を取得しました。画像を確認しています…";
   const markdown = MemoNexusHtmlToMarkdown.htmlToMarkdown(content.html);
-  if (!markdown) throw new Error("page-markdown-empty");
+  if (!markdown) throw new Error(mode === "selection" ? "selection-required" : "page-markdown-empty");
   let images = [];
   if (content.images?.length) {
     modeStatus.textContent = `${content.images.length}枚の画像を取得しています…`;
@@ -196,6 +206,9 @@ async function buildClipForMode() {
       ? `${readyCount}/${images.length}枚の画像を保存できます`
       : `${images.length}枚の画像を確認しましたが、保存できる画像はありません`;
   }
+  modeStatus.textContent = mode === "page"
+    ? `${images.filter((image) => image.status === "ready").length}/${images.length}枚の画像を確認しました。Memo-Nexusの確認画面を開きます…`
+    : "選択部分を取得しました。Memo-Nexusの確認画面を開きます…";
   return {
     clip: { ...base, selection: markdown, images, omittedImageCount: content.omittedImageCount || 0 },
     transfer: mode === "page" || images.length > 0
@@ -266,6 +279,8 @@ async function sendToMemoNexus() {
   clipOperationActive = true;
   let transferKey = "";
   try {
+    if (clipMode.value === "page") modeStatus.textContent = "ページ本文を取得しています…";
+    if (clipMode.value === "selection") modeStatus.textContent = "選択部分を取得しています…";
     const payload = await buildClipForMode();
     let transferId = "";
     if (payload.transfer) {
@@ -302,10 +317,10 @@ target.addEventListener("change", async () => {
   try {
     await saveTargetEnvironment();
     const reloading = await checkDevelopmentUpdate();
-    if (!reloading && clip) send.disabled = false;
+    if (!reloading) updateModeUi();
   } catch (cause) {
     console.info("Memo-Nexus Web Clipper target setting could not be saved", cause);
-    if (clip) send.disabled = false;
+    if (clip) updateModeUi();
   }
 });
 send.addEventListener("click", () => sendToMemoNexus().catch((cause) => {
@@ -320,6 +335,8 @@ send.addEventListener("click", () => sendToMemoNexus().catch((cause) => {
       ? "ページ本文の候補が見つかりませんでした。選択部分またはリンクのみでお試しください。"
     : cause?.message === "page-markdown-empty"
       ? "ページ本文をMarkdownへ変換できませんでした。選択部分またはリンクのみでお試しください。"
+    : cause?.message === "selection-required"
+      ? "選択部分をクリップするには、ページ上で文章を選択してください。URLとタイトルだけのクリップには自動で切り替えません。"
     : "クリップを開始できませんでした。もう一度お試しください。";
   send.disabled = false;
   clipOperationActive = false;
