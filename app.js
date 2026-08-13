@@ -2474,8 +2474,16 @@ function renderWebClipperSettings() {
     : "まだ受信していません";
   webClipperSettingsDetails.innerHTML = `
     <section class="web-clipper-settings-group" aria-labelledby="webClipperOriginsHeading">
-      <h3 id="webClipperOriginsHeading">許可済みWeb Clipper送信元</h3>
+      <h3 id="webClipperOriginsHeading">許可済み拡張機能ID</h3>
       ${originRows}
+    </section>
+    <section class="web-clipper-settings-group" aria-labelledby="webClipperRecoveryHeading">
+      <h3 id="webClipperRecoveryHeading">Edgeで拡張機能が見つからない場合</h3>
+      <ol class="settings-note">
+        <li>Edge の拡張機能一覧を開きます。</li>
+        <li>Memo-Nexus Web Clipper を有効化するか、「展開して読み込み」で再登録します。</li>
+        <li>表示された拡張機能IDが、この画面の許可IDと一致するか確認します。</li>
+      </ol>
     </section>
     <section class="web-clipper-settings-group" aria-labelledby="webClipperDestinationHeading">
       <h3 id="webClipperDestinationHeading">連携先</h3>
