@@ -26,8 +26,8 @@ test("下部ステータスバーに操作可能な文字数チップと詳細�
   assert.match(html, /id="textStatsPopover"[^>]*role="dialog"[^>]*hidden/);
   assert.match(html, /文字数 0字/);
   assert.match(html, /text-stats-utils\.js\?v=0\.4\.0-2/);
-  assert.match(html, /style\.css\?v=0\.4\.0-49/);
-  assert.match(html, /app\.js\?v=0\.4\.0-73/);
+  assert.match(html, /style\.css\?v=0\.4\.0-50/);
+  assert.match(html, /app\.js\?v=0\.4\.0-74/);
   assert.match(css, /\.status-chip\s*\{[^}]*min-height:\s*26px/s);
   assert.match(css, /\.text-stats-popover\s*\{[^}]*width:\s*min\(360px, calc\(100vw - 32px\)\)/s);
 });
@@ -43,10 +43,10 @@ test("本文更新とキーボード・外側クリックで文章統計を制�
 test("下部保存チップは実際のブラウザ状態と未設定ローカル状態を分けて表示する", () => {
   assert.match(html, /id="browserSaveStatusBtn"[^>]*aria-controls="browserSavePopover"/);
   assert.match(html, /id="localSaveStatusBtn"[^>]*aria-controls="localSavePopover"/);
-  assert.match(app, /ローカル保存の設定は準備中/);
+  assert.match(app, /function performLocalWorkspaceSave\(reason = "change"\)/);
   assert.match(app, /function browserSaveStatusModel\(\)/);
   assert.match(app, /function localSaveStatusModel\(\)/);
-  assert.match(app, /state: "unconfigured", label: "未設定"/);
+  assert.match(app, /localSaveLabel\(localSaveState\.status\)/);
   assert.match(app, /ブラウザ \$\{browser\.label\}/);
   assert.match(app, /setSaveStatusPopoverOpen\("", false\)/);
 });
@@ -58,8 +58,10 @@ test("ブラウザ保存状態の遷移とローカル未設定状態を実際�
   assert.deepEqual(modelFor("saving", null, ""), { state: "saving", label: "保存中", savedAt: null, notice: "" });
   assert.deepEqual(modelFor("saved", "2026-08-14T12:34:56.000Z", ""), { state: "saved", label: "保存済み", savedAt: "2026-08-14T12:34:56.000Z", notice: "" });
   assert.deepEqual(modelFor("error", null, "保存できません"), { state: "error", label: "保存失敗", savedAt: null, notice: "保存できません" });
-  const localModel = new Function(`${localSaveStatusModel}\nreturn localSaveStatusModel();`);
-  assert.deepEqual(localModel(), { state: "unconfigured", label: "未設定", savedAt: null });
+  const localModel = new Function("localSaveState", "localSaveLabel", `${localSaveStatusModel}\nreturn localSaveStatusModel();`);
+  assert.deepEqual(localModel({ status: "unconfigured", lastSuccessAt: null, errorMessage: "", directoryName: "", requiresUserAction: false }, () => "未設定"), {
+    state: "unconfigured", label: "未設定", savedAt: null, notice: "", directoryName: "", requiresUserAction: false
+  });
 });
 
 test("保存状態バーは狭幅で集約し、ライト・ダーク共通テーマ変数と状態色を使う", () => {

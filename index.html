@@ -7,7 +7,7 @@
   <script>try { document.documentElement.dataset.initialTheme = localStorage.getItem("memo-nexus-theme") === "dark" ? "dark" : "light"; } catch (_) { document.documentElement.dataset.initialTheme = "light"; }</script>
   <style>html,body{background:#f6f7f4;color:#222522;color-scheme:light}html[data-initial-theme="dark"],html[data-initial-theme="dark"] body{background:#111513;color:#e7ece7;color-scheme:dark}</style>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css">
-  <link rel="stylesheet" href="style.css?v=0.4.0-49">
+  <link rel="stylesheet" href="style.css?v=0.4.0-50">
 </head>
 <body>
   <aside id="memoSidebar" class="sidebar" aria-label="メモ一覧" aria-hidden="false">
@@ -106,9 +106,10 @@
             <div id="textStatsBody" class="text-stats-body"></div>
           </section>
         </div>
+        <div id="noteMeta" class="note-meta" aria-label="メモの日時"></div>
         <div class="save-status-actions">
-          <button id="browserSaveStatusBtn" class="status-chip save-status-chip" type="button" data-state="saved" aria-haspopup="dialog" aria-expanded="false" aria-controls="browserSavePopover">◉ ブラウザ 保存済み</button>
           <button id="localSaveStatusBtn" class="status-chip save-status-chip" type="button" data-state="unconfigured" aria-haspopup="dialog" aria-expanded="false" aria-controls="localSavePopover">▣ ローカル 未設定</button>
+          <button id="browserSaveStatusBtn" class="status-chip save-status-chip" type="button" data-state="saved" aria-haspopup="dialog" aria-expanded="false" aria-controls="browserSavePopover">◉ ブラウザ 保存済み</button>
           <button id="combinedSaveStatusBtn" class="status-chip save-status-chip combined-save-status" type="button" aria-haspopup="dialog" aria-expanded="false" aria-controls="combinedSavePopover">保存状態</button>
           <section id="browserSavePopover" class="status-popover" role="dialog" aria-labelledby="browserSaveTitle" hidden>
             <div class="text-stats-head"><strong id="browserSaveTitle">ブラウザ保存</strong><button data-close-status-popover type="button" aria-label="ブラウザ保存の詳細を閉じる">×</button></div>
@@ -510,6 +511,22 @@
       </section>
       <section class="settings-section">
         <h2>データ管理</h2>
+        <section class="local-folder-settings-section" aria-labelledby="localFolderSettingsHeading">
+          <h3 id="localFolderSettingsHeading">ローカルフォルダ保存</h3>
+          <label class="local-save-toggle"><input id="localSaveEnabled" type="checkbox"> ローカル保存を有効にする</label>
+          <div class="settings-actions local-folder-actions">
+            <button id="selectLocalFolderBtn" type="button">フォルダを選択</button>
+            <button id="reconnectLocalFolderBtn" type="button">再接続</button>
+            <button id="saveLocalNowBtn" type="button">今すぐ保存</button>
+            <button id="rescanLocalMarkdownBtn" type="button">外部Markdownを再スキャン</button>
+            <button id="restoreFromLocalBtn" type="button">ローカルから復元</button>
+            <button id="disconnectLocalFolderBtn" type="button">接続を解除</button>
+          </div>
+          <dl id="localFolderDetails" class="settings-details local-folder-details"></dl>
+          <p id="localFolderStatus" class="settings-note" role="status" aria-live="polite"></p>
+          <div id="localScanResults" class="local-scan-results" aria-live="polite"></div>
+          <p class="settings-note">接続解除ではフォルダ内のファイルを削除しません。非対応環境ではMarkdown ZIPの書出し・取込を利用できます。</p>
+        </section>
         <section class="web-clipper-settings-section" aria-labelledby="webClipperSettingsHeading">
           <h3 id="webClipperSettingsHeading">Web Clipper</h3>
           <div id="webClipperSettingsDetails" class="web-clipper-settings-details"></div>
@@ -713,6 +730,11 @@
   <script src="note-flag-utils.js?v=0.4.0-1"></script>
   <script src="text-stats-utils.js?v=0.4.0-2"></script>
   <script src="markdown-bundle-utils.js?v=0.1.0-1"></script>
-  <script src="app.js?v=0.4.0-73"></script>
+  <script src="local-save-state.js?v=0.4.0-1"></script>
+  <script src="local-save-queue.js?v=0.4.0-1"></script>
+  <script src="local-markdown.js?v=0.4.0-1"></script>
+  <script src="local-sync-utils.js?v=0.4.0-1"></script>
+  <script src="local-fs-adapter.js?v=0.4.0-1"></script>
+  <script src="app.js?v=0.4.0-74"></script>
 </body>
 </html>

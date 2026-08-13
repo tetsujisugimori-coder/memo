@@ -22,7 +22,7 @@ test("タイトル操作部は上段、保存状態は下部バーに分離し�
   assert.match(css, /\.title-row\s*\{[^}]*display:\s*flex[^}]*flex-direction:\s*column/s);
   assert.match(css, /\.title-side-head\s*\{[^}]*display:\s*flex[^}]*justify-content:\s*space-between/s);
   assert.match(css, /\.title-actions\s*\{[^}]*display:\s*flex/s);
-  assert.match(html, /id="browserSaveStatusBtn"[\s\S]*id="localSaveStatusBtn"/);
+  assert.match(html, /id="localSaveStatusBtn"[\s\S]*id="browserSaveStatusBtn"/);
   assert.match(css, /\.save-status-actions\s*\{[^}]*display:\s*flex/s);
   assert.match(css, /\.note-flag-button\s*\{[^}]*width:\s*40px[^}]*min-height:\s*40px/s);
   assert.match(css, /\.note-flag-button\.is-flagged::before\s*\{[^}]*width:\s*32px[^}]*height:\s*32px/s);

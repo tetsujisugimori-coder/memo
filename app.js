@@ -4,7 +4,8 @@ const DB_NAME = "memo-nexus";
 const STORE_NAME = "notes";
 const COLLECTION_STORE_NAME = "collections";
 const ATTACHMENT_STORE_NAME = "attachments";
-const DB_VERSION = 3;
+const LOCAL_CONFIG_STORE_NAME = "local-config";
+const DB_VERSION = 4;
 const APP_VERSION = "0.4.0";
 const APP_LABEL = "Waypoint";
 const APP_BUILD = "2026-07-15";
@@ -301,6 +302,27 @@ const { buildMemoListView } = window.MemoNexusMemoListUtils;
 const { buildMarkdownBundleImport, parseStoredZipEntries } = window.MemoNexusMarkdownBundleUtils;
 const { parseFlaggedMarkdown, serializeNoteForMarkdown, withNormalizedFlag } = window.MemoNexusNoteFlagUtils;
 const {
+  applyLocalSaveSuccess,
+  createLocalSaveState,
+  localSaveLabel,
+  resolveDisplayedCreatedAt,
+  transitionLocalSaveState
+} = window.MemoNexusLocalSaveState;
+const { createLocalSaveQueue } = window.MemoNexusLocalSaveQueue;
+const { parseLocalNote, restoreAttachmentReferences, serializeLocalNote } = window.MemoNexusLocalMarkdown;
+const {
+  attachmentExtension,
+  buildManifest,
+  classifyMarkdownCandidate,
+  contentHash,
+  hasExternalModification,
+  normalizeSyncState,
+  parseCollections,
+  safeStableNoteFileName,
+  serializeCollections
+} = window.MemoNexusLocalSyncUtils;
+const localFs = window.MemoNexusLocalFsAdapter;
+const {
   MAX_WEB_CLIP_IMAGE_BYTES,
   safeExternalUrl: safeWebClipUrl,
   normalizeWebClipComparisonUrl,
@@ -482,6 +504,16 @@ const editorCaretAnimationReducedMotion = $("editorCaretAnimationReducedMotion")
 const editorCaretAnimation = $("editorCaretAnimation");
 const storageStatusDetails = $("storageStatusDetails");
 const storageEstimateMessage = $("storageEstimateMessage");
+const localSaveEnabled = $("localSaveEnabled");
+const selectLocalFolderBtn = $("selectLocalFolderBtn");
+const reconnectLocalFolderBtn = $("reconnectLocalFolderBtn");
+const saveLocalNowBtn = $("saveLocalNowBtn");
+const rescanLocalMarkdownBtn = $("rescanLocalMarkdownBtn");
+const restoreFromLocalBtn = $("restoreFromLocalBtn");
+const disconnectLocalFolderBtn = $("disconnectLocalFolderBtn");
+const localFolderDetails = $("localFolderDetails");
+const localFolderStatus = $("localFolderStatus");
+const localScanResults = $("localScanResults");
 const webClipperSettingsDetails = $("webClipperSettingsDetails");
 const globalTitleFontSelect = $("globalTitleFontSelect");
 const globalTitleFontSizeSelect = $("globalTitleFontSizeSelect");
@@ -527,6 +559,7 @@ const popoutUnavailable = $("popoutUnavailable");
 const popoutUnavailableBackBtn = $("popoutUnavailableBackBtn");
 const memoSyncNotice = $("memoSyncNotice");
 const loadMemoSyncBtn = $("loadMemoSyncBtn");
+const noteMeta = $("noteMeta");
 const textStatsBtn = $("textStatsBtn");
 const textStatsPopover = $("textStatsPopover");
 const textStatsBody = $("textStatsBody");
@@ -693,6 +726,15 @@ let saveStatusState = "saved";
 let saveStatusTime = null;
 let saveStatusNotice = "";
 let activeSaveStatusPopoverButton = null;
+let localDirectoryHandle = null;
+let localSaveSettings = { enabled: false };
+let localSaveState = createLocalSaveState();
+let localSyncState = normalizeSyncState();
+let localScanCandidates = [];
+let suppressLocalSaveQueue = false;
+const forcedLocalSaveNoteIds = new Set();
+let lastAutomaticLocalScanAt = 0;
+const localSaveQueue = createLocalSaveQueue((reason) => performLocalWorkspaceSave(reason), 420);
 let noteFlagAnimationToken = 0;
 let mermaidConfiguredTheme = null;
 let mermaidRenderGeneration = 0;
@@ -839,6 +881,7 @@ async function init() {
     notes = await getAllNotes();
   }
   await ensureStartupNotes();
+  await initializeLocalFolderSaving();
   validatePendingFontSelectionMemo();
   renderAll();
   const returnedNote = pendingFontSelection?.memoId && notes.find((note) => note.id === pendingFontSelection.memoId);
@@ -1431,6 +1474,9 @@ function openDb() {
         attachmentStore.createIndex("memoId", "memoId");
         attachmentStore.createIndex("createdAt", "createdAt");
       }
+      if (!database.objectStoreNames.contains(LOCAL_CONFIG_STORE_NAME)) {
+        database.createObjectStore(LOCAL_CONFIG_STORE_NAME, { keyPath: "key" });
+      }
     };
 
     request.onsuccess = () => resolve(request.result);
@@ -1459,6 +1505,7 @@ function putNote(note) {
     const request = transaction.objectStore(STORE_NAME).put(note);
     transaction.oncomplete = () => {
       notifyMemoChanged(note);
+      queueLocalWorkspaceSave("note");
       resolve(note);
     };
     transaction.onerror = () => reject(transaction.error || request.error);
@@ -1483,7 +1530,10 @@ function putAttachments(items) {
     const transaction = db.transaction(ATTACHMENT_STORE_NAME, "readwrite");
     const store = transaction.objectStore(ATTACHMENT_STORE_NAME);
     items.forEach((item) => store.put(item));
-    transaction.oncomplete = () => resolve(items);
+    transaction.oncomplete = () => {
+      queueLocalWorkspaceSave("attachments");
+      resolve(items);
+    };
     transaction.onerror = () => reject(transaction.error);
     transaction.onabort = () => reject(transaction.error);
   });
@@ -1493,7 +1543,10 @@ function deleteAttachmentRecord(id) {
   return new Promise((resolve, reject) => {
     const transaction = db.transaction(ATTACHMENT_STORE_NAME, "readwrite");
     const request = transaction.objectStore(ATTACHMENT_STORE_NAME).delete(id);
-    transaction.oncomplete = resolve;
+    transaction.oncomplete = () => {
+      queueLocalWorkspaceSave("attachments");
+      resolve();
+    };
     transaction.onerror = () => reject(transaction.error || request.error);
     transaction.onabort = () => reject(transaction.error || request.error);
   });
@@ -1506,7 +1559,10 @@ function deleteAttachmentRecords(ids) {
     const transaction = db.transaction(ATTACHMENT_STORE_NAME, "readwrite");
     const store = transaction.objectStore(ATTACHMENT_STORE_NAME);
     targets.forEach((id) => store.delete(id));
-    transaction.oncomplete = resolve;
+    transaction.oncomplete = () => {
+      queueLocalWorkspaceSave("attachments");
+      resolve();
+    };
     transaction.onerror = () => reject(transaction.error);
     transaction.onabort = () => reject(transaction.error);
   });
@@ -1528,7 +1584,10 @@ function putCollection(collection) {
   return new Promise((resolve, reject) => {
     const transaction = db.transaction(COLLECTION_STORE_NAME, "readwrite");
     const request = transaction.objectStore(COLLECTION_STORE_NAME).put(collection);
-    transaction.oncomplete = () => resolve(collection);
+    transaction.oncomplete = () => {
+      queueLocalWorkspaceSave("collections");
+      resolve(collection);
+    };
     transaction.onerror = () => reject(transaction.error || request.error);
     transaction.onabort = () => reject(transaction.error || request.error);
   });
@@ -1538,10 +1597,454 @@ function deleteCollectionRecord(id) {
   return new Promise((resolve, reject) => {
     const transaction = db.transaction(COLLECTION_STORE_NAME, "readwrite");
     const request = transaction.objectStore(COLLECTION_STORE_NAME).delete(id);
-    transaction.oncomplete = resolve;
+    transaction.oncomplete = () => {
+      queueLocalWorkspaceSave("collections");
+      resolve();
+    };
     transaction.onerror = () => reject(transaction.error || request.error);
     transaction.onabort = () => reject(transaction.error || request.error);
   });
+}
+
+function setLocalSaveState(status, patch = {}) {
+  localSaveState = transitionLocalSaveState(localSaveState, status, patch);
+  if (db) void localFs.putConfig(db, LOCAL_CONFIG_STORE_NAME, "state", localSaveState).catch((error) => console.warn("Local save state persistence failed", error));
+  renderSaveStatus();
+  renderLocalFolderSettings();
+  renderLocalSaveWarning();
+}
+
+function localSupport() {
+  return localFs.supportStatus(window);
+}
+
+async function persistLocalSaveSettings() {
+  await localFs.putConfig(db, LOCAL_CONFIG_STORE_NAME, "settings", localSaveSettings);
+}
+
+async function initializeLocalFolderSaving({ scan = true } = {}) {
+  const support = localSupport();
+  localSaveSettings = { enabled: Boolean((await localFs.getConfig(db, LOCAL_CONFIG_STORE_NAME, "settings"))?.enabled) };
+  localDirectoryHandle = await localFs.getConfig(db, LOCAL_CONFIG_STORE_NAME, "directoryHandle");
+  const storedState = await localFs.getConfig(db, LOCAL_CONFIG_STORE_NAME, "state");
+  localSaveState = createLocalSaveState({ ...storedState, directoryName: localDirectoryHandle?.name || storedState?.directoryName || "" });
+  if (!support.supported) {
+    setLocalSaveState("unsupported", { errorCode: "unsupported", errorMessage: support.reason, requiresUserAction: false });
+    return;
+  }
+  if (!localDirectoryHandle || !localSaveSettings.enabled) {
+    setLocalSaveState("unconfigured", { directoryName: localDirectoryHandle?.name || "", pendingChanges: false, requiresUserAction: false });
+    return;
+  }
+  const permission = await localFs.queryPermission(localDirectoryHandle, "readwrite");
+  if (permission !== "granted") {
+    setLocalSaveState("permission-required", { directoryName: localDirectoryHandle.name, errorCode: "permission", errorMessage: "保存先への読み書き権限を再接続してください。" });
+    return;
+  }
+  localSaveState = createLocalSaveState({ ...localSaveState, status: localSaveState.lastSuccessAt ? "saved" : "pending", directoryName: localDirectoryHandle.name, requiresUserAction: false });
+  renderSaveStatus();
+  renderLocalFolderSettings();
+  if (scan) await scanExternalLocalMarkdown({ automatic: true });
+  queueLocalWorkspaceSave("startup");
+}
+
+function queueLocalWorkspaceSave(reason = "change") {
+  if (suppressLocalSaveQueue || !localSaveSettings.enabled || !localDirectoryHandle) return Promise.resolve(false);
+  const support = localSupport();
+  if (!support.supported) {
+    setLocalSaveState("unsupported", { errorCode: "unsupported", errorMessage: support.reason, requiresUserAction: false });
+    return Promise.resolve(false);
+  }
+  const unresolved = localScanCandidates.some((candidate) => ["restore", "conflict"].includes(candidate.classification.type));
+  if (unresolved) {
+    setLocalSaveState("conflict", { directoryName: localDirectoryHandle.name, errorCode: "scan-pending", errorMessage: "ローカルに復元または競合の確認が必要なMarkdownがあります。", requiresUserAction: true });
+    return Promise.resolve(false);
+  }
+  setLocalSaveState("pending", { directoryName: localDirectoryHandle.name, errorCode: "", errorMessage: "", requiresUserAction: false });
+  const queued = localSaveQueue.enqueue(reason);
+  queued.catch((error) => console.warn("Local workspace save failed", error));
+  return queued;
+}
+
+async function optionalLocalText(root, path) {
+  try { return await localFs.readText(root, path); }
+  catch (error) {
+    if (error?.name === "NotFoundError") return null;
+    throw error;
+  }
+}
+
+async function performLocalWorkspaceSave(reason = "change") {
+  if (!localSaveSettings.enabled || !localDirectoryHandle) return false;
+  const permission = await localFs.queryPermission(localDirectoryHandle, "readwrite");
+  if (permission !== "granted") {
+    setLocalSaveState("permission-required", { directoryName: localDirectoryHandle.name, errorCode: "permission", errorMessage: "保存先への読み書き権限を再接続してください。" });
+    throw new Error("ローカル保存には再接続が必要です");
+  }
+
+  setLocalSaveState("saving", { directoryName: localDirectoryHandle.name, errorCode: "", errorMessage: "", requiresUserAction: false });
+  const savedAt = new Date().toISOString();
+  const forcedNoteIds = new Set(forcedLocalSaveNoteIds);
+  try {
+    const layout = await localFs.ensureWorkspaceLayout(localDirectoryHandle);
+    const storedSync = await localFs.readJson(layout.root, "sync-state.json", localSyncState);
+    const nextSync = normalizeSyncState(storedSync);
+    const storedNotes = await getAllNotes();
+    const storedCollections = await getAllCollections();
+    const plans = [];
+    const assetPlans = new Map();
+
+    for (const note of storedNotes) {
+      const savedNote = applyLocalSaveSuccess(note, savedAt);
+      const previous = nextSync.notes[note.id] || {};
+      const fileName = previous.fileName || safeStableNoteFileName(note, sanitizeWindowsName);
+      const noteAttachments = await getAttachmentsForMemo(note.id);
+      const attachmentFiles = noteAttachments.map((attachment) => {
+        const assetFileName = nextSync.assets[attachment.id]?.fileName || `${attachment.id}.${attachmentExtension(attachment)}`;
+        assetPlans.set(attachment.id, { ...attachment, fileName: assetFileName });
+        nextSync.assets[attachment.id] = { fileName: assetFileName, memoId: note.id, mimeType: attachment.mimeType || attachment.blob?.type || "" };
+        return { id: attachment.id, fileName: assetFileName };
+      });
+      const markdown = serializeLocalNote(savedNote, savedNote.body, attachmentFiles);
+      const hash = contentHash(markdown);
+      if (!forcedNoteIds.has(note.id) && previous.hash) {
+        const currentText = await optionalLocalText(layout.root, `notes/${fileName}`);
+        const currentHash = currentText == null ? null : contentHash(currentText);
+        if (hasExternalModification(previous.hash, currentHash, hash)) {
+          const conflict = new Error(`「${note.title}」はローカルで変更されています。確認してから保存してください。`);
+          conflict.code = "conflict";
+          throw conflict;
+        }
+      }
+      plans.push({ note: savedNote, fileName, markdown, hash, attachmentIds: attachmentFiles.map((item) => item.id) });
+    }
+
+    for (const plan of plans) await localFs.writeFile(layout.root, `notes/${plan.fileName}`, plan.markdown);
+    await localFs.writeFile(layout.root, "collections.json", `${serializeCollections(storedCollections)}\n`);
+    for (const asset of assetPlans.values()) await localFs.writeFile(layout.root, `assets/${asset.fileName}`, asset.blob || asset.data);
+
+    plans.forEach((plan) => {
+      nextSync.notes[plan.note.id] = { fileName: plan.fileName, hash: plan.hash, attachmentIds: plan.attachmentIds };
+    });
+    nextSync.savedAt = savedAt;
+    const manifest = buildManifest({ appVersion: APP_VERSION, savedAt, notes: storedNotes, collections: storedCollections, assetsCount: assetPlans.size });
+    await localFs.writeJson(layout.root, "manifest.json", manifest);
+    await localFs.writeJson(layout.root, "sync-state.json", nextSync);
+
+    suppressLocalSaveQueue = true;
+    try {
+      await updateNotesTransaction(plans.map((plan) => plan.note));
+    } finally {
+      suppressLocalSaveQueue = false;
+    }
+    localSyncState = nextSync;
+    forcedNoteIds.forEach((noteId) => forcedLocalSaveNoteIds.delete(noteId));
+    notes = await getAllNotes();
+    setLocalSaveState("saved", { directoryName: localDirectoryHandle.name, lastSuccessAt: savedAt, pendingChanges: false });
+    renderNoteMeta();
+    console.log("Local workspace saved", { reason, notes: plans.length, assets: assetPlans.size });
+    return true;
+  } catch (error) {
+    if (error?.code === "conflict") {
+      setLocalSaveState("conflict", { directoryName: localDirectoryHandle.name, errorCode: "conflict", errorMessage: error.message });
+    } else if (["NotAllowedError", "SecurityError"].includes(error?.name)) {
+      setLocalSaveState("permission-required", { directoryName: localDirectoryHandle.name, errorCode: "permission", errorMessage: "保存先への権限が失われました。再接続してください。" });
+    } else {
+      setLocalSaveState("error", { directoryName: localDirectoryHandle.name, errorCode: error?.name || "write", errorMessage: error?.message || String(error) });
+    }
+    throw error;
+  }
+}
+
+async function selectLocalSaveFolder() {
+  const support = localSupport();
+  if (!support.supported) {
+    setLocalSaveState("unsupported", { errorCode: "unsupported", errorMessage: support.reason, requiresUserAction: false });
+    return;
+  }
+  try {
+    const handle = await localFs.selectDirectory(window);
+    const permission = await localFs.queryPermission(handle, "readwrite");
+    if (permission !== "granted" && await localFs.requestPermission(handle, "readwrite") !== "granted") throw new Error("保存先への読み書き権限が許可されませんでした");
+    localDirectoryHandle = handle;
+    localSaveSettings = { enabled: true };
+    await localFs.putConfig(db, LOCAL_CONFIG_STORE_NAME, "directoryHandle", handle);
+    await persistLocalSaveSettings();
+    setLocalSaveState("pending", { directoryName: handle.name, pendingChanges: true, requiresUserAction: false });
+    await scanExternalLocalMarkdown({ automatic: true });
+    await queueLocalWorkspaceSave("folder-selected");
+    await localSaveQueue.flush("folder-selected");
+  } catch (error) {
+    if (error?.name === "AbortError") return;
+    setLocalSaveState("error", { errorCode: error?.name || "select", errorMessage: error?.message || String(error) });
+  }
+}
+
+async function reconnectLocalSaveFolder() {
+  if (!localDirectoryHandle) return selectLocalSaveFolder();
+  try {
+    const permission = await localFs.requestPermission(localDirectoryHandle, "readwrite");
+    if (permission !== "granted") throw new Error("保存先への読み書き権限が許可されませんでした");
+    setLocalSaveState("pending", { directoryName: localDirectoryHandle.name, errorCode: "", errorMessage: "", requiresUserAction: false });
+    await queueLocalWorkspaceSave("reconnect");
+    await localSaveQueue.flush("reconnect");
+  } catch (error) {
+    setLocalSaveState("permission-required", { errorCode: "permission", errorMessage: error?.message || String(error) });
+  }
+}
+
+async function disconnectLocalSaveFolder() {
+  localSaveSettings = { enabled: false };
+  localDirectoryHandle = null;
+  localSyncState = normalizeSyncState();
+  localScanCandidates = [];
+  forcedLocalSaveNoteIds.clear();
+  await persistLocalSaveSettings();
+  await localFs.deleteConfig(db, LOCAL_CONFIG_STORE_NAME, "directoryHandle");
+  setLocalSaveState("unconfigured", { directoryName: "", pendingChanges: false, errorCode: "", errorMessage: "", requiresUserAction: false });
+  renderLocalScanResults();
+}
+
+async function setLocalSaveEnabled(enabled) {
+  localSaveSettings = { enabled: Boolean(enabled) };
+  await persistLocalSaveSettings();
+  if (!enabled) {
+    setLocalSaveState("unconfigured", { directoryName: localDirectoryHandle?.name || "", pendingChanges: false, requiresUserAction: false });
+    return;
+  }
+  if (!localDirectoryHandle) {
+    setLocalSaveState("unconfigured", { errorMessage: "フォルダを選択してください。", directoryName: "" });
+    return;
+  }
+  const permission = await localFs.queryPermission(localDirectoryHandle, "readwrite");
+  if (permission !== "granted") {
+    setLocalSaveState("permission-required", { directoryName: localDirectoryHandle.name, errorCode: "permission", errorMessage: "再接続を押して権限を許可してください。" });
+    return;
+  }
+  await queueLocalWorkspaceSave("enabled");
+  await localSaveQueue.flush("enabled");
+}
+
+function localMimeType(fileName, fallback = "") {
+  const extension = String(fileName || "").toLowerCase().match(/\.([^.]+)$/)?.[1] || "";
+  return fallback || ({ jpg: "image/jpeg", jpeg: "image/jpeg", png: "image/png", webp: "image/webp", gif: "image/gif", pdf: "application/pdf" })[extension] || "application/octet-stream";
+}
+
+async function scanExternalLocalMarkdown({ automatic = false } = {}) {
+  if (!localDirectoryHandle) return [];
+  const permission = await localFs.queryPermission(localDirectoryHandle, "read");
+  if (permission !== "granted") {
+    if (!automatic) setLocalSaveState("permission-required", { errorCode: "permission", errorMessage: "再接続して読み取り権限を許可してください。" });
+    return [];
+  }
+  try {
+    const layout = await localFs.ensureWorkspaceLayout(localDirectoryHandle);
+    localSyncState = normalizeSyncState(await localFs.readJson(layout.root, "sync-state.json", localSyncState));
+    const files = await localFs.scanMarkdownFiles(localDirectoryHandle);
+    const excluded = new Set(localSyncState.excluded);
+    localScanCandidates = [];
+    for (const entry of files) {
+      if (excluded.has(entry.path)) continue;
+      const source = await entry.file.text();
+      const firstPass = parseLocalNote(source, { fileLastModified: entry.file.lastModified });
+      const assetMappings = firstPass.assetPaths.map((path) => {
+        const fileName = path.split("/").pop();
+        const known = Object.entries(localSyncState.assets).find(([, value]) => value.fileName === fileName);
+        return known ? { path, id: known[0] } : null;
+      }).filter(Boolean);
+      const parsed = parseLocalNote(source, { fileLastModified: entry.file.lastModified, assets: assetMappings });
+      const classification = classifyMarkdownCandidate(parsed, notes);
+      if (classification.type === "unchanged") continue;
+      localScanCandidates.push({ ...entry, parsed, classification });
+    }
+    renderLocalScanResults();
+    if (!automatic) localFolderStatus.textContent = localScanCandidates.length ? `${localScanCandidates.length}件を確認してください。自動上書きはしません。` : "新しい外部Markdownはありません。";
+    return localScanCandidates;
+  } catch (error) {
+    if (!automatic) localFolderStatus.textContent = `再スキャンに失敗しました: ${error.message || error}`;
+    return [];
+  }
+}
+
+async function candidateAttachments(candidate, memoId) {
+  const root = await localFs.resolveWorkspaceRoot(localDirectoryHandle, false);
+  const assets = [];
+  const records = [];
+  for (const relativePath of candidate.parsed.assetPaths) {
+    const fileName = relativePath.split("/").pop();
+    const known = Object.entries(localSyncState.assets).find(([, value]) => value.fileName === fileName);
+    const id = known?.[0] || crypto.randomUUID();
+    try {
+      const file = await localFs.readFile(root, relativePath.replace(/^\.\.\//, ""));
+      const mimeType = localMimeType(fileName, file.type);
+      assets.push({ path: relativePath, id });
+      records.push({ id, memoId, fileName, mimeType, kind: mimeType.startsWith("image/") ? "image" : "pdf", size: file.size, blob: file, createdAt: new Date().toISOString() });
+    } catch (error) {
+      console.warn("Local attachment restore skipped", { relativePath, error });
+    }
+  }
+  return { assets, records };
+}
+
+function noteFromLocalCandidate(candidate, { preserveId = false, overwrite = null } = {}) {
+  const metadata = candidate.parsed.metadata;
+  const fallbackCreatedAt = candidate.parsed.displayedCreatedAt;
+  return {
+    ...(overwrite || {}),
+    id: preserveId && metadata.memoNexusId ? String(metadata.memoNexusId) : overwrite?.id || crypto.randomUUID(),
+    title: String(metadata.title || candidate.name.replace(/\.md$/i, "") || "外部Markdown"),
+    body: candidate.parsed.body,
+    collectionId: collectionExists(metadata.collectionId) ? metadata.collectionId : UNCLASSIFIED_COLLECTION_ID,
+    createdAt: metadata.createdAt || metadata.localCreatedAt || fallbackCreatedAt,
+    localCreatedAt: metadata.localCreatedAt || metadata.createdAt || fallbackCreatedAt,
+    updatedAt: metadata.updatedAt || candidate.file.lastModified || Date.now(),
+    bodyUpdatedAt: metadata.bodyUpdatedAt || metadata.updatedAt || candidate.file.lastModified || Date.now(),
+    localSavedAt: metadata.localSavedAt || null,
+    isFlagged: Boolean(metadata.flagged),
+    deletedAt: metadata.deletedAt || null,
+    sortOrder: Number(metadata.sortOrder || 0)
+  };
+}
+
+async function applyLocalCandidate(index, action) {
+  const candidate = localScanCandidates[index];
+  if (!candidate) return;
+  if (action === "hold") {
+    setLocalSaveState("conflict", { directoryName: localDirectoryHandle?.name || "", errorCode: "conflict-held", errorMessage: "競合を保留しています。どちらを残すか選ぶまで自動上書きしません。", requiresUserAction: true });
+    return;
+  }
+  if (action === "exclude") {
+    localSyncState.excluded = [...new Set([...localSyncState.excluded, candidate.path])];
+    const root = await localFs.resolveWorkspaceRoot(localDirectoryHandle, true);
+    await localFs.writeJson(root, "sync-state.json", localSyncState);
+    localScanCandidates.splice(index, 1);
+    renderLocalScanResults();
+    return;
+  }
+  if (action === "app") {
+    const targetId = candidate.classification.existing?.id;
+    if (targetId) forcedLocalSaveNoteIds.add(targetId);
+    localScanCandidates.splice(index, 1);
+    renderLocalScanResults();
+    const saved = await queueLocalWorkspaceSave("conflict-overwrite");
+    await localSaveQueue.flush("conflict-overwrite");
+    if (saved !== false) await scanExternalLocalMarkdown({ automatic: true });
+    return;
+  }
+
+  const overwrite = action === "local" ? candidate.classification.existing : null;
+  const preserveId = action === "restore" || Boolean(overwrite);
+  const draft = noteFromLocalCandidate(candidate, { preserveId, overwrite });
+  if (overwrite?.id) forcedLocalSaveNoteIds.add(overwrite.id);
+  if (action === "separate" && candidate.classification.type === "conflict" && candidate.classification.existing?.id) {
+    forcedLocalSaveNoteIds.add(candidate.classification.existing.id);
+  }
+  const attachmentResult = await candidateAttachments(candidate, draft.id);
+  draft.body = restoreAttachmentReferences(candidate.parsed.body, attachmentResult.assets);
+  suppressLocalSaveQueue = true;
+  try {
+    if (attachmentResult.records.length) await putAttachments(attachmentResult.records);
+    await putNote(draft);
+  } finally {
+    suppressLocalSaveQueue = false;
+  }
+  notes = await getAllNotes();
+  renderAll();
+  openNote(draft.id);
+  localScanCandidates.splice(index, 1);
+  renderLocalScanResults();
+  queueLocalWorkspaceSave("local-import");
+}
+
+async function restoreCollectionsFromLocal() {
+  const root = await localFs.resolveWorkspaceRoot(localDirectoryHandle, false);
+  const text = await optionalLocalText(root, "collections.json");
+  if (!text) return 0;
+  const imported = parseCollections(text);
+  const existingIds = new Set(collections.map((item) => item.id));
+  const additions = imported.filter((item) => !existingIds.has(item.id));
+  if (!additions.length) return 0;
+  suppressLocalSaveQueue = true;
+  try {
+    for (const collection of additions) await putCollection(collection);
+  } finally {
+    suppressLocalSaveQueue = false;
+  }
+  collections = await getAllCollections();
+  return additions.length;
+}
+
+async function restoreFromLocalFolder() {
+  if (!localDirectoryHandle) return;
+  const permission = await localFs.queryPermission(localDirectoryHandle, "read");
+  if (permission !== "granted") {
+    setLocalSaveState("permission-required", { errorCode: "permission", errorMessage: "再接続して読み取り権限を許可してください。" });
+    return;
+  }
+  const restoredCollections = await restoreCollectionsFromLocal();
+  await scanExternalLocalMarkdown({ automatic: true });
+  const candidates = [...localScanCandidates];
+  let restoredNotes = 0;
+  for (const candidate of candidates) {
+    if (!["restore", "new"].includes(candidate.classification.type)) continue;
+    const index = localScanCandidates.indexOf(candidate);
+    await applyLocalCandidate(index, candidate.classification.type === "restore" ? "restore" : "new");
+    restoredNotes += 1;
+  }
+  localFolderStatus.textContent = `${restoredCollections}件のコレクションと${restoredNotes}件のメモを追加・統合しました。競合は変更していません。`;
+}
+
+function renderLocalScanResults() {
+  if (!localScanResults) return;
+  localScanResults.innerHTML = "";
+  localScanCandidates.forEach((candidate, index) => {
+    const item = document.createElement("article");
+    item.className = "local-scan-item";
+    const typeLabels = { new: "新規候補", restore: "復元候補", conflict: "競合", duplicate: "重複候補" };
+    const title = escapeHtml(candidate.parsed.metadata.title || candidate.name);
+    const preview = escapeHtml(String(candidate.parsed.body || "").slice(0, 180));
+    const type = candidate.classification.type;
+    const actions = type === "conflict"
+      ? [["local", "ローカル版を読み込む"], ["app", "Memo-Nexus版で上書き"], ["separate", "両方を残す"], ["hold", "保留する"]]
+      : [[type === "restore" ? "restore" : "new", type === "restore" ? "復元" : "新規取込"], ["separate", "別メモとして取込"], ["exclude", "除外"]];
+    item.innerHTML = `<strong>${title}</strong><span>${typeLabels[type] || type}</span><p>${preview}</p><div class="settings-actions">${actions.map(([value, label]) => `<button type="button" data-local-candidate="${index}" data-local-action="${value}">${label}</button>`).join("")}</div>`;
+    localScanResults.appendChild(item);
+  });
+}
+
+function renderLocalFolderSettings() {
+  if (!localFolderDetails) return;
+  const support = localSupport();
+  const permissionLabel = localSaveState.status === "permission-required" ? "再接続が必要" : localDirectoryHandle ? (localSaveState.status === "unsupported" ? "非対応" : "接続済み") : "未接続";
+  localSaveEnabled.checked = Boolean(localSaveSettings.enabled);
+  localSaveEnabled.disabled = !support.supported;
+  selectLocalFolderBtn.disabled = !support.supported;
+  reconnectLocalFolderBtn.disabled = !support.supported || !localDirectoryHandle;
+  saveLocalNowBtn.disabled = !support.supported || !localSaveSettings.enabled || !localDirectoryHandle;
+  rescanLocalMarkdownBtn.disabled = !support.supported || !localDirectoryHandle;
+  restoreFromLocalBtn.disabled = !support.supported || !localDirectoryHandle;
+  disconnectLocalFolderBtn.disabled = !localDirectoryHandle;
+  localFolderDetails.innerHTML = [
+    ["選択中のフォルダ", localDirectoryHandle?.name || "未選択"],
+    ["権限状態", permissionLabel],
+    ["現在の状態", localSaveLabel(localSaveState.status)],
+    ["最終保存成功日時", localSaveState.lastSuccessAt ? formatDateTimeWithSeconds(localSaveState.lastSuccessAt) : "—"]
+  ].map(([label, value]) => `<dt>${label}</dt><dd>${escapeHtml(value)}</dd>`).join("");
+  localFolderStatus.textContent = localSaveState.errorMessage || support.reason || (localSaveSettings.enabled ? "ブラウザ保存成功後に同じ内容をローカルへ保存します。" : "ローカル保存は無効です。");
+}
+
+function renderLocalSaveWarning() {
+  if (!storageWarning) return;
+  const warning = localSaveSettings.enabled && ["permission-required", "conflict", "error"].includes(localSaveState.status);
+  if (warning) {
+    storageWarning.dataset.localSaveWarning = "true";
+    storageWarning.textContent = `ローカル保存: ${localSaveLabel(localSaveState.status)}。${localSaveState.errorMessage || "設定を確認してください。"}`;
+    storageWarning.hidden = false;
+    storageWarning.classList.toggle("storage-warning-strong", localSaveState.status === "error");
+  } else if (storageWarning.dataset.localSaveWarning) {
+    delete storageWarning.dataset.localSaveWarning;
+    warnIfStorageRisky(checkLocalStorageAvailable(), notes.length);
+  }
 }
 
 function activeNotes() {
@@ -1595,6 +2098,7 @@ function updateNotesTransaction(items) {
     items.forEach((note) => store.put(note));
     transaction.oncomplete = () => {
       items.forEach((note) => notifyMemoChanged(note));
+      queueLocalWorkspaceSave("notes");
       resolve();
     };
     transaction.onerror = () => reject(transaction.error);
@@ -3072,6 +3576,9 @@ function snippet(body) {
 function openNote(id) {
   const note = notes.find((item) => item.id === id);
   if (!note) return;
+  if (currentId && currentId !== id && localSaveQueue.hasPending()) {
+    void localSaveQueue.flush("note-switch").catch((error) => console.warn("Local save before note switch failed", error));
+  }
 
   // 関連ドロワーは広い画面では本文と並べて使えるため維持します。
   // 狭幅では本文を見やすくするため、メモ選択後だけ一時的に閉じます。
@@ -3109,7 +3616,9 @@ function openNote(id) {
 async function initPopout() {
   restoreGlobalFontSettings();
   db = await openDb();
+  collections = await getAllCollections();
   notes = await getAllNotes();
+  await initializeLocalFolderSaving({ scan: false });
   const note = notes.find((item) => item.id === popoutMemoId && !item.deletedAt);
   if (!note) {
     showPopoutUnavailable();
@@ -7015,7 +7524,13 @@ function zipDosDateTime(value) {
 // エディタ末尾に、作成日と本文の最終変更日時を表示します。
 function renderNoteMeta() {
   const note = currentNote();
-  if (!note) return;
+  if (!note) {
+    if (noteMeta) noteMeta.textContent = "";
+    return;
+  }
+  const createdAt = resolveDisplayedCreatedAt(note);
+  const updatedAt = note.bodyUpdatedAt || note.updatedAt;
+  if (noteMeta) noteMeta.textContent = `作成: ${formatDateTime(createdAt)}　更新: ${formatDateTime(updatedAt)}`;
   renderSaveStatus();
 }
 
@@ -7082,8 +7597,14 @@ function browserSaveStatusModel() {
 }
 
 function localSaveStatusModel() {
-  // ローカルフォルダへの継続保存は未実装。将来ここを実設定の状態へ接続する。
-  return { state: "unconfigured", label: "未設定", savedAt: null };
+  return {
+    state: localSaveState.status,
+    label: localSaveLabel(localSaveState.status),
+    savedAt: localSaveState.lastSuccessAt,
+    notice: localSaveState.errorMessage,
+    directoryName: localSaveState.directoryName,
+    requiresUserAction: localSaveState.requiresUserAction
+  };
 }
 
 function statusPopoverMarkup(title, model, description, action = "") {
@@ -7098,8 +7619,14 @@ function renderSaveStatusPopovers(browser, local) {
         : browser.state === "editing" ? "変更があります。まもなくブラウザ内へ保存します。" : "このブラウザのIndexedDBへ保存済みです。";
     browserSavePopoverBody.innerHTML = statusPopoverMarkup("ブラウザ保存", browser, description);
   }
-  if (localSavePopoverBody) localSavePopoverBody.innerHTML = statusPopoverMarkup("ローカル保存", local, "ローカルフォルダへの継続保存はまだ設定されていません。現在のメモはブラウザ内にのみ保存されます。", '<button type="button" disabled>ローカル保存の設定は準備中</button>');
-  if (combinedSavePopoverBody) combinedSavePopoverBody.innerHTML = `${statusPopoverMarkup("ブラウザ保存", browser, `ブラウザ: ${browser.label}`)}<hr>${statusPopoverMarkup("ローカル保存", local, "ローカル: 未設定")}`;
+  if (localSavePopoverBody) {
+    const description = local.state === "unconfigured" ? "ローカルフォルダ保存はまだ設定されていません。"
+      : local.state === "unsupported" ? local.notice
+        : local.state === "saved" ? `「${local.directoryName}」へ保存済みです。`
+          : local.notice || `「${local.directoryName || "選択フォルダ"}」への保存状態を確認してください。`;
+    localSavePopoverBody.innerHTML = statusPopoverMarkup("ローカル保存", local, description, '<button type="button" data-open-local-settings>ローカル保存設定を開く</button>');
+  }
+  if (combinedSavePopoverBody) combinedSavePopoverBody.innerHTML = `${statusPopoverMarkup("ローカル保存", local, `ローカル: ${local.label}`)}<hr>${statusPopoverMarkup("ブラウザ保存", browser, `ブラウザ: ${browser.label}`)}`;
 }
 
 function setSaveStatusPopoverOpen(target, open) {
@@ -7125,7 +7652,7 @@ function setSaveStatusPopoverOpen(target, open) {
 function renderSaveStatus() {
   const browser = browserSaveStatusModel();
   const local = localSaveStatusModel();
-  if (saveStatus) saveStatus.textContent = `ブラウザ ${browser.label}${browser.notice ? `。${browser.notice}` : ""}`;
+  if (saveStatus) saveStatus.textContent = `ローカル ${local.label}。ブラウザ ${browser.label}${browser.notice ? `。${browser.notice}` : ""}${local.notice ? `。${local.notice}` : ""}`;
   if (browserSaveStatusBtn) {
     browserSaveStatusBtn.dataset.state = browser.state;
     browserSaveStatusBtn.textContent = `◉ ブラウザ ${browser.label}`;
@@ -7133,6 +7660,13 @@ function renderSaveStatus() {
   if (localSaveStatusBtn) {
     localSaveStatusBtn.dataset.state = local.state;
     localSaveStatusBtn.textContent = `▣ ローカル ${local.label}`;
+  }
+  if (combinedSaveStatusBtn) {
+    const localNeedsAttention = ["error", "conflict", "permission-required", "pending", "saving"].includes(local.state);
+    const combinedState = localNeedsAttention ? local.state : browser.state;
+    const combinedLabel = localNeedsAttention ? local.label : browser.label;
+    combinedSaveStatusBtn.dataset.state = combinedState;
+    combinedSaveStatusBtn.textContent = ["saved", "unconfigured"].includes(combinedState) ? "保存状態" : `保存状態 ${combinedLabel}`;
   }
   renderSaveStatusPopovers(browser, local);
 }
@@ -7164,6 +7698,8 @@ async function openSettingsDialog() {
   renderAiSettings();
   renderAiUi();
   renderWebClipperSettings();
+  renderLocalFolderSettings();
+  renderLocalScanResults();
   await renderStorageStatus();
   settingsDialog.showModal();
 }
@@ -7977,7 +8513,10 @@ function updateCollectionsTransaction(items) {
     const transaction = db.transaction(COLLECTION_STORE_NAME, "readwrite");
     const store = transaction.objectStore(COLLECTION_STORE_NAME);
     items.forEach((item) => store.put(item));
-    transaction.oncomplete = resolve;
+    transaction.oncomplete = () => {
+      queueLocalWorkspaceSave("collections");
+      resolve();
+    };
     transaction.onerror = () => reject(transaction.error);
     transaction.onabort = () => reject(transaction.error);
   });
@@ -9268,12 +9807,42 @@ document.addEventListener("pointerdown", (event) => {
   if (!textStatsPopover?.hidden && !document.querySelector(".note-meta-actions")?.contains(event.target)) setTextStatsOpen(false);
   if (![browserSavePopover, localSavePopover, combinedSavePopover].every((popover) => popover?.hidden) && !document.querySelector(".save-status-actions")?.contains(event.target)) setSaveStatusPopoverOpen("", false);
 });
+localSavePopover?.addEventListener("click", (event) => {
+  if (!event.target.closest("[data-open-local-settings]")) return;
+  setSaveStatusPopoverOpen("", false);
+  openSettingsDialog().catch((error) => console.error("Local save settings failed", error));
+});
+if (localSaveEnabled) localSaveEnabled.addEventListener("change", () => setLocalSaveEnabled(localSaveEnabled.checked).catch((error) => setLocalSaveState("error", { errorMessage: error.message || String(error) })));
+if (selectLocalFolderBtn) selectLocalFolderBtn.addEventListener("click", () => selectLocalSaveFolder());
+if (reconnectLocalFolderBtn) reconnectLocalFolderBtn.addEventListener("click", () => reconnectLocalSaveFolder());
+if (saveLocalNowBtn) saveLocalNowBtn.addEventListener("click", async () => {
+  await flushSave();
+  queueLocalWorkspaceSave("manual");
+  await localSaveQueue.flush("manual");
+});
+if (rescanLocalMarkdownBtn) rescanLocalMarkdownBtn.addEventListener("click", () => scanExternalLocalMarkdown());
+if (restoreFromLocalBtn) restoreFromLocalBtn.addEventListener("click", () => restoreFromLocalFolder().catch((error) => {
+  localFolderStatus.textContent = `復元に失敗しました: ${error.message || error}`;
+}));
+if (disconnectLocalFolderBtn) disconnectLocalFolderBtn.addEventListener("click", () => disconnectLocalSaveFolder());
+localScanResults?.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-local-candidate][data-local-action]");
+  if (!button) return;
+  applyLocalCandidate(Number(button.dataset.localCandidate), button.dataset.localAction).catch((error) => {
+    localFolderStatus.textContent = `処理に失敗しました: ${error.message || error}`;
+  });
+});
 document.addEventListener("keydown", (event) => {
   if (event.key === "Escape" && (!textStatsPopover?.hidden || ![browserSavePopover, localSavePopover, combinedSavePopover].every((popover) => popover?.hidden))) {
     event.preventDefault();
     setTextStatsOpen(false);
     setSaveStatusPopoverOpen("", false);
   }
+});
+window.addEventListener("focus", () => {
+  if (!localSaveSettings.enabled || !localDirectoryHandle || Date.now() - lastAutomaticLocalScanAt < 60_000) return;
+  lastAutomaticLocalScanAt = Date.now();
+  void scanExternalLocalMarkdown({ automatic: true });
 });
 editorCaretAnimationEnabled?.addEventListener("change", saveEditorCaretAnimationSettings);
 editorCaretAnimationDelay?.addEventListener("change", saveEditorCaretAnimationSettings);
