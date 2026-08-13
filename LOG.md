@@ -1623,3 +1623,9 @@
 
 * Memo-Nexus Web Clipperの正しいEdge拡張ID`lecpajkpnjnagbeokicilagdonkcimbo`を許可originへ登録した。誤って登録されていた別拡張機能のIDは、許可設定、テストデータ、LOGの説明から除去し、既存の他の許可originは維持した。設定画面の許可ID一覧とIDコピー操作は既存のまま利用できる。
 * `node --check web-clipper-config.js`、`node --test web-clipper-config.test.js web-clip-receive.test.js`（12件成功）、`git diff --check`を実行した。実機Edgeでの確認画面表示・保存確認は、Windows操作が現在のブラウザURLを安全に判定できず停止したため未実施とする。
+
+## 2026-08-13 Web Clipper ポップアップ取得フロー修正
+
+* ポップアップの方式名を「クリップ方式」とし、選択なしでも暗黙にリンクのみに切り替えず、選択部分は送信不可としてページ上の選択を促すようにした。ページ全文では、確認画面を開く前に本文抽出、本文内画像のService Worker取得、取得件数の表示を完了し、本文・画像・URL・タイトル・取得日時を揃えてから転送する。リンクのみは本文と画像を渡さない。
+* 拡張から受信した確認画面ではクリップ方式を固定し、別方式の未取得本文・画像を捏造しない。再取得が必要な場合は拡張機能へ戻る案内を表示する。アプリ内で手動作成するWebクリップでは従来どおり方式を編集できる。
+* 拡張manifestを`0.3.3`へ更新し、拡張コード・HTML・CSS・manifest・設定を変更するPRでは同じPRでversionとREADMEの更新案内も上げる運用を記載した。`node --test`は417件成功、関連テストは13件成功、関連JavaScriptの`node --check`と`git diff --check`も成功した。実拡張E2EとWikipediaを使うEdge実機確認は、環境に`playwright`がなく起動できず、Windows操作もブラウザURLを安全に判定できないため未実施とする。
