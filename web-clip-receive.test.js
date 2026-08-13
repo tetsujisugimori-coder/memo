@@ -8,6 +8,7 @@ const popupHtml = fs.readFileSync("extensions/web-clipper/popup.html", "utf8");
 const clipPayload = fs.readFileSync("extensions/web-clipper/clip-payload.js", "utf8");
 const config = fs.readFileSync("extensions/web-clipper/config.js", "utf8");
 const manifest = fs.readFileSync("extensions/web-clipper/manifest.json", "utf8");
+const readme = fs.readFileSync("extensions/web-clipper/README.md", "utf8");
 const updateManager = fs.readFileSync("extensions/web-clipper/update-manager.js", "utf8");
 
 test("本体はフラグメントを消費して履歴からクリップpayloadを除去する", () => {
@@ -80,7 +81,10 @@ test("4方式はポップアップで取得してから確認画面へ渡す", (
 });
 
 test("拡張はmanifest由来の診断情報と保存済み接続先を全方式へ付与する", () => {
-  assert.match(manifest, /"version": "0\.3\.3"/);
+  assert.match(manifest, /"version": "0\.3\.4"/);
+  assert.match(popupHtml, /拡張機能バージョン:/);
+  assert.match(popup, /const currentExtensionManifest = chrome\.runtime\.getManifest\(\);/);
+  assert.match(popup, /extensionVersion\.textContent = currentExtensionManifest\.version/);
   assert.match(popup, /extensionVersion: manifest\.version/);
   assert.match(popup, /manifestVersion: manifest\.manifest_version/);
   assert.match(popup, /browserFamily: browserFamily\(\)/);
@@ -91,6 +95,21 @@ test("拡張はmanifest由来の診断情報と保存済み接続先を全方式
   assert.match(popup, /chrome\.storage\.local\.set\(\{ \[config\.storage\.targetKey\]: target\.value \}\)/);
   assert.match(app, /pendingWebClipDiagnostics = \{/);
   assert.match(app, /\.\.\.pendingWebClipDiagnostics/);
+});
+
+test("ポップアップの方式一覧とREADMEの展開読み込み更新手順は現在版と一致する", () => {
+  const manifestVersion = manifest.match(/"version": "([^"]+)"/)?.[1];
+  assert.ok(manifestVersion);
+  assert.match(popupHtml, /選択部分/);
+  assert.match(popupHtml, /ページ全文（本文・画像を取得してから確認画面を開く）/);
+  assert.match(popupHtml, /リンクのみ/);
+  assert.match(popupHtml, /メモ付き/);
+  assert.ok(readme.includes(`現在の展開読み込み版はローカル開発版\`${manifestVersion}\``));
+  assert.match(readme, /GitHubでPRをマージしても、PC内へ展開読み込みした拡張機能は自動では更新されません。/);
+  assert.match(readme, /edge:\/\/extensions/);
+  assert.ok(readme.includes(`\`${manifestVersion}\`より古ければ、そのカードの「再読み込み」を押します。`));
+  assert.match(readme, /現在のMemo-Nexusリポジトリの`extensions\/web-clipper`フォルダを「展開して読み込み」で登録し直します。/);
+  assert.match(readme, /設定 → データ管理 → Web Clipper/);
 });
 
 test("拡張から受信したクリップ方式は確認画面で変更せず、再取得は拡張へ戻るよう案内する", () => {

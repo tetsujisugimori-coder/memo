@@ -17,7 +17,8 @@ const transferLifecycle = globalThis.MemoNexusClipperTransferLifecycle;
 let clip = null;
 let clipOperationActive = false;
 
-extensionVersion.textContent = chrome.runtime.getManifest().version;
+const currentExtensionManifest = chrome.runtime.getManifest();
+extensionVersion.textContent = currentExtensionManifest.version;
 
 Object.entries(config.targets).forEach(([key, value]) => {
   const option = document.createElement("option");
