@@ -34,6 +34,10 @@
     }, 0);
   }
 
+  function calculateEmptyLineCount(value) {
+    return String(value ?? "").split(/\r\n?|\n/).filter((line) => !line.trim()).length;
+  }
+
   function estimateReadingTime(charactersWithoutWhitespace) {
     const estimatedReadingMinutes = Math.ceil(Math.max(0, charactersWithoutWhitespace) / TEXT_STATS_CHARS_PER_MINUTE);
     return {
@@ -50,12 +54,13 @@
       charactersWithoutWhitespace,
       charactersWithWhitespace,
       paragraphs: calculateParagraphCount(value),
+      emptyLines: calculateEmptyLineCount(value),
       ...estimateReadingTime(charactersWithoutWhitespace),
       characterTypes
     };
   }
 
-  const api = { TEXT_STATS_CHARS_PER_MINUTE, splitGraphemes, countCharacterTypes, calculateParagraphCount, estimateReadingTime, calculateTextStats };
+  const api = { TEXT_STATS_CHARS_PER_MINUTE, splitGraphemes, countCharacterTypes, calculateParagraphCount, calculateEmptyLineCount, estimateReadingTime, calculateTextStats };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   globalScope.TextStatsUtils = api;
 })(typeof globalThis !== "undefined" ? globalThis : this);

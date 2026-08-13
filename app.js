@@ -527,7 +527,6 @@ const popoutUnavailable = $("popoutUnavailable");
 const popoutUnavailableBackBtn = $("popoutUnavailableBackBtn");
 const memoSyncNotice = $("memoSyncNotice");
 const loadMemoSyncBtn = $("loadMemoSyncBtn");
-const noteMeta = $("noteMeta");
 const textStatsBtn = $("textStatsBtn");
 const textStatsPopover = $("textStatsPopover");
 const textStatsBody = $("textStatsBody");
@@ -568,6 +567,15 @@ const appHeader = document.querySelector(".app-header");
 const preview = $("preview");
 const previewCard = $("previewCard");
 const saveStatus = $("saveStatus");
+const browserSaveStatusBtn = $("browserSaveStatusBtn");
+const localSaveStatusBtn = $("localSaveStatusBtn");
+const combinedSaveStatusBtn = $("combinedSaveStatusBtn");
+const browserSavePopover = $("browserSavePopover");
+const localSavePopover = $("localSavePopover");
+const combinedSavePopover = $("combinedSavePopover");
+const browserSavePopoverBody = $("browserSavePopoverBody");
+const localSavePopoverBody = $("localSavePopoverBody");
+const combinedSavePopoverBody = $("combinedSavePopoverBody");
 const deleteUndoNotice = $("deleteUndoNotice");
 const appVersionDisplays = document.querySelectorAll(".app-version");
 const storageWarning = $("storageWarning");
@@ -683,6 +691,8 @@ const termRelationCache = createTermRelationCache();
 let previewAutomaticTerms = [];
 let saveStatusState = "saved";
 let saveStatusTime = null;
+let saveStatusNotice = "";
+let activeSaveStatusPopoverButton = null;
 let noteFlagAnimationToken = 0;
 let mermaidConfiguredTheme = null;
 let mermaidRenderGeneration = 0;
@@ -835,7 +845,7 @@ async function init() {
   const restoredNote = restoredDraftId && notes.find((note) => note.id === restoredDraftId);
   openNote(returnedNote?.id || restoredNote?.id || getTodayNote().id);
   if (restoredNote && !returnedNote) {
-    saveStatus.textContent = "前回の編集中メモを復元しました";
+    setSaveStatusNotice("前回の編集中メモを復元しました");
   }
   if (pendingFontSelection || fontSelectionMessage) {
     await openSettingsDialog();
@@ -1725,7 +1735,7 @@ async function importAiNewsFile(file) {
   notes = await getAllNotes();
   renderAll();
   openNote(note.id);
-  saveStatus.textContent = "AI朝刊を取り込みました";
+  setSaveStatusNotice("AI朝刊を取り込みました");
 }
 
 function replaceImportedMissingImage(markdown, attachmentId, reason) {
@@ -1789,7 +1799,7 @@ async function importMarkdownZip(file) {
   notes = await getAllNotes();
   renderAll();
   if (importedNotes[0]) openNote(importedNotes[0].id);
-  saveStatus.textContent = `${importedNotes.length}件のMarkdownを取り込みました${failedImages ? `（画像${failedImages}件は取り込めませんでした）` : ""}`;
+  setSaveStatusNotice(`${importedNotes.length}件のMarkdownを取り込みました${failedImages ? `（画像${failedImages}件は取り込めませんでした）` : ""}`);
 }
 
 async function importPastedItNewsJson() {
@@ -1815,7 +1825,7 @@ async function importPastedItNewsJson() {
     renderAll();
     openNote(note.id);
     closeJsonImportDialog();
-    saveStatus.textContent = built.importMessage || "JSONから1件のメモを作成しました";
+    setSaveStatusNotice(built.importMessage || "JSONから1件のメモを作成しました");
     jsonImportText.value = "";
   } catch (error) {
     showJsonImportError(`保存に失敗しました: ${error.message}`);
@@ -3178,7 +3188,7 @@ function openMemoPopout() {
   const opened = window.open("", `memo-nexus-popout-${note.id}`, popoutWindowFeatures());
   if (!opened) {
     setSaveStatus("error");
-    saveStatus.textContent = "別ウィンドウを開けませんでした";
+    setSaveStatusNotice("別ウィンドウを開けませんでした");
     return;
   }
   writePopoutInitialShell(opened);
@@ -3546,7 +3556,7 @@ async function deleteCurrentNote() {
   const normalBefore = activeNotes();
   const currentIndex = normalBefore.findIndex((item) => item.id === note.id);
   deletedNoteSnapshot = { id: note.id };
-  saveStatus.textContent = "削除中...";
+  setSaveStatusNotice("削除中...");
 
   note.deletedAt = new Date().toISOString();
   note.updatedAt = Date.now();
@@ -7005,12 +7015,8 @@ function zipDosDateTime(value) {
 // エディタ末尾に、作成日と本文の最終変更日時を表示します。
 function renderNoteMeta() {
   const note = currentNote();
-  if (!note) {
-    noteMeta.textContent = "";
-    return;
-  }
-
-  noteMeta.textContent = `作成: ${formatDateTime(note.createdAt)}　更新: ${formatDateTime(note.bodyUpdatedAt || note.updatedAt)}`;
+  if (!note) return;
+  renderSaveStatus();
 }
 
 function formatTextStatsNumber(value) {
@@ -7020,12 +7026,14 @@ function formatTextStatsNumber(value) {
 function renderTextStats() {
   if (!textStatsBtn || !textStatsBody || !globalThis.TextStatsUtils) return;
   const stats = globalThis.TextStatsUtils.calculateTextStats(editor.value);
-  textStatsBtn.textContent = `${formatTextStatsNumber(stats.charactersWithoutWhitespace)}文字`;
+  textStatsBtn.textContent = `文字数 ${formatTextStatsNumber(stats.charactersWithoutWhitespace)}字`;
   textStatsBtn.setAttribute("aria-label", `文章統計を開く。空白なし${formatTextStatsNumber(stats.charactersWithoutWhitespace)}文字`);
   textStatsBody.innerHTML = [
     ["文字数", stats.charactersWithoutWhitespace],
     ["文字数（空白込み）", stats.charactersWithWhitespace],
     ["段落数", stats.paragraphs],
+    ["空白数", stats.characterTypes.whitespace],
+    ["空行数", stats.emptyLines],
     ["推定読了時間", stats.label]
   ].map(([label, value]) => `<div class="text-stats-row"><span>${label}</span><span>${typeof value === "number" ? formatTextStatsNumber(value) : value}</span></div>`).join("") + `
     <div class="text-stats-section"><strong>文字種別</strong>
@@ -7048,31 +7056,85 @@ function formatDateTime(value) {
   return `${date.getFullYear()}/${String(date.getMonth() + 1).padStart(2, "0")}/${String(date.getDate()).padStart(2, "0")} ${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
 }
 
+function formatDateTimeWithSeconds(value) {
+  const date = new Date(value || Date.now());
+  return `${formatDateTime(date)}:${String(date.getSeconds()).padStart(2, "0")}`;
+}
+
 function setSaveStatus(state, savedAt = saveStatusTime) {
   saveStatusState = state;
+  saveStatusNotice = "";
   if (state === "saved") {
     saveStatusTime = savedAt || Date.now();
   }
   renderSaveStatus();
 }
 
+function setSaveStatusNotice(message) {
+  saveStatusNotice = String(message || "");
+  renderSaveStatus();
+}
+
+function browserSaveStatusModel() {
+  const labels = { editing: "編集あり", saving: "保存中", error: "保存失敗", saved: "保存済み" };
+  const state = ["editing", "saving", "error", "saved"].includes(saveStatusState) ? saveStatusState : "saved";
+  return { state, label: labels[state], savedAt: saveStatusTime, notice: saveStatusNotice };
+}
+
+function localSaveStatusModel() {
+  // ローカルフォルダへの継続保存は未実装。将来ここを実設定の状態へ接続する。
+  return { state: "unconfigured", label: "未設定", savedAt: null };
+}
+
+function statusPopoverMarkup(title, model, description, action = "") {
+  const savedAt = model.savedAt ? `最終保存日時: ${formatDateTimeWithSeconds(model.savedAt)}` : "最終保存日時: —";
+  return `<div class="status-popover-row"><span>現在の状態</span><strong>${escapeHtml(model.label)}</strong></div><p>${escapeHtml(description)}</p><p>${escapeHtml(savedAt)}</p>${model.notice ? `<p class="status-popover-notice">${escapeHtml(model.notice)}</p>` : ""}${action}`;
+}
+
+function renderSaveStatusPopovers(browser, local) {
+  if (browserSavePopoverBody) {
+    const description = browser.state === "error" ? "ブラウザ内への保存に失敗しました。内容を確認して、もう一度編集または保存操作をしてください。"
+      : browser.state === "saving" ? "ブラウザ内へ保存しています。完了までこの画面を閉じないでください。"
+        : browser.state === "editing" ? "変更があります。まもなくブラウザ内へ保存します。" : "このブラウザのIndexedDBへ保存済みです。";
+    browserSavePopoverBody.innerHTML = statusPopoverMarkup("ブラウザ保存", browser, description);
+  }
+  if (localSavePopoverBody) localSavePopoverBody.innerHTML = statusPopoverMarkup("ローカル保存", local, "ローカルフォルダへの継続保存はまだ設定されていません。現在のメモはブラウザ内にのみ保存されます。", '<button type="button" disabled>ローカル保存の設定は準備中</button>');
+  if (combinedSavePopoverBody) combinedSavePopoverBody.innerHTML = `${statusPopoverMarkup("ブラウザ保存", browser, `ブラウザ: ${browser.label}`)}<hr>${statusPopoverMarkup("ローカル保存", local, "ローカル: 未設定")}`;
+}
+
+function setSaveStatusPopoverOpen(target, open) {
+  const entries = [
+    ["browser", browserSaveStatusBtn, browserSavePopover], ["local", localSaveStatusBtn, localSavePopover], ["combined", combinedSaveStatusBtn, combinedSavePopover]
+  ];
+  entries.forEach(([name, button, popover]) => {
+    const visible = open && name === target;
+    if (popover) popover.hidden = !visible;
+    button?.setAttribute("aria-expanded", String(visible));
+    if (visible) {
+      activeSaveStatusPopoverButton = button;
+      popover?.querySelector("button")?.focus();
+    }
+  });
+  if (!open && activeSaveStatusPopoverButton) {
+    const previousButton = activeSaveStatusPopoverButton;
+    activeSaveStatusPopoverButton = null;
+    previousButton.focus();
+  }
+}
+
 function renderSaveStatus() {
-  if (saveStatusState === "editing") {
-    saveStatus.textContent = "編集中...";
-    return;
+  const browser = browserSaveStatusModel();
+  const local = localSaveStatusModel();
+  if (saveStatus) saveStatus.textContent = `ブラウザ ${browser.label}${browser.notice ? `。${browser.notice}` : ""}`;
+  if (browserSaveStatusBtn) {
+    browserSaveStatusBtn.dataset.state = browser.state;
+    browserSaveStatusBtn.textContent = `◉ ブラウザ ${browser.label}`;
   }
-
-  if (saveStatusState === "saving") {
-    saveStatus.textContent = "保存中...";
-    return;
+  if (localSaveStatusBtn) {
+    localSaveStatusBtn.dataset.state = local.state;
+    localSaveStatusBtn.textContent = `▣ ローカル ${local.label}`;
   }
-
-  if (saveStatusState === "error") {
-    saveStatus.textContent = "保存エラー";
-    return;
-  }
-
-  saveStatus.textContent = `保存済み ${formatSavedTime(saveStatusTime)}`;
+  renderSaveStatusPopovers(browser, local);
 }
 
 function formatSavedTime(value) {
@@ -9198,13 +9260,19 @@ editor.addEventListener("select", () => {
 });
 textStatsBtn?.addEventListener("click", () => setTextStatsOpen(textStatsPopover.hidden));
 closeTextStatsBtn?.addEventListener("click", () => setTextStatsOpen(false));
+browserSaveStatusBtn?.addEventListener("click", () => setSaveStatusPopoverOpen("browser", browserSavePopover.hidden));
+localSaveStatusBtn?.addEventListener("click", () => setSaveStatusPopoverOpen("local", localSavePopover.hidden));
+combinedSaveStatusBtn?.addEventListener("click", () => setSaveStatusPopoverOpen("combined", combinedSavePopover.hidden));
+document.querySelectorAll("[data-close-status-popover]").forEach((button) => button.addEventListener("click", () => setSaveStatusPopoverOpen("", false)));
 document.addEventListener("pointerdown", (event) => {
   if (!textStatsPopover?.hidden && !document.querySelector(".note-meta-actions")?.contains(event.target)) setTextStatsOpen(false);
+  if (![browserSavePopover, localSavePopover, combinedSavePopover].every((popover) => popover?.hidden) && !document.querySelector(".save-status-actions")?.contains(event.target)) setSaveStatusPopoverOpen("", false);
 });
 document.addEventListener("keydown", (event) => {
-  if (event.key === "Escape" && !textStatsPopover?.hidden) {
+  if (event.key === "Escape" && (!textStatsPopover?.hidden || ![browserSavePopover, localSavePopover, combinedSavePopover].every((popover) => popover?.hidden))) {
     event.preventDefault();
     setTextStatsOpen(false);
+    setSaveStatusPopoverOpen("", false);
   }
 });
 editorCaretAnimationEnabled?.addEventListener("change", saveEditorCaretAnimationSettings);

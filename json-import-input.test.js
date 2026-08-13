@@ -28,7 +28,7 @@ function createImporter({ input = '{"items":[]}', parseError, saveError } = {}) 
   const importPastedItNewsJson = new Function(
     "jsonImportText",
     "jsonImportError",
-    "saveStatus",
+    "setSaveStatusNotice",
     "clearJsonImportError",
     "showJsonImportError",
     "parsePastedJson",
@@ -42,7 +42,7 @@ function createImporter({ input = '{"items":[]}', parseError, saveError } = {}) 
   )(
     jsonImportText,
     jsonImportError,
-    saveStatus,
+    (message) => { saveStatus.textContent = message; },
     () => {
       jsonImportError.textContent = "";
     },
