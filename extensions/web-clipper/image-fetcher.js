@@ -101,7 +101,15 @@
       const timer = setTimeout(() => controller.abort(), timeoutMs);
       try {
         const response = await fetchImpl(candidate.url, { credentials: "include", signal: controller.signal, cache: "no-store" });
-        if (!response.ok) return failed(candidate, "failed", "HTTP_ERROR", `HTTP ${response.status}で取得できません`);
+        if (!response.ok) {
+          const code = [401, 403].includes(response.status) ? "AUTH_REQUIRED"
+            : [404, 410].includes(response.status) ? "URL_EXPIRED"
+              : response.status >= 400 && response.status < 500 ? "ACCESS_DENIED" : "HTTP_ERROR";
+          const reason = code === "AUTH_REQUIRED" ? "画像を取得するにはログインが必要です"
+            : code === "URL_EXPIRED" ? "画像URLの有効期限が切れている可能性があります"
+              : code === "ACCESS_DENIED" ? "画像サーバーがアクセスを拒否しました" : `HTTP ${response.status}で取得できません`;
+          return failed(candidate, "failed", code, reason);
+        }
         const declaredSize = Number(response.headers.get("content-length") || 0);
         if (declaredSize > perImageLimit) return failed(candidate, "too-large", "TOO_LARGE", "1画像5MBの上限を超えています", { size: declaredSize });
         const bytes = new Uint8Array(await response.arrayBuffer());

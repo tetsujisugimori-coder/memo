@@ -8,6 +8,7 @@ const css = fs.readFileSync("style.css", "utf8");
 const popup = fs.readFileSync("extensions/web-clipper/popup.js", "utf8");
 const background = fs.readFileSync("extensions/web-clipper/background.js", "utf8");
 const manifest = fs.readFileSync("extensions/web-clipper/manifest.json", "utf8");
+const e2e = fs.readFileSync("web-clipper.e2e.js", "utf8");
 
 test("確認画面は画像プレビュー、個別選択、全選択・全解除を持つ", () => {
   assert.match(html, /id="webClipImagesSection"[\s\S]*id="selectAllWebClipImagesBtn"[\s\S]*id="clearAllWebClipImagesBtn"[\s\S]*id="webClipImagesList"/);
@@ -43,6 +44,40 @@ test("選択画像の保存失敗では確認画面を維持し、本文のみ�
   assert.match(app, /renderWebClipImages\(\)/);
   assert.match(app, /saveWebClip\(\{ textOnly: true \}\)/);
   assert.match(app, /deleteAttachmentRecords\(prepared\.map/);
+});
+
+test("同一URLの再クリップは既存メモの更新または新規保存を選べ、失敗画像だけ再試行できる", () => {
+  assert.match(html, /id="webClipExistingNoteSection"[\s\S]*webClipSaveMode[\s\S]*value="update"[\s\S]*value="new"/);
+  assert.match(html, /id="retryFailedWebClipImagesBtn"/);
+  assert.match(app, /normalizeWebClipComparisonUrl/);
+  assert.match(app, /db\.transaction\(\[STORE_NAME, ATTACHMENT_STORE_NAME\], "readwrite"\)/);
+  assert.match(app, /previousWebClipAttachments/);
+  assert.match(app, /memo-nexus-web-clip-retry-images/);
+  assert.match(app, /画像なしで保存/);
+});
+
+test("展開読み込み版のmanifestとREADMEの現在版は一致する", () => {
+  const readme = fs.readFileSync("extensions/web-clipper/README.md", "utf8");
+  const version = JSON.parse(manifest).version;
+  assert.ok(readme.includes(`ローカル開発版\`${version}\``));
+});
+
+test("MV3 E2Eはmanifest版と保存済みsource版を同じ値で検証する", () => {
+  const version = JSON.parse(manifest).version;
+  assert.doesNotMatch(e2e, /0\.3\.2/);
+  assert.ok(e2e.includes(`locator("#extensionVersion").textContent(), "${version}"`));
+  assert.ok(e2e.includes(`extensionVersion: "${version}"`));
+});
+
+test("MV3 E2Eは再クリップ更新・新規保存・失敗画像のみ再試行を実動作で検証する", () => {
+  assert.match(e2e, /reclip update changed the memo ID/);
+  assert.match(e2e, /reclip update changed the collection/);
+  assert.match(e2e, /reclip update changed the flag/);
+  assert.match(e2e, /reclip update removed unrelated metadata/);
+  assert.match(e2e, /old Web Clipper attachments remain after replacement/);
+  assert.match(e2e, /new reclip save changed the existing note/);
+  assert.match(e2e, /retryFailedWebClipImagesBtn/);
+  assert.match(e2e, /retried image was not saved as an attachment/);
 });
 
 test("確認画面はモバイルで1列になり内部スクロールする", () => {

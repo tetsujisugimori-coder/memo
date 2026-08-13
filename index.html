@@ -534,6 +534,13 @@
       <label>サイト名 / ホスト名<input id="webClipHost" type="text" maxlength="255" autocomplete="off" placeholder="example.com"></label>
       <label>クリップ方式<select id="webClipMode"><option value="selection">選択部分</option><option value="page">ページ全文</option><option value="link">リンクのみ</option><option value="memo">メモ付き</option></select></label>
       <p id="webClipModeLockedNote" class="web-clip-status" hidden>クリップ方式は拡張機能で確定済みです。本文や画像を別の方式で取得するには、拡張機能へ戻ってください。</p>
+      <section id="webClipExistingNoteSection" class="web-clip-existing-note" hidden aria-live="polite">
+        <strong id="webClipExistingNoteHeading">同じURLのWebクリップがあります</strong>
+        <p id="webClipExistingNoteSummary" class="web-clip-status"></p>
+        <label><input id="webClipSaveAsUpdate" name="webClipSaveMode" type="radio" value="update" checked> 既存のクリップを更新</label>
+        <label><input name="webClipSaveMode" type="radio" value="new"> 新しいメモとして保存</label>
+        <label id="webClipExistingNoteSelectRow" hidden>更新するメモ<select id="webClipExistingNoteSelect"></select></label>
+      </section>
       <label>本文 / 選択文<textarea id="webClipSelection" rows="8" maxlength="500000" placeholder="選択文、ページ本文、またはメモしたい本文"></textarea></label>
       <section id="webClipImagesSection" class="web-clip-images" aria-labelledby="webClipImagesHeading" hidden>
         <div class="web-clip-images-head">
@@ -541,13 +548,14 @@
           <div><button id="selectAllWebClipImagesBtn" type="button">全選択</button><button id="clearAllWebClipImagesBtn" type="button">全解除</button></div>
         </div>
         <p id="webClipImagesSummary" class="web-clip-status"></p>
+        <button id="retryFailedWebClipImagesBtn" type="button" hidden>失敗した画像だけ再試行</button>
         <div id="webClipImagesList" class="web-clip-images-list"></div>
       </section>
       <label id="webClipUserMemoRow">メモ<textarea id="webClipUserMemo" rows="3" maxlength="1000" placeholder="あとで確認、重要な理由など"></textarea></label>
       <label>取得日時<input id="webClipCapturedAt" type="text" readonly></label>
       <label>保存先コレクション<select id="webClipCollection"></select></label>
       <p id="webClipError" class="web-clip-error" role="alert"></p>
-      <div class="dialog-actions"><button id="cancelWebClipBtn" type="button">キャンセル</button><button id="saveWebClipTextOnlyBtn" type="button" hidden>本文のみ保存</button><button id="saveWebClipBtn" type="submit">通常メモとして保存</button></div>
+      <div class="dialog-actions"><button id="cancelWebClipBtn" type="button">キャンセル</button><button id="saveWebClipTextOnlyBtn" type="button" hidden>画像なしで保存</button><button id="saveWebClipBtn" type="submit">通常メモとして保存</button></div>
     </form>
   </dialog>
 
