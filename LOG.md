@@ -1616,5 +1616,10 @@
 ## 2026-08-13 Web Clipper Edge設定復旧
 
 * 設定の「データ管理」内へWeb Clipper欄を配置し、許可済み拡張機能IDをOriginとともに一覧表示するよう明確化した。各IDの既存コピー操作を維持し、Edgeで拡張機能が見つからない場合に、拡張機能一覧を開く、有効化または「展開して読み込み」で再登録する、表示IDと許可IDを照合する、という復旧手順を追加した。
-* Edge用の`opejamnnohhbjflpbhnmdlknhjkfhfdp`を許可originへ追加した。既存の許可originは削除せず、テストで同IDが1回だけ登録されることを確認する。既存の厳格な`chrome-extension://<32文字ID>`検証とChrome／Edge共通の受信経路は変更していない。
+* Memo-Nexus Web Clipper用の許可originを追加した。既存の許可originは削除せず、テストで同IDが1回だけ登録されることを確認する。既存の厳格な`chrome-extension://<32文字ID>`検証とChrome／Edge共通の受信経路は変更していない。
 * `node --check app.js`、`node --check web-clipper-config.js`、`node --test`（416件成功）、`git diff --check`を実行した。Web Clipperの受信ペイロード復元、起動URL消費、転送保持の既存テストは成功した。実Manifest V3を読み込む`node web-clipper.e2e.js`は、この環境に`playwright`がなく起動できず、一時導入もネットワーク待ちで完了しなかったため未実施とする。
+
+## 2026-08-13 Memo-Nexus Web Clipper ID訂正
+
+* Memo-Nexus Web Clipperの正しいEdge拡張ID`lecpajkpnjnagbeokicilagdonkcimbo`を許可originへ登録した。誤って登録されていた別拡張機能のIDは、許可設定、テストデータ、LOGの説明から除去し、既存の他の許可originは維持した。設定画面の許可ID一覧とIDコピー操作は既存のまま利用できる。
+* `node --check web-clipper-config.js`、`node --test web-clipper-config.test.js web-clip-receive.test.js`（12件成功）、`git diff --check`を実行した。実機Edgeでの確認画面表示・保存確認は、Windows操作が現在のブラウザURLを安全に判定できず停止したため未実施とする。
