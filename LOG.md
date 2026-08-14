@@ -1686,3 +1686,10 @@
 * 初回フォルダ選択では、権限取得後の走査でpending保存を自動再開しない。復元・競合候補があれば保存せず確認を求め、安全な場合だけ明示的な`folder-selected`保存を1回実行する。これにより初回保存のMarkdownと`sync-state.json`を二重に書かず、既存Markdownがあるフォルダを先に上書きしない。既存の再接続時scan-first、保存直前の外部変更確認、保存日時、`createdAt`・`localCreatedAt`の仕様は維持した。
 * 模擬File System Access APIと実保存キューを通る回帰テストで、途中失敗後の再試行、走査側の`app-ahead`判定、raw hash更新、本文外部編集時の競合保護、初回フォルダ選択の保存1回、復元候補時の保存0回を確認した。`node --test`は470件成功し、全JavaScript 96ファイルの`node --check`と`git diff --check`も成功した。
 * Edgeの`http://127.0.0.1:5500`では、`app.js?v=0.4.0-79`、`local-sync-utils.js?v=0.4.0-5`を読み込み、下部バーに作成・更新日時と「ローカル 再接続が必要」「ブラウザ 保存済み」が表示されることを確認した。既存保存先の原本を特定してバックアップできず権限も失われているため、専用テストフォルダを使う初回実保存、途中失敗の実機再現、再試行、外部編集保護は未実施とし、既存フォルダへの再接続・書込みは行っていない。
+
+## 2026-08-14 GitHub Actionsによる最小CI
+
+* `.github/workflows/ci.yml`を追加し、`main`対象のpull request、`main`へのpush、GitHub画面からの手動実行で`CI`を起動する。権限は`contents: read`だけとし、secrets、自動コミット、自動push、自動マージは使用しない。公式の`actions/checkout@v7`と`actions/setup-node@v7`だけを使い、`ubuntu-latest`、Node.js 22、10分上限、同一refの古い実行を中止するconcurrencyを設定した。既存のNode標準テストを利用するため、`package.json`や依存パッケージは追加していない。
+* CIは`node --test`、`node_modules`を除く全JavaScriptの`node --check`、イベントごとの変更範囲に対する`git diff --check`を別ステップで実行する。JavaScriptはnull区切りで列挙して空白・日本語を含むファイル名を保護し、検出件数を表示して0件なら失敗する。pull requestはbase SHAからhead SHA、pushはbefore SHAから現在SHAを検査し、beforeが全ゼロの場合と手動実行は対象コミットを`git show --check`で確認する。
+* ローカルでは`node --test`が470件成功し、全JavaScript 96ファイルの`node --check`、`origin/main`との共通祖先`20127bf1607dc6e30f86a28cc22db03650620f3e`からHEADまで、および未コミットCI差分の空白検査が成功した。既存の作成・更新日時、途中失敗後の再試行、外部競合保護、初回保存1回のテストを含む。ローカルのAction/YAML専用検証ツールは未導入のため追加依存なしでは実行できず、YAML構造とシェルを目視確認した。
+* GitHub Actionsの実行結果は、このワークフローをpushする前のため未確認。push後にPR #96の`CI`を確認し、結果または実行できない理由をこの節へ追記する。
