@@ -7,9 +7,17 @@
   <script>try { document.documentElement.dataset.initialTheme = localStorage.getItem("memo-nexus-theme") === "dark" ? "dark" : "light"; } catch (_) { document.documentElement.dataset.initialTheme = "light"; }</script>
   <style>html,body{background:#f6f7f4;color:#222522;color-scheme:light}html[data-initial-theme="dark"],html[data-initial-theme="dark"] body{background:#111513;color:#e7ece7;color-scheme:dark}</style>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css">
-  <link rel="stylesheet" href="style.css?v=0.4.0-50">
+  <link rel="stylesheet" href="style.css?v=0.4.0-51">
 </head>
-<body>
+<body class="app-starting">
+  <section id="appStartupGuard" class="app-startup-guard" role="status" aria-live="polite" aria-busy="true">
+    <div class="app-startup-card">
+      <h1 id="appStartupTitle">メモを読み込んでいます</h1>
+      <p id="appStartupMessage">ブラウザ内の保存データを安全に確認しています。</p>
+      <p id="appStartupSafety" class="app-startup-safety" hidden>サイトデータを削除しないでください。保存済みデータが残っている可能性があります。</p>
+      <button id="appStartupReloadBtn" type="button" hidden>ページを再読み込み</button>
+    </div>
+  </section>
   <aside id="memoSidebar" class="sidebar" aria-label="メモ一覧" aria-hidden="false">
     <div class="memo-drawer-head">
       <strong id="memoListHeading">メモ一覧</strong>
@@ -108,6 +116,7 @@
         </div>
         <div id="noteMeta" class="note-meta" aria-label="メモの日時"></div>
         <div class="save-status-actions">
+          <button id="saveLocalQuickBtn" class="status-chip local-save-now-button" type="button">ローカルへ保存</button>
           <button id="localSaveStatusBtn" class="status-chip save-status-chip" type="button" data-state="unconfigured" aria-haspopup="dialog" aria-expanded="false" aria-controls="localSavePopover">▣ ローカル 未設定</button>
           <button id="browserSaveStatusBtn" class="status-chip save-status-chip" type="button" data-state="saved" aria-haspopup="dialog" aria-expanded="false" aria-controls="browserSavePopover">◉ ブラウザ 保存済み</button>
           <button id="combinedSaveStatusBtn" class="status-chip save-status-chip combined-save-status" type="button" aria-haspopup="dialog" aria-expanded="false" aria-controls="combinedSavePopover">保存状態</button>
@@ -735,6 +744,8 @@
   <script src="local-markdown.js?v=0.4.0-1"></script>
   <script src="local-sync-utils.js?v=0.4.0-5"></script>
   <script src="local-fs-adapter.js?v=0.4.0-1"></script>
-  <script src="app.js?v=0.4.0-79"></script>
+  <script src="indexeddb-lifecycle.js?v=0.4.0-1"></script>
+  <script src="manual-local-save.js?v=0.4.0-1"></script>
+  <script src="app.js?v=0.4.0-80"></script>
 </body>
 </html>
