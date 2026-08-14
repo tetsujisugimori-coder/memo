@@ -52,7 +52,36 @@
     return scan();
   }
 
-  const api = { createLocalSaveQueue, runLocalScanAfterQueue };
+  async function runLocalReconnectSequence({
+    requestPermission,
+    onPermissionGranted = () => {},
+    scan,
+    shouldSave = () => false,
+    save
+  }) {
+    async function runStage(stage, task) {
+      try {
+        return await task();
+      } catch (error) {
+        if (error && typeof error === "object" && !error.localSaveStage) error.localSaveStage = stage;
+        throw error;
+      }
+    }
+
+    const permission = await runStage("permission", requestPermission);
+    if (permission !== "granted") {
+      return { permission, scanResult: null, saveAttempted: false, saved: false };
+    }
+    await runStage("permission", onPermissionGranted);
+    const scanResult = await runStage("scan", scan);
+    if (!shouldSave(scanResult)) {
+      return { permission, scanResult, saveAttempted: false, saved: false };
+    }
+    const saved = await runStage("save", save);
+    return { permission, scanResult, saveAttempted: true, saved };
+  }
+
+  const api = { createLocalSaveQueue, runLocalReconnectSequence, runLocalScanAfterQueue };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   if (globalScope) globalScope.MemoNexusLocalSaveQueue = api;
 })(typeof window !== "undefined" ? window : globalThis);

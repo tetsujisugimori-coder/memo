@@ -5,13 +5,14 @@ const fs = require("node:fs");
 const test = require("node:test");
 const {
   applyLocalSaveSuccess,
+  classifyLocalSaveFailure,
   createLocalSaveState,
   resolveDisplayedCreatedAt,
   resolveLocalScanState,
   shouldResumeLocalSaveAfterScan,
   transitionLocalSaveState
 } = require("./local-save-state.js");
-const { createLocalSaveQueue, runLocalScanAfterQueue } = require("./local-save-queue.js");
+const { createLocalSaveQueue, runLocalReconnectSequence, runLocalScanAfterQueue } = require("./local-save-queue.js");
 const {
   parseLocalNote,
   resolveImportedCreatedAt,
@@ -19,7 +20,7 @@ const {
 } = require("./local-markdown.js");
 const {
   attachmentExtension,
-  buildLocalScanCandidates,
+  buildLocalScanAnalysis,
   buildManifest,
   classifyManagedMarkdownHashes,
   classifyMarkdownCandidate,
@@ -43,10 +44,15 @@ class MockFileHandle {
     this.value = value;
     this.type = type;
     this.lastModified = 1723590000000;
+    this.writeCount = 0;
   }
   async createWritable() {
     return {
-      write: async (value) => { this.value = value; },
+      write: async (value) => {
+        this.value = value;
+        this.writeCount += 1;
+        this.lastModified += 1;
+      },
       close: async () => {},
       abort: async () => {}
     };
@@ -111,8 +117,12 @@ function createConfigDb() {
 }
 
 async function scanMockWorkspace(selected, syncState, notes) {
+  return (await scanMockWorkspaceAnalysis(selected, syncState, notes)).candidates;
+}
+
+async function scanMockWorkspaceAnalysis(selected, syncState, notes) {
   const files = await localFs.scanMarkdownFiles(selected);
-  return buildLocalScanCandidates({
+  return buildLocalScanAnalysis({
     files,
     syncState,
     notes,
@@ -217,10 +227,10 @@ test("最後に書いたハッシュと異なる外部変更を自動上書き�
 });
 
 test("管理対象Markdownはsync-stateのnote IDとfileNameで特定する", () => {
-  assert.match(html, /local-save-state\.js\?v=0\.4\.0-3/);
-  assert.match(html, /local-save-queue\.js\?v=0\.4\.0-2/);
-  assert.match(html, /local-sync-utils\.js\?v=0\.4\.0-3/);
-  assert.match(html, /app\.js\?v=0\.4\.0-77/);
+  assert.match(html, /local-save-state\.js\?v=0\.4\.0-4/);
+  assert.match(html, /local-save-queue\.js\?v=0\.4\.0-3/);
+  assert.match(html, /local-sync-utils\.js\?v=0\.4\.0-4/);
+  assert.match(html, /app\.js\?v=0\.4\.0-78/);
   const syncState = {
     notes: {
       "note-1": { fileName: "題名--note-1.md", hash: "last" },
@@ -232,11 +242,230 @@ test("管理対象Markdownはsync-stateのnote IDとfileNameで特定する", ()
   assert.equal(managedNoteForPath(syncState, "notes/未管理.md"), null);
 });
 
-test("管理対象Markdownは前回書込みまたはアプリ最新版と同じなら競合にしない", () => {
-  assert.equal(classifyManagedMarkdownHashes("last", "last", "next"), "last-written");
+test("管理対象Markdownは同一・アプリ最新版・アプリ側先行・外部変更を区別する", () => {
+  assert.equal(classifyManagedMarkdownHashes("last", "last", "last"), "last-written");
+  assert.equal(classifyManagedMarkdownHashes("last", "last", "next"), "app-ahead");
   assert.equal(classifyManagedMarkdownHashes("last", "next", "next"), "app-current");
   assert.equal(classifyManagedMarkdownHashes("last", "external", "next"), "conflict");
   assert.equal(classifyManagedMarkdownHashes("", "external", "next"), "unmanaged");
+});
+
+test("再接続は権限回復後に外部競合を先に検出し、保存せず競合状態を維持する", async () => {
+  assert.match(app, /runLocalReconnectSequence\(\{/);
+  assert.match(app, /resumePendingSave: false/);
+  const selected = new MockDirectoryHandle("保存先");
+  const layout = await localFs.ensureWorkspaceLayout(selected);
+  const note = {
+    id: "note-1", title: "再接続競合", createdAt: "created", localCreatedAt: "local-created",
+    localSavedAt: "2026-08-14T04:00:00.000Z", body: "前回保存本文"
+  };
+  const savedMarkdown = serializeLocalNote(note);
+  const syncState = normalizeSyncState({
+    savedAt: note.localSavedAt,
+    notes: { "note-1": { fileName: "再接続競合--note-1.md", hash: contentHash(savedMarkdown), attachmentIds: [] } }
+  });
+  await localFs.writeFile(layout.root, "notes/再接続競合--note-1.md", savedMarkdown);
+  const managedFile = layout.root.directories.get("notes").files.get("再接続競合--note-1.md");
+  const externalMarkdown = savedMarkdown.replace("前回保存本文", "外部で変更した本文");
+  managedFile.value = externalMarkdown;
+  const appNote = { ...note, body: "Memo-Nexus側の未保存本文" };
+  const events = [];
+  let saveCount = 0;
+  let state = createLocalSaveState({
+    status: "permission-required", lastSuccessAt: note.localSavedAt,
+    pendingChanges: true, errorCode: "permission", requiresUserAction: true
+  });
+
+  const result = await runLocalReconnectSequence({
+    requestPermission: async () => { events.push("permission"); selected.permission = "granted"; return "granted"; },
+    onPermissionGranted: () => { state = transitionLocalSaveState(state, "pending", { lastSuccessAt: state.lastSuccessAt }, 2); },
+    scan: async () => {
+      events.push("scan");
+      const analysis = await scanMockWorkspaceAnalysis(selected, syncState, [appNote]);
+      state = applyScanState(state, analysis.candidates, 3);
+      return analysis;
+    },
+    shouldSave: (analysis) => shouldResumeLocalSaveAfterScan({
+      enabled: true, hasDirectory: true, state, candidates: analysis.candidates
+    }),
+    save: async () => { events.push("save"); saveCount += 1; }
+  });
+
+  assert.deepEqual(events, ["permission", "scan"]);
+  assert.equal(result.saveAttempted, false);
+  assert.equal(saveCount, 0);
+  assert.equal(state.status, "conflict");
+  assert.equal(state.errorCode, "external-conflict");
+  assert.notEqual(state.status, "permission-required");
+  assert.equal(await localFs.readText(layout.root, "notes/再接続競合--note-1.md"), externalMarkdown);
+});
+
+test("再接続は安全なapp-aheadを走査後に一度だけ保存する", async () => {
+  const selected = new MockDirectoryHandle("保存先");
+  const layout = await localFs.ensureWorkspaceLayout(selected);
+  const initialSavedAt = "2026-08-14T05:00:00.000Z";
+  const nextSavedAt = "2026-08-14T05:01:00.000Z";
+  const originalNote = {
+    id: "note-1", title: "再接続保存", createdAt: "created", localCreatedAt: "local-created",
+    localSavedAt: initialSavedAt, body: "前回保存本文"
+  };
+  const originalMarkdown = serializeLocalNote(originalNote);
+  let syncState = normalizeSyncState({
+    savedAt: initialSavedAt,
+    notes: { "note-1": { fileName: "再接続保存--note-1.md", hash: contentHash(originalMarkdown), attachmentIds: [] } }
+  });
+  await localFs.writeFile(layout.root, "notes/再接続保存--note-1.md", originalMarkdown);
+  const editedNote = { ...originalNote, body: "Memo-Nexus側の最新版" };
+  const events = [];
+  let saveCount = 0;
+  let state = createLocalSaveState({
+    status: "permission-required", lastSuccessAt: initialSavedAt,
+    pendingChanges: true, errorCode: "permission", requiresUserAction: true
+  });
+  const queue = createLocalSaveQueue(async () => {
+    events.push("save");
+    saveCount += 1;
+    state = transitionLocalSaveState(state, "saving", {}, 3);
+    const savedNote = applyLocalSaveSuccess(editedNote, nextSavedAt);
+    const markdown = serializeLocalNote(savedNote);
+    syncState = normalizeSyncState({
+      savedAt: nextSavedAt,
+      notes: { "note-1": { fileName: "再接続保存--note-1.md", hash: contentHash(markdown), attachmentIds: [] } }
+    });
+    await localFs.writeFile(layout.root, "notes/再接続保存--note-1.md", markdown);
+    await localFs.writeJson(layout.root, "sync-state.json", syncState);
+    state = transitionLocalSaveState(state, "saved", { lastSuccessAt: nextSavedAt }, 4);
+  }, 1);
+
+  const result = await runLocalReconnectSequence({
+    requestPermission: async () => { events.push("permission"); return "granted"; },
+    onPermissionGranted: () => { state = transitionLocalSaveState(state, "pending", { lastSuccessAt: initialSavedAt }, 2); },
+    scan: async () => {
+      events.push("scan");
+      const analysis = await scanMockWorkspaceAnalysis(selected, syncState, [editedNote]);
+      assert.deepEqual(analysis.candidates, []);
+      assert.deepEqual(analysis.appAheadNoteIds, ["note-1"]);
+      assert.equal(analysis.needsLocalSave, true);
+      return analysis;
+    },
+    shouldSave: (analysis) => analysis.needsLocalSave && shouldResumeLocalSaveAfterScan({
+      enabled: true, hasDirectory: true, state, candidates: analysis.candidates
+    }),
+    save: async () => {
+      const queued = queue.enqueue("reconnect");
+      await queue.flush("reconnect");
+      return queued;
+    }
+  });
+
+  assert.deepEqual(events, ["permission", "scan", "save"]);
+  assert.equal(result.saveAttempted, true);
+  assert.equal(saveCount, 1);
+  assert.equal(state.status, "saved");
+  assert.equal(state.lastSuccessAt, nextSavedAt);
+  assert.match(await localFs.readText(layout.root, "notes/再接続保存--note-1.md"), /Memo-Nexus側の最新版/);
+  const writtenSync = await localFs.readJson(layout.root, "sync-state.json", null);
+  assert.equal(writtenSync.savedAt, nextSavedAt);
+  assert.equal(writtenSync.notes["note-1"].hash, contentHash(await localFs.readText(layout.root, "notes/再接続保存--note-1.md")));
+});
+
+test("ローカル保存失敗は権限・外部競合・一般エラーを区別する", async () => {
+  for (const name of ["NotAllowedError", "SecurityError"]) {
+    const failure = classifyLocalSaveFailure(Object.assign(new Error(name), { name }));
+    assert.equal(failure.status, "permission-required");
+    assert.equal(failure.errorCode, "permission");
+  }
+  assert.equal(classifyLocalSaveFailure(Object.assign(new Error("拒否"), { code: "permission" })).status, "permission-required");
+  const conflict = classifyLocalSaveFailure(Object.assign(new Error("外部変更"), { code: "conflict" }));
+  assert.equal(conflict.status, "conflict");
+  assert.equal(conflict.errorCode, "external-conflict");
+  assert.equal(classifyLocalSaveFailure(new Error("disk full")).status, "error");
+
+  let deniedSaveCount = 0;
+  const denied = await runLocalReconnectSequence({
+    requestPermission: async () => "denied",
+    scan: async () => { throw new Error("走査してはいけません"); },
+    shouldSave: () => true,
+    save: async () => { deniedSaveCount += 1; }
+  });
+  assert.equal(denied.permission, "denied");
+  assert.equal(denied.saveAttempted, false);
+  assert.equal(deniedSaveCount, 0);
+
+  await assert.rejects(runLocalReconnectSequence({
+    requestPermission: async () => "granted",
+    scan: async () => ({ candidates: [], needsLocalSave: true }),
+    shouldSave: () => true,
+    save: async () => { throw Object.assign(new Error("外部変更"), { code: "conflict" }); }
+  }), (error) => error.code === "conflict" && error.localSaveStage === "save");
+});
+
+test("起動時解析はapp-aheadだけを保存し、同一内容と真の外部変更は書き換えない", async () => {
+  const selected = new MockDirectoryHandle("保存先");
+  const layout = await localFs.ensureWorkspaceLayout(selected);
+  const initialSavedAt = "2026-08-14T06:00:00.000Z";
+  const nextSavedAt = "2026-08-14T06:02:00.000Z";
+  const originalNote = {
+    id: "note-1", title: "起動時解析", createdAt: "created", localCreatedAt: "local-created",
+    localSavedAt: initialSavedAt, body: "前回保存本文"
+  };
+  const originalMarkdown = serializeLocalNote(originalNote);
+  let syncState = normalizeSyncState({
+    savedAt: initialSavedAt,
+    notes: { "note-1": { fileName: "起動時解析--note-1.md", hash: contentHash(originalMarkdown), attachmentIds: [] } }
+  });
+  await localFs.writeFile(layout.root, "notes/起動時解析--note-1.md", originalMarkdown);
+  const managedFile = layout.root.directories.get("notes").files.get("起動時解析--note-1.md");
+  const baselineWriteCount = managedFile.writeCount;
+  const baselineModified = managedFile.lastModified;
+  let state = createLocalSaveState({ status: "saved", lastSuccessAt: initialSavedAt, pendingChanges: false });
+
+  const sameAnalysis = await scanMockWorkspaceAnalysis(selected, syncState, [originalNote]);
+  assert.deepEqual(sameAnalysis, { candidates: [], appAheadNoteIds: [], needsLocalSave: false });
+  assert.equal(managedFile.writeCount, baselineWriteCount);
+  assert.equal(managedFile.lastModified, baselineModified);
+  assert.equal(state.lastSuccessAt, initialSavedAt);
+  assert.equal(originalNote.localSavedAt, initialSavedAt);
+
+  const editedNote = { ...originalNote, body: "ブラウザ側だけ新しい本文" };
+  const appAhead = await scanMockWorkspaceAnalysis(selected, syncState, [editedNote]);
+  assert.deepEqual(appAhead.candidates, []);
+  assert.deepEqual(appAhead.appAheadNoteIds, ["note-1"]);
+  assert.equal(appAhead.needsLocalSave, true);
+  state = transitionLocalSaveState(state, "pending", { lastSuccessAt: initialSavedAt }, 2);
+  let saveCount = 0;
+  const queue = createLocalSaveQueue(async () => {
+    saveCount += 1;
+    state = transitionLocalSaveState(state, "saving", {}, 3);
+    const savedNote = applyLocalSaveSuccess(editedNote, nextSavedAt);
+    const markdown = serializeLocalNote(savedNote);
+    syncState = normalizeSyncState({
+      savedAt: nextSavedAt,
+      notes: { "note-1": { fileName: "起動時解析--note-1.md", hash: contentHash(markdown), attachmentIds: [] } }
+    });
+    await localFs.writeFile(layout.root, "notes/起動時解析--note-1.md", markdown);
+    await localFs.writeJson(layout.root, "sync-state.json", syncState);
+    state = transitionLocalSaveState(state, "saved", { lastSuccessAt: nextSavedAt }, 4);
+  }, 1);
+  const queued = queue.enqueue("startup");
+  await queue.flush("startup");
+  await queued;
+  assert.equal(saveCount, 1);
+  assert.equal(state.status, "saved");
+  assert.equal(state.lastSuccessAt, nextSavedAt);
+  assert.match(await localFs.readText(layout.root, "notes/起動時解析--note-1.md"), /ブラウザ側だけ新しい本文/);
+  assert.equal((await localFs.readJson(layout.root, "sync-state.json", null)).savedAt, nextSavedAt);
+
+  const latestMarkdown = await localFs.readText(layout.root, "notes/起動時解析--note-1.md");
+  managedFile.value = latestMarkdown.replace("ブラウザ側だけ新しい本文", "外部だけ変更した本文");
+  const externalBefore = managedFile.value;
+  const conflictAnalysis = await scanMockWorkspaceAnalysis(selected, syncState, [applyLocalSaveSuccess(editedNote, nextSavedAt)]);
+  assert.deepEqual(conflictAnalysis.candidates.map((candidate) => candidate.classification.type), ["conflict"]);
+  state = applyScanState(state, conflictAnalysis.candidates, 5);
+  assert.equal(state.status, "conflict");
+  assert.equal(state.errorCode, "external-conflict");
+  assert.equal(await localFs.readText(layout.root, "notes/起動時解析--note-1.md"), externalBefore);
+  assert.equal(saveCount, 1);
 });
 
 test("初回保存後のアプリ内編集は走査で競合せず、保存キューがMarkdownとsync-stateを更新する", async () => {
@@ -409,7 +638,7 @@ test("競合解除後のpending保存を一度だけ再開し、実保存成功�
   const afterSaveCandidates = await scanMockWorkspace(selected, writtenSync, [savedNote]);
   assert.deepEqual(afterSaveCandidates, []);
   assert.equal(shouldResumeLocalSaveAfterScan({ enabled: true, hasDirectory: true, state, candidates: afterSaveCandidates }), false);
-  assert.match(app, /if \(localSaveState\.pendingChanges \|\| !localSaveState\.lastSuccessAt\) queueLocalWorkspaceSave\("startup"\)/);
+  assert.match(app, /else if \(localSaveState\.pendingChanges \|\| !localSaveState\.lastSuccessAt\) queueLocalWorkspaceSave\("startup"\)/);
 });
 
 test("最後の復元候補を除外すると確認状態を解除し、必要な場合だけ保存再開を許可する", async () => {
@@ -504,7 +733,7 @@ test("外部編集だけを真の競合にし、未管理Markdownは実走査で
   selected.files.set("復元.md", new MockFileHandle("復元.md", "---\nmemoNexusId: \"missing\"\ntitle: \"復元\"\n---\n復元本文"));
   const candidates = await scanMockWorkspace(selected, normalizeSyncState(), []);
   assert.deepEqual(candidates.map((candidate) => candidate.classification.type).sort(), ["new", "restore"]);
-  assert.match(app, /buildLocalScanCandidates\(\{/);
+  assert.match(app, /buildLocalScanAnalysis\(\{/);
   assert.match(app, /resolveLocalScanState\(localSaveState, localScanCandidates\)/);
 });
 

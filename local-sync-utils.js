@@ -80,18 +80,21 @@
 
   function classifyManagedMarkdownHashes(lastWrittenHash, currentLocalHash, nextAppHash) {
     if (!lastWrittenHash) return "unmanaged";
-    if (currentLocalHash === lastWrittenHash) return "last-written";
+    if (currentLocalHash === lastWrittenHash) {
+      return currentLocalHash === nextAppHash ? "last-written" : "app-ahead";
+    }
     if (currentLocalHash === nextAppHash) return "app-current";
     return "conflict";
   }
 
-  async function buildLocalScanCandidates({
+  async function buildLocalScanAnalysis({
     files = [], syncState, notes = [], parseNote, serializeNote,
     getAttachmentsForNote = async () => []
   } = {}) {
     const normalizedSync = normalizeSyncState(syncState);
     const excluded = new Set(normalizedSync.excluded);
     const candidates = [];
+    const appAheadNoteIds = [];
     for (const entry of files) {
       if (excluded.has(entry.path)) continue;
       const source = await entry.file.text();
@@ -127,6 +130,7 @@
           const nextAppHash = contentHash(serializeNote(managedNote, managedNote.body, attachmentFiles));
           const currentLocalHash = contentHash(source);
           const disposition = classifyManagedMarkdownHashes(managedState.hash, currentLocalHash, nextAppHash);
+          if (disposition === "app-ahead") appAheadNoteIds.push(managedNoteId);
           if (disposition !== "conflict") continue;
           candidates.push({
             ...entry,
@@ -147,7 +151,15 @@
       if (classification.type === "unchanged") continue;
       candidates.push({ ...entry, parsed, classification });
     }
-    return candidates;
+    return {
+      candidates,
+      appAheadNoteIds,
+      needsLocalSave: appAheadNoteIds.length > 0
+    };
+  }
+
+  async function buildLocalScanCandidates(options = {}) {
+    return (await buildLocalScanAnalysis(options)).candidates;
   }
 
   function classifyMarkdownCandidate(candidate, existingNotes, importedHashes = new Set()) {
@@ -165,7 +177,7 @@
   }
 
   const api = {
-    MIME_EXTENSIONS, attachmentExtension, buildLocalScanCandidates, buildManifest, classifyManagedMarkdownHashes,
+    MIME_EXTENSIONS, attachmentExtension, buildLocalScanAnalysis, buildLocalScanCandidates, buildManifest, classifyManagedMarkdownHashes,
     classifyMarkdownCandidate, contentHash, hasExternalModification, managedNoteForPath,
     normalizeSyncState, parseCollections, safeStableNoteFileName, serializeCollections
   };

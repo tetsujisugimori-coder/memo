@@ -303,6 +303,7 @@ const { buildMarkdownBundleImport, parseStoredZipEntries } = window.MemoNexusMar
 const { parseFlaggedMarkdown, serializeNoteForMarkdown, withNormalizedFlag } = window.MemoNexusNoteFlagUtils;
 const {
   applyLocalSaveSuccess,
+  classifyLocalSaveFailure,
   createLocalSaveState,
   localSaveLabel,
   resolveDisplayedCreatedAt,
@@ -310,11 +311,11 @@ const {
   shouldResumeLocalSaveAfterScan,
   transitionLocalSaveState
 } = window.MemoNexusLocalSaveState;
-const { createLocalSaveQueue, runLocalScanAfterQueue } = window.MemoNexusLocalSaveQueue;
+const { createLocalSaveQueue, runLocalReconnectSequence, runLocalScanAfterQueue } = window.MemoNexusLocalSaveQueue;
 const { parseLocalNote, restoreAttachmentReferences, serializeLocalNote } = window.MemoNexusLocalMarkdown;
 const {
   attachmentExtension,
-  buildLocalScanCandidates,
+  buildLocalScanAnalysis,
   buildManifest,
   contentHash,
   hasExternalModification,
@@ -1647,7 +1648,7 @@ async function initializeLocalFolderSaving({ scan = true } = {}) {
   renderSaveStatus();
   renderLocalFolderSettings();
   if (scan) await scanExternalLocalMarkdown({ automatic: true });
-  if (localSaveState.pendingChanges || !localSaveState.lastSuccessAt) queueLocalWorkspaceSave("startup");
+  else if (localSaveState.pendingChanges || !localSaveState.lastSuccessAt) queueLocalWorkspaceSave("startup");
 }
 
 function queueLocalWorkspaceSave(reason = "change") {
@@ -1759,13 +1760,8 @@ async function performLocalWorkspaceSave(reason = "change") {
     console.log("Local workspace saved", { reason, notes: plans.length, assets: assetPlans.size });
     return true;
   } catch (error) {
-    if (error?.code === "conflict") {
-      setLocalSaveState("conflict", { directoryName: localDirectoryHandle.name, errorCode: "conflict", errorMessage: error.message });
-    } else if (["NotAllowedError", "SecurityError"].includes(error?.name)) {
-      setLocalSaveState("permission-required", { directoryName: localDirectoryHandle.name, errorCode: "permission", errorMessage: "保存先への権限が失われました。再接続してください。" });
-    } else {
-      setLocalSaveState("error", { directoryName: localDirectoryHandle.name, errorCode: error?.name || "write", errorMessage: error?.message || String(error) });
-    }
+    const failure = classifyLocalSaveFailure(error);
+    setLocalSaveState(failure.status, { directoryName: localDirectoryHandle.name, ...failure });
     throw error;
   }
 }
@@ -1797,13 +1793,46 @@ async function selectLocalSaveFolder() {
 async function reconnectLocalSaveFolder() {
   if (!localDirectoryHandle) return selectLocalSaveFolder();
   try {
-    const permission = await localFs.requestPermission(localDirectoryHandle, "readwrite");
-    if (permission !== "granted") throw new Error("保存先への読み書き権限が許可されませんでした");
-    setLocalSaveState("pending", { directoryName: localDirectoryHandle.name, errorCode: "", errorMessage: "", requiresUserAction: false });
-    await queueLocalWorkspaceSave("reconnect");
-    await localSaveQueue.flush("reconnect");
+    const result = await runLocalReconnectSequence({
+      requestPermission: () => localFs.requestPermission(localDirectoryHandle, "readwrite"),
+      onPermissionGranted: () => {
+        const statusAfterPermission = localSaveState.pendingChanges || !localSaveState.lastSuccessAt ? "pending" : "saved";
+        setLocalSaveState(statusAfterPermission, {
+          directoryName: localDirectoryHandle.name,
+          lastSuccessAt: localSaveState.lastSuccessAt,
+          errorCode: "",
+          errorMessage: "",
+          requiresUserAction: false
+        });
+      },
+      scan: () => scanExternalLocalMarkdown({
+        automatic: true,
+        resumePendingSave: false,
+        throwOnError: true
+      }),
+      shouldSave: (analysis) => (
+        !analysis.candidates.some((candidate) => ["restore", "conflict"].includes(candidate.classification.type))
+        && shouldResumeLocalSaveAfterScan({
+          enabled: localSaveSettings.enabled,
+          hasDirectory: Boolean(localDirectoryHandle),
+          state: localSaveState,
+          candidates: localScanCandidates
+        })
+      ),
+      save: () => reconcileLocalScanCandidates({ resumePendingSave: true, reason: "reconnect" })
+    });
+    if (result.permission !== "granted") {
+      const denied = Object.assign(new Error("保存先への読み書き権限が許可されませんでした"), { code: "permission" });
+      const failure = classifyLocalSaveFailure(denied);
+      setLocalSaveState(failure.status, { directoryName: localDirectoryHandle.name, ...failure });
+      return false;
+    }
+    return result.saved;
   } catch (error) {
-    setLocalSaveState("permission-required", { errorCode: "permission", errorMessage: error?.message || String(error) });
+    if (error?.localSaveStage === "save" && ["conflict", "permission-required", "error"].includes(localSaveState.status)) return false;
+    const failure = classifyLocalSaveFailure(error);
+    setLocalSaveState(failure.status, { directoryName: localDirectoryHandle.name, ...failure });
+    return false;
   }
 }
 
@@ -1844,18 +1873,20 @@ function localMimeType(fileName, fallback = "") {
   return fallback || ({ jpg: "image/jpeg", jpeg: "image/jpeg", png: "image/png", webp: "image/webp", gif: "image/gif", pdf: "application/pdf" })[extension] || "application/octet-stream";
 }
 
-async function scanExternalLocalMarkdown({ automatic = false } = {}) {
-  if (!localDirectoryHandle) return [];
+async function scanExternalLocalMarkdown({ automatic = false, resumePendingSave = true, throwOnError = false } = {}) {
+  const emptyAnalysis = { candidates: [], appAheadNoteIds: [], needsLocalSave: false };
+  if (!localDirectoryHandle) return emptyAnalysis;
   const permission = await localFs.queryPermission(localDirectoryHandle, "read");
   if (permission !== "granted") {
     if (!automatic) setLocalSaveState("permission-required", { errorCode: "permission", errorMessage: "再接続して読み取り権限を許可してください。" });
-    return [];
+    if (throwOnError) throw Object.assign(new Error("再接続して読み取り権限を許可してください。"), { code: "permission" });
+    return emptyAnalysis;
   }
   try {
     const layout = await localFs.ensureWorkspaceLayout(localDirectoryHandle);
     localSyncState = normalizeSyncState(await localFs.readJson(layout.root, "sync-state.json", localSyncState));
     const files = await localFs.scanMarkdownFiles(localDirectoryHandle);
-    localScanCandidates = await buildLocalScanCandidates({
+    const analysis = await buildLocalScanAnalysis({
       files,
       syncState: localSyncState,
       notes,
@@ -1863,12 +1894,18 @@ async function scanExternalLocalMarkdown({ automatic = false } = {}) {
       serializeNote: serializeLocalNote,
       getAttachmentsForNote: getAttachmentsForMemo
     });
-    await reconcileLocalScanCandidates({ resumePendingSave: true, reason: "scan-unblocked" });
+    localScanCandidates = analysis.candidates;
+    await reconcileLocalScanCandidates({
+      resumePendingSave,
+      reason: "scan-unblocked",
+      markPendingChanges: analysis.needsLocalSave
+    });
     if (!automatic) localFolderStatus.textContent = localScanCandidates.length ? `${localScanCandidates.length}件を確認してください。自動上書きはしません。` : "新しい外部Markdownはありません。";
-    return localScanCandidates;
+    return analysis;
   } catch (error) {
     if (!automatic) localFolderStatus.textContent = `再スキャンに失敗しました: ${error.message || error}`;
-    return [];
+    if (throwOnError) throw error;
+    return emptyAnalysis;
   }
 }
 

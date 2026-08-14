@@ -27,7 +27,7 @@ test("下部ステータスバーに操作可能な文字数チップと詳細�
   assert.match(html, /文字数 0字/);
   assert.match(html, /text-stats-utils\.js\?v=0\.4\.0-2/);
   assert.match(html, /style\.css\?v=0\.4\.0-50/);
-  assert.match(html, /app\.js\?v=0\.4\.0-77/);
+  assert.match(html, /app\.js\?v=0\.4\.0-78/);
   assert.match(css, /\.status-chip\s*\{[^}]*min-height:\s*26px/s);
   assert.match(css, /\.text-stats-popover\s*\{[^}]*width:\s*min\(360px, calc\(100vw - 32px\)\)/s);
 });

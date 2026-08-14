@@ -96,6 +96,28 @@
     return Boolean(enabled && hasDirectory && !hasBlockingCandidate && state?.pendingChanges && !protectedStatus);
   }
 
+  function classifyLocalSaveFailure(error) {
+    if (error?.code === "conflict") {
+      return {
+        status: "conflict",
+        errorCode: "external-conflict",
+        errorMessage: error?.message || "Memo-Nexusが最後に保存した後でローカルMarkdownが変更されています。内容を確認してください。"
+      };
+    }
+    if (["NotAllowedError", "SecurityError"].includes(error?.name) || error?.code === "permission") {
+      return {
+        status: "permission-required",
+        errorCode: "permission",
+        errorMessage: error?.message || "保存先への権限が失われました。再接続してください。"
+      };
+    }
+    return {
+      status: "error",
+      errorCode: error?.name || error?.code || "write",
+      errorMessage: error?.message || String(error)
+    };
+  }
+
   function resolveDisplayedCreatedAt(note) {
     return note?.localCreatedAt || note?.createdAt || null;
   }
@@ -115,7 +137,7 @@
   }
 
   const api = {
-    STATUS_LABELS, applyLocalSaveSuccess, createLocalSaveState, localSaveLabel,
+    STATUS_LABELS, applyLocalSaveSuccess, classifyLocalSaveFailure, createLocalSaveState, localSaveLabel,
     resolveDisplayedCreatedAt, resolveLocalScanState, shouldResumeLocalSaveAfterScan,
     transitionLocalSaveState
   };
