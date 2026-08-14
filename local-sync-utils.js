@@ -15,6 +15,28 @@
     return `fnv1a-${(hash >>> 0).toString(16).padStart(8, "0")}`;
   }
 
+  function managedMarkdownComparableHash(markdown) {
+    const source = String(markdown == null ? "" : markdown);
+    const firstLineEnd = source.indexOf("\n");
+    if (firstLineEnd === -1 || source.slice(0, firstLineEnd).replace(/\r$/, "") !== "---") {
+      return contentHash(source);
+    }
+    let lineStart = firstLineEnd + 1;
+    while (lineStart < source.length) {
+      const nextLineEnd = source.indexOf("\n", lineStart);
+      const lineEnd = nextLineEnd === -1 ? source.length : nextLineEnd;
+      const line = source.slice(lineStart, lineEnd).replace(/\r$/, "");
+      if (line === "---") break;
+      if (/^localSavedAt:\s*/.test(line)) {
+        const afterLine = nextLineEnd === -1 ? source.length : nextLineEnd + 1;
+        return contentHash(`${source.slice(0, lineStart)}${source.slice(afterLine)}`);
+      }
+      if (nextLineEnd === -1) break;
+      lineStart = nextLineEnd + 1;
+    }
+    return contentHash(source);
+  }
+
   function attachmentExtension(attachment) {
     return MIME_EXTENSIONS[String(attachment?.mimeType || attachment?.blob?.type || "").toLowerCase()] || "bin";
   }
@@ -67,8 +89,21 @@
     }));
   }
 
-  function hasExternalModification(lastWrittenHash, currentHash, nextHash) {
-    return Boolean(lastWrittenHash && currentHash && currentHash !== lastWrittenHash && currentHash !== nextHash);
+  function hasExternalModification(
+    lastWrittenHash,
+    currentHash,
+    nextHash,
+    currentComparableHash = null,
+    nextComparableHash = null
+  ) {
+    if (!lastWrittenHash || !currentHash) return false;
+    return classifyManagedMarkdownHashes(
+      lastWrittenHash,
+      currentHash,
+      nextHash,
+      currentComparableHash,
+      nextComparableHash
+    ) === "conflict";
   }
 
   function managedNoteForPath(syncState, path) {
@@ -78,12 +113,19 @@
     )) || null;
   }
 
-  function classifyManagedMarkdownHashes(lastWrittenHash, currentLocalHash, nextAppHash) {
+  function classifyManagedMarkdownHashes(
+    lastWrittenHash,
+    currentLocalHash,
+    nextAppHash,
+    currentComparableHash = null,
+    nextComparableHash = null
+  ) {
     if (!lastWrittenHash) return "unmanaged";
     if (currentLocalHash === lastWrittenHash) {
       return currentLocalHash === nextAppHash ? "last-written" : "app-ahead";
     }
     if (currentLocalHash === nextAppHash) return "app-current";
+    if (currentComparableHash && nextComparableHash && currentComparableHash === nextComparableHash) return "app-ahead";
     return "conflict";
   }
 
@@ -127,9 +169,18 @@
             id: attachment.id,
             fileName: normalizedSync.assets[attachment.id]?.fileName || `${attachment.id}.${attachmentExtension(attachment)}`
           }));
-          const nextAppHash = contentHash(serializeNote(managedNote, managedNote.body, attachmentFiles));
+          const nextAppMarkdown = serializeNote(managedNote, managedNote.body, attachmentFiles);
+          const nextAppHash = contentHash(nextAppMarkdown);
           const currentLocalHash = contentHash(source);
-          const disposition = classifyManagedMarkdownHashes(managedState.hash, currentLocalHash, nextAppHash);
+          const currentComparableHash = managedMarkdownComparableHash(source);
+          const nextComparableHash = managedMarkdownComparableHash(nextAppMarkdown);
+          const disposition = classifyManagedMarkdownHashes(
+            managedState.hash,
+            currentLocalHash,
+            nextAppHash,
+            currentComparableHash,
+            nextComparableHash
+          );
           if (disposition === "app-ahead") appAheadNoteIds.push(managedNoteId);
           if (disposition !== "conflict") continue;
           candidates.push({
@@ -141,7 +192,9 @@
               bodyHash: contentHash(`${parsed.metadata.title || ""}\n${parsed.body || ""}`),
               lastWrittenHash: managedState.hash,
               currentLocalHash,
-              nextAppHash
+              nextAppHash,
+              currentComparableHash,
+              nextComparableHash
             }
           });
           continue;
@@ -178,7 +231,7 @@
 
   const api = {
     MIME_EXTENSIONS, attachmentExtension, buildLocalScanAnalysis, buildLocalScanCandidates, buildManifest, classifyManagedMarkdownHashes,
-    classifyMarkdownCandidate, contentHash, hasExternalModification, managedNoteForPath,
+    classifyMarkdownCandidate, contentHash, hasExternalModification, managedMarkdownComparableHash, managedNoteForPath,
     normalizeSyncState, parseCollections, safeStableNoteFileName, serializeCollections
   };
   if (typeof module !== "undefined" && module.exports) module.exports = api;

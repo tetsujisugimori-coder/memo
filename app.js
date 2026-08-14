@@ -319,6 +319,7 @@ const {
   buildManifest,
   contentHash,
   hasExternalModification,
+  managedMarkdownComparableHash,
   normalizeSyncState,
   parseCollections,
   safeStableNoteFileName,
@@ -1725,7 +1726,9 @@ async function performLocalWorkspaceSave(reason = "change") {
       if (!forcedNoteIds.has(note.id) && previous.hash) {
         const currentText = await optionalLocalText(layout.root, `notes/${fileName}`);
         const currentHash = currentText == null ? null : contentHash(currentText);
-        if (hasExternalModification(previous.hash, currentHash, hash)) {
+        const currentComparableHash = currentText == null ? null : managedMarkdownComparableHash(currentText);
+        const nextComparableHash = managedMarkdownComparableHash(markdown);
+        if (hasExternalModification(previous.hash, currentHash, hash, currentComparableHash, nextComparableHash)) {
           const conflict = new Error(`「${note.title}」はローカルで変更されています。確認してから保存してください。`);
           conflict.code = "conflict";
           throw conflict;
@@ -1781,7 +1784,12 @@ async function selectLocalSaveFolder() {
     await localFs.putConfig(db, LOCAL_CONFIG_STORE_NAME, "directoryHandle", handle);
     await persistLocalSaveSettings();
     setLocalSaveState("pending", { directoryName: handle.name, pendingChanges: true, requiresUserAction: false });
-    await scanExternalLocalMarkdown({ automatic: true });
+    const analysis = await scanExternalLocalMarkdown({
+      automatic: true,
+      resumePendingSave: false,
+      throwOnError: true
+    });
+    if (analysis.candidates.some((candidate) => ["restore", "conflict"].includes(candidate.classification.type))) return false;
     await queueLocalWorkspaceSave("folder-selected");
     await localSaveQueue.flush("folder-selected");
   } catch (error) {

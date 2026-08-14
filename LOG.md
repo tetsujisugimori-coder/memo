@@ -1679,3 +1679,10 @@
 * 管理対象Markdown走査を、候補一覧に加えて`appAheadNoteIds`と`needsLocalSave`を返す共通解析へ拡張した。`sync-state.json`の前回hash、現在のローカルMarkdown hash、現在のIndexedDB内容から生成したMarkdown hashを比較し、ローカルが前回書込みのままでアプリ側だけ新しい`app-ahead`は競合候補へ表示せず、起動時の保存再開へ使う。3者が同一なら起動時に保存キューを実行せず、Markdown更新日時、`lastSuccessAt`、`localSavedAt`を変更しない。真の外部変更の自動上書き防止、保存直前の再確認、実保存成功時だけの日時更新、`createdAt`・`localCreatedAt`維持は変更していない。
 * 模擬File System Access API、共通走査解析、再接続順序関数、実保存キューを通る回帰テストを追加した。権限回復後の走査が保存より先であること、競合時の保存0回と外部内容維持、安全な`app-ahead`の保存1回、権限・競合・一般エラー分類、起動時app-aheadのMarkdown・`sync-state.json`更新、同一内容の書込み0回と日時維持、起動時の真の競合を確認した。`node --test`は465件成功し、全JavaScript 96ファイルの`node --check`も成功した。
 * Edgeの`http://127.0.0.1:5500`では、`app.js?v=0.4.0-78`、`local-save-state.js?v=0.4.0-4`、`local-save-queue.js?v=0.4.0-3`、`local-sync-utils.js?v=0.4.0-4`の読込みを確認した。下部バーには作成日時`2026/08/14 10:02`、更新日時`2026/08/14 17:03`が残り、権限喪失中の表示は「ローカル 再接続が必要」、最終保存日時は`2026/08/14 10:02:51`のままだった。接続先実フォルダの原本を特定してバックアップできないため、再接続ボタン、外部競合時の実ファイル非上書き、安全時の保存再開、app-ahead再読込、同一内容再読込時のファイル更新日時維持は実機では未実施とし、原本へ保存操作を行っていない。
+
+## 2026-08-14 ローカル保存途中失敗の再試行と初回保存重複の修正
+
+* Markdown書込み後、添付や`sync-state.json`の更新前に保存が失敗した場合でも、安全に再試行できるようにした。比較用hashは管理対象Markdownのfront matterにある`localSavedAt`行だけを除外し、本文、タイトル、その他のメタデータ、添付参照はすべて比較対象に残す。走査と`performLocalWorkspaceSave()`直前の二重防御は同じ比較関数を使い、再試行時刻だけが異なるアプリ書込み済みMarkdownは`app-ahead`、本文等も異なる場合は真の外部競合として扱う。`sync-state.json.hash`は後方互換のため従来どおり完全なMarkdownのraw hashを保存する。
+* 初回フォルダ選択では、権限取得後の走査でpending保存を自動再開しない。復元・競合候補があれば保存せず確認を求め、安全な場合だけ明示的な`folder-selected`保存を1回実行する。これにより初回保存のMarkdownと`sync-state.json`を二重に書かず、既存Markdownがあるフォルダを先に上書きしない。既存の再接続時scan-first、保存直前の外部変更確認、保存日時、`createdAt`・`localCreatedAt`の仕様は維持した。
+* 模擬File System Access APIと実保存キューを通る回帰テストで、途中失敗後の再試行、走査側の`app-ahead`判定、raw hash更新、本文外部編集時の競合保護、初回フォルダ選択の保存1回、復元候補時の保存0回を確認した。`node --test`は470件成功し、全JavaScript 96ファイルの`node --check`と`git diff --check`も成功した。
+* Edgeの`http://127.0.0.1:5500`では、`app.js?v=0.4.0-79`、`local-sync-utils.js?v=0.4.0-5`を読み込み、下部バーに作成・更新日時と「ローカル 再接続が必要」「ブラウザ 保存済み」が表示されることを確認した。既存保存先の原本を特定してバックアップできず権限も失われているため、専用テストフォルダを使う初回実保存、途中失敗の実機再現、再試行、外部編集保護は未実施とし、既存フォルダへの再接続・書込みは行っていない。
