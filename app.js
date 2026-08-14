@@ -327,6 +327,7 @@ const {
 const localFs = window.MemoNexusLocalFsAdapter;
 const { openManagedDatabase, runGuardedStartup, startupFailureReason } = window.MemoNexusIndexedDbLifecycle;
 const { runManualLocalSave } = window.MemoNexusManualLocalSave;
+const { formatDateTimeWithSeconds, formatNoteDateTime, formatSaveSuccessTime, validLocalDate } = window.MemoNexusStatusTimeUtils;
 const {
   MAX_WEB_CLIP_IMAGE_BYTES,
   safeExternalUrl: safeWebClipUrl,
@@ -570,7 +571,8 @@ const popoutUnavailable = $("popoutUnavailable");
 const popoutUnavailableBackBtn = $("popoutUnavailableBackBtn");
 const memoSyncNotice = $("memoSyncNotice");
 const loadMemoSyncBtn = $("loadMemoSyncBtn");
-const noteMeta = $("noteMeta");
+const noteCreatedAt = $("noteCreatedAt");
+const noteUpdatedAt = $("noteUpdatedAt");
 const textStatsBtn = $("textStatsBtn");
 const textStatsPopover = $("textStatsPopover");
 const textStatsBody = $("textStatsBody");
@@ -613,6 +615,8 @@ const previewCard = $("previewCard");
 const saveStatus = $("saveStatus");
 const browserSaveStatusBtn = $("browserSaveStatusBtn");
 const localSaveStatusBtn = $("localSaveStatusBtn");
+const browserSaveSuccessTime = $("browserSaveSuccessTime");
+const localSaveSuccessTime = $("localSaveSuccessTime");
 const combinedSaveStatusBtn = $("combinedSaveStatusBtn");
 const browserSavePopover = $("browserSavePopover");
 const localSavePopover = $("localSavePopover");
@@ -4084,7 +4088,7 @@ async function toggleCurrentNoteFlag() {
   notes = await getAllNotes();
   currentId = note.id;
   renderNoteFlagButton(currentNote());
-  setSaveStatus("saved", note.updatedAt);
+  setSaveStatus("saved", Date.now());
   if (isPopoutWindow) renderNoteMeta(); else renderAll();
 }
 
@@ -4238,7 +4242,7 @@ async function saveCurrentNote() {
       pendingMemoSync = null;
       renderMemoSyncNotice();
     }
-    setSaveStatus("saved", note.updatedAt);
+    setSaveStatus("saved", Date.now());
     if (isPopoutWindow) {
       renderNoteMeta();
       document.title = `${note.title} — Memo Nexus`;
@@ -7723,16 +7727,18 @@ function zipDosDateTime(value) {
   return { dosTime, dosDate };
 }
 
-// エディタ末尾に、作成日と本文の最終変更日時を表示します。
+// タイトルの近くに、既存仕様で決めた作成日と本文の最終変更日時を表示します。
 function renderNoteMeta() {
   const note = currentNote();
   if (!note) {
-    if (noteMeta) noteMeta.textContent = "";
+    renderTimestamp(noteCreatedAt, null, formatNoteDateTime, "作成");
+    renderTimestamp(noteUpdatedAt, null, formatNoteDateTime, "更新");
     return;
   }
   const createdAt = resolveDisplayedCreatedAt(note);
   const updatedAt = note.bodyUpdatedAt || note.updatedAt;
-  if (noteMeta) noteMeta.textContent = `作成: ${formatDateTime(createdAt)}　更新: ${formatDateTime(updatedAt)}`;
+  renderTimestamp(noteCreatedAt, createdAt, formatNoteDateTime, "作成");
+  renderTimestamp(noteUpdatedAt, updatedAt, formatNoteDateTime, "更新");
   renderSaveStatus();
 }
 
@@ -7768,22 +7774,18 @@ function setTextStatsOpen(open) {
   else textStatsBtn.focus();
 }
 
-function formatDateTime(value) {
-  const date = new Date(value || Date.now());
-  return `${date.getFullYear()}/${String(date.getMonth() + 1).padStart(2, "0")}/${String(date.getDate()).padStart(2, "0")} ${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
+function renderTimestamp(element, value, formatter, prefix = "") {
+  if (!element) return;
+  const date = validLocalDate(value);
+  element.textContent = `${prefix ? `${prefix} ` : ""}${formatter(date)}`;
+  if (date) element.dateTime = date.toISOString();
+  else element.removeAttribute("datetime");
 }
 
-function formatDateTimeWithSeconds(value) {
-  const date = new Date(value || Date.now());
-  return `${formatDateTime(date)}:${String(date.getSeconds()).padStart(2, "0")}`;
-}
-
-function setSaveStatus(state, savedAt = saveStatusTime) {
+function setSaveStatus(state, savedAt) {
   saveStatusState = state;
   saveStatusNotice = "";
-  if (state === "saved") {
-    saveStatusTime = savedAt || Date.now();
-  }
+  if (state === "saved" && validLocalDate(savedAt)) saveStatusTime = savedAt;
   renderSaveStatus();
 }
 
@@ -7863,6 +7865,8 @@ function renderSaveStatus() {
     localSaveStatusBtn.dataset.state = local.state;
     localSaveStatusBtn.textContent = `▣ ローカル ${local.label}`;
   }
+  renderTimestamp(localSaveSuccessTime, local.savedAt, formatSaveSuccessTime);
+  renderTimestamp(browserSaveSuccessTime, browser.savedAt, formatSaveSuccessTime);
   if (combinedSaveStatusBtn) {
     const localNeedsAttention = ["error", "conflict", "permission-required", "pending", "saving"].includes(local.state);
     const combinedState = localNeedsAttention ? local.state : browser.state;

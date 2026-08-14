@@ -21,13 +21,16 @@ function extractFunction(source, name) {
   throw new Error(`${name} の終端が見つかりません`);
 }
 
-test("下部ステータスバーに操作可能な文字数チップと詳細統計を置く", () => {
+test("下部ステータスバーでフラグ直後に操作可能な文字数チップと詳細統計を置く", () => {
+  const footerActions = html.match(/<div class="note-meta-actions">[\s\S]*?<\/div>/)?.[0] || "";
+  assert.match(footerActions, /id="noteFlagBtn"[\s\S]*id="textStatsBtn"/);
   assert.match(html, /id="textStatsBtn"[^>]*aria-haspopup="dialog"[^>]*aria-expanded="false"/);
   assert.match(html, /id="textStatsPopover"[^>]*role="dialog"[^>]*hidden/);
   assert.match(html, /文字数 0字/);
   assert.match(html, /text-stats-utils\.js\?v=0\.4\.0-2/);
-  assert.match(html, /style\.css\?v=0\.4\.0-51/);
-  assert.match(html, /app\.js\?v=0\.4\.0-80/);
+  assert.match(html, /style\.css\?v=0\.4\.0-52/);
+  assert.match(html, /status-time-utils\.js\?v=0\.4\.0-1/);
+  assert.match(html, /app\.js\?v=0\.4\.0-81/);
   assert.match(css, /\.status-chip\s*\{[^}]*min-height:\s*26px/s);
   assert.match(css, /\.text-stats-popover\s*\{[^}]*width:\s*min\(360px, calc\(100vw - 32px\)\)/s);
 });
@@ -43,6 +46,8 @@ test("本文更新とキーボード・外側クリックで文章統計を制�
 test("下部保存チップは実際のブラウザ状態と未設定ローカル状態を分けて表示する", () => {
   assert.match(html, /id="browserSaveStatusBtn"[^>]*aria-controls="browserSavePopover"/);
   assert.match(html, /id="localSaveStatusBtn"[^>]*aria-controls="localSavePopover"/);
+  assert.match(html, /id="localSaveStatusBtn"[\s\S]*id="localSaveSuccessTime"[^>]*>—<\/time>/);
+  assert.match(html, /id="browserSaveStatusBtn"[\s\S]*id="browserSaveSuccessTime"[^>]*>—<\/time>/);
   assert.match(app, /function performLocalWorkspaceSave\(reason = "change"\)/);
   assert.match(app, /function browserSaveStatusModel\(\)/);
   assert.match(app, /function localSaveStatusModel\(\)/);
@@ -64,10 +69,13 @@ test("ブラウザ保存状態の遷移とローカル未設定状態を実際�
   });
 });
 
-test("保存状態バーは狭幅で集約し、ライト・ダーク共通テーマ変数と状態色を使う", () => {
+test("保存状態バーは狭幅で成功時刻ごと折り返し、ライト・ダーク共通テーマ変数と状態色を使う", () => {
   assert.match(html, /id="combinedSaveStatusBtn"/);
   assert.match(css, /\.save-status-chip\[data-state="saved"\][^}]*var\(--green\)/);
   assert.match(css, /\.save-status-chip\[data-state="saving"\][^}]*var\(--accent\)/);
   assert.match(css, /\.save-status-chip\[data-state="error"\][^}]*var\(--danger\)/);
-  assert.match(css, /@media \(max-width: 620px\)[\s\S]*\.combined-save-status\s*\{\s*display:\s*inline-flex/s);
+  assert.match(css, /\.save-success-time\s*\{[^}]*color:\s*var\(--muted\)[^}]*font-size:\s*10px/s);
+  assert.match(css, /@media \(max-width: 620px\)[\s\S]*\.save-status-actions\s*\{[^}]*flex-wrap:\s*wrap/s);
+  assert.match(css, /@media \(max-width: 420px\)[\s\S]*\.save-status-group\s*\{[^}]*flex:\s*1 1 100%/s);
+  assert.doesNotMatch(css, /\.combined-save-status\s*\{\s*display:\s*inline-flex/);
 });

@@ -7,7 +7,7 @@
   <script>try { document.documentElement.dataset.initialTheme = localStorage.getItem("memo-nexus-theme") === "dark" ? "dark" : "light"; } catch (_) { document.documentElement.dataset.initialTheme = "light"; }</script>
   <style>html,body{background:#f6f7f4;color:#222522;color-scheme:light}html[data-initial-theme="dark"],html[data-initial-theme="dark"] body{background:#111513;color:#e7ece7;color-scheme:dark}</style>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css">
-  <link rel="stylesheet" href="style.css?v=0.4.0-51">
+  <link rel="stylesheet" href="style.css?v=0.4.0-52">
 </head>
 <body class="app-starting">
   <section id="appStartupGuard" class="app-startup-guard" role="status" aria-live="polite" aria-busy="true">
@@ -83,14 +83,19 @@
         <div class="title-side">
           <div class="title-side-head">
             <div class="title-actions" aria-label="メモ操作">
-              <button id="noteFlagBtn" class="note-flag-button" type="button" title="フラグを付ける" aria-label="フラグを付ける" aria-pressed="false"><span class="note-flag-icon" aria-hidden="true">⚑</span></button>
               <button id="popoutMemoBtn" class="popout-memo-button" type="button" title="このメモを別ウィンドウで開く" aria-label="このメモを別ウィンドウで開く">↗</button>
               <button id="popoutBackBtn" class="popout-back-button" type="button" title="Memo Nexus本体へ戻る">本体へ戻る</button>
               <button id="noteExportBtn" class="note-export-button" type="button" title="このメモをエクスポート" aria-label="このメモをエクスポート">…</button>
             </div>
           </div>
         </div>
-        <div class="title-input-wrap"><input id="titleInput" class="title-input" placeholder="無題メモ" autocomplete="off"></div>
+        <div class="title-content">
+          <div class="title-input-wrap"><input id="titleInput" class="title-input" placeholder="無題メモ" autocomplete="off"></div>
+          <div id="noteMeta" class="note-meta" aria-label="メモの日時">
+            <time id="noteCreatedAt">作成 —</time>
+            <time id="noteUpdatedAt">更新 —</time>
+          </div>
+        </div>
       </div>
       <div class="editor-tools" aria-label="エディタ操作">
         <button id="insertTableBtn" type="button" title="カーソル位置へ表ブロックを挿入" aria-label="表ブロックを挿入">表</button>
@@ -108,17 +113,23 @@
       <div id="tableBlockEditors" class="table-block-editors" role="region" aria-label="表ブロック編集" hidden></div>
       <div class="note-meta-bar" aria-label="文書と保存の状態">
         <div class="note-meta-actions">
+          <button id="noteFlagBtn" class="note-flag-button" type="button" title="フラグを付ける" aria-label="フラグを付ける" aria-pressed="false"><span class="note-flag-icon" aria-hidden="true">⚑</span></button>
           <button id="textStatsBtn" class="status-chip text-stats-button" type="button" aria-label="文章統計を開く" aria-haspopup="dialog" aria-expanded="false" aria-controls="textStatsPopover">文字数 0字</button>
           <section id="textStatsPopover" class="text-stats-popover" role="dialog" aria-labelledby="textStatsTitle" hidden>
             <div class="text-stats-head"><strong id="textStatsTitle">文章統計</strong><button id="closeTextStatsBtn" type="button" aria-label="文章統計を閉じる">×</button></div>
             <div id="textStatsBody" class="text-stats-body"></div>
           </section>
         </div>
-        <div id="noteMeta" class="note-meta" aria-label="メモの日時"></div>
         <div class="save-status-actions">
           <button id="saveLocalQuickBtn" class="status-chip local-save-now-button" type="button">ローカルへ保存</button>
-          <button id="localSaveStatusBtn" class="status-chip save-status-chip" type="button" data-state="unconfigured" aria-haspopup="dialog" aria-expanded="false" aria-controls="localSavePopover">▣ ローカル 未設定</button>
-          <button id="browserSaveStatusBtn" class="status-chip save-status-chip" type="button" data-state="saved" aria-haspopup="dialog" aria-expanded="false" aria-controls="browserSavePopover">◉ ブラウザ 保存済み</button>
+          <span class="save-status-group">
+            <button id="localSaveStatusBtn" class="status-chip save-status-chip" type="button" data-state="unconfigured" aria-haspopup="dialog" aria-expanded="false" aria-controls="localSavePopover">▣ ローカル 未設定</button>
+            <time id="localSaveSuccessTime" class="save-success-time" aria-label="ローカル最終保存成功時刻">—</time>
+          </span>
+          <span class="save-status-group">
+            <button id="browserSaveStatusBtn" class="status-chip save-status-chip" type="button" data-state="saved" aria-haspopup="dialog" aria-expanded="false" aria-controls="browserSavePopover">◉ ブラウザ 保存済み</button>
+            <time id="browserSaveSuccessTime" class="save-success-time" aria-label="ブラウザ最終保存成功時刻">—</time>
+          </span>
           <button id="combinedSaveStatusBtn" class="status-chip save-status-chip combined-save-status" type="button" aria-haspopup="dialog" aria-expanded="false" aria-controls="combinedSavePopover">保存状態</button>
           <section id="browserSavePopover" class="status-popover" role="dialog" aria-labelledby="browserSaveTitle" hidden>
             <div class="text-stats-head"><strong id="browserSaveTitle">ブラウザ保存</strong><button data-close-status-popover type="button" aria-label="ブラウザ保存の詳細を閉じる">×</button></div>
@@ -746,6 +757,7 @@
   <script src="local-fs-adapter.js?v=0.4.0-1"></script>
   <script src="indexeddb-lifecycle.js?v=0.4.0-1"></script>
   <script src="manual-local-save.js?v=0.4.0-1"></script>
-  <script src="app.js?v=0.4.0-80"></script>
+  <script src="status-time-utils.js?v=0.4.0-1"></script>
+  <script src="app.js?v=0.4.0-81"></script>
 </body>
 </html>

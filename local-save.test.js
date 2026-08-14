@@ -152,11 +152,13 @@ function applyScanState(state, candidates, now = Date.now()) {
   return resolution ? transitionLocalSaveState(state, resolution.status, resolution.patch, now) : state;
 }
 
-test("下部バーに文字数・日時・ローカル・ブラウザを別情報として保持する", () => {
-  assert.match(html, /id="textStatsBtn"[\s\S]*id="noteMeta" class="note-meta"[\s\S]*id="localSaveStatusBtn"[\s\S]*id="browserSaveStatusBtn"/);
-  assert.match(app, /const noteMeta = \$\("noteMeta"\)/);
+test("タイトル日時と下部の文字数・ローカル・ブラウザを別情報として保持する", () => {
+  assert.match(html, /class="title-content"[\s\S]*id="titleInput"[\s\S]*id="noteMeta" class="note-meta"[\s\S]*id="noteCreatedAt"[\s\S]*id="noteUpdatedAt"/);
+  assert.match(html, /class="note-meta-actions"[\s\S]*id="noteFlagBtn"[\s\S]*id="textStatsBtn"[\s\S]*class="save-status-actions"[\s\S]*id="localSaveStatusBtn"[\s\S]*id="localSaveSuccessTime"[\s\S]*id="browserSaveStatusBtn"[\s\S]*id="browserSaveSuccessTime"/);
+  assert.doesNotMatch(html.match(/<div class="note-meta-bar"[\s\S]*?<\/section>\s*<\/div>/)?.[0] || "", /id="noteMeta"/);
   assert.match(app, /const createdAt = resolveDisplayedCreatedAt\(note\)/);
-  assert.match(app, /`作成: \$\{formatDateTime\(createdAt\)\}　更新: \$\{formatDateTime\(updatedAt\)\}`/);
+  assert.match(app, /renderTimestamp\(noteCreatedAt, createdAt, formatNoteDateTime, "作成"\)/);
+  assert.match(app, /renderTimestamp\(noteUpdatedAt, updatedAt, formatNoteDateTime, "更新"\)/);
   assert.match(app, /renderNoteMeta\([\s\S]*renderSaveStatus\(\)/);
   assert.match(app, /const combinedLabel = localNeedsAttention \? local\.label : browser\.label/);
   assert.match(app, /`保存状態 \$\{combinedLabel\}`/);
@@ -246,7 +248,7 @@ test("管理対象Markdownはsync-stateのnote IDとfileNameで特定する", ()
   assert.match(html, /local-save-state\.js\?v=0\.4\.0-4/);
   assert.match(html, /local-save-queue\.js\?v=0\.4\.0-3/);
   assert.match(html, /local-sync-utils\.js\?v=0\.4\.0-5/);
-  assert.match(html, /app\.js\?v=0\.4\.0-80/);
+  assert.match(html, /app\.js\?v=0\.4\.0-81/);
   const syncState = {
     notes: {
       "note-1": { fileName: "題名--note-1.md", hash: "last" },
@@ -951,7 +953,7 @@ test("非対応環境はZIP代替を案内し、狭幅でも日時を残す", ()
   assert.equal(localFs.supportStatus({ isSecureContext: true }).supported, false);
   assert.match(localFs.supportStatus({ isSecureContext: true }).reason, /Markdown ZIP/);
   assert.match(css, /--amber:/);
-  assert.match(css, /@media \(max-width: 620px\)[\s\S]*\.note-meta\s*\{[^}]*flex:[^}]*font-size:/);
+  assert.match(css, /@container app-width \(max-width: 719\.98px\)[\s\S]*\.note-meta\s*\{[^}]*flex-direction:\s*row[^}]*flex-wrap:\s*wrap/);
   assert.match(css, /body\.dark[\s\S]*--amber:/);
   assert.match(app, /event\.key === "Escape"/);
 });

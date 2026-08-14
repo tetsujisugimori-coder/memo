@@ -27,8 +27,15 @@ test("本文入力欄の後ろに表ブロック編集領域と境界余白を�
   assert.doesNotMatch(css, /\.table-block-editors\s*\{[^}]*border-bottom:/s);
 });
 
-test("Mermaid表示用CSSの配信キャッシュを更新する", () => {
-  assert.match(html, /style\.css\?v=0\.4\.0-51/);
+test("画面配置用CSSの配信キャッシュを更新する", () => {
+  assert.match(html, /style\.css\?v=0\.4\.0-52/);
+});
+
+test("狭幅ではタイトル日時と保存状態・成功時刻を重ねずに折り返す", () => {
+  assert.match(css, /@container app-width \(max-width: 719\.98px\)[\s\S]*\.title-content\s*\{[^}]*grid-template-columns:\s*minmax\(0, 1fr\)/s);
+  assert.match(css, /@container app-width \(max-width: 719\.98px\)[\s\S]*\.note-meta\s*\{[^}]*flex-direction:\s*row[^}]*flex-wrap:\s*wrap/s);
+  assert.match(css, /@media \(max-width: 620px\)[\s\S]*\.save-status-actions\s*\{[^}]*flex:\s*1 1 100%[^}]*flex-wrap:\s*wrap/s);
+  assert.match(css, /@media \(max-width: 420px\)[\s\S]*\.save-status-group\s*\{[^}]*justify-content:\s*flex-end/s);
 });
 
 test("右側コンテキストパネルは単一の固定列とモバイルドロワーを持つ", () => {
