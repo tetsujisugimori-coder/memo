@@ -85,6 +85,71 @@
     return "conflict";
   }
 
+  async function buildLocalScanCandidates({
+    files = [], syncState, notes = [], parseNote, serializeNote,
+    getAttachmentsForNote = async () => []
+  } = {}) {
+    const normalizedSync = normalizeSyncState(syncState);
+    const excluded = new Set(normalizedSync.excluded);
+    const candidates = [];
+    for (const entry of files) {
+      if (excluded.has(entry.path)) continue;
+      const source = await entry.file.text();
+      const firstPass = parseNote(source, { fileLastModified: entry.file.lastModified });
+      const assetMappings = firstPass.assetPaths.map((path) => {
+        const fileName = path.split("/").pop();
+        const known = Object.entries(normalizedSync.assets).find(([, value]) => value.fileName === fileName);
+        return known ? { path, id: known[0] } : null;
+      }).filter(Boolean);
+      const parsed = parseNote(source, { fileLastModified: entry.file.lastModified, assets: assetMappings });
+      const managedEntry = managedNoteForPath(normalizedSync, entry.path);
+      if (managedEntry) {
+        const [managedNoteId, managedState] = managedEntry;
+        const managedNote = notes.find((note) => note.id === managedNoteId);
+        if (!managedNote) {
+          candidates.push({
+            ...entry,
+            parsed: { ...parsed, metadata: { ...parsed.metadata, memoNexusId: managedNoteId } },
+            classification: {
+              type: "restore",
+              existing: null,
+              bodyHash: contentHash(`${parsed.metadata.title || ""}\n${parsed.body || ""}`)
+            }
+          });
+          continue;
+        }
+        if (managedState.hash) {
+          const noteAttachments = await getAttachmentsForNote(managedNote.id);
+          const attachmentFiles = noteAttachments.map((attachment) => ({
+            id: attachment.id,
+            fileName: normalizedSync.assets[attachment.id]?.fileName || `${attachment.id}.${attachmentExtension(attachment)}`
+          }));
+          const nextAppHash = contentHash(serializeNote(managedNote, managedNote.body, attachmentFiles));
+          const currentLocalHash = contentHash(source);
+          const disposition = classifyManagedMarkdownHashes(managedState.hash, currentLocalHash, nextAppHash);
+          if (disposition !== "conflict") continue;
+          candidates.push({
+            ...entry,
+            parsed,
+            classification: {
+              type: "conflict",
+              existing: managedNote,
+              bodyHash: contentHash(`${parsed.metadata.title || ""}\n${parsed.body || ""}`),
+              lastWrittenHash: managedState.hash,
+              currentLocalHash,
+              nextAppHash
+            }
+          });
+          continue;
+        }
+      }
+      const classification = classifyMarkdownCandidate(parsed, notes);
+      if (classification.type === "unchanged") continue;
+      candidates.push({ ...entry, parsed, classification });
+    }
+    return candidates;
+  }
+
   function classifyMarkdownCandidate(candidate, existingNotes, importedHashes = new Set()) {
     const id = candidate?.metadata?.memoNexusId ? String(candidate.metadata.memoNexusId) : "";
     const bodyHash = contentHash(`${candidate?.metadata?.title || ""}\n${candidate?.body || ""}`);
@@ -100,7 +165,7 @@
   }
 
   const api = {
-    MIME_EXTENSIONS, attachmentExtension, buildManifest, classifyManagedMarkdownHashes,
+    MIME_EXTENSIONS, attachmentExtension, buildLocalScanCandidates, buildManifest, classifyManagedMarkdownHashes,
     classifyMarkdownCandidate, contentHash, hasExternalModification, managedNoteForPath,
     normalizeSyncState, parseCollections, safeStableNoteFileName, serializeCollections
   };

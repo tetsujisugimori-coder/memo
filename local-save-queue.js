@@ -43,7 +43,16 @@
     return { enqueue, flush, hasPending: () => Boolean(timer || waiting.length) };
   }
 
-  const api = { createLocalSaveQueue };
+  async function runLocalScanAfterQueue({ queue, scan, reason = "before-scan", onSaveError = () => {} }) {
+    try {
+      await queue.flush(reason);
+    } catch (error) {
+      onSaveError(error);
+    }
+    return scan();
+  }
+
+  const api = { createLocalSaveQueue, runLocalScanAfterQueue };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   if (globalScope) globalScope.MemoNexusLocalSaveQueue = api;
 })(typeof window !== "undefined" ? window : globalThis);

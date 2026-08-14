@@ -306,18 +306,17 @@ const {
   createLocalSaveState,
   localSaveLabel,
   resolveDisplayedCreatedAt,
+  resolveLocalScanState,
   transitionLocalSaveState
 } = window.MemoNexusLocalSaveState;
-const { createLocalSaveQueue } = window.MemoNexusLocalSaveQueue;
+const { createLocalSaveQueue, runLocalScanAfterQueue } = window.MemoNexusLocalSaveQueue;
 const { parseLocalNote, restoreAttachmentReferences, serializeLocalNote } = window.MemoNexusLocalMarkdown;
 const {
   attachmentExtension,
+  buildLocalScanCandidates,
   buildManifest,
-  classifyManagedMarkdownHashes,
-  classifyMarkdownCandidate,
   contentHash,
   hasExternalModification,
-  managedNoteForPath,
   normalizeSyncState,
   parseCollections,
   safeStableNoteFileName,
@@ -1659,7 +1658,19 @@ function queueLocalWorkspaceSave(reason = "change") {
   }
   const unresolved = localScanCandidates.some((candidate) => ["restore", "conflict"].includes(candidate.classification.type));
   if (unresolved) {
-    setLocalSaveState("conflict", { directoryName: localDirectoryHandle.name, errorCode: "scan-pending", errorMessage: "ローカルに復元または競合の確認が必要なMarkdownがあります。", requiresUserAction: true });
+    const scanState = resolveLocalScanState(localSaveState, localScanCandidates) || {
+      status: "conflict",
+      patch: {
+        errorCode: "scan-pending",
+        errorMessage: "ローカルに復元または競合の確認が必要なMarkdownがあります。",
+        requiresUserAction: true
+      }
+    };
+    setLocalSaveState(scanState.status, {
+      ...scanState.patch,
+      directoryName: localDirectoryHandle.name,
+      pendingChanges: localSaveState.pendingChanges || reason !== "startup"
+    });
     return Promise.resolve(false);
   }
   setLocalSaveState("pending", { directoryName: localDirectoryHandle.name, errorCode: "", errorMessage: "", requiresUserAction: false });
@@ -1843,63 +1854,16 @@ async function scanExternalLocalMarkdown({ automatic = false } = {}) {
     const layout = await localFs.ensureWorkspaceLayout(localDirectoryHandle);
     localSyncState = normalizeSyncState(await localFs.readJson(layout.root, "sync-state.json", localSyncState));
     const files = await localFs.scanMarkdownFiles(localDirectoryHandle);
-    const excluded = new Set(localSyncState.excluded);
-    localScanCandidates = [];
-    for (const entry of files) {
-      if (excluded.has(entry.path)) continue;
-      const source = await entry.file.text();
-      const firstPass = parseLocalNote(source, { fileLastModified: entry.file.lastModified });
-      const assetMappings = firstPass.assetPaths.map((path) => {
-        const fileName = path.split("/").pop();
-        const known = Object.entries(localSyncState.assets).find(([, value]) => value.fileName === fileName);
-        return known ? { path, id: known[0] } : null;
-      }).filter(Boolean);
-      const parsed = parseLocalNote(source, { fileLastModified: entry.file.lastModified, assets: assetMappings });
-      const managedEntry = managedNoteForPath(localSyncState, entry.path);
-      if (managedEntry) {
-        const [managedNoteId, managedState] = managedEntry;
-        const managedNote = notes.find((note) => note.id === managedNoteId);
-        if (!managedNote) {
-          localScanCandidates.push({
-            ...entry,
-            parsed: { ...parsed, metadata: { ...parsed.metadata, memoNexusId: managedNoteId } },
-            classification: {
-              type: "restore",
-              existing: null,
-              bodyHash: contentHash(`${parsed.metadata.title || ""}\n${parsed.body || ""}`)
-            }
-          });
-          continue;
-        }
-        if (managedNote && managedState.hash) {
-          const noteAttachments = await getAttachmentsForMemo(managedNote.id);
-          const attachmentFiles = noteAttachments.map((attachment) => ({
-            id: attachment.id,
-            fileName: localSyncState.assets[attachment.id]?.fileName || `${attachment.id}.${attachmentExtension(attachment)}`
-          }));
-          const nextAppHash = contentHash(serializeLocalNote(managedNote, managedNote.body, attachmentFiles));
-          const currentLocalHash = contentHash(source);
-          const disposition = classifyManagedMarkdownHashes(managedState.hash, currentLocalHash, nextAppHash);
-          if (disposition !== "conflict") continue;
-          localScanCandidates.push({
-            ...entry,
-            parsed,
-            classification: {
-              type: "conflict",
-              existing: managedNote,
-              bodyHash: contentHash(`${parsed.metadata.title || ""}\n${parsed.body || ""}`),
-              lastWrittenHash: managedState.hash,
-              currentLocalHash,
-              nextAppHash
-            }
-          });
-          continue;
-        }
-      }
-      const classification = classifyMarkdownCandidate(parsed, notes);
-      if (classification.type === "unchanged") continue;
-      localScanCandidates.push({ ...entry, parsed, classification });
-    }
+    localScanCandidates = await buildLocalScanCandidates({
+      files,
+      syncState: localSyncState,
+      notes,
+      parseNote: parseLocalNote,
+      serializeNote: serializeLocalNote,
+      getAttachmentsForNote: getAttachmentsForMemo
+    });
+    const scanState = resolveLocalScanState(localSaveState, localScanCandidates);
+    if (scanState) setLocalSaveState(scanState.status, scanState.patch);
     renderLocalScanResults();
     if (!automatic) localFolderStatus.textContent = localScanCandidates.length ? `${localScanCandidates.length}件を確認してください。自動上書きはしません。` : "新しい外部Markdownはありません。";
     return localScanCandidates;
@@ -1907,6 +1871,16 @@ async function scanExternalLocalMarkdown({ automatic = false } = {}) {
     if (!automatic) localFolderStatus.textContent = `再スキャンに失敗しました: ${error.message || error}`;
     return [];
   }
+}
+
+async function scanExternalLocalMarkdownAfterSaves({ automatic = false, reason = "before-scan" } = {}) {
+  await flushSave();
+  return runLocalScanAfterQueue({
+    queue: localSaveQueue,
+    reason,
+    scan: () => scanExternalLocalMarkdown({ automatic }),
+    onSaveError: (error) => console.warn("Pending local save before scan failed", error)
+  });
 }
 
 async function candidateAttachments(candidate, memoId) {
@@ -9863,7 +9837,11 @@ if (saveLocalNowBtn) saveLocalNowBtn.addEventListener("click", async () => {
   queueLocalWorkspaceSave("manual");
   await localSaveQueue.flush("manual");
 });
-if (rescanLocalMarkdownBtn) rescanLocalMarkdownBtn.addEventListener("click", () => scanExternalLocalMarkdown());
+if (rescanLocalMarkdownBtn) rescanLocalMarkdownBtn.addEventListener("click", () => {
+  void scanExternalLocalMarkdownAfterSaves({ reason: "manual-before-scan" }).catch((error) => {
+    localFolderStatus.textContent = `再スキャンに失敗しました: ${error.message || error}`;
+  });
+});
 if (restoreFromLocalBtn) restoreFromLocalBtn.addEventListener("click", () => restoreFromLocalFolder().catch((error) => {
   localFolderStatus.textContent = `復元に失敗しました: ${error.message || error}`;
 }));
@@ -9886,14 +9864,7 @@ window.addEventListener("focus", () => {
   if (!localSaveSettings.enabled || !localDirectoryHandle || Date.now() - lastAutomaticLocalScanAt < 60_000) return;
   lastAutomaticLocalScanAt = Date.now();
   void (async () => {
-    if (localSaveQueue.hasPending()) {
-      try {
-        await localSaveQueue.flush("focus-before-scan");
-      } catch (error) {
-        console.warn("Pending local save before scan failed", error);
-      }
-    }
-    await scanExternalLocalMarkdown({ automatic: true });
+    await scanExternalLocalMarkdownAfterSaves({ automatic: true, reason: "focus-before-scan" });
   })();
 });
 editorCaretAnimationEnabled?.addEventListener("change", saveEditorCaretAnimationSettings);
