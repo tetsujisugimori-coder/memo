@@ -3,7 +3,7 @@ const assert = require("node:assert/strict");
 const { buildManifest } = require("./local-sync-utils.js");
 const { parseLocalNote, serializeLocalNote } = require("./local-markdown.js");
 const {
-  BACKUP_FORMAT, BACKUP_VERSION, buildPortableBackupFiles, importedWins, isPortableBackup, parsePortableBackup
+  BACKUP_FORMAT, BACKUP_VERSION, attachmentIdsToReplace, buildPortableBackupFiles, importedWins, isPortableBackup, parsePortableBackup
 } = require("./backup-bundle-utils.js");
 
 function entry(name, content) {
@@ -54,6 +54,43 @@ test("本文にないPDF添付もfront matterから復元対象にする", () =>
   ], { parseNote: parseLocalNote, idFactory: () => "new-pdf" });
   assert.equal(parsed.notes[0].attachments[0].mimeType, "application/pdf");
   assert.equal(parsed.notes[0].attachments[0].kind, "pdf");
+});
+
+test("添付が一部欠損したメモは既存添付を置換対象にしない", () => {
+  const imageMarkdown = serializeLocalNote(
+    { id: "image-note", title: "画像", updatedAt: "2026-08-02T00:00:00.000Z" }, "![A](attachment://image-a)\n![C](attachment://image-c)",
+    [{ id: "image-a", fileName: "image-a.png", mimeType: "image/png", kind: "image" }, { id: "image-c", fileName: "image-c.png", mimeType: "image/png", kind: "image" }]
+  );
+  const pdfMarkdown = serializeLocalNote(
+    { id: "pdf-note", title: "PDF", updatedAt: "2026-08-02T00:00:00.000Z" }, "本文",
+    [{ id: "pdf-a", fileName: "pdf-a.pdf", mimeType: "application/pdf", kind: "pdf" }]
+  );
+  const fullMarkdown = serializeLocalNote(
+    { id: "full-note", title: "完全", updatedAt: "2026-08-02T00:00:00.000Z" }, "![A](attachment://full-a)",
+    [{ id: "full-a", fileName: "full-a.png", mimeType: "image/png", kind: "image" }]
+  );
+  const plainMarkdown = serializeLocalNote({ id: "plain-note", title: "通常", updatedAt: "2026-08-02T00:00:00.000Z" }, "本文");
+  const parsed = parsePortableBackup([
+    entry("manifest.json", JSON.stringify(manifest())), entry("collections.json", "[]"),
+    entry("notes/image.md", imageMarkdown), entry("assets/image-a.png", Uint8Array.of(1)),
+    entry("notes/pdf.md", pdfMarkdown), entry("notes/full.md", fullMarkdown), entry("assets/full-a.png", Uint8Array.of(1)),
+    entry("notes/plain.md", plainMarkdown)
+  ], { parseNote: parseLocalNote, idFactory: (() => { let index = 0; return () => `new-${++index}`; })() });
+  const byId = new Map(parsed.notes.map((plan) => [plan.note.id, plan]));
+  assert.equal(byId.get("image-note").attachmentsComplete, false);
+  assert.equal(byId.get("image-note").attachments.length, 1);
+  assert.equal(byId.get("image-note").attachmentTotal, 2);
+  assert.equal(byId.get("pdf-note").attachmentsComplete, false);
+  assert.equal(byId.get("full-note").attachmentsComplete, true);
+  assert.equal(byId.get("full-note").attachments.length, 1);
+  assert.equal(byId.get("plain-note").attachmentsComplete, true);
+  const existing = new Map([
+    ["image-note", [{ id: "image-a" }, { id: "image-b" }, { id: "image-c" }]],
+    ["pdf-note", [{ id: "pdf-a" }]],
+    ["full-note", [{ id: "old-full" }]],
+    ["plain-note", []]
+  ]);
+  assert.deepEqual(attachmentIdsToReplace(parsed.notes, existing), ["old-full"]);
 });
 
 test("manifestの欠損・破損・未知形式は完全バックアップとして安全に中止する", () => {

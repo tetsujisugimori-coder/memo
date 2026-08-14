@@ -75,6 +75,12 @@
     return IMAGE_MIME_BY_EXTENSION[extension] || "application/octet-stream";
   }
 
+  function attachmentIdsToReplace(notePlans, existingAttachmentsByMemo) {
+    return (notePlans || []).flatMap((plan) => (
+      plan.attachmentsComplete ? (existingAttachmentsByMemo.get(plan.note.id) || []).map((attachment) => attachment.id) : []
+    ));
+  }
+
   function parsePortableBackup(entries, { parseNote, idFactory = () => `attachment-${Math.random().toString(36).slice(2)}` } = {}) {
     const manifest = parseManifest(entries);
     if (!manifest) return null;
@@ -104,9 +110,10 @@
         const referencedPaths = new Set(firstPass.assetPaths);
         attachmentMetadata.forEach((asset) => referencedPaths.add(`../assets/${encodeURIComponent(asset.fileName)}`));
         const noteAssets = [];
+        const missingAttachmentPaths = [];
         referencedPaths.forEach((assetPath) => {
           const assetEntry = files.get(assetPath.replace(/^\.\.\//, ""));
-          if (!assetEntry) { skipped.push(`${path}:${assetPath}`); return; }
+          if (!assetEntry) { skipped.push(`${path}:${assetPath}`); missingAttachmentPaths.push(assetPath); return; }
           const id = idFactory();
           attachmentByPath.set(assetPath, id);
           const sourceMetadata = attachmentMetadata.get(decodeURIComponent(String(assetPath).replace(/^\.\.\/assets\//, ""))) || {};
@@ -125,7 +132,13 @@
           explanations: Array.isArray(metadata.explanations) ? metadata.explanations : undefined,
           fontSettings: metadata.fontSettings || undefined
         };
-        notes.push({ note, attachments: noteAssets });
+        notes.push({
+          note,
+          attachments: noteAssets,
+          attachmentTotal: referencedPaths.size,
+          attachmentsComplete: missingAttachmentPaths.length === 0,
+          missingAttachmentPaths
+        });
       } catch (_) { skipped.push(path); }
     }
     return migrateBackup(manifest, { collections, notes, skipped });
@@ -134,7 +147,7 @@
   function timestamp(value) { const time = Date.parse(value); return Number.isFinite(time) ? time : 0; }
   function importedWins(existing, incoming) { return !existing || timestamp(incoming?.updatedAt) > timestamp(existing?.updatedAt); }
 
-  const api = { BACKUP_FORMAT, BACKUP_VERSION, buildPortableBackupFiles, importedWins, isPortableBackup, migrateBackup, parseManifest, parsePortableBackup };
+  const api = { BACKUP_FORMAT, BACKUP_VERSION, attachmentIdsToReplace, buildPortableBackupFiles, importedWins, isPortableBackup, migrateBackup, parseManifest, parsePortableBackup };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   if (globalScope) globalScope.MemoNexusBackupBundleUtils = api;
 })(typeof window !== "undefined" ? window : globalThis);

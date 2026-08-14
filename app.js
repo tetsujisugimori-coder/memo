@@ -300,7 +300,7 @@ const {
 } = window.MemoNexusAttachmentUtils;
 const { buildMemoListView } = window.MemoNexusMemoListUtils;
 const { buildMarkdownBundleImport, parseStoredZipEntries } = window.MemoNexusMarkdownBundleUtils;
-const { buildPortableBackupFiles, importedWins, isPortableBackup, parsePortableBackup } = window.MemoNexusBackupBundleUtils;
+const { attachmentIdsToReplace, buildPortableBackupFiles, importedWins, isPortableBackup, parsePortableBackup } = window.MemoNexusBackupBundleUtils;
 const { parseFlaggedMarkdown, serializeNoteForMarkdown, withNormalizedFlag } = window.MemoNexusNoteFlagUtils;
 const {
   applyLocalSaveSuccess,
@@ -2474,8 +2474,9 @@ async function importMarkdownZip(file) {
     });
     const report = await applyPortableBackupImport(imported);
     const summary = `バックアップを復元しました（メモ ${report.notes.restored}/${report.notes.total}、コレクション ${report.collections.restored}/${report.collections.total}、添付 ${report.attachments.restored}/${report.attachments.total}）`;
+    const preserved = report.attachments.preservedExisting ? " 一部の添付を復元できなかったため、既存の添付ファイルを保持しました。" : "";
     const details = report.skipped.length ? ` スキップ: ${report.skipped.join("、")}` : "";
-    if (backupImportStatus) backupImportStatus.textContent = `${summary}${details}`;
+    if (backupImportStatus) backupImportStatus.textContent = `${summary}${preserved}${details}`;
     setSaveStatusNotice(`${summary}${report.skipped.length ? "（一部をスキップしました）" : ""}`);
     return;
   }
@@ -2546,6 +2547,18 @@ function normalizedBackupNote(note, collectionIds) {
   };
 }
 
+function restoreMissingBackupAttachmentReferences(note, existingAttachments, missingAttachmentPaths) {
+  let body = String(note.body || "");
+  for (const assetPath of missingAttachmentPaths || []) {
+    const fileName = decodeURIComponent(String(assetPath).split("/").pop());
+    const existing = (existingAttachments || []).find((attachment) => `${attachment.id}.${attachmentExtension(attachment)}` === fileName);
+    if (!existing) continue;
+    const encodedPath = `../assets/${encodeURIComponent(fileName)}`;
+    body = body.replaceAll(`(${encodedPath})`, `(attachment://${existing.id})`).replaceAll(`(${assetPath})`, `(attachment://${existing.id})`);
+  }
+  return body === note.body ? note : { ...note, body };
+}
+
 async function applyPortableBackupImport(imported) {
   const existingNotes = await getAllNotes();
   const existingCollections = await getAllCollections();
@@ -2555,7 +2568,7 @@ async function applyPortableBackupImport(imported) {
   const availableCollectionIds = new Set([...existingByCollectionId.keys(), ...collectionUpdates.map((collection) => collection.id), UNCLASSIFIED_COLLECTION_ID]);
   const skipped = [...imported.skipped];
   const keptExisting = [];
-  const notePlans = [];
+  const importedNotePlans = [];
   for (const plan of imported.notes) {
     const existing = existingByNoteId.get(plan.note.id);
     if (!importedWins(existing, plan.note)) {
@@ -2565,15 +2578,35 @@ async function applyPortableBackupImport(imported) {
     }
     const note = normalizedBackupNote(plan.note, availableCollectionIds);
     if (plan.note.collectionId && note.collectionId === UNCLASSIFIED_COLLECTION_ID) skipped.push(`notes/${plan.note.id}（不明なコレクションを未分類へ移動）`);
-    notePlans.push({ note, attachments: plan.attachments || [] });
+    importedNotePlans.push({
+      note,
+      attachments: plan.attachments || [],
+      attachmentsComplete: plan.attachmentsComplete !== false,
+      missingAttachmentPaths: plan.missingAttachmentPaths || []
+    });
   }
-  const oldAttachments = [];
-  for (const plan of notePlans) oldAttachments.push(...await getAttachmentsForMemo(plan.note.id));
+  const existingAttachmentsByMemo = new Map();
+  for (const plan of importedNotePlans) existingAttachmentsByMemo.set(plan.note.id, await getAttachmentsForMemo(plan.note.id));
+  const preservedAttachmentMemoIds = [];
+  const notePlans = importedNotePlans.map((plan) => {
+    const existingAttachments = existingAttachmentsByMemo.get(plan.note.id) || [];
+    if (plan.attachmentsComplete) return plan;
+    if (existingAttachments.length) {
+      preservedAttachmentMemoIds.push(plan.note.id);
+      skipped.push(`notes/${plan.note.id}（添付の一部を復元できないため既存添付を保持）`);
+    }
+    return { ...plan, note: restoreMissingBackupAttachmentReferences(plan.note, existingAttachments, plan.missingAttachmentPaths) };
+  });
   const attachmentRecords = notePlans.flatMap((plan) => plan.attachments.map((asset) => ({
     id: asset.id, memoId: plan.note.id, fileName: asset.fileName, kind: asset.mimeType === "application/pdf" ? "pdf" : "image",
     mimeType: asset.mimeType, size: asset.data.byteLength, blob: new Blob([asset.data], { type: asset.mimeType }), createdAt: plan.note.updatedAt
   })));
-  await applyPortableBackupTransaction({ collectionUpdates, notePlans, oldAttachmentIds: oldAttachments.map((item) => item.id), attachmentRecords });
+  await applyPortableBackupTransaction({
+    collectionUpdates,
+    notePlans,
+    oldAttachmentIds: attachmentIdsToReplace(notePlans, existingAttachmentsByMemo),
+    attachmentRecords
+  });
   notes = await getAllNotes();
   collections = await getAllCollections();
   invalidateTermRelationIndex();
@@ -2582,7 +2615,11 @@ async function applyPortableBackupImport(imported) {
   return {
     notes: { restored: notePlans.length, total: imported.notes.length },
     collections: { restored: collectionUpdates.length, total: imported.collections.length },
-    attachments: { restored: attachmentRecords.length, total: imported.notes.flatMap((plan) => plan.attachments || []).length },
+    attachments: {
+      restored: attachmentRecords.length,
+      total: imported.notes.flatMap((plan) => plan.attachmentTotal ?? (plan.attachments || []).length).reduce((sum, count) => sum + count, 0),
+      preservedExisting: preservedAttachmentMemoIds.length
+    },
     keptExisting,
     skipped
   };
