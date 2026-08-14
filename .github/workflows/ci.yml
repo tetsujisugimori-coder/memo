@@ -1,0 +1,93 @@
+name: CI
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    name: CI checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+
+      - name: Run tests
+        run: node --test
+
+      - name: Check JavaScript syntax
+        shell: bash
+        run: |
+          mapfile -d '' files < <(
+            find . -type d -name node_modules -prune -o -type f -name '*.js' -print0
+          )
+          count="${#files[@]}"
+          echo "JavaScript files: $count"
+          if (( count == 0 )); then
+            echo "::error::No JavaScript files found"
+            exit 1
+          fi
+          printf '%s\0' "${files[@]}" | xargs -0 -n 1 node --check
+
+      - name: Check whitespace errors
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PUSH_BEFORE_SHA: ${{ github.event.before }}
+          CURRENT_SHA: ${{ github.sha }}
+        run: |
+          case "$EVENT_NAME" in
+            pull_request)
+              if [[ -z "$PR_BASE_SHA" || -z "$PR_HEAD_SHA" ]]; then
+                echo "::error::Pull request SHA is missing"
+                exit 1
+              fi
+              git diff --check "$PR_BASE_SHA...$PR_HEAD_SHA"
+              ;;
+            push)
+              if [[ -z "$PUSH_BEFORE_SHA" || -z "$CURRENT_SHA" ]]; then
+                echo "::error::Push SHA is missing"
+                exit 1
+              fi
+              if [[ "$PUSH_BEFORE_SHA" == "0000000000000000000000000000000000000000" ]]; then
+                git show --check --format=fuller "$CURRENT_SHA"
+              else
+                git diff --check "$PUSH_BEFORE_SHA...$CURRENT_SHA"
+              fi
+              ;;
+            workflow_dispatch)
+              if [[ -z "$CURRENT_SHA" ]]; then
+                echo "::error::Current SHA is missing"
+                exit 1
+              fi
+              git show --check --format=fuller "$CURRENT_SHA"
+              ;;
+            *)
+              echo "::error::Unsupported event: $EVENT_NAME"
+              exit 1
+              ;;
+          esac

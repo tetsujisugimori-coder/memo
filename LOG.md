@@ -1641,3 +1641,55 @@
 * 同一URLのWebクリップは、fragmentを除き末尾スラッシュだけを正規化して検出する。確認画面で既存メモを既定で更新するか、新規保存するかを選べ、複数一致時は対象を明示選択する。更新時はメモID、コレクション、フラグ、クリップと無関係のメタデータを保持し、ノートと旧・新Webクリップ画像を同一IndexedDBトランザクションで置換する。
 * 画像取得失敗はログイン要求、URL期限切れ、アクセス拒否、権限不足、タイムアウト、容量、非対応形式を判別して表示する。確認画面の「失敗した画像だけ再試行」は、Memo-Nexusページ上の拡張Content Scriptを経由して既存Service Worker取得経路へ再依頼し、成功済み画像は再取得しない。画像なし保存の意味が明確になるようボタン表記を変更した。
 * 拡張manifestとREADMEの現在版を`0.3.5`へそろえ、再クリップ・再試行の挙動と制限をREADMEへ追記した。構文確認、関連テスト34件、`git diff --check`は成功した。実MV3 Chromium E2Eはこの環境に`playwright`パッケージがないため未実施とし、既存E2Eの版数期待値と画像・失敗用フィクスチャは更新した。
+
+## 2026-08-14 エディタ下部ステータスバー
+
+* エディタ下部へ、既存の文字数チップ、作成・更新日時、ブラウザ／ローカル保存状態を統合したコンパクトなステータスバーを置いた。文字数は従来どおり`TextStatsUtils.calculateTextStats`を唯一の集計元とし、日時表示も`renderNoteMeta`へ戻した。表示上の作成日時は、ローカル初回保存後だけ`localCreatedAt`を優先し、それ以前は既存`createdAt`を使う。元の`createdAt`は変更せず、OS上のファイル作成日時も採用しない。
+* ブラウザ保存は既存の保存遷移（編集あり、保存中、保存済み、保存失敗）をそのままチップと詳細へ反映する。ローカル保存は`未設定`、`保存中`、`保存済み`、`要保存`、`再接続が必要`、`競合あり`、`保存失敗`、`未対応`を独立した状態モデルで扱い、保存先、権限、最終保存日時、理由と次の操作を表示する。狭幅では保存先別チップを「保存状態」へ集約し、詳細内ではローカルを先、ブラウザを後に表示する。
+* File System Access APIを使うローカルフォルダ保存を追加した。利用者が選んだフォルダを保存先としてIndexedDBへディレクトリハンドルを直接保持し、`Memo-Nexus/manifest.json`、`collections.json`、`sync-state.json`、`notes/`、`assets/`、`inbox/`を作る。すでに`Memo-Nexus`フォルダ自身を選んだ場合は同名フォルダを重ねない。メモは安定したファイル名とYAML front matterを持つMarkdown、添付画像は`assets/`へ保存し、本文参照を書き換える。
+* 保存順序は従来のIndexedDB保存を先に確定し、その後ローカル保存キューへ積む。ローカル失敗時もブラウザ保存済みデータはロールバックしない。`localCreatedAt`と`localSavedAt`は全ローカル書き込み成功後だけIndexedDBへ反映する。連続編集はdebounceし、保存処理は直列化して競合を避ける。DBはversion 4へ上げ、既存storeを削除せず`local-config`だけを追加した。
+* 起動・フォーカス・手動操作では、選択フォルダ直下、`inbox/`、`notes/`のMarkdownを走査する。未登録ファイルは「追加／除外」、ブラウザ消失後の既知メモは「復元／除外」、同時変更は「ローカル優先／アプリ優先／両方残す／保留」を明示選択する。競合・復元候補が残る間は自動上書きせず、既存コレクションは不足分を追加するマージに限定した。フォルダ切断は接続情報だけを削除し、ローカルファイルや孤立画像は自動削除しない。
+* 未対応ブラウザではフォルダ選択を実行可能に見せず、ZIPバックアップを案内する。権限要求はフォルダ選択・再接続など利用者操作時だけ行い、起動時は状態確認に留める。各チップはbutton、`aria-expanded`、dialog、外側クリック、Escape、フォーカス復帰に対応し、状態色だけに依存しない文言を併記する。
+* 自動テストでは、作成日時優先順位、状態遷移、Markdown／画像参照、manifest／collection、差分分類、競合、直列保存キュー、模擬File System Access API、ディレクトリハンドルのIndexedDB保持、権限、IndexedDB先行保存、DB移行、モバイル集約を確認した。`node --test`は447件成功し、全JavaScriptの`node --check`と`git diff --check`も成功した。実Edgeではデスクトップ／390px、ライト／ダーク、文字統計・ローカル詳細、Escapeとフォーカス復帰、日時表示、保存状態集約、コンソール警告なしを確認した。OSのフォルダ選択ダイアログを伴う実フォルダ書き込みは自動操作できないため未実施とし、模擬APIテストとPR記載の手動確認手順を残す。
+
+## 2026-08-14 ローカル保存の誤競合修正
+
+* `notes/`内の管理対象Markdownを、front matterやファイル名の推測ではなく`sync-state.json`のnote ID・`fileName`対応で特定する。走査時は前回書込みhash、現在のローカルファイルhash、現在のIndexedDB内容から生成したMarkdown hashを比較し、ローカルが前回書込みのまま、またはすでにアプリ最新版と同じ場合は候補へ追加しない。両方と異なる場合だけ外部変更による真の競合として扱う。
+* フォーカス復帰時は、保留中のローカル保存を先にflushしてから外部Markdownを走査する。保存直前の`performLocalWorkspaceSave()`でもローカルhashを再確認する二重防御は維持した。真の競合でキューが一度失敗しても、利用者の競合解決後は次の保存を実行できるよう直列キューを回復可能にした。
+* 回帰テストでは、初回保存後にIndexedDBだけを編集した状態が競合にならず、キュー実行後にMarkdown本文、`sync-state.json`のhash・保存日時、保存状態が更新されることを確認した。外部編集だけが競合になること、ローカルとアプリが同じ場合、未管理Markdownの新規・復元分類、真の競合の自動上書き防止、作成・更新日時表示、`createdAt`・`localCreatedAt`維持も確認し、`node --test`は453件成功した。
+* Edgeではローカル版の設定画面とフォルダ選択操作まで確認した。OSフォルダ選択画面の自動操作は、Windows操作側が現在のブラウザURLを安全に判定できず停止したため、初回実ファイル保存から外部編集検出までの実機確認は未実施とする。
+
+## 2026-08-14 ローカル再スキャンと保存キューの連携修正
+
+* `ecf2263`の3ハッシュ判定と`sync-state.json`のnote ID・`fileName`対応を維持したまま、再スキャン結果をローカル保存状態へ即時反映するようにした。真の外部変更は`external-conflict`、復元候補は`restore-candidate`として区別して「確認が必要」にし、警告領域へ理由を表示する。新規・重複候補だけでは保存全体を競合にせず、外部ファイルを前回保存内容へ戻して候補が消えた場合は、未保存変更の有無に応じて`pending`または`saved`へ戻す。権限・一般エラーは走査結果で上書きしない。
+* フォーカス復帰と手動再スキャンは、`flushSave()`でIndexedDBを先に確定し、ローカル保存キューの現在のtailを無条件に待ってから走査する。実行中の書込みが失敗した場合も走査は続け、競合候補を確認できるようにした。保留した真の競合は候補がある間維持し、保存直前のハッシュ再確認による二重防御も変更していない。
+* 本番の候補生成・状態照合・保存後走査の共通関数を使う動作テストを追加した。模擬File System Access API上で通常編集後のMarkdownと`sync-state.json`更新、外部編集の即時競合化と自動上書き防止、外部内容を戻した後の競合解除、実行中保存完了後の1回だけの走査、保存失敗後の走査継続、新規・重複・復元候補、作成・更新日時と`createdAt`・`localCreatedAt`維持を確認した。`node --test`は458件成功した。
+* Edgeの`http://127.0.0.1:5500`では、`app.js?v=0.4.0-76`、`local-save-state.js?v=0.4.0-2`、`local-save-queue.js?v=0.4.0-2`、`local-sync-utils.js?v=0.4.0-3`の読込みを確認した。既存の外部競合がある接続済みフォルダで、起動時と手動再スキャン直後に下部チップが「ローカル 確認が必要」となり、具体的な外部変更理由が警告領域へ表示され、作成・更新日時が下部に残ることを確認した。OSフォルダ選択以降の初回実保存、Memo-Nexus編集後の実ファイル本文・更新日時追随、外部ファイルを元へ戻した実機での競合解除は安全に自動操作できないため未実施とし、上記の実処理共通関数を通る動作テストで補完した。
+
+## 2026-08-14 競合解除後のローカル保存再開
+
+* 再スキャンで競合候補が消えて`saved`へ戻す場合は、既存の`lastSuccessAt`を明示的に引き継ぐ。再スキャン、候補除外、競合解除は実ファイル保存ではないため最終保存成功日時を更新せず、`lastSuccessAt`がない場合は`pending`にする。`localSavedAt`も変更せず、実際の`performLocalWorkspaceSave()`が全ファイル書込みに成功した時だけ`lastSuccessAt`と`localSavedAt`を新しい保存時刻へ更新する。
+* 候補一覧の再描画と保存状態照合を`reconcileLocalScanCandidates()`へ集約した。再スキャン、最後の復元候補の除外、ローカル版の取込、Memo-Nexus版での上書き、両方を残す、復元の各経路で共通処理を通し、ブロック候補がなく、ローカル保存が有効で、未保存変更が残る場合だけ保存キューを`scan-unblocked`等の理由で1回再開する。保存直前の3ハッシュ再確認を維持し、権限・書込みエラー・非対応・保留中の競合では自動再開しない。
+* 回帰テストでは、固定した`lastSuccessAt`と`localSavedAt`が競合検出・競合解除だけでは変わらないこと、外部変更とMemo-Nexus編集が重なった後に外部ファイルを戻すと、模擬File System Access APIと実保存キューを通ってMarkdown本文、`sync-state.json`のhash・`savedAt`、保存状態が1回だけ更新されることを確認した。最後の復元候補を除外した際の確認状態解除とpending保存再開、permission-required・error・unsupported・conflict-heldの保護、新規・重複候補、作成・更新日時、`createdAt`・`localCreatedAt`維持も確認した。`node --test`は461件成功し、全JavaScript 96ファイルの`node --check`と`git diff --check`も成功した。
+* Edgeの`http://127.0.0.1:5500`では、`app.js?v=0.4.0-77`と`local-save-state.js?v=0.4.0-3`の読込み、作成・更新日時の継続表示、再接続が必要な状態で再スキャンしても状態が維持され、最終保存成功日時が`2026/08/14 10:02:51`のまま変わらないことを確認した。保存先権限が失われていたため、外部競合作成、Memo-Nexus側編集、外部ファイル復元後の自動保存、Markdown本文・更新日時追随、復元候補除外の実機操作は未実施とし、既存の外部変更を上書きしかねない再接続・保存操作も行っていない。
+
+## 2026-08-14 権限回復前スキャンと起動時app-ahead検出
+
+* ローカル保存の再接続を、権限要求、権限回復後の外部Markdown走査、安全確認後の保存、の順へ変更した。走査中はpending保存を再開せず、真の外部変更は`external-conflict`、復元候補は`restore-candidate`として利用者の判断を待つ。権限拒否・`NotAllowedError`・`SecurityError`は`permission-required`、外部競合は`conflict`、その他の書込み失敗は`error`に分類し、保存側で確定した競合や一般エラーを再接続の外側で権限エラーへ置き換えない。
+* 管理対象Markdown走査を、候補一覧に加えて`appAheadNoteIds`と`needsLocalSave`を返す共通解析へ拡張した。`sync-state.json`の前回hash、現在のローカルMarkdown hash、現在のIndexedDB内容から生成したMarkdown hashを比較し、ローカルが前回書込みのままでアプリ側だけ新しい`app-ahead`は競合候補へ表示せず、起動時の保存再開へ使う。3者が同一なら起動時に保存キューを実行せず、Markdown更新日時、`lastSuccessAt`、`localSavedAt`を変更しない。真の外部変更の自動上書き防止、保存直前の再確認、実保存成功時だけの日時更新、`createdAt`・`localCreatedAt`維持は変更していない。
+* 模擬File System Access API、共通走査解析、再接続順序関数、実保存キューを通る回帰テストを追加した。権限回復後の走査が保存より先であること、競合時の保存0回と外部内容維持、安全な`app-ahead`の保存1回、権限・競合・一般エラー分類、起動時app-aheadのMarkdown・`sync-state.json`更新、同一内容の書込み0回と日時維持、起動時の真の競合を確認した。`node --test`は465件成功し、全JavaScript 96ファイルの`node --check`も成功した。
+* Edgeの`http://127.0.0.1:5500`では、`app.js?v=0.4.0-78`、`local-save-state.js?v=0.4.0-4`、`local-save-queue.js?v=0.4.0-3`、`local-sync-utils.js?v=0.4.0-4`の読込みを確認した。下部バーには作成日時`2026/08/14 10:02`、更新日時`2026/08/14 17:03`が残り、権限喪失中の表示は「ローカル 再接続が必要」、最終保存日時は`2026/08/14 10:02:51`のままだった。接続先実フォルダの原本を特定してバックアップできないため、再接続ボタン、外部競合時の実ファイル非上書き、安全時の保存再開、app-ahead再読込、同一内容再読込時のファイル更新日時維持は実機では未実施とし、原本へ保存操作を行っていない。
+
+## 2026-08-14 ローカル保存途中失敗の再試行と初回保存重複の修正
+
+* Markdown書込み後、添付や`sync-state.json`の更新前に保存が失敗した場合でも、安全に再試行できるようにした。比較用hashは管理対象Markdownのfront matterにある`localSavedAt`行だけを除外し、本文、タイトル、その他のメタデータ、添付参照はすべて比較対象に残す。走査と`performLocalWorkspaceSave()`直前の二重防御は同じ比較関数を使い、再試行時刻だけが異なるアプリ書込み済みMarkdownは`app-ahead`、本文等も異なる場合は真の外部競合として扱う。`sync-state.json.hash`は後方互換のため従来どおり完全なMarkdownのraw hashを保存する。
+* 初回フォルダ選択では、権限取得後の走査でpending保存を自動再開しない。復元・競合候補があれば保存せず確認を求め、安全な場合だけ明示的な`folder-selected`保存を1回実行する。これにより初回保存のMarkdownと`sync-state.json`を二重に書かず、既存Markdownがあるフォルダを先に上書きしない。既存の再接続時scan-first、保存直前の外部変更確認、保存日時、`createdAt`・`localCreatedAt`の仕様は維持した。
+* 模擬File System Access APIと実保存キューを通る回帰テストで、途中失敗後の再試行、走査側の`app-ahead`判定、raw hash更新、本文外部編集時の競合保護、初回フォルダ選択の保存1回、復元候補時の保存0回を確認した。`node --test`は470件成功し、全JavaScript 96ファイルの`node --check`と`git diff --check`も成功した。
+* Edgeの`http://127.0.0.1:5500`では、`app.js?v=0.4.0-79`、`local-sync-utils.js?v=0.4.0-5`を読み込み、下部バーに作成・更新日時と「ローカル 再接続が必要」「ブラウザ 保存済み」が表示されることを確認した。既存保存先の原本を特定してバックアップできず権限も失われているため、専用テストフォルダを使う初回実保存、途中失敗の実機再現、再試行、外部編集保護は未実施とし、既存フォルダへの再接続・書込みは行っていない。
+
+## 2026-08-14 GitHub Actionsによる最小CI
+
+* `.github/workflows/ci.yml`を追加し、`main`対象のpull request、`main`へのpush、GitHub画面からの手動実行で`CI`を起動する。権限は`contents: read`だけとし、secrets、自動コミット、自動push、自動マージは使用しない。公式の`actions/checkout@v7`と`actions/setup-node@v7`だけを使い、`ubuntu-latest`、Node.js 22、10分上限、同一refの古い実行を中止するconcurrencyを設定した。既存のNode標準テストを利用するため、`package.json`や依存パッケージは追加していない。
+* CIは`node --test`、`node_modules`を除く全JavaScriptの`node --check`、イベントごとの変更範囲に対する`git diff --check`を別ステップで実行する。JavaScriptはnull区切りで列挙して空白・日本語を含むファイル名を保護し、検出件数を表示して0件なら失敗する。pull requestはbase SHAからhead SHA、pushはbefore SHAから現在SHAを検査し、beforeが全ゼロの場合と手動実行は対象コミットを`git show --check`で確認する。
+* ローカルでは`node --test`が470件成功し、全JavaScript 96ファイルの`node --check`、`origin/main`との共通祖先`20127bf1607dc6e30f86a28cc22db03650620f3e`からHEADまで、および未コミットCI差分の空白検査が成功した。既存の作成・更新日時、途中失敗後の再試行、外部競合保護、初回保存1回のテストを含む。ローカルのAction/YAML専用検証ツールは未導入のため追加依存なしでは実行できず、YAML構造とシェルを目視確認した。
+* PR #96へのpushでGitHub Actions `CI`（run `31796520781`）がpull requestイベントとして起動し、Node.js 22で`node --test` 470件、全JavaScript 96ファイルの`node --check`、base `20127bf1607dc6e30f86a28cc22db03650620f3e`からhead `62611194d96e004b29c0899eab2ceaff782379be`までの`git diff --check`がすべて成功した。Checkoutは`persist-credentials: false`で、ワークフローは読み取り専用権限のままsecretsを使用していない。`main`へのpush実行はPRをマージしていないため、手動実行はワークフローがまだdefault branchにないため未実施であり、対応イベントと分岐はYAMLで確認した。

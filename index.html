@@ -7,7 +7,7 @@
   <script>try { document.documentElement.dataset.initialTheme = localStorage.getItem("memo-nexus-theme") === "dark" ? "dark" : "light"; } catch (_) { document.documentElement.dataset.initialTheme = "light"; }</script>
   <style>html,body{background:#f6f7f4;color:#222522;color-scheme:light}html[data-initial-theme="dark"],html[data-initial-theme="dark"] body{background:#111513;color:#e7ece7;color-scheme:dark}</style>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css">
-  <link rel="stylesheet" href="style.css?v=0.4.0-48">
+  <link rel="stylesheet" href="style.css?v=0.4.0-50">
 </head>
 <body>
   <aside id="memoSidebar" class="sidebar" aria-label="メモ一覧" aria-hidden="false">
@@ -80,7 +80,6 @@
               <button id="popoutBackBtn" class="popout-back-button" type="button" title="Memo Nexus本体へ戻る">本体へ戻る</button>
               <button id="noteExportBtn" class="note-export-button" type="button" title="このメモをエクスポート" aria-label="このメモをエクスポート">…</button>
             </div>
-            <div id="saveStatus" class="save-status">保存済み</div>
           </div>
         </div>
         <div class="title-input-wrap"><input id="titleInput" class="title-input" placeholder="無題メモ" autocomplete="off"></div>
@@ -99,15 +98,33 @@
       </div>
       <textarea id="editor" placeholder="すぐ書けます。[[足利尊氏]] のように書くとリンクになります。"></textarea>
       <div id="tableBlockEditors" class="table-block-editors" role="region" aria-label="表ブロック編集" hidden></div>
-      <div class="note-meta-bar">
+      <div class="note-meta-bar" aria-label="文書と保存の状態">
         <div class="note-meta-actions">
-          <button id="textStatsBtn" class="text-stats-button" type="button" aria-label="文章統計を開く" aria-haspopup="dialog" aria-expanded="false" aria-controls="textStatsPopover">0文字</button>
+          <button id="textStatsBtn" class="status-chip text-stats-button" type="button" aria-label="文章統計を開く" aria-haspopup="dialog" aria-expanded="false" aria-controls="textStatsPopover">文字数 0字</button>
           <section id="textStatsPopover" class="text-stats-popover" role="dialog" aria-labelledby="textStatsTitle" hidden>
             <div class="text-stats-head"><strong id="textStatsTitle">文章統計</strong><button id="closeTextStatsBtn" type="button" aria-label="文章統計を閉じる">×</button></div>
             <div id="textStatsBody" class="text-stats-body"></div>
           </section>
         </div>
         <div id="noteMeta" class="note-meta" aria-label="メモの日時"></div>
+        <div class="save-status-actions">
+          <button id="localSaveStatusBtn" class="status-chip save-status-chip" type="button" data-state="unconfigured" aria-haspopup="dialog" aria-expanded="false" aria-controls="localSavePopover">▣ ローカル 未設定</button>
+          <button id="browserSaveStatusBtn" class="status-chip save-status-chip" type="button" data-state="saved" aria-haspopup="dialog" aria-expanded="false" aria-controls="browserSavePopover">◉ ブラウザ 保存済み</button>
+          <button id="combinedSaveStatusBtn" class="status-chip save-status-chip combined-save-status" type="button" aria-haspopup="dialog" aria-expanded="false" aria-controls="combinedSavePopover">保存状態</button>
+          <section id="browserSavePopover" class="status-popover" role="dialog" aria-labelledby="browserSaveTitle" hidden>
+            <div class="text-stats-head"><strong id="browserSaveTitle">ブラウザ保存</strong><button data-close-status-popover type="button" aria-label="ブラウザ保存の詳細を閉じる">×</button></div>
+            <div id="browserSavePopoverBody" class="status-popover-body"></div>
+          </section>
+          <section id="localSavePopover" class="status-popover" role="dialog" aria-labelledby="localSaveTitle" hidden>
+            <div class="text-stats-head"><strong id="localSaveTitle">ローカル保存</strong><button data-close-status-popover type="button" aria-label="ローカル保存の詳細を閉じる">×</button></div>
+            <div id="localSavePopoverBody" class="status-popover-body"></div>
+          </section>
+          <section id="combinedSavePopover" class="status-popover" role="dialog" aria-labelledby="combinedSaveTitle" hidden>
+            <div class="text-stats-head"><strong id="combinedSaveTitle">保存状態</strong><button data-close-status-popover type="button" aria-label="保存状態の詳細を閉じる">×</button></div>
+            <div id="combinedSavePopoverBody" class="status-popover-body"></div>
+          </section>
+        </div>
+        <span id="saveStatus" class="sr-only" role="status" aria-live="polite">保存済み</span>
       </div>
     </section>
     <section id="popoutUnavailable" class="popout-unavailable" hidden>
@@ -494,6 +511,22 @@
       </section>
       <section class="settings-section">
         <h2>データ管理</h2>
+        <section class="local-folder-settings-section" aria-labelledby="localFolderSettingsHeading">
+          <h3 id="localFolderSettingsHeading">ローカルフォルダ保存</h3>
+          <label class="local-save-toggle"><input id="localSaveEnabled" type="checkbox"> ローカル保存を有効にする</label>
+          <div class="settings-actions local-folder-actions">
+            <button id="selectLocalFolderBtn" type="button">フォルダを選択</button>
+            <button id="reconnectLocalFolderBtn" type="button">再接続</button>
+            <button id="saveLocalNowBtn" type="button">今すぐ保存</button>
+            <button id="rescanLocalMarkdownBtn" type="button">外部Markdownを再スキャン</button>
+            <button id="restoreFromLocalBtn" type="button">ローカルから復元</button>
+            <button id="disconnectLocalFolderBtn" type="button">接続を解除</button>
+          </div>
+          <dl id="localFolderDetails" class="settings-details local-folder-details"></dl>
+          <p id="localFolderStatus" class="settings-note" role="status" aria-live="polite"></p>
+          <div id="localScanResults" class="local-scan-results" aria-live="polite"></div>
+          <p class="settings-note">接続解除ではフォルダ内のファイルを削除しません。非対応環境ではMarkdown ZIPの書出し・取込を利用できます。</p>
+        </section>
         <section class="web-clipper-settings-section" aria-labelledby="webClipperSettingsHeading">
           <h3 id="webClipperSettingsHeading">Web Clipper</h3>
           <div id="webClipperSettingsDetails" class="web-clipper-settings-details"></div>
@@ -695,8 +728,13 @@
   <script src="ai-prompts.js?v=0.4.0-2"></script>
   <script src="memo-popout-utils.js?v=0.4.0-3"></script>
   <script src="note-flag-utils.js?v=0.4.0-1"></script>
-  <script src="text-stats-utils.js?v=0.4.0-1"></script>
+  <script src="text-stats-utils.js?v=0.4.0-2"></script>
   <script src="markdown-bundle-utils.js?v=0.1.0-1"></script>
-  <script src="app.js?v=0.4.0-72"></script>
+  <script src="local-save-state.js?v=0.4.0-4"></script>
+  <script src="local-save-queue.js?v=0.4.0-3"></script>
+  <script src="local-markdown.js?v=0.4.0-1"></script>
+  <script src="local-sync-utils.js?v=0.4.0-5"></script>
+  <script src="local-fs-adapter.js?v=0.4.0-1"></script>
+  <script src="app.js?v=0.4.0-79"></script>
 </body>
 </html>
