@@ -300,6 +300,7 @@ const {
 } = window.MemoNexusAttachmentUtils;
 const { buildMemoListView } = window.MemoNexusMemoListUtils;
 const { buildMarkdownBundleImport, parseStoredZipEntries } = window.MemoNexusMarkdownBundleUtils;
+const { attachmentIdsToReplace, buildPortableBackupFiles, importedWins, isPortableBackup, parsePortableBackup } = window.MemoNexusBackupBundleUtils;
 const { parseFlaggedMarkdown, serializeNoteForMarkdown, withNormalizedFlag } = window.MemoNexusNoteFlagUtils;
 const {
   applyLocalSaveSuccess,
@@ -468,6 +469,7 @@ const runCollectionMoveBtn = $("runCollectionMoveBtn");
 const importAiInput = $("importAiInput");
 const settingsImportMarkdownZipBtn = $("settingsImportMarkdownZipBtn");
 const importMarkdownZipInput = $("importMarkdownZipInput");
+const backupImportStatus = $("backupImportStatus");
 const webClipBtn = $("webClipBtn");
 const webClipDialog = $("webClipDialog");
 const webClipForm = $("webClipForm");
@@ -1840,16 +1842,18 @@ async function performLocalWorkspaceSave(reason = "change") {
       plans.push({ note: savedNote, fileName, markdown, hash, attachmentIds: attachmentFiles.map((item) => item.id) });
     }
 
-    for (const plan of plans) await localFs.writeFile(layout.root, `notes/${plan.fileName}`, plan.markdown);
-    await localFs.writeFile(layout.root, "collections.json", `${serializeCollections(storedCollections)}\n`);
-    for (const asset of assetPlans.values()) await localFs.writeFile(layout.root, `assets/${asset.fileName}`, asset.blob || asset.data);
-
     plans.forEach((plan) => {
       nextSync.notes[plan.note.id] = { fileName: plan.fileName, hash: plan.hash, attachmentIds: plan.attachmentIds };
     });
     nextSync.savedAt = savedAt;
     const manifest = buildManifest({ appVersion: APP_VERSION, savedAt, notes: storedNotes, collections: storedCollections, assetsCount: assetPlans.size });
-    await localFs.writeJson(layout.root, "manifest.json", manifest);
+    const backupFiles = buildPortableBackupFiles({
+      manifest,
+      collections: JSON.parse(serializeCollections(storedCollections)),
+      notePlans: plans,
+      assetPlans: [...assetPlans.values()]
+    });
+    for (const file of backupFiles) await localFs.writeFile(layout.root, file.name, file.content);
     await localFs.writeJson(layout.root, "sync-state.json", nextSync);
 
     suppressLocalSaveQueue = true;
@@ -2463,6 +2467,19 @@ async function importMarkdownZip(file) {
   if (!file) return;
   await saveCurrentNote();
   const entries = parseStoredZipEntries(new Uint8Array(await file.arrayBuffer()));
+  if (isPortableBackup(entries)) {
+    const imported = parsePortableBackup(entries, {
+      parseNote: parseLocalNote,
+      idFactory: () => crypto.randomUUID()
+    });
+    const report = await applyPortableBackupImport(imported);
+    const summary = `バックアップを復元しました（メモ ${report.notes.restored}/${report.notes.total}、コレクション ${report.collections.restored}/${report.collections.total}、添付 ${report.attachments.restored}/${report.attachments.total}）`;
+    const preserved = report.attachments.preservedExisting ? " 一部の添付を復元できなかったため、既存の添付ファイルを保持しました。" : "";
+    const details = report.skipped.length ? ` スキップ: ${report.skipped.join("、")}` : "";
+    if (backupImportStatus) backupImportStatus.textContent = `${summary}${preserved}${details}`;
+    setSaveStatusNotice(`${summary}${report.skipped.length ? "（一部をスキップしました）" : ""}`);
+    return;
+  }
   const plans = buildMarkdownBundleImport(entries, () => crypto.randomUUID());
   const importedNotes = [];
   let failedImages = 0;
@@ -2513,6 +2530,119 @@ async function importMarkdownZip(file) {
   renderAll();
   if (importedNotes[0]) openNote(importedNotes[0].id);
   setSaveStatusNotice(`${importedNotes.length}件のMarkdownを取り込みました${failedImages ? `（画像${failedImages}件は取り込めませんでした）` : ""}`);
+}
+
+function normalizedBackupNote(note, collectionIds) {
+  const now = new Date().toISOString();
+  const validCollectionId = note.collectionId && collectionIds.has(note.collectionId) ? note.collectionId : UNCLASSIFIED_COLLECTION_ID;
+  return {
+    ...note,
+    title: note.title || "無題のメモ",
+    collectionId: validCollectionId,
+    createdAt: note.createdAt || now,
+    updatedAt: note.updatedAt || now,
+    bodyUpdatedAt: note.bodyUpdatedAt || note.updatedAt || now,
+    deletedAt: note.deletedAt || null,
+    isFlagged: Boolean(note.isFlagged)
+  };
+}
+
+function restoreMissingBackupAttachmentReferences(note, existingAttachments, missingAttachmentPaths) {
+  let body = String(note.body || "");
+  for (const assetPath of missingAttachmentPaths || []) {
+    const fileName = decodeURIComponent(String(assetPath).split("/").pop());
+    const existing = (existingAttachments || []).find((attachment) => `${attachment.id}.${attachmentExtension(attachment)}` === fileName);
+    if (!existing) continue;
+    const encodedPath = `../assets/${encodeURIComponent(fileName)}`;
+    body = body.replaceAll(`(${encodedPath})`, `(attachment://${existing.id})`).replaceAll(`(${assetPath})`, `(attachment://${existing.id})`);
+  }
+  return body === note.body ? note : { ...note, body };
+}
+
+async function applyPortableBackupImport(imported) {
+  const existingNotes = await getAllNotes();
+  const existingCollections = await getAllCollections();
+  const existingByNoteId = new Map(existingNotes.map((note) => [note.id, note]));
+  const existingByCollectionId = new Map(existingCollections.map((collection) => [collection.id, collection]));
+  const collectionUpdates = imported.collections.filter((collection) => !collection.isSystem && importedWins(existingByCollectionId.get(collection.id), collection));
+  const availableCollectionIds = new Set([...existingByCollectionId.keys(), ...collectionUpdates.map((collection) => collection.id), UNCLASSIFIED_COLLECTION_ID]);
+  const skipped = [...imported.skipped];
+  const keptExisting = [];
+  const importedNotePlans = [];
+  for (const plan of imported.notes) {
+    const existing = existingByNoteId.get(plan.note.id);
+    if (!importedWins(existing, plan.note)) {
+      skipped.push(`notes/${plan.note.id}（同じIDのより新しいデータがあります）`);
+      keptExisting.push(plan.note.id);
+      continue;
+    }
+    const note = normalizedBackupNote(plan.note, availableCollectionIds);
+    if (plan.note.collectionId && note.collectionId === UNCLASSIFIED_COLLECTION_ID) skipped.push(`notes/${plan.note.id}（不明なコレクションを未分類へ移動）`);
+    importedNotePlans.push({
+      note,
+      attachments: plan.attachments || [],
+      attachmentsComplete: plan.attachmentsComplete !== false,
+      missingAttachmentPaths: plan.missingAttachmentPaths || []
+    });
+  }
+  const existingAttachmentsByMemo = new Map();
+  for (const plan of importedNotePlans) existingAttachmentsByMemo.set(plan.note.id, await getAttachmentsForMemo(plan.note.id));
+  const preservedAttachmentMemoIds = [];
+  const notePlans = importedNotePlans.map((plan) => {
+    const existingAttachments = existingAttachmentsByMemo.get(plan.note.id) || [];
+    if (plan.attachmentsComplete) return plan;
+    if (existingAttachments.length) {
+      preservedAttachmentMemoIds.push(plan.note.id);
+      skipped.push(`notes/${plan.note.id}（添付の一部を復元できないため既存添付を保持）`);
+    }
+    return { ...plan, note: restoreMissingBackupAttachmentReferences(plan.note, existingAttachments, plan.missingAttachmentPaths) };
+  });
+  const attachmentRecords = notePlans.flatMap((plan) => plan.attachments.map((asset) => ({
+    id: asset.id, memoId: plan.note.id, fileName: asset.fileName, kind: asset.mimeType === "application/pdf" ? "pdf" : "image",
+    mimeType: asset.mimeType, size: asset.data.byteLength, blob: new Blob([asset.data], { type: asset.mimeType }), createdAt: plan.note.updatedAt
+  })));
+  await applyPortableBackupTransaction({
+    collectionUpdates,
+    notePlans,
+    oldAttachmentIds: attachmentIdsToReplace(notePlans, existingAttachmentsByMemo),
+    attachmentRecords
+  });
+  notes = await getAllNotes();
+  collections = await getAllCollections();
+  invalidateTermRelationIndex();
+  renderAll();
+  if (notePlans[0]) openNote(notePlans[0].note.id);
+  return {
+    notes: { restored: notePlans.length, total: imported.notes.length },
+    collections: { restored: collectionUpdates.length, total: imported.collections.length },
+    attachments: {
+      restored: attachmentRecords.length,
+      total: imported.notes.flatMap((plan) => plan.attachmentTotal ?? (plan.attachments || []).length).reduce((sum, count) => sum + count, 0),
+      preservedExisting: preservedAttachmentMemoIds.length
+    },
+    keptExisting,
+    skipped
+  };
+}
+
+function applyPortableBackupTransaction({ collectionUpdates, notePlans, oldAttachmentIds, attachmentRecords }) {
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction([STORE_NAME, COLLECTION_STORE_NAME, ATTACHMENT_STORE_NAME], "readwrite");
+    const noteStore = transaction.objectStore(STORE_NAME);
+    const collectionStore = transaction.objectStore(COLLECTION_STORE_NAME);
+    const attachmentStore = transaction.objectStore(ATTACHMENT_STORE_NAME);
+    collectionUpdates.forEach((collection) => collectionStore.put(collection));
+    oldAttachmentIds.forEach((id) => attachmentStore.delete(id));
+    attachmentRecords.forEach((attachment) => attachmentStore.put(attachment));
+    notePlans.forEach((plan) => noteStore.put(plan.note));
+    transaction.oncomplete = () => {
+      notePlans.forEach((plan) => notifyMemoChanged(plan.note));
+      markLocalWorkspacePending();
+      resolve();
+    };
+    transaction.onerror = () => reject(transaction.error || new Error("バックアップの保存に失敗しました"));
+    transaction.onabort = () => reject(transaction.error || new Error("バックアップの保存を安全のため中止しました"));
+  });
 }
 
 async function importPastedItNewsJson() {
@@ -7542,17 +7672,40 @@ function buildDiscoveryMessage(note) {
 async function downloadMarkdownZip() {
   try {
     await flushSave();
-    const files = await buildCollectionZipFiles();
+    const files = await buildPortableBackupZipFiles();
     console.log("ZIP backup", {
       fileCount: files.length,
       fileNames: files.map((file) => file.name)
     });
     const blob = await makeZip(files);
-    downloadBlob(blob, `memo-nexus-${todayStamp()}.zip`);
+    downloadBlob(blob, `memo-nexus-backup-${todayStamp()}.zip`);
   } catch (error) {
     console.error("ZIP backup failed", error);
     alert(`ZIPバックアップに失敗しました: ${error.message || error}`);
   }
+}
+
+async function buildPortableBackupZipFiles() {
+  const exportedAt = new Date().toISOString();
+  const storedNotes = await getAllNotes();
+  const storedCollections = await getAllCollections();
+  const assetPlans = new Map();
+  const notePlans = [];
+  for (const note of storedNotes) {
+    const attachments = await getAttachmentsForMemo(note.id);
+    const attachmentFiles = attachments.map((attachment) => {
+      const fileName = `${attachment.id}.${attachmentExtension(attachment)}`;
+      assetPlans.set(attachment.id, { ...attachment, fileName, updatedAt: note.updatedAt || exportedAt });
+      return { id: attachment.id, fileName };
+    });
+    notePlans.push({
+      fileName: safeStableNoteFileName(note, sanitizeWindowsName),
+      markdown: serializeLocalNote(note, note.body, attachmentFiles),
+      updatedAt: note.bodyUpdatedAt || note.updatedAt || note.createdAt || exportedAt
+    });
+  }
+  const manifest = buildManifest({ appVersion: APP_VERSION, savedAt: exportedAt, exportedAt, notes: storedNotes, collections: storedCollections, assetsCount: assetPlans.size });
+  return buildPortableBackupFiles({ manifest, collections: JSON.parse(serializeCollections(storedCollections)), notePlans, assetPlans: [...assetPlans.values()] });
 }
 
 // 追加ライブラリなしでZIPを作る処理です。各Markdownを無圧縮のZIPエントリにします。
@@ -9935,7 +10088,7 @@ if (settingsImportMarkdownZipBtn && importMarkdownZipInput) {
       await importMarkdownZip(file);
       settingsDialog.close();
     } catch (error) {
-      alert(`Markdown ZIPの取り込みに失敗しました: ${error.message || error}`);
+      alert(`バックアップ／Markdown ZIPの取り込みに失敗しました: ${error.message || error}`);
     } finally {
       importMarkdownZipInput.value = "";
     }

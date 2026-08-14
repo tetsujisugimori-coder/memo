@@ -57,8 +57,11 @@
     };
   }
 
-  function buildManifest({ appVersion, savedAt, notes, collections, assetsCount }) {
+  function buildManifest({ appVersion, savedAt, exportedAt = savedAt, notes, collections, assetsCount }) {
     return {
+      format: "memo-nexus-backup",
+      version: 1,
+      exportedAt: exportedAt || new Date().toISOString(),
       formatVersion: 1,
       appVersion,
       savedAt,

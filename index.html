@@ -70,7 +70,7 @@
         <button id="collectionsBtn" title="コレクションを表示" aria-controls="contextPanel" aria-expanded="true">▱ コレクション</button>
         <button id="todayBtn" title="今日メモ">Today</button>
         <button id="undoBtn" class="undo-button" title="元に戻す" disabled>Undo</button>
-        <button id="backupBtn" title="Markdown ZIP出力">ZIP</button>
+        <button id="backupBtn" title="完全バックアップZIP出力">ZIP</button>
         <button id="linkStatsBtn" title="語句統計">語句</button>
         <button id="graphBtn" title="グラフを開く">Graph</button>
         <button id="settingsBtn" title="設定">設定</button>
@@ -317,7 +317,7 @@
         <div class="settings-actions">
           <button id="settingsImportAiBtn" type="button">AIニュースファイル取り込み</button>
           <input id="importAiInput" type="file" accept=".json,.md,.txt,application/json,text/markdown,text/plain" hidden>
-          <button id="settingsImportMarkdownZipBtn" type="button">Markdown ZIP取り込み</button>
+          <button id="settingsImportMarkdownZipBtn" type="button">バックアップ／Markdown ZIP取り込み</button>
           <input id="importMarkdownZipInput" type="file" accept=".zip,application/zip" hidden>
           <button id="settingsPasteJsonBtn" type="button">JSON貼り付け取り込み</button>
         </div>
@@ -325,7 +325,8 @@
       <section class="settings-section">
         <h2>バックアップ</h2>
         <div class="settings-actions">
-          <button id="settingsBackupBtn" type="button">Markdown ZIPを書き出す</button>
+          <button id="settingsBackupBtn" type="button">完全バックアップZIPを書き出す</button>
+          <p id="backupImportStatus" class="settings-note" role="status" aria-live="polite"></p>
           <button type="button" class="soon-button" disabled>JSON全体を書き出す <span>Coming soon</span></button>
         </div>
       </section>
@@ -753,11 +754,12 @@
   <script src="local-save-state.js?v=0.4.0-4"></script>
   <script src="local-save-queue.js?v=0.4.0-3"></script>
   <script src="local-markdown.js?v=0.4.0-1"></script>
-  <script src="local-sync-utils.js?v=0.4.0-5"></script>
+  <script src="local-sync-utils.js?v=0.4.0-6"></script>
+  <script src="backup-bundle-utils.js?v=0.1.0-2"></script>
   <script src="local-fs-adapter.js?v=0.4.0-1"></script>
   <script src="indexeddb-lifecycle.js?v=0.4.0-1"></script>
   <script src="manual-local-save.js?v=0.4.0-1"></script>
   <script src="status-time-utils.js?v=0.4.0-1"></script>
-  <script src="app.js?v=0.4.0-81"></script>
+  <script src="app.js?v=0.4.0-83"></script>
 </body>
 </html>

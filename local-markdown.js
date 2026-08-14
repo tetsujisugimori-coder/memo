@@ -3,13 +3,14 @@
 
   const FRONT_MATTER_KEYS = [
     "memoNexusId", "title", "collectionId", "createdAt", "localCreatedAt", "updatedAt",
-    "bodyUpdatedAt", "localSavedAt", "flagged", "deletedAt", "sortOrder", "formatVersion"
+    "bodyUpdatedAt", "localSavedAt", "flagged", "trashed", "deletedAt", "sortOrder",
+    "source", "explanations", "fontSettings", "attachments", "formatVersion"
   ];
 
   function yamlScalar(value) {
     if (value == null) return "null";
     if (typeof value === "boolean" || typeof value === "number") return String(value);
-    return JSON.stringify(String(value));
+    return JSON.stringify(value);
   }
 
   function parseYamlScalar(value) {
@@ -18,13 +19,13 @@
     if (source === "true") return true;
     if (source === "false") return false;
     if (/^-?\d+(?:\.\d+)?$/.test(source)) return Number(source);
-    if (source.startsWith('"')) {
+    if (source.startsWith('"') || source.startsWith("{") || source.startsWith("[")) {
       try { return JSON.parse(source); } catch (_) { return source.slice(1, -1); }
     }
     return source.replace(/^['"]|['"]$/g, "");
   }
 
-  function localNoteMetadata(note) {
+  function localNoteMetadata(note, attachments = []) {
     return {
       memoNexusId: note.id,
       title: note.title || "無題のメモ",
@@ -35,8 +36,18 @@
       bodyUpdatedAt: note.bodyUpdatedAt || note.updatedAt || null,
       localSavedAt: note.localSavedAt || null,
       flagged: Boolean(note.isFlagged),
+      trashed: Boolean(note.deletedAt),
       deletedAt: note.deletedAt || null,
       sortOrder: Number(note.sortOrder || 0),
+      source: note.source || null,
+      explanations: Array.isArray(note.explanations) ? note.explanations : [],
+      fontSettings: note.fontSettings || null,
+      attachments: (attachments || []).map((attachment) => ({
+        id: String(attachment.id || ""),
+        fileName: String(attachment.fileName || ""),
+        mimeType: String(attachment.mimeType || attachment.blob?.type || "application/octet-stream"),
+        kind: attachment.kind || null
+      })).filter((attachment) => attachment.id && attachment.fileName),
       formatVersion: 1
     };
   }
@@ -55,7 +66,7 @@
   }
 
   function serializeLocalNote(note, body = note?.body || "", attachments = []) {
-    return `${serializeFrontMatter(localNoteMetadata(note))}\n\n${replaceAttachmentReferences(body, attachments)}`;
+    return `${serializeFrontMatter(localNoteMetadata(note, attachments))}\n\n${replaceAttachmentReferences(body, attachments)}`;
   }
 
   function parseFrontMatter(text) {
