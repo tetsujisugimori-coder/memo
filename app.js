@@ -307,6 +307,7 @@ const {
   localSaveLabel,
   resolveDisplayedCreatedAt,
   resolveLocalScanState,
+  shouldResumeLocalSaveAfterScan,
   transitionLocalSaveState
 } = window.MemoNexusLocalSaveState;
 const { createLocalSaveQueue, runLocalScanAfterQueue } = window.MemoNexusLocalSaveQueue;
@@ -1646,7 +1647,7 @@ async function initializeLocalFolderSaving({ scan = true } = {}) {
   renderSaveStatus();
   renderLocalFolderSettings();
   if (scan) await scanExternalLocalMarkdown({ automatic: true });
-  queueLocalWorkspaceSave("startup");
+  if (localSaveState.pendingChanges || !localSaveState.lastSuccessAt) queueLocalWorkspaceSave("startup");
 }
 
 function queueLocalWorkspaceSave(reason = "change") {
@@ -1862,15 +1863,46 @@ async function scanExternalLocalMarkdown({ automatic = false } = {}) {
       serializeNote: serializeLocalNote,
       getAttachmentsForNote: getAttachmentsForMemo
     });
-    const scanState = resolveLocalScanState(localSaveState, localScanCandidates);
-    if (scanState) setLocalSaveState(scanState.status, scanState.patch);
-    renderLocalScanResults();
+    await reconcileLocalScanCandidates({ resumePendingSave: true, reason: "scan-unblocked" });
     if (!automatic) localFolderStatus.textContent = localScanCandidates.length ? `${localScanCandidates.length}件を確認してください。自動上書きはしません。` : "新しい外部Markdownはありません。";
     return localScanCandidates;
   } catch (error) {
     if (!automatic) localFolderStatus.textContent = `再スキャンに失敗しました: ${error.message || error}`;
     return [];
   }
+}
+
+async function reconcileLocalScanCandidates({
+  resumePendingSave = false,
+  reason = "scan-reconciled",
+  markPendingChanges = false
+} = {}) {
+  const scanState = resolveLocalScanState(localSaveState, localScanCandidates);
+  if (scanState) {
+    const status = markPendingChanges && scanState.status === "saved" ? "pending" : scanState.status;
+    setLocalSaveState(status, {
+      ...scanState.patch,
+      ...(markPendingChanges ? { pendingChanges: true } : {})
+    });
+  } else if (markPendingChanges) {
+    const protectedStatus = ["permission-required", "error", "unsupported"].includes(localSaveState.status);
+    setLocalSaveState(protectedStatus ? localSaveState.status : "pending", {
+      pendingChanges: true,
+      lastAttemptAt: localSaveState.lastAttemptAt,
+      ...(protectedStatus ? {} : { errorCode: "", errorMessage: "", requiresUserAction: false })
+    });
+  }
+  renderLocalScanResults();
+
+  if (!resumePendingSave || !shouldResumeLocalSaveAfterScan({
+    enabled: localSaveSettings.enabled,
+    hasDirectory: Boolean(localDirectoryHandle),
+    state: localSaveState,
+    candidates: localScanCandidates
+  })) return false;
+
+  queueLocalWorkspaceSave(reason);
+  return localSaveQueue.flush(reason);
 }
 
 async function scanExternalLocalMarkdownAfterSaves({ automatic = false, reason = "before-scan" } = {}) {
@@ -1935,16 +1967,18 @@ async function applyLocalCandidate(index, action) {
     const root = await localFs.resolveWorkspaceRoot(localDirectoryHandle, true);
     await localFs.writeJson(root, "sync-state.json", localSyncState);
     localScanCandidates.splice(index, 1);
-    renderLocalScanResults();
+    await reconcileLocalScanCandidates({ resumePendingSave: true, reason: "candidate-excluded" });
     return;
   }
   if (action === "app") {
     const targetId = candidate.classification.existing?.id;
     if (targetId) forcedLocalSaveNoteIds.add(targetId);
     localScanCandidates.splice(index, 1);
-    renderLocalScanResults();
-    const saved = await queueLocalWorkspaceSave("conflict-overwrite");
-    await localSaveQueue.flush("conflict-overwrite");
+    const saved = await reconcileLocalScanCandidates({
+      resumePendingSave: true,
+      reason: "conflict-overwrite",
+      markPendingChanges: true
+    });
     if (saved !== false) await scanExternalLocalMarkdown({ automatic: true });
     return;
   }
@@ -1969,8 +2003,11 @@ async function applyLocalCandidate(index, action) {
   renderAll();
   openNote(draft.id);
   localScanCandidates.splice(index, 1);
-  renderLocalScanResults();
-  queueLocalWorkspaceSave("local-import");
+  await reconcileLocalScanCandidates({
+    resumePendingSave: true,
+    reason: "local-import",
+    markPendingChanges: true
+  });
 }
 
 async function restoreCollectionsFromLocal() {

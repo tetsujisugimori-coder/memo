@@ -8,6 +8,7 @@ const {
   createLocalSaveState,
   resolveDisplayedCreatedAt,
   resolveLocalScanState,
+  shouldResumeLocalSaveAfterScan,
   transitionLocalSaveState
 } = require("./local-save-state.js");
 const { createLocalSaveQueue, runLocalScanAfterQueue } = require("./local-save-queue.js");
@@ -216,10 +217,10 @@ test("最後に書いたハッシュと異なる外部変更を自動上書き�
 });
 
 test("管理対象Markdownはsync-stateのnote IDとfileNameで特定する", () => {
-  assert.match(html, /local-save-state\.js\?v=0\.4\.0-2/);
+  assert.match(html, /local-save-state\.js\?v=0\.4\.0-3/);
   assert.match(html, /local-save-queue\.js\?v=0\.4\.0-2/);
   assert.match(html, /local-sync-utils\.js\?v=0\.4\.0-3/);
-  assert.match(html, /app\.js\?v=0\.4\.0-76/);
+  assert.match(html, /app\.js\?v=0\.4\.0-77/);
   const syncState = {
     notes: {
       "note-1": { fileName: "題名--note-1.md", hash: "last" },
@@ -328,10 +329,141 @@ test("外部編集の再スキャンは即時に確認が必要となり、元�
   assert.deepEqual(resolvedCandidates, []);
   state = applyScanState(state, resolvedCandidates, 3);
   assert.equal(state.status, "saved");
+  assert.equal(state.lastSuccessAt, syncState.savedAt);
   assert.equal(state.errorCode, "");
   assert.equal(state.requiresUserAction, false);
   assert.equal(note.createdAt, "original-created");
   assert.equal(note.localCreatedAt, "local-created");
+  assert.equal(note.localSavedAt, syncState.savedAt);
+});
+
+test("競合解除後のpending保存を一度だけ再開し、実保存成功時だけ保存日時を更新する", async () => {
+  const selected = new MockDirectoryHandle("保存先");
+  const layout = await localFs.ensureWorkspaceLayout(selected);
+  const initialSavedAt = "2026-08-14T02:00:00.000Z";
+  const resumedSavedAt = "2026-08-14T02:05:00.000Z";
+  const originalNote = {
+    id: "note-1", title: "保存再開", collectionId: "c1", createdAt: "original-created",
+    localCreatedAt: "local-created", updatedAt: 1, bodyUpdatedAt: 1,
+    localSavedAt: initialSavedAt, isFlagged: false, deletedAt: null, sortOrder: 0, body: "初回本文"
+  };
+  const originalMarkdown = serializeLocalNote(originalNote);
+  let syncState = {
+    formatVersion: 1,
+    savedAt: initialSavedAt,
+    notes: { "note-1": { fileName: "保存再開--note-1.md", hash: contentHash(originalMarkdown), attachmentIds: [] } },
+    assets: {}, excluded: []
+  };
+  await localFs.writeFile(layout.root, "notes/保存再開--note-1.md", originalMarkdown);
+  await localFs.writeJson(layout.root, "sync-state.json", syncState);
+  const managedFile = layout.root.directories.get("notes").files.get("保存再開--note-1.md");
+  managedFile.value = originalMarkdown.replace("初回本文", "外部変更本文");
+
+  let candidates = await scanMockWorkspace(selected, syncState, [originalNote]);
+  let state = applyScanState(createLocalSaveState({ status: "saved", lastSuccessAt: initialSavedAt }), candidates, 2);
+  assert.equal(state.status, "conflict");
+  const editedNote = { ...originalNote, body: "Memo-Nexus側の最新本文", updatedAt: 2, bodyUpdatedAt: 2 };
+  state = createLocalSaveState({ ...state, pendingChanges: true });
+  assert.equal(shouldResumeLocalSaveAfterScan({ enabled: true, hasDirectory: true, state, candidates }), false);
+
+  managedFile.value = originalMarkdown;
+  candidates = await scanMockWorkspace(selected, syncState, [editedNote]);
+  assert.deepEqual(candidates, []);
+  state = applyScanState(state, candidates, 3);
+  assert.equal(state.status, "pending");
+  assert.equal(state.lastSuccessAt, initialSavedAt);
+  assert.equal(editedNote.localSavedAt, initialSavedAt);
+  assert.equal(shouldResumeLocalSaveAfterScan({ enabled: true, hasDirectory: true, state, candidates }), true);
+
+  let saveCount = 0;
+  let savedNote = editedNote;
+  const queue = createLocalSaveQueue(async () => {
+    saveCount += 1;
+    state = transitionLocalSaveState(state, "saving", {}, 4);
+    savedNote = applyLocalSaveSuccess(editedNote, resumedSavedAt);
+    const nextMarkdown = serializeLocalNote(savedNote);
+    const nextHash = contentHash(nextMarkdown);
+    await localFs.writeFile(layout.root, "notes/保存再開--note-1.md", nextMarkdown);
+    syncState = {
+      ...syncState,
+      savedAt: resumedSavedAt,
+      notes: { "note-1": { fileName: "保存再開--note-1.md", hash: nextHash, attachmentIds: [] } }
+    };
+    await localFs.writeJson(layout.root, "sync-state.json", syncState);
+    state = transitionLocalSaveState(state, "saved", { lastSuccessAt: resumedSavedAt }, 5);
+  }, 1);
+  const queued = queue.enqueue("scan-unblocked");
+  await queue.flush("scan-unblocked");
+  await queued;
+
+  assert.equal(saveCount, 1);
+  assert.equal(state.status, "saved");
+  assert.equal(state.lastSuccessAt, resumedSavedAt);
+  assert.equal(savedNote.localSavedAt, resumedSavedAt);
+  assert.equal(savedNote.createdAt, originalNote.createdAt);
+  assert.equal(savedNote.localCreatedAt, originalNote.localCreatedAt);
+  assert.match(await localFs.readText(layout.root, "notes/保存再開--note-1.md"), /Memo-Nexus側の最新本文/);
+  const writtenSync = await localFs.readJson(layout.root, "sync-state.json", null);
+  assert.equal(writtenSync.savedAt, resumedSavedAt);
+  assert.equal(writtenSync.notes["note-1"].hash, contentHash(await localFs.readText(layout.root, "notes/保存再開--note-1.md")));
+  const afterSaveCandidates = await scanMockWorkspace(selected, writtenSync, [savedNote]);
+  assert.deepEqual(afterSaveCandidates, []);
+  assert.equal(shouldResumeLocalSaveAfterScan({ enabled: true, hasDirectory: true, state, candidates: afterSaveCandidates }), false);
+  assert.match(app, /if \(localSaveState\.pendingChanges \|\| !localSaveState\.lastSuccessAt\) queueLocalWorkspaceSave\("startup"\)/);
+});
+
+test("最後の復元候補を除外すると確認状態を解除し、必要な場合だけ保存再開を許可する", async () => {
+  const selected = new MockDirectoryHandle("保存先");
+  selected.files.set("復元候補.md", new MockFileHandle("復元候補.md", "---\nmemoNexusId: \"missing-note\"\ntitle: \"復元候補\"\n---\n復元本文"));
+  let syncState = normalizeSyncState();
+  let candidates = await scanMockWorkspace(selected, syncState, []);
+  assert.deepEqual(candidates.map((candidate) => candidate.classification.type), ["restore"]);
+  const fixedSavedAt = "2026-08-14T03:00:00.000Z";
+  let state = applyScanState(createLocalSaveState({ status: "saved", lastSuccessAt: fixedSavedAt }), candidates, 2);
+  assert.equal(state.status, "conflict");
+
+  syncState = normalizeSyncState({ excluded: ["復元候補.md"] });
+  candidates = await scanMockWorkspace(selected, syncState, []);
+  assert.deepEqual(candidates, []);
+  state = applyScanState(state, candidates, 3);
+  assert.equal(state.status, "saved");
+  assert.equal(state.lastSuccessAt, fixedSavedAt);
+  assert.equal(state.requiresUserAction, false);
+  assert.equal(shouldResumeLocalSaveAfterScan({ enabled: true, hasDirectory: true, state, candidates }), false);
+
+  state = createLocalSaveState({ status: "conflict", lastSuccessAt: fixedSavedAt, pendingChanges: true, errorCode: "restore-candidate", requiresUserAction: true });
+  state = applyScanState(state, candidates, 4);
+  assert.equal(state.status, "pending");
+  assert.equal(state.lastSuccessAt, fixedSavedAt);
+  assert.equal(shouldResumeLocalSaveAfterScan({ enabled: true, hasDirectory: true, state, candidates }), true);
+  let saveCount = 0;
+  const queue = createLocalSaveQueue(async () => {
+    saveCount += 1;
+    state = transitionLocalSaveState(state, "saving", {}, 5);
+    state = transitionLocalSaveState(state, "saved", { lastSuccessAt: "2026-08-14T03:05:00.000Z" }, 6);
+  }, 1);
+  const queued = queue.enqueue("candidate-excluded");
+  await queue.flush("candidate-excluded");
+  await queued;
+  assert.equal(saveCount, 1);
+  assert.equal(state.status, "saved");
+  assert.match(app, /candidate-excluded/);
+  assert.match(app, /reconcileLocalScanCandidates\(\{ resumePendingSave: true/);
+});
+
+test("候補消失時も権限・書込み・非対応状態を維持し、ブロック候補と保留競合では再開しない", () => {
+  for (const status of ["permission-required", "error", "unsupported"]) {
+    const state = createLocalSaveState({ status, lastSuccessAt: "fixed", pendingChanges: true, errorCode: status });
+    assert.equal(applyScanState(state, []), state);
+    assert.equal(shouldResumeLocalSaveAfterScan({ enabled: true, hasDirectory: true, state, candidates: [] }), false);
+  }
+  const held = applyScanState(createLocalSaveState({ status: "conflict", pendingChanges: true, errorCode: "conflict-held" }), [{ classification: { type: "conflict" } }], 2);
+  assert.equal(held.errorCode, "conflict-held");
+  assert.equal(shouldResumeLocalSaveAfterScan({ enabled: true, hasDirectory: true, state: held, candidates: [{ classification: { type: "conflict" } }] }), false);
+  const saved = createLocalSaveState({ status: "saved", lastSuccessAt: "fixed" });
+  assert.equal(shouldResumeLocalSaveAfterScan({ enabled: true, hasDirectory: true, state: saved, candidates: [{ classification: { type: "new" } }, { classification: { type: "duplicate" } }] }), false);
+  const pending = createLocalSaveState({ status: "pending", lastSuccessAt: "fixed", pendingChanges: true });
+  assert.equal(shouldResumeLocalSaveAfterScan({ enabled: true, hasDirectory: true, state: pending, candidates: [{ classification: { type: "new" } }, { classification: { type: "duplicate" } }] }), true);
 });
 
 test("復元候補だけは区別して確認を求め、新規・重複だけでは保存状態を変えない", async () => {

@@ -79,7 +79,21 @@
 
     if (current?.status !== "conflict") return null;
     const status = current.pendingChanges || !current.lastSuccessAt ? "pending" : "saved";
-    return { status, patch: { errorCode: "", errorMessage: "", requiresUserAction: false } };
+    return {
+      status,
+      patch: {
+        lastSuccessAt: current.lastSuccessAt,
+        errorCode: "",
+        errorMessage: "",
+        requiresUserAction: false
+      }
+    };
+  }
+
+  function shouldResumeLocalSaveAfterScan({ enabled, hasDirectory, state, candidates = [] } = {}) {
+    const hasBlockingCandidate = candidates.some((candidate) => ["restore", "conflict"].includes(candidate?.classification?.type));
+    const protectedStatus = ["unconfigured", "saving", "permission-required", "conflict", "error", "unsupported"].includes(state?.status);
+    return Boolean(enabled && hasDirectory && !hasBlockingCandidate && state?.pendingChanges && !protectedStatus);
   }
 
   function resolveDisplayedCreatedAt(note) {
@@ -102,7 +116,8 @@
 
   const api = {
     STATUS_LABELS, applyLocalSaveSuccess, createLocalSaveState, localSaveLabel,
-    resolveDisplayedCreatedAt, resolveLocalScanState, transitionLocalSaveState
+    resolveDisplayedCreatedAt, resolveLocalScanState, shouldResumeLocalSaveAfterScan,
+    transitionLocalSaveState
   };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   if (globalScope) globalScope.MemoNexusLocalSaveState = api;
