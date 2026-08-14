@@ -18,9 +18,11 @@ const {
 const {
   attachmentExtension,
   buildManifest,
+  classifyManagedMarkdownHashes,
   classifyMarkdownCandidate,
   contentHash,
   hasExternalModification,
+  managedNoteForPath,
   normalizeSyncState,
   parseCollections,
   serializeCollections
@@ -194,6 +196,95 @@ test("最後に書いたハッシュと異なる外部変更を自動上書き�
   assert.match(app, /setLocalSaveState\("conflict"/);
 });
 
+test("管理対象Markdownはsync-stateのnote IDとfileNameで特定する", () => {
+  assert.match(html, /local-sync-utils\.js\?v=0\.4\.0-2/);
+  assert.match(html, /app\.js\?v=0\.4\.0-75/);
+  const syncState = {
+    notes: {
+      "note-1": { fileName: "題名--note-1.md", hash: "last" },
+      "note-2": { fileName: "別--note-2.md", hash: "other" }
+    }
+  };
+  assert.deepEqual(managedNoteForPath(syncState, "notes/題名--note-1.md"), ["note-1", syncState.notes["note-1"]]);
+  assert.equal(managedNoteForPath(syncState, "題名--note-1.md"), null);
+  assert.equal(managedNoteForPath(syncState, "notes/未管理.md"), null);
+});
+
+test("管理対象Markdownは前回書込みまたはアプリ最新版と同じなら競合にしない", () => {
+  assert.equal(classifyManagedMarkdownHashes("last", "last", "next"), "last-written");
+  assert.equal(classifyManagedMarkdownHashes("last", "next", "next"), "app-current");
+  assert.equal(classifyManagedMarkdownHashes("last", "external", "next"), "conflict");
+  assert.equal(classifyManagedMarkdownHashes("", "external", "next"), "unmanaged");
+});
+
+test("初回保存後のアプリ内編集は走査で競合せず、保存キューがMarkdownとsync-stateを更新する", async () => {
+  const selected = new MockDirectoryHandle("保存先");
+  const layout = await localFs.ensureWorkspaceLayout(selected);
+  const originalNote = {
+    id: "note-1", title: "回帰テスト", collectionId: "c1", createdAt: "2026-08-01T00:00:00.000Z",
+    localCreatedAt: "2026-08-14T00:00:00.000Z", updatedAt: 1, bodyUpdatedAt: 1,
+    localSavedAt: "2026-08-14T00:00:00.000Z", isFlagged: false, deletedAt: null, sortOrder: 0, body: "初回本文"
+  };
+  const originalMarkdown = serializeLocalNote(originalNote);
+  const originalHash = contentHash(originalMarkdown);
+  await localFs.writeFile(layout.root, "notes/回帰テスト--note-1.md", originalMarkdown);
+  await localFs.writeJson(layout.root, "sync-state.json", {
+    formatVersion: 1,
+    savedAt: originalNote.localSavedAt,
+    notes: { "note-1": { fileName: "回帰テスト--note-1.md", hash: originalHash, attachmentIds: [] } },
+    assets: {},
+    excluded: []
+  });
+
+  const editedNote = { ...originalNote, body: "Memo-Nexusで編集した本文", updatedAt: 2, bodyUpdatedAt: 2 };
+  const nextMarkdown = serializeLocalNote(editedNote);
+  const nextHash = contentHash(nextMarkdown);
+  const currentLocalHash = contentHash(await localFs.readText(layout.root, "notes/回帰テスト--note-1.md"));
+  assert.equal(classifyManagedMarkdownHashes(originalHash, currentLocalHash, nextHash), "last-written");
+
+  let state = transitionLocalSaveState(createLocalSaveState({ status: "saved", lastSuccessAt: originalNote.localSavedAt }), "pending", {}, 2);
+  const queue = createLocalSaveQueue(async () => {
+    state = transitionLocalSaveState(state, "saving", {}, 3);
+    await localFs.writeFile(layout.root, "notes/回帰テスト--note-1.md", nextMarkdown);
+    await localFs.writeJson(layout.root, "sync-state.json", {
+      formatVersion: 1,
+      savedAt: "2026-08-14T00:01:00.000Z",
+      notes: { "note-1": { fileName: "回帰テスト--note-1.md", hash: nextHash, attachmentIds: [] } },
+      assets: {},
+      excluded: []
+    });
+    state = transitionLocalSaveState(state, "saved", { lastSuccessAt: "2026-08-14T00:01:00.000Z" }, 4);
+  }, 1);
+  await queue.enqueue("edited-note");
+
+  assert.equal(await localFs.readText(layout.root, "notes/回帰テスト--note-1.md"), nextMarkdown);
+  const updatedSync = await localFs.readJson(layout.root, "sync-state.json", null);
+  assert.equal(updatedSync.notes["note-1"].hash, nextHash);
+  assert.equal(updatedSync.savedAt, "2026-08-14T00:01:00.000Z");
+  assert.equal(state.status, "saved");
+  assert.equal(editedNote.createdAt, originalNote.createdAt);
+  assert.equal(editedNote.localCreatedAt, originalNote.localCreatedAt);
+});
+
+test("外部編集だけを真の競合にし、未管理Markdownは従来分類へ渡す", () => {
+  const last = contentHash("Memo-Nexusが最後に保存");
+  const next = contentHash("アプリ最新版");
+  assert.equal(classifyManagedMarkdownHashes(last, contentHash("外部編集"), next), "conflict");
+  assert.equal(classifyManagedMarkdownHashes(last, next, next), "app-current");
+  assert.equal(classifyMarkdownCandidate({ metadata: {}, body: "未管理" }, []).type, "new");
+  assert.equal(classifyMarkdownCandidate({ metadata: { memoNexusId: "missing" }, body: "復元" }, []).type, "restore");
+  assert.match(app, /managedNoteForPath\(localSyncState, entry\.path\)/);
+  assert.match(app, /disposition !== "conflict"\) continue/);
+});
+
+test("フォーカス復帰は保留中のローカル保存をflushしてから外部走査する", () => {
+  const focusHandler = app.match(/window\.addEventListener\("focus", \(\) => \{[\s\S]*?\n\}\);/)?.[0] || "";
+  const flushIndex = focusHandler.indexOf('await localSaveQueue.flush("focus-before-scan")');
+  const scanIndex = focusHandler.indexOf("await scanExternalLocalMarkdown({ automatic: true })");
+  assert.ok(flushIndex >= 0 && scanIndex > flushIndex);
+  assert.match(app, /hasExternalModification\(previous\.hash, currentHash, hash\)/);
+});
+
 test("競合の強制保存は選択したメモだけに限定し、保留中は候補を残す", () => {
   assert.match(app, /const forcedLocalSaveNoteIds = new Set\(\)/);
   assert.match(app, /!forcedNoteIds\.has\(note\.id\) && previous\.hash/);
@@ -212,6 +303,18 @@ test("ローカル保存キューは短時間の更新をまとめて直列実�
   assert.deepEqual(calls, ["second"]);
   await queue.enqueue("third");
   assert.deepEqual(calls, ["second", "third"]);
+});
+
+test("真の競合で保存が失敗しても、解決後の次回保存は実行できる", async () => {
+  const calls = [];
+  const queue = createLocalSaveQueue(async (reason) => {
+    calls.push(reason);
+    if (reason === "conflict") throw new Error("外部変更");
+    return "saved";
+  }, 1);
+  await assert.rejects(queue.enqueue("conflict"), /外部変更/);
+  assert.equal(await queue.enqueue("resolved"), "saved");
+  assert.deepEqual(calls, ["conflict", "resolved"]);
 });
 
 test("File System Accessアダプターは二重ルートを作らず、書込・読込・スキャンできる", async () => {

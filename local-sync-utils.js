@@ -71,6 +71,20 @@
     return Boolean(lastWrittenHash && currentHash && currentHash !== lastWrittenHash && currentHash !== nextHash);
   }
 
+  function managedNoteForPath(syncState, path) {
+    const normalizedPath = String(path || "").replace(/\\/g, "/");
+    return Object.entries(normalizeSyncState(syncState).notes).find(([, value]) => (
+      value?.fileName && normalizedPath === `notes/${value.fileName}`
+    )) || null;
+  }
+
+  function classifyManagedMarkdownHashes(lastWrittenHash, currentLocalHash, nextAppHash) {
+    if (!lastWrittenHash) return "unmanaged";
+    if (currentLocalHash === lastWrittenHash) return "last-written";
+    if (currentLocalHash === nextAppHash) return "app-current";
+    return "conflict";
+  }
+
   function classifyMarkdownCandidate(candidate, existingNotes, importedHashes = new Set()) {
     const id = candidate?.metadata?.memoNexusId ? String(candidate.metadata.memoNexusId) : "";
     const bodyHash = contentHash(`${candidate?.metadata?.title || ""}\n${candidate?.body || ""}`);
@@ -86,8 +100,9 @@
   }
 
   const api = {
-    MIME_EXTENSIONS, attachmentExtension, buildManifest, classifyMarkdownCandidate, contentHash,
-    hasExternalModification, normalizeSyncState, parseCollections, safeStableNoteFileName, serializeCollections
+    MIME_EXTENSIONS, attachmentExtension, buildManifest, classifyManagedMarkdownHashes,
+    classifyMarkdownCandidate, contentHash, hasExternalModification, managedNoteForPath,
+    normalizeSyncState, parseCollections, safeStableNoteFileName, serializeCollections
   };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   if (globalScope) globalScope.MemoNexusLocalSyncUtils = api;

@@ -12,8 +12,9 @@
       const batch = waiting;
       waiting = [];
       const reason = pendingReason;
-      tail = tail.then(() => run(reason));
-      tail.then(
+      const execution = tail.catch(() => undefined).then(() => run(reason));
+      tail = execution;
+      execution.then(
         (value) => batch.forEach(({ resolve }) => resolve(value)),
         (error) => batch.forEach(({ reject }) => reject(error))
       );

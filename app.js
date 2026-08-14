@@ -313,9 +313,11 @@ const { parseLocalNote, restoreAttachmentReferences, serializeLocalNote } = wind
 const {
   attachmentExtension,
   buildManifest,
+  classifyManagedMarkdownHashes,
   classifyMarkdownCandidate,
   contentHash,
   hasExternalModification,
+  managedNoteForPath,
   normalizeSyncState,
   parseCollections,
   safeStableNoteFileName,
@@ -1853,6 +1855,47 @@ async function scanExternalLocalMarkdown({ automatic = false } = {}) {
         return known ? { path, id: known[0] } : null;
       }).filter(Boolean);
       const parsed = parseLocalNote(source, { fileLastModified: entry.file.lastModified, assets: assetMappings });
+      const managedEntry = managedNoteForPath(localSyncState, entry.path);
+      if (managedEntry) {
+        const [managedNoteId, managedState] = managedEntry;
+        const managedNote = notes.find((note) => note.id === managedNoteId);
+        if (!managedNote) {
+          localScanCandidates.push({
+            ...entry,
+            parsed: { ...parsed, metadata: { ...parsed.metadata, memoNexusId: managedNoteId } },
+            classification: {
+              type: "restore",
+              existing: null,
+              bodyHash: contentHash(`${parsed.metadata.title || ""}\n${parsed.body || ""}`)
+            }
+          });
+          continue;
+        }
+        if (managedNote && managedState.hash) {
+          const noteAttachments = await getAttachmentsForMemo(managedNote.id);
+          const attachmentFiles = noteAttachments.map((attachment) => ({
+            id: attachment.id,
+            fileName: localSyncState.assets[attachment.id]?.fileName || `${attachment.id}.${attachmentExtension(attachment)}`
+          }));
+          const nextAppHash = contentHash(serializeLocalNote(managedNote, managedNote.body, attachmentFiles));
+          const currentLocalHash = contentHash(source);
+          const disposition = classifyManagedMarkdownHashes(managedState.hash, currentLocalHash, nextAppHash);
+          if (disposition !== "conflict") continue;
+          localScanCandidates.push({
+            ...entry,
+            parsed,
+            classification: {
+              type: "conflict",
+              existing: managedNote,
+              bodyHash: contentHash(`${parsed.metadata.title || ""}\n${parsed.body || ""}`),
+              lastWrittenHash: managedState.hash,
+              currentLocalHash,
+              nextAppHash
+            }
+          });
+          continue;
+        }
+      }
       const classification = classifyMarkdownCandidate(parsed, notes);
       if (classification.type === "unchanged") continue;
       localScanCandidates.push({ ...entry, parsed, classification });
@@ -9842,7 +9885,16 @@ document.addEventListener("keydown", (event) => {
 window.addEventListener("focus", () => {
   if (!localSaveSettings.enabled || !localDirectoryHandle || Date.now() - lastAutomaticLocalScanAt < 60_000) return;
   lastAutomaticLocalScanAt = Date.now();
-  void scanExternalLocalMarkdown({ automatic: true });
+  void (async () => {
+    if (localSaveQueue.hasPending()) {
+      try {
+        await localSaveQueue.flush("focus-before-scan");
+      } catch (error) {
+        console.warn("Pending local save before scan failed", error);
+      }
+    }
+    await scanExternalLocalMarkdown({ automatic: true });
+  })();
 });
 editorCaretAnimationEnabled?.addEventListener("change", saveEditorCaretAnimationSettings);
 editorCaretAnimationDelay?.addEventListener("change", saveEditorCaretAnimationSettings);
