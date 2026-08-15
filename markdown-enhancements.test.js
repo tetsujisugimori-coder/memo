@@ -119,6 +119,29 @@ function sourceOf(name) {
   throw new Error(`${name} の終端がありません`);
 }
 
+function loadAppFunction(name, deps = {}) {
+  const source = sourceOf(name);
+  return new Function("deps", `
+    let notes = deps.notes || [];
+    let pendingExplanation = deps.pendingExplanation;
+    const currentNote = deps.currentNote;
+    const normalizeExplanations = deps.normalizeExplanations;
+    const insertExplanationAnchorIntoBody = deps.insertExplanationAnchorIntoBody;
+    const captureUndoSnapshot = deps.captureUndoSnapshot || (() => {});
+    const scheduleSave = deps.scheduleSave || (() => {});
+    const putNote = deps.putNote;
+    const getAllNotes = deps.getAllNotes || (() => []);
+    const renderPreview = deps.renderPreview || (() => {});
+    const explanationBodyInput = deps.explanationBodyInput;
+    const explanationTypeSelect = deps.explanationTypeSelect;
+    const explanationDialog = deps.explanationDialog;
+    const editor = deps.editor;
+    const crypto = deps.crypto;
+    ${source}
+    return ${name};
+  `)(deps);
+}
+
 const safeExternalUrl = Function(`${sourceOf("safeExternalUrl")} return safeExternalUrl;`)();
 const renderOrderedListBlock = Function("renderMarkdownInline", `${sourceOf("renderOrderedListBlock")} return renderOrderedListBlock;`)((text) => text);
 
@@ -159,6 +182,109 @@ test("Callout操作と解説カードの独立保存UIを提供する", () => {
   assert.match(app, /confirm\("この解説カードを削除しますか？"\)/);
   assert.match(css, /\.callout-warning/);
   assert.match(css, /\.explanation-card/);
+});
+
+test("新規解説保存時の最初のputNoteでnote.bodyへアンカーを反映する", () => {
+  const anchorId = "anchor-put";
+  const baseBody = "本文を選択して解説作成";
+  const note = {
+    id: "note-1",
+    title: "解説テスト",
+    body: baseBody,
+    explanations: [],
+    updatedAt: 123
+  };
+  const expectedBody = enhancements.insertExplanationAnchorIntoBody(baseBody, baseBody.length, anchorId).body;
+  const putNotes = [];
+  const events = [];
+  const deps = {
+    currentNote: () => note,
+    normalizeExplanations: (target) => target.explanations,
+    insertExplanationAnchorIntoBody: (...args) => enhancements.insertExplanationAnchorIntoBody(...args),
+    captureUndoSnapshot: () => events.push("undo"),
+    scheduleSave: () => events.push("schedule-save"),
+    putNote: async (savedNote) => {
+      putNotes.push(savedNote);
+      return { ok: true };
+    },
+    explanationBodyInput: { value: "対象の説明" },
+    explanationTypeSelect: { value: "用語解説" },
+    explanationDialog: { close: () => events.push("dialog-close") },
+    editor: {
+      value: baseBody,
+      selectionStart: baseBody.length,
+      selectionEnd: baseBody.length
+    },
+    getAllNotes: async () => [],
+    renderPreview: () => events.push("render-preview"),
+    notes: [note],
+    pendingExplanation: {
+      id: anchorId,
+      start: baseBody.length,
+      end: baseBody.length,
+      target: "",
+      before: "",
+      after: "",
+      cursorInsertion: true
+    },
+    crypto: { randomUUID: () => "uuid-fallback" }
+  };
+  const saveExplanationFromDialog = loadAppFunction("saveExplanationFromDialog", deps);
+  saveExplanationFromDialog({ preventDefault: () => {} });
+  assert.equal(putNotes.length, 1);
+  assert.equal(putNotes[0].body, expectedBody);
+  assert.equal(putNotes[0].explanations[0].id, anchorId);
+  assert.equal(note.body, expectedBody);
+  assert.equal(note.explanations[0].id, anchorId);
+  assert.match(putNotes[0].body, /<!-- memo-nexus:explanation id="anchor-put" -->/);
+  assert.equal(events.includes("schedule-save"), true);
+});
+
+test("最初のputNote時点で保存対象本文と説明カードは対応している", () => {
+  const anchorId = "anchor-put-sync";
+  const baseBody = "再読み込みが走っても壊れない本文";
+  const note = {
+    id: "note-2",
+    title: "解説同期テスト",
+    body: baseBody,
+    explanations: []
+  };
+  let savedArgument = null;
+  const saveEvents = [];
+  const deps = {
+    currentNote: () => note,
+    normalizeExplanations: (target) => target.explanations,
+    insertExplanationAnchorIntoBody: (...args) => enhancements.insertExplanationAnchorIntoBody(...args),
+    captureUndoSnapshot: () => saveEvents.push("undo"),
+    scheduleSave: () => saveEvents.push("schedule-save"),
+    putNote: async (savedNote) => {
+      savedArgument = savedNote;
+      return { ok: true };
+    },
+    explanationBodyInput: { value: "同期確認用解説" },
+    explanationTypeSelect: { value: "用語解説" },
+    explanationDialog: { close: () => saveEvents.push("dialog-close") },
+    editor: { value: baseBody, selectionStart: baseBody.length, selectionEnd: baseBody.length },
+    getAllNotes: async () => [],
+    renderPreview: () => saveEvents.push("render-preview"),
+    notes: [note],
+    pendingExplanation: {
+      id: anchorId,
+      start: 5,
+      end: 6,
+      target: baseBody.slice(5, 6),
+      before: "",
+      after: "",
+      cursorInsertion: false
+    },
+    crypto: { randomUUID: () => "uuid-fallback" }
+  };
+  const saveExplanationFromDialog = loadAppFunction("saveExplanationFromDialog", deps);
+  saveExplanationFromDialog({ preventDefault: () => {} });
+  assert.equal(Boolean(savedArgument), true);
+  assert.match(savedArgument.body, new RegExp(`<!-- memo-nexus:explanation id="${anchorId}" -->`));
+  assert.equal(savedArgument.body, note.body);
+  assert.equal(saveEvents.includes("schedule-save"), true);
 });
 
 test("選択した複数行をCallout化しても本文を保持し、未選択時だけ空のひな型を作る", () => {

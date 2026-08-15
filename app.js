@@ -9751,6 +9751,7 @@ function saveExplanationFromDialog(event) {
     const insertion = insertExplanationAnchorIntoBody(editor.value, insertionPoint, anchorId);
     captureUndoSnapshot({ inputType: "insertText" });
     editor.value = insertion.body;
+    note.body = insertion.body;
     base.start = insertion.markerStart;
     base.end = insertion.markerEnd;
     base.target = base.target || "";

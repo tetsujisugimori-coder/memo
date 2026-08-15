@@ -1,3 +1,18 @@
+## 2026-08-15 解説カード保存時のnote.body即時反映
+
+### 変更内容
+
+* `saveExplanationFromDialog()` の新規作成フローで `insertExplanationAnchorIntoBody()` の結果を取得後、
+  `editor.value = insertion.body` に加えて `note.body = insertion.body` を同タイミングで代入するよう追加。
+* これにより `putNote(note)` の第一引数に渡る `note` に、説明本文・メタ情報と同じ状態の本文（HTMLコメントアンカー入り）を含めるように統一。
+* 既存の `scheduleSave()` は保存キューの既存フロー維持のため残し、`putNote` 呼び出し時点で整合する状態を保証。
+
+### 確認結果
+
+* `node --check app.js markdown-enhancements-utils.js`（成功）
+* `node --test syntax-guide.test.js markdown-enhancements.test.js image-block-layout.test.js`（pass 70）
+* `git diff --check`（問題なし）
+
 ## 2026-08-15 feat/image-and-explanation-block-ui
 
 ## 2026-08-15 解説カード本文アンカー永続化
