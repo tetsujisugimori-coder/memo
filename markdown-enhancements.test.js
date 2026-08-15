@@ -192,7 +192,44 @@ test("Markdown記号を含むソース選択から表示文字列と出現順を
   assert.deepEqual(enhancements.visibleTargetForSourceRange(body, 0, 6), { displayText: "保存", ordinal: 0, matched: true });
   const plainStart = body.lastIndexOf("保存");
   assert.deepEqual(enhancements.visibleTargetForSourceRange(body, plainStart, plainStart + 2), { displayText: "保存", ordinal: 1, matched: true });
-  assert.deepEqual(enhancements.visibleTargetForSourceRange("**保存** と *閉じる*", 0, 13), { displayText: "", ordinal: -1, matched: false });
+  assert.deepEqual(enhancements.visibleTargetForSourceRange("**保存** と *閉じる*", 0, 13), { displayText: "閉じる", ordinal: 0, matched: true });
+});
+
+test("解説対象は単一段落内ならその表示位置へ挿入し続ける", () => {
+  const body = "本文の先頭保存本文の末尾";
+  const start = body.indexOf("保存");
+  const explanation = explanationFor(body, body.slice(start, start + 2));
+  const harness = createDomHarness([{ text: "本文の先頭", tagName: "p" }, { text: "保存", tagName: "p" }, { text: "本文の末尾", tagName: "p" }]);
+  const results = enhancements.hydrateExplanationCardsIntoDom(harness.root, body, [explanation]);
+  const marker = markerParents(harness).find((parent) => parent.tagName === "P");
+  const cards = harness.queryAll((element) => element.className === "explanation-card");
+  assert.equal(results[0].visibleTarget.matched, true);
+  assert.equal(results[0].visibleTarget.displayText, "保存");
+  assert.equal(marker?.tagName, "P");
+  const markerNode = marker?.children.find((child) => child.className === "explanation-marker");
+  assert.equal(markerNode?.textContent, "1");
+  assert.equal(cards.length, 1);
+});
+
+test("複数段落をまたぐ選択では末尾段落の直後へ解説カードを置く", () => {
+  const body = "一段目\n二段目\n三段目保存";
+  const start = body.indexOf("一段目");
+  const end = body.length;
+  const explanation = explanationFor(body, body.slice(start, end), "cross-paragraph");
+  const harness = createDomHarness([
+    { text: "一段目", tagName: "p" },
+    { text: "二段目", tagName: "p" },
+    { text: "三段目保存", tagName: "p" }
+  ]);
+  const results = enhancements.hydrateExplanationCardsIntoDom(harness.root, body, [explanation]);
+  assert.equal(results[0].visibleTarget.matched, true);
+  assert.equal(results[0].visibleTarget.displayText, "三段目保存");
+  const marker = markerParents(harness).find((parent) => parent.tagName === "P");
+  assert.equal(marker?.tagName, "P");
+  const card = harness.queryAll((element) => element.className === "explanation-card")[0];
+  const markerNode = marker.children.find((child) => child.className === "explanation-marker");
+  assert.equal(markerNode?.textContent, "1");
+  assert.equal(harness.root.children.indexOf(card), harness.root.children.indexOf(marker) + 1);
 });
 
 test("解決した表示位置へ実際にマーカーを挿入し、カードと既存マーカーは検索対象から除外する", () => {
@@ -468,4 +505,76 @@ test("インラインコードと通常本文の同じ語句を別の表示位�
   const body = "`保存` 保存";
   const start = body.lastIndexOf("保存");
   assert.equal(enhancements.visibleTargetOrdinal(body, "保存", start, start + 2), 1);
+});
+
+test("解説ボタンはpointerdownで選択位置を確定した状態で起動する", () => {
+  assert.match(app, /addExplanationBtn\.addEventListener\("pointerdown"/);
+  assert.match(app, /rememberEditorSelectionRange\(\)/);
+  assert.match(app, /openExplanationDialog\(null, pendingExplanationSelection\)/);
+  assert.match(app, /editor\.addEventListener\("select", rememberEditorSelectionRange\)/);
+  assert.match(app, /document\.addEventListener\("selectionchange"/);
+});
+
+test("複数個目のリスト項目をまたぐ選択は末尾項目の直後へ解説カードを置く", () => {
+  const body = "- 保存\n- 追加\n- 閉じる";
+  const explanation = explanationFor(body, body, "multi-list");
+  const harness = createDomHarness([
+    { text: "保存", tagName: "li" },
+    { text: "追加", tagName: "li" },
+    { text: "閉じる", tagName: "li" }
+  ]);
+  const results = enhancements.hydrateExplanationCardsIntoDom(harness.root, body, [explanation]);
+  const marker = markerParents(harness).find((parent) => parent.tagName === "LI");
+  const card = harness.queryAll((element) => element.className === "explanation-card")[0];
+  assert.equal(results[0].visibleTarget.matched, true);
+  assert.equal(results[0].visibleTarget.displayText, "閉じる");
+  assert.equal(results[0].orphaned, false);
+  const markerNode = marker?.children.find((child) => child.className === "explanation-marker");
+  assert.equal(markerNode?.textContent, "1");
+  assert.equal(harness.root.children.indexOf(card), harness.root.children.indexOf(marker) + 1);
+});
+
+test("太字やリンクをまたぐ選択でも対象不明カードにならない", () => {
+  const body = "**保存** と [リンク](https://example.com)";
+  const explanation = explanationFor(body, body, "mixed-markdown");
+  const harness = createDomHarness([
+    { text: "保存", tagName: "p" },
+    { text: " と ", tagName: "p" },
+    { text: "リンク", tagName: "p" }
+  ]);
+  const results = enhancements.hydrateExplanationCardsIntoDom(harness.root, body, [explanation]);
+  const statuses = harness.queryAll((element) => element.className === "explanation-card-status");
+  assert.equal(results[0].visibleTarget.matched, true);
+  assert.equal(results[0].visibleTarget.displayText, "リンク");
+  assert.equal(results[0].orphaned, false);
+  assert.equal(statuses.length, 1);
+  assert.equal(statuses[0].textContent, "");
+});
+
+test("本文編集で対象再解決できない場合、対象不明状態を保持する", () => {
+  const originalBody = "**保存** と [リンク](https://example.com)";
+  const explanation = explanationFor(originalBody, originalBody, "orphan-after-edit");
+  const editedBody = "編集済み本文のみです。";
+  const initialHarness = createDomHarness([{ text: "保存", tagName: "p" }, { text: "リンク", tagName: "p" }]);
+  const initial = enhancements.hydrateExplanationCardsIntoDom(initialHarness.root, originalBody, [explanation]);
+  assert.equal(initial[0].orphaned, false);
+
+  const editedHarness = createDomHarness([{ text: editedBody, tagName: "p" }]);
+  const afterEdit = enhancements.hydrateExplanationCardsIntoDom(editedHarness.root, editedBody, [explanation]);
+  const orphanStatus = editedHarness.queryAll((element) => element.className === "explanation-card-status")[0];
+  const orphanCard = editedHarness.queryAll((element) => {
+    const classes = String(element.className || "");
+    return classes.split(/\s+/).includes("explanation-card");
+  })[0];
+  assert.equal(afterEdit[0].visibleTarget.matched, false);
+  assert.equal(afterEdit[0].orphaned, true);
+  assert.equal(afterEdit[0].markerInserted, false);
+  assert.equal(orphanCard?.className, "explanation-card explanation-orphaned");
+  assert.equal(orphanStatus.textContent, "対象の文章が見つかりません。");
+});
+
+test("解説カード表示は枠線ではなく背景差分で通常と対象不明を区別する", () => {
+  assert.match(css, /\.explanation-card\s*\{[^\}]*background:\s*color-mix\(in srgb, var\(--section-bg\)\s+70%, var\(--accent-soft\)\s+30%\)/);
+  assert.match(css, /\.explanation-card\s*\{[^\}]*border:\s*0;/);
+  assert.match(css, /\.explanation-orphaned\s*\{[^\}]*background:\s*color-mix\(in srgb, var\(--section-bg\)\s+54%, var\(--warning-strong-bg\)\s+46%\)/);
 });

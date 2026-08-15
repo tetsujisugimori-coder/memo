@@ -80,11 +80,11 @@ const MemoNexusMarkdownEnhancements = (() => {
     return matches.sort((a, b) => a.start - b.start || a.end - b.end)[0] || null;
   }
 
-  function visibleTargetOrdinal(body, target, start, end) {
+  function visibleTargetOrdinal(body, target, start, end, { includeAmbiguous = false } = {}) {
     if (!target || start < 0 || end !== start + target.length) return -1;
     let ordinal = 0;
     for (const segment of visibleTextSegments(body)) {
-      if (segment.ambiguous) return -1;
+      if (segment.ambiguous && !includeAmbiguous) return -1;
       let offset = segment.text.indexOf(target);
       while (offset !== -1) {
         const sourceMatchStart = segment.sourceStart + offset;
@@ -100,23 +100,34 @@ const MemoNexusMarkdownEnhancements = (() => {
     if (!Number.isInteger(start) || !Number.isInteger(end) || start < 0 || end <= start) {
       return { displayText: "", ordinal: -1, matched: false };
     }
-    const overlaps = visibleTextSegments(body).map((segment) => {
-      const overlapStart = Math.max(start, segment.sourceStart);
-      const overlapEnd = Math.min(end, segment.sourceEnd);
-      if (overlapEnd <= overlapStart) return null;
-      return {
-        displayText: segment.text.slice(overlapStart - segment.sourceStart, overlapEnd - segment.sourceStart),
-        start: overlapStart,
-        end: overlapEnd
-      };
-    }).filter(Boolean);
-    const overlappingSegments = visibleTextSegments(body).filter((segment) => segment.sourceEnd > start && segment.sourceStart < end);
-    if (overlaps.length !== 1 || overlappingSegments.some((segment) => segment.ambiguous) || !overlaps[0].displayText) {
+    const segments = visibleTextSegments(body);
+    const maxLength = body.length;
+    const clampedStart = Math.max(0, Math.min(start, maxLength));
+    const clampedEnd = Math.max(clampedStart, Math.min(end, maxLength));
+    const overlappingSegments = segments.filter((segment) => segment.sourceEnd > clampedStart && segment.sourceStart < clampedEnd);
+    if (!overlappingSegments.length) {
       return { displayText: "", ordinal: -1, matched: false };
     }
-    const match = overlaps[0];
-    const ordinal = visibleTargetOrdinal(body, match.displayText, match.start, match.end);
-    return { displayText: match.displayText, ordinal, matched: ordinal >= 0 };
+    const anchor = Math.max(0, clampedEnd - 1);
+    let tailSegment = overlappingSegments[overlappingSegments.length - 1];
+    for (let index = segments.length - 1; index >= 0; index -= 1) {
+      const segment = segments[index];
+      if (segment.sourceStart <= anchor && segment.sourceEnd > anchor) {
+        tailSegment = segment;
+        break;
+      }
+    }
+    const tailStart = Math.max(clampedStart, tailSegment.sourceStart);
+    const tailEnd = Math.min(clampedEnd, tailSegment.sourceEnd);
+    if (tailEnd <= tailStart) {
+      return { displayText: "", ordinal: -1, matched: false };
+    }
+    const displayText = tailSegment.text.slice(tailStart - tailSegment.sourceStart, tailEnd - tailSegment.sourceStart);
+    if (!displayText) return { displayText: "", ordinal: -1, matched: false };
+    const ordinal = visibleTargetOrdinal(body, displayText, tailStart, tailEnd, {
+      includeAmbiguous: overlappingSegments.length > 1
+    });
+    return { displayText, ordinal, matched: Number.isInteger(ordinal) && ordinal >= 0 };
   }
 
   function insertExplanationMarkerIntoDom(root, options = {}) {

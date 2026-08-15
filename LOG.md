@@ -1,5 +1,26 @@
 ## 2026-08-15 feat/image-and-explanation-block-ui
 
+## 2026-08-15 Memo-Nexus: 解説カードの選択基準と配色修正
+
+### 変更内容
+
+* 本文選択時の解説ボタン押下で、`pointerdown` 取得時点の選択範囲をスナップショットとして保持し、`focus` 移動で選択が消える問題を回避
+* 解説カード表示対象解決を更新し、複数段落・複数リスト項目・Markdown装飾をまたいだ選択でも、選択範囲末尾側の表示ブロックで対象を確定するよう変更
+* `visibleTargetForSourceRange()` の判定を「単一可視テキスト断片前提」から脱却し、末尾側 anchor に基づく解決を行うよう更新
+* `resolveExplanationTarget()` 依存の既存挙動を崩さないよう、既存構造（保存・編集・削除・折りたたみ・対象再解決失敗時の維持）を維持
+* 解説カードの外観を枠線ベースから無地背景ベースへ変更し、通常カード／対象不明カードを色調差分で視認しやすくした
+
+### 確認結果
+
+* `node --check app.js markdown-enhancements-utils.js`
+* `node --test syntax-guide.test.js markdown-enhancements.test.js image-block-layout.test.js` → `pass 61`
+* `git diff --check` → 問題なし
+
+### 補足
+
+* 画像ブロックの挿入・仕様自体は変更せず
+* 本件は `app.js`、`markdown-enhancements-utils.js`、`markdown-enhancements.test.js`、`style.css` を編集
+
 ### 変更内容
 
 * 画像・解説ブロックの記法ガイド文言を更新し、画像ブロック/画像キャプション/解説ブロック/画像削除時の添付保持を記載

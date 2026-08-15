@@ -788,6 +788,8 @@ let pendingExport = null;
 let syntaxGuideRendered = false;
 const syntaxGuideCopyTimers = new WeakMap();
 let pendingExplanation = null;
+let editorSelectionRangeSnapshot = null;
+let pendingExplanationSelection = null;
 const EXPLANATION_INSERT_MARKER = "\u200b";
 const tableCopyStatusTimers = new WeakMap();
 let activeTableCell = null;
@@ -9668,26 +9670,41 @@ function insertCalloutAtSelection() {
   scheduleSave();
 }
 
-function currentEditorInsertRange() {
+function currentEditorInsertRange(range) {
   const length = editor?.value?.length || 0;
-  const hasSelection = Number.isInteger(editor?.selectionStart) && Number.isInteger(editor?.selectionEnd);
-  const start = hasSelection ? editor.selectionStart : length;
-  const end = hasSelection ? editor.selectionEnd : start;
+  const hasSelection = Number.isInteger(range?.start) && Number.isInteger(range?.end);
+  const start = hasSelection ? range.start : (Number.isInteger(editor?.selectionStart) ? editor.selectionStart : length);
+  const end = hasSelection ? range.end : (Number.isInteger(editor?.selectionEnd) ? editor.selectionEnd : start);
   const clampedStart = Math.max(0, Math.min(length, Number(start) || 0));
   const clampedEnd = Math.max(clampedStart, Math.max(0, Math.min(length, Number(end) || clampedStart)));
-  return { start: clampedStart, end: clampedEnd, fallback: !hasSelection };
+  return { start: clampedStart, end: clampedEnd, fallback: !hasSelection && (!Number.isInteger(editor?.selectionStart) || !Number.isInteger(editor?.selectionEnd)) };
 }
 
-function openExplanationDialog(existing = null) {
+function rememberEditorSelectionRange() {
+  if (!editor) return null;
+  const length = editor.value.length;
+  const start = Number.isInteger(editor.selectionStart) ? editor.selectionStart : null;
+  const end = Number.isInteger(editor.selectionEnd) ? editor.selectionEnd : null;
+  if (!Number.isInteger(start) || !Number.isInteger(end)) return null;
+  const clampedStart = Math.max(0, Math.min(length, start));
+  const clampedEnd = Math.max(clampedStart, Math.max(0, Math.min(length, end)));
+  editorSelectionRangeSnapshot = { start: clampedStart, end: clampedEnd };
+  return editorSelectionRangeSnapshot;
+}
+
+function openExplanationDialog(existing = null, selectionRange = null) {
   const note = currentNote();
   if (!note || !explanationDialog) return;
+  if (selectionRange && Number.isInteger(selectionRange.start) && Number.isInteger(selectionRange.end)) {
+    editorSelectionRangeSnapshot = { ...selectionRange };
+  }
   if (existing) {
     pendingExplanation = { existing };
     explanationTypeSelect.value = existing.type || "補足";
     explanationBodyInput.value = existing.body || "";
     explanationTarget.textContent = `対象：${existing.target || "（対象箇所を確認してください）"}`;
   } else {
-    const range = currentEditorInsertRange();
+    const range = currentEditorInsertRange(selectionRange);
     const target = editor.value.slice(range.start, range.end);
     const cursorInsertion = !target.trim();
     const targetStart = range.fallback ? editor.value.length : range.start;
@@ -9905,7 +9922,13 @@ if (insertImageBlockBtn) insertImageBlockBtn.addEventListener("click", () => {
   if (range.fallback) setAttachmentStatus("カーソル位置を取得できないため、本文末尾へ挿入します。");
   imageBlockInput.click();
 });
-if (addExplanationBtn) addExplanationBtn.addEventListener("click", () => openExplanationDialog());
+if (addExplanationBtn) addExplanationBtn.addEventListener("pointerdown", () => {
+  pendingExplanationSelection = rememberEditorSelectionRange();
+});
+if (addExplanationBtn) addExplanationBtn.addEventListener("click", () => {
+  openExplanationDialog(null, pendingExplanationSelection);
+  pendingExplanationSelection = null;
+});
 if (explanationForm) explanationForm.addEventListener("submit", saveExplanationFromDialog);
 if (closeExplanationDialogBtn) closeExplanationDialogBtn.addEventListener("click", () => explanationDialog.close());
 if (cancelExplanationBtn) cancelExplanationBtn.addEventListener("click", () => explanationDialog.close());
@@ -10225,6 +10248,7 @@ editor.addEventListener("input", () => {
   scheduleSave();
   updateAiTargetPreview();
 });
+editor.addEventListener("select", rememberEditorSelectionRange);
 editor.addEventListener("select", () => {
   resetEditorCaretIdle();
   updateAiTargetPreview();
@@ -10353,7 +10377,10 @@ document.addEventListener("visibilitychange", () => {
   }
 });
 document.addEventListener("selectionchange", () => {
-  if (document.activeElement === editor) resetEditorCaretIdle();
+  if (document.activeElement === editor) {
+    resetEditorCaretIdle();
+    rememberEditorSelectionRange();
+  }
 });
 document.addEventListener("pointerdown", () => {
   if (document.activeElement === editor) resetEditorCaretIdle();
