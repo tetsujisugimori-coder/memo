@@ -229,7 +229,7 @@ const MemoNexusMarkdownEnhancements = (() => {
     body.textContent = explanation.body || "";
     const status = documentRef.createElement("p");
     status.className = "explanation-card-status";
-    status.textContent = options.orphaned ? "対象箇所を確認してください。カードは保持されています。" : "";
+    status.textContent = options.orphaned ? "対象の文章が見つかりません。" : "";
     const actions = documentRef.createElement("div");
     actions.className = "explanation-card-actions";
     const edit = documentRef.createElement("button");

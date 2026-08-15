@@ -303,7 +303,7 @@ test("対応不能な入れ子Markdownは誤挿入せず、正常カードを保
   const orphanCard = cards.find((card) => card.id === "explanation-card-orphan");
   assert.match(orphanCard.className, /explanation-orphaned/);
   const orphanStatus = harness.queryAll((element) => element.className === "explanation-card-status").find((status) => status.parentElement.parentElement === orphanCard);
-  assert.match(orphanStatus.textContent, /カードは保持されています/);
+  assert.equal(orphanStatus.textContent, "対象の文章が見つかりません。");
   assert.equal(harness.queryAll((element) => element.className === "explanation-card-body").some((bodyElement) => bodyElement.textContent === orphan.body), true);
   assert.deepEqual([normal, orphan], original);
   assert.equal(persistCalls, 0);
