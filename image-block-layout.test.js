@@ -3,13 +3,18 @@
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const test = require("node:test");
+const {
+  extractAttachmentReferenceIds,
+  insertAttachmentReferences
+} = require("./attachment-utils");
 
 const app = fs.readFileSync("app.js", "utf8");
 const css = fs.readFileSync("style.css", "utf8");
 const html = fs.readFileSync("index.html", "utf8");
 
 function extractFunction(name) {
-  const start = app.indexOf(`function ${name}`);
+  let start = app.indexOf(`async function ${name}`);
+  if (start === -1) start = app.indexOf(`function ${name}`);
   assert.notEqual(start, -1, `${name} should exist`);
   const bodyStart = app.indexOf(") {", start) + 2;
   assert.notEqual(bodyStart, 1, `${name} body should start`);
@@ -29,6 +34,46 @@ test("表示設定は小・標準・大を持ち永続化処理へ接続する",
   assert.match(app, /localStorage\.setItem\(IMAGE_BLOCK_SIZE_STORAGE_KEY, imageBlockSize\)/);
 });
 
+test("本文参照中添付画像の削除確認文は実削除仕様を案内する", async () => {
+  let actualMessage = "";
+  const deleteAttachment = new Function(
+    "currentNote",
+    "extractAttachmentReferenceIds",
+    "currentId",
+    "editor",
+    "currentAttachments",
+    "confirm",
+    "deleteAttachmentRecord",
+    "revokeAttachmentObjectUrl",
+    "renderAttachmentList",
+    "renderPreview",
+    "setAttachmentStatus",
+    "console",
+    `return (${extractFunction("deleteAttachment")});`
+  )(
+    () => ({ id: "n1", body: "本文 ![img](attachment://a1) 追加文", deletedAt: null }),
+    extractAttachmentReferenceIds,
+    "n1",
+    { value: "本文 ![img](attachment://a1) 追加文" },
+    [],
+    (message) => {
+      actualMessage = message;
+      return false;
+    },
+    async () => { throw new Error("削除は進むべきではありません"); },
+    () => {},
+    () => {},
+    () => {},
+    () => {},
+    console
+  );
+  await deleteAttachment({ id: "a1", kind: "image", fileName: "hero.png" });
+  assert.equal(
+    actualMessage,
+    "「hero.png」は本文で参照されています。\n本文中の画像は表示できなくなります。\n添付画像も完全に削除されます。\n削除してよろしいですか？"
+  );
+});
+
 test("サイズ別の上限と縦横比維持をCSSで適用する", () => {
   assert.match(css, /\.image-block\.image-size-small img\s*\{[^}]*max-height:\s*200px/s);
   assert.match(css, /\.image-block\.image-size-medium img\s*\{[^}]*max-height:\s*350px/s);
@@ -38,8 +83,29 @@ test("サイズ別の上限と縦横比維持をCSSで適用する", () => {
 });
 
 test("連続画像ブロックは本文中で8〜12px間隔で区別する", () => {
-  assert.match(css, /\.preview \\.image-block \+ \\.image-block \{\s*margin-top:\s*10px;/s);
-  assert.match(css, /\.preview \\.image-block \{\s*margin:\s*10px 0;\s*padding:\s*10px;/s);
+  assert.match(css, /\.preview \.image-block \+ \.image-block \{\s*margin-top:\s*10px;/s);
+  assert.match(css, /\.preview \.image-block \{[\s\S]*margin:\s*10px 0;\s*padding:\s*10px;/s);
+});
+
+test("画像ブロック記法は画像参照挿入ヘルパーから生成される", () => {
+  const result = insertAttachmentReferences(
+    "A",
+    1,
+    1,
+    [{ kind: "image", id: "img-1", fileName: "cat.png" }]
+  );
+  assert.equal(result.value, "A\n<!-- memo-nexus:image-block -->\n![cat.png](attachment://img-1)\n<!-- /memo-nexus:image-block -->");
+  assert.match(result.insertedText, /<!-- memo-nexus:image-block -->[\s\S]*!\[cat\.png\]\(attachment:\/\/img-1\)[\s\S]*<!-- \/memo-nexus:image-block -->/);
+});
+
+test("画像参照選択範囲は置換され、前後本文と連結しない", () => {
+  const result = insertAttachmentReferences(
+    "A保存B",
+    1,
+    3,
+    [{ kind: "image", id: "img-2", fileName: "dog.png" }]
+  );
+  assert.equal(result.value, "A\n<!-- memo-nexus:image-block -->\n![dog.png](attachment://img-2)\n<!-- /memo-nexus:image-block -->\nB");
 });
 
 test("1枚の説明文レイアウトと2枚グリッドを狭幅で縦並びへ戻す", () => {

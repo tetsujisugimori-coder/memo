@@ -62,7 +62,7 @@ const SYNTAX_GUIDE_ITEMS = [
   { category: "markdown", name: "画像ブロック", syntax: ["<!-- memo-nexus:image-block -->", "![画像説明](attachment://a1b2c3)", "<!-- memo-nexus:image-caption -->", "画像の説明文", "<!-- /memo-nexus:image-block -->"].join("\n"), description: "本文中で連続画像をまとめてカード表示する記法です。", notes: "本文では `attachment://` 参照を保存し、カードは本文順に描画されます。2枚目まで対応し、2枚以上の画像ブロックは連続で記述してください。", copyable: false },
   { category: "markdown", name: "画像キャプション", syntax: ["<!-- memo-nexus:image-block -->", "![画像](attachment://a1b2c3)", "<!-- memo-nexus:image-caption -->", "タイトル", "- 箇条書き", "画像コメント", "<!-- /memo-nexus:image-block -->"].join("\n"), description: "画像ブロック内に本文由来の説明を付けるための記法です。", notes: "見出し、箇条書き、インライン装飾を含む自由形式を使えます。", copyable: false },
   { category: "markdown", name: "解説ブロック", syntax: "本文を選択して［解説］を挿入、またはカーソル位置へ雛形を挿入", description: "本文中の対象文章と同じ順序で、対象の直後へ解説カードを表示します。", notes: "本文テキストとは別に保存され、対象が見つからない場合は保持して再確定します。", copyable: false },
-  { category: "markdown", name: "画像参照を本文へ追加", syntax: "画像ボタンでカーソル位置へ添付画像を追加", description: "画像ボタンで添付画像を保存し、本文のカーソル位置へ画像参照を挿入します。", notes: "カーソル位置が取得できない場合は本文末尾へ追加します。", copyable: false },
+  { category: "markdown", name: "画像", syntax: "画像ボタンでカーソル位置へ画像を挿入", description: "画像ボタンで添付画像を保存し、画像ブロックとして本文のカーソル位置へ挿入します。", notes: "カーソル位置が取得できない場合は本文末尾へ追加します。", copyable: false },
   { category: "markdown", name: "本文から画像を削除して添付保持", syntax: "本文中の画像ブロックを削除しても添付画像は残る", description: "本文の画像参照を削除しても添付画像本体は削除されません。", notes: "画像参照の再生成が必要な場合は、画像ボタンから参照を再挿入できます。", copyable: false },
   { category: "markdown", name: "インラインコード", syntax: "`const value = 1;`", description: "文中の短いコードを表示します。", notes: "文字列をバッククォート1個ずつで囲みます。" },
   { category: "markdown", name: "箇条書き", syntax: "- 項目", description: "項目を箇条書きで表示します。", notes: "行頭に-と半角スペースを書きます。" },
@@ -5383,7 +5383,7 @@ async function deleteAttachment(attachment) {
   const isReferenced = attachment.kind === "image"
     && extractAttachmentReferenceIds(note && note.id === currentId ? editor.value : note?.body).has(attachment.id);
   const message = isReferenced
-    ? `「${attachment.fileName}」は本文で参照されています。\n本文への参照は外されますが、添付画像は削除されません。\n削除してよろしいですか？`
+    ? `「${attachment.fileName}」は本文で参照されています。\n本文中の画像は表示できなくなります。\n添付画像も完全に削除されます。\n削除してよろしいですか？`
     : `「${attachment.fileName}」を削除しますか？`;
   if (!confirm(message)) return;
   try {
