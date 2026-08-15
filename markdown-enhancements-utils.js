@@ -123,7 +123,7 @@ const MemoNexusMarkdownEnhancements = (() => {
     const target = String(options.displayText || "");
     const ordinal = Number(options.ordinal);
     const documentRef = root?.ownerDocument;
-    if (!documentRef || !target || !Number.isInteger(ordinal) || ordinal < 0) return false;
+    if (!documentRef || !target || !Number.isInteger(ordinal) || ordinal < 0) return null;
     const walker = documentRef.createTreeWalker(root, 4);
     let occurrences = 0;
     let node;
@@ -145,9 +145,9 @@ const MemoNexusMarkdownEnhancements = (() => {
       const after = node.splitText(offset + target.length);
       node.splitText(offset);
       node.parentNode.insertBefore(marker, after);
-      return true;
+      return marker;
     }
-    return false;
+    return null;
   }
 
   function resolveExplanationTarget(body, explanation) {
@@ -229,7 +229,7 @@ const MemoNexusMarkdownEnhancements = (() => {
     body.textContent = explanation.body || "";
     const status = documentRef.createElement("p");
     status.className = "explanation-card-status";
-    status.textContent = options.orphaned ? "対象箇所を確認してください。カードは保持されています。" : "";
+    status.textContent = options.orphaned ? "対象の文章が見つかりません。" : "";
     const actions = documentRef.createElement("div");
     actions.className = "explanation-card-actions";
     const edit = documentRef.createElement("button");
@@ -246,33 +246,79 @@ const MemoNexusMarkdownEnhancements = (() => {
     return article;
   }
 
+  function resolveExplanationInsertAfterNode(node) {
+    if (!node) return null;
+    if (!node.parentElement) return null;
+    let pointer = node.parentElement;
+    while (pointer && pointer.parentElement && !/^(?:P|LI|UL|OL|BLOCKQUOTE|H[1-6]|FIGURE|TABLE|TBODY|THEAD|TR|TD|TH|PRE|SECTION|ARTICLE|DIV)$/.test(pointer.tagName)) {
+      pointer = pointer.parentElement;
+    }
+    return pointer;
+  }
+
+  function insertAfter(referenceNode, node) {
+    if (!referenceNode?.parentNode) return false;
+    referenceNode.parentNode.insertBefore(node, referenceNode.nextSibling);
+    return true;
+  }
+
   function hydrateExplanationCardsIntoDom(root, body, explanations, options = {}) {
     const documentRef = root?.ownerDocument;
     if (!documentRef || !Array.isArray(explanations) || !explanations.length) return [];
-    const cards = documentRef.createElement("section");
-    cards.className = "explanation-cards";
-    cards.setAttribute("aria-label", "解説カード");
-    const results = explanations.map((explanation, index) => {
-      const number = index + 1;
+    const enriched = explanations.map((explanation, index) => {
       const resolved = resolveExplanationTarget(body, explanation);
       const visibleTarget = resolved.matched ? visibleTargetForSourceRange(body, resolved.start, resolved.end) : { matched: false };
-      const markerInserted = visibleTarget.matched && insertExplanationMarkerIntoDom(root, {
+      const position = resolved.matched && Number.isInteger(resolved.start) && resolved.start >= 0 ? resolved.start : Number.POSITIVE_INFINITY;
+      return {
+        explanation,
+        index,
+        resolved,
+        visibleTarget,
+        position,
+        insertionFallback: Number.isFinite(position) ? position : Number.POSITIVE_INFINITY
+      };
+    });
+    const ordered = enriched
+      .slice()
+      .sort((a, b) => {
+        if (a.position !== b.position) return a.position - b.position;
+        return a.index - b.index;
+      })
+      .map((item, displayIndex) => ({ ...item, displayIndex }));
+
+    let fallbackCards = null;
+    const results = ordered.map((item) => {
+      const { explanation, resolved, visibleTarget, displayIndex } = item;
+      const number = displayIndex + 1;
+      const marker = visibleTarget.matched ? insertExplanationMarkerIntoDom(root, {
         displayText: visibleTarget.displayText,
         ordinal: visibleTarget.ordinal,
         number,
         onActivate: () => options.onMarkerActivate?.(explanation)
-      });
+      }) : null;
+      const markerInserted = Boolean(marker);
       const orphaned = !markerInserted;
-      cards.append(createExplanationCardElement(documentRef, explanation, number, {
+      const card = createExplanationCardElement(documentRef, explanation, number, {
         orphaned,
         onPersistCollapsed: options.onPersistCollapsed,
         onEdit: options.onEdit,
         onDelete: options.onDelete
-      }));
-      return { explanation, resolved, visibleTarget, markerInserted, orphaned };
+      });
+      const insertAfterNode = resolveExplanationInsertAfterNode(marker);
+      if (insertAfterNode) {
+        insertAfter(insertAfterNode, card);
+      } else {
+        if (!fallbackCards) {
+          fallbackCards = documentRef.createElement("section");
+          fallbackCards.className = "explanation-cards";
+          fallbackCards.setAttribute("aria-label", "解説カード");
+        }
+        fallbackCards.append(card);
+      }
+      return { explanation, resolved, visibleTarget, markerInserted, orphaned, displayIndex };
     });
-    root.append(cards);
-    return results;
+    if (fallbackCards) root.append(fallbackCards);
+    return results.sort((a, b) => a.index - b.index);
   }
 
   return { buildCalloutMarkdown, checklistEntries, updateChecklistAt, visibleTextSegments, visibleTargetOrdinal, visibleTargetForSourceRange, insertExplanationMarkerIntoDom, resolveExplanationTarget, shouldPersistCollapsedState, createExplanationCollapsedStateSaver, bindExplanationCollapseInteractions, createExplanationCardElement, hydrateExplanationCardsIntoDom };

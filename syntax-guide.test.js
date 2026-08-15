@@ -189,18 +189,23 @@ test("対応するMarkdown記法とMemo Nexus独自機能を掲載する", () =>
     "---",
     "[OpenAI](https://openai.com)",
     "> [!NOTE]\n> 補足情報です。",
-    "本文を選択して［解説を追加］",
+    ["<!-- memo-nexus:image-block -->", "![画像説明](attachment://a1b2c3)", "<!-- memo-nexus:image-caption -->", "画像の説明文", "<!-- /memo-nexus:image-block -->"].join("\n"),
+    ["<!-- memo-nexus:image-block -->", "![画像](attachment://a1b2c3)", "<!-- memo-nexus:image-caption -->", "タイトル", "- 箇条書き", "画像コメント", "<!-- /memo-nexus:image-block -->"].join("\n"),
+    "本文を選択して［解説］を挿入、またはカーソル位置へ雛形を挿入",
+    "画像ボタンでカーソル位置へ画像を挿入",
+    "本文中の画像ブロックを削除しても添付画像は残る",
     "`const value = 1;`",
     "- 項目",
     "> 引用文",
     "[[メモ名]]"
   ]);
   assert.ok(markdown.every((item) => item.name && item.description && item.notes));
-  ["斜体", "打ち消し線", "番号付きリスト", "チェックリスト", "通常リンク", "水平線", "注意書き", "解説カード"].forEach((name) => {
+  ["画像ブロック", "画像キャプション", "解説ブロック", "画像", "本文から画像を削除して添付保持", "斜体", "打ち消し線", "番号付きリスト", "チェックリスト", "通常リンク", "水平線", "注意書き"].forEach((name) => {
     assert.ok(markdown.some((item) => item.name === name));
   });
   assert.match(markdown.find((item) => item.name === "通常リンク").notes, /javascript/);
-  assert.equal(markdown.find((item) => item.name === "解説カード").copyable, false);
+  assert.equal(markdown.find((item) => item.name === "解説ブロック").copyable, false);
+  assert.equal(markdown.find((item) => item.name === "画像ブロック").copyable, false);
 });
 
 test("数式カテゴリにKaTeXの表示例と表示専用である注意を掲載する", () => {

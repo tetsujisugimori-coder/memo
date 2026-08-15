@@ -155,7 +155,7 @@ test("Callout操作と解説カードの独立保存UIを提供する", () => {
   assert.match(html, /id="addExplanationBtn"/);
   assert.match(html, /id="explanationDialog"/);
   assert.match(app, /note\.explanations/);
-  assert.match(app, /const target = editor\.value\.slice\(start, end\)/);
+  assert.match(app, /const target = editor\.value\.slice\(range\.start, range\.end\)/);
   assert.match(app, /confirm\("この解説カードを削除しますか？"\)/);
   assert.match(css, /\.callout-warning/);
   assert.match(css, /\.explanation-card/);
@@ -204,7 +204,7 @@ test("解決した表示位置へ実際にマーカーを挿入し、カード�
     { text: "保存", className: "explanation-marker" }
   ]);
   const inserted = enhancements.insertExplanationMarkerIntoDom(harness.root, { displayText: "保存", ordinal: 2, number: 3 });
-  assert.equal(inserted, true);
+  assert.equal(inserted?.className, "explanation-marker");
   assert.equal(harness.nodes[0].parent.children.some((child) => child.className === "explanation-marker"), false);
   assert.equal(harness.nodes[1].parent.children.some((child) => child.className === "explanation-marker"), false);
   const marker = harness.nodes[2].parent.children.find((child) => child.className === "explanation-marker");
@@ -217,8 +217,49 @@ test("解決した表示位置へ実際にマーカーを挿入し、カード�
 test("太字として描画された文字列にも解説マーカーを挿入できる", () => {
   const visible = enhancements.visibleTargetForSourceRange("**保存**", 0, 6);
   const harness = createDomHarness([{ text: "保存" }]);
-  assert.equal(enhancements.insertExplanationMarkerIntoDom(harness.root, { ...visible, number: 1 }), true);
+  assert.equal(enhancements.insertExplanationMarkerIntoDom(harness.root, { ...visible, number: 1 })?.className, "explanation-marker");
   assert.equal(harness.nodes[0].parent.children.some((child) => child.className === "explanation-marker"), true);
+});
+
+test("解説カードは本文内の順序でインライン挿入される", () => {
+  const body = "前文保存後文メモ";
+  const startA = body.indexOf("保存");
+  const startB = body.indexOf("メモ");
+  const first = explanationFor(body, "メモ", "later", startB);
+  const second = explanationFor(body, "保存", "early", startA);
+  const harness = createDomHarness([
+    { text: "前文", tagName: "p" },
+    { text: "保存", tagName: "p" },
+    { text: "後文", tagName: "p" },
+    { text: "メモ", tagName: "p" }
+  ]);
+  enhancements.hydrateExplanationCardsIntoDom(harness.root, body, [first, second], { onPersistCollapsed: () => {} });
+  const cards = harness.queryAll((element) => element.className === "explanation-card");
+  const cardIds = cards.map((card) => card.id);
+  const findOrder = (target, node = harness.root) => {
+    let index = -1;
+    let found = -1;
+    const visit = (current) => {
+      index += 1;
+      if (current === target) {
+        found = index;
+        return true;
+      }
+      for (const child of current.children || []) {
+        if (visit(child)) return true;
+      }
+      return false;
+    };
+    visit(node);
+    return found;
+  };
+  const earlyCard = cards.find((card) => card.id === "explanation-card-early");
+  const laterCard = cards.find((card) => card.id === "explanation-card-later");
+  const earlyIndex = findOrder(earlyCard);
+  const laterIndex = findOrder(laterCard);
+  assert.equal(cardIds.length, 2);
+  assert.ok(earlyIndex >= 0 && laterIndex >= 0);
+  assert.equal(earlyIndex < laterIndex, true);
 });
 
 test("再特定は一意な文脈または一意な対象だけを採用し、曖昧なら孤立する", () => {
@@ -281,7 +322,7 @@ test("対応不能な入れ子Markdownは誤挿入せず、正常カードを保
   const orphanCard = cards.find((card) => card.id === "explanation-card-orphan");
   assert.match(orphanCard.className, /explanation-orphaned/);
   const orphanStatus = harness.queryAll((element) => element.className === "explanation-card-status").find((status) => status.parentElement.parentElement === orphanCard);
-  assert.match(orphanStatus.textContent, /カードは保持されています/);
+  assert.equal(orphanStatus.textContent, "対象の文章が見つかりません。");
   assert.equal(harness.queryAll((element) => element.className === "explanation-card-body").some((bodyElement) => bodyElement.textContent === orphan.body), true);
   assert.deepEqual([normal, orphan], original);
   assert.equal(persistCalls, 0);

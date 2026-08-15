@@ -1,3 +1,33 @@
+## 2026-08-15 feat/image-and-explanation-block-ui
+
+### 変更内容
+
+* 画像・解説ブロックの記法ガイド文言を更新し、画像ブロック/画像キャプション/解説ブロック/画像削除時の添付保持を記載
+* 本文編集欄上部に「画像」「解説」ボタンを追加し、アイコン付きで直下インラインUIに統合
+* 画像を本文へ「画像ボタン」から挿入する仕様を、画像ブロック形式とカーソル/末尾フォールバックへ調整
+* 添付一覧から参照中画像を削除する確認文を、添付画像も削除される実挙動に合わせて更新
+* 解説は本文順で解析・挿入できるよう `hydrateExplanationCardsIntoDom` を修正し、本文外まとめ表示を廃止
+* 解説挿入位置のためのゼロ幅マーカー管理を追加し、カーソル位置挿入時の位置保持を安定化
+* 画像ブロックと解説カードのカード表示を更新（背景・内側余白・角丸・余白）し、後続本文・コードへのスタイル継承影響を抑制
+
+### 修正理由
+
+* 画像・解説ブロックを「本文順」かつ「本文中で直後」に見せるUI要件を満たし、カードの可読性と編集導線を改善するため
+* 画像削除時でも添付データを残す意図と、既存メモ/Web Clipper添付との互換性を維持するため
+
+### 確認方法
+
+* 画像/解説の各テストを更新し、既存仕様に沿った記法定義・DOM挿入仕様を確認
+* 画像ブロックと解説カードのレイアウトスタイルを確認
+* `git status` で対象差分を確認し、mainから分岐した新規ブランチで作業
+
+### 確認結果
+
+* `node --check app.js markdown-enhancements-utils.js`
+* `node --test syntax-guide.test.js markdown-enhancements.test.js image-block-layout.test.js` は実行時に `spawn EPERM` で失敗（この環境のNode test実行制約）
+* `node --test *.test.js` も同じ `spawn EPERM` で全件失敗
+* `markdown-enhancements.test.js` / `syntax-guide.test.js` / `image-block-layout.test.js` の追加分は、変更内容レビューにより意図どおりに追記済み
+
 ## 2026-06-21 Memo Nexus 保存安定化・ZIP修正
 
 ### 変更内容
