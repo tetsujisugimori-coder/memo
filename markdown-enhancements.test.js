@@ -211,6 +211,90 @@ test("解説対象は単一段落内ならその表示位置へ挿入し続け�
   assert.equal(cards.length, 1);
 });
 
+test("HTMLコメントアンカーは指定IDで1件だけ本文へ挿入される", () => {
+  const body = "本文本文";
+  const anchorId = "anchor-1";
+  const result = enhancements.insertExplanationAnchorIntoBody(body, body.length, anchorId);
+  const comment = enhancements.buildExplanationAnchorComment(anchorId);
+  const parsed = enhancements.findExplanationAnchorMatches(result.body);
+  assert.equal(parsed.length, 1);
+  assert.equal(result.markerStart, body.length);
+  assert.equal(result.markerEnd, body.length + comment.length);
+  assert.equal(result.body, `${body}${comment}`);
+});
+
+test("アンカー付き解説は同IDを最優先して解決し、末尾の位置へ挿入される", () => {
+  const body = "本文前\n本文中\n本文後";
+  const anchorId = "anchor-order";
+  const anchorInserted = enhancements.insertExplanationAnchorIntoBody(body, body.length, anchorId);
+  const explanation = explanationFor(anchorInserted.body, anchorInserted.body, anchorId, 0);
+  const harness = createDomHarness([{ text: "本文前", tagName: "p" }, { text: "本文中", tagName: "p" }, { text: "本文後", tagName: "p" }]);
+  const results = enhancements.hydrateExplanationCardsIntoDom(harness.root, anchorInserted.body, [explanation]);
+  assert.equal(results[0].resolved.matched, true);
+  assert.equal(results[0].resolved.start, anchorInserted.markerStart);
+  assert.equal(results[0].visibleTarget.matched, true);
+  assert.equal(results[0].orphaned, false);
+  const marker = markerParents(harness).find((parent) => parent.tagName === "P" && parent.children.some((child) => child.className === "explanation-marker"));
+  assert.equal(marker?.tagName, "P");
+});
+
+test("同一語句が複数ある本文でも、同IDアンカーで対象を一意に特定できる", () => {
+  const body = "保存 保存";
+  const firstStart = body.indexOf("保存");
+  const secondStart = body.lastIndexOf("保存");
+  const anchorId = "anchor-dup";
+  const anchorInserted = enhancements.insertExplanationAnchorIntoBody(body, secondStart + 2, anchorId);
+  const explanation = explanationFor(anchorInserted.body, body.slice(firstStart, firstStart + 2), anchorId, firstStart);
+  const harness = createDomHarness([{ text: "保存", tagName: "p" }, { text: " ", tagName: "p" }, { text: "保存", tagName: "p" }]);
+  const result = enhancements.hydrateExplanationCardsIntoDom(harness.root, anchorInserted.body, [explanation])[0];
+  const marker = markerParents(harness).find((parent) => parent.tagName === "P");
+  assert.equal(result.orphaned, false);
+  assert.equal(marker?.children?.some((node) => node.className === "explanation-marker"), true);
+});
+
+test("本文編集で対象文言が変わってもアンカーがあれば解説位置は維持される", () => {
+  const body = "保存してから本文を編集";
+  const editedBody = "全然別の本文です";
+  const anchorId = "anchor-edit";
+  const anchored = enhancements.insertExplanationAnchorIntoBody(body, body.indexOf("本文"), anchorId);
+  const explanation = explanationFor(anchored.body, "保存", anchorId, 0);
+  const initialHarness = createDomHarness([{ text: "保存してから", tagName: "p" }, { text: "本文を編集", tagName: "p" }]);
+  const initial = enhancements.hydrateExplanationCardsIntoDom(initialHarness.root, anchored.body, [explanation])[0];
+  assert.equal(initial.orphaned, false);
+  const editedHarness = createDomHarness([{ text: editedBody, tagName: "p" }]);
+  const afterEdit = enhancements.hydrateExplanationCardsIntoDom(editedHarness.root, enhancements.insertExplanationAnchorIntoBody(editedBody, 5, anchorId).body, [explanation])[0];
+  assert.equal(afterEdit.visibleTarget.matched, true);
+  assert.equal(afterEdit.orphaned, false);
+});
+
+test("同IDアンカーがない説明は旧ロジックの再解決順序で配置される", () => {
+  const body = "保存して閉じる。";
+  const explanation = explanationFor(body, "保存", "legacy", body.indexOf("保存"));
+  const harness = createDomHarness([{ text: "保存", tagName: "p" }, { text: "して", tagName: "p" }, { text: "閉じる。", tagName: "p" }]);
+  const results = enhancements.hydrateExplanationCardsIntoDom(harness.root, body, [explanation]);
+  assert.equal(results[0].resolved.matched, true);
+  assert.equal(results[0].orphaned, false);
+});
+
+test("本文内コメントはプレビュー描画文字列として除去される", () => {
+  const comment = enhancements.buildExplanationAnchorComment("preview");
+  const body = `本文前${comment}\n本文後`;
+  const stripped = enhancements.stripExplanationAnchorComments(body);
+  assert.equal(stripped, "本文前\n本文後");
+});
+
+test("同IDアンカー1件削除関数で本文から対象コメントだけ除去する", () => {
+  const first = enhancements.buildExplanationAnchorComment("delete-1");
+  const second = enhancements.buildExplanationAnchorComment("delete-2");
+  const body = `${first}本文${second}本文`;
+  const removed = enhancements.removeExplanationAnchorFromBody(body, "delete-1");
+  assert.equal(removed.body.includes(first), false);
+  assert.equal(removed.body.includes(second), true);
+  assert.equal(removed.removed, true);
+  const fallback = enhancements.removeExplanationAnchorFromBody(removed.body, "missing");
+  assert.equal(fallback.removed, false);
+});
+
 test("複数段落をまたぐ選択では末尾段落の直後へ解説カードを置く", () => {
   const body = "一段目\n二段目\n三段目保存";
   const start = body.indexOf("一段目");

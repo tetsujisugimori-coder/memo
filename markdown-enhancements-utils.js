@@ -130,6 +130,115 @@ const MemoNexusMarkdownEnhancements = (() => {
     return { displayText, ordinal, matched: Number.isInteger(ordinal) && ordinal >= 0 };
   }
 
+  const EXPLANATION_ANCHOR_PATTERN = /<!--\s*memo-nexus:explanation\s+id="([^"]+)"\s*-->/g;
+
+  function buildExplanationAnchorComment(explanationId) {
+    const id = String(explanationId || "").trim();
+    return `<!-- memo-nexus:explanation id="${id}" -->`;
+  }
+
+  function findExplanationAnchorMatches(body) {
+    const text = String(body || "");
+    const matches = [];
+    const pattern = new RegExp(EXPLANATION_ANCHOR_PATTERN.source, "g");
+    let match;
+    while ((match = pattern.exec(text))) {
+      matches.push({
+        id: match[1] || "",
+        start: match.index,
+        end: match.index + match[0].length,
+        marker: match[0]
+      });
+    }
+    return matches;
+  }
+
+  function findExplanationAnchor(body, explanationId) {
+    const id = String(explanationId || "");
+    if (!id) return null;
+    const matches = findExplanationAnchorMatches(body);
+    return matches.find((match) => match.id === id) || null;
+  }
+
+  function stripExplanationAnchorComments(body) {
+    const text = String(body || "");
+    return text.replace(new RegExp(EXPLANATION_ANCHOR_PATTERN.source, "g"), "");
+  }
+
+  function insertExplanationAnchorIntoBody(body, index, explanationId) {
+    const text = String(body || "");
+    const insertionIndex = Math.max(0, Math.min(text.length, Number.isInteger(index) ? index : text.length));
+    const marker = buildExplanationAnchorComment(explanationId);
+    const updatedBody = `${text.slice(0, insertionIndex)}${marker}${text.slice(insertionIndex)}`;
+    return {
+      body: updatedBody,
+      insertedIndex: insertionIndex,
+      markerStart: insertionIndex,
+      markerEnd: insertionIndex + marker.length,
+      marker
+    };
+  }
+
+  function removeExplanationAnchorFromBody(body, explanationId) {
+    const text = String(body || "");
+    const id = String(explanationId || "");
+    if (!id) return { body: text, removed: false };
+    const escapedId = id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const pattern = new RegExp(`<!--\\s*memo-nexus:explanation\\s+id="${escapedId}"\\s*-->`, "g");
+    const bodyWithoutAnchor = text.replace(pattern, "");
+    return { body: bodyWithoutAnchor, removed: bodyWithoutAnchor.length !== text.length };
+  }
+
+  function visibleTargetForSourcePoint(body, position) {
+    const text = String(body || "").replace(/\r\n?/g, "\n");
+    const textWithoutAnchors = stripExplanationAnchorComments(text);
+    const maxLength = text.length;
+    const requestedPosition = Number.isInteger(position) ? Math.max(0, Math.min(maxLength, position)) : 0;
+    const cleanedPrefix = stripExplanationAnchorComments(text.slice(0, requestedPosition));
+    const sourcePoint = Math.max(0, Math.min(textWithoutAnchors.length, cleanedPrefix.length));
+    const segments = visibleTextSegments(textWithoutAnchors);
+    if (!segments.length) return { displayText: "", ordinal: -1, matched: false };
+
+    let selectedSegment = null;
+    for (const segment of segments) {
+      if (segment.sourceStart <= sourcePoint && segment.sourceEnd >= sourcePoint && segment.sourceStart < segment.sourceEnd) {
+        selectedSegment = segment;
+        break;
+      }
+      if (segment.sourceEnd > sourcePoint) break;
+    }
+
+    if (!selectedSegment) {
+      for (let index = segments.length - 1; index >= 0; index -= 1) {
+        const segment = segments[index];
+        if (segment.sourceStart < segment.sourceEnd && segment.sourceEnd <= sourcePoint) {
+          selectedSegment = segment;
+          break;
+        }
+      }
+    }
+
+    if (!selectedSegment) {
+      selectedSegment = segments[0];
+    }
+
+    const sourceStart = Math.max(selectedSegment.sourceStart, Math.min(sourcePoint, selectedSegment.sourceEnd - 1));
+    const sourceEnd = sourceStart + 1;
+    const startInSegment = sourceStart - selectedSegment.sourceStart;
+    const endInSegment = sourceEnd - selectedSegment.sourceStart;
+    const displayText = selectedSegment.text.slice(startInSegment, endInSegment);
+    if (!displayText) return { displayText: "", ordinal: -1, matched: false, sourceStart, sourceEnd };
+
+    const ordinal = visibleTargetOrdinal(textWithoutAnchors, displayText, sourceStart, sourceEnd, { includeAmbiguous: true });
+    return {
+      displayText,
+      ordinal,
+      matched: Number.isInteger(ordinal) && ordinal >= 0,
+      sourceStart,
+      sourceEnd
+    };
+  }
+
   function insertExplanationMarkerIntoDom(root, options = {}) {
     const target = String(options.displayText || "");
     const ordinal = Number(options.ordinal);
@@ -277,9 +386,14 @@ const MemoNexusMarkdownEnhancements = (() => {
     const documentRef = root?.ownerDocument;
     if (!documentRef || !Array.isArray(explanations) || !explanations.length) return [];
     const enriched = explanations.map((explanation, index) => {
-      const resolved = resolveExplanationTarget(body, explanation);
-      const visibleTarget = resolved.matched ? visibleTargetForSourceRange(body, resolved.start, resolved.end) : { matched: false };
-      const position = resolved.matched && Number.isInteger(resolved.start) && resolved.start >= 0 ? resolved.start : Number.POSITIVE_INFINITY;
+      const anchor = findExplanationAnchor(body, explanation?.id);
+      const resolved = anchor ? { ...resolveExplanationTarget(body, explanation), start: anchor.start, end: anchor.end, matched: true } : resolveExplanationTarget(body, explanation);
+      const visibleTarget = resolved.matched
+        ? (anchor
+          ? visibleTargetForSourcePoint(body, anchor.start)
+          : visibleTargetForSourceRange(body, resolved.start, resolved.end))
+        : { matched: false };
+      const position = anchor ? anchor.start : (resolved.matched && Number.isInteger(resolved.start) && resolved.start >= 0 ? resolved.start : Number.POSITIVE_INFINITY);
       return {
         explanation,
         index,
@@ -332,7 +446,28 @@ const MemoNexusMarkdownEnhancements = (() => {
     return results.sort((a, b) => a.index - b.index);
   }
 
-  return { buildCalloutMarkdown, checklistEntries, updateChecklistAt, visibleTextSegments, visibleTargetOrdinal, visibleTargetForSourceRange, insertExplanationMarkerIntoDom, resolveExplanationTarget, shouldPersistCollapsedState, createExplanationCollapsedStateSaver, bindExplanationCollapseInteractions, createExplanationCardElement, hydrateExplanationCardsIntoDom };
+  return {
+    buildCalloutMarkdown,
+    checklistEntries,
+    updateChecklistAt,
+    visibleTextSegments,
+    visibleTargetOrdinal,
+    visibleTargetForSourceRange,
+    visibleTargetForSourcePoint,
+    insertExplanationMarkerIntoDom,
+    buildExplanationAnchorComment,
+    findExplanationAnchorMatches,
+    findExplanationAnchor,
+    stripExplanationAnchorComments,
+    insertExplanationAnchorIntoBody,
+    removeExplanationAnchorFromBody,
+    resolveExplanationTarget,
+    shouldPersistCollapsedState,
+    createExplanationCollapsedStateSaver,
+    bindExplanationCollapseInteractions,
+    createExplanationCardElement,
+    hydrateExplanationCardsIntoDom
+  };
 })();
 
 if (typeof window !== "undefined") window.MemoNexusMarkdownEnhancements = MemoNexusMarkdownEnhancements;

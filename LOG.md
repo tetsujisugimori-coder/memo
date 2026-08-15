@@ -1,5 +1,22 @@
 ## 2026-08-15 feat/image-and-explanation-block-ui
 
+## 2026-08-15 解説カード本文アンカー永続化
+
+* 解説作成時に `memo-nexus:explanation` HTMLコメントアンカー (`<!-- memo-nexus:explanation id=\"UUID\" -->`) を本文へ保存する構成を追加
+* `memo-nexus:explanation id="<カードID>"` を優先解決キーとして採用し、同一語句の重複や選択範囲を超えた編集でも対象を特定しやすくした
+* アンカー優先で位置が確定しない既存データは従来の `resolveExplanationTarget()` へフォールバックし、既存解説カードの互換を維持
+* 本文側アンカーはプレビュー表示から除去し、既存画像ブロック仕様や既存編集/削除フローを変更しない
+* 追加したテスト:
+  * `markdown-enhancements.test.js`: アンカー挿入・同ID優先解決・重複語句識別・削除・編集・プレビュー除去
+  * `backup-bundle-utils.test.js`: ZIP往復時の本文アンカー保持
+
+### 確認結果
+
+* `node --check app.js markdown-enhancements-utils.js`
+* `node --test syntax-guide.test.js markdown-enhancements.test.js image-block-layout.test.js`（68件成功）
+* `node --test backup-bundle-utils.test.js`（7件成功）
+* `git diff --check`
+
 ## 2026-08-15 Memo-Nexus: 解説カードの選択基準と配色修正
 
 ### 変更内容

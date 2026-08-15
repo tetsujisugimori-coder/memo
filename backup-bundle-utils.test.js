@@ -34,6 +34,27 @@ test("v1バックアップはローカル保存と共通の論理構造を出力
   assert.match(markdown, /attachments: \[\{"id":"asset-1"/);
 });
 
+test("ZIP往復で解説アンカーコメントを含む本文がそのまま保持される", () => {
+  const anchor = "<!-- memo-nexus:explanation id=\"backup-1\" -->";
+  const note = {
+    id: "note-100",
+    title: "解説アンカー保存",
+    body: `本文${anchor}の後`,
+    createdAt: "2026-08-01T00:00:00.000Z",
+    updatedAt: "2026-08-02T00:00:00.000Z",
+    explanations: [{ id: "backup-1", target: "本文", type: "補足", body: "固定メモ", updatedAt: "2026-08-02T00:00:00.000Z" }]
+  };
+  const markdown = serializeLocalNote(note, note.body, []);
+  const parsed = parsePortableBackup([
+    entry("manifest.json", JSON.stringify(manifest())),
+    entry("collections.json", "[]"),
+    entry("notes/note-100.md", markdown)
+  ], { parseNote: parseLocalNote, idFactory: () => "new-id" });
+  assert.equal(parsed.notes.length, 1);
+  assert.equal(parsed.notes[0].note.body.includes(anchor), true);
+  assert.equal(parsed.notes[0].note.explanations?.[0]?.id, "backup-1");
+});
+
 test("完全バックアップは未分類フォールバックに必要なメモを、collections破損時も解析する", () => {
   const markdown = serializeLocalNote({ id: "note-1", title: "救済", updatedAt: "2026-08-02T00:00:00.000Z" }, "本文");
   const parsed = parsePortableBackup([

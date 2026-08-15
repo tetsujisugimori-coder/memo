@@ -413,7 +413,17 @@ const {
   selectAllReferenceNotes,
   selectCollectionReferenceNotes
 } = window.MemoNexusAiReferenceSelection;
-const { buildCalloutMarkdown, checklistEntries, updateChecklistAt, createExplanationCollapsedStateSaver, hydrateExplanationCardsIntoDom } = window.MemoNexusMarkdownEnhancements;
+const {
+  buildCalloutMarkdown,
+  checklistEntries,
+  createExplanationCollapsedStateSaver,
+  buildExplanationAnchorComment,
+  insertExplanationAnchorIntoBody,
+  removeExplanationAnchorFromBody,
+  hydrateExplanationCardsIntoDom,
+  stripExplanationAnchorComments,
+  updateChecklistAt
+} = window.MemoNexusMarkdownEnhancements;
 const { createPopoutGhost, getMemoSyncDecision } = window.MemoNexusPopoutUtils;
 const { nextLogoAnimation: nextLogoAnimationInCycle, normalizeLogoAnimation, resolveLogoAnimation } = window.MemoNexusLogoAnimationUtils;
 const { EDITOR_CARET_REPEAT_DELAY, canPlayEditorCaretAnimation, normalizeEditorCaretAnimationSettings } = window.MemoNexusEditorCaretAnimationUtils;
@@ -790,7 +800,6 @@ const syntaxGuideCopyTimers = new WeakMap();
 let pendingExplanation = null;
 let editorSelectionRangeSnapshot = null;
 let pendingExplanationSelection = null;
-const EXPLANATION_INSERT_MARKER = "\u200b";
 const tableCopyStatusTimers = new WeakMap();
 let activeTableCell = null;
 const tableAxisSelections = new Map();
@@ -5808,9 +5817,10 @@ function handleEditorAttachmentDrop(event) {
 }
 
 function renderPreviewHtml(body, noteId = "preview", renderGeneration = 0) {
+  const cleanedBody = stripExplanationAnchorComments(body);
   let codeBlockIndex = 0;
   let tableBlockIndex = 0;
-  const html = splitImageBlocks(body)
+  const html = splitImageBlocks(cleanedBody)
     .map((segment, imageBlockIndex) => {
       if (segment.type === "image") return renderImageBlock(segment, imageBlockIndex);
       return splitTableBlocks(segment.text).map((tableSegment) => {
@@ -9706,13 +9716,14 @@ function openExplanationDialog(existing = null, selectionRange = null) {
   } else {
     const range = currentEditorInsertRange(selectionRange);
     const target = editor.value.slice(range.start, range.end);
-    const cursorInsertion = !target.trim();
+    const cursorInsertion = range.start === range.end;
     const targetStart = range.fallback ? editor.value.length : range.start;
     const targetEnd = range.fallback ? editor.value.length : range.end;
     pendingExplanation = {
+      id: crypto.randomUUID(),
       start: targetStart,
       end: targetEnd,
-      target: cursorInsertion ? EXPLANATION_INSERT_MARKER : target,
+      target: cursorInsertion ? "" : target,
       before: editor.value.slice(Math.max(0, targetStart - 40), targetStart),
       after: editor.value.slice(targetEnd, targetEnd + 40),
       cursorInsertion
@@ -9732,20 +9743,20 @@ function saveExplanationFromDialog(event) {
   if (!note || !pendingExplanation || !explanationBodyInput.value.trim()) return;
   const explanations = normalizeExplanations(note);
   const base = pendingExplanation.existing || pendingExplanation;
-  if (!pendingExplanation.existing && base.cursorInsertion) {
+  if (!pendingExplanation.existing) {
+    const anchorId = base.id || crypto.randomUUID();
     const selectionStart = Number.isInteger(base.start) ? base.start : editor.value.length;
     const selectionEnd = Number.isInteger(base.end) ? base.end : selectionStart;
-    const nextStart = Math.min(editor.value.length, Math.max(0, selectionStart));
-    const nextEnd = Math.min(editor.value.length, Math.max(nextStart, selectionEnd));
-    const marker = EXPLANATION_INSERT_MARKER;
+    const insertionPoint = Math.min(editor.value.length, Math.max(0, selectionEnd));
+    const insertion = insertExplanationAnchorIntoBody(editor.value, insertionPoint, anchorId);
     captureUndoSnapshot({ inputType: "insertText" });
-    editor.setRangeText(marker, nextStart, nextEnd, "end");
-    const nextOffset = nextStart + marker.length;
-    base.start = nextStart;
-    base.end = nextOffset;
-    base.target = marker;
-    base.before = editor.value.slice(Math.max(0, nextStart - 40), nextStart);
-    base.after = editor.value.slice(nextOffset, nextOffset + 40);
+    editor.value = insertion.body;
+    base.start = insertion.markerStart;
+    base.end = insertion.markerEnd;
+    base.target = base.target || "";
+    base.before = editor.value.slice(Math.max(0, base.start - 40), base.start);
+    base.after = editor.value.slice(base.end, base.end + 40);
+    base.id = anchorId;
     scheduleSave();
   }
   const explanation = {
@@ -9767,6 +9778,16 @@ function deleteExplanation(id) {
   const note = currentNote();
   if (!note || !confirm("この解説カードを削除しますか？")) return;
   note.explanations = normalizeExplanations(note).filter((item) => item.id !== id);
+  const beforeBody = String(note.body || editor.value || "");
+  const anchorRemoval = removeExplanationAnchorFromBody(beforeBody, id);
+  if (anchorRemoval.removed) {
+    const safeSelectionStart = Number.isInteger(editor.selectionStart) ? Math.min(editor.selectionStart, anchorRemoval.body.length) : 0;
+    captureUndoSnapshot({ inputType: "deleteContentBackward" });
+    editor.value = anchorRemoval.body;
+    note.body = anchorRemoval.body;
+    if (editor) editor.setSelectionRange(safeSelectionStart, safeSelectionStart);
+    scheduleSave();
+  }
   note.updatedAt = Date.now();
   void putNote(note).then(async () => { notes = await getAllNotes(); renderPreview(); });
 }
