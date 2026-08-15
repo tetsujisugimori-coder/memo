@@ -1790,11 +1790,11 @@ body.collections-open .collection-explorer {
 .explanation-cards { display: grid; gap: 10px; margin: 10px 0 0; }
 .explanation-card {
   padding: 10px 12px;
-  border: 1px solid color-mix(in srgb, var(--line) 75%, transparent);
+  border: 0;
   border-radius: 10px;
-  background: color-mix(in srgb, var(--section-bg) 82%, var(--paper) 18%);
+  background: color-mix(in srgb, var(--section-bg) 70%, var(--accent-soft) 30%);
   color: var(--ink);
-  box-shadow: 0 1px 8px color-mix(in srgb, var(--dialog-backdrop) 55%, transparent);
+  box-shadow: none;
 }
 .explanation-card summary { cursor: pointer; color: var(--accent); font-weight: 700; }
 .explanation-card-target { margin: 9px 0 4px; color: var(--muted); overflow-wrap: anywhere; }
@@ -1803,7 +1803,9 @@ body.collections-open .collection-explorer {
 .explanation-card-actions button { min-height: 28px; min-width: 56px; background: color-mix(in srgb, var(--button-bg) 84%, var(--accent-soft) 16%); border-color: color-mix(in srgb, var(--line) 70%, transparent); color: var(--ink); }
 .explanation-card-actions button:hover,
 .explanation-card-actions button:focus-visible { background: color-mix(in srgb, var(--button-bg) 66%, var(--accent-soft) 34%); border-color: var(--accent); color: var(--accent); }
-.explanation-orphaned { border-color: #c05621; }
+.explanation-orphaned {
+  background: color-mix(in srgb, var(--section-bg) 54%, var(--warning-strong-bg) 46%);
+}
 .explanation-dialog { width: min(520px, calc(100vw - 24px)); padding: 0; border: 1px solid var(--line); border-radius: 12px; background: var(--paper); color: var(--ink); }
 .explanation-dialog::backdrop { background: var(--dialog-backdrop); }
 .explanation-dialog .dialog-head { display: flex; justify-content: space-between; padding: 13px 15px; border-bottom: 1px solid var(--line); }

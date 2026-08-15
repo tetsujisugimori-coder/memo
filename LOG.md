@@ -1,4 +1,57 @@
+## 2026-08-15 解説カード保存時のnote.body即時反映
+
+### 変更内容
+
+* `saveExplanationFromDialog()` の新規作成フローで `insertExplanationAnchorIntoBody()` の結果を取得後、
+  `editor.value = insertion.body` に加えて `note.body = insertion.body` を同タイミングで代入するよう追加。
+* これにより `putNote(note)` の第一引数に渡る `note` に、説明本文・メタ情報と同じ状態の本文（HTMLコメントアンカー入り）を含めるように統一。
+* 既存の `scheduleSave()` は保存キューの既存フロー維持のため残し、`putNote` 呼び出し時点で整合する状態を保証。
+
+### 確認結果
+
+* `node --check app.js markdown-enhancements-utils.js`（成功）
+* `node --test syntax-guide.test.js markdown-enhancements.test.js image-block-layout.test.js`（pass 70）
+* `git diff --check`（問題なし）
+
 ## 2026-08-15 feat/image-and-explanation-block-ui
+
+## 2026-08-15 解説カード本文アンカー永続化
+
+* 解説作成時に `memo-nexus:explanation` HTMLコメントアンカー (`<!-- memo-nexus:explanation id=\"UUID\" -->`) を本文へ保存する構成を追加
+* `memo-nexus:explanation id="<カードID>"` を優先解決キーとして採用し、同一語句の重複や選択範囲を超えた編集でも対象を特定しやすくした
+* アンカー優先で位置が確定しない既存データは従来の `resolveExplanationTarget()` へフォールバックし、既存解説カードの互換を維持
+* 本文側アンカーはプレビュー表示から除去し、既存画像ブロック仕様や既存編集/削除フローを変更しない
+* 追加したテスト:
+  * `markdown-enhancements.test.js`: アンカー挿入・同ID優先解決・重複語句識別・削除・編集・プレビュー除去
+  * `backup-bundle-utils.test.js`: ZIP往復時の本文アンカー保持
+
+### 確認結果
+
+* `node --check app.js markdown-enhancements-utils.js`
+* `node --test syntax-guide.test.js markdown-enhancements.test.js image-block-layout.test.js`（68件成功）
+* `node --test backup-bundle-utils.test.js`（7件成功）
+* `git diff --check`
+
+## 2026-08-15 Memo-Nexus: 解説カードの選択基準と配色修正
+
+### 変更内容
+
+* 本文選択時の解説ボタン押下で、`pointerdown` 取得時点の選択範囲をスナップショットとして保持し、`focus` 移動で選択が消える問題を回避
+* 解説カード表示対象解決を更新し、複数段落・複数リスト項目・Markdown装飾をまたいだ選択でも、選択範囲末尾側の表示ブロックで対象を確定するよう変更
+* `visibleTargetForSourceRange()` の判定を「単一可視テキスト断片前提」から脱却し、末尾側 anchor に基づく解決を行うよう更新
+* `resolveExplanationTarget()` 依存の既存挙動を崩さないよう、既存構造（保存・編集・削除・折りたたみ・対象再解決失敗時の維持）を維持
+* 解説カードの外観を枠線ベースから無地背景ベースへ変更し、通常カード／対象不明カードを色調差分で視認しやすくした
+
+### 確認結果
+
+* `node --check app.js markdown-enhancements-utils.js`
+* `node --test syntax-guide.test.js markdown-enhancements.test.js image-block-layout.test.js` → `pass 61`
+* `git diff --check` → 問題なし
+
+### 補足
+
+* 画像ブロックの挿入・仕様自体は変更せず
+* 本件は `app.js`、`markdown-enhancements-utils.js`、`markdown-enhancements.test.js`、`style.css` を編集
 
 ### 変更内容
 

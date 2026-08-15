@@ -119,6 +119,29 @@ function sourceOf(name) {
   throw new Error(`${name} の終端がありません`);
 }
 
+function loadAppFunction(name, deps = {}) {
+  const source = sourceOf(name);
+  return new Function("deps", `
+    let notes = deps.notes || [];
+    let pendingExplanation = deps.pendingExplanation;
+    const currentNote = deps.currentNote;
+    const normalizeExplanations = deps.normalizeExplanations;
+    const insertExplanationAnchorIntoBody = deps.insertExplanationAnchorIntoBody;
+    const captureUndoSnapshot = deps.captureUndoSnapshot || (() => {});
+    const scheduleSave = deps.scheduleSave || (() => {});
+    const putNote = deps.putNote;
+    const getAllNotes = deps.getAllNotes || (() => []);
+    const renderPreview = deps.renderPreview || (() => {});
+    const explanationBodyInput = deps.explanationBodyInput;
+    const explanationTypeSelect = deps.explanationTypeSelect;
+    const explanationDialog = deps.explanationDialog;
+    const editor = deps.editor;
+    const crypto = deps.crypto;
+    ${source}
+    return ${name};
+  `)(deps);
+}
+
 const safeExternalUrl = Function(`${sourceOf("safeExternalUrl")} return safeExternalUrl;`)();
 const renderOrderedListBlock = Function("renderMarkdownInline", `${sourceOf("renderOrderedListBlock")} return renderOrderedListBlock;`)((text) => text);
 
@@ -161,6 +184,109 @@ test("Callout操作と解説カードの独立保存UIを提供する", () => {
   assert.match(css, /\.explanation-card/);
 });
 
+test("新規解説保存時の最初のputNoteでnote.bodyへアンカーを反映する", () => {
+  const anchorId = "anchor-put";
+  const baseBody = "本文を選択して解説作成";
+  const note = {
+    id: "note-1",
+    title: "解説テスト",
+    body: baseBody,
+    explanations: [],
+    updatedAt: 123
+  };
+  const expectedBody = enhancements.insertExplanationAnchorIntoBody(baseBody, baseBody.length, anchorId).body;
+  const putNotes = [];
+  const events = [];
+  const deps = {
+    currentNote: () => note,
+    normalizeExplanations: (target) => target.explanations,
+    insertExplanationAnchorIntoBody: (...args) => enhancements.insertExplanationAnchorIntoBody(...args),
+    captureUndoSnapshot: () => events.push("undo"),
+    scheduleSave: () => events.push("schedule-save"),
+    putNote: async (savedNote) => {
+      putNotes.push(savedNote);
+      return { ok: true };
+    },
+    explanationBodyInput: { value: "対象の説明" },
+    explanationTypeSelect: { value: "用語解説" },
+    explanationDialog: { close: () => events.push("dialog-close") },
+    editor: {
+      value: baseBody,
+      selectionStart: baseBody.length,
+      selectionEnd: baseBody.length
+    },
+    getAllNotes: async () => [],
+    renderPreview: () => events.push("render-preview"),
+    notes: [note],
+    pendingExplanation: {
+      id: anchorId,
+      start: baseBody.length,
+      end: baseBody.length,
+      target: "",
+      before: "",
+      after: "",
+      cursorInsertion: true
+    },
+    crypto: { randomUUID: () => "uuid-fallback" }
+  };
+  const saveExplanationFromDialog = loadAppFunction("saveExplanationFromDialog", deps);
+  saveExplanationFromDialog({ preventDefault: () => {} });
+  assert.equal(putNotes.length, 1);
+  assert.equal(putNotes[0].body, expectedBody);
+  assert.equal(putNotes[0].explanations[0].id, anchorId);
+  assert.equal(note.body, expectedBody);
+  assert.equal(note.explanations[0].id, anchorId);
+  assert.match(putNotes[0].body, /<!-- memo-nexus:explanation id="anchor-put" -->/);
+  assert.equal(events.includes("schedule-save"), true);
+});
+
+test("最初のputNote時点で保存対象本文と説明カードは対応している", () => {
+  const anchorId = "anchor-put-sync";
+  const baseBody = "再読み込みが走っても壊れない本文";
+  const note = {
+    id: "note-2",
+    title: "解説同期テスト",
+    body: baseBody,
+    explanations: []
+  };
+  let savedArgument = null;
+  const saveEvents = [];
+  const deps = {
+    currentNote: () => note,
+    normalizeExplanations: (target) => target.explanations,
+    insertExplanationAnchorIntoBody: (...args) => enhancements.insertExplanationAnchorIntoBody(...args),
+    captureUndoSnapshot: () => saveEvents.push("undo"),
+    scheduleSave: () => saveEvents.push("schedule-save"),
+    putNote: async (savedNote) => {
+      savedArgument = savedNote;
+      return { ok: true };
+    },
+    explanationBodyInput: { value: "同期確認用解説" },
+    explanationTypeSelect: { value: "用語解説" },
+    explanationDialog: { close: () => saveEvents.push("dialog-close") },
+    editor: { value: baseBody, selectionStart: baseBody.length, selectionEnd: baseBody.length },
+    getAllNotes: async () => [],
+    renderPreview: () => saveEvents.push("render-preview"),
+    notes: [note],
+    pendingExplanation: {
+      id: anchorId,
+      start: 5,
+      end: 6,
+      target: baseBody.slice(5, 6),
+      before: "",
+      after: "",
+      cursorInsertion: false
+    },
+    crypto: { randomUUID: () => "uuid-fallback" }
+  };
+  const saveExplanationFromDialog = loadAppFunction("saveExplanationFromDialog", deps);
+  saveExplanationFromDialog({ preventDefault: () => {} });
+  assert.equal(Boolean(savedArgument), true);
+  assert.match(savedArgument.body, new RegExp(`<!-- memo-nexus:explanation id="${anchorId}" -->`));
+  assert.equal(savedArgument.body, note.body);
+  assert.equal(saveEvents.includes("schedule-save"), true);
+});
+
 test("選択した複数行をCallout化しても本文を保持し、未選択時だけ空のひな型を作る", () => {
   assert.equal(enhancements.buildCalloutMarkdown("補足の1行目です。\n補足の2行目です。", "NOTE"), "> [!NOTE]\n> 補足の1行目です。\n> 補足の2行目です。");
   assert.equal(enhancements.buildCalloutMarkdown("", "WARNING"), "> [!WARNING]\n> ");
@@ -192,7 +318,128 @@ test("Markdown記号を含むソース選択から表示文字列と出現順を
   assert.deepEqual(enhancements.visibleTargetForSourceRange(body, 0, 6), { displayText: "保存", ordinal: 0, matched: true });
   const plainStart = body.lastIndexOf("保存");
   assert.deepEqual(enhancements.visibleTargetForSourceRange(body, plainStart, plainStart + 2), { displayText: "保存", ordinal: 1, matched: true });
-  assert.deepEqual(enhancements.visibleTargetForSourceRange("**保存** と *閉じる*", 0, 13), { displayText: "", ordinal: -1, matched: false });
+  assert.deepEqual(enhancements.visibleTargetForSourceRange("**保存** と *閉じる*", 0, 13), { displayText: "閉じる", ordinal: 0, matched: true });
+});
+
+test("解説対象は単一段落内ならその表示位置へ挿入し続ける", () => {
+  const body = "本文の先頭保存本文の末尾";
+  const start = body.indexOf("保存");
+  const explanation = explanationFor(body, body.slice(start, start + 2));
+  const harness = createDomHarness([{ text: "本文の先頭", tagName: "p" }, { text: "保存", tagName: "p" }, { text: "本文の末尾", tagName: "p" }]);
+  const results = enhancements.hydrateExplanationCardsIntoDom(harness.root, body, [explanation]);
+  const marker = markerParents(harness).find((parent) => parent.tagName === "P");
+  const cards = harness.queryAll((element) => element.className === "explanation-card");
+  assert.equal(results[0].visibleTarget.matched, true);
+  assert.equal(results[0].visibleTarget.displayText, "保存");
+  assert.equal(marker?.tagName, "P");
+  const markerNode = marker?.children.find((child) => child.className === "explanation-marker");
+  assert.equal(markerNode?.textContent, "1");
+  assert.equal(cards.length, 1);
+});
+
+test("HTMLコメントアンカーは指定IDで1件だけ本文へ挿入される", () => {
+  const body = "本文本文";
+  const anchorId = "anchor-1";
+  const result = enhancements.insertExplanationAnchorIntoBody(body, body.length, anchorId);
+  const comment = enhancements.buildExplanationAnchorComment(anchorId);
+  const parsed = enhancements.findExplanationAnchorMatches(result.body);
+  assert.equal(parsed.length, 1);
+  assert.equal(result.markerStart, body.length);
+  assert.equal(result.markerEnd, body.length + comment.length);
+  assert.equal(result.body, `${body}${comment}`);
+});
+
+test("アンカー付き解説は同IDを最優先して解決し、末尾の位置へ挿入される", () => {
+  const body = "本文前\n本文中\n本文後";
+  const anchorId = "anchor-order";
+  const anchorInserted = enhancements.insertExplanationAnchorIntoBody(body, body.length, anchorId);
+  const explanation = explanationFor(anchorInserted.body, anchorInserted.body, anchorId, 0);
+  const harness = createDomHarness([{ text: "本文前", tagName: "p" }, { text: "本文中", tagName: "p" }, { text: "本文後", tagName: "p" }]);
+  const results = enhancements.hydrateExplanationCardsIntoDom(harness.root, anchorInserted.body, [explanation]);
+  assert.equal(results[0].resolved.matched, true);
+  assert.equal(results[0].resolved.start, anchorInserted.markerStart);
+  assert.equal(results[0].visibleTarget.matched, true);
+  assert.equal(results[0].orphaned, false);
+  const marker = markerParents(harness).find((parent) => parent.tagName === "P" && parent.children.some((child) => child.className === "explanation-marker"));
+  assert.equal(marker?.tagName, "P");
+});
+
+test("同一語句が複数ある本文でも、同IDアンカーで対象を一意に特定できる", () => {
+  const body = "保存 保存";
+  const firstStart = body.indexOf("保存");
+  const secondStart = body.lastIndexOf("保存");
+  const anchorId = "anchor-dup";
+  const anchorInserted = enhancements.insertExplanationAnchorIntoBody(body, secondStart + 2, anchorId);
+  const explanation = explanationFor(anchorInserted.body, body.slice(firstStart, firstStart + 2), anchorId, firstStart);
+  const harness = createDomHarness([{ text: "保存", tagName: "p" }, { text: " ", tagName: "p" }, { text: "保存", tagName: "p" }]);
+  const result = enhancements.hydrateExplanationCardsIntoDom(harness.root, anchorInserted.body, [explanation])[0];
+  const marker = markerParents(harness).find((parent) => parent.tagName === "P");
+  assert.equal(result.orphaned, false);
+  assert.equal(marker?.children?.some((node) => node.className === "explanation-marker"), true);
+});
+
+test("本文編集で対象文言が変わってもアンカーがあれば解説位置は維持される", () => {
+  const body = "保存してから本文を編集";
+  const editedBody = "全然別の本文です";
+  const anchorId = "anchor-edit";
+  const anchored = enhancements.insertExplanationAnchorIntoBody(body, body.indexOf("本文"), anchorId);
+  const explanation = explanationFor(anchored.body, "保存", anchorId, 0);
+  const initialHarness = createDomHarness([{ text: "保存してから", tagName: "p" }, { text: "本文を編集", tagName: "p" }]);
+  const initial = enhancements.hydrateExplanationCardsIntoDom(initialHarness.root, anchored.body, [explanation])[0];
+  assert.equal(initial.orphaned, false);
+  const editedHarness = createDomHarness([{ text: editedBody, tagName: "p" }]);
+  const afterEdit = enhancements.hydrateExplanationCardsIntoDom(editedHarness.root, enhancements.insertExplanationAnchorIntoBody(editedBody, 5, anchorId).body, [explanation])[0];
+  assert.equal(afterEdit.visibleTarget.matched, true);
+  assert.equal(afterEdit.orphaned, false);
+});
+
+test("同IDアンカーがない説明は旧ロジックの再解決順序で配置される", () => {
+  const body = "保存して閉じる。";
+  const explanation = explanationFor(body, "保存", "legacy", body.indexOf("保存"));
+  const harness = createDomHarness([{ text: "保存", tagName: "p" }, { text: "して", tagName: "p" }, { text: "閉じる。", tagName: "p" }]);
+  const results = enhancements.hydrateExplanationCardsIntoDom(harness.root, body, [explanation]);
+  assert.equal(results[0].resolved.matched, true);
+  assert.equal(results[0].orphaned, false);
+});
+
+test("本文内コメントはプレビュー描画文字列として除去される", () => {
+  const comment = enhancements.buildExplanationAnchorComment("preview");
+  const body = `本文前${comment}\n本文後`;
+  const stripped = enhancements.stripExplanationAnchorComments(body);
+  assert.equal(stripped, "本文前\n本文後");
+});
+
+test("同IDアンカー1件削除関数で本文から対象コメントだけ除去する", () => {
+  const first = enhancements.buildExplanationAnchorComment("delete-1");
+  const second = enhancements.buildExplanationAnchorComment("delete-2");
+  const body = `${first}本文${second}本文`;
+  const removed = enhancements.removeExplanationAnchorFromBody(body, "delete-1");
+  assert.equal(removed.body.includes(first), false);
+  assert.equal(removed.body.includes(second), true);
+  assert.equal(removed.removed, true);
+  const fallback = enhancements.removeExplanationAnchorFromBody(removed.body, "missing");
+  assert.equal(fallback.removed, false);
+});
+
+test("複数段落をまたぐ選択では末尾段落の直後へ解説カードを置く", () => {
+  const body = "一段目\n二段目\n三段目保存";
+  const start = body.indexOf("一段目");
+  const end = body.length;
+  const explanation = explanationFor(body, body.slice(start, end), "cross-paragraph");
+  const harness = createDomHarness([
+    { text: "一段目", tagName: "p" },
+    { text: "二段目", tagName: "p" },
+    { text: "三段目保存", tagName: "p" }
+  ]);
+  const results = enhancements.hydrateExplanationCardsIntoDom(harness.root, body, [explanation]);
+  assert.equal(results[0].visibleTarget.matched, true);
+  assert.equal(results[0].visibleTarget.displayText, "三段目保存");
+  const marker = markerParents(harness).find((parent) => parent.tagName === "P");
+  assert.equal(marker?.tagName, "P");
+  const card = harness.queryAll((element) => element.className === "explanation-card")[0];
+  const markerNode = marker.children.find((child) => child.className === "explanation-marker");
+  assert.equal(markerNode?.textContent, "1");
+  assert.equal(harness.root.children.indexOf(card), harness.root.children.indexOf(marker) + 1);
 });
 
 test("解決した表示位置へ実際にマーカーを挿入し、カードと既存マーカーは検索対象から除外する", () => {
@@ -468,4 +715,76 @@ test("インラインコードと通常本文の同じ語句を別の表示位�
   const body = "`保存` 保存";
   const start = body.lastIndexOf("保存");
   assert.equal(enhancements.visibleTargetOrdinal(body, "保存", start, start + 2), 1);
+});
+
+test("解説ボタンはpointerdownで選択位置を確定した状態で起動する", () => {
+  assert.match(app, /addExplanationBtn\.addEventListener\("pointerdown"/);
+  assert.match(app, /rememberEditorSelectionRange\(\)/);
+  assert.match(app, /openExplanationDialog\(null, pendingExplanationSelection\)/);
+  assert.match(app, /editor\.addEventListener\("select", rememberEditorSelectionRange\)/);
+  assert.match(app, /document\.addEventListener\("selectionchange"/);
+});
+
+test("複数個目のリスト項目をまたぐ選択は末尾項目の直後へ解説カードを置く", () => {
+  const body = "- 保存\n- 追加\n- 閉じる";
+  const explanation = explanationFor(body, body, "multi-list");
+  const harness = createDomHarness([
+    { text: "保存", tagName: "li" },
+    { text: "追加", tagName: "li" },
+    { text: "閉じる", tagName: "li" }
+  ]);
+  const results = enhancements.hydrateExplanationCardsIntoDom(harness.root, body, [explanation]);
+  const marker = markerParents(harness).find((parent) => parent.tagName === "LI");
+  const card = harness.queryAll((element) => element.className === "explanation-card")[0];
+  assert.equal(results[0].visibleTarget.matched, true);
+  assert.equal(results[0].visibleTarget.displayText, "閉じる");
+  assert.equal(results[0].orphaned, false);
+  const markerNode = marker?.children.find((child) => child.className === "explanation-marker");
+  assert.equal(markerNode?.textContent, "1");
+  assert.equal(harness.root.children.indexOf(card), harness.root.children.indexOf(marker) + 1);
+});
+
+test("太字やリンクをまたぐ選択でも対象不明カードにならない", () => {
+  const body = "**保存** と [リンク](https://example.com)";
+  const explanation = explanationFor(body, body, "mixed-markdown");
+  const harness = createDomHarness([
+    { text: "保存", tagName: "p" },
+    { text: " と ", tagName: "p" },
+    { text: "リンク", tagName: "p" }
+  ]);
+  const results = enhancements.hydrateExplanationCardsIntoDom(harness.root, body, [explanation]);
+  const statuses = harness.queryAll((element) => element.className === "explanation-card-status");
+  assert.equal(results[0].visibleTarget.matched, true);
+  assert.equal(results[0].visibleTarget.displayText, "リンク");
+  assert.equal(results[0].orphaned, false);
+  assert.equal(statuses.length, 1);
+  assert.equal(statuses[0].textContent, "");
+});
+
+test("本文編集で対象再解決できない場合、対象不明状態を保持する", () => {
+  const originalBody = "**保存** と [リンク](https://example.com)";
+  const explanation = explanationFor(originalBody, originalBody, "orphan-after-edit");
+  const editedBody = "編集済み本文のみです。";
+  const initialHarness = createDomHarness([{ text: "保存", tagName: "p" }, { text: "リンク", tagName: "p" }]);
+  const initial = enhancements.hydrateExplanationCardsIntoDom(initialHarness.root, originalBody, [explanation]);
+  assert.equal(initial[0].orphaned, false);
+
+  const editedHarness = createDomHarness([{ text: editedBody, tagName: "p" }]);
+  const afterEdit = enhancements.hydrateExplanationCardsIntoDom(editedHarness.root, editedBody, [explanation]);
+  const orphanStatus = editedHarness.queryAll((element) => element.className === "explanation-card-status")[0];
+  const orphanCard = editedHarness.queryAll((element) => {
+    const classes = String(element.className || "");
+    return classes.split(/\s+/).includes("explanation-card");
+  })[0];
+  assert.equal(afterEdit[0].visibleTarget.matched, false);
+  assert.equal(afterEdit[0].orphaned, true);
+  assert.equal(afterEdit[0].markerInserted, false);
+  assert.equal(orphanCard?.className, "explanation-card explanation-orphaned");
+  assert.equal(orphanStatus.textContent, "対象の文章が見つかりません。");
+});
+
+test("解説カード表示は枠線ではなく背景差分で通常と対象不明を区別する", () => {
+  assert.match(css, /\.explanation-card\s*\{[^\}]*background:\s*color-mix\(in srgb, var\(--section-bg\)\s+70%, var\(--accent-soft\)\s+30%\)/);
+  assert.match(css, /\.explanation-card\s*\{[^\}]*border:\s*0;/);
+  assert.match(css, /\.explanation-orphaned\s*\{[^\}]*background:\s*color-mix\(in srgb, var\(--section-bg\)\s+54%, var\(--warning-strong-bg\)\s+46%\)/);
 });

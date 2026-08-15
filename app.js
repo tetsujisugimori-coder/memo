@@ -413,7 +413,17 @@ const {
   selectAllReferenceNotes,
   selectCollectionReferenceNotes
 } = window.MemoNexusAiReferenceSelection;
-const { buildCalloutMarkdown, checklistEntries, updateChecklistAt, createExplanationCollapsedStateSaver, hydrateExplanationCardsIntoDom } = window.MemoNexusMarkdownEnhancements;
+const {
+  buildCalloutMarkdown,
+  checklistEntries,
+  createExplanationCollapsedStateSaver,
+  buildExplanationAnchorComment,
+  insertExplanationAnchorIntoBody,
+  removeExplanationAnchorFromBody,
+  hydrateExplanationCardsIntoDom,
+  stripExplanationAnchorComments,
+  updateChecklistAt
+} = window.MemoNexusMarkdownEnhancements;
 const { createPopoutGhost, getMemoSyncDecision } = window.MemoNexusPopoutUtils;
 const { nextLogoAnimation: nextLogoAnimationInCycle, normalizeLogoAnimation, resolveLogoAnimation } = window.MemoNexusLogoAnimationUtils;
 const { EDITOR_CARET_REPEAT_DELAY, canPlayEditorCaretAnimation, normalizeEditorCaretAnimationSettings } = window.MemoNexusEditorCaretAnimationUtils;
@@ -788,7 +798,8 @@ let pendingExport = null;
 let syntaxGuideRendered = false;
 const syntaxGuideCopyTimers = new WeakMap();
 let pendingExplanation = null;
-const EXPLANATION_INSERT_MARKER = "\u200b";
+let editorSelectionRangeSnapshot = null;
+let pendingExplanationSelection = null;
 const tableCopyStatusTimers = new WeakMap();
 let activeTableCell = null;
 const tableAxisSelections = new Map();
@@ -5806,9 +5817,10 @@ function handleEditorAttachmentDrop(event) {
 }
 
 function renderPreviewHtml(body, noteId = "preview", renderGeneration = 0) {
+  const cleanedBody = stripExplanationAnchorComments(body);
   let codeBlockIndex = 0;
   let tableBlockIndex = 0;
-  const html = splitImageBlocks(body)
+  const html = splitImageBlocks(cleanedBody)
     .map((segment, imageBlockIndex) => {
       if (segment.type === "image") return renderImageBlock(segment, imageBlockIndex);
       return splitTableBlocks(segment.text).map((tableSegment) => {
@@ -9668,34 +9680,50 @@ function insertCalloutAtSelection() {
   scheduleSave();
 }
 
-function currentEditorInsertRange() {
+function currentEditorInsertRange(range) {
   const length = editor?.value?.length || 0;
-  const hasSelection = Number.isInteger(editor?.selectionStart) && Number.isInteger(editor?.selectionEnd);
-  const start = hasSelection ? editor.selectionStart : length;
-  const end = hasSelection ? editor.selectionEnd : start;
+  const hasSelection = Number.isInteger(range?.start) && Number.isInteger(range?.end);
+  const start = hasSelection ? range.start : (Number.isInteger(editor?.selectionStart) ? editor.selectionStart : length);
+  const end = hasSelection ? range.end : (Number.isInteger(editor?.selectionEnd) ? editor.selectionEnd : start);
   const clampedStart = Math.max(0, Math.min(length, Number(start) || 0));
   const clampedEnd = Math.max(clampedStart, Math.max(0, Math.min(length, Number(end) || clampedStart)));
-  return { start: clampedStart, end: clampedEnd, fallback: !hasSelection };
+  return { start: clampedStart, end: clampedEnd, fallback: !hasSelection && (!Number.isInteger(editor?.selectionStart) || !Number.isInteger(editor?.selectionEnd)) };
 }
 
-function openExplanationDialog(existing = null) {
+function rememberEditorSelectionRange() {
+  if (!editor) return null;
+  const length = editor.value.length;
+  const start = Number.isInteger(editor.selectionStart) ? editor.selectionStart : null;
+  const end = Number.isInteger(editor.selectionEnd) ? editor.selectionEnd : null;
+  if (!Number.isInteger(start) || !Number.isInteger(end)) return null;
+  const clampedStart = Math.max(0, Math.min(length, start));
+  const clampedEnd = Math.max(clampedStart, Math.max(0, Math.min(length, end)));
+  editorSelectionRangeSnapshot = { start: clampedStart, end: clampedEnd };
+  return editorSelectionRangeSnapshot;
+}
+
+function openExplanationDialog(existing = null, selectionRange = null) {
   const note = currentNote();
   if (!note || !explanationDialog) return;
+  if (selectionRange && Number.isInteger(selectionRange.start) && Number.isInteger(selectionRange.end)) {
+    editorSelectionRangeSnapshot = { ...selectionRange };
+  }
   if (existing) {
     pendingExplanation = { existing };
     explanationTypeSelect.value = existing.type || "補足";
     explanationBodyInput.value = existing.body || "";
     explanationTarget.textContent = `対象：${existing.target || "（対象箇所を確認してください）"}`;
   } else {
-    const range = currentEditorInsertRange();
+    const range = currentEditorInsertRange(selectionRange);
     const target = editor.value.slice(range.start, range.end);
-    const cursorInsertion = !target.trim();
+    const cursorInsertion = range.start === range.end;
     const targetStart = range.fallback ? editor.value.length : range.start;
     const targetEnd = range.fallback ? editor.value.length : range.end;
     pendingExplanation = {
+      id: crypto.randomUUID(),
       start: targetStart,
       end: targetEnd,
-      target: cursorInsertion ? EXPLANATION_INSERT_MARKER : target,
+      target: cursorInsertion ? "" : target,
       before: editor.value.slice(Math.max(0, targetStart - 40), targetStart),
       after: editor.value.slice(targetEnd, targetEnd + 40),
       cursorInsertion
@@ -9715,20 +9743,21 @@ function saveExplanationFromDialog(event) {
   if (!note || !pendingExplanation || !explanationBodyInput.value.trim()) return;
   const explanations = normalizeExplanations(note);
   const base = pendingExplanation.existing || pendingExplanation;
-  if (!pendingExplanation.existing && base.cursorInsertion) {
+  if (!pendingExplanation.existing) {
+    const anchorId = base.id || crypto.randomUUID();
     const selectionStart = Number.isInteger(base.start) ? base.start : editor.value.length;
     const selectionEnd = Number.isInteger(base.end) ? base.end : selectionStart;
-    const nextStart = Math.min(editor.value.length, Math.max(0, selectionStart));
-    const nextEnd = Math.min(editor.value.length, Math.max(nextStart, selectionEnd));
-    const marker = EXPLANATION_INSERT_MARKER;
+    const insertionPoint = Math.min(editor.value.length, Math.max(0, selectionEnd));
+    const insertion = insertExplanationAnchorIntoBody(editor.value, insertionPoint, anchorId);
     captureUndoSnapshot({ inputType: "insertText" });
-    editor.setRangeText(marker, nextStart, nextEnd, "end");
-    const nextOffset = nextStart + marker.length;
-    base.start = nextStart;
-    base.end = nextOffset;
-    base.target = marker;
-    base.before = editor.value.slice(Math.max(0, nextStart - 40), nextStart);
-    base.after = editor.value.slice(nextOffset, nextOffset + 40);
+    editor.value = insertion.body;
+    note.body = insertion.body;
+    base.start = insertion.markerStart;
+    base.end = insertion.markerEnd;
+    base.target = base.target || "";
+    base.before = editor.value.slice(Math.max(0, base.start - 40), base.start);
+    base.after = editor.value.slice(base.end, base.end + 40);
+    base.id = anchorId;
     scheduleSave();
   }
   const explanation = {
@@ -9750,6 +9779,16 @@ function deleteExplanation(id) {
   const note = currentNote();
   if (!note || !confirm("この解説カードを削除しますか？")) return;
   note.explanations = normalizeExplanations(note).filter((item) => item.id !== id);
+  const beforeBody = String(note.body || editor.value || "");
+  const anchorRemoval = removeExplanationAnchorFromBody(beforeBody, id);
+  if (anchorRemoval.removed) {
+    const safeSelectionStart = Number.isInteger(editor.selectionStart) ? Math.min(editor.selectionStart, anchorRemoval.body.length) : 0;
+    captureUndoSnapshot({ inputType: "deleteContentBackward" });
+    editor.value = anchorRemoval.body;
+    note.body = anchorRemoval.body;
+    if (editor) editor.setSelectionRange(safeSelectionStart, safeSelectionStart);
+    scheduleSave();
+  }
   note.updatedAt = Date.now();
   void putNote(note).then(async () => { notes = await getAllNotes(); renderPreview(); });
 }
@@ -9905,7 +9944,13 @@ if (insertImageBlockBtn) insertImageBlockBtn.addEventListener("click", () => {
   if (range.fallback) setAttachmentStatus("カーソル位置を取得できないため、本文末尾へ挿入します。");
   imageBlockInput.click();
 });
-if (addExplanationBtn) addExplanationBtn.addEventListener("click", () => openExplanationDialog());
+if (addExplanationBtn) addExplanationBtn.addEventListener("pointerdown", () => {
+  pendingExplanationSelection = rememberEditorSelectionRange();
+});
+if (addExplanationBtn) addExplanationBtn.addEventListener("click", () => {
+  openExplanationDialog(null, pendingExplanationSelection);
+  pendingExplanationSelection = null;
+});
 if (explanationForm) explanationForm.addEventListener("submit", saveExplanationFromDialog);
 if (closeExplanationDialogBtn) closeExplanationDialogBtn.addEventListener("click", () => explanationDialog.close());
 if (cancelExplanationBtn) cancelExplanationBtn.addEventListener("click", () => explanationDialog.close());
@@ -10225,6 +10270,7 @@ editor.addEventListener("input", () => {
   scheduleSave();
   updateAiTargetPreview();
 });
+editor.addEventListener("select", rememberEditorSelectionRange);
 editor.addEventListener("select", () => {
   resetEditorCaretIdle();
   updateAiTargetPreview();
@@ -10353,7 +10399,10 @@ document.addEventListener("visibilitychange", () => {
   }
 });
 document.addEventListener("selectionchange", () => {
-  if (document.activeElement === editor) resetEditorCaretIdle();
+  if (document.activeElement === editor) {
+    resetEditorCaretIdle();
+    rememberEditorSelectionRange();
+  }
 });
 document.addEventListener("pointerdown", () => {
   if (document.activeElement === editor) resetEditorCaretIdle();
