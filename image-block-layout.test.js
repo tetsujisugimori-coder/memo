@@ -37,6 +37,11 @@ test("サイズ別の上限と縦横比維持をCSSで適用する", () => {
   assert.doesNotMatch(css, /\.image-block[^}]*object-fit:\s*cover/s);
 });
 
+test("連続画像ブロックは本文中で8〜12px間隔で区別する", () => {
+  assert.match(css, /\.preview \\.image-block \+ \\.image-block \{\s*margin-top:\s*10px;/s);
+  assert.match(css, /\.preview \\.image-block \{\s*margin:\s*10px 0;\s*padding:\s*10px;/s);
+});
+
 test("1枚の説明文レイアウトと2枚グリッドを狭幅で縦並びへ戻す", () => {
   assert.match(css, /image-count-1\.has-caption\.image-size-small[\s\S]*35fr[\s\S]*65fr/);
   assert.match(css, /image-count-1\.has-caption\.image-size-medium[\s\S]*repeat\(2, minmax\(0, 1fr\)\)/);

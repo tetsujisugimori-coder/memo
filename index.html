@@ -98,13 +98,18 @@
         </div>
       </div>
       <div class="editor-tools" aria-label="エディタ操作">
-        <button id="insertTableBtn" type="button" title="カーソル位置へ表ブロックを挿入" aria-label="表ブロックを挿入">表</button>
+        <button id="insertTableBtn" type="button" title="カーソル位置へ表ブロックを挿入" aria-label="表ブロックを挿入" class="editor-tool-btn">表</button>
         <label class="callout-tool" for="calloutTypeSelect">注意書き
           <select id="calloutTypeSelect" aria-label="注意書きの種類"><option value="NOTE">NOTE</option><option value="TIP">TIP</option><option value="IMPORTANT">IMPORTANT</option><option value="WARNING">WARNING</option></select>
         </label>
-        <button id="insertCalloutBtn" type="button" title="カーソル位置へ注意書きを挿入">追加</button>
-        <button id="addExplanationBtn" type="button" title="選択した本文またはコードへ解説カードを追加">解説を追加</button>
-        <button id="calculatorLinkBtn" type="button" title="選択中の式をCalculator Memoで開く" aria-label="選択中の式をCalculator Memoで開く">計算</button>
+        <button id="insertCalloutBtn" type="button" title="カーソル位置へ注意書きを挿入" class="editor-tool-btn">追加</button>
+        <button id="insertImageBlockBtn" type="button" title="カーソル位置に画像を挿入" aria-label="カーソル位置に画像を挿入" class="editor-tool-btn">
+          <span class="editor-tool-icon" aria-hidden="true">🖼️</span><span>画像</span>
+        </button>
+        <button id="addExplanationBtn" type="button" title="カーソル位置に解説ブロックを挿入" aria-label="カーソル位置に解説ブロックを挿入" class="editor-tool-btn">
+          <span class="editor-tool-icon" aria-hidden="true">💬</span><span>解説</span>
+        </button>
+        <button id="calculatorLinkBtn" type="button" title="選択中の式をCalculator Memoで開く" aria-label="選択中の式をCalculator Memoで開く" class="editor-tool-btn">計算</button>
         <button id="syntaxGuideBtn" type="button" title="Markdown・数式・計算ブロック・コード・Mermaidの記法を確認" aria-label="記法ガイドを開く" aria-controls="syntaxGuideDialog" aria-expanded="false">記法ガイド</button>
         <button id="aiSummarizeNoteBtn" type="button">このメモを要約</button>
         <button id="aiSendSelectionBtn" type="button">選択範囲をAIに送る</button>

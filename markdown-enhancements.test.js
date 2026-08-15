@@ -204,7 +204,7 @@ test("解決した表示位置へ実際にマーカーを挿入し、カード�
     { text: "保存", className: "explanation-marker" }
   ]);
   const inserted = enhancements.insertExplanationMarkerIntoDom(harness.root, { displayText: "保存", ordinal: 2, number: 3 });
-  assert.equal(inserted, true);
+  assert.equal(inserted?.className, "explanation-marker");
   assert.equal(harness.nodes[0].parent.children.some((child) => child.className === "explanation-marker"), false);
   assert.equal(harness.nodes[1].parent.children.some((child) => child.className === "explanation-marker"), false);
   const marker = harness.nodes[2].parent.children.find((child) => child.className === "explanation-marker");
@@ -217,8 +217,30 @@ test("解決した表示位置へ実際にマーカーを挿入し、カード�
 test("太字として描画された文字列にも解説マーカーを挿入できる", () => {
   const visible = enhancements.visibleTargetForSourceRange("**保存**", 0, 6);
   const harness = createDomHarness([{ text: "保存" }]);
-  assert.equal(enhancements.insertExplanationMarkerIntoDom(harness.root, { ...visible, number: 1 }), true);
+  assert.equal(enhancements.insertExplanationMarkerIntoDom(harness.root, { ...visible, number: 1 })?.className, "explanation-marker");
   assert.equal(harness.nodes[0].parent.children.some((child) => child.className === "explanation-marker"), true);
+});
+
+test("解説カードは本文内の順序でインライン挿入される", () => {
+  const body = "前文保存後文メモ";
+  const startA = body.indexOf("保存");
+  const startB = body.indexOf("メモ");
+  const first = explanationFor(body, "メモ", "later", startB);
+  const second = explanationFor(body, "保存", "early", startA);
+  const harness = createDomHarness([
+    { text: "前文" },
+    { text: "保存" },
+    { text: "後文" },
+    { text: "メモ", tagName: "p" }
+  ]);
+  enhancements.hydrateExplanationCardsIntoDom(harness.root, body, [first, second], { onPersistCollapsed: () => {} });
+  const cards = harness.queryAll((element) => element.className.includes("explanation-card"));
+  const cardIds = cards.map((card) => card.id);
+  const earlyIndex = harness.root.children.indexOf(cards.find((card) => card.id === "explanation-card-early"));
+  const laterIndex = harness.root.children.indexOf(cards.find((card) => card.id === "explanation-card-later"));
+  assert.equal(cardIds.length, 2);
+  assert.ok(earlyIndex >= 0 && laterIndex >= 0);
+  assert.equal(earlyIndex < laterIndex, true);
 });
 
 test("再特定は一意な文脈または一意な対象だけを採用し、曖昧なら孤立する", () => {

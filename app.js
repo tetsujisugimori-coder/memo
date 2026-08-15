@@ -59,7 +59,11 @@ const SYNTAX_GUIDE_ITEMS = [
   { category: "markdown", name: "水平線", syntax: "---", description: "内容の区切り線を表示します。", notes: "行全体をハイフン3個以上にします。" },
   { category: "markdown", name: "通常リンク", syntax: "[OpenAI](https://openai.com)", description: "http/httpsの外部リンクを安全に新しいタブで開きます。", notes: "javascript:など危険なURLはリンクにしません。Wikiリンクとは別の一般的なMarkdownです。" },
   { category: "markdown", name: "注意書き", syntax: "> [!NOTE]\n> 補足情報です。", description: "NOTE、TIP、IMPORTANT、WARNINGを色とアイコン付きで表示します。", notes: "Memo NexusではGitHub形式をそのまま本文へ保存するため、Markdown出力でも読めます。" },
-  { category: "markdown", name: "解説カード", syntax: "本文を選択して［解説を追加］", description: "選択箇所に紐付く独立した解説カードを追加します。", notes: "Memo Nexus独自機能です。本文とは別にメモデータへ保存され、対象が見つからない場合も削除されません。", copyable: false },
+  { category: "markdown", name: "画像ブロック", syntax: ["<!-- memo-nexus:image-block -->", "![画像説明](attachment://a1b2c3)", "<!-- memo-nexus:image-caption -->", "画像の説明文", "<!-- /memo-nexus:image-block -->"].join("\n"), description: "本文中で連続画像をまとめてカード表示する記法です。", notes: "本文では `attachment://` 参照を保存し、カードは本文順に描画されます。2枚目まで対応し、2枚以上の画像ブロックは連続で記述してください。", copyable: false },
+  { category: "markdown", name: "画像キャプション", syntax: ["<!-- memo-nexus:image-block -->", "![画像](attachment://a1b2c3)", "<!-- memo-nexus:image-caption -->", "タイトル", "- 箇条書き", "画像コメント", "<!-- /memo-nexus:image-block -->"].join("\n"), description: "画像ブロック内に本文由来の説明を付けるための記法です。", notes: "見出し、箇条書き、インライン装飾を含む自由形式を使えます。", copyable: false },
+  { category: "markdown", name: "解説ブロック", syntax: "本文を選択して［解説］を挿入、またはカーソル位置へ雛形を挿入", description: "本文中の対象文章と同じ順序で、対象の直後へ解説カードを表示します。", notes: "本文テキストとは別に保存され、対象が見つからない場合は保持して再確定します。", copyable: false },
+  { category: "markdown", name: "画像参照を本文へ追加", syntax: "画像ボタンでカーソル位置へ添付画像を追加", description: "画像ボタンで添付画像を保存し、本文のカーソル位置へ画像参照を挿入します。", notes: "カーソル位置が取得できない場合は本文末尾へ追加します。", copyable: false },
+  { category: "markdown", name: "本文から画像を削除して添付保持", syntax: "本文中の画像ブロックを削除しても添付画像は残る", description: "本文の画像参照を削除しても添付画像本体は削除されません。", notes: "画像参照の再生成が必要な場合は、画像ボタンから参照を再挿入できます。", copyable: false },
   { category: "markdown", name: "インラインコード", syntax: "`const value = 1;`", description: "文中の短いコードを表示します。", notes: "文字列をバッククォート1個ずつで囲みます。" },
   { category: "markdown", name: "箇条書き", syntax: "- 項目", description: "項目を箇条書きで表示します。", notes: "行頭に-と半角スペースを書きます。" },
   { category: "markdown", name: "引用", syntax: "> 引用文", description: "引用文として表示します。", notes: "行頭に>と半角スペースを書きます。" },
@@ -583,6 +587,7 @@ const editor = $("editor");
 const insertTableBtn = $("insertTableBtn");
 const calloutTypeSelect = $("calloutTypeSelect");
 const insertCalloutBtn = $("insertCalloutBtn");
+const insertImageBlockBtn = $("insertImageBlockBtn");
 const addExplanationBtn = $("addExplanationBtn");
 const explanationDialog = $("explanationDialog");
 const explanationForm = $("explanationForm");
@@ -783,6 +788,7 @@ let pendingExport = null;
 let syntaxGuideRendered = false;
 const syntaxGuideCopyTimers = new WeakMap();
 let pendingExplanation = null;
+const EXPLANATION_INSERT_MARKER = "\u200b";
 const tableCopyStatusTimers = new WeakMap();
 let activeTableCell = null;
 const tableAxisSelections = new Map();
@@ -803,6 +809,7 @@ let editorCaretAnimationRequestId = 0;
 let editorCaretAnimationActive = false;
 let editorCaretCompositionActive = false;
 let pendingImageBlockTarget = null;
+let pendingImageInsertTarget = null;
 let attachmentRenderToken = 0;
 let attachmentObjectUrls = new Map();
 let pdfObjectUrls = new Map();
@@ -5376,7 +5383,7 @@ async function deleteAttachment(attachment) {
   const isReferenced = attachment.kind === "image"
     && extractAttachmentReferenceIds(note && note.id === currentId ? editor.value : note?.body).has(attachment.id);
   const message = isReferenced
-    ? `「${attachment.fileName}」は本文内で参照されています。\n削除後は本文の参照位置に「画像を表示できません」と表示されます。\n\n削除しますか？`
+    ? `「${attachment.fileName}」は本文で参照されています。\n本文への参照は外されますが、添付画像は削除されません。\n削除してよろしいですか？`
     : `「${attachment.fileName}」を削除しますか？`;
   if (!confirm(message)) return;
   try {
@@ -9661,6 +9668,16 @@ function insertCalloutAtSelection() {
   scheduleSave();
 }
 
+function currentEditorInsertRange() {
+  const length = editor?.value?.length || 0;
+  const hasSelection = Number.isInteger(editor?.selectionStart) && Number.isInteger(editor?.selectionEnd);
+  const start = hasSelection ? editor.selectionStart : length;
+  const end = hasSelection ? editor.selectionEnd : start;
+  const clampedStart = Math.max(0, Math.min(length, Number(start) || 0));
+  const clampedEnd = Math.max(clampedStart, Math.max(0, Math.min(length, Number(end) || clampedStart)));
+  return { start: clampedStart, end: clampedEnd, fallback: !hasSelection };
+}
+
 function openExplanationDialog(existing = null) {
   const note = currentNote();
   if (!note || !explanationDialog) return;
@@ -9670,14 +9687,23 @@ function openExplanationDialog(existing = null) {
     explanationBodyInput.value = existing.body || "";
     explanationTarget.textContent = `対象：${existing.target || "（対象箇所を確認してください）"}`;
   } else {
-    const start = editor.selectionStart;
-    const end = editor.selectionEnd;
-    const target = editor.value.slice(start, end);
-    if (!target.trim()) { alert("本文またはコードの解説したい範囲を選択してください。"); return; }
-    pendingExplanation = { start, end, target, before: editor.value.slice(Math.max(0, start - 40), start), after: editor.value.slice(end, end + 40) };
+    const range = currentEditorInsertRange();
+    const target = editor.value.slice(range.start, range.end);
+    const cursorInsertion = !target.trim();
+    const targetStart = range.fallback ? editor.value.length : range.start;
+    const targetEnd = range.fallback ? editor.value.length : range.end;
+    pendingExplanation = {
+      start: targetStart,
+      end: targetEnd,
+      target: cursorInsertion ? EXPLANATION_INSERT_MARKER : target,
+      before: editor.value.slice(Math.max(0, targetStart - 40), targetStart),
+      after: editor.value.slice(targetEnd, targetEnd + 40),
+      cursorInsertion
+    };
+    explanationTarget.textContent = `対象：${cursorInsertion ? "（カーソル位置）" : target}`;
     explanationTypeSelect.value = "用語解説";
     explanationBodyInput.value = "";
-    explanationTarget.textContent = `対象：${target}`;
+    if (range.fallback) setAttachmentStatus("カーソル位置を取得できないため、本文末尾へ挿入します。");
   }
   if (!explanationDialog.open) explanationDialog.showModal();
   explanationBodyInput.focus();
@@ -9689,6 +9715,22 @@ function saveExplanationFromDialog(event) {
   if (!note || !pendingExplanation || !explanationBodyInput.value.trim()) return;
   const explanations = normalizeExplanations(note);
   const base = pendingExplanation.existing || pendingExplanation;
+  if (!pendingExplanation.existing && base.cursorInsertion) {
+    const selectionStart = Number.isInteger(base.start) ? base.start : editor.value.length;
+    const selectionEnd = Number.isInteger(base.end) ? base.end : selectionStart;
+    const nextStart = Math.min(editor.value.length, Math.max(0, selectionStart));
+    const nextEnd = Math.min(editor.value.length, Math.max(nextStart, selectionEnd));
+    const marker = EXPLANATION_INSERT_MARKER;
+    captureUndoSnapshot({ inputType: "insertText" });
+    editor.setRangeText(marker, nextStart, nextEnd, "end");
+    const nextOffset = nextStart + marker.length;
+    base.start = nextStart;
+    base.end = nextOffset;
+    base.target = marker;
+    base.before = editor.value.slice(Math.max(0, nextStart - 40), nextStart);
+    base.after = editor.value.slice(nextOffset, nextOffset + 40);
+    scheduleSave();
+  }
   const explanation = {
     ...base,
     id: base.id || crypto.randomUUID(),
@@ -9793,20 +9835,39 @@ if (attachmentInput) attachmentInput.addEventListener("change", () => {
 });
 if (imageBlockInput) imageBlockInput.addEventListener("change", () => {
   const [file] = imageBlockInput.files || [];
-  const target = pendingImageBlockTarget;
+  const blockTarget = pendingImageBlockTarget;
+  const insertTarget = pendingImageInsertTarget;
   pendingImageBlockTarget = null;
-  if (!file || !target) {
+  pendingImageInsertTarget = null;
+  if (!file) {
     imageBlockInput.value = "";
     return;
   }
-  try {
-    validatePendingImageBlock(target);
-  } catch (error) {
-    setAttachmentStatus(error.message || String(error), true);
-    imageBlockInput.value = "";
+  if (blockTarget) {
+    try {
+      validatePendingImageBlock(blockTarget);
+    } catch (error) {
+      setAttachmentStatus(error.message || String(error), true);
+      imageBlockInput.value = "";
+      return;
+    }
+    handleAttachmentFiles([file], { imageBlockTarget: blockTarget }).finally(() => { imageBlockInput.value = ""; });
     return;
   }
-  handleAttachmentFiles([file], { imageBlockTarget: target }).finally(() => { imageBlockInput.value = ""; });
+  if (insertTarget) {
+    if (!currentId || currentId !== insertTarget.memoId) {
+      imageBlockInput.value = "";
+      return;
+    }
+    handleAttachmentFiles([file], {
+      insertIntoEditor: true,
+      inputType: "insertFromImageButton",
+      selectionStart: insertTarget.start,
+      selectionEnd: insertTarget.end
+    }).finally(() => { imageBlockInput.value = ""; });
+    return;
+  }
+  handleAttachmentFiles([file], { imageBlockTarget: null }).finally(() => { imageBlockInput.value = ""; });
 });
 if (attachmentDropZone) {
   ["dragenter", "dragover"].forEach((type) => attachmentDropZone.addEventListener(type, (event) => {
@@ -9832,6 +9893,18 @@ if (imagePreviewDialog) imagePreviewDialog.addEventListener("close", () => image
 if (syntaxGuideBtn && syntaxGuideDialog) syntaxGuideBtn.addEventListener("click", openSyntaxGuide);
 if (insertTableBtn) insertTableBtn.addEventListener("click", insertTableAtSelection);
 if (insertCalloutBtn) insertCalloutBtn.addEventListener("click", insertCalloutAtSelection);
+if (insertImageBlockBtn) insertImageBlockBtn.addEventListener("click", () => {
+  const note = currentNote();
+  if (!note || note.deletedAt || !imageBlockInput) return;
+  const range = currentEditorInsertRange();
+  pendingImageInsertTarget = {
+    memoId: note.id,
+    start: range.start,
+    end: range.end
+  };
+  if (range.fallback) setAttachmentStatus("カーソル位置を取得できないため、本文末尾へ挿入します。");
+  imageBlockInput.click();
+});
 if (addExplanationBtn) addExplanationBtn.addEventListener("click", () => openExplanationDialog());
 if (explanationForm) explanationForm.addEventListener("submit", saveExplanationFromDialog);
 if (closeExplanationDialogBtn) closeExplanationDialogBtn.addEventListener("click", () => explanationDialog.close());
