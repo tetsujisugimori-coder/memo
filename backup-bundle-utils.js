@@ -48,8 +48,11 @@
   }
 
   function buildPortableBackupFiles({ manifest, collections = [], tagDefinitions = [], notePlans = [], assetPlans = [], normalizeTagDefinitions } = {}) {
+    if (typeof normalizeTagDefinitions !== "function") {
+      throw new Error("タグ定義の正規化処理が指定されていないため、安全なバックアップを生成できません");
+    }
     if (!manifest || manifest.format !== BACKUP_FORMAT || manifest.version !== BACKUP_VERSION) throw new Error("バックアップmanifestが不正です");
-    const normalizedTags = typeof normalizeTagDefinitions === "function" ? normalizeTagDefinitions(tagDefinitions) : [];
+    const normalizedTags = normalizeTagDefinitions(tagDefinitions);
     const files = [
       { name: "manifest.json", content: `${JSON.stringify(manifest, null, 2)}\n`, updatedAt: manifest.exportedAt },
       { name: "collections.json", content: `${JSON.stringify(collections, null, 2)}\n`, updatedAt: manifest.exportedAt },

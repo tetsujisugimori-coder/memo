@@ -23,8 +23,22 @@ test("タグバックアップ関連スクリプトのキャッシュ番号を�
   const html = fs.readFileSync("index.html", "utf8");
   assert.match(html, /tags\.js\?v=0\.4\.0-2/);
   assert.match(html, /local-sync-utils\.js\?v=0\.4\.0-8/);
-  assert.match(html, /backup-bundle-utils\.js\?v=0\.1\.0-4/);
+  assert.match(html, /backup-bundle-utils\.js\?v=0\.1\.0-5/);
   assert.match(html, /app\.js\?v=0\.4\.0-87/);
+});
+
+test("タグ定義の正規化処理がないバックアップ生成は明示的に失敗する", () => {
+  assert.throws(
+    () => buildPortableBackupFiles({ manifest: manifest(), tagDefinitions: [{ id: "ai", name: "AI" }] }),
+    /タグ定義の正規化処理が指定されていないため、安全なバックアップを生成できません/
+  );
+});
+
+test("正規化処理を通したタグ定義0件は空のtags.jsonとして保存する", () => {
+  const files = buildPortableBackupFiles({ manifest: manifest(), tagDefinitions: [], normalizeTagDefinitions });
+  const tagsFile = files.find((file) => file.name === "tags.json");
+  assert.ok(tagsFile);
+  assert.deepEqual(JSON.parse(tagsFile.content), []);
 });
 
 test("v2バックアップはローカル保存と共通の論理構造を出力する", () => {
@@ -61,14 +75,19 @@ test("ZIP往復でタグを保持し、タグなし旧メモは空配列とし�
 });
 
 test("tags.jsonは未使用タグを含め、ID・表示名・日時を往復する", () => {
-  const definitions = [
+  const sourceDefinitions = [
+    { id: " AI ", name: " AI ", createdAt: "2026-08-01T00:00:00.000Z", updatedAt: "2026-08-02T00:00:00.000Z" },
+    { id: "unused", name: "未使用", createdAt: "2026-08-03T00:00:00.000Z", updatedAt: "2026-08-04T00:00:00.000Z" }
+  ];
+  const expectedDefinitions = [
     { id: "ai", name: "AI", createdAt: "2026-08-01T00:00:00.000Z", updatedAt: "2026-08-02T00:00:00.000Z" },
     { id: "unused", name: "未使用", createdAt: "2026-08-03T00:00:00.000Z", updatedAt: "2026-08-04T00:00:00.000Z" }
   ];
-  const files = buildPortableBackupFiles({ manifest: manifest(), tagDefinitions: definitions, normalizeTagDefinitions });
+  const files = buildPortableBackupFiles({ manifest: manifest(), tagDefinitions: sourceDefinitions, normalizeTagDefinitions });
+  assert.deepEqual(JSON.parse(files.find((file) => file.name === "tags.json").content), expectedDefinitions);
   const parsed = parsePortableBackup(files.map((file) => entry(file.name, file.content)), { parseNote: parseLocalNote, normalizeTagDefinitions });
   assert.equal(parsed.tagsFilePresent, true);
-  assert.deepEqual(parsed.tags, definitions);
+  assert.deepEqual(parsed.tags, expectedDefinitions);
   assert.equal(parsed.tags.find((tag) => tag.id === "ai").name, "AI");
   assert.equal(parsed.tags.find((tag) => tag.id === "unused").name, "未使用");
 });

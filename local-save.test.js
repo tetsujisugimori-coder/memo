@@ -257,7 +257,7 @@ test("管理対象Markdownはsync-stateのnote IDとfileNameで特定する", ()
   assert.match(html, /local-save-state\.js\?v=0\.4\.0-4/);
   assert.match(html, /local-save-queue\.js\?v=0\.4\.0-3/);
   assert.match(html, /local-sync-utils\.js\?v=0\.4\.0-8/);
-  assert.match(html, /backup-bundle-utils\.js\?v=0\.1\.0-4/);
+  assert.match(html, /backup-bundle-utils\.js\?v=0\.1\.0-5/);
   assert.match(html, /app\.js\?v=0\.4\.0-87/);
   const syncState = {
     notes: {
@@ -947,6 +947,13 @@ test("明示保存はローカル一式を書き出す既存処理へだけ接�
   assert.match(saveFlow, /tagDefinitions: storedTags/);
   assert.match(saveFlow, /normalizeTagDefinitions/);
   assert.match(saveFlow, /"sync-state\.json"/);
+});
+
+test("ZIPバックアップとローカルフォルダ保存はタグ定義の正規化処理を渡す", () => {
+  const zipFlow = extractFunction(app, "buildPortableBackupZipFiles");
+  const localFlow = extractFunction(app, "performLocalWorkspaceSave");
+  assert.match(zipFlow, /buildPortableBackupFiles\([\s\S]*normalizeTagDefinitions/);
+  assert.match(localFlow, /buildPortableBackupFiles\([\s\S]*normalizeTagDefinitions/);
 });
 
 test("ローカル保存・復元はtags.jsonを扱い旧フォルダの欠落を許容する", () => {
