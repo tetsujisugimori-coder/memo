@@ -2,9 +2,11 @@
   "use strict";
 
   const BACKUP_FORMAT = "memo-nexus-backup";
-  const BACKUP_VERSION = 1;
+  const BACKUP_VERSION = 2;
   // 新しい形式では migrateV1ToV2 のような関数をここへ登録し、ZIPは変更せずメモリ上で移行する。
-  const MIGRATIONS = Object.freeze({});
+  const MIGRATIONS = Object.freeze({
+    1: (payload) => ({ ...payload, tags: Array.isArray(payload.tags) ? payload.tags : [], tagsFilePresent: Boolean(payload.tagsFilePresent) })
+  });
   const IMAGE_MIME_BY_EXTENSION = Object.freeze({ jpg: "image/jpeg", jpeg: "image/jpeg", png: "image/png", webp: "image/webp", gif: "image/gif", pdf: "application/pdf" });
 
   function asText(entry) {
@@ -45,9 +47,14 @@
     return entryMap(entries).has("manifest.json");
   }
 
-  function buildPortableBackupFiles({ manifest, collections = [], notePlans = [], assetPlans = [] } = {}) {
+  function buildPortableBackupFiles({ manifest, collections = [], tagDefinitions = [], notePlans = [], assetPlans = [], normalizeTagDefinitions } = {}) {
     if (!manifest || manifest.format !== BACKUP_FORMAT || manifest.version !== BACKUP_VERSION) throw new Error("バックアップmanifestが不正です");
-    const files = [{ name: "manifest.json", content: `${JSON.stringify(manifest, null, 2)}\n`, updatedAt: manifest.exportedAt }, { name: "collections.json", content: `${JSON.stringify(collections, null, 2)}\n`, updatedAt: manifest.exportedAt }];
+    const normalizedTags = typeof normalizeTagDefinitions === "function" ? normalizeTagDefinitions(tagDefinitions) : [];
+    const files = [
+      { name: "manifest.json", content: `${JSON.stringify(manifest, null, 2)}\n`, updatedAt: manifest.exportedAt },
+      { name: "collections.json", content: `${JSON.stringify(collections, null, 2)}\n`, updatedAt: manifest.exportedAt },
+      { name: "tags.json", content: `${JSON.stringify(normalizedTags, null, 2)}\n`, updatedAt: manifest.exportedAt }
+    ];
     notePlans.forEach((plan) => files.push({ name: `notes/${plan.fileName}`, content: plan.markdown, updatedAt: plan.updatedAt || manifest.exportedAt }));
     assetPlans.forEach((asset) => files.push({ name: `assets/${asset.fileName}`, content: asset.blob || asset.data, updatedAt: asset.updatedAt || manifest.exportedAt }));
     return files;
@@ -81,7 +88,7 @@
     ));
   }
 
-  function parsePortableBackup(entries, { parseNote, idFactory = () => `attachment-${Math.random().toString(36).slice(2)}` } = {}) {
+  function parsePortableBackup(entries, { parseNote, normalizeTagDefinitions, idFactory = () => `attachment-${Math.random().toString(36).slice(2)}` } = {}) {
     const manifest = parseManifest(entries);
     if (!manifest) return null;
     if (typeof parseNote !== "function") throw new Error("バックアップの読み込み処理を初期化できませんでした");
@@ -97,6 +104,26 @@
         collections.push(...normalizeCollections(source, skipped));
       } catch (_) { skipped.push("collections.json"); }
     } else skipped.push("collections.json");
+
+    const tags = [];
+    const tagsEntry = files.get("tags.json");
+    const tagsFilePresent = Boolean(tagsEntry);
+    if (tagsEntry) {
+      try {
+        const source = JSON.parse(asText(tagsEntry));
+        if (!Array.isArray(source)) throw new Error("配列ではありません");
+        const seen = new Set();
+        source.forEach((item, index) => {
+          const [definition] = typeof normalizeTagDefinitions === "function" ? normalizeTagDefinitions([item]) : [];
+          if (!definition || seen.has(definition.id)) {
+            skipped.push(`tags.json:${index + 1}`);
+            return;
+          }
+          seen.add(definition.id);
+          tags.push(definition);
+        });
+      } catch (_) { skipped.push("tags.json"); }
+    }
 
     const notes = [];
     for (const [path, entry] of files) {
@@ -142,7 +169,7 @@
         });
       } catch (_) { skipped.push(path); }
     }
-    return migrateBackup(manifest, { collections, notes, skipped });
+    return migrateBackup(manifest, { collections, tags, tagsFilePresent, notes, skipped });
   }
 
   function timestamp(value) { const time = Date.parse(value); return Number.isFinite(time) ? time : 0; }

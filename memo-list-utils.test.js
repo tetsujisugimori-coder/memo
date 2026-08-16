@@ -83,10 +83,10 @@ test("登録制タグUIと右サイドバーのタグタブを保存・解除処
 });
 
 test("タグ関連スクリプトのキャッシュ番号を更新する", () => {
-  assert.match(html, /src="tags\.js\?v=0\.4\.0-1"/);
+  assert.match(html, /src="tags\.js\?v=0\.4\.0-2"/);
   assert.match(html, /src="memo-list-utils\.js\?v=0\.4\.0-5"/);
   assert.match(html, /src="local-markdown\.js\?v=0\.4\.0-3"/);
-  assert.match(html, /src="app\.js\?v=0\.4\.0-86"/);
-  assert.ok(html.indexOf('src="tags.js?v=0.4.0-1"') < html.indexOf('src="memo-list-utils.js?v=0.4.0-5"'));
-  assert.ok(html.indexOf('src="memo-list-utils.js?v=0.4.0-5"') < html.indexOf('src="app.js?v=0.4.0-86"'));
+  assert.match(html, /src="app\.js\?v=0\.4\.0-87"/);
+  assert.ok(html.indexOf('src="tags.js?v=0.4.0-2"') < html.indexOf('src="memo-list-utils.js?v=0.4.0-5"'));
+  assert.ok(html.indexOf('src="memo-list-utils.js?v=0.4.0-5"') < html.indexOf('src="app.js?v=0.4.0-87"'));
 });

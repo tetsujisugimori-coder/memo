@@ -7,6 +7,7 @@ const {
   assignRegisteredTag,
   countTagUsage,
   createTagDefinition,
+  mergeTagDefinitions,
   mergeTagDefinitionsFromNotes,
   normalizeTagDefinitions,
   normalizeTagId,
@@ -22,7 +23,18 @@ const html = fs.readFileSync("index.html", "utf8");
 function readFunctionSource(name) {
   const start = app.indexOf(`function ${name}(`);
   assert.ok(start >= 0, `${name}を読み取れる`);
-  const openingBrace = app.indexOf("{", start);
+  const parametersStart = app.indexOf("(", start);
+  let parameterDepth = 0;
+  let openingBrace = -1;
+  for (let index = parametersStart; index < app.length; index += 1) {
+    if (app[index] === "(") parameterDepth += 1;
+    if (app[index] === ")") parameterDepth -= 1;
+    if (parameterDepth === 0) {
+      openingBrace = app.indexOf("{", index);
+      break;
+    }
+  }
+  assert.ok(openingBrace >= 0, `${name}の本体を読み取れる`);
   let depth = 0;
   for (let index = openingBrace; index < app.length; index += 1) {
     if (app[index] === "{") depth += 1;
@@ -33,7 +45,7 @@ function readFunctionSource(name) {
 }
 
 test("tags.jsをapp.jsより前に読み込みwindow APIとして公開する", () => {
-  assert.ok(html.indexOf('src="tags.js?v=0.4.0-1"') < html.indexOf('src="app.js?v=0.4.0-86"'));
+  assert.ok(html.indexOf('src="tags.js?v=0.4.0-2"') < html.indexOf('src="app.js?v=0.4.0-87"'));
   assert.match(fs.readFileSync("tags.js", "utf8"), /global\.MemoNexusTags = api/);
 });
 
@@ -65,6 +77,15 @@ test("既存メモのタグから登録済みタグを冪等に作成し本文�
   assert.deepEqual(twice, once);
   assert.deepEqual(once.map((definition) => definition.id), ["work", "資料"]);
   assert.equal(once.some((definition) => definition.id === "調査" || definition.id === "未登録"), false);
+});
+
+test("取り込みタグは新しいupdatedAtだけを採用し表示名AIを保持する", () => {
+  const existing = [{ id: "ai", name: "人工知能", createdAt: "2026-08-01T00:00:00.000Z", updatedAt: "2026-08-02T00:00:00.000Z" }];
+  const newer = mergeTagDefinitions(existing, [{ id: "AI", name: "AI", createdAt: "2026-08-01T00:00:00.000Z", updatedAt: "2026-08-03T00:00:00.000Z" }]);
+  assert.equal(newer[0].id, "ai");
+  assert.equal(newer[0].name, "AI");
+  const unsafe = mergeTagDefinitions(newer, [{ id: "ai", name: "上書き不可", updatedAt: "invalid" }]);
+  assert.equal(unsafe[0].name, "AI");
 });
 
 test("タグ作成は空名を拒否し正規化IDの重複を通知可能にする", () => {
@@ -129,7 +150,20 @@ test("DB v5はtagsストアを追加し既存メモのタグを冪等移行す�
   assert.match(app, /const TAG_STORE_NAME = "tags"/);
   assert.match(app, /const DB_VERSION = 5/);
   assert.match(app, /objectStoreNames\.contains\(TAG_STORE_NAME\)[\s\S]*createObjectStore\(TAG_STORE_NAME, \{ keyPath: "id" \}\)/);
-  assert.match(readFunctionSource("ensureRegisteredTagsForNotes"), /mergeTagDefinitionsFromNotes\(registeredTags, notes\)/);
-  assert.match(readFunctionSource("ensureRegisteredTagsForNotes"), /!existingIds\.has\(definition\.id\)/);
-  assert.match(readFunctionSource("ensureRegisteredTagsForNotes"), /putTagDefinitions\(additions\)/);
+  const source = readFunctionSource("synchronizeRegisteredTagsForNotes");
+  assert.match(source, /getAllTagDefinitions\(\)/);
+  assert.match(source, /mergeTagDefinitionsFromNotes\(stored, notes\)/);
+  assert.match(source, /!existingIds\.has\(definition\.id\)/);
+  assert.match(source, /putTagDefinitions\(additions\)/);
+});
+
+test("タグ定義変更はローカル要保存となり各取り込み直後に共通同期する", () => {
+  assert.match(readFunctionSource("putTagDefinitions"), /transaction\.oncomplete[\s\S]*markLocalWorkspacePending\(\)/);
+  for (const name of ["applyLocalCandidate", "importMarkdownZip", "applyPortableBackupImport", "restoreFromLocalFolder"]) {
+    assert.match(readFunctionSource(name), /synchronizeRegisteredTagsForNotes\(/, `${name}でタグ同期すること`);
+  }
+  assert.match(readFunctionSource("applyPortableBackupTransaction"), /TAG_STORE_NAME/);
+  assert.doesNotMatch(readFunctionSource("performLocalWorkspaceSave"), /putTagDefinitions|synchronizeRegisteredTagsForNotes/);
+  const startup = readFunctionSource("init");
+  assert.ok(startup.indexOf("initializeLocalFolderSaving()") < startup.indexOf("synchronizeRegisteredTagsForNotes()"));
 });

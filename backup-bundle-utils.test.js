@@ -1,7 +1,9 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
+const fs = require("node:fs");
 const { buildManifest } = require("./local-sync-utils.js");
 const { parseLocalNote, serializeLocalNote } = require("./local-markdown.js");
+const { mergeTagDefinitionsFromNotes, normalizeTagDefinitions } = require("./tags.js");
 const {
   BACKUP_FORMAT, BACKUP_VERSION, attachmentIdsToReplace, buildPortableBackupFiles, importedWins, isPortableBackup, parsePortableBackup
 } = require("./backup-bundle-utils.js");
@@ -10,14 +12,22 @@ function entry(name, content) {
   return { name, data: typeof content === "string" ? new TextEncoder().encode(content) : content };
 }
 
-function manifest() {
-  return buildManifest({
+function manifest(overrides = {}) {
+  return { ...buildManifest({
     appVersion: "0.4.0", savedAt: "2026-08-15T00:00:00.000Z", exportedAt: "2026-08-15T00:00:00.000Z",
     notes: [], collections: [], assetsCount: 0
-  });
+  }), ...overrides };
 }
 
-test("v1バックアップはローカル保存と共通の論理構造を出力する", () => {
+test("タグバックアップ関連スクリプトのキャッシュ番号を更新する", () => {
+  const html = fs.readFileSync("index.html", "utf8");
+  assert.match(html, /tags\.js\?v=0\.4\.0-2/);
+  assert.match(html, /local-sync-utils\.js\?v=0\.4\.0-8/);
+  assert.match(html, /backup-bundle-utils\.js\?v=0\.1\.0-4/);
+  assert.match(html, /app\.js\?v=0\.4\.0-87/);
+});
+
+test("v2バックアップはローカル保存と共通の論理構造を出力する", () => {
   const note = {
     id: "note-1", title: "日本語メモ", body: "![図](attachment://asset-1)", collectionId: "child",
     createdAt: "2026-08-01T00:00:00.000Z", updatedAt: "2026-08-02T00:00:00.000Z",
@@ -26,9 +36,12 @@ test("v1バックアップはローカル保存と共通の論理構造を出力
   const markdown = serializeLocalNote(note, note.body, [{ id: "asset-1", fileName: "asset-1.png", mimeType: "image/png", kind: "image" }]);
   const files = buildPortableBackupFiles({
     manifest: manifest(), collections: [{ id: "child", name: "子", parentId: "root", sortOrder: 1 }],
-    notePlans: [{ fileName: "日本語--note-1.md", markdown }], assetPlans: [{ fileName: "asset-1.png", data: Uint8Array.of(1, 2) }]
+    tagDefinitions: [{ id: "unused", name: "未使用", createdAt: "2026-08-01T00:00:00.000Z", updatedAt: "2026-08-02T00:00:00.000Z" }],
+    notePlans: [{ fileName: "日本語--note-1.md", markdown }], assetPlans: [{ fileName: "asset-1.png", data: Uint8Array.of(1, 2) }],
+    normalizeTagDefinitions
   });
-  assert.deepEqual(files.map((file) => file.name), ["manifest.json", "collections.json", "notes/日本語--note-1.md", "assets/asset-1.png"]);
+  assert.deepEqual(files.map((file) => file.name), ["manifest.json", "collections.json", "tags.json", "notes/日本語--note-1.md", "assets/asset-1.png"]);
+  assert.deepEqual(JSON.parse(files[2].content), [{ id: "unused", name: "未使用", createdAt: "2026-08-01T00:00:00.000Z", updatedAt: "2026-08-02T00:00:00.000Z" }]);
   assert.match(files[0].content, new RegExp(`"format": "${BACKUP_FORMAT}"`));
   assert.match(files[0].content, new RegExp(`"version": ${BACKUP_VERSION}`));
   assert.match(markdown, /tags: \["work","資料"\]/);
@@ -41,10 +54,52 @@ test("ZIP往復でタグを保持し、タグなし旧メモは空配列とし�
   const parsed = parsePortableBackup([
     entry("manifest.json", JSON.stringify(manifest())), entry("collections.json", "[]"),
     entry("notes/tagged.md", taggedMarkdown), entry("notes/legacy.md", legacyMarkdown)
-  ], { parseNote: parseLocalNote });
+  ], { parseNote: parseLocalNote, normalizeTagDefinitions });
   const byId = new Map(parsed.notes.map((plan) => [plan.note.id, plan.note]));
   assert.deepEqual(byId.get("tagged").tags, ["alpha", "資料"]);
   assert.deepEqual(byId.get("legacy").tags, []);
+});
+
+test("tags.jsonは未使用タグを含め、ID・表示名・日時を往復する", () => {
+  const definitions = [
+    { id: "ai", name: "AI", createdAt: "2026-08-01T00:00:00.000Z", updatedAt: "2026-08-02T00:00:00.000Z" },
+    { id: "unused", name: "未使用", createdAt: "2026-08-03T00:00:00.000Z", updatedAt: "2026-08-04T00:00:00.000Z" }
+  ];
+  const files = buildPortableBackupFiles({ manifest: manifest(), tagDefinitions: definitions, normalizeTagDefinitions });
+  const parsed = parsePortableBackup(files.map((file) => entry(file.name, file.content)), { parseNote: parseLocalNote, normalizeTagDefinitions });
+  assert.equal(parsed.tagsFilePresent, true);
+  assert.deepEqual(parsed.tags, definitions);
+  assert.equal(parsed.tags.find((tag) => tag.id === "ai").name, "AI");
+  assert.equal(parsed.tags.find((tag) => tag.id === "unused").name, "未使用");
+});
+
+test("破損・重複タグ定義を安全にスキップする", () => {
+  const parsed = parsePortableBackup([
+    entry("manifest.json", JSON.stringify(manifest())),
+    entry("collections.json", "[]"),
+    entry("tags.json", JSON.stringify([
+      { id: "", name: "空" },
+      { id: "AI", name: "AI", createdAt: "invalid", updatedAt: "invalid" },
+      { id: "ai", name: "重複" },
+      null
+    ]))
+  ], { parseNote: parseLocalNote, normalizeTagDefinitions });
+  assert.deepEqual(parsed.tags, [{ id: "ai", name: "AI", createdAt: null, updatedAt: null }]);
+  assert.deepEqual(parsed.skipped, ["tags.json:1", "tags.json:3", "tags.json:4"]);
+});
+
+test("tags.jsonがないv1バックアップはメモタグから定義を冪等に補完できる", () => {
+  const markdown = serializeLocalNote({ id: "legacy", title: "旧形式", tags: ["AI", "ai", "資料"] }, "本文");
+  const parsed = parsePortableBackup([
+    entry("manifest.json", JSON.stringify({ ...manifest(), version: 1, formatVersion: 1 })),
+    entry("collections.json", "[]"),
+    entry("notes/legacy.md", markdown)
+  ], { parseNote: parseLocalNote, normalizeTagDefinitions });
+  const first = mergeTagDefinitionsFromNotes(parsed.tags, parsed.notes.map((plan) => plan.note), "2026-08-16T00:00:00.000Z");
+  const second = mergeTagDefinitionsFromNotes(first, parsed.notes.map((plan) => plan.note), "2026-08-17T00:00:00.000Z");
+  assert.equal(parsed.tagsFilePresent, false);
+  assert.deepEqual(first, second);
+  assert.deepEqual(first.map((tag) => [tag.id, tag.name]), [["ai", "ai"], ["資料", "資料"]]);
 });
 
 test("ZIP往復で解説アンカーコメントを含む本文がそのまま保持される", () => {

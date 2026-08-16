@@ -316,6 +316,7 @@ const {
   countTagUsage,
   createTagDefinition,
   findTagDefinition,
+  mergeTagDefinitions,
   mergeTagDefinitionsFromNotes,
   normalizeTagDefinitions,
   normalizeTagId,
@@ -1034,9 +1035,8 @@ async function init() {
     notes = await getAllNotes();
   }
   await ensureStartupNotes();
-  registeredTags = await getAllTagDefinitions();
-  await ensureRegisteredTagsForNotes();
   await initializeLocalFolderSaving();
+  await synchronizeRegisteredTagsForNotes();
   validatePendingFontSelectionMemo();
   renderAll();
   const returnedNote = pendingFontSelection?.memoId && notes.find((note) => note.id === pendingFontSelection.memoId);
@@ -1887,6 +1887,7 @@ async function performLocalWorkspaceSave(reason = "change") {
     nextSync.excluded = [...new Set([...nextSync.excluded, ...localPendingExclusions])];
     const storedNotes = await getAllNotes();
     const storedCollections = await getAllCollections();
+    const storedTags = await getAllTagDefinitions();
     const plans = [];
     const assetPlans = new Map();
 
@@ -1921,12 +1922,14 @@ async function performLocalWorkspaceSave(reason = "change") {
       nextSync.notes[plan.note.id] = { fileName: plan.fileName, hash: plan.hash, attachmentIds: plan.attachmentIds };
     });
     nextSync.savedAt = savedAt;
-    const manifest = buildManifest({ appVersion: APP_VERSION, savedAt, notes: storedNotes, collections: storedCollections, assetsCount: assetPlans.size });
+    const manifest = buildManifest({ appVersion: APP_VERSION, savedAt, notes: storedNotes, collections: storedCollections, tags: storedTags, assetsCount: assetPlans.size });
     const backupFiles = buildPortableBackupFiles({
       manifest,
       collections: JSON.parse(serializeCollections(storedCollections)),
+      tagDefinitions: storedTags,
       notePlans: plans,
-      assetPlans: [...assetPlans.values()]
+      assetPlans: [...assetPlans.values()],
+      normalizeTagDefinitions
     });
     for (const file of backupFiles) await localFs.writeFile(layout.root, file.name, file.content);
     await localFs.writeJson(layout.root, "sync-state.json", nextSync);
@@ -2229,6 +2232,7 @@ async function applyLocalCandidate(index, action) {
     suppressLocalSaveQueue = false;
   }
   notes = await getAllNotes();
+  await synchronizeRegisteredTagsForNotes();
   renderAll();
   openNote(draft.id);
   localScanCandidates.splice(index, 1);
@@ -2253,6 +2257,35 @@ async function restoreCollectionsFromLocal() {
   return additions.length;
 }
 
+function tagDefinitionChanged(existing, incoming) {
+  return !existing
+    || existing.name !== incoming.name
+    || existing.createdAt !== incoming.createdAt
+    || existing.updatedAt !== incoming.updatedAt;
+}
+
+async function restoreTagsFromLocal() {
+  const root = await localFs.resolveWorkspaceRoot(localDirectoryHandle, false);
+  const text = await optionalLocalText(root, "tags.json");
+  if (!text) return { restored: 0, total: 0, skipped: false };
+  let source;
+  try {
+    source = JSON.parse(text);
+    if (!Array.isArray(source)) throw new Error("配列ではありません");
+  } catch (error) {
+    console.warn("Local tags restore skipped", error);
+    return { restored: 0, total: 0, skipped: true };
+  }
+  const imported = normalizeTagDefinitions(source);
+  const existing = await getAllTagDefinitions();
+  const existingById = new Map(existing.map((definition) => [definition.id, definition]));
+  const merged = mergeTagDefinitions(existing, imported);
+  const updates = merged.filter((definition) => tagDefinitionChanged(existingById.get(definition.id), definition));
+  if (updates.length) await putTagDefinitions(updates);
+  registeredTags = merged;
+  return { restored: updates.length, total: imported.length, skipped: false };
+}
+
 async function restoreFromLocalFolder() {
   if (!localDirectoryHandle) return;
   const permission = await localFs.queryPermission(localDirectoryHandle, "read");
@@ -2260,6 +2293,7 @@ async function restoreFromLocalFolder() {
     setLocalSaveState("permission-required", { errorCode: "permission", errorMessage: "再接続して読み取り権限を許可してください。" });
     return;
   }
+  const restoredTags = await restoreTagsFromLocal();
   const restoredCollections = await restoreCollectionsFromLocal();
   await scanExternalLocalMarkdown({ automatic: true });
   const candidates = [...localScanCandidates];
@@ -2270,7 +2304,13 @@ async function restoreFromLocalFolder() {
     await applyLocalCandidate(index, candidate.classification.type === "restore" ? "restore" : "new");
     restoredNotes += 1;
   }
-  localFolderStatus.textContent = `${restoredCollections}件のコレクションと${restoredNotes}件のメモを追加・統合しました。競合は変更していません。`;
+  notes = await getAllNotes();
+  const supplementedTags = await synchronizeRegisteredTagsForNotes();
+  renderAll();
+  const tagMessage = restoredTags.skipped
+    ? "タグ定義は読み込めませんでした。"
+    : `${restoredTags.restored + supplementedTags.length}/${restoredTags.total + supplementedTags.length}件のタグを追加・更新しました。`;
+  localFolderStatus.textContent = `${restoredCollections}件のコレクションと${restoredNotes}件のメモを追加・統合しました。${tagMessage} 競合は変更していません。`;
 }
 
 function renderLocalScanResults() {
@@ -2548,10 +2588,12 @@ async function importMarkdownZip(file) {
   if (isPortableBackup(entries)) {
     const imported = parsePortableBackup(entries, {
       parseNote: parseLocalNote,
+      normalizeTagDefinitions,
       idFactory: () => crypto.randomUUID()
     });
     const report = await applyPortableBackupImport(imported);
-    const summary = `バックアップを復元しました（メモ ${report.notes.restored}/${report.notes.total}、コレクション ${report.collections.restored}/${report.collections.total}、添付 ${report.attachments.restored}/${report.attachments.total}）`;
+    const tagDetail = report.tags.supplemented ? `（メモから補完 ${report.tags.supplemented}）` : "";
+    const summary = `バックアップを復元しました（メモ ${report.notes.restored}/${report.notes.total}、コレクション ${report.collections.restored}/${report.collections.total}、タグ ${report.tags.restored}/${report.tags.total}${tagDetail}、添付 ${report.attachments.restored}/${report.attachments.total}）`;
     const preserved = report.attachments.preservedExisting ? " 一部の添付を復元できなかったため、既存の添付ファイルを保持しました。" : "";
     const details = report.skipped.length ? ` スキップ: ${report.skipped.join("、")}` : "";
     if (backupImportStatus) backupImportStatus.textContent = `${summary}${preserved}${details}`;
@@ -2564,7 +2606,9 @@ async function importMarkdownZip(file) {
 
   for (const plan of plans) {
     const memoId = crypto.randomUUID();
-    const flagged = parseFlaggedMarkdown(plan.body);
+    const parsedPlan = parseLocalNote(plan.body);
+    const hasMemoNexusMetadata = Boolean(parsedPlan.metadata.memoNexusId || parsedPlan.metadata.tags?.length);
+    const flagged = parseFlaggedMarkdown(hasMemoNexusMetadata ? parsedPlan.body : plan.body);
     let body = flagged.body;
     const prepared = [];
     let preparedBytes = 0;
@@ -2596,7 +2640,11 @@ async function importMarkdownZip(file) {
     }
 
     try {
-      const note = await createNote(plan.title, body, { id: memoId, isFlagged: flagged.isFlagged });
+      const note = await createNote(hasMemoNexusMetadata ? (parsedPlan.metadata.title || plan.title) : plan.title, body, {
+        id: memoId,
+        isFlagged: flagged.isFlagged || (hasMemoNexusMetadata && Boolean(parsedPlan.metadata.flagged)),
+        tags: hasMemoNexusMetadata ? parsedPlan.metadata.tags : []
+      });
       importedNotes.push(note);
     } catch (error) {
       if (stored.length) await deleteAttachmentRecords(stored.map((attachment) => attachment.id)).catch(() => {});
@@ -2605,6 +2653,7 @@ async function importMarkdownZip(file) {
   }
 
   notes = await getAllNotes();
+  await synchronizeRegisteredTagsForNotes();
   renderAll();
   if (importedNotes[0]) openNote(importedNotes[0].id);
   setSaveStatusNotice(`${importedNotes.length}件のMarkdownを取り込みました${failedImages ? `（画像${failedImages}件は取り込めませんでした）` : ""}`);
@@ -2641,6 +2690,7 @@ function restoreMissingBackupAttachmentReferences(note, existingAttachments, mis
 async function applyPortableBackupImport(imported) {
   const existingNotes = await getAllNotes();
   const existingCollections = await getAllCollections();
+  const existingTags = await getAllTagDefinitions();
   const existingByNoteId = new Map(existingNotes.map((note) => [note.id, note]));
   const existingByCollectionId = new Map(existingCollections.map((collection) => [collection.id, collection]));
   const collectionUpdates = imported.collections.filter((collection) => !collection.isSystem && importedWins(existingByCollectionId.get(collection.id), collection));
@@ -2680,20 +2730,38 @@ async function applyPortableBackupImport(imported) {
     id: asset.id, memoId: plan.note.id, fileName: asset.fileName, kind: asset.mimeType === "application/pdf" ? "pdf" : "image",
     mimeType: asset.mimeType, size: asset.data.byteLength, blob: new Blob([asset.data], { type: asset.mimeType }), createdAt: plan.note.updatedAt
   })));
+  const importedTags = normalizeTagDefinitions(imported.tags);
+  const mergedImportedTags = mergeTagDefinitions(existingTags, importedTags);
+  const projectedNotesById = new Map(existingNotes.map((note) => [note.id, note]));
+  notePlans.forEach((plan) => projectedNotesById.set(plan.note.id, plan.note));
+  const mergedTags = mergeTagDefinitionsFromNotes(mergedImportedTags, [...projectedNotesById.values()]);
+  const existingTagIds = new Set(existingTags.map((definition) => definition.id));
+  const importedTagIds = new Set(importedTags.map((definition) => definition.id));
+  const existingTagsById = new Map(existingTags.map((definition) => [definition.id, definition]));
+  const tagUpdates = mergedTags.filter((definition) => tagDefinitionChanged(existingTagsById.get(definition.id), definition));
+  const supplementedTagIds = tagUpdates.filter((definition) => !existingTagIds.has(definition.id) && !importedTagIds.has(definition.id));
   await applyPortableBackupTransaction({
     collectionUpdates,
     notePlans,
     oldAttachmentIds: attachmentIdsToReplace(notePlans, existingAttachmentsByMemo),
-    attachmentRecords
+    attachmentRecords,
+    tagUpdates
   });
   notes = await getAllNotes();
   collections = await getAllCollections();
+  await synchronizeRegisteredTagsForNotes();
   invalidateTermRelationIndex();
   renderAll();
   if (notePlans[0]) openNote(notePlans[0].note.id);
   return {
     notes: { restored: notePlans.length, total: imported.notes.length },
     collections: { restored: collectionUpdates.length, total: imported.collections.length },
+    tags: {
+      restored: tagUpdates.length,
+      total: importedTags.length + supplementedTagIds.length,
+      supplemented: supplementedTagIds.length,
+      sourcePresent: Boolean(imported.tagsFilePresent)
+    },
     attachments: {
       restored: attachmentRecords.length,
       total: imported.notes.flatMap((plan) => plan.attachmentTotal ?? (plan.attachments || []).length).reduce((sum, count) => sum + count, 0),
@@ -2704,15 +2772,17 @@ async function applyPortableBackupImport(imported) {
   };
 }
 
-function applyPortableBackupTransaction({ collectionUpdates, notePlans, oldAttachmentIds, attachmentRecords }) {
+function applyPortableBackupTransaction({ collectionUpdates, notePlans, oldAttachmentIds, attachmentRecords, tagUpdates }) {
   return new Promise((resolve, reject) => {
-    const transaction = db.transaction([STORE_NAME, COLLECTION_STORE_NAME, ATTACHMENT_STORE_NAME], "readwrite");
+    const transaction = db.transaction([STORE_NAME, COLLECTION_STORE_NAME, ATTACHMENT_STORE_NAME, TAG_STORE_NAME], "readwrite");
     const noteStore = transaction.objectStore(STORE_NAME);
     const collectionStore = transaction.objectStore(COLLECTION_STORE_NAME);
     const attachmentStore = transaction.objectStore(ATTACHMENT_STORE_NAME);
+    const tagStore = transaction.objectStore(TAG_STORE_NAME);
     collectionUpdates.forEach((collection) => collectionStore.put(collection));
     oldAttachmentIds.forEach((id) => attachmentStore.delete(id));
     attachmentRecords.forEach((attachment) => attachmentStore.put(attachment));
+    tagUpdates.forEach((definition) => tagStore.put(definition));
     notePlans.forEach((plan) => noteStore.put(plan.note));
     transaction.oncomplete = () => {
       notePlans.forEach((plan) => notifyMemoChanged(plan.note));
@@ -4007,19 +4077,31 @@ function putTagDefinitions(items) {
     const transaction = db.transaction(TAG_STORE_NAME, "readwrite");
     const store = transaction.objectStore(TAG_STORE_NAME);
     definitions.forEach((definition) => store.put(definition));
-    transaction.oncomplete = () => resolve(definitions);
+    transaction.oncomplete = () => {
+      markLocalWorkspacePending();
+      resolve(definitions);
+    };
     transaction.onerror = () => reject(transaction.error);
     transaction.onabort = () => reject(transaction.error);
   });
 }
 
-async function ensureRegisteredTagsForNotes() {
-  const merged = mergeTagDefinitionsFromNotes(registeredTags, notes);
-  const existingIds = new Set(registeredTags.map((definition) => definition.id));
+async function synchronizeRegisteredTagsForNotes({ render = false } = {}) {
+  const stored = await getAllTagDefinitions();
+  const merged = mergeTagDefinitionsFromNotes(stored, notes);
+  const existingIds = new Set(stored.map((definition) => definition.id));
   const additions = merged.filter((definition) => !existingIds.has(definition.id));
   if (additions.length) await putTagDefinitions(additions);
   registeredTags = merged;
+  if (render) {
+    renderTagPanel();
+    renderNoteTagOptions();
+  }
   return additions;
+}
+
+async function ensureRegisteredTagsForNotes(options) {
+  return synchronizeRegisteredTagsForNotes(options);
 }
 
 function renderNoteTags(note = currentNote()) {
@@ -8006,6 +8088,7 @@ async function buildPortableBackupZipFiles() {
   const exportedAt = new Date().toISOString();
   const storedNotes = await getAllNotes();
   const storedCollections = await getAllCollections();
+  const storedTags = await getAllTagDefinitions();
   const assetPlans = new Map();
   const notePlans = [];
   for (const note of storedNotes) {
@@ -8021,8 +8104,15 @@ async function buildPortableBackupZipFiles() {
       updatedAt: note.bodyUpdatedAt || note.updatedAt || note.createdAt || exportedAt
     });
   }
-  const manifest = buildManifest({ appVersion: APP_VERSION, savedAt: exportedAt, exportedAt, notes: storedNotes, collections: storedCollections, assetsCount: assetPlans.size });
-  return buildPortableBackupFiles({ manifest, collections: JSON.parse(serializeCollections(storedCollections)), notePlans, assetPlans: [...assetPlans.values()] });
+  const manifest = buildManifest({ appVersion: APP_VERSION, savedAt: exportedAt, exportedAt, notes: storedNotes, collections: storedCollections, tags: storedTags, assetsCount: assetPlans.size });
+  return buildPortableBackupFiles({
+    manifest,
+    collections: JSON.parse(serializeCollections(storedCollections)),
+    tagDefinitions: storedTags,
+    notePlans,
+    assetPlans: [...assetPlans.values()],
+    normalizeTagDefinitions
+  });
 }
 
 // 追加ライブラリなしでZIPを作る処理です。各Markdownを無圧縮のZIPエントリにします。

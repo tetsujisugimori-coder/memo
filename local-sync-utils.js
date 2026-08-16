@@ -57,16 +57,17 @@
     };
   }
 
-  function buildManifest({ appVersion, savedAt, exportedAt = savedAt, notes, collections, assetsCount }) {
+  function buildManifest({ appVersion, savedAt, exportedAt = savedAt, notes, collections, tags, assetsCount }) {
     return {
       format: "memo-nexus-backup",
-      version: 1,
+      version: 2,
       exportedAt: exportedAt || new Date().toISOString(),
-      formatVersion: 1,
+      formatVersion: 2,
       appVersion,
       savedAt,
       notesCount: (notes || []).length,
       collectionsCount: (collections || []).length,
+      tagsCount: (tags || []).length,
       assetsCount: Number(assetsCount || 0)
     };
   }

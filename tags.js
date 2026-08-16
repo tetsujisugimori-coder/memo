@@ -12,6 +12,12 @@
     return String(value).trim();
   }
 
+  function normalizeTagDate(value) {
+    if (value == null || value === "") return null;
+    const date = value instanceof Date ? value : new Date(value);
+    return Number.isNaN(date.getTime()) ? null : date.toISOString();
+  }
+
   function normalizeTagIds(value) {
     const normalized = [];
     const seen = new Set();
@@ -37,8 +43,8 @@
         ...source,
         id,
         name,
-        createdAt: source.createdAt || null,
-        updatedAt: source.updatedAt || source.createdAt || null
+        createdAt: normalizeTagDate(source.createdAt),
+        updatedAt: normalizeTagDate(source.updatedAt) || normalizeTagDate(source.createdAt)
       });
     });
     return definitions.sort((a, b) => a.name.localeCompare(b.name, "ja") || a.id.localeCompare(b.id, "ja"));
@@ -103,6 +109,22 @@
     return normalizeTagDefinitions(merged);
   }
 
+  function mergeTagDefinitions(existingDefinitions, importedDefinitions) {
+    const merged = new Map(normalizeTagDefinitions(existingDefinitions).map((definition) => [definition.id, definition]));
+    normalizeTagDefinitions(importedDefinitions).forEach((incoming) => {
+      const existing = merged.get(incoming.id);
+      if (!existing) {
+        merged.set(incoming.id, incoming);
+        return;
+      }
+      const existingUpdatedAt = normalizeTagDate(existing.updatedAt);
+      const incomingUpdatedAt = normalizeTagDate(incoming.updatedAt);
+      if (!existingUpdatedAt || !incomingUpdatedAt) return;
+      if (Date.parse(incomingUpdatedAt) > Date.parse(existingUpdatedAt)) merged.set(incoming.id, incoming);
+    });
+    return normalizeTagDefinitions([...merged.values()]);
+  }
+
   function countTagUsage(definitions, notes) {
     const counts = new Map(normalizeTagDefinitions(definitions).map((definition) => [definition.id, 0]));
     (Array.isArray(notes) ? notes : []).filter((note) => !note?.deletedAt).forEach((note) => {
@@ -145,9 +167,11 @@
     filterMemosByTag,
     findTagDefinition,
     isRegisteredTag,
+    mergeTagDefinitions,
     mergeTagDefinitionsFromNotes,
     normalizeMemoTags: normalizeTagIds,
     normalizeTagDefinitions,
+    normalizeTagDate,
     normalizeTagFilter: normalizeTagId,
     normalizeTagId,
     normalizeTagIds,
