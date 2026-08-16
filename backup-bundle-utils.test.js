@@ -21,7 +21,7 @@ test("v1バックアップはローカル保存と共通の論理構造を出力
   const note = {
     id: "note-1", title: "日本語メモ", body: "![図](attachment://asset-1)", collectionId: "child",
     createdAt: "2026-08-01T00:00:00.000Z", updatedAt: "2026-08-02T00:00:00.000Z",
-    isFlagged: true, deletedAt: null, explanations: [{ text: "説明" }]
+    isFlagged: true, deletedAt: null, tags: [" Work ", "work", "資料"], explanations: [{ text: "説明" }]
   };
   const markdown = serializeLocalNote(note, note.body, [{ id: "asset-1", fileName: "asset-1.png", mimeType: "image/png", kind: "image" }]);
   const files = buildPortableBackupFiles({
@@ -31,7 +31,20 @@ test("v1バックアップはローカル保存と共通の論理構造を出力
   assert.deepEqual(files.map((file) => file.name), ["manifest.json", "collections.json", "notes/日本語--note-1.md", "assets/asset-1.png"]);
   assert.match(files[0].content, new RegExp(`"format": "${BACKUP_FORMAT}"`));
   assert.match(files[0].content, new RegExp(`"version": ${BACKUP_VERSION}`));
+  assert.match(markdown, /tags: \["work","資料"\]/);
   assert.match(markdown, /attachments: \[\{"id":"asset-1"/);
+});
+
+test("ZIP往復でタグを保持し、タグなし旧メモは空配列として復元する", () => {
+  const taggedMarkdown = serializeLocalNote({ id: "tagged", title: "タグ付き", tags: ["Alpha", " ALPHA ", "資料"], updatedAt: "2026-08-02T00:00:00.000Z" }, "本文");
+  const legacyMarkdown = "---\nmemoNexusId: \"legacy\"\ntitle: \"旧形式\"\nupdatedAt: \"2026-08-02T00:00:00.000Z\"\n---\n\n本文";
+  const parsed = parsePortableBackup([
+    entry("manifest.json", JSON.stringify(manifest())), entry("collections.json", "[]"),
+    entry("notes/tagged.md", taggedMarkdown), entry("notes/legacy.md", legacyMarkdown)
+  ], { parseNote: parseLocalNote });
+  const byId = new Map(parsed.notes.map((plan) => [plan.note.id, plan.note]));
+  assert.deepEqual(byId.get("tagged").tags, ["alpha", "資料"]);
+  assert.deepEqual(byId.get("legacy").tags, []);
 });
 
 test("ZIP往復で解説アンカーコメントを含む本文がそのまま保持される", () => {

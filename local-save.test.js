@@ -192,7 +192,7 @@ test("Markdownフロントマターと画像相対参照を往復する", () => 
   const note = {
     id: "note-1", title: "題名", collectionId: "c1", createdAt: "original", localCreatedAt: "local",
     updatedAt: "updated", bodyUpdatedAt: "body-updated", localSavedAt: "saved", isFlagged: true,
-    deletedAt: null, sortOrder: 10, body: "前\n![図](attachment://asset-1)\n後"
+    deletedAt: null, sortOrder: 10, tags: [" Work ", "work", "資料"], body: "前\n![図](attachment://asset-1)\n後"
   };
   const markdown = serializeLocalNote(note, note.body, [{ id: "asset-1", fileName: "asset-1.png" }]);
   assert.match(markdown, /^---\nmemoNexusId: "note-1"/);
@@ -202,7 +202,14 @@ test("Markdownフロントマターと画像相対参照を往復する", () => 
   const parsed = parseLocalNote(markdown, { assets: [{ path: "../assets/asset-1.png", id: "asset-1" }] });
   assert.equal(parsed.metadata.memoNexusId, note.id);
   assert.equal(parsed.metadata.flagged, true);
+  assert.deepEqual(parsed.metadata.tags, ["work", "資料"]);
   assert.equal(parsed.body, note.body);
+});
+
+test("タグなし旧Markdownは空のタグ配列として読み込む", () => {
+  const parsed = parseLocalNote("---\nmemoNexusId: \"legacy\"\ntitle: \"旧形式\"\n---\n\n本文");
+  assert.deepEqual(parsed.metadata.tags, []);
+  assert.equal(parsed.body, "本文");
 });
 
 test("外部Markdownの作成日時はlocalCreatedAt、createdAt、lastModified、取込日時の順で決める", () => {
@@ -228,12 +235,13 @@ test("画像形式に合う拡張子を使い同期状態へ対応を保持す�
 });
 
 test("外部Markdownを新規・復元・同一・競合・重複へ分類する", () => {
-  const notes = [{ id: "n1", title: "既存", body: "本文" }];
+  const notes = [{ id: "n1", title: "既存", body: "本文", tags: ["work"] }];
   assert.equal(classifyMarkdownCandidate({ metadata: {}, body: "新規" }, notes).type, "new");
   assert.equal(classifyMarkdownCandidate({ metadata: { memoNexusId: "missing", title: "復元" }, body: "本文" }, notes).type, "restore");
-  assert.equal(classifyMarkdownCandidate({ metadata: { memoNexusId: "n1", title: "既存" }, body: "本文" }, notes).type, "unchanged");
-  assert.equal(classifyMarkdownCandidate({ metadata: { memoNexusId: "n1", title: "既存" }, body: "外部変更" }, notes).type, "conflict");
-  assert.equal(classifyMarkdownCandidate({ metadata: { title: "既存" }, body: "本文" }, notes).type, "duplicate");
+  assert.equal(classifyMarkdownCandidate({ metadata: { memoNexusId: "n1", title: "既存", tags: [" WORK "] }, body: "本文" }, notes).type, "unchanged");
+  assert.equal(classifyMarkdownCandidate({ metadata: { memoNexusId: "n1", title: "既存", tags: ["別"] }, body: "本文" }, notes).type, "conflict");
+  assert.equal(classifyMarkdownCandidate({ metadata: { memoNexusId: "n1", title: "既存", tags: ["work"] }, body: "外部変更" }, notes).type, "conflict");
+  assert.equal(classifyMarkdownCandidate({ metadata: { title: "既存", tags: ["work"] }, body: "本文" }, notes).type, "duplicate");
 });
 
 test("最後に書いたハッシュと異なる外部変更を自動上書きしない", () => {
@@ -248,9 +256,9 @@ test("最後に書いたハッシュと異なる外部変更を自動上書き�
 test("管理対象Markdownはsync-stateのnote IDとfileNameで特定する", () => {
   assert.match(html, /local-save-state\.js\?v=0\.4\.0-4/);
   assert.match(html, /local-save-queue\.js\?v=0\.4\.0-3/);
-  assert.match(html, /local-sync-utils\.js\?v=0\.4\.0-6/);
-  assert.match(html, /backup-bundle-utils\.js\?v=0\.1\.0-2/);
-  assert.match(html, /app\.js\?v=0\.4\.0-83/);
+  assert.match(html, /local-sync-utils\.js\?v=0\.4\.0-7/);
+  assert.match(html, /backup-bundle-utils\.js\?v=0\.1\.0-3/);
+  assert.match(html, /app\.js\?v=0\.4\.0-84/);
   const syncState = {
     notes: {
       "note-1": { fileName: "題名--note-1.md", hash: "last" },

@@ -129,6 +129,7 @@
           bodyUpdatedAt: metadata.bodyUpdatedAt || metadata.updatedAt || null, localSavedAt: metadata.localSavedAt || null,
           isFlagged: Boolean(metadata.flagged), deletedAt: metadata.deletedAt || (metadata.trashed ? metadata.updatedAt : null),
           sortOrder: Number(metadata.sortOrder || 0), source: metadata.source || undefined,
+          tags: Array.isArray(metadata.tags) ? metadata.tags : [],
           explanations: Array.isArray(metadata.explanations) ? metadata.explanations : undefined,
           fontSettings: metadata.fontSettings || undefined
         };

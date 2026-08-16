@@ -302,7 +302,7 @@ const {
   serializeImageBlock,
   splitImageBlocks
 } = window.MemoNexusAttachmentUtils;
-const { buildMemoListView } = window.MemoNexusMemoListUtils;
+const { buildMemoListView, normalizeMemoTags, normalizeTagFilter } = window.MemoNexusMemoListUtils;
 const { buildMarkdownBundleImport, parseStoredZipEntries } = window.MemoNexusMarkdownBundleUtils;
 const { attachmentIdsToReplace, buildPortableBackupFiles, importedWins, isPortableBackup, parsePortableBackup } = window.MemoNexusBackupBundleUtils;
 const { parseFlaggedMarkdown, serializeNoteForMarkdown, withNormalizedFlag } = window.MemoNexusNoteFlagUtils;
@@ -454,6 +454,7 @@ const collectionBackdrop = $("collectionBackdrop");
 const closeCollectionsBtn = $("closeCollectionsBtn");
 const contextPanel = $("contextPanel");
 const contextCollectionTab = $("contextCollectionTab");
+const contextTagTab = $("contextTagTab");
 const contextAiTab = $("contextAiTab");
 const contextMemoListTab = $("contextMemoListTab");
 const closeContextPanelBtn = $("closeContextPanelBtn");
@@ -466,6 +467,10 @@ const cardPaneButtonLabel = $("cardPaneButtonLabel");
 const closeCardPaneBtn = $("closeCardPaneBtn");
 const layoutBackdrop = $("layoutBackdrop");
 const memoListHeading = $("memoListHeading");
+const tagPanel = $("tagPanel");
+const tagList = $("tagList");
+const tagFilterStatus = $("tagFilterStatus");
+const clearTagFilterBtn = $("clearTagFilterBtn");
 const addCollectionBtn = $("addCollectionBtn");
 const collectionAddMenuBtn = $("collectionAddMenuBtn");
 const collectionAddMenu = $("collectionAddMenu");
@@ -589,6 +594,10 @@ const memoSyncNotice = $("memoSyncNotice");
 const loadMemoSyncBtn = $("loadMemoSyncBtn");
 const noteCreatedAt = $("noteCreatedAt");
 const noteUpdatedAt = $("noteUpdatedAt");
+const noteTagEditor = $("noteTagEditor");
+const noteTagList = $("noteTagList");
+const noteTagForm = $("noteTagForm");
+const noteTagInput = $("noteTagInput");
 const textStatsBtn = $("textStatsBtn");
 const textStatsPopover = $("textStatsPopover");
 const textStatsBody = $("textStatsBody");
@@ -778,6 +787,7 @@ let undoStack = [];
 let lastUndoSnapshotAt = 0;
 let deletedNoteSnapshot = null;
 let selectedCollectionId = null;
+let selectedTagFilter = null;
 let collectionSortOrder = "newest";
 let expandedCollectionIds = new Set([UNCLASSIFIED_COLLECTION_ID]);
 let selectedMemoIds = new Set();
@@ -933,7 +943,7 @@ function showStartupFailure(error) {
 
 function mountContextPanel() {
   if (!contextPanel) return;
-  contextPanel.append(collectionExplorer, aiPanel, memoSidebar);
+  contextPanel.append(collectionExplorer, tagPanel, aiPanel, memoSidebar);
   setContextPanelTab("collection", { focus: false });
 }
 
@@ -1436,11 +1446,12 @@ function setContextPanelOpen(open, { restoreFocus = true, explicit = true } = {}
 }
 
 function setContextPanelTab(tab, { focus = true } = {}) {
-  const nextTab = ["collection", "ai", "memo-list"].includes(tab) ? tab : "collection";
+  const nextTab = ["collection", "tag", "ai", "memo-list"].includes(tab) ? tab : "collection";
   contextPanelTab = nextTab;
   setContextPanelOpen(true, { restoreFocus: false });
   const panels = [
     ["collection", collectionExplorer, contextCollectionTab],
+    ["tag", tagPanel, contextTagTab],
     ["ai", aiPanel, contextAiTab],
     ["memo-list", memoSidebar, contextMemoListTab]
   ];
@@ -1457,9 +1468,10 @@ function setContextPanelTab(tab, { focus = true } = {}) {
   setAiAssistantPanelActive(nextTab === "ai");
   collectionsBtn?.setAttribute("aria-expanded", String(nextTab === "collection"));
   if (nextTab === "collection") renderCollectionExplorer();
+  if (nextTab === "tag") renderTagPanel();
   if (nextTab === "memo-list") renderMemoListPanel();
   if (focus) {
-    const button = nextTab === "collection" ? contextCollectionTab : nextTab === "ai" ? contextAiTab : contextMemoListTab;
+    const button = nextTab === "collection" ? contextCollectionTab : nextTab === "tag" ? contextTagTab : nextTab === "ai" ? contextAiTab : contextMemoListTab;
     button?.focus();
   }
 }
@@ -1598,10 +1610,14 @@ function tx(mode = "readonly") {
 }
 
 // 保存済みメモをすべて読み込み、更新日時が新しい順に並べます。
+function withNormalizedMemoTags(note) {
+  return { ...note, tags: normalizeMemoTags(note?.tags) };
+}
+
 function getAllNotes() {
   return new Promise((resolve, reject) => {
     const request = tx().getAll();
-    request.onsuccess = () => resolve(request.result.map(withNormalizedFlag).sort((a, b) => b.updatedAt - a.updatedAt));
+    request.onsuccess = () => resolve(request.result.map(withNormalizedFlag).map(withNormalizedMemoTags).sort((a, b) => b.updatedAt - a.updatedAt));
     request.onerror = () => reject(request.error);
   });
 }
@@ -1609,6 +1625,7 @@ function getAllNotes() {
 // メモを1件保存します。idが同じなら上書き、なければ新規追加になります。
 function putNote(note) {
   return new Promise((resolve, reject) => {
+    note = withNormalizedMemoTags(note);
     const transaction = db.transaction(STORE_NAME, "readwrite");
     const request = transaction.objectStore(STORE_NAME).put(note);
     transaction.oncomplete = () => {
@@ -2126,6 +2143,7 @@ function noteFromLocalCandidate(candidate, { preserveId = false, overwrite = nul
     bodyUpdatedAt: metadata.bodyUpdatedAt || metadata.updatedAt || candidate.file.lastModified || Date.now(),
     localSavedAt: metadata.localSavedAt || null,
     isFlagged: Boolean(metadata.flagged),
+    tags: normalizeMemoTags(metadata.tags),
     deletedAt: metadata.deletedAt || null,
     sortOrder: Number(metadata.sortOrder || 0)
   };
@@ -2371,6 +2389,7 @@ function saveCurrentDraftMirror() {
     bodyUpdatedAt: now,
     updatedAt: now,
     isFlagged: Boolean(note.isFlagged),
+    tags: normalizeMemoTags(note.tags),
     draftSavedAt: now
   };
 
@@ -2438,7 +2457,8 @@ async function restoreCurrentDraftMirror() {
     createdAt: draft.createdAt || existingNote?.createdAt || now,
     bodyUpdatedAt: draft.bodyUpdatedAt || restoredUpdatedAt,
     updatedAt: restoredUpdatedAt,
-    isFlagged: Boolean(draft.isFlagged)
+    isFlagged: Boolean(draft.isFlagged),
+    tags: normalizeMemoTags(draft.tags || existingNote?.tags)
   };
 
   await putNote(restoredNote);
@@ -2561,7 +2581,8 @@ function normalizedBackupNote(note, collectionIds) {
     updatedAt: note.updatedAt || now,
     bodyUpdatedAt: note.bodyUpdatedAt || note.updatedAt || now,
     deletedAt: note.deletedAt || null,
-    isFlagged: Boolean(note.isFlagged)
+    isFlagged: Boolean(note.isFlagged),
+    tags: normalizeMemoTags(note.tags)
   };
 }
 
@@ -3275,7 +3296,8 @@ async function createNote(title = "新規メモ", body = "", options = {}) {
     createdAt: now,
     bodyUpdatedAt: now,
     updatedAt: now,
-    isFlagged: Boolean(options.isFlagged)
+    isFlagged: Boolean(options.isFlagged),
+    tags: normalizeMemoTags(options.tags)
   };
   if (options.source) note.source = options.source;
 
@@ -3860,8 +3882,10 @@ function uniqueTitle(base) {
 // 画面全体の再描画をまとめて呼ぶ入口です。
 function renderAll() {
   renderCollectionExplorer();
+  renderTagPanel();
   renderMemoListPanel();
   renderNoteMeta();
+  renderNoteTags();
   renderTextStats();
   renderRelated();
   renderDiscovery();
@@ -3872,7 +3896,7 @@ function renderAll() {
 // 左側のメモ一覧を描画します。検索欄に入力があればタイトル・本文から絞り込みます。
 function renderList() {
   const query = searchInput.value.trim().toLowerCase();
-  const listView = buildMemoListView(notes, selectedCollectionId);
+  const listView = buildMemoListView(notes, selectedCollectionId, selectedTagFilter);
   renderMemoListHeading(listView.heading);
   const filtered = listView.notes.filter((note) => {
     const haystack = `${note.title}\n${note.body}`.toLowerCase();
@@ -3923,6 +3947,108 @@ function renderMemoListHeading(heading) {
   memoSidebar.setAttribute("aria-label", heading);
 }
 
+function renderNoteTags(note = currentNote()) {
+  if (!noteTagEditor || !noteTagList) return;
+  noteTagEditor.hidden = !note;
+  noteTagList.innerHTML = "";
+  if (!note) return;
+
+  normalizeMemoTags(note.tags).forEach((tag) => {
+    const chip = document.createElement("span");
+    chip.className = "note-tag-chip";
+    const label = document.createElement("span");
+    label.textContent = tag;
+    const remove = document.createElement("button");
+    remove.type = "button";
+    remove.textContent = "×";
+    remove.setAttribute("aria-label", `タグ「${tag}」を削除`);
+    remove.addEventListener("click", () => {
+      void updateCurrentNoteTags(normalizeMemoTags(note.tags).filter((item) => item !== tag)).catch((error) => {
+        console.error("Tag save failed", error);
+        setSaveStatus("error");
+      });
+    });
+    chip.append(label, remove);
+    noteTagList.appendChild(chip);
+  });
+}
+
+async function updateCurrentNoteTags(value) {
+  const note = currentNote();
+  if (!note) return;
+  const nextTags = normalizeMemoTags(value);
+  const currentTags = normalizeMemoTags(note.tags);
+  if (nextTags.length === currentTags.length && nextTags.every((tag, index) => tag === currentTags[index])) return;
+  note.tags = nextTags;
+  renderNoteTags(note);
+  renderTagPanel();
+  renderList();
+  await saveCurrentNote();
+}
+
+function addCurrentNoteTag() {
+  const note = currentNote();
+  if (!note || !noteTagInput) return;
+  const value = noteTagInput.value;
+  noteTagInput.value = "";
+  if (!normalizeTagFilter(value)) return;
+  void updateCurrentNoteTags([...normalizeMemoTags(note.tags), value]).catch((error) => {
+    console.error("Tag save failed", error);
+    setSaveStatus("error");
+  });
+}
+
+function buildTagCountMap() {
+  const counts = new Map();
+  activeNotes().forEach((note) => {
+    normalizeMemoTags(note.tags).forEach((tag) => counts.set(tag, (counts.get(tag) || 0) + 1));
+  });
+  return counts;
+}
+
+function renderTagPanel() {
+  if (!tagList || !tagFilterStatus || !clearTagFilterBtn) return;
+  const counts = buildTagCountMap();
+  tagList.innerHTML = "";
+  clearTagFilterBtn.hidden = !selectedTagFilter;
+  tagFilterStatus.textContent = selectedTagFilter
+    ? `タグ「${selectedTagFilter}」でメモ一覧を絞り込み中です。`
+    : "タグを選ぶとメモ一覧を絞り込みます。";
+
+  if (!counts.size) {
+    const empty = document.createElement("p");
+    empty.className = "tag-list-empty";
+    empty.textContent = "使用中のタグはありません。";
+    tagList.appendChild(empty);
+    return;
+  }
+
+  [...counts].sort(([a], [b]) => a.localeCompare(b, "ja")).forEach(([tag, count]) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "tag-list-item";
+    button.setAttribute("aria-pressed", String(selectedTagFilter === tag));
+    const label = document.createElement("span");
+    label.textContent = tag;
+    const countLabel = document.createElement("span");
+    countLabel.className = "tag-list-count";
+    countLabel.textContent = `${count}件`;
+    button.append(label, countLabel);
+    button.addEventListener("click", () => {
+      selectedTagFilter = tag;
+      renderTagPanel();
+      renderMemoListPanel();
+    });
+    tagList.appendChild(button);
+  });
+}
+
+function clearTagFilter() {
+  selectedTagFilter = null;
+  renderTagPanel();
+  renderMemoListPanel();
+}
+
 // メモ一覧カードに出す短い本文プレビューを作ります。
 function snippet(body) {
   const text = tableBlockPlainText(body).replace(/\[\[|\]\]|#/g, "").trim();
@@ -3948,6 +4074,7 @@ function openNote(id) {
   titleInput.value = note.title;
   editor.value = note.body;
   renderNoteFlagButton(note);
+  renderNoteTags(note);
   lastUndoSnapshotAt = 0;
   setSaveStatus("saved", note.updatedAt);
   renderNoteMeta();
@@ -3983,6 +4110,7 @@ async function initPopout() {
   titleInput.value = note.title;
   editor.value = note.body;
   renderNoteFlagButton(note);
+  renderNoteTags(note);
   setSaveStatus("saved", note.updatedAt);
   renderNoteMeta();
   renderTextStats();
@@ -4182,6 +4310,7 @@ function applyMemoSync(note) {
   titleInput.value = note.title;
   editor.value = note.body;
   renderNoteFlagButton(note);
+  renderNoteTags(note);
   clearLocalMemoDirty(note.id);
   pendingMemoSync = null;
   renderMemoSyncNotice();
@@ -4366,6 +4495,7 @@ async function saveCurrentNote() {
   const bodyChanged = note.body !== nextBody;
   note.body = nextBody;
   note.title = titleInput.value || titleFromBody(note.body) || "無題メモ";
+  note.tags = normalizeMemoTags(note.tags);
   if (!note.createdAt) note.createdAt = Date.now();
   if (!note.bodyUpdatedAt || bodyChanged) note.bodyUpdatedAt = Date.now();
   note.updatedAt = Date.now();
@@ -9803,11 +9933,13 @@ newBtn.addEventListener("click", async () => {
 
 if (collectionsBtn) collectionsBtn.addEventListener("click", () => setContextPanelTab("collection"));
 if (contextCollectionTab) contextCollectionTab.addEventListener("click", () => setContextPanelTab("collection"));
+if (contextTagTab) contextTagTab.addEventListener("click", () => setContextPanelTab("tag"));
 if (contextAiTab) contextAiTab.addEventListener("click", () => {
   if (!aiAssistantState.panelOpen) openAiAssistant();
   else setContextPanelTab("ai");
 });
 if (contextMemoListTab) contextMemoListTab.addEventListener("click", () => setContextPanelTab("memo-list"));
+if (clearTagFilterBtn) clearTagFilterBtn.addEventListener("click", clearTagFilter);
 if (closeContextPanelBtn) closeContextPanelBtn.addEventListener("click", () => setContextPanelOpen(false));
 if (closeCollectionsBtn) closeCollectionsBtn.addEventListener("click", () => setContextPanelOpen(false));
 if (collectionBackdrop) collectionBackdrop.addEventListener("click", () => toggleCollectionExplorer(false));
@@ -10240,6 +10372,10 @@ relatedToggleBtn.addEventListener("click", () => setRelatedDrawerOpen(!isRelated
 closeRelatedPanelBtn.addEventListener("click", () => setRelatedDrawerOpen(false));
 relatedBackdrop.addEventListener("click", () => setRelatedDrawerOpen(false));
 searchInput.addEventListener("input", renderList);
+noteTagForm?.addEventListener("submit", (event) => {
+  event.preventDefault();
+  addCurrentNoteTag();
+});
 titleInput.addEventListener("beforeinput", captureUndoSnapshot);
 editor.addEventListener("beforeinput", captureUndoSnapshot);
 editor.addEventListener("beforeinput", resetEditorCaretIdle);
