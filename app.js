@@ -5,7 +5,8 @@ const STORE_NAME = "notes";
 const COLLECTION_STORE_NAME = "collections";
 const ATTACHMENT_STORE_NAME = "attachments";
 const LOCAL_CONFIG_STORE_NAME = "local-config";
-const DB_VERSION = 4;
+const TAG_STORE_NAME = "tags";
+const DB_VERSION = 5;
 const APP_VERSION = "0.4.0";
 const APP_LABEL = "Waypoint";
 const APP_BUILD = "2026-07-15";
@@ -68,6 +69,14 @@ const SYNTAX_GUIDE_ITEMS = [
   { category: "markdown", name: "箇条書き", syntax: "- 項目", description: "項目を箇条書きで表示します。", notes: "行頭に-と半角スペースを書きます。" },
   { category: "markdown", name: "引用", syntax: "> 引用文", description: "引用文として表示します。", notes: "行頭に>と半角スペースを書きます。" },
   { category: "markdown", name: "Wikiリンク", syntax: "[[メモ名]]", description: "同名メモへの知識リンクを作ります。", notes: "メモ名を二重の角括弧で囲みます。" },
+  {
+    category: "tag",
+    name: "登録済みタグの作成・付与・絞り込み",
+    syntax: ["右側［タグ］タブの［タグを作成］で「資料」を登録", "→ 登録済みタグ「資料」が作られる", "", "タイトル下のタグ選択欄で「資料」を選択", "→ このメモへ登録済みタグ「資料」が付く", "", "#資料", "→ 本文。タグにはならない", "", "# 見出し", "→ Markdown見出し。タグではない"].join("\n"),
+    description: "タグはメモを分類・絞り込みするための登録済みラベルです。新しいタグは右側［タグ］タブの［タグを作成］から作ります。メモにはタイトル下のタグ選択欄、またはエディタ操作列の［# タグ］ボタンから登録済みタグを付けます。",
+    notes: "本文に「#資料」と書いてもタグにはなりません。「# 見出し」は従来どおりMarkdown見出しです。本文検索とタグ絞り込みは別の機能で、未登録の文字列をタグ選択欄へ入力してもメモには追加されません。",
+    copyable: false
+  },
   {
     category: "code",
     name: "JavaScriptコードブロック",
@@ -302,6 +311,21 @@ const {
   serializeImageBlock,
   splitImageBlocks
 } = window.MemoNexusAttachmentUtils;
+const {
+  assignRegisteredTag,
+  countTagUsage,
+  createTagDefinition,
+  findTagDefinition,
+  mergeTagDefinitions,
+  mergeTagDefinitionsFromNotes,
+  normalizeTagDefinitions,
+  normalizeTagId,
+  normalizeTagIds,
+  removeMemoTag,
+  restrictTagIds,
+  searchTagOptions,
+  tagNameForId
+} = window.MemoNexusTags;
 const { buildMemoListView } = window.MemoNexusMemoListUtils;
 const { buildMarkdownBundleImport, parseStoredZipEntries } = window.MemoNexusMarkdownBundleUtils;
 const { attachmentIdsToReplace, buildPortableBackupFiles, importedWins, isPortableBackup, parsePortableBackup } = window.MemoNexusBackupBundleUtils;
@@ -454,6 +478,7 @@ const collectionBackdrop = $("collectionBackdrop");
 const closeCollectionsBtn = $("closeCollectionsBtn");
 const contextPanel = $("contextPanel");
 const contextCollectionTab = $("contextCollectionTab");
+const contextTagTab = $("contextTagTab");
 const contextAiTab = $("contextAiTab");
 const contextMemoListTab = $("contextMemoListTab");
 const closeContextPanelBtn = $("closeContextPanelBtn");
@@ -466,6 +491,18 @@ const cardPaneButtonLabel = $("cardPaneButtonLabel");
 const closeCardPaneBtn = $("closeCardPaneBtn");
 const layoutBackdrop = $("layoutBackdrop");
 const memoListHeading = $("memoListHeading");
+const tagPanel = $("tagPanel");
+const tagList = $("tagList");
+const tagFilterStatus = $("tagFilterStatus");
+const tagPanelStatus = $("tagPanelStatus");
+const createTagBtn = $("createTagBtn");
+const clearTagFilterBtn = $("clearTagFilterBtn");
+const createTagDialog = $("createTagDialog");
+const createTagForm = $("createTagForm");
+const createTagNameInput = $("createTagNameInput");
+const createTagStatus = $("createTagStatus");
+const closeCreateTagDialogBtn = $("closeCreateTagDialogBtn");
+const cancelCreateTagBtn = $("cancelCreateTagBtn");
 const addCollectionBtn = $("addCollectionBtn");
 const collectionAddMenuBtn = $("collectionAddMenuBtn");
 const collectionAddMenu = $("collectionAddMenu");
@@ -589,11 +626,18 @@ const memoSyncNotice = $("memoSyncNotice");
 const loadMemoSyncBtn = $("loadMemoSyncBtn");
 const noteCreatedAt = $("noteCreatedAt");
 const noteUpdatedAt = $("noteUpdatedAt");
+const noteTagEditor = $("noteTagEditor");
+const noteTagList = $("noteTagList");
+const noteTagForm = $("noteTagForm");
+const noteTagInput = $("noteTagInput");
+const noteTagOptions = $("noteTagOptions");
+const noteTagStatus = $("noteTagStatus");
 const textStatsBtn = $("textStatsBtn");
 const textStatsPopover = $("textStatsPopover");
 const textStatsBody = $("textStatsBody");
 const closeTextStatsBtn = $("closeTextStatsBtn");
 const editor = $("editor");
+const focusNoteTagBtn = $("focusNoteTagBtn");
 const insertTableBtn = $("insertTableBtn");
 const calloutTypeSelect = $("calloutTypeSelect");
 const insertCalloutBtn = $("insertCalloutBtn");
@@ -778,6 +822,8 @@ let undoStack = [];
 let lastUndoSnapshotAt = 0;
 let deletedNoteSnapshot = null;
 let selectedCollectionId = null;
+let selectedTagFilter = null;
+let registeredTags = [];
 let collectionSortOrder = "newest";
 let expandedCollectionIds = new Set([UNCLASSIFIED_COLLECTION_ID]);
 let selectedMemoIds = new Set();
@@ -933,7 +979,7 @@ function showStartupFailure(error) {
 
 function mountContextPanel() {
   if (!contextPanel) return;
-  contextPanel.append(collectionExplorer, aiPanel, memoSidebar);
+  contextPanel.append(collectionExplorer, tagPanel, aiPanel, memoSidebar);
   setContextPanelTab("collection", { focus: false });
 }
 
@@ -990,6 +1036,7 @@ async function init() {
   }
   await ensureStartupNotes();
   await initializeLocalFolderSaving();
+  await synchronizeRegisteredTagsForNotes();
   validatePendingFontSelectionMemo();
   renderAll();
   const returnedNote = pendingFontSelection?.memoId && notes.find((note) => note.id === pendingFontSelection.memoId);
@@ -1436,11 +1483,12 @@ function setContextPanelOpen(open, { restoreFocus = true, explicit = true } = {}
 }
 
 function setContextPanelTab(tab, { focus = true } = {}) {
-  const nextTab = ["collection", "ai", "memo-list"].includes(tab) ? tab : "collection";
+  const nextTab = ["collection", "tag", "ai", "memo-list"].includes(tab) ? tab : "collection";
   contextPanelTab = nextTab;
   setContextPanelOpen(true, { restoreFocus: false });
   const panels = [
     ["collection", collectionExplorer, contextCollectionTab],
+    ["tag", tagPanel, contextTagTab],
     ["ai", aiPanel, contextAiTab],
     ["memo-list", memoSidebar, contextMemoListTab]
   ];
@@ -1457,9 +1505,10 @@ function setContextPanelTab(tab, { focus = true } = {}) {
   setAiAssistantPanelActive(nextTab === "ai");
   collectionsBtn?.setAttribute("aria-expanded", String(nextTab === "collection"));
   if (nextTab === "collection") renderCollectionExplorer();
+  if (nextTab === "tag") renderTagPanel();
   if (nextTab === "memo-list") renderMemoListPanel();
   if (focus) {
-    const button = nextTab === "collection" ? contextCollectionTab : nextTab === "ai" ? contextAiTab : contextMemoListTab;
+    const button = nextTab === "collection" ? contextCollectionTab : nextTab === "tag" ? contextTagTab : nextTab === "ai" ? contextAiTab : contextMemoListTab;
     button?.focus();
   }
 }
@@ -1587,6 +1636,9 @@ function openDb() {
       if (!database.objectStoreNames.contains(LOCAL_CONFIG_STORE_NAME)) {
         database.createObjectStore(LOCAL_CONFIG_STORE_NAME, { keyPath: "key" });
       }
+      if (!database.objectStoreNames.contains(TAG_STORE_NAME)) {
+        database.createObjectStore(TAG_STORE_NAME, { keyPath: "id" });
+      }
     }
   });
 }
@@ -1598,10 +1650,14 @@ function tx(mode = "readonly") {
 }
 
 // 保存済みメモをすべて読み込み、更新日時が新しい順に並べます。
+function withNormalizedMemoTags(note) {
+  return { ...note, tags: normalizeTagIds(note?.tags) };
+}
+
 function getAllNotes() {
   return new Promise((resolve, reject) => {
     const request = tx().getAll();
-    request.onsuccess = () => resolve(request.result.map(withNormalizedFlag).sort((a, b) => b.updatedAt - a.updatedAt));
+    request.onsuccess = () => resolve(request.result.map(withNormalizedFlag).map(withNormalizedMemoTags).sort((a, b) => b.updatedAt - a.updatedAt));
     request.onerror = () => reject(request.error);
   });
 }
@@ -1609,6 +1665,7 @@ function getAllNotes() {
 // メモを1件保存します。idが同じなら上書き、なければ新規追加になります。
 function putNote(note) {
   return new Promise((resolve, reject) => {
+    note = withNormalizedMemoTags(note);
     const transaction = db.transaction(STORE_NAME, "readwrite");
     const request = transaction.objectStore(STORE_NAME).put(note);
     transaction.oncomplete = () => {
@@ -1830,6 +1887,7 @@ async function performLocalWorkspaceSave(reason = "change") {
     nextSync.excluded = [...new Set([...nextSync.excluded, ...localPendingExclusions])];
     const storedNotes = await getAllNotes();
     const storedCollections = await getAllCollections();
+    const storedTags = await getAllTagDefinitions();
     const plans = [];
     const assetPlans = new Map();
 
@@ -1864,12 +1922,14 @@ async function performLocalWorkspaceSave(reason = "change") {
       nextSync.notes[plan.note.id] = { fileName: plan.fileName, hash: plan.hash, attachmentIds: plan.attachmentIds };
     });
     nextSync.savedAt = savedAt;
-    const manifest = buildManifest({ appVersion: APP_VERSION, savedAt, notes: storedNotes, collections: storedCollections, assetsCount: assetPlans.size });
+    const manifest = buildManifest({ appVersion: APP_VERSION, savedAt, notes: storedNotes, collections: storedCollections, tags: storedTags, assetsCount: assetPlans.size });
     const backupFiles = buildPortableBackupFiles({
       manifest,
       collections: JSON.parse(serializeCollections(storedCollections)),
+      tagDefinitions: storedTags,
       notePlans: plans,
-      assetPlans: [...assetPlans.values()]
+      assetPlans: [...assetPlans.values()],
+      normalizeTagDefinitions
     });
     for (const file of backupFiles) await localFs.writeFile(layout.root, file.name, file.content);
     await localFs.writeJson(layout.root, "sync-state.json", nextSync);
@@ -2126,6 +2186,7 @@ function noteFromLocalCandidate(candidate, { preserveId = false, overwrite = nul
     bodyUpdatedAt: metadata.bodyUpdatedAt || metadata.updatedAt || candidate.file.lastModified || Date.now(),
     localSavedAt: metadata.localSavedAt || null,
     isFlagged: Boolean(metadata.flagged),
+    tags: normalizeTagIds(metadata.tags),
     deletedAt: metadata.deletedAt || null,
     sortOrder: Number(metadata.sortOrder || 0)
   };
@@ -2171,6 +2232,7 @@ async function applyLocalCandidate(index, action) {
     suppressLocalSaveQueue = false;
   }
   notes = await getAllNotes();
+  await synchronizeRegisteredTagsForNotes();
   renderAll();
   openNote(draft.id);
   localScanCandidates.splice(index, 1);
@@ -2195,6 +2257,35 @@ async function restoreCollectionsFromLocal() {
   return additions.length;
 }
 
+function tagDefinitionChanged(existing, incoming) {
+  return !existing
+    || existing.name !== incoming.name
+    || existing.createdAt !== incoming.createdAt
+    || existing.updatedAt !== incoming.updatedAt;
+}
+
+async function restoreTagsFromLocal() {
+  const root = await localFs.resolveWorkspaceRoot(localDirectoryHandle, false);
+  const text = await optionalLocalText(root, "tags.json");
+  if (!text) return { restored: 0, total: 0, skipped: false };
+  let source;
+  try {
+    source = JSON.parse(text);
+    if (!Array.isArray(source)) throw new Error("配列ではありません");
+  } catch (error) {
+    console.warn("Local tags restore skipped", error);
+    return { restored: 0, total: 0, skipped: true };
+  }
+  const imported = normalizeTagDefinitions(source);
+  const existing = await getAllTagDefinitions();
+  const existingById = new Map(existing.map((definition) => [definition.id, definition]));
+  const merged = mergeTagDefinitions(existing, imported);
+  const updates = merged.filter((definition) => tagDefinitionChanged(existingById.get(definition.id), definition));
+  if (updates.length) await putTagDefinitions(updates);
+  registeredTags = merged;
+  return { restored: updates.length, total: imported.length, skipped: false };
+}
+
 async function restoreFromLocalFolder() {
   if (!localDirectoryHandle) return;
   const permission = await localFs.queryPermission(localDirectoryHandle, "read");
@@ -2202,6 +2293,7 @@ async function restoreFromLocalFolder() {
     setLocalSaveState("permission-required", { errorCode: "permission", errorMessage: "再接続して読み取り権限を許可してください。" });
     return;
   }
+  const restoredTags = await restoreTagsFromLocal();
   const restoredCollections = await restoreCollectionsFromLocal();
   await scanExternalLocalMarkdown({ automatic: true });
   const candidates = [...localScanCandidates];
@@ -2212,7 +2304,13 @@ async function restoreFromLocalFolder() {
     await applyLocalCandidate(index, candidate.classification.type === "restore" ? "restore" : "new");
     restoredNotes += 1;
   }
-  localFolderStatus.textContent = `${restoredCollections}件のコレクションと${restoredNotes}件のメモを追加・統合しました。競合は変更していません。`;
+  notes = await getAllNotes();
+  const supplementedTags = await synchronizeRegisteredTagsForNotes();
+  renderAll();
+  const tagMessage = restoredTags.skipped
+    ? "タグ定義は読み込めませんでした。"
+    : `${restoredTags.restored + supplementedTags.length}/${restoredTags.total + supplementedTags.length}件のタグを追加・更新しました。`;
+  localFolderStatus.textContent = `${restoredCollections}件のコレクションと${restoredNotes}件のメモを追加・統合しました。${tagMessage} 競合は変更していません。`;
 }
 
 function renderLocalScanResults() {
@@ -2371,6 +2469,7 @@ function saveCurrentDraftMirror() {
     bodyUpdatedAt: now,
     updatedAt: now,
     isFlagged: Boolean(note.isFlagged),
+    tags: normalizeTagIds(note.tags),
     draftSavedAt: now
   };
 
@@ -2438,7 +2537,8 @@ async function restoreCurrentDraftMirror() {
     createdAt: draft.createdAt || existingNote?.createdAt || now,
     bodyUpdatedAt: draft.bodyUpdatedAt || restoredUpdatedAt,
     updatedAt: restoredUpdatedAt,
-    isFlagged: Boolean(draft.isFlagged)
+    isFlagged: Boolean(draft.isFlagged),
+    tags: normalizeTagIds(draft.tags || existingNote?.tags)
   };
 
   await putNote(restoredNote);
@@ -2488,10 +2588,12 @@ async function importMarkdownZip(file) {
   if (isPortableBackup(entries)) {
     const imported = parsePortableBackup(entries, {
       parseNote: parseLocalNote,
+      normalizeTagDefinitions,
       idFactory: () => crypto.randomUUID()
     });
     const report = await applyPortableBackupImport(imported);
-    const summary = `バックアップを復元しました（メモ ${report.notes.restored}/${report.notes.total}、コレクション ${report.collections.restored}/${report.collections.total}、添付 ${report.attachments.restored}/${report.attachments.total}）`;
+    const tagDetail = report.tags.supplemented ? `（メモから補完 ${report.tags.supplemented}）` : "";
+    const summary = `バックアップを復元しました（メモ ${report.notes.restored}/${report.notes.total}、コレクション ${report.collections.restored}/${report.collections.total}、タグ ${report.tags.restored}/${report.tags.total}${tagDetail}、添付 ${report.attachments.restored}/${report.attachments.total}）`;
     const preserved = report.attachments.preservedExisting ? " 一部の添付を復元できなかったため、既存の添付ファイルを保持しました。" : "";
     const details = report.skipped.length ? ` スキップ: ${report.skipped.join("、")}` : "";
     if (backupImportStatus) backupImportStatus.textContent = `${summary}${preserved}${details}`;
@@ -2504,7 +2606,9 @@ async function importMarkdownZip(file) {
 
   for (const plan of plans) {
     const memoId = crypto.randomUUID();
-    const flagged = parseFlaggedMarkdown(plan.body);
+    const parsedPlan = parseLocalNote(plan.body);
+    const hasMemoNexusMetadata = Boolean(parsedPlan.metadata.memoNexusId || parsedPlan.metadata.tags?.length);
+    const flagged = parseFlaggedMarkdown(hasMemoNexusMetadata ? parsedPlan.body : plan.body);
     let body = flagged.body;
     const prepared = [];
     let preparedBytes = 0;
@@ -2536,7 +2640,11 @@ async function importMarkdownZip(file) {
     }
 
     try {
-      const note = await createNote(plan.title, body, { id: memoId, isFlagged: flagged.isFlagged });
+      const note = await createNote(hasMemoNexusMetadata ? (parsedPlan.metadata.title || plan.title) : plan.title, body, {
+        id: memoId,
+        isFlagged: flagged.isFlagged || (hasMemoNexusMetadata && Boolean(parsedPlan.metadata.flagged)),
+        tags: hasMemoNexusMetadata ? parsedPlan.metadata.tags : []
+      });
       importedNotes.push(note);
     } catch (error) {
       if (stored.length) await deleteAttachmentRecords(stored.map((attachment) => attachment.id)).catch(() => {});
@@ -2545,6 +2653,7 @@ async function importMarkdownZip(file) {
   }
 
   notes = await getAllNotes();
+  await synchronizeRegisteredTagsForNotes();
   renderAll();
   if (importedNotes[0]) openNote(importedNotes[0].id);
   setSaveStatusNotice(`${importedNotes.length}件のMarkdownを取り込みました${failedImages ? `（画像${failedImages}件は取り込めませんでした）` : ""}`);
@@ -2561,7 +2670,8 @@ function normalizedBackupNote(note, collectionIds) {
     updatedAt: note.updatedAt || now,
     bodyUpdatedAt: note.bodyUpdatedAt || note.updatedAt || now,
     deletedAt: note.deletedAt || null,
-    isFlagged: Boolean(note.isFlagged)
+    isFlagged: Boolean(note.isFlagged),
+    tags: normalizeTagIds(note.tags)
   };
 }
 
@@ -2580,6 +2690,7 @@ function restoreMissingBackupAttachmentReferences(note, existingAttachments, mis
 async function applyPortableBackupImport(imported) {
   const existingNotes = await getAllNotes();
   const existingCollections = await getAllCollections();
+  const existingTags = await getAllTagDefinitions();
   const existingByNoteId = new Map(existingNotes.map((note) => [note.id, note]));
   const existingByCollectionId = new Map(existingCollections.map((collection) => [collection.id, collection]));
   const collectionUpdates = imported.collections.filter((collection) => !collection.isSystem && importedWins(existingByCollectionId.get(collection.id), collection));
@@ -2619,20 +2730,38 @@ async function applyPortableBackupImport(imported) {
     id: asset.id, memoId: plan.note.id, fileName: asset.fileName, kind: asset.mimeType === "application/pdf" ? "pdf" : "image",
     mimeType: asset.mimeType, size: asset.data.byteLength, blob: new Blob([asset.data], { type: asset.mimeType }), createdAt: plan.note.updatedAt
   })));
+  const importedTags = normalizeTagDefinitions(imported.tags);
+  const mergedImportedTags = mergeTagDefinitions(existingTags, importedTags);
+  const projectedNotesById = new Map(existingNotes.map((note) => [note.id, note]));
+  notePlans.forEach((plan) => projectedNotesById.set(plan.note.id, plan.note));
+  const mergedTags = mergeTagDefinitionsFromNotes(mergedImportedTags, [...projectedNotesById.values()]);
+  const existingTagIds = new Set(existingTags.map((definition) => definition.id));
+  const importedTagIds = new Set(importedTags.map((definition) => definition.id));
+  const existingTagsById = new Map(existingTags.map((definition) => [definition.id, definition]));
+  const tagUpdates = mergedTags.filter((definition) => tagDefinitionChanged(existingTagsById.get(definition.id), definition));
+  const supplementedTagIds = tagUpdates.filter((definition) => !existingTagIds.has(definition.id) && !importedTagIds.has(definition.id));
   await applyPortableBackupTransaction({
     collectionUpdates,
     notePlans,
     oldAttachmentIds: attachmentIdsToReplace(notePlans, existingAttachmentsByMemo),
-    attachmentRecords
+    attachmentRecords,
+    tagUpdates
   });
   notes = await getAllNotes();
   collections = await getAllCollections();
+  await synchronizeRegisteredTagsForNotes();
   invalidateTermRelationIndex();
   renderAll();
   if (notePlans[0]) openNote(notePlans[0].note.id);
   return {
     notes: { restored: notePlans.length, total: imported.notes.length },
     collections: { restored: collectionUpdates.length, total: imported.collections.length },
+    tags: {
+      restored: tagUpdates.length,
+      total: importedTags.length + supplementedTagIds.length,
+      supplemented: supplementedTagIds.length,
+      sourcePresent: Boolean(imported.tagsFilePresent)
+    },
     attachments: {
       restored: attachmentRecords.length,
       total: imported.notes.flatMap((plan) => plan.attachmentTotal ?? (plan.attachments || []).length).reduce((sum, count) => sum + count, 0),
@@ -2643,15 +2772,17 @@ async function applyPortableBackupImport(imported) {
   };
 }
 
-function applyPortableBackupTransaction({ collectionUpdates, notePlans, oldAttachmentIds, attachmentRecords }) {
+function applyPortableBackupTransaction({ collectionUpdates, notePlans, oldAttachmentIds, attachmentRecords, tagUpdates }) {
   return new Promise((resolve, reject) => {
-    const transaction = db.transaction([STORE_NAME, COLLECTION_STORE_NAME, ATTACHMENT_STORE_NAME], "readwrite");
+    const transaction = db.transaction([STORE_NAME, COLLECTION_STORE_NAME, ATTACHMENT_STORE_NAME, TAG_STORE_NAME], "readwrite");
     const noteStore = transaction.objectStore(STORE_NAME);
     const collectionStore = transaction.objectStore(COLLECTION_STORE_NAME);
     const attachmentStore = transaction.objectStore(ATTACHMENT_STORE_NAME);
+    const tagStore = transaction.objectStore(TAG_STORE_NAME);
     collectionUpdates.forEach((collection) => collectionStore.put(collection));
     oldAttachmentIds.forEach((id) => attachmentStore.delete(id));
     attachmentRecords.forEach((attachment) => attachmentStore.put(attachment));
+    tagUpdates.forEach((definition) => tagStore.put(definition));
     notePlans.forEach((plan) => noteStore.put(plan.note));
     transaction.oncomplete = () => {
       notePlans.forEach((plan) => notifyMemoChanged(plan.note));
@@ -3275,7 +3406,8 @@ async function createNote(title = "新規メモ", body = "", options = {}) {
     createdAt: now,
     bodyUpdatedAt: now,
     updatedAt: now,
-    isFlagged: Boolean(options.isFlagged)
+    isFlagged: Boolean(options.isFlagged),
+    tags: normalizeTagIds(options.tags)
   };
   if (options.source) note.source = options.source;
 
@@ -3860,8 +3992,10 @@ function uniqueTitle(base) {
 // 画面全体の再描画をまとめて呼ぶ入口です。
 function renderAll() {
   renderCollectionExplorer();
+  renderTagPanel();
   renderMemoListPanel();
   renderNoteMeta();
+  renderNoteTags();
   renderTextStats();
   renderRelated();
   renderDiscovery();
@@ -3872,7 +4006,7 @@ function renderAll() {
 // 左側のメモ一覧を描画します。検索欄に入力があればタイトル・本文から絞り込みます。
 function renderList() {
   const query = searchInput.value.trim().toLowerCase();
-  const listView = buildMemoListView(notes, selectedCollectionId);
+  const listView = buildMemoListView(notes, selectedCollectionId, selectedTagFilter);
   renderMemoListHeading(listView.heading);
   const filtered = listView.notes.filter((note) => {
     const haystack = `${note.title}\n${note.body}`.toLowerCase();
@@ -3923,6 +4057,241 @@ function renderMemoListHeading(heading) {
   memoSidebar.setAttribute("aria-label", heading);
 }
 
+function tagTx(mode = "readonly") {
+  if (!db || dbConnectionClosedForUpgrade) throw new Error("保存接続が閉じられています。ページを再読み込みしてください。");
+  return db.transaction(TAG_STORE_NAME, mode).objectStore(TAG_STORE_NAME);
+}
+
+function getAllTagDefinitions() {
+  return new Promise((resolve, reject) => {
+    const request = tagTx().getAll();
+    request.onsuccess = () => resolve(normalizeTagDefinitions(request.result));
+    request.onerror = () => reject(request.error);
+  });
+}
+
+function putTagDefinitions(items) {
+  const definitions = normalizeTagDefinitions(items);
+  if (!definitions.length) return Promise.resolve([]);
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(TAG_STORE_NAME, "readwrite");
+    const store = transaction.objectStore(TAG_STORE_NAME);
+    definitions.forEach((definition) => store.put(definition));
+    transaction.oncomplete = () => {
+      markLocalWorkspacePending();
+      resolve(definitions);
+    };
+    transaction.onerror = () => reject(transaction.error);
+    transaction.onabort = () => reject(transaction.error);
+  });
+}
+
+async function synchronizeRegisteredTagsForNotes({ render = false } = {}) {
+  const stored = await getAllTagDefinitions();
+  const merged = mergeTagDefinitionsFromNotes(stored, notes);
+  const existingIds = new Set(stored.map((definition) => definition.id));
+  const additions = merged.filter((definition) => !existingIds.has(definition.id));
+  if (additions.length) await putTagDefinitions(additions);
+  registeredTags = merged;
+  if (render) {
+    renderTagPanel();
+    renderNoteTagOptions();
+  }
+  return additions;
+}
+
+async function ensureRegisteredTagsForNotes(options) {
+  return synchronizeRegisteredTagsForNotes(options);
+}
+
+function renderNoteTags(note = currentNote()) {
+  if (!noteTagEditor || !noteTagList) return;
+  noteTagEditor.hidden = !note;
+  noteTagList.innerHTML = "";
+  if (!note) return;
+
+  normalizeTagIds(note.tags).forEach((tagId) => {
+    const tagName = tagNameForId(registeredTags, tagId);
+    const chip = document.createElement("span");
+    chip.className = "note-tag-chip";
+    const label = document.createElement("span");
+    label.textContent = tagName;
+    const remove = document.createElement("button");
+    remove.type = "button";
+    remove.textContent = "×";
+    remove.setAttribute("aria-label", `タグ「${tagName}」をこのメモから外す`);
+    remove.addEventListener("click", () => {
+      void updateCurrentNoteTags(removeMemoTag(note.tags, tagId)).catch((error) => {
+        console.error("Tag save failed", error);
+        setSaveStatus("error");
+      });
+    });
+    chip.append(label, remove);
+    noteTagList.appendChild(chip);
+  });
+}
+
+async function updateCurrentNoteTags(value) {
+  const note = currentNote();
+  if (!note) return;
+  await ensureRegisteredTagsForNotes();
+  const nextTags = restrictTagIds(value, registeredTags);
+  const currentTags = normalizeTagIds(note.tags);
+  if (nextTags.length === currentTags.length && nextTags.every((tag, index) => tag === currentTags[index])) return;
+  note.tags = nextTags;
+  renderNoteTags(note);
+  renderTagPanel();
+  renderNoteTagOptions();
+  renderList();
+  await saveCurrentNote();
+}
+
+function setNoteTagStatus(message = "") {
+  if (noteTagStatus) noteTagStatus.textContent = message;
+}
+
+function hideNoteTagOptions() {
+  if (noteTagOptions) noteTagOptions.hidden = true;
+  noteTagInput?.setAttribute("aria-expanded", "false");
+}
+
+function renderNoteTagOptions() {
+  const note = currentNote();
+  if (!note || !noteTagInput || !noteTagOptions) return;
+  const options = searchTagOptions(registeredTags, noteTagInput.value, note.tags);
+  noteTagOptions.innerHTML = "";
+  options.forEach((definition) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "note-tag-option";
+    button.setAttribute("role", "option");
+    button.dataset.tagId = definition.id;
+    button.textContent = definition.name;
+    button.addEventListener("click", () => {
+      void addRegisteredTagToCurrentNote(definition.id);
+    });
+    noteTagOptions.appendChild(button);
+  });
+  const shouldShow = document.activeElement === noteTagInput && options.length > 0;
+  noteTagOptions.hidden = !shouldShow;
+  noteTagInput.setAttribute("aria-expanded", String(shouldShow));
+}
+
+async function addRegisteredTagToCurrentNote(tagId) {
+  const note = currentNote();
+  const definition = findTagDefinition(registeredTags, tagId);
+  if (!note || !definition) {
+    setNoteTagStatus("タグタブから新しいタグを作成してください。");
+    renderNoteTagOptions();
+    return false;
+  }
+  const currentTags = normalizeTagIds(note.tags);
+  const nextTags = assignRegisteredTag(currentTags, definition.id, registeredTags);
+  if (nextTags.length === currentTags.length) {
+    setNoteTagStatus(`タグ「${definition.name}」はすでに付いています。`);
+    return false;
+  }
+  await updateCurrentNoteTags(nextTags);
+  noteTagInput.value = "";
+  hideNoteTagOptions();
+  setNoteTagStatus(`タグ「${definition.name}」を追加しました。`);
+  return true;
+}
+
+function submitCurrentNoteTagSelection() {
+  const definition = findTagDefinition(registeredTags, noteTagInput?.value);
+  if (!definition) {
+    setNoteTagStatus("タグタブから新しいタグを作成してください。");
+    renderNoteTagOptions();
+    return;
+  }
+  void addRegisteredTagToCurrentNote(definition.id).catch((error) => {
+    console.error("Tag save failed", error);
+    setSaveStatus("error");
+  });
+}
+
+function focusNoteTagInput() {
+  if (!noteTagInput) return;
+  noteTagInput.scrollIntoView({ block: "nearest" });
+  noteTagInput.focus();
+}
+
+function renderTagPanel() {
+  if (!tagList || !tagFilterStatus || !clearTagFilterBtn) return;
+  const counts = countTagUsage(registeredTags, notes);
+  tagList.innerHTML = "";
+  clearTagFilterBtn.hidden = !selectedTagFilter;
+  const selectedDefinition = findTagDefinition(registeredTags, selectedTagFilter);
+  tagFilterStatus.textContent = selectedTagFilter
+    ? `タグ「${selectedDefinition?.name || selectedTagFilter}」でメモ一覧を絞り込み中です。`
+    : "タグを選ぶとメモ一覧を絞り込みます。";
+
+  if (!registeredTags.length) {
+    const empty = document.createElement("p");
+    empty.className = "tag-list-empty";
+    empty.textContent = "登録済みタグはありません。";
+    tagList.appendChild(empty);
+    return;
+  }
+
+  normalizeTagDefinitions(registeredTags).forEach((definition) => {
+    const count = counts.get(definition.id) || 0;
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "tag-list-item";
+    button.setAttribute("aria-pressed", String(selectedTagFilter === definition.id));
+    const label = document.createElement("span");
+    label.textContent = definition.name;
+    const countLabel = document.createElement("span");
+    countLabel.className = "tag-list-count";
+    countLabel.textContent = `${count}件`;
+    button.append(label, countLabel);
+    button.addEventListener("click", () => {
+      selectedTagFilter = definition.id;
+      renderTagPanel();
+      renderMemoListPanel();
+    });
+    tagList.appendChild(button);
+  });
+}
+
+function clearTagFilter() {
+  selectedTagFilter = null;
+  renderTagPanel();
+  renderMemoListPanel();
+}
+
+function openCreateTagDialog() {
+  if (!createTagDialog || !createTagNameInput || !createTagStatus) return;
+  createTagNameInput.value = "";
+  createTagStatus.textContent = "";
+  createTagDialog.showModal();
+  requestAnimationFrame(() => createTagNameInput.focus());
+}
+
+function closeCreateTagDialog() {
+  if (createTagDialog?.open) createTagDialog.close();
+}
+
+async function registerNewTag() {
+  const result = createTagDefinition(createTagNameInput?.value, registeredTags);
+  if (result.status === "invalid") {
+    createTagStatus.textContent = "タグ名を入力してください。";
+    return;
+  }
+  if (result.status === "exists") {
+    createTagStatus.textContent = `タグ「${result.definition.name}」はすでに登録されています。`;
+    return;
+  }
+  await putTagDefinitions([result.definition]);
+  registeredTags = normalizeTagDefinitions([...registeredTags, result.definition]);
+  renderTagPanel();
+  renderNoteTagOptions();
+  if (tagPanelStatus) tagPanelStatus.textContent = `タグ「${result.definition.name}」を登録しました。`;
+  closeCreateTagDialog();
+}
+
 // メモ一覧カードに出す短い本文プレビューを作ります。
 function snippet(body) {
   const text = tableBlockPlainText(body).replace(/\[\[|\]\]|#/g, "").trim();
@@ -3948,6 +4317,10 @@ function openNote(id) {
   titleInput.value = note.title;
   editor.value = note.body;
   renderNoteFlagButton(note);
+  renderNoteTags(note);
+  if (noteTagInput) noteTagInput.value = "";
+  setNoteTagStatus("");
+  hideNoteTagOptions();
   lastUndoSnapshotAt = 0;
   setSaveStatus("saved", note.updatedAt);
   renderNoteMeta();
@@ -3972,6 +4345,8 @@ async function initPopout() {
   db = await openDb();
   collections = await getAllCollections();
   notes = await getAllNotes();
+  registeredTags = await getAllTagDefinitions();
+  await ensureRegisteredTagsForNotes();
   await initializeLocalFolderSaving();
   const note = notes.find((item) => item.id === popoutMemoId && !item.deletedAt);
   if (!note) {
@@ -3983,6 +4358,9 @@ async function initPopout() {
   titleInput.value = note.title;
   editor.value = note.body;
   renderNoteFlagButton(note);
+  renderNoteTags(note);
+  setNoteTagStatus("");
+  hideNoteTagOptions();
   setSaveStatus("saved", note.updatedAt);
   renderNoteMeta();
   renderTextStats();
@@ -4182,6 +4560,7 @@ function applyMemoSync(note) {
   titleInput.value = note.title;
   editor.value = note.body;
   renderNoteFlagButton(note);
+  renderNoteTags(note);
   clearLocalMemoDirty(note.id);
   pendingMemoSync = null;
   renderMemoSyncNotice();
@@ -4366,6 +4745,7 @@ async function saveCurrentNote() {
   const bodyChanged = note.body !== nextBody;
   note.body = nextBody;
   note.title = titleInput.value || titleFromBody(note.body) || "無題メモ";
+  note.tags = normalizeTagIds(note.tags);
   if (!note.createdAt) note.createdAt = Date.now();
   if (!note.bodyUpdatedAt || bodyChanged) note.bodyUpdatedAt = Date.now();
   note.updatedAt = Date.now();
@@ -7708,6 +8088,7 @@ async function buildPortableBackupZipFiles() {
   const exportedAt = new Date().toISOString();
   const storedNotes = await getAllNotes();
   const storedCollections = await getAllCollections();
+  const storedTags = await getAllTagDefinitions();
   const assetPlans = new Map();
   const notePlans = [];
   for (const note of storedNotes) {
@@ -7723,8 +8104,15 @@ async function buildPortableBackupZipFiles() {
       updatedAt: note.bodyUpdatedAt || note.updatedAt || note.createdAt || exportedAt
     });
   }
-  const manifest = buildManifest({ appVersion: APP_VERSION, savedAt: exportedAt, exportedAt, notes: storedNotes, collections: storedCollections, assetsCount: assetPlans.size });
-  return buildPortableBackupFiles({ manifest, collections: JSON.parse(serializeCollections(storedCollections)), notePlans, assetPlans: [...assetPlans.values()] });
+  const manifest = buildManifest({ appVersion: APP_VERSION, savedAt: exportedAt, exportedAt, notes: storedNotes, collections: storedCollections, tags: storedTags, assetsCount: assetPlans.size });
+  return buildPortableBackupFiles({
+    manifest,
+    collections: JSON.parse(serializeCollections(storedCollections)),
+    tagDefinitions: storedTags,
+    notePlans,
+    assetPlans: [...assetPlans.values()],
+    normalizeTagDefinitions
+  });
 }
 
 // 追加ライブラリなしでZIPを作る処理です。各Markdownを無圧縮のZIPエントリにします。
@@ -9546,6 +9934,7 @@ function renderSyntaxGuide() {
   if (!syntaxGuideBody || syntaxGuideRendered) return;
   const sectionDetails = [
     { category: "markdown", title: "Markdown", intro: "Memo Nexusのプレビューが現在対応している記法です。" },
+    { category: "tag", title: "タグ", intro: "本文とは別に登録・保存し、メモを一定の基準で分類・絞り込みするための登録済みラベルです。" },
     { category: "math", title: "数式", intro: "KaTeX記法を読みやすく表示します。数式の計算は行いません。" },
     { category: "calculation", title: "計算ブロック", intro: "Calculator Memoの現在のmainと同じ規則で、1つの独立した式を計算します。" },
     { category: "code", title: "コードブロック", intro: "バッククォート3個で囲んだ完成例です。" },
@@ -9803,11 +10192,24 @@ newBtn.addEventListener("click", async () => {
 
 if (collectionsBtn) collectionsBtn.addEventListener("click", () => setContextPanelTab("collection"));
 if (contextCollectionTab) contextCollectionTab.addEventListener("click", () => setContextPanelTab("collection"));
+if (contextTagTab) contextTagTab.addEventListener("click", () => setContextPanelTab("tag"));
 if (contextAiTab) contextAiTab.addEventListener("click", () => {
   if (!aiAssistantState.panelOpen) openAiAssistant();
   else setContextPanelTab("ai");
 });
 if (contextMemoListTab) contextMemoListTab.addEventListener("click", () => setContextPanelTab("memo-list"));
+if (clearTagFilterBtn) clearTagFilterBtn.addEventListener("click", clearTagFilter);
+createTagBtn?.addEventListener("click", openCreateTagDialog);
+closeCreateTagDialogBtn?.addEventListener("click", closeCreateTagDialog);
+cancelCreateTagBtn?.addEventListener("click", closeCreateTagDialog);
+createTagForm?.addEventListener("submit", (event) => {
+  event.preventDefault();
+  void registerNewTag().catch((error) => {
+    console.error("Tag registration failed", error);
+    if (createTagStatus) createTagStatus.textContent = "タグを登録できませんでした。";
+  });
+});
+createTagDialog?.addEventListener("close", () => createTagBtn?.focus());
 if (closeContextPanelBtn) closeContextPanelBtn.addEventListener("click", () => setContextPanelOpen(false));
 if (closeCollectionsBtn) closeCollectionsBtn.addEventListener("click", () => setContextPanelOpen(false));
 if (collectionBackdrop) collectionBackdrop.addEventListener("click", () => toggleCollectionExplorer(false));
@@ -9930,6 +10332,7 @@ if (attachmentDropZone) {
 if (closeImagePreviewBtn) closeImagePreviewBtn.addEventListener("click", () => imagePreviewDialog.close());
 if (imagePreviewDialog) imagePreviewDialog.addEventListener("close", () => imagePreview.removeAttribute("src"));
 if (syntaxGuideBtn && syntaxGuideDialog) syntaxGuideBtn.addEventListener("click", openSyntaxGuide);
+focusNoteTagBtn?.addEventListener("click", focusNoteTagInput);
 if (insertTableBtn) insertTableBtn.addEventListener("click", insertTableAtSelection);
 if (insertCalloutBtn) insertCalloutBtn.addEventListener("click", insertCalloutAtSelection);
 if (insertImageBlockBtn) insertImageBlockBtn.addEventListener("click", () => {
@@ -10240,6 +10643,21 @@ relatedToggleBtn.addEventListener("click", () => setRelatedDrawerOpen(!isRelated
 closeRelatedPanelBtn.addEventListener("click", () => setRelatedDrawerOpen(false));
 relatedBackdrop.addEventListener("click", () => setRelatedDrawerOpen(false));
 searchInput.addEventListener("input", renderList);
+noteTagForm?.addEventListener("submit", (event) => {
+  event.preventDefault();
+  submitCurrentNoteTagSelection();
+});
+noteTagInput?.addEventListener("input", () => {
+  setNoteTagStatus("");
+  renderNoteTagOptions();
+});
+noteTagInput?.addEventListener("focus", renderNoteTagOptions);
+noteTagInput?.addEventListener("keydown", (event) => {
+  if (event.key === "Escape") hideNoteTagOptions();
+});
+document.addEventListener("pointerdown", (event) => {
+  if (noteTagEditor && !noteTagEditor.contains(event.target)) hideNoteTagOptions();
+});
 titleInput.addEventListener("beforeinput", captureUndoSnapshot);
 editor.addEventListener("beforeinput", captureUndoSnapshot);
 editor.addEventListener("beforeinput", resetEditorCaretIdle);

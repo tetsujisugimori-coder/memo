@@ -2,6 +2,7 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const { buildMemoExportBundle } = require("./attachment-utils.js");
 const { buildMarkdownBundleImport, parseStoredZipEntries } = require("./markdown-bundle-utils.js");
+const { parseLocalNote, serializeLocalNote } = require("./local-markdown.js");
 
 function u16(value) { return Uint8Array.from([value & 255, value >>> 8 & 255]); }
 function u32(value) { return Uint8Array.from([value & 255, value >>> 8 & 255, value >>> 16 & 255, value >>> 24 & 255]); }
@@ -35,4 +36,13 @@ test("画像ブロックを書き出して再取り込みしてもローカル�
   assert.equal(plan.attachments[0].mimeType, "image/png");
   assert.match(plan.body, /前[\s\S]*attachment:\/\/restored-image-id[\s\S]*後/);
   assert.doesNotMatch(plan.body, /<attachments\//);
+});
+
+test("通常Markdown ZIPのfront matterタグを取り込み経路へ渡せる", () => {
+  const markdown = serializeLocalNote({ id: "source", title: "タグ付き", tags: ["AI", "資料"] }, "本文");
+  const [plan] = buildMarkdownBundleImport([{ name: "タグ付き.md", data: new TextEncoder().encode(markdown) }]);
+  const parsed = parseLocalNote(plan.body);
+  assert.equal(parsed.metadata.title, "タグ付き");
+  assert.deepEqual(parsed.metadata.tags, ["ai", "資料"]);
+  assert.equal(parsed.body, "本文");
 });

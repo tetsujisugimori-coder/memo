@@ -103,15 +103,17 @@ test("右パネルを閉じてもAIタブの会話を再開でき、AI状態だ�
   assert.match(app, /const resume = options\.resume === true;/);
 });
 
-test("right context panel contains one active view for collection, AI, and memo list", () => {
+test("right context panel contains one active view for collection, tags, AI, and memo list", () => {
   assert.match(html, /id="contextPanel" class="context-panel"/);
   assert.match(html, /id="contextCollectionTab"[^>]+aria-selected="true"/);
+  assert.match(html, /id="contextTagTab"[^>]+aria-controls="tagPanel"/);
   assert.match(html, /id="contextAiTab"/);
   assert.match(html, /id="contextMemoListTab"[^>]+aria-controls="memoSidebar"/);
   assert.match(html, />メモ一覧\s*<span id="memoListCount"/);
   assert.doesNotMatch(html, /newMemosPanel|contextNewMemosTab/);
   assert.match(app, /let contextPanelTab = "collection"/);
-  assert.match(app, /contextPanel\.append\(collectionExplorer, aiPanel, memoSidebar\)/);
+  assert.match(app, /contextPanel\.append\(collectionExplorer, tagPanel, aiPanel, memoSidebar\)/);
+  assert.match(app, /\["tag", tagPanel, contextTagTab\]/);
   assert.match(app, /\["memo-list", memoSidebar, contextMemoListTab\]/);
   assert.match(app, /setContextPanelTab\("collection"/);
   assert.match(app, /panel\.hidden = !selected/);

@@ -57,16 +57,17 @@
     };
   }
 
-  function buildManifest({ appVersion, savedAt, exportedAt = savedAt, notes, collections, assetsCount }) {
+  function buildManifest({ appVersion, savedAt, exportedAt = savedAt, notes, collections, tags, assetsCount }) {
     return {
       format: "memo-nexus-backup",
-      version: 1,
+      version: 2,
       exportedAt: exportedAt || new Date().toISOString(),
-      formatVersion: 1,
+      formatVersion: 2,
       appVersion,
       savedAt,
       notesCount: (notes || []).length,
       collectionsCount: (collections || []).length,
+      tagsCount: (tags || []).length,
       assetsCount: Number(assetsCount || 0)
     };
   }
@@ -218,17 +219,25 @@
     return (await buildLocalScanAnalysis(options)).candidates;
   }
 
+  function comparableTags(value) {
+    return [...new Set((Array.isArray(value) ? value : []).filter((tag) => tag != null).map((tag) => String(tag).trim().toLowerCase()).filter(Boolean))];
+  }
+
+  function noteContentHash(title, body, tags) {
+    return contentHash(`${title || ""}\n${body || ""}\n${JSON.stringify(comparableTags(tags))}`);
+  }
+
   function classifyMarkdownCandidate(candidate, existingNotes, importedHashes = new Set()) {
     const id = candidate?.metadata?.memoNexusId ? String(candidate.metadata.memoNexusId) : "";
-    const bodyHash = contentHash(`${candidate?.metadata?.title || ""}\n${candidate?.body || ""}`);
+    const bodyHash = noteContentHash(candidate?.metadata?.title, candidate?.body, candidate?.metadata?.tags);
     if (importedHashes.has(bodyHash)) return { type: "duplicate", bodyHash, existing: null };
     const sameId = id ? (existingNotes || []).find((note) => note.id === id) : null;
     if (id && !sameId) return { type: "restore", bodyHash, existing: null };
     if (sameId) {
-      const existingHash = contentHash(`${sameId.title || ""}\n${sameId.body || ""}`);
+      const existingHash = noteContentHash(sameId.title, sameId.body, sameId.tags);
       return { type: existingHash === bodyHash ? "unchanged" : "conflict", bodyHash, existing: sameId };
     }
-    const duplicate = (existingNotes || []).find((note) => contentHash(`${note.title || ""}\n${note.body || ""}`) === bodyHash);
+    const duplicate = (existingNotes || []).find((note) => noteContentHash(note.title, note.body, note.tags) === bodyHash);
     return { type: duplicate ? "duplicate" : "new", bodyHash, existing: duplicate || null };
   }
 

@@ -28,7 +28,7 @@ test("本文入力欄の後ろに表ブロック編集領域と境界余白を�
 });
 
 test("画面配置用CSSの配信キャッシュを更新する", () => {
-  assert.match(html, /style\.css\?v=0\.4\.0-52/);
+  assert.match(html, /style\.css\?v=0\.4\.0-54/);
 });
 
 test("狭幅ではタイトル日時と保存状態・成功時刻を重ねずに折り返す", () => {
@@ -49,7 +49,7 @@ test("右側コンテキストパネルは単一の固定列とモバイルド�
 });
 
 test("desktop has one memo list owner and no fixed blank context column when closed", () => {
-  assert.match(app, /contextPanel\.append\(collectionExplorer, aiPanel, memoSidebar\)/);
+  assert.match(app, /contextPanel\.append\(collectionExplorer, tagPanel, aiPanel, memoSidebar\)/);
   assert.doesNotMatch(html, /newMemosPanel|contextNewMemosTab/);
   assert.match(css, /body\.context-panel-closed\s*\{\s*grid-template-columns:\s*minmax\(0, 1fr\)/s);
   assert.match(app, /document\.body\.classList\.toggle\("context-panel-closed", !contextPanelOpen\)/);

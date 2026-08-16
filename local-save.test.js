@@ -192,7 +192,7 @@ test("Markdownフロントマターと画像相対参照を往復する", () => 
   const note = {
     id: "note-1", title: "題名", collectionId: "c1", createdAt: "original", localCreatedAt: "local",
     updatedAt: "updated", bodyUpdatedAt: "body-updated", localSavedAt: "saved", isFlagged: true,
-    deletedAt: null, sortOrder: 10, body: "前\n![図](attachment://asset-1)\n後"
+    deletedAt: null, sortOrder: 10, tags: [" Work ", "work", "資料", null, undefined], body: "前\n![図](attachment://asset-1)\n後"
   };
   const markdown = serializeLocalNote(note, note.body, [{ id: "asset-1", fileName: "asset-1.png" }]);
   assert.match(markdown, /^---\nmemoNexusId: "note-1"/);
@@ -202,7 +202,14 @@ test("Markdownフロントマターと画像相対参照を往復する", () => 
   const parsed = parseLocalNote(markdown, { assets: [{ path: "../assets/asset-1.png", id: "asset-1" }] });
   assert.equal(parsed.metadata.memoNexusId, note.id);
   assert.equal(parsed.metadata.flagged, true);
+  assert.deepEqual(parsed.metadata.tags, ["work", "資料"]);
   assert.equal(parsed.body, note.body);
+});
+
+test("タグなし旧Markdownは空のタグ配列として読み込む", () => {
+  const parsed = parseLocalNote("---\nmemoNexusId: \"legacy\"\ntitle: \"旧形式\"\n---\n\n本文");
+  assert.deepEqual(parsed.metadata.tags, []);
+  assert.equal(parsed.body, "本文");
 });
 
 test("外部Markdownの作成日時はlocalCreatedAt、createdAt、lastModified、取込日時の順で決める", () => {
@@ -216,8 +223,8 @@ test("コレクションツリーとmanifestを完全な管理情報として往
   const collections = [{ id: "root", name: "親", parentId: null, sortOrder: 10, isSystem: false, createdAt: "c", updatedAt: "u" }, { id: "child", name: "子", parentId: "root", sortOrder: 20, isSystem: false, createdAt: "c2", updatedAt: "u2" }];
   assert.deepEqual(parseCollections(serializeCollections(collections)), collections);
   assert.deepEqual(buildManifest({ appVersion: "0.4.0", savedAt: "now", notes: [{}, {}], collections, assetsCount: 3 }), {
-    format: "memo-nexus-backup", version: 1, exportedAt: "now", formatVersion: 1,
-    appVersion: "0.4.0", savedAt: "now", notesCount: 2, collectionsCount: 2, assetsCount: 3
+    format: "memo-nexus-backup", version: 2, exportedAt: "now", formatVersion: 2,
+    appVersion: "0.4.0", savedAt: "now", notesCount: 2, collectionsCount: 2, tagsCount: 0, assetsCount: 3
   });
 });
 
@@ -228,12 +235,13 @@ test("画像形式に合う拡張子を使い同期状態へ対応を保持す�
 });
 
 test("外部Markdownを新規・復元・同一・競合・重複へ分類する", () => {
-  const notes = [{ id: "n1", title: "既存", body: "本文" }];
+  const notes = [{ id: "n1", title: "既存", body: "本文", tags: ["work"] }];
   assert.equal(classifyMarkdownCandidate({ metadata: {}, body: "新規" }, notes).type, "new");
   assert.equal(classifyMarkdownCandidate({ metadata: { memoNexusId: "missing", title: "復元" }, body: "本文" }, notes).type, "restore");
-  assert.equal(classifyMarkdownCandidate({ metadata: { memoNexusId: "n1", title: "既存" }, body: "本文" }, notes).type, "unchanged");
-  assert.equal(classifyMarkdownCandidate({ metadata: { memoNexusId: "n1", title: "既存" }, body: "外部変更" }, notes).type, "conflict");
-  assert.equal(classifyMarkdownCandidate({ metadata: { title: "既存" }, body: "本文" }, notes).type, "duplicate");
+  assert.equal(classifyMarkdownCandidate({ metadata: { memoNexusId: "n1", title: "既存", tags: [" WORK "] }, body: "本文" }, notes).type, "unchanged");
+  assert.equal(classifyMarkdownCandidate({ metadata: { memoNexusId: "n1", title: "既存", tags: ["別"] }, body: "本文" }, notes).type, "conflict");
+  assert.equal(classifyMarkdownCandidate({ metadata: { memoNexusId: "n1", title: "既存", tags: ["work"] }, body: "外部変更" }, notes).type, "conflict");
+  assert.equal(classifyMarkdownCandidate({ metadata: { title: "既存", tags: ["work"] }, body: "本文" }, notes).type, "duplicate");
 });
 
 test("最後に書いたハッシュと異なる外部変更を自動上書きしない", () => {
@@ -248,9 +256,9 @@ test("最後に書いたハッシュと異なる外部変更を自動上書き�
 test("管理対象Markdownはsync-stateのnote IDとfileNameで特定する", () => {
   assert.match(html, /local-save-state\.js\?v=0\.4\.0-4/);
   assert.match(html, /local-save-queue\.js\?v=0\.4\.0-3/);
-  assert.match(html, /local-sync-utils\.js\?v=0\.4\.0-6/);
-  assert.match(html, /backup-bundle-utils\.js\?v=0\.1\.0-2/);
-  assert.match(html, /app\.js\?v=0\.4\.0-83/);
+  assert.match(html, /local-sync-utils\.js\?v=0\.4\.0-8/);
+  assert.match(html, /backup-bundle-utils\.js\?v=0\.1\.0-5/);
+  assert.match(html, /app\.js\?v=0\.4\.0-87/);
   const syncState = {
     notes: {
       "note-1": { fileName: "題名--note-1.md", hash: "last" },
@@ -935,12 +943,34 @@ test("明示保存はローカル一式を書き出す既存処理へだけ接�
   assert.match(saveFlow, /buildPortableBackupFiles\(/);
   assert.match(saveFlow, /file\.name, file\.content/);
   assert.match(saveFlow, /serializeCollections\(storedCollections\)/);
+  assert.match(saveFlow, /const storedTags = await getAllTagDefinitions\(\)/);
+  assert.match(saveFlow, /tagDefinitions: storedTags/);
+  assert.match(saveFlow, /normalizeTagDefinitions/);
   assert.match(saveFlow, /"sync-state\.json"/);
 });
 
-test("DB v4は既存ストアを保持してlocal-configだけを追加する", () => {
-  assert.match(app, /const DB_VERSION = 4/);
+test("ZIPバックアップとローカルフォルダ保存はタグ定義の正規化処理を渡す", () => {
+  const zipFlow = extractFunction(app, "buildPortableBackupZipFiles");
+  const localFlow = extractFunction(app, "performLocalWorkspaceSave");
+  assert.match(zipFlow, /buildPortableBackupFiles\([\s\S]*normalizeTagDefinitions/);
+  assert.match(localFlow, /buildPortableBackupFiles\([\s\S]*normalizeTagDefinitions/);
+});
+
+test("ローカル保存・復元はtags.jsonを扱い旧フォルダの欠落を許容する", () => {
+  const saveFlow = extractFunction(app, "performLocalWorkspaceSave");
+  const restoreTagsFlow = extractFunction(app, "restoreTagsFromLocal");
+  const restoreFlow = extractFunction(app, "restoreFromLocalFolder");
+  assert.match(saveFlow, /buildPortableBackupFiles\([\s\S]*tagDefinitions: storedTags/);
+  assert.match(restoreTagsFlow, /optionalLocalText\(root, "tags\.json"\)/);
+  assert.match(restoreTagsFlow, /if \(!text\) return \{ restored: 0, total: 0, skipped: false \}/);
+  assert.ok(restoreFlow.indexOf("restoreTagsFromLocal()") < restoreFlow.indexOf("scanExternalLocalMarkdown"));
+  assert.match(restoreFlow, /synchronizeRegisteredTagsForNotes\(\)/);
+});
+
+test("DB v5は既存ストアを保持してtagsストアを追加する", () => {
+  assert.match(app, /const DB_VERSION = 5/);
   assert.match(app, /objectStoreNames\.contains\(LOCAL_CONFIG_STORE_NAME\)[\s\S]*createObjectStore\(LOCAL_CONFIG_STORE_NAME/);
+  assert.match(app, /objectStoreNames\.contains\(TAG_STORE_NAME\)[\s\S]*createObjectStore\(TAG_STORE_NAME, \{ keyPath: "id" \}\)/);
   assert.doesNotMatch(app, /deleteObjectStore/);
 });
 

@@ -4,8 +4,21 @@
   const FRONT_MATTER_KEYS = [
     "memoNexusId", "title", "collectionId", "createdAt", "localCreatedAt", "updatedAt",
     "bodyUpdatedAt", "localSavedAt", "flagged", "trashed", "deletedAt", "sortOrder",
-    "source", "explanations", "fontSettings", "attachments", "formatVersion"
+    "source", "tags", "explanations", "fontSettings", "attachments", "formatVersion"
   ];
+
+  function normalizeTags(value) {
+    const normalized = [];
+    const seen = new Set();
+    (Array.isArray(value) ? value : []).forEach((tag) => {
+      if (tag == null) return;
+      const next = String(tag).trim().toLowerCase();
+      if (!next || seen.has(next)) return;
+      seen.add(next);
+      normalized.push(next);
+    });
+    return normalized;
+  }
 
   function yamlScalar(value) {
     if (value == null) return "null";
@@ -40,6 +53,7 @@
       deletedAt: note.deletedAt || null,
       sortOrder: Number(note.sortOrder || 0),
       source: note.source || null,
+      tags: normalizeTags(note.tags),
       explanations: Array.isArray(note.explanations) ? note.explanations : [],
       fontSettings: note.fontSettings || null,
       attachments: (attachments || []).map((attachment) => ({
@@ -106,6 +120,7 @@
 
   function parseLocalNote(text, options = {}) {
     const parsed = parseFrontMatter(text);
+    parsed.metadata.tags = normalizeTags(parsed.metadata.tags);
     return {
       metadata: parsed.metadata,
       body: restoreAttachmentReferences(parsed.body, options.assets),

@@ -7,7 +7,7 @@
   <script>try { document.documentElement.dataset.initialTheme = localStorage.getItem("memo-nexus-theme") === "dark" ? "dark" : "light"; } catch (_) { document.documentElement.dataset.initialTheme = "light"; }</script>
   <style>html,body{background:#f6f7f4;color:#222522;color-scheme:light}html[data-initial-theme="dark"],html[data-initial-theme="dark"] body{background:#111513;color:#e7ece7;color-scheme:dark}</style>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css">
-  <link rel="stylesheet" href="style.css?v=0.4.0-52">
+  <link rel="stylesheet" href="style.css?v=0.4.0-54">
 </head>
 <body class="app-starting">
   <section id="appStartupGuard" class="app-startup-guard" role="status" aria-live="polite" aria-busy="true">
@@ -28,6 +28,35 @@
     <input id="searchInput" type="search" placeholder="検索" autocomplete="off">
     <div id="memoList" class="memo-list"></div>
   </aside>
+
+  <aside id="tagPanel" class="tag-panel" aria-label="タグ" aria-hidden="true" hidden>
+    <div class="tag-panel-head">
+      <strong>タグ</strong>
+      <div class="tag-panel-actions">
+        <button id="createTagBtn" type="button">タグを作成</button>
+        <button id="clearTagFilterBtn" type="button" hidden>絞り込み解除</button>
+      </div>
+    </div>
+    <p id="tagFilterStatus" class="tag-filter-status">タグを選ぶとメモ一覧を絞り込みます。</p>
+    <p id="tagPanelStatus" class="tag-panel-status" role="status" aria-live="polite"></p>
+    <div id="tagList" class="tag-list"></div>
+  </aside>
+
+  <dialog id="createTagDialog" class="create-tag-dialog" aria-labelledby="createTagDialogTitle">
+    <div class="dialog-head">
+      <strong id="createTagDialogTitle">タグを作成</strong>
+      <button id="closeCreateTagDialogBtn" type="button" title="閉じる" aria-label="タグ作成を閉じる">×</button>
+    </div>
+    <form id="createTagForm" class="create-tag-form">
+      <label for="createTagNameInput">タグ名</label>
+      <input id="createTagNameInput" type="text" autocomplete="off" maxlength="80" required>
+      <p id="createTagStatus" class="create-tag-status" role="status" aria-live="polite"></p>
+      <div class="collection-dialog-actions">
+        <button id="cancelCreateTagBtn" type="button">キャンセル</button>
+        <button type="submit">作成</button>
+      </div>
+    </form>
+  </dialog>
 
   <div id="collectionBackdrop" class="collection-backdrop" hidden></div>
   <aside id="collectionExplorer" class="collection-explorer" aria-label="コレクション・エクスプローラ" aria-hidden="true">
@@ -90,7 +119,19 @@
           </div>
         </div>
         <div class="title-content">
-          <div class="title-input-wrap"><input id="titleInput" class="title-input" placeholder="無題メモ" autocomplete="off"></div>
+          <div class="title-main">
+            <div class="title-input-wrap"><input id="titleInput" class="title-input" placeholder="無題メモ" autocomplete="off"></div>
+            <div id="noteTagEditor" class="note-tag-editor" aria-label="メモのタグ">
+              <div id="noteTagList" class="note-tag-list"></div>
+              <form id="noteTagForm" class="note-tag-form">
+                <label class="sr-only" for="noteTagInput">登録済みタグを選択</label>
+                <input id="noteTagInput" type="text" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="noteTagOptions" autocomplete="off" placeholder="登録済みタグを検索">
+                <button type="submit">選択</button>
+              </form>
+              <div id="noteTagOptions" class="note-tag-options" role="listbox" aria-label="登録済みタグ候補" hidden></div>
+              <p id="noteTagStatus" class="note-tag-status" role="status" aria-live="polite"></p>
+            </div>
+          </div>
           <div id="noteMeta" class="note-meta" aria-label="メモの日時">
             <time id="noteCreatedAt">作成 —</time>
             <time id="noteUpdatedAt">更新 —</time>
@@ -98,6 +139,7 @@
         </div>
       </div>
       <div class="editor-tools" aria-label="エディタ操作">
+        <button id="focusNoteTagBtn" type="button" title="タグを追加" aria-label="タグを追加" class="editor-tool-btn"># タグ</button>
         <button id="insertTableBtn" type="button" title="カーソル位置へ表ブロックを挿入" aria-label="表ブロックを挿入" class="editor-tool-btn">表</button>
         <label class="callout-tool" for="calloutTypeSelect">注意書き
           <select id="calloutTypeSelect" aria-label="注意書きの種類"><option value="NOTE">NOTE</option><option value="TIP">TIP</option><option value="IMPORTANT">IMPORTANT</option><option value="WARNING">WARNING</option></select>
@@ -184,6 +226,7 @@
   <aside id="contextPanel" class="context-panel" aria-label="右側コンテキストパネル">
     <div class="context-panel-tabs" role="tablist" aria-label="右側パネル切り替え">
       <button id="contextCollectionTab" class="context-panel-tab" type="button" role="tab" aria-controls="collectionExplorer" aria-selected="true">コレクション</button>
+      <button id="contextTagTab" class="context-panel-tab" type="button" role="tab" aria-controls="tagPanel" aria-selected="false">タグ</button>
       <button id="contextAiTab" class="context-panel-tab" type="button" role="tab" aria-controls="aiPanel" aria-selected="false">AI</button>
       <button id="contextMemoListTab" class="context-panel-tab" type="button" role="tab" aria-controls="memoSidebar" aria-selected="false">メモ一覧 <span id="memoListCount" class="context-panel-tab-count" hidden>0</span></button>
       <button id="closeContextPanelBtn" class="context-panel-close" type="button" title="右側パネルを閉じる" aria-label="右側パネルを閉じる">×</button>
@@ -737,7 +780,8 @@
   <script src="web-clipper-config.js?v=0.1.0-2"></script>
   <script src="attachment-utils.js?v=0.4.0-10"></script>
   <script src="table-block-utils.js?v=0.4.0-4"></script>
-  <script src="memo-list-utils.js?v=0.4.0-2"></script>
+  <script src="tags.js?v=0.4.0-2"></script>
+  <script src="memo-list-utils.js?v=0.4.0-5"></script>
   <script src="term-link-utils.js?v=0.4.0-5"></script>
   <span id="editorCaretAnimation" class="editor-caret-animation" aria-hidden="true" hidden></span>
   <script src="logo-animation-utils.js?v=0.4.0-2"></script>
@@ -758,13 +802,13 @@
   <script src="markdown-bundle-utils.js?v=0.1.0-1"></script>
   <script src="local-save-state.js?v=0.4.0-4"></script>
   <script src="local-save-queue.js?v=0.4.0-3"></script>
-  <script src="local-markdown.js?v=0.4.0-1"></script>
-  <script src="local-sync-utils.js?v=0.4.0-6"></script>
-  <script src="backup-bundle-utils.js?v=0.1.0-2"></script>
+  <script src="local-markdown.js?v=0.4.0-3"></script>
+  <script src="local-sync-utils.js?v=0.4.0-8"></script>
+  <script src="backup-bundle-utils.js?v=0.1.0-5"></script>
   <script src="local-fs-adapter.js?v=0.4.0-1"></script>
   <script src="indexeddb-lifecycle.js?v=0.4.0-1"></script>
   <script src="manual-local-save.js?v=0.4.0-1"></script>
   <script src="status-time-utils.js?v=0.4.0-1"></script>
-  <script src="app.js?v=0.4.0-83"></script>
+  <script src="app.js?v=0.4.0-87"></script>
 </body>
 </html>
