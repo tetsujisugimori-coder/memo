@@ -192,7 +192,7 @@ test("Markdownフロントマターと画像相対参照を往復する", () => 
   const note = {
     id: "note-1", title: "題名", collectionId: "c1", createdAt: "original", localCreatedAt: "local",
     updatedAt: "updated", bodyUpdatedAt: "body-updated", localSavedAt: "saved", isFlagged: true,
-    deletedAt: null, sortOrder: 10, tags: [" Work ", "work", "資料"], body: "前\n![図](attachment://asset-1)\n後"
+    deletedAt: null, sortOrder: 10, tags: [" Work ", "work", "資料", null, undefined], body: "前\n![図](attachment://asset-1)\n後"
   };
   const markdown = serializeLocalNote(note, note.body, [{ id: "asset-1", fileName: "asset-1.png" }]);
   assert.match(markdown, /^---\nmemoNexusId: "note-1"/);
@@ -258,7 +258,7 @@ test("管理対象Markdownはsync-stateのnote IDとfileNameで特定する", ()
   assert.match(html, /local-save-queue\.js\?v=0\.4\.0-3/);
   assert.match(html, /local-sync-utils\.js\?v=0\.4\.0-7/);
   assert.match(html, /backup-bundle-utils\.js\?v=0\.1\.0-3/);
-  assert.match(html, /app\.js\?v=0\.4\.0-84/);
+  assert.match(html, /app\.js\?v=0\.4\.0-85/);
   const syncState = {
     notes: {
       "note-1": { fileName: "題名--note-1.md", hash: "last" },

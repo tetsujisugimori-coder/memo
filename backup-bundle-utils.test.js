@@ -21,7 +21,7 @@ test("v1バックアップはローカル保存と共通の論理構造を出力
   const note = {
     id: "note-1", title: "日本語メモ", body: "![図](attachment://asset-1)", collectionId: "child",
     createdAt: "2026-08-01T00:00:00.000Z", updatedAt: "2026-08-02T00:00:00.000Z",
-    isFlagged: true, deletedAt: null, tags: [" Work ", "work", "資料"], explanations: [{ text: "説明" }]
+    isFlagged: true, deletedAt: null, tags: [" Work ", "work", "資料", null, undefined], explanations: [{ text: "説明" }]
   };
   const markdown = serializeLocalNote(note, note.body, [{ id: "asset-1", fileName: "asset-1.png", mimeType: "image/png", kind: "image" }]);
   const files = buildPortableBackupFiles({
@@ -36,7 +36,7 @@ test("v1バックアップはローカル保存と共通の論理構造を出力
 });
 
 test("ZIP往復でタグを保持し、タグなし旧メモは空配列として復元する", () => {
-  const taggedMarkdown = serializeLocalNote({ id: "tagged", title: "タグ付き", tags: ["Alpha", " ALPHA ", "資料"], updatedAt: "2026-08-02T00:00:00.000Z" }, "本文");
+  const taggedMarkdown = serializeLocalNote({ id: "tagged", title: "タグ付き", tags: ["Alpha", " ALPHA ", "資料", null, undefined], updatedAt: "2026-08-02T00:00:00.000Z" }, "本文");
   const legacyMarkdown = "---\nmemoNexusId: \"legacy\"\ntitle: \"旧形式\"\nupdatedAt: \"2026-08-02T00:00:00.000Z\"\n---\n\n本文";
   const parsed = parsePortableBackup([
     entry("manifest.json", JSON.stringify(manifest())), entry("collections.json", "[]"),

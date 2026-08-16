@@ -69,6 +69,14 @@ const SYNTAX_GUIDE_ITEMS = [
   { category: "markdown", name: "引用", syntax: "> 引用文", description: "引用文として表示します。", notes: "行頭に>と半角スペースを書きます。" },
   { category: "markdown", name: "Wikiリンク", syntax: "[[メモ名]]", description: "同名メモへの知識リンクを作ります。", notes: "メモ名を二重の角括弧で囲みます。" },
   {
+    category: "tag",
+    name: "タグの追加と絞り込み",
+    syntax: ["入力欄に「資料」と入力して追加", "→ このメモへタグ「資料」が登録される", "", "# 見出し", "→ 本文の見出し。タグではない"].join("\n"),
+    description: "タグはMarkdown本文の書式ではなく、メモを横断して整理・絞り込みするためのメタデータです。タイトル下の入力欄、またはエディタ操作列の［# タグ］ボタンから追加できます。タグを入力して［追加］を押すか、Enterで登録します。",
+    notes: "同じタグは重複登録されず、前後の空白と英字の大文字・小文字は統一されます。右側の［タグ］タブでは同じタグのメモだけに絞り込めます。本文の「# 見出し」はMarkdown見出しであり、タグ登録ではありません。将来本文タグ記法を扱う場合は、「# 見出し」と「#タグ」を、#の直後に空白があるかで区別できます。",
+    copyable: false
+  },
+  {
     category: "code",
     name: "JavaScriptコードブロック",
     syntax: ["```javascript", "const greeting = \"Hello, Memo Nexus!\";", "console.log(greeting);", "```"].join("\n"),
@@ -603,6 +611,7 @@ const textStatsPopover = $("textStatsPopover");
 const textStatsBody = $("textStatsBody");
 const closeTextStatsBtn = $("closeTextStatsBtn");
 const editor = $("editor");
+const focusNoteTagBtn = $("focusNoteTagBtn");
 const insertTableBtn = $("insertTableBtn");
 const calloutTypeSelect = $("calloutTypeSelect");
 const insertCalloutBtn = $("insertCalloutBtn");
@@ -3996,6 +4005,12 @@ function addCurrentNoteTag() {
     console.error("Tag save failed", error);
     setSaveStatus("error");
   });
+}
+
+function focusNoteTagInput() {
+  if (!noteTagInput) return;
+  noteTagInput.scrollIntoView({ block: "nearest" });
+  noteTagInput.focus();
 }
 
 function buildTagCountMap() {
@@ -9676,6 +9691,7 @@ function renderSyntaxGuide() {
   if (!syntaxGuideBody || syntaxGuideRendered) return;
   const sectionDetails = [
     { category: "markdown", title: "Markdown", intro: "Memo Nexusのプレビューが現在対応している記法です。" },
+    { category: "tag", title: "タグ", intro: "本文とは別に保存され、メモを横断して整理・絞り込みするためのメタデータです。" },
     { category: "math", title: "数式", intro: "KaTeX記法を読みやすく表示します。数式の計算は行いません。" },
     { category: "calculation", title: "計算ブロック", intro: "Calculator Memoの現在のmainと同じ規則で、1つの独立した式を計算します。" },
     { category: "code", title: "コードブロック", intro: "バッククォート3個で囲んだ完成例です。" },
@@ -10062,6 +10078,7 @@ if (attachmentDropZone) {
 if (closeImagePreviewBtn) closeImagePreviewBtn.addEventListener("click", () => imagePreviewDialog.close());
 if (imagePreviewDialog) imagePreviewDialog.addEventListener("close", () => imagePreview.removeAttribute("src"));
 if (syntaxGuideBtn && syntaxGuideDialog) syntaxGuideBtn.addEventListener("click", openSyntaxGuide);
+focusNoteTagBtn?.addEventListener("click", focusNoteTagInput);
 if (insertTableBtn) insertTableBtn.addEventListener("click", insertTableAtSelection);
 if (insertCalloutBtn) insertCalloutBtn.addEventListener("click", insertCalloutAtSelection);
 if (insertImageBlockBtn) insertImageBlockBtn.addEventListener("click", () => {

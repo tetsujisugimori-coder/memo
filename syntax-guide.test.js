@@ -127,7 +127,18 @@ test("エディタ直下の操作列にアクセシブルな記法ガイドボ�
   const toolsIndex = editorCard.indexOf('class="editor-tools"');
   const editorIndex = editorCard.indexOf('id="editor"');
   assert.ok(titleIndex < toolsIndex && toolsIndex < editorIndex);
+  const editorTools = editorCard.match(/<div class="editor-tools"[\s\S]*?<\/div>/)?.[0] || "";
+  assert.match(editorTools, /id="focusNoteTagBtn"[^>]*type="button"[^>]*title="タグを追加"[^>]*aria-label="タグを追加"[^>]*class="editor-tool-btn"[^>]*># タグ<\/button>/);
   assert.match(html, /id="syntaxGuideBtn"[^>]*type="button"[^>]*title="[^"]+"[^>]*aria-label="記法ガイドを開く"[^>]*aria-controls="syntaxGuideDialog"[^>]*aria-expanded="false"/);
+});
+
+test("タグボタンは本文へ挿入せず既存のタグ入力欄へフォーカスする", () => {
+  const source = readFunctionSource("focusNoteTagInput");
+  assert.match(app, /focusNoteTagBtn\?\.addEventListener\("click", focusNoteTagInput\)/);
+  assert.match(source, /noteTagInput\.scrollIntoView\(\{ block: "nearest" \}\)/);
+  assert.match(source, /noteTagInput\.focus\(\)/);
+  assert.doesNotMatch(source, /noteTagInput\.value\s*=/);
+  assert.doesNotMatch(source, /editor\.|insertText|execCommand/);
 });
 
 test("記法ガイドに表ブロックの挿入・編集・制約をデータとして掲載する", () => {
@@ -206,6 +217,22 @@ test("対応するMarkdown記法とMemo Nexus独自機能を掲載する", () =>
   assert.match(markdown.find((item) => item.name === "通常リンク").notes, /javascript/);
   assert.equal(markdown.find((item) => item.name === "解説ブロック").copyable, false);
   assert.equal(markdown.find((item) => item.name === "画像ブロック").copyable, false);
+});
+
+test("記法ガイドはタグを本文のMarkdown見出しと分けて説明する", () => {
+  const [tag] = items.filter((item) => item.category === "tag");
+  assert.ok(tag);
+  assert.equal(tag.name, "タグの追加と絞り込み");
+  assert.match(tag.syntax, /入力欄に「資料」と入力して追加[\s\S]*このメモへタグ「資料」が登録される/);
+  assert.match(tag.syntax, /# 見出し[\s\S]*本文の見出し。タグではない/);
+  assert.match(tag.description, /Markdown本文の書式ではなく.*メタデータ/);
+  assert.match(tag.description, /タイトル下の入力欄.*［# タグ］ボタン/);
+  assert.match(tag.description, /［追加］.*Enter/);
+  assert.match(tag.notes, /重複登録されず.*前後の空白.*大文字・小文字は統一/);
+  assert.match(tag.notes, /右側の［タグ］タブ.*絞り込め/);
+  assert.match(tag.notes, /「# 見出し」はMarkdown見出し.*タグ登録ではありません/);
+  assert.match(tag.notes, /「# 見出し」と「#タグ」.*#の直後に空白/);
+  assert.match(app, /category: "tag", title: "タグ"[\s\S]*本文とは別に保存/);
 });
 
 test("数式カテゴリにKaTeXの表示例と表示専用である注意を掲載する", () => {
@@ -436,7 +463,7 @@ test("ライト・ダーク共通変数と狭幅container queryで表示する",
 });
 
 test("app.jsのキャッシュ番号を更新し、PR #24の画面外Mermaid描画経路を維持する", () => {
-  assert.match(html, /app\.js\?v=0\.4\.0-84/);
+  assert.match(html, /app\.js\?v=0\.4\.0-85/);
   assert.match(html, /table-block-utils\.js\?v=0\.4\.0-4/);
   assert.match(app, /mermaid\.render\(/);
   assert.doesNotMatch(app, /mermaid\.run\(/);

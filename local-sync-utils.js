@@ -219,7 +219,7 @@
   }
 
   function comparableTags(value) {
-    return [...new Set((Array.isArray(value) ? value : []).map((tag) => String(tag).trim().toLowerCase()).filter(Boolean))];
+    return [...new Set((Array.isArray(value) ? value : []).filter((tag) => tag != null).map((tag) => String(tag).trim().toLowerCase()).filter(Boolean))];
   }
 
   function noteContentHash(title, body, tags) {

@@ -5,6 +5,7 @@
     const normalized = [];
     const seen = new Set();
     (Array.isArray(value) ? value : []).forEach((tag) => {
+      if (tag == null) return;
       const next = String(tag).trim().toLowerCase();
       if (!next || seen.has(next)) return;
       seen.add(next);
