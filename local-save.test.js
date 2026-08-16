@@ -258,7 +258,7 @@ test("管理対象Markdownはsync-stateのnote IDとfileNameで特定する", ()
   assert.match(html, /local-save-queue\.js\?v=0\.4\.0-3/);
   assert.match(html, /local-sync-utils\.js\?v=0\.4\.0-7/);
   assert.match(html, /backup-bundle-utils\.js\?v=0\.1\.0-3/);
-  assert.match(html, /app\.js\?v=0\.4\.0-85/);
+  assert.match(html, /app\.js\?v=0\.4\.0-86/);
   const syncState = {
     notes: {
       "note-1": { fileName: "題名--note-1.md", hash: "last" },
@@ -946,9 +946,10 @@ test("明示保存はローカル一式を書き出す既存処理へだけ接�
   assert.match(saveFlow, /"sync-state\.json"/);
 });
 
-test("DB v4は既存ストアを保持してlocal-configだけを追加する", () => {
-  assert.match(app, /const DB_VERSION = 4/);
+test("DB v5は既存ストアを保持してtagsストアを追加する", () => {
+  assert.match(app, /const DB_VERSION = 5/);
   assert.match(app, /objectStoreNames\.contains\(LOCAL_CONFIG_STORE_NAME\)[\s\S]*createObjectStore\(LOCAL_CONFIG_STORE_NAME/);
+  assert.match(app, /objectStoreNames\.contains\(TAG_STORE_NAME\)[\s\S]*createObjectStore\(TAG_STORE_NAME, \{ keyPath: "id" \}\)/);
   assert.doesNotMatch(app, /deleteObjectStore/);
 });
 

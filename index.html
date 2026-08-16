@@ -7,7 +7,7 @@
   <script>try { document.documentElement.dataset.initialTheme = localStorage.getItem("memo-nexus-theme") === "dark" ? "dark" : "light"; } catch (_) { document.documentElement.dataset.initialTheme = "light"; }</script>
   <style>html,body{background:#f6f7f4;color:#222522;color-scheme:light}html[data-initial-theme="dark"],html[data-initial-theme="dark"] body{background:#111513;color:#e7ece7;color-scheme:dark}</style>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css">
-  <link rel="stylesheet" href="style.css?v=0.4.0-53">
+  <link rel="stylesheet" href="style.css?v=0.4.0-54">
 </head>
 <body class="app-starting">
   <section id="appStartupGuard" class="app-startup-guard" role="status" aria-live="polite" aria-busy="true">
@@ -32,11 +32,31 @@
   <aside id="tagPanel" class="tag-panel" aria-label="タグ" aria-hidden="true" hidden>
     <div class="tag-panel-head">
       <strong>タグ</strong>
-      <button id="clearTagFilterBtn" type="button" hidden>絞り込み解除</button>
+      <div class="tag-panel-actions">
+        <button id="createTagBtn" type="button">タグを作成</button>
+        <button id="clearTagFilterBtn" type="button" hidden>絞り込み解除</button>
+      </div>
     </div>
     <p id="tagFilterStatus" class="tag-filter-status">タグを選ぶとメモ一覧を絞り込みます。</p>
+    <p id="tagPanelStatus" class="tag-panel-status" role="status" aria-live="polite"></p>
     <div id="tagList" class="tag-list"></div>
   </aside>
+
+  <dialog id="createTagDialog" class="create-tag-dialog" aria-labelledby="createTagDialogTitle">
+    <div class="dialog-head">
+      <strong id="createTagDialogTitle">タグを作成</strong>
+      <button id="closeCreateTagDialogBtn" type="button" title="閉じる" aria-label="タグ作成を閉じる">×</button>
+    </div>
+    <form id="createTagForm" class="create-tag-form">
+      <label for="createTagNameInput">タグ名</label>
+      <input id="createTagNameInput" type="text" autocomplete="off" maxlength="80" required>
+      <p id="createTagStatus" class="create-tag-status" role="status" aria-live="polite"></p>
+      <div class="collection-dialog-actions">
+        <button id="cancelCreateTagBtn" type="button">キャンセル</button>
+        <button type="submit">作成</button>
+      </div>
+    </form>
+  </dialog>
 
   <div id="collectionBackdrop" class="collection-backdrop" hidden></div>
   <aside id="collectionExplorer" class="collection-explorer" aria-label="コレクション・エクスプローラ" aria-hidden="true">
@@ -104,10 +124,12 @@
             <div id="noteTagEditor" class="note-tag-editor" aria-label="メモのタグ">
               <div id="noteTagList" class="note-tag-list"></div>
               <form id="noteTagForm" class="note-tag-form">
-                <label class="sr-only" for="noteTagInput">タグを追加</label>
-                <input id="noteTagInput" type="text" autocomplete="off" placeholder="タグを追加">
-                <button type="submit">追加</button>
+                <label class="sr-only" for="noteTagInput">登録済みタグを選択</label>
+                <input id="noteTagInput" type="text" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="noteTagOptions" autocomplete="off" placeholder="登録済みタグを検索">
+                <button type="submit">選択</button>
               </form>
+              <div id="noteTagOptions" class="note-tag-options" role="listbox" aria-label="登録済みタグ候補" hidden></div>
+              <p id="noteTagStatus" class="note-tag-status" role="status" aria-live="polite"></p>
             </div>
           </div>
           <div id="noteMeta" class="note-meta" aria-label="メモの日時">
@@ -758,7 +780,8 @@
   <script src="web-clipper-config.js?v=0.1.0-2"></script>
   <script src="attachment-utils.js?v=0.4.0-10"></script>
   <script src="table-block-utils.js?v=0.4.0-4"></script>
-  <script src="memo-list-utils.js?v=0.4.0-4"></script>
+  <script src="tags.js?v=0.4.0-1"></script>
+  <script src="memo-list-utils.js?v=0.4.0-5"></script>
   <script src="term-link-utils.js?v=0.4.0-5"></script>
   <span id="editorCaretAnimation" class="editor-caret-animation" aria-hidden="true" hidden></span>
   <script src="logo-animation-utils.js?v=0.4.0-2"></script>
@@ -786,6 +809,6 @@
   <script src="indexeddb-lifecycle.js?v=0.4.0-1"></script>
   <script src="manual-local-save.js?v=0.4.0-1"></script>
   <script src="status-time-utils.js?v=0.4.0-1"></script>
-  <script src="app.js?v=0.4.0-85"></script>
+  <script src="app.js?v=0.4.0-86"></script>
 </body>
 </html>

@@ -5,7 +5,8 @@ const STORE_NAME = "notes";
 const COLLECTION_STORE_NAME = "collections";
 const ATTACHMENT_STORE_NAME = "attachments";
 const LOCAL_CONFIG_STORE_NAME = "local-config";
-const DB_VERSION = 4;
+const TAG_STORE_NAME = "tags";
+const DB_VERSION = 5;
 const APP_VERSION = "0.4.0";
 const APP_LABEL = "Waypoint";
 const APP_BUILD = "2026-07-15";
@@ -70,10 +71,10 @@ const SYNTAX_GUIDE_ITEMS = [
   { category: "markdown", name: "Wikiリンク", syntax: "[[メモ名]]", description: "同名メモへの知識リンクを作ります。", notes: "メモ名を二重の角括弧で囲みます。" },
   {
     category: "tag",
-    name: "タグの追加と絞り込み",
-    syntax: ["入力欄に「資料」と入力して追加", "→ このメモへタグ「資料」が登録される", "", "# 見出し", "→ 本文の見出し。タグではない"].join("\n"),
-    description: "タグはMarkdown本文の書式ではなく、メモを横断して整理・絞り込みするためのメタデータです。タイトル下の入力欄、またはエディタ操作列の［# タグ］ボタンから追加できます。タグを入力して［追加］を押すか、Enterで登録します。",
-    notes: "同じタグは重複登録されず、前後の空白と英字の大文字・小文字は統一されます。右側の［タグ］タブでは同じタグのメモだけに絞り込めます。本文の「# 見出し」はMarkdown見出しであり、タグ登録ではありません。将来本文タグ記法を扱う場合は、「# 見出し」と「#タグ」を、#の直後に空白があるかで区別できます。",
+    name: "登録済みタグの作成・付与・絞り込み",
+    syntax: ["右側［タグ］タブの［タグを作成］で「資料」を登録", "→ 登録済みタグ「資料」が作られる", "", "タイトル下のタグ選択欄で「資料」を選択", "→ このメモへ登録済みタグ「資料」が付く", "", "#資料", "→ 本文。タグにはならない", "", "# 見出し", "→ Markdown見出し。タグではない"].join("\n"),
+    description: "タグはメモを分類・絞り込みするための登録済みラベルです。新しいタグは右側［タグ］タブの［タグを作成］から作ります。メモにはタイトル下のタグ選択欄、またはエディタ操作列の［# タグ］ボタンから登録済みタグを付けます。",
+    notes: "本文に「#資料」と書いてもタグにはなりません。「# 見出し」は従来どおりMarkdown見出しです。本文検索とタグ絞り込みは別の機能で、未登録の文字列をタグ選択欄へ入力してもメモには追加されません。",
     copyable: false
   },
   {
@@ -310,7 +311,21 @@ const {
   serializeImageBlock,
   splitImageBlocks
 } = window.MemoNexusAttachmentUtils;
-const { buildMemoListView, normalizeMemoTags, normalizeTagFilter } = window.MemoNexusMemoListUtils;
+const {
+  assignRegisteredTag,
+  countTagUsage,
+  createTagDefinition,
+  findTagDefinition,
+  mergeTagDefinitionsFromNotes,
+  normalizeTagDefinitions,
+  normalizeTagId,
+  normalizeTagIds,
+  removeMemoTag,
+  restrictTagIds,
+  searchTagOptions,
+  tagNameForId
+} = window.MemoNexusTags;
+const { buildMemoListView } = window.MemoNexusMemoListUtils;
 const { buildMarkdownBundleImport, parseStoredZipEntries } = window.MemoNexusMarkdownBundleUtils;
 const { attachmentIdsToReplace, buildPortableBackupFiles, importedWins, isPortableBackup, parsePortableBackup } = window.MemoNexusBackupBundleUtils;
 const { parseFlaggedMarkdown, serializeNoteForMarkdown, withNormalizedFlag } = window.MemoNexusNoteFlagUtils;
@@ -478,7 +493,15 @@ const memoListHeading = $("memoListHeading");
 const tagPanel = $("tagPanel");
 const tagList = $("tagList");
 const tagFilterStatus = $("tagFilterStatus");
+const tagPanelStatus = $("tagPanelStatus");
+const createTagBtn = $("createTagBtn");
 const clearTagFilterBtn = $("clearTagFilterBtn");
+const createTagDialog = $("createTagDialog");
+const createTagForm = $("createTagForm");
+const createTagNameInput = $("createTagNameInput");
+const createTagStatus = $("createTagStatus");
+const closeCreateTagDialogBtn = $("closeCreateTagDialogBtn");
+const cancelCreateTagBtn = $("cancelCreateTagBtn");
 const addCollectionBtn = $("addCollectionBtn");
 const collectionAddMenuBtn = $("collectionAddMenuBtn");
 const collectionAddMenu = $("collectionAddMenu");
@@ -606,6 +629,8 @@ const noteTagEditor = $("noteTagEditor");
 const noteTagList = $("noteTagList");
 const noteTagForm = $("noteTagForm");
 const noteTagInput = $("noteTagInput");
+const noteTagOptions = $("noteTagOptions");
+const noteTagStatus = $("noteTagStatus");
 const textStatsBtn = $("textStatsBtn");
 const textStatsPopover = $("textStatsPopover");
 const textStatsBody = $("textStatsBody");
@@ -797,6 +822,7 @@ let lastUndoSnapshotAt = 0;
 let deletedNoteSnapshot = null;
 let selectedCollectionId = null;
 let selectedTagFilter = null;
+let registeredTags = [];
 let collectionSortOrder = "newest";
 let expandedCollectionIds = new Set([UNCLASSIFIED_COLLECTION_ID]);
 let selectedMemoIds = new Set();
@@ -1008,6 +1034,8 @@ async function init() {
     notes = await getAllNotes();
   }
   await ensureStartupNotes();
+  registeredTags = await getAllTagDefinitions();
+  await ensureRegisteredTagsForNotes();
   await initializeLocalFolderSaving();
   validatePendingFontSelectionMemo();
   renderAll();
@@ -1608,6 +1636,9 @@ function openDb() {
       if (!database.objectStoreNames.contains(LOCAL_CONFIG_STORE_NAME)) {
         database.createObjectStore(LOCAL_CONFIG_STORE_NAME, { keyPath: "key" });
       }
+      if (!database.objectStoreNames.contains(TAG_STORE_NAME)) {
+        database.createObjectStore(TAG_STORE_NAME, { keyPath: "id" });
+      }
     }
   });
 }
@@ -1620,7 +1651,7 @@ function tx(mode = "readonly") {
 
 // 保存済みメモをすべて読み込み、更新日時が新しい順に並べます。
 function withNormalizedMemoTags(note) {
-  return { ...note, tags: normalizeMemoTags(note?.tags) };
+  return { ...note, tags: normalizeTagIds(note?.tags) };
 }
 
 function getAllNotes() {
@@ -2152,7 +2183,7 @@ function noteFromLocalCandidate(candidate, { preserveId = false, overwrite = nul
     bodyUpdatedAt: metadata.bodyUpdatedAt || metadata.updatedAt || candidate.file.lastModified || Date.now(),
     localSavedAt: metadata.localSavedAt || null,
     isFlagged: Boolean(metadata.flagged),
-    tags: normalizeMemoTags(metadata.tags),
+    tags: normalizeTagIds(metadata.tags),
     deletedAt: metadata.deletedAt || null,
     sortOrder: Number(metadata.sortOrder || 0)
   };
@@ -2398,7 +2429,7 @@ function saveCurrentDraftMirror() {
     bodyUpdatedAt: now,
     updatedAt: now,
     isFlagged: Boolean(note.isFlagged),
-    tags: normalizeMemoTags(note.tags),
+    tags: normalizeTagIds(note.tags),
     draftSavedAt: now
   };
 
@@ -2467,7 +2498,7 @@ async function restoreCurrentDraftMirror() {
     bodyUpdatedAt: draft.bodyUpdatedAt || restoredUpdatedAt,
     updatedAt: restoredUpdatedAt,
     isFlagged: Boolean(draft.isFlagged),
-    tags: normalizeMemoTags(draft.tags || existingNote?.tags)
+    tags: normalizeTagIds(draft.tags || existingNote?.tags)
   };
 
   await putNote(restoredNote);
@@ -2591,7 +2622,7 @@ function normalizedBackupNote(note, collectionIds) {
     bodyUpdatedAt: note.bodyUpdatedAt || note.updatedAt || now,
     deletedAt: note.deletedAt || null,
     isFlagged: Boolean(note.isFlagged),
-    tags: normalizeMemoTags(note.tags)
+    tags: normalizeTagIds(note.tags)
   };
 }
 
@@ -3306,7 +3337,7 @@ async function createNote(title = "新規メモ", body = "", options = {}) {
     bodyUpdatedAt: now,
     updatedAt: now,
     isFlagged: Boolean(options.isFlagged),
-    tags: normalizeMemoTags(options.tags)
+    tags: normalizeTagIds(options.tags)
   };
   if (options.source) note.source = options.source;
 
@@ -3956,23 +3987,59 @@ function renderMemoListHeading(heading) {
   memoSidebar.setAttribute("aria-label", heading);
 }
 
+function tagTx(mode = "readonly") {
+  if (!db || dbConnectionClosedForUpgrade) throw new Error("保存接続が閉じられています。ページを再読み込みしてください。");
+  return db.transaction(TAG_STORE_NAME, mode).objectStore(TAG_STORE_NAME);
+}
+
+function getAllTagDefinitions() {
+  return new Promise((resolve, reject) => {
+    const request = tagTx().getAll();
+    request.onsuccess = () => resolve(normalizeTagDefinitions(request.result));
+    request.onerror = () => reject(request.error);
+  });
+}
+
+function putTagDefinitions(items) {
+  const definitions = normalizeTagDefinitions(items);
+  if (!definitions.length) return Promise.resolve([]);
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(TAG_STORE_NAME, "readwrite");
+    const store = transaction.objectStore(TAG_STORE_NAME);
+    definitions.forEach((definition) => store.put(definition));
+    transaction.oncomplete = () => resolve(definitions);
+    transaction.onerror = () => reject(transaction.error);
+    transaction.onabort = () => reject(transaction.error);
+  });
+}
+
+async function ensureRegisteredTagsForNotes() {
+  const merged = mergeTagDefinitionsFromNotes(registeredTags, notes);
+  const existingIds = new Set(registeredTags.map((definition) => definition.id));
+  const additions = merged.filter((definition) => !existingIds.has(definition.id));
+  if (additions.length) await putTagDefinitions(additions);
+  registeredTags = merged;
+  return additions;
+}
+
 function renderNoteTags(note = currentNote()) {
   if (!noteTagEditor || !noteTagList) return;
   noteTagEditor.hidden = !note;
   noteTagList.innerHTML = "";
   if (!note) return;
 
-  normalizeMemoTags(note.tags).forEach((tag) => {
+  normalizeTagIds(note.tags).forEach((tagId) => {
+    const tagName = tagNameForId(registeredTags, tagId);
     const chip = document.createElement("span");
     chip.className = "note-tag-chip";
     const label = document.createElement("span");
-    label.textContent = tag;
+    label.textContent = tagName;
     const remove = document.createElement("button");
     remove.type = "button";
     remove.textContent = "×";
-    remove.setAttribute("aria-label", `タグ「${tag}」を削除`);
+    remove.setAttribute("aria-label", `タグ「${tagName}」をこのメモから外す`);
     remove.addEventListener("click", () => {
-      void updateCurrentNoteTags(normalizeMemoTags(note.tags).filter((item) => item !== tag)).catch((error) => {
+      void updateCurrentNoteTags(removeMemoTag(note.tags, tagId)).catch((error) => {
         console.error("Tag save failed", error);
         setSaveStatus("error");
       });
@@ -3985,23 +4052,78 @@ function renderNoteTags(note = currentNote()) {
 async function updateCurrentNoteTags(value) {
   const note = currentNote();
   if (!note) return;
-  const nextTags = normalizeMemoTags(value);
-  const currentTags = normalizeMemoTags(note.tags);
+  await ensureRegisteredTagsForNotes();
+  const nextTags = restrictTagIds(value, registeredTags);
+  const currentTags = normalizeTagIds(note.tags);
   if (nextTags.length === currentTags.length && nextTags.every((tag, index) => tag === currentTags[index])) return;
   note.tags = nextTags;
   renderNoteTags(note);
   renderTagPanel();
+  renderNoteTagOptions();
   renderList();
   await saveCurrentNote();
 }
 
-function addCurrentNoteTag() {
+function setNoteTagStatus(message = "") {
+  if (noteTagStatus) noteTagStatus.textContent = message;
+}
+
+function hideNoteTagOptions() {
+  if (noteTagOptions) noteTagOptions.hidden = true;
+  noteTagInput?.setAttribute("aria-expanded", "false");
+}
+
+function renderNoteTagOptions() {
   const note = currentNote();
-  if (!note || !noteTagInput) return;
-  const value = noteTagInput.value;
+  if (!note || !noteTagInput || !noteTagOptions) return;
+  const options = searchTagOptions(registeredTags, noteTagInput.value, note.tags);
+  noteTagOptions.innerHTML = "";
+  options.forEach((definition) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "note-tag-option";
+    button.setAttribute("role", "option");
+    button.dataset.tagId = definition.id;
+    button.textContent = definition.name;
+    button.addEventListener("click", () => {
+      void addRegisteredTagToCurrentNote(definition.id);
+    });
+    noteTagOptions.appendChild(button);
+  });
+  const shouldShow = document.activeElement === noteTagInput && options.length > 0;
+  noteTagOptions.hidden = !shouldShow;
+  noteTagInput.setAttribute("aria-expanded", String(shouldShow));
+}
+
+async function addRegisteredTagToCurrentNote(tagId) {
+  const note = currentNote();
+  const definition = findTagDefinition(registeredTags, tagId);
+  if (!note || !definition) {
+    setNoteTagStatus("タグタブから新しいタグを作成してください。");
+    renderNoteTagOptions();
+    return false;
+  }
+  const currentTags = normalizeTagIds(note.tags);
+  const nextTags = assignRegisteredTag(currentTags, definition.id, registeredTags);
+  if (nextTags.length === currentTags.length) {
+    setNoteTagStatus(`タグ「${definition.name}」はすでに付いています。`);
+    return false;
+  }
+  await updateCurrentNoteTags(nextTags);
   noteTagInput.value = "";
-  if (!normalizeTagFilter(value)) return;
-  void updateCurrentNoteTags([...normalizeMemoTags(note.tags), value]).catch((error) => {
+  hideNoteTagOptions();
+  setNoteTagStatus(`タグ「${definition.name}」を追加しました。`);
+  return true;
+}
+
+function submitCurrentNoteTagSelection() {
+  const definition = findTagDefinition(registeredTags, noteTagInput?.value);
+  if (!definition) {
+    setNoteTagStatus("タグタブから新しいタグを作成してください。");
+    renderNoteTagOptions();
+    return;
+  }
+  void addRegisteredTagToCurrentNote(definition.id).catch((error) => {
     console.error("Tag save failed", error);
     setSaveStatus("error");
   });
@@ -4013,44 +4135,38 @@ function focusNoteTagInput() {
   noteTagInput.focus();
 }
 
-function buildTagCountMap() {
-  const counts = new Map();
-  activeNotes().forEach((note) => {
-    normalizeMemoTags(note.tags).forEach((tag) => counts.set(tag, (counts.get(tag) || 0) + 1));
-  });
-  return counts;
-}
-
 function renderTagPanel() {
   if (!tagList || !tagFilterStatus || !clearTagFilterBtn) return;
-  const counts = buildTagCountMap();
+  const counts = countTagUsage(registeredTags, notes);
   tagList.innerHTML = "";
   clearTagFilterBtn.hidden = !selectedTagFilter;
+  const selectedDefinition = findTagDefinition(registeredTags, selectedTagFilter);
   tagFilterStatus.textContent = selectedTagFilter
-    ? `タグ「${selectedTagFilter}」でメモ一覧を絞り込み中です。`
+    ? `タグ「${selectedDefinition?.name || selectedTagFilter}」でメモ一覧を絞り込み中です。`
     : "タグを選ぶとメモ一覧を絞り込みます。";
 
-  if (!counts.size) {
+  if (!registeredTags.length) {
     const empty = document.createElement("p");
     empty.className = "tag-list-empty";
-    empty.textContent = "使用中のタグはありません。";
+    empty.textContent = "登録済みタグはありません。";
     tagList.appendChild(empty);
     return;
   }
 
-  [...counts].sort(([a], [b]) => a.localeCompare(b, "ja")).forEach(([tag, count]) => {
+  normalizeTagDefinitions(registeredTags).forEach((definition) => {
+    const count = counts.get(definition.id) || 0;
     const button = document.createElement("button");
     button.type = "button";
     button.className = "tag-list-item";
-    button.setAttribute("aria-pressed", String(selectedTagFilter === tag));
+    button.setAttribute("aria-pressed", String(selectedTagFilter === definition.id));
     const label = document.createElement("span");
-    label.textContent = tag;
+    label.textContent = definition.name;
     const countLabel = document.createElement("span");
     countLabel.className = "tag-list-count";
     countLabel.textContent = `${count}件`;
     button.append(label, countLabel);
     button.addEventListener("click", () => {
-      selectedTagFilter = tag;
+      selectedTagFilter = definition.id;
       renderTagPanel();
       renderMemoListPanel();
     });
@@ -4062,6 +4178,36 @@ function clearTagFilter() {
   selectedTagFilter = null;
   renderTagPanel();
   renderMemoListPanel();
+}
+
+function openCreateTagDialog() {
+  if (!createTagDialog || !createTagNameInput || !createTagStatus) return;
+  createTagNameInput.value = "";
+  createTagStatus.textContent = "";
+  createTagDialog.showModal();
+  requestAnimationFrame(() => createTagNameInput.focus());
+}
+
+function closeCreateTagDialog() {
+  if (createTagDialog?.open) createTagDialog.close();
+}
+
+async function registerNewTag() {
+  const result = createTagDefinition(createTagNameInput?.value, registeredTags);
+  if (result.status === "invalid") {
+    createTagStatus.textContent = "タグ名を入力してください。";
+    return;
+  }
+  if (result.status === "exists") {
+    createTagStatus.textContent = `タグ「${result.definition.name}」はすでに登録されています。`;
+    return;
+  }
+  await putTagDefinitions([result.definition]);
+  registeredTags = normalizeTagDefinitions([...registeredTags, result.definition]);
+  renderTagPanel();
+  renderNoteTagOptions();
+  if (tagPanelStatus) tagPanelStatus.textContent = `タグ「${result.definition.name}」を登録しました。`;
+  closeCreateTagDialog();
 }
 
 // メモ一覧カードに出す短い本文プレビューを作ります。
@@ -4090,6 +4236,9 @@ function openNote(id) {
   editor.value = note.body;
   renderNoteFlagButton(note);
   renderNoteTags(note);
+  if (noteTagInput) noteTagInput.value = "";
+  setNoteTagStatus("");
+  hideNoteTagOptions();
   lastUndoSnapshotAt = 0;
   setSaveStatus("saved", note.updatedAt);
   renderNoteMeta();
@@ -4114,6 +4263,8 @@ async function initPopout() {
   db = await openDb();
   collections = await getAllCollections();
   notes = await getAllNotes();
+  registeredTags = await getAllTagDefinitions();
+  await ensureRegisteredTagsForNotes();
   await initializeLocalFolderSaving();
   const note = notes.find((item) => item.id === popoutMemoId && !item.deletedAt);
   if (!note) {
@@ -4126,6 +4277,8 @@ async function initPopout() {
   editor.value = note.body;
   renderNoteFlagButton(note);
   renderNoteTags(note);
+  setNoteTagStatus("");
+  hideNoteTagOptions();
   setSaveStatus("saved", note.updatedAt);
   renderNoteMeta();
   renderTextStats();
@@ -4510,7 +4663,7 @@ async function saveCurrentNote() {
   const bodyChanged = note.body !== nextBody;
   note.body = nextBody;
   note.title = titleInput.value || titleFromBody(note.body) || "無題メモ";
-  note.tags = normalizeMemoTags(note.tags);
+  note.tags = normalizeTagIds(note.tags);
   if (!note.createdAt) note.createdAt = Date.now();
   if (!note.bodyUpdatedAt || bodyChanged) note.bodyUpdatedAt = Date.now();
   note.updatedAt = Date.now();
@@ -9691,7 +9844,7 @@ function renderSyntaxGuide() {
   if (!syntaxGuideBody || syntaxGuideRendered) return;
   const sectionDetails = [
     { category: "markdown", title: "Markdown", intro: "Memo Nexusのプレビューが現在対応している記法です。" },
-    { category: "tag", title: "タグ", intro: "本文とは別に保存され、メモを横断して整理・絞り込みするためのメタデータです。" },
+    { category: "tag", title: "タグ", intro: "本文とは別に登録・保存し、メモを一定の基準で分類・絞り込みするための登録済みラベルです。" },
     { category: "math", title: "数式", intro: "KaTeX記法を読みやすく表示します。数式の計算は行いません。" },
     { category: "calculation", title: "計算ブロック", intro: "Calculator Memoの現在のmainと同じ規則で、1つの独立した式を計算します。" },
     { category: "code", title: "コードブロック", intro: "バッククォート3個で囲んだ完成例です。" },
@@ -9956,6 +10109,17 @@ if (contextAiTab) contextAiTab.addEventListener("click", () => {
 });
 if (contextMemoListTab) contextMemoListTab.addEventListener("click", () => setContextPanelTab("memo-list"));
 if (clearTagFilterBtn) clearTagFilterBtn.addEventListener("click", clearTagFilter);
+createTagBtn?.addEventListener("click", openCreateTagDialog);
+closeCreateTagDialogBtn?.addEventListener("click", closeCreateTagDialog);
+cancelCreateTagBtn?.addEventListener("click", closeCreateTagDialog);
+createTagForm?.addEventListener("submit", (event) => {
+  event.preventDefault();
+  void registerNewTag().catch((error) => {
+    console.error("Tag registration failed", error);
+    if (createTagStatus) createTagStatus.textContent = "タグを登録できませんでした。";
+  });
+});
+createTagDialog?.addEventListener("close", () => createTagBtn?.focus());
 if (closeContextPanelBtn) closeContextPanelBtn.addEventListener("click", () => setContextPanelOpen(false));
 if (closeCollectionsBtn) closeCollectionsBtn.addEventListener("click", () => setContextPanelOpen(false));
 if (collectionBackdrop) collectionBackdrop.addEventListener("click", () => toggleCollectionExplorer(false));
@@ -10391,7 +10555,18 @@ relatedBackdrop.addEventListener("click", () => setRelatedDrawerOpen(false));
 searchInput.addEventListener("input", renderList);
 noteTagForm?.addEventListener("submit", (event) => {
   event.preventDefault();
-  addCurrentNoteTag();
+  submitCurrentNoteTagSelection();
+});
+noteTagInput?.addEventListener("input", () => {
+  setNoteTagStatus("");
+  renderNoteTagOptions();
+});
+noteTagInput?.addEventListener("focus", renderNoteTagOptions);
+noteTagInput?.addEventListener("keydown", (event) => {
+  if (event.key === "Escape") hideNoteTagOptions();
+});
+document.addEventListener("pointerdown", (event) => {
+  if (noteTagEditor && !noteTagEditor.contains(event.target)) hideNoteTagOptions();
 });
 titleInput.addEventListener("beforeinput", captureUndoSnapshot);
 editor.addEventListener("beforeinput", captureUndoSnapshot);

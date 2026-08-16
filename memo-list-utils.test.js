@@ -3,7 +3,7 @@
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const test = require("node:test");
-const { buildMemoListView, normalizeMemoTags, normalizeTagFilter } = require("./memo-list-utils");
+const { buildMemoListView } = require("./memo-list-utils");
 
 const app = fs.readFileSync("app.js", "utf8");
 const html = fs.readFileSync("index.html", "utf8");
@@ -50,14 +50,6 @@ test("長いコレクション名を選択しても通常の見出しを維持�
   assert.deepEqual(ids(view), ["history", "child", "unclassified"]);
 });
 
-test("タグ正規化は空文字と大文字小文字をまたぐ重複を除外する", () => {
-  assert.deepEqual(normalizeMemoTags([" Work ", "", "work", "WORK", " 資料 ", null, undefined]), ["work", "資料"]);
-  assert.deepEqual(normalizeMemoTags([" Work ", "", "work", null, undefined]), ["work"]);
-  assert.deepEqual(normalizeMemoTags("work"), []);
-  assert.equal(normalizeTagFilter(" WORK "), "work");
-  assert.equal(normalizeTagFilter("  "), null);
-});
-
 test("タグ選択は該当する未削除メモだけを表示する", () => {
   const view = buildMemoListView(notes, null, " 歴史 ");
   assert.equal(view.heading, "メモ一覧（タグ: 歴史）");
@@ -76,23 +68,25 @@ test("タグを持たない旧メモはタグ絞り込みでエラーになら�
   assert.deepEqual(ids(trashView), ["deleted-history"]);
 });
 
-test("タグ編集UIと右サイドバーのタグタブを保存・解除処理へ接続する", () => {
-  assert.match(html, /id="noteTagForm"[\s\S]*id="noteTagInput"/);
+test("登録制タグUIと右サイドバーのタグタブを保存・解除処理へ接続する", () => {
+  assert.match(html, /id="noteTagForm"[\s\S]*id="noteTagInput"[\s\S]*id="noteTagOptions"/);
+  assert.match(html, /id="createTagBtn"[\s\S]*タグを作成/);
   assert.match(html, /id="contextTagTab"[^>]+aria-controls="tagPanel"/);
   assert.match(html, /id="clearTagFilterBtn"/);
-  assert.match(app, /function updateCurrentNoteTags\(value\)[\s\S]*await saveCurrentNote\(\)/);
+  assert.match(app, /function updateCurrentNoteTags\(value\)[\s\S]*restrictTagIds\(value, registeredTags\)[\s\S]*await saveCurrentNote\(\)/);
   assert.match(app, /function updateCurrentNoteTags\(value\)[\s\S]*renderNoteTags\(note\);[\s\S]*renderTagPanel\(\);[\s\S]*renderList\(\);[\s\S]*await saveCurrentNote\(\)/);
   assert.match(app, /chip\.className = "note-tag-chip"/);
   assert.match(app, /button\.className = "tag-list-item"/);
   assert.match(app, /buildMemoListView\(notes, selectedCollectionId, selectedTagFilter\)/);
   assert.match(app, /function clearTagFilter\(\)[\s\S]*selectedTagFilter = null/);
-  assert.match(app, /tags: normalizeMemoTags\(draft\.tags \|\| existingNote\?\.tags\)/);
+  assert.match(app, /tags: normalizeTagIds\(draft\.tags \|\| existingNote\?\.tags\)/);
 });
 
 test("タグ関連スクリプトのキャッシュ番号を更新する", () => {
-  assert.match(html, /src="memo-list-utils\.js\?v=0\.4\.0-4"/);
+  assert.match(html, /src="tags\.js\?v=0\.4\.0-1"/);
+  assert.match(html, /src="memo-list-utils\.js\?v=0\.4\.0-5"/);
   assert.match(html, /src="local-markdown\.js\?v=0\.4\.0-3"/);
-  assert.match(html, /src="app\.js\?v=0\.4\.0-85"/);
-  assert.doesNotMatch(html, /memo-list-utils\.js\?v=0\.4\.0-3/);
-  assert.doesNotMatch(html, /local-markdown\.js\?v=0\.4\.0-2/);
+  assert.match(html, /src="app\.js\?v=0\.4\.0-86"/);
+  assert.ok(html.indexOf('src="tags.js?v=0.4.0-1"') < html.indexOf('src="memo-list-utils.js?v=0.4.0-5"'));
+  assert.ok(html.indexOf('src="memo-list-utils.js?v=0.4.0-5"') < html.indexOf('src="app.js?v=0.4.0-86"'));
 });

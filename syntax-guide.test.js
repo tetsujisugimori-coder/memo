@@ -222,17 +222,18 @@ test("対応するMarkdown記法とMemo Nexus独自機能を掲載する", () =>
 test("記法ガイドはタグを本文のMarkdown見出しと分けて説明する", () => {
   const [tag] = items.filter((item) => item.category === "tag");
   assert.ok(tag);
-  assert.equal(tag.name, "タグの追加と絞り込み");
-  assert.match(tag.syntax, /入力欄に「資料」と入力して追加[\s\S]*このメモへタグ「資料」が登録される/);
-  assert.match(tag.syntax, /# 見出し[\s\S]*本文の見出し。タグではない/);
-  assert.match(tag.description, /Markdown本文の書式ではなく.*メタデータ/);
-  assert.match(tag.description, /タイトル下の入力欄.*［# タグ］ボタン/);
-  assert.match(tag.description, /［追加］.*Enter/);
-  assert.match(tag.notes, /重複登録されず.*前後の空白.*大文字・小文字は統一/);
-  assert.match(tag.notes, /右側の［タグ］タブ.*絞り込め/);
-  assert.match(tag.notes, /「# 見出し」はMarkdown見出し.*タグ登録ではありません/);
-  assert.match(tag.notes, /「# 見出し」と「#タグ」.*#の直後に空白/);
-  assert.match(app, /category: "tag", title: "タグ"[\s\S]*本文とは別に保存/);
+  assert.equal(tag.name, "登録済みタグの作成・付与・絞り込み");
+  assert.match(tag.syntax, /［タグ］タブの［タグを作成］で「資料」を登録[\s\S]*登録済みタグ「資料」が作られる/);
+  assert.match(tag.syntax, /タイトル下のタグ選択欄で「資料」を選択[\s\S]*登録済みタグ「資料」が付く/);
+  assert.match(tag.syntax, /#資料[\s\S]*本文。タグにはならない/);
+  assert.match(tag.syntax, /# 見出し[\s\S]*Markdown見出し。タグではない/);
+  assert.match(tag.description, /分類・絞り込み.*登録済みラベル/);
+  assert.match(tag.description, /右側［タグ］タブ.*［タグを作成］/);
+  assert.match(tag.description, /タイトル下のタグ選択欄.*［# タグ］ボタン/);
+  assert.match(tag.notes, /本文に「#資料」と書いてもタグにはなりません/);
+  assert.match(tag.notes, /「# 見出し」.*Markdown見出し/);
+  assert.match(tag.notes, /本文検索とタグ絞り込みは別の機能/);
+  assert.match(app, /category: "tag", title: "タグ"[\s\S]*登録済みラベル/);
 });
 
 test("数式カテゴリにKaTeXの表示例と表示専用である注意を掲載する", () => {
@@ -463,7 +464,7 @@ test("ライト・ダーク共通変数と狭幅container queryで表示する",
 });
 
 test("app.jsのキャッシュ番号を更新し、PR #24の画面外Mermaid描画経路を維持する", () => {
-  assert.match(html, /app\.js\?v=0\.4\.0-85/);
+  assert.match(html, /app\.js\?v=0\.4\.0-86/);
   assert.match(html, /table-block-utils\.js\?v=0\.4\.0-4/);
   assert.match(app, /mermaid\.render\(/);
   assert.doesNotMatch(app, /mermaid\.run\(/);

@@ -1519,6 +1519,7 @@ body.collections-open .collection-explorer {
 }
 
 .note-tag-editor {
+  position: relative;
   display: flex;
   align-items: center;
   flex-wrap: wrap;
@@ -1564,7 +1565,7 @@ body.collections-open .collection-explorer {
 }
 
 .note-tag-form input {
-  width: 124px;
+  width: 180px;
   min-height: 30px;
   border: 1px solid var(--line);
   border-radius: 7px;
@@ -1582,6 +1583,50 @@ body.collections-open .collection-explorer {
 .note-tag-form button {
   min-height: 30px;
   padding: 4px 10px;
+}
+
+.note-tag-options {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% - 8px);
+  left: 18px;
+  width: min(300px, calc(100% - 36px));
+  max-height: 210px;
+  overflow-y: auto;
+  padding: 5px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--panel);
+  box-shadow: var(--shadow);
+}
+
+.note-tag-options[hidden] {
+  display: none;
+}
+
+.note-tag-option {
+  display: block;
+  width: 100%;
+  min-height: 32px;
+  padding: 6px 9px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--ink);
+  text-align: left;
+}
+
+.note-tag-option:hover,
+.note-tag-option:focus-visible {
+  background: var(--accent-soft);
+}
+
+.note-tag-status {
+  flex-basis: 100%;
+  min-height: 1.2em;
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
 }
 
 .note-meta-bar {
@@ -4648,9 +4693,24 @@ body.context-panel-closed {
   padding: 4px 9px;
 }
 
+.tag-panel-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
 .tag-filter-status {
   margin: 0;
   padding: 12px 12px 6px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.tag-panel-status {
+  min-height: 1.2em;
+  margin: 0;
+  padding: 0 12px 6px;
   color: var(--muted);
   font-size: 12px;
 }
@@ -4691,6 +4751,36 @@ body.context-panel-closed {
 .tag-list-count {
   color: var(--muted);
   font-variant-numeric: tabular-nums;
+}
+
+.create-tag-dialog {
+  width: min(390px, calc(100vw - 28px));
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--panel);
+  color: var(--ink);
+}
+
+.create-tag-form {
+  display: grid;
+  gap: 10px;
+  padding: 16px;
+}
+
+.create-tag-form input {
+  min-height: 38px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--input-bg);
+  color: var(--ink);
+}
+
+.create-tag-status {
+  min-height: 1.4em;
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
 }
 
 .context-panel > .ai-panel .ai-panel-scroll {
