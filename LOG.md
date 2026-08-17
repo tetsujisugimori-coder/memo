@@ -1855,3 +1855,9 @@
 * Codex CLI 0.147.0の生成スキーマに合わせ、`error.params.error.message`をturnId単位に記録し、`turn/completed`のcompletedだけをdone、failed・interrupted・未知状態をerrorにした。ブラウザ側SSE読取りを独立関数へ移し、分割chunk、UTF-8境界、明示done、error、途中EOF、不正JSONを実データで検証した。
 * 初期表示メモを開く`openNote()`からCodexへメモ変更を通知し、初期メモでも添付・送信できるようにした。fake child・stdin・timer・SSEを含む全564テストが成功した。
 * ローカル実機ではhealth connected、APIのthread・delta・done、本文／選択範囲の添付と取消、UI実回答とコピー、回答中のメモ切替分離、ブリッジ停止時のbusy解除、再起動後の再接続・再送信を確認した。再読み込み後のthreadId復元、「新しい会話」の永続解除、正常shutdown後の一時ディレクトリ確認は未実施。
+
+## 2026-08-17 Codex turn開始直後の通知競合修正
+
+* `turn/start`のJSON-RPC応答とdelta・`turn/completed`が同じstdout chunkへ入った場合、HTTP側がSSEを登録するまでの通知をturn単位で一時保持し、登録後に`thread`、delta、完了の順で再生するようにした。競合を実際に再現する失敗テストを先に追加し、修正後に回答と終端が欠落しないことを確認した。
+* SSEの通常書き込み・終端書き込みが例外になっても該当ストリームを一度だけ解放し、responseの終了を試みる。ブラウザのabort・closeでは該当responseとの紐付けだけを解除し、切断後の通知を書き込まず、別turnのストリームへ影響しないようにした。
+* `node --test`は567件成功し、`node --check app.js`、`node --check codex-bridge.js`、`node --check codex-bridge-runtime.js`、`node --check codex-chat.js`、`node --check codex-chat-utils.js`、`git diff --check`が成功した。実会話E2Eでは`/health`のconnected、HTTP 200、`thread`、delta「確認」、doneを確認し、正常shutdown後に今回のApp Serverプロセスと一時ディレクトリが残らないことを確認した。

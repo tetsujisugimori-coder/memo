@@ -47,6 +47,7 @@ function createRuntimeManager(options = {}) {
       buffer: "",
       pending: new Map(),
       streams: new Map(),
+      queuedTurnEvents: new Map(),
       turnErrors: new Map(),
       disposed: false,
       cleanupPromise: null,
@@ -64,20 +65,45 @@ function createRuntimeManager(options = {}) {
     runtime.resolveExit();
   }
 
-  function writeSse(state, event) {
-    if (state.ended || state.res.writableEnded) return false;
-    state.res.write(`data: ${JSON.stringify(event)}\n\n`);
+  function safelyEndResponse(state, context) {
+    if (state.res.writableEnded) return;
+    try { state.res.end(); } catch (error) { diagnose(`${context}のSSE終了に失敗: ${errorMessage(error)}`); }
+  }
+
+  function detachStream(runtime, turnId, res = null) {
+    const state = runtime?.streams.get(turnId);
+    if (!state || res && state.res !== res) return false;
+    runtime.streams.delete(turnId);
+    runtime.queuedTurnEvents.delete(turnId);
+    runtime.turnErrors.delete(turnId);
+    state.ended = true;
     return true;
+  }
+
+  function writeSse(runtime, turnId, state, event) {
+    if (state.ended || state.res.writableEnded) return false;
+    try {
+      state.res.write(`data: ${JSON.stringify(event)}\n\n`);
+      return true;
+    } catch (error) {
+      detachStream(runtime, turnId, state.res);
+      diagnose(`turn ${turnId} のSSE書き込みに失敗: ${errorMessage(error)}`);
+      safelyEndResponse(state, `turn ${turnId}`);
+      return false;
+    }
   }
 
   function endStream(runtime, turnId, event) {
     const state = runtime.streams.get(turnId);
     if (!state || state.ended) return false;
     runtime.streams.delete(turnId);
+    runtime.queuedTurnEvents.delete(turnId);
+    runtime.turnErrors.delete(turnId);
     state.ended = true;
     if (!state.res.writableEnded) {
-      state.res.write(`data: ${JSON.stringify(event)}\n\n`);
-      state.res.end();
+      try { state.res.write(`data: ${JSON.stringify(event)}\n\n`); }
+      catch (error) { diagnose(`turn ${turnId} の終端SSE書き込みに失敗: ${errorMessage(error)}`); }
+      finally { safelyEndResponse(state, `turn ${turnId}`); }
     }
     return true;
   }
@@ -121,6 +147,7 @@ function createRuntimeManager(options = {}) {
     for (const waiter of Array.from(runtime.pending.values())) waiter.rejectOnce(error);
     runtime.pending.clear();
     failRuntimeStreams(runtime, error);
+    runtime.queuedTurnEvents.clear();
     runtime.turnErrors.clear();
 
     let resolveCleanup;
@@ -181,7 +208,7 @@ function createRuntimeManager(options = {}) {
         const error = new Error(`${method} が時間内に応答しませんでした。`);
         if (rejectOnce(error)) void disposeRuntime(runtime, error);
       }, timeoutMs);
-      runtime.pending.set(id, { resolveOnce: (value) => settle("resolve", value), rejectOnce, timeout });
+      runtime.pending.set(id, { method, resolveOnce: (value) => settle("resolve", value), rejectOnce, timeout });
       const failWrite = (cause) => {
         if (!runtime.pending.has(id)) return;
         const error = new Error(`Codex App Serverへ送信できませんでした: ${errorMessage(cause)}`);
@@ -241,7 +268,11 @@ function createRuntimeManager(options = {}) {
       const waiter = runtime.pending.get(message.id);
       if (!waiter) return;
       if (message.error) waiter.rejectOnce(new Error(message.error.message || "Codex App Server error"));
-      else waiter.resolveOnce(message.result);
+      else {
+        const turnId = waiter.method === "turn/start" ? message.result?.turn?.id : "";
+        if (turnId && !runtime.queuedTurnEvents.has(turnId)) runtime.queuedTurnEvents.set(turnId, []);
+        waiter.resolveOnce(message.result);
+      }
       return;
     }
     if (message.method === "error") {
@@ -252,17 +283,27 @@ function createRuntimeManager(options = {}) {
     }
     if (message.method === "warning" || message.method === "configWarning") return;
     if (message.method === "item/agentMessage/delta") {
-      const state = runtime.streams.get(message.params?.turnId);
-      if (!state || state.ended) return;
+      const turnId = message.params?.turnId;
+      const state = runtime.streams.get(turnId);
+      if (!state || state.ended) {
+        const queued = runtime.queuedTurnEvents.get(turnId);
+        if (queued) queued.push(message);
+        return;
+      }
       const delta = String(message.params?.delta || "");
       state.text += delta;
-      try { writeSse(state, { type: "delta", delta }); } catch (_) { runtime.streams.delete(message.params.turnId); state.ended = true; }
+      writeSse(runtime, turnId, state, { type: "delta", delta });
       return;
     }
     if (message.method !== "turn/completed") return;
     const turn = message.params?.turn;
     const turnId = turn?.id;
-    if (!turnId || !runtime.streams.has(turnId)) return;
+    if (!turnId) return;
+    if (!runtime.streams.has(turnId)) {
+      const queued = runtime.queuedTurnEvents.get(turnId);
+      if (queued) queued.push(message);
+      return;
+    }
     const recordedError = runtime.turnErrors.get(turnId);
     runtime.turnErrors.delete(turnId);
     if (turn.status === "completed") {
@@ -351,9 +392,29 @@ function createRuntimeManager(options = {}) {
     return startRuntime();
   }
 
-  function attachStream(runtime, turnId, res) {
+  function attachStream(runtime, turnId, res, initialEvent = null) {
     if (!runtime || runtime.disposed) throw new Error("Codex App Serverとの接続が終了しました。");
-    runtime.streams.set(turnId, { res, text: "", ended: false });
+    const state = { res, text: "", ended: false };
+    runtime.streams.set(turnId, state);
+    if (initialEvent && !writeSse(runtime, turnId, state, initialEvent)) {
+      runtime.queuedTurnEvents.delete(turnId);
+      return false;
+    }
+    const queued = runtime.queuedTurnEvents.get(turnId) || [];
+    runtime.queuedTurnEvents.delete(turnId);
+    for (const message of queued) {
+      if (state.ended) break;
+      handleMessage(runtime, message);
+    }
+    return true;
+  }
+
+  function discardTurn(runtime, turnId) {
+    if (!runtime || !turnId) return false;
+    const detached = detachStream(runtime, turnId);
+    const queued = runtime.queuedTurnEvents.delete(turnId);
+    runtime.turnErrors.delete(turnId);
+    return detached || queued;
   }
 
   async function shutdown() {
@@ -365,6 +426,8 @@ function createRuntimeManager(options = {}) {
 
   return {
     attachStream,
+    detachStream,
+    discardTurn,
     disposeRuntime,
     ensureServer,
     getCurrentRuntime: () => currentRuntime,

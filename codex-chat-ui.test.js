@@ -40,4 +40,8 @@ test("ローカルブリッジは実スキーマのread-only会話設定と限�
   assert.match(bridge, /createRuntimeManager/);
   assert.match(runtime, /Codex CLIが見つかりません/);
   assert.match(bridge, /type: "error"/);
+  assert.match(bridge, /req\.once\("aborted"/);
+  assert.match(bridge, /res\.once\("close"/);
+  assert.match(bridge, /runtimeManager\.detachStream\(activeRuntime, activeTurnId, res\)/);
+  assert.match(bridge, /runtimeManager\.discardTurn\(runtime, activeTurnId\)/);
 });

@@ -52,6 +52,17 @@ const server = http.createServer(async (req, res) => {
   if (req.method !== "POST" || req.url !== "/chat") return json(res, 404, { error: "Not found" }, origin);
 
   let sse = false;
+  let activeRuntime = null;
+  let activeTurnId = "";
+  let clientDisconnected = false;
+  req.once("aborted", () => {
+    clientDisconnected = true;
+    if (activeRuntime && activeTurnId) runtimeManager.detachStream(activeRuntime, activeTurnId, res);
+  });
+  res.once("close", () => {
+    clientDisconnected = true;
+    if (activeRuntime && activeTurnId) runtimeManager.detachStream(activeRuntime, activeTurnId, res);
+  });
   try {
     const body = await readBody(req);
     const message = String(body.message || "").trim();
@@ -70,18 +81,28 @@ const server = http.createServer(async (req, res) => {
       approvalPolicy: "never",
       sandboxPolicy: { type: "readOnly", networkAccess: false }
     });
+    activeRuntime = runtime;
+    activeTurnId = turn.turn.id;
+    if (clientDisconnected || res.destroyed) {
+      runtimeManager.discardTurn(runtime, activeTurnId);
+      return;
+    }
     if (origin) res.setHeader("Access-Control-Allow-Origin", origin);
     res.setHeader("Content-Type", "text/event-stream");
     res.setHeader("Cache-Control", "no-cache");
     sse = true;
-    runtimeManager.attachStream(runtime, turn.turn.id, res);
-    res.write(`data: ${JSON.stringify({ type: "thread", threadId })}\n\n`);
+    runtimeManager.attachStream(runtime, activeTurnId, res, { type: "thread", threadId });
   } catch (error) {
     const message = runtimeManager.getLastStartupError() || error.message || "Codexローカル連携に接続できません";
+    if (clientDisconnected || res.destroyed) {
+      if (activeRuntime && activeTurnId) runtimeManager.discardTurn(activeRuntime, activeTurnId);
+      return;
+    }
     if (sse || res.headersSent) {
       if (!res.writableEnded) {
-        res.write(`data: ${JSON.stringify({ type: "error", error: message })}\n\n`);
-        res.end();
+        try { res.write(`data: ${JSON.stringify({ type: "error", error: message })}\n\n`); }
+        catch (_) {}
+        finally { if (!res.writableEnded) try { res.end(); } catch (_) {} }
       }
     } else {
       json(res, 503, { error: message }, origin);

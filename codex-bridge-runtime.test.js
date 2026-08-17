@@ -322,3 +322,87 @@ test("failedはturn.errorを優先しinterruptedと未知statusはerrorになる
   }
   await harness.manager.shutdown();
 });
+
+test("turn/start応答とdelta・completedが同じstdout chunkでも通知を取りこぼさない", async () => {
+  const harness = createHarness(() => new FakeChild({ onWrite: autoRespond }));
+  const runtime = await harness.manager.ensureServer();
+  harness.children[0].onWrite = (message, callback, child) => {
+    callback?.();
+    if (message.method !== "turn/start") return;
+    child.stdout.emit("data", [
+      JSON.stringify({ id: message.id, result: { turn: { id: "turn-fast" } } }),
+      JSON.stringify({ method: "item/agentMessage/delta", params: { threadId: "thread-1", turnId: "turn-fast", delta: "高速回答" } }),
+      JSON.stringify({ method: "turn/completed", params: { threadId: "thread-1", turn: { id: "turn-fast", status: "completed" } } })
+    ].join("\n") + "\n");
+  };
+
+  const turn = await harness.manager.send(runtime, "turn/start", { threadId: "thread-1" });
+  const response = new FakeSseResponse();
+  harness.manager.attachStream(runtime, turn.turn.id, response, { type: "thread", threadId: "thread-1" });
+
+  assert.deepEqual(response.events(), [
+    { type: "thread", threadId: "thread-1" },
+    { type: "delta", delta: "高速回答" },
+    { type: "done", threadId: "thread-1", text: "高速回答" }
+  ]);
+  assert.equal(response.endCalls, 1);
+  await harness.manager.shutdown();
+});
+
+test("SSE書き込み例外時もストリームを一度だけ解放してresponseを閉じる", async () => {
+  const diagnostics = [];
+  const harness = createHarness(() => new FakeChild({ onWrite: autoRespond }), {
+    diagnose: (message) => diagnostics.push(message)
+  });
+  const runtime = await harness.manager.ensureServer();
+  for (const event of [
+    { method: "item/agentMessage/delta", params: { turnId: "turn-delta", delta: "回答" } },
+    { method: "turn/completed", params: { threadId: "thread-1", turn: { id: "turn-done", status: "completed" } } }
+  ]) {
+    const response = new FakeSseResponse();
+    response.write = () => { throw new Error("socket closed"); };
+    const turnId = event.params.turnId || event.params.turn.id;
+    harness.manager.attachStream(runtime, turnId, response);
+    harness.manager.handleMessage(runtime, event);
+    harness.manager.handleMessage(runtime, { method: "turn/completed", params: { turn: { id: turnId, status: "completed" } } });
+    assert.equal(response.endCalls, 1);
+    assert.equal(harness.manager.detachStream(runtime, turnId, response), false);
+  }
+  assert.match(diagnostics.join("\n"), /SSE書き込みに失敗/);
+  assert.match(diagnostics.join("\n"), /終端SSE書き込みに失敗/);
+  await harness.manager.shutdown();
+});
+
+test("ブラウザ切断時は該当responseだけを解除し後続通知を書き込まない", async () => {
+  const harness = createHarness(() => new FakeChild({ onWrite: autoRespond }));
+  const runtime = await harness.manager.ensureServer();
+  const disconnected = new FakeSseResponse();
+  const active = new FakeSseResponse();
+  harness.manager.attachStream(runtime, "turn-disconnected", disconnected);
+  harness.manager.attachStream(runtime, "turn-active", active);
+
+  assert.equal(harness.manager.detachStream(runtime, "turn-disconnected", disconnected), true);
+  assert.equal(harness.manager.detachStream(runtime, "turn-disconnected", disconnected), false);
+  harness.manager.handleMessage(runtime, { method: "item/agentMessage/delta", params: { turnId: "turn-disconnected", delta: "破棄" } });
+  harness.manager.handleMessage(runtime, { method: "turn/completed", params: { turn: { id: "turn-disconnected", status: "completed" } } });
+  harness.manager.handleMessage(runtime, { method: "item/agentMessage/delta", params: { turnId: "turn-active", delta: "継続" } });
+
+  assert.deepEqual(disconnected.events(), []);
+  assert.equal(disconnected.endCalls, 0);
+  assert.deepEqual(active.events(), [{ type: "delta", delta: "継続" }]);
+
+  harness.children[0].onWrite = (message, callback, child) => {
+    callback?.();
+    child.stdout.emit("data", [
+      JSON.stringify({ id: message.id, result: { turn: { id: "turn-aborted" } } }),
+      JSON.stringify({ method: "item/agentMessage/delta", params: { turnId: "turn-aborted", delta: "送信前切断" } })
+    ].join("\n") + "\n");
+  };
+  const abortedTurn = await harness.manager.send(runtime, "turn/start", {});
+  assert.equal(harness.manager.discardTurn(runtime, abortedTurn.turn.id), true);
+  const probe = new FakeSseResponse();
+  harness.manager.attachStream(runtime, abortedTurn.turn.id, probe);
+  assert.deepEqual(probe.events(), []);
+  harness.manager.detachStream(runtime, abortedTurn.turn.id, probe);
+  await harness.manager.shutdown();
+});
