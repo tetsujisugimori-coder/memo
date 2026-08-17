@@ -4001,6 +4001,7 @@ function renderAll() {
   renderDiscovery();
   renderLinkStats();
   updateUndoButton();
+  window.MemoNexusCodexChat?.onMemoChanged(currentNote());
 }
 
 // 左側のメモ一覧を描画します。検索欄に入力があればタイトル・本文から絞り込みます。
@@ -4335,6 +4336,7 @@ function openNote(id) {
   renderDiscovery();
   updateUndoButton();
   renderAiUi();
+  window.MemoNexusCodexChat?.onMemoChanged(note);
   if (isPopoutWindow) document.title = `${note.title} — Memo Nexus`;
   editor.focus();
 }
