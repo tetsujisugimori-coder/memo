@@ -51,14 +51,36 @@ class FakeChild extends EventEmitter {
   }
 }
 
-class FakeSseResponse {
-  constructor() {
+class FakeSseResponse extends EventEmitter {
+  constructor({ writeError = null, endError = null, destroyError = null } = {}) {
+    super();
     this.writableEnded = false;
+    this.destroyed = false;
     this.writes = [];
+    this.writeCalls = 0;
     this.endCalls = 0;
+    this.destroyCalls = 0;
+    this.writeError = writeError;
+    this.endError = endError;
+    this.destroyError = destroyError;
   }
-  write(value) { this.writes.push(String(value)); }
-  end() { this.endCalls += 1; this.writableEnded = true; }
+  write(value) {
+    this.writeCalls += 1;
+    if (this.writeError) throw this.writeError;
+    this.writes.push(String(value));
+  }
+  end() {
+    this.endCalls += 1;
+    if (this.endError) throw this.endError;
+    this.writableEnded = true;
+    this.emit("close");
+  }
+  destroy() {
+    this.destroyCalls += 1;
+    if (this.destroyError) throw this.destroyError;
+    this.destroyed = true;
+    this.emit("close");
+  }
   events() { return this.writes.map((value) => JSON.parse(value.slice(6))); }
 }
 
@@ -142,8 +164,9 @@ test("古いruntimeのexit・error・stdout・stderrは新しいruntimeを変更
   const newRuntime = await harness.manager.ensureServer();
   const newChild = harness.children[1];
   let requestId;
+  let resultCalls = 0;
   newChild.onWrite = (message, callback) => { callback?.(); if (message.id !== undefined) requestId = message.id; };
-  const pending = harness.manager.send(newRuntime, "thread/start", {});
+  const pending = harness.manager.send(newRuntime, "thread/start", {}, { onResult: () => { resultCalls += 1; } });
   oldChild.stdout.emit("data", `${JSON.stringify({ id: requestId, result: { source: "old" } })}\n`);
   oldChild.stderr.emit("data", "古いstderr");
   oldChild.emit("error", new Error("古いerror"));
@@ -152,8 +175,10 @@ test("古いruntimeのexit・error・stdout・stderrは新しいruntimeを変更
   assert.equal(oldChild.killCalls.length, 1);
   assert.strictEqual(harness.manager.getCurrentRuntime(), newRuntime);
   assert.equal(newChild.killCalls.length, 0);
+  assert.equal(resultCalls, 0);
   newChild.respond(requestId, { source: "new" });
   assert.deepEqual(await pending, { source: "new" });
+  assert.equal(resultCalls, 1);
   await harness.manager.shutdown();
 });
 
@@ -336,9 +361,10 @@ test("turn/start応答とdelta・completedが同じstdout chunkでも通知を�
     ].join("\n") + "\n");
   };
 
-  const turn = await harness.manager.send(runtime, "turn/start", { threadId: "thread-1" });
   const response = new FakeSseResponse();
-  harness.manager.attachStream(runtime, turn.turn.id, response, { type: "thread", threadId: "thread-1" });
+  await harness.manager.send(runtime, "turn/start", { threadId: "thread-1" }, {
+    onResult: (result) => harness.manager.attachStream(runtime, result.turn.id, response, { type: "thread", threadId: "thread-1" })
+  });
 
   assert.deepEqual(response.events(), [
     { type: "thread", threadId: "thread-1" },
@@ -346,7 +372,148 @@ test("turn/start応答とdelta・completedが同じstdout chunkでも通知を�
     { type: "done", threadId: "thread-1", text: "高速回答" }
   ]);
   assert.equal(response.endCalls, 1);
+  assert.equal(runtime.streams.has("turn-fast"), false);
+  assert.equal(response.listenerCount("close"), 0);
   await harness.manager.shutdown();
+});
+
+test("turn/startレスポンス前のstarted・delta・completedを同期登録後に再生する", async () => {
+  const harness = createHarness(() => new FakeChild({ onWrite: autoRespond }));
+  const runtime = await harness.manager.ensureServer();
+  harness.children[0].onWrite = (message, callback, child) => {
+    callback?.();
+    if (message.method !== "turn/start") return;
+    child.stdout.emit("data", [
+      JSON.stringify({ method: "turn/started", params: { threadId: "thread-early", turn: { id: "turn-early", status: "inProgress" } } }),
+      JSON.stringify({ method: "item/agentMessage/delta", params: { threadId: "thread-early", turnId: "turn-early", delta: "先行回答" } }),
+      JSON.stringify({ method: "turn/completed", params: { threadId: "thread-early", turn: { id: "turn-early", status: "completed" } } }),
+      JSON.stringify({ id: message.id, result: { turn: { id: "turn-early" } } })
+    ].join("\n") + "\n");
+  };
+
+  const response = new FakeSseResponse();
+  await harness.manager.send(runtime, "turn/start", { threadId: "thread-early" }, {
+    onResult: (result) => harness.manager.attachStream(runtime, result.turn.id, response, { type: "thread", threadId: "thread-early" })
+  });
+
+  assert.deepEqual(response.events(), [
+    { type: "thread", threadId: "thread-early" },
+    { type: "delta", delta: "先行回答" },
+    { type: "done", threadId: "thread-early", text: "先行回答" }
+  ]);
+  assert.equal(response.endCalls, 1);
+  assert.equal(runtime.streams.has("turn-early"), false);
+  assert.equal(runtime.earlyTurnEvents.size, 0);
+  await harness.manager.shutdown();
+});
+
+test("onResultは成功時だけ同期で一度実行し失敗時は要求をrejectする", async () => {
+  const harness = createHarness(() => new FakeChild({ onWrite: autoRespond }));
+  const runtime = await harness.manager.ensureServer();
+  let calls = 0;
+  harness.children[0].onWrite = (message, callback, child) => {
+    callback?.();
+    if (message.method === "thread/start") child.respond(message.id, { thread: { id: "thread-sync" } });
+  };
+  await assert.rejects(harness.manager.send(runtime, "thread/start", {}, {
+    onResult: () => { calls += 1; throw new Error("同期登録失敗"); }
+  }), /同期登録失敗/);
+  assert.equal(calls, 1);
+  assert.equal(runtime.pending.size, 0);
+  assert.equal(runtime.disposed, false);
+
+  harness.children[0].onWrite = (message, callback, child) => {
+    callback?.();
+    child.stdout.emit("data", `${JSON.stringify({ method: "turn/started", params: { threadId: "thread-rpc-fail", turn: { id: "turn-rpc-fail" } } })}\n`);
+    child.fail(message.id, "RPC失敗");
+  };
+  await assert.rejects(harness.manager.send(runtime, "turn/start", { threadId: "thread-rpc-fail" }, { onResult: () => { calls += 1; } }), /RPC失敗/);
+  assert.equal(calls, 1);
+  assert.equal(runtime.earlyTurnEvents.size, 0);
+
+  harness.children[0].onWrite = (message, callback, child) => {
+    callback?.();
+    child.respond(message.id, { thread: { id: "thread-async" } });
+  };
+  await assert.rejects(harness.manager.send(runtime, "thread/start", {}, { onResult: async () => {} }), /同期処理/);
+  assert.equal(runtime.pending.size, 0);
+  await harness.manager.shutdown();
+});
+
+test("早期通知は件数・容量上限を超えると部分回答にせずSSE errorで終了する", async () => {
+  for (const limitOptions of [
+    { maxEarlyEventsPerTurn: 1, maxEarlyBytesPerTurn: 4096 },
+    { maxEarlyEventsPerTurn: 10, maxEarlyBytesPerTurn: 1 }
+  ]) {
+    const harness = createHarness(() => new FakeChild({ onWrite: autoRespond }), limitOptions);
+    const runtime = await harness.manager.ensureServer();
+    harness.children[0].onWrite = (message, callback, child) => {
+      callback?.();
+      child.stdout.emit("data", [
+        JSON.stringify({ method: "turn/started", params: { threadId: "thread-limit", turn: { id: "turn-limit" } } }),
+        JSON.stringify({ method: "item/agentMessage/delta", params: { threadId: "thread-limit", turnId: "turn-limit", delta: "A" } }),
+        JSON.stringify({ method: "item/agentMessage/delta", params: { threadId: "thread-limit", turnId: "turn-limit", delta: "B" } }),
+        JSON.stringify({ id: message.id, result: { turn: { id: "turn-limit" } } })
+      ].join("\n") + "\n");
+    };
+    const response = new FakeSseResponse();
+    await harness.manager.send(runtime, "turn/start", { threadId: "thread-limit" }, {
+      onResult: (result) => harness.manager.attachStream(runtime, result.turn.id, response, { type: "thread", threadId: "thread-limit" })
+    });
+    assert.equal(response.events()[0].type, "thread");
+    assert.equal(response.events()[1].type, "error");
+    assert.match(response.events()[1].error, /保持上限/);
+    assert.equal(response.events().some((event) => event.type === "delta"), false);
+    assert.equal(response.endCalls, 1);
+    assert.equal(runtime.earlyTurnEvents.size, 0);
+    await harness.manager.shutdown();
+  }
+});
+
+test("早期通知は進行中turn/startだけを上限付きで保持しruntime破棄で消去する", async () => {
+  const harness = createHarness(() => new FakeChild({ onWrite: autoRespond }), { maxEarlyTurns: 1 });
+  const runtime = await harness.manager.ensureServer();
+  harness.children[0].onWrite = (message, callback) => callback?.();
+  const first = harness.manager.send(runtime, "turn/start", { threadId: "thread-a" });
+  const second = harness.manager.send(runtime, "turn/start", { threadId: "thread-b" });
+  harness.manager.handleMessage(runtime, { method: "turn/started", params: { threadId: "unknown", turn: { id: "turn-unknown" } } });
+  assert.equal(runtime.earlyTurnEvents.size, 0);
+  harness.manager.handleMessage(runtime, { method: "turn/started", params: { threadId: "thread-a", turn: { id: "turn-a" } } });
+  harness.manager.handleMessage(runtime, { method: "item/agentMessage/delta", params: { threadId: "thread-a", turnId: "turn-a", delta: "保持" } });
+  assert.equal(runtime.earlyTurnEvents.size, 1);
+  harness.manager.handleMessage(runtime, { method: "turn/started", params: { threadId: "thread-b", turn: { id: "turn-b" } } });
+  await assert.rejects(second, /保持上限/);
+  assert.equal(runtime.earlyTurnEvents.size, 1);
+  const cleanup = harness.manager.disposeRuntime(runtime, new Error("破棄"));
+  await assert.rejects(first, /破棄/);
+  await cleanup;
+  assert.equal(runtime.earlyTurnEvents.size, 0);
+
+  const nextRuntime = await harness.manager.ensureServer();
+  harness.children[0].stdout.emit("data", `${JSON.stringify({ method: "turn/started", params: { threadId: "thread-new", turn: { id: "turn-old" } } })}\n`);
+  assert.equal(nextRuntime.earlyTurnEvents.size, 0);
+  await harness.manager.shutdown();
+});
+
+test("turn/start timeoutは早期通知を消去して対象runtimeだけを破棄する", async () => {
+  const timers = createFakeTimers();
+  const harness = createHarness(() => new FakeChild({ onWrite: autoRespond }), {
+    setTimer: timers.setTimer,
+    clearTimer: timers.clearTimer
+  });
+  const runtime = await harness.manager.ensureServer();
+  harness.children[0].onWrite = (message, callback) => callback?.();
+  const request = harness.manager.send(runtime, "turn/start", { threadId: "thread-timeout" });
+  harness.manager.handleMessage(runtime, { method: "turn/started", params: { threadId: "thread-timeout", turn: { id: "turn-timeout" } } });
+  harness.manager.handleMessage(runtime, { method: "item/agentMessage/delta", params: { threadId: "thread-timeout", turnId: "turn-timeout", delta: "保留" } });
+  assert.equal(runtime.earlyTurnEvents.size, 1);
+  assert.equal(timers.fireFirst(), true);
+  await assert.rejects(request, /turn\/start が時間内/);
+  await flush();
+  await runtime.cleanupPromise;
+  assert.equal(runtime.earlyTurnEvents.size, 0);
+  assert.equal(runtime.disposed, true);
+  assert.equal(timers.activeCount(), 0);
 });
 
 test("SSE書き込み例外時もストリームを一度だけ解放してresponseを閉じる", async () => {
@@ -355,21 +522,34 @@ test("SSE書き込み例外時もストリームを一度だけ解放してrespo
     diagnose: (message) => diagnostics.push(message)
   });
   const runtime = await harness.manager.ensureServer();
-  for (const event of [
-    { method: "item/agentMessage/delta", params: { turnId: "turn-delta", delta: "回答" } },
-    { method: "turn/completed", params: { threadId: "thread-1", turn: { id: "turn-done", status: "completed" } } }
-  ]) {
-    const response = new FakeSseResponse();
-    response.write = () => { throw new Error("socket closed"); };
-    const turnId = event.params.turnId || event.params.turn.id;
-    harness.manager.attachStream(runtime, turnId, response);
-    harness.manager.handleMessage(runtime, event);
-    harness.manager.handleMessage(runtime, { method: "turn/completed", params: { turn: { id: turnId, status: "completed" } } });
-    assert.equal(response.endCalls, 1);
-    assert.equal(harness.manager.detachStream(runtime, turnId, response), false);
-  }
+  const writeFailure = new FakeSseResponse({ writeError: new Error("socket closed") });
+  const endFailure = new FakeSseResponse({ endError: new Error("end failed") });
+  const healthy = new FakeSseResponse();
+  harness.manager.attachStream(runtime, "turn-write", writeFailure);
+  harness.manager.attachStream(runtime, "turn-end", endFailure);
+  harness.manager.attachStream(runtime, "turn-healthy", healthy);
+  harness.manager.handleMessage(runtime, { method: "item/agentMessage/delta", params: { turnId: "turn-write", delta: "回答" } });
+  harness.manager.handleMessage(runtime, { method: "turn/completed", params: { threadId: "thread-1", turn: { id: "turn-write", status: "completed" } } });
+  harness.manager.handleMessage(runtime, { method: "turn/completed", params: { threadId: "thread-1", turn: { id: "turn-end", status: "completed" } } });
+  harness.manager.handleMessage(runtime, { method: "item/agentMessage/delta", params: { turnId: "turn-healthy", delta: "継続" } });
+  assert.equal(writeFailure.endCalls, 1);
+  assert.equal(writeFailure.destroyCalls, 0);
+  assert.equal(endFailure.endCalls, 1);
+  assert.equal(endFailure.destroyCalls, 1);
+  assert.equal(runtime.streams.has("turn-write"), false);
+  assert.equal(runtime.streams.has("turn-end"), false);
+  assert.deepEqual(healthy.events(), [{ type: "delta", delta: "継続" }]);
+  assert.equal(runtime.disposed, false);
+
+  const alreadyEnded = new FakeSseResponse();
+  alreadyEnded.writableEnded = true;
+  assert.equal(harness.manager.attachStream(runtime, "turn-ended", alreadyEnded, { type: "thread" }), false);
+  assert.equal(alreadyEnded.writeCalls, 0);
+  assert.equal(alreadyEnded.endCalls, 0);
+  assert.equal(runtime.streams.has("turn-ended"), false);
   assert.match(diagnostics.join("\n"), /SSE書き込みに失敗/);
-  assert.match(diagnostics.join("\n"), /終端SSE書き込みに失敗/);
+  assert.match(diagnostics.join("\n"), /SSE終了に失敗/);
+  assert.match(diagnostics.join("\n"), /runtime \d+ turn turn-end/);
   await harness.manager.shutdown();
 });
 
@@ -380,9 +560,14 @@ test("ブラウザ切断時は該当responseだけを解除し後続通知を書
   const active = new FakeSseResponse();
   harness.manager.attachStream(runtime, "turn-disconnected", disconnected);
   harness.manager.attachStream(runtime, "turn-active", active);
-
-  assert.equal(harness.manager.detachStream(runtime, "turn-disconnected", disconnected), true);
-  assert.equal(harness.manager.detachStream(runtime, "turn-disconnected", disconnected), false);
+  harness.manager.handleMessage(runtime, { method: "error", params: { turnId: "turn-disconnected", error: { message: "切断前エラー" } } });
+  runtime.earlyTurnEvents.set("turn-disconnected", { threadId: "thread-1", events: [], bytes: 0, overflowError: "" });
+  assert.equal(disconnected.listenerCount("close"), 1);
+  disconnected.emit("close");
+  assert.equal(disconnected.listenerCount("close"), 0);
+  assert.equal(runtime.streams.has("turn-disconnected"), false);
+  assert.equal(runtime.turnErrors.has("turn-disconnected"), false);
+  assert.equal(runtime.earlyTurnEvents.has("turn-disconnected"), false);
   harness.manager.handleMessage(runtime, { method: "item/agentMessage/delta", params: { turnId: "turn-disconnected", delta: "破棄" } });
   harness.manager.handleMessage(runtime, { method: "turn/completed", params: { turn: { id: "turn-disconnected", status: "completed" } } });
   harness.manager.handleMessage(runtime, { method: "item/agentMessage/delta", params: { turnId: "turn-active", delta: "継続" } });
@@ -390,19 +575,8 @@ test("ブラウザ切断時は該当responseだけを解除し後続通知を書
   assert.deepEqual(disconnected.events(), []);
   assert.equal(disconnected.endCalls, 0);
   assert.deepEqual(active.events(), [{ type: "delta", delta: "継続" }]);
-
-  harness.children[0].onWrite = (message, callback, child) => {
-    callback?.();
-    child.stdout.emit("data", [
-      JSON.stringify({ id: message.id, result: { turn: { id: "turn-aborted" } } }),
-      JSON.stringify({ method: "item/agentMessage/delta", params: { turnId: "turn-aborted", delta: "送信前切断" } })
-    ].join("\n") + "\n");
-  };
-  const abortedTurn = await harness.manager.send(runtime, "turn/start", {});
-  assert.equal(harness.manager.discardTurn(runtime, abortedTurn.turn.id), true);
-  const probe = new FakeSseResponse();
-  harness.manager.attachStream(runtime, abortedTurn.turn.id, probe);
-  assert.deepEqual(probe.events(), []);
-  harness.manager.detachStream(runtime, abortedTurn.turn.id, probe);
+  harness.manager.handleMessage(runtime, { method: "turn/completed", params: { turn: { id: "turn-active", status: "completed" } } });
+  assert.equal(active.endCalls, 1);
+  assert.equal(active.listenerCount("close"), 0);
   await harness.manager.shutdown();
 });

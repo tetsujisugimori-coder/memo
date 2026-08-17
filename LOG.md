@@ -1861,3 +1861,10 @@
 * `turn/start`のJSON-RPC応答とdelta・`turn/completed`が同じstdout chunkへ入った場合、HTTP側がSSEを登録するまでの通知をturn単位で一時保持し、登録後に`thread`、delta、完了の順で再生するようにした。競合を実際に再現する失敗テストを先に追加し、修正後に回答と終端が欠落しないことを確認した。
 * SSEの通常書き込み・終端書き込みが例外になっても該当ストリームを一度だけ解放し、responseの終了を試みる。ブラウザのabort・closeでは該当responseとの紐付けだけを解除し、切断後の通知を書き込まず、別turnのストリームへ影響しないようにした。
 * `node --test`は567件成功し、`node --check app.js`、`node --check codex-bridge.js`、`node --check codex-bridge-runtime.js`、`node --check codex-chat.js`、`node --check codex-chat-utils.js`、`git diff --check`が成功した。実会話E2Eでは`/health`のconnected、HTTP 200、`thread`、delta「確認」、doneを確認し、正常shutdown後に今回のApp Serverプロセスと一時ディレクトリが残らないことを確認した。
+
+## 2026-08-17 Codex高速turn・SSE切断の最終修正
+
+* `turn/start`の成功応答を処理する同じ同期処理内で`onResult`を一度だけ呼び、Promiseをresolveする前にSSEを登録して`thread`を送るようにした。公式App Server資料とCodex CLI 0.147.0の生成スキーマではレスポンス先行の明示保証を確認できなかったため、進行中の`turn/start`に対応する`turn/started`以後だけを早期通知として保持する。上限はruntimeごとに4 turn、turnごとに64イベント・64 KiBとし、timeout、RPC失敗、登録完了、ブラウザ切断、runtime破棄で削除する。上限超過時は部分回答を再生せず、`thread`後に診断可能な`error`で終了する。
+* SSEの書込み・終了を共通処理へ集約し、`write`失敗時も該当streamとturn関連状態を先に解除して`end`、必要なら`destroy`を一度だけ試す。`end`・`destroy`の例外はruntime IDとturn IDを含めて診断し、健康なruntimeや別turnは終了しない。`attachStream()`自身がServerResponseの`close`を監視し、正常終了・ブラウザ更新・fetch中断のいずれでも対象stream、turn error、早期通知、close listenerだけを解放する。
+* FakeChildとFakeSseResponseを使い、同一stdout chunkの応答→delta→completed、応答前のstarted→delta→completed、`onResult`の例外・非同期拒否・旧runtime分離、早期通知の件数・容量・turn数上限と破棄、SSEのwrite・end・destroy例外、実closeイベント、正常／異常statusの回帰を追加した。`node --test`は572件成功し、指定した全JavaScriptの`node --check`と`git diff --check`が成功した。
+* Chromeの`http://127.0.0.1:8765/`と`npm run codex:bridge`で、`/health`のconnected、短い実回答の完了と送信ボタン再有効化、回答中のメモA→B切替で履歴が混ざらないこと、ページ再読み込みによる通信中断後もブリッジが生存して再送信できること、送信中のブリッジ停止でbusyが解除されること、再起動後の再接続・実回答を確認した。本文添付は操作せず、通常メッセージだけを送信した。終了後は8765・8787のlistener、App Serverプロセス、今回作成した一時ディレクトリが残っていないことを確認した。同一stdout chunk競合そのものは実機発生に依存するため、確定的な動作テストで検証した。

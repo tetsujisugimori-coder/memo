@@ -8,6 +8,9 @@ const { spawn } = require("node:child_process");
 const DEFAULT_RPC_TIMEOUT_MS = 15000;
 const DEFAULT_EXIT_TIMEOUT_MS = 2000;
 const DEFAULT_FORCE_EXIT_TIMEOUT_MS = 500;
+const DEFAULT_MAX_EARLY_TURNS = 4;
+const DEFAULT_MAX_EARLY_EVENTS_PER_TURN = 64;
+const DEFAULT_MAX_EARLY_BYTES_PER_TURN = 64 * 1024;
 
 function errorMessage(error, fallback = "Codex App Serverとの接続が終了しました。") {
   return error?.message || String(error || fallback);
@@ -26,6 +29,9 @@ function createRuntimeManager(options = {}) {
   const rpcTimeoutMs = options.rpcTimeoutMs || DEFAULT_RPC_TIMEOUT_MS;
   const exitTimeoutMs = options.exitTimeoutMs || DEFAULT_EXIT_TIMEOUT_MS;
   const forceExitTimeoutMs = options.forceExitTimeoutMs || DEFAULT_FORCE_EXIT_TIMEOUT_MS;
+  const maxEarlyTurns = options.maxEarlyTurns || DEFAULT_MAX_EARLY_TURNS;
+  const maxEarlyEventsPerTurn = options.maxEarlyEventsPerTurn || DEFAULT_MAX_EARLY_EVENTS_PER_TURN;
+  const maxEarlyBytesPerTurn = options.maxEarlyBytesPerTurn || DEFAULT_MAX_EARLY_BYTES_PER_TURN;
   const diagnose = options.diagnose || ((message) => console.error(`[Codex bridge] ${message}`));
   let currentRuntime = null;
   let nextRuntimeId = 0;
@@ -47,7 +53,7 @@ function createRuntimeManager(options = {}) {
       buffer: "",
       pending: new Map(),
       streams: new Map(),
-      queuedTurnEvents: new Map(),
+      earlyTurnEvents: new Map(),
       turnErrors: new Map(),
       disposed: false,
       cleanupPromise: null,
@@ -65,30 +71,62 @@ function createRuntimeManager(options = {}) {
     runtime.resolveExit();
   }
 
-  function safelyEndResponse(state, context) {
-    if (state.res.writableEnded) return;
-    try { state.res.end(); } catch (error) { diagnose(`${context}のSSE終了に失敗: ${errorMessage(error)}`); }
+  function responseClosed(res) {
+    return Boolean(res?.writableEnded || res?.destroyed);
+  }
+
+  function removeCloseListener(state) {
+    if (!state.closeHandler) return;
+    if (typeof state.res.off === "function") state.res.off("close", state.closeHandler);
+    else if (typeof state.res.removeListener === "function") state.res.removeListener("close", state.closeHandler);
+    state.closeHandler = null;
+  }
+
+  function clearTurnArtifacts(runtime, turnId) {
+    runtime.earlyTurnEvents.delete(turnId);
+    runtime.turnErrors.delete(turnId);
+  }
+
+  function safelyEndResponse(runtime, turnId, state) {
+    if (responseClosed(state.res)) return false;
+    try {
+      state.res.end();
+      return true;
+    } catch (error) {
+      diagnose(`runtime ${runtime.id} turn ${turnId} のSSE終了に失敗: ${errorMessage(error)}`);
+      if (state.res.destroyed || typeof state.res.destroy !== "function") return false;
+      try {
+        state.res.destroy();
+        return true;
+      } catch (destroyError) {
+        diagnose(`runtime ${runtime.id} turn ${turnId} のSSE破棄に失敗: ${errorMessage(destroyError)}`);
+        return false;
+      }
+    }
   }
 
   function detachStream(runtime, turnId, res = null) {
     const state = runtime?.streams.get(turnId);
-    if (!state || res && state.res !== res) return false;
+    if (!state || (res && state.res !== res)) return false;
     runtime.streams.delete(turnId);
-    runtime.queuedTurnEvents.delete(turnId);
-    runtime.turnErrors.delete(turnId);
+    clearTurnArtifacts(runtime, turnId);
+    removeCloseListener(state);
     state.ended = true;
     return true;
   }
 
   function writeSse(runtime, turnId, state, event) {
-    if (state.ended || state.res.writableEnded) return false;
+    if (state.ended || responseClosed(state.res)) {
+      detachStream(runtime, turnId, state.res);
+      return false;
+    }
     try {
       state.res.write(`data: ${JSON.stringify(event)}\n\n`);
       return true;
     } catch (error) {
       detachStream(runtime, turnId, state.res);
-      diagnose(`turn ${turnId} のSSE書き込みに失敗: ${errorMessage(error)}`);
-      safelyEndResponse(state, `turn ${turnId}`);
+      diagnose(`runtime ${runtime.id} turn ${turnId} のSSE書き込みに失敗: ${errorMessage(error)}`);
+      safelyEndResponse(runtime, turnId, state);
       return false;
     }
   }
@@ -97,14 +135,62 @@ function createRuntimeManager(options = {}) {
     const state = runtime.streams.get(turnId);
     if (!state || state.ended) return false;
     runtime.streams.delete(turnId);
-    runtime.queuedTurnEvents.delete(turnId);
-    runtime.turnErrors.delete(turnId);
+    clearTurnArtifacts(runtime, turnId);
+    removeCloseListener(state);
     state.ended = true;
-    if (!state.res.writableEnded) {
+    if (!responseClosed(state.res)) {
       try { state.res.write(`data: ${JSON.stringify(event)}\n\n`); }
-      catch (error) { diagnose(`turn ${turnId} の終端SSE書き込みに失敗: ${errorMessage(error)}`); }
-      finally { safelyEndResponse(state, `turn ${turnId}`); }
+      catch (error) { diagnose(`runtime ${runtime.id} turn ${turnId} の終端SSE書き込みに失敗: ${errorMessage(error)}`); }
+      finally { safelyEndResponse(runtime, turnId, state); }
     }
+    return true;
+  }
+
+  function findPendingTurnStart(runtime, threadId) {
+    if (!threadId) return null;
+    for (const waiter of runtime.pending.values()) {
+      if (waiter.method === "turn/start" && waiter.threadId === threadId) return waiter;
+    }
+    return null;
+  }
+
+  function clearEarlyTurnsForThread(runtime, threadId) {
+    if (!threadId) return;
+    for (const [turnId, entry] of runtime.earlyTurnEvents) {
+      if (entry.threadId === threadId) runtime.earlyTurnEvents.delete(turnId);
+    }
+  }
+
+  function beginEarlyTurn(runtime, message) {
+    const threadId = String(message.params?.threadId || "");
+    const turnId = String(message.params?.turn?.id || "");
+    if (!threadId || !turnId || runtime.streams.has(turnId) || runtime.earlyTurnEvents.has(turnId)) return false;
+    const waiter = findPendingTurnStart(runtime, threadId);
+    if (!waiter) return false;
+    if (runtime.earlyTurnEvents.size >= maxEarlyTurns) {
+      const error = new Error(`turn開始前通知の保持上限（${maxEarlyTurns}件）を超えました。`);
+      diagnose(`runtime ${runtime.id} turn ${turnId}: ${error.message}`);
+      waiter.rejectOnce(error);
+      return false;
+    }
+    runtime.earlyTurnEvents.set(turnId, { threadId, events: [], bytes: 0, overflowError: "" });
+    return true;
+  }
+
+  function bufferEarlyTurnEvent(runtime, turnId, message) {
+    const entry = runtime.earlyTurnEvents.get(turnId);
+    if (!entry) return false;
+    if (entry.overflowError) return true;
+    const bytes = Buffer.byteLength(JSON.stringify(message), "utf8");
+    if (entry.events.length >= maxEarlyEventsPerTurn || entry.bytes + bytes > maxEarlyBytesPerTurn) {
+      entry.events.length = 0;
+      entry.bytes = 0;
+      entry.overflowError = `turn開始前通知が保持上限（${maxEarlyEventsPerTurn}件・${maxEarlyBytesPerTurn}バイト）を超えました。`;
+      diagnose(`runtime ${runtime.id} turn ${turnId}: ${entry.overflowError}`);
+      return true;
+    }
+    entry.events.push(message);
+    entry.bytes += bytes;
     return true;
   }
 
@@ -147,7 +233,7 @@ function createRuntimeManager(options = {}) {
     for (const waiter of Array.from(runtime.pending.values())) waiter.rejectOnce(error);
     runtime.pending.clear();
     failRuntimeStreams(runtime, error);
-    runtime.queuedTurnEvents.clear();
+    runtime.earlyTurnEvents.clear();
     runtime.turnErrors.clear();
 
     let resolveCleanup;
@@ -189,26 +275,47 @@ function createRuntimeManager(options = {}) {
     if (!runtime.child?.stdin?.writable) throw new Error("Codex App Serverが起動していません。");
   }
 
-  function send(runtime, method, params, timeoutMs = rpcTimeoutMs) {
+  function send(runtime, method, params, sendOptions = {}) {
     try { assertWritable(runtime, method); } catch (error) { return Promise.reject(error); }
+    const optionObject = sendOptions && typeof sendOptions === "object" ? sendOptions : {};
+    const timeoutMs = typeof sendOptions === "number" ? sendOptions : optionObject.timeoutMs || rpcTimeoutMs;
+    const onResult = typeof optionObject.onResult === "function" ? optionObject.onResult : null;
     return new Promise((resolve, reject) => {
       const id = ++nextRpcId;
+      const threadId = method === "turn/start" ? String(params?.threadId || "") : "";
       let settled = false;
+      let resultStarted = false;
       let timeout = null;
       const settle = (kind, value) => {
         if (settled) return false;
         settled = true;
         if (timeout !== null) clearTimer(timeout);
         runtime.pending.delete(id);
+        if (method === "turn/start") clearEarlyTurnsForThread(runtime, threadId);
         if (kind === "resolve") resolve(value); else reject(value);
         return true;
       };
       const rejectOnce = (error) => settle("reject", error);
+      const resolveOnce = (value) => {
+        if (settled || resultStarted) return false;
+        resultStarted = true;
+        try {
+          if (onResult) {
+            const callbackResult = onResult(value);
+            if (callbackResult && typeof callbackResult.then === "function") {
+              throw new Error("onResultは同期処理である必要があります。");
+            }
+          }
+        } catch (error) {
+          return settle("reject", error);
+        }
+        return settle("resolve", value);
+      };
       timeout = setTimer(() => {
         const error = new Error(`${method} が時間内に応答しませんでした。`);
         if (rejectOnce(error)) void disposeRuntime(runtime, error);
       }, timeoutMs);
-      runtime.pending.set(id, { method, resolveOnce: (value) => settle("resolve", value), rejectOnce, timeout });
+      runtime.pending.set(id, { method, threadId, resolveOnce, rejectOnce, timeout });
       const failWrite = (cause) => {
         if (!runtime.pending.has(id)) return;
         const error = new Error(`Codex App Serverへ送信できませんでした: ${errorMessage(cause)}`);
@@ -268,17 +375,19 @@ function createRuntimeManager(options = {}) {
       const waiter = runtime.pending.get(message.id);
       if (!waiter) return;
       if (message.error) waiter.rejectOnce(new Error(message.error.message || "Codex App Server error"));
-      else {
-        const turnId = waiter.method === "turn/start" ? message.result?.turn?.id : "";
-        if (turnId && !runtime.queuedTurnEvents.has(turnId)) runtime.queuedTurnEvents.set(turnId, []);
-        waiter.resolveOnce(message.result);
-      }
+      else waiter.resolveOnce(message.result);
+      return;
+    }
+    if (message.method === "turn/started") {
+      beginEarlyTurn(runtime, message);
       return;
     }
     if (message.method === "error") {
       const turnId = message.params?.turnId;
       const messageText = message.params?.error?.message;
-      if (turnId && messageText) runtime.turnErrors.set(turnId, { message: messageText, willRetry: Boolean(message.params?.willRetry) });
+      if (turnId && messageText && (runtime.streams.has(turnId) || runtime.earlyTurnEvents.has(turnId))) {
+        runtime.turnErrors.set(turnId, { message: messageText, willRetry: Boolean(message.params?.willRetry) });
+      }
       return;
     }
     if (message.method === "warning" || message.method === "configWarning") return;
@@ -286,8 +395,7 @@ function createRuntimeManager(options = {}) {
       const turnId = message.params?.turnId;
       const state = runtime.streams.get(turnId);
       if (!state || state.ended) {
-        const queued = runtime.queuedTurnEvents.get(turnId);
-        if (queued) queued.push(message);
+        bufferEarlyTurnEvent(runtime, turnId, message);
         return;
       }
       const delta = String(message.params?.delta || "");
@@ -300,8 +408,7 @@ function createRuntimeManager(options = {}) {
     const turnId = turn?.id;
     if (!turnId) return;
     if (!runtime.streams.has(turnId)) {
-      const queued = runtime.queuedTurnEvents.get(turnId);
-      if (queued) queued.push(message);
+      bufferEarlyTurnEvent(runtime, turnId, message);
       return;
     }
     const recordedError = runtime.turnErrors.get(turnId);
@@ -394,15 +501,27 @@ function createRuntimeManager(options = {}) {
 
   function attachStream(runtime, turnId, res, initialEvent = null) {
     if (!runtime || runtime.disposed) throw new Error("Codex App Serverとの接続が終了しました。");
-    const state = { res, text: "", ended: false };
-    runtime.streams.set(turnId, state);
-    if (initialEvent && !writeSse(runtime, turnId, state, initialEvent)) {
-      runtime.queuedTurnEvents.delete(turnId);
+    if (!turnId || responseClosed(res)) {
+      if (turnId) clearTurnArtifacts(runtime, turnId);
       return false;
     }
-    const queued = runtime.queuedTurnEvents.get(turnId) || [];
-    runtime.queuedTurnEvents.delete(turnId);
-    for (const message of queued) {
+    if (runtime.streams.has(turnId)) detachStream(runtime, turnId);
+    const state = { res, text: "", ended: false, closeHandler: null };
+    runtime.streams.set(turnId, state);
+    if (typeof res.once === "function") {
+      state.closeHandler = () => detachStream(runtime, turnId, res);
+      res.once("close", state.closeHandler);
+    }
+    if (initialEvent && !writeSse(runtime, turnId, state, initialEvent)) {
+      return false;
+    }
+    const early = runtime.earlyTurnEvents.get(turnId);
+    runtime.earlyTurnEvents.delete(turnId);
+    if (early?.overflowError) {
+      endStream(runtime, turnId, { type: "error", error: early.overflowError });
+      return true;
+    }
+    for (const message of early?.events || []) {
       if (state.ended) break;
       handleMessage(runtime, message);
     }
@@ -412,9 +531,13 @@ function createRuntimeManager(options = {}) {
   function discardTurn(runtime, turnId) {
     if (!runtime || !turnId) return false;
     const detached = detachStream(runtime, turnId);
-    const queued = runtime.queuedTurnEvents.delete(turnId);
+    const queued = runtime.earlyTurnEvents.delete(turnId);
     runtime.turnErrors.delete(turnId);
     return detached || queued;
+  }
+
+  function failStream(runtime, turnId, error) {
+    return endStream(runtime, turnId, { type: "error", error: errorMessage(error) });
   }
 
   async function shutdown() {
@@ -432,6 +555,7 @@ function createRuntimeManager(options = {}) {
     ensureServer,
     getCurrentRuntime: () => currentRuntime,
     getLastStartupError: () => lastStartupError,
+    failStream,
     handleMessage,
     handleStdout,
     notify,

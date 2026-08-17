@@ -59,10 +59,6 @@ const server = http.createServer(async (req, res) => {
     clientDisconnected = true;
     if (activeRuntime && activeTurnId) runtimeManager.detachStream(activeRuntime, activeTurnId, res);
   });
-  res.once("close", () => {
-    clientDisconnected = true;
-    if (activeRuntime && activeTurnId) runtimeManager.detachStream(activeRuntime, activeTurnId, res);
-  });
   try {
     const body = await readBody(req);
     const message = String(body.message || "").trim();
@@ -75,23 +71,29 @@ const server = http.createServer(async (req, res) => {
       const created = await runtimeManager.send(runtime, "thread/start", { ...safeThreadOptions(runtime), ephemeral: false });
       threadId = created.thread.id;
     }
-    const turn = await runtimeManager.send(runtime, "turn/start", {
+    await runtimeManager.send(runtime, "turn/start", {
       threadId,
       input: [{ type: "text", text: message }],
       approvalPolicy: "never",
       sandboxPolicy: { type: "readOnly", networkAccess: false }
+    }, {
+      onResult: (result) => {
+        activeRuntime = runtime;
+        activeTurnId = String(result?.turn?.id || "");
+        if (!activeTurnId) throw new Error("Codex App Serverからturn IDが返されませんでした。");
+        if (clientDisconnected || res.destroyed) {
+          runtimeManager.discardTurn(runtime, activeTurnId);
+          return;
+        }
+        if (origin) res.setHeader("Access-Control-Allow-Origin", origin);
+        res.setHeader("Content-Type", "text/event-stream");
+        res.setHeader("Cache-Control", "no-cache");
+        sse = true;
+        if (!runtimeManager.attachStream(runtime, activeTurnId, res, { type: "thread", threadId })) {
+          throw new Error("CodexのSSE接続を開始できませんでした。");
+        }
+      }
     });
-    activeRuntime = runtime;
-    activeTurnId = turn.turn.id;
-    if (clientDisconnected || res.destroyed) {
-      runtimeManager.discardTurn(runtime, activeTurnId);
-      return;
-    }
-    if (origin) res.setHeader("Access-Control-Allow-Origin", origin);
-    res.setHeader("Content-Type", "text/event-stream");
-    res.setHeader("Cache-Control", "no-cache");
-    sse = true;
-    runtimeManager.attachStream(runtime, activeTurnId, res, { type: "thread", threadId });
   } catch (error) {
     const message = runtimeManager.getLastStartupError() || error.message || "Codexローカル連携に接続できません";
     if (clientDisconnected || res.destroyed) {
@@ -99,10 +101,16 @@ const server = http.createServer(async (req, res) => {
       return;
     }
     if (sse || res.headersSent) {
+      if (activeRuntime && activeTurnId && runtimeManager.failStream(activeRuntime, activeTurnId, error)) return;
       if (!res.writableEnded) {
         try { res.write(`data: ${JSON.stringify({ type: "error", error: message })}\n\n`); }
         catch (_) {}
-        finally { if (!res.writableEnded) try { res.end(); } catch (_) {} }
+        finally {
+          if (!res.writableEnded && !res.destroyed) {
+            try { res.end(); }
+            catch (_) { if (!res.destroyed) try { res.destroy(); } catch (_) {} }
+          }
+        }
       }
     } else {
       json(res, 503, { error: message }, origin);
