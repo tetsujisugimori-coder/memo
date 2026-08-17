@@ -1839,3 +1839,7 @@
 * `buildPortableBackupFiles()`で`normalizeTagDefinitions`を必須とし、正規化処理の渡し忘れ時に空の`tags.json`を生成せず、安全なバックアップを生成できないことを示す明示的なエラーへ変更した。正規化関数があり、登録済みタグが0件の場合は、関数を通した空配列を従来どおり`tags.json`へ保存する。
 * 正規化関数なしの失敗、正常な空タグ、未使用タグ、`AI`のID`ai`・表示名`AI`の正規化保存を返り値の`tags.json`解析で検証した。通常ZIPとローカルフォルダ保存の両呼び出し元が正規化関数を渡す接続テストも追加した。
 * `node --test`は538件成功し、`node --check app.js`、`node --check tags.js`、`node --check backup-bundle-utils.js`を確認した。ブラウザでは「未使用」0件と付与済み「AI」を使って通常ZIPを生成し、実ZIPの`tags.json`に「未使用」と、ID`ai`・表示名`AI`が保存され、新しいエラーが出ないことを確認した。
+
+## 2026-08-17 Codexチャット試作
+
+* ローカルブリッジ経由でCodex App Serverへ会話し、メモ本文・選択範囲は明示添付時だけ送る試作を追加した。App Serverは一時空ディレクトリ、`read-only` sandbox、`never` approval policy、ネットワーク禁止で起動し、承認・ツール要求を拒否する。

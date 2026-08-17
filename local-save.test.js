@@ -258,7 +258,7 @@ test("管理対象Markdownはsync-stateのnote IDとfileNameで特定する", ()
   assert.match(html, /local-save-queue\.js\?v=0\.4\.0-3/);
   assert.match(html, /local-sync-utils\.js\?v=0\.4\.0-8/);
   assert.match(html, /backup-bundle-utils\.js\?v=0\.1\.0-5/);
-  assert.match(html, /app\.js\?v=0\.4\.0-87/);
+  assert.match(html, /app\.js\?v=0\.4\.0-88/);
   const syncState = {
     notes: {
       "note-1": { fileName: "題名--note-1.md", hash: "last" },

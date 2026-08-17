@@ -28,9 +28,9 @@ test("下部ステータスバーでフラグ直後に操作可能な文字数�
   assert.match(html, /id="textStatsPopover"[^>]*role="dialog"[^>]*hidden/);
   assert.match(html, /文字数 0字/);
   assert.match(html, /text-stats-utils\.js\?v=0\.4\.0-2/);
-  assert.match(html, /style\.css\?v=0\.4\.0-54/);
+  assert.match(html, /style\.css\?v=0\.4\.0-55/);
   assert.match(html, /status-time-utils\.js\?v=0\.4\.0-1/);
-  assert.match(html, /app\.js\?v=0\.4\.0-87/);
+  assert.match(html, /app\.js\?v=0\.4\.0-88/);
   assert.match(css, /\.status-chip\s*\{[^}]*min-height:\s*26px/s);
   assert.match(css, /\.text-stats-popover\s*\{[^}]*width:\s*min\(360px, calc\(100vw - 32px\)\)/s);
 });

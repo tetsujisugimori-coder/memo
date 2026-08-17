@@ -1132,6 +1132,14 @@ body.collections-open .collection-explorer {
   gap: 13px;
 }
 
+.codex-mode-tabs { display: flex; gap: 6px; margin: 0 0 12px; border-bottom: 1px solid var(--line); }
+.codex-mode-tabs button { border: 0; border-bottom: 2px solid transparent; background: transparent; color: var(--muted); padding: 8px 10px; }
+.codex-mode-tabs button[aria-selected="true"] { border-bottom-color: var(--accent); color: var(--text); }
+.codex-chat-view { display: grid; gap: 12px; }
+.codex-status-row, .codex-attachment-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.codex-local-note { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.55; }
+.codex-attachment-preview { border: 1px solid var(--line); border-radius: 8px; padding: 8px; font-size: 12px; background: var(--panel); }
+
 .ai-runtime-summary,
 .ai-request-actions,
 .ai-answer-actions {
