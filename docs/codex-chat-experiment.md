@@ -18,9 +18,14 @@ PowerShellでリポジトリを開き、次のように設定します。
 
 ```powershell
 $env:CODEX_BRIDGE_TOKEN = npm run --silent codex:token
+$env:CODEX_BRIDGE_TOKEN
 $env:CODEX_BRIDGE_ALLOWED_ORIGINS = "http://127.0.0.1:8765,http://localhost:8765,https://tetsujisugimori-coder.github.io"
 npm run codex:bridge
 ```
+
+2行目で表示されたtokenを、Memo Nexusの「ブリッジ接続トークン」欄へコピーしてください。PowerShellへ設定した値とMemo Nexusへ入力する値は完全に同じである必要があります。tokenはGit管理ファイル、メモ、スクリーンショットなどへ保存・公開しないでください。
+
+PowerShellを閉じると環境変数は失われるため、次回起動時はtokenを再生成するか、別途安全に保管している値を再設定する必要があります。tokenを再生成した場合は、Memo Nexus側にも新しいtokenを入力し直してください。
 
 `npm run codex:token`はtokenを標準出力へ生成するだけで、ファイルへ保存しません。`CODEX_BRIDGE_TOKEN`が未設定、短すぎる、空白を含む、サンプル値のままの場合、ブリッジは起動しません。tokenをURL、HTML、公開JavaScript、メモ、IndexedDBのメモ本文、ZIPへ保存しません。
 
@@ -34,7 +39,7 @@ npm run codex:bridge
 
 `CODEX_BRIDGE_ALLOWED_ORIGINS`は完全なhttp/https Originをカンマ区切りで追加します。空要素、パス、query、fragment、認証情報、`null`、その他のschemeは起動時に拒否します。類似ドメイン、サブドメイン、前方一致、後方一致は許可しません。旧`CODEX_BRIDGE_ORIGINS`も追加Originとして読み込みます。
 
-環境変数はPowerShellを閉じると失われます。恒久設定とWindows自動起動は今回未対応です。tokenを`.env`やGit管理ファイルへ自動保存する仕組みは追加していません。
+環境変数の恒久設定とWindows自動起動は今回未対応です。tokenを`.env`やGit管理ファイルへ自動保存する仕組みは追加していません。
 
 ## 公開版で使う
 

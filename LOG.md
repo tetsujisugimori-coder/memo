@@ -1876,3 +1876,8 @@
 * `npm run codex:token`を追加し、ファイルへ保存せずランダムtokenを生成できるようにした。READMEと実験文書へ公開版／ローカル版の起動手順、Origin、ブラウザ権限、`127.0.0.1`の意味、iPhone制約、外部公開禁止、PowerShell終了時の環境変数消失、Windows自動起動未対応を記録した。
 * Node標準HTTPとFake runtimeを使う統合テストでCORS、プリフライト、health最小化、tokenなし・形式不正・不一致・一致、thread開始／再開、SSE、実ソケット切断、token非漏洩を確認した。既存AI・明示添付・メモ別thread・高速turn・SSE切断を含む`node --test`は583件成功した。
 * 実Codex App Serverは、既存8787を変更せず検証専用8790で起動した。公開Origin相当と生成tokenで未認証health`running`、認証health`connected`、新規threadのthread→複数delta→done、同じthreadの再開、通信切断後のconnectedを確認し、検証用listener、App Server、一時ディレクトリを後始末した。変更はまだ公開URLへデプロイされていないため、GitHub Pages上のブラウザE2Eは未実施であり、デプロイ後に確認が必要。
+
+## 2026-08-17 Codex接続token表示手順の修正
+
+* READMEと実験文書のPowerShell例へ、生成・設定した`CODEX_BRIDGE_TOKEN`を表示する行を追加した。表示値をMemo Nexusへ完全一致で入力すること、Git管理ファイル・メモ・スクリーンショットへ保存・公開しないこと、PowerShell終了時とtoken再生成時の再設定を明記した。
+* 実装ロジックは変更せず、`node --test`は583件成功した。`node --check codex-bridge.js`、`node --check codex-bridge-token.js`、`node --check codex-chat.js`、`node --check codex-chat-utils.js`、`git diff --check`も成功した。

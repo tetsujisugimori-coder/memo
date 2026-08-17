@@ -48,15 +48,20 @@ Codexタブは実験的なローカル連携です。GitHub Pagesの公開版か
 
 ```powershell
 $env:CODEX_BRIDGE_TOKEN = npm run --silent codex:token
+$env:CODEX_BRIDGE_TOKEN
 $env:CODEX_BRIDGE_ALLOWED_ORIGINS = "http://127.0.0.1:8765,http://localhost:8765,https://tetsujisugimori-coder.github.io"
 npm run codex:bridge
 ```
+
+2行目で表示されたtokenを、Memo Nexusの「ブリッジ接続トークン」欄へコピーしてください。PowerShellへ設定した値とMemo Nexusへ入力する値は完全に同じである必要があります。tokenはGit管理ファイル、メモ、スクリーンショットなどへ保存・公開しないでください。
+
+PowerShellを閉じると環境変数は失われるため、次回起動時はtokenを再生成するか、別途安全に保管している値を再設定する必要があります。tokenを再生成した場合は、Memo Nexus側にも新しいtokenを入力し直してください。
 
 公開版ではPythonのHTTPサーバーは不要です。`https://tetsujisugimori-coder.github.io/memo/`を開き、AIパネルの「Codex」タブで同じtokenを入力します。tokenはそのタブの`sessionStorage`だけに保存され、タブを閉じると消えます。メモ、IndexedDBのメモ本文、ZIPバックアップへは保存されません。ブラウザがローカルネットワークアクセスを求めた場合は、接続先が`127.0.0.1`であることを確認して許可してください。
 
 ローカル開発版では、別ターミナルで `python -m http.server 8765 --bind 127.0.0.1` を起動し、`http://127.0.0.1:8765/`を開きます。既定のローカルOriginと公開Originは完全一致で許可されます。追加Originは`CODEX_BRIDGE_ALLOWED_ORIGINS`へカンマ区切りで指定できます。パス、空要素、`null`、http/https以外は拒否されます。ブリッジを`0.0.0.0`、LAN内IP、インターネットへ公開しないでください。
 
-PowerShellを閉じると環境変数は失われます。恒久設定とWindows自動起動は今回未対応です。接続できない場合は、Codex CLIのログイン、ブリッジ起動、token一致、ブラウザのローカルネットワーク権限、公開Origin設定を順に確認してください。CORS拒否、ブリッジ停止、ブラウザ権限拒否は画面から完全に区別できない場合があります。
+環境変数の恒久設定とWindows自動起動は今回未対応です。接続できない場合は、Codex CLIのログイン、ブリッジ起動、token一致、ブラウザのローカルネットワーク権限、公開Origin設定を順に確認してください。CORS拒否、ブリッジ停止、ブラウザ権限拒否は画面から完全に区別できない場合があります。
 
 入力と明示添付した内容はログイン済みCodexを通じてOpenAIのサービスへ送信されます。本文・選択範囲は添付ボタンを押した時だけ送信されます。APIキーは保存せず、既存のCodex CLIログインを使います。空の一時作業ディレクトリ、`read-only`、`approvalPolicy: "never"`、コマンド側ネットワーク禁止と承認要求拒否を維持しますが、会話専用のdeveloper instructionsだけで全ツール利用を完全保証するものではありません。
 
