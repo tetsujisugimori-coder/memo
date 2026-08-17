@@ -40,11 +40,32 @@ Memo Nexusは、Markdownメモ、`[[知識リンク]]`、関連メモ、コレ�
 
 ## AIアシスタント（Ollama／Gemini、任意機能）
 
-### Codexチャット試作（ローカルPC限定）
+### Codexチャット試作（公開版＋ローカルブリッジ）
 
-Codexタブは実験的なローカル連携です。Node.js、Codex CLI、Codexへのログインが必要です。ブラウザとブリッジの接続先はローカルですが、CodexはローカルLLMではなく、入力と明示添付した内容はログイン済みCodexを通じてOpenAIのサービスへ送信されます。本文・選択範囲は添付ボタンを押した時だけ送信されます。既定のブリッジは `http://127.0.0.1:8787` です。GitHub PagesやiPhoneでは使えません。APIキーは保存せず、既存のCodex CLIログインを使います。空の一時作業ディレクトリ、`read-only`、`approvalPolicy: "never"`、コマンド側ネットワーク禁止と承認要求拒否を指定しますが、会話専用のdeveloper instructionsだけで全ツール利用を完全保証するものではありません。
+Codexタブは実験的なローカル連携です。GitHub Pagesの公開版からも、同じPCで起動した `http://127.0.0.1:8787` のブリッジへ接続できます。公開URLを開くだけでは動作せず、各利用者のPCにNode.js、Codex CLI、Codexへのログイン、ブリッジ起動が必要です。`127.0.0.1`は閲覧者自身のPCを指すため、他人が公開版を開いてもあなたのPCのCodexへ接続されません。iPhoneからWindows PCの`127.0.0.1`へは接続できません。
 
-ブリッジは App Server ごとに状態を分離し、`initialize` 応答後にIDなしの `initialized` 通知を送ってからスレッド操作を開始します。異常終了、RPCタイムアウト、送信失敗では該当プロセスだけを破棄し、次回の接続確認で再起動します。子プロセスの終了を待ってから、そのプロセスが所有する一時ディレクトリだけを削除します。自動テストは564件成功しました。Codex CLI 0.147.0を使ったローカル確認では、health、実SSE会話、明示添付と取り消し、回答コピー、メモ切替中の会話分離、ブリッジ停止後のUI復帰と再接続・再送信まで確認しました。ページ再読み込み後のthreadId復元と「新しい会話」の永続解除は今回の実機確認では未確認です。
+最初に十分に長いtokenを生成し、同じPowerShellで環境変数を設定してブリッジを起動します。tokenはGit管理ファイルへ保存しません。
+
+```powershell
+$env:CODEX_BRIDGE_TOKEN = npm run --silent codex:token
+$env:CODEX_BRIDGE_TOKEN
+$env:CODEX_BRIDGE_ALLOWED_ORIGINS = "http://127.0.0.1:8765,http://localhost:8765,https://tetsujisugimori-coder.github.io"
+npm run codex:bridge
+```
+
+2行目で表示されたtokenを、Memo Nexusの「ブリッジ接続トークン」欄へコピーしてください。PowerShellへ設定した値とMemo Nexusへ入力する値は完全に同じである必要があります。tokenはGit管理ファイル、メモ、スクリーンショットなどへ保存・公開しないでください。
+
+PowerShellを閉じると環境変数は失われるため、次回起動時はtokenを再生成するか、別途安全に保管している値を再設定する必要があります。tokenを再生成した場合は、Memo Nexus側にも新しいtokenを入力し直してください。
+
+公開版ではPythonのHTTPサーバーは不要です。`https://tetsujisugimori-coder.github.io/memo/`を開き、AIパネルの「Codex」タブで同じtokenを入力します。tokenはそのタブの`sessionStorage`だけに保存され、タブを閉じると消えます。メモ、IndexedDBのメモ本文、ZIPバックアップへは保存されません。ブラウザがローカルネットワークアクセスを求めた場合は、接続先が`127.0.0.1`であることを確認して許可してください。
+
+ローカル開発版では、別ターミナルで `python -m http.server 8765 --bind 127.0.0.1` を起動し、`http://127.0.0.1:8765/`を開きます。既定のローカルOriginと公開Originは完全一致で許可されます。追加Originは`CODEX_BRIDGE_ALLOWED_ORIGINS`へカンマ区切りで指定できます。パス、空要素、`null`、http/https以外は拒否されます。ブリッジを`0.0.0.0`、LAN内IP、インターネットへ公開しないでください。
+
+環境変数の恒久設定とWindows自動起動は今回未対応です。接続できない場合は、Codex CLIのログイン、ブリッジ起動、token一致、ブラウザのローカルネットワーク権限、公開Origin設定を順に確認してください。CORS拒否、ブリッジ停止、ブラウザ権限拒否は画面から完全に区別できない場合があります。
+
+入力と明示添付した内容はログイン済みCodexを通じてOpenAIのサービスへ送信されます。本文・選択範囲は添付ボタンを押した時だけ送信されます。APIキーは保存せず、既存のCodex CLIログインを使います。空の一時作業ディレクトリ、`read-only`、`approvalPolicy: "never"`、コマンド側ネットワーク禁止と承認要求拒否を維持しますが、会話専用のdeveloper instructionsだけで全ツール利用を完全保証するものではありません。
+
+ブリッジは App Server ごとに状態を分離し、`initialize` 応答後にIDなしの `initialized` 通知を送ってからスレッド操作を開始します。異常終了、RPCタイムアウト、送信失敗では該当プロセスだけを破棄し、次回の接続確認で再起動します。子プロセスの終了を待ってから、そのプロセスが所有する一時ディレクトリだけを削除します。Bearer tokenが正しく、Originが完全一致した`/chat`だけがthread開始・再開とストリーミングへ進みます。`/health`の未認証応答はブリッジ起動中かとtokenが必要であることだけを返します。
 
 画面右端のロボットから、メモを送らない自由チャットと、明示的に選んだメモ／文章を参照するチャットを同じ画面で利用できます。AI機能は初期状態で無効であり、Ollamaが未導入・未起動でも通常のメモ機能はそのまま利用できます。
 

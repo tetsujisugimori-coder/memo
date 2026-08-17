@@ -1,6 +1,8 @@
 (function (globalScope) {
   "use strict";
   const CONTEXT_LIMIT = 12000;
+  const BRIDGE_TOKEN_SESSION_KEY = "memo-nexus-codex-bridge-token";
+  const MIN_BRIDGE_TOKEN_LENGTH = 32;
   function clipText(value, limit = CONTEXT_LIMIT) {
     const text = String(value || "");
     return { text: text.slice(0, limit), truncated: text.length > limit };
@@ -19,6 +21,41 @@
     if (!attachment) return question;
     const label = attachment.kind === "selection" ? "選択範囲" : "このメモ";
     return `${question}\n\n[Memo Nexus 添付: ${label}]\nタイトル: ${attachment.title}\n内容:\n${attachment.text}${attachment.truncated ? "\n（安全上の上限で末尾を省略）" : ""}\n[/Memo Nexus 添付]`;
+  }
+  function normalizeBridgeToken(value) {
+    const token = String(value || "").trim();
+    return token.length >= MIN_BRIDGE_TOKEN_LENGTH && !/\s/.test(token) ? token : "";
+  }
+  function loadSessionBridgeToken(storage) {
+    if (!storage || typeof storage.getItem !== "function") return "";
+    try {
+      const token = normalizeBridgeToken(storage.getItem(BRIDGE_TOKEN_SESSION_KEY));
+      if (!token && typeof storage.removeItem === "function") storage.removeItem(BRIDGE_TOKEN_SESSION_KEY);
+      return token;
+    } catch {
+      return "";
+    }
+  }
+  function saveSessionBridgeToken(storage, value) {
+    const token = normalizeBridgeToken(value);
+    if (!token || !storage || typeof storage.setItem !== "function") return "";
+    try {
+      storage.setItem(BRIDGE_TOKEN_SESSION_KEY, token);
+      return token;
+    } catch {
+      return "";
+    }
+  }
+  function clearSessionBridgeToken(storage) {
+    if (!storage || typeof storage.removeItem !== "function") return;
+    try { storage.removeItem(BRIDGE_TOKEN_SESSION_KEY); } catch (_) {}
+  }
+  function buildBridgeRequestHeaders(token, includeJson = false) {
+    const headers = {};
+    if (includeJson) headers["Content-Type"] = "application/json";
+    const normalized = normalizeBridgeToken(token);
+    if (normalized) headers.Authorization = `Bearer ${normalized}`;
+    return headers;
   }
   function normalizeThreadInfo(value) {
     if (!value || typeof value !== "object" || !String(value.threadId || "").trim()) return null;
@@ -114,7 +151,7 @@
     if (terminalEvent !== "done") throw new Error("Codexとの接続が途中で終了しました。");
     return { type: "done" };
   }
-  const api = { CONTEXT_LIMIT, buildAttachment, clipText, createCodexChatState, extractEditorSelection, formatPrompt, normalizeThreadInfo, readCodexEventStream, withCodexThread, withoutCodexThread };
+  const api = { BRIDGE_TOKEN_SESSION_KEY, CONTEXT_LIMIT, MIN_BRIDGE_TOKEN_LENGTH, buildAttachment, buildBridgeRequestHeaders, clearSessionBridgeToken, clipText, createCodexChatState, extractEditorSelection, formatPrompt, loadSessionBridgeToken, normalizeBridgeToken, normalizeThreadInfo, readCodexEventStream, saveSessionBridgeToken, withCodexThread, withoutCodexThread };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   if (globalScope) globalScope.MemoNexusCodexChatUtils = api;
 })(typeof window !== "undefined" ? window : globalThis);

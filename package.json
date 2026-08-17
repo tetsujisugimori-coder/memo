@@ -1,4 +1,4 @@
 {
   "private": true,
-  "scripts": { "codex:bridge": "node codex-bridge.js", "test": "node --test" }
+  "scripts": { "codex:bridge": "node codex-bridge.js", "codex:token": "node codex-bridge-token.js", "test": "node --test" }
 }

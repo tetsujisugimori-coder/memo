@@ -1868,3 +1868,16 @@
 * SSEの書込み・終了を共通処理へ集約し、`write`失敗時も該当streamとturn関連状態を先に解除して`end`、必要なら`destroy`を一度だけ試す。`end`・`destroy`の例外はruntime IDとturn IDを含めて診断し、健康なruntimeや別turnは終了しない。`attachStream()`自身がServerResponseの`close`を監視し、正常終了・ブラウザ更新・fetch中断のいずれでも対象stream、turn error、早期通知、close listenerだけを解放する。
 * FakeChildとFakeSseResponseを使い、同一stdout chunkの応答→delta→completed、応答前のstarted→delta→completed、`onResult`の例外・非同期拒否・旧runtime分離、早期通知の件数・容量・turn数上限と破棄、SSEのwrite・end・destroy例外、実closeイベント、正常／異常statusの回帰を追加した。`node --test`は572件成功し、指定した全JavaScriptの`node --check`と`git diff --check`が成功した。
 * Chromeの`http://127.0.0.1:8765/`と`npm run codex:bridge`で、`/health`のconnected、短い実回答の完了と送信ボタン再有効化、回答中のメモA→B切替で履歴が混ざらないこと、ページ再読み込みによる通信中断後もブリッジが生存して再送信できること、送信中のブリッジ停止でbusyが解除されること、再起動後の再接続・実回答を確認した。本文添付は操作せず、通常メッセージだけを送信した。終了後は8765・8787のlistener、App Serverプロセス、今回作成した一時ディレクトリが残っていないことを確認した。同一stdout chunk競合そのものは実機発生に依存するため、確定的な動作テストで検証した。
+
+## 2026-08-17 Codex公開Origin・接続token対応
+
+* GitHub PagesのOrigin`https://tetsujisugimori-coder.github.io`と既存ローカルOriginを完全一致で許可し、類似ドメイン、path付き値、`null`、不正な追加Originを拒否する。OPTIONSはrouteごとのGET／POSTと`Authorization`／`Content-Type`だけを許可し、要求された場合だけPrivate Network Access応答を返す。待受は`127.0.0.1`のまま維持した。
+* `CODEX_BRIDGE_TOKEN`を32文字以上・空白なし・サンプル値以外に限定し、Bearer tokenをSHA-256固定長digestと`timingSafeEqual`で比較する。未認証・不正認証は同じ401とし、未認証healthは`running`とtoken必須だけを返す。Codexタブのpassword入力はtokenを`sessionStorage`だけへ保存して入力欄へ再表示せず、401時に消去する。メモ、`codexChat`、バックアップ、URL、ログ、レスポンスへtokenを含めない。
+* `npm run codex:token`を追加し、ファイルへ保存せずランダムtokenを生成できるようにした。READMEと実験文書へ公開版／ローカル版の起動手順、Origin、ブラウザ権限、`127.0.0.1`の意味、iPhone制約、外部公開禁止、PowerShell終了時の環境変数消失、Windows自動起動未対応を記録した。
+* Node標準HTTPとFake runtimeを使う統合テストでCORS、プリフライト、health最小化、tokenなし・形式不正・不一致・一致、thread開始／再開、SSE、実ソケット切断、token非漏洩を確認した。既存AI・明示添付・メモ別thread・高速turn・SSE切断を含む`node --test`は583件成功した。
+* 実Codex App Serverは、既存8787を変更せず検証専用8790で起動した。公開Origin相当と生成tokenで未認証health`running`、認証health`connected`、新規threadのthread→複数delta→done、同じthreadの再開、通信切断後のconnectedを確認し、検証用listener、App Server、一時ディレクトリを後始末した。変更はまだ公開URLへデプロイされていないため、GitHub Pages上のブラウザE2Eは未実施であり、デプロイ後に確認が必要。
+
+## 2026-08-17 Codex接続token表示手順の修正
+
+* READMEと実験文書のPowerShell例へ、生成・設定した`CODEX_BRIDGE_TOKEN`を表示する行を追加した。表示値をMemo Nexusへ完全一致で入力すること、Git管理ファイル・メモ・スクリーンショットへ保存・公開しないこと、PowerShell終了時とtoken再生成時の再設定を明記した。
+* 実装ロジックは変更せず、`node --test`は583件成功した。`node --check codex-bridge.js`、`node --check codex-bridge-token.js`、`node --check codex-chat.js`、`node --check codex-chat-utils.js`、`git diff --check`も成功した。
