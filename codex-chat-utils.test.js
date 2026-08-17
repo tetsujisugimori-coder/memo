@@ -1,6 +1,6 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { buildAttachment, createCodexChatState, extractEditorSelection, formatPrompt, normalizeThreadInfo, readCodexEventStream, withCodexThread, withoutCodexThread } = require("./codex-chat-utils.js");
+const { BRIDGE_TOKEN_SESSION_KEY, buildAttachment, buildBridgeRequestHeaders, clearSessionBridgeToken, createCodexChatState, extractEditorSelection, formatPrompt, loadSessionBridgeToken, normalizeBridgeToken, normalizeThreadInfo, readCodexEventStream, saveSessionBridgeToken, withCodexThread, withoutCodexThread } = require("./codex-chat-utils.js");
 
 function readerFromChunks(chunks, failure = null) {
   let index = 0;
@@ -25,6 +25,30 @@ test("Codex添付は明示指定された本文または選択範囲だけを整
 test("Codexスレッド関連情報はIDがある場合だけ保存対象にする", () => {
   assert.equal(normalizeThreadInfo({}), null);
   assert.deepEqual(normalizeThreadInfo({ threadId: "thread-a", title: "会話" }), { threadId: "thread-a", lastUsedAt: null, title: "会話" });
+});
+
+test("接続tokenはsessionStorageだけへ保持し通信時だけBearerへ設定する", () => {
+  const values = new Map();
+  const storage = {
+    getItem: (key) => values.get(key) || null,
+    setItem: (key, value) => values.set(key, value),
+    removeItem: (key) => values.delete(key)
+  };
+  const token = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFG";
+  assert.equal(normalizeBridgeToken("short"), "");
+  assert.equal(saveSessionBridgeToken(storage, token), token);
+  assert.equal(values.get(BRIDGE_TOKEN_SESSION_KEY), token);
+  assert.equal(loadSessionBridgeToken(storage), token);
+  assert.deepEqual(buildBridgeRequestHeaders(token, true), {
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${token}`
+  });
+  clearSessionBridgeToken(storage);
+  assert.equal(loadSessionBridgeToken(storage), "");
+
+  const savedNote = withCodexThread({ id: "a", body: "本文" }, { threadId: "thread-a" });
+  assert.equal(JSON.stringify(savedNote).includes(token), false);
+  assert.deepEqual(Object.keys(savedNote.codexChat).sort(), ["lastUsedAt", "threadId", "title"]);
 });
 
 test("textareaの選択範囲だけをスナップショットする", () => {
