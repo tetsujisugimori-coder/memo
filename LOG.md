@@ -1848,3 +1848,10 @@
 
 * textareaの選択範囲をスナップショットし、送信要求時のメモIDへthreadIdを保存するよう修正した。新しい会話は保存済みの紐付けも解除する。
 * ブリッジは起動・RPCタイムアウト、子プロセス終了、SSEエラーを扱い、説明はローカル接続とCodexサービス通信の範囲に合わせた。
+
+## 2026-08-17 Codexブリッジruntime分離
+
+* App Serverのchild、tempCwd、初期化Promise、stdout buffer、pending RPC、SSE、turn errorをプロセス単位のruntimeへ分離した。古いruntimeのexit・error・stdout・stderr・タイムアウト・遅延write callbackは新しいruntimeへ作用せず、破棄はpending、SSE、kill、exit待ち、所有temp削除を一度だけ行う。
+* Codex CLI 0.147.0の生成スキーマに合わせ、`error.params.error.message`をturnId単位に記録し、`turn/completed`のcompletedだけをdone、failed・interrupted・未知状態をerrorにした。ブラウザ側SSE読取りを独立関数へ移し、分割chunk、UTF-8境界、明示done、error、途中EOF、不正JSONを実データで検証した。
+* 初期表示メモを開く`openNote()`からCodexへメモ変更を通知し、初期メモでも添付・送信できるようにした。fake child・stdin・timer・SSEを含む全564テストが成功した。
+* ローカル実機ではhealth connected、APIのthread・delta・done、本文／選択範囲の添付と取消、UI実回答とコピー、回答中のメモ切替分離、ブリッジ停止時のbusy解除、再起動後の再接続・再送信を確認した。再読み込み後のthreadId復元、「新しい会話」の永続解除、正常shutdown後の一時ディレクトリ確認は未実施。

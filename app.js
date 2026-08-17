@@ -4336,6 +4336,7 @@ function openNote(id) {
   renderDiscovery();
   updateUndoButton();
   renderAiUi();
+  window.MemoNexusCodexChat?.onMemoChanged(note);
   if (isPopoutWindow) document.title = `${note.title} — Memo Nexus`;
   editor.focus();
 }

@@ -24,7 +24,7 @@ test("タグバックアップ関連スクリプトのキャッシュ番号を�
   assert.match(html, /tags\.js\?v=0\.4\.0-2/);
   assert.match(html, /local-sync-utils\.js\?v=0\.4\.0-8/);
   assert.match(html, /backup-bundle-utils\.js\?v=0\.1\.0-5/);
-  assert.match(html, /app\.js\?v=0\.4\.0-88/);
+  assert.match(html, /app\.js\?v=0\.4\.0-89/);
 });
 
 test("タグ定義の正規化処理がないバックアップ生成は明示的に失敗する", () => {

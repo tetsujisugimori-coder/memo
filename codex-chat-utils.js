@@ -39,7 +39,82 @@
     const { codexChat, ...rest } = note;
     return rest;
   }
-  const api = { CONTEXT_LIMIT, buildAttachment, clipText, extractEditorSelection, formatPrompt, normalizeThreadInfo, withCodexThread, withoutCodexThread };
+  function createCodexChatState(resolveThread = () => null) {
+    const state = { active: false, busyRequestNoteId: null, currentNoteId: null, selectionSnapshot: "", conversations: new Map() };
+    function conversation(noteId = state.currentNoteId) {
+      if (!noteId) return { thread: null, history: [], attachment: null };
+      if (!state.conversations.has(noteId)) state.conversations.set(noteId, { thread: normalizeThreadInfo(resolveThread(noteId)), history: [], attachment: null });
+      return state.conversations.get(noteId);
+    }
+    function switchNote(noteId) {
+      const nextNoteId = noteId || null;
+      if (nextNoteId !== state.currentNoteId) state.selectionSnapshot = "";
+      state.currentNoteId = nextNoteId;
+      return conversation();
+    }
+    function startRequest(noteId = state.currentNoteId) {
+      if (!noteId || state.busyRequestNoteId) return null;
+      state.busyRequestNoteId = noteId;
+      return conversation(noteId);
+    }
+    function finishRequest(noteId) {
+      if (state.busyRequestNoteId === noteId) state.busyRequestNoteId = null;
+    }
+    return { conversation, finishRequest, startRequest, state, switchNote };
+  }
+  async function readCodexEventStream(reader, onEvent = async () => {}) {
+    if (!reader || typeof reader.read !== "function") throw new Error("Codex応答ストリームを読み取れません。");
+    const decoder = new TextDecoder();
+    let buffer = "";
+    let terminalEvent = null;
+
+    async function processFrame(frame) {
+      if (terminalEvent || !frame.trim()) return;
+      const data = frame.split(/\r?\n/)
+        .filter((line) => line.startsWith("data:"))
+        .map((line) => line.slice(5).replace(/^ /, ""))
+        .join("\n");
+      if (!data) return;
+      let event;
+      try {
+        event = JSON.parse(data);
+      } catch (error) {
+        throw new Error(`Codex応答のJSONを解析できません: ${error.message}`);
+      }
+      if (event.type === "done") terminalEvent = "done";
+      if (event.type === "error") {
+        terminalEvent = "error";
+        throw new Error(event.error || "Codexとの通信に失敗しました。");
+      }
+      await onEvent(event);
+    }
+
+    function takeFrames(flush = false) {
+      const frames = [];
+      let match;
+      while ((match = /\r?\n\r?\n/.exec(buffer))) {
+        frames.push(buffer.slice(0, match.index));
+        buffer = buffer.slice(match.index + match[0].length);
+      }
+      if (flush && buffer.trim()) {
+        frames.push(buffer);
+        buffer = "";
+      }
+      return frames;
+    }
+
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      for (const frame of takeFrames()) await processFrame(frame);
+    }
+    buffer += decoder.decode();
+    for (const frame of takeFrames(true)) await processFrame(frame);
+    if (terminalEvent !== "done") throw new Error("Codexとの接続が途中で終了しました。");
+    return { type: "done" };
+  }
+  const api = { CONTEXT_LIMIT, buildAttachment, clipText, createCodexChatState, extractEditorSelection, formatPrompt, normalizeThreadInfo, readCodexEventStream, withCodexThread, withoutCodexThread };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   if (globalScope) globalScope.MemoNexusCodexChatUtils = api;
 })(typeof window !== "undefined" ? window : globalThis);

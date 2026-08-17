@@ -1,22 +1,107 @@
 "use strict";
-const http = require("node:http"); const os = require("node:os"); const path = require("node:path"); const fs = require("node:fs"); const { spawn } = require("node:child_process");
-const port = Number(process.env.CODEX_BRIDGE_PORT || 8787); const origins = new Set((process.env.CODEX_BRIDGE_ORIGINS || "http://127.0.0.1:5500,http://localhost:5500,http://127.0.0.1:8765,http://localhost:8765").split(",")); const RPC_TIMEOUT_MS = 15000;
-let child = null, tempCwd = null, initialized = false, startupPromise = null, startupError = "", rpcId = 0, buffer = "", resetting = false; const pending = new Map(); const streams = new Map();
-function allowed(origin) { return !origin || origins.has(origin); } function json(res, status, body, origin) { if (origin && origins.has(origin)) res.setHeader("Access-Control-Allow-Origin", origin); res.setHeader("Content-Type", "application/json; charset=utf-8"); res.end(JSON.stringify(body)); }
-function cleanupTemp() { if (tempCwd) { try { fs.rmSync(tempCwd, { recursive: true, force: true }); } catch (_) {} tempCwd = null; } }
-function failStreams(error) { for (const state of streams.values()) { if (!state.res.writableEnded) { state.res.write(`data: ${JSON.stringify({ type: "error", error: error.message || "Codex App Serverとの接続が終了しました。" })}\n\n`); state.res.end(); } } streams.clear(); }
-function reset(error, expectedChild = child) { if (resetting || expectedChild !== child) return; resetting = true; const previousChild = child; child = null; initialized = false; startupPromise = null; if (error) startupError = error.message || String(error); for (const waiter of pending.values()) { clearTimeout(waiter.timeout); waiter.reject(error || new Error("Codex App Serverとの接続が終了しました。")); } pending.clear(); failStreams(error || new Error(startupError)); buffer = ""; if (previousChild && !previousChild.killed) { try { previousChild.kill(); } catch (_) {} } cleanupTemp(); resetting = false; }
-function notify(method, params) { return new Promise((resolve, reject) => { if (!child?.stdin?.writable) return reject(new Error("Codex App Serverが起動していません。")); try { child.stdin.write(`${JSON.stringify({ jsonrpc: "2.0", method, params })}\n`, (error) => error ? reject(new Error(`Codex App Serverへ通知できませんでした: ${error.message}`)) : resolve()); } catch (error) { reject(error); } }); }
-function send(method, params, timeoutMs = RPC_TIMEOUT_MS) { return new Promise((resolve, reject) => { if (method !== "initialize" && !initialized) return reject(new Error("Codex App Serverの初期化が完了していません。")); const requestChild = child; if (!requestChild?.stdin?.writable) return reject(new Error("Codex App Serverが起動していません。")); const id = ++rpcId; const fail = (error) => { clearTimeout(timeout); pending.delete(id); reset(error, requestChild); reject(error); }; const timeout = setTimeout(() => fail(new Error(`${method} が時間内に応答しませんでした。`)), timeoutMs); pending.set(id, { resolve, reject, timeout }); try { requestChild.stdin.write(`${JSON.stringify({ jsonrpc: "2.0", id, method, params })}\n`, (error) => { if (error) fail(new Error(`Codex App Serverへ送信できませんでした: ${error.message}`)); }); } catch (error) { fail(error); } }); }
-function respondToServerRequest(message) { try { child?.stdin?.write(`${JSON.stringify({ jsonrpc: "2.0", id: message.id, error: { code: -32601, message: "この会話専用ブリッジでは承認・ツール要求を許可しません" } })}\n`); } catch (_) {} }
-function onLine(line) { let message; try { message = JSON.parse(line); } catch { return; } if (message.id !== undefined && message.method) return respondToServerRequest(message); if (message.id !== undefined) { const waiter = pending.get(message.id); if (!waiter) return; pending.delete(message.id); clearTimeout(waiter.timeout); return message.error ? waiter.reject(new Error(message.error.message || "Codex App Server error")) : waiter.resolve(message.result); } if (message.method === "error") return failStreams(new Error(message.params?.message || "Codex App Serverでエラーが発生しました。")); if (message.method === "item/agentMessage/delta") { const state = streams.get(message.params.turnId); if (state && !state.res.writableEnded) { state.text += message.params.delta; state.res.write(`data: ${JSON.stringify({ type: "delta", delta: message.params.delta })}\n\n`); } } if (message.method === "turn/completed") { const turn = message.params.turn; const state = streams.get(turn.id); if (!state) return; streams.delete(turn.id); if (state.res.writableEnded) return; if (turn.status === "completed") state.res.write(`data: ${JSON.stringify({ type: "done", threadId: message.params.threadId, text: state.text })}\n\n`); else state.res.write(`data: ${JSON.stringify({ type: "error", error: turn.error?.message || (turn.status === "interrupted" ? "Codexの回答が中断されました。" : `Codexの回答に失敗しました: ${turn.status || "unknown"}`) })}\n\n`); state.res.end(); } }
-function ensureServer() { if (initialized && child && !child.killed) return Promise.resolve(); if (startupPromise) return startupPromise; startupError = ""; startupPromise = new Promise((resolve, reject) => { tempCwd = fs.mkdtempSync(path.join(os.tmpdir(), "memo-nexus-codex-")); let spawned; try { spawned = spawn("codex", ["app-server", "--stdio"], { cwd: tempCwd, stdio: ["pipe", "pipe", "pipe"], windowsHide: true }); } catch (error) { reset(error); reject(error); return; } child = spawned; const startupFailure = (error) => { const reason = error?.code === "ENOENT" ? new Error("Codex CLIが見つかりません") : error instanceof Error ? error : new Error("Codex App Serverが異常終了しました。"); reset(reason); reject(reason); };
-    spawned.once("error", startupFailure); spawned.once("exit", (code) => { if (child !== spawned) return; if (!initialized) startupFailure(new Error(`Codex App Serverが初期化前に終了しました (${code ?? "unknown"})。`)); else reset(new Error("Codex App Serverが異常終了しました。"), spawned); }); spawned.stdout.on("data", (chunk) => { if (child !== spawned) return; buffer += chunk; let index; while ((index = buffer.indexOf("\n")) >= 0) { onLine(buffer.slice(0, index)); buffer = buffer.slice(index + 1); } }); spawned.stderr.on("data", (chunk) => { if (child === spawned) startupError = String(chunk).trim() || startupError; });
-    send("initialize", { clientInfo: { name: "memo-nexus-codex-chat", version: "0.1.1" }, capabilities: {} }).then(() => notify("initialized", {})).then(() => { if (child !== spawned) throw new Error("Codex App Serverの起動が置き換えられました。"); initialized = true; resolve(); }).catch((error) => { reset(error, spawned); reject(error); }); }); return startupPromise; }
-function safeThreadOptions() { return { cwd: tempCwd, sandbox: "read-only", approvalPolicy: "never", developerInstructions: "Memo Nexusの会話専用です。ファイルやコマンド、GitHub、MCP、動的ツールを使わず、会話テキストだけで応答してください。" }; }
-async function readBody(req) { let value = ""; for await (const chunk of req) value += chunk; return JSON.parse(value || "{}"); }
-const server = http.createServer(async (req, res) => { const origin = req.headers.origin || ""; if (!allowed(origin)) return json(res, 403, { error: "ローカル開発Originのみ許可されています" }, origin); if (req.method === "OPTIONS") { if (origin) res.setHeader("Access-Control-Allow-Origin", origin); res.setHeader("Access-Control-Allow-Headers", "Content-Type"); return res.end(); }
-  if (req.method === "GET" && req.url === "/health") { try { await ensureServer(); } catch (error) { startupError = startupError || error.message; } return json(res, 200, { ok: initialized, status: initialized ? "connected" : (startupError || "ローカル連携が起動していません") }, origin); }
-  if (req.method !== "POST" || req.url !== "/chat") return json(res, 404, { error: "Not found" }, origin); let sse = false; try { const body = await readBody(req); const message = String(body.message || "").trim(); if (!message) return json(res, 400, { error: "メッセージを入力してください" }, origin); await ensureServer(); let threadId = String(body.threadId || ""); if (threadId) await send("thread/resume", { threadId, ...safeThreadOptions() }); else { const created = await send("thread/start", { ...safeThreadOptions(), ephemeral: false }); threadId = created.thread.id; } const turn = await send("turn/start", { threadId, input: [{ type: "text", text: message }], approvalPolicy: "never", sandboxPolicy: { type: "readOnly", networkAccess: false } }); if (origin) res.setHeader("Access-Control-Allow-Origin", origin); res.setHeader("Content-Type", "text/event-stream"); res.setHeader("Cache-Control", "no-cache"); sse = true; streams.set(turn.turn.id, { res, text: "" }); res.write(`data: ${JSON.stringify({ type: "thread", threadId })}\n\n`); } catch (error) { if (sse || res.headersSent) { if (!res.writableEnded) { res.write(`data: ${JSON.stringify({ type: "error", error: startupError || error.message || "Codexローカル連携に接続できません" })}\n\n`); res.end(); } } else json(res, 503, { error: startupError || error.message || "Codexローカル連携に接続できません" }, origin); } });
-if (require.main === module) server.listen(port, "127.0.0.1", () => console.log(`Memo Nexus Codex bridge: http://127.0.0.1:${port}`)); function shutdown() { server.close(); child?.kill(); cleanupTemp(); } process.on("SIGINT", shutdown); process.on("SIGTERM", shutdown);
-module.exports = { ensureServer, send, server };
+
+const http = require("node:http");
+const { createRuntimeManager } = require("./codex-bridge-runtime.js");
+
+const port = Number(process.env.CODEX_BRIDGE_PORT || 8787);
+const origins = new Set((process.env.CODEX_BRIDGE_ORIGINS || "http://127.0.0.1:5500,http://localhost:5500,http://127.0.0.1:8765,http://localhost:8765").split(","));
+const runtimeManager = createRuntimeManager();
+
+function allowed(origin) {
+  return !origin || origins.has(origin);
+}
+
+function json(res, status, body, origin) {
+  if (origin && origins.has(origin)) res.setHeader("Access-Control-Allow-Origin", origin);
+  res.statusCode = status;
+  res.setHeader("Content-Type", "application/json; charset=utf-8");
+  res.end(JSON.stringify(body));
+}
+
+function safeThreadOptions(runtime) {
+  return {
+    cwd: runtime.tempCwd,
+    sandbox: "read-only",
+    approvalPolicy: "never",
+    developerInstructions: "Memo Nexusの会話専用です。ファイルやコマンド、GitHub、MCP、動的ツールを使わず、会話テキストだけで応答してください。"
+  };
+}
+
+async function readBody(req) {
+  let value = "";
+  for await (const chunk of req) value += chunk;
+  return JSON.parse(value || "{}");
+}
+
+const server = http.createServer(async (req, res) => {
+  const origin = req.headers.origin || "";
+  if (!allowed(origin)) return json(res, 403, { error: "ローカル開発Originのみ許可されています" }, origin);
+  if (req.method === "OPTIONS") {
+    if (origin) res.setHeader("Access-Control-Allow-Origin", origin);
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+    return res.end();
+  }
+  if (req.method === "GET" && req.url === "/health") {
+    try {
+      const runtime = await runtimeManager.ensureServer();
+      return json(res, 200, { ok: runtime.initialized, status: runtime.initialized ? "connected" : "ローカル連携が起動していません" }, origin);
+    } catch (error) {
+      return json(res, 200, { ok: false, status: runtimeManager.getLastStartupError() || error.message || "ローカル連携が起動していません" }, origin);
+    }
+  }
+  if (req.method !== "POST" || req.url !== "/chat") return json(res, 404, { error: "Not found" }, origin);
+
+  let sse = false;
+  try {
+    const body = await readBody(req);
+    const message = String(body.message || "").trim();
+    if (!message) return json(res, 400, { error: "メッセージを入力してください" }, origin);
+    const runtime = await runtimeManager.ensureServer();
+    let threadId = String(body.threadId || "");
+    if (threadId) {
+      await runtimeManager.send(runtime, "thread/resume", { threadId, ...safeThreadOptions(runtime) });
+    } else {
+      const created = await runtimeManager.send(runtime, "thread/start", { ...safeThreadOptions(runtime), ephemeral: false });
+      threadId = created.thread.id;
+    }
+    const turn = await runtimeManager.send(runtime, "turn/start", {
+      threadId,
+      input: [{ type: "text", text: message }],
+      approvalPolicy: "never",
+      sandboxPolicy: { type: "readOnly", networkAccess: false }
+    });
+    if (origin) res.setHeader("Access-Control-Allow-Origin", origin);
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache");
+    sse = true;
+    runtimeManager.attachStream(runtime, turn.turn.id, res);
+    res.write(`data: ${JSON.stringify({ type: "thread", threadId })}\n\n`);
+  } catch (error) {
+    const message = runtimeManager.getLastStartupError() || error.message || "Codexローカル連携に接続できません";
+    if (sse || res.headersSent) {
+      if (!res.writableEnded) {
+        res.write(`data: ${JSON.stringify({ type: "error", error: message })}\n\n`);
+        res.end();
+      }
+    } else {
+      json(res, 503, { error: message }, origin);
+    }
+  }
+});
+
+async function shutdown() {
+  const serverClosed = server.listening ? new Promise((resolve) => server.close(resolve)) : Promise.resolve();
+  await runtimeManager.shutdown();
+  await serverClosed;
+}
+
+if (require.main === module) {
+  server.listen(port, "127.0.0.1", () => console.log(`Memo Nexus Codex bridge: http://127.0.0.1:${port}`));
+  const stop = () => {
+    shutdown().catch((error) => console.error(error)).finally(() => { process.exitCode = 0; });
+  };
+  process.once("SIGINT", stop);
+  process.once("SIGTERM", stop);
+}
+
+module.exports = { runtimeManager, safeThreadOptions, server, shutdown };
