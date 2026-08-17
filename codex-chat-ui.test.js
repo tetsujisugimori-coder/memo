@@ -7,8 +7,8 @@ const client = fs.readFileSync("codex-chat.js", "utf8");
 const bridge = fs.readFileSync("codex-bridge.js", "utf8");
 
 test("Codexチャットは通常AIと別タブで明示添付だけを提供する", () => {
-  assert.match(html, /codex-chat-utils\.js\?v=0\.1\.0-1/);
-  assert.match(html, /codex-chat\.js\?v=0\.1\.0-1/);
+  assert.match(html, /codex-chat-utils\.js\?v=0\.1\.0-2/);
+  assert.match(html, /codex-chat\.js\?v=0\.1\.0-2/);
   assert.match(client, /codexChatTab/);
   assert.match(client, /このメモを添付/);
   assert.match(client, /選択範囲を添付/);
@@ -19,9 +19,10 @@ test("Codexチャットは通常AIと別タブで明示添付だけを提供す�
 
 test("メモ切替時にCodexスレッドを切り替え、本文を自動送信しない", () => {
   assert.match(app, /MemoNexusCodexChat\?\.onMemoChanged\(currentNote\(\)\)/);
-  assert.match(client, /current\.codexChat/);
-  assert.match(client, /threadId/);
-  assert.match(client, /formatPrompt\(text, state\.attachment\)/);
+  assert.match(client, /requestNoteId/);
+  assert.match(client, /saveForNote\(requestNoteId/);
+  assert.match(client, /extractEditorSelection\(editor\)/);
+  assert.match(client, /withoutCodexThread/);
 });
 
 test("ローカルブリッジは実スキーマのread-only会話設定と限定CORSを使う", () => {
@@ -33,4 +34,7 @@ test("ローカルブリッジは実スキーマのread-only会話設定と限�
   assert.match(bridge, /networkAccess: false/);
   assert.match(bridge, /127\.0\.0\.1/);
   assert.match(bridge, /承認・ツール要求を許可しません/);
+  assert.match(bridge, /RPC_TIMEOUT_MS/);
+  assert.match(bridge, /Codex CLIが見つかりません/);
+  assert.match(bridge, /type: "error"/);
 });

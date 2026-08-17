@@ -1,8 +1,8 @@
 # Codexチャット試作（ローカル限定）
 
-この機能は実験的なローカルPC連携です。Memo Nexusのブラウザ画面は `127.0.0.1` の小さなブリッジだけに接続し、ブリッジが Codex App Server を標準入出力で起動します。GitHub Pages、iPhone、外部公開URLではブリッジ未接続の案内を表示するのが正常です。
+この機能は実験的なローカルPC連携です。Memo Nexusのブラウザ画面は `127.0.0.1` の小さなブリッジだけに接続し、ブリッジが Codex App Server を標準入出力で起動します。ローカルなのはこの接続だけで、CodexはローカルLLMではありません。入力メッセージと、利用者が明示添付した本文・選択範囲は、ログイン済みCodexを通じてOpenAIのサービスへ送信されます。本文は明示添付しない限り送信されません。GitHub Pages、iPhone、外部公開URLではブリッジ未接続の案内を表示するのが正常です。
 
-Codexは会話専用です。App Serverにはリポジトリ外の空の一時ディレクトリ、`read-only` sandbox、`never` approval policyを指定します。ファイル変更、コマンド実行、ネットワーク、GitHub、MCPや動的ツールの承認はブリッジが許可しません。APIキーは扱わず、既存のCodex CLIログインを使います。
+Codexは会話専用として起動します。App Serverにはリポジトリ外の空の一時ディレクトリ、`read-only` sandbox、`never` approval policy、コマンド側の`networkAccess: false`を指定します。これはモデル・認証通信ではなく、Codexが起動するコマンド側の外部通信を制限する設定です。承認要求とクライアント側ツール要求はブリッジが拒否します。`read-only`は書込みを抑止しますが、developer instructions単独でファイル読取りや全ツール利用を完全に技術保証するものではありません。APIキーは扱わず、既存のCodex CLIログインを使います。
 
 メモ本文・選択範囲は、利用者が添付ボタンを押した場合だけ送信されます。回答をMemo Nexusの本文へ自動反映したり、新規メモを自動作成したりしません。
 

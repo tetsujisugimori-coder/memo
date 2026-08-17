@@ -24,7 +24,22 @@
     if (!value || typeof value !== "object" || !String(value.threadId || "").trim()) return null;
     return { threadId: String(value.threadId), lastUsedAt: value.lastUsedAt || null, title: String(value.title || "").slice(0, 80) };
   }
-  const api = { CONTEXT_LIMIT, buildAttachment, clipText, formatPrompt, normalizeThreadInfo };
+  function extractEditorSelection(editor) {
+    if (!editor || typeof editor.value !== "string") return "";
+    const start = Number.isInteger(editor.selectionStart) ? editor.selectionStart : 0;
+    const end = Number.isInteger(editor.selectionEnd) ? editor.selectionEnd : start;
+    return start < end ? editor.value.slice(start, end) : "";
+  }
+  function withCodexThread(note, thread, now = new Date().toISOString()) {
+    if (!note || note.deletedAt || !thread?.threadId) return note;
+    return { ...note, codexChat: { threadId: thread.threadId, lastUsedAt: now, title: thread.title || "Codex会話" } };
+  }
+  function withoutCodexThread(note) {
+    if (!note || !note.codexChat) return note;
+    const { codexChat, ...rest } = note;
+    return rest;
+  }
+  const api = { CONTEXT_LIMIT, buildAttachment, clipText, extractEditorSelection, formatPrompt, normalizeThreadInfo, withCodexThread, withoutCodexThread };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   if (globalScope) globalScope.MemoNexusCodexChatUtils = api;
 })(typeof window !== "undefined" ? window : globalThis);
