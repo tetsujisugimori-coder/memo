@@ -24,7 +24,27 @@ test("タグバックアップ関連スクリプトのキャッシュ番号を�
   assert.match(html, /tags\.js\?v=0\.4\.0-2/);
   assert.match(html, /local-sync-utils\.js\?v=0\.4\.0-8/);
   assert.match(html, /backup-bundle-utils\.js\?v=0\.1\.0-5/);
-  assert.match(html, /app\.js\?v=0\.4\.0-89/);
+  assert.match(html, /app\.js\?v=0\.4\.0-90/);
+});
+
+test("完全バックアップはメモ個別のWebフォントIDをそのまま往復する", () => {
+  const fontSettings = {
+    enabled: true,
+    titleFontId: "noto-serif-jp-web",
+    titleFontSize: 26,
+    bodyFontId: "noto-sans-jp-web",
+    bodyFontSize: 17,
+    headingFontId: "shippori-mincho-web",
+    codeFontId: "jetbrains-mono-web",
+    codeFontSize: 13
+  };
+  const markdown = serializeLocalNote({ id: "web-font-note", title: "Webフォント", fontSettings }, "本文");
+  const parsed = parsePortableBackup([
+    entry("manifest.json", JSON.stringify(manifest())),
+    entry("collections.json", "[]"),
+    entry("notes/web-font.md", markdown)
+  ], { parseNote: parseLocalNote });
+  assert.deepEqual(parsed.notes[0].note.fontSettings, fontSettings);
 });
 
 test("タグ定義の正規化処理がないバックアップ生成は明示的に失敗する", () => {

@@ -1,3 +1,23 @@
+## 2026-08-19 フォント推薦UIとWebフォント遅延読込
+
+### 変更内容
+
+* 既存8システムフォントを維持し、Font Comparison PR #16を参照専用として、契約どおりの10 WebフォントID・表示名・`font-family`・配信URLをMemo Nexus側の単一カタログへ追加した。`font-comparison`リポジトリおよびPR #16には変更していない。
+* 全体／メモ個別の題名・本文・見出し・コードの全8フォント欄を、システムフォントとWebフォントの`optgroup`に分け、18種を同じ順序で選択できるようにした。未知IDは従来どおり既定値へ正規化する。
+* 通常のフォント設定内へ、使用言語、文章の雰囲気、主な用途から最大3件を安定順位で返す折りたたみ式の推薦UIを追加した。対応済み／一部対応を優先し、対応不明は候補不足時だけ、非対応はさらに不足する場合だけ使う。推薦表示だけでは保存もWebフォント読込も行わない。
+* Webフォントローダーを独立モジュールとして追加し、`idle`、`loading`、`loaded`、`error`を管理するようにした。現在の表示、設定プレビュー、推薦選択、Font Comparison受取確定で実際に使うフォントだけを読み込み、読込中／読込済みの重複要求を抑止する。失敗時も選択IDとCSSフォールバックを維持し、設定画面へ代替表示を案内する。
+* Font Comparisonの戻り値検証を18種へ拡張し、送信元、用途、範囲、カタログID、正確な`font-family`を照合する。URLの`fontLabel`は表示に使わず、Memo Nexus側の正式名へ置き換え、処理済みパラメータは既存どおり除去する。
+* 全体設定は端末localStorage、メモ個別設定は既存メモオブジェクトの`fontSettings`へIDだけを保存する構成を維持した。個別Webフォント設定がローカルMarkdown／ZIPバックアップを往復するテストを追加し、フォントファイルや配信CSSは保存対象にしていない。
+
+### 確認結果
+
+* `node --check app.js font-settings.js font-recommendation.js web-font-loader.js`（成功）
+* `node --test font-settings.test.js font-recommendation.test.js web-font-loader.test.js backup-bundle-utils.test.js`（42件成功）
+* `npm test`（600件成功）
+* `git diff --check`（問題なし）
+* Edgeのローカル配信で、起動時の動的Webフォントlinkが0件、推薦表示後も0件、Noto Sans JP選択後だけ1件になることを確認した。Noto Sans JPの全体設定保存・再読込、Interのメモ個別保存・別メモ切替・復帰、Shippori MinchoのFont Comparison戻り値受取とURLパラメータ除去も確認した。
+* 同ブラウザで全8フォント欄が各18選択肢／2分類であること、Google Fontsの実読込成功、ライト／ダーク、390pxで推薦UI展開時もページとフォント設定領域に横はみ出しがないこと、コンソール警告・エラー0件を確認した。外部配信の失敗経路とSource Han Sansの2ウェイト読込は自動テストで確認した。
+
 ## 2026-08-15 解説カード保存時のnote.body即時反映
 
 ### 変更内容
