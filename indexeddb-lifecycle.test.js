@@ -104,6 +104,6 @@ test("起動完了まで初期HTMLの編集UIを隠し、成功時だけガー�
   assert.deepEqual(events, ["loading", "ready-data"]);
   assert.match(html, /<body class="app-starting">/);
   assert.match(html, /id="appStartupGuard"[^>]*aria-busy="true"/);
-  assert.match(html, /indexeddb-lifecycle\.js\?v=0\.4\.0-1/);
+  assert.match(html, /indexeddb-lifecycle\.js\?v=0\.5\.0-1/);
   assert.match(app, /onReady: hideStartupGuard/);
 });

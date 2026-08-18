@@ -1,3 +1,11 @@
+## 2026-08-19 Memo Nexus v0.5.0 Bridge Update リリース準備
+
+* アプリバージョンを`0.5.0`、表示名を`Bridge Update`、ビルド日を`2026-08-19`へ更新した。リリース名は「Memo Nexus v0.5.0 — Bridge Update」。`app.js`の共通定数を起動ログ、PC／スマホ表示、設定内の保存状態、バックアップmanifestが引き続き参照し、READMEの現在版2箇所も同じ表記へ更新した。
+* アプリ本体にService Worker、Cache API、独自キャッシュ名はない。静的配信の切替は`index.html`のURLクエリで行うため、ローカルCSS／JavaScript 39件を既存の末尾リビジョンを保った`v=0.5.0-*`へ更新した。Web ClipperのService Workerとmanifestは本体とは別管理のため変更していない。
+* `DB_VERSION = 5`、ZIPの`BACKUP_VERSION = 2`とformat version、表ブロック版1、Codexクライアント通信版`0.1.1`、Web ClipperのManifest V3／拡張版`0.3.5`を維持した。`package.json`にはアプリ版とロックファイルがないため変更していない。過去のLOGにある0.4.0記録も維持した。
+* `version.test.js`を追加し、現行版・表示名・ビルド日、全39資産のキャッシュ識別子、別用途バージョン不変を確認した。全121 JavaScriptファイルの`node --check`、`npm test`（605件、失敗0件）、`git diff --check`が成功した。
+* Edgeのローカル配信で主要画面、コレクション、PC／スマホ用の`v0.5.0 "Bridge Update"`、39件の0.5.0資産URLを確認した。通常再読み込み後も同じ版数、主要画面、既存メモ一覧3件を維持し、起動失敗表示はなかった。コンソールerror／warningの取得、公開版・PWAで0.4.0から更新する実機キャッシュ切替、ZIP生成ファイル内のappVersion確認は未実施。
+
 ## 2026-08-19 PR #114 フォント条件検索・Weight単位読込・再試行
 
 ### 変更内容

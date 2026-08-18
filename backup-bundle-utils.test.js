@@ -14,17 +14,17 @@ function entry(name, content) {
 
 function manifest(overrides = {}) {
   return { ...buildManifest({
-    appVersion: "0.4.0", savedAt: "2026-08-15T00:00:00.000Z", exportedAt: "2026-08-15T00:00:00.000Z",
+    appVersion: "0.5.0", savedAt: "2026-08-15T00:00:00.000Z", exportedAt: "2026-08-15T00:00:00.000Z",
     notes: [], collections: [], assetsCount: 0
   }), ...overrides };
 }
 
 test("タグバックアップ関連スクリプトのキャッシュ番号を更新する", () => {
   const html = fs.readFileSync("index.html", "utf8");
-  assert.match(html, /tags\.js\?v=0\.4\.0-2/);
-  assert.match(html, /local-sync-utils\.js\?v=0\.4\.0-8/);
-  assert.match(html, /backup-bundle-utils\.js\?v=0\.1\.0-5/);
-  assert.match(html, /app\.js\?v=0\.4\.0-91/);
+  assert.match(html, /tags\.js\?v=0\.5\.0-2/);
+  assert.match(html, /local-sync-utils\.js\?v=0\.5\.0-8/);
+  assert.match(html, /backup-bundle-utils\.js\?v=0\.5\.0-5/);
+  assert.match(html, /app\.js\?v=0\.5\.0-91/);
 });
 
 test("完全バックアップはメモ個別のWebフォントIDをそのまま往復する", () => {
