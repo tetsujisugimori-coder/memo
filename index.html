@@ -7,7 +7,7 @@
   <script>try { document.documentElement.dataset.initialTheme = localStorage.getItem("memo-nexus-theme") === "dark" ? "dark" : "light"; } catch (_) { document.documentElement.dataset.initialTheme = "light"; }</script>
   <style>html,body{background:#f6f7f4;color:#222522;color-scheme:light}html[data-initial-theme="dark"],html[data-initial-theme="dark"] body{background:#111513;color:#e7ece7;color-scheme:dark}</style>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css">
-  <link rel="stylesheet" href="style.css?v=0.4.0-55">
+  <link rel="stylesheet" href="style.css?v=0.4.0-57">
 </head>
 <body class="app-starting">
   <section id="appStartupGuard" class="app-startup-guard" role="status" aria-live="polite" aria-busy="true">
@@ -424,6 +424,41 @@
       <section class="settings-section font-settings-section" aria-labelledby="fontSettingsHeading">
         <h2 id="fontSettingsHeading">フォント設定</h2>
         <p class="settings-note font-settings-intro">編集画面の題名、本文、見出し、コードの表示を変更します。メモ一覧、操作ボタン、数式・図のフォントには影響しません。</p>
+        <p class="settings-note">システムフォントは端末のフォントを使用します。Webフォントは実際に選択して表示へ使う時だけインターネットから読み込み、失敗時は後続の代替フォントで表示します。</p>
+        <div id="fontWebLoadStatus" class="settings-note font-web-load-status" role="status" aria-live="polite" aria-atomic="false"></div>
+
+        <details class="font-recommendation-panel" open>
+          <summary>条件からフォントを探す</summary>
+          <form id="fontRecommendationForm" class="font-recommendation-form">
+            <p class="settings-note">使用言語・文章の雰囲気・主な用途を選ぶと、条件に合うフォントを3件表示します。</p>
+            <p class="settings-note font-search-guide">アンケートは条件から候補を検索します。フォント選択欄では一覧から直接選べます。Font Comparisonでは実際の表示を詳しく比較できます。候補表示だけではWebフォントを読み込みません。</p>
+            <div class="font-recommendation-questions">
+              <fieldset>
+                <legend>使用言語</legend>
+                <label><input type="radio" name="recommendationLanguage" value="japanese" checked> 日本語</label>
+                <label><input type="radio" name="recommendationLanguage" value="simplifiedChinese"> 簡体字中国語</label>
+                <label><input type="radio" name="recommendationLanguage" value="traditionalChinese"> 繁体字中国語</label>
+                <label><input type="radio" name="recommendationLanguage" value="latin"> 英数字中心</label>
+              </fieldset>
+              <fieldset>
+                <legend>文章の雰囲気</legend>
+                <label><input type="radio" name="recommendationMood" value="casual"> 親しみやすい・カジュアル</label>
+                <label><input type="radio" name="recommendationMood" value="neutral" checked> 中立・読みやすさ重視</label>
+                <label><input type="radio" name="recommendationMood" value="formal"> 落ち着いた・フォーマル</label>
+              </fieldset>
+              <fieldset>
+                <legend>主な用途</legend>
+                <label><input type="radio" name="recommendationPurpose" value="writing" checked> 長文を書く</label>
+                <label><input type="radio" name="recommendationPurpose" value="reading"> 長文を読む</label>
+                <label><input type="radio" name="recommendationPurpose" value="heading"> 見出し・短文</label>
+                <label><input type="radio" name="recommendationPurpose" value="code"> プログラミングコード</label>
+              </fieldset>
+            </div>
+            <p id="fontRecommendationDestination" class="settings-note"></p>
+            <button type="submit">この条件で検索</button>
+            <ol id="fontRecommendationResults" class="font-recommendation-results" aria-live="polite" aria-atomic="true"></ol>
+          </form>
+        </details>
 
         <fieldset class="font-settings-group">
           <legend>全体設定</legend>
@@ -788,7 +823,9 @@
   <script src="editor-caret-animation-utils.js?v=0.4.0-1"></script>
   <script src="calculation-engine.js?v=0.4.0-1"></script>
   <script src="calculator-link.js?v=0.4.0-1"></script>
-  <script src="font-settings.js?v=0.4.0-2"></script>
+  <script src="font-settings.js?v=0.4.0-4"></script>
+  <script src="font-recommendation.js?v=0.1.0-1"></script>
+  <script src="web-font-loader.js?v=0.1.0-2"></script>
   <script src="markdown-enhancements-utils.js?v=0.4.0-4"></script>
   <script src="ai-provider.js?v=0.4.0-3"></script>
   <script src="ollama-adapter.js?v=0.4.0-1"></script>
@@ -810,7 +847,7 @@
   <script src="manual-local-save.js?v=0.4.0-1"></script>
   <script src="status-time-utils.js?v=0.4.0-1"></script>
   <script src="codex-chat-utils.js?v=0.1.0-4"></script>
-  <script src="app.js?v=0.4.0-89"></script>
+  <script src="app.js?v=0.4.0-91"></script>
   <script src="codex-chat.js?v=0.1.0-5"></script>
 </body>
 </html>

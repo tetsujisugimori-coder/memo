@@ -381,13 +381,17 @@ const {
   comparisonSample,
   effectiveFontSettings,
   fontOption,
+  fontWeightRequestsInSettings,
   normalizeFontSettings,
   normalizeNoteFontSettings,
   noteFontSettingsEqual,
+  populateFontSelectOptions,
   readFontSelection,
   TITLE_FONT_SIZES,
   withoutFontSelectionParams
 } = window.MemoNexusFontSettings;
+const { recommendationTarget, recommendFonts } = window.MemoNexusFontRecommendation;
+const { createWebFontLoader } = window.MemoNexusWebFontLoader;
 const {
   TABLE_PASTE_LIMITS,
   addTableColumn,
@@ -605,6 +609,10 @@ const fontSettingsPreview = $("fontSettingsPreview");
 const saveFontSettingsBtn = $("saveFontSettingsBtn");
 const resetFontSettingsBtn = $("resetFontSettingsBtn");
 const fontSettingsStatus = $("fontSettingsStatus");
+const fontWebLoadStatus = $("fontWebLoadStatus");
+const fontRecommendationForm = $("fontRecommendationForm");
+const fontRecommendationDestination = $("fontRecommendationDestination");
+const fontRecommendationResults = $("fontRecommendationResults");
 const fontCompareButtons = document.querySelectorAll(".font-compare-button");
 const jsonImportDialog = $("jsonImportDialog");
 const closeJsonImportBtn = $("closeJsonImportBtn");
@@ -881,6 +889,10 @@ let globalFontSettings = { ...DEFAULT_FONT_SETTINGS };
 let fontSettingsDraft = null;
 let pendingFontSelection = null;
 let fontSelectionMessage = "";
+const webFontLoader = createWebFontLoader({
+  fontLookup: fontOption,
+  onStateChange: renderWebFontLoadStatus
+});
 let aiSettings = { ...DEFAULT_AI_SETTINGS };
 let aiSettingsDraft = { ...DEFAULT_AI_SETTINGS };
 let aiModels = [];
@@ -8519,8 +8531,7 @@ function populateFontSettingOptions() {
     noteCodeFontSelect
   ];
   fontSelects.forEach((select) => {
-    if (!select || select.options.length) return;
-    FONT_OPTIONS.forEach((font) => select.add(new Option(font.label, font.id)));
+    populateFontSelectOptions(select);
   });
 
   [
@@ -8592,6 +8603,8 @@ function prepareFontSettingsDialog() {
   noteFontOverrideEnabled.checked = fontSettingsDraft.noteEnabled;
   noteFontSettingsGroup.disabled = !fontSettingsDraft.noteEnabled;
   renderPendingFontSelection();
+  renderFontRecommendations();
+  renderWebFontLoadStatus();
   fontSettingsStatus.textContent = fontSelectionMessage;
   updateFontSettingsPreview();
 }
@@ -8616,16 +8629,141 @@ function setFontVariables(element, settings) {
   element.style.setProperty("--memo-code-font-size", `${normalized.codeFontSize}px`);
 }
 
+function requestWebFontsForSettings(settings) {
+  fontWeightRequestsInSettings(settings).forEach(({ fontId, weights }) => {
+    if (fontOption(fontId)?.sourceType === "web") void webFontLoader.requestFont(fontId, weights);
+  });
+}
+
+function renderWebFontLoadStatus() {
+  if (!fontWebLoadStatus) return;
+  fontWebLoadStatus.replaceChildren();
+  webFontLoader.getStates().forEach(({ fontId, status, loadedWeights, loadingWeights, failedWeights }) => {
+    const font = fontOption(fontId);
+    if (!font || status === "idle") return;
+    const row = document.createElement("div");
+    row.className = "font-web-load-status-row";
+    const message = document.createElement("span");
+    if (failedWeights.length) {
+      message.textContent = `${font.label}（${failedWeights.join("・")}）の読み込みに失敗しました。代替フォントで表示しています。`;
+      const retryButton = document.createElement("button");
+      retryButton.type = "button";
+      retryButton.textContent = "再試行";
+      retryButton.disabled = loadingWeights.length > 0;
+      retryButton.addEventListener("click", () => retryFailedWebFont(fontId));
+      row.append(message, retryButton);
+    } else if (status === "loading") {
+      message.textContent = `${font.label}（${loadingWeights.join("・")}）を読み込み中です。`;
+      row.appendChild(message);
+    } else {
+      message.textContent = `${font.label}（${loadedWeights.join("・")}）を読み込みました。`;
+      row.appendChild(message);
+    }
+    fontWebLoadStatus.appendChild(row);
+  });
+}
+
+function retryFailedWebFont(fontId) {
+  const failedWeights = new Set(webFontLoader.getState(fontId).failedWeights);
+  const draft = currentFontDraft();
+  const settings = [draft.global, ...(draft.noteEnabled ? [draft.note] : [])];
+  const neededWeights = new Set();
+  settings.forEach((fontSettings) => {
+    fontWeightRequestsInSettings(fontSettings).forEach((request) => {
+      if (request.fontId === fontId) request.weights.forEach((weight) => neededWeights.add(weight));
+    });
+  });
+  const retryWeights = [...neededWeights].filter((weight) => failedWeights.has(weight));
+  if (retryWeights.length) void webFontLoader.requestFont(fontId, retryWeights);
+}
+
 function applyEffectiveFontSettings() {
   const settings = effectiveFontSettings(globalFontSettings, currentNote()?.fontSettings);
   setFontVariables(editorCard, settings);
   setFontVariables(previewCard, settings);
+  requestWebFontsForSettings(settings);
 }
 
 function updateFontSettingsPreview() {
   const draft = currentFontDraft();
   const settings = draft.noteEnabled ? draft.note : draft.global;
   setFontVariables(fontSettingsPreview, settings);
+  requestWebFontsForSettings(settings);
+}
+
+function selectedRecommendationAnswers() {
+  const checkedValue = (name) => fontRecommendationForm?.querySelector(`input[name="${name}"]:checked`)?.value || "";
+  return {
+    language: checkedValue("recommendationLanguage"),
+    mood: checkedValue("recommendationMood"),
+    purpose: checkedValue("recommendationPurpose")
+  };
+}
+
+function recommendationTargetLabel(target) {
+  return { body: "本文", heading: "見出し", code: "コード" }[target] || "本文";
+}
+
+function renderFontRecommendationDestination() {
+  if (!fontRecommendationDestination) return;
+  const target = recommendationTarget(selectedRecommendationAnswers().purpose) || "body";
+  const scope = noteFontOverrideEnabled?.checked ? "このメモの個別設定" : "全体設定";
+  fontRecommendationDestination.textContent = `候補の選択先: ${scope}の${recommendationTargetLabel(target)}（保存はまだ行いません）`;
+}
+
+function handleFontRecommendationAnswerChange() {
+  renderFontRecommendations();
+}
+
+function applyRecommendedFont(fontId, purpose) {
+  const target = recommendationTarget(purpose);
+  const scope = noteFontOverrideEnabled.checked ? "note" : "global";
+  const selectMap = {
+    global: { body: globalBodyFontSelect, heading: globalHeadingFontSelect, code: globalCodeFontSelect },
+    note: { body: noteBodyFontSelect, heading: noteHeadingFontSelect, code: noteCodeFontSelect }
+  };
+  const select = selectMap[scope]?.[target];
+  const font = fontOption(fontId);
+  if (!select || !font) return;
+  select.value = font.id;
+  fontSelectionMessage = `${scope === "note" ? "このメモ" : "全体設定"}の${recommendationTargetLabel(target)}へ${font.label}をプレビュー反映しました。保存すると確定します。`;
+  fontSettingsStatus.textContent = fontSelectionMessage;
+  updateFontSettingsPreview();
+}
+
+function renderFontRecommendations(event) {
+  event?.preventDefault();
+  if (!fontRecommendationResults) return;
+  const answers = selectedRecommendationAnswers();
+  const results = recommendFonts(FONT_OPTIONS, answers);
+  fontRecommendationResults.replaceChildren();
+  results.forEach(({ font, rank, reasons }) => {
+    const item = document.createElement("li");
+    item.className = "font-recommendation-result";
+    const heading = document.createElement("div");
+    heading.className = "font-recommendation-result-heading";
+    const name = document.createElement("strong");
+    name.textContent = `${rank}位 ${font.label}`;
+    const source = document.createElement("span");
+    source.className = "font-source-label";
+    source.textContent = font.sourceType === "web" ? "Webフォント" : "システムフォント";
+    heading.append(name, source);
+    const reasonList = document.createElement("ul");
+    reasonList.className = "font-recommendation-reasons";
+    reasons.forEach((reason) => {
+      const reasonItem = document.createElement("li");
+      reasonItem.textContent = reason;
+      reasonList.appendChild(reasonItem);
+    });
+    const selectButton = document.createElement("button");
+    selectButton.type = "button";
+    selectButton.className = "select-recommended-font";
+    selectButton.textContent = `${recommendationTargetLabel(recommendationTarget(answers.purpose))}の候補にする`;
+    selectButton.addEventListener("click", () => applyRecommendedFont(font.id, answers.purpose));
+    item.append(heading, reasonList, selectButton);
+    fontRecommendationResults.appendChild(item);
+  });
+  renderFontRecommendationDestination();
 }
 
 function renderPendingFontSelection() {
@@ -8642,6 +8780,7 @@ function renderPendingFontSelection() {
 
 function applyPendingFontSelectionToDraft() {
   if (!pendingFontSelection) return;
+  const selectedFontId = pendingFontSelection.fontId;
   const selectMap = {
     global: {
       body: globalBodyFontSelect,
@@ -8659,6 +8798,10 @@ function applyPendingFontSelectionToDraft() {
     noteFontSettingsGroup.disabled = false;
   }
   selectMap[pendingFontSelection.scope][pendingFontSelection.target].value = pendingFontSelection.fontId;
+  if (fontOption(selectedFontId)?.sourceType === "web") {
+    const weight = pendingFontSelection.target === "heading" ? 700 : 400;
+    void webFontLoader.requestFont(selectedFontId, [weight]);
+  }
   pendingFontSelection = null;
   fontSelectionMessage = "選択をプレビューへ反映しました。保存すると確定します。";
   fontSettingsStatus.textContent = fontSelectionMessage;
@@ -10471,8 +10614,13 @@ if (memoNexusLogo) {
 if (noteFontOverrideEnabled) {
   noteFontOverrideEnabled.addEventListener("change", () => {
     noteFontSettingsGroup.disabled = !noteFontOverrideEnabled.checked;
+    renderFontRecommendationDestination();
     updateFontSettingsPreview();
   });
+}
+if (fontRecommendationForm) {
+  fontRecommendationForm.addEventListener("submit", renderFontRecommendations);
+  fontRecommendationForm.addEventListener("change", handleFontRecommendationAnswerChange);
 }
 fontCompareButtons.forEach((button) => button.addEventListener("click", openFontComparison));
 if (useReceivedFontBtn) useReceivedFontBtn.addEventListener("click", applyPendingFontSelectionToDraft);
