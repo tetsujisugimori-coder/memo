@@ -4018,6 +4018,39 @@ body.related-open .related-toggle {
   font-weight: 700;
 }
 
+.font-search-guide {
+  border-left: 3px solid var(--accent);
+  padding-left: 9px;
+}
+
+.font-web-load-status:empty {
+  display: none;
+}
+
+.font-web-load-status-row {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  gap: 7px;
+  align-items: center;
+}
+
+.font-web-load-status-row + .font-web-load-status-row {
+  margin-top: 6px;
+}
+
+.font-web-load-status-row span {
+  overflow-wrap: anywhere;
+}
+
+.font-web-load-status-row button {
+  min-height: 32px;
+  border: 1px solid var(--accent);
+  border-radius: 7px;
+  padding: 4px 9px;
+  color: var(--accent);
+}
+
 .font-recommendation-form {
   display: grid;
   min-width: 0;

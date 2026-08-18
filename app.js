@@ -380,8 +380,8 @@ const {
   buildFontComparisonUrl,
   comparisonSample,
   effectiveFontSettings,
-  fontIdsInSettings,
   fontOption,
+  fontWeightRequestsInSettings,
   normalizeFontSettings,
   normalizeNoteFontSettings,
   noteFontSettingsEqual,
@@ -8603,7 +8603,7 @@ function prepareFontSettingsDialog() {
   noteFontOverrideEnabled.checked = fontSettingsDraft.noteEnabled;
   noteFontSettingsGroup.disabled = !fontSettingsDraft.noteEnabled;
   renderPendingFontSelection();
-  renderFontRecommendationDestination();
+  renderFontRecommendations();
   renderWebFontLoadStatus();
   fontSettingsStatus.textContent = fontSelectionMessage;
   updateFontSettingsPreview();
@@ -8630,22 +8630,51 @@ function setFontVariables(element, settings) {
 }
 
 function requestWebFontsForSettings(settings) {
-  fontIdsInSettings(settings).forEach((fontId) => {
-    if (fontOption(fontId)?.sourceType === "web") void webFontLoader.requestFont(fontId);
+  fontWeightRequestsInSettings(settings).forEach(({ fontId, weights }) => {
+    if (fontOption(fontId)?.sourceType === "web") void webFontLoader.requestFont(fontId, weights);
   });
 }
 
 function renderWebFontLoadStatus() {
   if (!fontWebLoadStatus) return;
-  const messages = webFontLoader.getStates().map(({ fontId, status }) => {
+  fontWebLoadStatus.replaceChildren();
+  webFontLoader.getStates().forEach(({ fontId, status, loadedWeights, loadingWeights, failedWeights }) => {
     const font = fontOption(fontId);
-    if (!font) return "";
-    if (status === "loading") return `${font.label}: Webフォントを読み込み中です。`;
-    if (status === "loaded") return `${font.label}: Webフォントを読み込みました。`;
-    if (status === "error") return `${font.label}: Webフォントの読み込みに失敗したため、代替フォントを使用します。`;
-    return "";
-  }).filter(Boolean);
-  fontWebLoadStatus.textContent = messages.join(" ");
+    if (!font || status === "idle") return;
+    const row = document.createElement("div");
+    row.className = "font-web-load-status-row";
+    const message = document.createElement("span");
+    if (failedWeights.length) {
+      message.textContent = `${font.label}（${failedWeights.join("・")}）の読み込みに失敗しました。代替フォントで表示しています。`;
+      const retryButton = document.createElement("button");
+      retryButton.type = "button";
+      retryButton.textContent = "再試行";
+      retryButton.disabled = loadingWeights.length > 0;
+      retryButton.addEventListener("click", () => retryFailedWebFont(fontId));
+      row.append(message, retryButton);
+    } else if (status === "loading") {
+      message.textContent = `${font.label}（${loadingWeights.join("・")}）を読み込み中です。`;
+      row.appendChild(message);
+    } else {
+      message.textContent = `${font.label}（${loadedWeights.join("・")}）を読み込みました。`;
+      row.appendChild(message);
+    }
+    fontWebLoadStatus.appendChild(row);
+  });
+}
+
+function retryFailedWebFont(fontId) {
+  const failedWeights = new Set(webFontLoader.getState(fontId).failedWeights);
+  const draft = currentFontDraft();
+  const settings = [draft.global, ...(draft.noteEnabled ? [draft.note] : [])];
+  const neededWeights = new Set();
+  settings.forEach((fontSettings) => {
+    fontWeightRequestsInSettings(fontSettings).forEach((request) => {
+      if (request.fontId === fontId) request.weights.forEach((weight) => neededWeights.add(weight));
+    });
+  });
+  const retryWeights = [...neededWeights].filter((weight) => failedWeights.has(weight));
+  if (retryWeights.length) void webFontLoader.requestFont(fontId, retryWeights);
 }
 
 function applyEffectiveFontSettings() {
@@ -8683,8 +8712,7 @@ function renderFontRecommendationDestination() {
 }
 
 function handleFontRecommendationAnswerChange() {
-  fontRecommendationResults?.replaceChildren();
-  renderFontRecommendationDestination();
+  renderFontRecommendations();
 }
 
 function applyRecommendedFont(fontId, purpose) {
@@ -8730,7 +8758,7 @@ function renderFontRecommendations(event) {
     const selectButton = document.createElement("button");
     selectButton.type = "button";
     selectButton.className = "select-recommended-font";
-    selectButton.textContent = "この候補を選ぶ";
+    selectButton.textContent = `${recommendationTargetLabel(recommendationTarget(answers.purpose))}の候補にする`;
     selectButton.addEventListener("click", () => applyRecommendedFont(font.id, answers.purpose));
     item.append(heading, reasonList, selectButton);
     fontRecommendationResults.appendChild(item);
@@ -8770,7 +8798,10 @@ function applyPendingFontSelectionToDraft() {
     noteFontSettingsGroup.disabled = false;
   }
   selectMap[pendingFontSelection.scope][pendingFontSelection.target].value = pendingFontSelection.fontId;
-  if (fontOption(selectedFontId)?.sourceType === "web") void webFontLoader.requestFont(selectedFontId);
+  if (fontOption(selectedFontId)?.sourceType === "web") {
+    const weight = pendingFontSelection.target === "heading" ? 700 : 400;
+    void webFontLoader.requestFont(selectedFontId, [weight]);
+  }
   pendingFontSelection = null;
   fontSelectionMessage = "選択をプレビューへ反映しました。保存すると確定します。";
   fontSettingsStatus.textContent = fontSelectionMessage;

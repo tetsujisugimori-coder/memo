@@ -209,6 +209,24 @@
     ])];
   }
 
+  function fontWeightRequestsInSettings(settings) {
+    const normalized = normalizeFontSettings(settings);
+    const weightsByFont = new Map();
+    [
+      [normalized.titleFontId, 700],
+      [normalized.bodyFontId, 400],
+      [normalized.headingFontId, 700],
+      [normalized.codeFontId, 400]
+    ].forEach(([fontId, weight]) => {
+      if (!weightsByFont.has(fontId)) weightsByFont.set(fontId, new Set());
+      weightsByFont.get(fontId).add(weight);
+    });
+    return [...weightsByFont].map(([fontId, weights]) => ({
+      fontId,
+      weights: [...weights].sort((first, second) => first - second)
+    }));
+  }
+
   function normalizeFontId(value, fallbackId) {
     return fontOption(value) ? value : fallbackId;
   }
@@ -339,6 +357,7 @@
     effectiveFontSettings,
     fontFamilyForTarget,
     fontIdsInSettings,
+    fontWeightRequestsInSettings,
     fontOption,
     normalizeFontSettings,
     normalizeNoteFontSettings,

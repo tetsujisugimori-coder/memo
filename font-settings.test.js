@@ -15,6 +15,7 @@ const {
   effectiveFontSettings,
   fontIdsInSettings,
   fontOption,
+  fontWeightRequestsInSettings,
   normalizeFontSettings,
   noteFontSettingsEqual,
   populateFontSelectOptions,
@@ -127,6 +128,21 @@ test("WebフォントIDは全体・個別設定で保持し、未知IDだけ既�
   assert.equal(normalized.codeFontId, "jetbrains-mono-web");
   assert.equal(normalizeFontSettings({ bodyFontId: "not-registered" }).bodyFontId, DEFAULT_FONT_SETTINGS.bodyFontId);
   assert.deepEqual(fontIdsInSettings(normalized), ["noto-serif-jp-web", "noto-sans-jp-web", "shippori-mincho-web", "jetbrains-mono-web"]);
+});
+
+test("用途ごとの必要Weightをフォント単位で集約する", () => {
+  const weightsFor = (settings, fontId) => fontWeightRequestsInSettings(settings)
+    .find((request) => request.fontId === fontId)?.weights;
+  assert.deepEqual(weightsFor({ titleFontId: "noto-sans-jp-web" }, "noto-sans-jp-web"), [700]);
+  assert.deepEqual(weightsFor({ bodyFontId: "noto-sans-jp-web" }, "noto-sans-jp-web"), [400]);
+  assert.deepEqual(weightsFor({ headingFontId: "noto-sans-jp-web" }, "noto-sans-jp-web"), [700]);
+  assert.deepEqual(weightsFor({ codeFontId: "jetbrains-mono-web" }, "jetbrains-mono-web"), [400]);
+  assert.deepEqual(weightsFor({
+    titleFontId: "noto-sans-jp-web",
+    bodyFontId: "noto-sans-jp-web",
+    headingFontId: "noto-sans-jp-web",
+    codeFontId: "noto-sans-jp-web"
+  }, "noto-sans-jp-web"), [400, 700]);
 });
 
 test("実フォーム用選択肢は全8欄で再利用できるシステム／Web optgroupを生成する", () => {
@@ -242,12 +258,22 @@ test("設定UIは明示保存・個別設定・比較・受取確認を持つ", 
   assert.match(html, /id="receivedFontSelection"[^>]*hidden/);
   assert.match(html, /id="saveFontSettingsBtn"/);
   assert.match(html, /id="fontRecommendationForm"/);
+  assert.match(html, /<details class="font-recommendation-panel" open>/);
+  assert.match(html, /<summary>条件からフォントを探す<\/summary>/);
+  assert.match(html, /使用言語・文章の雰囲気・主な用途を選ぶと、条件に合うフォントを3件表示します。/);
+  assert.match(html, /アンケートは条件から候補を検索します。/);
+  assert.match(html, /フォント選択欄では一覧から直接選べます。/);
+  assert.match(html, /Font Comparisonでは実際の表示を詳しく比較できます。/);
+  assert.match(html, />この条件で検索<\/button>/);
   assert.match(html, /name="recommendationLanguage" value="japanese" checked/);
   assert.match(html, /name="recommendationMood" value="neutral" checked/);
   assert.match(html, /name="recommendationPurpose" value="writing" checked/);
   assert.match(html, /id="fontWebLoadStatus"[^>]*aria-live="polite"/);
-  assert.ok(html.indexOf('font-recommendation.js?v=0.1.0-1') < html.indexOf('app.js?v=0.4.0-90'));
-  assert.ok(html.indexOf('web-font-loader.js?v=0.1.0-1') < html.indexOf('app.js?v=0.4.0-90'));
+  assert.ok(html.indexOf('font-recommendation.js?v=0.1.0-1') < html.indexOf('app.js?v=0.4.0-91'));
+  assert.ok(html.indexOf('web-font-loader.js?v=0.1.0-2') < html.indexOf('app.js?v=0.4.0-91'));
+  assert.match(app, /function prepareFontSettingsDialog\(\)[\s\S]*?renderFontRecommendations\(\)/);
+  assert.match(app, /function handleFontRecommendationAnswerChange\(\) \{\s*renderFontRecommendations\(\);\s*\}/);
+  assert.match(app, /selectButton\.textContent = `\$\{recommendationTargetLabel\(recommendationTarget\(answers\.purpose\)\)\}の候補にする`/);
   assert.match(app, /history\.replaceState\(history\.state, "", withoutFontSelectionParams\(location\.href\)\)/);
   assert.match(app, /選択をプレビューへ反映しました。保存すると確定します。/);
 });
@@ -287,6 +313,13 @@ test("アプリ統合は実表示・プレビュー・受取確定だけをWeb�
   const recommendations = app.match(/function renderFontRecommendations\(event\) \{[\s\S]*?\n\}/)?.[0] || "";
   assert.match(effective, /requestWebFontsForSettings\(settings\)/);
   assert.match(preview, /requestWebFontsForSettings\(settings\)/);
-  assert.match(received, /webFontLoader\.requestFont\(selectedFontId\)/);
+  const applyCandidate = app.match(/function applyRecommendedFont\(fontId, purpose\) \{[\s\S]*?\n\}/)?.[0] || "";
+  assert.match(received, /webFontLoader\.requestFont\(selectedFontId, \[weight\]\)/);
   assert.doesNotMatch(recommendations, /requestFont|requestWebFontsForSettings/);
+  assert.match(applyCandidate, /selectMap\[scope\]/);
+  assert.match(applyCandidate, /updateFontSettingsPreview\(\)/);
+  assert.doesNotMatch(applyCandidate, /saveFontSettings|localStorage|putNote/);
+  assert.match(app, /retryButton\.textContent = "再試行"/);
+  assert.match(app, /retryButton\.disabled = loadingWeights\.length > 0/);
+  assert.doesNotMatch(app.match(/function renderWebFontLoadStatus\(\) \{[\s\S]*?\n\}/)?.[0] || "", /innerHTML/);
 });
