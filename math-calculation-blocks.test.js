@@ -176,7 +176,7 @@ test("KaTeX依存とmathjs依存を固定版で読み込み、動的スクリプ
   assert.match(html, /katex@0\.16\.22\/dist\/katex\.min\.css/);
   assert.match(html, /katex@0\.16\.22\/dist\/katex\.min\.js/);
   assert.match(html, /mathjs@15\.2\.0\/lib\/browser\/math\.js/);
-  assert.match(html, /calculation-engine\.js\?v=0\.4\.0-1/);
+  assert.match(html, /calculation-engine\.js\?v=0\.5\.0-1/);
   assert.doesNotMatch(functionSource("renderCalculationBlock", "hydrateMathExpressions"), /createElement\(["']script|eval\(|new Function/);
 });
 

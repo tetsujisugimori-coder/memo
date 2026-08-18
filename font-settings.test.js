@@ -269,8 +269,8 @@ test("設定UIは明示保存・個別設定・比較・受取確認を持つ", 
   assert.match(html, /name="recommendationMood" value="neutral" checked/);
   assert.match(html, /name="recommendationPurpose" value="writing" checked/);
   assert.match(html, /id="fontWebLoadStatus"[^>]*aria-live="polite"/);
-  assert.ok(html.indexOf('font-recommendation.js?v=0.1.0-1') < html.indexOf('app.js?v=0.4.0-91'));
-  assert.ok(html.indexOf('web-font-loader.js?v=0.1.0-2') < html.indexOf('app.js?v=0.4.0-91'));
+  assert.ok(html.indexOf('font-recommendation.js?v=0.5.0-1') < html.indexOf('app.js?v=0.5.0-91'));
+  assert.ok(html.indexOf('web-font-loader.js?v=0.5.0-2') < html.indexOf('app.js?v=0.5.0-91'));
   assert.match(app, /function prepareFontSettingsDialog\(\)[\s\S]*?renderFontRecommendations\(\)/);
   assert.match(app, /function handleFontRecommendationAnswerChange\(\) \{\s*renderFontRecommendations\(\);\s*\}/);
   assert.match(app, /selectButton\.textContent = `\$\{recommendationTargetLabel\(recommendationTarget\(answers\.purpose\)\)\}の候補にする`/);
