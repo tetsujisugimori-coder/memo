@@ -37,6 +37,25 @@
     return contentHash(source);
   }
 
+  function createLocalConflictResolution({ noteId, action, path, confirmedLocalHash } = {}) {
+    if (!noteId || !action || !path || !confirmedLocalHash) return null;
+    return {
+      noteId: String(noteId),
+      action: String(action),
+      path: String(path).replace(/\\/g, "/"),
+      confirmedLocalHash: String(confirmedLocalHash)
+    };
+  }
+
+  function localConflictResolutionMatches(resolution, { noteId, path, currentLocalHash } = {}) {
+    return Boolean(
+      resolution &&
+      String(resolution.noteId) === String(noteId || "") &&
+      String(resolution.path).replace(/\\/g, "/") === String(path || "").replace(/\\/g, "/") &&
+      String(resolution.confirmedLocalHash) === String(currentLocalHash || "")
+    );
+  }
+
   function attachmentExtension(attachment) {
     return MIME_EXTENSIONS[String(attachment?.mimeType || attachment?.blob?.type || "").toLowerCase()] || "bin";
   }
@@ -135,12 +154,14 @@
 
   async function buildLocalScanAnalysis({
     files = [], syncState, notes = [], parseNote, serializeNote,
-    getAttachmentsForNote = async () => []
+    getAttachmentsForNote = async () => [], resolvedConflicts = new Map()
   } = {}) {
     const normalizedSync = normalizeSyncState(syncState);
     const excluded = new Set(normalizedSync.excluded);
     const candidates = [];
     const appAheadNoteIds = [];
+    const resolvedConflictNoteIds = [];
+    const invalidatedResolutionNoteIds = [];
     for (const entry of files) {
       if (excluded.has(entry.path)) continue;
       const source = await entry.file.text();
@@ -154,6 +175,7 @@
       const managedEntry = managedNoteForPath(normalizedSync, entry.path);
       if (managedEntry) {
         const [managedNoteId, managedState] = managedEntry;
+        const resolution = resolvedConflicts.get?.(managedNoteId);
         const managedNote = notes.find((note) => note.id === managedNoteId);
         if (!managedNote) {
           candidates.push({
@@ -176,6 +198,12 @@
           const nextAppMarkdown = serializeNote(managedNote, managedNote.body, attachmentFiles);
           const nextAppHash = contentHash(nextAppMarkdown);
           const currentLocalHash = contentHash(source);
+          const resolutionMatches = localConflictResolutionMatches(resolution, {
+            noteId: managedNoteId,
+            path: entry.path,
+            currentLocalHash
+          });
+          if (resolution && !resolutionMatches) invalidatedResolutionNoteIds.push(managedNoteId);
           const currentComparableHash = managedMarkdownComparableHash(source);
           const nextComparableHash = managedMarkdownComparableHash(nextAppMarkdown);
           const disposition = classifyManagedMarkdownHashes(
@@ -187,6 +215,10 @@
           );
           if (disposition === "app-ahead") appAheadNoteIds.push(managedNoteId);
           if (disposition !== "conflict") continue;
+          if (resolutionMatches) {
+            resolvedConflictNoteIds.push(managedNoteId);
+            continue;
+          }
           candidates.push({
             ...entry,
             parsed,
@@ -211,7 +243,9 @@
     return {
       candidates,
       appAheadNoteIds,
-      needsLocalSave: appAheadNoteIds.length > 0
+      needsLocalSave: appAheadNoteIds.length > 0,
+      resolvedConflictNoteIds: [...new Set(resolvedConflictNoteIds)],
+      invalidatedResolutionNoteIds: [...new Set(invalidatedResolutionNoteIds)]
     };
   }
 
@@ -243,7 +277,7 @@
 
   const api = {
     MIME_EXTENSIONS, attachmentExtension, buildLocalScanAnalysis, buildLocalScanCandidates, buildManifest, classifyManagedMarkdownHashes,
-    classifyMarkdownCandidate, contentHash, hasExternalModification, managedMarkdownComparableHash, managedNoteForPath,
+    classifyMarkdownCandidate, contentHash, createLocalConflictResolution, hasExternalModification, localConflictResolutionMatches, managedMarkdownComparableHash, managedNoteForPath,
     normalizeSyncState, parseCollections, safeStableNoteFileName, serializeCollections
   };
   if (typeof module !== "undefined" && module.exports) module.exports = api;

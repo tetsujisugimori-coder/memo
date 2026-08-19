@@ -346,7 +346,9 @@ const {
   buildLocalScanAnalysis,
   buildManifest,
   contentHash,
+  createLocalConflictResolution,
   hasExternalModification,
+  localConflictResolutionMatches,
   managedMarkdownComparableHash,
   normalizeSyncState,
   parseCollections,
@@ -818,7 +820,7 @@ let localSyncState = normalizeSyncState();
 let localScanCandidates = [];
 let suppressLocalSaveQueue = false;
 let localWorkspaceChangeVersion = 0;
-const forcedLocalSaveNoteIds = new Set();
+const localConflictResolutions = new Map();
 let localPendingExclusions = new Set();
 const localSaveQueue = createLocalSaveQueue((reason) => performLocalWorkspaceSave(reason), 420);
 let noteFlagAnimationToken = 0;
@@ -1891,7 +1893,7 @@ async function performLocalWorkspaceSave(reason = "change") {
   setLocalSaveState("saving", { directoryName: localDirectoryHandle.name, errorCode: "", errorMessage: "", requiresUserAction: false });
   const savedAt = new Date().toISOString();
   const savedChangeVersion = localWorkspaceChangeVersion;
-  const forcedNoteIds = new Set(forcedLocalSaveNoteIds);
+  const resolvedConflicts = new Map(localConflictResolutions);
   try {
     const layout = await localFs.ensureWorkspaceLayout(localDirectoryHandle);
     const storedSync = await localFs.readJson(layout.root, "sync-state.json", normalizeSyncState());
@@ -1916,7 +1918,7 @@ async function performLocalWorkspaceSave(reason = "change") {
       });
       const markdown = serializeLocalNote(savedNote, savedNote.body, attachmentFiles);
       const hash = contentHash(markdown);
-      if (!forcedNoteIds.has(note.id) && previous.hash) {
+      if (!resolvedConflicts.has(note.id) && previous.hash) {
         const currentText = await optionalLocalText(layout.root, `notes/${fileName}`);
         const currentHash = currentText == null ? null : contentHash(currentText);
         const currentComparableHash = currentText == null ? null : managedMarkdownComparableHash(currentText);
@@ -1943,6 +1945,21 @@ async function performLocalWorkspaceSave(reason = "change") {
       assetPlans: [...assetPlans.values()],
       normalizeTagDefinitions
     });
+    for (const plan of plans) {
+      const resolution = resolvedConflicts.get(plan.note.id);
+      if (!resolution) continue;
+      const currentText = await optionalLocalText(layout.root, `notes/${plan.fileName}`);
+      const currentLocalHash = currentText == null ? null : contentHash(currentText);
+      if (localConflictResolutionMatches(resolution, {
+        noteId: plan.note.id,
+        path: `notes/${plan.fileName}`,
+        currentLocalHash
+      })) continue;
+      if (localConflictResolutions.get(plan.note.id) === resolution) localConflictResolutions.delete(plan.note.id);
+      const conflict = new Error(`「${plan.note.title}」は競合解決後にローカルで変更されています。もう一度確認してから保存してください。`);
+      conflict.code = "conflict";
+      throw conflict;
+    }
     for (const file of backupFiles) await localFs.writeFile(layout.root, file.name, file.content);
     await localFs.writeJson(layout.root, "sync-state.json", nextSync);
 
@@ -1955,7 +1972,10 @@ async function performLocalWorkspaceSave(reason = "change") {
     localSyncState = nextSync;
     localPendingExclusions.clear();
     await localFs.deleteConfig(db, LOCAL_CONFIG_STORE_NAME, "pendingExclusions");
-    forcedNoteIds.forEach((noteId) => forcedLocalSaveNoteIds.delete(noteId));
+    plans.forEach((plan) => {
+      const resolution = resolvedConflicts.get(plan.note.id);
+      if (resolution && localConflictResolutions.get(plan.note.id) === resolution) localConflictResolutions.delete(plan.note.id);
+    });
     notes = await getAllNotes();
     const changedDuringSave = localWorkspaceChangeVersion !== savedChangeVersion;
     setLocalSaveState(changedDuringSave ? "pending" : "saved", {
@@ -1986,7 +2006,7 @@ async function selectLocalSaveFolder() {
     localDirectoryHandle = handle;
     localSyncState = normalizeSyncState();
     localScanCandidates = [];
-    forcedLocalSaveNoteIds.clear();
+    localConflictResolutions.clear();
     localPendingExclusions.clear();
     localSaveSettings = { enabled: true };
     await localFs.putConfig(db, LOCAL_CONFIG_STORE_NAME, "directoryHandle", handle);
@@ -2034,7 +2054,7 @@ async function disconnectLocalSaveFolder() {
   localDirectoryHandle = null;
   localSyncState = normalizeSyncState();
   localScanCandidates = [];
-  forcedLocalSaveNoteIds.clear();
+  localConflictResolutions.clear();
   localPendingExclusions.clear();
   await persistLocalSaveSettings();
   await localFs.deleteConfig(db, LOCAL_CONFIG_STORE_NAME, "directoryHandle");
@@ -2098,8 +2118,10 @@ async function scanExternalLocalMarkdown({ automatic = false, throwOnError = fal
       notes,
       parseNote: parseLocalNote,
       serializeNote: serializeLocalNote,
-      getAttachmentsForNote: getAttachmentsForMemo
+      getAttachmentsForNote: getAttachmentsForMemo,
+      resolvedConflicts: localConflictResolutions
     });
+    analysis.invalidatedResolutionNoteIds.forEach((noteId) => localConflictResolutions.delete(noteId));
     localScanCandidates = analysis.candidates;
     await reconcileLocalScanCandidates({
       markPendingChanges: analysis.needsLocalSave
@@ -2204,6 +2226,16 @@ function noteFromLocalCandidate(candidate, { preserveId = false, overwrite = nul
   };
 }
 
+function rememberLocalConflictResolution(candidate, noteId, action) {
+  const resolution = createLocalConflictResolution({
+    noteId,
+    action,
+    path: candidate?.path,
+    confirmedLocalHash: candidate?.classification?.currentLocalHash
+  });
+  if (resolution) localConflictResolutions.set(resolution.noteId, resolution);
+}
+
 async function applyLocalCandidate(index, action) {
   const candidate = localScanCandidates[index];
   if (!candidate) return;
@@ -2221,7 +2253,7 @@ async function applyLocalCandidate(index, action) {
   }
   if (action === "app") {
     const targetId = candidate.classification.existing?.id;
-    if (targetId) forcedLocalSaveNoteIds.add(targetId);
+    rememberLocalConflictResolution(candidate, targetId, action);
     localScanCandidates.splice(index, 1);
     await reconcileLocalScanCandidates({ markPendingChanges: true });
     return;
@@ -2230,10 +2262,6 @@ async function applyLocalCandidate(index, action) {
   const overwrite = action === "local" ? candidate.classification.existing : null;
   const preserveId = action === "restore" || Boolean(overwrite);
   const draft = noteFromLocalCandidate(candidate, { preserveId, overwrite });
-  if (overwrite?.id) forcedLocalSaveNoteIds.add(overwrite.id);
-  if (action === "separate" && candidate.classification.type === "conflict" && candidate.classification.existing?.id) {
-    forcedLocalSaveNoteIds.add(candidate.classification.existing.id);
-  }
   const attachmentResult = await candidateAttachments(candidate, draft.id);
   draft.body = restoreAttachmentReferences(candidate.parsed.body, attachmentResult.assets);
   suppressLocalSaveQueue = true;
@@ -2247,6 +2275,10 @@ async function applyLocalCandidate(index, action) {
   await synchronizeRegisteredTagsForNotes();
   renderAll();
   openNote(draft.id);
+  if (overwrite?.id) rememberLocalConflictResolution(candidate, overwrite.id, action);
+  if (action === "separate" && candidate.classification.type === "conflict") {
+    rememberLocalConflictResolution(candidate, candidate.classification.existing?.id, action);
+  }
   localScanCandidates.splice(index, 1);
   await reconcileLocalScanCandidates({ markPendingChanges: true });
 }
