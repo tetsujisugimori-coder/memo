@@ -82,6 +82,32 @@
     return candidate;
   }
 
+  function resolveImportedAttachmentId({
+    knownId,
+    existingAttachment,
+    targetMemoId,
+    occupiedIds = [],
+    createId
+  } = {}) {
+    const normalizedKnownId = String(knownId || "");
+    const normalizedTargetMemoId = String(targetMemoId || "");
+    if (
+      normalizedKnownId &&
+      normalizedTargetMemoId &&
+      existingAttachment &&
+      String(existingAttachment.id || "") === normalizedKnownId &&
+      String(existingAttachment.memoId || "") === normalizedTargetMemoId
+    ) return normalizedKnownId;
+    if (typeof createId !== "function") throw new Error("新しい添付IDを生成できません");
+    const occupied = new Set([...occupiedIds].map(String));
+    if (normalizedKnownId) occupied.add(normalizedKnownId);
+    for (let attempt = 0; attempt < 10; attempt += 1) {
+      const generated = String(createId() || "");
+      if (generated && !occupied.has(generated)) return generated;
+    }
+    throw new Error("重複しない添付IDを生成できません");
+  }
+
   function escapeMarkdownLabel(value) {
     return String(value).replace(/([\\\[\]])/g, "\\$1");
   }
@@ -100,6 +126,17 @@
     const plainLabel = String(attachment.fileName || "画像").replace(/[\r\n]+/g, " ").trim() || "画像";
     const label = escapeMarkdownLabel(plainLabel);
     return `![${label}](attachment://${id})`;
+  }
+
+  function remapImportedAttachmentReferences(markdown, assets = []) {
+    const replacements = new Map((Array.isArray(assets) ? assets : [])
+      .filter((asset) => asset?.sourceId && asset?.id && asset.sourceId !== asset.id)
+      .map((asset) => [String(asset.sourceId), String(asset.id)]));
+    if (!replacements.size) return String(markdown || "");
+    return String(markdown || "").replace(attachmentReferencePattern(), (match, escapedAlt, id) => {
+      const replacementId = replacements.get(id);
+      return replacementId ? `![${escapedAlt}](attachment://${replacementId})` : match;
+    });
   }
 
   function normalizeImageBlockSize(value) {
@@ -453,6 +490,8 @@
     insertAttachmentReferences,
     normalizeImageBlockSize,
     renderImageCaptionMarkdown,
+    remapImportedAttachmentReferences,
+    resolveImportedAttachmentId,
     replaceImageBlock,
     saveAttachmentAdditionWithRollback,
     serializeImageBlock,

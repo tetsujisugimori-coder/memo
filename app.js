@@ -306,6 +306,8 @@ const {
   insertAttachmentReferences,
   normalizeImageBlockSize,
   renderImageCaptionMarkdown,
+  remapImportedAttachmentReferences,
+  resolveImportedAttachmentId,
   replaceImageBlock,
   saveAttachmentAdditionWithRollback,
   serializeImageBlock,
@@ -1707,6 +1709,14 @@ function getAttachmentsForMemo(memoId) {
   });
 }
 
+function getAttachmentRecord(id) {
+  return new Promise((resolve, reject) => {
+    const request = attachmentTx().get(id);
+    request.onsuccess = () => resolve(request.result || null);
+    request.onerror = () => reject(request.error);
+  });
+}
+
 function putAttachments(items) {
   return new Promise((resolve, reject) => {
     const transaction = db.transaction(ATTACHMENT_STORE_NAME, "readwrite");
@@ -2195,14 +2205,24 @@ async function candidateAttachments(candidate, memoId) {
   const root = await localFs.resolveWorkspaceRoot(localDirectoryHandle, false);
   const assets = [];
   const records = [];
+  const occupiedIds = new Set(Object.keys(localSyncState.assets));
   for (const relativePath of candidate.parsed.assetPaths) {
     const fileName = relativePath.split("/").pop();
     const known = Object.entries(localSyncState.assets).find(([, value]) => value.fileName === fileName);
-    const id = known?.[0] || crypto.randomUUID();
+    const knownId = known?.[0] || "";
+    const existingAttachment = knownId ? await getAttachmentRecord(knownId) : null;
+    const id = resolveImportedAttachmentId({
+      knownId,
+      existingAttachment,
+      targetMemoId: memoId,
+      occupiedIds,
+      createId: () => crypto.randomUUID()
+    });
+    occupiedIds.add(id);
     try {
       const file = await localFs.readFile(root, relativePath.replace(/^\.\.\//, ""));
       const mimeType = localMimeType(fileName, file.type);
-      assets.push({ path: relativePath, id });
+      assets.push({ path: relativePath, id, sourceId: knownId || null });
       records.push({ id, memoId, fileName, mimeType, kind: mimeType.startsWith("image/") ? "image" : "pdf", size: file.size, blob: file, createdAt: new Date().toISOString() });
     } catch (error) {
       console.warn("Local attachment restore skipped", { relativePath, error });
@@ -2285,7 +2305,10 @@ async function applyLocalCandidate(index, action) {
   const preserveId = action === "restore" || Boolean(overwrite);
   const draft = noteFromLocalCandidate(candidate, { preserveId, overwrite });
   const attachmentResult = await candidateAttachments(candidate, draft.id);
-  draft.body = restoreAttachmentReferences(candidate.parsed.body, attachmentResult.assets);
+  draft.body = remapImportedAttachmentReferences(
+    restoreAttachmentReferences(candidate.parsed.body, attachmentResult.assets),
+    attachmentResult.assets
+  );
   suppressLocalSaveQueue = true;
   try {
     if (attachmentResult.records.length) await putAttachments(attachmentResult.records);

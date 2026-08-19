@@ -15,6 +15,7 @@ const {
 const { createLocalSaveQueue, runLocalReconnectSequence, runLocalScanAfterQueue } = require("./local-save-queue.js");
 const {
   parseLocalNote,
+  restoreAttachmentReferences,
   resolveImportedCreatedAt,
   serializeLocalNote
 } = require("./local-markdown.js");
@@ -39,6 +40,7 @@ const {
 } = require("./local-sync-utils.js");
 const localFs = require("./local-fs-adapter.js");
 const { runManualLocalSave } = require("./manual-local-save.js");
+const { remapImportedAttachmentReferences, resolveImportedAttachmentId } = require("./attachment-utils.js");
 
 const app = fs.readFileSync("app.js", "utf8");
 const html = fs.readFileSync("index.html", "utf8");
@@ -138,6 +140,56 @@ function createConfigDb() {
 
 async function scanMockWorkspace(selected, syncState, notes, resolvedConflicts = new Map()) {
   return (await scanMockWorkspaceAnalysis(selected, syncState, notes, resolvedConflicts)).candidates;
+}
+
+function createMockAttachmentStore(items = []) {
+  const records = new Map(items.map((item) => [item.id, { ...item }]));
+  return {
+    records,
+    get(id) { return records.get(id) || null; },
+    getAllForMemo(memoId) { return [...records.values()].filter((item) => item.memoId === memoId); },
+    put(item) { records.set(item.id, { ...item }); },
+    getRequest(id) {
+      const request = {};
+      queueMicrotask(() => {
+        request.result = records.get(id);
+        request.onsuccess?.();
+      });
+      return request;
+    }
+  };
+}
+
+function loadAppFunction(name, dependencies, { async = false } = {}) {
+  const extracted = extractFunction(app, name);
+  const source = async ? extracted.replace(/^function /, "async function ") : extracted;
+  const names = Object.keys(dependencies);
+  return Function(...names, `"use strict"; ${source}; return ${name};`)(...names.map((dependency) => dependencies[dependency]));
+}
+
+function mockAttachmentPersistence(store) {
+  const getAttachmentRecord = loadAppFunction("getAttachmentRecord", {
+    attachmentTx: () => ({ get: (id) => store.getRequest(id) })
+  });
+  let pendingMarks = 0;
+  const db = {
+    transaction() {
+      const transaction = {};
+      transaction.objectStore = () => ({
+        put(item) {
+          store.put(item);
+          queueMicrotask(() => transaction.oncomplete?.());
+        }
+      });
+      return transaction;
+    }
+  };
+  const putAttachments = loadAppFunction("putAttachments", {
+    db,
+    ATTACHMENT_STORE_NAME: "attachments",
+    markLocalWorkspacePending: () => { pendingMarks += 1; }
+  });
+  return { getAttachmentRecord, putAttachments, pendingMarks: () => pendingMarks };
 }
 
 async function scanMockWorkspaceAnalysis(selected, syncState, notes, resolvedConflicts = new Map()) {
@@ -423,9 +475,10 @@ test("最後に書いたハッシュと異なる外部変更を自動上書き�
 test("管理対象Markdownはsync-stateのnote IDとfileNameで特定する", () => {
   assert.match(html, /local-save-state\.js\?v=0\.5\.0-4/);
   assert.match(html, /local-save-queue\.js\?v=0\.5\.0-3/);
+  assert.match(html, /attachment-utils\.js\?v=0\.5\.0-11/);
   assert.match(html, /local-sync-utils\.js\?v=0\.5\.0-10/);
   assert.match(html, /backup-bundle-utils\.js\?v=0\.5\.0-5/);
-  assert.match(html, /app\.js\?v=0\.5\.0-94/);
+  assert.match(html, /app\.js\?v=0\.5\.0-95/);
   const syncState = {
     notes: {
       "note-1": { fileName: "題名--note-1.md", hash: "last" },
@@ -549,6 +602,135 @@ test("ローカル版読込は画像参照と既存assetを保ったまま確認
   assert.equal(await (await assetHandle.getFile()).text(), "image-bytes");
   assert.equal(resolutions.size, 0);
   assert.deepEqual(await scanMockWorkspace(selected, completed.syncState, [completed.savedNote]), []);
+});
+
+test("画像付き競合を両方残すと元添付を奪わず別IDへ複製する", async () => {
+  const selected = new MockDirectoryHandle("画像付き両方保存");
+  const layout = await localFs.ensureWorkspaceLayout(selected);
+  const originalNote = {
+    id: "original-note", title: "画像競合", body: "Memo Nexus本文\n![画像](attachment://asset-1)", tags: []
+  };
+  const duplicateNote = { id: "local-copy", title: "画像競合", body: "", tags: [] };
+  const imageBlob = new Blob(["image-bytes"], { type: "image/png" });
+  const originalAttachment = {
+    id: "asset-1", memoId: originalNote.id, fileName: "asset-1.png", mimeType: "image/png",
+    kind: "image", size: imageBlob.size, blob: imageBlob, createdAt: "2026-08-20T00:00:00.000Z"
+  };
+  const attachmentStore = createMockAttachmentStore([originalAttachment]);
+  const previousMarkdown = serializeLocalNote({ ...originalNote, body: "前回本文\n![画像](attachment://asset-1)" }, undefined, [
+    { id: "asset-1", fileName: "asset-1.png" }
+  ]);
+  const externalMarkdown = serializeLocalNote({ ...originalNote, body: "ローカル本文\n![画像](attachment://asset-1)" }, undefined, [
+    { id: "asset-1", fileName: "asset-1.png" }
+  ]);
+  const syncState = normalizeSyncState({
+    notes: {
+      [originalNote.id]: { fileName: "original.md", hash: contentHash(previousMarkdown), attachmentIds: [originalAttachment.id] }
+    },
+    assets: {
+      [originalAttachment.id]: { fileName: "asset-1.png", memoId: originalNote.id, mimeType: "image/png" }
+    }
+  });
+  await localFs.writeFile(layout.root, "assets/asset-1.png", imageBlob);
+  await localFs.writeFile(layout.root, "notes/original.md", externalMarkdown);
+  const candidate = (await scanMockWorkspaceAnalysis(selected, syncState, [originalNote])).candidates[0];
+  assert.equal(candidate.classification.type, "conflict");
+  assert.match(candidate.parsed.body, /attachment:\/\/asset-1/);
+  const persistence = mockAttachmentPersistence(attachmentStore);
+  const candidateAttachments = loadAppFunction("candidateAttachments", {
+    localFs,
+    localDirectoryHandle: selected,
+    localSyncState: syncState,
+    crypto: { randomUUID: () => "asset-copy-1" },
+    localMimeType: (fileName, fallback = "") => fallback || (fileName.endsWith(".png") ? "image/png" : "application/octet-stream"),
+    getAttachmentRecord: persistence.getAttachmentRecord,
+    resolveImportedAttachmentId
+  }, { async: true });
+
+  const imported = await candidateAttachments(candidate, duplicateNote.id);
+  await persistence.putAttachments(imported.records);
+  duplicateNote.body = remapImportedAttachmentReferences(
+    restoreAttachmentReferences(candidate.parsed.body, imported.assets),
+    imported.assets
+  );
+
+  assert.equal(attachmentStore.records.size, 2, "主キーが異なる新旧レコードを保持する");
+  assert.equal(persistence.pendingMarks(), 1);
+  assert.equal(attachmentStore.get("asset-1").memoId, originalNote.id);
+  assert.equal(attachmentStore.get("asset-copy-1").memoId, duplicateNote.id);
+  assert.match(originalNote.body, /attachment:\/\/asset-1/);
+  assert.match(duplicateNote.body, /attachment:\/\/asset-copy-1/);
+  assert.equal(await attachmentStore.get("asset-1").blob.text(), "image-bytes");
+  assert.equal(await attachmentStore.get("asset-copy-1").blob.text(), "image-bytes");
+
+  const originalAssetFileName = syncState.assets[originalAttachment.id].fileName;
+  const copiedAssetFileName = "asset-copy-1.png";
+  const originalWrittenMarkdown = serializeLocalNote(originalNote, originalNote.body, [
+    { id: originalAttachment.id, fileName: originalAssetFileName }
+  ]);
+  const copyWrittenMarkdown = serializeLocalNote(duplicateNote, duplicateNote.body, [
+    { id: "asset-copy-1", fileName: copiedAssetFileName }
+  ]);
+  await localFs.writeFile(layout.root, "notes/original.md", originalWrittenMarkdown);
+  await localFs.writeFile(layout.root, "notes/local-copy.md", copyWrittenMarkdown);
+  await localFs.writeFile(layout.root, `assets/${copiedAssetFileName}`, attachmentStore.get("asset-copy-1").blob);
+  const nextSync = normalizeSyncState({
+    notes: {
+      [originalNote.id]: { fileName: "original.md", hash: contentHash(originalWrittenMarkdown), attachmentIds: [originalAttachment.id] },
+      [duplicateNote.id]: { fileName: "local-copy.md", hash: contentHash(copyWrittenMarkdown), attachmentIds: ["asset-copy-1"] }
+    },
+    assets: {
+      [originalAttachment.id]: { fileName: originalAssetFileName, memoId: originalNote.id, mimeType: "image/png" },
+      "asset-copy-1": { fileName: copiedAssetFileName, memoId: duplicateNote.id, mimeType: "image/png" }
+    }
+  });
+  await localFs.writeJson(layout.root, "sync-state.json", nextSync);
+
+  assert.notEqual(originalAssetFileName, copiedAssetFileName);
+  assert.match(await localFs.readText(layout.root, "notes/original.md"), /\.\.\/assets\/asset-1\.png/);
+  assert.match(await localFs.readText(layout.root, "notes/local-copy.md"), /\.\.\/assets\/asset-copy-1\.png/);
+  assert.deepEqual(nextSync.notes[originalNote.id].attachmentIds, ["asset-1"]);
+  assert.deepEqual(nextSync.notes[duplicateNote.id].attachmentIds, ["asset-copy-1"]);
+  assert.equal(nextSync.assets["asset-1"].memoId, originalNote.id);
+  assert.equal(nextSync.assets["asset-copy-1"].memoId, duplicateNote.id);
+  assert.equal(await layout.root.directories.get("assets").files.get("asset-1.png").value.text(), "image-bytes");
+  assert.equal(await layout.root.directories.get("assets").files.get("asset-copy-1.png").value.text(), "image-bytes");
+  assert.equal(attachmentStore.getAllForMemo(originalNote.id).length, 1);
+  assert.equal(attachmentStore.getAllForMemo(duplicateNote.id).length, 1);
+  assert.deepEqual(await scanMockWorkspace(selected, nextSync, [originalNote, duplicateNote]), []);
+});
+
+test("ローカル版読込は同じメモ所有の既存添付IDを複製しない", async () => {
+  const selected = new MockDirectoryHandle("画像付きローカル版読込");
+  const layout = await localFs.ensureWorkspaceLayout(selected);
+  const imageBlob = new Blob(["same-image"], { type: "image/png" });
+  const existing = {
+    id: "asset-1", memoId: "original-note", fileName: "asset-1.png", mimeType: "image/png",
+    kind: "image", size: imageBlob.size, blob: imageBlob, createdAt: "2026-08-20T00:00:00.000Z"
+  };
+  const attachmentStore = createMockAttachmentStore([existing]);
+  const persistence = mockAttachmentPersistence(attachmentStore);
+  const syncState = normalizeSyncState({
+    assets: { "asset-1": { fileName: "asset-1.png", memoId: "original-note", mimeType: "image/png" } }
+  });
+  await localFs.writeFile(layout.root, "assets/asset-1.png", imageBlob);
+  const candidateAttachments = loadAppFunction("candidateAttachments", {
+    localFs,
+    localDirectoryHandle: selected,
+    localSyncState: syncState,
+    crypto: { randomUUID: () => "unnecessary-copy" },
+    localMimeType: () => "image/png",
+    getAttachmentRecord: persistence.getAttachmentRecord,
+    resolveImportedAttachmentId
+  }, { async: true });
+  const imported = await candidateAttachments({
+    parsed: { assetPaths: ["../assets/asset-1.png"] }
+  }, "original-note");
+  await persistence.putAttachments(imported.records);
+  assert.deepEqual(imported.assets, [{ path: "../assets/asset-1.png", id: "asset-1", sourceId: "asset-1" }]);
+  assert.equal(attachmentStore.records.size, 1);
+  assert.equal(attachmentStore.get("asset-1").memoId, "original-note");
+  assert.equal(persistence.pendingMarks(), 1);
 });
 
 test("確認後に同じファイルを再編集すると解決情報を無効化し、別メモの競合は引き続き保存を止める", async () => {

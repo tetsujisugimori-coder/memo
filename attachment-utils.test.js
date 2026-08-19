@@ -15,6 +15,8 @@ const {
   insertAttachmentReferences,
   normalizeImageBlockSize,
   renderImageCaptionMarkdown,
+  remapImportedAttachmentReferences,
+  resolveImportedAttachmentId,
   replaceImageBlock,
   saveAttachmentAdditionWithRollback,
   serializeImageBlock,
@@ -79,6 +81,39 @@ test("添付ファイル名は同一フォルダ内で _2 形式の連番を付�
   assert.equal(uniqueAttachmentFileName("image.png", used), "image.png");
   assert.equal(uniqueAttachmentFileName("Image.png", used), "Image_2.png");
   assert.equal(uniqueAttachmentFileName("image.png", used), "image_3.png");
+});
+
+test("ローカル取込の添付IDは同じ所有メモだけ再利用し、別メモや所有者不明では新規発行する", () => {
+  const existing = { id: "asset-1", memoId: "original-note" };
+  assert.equal(resolveImportedAttachmentId({
+    knownId: "asset-1", existingAttachment: existing, targetMemoId: "original-note",
+    createId: () => "unused"
+  }), "asset-1");
+  assert.equal(resolveImportedAttachmentId({
+    knownId: "asset-1", existingAttachment: existing, targetMemoId: "local-copy",
+    occupiedIds: ["asset-1"], createId: () => "asset-copy-1"
+  }), "asset-copy-1");
+  assert.equal(resolveImportedAttachmentId({
+    knownId: "asset-1", existingAttachment: null, targetMemoId: "original-note",
+    occupiedIds: ["asset-1"], createId: () => "asset-safe-1"
+  }), "asset-safe-1");
+});
+
+test("新規添付IDは既存IDとの衝突を避ける", () => {
+  const generated = ["asset-1", "asset-copy-1", "asset-copy-2"];
+  assert.equal(resolveImportedAttachmentId({
+    knownId: "asset-1", existingAttachment: { id: "asset-1", memoId: "original-note" },
+    targetMemoId: "local-copy", occupiedIds: ["asset-1", "asset-copy-1"],
+    createId: () => generated.shift()
+  }), "asset-copy-2");
+});
+
+test("別メモ用に複製した添付は本文参照だけを新IDへ置換する", () => {
+  const source = "![画像](attachment://asset-1)\n![維持](attachment://asset-2)";
+  assert.equal(remapImportedAttachmentReferences(source, [
+    { sourceId: "asset-1", id: "asset-copy-1" },
+    { sourceId: "asset-2", id: "asset-2" }
+  ]), "![画像](attachment://asset-copy-1)\n![維持](attachment://asset-2)");
 });
 
 test("添付付きメモのMarkdown参照と実ファイル名を一致させる", () => {
