@@ -1,3 +1,11 @@
+## 2026-08-19 フォント選択プルダウンの文字圏・書体表示改善
+
+* フォント設定の標準`select`が使う表示名を、既存の正式名称用`label`とは分離して追加した。日本語向けは`Yu Gothic UI（日本語フォント）`、`Meiryo（メイリオ）`、`MS Mincho（ＭＳ 明朝）`、Noto JP/Serif JP、Zen Kaku Gothic New、Shippori Mincho（しっぽり明朝）を明示し、中国語向けは`Noto Sans SC（简体中文）`、`Noto Sans TC（繁體中文）`、`Source Han Sans（思源黑体／简体中文）`を表示する。欧文フォントは正式名称を維持した。Noto SC/TCへ思源黑体・思源黑體を流用していない。
+* 各`option`へ対象フォントの`font-family`を設定し、閉じたselectにも現在選択中フォントを反映した。`id`、正式名称用`label`、CSS family、保存済み設定の正規化、Font Comparison連携は変更していない。
+* `font-settings.js`と`app.js`の配信識別子をそれぞれ`0.5.0-5`、`0.5.0-92`へ更新した。既存のキャッシュ番号テストも対応する期待値だけを更新した。
+* Edgeのローカル配信で設定画面を開き、全18件の選択肢、value不変、optionと選択中selectの計算済み`font-family`を確認した。一時的にConsolasを選んでも本文エディタは保存済みYu Gothic UIのままで、再読み込み後に選択値と本文表示が元へ戻ることを確認した。標準selectの展開リストはブラウザネイティブ描画のため自動スクリーンショットには含まれなかった。
+* `npm test`（605件、失敗0件）、`node --check app.js`、`node --check font-settings.js`、`git diff --check`が成功した。
+
 ## 2026-08-19 Memo Nexus v0.5.0 Bridge Update リリース準備
 
 * アプリバージョンを`0.5.0`、表示名を`Bridge Update`、ビルド日を`2026-08-19`へ更新した。リリース名は「Memo Nexus v0.5.0 — Bridge Update」。`app.js`の共通定数を起動ログ、PC／スマホ表示、設定内の保存状態、バックアップmanifestが引き続き参照し、READMEの現在版2箇所も同じ表記へ更新した。

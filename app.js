@@ -8547,6 +8547,11 @@ function populateFontSettingOptions() {
   });
 }
 
+function syncFontSelectDisplay(select) {
+  const font = fontOption(select?.value);
+  if (select) select.style.fontFamily = font?.cssFamily || "";
+}
+
 function setFontSettingFields(prefix, settings) {
   const normalized = normalizeFontSettings(settings);
   const fields = prefix === "note"
@@ -8575,6 +8580,7 @@ function setFontSettingFields(prefix, settings) {
   fields.headingFont.value = normalized.headingFontId;
   fields.codeFont.value = normalized.codeFontId;
   fields.codeSize.value = String(normalized.codeFontSize);
+  [fields.titleFont, fields.bodyFont, fields.headingFont, fields.codeFont].forEach(syncFontSelectDisplay);
 }
 
 function readFontSettingFields(prefix) {
@@ -10610,7 +10616,10 @@ if (memoNexusLogo) {
   noteHeadingFontSelect,
   noteCodeFontSelect,
   noteCodeFontSizeSelect
-].forEach((select) => select?.addEventListener("change", updateFontSettingsPreview));
+].forEach((select) => select?.addEventListener("change", (event) => {
+  syncFontSelectDisplay(event.currentTarget);
+  updateFontSettingsPreview();
+}));
 if (noteFontOverrideEnabled) {
   noteFontOverrideEnabled.addEventListener("change", () => {
     noteFontSettingsGroup.disabled = !noteFontOverrideEnabled.checked;
