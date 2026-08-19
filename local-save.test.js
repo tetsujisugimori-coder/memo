@@ -26,8 +26,11 @@ const {
   classifyMarkdownCandidate,
   contentHash,
   createLocalConflictResolution,
+  deleteLocalConflictResolution,
   hasExternalModification,
+  localConflictResolutionFileName,
   localConflictResolutionMatches,
+  localConflictResolutionPaths,
   managedMarkdownComparableHash,
   managedNoteForPath,
   normalizeSyncState,
@@ -155,25 +158,141 @@ function applyScanState(state, candidates, now = Date.now()) {
   return resolution ? transitionLocalSaveState(state, resolution.status, resolution.patch, now) : state;
 }
 
-function resolutionForCandidate(candidate, noteId, action) {
+test("フォールバック競合にも確認時hashを付け、notes/外は上書き対象にしない", async () => {
+  const selected = new MockDirectoryHandle("保存先");
+  const layout = await localFs.ensureWorkspaceLayout(selected);
+  const note = { id: "note-1", title: "フォールバック", body: "Memo Nexus本文", tags: [] };
+  const markdown = (body) => serializeLocalNote({ ...note, body });
+  const legacySync = normalizeSyncState({ notes: { "note-1": { fileName: "legacy.md", attachmentIds: [] } } });
+  await localFs.writeFile(layout.root, "notes/legacy.md", markdown("旧形式の外部変更"));
+  await localFs.writeFile(layout.root, "notes/unmanaged.md", markdown("未管理notesの外部変更"));
+  selected.files.set("root.md", new MockFileHandle("root.md", markdown("直下の外部変更")));
+
+  const legacyCandidates = await scanMockWorkspace(selected, legacySync, [note]);
+  const legacy = legacyCandidates.find((candidate) => candidate.path === "notes/legacy.md");
+  assert.equal(legacy.classification.currentLocalHash, contentHash(await legacy.file.text()));
+  assert.equal(resolutionForCandidate(legacy, note.id, "app", legacySync)?.writePath, "notes/legacy.md");
+
+  const unmanagedCandidates = await scanMockWorkspace(selected, normalizeSyncState(), [note]);
+  const unmanaged = unmanagedCandidates.find((candidate) => candidate.path === "notes/unmanaged.md");
+  assert.equal(unmanaged.classification.currentLocalHash, contentHash(await unmanaged.file.text()));
+  assert.equal(resolutionForCandidate(unmanaged, note.id, "local")?.writePath, "notes/unmanaged.md");
+  for (const path of ["root.md", "inbox/unused.md"]) {
+    if (path.startsWith("inbox/")) await localFs.writeFile(layout.root, path, markdown("inboxの外部変更"));
+    const candidate = (await scanMockWorkspace(selected, normalizeSyncState(), [note])).find((item) => item.path === path);
+    assert.equal(candidate.classification.currentLocalHash, contentHash(await candidate.file.text()));
+    assert.equal(resolutionForCandidate(candidate, note.id, "app"), null);
+    assert.equal(resolutionForCandidate(candidate, note.id, "local"), null);
+  }
+});
+
+test("旧形式と未管理notesの競合は上書き・ローカル版読込後に同じファイルへ保存して同期管理する", async () => {
+  for (const scenario of ["legacy", "unmanaged-notes"]) {
+    for (const action of ["app", "local"]) {
+      const selected = new MockDirectoryHandle(`${scenario}-${action}`);
+      const layout = await localFs.ensureWorkspaceLayout(selected);
+      const note = {
+        id: "note-1", title: "フォールバック保存", collectionId: "c1", createdAt: "created", localCreatedAt: "local",
+        updatedAt: 1, bodyUpdatedAt: 1, localSavedAt: "2026-08-20T00:00:00.000Z", isFlagged: false, deletedAt: null, sortOrder: 0, body: "Memo Nexus本文"
+      };
+      const fileName = scenario === "legacy" ? "legacy.md" : "unmanaged.md";
+      const source = serializeLocalNote({ ...note, body: "ローカル本文" });
+      const syncState = scenario === "legacy"
+        ? normalizeSyncState({ notes: { "note-1": { fileName, attachmentIds: [] } } })
+        : normalizeSyncState();
+      await localFs.writeFile(layout.root, `notes/${fileName}`, source);
+      const candidate = (await scanMockWorkspaceAnalysis(selected, syncState, [note])).candidates[0];
+      assert.equal(candidate.classification.type, "conflict");
+      const resolution = resolutionForCandidate(candidate, note.id, action, syncState);
+      assert.equal(resolution?.confirmedPath, `notes/${fileName}`);
+      assert.equal(resolution?.writePath, `notes/${fileName}`);
+      const resolutions = new Map([[note.id, resolution]]);
+      const importedNote = action === "local" ? { ...note, body: candidate.parsed.body, updatedAt: 2, bodyUpdatedAt: 2 } : note;
+      assert.deepEqual(await scanMockWorkspace(selected, syncState, [importedNote], resolutions), []);
+
+      const completed = await writeMockWorkspacePlan({
+        root: layout.root, syncState, note: importedNote, resolutionMap: resolutions,
+        savedAt: "2026-08-20T00:04:00.000Z"
+      });
+      const writtenPath = `notes/${fileName}`;
+      const writtenSync = await localFs.readJson(layout.root, "sync-state.json", null);
+      assert.equal(writtenSync.notes[note.id].fileName, fileName);
+      assert.equal(writtenSync.notes[note.id].hash, contentHash(await localFs.readText(layout.root, writtenPath)));
+      assert.equal(await localFs.readText(layout.root, writtenPath), completed.markdown);
+      assert.deepEqual(await scanMockWorkspace(selected, completed.syncState, [completed.savedNote]), []);
+      assert.equal(resolutions.size, 0);
+    }
+  }
+});
+
+test("フォールバック競合の確認後に対象Markdownを再編集すると保存を許可しない", async () => {
+  const selected = new MockDirectoryHandle("再編集");
+  const layout = await localFs.ensureWorkspaceLayout(selected);
+  const note = { id: "note-1", title: "再編集", body: "Memo Nexus本文", tags: [] };
+  const syncState = normalizeSyncState();
+  await localFs.writeFile(layout.root, "notes/unmanaged.md", serializeLocalNote({ ...note, body: "最初の外部変更" }));
+  const candidate = (await scanMockWorkspaceAnalysis(selected, syncState, [note])).candidates[0];
+  const resolution = resolutionForCandidate(candidate, note.id, "app", syncState);
+  const resolutions = new Map([[note.id, resolution]]);
+  await localFs.writeFile(layout.root, "notes/unmanaged.md", serializeLocalNote({ ...note, body: "二度目の外部変更" }));
+  const analysis = await scanMockWorkspaceAnalysis(selected, syncState, [note], resolutions);
+  assert.deepEqual(analysis.candidates.map((item) => item.path), ["notes/unmanaged.md"]);
+  assert.deepEqual(analysis.invalidatedResolutionNoteIds, [note.id]);
+  await assert.rejects(writeMockWorkspacePlan({
+    root: layout.root, syncState, note, resolutionMap: resolutions,
+    savedAt: "2026-08-20T00:05:00.000Z"
+  }), (error) => error.code === "conflict");
+});
+
+test("選択フォルダ直下とinboxの同一ID競合は上書き・ローカル版読込を提供せず、元ファイルを残す", async () => {
+  const selected = new MockDirectoryHandle("未管理パス");
+  const layout = await localFs.ensureWorkspaceLayout(selected);
+  const note = { id: "note-1", title: "未管理パス", body: "Memo Nexus本文", tags: [] };
+  const source = (body) => serializeLocalNote({ ...note, body });
+  selected.files.set("root.md", new MockFileHandle("root.md", source("直下の外部変更")));
+  await localFs.writeFile(layout.root, "inbox/inbox.md", source("inboxの外部変更"));
+  const candidates = await scanMockWorkspace(selected, normalizeSyncState(), [note]);
+  for (const candidate of candidates) {
+    assert.ok(["root.md", "inbox/inbox.md"].includes(candidate.path));
+    assert.equal(candidate.classification.type, "conflict");
+    assert.equal(resolutionForCandidate(candidate, note.id, "app"), null);
+    assert.equal(resolutionForCandidate(candidate, note.id, "local"), null);
+  }
+  assert.equal(await (await selected.files.get("root.md").getFile()).text(), source("直下の外部変更"));
+  assert.equal(await localFs.readText(layout.root, "inbox/inbox.md"), source("inboxの外部変更"));
+  const renderFlow = extractFunction(app, "renderLocalScanResults");
+  const applyFlow = extractFunction(app, "applyLocalCandidate");
+  assert.match(renderFlow, /canResolveLocalConflictInPlace\(candidate\)[\s\S]*\[\["exclude", "除外"\], \["hold", "保留する"\]\]/);
+  assert.match(applyFlow, /unsafe-conflict-path/);
+});
+
+function resolutionForCandidate(candidate, noteId, action, syncState = normalizeSyncState()) {
+  const paths = localConflictResolutionPaths({
+    candidatePath: candidate.path,
+    managedFileName: syncState.notes[noteId]?.fileName
+  });
   return createLocalConflictResolution({
     noteId,
     action,
-    path: candidate.path,
+    ...paths,
     confirmedLocalHash: candidate.classification.currentLocalHash
   });
 }
 
-async function saveConfirmedMock({ root, syncState, note, resolutionMap, savedAt, attachments = [], failAfterMarkdown = false }) {
-  const previous = syncState.notes[note.id];
+async function writeMockWorkspacePlan({ root, syncState, note, resolutionMap, savedAt, attachments = [], failAfterMarkdown = false }) {
+  const previous = syncState.notes[note.id] || {};
+  const resolution = resolutionMap.get(note.id);
+  const fileName = previous.fileName || localConflictResolutionFileName(resolution, note.id);
+  assert.ok(fileName, "本番と共通の解決情報から書込み先を決定できること");
   const savedNote = applyLocalSaveSuccess(note, savedAt);
   const markdown = serializeLocalNote(savedNote, savedNote.body, attachments);
-  const currentMarkdown = await localFs.readText(root, `notes/${previous.fileName}`);
-  const resolution = resolutionMap.get(note.id);
+  const writePath = `notes/${fileName}`;
+  const currentMarkdown = await localFs.readText(root, resolution?.confirmedPath || writePath);
   if (resolution) {
     if (!localConflictResolutionMatches(resolution, {
       noteId: note.id,
-      path: `notes/${previous.fileName}`,
+      confirmedPath: resolution.confirmedPath,
+      writePath,
       currentLocalHash: contentHash(currentMarkdown)
     })) throw Object.assign(new Error("競合解決後にローカルで変更されています"), { code: "conflict" });
   } else if (hasExternalModification(
@@ -185,18 +304,18 @@ async function saveConfirmedMock({ root, syncState, note, resolutionMap, savedAt
   )) {
     throw Object.assign(new Error("外部変更"), { code: "conflict" });
   }
-  await localFs.writeFile(root, `notes/${previous.fileName}`, markdown);
+  await localFs.writeFile(root, writePath, markdown);
   if (failAfterMarkdown) throw new Error("sync-state書込み失敗");
   const nextSync = normalizeSyncState({
     ...syncState,
     savedAt,
     notes: {
       ...syncState.notes,
-      [note.id]: { fileName: previous.fileName, hash: contentHash(markdown), attachmentIds: attachments.map((attachment) => attachment.id) }
+      [note.id]: { fileName, hash: contentHash(markdown), attachmentIds: attachments.map((attachment) => attachment.id) }
     }
   });
   await localFs.writeJson(root, "sync-state.json", nextSync);
-  if (resolutionMap.get(note.id) === resolution) resolutionMap.delete(note.id);
+  deleteLocalConflictResolution(resolutionMap, note.id, resolution);
   return { markdown, savedNote, syncState: nextSync };
 }
 
@@ -304,9 +423,9 @@ test("最後に書いたハッシュと異なる外部変更を自動上書き�
 test("管理対象Markdownはsync-stateのnote IDとfileNameで特定する", () => {
   assert.match(html, /local-save-state\.js\?v=0\.5\.0-4/);
   assert.match(html, /local-save-queue\.js\?v=0\.5\.0-3/);
-  assert.match(html, /local-sync-utils\.js\?v=0\.5\.0-9/);
+  assert.match(html, /local-sync-utils\.js\?v=0\.5\.0-10/);
   assert.match(html, /backup-bundle-utils\.js\?v=0\.5\.0-5/);
-  assert.match(html, /app\.js\?v=0\.5\.0-93/);
+  assert.match(html, /app\.js\?v=0\.5\.0-94/);
   const syncState = {
     notes: {
       "note-1": { fileName: "題名--note-1.md", hash: "last" },
@@ -375,7 +494,7 @@ test("確認済みのMemo Nexus版上書きは保存前再スキャンを通過�
     requestLocalSave: () => events.push("request"),
     flushLocalSave: async () => {
       events.push("write");
-      completed = await saveConfirmedMock({
+      completed = await writeMockWorkspacePlan({
         root: layout.root, syncState, note: originalNote, resolutionMap: resolutions,
         savedAt: "2026-08-20T00:01:00.000Z"
       });
@@ -420,7 +539,7 @@ test("ローカル版読込は画像参照と既存assetを保ったまま確認
   const resolutions = new Map([["note-1", resolutionForCandidate(candidate, "note-1", "local")]]);
   assert.deepEqual(await scanMockWorkspace(selected, syncState, [importedNote], resolutions), []);
 
-  const completed = await saveConfirmedMock({
+  const completed = await writeMockWorkspacePlan({
     root: layout.root, syncState, note: importedNote, resolutionMap: resolutions,
     savedAt: "2026-08-20T00:02:00.000Z", attachments: [attachment]
   });
@@ -475,7 +594,7 @@ test("sync-state更新に失敗した場合は確認済み解決情報を捨て�
   await localFs.writeJson(layout.root, "sync-state.json", syncState);
   const candidate = (await scanMockWorkspaceAnalysis(selected, syncState, [note])).candidates[0];
   const resolutions = new Map([["note-1", resolutionForCandidate(candidate, "note-1", "app")]]);
-  await assert.rejects(saveConfirmedMock({
+  await assert.rejects(writeMockWorkspacePlan({
     root: layout.root, syncState, note, resolutionMap: resolutions,
     savedAt: "2026-08-20T00:03:00.000Z", failAfterMarkdown: true
   }), /sync-state書込み失敗/);

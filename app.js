@@ -347,8 +347,11 @@ const {
   buildManifest,
   contentHash,
   createLocalConflictResolution,
+  deleteLocalConflictResolution,
   hasExternalModification,
+  localConflictResolutionFileName,
   localConflictResolutionMatches,
+  localConflictResolutionPaths,
   managedMarkdownComparableHash,
   normalizeSyncState,
   parseCollections,
@@ -1908,7 +1911,8 @@ async function performLocalWorkspaceSave(reason = "change") {
     for (const note of storedNotes) {
       const savedNote = applyLocalSaveSuccess(note, savedAt);
       const previous = nextSync.notes[note.id] || {};
-      const fileName = previous.fileName || safeStableNoteFileName(note, sanitizeWindowsName);
+      const resolution = resolvedConflicts.get(note.id);
+      const fileName = previous.fileName || localConflictResolutionFileName(resolution, note.id) || safeStableNoteFileName(note, sanitizeWindowsName);
       const noteAttachments = await getAttachmentsForMemo(note.id);
       const attachmentFiles = noteAttachments.map((attachment) => {
         const assetFileName = nextSync.assets[attachment.id]?.fileName || `${attachment.id}.${attachmentExtension(attachment)}`;
@@ -1948,14 +1952,16 @@ async function performLocalWorkspaceSave(reason = "change") {
     for (const plan of plans) {
       const resolution = resolvedConflicts.get(plan.note.id);
       if (!resolution) continue;
-      const currentText = await optionalLocalText(layout.root, `notes/${plan.fileName}`);
+      const writePath = `notes/${plan.fileName}`;
+      const currentText = await optionalLocalText(layout.root, resolution.confirmedPath);
       const currentLocalHash = currentText == null ? null : contentHash(currentText);
       if (localConflictResolutionMatches(resolution, {
         noteId: plan.note.id,
-        path: `notes/${plan.fileName}`,
+        confirmedPath: resolution.confirmedPath,
+        writePath,
         currentLocalHash
       })) continue;
-      if (localConflictResolutions.get(plan.note.id) === resolution) localConflictResolutions.delete(plan.note.id);
+      deleteLocalConflictResolution(localConflictResolutions, plan.note.id, resolution);
       const conflict = new Error(`「${plan.note.title}」は競合解決後にローカルで変更されています。もう一度確認してから保存してください。`);
       conflict.code = "conflict";
       throw conflict;
@@ -1974,7 +1980,7 @@ async function performLocalWorkspaceSave(reason = "change") {
     await localFs.deleteConfig(db, LOCAL_CONFIG_STORE_NAME, "pendingExclusions");
     plans.forEach((plan) => {
       const resolution = resolvedConflicts.get(plan.note.id);
-      if (resolution && localConflictResolutions.get(plan.note.id) === resolution) localConflictResolutions.delete(plan.note.id);
+      if (resolution) deleteLocalConflictResolution(localConflictResolutions, plan.note.id, resolution);
     });
     notes = await getAllNotes();
     const changedDuringSave = localWorkspaceChangeVersion !== savedChangeVersion;
@@ -2121,7 +2127,7 @@ async function scanExternalLocalMarkdown({ automatic = false, throwOnError = fal
       getAttachmentsForNote: getAttachmentsForMemo,
       resolvedConflicts: localConflictResolutions
     });
-    analysis.invalidatedResolutionNoteIds.forEach((noteId) => localConflictResolutions.delete(noteId));
+    analysis.invalidatedResolutionNoteIds.forEach((noteId) => deleteLocalConflictResolution(localConflictResolutions, noteId));
     localScanCandidates = analysis.candidates;
     await reconcileLocalScanCandidates({
       markPendingChanges: analysis.needsLocalSave
@@ -2227,13 +2233,25 @@ function noteFromLocalCandidate(candidate, { preserveId = false, overwrite = nul
 }
 
 function rememberLocalConflictResolution(candidate, noteId, action) {
+  const paths = localConflictResolutionPaths({
+    candidatePath: candidate?.path,
+    managedFileName: localSyncState.notes[noteId]?.fileName
+  });
   const resolution = createLocalConflictResolution({
     noteId,
     action,
-    path: candidate?.path,
+    ...paths,
     confirmedLocalHash: candidate?.classification?.currentLocalHash
   });
   if (resolution) localConflictResolutions.set(resolution.noteId, resolution);
+}
+
+function canResolveLocalConflictInPlace(candidate) {
+  const noteId = candidate?.classification?.existing?.id;
+  return Boolean(noteId && localConflictResolutionPaths({
+    candidatePath: candidate.path,
+    managedFileName: localSyncState.notes[noteId]?.fileName
+  }));
 }
 
 async function applyLocalCandidate(index, action) {
@@ -2249,6 +2267,10 @@ async function applyLocalCandidate(index, action) {
     await localFs.putConfig(db, LOCAL_CONFIG_STORE_NAME, "pendingExclusions", [...localPendingExclusions]);
     localScanCandidates.splice(index, 1);
     await reconcileLocalScanCandidates({ markPendingChanges: true });
+    return;
+  }
+  if (["app", "local", "separate"].includes(action) && candidate.classification.type === "conflict" && !canResolveLocalConflictInPlace(candidate)) {
+    setLocalSaveState("conflict", { directoryName: localDirectoryHandle?.name || "", errorCode: "unsafe-conflict-path", errorMessage: "このMarkdownは通常のnotes/保存先ではありません。元ファイルを残したまま上書き済みと誤認しないよう、除外または保留を選んでください。", requiresUserAction: true });
     return;
   }
   if (action === "app") {
@@ -2368,7 +2390,9 @@ function renderLocalScanResults() {
     const preview = escapeHtml(String(candidate.parsed.body || "").slice(0, 180));
     const type = candidate.classification.type;
     const actions = type === "conflict"
-      ? [["local", "ローカル版を読み込む"], ["app", "Memo-Nexus版で上書き"], ["separate", "両方を残す"], ["hold", "保留する"]]
+      ? (canResolveLocalConflictInPlace(candidate)
+        ? [["local", "ローカル版を読み込む"], ["app", "Memo-Nexus版で上書き"], ["separate", "両方を残す"], ["hold", "保留する"]]
+        : [["exclude", "除外"], ["hold", "保留する"]])
       : [[type === "restore" ? "restore" : "new", type === "restore" ? "復元" : "新規取込"], ["separate", "別メモとして取込"], ["exclude", "除外"]];
     item.innerHTML = `<strong>${title}</strong><span>${typeLabels[type] || type}</span><p>${preview}</p><div class="settings-actions">${actions.map(([value, label]) => `<button type="button" data-local-candidate="${index}" data-local-action="${value}">${label}</button>`).join("")}</div>`;
     localScanResults.appendChild(item);

@@ -1940,9 +1940,10 @@
 
 ## 2026-08-20 ローカルMarkdown競合解決後の明示保存修正
 
-* 原因は、競合解決時にメモIDだけを`forcedLocalSaveNoteIds`へ保持していた一方、`runManualLocalSave()`の保存前`scanExternalLocalMarkdown()`がその情報を考慮せず、古い`sync-state.json`ハッシュを基準に同じ競合を再登録していたことだった。強制保存の判定は`performLocalWorkspaceSave()`内だけにあり、実書込み前で保存が止まっていた。
-* 解決情報を、メモID・選択操作・対象Markdown相対パス・利用者が確認した生Markdownハッシュを持つ一時Mapへ変更した。`buildLocalScanAnalysis()`は4項目すべてが一致する競合だけを保存前スキャンで一度だけ抑止し、ファイルが再変更されれば記録を無効化して新しい競合として表示する。別メモ、保留中の競合、未確認の外部変更には適用しない。
-* `performLocalWorkspaceSave()`は通常の競合保護を維持し、確認済み対象だけ書込み直前に生ハッシュ・パス・メモIDを再照合する。Markdownと`sync-state.json`の書込み、IndexedDB更新が成功した後だけ解決情報を削除するため、書込み失敗時に同期済み扱いにはしない。
-* 模擬File System Access APIで、Memo Nexus版上書き→今すぐ保存→Markdown書込み→`sync-state.json`更新→再スキャン、ローカル版読込、確認後の再外部編集、別メモの未解決競合、`sync-state.json`更新失敗を回帰テストした。画像付きメモでは`attachment://...`と`../assets/...`の往復、既存assetファイルの保持、重複作成・削除がないことを確認した。
-* `local-save.test.js`を含む全自動テストは609件成功した。変更済み全JavaScriptの`node --check`、`git diff --check`も成功した。`app.js`と`local-sync-utils.js`の配信識別子をそれぞれ`0.5.0-93`、`0.5.0-9`へ更新した。
-* Edge／Chromiumで実フォルダを選ぶ手動確認は、この実行環境ではネイティブのフォルダ選択と外部ファイル変更を安全に自動化できないため未実施。実機では通常メモ・画像付きメモで各競合解決操作後に「ローカルへ保存」を押し、保存後再スキャン、保存前の再外部編集時の再競合表示を確認する必要がある。
+* 原因は、競合解決時にメモIDだけを`forcedLocalSaveNoteIds`へ保持していた一方、`runManualLocalSave()`の保存前`scanExternalLocalMarkdown()`がその情報を考慮せず、古い`sync-state.json`ハッシュを基準に同じ競合を再登録していたことだった。PR #120の追加修正では、`sync-state.json`に`hash`がない旧形式、対応情報がない`notes/`内Markdownなど、`classifyMarkdownCandidate()`へフォールバックする競合に生ハッシュがなく、解決記録を作れないことも確認した。
+* 解決情報を、メモID・選択操作・確認元Markdown相対パス・実際の書込み先相対パス・利用者が確認した生Markdownハッシュを持つ一時Mapへ変更した。`buildLocalScanAnalysis()`は通常・フォールバックの競合へ必要な生ハッシュを付け、5項目が一致する対象だけを保存前スキャンで一度だけ抑止する。ファイルが再変更されれば記録を無効化して新しい競合として表示し、別メモ、保留中の競合、未確認の外部変更には適用しない。
+* `sync-state.json`に`fileName`だけがある旧形式、および対応情報のない`notes/`直下の同一ID Markdownは、確認した既存`notes/`ファイルをそのまま書込み先と`sync-state.json`の`fileName`へ採用する。保存後は実ファイルのハッシュを登録し通常管理へ移行する。選択フォルダ直下と`inbox/`は通常保存先と混同しないため、上書き・ローカル版読込・両方を残すを表示せず、元ファイルを削除しない除外または保留だけを提供する。
+* 確認元／書込み先パスの決定、解決記録の生成、書込み直前の照合、成功後の記録破棄を`local-sync-utils.js`の共通関数へ切り出した。`performLocalWorkspaceSave()`は通常の競合保護を維持し、確認済み対象だけ書込み直前に生ハッシュ・両パス・メモIDを再照合する。Markdown、`sync-state.json`、IndexedDB更新が成功した後だけ解決情報を削除するため、書込み失敗時に同期済み扱いにはしない。
+* 模擬File System Access APIで、Memo Nexus版上書き→今すぐ保存→Markdown書込み→`sync-state.json`更新→再スキャン、ローカル版読込、確認後の再外部編集、別メモの未解決競合、`sync-state.json`更新失敗を回帰テストした。旧形式と未管理`notes/`直下は上書き／読込の両方で同一ファイルへ保存し、`fileName`と実ハッシュが同期情報へ入ること、直下・`inbox/`は候補と元ファイルを残すことを確認した。画像付きメモでは`attachment://...`と`../assets/...`の往復、既存assetファイルの保持、重複作成・削除がないことを確認した。
+* `local-save.test.js`は54件、全自動テストは613件成功した。変更済み全JavaScriptの`node --check`、`git diff --check`も成功した。`app.js`と`local-sync-utils.js`の配信識別子をそれぞれ`0.5.0-94`、`0.5.0-10`へ更新した。
+* Edge／Chromiumで実フォルダを選ぶ手動確認は、この実行環境ではネイティブのフォルダ選択と外部ファイル変更を安全に自動化できないため未実施。実機では通常・旧形式・未管理`notes/`直下・画像付きメモで各競合解決操作後に「ローカルへ保存」を押し、保存後再スキャン、保存前の再外部編集時の再競合表示を確認する。直下・`inbox/`の同一ID競合では上書き／読込が表示されず、除外／保留だけで元ファイルが残ることも確認する必要がある。
