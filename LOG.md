@@ -1937,3 +1937,15 @@
 
 * READMEと実験文書のPowerShell例へ、生成・設定した`CODEX_BRIDGE_TOKEN`を表示する行を追加した。表示値をMemo Nexusへ完全一致で入力すること、Git管理ファイル・メモ・スクリーンショットへ保存・公開しないこと、PowerShell終了時とtoken再生成時の再設定を明記した。
 * 実装ロジックは変更せず、`node --test`は583件成功した。`node --check codex-bridge.js`、`node --check codex-bridge-token.js`、`node --check codex-chat.js`、`node --check codex-chat-utils.js`、`git diff --check`も成功した。
+
+## 2026-08-20 ローカルMarkdown競合解決後の明示保存修正
+
+* 原因は、競合解決時にメモIDだけを`forcedLocalSaveNoteIds`へ保持していた一方、`runManualLocalSave()`の保存前`scanExternalLocalMarkdown()`がその情報を考慮せず、古い`sync-state.json`ハッシュを基準に同じ競合を再登録していたことだった。PR #120の追加修正では、`sync-state.json`に`hash`がない旧形式、対応情報がない`notes/`内Markdownなど、`classifyMarkdownCandidate()`へフォールバックする競合に生ハッシュがなく、解決記録を作れないことも確認した。
+* 解決情報を、メモID・選択操作・確認元Markdown相対パス・実際の書込み先相対パス・利用者が確認した生Markdownハッシュを持つ一時Mapへ変更した。`buildLocalScanAnalysis()`は通常・フォールバックの競合へ必要な生ハッシュを付け、5項目が一致する対象だけを保存前スキャンで一度だけ抑止する。ファイルが再変更されれば記録を無効化して新しい競合として表示し、別メモ、保留中の競合、未確認の外部変更には適用しない。
+* `sync-state.json`に`fileName`だけがある旧形式、および対応情報のない`notes/`直下の同一ID Markdownは、確認した既存`notes/`ファイルをそのまま書込み先と`sync-state.json`の`fileName`へ採用する。保存後は実ファイルのハッシュを登録し通常管理へ移行する。選択フォルダ直下と`inbox/`は通常保存先と混同しないため、上書き・ローカル版読込・両方を残すを表示せず、元ファイルを削除しない除外または保留だけを提供する。
+* 確認元／書込み先パスの決定、解決記録の生成、書込み直前の照合、成功後の記録破棄を`local-sync-utils.js`の共通関数へ切り出した。`performLocalWorkspaceSave()`は通常の競合保護を維持し、確認済み対象だけ書込み直前に生ハッシュ・両パス・メモIDを再照合する。Markdown、`sync-state.json`、IndexedDB更新が成功した後だけ解決情報を削除するため、書込み失敗時に同期済み扱いにはしない。
+* 模擬File System Access APIで、Memo Nexus版上書き→今すぐ保存→Markdown書込み→`sync-state.json`更新→再スキャン、ローカル版読込、確認後の再外部編集、別メモの未解決競合、`sync-state.json`更新失敗を回帰テストした。旧形式と未管理`notes/`直下は上書き／読込の両方で同一ファイルへ保存し、`fileName`と実ハッシュが同期情報へ入ること、直下・`inbox/`は候補と元ファイルを残すことを確認した。画像付きメモでは`attachment://...`と`../assets/...`の往復と、同一メモへの読込では既存asset ID・画像ファイルを不必要に複製しないことを確認した。
+* 画像付き競合の「両方を残す」では、画像ファイル名だけを基準に既存添付IDを再利用すると、IndexedDBの同じ主キーを新メモ所属で`put()`して元メモから添付所属を奪う問題を再現した。既知IDの添付レコードを主キーで読み、所有`memoId`が取込先メモと一致する場合だけIDを再利用する。別メモまたは所有者不明では衝突しない新IDを発行し、Blob・MIME・kind・sizeを維持した独立レコードを作成して本文参照も新IDへ置換する。
+* 本番と同じ`getAttachmentRecord()`・`candidateAttachments()`・`putAttachments()`を呼ぶ模擬IndexedDBと模擬File System Access APIで「両方を残す」を実行し、元・新規の添付レコードと`memoId`、Blob内容、両本文の`attachment://...`、両Markdownの`../assets/...`、衝突しない新旧画像ファイル、`sync-state.json.notes/assets`の新旧対応、元画像ファイルの保持、新画像ファイルの作成、保存後の競合候補0件を確認した。元メモの本文・添付レコード・画像は変更または削除しない。
+* `local-save.test.js`は56件、添付ユーティリティテストは25件、全自動テストは618件成功した。変更済み全JavaScriptの`node --check`、`git diff --check`も成功した。`attachment-utils.js`と`app.js`の配信識別子をそれぞれ`0.5.0-11`、`0.5.0-95`へ更新し、`local-sync-utils.js`は変更していないため`0.5.0-10`を維持した。
+* Edge／Chromiumで実フォルダを選ぶ手動確認は、この実行環境ではネイティブのフォルダ選択と外部ファイル変更を安全に自動化できないため未実施。実機では通常・旧形式・未管理`notes/`直下・画像付きメモで各競合解決操作後に「ローカルへ保存」を押し、保存後再スキャン、保存前の再外部編集時の再競合表示を確認する。画像付き「両方を残す」では保存後と再読み込み後に元・新規メモの両方で画像が表示され、Markdownと画像ファイルが新旧両方存在することを確認する。直下・`inbox/`の同一ID競合では上書き／読込が表示されず、除外／保留だけで元ファイルが残ることも確認する必要がある。

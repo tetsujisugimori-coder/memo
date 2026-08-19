@@ -37,6 +37,52 @@
     return contentHash(source);
   }
 
+  function normalizedLocalPath(path) {
+    return String(path || "").replace(/\\/g, "/");
+  }
+
+  function localConflictResolutionPaths({ candidatePath, managedFileName } = {}) {
+    const confirmedPath = normalizedLocalPath(candidatePath);
+    const managedPath = managedFileName ? `notes/${String(managedFileName).replace(/\\/g, "/")}` : "";
+    if (managedPath) {
+      return confirmedPath === managedPath ? { confirmedPath, writePath: managedPath } : null;
+    }
+    return /^notes\/[^/]+\.md$/i.test(confirmedPath) ? { confirmedPath, writePath: confirmedPath } : null;
+  }
+
+  function createLocalConflictResolution({ noteId, action, confirmedPath, writePath, confirmedLocalHash } = {}) {
+    if (!noteId || !action || !confirmedPath || !writePath || !confirmedLocalHash) return null;
+    return {
+      noteId: String(noteId),
+      action: String(action),
+      confirmedPath: normalizedLocalPath(confirmedPath),
+      writePath: normalizedLocalPath(writePath),
+      confirmedLocalHash: String(confirmedLocalHash)
+    };
+  }
+
+  function localConflictResolutionMatches(resolution, { noteId, confirmedPath, writePath, currentLocalHash } = {}) {
+    return Boolean(
+      resolution &&
+      String(resolution.noteId) === String(noteId || "") &&
+      normalizedLocalPath(resolution.confirmedPath) === normalizedLocalPath(confirmedPath) &&
+      normalizedLocalPath(resolution.writePath) === normalizedLocalPath(writePath) &&
+      String(resolution.confirmedLocalHash) === String(currentLocalHash || "")
+    );
+  }
+
+  function localConflictResolutionFileName(resolution, noteId) {
+    if (!resolution || String(resolution.noteId) !== String(noteId || "")) return null;
+    const match = normalizedLocalPath(resolution.writePath).match(/^notes\/([^/]+\.md)$/i);
+    return match ? match[1] : null;
+  }
+
+  function deleteLocalConflictResolution(resolutions, noteId, resolution = null) {
+    if (!resolutions?.get || !resolutions?.delete) return false;
+    if (resolution && resolutions.get(noteId) !== resolution) return false;
+    return resolutions.delete(noteId);
+  }
+
   function attachmentExtension(attachment) {
     return MIME_EXTENSIONS[String(attachment?.mimeType || attachment?.blob?.type || "").toLowerCase()] || "bin";
   }
@@ -135,12 +181,14 @@
 
   async function buildLocalScanAnalysis({
     files = [], syncState, notes = [], parseNote, serializeNote,
-    getAttachmentsForNote = async () => []
+    getAttachmentsForNote = async () => [], resolvedConflicts = new Map()
   } = {}) {
     const normalizedSync = normalizeSyncState(syncState);
     const excluded = new Set(normalizedSync.excluded);
     const candidates = [];
     const appAheadNoteIds = [];
+    const resolvedConflictNoteIds = [];
+    const invalidatedResolutionNoteIds = [];
     for (const entry of files) {
       if (excluded.has(entry.path)) continue;
       const source = await entry.file.text();
@@ -154,6 +202,7 @@
       const managedEntry = managedNoteForPath(normalizedSync, entry.path);
       if (managedEntry) {
         const [managedNoteId, managedState] = managedEntry;
+        const resolution = resolvedConflicts.get?.(managedNoteId);
         const managedNote = notes.find((note) => note.id === managedNoteId);
         if (!managedNote) {
           candidates.push({
@@ -176,6 +225,13 @@
           const nextAppMarkdown = serializeNote(managedNote, managedNote.body, attachmentFiles);
           const nextAppHash = contentHash(nextAppMarkdown);
           const currentLocalHash = contentHash(source);
+          const resolutionMatches = localConflictResolutionMatches(resolution, {
+            noteId: managedNoteId,
+            confirmedPath: entry.path,
+            writePath: entry.path,
+            currentLocalHash
+          });
+          if (resolution && !resolutionMatches) invalidatedResolutionNoteIds.push(managedNoteId);
           const currentComparableHash = managedMarkdownComparableHash(source);
           const nextComparableHash = managedMarkdownComparableHash(nextAppMarkdown);
           const disposition = classifyManagedMarkdownHashes(
@@ -187,6 +243,10 @@
           );
           if (disposition === "app-ahead") appAheadNoteIds.push(managedNoteId);
           if (disposition !== "conflict") continue;
+          if (resolutionMatches) {
+            resolvedConflictNoteIds.push(managedNoteId);
+            continue;
+          }
           candidates.push({
             ...entry,
             parsed,
@@ -205,13 +265,37 @@
         }
       }
       const classification = classifyMarkdownCandidate(parsed, notes);
+      if (classification.type === "conflict") {
+        const managedNoteId = classification.existing?.id;
+        const resolution = resolvedConflicts.get?.(managedNoteId);
+        const currentLocalHash = contentHash(source);
+        const resolutionMatches = localConflictResolutionMatches(resolution, {
+          noteId: managedNoteId,
+          confirmedPath: entry.path,
+          writePath: entry.path,
+          currentLocalHash
+        });
+        if (resolution && !resolutionMatches) invalidatedResolutionNoteIds.push(managedNoteId);
+        if (resolutionMatches) {
+          resolvedConflictNoteIds.push(managedNoteId);
+          continue;
+        }
+        candidates.push({
+          ...entry,
+          parsed,
+          classification: { ...classification, currentLocalHash }
+        });
+        continue;
+      }
       if (classification.type === "unchanged") continue;
       candidates.push({ ...entry, parsed, classification });
     }
     return {
       candidates,
       appAheadNoteIds,
-      needsLocalSave: appAheadNoteIds.length > 0
+      needsLocalSave: appAheadNoteIds.length > 0,
+      resolvedConflictNoteIds: [...new Set(resolvedConflictNoteIds)],
+      invalidatedResolutionNoteIds: [...new Set(invalidatedResolutionNoteIds)]
     };
   }
 
@@ -243,7 +327,7 @@
 
   const api = {
     MIME_EXTENSIONS, attachmentExtension, buildLocalScanAnalysis, buildLocalScanCandidates, buildManifest, classifyManagedMarkdownHashes,
-    classifyMarkdownCandidate, contentHash, hasExternalModification, managedMarkdownComparableHash, managedNoteForPath,
+    classifyMarkdownCandidate, contentHash, createLocalConflictResolution, deleteLocalConflictResolution, hasExternalModification, localConflictResolutionFileName, localConflictResolutionMatches, localConflictResolutionPaths, managedMarkdownComparableHash, managedNoteForPath,
     normalizeSyncState, parseCollections, safeStableNoteFileName, serializeCollections
   };
   if (typeof module !== "undefined" && module.exports) module.exports = api;

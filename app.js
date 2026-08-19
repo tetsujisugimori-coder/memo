@@ -306,6 +306,8 @@ const {
   insertAttachmentReferences,
   normalizeImageBlockSize,
   renderImageCaptionMarkdown,
+  remapImportedAttachmentReferences,
+  resolveImportedAttachmentId,
   replaceImageBlock,
   saveAttachmentAdditionWithRollback,
   serializeImageBlock,
@@ -346,7 +348,12 @@ const {
   buildLocalScanAnalysis,
   buildManifest,
   contentHash,
+  createLocalConflictResolution,
+  deleteLocalConflictResolution,
   hasExternalModification,
+  localConflictResolutionFileName,
+  localConflictResolutionMatches,
+  localConflictResolutionPaths,
   managedMarkdownComparableHash,
   normalizeSyncState,
   parseCollections,
@@ -818,7 +825,7 @@ let localSyncState = normalizeSyncState();
 let localScanCandidates = [];
 let suppressLocalSaveQueue = false;
 let localWorkspaceChangeVersion = 0;
-const forcedLocalSaveNoteIds = new Set();
+const localConflictResolutions = new Map();
 let localPendingExclusions = new Set();
 const localSaveQueue = createLocalSaveQueue((reason) => performLocalWorkspaceSave(reason), 420);
 let noteFlagAnimationToken = 0;
@@ -1702,6 +1709,14 @@ function getAttachmentsForMemo(memoId) {
   });
 }
 
+function getAttachmentRecord(id) {
+  return new Promise((resolve, reject) => {
+    const request = attachmentTx().get(id);
+    request.onsuccess = () => resolve(request.result || null);
+    request.onerror = () => reject(request.error);
+  });
+}
+
 function putAttachments(items) {
   return new Promise((resolve, reject) => {
     const transaction = db.transaction(ATTACHMENT_STORE_NAME, "readwrite");
@@ -1891,7 +1906,7 @@ async function performLocalWorkspaceSave(reason = "change") {
   setLocalSaveState("saving", { directoryName: localDirectoryHandle.name, errorCode: "", errorMessage: "", requiresUserAction: false });
   const savedAt = new Date().toISOString();
   const savedChangeVersion = localWorkspaceChangeVersion;
-  const forcedNoteIds = new Set(forcedLocalSaveNoteIds);
+  const resolvedConflicts = new Map(localConflictResolutions);
   try {
     const layout = await localFs.ensureWorkspaceLayout(localDirectoryHandle);
     const storedSync = await localFs.readJson(layout.root, "sync-state.json", normalizeSyncState());
@@ -1906,7 +1921,8 @@ async function performLocalWorkspaceSave(reason = "change") {
     for (const note of storedNotes) {
       const savedNote = applyLocalSaveSuccess(note, savedAt);
       const previous = nextSync.notes[note.id] || {};
-      const fileName = previous.fileName || safeStableNoteFileName(note, sanitizeWindowsName);
+      const resolution = resolvedConflicts.get(note.id);
+      const fileName = previous.fileName || localConflictResolutionFileName(resolution, note.id) || safeStableNoteFileName(note, sanitizeWindowsName);
       const noteAttachments = await getAttachmentsForMemo(note.id);
       const attachmentFiles = noteAttachments.map((attachment) => {
         const assetFileName = nextSync.assets[attachment.id]?.fileName || `${attachment.id}.${attachmentExtension(attachment)}`;
@@ -1916,7 +1932,7 @@ async function performLocalWorkspaceSave(reason = "change") {
       });
       const markdown = serializeLocalNote(savedNote, savedNote.body, attachmentFiles);
       const hash = contentHash(markdown);
-      if (!forcedNoteIds.has(note.id) && previous.hash) {
+      if (!resolvedConflicts.has(note.id) && previous.hash) {
         const currentText = await optionalLocalText(layout.root, `notes/${fileName}`);
         const currentHash = currentText == null ? null : contentHash(currentText);
         const currentComparableHash = currentText == null ? null : managedMarkdownComparableHash(currentText);
@@ -1943,6 +1959,23 @@ async function performLocalWorkspaceSave(reason = "change") {
       assetPlans: [...assetPlans.values()],
       normalizeTagDefinitions
     });
+    for (const plan of plans) {
+      const resolution = resolvedConflicts.get(plan.note.id);
+      if (!resolution) continue;
+      const writePath = `notes/${plan.fileName}`;
+      const currentText = await optionalLocalText(layout.root, resolution.confirmedPath);
+      const currentLocalHash = currentText == null ? null : contentHash(currentText);
+      if (localConflictResolutionMatches(resolution, {
+        noteId: plan.note.id,
+        confirmedPath: resolution.confirmedPath,
+        writePath,
+        currentLocalHash
+      })) continue;
+      deleteLocalConflictResolution(localConflictResolutions, plan.note.id, resolution);
+      const conflict = new Error(`「${plan.note.title}」は競合解決後にローカルで変更されています。もう一度確認してから保存してください。`);
+      conflict.code = "conflict";
+      throw conflict;
+    }
     for (const file of backupFiles) await localFs.writeFile(layout.root, file.name, file.content);
     await localFs.writeJson(layout.root, "sync-state.json", nextSync);
 
@@ -1955,7 +1988,10 @@ async function performLocalWorkspaceSave(reason = "change") {
     localSyncState = nextSync;
     localPendingExclusions.clear();
     await localFs.deleteConfig(db, LOCAL_CONFIG_STORE_NAME, "pendingExclusions");
-    forcedNoteIds.forEach((noteId) => forcedLocalSaveNoteIds.delete(noteId));
+    plans.forEach((plan) => {
+      const resolution = resolvedConflicts.get(plan.note.id);
+      if (resolution) deleteLocalConflictResolution(localConflictResolutions, plan.note.id, resolution);
+    });
     notes = await getAllNotes();
     const changedDuringSave = localWorkspaceChangeVersion !== savedChangeVersion;
     setLocalSaveState(changedDuringSave ? "pending" : "saved", {
@@ -1986,7 +2022,7 @@ async function selectLocalSaveFolder() {
     localDirectoryHandle = handle;
     localSyncState = normalizeSyncState();
     localScanCandidates = [];
-    forcedLocalSaveNoteIds.clear();
+    localConflictResolutions.clear();
     localPendingExclusions.clear();
     localSaveSettings = { enabled: true };
     await localFs.putConfig(db, LOCAL_CONFIG_STORE_NAME, "directoryHandle", handle);
@@ -2034,7 +2070,7 @@ async function disconnectLocalSaveFolder() {
   localDirectoryHandle = null;
   localSyncState = normalizeSyncState();
   localScanCandidates = [];
-  forcedLocalSaveNoteIds.clear();
+  localConflictResolutions.clear();
   localPendingExclusions.clear();
   await persistLocalSaveSettings();
   await localFs.deleteConfig(db, LOCAL_CONFIG_STORE_NAME, "directoryHandle");
@@ -2098,8 +2134,10 @@ async function scanExternalLocalMarkdown({ automatic = false, throwOnError = fal
       notes,
       parseNote: parseLocalNote,
       serializeNote: serializeLocalNote,
-      getAttachmentsForNote: getAttachmentsForMemo
+      getAttachmentsForNote: getAttachmentsForMemo,
+      resolvedConflicts: localConflictResolutions
     });
+    analysis.invalidatedResolutionNoteIds.forEach((noteId) => deleteLocalConflictResolution(localConflictResolutions, noteId));
     localScanCandidates = analysis.candidates;
     await reconcileLocalScanCandidates({
       markPendingChanges: analysis.needsLocalSave
@@ -2167,14 +2205,24 @@ async function candidateAttachments(candidate, memoId) {
   const root = await localFs.resolveWorkspaceRoot(localDirectoryHandle, false);
   const assets = [];
   const records = [];
+  const occupiedIds = new Set(Object.keys(localSyncState.assets));
   for (const relativePath of candidate.parsed.assetPaths) {
     const fileName = relativePath.split("/").pop();
     const known = Object.entries(localSyncState.assets).find(([, value]) => value.fileName === fileName);
-    const id = known?.[0] || crypto.randomUUID();
+    const knownId = known?.[0] || "";
+    const existingAttachment = knownId ? await getAttachmentRecord(knownId) : null;
+    const id = resolveImportedAttachmentId({
+      knownId,
+      existingAttachment,
+      targetMemoId: memoId,
+      occupiedIds,
+      createId: () => crypto.randomUUID()
+    });
+    occupiedIds.add(id);
     try {
       const file = await localFs.readFile(root, relativePath.replace(/^\.\.\//, ""));
       const mimeType = localMimeType(fileName, file.type);
-      assets.push({ path: relativePath, id });
+      assets.push({ path: relativePath, id, sourceId: knownId || null });
       records.push({ id, memoId, fileName, mimeType, kind: mimeType.startsWith("image/") ? "image" : "pdf", size: file.size, blob: file, createdAt: new Date().toISOString() });
     } catch (error) {
       console.warn("Local attachment restore skipped", { relativePath, error });
@@ -2204,6 +2252,28 @@ function noteFromLocalCandidate(candidate, { preserveId = false, overwrite = nul
   };
 }
 
+function rememberLocalConflictResolution(candidate, noteId, action) {
+  const paths = localConflictResolutionPaths({
+    candidatePath: candidate?.path,
+    managedFileName: localSyncState.notes[noteId]?.fileName
+  });
+  const resolution = createLocalConflictResolution({
+    noteId,
+    action,
+    ...paths,
+    confirmedLocalHash: candidate?.classification?.currentLocalHash
+  });
+  if (resolution) localConflictResolutions.set(resolution.noteId, resolution);
+}
+
+function canResolveLocalConflictInPlace(candidate) {
+  const noteId = candidate?.classification?.existing?.id;
+  return Boolean(noteId && localConflictResolutionPaths({
+    candidatePath: candidate.path,
+    managedFileName: localSyncState.notes[noteId]?.fileName
+  }));
+}
+
 async function applyLocalCandidate(index, action) {
   const candidate = localScanCandidates[index];
   if (!candidate) return;
@@ -2219,9 +2289,13 @@ async function applyLocalCandidate(index, action) {
     await reconcileLocalScanCandidates({ markPendingChanges: true });
     return;
   }
+  if (["app", "local", "separate"].includes(action) && candidate.classification.type === "conflict" && !canResolveLocalConflictInPlace(candidate)) {
+    setLocalSaveState("conflict", { directoryName: localDirectoryHandle?.name || "", errorCode: "unsafe-conflict-path", errorMessage: "このMarkdownは通常のnotes/保存先ではありません。元ファイルを残したまま上書き済みと誤認しないよう、除外または保留を選んでください。", requiresUserAction: true });
+    return;
+  }
   if (action === "app") {
     const targetId = candidate.classification.existing?.id;
-    if (targetId) forcedLocalSaveNoteIds.add(targetId);
+    rememberLocalConflictResolution(candidate, targetId, action);
     localScanCandidates.splice(index, 1);
     await reconcileLocalScanCandidates({ markPendingChanges: true });
     return;
@@ -2230,12 +2304,11 @@ async function applyLocalCandidate(index, action) {
   const overwrite = action === "local" ? candidate.classification.existing : null;
   const preserveId = action === "restore" || Boolean(overwrite);
   const draft = noteFromLocalCandidate(candidate, { preserveId, overwrite });
-  if (overwrite?.id) forcedLocalSaveNoteIds.add(overwrite.id);
-  if (action === "separate" && candidate.classification.type === "conflict" && candidate.classification.existing?.id) {
-    forcedLocalSaveNoteIds.add(candidate.classification.existing.id);
-  }
   const attachmentResult = await candidateAttachments(candidate, draft.id);
-  draft.body = restoreAttachmentReferences(candidate.parsed.body, attachmentResult.assets);
+  draft.body = remapImportedAttachmentReferences(
+    restoreAttachmentReferences(candidate.parsed.body, attachmentResult.assets),
+    attachmentResult.assets
+  );
   suppressLocalSaveQueue = true;
   try {
     if (attachmentResult.records.length) await putAttachments(attachmentResult.records);
@@ -2247,6 +2320,10 @@ async function applyLocalCandidate(index, action) {
   await synchronizeRegisteredTagsForNotes();
   renderAll();
   openNote(draft.id);
+  if (overwrite?.id) rememberLocalConflictResolution(candidate, overwrite.id, action);
+  if (action === "separate" && candidate.classification.type === "conflict") {
+    rememberLocalConflictResolution(candidate, candidate.classification.existing?.id, action);
+  }
   localScanCandidates.splice(index, 1);
   await reconcileLocalScanCandidates({ markPendingChanges: true });
 }
@@ -2336,7 +2413,9 @@ function renderLocalScanResults() {
     const preview = escapeHtml(String(candidate.parsed.body || "").slice(0, 180));
     const type = candidate.classification.type;
     const actions = type === "conflict"
-      ? [["local", "ローカル版を読み込む"], ["app", "Memo-Nexus版で上書き"], ["separate", "両方を残す"], ["hold", "保留する"]]
+      ? (canResolveLocalConflictInPlace(candidate)
+        ? [["local", "ローカル版を読み込む"], ["app", "Memo-Nexus版で上書き"], ["separate", "両方を残す"], ["hold", "保留する"]]
+        : [["exclude", "除外"], ["hold", "保留する"]])
       : [[type === "restore" ? "restore" : "new", type === "restore" ? "復元" : "新規取込"], ["separate", "別メモとして取込"], ["exclude", "除外"]];
     item.innerHTML = `<strong>${title}</strong><span>${typeLabels[type] || type}</span><p>${preview}</p><div class="settings-actions">${actions.map(([value, label]) => `<button type="button" data-local-candidate="${index}" data-local-action="${value}">${label}</button>`).join("")}</div>`;
     localScanResults.appendChild(item);
