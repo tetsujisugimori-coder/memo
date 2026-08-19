@@ -30,6 +30,7 @@
   const systemFont = (id, label, cssFamily, details) => ({
     id,
     label,
+    selectLabel: label,
     cssFamily,
     sourceType: SYSTEM,
     ...details
@@ -37,6 +38,7 @@
   const webFont = (id, label, cssFamily, details) => ({
     id,
     label,
+    selectLabel: label,
     cssFamily,
     sourceType: WEB,
     ...details
@@ -49,16 +51,19 @@
       impression: ["中立", "読みやすい"], uses: ["欧文UI", "本文", "見出し"]
     }),
     systemFont("yu-gothic-ui", "Yu Gothic UI", '"Yu Gothic UI", "Hiragino Sans", Meiryo, system-ui, sans-serif', {
+      selectLabel: "Yu Gothic UI（日本語フォント）",
       categoryType: "sans-serif", recommendedFor: ["body", "heading"],
       languages: languageSupport("supported", "supported", "unknown", "unknown"),
       impression: ["中立", "落ち着いた"], uses: ["日本語本文", "長文", "UI", "見出し"]
     }),
     systemFont("meiryo", "Meiryo", 'Meiryo, "Yu Gothic UI", sans-serif', {
+      selectLabel: "Meiryo（メイリオ）",
       categoryType: "sans-serif", recommendedFor: ["body"],
       languages: languageSupport("supported", "supported", "unknown", "unknown"),
       impression: ["読みやすい", "実用的"], uses: ["日本語本文", "長文", "UI"]
     }),
     systemFont("ms-mincho", "MS Mincho", '"ＭＳ 明朝", "MS Mincho", serif', {
+      selectLabel: "MS Mincho（ＭＳ 明朝）",
       categoryType: "serif", recommendedFor: ["body", "heading"],
       languages: languageSupport("partial", "supported", "unknown", "unknown"),
       impression: ["落ち着いた", "古典的"], uses: ["日本語本文", "長文", "見出し"]
@@ -84,30 +89,35 @@
       impression: ["落ち着いた", "古典的"], uses: ["欧文本文", "長文", "見出し"]
     }),
     webFont("noto-sans-jp-web", "Noto Sans JP", '"Noto Sans JP", "Yu Gothic UI", "Hiragino Sans", Meiryo, sans-serif', {
+      selectLabel: "Noto Sans JP（日本語フォント）",
       categoryType: "sans-serif", recommendedFor: ["body", "heading"],
       languages: languageSupport("supported", "supported", "unknown", "unknown"),
       impression: ["読みやすい", "汎用"], uses: ["日本語本文", "長文", "UI", "見出し"],
       loading: { type: "stylesheet", family: "Noto Sans JP", url: "https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&display=swap" }
     }),
     webFont("noto-serif-jp-web", "Noto Serif JP", '"Noto Serif JP", "Yu Mincho", "Hiragino Mincho ProN", "MS PMincho", serif', {
+      selectLabel: "Noto Serif JP（日本語フォント）",
       categoryType: "serif", recommendedFor: ["body", "heading"],
       languages: languageSupport("supported", "supported", "unknown", "unknown"),
       impression: ["端正", "落ち着いた"], uses: ["日本語本文", "長文", "見出し"],
       loading: { type: "stylesheet", family: "Noto Serif JP", url: "https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;700&display=swap" }
     }),
     webFont("noto-sans-sc-web", "Noto Sans SC", '"Noto Sans SC", "Microsoft YaHei", "PingFang SC", sans-serif', {
+      selectLabel: "Noto Sans SC（简体中文）",
       categoryType: "sans-serif", recommendedFor: ["body", "heading"],
       languages: languageSupport("supported", "unknown", "supported", "partial"),
       impression: ["明快", "汎用"], uses: ["簡体字本文", "長文", "UI", "見出し"],
       loading: { type: "stylesheet", family: "Noto Sans SC", url: "https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;700&display=swap" }
     }),
     webFont("noto-sans-tc-web", "Noto Sans TC", '"Noto Sans TC", "Microsoft JhengHei", "PingFang TC", sans-serif', {
+      selectLabel: "Noto Sans TC（繁體中文）",
       categoryType: "sans-serif", recommendedFor: ["body", "heading"],
       languages: languageSupport("supported", "unknown", "partial", "supported"),
       impression: ["明快", "汎用"], uses: ["繁体字本文", "長文", "UI", "見出し"],
       loading: { type: "stylesheet", family: "Noto Sans TC", url: "https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&display=swap" }
     }),
     webFont("source-han-sans-web", "Source Han Sans", '"Source Han Sans CN", "Noto Sans SC", "Microsoft YaHei", sans-serif', {
+      selectLabel: "Source Han Sans（思源黑体／简体中文）",
       categoryType: "sans-serif", recommendedFor: ["body", "heading"],
       languages: languageSupport("supported", "unknown", "supported", "partial"),
       impression: ["実用的", "明快"], uses: ["簡体字本文", "長文", "UI", "見出し"],
@@ -137,12 +147,14 @@
       loading: { type: "stylesheet", family: "JetBrains Mono", url: "https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" }
     }),
     webFont("zen-kaku-gothic-new-web", "Zen Kaku Gothic New", '"Zen Kaku Gothic New", "Yu Gothic UI", "Hiragino Sans", Meiryo, sans-serif', {
+      selectLabel: "Zen Kaku Gothic New（日本語フォント）",
       categoryType: "sans-serif", recommendedFor: ["body", "heading"],
       languages: languageSupport("supported", "supported", "unknown", "unknown"),
       impression: ["親しみ", "現代的"], uses: ["日本語本文", "長文", "UI", "見出し"],
       loading: { type: "stylesheet", family: "Zen Kaku Gothic New", url: "https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;700&display=swap" }
     }),
     webFont("shippori-mincho-web", "Shippori Mincho", '"Shippori Mincho", "Yu Mincho", "Hiragino Mincho ProN", "MS PMincho", serif', {
+      selectLabel: "Shippori Mincho（しっぽり明朝）",
       categoryType: "serif", recommendedFor: ["body", "heading"],
       languages: languageSupport("supported", "supported", "unknown", "unknown"),
       impression: ["上品", "落ち着いた"], uses: ["日本語本文", "長文", "見出し"],
@@ -192,7 +204,8 @@
       FONT_OPTIONS.filter((font) => font.sourceType === sourceType).forEach((font) => {
         const option = documentObject.createElement("option");
         option.value = font.id;
-        option.textContent = font.label;
+        option.textContent = font.selectLabel;
+        option.style.fontFamily = font.cssFamily;
         group.appendChild(option);
       });
       select.appendChild(group);

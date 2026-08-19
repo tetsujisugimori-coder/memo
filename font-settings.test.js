@@ -36,6 +36,27 @@ const EXPECTED_WEB_FONTS = [
   ["shippori-mincho-web", "Shippori Mincho", '"Shippori Mincho", "Yu Mincho", "Hiragino Mincho ProN", "MS PMincho", serif']
 ];
 
+const EXPECTED_FONT_SELECT_LABELS = new Map([
+  ["segoe-ui", "Segoe UI"],
+  ["yu-gothic-ui", "Yu Gothic UI（日本語フォント）"],
+  ["meiryo", "Meiryo（メイリオ）"],
+  ["ms-mincho", "MS Mincho（ＭＳ 明朝）"],
+  ["consolas", "Consolas"],
+  ["cascadia-code", "Cascadia Code"],
+  ["courier-new", "Courier New"],
+  ["times-new-roman", "Times New Roman"],
+  ["noto-sans-jp-web", "Noto Sans JP（日本語フォント）"],
+  ["noto-serif-jp-web", "Noto Serif JP（日本語フォント）"],
+  ["noto-sans-sc-web", "Noto Sans SC（简体中文）"],
+  ["noto-sans-tc-web", "Noto Sans TC（繁體中文）"],
+  ["source-han-sans-web", "Source Han Sans（思源黑体／简体中文）"],
+  ["inter-web", "Inter"],
+  ["ibm-plex-sans-web", "IBM Plex Sans"],
+  ["jetbrains-mono-web", "JetBrains Mono"],
+  ["zen-kaku-gothic-new-web", "Zen Kaku Gothic New（日本語フォント）"],
+  ["shippori-mincho-web", "Shippori Mincho（しっぽり明朝）"]
+]);
+
 const html = fs.readFileSync("index.html", "utf8");
 const app = fs.readFileSync("app.js", "utf8");
 const css = fs.readFileSync("style.css", "utf8");
@@ -100,6 +121,10 @@ test("カタログは既存8システムと契約どおりの10 Webフォント�
     assert.equal(fontOption(id).sourceType, "web");
     assert.ok(fontOption(id).loading);
   }
+  assert.deepEqual(
+    FONT_OPTIONS.map((font) => [font.id, font.selectLabel]),
+    [...EXPECTED_FONT_SELECT_LABELS]
+  );
   assert.equal(fontOption("noto-sans-jp-web").loading.url, "https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&display=swap");
   assert.equal(fontOption("noto-serif-jp-web").loading.url, "https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;700&display=swap");
   assert.equal(fontOption("noto-sans-sc-web").loading.url, "https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;700&display=swap");
@@ -151,6 +176,7 @@ test("実フォーム用選択肢は全8欄で再利用できるシステム／W
       return {
         tagName,
         children: [],
+        style: {},
         appendChild(child) { this.children.push(child); }
       };
     }
@@ -171,6 +197,8 @@ test("実フォーム用選択肢は全8欄で再利用できるシステム／W
     assert.deepEqual(field.children.map((group) => group.label), ["システムフォント", "Webフォント（選択時に読込）"]);
     assert.equal(field.options.length, 18);
     assert.deepEqual(field.options.map((option) => option.value), FONT_OPTIONS.map((font) => font.id));
+    assert.deepEqual(field.options.map((option) => option.textContent), FONT_OPTIONS.map((font) => font.selectLabel));
+    assert.deepEqual(field.options.map((option) => option.style.fontFamily), FONT_OPTIONS.map((font) => font.cssFamily));
   });
 });
 
@@ -269,9 +297,11 @@ test("設定UIは明示保存・個別設定・比較・受取確認を持つ", 
   assert.match(html, /name="recommendationMood" value="neutral" checked/);
   assert.match(html, /name="recommendationPurpose" value="writing" checked/);
   assert.match(html, /id="fontWebLoadStatus"[^>]*aria-live="polite"/);
-  assert.ok(html.indexOf('font-recommendation.js?v=0.5.0-1') < html.indexOf('app.js?v=0.5.0-91'));
-  assert.ok(html.indexOf('web-font-loader.js?v=0.5.0-2') < html.indexOf('app.js?v=0.5.0-91'));
+  assert.ok(html.indexOf('font-recommendation.js?v=0.5.0-1') < html.indexOf('app.js?v=0.5.0-92'));
+  assert.ok(html.indexOf('web-font-loader.js?v=0.5.0-2') < html.indexOf('app.js?v=0.5.0-92'));
   assert.match(app, /function prepareFontSettingsDialog\(\)[\s\S]*?renderFontRecommendations\(\)/);
+  assert.match(app, /function syncFontSelectDisplay\(select\) \{[\s\S]*?select\.style\.fontFamily = font\?\.cssFamily \|\| "";/);
+  assert.match(app, /\[fields\.titleFont, fields\.bodyFont, fields\.headingFont, fields\.codeFont\]\.forEach\(syncFontSelectDisplay\)/);
   assert.match(app, /function handleFontRecommendationAnswerChange\(\) \{\s*renderFontRecommendations\(\);\s*\}/);
   assert.match(app, /selectButton\.textContent = `\$\{recommendationTargetLabel\(recommendationTarget\(answers\.purpose\)\)\}の候補にする`/);
   assert.match(app, /history\.replaceState\(history\.state, "", withoutFontSelectionParams\(location\.href\)\)/);
