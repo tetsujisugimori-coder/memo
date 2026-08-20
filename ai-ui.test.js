@@ -136,7 +136,7 @@ test("memo list is moved rather than duplicated and keeps search and selection b
   assert.match(app, /function renderMemoListPanel\(\)/);
   assert.match(app, /renderMemoListPanel\(\)/);
   assert.match(app, /searchInput\.value\.trim\(\)\.toLowerCase\(\)/);
-  assert.match(app, /\.sort\(\(a, b\) => Number\(b\.createdAt \|\| 0\) - Number\(a\.createdAt \|\| 0\)\)/);
+  assert.match(app, /\.sort\(\(a, b\) => compareDateTimes\(resolveDisplayedCreatedAt\(a\), resolveDisplayedCreatedAt\(b\), "desc"\)/);
   assert.match(app, /openNote\(note\.id\);\s*if \(layoutMode !== "wide"\) \{\s*setContextPanelOpen\(false, \{ restoreFocus: false, explicit: false \}\);/s);
   assert.doesNotMatch(app, /function renderNewMemosPanel/);
 });
