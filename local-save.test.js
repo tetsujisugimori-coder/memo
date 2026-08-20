@@ -12,6 +12,7 @@ const {
   shouldResumeLocalSaveAfterScan,
   transitionLocalSaveState
 } = require("./local-save-state.js");
+const { compareDateTimes, formatNoteDateTime } = require("./status-time-utils.js");
 const { createLocalSaveQueue, runLocalReconnectSequence, runLocalScanAfterQueue } = require("./local-save-queue.js");
 const {
   parseLocalNote,
@@ -383,9 +384,44 @@ test("タイトル日時と下部の文字数・ローカル・ブラウザを�
   assert.match(app, /`保存状態 \$\{combinedLabel\}`/);
 });
 
-test("表示作成日時はlocalCreatedAtを優先し、なければ元のcreatedAtを使う", () => {
-  assert.equal(resolveDisplayedCreatedAt({ createdAt: "original" }), "original");
-  assert.equal(resolveDisplayedCreatedAt({ createdAt: "original", localCreatedAt: "local" }), "local");
+test("表示作成日時は有効なcreatedAtを優先し、欠損・不正時だけlocalCreatedAtへフォールバックする", () => {
+  const createdAt = "2026-08-19T23:19:22.291Z";
+  const localCreatedAt = "2026-08-19T23:25:00.000Z";
+  assert.equal(resolveDisplayedCreatedAt({ createdAt, localCreatedAt }), createdAt);
+  assert.equal(resolveDisplayedCreatedAt({ localCreatedAt }), localCreatedAt);
+  assert.equal(resolveDisplayedCreatedAt({ createdAt: "invalid", localCreatedAt }), localCreatedAt);
+  assert.equal(resolveDisplayedCreatedAt({ createdAt: "invalid", localCreatedAt: "also-invalid" }), null);
+  assert.equal(resolveDisplayedCreatedAt({}), null);
+});
+
+test("初回ローカル保存後も表示作成日時はメモ本来のcreatedAtを維持する", () => {
+  const original = { id: "n1", createdAt: "2026-08-19T23:19:22.291Z" };
+  const saved = applyLocalSaveSuccess(original, "2026-08-19T23:25:00.000Z");
+
+  assert.equal(saved.createdAt, original.createdAt);
+  assert.equal(saved.localCreatedAt, "2026-08-19T23:25:00.000Z");
+  assert.equal(resolveDisplayedCreatedAt(saved), original.createdAt);
+  assert.equal(formatNoteDateTime(resolveDisplayedCreatedAt(saved), { timeZone: "Asia/Tokyo" }), "2026/8/20 08:19");
+});
+
+test("ローカル保存前後でcreatedAt基準の作成日順とMarkdown再取込後の表示日時を維持する", () => {
+  const older = { id: "older", createdAt: "2026-08-19T22:00:00.000Z", body: "古いメモ" };
+  const newer = { id: "newer", createdAt: "2026-08-19T23:19:22.291Z", body: "新しいメモ" };
+  const before = [older, newer]
+    .sort((left, right) => compareDateTimes(resolveDisplayedCreatedAt(left), resolveDisplayedCreatedAt(right), "desc"))
+    .map((note) => note.id);
+  const savedOlder = applyLocalSaveSuccess(older, "2026-08-20T00:30:00.000Z");
+  const savedNewer = applyLocalSaveSuccess(newer, "2026-08-19T23:25:00.000Z");
+  const after = [savedOlder, savedNewer]
+    .sort((left, right) => compareDateTimes(resolveDisplayedCreatedAt(left), resolveDisplayedCreatedAt(right), "desc"))
+    .map((note) => note.id);
+  const parsed = parseLocalNote(serializeLocalNote(savedNewer, savedNewer.body));
+
+  assert.deepEqual(before, ["newer", "older"]);
+  assert.deepEqual(after, before);
+  assert.equal(parsed.metadata.createdAt, newer.createdAt);
+  assert.equal(parsed.metadata.localCreatedAt, savedNewer.localCreatedAt);
+  assert.equal(resolveDisplayedCreatedAt(parsed.metadata), newer.createdAt);
 });
 
 test("localCreatedAtは初回ローカル保存成功時だけ設定し元のcreatedAtを維持する", () => {
@@ -431,9 +467,12 @@ test("タグなし旧Markdownは空のタグ配列として読み込む", () => 
   assert.equal(parsed.body, "本文");
 });
 
-test("外部Markdownの作成日時はlocalCreatedAt、createdAt、lastModified、取込日時の順で決める", () => {
-  assert.equal(resolveImportedCreatedAt({ localCreatedAt: "local", createdAt: "created" }, 2, 3), "local");
-  assert.equal(resolveImportedCreatedAt({ createdAt: "created" }, 2, 3), "created");
+test("外部Markdownの作成日時は有効なcreatedAt、localCreatedAt、lastModified、取込日時の順で決める", () => {
+  const createdAt = "2026-08-19T23:19:22.291Z";
+  const localCreatedAt = "2026-08-19T23:25:00.000Z";
+  assert.equal(resolveImportedCreatedAt({ localCreatedAt, createdAt }, 2, 3), createdAt);
+  assert.equal(resolveImportedCreatedAt({ localCreatedAt }, 2, 3), localCreatedAt);
+  assert.equal(resolveImportedCreatedAt({ createdAt: "invalid", localCreatedAt }, 2, 3), localCreatedAt);
   assert.equal(resolveImportedCreatedAt({}, 2, 3), new Date(2).toISOString());
   assert.equal(resolveImportedCreatedAt({}, 0, 3), new Date(3).toISOString());
 });
@@ -473,7 +512,7 @@ test("最後に書いたハッシュと異なる外部変更を自動上書き�
 });
 
 test("管理対象Markdownはsync-stateのnote IDとfileNameで特定する", () => {
-  assert.match(html, /local-save-state\.js\?v=0\.5\.0-4/);
+  assert.match(html, /local-save-state\.js\?v=0\.5\.0-5/);
   assert.match(html, /local-save-queue\.js\?v=0\.5\.0-3/);
   assert.match(html, /attachment-utils\.js\?v=0\.5\.0-11/);
   assert.match(html, /local-sync-utils\.js\?v=0\.5\.0-10/);

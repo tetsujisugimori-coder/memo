@@ -1,6 +1,12 @@
 (function initLocalMarkdown(globalScope) {
   "use strict";
 
+  const localSaveState = typeof module !== "undefined" && module.exports
+    ? require("./local-save-state.js")
+    : globalScope?.MemoNexusLocalSaveState;
+  if (!localSaveState?.resolveDisplayedCreatedAt) throw new Error("MemoNexusLocalSaveState is required");
+  const { resolveDisplayedCreatedAt } = localSaveState;
+
   const FRONT_MATTER_KEYS = [
     "memoNexusId", "title", "collectionId", "createdAt", "localCreatedAt", "updatedAt",
     "bodyUpdatedAt", "localSavedAt", "flagged", "trashed", "deletedAt", "sortOrder",
@@ -115,7 +121,8 @@
   }
 
   function resolveImportedCreatedAt(metadata, fileLastModified, importedAt = Date.now()) {
-    return metadata.localCreatedAt || metadata.createdAt || (fileLastModified ? new Date(fileLastModified).toISOString() : new Date(importedAt).toISOString());
+    return resolveDisplayedCreatedAt(metadata)
+      || (fileLastModified ? new Date(fileLastModified).toISOString() : new Date(importedAt).toISOString());
   }
 
   function parseLocalNote(text, options = {}) {

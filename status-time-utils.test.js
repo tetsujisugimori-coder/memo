@@ -58,8 +58,12 @@ test("タイトル日時と保存成功時刻を同じローカル日時部品�
 test("日時共通処理を利用側より先に読み込み、変更した配信識別子を更新する", () => {
   assert.match(html, /status-time-utils\.js\?v=0\.5\.0-2/);
   assert.match(html, /memo-popout-utils\.js\?v=0\.5\.0-4/);
+  assert.match(html, /local-save-state\.js\?v=0\.5\.0-5/);
+  assert.match(html, /local-markdown\.js\?v=0\.5\.0-4/);
   assert.match(html, /app\.js\?v=0\.5\.0-96/);
   assert.ok(html.indexOf("status-time-utils.js") < html.indexOf("memo-popout-utils.js"));
+  assert.ok(html.indexOf("status-time-utils.js") < html.indexOf("local-save-state.js"));
+  assert.ok(html.indexOf("local-save-state.js") < html.indexOf("local-markdown.js"));
   assert.ok(html.indexOf("status-time-utils.js") < html.indexOf("app.js"));
 });
 
