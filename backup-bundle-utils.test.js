@@ -24,7 +24,7 @@ test("タグバックアップ関連スクリプトのキャッシュ番号を�
   assert.match(html, /tags\.js\?v=0\.5\.0-2/);
   assert.match(html, /local-sync-utils\.js\?v=0\.5\.0-10/);
   assert.match(html, /backup-bundle-utils\.js\?v=0\.5\.0-5/);
-  assert.match(html, /app\.js\?v=0\.5\.0-95/);
+  assert.match(html, /app\.js\?v=0\.5\.0-96/);
 });
 
 test("完全バックアップはメモ個別のWebフォントIDをそのまま往復する", () => {
@@ -45,6 +45,37 @@ test("完全バックアップはメモ個別のWebフォントIDをそのまま
     entry("notes/web-font.md", markdown)
   ], { parseNote: parseLocalNote });
   assert.deepEqual(parsed.notes[0].note.fontSettings, fontSettings);
+});
+
+test("ZIP出力・復元でUTCの作成・更新時刻の瞬間を変更しない", () => {
+  const note = {
+    id: "date-note",
+    title: "日付境界",
+    body: "本文",
+    createdAt: "2026-08-19T23:19:22.291Z",
+    localCreatedAt: "2026-08-20T00:00:00.000Z",
+    updatedAt: "2026-08-20T01:00:00.000Z",
+    bodyUpdatedAt: "2026-08-20T00:30:00.000Z",
+    localSavedAt: "2026-08-20T02:00:00.000Z"
+  };
+  const markdown = serializeLocalNote(note, note.body);
+  const files = buildPortableBackupFiles({
+    manifest: manifest(),
+    collections: [],
+    tagDefinitions: [],
+    notePlans: [{ fileName: "date-note.md", markdown, updatedAt: note.updatedAt }],
+    normalizeTagDefinitions
+  });
+  const parsed = parsePortableBackup(files.map((file) => entry(file.name, file.content)), {
+    parseNote: parseLocalNote,
+    normalizeTagDefinitions
+  });
+  const restored = parsed.notes[0].note;
+  assert.equal(restored.createdAt, note.createdAt);
+  assert.equal(restored.localCreatedAt, note.localCreatedAt);
+  assert.equal(restored.updatedAt, note.updatedAt);
+  assert.equal(restored.bodyUpdatedAt, note.bodyUpdatedAt);
+  assert.equal(restored.localSavedAt, note.localSavedAt);
 });
 
 test("タグ定義の正規化処理がないバックアップ生成は明示的に失敗する", () => {

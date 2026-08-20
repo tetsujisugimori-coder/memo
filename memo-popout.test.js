@@ -51,6 +51,24 @@ test("同期判定はDBとの差ではなく明示的なローカル編集状態
   assert.match(app, /function loadPendingMemoSync\(\)[\s\S]*?applyMemoSync\(note\)/);
 });
 
+test("別ウィンドウ同期は数値とISOのupdatedAtを同じ実時刻として比較する", () => {
+  const older = "2026-08-19T23:19:22.291Z";
+  const newer = "2026-08-19T23:20:22.291Z";
+  const note = { id: "memo-a", updatedAt: newer };
+  assert.equal(getMemoSyncDecision({
+    message: { type: "memo-changed", memoId: "memo-a", updatedAt: newer },
+    knownUpdatedAt: older,
+    note,
+    currentId: "memo-a"
+  }), "apply");
+  assert.equal(getMemoSyncDecision({
+    message: { type: "memo-changed", memoId: "memo-a", updatedAt: Date.parse(newer) },
+    knownUpdatedAt: newer,
+    note,
+    currentId: "memo-a"
+  }), "ignore");
+});
+
 test("2画面の保存・同期では未編集を自動反映し、編集中だけ保留する", () => {
   const db = new Map([["memo-a", { id: "memo-a", title: "題名", body: "初期", updatedAt: 10 }]]);
   const popup = { id: "memo-a", knownUpdatedAt: 10, title: "題名", body: "初期", dirty: false, pending: null };

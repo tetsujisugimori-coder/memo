@@ -363,7 +363,17 @@ const {
 const localFs = window.MemoNexusLocalFsAdapter;
 const { openManagedDatabase, runGuardedStartup, startupFailureReason } = window.MemoNexusIndexedDbLifecycle;
 const { runManualLocalSave } = window.MemoNexusManualLocalSave;
-const { formatDateTimeWithSeconds, formatNoteDateTime, formatSaveSuccessTime, validLocalDate } = window.MemoNexusStatusTimeUtils;
+const {
+  compareDateTimes,
+  dateTimeAttribute,
+  formatDateTimeWithSeconds,
+  formatLocalDate,
+  formatNoteDateTime,
+  formatSaveSuccessTime,
+  localDateKey,
+  timestampValue,
+  validLocalDate
+} = window.MemoNexusStatusTimeUtils;
 const {
   MAX_WEB_CLIP_IMAGE_BYTES,
   safeExternalUrl: safeWebClipUrl,
@@ -1676,7 +1686,7 @@ function withNormalizedMemoTags(note) {
 function getAllNotes() {
   return new Promise((resolve, reject) => {
     const request = tx().getAll();
-    request.onsuccess = () => resolve(request.result.map(withNormalizedFlag).map(withNormalizedMemoTags).sort((a, b) => b.updatedAt - a.updatedAt));
+    request.onsuccess = () => resolve(request.result.map(withNormalizedFlag).map(withNormalizedMemoTags).sort((a, b) => compareDateTimes(a.updatedAt, b.updatedAt, "desc") || String(a.id).localeCompare(String(b.id))));
     request.onerror = () => reject(request.error);
   });
 }
@@ -1704,7 +1714,7 @@ function attachmentTx(mode = "readonly") {
 function getAttachmentsForMemo(memoId) {
   return new Promise((resolve, reject) => {
     const request = attachmentTx().index("memoId").getAll(memoId);
-    request.onsuccess = () => resolve(request.result.sort((a, b) => String(a.createdAt).localeCompare(String(b.createdAt))));
+    request.onsuccess = () => resolve(request.result.sort((a, b) => compareDateTimes(a.createdAt, b.createdAt) || String(a.id).localeCompare(String(b.id))));
     request.onerror = () => reject(request.error);
   });
 }
@@ -2607,13 +2617,13 @@ async function restoreCurrentDraftMirror() {
   }
 
   const existingNote = notes.find((note) => note.id === draft.id);
-  if (existingNote && (!Number.isFinite(draftSavedAt) || draftSavedAt <= Number(existingNote.updatedAt || 0))) {
+  if (existingNote && (!Number.isFinite(draftSavedAt) || draftSavedAt <= (timestampValue(existingNote.updatedAt) ?? 0))) {
     return null;
   }
 
-  const draftUpdatedAt = Number(draft.updatedAt);
+  const draftUpdatedAt = timestampValue(draft.updatedAt);
   const restoredUpdatedAt = Math.max(
-    Number.isFinite(draftUpdatedAt) ? draftUpdatedAt : 0,
+    draftUpdatedAt ?? 0,
     Number.isFinite(draftSavedAt) ? draftSavedAt : now
   );
   const restoredNote = {
@@ -2734,7 +2744,12 @@ async function importMarkdownZip(file) {
       const note = await createNote(hasMemoNexusMetadata ? (parsedPlan.metadata.title || plan.title) : plan.title, body, {
         id: memoId,
         isFlagged: flagged.isFlagged || (hasMemoNexusMetadata && Boolean(parsedPlan.metadata.flagged)),
-        tags: hasMemoNexusMetadata ? parsedPlan.metadata.tags : []
+        tags: hasMemoNexusMetadata ? parsedPlan.metadata.tags : [],
+        createdAt: hasMemoNexusMetadata ? parsedPlan.metadata.createdAt : undefined,
+        localCreatedAt: hasMemoNexusMetadata ? parsedPlan.metadata.localCreatedAt : undefined,
+        updatedAt: hasMemoNexusMetadata ? parsedPlan.metadata.updatedAt : undefined,
+        bodyUpdatedAt: hasMemoNexusMetadata ? parsedPlan.metadata.bodyUpdatedAt : undefined,
+        localSavedAt: hasMemoNexusMetadata ? parsedPlan.metadata.localSavedAt : undefined
       });
       importedNotes.push(note);
     } catch (error) {
@@ -3473,12 +3488,8 @@ function getTodayNote() {
 }
 
 // 今日メモのタイトルを YYYY-MM-DD 今日メモ の形で作ります。
-function todayTitle() {
-  const now = new Date();
-  const yyyy = now.getFullYear();
-  const mm = String(now.getMonth() + 1).padStart(2, "0");
-  const dd = String(now.getDate()).padStart(2, "0");
-  return `${yyyy}-${mm}-${dd} 今日メモ`;
+function todayTitle(value = Date.now(), options = {}) {
+  return `${localDateKey(value, options)} 今日メモ`;
 }
 
 // 新しいメモを作ってIndexedDBへ保存します。
@@ -3494,12 +3505,14 @@ async function createNote(title = "新規メモ", body = "", options = {}) {
     body,
     collectionId: resolveNewNoteCollection(options.collectionId),
     deletedAt: null,
-    createdAt: now,
-    bodyUpdatedAt: now,
-    updatedAt: now,
+    createdAt: options.createdAt ?? now,
+    bodyUpdatedAt: options.bodyUpdatedAt ?? options.updatedAt ?? now,
+    updatedAt: options.updatedAt ?? now,
     isFlagged: Boolean(options.isFlagged),
     tags: normalizeTagIds(options.tags)
   };
+  if (options.localCreatedAt != null) note.localCreatedAt = options.localCreatedAt;
+  if (options.localSavedAt != null) note.localSavedAt = options.localSavedAt;
   if (options.source) note.source = options.source;
 
   await putNote(note);
@@ -3677,7 +3690,7 @@ function renderWebClipExistingNoteChoice() {
   webClipExistingNoteSelect.replaceChildren(...matches.map((note) => {
     const option = document.createElement("option");
     option.value = note.id;
-    option.textContent = `${note.title || "無題"}（更新: ${note.updatedAt || "不明"}）`;
+    option.textContent = `${note.title || "無題"}（更新: ${formatNoteDateTime(note.updatedAt)}）`;
     return option;
   }));
   webClipExistingNoteSelectRow.hidden = matches.length < 2;
@@ -3870,7 +3883,7 @@ async function createWebClipNoteWithImages(title, clip, source, collectionId, ex
       notifyMemoChanged(note);
       return note;
     }
-    return await createNote(title, body, { id: memoId, collectionId, source: { ...source, webClipVersion: 3, images: sourceImages } });
+    return await createNote(title, body, { id: memoId, collectionId, createdAt: clip.capturedAt, source: { ...source, webClipVersion: 3, images: sourceImages } });
   } catch (error) {
     if (prepared.length) await deleteAttachmentRecords(prepared.map((attachment) => attachment.id)).catch(() => {});
     throw error;
@@ -4016,7 +4029,7 @@ async function saveWebClip({ textOnly = false } = {}) {
     const updateTarget = selectedWebClipUpdateTarget();
     const note = clip.images.length || updateTarget
       ? await createWebClipNoteWithImages(title, clip, source, webClipCollection.value, updateTarget)
-      : await createNote(title, buildWebClipMarkdown(clip), { collectionId: webClipCollection.value, source });
+      : await createNote(title, buildWebClipMarkdown(clip), { collectionId: webClipCollection.value, createdAt: clip.capturedAt, source });
     notes = await getAllNotes();
     webClipDialog.close();
     renderAll();
@@ -4103,7 +4116,7 @@ function renderList() {
   const filtered = listView.notes.filter((note) => {
     const haystack = `${note.title}\n${note.body}`.toLowerCase();
     return !query || haystack.includes(query);
-  }).sort((a, b) => Number(b.createdAt || 0) - Number(a.createdAt || 0));
+  }).sort((a, b) => compareDateTimes(resolveDisplayedCreatedAt(a), resolveDisplayedCreatedAt(b), "desc") || String(a.id).localeCompare(String(b.id)));
 
   memoList.innerHTML = "";
   const relations = currentTermRelationIndex();
@@ -4114,6 +4127,7 @@ function renderList() {
     const hiddenTermCount = relation.terms.length - visibleTerms.length;
     const item = document.createElement("div");
     item.className = `memo-item${note.id === currentId ? " active" : ""}${relation.terms.length ? " has-term-relations" : ""}`;
+    item.title = `作成 ${formatNoteDateTime(resolveDisplayedCreatedAt(note))}\n更新 ${formatNoteDateTime(note.bodyUpdatedAt || note.updatedAt)}`;
     item.innerHTML = `
       <div class="memo-title">${note.isFlagged ? '<span class="note-flag-indicator" title="フラグ付き" aria-label="フラグ付き">⚑</span>' : ""}${escapeHtml(note.title)}</div>
       <div class="memo-snippet">${escapeHtml(snippet(note.body))}</div>
@@ -4637,7 +4651,7 @@ async function refreshMemoFromOtherWindow(message) {
     return;
   }
   if (decision === "pending") {
-    pendingMemoSync = { memoId: message.memoId, updatedAt: Number(message.updatedAt) || Date.now() };
+    pendingMemoSync = { memoId: message.memoId, updatedAt: timestampValue(message.updatedAt) ?? Date.now() };
     renderMemoSyncNotice();
     return;
   }
@@ -8126,7 +8140,7 @@ function findRelated(source) {
       return { note, score, reason: reasons.join("、") || "近い語句" };
     })
     .filter((item) => item.score > 0)
-    .sort((a, b) => b.score - a.score || b.note.updatedAt - a.note.updatedAt);
+    .sort((a, b) => b.score - a.score || compareDateTimes(a.note.updatedAt, b.note.updatedAt, "desc"));
 }
 
 // 日本語・英数字のまとまりを簡易的な検索語として切り出します。
@@ -8429,9 +8443,9 @@ function setTextStatsOpen(open) {
 
 function renderTimestamp(element, value, formatter, prefix = "") {
   if (!element) return;
-  const date = validLocalDate(value);
-  element.textContent = `${prefix ? `${prefix} ` : ""}${formatter(date)}`;
-  if (date) element.dateTime = date.toISOString();
+  element.textContent = `${prefix ? `${prefix} ` : ""}${formatter(value)}`;
+  const attribute = dateTimeAttribute(value);
+  if (attribute) element.dateTime = attribute;
   else element.removeAttribute("datetime");
 }
 
@@ -8540,14 +8554,12 @@ function padDatePart(value) {
 }
 
 // バックアップZIP名に使う日付文字列を作ります。
-function todayStamp() {
-  const now = new Date();
-  return `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}`;
+function todayStamp(value = Date.now(), options = {}) {
+  return localDateKey(value, options).replaceAll("-", "");
 }
 
-function todayStampDashed() {
-  const now = new Date();
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+function todayStampDashed(value = Date.now(), options = {}) {
+  return localDateKey(value, options);
 }
 
 async function openSettingsDialog() {
@@ -9142,10 +9154,7 @@ function compareCollectionMemos(a, b) {
 }
 
 function collectionMemoCreatedAt(note) {
-  const value = note.createdAt;
-  if (value == null || (typeof value === "string" && !value.trim())) return null;
-  const timestamp = new Date(value).getTime();
-  return Number.isFinite(timestamp) ? timestamp : null;
+  return timestampValue(resolveDisplayedCreatedAt(note));
 }
 
 function renderTrashNode() {
@@ -9182,7 +9191,7 @@ function renderCollectionMemo(note, depth, isDeleted = false) {
   row.setAttribute("role", "treeitem");
   row.setAttribute("aria-level", String(depth));
   row.setAttribute("aria-selected", String(selectedMemoIds.has(note.id)));
-  const created = formatExplorerDate(note.createdAt);
+  const created = formatExplorerDate(resolveDisplayedCreatedAt(note));
   row.innerHTML = `<span class="collection-memo-main"><span class="collection-memo-title">${escapeHtml(note.title)}</span><span class="collection-memo-date">${created ? `作成 ${created}` : "作成日不明"}</span></span><button class="collection-memo-more" type="button" aria-label="${escapeAttr(note.title)}の操作">…</button>`;
   row.addEventListener("click", (event) => handleMemoSelection(event, note.id, isDeleted));
   row.addEventListener("keydown", (event) => {
@@ -9201,9 +9210,7 @@ function renderCollectionMemo(note, depth, isDeleted = false) {
 }
 
 function formatExplorerDate(value) {
-  if (value == null || Number.isNaN(new Date(value).getTime())) return "";
-  const date = new Date(value);
-  return `${date.getFullYear()}/${padDatePart(date.getMonth() + 1)}/${padDatePart(date.getDate())}`;
+  return formatLocalDate(value);
 }
 
 function normalizedCollectionId(note) {

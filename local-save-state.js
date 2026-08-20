@@ -1,6 +1,12 @@
 (function initLocalSaveState(globalScope) {
   "use strict";
 
+  const statusTimeUtils = typeof module !== "undefined" && module.exports
+    ? require("./status-time-utils.js")
+    : globalScope?.MemoNexusStatusTimeUtils;
+  if (!statusTimeUtils?.timestampValue) throw new Error("MemoNexusStatusTimeUtils is required");
+  const { timestampValue } = statusTimeUtils;
+
   const STATUS_LABELS = Object.freeze({
     unconfigured: "未設定",
     saving: "保存中",
@@ -119,7 +125,9 @@
   }
 
   function resolveDisplayedCreatedAt(note) {
-    return note?.localCreatedAt || note?.createdAt || null;
+    if (timestampValue(note?.createdAt) !== null) return note.createdAt;
+    if (timestampValue(note?.localCreatedAt) !== null) return note.localCreatedAt;
+    return null;
   }
 
   function applyLocalSaveSuccess(note, savedAt = new Date().toISOString()) {

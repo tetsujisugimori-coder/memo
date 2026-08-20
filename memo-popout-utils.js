@@ -1,10 +1,15 @@
 "use strict";
 
 (function attachMemoPopoutUtils(global) {
+  const statusTimeUtils = typeof module !== "undefined" && module.exports
+    ? require("./status-time-utils.js")
+    : global.MemoNexusStatusTimeUtils;
+  const { timestampValue } = statusTimeUtils;
+
   function getMemoSyncDecision({ message, knownUpdatedAt = 0, note, currentId, isLocalMemoDirty = false, localDirtyMemoId = null, pendingUpdatedAt = 0 }) {
     if (message?.type !== "memo-changed" || !message.memoId) return "ignore";
-    const updatedAt = Number(message.updatedAt) || 0;
-    if (updatedAt <= Math.max(Number(knownUpdatedAt) || 0, Number(pendingUpdatedAt) || 0)) return "ignore";
+    const updatedAt = timestampValue(message.updatedAt) ?? 0;
+    if (updatedAt <= Math.max(timestampValue(knownUpdatedAt) ?? 0, timestampValue(pendingUpdatedAt) ?? 0)) return "ignore";
     if (!note || note.deletedAt) return "unavailable";
     if (currentId !== message.memoId) return "refresh-list";
     return isLocalMemoDirty && localDirtyMemoId === message.memoId ? "pending" : "apply";
