@@ -221,3 +221,146 @@ test("高頻度編集でも最終revisionのsnapshotが最後に残る", async (
   assert.equal(foundation.getState("A").lastSavedRevision, 200);
   assert.equal(foundation.getState("A").dirty, false);
 });
+
+test("UIコールバックが例外を出しても保存成功・idle解放・次revisionを維持する", async () => {
+  const writes = [];
+  const callbackErrors = [];
+  const foundation = createNoteSaveFoundation({
+    writeSnapshot: async (snapshot) => writes.push(snapshot.revision),
+    onStateChange: () => { throw new Error("state UI failed"); },
+    onSaveSuccess: () => { throw new Error("success UI failed"); },
+    logError: (message, error) => callbackErrors.push(`${message}:${error.message}`)
+  });
+  foundation.registerNote("A", 0);
+  foundation.markChanged("A", 0);
+  await foundation.enqueueSave(request("A", 1, "rev1"));
+  assert.equal((await foundation.whenIdle("A")).status, "saved");
+  assert.equal(foundation.getState("A").lastError, null);
+
+  foundation.markChanged("A", 1);
+  await foundation.enqueueSave(request("A", 2, "rev2"));
+  assert.deepEqual(writes, [1, 2]);
+  assert.equal(foundation.getState("A").status, "saved");
+  assert.equal(callbackErrors.some((item) => item.includes("state UI failed")), true);
+  assert.equal(callbackErrors.some((item) => item.includes("success UI failed")), true);
+});
+
+test("onSaveError例外はwriterエラーを置き換えず同revisionを再試行できる", async () => {
+  const writerError = new Error("IndexedDB unavailable");
+  let fail = true;
+  const foundation = createNoteSaveFoundation({
+    writeSnapshot: async () => { if (fail) throw writerError; },
+    onSaveError: () => { throw new Error("error UI failed"); },
+    logError: () => {}
+  });
+  foundation.registerNote("A", 4);
+  foundation.markChanged("A", 4);
+  const rev5 = request("A", 5, "rev5");
+  await assert.rejects(foundation.enqueueSave(rev5), (error) => error === writerError);
+  assert.equal((await foundation.whenIdle("A")).lastError, writerError);
+
+  fail = false;
+  await foundation.enqueueSave(rev5);
+  assert.equal(foundation.getState("A").status, "saved");
+  assert.equal(foundation.getState("A").lastError, null);
+});
+
+test("入力200回ではcloneせず保存要求作成時だけ固定snapshotをcloneする", () => {
+  let cloneCount = 0;
+  const liveDraft = { id: "A", revision: 0, body: "", tags: ["one"], nested: { value: 1 } };
+  const foundation = createNoteSaveFoundation({ writeSnapshot: async () => {} });
+  foundation.registerNote("A", 0);
+  for (let index = 1; index <= 200; index += 1) {
+    liveDraft.body = "x".repeat(index * 100);
+    liveDraft.revision = foundation.markChanged("A", liveDraft.revision);
+  }
+  assert.equal(cloneCount, 0);
+
+  const saveRequest = createSaveRequest({
+    noteId: "A",
+    revision: liveDraft.revision,
+    snapshot: liveDraft,
+    clone: (value) => {
+      cloneCount += 1;
+      return structuredClone(value);
+    }
+  });
+  assert.equal(cloneCount, 1);
+  liveDraft.body = "要求作成後の本文";
+  liveDraft.tags.push("two");
+  liveDraft.nested.value = 2;
+  assert.notEqual(saveRequest.snapshot.body, liveDraft.body);
+  assert.deepEqual(saveRequest.snapshot.tags, ["one"]);
+  assert.equal(saveRequest.snapshot.nested.value, 1);
+  assert.equal(Object.isFrozen(saveRequest.snapshot), true);
+  assert.equal(Object.isFrozen(saveRequest.snapshot.nested), true);
+});
+
+test("通常保存と複数メモbatchをID順ロックで調停し原子性と最新値を維持する", async () => {
+  const firstWrite = deferred();
+  const persisted = new Map();
+  const events = [];
+  const foundation = createNoteSaveFoundation({
+    writeSnapshot: async (snapshot) => {
+      events.push(`single:${snapshot.id}:${snapshot.revision}`);
+      await firstWrite.promise;
+      persisted.set(snapshot.id, snapshot);
+    }
+  });
+  const drafts = new Map([
+    ["A", { id: "A", revision: 0, body: "A0", collectionId: "old" }],
+    ["B", { id: "B", revision: 0, body: "B0", collectionId: "old" }]
+  ]);
+  foundation.registerNote("A", 0);
+  foundation.registerNote("B", 0);
+  drafts.get("A").revision = foundation.markChanged("A", 0);
+  const savingA = foundation.enqueueSave(request("A", 1, "A1"));
+  await Promise.resolve();
+
+  drafts.forEach((draft) => {
+    draft.collectionId = "new";
+    draft.revision = foundation.markChanged(draft.id, draft.revision);
+  });
+  const batch = foundation.enqueueBatchSave({
+    noteIds: ["B", "A"],
+    createRequests: () => ["A", "B"].map((id) => createSaveRequest({ noteId: id, revision: drafts.get(id).revision, snapshot: drafts.get(id) })),
+    writeSnapshots: async (snapshots) => {
+      events.push(`batch:${snapshots.map((item) => item.id).join("")}`);
+      snapshots.forEach((snapshot) => persisted.set(snapshot.id, snapshot));
+    }
+  });
+  firstWrite.resolve();
+  await Promise.all([savingA, batch]);
+
+  assert.deepEqual(events, ["single:A:1", "batch:AB"]);
+  assert.equal(persisted.get("A").collectionId, "new");
+  assert.equal(persisted.get("B").collectionId, "new");
+  assert.equal(foundation.getState("A").dirty, false);
+  assert.equal(foundation.getState("B").dirty, false);
+});
+
+test("batch transaction失敗後も全メモのdraft・revision・dirtyを保持する", async () => {
+  const drafts = new Map([
+    ["A", { id: "A", revision: 0, body: "A", fontSettings: { enabled: true } }],
+    ["B", { id: "B", revision: 0, body: "B", fontSettings: { enabled: true } }]
+  ]);
+  const foundation = createNoteSaveFoundation({ writeSnapshot: async () => {} });
+  drafts.forEach((draft) => {
+    foundation.registerNote(draft.id, 0);
+    delete draft.fontSettings;
+    draft.revision = foundation.markChanged(draft.id, 0);
+  });
+  const transactionError = new Error("atomic transaction aborted");
+  await assert.rejects(foundation.enqueueBatchSave({
+    noteIds: ["A", "B"],
+    createRequests: () => [...drafts.values()].map((draft) => createSaveRequest({ noteId: draft.id, revision: draft.revision, snapshot: draft })),
+    writeSnapshots: async () => { throw transactionError; }
+  }), (error) => error === transactionError);
+
+  for (const draft of drafts.values()) {
+    assert.equal(draft.revision, 1);
+    assert.equal(Object.hasOwn(draft, "fontSettings"), false);
+    assert.equal(foundation.getState(draft.id).dirty, true);
+    assert.equal(foundation.getState(draft.id).lastError, transactionError);
+  }
+});

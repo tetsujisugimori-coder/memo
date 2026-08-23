@@ -60,7 +60,7 @@ test("日時共通処理を利用側より先に読み込み、変更した配�
   assert.match(html, /memo-popout-utils\.js\?v=0\.5\.0-4/);
   assert.match(html, /local-save-state\.js\?v=0\.5\.0-5/);
   assert.match(html, /local-markdown\.js\?v=0\.5\.0-4/);
-  assert.match(html, /app\.js\?v=0\.5\.0-97/);
+  assert.match(html, /app\.js\?v=0\.5\.0-98/);
   assert.ok(html.indexOf("status-time-utils.js") < html.indexOf("memo-popout-utils.js"));
   assert.ok(html.indexOf("status-time-utils.js") < html.indexOf("local-save-state.js"));
   assert.ok(html.indexOf("local-save-state.js") < html.indexOf("local-markdown.js"));
@@ -128,7 +128,7 @@ test("新規作成・Markdown取込・Web Clipperで指定された瞬間を変�
   const stored = [];
   const createNoteSource = extractFunction(app, "createNote").replace(/^function createNote/, "async function createNote");
   const createNote = new Function(
-    "Date", "crypto", "temporaryMemoTitle", "uniqueTitle", "resolveNewNoteCollection", "normalizeTagIds", "putNote", "notes", "invalidateTermRelationIndex",
+    "Date", "crypto", "temporaryMemoTitle", "uniqueTitle", "resolveNewNoteCollection", "normalizeTagIds", "putNote", "notes", "invalidateTermRelationIndex", "noteForSave", "persistIncomingNote", "registerNoteSaveState",
     `${createNoteSource}; return createNote;`
   )(
     Date,
@@ -139,6 +139,9 @@ test("新規作成・Markdown取込・Web Clipperで指定された瞬間を変�
     (tags) => tags || [],
     async (note) => { stored.push(note); },
     [],
+    () => {},
+    () => null,
+    async (note) => note,
     () => {}
   );
   const capturedAt = normalizeWebClip({
@@ -202,7 +205,7 @@ test("ブラウザ保存成功時刻はsavedと有効な成功日時が揃った
 
   const toggleFlag = extractFunction(app, "toggleCurrentNoteFlag");
   const saveCurrentNote = extractFunction(app, "saveCurrentNote");
-  assert.match(toggleFlag, /markLocalMemoDirty\(note\)[\s\S]*await enqueueNoteSave\(note\.id\)/);
+  assert.match(toggleFlag, /const noteId = note\.id[\s\S]*markLocalMemoDirty\(note\)[\s\S]*await enqueueNoteSave\(noteId\)/);
   assert.match(saveCurrentNote, /applyCurrentEditorDraft\(note\)[\s\S]*return flushScheduledNoteSave\(note\.id\)/);
   assert.match(app, /function handleNoteSaveStateChange\([\s\S]*?state\.status === "error"\) setSaveStatus\("error"\)[\s\S]*?else if \(state\.dirty\) setSaveStatus\("editing"\)[\s\S]*?else setSaveStatus\("saved"/);
 });

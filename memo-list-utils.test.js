@@ -73,8 +73,8 @@ test("登録制タグUIと右サイドバーのタグタブを保存・解除処
   assert.match(html, /id="createTagBtn"[\s\S]*タグを作成/);
   assert.match(html, /id="contextTagTab"[^>]+aria-controls="tagPanel"/);
   assert.match(html, /id="clearTagFilterBtn"/);
-  assert.match(app, /function updateCurrentNoteTags\(value\)[\s\S]*restrictTagIds\(value, registeredTags\)[\s\S]*await saveCurrentNote\(\)/);
-  assert.match(app, /function updateCurrentNoteTags\(value\)[\s\S]*renderNoteTags\(note\);[\s\S]*renderTagPanel\(\);[\s\S]*renderList\(\);[\s\S]*await saveCurrentNote\(\)/);
+  assert.match(app, /function updateCurrentNoteTags\(value, targetNoteId = currentId\)[\s\S]*const noteId = targetNoteId[\s\S]*restrictTagIds\(value, registeredTags\)[\s\S]*await enqueueNoteSave\(noteId\)/);
+  assert.match(app, /function updateCurrentNoteTags\(value, targetNoteId = currentId\)[\s\S]*currentId === noteId[\s\S]*renderNoteTags\(note\);[\s\S]*renderTagPanel\(\);[\s\S]*renderList\(\);[\s\S]*await enqueueNoteSave\(noteId\)/);
   assert.match(app, /chip\.className = "note-tag-chip"/);
   assert.match(app, /button\.className = "tag-list-item"/);
   assert.match(app, /buildMemoListView\(notes, selectedCollectionId, selectedTagFilter\)/);
@@ -86,7 +86,7 @@ test("タグ関連スクリプトのキャッシュ番号を更新する", () =>
   assert.match(html, /src="tags\.js\?v=0\.5\.0-2"/);
   assert.match(html, /src="memo-list-utils\.js\?v=0\.5\.0-5"/);
   assert.match(html, /src="local-markdown\.js\?v=0\.5\.0-4"/);
-  assert.match(html, /src="app\.js\?v=0\.5\.0-97"/);
+  assert.match(html, /src="app\.js\?v=0\.5\.0-98"/);
   assert.ok(html.indexOf('src="tags.js?v=0.5.0-2"') < html.indexOf('src="memo-list-utils.js?v=0.5.0-5"'));
-  assert.ok(html.indexOf('src="memo-list-utils.js?v=0.5.0-5"') < html.indexOf('src="app.js?v=0.5.0-97"'));
+  assert.ok(html.indexOf('src="memo-list-utils.js?v=0.5.0-5"') < html.indexOf('src="app.js?v=0.5.0-98"'));
 });
