@@ -4480,6 +4480,7 @@ function snippet(body) {
 
 // 指定したidのメモをエディタに読み込みます。
 function openNote(id) {
+  if (noteSaveFoundation.isTerminal(id)) return;
   const previousId = currentId;
   if (previousId && previousId !== id) {
     applyCurrentEditorDraft(currentNote());
@@ -4597,6 +4598,7 @@ function syncLegacyDirtyState(noteId = currentId) {
 
 function markLocalMemoDirty(note = currentNote()) {
   if (!note) return 0;
+  if (noteSaveFoundation.isTerminal(note.id)) return normalizeNoteRevision(note.revision);
   registerNoteSaveState(note);
   note.revision = noteSaveFoundation.markChanged(note.id, note.revision);
   note.updatedAt = Date.now();
@@ -4613,6 +4615,7 @@ function clearLocalMemoDirty(memoId = currentId) {
 
 function applyCurrentEditorDraft(note = currentNote()) {
   if (!note || note.id !== currentId) return false;
+  if (noteSaveFoundation.isTerminal(note.id)) return false;
   const nextBody = editor.value;
   const nextTitle = titleInput.value || titleFromBody(nextBody) || "無題メモ";
   const bodyChanged = note.body !== nextBody;
@@ -4650,6 +4653,7 @@ async function getAllNotes() {
 }
 
 function enqueueNoteSave(noteId) {
+  if (noteSaveFoundation.isTerminal(noteId)) return Promise.resolve(null);
   const note = noteForSave(noteId);
   if (!note) return Promise.resolve(null);
   registerNoteSaveState(note);
@@ -4658,11 +4662,15 @@ function enqueueNoteSave(noteId) {
   if (state.activeRevision === note.revision || state.pendingRevision === note.revision) {
     return waitForNoteSave(noteId);
   }
-  return noteSaveFoundation.enqueueSave(createSaveRequest({
+  const request = createSaveRequest({
     noteId,
     revision: note.revision,
     snapshot: note
-  }));
+  });
+  return noteSaveFoundation.enqueueSave(request).catch((error) => {
+    if (error?.code !== "NOTE_BATCH_ACTIVE") throw error;
+    return noteSaveFoundation.whenIdle(noteId).then(() => enqueueNoteSave(noteId));
+  });
 }
 
 function clearScheduledNoteSave(noteId) {
@@ -4672,32 +4680,90 @@ function clearScheduledNoteSave(noteId) {
   scheduledSaveNoteId = null;
 }
 
-// 複数メモの変更はlive draftへ先に反映し、対象IDを固定した1つのtransactionで保存します。
-// 保存開始時にだけsnapshotを作るため、待機中の追加編集も取り込み、保存中の編集は別revisionとして残ります。
-function mutateNotesAtomically(noteIds, mutate, writeSnapshots = updateNotesTransaction) {
+function noteBatchValueEquals(left, right) {
+  if (Object.is(left, right)) return true;
+  try { return JSON.stringify(left) === JSON.stringify(right); }
+  catch (_) { return false; }
+}
+
+function noteBatchChanges(before, after) {
+  const keys = new Set([...Object.keys(before), ...Object.keys(after)]);
+  keys.delete("revision");
+  return [...keys].filter((key) => {
+    const beforeHas = Object.prototype.hasOwnProperty.call(before, key);
+    const afterHas = Object.prototype.hasOwnProperty.call(after, key);
+    return beforeHas !== afterHas || !noteBatchValueEquals(before[key], after[key]);
+  }).map((key) => ({
+    key,
+    beforeHas: Object.prototype.hasOwnProperty.call(before, key),
+    beforeValue: cloneNoteSnapshot(before[key]),
+    afterHas: Object.prototype.hasOwnProperty.call(after, key),
+    afterValue: cloneNoteSnapshot(after[key])
+  }));
+}
+
+function applyCommittedBatchChanges(note, changes) {
+  changes.forEach((change) => {
+    const currentHas = Object.prototype.hasOwnProperty.call(note, change.key);
+    const stillAtBatchBase = currentHas === change.beforeHas
+      && noteBatchValueEquals(note[change.key], change.beforeValue);
+    if (!stillAtBatchBase) return;
+    if (change.afterHas) note[change.key] = cloneNoteSnapshot(change.afterValue);
+    else delete note[change.key];
+  });
+}
+
+// バッチ固有の変更は固定snapshotへだけ適用し、transaction成功後にlive draftへ合流します。
+// 失敗時は通常編集だけがlive draftに残り、保存中の追加編集は別revisionとして維持されます。
+async function mutateNotesAtomically(noteIds, mutate, writeSnapshots = updateNotesTransaction) {
   const ids = [...new Set(noteIds || [])].filter(Boolean).sort();
   if (!ids.length) return Promise.resolve([]);
   if (ids.includes(currentId)) applyCurrentEditorDraft(currentNote());
 
-  const changedIds = [];
-  ids.forEach((noteId) => {
+  const plans = ids.map((noteId) => {
     const note = noteForSave(noteId);
-    if (!note || mutate(note, noteId) === false) return;
-    markLocalMemoDirty(note);
-    clearScheduledNoteSave(noteId);
-    changedIds.push(noteId);
-  });
-  if (!changedIds.length) return Promise.resolve([]);
+    if (!note) return null;
+    const before = cloneNoteSnapshot(note);
+    const snapshot = cloneNoteSnapshot(note);
+    if (mutate(snapshot, noteId) === false) return null;
+    return { noteId, before, snapshot, changes: noteBatchChanges(before, snapshot) };
+  }).filter(Boolean);
+  if (!plans.length) return [];
 
-  return noteSaveFoundation.enqueueBatchSave({
-    noteIds: changedIds,
-    createRequests: () => changedIds.map((noteId) => {
-      const note = noteForSave(noteId);
-      if (!note) throw new Error(`メモが存在しません: ${noteId}`);
-      return createSaveRequest({ noteId, revision: note.revision, snapshot: note });
-    }),
-    writeSnapshots
+  const changedIds = plans.map((plan) => plan.noteId);
+  const batch = noteSaveFoundation.beginAtomicBatch(changedIds);
+  changedIds.forEach(clearScheduledNoteSave);
+  const requests = plans.map((plan) => {
+    plan.snapshot.revision = noteSaveFoundation.markBatchChanged(batch, plan.noteId, plan.before.revision);
+    return createSaveRequest({ noteId: plan.noteId, revision: plan.snapshot.revision, snapshot: plan.snapshot });
   });
+
+  let results;
+  try {
+    results = await noteSaveFoundation.enqueueBatchSave({
+      batch,
+      noteIds: changedIds,
+      createRequests: () => requests,
+      writeSnapshots
+    });
+  } catch (error) {
+    const states = noteSaveFoundation.abortAtomicBatch(batch);
+    states.forEach((state) => {
+      const liveNote = noteForSave(state.noteId);
+      if (liveNote) liveNote.revision = state.currentRevision;
+    });
+    throw error;
+  }
+
+  try {
+    plans.forEach((plan) => {
+      const liveNote = noteForSave(plan.noteId);
+      if (liveNote) applyCommittedBatchChanges(liveNote, plan.changes);
+    });
+    return results;
+  } finally {
+    noteSaveFoundation.completeAtomicBatch(batch);
+  }
 }
 
 function runExclusiveNoteOperation(noteIds, operation) {
@@ -4904,8 +4970,11 @@ function notifyMemoChanged(note) {
 
 async function refreshMemoFromOtherWindow(message) {
   if (!db || message?.type !== "memo-changed" || !message.memoId) return;
+  if (noteSaveFoundation.isTerminal(message.memoId)) return;
   const knownNote = notes.find((item) => item.id === message.memoId);
-  notes = await getAllNotes();
+  const refreshedNotes = await getAllNotes();
+  if (noteSaveFoundation.isTerminal(message.memoId)) return;
+  notes = refreshedNotes;
   invalidateTermRelationIndex();
   const note = notes.find((item) => item.id === message.memoId);
   const decision = getMemoSyncDecision({
@@ -5019,6 +5088,7 @@ function loadPendingMemoSync() {
 function scheduleSave({ render = true } = {}) {
   const note = currentNote();
   if (!note) return;
+  if (noteSaveFoundation.isTerminal(note.id)) return;
   applyCurrentEditorDraft(note);
   renderTextStats();
   saveCurrentDraftMirror();
@@ -9812,7 +9882,9 @@ async function permanentlyDeleteMemos(memoIds) {
   const targets = memoIds.map((id) => noteForSave(id)).filter((note) => note?.deletedAt);
   if (!targets.length || !confirm(`${targets.length}件を完全に削除しますか？\nこの操作は元に戻せません。`)) return;
   const targetIds = targets.map((note) => note.id);
-  await runExclusiveNoteOperation(targetIds, () => new Promise((resolve, reject) => {
+  if (targetIds.includes(currentId)) applyCurrentEditorDraft(currentNote());
+  targetIds.forEach(clearScheduledNoteSave);
+  await noteSaveFoundation.runTerminalDelete(targetIds, () => new Promise((resolve, reject) => {
       const transaction = db.transaction([STORE_NAME, ATTACHMENT_STORE_NAME], "readwrite");
       const noteStore = transaction.objectStore(STORE_NAME);
       const attachmentIndex = transaction.objectStore(ATTACHMENT_STORE_NAME).index("memoId");
@@ -9832,7 +9904,6 @@ async function permanentlyDeleteMemos(memoIds) {
     }));
   targetIds.forEach((noteId) => {
     noteLiveDrafts.delete(noteId);
-    noteSaveFoundation.forgetNote(noteId);
     notifyMemoChanged({ id: noteId, deletedAt: new Date().toISOString(), updatedAt: Date.now() });
   });
   targets.forEach((note) => removeDraftMirrorForNote(note.id));

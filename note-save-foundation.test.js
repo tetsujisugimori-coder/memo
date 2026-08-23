@@ -317,11 +317,13 @@ test("通常保存と複数メモbatchをID順ロックで調停し原子性と�
   const savingA = foundation.enqueueSave(request("A", 1, "A1"));
   await Promise.resolve();
 
+  const atomicBatch = foundation.beginAtomicBatch(["A", "B"]);
   drafts.forEach((draft) => {
     draft.collectionId = "new";
-    draft.revision = foundation.markChanged(draft.id, draft.revision);
+    draft.revision = foundation.markBatchChanged(atomicBatch, draft.id, draft.revision);
   });
   const batch = foundation.enqueueBatchSave({
+    batch: atomicBatch,
     noteIds: ["B", "A"],
     createRequests: () => ["A", "B"].map((id) => createSaveRequest({ noteId: id, revision: drafts.get(id).revision, snapshot: drafts.get(id) })),
     writeSnapshots: async (snapshots) => {
@@ -331,6 +333,7 @@ test("通常保存と複数メモbatchをID順ロックで調停し原子性と�
   });
   firstWrite.resolve();
   await Promise.all([savingA, batch]);
+  foundation.completeAtomicBatch(atomicBatch);
 
   assert.deepEqual(events, ["single:A:1", "batch:AB"]);
   assert.equal(persisted.get("A").collectionId, "new");
@@ -339,28 +342,93 @@ test("通常保存と複数メモbatchをID順ロックで調停し原子性と�
   assert.equal(foundation.getState("B").dirty, false);
 });
 
-test("batch transaction失敗後も全メモのdraft・revision・dirtyを保持する", async () => {
+test("batch transaction失敗中は通常保存を遮断し、解除後はbatch revisionだけを戻す", async () => {
   const drafts = new Map([
     ["A", { id: "A", revision: 0, body: "A", fontSettings: { enabled: true } }],
     ["B", { id: "B", revision: 0, body: "B", fontSettings: { enabled: true } }]
   ]);
   const foundation = createNoteSaveFoundation({ writeSnapshot: async () => {} });
+  const atomicBatch = foundation.beginAtomicBatch(["A", "B"]);
   drafts.forEach((draft) => {
     foundation.registerNote(draft.id, 0);
     delete draft.fontSettings;
-    draft.revision = foundation.markChanged(draft.id, 0);
+    draft.revision = foundation.markBatchChanged(atomicBatch, draft.id, 0);
   });
   const transactionError = new Error("atomic transaction aborted");
   await assert.rejects(foundation.enqueueBatchSave({
+    batch: atomicBatch,
     noteIds: ["A", "B"],
     createRequests: () => [...drafts.values()].map((draft) => createSaveRequest({ noteId: draft.id, revision: draft.revision, snapshot: draft })),
     writeSnapshots: async () => { throw transactionError; }
   }), (error) => error === transactionError);
 
+  await assert.rejects(foundation.enqueueSave(request("A", 1, "batch field must not escape")), (error) => error.code === "NOTE_BATCH_ACTIVE");
+  const states = foundation.abortAtomicBatch(atomicBatch);
+
   for (const draft of drafts.values()) {
     assert.equal(draft.revision, 1);
     assert.equal(Object.hasOwn(draft, "fontSettings"), false);
-    assert.equal(foundation.getState(draft.id).dirty, true);
+    assert.equal(foundation.getState(draft.id).currentRevision, 0);
+    assert.equal(foundation.getState(draft.id).dirty, false);
     assert.equal(foundation.getState(draft.id).lastError, transactionError);
   }
+  assert.equal(states.length, 2);
+});
+
+test("永久削除開始後は変更・保存・batch追加を拒否し、成功後も復活させない", async () => {
+  const gate = deferred();
+  const foundation = createNoteSaveFoundation({ writeSnapshot: async () => {} });
+  foundation.registerNote("A", 2);
+  foundation.registerNote("B", 3);
+  const deleting = foundation.runTerminalDelete(["B", "A"], () => gate.promise);
+
+  assert.equal(foundation.isTerminal("A"), true);
+  assert.equal(foundation.isTerminal("B"), true);
+  assert.throws(() => foundation.markChanged("A", 2), (error) => error.code === "NOTE_DELETING");
+  await assert.rejects(foundation.enqueueSave(request("A", 3, "late")), (error) => error.code === "NOTE_DELETING");
+  assert.throws(() => foundation.beginAtomicBatch(["A"]), (error) => error.code === "NOTE_DELETING");
+
+  gate.resolve();
+  await deleting;
+  assert.equal(foundation.getState("A"), null);
+  assert.equal(foundation.getState("B"), null);
+  assert.equal(foundation.registerNote("A", 9), null);
+  assert.doesNotThrow(() => foundation.forgetNote("A"));
+  await assert.rejects(foundation.enqueueSave(request("B", 4, "resurrect")), (error) => error.code === "NOTE_DELETING");
+});
+
+test("永久削除は開始済み保存を完了させてから削除し、開始後の保存は受け付けない", async () => {
+  const saveGate = deferred();
+  let deleteStarted = false;
+  const foundation = createNoteSaveFoundation({ writeSnapshot: async () => saveGate.promise });
+  foundation.registerNote("A", 0);
+  const revision = foundation.markChanged("A", 0);
+  const saving = foundation.enqueueSave(request("A", revision, "before delete"));
+  await Promise.resolve();
+
+  const deleting = foundation.runTerminalDelete(["A"], async () => { deleteStarted = true; });
+  await Promise.resolve();
+  assert.equal(deleteStarted, false);
+  await assert.rejects(foundation.enqueueSave(request("A", revision + 1, "after delete start")), (error) => error.code === "NOTE_DELETING");
+
+  saveGate.resolve();
+  await saving;
+  await deleting;
+  assert.equal(deleteStarted, true);
+  assert.equal(foundation.getState("A"), null);
+});
+
+test("永久削除失敗では終端状態を解除して編集・保存・再削除を再開できる", async () => {
+  const deleteError = new Error("delete aborted");
+  const writes = [];
+  const foundation = createNoteSaveFoundation({ writeSnapshot: async (snapshot) => writes.push(snapshot) });
+  foundation.registerNote("A", 0);
+  await assert.rejects(foundation.runTerminalDelete(["A"], async () => { throw deleteError; }), (error) => error === deleteError);
+
+  assert.equal(foundation.isTerminal("A"), false);
+  const revision = foundation.markChanged("A", 0);
+  await foundation.enqueueSave(request("A", revision, "after failure"));
+  assert.equal(writes.at(-1).body, "after failure");
+  await foundation.runTerminalDelete(["A"], async () => {});
+  assert.equal(foundation.isTerminal("A"), true);
 });

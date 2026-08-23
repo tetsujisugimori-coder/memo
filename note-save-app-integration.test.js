@@ -18,6 +18,7 @@ function sourceBetween(start, end) {
 
 const openNoteSource = sourceBetween("function openNote(id)", "async function initPopout");
 const saveCoreSource = sourceBetween("function currentNote()", "function handleNoteSaveStateChange");
+const saveHandlersSource = sourceBetween("function handleNoteSaveStateChange", "function popoutUrlForMemo");
 const scheduleSaveSource = sourceBetween("function scheduleSave(", "function captureUndoSnapshot");
 const updateTagsSource = sourceBetween("async function updateCurrentNoteTags", "function setNoteTagStatus");
 
@@ -74,13 +75,16 @@ function createHarness({ writer, ensureTags = async () => {} } = {}) {
     const tableAxisSelections = { clear() {} };
     let pendingTableAxisDeletion = null;
     let tagRenderIds = [];
+    let renderAllCount = 0;
+    let renderListCount = 0;
+    let lastDiscovery = "";
     const window = { MemoNexusCodexChat: null };
     const document = { title: "" };
     const noteSaveFoundation = createNoteSaveFoundation({
       writeSnapshot: writer,
-      onStateChange() {},
-      onSaveSuccess() {},
-      onSaveError() {},
+      onStateChange: handleNoteSaveStateChange,
+      onSaveSuccess: handleNoteSaveSuccess,
+      onSaveError: handleNoteSaveError,
       logError() {}
     });
     const noop = () => {};
@@ -91,10 +95,10 @@ function createHarness({ writer, ensureTags = async () => {} } = {}) {
     const renderNoteTags = (note) => { tagRenderIds.push(note?.id || null); };
     const setNoteTagStatus = noop;
     const hideNoteTagOptions = noop;
-    const handleNoteSaveStateChange = noop;
     const renderNoteMeta = noop;
     const renderTextStats = noop;
-    const renderList = noop;
+    const renderList = () => { renderListCount += 1; };
+    const renderAll = () => { renderAllCount += 1; };
     const renderCollectionExplorer = noop;
     const renderTableBlockEditors = noop;
     const applyEffectiveFontSettings = noop;
@@ -109,8 +113,10 @@ function createHarness({ writer, ensureTags = async () => {} } = {}) {
     const saveCurrentDraftMirror = noop;
     const setSaveStatus = noop;
     const invalidateTermRelationIndex = noop;
+    const cloneNoteSnapshot = structuredClone;
     const activeNotes = () => notes.filter((note) => !note.deletedAt);
     const collectLinks = () => [];
+    const buildDiscoveryMessage = () => "discovered";
     const normalizeTagIds = (tags) => Array.isArray(tags) ? [...tags] : [];
     const restrictTagIds = (tags) => normalizeTagIds(tags).filter((tag) => registeredTags.includes(tag));
     const titleFromBody = (body) => String(body).split(/\\r?\\n/).find(Boolean) || "";
@@ -119,6 +125,7 @@ function createHarness({ writer, ensureTags = async () => {} } = {}) {
 
     ${openNoteSource}
     ${saveCoreSource}
+    ${saveHandlersSource}
     ${scheduleSaveSource}
     ${updateTagsSource}
 
@@ -130,6 +137,7 @@ function createHarness({ writer, ensureTags = async () => {} } = {}) {
       scheduleSave,
       updateCurrentNoteTags,
       mutateNotesAtomically,
+      enqueueNoteSave,
       runNextTimer() {
         const entry = timersForHarness().entries().next().value;
         if (!entry) return false;
@@ -146,6 +154,9 @@ function createHarness({ writer, ensureTags = async () => {} } = {}) {
           notes: structuredClone(notes),
           timers: timersForHarness().size,
           tagRenderIds: [...tagRenderIds]
+          ,renderAllCount
+          ,renderListCount
+          ,documentTitle: document.title
         };
       },
       edit(title, body) { titleInput.value = title; editor.value = body; },
@@ -237,7 +248,7 @@ test("通常note更新経路は共通mutationまたは排他入口へ接続さ�
     ["async function moveMemosToCollection", "async function moveMemosToTrash", "mutateNotesAtomically"],
     ["async function moveMemosToTrash", "async function restoreMemos", "mutateNotesAtomically"],
     ["async function restoreMemos", "async function permanentlyDeleteMemos", "mutateNotesAtomically"],
-    ["async function permanentlyDeleteMemos", "async function deleteCollectionSafely", "runExclusiveNoteOperation"],
+    ["async function permanentlyDeleteMemos", "async function deleteCollectionSafely", "runTerminalDelete"],
     ["async function deleteCollectionSafely", "function openMemoMoveDialog", "mutateNotesAtomically"],
     ["async function deleteCurrentNote", "function showDeleteUndoMessage", "mutateNotesAtomically"],
     ["async function restoreDeletedNote", "function clearDeleteUndoMessage", "mutateNotesAtomically"]
@@ -281,11 +292,13 @@ test("実アプリ経路G: 本文保存とフォント・全初期化・複数�
   assert.equal(harness.foundation.getState("B").dirty, false);
 });
 
-test("実アプリ経路G: ゴミ箱batch失敗後も本文・削除状態・revision・dirtyを保持する", async () => {
+test("実アプリ経路G: ゴミ箱batch失敗後はbatch変更を破棄し通常編集だけを後続保存する", async () => {
   const transactionError = new Error("trash transaction aborted");
+  const singleWrites = [];
   const harness = createHarness({
     writer: async (value, options) => {
       if (options?.batch) throw transactionError;
+      singleWrites.push(structuredClone(value));
     }
   });
   harness.edit("A edited", "失われない本文");
@@ -295,8 +308,108 @@ test("実アプリ経路G: ゴミ箱batch失敗後も本文・削除状態・rev
   }), (error) => error === transactionError);
 
   assert.equal(harness.liveNote("A").body, "失われない本文");
-  assert.equal(harness.liveNote("A").deletedAt, "2026-08-23T00:00:00.000Z");
+  assert.equal(harness.liveNote("A").deletedAt, undefined);
+  assert.equal(harness.liveNote("B").deletedAt, undefined);
   assert.equal(harness.liveNote("A").revision > beforeRevision, true);
   assert.equal(harness.foundation.getState("A").dirty, true);
+  assert.equal(harness.foundation.getState("B").dirty, false);
+
+  await harness.enqueueNoteSave("A");
+  harness.openNote("B");
+  harness.edit("B edited", "Bの通常編集");
+  harness.scheduleSave();
+  harness.runNextTimer();
+  await harness.foundation.whenIdle("B");
+  assert.equal(singleWrites.find((note) => note.id === "A").body, "失われない本文");
+  assert.equal(singleWrites.find((note) => note.id === "A").deletedAt, undefined);
+  assert.equal(singleWrites.find((note) => note.id === "B").deletedAt, undefined);
+});
+
+test("実アプリ経路G: batch待機中の本文編集は失敗後もdirtyで残り通常保存できる", async () => {
+  const gate = deferred();
+  const transactionError = new Error("custom writer aborted");
+  const singleWrites = [];
+  const harness = createHarness({
+    writer: async (value, options) => {
+      if (options?.batch) {
+        await gate.promise;
+        throw transactionError;
+      }
+      singleWrites.push(structuredClone(value));
+    }
+  });
+
+  const batchSave = harness.mutateNotesAtomically(["A", "B"], (note) => {
+    note.collectionId = "batch-only";
+  });
+  await Promise.resolve();
+  harness.edit("A concurrent", "batch中の追加入力");
+  harness.scheduleSave();
+  harness.runNextTimer();
+  gate.resolve();
+  await assert.rejects(batchSave, (error) => error === transactionError);
+
+  assert.equal(harness.liveNote("A").body, "batch中の追加入力");
+  assert.equal(harness.liveNote("A").collectionId, "old");
+  assert.equal(harness.foundation.getState("A").dirty, true);
+  await Promise.resolve();
+  await harness.foundation.whenIdle("A");
+  assert.equal(singleWrites.at(-1).body, "batch中の追加入力");
+  assert.equal(singleWrites.at(-1).collectionId, "old");
+});
+
+test("実アプリ経路G: batch成功待機中の本文編集を消さず、batch変更とともに後続保存する", async () => {
+  const gate = deferred();
+  const writes = [];
+  const harness = createHarness({
+    writer: async (value, options) => {
+      writes.push(structuredClone(value));
+      if (options?.batch) await gate.promise;
+    }
+  });
+
+  const batchSave = harness.mutateNotesAtomically(["A", "B"], (note) => {
+    note.collectionId = "committed-batch";
+  });
+  await Promise.resolve();
+  harness.edit("A concurrent", "成功待機中の追加入力");
+  harness.scheduleSave();
+  harness.runNextTimer();
+  gate.resolve();
+  await batchSave;
+
+  assert.equal(harness.liveNote("A").body, "成功待機中の追加入力");
+  assert.equal(harness.liveNote("A").collectionId, "committed-batch");
+  assert.equal(harness.foundation.getState("A").dirty, true);
+  await Promise.resolve();
+  await harness.foundation.whenIdle("A");
+  const lastSingleA = writes.filter((value) => !Array.isArray(value) && value.id === "A").at(-1);
+  assert.equal(lastSingleA.body, "成功待機中の追加入力");
+  assert.equal(lastSingleA.collectionId, "committed-batch");
+});
+
+test("本番handleNoteSaveSuccessは背景Aのstale完了で表示中BとAのlive draftを変更しない", async () => {
+  const gate = deferred();
+  const harness = createHarness({ writer: async () => gate.promise });
+  harness.edit("A first", "A stale");
+  harness.scheduleSave();
+  harness.runNextTimer();
+  await Promise.resolve();
+  harness.edit("A latest", "A live draft");
+  harness.scheduleSave();
+  harness.openNote("B");
+  harness.edit("B live", "Bの表示中draft");
+  harness.scheduleSave();
+  gate.resolve();
+  await harness.foundation.whenIdle("A");
+
+  assert.equal(harness.state().currentId, "B");
+  assert.equal(harness.state().title, "B live");
+  assert.equal(harness.state().body, "Bの表示中draft");
+  assert.equal(harness.liveNote("A").body, "A live draft");
+  assert.equal(harness.foundation.getState("A").dirty, false);
   assert.equal(harness.foundation.getState("B").dirty, true);
+  assert.deepEqual(Array.from(harness.liveNote("B").tags), []);
+  assert.equal(harness.state().renderAllCount, 0);
+  assert.equal(harness.state().renderListCount > 0, true);
 });
