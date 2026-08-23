@@ -32,15 +32,20 @@ function deferred() {
   return { promise, reject, resolve };
 }
 
-function createHarness({ writer, ensureTags = async () => {} } = {}) {
+function createHarness({ writer, ensureTags = async () => {}, noteCount = 2 } = {}) {
   const timers = new Map();
   let timerSequence = 0;
+  const initialNotes = Array.from({ length: noteCount }, (_, index) => {
+    const id = index === 0 ? "A" : index === 1 ? "B" : `N${String(index + 1).padStart(3, "0")}`;
+    return { id, title: id, body: `${id}0`, revision: 0, tags: [], collectionId: "old", updatedAt: 1 };
+  });
   const context = vm.createContext({
     console: { error() {}, log() {} },
     createNoteSaveFoundation,
     createSaveRequest,
     normalizeNoteRevision: normalizeRevision,
     structuredClone,
+    initialNotes,
     crypto: { randomUUID: () => `request-${Math.random()}` },
     writer: writer || (async () => {}),
     ensureTags,
@@ -53,10 +58,7 @@ function createHarness({ writer, ensureTags = async () => {} } = {}) {
   });
 
   vm.runInContext(`
-    let notes = [
-      { id: "A", title: "A", body: "A0", revision: 0, tags: [], collectionId: "old", updatedAt: 1 },
-      { id: "B", title: "B", body: "B0", revision: 0, tags: [], collectionId: "old", updatedAt: 1 }
-    ];
+    let notes = structuredClone(initialNotes);
     let currentId = "A";
     let saveTimer = null;
     let scheduledSaveNoteId = null;
@@ -77,6 +79,8 @@ function createHarness({ writer, ensureTags = async () => {} } = {}) {
     let tagRenderIds = [];
     let renderAllCount = 0;
     let renderListCount = 0;
+    let invalidateTermRelationIndexCount = 0;
+    let saveStatuses = [];
     let lastDiscovery = "";
     const window = { MemoNexusCodexChat: null };
     const document = { title: "" };
@@ -111,8 +115,8 @@ function createHarness({ writer, ensureTags = async () => {} } = {}) {
     const renderTagPanel = noop;
     const renderNoteTagOptions = noop;
     const saveCurrentDraftMirror = noop;
-    const setSaveStatus = noop;
-    const invalidateTermRelationIndex = noop;
+    const setSaveStatus = (status) => { saveStatuses.push(status); };
+    const invalidateTermRelationIndex = () => { invalidateTermRelationIndexCount += 1; };
     const cloneNoteSnapshot = structuredClone;
     const activeNotes = () => notes.filter((note) => !note.deletedAt);
     const collectLinks = () => [];
@@ -129,8 +133,7 @@ function createHarness({ writer, ensureTags = async () => {} } = {}) {
     ${scheduleSaveSource}
     ${updateTagsSource}
 
-    noteSaveFoundation.registerNote("A", 0);
-    noteSaveFoundation.registerNote("B", 0);
+    notes.forEach((note) => noteSaveFoundation.registerNote(note.id, note.revision));
     globalThis.harness = {
       foundation: noteSaveFoundation,
       openNote,
@@ -156,11 +159,14 @@ function createHarness({ writer, ensureTags = async () => {} } = {}) {
           tagRenderIds: [...tagRenderIds]
           ,renderAllCount
           ,renderListCount
+          ,invalidateTermRelationIndexCount
+          ,saveStatuses: [...saveStatuses]
           ,documentTitle: document.title
         };
       },
       edit(title, body) { titleInput.value = title; editor.value = body; },
       setCurrentId(id) { currentId = id; },
+      noteIds() { return notes.map((note) => note.id); },
       liveNote(id) { return noteForSave(id); }
     };
     function timersForHarness() { return globalThis.__timers; }
@@ -258,6 +264,62 @@ test("通常note更新経路は共通mutationまたは排他入口へ接続さ�
   assert.match(sourceBetween("const saveExplanationCollapsedState", "function hydrateExplanationCards"), /enqueueNoteSave\(note\.id\)/);
 });
 
+test("ローカル保存メタデータ200件のbatchは一覧を1回だけ更新し語句索引を無効化しない", async () => {
+  const harness = createHarness({ noteCount: 200 });
+  const noteIds = harness.noteIds();
+
+  await harness.mutateNotesAtomically(noteIds, (note) => {
+    note.localCreatedAt ||= "2026-08-24T00:00:00.000Z";
+    note.localSavedAt = "2026-08-24T00:01:00.000Z";
+  }, undefined, { invalidateTermRelations: false, render: "list" });
+
+  const state = harness.state();
+  assert.equal(state.renderListCount, 1);
+  assert.equal(state.renderAllCount, 0);
+  assert.equal(state.invalidateTermRelationIndexCount, 0);
+  assert.equal(state.notes.length, 200);
+  state.notes.forEach((note) => {
+    assert.equal(note.localSavedAt, "2026-08-24T00:01:00.000Z");
+    assert.equal(note.revision, 1);
+    assert.equal(harness.foundation.getState(note.id).lastSavedRevision, 1);
+    assert.equal(harness.foundation.getState(note.id).dirty, false);
+  });
+});
+
+test("本文を含む200件batchは現在メモと背景メモを反映し索引・全体描画を各1回に集約する", async () => {
+  const harness = createHarness({ noteCount: 200 });
+  const noteIds = harness.noteIds();
+
+  await harness.mutateNotesAtomically(noteIds, (note) => {
+    note.body = `${note.id} updated [[term]]`;
+  });
+
+  const state = harness.state();
+  assert.equal(state.renderAllCount, 1);
+  assert.equal(state.renderListCount, 0);
+  assert.equal(state.invalidateTermRelationIndexCount, 1);
+  assert.equal(state.notes.every((note) => note.body === `${note.id} updated [[term]]`), true);
+  assert.equal(harness.liveNote("A").body, "A updated [[term]]");
+  assert.equal(harness.liveNote("N200").body, "N200 updated [[term]]");
+});
+
+test("通常の1件保存は従来どおり索引と現在メモ画面を更新する", async () => {
+  const harness = createHarness();
+  harness.edit("A saved", "通常保存本文");
+  harness.scheduleSave();
+  harness.runNextTimer();
+  await harness.foundation.whenIdle("A");
+
+  const state = harness.state();
+  assert.equal(state.renderAllCount, 1);
+  assert.equal(state.renderListCount, 0);
+  assert.equal(state.invalidateTermRelationIndexCount, 1);
+  assert.equal(state.saveStatuses.includes("saving"), true);
+  assert.equal(state.saveStatuses.at(-1), "saved");
+  assert.equal(harness.liveNote("A").body, "通常保存本文");
+  assert.equal(harness.foundation.getState("A").dirty, false);
+});
+
 test("実アプリ経路G: 本文保存とフォント・全初期化・複数コレクション移動を直列かつ原子的に保存する", async () => {
   const firstWrite = deferred();
   const writes = [];
@@ -313,6 +375,10 @@ test("実アプリ経路G: ゴミ箱batch失敗後はbatch変更を破棄し通�
   assert.equal(harness.liveNote("A").revision > beforeRevision, true);
   assert.equal(harness.foundation.getState("A").dirty, true);
   assert.equal(harness.foundation.getState("B").dirty, false);
+  assert.equal(harness.state().saveStatuses.at(-1), "error");
+  assert.equal(harness.state().renderAllCount, 0);
+  assert.equal(harness.state().renderListCount, 0);
+  assert.equal(harness.state().invalidateTermRelationIndexCount, 0);
 
   await harness.enqueueNoteSave("A");
   harness.openNote("B");

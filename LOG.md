@@ -1993,3 +1993,10 @@
 * 添付処理は開始時、同一メモqueueの実行直前、各画像圧縮・Blob準備後、容量取得後、保存直前・保存後、`currentAttachments`更新前、editor参照挿入前、成功表示前にterminal状態を確認する。完全削除済みは既存の画面クリーンアップへ接続し、保存後にterminal化した場合は今回の添付だけをrollbackする。
 * deferred gate付きIndexedDB transactionモデルで、note保存先行、完全削除先行、attachment追加先行、完全削除後のattachment追加、attachment準備中削除、複数memoId batchのA〜Fを実際に時間的に重ねた。productionの共通attachment writerを直接実行し、6種類（note保存先行、削除先行、添付先行、準備先行、Broadcast通知あり、通知なし）を4周、計24回反復してnote復活・孤立attachmentとも0件を確認した。
 * `node --test --test-isolation=none`は全672件成功した。変更したJavaScriptの`node --check`と`git diff --check`も成功した。DB version 6、既存tombstone schema、完全削除transaction、note通常保存・atomic batch・BroadcastChannelの仕様は変更していない。実ブラウザーの2ウィンドウ手動確認は、この実行環境でブラウザー制御セッションの初期化に必要な資産パスを作成できないため未実施とした。
+
+## 2026-08-24 ローカル保存batchのUI更新集約
+
+* 原因は、ローカルファイルと`sync-state.json`を書き終えた後の全メモmetadata更新で、`enqueueBatchSave()`の成功通知がメモごとに`handleNoteSaveSuccess()`を呼び、語句リンク索引の無効化と`renderList()`または`renderAll()`を全件分同期実行していたことだった。保存状態を`保存済み`へ進める処理はこの連続描画より後にあり、メモ件数Nに対して全件一覧再構築をN回行うO(N²)相当の処理中は`保存中`のまま固まって見えていた。通常保存とローカル保存のキュー、メモ単位ロック、`whenIdle()`を確認し、循環待機や永続的に未解決となるPromiseは見つからなかった。
+* atomic batchの各成功通知へbatch文脈を付け、メモリ反映をまとめて1回の線形走査で行った後、`completeAtomicBatch()`によるロック・idle解放後にUIを同期する。一般batchは索引無効化と一覧または全体描画を各最大1回、`localCreatedAt`・`localSavedAt`だけのローカル保存metadata batchは索引を無効化せず一覧だけを1回更新する。通常1件保存の通知経路、固定snapshot、revision、保存中再編集のmerge、transaction原子性、tombstone guardは維持した。配信識別子は`note-save-foundation.js?v=0.5.0-6`、`app.js?v=0.5.0-102`へ更新した。
+* 200件の模擬メモで、ローカルmetadata batchの一覧描画1回・索引無効化0回、本文を含む一般batchの全体描画1回・索引無効化1回、全メモの`revision=lastSavedRevision=1`・dirty解除、現在メモと背景メモの内容一致を確認した。通常1件保存の`保存中`から`保存済み`、失敗batchのエラー状態・dirty・描画0回、保存中再編集、transaction rollback、通常保存との直列化、tombstone拒否、Markdown・添付・manifest・`sync-state.json`・ローカル日時仕様の既存テストを含め、`node --test`は全677件成功した。変更JavaScriptの`node --check`と`git diff --check`も成功した。
+* ローカルHTTP配信は起動できたが、ブラウザー制御環境の初期化に必要な資産パスを作成できず、ネイティブのフォルダ選択、実フォルダへのMarkdown・添付・manifest・`sync-state.json`書込み、画面上の`保存中`から`保存済み`への遷移は実ブラウザーでは未確認とした。模擬File System Access APIによる統合テストで補完している。

@@ -2026,7 +2026,7 @@ async function performLocalWorkspaceSave(reason = "change") {
         if (!metadata) return false;
         note.localCreatedAt = note.localCreatedAt || metadata.localCreatedAt;
         note.localSavedAt = metadata.localSavedAt;
-      });
+      }, undefined, { invalidateTermRelations: false, render: "list" });
     } finally {
       suppressLocalSaveQueue = false;
     }
@@ -2906,7 +2906,7 @@ async function applyPortableBackupImport(imported) {
       oldAttachmentIds: attachmentIds,
       attachmentRecords,
       tagUpdates
-    }));
+    }), { invalidateTermRelations: false, render: "none" });
   } else {
     await applyPortableBackupTransaction({ collectionUpdates, notePlans: [], oldAttachmentIds: attachmentIds, attachmentRecords, tagUpdates });
   }
@@ -4743,7 +4743,7 @@ function applyCommittedBatchChanges(note, changes) {
 
 // バッチ固有の変更は固定snapshotへだけ適用し、transaction成功後にlive draftへ合流します。
 // 失敗時は通常編集だけがlive draftに残り、保存中の追加編集は別revisionとして維持されます。
-async function mutateNotesAtomically(noteIds, mutate, writeSnapshots = updateNotesTransaction) {
+async function mutateNotesAtomically(noteIds, mutate, writeSnapshots = updateNotesTransaction, uiOptions = {}) {
   const ids = [...new Set(noteIds || [])].filter(Boolean).sort();
   if (!ids.length) return Promise.resolve([]);
   if (ids.includes(currentId)) applyCurrentEditorDraft(currentNote());
@@ -4784,14 +4784,20 @@ async function mutateNotesAtomically(noteIds, mutate, writeSnapshots = updateNot
   }
 
   try {
+    applyNoteBatchSaveSuccess(results);
     plans.forEach((plan) => {
       const liveNote = noteForSave(plan.noteId);
       if (liveNote) applyCommittedBatchChanges(liveNote, plan.changes);
     });
-    return results;
   } finally {
     noteSaveFoundation.completeAtomicBatch(batch);
   }
+  try {
+    handleNoteBatchSaveSuccess(results, uiOptions);
+  } catch (error) {
+    console.error("Note batch save UI refresh failed", error);
+  }
+  return results;
 }
 
 function runExclusiveNoteOperation(noteIds, operation) {
@@ -4819,7 +4825,35 @@ function handleNoteSaveStateChange(noteId, state) {
   else setSaveStatus("saved", noteForSave(noteId)?.updatedAt || Date.now());
 }
 
-function handleNoteSaveSuccess(request, state) {
+function applyNoteBatchSaveSuccess(results) {
+  const savedById = new Map();
+  const linkChecks = [];
+  results.forEach(({ request, state }) => {
+    if (state.currentRevision !== request.revision) return;
+    savedById.set(request.noteId, cloneNoteSnapshot(request.snapshot));
+    const liveDraft = noteLiveDrafts.get(request.noteId);
+    if (!liveDraft || normalizeNoteRevision(liveDraft.revision) === request.revision) {
+      noteLiveDrafts.delete(request.noteId);
+    }
+    const beforeLinks = noteSaveBeforeLinkCounts.get(request.noteId);
+    if (Number.isFinite(beforeLinks)) linkChecks.push({ beforeLinks, savedNote: request.snapshot });
+    noteSaveBeforeLinkCounts.delete(request.noteId);
+  });
+  if (!savedById.size) return;
+  const existingIds = new Set(notes.map((note) => note.id));
+  notes = notes.map((note) => savedById.get(note.id) || note);
+  [...savedById].reverse().forEach(([noteId, note]) => {
+    if (!existingIds.has(noteId)) notes.unshift(note);
+  });
+  if (linkChecks.length) {
+    const currentLinkCount = collectLinks(activeNotes()).length;
+    const discovered = linkChecks.find(({ beforeLinks }) => currentLinkCount > beforeLinks);
+    if (discovered) lastDiscovery = buildDiscoveryMessage(discovered.savedNote);
+  }
+}
+
+function handleNoteSaveSuccess(request, state, context = {}) {
+  if (context.batch) return;
   console.log("Memo saved", { id: request.noteId, revision: request.revision, saveRequestId: request.saveRequestId });
   if (state.currentRevision === request.revision) {
     const savedNote = cloneNoteSnapshot(request.snapshot);
@@ -4848,6 +4882,31 @@ function handleNoteSaveSuccess(request, state) {
   if (isPopoutWindow) {
     renderNoteMeta();
     document.title = `${currentNote()?.title || request.snapshot.title} — Memo Nexus`;
+  } else {
+    renderAll();
+  }
+}
+
+function handleNoteBatchSaveSuccess(results, { invalidateTermRelations = true, render = "auto" } = {}) {
+  console.log("Memo batch saved", { notes: results.length });
+  results.forEach(({ request, state }) => {
+    if (pendingMemoSync?.memoId === request.noteId && !state.dirty) {
+      pendingMemoSync = null;
+      renderMemoSyncNotice();
+    }
+  });
+  if (invalidateTermRelations) invalidateTermRelationIndex();
+  if (render === "none") return;
+
+  const includesCurrent = results.some(({ request }) => request.noteId === currentId);
+  if (render === "list" || !includesCurrent) {
+    if (!isPopoutWindow) renderList();
+    return;
+  }
+  syncLegacyDirtyState(currentId);
+  if (isPopoutWindow) {
+    renderNoteMeta();
+    document.title = `${currentNote()?.title || "メモ"} — Memo Nexus`;
   } else {
     renderAll();
   }
@@ -5312,7 +5371,7 @@ async function deleteCurrentNote() {
   await mutateNotesAtomically([note.id], (target) => {
     target.deletedAt = new Date().toISOString();
     target.updatedAt = Date.now();
-  });
+  }, undefined, { invalidateTermRelations: false, render: "none" });
   removeDraftMirrorForNote(note.id);
   invalidateTermRelationIndex();
 
@@ -5368,7 +5427,7 @@ async function restoreDeletedNote() {
     note.collectionId = collectionExists(note.collectionId) ? note.collectionId : UNCLASSIFIED_COLLECTION_ID;
     note.deletedAt = null;
     note.updatedAt = Date.now();
-  });
+  }, undefined, { invalidateTermRelations: false, render: "none" });
   invalidateTermRelationIndex();
 
   clearDeleteUndoMessage();
@@ -9989,7 +10048,7 @@ async function moveMemosToCollection(memoIds, collectionId) {
   await mutateNotesAtomically(targetIds, (note) => {
     note.collectionId = collectionId;
     note.updatedAt = now;
-  });
+  }, undefined, { invalidateTermRelations: false, render: "none" });
   selectedMemoIds = new Set(targetIds);
   expandedCollectionIds.add(collectionId);
   renderAll();
@@ -10003,7 +10062,7 @@ async function moveMemosToTrash(memoIds) {
   await mutateNotesAtomically(targets.map((note) => note.id), (note) => {
     note.deletedAt = deletedAt;
     note.updatedAt = Date.now();
-  });
+  }, undefined, { invalidateTermRelations: false, render: "none" });
   targets.forEach((note) => removeDraftMirrorForNote(note.id));
   invalidateTermRelationIndex();
   selectedMemoIds.clear();
@@ -10023,7 +10082,7 @@ async function restoreMemos(memoIds) {
     note.collectionId = collectionExists(note.collectionId) ? note.collectionId : UNCLASSIFIED_COLLECTION_ID;
     note.deletedAt = null;
     note.updatedAt = Date.now();
-  });
+  }, undefined, { invalidateTermRelations: false, render: "none" });
   invalidateTermRelationIndex();
   selectedMemoIds.clear();
   renderAll();
@@ -10099,7 +10158,7 @@ async function deleteCollectionSafely(id) {
     await mutateNotesAtomically(affected.map((note) => note.id), (note) => {
       note.collectionId = UNCLASSIFIED_COLLECTION_ID;
       note.updatedAt = Date.now();
-    }, writeDeletionTransaction);
+    }, writeDeletionTransaction, { invalidateTermRelations: false, render: "none" });
   } else {
     await writeDeletionTransaction([]);
   }
