@@ -544,6 +544,12 @@
       return permanentlyDeletedNotes.has(noteId) || Boolean(entries.get(noteId)?.terminal);
     }
 
+    function terminalError(noteId) {
+      if (permanentlyDeletedNotes.has(noteId)) return permanentlyDeletedError(noteId);
+      if (entries.get(noteId)?.terminal) return operationError(noteId, "NOTE_DELETING", "note is being permanently deleted");
+      return null;
+    }
+
     function whenIdle(noteId) {
       const entry = entries.get(noteId);
       if (!entry || (!entry.draining && !entry.drainScheduled && !entry.active && !entry.inFlight && !entry.pending && !entry.reservations && !entry.atomicBatch && !entry.terminal)) {
@@ -578,6 +584,7 @@
       registerNote,
       runExclusive,
       runTerminalDelete,
+      terminalError,
       whenIdle
     };
   }

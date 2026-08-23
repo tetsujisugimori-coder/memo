@@ -30,9 +30,9 @@ test("全ローカルCSS・JavaScriptを0.5.0のキャッシュ識別子で読�
   assetVersions.forEach(({ path, version }) => {
     assert.match(version, /^0\.5\.0-\d+$/, `${path}のキャッシュ識別子`);
   });
-  assert.match(html, /note-tombstone\.js\?v=0\.5\.0-1/);
-  assert.match(html, /note-save-foundation\.js\?v=0\.5\.0-4/);
-  assert.match(html, /app\.js\?v=0\.5\.0-100/);
+  assert.match(html, /note-tombstone\.js\?v=0\.5\.0-2/);
+  assert.match(html, /note-save-foundation\.js\?v=0\.5\.0-5/);
+  assert.match(html, /app\.js\?v=0\.5\.0-101/);
 });
 
 test("本体リリースと別管理の互換性バージョンを変更しない", () => {

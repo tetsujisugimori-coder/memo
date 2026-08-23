@@ -1985,3 +1985,11 @@
 * BroadcastChannelでは完全削除のstarted／completed／abortedを`memoIds`・`deletionId`・`deletedAt`付きで通知する。通知は早期停止と表示更新に使い、正しさは永続tombstoneで保証する。専用エラー時は保存基盤の終端状態、遅延保存、live draft、localStorage draft、一覧・選択状態を整理し、メイン削除ボタンの非同期失敗も既存の共通エラー表示へ1回だけ渡す。
 * 2ウィンドウが同じIndexedDB相当ストレージを共有するテストで、保存→削除、削除→保存、削除中編集、BroadcastChannel欠落、削除失敗rollbackと再open、複数ID、batch全体中止、メイン削除ボタン拒否を確認した。新規／旧DB移行とupgrade abort、同一transaction guard、20回のsave/delete競合も回帰対象に追加した。
 * `node --test --test-isolation=none`は全667件成功した。変更した全19 JavaScriptの`node --check`と`git diff --check`も成功した。
+
+## 2026-08-23 添付単独保存のtombstone guardと実競合テスト
+
+* 添付単独保存の共通writerを`note-tombstone.js`へ追加し、`attachments`と`note-tombstones`を含む同一readwrite transaction内で対象`memoId`を重複排除して確認した後だけ全添付を保存するようにした。1件でも完全削除済みなら`NOTE_PERMANENTLY_DELETED`と原因の`noteId`・tombstoneを保持して全件abortし、`memoId`がない、または空白だけの新規recordは`ATTACHMENT_MEMO_ID_REQUIRED`で保存前に拒否する。
+* 通常追加、画像ブロック、ドラッグ＆ドロップ、貼り付け、ローカルMarkdown、Markdown ZIP、Web Clipper新規保存は共通writerを通す。可搬ZIP復元と既存Web Clipper更新は、note・attachment・tombstoneを含む既存の同一transaction guardを維持した。attachment rollbackと通常削除はデータを復活させない削除専用処理のためtombstone guardを追加していない。現行の全作成経路は`memoId`を設定する。既存の所有者不明recordは読取り・削除互換を維持し、新しい書込みだけを拒否する。
+* 添付処理は開始時、同一メモqueueの実行直前、各画像圧縮・Blob準備後、容量取得後、保存直前・保存後、`currentAttachments`更新前、editor参照挿入前、成功表示前にterminal状態を確認する。完全削除済みは既存の画面クリーンアップへ接続し、保存後にterminal化した場合は今回の添付だけをrollbackする。
+* deferred gate付きIndexedDB transactionモデルで、note保存先行、完全削除先行、attachment追加先行、完全削除後のattachment追加、attachment準備中削除、複数memoId batchのA〜Fを実際に時間的に重ねた。productionの共通attachment writerを直接実行し、6種類（note保存先行、削除先行、添付先行、準備先行、Broadcast通知あり、通知なし）を4周、計24回反復してnote復活・孤立attachmentとも0件を確認した。
+* `node --test --test-isolation=none`は全672件成功した。変更したJavaScriptの`node --check`と`git diff --check`も成功した。DB version 6、既存tombstone schema、完全削除transaction、note通常保存・atomic batch・BroadcastChannelの仕様は変更していない。実ブラウザーの2ウィンドウ手動確認は、この実行環境でブラウザー制御セッションの初期化に必要な資産パスを作成できないため未実施とした。

@@ -306,6 +306,7 @@ const {
   formatAttachmentBytes,
   insertAttachmentReferences,
   normalizeImageBlockSize,
+  prepareAttachmentItems,
   renderImageCaptionMarkdown,
   remapImportedAttachmentReferences,
   resolveImportedAttachmentId,
@@ -353,7 +354,8 @@ const {
   guardWrites: guardNoteWrites,
   installStore: installTombstoneStore,
   putTombstones,
-  transactionError: noteTransactionError
+  transactionError: noteTransactionError,
+  writeAttachments: writeAttachmentsWithTombstoneGuard
 } = window.MemoNexusNoteTombstone;
 const { parseLocalNote, restoreAttachmentReferences, serializeLocalNote } = window.MemoNexusLocalMarkdown;
 const {
@@ -1754,16 +1756,14 @@ function getAttachmentRecord(id) {
 }
 
 function putAttachments(items) {
-  return new Promise((resolve, reject) => {
-    const transaction = db.transaction(ATTACHMENT_STORE_NAME, "readwrite");
-    const store = transaction.objectStore(ATTACHMENT_STORE_NAME);
-    items.forEach((item) => store.put(item));
-    transaction.oncomplete = () => {
-      markLocalWorkspacePending();
-      resolve(items);
-    };
-    transaction.onerror = () => reject(transaction.error);
-    transaction.onabort = () => reject(transaction.error);
+  return writeAttachmentsWithTombstoneGuard({
+    database: db,
+    items,
+    attachmentStoreName: ATTACHMENT_STORE_NAME,
+    tombstoneStoreName: TOMBSTONE_STORE_NAME
+  }).then((saved) => {
+    markLocalWorkspacePending();
+    return saved;
   });
 }
 
@@ -6141,6 +6141,28 @@ async function rollbackImageBlockAttachments(attachments) {
   }
 }
 
+function assertAttachmentNoteActive(noteId) {
+  const error = noteSaveFoundation.terminalError(noteId);
+  if (error) throw error;
+}
+
+async function handleAttachmentTerminalError(noteId, error) {
+  if (error?.code === "NOTE_PERMANENTLY_DELETED") {
+    await cleanupPermanentlyDeletedMemos([error.noteId || noteId], error.tombstone)
+      .catch((cleanupError) => console.warn("Permanently deleted memo cleanup failed", cleanupError));
+    return true;
+  }
+  if (error?.code === "NOTE_DELETING") {
+    if (currentId === noteId) setAttachmentStatus("完全削除中のため添付ファイルを追加できません。", true);
+    return true;
+  }
+  return false;
+}
+
+async function rollbackStoredAttachments(attachments) {
+  await deleteAttachmentRecords(attachments.map((attachment) => attachment.id));
+}
+
 function cleanupAttachmentObjectUrls() {
   [...attachmentObjectUrls.keys(), ...pdfObjectUrls.keys()].forEach(revokeAttachmentObjectUrl);
   if (imagePreviewDialog.open) imagePreviewDialog.close();
@@ -6302,10 +6324,23 @@ async function handleAttachmentFiles(fileList, options = {}) {
   const note = currentNote();
   const files = Array.from(fileList || []);
   if (!note || note.deletedAt || !files.length) return [];
+  try {
+    assertAttachmentNoteActive(note.id);
+  } catch (error) {
+    await handleAttachmentTerminalError(note.id, error);
+    return [];
+  }
   updateAttachmentAdditionCount(note.id, 1);
   syncAttachmentAddControls();
   if (currentId === note.id) setAttachmentStatus(`${files.length}件の添付ファイルを確認しています...`);
-  return enqueueAttachmentAddition(note.id, () => addAttachmentFilesForNote(note, files, options))
+  return enqueueAttachmentAddition(note.id, () => {
+    assertAttachmentNoteActive(note.id);
+    return addAttachmentFilesForNote(note, files, options);
+  })
+    .catch(async (error) => {
+      if (await handleAttachmentTerminalError(note.id, error)) return [];
+      throw error;
+    })
     .finally(() => {
       updateAttachmentAdditionCount(note.id, -1);
       syncAttachmentAddControls();
@@ -6314,16 +6349,20 @@ async function handleAttachmentFiles(fileList, options = {}) {
 
 async function addAttachmentFilesForNote(note, files, options) {
   try {
+    assertAttachmentNoteActive(note.id);
     if (options.imageBlockTarget) validatePendingImageBlock(options.imageBlockTarget);
-    const prepared = [];
-    for (let index = 0; index < files.length; index += 1) {
-      const file = files[index];
-      const kind = classifyAttachment(file);
-      if (currentId === note.id) setAttachmentStatus(`${files.length}件中${index + 1}件を処理しています...`);
-      prepared.push(await prepareAttachmentFile(file, kind, note.id));
-    }
+    const prepared = await prepareAttachmentItems({
+      files,
+      noteId: note.id,
+      assertActive: assertAttachmentNoteActive,
+      onProgress: (_file, index, total) => {
+        if (currentId === note.id) setAttachmentStatus(`${total}件中${index + 1}件を処理しています...`);
+      },
+      prepare: (file) => prepareAttachmentFile(file, classifyAttachment(file), note.id)
+    });
 
     const existing = await getAttachmentsForMemo(note.id);
+    assertAttachmentNoteActive(note.id);
     const currentBytes = attachmentTotalSize(existing);
     const additionalBytes = attachmentTotalSize(prepared);
     const capacity = attachmentCapacity(currentBytes, additionalBytes);
@@ -6340,32 +6379,43 @@ async function addAttachmentFilesForNote(note, files, options) {
     if (options.imageBlockTarget) {
       await saveAttachmentAdditionWithRollback({
         attachments: prepared,
-        validate: () => validatePendingImageBlock(options.imageBlockTarget),
+        validate: () => {
+          assertAttachmentNoteActive(note.id);
+          validatePendingImageBlock(options.imageBlockTarget);
+        },
         save: putAttachments,
-        apply: (items) => {
-          currentAttachments = [
-            ...currentAttachments.filter((attachment) => !items.some((item) => item.id === attachment.id)),
-            ...items
-          ];
+        apply: async (items) => {
+          const stored = await getAttachmentsForMemo(note.id);
+          assertAttachmentNoteActive(note.id);
+          validatePendingImageBlock(options.imageBlockTarget);
+          currentAttachments = stored;
           renderAttachmentList();
           insertStoredImageIntoBlock(items, options.imageBlockTarget);
         },
         rollback: rollbackImageBlockAttachments
       });
     } else {
-      await putAttachments(prepared);
-      if (currentId === note.id) {
-        await renderAttachmentsForCurrentNote();
-      }
+      await saveAttachmentAdditionWithRollback({
+        attachments: prepared,
+        validate: () => assertAttachmentNoteActive(note.id),
+        save: putAttachments,
+        apply: async (items) => {
+          const stored = await getAttachmentsForMemo(note.id);
+          assertAttachmentNoteActive(note.id);
+          if (currentId !== note.id) return;
+          currentAttachments = stored;
+          renderAttachmentList();
+          hydrateInlineAttachmentImages();
+          if (options.insertIntoEditor) await insertStoredImageReferences(items, options, note.id);
+        },
+        rollback: rollbackStoredAttachments
+      });
     }
-    if (currentId === note.id) {
-      if (options.insertIntoEditor && !options.imageBlockTarget) {
-        await insertStoredImageReferences(prepared, options);
-      }
-      setAttachmentStatus(`${prepared.length}件の添付ファイルを追加しました。`);
-    }
+    assertAttachmentNoteActive(note.id);
+    if (currentId === note.id) setAttachmentStatus(`${prepared.length}件の添付ファイルを追加しました。`);
     return prepared;
   } catch (error) {
+    if (await handleAttachmentTerminalError(note.id, error)) return [];
     console.error("Attachment add failed", error);
     const rollbackMessage = error.rollbackError ? "（追加画像のロールバックにも失敗しました）" : "";
     if (currentId === note.id) setAttachmentStatus(`${error.message || String(error)}${rollbackMessage}`, true);
@@ -6373,7 +6423,9 @@ async function addAttachmentFilesForNote(note, files, options) {
   }
 }
 
-async function insertStoredImageReferences(attachments, options) {
+async function insertStoredImageReferences(attachments, options, noteId) {
+  assertAttachmentNoteActive(noteId);
+  if (currentId !== noteId) return;
   const result = insertAttachmentReferences(
     editor.value,
     options.selectionStart,
@@ -6386,6 +6438,7 @@ async function insertStoredImageReferences(attachments, options) {
   editor.setSelectionRange(result.selectionStart, result.selectionEnd);
   scheduleSave();
   await flushSave();
+  assertAttachmentNoteActive(noteId);
 }
 
 async function prepareAttachmentFile(file, kind, memoId) {

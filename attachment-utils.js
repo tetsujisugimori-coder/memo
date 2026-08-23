@@ -254,6 +254,22 @@
     }
   }
 
+  async function prepareAttachmentItems({ files, noteId, prepare, assertActive, onProgress = () => {} }) {
+    if (typeof prepare !== "function") throw new Error("prepare is required");
+    if (typeof assertActive !== "function") throw new Error("assertActive is required");
+    const sourceFiles = Array.from(files || []);
+    const prepared = [];
+    assertActive(noteId);
+    for (let index = 0; index < sourceFiles.length; index += 1) {
+      assertActive(noteId);
+      onProgress(sourceFiles[index], index, sourceFiles.length);
+      const item = await prepare(sourceFiles[index], index);
+      assertActive(noteId);
+      prepared.push(item);
+    }
+    return prepared;
+  }
+
   function replaceImageBlock(markdown, block, images, caption = "") {
     const source = String(markdown || "").replace(/\r\n?/g, "\n");
     if (!block || source.slice(block.start, block.end).replace(/\n$/, "") !== block.raw) {
@@ -489,6 +505,7 @@
     formatAttachmentBytes,
     insertAttachmentReferences,
     normalizeImageBlockSize,
+    prepareAttachmentItems,
     renderImageCaptionMarkdown,
     remapImportedAttachmentReferences,
     resolveImportedAttachmentId,

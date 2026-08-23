@@ -84,6 +84,35 @@
     });
   }
 
+  function writeAttachments({ database, items, attachmentStoreName = "attachments", tombstoneStoreName = DEFAULT_STORE_NAME } = {}) {
+    if (!database || typeof database.transaction !== "function") return Promise.reject(new Error("database is required"));
+    const attachments = Array.isArray(items) ? items : [];
+    const invalid = attachments.find((item) => !String(item?.memoId || "").trim());
+    if (invalid) {
+      const error = new Error("attachment memoId is required");
+      error.code = "ATTACHMENT_MEMO_ID_REQUIRED";
+      error.attachmentId = invalid?.id || null;
+      return Promise.reject(error);
+    }
+    if (!attachments.length) return Promise.resolve([]);
+    return new Promise((resolve, reject) => {
+      let transaction;
+      try {
+        transaction = database.transaction([attachmentStoreName, tombstoneStoreName], "readwrite");
+        const attachmentStore = transaction.objectStore(attachmentStoreName);
+        guardWrites(transaction, attachments.map((item) => item.memoId), () => {
+          attachments.forEach((item) => attachmentStore.put(item));
+        }, tombstoneStoreName);
+      } catch (error) {
+        reject(error);
+        return;
+      }
+      transaction.oncomplete = () => resolve(attachments);
+      transaction.onerror = () => reject(transactionError(transaction, "添付ファイルの保存に失敗しました"));
+      transaction.onabort = () => reject(transactionError(transaction, "添付ファイルの保存を安全のため中止しました"));
+    });
+  }
+
   const api = {
     DEFAULT_STORE_NAME,
     ERROR_CODE,
@@ -93,7 +122,8 @@
     normalizeTombstone,
     putTombstones,
     transactionError,
-    uniqueNoteIds
+    uniqueNoteIds,
+    writeAttachments
   };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   if (globalScope) globalScope.MemoNexusNoteTombstone = api;

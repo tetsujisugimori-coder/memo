@@ -188,6 +188,11 @@ function mockAttachmentPersistence(store) {
   const putAttachments = loadAppFunction("putAttachments", {
     db,
     ATTACHMENT_STORE_NAME: "attachments",
+    TOMBSTONE_STORE_NAME: "note-tombstones",
+    writeAttachmentsWithTombstoneGuard: async ({ items }) => {
+      items.forEach((item) => store.put(item));
+      return items;
+    },
     markLocalWorkspacePending: () => { pendingMarks += 1; }
   });
   return { getAttachmentRecord, putAttachments, pendingMarks: () => pendingMarks };
@@ -514,10 +519,10 @@ test("最後に書いたハッシュと異なる外部変更を自動上書き�
 test("管理対象Markdownはsync-stateのnote IDとfileNameで特定する", () => {
   assert.match(html, /local-save-state\.js\?v=0\.5\.0-5/);
   assert.match(html, /local-save-queue\.js\?v=0\.5\.0-3/);
-  assert.match(html, /attachment-utils\.js\?v=0\.5\.0-11/);
+  assert.match(html, /attachment-utils\.js\?v=0\.5\.0-12/);
   assert.match(html, /local-sync-utils\.js\?v=0\.5\.0-10/);
   assert.match(html, /backup-bundle-utils\.js\?v=0\.5\.0-5/);
-  assert.match(html, /app\.js\?v=0\.5\.0-100/);
+  assert.match(html, /app\.js\?v=0\.5\.0-101/);
   const syncState = {
     notes: {
       "note-1": { fileName: "題名--note-1.md", hash: "last" },
