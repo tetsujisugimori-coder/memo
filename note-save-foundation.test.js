@@ -394,7 +394,23 @@ test("永久削除開始後は変更・保存・batch追加を拒否し、成功
   assert.equal(foundation.getState("B"), null);
   assert.equal(foundation.registerNote("A", 9), null);
   assert.doesNotThrow(() => foundation.forgetNote("A"));
-  await assert.rejects(foundation.enqueueSave(request("B", 4, "resurrect")), (error) => error.code === "NOTE_DELETING");
+  await assert.rejects(foundation.enqueueSave(request("B", 4, "resurrect")), (error) => error.code === "NOTE_PERMANENTLY_DELETED");
+});
+
+test("別ウィンドウの完全削除通知は開始・中止・完了をdeletionId単位で反映する", async () => {
+  const foundation = createNoteSaveFoundation({ writeSnapshot: async () => {} });
+  foundation.registerNote("A", 1);
+  foundation.beginExternalTerminalDelete(["A"], { deletionId: "delete-1", deletedAt: "2026-08-23T00:00:00.000Z" });
+  assert.throws(() => foundation.markChanged("A", 1), (error) => error.code === "NOTE_DELETING");
+  foundation.abortExternalTerminalDelete(["A"], "older-delete");
+  assert.equal(foundation.isTerminal("A"), true);
+  foundation.abortExternalTerminalDelete(["A"], "delete-1");
+  assert.equal(foundation.isTerminal("A"), false);
+  foundation.beginExternalTerminalDelete(["A"], { deletionId: "delete-2" });
+  foundation.finishPermanentDeletion(["A"], { deletionId: "delete-2", deletedAt: "2026-08-23T00:00:01.000Z" });
+  await assert.rejects(foundation.enqueueSave(request("A", 2, "late")), (error) => {
+    return error.code === "NOTE_PERMANENTLY_DELETED" && error.tombstone.deletionId === "delete-2";
+  });
 });
 
 test("永久削除は開始済み保存を完了させてから削除し、開始後の保存は受け付けない", async () => {

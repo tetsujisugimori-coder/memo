@@ -1977,3 +1977,11 @@
 * 保存基盤へ原子バッチtokenと永久削除専用の終端処理を追加した。バッチ中の新しい単体保存を遮断し、永久削除は対象IDを操作開始時から終端状態にして、変更、遅延保存、別バッチ、別ウィンドウ同期による再導入を防ぐ。既存保存をID順ロックで完了させてから削除し、成功後は同一セッションで復活不可、失敗時は終端状態を解除して編集・保存・再削除を再開できる。複数IDも同じ削除操作で扱う。
 * 実アプリから本番`handleNoteSaveSuccess()`を抽出して保存基盤のcallbackへ接続する統合テストへ変更した。stale revision、背景メモAの完了中に表示中メモBを維持する経路、最新revision、バッチ失敗後のA/B単体保存、custom writer失敗、成功・失敗待機中の追加入力、複数IDの削除成功・失敗・再試行を回帰対象に追加した。配信識別子は`note-save-foundation.js=0.5.0-3`、`app.js=0.5.0-99`へ更新した。
 * `node --test note-save-foundation.test.js`は16件、`node --test note-save-app-integration.test.js`は9件、`node --test`は全656件が成功した。保存競合25件の組合せを20回反復して500件すべて成功し、変更JavaScriptの`node --check`と`git diff --check`も成功した。ローカルHTTP配信は開始できたが、この実行環境ではブラウザー制御セッションの初期化に必要な資産パスを作成できず、実ブラウザー手動確認は実施できなかった。
+
+## 2026-08-23 完全削除tombstoneによる複数ウィンドウ復活防止
+
+* IndexedDBをversion 6へ更新し、本文や題名を含まない`note-tombstones`ストアを追加した。完全削除時は対象メモ、対象添付、全対象IDの`deletionId`・`deletedAt`を持つtombstoneを同じreadwrite transactionで確定する。ゴミ箱への移動ではtombstoneを作らない。
+* 単件保存、原子バッチ、可搬バックアップ復元、Web Clipperのメモ＋添付更新、コレクション削除時のメモ移動を、`notes`書込みと同じtransaction内でtombstone確認してから書き込む経路へ統一した。1件でも完全削除済みなら`NOTE_PERMANENTLY_DELETED`でtransaction全体を中止し、古いウィンドウや休止タブ、draft mirror、通知欠落からの復活を防ぐ。
+* BroadcastChannelでは完全削除のstarted／completed／abortedを`memoIds`・`deletionId`・`deletedAt`付きで通知する。通知は早期停止と表示更新に使い、正しさは永続tombstoneで保証する。専用エラー時は保存基盤の終端状態、遅延保存、live draft、localStorage draft、一覧・選択状態を整理し、メイン削除ボタンの非同期失敗も既存の共通エラー表示へ1回だけ渡す。
+* 2ウィンドウが同じIndexedDB相当ストレージを共有するテストで、保存→削除、削除→保存、削除中編集、BroadcastChannel欠落、削除失敗rollbackと再open、複数ID、batch全体中止、メイン削除ボタン拒否を確認した。新規／旧DB移行とupgrade abort、同一transaction guard、20回のsave/delete競合も回帰対象に追加した。
+* `node --test --test-isolation=none`は全667件成功した。変更した全19 JavaScriptの`node --check`と`git diff --check`も成功した。

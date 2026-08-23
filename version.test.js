@@ -26,16 +26,17 @@ test("現在のアプリ版とリリース名を0.5.0 Bridge Updateへ統一す�
 test("全ローカルCSS・JavaScriptを0.5.0のキャッシュ識別子で読み込む", () => {
   const assetVersions = [...html.matchAll(/(?:href|src)="(?!https?:)([^"?]+)\?v=([^"]+)"/g)]
     .map((match) => ({ path: match[1], version: match[2] }));
-  assert.equal(assetVersions.length, 40);
+  assert.equal(assetVersions.length, 41);
   assetVersions.forEach(({ path, version }) => {
     assert.match(version, /^0\.5\.0-\d+$/, `${path}のキャッシュ識別子`);
   });
-  assert.match(html, /note-save-foundation\.js\?v=0\.5\.0-3/);
-  assert.match(html, /app\.js\?v=0\.5\.0-99/);
+  assert.match(html, /note-tombstone\.js\?v=0\.5\.0-1/);
+  assert.match(html, /note-save-foundation\.js\?v=0\.5\.0-4/);
+  assert.match(html, /app\.js\?v=0\.5\.0-100/);
 });
 
 test("本体リリースと別管理の互換性バージョンを変更しない", () => {
-  assert.match(app, /const DB_VERSION = 5;/);
+  assert.match(app, /const DB_VERSION = 6;/);
   assert.match(backup, /const BACKUP_VERSION = 2;/);
   assert.match(tableBlocks, /const TABLE_BLOCK_VERSION = 1;/);
   assert.match(codexRuntime, /clientInfo: \{ name: "memo-nexus-codex-chat", version: "0\.1\.1" \}/);

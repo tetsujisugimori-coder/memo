@@ -297,8 +297,8 @@ test("設定UIは明示保存・個別設定・比較・受取確認を持つ", 
   assert.match(html, /name="recommendationMood" value="neutral" checked/);
   assert.match(html, /name="recommendationPurpose" value="writing" checked/);
   assert.match(html, /id="fontWebLoadStatus"[^>]*aria-live="polite"/);
-  assert.ok(html.indexOf('font-recommendation.js?v=0.5.0-1') < html.indexOf('app.js?v=0.5.0-99'));
-  assert.ok(html.indexOf('web-font-loader.js?v=0.5.0-2') < html.indexOf('app.js?v=0.5.0-99'));
+  assert.ok(html.indexOf('font-recommendation.js?v=0.5.0-1') < html.indexOf('app.js?v=0.5.0-100'));
+  assert.ok(html.indexOf('web-font-loader.js?v=0.5.0-2') < html.indexOf('app.js?v=0.5.0-100'));
   assert.match(app, /function prepareFontSettingsDialog\(\)[\s\S]*?renderFontRecommendations\(\)/);
   assert.match(app, /function syncFontSelectDisplay\(select\) \{[\s\S]*?select\.style\.fontFamily = font\?\.cssFamily \|\| "";/);
   assert.match(app, /\[fields\.titleFont, fields\.bodyFont, fields\.headingFont, fields\.codeFont\]\.forEach\(syncFontSelectDisplay\)/);

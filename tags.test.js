@@ -45,7 +45,7 @@ function readFunctionSource(name) {
 }
 
 test("tags.jsをapp.jsより前に読み込みwindow APIとして公開する", () => {
-  assert.ok(html.indexOf('src="tags.js?v=0.5.0-2"') < html.indexOf('src="app.js?v=0.5.0-99"'));
+  assert.ok(html.indexOf('src="tags.js?v=0.5.0-2"') < html.indexOf('src="app.js?v=0.5.0-100"'));
   assert.match(fs.readFileSync("tags.js", "utf8"), /global\.MemoNexusTags = api/);
 });
 
@@ -148,7 +148,7 @@ test("選択式UIは未登録入力を案内し登録済み候補だけを追加
 
 test("DB v5はtagsストアを追加し既存メモのタグを冪等移行する", () => {
   assert.match(app, /const TAG_STORE_NAME = "tags"/);
-  assert.match(app, /const DB_VERSION = 5/);
+  assert.match(app, /const DB_VERSION = 6/);
   assert.match(app, /objectStoreNames\.contains\(TAG_STORE_NAME\)[\s\S]*createObjectStore\(TAG_STORE_NAME, \{ keyPath: "id" \}\)/);
   const source = readFunctionSource("synchronizeRegisteredTagsForNotes");
   assert.match(source, /getAllTagDefinitions\(\)/);

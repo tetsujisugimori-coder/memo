@@ -50,7 +50,7 @@ test("同一URLの再クリップは既存メモの更新または新規保存�
   assert.match(html, /id="webClipExistingNoteSection"[\s\S]*webClipSaveMode[\s\S]*value="update"[\s\S]*value="new"/);
   assert.match(html, /id="retryFailedWebClipImagesBtn"/);
   assert.match(app, /normalizeWebClipComparisonUrl/);
-  assert.match(app, /db\.transaction\(\[STORE_NAME, ATTACHMENT_STORE_NAME\], "readwrite"\)/);
+  assert.match(app, /db\.transaction\(\[STORE_NAME, ATTACHMENT_STORE_NAME, TOMBSTONE_STORE_NAME\], "readwrite"\)/);
   assert.match(app, /previousWebClipAttachments/);
   assert.match(app, /memo-nexus-web-clip-retry-images/);
   assert.match(app, /画像なしで保存/);

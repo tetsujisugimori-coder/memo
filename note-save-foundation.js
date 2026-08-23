@@ -54,12 +54,19 @@
     if (typeof writeSnapshot !== "function") throw new Error("writeSnapshot is required");
 
     const entries = new Map();
-    const terminalNoteIds = new Set();
+    const permanentlyDeletedNotes = new Map();
 
     function operationError(noteId, code, message) {
       const error = new Error(message);
       error.code = code;
       error.noteId = noteId;
+      return error;
+    }
+
+    function permanentlyDeletedError(noteId) {
+      const tombstone = permanentlyDeletedNotes.get(noteId) || null;
+      const error = operationError(noteId, "NOTE_PERMANENTLY_DELETED", "note was permanently deleted");
+      error.tombstone = tombstone;
       return error;
     }
 
@@ -117,7 +124,7 @@
 
     function registerNote(noteId, revision = 0) {
       if (!noteId) throw new Error("noteId is required");
-      if (terminalNoteIds.has(noteId)) return null;
+      if (permanentlyDeletedNotes.has(noteId)) return null;
       const normalizedRevision = normalizeRevision(revision);
       const existing = entries.get(noteId);
       if (existing) {
@@ -137,7 +144,7 @@
 
     function markChanged(noteId, revision = 0) {
       if (!noteId) throw new Error("noteId is required");
-      if (terminalNoteIds.has(noteId)) throw operationError(noteId, "NOTE_DELETING", "note is being permanently deleted");
+      if (permanentlyDeletedNotes.has(noteId)) throw permanentlyDeletedError(noteId);
       const entry = ensureEntry(noteId, revision, true);
       if (entry.terminal) throw operationError(noteId, "NOTE_DELETING", "note is being permanently deleted");
       entry.currentRevision = Math.max(entry.currentRevision, normalizeRevision(revision)) + 1;
@@ -210,6 +217,9 @@
         emit(entry);
         if (writeError) safeNotify("error", onSaveError, [batch.request, writeError, state]);
         else safeNotify("success", onSaveSuccess, [batch.request, state]);
+        if (writeError?.code === "NOTE_PERMANENTLY_DELETED") {
+          finishPermanentDeletion([writeError.noteId || entry.noteId], writeError.tombstone);
+        }
       });
     }
 
@@ -275,8 +285,8 @@
 
     function enqueueSave(request) {
       if (!request || !request.noteId || !request.snapshot) throw new Error("valid save request is required");
-      if (terminalNoteIds.has(request.noteId)) {
-        return Promise.reject(operationError(request.noteId, "NOTE_DELETING", "note is being permanently deleted"));
+      if (permanentlyDeletedNotes.has(request.noteId)) {
+        return Promise.reject(permanentlyDeletedError(request.noteId));
       }
       const entry = ensureEntry(request.noteId, request.revision, false);
       if (entry.terminal) return Promise.reject(operationError(request.noteId, "NOTE_DELETING", "note is being permanently deleted"));
@@ -311,9 +321,8 @@
       if (typeof operation !== "function") throw new Error("operation is required");
       const ids = [...new Set(noteIds || [])].filter(Boolean).sort();
       ids.forEach((noteId) => {
-        if (terminalNoteIds.has(noteId) || entries.get(noteId)?.terminal) {
-          throw operationError(noteId, "NOTE_DELETING", "note is being permanently deleted");
-        }
+        if (permanentlyDeletedNotes.has(noteId)) throw permanentlyDeletedError(noteId);
+        if (entries.get(noteId)?.terminal) throw operationError(noteId, "NOTE_DELETING", "note is being permanently deleted");
       });
       startScheduledDrains(ids);
       return withNoteLocks(ids, operation);
@@ -323,7 +332,7 @@
       const ids = [...new Set(noteIds || [])].filter(Boolean).sort();
       if (!ids.length) throw new Error("noteIds are required");
       const lockedEntries = ids.map((noteId) => {
-        if (terminalNoteIds.has(noteId)) throw operationError(noteId, "NOTE_DELETING", "note is being permanently deleted");
+        if (permanentlyDeletedNotes.has(noteId)) throw permanentlyDeletedError(noteId);
         const entry = ensureEntry(noteId, 0, true);
         if (entry.terminal) throw operationError(noteId, "NOTE_DELETING", "note is being permanently deleted");
         if (entry.atomicBatch) throw operationError(noteId, "NOTE_BATCH_ACTIVE", "note is already part of an atomic batch");
@@ -359,6 +368,7 @@
     function abortAtomicBatch(token) {
       if (!token?.noteIds) throw new Error("atomic batch token is required");
       return token.noteIds.map((noteId) => {
+        if (permanentlyDeletedNotes.has(noteId) && !entries.has(noteId)) return null;
         const entry = requireAtomicBatch(token, noteId);
         entry.currentRevision = Math.max(entry.lastSavedRevision, entry.currentRevision - entry.atomicBatch.changeCount);
         entry.atomicBatch = null;
@@ -366,19 +376,20 @@
         emit(entry);
         finishIdle(entry);
         return publicState(entry);
-      });
+      }).filter(Boolean);
     }
 
     function completeAtomicBatch(token) {
       if (!token?.noteIds) throw new Error("atomic batch token is required");
       return token.noteIds.map((noteId) => {
+        if (permanentlyDeletedNotes.has(noteId) && !entries.has(noteId)) return null;
         const entry = requireAtomicBatch(token, noteId);
         entry.atomicBatch = null;
         entry.status = entry.currentRevision === entry.lastSavedRevision ? "saved" : "dirty";
         emit(entry);
         finishIdle(entry);
         return publicState(entry);
-      });
+      }).filter(Boolean);
     }
 
     function enqueueBatchSave({ batch, noteIds, createRequests, writeSnapshots } = {}) {
@@ -432,17 +443,66 @@
           finishIdle(entry);
           return { request, state };
         });
+        if (writeError?.code === "NOTE_PERMANENTLY_DELETED") {
+          finishPermanentDeletion([writeError.noteId], writeError.tombstone);
+        }
         if (writeError) throw writeError;
         return results;
       });
     }
 
-    async function runTerminalDelete(noteIds, operation) {
+    function finishPermanentDeletion(noteIds, tombstone = {}) {
+      const ids = [...new Set(noteIds || [])].filter(Boolean).sort();
+      ids.forEach((noteId) => {
+        const metadata = {
+          deletionId: tombstone?.deletionId || tombstone?.id || null,
+          deletedAt: tombstone?.deletedAt || null
+        };
+        permanentlyDeletedNotes.set(noteId, metadata);
+        const entry = entries.get(noteId);
+        if (!entry) return;
+        const error = permanentlyDeletedError(noteId);
+        if (entry.pending) {
+          settleBatch(entry.pending, "reject", error);
+          entry.pending = null;
+        }
+        const waiters = entry.idleWaiters.splice(0);
+        entries.delete(noteId);
+        waiters.forEach((resolve) => resolve(null));
+      });
+    }
+
+    function beginExternalTerminalDelete(noteIds, tombstone = {}) {
+      const ids = [...new Set(noteIds || [])].filter(Boolean).sort();
+      ids.forEach((noteId) => {
+        if (permanentlyDeletedNotes.has(noteId)) return;
+        const entry = ensureEntry(noteId, 0, true);
+        entry.terminal = {
+          id: tombstone.deletionId || tombstone.id || null,
+          deletedAt: tombstone.deletedAt || null,
+          external: true
+        };
+        emit(entry);
+      });
+    }
+
+    function abortExternalTerminalDelete(noteIds, deletionId) {
+      [...new Set(noteIds || [])].filter(Boolean).forEach((noteId) => {
+        const entry = entries.get(noteId);
+        if (!entry?.terminal?.external || (deletionId && entry.terminal.id !== deletionId)) return;
+        entry.terminal = null;
+        entry.status = entry.lastError ? "error" : (entry.currentRevision === entry.lastSavedRevision ? "saved" : "dirty");
+        emit(entry);
+        finishIdle(entry);
+      });
+    }
+
+    async function runTerminalDelete(noteIds, operation, options = {}) {
       if (typeof operation !== "function") throw new Error("operation is required");
       const ids = [...new Set(noteIds || [])].filter(Boolean).sort();
       if (!ids.length) return;
       const lockedEntries = ids.map((noteId) => {
-        if (terminalNoteIds.has(noteId)) throw operationError(noteId, "NOTE_DELETING", "note is being permanently deleted");
+        if (permanentlyDeletedNotes.has(noteId)) throw permanentlyDeletedError(noteId);
         const entry = ensureEntry(noteId, 0, true);
         if (entry.terminal) throw operationError(noteId, "NOTE_DELETING", "note is being permanently deleted");
         if (entry.atomicBatch) throw operationError(noteId, "NOTE_BATCH_ACTIVE", "note is part of an atomic batch");
@@ -450,7 +510,7 @@
       });
       startScheduledDrains(ids);
       fallbackOperationId += 1;
-      const terminalId = `delete-${Date.now()}-${fallbackOperationId}`;
+      const terminalId = options.deletionId || `delete-${Date.now()}-${fallbackOperationId}`;
       lockedEntries.forEach((entry) => {
         entry.terminal = { id: terminalId };
         emit(entry);
@@ -458,14 +518,7 @@
 
       try {
         const result = await withNoteLocks(ids, operation);
-        ids.forEach((noteId) => {
-          const entry = entries.get(noteId);
-          terminalNoteIds.add(noteId);
-          if (!entry) return;
-          const waiters = entry.idleWaiters.splice(0);
-          entries.delete(noteId);
-          waiters.forEach((resolve) => resolve(null));
-        });
+        finishPermanentDeletion(ids, { deletionId: terminalId, deletedAt: options.deletedAt || null });
         return result;
       } catch (error) {
         lockedEntries.forEach((entry) => {
@@ -488,7 +541,7 @@
     }
 
     function isTerminal(noteId) {
-      return terminalNoteIds.has(noteId) || Boolean(entries.get(noteId)?.terminal);
+      return permanentlyDeletedNotes.has(noteId) || Boolean(entries.get(noteId)?.terminal);
     }
 
     function whenIdle(noteId) {
@@ -509,8 +562,11 @@
 
     return {
       abortAtomicBatch,
+      abortExternalTerminalDelete,
       beginAtomicBatch,
+      beginExternalTerminalDelete,
       completeAtomicBatch,
+      finishPermanentDeletion,
       enqueueBatchSave,
       enqueueSave,
       forgetNote,
