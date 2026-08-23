@@ -297,8 +297,8 @@ test("設定UIは明示保存・個別設定・比較・受取確認を持つ", 
   assert.match(html, /name="recommendationMood" value="neutral" checked/);
   assert.match(html, /name="recommendationPurpose" value="writing" checked/);
   assert.match(html, /id="fontWebLoadStatus"[^>]*aria-live="polite"/);
-  assert.ok(html.indexOf('font-recommendation.js?v=0.5.0-1') < html.indexOf('app.js?v=0.5.0-96'));
-  assert.ok(html.indexOf('web-font-loader.js?v=0.5.0-2') < html.indexOf('app.js?v=0.5.0-96'));
+  assert.ok(html.indexOf('font-recommendation.js?v=0.5.0-1') < html.indexOf('app.js?v=0.5.0-101'));
+  assert.ok(html.indexOf('web-font-loader.js?v=0.5.0-2') < html.indexOf('app.js?v=0.5.0-101'));
   assert.match(app, /function prepareFontSettingsDialog\(\)[\s\S]*?renderFontRecommendations\(\)/);
   assert.match(app, /function syncFontSelectDisplay\(select\) \{[\s\S]*?select\.style\.fontFamily = font\?\.cssFamily \|\| "";/);
   assert.match(app, /\[fields\.titleFont, fields\.bodyFont, fields\.headingFont, fields\.codeFont\]\.forEach\(syncFontSelectDisplay\)/);
@@ -331,9 +331,9 @@ test("フォント設定保存は本文値を書き換えず、個別設定が�
   assert.doesNotMatch(source, /note\.body\s*=/);
   assert.match(
     source,
-    /if \(!noteFontSettingsEqual\(previousNoteSettings, nextNoteSettings\)\) \{[\s\S]*?note\.updatedAt = Date\.now\(\);[\s\S]*?await putNote\(note\);/
+    /if \(!noteFontSettingsEqual\(previousNoteSettings, nextNoteSettings\)\) \{[\s\S]*?markLocalMemoDirty\(note\);[\s\S]*?await enqueueNoteSave\(note\.id\);/
   );
-  assert.equal((source.match(/note\.updatedAt = Date\.now\(\)/g) || []).length, 1);
+  assert.equal((source.match(/markLocalMemoDirty\(note\)/g) || []).length, 1);
 });
 
 test("アプリ統合は実表示・プレビュー・受取確定だけをWebフォント要求へ接続する", () => {

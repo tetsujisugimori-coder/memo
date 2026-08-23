@@ -43,9 +43,9 @@ test("同期判定はDBとの差ではなく明示的なローカル編集状態
   assert.equal(getMemoSyncDecision({ message, knownUpdatedAt: 10, note, currentId: "memo-a", isLocalMemoDirty: false }), "apply");
   assert.equal(getMemoSyncDecision({ message, knownUpdatedAt: 10, note, currentId: "memo-a", isLocalMemoDirty: true, localDirtyMemoId: "memo-a" }), "pending");
   assert.equal(getMemoSyncDecision({ message, knownUpdatedAt: 20, note, currentId: "memo-a", isLocalMemoDirty: false }), "ignore");
-  assert.match(app, /function markLocalMemoDirty\(\)[\s\S]*?isLocalMemoDirty = true/);
-  assert.match(app, /function scheduleSave\([\s\S]*?markLocalMemoDirty\(\)/);
-  assert.match(app, /localMemoEditVersion === savedEditVersion/);
+  assert.match(app, /function markLocalMemoDirty\([\s\S]*?noteSaveFoundation\.markChanged\(note\.id, note\.revision\)/);
+  assert.match(app, /function scheduleSave\([\s\S]*?applyCurrentEditorDraft\(note\)/);
+  assert.match(app, /function handleNoteSaveSuccess\([\s\S]*?state\.currentRevision === request\.revision/);
   assert.doesNotMatch(html, /id="memoSyncNotice"/);
   assert.match(app, /function renderMemoSyncNotice\(\)[\s\S]*?同期の保留状態は従来どおり維持/);
   assert.match(app, /function loadPendingMemoSync\(\)[\s\S]*?applyMemoSync\(note\)/);
