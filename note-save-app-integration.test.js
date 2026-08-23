@@ -5,6 +5,8 @@ const fs = require("node:fs");
 const test = require("node:test");
 const vm = require("node:vm");
 const { createNoteSaveFoundation, createSaveRequest, normalizeRevision } = require("./note-save-foundation.js");
+const { applyLocalSaveSuccess, createLocalSaveState, transitionLocalSaveState } = require("./local-save-state.js");
+const { serializeLocalNote } = require("./local-markdown.js");
 
 const appSource = fs.readFileSync(require.resolve("./app.js"), "utf8");
 
@@ -21,6 +23,7 @@ const saveCoreSource = sourceBetween("function currentNote()", "function handleN
 const saveHandlersSource = sourceBetween("function handleNoteSaveStateChange", "function popoutUrlForMemo");
 const scheduleSaveSource = sourceBetween("function scheduleSave(", "function captureUndoSnapshot");
 const updateTagsSource = sourceBetween("async function updateCurrentNoteTags", "function setNoteTagStatus");
+const localSaveMetadataSource = sourceBetween("function localSavePlanMatchesRevision", "async function performLocalWorkspaceSave");
 
 function deferred() {
   let resolve;
@@ -124,7 +127,7 @@ function createHarness({ writer, ensureTags = async () => {}, noteCount = 2 } = 
     const normalizeTagIds = (tags) => Array.isArray(tags) ? [...tags] : [];
     const restrictTagIds = (tags) => normalizeTagIds(tags).filter((tag) => registeredTags.includes(tag));
     const titleFromBody = (body) => String(body).split(/\\r?\\n/).find(Boolean) || "";
-    const updateNotesTransaction = async (items) => writer(items, { batch: true });
+    const updateNotesTransaction = async (items, options = {}) => writer(items, { batch: true, ...options });
     const ensureRegisteredTagsForNotes = () => ensureTags();
 
     ${openNoteSource}
@@ -132,6 +135,7 @@ function createHarness({ writer, ensureTags = async () => {}, noteCount = 2 } = 
     ${saveHandlersSource}
     ${scheduleSaveSource}
     ${updateTagsSource}
+    ${localSaveMetadataSource}
 
     notes.forEach((note) => noteSaveFoundation.registerNote(note.id, note.revision));
     globalThis.harness = {
@@ -140,6 +144,8 @@ function createHarness({ writer, ensureTags = async () => {}, noteCount = 2 } = 
       scheduleSave,
       updateCurrentNoteTags,
       mutateNotesAtomically,
+      applyLocalSaveMetadata,
+      localSaveBoundaryChanged,
       enqueueNoteSave,
       runNextTimer() {
         const entry = timersForHarness().entries().next().value;
@@ -173,6 +179,25 @@ function createHarness({ writer, ensureTags = async () => {}, noteCount = 2 } = 
   `, context);
   context.__timers = timers;
   return context.harness;
+}
+
+async function executeMockLocalSave(harness, { savedAt, onFileWrite = async () => {} }) {
+  const plans = harness.state().notes.map((note) => {
+    const fixedSnapshot = structuredClone(note);
+    const savedNote = applyLocalSaveSuccess(fixedSnapshot, savedAt);
+    return {
+      note: savedNote,
+      startRevision: normalizeRevision(fixedSnapshot.revision),
+      markdown: serializeLocalNote(savedNote, savedNote.body)
+    };
+  });
+  for (const plan of plans) await onFileWrite(plan);
+  const metadataResult = await harness.applyLocalSaveMetadata(plans);
+  return {
+    changedDuringSave: harness.localSaveBoundaryChanged(plans, metadataResult.expectedRevisionsAfterMetadata),
+    metadataResult,
+    plans
+  };
 }
 
 test("実アプリ経路A: debounce中の切替はAだけを保存しBのDOMを維持する", async () => {
@@ -265,15 +290,18 @@ test("通常note更新経路は共通mutationまたは排他入口へ接続さ�
 });
 
 test("ローカル保存メタデータ200件のbatchは一覧を1回だけ更新し語句索引を無効化しない", async () => {
-  const harness = createHarness({ noteCount: 200 });
-  const noteIds = harness.noteIds();
+  const batchOptions = [];
+  const harness = createHarness({
+    noteCount: 200,
+    writer: async (_value, options) => { if (options?.batch) batchOptions.push(options); }
+  });
 
-  await harness.mutateNotesAtomically(noteIds, (note) => {
-    note.localCreatedAt ||= "2026-08-24T00:00:00.000Z";
-    note.localSavedAt = "2026-08-24T00:01:00.000Z";
-  }, undefined, { invalidateTermRelations: false, render: "list" });
+  const localSave = await executeMockLocalSave(harness, { savedAt: "2026-08-24T00:01:00.000Z" });
 
   const state = harness.state();
+  assert.equal(localSave.changedDuringSave, false);
+  assert.equal(localSave.metadataResult.results.length, 200);
+  assert.deepEqual(batchOptions.map(({ markLocalPending }) => markLocalPending), [false]);
   assert.equal(state.renderListCount, 1);
   assert.equal(state.renderAllCount, 0);
   assert.equal(state.invalidateTermRelationIndexCount, 0);
@@ -284,6 +312,202 @@ test("ローカル保存メタデータ200件のbatchは一覧を1回だけ更�
     assert.equal(harness.foundation.getState(note.id).lastSavedRevision, 1);
     assert.equal(harness.foundation.getState(note.id).dirty, false);
   });
+});
+
+test("ローカル書込み待ち中のA→B編集をmetadataへ混ぜず、予約保存とpending状態を維持する", async () => {
+  const fileWriteStarted = deferred();
+  const releaseFileWrite = deferred();
+  const markdownFiles = new Map();
+  const browserWrites = [];
+  const harness = createHarness({
+    noteCount: 1,
+    writer: async (value, options) => {
+      if (!options?.batch) browserWrites.push(structuredClone(value));
+    }
+  });
+  let firstFile = true;
+  let localState = transitionLocalSaveState(createLocalSaveState({ status: "pending", pendingChanges: true }), "saving");
+  const firstSave = executeMockLocalSave(harness, {
+    savedAt: "2026-08-24T00:01:00.000Z",
+    onFileWrite: async (plan) => {
+      markdownFiles.set(plan.note.id, plan.markdown);
+      if (!firstFile) return;
+      firstFile = false;
+      fileWriteStarted.resolve();
+      await releaseFileWrite.promise;
+    }
+  });
+  await fileWriteStarted.promise;
+
+  harness.edit("A edited", "B [[late-term]]");
+  harness.scheduleSave();
+  assert.equal(harness.state().timers, 1);
+  releaseFileWrite.resolve();
+  const firstResult = await firstSave;
+  localState = transitionLocalSaveState(localState, firstResult.changedDuringSave ? "pending" : "saved", {
+    lastSuccessAt: "2026-08-24T00:01:00.000Z",
+    pendingChanges: firstResult.changedDuringSave
+  });
+
+  assert.match(markdownFiles.get("A"), /A0/);
+  assert.doesNotMatch(markdownFiles.get("A"), /late-term/);
+  assert.equal(firstResult.metadataResult.results.some(({ request }) => request.noteId === "A"), false);
+  assert.equal(harness.liveNote("A").body, "B [[late-term]]");
+  assert.equal(harness.liveNote("A").localSavedAt, undefined);
+  assert.equal(harness.foundation.getState("A").dirty, true);
+  assert.equal(harness.state().timers, 1);
+  assert.equal(harness.state().renderListCount, 1);
+  assert.equal(harness.state().invalidateTermRelationIndexCount, 0);
+  assert.equal(localState.status, "pending");
+  assert.equal(localState.pendingChanges, true);
+
+  harness.runNextTimer();
+  await harness.foundation.whenIdle("A");
+  assert.equal(browserWrites.at(-1).body, "B [[late-term]]");
+  assert.equal(harness.foundation.getState("A").dirty, false);
+  assert.equal(harness.state().invalidateTermRelationIndexCount, 1);
+
+  const secondFiles = new Map();
+  localState = transitionLocalSaveState(localState, "saving");
+  const secondResult = await executeMockLocalSave(harness, {
+    savedAt: "2026-08-24T00:02:00.000Z",
+    onFileWrite: async (plan) => secondFiles.set(plan.note.id, plan.markdown)
+  });
+  localState = transitionLocalSaveState(localState, secondResult.changedDuringSave ? "pending" : "saved", {
+    lastSuccessAt: "2026-08-24T00:02:00.000Z",
+    pendingChanges: secondResult.changedDuringSave
+  });
+  assert.match(secondFiles.get("A"), /B \[\[late-term\]\]/);
+  assert.equal(secondResult.changedDuringSave, false);
+  assert.equal(localState.status, "saved");
+});
+
+test("metadata transaction待ち中の再編集もローカル日時へ合流させずpendingに戻す", async () => {
+  const metadataWriteStarted = deferred();
+  const releaseMetadataWrite = deferred();
+  const harness = createHarness({
+    writer: async (_value, options) => {
+      if (!options?.batch) return;
+      metadataWriteStarted.resolve();
+      await releaseMetadataWrite.promise;
+    }
+  });
+  const saving = executeMockLocalSave(harness, { savedAt: "2026-08-24T00:03:00.000Z" });
+  await metadataWriteStarted.promise;
+  harness.edit("A during metadata", "B during metadata");
+  harness.scheduleSave();
+  releaseMetadataWrite.resolve();
+  const result = await saving;
+
+  assert.equal(result.changedDuringSave, true);
+  assert.equal(harness.liveNote("A").body, "B during metadata");
+  assert.equal(harness.liveNote("A").localSavedAt, undefined);
+  assert.equal(harness.foundation.getState("A").dirty, true);
+  assert.equal(harness.state().timers, 1);
+  assert.equal(harness.state().renderListCount, 1);
+  assert.equal(harness.state().invalidateTermRelationIndexCount, 0);
+});
+
+test("200件中1件をローカル書込み中に編集するとmetadataは199件だけを線形更新する", async () => {
+  const fileWriteStarted = deferred();
+  const releaseFileWrite = deferred();
+  const metadataBatchSizes = [];
+  const harness = createHarness({
+    noteCount: 200,
+    writer: async (value, options) => {
+      if (options?.batch) metadataBatchSizes.push(value.length);
+    }
+  });
+  let firstFile = true;
+  const saving = executeMockLocalSave(harness, {
+    savedAt: "2026-08-24T01:00:00.000Z",
+    onFileWrite: async () => {
+      if (!firstFile) return;
+      firstFile = false;
+      fileWriteStarted.resolve();
+      await releaseFileWrite.promise;
+    }
+  });
+  await fileWriteStarted.promise;
+  harness.edit("A late", "A late body");
+  harness.scheduleSave();
+  releaseFileWrite.resolve();
+  const result = await saving;
+
+  const state = harness.state();
+  assert.equal(result.changedDuringSave, true);
+  assert.equal(result.metadataResult.results.length, 199);
+  assert.deepEqual(metadataBatchSizes, [199]);
+  assert.equal(state.notes.filter((note) => note.localSavedAt === "2026-08-24T01:00:00.000Z").length, 199);
+  assert.equal(harness.liveNote("A").body, "A late body");
+  assert.equal(harness.liveNote("A").localSavedAt, undefined);
+  assert.equal(harness.foundation.getState("A").dirty, true);
+  assert.equal(state.timers, 1);
+  assert.equal(state.renderListCount, 1);
+  assert.equal(state.renderAllCount, 0);
+  assert.equal(state.invalidateTermRelationIndexCount, 0);
+});
+
+test("ローカルmetadata transaction失敗と後続通常保存失敗でもdraft・予約・dirtyを保持する", async () => {
+  const metadataError = new Error("local metadata transaction aborted");
+  const normalError = new Error("late normal save failed");
+  let failNormalOnce = true;
+  const harness = createHarness({
+    writer: async (_value, options) => {
+      if (options?.batch) throw metadataError;
+      if (failNormalOnce) {
+        failNormalOnce = false;
+        throw normalError;
+      }
+    }
+  });
+  const fileWriteStarted = deferred();
+  const releaseFileWrite = deferred();
+  let firstFile = true;
+  const saving = executeMockLocalSave(harness, {
+    savedAt: "2026-08-24T02:00:00.000Z",
+    onFileWrite: async () => {
+      if (!firstFile) return;
+      firstFile = false;
+      fileWriteStarted.resolve();
+      await releaseFileWrite.promise;
+    }
+  });
+  await fileWriteStarted.promise;
+  harness.edit("A late", "A late survives");
+  harness.scheduleSave();
+  releaseFileWrite.resolve();
+  await assert.rejects(saving, (error) => error === metadataError);
+
+  assert.equal(harness.liveNote("A").body, "A late survives");
+  assert.equal(harness.foundation.getState("A").dirty, true);
+  assert.equal(harness.state().timers, 1);
+  assert.equal(harness.state().renderListCount, 0);
+  assert.equal(harness.state().invalidateTermRelationIndexCount, 0);
+
+  harness.runNextTimer();
+  const failedState = await harness.foundation.whenIdle("A");
+  assert.equal(failedState.status, "error");
+  assert.equal(failedState.dirty, true);
+  assert.equal(harness.liveNote("A").body, "A late survives");
+  await harness.enqueueNoteSave("A");
+  assert.equal(harness.foundation.getState("A").dirty, false);
+});
+
+test("索引無効化を省略するbatchはlocal日時以外の変更をtransaction前に拒否する", async () => {
+  let writeCount = 0;
+  const harness = createHarness({ writer: async () => { writeCount += 1; } });
+  await assert.rejects(harness.mutateNotesAtomically(["A"], (note) => {
+    note.body = "unexpected [[term]]";
+  }, undefined, {
+    allowedChangedFields: ["localCreatedAt", "localSavedAt"],
+    invalidateTermRelations: false,
+    render: "list"
+  }), /disallowed field: body/);
+  assert.equal(writeCount, 0);
+  assert.equal(harness.liveNote("A").body, "A0");
+  assert.equal(harness.liveNote("A").revision, 0);
+  assert.equal(harness.state().invalidateTermRelationIndexCount, 0);
 });
 
 test("本文を含む200件batchは現在メモと背景メモを反映し索引・全体描画を各1回に集約する", async () => {

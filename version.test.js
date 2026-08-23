@@ -32,7 +32,7 @@ test("全ローカルCSS・JavaScriptを0.5.0のキャッシュ識別子で読�
   });
   assert.match(html, /note-tombstone\.js\?v=0\.5\.0-2/);
   assert.match(html, /note-save-foundation\.js\?v=0\.5\.0-6/);
-  assert.match(html, /app\.js\?v=0\.5\.0-102/);
+  assert.match(html, /app\.js\?v=0\.5\.0-103/);
 });
 
 test("本体リリースと別管理の互換性バージョンを変更しない", () => {

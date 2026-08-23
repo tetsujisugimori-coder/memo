@@ -1931,6 +1931,64 @@ async function optionalLocalText(root, path) {
   }
 }
 
+function localSavePlanMatchesRevision(plan) {
+  const liveNote = noteForSave(plan?.note?.id);
+  return Boolean(liveNote)
+    && normalizeNoteRevision(liveNote.revision) === normalizeNoteRevision(plan.startRevision);
+}
+
+async function applyLocalSaveMetadata(plans) {
+  plans.forEach((plan) => {
+    const error = noteSaveFoundation.terminalError(plan.note.id);
+    if (error) throw error;
+  });
+  const eligiblePlans = plans.filter(localSavePlanMatchesRevision);
+  const expectedRevisionsAfterMetadata = new Map(plans.map((plan) => [
+    plan.note.id,
+    normalizeNoteRevision(plan.startRevision)
+  ]));
+  if (!eligiblePlans.length) {
+    if (plans.length && !isPopoutWindow) renderList();
+    return { expectedRevisionsAfterMetadata, results: [] };
+  }
+
+  const savedMetadata = new Map(eligiblePlans.map((plan) => [plan.note.id, {
+    localCreatedAt: plan.note.localCreatedAt,
+    localSavedAt: plan.note.localSavedAt
+  }]));
+  const expectedRevisions = new Map(eligiblePlans.map((plan) => [
+    plan.note.id,
+    normalizeNoteRevision(plan.startRevision)
+  ]));
+  const results = await mutateNotesAtomically(eligiblePlans.map((plan) => plan.note.id), (note) => {
+    const metadata = savedMetadata.get(note.id);
+    if (!metadata) return false;
+    note.localCreatedAt = note.localCreatedAt || metadata.localCreatedAt;
+    note.localSavedAt = metadata.localSavedAt;
+  }, (items) => updateNotesTransaction(items, { markLocalPending: false }), {
+    allowedChangedFields: ["localCreatedAt", "localSavedAt"],
+    applyCommittedChangesWhenDirty: false,
+    captureCurrentDraft: false,
+    clearScheduledSaves: false,
+    expectedRevisions,
+    invalidateTermRelations: false,
+    render: "list"
+  });
+  results.forEach(({ request }) => {
+    expectedRevisionsAfterMetadata.set(request.noteId, request.revision);
+  });
+  if (!results.length && plans.length && !isPopoutWindow) renderList();
+  return { expectedRevisionsAfterMetadata, results };
+}
+
+function localSaveBoundaryChanged(plans, expectedRevisionsAfterMetadata) {
+  return plans.some((plan) => {
+    const liveNote = noteForSave(plan.note.id);
+    return !liveNote
+      || normalizeNoteRevision(liveNote.revision) !== expectedRevisionsAfterMetadata.get(plan.note.id);
+  });
+}
+
 async function performLocalWorkspaceSave(reason = "change") {
   if (!localSaveSettings.enabled || !localDirectoryHandle) return false;
   const permission = await localFs.queryPermission(localDirectoryHandle, "readwrite");
@@ -1944,11 +2002,12 @@ async function performLocalWorkspaceSave(reason = "change") {
   const savedChangeVersion = localWorkspaceChangeVersion;
   const resolvedConflicts = new Map(localConflictResolutions);
   try {
+    // getAllNotes() may overlay live drafts, so clone exactly once at the local-save boundary.
+    const storedNotes = (await getAllNotes()).map(cloneNoteSnapshot);
     const layout = await localFs.ensureWorkspaceLayout(localDirectoryHandle);
     const storedSync = await localFs.readJson(layout.root, "sync-state.json", normalizeSyncState());
     const nextSync = normalizeSyncState(storedSync);
     nextSync.excluded = [...new Set([...nextSync.excluded, ...localPendingExclusions])];
-    const storedNotes = await getAllNotes();
     const storedCollections = await getAllCollections();
     const storedTags = await getAllTagDefinitions();
     const plans = [];
@@ -1979,7 +2038,14 @@ async function performLocalWorkspaceSave(reason = "change") {
           throw conflict;
         }
       }
-      plans.push({ note: savedNote, fileName, markdown, hash, attachmentIds: attachmentFiles.map((item) => item.id) });
+      plans.push({
+        note: savedNote,
+        startRevision: normalizeNoteRevision(note.revision),
+        fileName,
+        markdown,
+        hash,
+        attachmentIds: attachmentFiles.map((item) => item.id)
+      });
     }
 
     plans.forEach((plan) => {
@@ -2015,21 +2081,7 @@ async function performLocalWorkspaceSave(reason = "change") {
     for (const file of backupFiles) await localFs.writeFile(layout.root, file.name, file.content);
     await localFs.writeJson(layout.root, "sync-state.json", nextSync);
 
-    suppressLocalSaveQueue = true;
-    try {
-      const savedMetadata = new Map(plans.map((plan) => [plan.note.id, {
-        localCreatedAt: plan.note.localCreatedAt,
-        localSavedAt: plan.note.localSavedAt
-      }]));
-      await mutateNotesAtomically(plans.map((plan) => plan.note.id), (note) => {
-        const metadata = savedMetadata.get(note.id);
-        if (!metadata) return false;
-        note.localCreatedAt = note.localCreatedAt || metadata.localCreatedAt;
-        note.localSavedAt = metadata.localSavedAt;
-      }, undefined, { invalidateTermRelations: false, render: "list" });
-    } finally {
-      suppressLocalSaveQueue = false;
-    }
+    const metadataResult = await applyLocalSaveMetadata(plans);
     localSyncState = nextSync;
     localPendingExclusions.clear();
     await localFs.deleteConfig(db, LOCAL_CONFIG_STORE_NAME, "pendingExclusions");
@@ -2037,7 +2089,8 @@ async function performLocalWorkspaceSave(reason = "change") {
       const resolution = resolvedConflicts.get(plan.note.id);
       if (resolution) deleteLocalConflictResolution(localConflictResolutions, plan.note.id, resolution);
     });
-    const changedDuringSave = localWorkspaceChangeVersion !== savedChangeVersion;
+    const changedDuringSave = localWorkspaceChangeVersion !== savedChangeVersion
+      || localSaveBoundaryChanged(plans, metadataResult.expectedRevisionsAfterMetadata);
     setLocalSaveState(changedDuringSave ? "pending" : "saved", {
       directoryName: localDirectoryHandle.name,
       lastSuccessAt: savedAt,
@@ -2551,7 +2604,7 @@ async function migrateLegacyNotesToUnclassified() {
   console.log("Collection migration", { assignedToUnclassified: legacy.length });
 }
 
-function updateNotesTransaction(items) {
+function updateNotesTransaction(items, { markLocalPending = true } = {}) {
   return new Promise((resolve, reject) => {
     const transaction = db.transaction([STORE_NAME, TOMBSTONE_STORE_NAME], "readwrite");
     const store = transaction.objectStore(STORE_NAME);
@@ -2560,7 +2613,7 @@ function updateNotesTransaction(items) {
     }, TOMBSTONE_STORE_NAME);
     transaction.oncomplete = () => {
       items.forEach((note) => notifyMemoChanged(note));
-      markLocalWorkspacePending();
+      if (markLocalPending) markLocalWorkspacePending();
       resolve();
     };
     transaction.onerror = () => reject(noteTransactionError(transaction));
@@ -4744,23 +4797,40 @@ function applyCommittedBatchChanges(note, changes) {
 // バッチ固有の変更は固定snapshotへだけ適用し、transaction成功後にlive draftへ合流します。
 // 失敗時は通常編集だけがlive draftに残り、保存中の追加編集は別revisionとして維持されます。
 async function mutateNotesAtomically(noteIds, mutate, writeSnapshots = updateNotesTransaction, uiOptions = {}) {
+  const {
+    allowedChangedFields = null,
+    applyCommittedChangesWhenDirty = true,
+    captureCurrentDraft = true,
+    clearScheduledSaves = true,
+    expectedRevisions = null
+  } = uiOptions;
   const ids = [...new Set(noteIds || [])].filter(Boolean).sort();
   if (!ids.length) return Promise.resolve([]);
-  if (ids.includes(currentId)) applyCurrentEditorDraft(currentNote());
+  if (captureCurrentDraft && ids.includes(currentId)) applyCurrentEditorDraft(currentNote());
 
   const plans = ids.map((noteId) => {
     const note = noteForSave(noteId);
     if (!note) return null;
+    if (expectedRevisions && (
+      !expectedRevisions.has(noteId)
+      || normalizeNoteRevision(note.revision) !== normalizeNoteRevision(expectedRevisions.get(noteId))
+    )) return null;
     const before = cloneNoteSnapshot(note);
     const snapshot = cloneNoteSnapshot(note);
     if (mutate(snapshot, noteId) === false) return null;
-    return { noteId, before, snapshot, changes: noteBatchChanges(before, snapshot) };
+    const changes = noteBatchChanges(before, snapshot);
+    if (allowedChangedFields) {
+      const allowed = new Set(allowedChangedFields);
+      const unexpected = changes.find((change) => !allowed.has(change.key));
+      if (unexpected) throw new Error(`batch mutation changed disallowed field: ${unexpected.key}`);
+    }
+    return { noteId, before, snapshot, changes };
   }).filter(Boolean);
   if (!plans.length) return [];
 
   const changedIds = plans.map((plan) => plan.noteId);
   const batch = noteSaveFoundation.beginAtomicBatch(changedIds);
-  changedIds.forEach(clearScheduledNoteSave);
+  if (clearScheduledSaves) changedIds.forEach(clearScheduledNoteSave);
   const requests = plans.map((plan) => {
     plan.snapshot.revision = noteSaveFoundation.markBatchChanged(batch, plan.noteId, plan.before.revision);
     return createSaveRequest({ noteId: plan.noteId, revision: plan.snapshot.revision, snapshot: plan.snapshot });
@@ -4785,7 +4855,9 @@ async function mutateNotesAtomically(noteIds, mutate, writeSnapshots = updateNot
 
   try {
     applyNoteBatchSaveSuccess(results);
+    const resultById = new Map(results.map((result) => [result.request.noteId, result]));
     plans.forEach((plan) => {
+      if (!applyCommittedChangesWhenDirty && resultById.get(plan.noteId)?.state.dirty) return;
       const liveNote = noteForSave(plan.noteId);
       if (liveNote) applyCommittedBatchChanges(liveNote, plan.changes);
     });
