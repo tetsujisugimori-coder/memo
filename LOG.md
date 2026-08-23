@@ -1,142 +1,3 @@
-## 2026-08-19 フォント選択プルダウンの文字圏・書体表示改善
-
-* フォント設定の標準`select`が使う表示名を、既存の正式名称用`label`とは分離して追加した。日本語向けは`Yu Gothic UI（日本語フォント）`、`Meiryo（メイリオ）`、`MS Mincho（ＭＳ 明朝）`、Noto JP/Serif JP、Zen Kaku Gothic New、Shippori Mincho（しっぽり明朝）を明示し、中国語向けは`Noto Sans SC（简体中文）`、`Noto Sans TC（繁體中文）`、`Source Han Sans（思源黑体／简体中文）`を表示する。欧文フォントは正式名称を維持した。Noto SC/TCへ思源黑体・思源黑體を流用していない。
-* 各`option`へ対象フォントの`font-family`を設定し、閉じたselectにも現在選択中フォントを反映した。`id`、正式名称用`label`、CSS family、保存済み設定の正規化、Font Comparison連携は変更していない。
-* `font-settings.js`と`app.js`の配信識別子をそれぞれ`0.5.0-5`、`0.5.0-92`へ更新した。既存のキャッシュ番号テストも対応する期待値だけを更新した。
-* Edgeのローカル配信で設定画面を開き、全18件の選択肢、value不変、optionと選択中selectの計算済み`font-family`を確認した。一時的にConsolasを選んでも本文エディタは保存済みYu Gothic UIのままで、再読み込み後に選択値と本文表示が元へ戻ることを確認した。標準selectの展開リストはブラウザネイティブ描画のため自動スクリーンショットには含まれなかった。
-* `npm test`（605件、失敗0件）、`node --check app.js`、`node --check font-settings.js`、`git diff --check`が成功した。
-
-## 2026-08-19 Memo Nexus v0.5.0 Bridge Update リリース準備
-
-* アプリバージョンを`0.5.0`、表示名を`Bridge Update`、ビルド日を`2026-08-19`へ更新した。リリース名は「Memo Nexus v0.5.0 — Bridge Update」。`app.js`の共通定数を起動ログ、PC／スマホ表示、設定内の保存状態、バックアップmanifestが引き続き参照し、READMEの現在版2箇所も同じ表記へ更新した。
-* アプリ本体にService Worker、Cache API、独自キャッシュ名はない。静的配信の切替は`index.html`のURLクエリで行うため、ローカルCSS／JavaScript 39件を既存の末尾リビジョンを保った`v=0.5.0-*`へ更新した。Web ClipperのService Workerとmanifestは本体とは別管理のため変更していない。
-* `DB_VERSION = 5`、ZIPの`BACKUP_VERSION = 2`とformat version、表ブロック版1、Codexクライアント通信版`0.1.1`、Web ClipperのManifest V3／拡張版`0.3.5`を維持した。`package.json`にはアプリ版とロックファイルがないため変更していない。過去のLOGにある0.4.0記録も維持した。
-* `version.test.js`を追加し、現行版・表示名・ビルド日、全39資産のキャッシュ識別子、別用途バージョン不変を確認した。全121 JavaScriptファイルの`node --check`、`npm test`（605件、失敗0件）、`git diff --check`が成功した。
-* Edgeのローカル配信で主要画面、コレクション、PC／スマホ用の`v0.5.0 "Bridge Update"`、39件の0.5.0資産URLを確認した。通常再読み込み後も同じ版数、主要画面、既存メモ一覧3件を維持し、起動失敗表示はなかった。コンソールerror／warningの取得、公開版・PWAで0.4.0から更新する実機キャッシュ切替、ZIP生成ファイル内のappVersion確認は未実施。
-
-## 2026-08-19 PR #114 フォント条件検索・Weight単位読込・再試行
-
-### 変更内容
-
-* 既存アンケートを削除せず、既定で開く「条件からフォントを探す」として整理した。使用言語、文章の雰囲気、主な用途の3問と、アンケートは条件検索、選択欄は直接選択、Font Comparisonは詳細比較という関係を表示する。初期値は日本語／中立・読みやすさ重視／長文を書くで、設定画面を開いた時点からYu Gothic UI、Meiryo、Noto Sans JPの3候補を表示し、回答変更時に自動更新する。候補表示と条件変更だけでは保存もWebフォント読込も行わない。
-* 候補ボタンを本文／見出し／コードの適用先が分かる文言へ変更した。選択時は全体設定または有効なメモ個別設定の該当欄とプレビューだけを更新し、既存の「フォント設定を保存」で確定する流れ、直接選択、Font Comparison連携を維持する。
-* Webフォントローダーを`requestFont(fontId, weights)`へ変更し、フォントごとに`loadedWeights`、`loadingWeights`、`failedWeights`を管理する。題名・見出しは700、本文・コードは400をフォント単位で集約し、読込済みWeightを再取得せず、不足Weightだけを追加取得する。Google Fontsの`document.fonts.load()`も必要Weightだけを要求し、Source Han Sans CNはRegular（400）またはBold（700）の必要なOTFだけを`FontFace`で読み込む。
-* 読込失敗したフォントとWeightごとに代替表示案内と「再試行」を追加した。再試行は現在の全体設定と有効なメモ個別設定で必要な失敗Weightだけを要求し、読込中はボタンを無効化し、成功後はエラーとボタンを消す。stylesheet失敗時は失敗したlinkとPromiseを破棄し、Source Han Sans CNの一部失敗もWeight単位で再試行する。選択ID、保存済み設定、CSSフォールバックは変更しない。
-
-### 確認結果
-
-* `node --check app.js`、`font-settings.js`、`font-recommendation.js`、`web-font-loader.js`は成功した。
-* `node --test font-settings.test.js font-recommendation.test.js web-font-loader.test.js`は29件成功し、`npm test`は既存回帰を含む602件すべて成功した。
-* `git diff --check`は問題なしだった。
-* Edgeのローカル配信で、設定を開いた時点の3問・初期候補3件と動的Webフォントlink 0件、回答変更時の自動更新、日本語フォーマルの明朝系、簡体字のNoto Sans SC／Source Han Sans、繁体字のNoto Sans TC、英数字コードの等幅候補を確認した。条件変更後もlinkは0件だった。
-* 同ブラウザで、Noto Sans JPを本文へ反映すると400だけ、同じフォントを見出しへ追加すると700が追加され、Source Han Sans CNの本文利用では400だけが読込済みになることを状態表示で確認した。候補は全体設定とメモ個別設定の該当欄へ保存前プレビューとして反映された。
-* Google Fonts通信を一時遮断し、IBM Plex Sans 400の失敗時に代替表示と「再試行」が出ること、再試行中は無効、成功後はエラーとボタンが消えることを確認した。別タブの通常起動ではコンソールエラー0件だった。
-* 隔離した別Originで、全体設定のNoto Sans JPとメモ個別設定のNoto Serif JPを保存し、再読み込み後も個別設定有効状態と各IDが復元されることを確認した。390px、タブレット幅、PC幅でページの`scrollWidth`と`clientWidth`が一致し、ライト／ダーク双方で検索パネルの文字と背景が切り替わり、検索UIが表示されることを確認した。
-* Font ComparisonからMemo Nexusへ戻る実ブラウザ往復は今回再実施していない。送信元、用途、範囲、登録ID、`font-family`完全一致、URLパラメータ除去、受信直後に保存しない契約は既存自動テストで確認した。
-
-## 2026-08-19 フォント推薦UIとWebフォント遅延読込
-
-### 変更内容
-
-* 既存8システムフォントを維持し、Font Comparison PR #16を参照専用として、契約どおりの10 WebフォントID・表示名・`font-family`・配信URLをMemo Nexus側の単一カタログへ追加した。`font-comparison`リポジトリおよびPR #16には変更していない。
-* 全体／メモ個別の題名・本文・見出し・コードの全8フォント欄を、システムフォントとWebフォントの`optgroup`に分け、18種を同じ順序で選択できるようにした。未知IDは従来どおり既定値へ正規化する。
-* 通常のフォント設定内へ、使用言語、文章の雰囲気、主な用途から最大3件を安定順位で返す折りたたみ式の推薦UIを追加した。対応済み／一部対応を優先し、対応不明は候補不足時だけ、非対応はさらに不足する場合だけ使う。推薦表示だけでは保存もWebフォント読込も行わない。
-* Webフォントローダーを独立モジュールとして追加し、`idle`、`loading`、`loaded`、`error`を管理するようにした。現在の表示、設定プレビュー、推薦選択、Font Comparison受取確定で実際に使うフォントだけを読み込み、読込中／読込済みの重複要求を抑止する。失敗時も選択IDとCSSフォールバックを維持し、設定画面へ代替表示を案内する。
-* Font Comparisonの戻り値検証を18種へ拡張し、送信元、用途、範囲、カタログID、正確な`font-family`を照合する。URLの`fontLabel`は表示に使わず、Memo Nexus側の正式名へ置き換え、処理済みパラメータは既存どおり除去する。
-* 全体設定は端末localStorage、メモ個別設定は既存メモオブジェクトの`fontSettings`へIDだけを保存する構成を維持した。個別Webフォント設定がローカルMarkdown／ZIPバックアップを往復するテストを追加し、フォントファイルや配信CSSは保存対象にしていない。
-
-### 確認結果
-
-* `node --check app.js font-settings.js font-recommendation.js web-font-loader.js`（成功）
-* `node --test font-settings.test.js font-recommendation.test.js web-font-loader.test.js backup-bundle-utils.test.js`（42件成功）
-* `npm test`（600件成功）
-* `git diff --check`（問題なし）
-* Edgeのローカル配信で、起動時の動的Webフォントlinkが0件、推薦表示後も0件、Noto Sans JP選択後だけ1件になることを確認した。Noto Sans JPの全体設定保存・再読込、Interのメモ個別保存・別メモ切替・復帰、Shippori MinchoのFont Comparison戻り値受取とURLパラメータ除去も確認した。
-* 同ブラウザで全8フォント欄が各18選択肢／2分類であること、Google Fontsの実読込成功、ライト／ダーク、390pxで推薦UI展開時もページとフォント設定領域に横はみ出しがないこと、コンソール警告・エラー0件を確認した。外部配信の失敗経路とSource Han Sansの2ウェイト読込は自動テストで確認した。
-
-## 2026-08-15 解説カード保存時のnote.body即時反映
-
-### 変更内容
-
-* `saveExplanationFromDialog()` の新規作成フローで `insertExplanationAnchorIntoBody()` の結果を取得後、
-  `editor.value = insertion.body` に加えて `note.body = insertion.body` を同タイミングで代入するよう追加。
-* これにより `putNote(note)` の第一引数に渡る `note` に、説明本文・メタ情報と同じ状態の本文（HTMLコメントアンカー入り）を含めるように統一。
-* 既存の `scheduleSave()` は保存キューの既存フロー維持のため残し、`putNote` 呼び出し時点で整合する状態を保証。
-
-### 確認結果
-
-* `node --check app.js markdown-enhancements-utils.js`（成功）
-* `node --test syntax-guide.test.js markdown-enhancements.test.js image-block-layout.test.js`（pass 70）
-* `git diff --check`（問題なし）
-
-## 2026-08-15 feat/image-and-explanation-block-ui
-
-## 2026-08-15 解説カード本文アンカー永続化
-
-* 解説作成時に `memo-nexus:explanation` HTMLコメントアンカー (`<!-- memo-nexus:explanation id=\"UUID\" -->`) を本文へ保存する構成を追加
-* `memo-nexus:explanation id="<カードID>"` を優先解決キーとして採用し、同一語句の重複や選択範囲を超えた編集でも対象を特定しやすくした
-* アンカー優先で位置が確定しない既存データは従来の `resolveExplanationTarget()` へフォールバックし、既存解説カードの互換を維持
-* 本文側アンカーはプレビュー表示から除去し、既存画像ブロック仕様や既存編集/削除フローを変更しない
-* 追加したテスト:
-  * `markdown-enhancements.test.js`: アンカー挿入・同ID優先解決・重複語句識別・削除・編集・プレビュー除去
-  * `backup-bundle-utils.test.js`: ZIP往復時の本文アンカー保持
-
-### 確認結果
-
-* `node --check app.js markdown-enhancements-utils.js`
-* `node --test syntax-guide.test.js markdown-enhancements.test.js image-block-layout.test.js`（68件成功）
-* `node --test backup-bundle-utils.test.js`（7件成功）
-* `git diff --check`
-
-## 2026-08-15 Memo-Nexus: 解説カードの選択基準と配色修正
-
-### 変更内容
-
-* 本文選択時の解説ボタン押下で、`pointerdown` 取得時点の選択範囲をスナップショットとして保持し、`focus` 移動で選択が消える問題を回避
-* 解説カード表示対象解決を更新し、複数段落・複数リスト項目・Markdown装飾をまたいだ選択でも、選択範囲末尾側の表示ブロックで対象を確定するよう変更
-* `visibleTargetForSourceRange()` の判定を「単一可視テキスト断片前提」から脱却し、末尾側 anchor に基づく解決を行うよう更新
-* `resolveExplanationTarget()` 依存の既存挙動を崩さないよう、既存構造（保存・編集・削除・折りたたみ・対象再解決失敗時の維持）を維持
-* 解説カードの外観を枠線ベースから無地背景ベースへ変更し、通常カード／対象不明カードを色調差分で視認しやすくした
-
-### 確認結果
-
-* `node --check app.js markdown-enhancements-utils.js`
-* `node --test syntax-guide.test.js markdown-enhancements.test.js image-block-layout.test.js` → `pass 61`
-* `git diff --check` → 問題なし
-
-### 補足
-
-* 画像ブロックの挿入・仕様自体は変更せず
-* 本件は `app.js`、`markdown-enhancements-utils.js`、`markdown-enhancements.test.js`、`style.css` を編集
-
-### 変更内容
-
-* 画像・解説ブロックの記法ガイド文言を更新し、画像ブロック/画像キャプション/解説ブロック/画像削除時の添付保持を記載
-* 本文編集欄上部に「画像」「解説」ボタンを追加し、アイコン付きで直下インラインUIに統合
-* 画像を本文へ「画像ボタン」から挿入する仕様を、画像ブロック形式とカーソル/末尾フォールバックへ調整
-* 添付一覧から参照中画像を削除する確認文を、添付画像も削除される実挙動に合わせて更新
-* 解説は本文順で解析・挿入できるよう `hydrateExplanationCardsIntoDom` を修正し、本文外まとめ表示を廃止
-* 解説挿入位置のためのゼロ幅マーカー管理を追加し、カーソル位置挿入時の位置保持を安定化
-* 画像ブロックと解説カードのカード表示を更新（背景・内側余白・角丸・余白）し、後続本文・コードへのスタイル継承影響を抑制
-
-### 修正理由
-
-* 画像・解説ブロックを「本文順」かつ「本文中で直後」に見せるUI要件を満たし、カードの可読性と編集導線を改善するため
-* 画像削除時でも添付データを残す意図と、既存メモ/Web Clipper添付との互換性を維持するため
-
-### 確認方法
-
-* 画像/解説の各テストを更新し、既存仕様に沿った記法定義・DOM挿入仕様を確認
-* 画像ブロックと解説カードのレイアウトスタイルを確認
-* `git status` で対象差分を確認し、mainから分岐した新規ブランチで作業
-
-### 確認結果
-
-* `node --check app.js markdown-enhancements-utils.js`
-* `node --test syntax-guide.test.js markdown-enhancements.test.js image-block-layout.test.js` は実行時に `spawn EPERM` で失敗（この環境のNode test実行制約）
-* `node --test *.test.js` も同じ `spawn EPERM` で全件失敗
-* `markdown-enhancements.test.js` / `syntax-guide.test.js` / `image-block-layout.test.js` の追加分は、変更内容レビューにより意図どおりに追記済み
-
 ## 2026-06-21 Memo Nexus 保存安定化・ZIP修正
 
 ### 変更内容
@@ -1846,6 +1707,89 @@
 * 作成日・更新日を下部バーからタイトル領域右側へ移し、`作成 2026/8/12 21:34`、`更新 2026/8/14 23:09`形式にした。作成日時は従来どおり`localCreatedAt`を優先して`createdAt`へフォールバックし、更新日時も既存の`bodyUpdatedAt`／`updatedAt`仕様を維持する。フラグ操作は下部バー左へ移し、その直後に既存の文字数チップと詳細ポップオーバーを配置した。IndexedDB構造、ローカル保存処理、Markdown・ZIP入出力形式は変更していない。
 * ローカル日時の部品化と表示を`status-time-utils.js`へ共通化し、成功時刻の更新条件、未設定・要保存・保存中・競合・権限不足・エラー時の時刻維持、作成・更新日時、DOM順序、狭幅折り返しを回帰テストへ追加した。`node --test`は479件、全JavaScript 101ファイルの`node --check`、`git diff --check`が成功した。
 * Chromeの分離環境`http://127.0.0.1:5501`で、1707pxのデスクトップ、390×844px相当、540×720pxのポップアウトを確認した。タイトルと日時、フラグと文字数、保存チップと成功時刻に重なり・横スクロールがなく、ライト／ダーク双方で日時色のコントラストが維持されること、ポップアウトでも作成・更新日時と下部バーが表示されることを確認した。ローカル保存の実行は今回の表示変更に不要なため行っていない。
+## 2026-08-15 解説カード保存時のnote.body即時反映
+
+### 変更内容
+
+* `saveExplanationFromDialog()` の新規作成フローで `insertExplanationAnchorIntoBody()` の結果を取得後、
+  `editor.value = insertion.body` に加えて `note.body = insertion.body` を同タイミングで代入するよう追加。
+* これにより `putNote(note)` の第一引数に渡る `note` に、説明本文・メタ情報と同じ状態の本文（HTMLコメントアンカー入り）を含めるように統一。
+* 既存の `scheduleSave()` は保存キューの既存フロー維持のため残し、`putNote` 呼び出し時点で整合する状態を保証。
+
+### 確認結果
+
+* `node --check app.js markdown-enhancements-utils.js`（成功）
+* `node --test syntax-guide.test.js markdown-enhancements.test.js image-block-layout.test.js`（pass 70）
+* `git diff --check`（問題なし）
+
+## 2026-08-15 feat/image-and-explanation-block-ui
+
+## 2026-08-15 解説カード本文アンカー永続化
+
+* 解説作成時に `memo-nexus:explanation` HTMLコメントアンカー (`<!-- memo-nexus:explanation id=\"UUID\" -->`) を本文へ保存する構成を追加
+* `memo-nexus:explanation id="<カードID>"` を優先解決キーとして採用し、同一語句の重複や選択範囲を超えた編集でも対象を特定しやすくした
+* アンカー優先で位置が確定しない既存データは従来の `resolveExplanationTarget()` へフォールバックし、既存解説カードの互換を維持
+* 本文側アンカーはプレビュー表示から除去し、既存画像ブロック仕様や既存編集/削除フローを変更しない
+* 追加したテスト:
+  * `markdown-enhancements.test.js`: アンカー挿入・同ID優先解決・重複語句識別・削除・編集・プレビュー除去
+  * `backup-bundle-utils.test.js`: ZIP往復時の本文アンカー保持
+
+### 確認結果
+
+* `node --check app.js markdown-enhancements-utils.js`
+* `node --test syntax-guide.test.js markdown-enhancements.test.js image-block-layout.test.js`（68件成功）
+* `node --test backup-bundle-utils.test.js`（7件成功）
+* `git diff --check`
+
+## 2026-08-15 Memo-Nexus: 解説カードの選択基準と配色修正
+
+### 変更内容
+
+* 本文選択時の解説ボタン押下で、`pointerdown` 取得時点の選択範囲をスナップショットとして保持し、`focus` 移動で選択が消える問題を回避
+* 解説カード表示対象解決を更新し、複数段落・複数リスト項目・Markdown装飾をまたいだ選択でも、選択範囲末尾側の表示ブロックで対象を確定するよう変更
+* `visibleTargetForSourceRange()` の判定を「単一可視テキスト断片前提」から脱却し、末尾側 anchor に基づく解決を行うよう更新
+* `resolveExplanationTarget()` 依存の既存挙動を崩さないよう、既存構造（保存・編集・削除・折りたたみ・対象再解決失敗時の維持）を維持
+* 解説カードの外観を枠線ベースから無地背景ベースへ変更し、通常カード／対象不明カードを色調差分で視認しやすくした
+
+### 確認結果
+
+* `node --check app.js markdown-enhancements-utils.js`
+* `node --test syntax-guide.test.js markdown-enhancements.test.js image-block-layout.test.js` → `pass 61`
+* `git diff --check` → 問題なし
+
+### 補足
+
+* 画像ブロックの挿入・仕様自体は変更せず
+* 本件は `app.js`、`markdown-enhancements-utils.js`、`markdown-enhancements.test.js`、`style.css` を編集
+
+### 変更内容
+
+* 画像・解説ブロックの記法ガイド文言を更新し、画像ブロック/画像キャプション/解説ブロック/画像削除時の添付保持を記載
+* 本文編集欄上部に「画像」「解説」ボタンを追加し、アイコン付きで直下インラインUIに統合
+* 画像を本文へ「画像ボタン」から挿入する仕様を、画像ブロック形式とカーソル/末尾フォールバックへ調整
+* 添付一覧から参照中画像を削除する確認文を、添付画像も削除される実挙動に合わせて更新
+* 解説は本文順で解析・挿入できるよう `hydrateExplanationCardsIntoDom` を修正し、本文外まとめ表示を廃止
+* 解説挿入位置のためのゼロ幅マーカー管理を追加し、カーソル位置挿入時の位置保持を安定化
+* 画像ブロックと解説カードのカード表示を更新（背景・内側余白・角丸・余白）し、後続本文・コードへのスタイル継承影響を抑制
+
+### 修正理由
+
+* 画像・解説ブロックを「本文順」かつ「本文中で直後」に見せるUI要件を満たし、カードの可読性と編集導線を改善するため
+* 画像削除時でも添付データを残す意図と、既存メモ/Web Clipper添付との互換性を維持するため
+
+### 確認方法
+
+* 画像/解説の各テストを更新し、既存仕様に沿った記法定義・DOM挿入仕様を確認
+* 画像ブロックと解説カードのレイアウトスタイルを確認
+* `git status` で対象差分を確認し、mainから分岐した新規ブランチで作業
+
+### 確認結果
+
+* `node --check app.js markdown-enhancements-utils.js`
+* `node --test syntax-guide.test.js markdown-enhancements.test.js image-block-layout.test.js` は実行時に `spawn EPERM` で失敗（この環境のNode test実行制約）
+* `node --test *.test.js` も同じ `spawn EPERM` で全件失敗
+* `markdown-enhancements.test.js` / `syntax-guide.test.js` / `image-block-layout.test.js` の追加分は、変更内容レビューにより意図どおりに追記済み
+
 ## 2026-08-15 可搬バックアップ v1
 
 ### 変更内容
@@ -1937,6 +1881,62 @@
 
 * READMEと実験文書のPowerShell例へ、生成・設定した`CODEX_BRIDGE_TOKEN`を表示する行を追加した。表示値をMemo Nexusへ完全一致で入力すること、Git管理ファイル・メモ・スクリーンショットへ保存・公開しないこと、PowerShell終了時とtoken再生成時の再設定を明記した。
 * 実装ロジックは変更せず、`node --test`は583件成功した。`node --check codex-bridge.js`、`node --check codex-bridge-token.js`、`node --check codex-chat.js`、`node --check codex-chat-utils.js`、`git diff --check`も成功した。
+
+## 2026-08-19 フォント選択プルダウンの文字圏・書体表示改善
+
+* フォント設定の標準`select`が使う表示名を、既存の正式名称用`label`とは分離して追加した。日本語向けは`Yu Gothic UI（日本語フォント）`、`Meiryo（メイリオ）`、`MS Mincho（ＭＳ 明朝）`、Noto JP/Serif JP、Zen Kaku Gothic New、Shippori Mincho（しっぽり明朝）を明示し、中国語向けは`Noto Sans SC（简体中文）`、`Noto Sans TC（繁體中文）`、`Source Han Sans（思源黑体／简体中文）`を表示する。欧文フォントは正式名称を維持した。Noto SC/TCへ思源黑体・思源黑體を流用していない。
+* 各`option`へ対象フォントの`font-family`を設定し、閉じたselectにも現在選択中フォントを反映した。`id`、正式名称用`label`、CSS family、保存済み設定の正規化、Font Comparison連携は変更していない。
+* `font-settings.js`と`app.js`の配信識別子をそれぞれ`0.5.0-5`、`0.5.0-92`へ更新した。既存のキャッシュ番号テストも対応する期待値だけを更新した。
+* Edgeのローカル配信で設定画面を開き、全18件の選択肢、value不変、optionと選択中selectの計算済み`font-family`を確認した。一時的にConsolasを選んでも本文エディタは保存済みYu Gothic UIのままで、再読み込み後に選択値と本文表示が元へ戻ることを確認した。標準selectの展開リストはブラウザネイティブ描画のため自動スクリーンショットには含まれなかった。
+* `npm test`（605件、失敗0件）、`node --check app.js`、`node --check font-settings.js`、`git diff --check`が成功した。
+
+## 2026-08-19 Memo Nexus v0.5.0 Bridge Update リリース準備
+
+* アプリバージョンを`0.5.0`、表示名を`Bridge Update`、ビルド日を`2026-08-19`へ更新した。リリース名は「Memo Nexus v0.5.0 — Bridge Update」。`app.js`の共通定数を起動ログ、PC／スマホ表示、設定内の保存状態、バックアップmanifestが引き続き参照し、READMEの現在版2箇所も同じ表記へ更新した。
+* アプリ本体にService Worker、Cache API、独自キャッシュ名はない。静的配信の切替は`index.html`のURLクエリで行うため、ローカルCSS／JavaScript 39件を既存の末尾リビジョンを保った`v=0.5.0-*`へ更新した。Web ClipperのService Workerとmanifestは本体とは別管理のため変更していない。
+* `DB_VERSION = 5`、ZIPの`BACKUP_VERSION = 2`とformat version、表ブロック版1、Codexクライアント通信版`0.1.1`、Web ClipperのManifest V3／拡張版`0.3.5`を維持した。`package.json`にはアプリ版とロックファイルがないため変更していない。過去のLOGにある0.4.0記録も維持した。
+* `version.test.js`を追加し、現行版・表示名・ビルド日、全39資産のキャッシュ識別子、別用途バージョン不変を確認した。全121 JavaScriptファイルの`node --check`、`npm test`（605件、失敗0件）、`git diff --check`が成功した。
+* Edgeのローカル配信で主要画面、コレクション、PC／スマホ用の`v0.5.0 "Bridge Update"`、39件の0.5.0資産URLを確認した。通常再読み込み後も同じ版数、主要画面、既存メモ一覧3件を維持し、起動失敗表示はなかった。コンソールerror／warningの取得、公開版・PWAで0.4.0から更新する実機キャッシュ切替、ZIP生成ファイル内のappVersion確認は未実施。
+
+## 2026-08-19 PR #114 フォント条件検索・Weight単位読込・再試行
+
+### 変更内容
+
+* 既存アンケートを削除せず、既定で開く「条件からフォントを探す」として整理した。使用言語、文章の雰囲気、主な用途の3問と、アンケートは条件検索、選択欄は直接選択、Font Comparisonは詳細比較という関係を表示する。初期値は日本語／中立・読みやすさ重視／長文を書くで、設定画面を開いた時点からYu Gothic UI、Meiryo、Noto Sans JPの3候補を表示し、回答変更時に自動更新する。候補表示と条件変更だけでは保存もWebフォント読込も行わない。
+* 候補ボタンを本文／見出し／コードの適用先が分かる文言へ変更した。選択時は全体設定または有効なメモ個別設定の該当欄とプレビューだけを更新し、既存の「フォント設定を保存」で確定する流れ、直接選択、Font Comparison連携を維持する。
+* Webフォントローダーを`requestFont(fontId, weights)`へ変更し、フォントごとに`loadedWeights`、`loadingWeights`、`failedWeights`を管理する。題名・見出しは700、本文・コードは400をフォント単位で集約し、読込済みWeightを再取得せず、不足Weightだけを追加取得する。Google Fontsの`document.fonts.load()`も必要Weightだけを要求し、Source Han Sans CNはRegular（400）またはBold（700）の必要なOTFだけを`FontFace`で読み込む。
+* 読込失敗したフォントとWeightごとに代替表示案内と「再試行」を追加した。再試行は現在の全体設定と有効なメモ個別設定で必要な失敗Weightだけを要求し、読込中はボタンを無効化し、成功後はエラーとボタンを消す。stylesheet失敗時は失敗したlinkとPromiseを破棄し、Source Han Sans CNの一部失敗もWeight単位で再試行する。選択ID、保存済み設定、CSSフォールバックは変更しない。
+
+### 確認結果
+
+* `node --check app.js`、`font-settings.js`、`font-recommendation.js`、`web-font-loader.js`は成功した。
+* `node --test font-settings.test.js font-recommendation.test.js web-font-loader.test.js`は29件成功し、`npm test`は既存回帰を含む602件すべて成功した。
+* `git diff --check`は問題なしだった。
+* Edgeのローカル配信で、設定を開いた時点の3問・初期候補3件と動的Webフォントlink 0件、回答変更時の自動更新、日本語フォーマルの明朝系、簡体字のNoto Sans SC／Source Han Sans、繁体字のNoto Sans TC、英数字コードの等幅候補を確認した。条件変更後もlinkは0件だった。
+* 同ブラウザで、Noto Sans JPを本文へ反映すると400だけ、同じフォントを見出しへ追加すると700が追加され、Source Han Sans CNの本文利用では400だけが読込済みになることを状態表示で確認した。候補は全体設定とメモ個別設定の該当欄へ保存前プレビューとして反映された。
+* Google Fonts通信を一時遮断し、IBM Plex Sans 400の失敗時に代替表示と「再試行」が出ること、再試行中は無効、成功後はエラーとボタンが消えることを確認した。別タブの通常起動ではコンソールエラー0件だった。
+* 隔離した別Originで、全体設定のNoto Sans JPとメモ個別設定のNoto Serif JPを保存し、再読み込み後も個別設定有効状態と各IDが復元されることを確認した。390px、タブレット幅、PC幅でページの`scrollWidth`と`clientWidth`が一致し、ライト／ダーク双方で検索パネルの文字と背景が切り替わり、検索UIが表示されることを確認した。
+* Font ComparisonからMemo Nexusへ戻る実ブラウザ往復は今回再実施していない。送信元、用途、範囲、登録ID、`font-family`完全一致、URLパラメータ除去、受信直後に保存しない契約は既存自動テストで確認した。
+
+## 2026-08-19 フォント推薦UIとWebフォント遅延読込
+
+### 変更内容
+
+* 既存8システムフォントを維持し、Font Comparison PR #16を参照専用として、契約どおりの10 WebフォントID・表示名・`font-family`・配信URLをMemo Nexus側の単一カタログへ追加した。`font-comparison`リポジトリおよびPR #16には変更していない。
+* 全体／メモ個別の題名・本文・見出し・コードの全8フォント欄を、システムフォントとWebフォントの`optgroup`に分け、18種を同じ順序で選択できるようにした。未知IDは従来どおり既定値へ正規化する。
+* 通常のフォント設定内へ、使用言語、文章の雰囲気、主な用途から最大3件を安定順位で返す折りたたみ式の推薦UIを追加した。対応済み／一部対応を優先し、対応不明は候補不足時だけ、非対応はさらに不足する場合だけ使う。推薦表示だけでは保存もWebフォント読込も行わない。
+* Webフォントローダーを独立モジュールとして追加し、`idle`、`loading`、`loaded`、`error`を管理するようにした。現在の表示、設定プレビュー、推薦選択、Font Comparison受取確定で実際に使うフォントだけを読み込み、読込中／読込済みの重複要求を抑止する。失敗時も選択IDとCSSフォールバックを維持し、設定画面へ代替表示を案内する。
+* Font Comparisonの戻り値検証を18種へ拡張し、送信元、用途、範囲、カタログID、正確な`font-family`を照合する。URLの`fontLabel`は表示に使わず、Memo Nexus側の正式名へ置き換え、処理済みパラメータは既存どおり除去する。
+* 全体設定は端末localStorage、メモ個別設定は既存メモオブジェクトの`fontSettings`へIDだけを保存する構成を維持した。個別Webフォント設定がローカルMarkdown／ZIPバックアップを往復するテストを追加し、フォントファイルや配信CSSは保存対象にしていない。
+
+### 確認結果
+
+* `node --check app.js font-settings.js font-recommendation.js web-font-loader.js`（成功）
+* `node --test font-settings.test.js font-recommendation.test.js web-font-loader.test.js backup-bundle-utils.test.js`（42件成功）
+* `npm test`（600件成功）
+* `git diff --check`（問題なし）
+* Edgeのローカル配信で、起動時の動的Webフォントlinkが0件、推薦表示後も0件、Noto Sans JP選択後だけ1件になることを確認した。Noto Sans JPの全体設定保存・再読込、Interのメモ個別保存・別メモ切替・復帰、Shippori MinchoのFont Comparison戻り値受取とURLパラメータ除去も確認した。
+* 同ブラウザで全8フォント欄が各18選択肢／2分類であること、Google Fontsの実読込成功、ライト／ダーク、390pxで推薦UI展開時もページとフォント設定領域に横はみ出しがないこと、コンソール警告・エラー0件を確認した。外部配信の失敗経路とSource Han Sansの2ウェイト読込は自動テストで確認した。
 
 ## 2026-08-20 ローカルMarkdown競合解決後の明示保存修正
 
