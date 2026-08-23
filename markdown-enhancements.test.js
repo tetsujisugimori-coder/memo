@@ -129,6 +129,8 @@ function loadAppFunction(name, deps = {}) {
     const insertExplanationAnchorIntoBody = deps.insertExplanationAnchorIntoBody;
     const captureUndoSnapshot = deps.captureUndoSnapshot || (() => {});
     const scheduleSave = deps.scheduleSave || (() => {});
+    const markLocalMemoDirty = deps.markLocalMemoDirty || (() => {});
+    const enqueueNoteSave = deps.enqueueNoteSave || (() => Promise.resolve());
     const putNote = deps.putNote;
     const getAllNotes = deps.getAllNotes || (() => []);
     const renderPreview = deps.renderPreview || (() => {});
@@ -184,7 +186,7 @@ test("Callout操作と解説カードの独立保存UIを提供する", () => {
   assert.match(css, /\.explanation-card/);
 });
 
-test("新規解説保存時の最初のputNoteでnote.bodyへアンカーを反映する", () => {
+test("新規解説の最初の保存要求でnote.bodyへアンカーを反映する", () => {
   const anchorId = "anchor-put";
   const baseBody = "本文を選択して解説作成";
   const note = {
@@ -203,8 +205,9 @@ test("新規解説保存時の最初のputNoteでnote.bodyへアンカーを反�
     insertExplanationAnchorIntoBody: (...args) => enhancements.insertExplanationAnchorIntoBody(...args),
     captureUndoSnapshot: () => events.push("undo"),
     scheduleSave: () => events.push("schedule-save"),
-    putNote: async (savedNote) => {
-      putNotes.push(savedNote);
+    markLocalMemoDirty: () => {},
+    enqueueNoteSave: async () => {
+      putNotes.push(structuredClone(note));
       return { ok: true };
     },
     explanationBodyInput: { value: "対象の説明" },
@@ -215,9 +218,7 @@ test("新規解説保存時の最初のputNoteでnote.bodyへアンカーを反�
       selectionStart: baseBody.length,
       selectionEnd: baseBody.length
     },
-    getAllNotes: async () => [],
     renderPreview: () => events.push("render-preview"),
-    notes: [note],
     pendingExplanation: {
       id: anchorId,
       start: baseBody.length,
@@ -240,7 +241,7 @@ test("新規解説保存時の最初のputNoteでnote.bodyへアンカーを反�
   assert.equal(events.includes("schedule-save"), true);
 });
 
-test("最初のputNote時点で保存対象本文と説明カードは対応している", () => {
+test("最初の保存要求時点で保存対象本文と説明カードは対応している", () => {
   const anchorId = "anchor-put-sync";
   const baseBody = "再読み込みが走っても壊れない本文";
   const note = {
@@ -257,17 +258,16 @@ test("最初のputNote時点で保存対象本文と説明カードは対応し�
     insertExplanationAnchorIntoBody: (...args) => enhancements.insertExplanationAnchorIntoBody(...args),
     captureUndoSnapshot: () => saveEvents.push("undo"),
     scheduleSave: () => saveEvents.push("schedule-save"),
-    putNote: async (savedNote) => {
-      savedArgument = savedNote;
+    markLocalMemoDirty: () => {},
+    enqueueNoteSave: async () => {
+      savedArgument = structuredClone(note);
       return { ok: true };
     },
     explanationBodyInput: { value: "同期確認用解説" },
     explanationTypeSelect: { value: "用語解説" },
     explanationDialog: { close: () => saveEvents.push("dialog-close") },
     editor: { value: baseBody, selectionStart: baseBody.length, selectionEnd: baseBody.length },
-    getAllNotes: async () => [],
     renderPreview: () => saveEvents.push("render-preview"),
-    notes: [note],
     pendingExplanation: {
       id: anchorId,
       start: 5,
@@ -707,7 +707,7 @@ test("折りたたみ保存はメモIDとカードIDを固定し、短時間の�
 
 test("Markdown拡張スクリプトとapp.jsは更新済みキャッシュ番号で読み込む", () => {
   assert.match(html, /markdown-enhancements-utils\.js\?v=0\.5\.0-4/);
-  assert.match(html, /app\.js\?v=0\.5\.0-96/);
+  assert.match(html, /app\.js\?v=0\.5\.0-97/);
   assert.doesNotMatch(html, /app\.js\?v=0\.5\.0-40/);
 });
 

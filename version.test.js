@@ -26,7 +26,7 @@ test("現在のアプリ版とリリース名を0.5.0 Bridge Updateへ統一す�
 test("全ローカルCSS・JavaScriptを0.5.0のキャッシュ識別子で読み込む", () => {
   const assetVersions = [...html.matchAll(/(?:href|src)="(?!https?:)([^"?]+)\?v=([^"]+)"/g)]
     .map((match) => ({ path: match[1], version: match[2] }));
-  assert.equal(assetVersions.length, 39);
+  assert.equal(assetVersions.length, 40);
   assetVersions.forEach(({ path, version }) => {
     assert.match(version, /^0\.5\.0-\d+$/, `${path}のキャッシュ識別子`);
   });

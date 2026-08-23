@@ -342,6 +342,12 @@ const {
   transitionLocalSaveState
 } = window.MemoNexusLocalSaveState;
 const { createLocalSaveQueue, runLocalScanAfterQueue } = window.MemoNexusLocalSaveQueue;
+const {
+  cloneSnapshot: cloneNoteSnapshot,
+  createNoteSaveFoundation,
+  createSaveRequest,
+  normalizeRevision: normalizeNoteRevision
+} = window.MemoNexusNoteSaveFoundation;
 const { parseLocalNote, restoreAttachmentReferences, serializeLocalNote } = window.MemoNexusLocalMarkdown;
 const {
   attachmentExtension,
@@ -816,10 +822,12 @@ let notes = [];
 let collections = [];
 let currentId = null;
 let saveTimer = null;
+let scheduledSaveNoteId = null;
 let pendingMemoSync = null;
 let isLocalMemoDirty = false;
 let localDirtyMemoId = null;
-let localMemoEditVersion = 0;
+const noteDraftSnapshots = new Map();
+const noteSaveBeforeLinkCounts = new Map();
 let lastDiscovery = "";
 let linkStatsVisible = false;
 const termRelationCache = createTermRelationCache();
@@ -838,6 +846,12 @@ let localWorkspaceChangeVersion = 0;
 const localConflictResolutions = new Map();
 let localPendingExclusions = new Set();
 const localSaveQueue = createLocalSaveQueue((reason) => performLocalWorkspaceSave(reason), 420);
+const noteSaveFoundation = createNoteSaveFoundation({
+  writeSnapshot: (snapshot) => putNote(snapshot),
+  onStateChange: handleNoteSaveStateChange,
+  onSaveSuccess: handleNoteSaveSuccess,
+  onSaveError: handleNoteSaveError
+});
 let noteFlagAnimationToken = 0;
 let mermaidConfiguredTheme = null;
 let mermaidRenderGeneration = 0;
@@ -982,6 +996,7 @@ function handleDatabaseVersionChange() {
   if (saveTimer) {
     clearTimeout(saveTimer);
     saveTimer = null;
+    scheduledSaveNoteId = null;
   }
   dbConnectionClosedForUpgrade = true;
   saveStatusState = "error";
@@ -3508,6 +3523,7 @@ async function createNote(title = "新規メモ", body = "", options = {}) {
     createdAt: options.createdAt ?? now,
     bodyUpdatedAt: options.bodyUpdatedAt ?? options.updatedAt ?? now,
     updatedAt: options.updatedAt ?? now,
+    revision: Number.isSafeInteger(options.revision) && options.revision >= 0 ? options.revision : 0,
     isFlagged: Boolean(options.isFlagged),
     tags: normalizeTagIds(options.tags)
   };
@@ -4245,6 +4261,7 @@ async function updateCurrentNoteTags(value) {
   const currentTags = normalizeTagIds(note.tags);
   if (nextTags.length === currentTags.length && nextTags.every((tag, index) => tag === currentTags[index])) return;
   note.tags = nextTags;
+  markLocalMemoDirty(note);
   renderNoteTags(note);
   renderTagPanel();
   renderNoteTagOptions();
@@ -4406,8 +4423,19 @@ function snippet(body) {
 
 // 指定したidのメモをエディタに読み込みます。
 function openNote(id) {
-  const note = notes.find((item) => item.id === id);
+  const previousId = currentId;
+  if (previousId && previousId !== id) {
+    flushScheduledNoteSave(previousId).catch((error) => console.error("Memo switch save failed", error));
+  }
+
+  const draft = noteDraftSnapshots.get(id);
+  const note = draft || notes.find((item) => item.id === id);
   if (!note) return;
+  if (draft) {
+    const index = notes.findIndex((item) => item.id === id);
+    if (index === -1) notes.unshift(draft); else notes[index] = draft;
+  }
+  const saveState = registerNoteSaveState(note);
 
   // 関連ドロワーは広い画面では本文と並べて使えるため維持します。
   // 狭幅では本文を見やすくするため、メモ選択後だけ一時的に閉じます。
@@ -4415,7 +4443,7 @@ function openNote(id) {
     setRelatedDrawerOpen(false, { restoreFocus: false });
   }
   currentId = note.id;
-  if (localDirtyMemoId) clearLocalMemoDirty(localDirtyMemoId);
+  syncLegacyDirtyState(note.id);
   pendingMemoSync = null;
   renderMemoSyncNotice();
   tableAxisSelections.clear();
@@ -4428,7 +4456,7 @@ function openNote(id) {
   setNoteTagStatus("");
   hideNoteTagOptions();
   lastUndoSnapshotAt = 0;
-  setSaveStatus("saved", note.updatedAt);
+  handleNoteSaveStateChange(note.id, saveState);
   renderNoteMeta();
   renderTextStats();
   renderList();
@@ -4462,13 +4490,14 @@ async function initPopout() {
   }
 
   currentId = note.id;
+  const saveState = registerNoteSaveState(note);
   titleInput.value = note.title;
   editor.value = note.body;
   renderNoteFlagButton(note);
   renderNoteTags(note);
   setNoteTagStatus("");
   hideNoteTagOptions();
-  setSaveStatus("saved", note.updatedAt);
+  handleNoteSaveStateChange(note.id, saveState);
   renderNoteMeta();
   renderTextStats();
   renderTableBlockEditors();
@@ -4479,20 +4508,151 @@ async function initPopout() {
 
 // 今開いているメモ本体をnotes配列から取り出します。
 function currentNote() {
-  return notes.find((note) => note.id === currentId);
+  return noteDraftSnapshots.get(currentId) || notes.find((note) => note.id === currentId);
 }
 
-function markLocalMemoDirty() {
-  if (!currentId) return;
-  isLocalMemoDirty = true;
-  localDirtyMemoId = currentId;
-  localMemoEditVersion += 1;
+function noteForSave(noteId) {
+  return noteDraftSnapshots.get(noteId) || notes.find((note) => note.id === noteId);
+}
+
+function registerNoteSaveState(note) {
+  if (!note) return null;
+  note.revision = normalizeNoteRevision(note.revision);
+  return noteSaveFoundation.registerNote(note.id, note.revision);
+}
+
+function rememberNoteDraft(note) {
+  const snapshot = cloneNoteSnapshot(note);
+  noteDraftSnapshots.set(note.id, snapshot);
+  const index = notes.findIndex((item) => item.id === note.id);
+  if (index !== -1) notes[index] = snapshot;
+  return snapshot;
+}
+
+function syncLegacyDirtyState(noteId = currentId) {
+  if (!noteId || noteId !== currentId) return;
+  const dirty = noteSaveFoundation.isDirty(noteId);
+  isLocalMemoDirty = dirty;
+  localDirtyMemoId = dirty ? noteId : null;
+}
+
+function markLocalMemoDirty(note = currentNote()) {
+  if (!note) return 0;
+  registerNoteSaveState(note);
+  note.revision = noteSaveFoundation.markChanged(note.id, note.revision);
+  note.updatedAt = Date.now();
+  rememberNoteDraft(note);
+  syncLegacyDirtyState(note.id);
+  return note.revision;
 }
 
 function clearLocalMemoDirty(memoId = currentId) {
   if (localDirtyMemoId !== memoId) return;
   isLocalMemoDirty = false;
   localDirtyMemoId = null;
+}
+
+function applyCurrentEditorDraft(note = currentNote()) {
+  if (!note || note.id !== currentId) return false;
+  const nextBody = editor.value;
+  const nextTitle = titleInput.value || titleFromBody(nextBody) || "無題メモ";
+  const bodyChanged = note.body !== nextBody;
+  const titleChanged = note.title !== nextTitle;
+  if (!bodyChanged && !titleChanged) return false;
+  if (bodyChanged && !noteSaveFoundation.isDirty(note.id)) {
+    noteSaveBeforeLinkCounts.set(note.id, collectLinks(activeNotes()).length);
+  }
+
+  const now = Date.now();
+  note.body = nextBody;
+  note.title = nextTitle;
+  note.tags = normalizeTagIds(note.tags);
+  if (!note.createdAt) note.createdAt = now;
+  if (!note.bodyUpdatedAt || bodyChanged) note.bodyUpdatedAt = now;
+  note.updatedAt = now;
+  markLocalMemoDirty(note);
+  return true;
+}
+
+function waitForNoteSave(noteId) {
+  return noteSaveFoundation.whenIdle(noteId).then((state) => {
+    if (state?.status === "error") throw state.lastError || new Error("メモの保存に失敗しました");
+    return state;
+  });
+}
+
+function enqueueNoteSave(noteId) {
+  const note = noteForSave(noteId);
+  if (!note) return Promise.resolve(null);
+  registerNoteSaveState(note);
+  const state = noteSaveFoundation.getState(noteId);
+  if (!state?.dirty) return waitForNoteSave(noteId);
+  if (state.activeRevision === note.revision || state.pendingRevision === note.revision) {
+    return waitForNoteSave(noteId);
+  }
+  return noteSaveFoundation.enqueueSave(createSaveRequest({
+    noteId,
+    revision: note.revision,
+    snapshot: note
+  }));
+}
+
+function flushScheduledNoteSave(noteId) {
+  if (saveTimer && scheduledSaveNoteId === noteId) {
+    clearTimeout(saveTimer);
+    saveTimer = null;
+    scheduledSaveNoteId = null;
+  }
+  return enqueueNoteSave(noteId);
+}
+
+function handleNoteSaveStateChange(noteId, state) {
+  if (noteId !== currentId) return;
+  syncLegacyDirtyState(noteId);
+  if (state.status === "saving") setSaveStatus("saving");
+  else if (state.status === "error") setSaveStatus("error");
+  else if (state.dirty) setSaveStatus("editing");
+  else setSaveStatus("saved", noteForSave(noteId)?.updatedAt || Date.now());
+}
+
+function handleNoteSaveSuccess(request, state) {
+  console.log("Memo saved", { id: request.noteId, revision: request.revision, saveRequestId: request.saveRequestId });
+  if (state.currentRevision === request.revision) {
+    const savedNote = cloneNoteSnapshot(request.snapshot);
+    const index = notes.findIndex((note) => note.id === request.noteId);
+    if (index === -1) notes.unshift(savedNote); else notes[index] = savedNote;
+    noteDraftSnapshots.delete(request.noteId);
+    const beforeLinks = noteSaveBeforeLinkCounts.get(request.noteId);
+    if (Number.isFinite(beforeLinks) && collectLinks(activeNotes()).length > beforeLinks) {
+      lastDiscovery = buildDiscoveryMessage(savedNote);
+    }
+    noteSaveBeforeLinkCounts.delete(request.noteId);
+  }
+  invalidateTermRelationIndex();
+  if (pendingMemoSync?.memoId === request.noteId && !state.dirty) {
+    pendingMemoSync = null;
+    renderMemoSyncNotice();
+  }
+  if (request.noteId !== currentId) {
+    if (!isPopoutWindow) renderList();
+    return;
+  }
+  syncLegacyDirtyState(request.noteId);
+  if (isPopoutWindow) {
+    renderNoteMeta();
+    document.title = `${currentNote()?.title || request.snapshot.title} — Memo Nexus`;
+  } else {
+    renderAll();
+  }
+}
+
+function handleNoteSaveError(request, error) {
+  console.error("Memo save failed", {
+    id: request.noteId,
+    revision: request.revision,
+    saveRequestId: request.saveRequestId,
+    error
+  });
 }
 
 function popoutUrlForMemo(memoId) {
@@ -4664,6 +4824,8 @@ async function refreshMemoFromOtherWindow(message) {
 }
 
 function applyMemoSync(note) {
+  noteDraftSnapshots.delete(note.id);
+  registerNoteSaveState(note);
   titleInput.value = note.title;
   editor.value = note.body;
   renderNoteFlagButton(note);
@@ -4716,13 +4878,9 @@ async function toggleCurrentNoteFlag() {
   if (!note) return;
   await flushSave();
   note.isFlagged = !note.isFlagged;
-  note.updatedAt = Date.now();
-  setSaveStatus("saving");
-  await putNote(note);
-  notes = await getAllNotes();
-  currentId = note.id;
+  markLocalMemoDirty(note);
+  await enqueueNoteSave(note.id);
   renderNoteFlagButton(currentNote());
-  setSaveStatus("saved", Date.now());
   if (isPopoutWindow) renderNoteMeta(); else renderAll();
 }
 
@@ -4742,14 +4900,19 @@ function loadPendingMemoSync() {
 
 // 入力のたびに即保存すると重いので、少し待ってから保存する予約をします。
 function scheduleSave({ render = true } = {}) {
-  markLocalMemoDirty();
+  const note = currentNote();
+  if (!note) return;
+  applyCurrentEditorDraft(note);
   renderTextStats();
   saveCurrentDraftMirror();
   clearTimeout(saveTimer);
+  scheduledSaveNoteId = note.id;
   setSaveStatus("editing");
+  const noteId = note.id;
   saveTimer = setTimeout(() => {
     saveTimer = null;
-    saveCurrentNote().catch((error) => console.error("Scheduled save failed", error));
+    scheduledSaveNoteId = null;
+    enqueueNoteSave(noteId).catch((error) => console.error("Scheduled save failed", error));
   }, 280);
   if (render) renderPreview();
   renderRelated();
@@ -4829,65 +4992,17 @@ function updateUndoButton() {
 // 遅延保存の予約を解除し、現在の入力内容をすぐに保存します。
 async function flushSave() {
   const note = currentNote();
-  const hasUnsavedChanges = Boolean(note) && (
-    note.body !== editor.value ||
-    note.title !== (titleInput.value || titleFromBody(editor.value) || "無題メモ")
-  );
-  if (saveTimer) {
-    clearTimeout(saveTimer);
-    saveTimer = null;
-  }
-  if (hasUnsavedChanges) await saveCurrentNote();
+  if (!note) return;
+  applyCurrentEditorDraft(note);
+  await flushScheduledNoteSave(note.id);
 }
 
-// タイトルと本文を現在のメモへ反映し、IndexedDBへ保存します。
+// 現在のDOMから同期的にsnapshotを確定し、共通保存基盤へ渡す薄い入口です。
 async function saveCurrentNote() {
   const note = currentNote();
   if (!note) return;
-  const savedEditVersion = localMemoEditVersion;
-
-  setSaveStatus("saving");
-  const beforeLinks = collectLinks(activeNotes()).length;
-  const nextBody = editor.value;
-  const bodyChanged = note.body !== nextBody;
-  note.body = nextBody;
-  note.title = titleInput.value || titleFromBody(note.body) || "無題メモ";
-  note.tags = normalizeTagIds(note.tags);
-  if (!note.createdAt) note.createdAt = Date.now();
-  if (!note.bodyUpdatedAt || bodyChanged) note.bodyUpdatedAt = Date.now();
-  note.updatedAt = Date.now();
-
-  try {
-    await putNote(note);
-    console.log("Memo saved", { id: note.id, title: note.title });
-    notes = await getAllNotes();
-    invalidateTermRelationIndex();
-    currentId = note.id;
-
-    const afterLinks = collectLinks(activeNotes()).length;
-    if (afterLinks > beforeLinks) {
-      lastDiscovery = buildDiscoveryMessage(note);
-    }
-
-    titleInput.value = note.title;
-    if (localDirtyMemoId === note.id && localMemoEditVersion === savedEditVersion) {
-      clearLocalMemoDirty(note.id);
-    }
-    if (pendingMemoSync?.memoId === note.id) {
-      pendingMemoSync = null;
-      renderMemoSyncNotice();
-    }
-    setSaveStatus("saved", Date.now());
-    if (isPopoutWindow) {
-      renderNoteMeta();
-      document.title = `${note.title} — Memo Nexus`;
-    } else {
-      renderAll();
-    }
-  } catch (error) {
-    setSaveStatus("error");
-    throw error;
-  }
+  applyCurrentEditorDraft(note);
+  return flushScheduledNoteSave(note.id);
 }
 
 async function deleteCurrentNote() {
@@ -6650,10 +6765,15 @@ function normalizeExplanations(note) {
 }
 
 const saveExplanationCollapsedState = createExplanationCollapsedStateSaver({
-  getNote: (noteId) => notes.find((note) => note.id === noteId),
-  putNote,
+  getNote: noteForSave,
+  putNote: async (note) => {
+    markLocalMemoDirty(note);
+    return enqueueNoteSave(note.id);
+  },
   now: () => Date.now(),
-  afterSave: async () => { notes = await getAllNotes(); }
+  afterSave: async (noteId) => {
+    if (noteId === currentId) renderPreview();
+  }
 });
 
 function hydrateExplanationCards(note, body) {
@@ -8952,10 +9072,8 @@ async function saveFontSettings() {
     if (!noteFontSettingsEqual(previousNoteSettings, nextNoteSettings)) {
       if (nextNoteSettings) note.fontSettings = nextNoteSettings;
       else delete note.fontSettings;
-      note.updatedAt = Date.now();
-      await putNote(note);
-      notes = await getAllNotes();
-      currentId = note.id;
+      markLocalMemoDirty(note);
+      await enqueueNoteSave(note.id);
     }
   }
   applyEffectiveFontSettings();
@@ -10396,8 +10514,8 @@ function saveExplanationFromDialog(event) {
   };
   const index = explanations.findIndex((item) => item.id === explanation.id);
   if (index === -1) explanations.push(explanation); else explanations[index] = explanation;
-  note.updatedAt = Date.now();
-  void putNote(note).then(async () => { notes = await getAllNotes(); renderPreview(); });
+  markLocalMemoDirty(note);
+  void enqueueNoteSave(note.id).then(() => renderPreview()).catch((error) => console.error("Explanation save failed", error));
   explanationDialog.close();
 }
 
@@ -10415,8 +10533,8 @@ function deleteExplanation(id) {
     if (editor) editor.setSelectionRange(safeSelectionStart, safeSelectionStart);
     scheduleSave();
   }
-  note.updatedAt = Date.now();
-  void putNote(note).then(async () => { notes = await getAllNotes(); renderPreview(); });
+  markLocalMemoDirty(note);
+  void enqueueNoteSave(note.id).then(() => renderPreview()).catch((error) => console.error("Explanation delete failed", error));
 }
 
 // ここから下は、画面操作と処理を結びつけるイベント設定です。
@@ -11047,6 +11165,7 @@ window.addEventListener("pagehide", () => {
   if (saveTimer) {
     clearTimeout(saveTimer);
     saveTimer = null;
+    scheduledSaveNoteId = null;
     saveCurrentNote().catch((error) => console.error("Page hide save failed", error));
   }
 });
@@ -11057,6 +11176,7 @@ document.addEventListener("visibilitychange", () => {
     if (saveTimer) {
       clearTimeout(saveTimer);
       saveTimer = null;
+      scheduledSaveNoteId = null;
       saveCurrentNote().catch((error) => console.error("Hidden page save failed", error));
     }
   }
