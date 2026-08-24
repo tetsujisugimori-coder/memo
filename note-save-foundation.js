@@ -30,14 +30,21 @@
     return `save-${Date.now()}-${fallbackRequestId}`;
   }
 
-  function createSaveRequest({ noteId, revision, snapshot, saveRequestId = defaultRequestId(), clone = cloneSnapshot } = {}) {
-    if (!noteId) throw new Error("noteId is required");
+  function createSaveRequest({ noteId, resourceKey, resourceType, revision, snapshot, saveRequestId = defaultRequestId(), clone = cloneSnapshot } = {}) {
+    const fixedResourceKey = resourceKey || noteId;
+    if (!fixedResourceKey) throw new Error("noteId or resourceKey is required");
     if (!snapshot || typeof snapshot !== "object") throw new Error("snapshot is required");
     if (typeof clone !== "function") throw new Error("clone is required");
     const normalizedRevision = normalizeRevision(revision);
-    const fixedSnapshot = deepFreeze(clone({ ...snapshot, id: noteId, revision: normalizedRevision }));
+    const fixedSnapshot = deepFreeze(clone({
+      ...snapshot,
+      ...(noteId ? { id: noteId } : {}),
+      revision: normalizedRevision
+    }));
     return Object.freeze({
-      noteId,
+      noteId: noteId || null,
+      resourceKey: fixedResourceKey,
+      resourceType: resourceType || (noteId ? "note" : "resource"),
       revision: normalizedRevision,
       snapshot: fixedSnapshot,
       saveRequestId: String(saveRequestId)
@@ -52,6 +59,10 @@
     logError = (...args) => globalScope?.console?.error?.(...args)
   } = {}) {
     if (typeof writeSnapshot !== "function") throw new Error("writeSnapshot is required");
+
+    function requestResourceKey(request) {
+      return request?.resourceKey || request?.noteId || null;
+    }
 
     const entries = new Map();
     const permanentlyDeletedNotes = new Map();
@@ -284,13 +295,14 @@
     }
 
     function enqueueSave(request) {
-      if (!request || !request.noteId || !request.snapshot) throw new Error("valid save request is required");
-      if (permanentlyDeletedNotes.has(request.noteId)) {
-        return Promise.reject(permanentlyDeletedError(request.noteId));
+      const resourceKey = requestResourceKey(request);
+      if (!request || !resourceKey || !request.snapshot) throw new Error("valid save request is required");
+      if (permanentlyDeletedNotes.has(resourceKey)) {
+        return Promise.reject(permanentlyDeletedError(resourceKey));
       }
-      const entry = ensureEntry(request.noteId, request.revision, false);
-      if (entry.terminal) return Promise.reject(operationError(request.noteId, "NOTE_DELETING", "note is being permanently deleted"));
-      if (entry.atomicBatch) return Promise.reject(operationError(request.noteId, "NOTE_BATCH_ACTIVE", "note is part of an atomic batch"));
+      const entry = ensureEntry(resourceKey, request.revision, false);
+      if (entry.terminal) return Promise.reject(operationError(resourceKey, "NOTE_DELETING", "note is being permanently deleted"));
+      if (entry.atomicBatch) return Promise.reject(operationError(resourceKey, "NOTE_BATCH_ACTIVE", "note is part of an atomic batch"));
       entry.currentRevision = Math.max(entry.currentRevision, normalizeRevision(request.revision));
 
       if (request.revision <= entry.lastSavedRevision) {
@@ -406,7 +418,7 @@
         ids.forEach((id) => requireAtomicBatch(batch, id));
         const requests = createRequests();
         if (!Array.isArray(requests) || requests.length !== ids.length) throw new Error("one request per noteId is required");
-        const byId = new Map(requests.map((request) => [request.noteId, request]));
+        const byId = new Map(requests.map((request) => [requestResourceKey(request), request]));
         if (byId.size !== ids.length || ids.some((id) => !byId.has(id))) throw new Error("batch request noteIds must match");
         const notificationContext = Object.freeze({ batch });
 

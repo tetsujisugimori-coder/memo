@@ -2013,3 +2013,9 @@
 
 * ローカル保存後metadataのrevision照合・atomic batch計画・成功反映・完了境界で、メモごとに`noteForSave()`から`notes.find()`を繰り返していた経路を、batch開始時に`notes`を1回走査して`noteLiveDrafts`を優先反映する一時`Map`へ置き換えた。Mapは当該metadata batch内だけで共有し、Markdown・manifest・`sync-state.json`用の固定snapshotとは分離した。既存のrevision境界、メモ単位ロック、通常保存との直列化、transaction原子性、保存中再編集、tombstone拒否は維持した。配信識別子は`app.js?v=0.5.0-104`へ更新した。
 * 200件と400件の決定的な計数テストで、一時索引の構築が各1回、全件走査が200回／400回、参照が800回／1600回となり、メモ件数に比例することを確認した。本番`performLocalWorkspaceSave()`を模擬File System Access APIと実`getAllNotes()`で実行し、成功、ファイル書込み中再編集、metadata transaction失敗、tombstone化を検証した。統合テスト22件を20回反復して全440件、`node --test`は全687件が成功した。変更JavaScriptの`node --check`と`git diff --check`も成功した。実ブラウザーのネイティブフォルダ選択と実フォルダへの書込みは未確認である。
+
+## 2026-08-25 Codexスレッド保存の共通基盤接続
+
+* Codexチャットの`saveForNote()`が既存メモ全体を`putNote()`へ直接渡していたため、通常保存のrevision・固定snapshot・メモ単位ロックとは独立していた。既存の`noteSaveFoundation`を複製せず、従来の`noteId`契約を保ったまま名前空間付き`resourceKey`を受けられるようにし、Codexスレッドは`codex-thread:<threadId>`を保存単位として同じ`markChanged()`・`enqueueSave()`・追従保存へ接続した。
+* Codex保存要求は作成時の`noteId`・`threadId`・revision・`codexChat`をdeep cloneしてfreezeする。writerは要求後に現在のスレッドやUIを読み直さず、実メモIDの既存ロックを取得してから、`notes`と`note-tombstones`の同一transaction内でDB上の最新メモへ`codexChat`だけを追加または除去する。これにより通常メモの本文・タグ等を古いCodex側snapshotで戻さず、同一threadの保存順、別thread切替、永久削除との競合を調停する。失敗時はdirtyと最新要求を保持して再試行でき、同じメモが新threadへ移った後は失敗した旧thread要求を再投入しない。
+* 制御Promiseを使い、同一thread保存中の更新と古い完了、A保存中のB切替、異なるthreadのsnapshot分離、要求後の元オブジェクト変更、失敗後の最新revision再試行、旧thread再試行抑止、通常メモwriterとのロック順、既存形式の読込みを追加検証した。Codex対象24件、通常保存基盤41件、全695件が成功した。CI相当の全JavaScript構文検査と`git diff --check`も成功した。配信識別子は`note-save-foundation.js?v=0.5.0-7`、`codex-chat-utils.js?v=0.5.0-5`、`app.js?v=0.5.0-105`、`codex-chat.js?v=0.5.0-6`へ更新した。通常メモ、通常AI、ローカル保存、ZIP、添付、import/export、Bridge通信、DB schema、UIは変更していない。

@@ -11,9 +11,10 @@ const runtime = fs.readFileSync("codex-bridge-runtime.js", "utf8");
 const packageJson = fs.readFileSync("package.json", "utf8");
 
 test("Codexチャットは通常AIと別タブで明示添付だけを提供する", () => {
-  assert.match(html, /codex-chat-utils\.js\?v=0\.5\.0-4/);
-  assert.match(html, /app\.js\?v=0\.5\.0-104/);
-  assert.match(html, /codex-chat\.js\?v=0\.5\.0-5/);
+  assert.match(html, /note-save-foundation\.js\?v=0\.5\.0-7/);
+  assert.match(html, /codex-chat-utils\.js\?v=0\.5\.0-5/);
+  assert.match(html, /app\.js\?v=0\.5\.0-105/);
+  assert.match(html, /codex-chat\.js\?v=0\.5\.0-6/);
   assert.match(client, /codexChatTab/);
   assert.match(client, /このメモを添付/);
   assert.match(client, /選択範囲を添付/);
@@ -43,6 +44,17 @@ test("メモ切替時にCodexスレッドを切り替え、本文を自動送信
   assert.match(client, /saveForNote\(requestNoteId/);
   assert.match(client, /extractEditorSelection\(editor\)/);
   assert.match(client, /withoutCodexThread/);
+});
+
+test("Codexスレッド保存は共通基盤へ接続し、クライアントからIndexedDBを直接更新しない", () => {
+  assert.match(client, /enqueueCodexThreadSave\(noteId, updater\)/);
+  assert.doesNotMatch(client, /putNote\(|getAllNotes\(/);
+  assert.match(clientUtils, /CODEX_THREAD_RESOURCE_PREFIX/);
+  assert.match(clientUtils, /foundation\.markChanged\(resourceKey/);
+  assert.match(clientUtils, /foundation\.enqueueSave\(request\)/);
+  assert.match(app, /isCodexThreadSaveRequest\(request\)[\s\S]*noteSaveFoundation\.runExclusive\(\[snapshot\.noteId\]/);
+  assert.match(app, /: putNote\(snapshot\)/, "通常メモwriterは従来の保存先を維持する");
+  assert.match(app, /putCodexThreadSnapshot[\s\S]*STORE_NAME, TOMBSTONE_STORE_NAME/);
 });
 
 test("ローカルブリッジは実スキーマのread-only会話設定と限定CORSを使う", () => {

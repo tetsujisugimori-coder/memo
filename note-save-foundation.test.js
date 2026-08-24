@@ -296,6 +296,23 @@ test("入力200回ではcloneせず保存要求作成時だけ固定snapshotをc
   assert.equal(Object.isFrozen(saveRequest.snapshot.nested), true);
 });
 
+test("名前空間付きresource keyは通常メモID契約を維持しつつsnapshotの実IDを上書きしない", async () => {
+  const writes = [];
+  const foundation = createNoteSaveFoundation({ writeSnapshot: async (snapshot, request) => writes.push({ snapshot, request }) });
+  const resourceKey = "codex-thread:thread-a";
+  const revision = foundation.markChanged(resourceKey, 0);
+  const source = { noteId: "memo-a", threadId: "thread-a", codexChat: { threadId: "thread-a", title: "会話" } };
+  const saveRequest = createSaveRequest({ resourceKey, resourceType: "codex-thread", revision, snapshot: source });
+  source.codexChat.title = "要求後の変更";
+  await foundation.enqueueSave(saveRequest);
+  assert.equal(saveRequest.noteId, null);
+  assert.equal(saveRequest.resourceKey, resourceKey);
+  assert.equal(writes[0].snapshot.noteId, "memo-a");
+  assert.equal(writes[0].snapshot.id, undefined);
+  assert.equal(writes[0].snapshot.codexChat.title, "会話");
+  assert.equal(foundation.getState(resourceKey).lastSavedRevision, 1);
+});
+
 test("通常保存と複数メモbatchをID順ロックで調停し原子性と最新値を維持する", async () => {
   const firstWrite = deferred();
   const persisted = new Map();
