@@ -12,8 +12,8 @@ const packageJson = fs.readFileSync("package.json", "utf8");
 
 test("Codexチャットは通常AIと別タブで明示添付だけを提供する", () => {
   assert.match(html, /note-save-foundation\.js\?v=0\.5\.0-7/);
-  assert.match(html, /codex-chat-utils\.js\?v=0\.5\.0-5/);
-  assert.match(html, /app\.js\?v=0\.5\.0-105/);
+  assert.match(html, /codex-chat-utils\.js\?v=0\.5\.0-6/);
+  assert.match(html, /app\.js\?v=0\.5\.0-106/);
   assert.match(html, /codex-chat\.js\?v=0\.5\.0-6/);
   assert.match(client, /codexChatTab/);
   assert.match(client, /このメモを添付/);
@@ -52,8 +52,16 @@ test("Codexスレッド保存は共通基盤へ接続し、クライアントか
   assert.match(clientUtils, /CODEX_THREAD_RESOURCE_PREFIX/);
   assert.match(clientUtils, /foundation\.markChanged\(resourceKey/);
   assert.match(clientUtils, /foundation\.enqueueSave\(request\)/);
-  assert.match(app, /isCodexThreadSaveRequest\(request\)[\s\S]*noteSaveFoundation\.runExclusive\(\[snapshot\.noteId\]/);
-  assert.match(app, /: putNote\(snapshot\)/, "通常メモwriterは従来の保存先を維持する");
+  assert.match(clientUtils, /generationByNoteId/);
+  assert.match(clientUtils, /isCurrentRequest/);
+  assert.match(clientUtils, /markPersisted/);
+  assert.match(app, /noteSaveFoundation\.runExclusive\(\[snapshot\.noteId\][\s\S]*codexThreadSaveCoordinator\.isCurrentRequest\(request\)[\s\S]*putCodexThreadSnapshot\(snapshot\)/);
+  assert.match(app, /: putNote\(snapshot, \{ preserveStoredCodexThread: true \}\)/, "通常メモwriterは従来の保存先で確定済みCodex値を維持する");
+  assert.match(app, /mergeStoredCodexThread\(note, request\.result\)/);
+  const enqueueSource = app.slice(app.indexOf("async function enqueueCodexThreadSave"), app.indexOf("function applyCodexThreadSaveResult"));
+  assert.match(enqueueSource, /await codexThreadSaveCoordinator\.enqueue/);
+  assert.doesNotMatch(enqueueSource, /const liveNote = applyCodexThreadToMemory/);
+  assert.ok(enqueueSource.indexOf("await codexThreadSaveCoordinator.enqueue") < enqueueSource.indexOf("return applyCodexThreadSaveResult"));
   assert.match(app, /putCodexThreadSnapshot[\s\S]*STORE_NAME, TOMBSTONE_STORE_NAME/);
 });
 

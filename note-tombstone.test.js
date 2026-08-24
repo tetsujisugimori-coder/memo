@@ -444,7 +444,7 @@ test("変更したブラウザ配信JavaScriptのcache識別子を更新して�
   assert.match(indexHtml, /attachment-utils\.js\?v=0\.5\.0-12/);
   assert.match(indexHtml, /note-tombstone\.js\?v=0\.5\.0-2/);
   assert.match(indexHtml, /note-save-foundation\.js\?v=0\.5\.0-7/);
-  assert.match(indexHtml, /app\.js\?v=0\.5\.0-105/);
+  assert.match(indexHtml, /app\.js\?v=0\.5\.0-106/);
 });
 
 async function runRepeatedRace(pattern, iteration) {

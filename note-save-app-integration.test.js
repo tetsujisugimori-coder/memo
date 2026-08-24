@@ -5,6 +5,7 @@ const fs = require("node:fs");
 const test = require("node:test");
 const vm = require("node:vm");
 const { createNoteSaveFoundation, createSaveRequest, normalizeRevision } = require("./note-save-foundation.js");
+const { mergeStoredCodexThread } = require("./codex-chat-utils.js");
 const { buildPortableBackupFiles } = require("./backup-bundle-utils.js");
 const { applyLocalSaveSuccess, classifyLocalSaveFailure, createLocalSaveState, transitionLocalSaveState } = require("./local-save-state.js");
 const { serializeLocalNote } = require("./local-markdown.js");
@@ -79,6 +80,7 @@ function createHarness({ writer, ensureTags = async () => {}, localFsDriver = nu
     createNoteSaveFoundation,
     createSaveRequest,
     normalizeNoteRevision: normalizeRevision,
+    mergeStoredCodexThread,
     applyLocalSaveSuccess,
     attachmentExtension,
     buildManifest,

@@ -352,7 +352,8 @@ const {
 } = window.MemoNexusNoteSaveFoundation;
 const {
   createCodexThreadSaveCoordinator,
-  isCodexThreadSaveRequest
+  isCodexThreadSaveRequest,
+  mergeStoredCodexThread
 } = window.MemoNexusCodexChatUtils;
 const {
   guardWrites: guardNoteWrites,
@@ -864,8 +865,13 @@ let localPendingExclusions = new Set();
 const localSaveQueue = createLocalSaveQueue((reason) => performLocalWorkspaceSave(reason), 420);
 const noteSaveFoundation = createNoteSaveFoundation({
   writeSnapshot: (snapshot, request) => isCodexThreadSaveRequest(request)
-    ? noteSaveFoundation.runExclusive([snapshot.noteId], () => putCodexThreadSnapshot(snapshot))
-    : putNote(snapshot),
+    ? noteSaveFoundation.runExclusive([snapshot.noteId], () => codexThreadSaveCoordinator.isCurrentRequest(request)
+      ? putCodexThreadSnapshot(snapshot).then((result) => {
+        codexThreadSaveCoordinator.markPersisted(request);
+        return result;
+      })
+      : Promise.resolve(snapshot))
+    : putNote(snapshot, { preserveStoredCodexThread: true }),
   onStateChange: handleNoteSaveStateChange,
   onSaveSuccess: (request, state, context) => isCodexThreadSaveRequest(request)
     ? handleCodexThreadSaveSuccess(request, state)
@@ -1731,15 +1737,27 @@ function getStoredNotes() {
 }
 
 // メモを1件保存します。idが同じなら上書き、なければ新規追加になります。
-function putNote(note) {
+function putNote(note, { preserveStoredCodexThread = false } = {}) {
   return new Promise((resolve, reject) => {
     note = withNormalizedMemoTags(note);
+    let savedNote = note;
     const transaction = db.transaction([STORE_NAME, TOMBSTONE_STORE_NAME], "readwrite");
-    guardNoteWrites(transaction, [note.id], () => transaction.objectStore(STORE_NAME).put(note), TOMBSTONE_STORE_NAME);
+    const store = transaction.objectStore(STORE_NAME);
+    guardNoteWrites(transaction, [note.id], () => {
+      if (!preserveStoredCodexThread) {
+        store.put(savedNote);
+        return;
+      }
+      const request = store.get(note.id);
+      request.onsuccess = () => {
+        savedNote = withNormalizedMemoTags(mergeStoredCodexThread(note, request.result));
+        store.put(savedNote);
+      };
+    }, TOMBSTONE_STORE_NAME);
     transaction.oncomplete = () => {
-      notifyMemoChanged(note);
+      notifyMemoChanged(savedNote);
       markLocalWorkspacePending();
-      resolve(note);
+      resolve(savedNote);
     };
     transaction.onerror = () => reject(noteTransactionError(transaction));
     transaction.onabort = () => reject(noteTransactionError(transaction));
@@ -4739,13 +4757,21 @@ async function enqueueCodexThreadSave(noteId, updater) {
   const codexChat = updated?.codexChat || null;
   const threadId = codexChat?.threadId || previousThreadId;
   if (!threadId) return applyCodexThreadToMemory(noteId, codexChat);
-  const liveNote = applyCodexThreadToMemory(noteId, codexChat);
-  await codexThreadSaveCoordinator.enqueue({ noteId, threadId, codexChat });
-  return liveNote;
+  const result = await codexThreadSaveCoordinator.enqueue({ noteId, threadId, codexChat });
+  return applyCodexThreadSaveResult(result);
 }
 
-function retryCodexThreadSave(threadId) {
-  return codexThreadSaveCoordinator.retry(threadId);
+function applyCodexThreadSaveResult(result) {
+  if (!result?.request || !codexThreadSaveCoordinator.wasPersisted(result.request)) {
+    return result?.request?.snapshot?.noteId ? noteForSave(result.request.snapshot.noteId) : null;
+  }
+  const { noteId, codexChat } = result.request.snapshot;
+  return applyCodexThreadToMemory(noteId, codexChat);
+}
+
+async function retryCodexThreadSave(threadId) {
+  const result = await codexThreadSaveCoordinator.retry(threadId);
+  return result ? applyCodexThreadSaveResult(result) : null;
 }
 
 function registerNoteSaveState(note) {
@@ -5029,7 +5055,7 @@ function handleNoteSaveSuccess(request, state, context = {}) {
   if (context.batch) return;
   console.log("Memo saved", { id: request.noteId, revision: request.revision, saveRequestId: request.saveRequestId });
   if (state.currentRevision === request.revision) {
-    const savedNote = cloneNoteSnapshot(request.snapshot);
+    const savedNote = cloneNoteSnapshot(mergeStoredCodexThread(request.snapshot, noteForSave(request.noteId)));
     const index = notes.findIndex((note) => note.id === request.noteId);
     if (index === -1) notes.unshift(savedNote); else notes[index] = savedNote;
     const liveDraft = noteLiveDrafts.get(request.noteId);

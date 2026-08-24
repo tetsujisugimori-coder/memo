@@ -87,6 +87,13 @@
     return request?.resourceType === CODEX_THREAD_RESOURCE_TYPE
       && String(request.resourceKey || "").startsWith(CODEX_THREAD_RESOURCE_PREFIX);
   }
+  function mergeStoredCodexThread(noteSnapshot, storedNote) {
+    if (!noteSnapshot || typeof noteSnapshot !== "object" || !storedNote || typeof storedNote !== "object") return noteSnapshot;
+    const merged = { ...noteSnapshot };
+    if (storedNote.codexChat) merged.codexChat = storedNote.codexChat;
+    else delete merged.codexChat;
+    return merged;
+  }
   function createCodexThreadSaveCoordinator({ foundation, createSaveRequest } = {}) {
     if (!foundation || typeof foundation.markChanged !== "function" || typeof foundation.enqueueSave !== "function") {
       throw new Error("save foundation is required");
@@ -94,6 +101,22 @@
     if (typeof createSaveRequest !== "function") throw new Error("createSaveRequest is required");
     const latestRequests = new Map();
     const latestResourceByNoteId = new Map();
+    const generationByNoteId = new Map();
+    const persistedRequests = new WeakSet();
+
+    function isCurrentRequest(request) {
+      if (!isCodexThreadSaveRequest(request)) return false;
+      const noteId = request.snapshot?.noteId;
+      return Boolean(noteId)
+        && latestResourceByNoteId.get(noteId) === request.resourceKey
+        && generationByNoteId.get(noteId) === request.snapshot.generation;
+    }
+
+    function markPersisted(request) {
+      if (!isCodexThreadSaveRequest(request)) throw new Error("Codex save request is required");
+      persistedRequests.add(request);
+      return request;
+    }
 
     function enqueueRequest(request) {
       return foundation.enqueueSave(request).then((result) => {
@@ -113,18 +136,23 @@
       if (codexChat != null && (!normalizedThread || normalizedThread.threadId !== fixedThreadId)) {
         throw new Error("Codex thread snapshot must match threadId");
       }
+      const previousResourceKey = latestResourceByNoteId.get(fixedNoteId);
+      const previousGeneration = generationByNoteId.get(fixedNoteId) || 0;
+      const generation = previousResourceKey === resourceKey && previousGeneration
+        ? previousGeneration
+        : previousGeneration + 1;
       const currentRevision = foundation.getState(resourceKey)?.currentRevision || 0;
       const revision = foundation.markChanged(resourceKey, currentRevision);
       const request = createSaveRequest({
         resourceKey,
         resourceType: CODEX_THREAD_RESOURCE_TYPE,
         revision,
-        snapshot: { noteId: fixedNoteId, threadId: fixedThreadId, codexChat: normalizedThread }
+        snapshot: { noteId: fixedNoteId, threadId: fixedThreadId, generation, codexChat: normalizedThread }
       });
-      const previousResourceKey = latestResourceByNoteId.get(fixedNoteId);
       if (previousResourceKey && previousResourceKey !== resourceKey) latestRequests.delete(previousResourceKey);
       latestRequests.set(resourceKey, request);
       latestResourceByNoteId.set(fixedNoteId, resourceKey);
+      generationByNoteId.set(fixedNoteId, generation);
       return enqueueRequest(request);
     }
 
@@ -139,6 +167,9 @@
     return {
       enqueue,
       getState: (threadId) => foundation.getState(codexThreadResourceKey(threadId)),
+      isCurrentRequest,
+      markPersisted,
+      wasPersisted: (request) => persistedRequests.has(request),
       retry
     };
   }
@@ -217,7 +248,7 @@
     if (terminalEvent !== "done") throw new Error("Codexとの接続が途中で終了しました。");
     return { type: "done" };
   }
-  const api = { BRIDGE_TOKEN_SESSION_KEY, CODEX_THREAD_RESOURCE_PREFIX, CODEX_THREAD_RESOURCE_TYPE, CONTEXT_LIMIT, MIN_BRIDGE_TOKEN_LENGTH, buildAttachment, buildBridgeRequestHeaders, clearSessionBridgeToken, clipText, codexThreadResourceKey, createCodexChatState, createCodexThreadSaveCoordinator, extractEditorSelection, formatPrompt, isCodexThreadSaveRequest, loadSessionBridgeToken, normalizeBridgeToken, normalizeThreadInfo, readCodexEventStream, saveSessionBridgeToken, withCodexThread, withoutCodexThread };
+  const api = { BRIDGE_TOKEN_SESSION_KEY, CODEX_THREAD_RESOURCE_PREFIX, CODEX_THREAD_RESOURCE_TYPE, CONTEXT_LIMIT, MIN_BRIDGE_TOKEN_LENGTH, buildAttachment, buildBridgeRequestHeaders, clearSessionBridgeToken, clipText, codexThreadResourceKey, createCodexChatState, createCodexThreadSaveCoordinator, extractEditorSelection, formatPrompt, isCodexThreadSaveRequest, loadSessionBridgeToken, mergeStoredCodexThread, normalizeBridgeToken, normalizeThreadInfo, readCodexEventStream, saveSessionBridgeToken, withCodexThread, withoutCodexThread };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   if (globalScope) globalScope.MemoNexusCodexChatUtils = api;
 })(typeof window !== "undefined" ? window : globalThis);
