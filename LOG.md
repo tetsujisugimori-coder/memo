@@ -2008,3 +2008,8 @@
 * `mutateNotesAtomically()`の一般batch既定値は維持し、ローカルmetadata経路だけに期待revision、DOM取込み抑止、予約解除抑止、dirty時の変更合流抑止、変更可能フィールド制限を指定した。`updateNotesTransaction()`は内部metadata更新だけをローカル変更versionへ数えず、同時のユーザー変更は抑止しない。`localCreatedAt`・`localSavedAt`以外が変わる場合は索引無効化を省略する前にtransactionを拒否する。固定snapshot、メモ単位ロック、通常保存との直列化、原子transaction、保存中再編集、tombstone guardは維持した。配信識別子は`app.js?v=0.5.0-103`へ更新した。
 * 遅延ゲート付き統合テストで、AのMarkdown書込み中にBと`[[late-term]]`へ編集しても初回MarkdownはA、live draftと280ms予約はBのまま、metadata対象からAを除外し、状態を`pending`へ戻すことを確認した。後続通常保存ではBを保存して索引を1回だけ無効化し、次の明示ローカル保存でBをMarkdownへ出力する。200件中1件の再編集ではmetadata 199件、一覧描画1回、索引無効化0回、編集メモdirtyを確認し、無編集200件では全件metadata、一覧描画1回、索引無効化0回を確認した。metadata transaction失敗と後続通常保存失敗でもdraft・dirtyを維持する。
 * `note-save-app-integration.test.js`の17件を20回反復して全340件成功した。`node --test`は全682件成功し、変更JavaScriptの`node --check`と`git diff --check`も成功した。実ブラウザーのネイティブフォルダ選択、実フォルダへのMarkdown・添付・manifest・`sync-state.json`書込み、画面上の`保存中`から`保存済み`／`未保存`への遷移はブラウザー制御環境の制約により未確認で、模擬File System Access APIと本番保存関数を抽出した統合テストで補完した。
+
+## 2026-08-24 ローカル保存metadataの線形live索引化
+
+* ローカル保存後metadataのrevision照合・atomic batch計画・成功反映・完了境界で、メモごとに`noteForSave()`から`notes.find()`を繰り返していた経路を、batch開始時に`notes`を1回走査して`noteLiveDrafts`を優先反映する一時`Map`へ置き換えた。Mapは当該metadata batch内だけで共有し、Markdown・manifest・`sync-state.json`用の固定snapshotとは分離した。既存のrevision境界、メモ単位ロック、通常保存との直列化、transaction原子性、保存中再編集、tombstone拒否は維持した。配信識別子は`app.js?v=0.5.0-104`へ更新した。
+* 200件と400件の決定的な計数テストで、一時索引の構築が各1回、全件走査が200回／400回、参照が800回／1600回となり、メモ件数に比例することを確認した。本番`performLocalWorkspaceSave()`を模擬File System Access APIと実`getAllNotes()`で実行し、成功、ファイル書込み中再編集、metadata transaction失敗、tombstone化を検証した。統合テスト22件を20回反復して全440件、`node --test`は全687件が成功した。変更JavaScriptの`node --check`と`git diff --check`も成功した。実ブラウザーのネイティブフォルダ選択と実フォルダへの書込みは未確認である。

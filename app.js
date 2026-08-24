@@ -1931,25 +1931,42 @@ async function optionalLocalText(root, path) {
   }
 }
 
-function localSavePlanMatchesRevision(plan) {
-  const liveNote = noteForSave(plan?.note?.id);
+function buildLocalSaveLiveNoteIndex(onVisit = null) {
+  // Values are live references for this metadata batch, not local-file snapshots.
+  const liveNotesById = new Map();
+  notes.forEach((note) => {
+    if (onVisit) onVisit(note.id, "note");
+    liveNotesById.set(note.id, note);
+  });
+  noteLiveDrafts.forEach((draft, noteId) => {
+    if (onVisit) onVisit(noteId, "draft");
+    liveNotesById.set(noteId, draft);
+  });
+  return liveNotesById;
+}
+
+function localSavePlanMatchesRevision(plan, liveNotesById) {
+  const liveNote = liveNotesById.get(plan?.note?.id);
   return Boolean(liveNote)
     && normalizeNoteRevision(liveNote.revision) === normalizeNoteRevision(plan.startRevision);
 }
 
-async function applyLocalSaveMetadata(plans) {
+async function applyLocalSaveMetadata(plans, options) {
+  options ||= {};
+  const liveNoteIndexFactory = options.liveNoteIndexFactory || buildLocalSaveLiveNoteIndex;
   plans.forEach((plan) => {
     const error = noteSaveFoundation.terminalError(plan.note.id);
     if (error) throw error;
   });
-  const eligiblePlans = plans.filter(localSavePlanMatchesRevision);
+  const liveNotesById = liveNoteIndexFactory();
+  const eligiblePlans = plans.filter((plan) => localSavePlanMatchesRevision(plan, liveNotesById));
   const expectedRevisionsAfterMetadata = new Map(plans.map((plan) => [
     plan.note.id,
     normalizeNoteRevision(plan.startRevision)
   ]));
   if (!eligiblePlans.length) {
     if (plans.length && !isPopoutWindow) renderList();
-    return { expectedRevisionsAfterMetadata, results: [] };
+    return { expectedRevisionsAfterMetadata, liveNotesById, results: [] };
   }
 
   const savedMetadata = new Map(eligiblePlans.map((plan) => [plan.note.id, {
@@ -1972,18 +1989,19 @@ async function applyLocalSaveMetadata(plans) {
     clearScheduledSaves: false,
     expectedRevisions,
     invalidateTermRelations: false,
+    liveNotesById,
     render: "list"
   });
   results.forEach(({ request }) => {
     expectedRevisionsAfterMetadata.set(request.noteId, request.revision);
   });
   if (!results.length && plans.length && !isPopoutWindow) renderList();
-  return { expectedRevisionsAfterMetadata, results };
+  return { expectedRevisionsAfterMetadata, liveNotesById, results };
 }
 
-function localSaveBoundaryChanged(plans, expectedRevisionsAfterMetadata) {
+function localSaveBoundaryChanged(plans, expectedRevisionsAfterMetadata, liveNotesById) {
   return plans.some((plan) => {
-    const liveNote = noteForSave(plan.note.id);
+    const liveNote = liveNotesById.get(plan.note.id);
     return !liveNote
       || normalizeNoteRevision(liveNote.revision) !== expectedRevisionsAfterMetadata.get(plan.note.id);
   });
@@ -2090,7 +2108,7 @@ async function performLocalWorkspaceSave(reason = "change") {
       if (resolution) deleteLocalConflictResolution(localConflictResolutions, plan.note.id, resolution);
     });
     const changedDuringSave = localWorkspaceChangeVersion !== savedChangeVersion
-      || localSaveBoundaryChanged(plans, metadataResult.expectedRevisionsAfterMetadata);
+      || localSaveBoundaryChanged(plans, metadataResult.expectedRevisionsAfterMetadata, metadataResult.liveNotesById);
     setLocalSaveState(changedDuringSave ? "pending" : "saved", {
       directoryName: localDirectoryHandle.name,
       lastSuccessAt: savedAt,
@@ -4802,14 +4820,16 @@ async function mutateNotesAtomically(noteIds, mutate, writeSnapshots = updateNot
     applyCommittedChangesWhenDirty = true,
     captureCurrentDraft = true,
     clearScheduledSaves = true,
-    expectedRevisions = null
+    expectedRevisions = null,
+    liveNotesById = null
   } = uiOptions;
+  const liveNote = (noteId) => liveNotesById ? liveNotesById.get(noteId) : noteForSave(noteId);
   const ids = [...new Set(noteIds || [])].filter(Boolean).sort();
   if (!ids.length) return Promise.resolve([]);
   if (captureCurrentDraft && ids.includes(currentId)) applyCurrentEditorDraft(currentNote());
 
   const plans = ids.map((noteId) => {
-    const note = noteForSave(noteId);
+    const note = liveNote(noteId);
     if (!note) return null;
     if (expectedRevisions && (
       !expectedRevisions.has(noteId)
@@ -4847,19 +4867,19 @@ async function mutateNotesAtomically(noteIds, mutate, writeSnapshots = updateNot
   } catch (error) {
     const states = noteSaveFoundation.abortAtomicBatch(batch);
     states.forEach((state) => {
-      const liveNote = noteForSave(state.noteId);
-      if (liveNote) liveNote.revision = state.currentRevision;
+      const note = liveNote(state.noteId);
+      if (note) note.revision = state.currentRevision;
     });
     throw error;
   }
 
   try {
-    applyNoteBatchSaveSuccess(results);
+    applyNoteBatchSaveSuccess(results, liveNotesById);
     const resultById = new Map(results.map((result) => [result.request.noteId, result]));
     plans.forEach((plan) => {
       if (!applyCommittedChangesWhenDirty && resultById.get(plan.noteId)?.state.dirty) return;
-      const liveNote = noteForSave(plan.noteId);
-      if (liveNote) applyCommittedBatchChanges(liveNote, plan.changes);
+      const note = liveNote(plan.noteId);
+      if (note) applyCommittedBatchChanges(note, plan.changes);
     });
   } finally {
     noteSaveFoundation.completeAtomicBatch(batch);
@@ -4897,7 +4917,7 @@ function handleNoteSaveStateChange(noteId, state) {
   else setSaveStatus("saved", noteForSave(noteId)?.updatedAt || Date.now());
 }
 
-function applyNoteBatchSaveSuccess(results) {
+function applyNoteBatchSaveSuccess(results, liveNotesById = null) {
   const savedById = new Map();
   const linkChecks = [];
   results.forEach(({ request, state }) => {
@@ -4917,6 +4937,7 @@ function applyNoteBatchSaveSuccess(results) {
   [...savedById].reverse().forEach(([noteId, note]) => {
     if (!existingIds.has(noteId)) notes.unshift(note);
   });
+  if (liveNotesById) savedById.forEach((note, noteId) => liveNotesById.set(noteId, note));
   if (linkChecks.length) {
     const currentLinkCount = collectLinks(activeNotes()).length;
     const discovered = linkChecks.find(({ beforeLinks }) => currentLinkCount > beforeLinks);

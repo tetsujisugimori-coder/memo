@@ -12,7 +12,7 @@ const packageJson = fs.readFileSync("package.json", "utf8");
 
 test("Codexチャットは通常AIと別タブで明示添付だけを提供する", () => {
   assert.match(html, /codex-chat-utils\.js\?v=0\.5\.0-4/);
-  assert.match(html, /app\.js\?v=0\.5\.0-103/);
+  assert.match(html, /app\.js\?v=0\.5\.0-104/);
   assert.match(html, /codex-chat\.js\?v=0\.5\.0-5/);
   assert.match(client, /codexChatTab/);
   assert.match(client, /このメモを添付/);
