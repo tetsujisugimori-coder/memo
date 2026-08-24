@@ -522,7 +522,7 @@ test("管理対象Markdownはsync-stateのnote IDとfileNameで特定する", ()
   assert.match(html, /attachment-utils\.js\?v=0\.5\.0-12/);
   assert.match(html, /local-sync-utils\.js\?v=0\.5\.0-10/);
   assert.match(html, /backup-bundle-utils\.js\?v=0\.5\.0-5/);
-  assert.match(html, /app\.js\?v=0\.5\.0-101/);
+  assert.match(html, /app\.js\?v=0\.5\.0-104/);
   const syncState = {
     notes: {
       "note-1": { fileName: "題名--note-1.md", hash: "last" },
@@ -1033,6 +1033,41 @@ test("ローカル保存失敗は権限・外部競合・一般エラーを区�
     shouldSave: () => true,
     save: async () => { throw Object.assign(new Error("外部変更"), { code: "conflict" }); }
   }), (error) => error.code === "conflict" && error.localSaveStage === "save");
+});
+
+test("本番ローカル保存は固定snapshotとrevision境界を使い、失敗時は保存中を解除する", () => {
+  const source = extractFunction(app, "performLocalWorkspaceSave");
+  const metadataSource = extractFunction(app, "applyLocalSaveMetadata");
+  const liveIndexSource = extractFunction(app, "buildLocalSaveLiveNoteIndex");
+  const boundarySource = extractFunction(app, "localSaveBoundaryChanged");
+  const savingIndex = source.indexOf('setLocalSaveState("saving"');
+  const metadataBatchIndex = source.indexOf("await applyLocalSaveMetadata");
+  const savedIndex = source.indexOf('setLocalSaveState(changedDuringSave ? "pending" : "saved"');
+  const failureIndex = source.indexOf("const failure = classifyLocalSaveFailure(error)");
+
+  assert.ok(savingIndex >= 0 && savingIndex < metadataBatchIndex);
+  assert.ok(metadataBatchIndex < savedIndex);
+  assert.ok(savedIndex < failureIndex);
+  assert.match(source, /getAllNotes\(\)\)\.map\(cloneNoteSnapshot\)/);
+  assert.match(source, /startRevision: normalizeNoteRevision\(note\.revision\)/);
+  assert.match(source, /localSaveBoundaryChanged\(plans, metadataResult\.expectedRevisionsAfterMetadata, metadataResult\.liveNotesById\)/);
+  assert.match(source, /setLocalSaveState\(failure\.status/);
+  assert.match(metadataSource, /captureCurrentDraft: false/);
+  assert.match(metadataSource, /clearScheduledSaves: false/);
+  assert.match(metadataSource, /applyCommittedChangesWhenDirty: false/);
+  assert.match(metadataSource, /allowedChangedFields: \["localCreatedAt", "localSavedAt"\]/);
+  assert.match(metadataSource, /invalidateTermRelations: false/);
+  assert.match(metadataSource, /markLocalPending: false/);
+  assert.match(metadataSource, /const liveNotesById = liveNoteIndexFactory\(\)/);
+  assert.match(metadataSource, /liveNotesById,/);
+  assert.doesNotMatch(metadataSource, /noteForSave/);
+  assert.match(liveIndexSource, /const liveNotesById = new Map\(\)/);
+  assert.match(liveIndexSource, /notes\.forEach/);
+  assert.match(liveIndexSource, /noteLiveDrafts\.forEach/);
+  assert.match(boundarySource, /liveNotesById\.get\(plan\.note\.id\)/);
+  assert.doesNotMatch(boundarySource, /noteForSave/);
+  assert.match(app, /function updateNotesTransaction\(items, \{ markLocalPending = true \} = \{\}\)[\s\S]*if \(markLocalPending\) markLocalWorkspacePending\(\)/);
+  assert.doesNotMatch(source, /suppressLocalSaveQueue = true/);
 });
 
 test("起動時はローカルMarkdownを走査・書込みせず保存状態だけを復元する", async () => {

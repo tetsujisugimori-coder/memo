@@ -342,6 +342,35 @@ test("通常保存と複数メモbatchをID順ロックで調停し原子性と�
   assert.equal(foundation.getState("B").dirty, false);
 });
 
+test("batch成功通知は各メモの状態を保ったまま同じbatch文脈で識別できる", async () => {
+  const notifications = [];
+  const foundation = createNoteSaveFoundation({
+    writeSnapshot: async () => {},
+    onSaveSuccess: (saveRequest, state, context) => notifications.push({ saveRequest, state, context })
+  });
+  foundation.registerNote("A", 0);
+  foundation.registerNote("B", 0);
+  const atomicBatch = foundation.beginAtomicBatch(["A", "B"]);
+  const drafts = ["A", "B"].map((id) => ({
+    id,
+    revision: foundation.markBatchChanged(atomicBatch, id, 0),
+    body: `${id} batch`
+  }));
+
+  const results = await foundation.enqueueBatchSave({
+    batch: atomicBatch,
+    noteIds: ["A", "B"],
+    createRequests: () => drafts.map((draft) => createSaveRequest({ noteId: draft.id, revision: draft.revision, snapshot: draft })),
+    writeSnapshots: async () => {}
+  });
+  foundation.completeAtomicBatch(atomicBatch);
+
+  assert.equal(notifications.length, 2);
+  assert.equal(notifications.every(({ context }) => context.batch === atomicBatch), true);
+  assert.deepEqual(notifications.map(({ state }) => state.lastSavedRevision), [1, 1]);
+  assert.equal(results.every(({ state }) => state.dirty === false), true);
+});
+
 test("batch transaction失敗中は通常保存を遮断し、解除後はbatch revisionだけを戻す", async () => {
   const drafts = new Map([
     ["A", { id: "A", revision: 0, body: "A", fontSettings: { enabled: true } }],

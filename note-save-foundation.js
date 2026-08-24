@@ -408,6 +408,7 @@
         if (!Array.isArray(requests) || requests.length !== ids.length) throw new Error("one request per noteId is required");
         const byId = new Map(requests.map((request) => [request.noteId, request]));
         if (byId.size !== ids.length || ids.some((id) => !byId.has(id))) throw new Error("batch request noteIds must match");
+        const notificationContext = Object.freeze({ batch });
 
         ids.forEach((id) => {
           const request = byId.get(id);
@@ -438,8 +439,8 @@
           entry.active = null;
           const state = publicState(entry);
           emit(entry);
-          if (writeError) safeNotify("error", onSaveError, [request, writeError, state]);
-          else safeNotify("success", onSaveSuccess, [request, state]);
+          if (writeError) safeNotify("error", onSaveError, [request, writeError, state, notificationContext]);
+          else safeNotify("success", onSaveSuccess, [request, state, notificationContext]);
           finishIdle(entry);
           return { request, state };
         });
