@@ -522,7 +522,7 @@ test("管理対象Markdownはsync-stateのnote IDとfileNameで特定する", ()
   assert.match(html, /attachment-utils\.js\?v=0\.5\.0-12/);
   assert.match(html, /local-sync-utils\.js\?v=0\.5\.0-10/);
   assert.match(html, /backup-bundle-utils\.js\?v=0\.5\.0-5/);
-  assert.match(html, /app\.js\?v=0\.5\.0-106/);
+  assert.match(html, /app\.js\?v=0\.5\.0-107/);
   const syncState = {
     notes: {
       "note-1": { fileName: "題名--note-1.md", hash: "last" },
@@ -1066,7 +1066,8 @@ test("本番ローカル保存は固定snapshotとrevision境界を使い、失�
   assert.match(liveIndexSource, /noteLiveDrafts\.forEach/);
   assert.match(boundarySource, /liveNotesById\.get\(plan\.note\.id\)/);
   assert.doesNotMatch(boundarySource, /noteForSave/);
-  assert.match(app, /function updateNotesTransaction\(items, \{ markLocalPending = true \} = \{\}\)[\s\S]*if \(markLocalPending\) markLocalWorkspacePending\(\)/);
+  assert.match(app, /function updateNotesTransaction\(items, \{ markLocalPending = true, preserveStoredCodexThread = false \} = \{\}\)[\s\S]*if \(markLocalPending\) markLocalWorkspacePending\(\)/);
+  assert.match(metadataSource, /preserveStoredCodexThread: true/);
   assert.doesNotMatch(source, /suppressLocalSaveQueue = true/);
 });
 
@@ -1490,7 +1491,7 @@ test("権限は起動時に照会だけ行い、利用者操作時の再接続�
 });
 
 test("IndexedDB成功後は要保存だけを記録し、ローカル書込みを予約しない", () => {
-  assert.match(app, /transaction\.oncomplete = \(\) => \{\s*notifyMemoChanged\(note\);\s*markLocalWorkspacePending\(\)/);
+  assert.match(app, /transaction\.oncomplete = \(\) => \{\s*notifyMemoChanged\(savedNote\);\s*markLocalWorkspacePending\(\)/);
   assert.equal((app.match(/queueLocalWorkspaceSave\(/g) || []).length, 2);
   assert.match(app, /async function saveLocalWorkspaceNow[\s\S]*queueLocalWorkspaceSave\(reason\)/);
   assert.match(app, /await putNote\(note\)[\s\S]*setSaveStatus\("saved", note\.updatedAt\)/);

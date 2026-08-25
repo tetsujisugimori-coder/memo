@@ -432,8 +432,14 @@
         });
 
         let writeError = null;
+        let writtenSnapshots = null;
         try {
-          await writeSnapshots(requests.map((request) => request.snapshot), requests);
+          const writeResult = await writeSnapshots(requests.map((request) => request.snapshot), requests);
+          if (Array.isArray(writeResult)) {
+            writtenSnapshots = new Map(writeResult
+              .filter((snapshot) => snapshot && snapshot.id)
+              .map((snapshot) => [snapshot.id, snapshot]));
+          }
         } catch (error) {
           writeError = error;
         }
@@ -454,7 +460,11 @@
           if (writeError) safeNotify("error", onSaveError, [request, writeError, state, notificationContext]);
           else safeNotify("success", onSaveSuccess, [request, state, notificationContext]);
           finishIdle(entry);
-          return { request, state };
+          return {
+            request,
+            state,
+            savedSnapshot: writtenSnapshots?.get(request.noteId) || request.snapshot
+          };
         });
         if (writeError?.code === "NOTE_PERMANENTLY_DELETED") {
           finishPermanentDeletion([writeError.noteId], writeError.tombstone);

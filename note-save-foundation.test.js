@@ -388,6 +388,32 @@ test("batch成功通知は各メモの状態を保ったまま同じbatch文脈�
   assert.equal(results.every(({ state }) => state.dirty === false), true);
 });
 
+test("batch writerが返した実保存snapshotを結果へ対応するメモIDごとに載せる", async () => {
+  const foundation = createNoteSaveFoundation({ writeSnapshot: async () => {} });
+  foundation.registerNote("A", 0);
+  foundation.registerNote("B", 0);
+  const atomicBatch = foundation.beginAtomicBatch(["A", "B"]);
+  const drafts = ["A", "B"].map((id) => ({
+    id,
+    revision: foundation.markBatchChanged(atomicBatch, id, 0),
+    codexChat: { threadId: "thread-a" }
+  }));
+
+  const results = await foundation.enqueueBatchSave({
+    batch: atomicBatch,
+    noteIds: ["A", "B"],
+    createRequests: () => drafts.map((draft) => createSaveRequest({ noteId: draft.id, revision: draft.revision, snapshot: draft })),
+    writeSnapshots: async (snapshots) => snapshots.map((snapshot) => ({
+      ...snapshot,
+      ...(snapshot.id === "A" ? { codexChat: { threadId: "thread-b" } } : {})
+    }))
+  });
+  foundation.completeAtomicBatch(atomicBatch);
+
+  assert.equal(results.find(({ request: saveRequest }) => saveRequest.noteId === "A").savedSnapshot.codexChat.threadId, "thread-b");
+  assert.equal(results.find(({ request: saveRequest }) => saveRequest.noteId === "B").savedSnapshot.codexChat.threadId, "thread-a");
+});
+
 test("batch transaction失敗中は通常保存を遮断し、解除後はbatch revisionだけを戻す", async () => {
   const drafts = new Map([
     ["A", { id: "A", revision: 0, body: "A", fontSettings: { enabled: true } }],

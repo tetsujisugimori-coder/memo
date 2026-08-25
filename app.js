@@ -2050,7 +2050,7 @@ async function applyLocalSaveMetadata(plans, options) {
     if (!metadata) return false;
     note.localCreatedAt = note.localCreatedAt || metadata.localCreatedAt;
     note.localSavedAt = metadata.localSavedAt;
-  }, (items) => updateNotesTransaction(items, { markLocalPending: false }), {
+  }, (items) => updateNotesTransaction(items, { markLocalPending: false, preserveStoredCodexThread: true }), {
     allowedChangedFields: ["localCreatedAt", "localSavedAt"],
     applyCommittedChangesWhenDirty: false,
     captureCurrentDraft: false,
@@ -2690,17 +2690,38 @@ async function migrateLegacyNotesToUnclassified() {
   console.log("Collection migration", { assignedToUnclassified: legacy.length });
 }
 
-function updateNotesTransaction(items, { markLocalPending = true } = {}) {
+function prepareNoteSnapshotsInTransaction(store, items, { preserveStoredCodexThread = false } = {}, onReady) {
+  if (!preserveStoredCodexThread || !items.length) {
+    onReady(items);
+    return;
+  }
+  const savedItems = new Array(items.length);
+  let remaining = items.length;
+  items.forEach((note, index) => {
+    const request = store.get(note.id);
+    request.onsuccess = () => {
+      savedItems[index] = mergeStoredCodexThread(note, request.result);
+      remaining -= 1;
+      if (!remaining) onReady(savedItems);
+    };
+  });
+}
+
+function updateNotesTransaction(items, { markLocalPending = true, preserveStoredCodexThread = false } = {}) {
   return new Promise((resolve, reject) => {
+    let savedItems = items;
     const transaction = db.transaction([STORE_NAME, TOMBSTONE_STORE_NAME], "readwrite");
     const store = transaction.objectStore(STORE_NAME);
     guardNoteWrites(transaction, items.map((note) => note.id), () => {
-      items.forEach((note) => store.put(note));
+      prepareNoteSnapshotsInTransaction(store, items, { preserveStoredCodexThread }, (preparedItems) => {
+        savedItems = preparedItems;
+        savedItems.forEach((note) => store.put(note));
+      });
     }, TOMBSTONE_STORE_NAME);
     transaction.oncomplete = () => {
-      items.forEach((note) => notifyMemoChanged(note));
+      savedItems.forEach((note) => notifyMemoChanged(note));
       if (markLocalPending) markLocalWorkspacePending();
-      resolve();
+      resolve(savedItems);
     };
     transaction.onerror = () => reject(noteTransactionError(transaction));
     transaction.onabort = () => reject(noteTransactionError(transaction));
@@ -4086,17 +4107,22 @@ async function createWebClipNoteWithImages(title, clip, source, collectionId, ex
   try {
     if (existingNote) {
       const writeWebClipTransaction = ([note]) => new Promise((resolve, reject) => {
+        let savedNote = note;
         const transaction = db.transaction([STORE_NAME, ATTACHMENT_STORE_NAME, TOMBSTONE_STORE_NAME], "readwrite");
+        const noteStore = transaction.objectStore(STORE_NAME);
         const attachmentStore = transaction.objectStore(ATTACHMENT_STORE_NAME);
         guardNoteWrites(transaction, [note.id], () => {
-          prepared.forEach((attachment) => attachmentStore.put(attachment));
-          previousWebClipAttachments.forEach((attachment) => attachmentStore.delete(attachment.id));
-          transaction.objectStore(STORE_NAME).put(note);
+          prepareNoteSnapshotsInTransaction(noteStore, [note], { preserveStoredCodexThread: true }, ([preparedNote]) => {
+            savedNote = preparedNote;
+            prepared.forEach((attachment) => attachmentStore.put(attachment));
+            previousWebClipAttachments.forEach((attachment) => attachmentStore.delete(attachment.id));
+            noteStore.put(savedNote);
+          });
         }, TOMBSTONE_STORE_NAME);
         transaction.oncomplete = () => {
-          notifyMemoChanged(note);
+          notifyMemoChanged(savedNote);
           markLocalWorkspacePending();
-          resolve();
+          resolve([savedNote]);
         };
         transaction.onerror = () => reject(noteTransactionError(transaction));
         transaction.onabort = () => reject(noteTransactionError(transaction));
@@ -4920,7 +4946,7 @@ function applyCommittedBatchChanges(note, changes) {
 
 // バッチ固有の変更は固定snapshotへだけ適用し、transaction成功後にlive draftへ合流します。
 // 失敗時は通常編集だけがlive draftに残り、保存中の追加編集は別revisionとして維持されます。
-async function mutateNotesAtomically(noteIds, mutate, writeSnapshots = updateNotesTransaction, uiOptions = {}) {
+async function mutateNotesAtomically(noteIds, mutate, writeSnapshots = null, uiOptions = {}) {
   const {
     allowedChangedFields = null,
     applyCommittedChangesWhenDirty = true,
@@ -4929,6 +4955,7 @@ async function mutateNotesAtomically(noteIds, mutate, writeSnapshots = updateNot
     expectedRevisions = null,
     liveNotesById = null
   } = uiOptions;
+  const persistSnapshots = writeSnapshots || ((snapshots) => updateNotesTransaction(snapshots, { preserveStoredCodexThread: true }));
   const liveNote = (noteId) => liveNotesById ? liveNotesById.get(noteId) : noteForSave(noteId);
   const ids = [...new Set(noteIds || [])].filter(Boolean).sort();
   if (!ids.length) return Promise.resolve([]);
@@ -4968,7 +4995,7 @@ async function mutateNotesAtomically(noteIds, mutate, writeSnapshots = updateNot
       batch,
       noteIds: changedIds,
       createRequests: () => requests,
-      writeSnapshots
+      writeSnapshots: persistSnapshots
     });
   } catch (error) {
     const states = noteSaveFoundation.abortAtomicBatch(batch);
@@ -5026,15 +5053,16 @@ function handleNoteSaveStateChange(noteId, state) {
 function applyNoteBatchSaveSuccess(results, liveNotesById = null) {
   const savedById = new Map();
   const linkChecks = [];
-  results.forEach(({ request, state }) => {
+  results.forEach(({ request, state, savedSnapshot }) => {
     if (state.currentRevision !== request.revision) return;
-    savedById.set(request.noteId, cloneNoteSnapshot(request.snapshot));
+    const committedSnapshot = savedSnapshot || request.snapshot;
+    savedById.set(request.noteId, cloneNoteSnapshot(committedSnapshot));
     const liveDraft = noteLiveDrafts.get(request.noteId);
     if (!liveDraft || normalizeNoteRevision(liveDraft.revision) === request.revision) {
       noteLiveDrafts.delete(request.noteId);
     }
     const beforeLinks = noteSaveBeforeLinkCounts.get(request.noteId);
-    if (Number.isFinite(beforeLinks)) linkChecks.push({ beforeLinks, savedNote: request.snapshot });
+    if (Number.isFinite(beforeLinks)) linkChecks.push({ beforeLinks, savedNote: committedSnapshot });
     noteSaveBeforeLinkCounts.delete(request.noteId);
   });
   if (!savedById.size) return;
@@ -10357,17 +10385,21 @@ async function deleteCollectionSafely(id) {
   const affected = activeNotes().filter((note) => subtreeIds.includes(normalizedCollectionId(note)));
   if (!confirm(`「${collection.name}」と子コレクションを削除しますか？\n配下のメモ ${affected.length}件は未分類へ移動します。メモ本体は削除されません。`)) return;
   const writeDeletionTransaction = (noteSnapshots) => new Promise((resolve, reject) => {
+    let savedSnapshots = noteSnapshots;
     const transaction = db.transaction([STORE_NAME, COLLECTION_STORE_NAME, TOMBSTONE_STORE_NAME], "readwrite");
     const noteStore = transaction.objectStore(STORE_NAME);
     const collectionStore = transaction.objectStore(COLLECTION_STORE_NAME);
     guardNoteWrites(transaction, noteSnapshots.map((note) => note.id), () => {
-      noteSnapshots.forEach((note) => noteStore.put(note));
-      subtreeIds.forEach((collectionId) => collectionStore.delete(collectionId));
+      prepareNoteSnapshotsInTransaction(noteStore, noteSnapshots, { preserveStoredCodexThread: true }, (preparedNotes) => {
+        savedSnapshots = preparedNotes;
+        savedSnapshots.forEach((note) => noteStore.put(note));
+        subtreeIds.forEach((collectionId) => collectionStore.delete(collectionId));
+      });
     }, TOMBSTONE_STORE_NAME);
     transaction.oncomplete = () => {
-      noteSnapshots.forEach((note) => notifyMemoChanged(note));
+      savedSnapshots.forEach((note) => notifyMemoChanged(note));
       markLocalWorkspacePending();
-      resolve();
+      resolve(savedSnapshots);
     };
     transaction.onerror = () => reject(noteTransactionError(transaction));
     transaction.onabort = () => reject(noteTransactionError(transaction));
