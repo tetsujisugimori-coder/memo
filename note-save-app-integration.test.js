@@ -218,7 +218,7 @@ function createHarness({ writer, ensureTags = async () => {}, initialNotes: prov
     let lastDiscovery = "";
     let localSaveSettings = { enabled: true };
     let localDirectoryHandle = localFs;
-    let saveTargetGeneration = 0;
+    let localSaveTargetGeneration = 0;
     let localSaveState = createLocalSaveState({ status: "pending", pendingChanges: true });
     let localSyncState = normalizeSyncState();
     let localWorkspaceChangeVersion = 0;
@@ -233,7 +233,6 @@ function createHarness({ writer, ensureTags = async () => {}, initialNotes: prov
     let codexThreadSaveCoordinator;
     let codexBeforeWrite = null;
     const noteSaveFoundation = createNoteSaveFoundation({
-      getCurrentSaveTargetGeneration: () => saveTargetGeneration,
       writeSnapshot: (snapshot, request) => isCodexThreadSaveRequest(request)
         ? noteSaveFoundation.runExclusive([snapshot.noteId], () => codexThreadSaveCoordinator.isCurrentRequest(request)
           ? persistCodexThread(snapshot, codexBeforeWrite).then((saved) => {
@@ -251,10 +250,7 @@ function createHarness({ writer, ensureTags = async () => {}, initialNotes: prov
       },
       logError() {}
     });
-    codexThreadSaveCoordinator = createCodexThreadSaveCoordinator({
-      foundation: noteSaveFoundation,
-      createSaveRequest: (options) => createSaveRequest({ ...options, saveTargetGeneration })
-    });
+    codexThreadSaveCoordinator = createCodexThreadSaveCoordinator({ foundation: noteSaveFoundation, createSaveRequest });
     const noop = () => {};
     const setRelatedDrawerOpen = noop;
     const syncLegacyDirtyStateOriginal = noop;
@@ -554,35 +550,102 @@ test("実アプリ経路D: タグ登録待機中に切り替えてもAをdirty�
   assert.deepEqual(Array.from(harness.liveNote("A").tags), ["tag-a"]);
 });
 
-test("実アプリ共通保存入口は保存先変更後に同じrevisionを新generationで追従保存する", async () => {
-  const firstWriteStarted = deferred();
-  const releaseFirstWrite = deferred();
+test("ローカル保存先変更では保存済み通常noteがdirtyにならず同じrevisionを再保存しない", async () => {
+  let writeCount = 0;
+  const harness = createHarness({
+    noteCount: 1,
+    writer: async () => { writeCount += 1; }
+  });
+  harness.edit("A edited", "saved before local target switch");
+  harness.scheduleSave();
+  await harness.enqueueNoteSave("A");
+  const savedState = harness.foundation.getState("A");
+
+  await harness.switchLocalSaveTarget({ name: "new-target" });
+  const switchedState = harness.foundation.getState("A");
+  await harness.enqueueNoteSave("A");
+
+  assert.equal(savedState.dirty, false);
+  assert.equal(switchedState.dirty, false);
+  assert.equal(switchedState.currentRevision, savedState.currentRevision);
+  assert.equal(switchedState.lastSavedRevision, savedState.lastSavedRevision);
+  assert.equal(writeCount, 1);
+});
+
+test("通常note保存中のローカル保存先変更は保存結果をstaleにせず余分なwriteを発生させない", async () => {
+  const writeStarted = deferred();
+  const releaseWrite = deferred();
   let writeCount = 0;
   const harness = createHarness({
     noteCount: 1,
     writer: async () => {
       writeCount += 1;
-      if (writeCount === 1) {
-        firstWriteStarted.resolve();
-        await releaseFirstWrite.promise;
-      }
+      writeStarted.resolve();
+      await releaseWrite.promise;
     }
   });
-  harness.edit("A edited", "same revision across targets");
+  harness.edit("A edited", "in-flight across local target switch");
   harness.scheduleSave();
-  harness.runNextTimer();
-  await firstWriteStarted.promise;
-
+  const saving = harness.enqueueNoteSave("A");
+  await writeStarted.promise;
   await harness.switchLocalSaveTarget({ name: "new-target" });
-  const currentTargetSave = harness.enqueueNoteSave("A");
-  releaseFirstWrite.resolve();
-  const result = await currentTargetSave;
-  await harness.foundation.whenIdle("A");
+  releaseWrite.resolve();
+  const result = await saving;
 
-  assert.equal(result.request.saveTargetGeneration, 1);
-  assert.equal(result.staleSaveTarget, false);
-  assert.equal(writeCount, 2);
+  assert.equal(Object.hasOwn(result, "staleSaveTarget"), false);
+  assert.equal(Object.hasOwn(result.request, "saveTargetGeneration"), false);
+  assert.equal(writeCount, 1);
   assert.equal(harness.foundation.getState("A").dirty, false);
+});
+
+test("Codex保存中のローカル保存先変更はstale・retryを発生させずメモリへ反映する", async () => {
+  const writeStarted = deferred();
+  const releaseWrite = deferred();
+  let writeCount = 0;
+  const harness = createHarness({ noteCount: 1 });
+  const codexChat = { threadId: "thread-local-switch", title: "Local switch", lastUsedAt: 10 };
+  const saving = harness.saveCodexThread("A", codexChat, async () => {
+    writeCount += 1;
+    writeStarted.resolve();
+    await releaseWrite.promise;
+  });
+  await writeStarted.promise;
+  await harness.switchLocalSaveTarget({ name: "new-target" });
+  releaseWrite.resolve();
+  const result = await saving;
+
+  assert.equal(Object.hasOwn(result, "staleSaveTarget"), false);
+  assert.equal(Object.hasOwn(result.request, "saveTargetGeneration"), false);
+  assert.equal(writeCount, 1);
+  assert.deepEqual(harness.liveNote("A").codexChat, codexChat);
+  assert.deepEqual((await harness.storedNotes())[0].codexChat, codexChat);
+});
+
+test("atomic batch中のローカル保存先変更は通常どおり1回で完了して結果を適用する", async () => {
+  const writeStarted = deferred();
+  const releaseWrite = deferred();
+  let batchWriteCount = 0;
+  const harness = createHarness({
+    noteCount: 1,
+    writer: async (_value, options) => {
+      if (!options?.batch) return;
+      batchWriteCount += 1;
+      writeStarted.resolve();
+      await releaseWrite.promise;
+    }
+  });
+  const saving = harness.mutateNotesAtomically(["A"], (note) => { note.isFlagged = true; });
+  await writeStarted.promise;
+  await harness.switchLocalSaveTarget({ name: "new-target" });
+  releaseWrite.resolve();
+  const results = await saving;
+
+  assert.equal(batchWriteCount, 1);
+  assert.equal(Object.hasOwn(results[0], "staleSaveTarget"), false);
+  assert.equal(Object.hasOwn(results[0].request, "saveTargetGeneration"), false);
+  assert.equal(results[0].state.dirty, false);
+  assert.equal(harness.liveNote("A").isFlagged, true);
+  assert.equal((await harness.storedNotes())[0].isFlagged, true);
 });
 
 test("通常note更新経路は共通mutationまたは排他入口へ接続されている", () => {

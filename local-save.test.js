@@ -181,13 +181,13 @@ function createLocalSaveTargetHarness(initialHandle = null) {
   return Function("initialHandle", `
     "use strict";
     let localDirectoryHandle = initialHandle;
-    let saveTargetGeneration = 0;
+    let localSaveTargetGeneration = 0;
     ${source}
     return {
       setLocalSaveTarget,
       createLocalSaveRequest,
       localSaveRequestIsCurrent,
-      generation: () => saveTargetGeneration,
+      generation: () => localSaveTargetGeneration,
       handle: () => localDirectoryHandle
     };
   `)(initialHandle);
@@ -235,10 +235,10 @@ test("ローカル保存要求は開始時のハンドルとgenerationを固定�
   const requestB = harness.createLocalSaveRequest("manual");
 
   assert.equal(requestA.directoryHandle, entryA);
-  assert.equal(requestA.saveTargetGeneration, 1);
+  assert.equal(requestA.localSaveTargetGeneration, 1);
   assert.equal(harness.localSaveRequestIsCurrent(requestA), false);
   assert.equal(requestB.directoryHandle, entryB);
-  assert.equal(requestB.saveTargetGeneration, 2);
+  assert.equal(requestB.localSaveTargetGeneration, 2);
   assert.equal(harness.localSaveRequestIsCurrent(requestB), true);
   assert.equal(Object.isFrozen(requestA), true);
 });

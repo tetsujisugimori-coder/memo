@@ -854,7 +854,7 @@ let saveStatusTime = null;
 let saveStatusNotice = "";
 let activeSaveStatusPopoverButton = null;
 let localDirectoryHandle = null;
-let saveTargetGeneration = 0;
+let localSaveTargetGeneration = 0;
 let localSaveSettings = { enabled: false };
 let localSaveState = createLocalSaveState();
 let localSyncState = normalizeSyncState();
@@ -865,7 +865,6 @@ const localConflictResolutions = new Map();
 let localPendingExclusions = new Set();
 const localSaveQueue = createLocalSaveQueue((reason) => performLocalWorkspaceSave(reason), 420);
 const noteSaveFoundation = createNoteSaveFoundation({
-  getCurrentSaveTargetGeneration: () => saveTargetGeneration,
   writeSnapshot: (snapshot, request) => isCodexThreadSaveRequest(request)
     ? noteSaveFoundation.runExclusive([snapshot.noteId], () => codexThreadSaveCoordinator.isCurrentRequest(request)
       ? putCodexThreadSnapshot(snapshot).then((result) => {
@@ -882,10 +881,7 @@ const noteSaveFoundation = createNoteSaveFoundation({
     ? handleCodexThreadSaveError(request, error, state)
     : handleNoteSaveError(request, error, state, context)
 });
-const codexThreadSaveCoordinator = createCodexThreadSaveCoordinator({
-  foundation: noteSaveFoundation,
-  createSaveRequest: (options) => createSaveRequest({ ...options, saveTargetGeneration })
-});
+const codexThreadSaveCoordinator = createCodexThreadSaveCoordinator({ foundation: noteSaveFoundation, createSaveRequest });
 let noteFlagAnimationToken = 0;
 let mermaidConfiguredTheme = null;
 let mermaidRenderGeneration = 0;
@@ -1944,7 +1940,7 @@ async function localSaveTargetsMatch(left, right) {
 async function setLocalSaveTarget(handle) {
   const changed = !await localSaveTargetsMatch(localDirectoryHandle, handle);
   localDirectoryHandle = handle || null;
-  if (changed) saveTargetGeneration += 1;
+  if (changed) localSaveTargetGeneration += 1;
   return changed;
 }
 
@@ -1954,13 +1950,13 @@ function createLocalSaveRequest(reason = "change") {
     reason,
     directoryHandle,
     directoryName: directoryHandle?.name || "",
-    saveTargetGeneration
+    localSaveTargetGeneration
   });
 }
 
 function localSaveRequestIsCurrent(request) {
   return Boolean(request
-    && request.saveTargetGeneration === saveTargetGeneration);
+    && request.localSaveTargetGeneration === localSaveTargetGeneration);
 }
 
 async function persistLocalSaveSettings() {
@@ -2210,7 +2206,7 @@ async function performLocalWorkspaceSave(reason = "change") {
     await localFs.writeJson(layout.root, "sync-state.json", nextSync);
 
     if (!localSaveRequestIsCurrent(request)) {
-      console.log("Stale local workspace save completed", { reason, saveTargetGeneration: request.saveTargetGeneration });
+      console.log("Stale local workspace save completed", { reason, localSaveTargetGeneration: request.localSaveTargetGeneration });
       return false;
     }
 
@@ -4935,14 +4931,12 @@ function enqueueNoteSave(noteId) {
   registerNoteSaveState(note);
   const state = noteSaveFoundation.getState(noteId);
   if (!state?.dirty) return waitForNoteSave(noteId);
-  if (state.status === "saving"
-    && (state.activeRevision === note.revision || state.pendingRevision === note.revision)) {
+  if (state.activeRevision === note.revision || state.pendingRevision === note.revision) {
     return waitForNoteSave(noteId);
   }
   const request = createSaveRequest({
     noteId,
     revision: note.revision,
-    saveTargetGeneration,
     snapshot: note
   });
   return noteSaveFoundation.enqueueSave(request).catch((error) => {
@@ -5038,12 +5032,7 @@ async function mutateNotesAtomically(noteIds, mutate, writeSnapshots = null, uiO
   if (clearScheduledSaves) changedIds.forEach(clearScheduledNoteSave);
   const requests = plans.map((plan) => {
     plan.snapshot.revision = noteSaveFoundation.markBatchChanged(batch, plan.noteId, plan.before.revision);
-    return createSaveRequest({
-      noteId: plan.noteId,
-      revision: plan.snapshot.revision,
-      saveTargetGeneration,
-      snapshot: plan.snapshot
-    });
+    return createSaveRequest({ noteId: plan.noteId, revision: plan.snapshot.revision, snapshot: plan.snapshot });
   });
 
   let results;
@@ -5063,9 +5052,8 @@ async function mutateNotesAtomically(noteIds, mutate, writeSnapshots = null, uiO
     throw error;
   }
 
-  const currentTargetResults = results.filter((result) => !result.staleSaveTarget);
   try {
-    applyNoteBatchSaveSuccess(currentTargetResults, liveNotesById);
+    applyNoteBatchSaveSuccess(results, liveNotesById);
     const resultById = new Map(results.map((result) => [result.request.noteId, result]));
     plans.forEach((plan) => {
       if (!applyCommittedChangesWhenDirty && resultById.get(plan.noteId)?.state.dirty) return;
@@ -5075,12 +5063,10 @@ async function mutateNotesAtomically(noteIds, mutate, writeSnapshots = null, uiO
   } finally {
     noteSaveFoundation.completeAtomicBatch(batch);
   }
-  if (currentTargetResults.length) {
-    try {
-      handleNoteBatchSaveSuccess(currentTargetResults, uiOptions);
-    } catch (error) {
-      console.error("Note batch save UI refresh failed", error);
-    }
+  try {
+    handleNoteBatchSaveSuccess(results, uiOptions);
+  } catch (error) {
+    console.error("Note batch save UI refresh failed", error);
   }
   return results;
 }

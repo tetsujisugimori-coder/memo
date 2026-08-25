@@ -9,11 +9,6 @@
     return Number.isSafeInteger(revision) && revision >= 0 ? revision : 0;
   }
 
-  function normalizeSaveTargetGeneration(value) {
-    const generation = Number(value);
-    return Number.isSafeInteger(generation) && generation >= 0 ? generation : 0;
-  }
-
   function cloneSnapshot(value) {
     if (typeof globalScope?.structuredClone === "function") return globalScope.structuredClone(value);
     if (Array.isArray(value)) return value.map(cloneSnapshot);
@@ -35,7 +30,7 @@
     return `save-${Date.now()}-${fallbackRequestId}`;
   }
 
-  function createSaveRequest({ noteId, resourceKey, resourceType, revision, saveTargetGeneration = 0, snapshot, saveRequestId = defaultRequestId(), clone = cloneSnapshot } = {}) {
+  function createSaveRequest({ noteId, resourceKey, resourceType, revision, snapshot, saveRequestId = defaultRequestId(), clone = cloneSnapshot } = {}) {
     const fixedResourceKey = resourceKey || noteId;
     if (!fixedResourceKey) throw new Error("noteId or resourceKey is required");
     if (!snapshot || typeof snapshot !== "object") throw new Error("snapshot is required");
@@ -51,7 +46,6 @@
       resourceKey: fixedResourceKey,
       resourceType: resourceType || (noteId ? "note" : "resource"),
       revision: normalizedRevision,
-      saveTargetGeneration: normalizeSaveTargetGeneration(saveTargetGeneration),
       snapshot: fixedSnapshot,
       saveRequestId: String(saveRequestId)
     });
@@ -59,34 +53,15 @@
 
   function createNoteSaveFoundation({
     writeSnapshot,
-    getCurrentSaveTargetGeneration = () => 0,
     onStateChange = () => {},
     onSaveSuccess = () => {},
     onSaveError = () => {},
     logError = (...args) => globalScope?.console?.error?.(...args)
   } = {}) {
     if (typeof writeSnapshot !== "function") throw new Error("writeSnapshot is required");
-    if (typeof getCurrentSaveTargetGeneration !== "function") throw new Error("getCurrentSaveTargetGeneration is required");
 
     function requestResourceKey(request) {
       return request?.resourceKey || request?.noteId || null;
-    }
-
-    function currentSaveTargetGeneration() {
-      return normalizeSaveTargetGeneration(getCurrentSaveTargetGeneration());
-    }
-
-    function requestSaveTargetGeneration(request) {
-      return normalizeSaveTargetGeneration(request?.saveTargetGeneration);
-    }
-
-    function requestTargetsCurrentSaveTarget(request) {
-      return requestSaveTargetGeneration(request) === currentSaveTargetGeneration();
-    }
-
-    function compareSaveRequestPriority(left, right) {
-      return requestSaveTargetGeneration(left) - requestSaveTargetGeneration(right)
-        || normalizeRevision(left?.revision) - normalizeRevision(right?.revision);
     }
 
     const entries = new Map();
@@ -107,27 +82,15 @@
     }
 
     function publicState(entry) {
-      const generation = currentSaveTargetGeneration();
-      const dirty = entry.currentRevision !== entry.lastSavedRevision
-        || entry.lastSavedSaveTargetGeneration !== generation;
-      const lastError = entry.lastErrorSaveTargetGeneration === generation ? entry.lastError : null;
-      const activeRequest = entry.inFlight?.request || entry.active?.request || null;
-      const activeTargetsCurrent = activeRequest
-        && requestSaveTargetGeneration(activeRequest) === generation;
-      const status = activeTargetsCurrent
-        ? "saving"
-        : lastError
-          ? "error"
-          : dirty ? "dirty" : "saved";
       return {
         noteId: entry.noteId,
         currentRevision: entry.currentRevision,
         lastSavedRevision: entry.lastSavedRevision,
-        dirty,
-        status,
+        dirty: entry.currentRevision !== entry.lastSavedRevision,
+        status: entry.status,
         activeRevision: entry.inFlight?.request.revision ?? entry.active?.request.revision ?? null,
         pendingRevision: entry.pending?.request.revision ?? null,
-        lastError
+        lastError: entry.lastError
       };
     }
 
@@ -149,15 +112,12 @@
 
     function createEntry(noteId, revision, saved) {
       const normalizedRevision = normalizeRevision(revision);
-      const generation = currentSaveTargetGeneration();
       const entry = {
         noteId,
         currentRevision: normalizedRevision,
         lastSavedRevision: saved ? normalizedRevision : Math.max(0, normalizedRevision - 1),
-        lastSavedSaveTargetGeneration: generation,
         status: saved ? "saved" : "dirty",
         lastError: null,
-        lastErrorSaveTargetGeneration: null,
         active: null,
         inFlight: null,
         pending: null,
@@ -179,9 +139,7 @@
       const normalizedRevision = normalizeRevision(revision);
       const existing = entries.get(noteId);
       if (existing) {
-        if (!existing.active && !existing.inFlight && !existing.pending
-          && existing.currentRevision === existing.lastSavedRevision
-          && existing.lastSavedSaveTargetGeneration === currentSaveTargetGeneration()) {
+        if (!existing.active && !existing.inFlight && !existing.pending && existing.currentRevision === existing.lastSavedRevision) {
           existing.currentRevision = normalizedRevision;
           existing.lastSavedRevision = normalizedRevision;
           existing.status = "saved";
@@ -253,16 +211,12 @@
           writeError = error;
         }
 
-        const saveTargetIsCurrent = requestTargetsCurrentSaveTarget(batch.request);
-        if (writeError && saveTargetIsCurrent) {
+        if (writeError) {
           entry.lastError = writeError;
-          entry.lastErrorSaveTargetGeneration = requestSaveTargetGeneration(batch.request);
           entry.status = "error";
-        } else if (!writeError && saveTargetIsCurrent) {
+        } else {
           entry.lastSavedRevision = Math.max(entry.lastSavedRevision, batch.request.revision);
-          entry.lastSavedSaveTargetGeneration = requestSaveTargetGeneration(batch.request);
           entry.lastError = null;
-          entry.lastErrorSaveTargetGeneration = null;
           entry.status = entry.currentRevision === entry.lastSavedRevision ? "saved" : "dirty";
         }
 
@@ -270,14 +224,10 @@
         entry.inFlight = null;
         const state = publicState(entry);
         if (writeError) settleBatch(batch, "reject", writeError);
-        else settleBatch(batch, "resolve", { request: batch.request, state, staleSaveTarget: !saveTargetIsCurrent });
+        else settleBatch(batch, "resolve", { request: batch.request, state });
         emit(entry);
-        if (writeError) {
-          const context = saveTargetIsCurrent ? undefined : Object.freeze({ staleSaveTarget: true });
-          safeNotify("error", onSaveError, [batch.request, writeError, state, context]);
-        } else if (saveTargetIsCurrent) {
-          safeNotify("success", onSaveSuccess, [batch.request, state]);
-        }
+        if (writeError) safeNotify("error", onSaveError, [batch.request, writeError, state]);
+        else safeNotify("success", onSaveSuccess, [batch.request, state]);
         if (writeError?.code === "NOTE_PERMANENTLY_DELETED") {
           finishPermanentDeletion([writeError.noteId || entry.noteId], writeError.tombstone);
         }
@@ -299,7 +249,6 @@
             entry.active = null;
             entry.inFlight = null;
             entry.lastError = error;
-            entry.lastErrorSaveTargetGeneration = currentSaveTargetGeneration();
             entry.status = "error";
             settleBatch(batch, "reject", error);
             emit(entry);
@@ -326,7 +275,6 @@
           entry.draining = false;
           entry.drainScheduled = false;
           entry.lastError = error;
-          entry.lastErrorSaveTargetGeneration = currentSaveTargetGeneration();
           entry.status = "error";
           emit(entry);
           finishIdle(entry);
@@ -357,21 +305,18 @@
       if (entry.atomicBatch) return Promise.reject(operationError(resourceKey, "NOTE_BATCH_ACTIVE", "note is part of an atomic batch"));
       entry.currentRevision = Math.max(entry.currentRevision, normalizeRevision(request.revision));
 
-      if (requestSaveTargetGeneration(request) === entry.lastSavedSaveTargetGeneration
-        && request.revision <= entry.lastSavedRevision) {
+      if (request.revision <= entry.lastSavedRevision) {
         return Promise.resolve({ request, state: publicState(entry), skipped: true });
       }
 
-      if (entry.inFlight
-        && requestSaveTargetGeneration(request) === requestSaveTargetGeneration(entry.inFlight.request)
-        && request.revision <= entry.inFlight.request.revision) {
+      if (entry.inFlight && request.revision <= entry.inFlight.request.revision) {
         return new Promise((resolve, reject) => entry.inFlight.waiters.push({ resolve, reject }));
       }
 
       const promise = new Promise((resolve, reject) => {
         if (!entry.pending) {
           entry.pending = { request, waiters: [{ resolve, reject }] };
-        } else if (compareSaveRequestPriority(request, entry.pending.request) >= 0) {
+        } else if (request.revision >= entry.pending.request.revision) {
           entry.pending.request = request;
           entry.pending.waiters.push({ resolve, reject });
         } else {
@@ -501,31 +446,23 @@
 
         const results = requests.map((request) => {
           const entry = entries.get(request.noteId);
-          const saveTargetIsCurrent = requestTargetsCurrentSaveTarget(request);
-          if (writeError && saveTargetIsCurrent) {
+          if (writeError) {
             entry.lastError = writeError;
-            entry.lastErrorSaveTargetGeneration = requestSaveTargetGeneration(request);
             entry.status = "error";
-          } else if (!writeError && saveTargetIsCurrent) {
+          } else {
             entry.lastSavedRevision = Math.max(entry.lastSavedRevision, request.revision);
-            entry.lastSavedSaveTargetGeneration = requestSaveTargetGeneration(request);
             entry.lastError = null;
-            entry.lastErrorSaveTargetGeneration = null;
             entry.status = entry.currentRevision === entry.lastSavedRevision ? "saved" : "dirty";
           }
           entry.active = null;
           const state = publicState(entry);
           emit(entry);
-          const requestContext = saveTargetIsCurrent
-            ? notificationContext
-            : Object.freeze({ ...notificationContext, staleSaveTarget: true });
-          if (writeError) safeNotify("error", onSaveError, [request, writeError, state, requestContext]);
-          else if (saveTargetIsCurrent) safeNotify("success", onSaveSuccess, [request, state, requestContext]);
+          if (writeError) safeNotify("error", onSaveError, [request, writeError, state, notificationContext]);
+          else safeNotify("success", onSaveSuccess, [request, state, notificationContext]);
           finishIdle(entry);
           return {
             request,
             state,
-            staleSaveTarget: !saveTargetIsCurrent,
             savedSnapshot: writtenSnapshots?.get(request.noteId) || request.snapshot
           };
         });
@@ -675,7 +612,7 @@
     };
   }
 
-  const api = { cloneSnapshot, createNoteSaveFoundation, createSaveRequest, normalizeRevision, normalizeSaveTargetGeneration };
+  const api = { cloneSnapshot, createNoteSaveFoundation, createSaveRequest, normalizeRevision };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   if (globalScope) globalScope.MemoNexusNoteSaveFoundation = api;
 })(typeof window !== "undefined" ? window : globalThis);
