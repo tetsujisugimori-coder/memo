@@ -238,7 +238,7 @@ function createHarness({ writer, ensureTags = async () => {}, initialNotes: prov
             return saved;
           })
           : Promise.resolve(snapshot))
-        : writer(snapshot),
+        : writer(snapshot, { preserveStoredCodexThread: true }),
       onStateChange: handleNoteSaveStateChange,
       onSaveSuccess: (request, state, notificationContext) => {
         if (!isCodexThreadSaveRequest(request)) handleNoteSaveSuccess(request, state, notificationContext);
@@ -539,6 +539,9 @@ test("実アプリ経路D: タグ登録待機中に切り替えてもAをdirty�
 
 test("通常note更新経路は共通mutationまたは排他入口へ接続されている", () => {
   const paths = [
+    ["function scheduleSave", "function captureUndoSnapshot", "enqueueNoteSave"],
+    ["async function updateCurrentNoteTags", "function setNoteTagStatus", "enqueueNoteSave"],
+    ["async function toggleCurrentNoteFlag", "function notifyPermanentDelete", "enqueueNoteSave"],
     ["async function resetFontSettings", "async function renderStorageStatus", "mutateNotesAtomically"],
     ["async function moveMemosToCollection", "async function moveMemosToTrash", "mutateNotesAtomically"],
     ["async function moveMemosToTrash", "async function restoreMemos", "mutateNotesAtomically"],
@@ -551,6 +554,46 @@ test("通常note更新経路は共通mutationまたは排他入口へ接続さ�
   paths.forEach(([start, end, expected]) => assert.match(sourceBetween(start, end), new RegExp(expected)));
   assert.match(sourceBetween("async function saveFontSettings", "async function resetFontSettings"), /enqueueNoteSave\(note\.id\)/);
   assert.match(sourceBetween("const saveExplanationCollapsedState", "function hydrateExplanationCards"), /enqueueNoteSave\(note\.id\)/);
+  assert.match(sourceBetween("function saveExplanationFromDialog", "function deleteExplanation"), /enqueueNoteSave\(note\.id\)/);
+  assert.match(sourceBetween("function deleteExplanation", "// ここから下は、画面操作と処理を結びつけるイベント設定です。"), /enqueueNoteSave\(note\.id\)/);
+  assert.match(sourceBetween("async function enqueueCodexThreadSave", "function applyCodexThreadSaveResult"), /codexThreadSaveCoordinator\.enqueue/);
+  assert.match(sourceBetween("const noteSaveFoundation", "let noteFlagAnimationToken"), /runExclusive\(\[snapshot\.noteId\]/);
+  assert.match(sourceBetween("const noteSaveFoundation", "let noteFlagAnimationToken"), /putCodexThreadSnapshot\(snapshot\)/);
+});
+
+test("本文保存中のCodex更新とタグ更新は同一メモで直列化され、各フィールドを維持する", async () => {
+  const firstWriteStarted = deferred();
+  const firstWriteGate = deferred();
+  let writeCount = 0;
+  const harness = createHarness({
+    writer: async () => {
+      writeCount += 1;
+      if (writeCount === 1) {
+        firstWriteStarted.resolve();
+        await firstWriteGate.promise;
+      }
+    }
+  });
+
+  harness.edit("A edited", "A body edited");
+  harness.scheduleSave();
+  harness.runNextTimer();
+  await firstWriteStarted.promise;
+
+  const codexChat = { threadId: "thread-a", title: "Thread A", lastUsedAt: 10 };
+  const codexSaving = harness.saveCodexThread("A", codexChat);
+  const tagSaving = harness.updateCurrentNoteTags(["tag-a"]);
+
+  firstWriteGate.resolve();
+  await Promise.all([codexSaving, tagSaving]);
+  await harness.foundation.whenIdle("A");
+
+  const stored = (await harness.storedNotes()).find((note) => note.id === "A");
+  assert.equal(stored.body, "A body edited");
+  assert.deepEqual(Array.from(stored.tags), ["tag-a"]);
+  assert.deepEqual(stored.codexChat, codexChat);
+  assert.equal(harness.foundation.getState("A").dirty, false);
+  assert.deepEqual(harness.liveNote("A").codexChat, codexChat);
 });
 
 test("ローカルmetadataのlive索引はbatchごとに1回だけ構築され、200件から400件で走査・参照が正確に2倍になる", async () => {
