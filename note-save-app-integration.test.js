@@ -538,6 +538,7 @@ test("実アプリ経路D: タグ登録待機中に切り替えてもAをdirty�
 });
 
 test("通常note更新経路は共通mutationまたは排他入口へ接続されている", () => {
+  const noteSaveFoundationSource = sourceBetween("const noteSaveFoundation", "const codexThreadSaveCoordinator");
   const paths = [
     ["function scheduleSave", "function captureUndoSnapshot", "enqueueNoteSave"],
     ["async function updateCurrentNoteTags", "function setNoteTagStatus", "enqueueNoteSave"],
@@ -557,8 +558,9 @@ test("通常note更新経路は共通mutationまたは排他入口へ接続さ�
   assert.match(sourceBetween("function saveExplanationFromDialog", "function deleteExplanation"), /enqueueNoteSave\(note\.id\)/);
   assert.match(sourceBetween("function deleteExplanation", "// ここから下は、画面操作と処理を結びつけるイベント設定です。"), /enqueueNoteSave\(note\.id\)/);
   assert.match(sourceBetween("async function enqueueCodexThreadSave", "function applyCodexThreadSaveResult"), /codexThreadSaveCoordinator\.enqueue/);
-  assert.match(sourceBetween("const noteSaveFoundation", "let noteFlagAnimationToken"), /runExclusive\(\[snapshot\.noteId\]/);
-  assert.match(sourceBetween("const noteSaveFoundation", "let noteFlagAnimationToken"), /putCodexThreadSnapshot\(snapshot\)/);
+  assert.match(noteSaveFoundationSource, /runExclusive\(\[snapshot\.noteId\]/);
+  assert.match(noteSaveFoundationSource, /putCodexThreadSnapshot\(snapshot\)/);
+  assert.match(noteSaveFoundationSource, /writeSnapshot\s*:\s*\(\s*snapshot\s*,\s*request\s*\)\s*=>\s*isCodexThreadSaveRequest\s*\(\s*request\s*\)\s*\?[\s\S]*?noteSaveFoundation\.runExclusive\s*\([\s\S]*?\)\s*:\s*putNote\s*\(\s*snapshot\s*,\s*\{\s*preserveStoredCodexThread\s*:\s*true\s*\}\s*\)\s*,/);
 });
 
 test("本文保存中のCodex更新とタグ更新は同一メモで直列化され、各フィールドを維持する", async () => {
