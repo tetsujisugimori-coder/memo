@@ -854,6 +854,7 @@ let saveStatusTime = null;
 let saveStatusNotice = "";
 let activeSaveStatusPopoverButton = null;
 let localDirectoryHandle = null;
+let saveTargetGeneration = 0;
 let localSaveSettings = { enabled: false };
 let localSaveState = createLocalSaveState();
 let localSyncState = normalizeSyncState();
@@ -864,6 +865,7 @@ const localConflictResolutions = new Map();
 let localPendingExclusions = new Set();
 const localSaveQueue = createLocalSaveQueue((reason) => performLocalWorkspaceSave(reason), 420);
 const noteSaveFoundation = createNoteSaveFoundation({
+  getCurrentSaveTargetGeneration: () => saveTargetGeneration,
   writeSnapshot: (snapshot, request) => isCodexThreadSaveRequest(request)
     ? noteSaveFoundation.runExclusive([snapshot.noteId], () => codexThreadSaveCoordinator.isCurrentRequest(request)
       ? putCodexThreadSnapshot(snapshot).then((result) => {
@@ -880,7 +882,10 @@ const noteSaveFoundation = createNoteSaveFoundation({
     ? handleCodexThreadSaveError(request, error, state)
     : handleNoteSaveError(request, error, state, context)
 });
-const codexThreadSaveCoordinator = createCodexThreadSaveCoordinator({ foundation: noteSaveFoundation, createSaveRequest });
+const codexThreadSaveCoordinator = createCodexThreadSaveCoordinator({
+  foundation: noteSaveFoundation,
+  createSaveRequest: (options) => createSaveRequest({ ...options, saveTargetGeneration })
+});
 let noteFlagAnimationToken = 0;
 let mermaidConfiguredTheme = null;
 let mermaidRenderGeneration = 0;
@@ -1926,6 +1931,38 @@ function localSupport() {
   return localFs.supportStatus(window);
 }
 
+async function localSaveTargetsMatch(left, right) {
+  if (left === right) return true;
+  if (!left || !right) return false;
+  if (typeof left.isSameEntry === "function") {
+    try { return await left.isSameEntry(right); }
+    catch (_) { return false; }
+  }
+  return false;
+}
+
+async function setLocalSaveTarget(handle) {
+  const changed = !await localSaveTargetsMatch(localDirectoryHandle, handle);
+  localDirectoryHandle = handle || null;
+  if (changed) saveTargetGeneration += 1;
+  return changed;
+}
+
+function createLocalSaveRequest(reason = "change") {
+  const directoryHandle = localDirectoryHandle;
+  return Object.freeze({
+    reason,
+    directoryHandle,
+    directoryName: directoryHandle?.name || "",
+    saveTargetGeneration
+  });
+}
+
+function localSaveRequestIsCurrent(request) {
+  return Boolean(request
+    && request.saveTargetGeneration === saveTargetGeneration);
+}
+
 async function persistLocalSaveSettings() {
   await localFs.putConfig(db, LOCAL_CONFIG_STORE_NAME, "settings", localSaveSettings);
 }
@@ -1933,7 +1970,7 @@ async function persistLocalSaveSettings() {
 async function initializeLocalFolderSaving() {
   const support = localSupport();
   localSaveSettings = { enabled: Boolean((await localFs.getConfig(db, LOCAL_CONFIG_STORE_NAME, "settings"))?.enabled) };
-  localDirectoryHandle = await localFs.getConfig(db, LOCAL_CONFIG_STORE_NAME, "directoryHandle");
+  await setLocalSaveTarget(await localFs.getConfig(db, LOCAL_CONFIG_STORE_NAME, "directoryHandle"));
   localPendingExclusions = new Set(await localFs.getConfig(db, LOCAL_CONFIG_STORE_NAME, "pendingExclusions") || []);
   const storedState = await localFs.getConfig(db, LOCAL_CONFIG_STORE_NAME, "state");
   localSaveState = createLocalSaveState({ ...storedState, directoryName: localDirectoryHandle?.name || storedState?.directoryName || "" });
@@ -2076,21 +2113,26 @@ function localSaveBoundaryChanged(plans, expectedRevisionsAfterMetadata, liveNot
 }
 
 async function performLocalWorkspaceSave(reason = "change") {
-  if (!localSaveSettings.enabled || !localDirectoryHandle) return false;
-  const permission = await localFs.queryPermission(localDirectoryHandle, "readwrite");
+  const request = createLocalSaveRequest(reason);
+  if (!localSaveSettings.enabled || !request.directoryHandle) return false;
+  const permission = await localFs.queryPermission(request.directoryHandle, "readwrite");
   if (permission !== "granted") {
-    setLocalSaveState("permission-required", { directoryName: localDirectoryHandle.name, errorCode: "permission", errorMessage: "保存先への読み書き権限を再接続してください。" });
+    if (localSaveRequestIsCurrent(request)) {
+      setLocalSaveState("permission-required", { directoryName: request.directoryName, errorCode: "permission", errorMessage: "保存先への読み書き権限を再接続してください。" });
+    }
     throw new Error("ローカル保存には再接続が必要です");
   }
 
-  setLocalSaveState("saving", { directoryName: localDirectoryHandle.name, errorCode: "", errorMessage: "", requiresUserAction: false });
+  if (localSaveRequestIsCurrent(request)) {
+    setLocalSaveState("saving", { directoryName: request.directoryName, errorCode: "", errorMessage: "", requiresUserAction: false });
+  }
   const savedAt = new Date().toISOString();
   const savedChangeVersion = localWorkspaceChangeVersion;
   const resolvedConflicts = new Map(localConflictResolutions);
   try {
     // getAllNotes() may overlay live drafts, so clone exactly once at the local-save boundary.
     const storedNotes = (await getAllNotes()).map(cloneNoteSnapshot);
-    const layout = await localFs.ensureWorkspaceLayout(localDirectoryHandle);
+    const layout = await localFs.ensureWorkspaceLayout(request.directoryHandle);
     const storedSync = await localFs.readJson(layout.root, "sync-state.json", normalizeSyncState());
     const nextSync = normalizeSyncState(storedSync);
     nextSync.excluded = [...new Set([...nextSync.excluded, ...localPendingExclusions])];
@@ -2167,7 +2209,13 @@ async function performLocalWorkspaceSave(reason = "change") {
     for (const file of backupFiles) await localFs.writeFile(layout.root, file.name, file.content);
     await localFs.writeJson(layout.root, "sync-state.json", nextSync);
 
+    if (!localSaveRequestIsCurrent(request)) {
+      console.log("Stale local workspace save completed", { reason, saveTargetGeneration: request.saveTargetGeneration });
+      return false;
+    }
+
     const metadataResult = await applyLocalSaveMetadata(plans);
+    if (!localSaveRequestIsCurrent(request)) return false;
     localSyncState = nextSync;
     localPendingExclusions.clear();
     await localFs.deleteConfig(db, LOCAL_CONFIG_STORE_NAME, "pendingExclusions");
@@ -2178,7 +2226,7 @@ async function performLocalWorkspaceSave(reason = "change") {
     const changedDuringSave = localWorkspaceChangeVersion !== savedChangeVersion
       || localSaveBoundaryChanged(plans, metadataResult.expectedRevisionsAfterMetadata, metadataResult.liveNotesById);
     setLocalSaveState(changedDuringSave ? "pending" : "saved", {
-      directoryName: localDirectoryHandle.name,
+      directoryName: request.directoryName,
       lastSuccessAt: savedAt,
       pendingChanges: changedDuringSave
     });
@@ -2186,8 +2234,10 @@ async function performLocalWorkspaceSave(reason = "change") {
     console.log("Local workspace saved", { reason, notes: plans.length, assets: assetPlans.size });
     return true;
   } catch (error) {
-    const failure = classifyLocalSaveFailure(error);
-    setLocalSaveState(failure.status, { directoryName: localDirectoryHandle.name, ...failure });
+    if (localSaveRequestIsCurrent(request)) {
+      const failure = classifyLocalSaveFailure(error);
+      setLocalSaveState(failure.status, { directoryName: request.directoryName, ...failure });
+    }
     throw error;
   }
 }
@@ -2202,7 +2252,7 @@ async function selectLocalSaveFolder() {
     const handle = await localFs.selectDirectory(window);
     const permission = await localFs.queryPermission(handle, "readwrite");
     if (permission !== "granted" && await localFs.requestPermission(handle, "readwrite") !== "granted") throw new Error("保存先への読み書き権限が許可されませんでした");
-    localDirectoryHandle = handle;
+    await setLocalSaveTarget(handle);
     localSyncState = normalizeSyncState();
     localScanCandidates = [];
     localConflictResolutions.clear();
@@ -2250,7 +2300,7 @@ async function reconnectLocalSaveFolder() {
 
 async function disconnectLocalSaveFolder() {
   localSaveSettings = { enabled: false };
-  localDirectoryHandle = null;
+  await setLocalSaveTarget(null);
   localSyncState = normalizeSyncState();
   localScanCandidates = [];
   localConflictResolutions.clear();
@@ -4885,12 +4935,14 @@ function enqueueNoteSave(noteId) {
   registerNoteSaveState(note);
   const state = noteSaveFoundation.getState(noteId);
   if (!state?.dirty) return waitForNoteSave(noteId);
-  if (state.activeRevision === note.revision || state.pendingRevision === note.revision) {
+  if (state.status === "saving"
+    && (state.activeRevision === note.revision || state.pendingRevision === note.revision)) {
     return waitForNoteSave(noteId);
   }
   const request = createSaveRequest({
     noteId,
     revision: note.revision,
+    saveTargetGeneration,
     snapshot: note
   });
   return noteSaveFoundation.enqueueSave(request).catch((error) => {
@@ -4986,7 +5038,12 @@ async function mutateNotesAtomically(noteIds, mutate, writeSnapshots = null, uiO
   if (clearScheduledSaves) changedIds.forEach(clearScheduledNoteSave);
   const requests = plans.map((plan) => {
     plan.snapshot.revision = noteSaveFoundation.markBatchChanged(batch, plan.noteId, plan.before.revision);
-    return createSaveRequest({ noteId: plan.noteId, revision: plan.snapshot.revision, snapshot: plan.snapshot });
+    return createSaveRequest({
+      noteId: plan.noteId,
+      revision: plan.snapshot.revision,
+      saveTargetGeneration,
+      snapshot: plan.snapshot
+    });
   });
 
   let results;
@@ -5006,8 +5063,9 @@ async function mutateNotesAtomically(noteIds, mutate, writeSnapshots = null, uiO
     throw error;
   }
 
+  const currentTargetResults = results.filter((result) => !result.staleSaveTarget);
   try {
-    applyNoteBatchSaveSuccess(results, liveNotesById);
+    applyNoteBatchSaveSuccess(currentTargetResults, liveNotesById);
     const resultById = new Map(results.map((result) => [result.request.noteId, result]));
     plans.forEach((plan) => {
       if (!applyCommittedChangesWhenDirty && resultById.get(plan.noteId)?.state.dirty) return;
@@ -5017,10 +5075,12 @@ async function mutateNotesAtomically(noteIds, mutate, writeSnapshots = null, uiO
   } finally {
     noteSaveFoundation.completeAtomicBatch(batch);
   }
-  try {
-    handleNoteBatchSaveSuccess(results, uiOptions);
-  } catch (error) {
-    console.error("Note batch save UI refresh failed", error);
+  if (currentTargetResults.length) {
+    try {
+      handleNoteBatchSaveSuccess(currentTargetResults, uiOptions);
+    } catch (error) {
+      console.error("Note batch save UI refresh failed", error);
+    }
   }
   return results;
 }

@@ -38,6 +38,7 @@ const saveCoreSource = sourceBetween("function currentNote()", "function handleN
 const saveHandlersSource = sourceBetween("function handleNoteSaveStateChange", "function popoutUrlForMemo");
 const scheduleSaveSource = sourceBetween("function scheduleSave(", "function captureUndoSnapshot");
 const updateTagsSource = sourceBetween("async function updateCurrentNoteTags", "function setNoteTagStatus");
+const localSaveTargetSource = sourceBetween("async function localSaveTargetsMatch", "async function persistLocalSaveSettings");
 const localSaveMetadataSource = sourceBetween("function buildLocalSaveLiveNoteIndex", "async function performLocalWorkspaceSave");
 const performLocalWorkspaceSaveSource = sourceBetween("async function performLocalWorkspaceSave", "async function selectLocalSaveFolder");
 const updateNotesTransactionSource = sourceBetween("function prepareNoteSnapshotsInTransaction", "function collectionExists");
@@ -217,6 +218,7 @@ function createHarness({ writer, ensureTags = async () => {}, initialNotes: prov
     let lastDiscovery = "";
     let localSaveSettings = { enabled: true };
     let localDirectoryHandle = localFs;
+    let saveTargetGeneration = 0;
     let localSaveState = createLocalSaveState({ status: "pending", pendingChanges: true });
     let localSyncState = normalizeSyncState();
     let localWorkspaceChangeVersion = 0;
@@ -231,6 +233,7 @@ function createHarness({ writer, ensureTags = async () => {}, initialNotes: prov
     let codexThreadSaveCoordinator;
     let codexBeforeWrite = null;
     const noteSaveFoundation = createNoteSaveFoundation({
+      getCurrentSaveTargetGeneration: () => saveTargetGeneration,
       writeSnapshot: (snapshot, request) => isCodexThreadSaveRequest(request)
         ? noteSaveFoundation.runExclusive([snapshot.noteId], () => codexThreadSaveCoordinator.isCurrentRequest(request)
           ? persistCodexThread(snapshot, codexBeforeWrite).then((saved) => {
@@ -248,7 +251,10 @@ function createHarness({ writer, ensureTags = async () => {}, initialNotes: prov
       },
       logError() {}
     });
-    codexThreadSaveCoordinator = createCodexThreadSaveCoordinator({ foundation: noteSaveFoundation, createSaveRequest });
+    codexThreadSaveCoordinator = createCodexThreadSaveCoordinator({
+      foundation: noteSaveFoundation,
+      createSaveRequest: (options) => createSaveRequest({ ...options, saveTargetGeneration })
+    });
     const noop = () => {};
     const setRelatedDrawerOpen = noop;
     const syncLegacyDirtyStateOriginal = noop;
@@ -308,6 +314,7 @@ function createHarness({ writer, ensureTags = async () => {}, initialNotes: prov
     ${saveHandlersSource}
     ${scheduleSaveSource}
     ${updateTagsSource}
+    ${localSaveTargetSource}
     ${localSaveMetadataSource}
     ${performLocalWorkspaceSaveSource}
 
@@ -323,6 +330,16 @@ function createHarness({ writer, ensureTags = async () => {}, initialNotes: prov
       localSaveBoundaryChanged,
       performLocalWorkspaceSave,
       enqueueNoteSave,
+      async switchLocalSaveTarget(handle) {
+        await setLocalSaveTarget(handle);
+        setLocalSaveState(handle ? "pending" : "unconfigured", {
+          directoryName: handle?.name || "",
+          pendingChanges: Boolean(handle),
+          errorCode: "",
+          errorMessage: "",
+          requiresUserAction: false
+        });
+      },
       async saveCodexThread(noteId, codexChat, beforeWrite = null) {
         const current = noteForSave(noteId);
         const threadId = codexChat?.threadId || current?.codexChat?.threadId;
@@ -537,6 +554,37 @@ test("実アプリ経路D: タグ登録待機中に切り替えてもAをdirty�
   assert.deepEqual(Array.from(harness.liveNote("A").tags), ["tag-a"]);
 });
 
+test("実アプリ共通保存入口は保存先変更後に同じrevisionを新generationで追従保存する", async () => {
+  const firstWriteStarted = deferred();
+  const releaseFirstWrite = deferred();
+  let writeCount = 0;
+  const harness = createHarness({
+    noteCount: 1,
+    writer: async () => {
+      writeCount += 1;
+      if (writeCount === 1) {
+        firstWriteStarted.resolve();
+        await releaseFirstWrite.promise;
+      }
+    }
+  });
+  harness.edit("A edited", "same revision across targets");
+  harness.scheduleSave();
+  harness.runNextTimer();
+  await firstWriteStarted.promise;
+
+  await harness.switchLocalSaveTarget({ name: "new-target" });
+  const currentTargetSave = harness.enqueueNoteSave("A");
+  releaseFirstWrite.resolve();
+  const result = await currentTargetSave;
+  await harness.foundation.whenIdle("A");
+
+  assert.equal(result.request.saveTargetGeneration, 1);
+  assert.equal(result.staleSaveTarget, false);
+  assert.equal(writeCount, 2);
+  assert.equal(harness.foundation.getState("A").dirty, false);
+});
+
 test("通常note更新経路は共通mutationまたは排他入口へ接続されている", () => {
   const noteSaveFoundationSource = sourceBetween("const noteSaveFoundation", "const codexThreadSaveCoordinator");
   const paths = [
@@ -648,6 +696,70 @@ test("実performLocalWorkspaceSaveは固定snapshotをMarkdown・manifest・sync
   assert.equal(state.localSaveState.pendingChanges, false);
   assert.equal(state.renderListCount, 1);
   assert.equal(state.invalidateTermRelationIndexCount, 0);
+});
+
+test("実performLocalWorkspaceSaveは保存中の保存先変更後に旧成功を現在stateとmetadataへ確定しない", async () => {
+  const writeStarted = deferred();
+  const releaseWrite = deferred();
+  let blocked = false;
+  let metadataWrites = 0;
+  const oldTarget = createMemoryLocalFs({
+    beforeWriteFile: async (path) => {
+      if (blocked || !path.startsWith("notes/")) return;
+      blocked = true;
+      writeStarted.resolve();
+      await releaseWrite.promise;
+    }
+  });
+  const harness = createHarness({
+    noteCount: 1,
+    localFsDriver: oldTarget,
+    writer: async (_value, options) => { if (options?.batch) metadataWrites += 1; }
+  });
+
+  const saving = harness.performLocalWorkspaceSave("old-target-success");
+  await writeStarted.promise;
+  await harness.switchLocalSaveTarget({ name: "new-target" });
+  releaseWrite.resolve();
+  assert.equal(await saving, false);
+
+  const state = harness.state();
+  assert.deepEqual(Array.from(state.localSaveStatusHistory), ["saving", "pending"]);
+  assert.equal(state.localSaveState.status, "pending");
+  assert.equal(state.localSaveState.lastSuccessAt, null);
+  assert.equal(metadataWrites, 0);
+  assert.equal((await harness.storedNotes())[0].localSavedAt, undefined);
+});
+
+test("実performLocalWorkspaceSaveは旧保存先の失敗をrejectするが新保存先を失敗stateにしない", async () => {
+  const writeStarted = deferred();
+  const releaseWrite = deferred();
+  const oldError = new Error("old target sync write failed");
+  let blocked = false;
+  const oldTarget = createMemoryLocalFs({
+    beforeWriteFile: async (path) => {
+      if (blocked || !path.startsWith("notes/")) return;
+      blocked = true;
+      writeStarted.resolve();
+      await releaseWrite.promise;
+    },
+    beforeWriteJson: async (path) => {
+      if (path === "sync-state.json") throw oldError;
+    }
+  });
+  const harness = createHarness({ noteCount: 1, localFsDriver: oldTarget });
+
+  const saving = harness.performLocalWorkspaceSave("old-target-failure");
+  await writeStarted.promise;
+  await harness.switchLocalSaveTarget({ name: "new-target" });
+  releaseWrite.resolve();
+  await assert.rejects(saving, (error) => error === oldError);
+
+  const state = harness.state();
+  assert.deepEqual(Array.from(state.localSaveStatusHistory), ["saving", "pending"]);
+  assert.equal(state.localSaveState.status, "pending");
+  assert.equal(state.localSaveState.errorMessage, "");
+  assert.equal((await harness.storedNotes())[0].localSavedAt, undefined);
 });
 
 test("実performLocalWorkspaceSaveのファイル待機中編集は固定snapshotへ混ぜずlive revisionとchange versionでpendingに戻す", async () => {

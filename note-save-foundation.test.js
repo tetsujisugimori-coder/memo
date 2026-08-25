@@ -14,14 +14,205 @@ function deferred() {
   return { promise, reject, resolve };
 }
 
-function request(noteId, revision, body) {
+function request(noteId, revision, body, saveTargetGeneration = 0) {
   return createSaveRequest({
     noteId,
     revision,
+    saveTargetGeneration,
     snapshot: { id: noteId, title: noteId, body, revision },
     saveRequestId: `${noteId}-${revision}`
   });
 }
+
+test("保存先変更なしでは要求作成時のgenerationを固定して通常どおり保存済みにする", async () => {
+  let generation = 1;
+  const successes = [];
+  const foundation = createNoteSaveFoundation({
+    getCurrentSaveTargetGeneration: () => generation,
+    writeSnapshot: async () => {},
+    onSaveSuccess: (saveRequest) => successes.push(saveRequest.saveTargetGeneration)
+  });
+  foundation.registerNote("A", 0);
+  foundation.markChanged("A", 0);
+  const saveRequest = request("A", 1, "generation 1", generation);
+  generation = 1;
+  const result = await foundation.enqueueSave(saveRequest);
+
+  assert.equal(saveRequest.saveTargetGeneration, 1);
+  assert.equal(Object.isFrozen(saveRequest), true);
+  assert.equal(result.staleSaveTarget, false);
+  assert.equal(foundation.getState("A").dirty, false);
+  assert.deepEqual(successes, [1]);
+});
+
+test("保存中に保存先generationが変わると旧成功ではdirtyを解除せず成功通知もしない", async () => {
+  const gate = deferred();
+  let generation = 1;
+  let successCount = 0;
+  const foundation = createNoteSaveFoundation({
+    getCurrentSaveTargetGeneration: () => generation,
+    writeSnapshot: async () => gate.promise,
+    onSaveSuccess: () => { successCount += 1; }
+  });
+  foundation.registerNote("A", 0);
+  foundation.markChanged("A", 0);
+  const saving = foundation.enqueueSave(request("A", 1, "old target", 1));
+  await Promise.resolve();
+
+  generation = 2;
+  gate.resolve();
+  const result = await saving;
+
+  assert.equal(result.staleSaveTarget, true);
+  assert.equal(foundation.getState("A").lastSavedRevision, 0);
+  assert.equal(foundation.getState("A").dirty, true);
+  assert.equal(foundation.getState("A").status, "dirty");
+  assert.equal(successCount, 0);
+});
+
+test("保存先変更後は同じrevisionでも新generationの保存だけを現在成功として確定する", async () => {
+  const firstGate = deferred();
+  let generation = 1;
+  const writes = [];
+  const foundation = createNoteSaveFoundation({
+    getCurrentSaveTargetGeneration: () => generation,
+    writeSnapshot: async (_snapshot, saveRequest) => {
+      writes.push(saveRequest.saveTargetGeneration);
+      if (saveRequest.saveTargetGeneration === 1) await firstGate.promise;
+    }
+  });
+  foundation.registerNote("A", 0);
+  foundation.markChanged("A", 0);
+  const oldSave = foundation.enqueueSave(request("A", 1, "same revision", 1));
+  await Promise.resolve();
+  generation = 2;
+  const newSave = foundation.enqueueSave(request("A", 1, "same revision", 2));
+  firstGate.resolve();
+  const [oldResult, newResult] = await Promise.all([oldSave, newSave]);
+
+  assert.equal(oldResult.staleSaveTarget, true);
+  assert.equal(newResult.staleSaveTarget, false);
+  assert.deepEqual(writes, [1, 2]);
+  assert.equal(foundation.getState("A").lastSavedRevision, 1);
+  assert.equal(foundation.getState("A").dirty, false);
+});
+
+test("revisionとsaveTargetGenerationは独立した保存済み判定軸として変化する", async () => {
+  let generation = 1;
+  const foundation = createNoteSaveFoundation({
+    getCurrentSaveTargetGeneration: () => generation,
+    writeSnapshot: async () => {}
+  });
+  foundation.registerNote("A", 0);
+
+  foundation.markChanged("A", 0);
+  await foundation.enqueueSave(request("A", 1, "revision only", 1));
+  assert.equal(foundation.getState("A").dirty, false);
+
+  generation = 2;
+  assert.equal(foundation.getState("A").dirty, true);
+  await foundation.enqueueSave(request("A", 1, "generation only", 2));
+  assert.equal(foundation.getState("A").dirty, false);
+
+  generation = 3;
+  foundation.markChanged("A", 1);
+  assert.equal(foundation.getState("A").dirty, true);
+  await foundation.enqueueSave(request("A", 2, "revision and generation", 3));
+  assert.equal(foundation.getState("A").dirty, false);
+});
+
+test("旧generationの保存失敗はrejectとエラー通知を維持しつつ現在保存先を失敗扱いにしない", async () => {
+  const gate = deferred();
+  const oldError = new Error("old target failed");
+  let generation = 1;
+  const errors = [];
+  const foundation = createNoteSaveFoundation({
+    getCurrentSaveTargetGeneration: () => generation,
+    writeSnapshot: async (_snapshot, saveRequest) => {
+      if (saveRequest.saveTargetGeneration === 1) {
+        await gate.promise;
+        throw oldError;
+      }
+    },
+    onSaveError: (saveRequest, error, state, context) => errors.push({ saveRequest, error, state, context })
+  });
+  foundation.registerNote("A", 0);
+  foundation.markChanged("A", 0);
+  const oldSave = foundation.enqueueSave(request("A", 1, "old target", 1));
+  await Promise.resolve();
+  generation = 2;
+  gate.resolve();
+  await assert.rejects(oldSave, (error) => error === oldError);
+
+  const staleState = foundation.getState("A");
+  assert.equal(staleState.status, "dirty");
+  assert.equal(staleState.lastError, null);
+  assert.equal(errors.length, 1);
+  assert.equal(errors[0].context.staleSaveTarget, true);
+
+  await foundation.enqueueSave(request("A", 1, "new target", 2));
+  assert.equal(foundation.getState("A").status, "saved");
+});
+
+test("同一保存先での通常連続保存は同じgenerationのまま各revisionを保存する", async () => {
+  const generation = 4;
+  const writes = [];
+  const foundation = createNoteSaveFoundation({
+    getCurrentSaveTargetGeneration: () => generation,
+    writeSnapshot: async (_snapshot, saveRequest) => writes.push([saveRequest.revision, saveRequest.saveTargetGeneration])
+  });
+  foundation.registerNote("A", 0);
+  foundation.markChanged("A", 0);
+  await foundation.enqueueSave(request("A", 1, "first", generation));
+  foundation.markChanged("A", 1);
+  await foundation.enqueueSave(request("A", 2, "second", generation));
+
+  assert.deepEqual(writes, [[1, 4], [2, 4]]);
+  assert.equal(foundation.getState("A").dirty, false);
+});
+
+test("atomic batchも旧generationの完了を確定せず新generationの保存を待つ", async () => {
+  const started = deferred();
+  const gate = deferred();
+  let generation = 1;
+  let successCount = 0;
+  const foundation = createNoteSaveFoundation({
+    getCurrentSaveTargetGeneration: () => generation,
+    writeSnapshot: async () => {},
+    onSaveSuccess: () => { successCount += 1; }
+  });
+  foundation.registerNote("A", 0);
+  foundation.registerNote("B", 0);
+  const batch = foundation.beginAtomicBatch(["A", "B"]);
+  const requests = ["A", "B"].map((noteId) => {
+    const revision = foundation.markBatchChanged(batch, noteId, 0);
+    return request(noteId, revision, `${noteId} old target`, 1);
+  });
+  const saving = foundation.enqueueBatchSave({
+    batch,
+    noteIds: ["A", "B"],
+    createRequests: () => requests,
+    writeSnapshots: async () => {
+      started.resolve();
+      await gate.promise;
+    }
+  });
+  await started.promise;
+  generation = 2;
+  gate.resolve();
+  const results = await saving;
+  foundation.completeAtomicBatch(batch);
+
+  assert.equal(results.every((result) => result.staleSaveTarget), true);
+  assert.equal(results.every((result) => result.state.dirty), true);
+  assert.equal(successCount, 0);
+  await Promise.all([
+    foundation.enqueueSave(request("A", 1, "A new target", 2)),
+    foundation.enqueueSave(request("B", 1, "B new target", 2))
+  ]);
+  assert.equal(foundation.getState("A").dirty, false);
+  assert.equal(foundation.getState("B").dirty, false);
+});
 
 test("保存中に再編集しても古いrevisionの完了ではdirtyを解除しない", async () => {
   const gate = deferred();
