@@ -31,8 +31,8 @@ test("全ローカルCSS・JavaScriptを0.5.0のキャッシュ識別子で読�
     assert.match(version, /^0\.5\.0-\d+$/, `${path}のキャッシュ識別子`);
   });
   assert.match(html, /note-tombstone\.js\?v=0\.5\.0-2/);
-  assert.match(html, /note-save-foundation\.js\?v=0\.5\.0-6/);
-  assert.match(html, /app\.js\?v=0\.5\.0-104/);
+  assert.match(html, /note-save-foundation\.js\?v=0\.5\.0-8/);
+  assert.match(html, /app\.js\?v=0\.5\.0-107/);
 });
 
 test("本体リリースと別管理の互換性バージョンを変更しない", () => {

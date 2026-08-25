@@ -2013,3 +2013,22 @@
 
 * ローカル保存後metadataのrevision照合・atomic batch計画・成功反映・完了境界で、メモごとに`noteForSave()`から`notes.find()`を繰り返していた経路を、batch開始時に`notes`を1回走査して`noteLiveDrafts`を優先反映する一時`Map`へ置き換えた。Mapは当該metadata batch内だけで共有し、Markdown・manifest・`sync-state.json`用の固定snapshotとは分離した。既存のrevision境界、メモ単位ロック、通常保存との直列化、transaction原子性、保存中再編集、tombstone拒否は維持した。配信識別子は`app.js?v=0.5.0-104`へ更新した。
 * 200件と400件の決定的な計数テストで、一時索引の構築が各1回、全件走査が200回／400回、参照が800回／1600回となり、メモ件数に比例することを確認した。本番`performLocalWorkspaceSave()`を模擬File System Access APIと実`getAllNotes()`で実行し、成功、ファイル書込み中再編集、metadata transaction失敗、tombstone化を検証した。統合テスト22件を20回反復して全440件、`node --test`は全687件が成功した。変更JavaScriptの`node --check`と`git diff --check`も成功した。実ブラウザーのネイティブフォルダ選択と実フォルダへの書込みは未確認である。
+
+## 2026-08-25 Codexスレッド保存の共通基盤接続
+
+* Codexチャットの`saveForNote()`が既存メモ全体を`putNote()`へ直接渡していたため、通常保存のrevision・固定snapshot・メモ単位ロックとは独立していた。既存の`noteSaveFoundation`を複製せず、従来の`noteId`契約を保ったまま名前空間付き`resourceKey`を受けられるようにし、Codexスレッドは`codex-thread:<threadId>`を保存単位として同じ`markChanged()`・`enqueueSave()`・追従保存へ接続した。
+* Codex保存要求は作成時の`noteId`・`threadId`・revision・`codexChat`をdeep cloneしてfreezeする。writerは要求後に現在のスレッドやUIを読み直さず、実メモIDの既存ロックを取得してから、`notes`と`note-tombstones`の同一transaction内でDB上の最新メモへ`codexChat`だけを追加または除去する。これにより通常メモの本文・タグ等を古いCodex側snapshotで戻さず、同一threadの保存順、別thread切替、永久削除との競合を調停する。失敗時はdirtyと最新要求を保持して再試行でき、同じメモが新threadへ移った後は失敗した旧thread要求を再投入しない。
+* 制御Promiseを使い、同一thread保存中の更新と古い完了、A保存中のB切替、異なるthreadのsnapshot分離、要求後の元オブジェクト変更、失敗後の最新revision再試行、旧thread再試行抑止、通常メモwriterとのロック順、既存形式の読込みを追加検証した。Codex対象24件、通常保存基盤41件、全695件が成功した。CI相当の全JavaScript構文検査と`git diff --check`も成功した。配信識別子は`note-save-foundation.js?v=0.5.0-7`、`codex-chat-utils.js?v=0.5.0-5`、`app.js?v=0.5.0-105`、`codex-chat.js?v=0.5.0-6`へ更新した。通常メモ、通常AI、ローカル保存、ZIP、添付、import/export、Bridge通信、DB schema、UIは変更していない。
+
+## 2026-08-25 Codexスレッド保存の世代判定と未確定値分離
+
+* 同じメモでthread AのA1が保存中、A2が共通基盤のpending、thread Bが別resource queueへ入った場合、`latestRequests`からAを除くだけではA2が残り、実メモIDロックの順序どおり`A1 → B → A2`と書いて旧threadを復活できた。coordinatorへメモ単位のthread世代を追加し、固定snapshotへ世代を含めた。Codex writerは実メモIDロックを取得した内側で、IndexedDB部分更新を呼ぶ直前にresource keyと世代を再確認する。staleなA2はwriterを呼ばずno-opで完了するため、共通基盤のrevision・`lastSavedRevision`・dirty・`whenIdle()`を解放しつつBを最終値にする。旧threadの再試行は引き続き`null`になる。
+* Codex要求を`notes`と`noteLiveDrafts`へ保存前に反映していたため、Codex部分更新が失敗した後の通常本文保存が未確定`codexChat`を全メモsnapshotへ取り込み、別経路から確定できた。未確定値はcoordinatorのdeep clone・freeze済み最新要求だけに保持し、Codex transactionが実際に成功した要求を`WeakSet`で識別してからメモリへ反映する。成功済みの旧要求と新しい未確定要求も分離し、新要求の失敗で直前のDB確定値を失わない。明示再試行成功時も同じ反映処理でDB・`notes`・live draftを一致させる。
+* 通常メモwriterは、保存実行時のIndexedDB最新レコードから確定済み`codexChat`だけを引き継ぎ、本文・題名・タグ等は従来の固定snapshotを保存する。通常保存が先なら後続Codex部分更新が本文を保持し、Codex保存が先なら後続の古い通常snapshotが最新threadを戻さない。通常保存成功時のメモリ反映も現在の確定済みCodex値を維持する。通常メモのrevision・キュー・tombstone、atomic batch、Codexの`codex-thread:<threadId>`、DB schema、UI、Bridge、通常AI、ローカル保存、ZIP、添付、import/exportは変更していない。
+* 制御Promiseを使い、同一メモA1/A2/B、stale解除、writer不実行、旧retry、追加・解除失敗後の通常保存、成功済み旧要求と失敗する新要求、明示再試行後のDB・`notes`・live draft一致、通常保存／Codex保存の両順序、異なるメモの独立性を検証した。Codex utility 29件を24回反復して全696件、関連118件、`npm test`全705件が成功した。全126 JavaScriptの`node --check`と`git diff --check`も成功した。配信識別子は`codex-chat-utils.js?v=0.5.0-6`、`app.js?v=0.5.0-106`へ更新した。
+
+## 2026-08-25 atomic batchとCodexスレッド保存の確定値統合
+
+* atomic batchは実メモIDロック取得前に全メモの固定snapshotを作り、従来の`updateNotesTransaction()`と通常mutation用custom writerはそのsnapshotをそのまま`store.put()`していた。このため、先行Codex transactionが最新`codexChat`を確定しても、後続batchが古い値へ巻き戻していた。通常batchはロック取得後、tombstone guardと同じreadwrite transaction内で対象全件を読み、`mergeStoredCodexThread()`により`codexChat`だけをDB確定値へ合わせてから一括保存するようにした。DBに`codexChat`がなければ固定snapshotの旧値を削除し、本文・題名・タグ・フラグ・collection・metadataとtransaction原子性は維持する。
+* 保護対象は既定の通常atomic mutation、ローカル保存metadata、Web Clip更新、コレクション削除に限定した。可搬バックアップは現行Markdown front matterで`codexChat`を出力・読込しておらず、入力メモ全体で置換する既存custom writerをそのまま使うため、復元・importの置換契約とバックアップ形式は変更していない。batch writerが返した実保存snapshotを`enqueueBatchSave()`の`savedSnapshot`へ対応付け、`applyNoteBatchSaveSuccess()`は要求時の古いsnapshotではなくその確定結果を`notes`とbatch用live索引へ反映する。保存中の追加編集とlive draftには従来どおりbatch固有の変更だけを合流する。
+* 制御PromiseでCodex先行、atomic batch先行、スレッド解除、transaction失敗、複数メモと対象外メモの独立性、意図的な全体置換を決定的に再現した。本番`updateNotesTransaction()`抽出テストを含む保存統合30件、保存基盤20件、Codex utility 29件、関連回帰227件が成功し、3ファイル79件を20回反復して全1580件成功した。`npm test`は全714件、全126 JavaScriptの`node --check`、`git diff --check`が成功した。配信識別子は`note-save-foundation.js?v=0.5.0-8`、`app.js?v=0.5.0-107`へ更新した。実ブラウザーでCodex保存とIndexedDB batchを同時実行する手動確認、Web Clip実更新、ネイティブフォルダでのローカルmetadata更新、実ZIP復元は未実施で、transactionモデルと関連回帰テストで補完した。

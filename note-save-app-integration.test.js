@@ -5,6 +5,7 @@ const fs = require("node:fs");
 const test = require("node:test");
 const vm = require("node:vm");
 const { createNoteSaveFoundation, createSaveRequest, normalizeRevision } = require("./note-save-foundation.js");
+const { createCodexThreadSaveCoordinator, isCodexThreadSaveRequest, mergeStoredCodexThread } = require("./codex-chat-utils.js");
 const { buildPortableBackupFiles } = require("./backup-bundle-utils.js");
 const { applyLocalSaveSuccess, classifyLocalSaveFailure, createLocalSaveState, transitionLocalSaveState } = require("./local-save-state.js");
 const { serializeLocalNote } = require("./local-markdown.js");
@@ -39,6 +40,7 @@ const scheduleSaveSource = sourceBetween("function scheduleSave(", "function cap
 const updateTagsSource = sourceBetween("async function updateCurrentNoteTags", "function setNoteTagStatus");
 const localSaveMetadataSource = sourceBetween("function buildLocalSaveLiveNoteIndex", "async function performLocalWorkspaceSave");
 const performLocalWorkspaceSaveSource = sourceBetween("async function performLocalWorkspaceSave", "async function selectLocalSaveFolder");
+const updateNotesTransactionSource = sourceBetween("function prepareNoteSnapshotsInTransaction", "function collectionExists");
 
 function deferred() {
   let resolve;
@@ -50,19 +52,92 @@ function deferred() {
   return { promise, reject, resolve };
 }
 
-function createHarness({ writer, ensureTags = async () => {}, localFsDriver = null, noteCount = 2 } = {}) {
+function createProductionBatchWriterHarness(initialNotes) {
+  const stored = new Map(initialNotes.map((note) => [note.id, structuredClone(note)]));
+  const notifications = [];
+  let transactionCount = 0;
+  const db = {
+    transaction() {
+      transactionCount += 1;
+      let pendingReads = 0;
+      let completionQueued = false;
+      const transaction = {
+        error: null,
+        objectStore() { return store; },
+        oncomplete: null,
+        onerror: null,
+        onabort: null
+      };
+      const finishIfReady = () => {
+        if (pendingReads || completionQueued) return;
+        completionQueued = true;
+        queueMicrotask(() => transaction.oncomplete?.());
+      };
+      const store = {
+        get(id) {
+          pendingReads += 1;
+          const request = { result: undefined, onsuccess: null };
+          queueMicrotask(() => {
+            request.result = stored.has(id) ? structuredClone(stored.get(id)) : undefined;
+            request.onsuccess?.();
+            pendingReads -= 1;
+            finishIfReady();
+          });
+          return request;
+        },
+        put(note) { stored.set(note.id, structuredClone(note)); }
+      };
+      queueMicrotask(finishIfReady);
+      return transaction;
+    }
+  };
+  const context = vm.createContext({
+    db,
+    mergeStoredCodexThread,
+    notifyMemoChanged: (note) => notifications.push(structuredClone(note)),
+    markLocalWorkspacePending() {},
+    guardNoteWrites: (_transaction, _noteIds, write) => write(),
+    noteTransactionError: (transaction) => transaction.error || new Error("transaction failed"),
+    STORE_NAME: "notes",
+    TOMBSTONE_STORE_NAME: "tombstones"
+  });
+  vm.runInContext(`${updateNotesTransactionSource}\nglobalThis.updateNotesTransactionForHarness = updateNotesTransaction;`, context);
+  return {
+    notifications,
+    stored,
+    transactionCount: () => transactionCount,
+    updateNotesTransaction: context.updateNotesTransactionForHarness
+  };
+}
+
+function createHarness({ writer, ensureTags = async () => {}, initialNotes: providedNotes = null, localFsDriver = null, noteCount = 2 } = {}) {
   const timers = new Map();
   let timerSequence = 0;
-  const initialNotes = Array.from({ length: noteCount }, (_, index) => {
+  const initialNotes = providedNotes || Array.from({ length: noteCount }, (_, index) => {
     const id = index === 0 ? "A" : index === 1 ? "B" : `N${String(index + 1).padStart(3, "0")}`;
     return { id, title: id, body: `${id}0`, revision: 0, tags: [], collectionId: "old", updatedAt: 1 };
   });
   const storedNotesById = new Map(initialNotes.map((note) => [note.id, structuredClone(note)]));
   const externalWriter = writer || (async () => {});
-  const persistingWriter = async (value, options) => {
-    await externalWriter(value, options);
+  const persistingWriter = async (value, options = {}) => {
     const items = Array.isArray(value) ? value : [value];
-    items.forEach((note) => storedNotesById.set(note.id, structuredClone(note)));
+    const savedItems = items.map((note) => options.preserveStoredCodexThread
+      ? mergeStoredCodexThread(note, storedNotesById.get(note.id))
+      : note);
+    const savedValue = Array.isArray(value) ? savedItems : savedItems[0];
+    await externalWriter(savedValue, options);
+    savedItems.forEach((note) => storedNotesById.set(note.id, structuredClone(note)));
+    return Array.isArray(value) ? savedItems.map((note) => structuredClone(note)) : structuredClone(savedItems[0]);
+  };
+  const persistCodexThread = async (snapshot, beforeWrite) => {
+    if (beforeWrite) await beforeWrite();
+    const stored = storedNotesById.get(snapshot.noteId);
+    if (!stored || stored.deletedAt) throw new Error("Codex thread note unavailable");
+    const saved = structuredClone(stored);
+    if (snapshot.codexChat) saved.codexChat = structuredClone(snapshot.codexChat);
+    else delete saved.codexChat;
+    storedNotesById.set(saved.id, saved);
+    return structuredClone(saved);
   };
   const defaultLocalFsDriver = {
     name: "mock-local-folder",
@@ -78,7 +153,10 @@ function createHarness({ writer, ensureTags = async () => {}, localFsDriver = nu
     console: { error() {}, log() {} },
     createNoteSaveFoundation,
     createSaveRequest,
+    createCodexThreadSaveCoordinator,
+    isCodexThreadSaveRequest,
     normalizeNoteRevision: normalizeRevision,
+    mergeStoredCodexThread,
     applyLocalSaveSuccess,
     attachmentExtension,
     buildManifest,
@@ -100,6 +178,7 @@ function createHarness({ writer, ensureTags = async () => {}, localFsDriver = nu
     initialNotes,
     crypto: { randomUUID: () => `request-${Math.random()}` },
     writer: persistingWriter,
+    persistCodexThread,
     storedNotesForHarness: async () => [...storedNotesById.values()].map((note) => structuredClone(note)),
     localFs: localFsDriver || defaultLocalFsDriver,
     ensureTags,
@@ -125,8 +204,8 @@ function createHarness({ writer, ensureTags = async () => {}, localFsDriver = nu
     let registeredTags = ["tag-a", "tag-b"];
     const noteLiveDrafts = new Map();
     const noteSaveBeforeLinkCounts = new Map();
-    const titleInput = { value: "A" };
-    const editor = { value: "A0", focus() {} };
+    const titleInput = { value: initialNotes[0]?.title || "A" };
+    const editor = { value: initialNotes[0]?.body || "A0", focus() {} };
     const noteTagInput = { value: "" };
     const tableAxisSelections = { clear() {} };
     let pendingTableAxisDeletion = null;
@@ -149,13 +228,27 @@ function createHarness({ writer, ensureTags = async () => {}, localFsDriver = nu
     const APP_VERSION = "0.5.0";
     const window = { MemoNexusCodexChat: null };
     const document = { title: "" };
+    let codexThreadSaveCoordinator;
+    let codexBeforeWrite = null;
     const noteSaveFoundation = createNoteSaveFoundation({
-      writeSnapshot: writer,
+      writeSnapshot: (snapshot, request) => isCodexThreadSaveRequest(request)
+        ? noteSaveFoundation.runExclusive([snapshot.noteId], () => codexThreadSaveCoordinator.isCurrentRequest(request)
+          ? persistCodexThread(snapshot, codexBeforeWrite).then((saved) => {
+            codexThreadSaveCoordinator.markPersisted(request);
+            return saved;
+          })
+          : Promise.resolve(snapshot))
+        : writer(snapshot),
       onStateChange: handleNoteSaveStateChange,
-      onSaveSuccess: handleNoteSaveSuccess,
-      onSaveError: handleNoteSaveError,
+      onSaveSuccess: (request, state, notificationContext) => {
+        if (!isCodexThreadSaveRequest(request)) handleNoteSaveSuccess(request, state, notificationContext);
+      },
+      onSaveError: (request, error, state, notificationContext) => {
+        if (!isCodexThreadSaveRequest(request)) handleNoteSaveError(request, error, state, notificationContext);
+      },
       logError() {}
     });
+    codexThreadSaveCoordinator = createCodexThreadSaveCoordinator({ foundation: noteSaveFoundation, createSaveRequest });
     const noop = () => {};
     const setRelatedDrawerOpen = noop;
     const syncLegacyDirtyStateOriginal = noop;
@@ -230,6 +323,26 @@ function createHarness({ writer, ensureTags = async () => {}, localFsDriver = nu
       localSaveBoundaryChanged,
       performLocalWorkspaceSave,
       enqueueNoteSave,
+      async saveCodexThread(noteId, codexChat, beforeWrite = null) {
+        const current = noteForSave(noteId);
+        const threadId = codexChat?.threadId || current?.codexChat?.threadId;
+        codexBeforeWrite = beforeWrite;
+        try {
+          const result = await codexThreadSaveCoordinator.enqueue({ noteId, threadId, codexChat });
+          if (codexThreadSaveCoordinator.wasPersisted(result.request)) {
+            const targets = new Set([notes.find((note) => note.id === noteId), noteLiveDrafts.get(noteId)].filter(Boolean));
+            targets.forEach((target) => {
+              if (codexChat) target.codexChat = structuredClone(codexChat);
+              else delete target.codexChat;
+            });
+          }
+          return result;
+        } finally {
+          codexBeforeWrite = null;
+        }
+      },
+      codexState(threadId) { return codexThreadSaveCoordinator.getState(threadId); },
+      writeFullReplacement(items) { return writer(items, { batch: true, preserveStoredCodexThread: false }); },
       runNextTimer() {
         const entry = timersForHarness().entries().next().value;
         if (!entry) return false;
@@ -254,12 +367,21 @@ function createHarness({ writer, ensureTags = async () => {}, localFsDriver = nu
           ,localSaveStatusHistory: [...localSaveStatusHistory]
           ,localWorkspaceChangeVersion
           ,documentTitle: document.title
+          ,drafts: [...noteLiveDrafts.values()].map((note) => structuredClone(note))
         };
       },
       bumpLocalWorkspaceChangeVersion() { localWorkspaceChangeVersion += 1; },
       storedNotes: () => storedNotesForHarness(),
       edit(title, body) { titleInput.value = title; editor.value = body; },
       setCurrentId(id) { currentId = id; },
+      markDraftDirty(id) {
+        const draft = structuredClone(noteForSave(id));
+        draft.revision = noteSaveFoundation.markChanged(id, draft.revision);
+        noteLiveDrafts.set(id, draft);
+        const index = notes.findIndex((note) => note.id === id);
+        if (index === -1) notes.unshift(draft); else notes[index] = draft;
+        return draft;
+      },
       noteIds() { return notes.map((note) => note.id); },
       liveNote(id) { return noteForSave(id); }
     };
@@ -1016,4 +1138,207 @@ test("本番handleNoteSaveSuccessは背景Aのstale完了で表示中BとAのliv
   assert.deepEqual(Array.from(harness.liveNote("B").tags), []);
   assert.equal(harness.state().renderAllCount, 0);
   assert.equal(harness.state().renderListCount > 0, true);
+});
+
+function codexAtomicInitialNotes(count = 2) {
+  return Array.from({ length: count }, (_, index) => {
+    const id = index === 0 ? "A" : index === 1 ? "B" : "C";
+    return {
+      id,
+      title: id,
+      body: index === 0 ? "本文0" : `${id}0`,
+      revision: 0,
+      tags: [],
+      collectionId: "old",
+      isFlagged: false,
+      updatedAt: 1,
+      ...(index === 0 ? { codexChat: { threadId: "thread-a", lastUsedAt: "2026-08-25T00:00:00.000Z", title: "A" } } : {})
+    };
+  });
+}
+
+const threadB = Object.freeze({ threadId: "thread-b", lastUsedAt: "2026-08-25T00:01:00.000Z", title: "B" });
+
+test("本番updateNotesTransactionは同一transaction内で全件の確定Codex値だけをmergeして実保存snapshotを返す", async () => {
+  const production = createProductionBatchWriterHarness([
+    { id: "A", body: "DB本文A", revision: 0, codexChat: threadB },
+    { id: "B", body: "DB本文B", revision: 0 }
+  ]);
+  const snapshots = [
+    { id: "A", body: "batch本文A", revision: 1, codexChat: { threadId: "thread-a" }, isFlagged: true },
+    { id: "B", body: "batch本文B", revision: 1, codexChat: { threadId: "thread-old" }, isFlagged: true }
+  ];
+  const saved = await production.updateNotesTransaction(snapshots, { preserveStoredCodexThread: true });
+
+  assert.equal(production.transactionCount(), 1);
+  assert.equal(production.stored.get("A").body, "batch本文A");
+  assert.equal(production.stored.get("A").isFlagged, true);
+  assert.equal(production.stored.get("A").codexChat.threadId, "thread-b");
+  assert.equal(production.stored.get("B").body, "batch本文B");
+  assert.equal(Object.hasOwn(production.stored.get("B"), "codexChat"), false);
+  assert.equal(saved[0].codexChat.threadId, "thread-b");
+  assert.equal(Object.hasOwn(saved[1], "codexChat"), false);
+  assert.equal(snapshots[0].codexChat.threadId, "thread-a");
+  assert.equal(snapshots[1].codexChat.threadId, "thread-old");
+  assert.equal(production.notifications[0].codexChat.threadId, "thread-b");
+});
+
+test("通常custom writerだけがCodex保護helperを明示し、バックアップ全体置換は従来writerを維持する", () => {
+  const localMetadataWriter = sourceBetween("async function applyLocalSaveMetadata", "function localSaveBoundaryChanged");
+  const webClipWriter = sourceBetween("const writeWebClipTransaction", "return noteForSave(memoId)");
+  const collectionDeletionWriter = sourceBetween("const writeDeletionTransaction", "if (affected.length)");
+  const backupWriter = sourceBetween("async function applyPortableBackupImport", "async function importPastedItNewsJson");
+
+  assert.match(localMetadataWriter, /preserveStoredCodexThread: true/);
+  assert.match(webClipWriter, /prepareNoteSnapshotsInTransaction[\s\S]*preserveStoredCodexThread: true/);
+  assert.match(collectionDeletionWriter, /prepareNoteSnapshotsInTransaction[\s\S]*preserveStoredCodexThread: true/);
+  assert.doesNotMatch(backupWriter, /preserveStoredCodexThread: true/);
+});
+
+test("Codex先行: ロック待ちatomic batchはtransaction内のthread-bを維持してDB・メモリ・結果へ反映する", async () => {
+  const codexStarted = deferred();
+  const releaseCodex = deferred();
+  const harness = createHarness({ initialNotes: codexAtomicInitialNotes() });
+  const codexSave = harness.saveCodexThread("A", threadB, async () => {
+    codexStarted.resolve();
+    await releaseCodex.promise;
+  });
+  await codexStarted.promise;
+
+  const batchSave = harness.mutateNotesAtomically(["A"], (note) => { note.isFlagged = true; });
+  releaseCodex.resolve();
+  const [, results] = await Promise.all([codexSave, batchSave]);
+  const stored = (await harness.storedNotes()).find((note) => note.id === "A");
+  const memory = harness.liveNote("A");
+
+  assert.equal(results[0].request.snapshot.codexChat.threadId, "thread-a");
+  assert.equal(results[0].savedSnapshot.codexChat.threadId, "thread-b");
+  assert.equal(stored.body, "本文0");
+  assert.equal(stored.isFlagged, true);
+  assert.equal(stored.codexChat.threadId, "thread-b");
+  assert.equal(memory.body, "本文0");
+  assert.equal(memory.isFlagged, true);
+  assert.equal(memory.codexChat.threadId, "thread-b");
+});
+
+test("atomic batch先行: batch完了後のCodex保存でフラグとthread-bをともに維持する", async () => {
+  const batchStarted = deferred();
+  const releaseBatch = deferred();
+  const harness = createHarness({
+    initialNotes: codexAtomicInitialNotes(),
+    writer: async (_value, options) => {
+      if (!options?.batch) return;
+      batchStarted.resolve();
+      await releaseBatch.promise;
+    }
+  });
+  const batchSave = harness.mutateNotesAtomically(["A"], (note) => { note.isFlagged = true; });
+  await batchStarted.promise;
+  const codexSave = harness.saveCodexThread("A", threadB);
+  releaseBatch.resolve();
+  await Promise.all([batchSave, codexSave]);
+
+  const stored = (await harness.storedNotes()).find((note) => note.id === "A");
+  assert.equal(stored.isFlagged, true);
+  assert.equal(stored.codexChat.threadId, "thread-b");
+  assert.equal(harness.liveNote("A").isFlagged, true);
+  assert.equal(harness.liveNote("A").codexChat.threadId, "thread-b");
+});
+
+test("Codex解除先行: 古いthread-a入りbatchから解除済みthreadを復活させない", async () => {
+  const codexStarted = deferred();
+  const releaseCodex = deferred();
+  const harness = createHarness({ initialNotes: codexAtomicInitialNotes() });
+  const codexSave = harness.saveCodexThread("A", null, async () => {
+    codexStarted.resolve();
+    await releaseCodex.promise;
+  });
+  await codexStarted.promise;
+  const batchSave = harness.mutateNotesAtomically(["A"], (note) => { note.isFlagged = true; });
+  releaseCodex.resolve();
+  const [, results] = await Promise.all([codexSave, batchSave]);
+
+  const stored = (await harness.storedNotes()).find((note) => note.id === "A");
+  assert.equal(stored.isFlagged, true);
+  assert.equal(Object.hasOwn(stored, "codexChat"), false);
+  assert.equal(Object.hasOwn(harness.liveNote("A"), "codexChat"), false);
+  assert.equal(Object.hasOwn(results[0].savedSnapshot, "codexChat"), false);
+});
+
+test("batch失敗: merge後のtransaction abortは部分更新せずdraft・revision・idle・Codex状態を維持する", async () => {
+  const codexStarted = deferred();
+  const releaseCodex = deferred();
+  const batchError = new Error("atomic transaction aborted after Codex merge");
+  const harness = createHarness({
+    initialNotes: codexAtomicInitialNotes(),
+    writer: async (_value, options) => { if (options?.batch) throw batchError; }
+  });
+  const codexSave = harness.saveCodexThread("A", threadB, async () => {
+    codexStarted.resolve();
+    await releaseCodex.promise;
+  });
+  await codexStarted.promise;
+  const batchSave = harness.mutateNotesAtomically(["A"], (note) => { note.isFlagged = true; });
+  harness.edit("A edited", "失われない本文");
+  harness.scheduleSave();
+  releaseCodex.resolve();
+  await codexSave;
+  const coordinatorBeforeFailure = structuredClone(harness.codexState("thread-b"));
+  await assert.rejects(batchSave, (error) => error === batchError);
+  const idleState = await harness.foundation.whenIdle("A");
+  const stored = (await harness.storedNotes()).find((note) => note.id === "A");
+
+  assert.equal(stored.body, "本文0");
+  assert.equal(stored.isFlagged, false);
+  assert.equal(stored.codexChat.threadId, "thread-b");
+  assert.equal(harness.liveNote("A").body, "失われない本文");
+  assert.equal(harness.liveNote("A").isFlagged, false);
+  assert.equal(harness.liveNote("A").codexChat.threadId, "thread-b");
+  assert.equal(idleState.currentRevision, harness.liveNote("A").revision);
+  assert.equal(idleState.lastSavedRevision, 0);
+  assert.equal(idleState.dirty, true);
+  assert.deepEqual(harness.codexState("thread-b"), coordinatorBeforeFailure);
+});
+
+test("複数メモbatch: 競合メモだけ最新Codex値をmergeし、全件原子保存中も対象外メモを待たせない", async () => {
+  const codexStarted = deferred();
+  const releaseCodex = deferred();
+  const unrelatedCompleted = deferred();
+  const harness = createHarness({ initialNotes: codexAtomicInitialNotes(3) });
+  const codexSave = harness.saveCodexThread("A", threadB, async () => {
+    codexStarted.resolve();
+    await releaseCodex.promise;
+  });
+  await codexStarted.promise;
+  const batchSave = harness.mutateNotesAtomically(["B", "A"], (note) => { note.collectionId = "moved"; });
+  const unrelated = harness.foundation.runExclusive(["C"], async () => { unrelatedCompleted.resolve(); });
+  await unrelatedCompleted.promise;
+  harness.markDraftDirty("A");
+  releaseCodex.resolve();
+  const [, results] = await Promise.all([codexSave, batchSave, unrelated]);
+  const stored = new Map((await harness.storedNotes()).map((note) => [note.id, note]));
+  const draftA = harness.state().drafts.find((note) => note.id === "A");
+
+  assert.equal(stored.get("A").collectionId, "moved");
+  assert.equal(stored.get("A").codexChat.threadId, "thread-b");
+  assert.equal(stored.get("B").collectionId, "moved");
+  assert.equal(stored.get("B").codexChat, undefined);
+  assert.equal(stored.get("C").collectionId, "old");
+  assert.equal(harness.liveNote("A").collectionId, "moved");
+  assert.equal(draftA.codexChat.threadId, "thread-b");
+  assert.equal(results.find(({ request }) => request.noteId === "A").savedSnapshot.codexChat.threadId, "thread-b");
+});
+
+test("意図的な全体置換writerはCodex保護を適用せず従来どおり入力snapshotで置換する", async () => {
+  const harness = createHarness({ initialNotes: codexAtomicInitialNotes() });
+  const results = await harness.mutateNotesAtomically(["A"], (note) => {
+    note.body = "バックアップ本文";
+    delete note.codexChat;
+  }, (snapshots) => harness.writeFullReplacement(snapshots));
+  const stored = (await harness.storedNotes()).find((note) => note.id === "A");
+
+  assert.equal(stored.body, "バックアップ本文");
+  assert.equal(Object.hasOwn(stored, "codexChat"), false);
+  assert.equal(Object.hasOwn(harness.liveNote("A"), "codexChat"), false);
+  assert.equal(Object.hasOwn(results[0].savedSnapshot, "codexChat"), false);
 });

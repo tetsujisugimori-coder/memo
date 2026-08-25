@@ -351,6 +351,11 @@ const {
   normalizeRevision: normalizeNoteRevision
 } = window.MemoNexusNoteSaveFoundation;
 const {
+  createCodexThreadSaveCoordinator,
+  isCodexThreadSaveRequest,
+  mergeStoredCodexThread
+} = window.MemoNexusCodexChatUtils;
+const {
   guardWrites: guardNoteWrites,
   installStore: installTombstoneStore,
   putTombstones,
@@ -859,11 +864,23 @@ const localConflictResolutions = new Map();
 let localPendingExclusions = new Set();
 const localSaveQueue = createLocalSaveQueue((reason) => performLocalWorkspaceSave(reason), 420);
 const noteSaveFoundation = createNoteSaveFoundation({
-  writeSnapshot: (snapshot) => putNote(snapshot),
+  writeSnapshot: (snapshot, request) => isCodexThreadSaveRequest(request)
+    ? noteSaveFoundation.runExclusive([snapshot.noteId], () => codexThreadSaveCoordinator.isCurrentRequest(request)
+      ? putCodexThreadSnapshot(snapshot).then((result) => {
+        codexThreadSaveCoordinator.markPersisted(request);
+        return result;
+      })
+      : Promise.resolve(snapshot))
+    : putNote(snapshot, { preserveStoredCodexThread: true }),
   onStateChange: handleNoteSaveStateChange,
-  onSaveSuccess: handleNoteSaveSuccess,
-  onSaveError: handleNoteSaveError
+  onSaveSuccess: (request, state, context) => isCodexThreadSaveRequest(request)
+    ? handleCodexThreadSaveSuccess(request, state)
+    : handleNoteSaveSuccess(request, state, context),
+  onSaveError: (request, error, state, context) => isCodexThreadSaveRequest(request)
+    ? handleCodexThreadSaveError(request, error, state)
+    : handleNoteSaveError(request, error, state, context)
 });
+const codexThreadSaveCoordinator = createCodexThreadSaveCoordinator({ foundation: noteSaveFoundation, createSaveRequest });
 let noteFlagAnimationToken = 0;
 let mermaidConfiguredTheme = null;
 let mermaidRenderGeneration = 0;
@@ -1720,18 +1737,69 @@ function getStoredNotes() {
 }
 
 // メモを1件保存します。idが同じなら上書き、なければ新規追加になります。
-function putNote(note) {
+function putNote(note, { preserveStoredCodexThread = false } = {}) {
   return new Promise((resolve, reject) => {
     note = withNormalizedMemoTags(note);
+    let savedNote = note;
     const transaction = db.transaction([STORE_NAME, TOMBSTONE_STORE_NAME], "readwrite");
-    guardNoteWrites(transaction, [note.id], () => transaction.objectStore(STORE_NAME).put(note), TOMBSTONE_STORE_NAME);
+    const store = transaction.objectStore(STORE_NAME);
+    guardNoteWrites(transaction, [note.id], () => {
+      if (!preserveStoredCodexThread) {
+        store.put(savedNote);
+        return;
+      }
+      const request = store.get(note.id);
+      request.onsuccess = () => {
+        savedNote = withNormalizedMemoTags(mergeStoredCodexThread(note, request.result));
+        store.put(savedNote);
+      };
+    }, TOMBSTONE_STORE_NAME);
     transaction.oncomplete = () => {
-      notifyMemoChanged(note);
+      notifyMemoChanged(savedNote);
       markLocalWorkspacePending();
-      resolve(note);
+      resolve(savedNote);
     };
     transaction.onerror = () => reject(noteTransactionError(transaction));
     transaction.onabort = () => reject(noteTransactionError(transaction));
+  });
+}
+
+// Codexスレッド要求はメモ全体の古いsnapshotを書かず、固定済みの関連情報だけを最新レコードへ反映します。
+function putCodexThreadSnapshot(snapshot) {
+  return new Promise((resolve, reject) => {
+    let savedNote = null;
+    let writeError = null;
+    const transaction = db.transaction([STORE_NAME, TOMBSTONE_STORE_NAME], "readwrite");
+    const store = transaction.objectStore(STORE_NAME);
+    guardNoteWrites(transaction, [snapshot.noteId], () => {
+      const request = store.get(snapshot.noteId);
+      request.onsuccess = () => {
+        const stored = request.result;
+        if (!stored || stored.deletedAt) {
+          writeError = new Error("Codexスレッドの保存対象メモを利用できません");
+          writeError.code = "CODEX_THREAD_NOTE_UNAVAILABLE";
+          try { transaction.abort(); } catch (_) {}
+          return;
+        }
+        if (snapshot.codexChat) {
+          savedNote = withNormalizedMemoTags({ ...stored, codexChat: snapshot.codexChat });
+        } else {
+          const { codexChat: _removedCodexThread, ...withoutThread } = stored;
+          savedNote = withNormalizedMemoTags(withoutThread);
+        }
+        store.put(savedNote);
+      };
+      request.onerror = () => {
+        writeError = request.error || new Error("Codexスレッドの保存対象メモを読み込めませんでした");
+      };
+    }, TOMBSTONE_STORE_NAME);
+    transaction.oncomplete = () => {
+      notifyMemoChanged(savedNote);
+      markLocalWorkspacePending();
+      resolve(snapshot);
+    };
+    transaction.onerror = () => reject(writeError || noteTransactionError(transaction));
+    transaction.onabort = () => reject(writeError || noteTransactionError(transaction));
   });
 }
 
@@ -1982,7 +2050,7 @@ async function applyLocalSaveMetadata(plans, options) {
     if (!metadata) return false;
     note.localCreatedAt = note.localCreatedAt || metadata.localCreatedAt;
     note.localSavedAt = metadata.localSavedAt;
-  }, (items) => updateNotesTransaction(items, { markLocalPending: false }), {
+  }, (items) => updateNotesTransaction(items, { markLocalPending: false, preserveStoredCodexThread: true }), {
     allowedChangedFields: ["localCreatedAt", "localSavedAt"],
     applyCommittedChangesWhenDirty: false,
     captureCurrentDraft: false,
@@ -2622,17 +2690,38 @@ async function migrateLegacyNotesToUnclassified() {
   console.log("Collection migration", { assignedToUnclassified: legacy.length });
 }
 
-function updateNotesTransaction(items, { markLocalPending = true } = {}) {
+function prepareNoteSnapshotsInTransaction(store, items, { preserveStoredCodexThread = false } = {}, onReady) {
+  if (!preserveStoredCodexThread || !items.length) {
+    onReady(items);
+    return;
+  }
+  const savedItems = new Array(items.length);
+  let remaining = items.length;
+  items.forEach((note, index) => {
+    const request = store.get(note.id);
+    request.onsuccess = () => {
+      savedItems[index] = mergeStoredCodexThread(note, request.result);
+      remaining -= 1;
+      if (!remaining) onReady(savedItems);
+    };
+  });
+}
+
+function updateNotesTransaction(items, { markLocalPending = true, preserveStoredCodexThread = false } = {}) {
   return new Promise((resolve, reject) => {
+    let savedItems = items;
     const transaction = db.transaction([STORE_NAME, TOMBSTONE_STORE_NAME], "readwrite");
     const store = transaction.objectStore(STORE_NAME);
     guardNoteWrites(transaction, items.map((note) => note.id), () => {
-      items.forEach((note) => store.put(note));
+      prepareNoteSnapshotsInTransaction(store, items, { preserveStoredCodexThread }, (preparedItems) => {
+        savedItems = preparedItems;
+        savedItems.forEach((note) => store.put(note));
+      });
     }, TOMBSTONE_STORE_NAME);
     transaction.oncomplete = () => {
-      items.forEach((note) => notifyMemoChanged(note));
+      savedItems.forEach((note) => notifyMemoChanged(note));
       if (markLocalPending) markLocalWorkspacePending();
-      resolve();
+      resolve(savedItems);
     };
     transaction.onerror = () => reject(noteTransactionError(transaction));
     transaction.onabort = () => reject(noteTransactionError(transaction));
@@ -4018,17 +4107,22 @@ async function createWebClipNoteWithImages(title, clip, source, collectionId, ex
   try {
     if (existingNote) {
       const writeWebClipTransaction = ([note]) => new Promise((resolve, reject) => {
+        let savedNote = note;
         const transaction = db.transaction([STORE_NAME, ATTACHMENT_STORE_NAME, TOMBSTONE_STORE_NAME], "readwrite");
+        const noteStore = transaction.objectStore(STORE_NAME);
         const attachmentStore = transaction.objectStore(ATTACHMENT_STORE_NAME);
         guardNoteWrites(transaction, [note.id], () => {
-          prepared.forEach((attachment) => attachmentStore.put(attachment));
-          previousWebClipAttachments.forEach((attachment) => attachmentStore.delete(attachment.id));
-          transaction.objectStore(STORE_NAME).put(note);
+          prepareNoteSnapshotsInTransaction(noteStore, [note], { preserveStoredCodexThread: true }, ([preparedNote]) => {
+            savedNote = preparedNote;
+            prepared.forEach((attachment) => attachmentStore.put(attachment));
+            previousWebClipAttachments.forEach((attachment) => attachmentStore.delete(attachment.id));
+            noteStore.put(savedNote);
+          });
         }, TOMBSTONE_STORE_NAME);
         transaction.oncomplete = () => {
-          notifyMemoChanged(note);
+          notifyMemoChanged(savedNote);
           markLocalWorkspacePending();
-          resolve();
+          resolve([savedNote]);
         };
         transaction.onerror = () => reject(noteTransactionError(transaction));
         transaction.onabort = () => reject(noteTransactionError(transaction));
@@ -4668,6 +4762,44 @@ function noteForSave(noteId) {
   return noteLiveDrafts.get(noteId) || notes.find((note) => note.id === noteId);
 }
 
+function applyCodexThreadToMemory(noteId, codexChat) {
+  const targets = new Set([
+    notes.find((note) => note.id === noteId),
+    noteLiveDrafts.get(noteId)
+  ].filter(Boolean));
+  targets.forEach((target) => {
+    if (codexChat) target.codexChat = cloneNoteSnapshot(codexChat);
+    else delete target.codexChat;
+  });
+  return noteForSave(noteId);
+}
+
+async function enqueueCodexThreadSave(noteId, updater) {
+  const existing = noteForSave(noteId);
+  if (!existing || existing.deletedAt) return null;
+  if (typeof updater !== "function") throw new Error("Codex thread updater is required");
+  const previousThreadId = existing.codexChat?.threadId || "";
+  const updated = updater(existing);
+  const codexChat = updated?.codexChat || null;
+  const threadId = codexChat?.threadId || previousThreadId;
+  if (!threadId) return applyCodexThreadToMemory(noteId, codexChat);
+  const result = await codexThreadSaveCoordinator.enqueue({ noteId, threadId, codexChat });
+  return applyCodexThreadSaveResult(result);
+}
+
+function applyCodexThreadSaveResult(result) {
+  if (!result?.request || !codexThreadSaveCoordinator.wasPersisted(result.request)) {
+    return result?.request?.snapshot?.noteId ? noteForSave(result.request.snapshot.noteId) : null;
+  }
+  const { noteId, codexChat } = result.request.snapshot;
+  return applyCodexThreadToMemory(noteId, codexChat);
+}
+
+async function retryCodexThreadSave(threadId) {
+  const result = await codexThreadSaveCoordinator.retry(threadId);
+  return result ? applyCodexThreadSaveResult(result) : null;
+}
+
 function registerNoteSaveState(note) {
   if (!note) return null;
   note.revision = normalizeNoteRevision(note.revision);
@@ -4814,7 +4946,7 @@ function applyCommittedBatchChanges(note, changes) {
 
 // バッチ固有の変更は固定snapshotへだけ適用し、transaction成功後にlive draftへ合流します。
 // 失敗時は通常編集だけがlive draftに残り、保存中の追加編集は別revisionとして維持されます。
-async function mutateNotesAtomically(noteIds, mutate, writeSnapshots = updateNotesTransaction, uiOptions = {}) {
+async function mutateNotesAtomically(noteIds, mutate, writeSnapshots = null, uiOptions = {}) {
   const {
     allowedChangedFields = null,
     applyCommittedChangesWhenDirty = true,
@@ -4823,6 +4955,7 @@ async function mutateNotesAtomically(noteIds, mutate, writeSnapshots = updateNot
     expectedRevisions = null,
     liveNotesById = null
   } = uiOptions;
+  const persistSnapshots = writeSnapshots || ((snapshots) => updateNotesTransaction(snapshots, { preserveStoredCodexThread: true }));
   const liveNote = (noteId) => liveNotesById ? liveNotesById.get(noteId) : noteForSave(noteId);
   const ids = [...new Set(noteIds || [])].filter(Boolean).sort();
   if (!ids.length) return Promise.resolve([]);
@@ -4862,7 +4995,7 @@ async function mutateNotesAtomically(noteIds, mutate, writeSnapshots = updateNot
       batch,
       noteIds: changedIds,
       createRequests: () => requests,
-      writeSnapshots
+      writeSnapshots: persistSnapshots
     });
   } catch (error) {
     const states = noteSaveFoundation.abortAtomicBatch(batch);
@@ -4920,15 +5053,16 @@ function handleNoteSaveStateChange(noteId, state) {
 function applyNoteBatchSaveSuccess(results, liveNotesById = null) {
   const savedById = new Map();
   const linkChecks = [];
-  results.forEach(({ request, state }) => {
+  results.forEach(({ request, state, savedSnapshot }) => {
     if (state.currentRevision !== request.revision) return;
-    savedById.set(request.noteId, cloneNoteSnapshot(request.snapshot));
+    const committedSnapshot = savedSnapshot || request.snapshot;
+    savedById.set(request.noteId, cloneNoteSnapshot(committedSnapshot));
     const liveDraft = noteLiveDrafts.get(request.noteId);
     if (!liveDraft || normalizeNoteRevision(liveDraft.revision) === request.revision) {
       noteLiveDrafts.delete(request.noteId);
     }
     const beforeLinks = noteSaveBeforeLinkCounts.get(request.noteId);
-    if (Number.isFinite(beforeLinks)) linkChecks.push({ beforeLinks, savedNote: request.snapshot });
+    if (Number.isFinite(beforeLinks)) linkChecks.push({ beforeLinks, savedNote: committedSnapshot });
     noteSaveBeforeLinkCounts.delete(request.noteId);
   });
   if (!savedById.size) return;
@@ -4949,7 +5083,7 @@ function handleNoteSaveSuccess(request, state, context = {}) {
   if (context.batch) return;
   console.log("Memo saved", { id: request.noteId, revision: request.revision, saveRequestId: request.saveRequestId });
   if (state.currentRevision === request.revision) {
-    const savedNote = cloneNoteSnapshot(request.snapshot);
+    const savedNote = cloneNoteSnapshot(mergeStoredCodexThread(request.snapshot, noteForSave(request.noteId)));
     const index = notes.findIndex((note) => note.id === request.noteId);
     if (index === -1) notes.unshift(savedNote); else notes[index] = savedNote;
     const liveDraft = noteLiveDrafts.get(request.noteId);
@@ -5014,6 +5148,25 @@ function handleNoteSaveError(request, error) {
   console.error("Memo save failed", {
     id: request.noteId,
     revision: request.revision,
+    saveRequestId: request.saveRequestId,
+    error
+  });
+}
+
+function handleCodexThreadSaveSuccess(request, state) {
+  console.log("Codex thread saved", {
+    resourceKey: request.resourceKey,
+    revision: request.revision,
+    dirty: state.dirty,
+    saveRequestId: request.saveRequestId
+  });
+}
+
+function handleCodexThreadSaveError(request, error, state) {
+  console.error("Codex thread save failed", {
+    resourceKey: request.resourceKey,
+    revision: request.revision,
+    dirty: state.dirty,
     saveRequestId: request.saveRequestId,
     error
   });
@@ -10232,17 +10385,21 @@ async function deleteCollectionSafely(id) {
   const affected = activeNotes().filter((note) => subtreeIds.includes(normalizedCollectionId(note)));
   if (!confirm(`「${collection.name}」と子コレクションを削除しますか？\n配下のメモ ${affected.length}件は未分類へ移動します。メモ本体は削除されません。`)) return;
   const writeDeletionTransaction = (noteSnapshots) => new Promise((resolve, reject) => {
+    let savedSnapshots = noteSnapshots;
     const transaction = db.transaction([STORE_NAME, COLLECTION_STORE_NAME, TOMBSTONE_STORE_NAME], "readwrite");
     const noteStore = transaction.objectStore(STORE_NAME);
     const collectionStore = transaction.objectStore(COLLECTION_STORE_NAME);
     guardNoteWrites(transaction, noteSnapshots.map((note) => note.id), () => {
-      noteSnapshots.forEach((note) => noteStore.put(note));
-      subtreeIds.forEach((collectionId) => collectionStore.delete(collectionId));
+      prepareNoteSnapshotsInTransaction(noteStore, noteSnapshots, { preserveStoredCodexThread: true }, (preparedNotes) => {
+        savedSnapshots = preparedNotes;
+        savedSnapshots.forEach((note) => noteStore.put(note));
+        subtreeIds.forEach((collectionId) => collectionStore.delete(collectionId));
+      });
     }, TOMBSTONE_STORE_NAME);
     transaction.oncomplete = () => {
-      noteSnapshots.forEach((note) => notifyMemoChanged(note));
+      savedSnapshots.forEach((note) => notifyMemoChanged(note));
       markLocalWorkspacePending();
-      resolve();
+      resolve(savedSnapshots);
     };
     transaction.onerror = () => reject(noteTransactionError(transaction));
     transaction.onabort = () => reject(noteTransactionError(transaction));

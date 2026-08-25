@@ -296,6 +296,23 @@ test("入力200回ではcloneせず保存要求作成時だけ固定snapshotをc
   assert.equal(Object.isFrozen(saveRequest.snapshot.nested), true);
 });
 
+test("名前空間付きresource keyは通常メモID契約を維持しつつsnapshotの実IDを上書きしない", async () => {
+  const writes = [];
+  const foundation = createNoteSaveFoundation({ writeSnapshot: async (snapshot, request) => writes.push({ snapshot, request }) });
+  const resourceKey = "codex-thread:thread-a";
+  const revision = foundation.markChanged(resourceKey, 0);
+  const source = { noteId: "memo-a", threadId: "thread-a", codexChat: { threadId: "thread-a", title: "会話" } };
+  const saveRequest = createSaveRequest({ resourceKey, resourceType: "codex-thread", revision, snapshot: source });
+  source.codexChat.title = "要求後の変更";
+  await foundation.enqueueSave(saveRequest);
+  assert.equal(saveRequest.noteId, null);
+  assert.equal(saveRequest.resourceKey, resourceKey);
+  assert.equal(writes[0].snapshot.noteId, "memo-a");
+  assert.equal(writes[0].snapshot.id, undefined);
+  assert.equal(writes[0].snapshot.codexChat.title, "会話");
+  assert.equal(foundation.getState(resourceKey).lastSavedRevision, 1);
+});
+
 test("通常保存と複数メモbatchをID順ロックで調停し原子性と最新値を維持する", async () => {
   const firstWrite = deferred();
   const persisted = new Map();
@@ -369,6 +386,32 @@ test("batch成功通知は各メモの状態を保ったまま同じbatch文脈�
   assert.equal(notifications.every(({ context }) => context.batch === atomicBatch), true);
   assert.deepEqual(notifications.map(({ state }) => state.lastSavedRevision), [1, 1]);
   assert.equal(results.every(({ state }) => state.dirty === false), true);
+});
+
+test("batch writerが返した実保存snapshotを結果へ対応するメモIDごとに載せる", async () => {
+  const foundation = createNoteSaveFoundation({ writeSnapshot: async () => {} });
+  foundation.registerNote("A", 0);
+  foundation.registerNote("B", 0);
+  const atomicBatch = foundation.beginAtomicBatch(["A", "B"]);
+  const drafts = ["A", "B"].map((id) => ({
+    id,
+    revision: foundation.markBatchChanged(atomicBatch, id, 0),
+    codexChat: { threadId: "thread-a" }
+  }));
+
+  const results = await foundation.enqueueBatchSave({
+    batch: atomicBatch,
+    noteIds: ["A", "B"],
+    createRequests: () => drafts.map((draft) => createSaveRequest({ noteId: draft.id, revision: draft.revision, snapshot: draft })),
+    writeSnapshots: async (snapshots) => snapshots.map((snapshot) => ({
+      ...snapshot,
+      ...(snapshot.id === "A" ? { codexChat: { threadId: "thread-b" } } : {})
+    }))
+  });
+  foundation.completeAtomicBatch(atomicBatch);
+
+  assert.equal(results.find(({ request: saveRequest }) => saveRequest.noteId === "A").savedSnapshot.codexChat.threadId, "thread-b");
+  assert.equal(results.find(({ request: saveRequest }) => saveRequest.noteId === "B").savedSnapshot.codexChat.threadId, "thread-a");
 });
 
 test("batch transaction失敗中は通常保存を遮断し、解除後はbatch revisionだけを戻す", async () => {
