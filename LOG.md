@@ -2039,3 +2039,12 @@
 * 可搬ZIP、Markdown・local draftの既存ID取込、Web Clipper既存メモ更新は入力データや複数ストアtransactionの置換契約を持つため全体置換・特殊経路として維持した。ローカルMarkdown・ZIP出力は外部保存、添付ストア、完全削除、起動時migration、新規IDの初回保存はそれぞれ別の意味論を持つため、通常mutationへ統合していない。既存の排他、tombstone guard、Codex確定値保護はそのまま維持した。
 * `note-save-app-integration.test.js`のharnessを、本番通常writerと同じ`preserveStoredCodexThread: true`で動かすよう補正した。経路監査assertへ本文、タグ、フラグ、解説保存・削除、Codex coordinatorと実メモIDロックを追加し、本文保存中にCodex更新とタグ更新を重ねても、最終IndexedDB相当値とliveメモに本文・タグ・`codexChat`がすべて残りdirtyが解除される回帰テストを追加した。
 * 保存関連80件と`npm test -- --test-isolation=none`の全715件が成功した。全JavaScriptの`node --check`と`git diff --check`も成功した。アプリ本体、保存基盤、DB schema、UI、配信識別子は変更していない。
+
+## 2026-08-26 本文入力時の派生UI更新集約
+
+* 本文入力経路を調査し、入力ごとにMarkdownカード、関連メモ、文章統計、表編集補助、AI参照プレビューを再構築していた処理と、保存完了時のメモ一覧・検索結果更新を確認した。フォント処理は入力経路外だったため変更していない。
+* 編集欄のDOM更新、編集中メモへの本文・自動タイトル反映、revision・dirty更新、draft mirror、保存状態表示、Undo、既存280ms保存予約は入力ごとに維持した。`note-save-foundation.js`と保存要求、pending、error、lastErrorの遷移は変更していない。
+* 派生UIは独立した180msのtrailing debounceへ移し、連続入力中の途中描画を止めて最後の内容を1回だけ反映する。メモ一覧・検索結果、Markdownカード、関連メモ、文章統計、表編集補助、AI参照プレビューを同じflushへ集約し、語句索引もその直前に1回だけ無効化する。
+* schedulerはnoteIdと要求世代を照合し、メモ切替、通常・完全削除、別ウィンドウからの完全削除、ローカル保存先変更時に旧要求を無効化する。エディタのvalue、カーソル、選択範囲、IME、pasteの既存イベント処理は変更していない。
+* 連続入力の1回集約、Aの連続編集直後にBへ切り替えた場合の旧描画棄却、連続貼り付けで最後の本文が一覧・カードへ反映される回帰テストを追加した。`node --test --test-isolation=none --test-reporter=dot`の全733件、`app.js`とschedulerの`node --check`、`git diff --check`が成功した。配信識別子は`app.js?v=0.5.0-108`へ更新した。
+* 入力停止後の一覧とMarkdownカードは引き続き全件・全本文を再構築する。巨大データ向けの差分描画やWorker化は今回の対象外とした。

@@ -882,6 +882,14 @@ const noteSaveFoundation = createNoteSaveFoundation({
     : handleNoteSaveError(request, error, state, context)
 });
 const codexThreadSaveCoordinator = createCodexThreadSaveCoordinator({ foundation: noteSaveFoundation, createSaveRequest });
+// 連続入力では途中状態を描画せず、入力が止まった時点の派生UIだけを反映します。
+// rAF/throttleは入力継続中にも再描画するため、末尾1回へ集約できるtrailing debounceを使います。
+const typingDerivedUiScheduler = MemoNexusTypingDerivedUi.createTypingDerivedUiScheduler({
+  delay: 180,
+  getCurrentNoteId: () => currentId,
+  onFlush: renderTypingDerivedUi
+});
+globalThis.MemoNexusTypingDerivedUiScheduler = typingDerivedUiScheduler;
 let noteFlagAnimationToken = 0;
 let mermaidConfiguredTheme = null;
 let mermaidRenderGeneration = 0;
@@ -1940,7 +1948,10 @@ async function localSaveTargetsMatch(left, right) {
 async function setLocalSaveTarget(handle) {
   const changed = !await localSaveTargetsMatch(localDirectoryHandle, handle);
   localDirectoryHandle = handle || null;
-  if (changed) localSaveTargetGeneration += 1;
+  if (changed) {
+    localSaveTargetGeneration += 1;
+    globalThis.MemoNexusTypingDerivedUiScheduler?.invalidate();
+  }
   return changed;
 }
 
@@ -4742,6 +4753,7 @@ function snippet(body) {
 // 指定したidのメモをエディタに読み込みます。
 function openNote(id) {
   if (noteSaveFoundation.isTerminal(id)) return;
+  globalThis.MemoNexusTypingDerivedUiScheduler?.invalidate();
   const previousId = currentId;
   if (previousId && previousId !== id) {
     applyCurrentEditorDraft(currentNote());
@@ -5505,6 +5517,7 @@ function cleanupPermanentlyDeletedMemos(memoIds, tombstone = {}, options = {}) {
 async function performPermanentDeletionCleanup(memoIds, tombstone = {}, { showNotice = true } = {}) {
   const ids = [...new Set(memoIds || [])].filter(Boolean);
   if (!ids.length) return;
+  if (ids.includes(currentId)) globalThis.MemoNexusTypingDerivedUiScheduler?.invalidate();
   noteSaveFoundation.finishPermanentDeletion(ids, tombstone);
   ids.forEach((noteId) => {
     clearScheduledNoteSave(noteId);
@@ -5535,6 +5548,7 @@ async function handleMemoSyncMessage(message) {
   if (message.type === "memo-permanent-delete-started") {
     noteSaveFoundation.beginExternalTerminalDelete(message.memoIds, message);
     message.memoIds?.forEach(clearScheduledNoteSave);
+    if (message.memoIds?.includes(currentId)) globalThis.MemoNexusTypingDerivedUiScheduler?.invalidate();
     if (message.memoIds?.includes(currentId)) setSaveStatusNotice("別のウィンドウで完全削除中です...");
     return;
   }
@@ -5570,7 +5584,6 @@ function scheduleSave({ render = true } = {}) {
   if (!note) return;
   if (noteSaveFoundation.isTerminal(note.id)) return;
   applyCurrentEditorDraft(note);
-  renderTextStats();
   saveCurrentDraftMirror();
   clearTimeout(saveTimer);
   scheduledSaveNoteId = note.id;
@@ -5581,9 +5594,25 @@ function scheduleSave({ render = true } = {}) {
     scheduledSaveNoteId = null;
     enqueueNoteSave(noteId).catch((error) => console.error("Scheduled save failed", error));
   }, 280);
-  if (render) renderPreview();
-  renderRelated();
+  if (render) {
+    globalThis.MemoNexusTypingDerivedUiScheduler?.schedule(note.id);
+  } else {
+    // 表・画像など、呼び出し側がカードを同期描画した操作は従来どおり補助表示も直ちに揃えます。
+    renderTextStats();
+    renderRelated();
+  }
   updateUndoButton();
+}
+
+function renderTypingDerivedUi(noteId) {
+  if (noteId !== currentId || noteSaveFoundation.isTerminal(noteId)) return;
+  invalidateTermRelationIndex();
+  renderMemoListPanel();
+  renderPreview();
+  renderRelated();
+  renderTextStats();
+  renderTableBlockEditors();
+  updateAiTargetPreview();
 }
 
 function captureUndoSnapshot(event) {
@@ -5683,6 +5712,7 @@ async function deleteCurrentNote() {
 
   const confirmed = confirm(`「${note.title}」をゴミ箱へ移動しますか？`);
   if (!confirmed) return;
+  globalThis.MemoNexusTypingDerivedUiScheduler?.invalidate();
 
   const normalBefore = activeNotes();
   const currentIndex = normalBefore.findIndex((item) => item.id === note.id);
@@ -10379,6 +10409,7 @@ async function moveMemosToCollection(memoIds, collectionId) {
 async function moveMemosToTrash(memoIds) {
   const targets = [...new Set(memoIds)].map((id) => noteForSave(id)).filter((note) => note && !note.deletedAt);
   if (!targets.length || !confirm(`${targets.length}件をゴミ箱へ移動しますか？`)) return;
+  globalThis.MemoNexusTypingDerivedUiScheduler?.invalidate();
   const deletedAt = new Date().toISOString();
   await mutateNotesAtomically(targets.map((note) => note.id), (note) => {
     note.deletedAt = deletedAt;
@@ -10414,6 +10445,7 @@ async function restoreMemos(memoIds) {
 async function permanentlyDeleteMemos(memoIds) {
   const targets = memoIds.map((id) => noteForSave(id)).filter((note) => note?.deletedAt);
   if (!targets.length || !confirm(`${targets.length}件を完全に削除しますか？\nこの操作は元に戻せません。`)) return;
+  globalThis.MemoNexusTypingDerivedUiScheduler?.invalidate();
   const targetIds = targets.map((note) => note.id);
   const tombstone = {
     deletionId: crypto.randomUUID(),
@@ -11789,9 +11821,7 @@ editor.addEventListener("drop", handleEditorAttachmentDrop);
 titleInput.addEventListener("input", scheduleSave);
 editor.addEventListener("input", () => {
   resetEditorCaretIdle();
-  renderTableBlockEditors();
   scheduleSave();
-  updateAiTargetPreview();
 });
 editor.addEventListener("select", rememberEditorSelectionRange);
 editor.addEventListener("select", () => {
