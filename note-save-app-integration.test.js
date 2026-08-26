@@ -227,6 +227,7 @@ function createHarness({
     let layoutMode = "wide";
     let isPopoutWindow = false;
     const typingPerformanceEnabled = false;
+    const measureTypingPerformanceOperation = (_durations, _name, operation) => operation();
     let registeredTags = ["tag-a", "tag-b"];
     const noteLiveDrafts = new Map();
     const noteSaveBeforeBodies = new Map();
