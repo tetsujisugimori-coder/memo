@@ -2095,3 +2095,10 @@
 * `visibilitychange(hidden)`、`pagehide`、IndexedDB `versionchange`は、最新DOMを`applyCurrentEditorDraft()`で反映してから`forceFlushDraftMirror()`を呼び、その後に通常保存timerの取消・IndexedDB保存または接続終了へ進む。hidden直後のpagehideは同じrevisionとして1回だけ書く。通常280ms保存、revision・dirty・`markChanged()`、保存中追加入力、IME順序、`note-save-foundation.js`、schema、generation、tombstone guard、派生UI、Codex・ローカル保存は変更していない。
 * `draft-mirror-scheduler.test.js`へ未編集通常flush 0回、未編集切替0回、予約あり切替前1回、未予約DOM変更の強制退避、保留なしhidden強制退避、hidden＋pagehide重複排除、B保留中のA通常／強制flush非干渉、旧callback無効化、失敗後同revision再試行を追加した。`note-save-app-integration.test.js`の実`openNote()` harnessへ実schedulerとdraft書込み記録を接続し、書込み回数・最終内容・切替前の`currentId`を検証した。IndexedDB lifecycleの変更反映・強制退避・timer取消・接続終了順も更新した。
 * draft mirror・メモ切替・IME・IndexedDB lifecycle・保存raceの関連114件、全777件が成功し、fail・cancelled・skip・todoはすべて0件だった。変更JavaScript 19ファイルの`node --check`と`git diff --check`も成功した。配信識別子は`draft-mirror-scheduler.js?v=0.5.0-2`、`app.js?v=0.5.0-112`へ更新した。残る制約は、編集がある場合の200ms停止後または強制退避では本文全体の同期localStorage書込みが1回必要なことと、OS実IME・実タブhiddenを含む実データ性能確認が手動確認領域として残ることである。
+
+## 2026-08-26 タイピング時UI分離の現行main再確認
+
+* `input`、`beforeinput`、composition、表セル編集、保存成功、メモ切替の各経路を再調査した。通常本文入力は`applyCurrentEditorDraft()`でlive note・revision・dirtyを即時更新し、draft mirrorは200ms、通常保存は既存の280ms予約を維持する。メモ一覧／検索結果、Markdownカード／プレビュー、関連メモ、文章統計、表編集補助、AI参照表示は`createTypingDerivedUiScheduler()`の180ms trailing debounceで最新`noteId + revision`の1回へ集約済みで、タグ一覧は本文入力経路に含まれない。
+* メモ切替では旧メモの保留draftを切替前にflushし、通常保存を旧`noteId`へ固定したうえで、旧メモの派生UI予約だけを`cancelNote(previousId)`で破棄する。遅延callbackも要求世代、現在の`noteId`、revisionを再確認するため、旧メモの更新が切替先を描き替えない。保存成功では同一revisionの重い派生UIを再描画せず、保存状態・メタ・discovery・リンク統計等だけを更新し、タイトル変更はコレクション内の表示名と操作ラベルだけを軽量更新する。
+* 保存共通基盤、revision・dirty、280ms保存予約、保存競合・tombstone・Codex・ローカル保存・添付表示は変更していない。現行コードと既存テストが依頼内容を満たすため、アプリコードとテストコードの追加変更は行わなかった。
+* `node --test --test-isolation=none typing-derived-ui-scheduler.test.js draft-mirror-scheduler.test.js note-save-foundation.test.js note-save-app-integration.test.js note-tombstone.test.js`は関連125件すべて成功した。`node --test --test-isolation=none --test-reporter=dot`は全777件成功（終了コード0）だった。
