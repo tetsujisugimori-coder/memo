@@ -1,6 +1,8 @@
 (function initMemoNexusTags(global) {
   "use strict";
 
+  const DEFAULT_TAG_COLOR = "#6f8372";
+
   function normalizeTagId(value) {
     if (value == null) return null;
     const id = String(value).trim().toLowerCase();
@@ -160,7 +162,29 @@
     return findTagDefinition(definitions, id)?.name || id || "";
   }
 
+  function normalizeTagColor(value, fallback = DEFAULT_TAG_COLOR) {
+    const color = typeof value === "string" ? value.trim() : "";
+    if (!color) return fallback;
+    if (global.CSS?.supports?.("color", color)) return color;
+    if (/^#(?:[0-9a-f]{3,4}|[0-9a-f]{6}|[0-9a-f]{8})$/i.test(color)) return color;
+    return fallback;
+  }
+
+  function tagColorForId(definitions, tagId) {
+    return normalizeTagColor(findTagDefinition(definitions, tagId)?.color);
+  }
+
+  function summarizeTagIds(value, limit = 3) {
+    const tagIds = normalizeTagIds(value);
+    const safeLimit = Number.isInteger(limit) && limit >= 0 ? limit : 3;
+    return {
+      visibleTagIds: tagIds.slice(0, safeLimit),
+      hiddenCount: Math.max(0, tagIds.length - safeLimit)
+    };
+  }
+
   const api = {
+    DEFAULT_TAG_COLOR,
     assignRegisteredTag,
     countTagUsage,
     createTagDefinition,
@@ -171,6 +195,7 @@
     mergeTagDefinitionsFromNotes,
     normalizeMemoTags: normalizeTagIds,
     normalizeTagDefinitions,
+    normalizeTagColor,
     normalizeTagDate,
     normalizeTagFilter: normalizeTagId,
     normalizeTagId,
@@ -179,6 +204,8 @@
     removeMemoTag,
     restrictTagIds,
     searchTagOptions,
+    summarizeTagIds,
+    tagColorForId,
     tagNameForId
   };
 

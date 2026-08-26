@@ -803,7 +803,7 @@ body.collections-open .collection-explorer {
 }
 
 #searchInput {
-  margin: 12px;
+  margin: 12px 12px 6px;
   min-height: 40px;
   border: 1px solid var(--line);
   border-radius: 7px;
@@ -817,6 +817,40 @@ body.collections-open .collection-explorer {
 #editor:focus {
   border-color: var(--accent);
   box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.memo-tag-filter {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 7px;
+  margin: 0 12px 10px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.memo-tag-filter select {
+  min-width: 0;
+  min-height: 34px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  padding: 3px 28px 3px 8px;
+  background: var(--input-bg);
+  color: var(--ink);
+}
+
+.memo-tag-filter select:focus-visible {
+  border-color: var(--accent);
+  outline: none;
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.memo-tag-filter button {
+  width: 30px;
+  min-width: 30px;
+  min-height: 30px;
+  padding: 0;
+  border-radius: 50%;
 }
 
 .memo-list {
@@ -898,6 +932,26 @@ body.collections-open .collection-explorer {
   gap: 5px;
   font-weight: 700;
   overflow-wrap: anywhere;
+}
+
+.memo-item-tags {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.memo-item .tag-chip {
+  min-height: 23px;
+  padding: 2px 11px 2px 7px;
+  font-size: 11px;
+}
+
+.memo-tag-overflow {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
 }
 
 .note-flag-indicator { flex: 0 0 auto; color: var(--note-flag); font-size: 15px; line-height: 1; }
@@ -1548,20 +1602,55 @@ body.collections-open .collection-explorer {
   gap: 6px;
 }
 
-.note-tag-chip {
+.note-tag-entry {
   display: inline-flex;
   align-items: center;
   gap: 3px;
-  min-height: 26px;
-  padding: 2px 4px 2px 9px;
-  border: 1px solid var(--accent);
-  border-radius: 999px;
-  background: var(--accent-soft);
-  color: var(--ink);
-  font-size: 12px;
 }
 
-.note-tag-chip button {
+.tag-chip {
+  --tag-color: #6f8372;
+  position: relative;
+  min-height: 26px;
+  padding: 3px 13px 3px 9px;
+  border: 1px solid color-mix(in srgb, var(--tag-color) 62%, var(--line));
+  border-radius: 5px 1px 5px 5px;
+  background: color-mix(in srgb, var(--tag-color) 14%, var(--paper));
+  box-shadow: inset 3px 0 0 color-mix(in srgb, var(--tag-color) 78%, transparent);
+  color: var(--ink);
+  font-size: 12px;
+  line-height: 1.25;
+}
+
+.tag-chip::after {
+  content: "";
+  position: absolute;
+  top: -1px;
+  right: -1px;
+  width: 8px;
+  height: 8px;
+  background: color-mix(in srgb, var(--tag-color) 42%, var(--paper));
+  clip-path: polygon(0 0, 100% 100%, 0 100%);
+  pointer-events: none;
+}
+
+.tag-chip:hover {
+  background: color-mix(in srgb, var(--tag-color) 22%, var(--paper));
+}
+
+.tag-chip[aria-pressed="true"] {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--tag-color) 25%, var(--accent-soft));
+  box-shadow: inset 3px 0 0 var(--tag-color), 0 0 0 2px var(--accent-soft);
+  font-weight: 700;
+}
+
+.tag-chip:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.note-tag-remove {
   width: 22px;
   min-width: 22px;
   min-height: 22px;
@@ -1570,6 +1659,12 @@ body.collections-open .collection-explorer {
   border-radius: 50%;
   background: transparent;
   color: var(--muted);
+}
+
+.note-tag-remove:hover,
+.note-tag-remove:focus-visible {
+  background: var(--accent-soft);
+  color: var(--ink);
 }
 
 .note-tag-form input {
@@ -1613,7 +1708,9 @@ body.collections-open .collection-explorer {
 }
 
 .note-tag-option {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 8px;
   width: 100%;
   min-height: 32px;
   padding: 6px 9px;
@@ -1622,6 +1719,16 @@ body.collections-open .collection-explorer {
   background: transparent;
   color: var(--ink);
   text-align: left;
+}
+
+.tag-color-dot {
+  --tag-color: #6f8372;
+  flex: 0 0 auto;
+  width: 9px;
+  height: 9px;
+  border: 1px solid color-mix(in srgb, var(--tag-color) 75%, var(--ink));
+  border-radius: 50%;
+  background: var(--tag-color);
 }
 
 .note-tag-option:hover,
@@ -4930,6 +5037,13 @@ body.context-panel-closed {
   border-color: var(--accent);
   background: var(--accent-soft);
   font-weight: 700;
+}
+
+.tag-list-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
 }
 
 .tag-list-count {

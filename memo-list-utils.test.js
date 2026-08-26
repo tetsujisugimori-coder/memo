@@ -7,6 +7,31 @@ const { buildMemoListView } = require("./memo-list-utils");
 
 const app = fs.readFileSync("app.js", "utf8");
 const html = fs.readFileSync("index.html", "utf8");
+const css = fs.readFileSync("style.css", "utf8");
+
+function readFunctionSource(name) {
+  const start = app.indexOf(`function ${name}(`);
+  assert.ok(start >= 0, `${name}を読み取れる`);
+  const parametersStart = app.indexOf("(", start);
+  let parameterDepth = 0;
+  let openingBrace = -1;
+  for (let index = parametersStart; index < app.length; index += 1) {
+    if (app[index] === "(") parameterDepth += 1;
+    if (app[index] === ")") parameterDepth -= 1;
+    if (parameterDepth === 0) {
+      openingBrace = app.indexOf("{", index);
+      break;
+    }
+  }
+  assert.ok(openingBrace >= 0, `${name}の本体を読み取れる`);
+  let depth = 0;
+  for (let index = openingBrace; index < app.length; index += 1) {
+    if (app[index] === "{") depth += 1;
+    if (app[index] === "}") depth -= 1;
+    if (depth === 0) return app.slice(start, index + 1);
+  }
+  throw new Error(`${name}の終端を読み取れません`);
+}
 
 const notes = [
   { id: "history", collectionId: "history", tags: ["歴史", "資料"], deletedAt: null },
@@ -73,20 +98,55 @@ test("登録制タグUIと右サイドバーのタグタブを保存・解除処
   assert.match(html, /id="createTagBtn"[\s\S]*タグを作成/);
   assert.match(html, /id="contextTagTab"[^>]+aria-controls="tagPanel"/);
   assert.match(html, /id="clearTagFilterBtn"/);
+  assert.match(html, /id="memoTagFilterSelect"[\s\S]*<option value="">すべて<\/option>/);
+  assert.match(html, /id="clearMemoTagFilterBtn"[^>]*aria-label="タグの絞り込みを解除"/);
   assert.match(app, /function updateCurrentNoteTags\(value, targetNoteId = currentId\)[\s\S]*const noteId = targetNoteId[\s\S]*restrictTagIds\(value, registeredTags\)[\s\S]*await enqueueNoteSave\(noteId\)/);
   assert.match(app, /function updateCurrentNoteTags\(value, targetNoteId = currentId\)[\s\S]*currentId === noteId[\s\S]*renderNoteTags\(note\);[\s\S]*renderTagPanel\(\);[\s\S]*renderList\(\);[\s\S]*await enqueueNoteSave\(noteId\)/);
-  assert.match(app, /chip\.className = "note-tag-chip"/);
+  assert.match(readFunctionSource("renderNoteTags"), /createTagChip\(tagId, \{ location: "本文タイトル下" \}\)/);
   assert.match(app, /button\.className = "tag-list-item"/);
   assert.match(app, /buildMemoListView\(notes, selectedCollectionId, selectedTagFilter\)/);
-  assert.match(app, /function clearTagFilter\(\)[\s\S]*selectedTagFilter = null/);
+  assert.match(readFunctionSource("clearTagFilter"), /applyTagFilter\(null\)/);
   assert.match(app, /tags: normalizeTagIds\(draft\.tags \|\| existingNote\?\.tags\)/);
 });
 
+test("本文と一覧のタグチップは同じ描画・検索更新経路を使いメモを開かない", () => {
+  const chipSource = readFunctionSource("createTagChip");
+  assert.match(chipSource, /className = "tag-chip"/);
+  assert.match(chipSource, /aria-pressed/);
+  assert.match(chipSource, /applyTagFilter\(tagId, \{ revealMemoList: true \}\)/);
+  assert.doesNotMatch(chipSource, /openNote|createNote|openOrCreateLinkedNote/);
+  assert.match(readFunctionSource("renderNoteTags"), /createTagChip\(tagId/);
+  assert.match(readFunctionSource("createMemoListTags"), /createTagChip\(tagId/);
+  assert.match(readFunctionSource("applyTagFilter"), /selectedTagFilter = normalizeTagId\(value\)/);
+  assert.match(readFunctionSource("applyTagFilter"), /renderTagPanel\(\)[\s\S]*renderNoteTags\(\)[\s\S]*renderMemoListPanel\(\)/);
+});
+
+test("メモ一覧はタイトル直下に最大3タグとクリックしない残数を表示する", () => {
+  const createSource = readFunctionSource("createMemoListTags");
+  const listSource = readFunctionSource("renderList");
+  assert.match(createSource, /summarizeTagIds\(note\.tags, 3\)/);
+  assert.match(createSource, /if \(!visibleTagIds\.length\) return null/);
+  assert.match(createSource, /overflow\.textContent = `\+\$\{hiddenCount\}`/);
+  assert.doesNotMatch(createSource, /overflow\.addEventListener/);
+  assert.ok(listSource.indexOf(".memo-title") < listSource.indexOf(".after(memoTags)"));
+  assert.ok(listSource.indexOf(".after(memoTags)") < listSource.indexOf('item.addEventListener("click"'));
+});
+
+test("タグは付箋形状と色フォールバックを持ち語句リンクの既存経路を維持する", () => {
+  assert.match(css, /\.tag-chip[\s\S]*--tag-color: #6f8372[\s\S]*border-radius: 5px 1px 5px 5px/);
+  assert.match(css, /\.tag-chip::after[\s\S]*clip-path: polygon/);
+  assert.match(css, /\.tag-chip\[aria-pressed="true"\]/);
+  assert.match(readFunctionSource("renderWikiButton"), /wiki-link[\s\S]*term-wiki-link/);
+  assert.match(readFunctionSource("renderPreview"), /querySelectorAll\("\.wiki-link"\)[\s\S]*openOrCreateLinkedNote/);
+  assert.match(readFunctionSource("renderList"), /querySelectorAll\("\.term-chip"\)[\s\S]*openOrCreateLinkedNote/);
+});
+
 test("タグ関連スクリプトのキャッシュ番号を更新する", () => {
-  assert.match(html, /src="tags\.js\?v=0\.5\.0-2"/);
+  assert.match(html, /href="style\.css\?v=0\.5\.0-58"/);
+  assert.match(html, /src="tags\.js\?v=0\.5\.0-3"/);
   assert.match(html, /src="memo-list-utils\.js\?v=0\.5\.0-5"/);
   assert.match(html, /src="local-markdown\.js\?v=0\.5\.0-4"/);
-  assert.match(html, /src="app\.js\?v=0\.5\.0-115"/);
-  assert.ok(html.indexOf('src="tags.js?v=0.5.0-2"') < html.indexOf('src="memo-list-utils.js?v=0.5.0-5"'));
-  assert.ok(html.indexOf('src="memo-list-utils.js?v=0.5.0-5"') < html.indexOf('src="app.js?v=0.5.0-115"'));
+  assert.match(html, /src="app\.js\?v=0\.5\.0-116"/);
+  assert.ok(html.indexOf('src="tags.js?v=0.5.0-3"') < html.indexOf('src="memo-list-utils.js?v=0.5.0-5"'));
+  assert.ok(html.indexOf('src="memo-list-utils.js?v=0.5.0-5"') < html.indexOf('src="app.js?v=0.5.0-116"'));
 });

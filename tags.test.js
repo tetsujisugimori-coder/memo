@@ -9,16 +9,20 @@ const {
   createTagDefinition,
   mergeTagDefinitions,
   mergeTagDefinitionsFromNotes,
+  normalizeTagColor,
   normalizeTagDefinitions,
   normalizeTagId,
   normalizeTagIds,
   removeMemoTag,
   restrictTagIds,
-  searchTagOptions
+  searchTagOptions,
+  summarizeTagIds,
+  tagColorForId
 } = require("./tags.js");
 
 const app = fs.readFileSync("app.js", "utf8");
 const html = fs.readFileSync("index.html", "utf8");
+const css = fs.readFileSync("style.css", "utf8");
 
 function readFunctionSource(name) {
   const start = app.indexOf(`function ${name}(`);
@@ -45,7 +49,7 @@ function readFunctionSource(name) {
 }
 
 test("tags.jsをapp.jsより前に読み込みwindow APIとして公開する", () => {
-  assert.ok(html.indexOf('src="tags.js?v=0.5.0-2"') < html.indexOf('src="app.js?v=0.5.0-115"'));
+  assert.ok(html.indexOf('src="tags.js?v=0.5.0-3"') < html.indexOf('src="app.js?v=0.5.0-116"'));
   assert.match(fs.readFileSync("tags.js", "utf8"), /global\.MemoNexusTags = api/);
 });
 
@@ -55,6 +59,22 @@ test("タグID正規化は空文字・空白・null・undefined・重複を除�
   assert.equal(normalizeTagId(null), null);
   assert.equal(normalizeTagId(undefined), null);
   assert.deepEqual(normalizeTagIds([" Work ", "", "work", "WORK", " 資料 ", null, undefined]), ["work", "資料"]);
+});
+
+test("タグ色は既存の安全な色を使い未設定・不正値を標準色へ戻す", () => {
+  assert.equal(normalizeTagColor(" #3a7 "), "#3a7");
+  assert.equal(normalizeTagColor("javascript:alert(1)"), "#6f8372");
+  assert.equal(normalizeTagColor(), "#6f8372");
+  assert.equal(tagColorForId([{ id: "work", name: "Work", color: "#123456" }], "work"), "#123456");
+  assert.equal(tagColorForId([{ id: "work", name: "Work", color: "not-a-color" }], "work"), "#6f8372");
+});
+
+test("一覧用タグ要約は先頭3件と残数を返しタグなしでも安全", () => {
+  assert.deepEqual(summarizeTagIds(["a", "b", "c", "d", "e"]), {
+    visibleTagIds: ["a", "b", "c"],
+    hiddenCount: 2
+  });
+  assert.deepEqual(summarizeTagIds(undefined), { visibleTagIds: [], hiddenCount: 0 });
 });
 
 test("登録済みタグ一覧はID重複を除き表示名順に並べる", () => {
@@ -144,6 +164,8 @@ test("選択式UIは未登録入力を案内し登録済み候補だけを追加
   assert.match(readFunctionSource("submitCurrentNoteTagSelection"), /findTagDefinition\(registeredTags[\s\S]*タグタブから新しいタグを作成してください/);
   assert.match(readFunctionSource("addRegisteredTagToCurrentNote"), /assignRegisteredTag\(currentTags, definition\.id, registeredTags\)/);
   assert.match(readFunctionSource("renderNoteTagOptions"), /document\.activeElement === noteTagInput/);
+  assert.match(readFunctionSource("renderNoteTagOptions"), /createTagColorDot\(definition\.id\)/);
+  assert.match(css, /\.tag-color-dot[\s\S]*border-radius: 50%/);
 });
 
 test("DB v5はtagsストアを追加し既存メモのタグを冪等移行する", () => {

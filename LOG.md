@@ -2136,3 +2136,12 @@
 * 制御可能な時計でbeforeinput 1.5ms、イベント間待機100ms、input 4.0msからtotal 5.5msになることを追加した。本文・タイトル・表セルのtotalを同じ6.0msへ揃え、表セルのUndo内訳1.5msを維持しつつ7.5msへ二重加算しないこと、内訳合計以上かつ名前のない同期時間を含むこと、Undo間引き時は実消費0.2msだけを加えることを検証した。pending失効、新beforeinput、全照合条件不一致、`discardNote()`、`discardTransient()`、`clear()`で旧時間を流用しないこと、属性・privacy・防御的コピー・リングバッファ・派生描画の既存契約も確認した。
 * 保存、Undo配線、本文・タイトル、表編集、IME、削除、メモ切替、full／auxiliary schedulerを含む関連テストは235件成功した。`node --test --test-isolation=none`の全64ファイル・806件はpass 806、fail・cancelled・skipped・todo 0だった。変更した`typing-performance-monitor.js`と同テストの`node --check`、`git diff --check`も成功した。配信識別子は`typing-performance-monitor.js?v=0.5.0-3`へ更新し、保存・Undo・描画の処理順、180ms／200ms／280msの予約、サンプル構造と最新200件、集計API、privacy境界は変更していない。
 * 残る手動確認は、`?debugTypingPerf=1`を付けた実ブラウザで短文・長文、本文・タイトル・表セル、日本語OS IME、Undo間引き、メモ切替を操作し、同期サンプルのp50・p95・最大値と内訳を実端末で比較することである。通常URLで計測が無効かつUI・保存内容・URL・console出力が不変であることも実ブラウザでは未確認である。
+
+## 2026-08-27 タグの視認性改善とメモ一覧検索連携
+
+* タグ定義・本文タイトル下・メモ一覧・タグタブ・キーワード検索・コレクション併用・語句リンクの既存経路を確認した。タグ検索は既存の単一状態`selectedTagFilter`を維持し、本文・一覧・タグタブ・メモ一覧プルダウンから共通`applyTagFilter()`だけを更新する構成へ集約した。タグ操作は一覧再描画だけを行い、メモを開く・作成する・編集する処理へ接続していない。
+* 本文タイトル下とメモ一覧は共通`createTagChip()`と`.tag-chip`を使う。チップは淡色背景・枠線・左アクセント・右上の折れ角を持つ付箋形状とし、表示名、キーボード操作、`aria-label`、`aria-pressed`を備える。タグ定義に有効な`color`があればCSS変数へ使い、未設定・不正・取得不能時は`#6f8372`へ戻す。DB・保存・バックアップ形式は変更していない。
+* メモ一覧はタイトル直下、本文要約より前へタグを最大3件表示し、残りを操作を持たない`+N`で示す。タグなしメモには領域を作らない。メモ一覧の検索欄下へ単一選択のタグプルダウンを追加し、`すべて`または`×`で解除できる。選択中タグは検索UIと全タグチップへ同期し、既存キーワード検索・コレクション条件・作成日順をそのまま組み合わせる。
+* タイトル下の登録済みタグ候補は、タグ名の前へCSS描画の色丸を追加した。既存の候補絞り込み、クリック選択、フォーム送信、新規タグ作成、タグ解除は維持した。`.wiki-link`、`.term-chip`、`renderWikiButton()`、`renderPreview()`、`openOrCreateLinkedNote()`は変更していない。
+* `tags.test.js`と`memo-list-utils.test.js`へ、色フォールバック、タグなし、先頭3件と`+N`、本文・一覧の共通検索経路、解除、アクティブ状態、付箋CSS、語句リンク非変更を追加した。配信識別子更新に伴う既存キャッシュ契約テストも更新した。`node --test --test-isolation=none`は全64ファイル・811件がpassし、fail・cancelled・skipped・todoは0件だった。`node --check app.js`、`node --check tags.js`、`git diff --check`も成功した。`package.json`にlintスクリプトはない。実ブラウザでの視覚・操作確認は未実施である。
+* 配信識別子は`style.css?v=0.5.0-58`、`tags.js?v=0.5.0-3`、`app.js?v=0.5.0-116`へ更新した。今回は単一タグ検索のみで、複数タグのAND／OR検索、色編集UI、タグ色の新規永続化は追加していない。

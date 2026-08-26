@@ -21,10 +21,10 @@ function manifest(overrides = {}) {
 
 test("タグバックアップ関連スクリプトのキャッシュ番号を更新する", () => {
   const html = fs.readFileSync("index.html", "utf8");
-  assert.match(html, /tags\.js\?v=0\.5\.0-2/);
+  assert.match(html, /tags\.js\?v=0\.5\.0-3/);
   assert.match(html, /local-sync-utils\.js\?v=0\.5\.0-10/);
   assert.match(html, /backup-bundle-utils\.js\?v=0\.5\.0-5/);
-  assert.match(html, /app\.js\?v=0\.5\.0-115/);
+  assert.match(html, /app\.js\?v=0\.5\.0-116/);
 });
 
 test("完全バックアップはメモ個別のWebフォントIDをそのまま往復する", () => {
