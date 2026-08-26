@@ -228,7 +228,7 @@ function createHarness({
     let isPopoutWindow = false;
     let registeredTags = ["tag-a", "tag-b"];
     const noteLiveDrafts = new Map();
-    const noteSaveBeforeLinkCounts = new Map();
+    const noteSaveBeforeBodies = new Map();
     const noteSaveUiChanges = new Map();
     const titleInput = { value: initialNotes[0]?.title || "A" };
     const editor = { value: initialNotes[0]?.body || "A0", focus() {} };
@@ -253,6 +253,7 @@ function createHarness({
     let textStatsRenderCount = 0;
     let tableEditorsRenderCount = 0;
     let aiTargetRenderCount = 0;
+    let extractLinksCount = 0;
     let renderAllOptions = [];
     let saveStatuses = [];
     let lastDiscovery = "";
@@ -337,7 +338,22 @@ function createHarness({
     const invalidateTermRelationIndex = () => { invalidateTermRelationIndexCount += 1; };
     const cloneNoteSnapshot = (value) => structuredClone(value);
     const activeNotes = () => notes.filter((note) => !note.deletedAt);
-    const collectLinks = () => [];
+    const extractLinks = (body) => {
+      extractLinksCount += 1;
+      const text = String(body || "");
+      const links = [];
+      let offset = 0;
+      while (true) {
+        const start = text.indexOf("[[", offset);
+        if (start === -1) break;
+        const end = text.indexOf("]]", start + 2);
+        if (end === -1) break;
+        const link = text.slice(start + 2, end).trim();
+        if (link) links.push(link);
+        offset = end + 2;
+      }
+      return links;
+    };
     const buildDiscoveryMessage = () => "discovered";
     const normalizeTagIds = (tags) => Array.isArray(tags) ? [...tags] : [];
     const restrictTagIds = (tags) => normalizeTagIds(tags).filter((tag) => registeredTags.includes(tag));
@@ -482,6 +498,8 @@ function createHarness({
           ,textStatsRenderCount
           ,tableEditorsRenderCount
           ,aiTargetRenderCount
+          ,extractLinksCount
+          ,lastDiscovery
           ,saveStatuses: [...saveStatuses]
           ,localSaveState: structuredClone(localSaveState)
           ,localSaveStatusHistory: [...localSaveStatusHistory]
@@ -1484,6 +1502,21 @@ test("本文を含む200件batchは現在メモと背景メモを反映し索引
   assert.equal(state.notes.every((note) => note.body === `${note.id} updated [[term]]`), true);
   assert.equal(harness.liveNote("A").body, "A updated [[term]]");
   assert.equal(harness.liveNote("N200").body, "N200 updated [[term]]");
+});
+
+test("本文入力ではリンクを解析せず保存成功時に変更前本文と最新本文を比較する", async () => {
+  const harness = createHarness();
+  harness.edit("A", "A0 [[B]]");
+  harness.scheduleSave();
+
+  assert.equal(harness.state().extractLinksCount, 0);
+  assert.equal(harness.state().lastDiscovery, "");
+
+  harness.runNextTimer();
+  await harness.foundation.whenIdle("A");
+
+  assert.equal(harness.state().extractLinksCount, 2);
+  assert.equal(harness.state().lastDiscovery, "discovered");
 });
 
 test("未反映の通常1件保存は派生UIを補完し保存成功専用UIだけを更新する", async () => {

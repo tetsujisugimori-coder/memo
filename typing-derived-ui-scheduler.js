@@ -65,9 +65,16 @@
     }
 
     function scheduleAuxiliary(noteId, revision) {
-      // カード・表は呼び出し側で同期済み。補助UIだけをtrailing要求として保持します。
+      // 構造化編集UIは呼び出し側で同期済み。Markdownカードを含む派生UIをtrailing要求として保持します。
       markRendered(noteId, revision, "primary");
       scheduleRequest(noteId, revision, REQUEST_TYPE_AUXILIARY);
+    }
+
+    function cancelAll() {
+      generation += 1;
+      clearArmedTimer();
+      pendingRequest = null;
+      compositionDepthByNoteId.clear();
     }
 
     function cancelNote(noteId) {
@@ -144,6 +151,7 @@
 
     return {
       beginComposition,
+      cancelAll,
       cancelNote,
       endComposition,
       markRendered,

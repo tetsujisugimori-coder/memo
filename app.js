@@ -14,6 +14,8 @@ const APP_BUILD = "2026-08-19";
 const UNCLASSIFIED_COLLECTION_ID = "system-unclassified";
 const MAX_COLLECTION_DEPTH = 5;
 const DRAFT_STORAGE_KEY = "memo-nexus-current-draft";
+// 派生UIは入力停止後にまとめ、200ms draft mirrorと280ms通常保存より先に最新表示へ揃えます。
+const TYPING_DERIVED_UI_DEBOUNCE_MS = 180;
 // 連続入力をまとめつつ、既存280ms通常保存より先に復元用コピーを残します。
 const DRAFT_MIRROR_DEBOUNCE_MS = 200;
 const POPOUT_WINDOW_STORAGE_KEY = "memo-nexus-popout-window";
@@ -845,7 +847,8 @@ let localDirtyMemoId = null;
 // 未保存の編集中状態はnotes配列と同じオブジェクトを共有し、入力時の全体cloneを避けます。
 // IndexedDBへ渡す固定snapshotはenqueueNoteSave()またはbatch開始時にだけ作成します。
 const noteLiveDrafts = new Map();
-const noteSaveBeforeLinkCounts = new Map();
+// 入力時は解析せず変更前本文の参照だけを保持し、リンク増加判定は保存成功側で行います。
+const noteSaveBeforeBodies = new Map();
 const noteSaveUiChanges = new Map();
 const permanentDeletionCleanupTasks = new Map();
 let lastDiscovery = "";
@@ -894,7 +897,7 @@ globalThis.MemoNexusDraftMirrorScheduler = draftMirrorScheduler;
 // 連続入力では途中状態を描画せず、入力が止まった時点の派生UIだけを反映します。
 // rAF/throttleは入力継続中にも再描画するため、末尾1回へ集約できるtrailing debounceを使います。
 const typingDerivedUiScheduler = MemoNexusTypingDerivedUi.createTypingDerivedUiScheduler({
-  delay: 180,
+  delay: TYPING_DERIVED_UI_DEBOUNCE_MS,
   getCurrentNoteId: () => currentId,
   onFlush: renderTypingDerivedUi
 });
@@ -1038,6 +1041,7 @@ function showDatabaseBlocked() {
 }
 
 function handleDatabaseVersionChange() {
+  globalThis.MemoNexusTypingDerivedUiScheduler?.cancelAll();
   try {
     applyCurrentEditorDraft(currentNote());
     forceFlushDraftMirror();
@@ -4977,7 +4981,7 @@ function applyCurrentEditorDraft(note = currentNote()) {
   const titleChanged = note.title !== nextTitle;
   if (!bodyChanged && !titleChanged) return false;
   if (bodyChanged && !noteSaveFoundation.isDirty(note.id)) {
-    noteSaveBeforeLinkCounts.set(note.id, collectLinks(activeNotes()).length);
+    noteSaveBeforeBodies.set(note.id, note.body);
   }
   if (titleChanged && !noteSaveUiChanges.has(note.id)) {
     noteSaveUiChanges.set(note.id, { titleBefore: note.title });
@@ -5195,9 +5199,9 @@ function applyNoteBatchSaveSuccess(results, liveNotesById = null) {
     if (!liveDraft || normalizeNoteRevision(liveDraft.revision) === request.revision) {
       noteLiveDrafts.delete(request.noteId);
     }
-    const beforeLinks = noteSaveBeforeLinkCounts.get(request.noteId);
-    if (Number.isFinite(beforeLinks)) linkChecks.push({ beforeLinks, savedNote: committedSnapshot });
-    noteSaveBeforeLinkCounts.delete(request.noteId);
+    const beforeBody = noteSaveBeforeBodies.get(request.noteId);
+    if (typeof beforeBody === "string") linkChecks.push({ beforeBody, savedNote: committedSnapshot });
+    noteSaveBeforeBodies.delete(request.noteId);
     noteSaveUiChanges.delete(request.noteId);
   });
   if (!savedById.size) return;
@@ -5208,8 +5212,7 @@ function applyNoteBatchSaveSuccess(results, liveNotesById = null) {
   });
   if (liveNotesById) savedById.forEach((note, noteId) => liveNotesById.set(noteId, note));
   if (linkChecks.length) {
-    const currentLinkCount = collectLinks(activeNotes()).length;
-    const discovered = linkChecks.find(({ beforeLinks }) => currentLinkCount > beforeLinks);
+    const discovered = linkChecks.find(({ beforeBody, savedNote }) => extractLinks(savedNote.body).length > extractLinks(beforeBody).length);
     if (discovered) lastDiscovery = buildDiscoveryMessage(discovered.savedNote);
   }
 }
@@ -5228,11 +5231,11 @@ function handleNoteSaveSuccess(request, state, context = {}) {
     if (!liveDraft || normalizeNoteRevision(liveDraft.revision) === request.revision) {
       noteLiveDrafts.delete(request.noteId);
     }
-    const beforeLinks = noteSaveBeforeLinkCounts.get(request.noteId);
-    if (Number.isFinite(beforeLinks) && collectLinks(activeNotes()).length > beforeLinks) {
+    const beforeBody = noteSaveBeforeBodies.get(request.noteId);
+    if (typeof beforeBody === "string" && extractLinks(savedNote.body).length > extractLinks(beforeBody).length) {
       lastDiscovery = buildDiscoveryMessage(savedNote);
     }
-    noteSaveBeforeLinkCounts.delete(request.noteId);
+    noteSaveBeforeBodies.delete(request.noteId);
     noteSaveUiChanges.delete(request.noteId);
   }
   const isCurrentSave = request.noteId === currentId;
@@ -5259,7 +5262,7 @@ function handleNoteSaveSuccess(request, state, context = {}) {
         globalThis.MemoNexusTypingDerivedUiScheduler?.markRendered(request.noteId, request.revision, requiredType);
       }
     } else if (requiredType === "auxiliary") {
-      if (renderTypingAuxiliaryUiAfterSynchronousPreview(request.noteId, request.revision)) {
+      if (renderTypingDerivedUiAfterStructuredEdit(request.noteId, request.revision)) {
         globalThis.MemoNexusTypingDerivedUiScheduler?.markRendered(request.noteId, request.revision, requiredType);
       }
     }
@@ -5588,6 +5591,7 @@ async function performPermanentDeletionCleanup(memoIds, tombstone = {}, { showNo
   ids.forEach((noteId) => {
     clearScheduledNoteSave(noteId);
     noteLiveDrafts.delete(noteId);
+    noteSaveBeforeBodies.delete(noteId);
     noteSaveUiChanges.delete(noteId);
     removeDraftMirrorForNote(noteId);
     selectedMemoIds.delete(noteId);
@@ -5664,17 +5668,17 @@ function scheduleSave({ render = true } = {}) {
   if (render) {
     globalThis.MemoNexusTypingDerivedUiScheduler?.schedule(note.id, note.revision);
   } else {
-    // カード・表は同期済みなので、全件走査する補助UIだけを最新revisionの末尾1回へ集約します。
+    // 構造化編集UIは同期維持し、Markdownカードを含む派生UIは最新revisionの末尾1回へ集約します。
     const scheduler = globalThis.MemoNexusTypingDerivedUiScheduler;
     if (scheduler) scheduler.scheduleAuxiliary(note.id, note.revision);
-    else renderTypingAuxiliaryUiAfterSynchronousPreview(note.id, note.revision);
+    else renderTypingDerivedUiAfterStructuredEdit(note.id, note.revision);
   }
   updateUndoButton();
 }
 
 function renderTypingDerivedUi(noteId, revision, requestType = "full") {
   if (requestType === "auxiliary") {
-    return renderTypingAuxiliaryUiAfterSynchronousPreview(noteId, revision);
+    return renderTypingDerivedUiAfterStructuredEdit(noteId, revision);
   }
   const note = currentNote();
   if (noteId !== currentId || noteSaveFoundation.isTerminal(noteId)) return false;
@@ -5689,12 +5693,13 @@ function renderTypingDerivedUi(noteId, revision, requestType = "full") {
   return true;
 }
 
-function renderTypingAuxiliaryUiAfterSynchronousPreview(noteId, revision) {
+function renderTypingDerivedUiAfterStructuredEdit(noteId, revision) {
   const note = currentNote();
   if (noteId !== currentId || noteSaveFoundation.isTerminal(noteId)) return false;
   if (!note || normalizeNoteRevision(note.revision) !== normalizeNoteRevision(revision)) return false;
   invalidateTermRelationIndex();
   renderMemoListPanel();
+  renderPreview();
   renderRelated();
   renderTextStats();
   updateAiTargetPreview();
@@ -5762,7 +5767,6 @@ function undoLastEdit() {
   renderTableBlockEditors();
   scheduleSave();
   renderNoteMeta();
-  renderList();
   updateUndoButton();
 }
 
@@ -6155,7 +6159,6 @@ function commitTableBlockChange(blockIndex, tableId, nextTable, { rerenderEditor
     captureUndoSnapshot({ inputType: "insertText" });
     editor.value = replaceTableBlock(editor.value, block, nextTable);
     if (rerenderEditors) renderTableBlockEditors();
-    renderPreview();
     scheduleSave({ render: false });
     return true;
   } catch (error) {
@@ -6181,7 +6184,6 @@ function insertTableAtSelection() {
   editor.value = result.value;
   editor.setSelectionRange(result.selectionStart, result.selectionEnd);
   renderTableBlockEditors();
-  renderPreview();
   scheduleSave({ render: false });
   focusTableCell(table.id, 0, 0);
 }
@@ -6386,7 +6388,6 @@ function handleTableEditorAction(event) {
       activeTableCell = null;
       tableAxisSelections.delete(tableId);
       renderTableBlockEditors();
-      renderPreview();
       scheduleSave({ render: false });
       editor.focus();
       return;
@@ -6481,7 +6482,6 @@ function commitImageBlockChange(block, images, caption, { throwOnError = false }
     const nextBody = replaceImageBlock(editor.value, block, images, caption);
     captureUndoSnapshot({ inputType: "insertText" });
     editor.value = nextBody;
-    renderPreview();
     scheduleSave({ render: false });
     return true;
   } catch (error) {
@@ -7181,7 +7181,6 @@ function insertPastedPlainText() {
   const nextPosition = pending.selectionStart + text.length;
   closeTablePasteDialog({ restoreFocus: false });
   renderTableBlockEditors();
-  renderPreview();
   scheduleSave({ render: false });
   editor.focus();
   editor.setSelectionRange(nextPosition, nextPosition);
@@ -7213,7 +7212,6 @@ function insertPastedTable() {
   tableAxisSelections.delete(table.id);
   closeTablePasteDialog({ restoreFocus: false });
   renderTableBlockEditors();
-  renderPreview();
   scheduleSave({ render: false });
   focusTableCell(table.id, 0, 0);
 }
@@ -12057,6 +12055,7 @@ document.addEventListener("keydown", (event) => {
   }
 });
 window.addEventListener("pagehide", () => {
+  globalThis.MemoNexusTypingDerivedUiScheduler?.cancelAll();
   stopAiGeneration();
   cleanupAttachmentObjectUrls();
   applyCurrentEditorDraft(currentNote());
