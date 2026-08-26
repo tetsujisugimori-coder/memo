@@ -33,7 +33,8 @@ test("ポップアウトURLは同じmemoIdを開き、本文入力は既存の�
   assert.match(app, /url\.searchParams\.set\("popout", memoId\)/);
   assert.match(app, /window\.open\("", `memo-nexus-popout-\$\{note\.id\}`/);
   assert.match(app, /flushSave\(\)\.then\(navigate\)/);
-  assert.match(app, /editor\.addEventListener\("input", \(\) => \{[\s\S]*?scheduleSave\(\);/);
+  assert.match(app, /function handleEditorTypingInput\([\s\S]*?scheduleSave\(\{ typingPerformanceContext: performanceContext \}\)/);
+  assert.match(app, /editor\.addEventListener\("input", handleEditorTypingInput\)/);
 });
 
 test("同期判定はDBとの差ではなく明示的なローカル編集状態を使う", () => {

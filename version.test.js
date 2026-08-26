@@ -26,7 +26,7 @@ test("現在のアプリ版とリリース名を0.5.0 Bridge Updateへ統一す�
 test("全ローカルCSS・JavaScriptを0.5.0のキャッシュ識別子で読み込む", () => {
   const assetVersions = [...html.matchAll(/(?:href|src)="(?!https?:)([^"?]+)\?v=([^"]+)"/g)]
     .map((match) => ({ path: match[1], version: match[2] }));
-  assert.equal(assetVersions.length, 43);
+  assert.equal(assetVersions.length, 44);
   assetVersions.forEach(({ path, version }) => {
     assert.match(version, /^0\.5\.0-\d+$/, `${path}のキャッシュ識別子`);
   });
@@ -34,7 +34,7 @@ test("全ローカルCSS・JavaScriptを0.5.0のキャッシュ識別子で読�
   assert.match(html, /note-save-foundation\.js\?v=0\.5\.0-8/);
   assert.match(html, /typing-derived-ui-scheduler\.js\?v=0\.5\.0-4/);
   assert.match(html, /draft-mirror-scheduler\.js\?v=0\.5\.0-2/);
-  assert.match(html, /app\.js\?v=0\.5\.0-113/);
+  assert.match(html, /app\.js\?v=0\.5\.0-114/);
 });
 
 test("本体リリースと別管理の互換性バージョンを変更しない", () => {

@@ -902,6 +902,9 @@ const typingDerivedUiScheduler = MemoNexusTypingDerivedUi.createTypingDerivedUiS
   onFlush: renderTypingDerivedUi
 });
 globalThis.MemoNexusTypingDerivedUiScheduler = typingDerivedUiScheduler;
+const typingPerformance = globalThis.MemoNexusTypingPerformance;
+const typingPerformanceEnabled = typingPerformance?.isEnabled() === true;
+let typingPerformanceScheduledContext = null;
 let noteFlagAnimationToken = 0;
 let mermaidConfiguredTheme = null;
 let mermaidRenderGeneration = 0;
@@ -2746,6 +2749,64 @@ function renderLocalSaveWarning() {
 
 function activeNotes() {
   return notes.filter((note) => !note.deletedAt);
+}
+
+function createTypingPerformanceContext(inputKind, event = null) {
+  if (!typingPerformanceEnabled) return null;
+  const compositionNoteId = inputKind === "title"
+    ? titleCompositionNoteId
+    : inputKind === "table"
+      ? tableEditorCompositionNoteId
+      : editorCompositionNoteId;
+  return {
+    inputKind,
+    inputType: event?.inputType || "unknown",
+    isComposing: Boolean(event?.isComposing || (compositionNoteId && compositionNoteId === currentId))
+  };
+}
+
+function typingPerformanceContextFromEvent(event) {
+  if (!typingPerformanceEnabled) return null;
+  if (event?.typingInputKind) return createTypingPerformanceContext(event.typingInputKind, event);
+  if (event?.currentTarget === titleInput) return createTypingPerformanceContext("title", event);
+  if (event?.currentTarget === editor) return createTypingPerformanceContext("body", event);
+  return null;
+}
+
+function typingPerformanceAttributes(context, renderType = "none") {
+  const note = currentNote();
+  return {
+    bodyLength: editor.value.length,
+    titleLength: titleInput.value.length,
+    memoCount: activeNotes().length,
+    inputKind: context?.inputKind || "other",
+    inputType: context?.inputType || "unknown",
+    isComposing: Boolean(context?.isComposing),
+    isCurrentNote: Boolean(note && note.id === currentId),
+    renderType
+  };
+}
+
+function recordTypingPerformanceDuration(name, duration, context, renderType = "none") {
+  if (!typingPerformanceEnabled || !context) return;
+  typingPerformance.record(name, duration, typingPerformanceAttributes(context, renderType));
+}
+
+function recordTypingPerformance(name, startedAt, context, renderType = "none") {
+  if (!typingPerformanceEnabled || !context || startedAt === null) return;
+  recordTypingPerformanceDuration(name, typingPerformance.elapsed(startedAt), context, renderType);
+}
+
+function typingPerformanceContextForRender(noteId, revision) {
+  const scheduled = typingPerformanceScheduledContext;
+  if (
+    scheduled
+    && scheduled.noteId === noteId
+    && normalizeNoteRevision(scheduled.revision) === normalizeNoteRevision(revision)
+  ) {
+    return scheduled.context;
+  }
+  return { inputKind: "other", inputType: "unknown", isComposing: false };
 }
 
 function initialCollections() {
@@ -5650,21 +5711,37 @@ function loadPendingMemoSync() {
 }
 
 // 入力のたびに即保存すると重いので、少し待ってから保存する予約をします。
-function scheduleSave({ render = true } = {}) {
+function scheduleSave({ render = true, typingPerformanceContext: performanceContext = null } = {}) {
   const note = currentNote();
   if (!note) return;
   if (noteSaveFoundation.isTerminal(note.id)) return;
+  const performanceDurations = performanceContext ? {} : null;
+  let performanceStartedAt = performanceContext ? typingPerformance.start() : null;
   applyCurrentEditorDraft(note);
+  if (performanceContext) performanceDurations.applyCurrentEditorDraft = typingPerformance.elapsed(performanceStartedAt);
+  performanceStartedAt = performanceContext ? typingPerformance.start() : null;
   scheduleDraftMirror(note);
+  if (performanceContext) performanceDurations.scheduleDraftMirror = typingPerformance.elapsed(performanceStartedAt);
+  performanceStartedAt = performanceContext ? typingPerformance.start() : null;
   clearTimeout(saveTimer);
   scheduledSaveNoteId = note.id;
+  let saveTimerDuration = performanceContext ? typingPerformance.elapsed(performanceStartedAt) : 0;
+  performanceStartedAt = performanceContext ? typingPerformance.start() : null;
   setSaveStatus("editing");
+  if (performanceContext) performanceDurations.setSaveStatus = typingPerformance.elapsed(performanceStartedAt);
   const noteId = note.id;
+  performanceStartedAt = performanceContext ? typingPerformance.start() : null;
   saveTimer = setTimeout(() => {
     saveTimer = null;
     scheduledSaveNoteId = null;
     enqueueNoteSave(noteId).catch((error) => console.error("Scheduled save failed", error));
   }, 280);
+  if (performanceContext) {
+    saveTimerDuration += typingPerformance.elapsed(performanceStartedAt);
+    performanceDurations.scheduleSaveTimer = saveTimerDuration;
+    typingPerformanceScheduledContext = { noteId: note.id, revision: note.revision, context: performanceContext };
+  }
+  performanceStartedAt = performanceContext ? typingPerformance.start() : null;
   if (render) {
     globalThis.MemoNexusTypingDerivedUiScheduler?.schedule(note.id, note.revision);
   } else {
@@ -5673,7 +5750,21 @@ function scheduleSave({ render = true } = {}) {
     if (scheduler) scheduler.scheduleAuxiliary(note.id, note.revision);
     else renderTypingDerivedUiAfterStructuredEdit(note.id, note.revision);
   }
+  if (performanceContext) performanceDurations.scheduleDerivedUi = typingPerformance.elapsed(performanceStartedAt);
+  performanceStartedAt = performanceContext ? typingPerformance.start() : null;
   updateUndoButton();
+  if (performanceContext) {
+    performanceDurations.updateUndoButton = typingPerformance.elapsed(performanceStartedAt);
+    const renderType = render ? "full" : "auxiliary";
+    const attributes = typingPerformanceAttributes(performanceContext, renderType);
+    const prefix = `${performanceContext.inputKind}.sync`;
+    typingPerformance.record(`${prefix}.applyCurrentEditorDraft`, performanceDurations.applyCurrentEditorDraft, attributes);
+    typingPerformance.record(`${prefix}.scheduleDraftMirror`, performanceDurations.scheduleDraftMirror, attributes);
+    typingPerformance.record(`${prefix}.setSaveStatus`, performanceDurations.setSaveStatus, attributes);
+    typingPerformance.record(`${prefix}.scheduleSaveTimer`, performanceDurations.scheduleSaveTimer, attributes);
+    typingPerformance.record(`${prefix}.scheduleDerivedUi.${renderType}`, performanceDurations.scheduleDerivedUi, attributes);
+    typingPerformance.record(`${prefix}.updateUndoButton`, performanceDurations.updateUndoButton, attributes);
+  }
 }
 
 function renderTypingDerivedUi(noteId, revision, requestType = "full") {
@@ -5683,13 +5774,38 @@ function renderTypingDerivedUi(noteId, revision, requestType = "full") {
   const note = currentNote();
   if (noteId !== currentId || noteSaveFoundation.isTerminal(noteId)) return false;
   if (!note || normalizeNoteRevision(note.revision) !== normalizeNoteRevision(revision)) return false;
+  const performanceContext = typingPerformanceEnabled ? typingPerformanceContextForRender(noteId, revision) : null;
+  const totalStartedAt = performanceContext ? typingPerformance.start() : null;
   invalidateTermRelationIndex();
+  let performanceStartedAt = performanceContext ? typingPerformance.start() : null;
   renderMemoListPanel();
+  const memoListDuration = performanceContext ? typingPerformance.elapsed(performanceStartedAt) : 0;
+  performanceStartedAt = performanceContext ? typingPerformance.start() : null;
   renderPreview();
+  const previewDuration = performanceContext ? typingPerformance.elapsed(performanceStartedAt) : 0;
+  performanceStartedAt = performanceContext ? typingPerformance.start() : null;
   renderRelated();
+  const relatedDuration = performanceContext ? typingPerformance.elapsed(performanceStartedAt) : 0;
+  performanceStartedAt = performanceContext ? typingPerformance.start() : null;
   renderTextStats();
+  const textStatsDuration = performanceContext ? typingPerformance.elapsed(performanceStartedAt) : 0;
+  performanceStartedAt = performanceContext ? typingPerformance.start() : null;
   renderTableBlockEditors();
+  const tableEditorsDuration = performanceContext ? typingPerformance.elapsed(performanceStartedAt) : 0;
+  performanceStartedAt = performanceContext ? typingPerformance.start() : null;
   updateAiTargetPreview();
+  if (performanceContext) {
+    const aiTargetDuration = typingPerformance.elapsed(performanceStartedAt);
+    const totalDuration = typingPerformance.elapsed(totalStartedAt);
+    const attributes = typingPerformanceAttributes(performanceContext, "full");
+    typingPerformance.record("full.derived.renderMemoListPanel", memoListDuration, attributes);
+    typingPerformance.record("full.derived.renderPreview", previewDuration, attributes);
+    typingPerformance.record("full.derived.renderRelated", relatedDuration, attributes);
+    typingPerformance.record("full.derived.renderTextStats", textStatsDuration, attributes);
+    typingPerformance.record("full.derived.renderTableBlockEditors", tableEditorsDuration, attributes);
+    typingPerformance.record("full.derived.updateAiTargetPreview", aiTargetDuration, attributes);
+    typingPerformance.record("full.derived.total", totalDuration, attributes);
+  }
   return true;
 }
 
@@ -5697,21 +5813,51 @@ function renderTypingDerivedUiAfterStructuredEdit(noteId, revision) {
   const note = currentNote();
   if (noteId !== currentId || noteSaveFoundation.isTerminal(noteId)) return false;
   if (!note || normalizeNoteRevision(note.revision) !== normalizeNoteRevision(revision)) return false;
+  const performanceContext = typingPerformanceEnabled ? typingPerformanceContextForRender(noteId, revision) : null;
+  const totalStartedAt = performanceContext ? typingPerformance.start() : null;
   invalidateTermRelationIndex();
+  let performanceStartedAt = performanceContext ? typingPerformance.start() : null;
   renderMemoListPanel();
+  const memoListDuration = performanceContext ? typingPerformance.elapsed(performanceStartedAt) : 0;
+  performanceStartedAt = performanceContext ? typingPerformance.start() : null;
   renderPreview();
+  const previewDuration = performanceContext ? typingPerformance.elapsed(performanceStartedAt) : 0;
+  performanceStartedAt = performanceContext ? typingPerformance.start() : null;
   renderRelated();
+  const relatedDuration = performanceContext ? typingPerformance.elapsed(performanceStartedAt) : 0;
+  performanceStartedAt = performanceContext ? typingPerformance.start() : null;
   renderTextStats();
+  const textStatsDuration = performanceContext ? typingPerformance.elapsed(performanceStartedAt) : 0;
+  performanceStartedAt = performanceContext ? typingPerformance.start() : null;
   updateAiTargetPreview();
+  if (performanceContext) {
+    const aiTargetDuration = typingPerformance.elapsed(performanceStartedAt);
+    const totalDuration = typingPerformance.elapsed(totalStartedAt);
+    const attributes = typingPerformanceAttributes(performanceContext, "auxiliary");
+    typingPerformance.record("auxiliary.derived.renderMemoListPanel", memoListDuration, attributes);
+    typingPerformance.record("auxiliary.derived.renderPreview", previewDuration, attributes);
+    typingPerformance.record("auxiliary.derived.renderRelated", relatedDuration, attributes);
+    typingPerformance.record("auxiliary.derived.renderTextStats", textStatsDuration, attributes);
+    typingPerformance.record("auxiliary.derived.updateAiTargetPreview", aiTargetDuration, attributes);
+    typingPerformance.record("auxiliary.derived.total", totalDuration, attributes);
+  }
   return true;
 }
 
 function captureUndoSnapshot(event) {
-  if (!currentId) return;
+  const performanceContext = typingPerformanceEnabled ? typingPerformanceContextFromEvent(event) : null;
+  const performanceStartedAt = performanceContext ? typingPerformance.start() : null;
+  if (!currentId) {
+    if (performanceContext) recordTypingPerformance(`${performanceContext.inputKind}.sync.captureUndoSnapshot`, performanceStartedAt, performanceContext);
+    return;
+  }
 
   const now = Date.now();
   const force = shouldForceUndoSnapshot(event && event.inputType);
-  if (!force && now - lastUndoSnapshotAt < UNDO_INPUT_INTERVAL_MS) return;
+  if (!force && now - lastUndoSnapshotAt < UNDO_INPUT_INTERVAL_MS) {
+    if (performanceContext) recordTypingPerformance(`${performanceContext.inputKind}.sync.captureUndoSnapshot`, performanceStartedAt, performanceContext);
+    return;
+  }
 
   pushUndoSnapshot({
     noteId: currentId,
@@ -5719,6 +5865,22 @@ function captureUndoSnapshot(event) {
     body: editor.value,
     savedAt: now
   });
+  if (performanceContext) recordTypingPerformance(`${performanceContext.inputKind}.sync.captureUndoSnapshot`, performanceStartedAt, performanceContext);
+}
+
+function handleTitleTypingInput(event) {
+  const performanceContext = typingPerformanceEnabled ? createTypingPerformanceContext("title", event) : null;
+  const performanceStartedAt = performanceContext ? typingPerformance.start() : null;
+  scheduleSave({ typingPerformanceContext: performanceContext });
+  if (performanceContext) recordTypingPerformance("title.input.total", performanceStartedAt, performanceContext, "full");
+}
+
+function handleEditorTypingInput(event) {
+  const performanceContext = typingPerformanceEnabled ? createTypingPerformanceContext("body", event) : null;
+  const performanceStartedAt = performanceContext ? typingPerformance.start() : null;
+  resetEditorCaretIdle();
+  scheduleSave({ typingPerformanceContext: performanceContext });
+  if (performanceContext) recordTypingPerformance("body.input.total", performanceStartedAt, performanceContext, "full");
 }
 
 function shouldForceUndoSnapshot(inputType) {
@@ -6152,14 +6314,21 @@ function renderTableBlockEditors() {
   blocks.forEach((block, blockIndex) => tableBlockEditors.append(createTableEditor(block.table, blockIndex)));
 }
 
-function commitTableBlockChange(blockIndex, tableId, nextTable, { rerenderEditors = false } = {}) {
+function commitTableBlockChange(blockIndex, tableId, nextTable, {
+  rerenderEditors = false,
+  typingPerformanceContext: performanceContext = null
+} = {}) {
   const block = currentTableBlock(blockIndex, tableId);
   if (!block) return false;
   try {
-    captureUndoSnapshot({ inputType: "insertText" });
+    captureUndoSnapshot({
+      inputType: "insertText",
+      typingInputKind: performanceContext?.inputKind,
+      isComposing: performanceContext?.isComposing
+    });
     editor.value = replaceTableBlock(editor.value, block, nextTable);
     if (rerenderEditors) renderTableBlockEditors();
-    scheduleSave({ render: false });
+    scheduleSave({ render: false, typingPerformanceContext: performanceContext });
     return true;
   } catch (error) {
     alert(error.message || String(error));
@@ -6189,6 +6358,8 @@ function insertTableAtSelection() {
 }
 
 function handleTableEditorInput(event) {
+  const performanceContext = typingPerformanceEnabled ? createTypingPerformanceContext("table", event) : null;
+  const performanceStartedAt = performanceContext ? typingPerformance.start() : null;
   const editorBlock = event.target.closest(".table-block-editor");
   if (!editorBlock) return;
   const blockIndex = Number(editorBlock.dataset.tableIndex);
@@ -6203,7 +6374,10 @@ function handleTableEditorInput(event) {
   } else {
     return;
   }
-  commitTableBlockChange(blockIndex, tableId, next);
+  commitTableBlockChange(blockIndex, tableId, next, { typingPerformanceContext: performanceContext });
+  if (performanceContext) {
+    recordTypingPerformance("table.input.total", performanceStartedAt, performanceContext, "auxiliary");
+  }
 }
 
 function handleTableEditorCompositionStart(event) {
@@ -11942,11 +12116,8 @@ editor.addEventListener("dragover", (event) => {
   if (editorDropHasFiles(event)) event.preventDefault();
 });
 editor.addEventListener("drop", handleEditorAttachmentDrop);
-titleInput.addEventListener("input", scheduleSave);
-editor.addEventListener("input", () => {
-  resetEditorCaretIdle();
-  scheduleSave();
-});
+titleInput.addEventListener("input", handleTitleTypingInput);
+editor.addEventListener("input", handleEditorTypingInput);
 editor.addEventListener("select", rememberEditorSelectionRange);
 editor.addEventListener("select", () => {
   resetEditorCaretIdle();
