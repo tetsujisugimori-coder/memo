@@ -319,6 +319,8 @@ function createHarness({
     const updateAiTargetPreview = () => { aiTargetRenderCount += 1; };
     const renderNoteTagOptions = noop;
     const saveCurrentDraftMirror = noop;
+    const scheduleDraftMirror = noop;
+    const flushDraftMirror = noop;
     const setSaveStatus = (status) => { saveStatuses.push(status); };
     const invalidateTermRelationIndex = () => { invalidateTermRelationIndexCount += 1; };
     const cloneNoteSnapshot = (value) => structuredClone(value);
