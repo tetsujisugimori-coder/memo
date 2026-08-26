@@ -902,6 +902,8 @@ const typingDerivedUiScheduler = MemoNexusTypingDerivedUi.createTypingDerivedUiS
   onFlush: renderTypingDerivedUi
 });
 globalThis.MemoNexusTypingDerivedUiScheduler = typingDerivedUiScheduler;
+const typingPerformance = globalThis.MemoNexusTypingPerformance;
+const typingPerformanceEnabled = typingPerformance?.isEnabled() === true;
 let noteFlagAnimationToken = 0;
 let mermaidConfiguredTheme = null;
 let mermaidRenderGeneration = 0;
@@ -1042,6 +1044,7 @@ function showDatabaseBlocked() {
 
 function handleDatabaseVersionChange() {
   globalThis.MemoNexusTypingDerivedUiScheduler?.cancelAll();
+  if (typingPerformanceEnabled) typingPerformance.discardTransient();
   try {
     applyCurrentEditorDraft(currentNote());
     forceFlushDraftMirror();
@@ -2746,6 +2749,71 @@ function renderLocalSaveWarning() {
 
 function activeNotes() {
   return notes.filter((note) => !note.deletedAt);
+}
+
+function createTypingPerformanceContext(inputKind, event = null) {
+  if (!typingPerformanceEnabled) return null;
+  const note = currentNote();
+  const compositionNoteId = inputKind === "title"
+    ? titleCompositionNoteId
+    : inputKind === "table"
+      ? tableEditorCompositionNoteId
+      : editorCompositionNoteId;
+  return {
+    noteKey: currentId,
+    revision: note?.revision,
+    inputKind,
+    inputType: event?.inputType || "unknown",
+    isComposing: Boolean(event?.isComposing || (compositionNoteId && compositionNoteId === currentId))
+  };
+}
+
+function typingPerformanceContextFromEvent(event) {
+  if (!typingPerformanceEnabled) return null;
+  if (event?.typingInputKind) return createTypingPerformanceContext(event.typingInputKind, event);
+  if (event?.currentTarget === titleInput) return createTypingPerformanceContext("title", event);
+  if (event?.currentTarget === editor) return createTypingPerformanceContext("body", event);
+  return null;
+}
+
+function typingPerformanceAttributes() {
+  const note = currentNote();
+  return {
+    bodyLength: editor.value.length,
+    titleLength: titleInput.value.length,
+    memoCount: activeNotes().length,
+    isCurrentNote: Boolean(note && note.id === currentId)
+  };
+}
+
+function measureTypingPerformanceOperation(durations, name, operation) {
+  if (!durations) return operation();
+  const startedAt = typingPerformance.start();
+  const result = operation();
+  durations[name] = (durations[name] || 0) + typingPerformance.elapsed(startedAt);
+  return result;
+}
+
+function createTypingPerformanceMeasurement(inputKind, event) {
+  if (!typingPerformanceEnabled) return null;
+  const context = createTypingPerformanceContext(inputKind, event);
+  return {
+    context,
+    token: typingPerformance.consumeInput(context),
+    durations: {},
+    derived: null
+  };
+}
+
+function completeTypingPerformanceMeasurement(measurement, totalDuration, renderType) {
+  if (!measurement) return;
+  typingPerformance.completeInput(measurement.token, {
+    durations: measurement.durations,
+    totalDuration,
+    renderType,
+    derived: measurement.derived,
+    attributesFactory: typingPerformanceAttributes
+  });
 }
 
 function initialCollections() {
@@ -4809,7 +4877,10 @@ function openNote(id) {
   const note = draft || notes.find((item) => item.id === id);
   if (!note) return;
   // openNoteは新しいメモの全派生UIを同期描画するため、旧メモ自身の予約だけを破棄します。
-  if (previousId) globalThis.MemoNexusTypingDerivedUiScheduler?.cancelNote(previousId);
+  if (previousId) {
+    globalThis.MemoNexusTypingDerivedUiScheduler?.cancelNote(previousId);
+    if (typingPerformanceEnabled) typingPerformance.discardNote(previousId);
+  }
   if (draft) {
     const index = notes.findIndex((item) => item.id === id);
     if (index === -1) notes.unshift(draft); else notes[index] = draft;
@@ -5586,7 +5657,10 @@ function cleanupPermanentlyDeletedMemos(memoIds, tombstone = {}, options = {}) {
 async function performPermanentDeletionCleanup(memoIds, tombstone = {}, { showNotice = true } = {}) {
   const ids = [...new Set(memoIds || [])].filter(Boolean);
   if (!ids.length) return;
-  ids.forEach((noteId) => globalThis.MemoNexusTypingDerivedUiScheduler?.cancelNote(noteId));
+  ids.forEach((noteId) => {
+    globalThis.MemoNexusTypingDerivedUiScheduler?.cancelNote(noteId);
+    if (typingPerformanceEnabled) typingPerformance.discardNote(noteId);
+  });
   noteSaveFoundation.finishPermanentDeletion(ids, tombstone);
   ids.forEach((noteId) => {
     clearScheduledNoteSave(noteId);
@@ -5619,7 +5693,10 @@ async function handleMemoSyncMessage(message) {
   if (message.type === "memo-permanent-delete-started") {
     noteSaveFoundation.beginExternalTerminalDelete(message.memoIds, message);
     message.memoIds?.forEach(clearScheduledNoteSave);
-    message.memoIds?.forEach((noteId) => globalThis.MemoNexusTypingDerivedUiScheduler?.cancelNote(noteId));
+    message.memoIds?.forEach((noteId) => {
+      globalThis.MemoNexusTypingDerivedUiScheduler?.cancelNote(noteId);
+      if (typingPerformanceEnabled) typingPerformance.discardNote(noteId);
+    });
     if (message.memoIds?.includes(currentId)) setSaveStatusNotice("別のウィンドウで完全削除中です...");
     return;
   }
@@ -5650,30 +5727,40 @@ function loadPendingMemoSync() {
 }
 
 // 入力のたびに即保存すると重いので、少し待ってから保存する予約をします。
-function scheduleSave({ render = true } = {}) {
+function scheduleSave({ render = true, typingPerformanceMeasurement: performanceMeasurement = null } = {}) {
   const note = currentNote();
   if (!note) return;
   if (noteSaveFoundation.isTerminal(note.id)) return;
-  applyCurrentEditorDraft(note);
-  scheduleDraftMirror(note);
-  clearTimeout(saveTimer);
-  scheduledSaveNoteId = note.id;
-  setSaveStatus("editing");
+  const performanceDurations = performanceMeasurement?.durations || null;
+  measureTypingPerformanceOperation(performanceDurations, "applyCurrentEditorDraft", () => applyCurrentEditorDraft(note));
+  measureTypingPerformanceOperation(performanceDurations, "scheduleDraftMirror", () => scheduleDraftMirror(note));
+  measureTypingPerformanceOperation(performanceDurations, "scheduleSaveTimer", () => {
+    clearTimeout(saveTimer);
+    scheduledSaveNoteId = note.id;
+  });
+  measureTypingPerformanceOperation(performanceDurations, "setSaveStatus", () => setSaveStatus("editing"));
   const noteId = note.id;
-  saveTimer = setTimeout(() => {
-    saveTimer = null;
-    scheduledSaveNoteId = null;
-    enqueueNoteSave(noteId).catch((error) => console.error("Scheduled save failed", error));
-  }, 280);
-  if (render) {
-    globalThis.MemoNexusTypingDerivedUiScheduler?.schedule(note.id, note.revision);
-  } else {
-    // 構造化編集UIは同期維持し、Markdownカードを含む派生UIは最新revisionの末尾1回へ集約します。
-    const scheduler = globalThis.MemoNexusTypingDerivedUiScheduler;
-    if (scheduler) scheduler.scheduleAuxiliary(note.id, note.revision);
-    else renderTypingDerivedUiAfterStructuredEdit(note.id, note.revision);
+  measureTypingPerformanceOperation(performanceDurations, "scheduleSaveTimer", () => {
+    saveTimer = setTimeout(() => {
+      saveTimer = null;
+      scheduledSaveNoteId = null;
+      enqueueNoteSave(noteId).catch((error) => console.error("Scheduled save failed", error));
+    }, 280);
+  });
+  measureTypingPerformanceOperation(performanceDurations, "scheduleDerivedUi", () => {
+    if (render) {
+      globalThis.MemoNexusTypingDerivedUiScheduler?.schedule(note.id, note.revision);
+    } else {
+      // 構造化編集UIは同期維持し、Markdownカードを含む派生UIは最新revisionの末尾1回へ集約します。
+      const scheduler = globalThis.MemoNexusTypingDerivedUiScheduler;
+      if (scheduler) scheduler.scheduleAuxiliary(note.id, note.revision);
+      else renderTypingDerivedUiAfterStructuredEdit(note.id, note.revision);
+    }
+  });
+  measureTypingPerformanceOperation(performanceDurations, "updateUndoButton", updateUndoButton);
+  if (performanceMeasurement) {
+    performanceMeasurement.derived = { noteKey: note.id, revision: note.revision };
   }
-  updateUndoButton();
 }
 
 function renderTypingDerivedUi(noteId, revision, requestType = "full") {
@@ -5683,13 +5770,28 @@ function renderTypingDerivedUi(noteId, revision, requestType = "full") {
   const note = currentNote();
   if (noteId !== currentId || noteSaveFoundation.isTerminal(noteId)) return false;
   if (!note || normalizeNoteRevision(note.revision) !== normalizeNoteRevision(revision)) return false;
-  invalidateTermRelationIndex();
-  renderMemoListPanel();
-  renderPreview();
-  renderRelated();
-  renderTextStats();
-  renderTableBlockEditors();
-  updateAiTargetPreview();
+  const shouldMeasure = typingPerformanceEnabled
+    && typingPerformance.shouldMeasureDerived(noteId, revision, "full");
+  const performanceDurations = shouldMeasure ? {} : null;
+  const totalStartedAt = shouldMeasure ? typingPerformance.start() : null;
+  measureTypingPerformanceOperation(performanceDurations, "invalidateTermRelationIndex", invalidateTermRelationIndex);
+  measureTypingPerformanceOperation(performanceDurations, "renderMemoListPanel", renderMemoListPanel);
+  measureTypingPerformanceOperation(performanceDurations, "renderPreview", renderPreview);
+  measureTypingPerformanceOperation(performanceDurations, "renderRelated", renderRelated);
+  measureTypingPerformanceOperation(performanceDurations, "renderTextStats", renderTextStats);
+  measureTypingPerformanceOperation(performanceDurations, "renderTableBlockEditors", renderTableBlockEditors);
+  measureTypingPerformanceOperation(performanceDurations, "updateAiTargetPreview", updateAiTargetPreview);
+  if (shouldMeasure) {
+    const totalDuration = typingPerformance.elapsed(totalStartedAt);
+    typingPerformance.recordDerivedSample({
+      noteKey: noteId,
+      revision,
+      renderType: "full",
+      durations: performanceDurations,
+      totalDuration,
+      attributesFactory: typingPerformanceAttributes
+    });
+  }
   return true;
 }
 
@@ -5697,28 +5799,79 @@ function renderTypingDerivedUiAfterStructuredEdit(noteId, revision) {
   const note = currentNote();
   if (noteId !== currentId || noteSaveFoundation.isTerminal(noteId)) return false;
   if (!note || normalizeNoteRevision(note.revision) !== normalizeNoteRevision(revision)) return false;
-  invalidateTermRelationIndex();
-  renderMemoListPanel();
-  renderPreview();
-  renderRelated();
-  renderTextStats();
-  updateAiTargetPreview();
+  const shouldMeasure = typingPerformanceEnabled
+    && typingPerformance.shouldMeasureDerived(noteId, revision, "auxiliary");
+  const performanceDurations = shouldMeasure ? {} : null;
+  const totalStartedAt = shouldMeasure ? typingPerformance.start() : null;
+  measureTypingPerformanceOperation(performanceDurations, "invalidateTermRelationIndex", invalidateTermRelationIndex);
+  measureTypingPerformanceOperation(performanceDurations, "renderMemoListPanel", renderMemoListPanel);
+  measureTypingPerformanceOperation(performanceDurations, "renderPreview", renderPreview);
+  measureTypingPerformanceOperation(performanceDurations, "renderRelated", renderRelated);
+  measureTypingPerformanceOperation(performanceDurations, "renderTextStats", renderTextStats);
+  measureTypingPerformanceOperation(performanceDurations, "updateAiTargetPreview", updateAiTargetPreview);
+  if (shouldMeasure) {
+    const totalDuration = typingPerformance.elapsed(totalStartedAt);
+    typingPerformance.recordDerivedSample({
+      noteKey: noteId,
+      revision,
+      renderType: "auxiliary",
+      durations: performanceDurations,
+      totalDuration,
+      attributesFactory: typingPerformanceAttributes
+    });
+  }
   return true;
 }
 
 function captureUndoSnapshot(event) {
-  if (!currentId) return;
+  const performanceContext = typingPerformanceEnabled ? typingPerformanceContextFromEvent(event) : null;
+  const performanceToken = typingPerformanceEnabled
+    ? (event?.typingPerformanceToken ?? (performanceContext ? typingPerformance.beginInput(performanceContext) : null))
+    : null;
+  const performanceStartedAt = performanceToken !== null ? typingPerformance.start() : null;
+  try {
+    if (!currentId) return;
 
-  const now = Date.now();
-  const force = shouldForceUndoSnapshot(event && event.inputType);
-  if (!force && now - lastUndoSnapshotAt < UNDO_INPUT_INTERVAL_MS) return;
+    const now = Date.now();
+    const force = shouldForceUndoSnapshot(event && event.inputType);
+    if (!force && now - lastUndoSnapshotAt < UNDO_INPUT_INTERVAL_MS) return;
 
-  pushUndoSnapshot({
-    noteId: currentId,
-    title: titleInput.value,
-    body: editor.value,
-    savedAt: now
-  });
+    pushUndoSnapshot({
+      noteId: currentId,
+      title: titleInput.value,
+      body: editor.value,
+      savedAt: now
+    });
+  } finally {
+    if (performanceToken !== null) {
+      typingPerformance.addInputDuration(
+        performanceToken,
+        "captureUndoSnapshot",
+        typingPerformance.elapsed(performanceStartedAt)
+      );
+    }
+  }
+}
+
+function handleTitleTypingInput(event) {
+  const performanceMeasurement = createTypingPerformanceMeasurement("title", event);
+  const performanceStartedAt = performanceMeasurement ? typingPerformance.start() : null;
+  scheduleSave({ typingPerformanceMeasurement: performanceMeasurement });
+  if (performanceMeasurement) {
+    const totalDuration = typingPerformance.elapsed(performanceStartedAt);
+    completeTypingPerformanceMeasurement(performanceMeasurement, totalDuration, "full");
+  }
+}
+
+function handleEditorTypingInput(event) {
+  const performanceMeasurement = createTypingPerformanceMeasurement("body", event);
+  const performanceStartedAt = performanceMeasurement ? typingPerformance.start() : null;
+  resetEditorCaretIdle();
+  scheduleSave({ typingPerformanceMeasurement: performanceMeasurement });
+  if (performanceMeasurement) {
+    const totalDuration = typingPerformance.elapsed(performanceStartedAt);
+    completeTypingPerformanceMeasurement(performanceMeasurement, totalDuration, "full");
+  }
 }
 
 function shouldForceUndoSnapshot(inputType) {
@@ -5803,6 +5956,7 @@ async function deleteCurrentNote() {
   const confirmed = confirm(`「${note.title}」をゴミ箱へ移動しますか？`);
   if (!confirmed) return;
   globalThis.MemoNexusTypingDerivedUiScheduler?.cancelNote(note.id);
+  if (typingPerformanceEnabled) typingPerformance.discardNote(note.id);
 
   const normalBefore = activeNotes();
   const currentIndex = normalBefore.findIndex((item) => item.id === note.id);
@@ -6152,14 +6306,22 @@ function renderTableBlockEditors() {
   blocks.forEach((block, blockIndex) => tableBlockEditors.append(createTableEditor(block.table, blockIndex)));
 }
 
-function commitTableBlockChange(blockIndex, tableId, nextTable, { rerenderEditors = false } = {}) {
+function commitTableBlockChange(blockIndex, tableId, nextTable, {
+  rerenderEditors = false,
+  typingPerformanceMeasurement: performanceMeasurement = null
+} = {}) {
   const block = currentTableBlock(blockIndex, tableId);
   if (!block) return false;
   try {
-    captureUndoSnapshot({ inputType: "insertText" });
+    captureUndoSnapshot({
+      inputType: "insertText",
+      typingInputKind: performanceMeasurement?.context.inputKind,
+      typingPerformanceToken: performanceMeasurement?.token,
+      isComposing: performanceMeasurement?.context.isComposing
+    });
     editor.value = replaceTableBlock(editor.value, block, nextTable);
     if (rerenderEditors) renderTableBlockEditors();
-    scheduleSave({ render: false });
+    scheduleSave({ render: false, typingPerformanceMeasurement: performanceMeasurement });
     return true;
   } catch (error) {
     alert(error.message || String(error));
@@ -6195,15 +6357,22 @@ function handleTableEditorInput(event) {
   const tableId = editorBlock.dataset.tableId;
   const block = currentTableBlock(blockIndex, tableId);
   if (!block) return;
+  const editsCell = event.target.matches(".table-block-cell-input");
+  const tableField = event.target.dataset.tableField;
+  if (!editsCell && !tableField) return;
+  const performanceMeasurement = createTypingPerformanceMeasurement("table", event);
+  const performanceStartedAt = performanceMeasurement ? typingPerformance.start() : null;
   let next = block.table;
-  if (event.target.matches(".table-block-cell-input")) {
+  if (editsCell) {
     next = updateTableCell(next, Number(event.target.dataset.rowIndex), Number(event.target.dataset.columnIndex), event.target.value);
-  } else if (event.target.dataset.tableField) {
-    next = normalizeTableBlock({ ...next, [event.target.dataset.tableField]: event.target.value }, tableId);
   } else {
-    return;
+    next = normalizeTableBlock({ ...next, [tableField]: event.target.value }, tableId);
   }
-  commitTableBlockChange(blockIndex, tableId, next);
+  commitTableBlockChange(blockIndex, tableId, next, { typingPerformanceMeasurement: performanceMeasurement });
+  if (performanceMeasurement) {
+    const totalDuration = typingPerformance.elapsed(performanceStartedAt);
+    completeTypingPerformanceMeasurement(performanceMeasurement, totalDuration, "auxiliary");
+  }
 }
 
 function handleTableEditorCompositionStart(event) {
@@ -10517,7 +10686,10 @@ async function moveMemosToCollection(memoIds, collectionId) {
 async function moveMemosToTrash(memoIds) {
   const targets = [...new Set(memoIds)].map((id) => noteForSave(id)).filter((note) => note && !note.deletedAt);
   if (!targets.length || !confirm(`${targets.length}件をゴミ箱へ移動しますか？`)) return;
-  targets.forEach((note) => globalThis.MemoNexusTypingDerivedUiScheduler?.cancelNote(note.id));
+  targets.forEach((note) => {
+    globalThis.MemoNexusTypingDerivedUiScheduler?.cancelNote(note.id);
+    if (typingPerformanceEnabled) typingPerformance.discardNote(note.id);
+  });
   const deletedAt = new Date().toISOString();
   await mutateNotesAtomically(targets.map((note) => note.id), (note) => {
     note.deletedAt = deletedAt;
@@ -10553,7 +10725,10 @@ async function restoreMemos(memoIds) {
 async function permanentlyDeleteMemos(memoIds) {
   const targets = memoIds.map((id) => noteForSave(id)).filter((note) => note?.deletedAt);
   if (!targets.length || !confirm(`${targets.length}件を完全に削除しますか？\nこの操作は元に戻せません。`)) return;
-  targets.forEach((note) => globalThis.MemoNexusTypingDerivedUiScheduler?.cancelNote(note.id));
+  targets.forEach((note) => {
+    globalThis.MemoNexusTypingDerivedUiScheduler?.cancelNote(note.id);
+    if (typingPerformanceEnabled) typingPerformance.discardNote(note.id);
+  });
   const targetIds = targets.map((note) => note.id);
   const tombstone = {
     deletionId: crypto.randomUUID(),
@@ -11942,11 +12117,8 @@ editor.addEventListener("dragover", (event) => {
   if (editorDropHasFiles(event)) event.preventDefault();
 });
 editor.addEventListener("drop", handleEditorAttachmentDrop);
-titleInput.addEventListener("input", scheduleSave);
-editor.addEventListener("input", () => {
-  resetEditorCaretIdle();
-  scheduleSave();
-});
+titleInput.addEventListener("input", handleTitleTypingInput);
+editor.addEventListener("input", handleEditorTypingInput);
 editor.addEventListener("select", rememberEditorSelectionRange);
 editor.addEventListener("select", () => {
   resetEditorCaretIdle();
@@ -12056,6 +12228,7 @@ document.addEventListener("keydown", (event) => {
 });
 window.addEventListener("pagehide", () => {
   globalThis.MemoNexusTypingDerivedUiScheduler?.cancelAll();
+  if (typingPerformanceEnabled) typingPerformance.discardTransient();
   stopAiGeneration();
   cleanupAttachmentObjectUrls();
   applyCurrentEditorDraft(currentNote());
