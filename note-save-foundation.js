@@ -404,10 +404,11 @@
       }).filter(Boolean);
     }
 
-    function enqueueBatchSave({ batch, noteIds, createRequests, writeSnapshots } = {}) {
+    function enqueueBatchSave({ batch, noteIds, createRequests, validateBeforeWrite, writeSnapshots } = {}) {
       const ids = [...new Set(noteIds || [])].filter(Boolean).sort();
       if (!ids.length) return Promise.resolve([]);
       if (typeof createRequests !== "function") throw new Error("createRequests is required");
+      if (validateBeforeWrite != null && typeof validateBeforeWrite !== "function") throw new Error("validateBeforeWrite must be a function");
       if (typeof writeSnapshots !== "function") throw new Error("writeSnapshots is required");
       if (!batch || batch.noteIds.length !== ids.length || ids.some((id) => !batch.noteIds.includes(id))) {
         throw new Error("matching atomic batch token is required");
@@ -416,6 +417,7 @@
 
       return runExclusive(ids, async () => {
         ids.forEach((id) => requireAtomicBatch(batch, id));
+        if (validateBeforeWrite) validateBeforeWrite();
         const requests = createRequests();
         if (!Array.isArray(requests) || requests.length !== ids.length) throw new Error("one request per noteId is required");
         const byId = new Map(requests.map((request) => [requestResourceKey(request), request]));

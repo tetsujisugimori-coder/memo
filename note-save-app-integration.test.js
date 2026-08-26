@@ -38,6 +38,7 @@ const saveCoreSource = sourceBetween("function currentNote()", "function handleN
 const saveHandlersSource = sourceBetween("function handleNoteSaveStateChange", "function popoutUrlForMemo");
 const scheduleSaveSource = sourceBetween("function scheduleSave(", "function captureUndoSnapshot");
 const updateTagsSource = sourceBetween("async function updateCurrentNoteTags", "function setNoteTagStatus");
+const localSaveTargetSource = sourceBetween("async function localSaveTargetsMatch", "async function persistLocalSaveSettings");
 const localSaveMetadataSource = sourceBetween("function buildLocalSaveLiveNoteIndex", "async function performLocalWorkspaceSave");
 const performLocalWorkspaceSaveSource = sourceBetween("async function performLocalWorkspaceSave", "async function selectLocalSaveFolder");
 const updateNotesTransactionSource = sourceBetween("function prepareNoteSnapshotsInTransaction", "function collectionExists");
@@ -112,6 +113,7 @@ function createProductionBatchWriterHarness(initialNotes) {
 
 function createHarness({ writer, ensureTags = async () => {}, initialNotes: providedNotes = null, localFsDriver = null, noteCount = 2 } = {}) {
   const timers = new Map();
+  const consoleLogs = [];
   let timerSequence = 0;
   const initialNotes = providedNotes || Array.from({ length: noteCount }, (_, index) => {
     const id = index === 0 ? "A" : index === 1 ? "B" : `N${String(index + 1).padStart(3, "0")}`;
@@ -150,7 +152,8 @@ function createHarness({ writer, ensureTags = async () => {}, initialNotes: prov
     async deleteConfig() {}
   };
   const context = vm.createContext({
-    console: { error() {}, log() {} },
+    console: { error() {}, log(...args) { consoleLogs.push(args); } },
+    consoleLogs,
     createNoteSaveFoundation,
     createSaveRequest,
     createCodexThreadSaveCoordinator,
@@ -217,6 +220,7 @@ function createHarness({ writer, ensureTags = async () => {}, initialNotes: prov
     let lastDiscovery = "";
     let localSaveSettings = { enabled: true };
     let localDirectoryHandle = localFs;
+    let localSaveTargetGeneration = 0;
     let localSaveState = createLocalSaveState({ status: "pending", pendingChanges: true });
     let localSyncState = normalizeSyncState();
     let localWorkspaceChangeVersion = 0;
@@ -308,6 +312,7 @@ function createHarness({ writer, ensureTags = async () => {}, initialNotes: prov
     ${saveHandlersSource}
     ${scheduleSaveSource}
     ${updateTagsSource}
+    ${localSaveTargetSource}
     ${localSaveMetadataSource}
     ${performLocalWorkspaceSaveSource}
 
@@ -323,6 +328,19 @@ function createHarness({ writer, ensureTags = async () => {}, initialNotes: prov
       localSaveBoundaryChanged,
       performLocalWorkspaceSave,
       enqueueNoteSave,
+      setBeforeLocalSaveMetadataTransaction(callback) {
+        performLocalWorkspaceSave.beforeMetadataTransaction = callback;
+      },
+      async switchLocalSaveTarget(handle) {
+        await setLocalSaveTarget(handle);
+        setLocalSaveState(handle ? "pending" : "unconfigured", {
+          directoryName: handle?.name || "",
+          pendingChanges: Boolean(handle),
+          errorCode: "",
+          errorMessage: "",
+          requiresUserAction: false
+        });
+      },
       async saveCodexThread(noteId, codexChat, beforeWrite = null) {
         const current = noteForSave(noteId);
         const threadId = codexChat?.threadId || current?.codexChat?.threadId;
@@ -365,12 +383,16 @@ function createHarness({ writer, ensureTags = async () => {}, initialNotes: prov
           ,saveStatuses: [...saveStatuses]
           ,localSaveState: structuredClone(localSaveState)
           ,localSaveStatusHistory: [...localSaveStatusHistory]
+          ,localSyncState: structuredClone(localSyncState)
+          ,localPendingExclusions: [...localPendingExclusions]
+          ,consoleLogs: structuredClone(consoleLogs)
           ,localWorkspaceChangeVersion
           ,documentTitle: document.title
           ,drafts: [...noteLiveDrafts.values()].map((note) => structuredClone(note))
         };
       },
       bumpLocalWorkspaceChangeVersion() { localWorkspaceChangeVersion += 1; },
+      addLocalPendingExclusion(noteId) { localPendingExclusions.add(noteId); },
       storedNotes: () => storedNotesForHarness(),
       edit(title, body) { titleInput.value = title; editor.value = body; },
       setCurrentId(id) { currentId = id; },
@@ -436,7 +458,7 @@ function countingLiveNoteIndexFactory(harness, counters) {
   };
 }
 
-function createMemoryLocalFs({ beforeWriteFile = async () => {}, beforeWriteJson = async () => {} } = {}) {
+function createMemoryLocalFs({ beforeWriteFile = async () => {}, beforeWriteJson = async () => {}, beforeDeleteConfig = async () => {} } = {}) {
   const files = new Map();
   const jsonFiles = new Map();
   return {
@@ -460,7 +482,7 @@ function createMemoryLocalFs({ beforeWriteFile = async () => {}, beforeWriteJson
       await beforeWriteJson(path, value);
       jsonFiles.set(path, structuredClone(value));
     },
-    async deleteConfig() {}
+    async deleteConfig(...args) { await beforeDeleteConfig(...args); }
   };
 }
 
@@ -535,6 +557,104 @@ test("実アプリ経路D: タグ登録待機中に切り替えてもAをdirty�
   assert.equal(harness.state().tagRenderIds.at(-1), "B");
   harness.openNote("A");
   assert.deepEqual(Array.from(harness.liveNote("A").tags), ["tag-a"]);
+});
+
+test("ローカル保存先変更では保存済み通常noteがdirtyにならず同じrevisionを再保存しない", async () => {
+  let writeCount = 0;
+  const harness = createHarness({
+    noteCount: 1,
+    writer: async () => { writeCount += 1; }
+  });
+  harness.edit("A edited", "saved before local target switch");
+  harness.scheduleSave();
+  await harness.enqueueNoteSave("A");
+  const savedState = harness.foundation.getState("A");
+
+  await harness.switchLocalSaveTarget({ name: "new-target" });
+  const switchedState = harness.foundation.getState("A");
+  await harness.enqueueNoteSave("A");
+
+  assert.equal(savedState.dirty, false);
+  assert.equal(switchedState.dirty, false);
+  assert.equal(switchedState.currentRevision, savedState.currentRevision);
+  assert.equal(switchedState.lastSavedRevision, savedState.lastSavedRevision);
+  assert.equal(writeCount, 1);
+});
+
+test("通常note保存中のローカル保存先変更は保存結果をstaleにせず余分なwriteを発生させない", async () => {
+  const writeStarted = deferred();
+  const releaseWrite = deferred();
+  let writeCount = 0;
+  const harness = createHarness({
+    noteCount: 1,
+    writer: async () => {
+      writeCount += 1;
+      writeStarted.resolve();
+      await releaseWrite.promise;
+    }
+  });
+  harness.edit("A edited", "in-flight across local target switch");
+  harness.scheduleSave();
+  const saving = harness.enqueueNoteSave("A");
+  await writeStarted.promise;
+  await harness.switchLocalSaveTarget({ name: "new-target" });
+  releaseWrite.resolve();
+  const result = await saving;
+
+  assert.equal(Object.hasOwn(result, "staleSaveTarget"), false);
+  assert.equal(Object.hasOwn(result.request, "saveTargetGeneration"), false);
+  assert.equal(writeCount, 1);
+  assert.equal(harness.foundation.getState("A").dirty, false);
+});
+
+test("Codex保存中のローカル保存先変更はstale・retryを発生させずメモリへ反映する", async () => {
+  const writeStarted = deferred();
+  const releaseWrite = deferred();
+  let writeCount = 0;
+  const harness = createHarness({ noteCount: 1 });
+  const codexChat = { threadId: "thread-local-switch", title: "Local switch", lastUsedAt: 10 };
+  const saving = harness.saveCodexThread("A", codexChat, async () => {
+    writeCount += 1;
+    writeStarted.resolve();
+    await releaseWrite.promise;
+  });
+  await writeStarted.promise;
+  await harness.switchLocalSaveTarget({ name: "new-target" });
+  releaseWrite.resolve();
+  const result = await saving;
+
+  assert.equal(Object.hasOwn(result, "staleSaveTarget"), false);
+  assert.equal(Object.hasOwn(result.request, "saveTargetGeneration"), false);
+  assert.equal(writeCount, 1);
+  assert.deepEqual(harness.liveNote("A").codexChat, codexChat);
+  assert.deepEqual((await harness.storedNotes())[0].codexChat, codexChat);
+});
+
+test("atomic batch中のローカル保存先変更は通常どおり1回で完了して結果を適用する", async () => {
+  const writeStarted = deferred();
+  const releaseWrite = deferred();
+  let batchWriteCount = 0;
+  const harness = createHarness({
+    noteCount: 1,
+    writer: async (_value, options) => {
+      if (!options?.batch) return;
+      batchWriteCount += 1;
+      writeStarted.resolve();
+      await releaseWrite.promise;
+    }
+  });
+  const saving = harness.mutateNotesAtomically(["A"], (note) => { note.isFlagged = true; });
+  await writeStarted.promise;
+  await harness.switchLocalSaveTarget({ name: "new-target" });
+  releaseWrite.resolve();
+  const results = await saving;
+
+  assert.equal(batchWriteCount, 1);
+  assert.equal(Object.hasOwn(results[0], "staleSaveTarget"), false);
+  assert.equal(Object.hasOwn(results[0].request, "saveTargetGeneration"), false);
+  assert.equal(results[0].state.dirty, false);
+  assert.equal(harness.liveNote("A").isFlagged, true);
+  assert.equal((await harness.storedNotes())[0].isFlagged, true);
 });
 
 test("通常note更新経路は共通mutationまたは排他入口へ接続されている", () => {
@@ -626,6 +746,7 @@ test("実performLocalWorkspaceSaveは固定snapshotをMarkdown・manifest・sync
       if (options?.batch) metadataBatchSizes.push(value.length);
     }
   });
+  harness.addLocalPendingExclusion("removed-note");
 
   assert.equal(await harness.performLocalWorkspaceSave("actual-success"), true);
 
@@ -646,8 +767,224 @@ test("実performLocalWorkspaceSaveは固定snapshotをMarkdown・manifest・sync
   const state = harness.state();
   assert.deepEqual(Array.from(state.localSaveStatusHistory), ["saving", "saved"]);
   assert.equal(state.localSaveState.pendingChanges, false);
+  assert.equal(state.localSyncState.savedAt, syncState.savedAt);
+  assert.deepEqual(Array.from(state.localPendingExclusions), []);
+  assert.equal(state.consoleLogs.some(([message]) => message === "Local workspace saved"), true);
   assert.equal(state.renderListCount, 1);
   assert.equal(state.invalidateTermRelationIndexCount, 0);
+});
+
+test("metadata transaction直前の保存先変更は旧local metadataをIndexedDBへ確定しない", async () => {
+  const transactionReady = deferred();
+  const releaseTransaction = deferred();
+  let metadataWrites = 0;
+  const oldTarget = createMemoryLocalFs();
+  const harness = createHarness({
+    noteCount: 1,
+    localFsDriver: oldTarget,
+    writer: async (_value, options) => { if (options?.batch) metadataWrites += 1; }
+  });
+
+  harness.setBeforeLocalSaveMetadataTransaction(async () => {
+    transactionReady.resolve();
+    await releaseTransaction.promise;
+  });
+  const saving = harness.performLocalWorkspaceSave("stale-before-metadata-transaction");
+  await transactionReady.promise;
+  await harness.switchLocalSaveTarget({ name: "new-target" });
+  releaseTransaction.resolve();
+
+  assert.equal(await saving, false);
+  const storedNote = (await harness.storedNotes())[0];
+  const state = harness.state();
+  assert.equal(storedNote.localCreatedAt, undefined);
+  assert.equal(storedNote.localSavedAt, undefined);
+  assert.equal(metadataWrites, 0);
+  assert.equal(state.localSaveState.status, "pending");
+  assert.equal(state.localSaveState.lastSuccessAt, null);
+  assert.deepEqual(Array.from(state.localSaveStatusHistory), ["saving", "pending"]);
+});
+
+test("metadata transaction直前hook中に保存先が変わらなければlocal metadataと成功状態を確定する", async () => {
+  const transactionReady = deferred();
+  const releaseTransaction = deferred();
+  let metadataWrites = 0;
+  const localFs = createMemoryLocalFs();
+  const harness = createHarness({
+    noteCount: 1,
+    localFsDriver: localFs,
+    writer: async (_value, options) => { if (options?.batch) metadataWrites += 1; }
+  });
+
+  harness.setBeforeLocalSaveMetadataTransaction(async () => {
+    transactionReady.resolve();
+    await releaseTransaction.promise;
+  });
+  const saving = harness.performLocalWorkspaceSave("current-before-metadata-transaction");
+  await transactionReady.promise;
+  releaseTransaction.resolve();
+
+  assert.equal(await saving, true);
+  const storedNote = (await harness.storedNotes())[0];
+  const state = harness.state();
+  assert.equal(metadataWrites, 1);
+  assert.equal(typeof storedNote.localCreatedAt, "string");
+  assert.equal(typeof storedNote.localSavedAt, "string");
+  assert.equal(state.localSaveState.status, "saved");
+  assert.equal(state.localSaveState.lastSuccessAt, storedNote.localSavedAt);
+  assert.deepEqual(Array.from(state.localSaveStatusHistory), ["saving", "saved"]);
+});
+
+test("note lock待機中の保存先変更はwriter前検証で旧metadata batchを正常中止する", async () => {
+  const singleWriteStarted = deferred();
+  const releaseSingleWrite = deferred();
+  const metadataPreparationReached = deferred();
+  let metadataWrites = 0;
+  const oldTarget = createMemoryLocalFs();
+  const harness = createHarness({
+    noteCount: 1,
+    localFsDriver: oldTarget,
+    writer: async (_value, options) => {
+      if (options?.batch) {
+        metadataWrites += 1;
+        return;
+      }
+      singleWriteStarted.resolve();
+      await releaseSingleWrite.promise;
+    }
+  });
+  harness.edit("A normal save", "通常保存がlockを保持");
+  harness.scheduleSave();
+  harness.runNextTimer();
+  await singleWriteStarted.promise;
+  harness.setBeforeLocalSaveMetadataTransaction(async () => { metadataPreparationReached.resolve(); });
+
+  const saving = harness.performLocalWorkspaceSave("stale-while-waiting-for-note-lock");
+  await metadataPreparationReached.promise;
+  for (let attempt = 0; attempt < 20 && harness.foundation.getState("A").currentRevision < 2; attempt += 1) {
+    await Promise.resolve();
+  }
+  assert.equal(harness.foundation.getState("A").currentRevision, 2);
+  await harness.switchLocalSaveTarget({ name: "new-target" });
+  releaseSingleWrite.resolve();
+
+  assert.equal(await saving, false);
+  const idleState = await harness.foundation.whenIdle("A");
+  const storedNote = (await harness.storedNotes())[0];
+  const state = harness.state();
+  assert.equal(metadataWrites, 0);
+  assert.equal(storedNote.localCreatedAt, undefined);
+  assert.equal(storedNote.localSavedAt, undefined);
+  assert.equal(idleState.currentRevision, 1);
+  assert.equal(idleState.lastSavedRevision, 1);
+  assert.equal(idleState.dirty, false);
+  assert.equal(idleState.status, "saved");
+  assert.equal(idleState.lastError, null);
+  assert.equal(state.saveStatuses.includes("error"), false);
+  assert.equal(state.localSaveState.status, "pending");
+  assert.equal(state.localSaveState.lastSuccessAt, null);
+});
+
+test("pendingExclusions削除待機中の保存先変更はawait後に旧成功のstate確定を止める", async () => {
+  const deleteConfigStarted = deferred();
+  const releaseDeleteConfig = deferred();
+  let metadataWrites = 0;
+  const oldTarget = createMemoryLocalFs({
+    beforeDeleteConfig: async (_db, _storeName, key) => {
+      if (key !== "pendingExclusions") return;
+      deleteConfigStarted.resolve();
+      await releaseDeleteConfig.promise;
+    }
+  });
+  const harness = createHarness({
+    noteCount: 1,
+    localFsDriver: oldTarget,
+    writer: async (_value, options) => { if (options?.batch) metadataWrites += 1; }
+  });
+  harness.addLocalPendingExclusion("old-target-exclusion");
+
+  const saving = harness.performLocalWorkspaceSave("stale-during-pending-exclusions-delete");
+  await deleteConfigStarted.promise;
+  await harness.switchLocalSaveTarget({ name: "new-target" });
+  harness.addLocalPendingExclusion("new-target-exclusion");
+  releaseDeleteConfig.resolve();
+
+  assert.equal(await saving, false);
+  const storedNote = (await harness.storedNotes())[0];
+  const state = harness.state();
+  assert.equal(metadataWrites, 1);
+  assert.equal(typeof storedNote.localCreatedAt, "string");
+  assert.equal(typeof storedNote.localSavedAt, "string");
+  assert.deepEqual(Object.keys(state.localSyncState.notes), []);
+  assert.deepEqual(Array.from(state.localPendingExclusions), ["old-target-exclusion", "new-target-exclusion"]);
+  assert.equal(state.localSaveState.status, "pending");
+  assert.equal(state.localSaveState.lastSuccessAt, null);
+  assert.equal(state.consoleLogs.some(([message]) => message === "Local workspace saved"), false);
+  assert.deepEqual(Array.from(state.localSaveStatusHistory), ["saving", "pending"]);
+});
+
+test("実performLocalWorkspaceSaveは保存中の保存先変更後に旧成功を現在stateとmetadataへ確定しない", async () => {
+  const writeStarted = deferred();
+  const releaseWrite = deferred();
+  let blocked = false;
+  let metadataWrites = 0;
+  const oldTarget = createMemoryLocalFs({
+    beforeWriteFile: async (path) => {
+      if (blocked || !path.startsWith("notes/")) return;
+      blocked = true;
+      writeStarted.resolve();
+      await releaseWrite.promise;
+    }
+  });
+  const harness = createHarness({
+    noteCount: 1,
+    localFsDriver: oldTarget,
+    writer: async (_value, options) => { if (options?.batch) metadataWrites += 1; }
+  });
+
+  const saving = harness.performLocalWorkspaceSave("old-target-success");
+  await writeStarted.promise;
+  await harness.switchLocalSaveTarget({ name: "new-target" });
+  releaseWrite.resolve();
+  assert.equal(await saving, false);
+
+  const state = harness.state();
+  assert.deepEqual(Array.from(state.localSaveStatusHistory), ["saving", "pending"]);
+  assert.equal(state.localSaveState.status, "pending");
+  assert.equal(state.localSaveState.lastSuccessAt, null);
+  assert.equal(metadataWrites, 0);
+  assert.equal((await harness.storedNotes())[0].localSavedAt, undefined);
+});
+
+test("実performLocalWorkspaceSaveは旧保存先の失敗をrejectするが新保存先を失敗stateにしない", async () => {
+  const writeStarted = deferred();
+  const releaseWrite = deferred();
+  const oldError = new Error("old target sync write failed");
+  let blocked = false;
+  const oldTarget = createMemoryLocalFs({
+    beforeWriteFile: async (path) => {
+      if (blocked || !path.startsWith("notes/")) return;
+      blocked = true;
+      writeStarted.resolve();
+      await releaseWrite.promise;
+    },
+    beforeWriteJson: async (path) => {
+      if (path === "sync-state.json") throw oldError;
+    }
+  });
+  const harness = createHarness({ noteCount: 1, localFsDriver: oldTarget });
+
+  const saving = harness.performLocalWorkspaceSave("old-target-failure");
+  await writeStarted.promise;
+  await harness.switchLocalSaveTarget({ name: "new-target" });
+  releaseWrite.resolve();
+  await assert.rejects(saving, (error) => error === oldError);
+
+  const state = harness.state();
+  assert.deepEqual(Array.from(state.localSaveStatusHistory), ["saving", "pending"]);
+  assert.equal(state.localSaveState.status, "pending");
+  assert.equal(state.localSaveState.errorMessage, "");
+  assert.equal((await harness.storedNotes())[0].localSavedAt, undefined);
 });
 
 test("実performLocalWorkspaceSaveのファイル待機中編集は固定snapshotへ混ぜずlive revisionとchange versionでpendingに戻す", async () => {

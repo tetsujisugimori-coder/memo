@@ -168,6 +168,112 @@ function loadAppFunction(name, dependencies, { async = false } = {}) {
   return Function(...names, `"use strict"; ${source}; return ${name};`)(...names.map((dependency) => dependencies[dependency]));
 }
 
+function createLocalSaveTargetHarness(initialHandle = null) {
+  const source = [
+    ["localSaveTargetsMatch", true],
+    ["setLocalSaveTarget", true],
+    ["createLocalSaveRequest", false],
+    ["localSaveRequestIsCurrent", false]
+  ].map(([name, isAsync]) => {
+    const extracted = extractFunction(app, name);
+    return isAsync ? extracted.replace(/^function /, "async function ") : extracted;
+  }).join("\n");
+  return Function("initialHandle", `
+    "use strict";
+    let localDirectoryHandle = initialHandle;
+    let localSaveTargetGeneration = 0;
+    ${source}
+    return {
+      setLocalSaveTarget,
+      createLocalSaveRequest,
+      localSaveRequestIsCurrent,
+      generation: () => localSaveTargetGeneration,
+      handle: () => localDirectoryHandle
+    };
+  `)(initialHandle);
+}
+
+test("ローカル保存先generationは初回・別先・解除だけで進み、同一先の再設定では進まない", async () => {
+  const targetA = {};
+  const entryA = {
+    kind: "directory",
+    name: "A",
+    target: targetA,
+    isSameEntry: async (other) => other?.target === targetA
+  };
+  const entryAAlias = {
+    kind: "directory",
+    name: "A alias",
+    target: targetA,
+    isSameEntry: async (other) => other?.target === targetA
+  };
+  const entryB = { kind: "directory", name: "B" };
+  const harness = createLocalSaveTargetHarness();
+
+  assert.equal(await harness.setLocalSaveTarget(entryA), true);
+  assert.equal(harness.generation(), 1);
+  assert.equal(await harness.setLocalSaveTarget(entryA), false);
+  assert.equal(harness.generation(), 1);
+  assert.equal(await harness.setLocalSaveTarget(entryAAlias), false);
+  assert.equal(harness.generation(), 1);
+  assert.equal(harness.handle(), entryAAlias);
+  assert.equal(await harness.setLocalSaveTarget(entryB), true);
+  assert.equal(harness.generation(), 2);
+  assert.equal(await harness.setLocalSaveTarget(null), true);
+  assert.equal(harness.generation(), 3);
+  assert.equal(await harness.setLocalSaveTarget(null), false);
+  assert.equal(harness.generation(), 3);
+});
+
+test("ローカル保存要求は開始時のハンドルとgenerationを固定して旧完了を判別する", async () => {
+  const entryA = { kind: "directory", name: "A" };
+  const entryB = { kind: "directory", name: "B" };
+  const harness = createLocalSaveTargetHarness();
+  await harness.setLocalSaveTarget(entryA);
+  const requestA = harness.createLocalSaveRequest("manual");
+  await harness.setLocalSaveTarget(entryB);
+  const requestB = harness.createLocalSaveRequest("manual");
+
+  assert.equal(requestA.directoryHandle, entryA);
+  assert.equal(requestA.localSaveTargetGeneration, 1);
+  assert.equal(harness.localSaveRequestIsCurrent(requestA), false);
+  assert.equal(requestB.directoryHandle, entryB);
+  assert.equal(requestB.localSaveTargetGeneration, 2);
+  assert.equal(harness.localSaveRequestIsCurrent(requestB), true);
+  assert.equal(Object.isFrozen(requestA), true);
+});
+
+test("本番ローカル保存は固定した保存先だけへ書き、旧世代の成功・失敗を現在stateへ反映しない", () => {
+  const saveFlow = extractFunction(app, "performLocalWorkspaceSave");
+  const metadataFlow = extractFunction(app, "applyLocalSaveMetadata");
+  const initializeFlow = extractFunction(app, "initializeLocalFolderSaving");
+  const selectFlow = extractFunction(app, "selectLocalSaveFolder");
+  const reconnectFlow = extractFunction(app, "reconnectLocalSaveFolder");
+  const disconnectFlow = extractFunction(app, "disconnectLocalSaveFolder");
+
+  assert.match(saveFlow, /const request = createLocalSaveRequest\(reason\)/);
+  assert.match(saveFlow, /ensureWorkspaceLayout\(request\.directoryHandle\)/);
+  assert.doesNotMatch(saveFlow, /ensureWorkspaceLayout\(localDirectoryHandle\)/);
+  assert.ok(saveFlow.indexOf("if (!localSaveRequestIsCurrent(request))") < saveFlow.indexOf("await applyLocalSaveMetadata(plans, {"));
+  assert.match(saveFlow, /isCurrent:\s*\(\)\s*=>\s*localSaveRequestIsCurrent\(request\)/);
+  const beforeMetadataHookIndex = metadataFlow.indexOf("await options.beforeMetadataTransaction()");
+  const preBatchCurrentIndex = metadataFlow.indexOf("if (!isCurrent())", beforeMetadataHookIndex);
+  assert.ok(beforeMetadataHookIndex < preBatchCurrentIndex);
+  assert.ok(preBatchCurrentIndex < metadataFlow.indexOf("mutateNotesAtomically"));
+  assert.match(metadataFlow, /validateBeforeWrite:\s*\(\)\s*=>\s*\{\s*if \(!isCurrent\(\)\) throw localSaveMetadataStaleError\(\)/);
+  assert.match(app, /createRequests:\s*\(\)\s*=>\s*requests,\s*validateBeforeWrite,\s*writeSnapshots:/);
+  const deleteConfigIndex = saveFlow.indexOf("await localFs.deleteConfig");
+  const postDeleteCurrentIndex = saveFlow.indexOf("if (!localSaveRequestIsCurrent(request)) return false;", deleteConfigIndex);
+  assert.ok(deleteConfigIndex < postDeleteCurrentIndex);
+  assert.ok(postDeleteCurrentIndex < saveFlow.indexOf("localSyncState = nextSync"));
+  assert.ok(postDeleteCurrentIndex < saveFlow.indexOf("localPendingExclusions.clear()"));
+  assert.match(saveFlow, /catch \(error\) \{\s*if \(localSaveRequestIsCurrent\(request\)\)/);
+  assert.match(initializeFlow, /setLocalSaveTarget\(await localFs\.getConfig/);
+  assert.match(selectFlow, /await setLocalSaveTarget\(handle\)/);
+  assert.match(disconnectFlow, /await setLocalSaveTarget\(null\)/);
+  assert.doesNotMatch(reconnectFlow, /setLocalSaveTarget/);
+});
+
 function mockAttachmentPersistence(store) {
   const getAttachmentRecord = loadAppFunction("getAttachmentRecord", {
     attachmentTx: () => ({ get: (id) => store.getRequest(id) })
