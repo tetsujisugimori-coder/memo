@@ -2052,6 +2052,12 @@ function localSavePlanMatchesRevision(plan, liveNotesById) {
     && normalizeNoteRevision(liveNote.revision) === normalizeNoteRevision(plan.startRevision);
 }
 
+function localSaveMetadataStaleError() {
+  const error = new Error("Local workspace save metadata request is stale");
+  error.code = "LOCAL_SAVE_METADATA_STALE";
+  return error;
+}
+
 async function applyLocalSaveMetadata(plans, options) {
   options ||= {};
   const liveNoteIndexFactory = options.liveNoteIndexFactory || buildLocalSaveLiveNoteIndex;
@@ -2086,21 +2092,30 @@ async function applyLocalSaveMetadata(plans, options) {
   if (!isCurrent()) {
     return { expectedRevisionsAfterMetadata, liveNotesById, results: [], stale: true };
   }
-  const results = await mutateNotesAtomically(eligiblePlans.map((plan) => plan.note.id), (note) => {
-    const metadata = savedMetadata.get(note.id);
-    if (!metadata) return false;
-    note.localCreatedAt = note.localCreatedAt || metadata.localCreatedAt;
-    note.localSavedAt = metadata.localSavedAt;
-  }, (items) => updateNotesTransaction(items, { markLocalPending: false, preserveStoredCodexThread: true }), {
-    allowedChangedFields: ["localCreatedAt", "localSavedAt"],
-    applyCommittedChangesWhenDirty: false,
-    captureCurrentDraft: false,
-    clearScheduledSaves: false,
-    expectedRevisions,
-    invalidateTermRelations: false,
-    liveNotesById,
-    render: "list"
-  });
+  let results;
+  try {
+    results = await mutateNotesAtomically(eligiblePlans.map((plan) => plan.note.id), (note) => {
+      const metadata = savedMetadata.get(note.id);
+      if (!metadata) return false;
+      note.localCreatedAt = note.localCreatedAt || metadata.localCreatedAt;
+      note.localSavedAt = metadata.localSavedAt;
+    }, (items) => updateNotesTransaction(items, { markLocalPending: false, preserveStoredCodexThread: true }), {
+      allowedChangedFields: ["localCreatedAt", "localSavedAt"],
+      applyCommittedChangesWhenDirty: false,
+      captureCurrentDraft: false,
+      clearScheduledSaves: false,
+      expectedRevisions,
+      invalidateTermRelations: false,
+      liveNotesById,
+      render: "list",
+      validateBeforeWrite: () => {
+        if (!isCurrent()) throw localSaveMetadataStaleError();
+      }
+    });
+  } catch (error) {
+    if (error?.code !== "LOCAL_SAVE_METADATA_STALE") throw error;
+    return { expectedRevisionsAfterMetadata, liveNotesById, results: [], stale: true };
+  }
   results.forEach(({ request }) => {
     expectedRevisionsAfterMetadata.set(request.noteId, request.revision);
   });
@@ -2223,9 +2238,10 @@ async function performLocalWorkspaceSave(reason = "change") {
       isCurrent: () => localSaveRequestIsCurrent(request)
     });
     if (metadataResult.stale || !localSaveRequestIsCurrent(request)) return false;
+    await localFs.deleteConfig(db, LOCAL_CONFIG_STORE_NAME, "pendingExclusions");
+    if (!localSaveRequestIsCurrent(request)) return false;
     localSyncState = nextSync;
     localPendingExclusions.clear();
-    await localFs.deleteConfig(db, LOCAL_CONFIG_STORE_NAME, "pendingExclusions");
     plans.forEach((plan) => {
       const resolution = resolvedConflicts.get(plan.note.id);
       if (resolution) deleteLocalConflictResolution(localConflictResolutions, plan.note.id, resolution);
@@ -5010,7 +5026,8 @@ async function mutateNotesAtomically(noteIds, mutate, writeSnapshots = null, uiO
     captureCurrentDraft = true,
     clearScheduledSaves = true,
     expectedRevisions = null,
-    liveNotesById = null
+    liveNotesById = null,
+    validateBeforeWrite = null
   } = uiOptions;
   const persistSnapshots = writeSnapshots || ((snapshots) => updateNotesTransaction(snapshots, { preserveStoredCodexThread: true }));
   const liveNote = (noteId) => liveNotesById ? liveNotesById.get(noteId) : noteForSave(noteId);
@@ -5052,6 +5069,7 @@ async function mutateNotesAtomically(noteIds, mutate, writeSnapshots = null, uiO
       batch,
       noteIds: changedIds,
       createRequests: () => requests,
+      validateBeforeWrite,
       writeSnapshots: persistSnapshots
     });
   } catch (error) {

@@ -359,6 +359,58 @@ test("通常保存と複数メモbatchをID順ロックで調停し原子性と�
   assert.equal(foundation.getState("B").dirty, false);
 });
 
+test("batchのwriter前検証はnote lock取得後に同期実行し、中止時はwriteとerror状態を残さない", async () => {
+  const singleWriteStarted = deferred();
+  const releaseSingleWrite = deferred();
+  const events = [];
+  const saveErrors = [];
+  const foundation = createNoteSaveFoundation({
+    writeSnapshot: async () => {
+      events.push("single-write");
+      singleWriteStarted.resolve();
+      await releaseSingleWrite.promise;
+    },
+    onSaveError: (_request, error) => saveErrors.push(error)
+  });
+  foundation.registerNote("A", 0);
+  const singleRevision = foundation.markChanged("A", 0);
+  const singleSave = foundation.enqueueSave(request("A", singleRevision, "A1"));
+  await singleWriteStarted.promise;
+
+  const atomicBatch = foundation.beginAtomicBatch(["A"]);
+  const batchRevision = foundation.markBatchChanged(atomicBatch, "A", singleRevision);
+  const validationError = new Error("batch invalidated before write");
+  let requestCreates = 0;
+  const batchSave = foundation.enqueueBatchSave({
+    batch: atomicBatch,
+    noteIds: ["A"],
+    createRequests: () => {
+      requestCreates += 1;
+      return [request("A", batchRevision, "batch")];
+    },
+    validateBeforeWrite: () => {
+      events.push("validate");
+      throw validationError;
+    },
+    writeSnapshots: async () => { events.push("batch-write"); }
+  });
+  await Promise.resolve();
+  assert.deepEqual(events, ["single-write"]);
+
+  releaseSingleWrite.resolve();
+  await singleSave;
+  await assert.rejects(batchSave, (error) => error === validationError);
+  const [state] = foundation.abortAtomicBatch(atomicBatch);
+
+  assert.deepEqual(events, ["single-write", "validate"]);
+  assert.equal(requestCreates, 0);
+  assert.equal(state.currentRevision, singleRevision);
+  assert.equal(state.lastSavedRevision, singleRevision);
+  assert.equal(state.dirty, false);
+  assert.equal(state.lastError, null);
+  assert.deepEqual(saveErrors, []);
+});
+
 test("batch成功通知は各メモの状態を保ったまま同じbatch文脈で識別できる", async () => {
   const notifications = [];
   const foundation = createNoteSaveFoundation({
