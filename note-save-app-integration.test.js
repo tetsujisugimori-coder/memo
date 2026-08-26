@@ -215,6 +215,7 @@ function createHarness({
     let registeredTags = ["tag-a", "tag-b"];
     const noteLiveDrafts = new Map();
     const noteSaveBeforeLinkCounts = new Map();
+    const noteSaveUiChanges = new Map();
     const titleInput = { value: initialNotes[0]?.title || "A" };
     const editor = { value: initialNotes[0]?.body || "A0", focus() {} };
     const noteTagInput = { value: "" };
@@ -229,6 +230,15 @@ function createHarness({
     let saveDiscoveryRenderCount = 0;
     let saveLinkStatsRenderCount = 0;
     let saveCodexNotificationCount = 0;
+    let collectionExplorerRenderCount = 0;
+    let collectionTitleUpdateCount = 0;
+    let tagPanelRenderCount = 0;
+    let memoListRenderCount = 0;
+    let previewRenderCount = 0;
+    let relatedRenderCount = 0;
+    let textStatsRenderCount = 0;
+    let tableEditorsRenderCount = 0;
+    let aiTargetRenderCount = 0;
     let renderAllOptions = [];
     let saveStatuses = [];
     let lastDiscovery = "";
@@ -276,27 +286,37 @@ function createHarness({
     const setNoteTagStatus = noop;
     const hideNoteTagOptions = noop;
     const renderNoteMeta = noop;
-    const renderTextStats = noop;
+    const renderTextStats = () => { textStatsRenderCount += 1; };
     const renderList = () => { renderListCount += 1; };
-    const renderAll = ({ includeTypingDerivedUi = true } = {}) => {
+    const renderAll = () => {
       renderAllCount += 1;
-      renderAllOptions.push({ includeTypingDerivedUi });
+      renderAllOptions.push({ full: true });
+      collectionExplorerRenderCount += 1;
+      tagPanelRenderCount += 1;
+      typingDerivedRenderCount += 1;
+    };
+    const renderCurrentNoteSaveSuccessUi = ({ titleChanged = false } = {}) => {
       saveMetaRenderCount += 1;
       saveDiscoveryRenderCount += 1;
       saveLinkStatsRenderCount += 1;
       saveCodexNotificationCount += 1;
-      if (includeTypingDerivedUi) typingDerivedRenderCount += 1;
+      if (titleChanged) collectionTitleUpdateCount += 1;
     };
-    const renderCollectionExplorer = noop;
-    const renderTableBlockEditors = noop;
+    const renderCollectionExplorer = () => { collectionExplorerRenderCount += 1; };
+    const renderMemoListPanel = () => {
+      memoListRenderCount += 1;
+      typingDerivedRenderCount += 1;
+    };
+    const renderTableBlockEditors = () => { tableEditorsRenderCount += 1; };
     const applyEffectiveFontSettings = noop;
-    const renderPreview = noop;
+    const renderPreview = () => { previewRenderCount += 1; };
     const renderAttachmentsForCurrentNote = noop;
-    const renderRelated = noop;
+    const renderRelated = () => { relatedRenderCount += 1; };
     const renderDiscovery = noop;
     const updateUndoButton = noop;
     const renderAiUi = noop;
-    const renderTagPanel = noop;
+    const renderTagPanel = () => { tagPanelRenderCount += 1; };
+    const updateAiTargetPreview = () => { aiTargetRenderCount += 1; };
     const renderNoteTagOptions = noop;
     const saveCurrentDraftMirror = noop;
     const setSaveStatus = (status) => { saveStatuses.push(status); };
@@ -408,6 +428,15 @@ function createHarness({
           ,saveLinkStatsRenderCount
           ,saveCodexNotificationCount
           ,renderAllOptions: structuredClone(renderAllOptions)
+          ,collectionExplorerRenderCount
+          ,collectionTitleUpdateCount
+          ,tagPanelRenderCount
+          ,memoListRenderCount
+          ,previewRenderCount
+          ,relatedRenderCount
+          ,textStatsRenderCount
+          ,tableEditorsRenderCount
+          ,aiTargetRenderCount
           ,saveStatuses: [...saveStatuses]
           ,localSaveState: structuredClone(localSaveState)
           ,localSaveStatusHistory: [...localSaveStatusHistory]
@@ -1373,7 +1402,7 @@ test("本文を含む200件batchは現在メモと背景メモを反映し索引
   assert.equal(harness.liveNote("N200").body, "N200 updated [[term]]");
 });
 
-test("通常の1件保存は従来どおり索引と現在メモ画面を更新する", async () => {
+test("未反映の通常1件保存は派生UIを補完し保存成功専用UIだけを更新する", async () => {
   const harness = createHarness();
   harness.edit("A saved", "通常保存本文");
   harness.scheduleSave();
@@ -1381,9 +1410,21 @@ test("通常の1件保存は従来どおり索引と現在メモ画面を更新�
   await harness.foundation.whenIdle("A");
 
   const state = harness.state();
-  assert.equal(state.renderAllCount, 1);
+  assert.equal(state.renderAllCount, 0);
   assert.equal(state.renderListCount, 0);
   assert.equal(state.invalidateTermRelationIndexCount, 1);
+  assert.equal(state.memoListRenderCount, 1);
+  assert.equal(state.previewRenderCount, 1);
+  assert.equal(state.relatedRenderCount, 1);
+  assert.equal(state.textStatsRenderCount, 1);
+  assert.equal(state.tableEditorsRenderCount, 1);
+  assert.equal(state.aiTargetRenderCount, 1);
+  assert.equal(state.collectionExplorerRenderCount, 0);
+  assert.equal(state.tagPanelRenderCount, 0);
+  assert.equal(state.saveMetaRenderCount, 1);
+  assert.equal(state.saveDiscoveryRenderCount, 1);
+  assert.equal(state.saveLinkStatsRenderCount, 1);
+  assert.equal(state.saveCodexNotificationCount, 1);
   assert.equal(state.saveStatuses.includes("saving"), true);
   assert.equal(state.saveStatuses.at(-1), "saved");
   assert.equal(harness.liveNote("A").body, "通常保存本文");
@@ -1394,14 +1435,17 @@ test("同じnoteId・revisionの派生UI反映後は保存成功UIだけを更�
   const scheduled = [];
   const typingDerivedUiScheduler = {
     schedule(noteId, revision) { scheduled.push({ noteId, revision }); },
+    scheduleAuxiliary(noteId, revision) { scheduled.push({ noteId, revision, type: "auxiliary" }); },
     cancelNote() {},
     markRendered() {},
-    needsDerivedUiAfterSave(noteId, revision) {
-      return !scheduled.some((request) => request.noteId === noteId && request.revision === revision);
+    requiredDerivedUiAfterSave(noteId, revision) {
+      return scheduled.some((request) => request.noteId === noteId && request.revision === revision)
+        ? null
+        : "full";
     }
   };
   const harness = createHarness({ typingDerivedUiScheduler });
-  harness.edit("A saved", "派生UI反映済み本文");
+  harness.edit("A", "派生UI反映済み本文");
   harness.scheduleSave();
   const scheduledRevision = scheduled[0].revision;
   harness.runNextTimer();
@@ -1409,9 +1453,13 @@ test("同じnoteId・revisionの派生UI反映後は保存成功UIだけを更�
 
   const state = harness.state();
   assert.deepEqual(scheduled, [{ noteId: "A", revision: scheduledRevision }]);
-  assert.deepEqual(state.renderAllOptions, [{ includeTypingDerivedUi: false }]);
+  assert.deepEqual(state.renderAllOptions, []);
+  assert.equal(state.renderAllCount, 0);
   assert.equal(state.typingDerivedRenderCount, 0);
   assert.equal(state.invalidateTermRelationIndexCount, 0);
+  assert.equal(state.collectionExplorerRenderCount, 0);
+  assert.equal(state.collectionTitleUpdateCount, 0);
+  assert.equal(state.tagPanelRenderCount, 0);
   assert.equal(state.saveMetaRenderCount, 1);
   assert.equal(state.saveDiscoveryRenderCount, 1);
   assert.equal(state.saveLinkStatsRenderCount, 1);
@@ -1421,6 +1469,51 @@ test("同じnoteId・revisionの派生UI反映後は保存成功UIだけを更�
   assert.equal(harness.foundation.getState("A").dirty, false);
   assert.equal(harness.liveNote("A").revision, scheduledRevision);
   assert.equal(harness.liveNote("A").updatedAt > 1, true);
+});
+
+test("タイトル変更はコレクション内の表示名だけを1回更新する", async () => {
+  const scheduled = [];
+  const typingDerivedUiScheduler = {
+    schedule(noteId, revision) { scheduled.push({ noteId, revision }); },
+    scheduleAuxiliary() {},
+    cancelNote() {},
+    markRendered() {},
+    requiredDerivedUiAfterSave(noteId, revision) {
+      return scheduled.some((request) => request.noteId === noteId && request.revision === revision)
+        ? null
+        : "full";
+    }
+  };
+  const harness = createHarness({ typingDerivedUiScheduler });
+  harness.edit("A renamed", "A0");
+  harness.scheduleSave();
+  harness.runNextTimer();
+  await harness.foundation.whenIdle("A");
+
+  const state = harness.state();
+  assert.equal(harness.liveNote("A").title, "A renamed");
+  assert.equal(state.collectionTitleUpdateCount, 1);
+  assert.equal(state.collectionExplorerRenderCount, 0);
+  assert.equal(state.tagPanelRenderCount, 0);
+});
+
+test("タグ変更はタグ件数を更新し通常保存成功では重複描画しない", async () => {
+  const harness = createHarness();
+  await harness.updateCurrentNoteTags(["tag-a"]);
+
+  const state = harness.state();
+  assert.deepEqual(Array.from(harness.liveNote("A").tags), ["tag-a"]);
+  assert.equal(state.tagPanelRenderCount, 1);
+  assert.equal(state.collectionExplorerRenderCount, 0);
+});
+
+test("コレクション変更のatomic batchはコレクション件数を更新する", async () => {
+  const harness = createHarness();
+  await harness.mutateNotesAtomically(["A"], (note) => { note.collectionId = "moved"; });
+
+  const state = harness.state();
+  assert.equal(harness.liveNote("A").collectionId, "moved");
+  assert.equal(state.collectionExplorerRenderCount, 1);
 });
 
 test("実アプリ経路G: 本文保存とフォント・全初期化・複数コレクション移動を直列かつ原子的に保存する", async () => {

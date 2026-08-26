@@ -32,8 +32,8 @@ test("全ローカルCSS・JavaScriptを0.5.0のキャッシュ識別子で読�
   });
   assert.match(html, /note-tombstone\.js\?v=0\.5\.0-2/);
   assert.match(html, /note-save-foundation\.js\?v=0\.5\.0-8/);
-  assert.match(html, /typing-derived-ui-scheduler\.js\?v=0\.5\.0-2/);
-  assert.match(html, /app\.js\?v=0\.5\.0-109/);
+  assert.match(html, /typing-derived-ui-scheduler\.js\?v=0\.5\.0-3/);
+  assert.match(html, /app\.js\?v=0\.5\.0-110/);
 });
 
 test("本体リリースと別管理の互換性バージョンを変更しない", () => {

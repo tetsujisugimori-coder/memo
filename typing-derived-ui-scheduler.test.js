@@ -47,16 +47,19 @@ function createUiHarness() {
   let currentNoteId = "A";
   const ui = { ai: "A0", card: "A0", editor: "A0", list: "A0", table: "A0" };
 
-  function renderHeavy(noteId, revision) {
+  function renderRequest(noteId, revision, type = "full") {
     const note = notes.get(noteId);
     if (!note || note.revision !== revision) return false;
-    ["ai", "card", "list", "table"].forEach((key) => {
+    const targets = type === "auxiliary"
+      ? ["ai", "list"]
+      : ["ai", "card", "list", "table"];
+    targets.forEach((key) => {
       ui[key] = note.body;
       counts[key] += 1;
     });
     counts.related += 1;
     counts.stats += 1;
-    renders.push({ noteId, revision, body: note.body });
+    renders.push({ noteId, revision, type, body: note.body });
     return true;
   }
 
@@ -65,7 +68,7 @@ function createUiHarness() {
     setTimer: timers.setTimer,
     clearTimer: timers.clearTimer,
     getCurrentNoteId: () => currentNoteId,
-    onFlush: renderHeavy
+    onFlush: renderRequest
   });
 
   function recordInput(value) {
@@ -119,25 +122,21 @@ function createUiHarness() {
     },
     structuredEdit(value) {
       const note = recordInput(value);
-      scheduler.cancelNote(currentNoteId);
       ui.card = value;
       ui.table = value;
       counts.card += 1;
       counts.table += 1;
-      ui.list = value;
-      ui.ai = value;
-      counts.list += 1;
-      counts.ai += 1;
-      counts.related += 1;
-      counts.stats += 1;
-      scheduler.markRendered(currentNoteId, note.revision);
+      scheduler.scheduleAuxiliary(currentNoteId, note.revision);
       return note.revision;
     },
     saveSuccess(noteId, revision) {
       counts.saveState += 1;
       counts.meta += 1;
       counts.discovery += 1;
-      if (scheduler.needsDerivedUiAfterSave(noteId, revision)) renderHeavy(noteId, revision);
+      const requiredType = scheduler.requiredDerivedUiAfterSave(noteId, revision);
+      if (requiredType && renderRequest(noteId, revision, requiredType)) {
+        scheduler.markRendered(noteId, revision, requiredType);
+      }
     }
   };
 }
@@ -150,7 +149,7 @@ test("continuous typing aggregates every derived UI into the final revision", ()
   assert.equal(harness.renders.length, 0);
   assert.equal(harness.timers.clearedCount(), 2);
   harness.timers.runAllIncludingCleared();
-  assert.deepEqual(harness.renders, [{ noteId: "A", revision, body: "A123" }]);
+  assert.deepEqual(harness.renders, [{ noteId: "A", revision, type: "full", body: "A123" }]);
   assert.deepEqual(harness.ui, { ai: "A123", card: "A123", editor: "A123", list: "A123", table: "A123" });
 });
 
@@ -217,7 +216,7 @@ test("composition end flushes the confirmed final body exactly once", () => {
   const revision = harness.input("変換確定");
   harness.endComposition();
   harness.timers.runAllIncludingCleared();
-  assert.deepEqual(harness.renders, [{ noteId: "A", revision, body: "変換確定" }]);
+  assert.deepEqual(harness.renders, [{ noteId: "A", revision, type: "full", body: "変換確定" }]);
 });
 
 test("compositionend and final input order differences still produce one trailing flush", () => {
@@ -293,12 +292,17 @@ test("a rendered newer revision already covers an older save success", () => {
   assert.equal(harness.scheduler.needsDerivedUiAfterSave("A", 1), false);
 });
 
-test("render:false cancels an older timer without redrawing the synchronized card or table", () => {
+test("render:false replaces an older full request and debounces auxiliary UI only", () => {
   const harness = createUiHarness();
   harness.input("normal input");
   harness.structuredEdit("structured final");
-  harness.timers.runAllIncludingCleared();
   assert.equal(harness.renders.length, 0);
+  assert.equal(harness.counts.list, 0);
+  assert.equal(harness.counts.related, 0);
+  harness.timers.runAllIncludingCleared();
+  assert.deepEqual(harness.renders.map(({ type, body }) => ({ type, body })), [
+    { type: "auxiliary", body: "structured final" }
+  ]);
   assert.equal(harness.counts.card, 1);
   assert.equal(harness.counts.table, 1);
   assert.equal(harness.counts.list, 1);
@@ -306,6 +310,120 @@ test("render:false cancels an older timer without redrawing the synchronized car
   assert.equal(harness.counts.stats, 1);
   assert.equal(harness.ui.card, "structured final");
   assert.equal(harness.ui.table, "structured final");
+});
+
+test("three consecutive table-cell inputs flush auxiliary UI once at the final revision", () => {
+  const harness = createUiHarness();
+  harness.structuredEdit("A1");
+  harness.structuredEdit("A12");
+  const revision = harness.structuredEdit("A123");
+
+  ["list", "related", "stats", "ai"].forEach((key) => assert.equal(harness.counts[key], 0, key));
+  harness.timers.runAllIncludingCleared();
+
+  assert.deepEqual(harness.renders, [
+    { noteId: "A", revision, type: "auxiliary", body: "A123" }
+  ]);
+  ["list", "related", "stats", "ai"].forEach((key) => assert.equal(harness.counts[key], 1, key));
+});
+
+test("every table-cell input preserves revision, dirty, draft mirror, save state, undo, and save reservation", () => {
+  const harness = createUiHarness();
+  harness.structuredEdit("A1");
+  harness.structuredEdit("A12");
+  const revision = harness.structuredEdit("A123");
+
+  assert.equal(revision, 3);
+  assert.equal(harness.notes.get("A").body, "A123");
+  ["memory", "dirty", "draftMirror", "saveState", "saveTimer", "undo"].forEach((key) => {
+    assert.equal(harness.counts[key], 3, key);
+  });
+});
+
+test("a full request after a table edit replaces the auxiliary callback", () => {
+  const harness = createUiHarness();
+  harness.structuredEdit("table revision");
+  const revision = harness.input("body revision");
+  harness.timers.runAllIncludingCleared();
+
+  assert.deepEqual(harness.renders, [
+    { noteId: "A", revision, type: "full", body: "body revision" }
+  ]);
+});
+
+test("switching immediately after a table edit rejects the old note auxiliary callback", () => {
+  const harness = createUiHarness();
+  harness.structuredEdit("A stale table");
+  harness.switchTo("B");
+  harness.timers.runAllIncludingCleared();
+
+  assert.equal(harness.renders.length, 0);
+  assert.deepEqual(harness.ui, { ai: "B0", card: "B0", editor: "B0", list: "B0", table: "B0" });
+});
+
+test("deleting unrelated B preserves A's auxiliary request", () => {
+  const harness = createUiHarness();
+  const revision = harness.structuredEdit("A table after delete");
+  harness.moveToTrash("B");
+  harness.timers.runAllIncludingCleared();
+
+  assert.deepEqual(harness.renders, [
+    { noteId: "A", revision, type: "auxiliary", body: "A table after delete" }
+  ]);
+});
+
+test("table-cell IME holds auxiliary UI until the confirmed value", () => {
+  const harness = createUiHarness();
+  harness.beginComposition();
+  harness.structuredEdit("表変換途中");
+  const revision = harness.structuredEdit("表変換確定");
+  harness.timers.runAllIncludingCleared();
+  assert.equal(harness.renders.length, 0);
+
+  harness.endComposition();
+  harness.timers.runAllIncludingCleared();
+  assert.deepEqual(harness.renders, [
+    { noteId: "A", revision, type: "auxiliary", body: "表変換確定" }
+  ]);
+});
+
+test("table compositionend and final input order differences do not double-render", () => {
+  const inputBeforeEnd = createUiHarness();
+  inputBeforeEnd.beginComposition();
+  inputBeforeEnd.structuredEdit("途中A");
+  inputBeforeEnd.structuredEdit("確定A");
+  inputBeforeEnd.endComposition();
+  inputBeforeEnd.timers.runAllIncludingCleared();
+
+  const inputAfterEnd = createUiHarness();
+  inputAfterEnd.beginComposition();
+  inputAfterEnd.structuredEdit("途中B");
+  inputAfterEnd.endComposition();
+  inputAfterEnd.structuredEdit("確定B");
+  inputAfterEnd.timers.runAllIncludingCleared();
+
+  assert.deepEqual(inputBeforeEnd.renders.map(({ body }) => body), ["確定A"]);
+  assert.deepEqual(inputAfterEnd.renders.map(({ body }) => body), ["確定B"]);
+});
+
+test("an auxiliary timer does not redraw the synchronously updated card or table editor", () => {
+  const harness = createUiHarness();
+  harness.structuredEdit("synchronized table");
+  const before = { card: harness.counts.card, table: harness.counts.table };
+  harness.timers.runAllIncludingCleared();
+
+  assert.equal(harness.counts.card, before.card);
+  assert.equal(harness.counts.table, before.table);
+});
+
+test("primary-only coverage makes save success request the missing auxiliary UI", () => {
+  const harness = createUiHarness();
+  harness.scheduler.markRendered("A", 1, "primary");
+  assert.equal(harness.scheduler.requiredDerivedUiAfterSave("A", 1), "auxiliary");
+  assert.equal(harness.scheduler.needsDerivedUiAfterSave("A", 1), true);
+
+  harness.scheduler.markRendered("A", 1, "auxiliary");
+  assert.equal(harness.scheduler.requiredDerivedUiAfterSave("A", 1), null);
 });
 
 test("consecutive paste-like inputs still render only the final body", () => {
@@ -317,24 +435,27 @@ test("consecutive paste-like inputs still render only the final body", () => {
   assert.deepEqual(harness.renders.map(({ body }) => body), ["final pasted body"]);
 });
 
-test("app wiring uses target-aware cancellation, IME holding, revision scheduling, and split save rendering", () => {
+test("app wiring uses typed requests, table IME holding, and dedicated save-success rendering", () => {
   const app = fs.readFileSync("app.js", "utf8");
   const localTarget = app.slice(app.indexOf("async function setLocalSaveTarget"), app.indexOf("function createLocalSaveRequest"));
   const schedule = app.slice(app.indexOf("function scheduleSave"), app.indexOf("function captureUndoSnapshot"));
   const inputEvents = app.slice(app.indexOf('titleInput.addEventListener("beforeinput"'), app.indexOf('editor.addEventListener("select"'));
   const auxiliary = app.slice(app.indexOf("function renderTypingAuxiliaryUiAfterSynchronousPreview"), app.indexOf("function captureUndoSnapshot"));
+  const currentSaveUi = app.slice(app.indexOf("function renderCurrentNoteSaveSuccessUi"), app.indexOf("function renderList"));
 
   assert.doesNotMatch(localTarget, /TypingDerivedUiScheduler/);
   assert.match(app, /function openNote\(id\)[\s\S]*?cancelNote\(previousId\)[\s\S]*?markRendered\(note\.id, note\.revision\)/);
   assert.match(app, /moveMemosToTrash[\s\S]*?targets\.forEach\(\(note\) => [^\n]*cancelNote\(note\.id\)\)/);
   assert.match(app, /permanentlyDeleteMemos[\s\S]*?targets\.forEach\(\(note\) => [^\n]*cancelNote\(note\.id\)\)/);
   assert.match(schedule, /schedule\(note\.id, note\.revision\)/);
-  assert.match(schedule, /cancelNote\(note\.id\)[\s\S]*renderTypingAuxiliaryUiAfterSynchronousPreview/);
+  assert.match(schedule, /scheduleAuxiliary\(note\.id, note\.revision\)/);
   assert.doesNotMatch(auxiliary, /renderPreview|renderTableBlockEditors/);
   assert.match(inputEvents, /titleInput\.addEventListener\("compositionstart"[\s\S]*beginComposition/);
   assert.match(inputEvents, /titleInput\.addEventListener\("compositionend"[\s\S]*endComposition/);
   assert.match(inputEvents, /editor\.addEventListener\("compositionstart"[\s\S]*beginComposition/);
   assert.match(inputEvents, /editor\.addEventListener\("compositionend"[\s\S]*endComposition/);
-  assert.match(app, /needsDerivedUiAfterSave\(request\.noteId, request\.revision\)/);
-  assert.match(app, /renderAll\(\{ includeTypingDerivedUi \}\)/);
+  assert.match(app, /tableBlockEditors\.addEventListener\("compositionstart"[\s\S]*handleTableEditorCompositionStart/);
+  assert.match(app, /tableBlockEditors\.addEventListener\("compositionend"[\s\S]*handleTableEditorCompositionEnd/);
+  assert.match(app, /requiredDerivedUiAfterSave\(request\.noteId, request\.revision\)/);
+  assert.doesNotMatch(currentSaveUi, /renderCollectionExplorer|renderTagPanel|renderMemoListPanel/);
 });

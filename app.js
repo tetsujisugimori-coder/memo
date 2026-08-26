@@ -844,6 +844,7 @@ let localDirtyMemoId = null;
 // IndexedDBへ渡す固定snapshotはenqueueNoteSave()またはbatch開始時にだけ作成します。
 const noteLiveDrafts = new Map();
 const noteSaveBeforeLinkCounts = new Map();
+const noteSaveUiChanges = new Map();
 const permanentDeletionCleanupTasks = new Map();
 let lastDiscovery = "";
 let linkStatsVisible = false;
@@ -944,6 +945,7 @@ let editorCaretAnimationActive = false;
 let editorCaretCompositionActive = false;
 let editorCompositionNoteId = null;
 let titleCompositionNoteId = null;
+let tableEditorCompositionNoteId = null;
 let pendingImageBlockTarget = null;
 let pendingImageInsertTarget = null;
 let attachmentRenderToken = 0;
@@ -4429,17 +4431,25 @@ function uniqueTitle(base) {
   return `${clean} ${index}`;
 }
 
-// 画面全体の再描画をまとめて呼ぶ入口です。保存成功時は本文由来の重い表示だけを省略できます。
-function renderAll({ includeTypingDerivedUi = true } = {}) {
+// 画面全体の再描画をまとめて呼ぶ入口です。
+function renderAll() {
   renderCollectionExplorer();
   renderTagPanel();
-  if (includeTypingDerivedUi) renderMemoListPanel();
+  renderMemoListPanel();
   renderNoteMeta();
   renderNoteTags();
-  if (includeTypingDerivedUi) {
-    renderTextStats();
-    renderRelated();
-  }
+  renderTextStats();
+  renderRelated();
+  renderDiscovery();
+  renderLinkStats();
+  updateUndoButton();
+  window.MemoNexusCodexChat?.onMemoChanged(currentNote());
+}
+
+// 通常保存成功では、保存で初めて変化する表示だけを更新します。
+function renderCurrentNoteSaveSuccessUi({ titleChanged = false } = {}) {
+  renderNoteMeta();
+  if (titleChanged) updateCollectionMemoTitle(currentId);
   renderDiscovery();
   renderLinkStats();
   updateUndoButton();
@@ -4938,6 +4948,9 @@ function applyCurrentEditorDraft(note = currentNote()) {
   if (bodyChanged && !noteSaveFoundation.isDirty(note.id)) {
     noteSaveBeforeLinkCounts.set(note.id, collectLinks(activeNotes()).length);
   }
+  if (titleChanged && !noteSaveUiChanges.has(note.id)) {
+    noteSaveUiChanges.set(note.id, { titleBefore: note.title });
+  }
 
   const now = Date.now();
   note.body = nextBody;
@@ -5154,6 +5167,7 @@ function applyNoteBatchSaveSuccess(results, liveNotesById = null) {
     const beforeLinks = noteSaveBeforeLinkCounts.get(request.noteId);
     if (Number.isFinite(beforeLinks)) linkChecks.push({ beforeLinks, savedNote: committedSnapshot });
     noteSaveBeforeLinkCounts.delete(request.noteId);
+    noteSaveUiChanges.delete(request.noteId);
   });
   if (!savedById.size) return;
   const existingIds = new Set(notes.map((note) => note.id));
@@ -5172,7 +5186,10 @@ function applyNoteBatchSaveSuccess(results, liveNotesById = null) {
 function handleNoteSaveSuccess(request, state, context = {}) {
   if (context.batch) return;
   console.log("Memo saved", { id: request.noteId, revision: request.revision, saveRequestId: request.saveRequestId });
-  if (state.currentRevision === request.revision) {
+  const savedCurrentRevision = state.currentRevision === request.revision;
+  const uiChanges = savedCurrentRevision ? noteSaveUiChanges.get(request.noteId) : null;
+  const titleChanged = Boolean(uiChanges && request.snapshot.title !== uiChanges.titleBefore);
+  if (savedCurrentRevision) {
     const savedNote = cloneNoteSnapshot(mergeStoredCodexThread(request.snapshot, noteForSave(request.noteId)));
     const index = notes.findIndex((note) => note.id === request.noteId);
     if (index === -1) notes.unshift(savedNote); else notes[index] = savedNote;
@@ -5185,16 +5202,15 @@ function handleNoteSaveSuccess(request, state, context = {}) {
       lastDiscovery = buildDiscoveryMessage(savedNote);
     }
     noteSaveBeforeLinkCounts.delete(request.noteId);
+    noteSaveUiChanges.delete(request.noteId);
   }
   const isCurrentSave = request.noteId === currentId;
-  const includeTypingDerivedUi = !isCurrentSave
-    || (globalThis.MemoNexusTypingDerivedUiScheduler?.needsDerivedUiAfterSave(request.noteId, request.revision) ?? true);
-  if (includeTypingDerivedUi) invalidateTermRelationIndex();
   if (pendingMemoSync?.memoId === request.noteId && !state.dirty) {
     pendingMemoSync = null;
     renderMemoSyncNotice();
   }
   if (!isCurrentSave) {
+    invalidateTermRelationIndex();
     if (!isPopoutWindow) renderList();
     return;
   }
@@ -5203,8 +5219,20 @@ function handleNoteSaveSuccess(request, state, context = {}) {
     renderNoteMeta();
     document.title = `${currentNote()?.title || request.snapshot.title} — Memo Nexus`;
   } else {
-    // 保存日時などは必ず更新し、同じrevisionで反映済みの本文派生UIだけを重複描画しません。
-    renderAll({ includeTypingDerivedUi });
+    const scheduler = globalThis.MemoNexusTypingDerivedUiScheduler;
+    const requiredType = scheduler
+      ? scheduler.requiredDerivedUiAfterSave(request.noteId, request.revision)
+      : "full";
+    if (requiredType === "full") {
+      if (renderTypingDerivedUi(request.noteId, request.revision, requiredType)) {
+        globalThis.MemoNexusTypingDerivedUiScheduler?.markRendered(request.noteId, request.revision, requiredType);
+      }
+    } else if (requiredType === "auxiliary") {
+      if (renderTypingAuxiliaryUiAfterSynchronousPreview(request.noteId, request.revision)) {
+        globalThis.MemoNexusTypingDerivedUiScheduler?.markRendered(request.noteId, request.revision, requiredType);
+      }
+    }
+    renderCurrentNoteSaveSuccessUi({ titleChanged });
   }
 }
 
@@ -5216,14 +5244,7 @@ function handleNoteBatchSaveSuccess(results, { invalidateTermRelations = true, r
       renderMemoSyncNotice();
     }
   });
-  const currentResult = results.find(({ request }) => request.noteId === currentId);
-  const canReuseTypingDerivedUi = render === "auto" && results.length === 1 && currentResult;
-  const includeTypingDerivedUi = !canReuseTypingDerivedUi
-    || (globalThis.MemoNexusTypingDerivedUiScheduler?.needsDerivedUiAfterSave(
-      currentResult.request.noteId,
-      currentResult.request.revision
-    ) ?? true);
-  if (invalidateTermRelations && includeTypingDerivedUi) invalidateTermRelationIndex();
+  if (invalidateTermRelations) invalidateTermRelationIndex();
   if (render === "none") return;
 
   const includesCurrent = results.some(({ request }) => request.noteId === currentId);
@@ -5236,7 +5257,7 @@ function handleNoteBatchSaveSuccess(results, { invalidateTermRelations = true, r
     renderNoteMeta();
     document.title = `${currentNote()?.title || "メモ"} — Memo Nexus`;
   } else {
-    renderAll({ includeTypingDerivedUi });
+    renderAll();
   }
 }
 
@@ -5536,6 +5557,7 @@ async function performPermanentDeletionCleanup(memoIds, tombstone = {}, { showNo
   ids.forEach((noteId) => {
     clearScheduledNoteSave(noteId);
     noteLiveDrafts.delete(noteId);
+    noteSaveUiChanges.delete(noteId);
     removeDraftMirrorForNote(noteId);
     selectedMemoIds.delete(noteId);
   });
@@ -5611,16 +5633,18 @@ function scheduleSave({ render = true } = {}) {
   if (render) {
     globalThis.MemoNexusTypingDerivedUiScheduler?.schedule(note.id, note.revision);
   } else {
-    // 呼び出し側が同期済みのカード・表を旧timerで再描画せず、それ以外の補助表示だけを揃えます。
-    globalThis.MemoNexusTypingDerivedUiScheduler?.cancelNote(note.id);
-    if (renderTypingAuxiliaryUiAfterSynchronousPreview(note.id)) {
-      globalThis.MemoNexusTypingDerivedUiScheduler?.markRendered(note.id, note.revision);
-    }
+    // カード・表は同期済みなので、全件走査する補助UIだけを最新revisionの末尾1回へ集約します。
+    const scheduler = globalThis.MemoNexusTypingDerivedUiScheduler;
+    if (scheduler) scheduler.scheduleAuxiliary(note.id, note.revision);
+    else renderTypingAuxiliaryUiAfterSynchronousPreview(note.id, note.revision);
   }
   updateUndoButton();
 }
 
-function renderTypingDerivedUi(noteId, revision) {
+function renderTypingDerivedUi(noteId, revision, requestType = "full") {
+  if (requestType === "auxiliary") {
+    return renderTypingAuxiliaryUiAfterSynchronousPreview(noteId, revision);
+  }
   const note = currentNote();
   if (noteId !== currentId || noteSaveFoundation.isTerminal(noteId)) return false;
   if (!note || normalizeNoteRevision(note.revision) !== normalizeNoteRevision(revision)) return false;
@@ -5634,8 +5658,10 @@ function renderTypingDerivedUi(noteId, revision) {
   return true;
 }
 
-function renderTypingAuxiliaryUiAfterSynchronousPreview(noteId) {
+function renderTypingAuxiliaryUiAfterSynchronousPreview(noteId, revision) {
+  const note = currentNote();
   if (noteId !== currentId || noteSaveFoundation.isTerminal(noteId)) return false;
+  if (!note || normalizeNoteRevision(note.revision) !== normalizeNoteRevision(revision)) return false;
   invalidateTermRelationIndex();
   renderMemoListPanel();
   renderRelated();
@@ -6145,6 +6171,19 @@ function handleTableEditorInput(event) {
     return;
   }
   commitTableBlockChange(blockIndex, tableId, next);
+}
+
+function handleTableEditorCompositionStart(event) {
+  if (!event.target.closest(".table-block-editor")) return;
+  tableEditorCompositionNoteId = currentId;
+  globalThis.MemoNexusTypingDerivedUiScheduler?.beginComposition(tableEditorCompositionNoteId);
+}
+
+function handleTableEditorCompositionEnd(event) {
+  if (!event.target.closest(".table-block-editor")) return;
+  const noteId = tableEditorCompositionNoteId;
+  tableEditorCompositionNoteId = null;
+  globalThis.MemoNexusTypingDerivedUiScheduler?.endComposition(noteId);
 }
 
 function handleTableEditorFocus(event) {
@@ -10103,6 +10142,17 @@ function renderCollectionMemo(note, depth, isDeleted = false) {
   return row;
 }
 
+function updateCollectionMemoTitle(noteId) {
+  const note = noteForSave(noteId);
+  if (!collectionTree || !note) return;
+  collectionTree.querySelectorAll(`.collection-memo-row[data-memo-id="${CSS.escape(noteId)}"]`).forEach((row) => {
+    const title = row.querySelector(".collection-memo-title");
+    const more = row.querySelector(".collection-memo-more");
+    if (title) title.textContent = note.title;
+    if (more) more.setAttribute("aria-label", `${note.title}の操作`);
+  });
+}
+
 function formatExplorerDate(value) {
   return formatLocalDate(value);
 }
@@ -11516,6 +11566,8 @@ if (cancelExplanationBtn) cancelExplanationBtn.addEventListener("click", () => e
 if (explanationDialog) explanationDialog.addEventListener("close", () => { pendingExplanation = null; });
 if (calculatorLinkBtn) calculatorLinkBtn.addEventListener("click", openCalculatorMemoFromSelection);
 if (tableBlockEditors) {
+  tableBlockEditors.addEventListener("compositionstart", handleTableEditorCompositionStart);
+  tableBlockEditors.addEventListener("compositionend", handleTableEditorCompositionEnd);
   tableBlockEditors.addEventListener("input", handleTableEditorInput);
   tableBlockEditors.addEventListener("focusin", handleTableEditorFocus);
   tableBlockEditors.addEventListener("keydown", handleTableEditorKeydown);
