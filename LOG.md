@@ -2047,4 +2047,14 @@
 * 派生UIは独立した180msのtrailing debounceへ移し、連続入力中の途中描画を止めて最後の内容を1回だけ反映する。メモ一覧・検索結果、Markdownカード、関連メモ、文章統計、表編集補助、AI参照プレビューを同じflushへ集約し、語句索引もその直前に1回だけ無効化する。
 * schedulerはnoteIdと要求世代を照合し、メモ切替、通常・完全削除、別ウィンドウからの完全削除、ローカル保存先変更時に旧要求を無効化する。エディタのvalue、カーソル、選択範囲、IME、pasteの既存イベント処理は変更していない。
 * 連続入力の1回集約、Aの連続編集直後にBへ切り替えた場合の旧描画棄却、連続貼り付けで最後の本文が一覧・カードへ反映される回帰テストを追加した。`node --test --test-isolation=none --test-reporter=dot`の全733件、`app.js`とschedulerの`node --check`、`git diff --check`が成功した。配信識別子は`app.js?v=0.5.0-108`へ更新した。
+
+## 2026-08-26 派生UI集約のレビュー修正
+
+* 原因はschedulerの全体`invalidate()`が別メモの削除やローカル保存先変更でも現在メモの予約を破棄したこと、IME composition状態を追跡していなかったこと、180ms描画後に同一revisionの保存成功が`renderAll()`で一覧・関連・統計を再描画したことだった。予約取消を`cancelNote(noteId)`へ限定し、保存先変更では取消さず、切替・削除・完全削除の対象IDと予約IDが一致するときだけ破棄する判断基準へ変更した。世代と要求オブジェクトによる旧callback棄却は維持した。
+* `compositionstart`から`compositionend`までタイトル・本文の要求を保持し、確定後に180ms trailing debounceを再開するようにした。確定`input`が`compositionend`の前後どちらに届いても旧timerを世代で棄却し、最終`noteId + revision`だけを1回flushする。入力ごとのメモリ反映、revision、dirty、draft mirror、保存状態、Undo、280ms保存予約は変更せず、`note-save-foundation.js`にも変更を加えていない。
+* schedulerが反映済み・予約中のrevisionを記録し、保存revision以上の表示要求がある場合は、保存成功時の一覧・関連・統計と語句索引再構築だけを省略するよう`renderAll()`を分離した。保存状態・日時・メタ・discovery・リンク統計・Codex通知、他メモ保存、popout、pending同期解除は維持した。`render:false`は当該メモの旧timerを取消し、呼び出し側が同期済みのMarkdownカード・表編集補助を再描画せず、一覧・関連・統計・AI補助を同期する。
+* 主な変更は`typing-derived-ui-scheduler.js`の`createTypingDerivedUiScheduler`、`app.js`の`scheduleSave`、`renderTypingDerivedUi`、`renderTypingAuxiliaryUiAfterSynchronousPreview`、`renderAll`、保存成功・切替・削除・IME経路、`typing-derived-ui-scheduler.test.js`と`note-save-app-integration.test.js`の回帰テストである。別メモのゴミ箱・完全削除・保存先変更、現在メモ削除・切替、IME保留とイベント順序差、入力ごとの保存契約、同一revisionの二重描画、追加入力、`render:false`、連続入力・貼り付けを検証した。キャッシュ識別子は`typing-derived-ui-scheduler.js?v=0.5.0-2`、`app.js?v=0.5.0-109`へ更新し、参照する既存テストも揃えた。
+* `node --test --test-isolation=none --test-reporter=dot`は全748件成功し、変更した全18 JavaScriptの`node --check`と`git diff --check`も成功した。残る性能課題は、trailing flush 1回の内部では一覧・Markdown・関連・統計・表・AIを各々全体描画することと、明示的なコレクション・削除操作では従来の`renderAll()`が残ることである。差分DOM描画、Worker化、フレームワーク移行は今回の対象外とした。
+* 原因はschedulerの全体`invalidate()`が別メモの削除やローカル保存先変更でも現在メモの予約を破棄したこと、IME composition状態を追跡していなかったこと、180ms描画後に同一revisionの保存成功が`renderAll()`で一覧・関連・統計を再描画したことだった。予約取消を`cancelNote(noteId)`へ限定し、保存先変更では取消さず、切替・削除・完全削除の対象IDと予約IDが一致するときだけ破棄する判断基準へ変更した。世代と要求オブジェクトによる旧callback棄却は維持した。
+* schedulerが反映済み・予約中のrevisionを記録し、保存revision以上の表示要求がある場合は、保存成功時の一覧・関連・統計と語句索引再構築だけを省略するよう`renderAll()`を分離した。保存状態・日時・メタ・discovery・リンク統計・Codex通知、他メモ保存、popout、pending同期解除は維持した。`render:false`は当該メモの旧timerを取消し、呼び出し側が同期済みのMarkdownカード・表編集補助を再描画せず、一覧・関連・統計・AI補助を同期する。
 * 入力停止後の一覧とMarkdownカードは引き続き全件・全本文を再構築する。巨大データ向けの差分描画やWorker化は今回の対象外とした。

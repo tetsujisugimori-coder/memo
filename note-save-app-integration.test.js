@@ -111,7 +111,14 @@ function createProductionBatchWriterHarness(initialNotes) {
   };
 }
 
-function createHarness({ writer, ensureTags = async () => {}, initialNotes: providedNotes = null, localFsDriver = null, noteCount = 2 } = {}) {
+function createHarness({
+  writer,
+  ensureTags = async () => {},
+  initialNotes: providedNotes = null,
+  localFsDriver = null,
+  noteCount = 2,
+  typingDerivedUiScheduler = null
+} = {}) {
   const timers = new Map();
   const consoleLogs = [];
   let timerSequence = 0;
@@ -184,6 +191,7 @@ function createHarness({ writer, ensureTags = async () => {}, initialNotes: prov
     persistCodexThread,
     storedNotesForHarness: async () => [...storedNotesById.values()].map((note) => structuredClone(note)),
     localFs: localFsDriver || defaultLocalFsDriver,
+    MemoNexusTypingDerivedUiScheduler: typingDerivedUiScheduler,
     ensureTags,
     setTimeout(callback) {
       timerSequence += 1;
@@ -216,6 +224,12 @@ function createHarness({ writer, ensureTags = async () => {}, initialNotes: prov
     let renderAllCount = 0;
     let renderListCount = 0;
     let invalidateTermRelationIndexCount = 0;
+    let typingDerivedRenderCount = 0;
+    let saveMetaRenderCount = 0;
+    let saveDiscoveryRenderCount = 0;
+    let saveLinkStatsRenderCount = 0;
+    let saveCodexNotificationCount = 0;
+    let renderAllOptions = [];
     let saveStatuses = [];
     let lastDiscovery = "";
     let localSaveSettings = { enabled: true };
@@ -230,7 +244,7 @@ function createHarness({ writer, ensureTags = async () => {}, initialNotes: prov
     const db = {};
     const LOCAL_CONFIG_STORE_NAME = "localConfig";
     const APP_VERSION = "0.5.0";
-    const window = { MemoNexusCodexChat: null };
+    const window = { MemoNexusCodexChat: { onMemoChanged() { saveCodexNotificationCount += 1; } } };
     const document = { title: "" };
     let codexThreadSaveCoordinator;
     let codexBeforeWrite = null;
@@ -264,7 +278,15 @@ function createHarness({ writer, ensureTags = async () => {}, initialNotes: prov
     const renderNoteMeta = noop;
     const renderTextStats = noop;
     const renderList = () => { renderListCount += 1; };
-    const renderAll = () => { renderAllCount += 1; };
+    const renderAll = ({ includeTypingDerivedUi = true } = {}) => {
+      renderAllCount += 1;
+      renderAllOptions.push({ includeTypingDerivedUi });
+      saveMetaRenderCount += 1;
+      saveDiscoveryRenderCount += 1;
+      saveLinkStatsRenderCount += 1;
+      saveCodexNotificationCount += 1;
+      if (includeTypingDerivedUi) typingDerivedRenderCount += 1;
+    };
     const renderCollectionExplorer = noop;
     const renderTableBlockEditors = noop;
     const applyEffectiveFontSettings = noop;
@@ -380,6 +402,12 @@ function createHarness({ writer, ensureTags = async () => {}, initialNotes: prov
           ,renderAllCount
           ,renderListCount
           ,invalidateTermRelationIndexCount
+          ,typingDerivedRenderCount
+          ,saveMetaRenderCount
+          ,saveDiscoveryRenderCount
+          ,saveLinkStatsRenderCount
+          ,saveCodexNotificationCount
+          ,renderAllOptions: structuredClone(renderAllOptions)
           ,saveStatuses: [...saveStatuses]
           ,localSaveState: structuredClone(localSaveState)
           ,localSaveStatusHistory: [...localSaveStatusHistory]
@@ -1360,6 +1388,39 @@ test("通常の1件保存は従来どおり索引と現在メモ画面を更新�
   assert.equal(state.saveStatuses.at(-1), "saved");
   assert.equal(harness.liveNote("A").body, "通常保存本文");
   assert.equal(harness.foundation.getState("A").dirty, false);
+});
+
+test("同じnoteId・revisionの派生UI反映後は保存成功UIだけを更新して重い描画を省く", async () => {
+  const scheduled = [];
+  const typingDerivedUiScheduler = {
+    schedule(noteId, revision) { scheduled.push({ noteId, revision }); },
+    cancelNote() {},
+    markRendered() {},
+    needsDerivedUiAfterSave(noteId, revision) {
+      return !scheduled.some((request) => request.noteId === noteId && request.revision === revision);
+    }
+  };
+  const harness = createHarness({ typingDerivedUiScheduler });
+  harness.edit("A saved", "派生UI反映済み本文");
+  harness.scheduleSave();
+  const scheduledRevision = scheduled[0].revision;
+  harness.runNextTimer();
+  await harness.foundation.whenIdle("A");
+
+  const state = harness.state();
+  assert.deepEqual(scheduled, [{ noteId: "A", revision: scheduledRevision }]);
+  assert.deepEqual(state.renderAllOptions, [{ includeTypingDerivedUi: false }]);
+  assert.equal(state.typingDerivedRenderCount, 0);
+  assert.equal(state.invalidateTermRelationIndexCount, 0);
+  assert.equal(state.saveMetaRenderCount, 1);
+  assert.equal(state.saveDiscoveryRenderCount, 1);
+  assert.equal(state.saveLinkStatsRenderCount, 1);
+  assert.equal(state.saveCodexNotificationCount, 1);
+  assert.equal(state.saveStatuses.includes("saving"), true);
+  assert.equal(state.saveStatuses.at(-1), "saved");
+  assert.equal(harness.foundation.getState("A").dirty, false);
+  assert.equal(harness.liveNote("A").revision, scheduledRevision);
+  assert.equal(harness.liveNote("A").updatedAt > 1, true);
 });
 
 test("実アプリ経路G: 本文保存とフォント・全初期化・複数コレクション移動を直列かつ原子的に保存する", async () => {
