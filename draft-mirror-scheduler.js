@@ -55,21 +55,34 @@
       return true;
     }
 
-    function flush(noteId, revision) {
-      if (!noteId) return false;
-      let request = { noteId, revision };
-      if (pendingRequest?.noteId === noteId) {
-        request = { noteId, revision: revision ?? pendingRequest.revision };
-        generation += 1;
-        clearArmedTimer();
-        pendingRequest = null;
-      }
+    function consumePendingRequest(noteId, revision) {
+      if (!noteId || pendingRequest?.noteId !== noteId) return null;
+      const request = { noteId, revision: revision ?? pendingRequest.revision };
+      generation += 1;
+      clearArmedTimer();
+      pendingRequest = null;
+      return request;
+    }
+
+    function invokeUnlessDuplicate(request) {
       // visibilitychangeの直後にpagehideが続いても、同じ内容を二重保存しません。
       if (
-        lastFlushedRequest?.noteId === noteId
+        lastFlushedRequest?.noteId === request.noteId
         && sameRevision(lastFlushedRequest.revision, request.revision)
       ) return false;
       return invoke(request);
+    }
+
+    function flush(noteId, revision) {
+      const request = consumePendingRequest(noteId, revision);
+      if (!request) return false;
+      return invokeUnlessDuplicate(request);
+    }
+
+    function forceFlush(noteId, revision) {
+      if (!noteId) return false;
+      const request = consumePendingRequest(noteId, revision) || { noteId, revision };
+      return invokeUnlessDuplicate(request);
     }
 
     function cancelNote(noteId) {
@@ -85,6 +98,7 @@
     return {
       cancelNote,
       flush,
+      forceFlush,
       pendingNoteId: () => pendingRequest?.noteId || null,
       pendingRevision: () => pendingRequest?.revision ?? null,
       schedule

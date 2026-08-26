@@ -1039,7 +1039,8 @@ function showDatabaseBlocked() {
 
 function handleDatabaseVersionChange() {
   try {
-    flushDraftMirror();
+    applyCurrentEditorDraft(currentNote());
+    forceFlushDraftMirror();
   } catch (error) {
     console.warn("Draft mirror before database upgrade failed", error);
   }
@@ -2881,6 +2882,11 @@ function scheduleDraftMirror(note = currentNote()) {
 function flushDraftMirror(noteId = currentId) {
   const note = noteForSave(noteId);
   return globalThis.MemoNexusDraftMirrorScheduler?.flush(noteId, note?.revision) || false;
+}
+
+function forceFlushDraftMirror(noteId = currentId) {
+  const note = noteForSave(noteId);
+  return globalThis.MemoNexusDraftMirrorScheduler?.forceFlush(noteId, note?.revision) || false;
 }
 
 // IndexedDBより新しいドラフトだけを復元し、古すぎるものは削除します。
@@ -4788,8 +4794,10 @@ function openNote(id) {
   if (noteSaveFoundation.isTerminal(id)) return;
   const previousId = currentId;
   if (previousId && previousId !== id) {
-    applyCurrentEditorDraft(currentNote());
-    flushDraftMirror(previousId);
+    const hasPendingDraftMirror = globalThis.MemoNexusDraftMirrorScheduler?.pendingNoteId() === previousId;
+    const draftChanged = applyCurrentEditorDraft(currentNote());
+    if (hasPendingDraftMirror) flushDraftMirror(previousId);
+    else if (draftChanged) forceFlushDraftMirror(previousId);
     flushScheduledNoteSave(previousId).catch((error) => console.error("Memo switch save failed", error));
   }
 
@@ -12051,7 +12059,8 @@ document.addEventListener("keydown", (event) => {
 window.addEventListener("pagehide", () => {
   stopAiGeneration();
   cleanupAttachmentObjectUrls();
-  flushDraftMirror();
+  applyCurrentEditorDraft(currentNote());
+  forceFlushDraftMirror();
   if (saveTimer) {
     clearTimeout(saveTimer);
     saveTimer = null;
@@ -12062,7 +12071,8 @@ window.addEventListener("pagehide", () => {
 document.addEventListener("visibilitychange", () => {
   if (document.visibilityState === "hidden") {
     stopEditorCaretAnimation();
-    flushDraftMirror();
+    applyCurrentEditorDraft(currentNote());
+    forceFlushDraftMirror();
     if (saveTimer) {
       clearTimeout(saveTimer);
       saveTimer = null;
