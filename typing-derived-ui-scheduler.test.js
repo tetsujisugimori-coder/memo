@@ -51,7 +51,7 @@ function createUiHarness() {
     const note = notes.get(noteId);
     if (!note || note.revision !== revision) return false;
     const targets = type === "auxiliary"
-      ? ["ai", "list"]
+      ? ["ai", "card", "list"]
       : ["ai", "card", "list", "table"];
     targets.forEach((key) => {
       ui[key] = note.body;
@@ -122,9 +122,7 @@ function createUiHarness() {
     },
     structuredEdit(value) {
       const note = recordInput(value);
-      ui.card = value;
       ui.table = value;
-      counts.card += 1;
       counts.table += 1;
       scheduler.scheduleAuxiliary(currentNoteId, note.revision);
       return note.revision;
@@ -297,6 +295,7 @@ test("render:false replaces an older full request and debounces auxiliary UI onl
   harness.input("normal input");
   harness.structuredEdit("structured final");
   assert.equal(harness.renders.length, 0);
+  assert.equal(harness.counts.card, 0);
   assert.equal(harness.counts.list, 0);
   assert.equal(harness.counts.related, 0);
   harness.timers.runAllIncludingCleared();
@@ -318,13 +317,13 @@ test("three consecutive table-cell inputs flush auxiliary UI once at the final r
   harness.structuredEdit("A12");
   const revision = harness.structuredEdit("A123");
 
-  ["list", "related", "stats", "ai"].forEach((key) => assert.equal(harness.counts[key], 0, key));
+  ["card", "list", "related", "stats", "ai"].forEach((key) => assert.equal(harness.counts[key], 0, key));
   harness.timers.runAllIncludingCleared();
 
   assert.deepEqual(harness.renders, [
     { noteId: "A", revision, type: "auxiliary", body: "A123" }
   ]);
-  ["list", "related", "stats", "ai"].forEach((key) => assert.equal(harness.counts[key], 1, key));
+  ["card", "list", "related", "stats", "ai"].forEach((key) => assert.equal(harness.counts[key], 1, key));
 });
 
 test("every table-cell input preserves revision, dirty, draft mirror, save state, undo, and save reservation", () => {
@@ -406,14 +405,27 @@ test("table compositionend and final input order differences do not double-rende
   assert.deepEqual(inputAfterEnd.renders.map(({ body }) => body), ["確定B"]);
 });
 
-test("an auxiliary timer does not redraw the synchronously updated card or table editor", () => {
+test("an auxiliary timer updates the deferred card without rebuilding the structured editor", () => {
   const harness = createUiHarness();
-  harness.structuredEdit("synchronized table");
+  harness.structuredEdit("deferred card");
   const before = { card: harness.counts.card, table: harness.counts.table };
   harness.timers.runAllIncludingCleared();
 
-  assert.equal(harness.counts.card, before.card);
+  assert.equal(harness.counts.card, before.card + 1);
   assert.equal(harness.counts.table, before.table);
+  assert.equal(harness.ui.card, "deferred card");
+});
+
+test("cancelAll rejects queued callbacks and clears composition holds", () => {
+  const harness = createUiHarness();
+  harness.beginComposition();
+  harness.input("stale before exit");
+  harness.scheduler.cancelAll();
+  harness.endComposition();
+  harness.timers.runAllIncludingCleared();
+
+  assert.equal(harness.scheduler.pendingNoteId(), null);
+  assert.equal(harness.renders.length, 0);
 });
 
 test("primary-only coverage makes save success request the missing auxiliary UI", () => {
@@ -438,9 +450,11 @@ test("consecutive paste-like inputs still render only the final body", () => {
 test("app wiring uses typed requests, table IME holding, and dedicated save-success rendering", () => {
   const app = fs.readFileSync("app.js", "utf8");
   const localTarget = app.slice(app.indexOf("async function setLocalSaveTarget"), app.indexOf("function createLocalSaveRequest"));
+  const editorDraft = app.slice(app.indexOf("function applyCurrentEditorDraft"), app.indexOf("function waitForNoteSave"));
   const schedule = app.slice(app.indexOf("function scheduleSave"), app.indexOf("function captureUndoSnapshot"));
   const inputEvents = app.slice(app.indexOf('titleInput.addEventListener("beforeinput"'), app.indexOf('editor.addEventListener("select"'));
-  const auxiliary = app.slice(app.indexOf("function renderTypingAuxiliaryUiAfterSynchronousPreview"), app.indexOf("function captureUndoSnapshot"));
+  const auxiliary = app.slice(app.indexOf("function renderTypingDerivedUiAfterStructuredEdit"), app.indexOf("function captureUndoSnapshot"));
+  const tableCommit = app.slice(app.indexOf("function commitTableBlockChange"), app.indexOf("function focusTableCell"));
   const currentSaveUi = app.slice(app.indexOf("function renderCurrentNoteSaveSuccessUi"), app.indexOf("function renderList"));
 
   assert.doesNotMatch(localTarget, /TypingDerivedUiScheduler/);
@@ -449,7 +463,11 @@ test("app wiring uses typed requests, table IME holding, and dedicated save-succ
   assert.match(app, /permanentlyDeleteMemos[\s\S]*?targets\.forEach\(\(note\) => [^\n]*cancelNote\(note\.id\)\)/);
   assert.match(schedule, /schedule\(note\.id, note\.revision\)/);
   assert.match(schedule, /scheduleAuxiliary\(note\.id, note\.revision\)/);
-  assert.doesNotMatch(auxiliary, /renderPreview|renderTableBlockEditors/);
+  assert.match(auxiliary, /renderPreview\(\)/);
+  assert.doesNotMatch(auxiliary, /renderTableBlockEditors/);
+  assert.doesNotMatch(tableCommit, /renderPreview\(\)/);
+  assert.match(editorDraft, /noteSaveBeforeBodies\.set\(note\.id, note\.body\)/);
+  assert.doesNotMatch(editorDraft, /collectLinks|extractLinks|renderList|renderPreview|renderRelated|renderTextStats/);
   assert.match(inputEvents, /titleInput\.addEventListener\("compositionstart"[\s\S]*beginComposition/);
   assert.match(inputEvents, /titleInput\.addEventListener\("compositionend"[\s\S]*endComposition/);
   assert.match(inputEvents, /editor\.addEventListener\("compositionstart"[\s\S]*beginComposition/);
@@ -457,5 +475,7 @@ test("app wiring uses typed requests, table IME holding, and dedicated save-succ
   assert.match(app, /tableBlockEditors\.addEventListener\("compositionstart"[\s\S]*handleTableEditorCompositionStart/);
   assert.match(app, /tableBlockEditors\.addEventListener\("compositionend"[\s\S]*handleTableEditorCompositionEnd/);
   assert.match(app, /requiredDerivedUiAfterSave\(request\.noteId, request\.revision\)/);
+  assert.match(app, /function handleDatabaseVersionChange\(\)[\s\S]*?TypingDerivedUiScheduler\?\.cancelAll\(\)/);
+  assert.match(app, /window\.addEventListener\("pagehide"[\s\S]*?TypingDerivedUiScheduler\?\.cancelAll\(\)/);
   assert.doesNotMatch(currentSaveUi, /renderCollectionExplorer|renderTagPanel|renderMemoListPanel/);
 });

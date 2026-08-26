@@ -125,7 +125,7 @@ test("画像ブロック操作は通常非表示のキーボード対応メニ�
   assert.match(app, /元データは削除されません/);
 });
 
-test("画像ブロック変更は本文更新後すぐ再描画し保存予約の重複描画を止める", () => {
+test("画像ブロック変更は本文だけを同期更新しプレビューを派生UI予約へ任せる", () => {
   const events = [];
   const editor = { value: "before" };
   const commit = new Function(
@@ -146,7 +146,7 @@ test("画像ブロック変更は本文更新後すぐ再描画し保存予約�
   );
   assert.equal(commit({ start: 0 }, [], "説明"), true);
   assert.equal(editor.value, "after");
-  assert.deepEqual(events, ["undo", "render:after", "save:false"]);
+  assert.deepEqual(events, ["undo", "save:false"]);
 });
 
 test("説明文編集時は通常メニューと差し替え、キャンセルで通常状態へ戻る", () => {
