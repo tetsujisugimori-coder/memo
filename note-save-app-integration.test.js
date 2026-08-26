@@ -326,6 +326,9 @@ function createHarness({ writer, ensureTags = async () => {}, initialNotes: prov
       localSaveBoundaryChanged,
       performLocalWorkspaceSave,
       enqueueNoteSave,
+      setBeforeLocalSaveMetadataTransaction(callback) {
+        performLocalWorkspaceSave.beforeMetadataTransaction = callback;
+      },
       async switchLocalSaveTarget(handle) {
         await setLocalSaveTarget(handle);
         setLocalSaveState(handle ? "pending" : "unconfigured", {
@@ -759,6 +762,67 @@ test("実performLocalWorkspaceSaveは固定snapshotをMarkdown・manifest・sync
   assert.equal(state.localSaveState.pendingChanges, false);
   assert.equal(state.renderListCount, 1);
   assert.equal(state.invalidateTermRelationIndexCount, 0);
+});
+
+test("metadata transaction直前の保存先変更は旧local metadataをIndexedDBへ確定しない", async () => {
+  const transactionReady = deferred();
+  const releaseTransaction = deferred();
+  let metadataWrites = 0;
+  const oldTarget = createMemoryLocalFs();
+  const harness = createHarness({
+    noteCount: 1,
+    localFsDriver: oldTarget,
+    writer: async (_value, options) => { if (options?.batch) metadataWrites += 1; }
+  });
+
+  harness.setBeforeLocalSaveMetadataTransaction(async () => {
+    transactionReady.resolve();
+    await releaseTransaction.promise;
+  });
+  const saving = harness.performLocalWorkspaceSave("stale-before-metadata-transaction");
+  await transactionReady.promise;
+  await harness.switchLocalSaveTarget({ name: "new-target" });
+  releaseTransaction.resolve();
+
+  assert.equal(await saving, false);
+  const storedNote = (await harness.storedNotes())[0];
+  const state = harness.state();
+  assert.equal(storedNote.localCreatedAt, undefined);
+  assert.equal(storedNote.localSavedAt, undefined);
+  assert.equal(metadataWrites, 0);
+  assert.equal(state.localSaveState.status, "pending");
+  assert.equal(state.localSaveState.lastSuccessAt, null);
+  assert.deepEqual(Array.from(state.localSaveStatusHistory), ["saving", "pending"]);
+});
+
+test("metadata transaction直前hook中に保存先が変わらなければlocal metadataと成功状態を確定する", async () => {
+  const transactionReady = deferred();
+  const releaseTransaction = deferred();
+  let metadataWrites = 0;
+  const localFs = createMemoryLocalFs();
+  const harness = createHarness({
+    noteCount: 1,
+    localFsDriver: localFs,
+    writer: async (_value, options) => { if (options?.batch) metadataWrites += 1; }
+  });
+
+  harness.setBeforeLocalSaveMetadataTransaction(async () => {
+    transactionReady.resolve();
+    await releaseTransaction.promise;
+  });
+  const saving = harness.performLocalWorkspaceSave("current-before-metadata-transaction");
+  await transactionReady.promise;
+  releaseTransaction.resolve();
+
+  assert.equal(await saving, true);
+  const storedNote = (await harness.storedNotes())[0];
+  const state = harness.state();
+  assert.equal(metadataWrites, 1);
+  assert.equal(typeof storedNote.localCreatedAt, "string");
+  assert.equal(typeof storedNote.localSavedAt, "string");
+  assert.equal(state.localSaveState.status, "saved");
+  assert.equal(state.localSaveState.lastSuccessAt, storedNote.localSavedAt);
+  assert.deepEqual(Array.from(state.localSaveStatusHistory), ["saving", "saved"]);
 });
 
 test("実performLocalWorkspaceSaveは保存中の保存先変更後に旧成功を現在stateとmetadataへ確定しない", async () => {

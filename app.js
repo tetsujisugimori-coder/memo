@@ -2055,6 +2055,7 @@ function localSavePlanMatchesRevision(plan, liveNotesById) {
 async function applyLocalSaveMetadata(plans, options) {
   options ||= {};
   const liveNoteIndexFactory = options.liveNoteIndexFactory || buildLocalSaveLiveNoteIndex;
+  const isCurrent = typeof options.isCurrent === "function" ? options.isCurrent : () => true;
   plans.forEach((plan) => {
     const error = noteSaveFoundation.terminalError(plan.note.id);
     if (error) throw error;
@@ -2066,8 +2067,9 @@ async function applyLocalSaveMetadata(plans, options) {
     normalizeNoteRevision(plan.startRevision)
   ]));
   if (!eligiblePlans.length) {
+    if (!isCurrent()) return { expectedRevisionsAfterMetadata, liveNotesById, results: [], stale: true };
     if (plans.length && !isPopoutWindow) renderList();
-    return { expectedRevisionsAfterMetadata, liveNotesById, results: [] };
+    return { expectedRevisionsAfterMetadata, liveNotesById, results: [], stale: false };
   }
 
   const savedMetadata = new Map(eligiblePlans.map((plan) => [plan.note.id, {
@@ -2078,6 +2080,12 @@ async function applyLocalSaveMetadata(plans, options) {
     plan.note.id,
     normalizeNoteRevision(plan.startRevision)
   ]));
+  if (typeof options.beforeMetadataTransaction === "function") {
+    await options.beforeMetadataTransaction();
+  }
+  if (!isCurrent()) {
+    return { expectedRevisionsAfterMetadata, liveNotesById, results: [], stale: true };
+  }
   const results = await mutateNotesAtomically(eligiblePlans.map((plan) => plan.note.id), (note) => {
     const metadata = savedMetadata.get(note.id);
     if (!metadata) return false;
@@ -2097,7 +2105,7 @@ async function applyLocalSaveMetadata(plans, options) {
     expectedRevisionsAfterMetadata.set(request.noteId, request.revision);
   });
   if (!results.length && plans.length && !isPopoutWindow) renderList();
-  return { expectedRevisionsAfterMetadata, liveNotesById, results };
+  return { expectedRevisionsAfterMetadata, liveNotesById, results, stale: false };
 }
 
 function localSaveBoundaryChanged(plans, expectedRevisionsAfterMetadata, liveNotesById) {
@@ -2210,8 +2218,11 @@ async function performLocalWorkspaceSave(reason = "change") {
       return false;
     }
 
-    const metadataResult = await applyLocalSaveMetadata(plans);
-    if (!localSaveRequestIsCurrent(request)) return false;
+    const metadataResult = await applyLocalSaveMetadata(plans, {
+      beforeMetadataTransaction: performLocalWorkspaceSave.beforeMetadataTransaction,
+      isCurrent: () => localSaveRequestIsCurrent(request)
+    });
+    if (metadataResult.stale || !localSaveRequestIsCurrent(request)) return false;
     localSyncState = nextSync;
     localPendingExclusions.clear();
     await localFs.deleteConfig(db, LOCAL_CONFIG_STORE_NAME, "pendingExclusions");

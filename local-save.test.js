@@ -245,6 +245,7 @@ test("ローカル保存要求は開始時のハンドルとgenerationを固定�
 
 test("本番ローカル保存は固定した保存先だけへ書き、旧世代の成功・失敗を現在stateへ反映しない", () => {
   const saveFlow = extractFunction(app, "performLocalWorkspaceSave");
+  const metadataFlow = extractFunction(app, "applyLocalSaveMetadata");
   const initializeFlow = extractFunction(app, "initializeLocalFolderSaving");
   const selectFlow = extractFunction(app, "selectLocalSaveFolder");
   const reconnectFlow = extractFunction(app, "reconnectLocalSaveFolder");
@@ -253,7 +254,10 @@ test("本番ローカル保存は固定した保存先だけへ書き、旧世�
   assert.match(saveFlow, /const request = createLocalSaveRequest\(reason\)/);
   assert.match(saveFlow, /ensureWorkspaceLayout\(request\.directoryHandle\)/);
   assert.doesNotMatch(saveFlow, /ensureWorkspaceLayout\(localDirectoryHandle\)/);
-  assert.ok(saveFlow.indexOf("if (!localSaveRequestIsCurrent(request))") < saveFlow.indexOf("await applyLocalSaveMetadata(plans)"));
+  assert.ok(saveFlow.indexOf("if (!localSaveRequestIsCurrent(request))") < saveFlow.indexOf("await applyLocalSaveMetadata(plans, {"));
+  assert.match(saveFlow, /isCurrent:\s*\(\)\s*=>\s*localSaveRequestIsCurrent\(request\)/);
+  assert.ok(metadataFlow.indexOf("await options.beforeMetadataTransaction()") < metadataFlow.lastIndexOf("if (!isCurrent())"));
+  assert.ok(metadataFlow.lastIndexOf("if (!isCurrent())") < metadataFlow.indexOf("mutateNotesAtomically"));
   assert.match(saveFlow, /catch \(error\) \{\s*if \(localSaveRequestIsCurrent\(request\)\)/);
   assert.match(initializeFlow, /setLocalSaveTarget\(await localFs\.getConfig/);
   assert.match(selectFlow, /await setLocalSaveTarget\(handle\)/);
