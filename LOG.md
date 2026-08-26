@@ -2039,3 +2039,32 @@
 * 可搬ZIP、Markdown・local draftの既存ID取込、Web Clipper既存メモ更新は入力データや複数ストアtransactionの置換契約を持つため全体置換・特殊経路として維持した。ローカルMarkdown・ZIP出力は外部保存、添付ストア、完全削除、起動時migration、新規IDの初回保存はそれぞれ別の意味論を持つため、通常mutationへ統合していない。既存の排他、tombstone guard、Codex確定値保護はそのまま維持した。
 * `note-save-app-integration.test.js`のharnessを、本番通常writerと同じ`preserveStoredCodexThread: true`で動かすよう補正した。経路監査assertへ本文、タグ、フラグ、解説保存・削除、Codex coordinatorと実メモIDロックを追加し、本文保存中にCodex更新とタグ更新を重ねても、最終IndexedDB相当値とliveメモに本文・タグ・`codexChat`がすべて残りdirtyが解除される回帰テストを追加した。
 * 保存関連80件と`npm test -- --test-isolation=none`の全715件が成功した。全JavaScriptの`node --check`と`git diff --check`も成功した。アプリ本体、保存基盤、DB schema、UI、配信識別子は変更していない。
+
+## 2026-08-26 本文入力時の派生UI更新集約
+
+* 本文入力経路を調査し、入力ごとにMarkdownカード、関連メモ、文章統計、表編集補助、AI参照プレビューを再構築していた処理と、保存完了時のメモ一覧・検索結果更新を確認した。フォント処理は入力経路外だったため変更していない。
+* 編集欄のDOM更新、編集中メモへの本文・自動タイトル反映、revision・dirty更新、draft mirror、保存状態表示、Undo、既存280ms保存予約は入力ごとに維持した。`note-save-foundation.js`と保存要求、pending、error、lastErrorの遷移は変更していない。
+* 派生UIは独立した180msのtrailing debounceへ移し、連続入力中の途中描画を止めて最後の内容を1回だけ反映する。メモ一覧・検索結果、Markdownカード、関連メモ、文章統計、表編集補助、AI参照プレビューを同じflushへ集約し、語句索引もその直前に1回だけ無効化する。
+* schedulerはnoteIdと要求世代を照合し、メモ切替、通常・完全削除、別ウィンドウからの完全削除、ローカル保存先変更時に旧要求を無効化する。エディタのvalue、カーソル、選択範囲、IME、pasteの既存イベント処理は変更していない。
+* 連続入力の1回集約、Aの連続編集直後にBへ切り替えた場合の旧描画棄却、連続貼り付けで最後の本文が一覧・カードへ反映される回帰テストを追加した。`node --test --test-isolation=none --test-reporter=dot`の全733件、`app.js`とschedulerの`node --check`、`git diff --check`が成功した。配信識別子は`app.js?v=0.5.0-108`へ更新した。
+
+## 2026-08-26 派生UI集約のレビュー修正
+
+* 原因はschedulerの全体`invalidate()`が別メモの削除やローカル保存先変更でも現在メモの予約を破棄したこと、IME composition状態を追跡していなかったこと、180ms描画後に同一revisionの保存成功が`renderAll()`で一覧・関連・統計を再描画したことだった。予約取消を`cancelNote(noteId)`へ限定し、保存先変更では取消さず、切替・削除・完全削除の対象IDと予約IDが一致するときだけ破棄する判断基準へ変更した。世代と要求オブジェクトによる旧callback棄却は維持した。
+* `compositionstart`から`compositionend`までタイトル・本文の要求を保持し、確定後に180ms trailing debounceを再開するようにした。確定`input`が`compositionend`の前後どちらに届いても旧timerを世代で棄却し、最終`noteId + revision`だけを1回flushする。入力ごとのメモリ反映、revision、dirty、draft mirror、保存状態、Undo、280ms保存予約は変更せず、`note-save-foundation.js`にも変更を加えていない。
+* schedulerが反映済み・予約中のrevisionを記録し、保存revision以上の表示要求がある場合は、保存成功時の一覧・関連・統計と語句索引再構築だけを省略するよう`renderAll()`を分離した。保存状態・日時・メタ・discovery・リンク統計・Codex通知、他メモ保存、popout、pending同期解除は維持した。`render:false`は当該メモの旧timerを取消し、呼び出し側が同期済みのMarkdownカード・表編集補助を再描画せず、一覧・関連・統計・AI補助を同期する。
+* 主な変更は`typing-derived-ui-scheduler.js`の`createTypingDerivedUiScheduler`、`app.js`の`scheduleSave`、`renderTypingDerivedUi`、`renderTypingAuxiliaryUiAfterSynchronousPreview`、`renderAll`、保存成功・切替・削除・IME経路、`typing-derived-ui-scheduler.test.js`と`note-save-app-integration.test.js`の回帰テストである。別メモのゴミ箱・完全削除・保存先変更、現在メモ削除・切替、IME保留とイベント順序差、入力ごとの保存契約、同一revisionの二重描画、追加入力、`render:false`、連続入力・貼り付けを検証した。キャッシュ識別子は`typing-derived-ui-scheduler.js?v=0.5.0-2`、`app.js?v=0.5.0-109`へ更新し、参照する既存テストも揃えた。
+* `node --test --test-isolation=none --test-reporter=dot`は全748件成功し、変更した全18 JavaScriptの`node --check`と`git diff --check`も成功した。残る性能課題は、trailing flush 1回の内部では一覧・Markdown・関連・統計・表・AIを各々全体描画することと、明示的なコレクション・削除操作では従来の`renderAll()`が残ることである。差分DOM描画、Worker化、フレームワーク移行は今回の対象外とした。
+* 原因はschedulerの全体`invalidate()`が別メモの削除やローカル保存先変更でも現在メモの予約を破棄したこと、IME composition状態を追跡していなかったこと、180ms描画後に同一revisionの保存成功が`renderAll()`で一覧・関連・統計を再描画したことだった。予約取消を`cancelNote(noteId)`へ限定し、保存先変更では取消さず、切替・削除・完全削除の対象IDと予約IDが一致するときだけ破棄する判断基準へ変更した。世代と要求オブジェクトによる旧callback棄却は維持した。
+* schedulerが反映済み・予約中のrevisionを記録し、保存revision以上の表示要求がある場合は、保存成功時の一覧・関連・統計と語句索引再構築だけを省略するよう`renderAll()`を分離した。保存状態・日時・メタ・discovery・リンク統計・Codex通知、他メモ保存、popout、pending同期解除は維持した。`render:false`は当該メモの旧timerを取消し、呼び出し側が同期済みのMarkdownカード・表編集補助を再描画せず、一覧・関連・統計・AI補助を同期する。
+* 入力停止後の一覧とMarkdownカードは引き続き全件・全本文を再構築する。巨大データ向けの差分描画やWorker化は今回の対象外とした。
+
+## 2026-08-26 表セル補助UIと保存成功描画の追加レビュー修正
+
+* 表セル入力は`commitTableBlockChange()`から`scheduleSave({ render: false })`を呼び、語句索引、メモ一覧・検索結果、関連メモ、文章統計、AI参照プレビューまで1文字ごとに同期更新していた。`createTypingDerivedUiScheduler()`へ`full`（カード・表を含む全派生UI）と`auxiliary`（索引・一覧・関連・統計・AIだけ）の要求種別を追加し、どちらも180ms trailing debounceで最新の`noteId + revision + type`だけを残すようにした。表・画像などカードや表を同期更新済みの経路は`scheduleAuxiliary()`を使い、通常本文入力との前後関係に応じて古い要求を相互に置換する。
+* `markRendered()`はカード・表相当の`primary`と`auxiliary`の反映範囲を別々に記録し、`requiredDerivedUiAfterSave()`が保存成功時に不足する`full`または`auxiliary`だけを返す。部分描画を全反映済みと誤認せず、保存中の追加入力を古い保存成功が取り消さない。メモ切替・現在メモ削除・完全削除は従来どおり対象IDだけを取消し、別メモ削除と保存先変更は現在メモの要求を維持する。
+* `tableBlockEditors`へ`compositionstart`／`compositionend`の委譲リスナーを追加した。変換中もセルの文字、`editor.value`、revision、dirty、draft mirror、保存状態、Undo、既存280ms保存予約を入力ごとに更新する一方、全メモ一覧・関連・文章統計・AI補助は保留し、確定後の最終値を1回だけ反映する。`compositionend`と最終`input`の順序差は要求世代で旧callbackを棄却する。Markdownカードの同期更新はフォーカス・選択範囲を維持する既存表編集契約として残した。
+* 通常単件保存の成功描画を`renderCurrentNoteSaveSuccessUi()`へ分離し、保存状態・保存日時・dirty解除・pending同期解除・メモメタ・discovery・リンク統計・Undo・Codex通知・popoutのタイトル／メタを維持した。本文だけの保存ではコレクションツリー／件数とタグパネル／件数を再構築せず、同一revisionで反映済みの一覧・関連・統計・カード・表・AIも描き直さない。タイトル変更は`noteSaveUiChanges`で保存完了まで追跡し、`updateCollectionMemoTitle()`でコレクション内の題名と操作ラベルだけを1回更新する。タグ明示変更は既存`updateCurrentNoteTags()`、コレクション明示変更とatomic batchは既存`renderAll()`を維持した。
+* 主な変更は`typing-derived-ui-scheduler.js`の要求種別・反映範囲・不足描画判定、`app.js`の`scheduleSave()`、`renderTypingDerivedUi()`、`renderTypingAuxiliaryUiAfterSynchronousPreview()`、表IME handler、`handleNoteSaveSuccess()`、`renderCurrentNoteSaveSuccessUi()`、`updateCollectionMemoTitle()`である。`note-save-foundation.js`、IndexedDB schema、保存間隔280ms、revision・dirty・pending・error・lastError・atomic batch・Codex保存・保存先generation・tombstone guardは変更していない。
+* `typing-derived-ui-scheduler.test.js`と`note-save-app-integration.test.js`へ、表セル3連続入力の1回集約、入力ごとの保存契約、full／auxiliaryの相互置換、切替・別メモ削除・保存先変更、表IMEとイベント順序、カード／表の非再描画、部分反映の保存補完、本文保存時のコレクション／タグ非描画、必須保存UI、タイトル軽量更新、タグ／コレクション件数、保存中の追加入力を追加した。既存の本文IME、連続入力・貼り付け、削除、保存raceも維持した。関連72件、表・画像・保存関連（再確認113件を含む）、`node --test --test-isolation=none --test-reporter=dot`の全760件が成功した。変更JavaScript 18ファイルの`node --check`と`git diff --check`も成功した。
+* 配信識別子は`typing-derived-ui-scheduler.js?v=0.5.0-3`、`app.js?v=0.5.0-110`へ更新し、`index.html`と参照テストを揃えた。手動性能確認は、通常本文の連続入力、本文IME、表セルへの日本語連続入力、セル移動しながらの入力、大きなメモの入力停止後、多数メモ環境の表入力で、途中の一覧・関連・統計・AI更新が止まり最終値だけ反映されることを確認する。残る課題は、trailing flush自体が一覧・関連・統計・AIを全件再計算すること、表IME中も既存契約上Markdownカードを同期更新すること、明示的なタグ・コレクション・atomic操作では全体描画が残ることであり、差分DOM・Worker化・大規模分割は対象外とした。
