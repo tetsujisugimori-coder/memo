@@ -4,6 +4,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const test = require("node:test");
 const vm = require("node:vm");
+const { createDraftMirrorScheduler } = require("./draft-mirror-scheduler.js");
 const { createNoteSaveFoundation, createSaveRequest, normalizeRevision } = require("./note-save-foundation.js");
 const { createCodexThreadSaveCoordinator, isCodexThreadSaveRequest, mergeStoredCodexThread } = require("./codex-chat-utils.js");
 const { buildPortableBackupFiles } = require("./backup-bundle-utils.js");
@@ -36,6 +37,7 @@ function sourceBetween(start, end) {
 const openNoteSource = sourceBetween("function openNote(id)", "async function initPopout");
 const saveCoreSource = sourceBetween("function currentNote()", "function handleNoteSaveStateChange");
 const saveHandlersSource = sourceBetween("function handleNoteSaveStateChange", "function popoutUrlForMemo");
+const draftMirrorHelpersSource = sourceBetween("function scheduleDraftMirror", "// IndexedDBより新しいドラフト");
 const scheduleSaveSource = sourceBetween("function scheduleSave(", "function captureUndoSnapshot");
 const updateTagsSource = sourceBetween("async function updateCurrentNoteTags", "function setNoteTagStatus");
 const localSaveTargetSource = sourceBetween("async function localSaveTargetsMatch", "async function persistLocalSaveSettings");
@@ -120,8 +122,10 @@ function createHarness({
   typingDerivedUiScheduler = null
 } = {}) {
   const timers = new Map();
+  const draftTimers = new Map();
   const consoleLogs = [];
   let timerSequence = 0;
+  let draftTimerSequence = 0;
   const initialNotes = providedNotes || Array.from({ length: noteCount }, (_, index) => {
     const id = index === 0 ? "A" : index === 1 ? "B" : `N${String(index + 1).padStart(3, "0")}`;
     return { id, title: id, body: `${id}0`, revision: 0, tags: [], collectionId: "old", updatedAt: 1 };
@@ -161,6 +165,7 @@ function createHarness({
   const context = vm.createContext({
     console: { error() {}, log(...args) { consoleLogs.push(args); } },
     consoleLogs,
+    createDraftMirrorScheduler,
     createNoteSaveFoundation,
     createSaveRequest,
     createCodexThreadSaveCoordinator,
@@ -198,7 +203,16 @@ function createHarness({
       timers.set(timerSequence, callback);
       return timerSequence;
     },
-    clearTimeout(id) { timers.delete(id); }
+    clearTimeout(id) { timers.delete(id); },
+    setDraftTimeout(callback) {
+      draftTimerSequence += 1;
+      draftTimers.set(draftTimerSequence, { callback, cleared: false, ran: false });
+      return draftTimerSequence;
+    },
+    clearDraftTimeout(id) {
+      const record = draftTimers.get(id);
+      if (record) record.cleared = true;
+    }
   });
 
   vm.runInContext(`
@@ -256,6 +270,7 @@ function createHarness({
     const APP_VERSION = "0.5.0";
     const window = { MemoNexusCodexChat: { onMemoChanged() { saveCodexNotificationCount += 1; } } };
     const document = { title: "" };
+    const draftMirrorWrites = [];
     let codexThreadSaveCoordinator;
     let codexBeforeWrite = null;
     const noteSaveFoundation = createNoteSaveFoundation({
@@ -318,7 +333,6 @@ function createHarness({
     const renderTagPanel = () => { tagPanelRenderCount += 1; };
     const updateAiTargetPreview = () => { aiTargetRenderCount += 1; };
     const renderNoteTagOptions = noop;
-    const saveCurrentDraftMirror = noop;
     const setSaveStatus = (status) => { saveStatuses.push(status); };
     const invalidateTermRelationIndex = () => { invalidateTermRelationIndexCount += 1; };
     const cloneNoteSnapshot = (value) => structuredClone(value);
@@ -349,6 +363,29 @@ function createHarness({
       }
     }
 
+    function saveCurrentDraftMirror(noteId = currentId) {
+      if (!noteId || noteId !== currentId) return false;
+      const note = currentNote();
+      if (!note || note.id !== noteId) return false;
+      draftMirrorWrites.push({
+        id: note.id,
+        revision: note.revision,
+        title: titleInput.value || titleFromBody(editor.value) || "無題メモ",
+        body: editor.value,
+        currentIdAtWrite: currentId
+      });
+      return true;
+    }
+    const draftMirrorScheduler = createDraftMirrorScheduler({
+      delay: 200,
+      setTimer: setDraftTimeout,
+      clearTimer: clearDraftTimeout,
+      getCurrentNoteId: () => currentId,
+      onFlush: saveCurrentDraftMirror
+    });
+    globalThis.MemoNexusDraftMirrorScheduler = draftMirrorScheduler;
+
+    ${draftMirrorHelpersSource}
     ${openNoteSource}
     ${saveCoreSource}
     ${saveHandlersSource}
@@ -411,6 +448,14 @@ function createHarness({
         callback();
         return true;
       },
+      runAllDraftTimersIncludingCleared() {
+        while (true) {
+          const record = [...draftTimersForHarness().values()].find((item) => !item.ran);
+          if (!record) return;
+          record.ran = true;
+          record.callback();
+        }
+      },
       state() {
         return {
           currentId,
@@ -445,6 +490,8 @@ function createHarness({
           ,consoleLogs: structuredClone(consoleLogs)
           ,localWorkspaceChangeVersion
           ,documentTitle: document.title
+          ,draftMirrorPendingNoteId: draftMirrorScheduler.pendingNoteId()
+          ,draftMirrorWrites: structuredClone(draftMirrorWrites)
           ,drafts: [...noteLiveDrafts.values()].map((note) => structuredClone(note))
         };
       },
@@ -465,8 +512,10 @@ function createHarness({
       liveNote(id) { return noteForSave(id); }
     };
     function timersForHarness() { return globalThis.__timers; }
+    function draftTimersForHarness() { return globalThis.__draftTimers; }
   `, context);
   context.__timers = timers;
+  context.__draftTimers = draftTimers;
   return context.harness;
 }
 
@@ -543,17 +592,52 @@ function createMemoryLocalFs({ beforeWriteFile = async () => {}, beforeWriteJson
   };
 }
 
-test("実アプリ経路A: debounce中の切替はAだけを保存しBのDOMを維持する", async () => {
+test("実アプリdraft mirror: 未編集AからBへの切替は同期書込みしない", () => {
+  const harness = createHarness();
+
+  harness.openNote("B");
+
+  assert.equal(harness.state().currentId, "B");
+  assert.deepEqual(harness.state().draftMirrorWrites, []);
+});
+
+test("実アプリdraft mirror: 未予約DOM変更は切替前に最新内容を強制退避する", () => {
+  const harness = createHarness();
+  harness.edit("A DOM", "未予約の最新本文");
+
+  harness.openNote("B");
+
+  assert.equal(harness.state().currentId, "B");
+  assert.deepEqual(harness.state().draftMirrorWrites, [{
+    id: "A",
+    revision: 1,
+    title: "A DOM",
+    body: "未予約の最新本文",
+    currentIdAtWrite: "A"
+  }]);
+});
+
+test("実アプリ経路A: debounce中の切替はAのdraft mirrorを切替前に1回書き通常保存する", async () => {
   const writes = [];
   const harness = createHarness({ writer: async (snapshot) => writes.push(structuredClone(snapshot)) });
   harness.edit("A edited", "Aの入力本文");
   harness.scheduleSave();
   assert.equal(harness.state().timers, 1);
+  assert.equal(harness.state().draftMirrorPendingNoteId, "A");
 
   harness.openNote("B");
   await harness.foundation.whenIdle("A");
   assert.equal(harness.state().currentId, "B");
   assert.equal(harness.state().body, "B0");
+  assert.deepEqual(harness.state().draftMirrorWrites, [{
+    id: "A",
+    revision: 1,
+    title: "A edited",
+    body: "Aの入力本文",
+    currentIdAtWrite: "A"
+  }]);
+  harness.runAllDraftTimersIncludingCleared();
+  assert.equal(harness.state().draftMirrorWrites.length, 1);
   assert.deepEqual(writes.map(({ id, body }) => ({ id, body })), [{ id: "A", body: "Aの入力本文" }]);
 });
 

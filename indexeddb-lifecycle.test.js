@@ -43,7 +43,11 @@ test("古いIndexedDB接続はversionchange通知で退避処理後に閉じる"
   database.onversionchange({ newVersion: 5 });
   assert.deepEqual(fake.events, ["open:memo-nexus:4", "draft", "close"]);
   const handler = app.match(/function handleDatabaseVersionChange\([\s\S]*?\n}/)?.[0] || "";
-  assert.ok(handler.indexOf("saveCurrentDraftMirror()") < handler.indexOf("dbConnectionClosedForUpgrade = true"));
+  assert.match(handler, /applyCurrentEditorDraft\(currentNote\(\)\)/);
+  assert.match(handler, /forceFlushDraftMirror\(\)/);
+  assert.ok(handler.indexOf("applyCurrentEditorDraft(currentNote())") < handler.indexOf("forceFlushDraftMirror()"));
+  assert.ok(handler.indexOf("forceFlushDraftMirror()") < handler.indexOf("if (saveTimer)"));
+  assert.ok(handler.indexOf("forceFlushDraftMirror()") < handler.indexOf("dbConnectionClosedForUpgrade = true"));
   assert.match(handler, /新しい版を開くため保存接続を閉じました。再読み込みしてください/);
   assert.doesNotMatch(handler, /location\.reload/);
 });

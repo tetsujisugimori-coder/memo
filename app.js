@@ -14,6 +14,8 @@ const APP_BUILD = "2026-08-19";
 const UNCLASSIFIED_COLLECTION_ID = "system-unclassified";
 const MAX_COLLECTION_DEPTH = 5;
 const DRAFT_STORAGE_KEY = "memo-nexus-current-draft";
+// 連続入力をまとめつつ、既存280ms通常保存より先に復元用コピーを残します。
+const DRAFT_MIRROR_DEBOUNCE_MS = 200;
 const POPOUT_WINDOW_STORAGE_KEY = "memo-nexus-popout-window";
 const POPOUT_SYNC_CHANNEL = "memo-nexus-sync";
 const THEME_STORAGE_KEY = "memo-nexus-theme";
@@ -883,6 +885,12 @@ const noteSaveFoundation = createNoteSaveFoundation({
     : handleNoteSaveError(request, error, state, context)
 });
 const codexThreadSaveCoordinator = createCodexThreadSaveCoordinator({ foundation: noteSaveFoundation, createSaveRequest });
+const draftMirrorScheduler = MemoNexusDraftMirror.createDraftMirrorScheduler({
+  delay: DRAFT_MIRROR_DEBOUNCE_MS,
+  getCurrentNoteId: () => currentId,
+  onFlush: saveCurrentDraftMirror
+});
+globalThis.MemoNexusDraftMirrorScheduler = draftMirrorScheduler;
 // 連続入力では途中状態を描画せず、入力が止まった時点の派生UIだけを反映します。
 // rAF/throttleは入力継続中にも再描画するため、末尾1回へ集約できるtrailing debounceを使います。
 const typingDerivedUiScheduler = MemoNexusTypingDerivedUi.createTypingDerivedUiScheduler({
@@ -1031,7 +1039,8 @@ function showDatabaseBlocked() {
 
 function handleDatabaseVersionChange() {
   try {
-    saveCurrentDraftMirror();
+    applyCurrentEditorDraft(currentNote());
+    forceFlushDraftMirror();
   } catch (error) {
     console.warn("Draft mirror before database upgrade failed", error);
   }
@@ -2835,9 +2844,10 @@ function deleteNote(id) {
 }
 
 // 現在編集中の1件だけを、IndexedDB保存前の保険としてlocalStorageへ退避します。
-function saveCurrentDraftMirror() {
+function saveCurrentDraftMirror(noteId = currentId) {
+  if (!noteId || noteId !== currentId) return false;
   const note = currentNote();
-  if (!note) return;
+  if (!note || note.id !== noteId) return false;
 
   const now = Date.now();
   const draft = {
@@ -2857,9 +2867,26 @@ function saveCurrentDraftMirror() {
   try {
     localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draft));
     console.log("Draft mirror saved", { id: draft.id, title: draft.title });
+    return true;
   } catch (error) {
     console.warn("Draft mirror save failed", error);
+    return false;
   }
+}
+
+function scheduleDraftMirror(note = currentNote()) {
+  if (!note || note.id !== currentId) return false;
+  return globalThis.MemoNexusDraftMirrorScheduler?.schedule(note.id, note.revision) || false;
+}
+
+function flushDraftMirror(noteId = currentId) {
+  const note = noteForSave(noteId);
+  return globalThis.MemoNexusDraftMirrorScheduler?.flush(noteId, note?.revision) || false;
+}
+
+function forceFlushDraftMirror(noteId = currentId) {
+  const note = noteForSave(noteId);
+  return globalThis.MemoNexusDraftMirrorScheduler?.forceFlush(noteId, note?.revision) || false;
 }
 
 // IndexedDBより新しいドラフトだけを復元し、古すぎるものは削除します。
@@ -2937,6 +2964,7 @@ async function restoreCurrentDraftMirror() {
 
 // 削除したメモが次回起動時にドラフトから復活しないよう、一致する1件だけを消します。
 function removeDraftMirrorForNote(id) {
+  globalThis.MemoNexusDraftMirrorScheduler?.cancelNote(id);
   try {
     const rawDraft = localStorage.getItem(DRAFT_STORAGE_KEY);
     if (!rawDraft) return;
@@ -4766,7 +4794,10 @@ function openNote(id) {
   if (noteSaveFoundation.isTerminal(id)) return;
   const previousId = currentId;
   if (previousId && previousId !== id) {
-    applyCurrentEditorDraft(currentNote());
+    const hasPendingDraftMirror = globalThis.MemoNexusDraftMirrorScheduler?.pendingNoteId() === previousId;
+    const draftChanged = applyCurrentEditorDraft(currentNote());
+    if (hasPendingDraftMirror) flushDraftMirror(previousId);
+    else if (draftChanged) forceFlushDraftMirror(previousId);
     flushScheduledNoteSave(previousId).catch((error) => console.error("Memo switch save failed", error));
   }
 
@@ -5620,7 +5651,7 @@ function scheduleSave({ render = true } = {}) {
   if (!note) return;
   if (noteSaveFoundation.isTerminal(note.id)) return;
   applyCurrentEditorDraft(note);
-  saveCurrentDraftMirror();
+  scheduleDraftMirror(note);
   clearTimeout(saveTimer);
   scheduledSaveNoteId = note.id;
   setSaveStatus("editing");
@@ -12028,7 +12059,8 @@ document.addEventListener("keydown", (event) => {
 window.addEventListener("pagehide", () => {
   stopAiGeneration();
   cleanupAttachmentObjectUrls();
-  saveCurrentDraftMirror();
+  applyCurrentEditorDraft(currentNote());
+  forceFlushDraftMirror();
   if (saveTimer) {
     clearTimeout(saveTimer);
     saveTimer = null;
@@ -12039,7 +12071,8 @@ window.addEventListener("pagehide", () => {
 document.addEventListener("visibilitychange", () => {
   if (document.visibilityState === "hidden") {
     stopEditorCaretAnimation();
-    saveCurrentDraftMirror();
+    applyCurrentEditorDraft(currentNote());
+    forceFlushDraftMirror();
     if (saveTimer) {
       clearTimeout(saveTimer);
       saveTimer = null;
