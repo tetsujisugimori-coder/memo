@@ -237,6 +237,7 @@
         inputKind: normalizeInputKind(context?.inputKind),
         inputType: normalizeInputType(context?.inputType || "unknown"),
         isComposing: context?.isComposing === true,
+        beforeInputDuration: 0,
         durations: {}
       });
       return token;
@@ -277,7 +278,11 @@
     function addInputDuration(token, name, duration) {
       const collector = collectors.get(token);
       if (!collector || !INPUT_DURATION_NAMES.has(name)) return false;
-      collector.durations[name] = safeDuration(duration);
+      const normalizedDuration = safeDuration(duration);
+      collector.durations[name] = normalizedDuration;
+      if (name === "captureUndoSnapshot" && pendingInput?.token === token) {
+        collector.beforeInputDuration = normalizedDuration;
+      }
       return true;
     }
 
@@ -309,6 +314,8 @@
         pendingInput = null;
       }
       Object.assign(collector.durations, normalizeDurations(durations, INPUT_DURATION_NAMES));
+      const combinedTotalDuration = safeDuration(totalDuration)
+        + safeDuration(collector.beforeInputDuration);
       const normalizedRenderType = normalizeRenderType(renderType);
       if (derived) {
         derivedContext = {
@@ -328,7 +335,7 @@
         isComposing: collector.isComposing,
         renderType: normalizedRenderType,
         durations: normalizeDurations(collector.durations, INPUT_DURATION_NAMES),
-        totalDuration: safeDuration(totalDuration),
+        totalDuration: combinedTotalDuration,
         attributes
       });
       removeCollector(token);

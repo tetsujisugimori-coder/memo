@@ -124,7 +124,89 @@ test("one body beforeinput and input pair records one sync sample", () => {
   assert.equal(samples[0].inputKind, "body");
   assert.equal(samples[0].durations.captureUndoSnapshot, 1.5);
   assert.equal(samples[0].durations.applyCurrentEditorDraft, 2);
-  assert.equal(samples[0].totalDuration, 4);
+  assert.equal(samples[0].totalDuration, 5.5);
+  assert.ok(samples[0].totalDuration >= Object.values(samples[0].durations)
+    .reduce((sum, duration) => sum + duration, 0));
+});
+
+test("beforeinput processing and input processing are summed without the event gap", () => {
+  let currentTime = 10;
+  const { monitor } = enabledMonitor({
+    performance: { now: () => currentTime }
+  });
+  const context = inputContext();
+
+  const token = monitor.beginInput(context);
+  const beforeInputStartedAt = monitor.start();
+  currentTime = 11.5;
+  monitor.addInputDuration(token, "captureUndoSnapshot",
+    monitor.elapsed(beforeInputStartedAt));
+
+  currentTime = 111.5;
+  const consumed = monitor.consumeInput(context);
+  const inputStartedAt = monitor.start();
+  currentTime = 115.5;
+  const inputDuration = monitor.elapsed(inputStartedAt);
+  monitor.completeInput(consumed, {
+    durations: { applyCurrentEditorDraft: 2, scheduleDerivedUi: 1 },
+    totalDuration: inputDuration,
+    renderType: "full",
+    attributesFactory() {
+      currentTime += 1000;
+      return { bodyLength: 20 };
+    }
+  });
+
+  const [sample] = monitor.getSamples();
+  assert.equal(sample.durations.captureUndoSnapshot, 1.5);
+  assert.equal(sample.totalDuration, 5.5);
+  assert.notEqual(sample.totalDuration, 105.5);
+});
+
+test("body title and table totals use the same processing-time definition without double-counting table undo", () => {
+  const { monitor } = enabledMonitor();
+  ["body", "title"].forEach((inputKind) => {
+    const context = inputContext({ inputKind });
+    const token = monitor.beginInput(context);
+    monitor.addInputDuration(token, "captureUndoSnapshot", 1.5);
+    const consumed = monitor.consumeInput(context);
+    monitor.completeInput(consumed, {
+      durations: { applyCurrentEditorDraft: 2, scheduleDerivedUi: 1 },
+      totalDuration: 4.5,
+      renderType: "full",
+      attributesFactory: () => ({})
+    });
+  });
+
+  const tableContext = inputContext({ inputKind: "table" });
+  const tableToken = monitor.consumeInput(tableContext);
+  monitor.addInputDuration(tableToken, "captureUndoSnapshot", 1.5);
+  monitor.completeInput(tableToken, {
+    durations: { applyCurrentEditorDraft: 2, scheduleDerivedUi: 1 },
+    totalDuration: 6,
+    renderType: "auxiliary",
+    attributesFactory: () => ({})
+  });
+
+  const samples = monitor.getSamples();
+  assert.deepEqual(samples.map(({ inputKind }) => inputKind), ["body", "title", "table"]);
+  assert.deepEqual(samples.map(({ totalDuration }) => totalDuration), [6, 6, 6]);
+  assert.deepEqual(samples.map(({ durations }) => durations.captureUndoSnapshot), [1.5, 1.5, 1.5]);
+});
+
+test("a throttled undo snapshot contributes only its actual beforeinput handler time", () => {
+  const { monitor } = enabledMonitor();
+  const context = inputContext();
+  const token = monitor.beginInput(context);
+  monitor.addInputDuration(token, "captureUndoSnapshot", 0.2);
+  const consumed = monitor.consumeInput(context);
+  monitor.completeInput(consumed, {
+    durations: { applyCurrentEditorDraft: 1 },
+    totalDuration: 2,
+    attributesFactory: () => ({})
+  });
+  assert.equal(monitor.getSamples()[0].totalDuration, 2.2);
+  assert.equal(monitor.getSamples()[0].durations.captureUndoSnapshot, 0.2);
 });
 
 test("title input and table input each consume only one sample slot", () => {
@@ -144,6 +226,8 @@ test("title input and table input each consume only one sample slot", () => {
   assert.deepEqual(samples.map((sample) => sample.inputKind), ["title", "table"]);
   assert.equal(samples[1].isComposing, true);
   assert.equal(samples[1].renderType, "auxiliary");
+  assert.equal(samples[1].durations.captureUndoSnapshot, 0.4);
+  assert.equal(samples[1].totalDuration, 3);
 });
 
 test("one full derived flush records one sample with grouped durations", () => {
@@ -281,15 +365,24 @@ test("pending beforeinput expires if no input event follows", () => {
   timers.flush();
   assert.equal(monitor.completeInput(token, { attributesFactory: () => ({}) }), false);
   assert.deepEqual(monitor.getSamples(), []);
+
+  const nextToken = monitor.consumeInput(inputContext());
+  monitor.completeInput(nextToken, { totalDuration: 2, attributesFactory: () => ({}) });
+  assert.equal(monitor.getSamples()[0].totalDuration, 2);
+  assert.deepEqual(monitor.getSamples()[0].durations, {});
 });
 
 test("a newer beforeinput discards an older pending collector", () => {
   const { monitor } = enabledMonitor();
   const oldToken = monitor.beginInput(inputContext({ revision: 1 }));
+  monitor.addInputDuration(oldToken, "captureUndoSnapshot", 9);
   const nextToken = monitor.beginInput(inputContext({ revision: 2 }));
+  monitor.addInputDuration(nextToken, "captureUndoSnapshot", 1);
   assert.notEqual(oldToken, nextToken);
   assert.equal(monitor.completeInput(oldToken, {}), false);
   assert.equal(monitor.consumeInput(inputContext({ revision: 2 })), nextToken);
+  monitor.completeInput(nextToken, { totalDuration: 2, attributesFactory: () => ({}) });
+  assert.equal(monitor.getSamples()[0].totalDuration, 3);
 });
 
 test("pending input is not reused across note, revision, kind, or IME state", () => {
@@ -302,17 +395,25 @@ test("pending input is not reused across note, revision, kind, or IME state", ()
   mismatches.forEach((change) => {
     const { monitor } = enabledMonitor();
     const original = monitor.beginInput(inputContext());
+    monitor.addInputDuration(original, "captureUndoSnapshot", 9);
     const consumed = monitor.consumeInput(inputContext(change));
     assert.notEqual(consumed, original);
     assert.equal(monitor.completeInput(original, {}), false);
+    monitor.completeInput(consumed, { totalDuration: 2, attributesFactory: () => ({}) });
+    assert.equal(monitor.getSamples()[0].totalDuration, 2);
+    assert.deepEqual(monitor.getSamples()[0].durations, {});
   });
 });
 
 test("pending input is not reused across input types", () => {
   const { monitor } = enabledMonitor();
   const original = monitor.beginInput(inputContext({ inputType: "insertText" }));
+  monitor.addInputDuration(original, "captureUndoSnapshot", 9);
   const consumed = monitor.consumeInput(inputContext({ inputType: "deleteContentBackward" }));
   assert.notEqual(consumed, original);
+  monitor.completeInput(consumed, { totalDuration: 2, attributesFactory: () => ({}) });
+  assert.equal(monitor.getSamples()[0].totalDuration, 2);
+  assert.deepEqual(monitor.getSamples()[0].durations, {});
 });
 
 test("derived samples require the exact private note and revision context", () => {
@@ -340,6 +441,7 @@ test("discardNote clears matching pending input and derived context", () => {
   const { monitor } = enabledMonitor();
   const context = inputContext();
   const token = monitor.beginInput(context);
+  monitor.addInputDuration(token, "captureUndoSnapshot", 7);
   assert.equal(monitor.discardNote(context.noteKey), true);
   assert.equal(monitor.completeInput(token, {}), false);
 
@@ -355,6 +457,7 @@ test("discardNote clears matching pending input and derived context", () => {
 test("clear removes samples, pending input, and derived transient state", () => {
   const { monitor } = enabledMonitor();
   const pendingToken = monitor.beginInput(inputContext());
+  monitor.addInputDuration(pendingToken, "captureUndoSnapshot", 7);
   monitor.clear();
   assert.equal(monitor.completeInput(pendingToken, {}), false);
 
@@ -367,6 +470,20 @@ test("clear removes samples, pending input, and derived transient state", () => 
     renderType: "full"
   }), false);
   assert.deepEqual(monitor.getSamples(), []);
+});
+
+test("discardTransient removes pending beforeinput processing time", () => {
+  const { monitor } = enabledMonitor();
+  const pendingToken = monitor.beginInput(inputContext());
+  monitor.addInputDuration(pendingToken, "captureUndoSnapshot", 7);
+  assert.equal(monitor.discardTransient(), true);
+  assert.equal(monitor.completeInput(pendingToken, {}), false);
+
+  const nextToken = monitor.consumeInput(inputContext());
+  monitor.completeInput(nextToken, { totalDuration: 3, attributesFactory: () => ({}) });
+  const [sample] = monitor.getSamples();
+  assert.equal(sample.totalDuration, 3);
+  assert.deepEqual(sample.durations, {});
 });
 
 test("recorded data excludes memo text, title text, tags, ids, and arbitrary strings", () => {
@@ -391,7 +508,7 @@ test("recorded data excludes memo text, title text, tags, ids, and arbitrary str
     })
   });
   const serialized = JSON.stringify(monitor.getSamples());
-  assert.doesNotMatch(serialized, /private|noteId|tagName|arbitrary/);
+  assert.doesNotMatch(serialized, /private|noteId|tagName|arbitrary|beforeInputDuration|revision|token/);
   assert.deepEqual(monitor.getSamples()[0].attributes, { bodyLength: 12 });
   assert.equal(monitor.getSamples()[0].inputKind, "other");
   assert.equal(monitor.getSamples()[0].inputType, "other");
@@ -412,9 +529,29 @@ test("getSamples and getEvents return defensive copies", () => {
 
 test("browser loads the monitor before app.js with isolated cache identifiers", () => {
   const html = fs.readFileSync("index.html", "utf8");
-  const monitorIndex = html.indexOf('src="typing-performance-monitor.js?v=0.5.0-2"');
+  const monitorIndex = html.indexOf('src="typing-performance-monitor.js?v=0.5.0-3"');
   const appIndex = html.indexOf('src="app.js?v=0.5.0-115"');
   assert.notEqual(monitorIndex, -1);
   assert.notEqual(appIndex, -1);
   assert.ok(monitorIndex < appIndex);
+});
+
+test("app keeps beforeinput and input timing separate while table undo stays inside its input interval", () => {
+  const app = fs.readFileSync("app.js", "utf8");
+  const undo = app.slice(app.indexOf("function captureUndoSnapshot"),
+    app.indexOf("function handleTitleTypingInput"));
+  const title = app.slice(app.indexOf("function handleTitleTypingInput"),
+    app.indexOf("function handleEditorTypingInput"));
+  const body = app.slice(app.indexOf("function handleEditorTypingInput"),
+    app.indexOf("function shouldForceUndoSnapshot"));
+  const table = app.slice(app.indexOf("function handleTableEditorInput"),
+    app.indexOf("function handleTableEditorCompositionStart"));
+
+  assert.match(undo, /beginInput\(performanceContext\)/);
+  assert.match(undo, /addInputDuration\([\s\S]*?"captureUndoSnapshot"/);
+  assert.match(title, /performanceStartedAt[\s\S]*?scheduleSave[\s\S]*?elapsed\(performanceStartedAt\)/);
+  assert.match(body, /performanceStartedAt[\s\S]*?resetEditorCaretIdle\(\)[\s\S]*?scheduleSave[\s\S]*?elapsed\(performanceStartedAt\)/);
+  assert.match(table, /performanceStartedAt[\s\S]*?commitTableBlockChange[\s\S]*?elapsed\(performanceStartedAt\)/);
+  assert.doesNotMatch(title, /beforeinputStartedAt/);
+  assert.doesNotMatch(body, /beforeinputStartedAt/);
 });
