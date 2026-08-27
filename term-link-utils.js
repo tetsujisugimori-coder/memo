@@ -8,7 +8,10 @@
   const TERM_COLORS = ["#287c88", "#5e6db8", "#9b5f9a", "#a66b1f", "#497346", "#17728d", "#8a5d19", "#7a3e9d", "#a44b57", "#427b59", "#4c6f9e", "#9a6c2d", "#6e599b", "#3d7d73", "#9b5d7b"];
 
   function extractExplicitTerms(body) {
-    return [...String(body || "").matchAll(TERM_PATTERN)].map((match) => match[1].trim()).filter(Boolean);
+    return [...String(body || "").matchAll(TERM_PATTERN)]
+      .map((match) => match[1].trim())
+      // * / ＊ はメモリンク用の予約先頭文字です。不正式な記法も登録語句へ混ぜません。
+      .filter((term) => term && !/^[*＊]/.test(term));
   }
 
   function uniqueTerms(terms) {

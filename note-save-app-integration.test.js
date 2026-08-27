@@ -10,6 +10,7 @@ const { createCodexThreadSaveCoordinator, isCodexThreadSaveRequest, mergeStoredC
 const { buildPortableBackupFiles } = require("./backup-bundle-utils.js");
 const { applyLocalSaveSuccess, classifyLocalSaveFailure, createLocalSaveState, transitionLocalSaveState } = require("./local-save-state.js");
 const { serializeLocalNote } = require("./local-markdown.js");
+const { buildMemoLinkRelationIndex, rewriteMemoLinksFromRenameNotification, rewriteResolvedMemoLinks } = require("./memo-link-utils.js");
 const {
   attachmentExtension,
   buildManifest,
@@ -37,6 +38,7 @@ function sourceBetween(start, end) {
 const openNoteSource = sourceBetween("function openNote(id)", "async function initPopout");
 const saveCoreSource = sourceBetween("function currentNote()", "function handleNoteSaveStateChange");
 const saveHandlersSource = sourceBetween("function handleNoteSaveStateChange", "function popoutUrlForMemo");
+const memoLinkRenameSyncSource = sourceBetween("function rememberProcessedMemoLinkRenameSync", "async function refreshMemoFromOtherWindow");
 const draftMirrorHelpersSource = sourceBetween("function scheduleDraftMirror", "// IndexedDBより新しいドラフト");
 const scheduleSaveSource = sourceBetween("function scheduleSave(", "function captureUndoSnapshot");
 const updateTagsSource = sourceBetween("async function updateCurrentNoteTags", "function setNoteTagStatus");
@@ -44,6 +46,7 @@ const localSaveTargetSource = sourceBetween("async function localSaveTargetsMatc
 const localSaveMetadataSource = sourceBetween("function buildLocalSaveLiveNoteIndex", "async function performLocalWorkspaceSave");
 const performLocalWorkspaceSaveSource = sourceBetween("async function performLocalWorkspaceSave", "async function selectLocalSaveFolder");
 const updateNotesTransactionSource = sourceBetween("function prepareNoteSnapshotsInTransaction", "function collectionExists");
+const memoLinkRenameRepairSource = sourceBetween("function reconcileMemoLinkRenameStoredNote", "// Codexスレッド要求は");
 
 function deferred() {
   let resolve;
@@ -64,17 +67,28 @@ function createProductionBatchWriterHarness(initialNotes) {
       transactionCount += 1;
       let pendingReads = 0;
       let completionQueued = false;
+      let aborted = false;
+      const stagedWrites = new Map();
       const transaction = {
         error: null,
         objectStore() { return store; },
+        abort() {
+          if (aborted) return;
+          aborted = true;
+          queueMicrotask(() => transaction.onabort?.());
+        },
         oncomplete: null,
         onerror: null,
         onabort: null
       };
       const finishIfReady = () => {
-        if (pendingReads || completionQueued) return;
+        if (aborted || pendingReads || completionQueued) return;
         completionQueued = true;
-        queueMicrotask(() => transaction.oncomplete?.());
+        queueMicrotask(() => {
+          if (aborted) return;
+          stagedWrites.forEach((note, id) => stored.set(id, structuredClone(note)));
+          transaction.oncomplete?.();
+        });
       };
       const store = {
         get(id) {
@@ -88,7 +102,7 @@ function createProductionBatchWriterHarness(initialNotes) {
           });
           return request;
         },
-        put(note) { stored.set(note.id, structuredClone(note)); }
+        put(note) { stagedWrites.set(note.id, structuredClone(note)); }
       };
       queueMicrotask(finishIfReady);
       return transaction;
@@ -113,6 +127,83 @@ function createProductionBatchWriterHarness(initialNotes) {
   };
 }
 
+function createProductionMemoLinkRenameRepairHarness(initialNotes) {
+  const stored = new Map(initialNotes.map((note) => [note.id, structuredClone(note)]));
+  const notifications = [];
+  let writeCount = 0;
+  const db = {
+    transaction() {
+      let pendingReads = 0;
+      let completionQueued = false;
+      let aborted = false;
+      const stagedWrites = new Map();
+      const transaction = {
+        error: null,
+        objectStore() { return store; },
+        abort() {
+          aborted = true;
+          queueMicrotask(() => transaction.onabort?.());
+        },
+        oncomplete: null,
+        onerror: null,
+        onabort: null
+      };
+      const finishIfReady = () => {
+        if (aborted || pendingReads || completionQueued) return;
+        completionQueued = true;
+        queueMicrotask(() => {
+          if (aborted) return;
+          stagedWrites.forEach((note, id) => stored.set(id, structuredClone(note)));
+          transaction.oncomplete?.();
+        });
+      };
+      const store = {
+        get(id) {
+          pendingReads += 1;
+          const request = { result: undefined, onsuccess: null, onerror: null, error: null };
+          queueMicrotask(() => {
+            request.result = stored.has(id) ? structuredClone(stored.get(id)) : undefined;
+            request.onsuccess?.();
+            pendingReads -= 1;
+            finishIfReady();
+          });
+          return request;
+        },
+        put(note) {
+          writeCount += 1;
+          stagedWrites.set(note.id, structuredClone(note));
+        }
+      };
+      queueMicrotask(finishIfReady);
+      return transaction;
+    }
+  };
+  const context = vm.createContext({
+    db,
+    STORE_NAME: "notes",
+    TOMBSTONE_STORE_NAME: "tombstones",
+    cloneNoteSnapshot: structuredClone,
+    normalizeNoteRevision: normalizeRevision,
+    rewriteMemoLinksFromRenameNotification,
+    timestampValue(value) {
+      if (typeof value === "number" && Number.isFinite(value)) return value;
+      const parsed = Date.parse(value);
+      return Number.isFinite(parsed) ? parsed : null;
+    },
+    guardNoteWrites: (_transaction, _noteIds, write) => write(),
+    noteTransactionError: (transaction) => transaction.error || new Error("transaction failed"),
+    notifyMemoChanged: (note) => notifications.push(structuredClone(note)),
+    markLocalWorkspacePending() {}
+  });
+  vm.runInContext(`${memoLinkRenameRepairSource}\nglobalThis.reconcileForHarness = reconcileMemoLinkRenameStoredNote;`, context);
+  return {
+    notifications,
+    reconcile: context.reconcileForHarness,
+    stored,
+    writeCount: () => writeCount
+  };
+}
+
 function createHarness({
   writer,
   ensureTags = async () => {},
@@ -124,6 +215,8 @@ function createHarness({
   const timers = new Map();
   const draftTimers = new Map();
   const consoleLogs = [];
+  const memoLinkRenameNotifications = [];
+  const memoLinkRenameRepairWrites = [];
   let timerSequence = 0;
   let draftTimerSequence = 0;
   const initialNotes = providedNotes || Array.from({ length: noteCount }, (_, index) => {
@@ -165,6 +258,8 @@ function createHarness({
   const context = vm.createContext({
     console: { error() {}, log(...args) { consoleLogs.push(args); } },
     consoleLogs,
+    memoLinkRenameNotifications,
+    memoLinkRenameRepairWrites,
     createDraftMirrorScheduler,
     createNoteSaveFoundation,
     createSaveRequest,
@@ -176,6 +271,7 @@ function createHarness({
     attachmentExtension,
     buildManifest,
     buildPortableBackupFiles,
+    buildMemoLinkRelationIndex,
     classifyLocalSaveFailure,
     contentHash,
     createLocalSaveState,
@@ -189,12 +285,17 @@ function createHarness({
     serializeCollections,
     serializeLocalNote,
     transitionLocalSaveState,
+    rewriteResolvedMemoLinks,
+    rewriteMemoLinksFromRenameNotification,
     structuredClone,
     initialNotes,
     crypto: { randomUUID: () => `request-${Math.random()}` },
     writer: persistingWriter,
     persistCodexThread,
     storedNotesForHarness: async () => [...storedNotesById.values()].map((note) => structuredClone(note)),
+    storedNoteForHarness: (noteId) => storedNotesById.has(noteId) ? structuredClone(storedNotesById.get(noteId)) : null,
+    replaceStoredNoteForHarness: (note) => storedNotesById.set(note.id, structuredClone(note)),
+    notifyMemoLinkRenamed: (message) => memoLinkRenameNotifications.push(structuredClone(message)),
     localFs: localFsDriver || defaultLocalFsDriver,
     MemoNexusTypingDerivedUiScheduler: typingDerivedUiScheduler,
     ensureTags,
@@ -223,6 +324,8 @@ function createHarness({
     let isLocalMemoDirty = false;
     let localDirtyMemoId = null;
     let pendingMemoSync = null;
+    let editorCompositionNoteId = null;
+    let titleCompositionNoteId = null;
     let lastUndoSnapshotAt = 0;
     let layoutMode = "wide";
     let isPopoutWindow = false;
@@ -232,8 +335,13 @@ function createHarness({
     const noteLiveDrafts = new Map();
     const noteSaveBeforeBodies = new Map();
     const noteSaveUiChanges = new Map();
+    const memoLinkRenameSaveTasks = new Map();
+    const processedMemoLinkRenameSyncIds = new Set();
+    const pendingMemoLinkRenameSyncs = new Map();
+    const memoLinkRenameSyncIntents = new Map();
+    const memoLinkRenameSyncNoteTails = new Map();
     const titleInput = { value: initialNotes[0]?.title || "A" };
-    const editor = { value: initialNotes[0]?.body || "A0", focus() {} };
+    const editor = { value: initialNotes[0]?.body || "A0", selectionStart: 0, selectionEnd: 0, focus() {}, setSelectionRange(start, end) { this.selectionStart = start; this.selectionEnd = end; } };
     const noteTagInput = { value: "" };
     const tableAxisSelections = { clear() {} };
     let pendingTableAxisDeletion = null;
@@ -258,6 +366,7 @@ function createHarness({
     let extractLinksCount = 0;
     let renderAllOptions = [];
     let saveStatuses = [];
+    let saveStatusNotices = [];
     let lastDiscovery = "";
     let localSaveSettings = { enabled: true };
     let localDirectoryHandle = localFs;
@@ -299,6 +408,7 @@ function createHarness({
     const setRelatedDrawerOpen = noop;
     const syncLegacyDirtyStateOriginal = noop;
     const renderMemoSyncNotice = noop;
+    const removeDraftMirrorForNote = (noteId) => { draftMirrorScheduler.cancelNote(noteId); };
     const renderNoteFlagButton = noop;
     const renderNoteTags = (note) => { tagRenderIds.push(note?.id || null); };
     const setNoteTagStatus = noop;
@@ -337,10 +447,16 @@ function createHarness({
     const updateAiTargetPreview = () => { aiTargetRenderCount += 1; };
     const renderNoteTagOptions = noop;
     const setSaveStatus = (status) => { saveStatuses.push(status); };
+    const setSaveStatusNotice = (notice) => { saveStatusNotices.push(notice); };
+    const timestampValue = (value) => {
+      if (typeof value === "number" && Number.isFinite(value)) return value;
+      const parsed = Date.parse(value);
+      return Number.isFinite(parsed) ? parsed : null;
+    };
     const invalidateTermRelationIndex = () => { invalidateTermRelationIndexCount += 1; };
     const cloneNoteSnapshot = (value) => structuredClone(value);
     const activeNotes = () => notes.filter((note) => !note.deletedAt);
-    const extractLinks = (body) => {
+    const extractExplicitTerms = (body) => {
       extractLinksCount += 1;
       const text = String(body || "");
       const links = [];
@@ -362,7 +478,52 @@ function createHarness({
     const titleFromBody = (body) => String(body).split(/\\r?\\n/).find(Boolean) || "";
     const compareDateTimes = (left, right) => Number(left || 0) - Number(right || 0);
     const getStoredNotes = () => storedNotesForHarness();
-    const updateNotesTransaction = async (items, options = {}) => writer(items, { batch: true, ...options });
+    const getStoredNoteSnapshots = async (noteIds) => new Map(noteIds.map((noteId) => [
+      noteId,
+      storedNoteForHarness(noteId)
+    ]).filter(([, note]) => note));
+    const updateNotesTransaction = async (items, options = {}) => {
+      options.validateBeforePut?.();
+      const prepared = items.map((note) => options.prepareStoredNote
+        ? options.prepareStoredNote(note, storedNoteForHarness(note.id))
+        : options.preserveStoredCodexThread
+          ? mergeStoredCodexThread(note, storedNoteForHarness(note.id))
+          : note);
+      options.validateBeforePut?.();
+      return writer(prepared, { batch: true, ...options, prepareStoredNote: null });
+    };
+    async function reconcileMemoLinkRenameStoredNote(noteId, rename) {
+      const stored = storedNoteForHarness(noteId);
+      if (!stored || stored.deletedAt) return { changed: false, savedNote: stored };
+      const nextNote = structuredClone(stored);
+      let titleChanged = false;
+      let bodyChanged = false;
+      if (noteId === rename.targetNoteId && String(nextNote.title || "") === String(rename.oldTitle || "")) {
+        nextNote.title = rename.newTitle;
+        titleChanged = true;
+      }
+      if ((rename.resolvedSourceNoteIds || []).includes(noteId)) {
+        const rewritten = rewriteMemoLinksFromRenameNotification(nextNote.body, { ...rename, sourceNoteId: noteId });
+        if (rewritten.changed) {
+          nextNote.body = rewritten.body;
+          bodyChanged = true;
+        }
+      }
+      const storedRevision = normalizeNoteRevision(stored.revision);
+      const notifiedRevision = normalizeNoteRevision(rename.revisions?.[noteId]);
+      const revisionNeedsRepair = storedRevision < notifiedRevision;
+      if (!titleChanged && !bodyChanged && !revisionNeedsRepair) return { changed: false, savedNote: stored };
+      const contentChanged = titleChanged || bodyChanged;
+      nextNote.revision = Math.max(storedRevision, notifiedRevision) + (contentChanged ? 1 : 0);
+      if (contentChanged) {
+        const changedAt = Math.max(Date.now(), timestampValue(stored.updatedAt) ?? 0, timestampValue(rename.updatedAt) ?? 0);
+        nextNote.updatedAt = changedAt;
+        if (bodyChanged) nextNote.bodyUpdatedAt = changedAt;
+      }
+      replaceStoredNoteForHarness(nextNote);
+      memoLinkRenameRepairWrites.push(structuredClone(nextNote));
+      return { changed: true, savedNote: structuredClone(nextNote) };
+    }
     const ensureRegisteredTagsForNotes = () => ensureTags();
     const getAllCollections = async () => [];
     const getAllTagDefinitions = async () => [];
@@ -407,6 +568,7 @@ function createHarness({
     ${openNoteSource}
     ${saveCoreSource}
     ${saveHandlersSource}
+    ${memoLinkRenameSyncSource}
     ${scheduleSaveSource}
     ${updateTagsSource}
     ${localSaveTargetSource}
@@ -425,6 +587,7 @@ function createHarness({
       localSaveBoundaryChanged,
       performLocalWorkspaceSave,
       enqueueNoteSave,
+      applyMemoLinkRenameSync,
       setBeforeLocalSaveMetadataTransaction(callback) {
         performLocalWorkspaceSave.beforeMetadataTransaction = callback;
       },
@@ -503,6 +666,7 @@ function createHarness({
           ,extractLinksCount
           ,lastDiscovery
           ,saveStatuses: [...saveStatuses]
+          ,saveStatusNotices: [...saveStatusNotices]
           ,localSaveState: structuredClone(localSaveState)
           ,localSaveStatusHistory: [...localSaveStatusHistory]
           ,localSyncState: structuredClone(localSyncState)
@@ -513,11 +677,18 @@ function createHarness({
           ,draftMirrorPendingNoteId: draftMirrorScheduler.pendingNoteId()
           ,draftMirrorWrites: structuredClone(draftMirrorWrites)
           ,drafts: [...noteLiveDrafts.values()].map((note) => structuredClone(note))
+          ,memoLinkRenameNotifications: structuredClone(memoLinkRenameNotifications)
+          ,memoLinkRenameRepairWrites: structuredClone(memoLinkRenameRepairWrites)
+          ,pendingMemoSync: structuredClone(pendingMemoSync)
         };
       },
       bumpLocalWorkspaceChangeVersion() { localWorkspaceChangeVersion += 1; },
       addLocalPendingExclusion(noteId) { localPendingExclusions.add(noteId); },
       storedNotes: () => storedNotesForHarness(),
+      replaceStoredNote(note) { replaceStoredNoteForHarness(note); },
+      setEditorComposition(noteId) { editorCompositionNoteId = noteId; },
+      setTitleComposition(noteId) { titleCompositionNoteId = noteId; },
+      flushPendingMemoLinkRenameSyncs,
       edit(title, body) { titleInput.value = title; editor.value = body; },
       setCurrentId(id) { currentId = id; },
       markDraftDirty(id) {
@@ -1616,6 +1787,495 @@ test("タイトル変更はコレクション内の表示名だけを1回更新�
   assert.equal(state.tagPanelRenderCount, 0);
 });
 
+test("一意解決済みメモリンクは複数参照元・自己リンクを題名変更と同じatomic batchで保存し連続改名へ追従する", async () => {
+  const writes = [];
+  const harness = createHarness({
+    initialNotes: [
+      { id: "A", title: "メモB", body: "自己 [[* メモB]]", revision: 0, updatedAt: 1, bodyUpdatedAt: 1 },
+      { id: "B", title: "参照元1", body: "[[* メモB]] と [[*   メモB  ]]", revision: 0, updatedAt: 1, bodyUpdatedAt: 1 },
+      { id: "C", title: "参照元2", body: "通常のメモB [[メモB]] [[* メモB]]", revision: 0, updatedAt: 1, bodyUpdatedAt: 1 }
+    ],
+    writer: async (value, options) => { writes.push({ value: structuredClone(value), batch: Boolean(options?.batch) }); }
+  });
+
+  harness.edit("メモC", "自己 [[* メモB]]");
+  harness.scheduleSave();
+  await harness.enqueueNoteSave("A");
+  let stored = new Map((await harness.storedNotes()).map((note) => [note.id, note]));
+  assert.equal(writes.length, 1);
+  assert.equal(Array.isArray(writes[0].value), true);
+  assert.equal(writes[0].value.length, 3);
+  assert.equal(stored.get("A").title, "メモC");
+  assert.equal(stored.get("A").body, "自己 [[* メモC]]");
+  assert.equal(stored.get("B").body, "[[* メモC]] と [[*   メモC  ]]");
+  assert.equal(stored.get("C").body, "通常のメモB [[メモB]] [[* メモC]]");
+  assert.equal(stored.get("A").revision, 2);
+  assert.equal(stored.get("B").revision, 1);
+  assert.equal(stored.get("C").revision, 1);
+  assert.equal(harness.state().body, "自己 [[* メモC]]");
+  let targetState = harness.foundation.getState("A");
+  assert.equal(targetState.currentRevision, stored.get("A").revision);
+  assert.equal(targetState.lastSavedRevision, stored.get("A").revision);
+  assert.equal(targetState.dirty, false);
+  assert.equal(targetState.status, "saved");
+  assert.equal(harness.liveNote("A").revision, stored.get("A").revision);
+  assert.equal(harness.state().drafts.some((note) => note.id === "A"), false);
+
+  harness.edit("メモC", "自己 [[* メモC]]追記");
+  harness.scheduleSave();
+  harness.runNextTimer();
+  await harness.foundation.whenIdle("A");
+  stored = new Map((await harness.storedNotes()).map((note) => [note.id, note]));
+  targetState = harness.foundation.getState("A");
+  assert.equal(stored.get("A").body, "自己 [[* メモC]]追記");
+  assert.equal(targetState.currentRevision, targetState.lastSavedRevision);
+  assert.equal(harness.liveNote("A").revision, stored.get("A").revision);
+
+  harness.edit("メモD", "自己 [[* メモC]]");
+  harness.scheduleSave();
+  await harness.enqueueNoteSave("A");
+  stored = new Map((await harness.storedNotes()).map((note) => [note.id, note]));
+  assert.equal(stored.get("A").body, "自己 [[* メモD]]");
+  assert.equal(stored.get("B").body, "[[* メモD]] と [[*   メモD  ]]");
+  assert.equal(stored.get("C").body, "通常のメモB [[メモB]] [[* メモD]]");
+  assert.equal(writes.length, 3);
+  targetState = harness.foundation.getState("A");
+  assert.equal(targetState.currentRevision, targetState.lastSavedRevision);
+  assert.equal(harness.liveNote("A").revision, stored.get("A").revision);
+});
+
+test("外部保存が先行した参照元を基準snapshotとして改名し通常文章と対象外フィールドを維持する", async () => {
+  const harness = createHarness({
+    initialNotes: [
+      { id: "A", title: "メモB", body: "", revision: 0, updatedAt: 1, tags: [], collectionId: "old" },
+      { id: "B", title: "参照元", body: "古い本文 [[* メモB]]", revision: 0, updatedAt: 1, tags: ["tag-a"], collectionId: "old" }
+    ]
+  });
+  harness.replaceStoredNote({
+    id: "A", title: "メモB", body: "", revision: 4, updatedAt: 1,
+    tags: ["tag-b"], collectionId: "external-target", isFlagged: true,
+    attachments: [{ id: "attachment-a" }], localCreatedAt: "2026-08-26T00:00:00.000Z"
+  });
+  harness.replaceStoredNote({
+    id: "B", title: "参照元", body: "別ウィンドウ保存本文 [[* メモB]]", revision: 1, updatedAt: 2,
+    bodyUpdatedAt: 2, tags: ["tag-b"], collectionId: "external", isFlagged: true,
+    source: { url: "https://example.com" }, localSavedAt: "2026-08-27T00:00:00.000Z"
+  });
+
+  harness.edit("メモC", "");
+  harness.scheduleSave();
+  await harness.enqueueNoteSave("A");
+
+  const stored = new Map((await harness.storedNotes()).map((note) => [note.id, note]));
+  assert.deepEqual(stored.get("A").tags, ["tag-b"]);
+  assert.equal(stored.get("A").collectionId, "external-target");
+  assert.equal(stored.get("A").isFlagged, true);
+  assert.deepEqual(stored.get("A").attachments, [{ id: "attachment-a" }]);
+  assert.equal(stored.get("A").localCreatedAt, "2026-08-26T00:00:00.000Z");
+  assert.equal(stored.get("A").revision, 5);
+  assert.equal(harness.foundation.getState("A").currentRevision, 5);
+  assert.equal(stored.get("B").body, "別ウィンドウ保存本文 [[* メモC]]");
+  assert.deepEqual(stored.get("B").tags, ["tag-b"]);
+  assert.equal(stored.get("B").collectionId, "external");
+  assert.equal(stored.get("B").isFlagged, true);
+  assert.deepEqual(stored.get("B").source, { url: "https://example.com" });
+  assert.equal(stored.get("B").localSavedAt, "2026-08-27T00:00:00.000Z");
+});
+
+test("基準snapshot取得後の同revision外部更新はtransaction内で全件中止し部分保存しない", async () => {
+  const harness = createHarness({
+    initialNotes: [
+      { id: "A", title: "メモB", body: "", revision: 0, updatedAt: 1 },
+      { id: "B", title: "参照元", body: "旧本文 [[* メモB]]", revision: 0, updatedAt: 1 },
+      { id: "C", title: "参照元2", body: "別参照 [[* メモB]]", revision: 0, updatedAt: 1 }
+    ]
+  });
+  harness.edit("メモC", "");
+  harness.scheduleSave();
+  const rename = harness.enqueueNoteSave("A");
+  harness.replaceStoredNote({ id: "B", title: "参照元", body: "外部の最新本文 [[* メモB]]", revision: 0, updatedAt: 99 });
+
+  await assert.rejects(rename, (error) => error.code === "MEMO_LINK_RENAME_STORED_CONFLICT" && error.noteId === "B");
+  const stored = new Map((await harness.storedNotes()).map((note) => [note.id, note]));
+  assert.equal(stored.get("A").title, "メモB");
+  assert.equal(stored.get("B").body, "外部の最新本文 [[* メモB]]");
+  assert.equal(stored.get("C").body, "別参照 [[* メモB]]");
+  assert.match(harness.state().saveStatusNotices.at(-1), /編集内容は失われていません/);
+});
+
+test("基準snapshot後のCodex threadだけの更新は競合にせず最新threadを維持する", async () => {
+  const harness = createHarness({
+    initialNotes: [
+      { id: "A", title: "メモB", body: "", revision: 0, updatedAt: 1 },
+      { id: "B", title: "参照元", body: "本文 [[* メモB]]", revision: 0, updatedAt: 1, codexChat: { threadId: "thread-a" } }
+    ]
+  });
+  harness.edit("メモC", "");
+  harness.scheduleSave();
+  const rename = harness.enqueueNoteSave("A");
+  harness.replaceStoredNote({
+    id: "B", title: "参照元", body: "本文 [[* メモB]]", revision: 0, updatedAt: 1,
+    codexChat: { threadId: "thread-b" }
+  });
+  await rename;
+
+  const stored = new Map((await harness.storedNotes()).map((note) => [note.id, note]));
+  assert.equal(stored.get("B").body, "本文 [[* メモC]]");
+  assert.equal(stored.get("B").codexChat.threadId, "thread-b");
+});
+
+test("dirty受信側は通常文章を維持して正式リンクだけを冪等に合流し後続保存する", async () => {
+  const harness = createHarness({
+    initialNotes: [
+      { id: "A", title: "参照元", body: "初期 [[* メモB]]", revision: 0, updatedAt: 1 },
+      { id: "B", title: "メモB", body: "", revision: 0, updatedAt: 1 }
+    ]
+  });
+  const dirtyBody = [
+    "利用者の編集中文章 [[* メモB]] [[メモB]] [[*メモB]]",
+    "`[[* メモB]]`",
+    "```mermaid",
+    "A[地域 [[* メモB]]]",
+    "```"
+  ].join("\n");
+  harness.edit("参照元", dirtyBody);
+  harness.scheduleSave();
+  const beforeRevision = harness.liveNote("A").revision;
+  harness.replaceStoredNote({ id: "A", title: "参照元", body: "初期 [[* メモC]]", revision: 5, updatedAt: 20 });
+  const message = {
+    type: "memo-link-renamed", renameId: "rename-1", targetNoteId: "B", oldTitle: "メモB", newTitle: "メモC",
+    resolvedSourceNoteIds: ["A"], revisions: { A: 5 }, updatedAt: 20
+  };
+
+  await harness.applyMemoLinkRenameSync(message);
+  const mergedRevision = harness.liveNote("A").revision;
+  assert.equal(mergedRevision, 6);
+  assert.equal(mergedRevision > beforeRevision, true);
+  assert.equal(harness.liveNote("A").body, dirtyBody.replace("文章 [[* メモB]]", "文章 [[* メモC]]"));
+  assert.equal(harness.foundation.getState("A").dirty, false);
+  assert.equal(harness.state().pendingMemoSync, null);
+  await harness.applyMemoLinkRenameSync(message);
+  assert.equal(harness.liveNote("A").revision, mergedRevision);
+
+  const stored = (await harness.storedNotes()).find((note) => note.id === "A");
+  assert.equal(stored.body, dirtyBody.replace("文章 [[* メモB]]", "文章 [[* メモC]]"));
+  assert.equal(harness.foundation.getState("A").dirty, false);
+  assert.equal(harness.state().pendingMemoSync, null);
+});
+
+test("IME変換中のdirty受信側は改名通知を保留しcomposition終了後の最新本文へ合流する", async () => {
+  const harness = createHarness({
+    initialNotes: [
+      { id: "A", title: "参照元", body: "初期 [[* メモB]]", revision: 0, updatedAt: 1 },
+      { id: "B", title: "メモB", body: "", revision: 0, updatedAt: 1 }
+    ]
+  });
+  harness.edit("参照元", "変換中文字 [[* メモB]]");
+  harness.scheduleSave();
+  const revisionBeforeNotice = harness.liveNote("A").revision;
+  harness.setEditorComposition("A");
+  await harness.applyMemoLinkRenameSync({
+    type: "memo-link-renamed", renameId: "rename-ime", targetNoteId: "B", oldTitle: "メモB", newTitle: "メモC",
+    resolvedSourceNoteIds: ["A"], updatedAt: 20
+  });
+  assert.equal(harness.liveNote("A").body, "変換中文字 [[* メモB]]");
+  assert.equal(harness.liveNote("A").revision, revisionBeforeNotice);
+
+  harness.setEditorComposition(null);
+  await harness.flushPendingMemoLinkRenameSyncs("A");
+  assert.equal(harness.liveNote("A").body, "変換中文字 [[* メモC]]");
+  assert.equal(harness.liveNote("A").revision, revisionBeforeNotice + 1);
+});
+
+test("対象タイトルのIME変換中は改名intentを確定後まで保留する", async () => {
+  const harness = createHarness({
+    initialNotes: [{ id: "A", title: "メモB", body: "本文", revision: 0, updatedAt: 1 }]
+  });
+  harness.setTitleComposition("A");
+  await harness.applyMemoLinkRenameSync({
+    type: "memo-link-renamed", renameId: "rename-title-ime", targetNoteId: "A",
+    oldTitle: "メモB", newTitle: "メモC", resolvedSourceNoteIds: [], revisions: { A: 1 }, updatedAt: 20
+  });
+  assert.equal(harness.liveNote("A").title, "メモB");
+  assert.equal((await harness.storedNotes()).find((note) => note.id === "A").title, "メモB");
+
+  harness.setTitleComposition(null);
+  await harness.flushPendingMemoLinkRenameSyncs("A");
+  assert.equal(harness.liveNote("A").title, "メモC");
+  assert.equal((await harness.storedNotes()).find((note) => note.id === "A").title, "メモC");
+});
+
+test("遅延通常保存が改名batch後に旧リンクをcommitしてもclean通知の再検証で最新本文を修復する", async () => {
+  const saveStarted = deferred();
+  const releaseSave = deferred();
+  let delayed = false;
+  const harness = createHarness({
+    initialNotes: [
+      { id: "A", title: "参照元", body: "初期 [[* メモB]]", revision: 0, updatedAt: 1 },
+      { id: "B", title: "メモB", body: "対象", revision: 0, updatedAt: 1 }
+    ],
+    writer: async (value) => {
+      if (Array.isArray(value) || value.id !== "A" || delayed) return;
+      delayed = true;
+      saveStarted.resolve();
+      await releaseSave.promise;
+    }
+  });
+  harness.edit("参照元", "タブAの編集 [[* メモB]]");
+  harness.scheduleSave();
+  harness.runNextTimer();
+  await saveStarted.promise;
+
+  harness.replaceStoredNote({ id: "A", title: "参照元", body: "初期 [[* メモC]]", revision: 2, updatedAt: 20 });
+  harness.replaceStoredNote({ id: "B", title: "メモC", body: "対象", revision: 1, updatedAt: 20 });
+  assert.equal((await harness.storedNotes()).find((note) => note.id === "A").body, "初期 [[* メモC]]");
+  releaseSave.resolve();
+  await harness.foundation.whenIdle("A");
+  assert.equal((await harness.storedNotes()).find((note) => note.id === "A").body, "タブAの編集 [[* メモB]]");
+
+  await harness.applyMemoLinkRenameSync({
+    type: "memo-link-renamed", renameId: "rename-clean-late", targetNoteId: "B",
+    oldTitle: "メモB", newTitle: "メモC", resolvedSourceNoteIds: ["A"], revisions: { A: 2, B: 1 }, updatedAt: 20
+  });
+  const storedA = (await harness.storedNotes()).find((note) => note.id === "A");
+  assert.equal(storedA.body, "タブAの編集 [[* メモC]]");
+  assert.equal(harness.liveNote("A").body, storedA.body);
+  assert.equal(harness.foundation.getState("A").currentRevision, storedA.revision);
+  assert.equal(harness.foundation.getState("A").lastSavedRevision, storedA.revision);
+  assert.equal(harness.foundation.getState("A").status, "saved");
+});
+
+test("saving中に届いた改名intentは古い通常保存完了後まで保持して旧リンクを再検証する", async () => {
+  const saveStarted = deferred();
+  const releaseSave = deferred();
+  let delayed = false;
+  const harness = createHarness({
+    initialNotes: [
+      { id: "A", title: "参照元", body: "初期 [[* メモB]]", revision: 0, updatedAt: 1 },
+      { id: "B", title: "メモB", body: "対象", revision: 0, updatedAt: 1 }
+    ],
+    writer: async (value) => {
+      if (Array.isArray(value) || value.id !== "A" || delayed) return;
+      delayed = true;
+      saveStarted.resolve();
+      await releaseSave.promise;
+    }
+  });
+  harness.edit("参照元", "保存中の編集 [[* メモB]]");
+  harness.scheduleSave();
+  harness.runNextTimer();
+  await saveStarted.promise;
+  harness.replaceStoredNote({ id: "A", title: "参照元", body: "初期 [[* メモC]]", revision: 2, updatedAt: 20 });
+  harness.replaceStoredNote({ id: "B", title: "メモC", body: "対象", revision: 1, updatedAt: 20 });
+
+  const intent = harness.applyMemoLinkRenameSync({
+    type: "memo-link-renamed", renameId: "rename-during-save", targetNoteId: "B",
+    oldTitle: "メモB", newTitle: "メモC", resolvedSourceNoteIds: ["A"], revisions: { A: 2, B: 1 }, updatedAt: 20
+  });
+  await Promise.resolve();
+  assert.equal(harness.foundation.getState("A").status, "saving");
+  releaseSave.resolve();
+  await intent;
+
+  const storedA = (await harness.storedNotes()).find((note) => note.id === "A");
+  assert.equal(storedA.body, "保存中の編集 [[* メモC]]");
+  assert.equal(harness.foundation.getState("A").dirty, false);
+  assert.equal(harness.state().pendingMemoSync, null);
+});
+
+test("改名対象自身の遅延通常保存は本文を保持し旧タイトルだけを通知後に修復する", async () => {
+  const saveStarted = deferred();
+  const releaseSave = deferred();
+  let delayed = false;
+  const harness = createHarness({
+    initialNotes: [{ id: "A", title: "メモB", body: "旧本文", revision: 0, updatedAt: 1 }],
+    writer: async (value) => {
+      if (Array.isArray(value) || value.id !== "A" || delayed) return;
+      delayed = true;
+      saveStarted.resolve();
+      await releaseSave.promise;
+    }
+  });
+  harness.edit("メモB", "タブAの本文編集");
+  harness.scheduleSave();
+  harness.runNextTimer();
+  await saveStarted.promise;
+  harness.replaceStoredNote({ id: "A", title: "メモC", body: "旧本文", revision: 2, updatedAt: 20 });
+  releaseSave.resolve();
+  await harness.foundation.whenIdle("A");
+
+  await harness.applyMemoLinkRenameSync({
+    type: "memo-link-renamed", renameId: "rename-target-late", targetNoteId: "A",
+    oldTitle: "メモB", newTitle: "メモC", resolvedSourceNoteIds: [], revisions: { A: 2 }, updatedAt: 20
+  });
+  const stored = (await harness.storedNotes()).find((note) => note.id === "A");
+  assert.equal(stored.title, "メモC");
+  assert.equal(stored.body, "タブAの本文編集");
+  assert.equal(harness.liveNote("A").title, "メモC");
+  assert.equal(harness.liveNote("A").body, "タブAの本文編集");
+});
+
+test("本番改名修復transactionは最新レコードの対象外フィールドを保持し重複適用を書き込まない", async () => {
+  const initial = {
+    id: "A", title: "参照元", body: "最新文章 [[* メモB]]", revision: 4, updatedAt: 10,
+    tags: ["tag-new"], collectionId: "collection-new", isFlagged: true,
+    attachments: [{ id: "attachment-new" }], source: { url: "https://example.com/new" },
+    codexChat: { threadId: "thread-new", messages: [{ role: "user", content: "new" }] },
+    localCreatedAt: 11, localSavedAt: 12, customMetadata: { keep: true }
+  };
+  const harness = createProductionMemoLinkRenameRepairHarness([initial]);
+  const message = {
+    type: "memo-link-renamed", renameId: "rename-fields", targetNoteId: "B",
+    oldTitle: "メモB", newTitle: "メモC", resolvedSourceNoteIds: ["A"], revisions: { A: 5 }, updatedAt: 20
+  };
+  const first = await harness.reconcile("A", message);
+  const second = await harness.reconcile("A", message);
+  const saved = harness.stored.get("A");
+  assert.equal(first.changed, true);
+  assert.equal(second.changed, false);
+  assert.equal(harness.writeCount(), 1);
+  assert.equal(harness.notifications.length, 1);
+  assert.equal(saved.body, "最新文章 [[* メモC]]");
+  assert.equal(saved.revision, 6);
+  for (const field of ["tags", "collectionId", "isFlagged", "attachments", "source", "codexChat", "localCreatedAt", "localSavedAt", "customMetadata"]) {
+    assert.deepEqual(saved[field], initial[field]);
+  }
+});
+
+test("改名通知後に利用者が付けた別タイトルは旧タイトル一致でないため上書きしない", async () => {
+  const harness = createProductionMemoLinkRenameRepairHarness([
+    { id: "A", title: "利用者の新タイトル", body: "本文", revision: 7, updatedAt: 30 }
+  ]);
+  const result = await harness.reconcile("A", {
+    type: "memo-link-renamed", renameId: "rename-user-title", targetNoteId: "A",
+    oldTitle: "メモB", newTitle: "メモC", resolvedSourceNoteIds: [], revisions: { A: 6 }, updatedAt: 20
+  });
+  assert.equal(result.changed, false);
+  assert.equal(harness.writeCount(), 0);
+  assert.equal(harness.stored.get("A").title, "利用者の新タイトル");
+});
+
+test("同じrename IDの重複通知はメモ別完了後に冪等で連続改名は順番どおり確定する", async () => {
+  const harness = createHarness({
+    initialNotes: [
+      { id: "A", title: "参照元", body: "利用者文章 [[* メモB]]", revision: 0, updatedAt: 1 },
+      { id: "B", title: "メモD", body: "対象", revision: 2, updatedAt: 30 }
+    ]
+  });
+  const toC = {
+    type: "memo-link-renamed", renameId: "rename-to-c", targetNoteId: "B",
+    oldTitle: "メモB", newTitle: "メモC", resolvedSourceNoteIds: ["A"], revisions: { A: 1, B: 1 }, updatedAt: 20
+  };
+  const toD = {
+    type: "memo-link-renamed", renameId: "rename-to-d", targetNoteId: "B",
+    oldTitle: "メモC", newTitle: "メモD", resolvedSourceNoteIds: ["A"], revisions: { A: 2, B: 2 }, updatedAt: 30
+  };
+  await harness.applyMemoLinkRenameSync(toC);
+  const revisionAfterC = (await harness.storedNotes()).find((note) => note.id === "A").revision;
+  const writesAfterC = harness.state().memoLinkRenameRepairWrites.length;
+  await harness.applyMemoLinkRenameSync(toC);
+  assert.equal((await harness.storedNotes()).find((note) => note.id === "A").revision, revisionAfterC);
+  assert.equal(harness.state().memoLinkRenameRepairWrites.length, writesAfterC);
+
+  await harness.applyMemoLinkRenameSync(toD);
+  const stored = new Map((await harness.storedNotes()).map((note) => [note.id, note]));
+  assert.equal(stored.get("A").body, "利用者文章 [[* メモD]]");
+  assert.equal(stored.get("B").title, "メモD");
+  assert.equal(harness.foundation.getState("A").status, "saved");
+});
+
+test("改名batch保存中の追加入力はlive draftへ残し安全なリンク合流後に保存する", async () => {
+  const batchStarted = deferred();
+  const releaseBatch = deferred();
+  const harness = createHarness({
+    initialNotes: [{ id: "A", title: "メモB", body: "自己 [[* メモB]]", revision: 0, updatedAt: 1 }],
+    writer: async (value) => {
+      if (!Array.isArray(value)) return;
+      batchStarted.resolve();
+      await releaseBatch.promise;
+    }
+  });
+  harness.edit("メモC", "自己 [[* メモB]]");
+  harness.scheduleSave();
+  const rename = harness.enqueueNoteSave("A");
+  await batchStarted.promise;
+  harness.edit("メモC", "保存中の追加入力 [[* メモB]]");
+  harness.scheduleSave();
+  releaseBatch.resolve();
+  const results = await rename;
+
+  const committedRevision = results[0].request.revision;
+  assert.equal(harness.liveNote("A").body, "保存中の追加入力 [[* メモC]]");
+  assert.equal(harness.state().drafts.some((note) => note.id === "A"), true);
+  assert.equal(harness.liveNote("A").revision > committedRevision, true);
+  assert.equal(harness.foundation.getState("A").dirty, true);
+  harness.runNextTimer();
+  await harness.foundation.whenIdle("A");
+  const stored = (await harness.storedNotes()).find((note) => note.id === "A");
+  assert.equal(stored.body, "保存中の追加入力 [[* メモC]]");
+  assert.equal(stored.revision, harness.liveNote("A").revision);
+});
+
+test("メモリンク改名batch失敗時は部分保存せず新題名をdirty・errorのlive draftとして維持する", async () => {
+  const transactionError = new Error("rename transaction aborted");
+  const harness = createHarness({
+    initialNotes: [
+      { id: "A", title: "メモB", body: "", revision: 0, updatedAt: 1 },
+      { id: "B", title: "参照元", body: "[[* メモB]]", revision: 0, updatedAt: 1, bodyUpdatedAt: 1 }
+    ],
+    writer: async (value) => { if (Array.isArray(value)) throw transactionError; }
+  });
+  harness.edit("メモC", "");
+  harness.scheduleSave();
+  await assert.rejects(harness.enqueueNoteSave("A"), (error) => error === transactionError);
+
+  const stored = new Map((await harness.storedNotes()).map((note) => [note.id, note]));
+  assert.equal(stored.get("A").title, "メモB");
+  assert.equal(stored.get("B").body, "[[* メモB]]");
+  assert.equal(harness.liveNote("A").title, "メモC");
+  assert.equal(harness.liveNote("B").body, "[[* メモB]]");
+  assert.equal(harness.foundation.getState("A").dirty, true);
+  assert.equal(harness.foundation.getState("A").status, "error");
+  assert.equal(harness.foundation.getState("B").status, "error");
+});
+
+test("参照元revisionが保存キュー待機中に変わった場合は改名batchをwriter前に中止して最新本文を上書きしない", async () => {
+  const sourceWriteStarted = deferred();
+  const releaseSourceWrite = deferred();
+  const batchWrites = [];
+  const harness = createHarness({
+    initialNotes: [
+      { id: "A", title: "メモB", body: "", revision: 0, updatedAt: 1 },
+      { id: "B", title: "参照元", body: "[[* メモB]]", revision: 0, updatedAt: 1, bodyUpdatedAt: 1 }
+    ],
+    writer: async (value) => {
+      if (Array.isArray(value)) batchWrites.push(structuredClone(value));
+      else if (value.id === "B") {
+        sourceWriteStarted.resolve();
+        await releaseSourceWrite.promise;
+      }
+    }
+  });
+
+  const sourceDraft = harness.markDraftDirty("B");
+  const sourceSave = harness.enqueueNoteSave("B");
+  await sourceWriteStarted.promise;
+  harness.edit("メモC", "");
+  harness.scheduleSave();
+  const renameSave = harness.enqueueNoteSave("A");
+  await Promise.resolve();
+  sourceDraft.body = "保存待機中の最新本文 [[* メモB]]";
+  sourceDraft.revision = harness.foundation.markChanged("B", sourceDraft.revision);
+  releaseSourceWrite.resolve();
+  await sourceSave;
+  await assert.rejects(renameSave, (error) => error.code === "MEMO_LINK_RENAME_STALE");
+
+  assert.equal(batchWrites.length, 0);
+  assert.equal(harness.liveNote("B").body, "保存待機中の最新本文 [[* メモB]]");
+  assert.equal(harness.foundation.getState("B").dirty, true);
+  assert.match(harness.state().saveStatusNotices.at(-1), /古い本文の保存を中止/);
+});
+
 test("タグ変更はタグ件数を更新し通常保存成功では重複描画しない", async () => {
   const harness = createHarness();
   await harness.updateCurrentNoteTags(["tag-a"]);
@@ -1836,6 +2496,37 @@ test("本番updateNotesTransactionは同一transaction内で全件の確定Codex
   assert.equal(snapshots[0].codexChat.threadId, "thread-a");
   assert.equal(snapshots[1].codexChat.threadId, "thread-old");
   assert.equal(production.notifications[0].codexChat.threadId, "thread-b");
+});
+
+test("本番transactionは基準取得後の同revision外部更新をput前に検出して全件abortする", async () => {
+  const initial = [
+    { id: "A", title: "メモB", body: "対象", revision: 0, updatedAt: 1 },
+    { id: "B", title: "参照元", body: "旧本文 [[* メモB]]", revision: 0, updatedAt: 1 },
+    { id: "C", title: "参照元2", body: "旧本文2 [[* メモB]]", revision: 0, updatedAt: 1 }
+  ];
+  const production = createProductionBatchWriterHarness(initial);
+  const baselines = new Map(initial.map((note) => [note.id, structuredClone(note)]));
+  production.stored.set("B", { id: "B", title: "参照元", body: "外部保存本文 [[* メモB]]", revision: 0, updatedAt: 99 });
+  const snapshots = [
+    { ...initial[0], title: "メモC", revision: 1, updatedAt: 2 },
+    { ...initial[1], body: "旧本文 [[* メモC]]", revision: 1, updatedAt: 2 },
+    { ...initial[2], body: "旧本文2 [[* メモC]]", revision: 1, updatedAt: 2 }
+  ];
+
+  await assert.rejects(production.updateNotesTransaction(snapshots, {
+    prepareStoredNote(proposed, stored) {
+      const baseline = baselines.get(proposed.id);
+      if (JSON.stringify(baseline) !== JSON.stringify(stored)) {
+        throw Object.assign(new Error("stored conflict"), { code: "MEMO_LINK_RENAME_STORED_CONFLICT", noteId: proposed.id });
+      }
+      return { ...stored, title: proposed.title, body: proposed.body, revision: proposed.revision, updatedAt: proposed.updatedAt };
+    }
+  }), (error) => error.code === "MEMO_LINK_RENAME_STORED_CONFLICT" && error.noteId === "B");
+
+  assert.equal(production.stored.get("A").title, "メモB");
+  assert.equal(production.stored.get("B").body, "外部保存本文 [[* メモB]]");
+  assert.equal(production.stored.get("C").body, "旧本文2 [[* メモB]]");
+  assert.deepEqual(production.notifications, []);
 });
 
 test("通常custom writerだけがCodex保護helperを明示し、バックアップ全体置換は従来writerを維持する", () => {

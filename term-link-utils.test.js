@@ -1,6 +1,13 @@
 const assert = require("node:assert/strict");
 const test = require("node:test");
-const { bodyContainsRegisteredTerm, buildTermRelationIndex, createTermRelationCache, findAutomaticTermMatches, findTermCountMatches, matchesSpecialCTerm, termColor } = require("./term-link-utils.js");
+const { bodyContainsRegisteredTerm, buildTermRelationIndex, createTermRelationCache, extractExplicitTerms, findAutomaticTermMatches, findTermCountMatches, matchesSpecialCTerm, termColor } = require("./term-link-utils.js");
+
+test("メモリンク予約記法は正式・不正式とも登録語句へ加えない", () => {
+  assert.deepEqual(extractExplicitTerms("[[SQLite]] [[* SQLite]] [[*SQLite]] [[ * SQLite]] [[＊ SQLite]]"), ["SQLite"]);
+  const index = buildTermRelationIndex([{ id: "a", body: "[[* SQLite]]" }, { id: "b", body: "SQLite" }]);
+  assert.deepEqual(index.registeredTerms, []);
+  assert.deepEqual(index.byNoteId.get("b").automaticTerms, []);
+});
 
 test("明示語句は本文に含まれる別メモへ自動関連として表示する", () => {
   const index = buildTermRelationIndex([

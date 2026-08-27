@@ -2155,3 +2155,43 @@
 * `.tag-chip`は淡色面、4pxの左アクセント、12pxの右上折り返し、角の少ない輪郭へ変更した。`clip-path`は折り返し疑似要素だけへ使い、ボタン本体のフォーカスリングや文字を切らない。`color-mix()`の前に基本色・枠線・折り返し色のフォールバックを置き、選択中も`--tag-color`を左アクセントと折り返しへ残す。長い名前は折り返し可能とし、一覧小型タグは狭幅確認後に高さ32pxへ調整した。語句リンク、メモリンク、`applyTagFilter()`、単一タグ検索、メモ保存仕様は変更していない。
 * タグ・保存・バックアップ・一覧の関連テストは114件成功した。`node --test --test-isolation=none`は全819件がpassし、fail・cancelled・skipped・todoは0件だった。`node --check tags.js`、`node --check app.js`、`git diff --check`も成功した。`package.json`にlintスクリプトはない。配信識別子は`style.css?v=0.5.0-59`、`tags.js?v=0.5.0-4`、`app.js?v=0.5.0-117`へ更新し、依存する既存テストを揃えた。
 * Windows Chromeで、ライト／ダーク、本文タイトル下、メモ一覧、タグタブ、候補の色丸、新規タグのキーボード色選択、既存色変更、本文／一覧タグ検索、検索解除、キーワード併用、再読み込み後の色維持、390×844の狭幅を確認した。本文・一覧・タグタブ・候補は同じ保存色を表示し、ブラウザconsoleのwarning／errorは0件だった。iPhone Safari実機、完全バックアップZIPの画面操作、ローカルフォルダへの実ファイル保存は未確認で、自動テストによる往復確認に留まる。複数タグAND／OR検索は今回も対象外である。
+
+## 2026-08-27: 語句リンクとメモリンクを分離
+
+* 既存の`[[語句]]`を登録語句・語句チップ・自動語句検出・語句統計のための語句リンクとして維持し、既存メモそのものを参照する正式記法`[[* メモ名]]`を追加した。`[[`直後の半角`*`と、その直後の1文字以上の半角スペース、空でないタイトルを必須とする。不正式な`*`／`＊`予約記法はメモリンクにも登録語句にもせず、通常文字として安全に表示する。
+* 新規`memo-link-utils.js`へ、fenced code・Mermaid・インラインコードを除外する`parseMemoLinks()`、タイトル完全一致の`resolveMemoLinkTitle()`、導出索引の`buildMemoLinkRelationIndex()`、`createMemoLinkRelationCache()`を分離した。resolverは削除済みメモを除外し、`resolved`、`missing`、`ambiguous`を区別する。曖昧な場合は候補IDを返すだけで、先頭候補を選ばない。
+* `term-link-utils.js`の`extractExplicitTerms()`はメモリンク予約記法を除外する。`collectLinkStats()`と新発見の増加判定も`extractExplicitTerms()`だけを使用し、メモリンクタイトルを登録語句、語句チップ、自動検出、統計、新発見へ混ぜない。
+* `app.js`のインラインtokenを`term-link`、`memo-link`、`memo-link-invalid`へ分離し、メモリンク専用の`renderMemoLinkButton()`と`openResolvedMemoLink()`を追加した。resolvedは描画時に確定したnote IDで`openNote()`を呼び、missing／ambiguousは専用class・title・aria-labelで案内して、新規メモ作成や自動遷移を行わない。語句リンクの既存の開く／作る挙動は維持した。
+* バックリンクはIndexedDBへ二重保存せず、有効なメモ本文から`sourceNoteId`、`targetTitle`、`targetNoteId`、`resolutionStatus`を導出する。同じ参照元から同じ対象への重複を整理し、resolvedだけを「このメモへのリンク」へ登録する。関連メモドロワーに独立欄を追加し、通常関連側との重複を除外したうえで、通常関連の最大8件仕様を維持した。
+* 関連メモの本文リンク・逆リンク・共通リンクは、一意解決済みメモIDだけを使うように変更した。共通語句の既存スコアは維持した。グラフ辺は正式なメモリンクだけから作り、missingは未作成ノード、ambiguousは誤接続防止のため除外する。語句リンクはメモ間の辺にしない。
+* メモ一覧snippetと本文由来の自動タイトルから正式記法の`[[ ]]`と`*`を除去した。記法ガイド、placeholder、READMEを語句リンクとメモリンクの別説明へ更新した。リンク先タイトル変更時に参照元本文を自動書き換えないため、旧タイトルのリンクはmissingになり得る制限も明記した。
+* メモリンク索引は語句索引と同じ無効化境界へ接続し、本文・タイトル・作成・削除・復元・import・同期・atomic batchで必要時だけ無効化する。入力イベント内で全メモ解析せず、既存`typing-derived-ui-scheduler.js`のtrailing debounce後に一度構築し、プレビュー・関連メモ・グラフで共有する。同一note ID・revisionを描画済みなら保存成功時に再描画しない既存契約を維持した。
+* `note-save-foundation.js`、IndexedDB schema、revision、dirty／pending／error、280ms保存、draft mirror、tombstone、atomic batch、Codexスレッド保存は変更していない。リンク情報は保存せず本文から再導出する。
+* `memo-link-utils.test.js`と`memo-link-app.test.js`を追加し、構文、コード除外、解決3状態、重複、バックリンク、表示、クリック、グラフ、キャッシュ、scheduler接続を検証した。語句統計、関連ドロワー、記法ガイド、配信順、保存raceの既存テストも更新した。`npm test`は835件すべて成功し、fail・cancelled・skipped・todoは0件だった。変更JavaScript 26ファイルの`node --check`と`git diff --check`も成功した。
+* 将来`[[* メモ名#位置]]`へ拡張する場合は、`parseMemoLinks()`が現在保持しているタイトル文字列をresolverへ渡す前に、メモ部分と位置指定部分へ分離する。初期実装では`メモ名#位置`全体をタイトルとして扱い、位置ジャンプは実装していない。
+* ブラウザでの手動確認は未実施。語句リンク、メモリンク、missing／ambiguous、バックリンク、関連重複排除、コード領域、snippet、自動タイトル、グラフ、連続入力は自動テストとソース検査で確認した。
+
+## 2026-08-27 PR #150 レビュー指摘対応：メモリンクの改名追従と索引線形化
+
+* リンク先メモのタイトル変更前に、正式な`[[* 旧タイトル]]`が一意解決していた対象note IDを`buildMemoLinkRelationIndex()`から固定し、その関係だけを改名対象にした。語句リンク、missing、ambiguous、不正式記法、インラインコード、fenced code、Mermaid内は更新しない。タイトル部分の生文字列位置だけを後方から置換するため、記法内の前後空白、本文のCRLF、同一本文内の重複リンクを維持する。自己リンクと連続改名にも追従し、新タイトルが別メモと重複した後は通常どおりambiguousになる。
+* `parseMemoLinks()`は改行を正規化したコピーではなく原文上のoffsetを返すようにし、`rewriteResolvedMemoLinks()`を追加した。`buildMemoLinkTitleIndex()`が未削除メモを一度だけ走査して`Map<title, noteId[]>`を構築し、全リンク解決で再利用する。これにより従来のリンクごとの全メモ`filter()`を除去し、索引構築を概ねO(N + L)へ変更した。公開`resolveMemoLinkTitle()`の単独利用契約は維持した。
+* タイトルと全参照元本文は、既存の`mutateNotesAtomically()`、note IDロック、batch保存、revision、dirty／pending／error経路を使い、1回のIndexedDB transactionへまとめた。ロック取得後と`put()`直前に対象revisionを再検証し、待機中の追加入力やCodex thread mergeとの競合があれば全件を中止する。writer失敗でもDBへ部分反映せず、改名メモをdirty／errorのまま保持して既存再試行経路へ残す。`note-save-foundation.js`とIndexedDB schemaは変更していない。
+* batch成功時は、表示中メモが同じrevisionでcleanな場合だけタイトル・本文・draft mirror・previewを保存結果へ同期する。別ウィンドウからタイトル変更・作成・削除を受信して解決状態が変わり得る場合は索引無効化後にpreviewを再描画し、受信側が編集中なら既存pending判定を維持して本文を上書きしない。resolvedリンクのクリック時にも現在のタイトル解決を再確認し、古いDOMに残る別note IDへは遷移しない。
+* `memo-link-utils.test.js`へ空白・CRLF・除外領域・missing／ambiguous・自己リンク・連続改名・新タイトル重複・1,001件の索引構築回数を追加した。`note-save-app-integration.test.js`へ複数参照元・重複リンクを含むatomic保存、batch失敗時の無部分保存、ロック待機中revision変更の中止を追加し、`memo-link-app.test.js`でeditor／preview同期とstaleクリック防止を確認した。`npm test`は全844件がpassし、fail・cancelled・skipped・todoは0件だった。`node --check app.js`、`node --check memo-link-utils.js`、`git diff --check`も成功した。
+* READMEと記法ガイドを改名追従仕様へ更新し、配信識別子を`memo-link-utils.js?v=0.5.0-2`、`app.js?v=0.5.0-119`へ更新した。実ブラウザでの手動確認は未実施で、Windows Chrome等を使った複数ウィンドウ操作と視覚確認は残る。
+
+## 2026-08-27 PR #150 残存レビュー指摘対応：改名batchの保存競合と別画面draft保護
+
+* 改名batchの直前に対象メモをIndexedDBから一括取得し、実transaction内で再取得した値とnote ID・revision・updatedAt・タイトル・本文・その他の永続化フィールドを比較するようにした。同一revisionでも内容が変わった場合は専用`MEMO_LINK_RENAME_STORED_CONFLICT`と対象note IDを返し、全put前にtransactionを中止する。Codex threadだけの更新は競合にせず、transaction内の最新保存値を基礎に改名側が担当するタイトル・正式メモリンク本文・時刻・revisionだけを重ねるため、タグ、コレクション、フラグ、添付、source、ローカル保存メタデータ等を保持する。
+* batchのローカルrevision検証と保存snapshotの基準revisionを分離した。保存済み参照元は最新DB本文から開始し、編集中参照元はlive draftを維持する。batch成功時にcleanな現在メモは保存結果を`notes`、current、request、保存共通基盤のcurrent／lastSaved、editorへ統一し、古いlive draftを残さない。batch中に追加入力された場合はdirtyを保ち、正式メモリンク部分だけを新タイトルへmergeして次の通常保存へ渡す。
+* BroadcastChannelへ一意なrename ID、旧名・新名、対象note ID、一意解決済み参照元ID、保存revisionを含む`memo-link-renamed`通知を追加した。別画面がdirty／savingなら通常文を上書きせず、正式な`[[* 旧タイトル]]`だけをoffsetベースで置換し、既存のdirty化・revision・280ms保存予約へ接続する。語句リンク、不正式記法、inline code、fenced code、Mermaidは変更しない。同じ通知の重複受信は無視し、日本語IME composition中は確定後まで適用を保留する。
+* 保存順序、同一revision内容競合、Codex-only merge、各永続化フィールド保持、dirty受信、通知重複、IME、batch成功後のrevision統一、改名直後の1文字保存、batch中追加入力、実transactionの無部分保存を決定的テストへ追加した。`npm test`は全852件がpassし、fail・cancelled・skipped・todoは0件だった。配信識別子は`memo-link-utils.js?v=0.5.0-3`、`app.js?v=0.5.0-120`へ更新した。`note-save-foundation.js`とIndexedDB schemaは変更していない。
+* Windows Chromeの2タブで、参照元を別タブから先に編集・保存した後に対象タイトルを変更し、通常文「外部編集」を保持したまま正式メモリンクだけが新タイトルへ変わることを確認した。さらに改名直後に対象本文へ1文字追記し、再読み込み後にも残ることを確認した。両タブのconsole warning／errorは0件だった。
+
+## 2026-08-27 PR #150 遅延通常保存による改名巻き戻しの修正
+
+* 残っていた競合は、参照元または改名対象自身の古い通常保存snapshotが開始した後に別タブの改名batchが先にcommitし、その古い通常保存が後からメモ全体を`put()`して旧リンクまたは旧タイトルへ戻したうえで、受信側がcleanになった後の`memo-link-renamed`通知を従来の`hasLiveWork === false`判定で捨てる順序だった。
+* rename IDごとに対象note ID一覧と未完了note IDを持つ改名intentを追加し、同じnote IDのintentは通知順に直列化した。dirty／savingでは利用者のlive draftへ正式リンクと、旧タイトルに完全一致する対象タイトルだけを合流して既存保存キューへ渡す。通常保存が進行中なら既存note lockと`whenIdle()`で保存完了まで待ち、その後に必ずIndexedDBを再検証する。全noteの確認または修復が終わるまでrename ID全体を処理済みにしない。IME中は本文・タイトルとも確定後まで保留する。
+* clean修復は専用の単一メモreadwrite transactionで最新レコードを`get()`し、そのレコードを基礎に正式な`[[* 旧タイトル]]`と、対象note自身のタイトルが旧タイトルと一致する場合だけ新タイトルへ変更する。通常文章とtags、collectionId、isFlagged、attachments、source、codexChat、localCreatedAt、localSavedAt、任意の追加メタデータは最新レコードから保持する。本文・タイトルがすでに整合済みなら書き込まず、通知revisionより保存revisionが低い場合だけ単調性を回復する。同じrename IDの重複通知は書込みとrevisionを増やさない。利用者が別タイトルへ変更済みなら上書きしない。
+* clean修復後は保存snapshotを`notes`、現在画面、保存共通基盤のcurrentRevision／lastSavedRevisionへ同期する。修復transaction中に追加入力が発生した場合はlive draftを置換せず、修復済みrevisionより大きいrevisionへ進めて後続通常保存を完了した後、再びIndexedDBを確認する。`note-save-foundation.js`とIndexedDB schemaは変更していない。配信識別子は`app.js?v=0.5.0-121`へ更新した。
+* deferred writerで、遅延通常保存→改名batch→遅延commit→clean通知、saving中通知、通常保存先行、対象メモ自身の遅延保存、対象外フィールド保持、明示的な別タイトル保持、重複通知、本文・タイトルIME、複数note完了管理、B→C→Dを決定的に検証した。`npm test`は全859件がpassし、fail・cancelled・skipped・todoは0件だった。変更JavaScriptの`node --check`と`git diff --check`も成功した。Windows Chromeの2タブでは参照元編集と対象改名をほぼ同時に開始し、両方の保存完了後と再読み込み後に通常文章、`[[* 遅延メモC]]`、対象タイトル「遅延メモC」が残ることを確認し、console warning／errorは0件だった。ブラウザ操作では内部transactionのcommit順を固定できないため、厳密な遅延順序は決定的自動テストで確認した。

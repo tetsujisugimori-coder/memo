@@ -73,7 +73,8 @@ const SYNTAX_GUIDE_ITEMS = [
   { category: "markdown", name: "インラインコード", syntax: "`const value = 1;`", description: "文中の短いコードを表示します。", notes: "文字列をバッククォート1個ずつで囲みます。" },
   { category: "markdown", name: "箇条書き", syntax: "- 項目", description: "項目を箇条書きで表示します。", notes: "行頭に-と半角スペースを書きます。" },
   { category: "markdown", name: "引用", syntax: "> 引用文", description: "引用文として表示します。", notes: "行頭に>と半角スペースを書きます。" },
-  { category: "markdown", name: "Wikiリンク", syntax: "[[メモ名]]", description: "同名メモへの知識リンクを作ります。", notes: "メモ名を二重の角括弧で囲みます。" },
+  { category: "markdown", name: "語句リンク", syntax: "[[SQLite]]", description: "登録語句として扱い、同じ語句を含むメモとの関係を作ります。", notes: "リンク先が存在しない場合は、語句を起点としたメモを作成できます。" },
+  { category: "markdown", name: "メモリンク", syntax: "[[* SQLite実験結果]]", description: "既存メモそのものをタイトルの完全一致で参照します。", notes: "*の直後に半角スペースが必要です。同名メモが複数ある場合はambiguousとなり、新規作成もしません。タイトル変更時は一意解決済みのリンクだけが改名へ追従します。missing／ambiguousやコード領域内は更新せず、新タイトルが重複した場合はambiguousになります。" },
   {
     category: "tag",
     name: "登録済みタグの作成・付与・絞り込み",
@@ -416,6 +417,7 @@ const {
   webClipUrlWithoutLaunchMarker
 } = window.MemoNexusWebClipUtils;
 const { createTermRelationCache, extractExplicitTerms, findAutomaticTermMatches, findTermCountMatches, termColor } = window.MemoNexusTermLinkUtils;
+const { buildMemoLinkRelationIndex, createMemoLinkRelationCache, parseMemoLinks, resolveMemoLinkTitle, rewriteMemoLinksFromRenameNotification, rewriteResolvedMemoLinks } = window.MemoNexusMemoLinkUtils;
 const { openCalculatorMemo } = window.MemoNexusCalculatorLink;
 const {
   BODY_FONT_SIZES,
@@ -857,6 +859,7 @@ let currentId = null;
 let saveTimer = null;
 let scheduledSaveNoteId = null;
 let pendingMemoSync = null;
+let memoSyncMessageTail = Promise.resolve();
 let isLocalMemoDirty = false;
 let localDirtyMemoId = null;
 // 未保存の編集中状態はnotes配列と同じオブジェクトを共有し、入力時の全体cloneを避けます。
@@ -865,10 +868,16 @@ const noteLiveDrafts = new Map();
 // 入力時は解析せず変更前本文の参照だけを保持し、リンク増加判定は保存成功側で行います。
 const noteSaveBeforeBodies = new Map();
 const noteSaveUiChanges = new Map();
+const memoLinkRenameSaveTasks = new Map();
+const processedMemoLinkRenameSyncIds = new Set();
+const pendingMemoLinkRenameSyncs = new Map();
+const memoLinkRenameSyncIntents = new Map();
+const memoLinkRenameSyncNoteTails = new Map();
 const permanentDeletionCleanupTasks = new Map();
 let lastDiscovery = "";
 let linkStatsVisible = false;
 const termRelationCache = createTermRelationCache();
+const memoLinkRelationCache = createMemoLinkRelationCache();
 let previewAutomaticTerms = [];
 let saveStatusState = "saved";
 let saveStatusTime = null;
@@ -1115,7 +1124,9 @@ void runGuardedStartup({
   onFailure: showStartupFailure
 });
 memoSyncChannel?.addEventListener("message", (event) => {
-  handleMemoSyncMessage(event.data).catch((error) => console.warn("Memo sync failed", error));
+  memoSyncMessageTail = memoSyncMessageTail
+    .then(() => handleMemoSyncMessage(event.data))
+    .catch((error) => console.warn("Memo sync failed", error));
 });
 
 // 起動処理。DBを開き、初期メモを用意し、今日メモを開いて即入力できる状態にします。
@@ -1786,6 +1797,25 @@ function getStoredNotes() {
   });
 }
 
+function getStoredNoteSnapshots(noteIds) {
+  const ids = [...new Set(noteIds || [])].filter(Boolean).sort();
+  if (!ids.length) return Promise.resolve(new Map());
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(STORE_NAME, "readonly");
+    const store = transaction.objectStore(STORE_NAME);
+    const snapshots = new Map();
+    ids.forEach((noteId) => {
+      const request = store.get(noteId);
+      request.onsuccess = () => {
+        if (request.result) snapshots.set(noteId, cloneNoteSnapshot(request.result));
+      };
+    });
+    transaction.oncomplete = () => resolve(snapshots);
+    transaction.onerror = () => reject(noteTransactionError(transaction));
+    transaction.onabort = () => reject(noteTransactionError(transaction));
+  });
+}
+
 // メモを1件保存します。idが同じなら上書き、なければ新規追加になります。
 function putNote(note, { preserveStoredCodexThread = false } = {}) {
   return new Promise((resolve, reject) => {
@@ -1811,6 +1841,77 @@ function putNote(note, { preserveStoredCodexThread = false } = {}) {
     };
     transaction.onerror = () => reject(noteTransactionError(transaction));
     transaction.onabort = () => reject(noteTransactionError(transaction));
+  });
+}
+
+// 遅延した通常保存が改名batchを後から巻き戻しても、最新レコードの改名対象フィールドだけを再調整します。
+function reconcileMemoLinkRenameStoredNote(noteId, rename) {
+  return new Promise((resolve, reject) => {
+    let storedNote = null;
+    let savedNote = null;
+    let changed = false;
+    let writeError = null;
+    const transaction = db.transaction([STORE_NAME, TOMBSTONE_STORE_NAME], "readwrite");
+    const store = transaction.objectStore(STORE_NAME);
+    guardNoteWrites(transaction, [noteId], () => {
+      const request = store.get(noteId);
+      request.onsuccess = () => {
+        storedNote = request.result ? cloneNoteSnapshot(request.result) : null;
+        if (!storedNote || storedNote.deletedAt) return;
+        const nextNote = cloneNoteSnapshot(storedNote);
+        let titleChanged = false;
+        let bodyChanged = false;
+
+        if (noteId === rename.targetNoteId && String(nextNote.title || "") === String(rename.oldTitle || "")) {
+          nextNote.title = rename.newTitle;
+          titleChanged = true;
+        }
+        if ((rename.resolvedSourceNoteIds || []).includes(noteId)) {
+          const rewritten = rewriteMemoLinksFromRenameNotification(nextNote.body, {
+            ...rename,
+            sourceNoteId: noteId
+          });
+          if (rewritten.changed) {
+            nextNote.body = rewritten.body;
+            bodyChanged = true;
+          }
+        }
+        const storedRevision = normalizeNoteRevision(storedNote.revision);
+        const notifiedRevision = normalizeNoteRevision(rename.revisions?.[noteId]);
+        const revisionNeedsRepair = storedRevision < notifiedRevision;
+        if (!titleChanged && !bodyChanged && !revisionNeedsRepair) {
+          savedNote = storedNote;
+          return;
+        }
+
+        const contentChanged = titleChanged || bodyChanged;
+        nextNote.revision = Math.max(storedRevision, notifiedRevision) + (contentChanged ? 1 : 0);
+        if (contentChanged) {
+          const changedAt = Math.max(
+            Date.now(),
+            timestampValue(storedNote.updatedAt) ?? 0,
+            timestampValue(rename.updatedAt) ?? 0
+          );
+          nextNote.updatedAt = changedAt;
+          if (bodyChanged) nextNote.bodyUpdatedAt = changedAt;
+        }
+        savedNote = nextNote;
+        changed = true;
+        store.put(savedNote);
+      };
+      request.onerror = () => {
+        writeError = request.error || new Error("改名追従の保存済みメモを読み込めませんでした");
+      };
+    }, TOMBSTONE_STORE_NAME);
+    transaction.oncomplete = () => {
+      if (changed && savedNote) {
+        notifyMemoChanged(savedNote);
+        markLocalWorkspacePending();
+      }
+      resolve({ changed, savedNote: cloneNoteSnapshot(savedNote || storedNote) });
+    };
+    transaction.onerror = () => reject(writeError || noteTransactionError(transaction));
+    transaction.onabort = () => reject(writeError || noteTransactionError(transaction));
   });
 }
 
@@ -2878,41 +2979,61 @@ async function migrateLegacyNotesToUnclassified() {
   console.log("Collection migration", { assignedToUnclassified: legacy.length });
 }
 
-function prepareNoteSnapshotsInTransaction(store, items, { preserveStoredCodexThread = false } = {}, onReady) {
-  if (!preserveStoredCodexThread || !items.length) {
+function prepareNoteSnapshotsInTransaction(store, items, { preserveStoredCodexThread = false, prepareStoredNote = null } = {}, onReady, onError = null) {
+  if ((!preserveStoredCodexThread && !prepareStoredNote) || !items.length) {
     onReady(items);
     return;
   }
   const savedItems = new Array(items.length);
   let remaining = items.length;
+  let failed = false;
   items.forEach((note, index) => {
     const request = store.get(note.id);
     request.onsuccess = () => {
-      savedItems[index] = mergeStoredCodexThread(note, request.result);
+      if (failed) return;
+      try {
+        savedItems[index] = prepareStoredNote
+          ? prepareStoredNote(note, request.result)
+          : mergeStoredCodexThread(note, request.result);
+      } catch (error) {
+        failed = true;
+        if (onError) onError(error);
+        return;
+      }
       remaining -= 1;
       if (!remaining) onReady(savedItems);
     };
   });
 }
 
-function updateNotesTransaction(items, { markLocalPending = true, preserveStoredCodexThread = false } = {}) {
+function updateNotesTransaction(items, { markLocalPending = true, preserveStoredCodexThread = false, prepareStoredNote = null, validateBeforePut = null } = {}) {
   return new Promise((resolve, reject) => {
     let savedItems = items;
+    let validationError = null;
     const transaction = db.transaction([STORE_NAME, TOMBSTONE_STORE_NAME], "readwrite");
     const store = transaction.objectStore(STORE_NAME);
     guardNoteWrites(transaction, items.map((note) => note.id), () => {
-      prepareNoteSnapshotsInTransaction(store, items, { preserveStoredCodexThread }, (preparedItems) => {
-        savedItems = preparedItems;
-        savedItems.forEach((note) => store.put(note));
-      });
+      const abortWithValidationError = (error) => {
+        validationError = error;
+        try { transaction.abort(); } catch (_) {}
+      };
+      prepareNoteSnapshotsInTransaction(store, items, { preserveStoredCodexThread, prepareStoredNote }, (preparedItems) => {
+        try {
+          if (validateBeforePut) validateBeforePut();
+          savedItems = preparedItems;
+          savedItems.forEach((note) => store.put(note));
+        } catch (error) {
+          abortWithValidationError(error);
+        }
+      }, abortWithValidationError);
     }, TOMBSTONE_STORE_NAME);
     transaction.oncomplete = () => {
       savedItems.forEach((note) => notifyMemoChanged(note));
       if (markLocalPending) markLocalWorkspacePending();
       resolve(savedItems);
     };
-    transaction.onerror = () => reject(noteTransactionError(transaction));
-    transaction.onabort = () => reject(noteTransactionError(transaction));
+    transaction.onerror = () => reject(validationError || noteTransactionError(transaction));
+    transaction.onabort = () => reject(validationError || noteTransactionError(transaction));
   });
 }
 
@@ -4717,8 +4838,13 @@ function currentTermRelationIndex() {
   return termRelationCache.get(activeNotes());
 }
 
+function currentMemoLinkRelationIndex() {
+  return memoLinkRelationCache.get(activeNotes());
+}
+
 function invalidateTermRelationIndex() {
   termRelationCache.invalidate();
+  memoLinkRelationCache.invalidate();
 }
 
 function renderMemoListHeading(heading) {
@@ -5075,7 +5201,7 @@ async function saveEditedTagColor() {
 
 // メモ一覧カードに出す短い本文プレビューを作ります。
 function snippet(body) {
-  const text = tableBlockPlainText(body).replace(/\[\[|\]\]|#/g, "").trim();
+  const text = stripLinkMarkupForText(tableBlockPlainText(body)).replace(/#/g, "").trim();
   return text || "空のカード";
 }
 
@@ -5111,6 +5237,8 @@ function openNote(id) {
     setRelatedDrawerOpen(false, { restoreFocus: false });
   }
   currentId = note.id;
+  // メモ切替では旧メモの予約を破棄したあと、同期描画が共有する派生索引を無効化します。
+  invalidateTermRelationIndex();
   syncLegacyDirtyState(note.id);
   pendingMemoSync = null;
   renderMemoSyncNotice();
@@ -5261,6 +5389,21 @@ function clearLocalMemoDirty(memoId = currentId) {
   localDirtyMemoId = null;
 }
 
+function captureMemoLinkRenameChange(note, nextBody) {
+  const relationNotes = activeNotes().map((item) => item.id === note.id
+    ? { ...item, title: note.title, body: nextBody }
+    : item);
+  const relationIndex = buildMemoLinkRelationIndex(relationNotes);
+  const sourceNoteIds = [...relationIndex.bySourceNoteId]
+    .filter(([, relations]) => relations.some((relation) => relation.resolutionStatus === "resolved" && relation.targetNoteId === note.id))
+    .map(([sourceNoteId]) => sourceNoteId);
+  return {
+    titleBefore: note.title,
+    bodyBefore: note.body,
+    memoLinkRename: { relationIndex, sourceNoteIds, targetNoteId: note.id }
+  };
+}
+
 function applyCurrentEditorDraft(note = currentNote()) {
   if (!note || note.id !== currentId) return false;
   if (noteSaveFoundation.isTerminal(note.id)) return false;
@@ -5273,7 +5416,7 @@ function applyCurrentEditorDraft(note = currentNote()) {
     noteSaveBeforeBodies.set(note.id, note.body);
   }
   if (titleChanged && !noteSaveUiChanges.has(note.id)) {
-    noteSaveUiChanges.set(note.id, { titleBefore: note.title });
+    noteSaveUiChanges.set(note.id, captureMemoLinkRenameChange(note, nextBody));
   }
 
   const now = Date.now();
@@ -5303,8 +5446,200 @@ async function getAllNotes() {
   return [...byId.values()].sort((a, b) => compareDateTimes(a.updatedAt, b.updatedAt, "desc") || String(a.id).localeCompare(String(b.id)));
 }
 
-function enqueueNoteSave(noteId) {
-  if (noteSaveFoundation.isTerminal(noteId)) return Promise.resolve(null);
+function memoLinkRenameConflictError(noteId) {
+  const error = new Error("メモリンクの改名追従中に本文が更新されたため、古い内容の保存を中止しました");
+  error.code = "MEMO_LINK_RENAME_STALE";
+  error.noteId = noteId;
+  return error;
+}
+
+function memoLinkRenameStoredConflictError(noteId) {
+  const error = new Error("別ウィンドウで保存されたメモを検出したため、改名追従による古い内容の上書きを中止しました");
+  error.code = "MEMO_LINK_RENAME_STORED_CONFLICT";
+  error.noteId = noteId;
+  return error;
+}
+
+function memoLinkRenameStoredComparable(note) {
+  if (!note || note.deletedAt) return null;
+  const { codexChat: _codexChat, ...comparable } = note;
+  return comparable;
+}
+
+function memoLinkRenameStoredSnapshotsMatch(baseline, stored) {
+  return noteBatchValueEquals(
+    memoLinkRenameStoredComparable(baseline),
+    memoLinkRenameStoredComparable(stored)
+  );
+}
+
+function mergeMemoLinkRenameFieldsIntoStored(proposed, stored, { targetNoteId, bodyChangedNoteIds } = {}) {
+  if (!stored || stored.deletedAt) throw memoLinkRenameStoredConflictError(proposed?.id);
+  const merged = cloneNoteSnapshot(stored);
+  const fields = new Set(["revision"]);
+  if (proposed.id === targetNoteId) {
+    fields.add("title");
+    fields.add("updatedAt");
+  }
+  if (bodyChangedNoteIds.has(proposed.id)) {
+    fields.add("body");
+    fields.add("bodyUpdatedAt");
+    fields.add("updatedAt");
+  }
+  fields.forEach((field) => {
+    if (Object.prototype.hasOwnProperty.call(proposed, field)) merged[field] = cloneNoteSnapshot(proposed[field]);
+    else delete merged[field];
+  });
+  return merged;
+}
+
+function validateMemoLinkRenameRevisions(expectedRevisions, targetNoteId, newTitle) {
+  expectedRevisions.forEach((expectedRevision, noteId) => {
+    const note = noteForSave(noteId);
+    if (!note || note.deletedAt || normalizeNoteRevision(note.revision) !== normalizeNoteRevision(expectedRevision)) {
+      throw memoLinkRenameConflictError(noteId);
+    }
+  });
+  if (noteForSave(targetNoteId)?.title !== newTitle) throw memoLinkRenameConflictError(targetNoteId);
+}
+
+async function saveMemoLinkTitleRenameAtomically(noteId, uiChanges) {
+  const targetNote = noteForSave(noteId);
+  const rename = uiChanges?.memoLinkRename;
+  const oldTitle = String(uiChanges?.titleBefore || "");
+  const newTitle = String(targetNote?.title || "");
+  if (!targetNote || !rename || oldTitle === newTitle) return enqueueNoteSaveSnapshot(noteId);
+
+  const sourceNoteIds = rename.sourceNoteIds.filter((sourceNoteId) => {
+    const source = noteForSave(sourceNoteId);
+    return source && !source.deletedAt;
+  });
+  if (!sourceNoteIds.length) return enqueueNoteSaveSnapshot(noteId);
+  const sourceNoteIdSet = new Set(sourceNoteIds);
+
+  const changedIds = [...new Set([noteId, ...sourceNoteIds])].sort();
+  const revisionsBeforeStoredRead = new Map(changedIds.map((id) => [id, normalizeNoteRevision(noteForSave(id)?.revision)]));
+  const validateBeforeStoredRead = () => validateMemoLinkRenameRevisions(revisionsBeforeStoredRead, noteId, newTitle);
+  validateBeforeStoredRead();
+  const storedBaselines = await getStoredNoteSnapshots(changedIds);
+  validateBeforeStoredRead();
+  changedIds.forEach((id) => {
+    if (!storedBaselines.has(id)) throw memoLinkRenameStoredConflictError(id);
+  });
+  const storedTargetBaseline = storedBaselines.get(noteId);
+  if (String(storedTargetBaseline.title || "") !== oldTitle) throw memoLinkRenameStoredConflictError(noteId);
+  if (String(targetNote.body || "") !== String(uiChanges?.bodyBefore || "")
+      && String(storedTargetBaseline.body || "") !== String(uiChanges?.bodyBefore || "")) {
+    throw memoLinkRenameStoredConflictError(noteId);
+  }
+
+  const changedAt = Date.now();
+  const batchLiveNotesById = new Map();
+  changedIds.forEach((id) => {
+    const local = noteForSave(id);
+    const stored = cloneNoteSnapshot(storedBaselines.get(id));
+    const state = noteSaveFoundation.getState(id);
+    if (id === noteId) {
+      const target = stored;
+      target.title = newTitle;
+      target.updatedAt = changedAt;
+      target.revision = Math.max(normalizeNoteRevision(local.revision), normalizeNoteRevision(stored.revision));
+      if (String(local.body || "") !== String(uiChanges?.bodyBefore || "")) {
+        target.body = local.body;
+        target.bodyUpdatedAt = local.bodyUpdatedAt;
+      }
+      batchLiveNotesById.set(id, target);
+      return;
+    }
+    if (state?.dirty || noteLiveDrafts.has(id)) {
+      const dirtySource = cloneNoteSnapshot(local);
+      dirtySource.revision = Math.max(normalizeNoteRevision(local.revision), normalizeNoteRevision(stored.revision));
+      batchLiveNotesById.set(id, dirtySource);
+      return;
+    }
+    const index = notes.findIndex((note) => note.id === id);
+    if (index === -1) notes.unshift(stored); else notes[index] = stored;
+    registerNoteSaveState(stored);
+    batchLiveNotesById.set(id, cloneNoteSnapshot(stored));
+  });
+
+  const expectedLiveRevisions = new Map(changedIds.map((id) => [id, normalizeNoteRevision(noteForSave(id)?.revision)]));
+  const expectedBatchRevisions = new Map(changedIds.map((id) => [id, normalizeNoteRevision(batchLiveNotesById.get(id)?.revision)]));
+  const bodyChangedNoteIds = new Set();
+  const validateRename = () => validateMemoLinkRenameRevisions(expectedLiveRevisions, noteId, newTitle);
+  const persistRenameSnapshots = (snapshots) => updateNotesTransaction(snapshots, {
+    preserveStoredCodexThread: true,
+    prepareStoredNote: (proposed, stored) => {
+      const baseline = storedBaselines.get(proposed.id);
+      if (!memoLinkRenameStoredSnapshotsMatch(baseline, stored)) {
+        throw memoLinkRenameStoredConflictError(proposed.id);
+      }
+      return mergeMemoLinkRenameFieldsIntoStored(proposed, stored, { targetNoteId: noteId, bodyChangedNoteIds });
+    },
+    validateBeforePut: validateRename
+  });
+
+  try {
+    const results = await mutateNotesAtomically(changedIds, (snapshot, sourceNoteId) => {
+      if (!sourceNoteIdSet.has(sourceNoteId)) return;
+      const rewritten = rewriteResolvedMemoLinks(snapshot.body, {
+        oldTitle,
+        newTitle,
+        targetNoteId: noteId,
+        sourceNoteId,
+        relationIndex: rename.relationIndex
+      });
+      if (!rewritten.changed) return sourceNoteId === noteId ? undefined : false;
+      snapshot.body = rewritten.body;
+      snapshot.bodyUpdatedAt = changedAt;
+      snapshot.updatedAt = changedAt;
+      bodyChangedNoteIds.add(sourceNoteId);
+    }, persistRenameSnapshots, {
+      expectedRevisions: expectedBatchRevisions,
+      liveNotesById: batchLiveNotesById,
+      validateBeforeWrite: validateRename,
+      syncCurrentEditorAfterBatch: true,
+      memoLinkRename: {
+        oldTitle,
+        newTitle,
+        targetNoteId: noteId,
+        resolvedSourceNoteIds: sourceNoteIds
+      }
+    });
+    notifyMemoLinkRenamed({
+      renameId: results.find(({ request }) => request.noteId === noteId)?.request.saveRequestId,
+      targetNoteId: noteId,
+      oldTitle,
+      newTitle,
+      resolvedSourceNoteIds: sourceNoteIds,
+      results
+    });
+    return results;
+  } catch (error) {
+    changedIds.forEach((id) => {
+      const note = noteForSave(id);
+      const state = noteSaveFoundation.getState(id);
+      if (note && state) note.revision = state.currentRevision;
+    });
+    if (["MEMO_LINK_RENAME_STALE", "MEMO_LINK_RENAME_STORED_CONFLICT"].includes(error?.code)) {
+      setSaveStatusNotice("別ウィンドウまたは保存中の編集を検出し、古い本文の保存を中止しました。編集内容は失われていません。最新状態を確認して再度保存してください。");
+    }
+    throw error;
+  }
+}
+
+function enqueueMemoLinkTitleRename(noteId, uiChanges) {
+  const existing = memoLinkRenameSaveTasks.get(noteId);
+  if (existing) return existing;
+  const task = saveMemoLinkTitleRenameAtomically(noteId, uiChanges)
+    .finally(() => {
+      if (memoLinkRenameSaveTasks.get(noteId) === task) memoLinkRenameSaveTasks.delete(noteId);
+    });
+  memoLinkRenameSaveTasks.set(noteId, task);
+  return task;
+}
+
+function enqueueNoteSaveSnapshot(noteId) {
   const note = noteForSave(noteId);
   if (!note) return Promise.resolve(null);
   registerNoteSaveState(note);
@@ -5327,6 +5662,17 @@ function enqueueNoteSave(noteId) {
     }
     throw error;
   });
+}
+
+function enqueueNoteSave(noteId) {
+  if (noteSaveFoundation.isTerminal(noteId)) return Promise.resolve(null);
+  const note = noteForSave(noteId);
+  if (!note) return Promise.resolve(null);
+  const uiChanges = noteSaveUiChanges.get(noteId);
+  if (uiChanges?.memoLinkRename && note.title !== uiChanges.titleBefore && uiChanges.memoLinkRename.sourceNoteIds.length) {
+    return enqueueMemoLinkTitleRename(noteId, uiChanges);
+  }
+  return enqueueNoteSaveSnapshot(noteId);
 }
 
 function clearScheduledNoteSave(noteId) {
@@ -5366,6 +5712,71 @@ function applyCommittedBatchChanges(note, changes) {
     if (!stillAtBatchBase) return;
     if (change.afterHas) note[change.key] = cloneNoteSnapshot(change.afterValue);
     else delete note[change.key];
+  });
+}
+
+function adjustedMemoLinkRenameOffset(offset, replacements) {
+  if (!Number.isInteger(offset)) return offset;
+  let adjusted = offset;
+  for (const replacement of replacements || []) {
+    const delta = replacement.replacementLength - (replacement.end - replacement.start);
+    if (offset <= replacement.start) break;
+    if (offset >= replacement.end) adjusted += delta;
+    else return replacement.start + replacement.replacementLength;
+  }
+  return adjusted;
+}
+
+function mergeMemoLinkRenameIntoLiveDraft(noteId, rename, updatedAt = Date.now()) {
+  const rewritesBody = Boolean(rename?.resolvedSourceNoteIds?.includes(noteId));
+  const mayRewriteTitle = noteId === rename?.targetNoteId;
+  if (!rewritesBody && !mayRewriteTitle) return false;
+  if (noteId === currentId) applyCurrentEditorDraft(currentNote());
+  const note = noteForSave(noteId);
+  if (!note || note.deletedAt) return false;
+  const rewritten = rewritesBody
+    ? rewriteMemoLinksFromRenameNotification(note.body, { ...rename, sourceNoteId: noteId })
+    : { body: note.body, changed: false, replacements: [] };
+  const titleChanged = mayRewriteTitle && String(note.title || "") === String(rename.oldTitle || "");
+  if (!rewritten.changed && !titleChanged) return false;
+
+  const selectionStart = noteId === currentId ? editor.selectionStart : null;
+  const selectionEnd = noteId === currentId ? editor.selectionEnd : null;
+  if (rewritten.changed) {
+    note.body = rewritten.body;
+    note.bodyUpdatedAt = updatedAt;
+  }
+  if (titleChanged) {
+    note.title = rename.newTitle;
+    noteSaveUiChanges.delete(noteId);
+  }
+  note.updatedAt = updatedAt;
+  note.revision = Math.max(
+    normalizeNoteRevision(note.revision),
+    normalizeNoteRevision(rename.revisions?.[noteId])
+  );
+  markLocalMemoDirty(note);
+  if (noteId === currentId) {
+    if (titleChanged) titleInput.value = note.title;
+    if (rewritten.changed) editor.value = rewritten.body;
+    if (rewritten.changed && typeof editor.setSelectionRange === "function") {
+      editor.setSelectionRange(
+        adjustedMemoLinkRenameOffset(selectionStart, rewritten.replacements),
+        adjustedMemoLinkRenameOffset(selectionEnd, rewritten.replacements)
+      );
+    }
+    scheduleSave();
+  } else {
+    enqueueNoteSave(noteId).catch((error) => console.warn("Background memo link rename merge save failed", error));
+  }
+  return true;
+}
+
+function mergeMemoLinkRenameIntoDirtyBatchDrafts(results, rename) {
+  if (!rename) return;
+  results.forEach(({ request, state, savedSnapshot }) => {
+    if (!state.dirty || !rename.resolvedSourceNoteIds.includes(request.noteId)) return;
+    mergeMemoLinkRenameIntoLiveDraft(request.noteId, rename, savedSnapshot?.updatedAt || Date.now());
   });
 }
 
@@ -5441,6 +5852,10 @@ async function mutateNotesAtomically(noteIds, mutate, writeSnapshots = null, uiO
       const note = liveNote(plan.noteId);
       if (note) applyCommittedBatchChanges(note, plan.changes);
     });
+    if (uiOptions.memoLinkRename) {
+      noteSaveUiChanges.delete(uiOptions.memoLinkRename.targetNoteId);
+      mergeMemoLinkRenameIntoDirtyBatchDrafts(results, uiOptions.memoLinkRename);
+    }
   } finally {
     noteSaveFoundation.completeAtomicBatch(batch);
   }
@@ -5484,10 +5899,7 @@ function applyNoteBatchSaveSuccess(results, liveNotesById = null) {
     if (state.currentRevision !== request.revision) return;
     const committedSnapshot = savedSnapshot || request.snapshot;
     savedById.set(request.noteId, cloneNoteSnapshot(committedSnapshot));
-    const liveDraft = noteLiveDrafts.get(request.noteId);
-    if (!liveDraft || normalizeNoteRevision(liveDraft.revision) === request.revision) {
-      noteLiveDrafts.delete(request.noteId);
-    }
+    if (!state.dirty) noteLiveDrafts.delete(request.noteId);
     const beforeBody = noteSaveBeforeBodies.get(request.noteId);
     if (typeof beforeBody === "string") linkChecks.push({ beforeBody, savedNote: committedSnapshot });
     noteSaveBeforeBodies.delete(request.noteId);
@@ -5501,7 +5913,7 @@ function applyNoteBatchSaveSuccess(results, liveNotesById = null) {
   });
   if (liveNotesById) savedById.forEach((note, noteId) => liveNotesById.set(noteId, note));
   if (linkChecks.length) {
-    const discovered = linkChecks.find(({ beforeBody, savedNote }) => extractLinks(savedNote.body).length > extractLinks(beforeBody).length);
+    const discovered = linkChecks.find(({ beforeBody, savedNote }) => extractExplicitTerms(savedNote.body).length > extractExplicitTerms(beforeBody).length);
     if (discovered) lastDiscovery = buildDiscoveryMessage(discovered.savedNote);
   }
 }
@@ -5521,7 +5933,7 @@ function handleNoteSaveSuccess(request, state, context = {}) {
       noteLiveDrafts.delete(request.noteId);
     }
     const beforeBody = noteSaveBeforeBodies.get(request.noteId);
-    if (typeof beforeBody === "string" && extractLinks(savedNote.body).length > extractLinks(beforeBody).length) {
+    if (typeof beforeBody === "string" && extractExplicitTerms(savedNote.body).length > extractExplicitTerms(beforeBody).length) {
       lastDiscovery = buildDiscoveryMessage(savedNote);
     }
     noteSaveBeforeBodies.delete(request.noteId);
@@ -5559,7 +5971,7 @@ function handleNoteSaveSuccess(request, state, context = {}) {
   }
 }
 
-function handleNoteBatchSaveSuccess(results, { invalidateTermRelations = true, render = "auto" } = {}) {
+function handleNoteBatchSaveSuccess(results, { invalidateTermRelations = true, render = "auto", syncCurrentEditorAfterBatch = false } = {}) {
   console.log("Memo batch saved", { notes: results.length });
   results.forEach(({ request, state }) => {
     if (pendingMemoSync?.memoId === request.noteId && !state.dirty) {
@@ -5576,12 +5988,24 @@ function handleNoteBatchSaveSuccess(results, { invalidateTermRelations = true, r
     return;
   }
   syncLegacyDirtyState(currentId);
+  const currentResult = results.find(({ request }) => request.noteId === currentId);
+  const shouldSyncCurrentEditor = syncCurrentEditorAfterBatch && currentResult && !currentResult.state.dirty;
+  if (shouldSyncCurrentEditor) {
+    const note = currentResult.savedSnapshot || currentResult.request.snapshot;
+    if (note) {
+      titleInput.value = note.title;
+      editor.value = note.body;
+      removeDraftMirrorForNote(note.id);
+      renderTableBlockEditors();
+    }
+  }
   if (isPopoutWindow) {
     renderNoteMeta();
     document.title = `${currentNote()?.title || "メモ"} — Memo Nexus`;
   } else {
     renderAll();
   }
+  if (shouldSyncCurrentEditor) renderPreview();
 }
 
 function handleNoteSaveError(request, error) {
@@ -5751,6 +6175,182 @@ function notifyMemoChanged(note) {
   });
 }
 
+function notifyMemoLinkRenamed({ renameId, targetNoteId, oldTitle, newTitle, resolvedSourceNoteIds, results } = {}) {
+  if (!renameId || !targetNoteId || !oldTitle || !newTitle) return;
+  const revisions = Object.fromEntries((results || []).map(({ request, savedSnapshot }) => [
+    request.noteId,
+    normalizeNoteRevision(savedSnapshot?.revision ?? request.revision)
+  ]));
+  const updatedAt = Math.max(Date.now(), ...(results || []).map(({ request, savedSnapshot }) => (
+    timestampValue(savedSnapshot?.updatedAt ?? request.snapshot?.updatedAt) ?? 0
+  )));
+  memoSyncChannel?.postMessage({
+    type: "memo-link-renamed",
+    renameId,
+    targetNoteId,
+    oldTitle,
+    newTitle,
+    resolvedSourceNoteIds: [...new Set(resolvedSourceNoteIds || [])].filter(Boolean),
+    revisions,
+    updatedAt
+  });
+}
+
+function rememberProcessedMemoLinkRenameSync(renameId) {
+  processedMemoLinkRenameSyncIds.add(renameId);
+  while (processedMemoLinkRenameSyncIds.size > 256) {
+    processedMemoLinkRenameSyncIds.delete(processedMemoLinkRenameSyncIds.values().next().value);
+  }
+}
+
+function memoLinkRenameSyncNoteIds(message) {
+  return [...new Set([message?.targetNoteId, ...(message?.resolvedSourceNoteIds || [])])].filter(Boolean);
+}
+
+function memoLinkRenameSyncTouchesComposition(message) {
+  return (editorCompositionNoteId === currentId && message?.resolvedSourceNoteIds?.includes(currentId))
+    || (titleCompositionNoteId === currentId && message?.targetNoteId === currentId);
+}
+
+function hasMemoLinkRenameLiveWork(noteId) {
+  const state = noteSaveFoundation.getState(noteId);
+  return Boolean(state?.dirty)
+    || state?.status === "saving"
+    || state?.activeRevision != null
+    || state?.pendingRevision != null;
+}
+
+function advanceMemoLinkRenameLiveRevision(noteId, storedRevision) {
+  const state = noteSaveFoundation.getState(noteId);
+  const note = noteForSave(noteId);
+  if (!state?.dirty || !note || normalizeNoteRevision(note.revision) > normalizeNoteRevision(storedRevision)) return false;
+  note.revision = Math.max(normalizeNoteRevision(note.revision), normalizeNoteRevision(storedRevision));
+  markLocalMemoDirty(note);
+  if (noteId === currentId) scheduleSave();
+  return true;
+}
+
+function syncCleanMemoLinkRenameSnapshot(noteId, savedNote) {
+  if (!savedNote || savedNote.deletedAt || hasMemoLinkRenameLiveWork(noteId)) return false;
+  const snapshot = cloneNoteSnapshot(savedNote);
+  const index = notes.findIndex((note) => note.id === noteId);
+  if (index === -1) notes.unshift(snapshot); else notes[index] = snapshot;
+  noteLiveDrafts.delete(noteId);
+  noteSaveFoundation.registerNote(noteId, snapshot.revision);
+  if (pendingMemoSync?.memoId === noteId) {
+    pendingMemoSync = null;
+    renderMemoSyncNotice();
+  }
+  invalidateTermRelationIndex();
+  if (noteId === currentId) {
+    titleInput.value = snapshot.title;
+    editor.value = snapshot.body;
+    removeDraftMirrorForNote(noteId);
+    syncLegacyDirtyState(noteId);
+    if (isPopoutWindow) renderNoteMeta(); else renderAll();
+    renderPreview();
+  } else if (!isPopoutWindow) {
+    renderList();
+  }
+  return true;
+}
+
+async function drainMemoLinkRenameLiveWork(noteId, message) {
+  while (hasMemoLinkRenameLiveWork(noteId)) {
+    mergeMemoLinkRenameIntoLiveDraft(noteId, message, message.updatedAt);
+    const state = noteSaveFoundation.getState(noteId);
+    if (state?.dirty && noteForSave(noteId)) await enqueueNoteSaveSnapshot(noteId);
+    await noteSaveFoundation.whenIdle(noteId);
+  }
+}
+
+async function reconcileMemoLinkRenameSyncNote(noteId, message) {
+  while (true) {
+    await drainMemoLinkRenameLiveWork(noteId, message);
+    const stateBeforeRepair = noteSaveFoundation.getState(noteId);
+    const repairMessage = {
+      ...message,
+      revisions: {
+        ...(message.revisions || {}),
+        [noteId]: Math.max(
+          normalizeNoteRevision(message.revisions?.[noteId]),
+          normalizeNoteRevision(stateBeforeRepair?.currentRevision),
+          normalizeNoteRevision(stateBeforeRepair?.lastSavedRevision)
+        )
+      }
+    };
+    const result = await noteSaveFoundation.runExclusive([noteId], () => (
+      reconcileMemoLinkRenameStoredNote(noteId, repairMessage)
+    ));
+    if (!result.savedNote) return;
+
+    if (hasMemoLinkRenameLiveWork(noteId)) {
+      const revisions = { ...(message.revisions || {}), [noteId]: result.savedNote.revision };
+      mergeMemoLinkRenameIntoLiveDraft(noteId, { ...message, revisions }, message.updatedAt);
+      advanceMemoLinkRenameLiveRevision(noteId, result.savedNote.revision);
+      continue;
+    }
+    syncCleanMemoLinkRenameSnapshot(noteId, result.savedNote);
+    return;
+  }
+}
+
+function queueMemoLinkRenameSyncNote(noteId, message) {
+  const previous = memoLinkRenameSyncNoteTails.get(noteId) || Promise.resolve();
+  const task = previous.catch(() => undefined).then(() => reconcileMemoLinkRenameSyncNote(noteId, message));
+  memoLinkRenameSyncNoteTails.set(noteId, task);
+  void task.finally(() => {
+    if (memoLinkRenameSyncNoteTails.get(noteId) === task) memoLinkRenameSyncNoteTails.delete(noteId);
+  }).catch(() => undefined);
+  return task;
+}
+
+function applyMemoLinkRenameSync(message) {
+  if (message?.type !== "memo-link-renamed" || !message.renameId) return Promise.resolve();
+  if (processedMemoLinkRenameSyncIds.has(message.renameId)) return Promise.resolve();
+  const existingIntent = memoLinkRenameSyncIntents.get(message.renameId);
+  if (existingIntent) return existingIntent.promise;
+  const resolvedSourceNoteIds = [...new Set(message.resolvedSourceNoteIds || [])].filter(Boolean);
+  const normalizedMessage = { ...message, resolvedSourceNoteIds };
+  if (memoLinkRenameSyncTouchesComposition(normalizedMessage)) {
+    pendingMemoLinkRenameSyncs.set(message.renameId, message);
+    return Promise.resolve();
+  }
+
+  if (resolvedSourceNoteIds.includes(currentId)) {
+    const incomingUpdatedAt = timestampValue(message.updatedAt) ?? Date.now();
+    pendingMemoSync = {
+      memoId: currentId,
+      updatedAt: Math.max(timestampValue(pendingMemoSync?.updatedAt) ?? 0, incomingUpdatedAt)
+    };
+    renderMemoSyncNotice();
+  }
+  const pendingNoteIds = new Set(memoLinkRenameSyncNoteIds(normalizedMessage));
+  const intent = { message: normalizedMessage, pendingNoteIds, promise: null };
+  intent.promise = Promise.all([...pendingNoteIds].map((noteId) => (
+    queueMemoLinkRenameSyncNote(noteId, normalizedMessage).then(() => pendingNoteIds.delete(noteId))
+  ))).then(() => {
+    if (pendingNoteIds.size) return;
+    rememberProcessedMemoLinkRenameSync(message.renameId);
+    memoLinkRenameSyncIntents.delete(message.renameId);
+  }).catch((error) => {
+    memoLinkRenameSyncIntents.delete(message.renameId);
+    throw error;
+  });
+  memoLinkRenameSyncIntents.set(message.renameId, intent);
+  return intent.promise;
+}
+
+async function flushPendingMemoLinkRenameSyncs(noteId) {
+  const messages = [];
+  [...pendingMemoLinkRenameSyncs].forEach(([renameId, message]) => {
+    if (!memoLinkRenameSyncNoteIds(message).includes(noteId)) return;
+    pendingMemoLinkRenameSyncs.delete(renameId);
+    messages.push(message);
+  });
+  for (const message of messages) await applyMemoLinkRenameSync(message);
+}
+
 async function refreshMemoFromOtherWindow(message) {
   if (!db || message?.type !== "memo-changed" || !message.memoId) return;
   if (noteSaveFoundation.isTerminal(message.memoId)) return;
@@ -5760,6 +6360,10 @@ async function refreshMemoFromOtherWindow(message) {
   notes = refreshedNotes;
   invalidateTermRelationIndex();
   const note = notes.find((item) => item.id === message.memoId);
+  const memoLinkResolutionMayHaveChanged = !knownNote
+    || !note
+    || knownNote.title !== note.title
+    || Boolean(knownNote.deletedAt) !== Boolean(note.deletedAt);
   const decision = getMemoSyncDecision({
     message,
     knownUpdatedAt: knownNote?.updatedAt,
@@ -5782,6 +6386,7 @@ async function refreshMemoFromOtherWindow(message) {
   }
   if (decision === "refresh-list" || !note || note.deletedAt) {
     renderAll();
+    if (memoLinkResolutionMayHaveChanged) renderPreview();
     return;
   }
 
@@ -5885,6 +6490,7 @@ async function performPermanentDeletionCleanup(memoIds, tombstone = {}, { showNo
     noteLiveDrafts.delete(noteId);
     noteSaveBeforeBodies.delete(noteId);
     noteSaveUiChanges.delete(noteId);
+    memoLinkRenameSaveTasks.delete(noteId);
     removeDraftMirrorForNote(noteId);
     selectedMemoIds.delete(noteId);
   });
@@ -5908,6 +6514,10 @@ async function performPermanentDeletionCleanup(memoIds, tombstone = {}, { showNo
 
 async function handleMemoSyncMessage(message) {
   if (!message) return;
+  if (message.type === "memo-link-renamed") {
+    await applyMemoLinkRenameSync(message);
+    return;
+  }
   if (message.type === "memo-permanent-delete-started") {
     noteSaveFoundation.beginExternalTerminalDelete(message.memoIds, message);
     message.memoIds?.forEach(clearScheduledNoteSave);
@@ -6267,9 +6877,16 @@ function titleFromBody(body) {
 
   return firstLine
     .replace(/^#+\s*/, "")
+    .replace(/\[\[\* +([^\]]+)\]\]/g, (_, title) => title.trim())
     .replace(/\[\[([^\]]+)\]\]/g, "$1")
     .slice(0, 60)
     .trim();
+}
+
+function stripLinkMarkupForText(text) {
+  return String(text || "")
+    .replace(/\[\[\* +([^\]]+)\]\]/g, (_, title) => title.trim())
+    .replace(/\[\[([^\]]+)\]\]/g, "$1");
 }
 
 // 右側のカード表示を更新します。本文中の[[名前]]はクリック可能なリンクに変換します。
@@ -6293,8 +6910,11 @@ function renderPreview() {
   hydrateExplanationCards(note, body);
   bindChecklistControls(note);
 
-  preview.querySelectorAll(".wiki-link").forEach((button) => {
+  preview.querySelectorAll(".term-wiki-link").forEach((button) => {
     button.addEventListener("click", () => openOrCreateLinkedNote(button.dataset.title));
+  });
+  preview.querySelectorAll(".memo-link").forEach((button) => {
+    button.addEventListener("click", () => openResolvedMemoLink(button.dataset.noteId, button.dataset.memoLinkStatus, button.dataset.title));
   });
   highlightCodeBlocks();
   void renderMermaidDiagrams(preview, renderGeneration);
@@ -8088,8 +8708,12 @@ function renderMarkdownInline(text, { automaticTerms = previewAutomaticTerms, au
     html += renderPlainText(text.slice(index, token.start));
     if (token.type === "code") {
       html += `<code class="inline-code">${escapeHtml(token.content)}</code>`;
-    } else if (token.type === "wiki") {
+    } else if (token.type === "term-link") {
       html += renderWikiButton(token.content);
+    } else if (token.type === "memo-link") {
+      html += renderMemoLinkButton(token.content);
+    } else if (token.type === "memo-link-invalid") {
+      html += escapeHtml(token.content);
     } else if (token.type === "bold") {
       html += `<strong>${renderMarkdownInline(token.content, { automaticTerms, automaticEnabled })}</strong>`;
     } else if (token.type === "italic") {
@@ -8141,17 +8765,8 @@ function findNextInlineToken(text, fromIndex) {
   const mathToken = findInlineMathToken(text, fromIndex);
   if (mathToken) tokens.push(mathToken);
 
-  const wikiPattern = /\[\[([^\]]+)\]\]/g;
-  wikiPattern.lastIndex = fromIndex;
-  const wikiMatch = wikiPattern.exec(text);
-  if (wikiMatch) {
-    tokens.push({
-      type: "wiki",
-      start: wikiMatch.index,
-      end: wikiPattern.lastIndex,
-      content: wikiMatch[1]
-    });
-  }
+  const wikiToken = findNextKnowledgeLinkToken(text, fromIndex);
+  if (wikiToken) tokens.push(wikiToken);
 
   const linkPattern = /(?<!!)\[([^\]]+)\]\(([^\s)]+)\)/g;
   linkPattern.lastIndex = fromIndex;
@@ -8188,6 +8803,25 @@ function findNextInlineToken(text, fromIndex) {
   if (italicUnderscore) tokens.push(italicUnderscore);
 
   return tokens.sort((a, b) => a.start - b.start || a.end - b.end)[0] || null;
+}
+
+function findNextKnowledgeLinkToken(text, fromIndex) {
+  const pattern = /\[\[([^\]]+)\]\]/g;
+  pattern.lastIndex = fromIndex;
+  let match;
+  while ((match = pattern.exec(text))) {
+    const raw = match[1];
+    const reserved = raw.trim();
+    const memoMatch = raw.match(/^\* +(.*)$/);
+    if (memoMatch && memoMatch[1].trim()) {
+      return { type: "memo-link", start: match.index, end: pattern.lastIndex, content: memoMatch[1].trim() };
+    }
+    if (/^[*＊]/.test(reserved)) {
+      return { type: "memo-link-invalid", start: match.index, end: pattern.lastIndex, content: match[0] };
+    }
+    return { type: "term-link", start: match.index, end: pattern.lastIndex, content: raw };
+  }
+  return null;
 }
 
 function findDelimitedInlineToken(text, fromIndex, delimiter, type, options = {}) {
@@ -8531,12 +9165,12 @@ function collectLinkStats() {
   const titleSet = new Set(effectiveNotes.map((note) => note.title.trim()));
   const candidateTitles = new Set();
   effectiveNotes.forEach((note) => {
-    extractLinks(note.body).forEach((rawTitle) => {
+    extractExplicitTerms(note.body).forEach((rawTitle) => {
       const title = rawTitle.trim();
       if (title) candidateTitles.add(title);
     });
   });
-  // 候補は本文中の [[...]] のみとする（既存タイトルは missing 判定にのみ使う）
+  // 候補は本文中の語句リンクだけとし、メモリンクは語句統計へ混ぜません。
 
   const stats = new Map();
   effectiveNotes.forEach((note) => {
@@ -8648,21 +9282,9 @@ function renderLinkList() {
   });
 }
 
-// 本文をHTMLに変換します。通常文字はエスケープし、[[...]]だけボタン化します。
+// 本文をHTMLに変換します。語句リンクとメモリンクは別の表示・解決処理へ渡します。
 function renderRichText(text) {
-  let html = "";
-  let lastIndex = 0;
-  const pattern = /\[\[([^\]]+)\]\]/g;
-  let match;
-
-  while ((match = pattern.exec(text))) {
-    html += escapeHtml(text.slice(lastIndex, match.index));
-    html += renderWikiButton(match[1]);
-    lastIndex = pattern.lastIndex;
-  }
-
-  html += escapeHtml(text.slice(lastIndex));
-  return html;
+  return renderMarkdownInline(String(text || ""), { automaticTerms: [], automaticEnabled: false });
 }
 
 // Wikiリンク1個分のHTMLを作ります。未作成リンクは色を変えるためmissingを付けます。
@@ -8671,6 +9293,48 @@ function renderWikiButton(rawTitle, source = "explicit") {
   const exists = activeNotes().some((note) => note.title === title);
   const className = `${exists ? "wiki-link" : "wiki-link missing"} term-wiki-link ${source === "automatic" ? "automatic-term-link" : "explicit-term-link"}`;
   return `<button class="${className}" data-title="${escapeAttr(title)}" data-term-source="${source}" style="--term-color:${escapeAttr(termColor(title))}">${escapeHtml(title)}</button>`;
+}
+
+function memoLinkResolutionForTitle(rawTitle, sourceNoteId = currentId) {
+  const title = String(rawTitle || "").trim();
+  const relation = currentMemoLinkRelationIndex().bySourceNoteId.get(sourceNoteId)
+    ?.find((item) => item.targetTitle === title);
+  if (relation) {
+    return {
+      status: relation.resolutionStatus,
+      title,
+      noteId: relation.targetNoteId,
+      candidateNoteIds: relation.candidateNoteIds
+    };
+  }
+  return resolveMemoLinkTitle(title, activeNotes());
+}
+
+function renderMemoLinkButton(rawTitle) {
+  const resolution = memoLinkResolutionForTitle(rawTitle);
+  const stateClass = resolution.status === "resolved" ? "" : ` memo-link-${resolution.status}`;
+  const stateLabel = resolution.status === "missing"
+    ? "リンク先のメモがありません"
+    : resolution.status === "ambiguous"
+      ? "同名のメモが複数あるため開けません"
+      : `メモ「${resolution.title}」を開く`;
+  return `<button class="memo-link${stateClass}" data-title="${escapeAttr(resolution.title)}" data-note-id="${escapeAttr(resolution.noteId || "")}" data-memo-link-status="${resolution.status}" title="${escapeAttr(stateLabel)}" aria-label="${escapeAttr(`${resolution.title}: ${stateLabel}`)}"${resolution.status === "resolved" ? "" : ' aria-disabled="true"'}>${escapeHtml(resolution.title)}</button>`;
+}
+
+function openResolvedMemoLink(noteId, status, title) {
+  const currentResolution = memoLinkResolutionForTitle(title);
+  if (status === "resolved"
+    && currentResolution.status === "resolved"
+    && currentResolution.noteId === noteId
+    && activeNotes().some((note) => note.id === noteId)) {
+    openNote(noteId);
+    return;
+  }
+  setSaveStatusNotice(currentResolution.status === "ambiguous"
+    ? `「${title}」は同名のメモが複数あるため開けません。`
+    : currentResolution.status === "missing"
+      ? `「${title}」のリンク先メモがありません。`
+      : `「${title}」のリンク状態が更新されたため、プレビューを更新してから開いてください。`);
 }
 
 // Wikiリンクをクリックしたとき、既存メモがあれば開き、なければ新規作成します。
@@ -9430,19 +10094,53 @@ function renderRelated() {
 
   if (!note) {
     updateRelatedToggle(0);
-    relatedList.innerHTML = `<div class="empty related-empty"><strong>メモを選択すると関連メモが表示されます。</strong><span>メモを開くと、本文リンク・逆リンク・共通リンク・共通語句から関連するメモを探します。</span></div>`;
+    relatedList.innerHTML = `<div class="empty related-empty"><strong>メモを選択すると関連メモが表示されます。</strong><span>メモを開くと、メモリンクと共通語句から関係を探します。</span></div>`;
     return;
   }
 
-  const allRelated = findRelated(note);
+  const memoIndex = currentMemoLinkRelationIndex();
+  const activeById = new Map(activeNotes().map((item) => [item.id, item]));
+  const backlinks = (memoIndex.backlinksByTargetId.get(note.id) || [])
+    .map((relation) => activeById.get(relation.sourceNoteId))
+    .filter(Boolean);
+  const backlinkIds = new Set(backlinks.map((item) => item.id));
+  const allRelated = findRelated(note, memoIndex).filter(({ note: item }) => !backlinkIds.has(item.id));
   const related = allRelated.slice(0, 8);
-  updateRelatedToggle(allRelated.length);
+  updateRelatedToggle(backlinks.length + allRelated.length);
   if (allRelated.length > related.length) {
     relatedLimitNotice.textContent = `${allRelated.length}件中、${related.length}件表示`;
     relatedLimitNotice.hidden = false;
   }
+
+  const backlinkHeading = document.createElement("h3");
+  backlinkHeading.className = "related-section-title";
+  backlinkHeading.textContent = "このメモへのリンク";
+  relatedList.appendChild(backlinkHeading);
+  if (!backlinks.length) {
+    const empty = document.createElement("div");
+    empty.className = "empty related-section-empty";
+    empty.textContent = "このメモへのリンクはありません。";
+    relatedList.appendChild(empty);
+  } else {
+    backlinks.forEach((sourceNote) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "related-item backlink-item";
+      button.innerHTML = `<strong>${escapeHtml(sourceNote.title)}</strong><span>参照元メモを開く</span>`;
+      button.addEventListener("click", () => openNote(sourceNote.id));
+      relatedList.appendChild(button);
+    });
+  }
+
+  const relatedHeading = document.createElement("h3");
+  relatedHeading.className = "related-section-title";
+  relatedHeading.textContent = "関連メモ";
+  relatedList.appendChild(relatedHeading);
   if (!related.length) {
-    relatedList.innerHTML = `<div class="empty related-empty"><strong>関連メモはありません。</strong><span>本文中に [[メモ名]] の形式でリンクを書くと、本文リンク・逆リンク・共通リンク・共通語句から関連するメモが表示されます。</span></div>`;
+    const empty = document.createElement("div");
+    empty.className = "empty related-empty";
+    empty.innerHTML = `<strong>関連メモはありません。</strong><span>[[* メモ名]] で既存メモを参照するか、[[語句]] で語句を登録すると関係が表示されます。</span>`;
+    relatedList.appendChild(empty);
     return;
   }
 
@@ -9456,32 +10154,33 @@ function renderRelated() {
   });
 }
 
-// 関連メモをスコア計算します。直接リンク、逆リンク、共通リンク、共通語句を見ています。
-function findRelated(source) {
-  const sourceLinks = new Set(extractLinks(source.body));
+// 関連メモをスコア計算します。メモリンクは一意解決済みID、共通語句は既存仕様で比較します。
+function findRelated(source, memoIndex = currentMemoLinkRelationIndex()) {
+  const sourceLinks = memoIndex.targetNoteIdsBySourceId.get(source.id) || new Set();
   const sourceWords = new Set(tokenize(`${source.title} ${source.body}`));
+  const activeById = new Map(activeNotes().map((note) => [note.id, note]));
 
   return activeNotes()
     .filter((note) => note.id !== source.id)
     .map((note) => {
-      const links = extractLinks(note.body);
+      const links = memoIndex.targetNoteIdsBySourceId.get(note.id) || new Set();
       let score = 0;
       const reasons = [];
 
-      if (sourceLinks.has(note.title)) {
+      if (sourceLinks.has(note.id)) {
         score += 6;
         reasons.push("本文リンク");
       }
 
-      if (links.includes(source.title)) {
+      if (links.has(source.id)) {
         score += 6;
         reasons.push("逆リンク");
       }
 
-      const sharedLinks = links.filter((link) => sourceLinks.has(link));
+      const sharedLinks = [...links].filter((noteId) => sourceLinks.has(noteId));
       if (sharedLinks.length) {
         score += sharedLinks.length * 3;
-        reasons.push(`共通: ${sharedLinks.slice(0, 2).join(" / ")}`);
+        reasons.push(`共通: ${sharedLinks.slice(0, 2).map((noteId) => activeById.get(noteId)?.title).filter(Boolean).join(" / ")}`);
       }
 
       const sharedWords = tokenize(`${note.title} ${note.body}`).filter((word) => sourceWords.has(word));
@@ -9503,27 +10202,40 @@ function tokenize(text) {
   return [...new Set(matches.filter((word) => !stop.has(word)))];
 }
 
-// 本文中の[[...]]からリンク先タイトルだけを取り出します。
+// 本文中の正式なメモリンクから対象タイトルだけを取り出します。
 function extractLinks(body) {
-  return [...body.matchAll(/\[\[([^\]]+)\]\]/g)].map((match) => match[1].trim()).filter(Boolean);
+  return parseMemoLinks(body).map((link) => link.title);
 }
 
-// 全メモから「どのメモから、どのタイトルへリンクしているか」を集めます。
+// グラフには正式なメモリンクだけを使い、曖昧なリンクは誤接続しません。
 function collectLinks(items) {
-  return items.flatMap((note) => extractLinks(note.body).map((to) => ({ from: note.title, to })));
+  const itemById = new Map(items.map((note) => [note.id, note]));
+  const memoIndex = currentMemoLinkRelationIndex();
+  return items.flatMap((source) => (memoIndex.bySourceNoteId.get(source.id) || []).flatMap((relation) => {
+    if (relation.resolutionStatus === "ambiguous") return [];
+    const target = relation.resolutionStatus === "resolved" ? itemById.get(relation.targetNoteId) : null;
+    if (relation.resolutionStatus === "resolved" && !target) return [];
+    return [{
+      from: source.title,
+      to: target ? target.title : relation.targetTitle,
+      fromId: source.id,
+      toId: target?.id || null,
+      status: relation.resolutionStatus
+    }];
+  }));
 }
 
 // RPG感の「新発見」欄を描画します。
 function renderDiscovery() {
   discoveryPanel.innerHTML = lastDiscovery
     ? `<strong>新発見</strong><br>${escapeHtml(lastDiscovery)}`
-    : `<strong>新発見</strong><br>[[太平記]] と [[足利尊氏]] のように書くと接続が増えます。`;
+    : `<strong>新発見</strong><br>[[太平記]] のように語句を登録すると接続が増えます。`;
 }
 
 // リンクが増えたときに表示する発見メッセージを作ります。
 function buildDiscoveryMessage(note) {
-  const links = extractLinks(note.body);
-  const latest = links[links.length - 1];
+  const terms = extractExplicitTerms(note.body);
+  const latest = terms[terms.length - 1];
   return latest ? `「${note.title}」と「${latest}」が初接続` : "";
 }
 
@@ -12334,6 +13046,10 @@ titleInput.addEventListener("compositionend", () => {
   const noteId = titleCompositionNoteId;
   titleCompositionNoteId = null;
   globalThis.MemoNexusTypingDerivedUiScheduler?.endComposition(noteId);
+  queueMicrotask(() => {
+    void flushPendingMemoLinkRenameSyncs(noteId)
+      .catch((error) => console.warn("Deferred memo link rename sync failed", error));
+  });
 });
 editor.addEventListener("beforeinput", resetEditorCaretIdle);
 editor.addEventListener("focus", resetEditorCaretIdle);
@@ -12354,6 +13070,10 @@ editor.addEventListener("compositionend", () => {
   globalThis.MemoNexusTypingDerivedUiScheduler?.endComposition(noteId);
   editorCaretCompositionActive = false;
   resetEditorCaretIdle();
+  queueMicrotask(() => {
+    void flushPendingMemoLinkRenameSyncs(noteId)
+      .catch((error) => console.warn("Deferred memo link rename sync failed", error));
+  });
 });
 editor.addEventListener("paste", resetEditorCaretIdle);
 editor.addEventListener("paste", handleEditorPaste);

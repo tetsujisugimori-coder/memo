@@ -24,7 +24,7 @@ test("通常本文の登録済み語句を表示専用の既存Wikiリンクと�
 });
 
 test("Markdownの明示リンク、コード、外部リンク内は自動装飾をしない経路を使う", () => {
-  assert.match(appSource, /token\.type === "wiki"\) \{\s+html \+= renderWikiButton\(token\.content\)/);
+  assert.match(appSource, /token\.type === "term-link"\) \{\s+html \+= renderWikiButton\(token\.content\)/);
   assert.match(appSource, /token\.type === "code"\) \{\s+html \+= `<code class="inline-code">\$\{escapeHtml\(token\.content\)\}<\/code>`/);
   assert.match(appSource, /token\.type === "link"[\s\S]*?automaticEnabled: false/);
   assert.match(appSource, /token\.type === "image"[\s\S]*?automaticEnabled: false/);

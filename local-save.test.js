@@ -628,7 +628,7 @@ test("管理対象Markdownはsync-stateのnote IDとfileNameで特定する", ()
   assert.match(html, /attachment-utils\.js\?v=0\.5\.0-12/);
   assert.match(html, /local-sync-utils\.js\?v=0\.5\.0-10/);
   assert.match(html, /backup-bundle-utils\.js\?v=0\.5\.0-5/);
-  assert.match(html, /app\.js\?v=0\.5\.0-117/);
+  assert.match(html, /app\.js\?v=0\.5\.0-121/);
   const syncState = {
     notes: {
       "note-1": { fileName: "題名--note-1.md", hash: "last" },
@@ -1172,7 +1172,7 @@ test("本番ローカル保存は固定snapshotとrevision境界を使い、失�
   assert.match(liveIndexSource, /noteLiveDrafts\.forEach/);
   assert.match(boundarySource, /liveNotesById\.get\(plan\.note\.id\)/);
   assert.doesNotMatch(boundarySource, /noteForSave/);
-  assert.match(app, /function updateNotesTransaction\(items, \{ markLocalPending = true, preserveStoredCodexThread = false \} = \{\}\)[\s\S]*if \(markLocalPending\) markLocalWorkspacePending\(\)/);
+  assert.match(app, /function updateNotesTransaction\(items, \{ markLocalPending = true, preserveStoredCodexThread = false, prepareStoredNote = null, validateBeforePut = null \} = \{\}\)[\s\S]*if \(markLocalPending\) markLocalWorkspacePending\(\)/);
   assert.match(metadataSource, /preserveStoredCodexThread: true/);
   assert.doesNotMatch(source, /suppressLocalSaveQueue = true/);
 });
