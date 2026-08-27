@@ -55,15 +55,27 @@ test("resolvedクリックだけが解決済みnote IDを開き、missingとambi
   const opened = [];
   const notices = [];
   const openResolvedMemoLink = Function(
-    "activeNotes", "openNote", "setSaveStatusNotice",
+    "activeNotes", "openNote", "setSaveStatusNotice", "memoLinkResolutionForTitle",
     `${readFunctionSource("openResolvedMemoLink")} return openResolvedMemoLink;`
-  )(() => [{ id: "target" }], (id) => opened.push(id), (message) => notices.push(message));
+  )(
+    () => [{ id: "target" }, { id: "replacement" }],
+    (id) => opened.push(id),
+    (message) => notices.push(message),
+    (title) => title === "対象"
+      ? { status: "resolved", noteId: "target" }
+      : title === "古いDOM"
+        ? { status: "resolved", noteId: "replacement" }
+        : { status: title === "同名" ? "ambiguous" : "missing", noteId: null }
+  );
   openResolvedMemoLink("target", "resolved", "対象");
   openResolvedMemoLink("", "missing", "不足");
   openResolvedMemoLink("", "ambiguous", "同名");
+  openResolvedMemoLink("target", "resolved", "古いDOM");
   assert.deepEqual(opened, ["target"]);
   assert.match(notices[0], /リンク先メモがありません/);
   assert.match(notices[1], /同名のメモが複数/);
+  assert.match(notices[2], /リンク状態が更新/);
+  assert.match(readFunctionSource("openResolvedMemoLink"), /currentResolution\.noteId === noteId/);
   assert.doesNotMatch(readFunctionSource("openResolvedMemoLink"), /createNote|title.*find/);
 });
 
@@ -110,8 +122,19 @@ test("表示・関連・グラフ・scheduler接続はメモリンク専用索�
   assert.match(readFunctionSource("invalidateTermRelationIndex"), /termRelationCache\.invalidate\(\)[\s\S]*memoLinkRelationCache\.invalidate\(\)/);
 });
 
+test("改名batch成功時と別ウィンドウの解決状態変更時だけeditor・previewを同期する", () => {
+  const batchStart = app.indexOf("function handleNoteBatchSaveSuccess(");
+  const batchHandler = app.slice(batchStart, app.indexOf("\nfunction handleNoteSaveError(", batchStart));
+  const syncHandler = readFunctionSource("refreshMemoFromOtherWindow");
+  assert.match(batchHandler, /syncCurrentEditorAfterBatch/);
+  assert.match(batchHandler, /!currentResult\.state\.dirty/);
+  assert.match(batchHandler, /titleInput\.value = note\.title[\s\S]*editor\.value = note\.body/);
+  assert.match(batchHandler, /removeDraftMirrorForNote\(note\.id\)/);
+  assert.match(syncHandler, /memoLinkResolutionMayHaveChanged[\s\S]*renderAll\(\)[\s\S]*renderPreview\(\)/);
+});
+
 test("専用モジュールはapp.jsより前に読み込み、保存基盤とDB schemaを変更しない", () => {
-  assert.ok(html.indexOf('memo-link-utils.js?v=0.5.0-1') < html.indexOf('app.js?v=0.5.0-118'));
-  assert.match(html, /term-link-utils\.js\?v=0\.5\.0-6[\s\S]*memo-link-utils\.js\?v=0\.5\.0-1[\s\S]*app\.js\?v=0\.5\.0-118/);
+  assert.ok(html.indexOf('memo-link-utils.js?v=0.5.0-2') < html.indexOf('app.js?v=0.5.0-119'));
+  assert.match(html, /term-link-utils\.js\?v=0\.5\.0-6[\s\S]*memo-link-utils\.js\?v=0\.5\.0-2[\s\S]*app\.js\?v=0\.5\.0-119/);
   assert.doesNotMatch(app, /memo-link-store|backlink-store|createObjectStore\([^)]*link/i);
 });

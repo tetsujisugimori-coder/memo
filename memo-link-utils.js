@@ -4,7 +4,7 @@
   root.MemoNexusMemoLinkUtils = api;
 })(typeof window !== "undefined" ? window : globalThis, () => {
   function parseMemoLinks(body) {
-    const source = String(body || "").replace(/\r\n?/g, "\n");
+    const source = String(body || "");
     const links = [];
     let index = 0;
     let inFence = false;
@@ -12,7 +12,8 @@
     while (index < source.length) {
       const lineEnd = source.indexOf("\n", index);
       const end = lineEnd === -1 ? source.length : lineEnd;
-      const line = source.slice(index, end);
+      const rawLine = source.slice(index, end);
+      const line = rawLine.endsWith("\r") ? rawLine.slice(0, -1) : rawLine;
       if (/^```\s*([^\s`]*)\s*$/.test(line)) {
         inFence = !inFence;
         index = lineEnd === -1 ? source.length : lineEnd + 1;
@@ -37,9 +38,18 @@
           if (close !== -1 && close <= end) {
             const rawTarget = source.slice(cursor + 3, close);
             if (/^ +/.test(rawTarget)) {
-              // 初期実装では # も含めた文字列全体をタイトルとし、位置指定への分解はresolverより前へ追加できます。
               const title = rawTarget.trim();
-              if (title) links.push({ title, start: cursor, end: close + 2 });
+              if (title) {
+                const leadingSpaceLength = rawTarget.match(/^ +/)[0].length;
+                const trailingSpaceLength = rawTarget.match(/ +$/)?.[0].length || 0;
+                links.push({
+                  title,
+                  start: cursor,
+                  end: close + 2,
+                  titleStart: cursor + 3 + leadingSpaceLength,
+                  titleEnd: close - trailingSpaceLength
+                });
+              }
             }
             cursor = close + 2;
             continue;
@@ -67,27 +77,45 @@
     return (Array.isArray(notes) ? notes : []).filter((note) => note && !note.deletedAt);
   }
 
-  function resolveMemoLinkTitle(rawTitle, notes) {
+  function buildMemoLinkTitleIndex(notes) {
+    const activeNotes = activeMemoLinkNotes(notes);
+    const noteIdsByTitle = new Map();
+    activeNotes.forEach((note) => {
+      const title = String(note.title || "");
+      const noteIds = noteIdsByTitle.get(title) || [];
+      noteIds.push(note.id);
+      noteIdsByTitle.set(title, noteIds);
+    });
+    return { activeNotes, noteIdsByTitle };
+  }
+
+  function resolveMemoLinkTitleFromIndex(rawTitle, titleIndex) {
     const title = String(rawTitle || "").trim();
-    const matches = activeMemoLinkNotes(notes).filter((note) => String(note.title || "") === title);
-    if (matches.length === 1) {
-      return { status: "resolved", title, noteId: matches[0].id };
+    const noteIds = titleIndex?.noteIdsByTitle?.get(title) || [];
+    if (noteIds.length === 1) {
+      return { status: "resolved", title, noteId: noteIds[0] };
     }
-    if (matches.length > 1) {
-      return { status: "ambiguous", title, noteId: null, candidateNoteIds: matches.map((note) => note.id) };
+    if (noteIds.length > 1) {
+      return { status: "ambiguous", title, noteId: null, candidateNoteIds: [...noteIds] };
     }
     return { status: "missing", title, noteId: null };
   }
 
-  function buildMemoLinkRelationIndex(notes) {
-    const activeNotes = activeMemoLinkNotes(notes);
+  function resolveMemoLinkTitle(rawTitle, notes) {
+    return resolveMemoLinkTitleFromIndex(rawTitle, buildMemoLinkTitleIndex(notes));
+  }
+
+  function buildMemoLinkRelationIndex(notes, { onTitleIndexBuilt } = {}) {
+    const titleIndex = buildMemoLinkTitleIndex(notes);
+    if (typeof onTitleIndexBuilt === "function") onTitleIndexBuilt(titleIndex);
+    const { activeNotes, noteIdsByTitle } = titleIndex;
     const bySourceNoteId = new Map();
     const backlinksByTargetId = new Map();
     const targetNoteIdsBySourceId = new Map();
 
     activeNotes.forEach((sourceNote) => {
       const relations = uniqueMemoLinks(parseMemoLinks(sourceNote.body)).map((link) => {
-        const resolution = resolveMemoLinkTitle(link.title, activeNotes);
+        const resolution = resolveMemoLinkTitleFromIndex(link.title, titleIndex);
         return {
           sourceNoteId: sourceNote.id,
           targetTitle: link.title,
@@ -110,7 +138,38 @@
       targetNoteIdsBySourceId.set(sourceNote.id, targetIds);
     });
 
-    return { activeNotes, backlinksByTargetId, bySourceNoteId, targetNoteIdsBySourceId };
+    return { activeNotes, backlinksByTargetId, bySourceNoteId, noteIdsByTitle, targetNoteIdsBySourceId };
+  }
+
+  function rewriteResolvedMemoLinks(body, {
+    oldTitle,
+    newTitle,
+    targetNoteId,
+    sourceNoteId,
+    relationIndex
+  } = {}) {
+    const source = String(body || "");
+    const replacementTitle = String(newTitle || "").trim();
+    const expectedOldTitle = oldTitle == null ? null : String(oldTitle).trim();
+    if (!replacementTitle || !targetNoteId || !sourceNoteId || !relationIndex) {
+      return { body: source, changed: false, replacementCount: 0 };
+    }
+
+    const eligibleTitles = new Set((relationIndex.bySourceNoteId.get(sourceNoteId) || [])
+      .filter((relation) => relation.resolutionStatus === "resolved"
+        && relation.targetNoteId === targetNoteId
+        && (expectedOldTitle === null || relation.targetTitle === expectedOldTitle))
+      .map((relation) => relation.targetTitle));
+    if (!eligibleTitles.size) return { body: source, changed: false, replacementCount: 0 };
+
+    const replacements = parseMemoLinks(source)
+      .filter((link) => eligibleTitles.has(link.title))
+      .sort((left, right) => right.titleStart - left.titleStart);
+    let rewritten = source;
+    replacements.forEach((link) => {
+      rewritten = `${rewritten.slice(0, link.titleStart)}${replacementTitle}${rewritten.slice(link.titleEnd)}`;
+    });
+    return { body: rewritten, changed: replacements.length > 0, replacementCount: replacements.length };
   }
 
   function createMemoLinkRelationCache() {
@@ -128,9 +187,12 @@
 
   return {
     buildMemoLinkRelationIndex,
+    buildMemoLinkTitleIndex,
     createMemoLinkRelationCache,
     parseMemoLinks,
+    resolveMemoLinkTitleFromIndex,
     resolveMemoLinkTitle,
+    rewriteResolvedMemoLinks,
     uniqueMemoLinks
   };
 });

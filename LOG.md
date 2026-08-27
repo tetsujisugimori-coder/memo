@@ -2170,3 +2170,12 @@
 * `memo-link-utils.test.js`と`memo-link-app.test.js`を追加し、構文、コード除外、解決3状態、重複、バックリンク、表示、クリック、グラフ、キャッシュ、scheduler接続を検証した。語句統計、関連ドロワー、記法ガイド、配信順、保存raceの既存テストも更新した。`npm test`は835件すべて成功し、fail・cancelled・skipped・todoは0件だった。変更JavaScript 26ファイルの`node --check`と`git diff --check`も成功した。
 * 将来`[[* メモ名#位置]]`へ拡張する場合は、`parseMemoLinks()`が現在保持しているタイトル文字列をresolverへ渡す前に、メモ部分と位置指定部分へ分離する。初期実装では`メモ名#位置`全体をタイトルとして扱い、位置ジャンプは実装していない。
 * ブラウザでの手動確認は未実施。語句リンク、メモリンク、missing／ambiguous、バックリンク、関連重複排除、コード領域、snippet、自動タイトル、グラフ、連続入力は自動テストとソース検査で確認した。
+
+## 2026-08-27 PR #150 レビュー指摘対応：メモリンクの改名追従と索引線形化
+
+* リンク先メモのタイトル変更前に、正式な`[[* 旧タイトル]]`が一意解決していた対象note IDを`buildMemoLinkRelationIndex()`から固定し、その関係だけを改名対象にした。語句リンク、missing、ambiguous、不正式記法、インラインコード、fenced code、Mermaid内は更新しない。タイトル部分の生文字列位置だけを後方から置換するため、記法内の前後空白、本文のCRLF、同一本文内の重複リンクを維持する。自己リンクと連続改名にも追従し、新タイトルが別メモと重複した後は通常どおりambiguousになる。
+* `parseMemoLinks()`は改行を正規化したコピーではなく原文上のoffsetを返すようにし、`rewriteResolvedMemoLinks()`を追加した。`buildMemoLinkTitleIndex()`が未削除メモを一度だけ走査して`Map<title, noteId[]>`を構築し、全リンク解決で再利用する。これにより従来のリンクごとの全メモ`filter()`を除去し、索引構築を概ねO(N + L)へ変更した。公開`resolveMemoLinkTitle()`の単独利用契約は維持した。
+* タイトルと全参照元本文は、既存の`mutateNotesAtomically()`、note IDロック、batch保存、revision、dirty／pending／error経路を使い、1回のIndexedDB transactionへまとめた。ロック取得後と`put()`直前に対象revisionを再検証し、待機中の追加入力やCodex thread mergeとの競合があれば全件を中止する。writer失敗でもDBへ部分反映せず、改名メモをdirty／errorのまま保持して既存再試行経路へ残す。`note-save-foundation.js`とIndexedDB schemaは変更していない。
+* batch成功時は、表示中メモが同じrevisionでcleanな場合だけタイトル・本文・draft mirror・previewを保存結果へ同期する。別ウィンドウからタイトル変更・作成・削除を受信して解決状態が変わり得る場合は索引無効化後にpreviewを再描画し、受信側が編集中なら既存pending判定を維持して本文を上書きしない。resolvedリンクのクリック時にも現在のタイトル解決を再確認し、古いDOMに残る別note IDへは遷移しない。
+* `memo-link-utils.test.js`へ空白・CRLF・除外領域・missing／ambiguous・自己リンク・連続改名・新タイトル重複・1,001件の索引構築回数を追加した。`note-save-app-integration.test.js`へ複数参照元・重複リンクを含むatomic保存、batch失敗時の無部分保存、ロック待機中revision変更の中止を追加し、`memo-link-app.test.js`でeditor／preview同期とstaleクリック防止を確認した。`npm test`は全844件がpassし、fail・cancelled・skipped・todoは0件だった。`node --check app.js`、`node --check memo-link-utils.js`、`git diff --check`も成功した。
+* READMEと記法ガイドを改名追従仕様へ更新し、配信識別子を`memo-link-utils.js?v=0.5.0-2`、`app.js?v=0.5.0-119`へ更新した。実ブラウザでの手動確認は未実施で、Windows Chrome等を使った複数ウィンドウ操作と視覚確認は残る。
