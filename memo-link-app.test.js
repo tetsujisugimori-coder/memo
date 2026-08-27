@@ -122,12 +122,15 @@ test("表示・関連・グラフ・scheduler接続はメモリンク専用索�
   assert.match(readFunctionSource("invalidateTermRelationIndex"), /termRelationCache\.invalidate\(\)[\s\S]*memoLinkRelationCache\.invalidate\(\)/);
 });
 
-test("改名batch成功時はcommitted snapshotへ統一しdirty受信側へ正式リンクだけを合流する", () => {
+test("改名batch成功時はcommitted snapshotへ統一し遅延通常保存後もnote別intentで再検証する", () => {
   const batchStart = app.indexOf("function handleNoteBatchSaveSuccess(");
   const batchHandler = app.slice(batchStart, app.indexOf("\nfunction handleNoteSaveError(", batchStart));
   const batchApply = readFunctionSource("applyNoteBatchSaveSuccess");
   const syncHandler = readFunctionSource("refreshMemoFromOtherWindow");
   const renameSyncHandler = readFunctionSource("applyMemoLinkRenameSync");
+  const renameNoteHandler = readFunctionSource("reconcileMemoLinkRenameSyncNote");
+  const storedRepairHandler = readFunctionSource("reconcileMemoLinkRenameStoredNote");
+  const liveMergeHandler = readFunctionSource("mergeMemoLinkRenameIntoLiveDraft");
   const notifyStart = app.indexOf("function notifyMemoLinkRenamed(");
   const notifyHandler = app.slice(notifyStart, app.indexOf("\nfunction rememberProcessedMemoLinkRenameSync", notifyStart));
   assert.match(batchHandler, /syncCurrentEditorAfterBatch/);
@@ -136,13 +139,17 @@ test("改名batch成功時はcommitted snapshotへ統一しdirty受信側へ正�
   assert.match(batchHandler, /titleInput\.value = note\.title[\s\S]*editor\.value = note\.body/);
   assert.match(batchHandler, /removeDraftMirrorForNote\(note\.id\)/);
   assert.match(batchApply, /if \(!state\.dirty\) noteLiveDrafts\.delete\(request\.noteId\)/);
-  assert.match(renameSyncHandler, /processedMemoLinkRenameSyncIds[\s\S]*mergeMemoLinkRenameIntoLiveDraft/);
+  assert.match(renameSyncHandler, /memoLinkRenameSyncIntents[\s\S]*pendingNoteIds[\s\S]*rememberProcessedMemoLinkRenameSync/);
+  assert.match(renameNoteHandler, /drainMemoLinkRenameLiveWork[\s\S]*runExclusive[\s\S]*reconcileMemoLinkRenameStoredNote/);
+  assert.match(storedRepairHandler, /store\.get\(noteId\)[\s\S]*cloneNoteSnapshot\(storedNote\)[\s\S]*rewriteMemoLinksFromRenameNotification[\s\S]*store\.put\(savedNote\)/);
+  assert.match(storedRepairHandler, /nextNote\.title[\s\S]*=== String\(rename\.oldTitle[\s\S]*nextNote\.title = rename\.newTitle/);
+  assert.match(liveMergeHandler, /noteId === rename\?\.targetNoteId[\s\S]*note\.title[\s\S]*=== String\(rename\.oldTitle/);
   assert.match(notifyHandler, /type: "memo-link-renamed"[\s\S]*resolvedSourceNoteIds/);
   assert.match(syncHandler, /memoLinkResolutionMayHaveChanged[\s\S]*renderAll\(\)[\s\S]*renderPreview\(\)/);
 });
 
 test("専用モジュールはapp.jsより前に読み込み、保存基盤とDB schemaを変更しない", () => {
-  assert.ok(html.indexOf('memo-link-utils.js?v=0.5.0-3') < html.indexOf('app.js?v=0.5.0-120'));
-  assert.match(html, /term-link-utils\.js\?v=0\.5\.0-6[\s\S]*memo-link-utils\.js\?v=0\.5\.0-3[\s\S]*app\.js\?v=0\.5\.0-120/);
+  assert.ok(html.indexOf('memo-link-utils.js?v=0.5.0-3') < html.indexOf('app.js?v=0.5.0-121'));
+  assert.match(html, /term-link-utils\.js\?v=0\.5\.0-6[\s\S]*memo-link-utils\.js\?v=0\.5\.0-3[\s\S]*app\.js\?v=0\.5\.0-121/);
   assert.doesNotMatch(app, /memo-link-store|backlink-store|createObjectStore\([^)]*link/i);
 });

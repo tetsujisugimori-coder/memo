@@ -871,6 +871,8 @@ const noteSaveUiChanges = new Map();
 const memoLinkRenameSaveTasks = new Map();
 const processedMemoLinkRenameSyncIds = new Set();
 const pendingMemoLinkRenameSyncs = new Map();
+const memoLinkRenameSyncIntents = new Map();
+const memoLinkRenameSyncNoteTails = new Map();
 const permanentDeletionCleanupTasks = new Map();
 let lastDiscovery = "";
 let linkStatsVisible = false;
@@ -1839,6 +1841,77 @@ function putNote(note, { preserveStoredCodexThread = false } = {}) {
     };
     transaction.onerror = () => reject(noteTransactionError(transaction));
     transaction.onabort = () => reject(noteTransactionError(transaction));
+  });
+}
+
+// 遅延した通常保存が改名batchを後から巻き戻しても、最新レコードの改名対象フィールドだけを再調整します。
+function reconcileMemoLinkRenameStoredNote(noteId, rename) {
+  return new Promise((resolve, reject) => {
+    let storedNote = null;
+    let savedNote = null;
+    let changed = false;
+    let writeError = null;
+    const transaction = db.transaction([STORE_NAME, TOMBSTONE_STORE_NAME], "readwrite");
+    const store = transaction.objectStore(STORE_NAME);
+    guardNoteWrites(transaction, [noteId], () => {
+      const request = store.get(noteId);
+      request.onsuccess = () => {
+        storedNote = request.result ? cloneNoteSnapshot(request.result) : null;
+        if (!storedNote || storedNote.deletedAt) return;
+        const nextNote = cloneNoteSnapshot(storedNote);
+        let titleChanged = false;
+        let bodyChanged = false;
+
+        if (noteId === rename.targetNoteId && String(nextNote.title || "") === String(rename.oldTitle || "")) {
+          nextNote.title = rename.newTitle;
+          titleChanged = true;
+        }
+        if ((rename.resolvedSourceNoteIds || []).includes(noteId)) {
+          const rewritten = rewriteMemoLinksFromRenameNotification(nextNote.body, {
+            ...rename,
+            sourceNoteId: noteId
+          });
+          if (rewritten.changed) {
+            nextNote.body = rewritten.body;
+            bodyChanged = true;
+          }
+        }
+        const storedRevision = normalizeNoteRevision(storedNote.revision);
+        const notifiedRevision = normalizeNoteRevision(rename.revisions?.[noteId]);
+        const revisionNeedsRepair = storedRevision < notifiedRevision;
+        if (!titleChanged && !bodyChanged && !revisionNeedsRepair) {
+          savedNote = storedNote;
+          return;
+        }
+
+        const contentChanged = titleChanged || bodyChanged;
+        nextNote.revision = Math.max(storedRevision, notifiedRevision) + (contentChanged ? 1 : 0);
+        if (contentChanged) {
+          const changedAt = Math.max(
+            Date.now(),
+            timestampValue(storedNote.updatedAt) ?? 0,
+            timestampValue(rename.updatedAt) ?? 0
+          );
+          nextNote.updatedAt = changedAt;
+          if (bodyChanged) nextNote.bodyUpdatedAt = changedAt;
+        }
+        savedNote = nextNote;
+        changed = true;
+        store.put(savedNote);
+      };
+      request.onerror = () => {
+        writeError = request.error || new Error("改名追従の保存済みメモを読み込めませんでした");
+      };
+    }, TOMBSTONE_STORE_NAME);
+    transaction.oncomplete = () => {
+      if (changed && savedNote) {
+        notifyMemoChanged(savedNote);
+        markLocalWorkspacePending();
+      }
+      resolve({ changed, savedNote: cloneNoteSnapshot(savedNote || storedNote) });
+    };
+    transaction.onerror = () => reject(writeError || noteTransactionError(transaction));
+    transaction.onabort = () => reject(writeError || noteTransactionError(transaction));
   });
 }
 
@@ -5655,20 +5728,28 @@ function adjustedMemoLinkRenameOffset(offset, replacements) {
 }
 
 function mergeMemoLinkRenameIntoLiveDraft(noteId, rename, updatedAt = Date.now()) {
-  if (!rename?.resolvedSourceNoteIds?.includes(noteId)) return false;
+  const rewritesBody = Boolean(rename?.resolvedSourceNoteIds?.includes(noteId));
+  const mayRewriteTitle = noteId === rename?.targetNoteId;
+  if (!rewritesBody && !mayRewriteTitle) return false;
   if (noteId === currentId) applyCurrentEditorDraft(currentNote());
   const note = noteForSave(noteId);
   if (!note || note.deletedAt) return false;
-  const rewritten = rewriteMemoLinksFromRenameNotification(note.body, {
-    ...rename,
-    sourceNoteId: noteId
-  });
-  if (!rewritten.changed) return false;
+  const rewritten = rewritesBody
+    ? rewriteMemoLinksFromRenameNotification(note.body, { ...rename, sourceNoteId: noteId })
+    : { body: note.body, changed: false, replacements: [] };
+  const titleChanged = mayRewriteTitle && String(note.title || "") === String(rename.oldTitle || "");
+  if (!rewritten.changed && !titleChanged) return false;
 
   const selectionStart = noteId === currentId ? editor.selectionStart : null;
   const selectionEnd = noteId === currentId ? editor.selectionEnd : null;
-  note.body = rewritten.body;
-  note.bodyUpdatedAt = updatedAt;
+  if (rewritten.changed) {
+    note.body = rewritten.body;
+    note.bodyUpdatedAt = updatedAt;
+  }
+  if (titleChanged) {
+    note.title = rename.newTitle;
+    noteSaveUiChanges.delete(noteId);
+  }
   note.updatedAt = updatedAt;
   note.revision = Math.max(
     normalizeNoteRevision(note.revision),
@@ -5676,8 +5757,9 @@ function mergeMemoLinkRenameIntoLiveDraft(noteId, rename, updatedAt = Date.now()
   );
   markLocalMemoDirty(note);
   if (noteId === currentId) {
-    editor.value = rewritten.body;
-    if (typeof editor.setSelectionRange === "function") {
+    if (titleChanged) titleInput.value = note.title;
+    if (rewritten.changed) editor.value = rewritten.body;
+    if (rewritten.changed && typeof editor.setSelectionRange === "function") {
       editor.setSelectionRange(
         adjustedMemoLinkRenameOffset(selectionStart, rewritten.replacements),
         adjustedMemoLinkRenameOffset(selectionEnd, rewritten.replacements)
@@ -6121,42 +6203,152 @@ function rememberProcessedMemoLinkRenameSync(renameId) {
   }
 }
 
-function applyMemoLinkRenameSync(message) {
-  if (message?.type !== "memo-link-renamed" || !message.renameId) return;
-  if (processedMemoLinkRenameSyncIds.has(message.renameId)) return;
-  const resolvedSourceNoteIds = [...new Set(message.resolvedSourceNoteIds || [])].filter(Boolean);
-  if (editorCompositionNoteId === currentId && resolvedSourceNoteIds.includes(currentId)) {
-    pendingMemoLinkRenameSyncs.set(message.renameId, message);
-    return;
-  }
-
-  resolvedSourceNoteIds.forEach((noteId) => {
-    const state = noteSaveFoundation.getState(noteId);
-    const hasLiveWork = noteLiveDrafts.has(noteId)
-      || Boolean(state?.dirty)
-      || state?.status === "saving"
-      || state?.activeRevision != null
-      || state?.pendingRevision != null;
-    if (!hasLiveWork) return;
-    if (noteId === currentId) {
-      const incomingUpdatedAt = timestampValue(message.updatedAt) ?? Date.now();
-      pendingMemoSync = {
-        memoId: noteId,
-        updatedAt: Math.max(timestampValue(pendingMemoSync?.updatedAt) ?? 0, incomingUpdatedAt)
-      };
-      renderMemoSyncNotice();
-    }
-    mergeMemoLinkRenameIntoLiveDraft(noteId, { ...message, resolvedSourceNoteIds }, message.updatedAt);
-  });
-  rememberProcessedMemoLinkRenameSync(message.renameId);
+function memoLinkRenameSyncNoteIds(message) {
+  return [...new Set([message?.targetNoteId, ...(message?.resolvedSourceNoteIds || [])])].filter(Boolean);
 }
 
-function flushPendingMemoLinkRenameSyncs(noteId) {
-  [...pendingMemoLinkRenameSyncs].forEach(([renameId, message]) => {
-    if (!(message.resolvedSourceNoteIds || []).includes(noteId)) return;
-    pendingMemoLinkRenameSyncs.delete(renameId);
-    applyMemoLinkRenameSync(message);
+function memoLinkRenameSyncTouchesComposition(message) {
+  return (editorCompositionNoteId === currentId && message?.resolvedSourceNoteIds?.includes(currentId))
+    || (titleCompositionNoteId === currentId && message?.targetNoteId === currentId);
+}
+
+function hasMemoLinkRenameLiveWork(noteId) {
+  const state = noteSaveFoundation.getState(noteId);
+  return Boolean(state?.dirty)
+    || state?.status === "saving"
+    || state?.activeRevision != null
+    || state?.pendingRevision != null;
+}
+
+function advanceMemoLinkRenameLiveRevision(noteId, storedRevision) {
+  const state = noteSaveFoundation.getState(noteId);
+  const note = noteForSave(noteId);
+  if (!state?.dirty || !note || normalizeNoteRevision(note.revision) > normalizeNoteRevision(storedRevision)) return false;
+  note.revision = Math.max(normalizeNoteRevision(note.revision), normalizeNoteRevision(storedRevision));
+  markLocalMemoDirty(note);
+  if (noteId === currentId) scheduleSave();
+  return true;
+}
+
+function syncCleanMemoLinkRenameSnapshot(noteId, savedNote) {
+  if (!savedNote || savedNote.deletedAt || hasMemoLinkRenameLiveWork(noteId)) return false;
+  const snapshot = cloneNoteSnapshot(savedNote);
+  const index = notes.findIndex((note) => note.id === noteId);
+  if (index === -1) notes.unshift(snapshot); else notes[index] = snapshot;
+  noteLiveDrafts.delete(noteId);
+  noteSaveFoundation.registerNote(noteId, snapshot.revision);
+  if (pendingMemoSync?.memoId === noteId) {
+    pendingMemoSync = null;
+    renderMemoSyncNotice();
+  }
+  invalidateTermRelationIndex();
+  if (noteId === currentId) {
+    titleInput.value = snapshot.title;
+    editor.value = snapshot.body;
+    removeDraftMirrorForNote(noteId);
+    syncLegacyDirtyState(noteId);
+    if (isPopoutWindow) renderNoteMeta(); else renderAll();
+    renderPreview();
+  } else if (!isPopoutWindow) {
+    renderList();
+  }
+  return true;
+}
+
+async function drainMemoLinkRenameLiveWork(noteId, message) {
+  while (hasMemoLinkRenameLiveWork(noteId)) {
+    mergeMemoLinkRenameIntoLiveDraft(noteId, message, message.updatedAt);
+    const state = noteSaveFoundation.getState(noteId);
+    if (state?.dirty && noteForSave(noteId)) await enqueueNoteSaveSnapshot(noteId);
+    await noteSaveFoundation.whenIdle(noteId);
+  }
+}
+
+async function reconcileMemoLinkRenameSyncNote(noteId, message) {
+  while (true) {
+    await drainMemoLinkRenameLiveWork(noteId, message);
+    const stateBeforeRepair = noteSaveFoundation.getState(noteId);
+    const repairMessage = {
+      ...message,
+      revisions: {
+        ...(message.revisions || {}),
+        [noteId]: Math.max(
+          normalizeNoteRevision(message.revisions?.[noteId]),
+          normalizeNoteRevision(stateBeforeRepair?.currentRevision),
+          normalizeNoteRevision(stateBeforeRepair?.lastSavedRevision)
+        )
+      }
+    };
+    const result = await noteSaveFoundation.runExclusive([noteId], () => (
+      reconcileMemoLinkRenameStoredNote(noteId, repairMessage)
+    ));
+    if (!result.savedNote) return;
+
+    if (hasMemoLinkRenameLiveWork(noteId)) {
+      const revisions = { ...(message.revisions || {}), [noteId]: result.savedNote.revision };
+      mergeMemoLinkRenameIntoLiveDraft(noteId, { ...message, revisions }, message.updatedAt);
+      advanceMemoLinkRenameLiveRevision(noteId, result.savedNote.revision);
+      continue;
+    }
+    syncCleanMemoLinkRenameSnapshot(noteId, result.savedNote);
+    return;
+  }
+}
+
+function queueMemoLinkRenameSyncNote(noteId, message) {
+  const previous = memoLinkRenameSyncNoteTails.get(noteId) || Promise.resolve();
+  const task = previous.catch(() => undefined).then(() => reconcileMemoLinkRenameSyncNote(noteId, message));
+  memoLinkRenameSyncNoteTails.set(noteId, task);
+  void task.finally(() => {
+    if (memoLinkRenameSyncNoteTails.get(noteId) === task) memoLinkRenameSyncNoteTails.delete(noteId);
+  }).catch(() => undefined);
+  return task;
+}
+
+function applyMemoLinkRenameSync(message) {
+  if (message?.type !== "memo-link-renamed" || !message.renameId) return Promise.resolve();
+  if (processedMemoLinkRenameSyncIds.has(message.renameId)) return Promise.resolve();
+  const existingIntent = memoLinkRenameSyncIntents.get(message.renameId);
+  if (existingIntent) return existingIntent.promise;
+  const resolvedSourceNoteIds = [...new Set(message.resolvedSourceNoteIds || [])].filter(Boolean);
+  const normalizedMessage = { ...message, resolvedSourceNoteIds };
+  if (memoLinkRenameSyncTouchesComposition(normalizedMessage)) {
+    pendingMemoLinkRenameSyncs.set(message.renameId, message);
+    return Promise.resolve();
+  }
+
+  if (resolvedSourceNoteIds.includes(currentId)) {
+    const incomingUpdatedAt = timestampValue(message.updatedAt) ?? Date.now();
+    pendingMemoSync = {
+      memoId: currentId,
+      updatedAt: Math.max(timestampValue(pendingMemoSync?.updatedAt) ?? 0, incomingUpdatedAt)
+    };
+    renderMemoSyncNotice();
+  }
+  const pendingNoteIds = new Set(memoLinkRenameSyncNoteIds(normalizedMessage));
+  const intent = { message: normalizedMessage, pendingNoteIds, promise: null };
+  intent.promise = Promise.all([...pendingNoteIds].map((noteId) => (
+    queueMemoLinkRenameSyncNote(noteId, normalizedMessage).then(() => pendingNoteIds.delete(noteId))
+  ))).then(() => {
+    if (pendingNoteIds.size) return;
+    rememberProcessedMemoLinkRenameSync(message.renameId);
+    memoLinkRenameSyncIntents.delete(message.renameId);
+  }).catch((error) => {
+    memoLinkRenameSyncIntents.delete(message.renameId);
+    throw error;
   });
+  memoLinkRenameSyncIntents.set(message.renameId, intent);
+  return intent.promise;
+}
+
+async function flushPendingMemoLinkRenameSyncs(noteId) {
+  const messages = [];
+  [...pendingMemoLinkRenameSyncs].forEach(([renameId, message]) => {
+    if (!memoLinkRenameSyncNoteIds(message).includes(noteId)) return;
+    pendingMemoLinkRenameSyncs.delete(renameId);
+    messages.push(message);
+  });
+  for (const message of messages) await applyMemoLinkRenameSync(message);
 }
 
 async function refreshMemoFromOtherWindow(message) {
@@ -6323,7 +6515,7 @@ async function performPermanentDeletionCleanup(memoIds, tombstone = {}, { showNo
 async function handleMemoSyncMessage(message) {
   if (!message) return;
   if (message.type === "memo-link-renamed") {
-    applyMemoLinkRenameSync(message);
+    await applyMemoLinkRenameSync(message);
     return;
   }
   if (message.type === "memo-permanent-delete-started") {
@@ -12854,6 +13046,10 @@ titleInput.addEventListener("compositionend", () => {
   const noteId = titleCompositionNoteId;
   titleCompositionNoteId = null;
   globalThis.MemoNexusTypingDerivedUiScheduler?.endComposition(noteId);
+  queueMicrotask(() => {
+    void flushPendingMemoLinkRenameSyncs(noteId)
+      .catch((error) => console.warn("Deferred memo link rename sync failed", error));
+  });
 });
 editor.addEventListener("beforeinput", resetEditorCaretIdle);
 editor.addEventListener("focus", resetEditorCaretIdle);
@@ -12874,7 +13070,10 @@ editor.addEventListener("compositionend", () => {
   globalThis.MemoNexusTypingDerivedUiScheduler?.endComposition(noteId);
   editorCaretCompositionActive = false;
   resetEditorCaretIdle();
-  queueMicrotask(() => flushPendingMemoLinkRenameSyncs(noteId));
+  queueMicrotask(() => {
+    void flushPendingMemoLinkRenameSyncs(noteId)
+      .catch((error) => console.warn("Deferred memo link rename sync failed", error));
+  });
 });
 editor.addEventListener("paste", resetEditorCaretIdle);
 editor.addEventListener("paste", handleEditorPaste);

@@ -36,7 +36,7 @@ test("全ローカルCSS・JavaScriptを0.5.0のキャッシュ識別子で読�
   assert.match(html, /draft-mirror-scheduler\.js\?v=0\.5\.0-2/);
   assert.match(html, /term-link-utils\.js\?v=0\.5\.0-6/);
   assert.match(html, /memo-link-utils\.js\?v=0\.5\.0-3/);
-  assert.match(html, /app\.js\?v=0\.5\.0-120/);
+  assert.match(html, /app\.js\?v=0\.5\.0-121/);
 });
 
 test("本体リリースと別管理の互換性バージョンを変更しない", () => {

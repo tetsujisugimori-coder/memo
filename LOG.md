@@ -2187,3 +2187,11 @@
 * BroadcastChannelへ一意なrename ID、旧名・新名、対象note ID、一意解決済み参照元ID、保存revisionを含む`memo-link-renamed`通知を追加した。別画面がdirty／savingなら通常文を上書きせず、正式な`[[* 旧タイトル]]`だけをoffsetベースで置換し、既存のdirty化・revision・280ms保存予約へ接続する。語句リンク、不正式記法、inline code、fenced code、Mermaidは変更しない。同じ通知の重複受信は無視し、日本語IME composition中は確定後まで適用を保留する。
 * 保存順序、同一revision内容競合、Codex-only merge、各永続化フィールド保持、dirty受信、通知重複、IME、batch成功後のrevision統一、改名直後の1文字保存、batch中追加入力、実transactionの無部分保存を決定的テストへ追加した。`npm test`は全852件がpassし、fail・cancelled・skipped・todoは0件だった。配信識別子は`memo-link-utils.js?v=0.5.0-3`、`app.js?v=0.5.0-120`へ更新した。`note-save-foundation.js`とIndexedDB schemaは変更していない。
 * Windows Chromeの2タブで、参照元を別タブから先に編集・保存した後に対象タイトルを変更し、通常文「外部編集」を保持したまま正式メモリンクだけが新タイトルへ変わることを確認した。さらに改名直後に対象本文へ1文字追記し、再読み込み後にも残ることを確認した。両タブのconsole warning／errorは0件だった。
+
+## 2026-08-27 PR #150 遅延通常保存による改名巻き戻しの修正
+
+* 残っていた競合は、参照元または改名対象自身の古い通常保存snapshotが開始した後に別タブの改名batchが先にcommitし、その古い通常保存が後からメモ全体を`put()`して旧リンクまたは旧タイトルへ戻したうえで、受信側がcleanになった後の`memo-link-renamed`通知を従来の`hasLiveWork === false`判定で捨てる順序だった。
+* rename IDごとに対象note ID一覧と未完了note IDを持つ改名intentを追加し、同じnote IDのintentは通知順に直列化した。dirty／savingでは利用者のlive draftへ正式リンクと、旧タイトルに完全一致する対象タイトルだけを合流して既存保存キューへ渡す。通常保存が進行中なら既存note lockと`whenIdle()`で保存完了まで待ち、その後に必ずIndexedDBを再検証する。全noteの確認または修復が終わるまでrename ID全体を処理済みにしない。IME中は本文・タイトルとも確定後まで保留する。
+* clean修復は専用の単一メモreadwrite transactionで最新レコードを`get()`し、そのレコードを基礎に正式な`[[* 旧タイトル]]`と、対象note自身のタイトルが旧タイトルと一致する場合だけ新タイトルへ変更する。通常文章とtags、collectionId、isFlagged、attachments、source、codexChat、localCreatedAt、localSavedAt、任意の追加メタデータは最新レコードから保持する。本文・タイトルがすでに整合済みなら書き込まず、通知revisionより保存revisionが低い場合だけ単調性を回復する。同じrename IDの重複通知は書込みとrevisionを増やさない。利用者が別タイトルへ変更済みなら上書きしない。
+* clean修復後は保存snapshotを`notes`、現在画面、保存共通基盤のcurrentRevision／lastSavedRevisionへ同期する。修復transaction中に追加入力が発生した場合はlive draftを置換せず、修復済みrevisionより大きいrevisionへ進めて後続通常保存を完了した後、再びIndexedDBを確認する。`note-save-foundation.js`とIndexedDB schemaは変更していない。配信識別子は`app.js?v=0.5.0-121`へ更新した。
+* deferred writerで、遅延通常保存→改名batch→遅延commit→clean通知、saving中通知、通常保存先行、対象メモ自身の遅延保存、対象外フィールド保持、明示的な別タイトル保持、重複通知、本文・タイトルIME、複数note完了管理、B→C→Dを決定的に検証した。`npm test`は全859件がpassし、fail・cancelled・skipped・todoは0件だった。変更JavaScriptの`node --check`と`git diff --check`も成功した。Windows Chromeの2タブでは参照元編集と対象改名をほぼ同時に開始し、両方の保存完了後と再読み込み後に通常文章、`[[* 遅延メモC]]`、対象タイトル「遅延メモC」が残ることを確認し、console warning／errorは0件だった。ブラウザ操作では内部transactionのcommit順を固定できないため、厳密な遅延順序は決定的自動テストで確認した。
