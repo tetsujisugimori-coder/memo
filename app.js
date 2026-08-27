@@ -320,6 +320,7 @@ const {
   splitImageBlocks
 } = window.MemoNexusAttachmentUtils;
 const {
+  TAG_COLOR_PALETTE,
   assignRegisteredTag,
   countTagUsage,
   createTagDefinition,
@@ -332,7 +333,11 @@ const {
   removeMemoTag,
   restrictTagIds,
   searchTagOptions,
-  tagNameForId
+  summarizeTagIds,
+  tagColorFromId,
+  tagColorForId,
+  tagNameForId,
+  updateTagDefinitionColor
 } = window.MemoNexusTags;
 const { buildMemoListView } = window.MemoNexusMemoListUtils;
 const { buildMarkdownBundleImport, parseStoredZipEntries } = window.MemoNexusMarkdownBundleUtils;
@@ -545,9 +550,17 @@ const clearTagFilterBtn = $("clearTagFilterBtn");
 const createTagDialog = $("createTagDialog");
 const createTagForm = $("createTagForm");
 const createTagNameInput = $("createTagNameInput");
+const createTagColorPalette = $("createTagColorPalette");
 const createTagStatus = $("createTagStatus");
 const closeCreateTagDialogBtn = $("closeCreateTagDialogBtn");
 const cancelCreateTagBtn = $("cancelCreateTagBtn");
+const editTagColorDialog = $("editTagColorDialog");
+const editTagColorForm = $("editTagColorForm");
+const editTagColorDescription = $("editTagColorDescription");
+const editTagColorPalette = $("editTagColorPalette");
+const editTagColorStatus = $("editTagColorStatus");
+const closeEditTagColorDialogBtn = $("closeEditTagColorDialogBtn");
+const cancelEditTagColorBtn = $("cancelEditTagColorBtn");
 const addCollectionBtn = $("addCollectionBtn");
 const collectionAddMenuBtn = $("collectionAddMenuBtn");
 const collectionAddMenu = $("collectionAddMenu");
@@ -663,6 +676,8 @@ const jsonImportText = $("jsonImportText");
 const jsonImportError = $("jsonImportError");
 const closeGraphBtn = $("closeGraphBtn");
 const searchInput = $("searchInput");
+const memoTagFilterSelect = $("memoTagFilterSelect");
+const clearMemoTagFilterBtn = $("clearMemoTagFilterBtn");
 const memoList = $("memoList");
 const titleInput = $("titleInput");
 const noteExportBtn = $("noteExportBtn");
@@ -915,6 +930,11 @@ let deletedNoteSnapshot = null;
 let selectedCollectionId = null;
 let selectedTagFilter = null;
 let registeredTags = [];
+let selectedCreateTagColor = tagColorFromId("");
+let createTagColorManuallySelected = false;
+let editingTagColorId = null;
+let selectedEditTagColor = null;
+let editTagColorReturnFocus = null;
 let collectionSortOrder = "newest";
 let expandedCollectionIds = new Set([UNCLASSIFIED_COLLECTION_ID]);
 let selectedMemoIds = new Set();
@@ -1626,6 +1646,7 @@ function setAiAssistantPanelActive(active) {
 }
 
 function renderMemoListPanel() {
+  renderMemoTagFilter();
   renderList();
   if (memoListCount) {
     const total = activeNotes().length;
@@ -2632,6 +2653,7 @@ async function restoreCollectionsFromLocal() {
 function tagDefinitionChanged(existing, incoming) {
   return !existing
     || existing.name !== incoming.name
+    || existing.color !== incoming.color
     || existing.createdAt !== incoming.createdAt
     || existing.updatedAt !== incoming.updatedAt;
 }
@@ -4556,6 +4578,98 @@ function renderCurrentNoteSaveSuccessUi({ titleChanged = false } = {}) {
   window.MemoNexusCodexChat?.onMemoChanged(currentNote());
 }
 
+function applyTagColorValue(element, color) {
+  if (!element) return;
+  element.style.setProperty("--tag-color", color);
+}
+
+function applyTagColor(element, tagId) {
+  applyTagColorValue(element, tagColorForId(registeredTags, tagId));
+}
+
+function setTagPaletteSelection(container, color) {
+  if (!container) return;
+  Array.from(container.querySelectorAll(".tag-color-swatch")).forEach((button) => {
+    const selected = button.dataset.color === color;
+    button.classList.toggle("is-selected", selected);
+    button.setAttribute("aria-checked", String(selected));
+    button.tabIndex = selected ? 0 : -1;
+  });
+}
+
+function renderTagColorPalette(container, selectedColor, onSelect, labelPrefix) {
+  if (!container) return;
+  container.innerHTML = "";
+  TAG_COLOR_PALETTE.forEach((color, index) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "tag-color-swatch";
+    button.dataset.color = color;
+    button.setAttribute("role", "radio");
+    button.setAttribute("aria-label", `${labelPrefix} ${index + 1}`);
+    applyTagColorValue(button, color);
+    button.addEventListener("click", () => {
+      setTagPaletteSelection(container, color);
+      onSelect(color);
+    });
+    button.addEventListener("keydown", (event) => {
+      if (!["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(event.key)) return;
+      event.preventDefault();
+      const buttons = Array.from(container.querySelectorAll(".tag-color-swatch"));
+      const direction = ["ArrowRight", "ArrowDown"].includes(event.key) ? 1 : -1;
+      const next = buttons[(buttons.indexOf(button) + direction + buttons.length) % buttons.length];
+      setTagPaletteSelection(container, next.dataset.color);
+      onSelect(next.dataset.color);
+      next.focus();
+    });
+    container.appendChild(button);
+  });
+  setTagPaletteSelection(container, selectedColor);
+}
+
+function createTagColorDot(tagId) {
+  const dot = document.createElement("span");
+  dot.className = "tag-color-dot";
+  dot.setAttribute("aria-hidden", "true");
+  applyTagColor(dot, tagId);
+  return dot;
+}
+
+function createTagChip(tagId, { location = "メモ" } = {}) {
+  const tagName = tagNameForId(registeredTags, tagId);
+  const chip = document.createElement("button");
+  chip.type = "button";
+  chip.className = "tag-chip";
+  chip.dataset.tagId = tagId;
+  chip.textContent = tagName;
+  chip.setAttribute("aria-label", `${location}のタグ「${tagName}」でメモ一覧を絞り込む`);
+  chip.setAttribute("aria-pressed", String(selectedTagFilter === tagId));
+  applyTagColor(chip, tagId);
+  chip.addEventListener("click", (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    applyTagFilter(tagId, { revealMemoList: true });
+  });
+  return chip;
+}
+
+function createMemoListTags(note) {
+  const { visibleTagIds, hiddenCount } = summarizeTagIds(note.tags, 3);
+  if (!visibleTagIds.length) return null;
+  const group = document.createElement("div");
+  group.className = "memo-item-tags";
+  group.setAttribute("aria-label", `${note.title}のタグ`);
+  visibleTagIds.forEach((tagId) => group.appendChild(createTagChip(tagId, { location: `メモ「${note.title}」` })));
+  if (hiddenCount > 0) {
+    const overflow = document.createElement("span");
+    overflow.className = "memo-tag-overflow";
+    overflow.textContent = `+${hiddenCount}`;
+    overflow.setAttribute("aria-label", `ほか${hiddenCount}件のタグ`);
+    group.appendChild(overflow);
+  }
+  return group;
+}
+
 // 左側のメモ一覧を描画します。検索欄に入力があればタイトル・本文から絞り込みます。
 function renderList() {
   const query = searchInput.value.trim().toLowerCase();
@@ -4581,6 +4695,8 @@ function renderList() {
       <div class="memo-snippet">${escapeHtml(snippet(note.body))}</div>
       ${relation.terms.length ? `<div class="term-card-footer"><span class="term-accent-list" aria-hidden="true">${visibleTerms.map((entry) => `<i style="--term-color:${entry.color}"></i>`).join("")}${hiddenTermCount ? `<b>+${hiddenTermCount}</b>` : ""}</span><span class="term-chip-list">${visibleTerms.map((entry) => `<button type="button" class="term-chip" data-title="${escapeAttr(entry.term)}" data-term-source="${entry.source}" style="--term-color:${entry.color}">${escapeHtml(entry.term)}</button>`).join("")}</span></div>` : ""}
     `;
+    const memoTags = createMemoListTags(note);
+    if (memoTags) item.querySelector(".memo-title")?.after(memoTags);
     item.addEventListener("click", () => {
       openNote(note.id);
       if (layoutMode !== "wide") {
@@ -4616,12 +4732,16 @@ function tagTx(mode = "readonly") {
   return db.transaction(TAG_STORE_NAME, mode).objectStore(TAG_STORE_NAME);
 }
 
-function getAllTagDefinitions() {
+function getRawTagDefinitions() {
   return new Promise((resolve, reject) => {
     const request = tagTx().getAll();
-    request.onsuccess = () => resolve(normalizeTagDefinitions(request.result));
+    request.onsuccess = () => resolve(Array.isArray(request.result) ? request.result : []);
     request.onerror = () => reject(request.error);
   });
+}
+
+async function getAllTagDefinitions() {
+  return normalizeTagDefinitions(await getRawTagDefinitions());
 }
 
 function putTagDefinitions(items) {
@@ -4641,11 +4761,14 @@ function putTagDefinitions(items) {
 }
 
 async function synchronizeRegisteredTagsForNotes({ render = false } = {}) {
-  const stored = await getAllTagDefinitions();
+  const rawStored = await getRawTagDefinitions();
+  const stored = normalizeTagDefinitions(rawStored);
   const merged = mergeTagDefinitionsFromNotes(stored, notes);
   const existingIds = new Set(stored.map((definition) => definition.id));
+  const rawById = new Map(rawStored.map((definition) => [normalizeTagId(definition?.id ?? definition?.name), definition]));
   const additions = merged.filter((definition) => !existingIds.has(definition.id));
-  if (additions.length) await putTagDefinitions(additions);
+  const colorUpdates = merged.filter((definition) => rawById.get(definition.id)?.color !== definition.color);
+  if (colorUpdates.length) await putTagDefinitions(colorUpdates);
   registeredTags = merged;
   if (render) {
     renderTagPanel();
@@ -4666,22 +4789,23 @@ function renderNoteTags(note = currentNote()) {
 
   normalizeTagIds(note.tags).forEach((tagId) => {
     const tagName = tagNameForId(registeredTags, tagId);
-    const chip = document.createElement("span");
-    chip.className = "note-tag-chip";
-    const label = document.createElement("span");
-    label.textContent = tagName;
+    const entry = document.createElement("span");
+    entry.className = "note-tag-entry";
+    const chip = createTagChip(tagId, { location: "本文タイトル下" });
     const remove = document.createElement("button");
     remove.type = "button";
+    remove.className = "note-tag-remove";
     remove.textContent = "×";
     remove.setAttribute("aria-label", `タグ「${tagName}」をこのメモから外す`);
-    remove.addEventListener("click", () => {
+    remove.addEventListener("click", (event) => {
+      event.stopPropagation();
       void updateCurrentNoteTags(removeMemoTag(note.tags, tagId), note.id).catch((error) => {
         console.error("Tag save failed", error);
         setSaveStatus("error");
       });
     });
-    chip.append(label, remove);
-    noteTagList.appendChild(chip);
+    entry.append(chip, remove);
+    noteTagList.appendChild(entry);
   });
 }
 
@@ -4725,8 +4849,11 @@ function renderNoteTagOptions() {
     button.type = "button";
     button.className = "note-tag-option";
     button.setAttribute("role", "option");
+    button.setAttribute("aria-selected", "false");
     button.dataset.tagId = definition.id;
-    button.textContent = definition.name;
+    const label = document.createElement("span");
+    label.textContent = definition.name;
+    button.append(createTagColorDot(definition.id), label);
     button.addEventListener("click", () => {
       void addRegisteredTagToCurrentNote(definition.id);
     });
@@ -4800,35 +4927,84 @@ function renderTagPanel() {
 
   normalizeTagDefinitions(registeredTags).forEach((definition) => {
     const count = counts.get(definition.id) || 0;
+    const row = document.createElement("div");
+    row.className = "tag-list-row";
     const button = document.createElement("button");
     button.type = "button";
     button.className = "tag-list-item";
+    button.setAttribute("aria-label", `タグ「${definition.name}」でメモ一覧を絞り込む`);
     button.setAttribute("aria-pressed", String(selectedTagFilter === definition.id));
+    applyTagColor(button, definition.id);
     const label = document.createElement("span");
-    label.textContent = definition.name;
+    label.className = "tag-list-label";
+    const labelText = document.createElement("span");
+    labelText.textContent = definition.name;
+    label.append(createTagColorDot(definition.id), labelText);
     const countLabel = document.createElement("span");
     countLabel.className = "tag-list-count";
     countLabel.textContent = `${count}件`;
     button.append(label, countLabel);
-    button.addEventListener("click", () => {
-      selectedTagFilter = definition.id;
-      renderTagPanel();
-      renderMemoListPanel();
+    button.addEventListener("click", () => applyTagFilter(definition.id, { revealMemoList: true }));
+    const editButton = document.createElement("button");
+    editButton.type = "button";
+    editButton.className = "tag-color-edit";
+    editButton.dataset.editTagId = definition.id;
+    editButton.textContent = "色";
+    editButton.setAttribute("aria-label", `タグ「${definition.name}」の色を変更`);
+    applyTagColor(editButton, definition.id);
+    editButton.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      openEditTagColorDialog(definition.id, editButton);
     });
-    tagList.appendChild(button);
+    row.append(button, editButton);
+    tagList.appendChild(row);
   });
 }
 
-function clearTagFilter() {
-  selectedTagFilter = null;
+function renderMemoTagFilter() {
+  if (!memoTagFilterSelect || !clearMemoTagFilterBtn) return;
+  const fragment = document.createDocumentFragment();
+  const allOption = document.createElement("option");
+  allOption.value = "";
+  allOption.textContent = "すべて";
+  fragment.appendChild(allOption);
+  normalizeTagDefinitions(registeredTags).forEach((definition) => {
+    const option = document.createElement("option");
+    option.value = definition.id;
+    option.textContent = definition.name;
+    fragment.appendChild(option);
+  });
+  memoTagFilterSelect.replaceChildren(fragment);
+  memoTagFilterSelect.value = selectedTagFilter || "";
+  clearMemoTagFilterBtn.hidden = !selectedTagFilter;
+}
+
+function applyTagFilter(value, { revealMemoList = false } = {}) {
+  selectedTagFilter = normalizeTagId(value);
   renderTagPanel();
+  renderNoteTags();
   renderMemoListPanel();
+  if (revealMemoList && !isPopoutWindow) {
+    setContextPanelTab("memo-list", { focus: false });
+    requestAnimationFrame(() => memoTagFilterSelect?.focus({ preventScroll: true }));
+  }
+}
+
+function clearTagFilter() {
+  applyTagFilter(null);
 }
 
 function openCreateTagDialog() {
-  if (!createTagDialog || !createTagNameInput || !createTagStatus) return;
+  if (!createTagDialog || !createTagNameInput || !createTagStatus || !createTagColorPalette) return;
   createTagNameInput.value = "";
   createTagStatus.textContent = "";
+  createTagColorManuallySelected = false;
+  selectedCreateTagColor = tagColorFromId("");
+  renderTagColorPalette(createTagColorPalette, selectedCreateTagColor, (color) => {
+    selectedCreateTagColor = color;
+    createTagColorManuallySelected = true;
+  }, "新しいタグの色");
   createTagDialog.showModal();
   requestAnimationFrame(() => createTagNameInput.focus());
 }
@@ -4838,7 +5014,7 @@ function closeCreateTagDialog() {
 }
 
 async function registerNewTag() {
-  const result = createTagDefinition(createTagNameInput?.value, registeredTags);
+  const result = createTagDefinition(createTagNameInput?.value, registeredTags, undefined, selectedCreateTagColor);
   if (result.status === "invalid") {
     createTagStatus.textContent = "タグ名を入力してください。";
     return;
@@ -4853,6 +5029,48 @@ async function registerNewTag() {
   renderNoteTagOptions();
   if (tagPanelStatus) tagPanelStatus.textContent = `タグ「${result.definition.name}」を登録しました。`;
   closeCreateTagDialog();
+}
+
+function openEditTagColorDialog(tagId, returnFocus = null) {
+  const definition = findTagDefinition(registeredTags, tagId);
+  if (!definition || !editTagColorDialog || !editTagColorPalette || !editTagColorStatus) return;
+  editingTagColorId = definition.id;
+  selectedEditTagColor = definition.color;
+  editTagColorReturnFocus = returnFocus;
+  if (editTagColorDescription) editTagColorDescription.textContent = `タグ「${definition.name}」の色を選択してください。`;
+  editTagColorStatus.textContent = "";
+  renderTagColorPalette(editTagColorPalette, selectedEditTagColor, (color) => {
+    selectedEditTagColor = color;
+  }, `タグ「${definition.name}」の色`);
+  editTagColorDialog.showModal();
+  requestAnimationFrame(() => editTagColorPalette.querySelector('[aria-checked="true"]')?.focus());
+}
+
+function closeEditTagColorDialog() {
+  if (editTagColorDialog?.open) editTagColorDialog.close();
+}
+
+async function saveEditedTagColor() {
+  const current = findTagDefinition(registeredTags, editingTagColorId);
+  const result = updateTagDefinitionColor(current, selectedEditTagColor);
+  if (result.status === "invalid") {
+    if (editTagColorStatus) editTagColorStatus.textContent = "タグが見つかりません。";
+    return;
+  }
+  if (result.status === "unchanged") {
+    closeEditTagColorDialog();
+    return;
+  }
+  await putTagDefinitions([result.definition]);
+  registeredTags = normalizeTagDefinitions(registeredTags.map((definition) => (
+    definition.id === result.definition.id ? result.definition : definition
+  )));
+  renderTagPanel();
+  renderNoteTags();
+  renderNoteTagOptions();
+  renderMemoListPanel();
+  if (tagPanelStatus) tagPanelStatus.textContent = `タグ「${result.definition.name}」の色を変更しました。`;
+  closeEditTagColorDialog();
 }
 
 // メモ一覧カードに出す短い本文プレビューを作ります。
@@ -11609,9 +11827,16 @@ if (contextAiTab) contextAiTab.addEventListener("click", () => {
 });
 if (contextMemoListTab) contextMemoListTab.addEventListener("click", () => setContextPanelTab("memo-list"));
 if (clearTagFilterBtn) clearTagFilterBtn.addEventListener("click", clearTagFilter);
+memoTagFilterSelect?.addEventListener("change", () => applyTagFilter(memoTagFilterSelect.value));
+clearMemoTagFilterBtn?.addEventListener("click", clearTagFilter);
 createTagBtn?.addEventListener("click", openCreateTagDialog);
 closeCreateTagDialogBtn?.addEventListener("click", closeCreateTagDialog);
 cancelCreateTagBtn?.addEventListener("click", closeCreateTagDialog);
+createTagNameInput?.addEventListener("input", () => {
+  if (createTagColorManuallySelected) return;
+  selectedCreateTagColor = tagColorFromId(createTagNameInput.value);
+  setTagPaletteSelection(createTagColorPalette, selectedCreateTagColor);
+});
 createTagForm?.addEventListener("submit", (event) => {
   event.preventDefault();
   void registerNewTag().catch((error) => {
@@ -11620,6 +11845,25 @@ createTagForm?.addEventListener("submit", (event) => {
   });
 });
 createTagDialog?.addEventListener("close", () => createTagBtn?.focus());
+closeEditTagColorDialogBtn?.addEventListener("click", closeEditTagColorDialog);
+cancelEditTagColorBtn?.addEventListener("click", closeEditTagColorDialog);
+editTagColorForm?.addEventListener("submit", (event) => {
+  event.preventDefault();
+  void saveEditedTagColor().catch((error) => {
+    console.error("Tag color update failed", error);
+    if (editTagColorStatus) editTagColorStatus.textContent = "タグの色を変更できませんでした。";
+  });
+});
+editTagColorDialog?.addEventListener("close", () => {
+  const currentButton = editingTagColorId
+    ? tagList?.querySelector(`[data-edit-tag-id="${CSS.escape(editingTagColorId)}"]`)
+    : null;
+  if (currentButton) currentButton.focus();
+  else if (editTagColorReturnFocus?.isConnected) editTagColorReturnFocus.focus();
+  editingTagColorId = null;
+  selectedEditTagColor = null;
+  editTagColorReturnFocus = null;
+});
 if (closeContextPanelBtn) closeContextPanelBtn.addEventListener("click", () => setContextPanelOpen(false));
 if (closeCollectionsBtn) closeCollectionsBtn.addEventListener("click", () => setContextPanelOpen(false));
 if (collectionBackdrop) collectionBackdrop.addEventListener("click", () => toggleCollectionExplorer(false));

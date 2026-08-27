@@ -3,7 +3,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const { buildManifest } = require("./local-sync-utils.js");
 const { parseLocalNote, serializeLocalNote } = require("./local-markdown.js");
-const { mergeTagDefinitionsFromNotes, normalizeTagDefinitions } = require("./tags.js");
+const { mergeTagDefinitionsFromNotes, normalizeTagDefinitions, tagColorFromId } = require("./tags.js");
 const {
   BACKUP_FORMAT, BACKUP_VERSION, attachmentIdsToReplace, buildPortableBackupFiles, importedWins, isPortableBackup, parsePortableBackup
 } = require("./backup-bundle-utils.js");
@@ -21,10 +21,10 @@ function manifest(overrides = {}) {
 
 test("タグバックアップ関連スクリプトのキャッシュ番号を更新する", () => {
   const html = fs.readFileSync("index.html", "utf8");
-  assert.match(html, /tags\.js\?v=0\.5\.0-2/);
+  assert.match(html, /tags\.js\?v=0\.5\.0-4/);
   assert.match(html, /local-sync-utils\.js\?v=0\.5\.0-10/);
   assert.match(html, /backup-bundle-utils\.js\?v=0\.5\.0-5/);
-  assert.match(html, /app\.js\?v=0\.5\.0-115/);
+  assert.match(html, /app\.js\?v=0\.5\.0-117/);
 });
 
 test("完全バックアップはメモ個別のWebフォントIDをそのまま往復する", () => {
@@ -106,7 +106,7 @@ test("v2バックアップはローカル保存と共通の論理構造を出力
     normalizeTagDefinitions
   });
   assert.deepEqual(files.map((file) => file.name), ["manifest.json", "collections.json", "tags.json", "notes/日本語--note-1.md", "assets/asset-1.png"]);
-  assert.deepEqual(JSON.parse(files[2].content), [{ id: "unused", name: "未使用", createdAt: "2026-08-01T00:00:00.000Z", updatedAt: "2026-08-02T00:00:00.000Z" }]);
+  assert.deepEqual(JSON.parse(files[2].content), [{ id: "unused", name: "未使用", createdAt: "2026-08-01T00:00:00.000Z", updatedAt: "2026-08-02T00:00:00.000Z", color: tagColorFromId("unused") }]);
   assert.match(files[0].content, new RegExp(`"format": "${BACKUP_FORMAT}"`));
   assert.match(files[0].content, new RegExp(`"version": ${BACKUP_VERSION}`));
   assert.match(markdown, /tags: \["work","資料"\]/);
@@ -127,12 +127,12 @@ test("ZIP往復でタグを保持し、タグなし旧メモは空配列とし�
 
 test("tags.jsonは未使用タグを含め、ID・表示名・日時を往復する", () => {
   const sourceDefinitions = [
-    { id: " AI ", name: " AI ", createdAt: "2026-08-01T00:00:00.000Z", updatedAt: "2026-08-02T00:00:00.000Z" },
+    { id: " AI ", name: " AI ", color: "#3f7fa6", createdAt: "2026-08-01T00:00:00.000Z", updatedAt: "2026-08-02T00:00:00.000Z" },
     { id: "unused", name: "未使用", createdAt: "2026-08-03T00:00:00.000Z", updatedAt: "2026-08-04T00:00:00.000Z" }
   ];
   const expectedDefinitions = [
-    { id: "ai", name: "AI", createdAt: "2026-08-01T00:00:00.000Z", updatedAt: "2026-08-02T00:00:00.000Z" },
-    { id: "unused", name: "未使用", createdAt: "2026-08-03T00:00:00.000Z", updatedAt: "2026-08-04T00:00:00.000Z" }
+    { id: "ai", name: "AI", color: "#3f7fa6", createdAt: "2026-08-01T00:00:00.000Z", updatedAt: "2026-08-02T00:00:00.000Z" },
+    { id: "unused", name: "未使用", color: tagColorFromId("unused"), createdAt: "2026-08-03T00:00:00.000Z", updatedAt: "2026-08-04T00:00:00.000Z" }
   ];
   const files = buildPortableBackupFiles({ manifest: manifest(), tagDefinitions: sourceDefinitions, normalizeTagDefinitions });
   assert.deepEqual(JSON.parse(files.find((file) => file.name === "tags.json").content), expectedDefinitions);
@@ -154,8 +154,22 @@ test("破損・重複タグ定義を安全にスキップする", () => {
       null
     ]))
   ], { parseNote: parseLocalNote, normalizeTagDefinitions });
-  assert.deepEqual(parsed.tags, [{ id: "ai", name: "AI", createdAt: null, updatedAt: null }]);
+  assert.deepEqual(parsed.tags, [{ id: "ai", name: "AI", color: tagColorFromId("ai"), createdAt: null, updatedAt: null }]);
   assert.deepEqual(parsed.skipped, ["tags.json:1", "tags.json:3", "tags.json:4"]);
+});
+
+test("完全バックアップは有効色を維持し、色なし・不正色を自動色で復元する", () => {
+  const source = [
+    { id: "valid", name: "有効", color: "#8064a2" },
+    { id: "legacy", name: "旧形式" },
+    { id: "unsafe", name: "不正", color: "rgba(0,0,0,0)" }
+  ];
+  const files = buildPortableBackupFiles({ manifest: manifest(), tagDefinitions: source, normalizeTagDefinitions });
+  const parsed = parsePortableBackup(files.map((file) => entry(file.name, file.content)), { parseNote: parseLocalNote, normalizeTagDefinitions });
+  const colors = new Map(parsed.tags.map((tag) => [tag.id, tag.color]));
+  assert.equal(colors.get("valid"), "#8064a2");
+  assert.equal(colors.get("legacy"), tagColorFromId("legacy"));
+  assert.equal(colors.get("unsafe"), tagColorFromId("unsafe"));
 });
 
 test("tags.jsonがないv1バックアップはメモタグから定義を冪等に補完できる", () => {
