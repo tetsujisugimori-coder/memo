@@ -1,7 +1,19 @@
 (function initMemoNexusTags(global) {
   "use strict";
 
-  const DEFAULT_TAG_COLOR = "#6f8372";
+  const TAG_COLOR_PALETTE = Object.freeze([
+    "#b85c5c",
+    "#b87333",
+    "#a47f18",
+    "#5f8f57",
+    "#3f8978",
+    "#3f7fa6",
+    "#5d6fb2",
+    "#8064a2",
+    "#a65d87"
+  ]);
+  const DEFAULT_TAG_COLOR = TAG_COLOR_PALETTE[3];
+  const TAG_COLOR_WAS_PROVIDED = Symbol("tagColorWasProvided");
 
   function normalizeTagId(value) {
     if (value == null) return null;
@@ -32,6 +44,34 @@
     return normalized;
   }
 
+  function isTagPaletteColor(value) {
+    const color = typeof value === "string" ? value.trim().toLowerCase() : "";
+    return TAG_COLOR_PALETTE.includes(color);
+  }
+
+  function tagColorFromId(value) {
+    const id = normalizeTagId(value);
+    if (!id) return DEFAULT_TAG_COLOR;
+    let hash = 2166136261;
+    for (const character of id) {
+      hash ^= character.codePointAt(0);
+      hash = Math.imul(hash, 16777619) >>> 0;
+    }
+    return TAG_COLOR_PALETTE[hash % TAG_COLOR_PALETTE.length];
+  }
+
+  function normalizeTagColor(value, tagId = null) {
+    const color = typeof value === "string" ? value.trim().toLowerCase() : "";
+    return isTagPaletteColor(color) ? color : tagColorFromId(tagId);
+  }
+
+  function tagColorWasProvided(source) {
+    if (source && Object.prototype.hasOwnProperty.call(source, TAG_COLOR_WAS_PROVIDED)) {
+      return Boolean(source[TAG_COLOR_WAS_PROVIDED]);
+    }
+    return isTagPaletteColor(source?.color);
+  }
+
   function normalizeTagDefinitions(value) {
     const definitions = [];
     const seen = new Set();
@@ -41,13 +81,19 @@
       if (!id || seen.has(id)) return;
       const name = normalizeTagName(source.name) || id;
       seen.add(id);
-      definitions.push({
+      const definition = {
         ...source,
         id,
         name,
+        color: normalizeTagColor(source.color, id),
         createdAt: normalizeTagDate(source.createdAt),
         updatedAt: normalizeTagDate(source.updatedAt) || normalizeTagDate(source.createdAt)
+      };
+      Object.defineProperty(definition, TAG_COLOR_WAS_PROVIDED, {
+        configurable: true,
+        value: tagColorWasProvided(source)
       });
+      definitions.push(definition);
     });
     return definitions.sort((a, b) => a.name.localeCompare(b.name, "ja") || a.id.localeCompare(b.id, "ja"));
   }
@@ -84,7 +130,7 @@
     return Number.isNaN(date.getTime()) ? new Date().toISOString() : date.toISOString();
   }
 
-  function createTagDefinition(name, definitions, now) {
+  function createTagDefinition(name, definitions, now, color) {
     const normalizedName = normalizeTagName(name);
     const id = normalizeTagId(normalizedName);
     if (!id) return { status: "invalid", definition: null };
@@ -93,7 +139,28 @@
     const timestamp = normalizedTimestamp(now);
     return {
       status: "created",
-      definition: { id, name: normalizedName, createdAt: timestamp, updatedAt: timestamp }
+      definition: {
+        id,
+        name: normalizedName,
+        color: normalizeTagColor(color, id),
+        createdAt: timestamp,
+        updatedAt: timestamp
+      }
+    };
+  }
+
+  function updateTagDefinitionColor(definition, color, now) {
+    const current = normalizeTagDefinitions([definition])[0];
+    if (!current) return { status: "invalid", definition: null };
+    const nextColor = normalizeTagColor(color, current.id);
+    if (nextColor === current.color) return { status: "unchanged", definition: current };
+    return {
+      status: "updated",
+      definition: {
+        ...current,
+        color: nextColor,
+        updatedAt: normalizedTimestamp(now)
+      }
     };
   }
 
@@ -105,7 +172,7 @@
       normalizeTagIds(note?.tags).forEach((id) => {
         if (known.has(id)) return;
         known.add(id);
-        merged.push({ id, name: id, createdAt: timestamp, updatedAt: timestamp });
+        merged.push({ id, name: id, color: tagColorFromId(id), createdAt: timestamp, updatedAt: timestamp });
       });
     });
     return normalizeTagDefinitions(merged);
@@ -121,8 +188,25 @@
       }
       const existingUpdatedAt = normalizeTagDate(existing.updatedAt);
       const incomingUpdatedAt = normalizeTagDate(incoming.updatedAt);
-      if (!existingUpdatedAt || !incomingUpdatedAt) return;
-      if (Date.parse(incomingUpdatedAt) > Date.parse(existingUpdatedAt)) merged.set(incoming.id, incoming);
+      const incomingWins = Boolean(existingUpdatedAt && incomingUpdatedAt
+        && Date.parse(incomingUpdatedAt) > Date.parse(existingUpdatedAt));
+      const winner = incomingWins ? incoming : existing;
+      const alternate = incomingWins ? existing : incoming;
+      const winnerHasColor = tagColorWasProvided(winner);
+      const alternateHasColor = tagColorWasProvided(alternate);
+      const mergedDefinition = {
+        ...winner,
+        color: winnerHasColor
+          ? winner.color
+          : alternateHasColor
+            ? alternate.color
+            : tagColorFromId(winner.id)
+      };
+      Object.defineProperty(mergedDefinition, TAG_COLOR_WAS_PROVIDED, {
+        configurable: true,
+        value: winnerHasColor || alternateHasColor
+      });
+      merged.set(incoming.id, mergedDefinition);
     });
     return normalizeTagDefinitions([...merged.values()]);
   }
@@ -162,16 +246,9 @@
     return findTagDefinition(definitions, id)?.name || id || "";
   }
 
-  function normalizeTagColor(value, fallback = DEFAULT_TAG_COLOR) {
-    const color = typeof value === "string" ? value.trim() : "";
-    if (!color) return fallback;
-    if (global.CSS?.supports?.("color", color)) return color;
-    if (/^#(?:[0-9a-f]{3,4}|[0-9a-f]{6}|[0-9a-f]{8})$/i.test(color)) return color;
-    return fallback;
-  }
-
   function tagColorForId(definitions, tagId) {
-    return normalizeTagColor(findTagDefinition(definitions, tagId)?.color);
+    const id = normalizeTagId(tagId);
+    return normalizeTagColor(findTagDefinition(definitions, id)?.color, id);
   }
 
   function summarizeTagIds(value, limit = 3) {
@@ -185,12 +262,14 @@
 
   const api = {
     DEFAULT_TAG_COLOR,
+    TAG_COLOR_PALETTE,
     assignRegisteredTag,
     countTagUsage,
     createTagDefinition,
     filterMemosByTag,
     findTagDefinition,
     isRegisteredTag,
+    isTagPaletteColor,
     mergeTagDefinitions,
     mergeTagDefinitionsFromNotes,
     normalizeMemoTags: normalizeTagIds,
@@ -205,8 +284,10 @@
     restrictTagIds,
     searchTagOptions,
     summarizeTagIds,
+    tagColorFromId,
     tagColorForId,
-    tagNameForId
+    tagNameForId,
+    updateTagDefinitionColor
   };
 
   global.MemoNexusTags = api;

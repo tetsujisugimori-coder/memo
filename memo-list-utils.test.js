@@ -109,6 +109,30 @@ test("登録制タグUIと右サイドバーのタグタブを保存・解除処
   assert.match(app, /tags: normalizeTagIds\(draft\.tags \|\| existingNote\?\.tags\)/);
 });
 
+test("タグ作成・色変更ダイアログはキーボード操作可能な固定パレットを使う", () => {
+  assert.match(html, /id="createTagColorPalette"[^>]*role="radiogroup"/);
+  assert.match(html, /id="editTagColorDialog"[\s\S]*id="editTagColorPalette"[^>]*role="radiogroup"/);
+  const paletteSource = readFunctionSource("renderTagColorPalette");
+  assert.match(paletteSource, /TAG_COLOR_PALETTE\.forEach/);
+  assert.match(paletteSource, /setAttribute\("role", "radio"\)/);
+  assert.match(paletteSource, /setAttribute\("aria-label"/);
+  assert.match(paletteSource, /ArrowLeft[\s\S]*ArrowRight[\s\S]*ArrowUp[\s\S]*ArrowDown/);
+  assert.match(readFunctionSource("setTagPaletteSelection"), /aria-checked/);
+  assert.match(css, /\.tag-color-swatch\.is-selected::after[\s\S]*content: "✓"/);
+});
+
+test("タグ一覧の色変更は検索ボタンと分離され保存成功後だけ表示を同期する", () => {
+  const panelSource = readFunctionSource("renderTagPanel");
+  const saveSource = readFunctionSource("saveEditedTagColor");
+  assert.match(panelSource, /className = "tag-list-row"/);
+  assert.match(panelSource, /className = "tag-list-item"[\s\S]*applyTagFilter\(definition\.id/);
+  assert.match(panelSource, /className = "tag-color-edit"[\s\S]*event\.stopPropagation\(\)[\s\S]*openEditTagColorDialog/);
+  assert.doesNotMatch(readFunctionSource("openEditTagColorDialog"), /applyTagFilter/);
+  assert.ok(saveSource.indexOf("await putTagDefinitions") < saveSource.indexOf("registeredTags = normalizeTagDefinitions"));
+  assert.match(saveSource, /renderTagPanel\(\)[\s\S]*renderNoteTags\(\)[\s\S]*renderNoteTagOptions\(\)[\s\S]*renderMemoListPanel\(\)/);
+  assert.doesNotMatch(saveSource, /updateCurrentNoteTags|enqueueNoteSave|putNote/);
+});
+
 test("本文と一覧のタグチップは同じ描画・検索更新経路を使いメモを開かない", () => {
   const chipSource = readFunctionSource("createTagChip");
   assert.match(chipSource, /className = "tag-chip"/);
@@ -133,20 +157,22 @@ test("メモ一覧はタイトル直下に最大3タグとクリックしない�
 });
 
 test("タグは付箋形状と色フォールバックを持ち語句リンクの既存経路を維持する", () => {
-  assert.match(css, /\.tag-chip[\s\S]*--tag-color: #6f8372[\s\S]*border-radius: 5px 1px 5px 5px/);
-  assert.match(css, /\.tag-chip::after[\s\S]*clip-path: polygon/);
-  assert.match(css, /\.tag-chip\[aria-pressed="true"\]/);
+  assert.match(css, /\.tag-chip[\s\S]*--tag-color: #5f8f57[\s\S]*border-left-width: 4px[\s\S]*border-radius: 3px 0 3px 3px/);
+  assert.match(css, /\.tag-chip::after[\s\S]*width: 12px[\s\S]*height: 12px[\s\S]*clip-path: polygon/);
+  assert.match(css, /\.tag-chip[\s\S]*background: var\(--section-bg\)[\s\S]*color-mix/);
+  assert.match(css, /\.tag-chip\[aria-pressed="true"\][\s\S]*var\(--tag-color\)/);
+  assert.match(css, /\.memo-item \.tag-chip[\s\S]*min-height: 32px/);
   assert.match(readFunctionSource("renderWikiButton"), /wiki-link[\s\S]*term-wiki-link/);
   assert.match(readFunctionSource("renderPreview"), /querySelectorAll\("\.wiki-link"\)[\s\S]*openOrCreateLinkedNote/);
   assert.match(readFunctionSource("renderList"), /querySelectorAll\("\.term-chip"\)[\s\S]*openOrCreateLinkedNote/);
 });
 
 test("タグ関連スクリプトのキャッシュ番号を更新する", () => {
-  assert.match(html, /href="style\.css\?v=0\.5\.0-58"/);
-  assert.match(html, /src="tags\.js\?v=0\.5\.0-3"/);
+  assert.match(html, /href="style\.css\?v=0\.5\.0-59"/);
+  assert.match(html, /src="tags\.js\?v=0\.5\.0-4"/);
   assert.match(html, /src="memo-list-utils\.js\?v=0\.5\.0-5"/);
   assert.match(html, /src="local-markdown\.js\?v=0\.5\.0-4"/);
-  assert.match(html, /src="app\.js\?v=0\.5\.0-116"/);
-  assert.ok(html.indexOf('src="tags.js?v=0.5.0-3"') < html.indexOf('src="memo-list-utils.js?v=0.5.0-5"'));
-  assert.ok(html.indexOf('src="memo-list-utils.js?v=0.5.0-5"') < html.indexOf('src="app.js?v=0.5.0-116"'));
+  assert.match(html, /src="app\.js\?v=0\.5\.0-117"/);
+  assert.ok(html.indexOf('src="tags.js?v=0.5.0-4"') < html.indexOf('src="memo-list-utils.js?v=0.5.0-5"'));
+  assert.ok(html.indexOf('src="memo-list-utils.js?v=0.5.0-5"') < html.indexOf('src="app.js?v=0.5.0-117"'));
 });

@@ -320,6 +320,7 @@ const {
   splitImageBlocks
 } = window.MemoNexusAttachmentUtils;
 const {
+  TAG_COLOR_PALETTE,
   assignRegisteredTag,
   countTagUsage,
   createTagDefinition,
@@ -333,8 +334,10 @@ const {
   restrictTagIds,
   searchTagOptions,
   summarizeTagIds,
+  tagColorFromId,
   tagColorForId,
-  tagNameForId
+  tagNameForId,
+  updateTagDefinitionColor
 } = window.MemoNexusTags;
 const { buildMemoListView } = window.MemoNexusMemoListUtils;
 const { buildMarkdownBundleImport, parseStoredZipEntries } = window.MemoNexusMarkdownBundleUtils;
@@ -547,9 +550,17 @@ const clearTagFilterBtn = $("clearTagFilterBtn");
 const createTagDialog = $("createTagDialog");
 const createTagForm = $("createTagForm");
 const createTagNameInput = $("createTagNameInput");
+const createTagColorPalette = $("createTagColorPalette");
 const createTagStatus = $("createTagStatus");
 const closeCreateTagDialogBtn = $("closeCreateTagDialogBtn");
 const cancelCreateTagBtn = $("cancelCreateTagBtn");
+const editTagColorDialog = $("editTagColorDialog");
+const editTagColorForm = $("editTagColorForm");
+const editTagColorDescription = $("editTagColorDescription");
+const editTagColorPalette = $("editTagColorPalette");
+const editTagColorStatus = $("editTagColorStatus");
+const closeEditTagColorDialogBtn = $("closeEditTagColorDialogBtn");
+const cancelEditTagColorBtn = $("cancelEditTagColorBtn");
 const addCollectionBtn = $("addCollectionBtn");
 const collectionAddMenuBtn = $("collectionAddMenuBtn");
 const collectionAddMenu = $("collectionAddMenu");
@@ -919,6 +930,11 @@ let deletedNoteSnapshot = null;
 let selectedCollectionId = null;
 let selectedTagFilter = null;
 let registeredTags = [];
+let selectedCreateTagColor = tagColorFromId("");
+let createTagColorManuallySelected = false;
+let editingTagColorId = null;
+let selectedEditTagColor = null;
+let editTagColorReturnFocus = null;
 let collectionSortOrder = "newest";
 let expandedCollectionIds = new Set([UNCLASSIFIED_COLLECTION_ID]);
 let selectedMemoIds = new Set();
@@ -2637,6 +2653,7 @@ async function restoreCollectionsFromLocal() {
 function tagDefinitionChanged(existing, incoming) {
   return !existing
     || existing.name !== incoming.name
+    || existing.color !== incoming.color
     || existing.createdAt !== incoming.createdAt
     || existing.updatedAt !== incoming.updatedAt;
 }
@@ -4561,9 +4578,53 @@ function renderCurrentNoteSaveSuccessUi({ titleChanged = false } = {}) {
   window.MemoNexusCodexChat?.onMemoChanged(currentNote());
 }
 
-function applyTagColor(element, tagId) {
+function applyTagColorValue(element, color) {
   if (!element) return;
-  element.style.setProperty("--tag-color", tagColorForId(registeredTags, tagId));
+  element.style.setProperty("--tag-color", color);
+}
+
+function applyTagColor(element, tagId) {
+  applyTagColorValue(element, tagColorForId(registeredTags, tagId));
+}
+
+function setTagPaletteSelection(container, color) {
+  if (!container) return;
+  Array.from(container.querySelectorAll(".tag-color-swatch")).forEach((button) => {
+    const selected = button.dataset.color === color;
+    button.classList.toggle("is-selected", selected);
+    button.setAttribute("aria-checked", String(selected));
+    button.tabIndex = selected ? 0 : -1;
+  });
+}
+
+function renderTagColorPalette(container, selectedColor, onSelect, labelPrefix) {
+  if (!container) return;
+  container.innerHTML = "";
+  TAG_COLOR_PALETTE.forEach((color, index) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "tag-color-swatch";
+    button.dataset.color = color;
+    button.setAttribute("role", "radio");
+    button.setAttribute("aria-label", `${labelPrefix} ${index + 1}`);
+    applyTagColorValue(button, color);
+    button.addEventListener("click", () => {
+      setTagPaletteSelection(container, color);
+      onSelect(color);
+    });
+    button.addEventListener("keydown", (event) => {
+      if (!["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(event.key)) return;
+      event.preventDefault();
+      const buttons = Array.from(container.querySelectorAll(".tag-color-swatch"));
+      const direction = ["ArrowRight", "ArrowDown"].includes(event.key) ? 1 : -1;
+      const next = buttons[(buttons.indexOf(button) + direction + buttons.length) % buttons.length];
+      setTagPaletteSelection(container, next.dataset.color);
+      onSelect(next.dataset.color);
+      next.focus();
+    });
+    container.appendChild(button);
+  });
+  setTagPaletteSelection(container, selectedColor);
 }
 
 function createTagColorDot(tagId) {
@@ -4671,12 +4732,16 @@ function tagTx(mode = "readonly") {
   return db.transaction(TAG_STORE_NAME, mode).objectStore(TAG_STORE_NAME);
 }
 
-function getAllTagDefinitions() {
+function getRawTagDefinitions() {
   return new Promise((resolve, reject) => {
     const request = tagTx().getAll();
-    request.onsuccess = () => resolve(normalizeTagDefinitions(request.result));
+    request.onsuccess = () => resolve(Array.isArray(request.result) ? request.result : []);
     request.onerror = () => reject(request.error);
   });
+}
+
+async function getAllTagDefinitions() {
+  return normalizeTagDefinitions(await getRawTagDefinitions());
 }
 
 function putTagDefinitions(items) {
@@ -4696,11 +4761,14 @@ function putTagDefinitions(items) {
 }
 
 async function synchronizeRegisteredTagsForNotes({ render = false } = {}) {
-  const stored = await getAllTagDefinitions();
+  const rawStored = await getRawTagDefinitions();
+  const stored = normalizeTagDefinitions(rawStored);
   const merged = mergeTagDefinitionsFromNotes(stored, notes);
   const existingIds = new Set(stored.map((definition) => definition.id));
+  const rawById = new Map(rawStored.map((definition) => [normalizeTagId(definition?.id ?? definition?.name), definition]));
   const additions = merged.filter((definition) => !existingIds.has(definition.id));
-  if (additions.length) await putTagDefinitions(additions);
+  const colorUpdates = merged.filter((definition) => rawById.get(definition.id)?.color !== definition.color);
+  if (colorUpdates.length) await putTagDefinitions(colorUpdates);
   registeredTags = merged;
   if (render) {
     renderTagPanel();
@@ -4859,9 +4927,12 @@ function renderTagPanel() {
 
   normalizeTagDefinitions(registeredTags).forEach((definition) => {
     const count = counts.get(definition.id) || 0;
+    const row = document.createElement("div");
+    row.className = "tag-list-row";
     const button = document.createElement("button");
     button.type = "button";
     button.className = "tag-list-item";
+    button.setAttribute("aria-label", `タグ「${definition.name}」でメモ一覧を絞り込む`);
     button.setAttribute("aria-pressed", String(selectedTagFilter === definition.id));
     applyTagColor(button, definition.id);
     const label = document.createElement("span");
@@ -4874,7 +4945,20 @@ function renderTagPanel() {
     countLabel.textContent = `${count}件`;
     button.append(label, countLabel);
     button.addEventListener("click", () => applyTagFilter(definition.id, { revealMemoList: true }));
-    tagList.appendChild(button);
+    const editButton = document.createElement("button");
+    editButton.type = "button";
+    editButton.className = "tag-color-edit";
+    editButton.dataset.editTagId = definition.id;
+    editButton.textContent = "色";
+    editButton.setAttribute("aria-label", `タグ「${definition.name}」の色を変更`);
+    applyTagColor(editButton, definition.id);
+    editButton.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      openEditTagColorDialog(definition.id, editButton);
+    });
+    row.append(button, editButton);
+    tagList.appendChild(row);
   });
 }
 
@@ -4912,9 +4996,15 @@ function clearTagFilter() {
 }
 
 function openCreateTagDialog() {
-  if (!createTagDialog || !createTagNameInput || !createTagStatus) return;
+  if (!createTagDialog || !createTagNameInput || !createTagStatus || !createTagColorPalette) return;
   createTagNameInput.value = "";
   createTagStatus.textContent = "";
+  createTagColorManuallySelected = false;
+  selectedCreateTagColor = tagColorFromId("");
+  renderTagColorPalette(createTagColorPalette, selectedCreateTagColor, (color) => {
+    selectedCreateTagColor = color;
+    createTagColorManuallySelected = true;
+  }, "新しいタグの色");
   createTagDialog.showModal();
   requestAnimationFrame(() => createTagNameInput.focus());
 }
@@ -4924,7 +5014,7 @@ function closeCreateTagDialog() {
 }
 
 async function registerNewTag() {
-  const result = createTagDefinition(createTagNameInput?.value, registeredTags);
+  const result = createTagDefinition(createTagNameInput?.value, registeredTags, undefined, selectedCreateTagColor);
   if (result.status === "invalid") {
     createTagStatus.textContent = "タグ名を入力してください。";
     return;
@@ -4939,6 +5029,48 @@ async function registerNewTag() {
   renderNoteTagOptions();
   if (tagPanelStatus) tagPanelStatus.textContent = `タグ「${result.definition.name}」を登録しました。`;
   closeCreateTagDialog();
+}
+
+function openEditTagColorDialog(tagId, returnFocus = null) {
+  const definition = findTagDefinition(registeredTags, tagId);
+  if (!definition || !editTagColorDialog || !editTagColorPalette || !editTagColorStatus) return;
+  editingTagColorId = definition.id;
+  selectedEditTagColor = definition.color;
+  editTagColorReturnFocus = returnFocus;
+  if (editTagColorDescription) editTagColorDescription.textContent = `タグ「${definition.name}」の色を選択してください。`;
+  editTagColorStatus.textContent = "";
+  renderTagColorPalette(editTagColorPalette, selectedEditTagColor, (color) => {
+    selectedEditTagColor = color;
+  }, `タグ「${definition.name}」の色`);
+  editTagColorDialog.showModal();
+  requestAnimationFrame(() => editTagColorPalette.querySelector('[aria-checked="true"]')?.focus());
+}
+
+function closeEditTagColorDialog() {
+  if (editTagColorDialog?.open) editTagColorDialog.close();
+}
+
+async function saveEditedTagColor() {
+  const current = findTagDefinition(registeredTags, editingTagColorId);
+  const result = updateTagDefinitionColor(current, selectedEditTagColor);
+  if (result.status === "invalid") {
+    if (editTagColorStatus) editTagColorStatus.textContent = "タグが見つかりません。";
+    return;
+  }
+  if (result.status === "unchanged") {
+    closeEditTagColorDialog();
+    return;
+  }
+  await putTagDefinitions([result.definition]);
+  registeredTags = normalizeTagDefinitions(registeredTags.map((definition) => (
+    definition.id === result.definition.id ? result.definition : definition
+  )));
+  renderTagPanel();
+  renderNoteTags();
+  renderNoteTagOptions();
+  renderMemoListPanel();
+  if (tagPanelStatus) tagPanelStatus.textContent = `タグ「${result.definition.name}」の色を変更しました。`;
+  closeEditTagColorDialog();
 }
 
 // メモ一覧カードに出す短い本文プレビューを作ります。
@@ -11700,6 +11832,11 @@ clearMemoTagFilterBtn?.addEventListener("click", clearTagFilter);
 createTagBtn?.addEventListener("click", openCreateTagDialog);
 closeCreateTagDialogBtn?.addEventListener("click", closeCreateTagDialog);
 cancelCreateTagBtn?.addEventListener("click", closeCreateTagDialog);
+createTagNameInput?.addEventListener("input", () => {
+  if (createTagColorManuallySelected) return;
+  selectedCreateTagColor = tagColorFromId(createTagNameInput.value);
+  setTagPaletteSelection(createTagColorPalette, selectedCreateTagColor);
+});
 createTagForm?.addEventListener("submit", (event) => {
   event.preventDefault();
   void registerNewTag().catch((error) => {
@@ -11708,6 +11845,25 @@ createTagForm?.addEventListener("submit", (event) => {
   });
 });
 createTagDialog?.addEventListener("close", () => createTagBtn?.focus());
+closeEditTagColorDialogBtn?.addEventListener("click", closeEditTagColorDialog);
+cancelEditTagColorBtn?.addEventListener("click", closeEditTagColorDialog);
+editTagColorForm?.addEventListener("submit", (event) => {
+  event.preventDefault();
+  void saveEditedTagColor().catch((error) => {
+    console.error("Tag color update failed", error);
+    if (editTagColorStatus) editTagColorStatus.textContent = "タグの色を変更できませんでした。";
+  });
+});
+editTagColorDialog?.addEventListener("close", () => {
+  const currentButton = editingTagColorId
+    ? tagList?.querySelector(`[data-edit-tag-id="${CSS.escape(editingTagColorId)}"]`)
+    : null;
+  if (currentButton) currentButton.focus();
+  else if (editTagColorReturnFocus?.isConnected) editTagColorReturnFocus.focus();
+  editingTagColorId = null;
+  selectedEditTagColor = null;
+  editTagColorReturnFocus = null;
+});
 if (closeContextPanelBtn) closeContextPanelBtn.addEventListener("click", () => setContextPanelOpen(false));
 if (closeCollectionsBtn) closeCollectionsBtn.addEventListener("click", () => setContextPanelOpen(false));
 if (collectionBackdrop) collectionBackdrop.addEventListener("click", () => toggleCollectionExplorer(false));

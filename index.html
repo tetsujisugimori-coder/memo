@@ -7,7 +7,7 @@
   <script>try { document.documentElement.dataset.initialTheme = localStorage.getItem("memo-nexus-theme") === "dark" ? "dark" : "light"; } catch (_) { document.documentElement.dataset.initialTheme = "light"; }</script>
   <style>html,body{background:#f6f7f4;color:#222522;color-scheme:light}html[data-initial-theme="dark"],html[data-initial-theme="dark"] body{background:#111513;color:#e7ece7;color-scheme:dark}</style>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css">
-  <link rel="stylesheet" href="style.css?v=0.5.0-58">
+  <link rel="stylesheet" href="style.css?v=0.5.0-59">
 </head>
 <body class="app-starting">
   <section id="appStartupGuard" class="app-startup-guard" role="status" aria-live="polite" aria-busy="true">
@@ -57,10 +57,33 @@
     <form id="createTagForm" class="create-tag-form">
       <label for="createTagNameInput">タグ名</label>
       <input id="createTagNameInput" type="text" autocomplete="off" maxlength="80" required>
+      <fieldset class="tag-color-fieldset">
+        <legend>色</legend>
+        <div id="createTagColorPalette" class="tag-color-palette" role="radiogroup" aria-label="新しいタグの色"></div>
+      </fieldset>
       <p id="createTagStatus" class="create-tag-status" role="status" aria-live="polite"></p>
       <div class="collection-dialog-actions">
         <button id="cancelCreateTagBtn" type="button">キャンセル</button>
         <button type="submit">作成</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="editTagColorDialog" class="create-tag-dialog" aria-labelledby="editTagColorDialogTitle">
+    <div class="dialog-head">
+      <strong id="editTagColorDialogTitle">タグの色を変更</strong>
+      <button id="closeEditTagColorDialogBtn" type="button" title="閉じる" aria-label="タグの色変更を閉じる">×</button>
+    </div>
+    <form id="editTagColorForm" class="create-tag-form">
+      <p id="editTagColorDescription" class="tag-color-description"></p>
+      <fieldset class="tag-color-fieldset">
+        <legend>色</legend>
+        <div id="editTagColorPalette" class="tag-color-palette" role="radiogroup" aria-label="タグの色"></div>
+      </fieldset>
+      <p id="editTagColorStatus" class="create-tag-status" role="status" aria-live="polite"></p>
+      <div class="collection-dialog-actions">
+        <button id="cancelEditTagColorBtn" type="button">キャンセル</button>
+        <button type="submit">変更</button>
       </div>
     </form>
   </dialog>
@@ -822,7 +845,7 @@
   <script src="web-clipper-config.js?v=0.5.0-2"></script>
   <script src="attachment-utils.js?v=0.5.0-12"></script>
   <script src="table-block-utils.js?v=0.5.0-4"></script>
-  <script src="tags.js?v=0.5.0-3"></script>
+  <script src="tags.js?v=0.5.0-4"></script>
   <script src="memo-list-utils.js?v=0.5.0-5"></script>
   <script src="term-link-utils.js?v=0.5.0-5"></script>
   <span id="editorCaretAnimation" class="editor-caret-animation" aria-hidden="true" hidden></span>
@@ -859,7 +882,7 @@
   <script src="typing-derived-ui-scheduler.js?v=0.5.0-4"></script>
   <script src="draft-mirror-scheduler.js?v=0.5.0-2"></script>
   <script src="typing-performance-monitor.js?v=0.5.0-3"></script>
-  <script src="app.js?v=0.5.0-116"></script>
+  <script src="app.js?v=0.5.0-117"></script>
   <script src="codex-chat.js?v=0.5.0-6"></script>
 </body>
 </html>
