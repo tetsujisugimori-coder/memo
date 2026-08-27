@@ -33,12 +33,18 @@ test("選択中メモがない場合も案内を表示する", () => {
   assert.match(app, /メモを選択すると関連メモが表示されます。/);
 });
 
-test("関連メモ抽出と最大8件の既存仕様を維持し件数を表示する", () => {
+test("バックリンクを独立表示し、通常関連は重複除外後も最大8件を維持する", () => {
   assert.match(html, /id="relatedLimitNotice"[^>]*class="related-limit-notice"[^>]*hidden/);
-  assert.match(app, /const allRelated = findRelated\(note\);\s*const related = allRelated\.slice\(0, 8\);\s*updateRelatedToggle\(allRelated\.length\);/);
+  assert.match(app, /backlinksByTargetId\.get\(note\.id\)/);
+  assert.match(app, /const backlinkIds = new Set\(backlinks\.map/);
+  assert.match(app, /findRelated\(note, memoIndex\)\.filter\(\(\{ note: item \}\) => !backlinkIds\.has\(item\.id\)\)/);
+  assert.match(app, /const related = allRelated\.slice\(0, 8\);/);
+  assert.match(app, /updateRelatedToggle\(backlinks\.length \+ allRelated\.length\)/);
   assert.match(app, /relatedCount\.textContent = String\(count\)/);
   assert.match(app, /if \(allRelated\.length > related\.length\) \{\s*relatedLimitNotice\.textContent = `\$\{allRelated\.length\}件中、\$\{related\.length\}件表示`;\s*relatedLimitNotice\.hidden = false;/);
   assert.match(app, /relatedLimitNotice\.hidden = true;\s*relatedLimitNotice\.textContent = "";/);
+  assert.match(app, /このメモへのリンク/);
+  assert.match(app, /このメモへのリンクはありません/);
   assert.match(app, /関連メモはありません。/);
 });
 

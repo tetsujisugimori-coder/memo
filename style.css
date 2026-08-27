@@ -3322,6 +3322,27 @@ body.collections-open .collection-explorer {
   border-bottom-color: var(--term-color);
 }
 
+.memo-link {
+  min-height: 0;
+  padding: 0 4px;
+  border: 1px solid color-mix(in srgb, var(--accent) 55%, var(--line));
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--accent-soft) 45%, transparent);
+  color: var(--accent);
+}
+
+.memo-link-missing {
+  border-style: dashed;
+  border-color: var(--gold);
+  color: var(--gold);
+}
+
+.memo-link-ambiguous {
+  border-style: dashed;
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
 .code-block {
   position: relative;
   box-sizing: border-box;
@@ -3614,6 +3635,25 @@ body.related-open .related-toggle {
   margin-top: 3px;
   color: var(--muted);
   font-size: 13px;
+}
+
+.related-section-title {
+  margin: 10px 0 2px;
+  color: var(--ink);
+  font-size: 13px;
+}
+
+.related-section-title:first-child {
+  margin-top: 0;
+}
+
+.related-section-empty {
+  padding: 4px 2px;
+  font-size: 13px;
+}
+
+.backlink-item {
+  border-left: 3px solid var(--accent);
 }
 
 .related-empty {

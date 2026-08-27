@@ -2,7 +2,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const test = require("node:test");
-const { findAutomaticTermMatches, findTermCountMatches } = require("./term-link-utils.js");
+const { extractExplicitTerms, findAutomaticTermMatches, findTermCountMatches } = require("./term-link-utils.js");
 
 const appSource = fs.readFileSync(path.join(__dirname, "app.js"), "utf8");
 const statsStart = appSource.indexOf("function countPhraseOccurrences(");
@@ -11,14 +11,14 @@ const statsSource = appSource.slice(statsStart, statsEnd);
 
 function collectStats(notes) {
   const collectLinkStats = new Function(
-    "currentNote", "activeNotes", "titleInput", "editor", "extractLinks", "findTermCountMatches",
+    "currentNote", "activeNotes", "titleInput", "editor", "extractExplicitTerms", "findTermCountMatches",
     `${statsSource}\nreturn collectLinkStats;`
   )(
     () => null,
     () => notes,
     { value: "" },
     { value: "" },
-    (body) => [...String(body).matchAll(/\[\[([^\]]+)\]\]/g)].map((match) => match[1]),
+    extractExplicitTerms,
     findTermCountMatches
   );
   return collectLinkStats();
@@ -68,4 +68,13 @@ test("C と C言語のランキングは内包を数えつつ C の除外規則�
   const byTitle = new Map(stats.map((entry) => [entry.title, entry]));
   assert.deepEqual(byTitle.get("C言語"), { title: "C言語", count: 2, noteCount: 2, missing: false });
   assert.deepEqual(byTitle.get("C"), { title: "C", count: 3, noteCount: 3, missing: false });
+});
+
+test("メモリンクのタイトルは語句ランキングへ混入しない", () => {
+  const stats = collectStats([
+    { id: "a", title: "SQLite", body: "[[SQLite]]" },
+    { id: "b", title: "実験", body: "[[* SQLite実験]] SQLite実験" },
+    { id: "c", title: "SQLite実験", body: "本文" }
+  ]);
+  assert.deepEqual(stats.map((item) => item.title), ["SQLite"]);
 });

@@ -73,7 +73,8 @@ const SYNTAX_GUIDE_ITEMS = [
   { category: "markdown", name: "インラインコード", syntax: "`const value = 1;`", description: "文中の短いコードを表示します。", notes: "文字列をバッククォート1個ずつで囲みます。" },
   { category: "markdown", name: "箇条書き", syntax: "- 項目", description: "項目を箇条書きで表示します。", notes: "行頭に-と半角スペースを書きます。" },
   { category: "markdown", name: "引用", syntax: "> 引用文", description: "引用文として表示します。", notes: "行頭に>と半角スペースを書きます。" },
-  { category: "markdown", name: "Wikiリンク", syntax: "[[メモ名]]", description: "同名メモへの知識リンクを作ります。", notes: "メモ名を二重の角括弧で囲みます。" },
+  { category: "markdown", name: "語句リンク", syntax: "[[SQLite]]", description: "登録語句として扱い、同じ語句を含むメモとの関係を作ります。", notes: "リンク先が存在しない場合は、語句を起点としたメモを作成できます。" },
+  { category: "markdown", name: "メモリンク", syntax: "[[* SQLite実験結果]]", description: "既存メモそのものをタイトルの完全一致で参照します。", notes: "*の直後に半角スペースが必要です。存在しない場合や同名メモが複数ある場合は開かず、新規作成もしません。タイトル変更時は参照元本文を自動更新しません。" },
   {
     category: "tag",
     name: "登録済みタグの作成・付与・絞り込み",
@@ -416,6 +417,7 @@ const {
   webClipUrlWithoutLaunchMarker
 } = window.MemoNexusWebClipUtils;
 const { createTermRelationCache, extractExplicitTerms, findAutomaticTermMatches, findTermCountMatches, termColor } = window.MemoNexusTermLinkUtils;
+const { createMemoLinkRelationCache, parseMemoLinks, resolveMemoLinkTitle } = window.MemoNexusMemoLinkUtils;
 const { openCalculatorMemo } = window.MemoNexusCalculatorLink;
 const {
   BODY_FONT_SIZES,
@@ -869,6 +871,7 @@ const permanentDeletionCleanupTasks = new Map();
 let lastDiscovery = "";
 let linkStatsVisible = false;
 const termRelationCache = createTermRelationCache();
+const memoLinkRelationCache = createMemoLinkRelationCache();
 let previewAutomaticTerms = [];
 let saveStatusState = "saved";
 let saveStatusTime = null;
@@ -4717,8 +4720,13 @@ function currentTermRelationIndex() {
   return termRelationCache.get(activeNotes());
 }
 
+function currentMemoLinkRelationIndex() {
+  return memoLinkRelationCache.get(activeNotes());
+}
+
 function invalidateTermRelationIndex() {
   termRelationCache.invalidate();
+  memoLinkRelationCache.invalidate();
 }
 
 function renderMemoListHeading(heading) {
@@ -5075,7 +5083,7 @@ async function saveEditedTagColor() {
 
 // メモ一覧カードに出す短い本文プレビューを作ります。
 function snippet(body) {
-  const text = tableBlockPlainText(body).replace(/\[\[|\]\]|#/g, "").trim();
+  const text = stripLinkMarkupForText(tableBlockPlainText(body)).replace(/#/g, "").trim();
   return text || "空のカード";
 }
 
@@ -5111,6 +5119,8 @@ function openNote(id) {
     setRelatedDrawerOpen(false, { restoreFocus: false });
   }
   currentId = note.id;
+  // メモ切替では旧メモの予約を破棄したあと、同期描画が共有する派生索引を無効化します。
+  invalidateTermRelationIndex();
   syncLegacyDirtyState(note.id);
   pendingMemoSync = null;
   renderMemoSyncNotice();
@@ -5501,7 +5511,7 @@ function applyNoteBatchSaveSuccess(results, liveNotesById = null) {
   });
   if (liveNotesById) savedById.forEach((note, noteId) => liveNotesById.set(noteId, note));
   if (linkChecks.length) {
-    const discovered = linkChecks.find(({ beforeBody, savedNote }) => extractLinks(savedNote.body).length > extractLinks(beforeBody).length);
+    const discovered = linkChecks.find(({ beforeBody, savedNote }) => extractExplicitTerms(savedNote.body).length > extractExplicitTerms(beforeBody).length);
     if (discovered) lastDiscovery = buildDiscoveryMessage(discovered.savedNote);
   }
 }
@@ -5521,7 +5531,7 @@ function handleNoteSaveSuccess(request, state, context = {}) {
       noteLiveDrafts.delete(request.noteId);
     }
     const beforeBody = noteSaveBeforeBodies.get(request.noteId);
-    if (typeof beforeBody === "string" && extractLinks(savedNote.body).length > extractLinks(beforeBody).length) {
+    if (typeof beforeBody === "string" && extractExplicitTerms(savedNote.body).length > extractExplicitTerms(beforeBody).length) {
       lastDiscovery = buildDiscoveryMessage(savedNote);
     }
     noteSaveBeforeBodies.delete(request.noteId);
@@ -6267,9 +6277,16 @@ function titleFromBody(body) {
 
   return firstLine
     .replace(/^#+\s*/, "")
+    .replace(/\[\[\* +([^\]]+)\]\]/g, (_, title) => title.trim())
     .replace(/\[\[([^\]]+)\]\]/g, "$1")
     .slice(0, 60)
     .trim();
+}
+
+function stripLinkMarkupForText(text) {
+  return String(text || "")
+    .replace(/\[\[\* +([^\]]+)\]\]/g, (_, title) => title.trim())
+    .replace(/\[\[([^\]]+)\]\]/g, "$1");
 }
 
 // 右側のカード表示を更新します。本文中の[[名前]]はクリック可能なリンクに変換します。
@@ -6293,8 +6310,11 @@ function renderPreview() {
   hydrateExplanationCards(note, body);
   bindChecklistControls(note);
 
-  preview.querySelectorAll(".wiki-link").forEach((button) => {
+  preview.querySelectorAll(".term-wiki-link").forEach((button) => {
     button.addEventListener("click", () => openOrCreateLinkedNote(button.dataset.title));
+  });
+  preview.querySelectorAll(".memo-link").forEach((button) => {
+    button.addEventListener("click", () => openResolvedMemoLink(button.dataset.noteId, button.dataset.memoLinkStatus, button.dataset.title));
   });
   highlightCodeBlocks();
   void renderMermaidDiagrams(preview, renderGeneration);
@@ -8088,8 +8108,12 @@ function renderMarkdownInline(text, { automaticTerms = previewAutomaticTerms, au
     html += renderPlainText(text.slice(index, token.start));
     if (token.type === "code") {
       html += `<code class="inline-code">${escapeHtml(token.content)}</code>`;
-    } else if (token.type === "wiki") {
+    } else if (token.type === "term-link") {
       html += renderWikiButton(token.content);
+    } else if (token.type === "memo-link") {
+      html += renderMemoLinkButton(token.content);
+    } else if (token.type === "memo-link-invalid") {
+      html += escapeHtml(token.content);
     } else if (token.type === "bold") {
       html += `<strong>${renderMarkdownInline(token.content, { automaticTerms, automaticEnabled })}</strong>`;
     } else if (token.type === "italic") {
@@ -8141,17 +8165,8 @@ function findNextInlineToken(text, fromIndex) {
   const mathToken = findInlineMathToken(text, fromIndex);
   if (mathToken) tokens.push(mathToken);
 
-  const wikiPattern = /\[\[([^\]]+)\]\]/g;
-  wikiPattern.lastIndex = fromIndex;
-  const wikiMatch = wikiPattern.exec(text);
-  if (wikiMatch) {
-    tokens.push({
-      type: "wiki",
-      start: wikiMatch.index,
-      end: wikiPattern.lastIndex,
-      content: wikiMatch[1]
-    });
-  }
+  const wikiToken = findNextKnowledgeLinkToken(text, fromIndex);
+  if (wikiToken) tokens.push(wikiToken);
 
   const linkPattern = /(?<!!)\[([^\]]+)\]\(([^\s)]+)\)/g;
   linkPattern.lastIndex = fromIndex;
@@ -8188,6 +8203,25 @@ function findNextInlineToken(text, fromIndex) {
   if (italicUnderscore) tokens.push(italicUnderscore);
 
   return tokens.sort((a, b) => a.start - b.start || a.end - b.end)[0] || null;
+}
+
+function findNextKnowledgeLinkToken(text, fromIndex) {
+  const pattern = /\[\[([^\]]+)\]\]/g;
+  pattern.lastIndex = fromIndex;
+  let match;
+  while ((match = pattern.exec(text))) {
+    const raw = match[1];
+    const reserved = raw.trim();
+    const memoMatch = raw.match(/^\* +(.*)$/);
+    if (memoMatch && memoMatch[1].trim()) {
+      return { type: "memo-link", start: match.index, end: pattern.lastIndex, content: memoMatch[1].trim() };
+    }
+    if (/^[*＊]/.test(reserved)) {
+      return { type: "memo-link-invalid", start: match.index, end: pattern.lastIndex, content: match[0] };
+    }
+    return { type: "term-link", start: match.index, end: pattern.lastIndex, content: raw };
+  }
+  return null;
 }
 
 function findDelimitedInlineToken(text, fromIndex, delimiter, type, options = {}) {
@@ -8531,12 +8565,12 @@ function collectLinkStats() {
   const titleSet = new Set(effectiveNotes.map((note) => note.title.trim()));
   const candidateTitles = new Set();
   effectiveNotes.forEach((note) => {
-    extractLinks(note.body).forEach((rawTitle) => {
+    extractExplicitTerms(note.body).forEach((rawTitle) => {
       const title = rawTitle.trim();
       if (title) candidateTitles.add(title);
     });
   });
-  // 候補は本文中の [[...]] のみとする（既存タイトルは missing 判定にのみ使う）
+  // 候補は本文中の語句リンクだけとし、メモリンクは語句統計へ混ぜません。
 
   const stats = new Map();
   effectiveNotes.forEach((note) => {
@@ -8648,21 +8682,9 @@ function renderLinkList() {
   });
 }
 
-// 本文をHTMLに変換します。通常文字はエスケープし、[[...]]だけボタン化します。
+// 本文をHTMLに変換します。語句リンクとメモリンクは別の表示・解決処理へ渡します。
 function renderRichText(text) {
-  let html = "";
-  let lastIndex = 0;
-  const pattern = /\[\[([^\]]+)\]\]/g;
-  let match;
-
-  while ((match = pattern.exec(text))) {
-    html += escapeHtml(text.slice(lastIndex, match.index));
-    html += renderWikiButton(match[1]);
-    lastIndex = pattern.lastIndex;
-  }
-
-  html += escapeHtml(text.slice(lastIndex));
-  return html;
+  return renderMarkdownInline(String(text || ""), { automaticTerms: [], automaticEnabled: false });
 }
 
 // Wikiリンク1個分のHTMLを作ります。未作成リンクは色を変えるためmissingを付けます。
@@ -8671,6 +8693,42 @@ function renderWikiButton(rawTitle, source = "explicit") {
   const exists = activeNotes().some((note) => note.title === title);
   const className = `${exists ? "wiki-link" : "wiki-link missing"} term-wiki-link ${source === "automatic" ? "automatic-term-link" : "explicit-term-link"}`;
   return `<button class="${className}" data-title="${escapeAttr(title)}" data-term-source="${source}" style="--term-color:${escapeAttr(termColor(title))}">${escapeHtml(title)}</button>`;
+}
+
+function memoLinkResolutionForTitle(rawTitle, sourceNoteId = currentId) {
+  const title = String(rawTitle || "").trim();
+  const relation = currentMemoLinkRelationIndex().bySourceNoteId.get(sourceNoteId)
+    ?.find((item) => item.targetTitle === title);
+  if (relation) {
+    return {
+      status: relation.resolutionStatus,
+      title,
+      noteId: relation.targetNoteId,
+      candidateNoteIds: relation.candidateNoteIds
+    };
+  }
+  return resolveMemoLinkTitle(title, activeNotes());
+}
+
+function renderMemoLinkButton(rawTitle) {
+  const resolution = memoLinkResolutionForTitle(rawTitle);
+  const stateClass = resolution.status === "resolved" ? "" : ` memo-link-${resolution.status}`;
+  const stateLabel = resolution.status === "missing"
+    ? "リンク先のメモがありません"
+    : resolution.status === "ambiguous"
+      ? "同名のメモが複数あるため開けません"
+      : `メモ「${resolution.title}」を開く`;
+  return `<button class="memo-link${stateClass}" data-title="${escapeAttr(resolution.title)}" data-note-id="${escapeAttr(resolution.noteId || "")}" data-memo-link-status="${resolution.status}" title="${escapeAttr(stateLabel)}" aria-label="${escapeAttr(`${resolution.title}: ${stateLabel}`)}"${resolution.status === "resolved" ? "" : ' aria-disabled="true"'}>${escapeHtml(resolution.title)}</button>`;
+}
+
+function openResolvedMemoLink(noteId, status, title) {
+  if (status === "resolved" && noteId && activeNotes().some((note) => note.id === noteId)) {
+    openNote(noteId);
+    return;
+  }
+  setSaveStatusNotice(status === "ambiguous"
+    ? `「${title}」は同名のメモが複数あるため開けません。`
+    : `「${title}」のリンク先メモがありません。`);
 }
 
 // Wikiリンクをクリックしたとき、既存メモがあれば開き、なければ新規作成します。
@@ -9430,19 +9488,53 @@ function renderRelated() {
 
   if (!note) {
     updateRelatedToggle(0);
-    relatedList.innerHTML = `<div class="empty related-empty"><strong>メモを選択すると関連メモが表示されます。</strong><span>メモを開くと、本文リンク・逆リンク・共通リンク・共通語句から関連するメモを探します。</span></div>`;
+    relatedList.innerHTML = `<div class="empty related-empty"><strong>メモを選択すると関連メモが表示されます。</strong><span>メモを開くと、メモリンクと共通語句から関係を探します。</span></div>`;
     return;
   }
 
-  const allRelated = findRelated(note);
+  const memoIndex = currentMemoLinkRelationIndex();
+  const activeById = new Map(activeNotes().map((item) => [item.id, item]));
+  const backlinks = (memoIndex.backlinksByTargetId.get(note.id) || [])
+    .map((relation) => activeById.get(relation.sourceNoteId))
+    .filter(Boolean);
+  const backlinkIds = new Set(backlinks.map((item) => item.id));
+  const allRelated = findRelated(note, memoIndex).filter(({ note: item }) => !backlinkIds.has(item.id));
   const related = allRelated.slice(0, 8);
-  updateRelatedToggle(allRelated.length);
+  updateRelatedToggle(backlinks.length + allRelated.length);
   if (allRelated.length > related.length) {
     relatedLimitNotice.textContent = `${allRelated.length}件中、${related.length}件表示`;
     relatedLimitNotice.hidden = false;
   }
+
+  const backlinkHeading = document.createElement("h3");
+  backlinkHeading.className = "related-section-title";
+  backlinkHeading.textContent = "このメモへのリンク";
+  relatedList.appendChild(backlinkHeading);
+  if (!backlinks.length) {
+    const empty = document.createElement("div");
+    empty.className = "empty related-section-empty";
+    empty.textContent = "このメモへのリンクはありません。";
+    relatedList.appendChild(empty);
+  } else {
+    backlinks.forEach((sourceNote) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "related-item backlink-item";
+      button.innerHTML = `<strong>${escapeHtml(sourceNote.title)}</strong><span>参照元メモを開く</span>`;
+      button.addEventListener("click", () => openNote(sourceNote.id));
+      relatedList.appendChild(button);
+    });
+  }
+
+  const relatedHeading = document.createElement("h3");
+  relatedHeading.className = "related-section-title";
+  relatedHeading.textContent = "関連メモ";
+  relatedList.appendChild(relatedHeading);
   if (!related.length) {
-    relatedList.innerHTML = `<div class="empty related-empty"><strong>関連メモはありません。</strong><span>本文中に [[メモ名]] の形式でリンクを書くと、本文リンク・逆リンク・共通リンク・共通語句から関連するメモが表示されます。</span></div>`;
+    const empty = document.createElement("div");
+    empty.className = "empty related-empty";
+    empty.innerHTML = `<strong>関連メモはありません。</strong><span>[[* メモ名]] で既存メモを参照するか、[[語句]] で語句を登録すると関係が表示されます。</span>`;
+    relatedList.appendChild(empty);
     return;
   }
 
@@ -9456,32 +9548,33 @@ function renderRelated() {
   });
 }
 
-// 関連メモをスコア計算します。直接リンク、逆リンク、共通リンク、共通語句を見ています。
-function findRelated(source) {
-  const sourceLinks = new Set(extractLinks(source.body));
+// 関連メモをスコア計算します。メモリンクは一意解決済みID、共通語句は既存仕様で比較します。
+function findRelated(source, memoIndex = currentMemoLinkRelationIndex()) {
+  const sourceLinks = memoIndex.targetNoteIdsBySourceId.get(source.id) || new Set();
   const sourceWords = new Set(tokenize(`${source.title} ${source.body}`));
+  const activeById = new Map(activeNotes().map((note) => [note.id, note]));
 
   return activeNotes()
     .filter((note) => note.id !== source.id)
     .map((note) => {
-      const links = extractLinks(note.body);
+      const links = memoIndex.targetNoteIdsBySourceId.get(note.id) || new Set();
       let score = 0;
       const reasons = [];
 
-      if (sourceLinks.has(note.title)) {
+      if (sourceLinks.has(note.id)) {
         score += 6;
         reasons.push("本文リンク");
       }
 
-      if (links.includes(source.title)) {
+      if (links.has(source.id)) {
         score += 6;
         reasons.push("逆リンク");
       }
 
-      const sharedLinks = links.filter((link) => sourceLinks.has(link));
+      const sharedLinks = [...links].filter((noteId) => sourceLinks.has(noteId));
       if (sharedLinks.length) {
         score += sharedLinks.length * 3;
-        reasons.push(`共通: ${sharedLinks.slice(0, 2).join(" / ")}`);
+        reasons.push(`共通: ${sharedLinks.slice(0, 2).map((noteId) => activeById.get(noteId)?.title).filter(Boolean).join(" / ")}`);
       }
 
       const sharedWords = tokenize(`${note.title} ${note.body}`).filter((word) => sourceWords.has(word));
@@ -9503,27 +9596,40 @@ function tokenize(text) {
   return [...new Set(matches.filter((word) => !stop.has(word)))];
 }
 
-// 本文中の[[...]]からリンク先タイトルだけを取り出します。
+// 本文中の正式なメモリンクから対象タイトルだけを取り出します。
 function extractLinks(body) {
-  return [...body.matchAll(/\[\[([^\]]+)\]\]/g)].map((match) => match[1].trim()).filter(Boolean);
+  return parseMemoLinks(body).map((link) => link.title);
 }
 
-// 全メモから「どのメモから、どのタイトルへリンクしているか」を集めます。
+// グラフには正式なメモリンクだけを使い、曖昧なリンクは誤接続しません。
 function collectLinks(items) {
-  return items.flatMap((note) => extractLinks(note.body).map((to) => ({ from: note.title, to })));
+  const itemById = new Map(items.map((note) => [note.id, note]));
+  const memoIndex = currentMemoLinkRelationIndex();
+  return items.flatMap((source) => (memoIndex.bySourceNoteId.get(source.id) || []).flatMap((relation) => {
+    if (relation.resolutionStatus === "ambiguous") return [];
+    const target = relation.resolutionStatus === "resolved" ? itemById.get(relation.targetNoteId) : null;
+    if (relation.resolutionStatus === "resolved" && !target) return [];
+    return [{
+      from: source.title,
+      to: target ? target.title : relation.targetTitle,
+      fromId: source.id,
+      toId: target?.id || null,
+      status: relation.resolutionStatus
+    }];
+  }));
 }
 
 // RPG感の「新発見」欄を描画します。
 function renderDiscovery() {
   discoveryPanel.innerHTML = lastDiscovery
     ? `<strong>新発見</strong><br>${escapeHtml(lastDiscovery)}`
-    : `<strong>新発見</strong><br>[[太平記]] と [[足利尊氏]] のように書くと接続が増えます。`;
+    : `<strong>新発見</strong><br>[[太平記]] のように語句を登録すると接続が増えます。`;
 }
 
 // リンクが増えたときに表示する発見メッセージを作ります。
 function buildDiscoveryMessage(note) {
-  const links = extractLinks(note.body);
-  const latest = links[links.length - 1];
+  const terms = extractExplicitTerms(note.body);
+  const latest = terms[terms.length - 1];
   return latest ? `「${note.title}」と「${latest}」が初接続` : "";
 }
 

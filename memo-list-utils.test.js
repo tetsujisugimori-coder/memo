@@ -163,16 +163,16 @@ test("タグは付箋形状と色フォールバックを持ち語句リンク�
   assert.match(css, /\.tag-chip\[aria-pressed="true"\][\s\S]*var\(--tag-color\)/);
   assert.match(css, /\.memo-item \.tag-chip[\s\S]*min-height: 32px/);
   assert.match(readFunctionSource("renderWikiButton"), /wiki-link[\s\S]*term-wiki-link/);
-  assert.match(readFunctionSource("renderPreview"), /querySelectorAll\("\.wiki-link"\)[\s\S]*openOrCreateLinkedNote/);
+  assert.match(readFunctionSource("renderPreview"), /querySelectorAll\("\.term-wiki-link"\)[\s\S]*openOrCreateLinkedNote/);
   assert.match(readFunctionSource("renderList"), /querySelectorAll\("\.term-chip"\)[\s\S]*openOrCreateLinkedNote/);
 });
 
 test("タグ関連スクリプトのキャッシュ番号を更新する", () => {
-  assert.match(html, /href="style\.css\?v=0\.5\.0-59"/);
+  assert.match(html, /href="style\.css\?v=0\.5\.0-60"/);
   assert.match(html, /src="tags\.js\?v=0\.5\.0-4"/);
   assert.match(html, /src="memo-list-utils\.js\?v=0\.5\.0-5"/);
   assert.match(html, /src="local-markdown\.js\?v=0\.5\.0-4"/);
-  assert.match(html, /src="app\.js\?v=0\.5\.0-117"/);
+  assert.match(html, /src="app\.js\?v=0\.5\.0-118"/);
   assert.ok(html.indexOf('src="tags.js?v=0.5.0-4"') < html.indexOf('src="memo-list-utils.js?v=0.5.0-5"'));
-  assert.ok(html.indexOf('src="memo-list-utils.js?v=0.5.0-5"') < html.indexOf('src="app.js?v=0.5.0-117"'));
+  assert.ok(html.indexOf('src="memo-list-utils.js?v=0.5.0-5"') < html.indexOf('src="app.js?v=0.5.0-118"'));
 });

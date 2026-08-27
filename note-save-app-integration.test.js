@@ -340,7 +340,7 @@ function createHarness({
     const invalidateTermRelationIndex = () => { invalidateTermRelationIndexCount += 1; };
     const cloneNoteSnapshot = (value) => structuredClone(value);
     const activeNotes = () => notes.filter((note) => !note.deletedAt);
-    const extractLinks = (body) => {
+    const extractExplicitTerms = (body) => {
       extractLinksCount += 1;
       const text = String(body || "");
       const links = [];

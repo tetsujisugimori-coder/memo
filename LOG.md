@@ -2155,3 +2155,18 @@
 * `.tag-chip`は淡色面、4pxの左アクセント、12pxの右上折り返し、角の少ない輪郭へ変更した。`clip-path`は折り返し疑似要素だけへ使い、ボタン本体のフォーカスリングや文字を切らない。`color-mix()`の前に基本色・枠線・折り返し色のフォールバックを置き、選択中も`--tag-color`を左アクセントと折り返しへ残す。長い名前は折り返し可能とし、一覧小型タグは狭幅確認後に高さ32pxへ調整した。語句リンク、メモリンク、`applyTagFilter()`、単一タグ検索、メモ保存仕様は変更していない。
 * タグ・保存・バックアップ・一覧の関連テストは114件成功した。`node --test --test-isolation=none`は全819件がpassし、fail・cancelled・skipped・todoは0件だった。`node --check tags.js`、`node --check app.js`、`git diff --check`も成功した。`package.json`にlintスクリプトはない。配信識別子は`style.css?v=0.5.0-59`、`tags.js?v=0.5.0-4`、`app.js?v=0.5.0-117`へ更新し、依存する既存テストを揃えた。
 * Windows Chromeで、ライト／ダーク、本文タイトル下、メモ一覧、タグタブ、候補の色丸、新規タグのキーボード色選択、既存色変更、本文／一覧タグ検索、検索解除、キーワード併用、再読み込み後の色維持、390×844の狭幅を確認した。本文・一覧・タグタブ・候補は同じ保存色を表示し、ブラウザconsoleのwarning／errorは0件だった。iPhone Safari実機、完全バックアップZIPの画面操作、ローカルフォルダへの実ファイル保存は未確認で、自動テストによる往復確認に留まる。複数タグAND／OR検索は今回も対象外である。
+
+## 2026-08-27: 語句リンクとメモリンクを分離
+
+* 既存の`[[語句]]`を登録語句・語句チップ・自動語句検出・語句統計のための語句リンクとして維持し、既存メモそのものを参照する正式記法`[[* メモ名]]`を追加した。`[[`直後の半角`*`と、その直後の1文字以上の半角スペース、空でないタイトルを必須とする。不正式な`*`／`＊`予約記法はメモリンクにも登録語句にもせず、通常文字として安全に表示する。
+* 新規`memo-link-utils.js`へ、fenced code・Mermaid・インラインコードを除外する`parseMemoLinks()`、タイトル完全一致の`resolveMemoLinkTitle()`、導出索引の`buildMemoLinkRelationIndex()`、`createMemoLinkRelationCache()`を分離した。resolverは削除済みメモを除外し、`resolved`、`missing`、`ambiguous`を区別する。曖昧な場合は候補IDを返すだけで、先頭候補を選ばない。
+* `term-link-utils.js`の`extractExplicitTerms()`はメモリンク予約記法を除外する。`collectLinkStats()`と新発見の増加判定も`extractExplicitTerms()`だけを使用し、メモリンクタイトルを登録語句、語句チップ、自動検出、統計、新発見へ混ぜない。
+* `app.js`のインラインtokenを`term-link`、`memo-link`、`memo-link-invalid`へ分離し、メモリンク専用の`renderMemoLinkButton()`と`openResolvedMemoLink()`を追加した。resolvedは描画時に確定したnote IDで`openNote()`を呼び、missing／ambiguousは専用class・title・aria-labelで案内して、新規メモ作成や自動遷移を行わない。語句リンクの既存の開く／作る挙動は維持した。
+* バックリンクはIndexedDBへ二重保存せず、有効なメモ本文から`sourceNoteId`、`targetTitle`、`targetNoteId`、`resolutionStatus`を導出する。同じ参照元から同じ対象への重複を整理し、resolvedだけを「このメモへのリンク」へ登録する。関連メモドロワーに独立欄を追加し、通常関連側との重複を除外したうえで、通常関連の最大8件仕様を維持した。
+* 関連メモの本文リンク・逆リンク・共通リンクは、一意解決済みメモIDだけを使うように変更した。共通語句の既存スコアは維持した。グラフ辺は正式なメモリンクだけから作り、missingは未作成ノード、ambiguousは誤接続防止のため除外する。語句リンクはメモ間の辺にしない。
+* メモ一覧snippetと本文由来の自動タイトルから正式記法の`[[ ]]`と`*`を除去した。記法ガイド、placeholder、READMEを語句リンクとメモリンクの別説明へ更新した。リンク先タイトル変更時に参照元本文を自動書き換えないため、旧タイトルのリンクはmissingになり得る制限も明記した。
+* メモリンク索引は語句索引と同じ無効化境界へ接続し、本文・タイトル・作成・削除・復元・import・同期・atomic batchで必要時だけ無効化する。入力イベント内で全メモ解析せず、既存`typing-derived-ui-scheduler.js`のtrailing debounce後に一度構築し、プレビュー・関連メモ・グラフで共有する。同一note ID・revisionを描画済みなら保存成功時に再描画しない既存契約を維持した。
+* `note-save-foundation.js`、IndexedDB schema、revision、dirty／pending／error、280ms保存、draft mirror、tombstone、atomic batch、Codexスレッド保存は変更していない。リンク情報は保存せず本文から再導出する。
+* `memo-link-utils.test.js`と`memo-link-app.test.js`を追加し、構文、コード除外、解決3状態、重複、バックリンク、表示、クリック、グラフ、キャッシュ、scheduler接続を検証した。語句統計、関連ドロワー、記法ガイド、配信順、保存raceの既存テストも更新した。`npm test`は835件すべて成功し、fail・cancelled・skipped・todoは0件だった。変更JavaScript 26ファイルの`node --check`と`git diff --check`も成功した。
+* 将来`[[* メモ名#位置]]`へ拡張する場合は、`parseMemoLinks()`が現在保持しているタイトル文字列をresolverへ渡す前に、メモ部分と位置指定部分へ分離する。初期実装では`メモ名#位置`全体をタイトルとして扱い、位置ジャンプは実装していない。
+* ブラウザでの手動確認は未実施。語句リンク、メモリンク、missing／ambiguous、バックリンク、関連重複排除、コード領域、snippet、自動タイトル、グラフ、連続入力は自動テストとソース検査で確認した。

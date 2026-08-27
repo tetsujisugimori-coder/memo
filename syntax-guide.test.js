@@ -208,7 +208,8 @@ test("対応するMarkdown記法とMemo Nexus独自機能を掲載する", () =>
     "`const value = 1;`",
     "- 項目",
     "> 引用文",
-    "[[メモ名]]"
+    "[[SQLite]]",
+    "[[* SQLite実験結果]]"
   ]);
   assert.ok(markdown.every((item) => item.name && item.description && item.notes));
   ["画像ブロック", "画像キャプション", "解説ブロック", "画像", "本文から画像を削除して添付保持", "斜体", "打ち消し線", "番号付きリスト", "チェックリスト", "通常リンク", "水平線", "注意書き"].forEach((name) => {
@@ -217,6 +218,8 @@ test("対応するMarkdown記法とMemo Nexus独自機能を掲載する", () =>
   assert.match(markdown.find((item) => item.name === "通常リンク").notes, /javascript/);
   assert.equal(markdown.find((item) => item.name === "解説ブロック").copyable, false);
   assert.equal(markdown.find((item) => item.name === "画像ブロック").copyable, false);
+  assert.match(markdown.find((item) => item.name === "語句リンク").description, /登録語句/);
+  assert.match(markdown.find((item) => item.name === "メモリンク").notes, /同名メモが複数.*新規作成もしません.*タイトル変更時/);
 });
 
 test("記法ガイドはタグを本文のMarkdown見出しと分けて説明する", () => {
@@ -464,7 +467,7 @@ test("ライト・ダーク共通変数と狭幅container queryで表示する",
 });
 
 test("app.jsのキャッシュ番号を更新し、PR #24の画面外Mermaid描画経路を維持する", () => {
-  assert.match(html, /app\.js\?v=0\.5\.0-117/);
+  assert.match(html, /app\.js\?v=0\.5\.0-118/);
   assert.match(html, /table-block-utils\.js\?v=0\.5\.0-4/);
   assert.match(app, /mermaid\.render\(/);
   assert.doesNotMatch(app, /mermaid\.run\(/);
