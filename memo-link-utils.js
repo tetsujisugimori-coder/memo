@@ -152,7 +152,7 @@
     const replacementTitle = String(newTitle || "").trim();
     const expectedOldTitle = oldTitle == null ? null : String(oldTitle).trim();
     if (!replacementTitle || !targetNoteId || !sourceNoteId || !relationIndex) {
-      return { body: source, changed: false, replacementCount: 0 };
+      return { body: source, changed: false, replacementCount: 0, replacements: [] };
     }
 
     const eligibleTitles = new Set((relationIndex.bySourceNoteId.get(sourceNoteId) || [])
@@ -160,7 +160,11 @@
         && relation.targetNoteId === targetNoteId
         && (expectedOldTitle === null || relation.targetTitle === expectedOldTitle))
       .map((relation) => relation.targetTitle));
-    if (!eligibleTitles.size) return { body: source, changed: false, replacementCount: 0 };
+    return rewriteMemoLinkTitles(source, eligibleTitles, replacementTitle);
+  }
+
+  function rewriteMemoLinkTitles(source, eligibleTitles, replacementTitle) {
+    if (!eligibleTitles.size) return { body: source, changed: false, replacementCount: 0, replacements: [] };
 
     const replacements = parseMemoLinks(source)
       .filter((link) => eligibleTitles.has(link.title))
@@ -169,7 +173,32 @@
     replacements.forEach((link) => {
       rewritten = `${rewritten.slice(0, link.titleStart)}${replacementTitle}${rewritten.slice(link.titleEnd)}`;
     });
-    return { body: rewritten, changed: replacements.length > 0, replacementCount: replacements.length };
+    return {
+      body: rewritten,
+      changed: replacements.length > 0,
+      replacementCount: replacements.length,
+      replacements: replacements.map((link) => ({
+        start: link.titleStart,
+        end: link.titleEnd,
+        replacementLength: replacementTitle.length
+      })).sort((left, right) => left.start - right.start)
+    };
+  }
+
+  function rewriteMemoLinksFromRenameNotification(body, {
+    oldTitle,
+    newTitle,
+    sourceNoteId,
+    resolvedSourceNoteIds
+  } = {}) {
+    const source = String(body || "");
+    const expectedOldTitle = String(oldTitle || "").trim();
+    const replacementTitle = String(newTitle || "").trim();
+    const allowedSources = new Set(Array.isArray(resolvedSourceNoteIds) ? resolvedSourceNoteIds : []);
+    if (!sourceNoteId || !allowedSources.has(sourceNoteId) || !expectedOldTitle || !replacementTitle) {
+      return { body: source, changed: false, replacementCount: 0, replacements: [] };
+    }
+    return rewriteMemoLinkTitles(source, new Set([expectedOldTitle]), replacementTitle);
   }
 
   function createMemoLinkRelationCache() {
@@ -192,6 +221,7 @@
     parseMemoLinks,
     resolveMemoLinkTitleFromIndex,
     resolveMemoLinkTitle,
+    rewriteMemoLinksFromRenameNotification,
     rewriteResolvedMemoLinks,
     uniqueMemoLinks
   };

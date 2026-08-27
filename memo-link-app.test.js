@@ -122,19 +122,27 @@ test("表示・関連・グラフ・scheduler接続はメモリンク専用索�
   assert.match(readFunctionSource("invalidateTermRelationIndex"), /termRelationCache\.invalidate\(\)[\s\S]*memoLinkRelationCache\.invalidate\(\)/);
 });
 
-test("改名batch成功時と別ウィンドウの解決状態変更時だけeditor・previewを同期する", () => {
+test("改名batch成功時はcommitted snapshotへ統一しdirty受信側へ正式リンクだけを合流する", () => {
   const batchStart = app.indexOf("function handleNoteBatchSaveSuccess(");
   const batchHandler = app.slice(batchStart, app.indexOf("\nfunction handleNoteSaveError(", batchStart));
+  const batchApply = readFunctionSource("applyNoteBatchSaveSuccess");
   const syncHandler = readFunctionSource("refreshMemoFromOtherWindow");
+  const renameSyncHandler = readFunctionSource("applyMemoLinkRenameSync");
+  const notifyStart = app.indexOf("function notifyMemoLinkRenamed(");
+  const notifyHandler = app.slice(notifyStart, app.indexOf("\nfunction rememberProcessedMemoLinkRenameSync", notifyStart));
   assert.match(batchHandler, /syncCurrentEditorAfterBatch/);
   assert.match(batchHandler, /!currentResult\.state\.dirty/);
+  assert.match(batchHandler, /currentResult\.savedSnapshot \|\| currentResult\.request\.snapshot/);
   assert.match(batchHandler, /titleInput\.value = note\.title[\s\S]*editor\.value = note\.body/);
   assert.match(batchHandler, /removeDraftMirrorForNote\(note\.id\)/);
+  assert.match(batchApply, /if \(!state\.dirty\) noteLiveDrafts\.delete\(request\.noteId\)/);
+  assert.match(renameSyncHandler, /processedMemoLinkRenameSyncIds[\s\S]*mergeMemoLinkRenameIntoLiveDraft/);
+  assert.match(notifyHandler, /type: "memo-link-renamed"[\s\S]*resolvedSourceNoteIds/);
   assert.match(syncHandler, /memoLinkResolutionMayHaveChanged[\s\S]*renderAll\(\)[\s\S]*renderPreview\(\)/);
 });
 
 test("専用モジュールはapp.jsより前に読み込み、保存基盤とDB schemaを変更しない", () => {
-  assert.ok(html.indexOf('memo-link-utils.js?v=0.5.0-2') < html.indexOf('app.js?v=0.5.0-119'));
-  assert.match(html, /term-link-utils\.js\?v=0\.5\.0-6[\s\S]*memo-link-utils\.js\?v=0\.5\.0-2[\s\S]*app\.js\?v=0\.5\.0-119/);
+  assert.ok(html.indexOf('memo-link-utils.js?v=0.5.0-3') < html.indexOf('app.js?v=0.5.0-120'));
+  assert.match(html, /term-link-utils\.js\?v=0\.5\.0-6[\s\S]*memo-link-utils\.js\?v=0\.5\.0-3[\s\S]*app\.js\?v=0\.5\.0-120/);
   assert.doesNotMatch(app, /memo-link-store|backlink-store|createObjectStore\([^)]*link/i);
 });

@@ -8,6 +8,7 @@ const {
   createMemoLinkRelationCache,
   parseMemoLinks,
   resolveMemoLinkTitle,
+  rewriteMemoLinksFromRenameNotification,
   rewriteResolvedMemoLinks
 } = require("./memo-link-utils.js");
 const { extractExplicitTerms } = require("./term-link-utils.js");
@@ -178,4 +179,26 @@ test("1,000件超でもタイトル索引を1回だけ構築しリンク解決�
   assert.deepEqual(buildMemoLinkTitleIndex(notes).noteIdsByTitle.get("題名1000"), ["note-1000"]);
   assert.match(buildMemoLinkRelationIndex.toString(), /resolveMemoLinkTitleFromIndex\(link\.title, titleIndex\)/);
   assert.doesNotMatch(buildMemoLinkRelationIndex.toString(), /resolveMemoLinkTitle\(link\.title, activeNotes\)/);
+});
+
+test("改名通知は指定された解決済み参照元の正式リンクだけを書き換える", () => {
+  const body = [
+    "通常 [[* メモB]] [[メモB]] [[*メモB]]",
+    "`[[* メモB]]`",
+    "```mermaid",
+    "A[地域 [[* メモB]]]",
+    "```"
+  ].join("\r\n");
+  const rewritten = rewriteMemoLinksFromRenameNotification(body, {
+    oldTitle: "メモB",
+    newTitle: "メモC",
+    sourceNoteId: "source",
+    resolvedSourceNoteIds: ["source"]
+  });
+  assert.equal(rewritten.replacementCount, 1);
+  assert.equal(rewritten.body, body.replace("通常 [[* メモB]]", "通常 [[* メモC]]"));
+  assert.equal((rewritten.body.match(/\r\n/g) || []).length, 4);
+  assert.equal(rewriteMemoLinksFromRenameNotification(body, {
+    oldTitle: "メモB", newTitle: "メモC", sourceNoteId: "missing", resolvedSourceNoteIds: ["source"]
+  }).changed, false);
 });

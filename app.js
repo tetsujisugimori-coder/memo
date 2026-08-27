@@ -417,7 +417,7 @@ const {
   webClipUrlWithoutLaunchMarker
 } = window.MemoNexusWebClipUtils;
 const { createTermRelationCache, extractExplicitTerms, findAutomaticTermMatches, findTermCountMatches, termColor } = window.MemoNexusTermLinkUtils;
-const { buildMemoLinkRelationIndex, createMemoLinkRelationCache, parseMemoLinks, resolveMemoLinkTitle, rewriteResolvedMemoLinks } = window.MemoNexusMemoLinkUtils;
+const { buildMemoLinkRelationIndex, createMemoLinkRelationCache, parseMemoLinks, resolveMemoLinkTitle, rewriteMemoLinksFromRenameNotification, rewriteResolvedMemoLinks } = window.MemoNexusMemoLinkUtils;
 const { openCalculatorMemo } = window.MemoNexusCalculatorLink;
 const {
   BODY_FONT_SIZES,
@@ -859,6 +859,7 @@ let currentId = null;
 let saveTimer = null;
 let scheduledSaveNoteId = null;
 let pendingMemoSync = null;
+let memoSyncMessageTail = Promise.resolve();
 let isLocalMemoDirty = false;
 let localDirtyMemoId = null;
 // 未保存の編集中状態はnotes配列と同じオブジェクトを共有し、入力時の全体cloneを避けます。
@@ -868,6 +869,8 @@ const noteLiveDrafts = new Map();
 const noteSaveBeforeBodies = new Map();
 const noteSaveUiChanges = new Map();
 const memoLinkRenameSaveTasks = new Map();
+const processedMemoLinkRenameSyncIds = new Set();
+const pendingMemoLinkRenameSyncs = new Map();
 const permanentDeletionCleanupTasks = new Map();
 let lastDiscovery = "";
 let linkStatsVisible = false;
@@ -1119,7 +1122,9 @@ void runGuardedStartup({
   onFailure: showStartupFailure
 });
 memoSyncChannel?.addEventListener("message", (event) => {
-  handleMemoSyncMessage(event.data).catch((error) => console.warn("Memo sync failed", error));
+  memoSyncMessageTail = memoSyncMessageTail
+    .then(() => handleMemoSyncMessage(event.data))
+    .catch((error) => console.warn("Memo sync failed", error));
 });
 
 // 起動処理。DBを開き、初期メモを用意し、今日メモを開いて即入力できる状態にします。
@@ -1787,6 +1792,25 @@ function getStoredNotes() {
     const request = tx().getAll();
     request.onsuccess = () => resolve(request.result.map(withNormalizedFlag).map(withNormalizedMemoTags).sort((a, b) => compareDateTimes(a.updatedAt, b.updatedAt, "desc") || String(a.id).localeCompare(String(b.id))));
     request.onerror = () => reject(request.error);
+  });
+}
+
+function getStoredNoteSnapshots(noteIds) {
+  const ids = [...new Set(noteIds || [])].filter(Boolean).sort();
+  if (!ids.length) return Promise.resolve(new Map());
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(STORE_NAME, "readonly");
+    const store = transaction.objectStore(STORE_NAME);
+    const snapshots = new Map();
+    ids.forEach((noteId) => {
+      const request = store.get(noteId);
+      request.onsuccess = () => {
+        if (request.result) snapshots.set(noteId, cloneNoteSnapshot(request.result));
+      };
+    });
+    transaction.oncomplete = () => resolve(snapshots);
+    transaction.onerror = () => reject(noteTransactionError(transaction));
+    transaction.onabort = () => reject(noteTransactionError(transaction));
   });
 }
 
@@ -2882,40 +2906,53 @@ async function migrateLegacyNotesToUnclassified() {
   console.log("Collection migration", { assignedToUnclassified: legacy.length });
 }
 
-function prepareNoteSnapshotsInTransaction(store, items, { preserveStoredCodexThread = false } = {}, onReady) {
-  if (!preserveStoredCodexThread || !items.length) {
+function prepareNoteSnapshotsInTransaction(store, items, { preserveStoredCodexThread = false, prepareStoredNote = null } = {}, onReady, onError = null) {
+  if ((!preserveStoredCodexThread && !prepareStoredNote) || !items.length) {
     onReady(items);
     return;
   }
   const savedItems = new Array(items.length);
   let remaining = items.length;
+  let failed = false;
   items.forEach((note, index) => {
     const request = store.get(note.id);
     request.onsuccess = () => {
-      savedItems[index] = mergeStoredCodexThread(note, request.result);
+      if (failed) return;
+      try {
+        savedItems[index] = prepareStoredNote
+          ? prepareStoredNote(note, request.result)
+          : mergeStoredCodexThread(note, request.result);
+      } catch (error) {
+        failed = true;
+        if (onError) onError(error);
+        return;
+      }
       remaining -= 1;
       if (!remaining) onReady(savedItems);
     };
   });
 }
 
-function updateNotesTransaction(items, { markLocalPending = true, preserveStoredCodexThread = false, validateBeforePut = null } = {}) {
+function updateNotesTransaction(items, { markLocalPending = true, preserveStoredCodexThread = false, prepareStoredNote = null, validateBeforePut = null } = {}) {
   return new Promise((resolve, reject) => {
     let savedItems = items;
     let validationError = null;
     const transaction = db.transaction([STORE_NAME, TOMBSTONE_STORE_NAME], "readwrite");
     const store = transaction.objectStore(STORE_NAME);
     guardNoteWrites(transaction, items.map((note) => note.id), () => {
-      prepareNoteSnapshotsInTransaction(store, items, { preserveStoredCodexThread }, (preparedItems) => {
+      const abortWithValidationError = (error) => {
+        validationError = error;
+        try { transaction.abort(); } catch (_) {}
+      };
+      prepareNoteSnapshotsInTransaction(store, items, { preserveStoredCodexThread, prepareStoredNote }, (preparedItems) => {
         try {
           if (validateBeforePut) validateBeforePut();
           savedItems = preparedItems;
           savedItems.forEach((note) => store.put(note));
         } catch (error) {
-          validationError = error;
-          transaction.abort();
+          abortWithValidationError(error);
         }
-      });
+      }, abortWithValidationError);
     }, TOMBSTONE_STORE_NAME);
     transaction.oncomplete = () => {
       savedItems.forEach((note) => notifyMemoChanged(note));
@@ -5289,6 +5326,7 @@ function captureMemoLinkRenameChange(note, nextBody) {
     .map(([sourceNoteId]) => sourceNoteId);
   return {
     titleBefore: note.title,
+    bodyBefore: note.body,
     memoLinkRename: { relationIndex, sourceNoteIds, targetNoteId: note.id }
   };
 }
@@ -5342,6 +5380,46 @@ function memoLinkRenameConflictError(noteId) {
   return error;
 }
 
+function memoLinkRenameStoredConflictError(noteId) {
+  const error = new Error("別ウィンドウで保存されたメモを検出したため、改名追従による古い内容の上書きを中止しました");
+  error.code = "MEMO_LINK_RENAME_STORED_CONFLICT";
+  error.noteId = noteId;
+  return error;
+}
+
+function memoLinkRenameStoredComparable(note) {
+  if (!note || note.deletedAt) return null;
+  const { codexChat: _codexChat, ...comparable } = note;
+  return comparable;
+}
+
+function memoLinkRenameStoredSnapshotsMatch(baseline, stored) {
+  return noteBatchValueEquals(
+    memoLinkRenameStoredComparable(baseline),
+    memoLinkRenameStoredComparable(stored)
+  );
+}
+
+function mergeMemoLinkRenameFieldsIntoStored(proposed, stored, { targetNoteId, bodyChangedNoteIds } = {}) {
+  if (!stored || stored.deletedAt) throw memoLinkRenameStoredConflictError(proposed?.id);
+  const merged = cloneNoteSnapshot(stored);
+  const fields = new Set(["revision"]);
+  if (proposed.id === targetNoteId) {
+    fields.add("title");
+    fields.add("updatedAt");
+  }
+  if (bodyChangedNoteIds.has(proposed.id)) {
+    fields.add("body");
+    fields.add("bodyUpdatedAt");
+    fields.add("updatedAt");
+  }
+  fields.forEach((field) => {
+    if (Object.prototype.hasOwnProperty.call(proposed, field)) merged[field] = cloneNoteSnapshot(proposed[field]);
+    else delete merged[field];
+  });
+  return merged;
+}
+
 function validateMemoLinkRenameRevisions(expectedRevisions, targetNoteId, newTitle) {
   expectedRevisions.forEach((expectedRevision, noteId) => {
     const note = noteForSave(noteId);
@@ -5367,16 +5445,69 @@ async function saveMemoLinkTitleRenameAtomically(noteId, uiChanges) {
   const sourceNoteIdSet = new Set(sourceNoteIds);
 
   const changedIds = [...new Set([noteId, ...sourceNoteIds])].sort();
-  const expectedRevisions = new Map(changedIds.map((id) => [id, normalizeNoteRevision(noteForSave(id)?.revision)]));
+  const revisionsBeforeStoredRead = new Map(changedIds.map((id) => [id, normalizeNoteRevision(noteForSave(id)?.revision)]));
+  const validateBeforeStoredRead = () => validateMemoLinkRenameRevisions(revisionsBeforeStoredRead, noteId, newTitle);
+  validateBeforeStoredRead();
+  const storedBaselines = await getStoredNoteSnapshots(changedIds);
+  validateBeforeStoredRead();
+  changedIds.forEach((id) => {
+    if (!storedBaselines.has(id)) throw memoLinkRenameStoredConflictError(id);
+  });
+  const storedTargetBaseline = storedBaselines.get(noteId);
+  if (String(storedTargetBaseline.title || "") !== oldTitle) throw memoLinkRenameStoredConflictError(noteId);
+  if (String(targetNote.body || "") !== String(uiChanges?.bodyBefore || "")
+      && String(storedTargetBaseline.body || "") !== String(uiChanges?.bodyBefore || "")) {
+    throw memoLinkRenameStoredConflictError(noteId);
+  }
+
   const changedAt = Date.now();
-  const validateRename = () => validateMemoLinkRenameRevisions(expectedRevisions, noteId, newTitle);
+  const batchLiveNotesById = new Map();
+  changedIds.forEach((id) => {
+    const local = noteForSave(id);
+    const stored = cloneNoteSnapshot(storedBaselines.get(id));
+    const state = noteSaveFoundation.getState(id);
+    if (id === noteId) {
+      const target = stored;
+      target.title = newTitle;
+      target.updatedAt = changedAt;
+      target.revision = Math.max(normalizeNoteRevision(local.revision), normalizeNoteRevision(stored.revision));
+      if (String(local.body || "") !== String(uiChanges?.bodyBefore || "")) {
+        target.body = local.body;
+        target.bodyUpdatedAt = local.bodyUpdatedAt;
+      }
+      batchLiveNotesById.set(id, target);
+      return;
+    }
+    if (state?.dirty || noteLiveDrafts.has(id)) {
+      const dirtySource = cloneNoteSnapshot(local);
+      dirtySource.revision = Math.max(normalizeNoteRevision(local.revision), normalizeNoteRevision(stored.revision));
+      batchLiveNotesById.set(id, dirtySource);
+      return;
+    }
+    const index = notes.findIndex((note) => note.id === id);
+    if (index === -1) notes.unshift(stored); else notes[index] = stored;
+    registerNoteSaveState(stored);
+    batchLiveNotesById.set(id, cloneNoteSnapshot(stored));
+  });
+
+  const expectedLiveRevisions = new Map(changedIds.map((id) => [id, normalizeNoteRevision(noteForSave(id)?.revision)]));
+  const expectedBatchRevisions = new Map(changedIds.map((id) => [id, normalizeNoteRevision(batchLiveNotesById.get(id)?.revision)]));
+  const bodyChangedNoteIds = new Set();
+  const validateRename = () => validateMemoLinkRenameRevisions(expectedLiveRevisions, noteId, newTitle);
   const persistRenameSnapshots = (snapshots) => updateNotesTransaction(snapshots, {
     preserveStoredCodexThread: true,
+    prepareStoredNote: (proposed, stored) => {
+      const baseline = storedBaselines.get(proposed.id);
+      if (!memoLinkRenameStoredSnapshotsMatch(baseline, stored)) {
+        throw memoLinkRenameStoredConflictError(proposed.id);
+      }
+      return mergeMemoLinkRenameFieldsIntoStored(proposed, stored, { targetNoteId: noteId, bodyChangedNoteIds });
+    },
     validateBeforePut: validateRename
   });
 
   try {
-    return await mutateNotesAtomically(changedIds, (snapshot, sourceNoteId) => {
+    const results = await mutateNotesAtomically(changedIds, (snapshot, sourceNoteId) => {
       if (!sourceNoteIdSet.has(sourceNoteId)) return;
       const rewritten = rewriteResolvedMemoLinks(snapshot.body, {
         oldTitle,
@@ -5385,19 +5516,40 @@ async function saveMemoLinkTitleRenameAtomically(noteId, uiChanges) {
         sourceNoteId,
         relationIndex: rename.relationIndex
       });
-      if (!rewritten.changed) return;
+      if (!rewritten.changed) return sourceNoteId === noteId ? undefined : false;
       snapshot.body = rewritten.body;
       snapshot.bodyUpdatedAt = changedAt;
       snapshot.updatedAt = changedAt;
+      bodyChangedNoteIds.add(sourceNoteId);
     }, persistRenameSnapshots, {
-      expectedRevisions,
+      expectedRevisions: expectedBatchRevisions,
+      liveNotesById: batchLiveNotesById,
       validateBeforeWrite: validateRename,
       syncCurrentEditorAfterBatch: true,
-      memoLinkRename: true
+      memoLinkRename: {
+        oldTitle,
+        newTitle,
+        targetNoteId: noteId,
+        resolvedSourceNoteIds: sourceNoteIds
+      }
     });
+    notifyMemoLinkRenamed({
+      renameId: results.find(({ request }) => request.noteId === noteId)?.request.saveRequestId,
+      targetNoteId: noteId,
+      oldTitle,
+      newTitle,
+      resolvedSourceNoteIds: sourceNoteIds,
+      results
+    });
+    return results;
   } catch (error) {
-    if (error?.code === "MEMO_LINK_RENAME_STALE") {
-      setSaveStatusNotice("改名追従中に別の編集を検出したため、古い本文の保存を中止しました。再度保存してください。");
+    changedIds.forEach((id) => {
+      const note = noteForSave(id);
+      const state = noteSaveFoundation.getState(id);
+      if (note && state) note.revision = state.currentRevision;
+    });
+    if (["MEMO_LINK_RENAME_STALE", "MEMO_LINK_RENAME_STORED_CONFLICT"].includes(error?.code)) {
+      setSaveStatusNotice("別ウィンドウまたは保存中の編集を検出し、古い本文の保存を中止しました。編集内容は失われていません。最新状態を確認して再度保存してください。");
     }
     throw error;
   }
@@ -5490,6 +5642,62 @@ function applyCommittedBatchChanges(note, changes) {
   });
 }
 
+function adjustedMemoLinkRenameOffset(offset, replacements) {
+  if (!Number.isInteger(offset)) return offset;
+  let adjusted = offset;
+  for (const replacement of replacements || []) {
+    const delta = replacement.replacementLength - (replacement.end - replacement.start);
+    if (offset <= replacement.start) break;
+    if (offset >= replacement.end) adjusted += delta;
+    else return replacement.start + replacement.replacementLength;
+  }
+  return adjusted;
+}
+
+function mergeMemoLinkRenameIntoLiveDraft(noteId, rename, updatedAt = Date.now()) {
+  if (!rename?.resolvedSourceNoteIds?.includes(noteId)) return false;
+  if (noteId === currentId) applyCurrentEditorDraft(currentNote());
+  const note = noteForSave(noteId);
+  if (!note || note.deletedAt) return false;
+  const rewritten = rewriteMemoLinksFromRenameNotification(note.body, {
+    ...rename,
+    sourceNoteId: noteId
+  });
+  if (!rewritten.changed) return false;
+
+  const selectionStart = noteId === currentId ? editor.selectionStart : null;
+  const selectionEnd = noteId === currentId ? editor.selectionEnd : null;
+  note.body = rewritten.body;
+  note.bodyUpdatedAt = updatedAt;
+  note.updatedAt = updatedAt;
+  note.revision = Math.max(
+    normalizeNoteRevision(note.revision),
+    normalizeNoteRevision(rename.revisions?.[noteId])
+  );
+  markLocalMemoDirty(note);
+  if (noteId === currentId) {
+    editor.value = rewritten.body;
+    if (typeof editor.setSelectionRange === "function") {
+      editor.setSelectionRange(
+        adjustedMemoLinkRenameOffset(selectionStart, rewritten.replacements),
+        adjustedMemoLinkRenameOffset(selectionEnd, rewritten.replacements)
+      );
+    }
+    scheduleSave();
+  } else {
+    enqueueNoteSave(noteId).catch((error) => console.warn("Background memo link rename merge save failed", error));
+  }
+  return true;
+}
+
+function mergeMemoLinkRenameIntoDirtyBatchDrafts(results, rename) {
+  if (!rename) return;
+  results.forEach(({ request, state, savedSnapshot }) => {
+    if (!state.dirty || !rename.resolvedSourceNoteIds.includes(request.noteId)) return;
+    mergeMemoLinkRenameIntoLiveDraft(request.noteId, rename, savedSnapshot?.updatedAt || Date.now());
+  });
+}
+
 // バッチ固有の変更は固定snapshotへだけ適用し、transaction成功後にlive draftへ合流します。
 // 失敗時は通常編集だけがlive draftに残り、保存中の追加編集は別revisionとして維持されます。
 async function mutateNotesAtomically(noteIds, mutate, writeSnapshots = null, uiOptions = {}) {
@@ -5562,6 +5770,10 @@ async function mutateNotesAtomically(noteIds, mutate, writeSnapshots = null, uiO
       const note = liveNote(plan.noteId);
       if (note) applyCommittedBatchChanges(note, plan.changes);
     });
+    if (uiOptions.memoLinkRename) {
+      noteSaveUiChanges.delete(uiOptions.memoLinkRename.targetNoteId);
+      mergeMemoLinkRenameIntoDirtyBatchDrafts(results, uiOptions.memoLinkRename);
+    }
   } finally {
     noteSaveFoundation.completeAtomicBatch(batch);
   }
@@ -5605,10 +5817,7 @@ function applyNoteBatchSaveSuccess(results, liveNotesById = null) {
     if (state.currentRevision !== request.revision) return;
     const committedSnapshot = savedSnapshot || request.snapshot;
     savedById.set(request.noteId, cloneNoteSnapshot(committedSnapshot));
-    const liveDraft = noteLiveDrafts.get(request.noteId);
-    if (!liveDraft || normalizeNoteRevision(liveDraft.revision) === request.revision) {
-      noteLiveDrafts.delete(request.noteId);
-    }
+    if (!state.dirty) noteLiveDrafts.delete(request.noteId);
     const beforeBody = noteSaveBeforeBodies.get(request.noteId);
     if (typeof beforeBody === "string") linkChecks.push({ beforeBody, savedNote: committedSnapshot });
     noteSaveBeforeBodies.delete(request.noteId);
@@ -5700,7 +5909,7 @@ function handleNoteBatchSaveSuccess(results, { invalidateTermRelations = true, r
   const currentResult = results.find(({ request }) => request.noteId === currentId);
   const shouldSyncCurrentEditor = syncCurrentEditorAfterBatch && currentResult && !currentResult.state.dirty;
   if (shouldSyncCurrentEditor) {
-    const note = currentNote();
+    const note = currentResult.savedSnapshot || currentResult.request.snapshot;
     if (note) {
       titleInput.value = note.title;
       editor.value = note.body;
@@ -5884,6 +6093,72 @@ function notifyMemoChanged(note) {
   });
 }
 
+function notifyMemoLinkRenamed({ renameId, targetNoteId, oldTitle, newTitle, resolvedSourceNoteIds, results } = {}) {
+  if (!renameId || !targetNoteId || !oldTitle || !newTitle) return;
+  const revisions = Object.fromEntries((results || []).map(({ request, savedSnapshot }) => [
+    request.noteId,
+    normalizeNoteRevision(savedSnapshot?.revision ?? request.revision)
+  ]));
+  const updatedAt = Math.max(Date.now(), ...(results || []).map(({ request, savedSnapshot }) => (
+    timestampValue(savedSnapshot?.updatedAt ?? request.snapshot?.updatedAt) ?? 0
+  )));
+  memoSyncChannel?.postMessage({
+    type: "memo-link-renamed",
+    renameId,
+    targetNoteId,
+    oldTitle,
+    newTitle,
+    resolvedSourceNoteIds: [...new Set(resolvedSourceNoteIds || [])].filter(Boolean),
+    revisions,
+    updatedAt
+  });
+}
+
+function rememberProcessedMemoLinkRenameSync(renameId) {
+  processedMemoLinkRenameSyncIds.add(renameId);
+  while (processedMemoLinkRenameSyncIds.size > 256) {
+    processedMemoLinkRenameSyncIds.delete(processedMemoLinkRenameSyncIds.values().next().value);
+  }
+}
+
+function applyMemoLinkRenameSync(message) {
+  if (message?.type !== "memo-link-renamed" || !message.renameId) return;
+  if (processedMemoLinkRenameSyncIds.has(message.renameId)) return;
+  const resolvedSourceNoteIds = [...new Set(message.resolvedSourceNoteIds || [])].filter(Boolean);
+  if (editorCompositionNoteId === currentId && resolvedSourceNoteIds.includes(currentId)) {
+    pendingMemoLinkRenameSyncs.set(message.renameId, message);
+    return;
+  }
+
+  resolvedSourceNoteIds.forEach((noteId) => {
+    const state = noteSaveFoundation.getState(noteId);
+    const hasLiveWork = noteLiveDrafts.has(noteId)
+      || Boolean(state?.dirty)
+      || state?.status === "saving"
+      || state?.activeRevision != null
+      || state?.pendingRevision != null;
+    if (!hasLiveWork) return;
+    if (noteId === currentId) {
+      const incomingUpdatedAt = timestampValue(message.updatedAt) ?? Date.now();
+      pendingMemoSync = {
+        memoId: noteId,
+        updatedAt: Math.max(timestampValue(pendingMemoSync?.updatedAt) ?? 0, incomingUpdatedAt)
+      };
+      renderMemoSyncNotice();
+    }
+    mergeMemoLinkRenameIntoLiveDraft(noteId, { ...message, resolvedSourceNoteIds }, message.updatedAt);
+  });
+  rememberProcessedMemoLinkRenameSync(message.renameId);
+}
+
+function flushPendingMemoLinkRenameSyncs(noteId) {
+  [...pendingMemoLinkRenameSyncs].forEach(([renameId, message]) => {
+    if (!(message.resolvedSourceNoteIds || []).includes(noteId)) return;
+    pendingMemoLinkRenameSyncs.delete(renameId);
+    applyMemoLinkRenameSync(message);
+  });
+}
+
 async function refreshMemoFromOtherWindow(message) {
   if (!db || message?.type !== "memo-changed" || !message.memoId) return;
   if (noteSaveFoundation.isTerminal(message.memoId)) return;
@@ -6047,6 +6322,10 @@ async function performPermanentDeletionCleanup(memoIds, tombstone = {}, { showNo
 
 async function handleMemoSyncMessage(message) {
   if (!message) return;
+  if (message.type === "memo-link-renamed") {
+    applyMemoLinkRenameSync(message);
+    return;
+  }
   if (message.type === "memo-permanent-delete-started") {
     noteSaveFoundation.beginExternalTerminalDelete(message.memoIds, message);
     message.memoIds?.forEach(clearScheduledNoteSave);
@@ -12595,6 +12874,7 @@ editor.addEventListener("compositionend", () => {
   globalThis.MemoNexusTypingDerivedUiScheduler?.endComposition(noteId);
   editorCaretCompositionActive = false;
   resetEditorCaretIdle();
+  queueMicrotask(() => flushPendingMemoLinkRenameSyncs(noteId));
 });
 editor.addEventListener("paste", resetEditorCaretIdle);
 editor.addEventListener("paste", handleEditorPaste);

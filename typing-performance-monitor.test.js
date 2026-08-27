@@ -530,7 +530,7 @@ test("getSamples and getEvents return defensive copies", () => {
 test("browser loads the monitor before app.js with isolated cache identifiers", () => {
   const html = fs.readFileSync("index.html", "utf8");
   const monitorIndex = html.indexOf('src="typing-performance-monitor.js?v=0.5.0-3"');
-  const appIndex = html.indexOf('src="app.js?v=0.5.0-119"');
+  const appIndex = html.indexOf('src="app.js?v=0.5.0-120"');
   assert.notEqual(monitorIndex, -1);
   assert.notEqual(appIndex, -1);
   assert.ok(monitorIndex < appIndex);

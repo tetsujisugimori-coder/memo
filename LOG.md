@@ -2179,3 +2179,11 @@
 * batch成功時は、表示中メモが同じrevisionでcleanな場合だけタイトル・本文・draft mirror・previewを保存結果へ同期する。別ウィンドウからタイトル変更・作成・削除を受信して解決状態が変わり得る場合は索引無効化後にpreviewを再描画し、受信側が編集中なら既存pending判定を維持して本文を上書きしない。resolvedリンクのクリック時にも現在のタイトル解決を再確認し、古いDOMに残る別note IDへは遷移しない。
 * `memo-link-utils.test.js`へ空白・CRLF・除外領域・missing／ambiguous・自己リンク・連続改名・新タイトル重複・1,001件の索引構築回数を追加した。`note-save-app-integration.test.js`へ複数参照元・重複リンクを含むatomic保存、batch失敗時の無部分保存、ロック待機中revision変更の中止を追加し、`memo-link-app.test.js`でeditor／preview同期とstaleクリック防止を確認した。`npm test`は全844件がpassし、fail・cancelled・skipped・todoは0件だった。`node --check app.js`、`node --check memo-link-utils.js`、`git diff --check`も成功した。
 * READMEと記法ガイドを改名追従仕様へ更新し、配信識別子を`memo-link-utils.js?v=0.5.0-2`、`app.js?v=0.5.0-119`へ更新した。実ブラウザでの手動確認は未実施で、Windows Chrome等を使った複数ウィンドウ操作と視覚確認は残る。
+
+## 2026-08-27 PR #150 残存レビュー指摘対応：改名batchの保存競合と別画面draft保護
+
+* 改名batchの直前に対象メモをIndexedDBから一括取得し、実transaction内で再取得した値とnote ID・revision・updatedAt・タイトル・本文・その他の永続化フィールドを比較するようにした。同一revisionでも内容が変わった場合は専用`MEMO_LINK_RENAME_STORED_CONFLICT`と対象note IDを返し、全put前にtransactionを中止する。Codex threadだけの更新は競合にせず、transaction内の最新保存値を基礎に改名側が担当するタイトル・正式メモリンク本文・時刻・revisionだけを重ねるため、タグ、コレクション、フラグ、添付、source、ローカル保存メタデータ等を保持する。
+* batchのローカルrevision検証と保存snapshotの基準revisionを分離した。保存済み参照元は最新DB本文から開始し、編集中参照元はlive draftを維持する。batch成功時にcleanな現在メモは保存結果を`notes`、current、request、保存共通基盤のcurrent／lastSaved、editorへ統一し、古いlive draftを残さない。batch中に追加入力された場合はdirtyを保ち、正式メモリンク部分だけを新タイトルへmergeして次の通常保存へ渡す。
+* BroadcastChannelへ一意なrename ID、旧名・新名、対象note ID、一意解決済み参照元ID、保存revisionを含む`memo-link-renamed`通知を追加した。別画面がdirty／savingなら通常文を上書きせず、正式な`[[* 旧タイトル]]`だけをoffsetベースで置換し、既存のdirty化・revision・280ms保存予約へ接続する。語句リンク、不正式記法、inline code、fenced code、Mermaidは変更しない。同じ通知の重複受信は無視し、日本語IME composition中は確定後まで適用を保留する。
+* 保存順序、同一revision内容競合、Codex-only merge、各永続化フィールド保持、dirty受信、通知重複、IME、batch成功後のrevision統一、改名直後の1文字保存、batch中追加入力、実transactionの無部分保存を決定的テストへ追加した。`npm test`は全852件がpassし、fail・cancelled・skipped・todoは0件だった。配信識別子は`memo-link-utils.js?v=0.5.0-3`、`app.js?v=0.5.0-120`へ更新した。`note-save-foundation.js`とIndexedDB schemaは変更していない。
+* Windows Chromeの2タブで、参照元を別タブから先に編集・保存した後に対象タイトルを変更し、通常文「外部編集」を保持したまま正式メモリンクだけが新タイトルへ変わることを確認した。さらに改名直後に対象本文へ1文字追記し、再読み込み後にも残ることを確認した。両タブのconsole warning／errorは0件だった。
