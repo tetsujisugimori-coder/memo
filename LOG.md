@@ -2195,3 +2195,10 @@
 * clean修復は専用の単一メモreadwrite transactionで最新レコードを`get()`し、そのレコードを基礎に正式な`[[* 旧タイトル]]`と、対象note自身のタイトルが旧タイトルと一致する場合だけ新タイトルへ変更する。通常文章とtags、collectionId、isFlagged、attachments、source、codexChat、localCreatedAt、localSavedAt、任意の追加メタデータは最新レコードから保持する。本文・タイトルがすでに整合済みなら書き込まず、通知revisionより保存revisionが低い場合だけ単調性を回復する。同じrename IDの重複通知は書込みとrevisionを増やさない。利用者が別タイトルへ変更済みなら上書きしない。
 * clean修復後は保存snapshotを`notes`、現在画面、保存共通基盤のcurrentRevision／lastSavedRevisionへ同期する。修復transaction中に追加入力が発生した場合はlive draftを置換せず、修復済みrevisionより大きいrevisionへ進めて後続通常保存を完了した後、再びIndexedDBを確認する。`note-save-foundation.js`とIndexedDB schemaは変更していない。配信識別子は`app.js?v=0.5.0-121`へ更新した。
 * deferred writerで、遅延通常保存→改名batch→遅延commit→clean通知、saving中通知、通常保存先行、対象メモ自身の遅延保存、対象外フィールド保持、明示的な別タイトル保持、重複通知、本文・タイトルIME、複数note完了管理、B→C→Dを決定的に検証した。`npm test`は全859件がpassし、fail・cancelled・skipped・todoは0件だった。変更JavaScriptの`node --check`と`git diff --check`も成功した。Windows Chromeの2タブでは参照元編集と対象改名をほぼ同時に開始し、両方の保存完了後と再読み込み後に通常文章、`[[* 遅延メモC]]`、対象タイトル「遅延メモC」が残ることを確認し、console warning／errorは0件だった。ブラウザ操作では内部transactionのcommit順を固定できないため、厳密な遅延順序は決定的自動テストで確認した。
+
+## 2026-08-30 Memo Nexus 結節点ロゴと起動演出
+
+* 左上タイトルを、淡く発光する中央核、周囲4ノード、2本の曲線で構成する小型SVGの結節点ロゴへ変更した。既存テーマ変数を基礎に落ち着いた青緑と薄紫を使い、通常時は文字を静止させ、核の弱い呼吸とノードの微かな漂いだけを継続する。狭幅ではロゴを156px、結節点を28pxへ縮小する。
+* 演出は固定の約1.5秒へ統一し、0〜0.4秒で核とノード、0.42秒以降に左から一文字ずつの`Memo Nexus`、1.19秒以降に一度だけの細いカーソルと接続線グローを再生する。旧来の日替わり・タイプライター・Nexus接続・光の走査の設定と循環は廃止し、通常画面の起動中一度とロゴbuttonのクリック時だけ再生する。
+* 再生制御を`logo-animation-utils.js`の専用controllerへまとめ、再実行時は古いRAFをrequest IDで無効化し、残存タイマーを解除して先頭から再開する。`prefers-reduced-motion: reduce`では再生クラスとタイマーを作らず、文字を一括表示し、カーソル・呼吸・漂いを静止する。buttonの標準キーボード操作、focus表示、控えめなhoverを維持し、保存・AI・メモ・画面遷移の処理には接続していない。
+* ロゴの状態テストとDOM・CSS契約テストを更新し、初回一度、クリック再生、再生中再スタート、reduced motion、1.5秒の時間配分、通常状態、モバイル縮小を検証した。`node --test`は全858件がpassし、fail・cancelled・skipped・todoは0件だった。`node --check app.js`、`node --check logo-animation-utils.js`、`git diff --check`も成功した。自動ブラウザ確認はローカル環境に`agent-browser`コマンドがないため未実施とし、実ブラウザでの視覚確認を手動確認対象に残した。

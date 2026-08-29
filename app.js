@@ -23,7 +23,6 @@ const POPOUT_SYNC_CHANNEL = "memo-nexus-sync";
 const THEME_STORAGE_KEY = "memo-nexus-theme";
 const COLLECTION_SORT_STORAGE_KEY = "memo-nexus-collection-sort";
 const IMAGE_BLOCK_SIZE_STORAGE_KEY = "memo-nexus-image-block-size";
-const LOGO_ANIMATION_STORAGE_KEY = "memo-nexus-logo-animation";
 const EDITOR_CARET_ANIMATION_STORAGE_KEY = "memo-nexus-editor-caret-animation";
 const DRAFT_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
 const UNDO_LIMIT = 50;
@@ -501,7 +500,7 @@ const {
   updateChecklistAt
 } = window.MemoNexusMarkdownEnhancements;
 const { createPopoutGhost, getMemoSyncDecision } = window.MemoNexusPopoutUtils;
-const { nextLogoAnimation: nextLogoAnimationInCycle, normalizeLogoAnimation, resolveLogoAnimation } = window.MemoNexusLogoAnimationUtils;
+const { createLogoAnimationController } = window.MemoNexusLogoAnimationUtils;
 const { EDITOR_CARET_REPEAT_DELAY, canPlayEditorCaretAnimation, normalizeEditorCaretAnimationSettings } = window.MemoNexusEditorCaretAnimationUtils;
 
 // HTML要素を短く取得するための小さなヘルパー。
@@ -621,7 +620,11 @@ const closeSettingsBtn = $("closeSettingsBtn");
 const themeSelect = $("themeSelect");
 const imageBlockSizeSelect = $("imageBlockSizeSelect");
 const memoNexusLogo = $("memoNexusLogo");
-const logoAnimationSelect = $("logoAnimationSelect");
+const logoAnimationController = createLogoAnimationController({
+  element: memoNexusLogo,
+  windowObject: window,
+  requestFrame: (callback) => requestAnimationFrame(callback)
+});
 const editorCaretAnimationEnabled = $("editorCaretAnimationEnabled");
 const editorCaretAnimationDelay = $("editorCaretAnimationDelay");
 const editorCaretAnimationReducedMotion = $("editorCaretAnimationReducedMotion");
@@ -974,11 +977,6 @@ let pendingTablePaste = null;
 let mermaidTemplateTrigger = null;
 let currentAttachments = [];
 let imageBlockSize = "medium";
-let logoAnimationSetting = "daily";
-let logoAnimationSessionOverride = null;
-let logoAnimationCleanupTimer = null;
-let logoInitialAnimationScheduled = false;
-let logoAnimationRequestId = 0;
 let editorCaretAnimationSettings = normalizeEditorCaretAnimationSettings(null);
 let editorCaretIdleTimer = null;
 let editorCaretAnimationTimer = null;
@@ -1137,7 +1135,6 @@ async function init() {
     element.textContent = `v${APP_VERSION} "${APP_LABEL}"`;
   });
   restoreTheme();
-  restoreLogoAnimationSetting();
   restoreEditorCaretAnimationSettings();
   if (isPopoutWindow) document.body.classList.add("popout-window");
   if (isPopoutWindow) {
@@ -1346,85 +1343,8 @@ function initializeResponsiveLayout() {
   }
 }
 
-function restoreLogoAnimationSetting() {
-  let savedSetting = "daily";
-  try {
-    savedSetting = normalizeLogoAnimation(localStorage.getItem(LOGO_ANIMATION_STORAGE_KEY));
-  } catch (error) {
-    console.warn("Logo animation restore failed", error);
-  }
-  applyLogoAnimationSetting(savedSetting);
-}
-
-function applyLogoAnimationSetting(value) {
-  logoAnimationSetting = normalizeLogoAnimation(value);
-  if (logoAnimationSelect) logoAnimationSelect.value = logoAnimationSetting;
-  updateLogoAnimationLabel();
-}
-
-function saveLogoAnimationSetting(value) {
-  applyLogoAnimationSetting(value);
-  logoAnimationSessionOverride = null;
-  updateLogoAnimationLabel();
-  try {
-    localStorage.setItem(LOGO_ANIMATION_STORAGE_KEY, logoAnimationSetting);
-  } catch (error) {
-    console.warn("Logo animation save failed", error);
-  }
-  if (logoAnimationSetting === "off") finishLogoAnimation();
-}
-
-function currentLogoAnimation() {
-  return logoAnimationSessionOverride || resolveLogoAnimation(logoAnimationSetting);
-}
-
-function updateLogoAnimationLabel() {
-  if (!memoNexusLogo) return;
-  if (logoAnimationSetting === "off") {
-    memoNexusLogo.setAttribute("aria-label", "ロゴアニメーションはオフです");
-    return;
-  }
-  memoNexusLogo.setAttribute("aria-label", "次のロゴアニメーションを表示（現在: " + currentLogoAnimation() + "）");
-}
-
-function prefersReducedMotion() {
-  return typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-}
-
-function finishLogoAnimation() {
-  if (!memoNexusLogo) return;
-  logoAnimationRequestId += 1;
-  window.clearTimeout(logoAnimationCleanupTimer);
-  logoAnimationCleanupTimer = null;
-  memoNexusLogo.classList.remove("is-animating");
-  delete memoNexusLogo.dataset.logoAnimation;
-}
-
-function playLogoAnimation(animation = currentLogoAnimation()) {
-  if (!memoNexusLogo) return;
-  if (animation === "off") return;
-
-  finishLogoAnimation();
-  memoNexusLogo.dataset.logoAnimation = animation;
-  if (prefersReducedMotion()) return;
-  const requestId = ++logoAnimationRequestId;
-  requestAnimationFrame(() => {
-    if (requestId === logoAnimationRequestId) memoNexusLogo.classList.add("is-animating");
-  });
-  logoAnimationCleanupTimer = window.setTimeout(finishLogoAnimation, 1400);
-}
-
-function cycleLogoAnimation() {
-  if (logoAnimationSetting === "off") return;
-  logoAnimationSessionOverride = nextLogoAnimationInCycle(currentLogoAnimation());
-  updateLogoAnimationLabel();
-  playLogoAnimation(logoAnimationSessionOverride);
-}
-
 function scheduleInitialLogoAnimation() {
-  if (logoInitialAnimationScheduled) return;
-  logoInitialAnimationScheduled = true;
-  requestAnimationFrame(() => playLogoAnimation());
+  logoAnimationController.scheduleInitial();
 }
 
 function restoreEditorCaretAnimationSettings() {
@@ -12809,13 +12729,10 @@ if (themeSelect) {
 if (imageBlockSizeSelect) {
   imageBlockSizeSelect.addEventListener("change", () => saveImageBlockSize(imageBlockSizeSelect.value));
 }
-if (logoAnimationSelect) {
-  logoAnimationSelect.addEventListener("change", () => saveLogoAnimationSetting(logoAnimationSelect.value));
-}
 if (memoNexusLogo) {
-  memoNexusLogo.addEventListener("click", cycleLogoAnimation);
+  memoNexusLogo.addEventListener("click", logoAnimationController.play);
   memoNexusLogo.addEventListener("animationend", (event) => {
-    if (event.target === memoNexusLogo && event.animationName === "memo-nexus-logo-cycle") finishLogoAnimation();
+    if (event.target === memoNexusLogo && event.animationName === "memo-nexus-logo-cycle") logoAnimationController.finish();
   });
 }
 [
