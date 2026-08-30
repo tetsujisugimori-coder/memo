@@ -34,9 +34,18 @@
     );
   }
 
+  function editorCaretPrefersReducedMotion(browser = typeof window !== "undefined" ? window : null) {
+    if (typeof browser?.matchMedia !== "function") return false;
+    try {
+      return Boolean(browser.matchMedia("(prefers-reduced-motion: reduce)")?.matches);
+    } catch (_) {
+      return false;
+    }
+  }
+
   function editorCaretDelayForCycle({ repeated = false, idleDelay } = {}) {
     return repeated ? EDITOR_CARET_REPEAT_DELAY : normalizeEditorCaretAnimationSettings({ idleDelay }).idleDelay;
   }
 
-  return { DEFAULT_EDITOR_CARET_ANIMATION_SETTINGS, EDITOR_CARET_REPEAT_DELAY, canPlayEditorCaretAnimation, editorCaretDelayForCycle, normalizeEditorCaretAnimationSettings };
+  return { DEFAULT_EDITOR_CARET_ANIMATION_SETTINGS, EDITOR_CARET_REPEAT_DELAY, canPlayEditorCaretAnimation, editorCaretDelayForCycle, editorCaretPrefersReducedMotion, normalizeEditorCaretAnimationSettings };
 });

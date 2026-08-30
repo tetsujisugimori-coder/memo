@@ -1,6 +1,6 @@
 const assert = require("node:assert/strict");
 const test = require("node:test");
-const { EDITOR_CARET_REPEAT_DELAY, canPlayEditorCaretAnimation, editorCaretDelayForCycle, normalizeEditorCaretAnimationSettings } = require("./editor-caret-animation-utils.js");
+const { EDITOR_CARET_REPEAT_DELAY, canPlayEditorCaretAnimation, editorCaretDelayForCycle, editorCaretPrefersReducedMotion, normalizeEditorCaretAnimationSettings } = require("./editor-caret-animation-utils.js");
 
 const eligibleState = {
   enabled: true,
@@ -27,6 +27,25 @@ test("初回待機後は回転完了から固定20秒で次回を予約する", 
   assert.equal(editorCaretDelayForCycle({ idleDelay: 1200 }), 4000);
   assert.equal(editorCaretDelayForCycle({ repeated: true, idleDelay: 4000 }), 20000);
   assert.equal(EDITOR_CARET_REPEAT_DELAY, 20000);
+});
+
+test("Reduced Motion判定はmatchMediaがない環境で安全にfalseを返す", () => {
+  assert.equal(editorCaretPrefersReducedMotion(), false);
+  assert.equal(editorCaretPrefersReducedMotion({}), false);
+  assert.equal(editorCaretPrefersReducedMotion({ matchMedia: () => { throw new Error("unsupported"); } }), false);
+});
+
+test("Reduced Motion判定は注入したmatchMediaの一致状態を返す", () => {
+  const queries = [];
+  const browser = {
+    matchMedia(query) {
+      queries.push(query);
+      return { matches: true };
+    }
+  };
+  assert.equal(editorCaretPrefersReducedMotion(browser), true);
+  assert.deepEqual(queries, ["(prefers-reduced-motion: reduce)"]);
+  assert.equal(editorCaretPrefersReducedMotion({ matchMedia: () => ({ matches: false }) }), false);
 });
 
 test("カーソル演出はキャレットだけがあり、安全なアイドル状態の時だけ許可する", () => {
