@@ -10,20 +10,22 @@ const logoButton = header.match(/<button id="memoNexusLogo"[\s\S]*?<\/button>/)?
 
 test("タイトルは4本の触手を持つキーボード操作可能なbuttonである", () => {
   assert.match(logoButton, /type="button" aria-label="Memo Nexus ロゴアニメーションを再生"/);
-  assert.match(logoButton, /<svg viewBox="-3 -3 50 46" focusable="false">/);
+  assert.match(logoButton, /<svg viewBox="-4 -4 52 48" focusable="false">/);
   assert.equal((logoButton.match(/data-logo-tentacle="[0-3]"/g) || []).length, 4);
   assert.equal((logoButton.match(/data-logo-node="[0-3]"/g) || []).length, 4);
-  assert.equal((logoButton.match(/d="M22 20 C/g) || []).length, 4);
+  assert.equal((logoButton.match(/d="M22 20 C[^\"]+ C/g) || []).length, 4);
   assert.match(logoButton, /memo-nexus-logo-core-halo/);
   assert.equal(logoButton.replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim(), "Memo Nexus");
 });
 
 test("触手の経路とノード位置は同じスナップショットから更新される", () => {
   const renderer = app.match(/function renderLogoTentacles\(snapshot\) \{[\s\S]*?\n\}/)?.[0] || "";
-  assert.match(renderer, /path\.setAttribute\("d", `M22 20 C/);
+  assert.match(renderer, /createTentacleGeometry\(\{ center: LOGO_TENTACLE_CENTER, endpoint: base, tentacle \}\)/);
+  assert.match(renderer, /path\.setAttribute\("d", geometry\.path\)/);
   assert.match(renderer, /node\.setAttribute\("cx"/);
   assert.match(renderer, /node\.setAttribute\("cy"/);
-  assert.match(renderer, /tentacle\.bend/);
+  assert.match(renderer, /geometry\.endX/);
+  assert.match(renderer, /geometry\.endY/);
 });
 
 test("旧3種類を含む設定はプレビューと適用を分離する", () => {

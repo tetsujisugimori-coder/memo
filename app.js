@@ -501,7 +501,7 @@ const {
   updateChecklistAt
 } = window.MemoNexusMarkdownEnhancements;
 const { createPopoutGhost, getMemoSyncDecision } = window.MemoNexusPopoutUtils;
-const { createLogoAnimationController, normalizeLogoAnimation } = window.MemoNexusLogoAnimationUtils;
+const { createLogoAnimationController, createTentacleGeometry, normalizeLogoAnimation } = window.MemoNexusLogoAnimationUtils;
 const { EDITOR_CARET_REPEAT_DELAY, canPlayEditorCaretAnimation, normalizeEditorCaretAnimationSettings } = window.MemoNexusEditorCaretAnimationUtils;
 
 // HTML要素を短く取得するための小さなヘルパー。
@@ -635,33 +635,17 @@ const LOGO_TENTACLE_ENDPOINTS = [
   { x: 7, y: 33 }
 ];
 
-function logoCoordinate(value) {
-  return Number(value.toFixed(2));
-}
-
 function renderLogoTentacles(snapshot) {
   snapshot.tentacles.forEach((tentacle) => {
     const path = logoTentaclePaths[tentacle.index];
     const node = logoTentacleNodes[tentacle.index];
     const base = LOGO_TENTACLE_ENDPOINTS[tentacle.index];
     if (!path || !node || !base) return;
-    const dx = base.x - LOGO_TENTACLE_CENTER.x;
-    const dy = base.y - LOGO_TENTACLE_CENTER.y;
-    const length = Math.hypot(dx, dy) || 1;
-    const extension = Number.isFinite(tentacle.extension) ? tentacle.extension : 1;
-    const endX = LOGO_TENTACLE_CENTER.x + dx * extension;
-    const endY = LOGO_TENTACLE_CENTER.y + dy * extension;
-    const bend = (Number.isFinite(tentacle.bend) ? tentacle.bend : 0) * (tentacle.index % 2 ? -1 : 1);
-    const perpendicularX = -dy / length;
-    const perpendicularY = dx / length;
-    const control1X = LOGO_TENTACLE_CENTER.x + dx * extension * 0.32 + perpendicularX * bend * 0.8;
-    const control1Y = LOGO_TENTACLE_CENTER.y + dy * extension * 0.32 + perpendicularY * bend * 0.8;
-    const control2X = LOGO_TENTACLE_CENTER.x + dx * extension * 0.72 - perpendicularX * bend * 0.48;
-    const control2Y = LOGO_TENTACLE_CENTER.y + dy * extension * 0.72 - perpendicularY * bend * 0.48;
-    path.setAttribute("d", `M22 20 C${logoCoordinate(control1X)} ${logoCoordinate(control1Y)} ${logoCoordinate(control2X)} ${logoCoordinate(control2Y)} ${logoCoordinate(endX)} ${logoCoordinate(endY)}`);
+    const geometry = createTentacleGeometry({ center: LOGO_TENTACLE_CENTER, endpoint: base, tentacle });
+    path.setAttribute("d", geometry.path);
     path.dataset.logoPhase = tentacle.phase;
-    node.setAttribute("cx", String(logoCoordinate(endX)));
-    node.setAttribute("cy", String(logoCoordinate(endY)));
+    node.setAttribute("cx", String(Number(geometry.endX.toFixed(2))));
+    node.setAttribute("cy", String(Number(geometry.endY.toFixed(2))));
     node.dataset.logoPhase = tentacle.phase;
   });
 }

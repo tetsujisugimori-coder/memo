@@ -7,6 +7,7 @@ const {
   createAmbientMotionPlan,
   createLogoAnimationController,
   createStartupMotionPlan,
+  createTentacleGeometry,
   motionSnapshot,
   normalizeLogoAnimation,
   tentacleStateAt
@@ -90,13 +91,114 @@ test("4本の起動触手は不等間隔で伸び、各状態を経て核へ戻�
   assert.deepEqual(plan.specs.map((spec) => spec.index), [0, 1, 2, 3]);
   const gaps = plan.specs.slice(1).map((spec, index) => spec.delay - plan.specs[index].delay);
   assert.ok(new Set(gaps).size > 1);
+  assert.equal(new Set(plan.specs.map((spec) => spec.phaseOffset)).size, 4);
+  assert.equal(new Set(plan.specs.map((spec) => spec.waveSpeed)).size, 4);
+  assert.equal(new Set(plan.specs.map((spec) => spec.middleAmplitude)).size, 4);
   const spec = plan.specs[0];
   assert.equal(tentacleStateAt(spec, spec.delay - 1).phase, "waiting");
   assert.equal(tentacleStateAt(spec, spec.delay + 1).phase, "extending");
   assert.equal(tentacleStateAt(spec, spec.delay + spec.extendDuration + 1).phase, "waving");
   assert.equal(tentacleStateAt(spec, spec.delay + spec.extendDuration + spec.waveDuration + 1).phase, "holding");
   assert.equal(tentacleStateAt(spec, spec.delay + spec.extendDuration + spec.waveDuration + spec.holdDuration + 1).phase, "retracting");
-  assert.equal(tentacleStateAt(spec, plan.totalDuration + 1).extension, 1);
+  assert.deepEqual(tentacleStateAt(spec, plan.totalDuration + 1), {
+    phase: "idle",
+    extension: 1,
+    rootBend: 0,
+    middleBend: 0,
+    tipBend: 0,
+    tipLateral: 0,
+    rootPhase: 0,
+    middlePhase: 0,
+    tipPhase: 0,
+    nodePhase: 0,
+    waveStrength: 0,
+    tipStrength: 0,
+    progress: 1
+  });
+});
+
+test("触手内の波は根元・中間・先端・ノードへ位相差を伴って伝わる", () => {
+  const spec = createStartupMotionPlan().specs[1];
+  const state = tentacleStateAt(spec, spec.delay + spec.extendDuration + spec.waveDuration * 0.47);
+  assert.equal(state.phase, "waving");
+  assert.ok(Math.abs(state.rootPhase - state.middlePhase - spec.phaseLag) < 1e-10);
+  assert.ok(Math.abs(state.middlePhase - state.tipPhase - spec.phaseLag) < 1e-10);
+  assert.ok(Math.abs(state.tipPhase - state.nodePhase - spec.phaseLag * 0.58) < 1e-10);
+  assert.ok(new Set([state.rootBend, state.middleBend, state.tipBend].map((value) => value.toFixed(4))).size >= 2);
+  assert.ok(Math.abs(state.tipLateral) < spec.middleAmplitude);
+});
+
+test("伸長中から弱くうねり、保持で落ち着き、引き戻しで振幅を減衰する", () => {
+  const spec = createStartupMotionPlan().specs[0];
+  const extending = tentacleStateAt(spec, spec.delay + spec.extendDuration * 0.5);
+  assert.equal(extending.phase, "extending");
+  assert.ok(extending.waveStrength > 0 && extending.waveStrength < 0.46);
+  assert.ok([extending.rootBend, extending.middleBend, extending.tipBend].some((value) => Math.abs(value) > 0.01));
+  const holdingEarly = tentacleStateAt(spec, spec.delay + spec.extendDuration + spec.waveDuration + spec.holdDuration * 0.1);
+  const holdingLate = tentacleStateAt(spec, spec.delay + spec.extendDuration + spec.waveDuration + spec.holdDuration * 0.9);
+  assert.ok(holdingLate.waveStrength < holdingEarly.waveStrength);
+  assert.ok(holdingLate.waveStrength > 0);
+  const retractEarly = tentacleStateAt(spec, spec.delay + spec.extendDuration + spec.waveDuration + spec.holdDuration + spec.retractDuration * 0.2);
+  const retractLate = tentacleStateAt(spec, spec.delay + spec.extendDuration + spec.waveDuration + spec.holdDuration + spec.retractDuration * 0.8);
+  assert.ok(retractLate.waveStrength < retractEarly.waveStrength);
+  assert.ok(retractLate.tipStrength < retractEarly.tipStrength);
+  assert.ok(retractEarly.tipStrength > retractEarly.waveStrength);
+});
+
+test("触手は滑らかにつながる2区間曲線で、終点とノード座標を共有できる", () => {
+  const center = { x: 22, y: 20 };
+  const endpoint = { x: 38, y: 34 };
+  const tentacle = {
+    extension: 1.3,
+    rootBend: 1.4,
+    middleBend: -3.2,
+    tipBend: 2.1,
+    tipLateral: -0.72
+  };
+  const geometry = createTentacleGeometry({ center, endpoint, tentacle });
+  assert.equal((geometry.path.match(/\bC/g) || []).length, 2);
+  assert.ok(Math.abs((geometry.relayX - geometry.relayControlInX) - (geometry.relayControlOutX - geometry.relayX)) < 1e-10);
+  assert.ok(Math.abs((geometry.relayY - geometry.relayControlInY) - (geometry.relayControlOutY - geometry.relayY)) < 1e-10);
+  const length = Math.hypot(endpoint.x - center.x, endpoint.y - center.y);
+  const expectedEndX = center.x + (endpoint.x - center.x) * tentacle.extension - ((endpoint.y - center.y) / length) * tentacle.tipLateral;
+  const expectedEndY = center.y + (endpoint.y - center.y) * tentacle.extension + ((endpoint.x - center.x) / length) * tentacle.tipLateral;
+  assert.equal(geometry.endX, expectedEndX);
+  assert.equal(geometry.endY, expectedEndY);
+  const reset = createTentacleGeometry({ center, endpoint, tentacle: tentacleStateAt(createStartupMotionPlan().specs[0], 99999) });
+  assert.equal(reset.endX, endpoint.x);
+  assert.equal(reset.endY, endpoint.y);
+});
+
+test("起動時の曲線と先端ノードは拡張したSVG表示領域に収まる", () => {
+  const center = { x: 22, y: 20 };
+  const endpoints = [{ x: 8, y: 7 }, { x: 37, y: 6 }, { x: 38, y: 34 }, { x: 7, y: 33 }];
+  const plan = createStartupMotionPlan();
+  for (let elapsed = 0; elapsed <= plan.totalDuration; elapsed += 80) {
+    for (const spec of plan.specs) {
+      const geometry = createTentacleGeometry({ center, endpoint: endpoints[spec.index], tentacle: tentacleStateAt(spec, elapsed) });
+      const xs = [geometry.endX, geometry.relayX, geometry.rootControlX, geometry.relayControlInX, geometry.relayControlOutX, geometry.tipControlX];
+      const ys = [geometry.endY, geometry.relayY, geometry.rootControlY, geometry.relayControlInY, geometry.relayControlOutY, geometry.tipControlY];
+      assert.ok(Math.min(...xs) >= -2 && Math.max(...xs) <= 46, `tentacle ${spec.index} x should keep node radius inside viewBox`);
+      assert.ok(Math.min(...ys) >= -2 && Math.max(...ys) <= 42, `tentacle ${spec.index} y should keep node radius inside viewBox`);
+    }
+  }
+});
+
+test("乱数端点を含む通常イベントもSVG境界で見切れない", () => {
+  const center = { x: 22, y: 20 };
+  const endpoints = [{ x: 8, y: 7 }, { x: 37, y: 6 }, { x: 38, y: 34 }, { x: 7, y: 33 }];
+  for (const roll of [0, 0.25, 0.5, 0.75, 1]) {
+    const plan = createAmbientMotionPlan({ random: () => roll });
+    for (let elapsed = 0; elapsed <= plan.totalDuration; elapsed += 100) {
+      for (const spec of plan.specs) {
+        const geometry = createTentacleGeometry({ center, endpoint: endpoints[spec.index], tentacle: tentacleStateAt(spec, elapsed) });
+        const xs = [geometry.endX, geometry.relayX, geometry.rootControlX, geometry.relayControlInX, geometry.relayControlOutX, geometry.tipControlX];
+        const ys = [geometry.endY, geometry.relayY, geometry.rootControlY, geometry.relayControlInY, geometry.relayControlOutY, geometry.tipControlY];
+        assert.ok(Math.min(...xs) >= -2 && Math.max(...xs) <= 46);
+        assert.ok(Math.min(...ys) >= -2 && Math.max(...ys) <= 42);
+      }
+    }
+  }
 });
 
 test("アンビエント演出の状態は伸長・うねり・静止・引き戻しと遷移する", () => {
@@ -123,6 +225,15 @@ test("次回イベントは同じ触手・長さ・速度を連続させにく�
   assert.notEqual(second.primary, first.primary);
   assert.notEqual(second.extension, first.extension);
   assert.notEqual(second.extendDuration, first.extendDuration);
+  assert.notEqual(second.middleAmplitude, first.middleAmplitude);
+  assert.notEqual(second.waves, first.waves);
+  assert.notEqual(second.waveSpeed, first.waveSpeed);
+  assert.notEqual(second.phaseOffset, first.phaseOffset);
+  for (const spec of first.specs) {
+    assert.ok(spec.waves >= 2 && spec.waves <= 4);
+    assert.ok(spec.rootAmplitude !== spec.middleAmplitude);
+    assert.ok(spec.tipFollow < spec.middleAmplitude);
+  }
 });
 
 test("再実行は古いRAFとタイマーを無効化して先頭から再開する", () => {
@@ -183,4 +294,6 @@ test("未選択の触手は静止状態に保つ", () => {
   const snapshot = motionSnapshot(createAmbientMotionPlan({ random: () => 0.1 }), 1);
   assert.equal(snapshot.tentacles.length, 4);
   assert.equal(snapshot.tentacles.filter((item) => item.phase === "idle").length, 3);
+  const idle = snapshot.tentacles.find((item) => item.phase === "idle");
+  assert.deepEqual([idle.rootBend, idle.middleBend, idle.tipBend, idle.tipLateral], [0, 0, 0, 0]);
 });

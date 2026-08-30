@@ -5,7 +5,7 @@
 })(typeof window !== "undefined" ? window : globalThis, () => {
   const LOGO_ANIMATION_SETTINGS = ["living-nexus", "typewriter", "nexus", "scan", "off"];
   const LOGO_ANIMATION_DURATIONS = {
-    "living-nexus": 7200,
+    "living-nexus": 9600,
     typewriter: 1450,
     nexus: 1800,
     scan: 1100,
@@ -35,16 +35,88 @@
     return minimum + clamp(Number(random()) || 0) * (maximum - minimum);
   }
 
+  function createIdleTentacleState(phase = "idle", progress = 1) {
+    return {
+      phase,
+      extension: 1,
+      rootBend: 0,
+      middleBend: 0,
+      tipBend: 0,
+      tipLateral: 0,
+      rootPhase: 0,
+      middlePhase: 0,
+      tipPhase: 0,
+      nodePhase: 0,
+      waveStrength: 0,
+      tipStrength: 0,
+      progress
+    };
+  }
+
   function motionSpecEnd(spec) {
     return spec.delay + spec.extendDuration + spec.waveDuration + spec.holdDuration + spec.retractDuration;
   }
 
+  function logoCoordinate(value) {
+    return Number(value.toFixed(2));
+  }
+
+  function createTentacleGeometry({ center, endpoint, tentacle }) {
+    const centerX = Number(center?.x) || 0;
+    const centerY = Number(center?.y) || 0;
+    const dx = (Number(endpoint?.x) || 0) - centerX;
+    const dy = (Number(endpoint?.y) || 0) - centerY;
+    const baseLength = Math.hypot(dx, dy) || 1;
+    const directionX = dx / baseLength;
+    const directionY = dy / baseLength;
+    const perpendicularX = -directionY;
+    const perpendicularY = directionX;
+    const extension = Number.isFinite(tentacle?.extension) ? tentacle.extension : 1;
+    const rootBend = Number.isFinite(tentacle?.rootBend) ? tentacle.rootBend : 0;
+    const middleBend = Number.isFinite(tentacle?.middleBend) ? tentacle.middleBend : 0;
+    const tipBend = Number.isFinite(tentacle?.tipBend) ? tentacle.tipBend : 0;
+    const tipLateral = Number.isFinite(tentacle?.tipLateral) ? tentacle.tipLateral : 0;
+    const span = baseLength * extension;
+    const endX = centerX + directionX * span + perpendicularX * tipLateral;
+    const endY = centerY + directionY * span + perpendicularY * tipLateral;
+    const relayX = centerX + directionX * span * 0.54 + perpendicularX * middleBend;
+    const relayY = centerY + directionY * span * 0.54 + perpendicularY * middleBend;
+    const jointAlong = span * 0.16;
+    const jointAcross = (tipBend - rootBend) * 0.16;
+    const jointX = directionX * jointAlong + perpendicularX * jointAcross;
+    const jointY = directionY * jointAlong + perpendicularY * jointAcross;
+    const rootControlX = centerX + directionX * span * 0.18 + perpendicularX * rootBend;
+    const rootControlY = centerY + directionY * span * 0.18 + perpendicularY * rootBend;
+    const relayControlInX = relayX - jointX;
+    const relayControlInY = relayY - jointY;
+    const relayControlOutX = relayX + jointX;
+    const relayControlOutY = relayY + jointY;
+    const tipControlX = endX - directionX * span * 0.18 + perpendicularX * tipBend;
+    const tipControlY = endY - directionY * span * 0.18 + perpendicularY * tipBend;
+    const path = `M${logoCoordinate(centerX)} ${logoCoordinate(centerY)} C${logoCoordinate(rootControlX)} ${logoCoordinate(rootControlY)} ${logoCoordinate(relayControlInX)} ${logoCoordinate(relayControlInY)} ${logoCoordinate(relayX)} ${logoCoordinate(relayY)} C${logoCoordinate(relayControlOutX)} ${logoCoordinate(relayControlOutY)} ${logoCoordinate(tipControlX)} ${logoCoordinate(tipControlY)} ${logoCoordinate(endX)} ${logoCoordinate(endY)}`;
+    return {
+      path,
+      endX,
+      endY,
+      relayX,
+      relayY,
+      rootControlX,
+      rootControlY,
+      relayControlInX,
+      relayControlInY,
+      relayControlOutX,
+      relayControlOutY,
+      tipControlX,
+      tipControlY
+    };
+  }
+
   function createStartupMotionPlan() {
     const specs = [
-      { index: 0, delay: 1540, extension: 1.34, extendDuration: 760, waveDuration: 1650, waves: 2.25, amplitude: 2.2, holdDuration: 460, retractDuration: 920 },
-      { index: 1, delay: 1830, extension: 1.42, extendDuration: 880, waveDuration: 1780, waves: 2.8, amplitude: 2.5, holdDuration: 540, retractDuration: 1020 },
-      { index: 2, delay: 2210, extension: 1.37, extendDuration: 720, waveDuration: 1540, waves: 2.15, amplitude: 2.1, holdDuration: 620, retractDuration: 860 },
-      { index: 3, delay: 2470, extension: 1.46, extendDuration: 940, waveDuration: 1820, waves: 3.1, amplitude: 2.7, holdDuration: 480, retractDuration: 1080 }
+      { index: 0, delay: 1540, extension: 1.34, extendDuration: 760, waveDuration: 3630, waves: 2.25, waveSpeed: 0.62, phaseOffset: 0.18, phaseLag: 0.78, rootAmplitude: 2.05, middleAmplitude: 3.1, tipAmplitude: 2.52, tipFollow: 0.68, holdDuration: 460, retractDuration: 920 },
+      { index: 1, delay: 1830, extension: 1.42, extendDuration: 880, waveDuration: 4120, waves: 2.8, waveSpeed: 0.68, phaseOffset: 1.32, phaseLag: 0.94, rootAmplitude: 2.28, middleAmplitude: 3.48, tipAmplitude: 2.78, tipFollow: 0.82, holdDuration: 540, retractDuration: 1020 },
+      { index: 2, delay: 2210, extension: 1.37, extendDuration: 720, waveDuration: 3710, waves: 2.15, waveSpeed: 0.58, phaseOffset: 2.46, phaseLag: 0.72, rootAmplitude: 1.86, middleAmplitude: 2.94, tipAmplitude: 2.35, tipFollow: 0.62, holdDuration: 620, retractDuration: 860 },
+      { index: 3, delay: 2470, extension: 1.46, extendDuration: 940, waveDuration: 4310, waves: 3.1, waveSpeed: 0.72, phaseOffset: 3.74, phaseLag: 1.02, rootAmplitude: 2.46, middleAmplitude: 3.78, tipAmplitude: 3.02, tipFollow: 0.88, holdDuration: 480, retractDuration: 1080 }
     ];
     return { kind: "startup", specs, totalDuration: LOGO_ANIMATION_DURATIONS["living-nexus"] };
   }
@@ -66,25 +138,42 @@
     }
     let extendDuration = Math.round(randomBetween(random, 920, 1640));
     if (previous && Math.abs(extendDuration - previous.extendDuration) < 90) extendDuration += extendDuration > 1280 ? -170 : 170;
-    const waveDuration = Math.round(randomBetween(random, 2100, 3900));
     const holdDuration = Math.round(randomBetween(random, 420, 1250));
     const retractDuration = Math.round(randomBetween(random, 900, 1750));
-    const amplitude = randomBetween(random, 1.35, 3.15);
-    const waves = randomBetween(random, 2.1, 4.4);
+    let middleAmplitude = randomBetween(random, 1.9, 4.35);
+    if (previous && Math.abs(middleAmplitude - previous.middleAmplitude) < 0.15) middleAmplitude = clamp(middleAmplitude + (middleAmplitude > 3.1 ? -0.38 : 0.38), 1.9, 4.35);
+    let waves = randomBetween(random, 2.05, 4);
+    if (previous && Math.abs(waves - previous.waves) < 0.15) waves = clamp(waves + (waves > 3 ? -0.42 : 0.42), 2.05, 4);
+    let waveSpeed = randomBetween(random, 0.5, 0.74);
+    if (previous && Math.abs(waveSpeed - previous.waveSpeed) < 0.025) waveSpeed = clamp(waveSpeed + (waveSpeed > 0.62 ? -0.07 : 0.07), 0.5, 0.74);
+    const phaseLag = randomBetween(random, 0.7, 1.08);
+    let phaseOffset = randomBetween(random, 0, Math.PI * 2);
+    if (previous && Math.abs(phaseOffset - previous.phaseOffset) < 0.12) phaseOffset = (phaseOffset + 0.73) % (Math.PI * 2);
 
-    const specs = indices.map((index, order) => ({
-      index,
-      delay: order === 0 ? 0 : Math.round(randomBetween(random, 170, 430)),
-      extension: clamp(extension + (order ? randomBetween(random, -0.07, 0.07) : 0), 1.16, 1.48),
-      extendDuration: Math.round(extendDuration + (order ? randomBetween(random, -180, 180) : 0)),
-      waveDuration: Math.round(waveDuration + (order ? randomBetween(random, -260, 260) : 0)),
-      waves: waves + (order ? randomBetween(random, -0.55, 0.55) : 0),
-      amplitude: amplitude + (order ? randomBetween(random, -0.45, 0.45) : 0),
-      holdDuration: Math.round(holdDuration + (order ? randomBetween(random, -160, 160) : 0)),
-      retractDuration: Math.round(retractDuration + (order ? randomBetween(random, -180, 180) : 0))
-    }));
+    const specs = indices.map((index, order) => {
+      const specWaves = clamp(waves + (order ? randomBetween(random, -0.55, 0.55) : 0), 2, 4);
+      const specWaveSpeed = clamp(waveSpeed + (order ? randomBetween(random, -0.1, 0.1) : 0), 0.46, 0.78);
+      const specMiddleAmplitude = middleAmplitude + (order ? randomBetween(random, -0.42, 0.42) : 0);
+      return {
+        index,
+        delay: order === 0 ? 0 : Math.round(randomBetween(random, 170, 430)),
+        extension: clamp(extension + (order ? randomBetween(random, -0.07, 0.07) : 0), 1.16, 1.48),
+        extendDuration: Math.round(extendDuration + (order ? randomBetween(random, -180, 180) : 0)),
+        waveDuration: Math.round(specWaves / specWaveSpeed * 1000),
+        waves: specWaves,
+        waveSpeed: specWaveSpeed,
+        phaseOffset: phaseOffset + order * randomBetween(random, 0.42, 1.08),
+        phaseLag: phaseLag + (order ? randomBetween(random, -0.12, 0.12) : 0),
+        rootAmplitude: specMiddleAmplitude * randomBetween(random, 0.58, 0.76),
+        middleAmplitude: specMiddleAmplitude,
+        tipAmplitude: specMiddleAmplitude * randomBetween(random, 0.72, 0.92),
+        tipFollow: specMiddleAmplitude * randomBetween(random, 0.18, 0.29),
+        holdDuration: Math.round(holdDuration + (order ? randomBetween(random, -160, 160) : 0)),
+        retractDuration: Math.round(retractDuration + (order ? randomBetween(random, -180, 180) : 0))
+      };
+    });
     const totalDuration = Math.max(...specs.map(motionSpecEnd));
-    return { kind: "ambient", primary, extension, extendDuration, specs, totalDuration };
+    return { kind: "ambient", primary, extension, extendDuration, middleAmplitude, waves, waveSpeed, phaseOffset, specs, totalDuration };
   }
 
   function tentacleStateAt(spec, elapsed) {
@@ -93,51 +182,70 @@
     const waveEnd = extendEnd + spec.waveDuration;
     const holdEnd = waveEnd + spec.holdDuration;
     const retractEnd = holdEnd + spec.retractDuration;
-    if (local < 0) return { phase: "waiting", extension: 1, bend: 0, progress: 0 };
+    if (local < 0) return createIdleTentacleState("waiting", 0);
+    let phase;
+    let progress;
+    let extension;
+    let cycle;
+    let waveStrength;
+    let tipStrength;
     if (local < extendEnd) {
-      const progress = clamp(local / spec.extendDuration);
-      return {
-        phase: "extending",
-        extension: 1 + (spec.extension - 1) * easeInOut(progress),
-        bend: Math.sin(progress * Math.PI) * spec.amplitude * 0.28,
-        progress
-      };
+      phase = "extending";
+      progress = clamp(local / spec.extendDuration);
+      extension = 1 + (spec.extension - 1) * easeInOut(progress);
+      cycle = progress * 0.36 * (spec.waveSpeed / 0.62);
+      waveStrength = Math.sin(progress * Math.PI / 2) * 0.46;
+      tipStrength = waveStrength * 0.88;
+    } else if (local < waveEnd) {
+      phase = "waving";
+      progress = clamp((local - extendEnd) / spec.waveDuration);
+      extension = spec.extension;
+      cycle = 0.36 * (spec.waveSpeed / 0.62) + progress * spec.waves;
+      waveStrength = 0.46 + 0.54 * easeInOut(clamp(progress / 0.28));
+      tipStrength = waveStrength;
+    } else if (local < holdEnd) {
+      phase = "holding";
+      progress = clamp((local - waveEnd) / spec.holdDuration);
+      extension = spec.extension;
+      cycle = 0.36 * (spec.waveSpeed / 0.62) + spec.waves + progress * 0.14 * (spec.waveSpeed / 0.62);
+      waveStrength = 1 - 0.76 * easeInOut(progress);
+      tipStrength = 1 - 0.68 * easeInOut(progress);
+    } else if (local < retractEnd) {
+      phase = "retracting";
+      progress = clamp((local - holdEnd) / spec.retractDuration);
+      extension = spec.extension - (spec.extension - 1) * easeInOut(progress);
+      cycle = 0.5 * (spec.waveSpeed / 0.62) + spec.waves + progress * 0.48 * (spec.waveSpeed / 0.62);
+      waveStrength = 0.24 * (1 - easeInOut(progress));
+      tipStrength = 0.32 * (1 - Math.pow(progress, 1.35));
+    } else {
+      return createIdleTentacleState();
     }
-    if (local < waveEnd) {
-      const progress = clamp((local - extendEnd) / spec.waveDuration);
-      return {
-        phase: "waving",
-        extension: spec.extension,
-        bend: Math.sin(progress * spec.waves * Math.PI * 2 + spec.index * 0.7) * spec.amplitude,
-        progress
-      };
-    }
-    if (local < holdEnd) {
-      const progress = clamp((local - waveEnd) / spec.holdDuration);
-      return {
-        phase: "holding",
-        extension: spec.extension,
-        bend: Math.sin((1 - progress) * Math.PI) * spec.amplitude * 0.18,
-        progress
-      };
-    }
-    if (local < retractEnd) {
-      const progress = clamp((local - holdEnd) / spec.retractDuration);
-      return {
-        phase: "retracting",
-        extension: spec.extension - (spec.extension - 1) * easeInOut(progress),
-        bend: Math.sin(progress * Math.PI * 2) * spec.amplitude * 0.22 * (1 - progress),
-        progress
-      };
-    }
-    return { phase: "idle", extension: 1, bend: 0, progress: 1 };
+    const rootPhase = spec.phaseOffset + cycle * Math.PI * 2;
+    const middlePhase = rootPhase - spec.phaseLag;
+    const tipPhase = middlePhase - spec.phaseLag;
+    const nodePhase = tipPhase - spec.phaseLag * 0.58;
+    return {
+      phase,
+      extension,
+      rootBend: Math.sin(rootPhase) * spec.rootAmplitude * waveStrength,
+      middleBend: Math.sin(middlePhase) * spec.middleAmplitude * waveStrength,
+      tipBend: Math.sin(tipPhase) * spec.tipAmplitude * waveStrength,
+      tipLateral: Math.sin(nodePhase) * spec.tipFollow * tipStrength,
+      rootPhase,
+      middlePhase,
+      tipPhase,
+      nodePhase,
+      waveStrength,
+      tipStrength,
+      progress
+    };
   }
 
   function motionSnapshot(plan, elapsed) {
     const byIndex = new Map((plan?.specs || []).map((spec) => [spec.index, tentacleStateAt(spec, elapsed)]));
     const tentacles = Array.from({ length: TENTACLE_COUNT }, (_, index) => ({
       index,
-      ...(byIndex.get(index) || { phase: "idle", extension: 1, bend: 0, progress: 1 })
+      ...(byIndex.get(index) || createIdleTentacleState())
     }));
     const active = tentacles.filter((item) => !["idle", "waiting"].includes(item.phase));
     const phasePriority = ["retracting", "holding", "waving", "extending"];
@@ -411,6 +519,7 @@
     createAmbientMotionPlan,
     createLogoAnimationController,
     createStartupMotionPlan,
+    createTentacleGeometry,
     motionSnapshot,
     normalizeLogoAnimation,
     tentacleStateAt
