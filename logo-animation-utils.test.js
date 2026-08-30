@@ -4,12 +4,20 @@ const {
   AMBIENT_WAIT_MAX_MS,
   AMBIENT_WAIT_MIN_MS,
   LOGO_ANIMATION_DURATIONS,
+  LOGO_ANIMATION_FAMILIES,
+  LOGO_ANIMATION_PREVIEW_POSES,
+  applyLogoAnimationPreviewPose,
+  clearLogoAnimationPreviewPose,
   createAmbientMotionPlan,
   createLogoAnimationController,
+  createLogoAnimationPreviewManager,
+  createLogoAnimationSettingsSession,
   createStartupMotionPlan,
   createTentacleGeometry,
+  logoAnimationFamily,
   motionSnapshot,
   normalizeLogoAnimation,
+  replaceLogoAnimationDom,
   tentacleStateAt
 } = require("./logo-animation-utils.js");
 
@@ -23,12 +31,14 @@ function createFixture({ reducedMotion = false, visible = true, randomValues = [
   let nextTimerId = 0;
   let randomIndex = 0;
   const element = {
+    children: [],
     dataset: {},
     style: { values: {}, setProperty(name, value) { this.values[name] = value; } },
     classList: {
       add: (...names) => names.forEach((name) => classes.add(name)),
       remove: (...names) => names.forEach((name) => classes.delete(name))
-    }
+    },
+    replaceChildren(content) { this.children = [content]; }
   };
   const windowObject = {
     matchMedia: () => ({ matches: reducedMotion }),
@@ -91,6 +101,208 @@ function createPhaseComparisonPlan(candidate, previousPhase) {
 test("旧設定値を維持しdailyと未知値を生体Nexusへ移行する", () => {
   for (const value of ["typewriter", "nexus", "scan", "off", "living-nexus"]) assert.equal(normalizeLogoAnimation(value), value);
   for (const value of ["daily", "", null, "unknown"]) assert.equal(normalizeLogoAnimation(value), "living-nexus");
+});
+
+test("5設定を生体Nexus系と従来ロゴ系へ決定的に分類する", () => {
+  assert.deepEqual(LOGO_ANIMATION_FAMILIES, {
+    "living-nexus": "living",
+    typewriter: "legacy",
+    nexus: "legacy",
+    scan: "legacy",
+    off: "living"
+  });
+  for (const setting of ["living-nexus", "off"]) assert.equal(logoAnimationFamily(setting), "living");
+  for (const setting of ["typewriter", "nexus", "scan"]) assert.equal(logoAnimationFamily(setting), "legacy");
+  assert.equal(logoAnimationFamily("unknown"), "living");
+});
+
+test("DOM系統切替は異なる系統だけを停止・置換し、動作属性を初期化する", () => {
+  const classes = new Set(["is-animating", "is-tentacle-active"]);
+  const calls = [];
+  const element = {
+    children: [{ family: "living" }],
+    dataset: {
+      logoFamily: "living",
+      logoAnimation: "living-nexus",
+      logoActiveTentacle: "0 2",
+      logoPreviewPose: "living-complete"
+    },
+    classList: {
+      remove: (...names) => names.forEach((name) => classes.delete(name))
+    },
+    replaceChildren(content) {
+      calls.push(["replace", content.family]);
+      this.children = [content];
+    }
+  };
+  const options = {
+    beforeReplace: ({ previousFamily, family }) => calls.push(["stop", previousFamily, family]),
+    createContent: (family) => ({ family })
+  };
+
+  assert.deepEqual(replaceLogoAnimationDom(element, "typewriter", options), {
+    setting: "typewriter",
+    family: "legacy",
+    replaced: true
+  });
+  assert.deepEqual(calls, [["stop", "living", "legacy"], ["replace", "legacy"]]);
+  assert.equal(element.dataset.logoFamily, "legacy");
+  assert.equal(element.dataset.logoAnimation, "typewriter");
+  assert.equal("logoActiveTentacle" in element.dataset, false);
+  assert.equal("logoPreviewPose" in element.dataset, false);
+  assert.equal(classes.has("is-animating"), false);
+  assert.equal(classes.has("is-tentacle-active"), false);
+
+  assert.equal(replaceLogoAnimationDom(element, "scan", options).replaced, false);
+  assert.equal(calls.length, 2);
+  assert.equal(element.dataset.logoAnimation, "scan");
+  assert.equal(replaceLogoAnimationDom(element, "off", options).family, "living");
+  assert.deepEqual(calls.slice(-2), [["stop", "legacy", "living"], ["replace", "living"]]);
+});
+
+test("未適用の従来系プレビューを閉じると保存済みの生体系DOMへ戻る", () => {
+  const session = createLogoAnimationSettingsSession("living-nexus");
+  const element = {
+    children: [],
+    dataset: {},
+    classList: { remove: () => {} },
+    replaceChildren(content) { this.children = [content]; }
+  };
+  const options = { createContent: (family) => ({ family }) };
+  replaceLogoAnimationDom(element, session.getState().saved, options);
+  replaceLogoAnimationDom(element, session.select("scan").selected, options);
+  assert.equal(element.dataset.logoFamily, "legacy");
+  const cancelled = session.cancel();
+  replaceLogoAnimationDom(element, cancelled.saved, options);
+  assert.equal(element.dataset.logoFamily, "living");
+  assert.equal(element.dataset.logoAnimation, "living-nexus");
+});
+
+test("生体系から従来系へ置換する前に古いRAF・終了タイマー・ambient待機を無効化する", () => {
+  const fixture = createFixture();
+  fixture.element.dataset.logoFamily = "living";
+  fixture.controller.play("living-nexus");
+  fixture.runNextFrame(20);
+  assert.ok(fixture.frames.size > 0);
+  const cleanupTimer = [...fixture.timers.values()].at(-1);
+  assert.equal(cleanupTimer.cleared, false);
+
+  replaceLogoAnimationDom(fixture.element, "nexus", {
+    beforeReplace: () => fixture.controller.setSetting("off"),
+    createContent: (family) => ({ family })
+  });
+  assert.equal(cleanupTimer.cleared, true);
+  assert.equal(fixture.frames.size, 0);
+  assert.equal(fixture.classes.has("is-animating"), false);
+  assert.equal(fixture.classes.has("is-tentacle-active"), false);
+  assert.equal("logoActiveTentacle" in fixture.element.dataset, false);
+  assert.deepEqual(fixture.element.children, [{ family: "legacy" }]);
+});
+
+test("旧3種類は通常触手イベントやランダム待機を予約しない", () => {
+  for (const setting of ["typewriter", "nexus", "scan"]) {
+    const fixture = createFixture();
+    fixture.controller.setSetting(setting, { scheduleAmbient: true });
+    assert.equal(fixture.controller.scheduleAmbient(), false);
+    assert.equal(fixture.controller.startAmbientEvent(), false);
+    assert.equal(fixture.frames.size, 0);
+    assert.equal([...fixture.timers.values()].filter((timer) => !timer.cleared).length, 0);
+  }
+});
+
+test("5種類の代表静止ポーズは互いに異なり、RAFやタイマーなしで適用できる", () => {
+  assert.deepEqual(LOGO_ANIMATION_PREVIEW_POSES, {
+    "living-nexus": "living-complete",
+    typewriter: "typewriter-caret",
+    nexus: "nexus-connected",
+    scan: "scan-midpoint",
+    off: "off-static"
+  });
+  assert.equal(new Set(Object.values(LOGO_ANIMATION_PREVIEW_POSES)).size, 5);
+  const fixture = createFixture();
+  for (const setting of ["living-nexus", "typewriter", "nexus", "scan", "off"]) {
+    assert.equal(applyLogoAnimationPreviewPose(fixture.element, setting), LOGO_ANIMATION_PREVIEW_POSES[setting]);
+    assert.equal(fixture.element.dataset.logoAnimation, setting);
+    assert.equal(fixture.element.dataset.logoPreviewPose, LOGO_ANIMATION_PREVIEW_POSES[setting]);
+    assert.equal(fixture.frames.size, 0);
+    assert.equal(fixture.timers.size, 0);
+  }
+  assert.equal(clearLogoAnimationPreviewPose(fixture.element), true);
+  assert.equal("logoPreviewPose" in fixture.element.dataset, false);
+});
+
+test("設定セッションは保存済み・選択中・プレビュー中を分離する", () => {
+  const session = createLogoAnimationSettingsSession("typewriter");
+  assert.deepEqual(session.getState(), {
+    saved: "typewriter",
+    selected: "typewriter",
+    previewing: "typewriter",
+    dirty: false
+  });
+  assert.deepEqual(session.select("scan"), {
+    saved: "typewriter",
+    selected: "scan",
+    previewing: "scan",
+    dirty: true
+  });
+  assert.equal(session.preview("nexus").selected, "scan");
+  assert.equal(session.getState().previewing, "nexus");
+  assert.deepEqual(session.apply(), {
+    saved: "scan",
+    selected: "scan",
+    previewing: "scan",
+    dirty: false
+  });
+  session.select("off");
+  assert.deepEqual(session.cancel(), {
+    saved: "scan",
+    selected: "scan",
+    previewing: "scan",
+    dirty: false
+  });
+});
+
+test("設定セッションは開始時と選択時の不正値を生体Nexusへフォールバックする", () => {
+  const session = createLogoAnimationSettingsSession("unknown");
+  assert.equal(session.getState().saved, "living-nexus");
+  assert.equal(session.select("removed").selected, "living-nexus");
+  assert.equal(session.begin("daily").saved, "living-nexus");
+});
+
+test("デモ管理は再生対象を1つに限定し、切替・連続再生・終了時に以前の処理を停止する", () => {
+  const controllers = [];
+  const stopped = [];
+  const manager = createLogoAnimationPreviewManager({
+    createController: ({ setting, target }) => {
+      const calls = [];
+      const controller = {
+        calls,
+        setSetting: (value) => calls.push(["set", value]),
+        play: (value, options) => {
+          calls.push(["play", value, options]);
+          return true;
+        }
+      };
+      controllers.push({ controller, setting, target });
+      return controller;
+    },
+    onStop: (active) => stopped.push([active.setting, active.target])
+  });
+
+  assert.equal(manager.play("living-nexus", "first"), true);
+  assert.deepEqual(controllers[0].controller.calls.at(-1), ["play", "living-nexus", { scheduleAmbientAfter: false }]);
+  assert.equal(manager.play("scan", "second"), true);
+  assert.deepEqual(controllers[0].controller.calls.at(-1), ["set", "off"]);
+  assert.deepEqual(stopped, [["living-nexus", "first"]]);
+  assert.deepEqual(manager.getActive(), { setting: "scan", target: "second" });
+  assert.equal(manager.play("scan", "second"), true);
+  assert.deepEqual(controllers[1].controller.calls.at(-1), ["set", "off"]);
+  assert.equal(manager.stop(), true);
+  assert.equal(manager.getActive(), null);
+  assert.equal(manager.stop(), false);
+  assert.equal(manager.play("off", "static"), false);
+  assert.equal(manager.play("scan", null), false);
+  assert.equal(controllers.length, 3);
 });
 
 test("起動演出は一度だけ予約され、実開始RAFの後に終了タイマーを作る", () => {

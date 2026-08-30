@@ -24,7 +24,7 @@ test("タグバックアップ関連スクリプトのキャッシュ番号を�
   assert.match(html, /tags\.js\?v=0\.5\.0-4/);
   assert.match(html, /local-sync-utils\.js\?v=0\.5\.0-10/);
   assert.match(html, /backup-bundle-utils\.js\?v=0\.5\.0-5/);
-  assert.match(html, /app\.js\?v=0\.5\.0-124/);
+  assert.match(html, /app\.js\?v=0\.5\.0-126/);
 });
 
 test("完全バックアップはメモ個別のWebフォントIDをそのまま往復する", () => {

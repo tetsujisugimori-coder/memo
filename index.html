@@ -7,7 +7,7 @@
   <script>try { document.documentElement.dataset.initialTheme = localStorage.getItem("memo-nexus-theme") === "dark" ? "dark" : "light"; } catch (_) { document.documentElement.dataset.initialTheme = "light"; }</script>
   <style>html,body{background:#f6f7f4;color:#222522;color-scheme:light}html[data-initial-theme="dark"],html[data-initial-theme="dark"] body{background:#111513;color:#e7ece7;color-scheme:dark}</style>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css">
-  <link rel="stylesheet" href="style.css?v=0.5.0-62">
+  <link rel="stylesheet" href="style.css?v=0.5.0-64">
 </head>
 <body class="app-starting">
   <section id="appStartupGuard" class="app-startup-guard" role="status" aria-live="polite" aria-busy="true">
@@ -112,27 +112,36 @@
     <div id="collectionToast" class="collection-toast" role="status" aria-live="polite" hidden></div>
   </aside>
 
+  <template id="memoNexusLivingLogoTemplate">
+    <span class="memo-nexus-logo-frame" aria-hidden="true"><b class="memo-nexus-logo-frame-side memo-nexus-logo-frame-side-top"></b><b class="memo-nexus-logo-frame-side memo-nexus-logo-frame-side-right"></b><b class="memo-nexus-logo-frame-side memo-nexus-logo-frame-side-bottom"></b><b class="memo-nexus-logo-frame-side memo-nexus-logo-frame-side-left"></b><i class="memo-nexus-logo-frame-corner memo-nexus-logo-frame-corner-tl"></i><i class="memo-nexus-logo-frame-corner memo-nexus-logo-frame-corner-tr"></i><i class="memo-nexus-logo-frame-corner memo-nexus-logo-frame-corner-br"></i><i class="memo-nexus-logo-frame-corner memo-nexus-logo-frame-corner-bl"></i></span>
+    <span class="memo-nexus-logo-mark" aria-hidden="true">
+      <svg viewBox="-4 -4 52 48" focusable="false">
+        <path class="memo-nexus-logo-tentacle memo-nexus-logo-tentacle-a" data-logo-tentacle="0" d="M22 20 C19.48 17.66 16.68 15.06 14.44 12.98 C12.2 10.9 10.52 9.34 8 7"></path>
+        <path class="memo-nexus-logo-tentacle memo-nexus-logo-tentacle-b" data-logo-tentacle="1" d="M22 20 C24.7 17.48 27.7 14.68 30.1 12.44 C32.5 10.2 34.3 8.52 37 6"></path>
+        <path class="memo-nexus-logo-tentacle memo-nexus-logo-tentacle-c" data-logo-tentacle="2" d="M22 20 C24.88 22.52 28.08 25.32 30.64 27.56 C33.2 29.8 35.12 31.48 38 34"></path>
+        <path class="memo-nexus-logo-tentacle memo-nexus-logo-tentacle-d" data-logo-tentacle="3" d="M22 20 C19.3 22.34 16.3 24.94 13.9 27.02 C11.5 29.1 9.7 30.66 7 33"></path>
+        <circle class="memo-nexus-logo-node memo-nexus-logo-node-a" data-logo-node="0" cx="8" cy="7" r="2.1"></circle>
+        <circle class="memo-nexus-logo-node memo-nexus-logo-node-b" data-logo-node="1" cx="37" cy="6" r="1.9"></circle>
+        <circle class="memo-nexus-logo-node memo-nexus-logo-node-c" data-logo-node="2" cx="38" cy="34" r="1.8"></circle>
+        <circle class="memo-nexus-logo-node memo-nexus-logo-node-d" data-logo-node="3" cx="7" cy="33" r="1.9"></circle>
+        <circle class="memo-nexus-logo-core-halo" cx="22" cy="20" r="6"></circle>
+        <circle class="memo-nexus-logo-core" cx="22" cy="20" r="3"></circle>
+      </svg>
+    </span>
+    <span class="memo-nexus-logo-word" aria-hidden="true"><span class="memo-nexus-logo-letter" style="--memo-nexus-logo-delay:0">M</span><span class="memo-nexus-logo-letter" style="--memo-nexus-logo-delay:1">e</span><span class="memo-nexus-logo-letter" style="--memo-nexus-logo-delay:2">m</span><span class="memo-nexus-logo-letter" style="--memo-nexus-logo-delay:3">o</span><span class="memo-nexus-logo-space"> </span><span class="memo-nexus-logo-letter" style="--memo-nexus-logo-delay:4">N</span><span class="memo-nexus-logo-letter" style="--memo-nexus-logo-delay:5">e</span><span class="memo-nexus-logo-letter" style="--memo-nexus-logo-delay:6">x</span><span class="memo-nexus-logo-letter" style="--memo-nexus-logo-delay:7">u</span><span class="memo-nexus-logo-letter" style="--memo-nexus-logo-delay:8">s</span><span class="memo-nexus-logo-caret"></span></span>
+    <span class="memo-nexus-logo-scan" aria-hidden="true"></span>
+  </template>
+
+  <template id="memoNexusLegacyLogoTemplate">
+    <span class="memo-nexus-logo-text" aria-hidden="true"><span class="memo-nexus-logo-letter" style="--memo-nexus-logo-delay:0">M</span><span class="memo-nexus-logo-letter" style="--memo-nexus-logo-delay:1">e</span><span class="memo-nexus-logo-letter" style="--memo-nexus-logo-delay:2">m</span><span class="memo-nexus-logo-letter" style="--memo-nexus-logo-delay:3">o</span><span class="memo-nexus-logo-space"> </span><span class="memo-nexus-logo-letter" style="--memo-nexus-logo-delay:4">N</span><span class="memo-nexus-logo-letter" style="--memo-nexus-logo-delay:5">e</span><span class="memo-nexus-logo-letter" style="--memo-nexus-logo-delay:6">x</span><span class="memo-nexus-logo-letter" style="--memo-nexus-logo-delay:7">u</span><span class="memo-nexus-logo-letter" style="--memo-nexus-logo-delay:8">s</span></span>
+    <span class="memo-nexus-logo-caret" aria-hidden="true"></span>
+    <span class="memo-nexus-logo-nexus" aria-hidden="true"><i class="memo-nexus-logo-node memo-nexus-logo-node-start"></i><i class="memo-nexus-logo-node memo-nexus-logo-node-end"></i><b class="memo-nexus-logo-frame memo-nexus-logo-frame-left"></b><b class="memo-nexus-logo-frame memo-nexus-logo-frame-top"></b><b class="memo-nexus-logo-frame memo-nexus-logo-frame-right"></b><b class="memo-nexus-logo-frame memo-nexus-logo-frame-bottom"></b></span>
+    <span class="memo-nexus-logo-scan" aria-hidden="true"></span>
+  </template>
+
   <main class="workspace">
     <header class="app-header">
-      <button id="memoNexusLogo" class="memo-nexus-logo" type="button" aria-label="Memo Nexus ロゴアニメーションを再生">
-        <span class="memo-nexus-logo-frame" aria-hidden="true"><b class="memo-nexus-logo-frame-side memo-nexus-logo-frame-side-top"></b><b class="memo-nexus-logo-frame-side memo-nexus-logo-frame-side-right"></b><b class="memo-nexus-logo-frame-side memo-nexus-logo-frame-side-bottom"></b><b class="memo-nexus-logo-frame-side memo-nexus-logo-frame-side-left"></b><i class="memo-nexus-logo-frame-corner memo-nexus-logo-frame-corner-tl"></i><i class="memo-nexus-logo-frame-corner memo-nexus-logo-frame-corner-tr"></i><i class="memo-nexus-logo-frame-corner memo-nexus-logo-frame-corner-br"></i><i class="memo-nexus-logo-frame-corner memo-nexus-logo-frame-corner-bl"></i></span>
-        <span class="memo-nexus-logo-mark" aria-hidden="true">
-          <svg viewBox="-4 -4 52 48" focusable="false">
-            <path class="memo-nexus-logo-tentacle memo-nexus-logo-tentacle-a" data-logo-tentacle="0" d="M22 20 C19.48 17.66 16.68 15.06 14.44 12.98 C12.2 10.9 10.52 9.34 8 7"></path>
-            <path class="memo-nexus-logo-tentacle memo-nexus-logo-tentacle-b" data-logo-tentacle="1" d="M22 20 C24.7 17.48 27.7 14.68 30.1 12.44 C32.5 10.2 34.3 8.52 37 6"></path>
-            <path class="memo-nexus-logo-tentacle memo-nexus-logo-tentacle-c" data-logo-tentacle="2" d="M22 20 C24.88 22.52 28.08 25.32 30.64 27.56 C33.2 29.8 35.12 31.48 38 34"></path>
-            <path class="memo-nexus-logo-tentacle memo-nexus-logo-tentacle-d" data-logo-tentacle="3" d="M22 20 C19.3 22.34 16.3 24.94 13.9 27.02 C11.5 29.1 9.7 30.66 7 33"></path>
-            <circle class="memo-nexus-logo-node memo-nexus-logo-node-a" data-logo-node="0" cx="8" cy="7" r="2.1"></circle>
-            <circle class="memo-nexus-logo-node memo-nexus-logo-node-b" data-logo-node="1" cx="37" cy="6" r="1.9"></circle>
-            <circle class="memo-nexus-logo-node memo-nexus-logo-node-c" data-logo-node="2" cx="38" cy="34" r="1.8"></circle>
-            <circle class="memo-nexus-logo-node memo-nexus-logo-node-d" data-logo-node="3" cx="7" cy="33" r="1.9"></circle>
-            <circle class="memo-nexus-logo-core-halo" cx="22" cy="20" r="6"></circle>
-            <circle class="memo-nexus-logo-core" cx="22" cy="20" r="3"></circle>
-          </svg>
-        </span>
-        <span class="memo-nexus-logo-word" aria-hidden="true"><span class="memo-nexus-logo-letter" style="--memo-nexus-logo-delay:0">M</span><span class="memo-nexus-logo-letter" style="--memo-nexus-logo-delay:1">e</span><span class="memo-nexus-logo-letter" style="--memo-nexus-logo-delay:2">m</span><span class="memo-nexus-logo-letter" style="--memo-nexus-logo-delay:3">o</span><span class="memo-nexus-logo-space"> </span><span class="memo-nexus-logo-letter" style="--memo-nexus-logo-delay:4">N</span><span class="memo-nexus-logo-letter" style="--memo-nexus-logo-delay:5">e</span><span class="memo-nexus-logo-letter" style="--memo-nexus-logo-delay:6">x</span><span class="memo-nexus-logo-letter" style="--memo-nexus-logo-delay:7">u</span><span class="memo-nexus-logo-letter" style="--memo-nexus-logo-delay:8">s</span><span class="memo-nexus-logo-caret"></span></span>
-        <span class="memo-nexus-logo-scan" aria-hidden="true"></span>
-      </button>
+      <button id="memoNexusLogo" class="memo-nexus-logo" type="button" aria-label="Memo Nexus ロゴアニメーションを再生"></button>
       <div class="layout-primary-actions">
         <button id="memoPaneBtn" class="layout-pane-button" type="button" title="メモ一覧を表示" aria-label="メモ一覧を表示" aria-controls="memoSidebar" aria-expanded="false">☰ <span>メモ一覧</span></button>
         <button id="cardPaneBtn" class="layout-pane-button" type="button" title="カード表示を収納する" aria-label="カード表示を収納する" aria-controls="previewCard" aria-expanded="true">▤ <span id="cardPaneButtonLabel">カードを閉じる</span></button>
@@ -431,17 +440,58 @@
           </select>
         </label>
         <fieldset class="theme-setting logo-animation-setting">
-          <legend>ロゴアニメーション</legend>
-          <label for="logoAnimationSelect">演出</label>
-          <select id="logoAnimationSelect">
-            <option value="living-nexus" selected>生体Nexus</option>
-            <option value="typewriter">タイプライター</option>
-            <option value="nexus">Nexus接続</option>
-            <option value="scan">光の走査</option>
-            <option value="off">オフ</option>
-          </select>
+          <legend id="logoAnimationSettingLegend">ロゴアニメーション</legend>
+          <p class="logo-animation-setting-note">カードを選ぶと左上へプレビューします。「適用」を押すまで保存されません。</p>
+          <div id="logoAnimationCards" class="logo-animation-cards" role="radiogroup" aria-labelledby="logoAnimationSettingLegend">
+            <div class="logo-animation-card is-selected" data-logo-animation-card="living-nexus">
+              <input id="logoAnimationLivingNexus" class="logo-animation-card-radio sr-only" type="radio" name="logoAnimationSetting" value="living-nexus" aria-describedby="logoAnimationDescriptionLivingNexus" checked>
+              <label class="logo-animation-card-choice" for="logoAnimationLivingNexus">
+                <span class="logo-animation-card-heading"><strong>生体Nexus</strong><span class="logo-animation-card-badges"><span class="logo-animation-card-standard">標準</span><span class="logo-animation-card-selection">選択中</span></span></span>
+                <span class="logo-animation-card-demo" data-logo-animation-demo="living-nexus" aria-hidden="true"></span>
+                <span id="logoAnimationDescriptionLivingNexus" class="logo-animation-card-description">4本の触手がつながり、静かに活動する標準ロゴです。</span>
+              </label>
+              <button class="logo-animation-card-play" type="button" data-logo-animation-preview="living-nexus" aria-label="生体Nexusの演出を再生">演出を再生</button>
+            </div>
+            <div class="logo-animation-card" data-logo-animation-card="typewriter">
+              <input id="logoAnimationTypewriter" class="logo-animation-card-radio sr-only" type="radio" name="logoAnimationSetting" value="typewriter" aria-describedby="logoAnimationDescriptionTypewriter">
+              <label class="logo-animation-card-choice" for="logoAnimationTypewriter">
+                <span class="logo-animation-card-heading"><strong>タイプライター</strong><span class="logo-animation-card-badges"><span class="logo-animation-card-selection">選択</span></span></span>
+                <span class="logo-animation-card-demo" data-logo-animation-demo="typewriter" aria-hidden="true"></span>
+                <span id="logoAnimationDescriptionTypewriter" class="logo-animation-card-description">Memo Nexusの文字が順番に現れます。</span>
+              </label>
+              <button class="logo-animation-card-play" type="button" data-logo-animation-preview="typewriter" aria-label="タイプライターの演出を再生">演出を再生</button>
+            </div>
+            <div class="logo-animation-card" data-logo-animation-card="nexus">
+              <input id="logoAnimationNexus" class="logo-animation-card-radio sr-only" type="radio" name="logoAnimationSetting" value="nexus" aria-describedby="logoAnimationDescriptionNexus">
+              <label class="logo-animation-card-choice" for="logoAnimationNexus">
+                <span class="logo-animation-card-heading"><strong>Nexus接続</strong><span class="logo-animation-card-badges"><span class="logo-animation-card-selection">選択</span></span></span>
+                <span class="logo-animation-card-demo" data-logo-animation-demo="nexus" aria-hidden="true"></span>
+                <span id="logoAnimationDescriptionNexus" class="logo-animation-card-description">結節点と接続線が順に立ち上がります。</span>
+              </label>
+              <button class="logo-animation-card-play" type="button" data-logo-animation-preview="nexus" aria-label="Nexus接続の演出を再生">演出を再生</button>
+            </div>
+            <div class="logo-animation-card" data-logo-animation-card="scan">
+              <input id="logoAnimationScan" class="logo-animation-card-radio sr-only" type="radio" name="logoAnimationSetting" value="scan" aria-describedby="logoAnimationDescriptionScan">
+              <label class="logo-animation-card-choice" for="logoAnimationScan">
+                <span class="logo-animation-card-heading"><strong>光の走査</strong><span class="logo-animation-card-badges"><span class="logo-animation-card-selection">選択</span></span></span>
+                <span class="logo-animation-card-demo" data-logo-animation-demo="scan" aria-hidden="true"></span>
+                <span id="logoAnimationDescriptionScan" class="logo-animation-card-description">細い光がロゴの上を一度走査します。</span>
+              </label>
+              <button class="logo-animation-card-play" type="button" data-logo-animation-preview="scan" aria-label="光の走査の演出を再生">演出を再生</button>
+            </div>
+            <div class="logo-animation-card" data-logo-animation-card="off">
+              <input id="logoAnimationOff" class="logo-animation-card-radio sr-only" type="radio" name="logoAnimationSetting" value="off" aria-describedby="logoAnimationDescriptionOff">
+              <label class="logo-animation-card-choice" for="logoAnimationOff">
+                <span class="logo-animation-card-heading"><strong>オフ</strong><span class="logo-animation-card-badges"><span class="logo-animation-card-selection">選択</span></span></span>
+                <span class="logo-animation-card-demo" data-logo-animation-demo="off" aria-hidden="true"></span>
+                <span class="logo-animation-card-static-note">アニメーションなし</span>
+                <span id="logoAnimationDescriptionOff" class="logo-animation-card-description">完成状態のロゴを静止表示し、演出は再生しません。</span>
+              </label>
+              <button class="logo-animation-card-play" type="button" disabled aria-describedby="logoAnimationDescriptionOff" aria-label="オフは静止表示のため再生できません">再生なし</button>
+            </div>
+          </div>
           <div class="logo-animation-setting-actions">
-            <button id="previewLogoAnimationBtn" type="button">プレビュー</button>
+            <button id="resetLogoAnimationBtn" type="button">標準に戻す</button>
             <button id="applyLogoAnimationBtn" type="button">適用</button>
             <span id="logoAnimationSettingStatus" class="logo-animation-setting-status" role="status" aria-live="polite"></span>
           </div>
@@ -869,7 +919,7 @@
   <script src="term-link-utils.js?v=0.5.0-6"></script>
   <script src="memo-link-utils.js?v=0.5.0-3"></script>
   <span id="editorCaretAnimation" class="editor-caret-animation" aria-hidden="true" hidden></span>
-  <script src="logo-animation-utils.js?v=0.5.0-6"></script>
+  <script src="logo-animation-utils.js?v=0.5.0-8"></script>
   <script src="editor-caret-animation-utils.js?v=0.5.0-1"></script>
   <script src="calculation-engine.js?v=0.5.0-1"></script>
   <script src="calculator-link.js?v=0.5.0-1"></script>
@@ -902,7 +952,7 @@
   <script src="typing-derived-ui-scheduler.js?v=0.5.0-4"></script>
   <script src="draft-mirror-scheduler.js?v=0.5.0-2"></script>
   <script src="typing-performance-monitor.js?v=0.5.0-3"></script>
-  <script src="app.js?v=0.5.0-124"></script>
+  <script src="app.js?v=0.5.0-126"></script>
   <script src="codex-chat.js?v=0.5.0-6"></script>
 </body>
 </html>
