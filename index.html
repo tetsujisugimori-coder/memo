@@ -7,7 +7,7 @@
   <script>try { document.documentElement.dataset.initialTheme = localStorage.getItem("memo-nexus-theme") === "dark" ? "dark" : "light"; } catch (_) { document.documentElement.dataset.initialTheme = "light"; }</script>
   <style>html,body{background:#f6f7f4;color:#222522;color-scheme:light}html[data-initial-theme="dark"],html[data-initial-theme="dark"] body{background:#111513;color:#e7ece7;color-scheme:dark}</style>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css">
-  <link rel="stylesheet" href="style.css?v=0.5.0-61">
+  <link rel="stylesheet" href="style.css?v=0.5.0-62">
 </head>
 <body class="app-starting">
   <section id="appStartupGuard" class="app-startup-guard" role="status" aria-live="polite" aria-busy="true">
@@ -115,19 +115,23 @@
   <main class="workspace">
     <header class="app-header">
       <button id="memoNexusLogo" class="memo-nexus-logo" type="button" aria-label="Memo Nexus ロゴアニメーションを再生">
+        <span class="memo-nexus-logo-frame" aria-hidden="true"><b class="memo-nexus-logo-frame-side memo-nexus-logo-frame-side-top"></b><b class="memo-nexus-logo-frame-side memo-nexus-logo-frame-side-right"></b><b class="memo-nexus-logo-frame-side memo-nexus-logo-frame-side-bottom"></b><b class="memo-nexus-logo-frame-side memo-nexus-logo-frame-side-left"></b><i class="memo-nexus-logo-frame-corner memo-nexus-logo-frame-corner-tl"></i><i class="memo-nexus-logo-frame-corner memo-nexus-logo-frame-corner-tr"></i><i class="memo-nexus-logo-frame-corner memo-nexus-logo-frame-corner-br"></i><i class="memo-nexus-logo-frame-corner memo-nexus-logo-frame-corner-bl"></i></span>
         <span class="memo-nexus-logo-mark" aria-hidden="true">
-          <svg viewBox="0 0 34 34" focusable="false">
-            <path class="memo-nexus-logo-link memo-nexus-logo-link-main" d="M9 10.5 Q15 13 17 17 Q22 15 26 10"></path>
-            <path class="memo-nexus-logo-link memo-nexus-logo-link-soft" d="M17 17 Q15 23 9 25"></path>
-            <circle class="memo-nexus-logo-node memo-nexus-logo-node-a" cx="8.5" cy="10" r="2.2"></circle>
-            <circle class="memo-nexus-logo-node memo-nexus-logo-node-b" cx="26" cy="9.5" r="1.9"></circle>
-            <circle class="memo-nexus-logo-node memo-nexus-logo-node-c" cx="27" cy="24" r="1.7"></circle>
-            <circle class="memo-nexus-logo-node memo-nexus-logo-node-d" cx="9" cy="25" r="1.9"></circle>
-            <circle class="memo-nexus-logo-core-halo" cx="17" cy="17" r="6"></circle>
-            <circle class="memo-nexus-logo-core" cx="17" cy="17" r="3"></circle>
+          <svg viewBox="-3 -3 50 46" focusable="false">
+            <path class="memo-nexus-logo-tentacle memo-nexus-logo-tentacle-a" data-logo-tentacle="0" d="M22 20 C17 16 13 11 8 7"></path>
+            <path class="memo-nexus-logo-tentacle memo-nexus-logo-tentacle-b" data-logo-tentacle="1" d="M22 20 C27 15 32 10 37 6"></path>
+            <path class="memo-nexus-logo-tentacle memo-nexus-logo-tentacle-c" data-logo-tentacle="2" d="M22 20 C28 24 33 29 38 34"></path>
+            <path class="memo-nexus-logo-tentacle memo-nexus-logo-tentacle-d" data-logo-tentacle="3" d="M22 20 C17 25 12 29 7 33"></path>
+            <circle class="memo-nexus-logo-node memo-nexus-logo-node-a" data-logo-node="0" cx="8" cy="7" r="2.1"></circle>
+            <circle class="memo-nexus-logo-node memo-nexus-logo-node-b" data-logo-node="1" cx="37" cy="6" r="1.9"></circle>
+            <circle class="memo-nexus-logo-node memo-nexus-logo-node-c" data-logo-node="2" cx="38" cy="34" r="1.8"></circle>
+            <circle class="memo-nexus-logo-node memo-nexus-logo-node-d" data-logo-node="3" cx="7" cy="33" r="1.9"></circle>
+            <circle class="memo-nexus-logo-core-halo" cx="22" cy="20" r="6"></circle>
+            <circle class="memo-nexus-logo-core" cx="22" cy="20" r="3"></circle>
           </svg>
         </span>
         <span class="memo-nexus-logo-word" aria-hidden="true"><span class="memo-nexus-logo-letter" style="--memo-nexus-logo-delay:0">M</span><span class="memo-nexus-logo-letter" style="--memo-nexus-logo-delay:1">e</span><span class="memo-nexus-logo-letter" style="--memo-nexus-logo-delay:2">m</span><span class="memo-nexus-logo-letter" style="--memo-nexus-logo-delay:3">o</span><span class="memo-nexus-logo-space"> </span><span class="memo-nexus-logo-letter" style="--memo-nexus-logo-delay:4">N</span><span class="memo-nexus-logo-letter" style="--memo-nexus-logo-delay:5">e</span><span class="memo-nexus-logo-letter" style="--memo-nexus-logo-delay:6">x</span><span class="memo-nexus-logo-letter" style="--memo-nexus-logo-delay:7">u</span><span class="memo-nexus-logo-letter" style="--memo-nexus-logo-delay:8">s</span><span class="memo-nexus-logo-caret"></span></span>
+        <span class="memo-nexus-logo-scan" aria-hidden="true"></span>
       </button>
       <div class="layout-primary-actions">
         <button id="memoPaneBtn" class="layout-pane-button" type="button" title="メモ一覧を表示" aria-label="メモ一覧を表示" aria-controls="memoSidebar" aria-expanded="false">☰ <span>メモ一覧</span></button>
@@ -426,6 +430,22 @@
             <option value="dark">ダーク</option>
           </select>
         </label>
+        <fieldset class="theme-setting logo-animation-setting">
+          <legend>ロゴアニメーション</legend>
+          <label for="logoAnimationSelect">演出</label>
+          <select id="logoAnimationSelect">
+            <option value="living-nexus" selected>生体Nexus</option>
+            <option value="typewriter">タイプライター</option>
+            <option value="nexus">Nexus接続</option>
+            <option value="scan">光の走査</option>
+            <option value="off">オフ</option>
+          </select>
+          <div class="logo-animation-setting-actions">
+            <button id="previewLogoAnimationBtn" type="button">プレビュー</button>
+            <button id="applyLogoAnimationBtn" type="button">適用</button>
+            <span id="logoAnimationSettingStatus" class="logo-animation-setting-status" role="status" aria-live="polite"></span>
+          </div>
+        </fieldset>
         <fieldset class="theme-setting editor-caret-animation-setting">
           <legend>エディタ演出</legend>
           <label><input id="editorCaretAnimationEnabled" type="checkbox" checked> カーソルアニメーション</label>
@@ -849,7 +869,7 @@
   <script src="term-link-utils.js?v=0.5.0-6"></script>
   <script src="memo-link-utils.js?v=0.5.0-3"></script>
   <span id="editorCaretAnimation" class="editor-caret-animation" aria-hidden="true" hidden></span>
-  <script src="logo-animation-utils.js?v=0.5.0-3"></script>
+  <script src="logo-animation-utils.js?v=0.5.0-4"></script>
   <script src="editor-caret-animation-utils.js?v=0.5.0-1"></script>
   <script src="calculation-engine.js?v=0.5.0-1"></script>
   <script src="calculator-link.js?v=0.5.0-1"></script>
@@ -882,7 +902,7 @@
   <script src="typing-derived-ui-scheduler.js?v=0.5.0-4"></script>
   <script src="draft-mirror-scheduler.js?v=0.5.0-2"></script>
   <script src="typing-performance-monitor.js?v=0.5.0-3"></script>
-  <script src="app.js?v=0.5.0-122"></script>
+  <script src="app.js?v=0.5.0-123"></script>
   <script src="codex-chat.js?v=0.5.0-6"></script>
 </body>
 </html>

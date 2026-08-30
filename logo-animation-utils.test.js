@@ -1,78 +1,172 @@
 const assert = require("node:assert/strict");
 const test = require("node:test");
-const { LOGO_ANIMATION_DURATION_MS, createLogoAnimationController } = require("./logo-animation-utils.js");
+const {
+  AMBIENT_WAIT_MAX_MS,
+  AMBIENT_WAIT_MIN_MS,
+  LOGO_ANIMATION_DURATIONS,
+  createAmbientMotionPlan,
+  createLogoAnimationController,
+  createStartupMotionPlan,
+  motionSnapshot,
+  normalizeLogoAnimation,
+  tentacleStateAt
+} = require("./logo-animation-utils.js");
 
-function createFixture({ reducedMotion = false } = {}) {
+function createFixture({ reducedMotion = false, visible = true, randomValues = [0.12, 0.82, 0.34, 0.73, 0.21, 0.91, 0.45, 0.66] } = {}) {
   const classes = new Set();
-  const frames = [];
+  const frames = new Map();
   const timers = new Map();
+  const renders = [];
+  const states = [];
+  let nextFrameId = 0;
   let nextTimerId = 0;
+  let randomIndex = 0;
   const element = {
+    dataset: {},
+    style: { values: {}, setProperty(name, value) { this.values[name] = value; } },
     classList: {
-      add: (name) => classes.add(name),
-      remove: (name) => classes.delete(name)
+      add: (...names) => names.forEach((name) => classes.add(name)),
+      remove: (...names) => names.forEach((name) => classes.delete(name))
     }
   };
   const windowObject = {
     matchMedia: () => ({ matches: reducedMotion }),
-    setTimeout: (callback, delay) => {
+    setTimeout(callback, delay) {
       const id = ++nextTimerId;
       timers.set(id, { callback, delay, cleared: false });
       return id;
     },
-    clearTimeout: (id) => {
+    clearTimeout(id) {
       if (timers.has(id)) timers.get(id).cleared = true;
     }
   };
   const controller = createLogoAnimationController({
     element,
     windowObject,
-    requestFrame: (callback) => frames.push(callback)
+    initialVisible: visible,
+    random: () => randomValues[randomIndex++ % randomValues.length],
+    requestFrame(callback) {
+      const id = ++nextFrameId;
+      frames.set(id, callback);
+      return id;
+    },
+    cancelFrame: (id) => frames.delete(id),
+    renderMotion: (snapshot) => renders.push(snapshot),
+    onStateChange: (state) => states.push(state)
   });
-  return { classes, controller, frames, timers };
+  function runNextFrame(timestamp = 0) {
+    const entry = frames.entries().next().value;
+    assert.ok(entry, "pending RAF should exist");
+    const [id, callback] = entry;
+    frames.delete(id);
+    callback(timestamp);
+    return callback;
+  }
+  return { classes, controller, element, frames, renders, runNextFrame, states, timers };
 }
 
-test("初回演出はアプリ起動中に一度だけ予約する", () => {
+test("旧設定値を維持しdailyと未知値を生体Nexusへ移行する", () => {
+  for (const value of ["typewriter", "nexus", "scan", "off", "living-nexus"]) assert.equal(normalizeLogoAnimation(value), value);
+  for (const value of ["daily", "", null, "unknown"]) assert.equal(normalizeLogoAnimation(value), "living-nexus");
+});
+
+test("起動演出は一度だけ予約され、実開始RAFの後に終了タイマーを作る", () => {
   const fixture = createFixture();
   assert.equal(fixture.controller.scheduleInitial(), true);
   assert.equal(fixture.controller.scheduleInitial(), false);
-  assert.equal(fixture.frames.length, 1);
-
-  fixture.frames.shift()();
-  assert.equal(fixture.frames.length, 1);
-  fixture.frames.shift()();
+  assert.equal(fixture.frames.size, 1);
+  assert.equal(fixture.timers.size, 0);
+  fixture.runNextFrame(10);
+  assert.equal(fixture.classes.has("is-animating"), false);
+  assert.equal(fixture.timers.size, 0);
+  fixture.runNextFrame(26);
   assert.equal(fixture.classes.has("is-animating"), true);
-  assert.equal([...fixture.timers.values()][0].delay, LOGO_ANIMATION_DURATION_MS);
+  assert.equal([...fixture.timers.values()][0].delay, LOGO_ANIMATION_DURATIONS["living-nexus"] + 160);
 });
 
-test("再生中の再実行は古いRAFとタイマーを無効化して最初から再開する", () => {
+test("4本の起動触手は不等間隔で伸び、各状態を経て核へ戻る", () => {
+  const plan = createStartupMotionPlan();
+  assert.equal(plan.specs.length, 4);
+  assert.deepEqual(plan.specs.map((spec) => spec.index), [0, 1, 2, 3]);
+  const gaps = plan.specs.slice(1).map((spec, index) => spec.delay - plan.specs[index].delay);
+  assert.ok(new Set(gaps).size > 1);
+  const spec = plan.specs[0];
+  assert.equal(tentacleStateAt(spec, spec.delay - 1).phase, "waiting");
+  assert.equal(tentacleStateAt(spec, spec.delay + 1).phase, "extending");
+  assert.equal(tentacleStateAt(spec, spec.delay + spec.extendDuration + 1).phase, "waving");
+  assert.equal(tentacleStateAt(spec, spec.delay + spec.extendDuration + spec.waveDuration + 1).phase, "holding");
+  assert.equal(tentacleStateAt(spec, spec.delay + spec.extendDuration + spec.waveDuration + spec.holdDuration + 1).phase, "retracting");
+  assert.equal(tentacleStateAt(spec, plan.totalDuration + 1).extension, 1);
+});
+
+test("アンビエント演出の状態は伸長・うねり・静止・引き戻しと遷移する", () => {
   const fixture = createFixture();
-  fixture.controller.play();
-  const staleFrame = fixture.frames.shift();
-  const firstTimer = [...fixture.timers.values()][0];
-
-  fixture.controller.play();
-  const currentFrame = fixture.frames.shift();
-  assert.equal(firstTimer.cleared, true);
-  assert.equal(fixture.classes.has("is-animating"), false);
-
-  staleFrame();
-  assert.equal(fixture.classes.has("is-animating"), false);
-  currentFrame();
-  assert.equal(fixture.classes.has("is-animating"), true);
-
-  const activeTimer = [...fixture.timers.values()].at(-1);
-  activeTimer.callback();
-  assert.equal(fixture.classes.has("is-animating"), false);
+  assert.equal(fixture.controller.startAmbientEvent(), true);
+  fixture.runNextFrame(100);
+  const plan = fixture.controller.getLastAmbientPlan();
+  const spec = plan.specs[0];
+  assert.equal(fixture.controller.getState().phase, "extending");
+  fixture.runNextFrame(100 + spec.extendDuration + 1);
+  assert.equal(fixture.controller.getState().phase, "waving");
+  fixture.runNextFrame(100 + spec.extendDuration + spec.waveDuration + 1);
+  assert.equal(fixture.controller.getState().phase, "holding");
+  fixture.runNextFrame(100 + spec.extendDuration + spec.waveDuration + spec.holdDuration + 1);
+  assert.equal(fixture.controller.getState().phase, "retracting");
+  fixture.runNextFrame(100 + plan.totalDuration + 1);
+  assert.equal(fixture.controller.getState().waiting, true);
 });
 
-test("reduced motionでは一括表示の静止状態を維持する", () => {
-  const fixture = createFixture({ reducedMotion: true });
-  assert.equal(fixture.controller.prefersReducedMotion(), true);
-  assert.equal(fixture.controller.play(), false);
-  assert.equal(fixture.frames.length, 0);
+test("次回イベントは同じ触手・長さ・速度を連続させにくくする", () => {
+  const constant = () => 0.2;
+  const first = createAmbientMotionPlan({ random: constant });
+  const second = createAmbientMotionPlan({ random: constant, previous: first });
+  assert.notEqual(second.primary, first.primary);
+  assert.notEqual(second.extension, first.extension);
+  assert.notEqual(second.extendDuration, first.extendDuration);
+});
+
+test("再実行は古いRAFとタイマーを無効化して先頭から再開する", () => {
+  const fixture = createFixture();
+  fixture.controller.play("typewriter");
+  const staleStartCallback = fixture.frames.values().next().value;
+  fixture.controller.play("scan");
+  staleStartCallback(10);
   assert.equal(fixture.timers.size, 0);
   assert.equal(fixture.classes.has("is-animating"), false);
+  assert.equal(fixture.element.dataset.logoAnimation, "scan");
+  fixture.runNextFrame(20);
+  assert.equal(fixture.classes.has("is-animating"), true);
+  const firstTimer = [...fixture.timers.values()].at(-1);
+  fixture.controller.play("nexus");
+  assert.equal(firstTimer.cleared, true);
+  assert.equal(fixture.classes.has("is-animating"), false);
+  fixture.runNextFrame(30);
+  assert.equal(fixture.element.dataset.logoAnimation, "nexus");
+});
+
+test("非表示中は停止し、再表示後に新しい待機を作る", () => {
+  const fixture = createFixture();
+  fixture.controller.scheduleAmbient();
+  const firstTimer = [...fixture.timers.values()].at(-1);
+  assert.ok(firstTimer.delay >= AMBIENT_WAIT_MIN_MS && firstTimer.delay <= AMBIENT_WAIT_MAX_MS);
+  fixture.controller.handleVisibilityChange(false);
+  assert.equal(firstTimer.cleared, true);
+  assert.equal(fixture.controller.startAmbientEvent(), false);
+  fixture.controller.handleVisibilityChange(true);
+  assert.equal([...fixture.timers.values()].filter((timer) => !timer.cleared).length, 1);
+});
+
+test("reduced motionとoffではRAF・待機タイマーを作らない", () => {
+  const reduced = createFixture({ reducedMotion: true });
+  assert.equal(reduced.controller.play(), false);
+  assert.equal(reduced.controller.scheduleAmbient(), false);
+  assert.equal(reduced.frames.size, 0);
+  assert.equal(reduced.timers.size, 0);
+  const off = createFixture();
+  off.controller.setSetting("off", { scheduleAmbient: true });
+  assert.equal(off.controller.play(), false);
+  assert.equal(off.frames.size, 0);
+  assert.equal(off.timers.size, 0);
 });
 
 test("要素がない場合も初期化と再生を安全に無視する", () => {
@@ -83,4 +177,10 @@ test("要素がない場合も初期化と再生を安全に無視する", () =>
   });
   assert.equal(controller.scheduleInitial(), false);
   assert.equal(controller.play(), false);
+});
+
+test("未選択の触手は静止状態に保つ", () => {
+  const snapshot = motionSnapshot(createAmbientMotionPlan({ random: () => 0.1 }), 1);
+  assert.equal(snapshot.tentacles.length, 4);
+  assert.equal(snapshot.tentacles.filter((item) => item.phase === "idle").length, 3);
 });

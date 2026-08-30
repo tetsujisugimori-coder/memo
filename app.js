@@ -23,6 +23,7 @@ const POPOUT_SYNC_CHANNEL = "memo-nexus-sync";
 const THEME_STORAGE_KEY = "memo-nexus-theme";
 const COLLECTION_SORT_STORAGE_KEY = "memo-nexus-collection-sort";
 const IMAGE_BLOCK_SIZE_STORAGE_KEY = "memo-nexus-image-block-size";
+const LOGO_ANIMATION_STORAGE_KEY = "memo-nexus-logo-animation";
 const EDITOR_CARET_ANIMATION_STORAGE_KEY = "memo-nexus-editor-caret-animation";
 const DRAFT_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
 const UNDO_LIMIT = 50;
@@ -500,7 +501,7 @@ const {
   updateChecklistAt
 } = window.MemoNexusMarkdownEnhancements;
 const { createPopoutGhost, getMemoSyncDecision } = window.MemoNexusPopoutUtils;
-const { createLogoAnimationController } = window.MemoNexusLogoAnimationUtils;
+const { createLogoAnimationController, normalizeLogoAnimation } = window.MemoNexusLogoAnimationUtils;
 const { EDITOR_CARET_REPEAT_DELAY, canPlayEditorCaretAnimation, normalizeEditorCaretAnimationSettings } = window.MemoNexusEditorCaretAnimationUtils;
 
 // HTML要素を短く取得するための小さなヘルパー。
@@ -620,10 +621,58 @@ const closeSettingsBtn = $("closeSettingsBtn");
 const themeSelect = $("themeSelect");
 const imageBlockSizeSelect = $("imageBlockSizeSelect");
 const memoNexusLogo = $("memoNexusLogo");
+const logoAnimationSelect = $("logoAnimationSelect");
+const previewLogoAnimationBtn = $("previewLogoAnimationBtn");
+const applyLogoAnimationBtn = $("applyLogoAnimationBtn");
+const logoAnimationSettingStatus = $("logoAnimationSettingStatus");
+const logoTentaclePaths = [...(memoNexusLogo?.querySelectorAll("[data-logo-tentacle]") || [])];
+const logoTentacleNodes = [...(memoNexusLogo?.querySelectorAll("[data-logo-node]") || [])];
+const LOGO_TENTACLE_CENTER = { x: 22, y: 20 };
+const LOGO_TENTACLE_ENDPOINTS = [
+  { x: 8, y: 7 },
+  { x: 37, y: 6 },
+  { x: 38, y: 34 },
+  { x: 7, y: 33 }
+];
+
+function logoCoordinate(value) {
+  return Number(value.toFixed(2));
+}
+
+function renderLogoTentacles(snapshot) {
+  snapshot.tentacles.forEach((tentacle) => {
+    const path = logoTentaclePaths[tentacle.index];
+    const node = logoTentacleNodes[tentacle.index];
+    const base = LOGO_TENTACLE_ENDPOINTS[tentacle.index];
+    if (!path || !node || !base) return;
+    const dx = base.x - LOGO_TENTACLE_CENTER.x;
+    const dy = base.y - LOGO_TENTACLE_CENTER.y;
+    const length = Math.hypot(dx, dy) || 1;
+    const extension = Number.isFinite(tentacle.extension) ? tentacle.extension : 1;
+    const endX = LOGO_TENTACLE_CENTER.x + dx * extension;
+    const endY = LOGO_TENTACLE_CENTER.y + dy * extension;
+    const bend = (Number.isFinite(tentacle.bend) ? tentacle.bend : 0) * (tentacle.index % 2 ? -1 : 1);
+    const perpendicularX = -dy / length;
+    const perpendicularY = dx / length;
+    const control1X = LOGO_TENTACLE_CENTER.x + dx * extension * 0.32 + perpendicularX * bend * 0.8;
+    const control1Y = LOGO_TENTACLE_CENTER.y + dy * extension * 0.32 + perpendicularY * bend * 0.8;
+    const control2X = LOGO_TENTACLE_CENTER.x + dx * extension * 0.72 - perpendicularX * bend * 0.48;
+    const control2Y = LOGO_TENTACLE_CENTER.y + dy * extension * 0.72 - perpendicularY * bend * 0.48;
+    path.setAttribute("d", `M22 20 C${logoCoordinate(control1X)} ${logoCoordinate(control1Y)} ${logoCoordinate(control2X)} ${logoCoordinate(control2Y)} ${logoCoordinate(endX)} ${logoCoordinate(endY)}`);
+    path.dataset.logoPhase = tentacle.phase;
+    node.setAttribute("cx", String(logoCoordinate(endX)));
+    node.setAttribute("cy", String(logoCoordinate(endY)));
+    node.dataset.logoPhase = tentacle.phase;
+  });
+}
+
 const logoAnimationController = createLogoAnimationController({
   element: memoNexusLogo,
   windowObject: window,
-  requestFrame: (callback) => requestAnimationFrame(callback)
+  requestFrame: (callback) => requestAnimationFrame(callback),
+  cancelFrame: (frame) => cancelAnimationFrame(frame),
+  initialVisible: document.visibilityState !== "hidden",
+  renderMotion: renderLogoTentacles
 });
 const editorCaretAnimationEnabled = $("editorCaretAnimationEnabled");
 const editorCaretAnimationDelay = $("editorCaretAnimationDelay");
@@ -977,6 +1026,7 @@ let pendingTablePaste = null;
 let mermaidTemplateTrigger = null;
 let currentAttachments = [];
 let imageBlockSize = "medium";
+let logoAnimationSetting = "living-nexus";
 let editorCaretAnimationSettings = normalizeEditorCaretAnimationSettings(null);
 let editorCaretIdleTimer = null;
 let editorCaretAnimationTimer = null;
@@ -1049,10 +1099,16 @@ function showStartupGuard({ title, message, failure = false, reload = false, bus
 }
 
 function hideStartupGuard() {
-  if (!appStartupGuard || dbConnectionClosedForUpgrade) return;
+  if (!appStartupGuard || dbConnectionClosedForUpgrade) return false;
   appStartupGuard.hidden = true;
   appStartupGuard.setAttribute("aria-busy", "false");
   document.body.classList.remove("app-starting");
+  return true;
+}
+
+function handleStartupReady() {
+  if (!hideStartupGuard() || isPopoutWindow) return;
+  scheduleInitialLogoAnimation();
 }
 
 function showStartupLoading() {
@@ -1118,7 +1174,7 @@ appStartupReloadBtn?.addEventListener("click", () => location.reload());
 void runGuardedStartup({
   start: init,
   onLoading: showStartupLoading,
-  onReady: hideStartupGuard,
+  onReady: handleStartupReady,
   onFailure: showStartupFailure
 });
 memoSyncChannel?.addEventListener("message", (event) => {
@@ -1135,6 +1191,7 @@ async function init() {
     element.textContent = `v${APP_VERSION} "${APP_LABEL}"`;
   });
   restoreTheme();
+  restoreLogoAnimationSetting();
   restoreEditorCaretAnimationSettings();
   if (isPopoutWindow) document.body.classList.add("popout-window");
   if (isPopoutWindow) {
@@ -1142,7 +1199,6 @@ async function init() {
     return;
   }
   restoreImageBlockSize();
-  scheduleInitialLogoAnimation();
   restoreCollectionSortOrder();
   restoreGlobalFontSettings();
   restoreAiSettings();
@@ -1345,6 +1401,60 @@ function initializeResponsiveLayout() {
 
 function scheduleInitialLogoAnimation() {
   logoAnimationController.scheduleInitial();
+}
+
+function updateLogoAnimationLabel() {
+  if (!memoNexusLogo) return;
+  const label = logoAnimationSetting === "off"
+    ? "Memo Nexus ロゴアニメーションはオフです"
+    : `Memo Nexus ロゴアニメーションを再生（${logoAnimationSetting}）`;
+  memoNexusLogo.setAttribute("aria-label", label);
+}
+
+function applyLogoAnimationSetting(value, { scheduleAmbient = false } = {}) {
+  logoAnimationSetting = normalizeLogoAnimation(value);
+  if (logoAnimationSelect) logoAnimationSelect.value = logoAnimationSetting;
+  logoAnimationController.setSetting(logoAnimationSetting, { scheduleAmbient });
+  updateLogoAnimationLabel();
+  return logoAnimationSetting;
+}
+
+function restoreLogoAnimationSetting() {
+  let savedSetting = "living-nexus";
+  try {
+    const storedSetting = localStorage.getItem(LOGO_ANIMATION_STORAGE_KEY);
+    savedSetting = normalizeLogoAnimation(storedSetting);
+    if (storedSetting === "daily") localStorage.setItem(LOGO_ANIMATION_STORAGE_KEY, savedSetting);
+  } catch (error) {
+    console.warn("Logo animation restore failed", error);
+  }
+  applyLogoAnimationSetting(savedSetting);
+}
+
+function prepareLogoAnimationSettings() {
+  if (logoAnimationSelect) logoAnimationSelect.value = logoAnimationSetting;
+  if (logoAnimationSettingStatus) logoAnimationSettingStatus.textContent = "";
+}
+
+function previewLogoAnimation() {
+  const preview = normalizeLogoAnimation(logoAnimationSelect?.value);
+  logoAnimationController.play(preview, { scheduleAmbientAfter: false });
+  if (logoAnimationSettingStatus) logoAnimationSettingStatus.textContent = preview === "off" ? "静止表示をプレビュー中" : "プレビュー中（未適用）";
+}
+
+function saveLogoAnimationSetting() {
+  const nextSetting = applyLogoAnimationSetting(logoAnimationSelect?.value, { scheduleAmbient: true });
+  try {
+    localStorage.setItem(LOGO_ANIMATION_STORAGE_KEY, nextSetting);
+  } catch (error) {
+    console.warn("Logo animation save failed", error);
+  }
+  if (logoAnimationSettingStatus) logoAnimationSettingStatus.textContent = "適用しました";
+}
+
+function resetLogoAnimationSettingsPreview() {
+  applyLogoAnimationSetting(logoAnimationSetting, { scheduleAmbient: true });
+  prepareLogoAnimationSettings();
 }
 
 function restoreEditorCaretAnimationSettings() {
@@ -10549,6 +10659,7 @@ function todayStampDashed(value = Date.now(), options = {}) {
 
 async function openSettingsDialog() {
   restoreTheme();
+  prepareLogoAnimationSettings();
   prepareFontSettingsDialog();
   beginAiSettingsSession();
   renderAiSettings();
@@ -12718,6 +12829,7 @@ closeSettingsBtn.addEventListener("click", () => {
   aiConnectionAbortController = null;
   settingsDialog.close();
 });
+settingsDialog.addEventListener("close", resetLogoAnimationSettingsPreview);
 webClipperSettingsDetails?.addEventListener("click", (event) => {
   const button = event.target.closest("[data-web-clipper-copy]");
   if (!button) return;
@@ -12729,8 +12841,15 @@ if (themeSelect) {
 if (imageBlockSizeSelect) {
   imageBlockSizeSelect.addEventListener("change", () => saveImageBlockSize(imageBlockSizeSelect.value));
 }
+if (logoAnimationSelect) {
+  logoAnimationSelect.addEventListener("change", () => {
+    if (logoAnimationSettingStatus) logoAnimationSettingStatus.textContent = "未適用です";
+  });
+}
+previewLogoAnimationBtn?.addEventListener("click", previewLogoAnimation);
+applyLogoAnimationBtn?.addEventListener("click", saveLogoAnimationSetting);
 if (memoNexusLogo) {
-  memoNexusLogo.addEventListener("click", logoAnimationController.play);
+  memoNexusLogo.addEventListener("click", () => logoAnimationController.play(logoAnimationSetting));
   memoNexusLogo.addEventListener("animationend", (event) => {
     if (event.target === memoNexusLogo && event.animationName === "memo-nexus-logo-cycle") logoAnimationController.finish();
   });
@@ -13122,6 +13241,7 @@ window.addEventListener("pagehide", () => {
   }
 });
 document.addEventListener("visibilitychange", () => {
+  logoAnimationController.handleVisibilityChange(document.visibilityState !== "hidden");
   if (document.visibilityState === "hidden") {
     stopEditorCaretAnimation();
     applyCurrentEditorDraft(currentNote());
