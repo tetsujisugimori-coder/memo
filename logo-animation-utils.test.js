@@ -4,8 +4,13 @@ const {
   AMBIENT_WAIT_MAX_MS,
   AMBIENT_WAIT_MIN_MS,
   LOGO_ANIMATION_DURATIONS,
+  LOGO_ANIMATION_PREVIEW_POSES,
+  applyLogoAnimationPreviewPose,
+  clearLogoAnimationPreviewPose,
   createAmbientMotionPlan,
   createLogoAnimationController,
+  createLogoAnimationPreviewManager,
+  createLogoAnimationSettingsSession,
   createStartupMotionPlan,
   createTentacleGeometry,
   motionSnapshot,
@@ -91,6 +96,101 @@ function createPhaseComparisonPlan(candidate, previousPhase) {
 test("旧設定値を維持しdailyと未知値を生体Nexusへ移行する", () => {
   for (const value of ["typewriter", "nexus", "scan", "off", "living-nexus"]) assert.equal(normalizeLogoAnimation(value), value);
   for (const value of ["daily", "", null, "unknown"]) assert.equal(normalizeLogoAnimation(value), "living-nexus");
+});
+
+test("5種類の代表静止ポーズは互いに異なり、RAFやタイマーなしで適用できる", () => {
+  assert.deepEqual(LOGO_ANIMATION_PREVIEW_POSES, {
+    "living-nexus": "living-complete",
+    typewriter: "typewriter-caret",
+    nexus: "nexus-connected",
+    scan: "scan-midpoint",
+    off: "off-static"
+  });
+  assert.equal(new Set(Object.values(LOGO_ANIMATION_PREVIEW_POSES)).size, 5);
+  const fixture = createFixture();
+  for (const setting of ["living-nexus", "typewriter", "nexus", "scan", "off"]) {
+    assert.equal(applyLogoAnimationPreviewPose(fixture.element, setting), LOGO_ANIMATION_PREVIEW_POSES[setting]);
+    assert.equal(fixture.element.dataset.logoAnimation, setting);
+    assert.equal(fixture.element.dataset.logoPreviewPose, LOGO_ANIMATION_PREVIEW_POSES[setting]);
+    assert.equal(fixture.frames.size, 0);
+    assert.equal(fixture.timers.size, 0);
+  }
+  assert.equal(clearLogoAnimationPreviewPose(fixture.element), true);
+  assert.equal("logoPreviewPose" in fixture.element.dataset, false);
+});
+
+test("設定セッションは保存済み・選択中・プレビュー中を分離する", () => {
+  const session = createLogoAnimationSettingsSession("typewriter");
+  assert.deepEqual(session.getState(), {
+    saved: "typewriter",
+    selected: "typewriter",
+    previewing: "typewriter",
+    dirty: false
+  });
+  assert.deepEqual(session.select("scan"), {
+    saved: "typewriter",
+    selected: "scan",
+    previewing: "scan",
+    dirty: true
+  });
+  assert.equal(session.preview("nexus").selected, "scan");
+  assert.equal(session.getState().previewing, "nexus");
+  assert.deepEqual(session.apply(), {
+    saved: "scan",
+    selected: "scan",
+    previewing: "scan",
+    dirty: false
+  });
+  session.select("off");
+  assert.deepEqual(session.cancel(), {
+    saved: "scan",
+    selected: "scan",
+    previewing: "scan",
+    dirty: false
+  });
+});
+
+test("設定セッションは開始時と選択時の不正値を生体Nexusへフォールバックする", () => {
+  const session = createLogoAnimationSettingsSession("unknown");
+  assert.equal(session.getState().saved, "living-nexus");
+  assert.equal(session.select("removed").selected, "living-nexus");
+  assert.equal(session.begin("daily").saved, "living-nexus");
+});
+
+test("デモ管理は再生対象を1つに限定し、切替・連続再生・終了時に以前の処理を停止する", () => {
+  const controllers = [];
+  const stopped = [];
+  const manager = createLogoAnimationPreviewManager({
+    createController: ({ setting, target }) => {
+      const calls = [];
+      const controller = {
+        calls,
+        setSetting: (value) => calls.push(["set", value]),
+        play: (value, options) => {
+          calls.push(["play", value, options]);
+          return true;
+        }
+      };
+      controllers.push({ controller, setting, target });
+      return controller;
+    },
+    onStop: (active) => stopped.push([active.setting, active.target])
+  });
+
+  assert.equal(manager.play("living-nexus", "first"), true);
+  assert.deepEqual(controllers[0].controller.calls.at(-1), ["play", "living-nexus", { scheduleAmbientAfter: false }]);
+  assert.equal(manager.play("scan", "second"), true);
+  assert.deepEqual(controllers[0].controller.calls.at(-1), ["set", "off"]);
+  assert.deepEqual(stopped, [["living-nexus", "first"]]);
+  assert.deepEqual(manager.getActive(), { setting: "scan", target: "second" });
+  assert.equal(manager.play("scan", "second"), true);
+  assert.deepEqual(controllers[1].controller.calls.at(-1), ["set", "off"]);
+  assert.equal(manager.stop(), true);
+  assert.equal(manager.getActive(), null);
+  assert.equal(manager.stop(), false);
+  assert.equal(manager.play("off", "static"), false);
+  assert.equal(manager.play("scan", null), false);
+  assert.equal(controllers.length, 3);
 });
 
 test("起動演出は一度だけ予約され、実開始RAFの後に終了タイマーを作る", () => {

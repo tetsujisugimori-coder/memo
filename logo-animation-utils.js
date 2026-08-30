@@ -15,6 +15,13 @@
   const AMBIENT_WAIT_MAX_MS = 35000;
   const TENTACLE_COUNT = 4;
   const FULL_TURN = Math.PI * 2;
+  const LOGO_ANIMATION_PREVIEW_POSES = Object.freeze({
+    "living-nexus": "living-complete",
+    typewriter: "typewriter-caret",
+    nexus: "nexus-connected",
+    scan: "scan-midpoint",
+    off: "off-static"
+  });
 
   function clamp(value, minimum = 0, maximum = 1) {
     return Math.min(maximum, Math.max(minimum, value));
@@ -30,6 +37,92 @@
   function normalizeLogoAnimation(value) {
     if (value === "daily" || value == null || value === "") return "living-nexus";
     return LOGO_ANIMATION_SETTINGS.includes(value) ? value : "living-nexus";
+  }
+
+  function applyLogoAnimationPreviewPose(element, value) {
+    const setting = normalizeLogoAnimation(value);
+    if (!element) return LOGO_ANIMATION_PREVIEW_POSES[setting];
+    element.classList?.remove?.("is-animating", "is-tentacle-active");
+    if (element.dataset) {
+      element.dataset.logoAnimation = setting;
+      element.dataset.logoPreviewPose = LOGO_ANIMATION_PREVIEW_POSES[setting];
+      delete element.dataset.logoActiveTentacle;
+    }
+    return LOGO_ANIMATION_PREVIEW_POSES[setting];
+  }
+
+  function clearLogoAnimationPreviewPose(element) {
+    if (!element?.dataset) return false;
+    delete element.dataset.logoPreviewPose;
+    return true;
+  }
+
+  function createLogoAnimationSettingsSession(initialSetting = "living-nexus") {
+    let saved = normalizeLogoAnimation(initialSetting);
+    let selected = saved;
+    let previewing = saved;
+
+    function snapshot() {
+      return { saved, selected, previewing, dirty: selected !== saved };
+    }
+
+    return {
+      begin(value = saved) {
+        saved = normalizeLogoAnimation(value);
+        selected = saved;
+        previewing = saved;
+        return snapshot();
+      },
+      select(value) {
+        selected = normalizeLogoAnimation(value);
+        previewing = selected;
+        return snapshot();
+      },
+      preview(value = selected) {
+        previewing = normalizeLogoAnimation(value);
+        return snapshot();
+      },
+      apply() {
+        saved = selected;
+        previewing = saved;
+        return snapshot();
+      },
+      cancel() {
+        selected = saved;
+        previewing = saved;
+        return snapshot();
+      },
+      getState: snapshot
+    };
+  }
+
+  function createLogoAnimationPreviewManager({ createController, onStop = () => {} } = {}) {
+    let active = null;
+
+    function stop() {
+      if (!active) return false;
+      active.controller.setSetting("off");
+      onStop(active);
+      active = null;
+      return true;
+    }
+
+    function play(value, target) {
+      const setting = normalizeLogoAnimation(value);
+      stop();
+      if (setting === "off" || !target || typeof createController !== "function") return false;
+      const controller = createController({ setting, target });
+      if (!controller) return false;
+      active = { controller, setting, target };
+      controller.setSetting(setting);
+      return controller.play(setting, { scheduleAmbientAfter: false });
+    }
+
+    return {
+      getActive: () => active && { setting: active.setting, target: active.target },
+      play,
+      stop
+    };
   }
 
   function randomBetween(random, minimum, maximum) {
@@ -526,9 +619,14 @@
     AMBIENT_WAIT_MAX_MS,
     AMBIENT_WAIT_MIN_MS,
     LOGO_ANIMATION_DURATIONS,
+    LOGO_ANIMATION_PREVIEW_POSES,
     LOGO_ANIMATION_SETTINGS,
+    applyLogoAnimationPreviewPose,
+    clearLogoAnimationPreviewPose,
     createAmbientMotionPlan,
     createLogoAnimationController,
+    createLogoAnimationPreviewManager,
+    createLogoAnimationSettingsSession,
     createStartupMotionPlan,
     createTentacleGeometry,
     motionSnapshot,

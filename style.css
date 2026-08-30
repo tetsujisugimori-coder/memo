@@ -4169,20 +4169,53 @@ body.related-open .related-toggle {
 }
 
 .logo-animation-setting {
-  display: grid;
-  grid-template-columns: 132px minmax(160px, 240px) auto;
-  gap: 8px 12px;
-  align-items: center;
+  display: block;
   margin: 0 0 12px;
   padding: 10px 0 0;
   border: 0;
   border-top: 1px solid var(--line);
 }
 .logo-animation-setting legend { padding: 0 5px; color: var(--muted); font-size: 13px; }
-.logo-animation-setting label { color: var(--muted); font-size: 13px; }
-.logo-animation-setting select { min-height: 36px; border: 1px solid var(--line); border-radius: 7px; padding: 0 10px; background: var(--input-bg); color: var(--ink); }
-.logo-animation-setting-actions { display: flex; flex-wrap: wrap; gap: 7px; }
-.logo-animation-setting-status { grid-column: 2 / -1; min-height: 1.3em; margin: 0; color: var(--muted); font-size: 12px; }
+.logo-animation-setting-note { margin: 0 0 9px; color: var(--muted); font-size: 12px; }
+.logo-animation-cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; min-width: 0; }
+.logo-animation-card { display: flex; min-width: 0; flex-direction: column; gap: 8px; padding: 9px; border: 1px solid var(--line); border-radius: 8px; background: var(--paper); }
+.logo-animation-card.is-selected { border: 2px solid var(--accent); padding: 8px; background: color-mix(in srgb, var(--accent-soft) 34%, var(--paper)); box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 16%, transparent); }
+.logo-animation-card-choice { display: grid; min-width: 0; flex: 1 1 auto; grid-template-rows: auto auto 1fr; gap: 7px; color: var(--ink); cursor: pointer; }
+.logo-animation-card-radio:focus-visible + .logo-animation-card-choice { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 5px; }
+.logo-animation-card-heading { display: flex; min-width: 0; align-items: center; justify-content: space-between; gap: 8px; }
+.logo-animation-card-heading strong { min-width: 0; overflow-wrap: anywhere; font-size: 13px; }
+.logo-animation-card-badges { display: inline-flex; flex: 0 0 auto; align-items: center; gap: 5px; }
+.logo-animation-card-standard { padding: 1px 5px; border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--line)); border-radius: 999px; color: var(--accent); font-size: 10px; font-weight: 700; }
+.logo-animation-card-selection { flex: 0 0 auto; color: var(--muted); font-size: 11px; }
+.logo-animation-card.is-selected .logo-animation-card-selection { color: var(--accent); font-weight: 700; }
+.logo-animation-card.is-selected .logo-animation-card-selection::before { content: "✓ "; }
+.logo-animation-card-demo { display: grid; width: 100%; min-width: 0; min-height: 58px; place-items: center; overflow: hidden; border: 1px solid color-mix(in srgb, var(--line) 72%, transparent); background: color-mix(in srgb, var(--panel) 76%, transparent); }
+.logo-animation-demo-logo { width: 214px; max-width: 100%; margin: 0; transform: scale(0.76); pointer-events: none; cursor: default; }
+.logo-animation-demo-logo.is-logo-demo-static,
+.logo-animation-demo-logo.is-logo-demo-static *,
+.logo-animation-demo-logo.is-logo-demo-static::before,
+.logo-animation-demo-logo.is-logo-demo-static::after { animation: none !important; transition: none !important; }
+.logo-animation-demo-logo.is-logo-demo-static .memo-nexus-logo-letter { opacity: 1; transform: none; }
+.logo-animation-demo-logo.is-logo-demo-static .memo-nexus-logo-caret { opacity: 0; }
+.logo-animation-demo-logo[data-logo-preview-pose="living-complete"] .memo-nexus-logo-core,
+.logo-animation-demo-logo[data-logo-preview-pose="living-complete"] .memo-nexus-logo-node { opacity: 1; }
+.logo-animation-demo-logo[data-logo-preview-pose="typewriter-caret"] .memo-nexus-logo-mark,
+.logo-animation-demo-logo[data-logo-preview-pose="typewriter-caret"] .memo-nexus-logo-frame { opacity: 0.42; }
+.logo-animation-demo-logo[data-logo-preview-pose="typewriter-caret"] .memo-nexus-logo-caret { opacity: 0.74; transform: none; }
+.logo-animation-demo-logo[data-logo-preview-pose="nexus-connected"] .memo-nexus-logo-tentacle { stroke: color-mix(in srgb, var(--memo-nexus-logo-node) 78%, var(--memo-nexus-logo-line)); filter: drop-shadow(0 0 2px var(--memo-nexus-logo-glow)); }
+.logo-animation-demo-logo[data-logo-preview-pose="nexus-connected"] .memo-nexus-logo-node { fill: var(--memo-nexus-logo-node); filter: drop-shadow(0 0 2px var(--memo-nexus-logo-glow)); transform: scale(1.12); }
+.logo-animation-demo-logo[data-logo-preview-pose="nexus-connected"] .memo-nexus-logo-frame-side { background: color-mix(in srgb, var(--accent) 62%, var(--line)); }
+.logo-animation-demo-logo[data-logo-preview-pose="scan-midpoint"] .memo-nexus-logo-scan { opacity: 0.72; transform: translateX(96px); }
+.logo-animation-demo-logo[data-logo-preview-pose="scan-midpoint"] .memo-nexus-logo-mark,
+.logo-animation-demo-logo[data-logo-preview-pose="scan-midpoint"] .memo-nexus-logo-frame { opacity: 0.58; }
+.logo-animation-demo-logo[data-logo-preview-pose="off-static"] { filter: saturate(0.55); }
+.logo-animation-card-static-note { justify-self: start; padding: 2px 6px; border: 1px solid var(--line); border-radius: 999px; color: var(--muted); font-size: 10px; }
+.logo-animation-card-description { min-width: 0; color: var(--muted); font-size: 11px; line-height: 1.45; overflow-wrap: anywhere; }
+.logo-animation-card-play { align-self: flex-start; min-height: 32px; }
+.logo-animation-card-play:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.logo-animation-card-play:disabled { cursor: not-allowed; opacity: 0.62; }
+.logo-animation-setting-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; margin-top: 10px; }
+.logo-animation-setting-status { flex: 1 1 180px; min-height: 1.3em; margin: 0; color: var(--muted); font-size: 12px; }
 
 .editor-caret-animation-setting {
   align-items: start;
@@ -4902,8 +4935,10 @@ body.related-open .related-toggle {
     gap: 4px;
   }
 
-  .logo-animation-setting { grid-template-columns: minmax(0, 1fr); }
-  .logo-animation-setting-status { grid-column: 1; }
+  .logo-animation-cards { grid-template-columns: minmax(0, 1fr); }
+  .logo-animation-card-demo { min-height: 54px; }
+  .logo-animation-setting-actions > button { flex: 1 1 130px; }
+  .logo-animation-setting-status { flex-basis: 100%; }
 
   .ai-robot-button {
     right: 0;
