@@ -508,7 +508,8 @@ const {
   createLogoAnimationPreviewManager,
   createLogoAnimationSettingsSession,
   createTentacleGeometry,
-  normalizeLogoAnimation
+  normalizeLogoAnimation,
+  replaceLogoAnimationDom
 } = window.MemoNexusLogoAnimationUtils;
 const { EDITOR_CARET_REPEAT_DELAY, canPlayEditorCaretAnimation, normalizeEditorCaretAnimationSettings } = window.MemoNexusEditorCaretAnimationUtils;
 
@@ -629,6 +630,8 @@ const closeSettingsBtn = $("closeSettingsBtn");
 const themeSelect = $("themeSelect");
 const imageBlockSizeSelect = $("imageBlockSizeSelect");
 const memoNexusLogo = $("memoNexusLogo");
+const memoNexusLivingLogoTemplate = $("memoNexusLivingLogoTemplate");
+const memoNexusLegacyLogoTemplate = $("memoNexusLegacyLogoTemplate");
 const logoAnimationCards = $("logoAnimationCards");
 const resetLogoAnimationBtn = $("resetLogoAnimationBtn");
 const applyLogoAnimationBtn = $("applyLogoAnimationBtn");
@@ -640,6 +643,19 @@ const LOGO_TENTACLE_ENDPOINTS = [
   { x: 38, y: 34 },
   { x: 7, y: 33 }
 ];
+
+function createLogoAnimationFamilyContent(family) {
+  const template = family === "legacy" ? memoNexusLegacyLogoTemplate : memoNexusLivingLogoTemplate;
+  if (!template?.content) throw new Error(`Logo template is unavailable: ${family}`);
+  return template.content.cloneNode(true);
+}
+
+function mountLogoAnimationDom(element, value, controller = null) {
+  return replaceLogoAnimationDom(element, value, {
+    createContent: createLogoAnimationFamilyContent,
+    beforeReplace: () => controller?.setSetting("off")
+  });
+}
 
 function renderLogoTentaclesFor(element, snapshot) {
   const tentaclePaths = [...(element?.querySelectorAll("[data-logo-tentacle]") || [])];
@@ -657,6 +673,8 @@ function renderLogoTentaclesFor(element, snapshot) {
     node.dataset.logoPhase = tentacle.phase;
   });
 }
+
+mountLogoAnimationDom(memoNexusLogo, "living-nexus");
 
 const logoAnimationController = createLogoAnimationController({
   element: memoNexusLogo,
@@ -1435,13 +1453,14 @@ function updateLogoAnimationLabel(value = logoAnimationController.getSetting()) 
   if (!memoNexusLogo) return;
   const setting = normalizeLogoAnimation(value);
   const label = setting === "off"
-    ? "Memo Nexus ロゴアニメーションはオフです"
-    : `Memo Nexus ロゴアニメーションを再生（${setting}）`;
+    ? "Memo Nexus ロゴアニメーションはオフです（再生できません）"
+    : `Memo Nexus「${logoAnimationLabel(setting)}」のロゴアニメーションを再生`;
   memoNexusLogo.setAttribute("aria-label", label);
 }
 
 function applyLogoAnimationSetting(value, { scheduleAmbient = false } = {}) {
   const setting = normalizeLogoAnimation(value);
+  mountLogoAnimationDom(memoNexusLogo, setting, logoAnimationController);
   logoAnimationController.setSetting(setting, { scheduleAmbient });
   updateLogoAnimationLabel(setting);
   return setting;
@@ -1465,9 +1484,9 @@ function createLogoAnimationDemo(target, setting) {
   if (!target || !memoNexusLogo) return null;
   const demo = document.createElement("div");
   demo.className = `${memoNexusLogo.className} logo-animation-demo-logo is-logo-demo-static`;
+  mountLogoAnimationDom(demo, setting);
   applyLogoAnimationPreviewPose(demo, setting);
   demo.setAttribute("aria-hidden", "true");
-  [...memoNexusLogo.childNodes].forEach((node) => demo.append(node.cloneNode(true)));
   target.replaceChildren(demo);
   return demo;
 }

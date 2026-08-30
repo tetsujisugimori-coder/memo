@@ -22,6 +22,13 @@
     scan: "scan-midpoint",
     off: "off-static"
   });
+  const LOGO_ANIMATION_FAMILIES = Object.freeze({
+    "living-nexus": "living",
+    typewriter: "legacy",
+    nexus: "legacy",
+    scan: "legacy",
+    off: "living"
+  });
 
   function clamp(value, minimum = 0, maximum = 1) {
     return Math.min(maximum, Math.max(minimum, value));
@@ -37,6 +44,31 @@
   function normalizeLogoAnimation(value) {
     if (value === "daily" || value == null || value === "") return "living-nexus";
     return LOGO_ANIMATION_SETTINGS.includes(value) ? value : "living-nexus";
+  }
+
+  function logoAnimationFamily(value) {
+    return LOGO_ANIMATION_FAMILIES[normalizeLogoAnimation(value)];
+  }
+
+  function replaceLogoAnimationDom(element, value, { createContent, beforeReplace = () => {} } = {}) {
+    const setting = normalizeLogoAnimation(value);
+    const family = logoAnimationFamily(setting);
+    if (!element) return { setting, family, replaced: false };
+    const previousFamily = element.dataset?.logoFamily || "";
+    const replaced = previousFamily !== family;
+    if (replaced) {
+      if (typeof createContent !== "function") throw new TypeError("Logo family content factory is required");
+      beforeReplace({ element, setting, family, previousFamily });
+      element.classList?.remove?.("is-animating", "is-tentacle-active");
+      if (element.dataset) {
+        delete element.dataset.logoActiveTentacle;
+        delete element.dataset.logoPreviewPose;
+      }
+      element.replaceChildren(createContent(family));
+      if (element.dataset) element.dataset.logoFamily = family;
+    }
+    if (element.dataset) element.dataset.logoAnimation = setting;
+    return { setting, family, replaced };
   }
 
   function applyLogoAnimationPreviewPose(element, value) {
@@ -619,6 +651,7 @@
     AMBIENT_WAIT_MAX_MS,
     AMBIENT_WAIT_MIN_MS,
     LOGO_ANIMATION_DURATIONS,
+    LOGO_ANIMATION_FAMILIES,
     LOGO_ANIMATION_PREVIEW_POSES,
     LOGO_ANIMATION_SETTINGS,
     applyLogoAnimationPreviewPose,
@@ -629,8 +662,10 @@
     createLogoAnimationSettingsSession,
     createStartupMotionPlan,
     createTentacleGeometry,
+    logoAnimationFamily,
     motionSnapshot,
     normalizeLogoAnimation,
+    replaceLogoAnimationDom,
     tentacleStateAt
   };
 });

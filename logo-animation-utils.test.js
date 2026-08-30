@@ -4,6 +4,7 @@ const {
   AMBIENT_WAIT_MAX_MS,
   AMBIENT_WAIT_MIN_MS,
   LOGO_ANIMATION_DURATIONS,
+  LOGO_ANIMATION_FAMILIES,
   LOGO_ANIMATION_PREVIEW_POSES,
   applyLogoAnimationPreviewPose,
   clearLogoAnimationPreviewPose,
@@ -13,8 +14,10 @@ const {
   createLogoAnimationSettingsSession,
   createStartupMotionPlan,
   createTentacleGeometry,
+  logoAnimationFamily,
   motionSnapshot,
   normalizeLogoAnimation,
+  replaceLogoAnimationDom,
   tentacleStateAt
 } = require("./logo-animation-utils.js");
 
@@ -28,12 +31,14 @@ function createFixture({ reducedMotion = false, visible = true, randomValues = [
   let nextTimerId = 0;
   let randomIndex = 0;
   const element = {
+    children: [],
     dataset: {},
     style: { values: {}, setProperty(name, value) { this.values[name] = value; } },
     classList: {
       add: (...names) => names.forEach((name) => classes.add(name)),
       remove: (...names) => names.forEach((name) => classes.delete(name))
-    }
+    },
+    replaceChildren(content) { this.children = [content]; }
   };
   const windowObject = {
     matchMedia: () => ({ matches: reducedMotion }),
@@ -96,6 +101,113 @@ function createPhaseComparisonPlan(candidate, previousPhase) {
 test("旧設定値を維持しdailyと未知値を生体Nexusへ移行する", () => {
   for (const value of ["typewriter", "nexus", "scan", "off", "living-nexus"]) assert.equal(normalizeLogoAnimation(value), value);
   for (const value of ["daily", "", null, "unknown"]) assert.equal(normalizeLogoAnimation(value), "living-nexus");
+});
+
+test("5設定を生体Nexus系と従来ロゴ系へ決定的に分類する", () => {
+  assert.deepEqual(LOGO_ANIMATION_FAMILIES, {
+    "living-nexus": "living",
+    typewriter: "legacy",
+    nexus: "legacy",
+    scan: "legacy",
+    off: "living"
+  });
+  for (const setting of ["living-nexus", "off"]) assert.equal(logoAnimationFamily(setting), "living");
+  for (const setting of ["typewriter", "nexus", "scan"]) assert.equal(logoAnimationFamily(setting), "legacy");
+  assert.equal(logoAnimationFamily("unknown"), "living");
+});
+
+test("DOM系統切替は異なる系統だけを停止・置換し、動作属性を初期化する", () => {
+  const classes = new Set(["is-animating", "is-tentacle-active"]);
+  const calls = [];
+  const element = {
+    children: [{ family: "living" }],
+    dataset: {
+      logoFamily: "living",
+      logoAnimation: "living-nexus",
+      logoActiveTentacle: "0 2",
+      logoPreviewPose: "living-complete"
+    },
+    classList: {
+      remove: (...names) => names.forEach((name) => classes.delete(name))
+    },
+    replaceChildren(content) {
+      calls.push(["replace", content.family]);
+      this.children = [content];
+    }
+  };
+  const options = {
+    beforeReplace: ({ previousFamily, family }) => calls.push(["stop", previousFamily, family]),
+    createContent: (family) => ({ family })
+  };
+
+  assert.deepEqual(replaceLogoAnimationDom(element, "typewriter", options), {
+    setting: "typewriter",
+    family: "legacy",
+    replaced: true
+  });
+  assert.deepEqual(calls, [["stop", "living", "legacy"], ["replace", "legacy"]]);
+  assert.equal(element.dataset.logoFamily, "legacy");
+  assert.equal(element.dataset.logoAnimation, "typewriter");
+  assert.equal("logoActiveTentacle" in element.dataset, false);
+  assert.equal("logoPreviewPose" in element.dataset, false);
+  assert.equal(classes.has("is-animating"), false);
+  assert.equal(classes.has("is-tentacle-active"), false);
+
+  assert.equal(replaceLogoAnimationDom(element, "scan", options).replaced, false);
+  assert.equal(calls.length, 2);
+  assert.equal(element.dataset.logoAnimation, "scan");
+  assert.equal(replaceLogoAnimationDom(element, "off", options).family, "living");
+  assert.deepEqual(calls.slice(-2), [["stop", "legacy", "living"], ["replace", "living"]]);
+});
+
+test("未適用の従来系プレビューを閉じると保存済みの生体系DOMへ戻る", () => {
+  const session = createLogoAnimationSettingsSession("living-nexus");
+  const element = {
+    children: [],
+    dataset: {},
+    classList: { remove: () => {} },
+    replaceChildren(content) { this.children = [content]; }
+  };
+  const options = { createContent: (family) => ({ family }) };
+  replaceLogoAnimationDom(element, session.getState().saved, options);
+  replaceLogoAnimationDom(element, session.select("scan").selected, options);
+  assert.equal(element.dataset.logoFamily, "legacy");
+  const cancelled = session.cancel();
+  replaceLogoAnimationDom(element, cancelled.saved, options);
+  assert.equal(element.dataset.logoFamily, "living");
+  assert.equal(element.dataset.logoAnimation, "living-nexus");
+});
+
+test("生体系から従来系へ置換する前に古いRAF・終了タイマー・ambient待機を無効化する", () => {
+  const fixture = createFixture();
+  fixture.element.dataset.logoFamily = "living";
+  fixture.controller.play("living-nexus");
+  fixture.runNextFrame(20);
+  assert.ok(fixture.frames.size > 0);
+  const cleanupTimer = [...fixture.timers.values()].at(-1);
+  assert.equal(cleanupTimer.cleared, false);
+
+  replaceLogoAnimationDom(fixture.element, "nexus", {
+    beforeReplace: () => fixture.controller.setSetting("off"),
+    createContent: (family) => ({ family })
+  });
+  assert.equal(cleanupTimer.cleared, true);
+  assert.equal(fixture.frames.size, 0);
+  assert.equal(fixture.classes.has("is-animating"), false);
+  assert.equal(fixture.classes.has("is-tentacle-active"), false);
+  assert.equal("logoActiveTentacle" in fixture.element.dataset, false);
+  assert.deepEqual(fixture.element.children, [{ family: "legacy" }]);
+});
+
+test("旧3種類は通常触手イベントやランダム待機を予約しない", () => {
+  for (const setting of ["typewriter", "nexus", "scan"]) {
+    const fixture = createFixture();
+    fixture.controller.setSetting(setting, { scheduleAmbient: true });
+    assert.equal(fixture.controller.scheduleAmbient(), false);
+    assert.equal(fixture.controller.startAmbientEvent(), false);
+    assert.equal(fixture.frames.size, 0);
+    assert.equal([...fixture.timers.values()].filter((timer) => !timer.cleared).length, 0);
+  }
 });
 
 test("5種類の代表静止ポーズは互いに異なり、RAFやタイマーなしで適用できる", () => {
