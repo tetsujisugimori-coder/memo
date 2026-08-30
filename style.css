@@ -21,9 +21,12 @@
   --accent-soft: #d9eef0;
   --memo-nexus-logo-node: var(--accent);
   --memo-nexus-logo-node: color-mix(in srgb, var(--accent) 72%, var(--panel));
+  --memo-nexus-logo-node-secondary: #81789e;
+  --memo-nexus-logo-node-secondary: color-mix(in srgb, var(--accent) 54%, #9a82ad);
   --memo-nexus-logo-line: rgba(35, 108, 115, 0.42);
   --memo-nexus-logo-line: color-mix(in srgb, var(--accent) 42%, transparent);
-  --memo-nexus-logo-scan: rgba(255, 255, 255, 0.58);
+  --memo-nexus-logo-glow: rgba(35, 108, 115, 0.16);
+  --memo-nexus-logo-glow: color-mix(in srgb, var(--accent) 16%, transparent);
   --gold: #a66b1f;
   --green: #497346;
   --amber: #8a6118;
@@ -73,9 +76,12 @@ body.dark {
   --accent-soft: #153b40;
   --memo-nexus-logo-node: var(--accent);
   --memo-nexus-logo-node: color-mix(in srgb, var(--accent) 84%, var(--panel));
+  --memo-nexus-logo-node-secondary: #a49ac3;
+  --memo-nexus-logo-node-secondary: color-mix(in srgb, var(--accent) 62%, #b29ac8);
   --memo-nexus-logo-line: rgba(117, 199, 206, 0.58);
   --memo-nexus-logo-line: color-mix(in srgb, var(--accent) 58%, transparent);
-  --memo-nexus-logo-scan: rgba(182, 235, 238, 0.34);
+  --memo-nexus-logo-glow: rgba(117, 199, 206, 0.2);
+  --memo-nexus-logo-glow: color-mix(in srgb, var(--accent) 20%, transparent);
   --gold: #e2aa54;
   --green: #90c986;
   --amber: #e0b45c;
@@ -1414,65 +1420,107 @@ body.collections-open .collection-explorer {
 
 .memo-nexus-logo {
   position: relative;
-  flex: 0 0 176px;
-  width: 176px;
-  height: 44px;
+  --memo-nexus-logo-play-duration: 7200ms;
+  flex: 0 0 188px;
+  width: 188px;
+  height: 46px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
   overflow: hidden;
-  padding: 0 12px;
-  border: 1px solid transparent;
-  border-radius: 7px;
+  padding: 3px 9px 3px 5px;
+  border: 0;
+  border-radius: 0;
   background: transparent;
   color: var(--ink);
-  font: 700 18px/1.1 "Yu Gothic UI", "Hiragino Sans", Meiryo, system-ui, sans-serif;
-  letter-spacing: 0.02em;
   text-align: left;
   white-space: nowrap;
+  transition: background-color 140ms ease, color 140ms ease, filter 140ms ease;
 }
 
-.memo-nexus-logo:hover { border-color: var(--line); background: var(--button-bg); }
+.memo-nexus-logo::after { content: ""; position: absolute; inset: 4px; border: 1px solid color-mix(in srgb, var(--line) 66%, transparent); pointer-events: none; }
+.memo-nexus-logo:hover { background: color-mix(in srgb, var(--accent-soft) 30%, transparent); color: var(--accent); filter: brightness(1.04); }
+.memo-nexus-logo:active { background: color-mix(in srgb, var(--accent-soft) 44%, transparent); }
 .memo-nexus-logo:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
-.memo-nexus-logo-text { position: absolute; top: 12px; left: 12px; z-index: 2; display: inline-block; }
+.memo-nexus-logo-frame, .memo-nexus-logo-frame-side, .memo-nexus-logo-frame-corner { position: absolute; z-index: 3; pointer-events: none; }
+.memo-nexus-logo-frame { inset: 0; }
+.memo-nexus-logo-frame-side { background: color-mix(in srgb, var(--line) 78%, transparent); }
+.memo-nexus-logo-frame-side-top, .memo-nexus-logo-frame-side-bottom { left: 0; right: 0; height: 1px; transform-origin: left center; }
+.memo-nexus-logo-frame-side-top { top: 0; }
+.memo-nexus-logo-frame-side-bottom { bottom: 0; transform-origin: right center; }
+.memo-nexus-logo-frame-side-left, .memo-nexus-logo-frame-side-right { top: 0; bottom: 0; width: 1px; transform-origin: center top; }
+.memo-nexus-logo-frame-side-left { left: 0; }
+.memo-nexus-logo-frame-side-right { right: 0; transform-origin: center bottom; }
+.memo-nexus-logo-frame-corner { width: 7px; height: 7px; border-color: color-mix(in srgb, var(--accent) 52%, var(--line)); }
+.memo-nexus-logo-frame-corner-tl { inset: 0 auto auto 0; border-top: 2px solid; border-left: 2px solid; }
+.memo-nexus-logo-frame-corner-tr { inset: 0 0 auto auto; border-top: 2px solid; border-right: 2px solid; }
+.memo-nexus-logo-frame-corner-br { inset: auto 0 0 auto; border-right: 2px solid; border-bottom: 2px solid; }
+.memo-nexus-logo-frame-corner-bl { inset: auto auto 0 0; border-bottom: 2px solid; border-left: 2px solid; }
+
+.memo-nexus-logo-mark { position: relative; z-index: 2; flex: 0 0 42px; width: 42px; height: 40px; pointer-events: none; }
+.memo-nexus-logo-mark svg { display: block; width: 100%; height: 100%; overflow: hidden; }
+.memo-nexus-logo-word { position: relative; z-index: 2; display: inline-flex; align-items: center; white-space: nowrap; font: 700 18px/1.1 "Yu Gothic UI", "Hiragino Sans", Meiryo, system-ui, sans-serif; letter-spacing: 0.02em; }
 .memo-nexus-logo-letter { display: inline-block; }
-.memo-nexus-logo-caret { position: relative; z-index: 2; display: inline-block; width: 1px; height: 1.05em; margin-left: 2px; vertical-align: -0.17em; background: transparent; }
+.memo-nexus-logo-space { width: 0.28em; }
+.memo-nexus-logo-caret { display: inline-block; width: 1px; height: 1.04em; margin-left: 2px; background: var(--accent); opacity: 0; }
+.memo-nexus-logo-scan { position: absolute; z-index: 4; inset: 5px auto 5px -12px; width: 10px; opacity: 0; background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--accent) 32%, transparent), transparent); pointer-events: none; }
 
-.memo-nexus-logo-nexus,
-.memo-nexus-logo-scan { position: absolute; inset: 0; pointer-events: none; }
-.memo-nexus-logo-nexus { opacity: 0; }
-.memo-nexus-logo-frame { position: absolute; display: block; background: var(--memo-nexus-logo-line); opacity: 0; }
-.memo-nexus-logo-frame-left { top: 5px; bottom: 5px; left: 5px; width: 1px; transform: scaleY(0); transform-origin: top; }
-.memo-nexus-logo-frame-top { top: 5px; right: 5px; left: 5px; height: 1px; transform: scaleX(0); transform-origin: left; }
-.memo-nexus-logo-frame-right { top: 5px; right: 5px; bottom: 5px; width: 1px; transform: scaleY(0); transform-origin: top; }
-.memo-nexus-logo-frame-bottom { right: 5px; bottom: 5px; left: 5px; height: 1px; transform: scaleX(0); transform-origin: right; }
-.memo-nexus-logo-nexus i { position: absolute; width: 5px; height: 5px; border-radius: 50%; background: var(--memo-nexus-logo-node); box-shadow: 0 0 0 2px var(--panel); opacity: 0; }
-.memo-nexus-logo-node-start { top: 2px; left: 2px; }
-.memo-nexus-logo-node-end { right: 2px; bottom: 2px; }
+.memo-nexus-logo-tentacle { fill: none; stroke: var(--memo-nexus-logo-line); stroke-width: 1.05; stroke-linecap: round; vector-effect: non-scaling-stroke; }
+.memo-nexus-logo-node,
+.memo-nexus-logo-core,
+.memo-nexus-logo-core-halo { transform-box: fill-box; transform-origin: center; }
+.memo-nexus-logo-node { fill: var(--memo-nexus-logo-node-secondary); }
+.memo-nexus-logo-core-halo { fill: var(--memo-nexus-logo-glow); }
+.memo-nexus-logo-core { fill: var(--memo-nexus-logo-node); filter: drop-shadow(0 0 2px var(--memo-nexus-logo-glow)); }
+.memo-nexus-logo[data-logo-animation="living-nexus"] .memo-nexus-logo-core-halo { animation: memo-nexus-logo-breathe-halo 5.8s ease-in-out infinite; }
+.memo-nexus-logo[data-logo-animation="living-nexus"] .memo-nexus-logo-core { animation: memo-nexus-logo-breathe 5.8s ease-in-out infinite; }
 
-.memo-nexus-logo-scan { z-index: 3; width: 42px; background: linear-gradient(90deg, transparent, var(--memo-nexus-logo-scan), transparent); opacity: 0; transform: translateX(-56px) skewX(-16deg); }
-.memo-nexus-logo.is-animating { animation: memo-nexus-logo-cycle 1250ms linear; }
-.memo-nexus-logo.is-animating[data-logo-animation="typewriter"] .memo-nexus-logo-letter,
-.memo-nexus-logo.is-animating[data-logo-animation="nexus"] .memo-nexus-logo-letter { opacity: 0; transform: translateX(-3px); animation: memo-nexus-logo-type-in 110ms ease-out forwards; animation-delay: calc(80ms + var(--memo-nexus-logo-delay) * 75ms); }
-.memo-nexus-logo.is-animating[data-logo-animation="typewriter"] .memo-nexus-logo-caret { background: currentColor; animation: memo-nexus-logo-caret 190ms step-end 790ms 2; }
-.memo-nexus-logo.is-animating[data-logo-animation="nexus"] .memo-nexus-logo-nexus { animation: memo-nexus-logo-nexus-fade 1320ms ease-out forwards; }
-.memo-nexus-logo.is-animating[data-logo-animation="nexus"] .memo-nexus-logo-frame-left,
-.memo-nexus-logo.is-animating[data-logo-animation="nexus"] .memo-nexus-logo-frame-top { animation: memo-nexus-logo-frame-start 520ms ease-out 80ms forwards; }
-.memo-nexus-logo.is-animating[data-logo-animation="nexus"] .memo-nexus-logo-frame-right,
-.memo-nexus-logo.is-animating[data-logo-animation="nexus"] .memo-nexus-logo-frame-bottom { animation: memo-nexus-logo-frame-finish 270ms ease-out 830ms forwards; }
-.memo-nexus-logo.is-animating[data-logo-animation="nexus"] .memo-nexus-logo-nexus i { animation: memo-nexus-logo-node 1040ms ease-out forwards; }
-.memo-nexus-logo.is-animating[data-logo-animation="nexus"] .memo-nexus-logo-node-end { animation: memo-nexus-logo-node-arrive 120ms ease-out 1100ms forwards; }
-.memo-nexus-logo.is-animating[data-logo-animation="nexus"] .memo-nexus-logo-text { animation: memo-nexus-logo-nexus-glow 190ms ease-out 1100ms; }
-.memo-nexus-logo.is-animating[data-logo-animation="scan"] .memo-nexus-logo-scan { animation: memo-nexus-logo-scan 760ms ease-out 120ms forwards; }
+.memo-nexus-logo.is-animating { animation: memo-nexus-logo-cycle var(--memo-nexus-logo-play-duration) linear; }
+.memo-nexus-logo.is-animating .memo-nexus-logo-frame-side { transform: scaleX(0); animation: memo-nexus-logo-frame-x 420ms ease-out both; }
+.memo-nexus-logo.is-animating .memo-nexus-logo-frame-side-left, .memo-nexus-logo.is-animating .memo-nexus-logo-frame-side-right { transform: scaleY(0); animation-name: memo-nexus-logo-frame-y; }
+.memo-nexus-logo.is-animating .memo-nexus-logo-frame-side-top { animation-delay: 100ms; }
+.memo-nexus-logo.is-animating .memo-nexus-logo-frame-side-right { animation-delay: 210ms; }
+.memo-nexus-logo.is-animating .memo-nexus-logo-frame-side-bottom { animation-delay: 350ms; }
+.memo-nexus-logo.is-animating .memo-nexus-logo-frame-side-left { animation-delay: 470ms; }
+.memo-nexus-logo.is-animating .memo-nexus-logo-core { animation: memo-nexus-logo-core-awake 520ms ease-out both; }
+.memo-nexus-logo.is-animating .memo-nexus-logo-core-halo { animation: memo-nexus-logo-halo-awake 520ms ease-out both; }
+.memo-nexus-logo.is-animating .memo-nexus-logo-letter { opacity: 0; transform: translateX(-2px); animation: memo-nexus-logo-type-in 120ms cubic-bezier(0.22, 0.7, 0.24, 1) calc(520ms + var(--memo-nexus-logo-delay) * 66ms) both; }
+.memo-nexus-logo.is-animating .memo-nexus-logo-caret { animation: memo-nexus-logo-caret-once 360ms ease-out 1260ms both; }
+.memo-nexus-logo.is-tentacle-active .memo-nexus-logo-tentacle { stroke: color-mix(in srgb, var(--memo-nexus-logo-node) 70%, var(--memo-nexus-logo-line)); filter: drop-shadow(0 0 2px var(--memo-nexus-logo-glow)); }
+.memo-nexus-logo.is-tentacle-active[data-logo-active-tentacle~="0"] .memo-nexus-logo-frame-side-top,
+.memo-nexus-logo.is-tentacle-active[data-logo-active-tentacle~="0"] .memo-nexus-logo-frame-side-left,
+.memo-nexus-logo.is-tentacle-active[data-logo-active-tentacle~="1"] .memo-nexus-logo-frame-side-top,
+.memo-nexus-logo.is-tentacle-active[data-logo-active-tentacle~="1"] .memo-nexus-logo-frame-side-right,
+.memo-nexus-logo.is-tentacle-active[data-logo-active-tentacle~="2"] .memo-nexus-logo-frame-side-right,
+.memo-nexus-logo.is-tentacle-active[data-logo-active-tentacle~="2"] .memo-nexus-logo-frame-side-bottom,
+.memo-nexus-logo.is-tentacle-active[data-logo-active-tentacle~="3"] .memo-nexus-logo-frame-side-bottom,
+.memo-nexus-logo.is-tentacle-active[data-logo-active-tentacle~="3"] .memo-nexus-logo-frame-side-left { animation: memo-nexus-logo-frame-glow 920ms ease-in-out infinite alternate; }
+.memo-nexus-logo[data-logo-animation="typewriter"].is-animating { --memo-nexus-logo-play-duration: 1450ms; }
+.memo-nexus-logo[data-logo-animation="nexus"].is-animating { --memo-nexus-logo-play-duration: 1800ms; }
+.memo-nexus-logo[data-logo-animation="nexus"].is-animating .memo-nexus-logo-tentacle { animation: memo-nexus-logo-legacy-link 920ms ease-out 300ms both; }
+.memo-nexus-logo[data-logo-animation="nexus"].is-animating .memo-nexus-logo-node { animation: memo-nexus-logo-node-awake 460ms ease-out both; }
+.memo-nexus-logo[data-logo-animation="scan"].is-animating { --memo-nexus-logo-play-duration: 1100ms; }
+.memo-nexus-logo[data-logo-animation="scan"].is-animating .memo-nexus-logo-scan { animation: memo-nexus-logo-scan 900ms ease-in-out 100ms both; }
+.memo-nexus-logo[data-logo-animation="scan"].is-animating .memo-nexus-logo-letter { opacity: 1; transform: none; animation: none; }
+.memo-nexus-logo[data-logo-animation="scan"].is-animating .memo-nexus-logo-caret,
+.memo-nexus-logo[data-logo-animation="nexus"].is-animating .memo-nexus-logo-caret { animation: none; }
+.memo-nexus-logo[data-logo-animation="off"] { animation: none !important; transition: none !important; }
+.memo-nexus-logo[data-logo-animation="off"] *, .memo-nexus-logo[data-logo-animation="off"]::after { animation: none !important; transition: none !important; }
 
 @keyframes memo-nexus-logo-cycle { from { opacity: 0.999; } to { opacity: 1; } }
+@keyframes memo-nexus-logo-frame-x { to { transform: scaleX(1); } }
+@keyframes memo-nexus-logo-frame-y { to { transform: scaleY(1); } }
+@keyframes memo-nexus-logo-frame-glow { to { background: color-mix(in srgb, var(--accent) 66%, transparent); box-shadow: 0 0 4px var(--memo-nexus-logo-glow); } }
+@keyframes memo-nexus-logo-core-awake { from { opacity: 0.35; transform: scale(0.66); } 65% { opacity: 1; transform: scale(1.09); } to { opacity: 1; transform: scale(1); } }
+@keyframes memo-nexus-logo-halo-awake { from { opacity: 0; transform: scale(0.42); } to { opacity: 1; transform: scale(1); } }
+@keyframes memo-nexus-logo-node-awake { from { opacity: 0.22; transform: scale(0.7); } to { opacity: 1; transform: scale(1); } }
 @keyframes memo-nexus-logo-type-in { to { opacity: 1; transform: translateX(0); } }
-@keyframes memo-nexus-logo-caret { 50% { background: transparent; } }
-@keyframes memo-nexus-logo-nexus-fade { 8%, 98% { opacity: 1; } to { opacity: 0; } }
-@keyframes memo-nexus-logo-frame-start { to { opacity: 1; transform: scaleX(1) scaleY(1); } }
-@keyframes memo-nexus-logo-frame-finish { to { opacity: 1; transform: scaleX(1) scaleY(1); } }
-@keyframes memo-nexus-logo-node { 8%, 88% { opacity: 1; transform: scale(1); } to { opacity: 0; transform: scale(0.7); } }
-@keyframes memo-nexus-logo-node-arrive { to { opacity: 1; transform: scale(1); } }
-@keyframes memo-nexus-logo-nexus-glow { 45% { color: var(--accent); text-shadow: 0 0 8px color-mix(in srgb, var(--accent) 42%, transparent); } }
-@keyframes memo-nexus-logo-scan { 8% { opacity: 0; } 24%, 70% { opacity: 1; } to { opacity: 0; transform: translateX(210px) skewX(-16deg); } }
+@keyframes memo-nexus-logo-caret-once { from, to { opacity: 0; } 20%, 65% { opacity: 0.66; } }
+@keyframes memo-nexus-logo-legacy-link { from { stroke-dasharray: 1 40; opacity: 0.28; } 65% { stroke-dasharray: 40 1; opacity: 0.9; } to { stroke-dasharray: 40 1; opacity: 1; } }
+@keyframes memo-nexus-logo-scan { from { opacity: 0; transform: translateX(0); } 18%, 72% { opacity: 0.75; } to { opacity: 0; transform: translateX(192px); } }
+@keyframes memo-nexus-logo-breathe { 50% { opacity: 0.9; transform: scale(0.95); } }
+@keyframes memo-nexus-logo-breathe-halo { 50% { opacity: 0.54; transform: scale(0.93); } }
 
 .layout-primary-actions {
   min-width: 0;
@@ -4120,6 +4168,22 @@ body.related-open .related-toggle {
   color: var(--ink);
 }
 
+.logo-animation-setting {
+  display: grid;
+  grid-template-columns: 132px minmax(160px, 240px) auto;
+  gap: 8px 12px;
+  align-items: center;
+  margin: 0 0 12px;
+  padding: 10px 0 0;
+  border: 0;
+  border-top: 1px solid var(--line);
+}
+.logo-animation-setting legend { padding: 0 5px; color: var(--muted); font-size: 13px; }
+.logo-animation-setting label { color: var(--muted); font-size: 13px; }
+.logo-animation-setting select { min-height: 36px; border: 1px solid var(--line); border-radius: 7px; padding: 0 10px; background: var(--input-bg); color: var(--ink); }
+.logo-animation-setting-actions { display: flex; flex-wrap: wrap; gap: 7px; }
+.logo-animation-setting-status { grid-column: 2 / -1; min-height: 1.3em; margin: 0; color: var(--muted); font-size: 12px; }
+
 .editor-caret-animation-setting {
   align-items: start;
   border: 0;
@@ -4621,8 +4685,20 @@ body.related-open .related-toggle {
   }
 
   .memo-nexus-logo {
-    flex-basis: 40px;
+    flex-basis: 44px;
     width: 176px;
+    height: 44px;
+    gap: 5px;
+  }
+
+  .memo-nexus-logo-mark {
+    flex-basis: 36px;
+    width: 36px;
+    height: 36px;
+  }
+
+  .memo-nexus-logo-word {
+    font-size: 17px;
   }
 
   .layout-primary-actions {
@@ -4826,6 +4902,9 @@ body.related-open .related-toggle {
     gap: 4px;
   }
 
+  .logo-animation-setting { grid-template-columns: minmax(0, 1fr); }
+  .logo-animation-setting-status { grid-column: 1; }
+
   .ai-robot-button {
     right: 0;
     bottom: calc(24px + env(safe-area-inset-bottom));
@@ -4894,6 +4973,20 @@ body.related-open .related-toggle {
   .memo-nexus-logo::before,
   .memo-nexus-logo::after {
     animation: none !important;
+    transition: none !important;
+  }
+
+  .memo-nexus-logo {
+    transition: none;
+  }
+
+  .memo-nexus-logo.is-animating .memo-nexus-logo-letter {
+    opacity: 1;
+    transform: none;
+  }
+
+  .memo-nexus-logo.is-animating .memo-nexus-logo-caret {
+    opacity: 0;
   }
 }
 

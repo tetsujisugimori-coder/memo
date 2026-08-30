@@ -96,7 +96,7 @@ test("起動例外を捕捉して安全な失敗表示へ渡す", async () => {
   assert.doesNotMatch(app, /\ninit\(\);/);
 });
 
-test("起動完了まで初期HTMLの編集UIを隠し、成功時だけガードを解除する", async () => {
+test("起動完了まで編集UIを隠し、ガード解除後の描画フレームでだけロゴを予約する", async () => {
   const events = [];
   const result = await runGuardedStartup({
     onLoading: () => events.push("loading"),
@@ -109,5 +109,13 @@ test("起動完了まで初期HTMLの編集UIを隠し、成功時だけガー�
   assert.match(html, /<body class="app-starting">/);
   assert.match(html, /id="appStartupGuard"[^>]*aria-busy="true"/);
   assert.match(html, /indexeddb-lifecycle\.js\?v=0\.5\.0-1/);
-  assert.match(app, /onReady: hideStartupGuard/);
+  assert.match(app, /onReady: handleStartupReady/);
+  const readyHandler = app.match(/function handleStartupReady\(\) \{[\s\S]*?\n\}/)?.[0] || "";
+  assert.match(readyHandler, /hideStartupGuard\(\)/);
+  assert.match(readyHandler, /isPopoutWindow/);
+  assert.match(readyHandler, /scheduleInitialLogoAnimation\(\)/);
+  assert.ok(readyHandler.indexOf("hideStartupGuard()") < readyHandler.indexOf("scheduleInitialLogoAnimation()"));
+  const initHandler = app.match(/async function init\(\) \{[\s\S]*?\n\}/)?.[0] || "";
+  assert.doesNotMatch(initHandler, /scheduleInitialLogoAnimation/);
+  assert.match(app, /function scheduleInitialLogoAnimation\(\) \{\s*logoAnimationController\.scheduleInitial\(\);\s*\}/);
 });

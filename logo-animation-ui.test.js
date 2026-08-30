@@ -5,153 +5,75 @@ const test = require("node:test");
 const html = fs.readFileSync("index.html", "utf8");
 const app = fs.readFileSync("app.js", "utf8");
 const css = fs.readFileSync("style.css", "utf8");
-const controllerStart = app.indexOf("function restoreLogoAnimationSetting(");
-const controllerEnd = app.indexOf("\nfunction syncLayoutMode(", controllerStart);
-const controllerSource = app.slice(controllerStart, controllerEnd);
+const header = html.match(/<header class="app-header">[\s\S]*?<\/header>/)?.[0] || "";
+const logoButton = header.match(/<button id="memoNexusLogo"[\s\S]*?<\/button>/)?.[0] || "";
 
-function createLogoController({ storedValue = "daily", reducedMotion = false } = {}) {
-  const classes = new Set();
-  const logo = {
-    dataset: {},
-    classList: { add: (name) => classes.add(name), remove: (name) => classes.delete(name) },
-    setAttribute: () => {}
-  };
-  const select = { value: "" };
-  const frames = [];
-  const timers = [];
-  const storage = { value: storedValue, getItem: () => storage.value, setItem: (_key, value) => { storage.value = value; } };
-  const controller = new Function("memoNexusLogo", "logoAnimationSelect", "localStorage", "window", "requestAnimationFrame", "nextLogoAnimationInCycle", "normalizeLogoAnimation", "resolveLogoAnimation", "LOGO_ANIMATION_STORAGE_KEY", `
-    let logoAnimationSetting = "daily";
-    let logoAnimationSessionOverride = null;
-    let logoAnimationCleanupTimer = null;
-    let logoInitialAnimationScheduled = false;
-    let logoAnimationRequestId = 0;
-    ${controllerSource}
-    return { restoreLogoAnimationSetting, saveLogoAnimationSetting, playLogoAnimation, cycleLogoAnimation, scheduleInitialLogoAnimation, finishLogoAnimation, getSetting: () => logoAnimationSetting, getSessionAnimation: () => logoAnimationSessionOverride };
-  `)(
-    logo,
-    select,
-    storage,
-    { matchMedia: () => ({ matches: reducedMotion }), clearTimeout: () => {}, setTimeout: (callback) => { timers.push(callback); return timers.length; } },
-    (callback) => frames.push(callback),
-    require("./logo-animation-utils.js").nextLogoAnimation,
-    require("./logo-animation-utils.js").normalizeLogoAnimation,
-    require("./logo-animation-utils.js").resolveLogoAnimation,
-    "memo-nexus-logo-animation"
-  );
-  return { classes, controller, frames, logo, select, storage, timers };
-}
-
-test("ロゴはアクセシブルなbuttonと非干渉の装飾レイヤーを持つ", () => {
-  const header = html.match(/<header class="app-header">[\s\S]*?<\/header>/)?.[0] || "";
-  assert.match(header, /<button id="memoNexusLogo" class="memo-nexus-logo" type="button" aria-label="次のロゴアニメーションを表示">/);
-  assert.match(header, /memo-nexus-logo-nexus" aria-hidden="true"/);
-  assert.match(header, /memo-nexus-logo-scan" aria-hidden="true"/);
-  assert.match(css, /\.memo-nexus-logo-nexus,[\s\S]*?pointer-events:\s*none;/);
-  assert.match(css, /\.memo-nexus-logo:focus-visible/);
-  assert.match(css, /white-space:\s*nowrap;/);
+test("タイトルは4本の触手を持つキーボード操作可能なbuttonである", () => {
+  assert.match(logoButton, /type="button" aria-label="Memo Nexus ロゴアニメーションを再生"/);
+  assert.match(logoButton, /<svg viewBox="-4 -4 52 48" focusable="false">/);
+  assert.equal((logoButton.match(/data-logo-tentacle="[0-3]"/g) || []).length, 4);
+  assert.equal((logoButton.match(/data-logo-node="[0-3]"/g) || []).length, 4);
+  assert.equal((logoButton.match(/d="M22 20 C[^\"]+ C/g) || []).length, 4);
+  assert.match(logoButton, /memo-nexus-logo-core-halo/);
+  assert.equal(logoButton.replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim(), "Memo Nexus");
 });
 
-test("設定、初回再生、クリック再生、終了時解除とreduced motion停止を接続する", () => {
-  assert.match(html, /id="logoAnimationSelect"/);
-  ["daily", "typewriter", "nexus", "scan", "off"].forEach((value) => assert.match(html, new RegExp(`<option value="${value}"`)));
+test("触手の経路とノード位置は同じスナップショットから更新される", () => {
+  const renderer = app.match(/function renderLogoTentacles\(snapshot\) \{[\s\S]*?\n\}/)?.[0] || "";
+  assert.match(renderer, /createTentacleGeometry\(\{ center: LOGO_TENTACLE_CENTER, endpoint: base, tentacle \}\)/);
+  assert.match(renderer, /path\.setAttribute\("d", geometry\.path\)/);
+  assert.match(renderer, /node\.setAttribute\("cx"/);
+  assert.match(renderer, /node\.setAttribute\("cy"/);
+  assert.match(renderer, /geometry\.endX/);
+  assert.match(renderer, /geometry\.endY/);
+});
+
+test("旧3種類を含む設定はプレビューと適用を分離する", () => {
+  for (const value of ["living-nexus", "typewriter", "nexus", "scan", "off"]) assert.match(html, new RegExp(`<option value="${value}"`));
+  assert.match(html, /id="previewLogoAnimationBtn"/);
+  assert.match(html, /id="applyLogoAnimationBtn"/);
   assert.match(app, /const LOGO_ANIMATION_STORAGE_KEY = "memo-nexus-logo-animation"/);
-  assert.match(app, /restoreLogoAnimationSetting\(\);/);
-  assert.match(app, /scheduleInitialLogoAnimation\(\);/);
-  assert.match(app, /requestAnimationFrame\(\(\) => playLogoAnimation\(\)\);/);
-  assert.match(app, /memoNexusLogo\.addEventListener\("click", cycleLogoAnimation\)/);
-  assert.match(app, /const \{ nextLogoAnimation: nextLogoAnimationInCycle,/);
-  assert.match(app, /event\.animationName === "memo-nexus-logo-cycle"\) finishLogoAnimation\(\)/);
-  assert.match(app, /window\.matchMedia\("\(prefers-reduced-motion: reduce\)"\)\.matches/);
-  assert.match(app, /if \(animation === "off"\) return;/);
-  assert.match(app, /memoNexusLogo\.classList\.remove\("is-animating"\)/);
-  assert.match(css, /@media \(prefers-reduced-motion: reduce\)[\s\S]*?\.memo-nexus-logo[\s\S]*?animation:\s*none !important;/);
+  const preview = app.match(/function previewLogoAnimation\(\) \{[\s\S]*?\n\}/)?.[0] || "";
+  const save = app.match(/function saveLogoAnimationSetting\(\) \{[\s\S]*?\n\}/)?.[0] || "";
+  assert.match(preview, /logoAnimationController\.play\(preview, \{ scheduleAmbientAfter: false \}\)/);
+  assert.doesNotMatch(preview, /localStorage\.setItem/);
+  assert.match(save, /localStorage\.setItem\(LOGO_ANIMATION_STORAGE_KEY, nextSetting\)/);
+  assert.match(app, /storedSetting === "daily"/);
 });
 
-test("初回・再生・オフ・reduced motionのロゴ状態を安全に切り替える", () => {
-  const fixture = createLogoController({ storedValue: "invalid" });
-  fixture.controller.restoreLogoAnimationSetting();
-  assert.equal(fixture.controller.getSetting(), "daily");
-  assert.equal(fixture.select.value, "daily");
-  fixture.controller.scheduleInitialLogoAnimation();
-  fixture.controller.scheduleInitialLogoAnimation();
-  assert.equal(fixture.frames.length, 1);
-  fixture.frames.shift()(123.45);
-  fixture.frames.shift()(124);
-  assert.equal(fixture.classes.has("is-animating"), true);
-  fixture.controller.finishLogoAnimation();
-  assert.equal(fixture.classes.has("is-animating"), false);
-  assert.equal("logoAnimation" in fixture.logo.dataset, false);
-  fixture.controller.saveLogoAnimationSetting("off");
-  fixture.controller.playLogoAnimation();
-  assert.equal(fixture.classes.has("is-animating"), false);
-
-  const reduced = createLogoController({ storedValue: "scan", reducedMotion: true });
-  reduced.controller.restoreLogoAnimationSetting();
-  reduced.controller.playLogoAnimation();
-  assert.equal(reduced.frames.length, 0);
-  assert.equal(reduced.classes.has("is-animating"), false);
+test("クリックは選択済み演出だけを再生し、保存や画面遷移を呼ばない", () => {
+  const clickBinding = app.match(/memoNexusLogo\.addEventListener\("click",[^\n]+/)?.[0] || "";
+  assert.match(clickBinding, /logoAnimationController\.play\(logoAnimationSetting\)/);
+  assert.doesNotMatch(clickBinding, /save|load|open|create|location/i);
+  assert.match(app, /event\.animationName === "memo-nexus-logo-cycle"\) logoAnimationController\.finish\(\)/);
 });
 
-test("初回予約はRAF時刻を演出名として渡さず、設定済み演出だけを再生する", () => {
-  const configured = createLogoController({ storedValue: "scan" });
-  configured.controller.restoreLogoAnimationSetting();
-  configured.controller.scheduleInitialLogoAnimation();
-  configured.frames.shift()(987.65);
-  assert.equal(configured.logo.dataset.logoAnimation, "scan");
-  configured.frames.shift()(1004);
-  assert.equal(configured.classes.has("is-animating"), true);
-
-  const off = createLogoController({ storedValue: "off" });
-  off.controller.restoreLogoAnimationSetting();
-  off.controller.scheduleInitialLogoAnimation();
-  off.frames.shift()(987.65);
-  assert.equal("logoAnimation" in off.logo.dataset, false);
-  assert.equal(off.classes.has("is-animating"), false);
-  assert.equal(off.frames.length, 0);
+test("額縁は角丸なしの二重枠で四辺を時間差描画する", () => {
+  assert.equal((logoButton.match(/memo-nexus-logo-frame-side memo-nexus-logo-frame-side-/g) || []).length, 4);
+  assert.equal((logoButton.match(/memo-nexus-logo-frame-corner memo-nexus-logo-frame-corner-/g) || []).length, 4);
+  assert.match(css, /\.memo-nexus-logo \{[\s\S]*?border-radius:\s*0;/);
+  assert.match(css, /\.memo-nexus-logo::after[^}]*border:\s*1px solid/);
+  assert.match(css, /memo-nexus-logo-frame-side-top[^}]*animation-delay:\s*100ms/);
+  assert.match(css, /memo-nexus-logo-frame-side-right[^}]*animation-delay:\s*210ms/);
+  assert.match(css, /@keyframes memo-nexus-logo-frame-x/);
+  assert.match(css, /@keyframes memo-nexus-logo-frame-y/);
+  assert.match(css, /data-logo-active-tentacle/);
 });
 
-test("3種類のロゴ演出は有限で専用クラスに限定する", () => {
-  assert.match(css, /data-logo-animation="typewriter"/);
-  assert.match(css, /data-logo-animation="nexus"/);
-  assert.match(css, /data-logo-animation="scan"/);
-  assert.match(css, /memo-nexus-logo-cycle 1250ms linear/);
-  assert.doesNotMatch(css, /memo-nexus-logo[^\{]*\{[^}]*animation:[^;}]*infinite/s);
+test("通常時は核だけが弱く呼吸し、旧演出にはランダム触手を付けない", () => {
+  assert.match(css, /data-logo-animation="living-nexus"[^}]*memo-nexus-logo-core[^}]*memo-nexus-logo-breathe 5\.8s/);
+  assert.doesNotMatch(css, /memo-nexus-logo-drift-/);
+  assert.match(app, /logoAnimationController\.setSetting\(logoAnimationSetting, \{ scheduleAmbient \}\)/);
 });
 
-test("タイプライターとNexusの未表示文字は完全に隠す", () => {
-  assert.match(css, /data-logo-animation="typewriter"\] \.memo-nexus-logo-letter,[\s\S]*?data-logo-animation="nexus"\] \.memo-nexus-logo-letter \{ opacity: 0;/);
-  assert.match(css, /@keyframes memo-nexus-logo-type-in \{ to \{ opacity: 1; transform: translateX\(0\); \} \}/);
+test("reduced motionとoffはロゴ全体を静止させる", () => {
+  assert.match(css, /@media \(prefers-reduced-motion: reduce\)[\s\S]*?\.memo-nexus-logo,[\s\S]*?animation:\s*none !important;/);
+  assert.match(css, /transition:\s*none !important/);
+  assert.match(css, /data-logo-animation="off"[^}]*animation:\s*none !important/);
+  assert.match(css, /\.memo-nexus-logo\.is-animating \.memo-nexus-logo-letter \{\s*opacity:\s*1;\s*transform:\s*none;/);
 });
 
-test("Nexusの枠完成とグローは最後の文字の表示後に始まる", () => {
-  const lastLetterEndMs = 80 + 8 * 75 + 110;
-  const rightAndBottomDelay = Number(css.match(/memo-nexus-logo-frame-bottom \{ animation: memo-nexus-logo-frame-finish 270ms ease-out (\d+)ms forwards; \}/)?.[1]);
-  const nodeAndGlowDelay = Number(css.match(/memo-nexus-logo-node-end \{ animation: memo-nexus-logo-node-arrive 120ms ease-out (\d+)ms forwards; \}/)?.[1]);
-  assert.ok(rightAndBottomDelay > lastLetterEndMs);
-  assert.equal(nodeAndGlowDelay, rightAndBottomDelay + 270);
-  assert.match(css, /memo-nexus-logo-text \{ animation: memo-nexus-logo-nexus-glow 190ms ease-out 1100ms; \}/);
-});
-
-test("クリックは設定を保存せず次の演出へ安全に循環する", () => {
-  const fixture = createLogoController({ storedValue: "typewriter" });
-  fixture.controller.restoreLogoAnimationSetting();
-  fixture.controller.cycleLogoAnimation();
-  assert.equal(fixture.controller.getSetting(), "typewriter");
-  assert.equal(fixture.controller.getSessionAnimation(), "nexus");
-  fixture.frames.shift()();
-  assert.equal(fixture.logo.dataset.logoAnimation, "nexus");
-  fixture.controller.cycleLogoAnimation();
-  assert.equal(fixture.controller.getSessionAnimation(), "scan");
-  fixture.frames.shift()();
-  assert.equal(fixture.logo.dataset.logoAnimation, "scan");
-  fixture.controller.cycleLogoAnimation();
-  assert.equal(fixture.controller.getSessionAnimation(), "typewriter");
-  assert.equal(fixture.storage.value, "typewriter");
-
-  const reduced = createLogoController({ storedValue: "scan", reducedMotion: true });
-  reduced.controller.restoreLogoAnimationSetting();
-  reduced.controller.cycleLogoAnimation();
-  assert.equal(reduced.controller.getSessionAnimation(), "typewriter");
-  assert.equal(reduced.frames.length, 0);
+test("モバイル幅では額縁と結節点を縮小する", () => {
+  assert.match(css, /@container app-width \(max-width: 719\.98px\)[\s\S]*?\.memo-nexus-logo \{[\s\S]*?width:\s*176px;/);
+  assert.match(css, /@container app-width \(max-width: 719\.98px\)[\s\S]*?\.memo-nexus-logo-mark \{[\s\S]*?width:\s*36px;/);
 });
