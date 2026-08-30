@@ -66,6 +66,28 @@ function createFixture({ reducedMotion = false, visible = true, randomValues = [
   return { classes, controller, element, frames, renders, runNextFrame, states, timers };
 }
 
+function createRandomSequence(values, fallback = 0.5) {
+  let index = 0;
+  return () => index < values.length ? values[index++] : fallback;
+}
+
+function createPhaseComparisonPlan(candidate, previousPhase) {
+  const fullTurn = Math.PI * 2;
+  const random = createRandomSequence([0, 0, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, candidate / fullTurn]);
+  return createAmbientMotionPlan({
+    random,
+    previous: {
+      primary: 3,
+      extension: 1.18,
+      extendDuration: 920,
+      middleAmplitude: 1.9,
+      waves: 2.05,
+      waveSpeed: 0.5,
+      phaseOffset: previousPhase
+    }
+  });
+}
+
 test("旧設定値を維持しdailyと未知値を生体Nexusへ移行する", () => {
   for (const value of ["typewriter", "nexus", "scan", "off", "living-nexus"]) assert.equal(normalizeLogoAnimation(value), value);
   for (const value of ["daily", "", null, "unknown"]) assert.equal(normalizeLogoAnimation(value), "living-nexus");
@@ -234,6 +256,48 @@ test("次回イベントは同じ触手・長さ・速度を連続させにく�
     assert.ok(spec.rootAmplitude !== spec.middleAmplitude);
     assert.ok(spec.tipFollow < spec.middleAmplitude);
   }
+});
+
+test("2本イベントは乱数境界でも異なる範囲内の触手を選ぶ", () => {
+  const randomCases = [
+    () => 1,
+    createRandomSequence([0, 1, 0]),
+    createRandomSequence([9, 9, 9]),
+    createRandomSequence([-9, 9, -9]),
+    createRandomSequence([Number.NaN, 1, Number.NaN])
+  ];
+  for (const random of randomCases) {
+    const plan = createAmbientMotionPlan({ random });
+    const indices = plan.specs.map((spec) => spec.index);
+    assert.equal(indices.length, 2);
+    assert.equal(new Set(indices).size, indices.length);
+    assert.ok(indices.every((index) => index >= 0 && index < 4));
+    const offset = (indices[1] - indices[0] + 4) % 4;
+    assert.ok(offset >= 1 && offset <= 3);
+  }
+});
+
+test("通常の乱数値では従来どおり1〜3のオフセットで2本目を選ぶ", () => {
+  const plan = createAmbientMotionPlan({ random: createRandomSequence([0.1, 0.7, 0.4]) });
+  assert.deepEqual(plan.specs.map((spec) => spec.index), [0, 2]);
+});
+
+test("2π直前と0直後の開始位相を近い位相として補正する", () => {
+  const fullTurn = Math.PI * 2;
+  const plan = createPhaseComparisonPlan(0.04, fullTurn - 0.05);
+  assert.ok(Math.abs(plan.phaseOffset - 0.77) < 1e-10);
+});
+
+test("十分離れた開始位相には不要な補正を加えない", () => {
+  const plan = createPhaseComparisonPlan(0.04, 1.5);
+  assert.ok(Math.abs(plan.phaseOffset - 0.04) < 1e-10);
+});
+
+test("循環境界で補正した開始位相を0以上2π未満へ正規化する", () => {
+  const fullTurn = Math.PI * 2;
+  const plan = createPhaseComparisonPlan(fullTurn - 0.05, 0.04);
+  assert.ok(plan.phaseOffset >= 0 && plan.phaseOffset < fullTurn);
+  assert.ok(Math.abs(plan.phaseOffset - 0.68) < 1e-10);
 });
 
 test("再実行は古いRAFとタイマーを無効化して先頭から再開する", () => {

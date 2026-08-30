@@ -14,6 +14,7 @@
   const AMBIENT_WAIT_MIN_MS = 12000;
   const AMBIENT_WAIT_MAX_MS = 35000;
   const TENTACLE_COUNT = 4;
+  const FULL_TURN = Math.PI * 2;
 
   function clamp(value, minimum = 0, maximum = 1) {
     return Math.min(maximum, Math.max(minimum, value));
@@ -33,6 +34,15 @@
 
   function randomBetween(random, minimum, maximum) {
     return minimum + clamp(Number(random()) || 0) * (maximum - minimum);
+  }
+
+  function normalizeAngle(value) {
+    const normalized = value % FULL_TURN;
+    return normalized < 0 ? normalized + FULL_TURN : normalized;
+  }
+
+  function shortestAngleDistance(first, second) {
+    return Math.abs(Math.atan2(Math.sin(first - second), Math.cos(first - second)));
   }
 
   function createIdleTentacleState(phase = "idle", progress = 1) {
@@ -128,7 +138,8 @@
     const count = randomBetween(random, 0, 1) > 0.64 ? 2 : 1;
     const indices = [primary];
     if (count === 2) {
-      const offset = 1 + Math.floor(randomBetween(random, 0, TENTACLE_COUNT - 1));
+      const offsetRoll = Math.floor(randomBetween(random, 0, TENTACLE_COUNT - 1));
+      const offset = 1 + offsetRoll % (TENTACLE_COUNT - 1);
       indices.push((primary + offset) % TENTACLE_COUNT);
     }
 
@@ -147,8 +158,8 @@
     let waveSpeed = randomBetween(random, 0.5, 0.74);
     if (previous && Math.abs(waveSpeed - previous.waveSpeed) < 0.025) waveSpeed = clamp(waveSpeed + (waveSpeed > 0.62 ? -0.07 : 0.07), 0.5, 0.74);
     const phaseLag = randomBetween(random, 0.7, 1.08);
-    let phaseOffset = randomBetween(random, 0, Math.PI * 2);
-    if (previous && Math.abs(phaseOffset - previous.phaseOffset) < 0.12) phaseOffset = (phaseOffset + 0.73) % (Math.PI * 2);
+    let phaseOffset = normalizeAngle(randomBetween(random, 0, FULL_TURN));
+    if (previous && shortestAngleDistance(phaseOffset, previous.phaseOffset) < 0.12) phaseOffset = normalizeAngle(phaseOffset + 0.73);
 
     const specs = indices.map((index, order) => {
       const specWaves = clamp(waves + (order ? randomBetween(random, -0.55, 0.55) : 0), 2, 4);
