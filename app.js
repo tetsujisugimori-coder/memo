@@ -1589,6 +1589,7 @@ function restoreEditorCaretAnimationSettings() {
 
 function applyEditorCaretAnimationSettings(value) {
   editorCaretAnimationSettings = normalizeEditorCaretAnimationSettings(value);
+  document.documentElement.dataset.editorCaretRespectReducedMotion = String(editorCaretAnimationSettings.respectReducedMotion);
   if (editorCaretAnimationEnabled) editorCaretAnimationEnabled.checked = editorCaretAnimationSettings.enabled;
   if (editorCaretAnimationDelay) editorCaretAnimationDelay.value = String(editorCaretAnimationSettings.idleDelay);
   if (editorCaretAnimationReducedMotion) editorCaretAnimationReducedMotion.checked = editorCaretAnimationSettings.respectReducedMotion;
