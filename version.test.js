@@ -36,10 +36,10 @@ test("全ローカルCSS・JavaScriptを0.5.0のキャッシュ識別子で読�
   assert.match(html, /draft-mirror-scheduler\.js\?v=0\.5\.0-2/);
   assert.match(html, /term-link-utils\.js\?v=0\.5\.0-6/);
   assert.match(html, /memo-link-utils\.js\?v=0\.5\.0-3/);
-  assert.match(html, /style\.css\?v=0\.5\.0-65/);
+  assert.match(html, /style\.css\?v=0\.5\.0-68/);
   assert.match(html, /logo-animation-utils\.js\?v=0\.5\.0-8/);
   assert.match(html, /editor-caret-animation-utils\.js\?v=0\.5\.0-2/);
-  assert.match(html, /app\.js\?v=0\.5\.0-128/);
+  assert.match(html, /app\.js\?v=0\.5\.0-130/);
 });
 
 test("本体リリースと別管理の互換性バージョンを変更しない", () => {
