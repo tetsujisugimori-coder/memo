@@ -511,7 +511,7 @@ const {
   normalizeLogoAnimation,
   replaceLogoAnimationDom
 } = window.MemoNexusLogoAnimationUtils;
-const { EDITOR_CARET_REPEAT_DELAY, canPlayEditorCaretAnimation, normalizeEditorCaretAnimationSettings } = window.MemoNexusEditorCaretAnimationUtils;
+const { EDITOR_CARET_REPEAT_DELAY, canPlayEditorCaretAnimation, editorCaretPrefersReducedMotion, normalizeEditorCaretAnimationSettings } = window.MemoNexusEditorCaretAnimationUtils;
 
 // HTML要素を短く取得するための小さなヘルパー。
 const $ = (id) => document.getElementById(id);
@@ -1589,6 +1589,7 @@ function restoreEditorCaretAnimationSettings() {
 
 function applyEditorCaretAnimationSettings(value) {
   editorCaretAnimationSettings = normalizeEditorCaretAnimationSettings(value);
+  document.documentElement.dataset.editorCaretRespectReducedMotion = String(editorCaretAnimationSettings.respectReducedMotion);
   if (editorCaretAnimationEnabled) editorCaretAnimationEnabled.checked = editorCaretAnimationSettings.enabled;
   if (editorCaretAnimationDelay) editorCaretAnimationDelay.value = String(editorCaretAnimationSettings.idleDelay);
   if (editorCaretAnimationReducedMotion) editorCaretAnimationReducedMotion.checked = editorCaretAnimationSettings.respectReducedMotion;
@@ -1626,7 +1627,7 @@ function editorCaretAnimationIsBlocked() {
     popout: isPopoutWindow,
     aiBusy: aiAssistantState.panelOpen || aiAssistantState.generation === AI_GENERATION_STATES.STREAMING,
     respectReducedMotion: editorCaretAnimationSettings.respectReducedMotion,
-    reducedMotion: prefersReducedMotion()
+    reducedMotion: editorCaretPrefersReducedMotion()
   });
 }
 

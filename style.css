@@ -4260,7 +4260,7 @@ body.related-open .related-toggle {
 .editor-caret-animation-setting select { min-height: 30px; margin-left: 4px; }
 
 @media (prefers-reduced-motion: reduce) {
-  .editor-caret-animation { animation: none !important; }
+  html[data-editor-caret-respect-reduced-motion="true"] .editor-caret-animation { animation: none !important; }
 }
 
 .soon-button {

@@ -2251,3 +2251,19 @@
 * DOM系統表、双方向置換、置換前のRAF・タイマー停止、未適用キャンセル、旧3種類のambient非予約、両テンプレート構成、旧CSS・キーフレームを追加検証した。`node --test`は全889件成功し、fail・cancelled・skipped・todoは0件だった。`node --check app.js`、`node --check logo-animation-utils.js`、`git diff --check`も成功した。
 * 実ブラウザ確認は検証環境のブラウザサービスを初期化できず未実施とした。ライト／ダーク、デスクトップ／390px、5種類の静止・連続再生、双方向切替、未適用キャンセル、Reduced Motion、バックグラウンド復帰は手動確認対象としてPR本文へ記載する。
 * 配信識別子は`style.css?v=0.5.0-64`、`logo-animation-utils.js?v=0.5.0-8`、`app.js?v=0.5.0-126`へ更新した。
+
+## 2026-08-31 本文カーソルアニメーションのReduced Motion参照回帰修正
+
+* `c61a369e7ec1798b299d55d04e046ffa2c0cb981`のロゴ改修で旧ロゴ用`prefersReducedMotion()`が削除された一方、`app.js`の`editorCaretAnimationIsBlocked()`に呼び出しが残り、本文フォーカス時のタイマー予約が`ReferenceError`で中断していた。
+* `editor-caret-animation-utils.js`へ`editorCaretPrefersReducedMotion()`を追加した。ブラウザー依存を引数で注入でき、`matchMedia`がない場合や評価時に例外が出る場合は安全に`false`を返す。`app.js`はカーソル演出用ユーティリティからこの関数を明示取得し、ロゴ実装やロゴcontrollerには依存しない。
+* ユーティリティ単体テストへ`matchMedia`なし・例外・reduce一致・不一致を追加した。`app.js`の実カーソル関数群を抽出実行する回帰テストでは、未定義参照なしで4秒タイマーを予約できること、4秒後に演出要素へ`is-animating`、本文へ`is-caret-animating`が付くこと、Reduced Motion尊重ONでは予約を抑止し、OFFではOS側がreduceでも予約を許可することを確認した。
+* 配信識別子は`editor-caret-animation-utils.js?v=0.5.0-2`、`app.js?v=0.5.0-127`へ更新し、参照する既存キャッシュ契約テストを揃えた。アプリ本体の`APP_VERSION`、設定保存形式、localStorageキー、ロゴアニメーションは変更していない。
+* カーソル・バージョン関連14件と`npm test`全894件が成功し、fail・cancelled・skipped・todoは0件だった。`node --check app.js`、`node --check editor-caret-animation-utils.js`、`git diff --check`も成功した。デスクトップChrome相当の手動確認はブラウザー接続が`Invalid browser service environment`で初期化できず未実施とし、実画面での4秒後の回転、コンソールエラーなし、Reduced Motion尊重ON／OFFの視覚確認を手動確認対象に残した。
+
+## 2026-08-31 PR #157 Reduced Motion設定とカーソルCSSの連動
+
+* JavaScriptは`respectReducedMotion: false`ならOS側がreduceでもカーソル演出を予約していたが、`style.css`のReduced Motion規則が設定値を参照せず`.editor-caret-animation`を常に`animation: none !important`としていた。このため演出クラスは付いても実画面では回転しなかった。
+* `<html>`の`data-editor-caret-respect-reduced-motion`をCSSとの共有状態とした。初期HTMLは既定値`true`で保護し、`applyEditorCaretAnimationSettings()`が正規化後の`true`／`false`を毎回同期するため、復元・保存・ON/OFF切替は同じ経路を通る。復元は`init()`の最初の`await`より前に実行される。CSSはOSがreduceかつ属性が`true`の場合だけカーソル演出を停止し、属性が`false`なら回転を維持する。
+* 実`app.js`関数群を使う回帰テストを強化し、OS reduceと尊重設定の4組み合わせ、尊重OFF時のDOM属性・CSSセレクタ・4秒後の両演出クラス、復元、保存、ON→OFF／OFF→ON、カーソル演出OFF、初期属性と同期復元順を確認した。無条件のReduced Motionセレクタが再導入されない契約も追加した。
+* 配信識別子は`style.css?v=0.5.0-65`、`app.js?v=0.5.0-128`へ更新し、参照する既存キャッシュ契約テストを揃えた。`editorCaretPrefersReducedMotion()`、ロゴ、設定保存形式、localStorageキー、`APP_VERSION`は変更していない。
+* カーソル・バージョン関連17件と`npm test`全897件が成功し、fail・cancelled・skipped・todoは0件だった。`node --check app.js`、`node --check editor-caret-animation-utils.js`、`git diff --check`も成功した。デスクトップChrome相当の手動確認はブラウザー接続が`Invalid browser service environment`で初期化できず未実施とし、通常時の4秒後の回転、コンソールエラーなし、OS reduce時の尊重ON／OFF、切替直後の視覚挙動を手動確認対象に残した。
