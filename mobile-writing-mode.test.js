@@ -8,21 +8,25 @@ const html = fs.readFileSync("index.html", "utf8");
 const app = fs.readFileSync("app.js", "utf8");
 const css = fs.readFileSync("style.css", "utf8");
 
-test("モバイル執筆ヘッダーは完了・省略タイトル・簡易保存状態だけを持つ", () => {
-  const header = html.match(/<div id="mobileWritingHeader"[\s\S]*?<\/div>/)?.[0] || "";
-  assert.match(header, /id="mobileWritingDoneBtn"[^>]*>完了<\/button>/);
-  assert.match(header, /id="mobileWritingTitle"/);
-  assert.match(header, /id="mobileWritingSaveStatus"[^>]*role="status"/);
-  assert.match(css, /\.mobile-writing-title\s*\{[^}]*text-overflow:\s*ellipsis;[^}]*white-space:\s*nowrap;/s);
-  assert.match(app, /saved:\s*"保存済み",\s*saving:\s*"保存中",\s*unsaved:\s*"未保存",\s*error:\s*"エラー"/);
+test("執筆モード専用の上部ヘッダーと独自保存表示を持たない", () => {
+  ["mobileWritingHeader", "mobileWritingTitle", "mobileWritingSaveStatus"].forEach((id) => {
+    assert.doesNotMatch(html, new RegExp(`id="${id}"`));
+    assert.doesNotMatch(app, new RegExp(id));
+  });
+  assert.doesNotMatch(css, /\.mobile-writing-(?:header|title|save-status)/);
+  assert.doesNotMatch(app, /function updateMobileWritingHeader\(/);
 });
 
-test("執筆モードの常設ツールは追加・画像・AI・記法ガイドの4項目だけ", () => {
+test("執筆モードの常設ツールは追加・画像・AI・記法ガイド・完了の5項目", () => {
   const toolbar = html.match(/<div id="mobileWritingTools"[\s\S]*?<\/div>\s*<div class="note-meta-bar"/)?.[0] || "";
-  const topLevelControls = toolbar.match(/(?:<summary[^>]*>|<button[^>]*data-mobile-editor-tool[^>]*>)(追加|画像|AI|記法ガイド)/g) || [];
-  assert.equal(topLevelControls.length, 4);
-  assert.match(css, /body\.mobile-writing-mode \.mobile-writing-tools\s*\{[^}]*grid-template-columns:\s*repeat\(4, minmax\(0, 1fr\)\)/s);
-  assert.match(css, /\.mobile-writing-header button,[\s\S]*white-space:\s*nowrap;[\s\S]*word-break:\s*keep-all;/s);
+  assert.match(toolbar, />追加<\/summary>[\s\S]*data-mobile-editor-tool="insertImageBlockBtn"[^>]*>画像<\/button>[\s\S]*>AI<\/summary>[\s\S]*data-mobile-editor-tool="syntaxGuideBtn"[^>]*>記法ガイド<\/button>[\s\S]*id="mobileWritingDoneBtn"[^>]*>完了<\/button>/);
+  assert.match(css, /body\.mobile-writing-mode \.mobile-writing-tools\s*\{[^}]*grid-template-columns:\s*repeat\(5, minmax\(0, 1fr\)\)/s);
+  assert.match(css, /\.mobile-writing-tools button,[\s\S]*white-space:\s*nowrap;[\s\S]*word-break:\s*keep-all;/s);
+});
+
+test("720px未満ではフォーカス前から既存ツール欄を非表示にする", () => {
+  assert.match(css, /\.editor-tools\s*\{[^}]*display:\s*flex;/s);
+  assert.match(css, /@container app-width \(max-width: 719\.98px\)\s*\{[\s\S]*?\.editor-tools\s*\{\s*display:\s*none;/s);
 });
 
 test("追加・AI・画像・記法ガイドは既存ボタンの処理へ委譲する", () => {
@@ -54,7 +58,7 @@ test("既存720px境界だけでモバイルに限定しデスクトップでは
   [320, 375, 390, 430, 719].forEach((width) => assert.equal(layoutModeForWidth(width), "mobile"));
   assert.equal(layoutModeForWidth(720), "compact");
   assert.equal(layoutModeForWidth(1040), "wide");
-  assert.match(css, /\.mobile-writing-header,\s*\.mobile-writing-tools\s*\{\s*display:\s*none;/s);
+  assert.match(css, /\.mobile-writing-tools\s*\{\s*display:\s*none;/s);
   assert.match(css, /@container app-width \(max-width: 719\.98px\)[\s\S]*body\.mobile-writing-mode \.workspace/s);
 });
 
@@ -76,8 +80,8 @@ test("dvh・safe area・内部スクロールでiPhoneの可変表示領域を�
   assert.match(css, /\.mobile-writing-menu-panel\s*\{[^}]*width:\s*min\(280px, calc\(100vw - 16px\)\);[^}]*max-height:\s*min\(56dvh, 360px\)/s);
 });
 
-test("保存処理は既存入口を保ち執筆ヘッダー更新だけを追加する", () => {
-  assert.match(app, /function renderSaveStatus\(\)[\s\S]*updateMobileWritingHeader\(\);[\s\S]*renderSaveStatusPopovers/);
+test("独自保存状態を削除し、既存の保存入口を変更しない", () => {
+  assert.doesNotMatch(app, /updateMobileWritingHeader|mobileWritingSaveStatus/);
   assert.match(app, /async function saveCurrentNote\(\)[\s\S]*applyCurrentEditorDraft\(note\);[\s\S]*flushScheduledNoteSave\(note\.id\)/);
   const writingModeSource = app.match(/function setMobileWritingMode\(open\) \{[\s\S]*?return shouldOpen;\s*\}/)?.[0] || "";
   assert.doesNotMatch(writingModeSource, /(?:flushSave|saveCurrentNote|enqueueNoteSave)\(/);

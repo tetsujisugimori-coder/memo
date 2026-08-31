@@ -60,6 +60,8 @@ async function mobileMetrics(page, width, height = 760) {
   await page.setViewportSize({ width, height });
   await page.waitForFunction(() => document.body.dataset.layoutMode === "mobile");
   const normalEditorHeight = await page.locator("#editor").evaluate((element) => element.getBoundingClientRect().height);
+  const normalEditorToolsHidden = await page.locator(".editor-tools").evaluate((element) => getComputedStyle(element).display === "none");
+  assert.equal(normalEditorToolsHidden, true, `${width}pxでフォーカス前から既存ツール欄を非表示`);
   const normalContextHidden = await page.locator("#contextPanel").getAttribute("aria-hidden");
   await page.locator("#editor").click();
   await page.locator("body.mobile-writing-mode").waitFor();
@@ -74,8 +76,11 @@ async function mobileMetrics(page, width, height = 760) {
       toolbarRows: new Set(controlRects.map((rect) => Math.round(rect.top))).size,
       labels: controls.map((control) => control.textContent.trim()),
       minControlHeight: Math.min(...controlRects.map((rect) => rect.height)),
+      editorTop: editorRect.top,
       editorHeight: editorRect.height,
-      headerVisible: getComputedStyle(document.getElementById("mobileWritingHeader")).display !== "none",
+      headerAbsent: document.getElementById("mobileWritingHeader") === null
+        && document.getElementById("mobileWritingTitle") === null
+        && document.getElementById("mobileWritingSaveStatus") === null,
       desktopHeaderHidden: getComputedStyle(document.querySelector(".app-header")).display === "none",
       metaHidden: getComputedStyle(document.querySelector(".note-meta-bar")).display === "none",
       relatedHidden: getComputedStyle(document.getElementById("relatedToggleBtn")).display === "none",
@@ -86,10 +91,12 @@ async function mobileMetrics(page, width, height = 760) {
   });
   assert.equal(metrics.bodyOverflow, 0, `${width}pxで画面全体に横スクロールがない`);
   assert.equal(metrics.toolbarRows, 1, `${width}pxでツールバーが1段`);
-  assert.deepEqual(metrics.labels, ["追加", "画像", "AI", "記法ガイド"]);
+  assert.deepEqual(metrics.labels, ["追加", "画像", "AI", "記法ガイド", "完了"]);
   assert.ok(metrics.minControlHeight >= 40, `${width}pxでタップ領域を確保`);
   assert.ok(metrics.editorHeight > normalEditorHeight, `${width}pxで本文領域が拡大`);
-  assert.ok(metrics.headerVisible && metrics.desktopHeaderHidden && metrics.metaHidden && metrics.relatedHidden && metrics.robotHidden && metrics.contextHidden);
+  assert.ok(metrics.editorHeight >= 700, `${width}pxで旧48pxヘッダー分を本文へ割り当て`);
+  assert.ok(metrics.editorTop <= 1, `${width}pxで本文が画面上端まで広がる`);
+  assert.ok(metrics.headerAbsent && metrics.desktopHeaderHidden && metrics.metaHidden && metrics.relatedHidden && metrics.robotHidden && metrics.contextHidden);
   if (width === 390) await page.screenshot({ path: SCREENSHOT_PATH });
 
   await page.locator("summary", { hasText: "追加" }).click();
@@ -132,9 +139,10 @@ async function mobileMetrics(page, width, height = 760) {
     await route.fulfill({ contentType: "application/javascript", body });
   });
   const pageErrors = [];
+  const consoleErrors = [];
   page.on("pageerror", (error) => pageErrors.push(error.message));
   page.on("console", (message) => {
-    if (message.type() === "error") console.error(`browser console: ${message.text()}`);
+    if (message.type() === "error") consoleErrors.push(message.text());
   });
   const results = [];
   try {
@@ -150,7 +158,25 @@ async function mobileMetrics(page, width, height = 760) {
     assert.ok(compactHeight >= 250, "キーボード表示を模した低いvisual viewportでも本文領域を確保");
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth), 0);
 
-    await page.locator("#editor").fill("abcdef");
+    const longBody = Array.from({ length: 80 }, (_, index) => `line-${index} abcdefghijklmnopqrstuvwxyz`).join("\n");
+    await page.locator("#editor").fill(longBody);
+    const editorContext = await page.locator("#editor").evaluate((element) => {
+      element.scrollTop = 240;
+      element.setSelectionRange(120, 140);
+      return { start: element.selectionStart, end: element.selectionEnd, scrollTop: element.scrollTop };
+    });
+    await page.locator("[data-mobile-editor-tool='syntaxGuideBtn']").click();
+    assert.ok(await page.locator("#syntaxGuideDialog").evaluate((element) => element.open));
+    const restoredContext = await page.locator("#editor").evaluate((element) => ({
+      start: element.selectionStart,
+      end: element.selectionEnd,
+      scrollTop: element.scrollTop
+    }));
+    assert.deepEqual(restoredContext, editorContext, "記法ガイド操作前に選択範囲とスクロール位置を復元");
+    await page.locator("#closeSyntaxGuideBtn").click();
+    assert.ok(await page.locator("body").evaluate((element) => element.classList.contains("mobile-writing-mode")), "記法ガイドを閉じても執筆モードを維持");
+
+    await page.locator("#editor").click();
     await page.locator("#editor").evaluate((element) => element.setSelectionRange(2, 4));
     await page.locator("summary", { hasText: "追加" }).click();
     await page.getByRole("menuitem", { name: "注意書きを挿入" }).click();
@@ -161,20 +187,38 @@ async function mobileMetrics(page, width, height = 760) {
     await page.getByRole("menuitem", { name: "選択範囲をAIに送る" }).click();
     assert.ok(await page.locator("body").evaluate((element) => element.classList.contains("mobile-writing-mode")), "AI操作後も執筆モードを維持");
     await page.locator("#closeAiPanelBtn").click();
+    assert.equal(await page.locator("#editor").evaluate((element) => document.activeElement === element), true, "AIを閉じると本文へ戻る");
 
-    await page.locator("[data-mobile-editor-tool='syntaxGuideBtn']").click();
-    assert.ok(await page.locator("#syntaxGuideDialog").evaluate((element) => element.open));
-    assert.ok(await page.locator("body").evaluate((element) => element.classList.contains("mobile-writing-mode")), "記法ガイド表示中も執筆モードを維持");
-    await page.locator("#closeSyntaxGuideBtn").click();
+    const fileChooserPromise = page.waitForEvent("filechooser");
+    await page.locator("[data-mobile-editor-tool='insertImageBlockBtn']").click();
+    await fileChooserPromise;
+    assert.ok(await page.locator("body").evaluate((element) => element.classList.contains("mobile-writing-mode")), "画像追加操作でも執筆モードを維持");
+
+    const beforeDone = await page.locator("#editor").evaluate((element) => ({
+      value: element.value,
+      start: element.selectionStart,
+      end: element.selectionEnd,
+      scrollTop: element.scrollTop
+    }));
+    await page.locator("#mobileWritingDoneBtn").click();
+    await page.waitForFunction(() => !document.body.classList.contains("mobile-writing-mode"));
+    const afterDone = await page.locator("#editor").evaluate((element) => ({
+      value: element.value,
+      start: element.selectionStart,
+      end: element.selectionEnd,
+      scrollTop: element.scrollTop
+    }));
+    assert.deepEqual(afterDone, beforeDone, "完了は本文・選択範囲・スクロール位置を変更しない");
 
     await page.setViewportSize({ width: 1280, height: 800 });
     await page.waitForFunction(() => document.body.dataset.layoutMode === "wide");
     await page.locator("#editor").click();
     assert.equal(await page.locator("body").evaluate((element) => element.classList.contains("mobile-writing-mode")), false, "デスクトップでは執筆モードへ入らない");
-    assert.equal(await page.locator("#mobileWritingHeader").evaluate((element) => getComputedStyle(element).display), "none");
+    assert.equal(await page.locator("#mobileWritingHeader").count(), 0);
     assert.notEqual(await page.locator(".editor-tools").evaluate((element) => getComputedStyle(element).display), "none");
     assert.deepEqual(pageErrors, []);
-    console.log(JSON.stringify({ mobile: results, compactViewportEditorHeight: compactHeight, desktop: "unchanged", pageErrors, screenshot: SCREENSHOT_PATH }, null, 2));
+    assert.deepEqual(consoleErrors, []);
+    console.log(JSON.stringify({ mobile: results, compactViewportEditorHeight: compactHeight, desktop: "unchanged", pageErrors, consoleErrors, screenshot: SCREENSHOT_PATH }, null, 2));
   } finally {
     await browser.close();
     if (server) await new Promise((resolve) => server.close(resolve));

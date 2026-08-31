@@ -2072,7 +2072,6 @@ body.collections-open .collection-explorer {
   overflow: auto;
 }
 
-.mobile-writing-header,
 .mobile-writing-tools {
   display: none;
 }
@@ -4741,6 +4740,10 @@ body.related-open .related-toggle {
 }
 
 @container app-width (max-width: 719.98px) {
+  .editor-tools {
+    display: none;
+  }
+
   .workspace {
     grid-template-columns: minmax(0, 1fr);
     gap: 8px;
@@ -5024,7 +5027,6 @@ body.related-open .related-toggle {
   body.mobile-writing-mode .storage-warning,
   body.mobile-writing-mode .preview-card,
   body.mobile-writing-mode .title-row,
-  body.mobile-writing-mode .editor-tools,
   body.mobile-writing-mode .note-meta-bar,
   body.mobile-writing-mode .related-toggle,
   body.mobile-writing-mode .related-backdrop,
@@ -5045,47 +5047,12 @@ body.related-open .related-toggle {
     overflow: hidden;
   }
 
-  body.mobile-writing-mode .mobile-writing-header {
-    flex: 0 0 auto;
-    min-width: 0;
-    min-height: 48px;
-    display: grid;
-    grid-template-columns: auto minmax(0, 1fr) auto;
-    align-items: center;
-    gap: 8px;
-    padding: 4px 8px;
-    border-bottom: 1px solid var(--line);
-    background: var(--section-bg);
-  }
-
-  .mobile-writing-header button,
   .mobile-writing-tools button,
   .mobile-writing-tools summary {
     min-height: 40px;
     white-space: nowrap;
     word-break: keep-all;
   }
-
-  .mobile-writing-title {
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    text-align: center;
-  }
-
-  .mobile-writing-save-status {
-    max-width: 5.5em;
-    overflow: hidden;
-    color: var(--muted);
-    font-size: 12px;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  .mobile-writing-save-status[data-state="saving"] { color: var(--accent); }
-  .mobile-writing-save-status[data-state="unsaved"] { color: var(--amber); }
-  .mobile-writing-save-status[data-state="error"] { color: var(--danger); }
 
   body.mobile-writing-mode #editor {
     flex: 1 1 0;
@@ -5107,7 +5074,7 @@ body.related-open .related-toggle {
     flex: 0 0 auto;
     min-width: 0;
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(5, minmax(0, 1fr));
     gap: 4px;
     padding: 4px 8px max(4px, env(safe-area-inset-bottom));
     border-top: 1px solid var(--line);
@@ -5119,9 +5086,9 @@ body.related-open .related-toggle {
   .mobile-writing-menu > summary {
     width: 100%;
     min-width: 0;
-    padding: 5px 4px;
+    padding: 5px 1px;
     color: var(--accent);
-    font-size: 12px;
+    font-size: clamp(10px, 3vw, 12px);
     text-align: center;
   }
 

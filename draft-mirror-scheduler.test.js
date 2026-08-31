@@ -316,5 +316,5 @@ test("app wiring fixes noteId and flushes switch and lifecycle paths without dir
   assert.ok(pagehide.indexOf("forceFlushDraftMirror()") < pagehide.indexOf("if (saveTimer)"));
   assert.ok(visibility.indexOf("forceFlushDraftMirror()") < visibility.indexOf("if (saveTimer)"));
   assert.match(app, /function handleDatabaseVersionChange\(\)[\s\S]*?applyCurrentEditorDraft\(currentNote\(\)\)[\s\S]*?forceFlushDraftMirror\(\)[\s\S]*?dbConnectionClosedForUpgrade = true/);
-  assert.ok(html.indexOf('draft-mirror-scheduler.js?v=0.5.0-2') < html.indexOf('app.js?v=0.5.0-129'));
+  assert.ok(html.indexOf('draft-mirror-scheduler.js?v=0.5.0-2') < html.indexOf('app.js?v=0.5.0-130'));
 });

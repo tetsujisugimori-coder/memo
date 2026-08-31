@@ -52,7 +52,7 @@ function readFunctionSource(name) {
 }
 
 test("tags.jsをapp.jsより前に読み込みwindow APIとして公開する", () => {
-  assert.ok(html.indexOf('src="tags.js?v=0.5.0-4"') < html.indexOf('src="app.js?v=0.5.0-129"'));
+  assert.ok(html.indexOf('src="tags.js?v=0.5.0-4"') < html.indexOf('src="app.js?v=0.5.0-130"'));
   assert.match(fs.readFileSync("tags.js", "utf8"), /global\.MemoNexusTags = api/);
 });
 

@@ -801,10 +801,7 @@ const textStatsPopover = $("textStatsPopover");
 const textStatsBody = $("textStatsBody");
 const closeTextStatsBtn = $("closeTextStatsBtn");
 const editor = $("editor");
-const mobileWritingHeader = $("mobileWritingHeader");
 const mobileWritingDoneBtn = $("mobileWritingDoneBtn");
-const mobileWritingTitle = $("mobileWritingTitle");
-const mobileWritingSaveStatus = $("mobileWritingSaveStatus");
 const mobileWritingTools = $("mobileWritingTools");
 const mobileCalloutTypeSelect = $("mobileCalloutTypeSelect");
 const focusNoteTagBtn = $("focusNoteTagBtn");
@@ -1765,20 +1762,6 @@ function closeMobileWritingMenus(except = null) {
   });
 }
 
-function updateMobileWritingHeader() {
-  if (mobileWritingTitle) mobileWritingTitle.textContent = titleInput?.value?.trim() || "無題メモ";
-  if (!mobileWritingSaveStatus) return;
-  const browser = browserSaveStatusModel();
-  const local = localSaveStatusModel();
-  const hasError = browser.state === "error" || ["error", "conflict", "permission-required"].includes(local.state);
-  const isSaving = browser.state === "saving" || local.state === "saving";
-  const isUnsaved = browser.state === "editing" || local.state === "pending";
-  const state = hasError ? "error" : isSaving ? "saving" : isUnsaved ? "unsaved" : "saved";
-  const labels = { saved: "保存済み", saving: "保存中", unsaved: "未保存", error: "エラー" };
-  mobileWritingSaveStatus.dataset.state = state;
-  mobileWritingSaveStatus.textContent = labels[state];
-}
-
 function setMobileWritingMode(open) {
   const note = currentNote();
   const wasOpen = isMobileWritingMode();
@@ -1791,7 +1774,6 @@ function setMobileWritingMode(open) {
       if (contextPanelOpen) setContextPanelOpen(false, { restoreFocus: false, explicit: false });
     }
     setRelatedDrawerOpen(false, { restoreFocus: false });
-    updateMobileWritingHeader();
     if (mobileCalloutTypeSelect && calloutTypeSelect) mobileCalloutTypeSelect.value = calloutTypeSelect.value;
     captureMobileEditorContext();
   } else {
@@ -6938,7 +6920,6 @@ function handleTitleTypingInput(event) {
   const performanceMeasurement = createTypingPerformanceMeasurement("title", event);
   const performanceStartedAt = performanceMeasurement ? typingPerformance.start() : null;
   scheduleSave({ typingPerformanceMeasurement: performanceMeasurement });
-  if (typeof updateMobileWritingHeader === "function") updateMobileWritingHeader();
   if (performanceMeasurement) {
     const totalDuration = typingPerformance.elapsed(performanceStartedAt);
     completeTypingPerformanceMeasurement(performanceMeasurement, totalDuration, "full");
@@ -6998,7 +6979,6 @@ function undoLastEdit() {
   const [snapshot] = undoStack.splice(index, 1);
   titleInput.value = snapshot.title;
   editor.value = snapshot.body;
-  if (typeof updateMobileWritingHeader === "function") updateMobileWritingHeader();
   lastUndoSnapshotAt = 0;
   renderTableBlockEditors();
   scheduleSave();
@@ -10867,7 +10847,6 @@ function renderSaveStatus() {
     combinedSaveStatusBtn.dataset.state = combinedState;
     combinedSaveStatusBtn.textContent = ["saved", "unconfigured"].includes(combinedState) ? "保存状態" : `保存状態 ${combinedLabel}`;
   }
-  if (typeof updateMobileWritingHeader === "function") updateMobileWritingHeader();
   renderSaveStatusPopovers(browser, local);
 }
 

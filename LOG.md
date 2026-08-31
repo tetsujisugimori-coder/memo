@@ -2277,3 +2277,11 @@
 * `mobile-writing-mode.test.js`へ10件の契約テストを追加し、全自動テスト907件が成功した。`node --check app.js`、`node --check mobile-writing-mode.e2e.js`、`git diff --check`も成功した。
 * Playwright実ブラウザ検証では320px・375px・390px・430pxで横スクロール0、ツールバー1段、最小操作高40px、本文高662px（高さ760px）、低い可視領域390×420pxでも本文高322pxを確認した。追加・AI・記法ガイド、選択範囲を使う注意書き挿入、完了後の表示復元、1280pxデスクトップの従来ツールバー表示、page error 0件を確認した。
 * 配信識別子は`style.css?v=0.5.0-66`、`app.js?v=0.5.0-129`へ更新した。実機iPhone SafariでのIME変換確定タイミングとホームインジケーター・実キーボードの最終触感確認は残る。
+
+## 2026-08-31 PR #159 モバイル本文領域の追加拡大
+
+* 720px未満では本文フォーカス前から既存`.editor-tools`を非表示にし、PR #159で追加した上部専用ヘッダー、タイトル複製、独自保存状態表示を削除した。「完了」は下部`mobileWritingTools`の5番目へ移し、追加・画像・AI・記法ガイド・完了を1段で表示する。
+* 上部の「エラー」は`updateMobileWritingHeader()`がブラウザ保存と任意のローカル保存を独自合算し、ローカル側の`error`・`conflict`・`permission-required`も一律に扱った表示だった。同関数とタイトル入力・Undo・`renderSaveStatus()`からの呼び出しを削除した。PR差分に実際のブラウザ保存失敗は確認されず、IndexedDB、ローカル保存、保存先切替、draft mirror、atomic batch／revision、Codexスレッド保存、通常画面の保存状態表示は変更していない。
+* 既存の720px境界、本文ユーザーフォーカスでの開始、blurで終了しない仕様、完了・メモ移動・削除・幅変更での終了、コンテキストパネル状態復元、`100vh`／`100dvh`、safe area、本文内部スクロール、既存ツール処理への委譲、選択範囲・スクロール復元、AI終了後の本文復帰、「↗」別ウィンドウを維持した。
+* Playwrightで320px・375px・390px・430pxを確認し、フォーカス前から既存ツール欄が非表示、5項目が1段、最小操作高40px、横スクロール0、上部専用DOMなし、本文上端0px、本文高711px（高さ760px）を確認した。旧ヘッダーありの662pxから49px拡大し、390×420pxでも本文高371pxを確保した。追加・画像ファイル選択・AI・記法ガイド、選択範囲・スクロール復元、完了後の表示復元、1280pxの従来ツール表示を実操作し、page error・console errorは0件だった。
+* `npm test`は全908件成功した。専用・レスポンシブ25件、`node --check app.js`、`node --check mobile-writing-mode.e2e.js`、`git diff --check`も成功した。配信識別子は`style.css?v=0.5.0-67`、`app.js?v=0.5.0-130`へ更新し、`APP_VERSION`と保存形式の互換性バージョンは変更していない。実機iPhone SafariのIME・ソフトウェアキーボード・safe areaの最終操作感は未確認として残す。
