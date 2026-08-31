@@ -2285,3 +2285,12 @@
 * 既存の720px境界、本文ユーザーフォーカスでの開始、blurで終了しない仕様、完了・メモ移動・削除・幅変更での終了、コンテキストパネル状態復元、`100vh`／`100dvh`、safe area、本文内部スクロール、既存ツール処理への委譲、選択範囲・スクロール復元、AI終了後の本文復帰、「↗」別ウィンドウを維持した。
 * Playwrightで320px・375px・390px・430pxを確認し、フォーカス前から既存ツール欄が非表示、5項目が1段、最小操作高40px、横スクロール0、上部専用DOMなし、本文上端0px、本文高711px（高さ760px）を確認した。旧ヘッダーありの662pxから49px拡大し、390×420pxでも本文高371pxを確保した。追加・画像ファイル選択・AI・記法ガイド、選択範囲・スクロール復元、完了後の表示復元、1280pxの従来ツール表示を実操作し、page error・console errorは0件だった。
 * `npm test`は全908件成功した。専用・レスポンシブ25件、`node --check app.js`、`node --check mobile-writing-mode.e2e.js`、`git diff --check`も成功した。配信識別子は`style.css?v=0.5.0-67`、`app.js?v=0.5.0-130`へ更新し、`APP_VERSION`と保存形式の互換性バージョンは変更していない。実機iPhone SafariのIME・ソフトウェアキーボード・safe areaの最終操作感は未確認として残す。
+
+## 2026-08-31 PR #159 下部safe area責務の一本化
+
+* モバイル執筆モードでは、`box-sizing: border-box`かつ`100dvh`の`.workspace`下paddingと、その子で画面最下部にある`.mobile-writing-tools`の下paddingがともに`safe-area-inset-bottom`を参照し、値が非ゼロのiPhoneでは下部safe areaを二重にレイアウトへ加算する構造だった。
+* `.workspace`のpaddingを上・右・0・左へ変更し、上・左右のsafe area対応を維持したまま、下部safe areaの責務を`.mobile-writing-tools`だけへ集約した。ツールバーの`max(4px, env(safe-area-inset-bottom))`は維持し、safe areaが0でも4px、非ゼロ時はホームインジケーター分を1回だけ確保する。
+* 720px境界、通常時の`.editor-tools`非表示、下部5項目、「完了」とコンテキストパネル復元、`100vh`／`100dvh`、本文内部スクロール、低いviewportでの高さ配分、選択範囲・カーソル・本文スクロール復元、既存ツール処理への委譲、保存処理、デスクトップ／compactレイアウトは変更していない。`APP_VERSION`、保存形式の互換性バージョン、`app.js`とそのキャッシュ識別子も変更していない。
+* CSS契約テストに、`.workspace`が上・左右のsafe areaを維持すること、下部参照を持たないこと、`.mobile-writing-tools`が下部参照を1回だけ持つことを追加した。`npm test`は全909件成功し、モバイル執筆モード／レスポンシブ専用テストは全26件成功、`node --check mobile-writing-mode.e2e.js`も成功した。
+* Playwrightで320px・375px・390px・430pxを確認し、横スクロール0、下部5項目が1段、最小操作高40pxを確認した。390×420pxでは本文高371pxを確保し、「完了」で通常表示へ復帰、1280pxでは従来のデスクトップ表示を維持、page error・console errorはいずれも0件だった。
+* 配信識別子は`style.css?v=0.5.0-68`へ更新した。Playwright Chromiumでは`env(safe-area-inset-bottom)`の実値が0になるため、非ゼロ時の責務はCSS契約テストで確認した。実機iPhone Safariでのホームインジケーター、ソフトウェアキーボード、横向きsafe areaの表示・操作確認は未実施である。

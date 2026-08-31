@@ -74,10 +74,18 @@ test("別メモ・削除・デスクトップ移行で執筆モードを解除�
   assert.match(app, /const confirmed = confirm[\s\S]*if \(!confirmed\) return;[\s\S]*setMobileWritingMode\(false\)/);
 });
 
-test("dvh・safe area・内部スクロールでiPhoneの可変表示領域を使う", () => {
-  assert.match(css, /body\.mobile-writing-mode \.workspace\s*\{[^}]*height:\s*100dvh;[^}]*env\(safe-area-inset-top\)[^}]*env\(safe-area-inset-bottom\)/s);
+test("dvh・上左右safe area・内部スクロールでiPhoneの可変表示領域を使う", () => {
+  assert.match(css, /body\.mobile-writing-mode \.workspace\s*\{[^}]*height:\s*100dvh;[^}]*padding:\s*env\(safe-area-inset-top\)\s+env\(safe-area-inset-right\)\s+0\s+env\(safe-area-inset-left\)/s);
   assert.match(css, /body\.mobile-writing-mode #editor\s*\{[^}]*flex:\s*1 1 0;[^}]*min-height:\s*0;[^}]*overflow-y:\s*auto;[^}]*overscroll-behavior:\s*contain;/s);
   assert.match(css, /\.mobile-writing-menu-panel\s*\{[^}]*width:\s*min\(280px, calc\(100vw - 16px\)\);[^}]*max-height:\s*min\(56dvh, 360px\)/s);
+});
+
+test("下部safe areaはツールバーだけが一度担当する", () => {
+  const workspaceRule = css.match(/body\.mobile-writing-mode \.workspace\s*\{([^}]*)\}/s)?.[1] || "";
+  const toolbarRule = css.match(/body\.mobile-writing-mode \.mobile-writing-tools\s*\{([^}]*)\}/s)?.[1] || "";
+  assert.doesNotMatch(workspaceRule, /safe-area-inset-bottom/);
+  assert.match(toolbarRule, /padding:\s*4px\s+8px\s+max\(4px, env\(safe-area-inset-bottom\)\)/);
+  assert.equal((`${workspaceRule}\n${toolbarRule}`.match(/safe-area-inset-bottom/g) || []).length, 1);
 });
 
 test("独自保存状態を削除し、既存の保存入口を変更しない", () => {
