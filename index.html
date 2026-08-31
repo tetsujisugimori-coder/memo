@@ -7,7 +7,7 @@
   <script>try { document.documentElement.dataset.initialTheme = localStorage.getItem("memo-nexus-theme") === "dark" ? "dark" : "light"; } catch (_) { document.documentElement.dataset.initialTheme = "light"; }</script>
   <style>html,body{background:#f6f7f4;color:#222522;color-scheme:light}html[data-initial-theme="dark"],html[data-initial-theme="dark"] body{background:#111513;color:#e7ece7;color-scheme:dark}</style>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css">
-  <link rel="stylesheet" href="style.css?v=0.5.0-65">
+  <link rel="stylesheet" href="style.css?v=0.5.0-66">
 </head>
 <body class="app-starting">
   <section id="appStartupGuard" class="app-startup-guard" role="status" aria-live="polite" aria-busy="true">
@@ -160,6 +160,11 @@
     </header>
     <div id="storageWarning" class="storage-warning" role="status" hidden></div>
     <section class="editor-card">
+      <div id="mobileWritingHeader" class="mobile-writing-header" aria-label="執筆モード">
+        <button id="mobileWritingDoneBtn" type="button">完了</button>
+        <strong id="mobileWritingTitle" class="mobile-writing-title">無題メモ</strong>
+        <span id="mobileWritingSaveStatus" class="mobile-writing-save-status" data-state="saved" role="status" aria-live="polite">保存済み</span>
+      </div>
       <div class="title-row">
         <div class="title-side">
           <div class="title-side-head">
@@ -210,6 +215,29 @@
       </div>
       <textarea id="editor" placeholder="すぐ書けます。[[語句]] で語句を登録し、[[* メモ名]] で既存メモを参照できます。"></textarea>
       <div id="tableBlockEditors" class="table-block-editors" role="region" aria-label="表ブロック編集" hidden></div>
+      <div id="mobileWritingTools" class="mobile-writing-tools" aria-label="執筆モードのエディタ操作">
+        <details class="mobile-writing-menu">
+          <summary aria-label="追加メニューを開く">追加</summary>
+          <div class="mobile-writing-menu-panel" role="menu">
+            <button type="button" role="menuitem" data-mobile-editor-tool="insertTableBtn">表を挿入</button>
+            <label class="mobile-callout-option">注意書き
+              <select id="mobileCalloutTypeSelect" aria-label="注意書きの種類"><option value="NOTE">NOTE</option><option value="TIP">TIP</option><option value="IMPORTANT">IMPORTANT</option><option value="WARNING">WARNING</option></select>
+            </label>
+            <button type="button" role="menuitem" data-mobile-editor-tool="insertCalloutBtn">注意書きを挿入</button>
+            <button type="button" role="menuitem" data-mobile-editor-tool="addExplanationBtn">解説ブロック</button>
+            <button type="button" role="menuitem" data-mobile-editor-tool="calculatorLinkBtn">計算</button>
+          </div>
+        </details>
+        <button type="button" aria-label="画像を追加" title="画像を追加" data-mobile-editor-tool="insertImageBlockBtn">画像</button>
+        <details class="mobile-writing-menu">
+          <summary aria-label="AIメニューを開く">AI</summary>
+          <div class="mobile-writing-menu-panel mobile-writing-menu-panel-end" role="menu">
+            <button type="button" role="menuitem" data-mobile-editor-tool="aiSummarizeNoteBtn">このメモを要約</button>
+            <button type="button" role="menuitem" data-mobile-editor-tool="aiSendSelectionBtn">選択範囲をAIに送る</button>
+          </div>
+        </details>
+        <button type="button" aria-label="記法ガイドを開く" title="Markdown・語句リンク・メモリンクなどの記法ガイド" data-mobile-editor-tool="syntaxGuideBtn">記法ガイド</button>
+      </div>
       <div class="note-meta-bar" aria-label="文書と保存の状態">
         <div class="note-meta-actions">
           <button id="noteFlagBtn" class="note-flag-button" type="button" title="フラグを付ける" aria-label="フラグを付ける" aria-pressed="false"><span class="note-flag-icon" aria-hidden="true">⚑</span></button>
@@ -952,7 +980,7 @@
   <script src="typing-derived-ui-scheduler.js?v=0.5.0-4"></script>
   <script src="draft-mirror-scheduler.js?v=0.5.0-2"></script>
   <script src="typing-performance-monitor.js?v=0.5.0-3"></script>
-  <script src="app.js?v=0.5.0-128"></script>
+  <script src="app.js?v=0.5.0-129"></script>
   <script src="codex-chat.js?v=0.5.0-6"></script>
 </body>
 </html>

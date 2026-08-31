@@ -801,6 +801,12 @@ const textStatsPopover = $("textStatsPopover");
 const textStatsBody = $("textStatsBody");
 const closeTextStatsBtn = $("closeTextStatsBtn");
 const editor = $("editor");
+const mobileWritingHeader = $("mobileWritingHeader");
+const mobileWritingDoneBtn = $("mobileWritingDoneBtn");
+const mobileWritingTitle = $("mobileWritingTitle");
+const mobileWritingSaveStatus = $("mobileWritingSaveStatus");
+const mobileWritingTools = $("mobileWritingTools");
+const mobileCalloutTypeSelect = $("mobileCalloutTypeSelect");
 const focusNoteTagBtn = $("focusNoteTagBtn");
 const insertTableBtn = $("insertTableBtn");
 const calloutTypeSelect = $("calloutTypeSelect");
@@ -1091,6 +1097,10 @@ let pdfObjectUrlTimers = new Map();
 let layoutMode = "wide";
 let mobileCardOpen = false;
 let compactCardVisible = true;
+let mobileWritingModeNoteId = null;
+let mobileEditorContext = null;
+let mobileWritingPreviousContextPanelOpen = null;
+let suppressMobileWritingModeFocus = false;
 let contextPanelTab = "collection";
 let contextPanelOpen = true;
 let contextPanelUserClosed = false;
@@ -1733,6 +1743,7 @@ function syncLayoutMode(force = false, width = document.body.clientWidth) {
   if (!force && nextMode === layoutMode) return;
 
   layoutMode = nextMode;
+  if (layoutMode !== "mobile") setMobileWritingMode(false);
   mobileCardOpen = false;
   compactCardVisible = true;
   document.body.dataset.layoutMode = layoutMode;
@@ -1742,6 +1753,88 @@ function syncLayoutMode(force = false, width = document.body.clientWidth) {
     setContextPanelOpen(true, { restoreFocus: false, explicit: false });
     setAiAssistantPanelActive(contextPanelTab === "ai");
   }
+}
+
+function isMobileWritingMode() {
+  return Boolean(mobileWritingModeNoteId && document.body.classList.contains("mobile-writing-mode"));
+}
+
+function closeMobileWritingMenus(except = null) {
+  mobileWritingTools?.querySelectorAll("details[open]").forEach((menu) => {
+    if (menu !== except) menu.open = false;
+  });
+}
+
+function updateMobileWritingHeader() {
+  if (mobileWritingTitle) mobileWritingTitle.textContent = titleInput?.value?.trim() || "無題メモ";
+  if (!mobileWritingSaveStatus) return;
+  const browser = browserSaveStatusModel();
+  const local = localSaveStatusModel();
+  const hasError = browser.state === "error" || ["error", "conflict", "permission-required"].includes(local.state);
+  const isSaving = browser.state === "saving" || local.state === "saving";
+  const isUnsaved = browser.state === "editing" || local.state === "pending";
+  const state = hasError ? "error" : isSaving ? "saving" : isUnsaved ? "unsaved" : "saved";
+  const labels = { saved: "保存済み", saving: "保存中", unsaved: "未保存", error: "エラー" };
+  mobileWritingSaveStatus.dataset.state = state;
+  mobileWritingSaveStatus.textContent = labels[state];
+}
+
+function setMobileWritingMode(open) {
+  const note = currentNote();
+  const wasOpen = isMobileWritingMode();
+  const shouldOpen = Boolean(open && layoutMode === "mobile" && !isPopoutWindow && note && !note.deletedAt);
+  mobileWritingModeNoteId = shouldOpen ? note.id : null;
+  document.body.classList.toggle("mobile-writing-mode", shouldOpen);
+  if (shouldOpen) {
+    if (!wasOpen) {
+      mobileWritingPreviousContextPanelOpen = contextPanelOpen;
+      if (contextPanelOpen) setContextPanelOpen(false, { restoreFocus: false, explicit: false });
+    }
+    setRelatedDrawerOpen(false, { restoreFocus: false });
+    updateMobileWritingHeader();
+    if (mobileCalloutTypeSelect && calloutTypeSelect) mobileCalloutTypeSelect.value = calloutTypeSelect.value;
+    captureMobileEditorContext();
+  } else {
+    const restoreContextPanel = wasOpen && mobileWritingPreviousContextPanelOpen;
+    mobileWritingPreviousContextPanelOpen = null;
+    closeMobileWritingMenus();
+    mobileEditorContext = null;
+    editor?.blur();
+    mobileWritingDoneBtn?.blur();
+    if (restoreContextPanel) setContextPanelOpen(true, { restoreFocus: false, explicit: false });
+  }
+  return shouldOpen;
+}
+
+function captureMobileEditorContext() {
+  if (!isMobileWritingMode() || mobileWritingModeNoteId !== currentId) return null;
+  const range = rememberEditorSelectionRange();
+  mobileEditorContext = {
+    noteId: currentId,
+    start: range?.start,
+    end: range?.end,
+    scrollTop: editor.scrollTop
+  };
+  return mobileEditorContext;
+}
+
+function restoreMobileEditorContext() {
+  const context = mobileEditorContext;
+  if (!context || context.noteId !== currentId || mobileWritingModeNoteId !== currentId) return false;
+  const range = currentEditorInsertRange(context);
+  editor.focus({ preventScroll: true });
+  editor.setSelectionRange(range.start, range.end);
+  editor.scrollTop = context.scrollTop;
+  editorSelectionRangeSnapshot = { start: range.start, end: range.end };
+  return true;
+}
+
+function runMobileEditorTool(targetId) {
+  const target = document.getElementById(targetId);
+  if (!target || !restoreMobileEditorContext()) return false;
+  target.click();
+  closeMobileWritingMenus();
+  return true;
 }
 
 function setContextPanelOpen(open, { restoreFocus = true, explicit = true } = {}) {
@@ -5359,6 +5452,10 @@ function snippet(body) {
 function openNote(id) {
   if (noteSaveFoundation.isTerminal(id)) return;
   const previousId = currentId;
+  if (typeof setMobileWritingMode === "function"
+      && typeof mobileWritingModeNoteId !== "undefined"
+      && mobileWritingModeNoteId
+      && mobileWritingModeNoteId !== id) setMobileWritingMode(false);
   if (previousId && previousId !== id) {
     const hasPendingDraftMirror = globalThis.MemoNexusDraftMirrorScheduler?.pendingNoteId() === previousId;
     const draftChanged = applyCurrentEditorDraft(currentNote());
@@ -5418,7 +5515,13 @@ function openNote(id) {
   globalThis.MemoNexusTypingDerivedUiScheduler?.markRendered(note.id, note.revision);
   window.MemoNexusCodexChat?.onMemoChanged(note);
   if (isPopoutWindow) document.title = `${note.title} — Memo Nexus`;
-  editor.focus();
+  if (typeof suppressMobileWritingModeFocus !== "undefined") {
+    suppressMobileWritingModeFocus = previousId !== note.id;
+    editor.focus();
+    queueMicrotask(() => { suppressMobileWritingModeFocus = false; });
+  } else {
+    editor.focus();
+  }
 }
 
 // ポップアウトは本体のペイン・AI・モーダルを初期化せず、同じメモの編集だけを起動します。
@@ -6835,6 +6938,7 @@ function handleTitleTypingInput(event) {
   const performanceMeasurement = createTypingPerformanceMeasurement("title", event);
   const performanceStartedAt = performanceMeasurement ? typingPerformance.start() : null;
   scheduleSave({ typingPerformanceMeasurement: performanceMeasurement });
+  if (typeof updateMobileWritingHeader === "function") updateMobileWritingHeader();
   if (performanceMeasurement) {
     const totalDuration = typingPerformance.elapsed(performanceStartedAt);
     completeTypingPerformanceMeasurement(performanceMeasurement, totalDuration, "full");
@@ -6894,6 +6998,7 @@ function undoLastEdit() {
   const [snapshot] = undoStack.splice(index, 1);
   titleInput.value = snapshot.title;
   editor.value = snapshot.body;
+  if (typeof updateMobileWritingHeader === "function") updateMobileWritingHeader();
   lastUndoSnapshotAt = 0;
   renderTableBlockEditors();
   scheduleSave();
@@ -6933,6 +7038,7 @@ async function deleteCurrentNote() {
 
   const confirmed = confirm(`「${note.title}」をゴミ箱へ移動しますか？`);
   if (!confirmed) return;
+  if (typeof setMobileWritingMode === "function") setMobileWritingMode(false);
   globalThis.MemoNexusTypingDerivedUiScheduler?.cancelNote(note.id);
   if (typingPerformanceEnabled) typingPerformance.discardNote(note.id);
 
@@ -9863,10 +9969,12 @@ function resetAiAssistantConversation() {
 
 function setAiPanelOpen(open, { restoreFocus = true, launchMode = null } = {}) {
   const wasOpen = aiAssistantState.panelOpen;
+  const returnToMobileWriting = !open && isMobileWritingMode();
   if (open && !wasOpen && launchMode === null) {
     resetAiAssistantConversation();
   }
   if (open) setContextPanelTab("ai", { focus: false });
+  else if (returnToMobileWriting) setContextPanelOpen(false, { restoreFocus: false, explicit: false });
   else if (contextPanelTab === "ai") setContextPanelTab("collection", { focus: false });
   else setAiAssistantPanelActive(false);
   if (aiAssistantState.panelOpen) {
@@ -9875,7 +9983,10 @@ function setAiPanelOpen(open, { restoreFocus = true, launchMode = null } = {}) {
     closeAiPanelBtn.focus();
   } else {
     updateResponsiveLayoutUi();
-    if (wasOpen && restoreFocus) aiRobotBtn.focus();
+    if (wasOpen && restoreFocus) {
+      if (returnToMobileWriting) restoreMobileEditorContext();
+      else aiRobotBtn.focus();
+    }
   }
   renderAiUi();
 }
@@ -10756,6 +10867,7 @@ function renderSaveStatus() {
     combinedSaveStatusBtn.dataset.state = combinedState;
     combinedSaveStatusBtn.textContent = ["saved", "unconfigured"].includes(combinedState) ? "保存状態" : `保存状態 ${combinedLabel}`;
   }
+  if (typeof updateMobileWritingHeader === "function") updateMobileWritingHeader();
   renderSaveStatusPopovers(browser, local);
 }
 
@@ -12864,6 +12976,28 @@ if (insertImageBlockBtn) insertImageBlockBtn.addEventListener("click", () => {
   if (range.fallback) setAttachmentStatus("カーソル位置を取得できないため、本文末尾へ挿入します。");
   imageBlockInput.click();
 });
+if (mobileWritingDoneBtn) mobileWritingDoneBtn.addEventListener("click", () => setMobileWritingMode(false));
+if (mobileCalloutTypeSelect && calloutTypeSelect) {
+  mobileCalloutTypeSelect.addEventListener("change", () => {
+    calloutTypeSelect.value = mobileCalloutTypeSelect.value;
+  });
+}
+if (mobileWritingTools) {
+  mobileWritingTools.addEventListener("pointerdown", (event) => {
+    if (event.target.closest("summary,[data-mobile-editor-tool]")) captureMobileEditorContext();
+  }, true);
+  mobileWritingTools.addEventListener("click", (event) => {
+    const trigger = event.target.closest("[data-mobile-editor-tool]");
+    if (!trigger) return;
+    event.preventDefault();
+    runMobileEditorTool(trigger.dataset.mobileEditorTool);
+  });
+  mobileWritingTools.querySelectorAll("details").forEach((menu) => {
+    menu.addEventListener("toggle", () => {
+      if (menu.open) closeMobileWritingMenus(menu);
+    });
+  });
+}
 if (addExplanationBtn) addExplanationBtn.addEventListener("pointerdown", () => {
   pendingExplanationSelection = rememberEditorSelectionRange();
 });
@@ -13214,7 +13348,10 @@ titleInput.addEventListener("compositionend", () => {
   });
 });
 editor.addEventListener("beforeinput", resetEditorCaretIdle);
-editor.addEventListener("focus", resetEditorCaretIdle);
+editor.addEventListener("focus", () => {
+  resetEditorCaretIdle();
+  if (!suppressMobileWritingModeFocus) setMobileWritingMode(true);
+});
 editor.addEventListener("blur", stopEditorCaretAnimation);
 editor.addEventListener("keydown", resetEditorCaretIdle);
 editor.addEventListener("pointerdown", resetEditorCaretIdle);

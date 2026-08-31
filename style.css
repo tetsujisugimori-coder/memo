@@ -2072,6 +2072,11 @@ body.collections-open .collection-explorer {
   overflow: auto;
 }
 
+.mobile-writing-header,
+.mobile-writing-tools {
+  display: none;
+}
+
 .editor-tools button {
   min-height: 28px;
   padding: 3px 9px;
@@ -5000,6 +5005,191 @@ body.related-open .related-toggle {
 
   #aiInstructionInput {
     min-height: 96px;
+  }
+
+  body.mobile-writing-mode {
+    overflow: hidden;
+  }
+
+  body.mobile-writing-mode .workspace {
+    height: 100vh;
+    height: 100dvh;
+    min-height: 0;
+    grid-template-rows: minmax(0, 1fr);
+    gap: 0;
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  }
+
+  body.mobile-writing-mode .app-header,
+  body.mobile-writing-mode .storage-warning,
+  body.mobile-writing-mode .preview-card,
+  body.mobile-writing-mode .title-row,
+  body.mobile-writing-mode .editor-tools,
+  body.mobile-writing-mode .note-meta-bar,
+  body.mobile-writing-mode .related-toggle,
+  body.mobile-writing-mode .related-backdrop,
+  body.mobile-writing-mode .related-panel,
+  body.mobile-writing-mode .ai-robot-button,
+  body.mobile-writing-mode .layout-backdrop,
+  body.mobile-writing-mode .delete-undo-notice {
+    display: none !important;
+  }
+
+  body.mobile-writing-mode .editor-card {
+    grid-column: 1;
+    grid-row: 1;
+    min-height: 0;
+    height: 100%;
+    border: 0;
+    border-radius: 0;
+    overflow: hidden;
+  }
+
+  body.mobile-writing-mode .mobile-writing-header {
+    flex: 0 0 auto;
+    min-width: 0;
+    min-height: 48px;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 8px;
+    border-bottom: 1px solid var(--line);
+    background: var(--section-bg);
+  }
+
+  .mobile-writing-header button,
+  .mobile-writing-tools button,
+  .mobile-writing-tools summary {
+    min-height: 40px;
+    white-space: nowrap;
+    word-break: keep-all;
+  }
+
+  .mobile-writing-title {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-align: center;
+  }
+
+  .mobile-writing-save-status {
+    max-width: 5.5em;
+    overflow: hidden;
+    color: var(--muted);
+    font-size: 12px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .mobile-writing-save-status[data-state="saving"] { color: var(--accent); }
+  .mobile-writing-save-status[data-state="unsaved"] { color: var(--amber); }
+  .mobile-writing-save-status[data-state="error"] { color: var(--danger); }
+
+  body.mobile-writing-mode #editor {
+    flex: 1 1 0;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scroll-padding-block: 24px;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  body.mobile-writing-mode .table-block-editors:not([hidden]) {
+    flex: 0 1 42%;
+    min-height: 0;
+  }
+
+  body.mobile-writing-mode .mobile-writing-tools {
+    position: relative;
+    z-index: 3;
+    flex: 0 0 auto;
+    min-width: 0;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 4px;
+    padding: 4px 8px max(4px, env(safe-area-inset-bottom));
+    border-top: 1px solid var(--line);
+    background: var(--section-bg);
+    overflow: visible;
+  }
+
+  .mobile-writing-tools > button,
+  .mobile-writing-menu > summary {
+    width: 100%;
+    min-width: 0;
+    padding: 5px 4px;
+    color: var(--accent);
+    font-size: 12px;
+    text-align: center;
+  }
+
+  .mobile-writing-menu {
+    position: relative;
+    min-width: 0;
+  }
+
+  .mobile-writing-menu > summary {
+    border: 1px solid var(--line);
+    border-radius: 7px;
+    background: var(--button-bg);
+    cursor: pointer;
+    list-style: none;
+  }
+
+  .mobile-writing-menu > summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .mobile-writing-menu-panel {
+    position: absolute;
+    bottom: calc(100% + 6px);
+    left: 0;
+    width: min(280px, calc(100vw - 16px));
+    max-height: min(56dvh, 360px);
+    padding: 8px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: var(--panel);
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.24);
+    overflow: auto;
+  }
+
+  .mobile-writing-menu-panel-end {
+    right: 0;
+    left: auto;
+  }
+
+  .mobile-writing-menu-panel button,
+  .mobile-callout-option {
+    width: 100%;
+    min-height: 44px;
+  }
+
+  .mobile-writing-menu-panel button {
+    display: block;
+    text-align: left;
+  }
+
+  .mobile-writing-menu-panel button + button,
+  .mobile-writing-menu-panel label + button {
+    margin-top: 5px;
+  }
+
+  .mobile-callout-option {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    gap: 8px;
+    margin-top: 5px;
+    color: var(--muted);
+    font-size: 12px;
+  }
+
+  .mobile-callout-option select {
+    min-width: 0;
+    min-height: 40px;
   }
 }
 
