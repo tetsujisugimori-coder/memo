@@ -26,7 +26,8 @@
   function normalizeLayoutWidths(value) {
     if (!value || typeof value !== "object" || Array.isArray(value)) return {};
     const normalized = {};
-    if (validSavedWidth(value.editorWidth)) normalized.editorWidth = value.editorWidth;
+    if (value.editorWidth === null) normalized.editorWidth = null;
+    else if (validSavedWidth(value.editorWidth)) normalized.editorWidth = value.editorWidth;
     if (validSavedWidth(value.contextPanelWidth)) normalized.contextPanelWidth = value.contextPanelWidth;
     return normalized;
   }
@@ -57,11 +58,10 @@
     return clampWidth(range.usableWidth / 1.8, range.minimum, range.maximum);
   }
 
-  function calculateContextPanelRange(bodyWidth, workspaceMinimumWidth, separatorTrackWidth = 0) {
+  function calculateContextPanelRange(bodyWidth, workspaceMinimumWidth) {
     const width = Number.isFinite(Number(bodyWidth)) ? Math.max(0, Number(bodyWidth)) : 0;
     const workspaceMinimum = Number.isFinite(Number(workspaceMinimumWidth)) ? Math.max(0, Number(workspaceMinimumWidth)) : 0;
-    const separator = Number.isFinite(Number(separatorTrackWidth)) ? Math.max(0, Number(separatorTrackWidth)) : 0;
-    const availableMaximum = width - workspaceMinimum - separator;
+    const availableMaximum = width - workspaceMinimum;
     return {
       minimum: CONTEXT_PANEL_MIN_WIDTH,
       maximum: Math.max(
@@ -69,6 +69,26 @@
         Math.min(CONTEXT_PANEL_MAX_WIDTH, availableMaximum)
       )
     };
+  }
+
+  function commitLayoutWidthsForKind(requestedWidths, appliedWidths, kind) {
+    const requested = requestedWidths && typeof requestedWidths === "object" ? requestedWidths : {};
+    const applied = appliedWidths && typeof appliedWidths === "object" ? appliedWidths : {};
+    const next = {
+      editorWidth: requested.editorWidth === null
+        ? null
+        : (validSavedWidth(requested.editorWidth) ? requested.editorWidth : null),
+      contextPanelWidth: validSavedWidth(requested.contextPanelWidth)
+        ? requested.contextPanelWidth
+        : DEFAULT_CONTEXT_PANEL_WIDTH
+    };
+
+    if (kind === "editor" && requested.editorWidth !== null && validSavedWidth(applied.editorWidth)) {
+      next.editorWidth = applied.editorWidth;
+    } else if (kind === "context" && validSavedWidth(applied.contextPanelWidth)) {
+      next.contextPanelWidth = applied.contextPanelWidth;
+    }
+    return next;
   }
 
   const api = {
@@ -80,6 +100,7 @@
     calculateContextPanelRange,
     calculateEditorRange,
     clampWidth,
+    commitLayoutWidthsForKind,
     defaultEditorWidth,
     normalizeLayoutWidths,
     parseLayoutWidths

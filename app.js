@@ -1461,11 +1461,12 @@ function restoreLayoutResizeWidths() {
   }
 }
 
-function persistLayoutResizeWidths() {
-  const editorWidth = appliedLayoutResizeWidths.editorWidth;
-  const contextPanelWidth = appliedLayoutResizeWidths.contextPanelWidth;
-  if (!Number.isFinite(editorWidth) || !Number.isFinite(contextPanelWidth)) return;
-  layoutResizeWidths = { editorWidth, contextPanelWidth };
+function persistLayoutResizeWidths(kind) {
+  layoutResizeWidths = window.MemoNexusLayoutResizeUtils.commitLayoutWidthsForKind(
+    layoutResizeWidths,
+    appliedLayoutResizeWidths,
+    kind
+  );
   try {
     localStorage.setItem(LAYOUT_RESIZE_STORAGE_KEY, JSON.stringify(layoutResizeWidths));
   } catch (error) {
@@ -1494,8 +1495,7 @@ function currentContextPanelWidthRange() {
     + 16;
   return window.MemoNexusLayoutResizeUtils.calculateContextPanelRange(
     document.body.clientWidth,
-    workspaceMinimumWidth,
-    10
+    workspaceMinimumWidth
   );
 }
 
@@ -1587,7 +1587,7 @@ function finishLayoutResize({ cancel = false, persist = false } = {}) {
     console.warn("Layout resize pointer release failed", error);
   }
   applyWideLayoutResizeWidths();
-  if (persist && !cancel) persistLayoutResizeWidths();
+  if (persist && !cancel) persistLayoutResizeWidths(resize.kind);
   return true;
 }
 
@@ -1626,7 +1626,7 @@ function changeLayoutWidthFromKeyboard(kind, direction, multiplier = 1) {
     layoutResizeWidths.contextPanelWidth = appliedLayoutResizeWidths.contextPanelWidth - direction * step;
   }
   applyWideLayoutResizeWidths();
-  persistLayoutResizeWidths();
+  persistLayoutResizeWidths(kind);
 }
 
 function resetLayoutWidth(kind) {
@@ -1634,7 +1634,7 @@ function resetLayoutWidth(kind) {
   if (kind === "editor") layoutResizeWidths.editorWidth = null;
   else layoutResizeWidths.contextPanelWidth = window.MemoNexusLayoutResizeUtils.DEFAULT_CONTEXT_PANEL_WIDTH;
   applyWideLayoutResizeWidths();
-  persistLayoutResizeWidths();
+  persistLayoutResizeWidths(kind);
 }
 
 function bindLayoutSeparator(separator, kind) {

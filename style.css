@@ -5275,7 +5275,7 @@ body.related-open .related-toggle {
 
 /* 右側コンテキストパネル：コレクション、AI、メモ一覧を同じ領域で切り替える。 */
 body {
-  grid-template-columns: minmax(0, 1fr) 10px var(--context-panel-width, 340px);
+  grid-template-columns: minmax(0, 1fr) var(--context-panel-width, 340px);
 }
 
 body.context-panel-closed {
@@ -5290,7 +5290,10 @@ body.context-panel-closed {
   grid-column: 2;
   grid-row: 1;
   width: 10px;
-  z-index: var(--z-context-panel);
+  justify-self: start;
+  align-self: stretch;
+  transform: translateX(-50%);
+  z-index: calc(var(--z-context-panel) + 1);
 }
 
 body[data-layout-mode="wide"]:not(.context-panel-closed) > .context-panel-separator {
@@ -5298,7 +5301,7 @@ body[data-layout-mode="wide"]:not(.context-panel-closed) > .context-panel-separa
 }
 
 .context-panel {
-  grid-column: 3;
+  grid-column: 2;
   grid-row: 1;
   min-width: 0;
   min-height: 0;
@@ -5311,6 +5314,10 @@ body[data-layout-mode="wide"]:not(.context-panel-closed) > .context-panel-separa
   color: var(--ink);
   z-index: var(--z-context-panel);
   overflow: hidden;
+}
+
+body[data-layout-mode="wide"] > .context-panel {
+  border-left: 0;
 }
 
 .context-panel.context-panel-closed {

@@ -118,7 +118,7 @@ test("right context panel contains one active view for collection, tags, AI, and
   assert.match(app, /setContextPanelTab\("collection"/);
   assert.match(app, /panel\.hidden = !selected/);
   assert.match(css, /\.context-panel\s*\{/);
-  assert.match(css, /grid-template-columns:\s*minmax\(0, 1fr\) 10px var\(--context-panel-width, 340px\)/);
+  assert.match(css, /grid-template-columns:\s*minmax\(0, 1fr\) var\(--context-panel-width, 340px\)/);
   assert.match(css, /body\.context-panel-closed\s*\{\s*grid-template-columns:\s*minmax\(0, 1fr\)/s);
 });
 
