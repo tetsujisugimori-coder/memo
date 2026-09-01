@@ -8,7 +8,7 @@ const {
 } = require("./web-clip-utils.js");
 const { serializeImageBlock } = require("./attachment-utils.js");
 const { fetchClipImages, sniffImageType, gifDimensions, safeImageUrl } = require("./extensions/web-clipper/image-fetcher.js");
-const { fetchImagesForMessage } = require("./extensions/web-clipper/background.js");
+const { fetchImagesForMessage, observeImageRedirects } = require("./extensions/web-clipper/background.js");
 
 const capturedAt = "2026-08-12T00:00:00.000Z";
 const readyImage = (token, overrides = {}) => ({
@@ -23,6 +23,22 @@ const readyImage = (token, overrides = {}) => ({
   dataBase64: Buffer.from("img").toString("base64"),
   ...overrides
 });
+
+function responseAt(url, body, options = {}, redirected = false) {
+  const response = new Response(body, options);
+  Object.defineProperties(response, {
+    url: { value: url },
+    redirected: { value: redirected }
+  });
+  return response;
+}
+
+function observedRedirects(redirectCount = 1, extra = {}) {
+  return () => ({
+    getState: () => ({ observed: true, redirectCount, errorCode: "", error: "", ...extra }),
+    cleanup() {}
+  });
+}
 
 test("記事中の画像マーカーを同じ順序・位置の既存画像ブロックへ置換する", () => {
   const clip = normalizeWebClip({
@@ -177,13 +193,85 @@ test("画像取得は資格情報を送らず、未対応scheme・ローカル�
   });
   assert.equal(safe.status, "ready");
   assert.equal(requestOptions.credentials, "omit");
-  assert.equal(requestOptions.redirect, "manual");
+  assert.equal(requestOptions.redirect, "follow");
   assert.equal(requestOptions.referrerPolicy, "no-referrer");
 
-  const [redirected] = await fetchClipImages([{ token: "web-clip-image-1", url: "https://example.com/a.png" }], {
-    fetchImpl: async () => new Response("", { status: 302, headers: { location: "http://127.0.0.1/private.png" } })
+  for (const finalUrl of ["http://localhost/private.png", "http://127.0.0.1/private.png", "http://10.0.0.1/private.png", "data:image/png;base64,AA=="]) {
+    const [redirected] = await fetchClipImages([{ token: "web-clip-image-1", url: "https://example.com/a.png" }], {
+      fetchImpl: async () => responseAt(finalUrl, Uint8Array.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), { headers: { "content-type": "image/png" } }, true),
+      observeRedirects: observedRedirects(),
+      decodeImage: async () => ({ width: 1, height: 1 })
+    });
+    assert.equal(redirected.errorCode, "UNSAFE_REDIRECT");
+    assert.equal(redirected.dataBase64, "");
+  }
+});
+
+test("安全な最終URLへのリダイレクト画像を取得し、未監視または上限超過のチェーンを保存しない", async () => {
+  const png = Uint8Array.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 1]);
+  const candidate = { token: "web-clip-image-1", url: "https://article.example/redirect" };
+  const options = {
+    fetchImpl: async () => responseAt("https://cdn.example/final.png", png, { headers: { "content-type": "image/png" } }, true),
+    decodeImage: async () => ({ width: 1, height: 1 })
+  };
+
+  const [safe] = await fetchClipImages([candidate], { ...options, observeRedirects: observedRedirects(2) });
+  assert.equal(safe.status, "ready");
+  assert.equal(safe.mimeType, "image/png");
+
+  const [unverified] = await fetchClipImages([candidate], options);
+  assert.equal(unverified.status, "failed");
+  assert.equal(unverified.errorCode, "REDIRECT_UNVERIFIED");
+
+  const [tooMany] = await fetchClipImages([candidate], { ...options, observeRedirects: observedRedirects(6) });
+  assert.equal(tooMany.status, "failed");
+  assert.equal(tooMany.errorCode, "TOO_MANY_REDIRECTS");
+  assert.equal(tooMany.dataBase64, "");
+});
+
+test("MV3のwebRequest監視は危険な転送先と6回目のリダイレクトで取得を中断する", (t) => {
+  const previousChrome = global.chrome;
+  t.after(() => { global.chrome = previousChrome; });
+  function eventHub() {
+    let listener = null;
+    return {
+      addListener(value) { listener = value; },
+      removeListener(value) { if (listener === value) listener = null; },
+      emit(details) { listener?.(details); },
+      listening: () => Boolean(listener)
+    };
+  }
+  const onBeforeRequest = eventHub();
+  const onBeforeRedirect = eventHub();
+  global.chrome = {
+    runtime: { getURL: () => "chrome-extension://abcdefghijklmnop/" },
+    webRequest: { onBeforeRequest, onBeforeRedirect }
+  };
+
+  const violations = [];
+  const observation = observeImageRedirects({
+    initialUrl: "https://article.example/start.png",
+    maximumRedirects: 5,
+    abort: (code) => violations.push(code)
   });
-  assert.equal(redirected.errorCode, "UNSAFE_REDIRECT");
+  onBeforeRequest.emit({ url: "https://article.example/start.png", requestId: "request-1", initiator: "chrome-extension://abcdefghijklmnop", type: "xmlhttprequest" });
+  onBeforeRedirect.emit({ requestId: "request-1", redirectUrl: "http://127.0.0.1/private.png" });
+  assert.deepEqual(violations, ["UNSAFE_REDIRECT"]);
+  observation.cleanup();
+  assert.equal(onBeforeRequest.listening(), false);
+  assert.equal(onBeforeRedirect.listening(), false);
+
+  const countViolations = [];
+  const countObservation = observeImageRedirects({
+    initialUrl: "https://article.example/chain.png",
+    maximumRedirects: 5,
+    abort: (code) => countViolations.push(code)
+  });
+  onBeforeRequest.emit({ url: "https://article.example/chain.png", requestId: "request-2", initiator: "chrome-extension://abcdefghijklmnop", type: "xmlhttprequest" });
+  for (let index = 1; index <= 6; index += 1) onBeforeRedirect.emit({ requestId: "request-2", redirectUrl: `https://cdn.example/${index}.png` });
+  assert.deepEqual(countViolations, ["TOO_MANY_REDIRECTS"]);
+  assert.equal(countObservation.getState().redirectCount, 6);
+  countObservation.cleanup();
 });
 
 test("HTTP失敗をログイン要求・期限切れ・アクセス拒否として分類する", async () => {

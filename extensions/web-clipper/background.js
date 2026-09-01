@@ -16,6 +16,58 @@ if (typeof importScripts === "function") importScripts("image-fetcher.js");
     return { ...candidate, status, selected: false, dataBase64: "", errorCode, error };
   }
 
+  function comparableRequestUrl(value) {
+    const safe = imageFetcher?.safeImageUrl?.(value);
+    if (!safe) return "";
+    const url = new URL(safe);
+    url.hash = "";
+    return url.href;
+  }
+
+  function observeImageRedirects({ initialUrl, maximumRedirects, abort }) {
+    if (!chrome.webRequest?.onBeforeRequest || !chrome.webRequest?.onBeforeRedirect) return null;
+    const initialRequestUrl = comparableRequestUrl(initialUrl);
+    const extensionOrigin = chrome.runtime.getURL("").replace(/\/$/, "");
+    const state = { observed: false, redirectCount: 0, errorCode: "", error: "" };
+    let requestId = "";
+
+    function fail(code, message) {
+      if (state.errorCode) return;
+      state.errorCode = code;
+      state.error = message;
+      abort(code, message);
+    }
+
+    function onBeforeRequest(details) {
+      if (requestId || comparableRequestUrl(details.url) !== initialRequestUrl) return;
+      const initiator = String(details.initiator || "");
+      if (initiator && initiator !== "null" && initiator !== extensionOrigin && !initiator.startsWith(`${extensionOrigin}/`)) return;
+      requestId = details.requestId;
+      state.observed = true;
+    }
+
+    function onBeforeRedirect(details) {
+      if (!requestId || details.requestId !== requestId) return;
+      state.redirectCount += 1;
+      if (state.redirectCount > maximumRedirects) {
+        fail("TOO_MANY_REDIRECTS", "Too many redirects");
+        return;
+      }
+      if (!imageFetcher.safeImageUrl(details.redirectUrl)) fail("UNSAFE_REDIRECT", "Unsafe redirect target");
+    }
+
+    const filter = { urls: ["http://*/*", "https://*/*"], types: ["xmlhttprequest"] };
+    chrome.webRequest.onBeforeRequest.addListener(onBeforeRequest, filter);
+    chrome.webRequest.onBeforeRedirect.addListener(onBeforeRedirect, filter);
+    return {
+      getState: () => ({ ...state }),
+      cleanup() {
+        chrome.webRequest.onBeforeRequest.removeListener(onBeforeRequest);
+        chrome.webRequest.onBeforeRedirect.removeListener(onBeforeRedirect);
+      }
+    };
+  }
+
   async function hasOffscreenDocument() {
     if (chrome.runtime.getContexts) {
       const contexts = await chrome.runtime.getContexts({ contextTypes: ["OFFSCREEN_DOCUMENT"], documentUrls: [chrome.runtime.getURL("offscreen.html")] });
@@ -89,6 +141,8 @@ if (typeof importScripts === "function") importScripts("image-fetcher.js");
         totalLimit: Math.max(1, Number(message?.options?.totalLimit) || 20 * 1024 * 1024),
         timeoutMs: Math.max(1000, Number(message?.options?.timeoutMs) || 15000),
         concurrency: Math.min(3, Math.max(1, Number(message?.options?.concurrency) || 3)),
+        observeRedirects: dependencies.observeRedirects
+          || (typeof chrome !== "undefined" && chrome.webRequest ? observeImageRedirects : null),
         convertImage: dependencies.convertImage || convertImageOffscreen
       });
     } catch (error) {
@@ -114,7 +168,7 @@ if (typeof importScripts === "function") importScripts("image-fetcher.js");
     });
   }
 
-  const api = { fetchImagesForMessage, imageOriginPattern, terminalFailure };
+  const api = { comparableRequestUrl, fetchImagesForMessage, imageOriginPattern, observeImageRedirects, terminalFailure };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   root.MemoNexusClipImageService = api;
 })(globalThis);

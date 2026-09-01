@@ -1,6 +1,7 @@
 /*
- * Run with Playwright's bundled Chromium (not Chrome/Edge):
+ * Run with an installed Edge channel:
  *   $env:NODE_PATH = '<directory containing playwright/node_modules>'
+ *   $env:MEMO_NEXUS_E2E_CHANNEL = 'msedge'
  *   node web-clipper.e2e.js
  */
 const assert = require("node:assert/strict");
@@ -60,6 +61,7 @@ const animatedGif = Buffer.from("R0lGODlhZAAyAPAAAAD/AAAAACH5BAABAAAAIf8LTkVUU0N
 const avifImage = Buffer.from(fs.readFileSync(path.join(root, "extensions", "web-clipper", "test-fixtures", "colors-sdr-srgb.avif.b64"), "utf8").replace(/\s+/g, ""), "base64");
 const svgImage = Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" width="160" height="120"><script>fetch("http://127.0.0.1:5501/svg-script-called")</script><image href="http://127.0.0.1:5501/svg-external" width="10" height="10"/><rect width="160" height="120" fill="#d33"/><text x="12" y="65" fill="white">SVG</text></svg>');
 const generatedRaster = { jpeg: Buffer.alloc(0), webp: Buffer.alloc(0) };
+const browserChannel = String(process.env.MEMO_NEXUS_E2E_CHANNEL || "").trim();
 let unsafeSvgRequests = 0;
 let developmentManifestRequests = 0;
 let developmentManifestUnavailable = false;
@@ -129,6 +131,14 @@ function cdnServer() {
       response.writeHead(302, { location: "/cdn-image.jpg?resolved=1" });
       return response.end();
     }
+    if (url.pathname === "/redirect-chain/2") {
+      response.writeHead(302, { location: "/redirect-chain/1" });
+      return response.end();
+    }
+    if (url.pathname === "/redirect-chain/1") {
+      response.writeHead(302, { location: "/cdn-image.png?chain=complete" });
+      return response.end();
+    }
     if (url.pathname === "/cdn-image.jpg") {
       response.writeHead(200, { "content-type": "image/jpeg", "content-length": generatedRaster.jpeg.length });
       return response.end(generatedRaster.jpeg);
@@ -175,7 +185,7 @@ async function openPopup(context, worker, extensionId) {
   const popup = await popupPromise;
   try {
     await popup.locator("#send:not([disabled])").waitFor({ timeout: 5000 });
-    assert.equal(await popup.locator("#extensionVersion").textContent(), "0.3.6");
+    assert.equal(await popup.locator("#extensionVersion").textContent(), "0.3.7");
   } catch (cause) {
     throw new Error(`popup did not become ready: status=${await popup.locator("#selectionStatus").textContent()} error=${await popup.locator("#error").textContent()} (${cause.message})`);
   }
@@ -222,8 +232,9 @@ async function main() {
   try {
     const extension = path.join(root, "extensions", "web-clipper");
     context = await chromium.launchPersistentContext(profile, {
-      // Chromium's extension Service Worker is not started in its headless
-      // shell, so use the bundled full Chromium in a persistent context.
+      ...(browserChannel ? { channel: browserChannel } : {}),
+      // Chromium extension Service Workers are not started in the headless
+      // shell, so use a full visible browser in a persistent context.
       headless: false,
       args: [
         `--disable-extensions-except=${extension}`,
@@ -234,7 +245,7 @@ async function main() {
     let worker = await waitForWorker(context);
     const extensionId = new URL(worker.url()).host;
     assert.match(extensionId, /^[a-p]{32}$/, "extension ID must come from its actual Service Worker URL");
-    console.log(`Playwright bundled Chromium: ${chromium.executablePath()}`);
+    console.log(browserChannel ? `Playwright browser channel: ${browserChannel}` : `Playwright bundled Chromium: ${chromium.executablePath()}`);
     console.log(`Loaded extension Service Worker ID: ${extensionId}`);
 
     const fixturePage = await context.newPage();
@@ -309,9 +320,14 @@ async function main() {
     const failedOpenPopup = await openPopup(context, worker, extensionId);
     await failedOpenPopup.selectOption("#clipMode", "page");
     const transferKeysBeforeOpenFailure = await transferKeys(worker);
-    await failedOpenPopup.evaluate(() => { window.open = () => null; });
+    const openStubbed = await failedOpenPopup.evaluate(() => {
+      Object.defineProperty(window, "open", { configurable: true, value: () => null });
+      return window.open("about:blank") === null;
+    });
+    assert.equal(openStubbed, true, "window.open failure could not be simulated");
     await failedOpenPopup.locator("#send").click();
-    await failedOpenPopup.locator("#error").filter({ hasText: "クリップを開始できませんでした" }).waitFor({ timeout: 30000 });
+    await failedOpenPopup.locator("#error:not(:empty)").waitFor({ timeout: 30000 });
+    assert.ok((await failedOpenPopup.locator("#error").textContent()).trim(), "window.open failure did not show an error");
     assert.deepEqual(await transferKeys(worker), transferKeysBeforeOpenFailure, "window.open failure left its transfer entry");
     await failedOpenPopup.close();
 
@@ -335,9 +351,23 @@ async function main() {
     const restartResponse = await restartPage.evaluate((url) => new Promise((resolve) => chrome.runtime.sendMessage({
       type: "memo-nexus-fetch-clip-image", requestId: crypto.randomUUID(),
       candidate: { token: "web-clip-image-1", url }, options: { timeoutMs: 3000 }
-    }, (response) => resolve({ response, error: chrome.runtime.lastError?.message || "" }))), `${appUrl}local-image.jpg`);
+    }, (response) => resolve({ response, error: chrome.runtime.lastError?.message || "" }))), `${fixtureAssetUrl}local-image.jpg`);
     assert.equal(restartResponse.error, "", `Service Worker restart message failed: ${restartResponse.error}`);
     assert.equal(restartResponse.response?.images?.[0]?.status, "ready", "Service Worker did not fetch after restart");
+    for (const [label, imageUrl] of [
+      ["direct image", `${cdnBaseUrl}cdn-image.png?direct=1`],
+      ["single redirect image", `${cdnBaseUrl}redirect-image?asset=single`],
+      ["multiple redirect image", `${cdnBaseUrl}redirect-chain/2`]
+    ]) {
+      const result = await restartPage.evaluate(({ url, name }) => new Promise((resolve) => chrome.runtime.sendMessage({
+        type: "memo-nexus-fetch-clip-image",
+        requestId: crypto.randomUUID(),
+        candidate: { token: `web-clip-image-${name.length}`, url },
+        options: { timeoutMs: 3000 }
+      }, resolve)), { url: imageUrl, name: label });
+      const fetchedImage = result?.images?.[0];
+      assert.equal(fetchedImage?.status, "ready", `${label} was not fetched by the MV3 Service Worker: ${JSON.stringify({ status: fetchedImage?.status, errorCode: fetchedImage?.errorCode, error: fetchedImage?.error })}`);
+    }
     worker = restartPage;
     await source.bringToFront();
     assert.equal(new URL(worker.url()).host, extensionId, "extension ID changed after Service Worker restart");
@@ -384,10 +414,15 @@ async function main() {
     await receiver.evaluate(() => window.__memoNexusOriginalPostMessage({ type: "memo-nexus-web-clip-transfer-ack", transferId: window.__memoNexusTransferId }, location.origin));
     await receiver.waitForTimeout(250);
     assert.equal(await storage(worker, transferKey), undefined, "storage.local entry remains after ACK");
+    const initialSaveState = await receiver.evaluate(() => ({
+      disabled: document.getElementById("saveWebClipBtn").disabled,
+      formValid: document.getElementById("webClipForm").checkValidity(),
+      validationMessage: [...document.getElementById("webClipForm").elements].find((element) => !element.checkValidity?.())?.validationMessage || ""
+    }));
+    assert.deepEqual(initialSaveState, { disabled: false, formValid: true, validationMessage: "" }, "initial Web Clip save was not available");
     await receiver.locator("#saveWebClipBtn").click();
-    await receiver.locator("#webClipDialog").waitFor({ state: "hidden" });
-    await receiver.locator("#attachmentCount").waitFor({ state: "visible" });
-    assert.equal(await receiver.locator("#attachmentCount").textContent(), "6件");
+    await receiver.waitForFunction(() => !document.getElementById("webClipDialog").open);
+    assert.equal(await receiver.evaluate(() => document.getElementById("attachmentCount")?.textContent || ""), "6件");
     const savedBody = await receiver.locator("#editor").inputValue();
     assert.match(savedBody, /attachment:\/\//);
     assert.match(savedBody, /画像を保存できませんでした: 取得失敗画像/);
@@ -405,7 +440,7 @@ async function main() {
       manifestVersion: savedClipSource?.manifestVersion,
       targetEnvironment: savedClipSource?.targetEnvironment,
       distributionChannel: savedClipSource?.distributionChannel
-    }, { extensionVersion: "0.3.6", manifestVersion: 3, targetEnvironment: "development", distributionChannel: "unpacked-development" });
+    }, { extensionVersion: "0.3.7", manifestVersion: 3, targetEnvironment: "development", distributionChannel: "unpacked-development" });
     const storedAttachments = await receiver.evaluate(() => new Promise((resolve, reject) => {
       const request = indexedDB.open("memo-nexus");
       request.onerror = () => reject(request.error);
@@ -426,7 +461,6 @@ async function main() {
     assert(gifAttachment.bytes.filter((byte) => byte === 0x2c).length >= 2, "GIF fixture does not contain multiple frames");
     const convertedSources = storedAttachments.filter((attachment) => attachment.source?.converted).map((attachment) => attachment.source?.sourceMimeType).sort();
     assert.deepEqual(convertedSources, ["image/avif", "image/svg+xml"]);
-    await receiver.reload();
     await receiver.locator(".image-block img").first().waitFor({ state: "visible" });
     assert.equal(await receiver.locator(".image-block img").count(), 6);
     assert.equal(await receiver.locator("#attachmentCount").textContent(), "6件");
@@ -496,26 +530,79 @@ async function main() {
     await newSaveReceiver.goto(`${appUrl}#clip-transfer=${newSaveId}`);
     await newSaveReceiver.locator("#webClipDialog[open]").waitFor();
     await newSaveReceiver.locator('input[name="webClipSaveMode"][value="new"]').check();
-    await newSaveReceiver.locator("#saveWebClipBtn").click();
-    await newSaveReceiver.locator("#webClipDialog").waitFor({ state: "hidden" });
+    assert.equal(await newSaveReceiver.locator('input[name="webClipSaveMode"][value="new"]').isChecked(), true, "new save mode was not selected");
+    const newSaveStarted = await newSaveReceiver.evaluate(() => {
+      document.getElementById("saveWebClipBtn").click();
+      return document.getElementById("saveWebClipBtn").disabled;
+    });
+    assert.equal(newSaveStarted, true, "new reclip save did not start");
+    await newSaveReceiver.waitForFunction(() => !document.getElementById("webClipDialog").open);
+    await newSaveReceiver.waitForFunction(() => new Promise((resolve) => {
+      const request = indexedDB.open("memo-nexus");
+      request.onerror = () => resolve(false);
+      request.onsuccess = () => {
+        const all = request.result.transaction("notes").objectStore("notes").getAll();
+        all.onerror = () => resolve(false);
+        all.onsuccess = () => resolve(all.result.some((note) => note.title === "再クリップ新規保存"));
+      };
+    }), null, { timeout: 5000 });
     const newSaveResult = await newSaveReceiver.evaluate((existingId) => new Promise((resolve, reject) => {
       const request = indexedDB.open("memo-nexus"); request.onerror = () => reject(request.error);
-      request.onsuccess = () => { const all = request.result.transaction("notes").objectStore("notes").getAll(); all.onsuccess = () => resolve(all.result.filter((note) => note.source?.url === "http://127.0.0.1:5500/e2e-source.html" || note.id === existingId)); };
+      request.onsuccess = () => { const all = request.result.transaction("notes").objectStore("notes").getAll(); all.onsuccess = () => resolve(all.result.filter((note) => note.id === existingId || note.title === "再クリップ新規保存")); };
     }), originalClip.id);
     assert.equal(newSaveResult.length, 2, "new reclip save did not create a separate note");
     assert.equal(newSaveResult.find((note) => note.id === originalClip.id).title, "再クリップ更新", "new reclip save changed the existing note");
     await newSaveReceiver.close();
 
     const retryId = crypto.randomUUID();
-    await setStorage(worker, `memoNexusTransfer:${retryId}`, { createdAt: Date.now(), clip: { title: "再試行確認", url: `${articleUrl}?retry=1`, host: "127.0.0.1", clipMode: "page", capturedAt: new Date().toISOString(), selection: "<!-- memo-nexus:web-clip-image:web-clip-image-1 -->", images: [{ token: "web-clip-image-1", url: `${appUrl}local-image.png`, alt: "再試行画像", caption: "", status: "failed", errorCode: "NETWORK_ERROR", error: "一時失敗", selected: false }] } });
+    await setStorage(worker, `memoNexusTransfer:${retryId}`, { createdAt: Date.now(), clip: {
+      title: "再試行確認", url: `${articleUrl}?retry=1`, host: "127.0.0.1", clipMode: "page", capturedAt: new Date().toISOString(), selection: "<!-- memo-nexus:web-clip-image:web-clip-image-1 -->", extensionVersion: "0.3.7", manifestVersion: 3,
+      clipResult: {
+        status: "partial",
+        notice: "本文は取得できましたが、一部の画像を取得できませんでした。",
+        issues: [{ stage: "image_fetch", code: "image_fetch_partial", userMessage: "本文は取得できましたが、一部の画像を取得できませんでした。", developerMessage: "1/1 image fetches failed", httpStatus: null, timedOut: false, retryable: false, partialSaveAvailable: true }],
+        diagnostic: { occurredAt: new Date().toISOString(), stage: "image_fetch", code: "image_fetch_partial", articleFound: true, metadataFound: true, imageSuccessCount: 0, imageFailureCount: 1, fallbackUsed: false, fallbackKind: "", finalResult: "partial", sourceUrl: `${articleUrl}?secret=removed` }
+      },
+      images: [{ token: "web-clip-image-1", url: `${cdnBaseUrl}cdn-image.png?retry=1`, alt: "再試行画像", caption: "", status: "failed", errorCode: "NETWORK_ERROR", error: "一時失敗", selected: false }]
+    } });
     const retryReceiver = await context.newPage();
     await retryReceiver.goto(`${appUrl}#clip-transfer=${retryId}`);
     await retryReceiver.locator("#webClipDialog[open]").waitFor();
-    await retryReceiver.locator("#retryFailedWebClipImagesBtn").click();
-    await retryReceiver.locator('.web-clip-image-card.status-ready input[type="checkbox"]:checked').waitFor({ state: "visible", timeout: 10000 });
+    const retryInitialOutcome = await retryReceiver.locator("#webClipReceivedStatus").getAttribute("data-outcome");
+    assert.equal(retryInitialOutcome, "partial", `retry fixture did not open as partial: ${JSON.stringify({ outcome: retryInitialOutcome, notice: await retryReceiver.locator("#webClipReceivedStatus").textContent(), error: await retryReceiver.locator("#webClipError").textContent() })}`);
+    const retryLocks = await retryReceiver.evaluate(() => {
+      document.getElementById("retryFailedWebClipImagesBtn").click();
+      return {
+        saveDisabled: document.getElementById("saveWebClipBtn").disabled,
+        textOnlyDisabled: document.getElementById("saveWebClipTextOnlyBtn").disabled
+      };
+    });
+    assert.equal(retryLocks.saveDisabled, true, "save remained enabled during image retry");
+    assert.equal(retryLocks.textOnlyDisabled, true, "text-only save remained enabled during image retry");
+    await retryReceiver.waitForFunction(() => !document.querySelector(".web-clip-image-card.status-pending"), null, { timeout: 25000 });
+    const retryImageState = await retryReceiver.evaluate(() => ({
+      readySelected: Boolean(document.querySelector('.web-clip-image-card.status-ready input[type="checkbox"]:checked')),
+      card: document.querySelector(".web-clip-image-card")?.textContent || "",
+      error: document.getElementById("webClipError").textContent,
+      notice: document.getElementById("webClipReceivedStatus").textContent
+    }));
+    assert.equal(retryImageState.readySelected, true, `retried image was not ready: ${JSON.stringify(retryImageState)}`);
+    assert.equal(await retryReceiver.locator("#webClipReceivedStatus").getAttribute("data-outcome"), "success");
+    assert.match(await retryReceiver.locator("#webClipReceivedStatus").textContent(), /本文と画像1件を取得しました/);
+    assert.equal(await retryReceiver.locator("#saveWebClipBtn").isEnabled(), true, "save was not restored after image retry");
     await retryReceiver.locator("#saveWebClipBtn").click();
     await retryReceiver.locator("#webClipDialog").waitFor({ state: "hidden" });
     assert.equal(await retryReceiver.locator("#attachmentCount").textContent(), "1件", "retried image was not saved as an attachment");
+    assert.match(await retryReceiver.locator("#saveStatus").textContent(), /Webクリップを保存しました/);
+    const retriedClipResult = await retryReceiver.evaluate((url) => new Promise((resolve, reject) => {
+      const request = indexedDB.open("memo-nexus"); request.onerror = () => reject(request.error);
+      request.onsuccess = () => { const all = request.result.transaction("notes").objectStore("notes").getAll(); all.onsuccess = () => resolve(all.result.find((note) => note.source?.url === url)?.source?.clipResult || null); };
+    }), `${articleUrl}?retry=1`);
+    assert.equal(retriedClipResult?.status, "success");
+    assert.equal(retriedClipResult?.diagnostic?.imageSuccessCount, 1);
+    assert.equal(retriedClipResult?.diagnostic?.imageFailureCount, 0);
+    assert.equal(retriedClipResult?.diagnostic?.finalResult, "success");
+    assert.equal(retriedClipResult?.issues?.some((issue) => issue.code === "image_fetch_partial"), false);
     await retryReceiver.close();
     if (!popup.isClosed()) await popup.close(); await receiver.close();
 
@@ -542,7 +629,8 @@ async function main() {
     await failedSave.goto(`${appUrl}#clip-transfer=${invalidImageId}`);
     await failedSave.locator("#webClipDialog[open]").waitFor();
     await failedSave.locator("#saveWebClipBtn").click();
-    await failedSave.locator("#webClipError").filter({ hasText: "保存に失敗しました" }).waitFor();
+    await failedSave.locator("#webClipError:not(:empty)").waitFor();
+    assert.match(await failedSave.locator("#webClipError").textContent(), /画像.*保存できません/);
     assert(await failedSave.locator("#webClipDialog").getAttribute("open") !== null, "dialog closed after selected image save failed");
     assert.equal(await failedSave.locator(".web-clip-image-card.has-save-error").count(), 1);
     assert(await failedSave.locator("#saveWebClipBtn").isEnabled(), "retry button was not re-enabled");
@@ -567,7 +655,7 @@ async function main() {
     assert(await storage(worker, otherTransferKey), "timeout cleanup removed another active transfer");
     await worker.evaluate(async (key) => chrome.storage.local.remove(key), otherTransferKey);
     await noAck.screenshot({ path: path.join(artifacts, "web-clipper-timeout.png"), fullPage: true });
-    console.log("PASS: actual MV3 extension, Service Worker restart, JPEG/PNG/WebP/GIF/SVG/AVIF, IndexedDB, reload, failure, ACK lifecycle, and long article");
+    console.log("PASS: actual MV3 extension, direct/single/multiple redirect images, retry diagnostics, save locking, JPEG/PNG/WebP/GIF/SVG/AVIF, IndexedDB, reload, failure, ACK lifecycle, and long article");
   } finally {
     if (context) await context.close();
     await new Promise((resolve) => httpServer.close(resolve));

@@ -137,12 +137,59 @@
     return { content: "", fallbackKind: "metadata_only", fallbackUsed: true };
   }
 
+  function rebuildClipResultForImages(value = {}, images = []) {
+    const input = value && typeof value === "object" ? value : {};
+    const diagnostic = input.diagnostic && typeof input.diagnostic === "object" ? input.diagnostic : {};
+    const originalIssues = (Array.isArray(input.issues) ? input.issues : []).map(createIssue);
+    const hadImageIssue = originalIssues.some((issue) => issue.code === "image_fetch_partial");
+    const issues = originalIssues.filter((issue) => issue.code !== "image_fetch_partial");
+    const sourceImages = Array.isArray(images) ? images : [];
+    const imageSuccessCount = sourceImages.filter((image) => image?.status === "ready").length;
+    const imageFailureCount = sourceImages.length - imageSuccessCount;
+    if (imageFailureCount) {
+      issues.push(createIssue({
+        stage: STAGES.IMAGE_FETCH,
+        code: "image_fetch_partial",
+        developerMessage: `${imageFailureCount}/${sourceImages.length} image fetches failed`
+      }));
+    }
+
+    const fatal = issues.find((issue) => !issue.partialSaveAvailable);
+    const preserveNonImageFailure = input.status === "failure" && !hadImageIssue;
+    let status = fatal || preserveNonImageFailure
+      ? "failure"
+      : issues.length || diagnostic.fallbackUsed ? "partial" : "success";
+    if (!OUTCOMES.includes(status)) status = "failure";
+    const primaryIssue = issues[0] || null;
+    const notice = status === "success"
+      ? imageSuccessCount ? `本文と画像${imageSuccessCount}件を取得しました。内容を確認して保存してください。` : "クリップ内容を取得しました。内容を確認して保存してください。"
+      : primaryIssue?.userMessage || clean(input.notice, 500) || MESSAGE.unknown;
+
+    return {
+      status,
+      notice,
+      issues,
+      diagnostic: {
+        ...diagnostic,
+        occurredAt: Number.isFinite(Date.parse(diagnostic.occurredAt)) ? new Date(diagnostic.occurredAt).toISOString() : new Date().toISOString(),
+        stage: primaryIssue?.stage || STAGES.MEMO_CONVERSION,
+        code: primaryIssue?.code || "",
+        httpStatus: primaryIssue?.httpStatus || null,
+        timedOut: Boolean(primaryIssue?.timedOut),
+        imageSuccessCount,
+        imageFailureCount,
+        fallbackUsed: Boolean(diagnostic.fallbackUsed),
+        fallbackKind: clean(diagnostic.fallbackKind, 60),
+        finalResult: status,
+        sourceUrl: sanitizeDiagnosticUrl(diagnostic.sourceUrl)
+      }
+    };
+  }
+
   function buildClipResult(options = {}) {
     const clipMode = ["selection", "page", "link", "memo"].includes(options.clipMode) ? options.clipMode : "selection";
     const metadata = normalizeMetadata(options.metadata);
     const images = Array.isArray(options.images) ? options.images : [];
-    const imageSuccessCount = images.filter((image) => image?.status === "ready").length;
-    const imageFailureCount = images.length - imageSuccessCount;
     const contentChoice = chooseContent({ ...options, clipMode, metadata });
     const suppliedIssues = (Array.isArray(options.issues) ? options.issues : options.issue ? [options.issue] : []).map(createIssue);
     const issues = suppliedIssues.slice();
@@ -153,42 +200,43 @@
         developerMessage: `Fallback used: ${contentChoice.fallbackKind}`
       }));
     }
-    if (imageFailureCount && !issues.some((item) => item.code === "image_fetch_partial")) {
-      issues.push(createIssue({ stage: STAGES.IMAGE_FETCH, code: "image_fetch_partial", developerMessage: `${imageFailureCount}/${images.length} image fetches failed` }));
+    const selectionMissing = clipMode === "selection" && !contentChoice.content;
+    if (selectionMissing && !issues.some((item) => !item.partialSaveAvailable)) {
+      issues.push(createIssue({
+        stage: STAGES.MEMO_CONVERSION,
+        code: "empty_response",
+        developerMessage: "Selection clip has no selected content",
+        partialSaveAvailable: false
+      }));
     }
     const fatal = issues.find((item) => !item.partialSaveAvailable);
-    const selectionMissing = clipMode === "selection" && !contentChoice.content;
     let status = fatal || selectionMissing ? "failure" : issues.length || contentChoice.fallbackUsed ? "partial" : "success";
     if (!OUTCOMES.includes(status)) status = "failure";
     const primaryIssue = issues[0] || null;
     const metadataFound = Boolean(metadata.title || metadata.description || metadata.siteName || metadata.articleBody);
     const articleFound = Boolean(String(options.extractedMarkdown || "").trim() || metadata.articleBody);
-    const notice = status === "success"
-      ? imageSuccessCount ? `本文と画像${imageSuccessCount}件を取得しました。内容を確認して保存してください。` : "クリップ内容を取得しました。内容を確認して保存してください。"
-      : primaryIssue?.userMessage || MESSAGE.unknown;
+    const result = rebuildClipResultForImages({
+      status,
+      notice: primaryIssue?.userMessage || MESSAGE.unknown,
+      issues,
+      diagnostic: {
+        occurredAt: Number.isFinite(Date.parse(options.occurredAt)) ? new Date(options.occurredAt).toISOString() : new Date().toISOString(),
+        stage: primaryIssue?.stage || STAGES.MEMO_CONVERSION,
+        code: primaryIssue?.code || "",
+        httpStatus: primaryIssue?.httpStatus || null,
+        timedOut: Boolean(primaryIssue?.timedOut),
+        articleFound,
+        metadataFound,
+        fallbackUsed: contentChoice.fallbackUsed,
+        fallbackKind: contentChoice.fallbackKind,
+        finalResult: status,
+        sourceUrl: sanitizeDiagnosticUrl(options.url)
+      }
+    }, images);
     return {
       content: contentChoice.content,
       metadata: { ...metadata, articleBody: "" },
-      result: {
-        status,
-        notice,
-        issues,
-        diagnostic: {
-          occurredAt: Number.isFinite(Date.parse(options.occurredAt)) ? new Date(options.occurredAt).toISOString() : new Date().toISOString(),
-          stage: primaryIssue?.stage || STAGES.MEMO_CONVERSION,
-          code: primaryIssue?.code || "",
-          httpStatus: primaryIssue?.httpStatus || null,
-          timedOut: Boolean(primaryIssue?.timedOut),
-          articleFound,
-          metadataFound,
-          imageSuccessCount,
-          imageFailureCount,
-          fallbackUsed: contentChoice.fallbackUsed,
-          fallbackKind: contentChoice.fallbackKind,
-          finalResult: status,
-          sourceUrl: sanitizeDiagnosticUrl(options.url)
-        }
-      }
+      result
     };
   }
 
@@ -203,6 +251,7 @@
     issueError,
     issueFromError,
     normalizeMetadata,
+    rebuildClipResultForImages,
     sanitizeDiagnosticUrl,
     validatePageUrl
   };

@@ -31,23 +31,59 @@
     } catch (_) { return ""; }
   }
 
-  async function fetchWithSafeRedirects(url, fetchImpl, requestOptions, maximumRedirects = 5) {
-    let current = safeImageUrl(url);
-    if (!current) throw Object.assign(new Error("Blocked image URL"), { code: "UNSAFE_URL" });
-    for (let redirects = 0; redirects <= maximumRedirects; redirects += 1) {
-      const response = await fetchImpl(current, { ...requestOptions, redirect: "manual" });
-      if (response.status >= 300 && response.status < 400) {
-        const location = response.headers.get("location");
-        if (!location) throw Object.assign(new Error("Redirect target is unavailable"), { code: "REDIRECT_BLOCKED" });
-        if (redirects === maximumRedirects) throw Object.assign(new Error("Too many redirects"), { code: "TOO_MANY_REDIRECTS" });
-        current = safeImageUrl(new URL(location, current).href);
-        if (!current) throw Object.assign(new Error("Unsafe redirect target"), { code: "UNSAFE_REDIRECT" });
-        continue;
+  function imageFetchError(code, message) {
+    return Object.assign(new Error(message), { code });
+  }
+
+  async function fetchWithSafeRedirects(url, fetchImpl, requestOptions, maximumRedirects = 5, observeRedirects = null) {
+    const initialUrl = safeImageUrl(url);
+    if (!initialUrl) throw imageFetchError("UNSAFE_URL", "Blocked image URL");
+
+    const externalSignal = requestOptions?.signal;
+    const controller = new AbortController();
+    let redirectViolation = null;
+    const forwardAbort = () => controller.abort();
+    if (externalSignal?.aborted) controller.abort();
+    else externalSignal?.addEventListener?.("abort", forwardAbort, { once: true });
+
+    let observation = null;
+    try {
+      if (typeof observeRedirects === "function") {
+        observation = observeRedirects({
+          initialUrl,
+          maximumRedirects,
+          abort(code, message) {
+            if (!redirectViolation) redirectViolation = imageFetchError(code, message);
+            controller.abort();
+          }
+        }) || null;
       }
-      if (response.url && !safeImageUrl(response.url)) throw Object.assign(new Error("Unsafe final response URL"), { code: "UNSAFE_REDIRECT" });
+
+      const response = await fetchImpl(initialUrl, {
+        ...requestOptions,
+        signal: controller.signal,
+        redirect: "follow"
+      });
+      if (redirectViolation) throw redirectViolation;
+
+      const redirectState = observation?.getState?.() || {};
+      if (redirectState.errorCode) throw imageFetchError(redirectState.errorCode, redirectState.error || "Redirect validation failed");
+      if (Number(redirectState.redirectCount) > maximumRedirects) throw imageFetchError("TOO_MANY_REDIRECTS", "Too many redirects");
+
+      const responseUrl = String(response.url || "");
+      const finalUrl = safeImageUrl(responseUrl || initialUrl);
+      if (!finalUrl) throw imageFetchError("UNSAFE_REDIRECT", "Unsafe final response URL");
+      if (response.redirected && (!observation || redirectState.observed !== true)) {
+        throw imageFetchError("REDIRECT_UNVERIFIED", "Redirect chain could not be verified");
+      }
       return response;
+    } catch (error) {
+      if (redirectViolation) throw redirectViolation;
+      throw error;
+    } finally {
+      externalSignal?.removeEventListener?.("abort", forwardAbort);
+      observation?.cleanup?.();
     }
-    throw Object.assign(new Error("Too many redirects"), { code: "TOO_MANY_REDIRECTS" });
   }
 
   async function responseBytes(response, limit) {
@@ -177,7 +213,7 @@
           signal: controller.signal,
           cache: "no-store",
           referrerPolicy: "no-referrer"
-        }, 5);
+        }, 5, options.observeRedirects);
         if (!response.ok) {
           const code = [401, 403].includes(response.status) ? "AUTH_REQUIRED"
             : [404, 410].includes(response.status) ? "URL_EXPIRED"
@@ -250,7 +286,7 @@
       } catch (error) {
         const timedOut = error?.name === "AbortError";
         if (error?.code === "TOO_LARGE") return failed(candidate, "too-large", "TOO_LARGE", "1画像5MBの上限を超えています", { size: Number(error.size) || 0 });
-        if (["UNSAFE_URL", "UNSAFE_REDIRECT", "REDIRECT_BLOCKED", "TOO_MANY_REDIRECTS"].includes(error?.code)) {
+        if (["UNSAFE_URL", "UNSAFE_REDIRECT", "REDIRECT_UNVERIFIED", "TOO_MANY_REDIRECTS"].includes(error?.code)) {
           return failed(candidate, "failed", error.code, "安全性を確認できない画像URLまたはリダイレクトを拒否しました");
         }
         return failed(candidate, timedOut ? "timeout" : "failed", timedOut ? "TIMEOUT" : "NETWORK_ERROR", timedOut ? "画像取得がタイムアウトしました" : "画像本体を取得できませんでした");

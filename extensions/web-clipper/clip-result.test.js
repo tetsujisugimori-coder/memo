@@ -6,6 +6,7 @@ const {
   buildClipResult,
   classifyHttpStatus,
   createIssue,
+  rebuildClipResultForImages,
   sanitizeDiagnosticUrl,
   validatePageUrl
 } = require("./clip-result.js");
@@ -82,7 +83,56 @@ test("ページ取得失敗でも選択文を保持し、画像一部失敗を�
 });
 
 test("選択方式だけは選択文なしで暗黙のリンク保存へ切り替えない", () => {
-  const result = buildClipResult({ clipMode: "selection", sourceSelection: "" });
+  const result = buildClipResult({ clipMode: "selection", sourceSelection: "", images: [{ status: "failed" }] });
+  const retried = rebuildClipResultForImages(result.result, [{ status: "ready" }]);
   assert.equal(result.result.status, "failure");
+  assert.equal(retried.status, "failure");
   assert.equal(result.content, "");
+});
+
+test("画像再試行が全件成功すると画像issueを除去してsuccessへ戻す", () => {
+  const initial = buildClipResult({
+    clipMode: "page",
+    extractedMarkdown: "本文",
+    images: [{ status: "ready" }, { status: "failed" }]
+  }).result;
+  const retried = rebuildClipResultForImages(initial, [{ status: "ready" }, { status: "ready" }]);
+  assert.equal(initial.status, "partial");
+  assert.equal(retried.status, "success");
+  assert.equal(retried.diagnostic.imageSuccessCount, 2);
+  assert.equal(retried.diagnostic.imageFailureCount, 0);
+  assert.equal(retried.diagnostic.finalResult, "success");
+  assert.equal(retried.diagnostic.stage, STAGES.MEMO_CONVERSION);
+  assert.equal(retried.diagnostic.code, "");
+  assert.equal(retried.issues.some((issue) => issue.code === "image_fetch_partial"), false);
+});
+
+test("再試行後も一部失敗なら最新件数でpartialを維持し画像issueを重複させない", () => {
+  const initial = buildClipResult({
+    clipMode: "page",
+    extractedMarkdown: "本文",
+    images: [{ status: "failed" }, { status: "failed" }]
+  }).result;
+  const retried = rebuildClipResultForImages(initial, [{ status: "ready" }, { status: "timeout" }]);
+  assert.equal(retried.status, "partial");
+  assert.equal(retried.diagnostic.imageSuccessCount, 1);
+  assert.equal(retried.diagnostic.imageFailureCount, 1);
+  assert.equal(retried.diagnostic.finalResult, "partial");
+  assert.equal(retried.issues.filter((issue) => issue.code === "image_fetch_partial").length, 1);
+  assert.match(retried.issues.find((issue) => issue.code === "image_fetch_partial").developerMessage, /^1\/2 /);
+});
+
+test("本文抽出フォールバックが残る場合は画像全件成功後もpartialを維持する", () => {
+  const initial = buildClipResult({
+    clipMode: "page",
+    metadata: { description: "説明" },
+    images: [{ status: "failed" }]
+  }).result;
+  const retried = rebuildClipResultForImages(initial, [{ status: "ready" }]);
+  assert.equal(retried.status, "partial");
+  assert.equal(retried.diagnostic.fallbackUsed, true);
+  assert.equal(retried.diagnostic.fallbackKind, "description");
+  assert.equal(retried.diagnostic.imageFailureCount, 0);
+  assert.equal(retried.issues.some((issue) => issue.code === "image_fetch_partial"), false);
+  assert.equal(retried.diagnostic.code, "metadata_only");
 });
