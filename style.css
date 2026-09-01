@@ -223,6 +223,7 @@ body.popout-window .workspace {
 
 body.popout-window .app-header,
 body.popout-window .preview-card,
+body.popout-window .layout-separator,
 body.popout-window .popout-memo-button,
 body.popout-window .note-export-button,
 body.popout-window .editor-tools > #aiSummarizeNoteBtn,
@@ -980,10 +981,64 @@ body.collections-open .collection-explorer {
   height: 100vh;
   height: 100dvh;
   display: grid;
-  grid-template-columns: minmax(320px, 1fr) minmax(280px, 0.8fr);
+  grid-template-columns: var(--editor-column-width, minmax(320px, 1fr)) 16px minmax(280px, 0.8fr);
   grid-template-rows: auto auto minmax(0, 1fr);
-  gap: 16px;
+  row-gap: 16px;
+  column-gap: 0;
   padding: 16px;
+}
+
+.layout-separator {
+  display: none;
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  cursor: col-resize;
+  touch-action: none;
+}
+
+.layout-separator::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 1px;
+  background: var(--line);
+  transform: translateX(-50%);
+  transition: width 120ms ease, background-color 120ms ease, box-shadow 120ms ease;
+}
+
+.layout-separator:hover::before,
+.layout-separator:focus-visible::before,
+.layout-separator.is-dragging::before {
+  width: 3px;
+  background: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.workspace-separator {
+  grid-column: 2;
+  grid-row: 3;
+  width: 10px;
+  justify-self: center;
+}
+
+body[data-layout-mode="wide"] .workspace-separator {
+  display: block;
+}
+
+body.layout-resizing {
+  cursor: col-resize;
+  user-select: none;
+}
+
+body.layout-resizing iframe {
+  pointer-events: none;
 }
 
 .ai-backdrop {
@@ -5220,7 +5275,7 @@ body.related-open .related-toggle {
 
 /* 右側コンテキストパネル：コレクション、AI、メモ一覧を同じ領域で切り替える。 */
 body {
-  grid-template-columns: minmax(0, 1fr) 340px;
+  grid-template-columns: minmax(0, 1fr) var(--context-panel-width, 340px);
 }
 
 body.context-panel-closed {
@@ -5229,6 +5284,20 @@ body.context-panel-closed {
 
 .workspace {
   grid-column: 1;
+}
+
+.context-panel-separator {
+  grid-column: 2;
+  grid-row: 1;
+  width: 10px;
+  justify-self: start;
+  align-self: stretch;
+  transform: translateX(-50%);
+  z-index: calc(var(--z-context-panel) + 1);
+}
+
+body[data-layout-mode="wide"]:not(.context-panel-closed) > .context-panel-separator {
+  display: block;
 }
 
 .context-panel {
@@ -5245,6 +5314,10 @@ body.context-panel-closed {
   color: var(--ink);
   z-index: var(--z-context-panel);
   overflow: hidden;
+}
+
+body[data-layout-mode="wide"] > .context-panel {
+  border-left: 0;
 }
 
 .context-panel.context-panel-closed {

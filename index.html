@@ -7,7 +7,7 @@
   <script>try { document.documentElement.dataset.initialTheme = localStorage.getItem("memo-nexus-theme") === "dark" ? "dark" : "light"; } catch (_) { document.documentElement.dataset.initialTheme = "light"; }</script>
   <style>html,body{background:#f6f7f4;color:#222522;color-scheme:light}html[data-initial-theme="dark"],html[data-initial-theme="dark"] body{background:#111513;color:#e7ece7;color-scheme:dark}</style>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css">
-  <link rel="stylesheet" href="style.css?v=0.5.0-68">
+  <link rel="stylesheet" href="style.css?v=0.5.0-70">
 </head>
 <body class="app-starting">
   <section id="appStartupGuard" class="app-startup-guard" role="status" aria-live="polite" aria-busy="true">
@@ -270,6 +270,7 @@
         <span id="saveStatus" class="sr-only" role="status" aria-live="polite">保存済み</span>
       </div>
     </section>
+    <div id="editorCardSeparator" class="layout-separator workspace-separator" role="separator" aria-orientation="vertical" aria-label="本文編集欄とカード表示の幅を変更" aria-controls="editor previewCard" aria-valuemin="320" aria-valuenow="320" tabindex="0"></div>
     <section id="popoutUnavailable" class="popout-unavailable" hidden>
       <h1>このメモは削除されたか、現在利用できません</h1>
       <button id="popoutUnavailableBackBtn" type="button">Memo Nexus本体へ戻る</button>
@@ -299,6 +300,7 @@
     </section>
   </main>
 
+  <div id="contextPanelSeparator" class="layout-separator context-panel-separator" role="separator" aria-orientation="vertical" aria-label="中央ワークスペースと右側コンテキストパネルの幅を変更" aria-controls="contextPanel" aria-valuemin="240" aria-valuemax="520" aria-valuenow="340" tabindex="0"></div>
   <aside id="contextPanel" class="context-panel" aria-label="右側コンテキストパネル">
     <div class="context-panel-tabs" role="tablist" aria-label="右側パネル切り替え">
       <button id="contextCollectionTab" class="context-panel-tab" type="button" role="tab" aria-controls="collectionExplorer" aria-selected="true">コレクション</button>
@@ -976,7 +978,8 @@
   <script src="typing-derived-ui-scheduler.js?v=0.5.0-4"></script>
   <script src="draft-mirror-scheduler.js?v=0.5.0-2"></script>
   <script src="typing-performance-monitor.js?v=0.5.0-3"></script>
-  <script src="app.js?v=0.5.0-130"></script>
+  <script src="layout-resize-utils.js?v=0.5.0-2"></script>
+  <script src="app.js?v=0.5.0-132"></script>
   <script src="codex-chat.js?v=0.5.0-6"></script>
 </body>
 </html>

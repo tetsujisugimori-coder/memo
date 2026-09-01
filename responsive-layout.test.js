@@ -28,7 +28,10 @@ test("本文入力欄の後ろに表ブロック編集領域と境界余白を�
 });
 
 test("画面配置用CSSの配信キャッシュを更新する", () => {
-  assert.match(html, /style\.css\?v=0\.5\.0-68/);
+  assert.match(html, /style\.css\?v=0\.5\.0-70/);
+  assert.match(html, /layout-resize-utils\.js\?v=0\.5\.0-2/);
+  assert.match(html, /app\.js\?v=0\.5\.0-132/);
+  assert.ok(html.indexOf("layout-resize-utils.js") < html.indexOf("app.js"));
 });
 
 test("狭幅ではタイトル日時と保存状態・成功時刻を重ねずに折り返す", () => {
@@ -38,14 +41,67 @@ test("狭幅ではタイトル日時と保存状態・成功時刻を重ねず�
   assert.match(css, /@media \(max-width: 420px\)[\s\S]*\.save-status-group\s*\{[^}]*justify-content:\s*flex-end/s);
 });
 
-test("右側コンテキストパネルは単一の固定列とモバイルドロワーを持つ", () => {
+test("右側コンテキストパネルは空白帯のない第2列とモバイルドロワーを持つ", () => {
   assert.match(html, /id="contextPanel" class="context-panel"/);
   assert.match(app, /let contextPanelTab = "collection"/);
   assert.match(app, /setContextPanelTab\("collection"/);
-  assert.match(css, /grid-template-columns:\s*minmax\(0, 1fr\) 340px/);
+  assert.match(css, /grid-template-columns:\s*minmax\(0, 1fr\) var\(--context-panel-width, 340px\)/);
+  assert.doesNotMatch(css, /grid-template-columns:\s*minmax\(0, 1fr\) 10px var\(--context-panel-width/);
   assert.match(css, /body\.context-panel-closed\s*\{\s*grid-template-columns:\s*minmax\(0, 1fr\)/s);
   assert.match(css, /\.context-panel\.context-panel-closed\s*\{\s*display:\s*none/);
   assert.match(css, /@container app-width \(max-width: 719\.98px\)[\s\S]*?width:\s*100vw/);
+});
+
+test("広幅の2境界はARIA付きセパレーターとしてGridへ組み込まれる", () => {
+  const editorSeparator = html.match(/<div id="editorCardSeparator"[^>]*>/)?.[0] || "";
+  const contextSeparator = html.match(/<div id="contextPanelSeparator"[^>]*>/)?.[0] || "";
+  for (const separator of [editorSeparator, contextSeparator]) {
+    assert.match(separator, /role="separator"/);
+    assert.match(separator, /aria-orientation="vertical"/);
+    assert.match(separator, /aria-label="[^"]+"/);
+    assert.match(separator, /tabindex="0"/);
+  }
+  assert.match(css, /grid-template-columns:\s*var\(--editor-column-width, minmax\(320px, 1fr\)\) 16px minmax\(280px, 0\.8fr\)/);
+  assert.match(css, /\.workspace-separator\s*\{[^}]*grid-column:\s*2[^}]*width:\s*10px/s);
+  assert.match(css, /\.context-panel-separator\s*\{[^}]*grid-column:\s*2[^}]*width:\s*10px[^}]*justify-self:\s*start[^}]*transform:\s*translateX\(-50%\)[^}]*z-index:/s);
+  assert.match(css, /\.context-panel\s*\{[^}]*grid-column:\s*2/s);
+  assert.match(css, /body\[data-layout-mode="wide"\] > \.context-panel\s*\{[^}]*border-left:\s*0/s);
+});
+
+test("セパレーターはwide限定で、右側欄閉鎖時とpopoutでは操作不能になる", () => {
+  assert.match(css, /body\[data-layout-mode="wide"\] \.workspace-separator\s*\{\s*display:\s*block/s);
+  assert.match(css, /body\[data-layout-mode="wide"\]:not\(\.context-panel-closed\) > \.context-panel-separator\s*\{\s*display:\s*block/s);
+  assert.match(css, /body\.popout-window \.layout-separator/);
+  assert.match(app, /const wideActive = layoutMode === "wide" && !isPopoutWindow/);
+  assert.match(app, /\[contextPanelSeparator, wideActive && contextPanelOpen\]/);
+  assert.match(app, /separator\.tabIndex = active \? 0 : -1/);
+  assert.match(app, /separator\.setAttribute\("aria-disabled", String\(!active\)\)/);
+});
+
+test("Pointer Capture、選択抑止、終了保証を伴って列幅だけをフレーム更新する", () => {
+  assert.match(app, /event\.button !== 0/);
+  assert.match(app, /separator\.setPointerCapture\(event\.pointerId\)/);
+  assert.match(app, /separator\.releasePointerCapture\(resize\.pointerId\)/);
+  assert.match(app, /requestAnimationFrame\(\(\) => \{[\s\S]*?applyLayoutResizePointer/);
+  assert.match(app, /pointercancel[\s\S]*?finishLayoutResize\(\{ cancel: true \}\)/);
+  assert.match(app, /event\.key !== "Escape" \|\| !activeLayoutResize/);
+  assert.match(app, /event\.shiftKey \? 3 : 1/);
+  assert.match(css, /body\.layout-resizing\s*\{[^}]*user-select:\s*none/s);
+});
+
+test("矢印キーとダブルクリックは個別の幅を制約内で変更・初期化して保存する", () => {
+  assert.match(app, /event\.key !== "ArrowLeft" && event\.key !== "ArrowRight"/);
+  assert.match(app, /changeLayoutWidthFromKeyboard\(kind,[\s\S]*?persistLayoutResizeWidths\(kind\)/);
+  assert.match(app, /separator\.addEventListener\("dblclick", \(\) => resetLayoutWidth\(kind\)\)/);
+  assert.match(app, /if \(kind === "editor"\) layoutResizeWidths\.editorWidth = null;[\s\S]*?DEFAULT_CONTEXT_PANEL_WIDTH/);
+  assert.match(app, /commitLayoutWidthsForKind\([\s\S]*?layoutResizeWidths,[\s\S]*?appliedLayoutResizeWidths,[\s\S]*?kind/);
+  assert.match(app, /localStorage\.setItem\(LAYOUT_RESIZE_STORAGE_KEY, JSON\.stringify\(layoutResizeWidths\)\)/);
+});
+
+test("右境界の操作領域は最大幅計算で占有幅として減算されない", () => {
+  const rangeSource = app.match(/function currentContextPanelWidthRange\(\) \{[\s\S]*?\n\}/)?.[0] || "";
+  assert.match(rangeSource, /calculateContextPanelRange\(\s*document\.body\.clientWidth,\s*workspaceMinimumWidth\s*\)/s);
+  assert.doesNotMatch(rangeSource, /,\s*10\s*\)/);
 });
 
 test("desktop has one memo list owner and no fixed blank context column when closed", () => {
