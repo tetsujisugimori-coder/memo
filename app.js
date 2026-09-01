@@ -23,6 +23,7 @@ const POPOUT_SYNC_CHANNEL = "memo-nexus-sync";
 const THEME_STORAGE_KEY = "memo-nexus-theme";
 const COLLECTION_SORT_STORAGE_KEY = "memo-nexus-collection-sort";
 const IMAGE_BLOCK_SIZE_STORAGE_KEY = "memo-nexus-image-block-size";
+const LAYOUT_RESIZE_STORAGE_KEY = "memo-nexus-layout-widths";
 const LOGO_ANIMATION_STORAGE_KEY = "memo-nexus-logo-animation";
 const EDITOR_CARET_ANIMATION_STORAGE_KEY = "memo-nexus-editor-caret-animation";
 const DRAFT_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
@@ -538,6 +539,7 @@ const collectionExplorer = $("collectionExplorer");
 const collectionBackdrop = $("collectionBackdrop");
 const closeCollectionsBtn = $("closeCollectionsBtn");
 const contextPanel = $("contextPanel");
+const contextPanelSeparator = $("contextPanelSeparator");
 const contextCollectionTab = $("contextCollectionTab");
 const contextTagTab = $("contextTagTab");
 const contextAiTab = $("contextAiTab");
@@ -837,6 +839,8 @@ const confirmTablePasteBtn = $("confirmTablePasteBtn");
 const pasteTableAsTextBtn = $("pasteTableAsTextBtn");
 const cancelTablePasteBtn = $("cancelTablePasteBtn");
 const editorCard = document.querySelector(".editor-card");
+const workspace = document.querySelector(".workspace");
+const editorCardSeparator = $("editorCardSeparator");
 const appHeader = document.querySelector(".app-header");
 const preview = $("preview");
 const previewCard = $("previewCard");
@@ -1101,6 +1105,10 @@ let suppressMobileWritingModeFocus = false;
 let contextPanelTab = "collection";
 let contextPanelOpen = true;
 let contextPanelUserClosed = false;
+let layoutResizeWidths = { editorWidth: null, contextPanelWidth: 340 };
+let appliedLayoutResizeWidths = { editorWidth: null, contextPanelWidth: 340 };
+let activeLayoutResize = null;
+let layoutResizeAnimationFrame = 0;
 let globalFontSettings = { ...DEFAULT_FONT_SETTINGS };
 let fontSettingsDraft = null;
 let pendingFontSelection = null;
@@ -1441,7 +1449,238 @@ function layoutModeForWidth(width) {
   return "wide";
 }
 
+function restoreLayoutResizeWidths() {
+  try {
+    const saved = window.MemoNexusLayoutResizeUtils.parseLayoutWidths(localStorage.getItem(LAYOUT_RESIZE_STORAGE_KEY));
+    layoutResizeWidths = {
+      editorWidth: saved.editorWidth ?? null,
+      contextPanelWidth: saved.contextPanelWidth ?? window.MemoNexusLayoutResizeUtils.DEFAULT_CONTEXT_PANEL_WIDTH
+    };
+  } catch (error) {
+    console.warn("Layout width restore failed", error);
+  }
+}
+
+function persistLayoutResizeWidths() {
+  const editorWidth = appliedLayoutResizeWidths.editorWidth;
+  const contextPanelWidth = appliedLayoutResizeWidths.contextPanelWidth;
+  if (!Number.isFinite(editorWidth) || !Number.isFinite(contextPanelWidth)) return;
+  layoutResizeWidths = { editorWidth, contextPanelWidth };
+  try {
+    localStorage.setItem(LAYOUT_RESIZE_STORAGE_KEY, JSON.stringify(layoutResizeWidths));
+  } catch (error) {
+    console.warn("Layout width save failed", error);
+  }
+}
+
+function horizontalPadding(element) {
+  if (!element) return 0;
+  const style = getComputedStyle(element);
+  return (Number.parseFloat(style.paddingLeft) || 0) + (Number.parseFloat(style.paddingRight) || 0);
+}
+
+function currentEditorWidthRange() {
+  return window.MemoNexusLayoutResizeUtils.calculateEditorRange(
+    workspace?.clientWidth || 0,
+    horizontalPadding(workspace),
+    16
+  );
+}
+
+function currentContextPanelWidthRange() {
+  const workspaceMinimumWidth = window.MemoNexusLayoutResizeUtils.EDITOR_MIN_WIDTH
+    + window.MemoNexusLayoutResizeUtils.CARD_MIN_WIDTH
+    + horizontalPadding(workspace)
+    + 16;
+  return window.MemoNexusLayoutResizeUtils.calculateContextPanelRange(
+    document.body.clientWidth,
+    workspaceMinimumWidth,
+    10
+  );
+}
+
+function updateSeparatorValue(separator, value, range) {
+  if (!separator || !Number.isFinite(value)) return;
+  separator.setAttribute("aria-valuemin", String(Math.round(range.minimum)));
+  separator.setAttribute("aria-valuemax", String(Math.round(range.maximum)));
+  separator.setAttribute("aria-valuenow", String(Math.round(value)));
+}
+
+function updateLayoutSeparatorAvailability() {
+  const wideActive = layoutMode === "wide" && !isPopoutWindow;
+  const states = [
+    [editorCardSeparator, wideActive],
+    [contextPanelSeparator, wideActive && contextPanelOpen]
+  ];
+  states.forEach(([separator, active]) => {
+    if (!separator) return;
+    separator.tabIndex = active ? 0 : -1;
+    separator.setAttribute("aria-disabled", String(!active));
+  });
+}
+
+function applyWideLayoutResizeWidths() {
+  updateLayoutSeparatorAvailability();
+  if (layoutMode !== "wide" || isPopoutWindow || !workspace) return;
+
+  const resizeUtils = window.MemoNexusLayoutResizeUtils;
+  const contextRange = currentContextPanelWidthRange();
+  const requestedContextWidth = layoutResizeWidths.contextPanelWidth
+    ?? resizeUtils.DEFAULT_CONTEXT_PANEL_WIDTH;
+  const contextPanelWidth = resizeUtils.clampWidth(requestedContextWidth, contextRange.minimum, contextRange.maximum);
+  document.body.style.setProperty("--context-panel-width", `${contextPanelWidth}px`);
+  appliedLayoutResizeWidths.contextPanelWidth = contextPanelWidth;
+  updateSeparatorValue(contextPanelSeparator, contextPanelWidth, contextRange);
+
+  const editorRange = currentEditorWidthRange();
+  const requestedEditorWidth = layoutResizeWidths.editorWidth ?? resizeUtils.defaultEditorWidth(
+    workspace.clientWidth,
+    horizontalPadding(workspace),
+    16
+  );
+  const editorWidth = resizeUtils.clampWidth(requestedEditorWidth, editorRange.minimum, editorRange.maximum);
+  workspace.style.setProperty("--editor-column-width", `${editorWidth}px`);
+  appliedLayoutResizeWidths.editorWidth = editorWidth;
+  updateSeparatorValue(editorCardSeparator, editorWidth, editorRange);
+}
+
+function applyLayoutResizePointer(clientX) {
+  if (!activeLayoutResize || !Number.isFinite(clientX)) return;
+  const delta = clientX - activeLayoutResize.startX;
+  if (activeLayoutResize.kind === "editor") {
+    layoutResizeWidths.editorWidth = activeLayoutResize.startWidth + delta;
+  } else {
+    layoutResizeWidths.contextPanelWidth = activeLayoutResize.startWidth - delta;
+  }
+  applyWideLayoutResizeWidths();
+}
+
+function scheduleLayoutResizePointer(clientX) {
+  if (!activeLayoutResize) return;
+  activeLayoutResize.pendingClientX = clientX;
+  if (layoutResizeAnimationFrame) return;
+  layoutResizeAnimationFrame = requestAnimationFrame(() => {
+    layoutResizeAnimationFrame = 0;
+    try {
+      applyLayoutResizePointer(activeLayoutResize?.pendingClientX);
+    } catch (error) {
+      console.error("Layout resize failed", error);
+      finishLayoutResize({ cancel: true });
+    }
+  });
+}
+
+function finishLayoutResize({ cancel = false, persist = false } = {}) {
+  const resize = activeLayoutResize;
+  if (!resize) return false;
+  activeLayoutResize = null;
+  if (layoutResizeAnimationFrame) cancelAnimationFrame(layoutResizeAnimationFrame);
+  layoutResizeAnimationFrame = 0;
+  if (cancel) layoutResizeWidths = { ...resize.startWidths };
+  resize.separator.classList.remove("is-dragging");
+  document.body.classList.remove("layout-resizing");
+  try {
+    if (resize.separator.hasPointerCapture?.(resize.pointerId)) {
+      resize.separator.releasePointerCapture(resize.pointerId);
+    }
+  } catch (error) {
+    console.warn("Layout resize pointer release failed", error);
+  }
+  applyWideLayoutResizeWidths();
+  if (persist && !cancel) persistLayoutResizeWidths();
+  return true;
+}
+
+function startLayoutResize(kind, separator, event) {
+  if (event.button !== 0 || layoutMode !== "wide" || isPopoutWindow || separator.getAttribute("aria-disabled") === "true") return;
+  if (activeLayoutResize) finishLayoutResize({ cancel: true });
+  event.preventDefault();
+  const startWidth = kind === "editor"
+    ? appliedLayoutResizeWidths.editorWidth
+    : appliedLayoutResizeWidths.contextPanelWidth;
+  activeLayoutResize = {
+    kind,
+    pointerId: event.pointerId,
+    separator,
+    startX: event.clientX,
+    startWidth,
+    startWidths: { ...layoutResizeWidths },
+    pendingClientX: event.clientX
+  };
+  separator.classList.add("is-dragging");
+  document.body.classList.add("layout-resizing");
+  try {
+    separator.setPointerCapture(event.pointerId);
+  } catch (error) {
+    console.warn("Layout resize pointer capture failed", error);
+    finishLayoutResize({ cancel: true });
+  }
+}
+
+function changeLayoutWidthFromKeyboard(kind, direction, multiplier = 1) {
+  if (layoutMode !== "wide" || isPopoutWindow) return;
+  const step = 16 * multiplier;
+  if (kind === "editor") {
+    layoutResizeWidths.editorWidth = appliedLayoutResizeWidths.editorWidth + direction * step;
+  } else {
+    layoutResizeWidths.contextPanelWidth = appliedLayoutResizeWidths.contextPanelWidth - direction * step;
+  }
+  applyWideLayoutResizeWidths();
+  persistLayoutResizeWidths();
+}
+
+function resetLayoutWidth(kind) {
+  if (layoutMode !== "wide" || isPopoutWindow) return;
+  if (kind === "editor") layoutResizeWidths.editorWidth = null;
+  else layoutResizeWidths.contextPanelWidth = window.MemoNexusLayoutResizeUtils.DEFAULT_CONTEXT_PANEL_WIDTH;
+  applyWideLayoutResizeWidths();
+  persistLayoutResizeWidths();
+}
+
+function bindLayoutSeparator(separator, kind) {
+  if (!separator) return;
+  separator.addEventListener("pointerdown", (event) => startLayoutResize(kind, separator, event));
+  separator.addEventListener("pointermove", (event) => {
+    if (activeLayoutResize?.separator === separator && activeLayoutResize.pointerId === event.pointerId) {
+      scheduleLayoutResizePointer(event.clientX);
+    }
+  });
+  separator.addEventListener("pointerup", (event) => {
+    if (activeLayoutResize?.separator !== separator || activeLayoutResize.pointerId !== event.pointerId) return;
+    try {
+      if (layoutResizeAnimationFrame) cancelAnimationFrame(layoutResizeAnimationFrame);
+      layoutResizeAnimationFrame = 0;
+      applyLayoutResizePointer(event.clientX);
+      finishLayoutResize({ persist: true });
+    } catch (error) {
+      console.error("Layout resize completion failed", error);
+      finishLayoutResize({ cancel: true });
+    }
+  });
+  separator.addEventListener("pointercancel", () => finishLayoutResize({ cancel: true }));
+  separator.addEventListener("lostpointercapture", () => finishLayoutResize({ persist: true }));
+  separator.addEventListener("keydown", (event) => {
+    if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+    event.preventDefault();
+    changeLayoutWidthFromKeyboard(kind, event.key === "ArrowRight" ? 1 : -1, event.shiftKey ? 3 : 1);
+  });
+  separator.addEventListener("dblclick", () => resetLayoutWidth(kind));
+}
+
+function initializeLayoutResizers() {
+  restoreLayoutResizeWidths();
+  bindLayoutSeparator(editorCardSeparator, "editor");
+  bindLayoutSeparator(contextPanelSeparator, "context");
+  document.addEventListener("keydown", (event) => {
+    if (event.key !== "Escape" || !activeLayoutResize) return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    finishLayoutResize({ cancel: true });
+  });
+}
+
 function initializeResponsiveLayout() {
+  initializeLayoutResizers();
   syncLayoutMode(true);
   if (typeof ResizeObserver === "function") {
     const observer = new ResizeObserver((entries) => {
@@ -1737,8 +1976,12 @@ function resetEditorCaretIdle() {
 
 function syncLayoutMode(force = false, width = document.body.clientWidth) {
   const nextMode = layoutModeForWidth(width);
-  if (!force && nextMode === layoutMode) return;
+  if (!force && nextMode === layoutMode) {
+    applyWideLayoutResizeWidths();
+    return;
+  }
 
+  if (activeLayoutResize) finishLayoutResize({ cancel: true });
   layoutMode = nextMode;
   if (layoutMode !== "mobile") setMobileWritingMode(false);
   mobileCardOpen = false;
@@ -1750,6 +1993,7 @@ function syncLayoutMode(force = false, width = document.body.clientWidth) {
     setContextPanelOpen(true, { restoreFocus: false, explicit: false });
     setAiAssistantPanelActive(contextPanelTab === "ai");
   }
+  applyWideLayoutResizeWidths();
 }
 
 function isMobileWritingMode() {
@@ -1837,6 +2081,7 @@ function setContextPanelOpen(open, { restoreFocus = true, explicit = true } = {}
     contextPanel?.removeAttribute("inert");
   }
   updateResponsiveLayoutUi();
+  applyWideLayoutResizeWidths();
   focusTarget?.focus();
 }
 
