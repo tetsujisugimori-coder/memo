@@ -981,7 +981,7 @@ body.collections-open .collection-explorer {
   height: 100vh;
   height: 100dvh;
   display: grid;
-  grid-template-columns: var(--editor-column-width, minmax(320px, 1fr)) 16px minmax(280px, 0.8fr);
+  grid-template-columns: var(--editor-column-width, minmax(320px, 1fr)) 16px minmax(280px, 1fr);
   grid-template-rows: auto auto minmax(0, 1fr);
   row-gap: 16px;
   column-gap: 0;
