@@ -28,7 +28,7 @@ test("本文入力欄の後ろに表ブロック編集領域と境界余白を�
 });
 
 test("画面配置用CSSの配信キャッシュを更新する", () => {
-  assert.match(html, /style\.css\?v=0\.5\.0-70/);
+  assert.match(html, /style\.css\?v=0\.5\.0-71/);
   assert.match(html, /layout-resize-utils\.js\?v=0\.5\.0-2/);
   assert.match(html, /app\.js\?v=0\.5\.0-132/);
   assert.ok(html.indexOf("layout-resize-utils.js") < html.indexOf("app.js"));
@@ -61,7 +61,8 @@ test("広幅の2境界はARIA付きセパレーターとしてGridへ組み込�
     assert.match(separator, /aria-label="[^"]+"/);
     assert.match(separator, /tabindex="0"/);
   }
-  assert.match(css, /grid-template-columns:\s*var\(--editor-column-width, minmax\(320px, 1fr\)\) 16px minmax\(280px, 0\.8fr\)/);
+  assert.match(css, /grid-template-columns:\s*var\(--editor-column-width, minmax\(320px, 1fr\)\) 16px minmax\(280px, 1fr\)/);
+  assert.doesNotMatch(css, /minmax\(280px, 0\.8fr\)/);
   assert.match(css, /\.workspace-separator\s*\{[^}]*grid-column:\s*2[^}]*width:\s*10px/s);
   assert.match(css, /\.context-panel-separator\s*\{[^}]*grid-column:\s*2[^}]*width:\s*10px[^}]*justify-self:\s*start[^}]*transform:\s*translateX\(-50%\)[^}]*z-index:/s);
   assert.match(css, /\.context-panel\s*\{[^}]*grid-column:\s*2/s);
