@@ -15,7 +15,9 @@ const root = __dirname;
 const artifacts = path.join(root, "e2e-artifacts");
 const appUrl = "http://127.0.0.1:5500/";
 const articleUrl = "http://127.0.0.1:5500/e2e-source.html";
-const cdnUrl = "http://127.0.0.1:5501/cdn-image.png";
+const fixtureAssetUrl = "http://assets.memo-nexus.test:5500/";
+const cdnBaseUrl = "http://cdn.memo-nexus.test:5501/";
+const cdnUrl = `${cdnBaseUrl}cdn-image.png`;
 const marker = "E2E確認用固有文字列: memo-nexus-web-clipper-78";
 const selectionText = "選択確認用の段落です。";
 const longText = "長文確認用テキスト ".repeat(16000);
@@ -64,7 +66,7 @@ let developmentManifestUnavailable = false;
 
 function articleHtml() {
   const decorativeSvg = Array.from({ length: 25 }, (_, index) => `<img class="share-icon" src="${appUrl}safe.svg?icon=${index}" alt="共有アイコン" width="160" height="120">`).join("");
-  return `<!doctype html><meta charset="utf-8"><title>E2E記事タイトル</title><article><h1>取得元の見出し</h1><p>${selectionText}</p>${decorativeSvg}<figure><img src="http://127.0.0.1:5501/redirect-image?asset=photo" alt="クロスオリジンJPEG" width="160" height="120"><figcaption>リダイレクトJPEGの説明</figcaption></figure><p>画像間の段落です。${marker}</p><figure><img src="${cdnUrl}?version=2" alt="CDN PNG" width="160" height="120"><figcaption>CDN画像の説明</figcaption></figure><img src="${appUrl}local-image.webp?format=webp" alt="WebP画像" width="160" height="120"><figure><img src="${appUrl}animated.gif" alt="アニメーションGIF" width="100" height="50"><figcaption>アニメーション図版</figcaption></figure><img src="${appUrl}safe.svg" alt="SVG画像" width="160" height="120"><img src="${appUrl}sample.avif" alt="AVIF画像" width="160" height="120"><img src="http://127.0.0.1:5501/missing.png" alt="取得失敗画像" width="160" height="120"><img src="http://127.0.0.1:5501/slow-image?timeout=1" alt="タイムアウト画像" width="160" height="120"><img class="site-logo" src="${appUrl}local-image.png" alt="ロゴ" width="160" height="120"><img src="${cdnUrl}?version=2" alt="重複画像" width="160" height="120"><img src="${appUrl}local-image.png" alt="追跡ピクセル" width="1" height="1"><ul><li>リスト項目 一</li><li>リスト項目 二</li></ul><p><a href="https://example.test/reference">確認用リンク</a></p><p>${longText}</p></article>`;
+  return `<!doctype html><meta charset="utf-8"><title>E2E記事タイトル</title><article><h1>取得元の見出し</h1><p>${selectionText}</p>${decorativeSvg}<figure><img src="${cdnBaseUrl}redirect-image?asset=photo" alt="クロスオリジンJPEG" width="160" height="120"><figcaption>リダイレクトJPEGの説明</figcaption></figure><p>画像間の段落です。${marker}</p><figure><img src="${cdnUrl}?version=2" alt="CDN PNG" width="160" height="120"><figcaption>CDN画像の説明</figcaption></figure><img src="${fixtureAssetUrl}local-image.webp?format=webp" alt="WebP画像" width="160" height="120"><figure><img src="${fixtureAssetUrl}animated.gif" alt="アニメーションGIF" width="100" height="50"><figcaption>アニメーション図版</figcaption></figure><img src="${fixtureAssetUrl}safe.svg" alt="SVG画像" width="160" height="120"><img src="${fixtureAssetUrl}sample.avif" alt="AVIF画像" width="160" height="120"><img src="${cdnBaseUrl}missing.png" alt="取得失敗画像" width="160" height="120"><img src="${cdnBaseUrl}slow-image?timeout=1" alt="タイムアウト画像" width="160" height="120"><img class="site-logo" src="${fixtureAssetUrl}local-image.png" alt="ロゴ" width="160" height="120"><img src="${cdnUrl}?version=2" alt="重複画像" width="160" height="120"><img src="${fixtureAssetUrl}local-image.png" alt="追跡ピクセル" width="1" height="1"><ul><li>リスト項目 一</li><li>リスト項目 二</li></ul><p><a href="https://example.test/reference">確認用リンク</a></p><p>${longText}</p></article>`;
 }
 
 function server() {
@@ -173,7 +175,7 @@ async function openPopup(context, worker, extensionId) {
   const popup = await popupPromise;
   try {
     await popup.locator("#send:not([disabled])").waitFor({ timeout: 5000 });
-    assert.equal(await popup.locator("#extensionVersion").textContent(), "0.3.5");
+    assert.equal(await popup.locator("#extensionVersion").textContent(), "0.3.6");
   } catch (cause) {
     throw new Error(`popup did not become ready: status=${await popup.locator("#selectionStatus").textContent()} error=${await popup.locator("#error").textContent()} (${cause.message})`);
   }
@@ -223,7 +225,11 @@ async function main() {
       // Chromium's extension Service Worker is not started in its headless
       // shell, so use the bundled full Chromium in a persistent context.
       headless: false,
-      args: [`--disable-extensions-except=${extension}`, `--load-extension=${extension}`]
+      args: [
+        `--disable-extensions-except=${extension}`,
+        `--load-extension=${extension}`,
+        "--host-resolver-rules=MAP assets.memo-nexus.test 127.0.0.1, MAP cdn.memo-nexus.test 127.0.0.1"
+      ]
     });
     let worker = await waitForWorker(context);
     const extensionId = new URL(worker.url()).host;
@@ -399,7 +405,7 @@ async function main() {
       manifestVersion: savedClipSource?.manifestVersion,
       targetEnvironment: savedClipSource?.targetEnvironment,
       distributionChannel: savedClipSource?.distributionChannel
-    }, { extensionVersion: "0.3.5", manifestVersion: 3, targetEnvironment: "development", distributionChannel: "unpacked-development" });
+    }, { extensionVersion: "0.3.6", manifestVersion: 3, targetEnvironment: "development", distributionChannel: "unpacked-development" });
     const storedAttachments = await receiver.evaluate(() => new Promise((resolve, reject) => {
       const request = indexedDB.open("memo-nexus");
       request.onerror = () => reject(request.error);

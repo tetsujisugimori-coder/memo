@@ -3,6 +3,50 @@
   const EXCLUDED_CONTENT = "script,style,nav,header,footer,aside,noscript,form,[role=banner],[role=navigation],[role=contentinfo],.advertisement,.ads,.sidebar,.related";
   const NOISY_IMAGE_PATTERN = /(?:^|[^a-z0-9])(ad|ads|advert|avatar|badge|banner|brand|emoji|icon|logo|pixel|profile|share|social|spacer|sprite|tracking)(?:[^a-z0-9]|$)/i;
 
+  function cleanText(value, limit) {
+    return String(value || "").replace(/\s+/g, " ").trim().slice(0, limit);
+  }
+
+  function metaContent(document, selectors) {
+    for (const selector of selectors) {
+      const content = cleanText(document.querySelector(selector)?.getAttribute("content"), 2000);
+      if (content) return content;
+    }
+    return "";
+  }
+
+  function jsonLdArticleBody(document) {
+    const scripts = [...document.querySelectorAll('script[type="application/ld+json"]')].slice(0, 20);
+    const candidates = [];
+    function visit(value) {
+      if (!value || typeof value !== "object") return;
+      if (Array.isArray(value)) { value.slice(0, 50).forEach(visit); return; }
+      const types = Array.isArray(value["@type"]) ? value["@type"] : [value["@type"]];
+      if (types.some((type) => /(?:^|\/)(?:Article|NewsArticle|BlogPosting|ReportageNewsArticle)$/i.test(String(type || "")))) {
+        const body = typeof value.articleBody === "string" ? cleanText(value.articleBody, 500000) : "";
+        if (body) candidates.push(body);
+      }
+      if (value["@graph"]) visit(value["@graph"]);
+      if (value.mainEntity) visit(value.mainEntity);
+    }
+    scripts.forEach((script) => {
+      const source = String(script.textContent || "");
+      if (!source || source.length > 1000000) return;
+      try { visit(JSON.parse(source)); } catch (_) {}
+    });
+    return candidates.sort((left, right) => right.length - left.length)[0] || "";
+  }
+
+  function extractMetadata(document = globalThis.document) {
+    if (!document) return { title: "", description: "", siteName: "", articleBody: "" };
+    return {
+      title: cleanText(metaContent(document, ['meta[property="og:title"]', 'meta[name="twitter:title"]']) || document.title, 300),
+      description: cleanText(metaContent(document, ['meta[property="og:description"]', 'meta[name="description"]', 'meta[name="twitter:description"]']), 2000),
+      siteName: cleanText(metaContent(document, ['meta[property="og:site_name"]', 'meta[name="application-name"]']), 255),
+      articleBody: jsonLdArticleBody(document)
+    };
+  }
+
   function absoluteHttpUrl(value, document) {
     try {
       const url = new URL(String(value || "").trim(), document.baseURI);
@@ -96,34 +140,40 @@
   }
 
   function extractPageContent(document = globalThis.document) {
-    if (!document?.body) return { html: "", images: [], omittedImageCount: 0 };
+    const metadata = extractMetadata(document);
+    if (!document?.body) return { html: "", images: [], omittedImageCount: 0, metadata, strategy: "none" };
     const score = (node) => (node.innerText || "").trim().length - node.querySelectorAll("a").length * 40;
     const roots = [document.querySelector("article"), document.querySelector("main"), document.querySelector('[role="main"]')].filter(Boolean);
-    if (!roots.length) roots.push(...[...document.querySelectorAll("section,div")].filter((node) => score(node) > 400));
-    const source = roots.sort((a, b) => score(b) - score(a))[0] || document.body;
-    if (!source || !(source.innerText || "").trim()) return { html: "", images: [], omittedImageCount: 0 };
+    let strategy = roots.length ? "semantic_root" : "scored_candidate";
+    if (!roots.length) roots.push(...[...document.querySelectorAll("section,div")].filter((node) => score(node) > 400 && node.querySelectorAll("p").length >= 2));
+    if (!roots.length && score(document.body) > 800 && document.body.querySelectorAll("p").length >= 3) {
+      roots.push(document.body);
+      strategy = "document_body_candidate";
+    }
+    const source = roots.sort((a, b) => score(b) - score(a))[0] || null;
+    if (!source || !(source.innerText || "").trim()) return { html: "", images: [], omittedImageCount: 0, metadata, strategy: "metadata_only" };
     const sourceImages = [...source.querySelectorAll("img")];
     const copy = source.cloneNode(true);
     const cloneImages = [...copy.querySelectorAll("img")];
     const originals = new Map(cloneImages.map((image, index) => [image, sourceImages[index]]));
     copy.querySelectorAll(EXCLUDED_CONTENT).forEach((node) => node.remove());
     const result = collectImages(copy, document, originals);
-    if (!(copy.innerText || "").trim() && !result.images.length) return { html: "", images: [], omittedImageCount: 0 };
-    return { html: copy.innerHTML, ...result };
+    if (!(copy.innerText || "").trim() && !result.images.length) return { html: "", images: [], omittedImageCount: 0, metadata, strategy: "metadata_only" };
+    return { html: copy.innerHTML, ...result, metadata, strategy };
   }
 
   function extractSelectionContent(document = globalThis.document) {
     const selection = document?.defaultView?.getSelection?.();
-    if (!selection || !selection.rangeCount || selection.isCollapsed) return { html: "", images: [], omittedImageCount: 0 };
+    if (!selection || !selection.rangeCount || selection.isCollapsed) return { html: "", images: [], omittedImageCount: 0, metadata: extractMetadata(document), strategy: "selection_empty" };
     const wrapper = document.createElement("div");
     wrapper.append(selection.getRangeAt(0).cloneContents());
     const result = collectImages(wrapper, document);
-    return { html: wrapper.innerHTML, ...result };
+    return { html: wrapper.innerHTML, ...result, metadata: extractMetadata(document), strategy: "selection" };
   }
 
   function extractPageHtml(document = globalThis.document) { return extractPageContent(document).html; }
 
-  const api = { extractPageContent, extractPageHtml, extractSelectionContent };
+  const api = { extractMetadata, extractPageContent, extractPageHtml, extractSelectionContent };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   root.MemoNexusPageExtractor = api;
 })(globalThis);

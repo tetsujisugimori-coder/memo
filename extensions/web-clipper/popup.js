@@ -14,6 +14,7 @@ const environmentStatus = document.getElementById("environmentStatus");
 const updateStatus = document.getElementById("updateStatus");
 const updateManager = globalThis.MemoNexusClipperUpdateManager;
 const transferLifecycle = globalThis.MemoNexusClipperTransferLifecycle;
+const clipResult = globalThis.MemoNexusClipResult;
 let clip = null;
 let clipOperationActive = false;
 
@@ -135,17 +136,47 @@ async function checkDevelopmentUpdate() {
 async function readActivePage() {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   if (!tab?.id) throw new Error("現在のタブを取得できませんでした。");
-  const [result] = await chrome.scripting.executeScript({
-    target: { tabId: tab.id },
-    func: () => ({
-      selection: window.getSelection()?.toString() || "",
-      title: document.title || "",
-      url: location.href,
-      host: location.hostname,
-      capturedAt: new Date().toISOString()
-    })
-  });
-  return result.result;
+  const validation = clipResult.validatePageUrl(tab.url || "");
+  if (!validation.ok) throw clipResult.issueError(validation.issue);
+  const fallback = {
+    selection: "",
+    title: tab.title || new URL(validation.url).hostname,
+    url: validation.url,
+    host: new URL(validation.url).hostname,
+    capturedAt: new Date().toISOString(),
+    metadata: { title: tab.title || "", description: "", siteName: "", articleBody: "" }
+  };
+  try {
+    const [result] = await chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      func: () => {
+        const meta = (...selectors) => selectors.map((selector) => document.querySelector(selector)?.getAttribute("content") || "").find(Boolean) || "";
+        return {
+          selection: window.getSelection()?.toString() || "",
+          title: document.title || location.hostname,
+          url: location.href,
+          host: location.hostname,
+          capturedAt: new Date().toISOString(),
+          metadata: {
+            title: meta('meta[property="og:title"]', 'meta[name="twitter:title"]') || document.title || "",
+            description: meta('meta[property="og:description"]', 'meta[name="description"]', 'meta[name="twitter:description"]'),
+            siteName: meta('meta[property="og:site_name"]', 'meta[name="application-name"]'),
+            articleBody: ""
+          }
+        };
+      }
+    });
+    return { ...fallback, ...(result?.result || {}) };
+  } catch (cause) {
+    return {
+      ...fallback,
+      acquisitionIssue: clipResult.createIssue({
+        stage: clipResult.STAGES.PAGE_FETCH,
+        code: "access_denied",
+        developerMessage: cause?.message || "Active tab script injection failed"
+      })
+    };
+  }
 }
 
 function showClip(nextClip) {
@@ -155,6 +186,7 @@ function showClip(nextClip) {
   title.textContent = clip.title || "（タイトルなし）";
   url.textContent = clip.url || "（URLなし）";
   clipMode.value = "selection";
+  error.textContent = clip.acquisitionIssue?.userMessage || "";
   updateModeUi();
 }
 
@@ -169,36 +201,71 @@ function updateModeUi() {
       : mode === "link"
         ? "本文と画像は取得せず、URLとタイトルだけを保存します"
         : "";
+  delete modeStatus.dataset.outcome;
   send.disabled = !clip || selectionRequired;
 }
 
 async function buildClipForMode() {
   const mode = clipMode.value;
   const base = { ...clip, ...extensionDiagnostics(), clipMode: mode, userMemo: mode === "memo" ? userMemo.value : "" };
-  if (mode === "selection" && !base.selection.trim()) throw new Error("selection-required");
-  if (mode === "link" || mode === "memo") return { clip: { ...base, selection: mode === "link" ? "" : base.selection, images: [] }, transfer: false };
-  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-  if (!tab?.id) throw new Error("page-injection-failed");
-  await chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ["page-extractor.js"] })
-    .catch((cause) => { console.error("Memo-Nexus Web Clipper extractor injection failed", cause); throw new Error("page-injection-failed"); });
-  const [page] = await chrome.scripting.executeScript({
-    target: { tabId: tab.id },
-    func: (clipModeValue) => clipModeValue === "page"
-      ? MemoNexusPageExtractor.extractPageContent()
-      : MemoNexusPageExtractor.extractSelectionContent(),
-    args: [mode]
-  })
-    .catch((cause) => { console.error("Memo-Nexus Web Clipper page injection failed", cause); throw new Error("page-injection-failed"); });
-  const content = page?.result;
-  if (!content?.html) {
-    if (mode === "selection") throw new Error("selection-required");
-    throw new Error("page-content-empty");
+  if (mode === "selection" && !base.selection.trim()) {
+    throw clipResult.issueError({ stage: clipResult.STAGES.ARTICLE_EXTRACTION, code: "article_not_found", partialSaveAvailable: false, developerMessage: "Selection mode has no selected text" });
   }
-  modeStatus.textContent = mode === "page" ? "ページ本文を抽出しました。画像を確認しています…" : "選択部分を取得しました。画像を確認しています…";
-  const markdown = MemoNexusHtmlToMarkdown.htmlToMarkdown(content.html);
-  if (!markdown) throw new Error(mode === "selection" ? "selection-required" : "page-markdown-empty");
+  if (mode === "link" || mode === "memo") {
+    const finalized = clipResult.buildClipResult({
+      clipMode: mode,
+      sourceSelection: base.selection,
+      metadata: base.metadata,
+      url: base.url,
+      occurredAt: base.capturedAt
+    });
+    return { clip: { ...base, selection: finalized.content, metadata: finalized.metadata, clipResult: finalized.result, images: [] }, transfer: false };
+  }
+
+  const issues = base.acquisitionIssue ? [base.acquisitionIssue] : [];
+  let content = null;
+  let markdown = "";
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (!tab?.id) {
+    issues.push(clipResult.createIssue({ stage: clipResult.STAGES.PAGE_FETCH, code: "access_denied", developerMessage: "Active tab is unavailable" }));
+  } else {
+    try {
+      await chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ["page-extractor.js"] });
+      const [page] = await chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        func: (clipModeValue) => clipModeValue === "page"
+          ? MemoNexusPageExtractor.extractPageContent()
+          : MemoNexusPageExtractor.extractSelectionContent(),
+        args: [mode]
+      });
+      content = page?.result || null;
+      if (!content?.html) {
+        issues.push(clipResult.createIssue({
+          stage: clipResult.STAGES.ARTICLE_EXTRACTION,
+          code: content?.metadata?.description || content?.metadata?.articleBody ? "metadata_only" : "article_not_found",
+          developerMessage: `No extracted HTML (${content?.strategy || "no strategy"})`
+        }));
+      } else {
+        modeStatus.textContent = mode === "page" ? "ページ本文を抽出しました。画像を確認しています…" : "選択部分を取得しました。画像を確認しています…";
+        try {
+          markdown = MemoNexusHtmlToMarkdown.htmlToMarkdown(content.html);
+          if (!markdown) issues.push(clipResult.createIssue({ stage: clipResult.STAGES.HTML_PARSE, code: "html_parse_failed", developerMessage: "Markdown conversion returned empty output" }));
+        } catch (cause) {
+          issues.push(clipResult.createIssue({ stage: clipResult.STAGES.HTML_PARSE, code: "html_parse_failed", developerMessage: cause?.message || "Markdown conversion failed" }));
+        }
+      }
+    } catch (cause) {
+      console.info("Memo-Nexus Web Clipper page source was unavailable", {
+        stage: clipResult.STAGES.PAGE_FETCH,
+        code: "access_denied",
+        sourceUrl: clipResult.sanitizeDiagnosticUrl(base.url)
+      });
+      issues.push(clipResult.createIssue({ stage: clipResult.STAGES.PAGE_FETCH, code: "access_denied", developerMessage: cause?.message || "Page extraction injection failed" }));
+    }
+  }
+
   let images = [];
-  if (content.images?.length) {
+  if (content?.images?.length) {
     modeStatus.textContent = `${content.images.length}枚の画像を取得しています…`;
     images = await fetchImagesInServiceWorker(content.images);
     const readyCount = images.filter((image) => image.status === "ready").length;
@@ -206,11 +273,33 @@ async function buildClipForMode() {
       ? `${readyCount}/${images.length}枚の画像を保存できます`
       : `${images.length}枚の画像を確認しましたが、保存できる画像はありません`;
   }
-  modeStatus.textContent = mode === "page"
-    ? `${images.filter((image) => image.status === "ready").length}/${images.length}枚の画像を確認しました。Memo-Nexusの確認画面を開きます…`
-    : "選択部分を取得しました。Memo-Nexusの確認画面を開きます…";
+  const finalized = clipResult.buildClipResult({
+    clipMode: mode,
+    sourceSelection: base.selection,
+    extractedMarkdown: markdown,
+    metadata: {
+      title: content?.metadata?.title || base.metadata?.title,
+      description: content?.metadata?.description || base.metadata?.description,
+      siteName: content?.metadata?.siteName || base.metadata?.siteName,
+      articleBody: content?.metadata?.articleBody || base.metadata?.articleBody
+    },
+    images,
+    issues,
+    url: base.url,
+    occurredAt: base.capturedAt
+  });
+  if (finalized.result.status === "failure") throw clipResult.issueError(finalized.result.issues[0]);
+  modeStatus.textContent = finalized.result.notice;
+  modeStatus.dataset.outcome = finalized.result.status;
   return {
-    clip: { ...base, selection: markdown, images, omittedImageCount: content.omittedImageCount || 0 },
+    clip: {
+      ...base,
+      selection: finalized.content,
+      metadata: finalized.metadata,
+      clipResult: finalized.result,
+      images,
+      omittedImageCount: content?.omittedImageCount || 0
+    },
     transfer: mode === "page" || images.length > 0
   };
 }
@@ -304,9 +393,11 @@ async function initializePopup() {
   try {
     showClip(await readActivePage());
   } catch (cause) {
-    console.error("Memo-Nexus Web Clipper could not read the active page", cause);
-    error.textContent = "このページはクリップできません。通常のWebページでお試しください。";
+    const issue = clipResult.issueFromError(cause, { stage: clipResult.STAGES.PAGE_FETCH, code: "unknown" });
+    console.info("Memo-Nexus Web Clipper could not read the active page", { stage: issue.stage, code: issue.code, retryable: issue.retryable });
+    error.textContent = issue.userMessage;
     selectionStatus.textContent = "このページではクリップできません。";
+    selectionStatus.dataset.outcome = "failure";
   }
 }
 
@@ -324,20 +415,22 @@ target.addEventListener("change", async () => {
   }
 });
 send.addEventListener("click", () => sendToMemoNexus().catch((cause) => {
-  console.error("Memo-Nexus Web Clipper could not open Memo-Nexus", cause);
+  const issue = cause?.code === "clip-too-large"
+    ? clipResult.createIssue({ stage: clipResult.STAGES.MEMO_CONVERSION, code: "html_parse_failed", partialSaveAvailable: false, developerMessage: "Clip payload exceeded the transfer limit" })
+    : clipResult.issueFromError(cause, { stage: clipResult.STAGES.MEMO_CONVERSION, code: "unknown" });
+  console.info("Memo-Nexus Web Clipper could not open Memo-Nexus", {
+    stage: issue.stage,
+    code: issue.code,
+    retryable: issue.retryable,
+    partialSaveAvailable: issue.partialSaveAvailable,
+    sourceUrl: clipResult.sanitizeDiagnosticUrl(clip?.url)
+  });
   error.textContent = cause?.code === "clip-too-large"
-    ? "選択範囲が長すぎてクリップできません。範囲を短くして再度お試しください。"
-    : cause?.message === "page-extract-failed"
-      ? "ページ本文を取得できませんでした。選択部分またはリンクのみでお試しください。"
-    : cause?.message === "page-injection-failed"
-      ? "ページ本文を取得できませんでした（拡張の権限または注入を確認してください）。"
-    : cause?.message === "page-content-empty"
-      ? "ページ本文の候補が見つかりませんでした。選択部分またはリンクのみでお試しください。"
-    : cause?.message === "page-markdown-empty"
-      ? "ページ本文をMarkdownへ変換できませんでした。選択部分またはリンクのみでお試しください。"
-    : cause?.message === "selection-required"
+    ? "クリップ内容が転送上限を超えています。選択範囲を短くするか、リンクのみを選んでください。"
+    : issue.code === "article_not_found" && clipMode.value === "selection"
       ? "選択部分をクリップするには、ページ上で文章を選択してください。URLとタイトルだけのクリップには自動で切り替えません。"
-    : "クリップを開始できませんでした。もう一度お試しください。";
+      : issue.userMessage;
+  modeStatus.dataset.outcome = "failure";
   send.disabled = false;
   clipOperationActive = false;
 }));

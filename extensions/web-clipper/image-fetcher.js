@@ -7,6 +7,76 @@
   ]);
   const CONVERTIBLE_IMAGE_TYPES = new Set(["image/svg+xml", "image/avif"]);
 
+  function ipv4IsPrivate(hostname) {
+    const parts = String(hostname || "").split(".").map(Number);
+    if (parts.length !== 4 || parts.some((part) => !Number.isInteger(part) || part < 0 || part > 255)) return false;
+    const [a, b] = parts;
+    return a === 0 || a === 10 || a === 127 || a >= 224
+      || (a === 100 && b >= 64 && b <= 127)
+      || (a === 169 && b === 254)
+      || (a === 172 && b >= 16 && b <= 31)
+      || (a === 192 && b === 168);
+  }
+
+  function safeImageUrl(value) {
+    try {
+      const url = new URL(String(value || "").trim());
+      if (url.protocol !== "http:" && url.protocol !== "https:") return "";
+      const hostname = url.hostname.replace(/^\[|\]$/g, "").toLowerCase();
+      if (!hostname || hostname === "localhost" || hostname.endsWith(".localhost") || hostname.endsWith(".local") || ipv4IsPrivate(hostname)) return "";
+      if (hostname === "::" || hostname === "::1" || hostname.startsWith("::ffff:") || /^f[cd][0-9a-f]{2}:/i.test(hostname) || /^fe[89ab][0-9a-f]:/i.test(hostname)) return "";
+      url.username = "";
+      url.password = "";
+      return url.href;
+    } catch (_) { return ""; }
+  }
+
+  async function fetchWithSafeRedirects(url, fetchImpl, requestOptions, maximumRedirects = 5) {
+    let current = safeImageUrl(url);
+    if (!current) throw Object.assign(new Error("Blocked image URL"), { code: "UNSAFE_URL" });
+    for (let redirects = 0; redirects <= maximumRedirects; redirects += 1) {
+      const response = await fetchImpl(current, { ...requestOptions, redirect: "manual" });
+      if (response.status >= 300 && response.status < 400) {
+        const location = response.headers.get("location");
+        if (!location) throw Object.assign(new Error("Redirect target is unavailable"), { code: "REDIRECT_BLOCKED" });
+        if (redirects === maximumRedirects) throw Object.assign(new Error("Too many redirects"), { code: "TOO_MANY_REDIRECTS" });
+        current = safeImageUrl(new URL(location, current).href);
+        if (!current) throw Object.assign(new Error("Unsafe redirect target"), { code: "UNSAFE_REDIRECT" });
+        continue;
+      }
+      if (response.url && !safeImageUrl(response.url)) throw Object.assign(new Error("Unsafe final response URL"), { code: "UNSAFE_REDIRECT" });
+      return response;
+    }
+    throw Object.assign(new Error("Too many redirects"), { code: "TOO_MANY_REDIRECTS" });
+  }
+
+  async function responseBytes(response, limit) {
+    if (!response.body?.getReader) {
+      const bytes = new Uint8Array(await response.arrayBuffer());
+      if (bytes.length > limit) throw Object.assign(new Error("Response exceeds limit"), { code: "TOO_LARGE", size: bytes.length });
+      return bytes;
+    }
+    const reader = response.body.getReader();
+    const chunks = [];
+    let size = 0;
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        size += value.byteLength;
+        if (size > limit) {
+          await reader.cancel();
+          throw Object.assign(new Error("Response exceeds limit"), { code: "TOO_LARGE", size });
+        }
+        chunks.push(value);
+      }
+    } finally { reader.releaseLock?.(); }
+    const bytes = new Uint8Array(size);
+    let offset = 0;
+    chunks.forEach((chunk) => { bytes.set(chunk, offset); offset += chunk.byteLength; });
+    return bytes;
+  }
+
   function normalizedContentType(value) {
     return String(value || "").split(";")[0].trim().toLowerCase();
   }
@@ -97,10 +167,17 @@
     const concurrency = Math.min(3, Math.max(1, Number(options.concurrency) || 3));
     const fetchImpl = options.fetchImpl || fetch;
     const fetchOne = async (candidate) => {
+      const targetUrl = safeImageUrl(candidate.url);
+      if (!targetUrl) return failed(candidate, "unsupported", "UNSAFE_URL", "HTTP(S)以外、またはローカルネットワークの画像URLにはアクセスしません");
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), timeoutMs);
       try {
-        const response = await fetchImpl(candidate.url, { credentials: "include", signal: controller.signal, cache: "no-store" });
+        const response = await fetchWithSafeRedirects(targetUrl, fetchImpl, {
+          credentials: "omit",
+          signal: controller.signal,
+          cache: "no-store",
+          referrerPolicy: "no-referrer"
+        }, 5);
         if (!response.ok) {
           const code = [401, 403].includes(response.status) ? "AUTH_REQUIRED"
             : [404, 410].includes(response.status) ? "URL_EXPIRED"
@@ -112,7 +189,7 @@
         }
         const declaredSize = Number(response.headers.get("content-length") || 0);
         if (declaredSize > perImageLimit) return failed(candidate, "too-large", "TOO_LARGE", "1画像5MBの上限を超えています", { size: declaredSize });
-        const bytes = new Uint8Array(await response.arrayBuffer());
+        const bytes = await responseBytes(response, perImageLimit);
         const declaredType = normalizedContentType(response.headers.get("content-type"));
         const sniffedType = sniffImageType(bytes);
         const sourceMimeType = sniffedType || declaredType;
@@ -172,6 +249,10 @@
         };
       } catch (error) {
         const timedOut = error?.name === "AbortError";
+        if (error?.code === "TOO_LARGE") return failed(candidate, "too-large", "TOO_LARGE", "1画像5MBの上限を超えています", { size: Number(error.size) || 0 });
+        if (["UNSAFE_URL", "UNSAFE_REDIRECT", "REDIRECT_BLOCKED", "TOO_MANY_REDIRECTS"].includes(error?.code)) {
+          return failed(candidate, "failed", error.code, "安全性を確認できない画像URLまたはリダイレクトを拒否しました");
+        }
         return failed(candidate, timedOut ? "timeout" : "failed", timedOut ? "TIMEOUT" : "NETWORK_ERROR", timedOut ? "画像取得がタイムアウトしました" : "画像本体を取得できませんでした");
       } finally {
         clearTimeout(timer);
@@ -188,7 +269,7 @@
     });
   }
 
-  const api = { SUPPORTED_IMAGE_TYPES: STORED_IMAGE_TYPES, STORED_IMAGE_TYPES, CONVERTIBLE_IMAGE_TYPES, fetchClipImages, normalizedContentType, sniffImageType, gifDimensions, mapWithConcurrency };
+  const api = { SUPPORTED_IMAGE_TYPES: STORED_IMAGE_TYPES, STORED_IMAGE_TYPES, CONVERTIBLE_IMAGE_TYPES, fetchClipImages, normalizedContentType, sniffImageType, gifDimensions, mapWithConcurrency, safeImageUrl, fetchWithSafeRedirects, responseBytes };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   root.MemoNexusClipImageFetcher = api;
 })(globalThis);

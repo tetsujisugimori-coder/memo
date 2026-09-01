@@ -28,9 +28,9 @@ test("本文入力欄の後ろに表ブロック編集領域と境界余白を�
 });
 
 test("画面配置用CSSの配信キャッシュを更新する", () => {
-  assert.match(html, /style\.css\?v=0\.5\.0-71/);
+  assert.match(html, /style\.css\?v=0\.5\.0-72/);
   assert.match(html, /layout-resize-utils\.js\?v=0\.5\.0-2/);
-  assert.match(html, /app\.js\?v=0\.5\.0-132/);
+  assert.match(html, /app\.js\?v=0\.5\.0-133/);
   assert.ok(html.indexOf("layout-resize-utils.js") < html.indexOf("app.js"));
 });
 

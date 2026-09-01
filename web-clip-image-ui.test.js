@@ -85,6 +85,17 @@ test("確認画面はモバイルで1列になり内部スクロールする", (
   assert.match(css, /@media \(max-width: 640px\)[\s\S]*\.web-clip-images-list\s*\{[^}]*grid-template-columns:\s*1fr/);
 });
 
+test("成功・部分成功・失敗を意味付き状態で表示し、保存失敗でも入力と再試行経路を保つ", () => {
+  assert.match(app, /webClipReceivedStatus\.dataset\.outcome = resultStatus/);
+  assert.match(css, /\.web-clip-status\[data-outcome="success"\]/);
+  assert.match(css, /\.web-clip-status\[data-outcome="partial"\]/);
+  assert.match(css, /\.web-clip-status\[data-outcome="failure"\]/);
+  assert.match(app, /let webClipSaveInProgress = false/);
+  assert.match(app, /if \(webClipSaveInProgress\) return/);
+  assert.match(app, /入力内容は保持されています。再試行してください。/);
+  assert.doesNotMatch(app, /webClipError\.textContent = `保存に失敗しました: \$\{error\.message/);
+});
+
 test("Memo-NexusのMarkdown ZIPを画像付きで再取り込みできる入口を持つ", () => {
   assert.match(html, /id="settingsImportMarkdownZipBtn"[\s\S]*id="importMarkdownZipInput"/);
   assert.match(app, /function importMarkdownZip\(file\)/);

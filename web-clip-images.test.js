@@ -7,7 +7,7 @@ const {
   webClipImageFailureMarkdown
 } = require("./web-clip-utils.js");
 const { serializeImageBlock } = require("./attachment-utils.js");
-const { fetchClipImages, sniffImageType, gifDimensions } = require("./extensions/web-clipper/image-fetcher.js");
+const { fetchClipImages, sniffImageType, gifDimensions, safeImageUrl } = require("./extensions/web-clipper/image-fetcher.js");
 const { fetchImagesForMessage } = require("./extensions/web-clipper/background.js");
 
 const capturedAt = "2026-08-12T00:00:00.000Z";
@@ -161,6 +161,29 @@ test("画像取得タイムアウトは必ずtimeoutへ確定する", async () =
   assert.equal(images[0].status, "timeout");
   assert.equal(images[0].selected, false);
   assert.match(images[0].error, /タイムアウト/);
+});
+
+test("画像取得は資格情報を送らず、未対応scheme・ローカル・プライベート宛先と危険なredirectを拒否する", async () => {
+  for (const url of ["data:image/png;base64,AA==", "blob:https://example.com/id", "http://127.0.0.1/a.png", "http://10.0.0.1/a.png", "http://192.168.1.1/a.png", "http://[::1]/a.png", "http://[::ffff:127.0.0.1]/a.png"]) {
+    assert.equal(safeImageUrl(url), "");
+  }
+  let requestOptions;
+  const [safe] = await fetchClipImages([{ token: "web-clip-image-1", url: "https://example.com/a.png" }], {
+    fetchImpl: async (_url, options) => {
+      requestOptions = options;
+      return new Response(Uint8Array.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), { headers: { "content-type": "image/png" } });
+    },
+    decodeImage: async () => ({ width: 1, height: 1 })
+  });
+  assert.equal(safe.status, "ready");
+  assert.equal(requestOptions.credentials, "omit");
+  assert.equal(requestOptions.redirect, "manual");
+  assert.equal(requestOptions.referrerPolicy, "no-referrer");
+
+  const [redirected] = await fetchClipImages([{ token: "web-clip-image-1", url: "https://example.com/a.png" }], {
+    fetchImpl: async () => new Response("", { status: 302, headers: { location: "http://127.0.0.1/private.png" } })
+  });
+  assert.equal(redirected.errorCode, "UNSAFE_REDIRECT");
 });
 
 test("HTTP失敗をログイン要求・期限切れ・アクセス拒否として分類する", async () => {
