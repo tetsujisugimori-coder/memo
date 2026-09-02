@@ -21,6 +21,39 @@
     return result;
   }
 
+  function screenPointToViewBox(svg, clientX, clientY, viewBox) {
+    const source = viewBox || svg?.viewBox?.baseVal;
+    if (!source) return { x: 0, y: 0 };
+    const fallback = () => {
+      const rect = svg?.getBoundingClientRect?.();
+      if (!rect?.width || !rect?.height) return { x: source.x, y: source.y };
+      const scale = Math.min(rect.width / source.width, rect.height / source.height);
+      if (!Number.isFinite(scale) || scale <= 0) return { x: source.x, y: source.y };
+      const renderedWidth = source.width * scale;
+      const renderedHeight = source.height * scale;
+      return {
+        x: source.x + (clientX - rect.left - (rect.width - renderedWidth) / 2) / scale,
+        y: source.y + (clientY - rect.top - (rect.height - renderedHeight) / 2) / scale
+      };
+    };
+    try {
+      const matrix = svg?.getScreenCTM?.();
+      const inverse = matrix?.inverse?.();
+      if (!inverse) return fallback();
+      const Point = globalScope?.DOMPoint;
+      const point = Point ? new Point(clientX, clientY).matrixTransform(inverse) : (() => {
+        const svgPoint = svg?.createSVGPoint?.();
+        if (!svgPoint) return null;
+        svgPoint.x = clientX;
+        svgPoint.y = clientY;
+        return svgPoint.matrixTransform(inverse);
+      })();
+      return Number.isFinite(point?.x) && Number.isFinite(point?.y) ? { x: point.x, y: point.y } : fallback();
+    } catch (_) {
+      return fallback();
+    }
+  }
+
   function pointById(geometry, pointId) {
     return geometry.points.find((point) => point.id === pointId) || null;
   }
@@ -136,7 +169,7 @@
     };
   }
 
-  const api = { pointName, pointById, objectById, vertexLabel, addPoint, addSegment, addPolygon, movePoint, updateVertexLabel, updateSegmentLineStyle, deleteSelection, createHistory };
+  const api = { pointName, screenPointToViewBox, pointById, objectById, vertexLabel, addPoint, addSegment, addPolygon, movePoint, updateVertexLabel, updateSegmentLineStyle, deleteSelection, createHistory };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   if (globalScope) globalScope.MemoNexusGeometryEditorUtils = api;
 })(typeof window !== "undefined" ? window : globalThis);

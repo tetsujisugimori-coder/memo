@@ -3,7 +3,7 @@ const assert = require("node:assert/strict");
 const { createGeometryBlock, cloneGeometryBlock, parseGeometryBlockLine, serializeGeometryBlock } = require("./geometry-block-utils.js");
 const {
   addPoint, addPolygon, addSegment, createHistory, deleteSelection, movePoint,
-  updateSegmentLineStyle, updateVertexLabel
+  screenPointToViewBox, updateSegmentLineStyle, updateVertexLabel
 } = require("./geometry-editor-utils.js");
 
 function withPoints(count = 3) {
@@ -11,6 +11,31 @@ function withPoints(count = 3) {
   for (let index = 0; index < count; index += 1) geometry = addPoint(geometry, { x: 10 + index * 20, y: 20 + index * 10 });
   return geometry;
 }
+
+function svgFallbackMock(rect) {
+  return { getBoundingClientRect: () => rect };
+}
+
+test("非正方形の編集領域ではSVG表示余白を除いて画面座標を論理座標へ変換する", () => {
+  const viewBox = { x: 0, y: 0, width: 100, height: 100 };
+  const desktop = screenPointToViewBox(svgFallbackMock({ left: 100, top: 40, width: 600, height: 200 }), 400, 140, viewBox);
+  assert.deepEqual(desktop, { x: 50, y: 50 });
+  const mobile = screenPointToViewBox(svgFallbackMock({ left: 10, top: 20, width: 300, height: 500 }), 160, 270, viewBox);
+  assert.deepEqual(mobile, { x: 50, y: 50 });
+});
+
+test("getScreenCTMの逆行列を優先してクリック・ドラッグ終点を論理座標へ変換する", () => {
+  const inverse = { a: 0.25, b: 0, c: 0, d: 0.5, e: -20, f: -10 };
+  const svg = {
+    getScreenCTM: () => ({ inverse: () => inverse }),
+    createSVGPoint: () => ({
+      x: 0, y: 0,
+      matrixTransform(matrix) { return { x: this.x * matrix.a + matrix.e, y: this.y * matrix.d + matrix.f }; }
+    }),
+    getBoundingClientRect: () => ({ left: 0, top: 0, width: 100, height: 100 })
+  };
+  assert.deepEqual(screenPointToViewBox(svg, 280, 120, { x: 0, y: 0, width: 100, height: 100 }), { x: 50, y: 50 });
+});
 
 test("点を追加し、頂点名を編集して相対位置つきで保持する", () => {
   const geometry = withPoints(1);

@@ -36,11 +36,21 @@
     header.className = "geometry-block-editor-head";
     const title = document.createElement("strong");
     title.textContent = `図形 ${blockIndex + 1}`;
+    const removeBlockButton = document.createElement("button");
+    removeBlockButton.type = "button";
+    removeBlockButton.className = "danger-button geometry-block-remove";
+    removeBlockButton.textContent = "図形ブロックを削除";
+    removeBlockButton.setAttribute("aria-label", `図形${blockIndex + 1}のブロック全体を削除`);
+    removeBlockButton.disabled = typeof onDelete !== "function";
+    removeBlockButton.addEventListener("click", () => {
+      if (!onDelete || typeof globalScope.confirm !== "function" || !globalScope.confirm("この図形ブロックを削除しますか？")) return;
+      onDelete();
+    });
     const status = document.createElement("span");
     status.className = "geometry-block-status";
     status.setAttribute("role", "status");
     status.setAttribute("aria-live", "polite");
-    header.append(title, status);
+    header.append(title, removeBlockButton, status);
 
     const tools = document.createElement("div");
     tools.className = "geometry-block-tools";
@@ -55,9 +65,8 @@
       button.setAttribute("aria-pressed", String(value === mode));
       button.addEventListener("click", () => {
         mode = value;
-        draftPointIds = [];
+        clearDraft();
         status.textContent = value === "select" ? "選択モード" : `${label}モード`;
-        updateControls();
       });
       modeButtons.set(value, button);
       tools.append(button);
@@ -132,12 +141,13 @@
     article.append(header, tools, properties, canvas);
 
     function coordinates(event) {
-      const rect = svg.getBoundingClientRect();
-      if (!rect.width || !rect.height) return { x: geometry.viewBox.x, y: geometry.viewBox.y };
-      return {
-        x: geometry.viewBox.x + ((event.clientX - rect.left) / rect.width) * geometry.viewBox.width,
-        y: geometry.viewBox.y + ((event.clientY - rect.top) / rect.height) * geometry.viewBox.height
-      };
+      return model.screenPointToViewBox(svg, event.clientX, event.clientY, geometry.viewBox);
+    }
+
+    function clearDraft() {
+      draftPointIds = [];
+      draw();
+      updateControls();
     }
 
     function setSelection(next) {
@@ -171,10 +181,11 @@
     function completePolygon() {
       if (mode !== "polygon" || draftPointIds.length < 3) return;
       try {
-        commit(model.addPolygon(geometry, draftPointIds));
-        status.textContent = `${draftPointIds.length}点の多角形を作成しました`;
+        const pointIds = [...draftPointIds];
+        const next = model.addPolygon(geometry, pointIds);
         draftPointIds = [];
-        updateControls();
+        commit(next);
+        status.textContent = `${pointIds.length}点の多角形を作成しました`;
       } catch (error) {
         status.textContent = error.message || String(error);
       }
@@ -207,13 +218,14 @@
           return;
         }
         try {
-          commit(model.addSegment(geometry, draftPointIds[0], target.id));
+          const next = model.addSegment(geometry, draftPointIds[0], target.id);
+          draftPointIds = [];
+          commit(next);
           status.textContent = "線分を作成しました";
         } catch (error) {
           status.textContent = error.message || String(error);
         }
-        draftPointIds = [];
-        updateControls();
+        clearDraft();
         return;
       }
       if (mode === "polygon") {
@@ -315,10 +327,8 @@
     article.addEventListener("keydown", (event) => {
       if (event.target.matches("input, textarea, select")) return;
       if (event.key === "Escape") {
-        draftPointIds = [];
+        clearDraft();
         status.textContent = "作成途中の操作を解除しました";
-        draw();
-        updateControls();
         event.preventDefault();
       } else if ((event.key === "Delete" || event.key === "Backspace") && selection) {
         deleteButton.click();
