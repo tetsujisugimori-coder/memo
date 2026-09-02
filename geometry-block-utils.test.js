@@ -29,6 +29,10 @@ function geometryBlocks(markdown) {
   return splitGeometryBlocks(markdown).filter((segment) => segment.type === "geometry");
 }
 
+function segmentsToMarkdown(segments) {
+  return segments.map((segment) => segment.type === "text" ? segment.text : segment.raw).join("");
+}
+
 function triangle(overrides = {}) {
   return normalizeGeometryBlock({
     type: "geometry",
@@ -37,9 +41,9 @@ function triangle(overrides = {}) {
     caption: "三角形ABC",
     viewBox: { x: -10, y: -10, width: 120, height: 100 },
     points: [
-      { id: "a", x: 10, y: 80, label: "A" },
-      { id: "b", x: 50, y: 10, label: "B" },
-      { id: "c", x: 90, y: 80, label: "C" }
+      { id: "a", x: 10, y: 80 },
+      { id: "b", x: 50, y: 10 },
+      { id: "c", x: 90, y: 80 }
     ],
     objects: [
       { id: "ab", type: "segment", role: "edge", pointIds: ["a", "b"] },
@@ -50,7 +54,9 @@ function triangle(overrides = {}) {
     annotations: [
       { id: "angle-a", type: "angle", pointIds: ["b", "a", "c"], value: 60, label: "60度" },
       { id: "length-ab", type: "length-label", objectId: "ab", value: 5, label: "5 cm" },
-      { id: "vertex-a", type: "vertex-label", pointId: "a", label: "頂点A" },
+      { id: "vertex-a", type: "vertex-label", pointId: "a", label: "A" },
+      { id: "vertex-b", type: "vertex-label", pointId: "b", label: "B" },
+      { id: "vertex-c", type: "vertex-label", pointId: "c", label: "C" },
       { id: "fill", type: "fill-region", objectId: "face", fill: "accent" }
     ],
     ...overrides
@@ -90,17 +96,23 @@ test("日本語の頂点名、キャプション、長さラベルを完全に�
   const source = triangle({
     caption: "日本語の図形：三角形",
     points: [
-      { id: "a", x: 0, y: 0, label: "頂点あ" },
-      { id: "b", x: 10, y: 0, label: "頂点い" }
+      { id: "a", x: 0, y: 0 },
+      { id: "b", x: 10, y: 0 },
+      { id: "c", x: 20, y: 0 }
     ],
-    objects: [{ id: "ab", type: "segment", pointIds: ["a", "b"] }],
-    annotations: [{ id: "length", type: "length-label", objectId: "ab", label: "長さ五センチ" }]
+    objects: [{ id: "ab", type: "segment", pointIds: ["a", "b"] }, { id: "bc", type: "segment", pointIds: ["b", "c"] }],
+    annotations: [
+      { id: "length", type: "length-label", objectId: "ab", label: "長さ五センチ" },
+      { id: "vertex-a", type: "vertex-label", pointId: "a", label: "頂点あ" },
+      { id: "vertex-b", type: "vertex-label", pointId: "b", label: "頂点い" },
+      { id: "vertex-c", type: "vertex-label", pointId: "c", label: "頂点う" }
+    ]
   });
   const restored = parseGeometryBlockLine(serializeGeometryBlock(source));
   assert.deepEqual(restored, source);
   assert.equal(restored.caption, "日本語の図形：三角形");
-  assert.equal(restored.points[0].label, "頂点あ");
   assert.equal(restored.annotations[0].label, "長さ五センチ");
+  assert.equal("label" in restored.points[0], false);
 });
 
 test("点IDを参照する線分と点・図形を参照する注釈を往復する", () => {
@@ -135,6 +147,31 @@ test("予定する図形・注釈の全種類を点IDまたは図形ID参照で�
     ]
   });
   assert.deepEqual(parseGeometryBlockLine(serializeGeometryBlock(block)), block);
+});
+
+test("右角・角注釈のpointIds順序を始点・頂点・終点で保持する", () => {
+  const block = normalizeGeometryBlock({
+    id: "angles",
+    points: [
+      { id: "origin", x: 0, y: 0 },
+      { id: "vertex", x: 10, y: 0 },
+      { id: "end", x: 10, y: 10 }
+    ],
+    objects: [
+      { id: "origin-vertex", type: "segment", pointIds: ["origin", "vertex"] },
+      { id: "vertex-end", type: "segment", pointIds: ["vertex", "end"] }
+    ],
+    annotations: [
+      { id: "right-angle", type: "right-angle", pointIds: ["origin", "vertex", "end"] },
+      { id: "angle", type: "angle", pointIds: ["origin", "vertex", "end"], value: 90, label: "90度" },
+      { id: "vertex-origin", type: "vertex-label", pointId: "origin", label: "O" },
+      { id: "vertex-vertex", type: "vertex-label", pointId: "vertex", label: "V" },
+      { id: "vertex-end", type: "vertex-label", pointId: "end", label: "E" }
+    ]
+  });
+  const restored = parseGeometryBlockLine(serializeGeometryBlock(block));
+  assert.deepEqual(restored.annotations[0].pointIds, ["origin", "vertex", "end"]);
+  assert.deepEqual(restored.annotations[1].pointIds, ["origin", "vertex", "end"]);
 });
 
 test("重複IDは正規化時に安全に拒否する", () => {
@@ -214,7 +251,29 @@ test("バッククォートとチルダのコードフェンス内では記法�
   const marker = serializeGeometryBlock(createGeometryBlock("code"));
   const markdown = ["```markdown", marker, "```", "~~~text", marker, "~~~"].join("\n");
   assert.equal(geometryBlocks(markdown).length, 0);
-  assert.equal(splitGeometryBlocks(markdown)[0].text, markdown);
+  assert.equal(segmentsToMarkdown(splitGeometryBlocks(markdown)), markdown);
+});
+
+test("4スペースインデントコード内のマーカーを認識しない", () => {
+  const marker = serializeGeometryBlock(createGeometryBlock("indent-space"));
+  const markdown = ["通常行", `    ${marker}`, "通常行"].join("\n");
+  assert.equal(geometryBlocks(markdown).length, 0);
+  assert.equal(segmentsToMarkdown(splitGeometryBlocks(markdown)), markdown);
+});
+
+test("タブインデントコード内のマーカーを認識しない", () => {
+  const marker = serializeGeometryBlock(createGeometryBlock("indent-tab"));
+  const markdown = ["通常行", `\t${marker}`, "通常行"].join("\n");
+  assert.equal(geometryBlocks(markdown).length, 0);
+  assert.equal(segmentsToMarkdown(splitGeometryBlocks(markdown)), markdown);
+});
+
+test("3スペース以下のインデント行は通常本文として認識する", () => {
+  const marker = serializeGeometryBlock(createGeometryBlock("indent-short"));
+  const markdown = ["通常行", `  ${marker}`, "通常行"].join("\n");
+  assert.equal(geometryBlocks(markdown).length, 1);
+  assert.equal(geometryBlocks(markdown)[0].start, "通常行\n".length);
+  assert.equal(segmentsToMarkdown(splitGeometryBlocks(markdown)), markdown);
 });
 
 test("通常テキストと複数ブロックを順序・位置・raw付きで分割する", () => {
@@ -225,8 +284,69 @@ test("通常テキストと複数ブロックを順序・位置・raw付きで�
   const blocks = segments.filter((segment) => segment.type === "geometry");
   assert.deepEqual(blocks.map((block) => block.geometry.id), ["first", "second"]);
   assert.deepEqual(blocks.map((block) => block.raw), [first, second]);
-  blocks.forEach((block) => assert.equal(markdown.slice(block.start, block.start + block.raw.length), block.raw));
+  blocks.forEach((block) => assert.equal(markdown.slice(block.start, block.end), block.raw));
+  assert.equal(segmentsToMarkdown(segments), markdown);
   assert.deepEqual(segments.map((segment) => segment.type), ["text", "geometry", "text", "geometry", "text"]);
+});
+
+test("LF本文でstart/end/rawがslice一致する", () => {
+  const marker = serializeGeometryBlock(createGeometryBlock("lf"));
+  const source = `前\n${marker}\n後`;
+  const [block] = geometryBlocks(source);
+  assert.equal(block.start, 2);
+  assert.equal(source.slice(block.start, block.end), block.raw);
+  assert.equal(block.end, block.start + block.raw.length);
+});
+
+test("CRLF本文でstart/end/rawがslice一致する", () => {
+  const marker = serializeGeometryBlock(createGeometryBlock("crlf"));
+  const source = `前\r\n${marker}\r\n後`;
+  const [block] = geometryBlocks(source);
+  assert.equal(block.start, 3);
+  assert.equal(source.slice(block.start, block.end), block.raw);
+  assert.equal(block.end, block.start + block.raw.length);
+});
+
+test("複数幾何学ブロックを含む本文をセグメントから完全再構築できる", () => {
+  const first = serializeGeometryBlock(createGeometryBlock("first"));
+  const second = serializeGeometryBlock(createGeometryBlock("second"));
+  const third = serializeGeometryBlock(createGeometryBlock("third"));
+  const source = `先頭\n${first}\n中間\n${second}\r\n${third}\n末尾`;
+  const segments = splitGeometryBlocks(source);
+  const blocks = segments.filter((segment) => segment.type === "geometry");
+  assert.equal(blocks.length, 3);
+  assert.deepEqual(blocks.map((block) => block.geometry.id), ["first", "second", "third"]);
+  assert.equal(segmentsToMarkdown(segments), source);
+});
+
+test("本文先頭・中間・末尾の各ブロック位置が正しい", () => {
+  const first = serializeGeometryBlock(createGeometryBlock("head"));
+  const middle = serializeGeometryBlock(createGeometryBlock("middle"));
+  const last = serializeGeometryBlock(createGeometryBlock("tail"));
+  const source = `${first}\n前\n${middle}\n後\n${last}`;
+  const blocks = geometryBlocks(source);
+  const expectedStarts = [source.indexOf(first), source.indexOf(middle), source.indexOf(last)];
+  const expectedEnds = [
+    expectedStarts[0] + first.length,
+    expectedStarts[1] + middle.length,
+    expectedStarts[2] + last.length
+  ];
+  assert.deepEqual(blocks.map((block) => block.start), expectedStarts);
+  assert.deepEqual(blocks.map((block) => block.end), expectedEnds);
+  blocks.forEach((block) => assert.equal(source.slice(block.start, block.end), block.raw));
+  assert.equal(blocks.every((block) => block.end === block.start + block.raw.length), true);
+});
+
+test("前後に空白を持つマーカーでも位置が正しい", () => {
+  const marker = serializeGeometryBlock(createGeometryBlock("space"));
+  const source = `行前\n  ${marker}  \n行後`;
+  const block = geometryBlocks(source)[0];
+  assert.equal(block.start, source.indexOf(`  ${marker}  `));
+  assert.equal(block.end, block.start + `  ${marker}  `.length);
+  assert.equal(source.slice(block.start, block.end), block.raw);
+  assert.equal(block.raw.startsWith("  "), true);
+  assert.equal(block.raw.endsWith("  "), true);
+  assert.equal(segmentsToMarkdown(splitGeometryBlocks(source)), source);
 });
 
 test("画像ブロック内・隣接する表コメント・通常HTMLコメント・不正記法を誤認しない", () => {
@@ -258,6 +378,40 @@ test("取得後に位置が古くなった対象を誤置換せず、null指定�
   const block = geometryBlocks(source)[0];
   assert.throws(() => replaceGeometryBlock(`追加${source}`, block, createGeometryBlock("new")), /変更されたため/);
   assert.equal(replaceGeometryBlock(source, block, null), "前\n\n後");
+});
+
+test("置換時にstart/end/rawの不整合を検出して拒否する", () => {
+  const source = `前\n${serializeGeometryBlock(createGeometryBlock("old"))}\n後`;
+  const block = geometryBlocks(source)[0];
+  assert.throws(() => replaceGeometryBlock(source, { ...block, raw: `${block.raw} ` }, createGeometryBlock("new")), /変更されたため/);
+  assert.throws(() => replaceGeometryBlock(source, { ...block, start: block.start + 1, end: block.end + 1 }, createGeometryBlock("new")), /変更されたため/);
+  assert.throws(() => replaceGeometryBlock(source, { ...block, end: block.start }, createGeometryBlock("new")), /変更されたため/);
+});
+
+test("置換後も前後の改行コードを維持する", () => {
+  const source = `前\r\n${serializeGeometryBlock(createGeometryBlock("old"))}\r\n後`;
+  const block = geometryBlocks(source)[0];
+  const updated = replaceGeometryBlock(source, block, createGeometryBlock("new"));
+  const expected = `前\r\n${serializeGeometryBlock(createGeometryBlock("new"))}\r\n後`;
+  assert.equal(updated, expected);
+});
+
+test("削除時に対象外の改行・本文を変更しない", () => {
+  const source = `A\r\n${serializeGeometryBlock(createGeometryBlock("target"))}\r\nB`;
+  const block = geometryBlocks(source)[0];
+  assert.equal(replaceGeometryBlock(source, block, null), "A\r\n\r\nB");
+});
+
+test("V1の点ラベルはpointsから除外し、vertex-label注釈にのみ保持する", () => {
+  const block = normalizeGeometryBlock({
+    id: "vertex-label-only",
+    points: [{ id: "p", x: 1, y: 2, label: "P" }],
+    annotations: [{ id: "label", type: "vertex-label", pointId: "p", label: "P" }]
+  });
+  assert.equal("label" in block.points[0], false);
+  const restored = parseGeometryBlockLine(serializeGeometryBlock(block));
+  assert.equal("label" in restored.points[0], false);
+  assert.equal(restored.annotations[0].label, "P");
 });
 
 test("直列化・解析・再直列化の結果が安定する", () => {

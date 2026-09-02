@@ -79,8 +79,7 @@
     return {
       id: normalizedId(source.id),
       x: source.x,
-      y: source.y,
-      label: normalizedText(source.label)
+      y: source.y
     };
   }
 
@@ -225,7 +224,6 @@
       }
       validateFinite(point.x, `points[${index}].x`);
       validateFinite(point.y, `points[${index}].y`);
-      validateText(point.label, `points[${index}].label`, GEOMETRY_BLOCK_LIMITS.labelChars);
     });
 
     objects.forEach((object, index) => {
@@ -372,6 +370,10 @@
     return lines;
   }
 
+  function isIndentedCodeLine(text) {
+    return text[0] === "\t" || /^ {4,}/.test(text);
+  }
+
   function scanGeometryLines(markdown, includeInvalidCandidates = false) {
     const source = String(markdown || "");
     const matches = [];
@@ -380,7 +382,10 @@
     markdownLines(source).forEach((line) => {
       const trimmed = line.text.trim();
       if (fence) {
-        if (trimmed.length >= fence.length && [...trimmed].every((character) => character === fence.character)) fence = null;
+      if (trimmed.length >= fence.length && [...trimmed].every((character) => character === fence.character)) fence = null;
+        return;
+      }
+      if (isIndentedCodeLine(line.text) && GEOMETRY_BLOCK_CANDIDATE_PATTERN.test(line.text)) {
         return;
       }
       const fenceMatch = line.text.match(/^\s{0,3}(`{3,}|~{3,})/);
@@ -399,7 +404,14 @@
       if (inImageBlock) return;
       const geometry = parseGeometryBlockLine(line.text);
       if (geometry || (includeInvalidCandidates && GEOMETRY_BLOCK_CANDIDATE_PATTERN.test(line.text))) {
-        matches.push({ ...line, geometry });
+        matches.push({
+          start: line.start,
+          end: line.start + line.text.length,
+          text: line.text,
+          raw: source.slice(line.start, line.start + line.text.length),
+          lineEnding: line.lineEnding,
+          geometry
+        });
       }
     });
     return { source, matches };
@@ -418,7 +430,7 @@
         geometry: match.geometry,
         start: match.start,
         end: match.end,
-        raw: match.text
+        raw: match.raw
       });
       textStart = match.end;
     });
@@ -452,11 +464,18 @@
 
   function replaceGeometryBlock(markdown, block, geometry) {
     const source = String(markdown || "");
-    if (!block || block.type !== "geometry" || source.slice(block.start, block.start + block.raw.length) !== block.raw) {
+    const blockEnd = Number(block && block.end);
+    if (!block || block.type !== "geometry") {
+      throw new Error("幾何学ブロックが変更されたため更新できませんでした");
+    }
+    if (!Number.isInteger(block.start) || !Number.isInteger(blockEnd) || block.end <= block.start) {
+      throw new Error("幾何学ブロックが変更されたため更新できませんでした");
+    }
+    if (block.end > source.length || source.slice(block.start, block.end) !== block.raw || block.end !== block.start + String(block.raw).length) {
       throw new Error("幾何学ブロックが変更されたため更新できませんでした");
     }
     const replacement = geometry == null ? "" : serializeGeometryBlock(geometry);
-    return `${source.slice(0, block.start)}${replacement}${source.slice(block.start + block.raw.length)}`;
+    return `${source.slice(0, block.start)}${replacement}${source.slice(block.end)}`;
   }
 
   const api = {
