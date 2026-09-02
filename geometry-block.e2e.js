@@ -118,6 +118,43 @@ function assertCoordinates(actual, expected, message, tolerance = 0.25) {
     await svg.click({ position: { x: 485, y: 95 } });
     assert.equal((await geometry(page)).objects.filter((object) => object.type === "circle").length, 1, "円を中心と円周上の点指定で作成できる");
 
+    await editor.locator('[data-geometry-mode="circle"]').click();
+    await editor.locator(".geometry-point-hit").nth(0).click();
+    await svg.click({ position: { x: 320, y: 70 } });
+    assert.equal((await geometry(page)).objects.filter((object) => object.type === "circle").length, 2, "線分を内包する円を作成できる");
+
+    await editor.locator('[data-geometry-mode="select"]').click();
+    await editor.locator(".geometry-segment-hit").click();
+    assert.equal(await editor.locator(".geometry-segment.is-selected").count(), 1, "円内部の線分を選択できる");
+    assert.equal(await editor.locator(".geometry-circle.is-selected").count(), 0, "円内部の線分選択で円を誤選択しない");
+    const selectableCircleHit = editor.locator(".geometry-circle-hit").last();
+    const selectableCircleBox = await selectableCircleHit.boundingBox();
+    assert.ok(selectableCircleBox, "円周の当たり判定領域を取得できる");
+    await selectableCircleHit.click({ position: { x: 4, y: selectableCircleBox.height / 2 } });
+    assert.equal(await editor.locator(".geometry-circle.is-selected").count(), 1, "円周を選択できる");
+    const circleBeforeMove = await geometry(page);
+    const circleHit = editor.locator(".geometry-circle-hit").last();
+    const circleBox = await circleHit.boundingBox();
+    assert.ok(circleBox, "選択後も円周の当たり判定領域を取得できる");
+    await page.mouse.move(circleBox.x + 4, circleBox.y + circleBox.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(circleBox.x + 28, circleBox.y + circleBox.height / 2 + 12);
+    await page.mouse.up();
+    const circleAfterMove = await geometry(page);
+    const movedCircle = circleAfterMove.objects.filter((object) => object.type === "circle").at(-1);
+    const originalCircle = circleBeforeMove.objects.find((object) => object.id === movedCircle.id);
+    assert.notEqual(circleAfterMove.points.find((point) => point.id === movedCircle.pointIds[0]).x, circleBeforeMove.points.find((point) => point.id === originalCircle.pointIds[0]).x, "円周からドラッグすると円全体を移動できる");
+    await editor.locator(".geometry-point-hit").nth(0).click();
+    assert.equal(await editor.locator(".geometry-point.is-selected").count(), 1, "円内の点を個別に選択できる");
+
+    await editor.locator('[data-geometry-mode="circle"]').click();
+    const beforeZeroRadius = await geometry(page);
+    await svg.click({ position: { x: 500, y: 200 } });
+    await svg.click({ position: { x: 500, y: 200 } });
+    assert.equal((await geometry(page)).objects.filter((object) => object.type === "circle").length, beforeZeroRadius.objects.filter((object) => object.type === "circle").length, "同じ位置を2回指定しても半径0の円を追加しない");
+    await svg.click({ position: { x: 540, y: 200 } });
+    assert.equal((await geometry(page)).objects.filter((object) => object.type === "circle").length, beforeZeroRadius.objects.filter((object) => object.type === "circle").length + 1, "半径0エラー後に円周上の点を指定し直せる");
+
     await editor.locator('[data-geometry-mode="select"]').click();
     const beforeMove = await geometry(page);
     const pointHit = editor.locator(".geometry-point-hit").nth(0);
@@ -149,9 +186,9 @@ function assertCoordinates(actual, expected, message, tolerance = 0.25) {
     await page.reload({ waitUntil: "domcontentloaded" });
     await page.locator("#appStartupGuard").waitFor({ state: "hidden" });
     const restored = await geometry(page);
-    assert.equal(restored.points.length, 12, "再読み込み後も図形を構成する点を復元する");
+    assert.equal(restored.points.length, 15, "再読み込み後も図形を構成する点を復元する");
     assert.equal(restored.objects.filter((object) => object.type === "polygon").length, 3, "再読み込み後も三角形・四角形を含む多角形を復元する");
-    assert.equal(restored.objects.filter((object) => object.type === "circle").length, 1, "再読み込み後も円を復元する");
+    assert.equal(restored.objects.filter((object) => object.type === "circle").length, 3, "再読み込み後も円を復元する");
     assert.equal(restored.objects.find((object) => object.type === "segment").lineStyle, "dashed", "線種を復元する");
 
     await page.setViewportSize({ width: 390, height: 760 });

@@ -81,6 +81,12 @@
     return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
   }
 
+  function edgeCount(object) {
+    if (!isRecord(object)) return 0;
+    if (object.type === "segment") return 1;
+    return object.type === "polygon" && Array.isArray(object.pointIds) ? object.pointIds.length : 0;
+  }
+
   function normalizePoint(point) {
     const source = isRecord(point) ? point : {};
     return {
@@ -233,6 +239,7 @@
     const pointIds = validateUniqueIds(points, "points");
     const objectIds = validateUniqueIds(objects, "objects");
     validateUniqueIds(annotations, "annotations");
+    const pointById = new Map(points.map((point) => [point && point.id, point]));
 
     points.forEach((point, index) => {
       if (!isRecord(point)) {
@@ -257,6 +264,12 @@
       if (object.type === "segment" || object.type === "circle") {
         if (object.type === "circle") {
           validateReferenceList(object.pointIds, `objects[${index}].pointIds`, 2, 2, pointIds);
+          if (Array.isArray(object.pointIds) && object.pointIds.length === 2) {
+            const [center, radiusPoint] = object.pointIds.map((pointId) => pointById.get(pointId));
+            if (center && radiusPoint && center.x === radiusPoint.x && center.y === radiusPoint.y) {
+              addError(`objects[${index}]は中心と異なる位置を指定してください`);
+            }
+          }
           return;
         }
         if (!SEGMENT_ROLES.has(object.role)) addError(`objects[${index}].roleが不正です`);
@@ -311,7 +324,7 @@
       if (annotation.type === "length-label" && objectById.has(annotation.objectId)) {
         const target = objectById.get(annotation.objectId);
         if (!['segment', 'polygon'].includes(target.type)) addError(`${path}は線分または多角形だけを参照できます`);
-        if (annotation.edgeIndex !== undefined && (!Number.isInteger(annotation.edgeIndex) || annotation.edgeIndex < 0 || annotation.edgeIndex >= target.pointIds.length)) {
+        if (annotation.edgeIndex !== undefined && (!Number.isInteger(annotation.edgeIndex) || annotation.edgeIndex < 0 || annotation.edgeIndex >= edgeCount(target))) {
           addError(`${path}.edgeIndexが不正です`);
         }
       }
@@ -604,6 +617,7 @@
   const api = {
     GEOMETRY_BLOCK_VERSION,
     GEOMETRY_BLOCK_LIMITS,
+    edgeCount,
     generatedEntityId,
     createGeometryBlock,
     cloneGeometryBlock,

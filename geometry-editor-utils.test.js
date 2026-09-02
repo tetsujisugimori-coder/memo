@@ -67,17 +67,42 @@ test("三角形、四角形、5点以上の多角形は頂点順を保持する"
   });
 });
 
+test("線分の辺ラベルは辺0だけを保存し、既存の省略edgeIndexは辺0として復元する", () => {
+  let geometry = withPoints(2);
+  geometry = addSegment(geometry, geometry.points[0].id, geometry.points[1].id);
+  const segment = geometry.objects[0];
+  geometry = updateLengthLabel(geometry, segment.id, "5 cm", 0);
+  assert.equal(parseGeometryBlockLine(serializeGeometryBlock(geometry)).annotations[2].label, "5 cm");
+  assert.throws(() => updateLengthLabel(geometry, segment.id, "不正", 1), /辺の指定が不正/);
+  const legacy = {
+    ...geometry,
+    annotations: [{ id: "legacy-length", type: "length-label", objectId: segment.id, label: "a" }]
+  };
+  assert.equal(parseGeometryBlockLine(serializeGeometryBlock(legacy)).annotations[0].edgeIndex, undefined);
+});
+
 test("円、三角形、四角形を点参照で作成し、辺の表示文字列を保存・復元する", () => {
   let geometry = withPoints(4);
   geometry = addPolygon(geometry, geometry.points.slice(0, 3).map((point) => point.id));
   geometry = addPolygon(geometry, geometry.points.map((point) => point.id));
   geometry = addCircle(geometry, geometry.points[0].id, geometry.points[1].id);
   geometry = updateLengthLabel(geometry, geometry.objects[0].id, "a", 0);
+  geometry = updateLengthLabel(geometry, geometry.objects[0].id, "triangle-last", 2);
   geometry = updateLengthLabel(geometry, geometry.objects[1].id, "5 cm", 2);
+  geometry = updateLengthLabel(geometry, geometry.objects[1].id, "quad-last", 3);
   const restored = parseGeometryBlockLine(serializeGeometryBlock(geometry));
   assert.equal(restored.objects.filter((object) => object.type === "circle").length, 1);
   assert.equal(restored.annotations.find((annotation) => annotation.objectId === geometry.objects[0].id && annotation.edgeIndex === 0).label, "a");
   assert.equal(restored.annotations.find((annotation) => annotation.objectId === geometry.objects[1].id && annotation.edgeIndex === 2).label, "5 cm");
+  assert.equal(restored.annotations.find((annotation) => annotation.objectId === geometry.objects[0].id && annotation.edgeIndex === 2).label, "triangle-last");
+  assert.equal(restored.annotations.find((annotation) => annotation.objectId === geometry.objects[1].id && annotation.edgeIndex === 3).label, "quad-last");
+});
+
+test("同一座標の異なる点IDから半径0の円を作成しない", () => {
+  let geometry = createGeometryBlock("zero-radius");
+  geometry = addPoint(geometry, { x: 40, y: 50 });
+  geometry = addPoint(geometry, { x: 40, y: 50 });
+  assert.throws(() => addCircle(geometry, geometry.points[0].id, geometry.points[1].id), /中心と異なる位置/);
 });
 
 test("点移動は参照先の線分・多角形を変えず、論理座標だけを更新する", () => {

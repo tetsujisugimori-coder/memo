@@ -149,6 +149,22 @@ test("予定する図形・注釈の全種類を点IDまたは図形ID参照で�
   assert.deepEqual(parseGeometryBlockLine(serializeGeometryBlock(block)), block);
 });
 
+test("線分のedgeIndex 1と半径0の円を外部データとして拒否する", () => {
+  const valid = triangle();
+  const invalidSegmentLabel = {
+    ...valid,
+    annotations: [{ id: "invalid-length", type: "length-label", objectId: "ab", edgeIndex: 1, label: "表示されない" }]
+  };
+  assert.equal(validateGeometryBlock(invalidSegmentLabel).valid, false);
+  assert.throws(() => serializeGeometryBlock(invalidSegmentLabel), /edgeIndex/);
+  assert.equal(parseGeometryBlockLine(markerForJson(JSON.stringify(invalidSegmentLabel))), null);
+  assert.throws(() => normalizeGeometryBlock({
+    id: "zero-radius-circle",
+    points: [{ id: "center", x: 30, y: 30 }, { id: "radius", x: 30, y: 30 }],
+    objects: [{ id: "circle", type: "circle", pointIds: ["center", "radius"] }]
+  }), /中心と異なる位置/);
+});
+
 test("右角・角注釈のpointIds順序を始点・頂点・終点で保持する", () => {
   const block = normalizeGeometryBlock({
     id: "angles",

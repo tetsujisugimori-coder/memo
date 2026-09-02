@@ -248,6 +248,12 @@
         commit(next);
         status.textContent = `${label}を作成しました`;
       } catch (error) {
+        if (mode === "circle") {
+          draftVertices = draftVertices.slice(0, 1);
+          draftPreview = null;
+          draw();
+          updateControls();
+        }
         status.textContent = error.message || String(error);
       }
     }
@@ -320,7 +326,7 @@
         const [center, radiusPoint] = circle.pointIds.map((pointId) => points.get(pointId));
         if (!center || !radiusPoint) return;
         const radius = Math.hypot(radiusPoint.x - center.x, radiusPoint.y - center.y);
-        const hit = svgElement("circle", { cx: center.x, cy: center.y, r: radius, class: "geometry-circle-hit", "data-geometry-kind": "object", "data-geometry-id": circle.id });
+        const hit = svgElement("circle", { cx: center.x, cy: center.y, r: radius, fill: "none", class: "geometry-circle-hit", "data-geometry-kind": "object", "data-geometry-id": circle.id });
         const node = svgElement("circle", { cx: center.x, cy: center.y, r: radius, class: `geometry-circle${selection?.kind === "object" && selection.id === circle.id ? " is-selected" : ""}`, fill: "transparent", "pointer-events": "none" });
         svg.append(hit, node);
       });
@@ -361,7 +367,7 @@
       const hasEdges = Boolean(segment && ["segment", "polygon"].includes(segment.type));
       edgeSelect.replaceChildren();
       if (hasEdges) {
-        const count = segment.type === "segment" ? 1 : segment.pointIds.length;
+        const count = model.edgeCount(segment);
         selectedEdgeIndex = Math.min(selectedEdgeIndex, count - 1);
         for (let index = 0; index < count; index += 1) {
           const option = document.createElement("option");

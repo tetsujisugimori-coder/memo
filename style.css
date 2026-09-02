@@ -2322,7 +2322,7 @@ body.layout-resizing iframe {
 .geometry-segment { stroke: var(--ink); stroke-width: 1.25; vector-effect: non-scaling-stroke; }
 .geometry-segment.is-dashed { stroke-dasharray: 5 4; }
 .geometry-segment.is-selected { stroke: var(--accent); stroke-width: 2.5; }
-.geometry-circle-hit { fill: transparent; stroke: transparent; stroke-width: 12; vector-effect: non-scaling-stroke; cursor: grab; }
+.geometry-circle-hit { fill: none; stroke: transparent; stroke-width: 12; vector-effect: non-scaling-stroke; pointer-events: stroke; cursor: grab; }
 .geometry-circle { fill: transparent; stroke: var(--ink); stroke-width: 1.25; vector-effect: non-scaling-stroke; }
 .geometry-circle.is-selected { stroke: var(--accent); stroke-width: 2.5; }
 .geometry-draft { fill: none; stroke: var(--accent); stroke-width: 1; stroke-dasharray: 3 3; vector-effect: non-scaling-stroke; }
