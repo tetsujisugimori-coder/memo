@@ -382,7 +382,7 @@
     markdownLines(source).forEach((line) => {
       const trimmed = line.text.trim();
       if (fence) {
-      if (trimmed.length >= fence.length && [...trimmed].every((character) => character === fence.character)) fence = null;
+        if (trimmed.length >= fence.length && [...trimmed].every((character) => character === fence.character)) fence = null;
         return;
       }
       if (isIndentedCodeLine(line.text) && GEOMETRY_BLOCK_CANDIDATE_PATTERN.test(line.text)) {
