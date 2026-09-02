@@ -18,6 +18,7 @@
   const IMAGE_BLOCK_END = "<!-- /memo-nexus:image-block -->";
   const OBJECT_TYPES = new Set(["segment", "polygon", "region"]);
   const SEGMENT_ROLES = new Set(["edge", "diagonal", "auxiliary"]);
+  const SEGMENT_LINE_STYLES = new Set(["solid", "dashed"]);
   const ANNOTATION_TYPES = new Set([
     "right-angle", "angle", "equal-length", "parallel", "length-label", "vertex-label", "fill-region"
   ]);
@@ -74,12 +75,20 @@
     return `geometry-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
   }
 
+  function generatedEntityId(prefix) {
+    const cryptoScope = globalScope && globalScope.crypto;
+    if (cryptoScope && typeof cryptoScope.randomUUID === "function") return `${prefix}-${cryptoScope.randomUUID()}`;
+    return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+  }
+
   function normalizePoint(point) {
     const source = isRecord(point) ? point : {};
     return {
       id: normalizedId(source.id),
       x: source.x,
-      y: source.y
+      y: source.y,
+      visible: source.visible !== false,
+      style: source.style === undefined ? "default" : normalizedId(source.style)
     };
   }
 
@@ -90,7 +99,10 @@
       type: normalizedId(source.type),
       pointIds: normalizedIdList(source.pointIds)
     };
-    if (normalized.type === "segment") normalized.role = source.role === undefined ? "edge" : normalizedId(source.role);
+    if (normalized.type === "segment") {
+      normalized.role = source.role === undefined ? "edge" : normalizedId(source.role);
+      normalized.lineStyle = source.lineStyle === undefined ? "solid" : normalizedId(source.lineStyle);
+    }
     return normalized;
   }
 
@@ -106,7 +118,11 @@
       normalized.mark = source.mark === undefined ? 1 : source.mark;
     }
     if (["length-label", "fill-region"].includes(normalized.type)) normalized.objectId = normalizedId(source.objectId);
-    if (normalized.type === "vertex-label") normalized.pointId = normalizedId(source.pointId);
+    if (normalized.type === "vertex-label") {
+      normalized.pointId = normalizedId(source.pointId);
+      normalized.offsetX = source.offsetX === undefined ? 8 : source.offsetX;
+      normalized.offsetY = source.offsetY === undefined ? -8 : source.offsetY;
+    }
     if (["angle", "length-label", "vertex-label"].includes(normalized.type)) normalized.label = normalizedText(source.label);
     if (["angle", "length-label"].includes(normalized.type) && source.value !== undefined) normalized.value = source.value;
     if (normalized.type === "fill-region") normalized.fill = source.fill === undefined ? "primary" : normalizedId(source.fill);
@@ -224,6 +240,8 @@
       }
       validateFinite(point.x, `points[${index}].x`);
       validateFinite(point.y, `points[${index}].y`);
+      if (typeof point.visible !== "boolean") addError(`points[${index}].visibleは真偽値である必要があります`);
+      validateText(point.style, `points[${index}].style`, GEOMETRY_BLOCK_LIMITS.labelChars);
     });
 
     objects.forEach((object, index) => {
@@ -237,6 +255,7 @@
       }
       if (object.type === "segment") {
         if (!SEGMENT_ROLES.has(object.role)) addError(`objects[${index}].roleが不正です`);
+        if (!SEGMENT_LINE_STYLES.has(object.lineStyle)) addError(`objects[${index}].lineStyleが不正です`);
         validateReferenceList(object.pointIds, `objects[${index}].pointIds`, 2, 2, pointIds);
       } else {
         validateReferenceList(
@@ -293,6 +312,8 @@
       if (annotation.type === "vertex-label") {
         validateId(annotation.pointId, `${path}.pointId`);
         if (!pointIds.has(annotation.pointId)) addError(`${path}.pointIdの参照先が存在しません`);
+        validateFinite(annotation.offsetX, `${path}.offsetX`);
+        validateFinite(annotation.offsetY, `${path}.offsetY`);
       }
       if (["angle", "length-label", "vertex-label"].includes(annotation.type)) {
         validateText(annotation.label, `${path}.label`, GEOMETRY_BLOCK_LIMITS.labelChars);
@@ -332,6 +353,31 @@
       points: [],
       objects: [],
       annotations: []
+    });
+  }
+
+  function cloneGeometryBlock(geometry, id) {
+    const source = normalizeGeometryBlock(geometry, geometry && geometry.id);
+    const pointIds = new Map(source.points.map((point) => [point.id, generatedEntityId("point")]));
+    const objectIds = new Map(source.objects.map((object) => [object.id, generatedEntityId(object.type)]));
+    const annotationIds = new Map(source.annotations.map((annotation) => [annotation.id, generatedEntityId("annotation")]));
+    return normalizeGeometryBlock({
+      ...source,
+      id: normalizedId(id) || generatedGeometryId(),
+      points: source.points.map((point) => ({ ...point, id: pointIds.get(point.id) })),
+      objects: source.objects.map((object) => ({
+        ...object,
+        id: objectIds.get(object.id),
+        pointIds: object.pointIds.map((pointId) => pointIds.get(pointId))
+      })),
+      annotations: source.annotations.map((annotation) => {
+        const next = { ...annotation, id: annotationIds.get(annotation.id) };
+        if (Array.isArray(next.pointIds)) next.pointIds = next.pointIds.map((pointId) => pointIds.get(pointId));
+        if (Array.isArray(next.objectIds)) next.objectIds = next.objectIds.map((objectId) => objectIds.get(objectId));
+        if (next.pointId) next.pointId = pointIds.get(next.pointId);
+        if (next.objectId) next.objectId = objectIds.get(next.objectId);
+        return next;
+      })
     });
   }
 
@@ -549,7 +595,9 @@
   const api = {
     GEOMETRY_BLOCK_VERSION,
     GEOMETRY_BLOCK_LIMITS,
+    generatedEntityId,
     createGeometryBlock,
+    cloneGeometryBlock,
     normalizeGeometryBlock,
     validateGeometryBlock,
     serializeGeometryBlock,
