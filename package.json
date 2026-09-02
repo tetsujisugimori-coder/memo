@@ -1,4 +1,14 @@
 {
   "private": true,
-  "scripts": { "codex:bridge": "node codex-bridge.js", "codex:token": "node codex-bridge-token.js", "test": "node --test" }
+  "scripts": {
+    "codex:bridge": "node codex-bridge.js",
+    "codex:token": "node codex-bridge-token.js",
+    "test": "node --test",
+    "test:e2e:mobile:layout": "node mobile-layout.e2e.js",
+    "test:e2e:mobile:writing": "node mobile-writing-mode.e2e.js",
+    "test:e2e:mobile": "npm run test:e2e:mobile:layout && npm run test:e2e:mobile:writing"
+  },
+  "devDependencies": {
+    "playwright": "1.62.1"
+  }
 }

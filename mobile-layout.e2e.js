@@ -3,12 +3,18 @@
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const http = require("node:http");
+const os = require("node:os");
 const path = require("node:path");
 const playwright = require("playwright");
 
 let appUrl = process.env.MEMO_NEXUS_E2E_URL || "";
 const browserName = process.env.MEMO_NEXUS_E2E_BROWSER || "chromium";
-const screenshotPath = path.join(__dirname, "e2e-artifacts", "mobile-layout-390.png");
+const screenshotPath = path.resolve(
+  process.env.MEMO_NEXUS_E2E_SCREENSHOT
+    || (browserName === "chromium"
+      ? path.join(__dirname, "e2e-artifacts", "mobile-layout-390.png")
+      : path.join(os.tmpdir(), `memo-nexus-mobile-layout-390-${browserName}.png`))
+);
 
 async function startStaticServer() {
   if (appUrl) return null;
@@ -135,8 +141,8 @@ function assertInsideViewport(rect, viewport, message) {
   assert.ok(rect.right <= viewport.width + 0.5, `${message}: right=${rect.right}, viewport=${viewport.width}`);
 }
 
-async function assertMobileLayout(page, width, { mobileDevice }) {
-  await page.setViewportSize({ width, height: 844 });
+async function assertMobileLayout(page, width, { mobileDevice, height = 844, minEditorHeight = 360 }) {
+  await page.setViewportSize({ width, height });
   await page.waitForFunction(() => document.body.dataset.layoutMode === "mobile");
   const metrics = await readLayoutMetrics(page);
 
@@ -156,7 +162,7 @@ async function assertMobileLayout(page, width, { mobileDevice }) {
   assert.ok(metrics.header.height <= 112, `${width}pxでヘッダーを2段以内へ抑える: ${metrics.header.height}px`);
   assert.ok(metrics.title.height <= 150, `${width}pxでタイトル・タグ・日時をコンパクトにする: ${metrics.title.height}px`);
   assert.ok(metrics.meta.height <= 46, `${width}pxで保存表示を1段へ抑える: ${metrics.meta.height}px`);
-  assert.ok(metrics.editor.height >= 360, `${width}pxで本文に実用的な高さを確保: ${metrics.editor.height}px`);
+  assert.ok(metrics.editor.height >= minEditorHeight, `${width}x${height}pxで本文に実用的な高さを確保: ${metrics.editor.height}px`);
   assert.equal(metrics.relatedEditorOverlap, 0, `${width}pxで関連メモを本文へ重ねない`);
   assert.equal(metrics.robotEditorOverlap, 0, `${width}pxでNEX-2を本文へ重ねない`);
   assert.equal(metrics.contextPanel.ariaHidden, "true", `${width}pxで閉じた右パネルを支援技術上も収納`);
@@ -196,6 +202,11 @@ async function assertMobileLayout(page, width, { mobileDevice }) {
       if (message.type() === "error") consoleErrors.push(message.text());
     });
     await waitForApp(mobilePage);
+    results.mobile320Short = await assertMobileLayout(mobilePage, 320, {
+      mobileDevice: true,
+      height: 667,
+      minEditorHeight: 220
+    });
     results.mobile390 = await assertMobileLayout(mobilePage, 390, { mobileDevice: true });
     results.mobile430 = await assertMobileLayout(mobilePage, 430, { mobileDevice: true });
     await mobileContext.close();
