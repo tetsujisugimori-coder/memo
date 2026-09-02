@@ -2344,3 +2344,9 @@
 * 再試行にはダイアログsession IDとrequest IDを持つ明示状態を追加した。再試行中は通常保存・画像なし保存・再試行ボタンを無効にし、成功・失敗・20秒タイムアウトで必ず復元する。ダイアログを閉じるか別クリップを開くと古いlistenerとtimerを解除し、旧結果を新しいクリップへ反映しない。保存開始時も再試行中でないことを確認し、既存の二重保存防止とは同じボタン同期関数で共存する。
 * 一時ディレクトリへPlaywrightを導入し、Microsoft Edgeの`msedge` channelで展開読み込み版0.3.7を実行した。実際のManifest V3 Service Workerでリダイレクトなし、単一302、複数回リダイレクト、404・タイムアウトを含む部分保存、失敗画像の再試行成功、再試行中の保存ロック、`partial`から`success`への表示更新、通常保存通知、IndexedDBへ保存した`source.clipResult`の成功1・失敗0を確認した。既存の4方式、長文転送、同一URL更新／新規保存、画像なし保存、保存失敗時の入力保持、ACKライフサイクルも同じE2Eで成功した。
 * Web Clipper関連38件と`npm test`全936件が成功した。`app.js`、`image-fetcher.js`、`background.js`、`clip-result.js`、`web-clipper.e2e.js`の`node --check`、manifest JSON解析、`git diff --check`も成功した。配信識別子は`app.js?v=0.5.0-134`、拡張版は`0.3.7`へ更新した。
+
+## 2026-09-02 本文クリックのフォーカス解除回帰修正
+
+* PR #159のモバイル執筆モード追加後、本文の`focus`イベントが画面モードを問わず`setMobileWritingMode(true)`を呼び、wide・compact・ポップアウトでは開始条件不成立のまま終了側へ進んで`editor.blur()`していた。開始可能条件を`canStartMobileWritingMode()`へ分離し、開始条件不成立と未開始状態の終了要求は無操作にした。実際に開いていたモバイル執筆モードを閉じる場合だけ、従来どおり本文と完了ボタンをblurし、右パネル状態を復元する。
+* `mobile-writing-mode.e2e.js`を強化し、wide・compact・ポップアウトでタイトル欄から本文を直接クリックした後の`document.activeElement`と実キーボード入力、メモ切替直後と抑止解除後の再フォーカス・入力を検証した。mobileは320・375・390・430pxで執筆モード開始後のフォーカス・入力、完了後のblur、ヘッダー・保存表示・関連操作・右パネル開閉状態の復元を検証した。修正前はwide表示の本文クリック後フォーカス検証で失敗し、修正後は全対象で成功した。page errorとconsole errorはいずれも0件だった。
+* `node --check app.js`と`node --check mobile-writing-mode.e2e.js`、モバイル執筆・レスポンシブ・ポップアウト・カーソルアニメーション関連51件、`node --test`全936件、Playwright E2Eが成功した。配信識別子は`app.js?v=0.5.0-135`へ更新し、識別子を厳密確認する既存テストも同期した。実機のiPhone SafariでのIME・ソフトウェアキーボード・safe areaの最終操作感と、実デスクトップ環境でのポップアウトウィンドウ操作は未確認として残す。

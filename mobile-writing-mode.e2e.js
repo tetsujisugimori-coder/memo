@@ -56,15 +56,54 @@ async function closeMobileContextPanel(page) {
   }
 }
 
+async function editorInputFromDirectClick(page, marker, message) {
+  const editor = page.locator("#editor");
+  const before = await editor.inputValue();
+  await page.locator("#titleInput").click();
+  assert.equal(await page.locator("#titleInput").evaluate((element) => document.activeElement === element), true, `${message}: 先にタイトル欄へフォーカス`);
+  await editor.click();
+  assert.equal(await editor.evaluate((element) => document.activeElement === element), true, `${message}: 本文クリック後もフォーカスを維持`);
+  const range = await editor.evaluate((element) => ({ start: element.selectionStart, end: element.selectionEnd }));
+  await page.keyboard.type(marker);
+  const expected = `${before.slice(0, range.start)}${marker}${before.slice(range.end)}`;
+  assert.equal(await editor.inputValue(), expected, `${message}: フォーカス中の本文へ意図した文字列だけを入力`);
+  return expected;
+}
+
+async function assertNonMobileEditorInput(page, layoutMode, marker, { toolbarVisible = false, message = layoutMode } = {}) {
+  if (layoutMode) await page.waitForFunction((mode) => document.body.dataset.layoutMode === mode, layoutMode);
+  const value = await editorInputFromDirectClick(page, marker, message);
+  assert.equal(await page.locator("body").evaluate((element) => element.classList.contains("mobile-writing-mode")), false, `${message}: モバイル執筆モードへ入らない`);
+  if (toolbarVisible) {
+    assert.notEqual(await page.locator(".editor-tools").evaluate((element) => getComputedStyle(element).display), "none", `${message}: 通常ツールバーを表示したまま`);
+  }
+  return value;
+}
+
 async function mobileMetrics(page, width, height = 760) {
   await page.setViewportSize({ width, height });
   await page.waitForFunction(() => document.body.dataset.layoutMode === "mobile");
   const normalEditorHeight = await page.locator("#editor").evaluate((element) => element.getBoundingClientRect().height);
   const normalEditorToolsHidden = await page.locator(".editor-tools").evaluate((element) => getComputedStyle(element).display === "none");
   assert.equal(normalEditorToolsHidden, true, `${width}pxでフォーカス前から既存ツール欄を非表示`);
-  const normalContextHidden = await page.locator("#contextPanel").getAttribute("aria-hidden");
+  const normalUi = await page.evaluate(() => ({
+    headerDisplay: getComputedStyle(document.querySelector(".app-header")).display,
+    metaDisplay: getComputedStyle(document.querySelector(".note-meta-bar")).display,
+    relatedDisplay: getComputedStyle(document.getElementById("relatedToggleBtn")).display,
+    contextAriaHidden: document.getElementById("contextPanel").getAttribute("aria-hidden")
+  }));
   await page.locator("#editor").click();
   await page.locator("body.mobile-writing-mode").waitFor();
+  assert.equal(await page.locator("#editor").evaluate((element) => document.activeElement === element), true, `${width}pxで執筆モード開始後も本文フォーカスを維持`);
+  const mobileMarker = `[m${width}]`;
+  const beforeMobileInput = await page.locator("#editor").inputValue();
+  const mobileRange = await page.locator("#editor").evaluate((element) => ({ start: element.selectionStart, end: element.selectionEnd }));
+  await page.keyboard.type(mobileMarker);
+  assert.equal(
+    await page.locator("#editor").inputValue(),
+    `${beforeMobileInput.slice(0, mobileRange.start)}${mobileMarker}${beforeMobileInput.slice(mobileRange.end)}`,
+    `${width}pxで執筆モード中の本文へ入力`
+  );
   await page.waitForFunction(() => getComputedStyle(document.getElementById("contextPanel")).visibility === "hidden");
   const metrics = await page.evaluate(() => {
     const toolbar = document.getElementById("mobileWritingTools");
@@ -107,8 +146,14 @@ async function mobileMetrics(page, width, height = 760) {
   assert.ok(panel.left >= 0 && panel.right <= panel.viewportWidth && panel.top >= 0 && panel.bottom <= panel.viewportHeight, `${width}pxで追加メニューが画面内`);
   await page.locator("#mobileWritingDoneBtn").click();
   await page.waitForFunction(() => !document.body.classList.contains("mobile-writing-mode"));
-  assert.equal(await page.locator(".app-header").evaluate((element) => getComputedStyle(element).display === "none"), false, `${width}pxで完了後に通常表示が復元`);
-  assert.equal(await page.locator("#contextPanel").getAttribute("aria-hidden"), normalContextHidden, `${width}pxで補助パネルの開閉状態を復元`);
+  assert.equal(await page.locator("#editor").evaluate((element) => document.activeElement === element), false, `${width}pxで完了後に本文フォーカスを解除`);
+  const restoredUi = await page.evaluate(() => ({
+    headerDisplay: getComputedStyle(document.querySelector(".app-header")).display,
+    metaDisplay: getComputedStyle(document.querySelector(".note-meta-bar")).display,
+    relatedDisplay: getComputedStyle(document.getElementById("relatedToggleBtn")).display,
+    contextAriaHidden: document.getElementById("contextPanel").getAttribute("aria-hidden")
+  }));
+  assert.deepEqual(restoredUi, normalUi, `${width}pxで完了後にヘッダー・保存表示・右パネルを復元`);
   return { width, normalEditorHeight, ...metrics };
 }
 
@@ -123,7 +168,7 @@ async function mobileMetrics(page, width, height = 760) {
     browser = await chromium.launch({ headless: true, executablePath: bundledExecutable });
   }
   const page = await browser.newPage();
-  await page.route("https://cdn.jsdelivr.net/**", async (route) => {
+  await page.context().route("https://cdn.jsdelivr.net/**", async (route) => {
     const url = route.request().url();
     if (url.endsWith(".css")) {
       await route.fulfill({ contentType: "text/css", body: "" });
@@ -140,10 +185,13 @@ async function mobileMetrics(page, width, height = 760) {
   });
   const pageErrors = [];
   const consoleErrors = [];
-  page.on("pageerror", (error) => pageErrors.push(error.message));
-  page.on("console", (message) => {
-    if (message.type() === "error") consoleErrors.push(message.text());
-  });
+  const collectErrors = (targetPage) => {
+    targetPage.on("pageerror", (error) => pageErrors.push(error.message));
+    targetPage.on("console", (message) => {
+      if (message.type() === "error") consoleErrors.push(message.text());
+    });
+  };
+  collectErrors(page);
   const results = [];
   try {
     await page.setViewportSize({ width: MOBILE_WIDTHS[0], height: 760 });
@@ -211,14 +259,48 @@ async function mobileMetrics(page, width, height = 760) {
     assert.deepEqual(afterDone, beforeDone, "完了は本文・選択範囲・スクロール位置を変更しない");
 
     await page.setViewportSize({ width: 1280, height: 800 });
-    await page.waitForFunction(() => document.body.dataset.layoutMode === "wide");
-    await page.locator("#editor").click();
-    assert.equal(await page.locator("body").evaluate((element) => element.classList.contains("mobile-writing-mode")), false, "デスクトップでは執筆モードへ入らない");
+    await assertNonMobileEditorInput(page, "wide", "[wide]", { toolbarVisible: true, message: "wide表示" });
+    const wideValueBeforeNoopClose = await page.locator("#editor").inputValue();
+    await page.evaluate(() => setMobileWritingMode(false));
+    assert.equal(await page.locator("#editor").evaluate((element) => document.activeElement === element), true, "未開始状態の終了要求ではwide本文のフォーカスを維持");
+    assert.equal(await page.locator("#editor").inputValue(), wideValueBeforeNoopClose, "未開始状態の終了要求ではwide本文を変更しない");
     assert.equal(await page.locator("#mobileWritingHeader").count(), 0);
-    assert.notEqual(await page.locator(".editor-tools").evaluate((element) => getComputedStyle(element).display), "none");
+
+    await page.setViewportSize({ width: 800, height: 800 });
+    await page.waitForFunction(() => document.body.dataset.layoutMode === "compact");
+    await closeMobileContextPanel(page);
+    await assertNonMobileEditorInput(page, "compact", "[compact]", { message: "compact表示" });
+
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await page.waitForFunction(() => document.body.dataset.layoutMode === "wide");
+    const originalTitle = `focus-regression-${Date.now()}`;
+    await page.locator("#titleInput").fill(originalTitle);
+    await page.waitForTimeout(220);
+    await page.locator("#newBtn").click();
+    await page.waitForFunction(() => document.activeElement === document.getElementById("editor"));
+    assert.equal(await page.locator("body").evaluate((element) => element.classList.contains("mobile-writing-mode")), false, "別メモを開いた直後はwide表示のまま本文へフォーカス");
+    await page.locator("#titleInput").fill(`switch-target-${Date.now()}`);
+    await page.waitForTimeout(220);
+    await page.locator("#collectionsBtn").click();
+    await page.locator("#contextMemoListTab").click();
+    await page.locator(".memo-item").filter({ hasText: originalTitle }).click();
+    assert.equal(await page.locator("#editor").evaluate((element) => document.activeElement === element), true, "元のメモへ切り替えた直後に本文へフォーカス");
+    await page.evaluate(() => new Promise((resolve) => queueMicrotask(resolve)));
+    await assertNonMobileEditorInput(page, "wide", "[after-switch]", { toolbarVisible: true, message: "メモ切替後" });
+
+    const popupPromise = page.waitForEvent("popup");
+    await page.locator("#popoutMemoBtn").click();
+    const popup = await popupPromise;
+    collectErrors(popup);
+    await popup.waitForURL(/\?popout=/, { timeout: 30000 });
+    await popup.locator("#appStartupGuard").waitFor({ state: "hidden", timeout: 30000 });
+    await popup.locator("body.popout-window").waitFor();
+    await assertNonMobileEditorInput(popup, null, "[popout]", { message: "ポップアウト表示" });
+    await popup.close();
+
     assert.deepEqual(pageErrors, []);
     assert.deepEqual(consoleErrors, []);
-    console.log(JSON.stringify({ mobile: results, compactViewportEditorHeight: compactHeight, desktop: "unchanged", pageErrors, consoleErrors, screenshot: SCREENSHOT_PATH }, null, 2));
+    console.log(JSON.stringify({ mobile: results, compactViewportEditorHeight: compactHeight, desktop: "focus-and-input-ok", compact: "focus-and-input-ok", noteSwitch: "focus-and-input-ok", popout: "focus-and-input-ok", pageErrors, consoleErrors, screenshot: SCREENSHOT_PATH }, null, 2));
   } finally {
     await browser.close();
     if (server) await new Promise((resolve) => server.close(resolve));

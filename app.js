@@ -2014,10 +2014,16 @@ function closeMobileWritingMenus(except = null) {
   });
 }
 
+function canStartMobileWritingMode(note = currentNote()) {
+  return Boolean(layoutMode === "mobile" && !isPopoutWindow && note && !note.deletedAt);
+}
+
 function setMobileWritingMode(open) {
   const note = currentNote();
   const wasOpen = isMobileWritingMode();
-  const shouldOpen = Boolean(open && layoutMode === "mobile" && !isPopoutWindow && note && !note.deletedAt);
+  const shouldOpen = Boolean(open && canStartMobileWritingMode(note));
+  if (open && !shouldOpen) return false;
+  if (!open && !wasOpen) return false;
   mobileWritingModeNoteId = shouldOpen ? note.id : null;
   document.body.classList.toggle("mobile-writing-mode", shouldOpen);
   if (shouldOpen) {
@@ -13657,7 +13663,7 @@ titleInput.addEventListener("compositionend", () => {
 editor.addEventListener("beforeinput", resetEditorCaretIdle);
 editor.addEventListener("focus", () => {
   resetEditorCaretIdle();
-  if (!suppressMobileWritingModeFocus) setMobileWritingMode(true);
+  if (!suppressMobileWritingModeFocus && canStartMobileWritingMode()) setMobileWritingMode(true);
 });
 editor.addEventListener("blur", stopEditorCaretAnimation);
 editor.addEventListener("keydown", resetEditorCaretIdle);
