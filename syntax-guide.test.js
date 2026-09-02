@@ -461,13 +461,13 @@ test("ライト・ダーク共通変数と狭幅container queryで表示する",
   assert.match(guideCss, /var\(--ink\)/);
   assert.match(guideCss, /var\(--line\)/);
   assert.match(guideCss, /var\(--section-bg\)/);
-  assert.match(css, /@container app-width \(max-width: 719\.98px\)[\s\S]*\.syntax-guide-dialog,[\s\S]*\.mermaid-template-dialog,[\s\S]*\.table-paste-dialog\s*\{[^}]*width:\s*calc\(100vw - 16px\)/s);
-  assert.match(css, /@container app-width \(max-width: 719\.98px\)[\s\S]*\.syntax-guide-items,[\s\S]*\.mermaid-type-list,[\s\S]*\.syntax-guide-aliases\s*\{[^}]*grid-template-columns:\s*minmax\(0, 1fr\)/s);
+  assert.match(css, /@media \(max-width: 719\.98px\)[\s\S]*\.syntax-guide-dialog,[\s\S]*\.mermaid-template-dialog,[\s\S]*\.table-paste-dialog\s*\{[^}]*width:\s*calc\(100vw - 16px\)/s);
+  assert.match(css, /@media \(max-width: 719\.98px\)[\s\S]*\.syntax-guide-items,[\s\S]*\.mermaid-type-list,[\s\S]*\.syntax-guide-aliases\s*\{[^}]*grid-template-columns:\s*minmax\(0, 1fr\)/s);
   assert.match(css, /\.mermaid-template-dialog \.syntax-guide-item pre\s*\{[^}]*white-space:\s*pre;[^}]*overflow-wrap:\s*normal;/s);
 });
 
 test("app.jsのキャッシュ番号を更新し、PR #24の画面外Mermaid描画経路を維持する", () => {
-  assert.match(html, /app\.js\?v=0\.5\.0-135/);
+  assert.match(html, /app\.js\?v=0\.5\.0-136/);
   assert.match(html, /table-block-utils\.js\?v=0\.5\.0-4/);
   assert.match(app, /mermaid\.render\(/);
   assert.doesNotMatch(app, /mermaid\.run\(/);

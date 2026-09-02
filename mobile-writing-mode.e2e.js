@@ -4,9 +4,10 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const http = require("node:http");
 const path = require("node:path");
-const { chromium } = require("playwright");
+const playwright = require("playwright");
 
 let appUrl = process.env.MEMO_NEXUS_E2E_URL || "";
+const browserName = process.env.MEMO_NEXUS_E2E_BROWSER || "chromium";
 const MOBILE_WIDTHS = [320, 375, 390, 430];
 const SCREENSHOT_PATH = path.join(process.env.TEMP || process.cwd(), "memo-nexus-mobile-writing-390.png");
 
@@ -40,6 +41,19 @@ async function startStaticServer() {
   });
   appUrl = `http://127.0.0.1:${server.address().port}/`;
   return server;
+}
+
+async function launchBrowser() {
+  const browserType = playwright[browserName];
+  if (!browserType) throw new Error(`Unsupported browser: ${browserName}`);
+  try {
+    return await browserType.launch({ headless: true });
+  } catch (error) {
+    if (browserName !== "chromium") throw error;
+    const executablePath = path.join(process.env.LOCALAPPDATA || "", "ms-playwright", "chromium_headless_shell-1194", "chrome-win", "headless_shell.exe");
+    if (!fs.existsSync(executablePath)) throw error;
+    return browserType.launch({ headless: true, executablePath });
+  }
 }
 
 async function waitForApp(page) {
@@ -159,14 +173,7 @@ async function mobileMetrics(page, width, height = 760) {
 
 (async () => {
   const server = await startStaticServer();
-  let browser;
-  try {
-    browser = await chromium.launch({ headless: true });
-  } catch (error) {
-    const bundledExecutable = path.join(process.env.LOCALAPPDATA || "", "ms-playwright", "chromium_headless_shell-1194", "chrome-win", "headless_shell.exe");
-    if (!fs.existsSync(bundledExecutable)) throw error;
-    browser = await chromium.launch({ headless: true, executablePath: bundledExecutable });
-  }
+  const browser = await launchBrowser();
   const page = await browser.newPage();
   await page.context().route("https://cdn.jsdelivr.net/**", async (route) => {
     const url = route.request().url();
@@ -300,7 +307,7 @@ async function mobileMetrics(page, width, height = 760) {
 
     assert.deepEqual(pageErrors, []);
     assert.deepEqual(consoleErrors, []);
-    console.log(JSON.stringify({ mobile: results, compactViewportEditorHeight: compactHeight, desktop: "focus-and-input-ok", compact: "focus-and-input-ok", noteSwitch: "focus-and-input-ok", popout: "focus-and-input-ok", pageErrors, consoleErrors, screenshot: SCREENSHOT_PATH }, null, 2));
+    console.log(JSON.stringify({ browser: browserName, mobile: results, compactViewportEditorHeight: compactHeight, desktop: "focus-and-input-ok", compact: "focus-and-input-ok", noteSwitch: "focus-and-input-ok", popout: "focus-and-input-ok", pageErrors, consoleErrors, screenshot: SCREENSHOT_PATH }, null, 2));
   } finally {
     await browser.close();
     if (server) await new Promise((resolve) => server.close(resolve));

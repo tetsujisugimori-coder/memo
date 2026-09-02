@@ -28,9 +28,9 @@ test("下部ステータスバーでフラグ直後に操作可能な文字数�
   assert.match(html, /id="textStatsPopover"[^>]*role="dialog"[^>]*hidden/);
   assert.match(html, /文字数 0字/);
   assert.match(html, /text-stats-utils\.js\?v=0\.5\.0-2/);
-  assert.match(html, /style\.css\?v=0\.5\.0-72/);
+  assert.match(html, /style\.css\?v=0\.5\.0-73/);
   assert.match(html, /status-time-utils\.js\?v=0\.5\.0-2/);
-  assert.match(html, /app\.js\?v=0\.5\.0-135/);
+  assert.match(html, /app\.js\?v=0\.5\.0-136/);
   assert.match(css, /\.status-chip\s*\{[^}]*min-height:\s*26px/s);
   assert.match(css, /\.text-stats-popover\s*\{[^}]*width:\s*min\(360px, calc\(100vw - 32px\)\)/s);
 });
@@ -69,13 +69,13 @@ test("ブラウザ保存状態の遷移とローカル未設定状態を実際�
   });
 });
 
-test("保存状態バーは狭幅で成功時刻ごと折り返し、ライト・ダーク共通テーマ変数と状態色を使う", () => {
+test("保存状態バーは狭幅で詳細を統合し、ライト・ダーク共通テーマ変数と状態色を使う", () => {
   assert.match(html, /id="combinedSaveStatusBtn"/);
   assert.match(css, /\.save-status-chip\[data-state="saved"\][^}]*var\(--green\)/);
   assert.match(css, /\.save-status-chip\[data-state="saving"\][^}]*var\(--accent\)/);
   assert.match(css, /\.save-status-chip\[data-state="error"\][^}]*var\(--danger\)/);
   assert.match(css, /\.save-success-time\s*\{[^}]*color:\s*var\(--muted\)[^}]*font-size:\s*10px/s);
-  assert.match(css, /@media \(max-width: 620px\)[\s\S]*\.save-status-actions\s*\{[^}]*flex-wrap:\s*wrap/s);
-  assert.match(css, /@media \(max-width: 420px\)[\s\S]*\.save-status-group\s*\{[^}]*flex:\s*1 1 100%/s);
-  assert.doesNotMatch(css, /\.combined-save-status\s*\{\s*display:\s*inline-flex/);
+  assert.match(css, /@media \(max-width: 620px\)[\s\S]*\.save-status-actions\s*\{[^}]*flex-wrap:\s*nowrap/s);
+  assert.match(css, /@media \(max-width: 620px\)[\s\S]*\.save-status-actions > \.local-save-now-button,[\s\S]*?\.save-status-actions > \.save-status-group\s*\{[^}]*display:\s*none/s);
+  assert.match(css, /@media \(max-width: 620px\)[\s\S]*\.combined-save-status\s*\{\s*display:\s*inline-flex/s);
 });

@@ -2,12 +2,12 @@
 <html lang="ja" data-editor-caret-respect-reduced-motion="true">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Memo Nexus</title>
   <script>try { document.documentElement.dataset.initialTheme = localStorage.getItem("memo-nexus-theme") === "dark" ? "dark" : "light"; } catch (_) { document.documentElement.dataset.initialTheme = "light"; }</script>
   <style>html,body{background:#f6f7f4;color:#222522;color-scheme:light}html[data-initial-theme="dark"],html[data-initial-theme="dark"] body{background:#111513;color:#e7ece7;color-scheme:dark}</style>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css">
-  <link rel="stylesheet" href="style.css?v=0.5.0-72">
+  <link rel="stylesheet" href="style.css?v=0.5.0-73">
 </head>
 <body class="app-starting">
   <section id="appStartupGuard" class="app-startup-guard" role="status" aria-live="polite" aria-busy="true">
@@ -150,12 +150,17 @@
         <button id="newBtn" title="新規メモ">+</button>
         <button id="collectionsBtn" title="コレクションを表示" aria-controls="contextPanel" aria-expanded="true">▱ コレクション</button>
         <button id="todayBtn" title="今日メモ">Today</button>
-        <button id="undoBtn" class="undo-button" title="元に戻す" disabled>Undo</button>
-        <button id="backupBtn" title="完全バックアップZIP出力">ZIP</button>
-        <button id="linkStatsBtn" title="語句統計">語句</button>
-        <button id="graphBtn" title="グラフを開く">Graph</button>
-        <button id="settingsBtn" title="設定">設定</button>
-        <button id="deleteBtn" class="danger-button" title="メモを削除">Del</button>
+        <details id="mobileAppMenu" class="mobile-app-menu" open>
+          <summary aria-label="その他の操作を開く">その他</summary>
+          <div class="mobile-app-menu-panel">
+            <button id="undoBtn" class="undo-button" title="元に戻す" disabled>Undo</button>
+            <button id="backupBtn" title="完全バックアップZIP出力">ZIP</button>
+            <button id="linkStatsBtn" title="語句統計">語句</button>
+            <button id="graphBtn" title="グラフを開く">Graph</button>
+            <button id="settingsBtn" title="設定">設定</button>
+            <button id="deleteBtn" class="danger-button" title="メモを削除">Del</button>
+          </div>
+        </details>
       </div>
     </header>
     <div id="storageWarning" class="storage-warning" role="status" hidden></div>
@@ -980,7 +985,7 @@
   <script src="draft-mirror-scheduler.js?v=0.5.0-2"></script>
   <script src="typing-performance-monitor.js?v=0.5.0-3"></script>
   <script src="layout-resize-utils.js?v=0.5.0-2"></script>
-  <script src="app.js?v=0.5.0-135"></script>
+  <script src="app.js?v=0.5.0-136"></script>
   <script src="codex-chat.js?v=0.5.0-6"></script>
 </body>
 </html>

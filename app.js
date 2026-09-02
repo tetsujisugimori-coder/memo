@@ -804,6 +804,7 @@ const textStatsPopover = $("textStatsPopover");
 const textStatsBody = $("textStatsBody");
 const closeTextStatsBtn = $("closeTextStatsBtn");
 const editor = $("editor");
+const mobileAppMenu = $("mobileAppMenu");
 const mobileWritingDoneBtn = $("mobileWritingDoneBtn");
 const mobileWritingTools = $("mobileWritingTools");
 const mobileCalloutTypeSelect = $("mobileCalloutTypeSelect");
@@ -2201,6 +2202,7 @@ function updateResponsiveLayoutUi() {
   document.body.classList.toggle("mobile-card-open", layoutMode === "mobile" && mobileCardOpen);
   document.body.classList.toggle("compact-card-hidden", layoutMode === "compact" && !compactCardVisible);
   document.body.classList.toggle("layout-overlay-open", overlayOpen);
+  if (mobileAppMenu) mobileAppMenu.open = layoutMode !== "mobile";
 
   const memoListVisible = contextPanelOpen && contextPanelTab === "memo-list";
   memoPaneBtn.setAttribute("aria-expanded", String(memoListVisible));
@@ -13289,6 +13291,11 @@ if (insertImageBlockBtn) insertImageBlockBtn.addEventListener("click", () => {
   if (range.fallback) setAttachmentStatus("カーソル位置を取得できないため、本文末尾へ挿入します。");
   imageBlockInput.click();
 });
+if (mobileAppMenu) {
+  mobileAppMenu.addEventListener("click", (event) => {
+    if (layoutMode === "mobile" && event.target.closest("button")) queueMicrotask(() => mobileAppMenu.removeAttribute("open"));
+  });
+}
 if (mobileWritingDoneBtn) mobileWritingDoneBtn.addEventListener("click", () => setMobileWritingMode(false));
 if (mobileCalloutTypeSelect && calloutTypeSelect) {
   mobileCalloutTypeSelect.addEventListener("change", () => {

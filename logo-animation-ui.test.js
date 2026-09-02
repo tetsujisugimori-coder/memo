@@ -152,7 +152,7 @@ test("reduced motionとoffはロゴ全体を静止させる", () => {
 });
 
 test("モバイル幅では額縁と結節点を縮小する", () => {
-  assert.match(css, /@container app-width \(max-width: 719\.98px\)[\s\S]*?\.memo-nexus-logo \{[\s\S]*?width:\s*176px;/);
-  assert.match(css, /@container app-width \(max-width: 719\.98px\)[\s\S]*?\.memo-nexus-logo-mark \{[\s\S]*?width:\s*36px;/);
+  assert.match(css, /@media \(max-width: 719\.98px\)[\s\S]*?\.memo-nexus-logo \{[\s\S]*?width:\s*176px;/);
+  assert.match(css, /@media \(max-width: 719\.98px\)[\s\S]*?\.memo-nexus-logo-mark \{[\s\S]*?width:\s*36px;/);
   assert.match(css, /\.logo-animation-cards \{ grid-template-columns:\s*minmax\(0, 1fr\); \}/);
 });
