@@ -16,7 +16,7 @@
   const GEOMETRY_BLOCK_CANDIDATE_PATTERN = /^\s*<!-- memo-nexus:geometry-block:.* -->\s*$/i;
   const IMAGE_BLOCK_START = "<!-- memo-nexus:image-block -->";
   const IMAGE_BLOCK_END = "<!-- /memo-nexus:image-block -->";
-  const OBJECT_TYPES = new Set(["segment", "polygon", "region"]);
+  const OBJECT_TYPES = new Set(["segment", "polygon", "region", "circle"]);
   const SEGMENT_ROLES = new Set(["edge", "diagonal", "auxiliary"]);
   const SEGMENT_LINE_STYLES = new Set(["solid", "dashed"]);
   const ANNOTATION_TYPES = new Set([
@@ -118,6 +118,7 @@
       normalized.mark = source.mark === undefined ? 1 : source.mark;
     }
     if (["length-label", "fill-region"].includes(normalized.type)) normalized.objectId = normalizedId(source.objectId);
+    if (normalized.type === "length-label" && source.edgeIndex !== undefined) normalized.edgeIndex = source.edgeIndex;
     if (normalized.type === "vertex-label") {
       normalized.pointId = normalizedId(source.pointId);
       normalized.offsetX = source.offsetX === undefined ? 8 : source.offsetX;
@@ -253,7 +254,11 @@
         addError(`objects[${index}].typeが不正です`);
         return;
       }
-      if (object.type === "segment") {
+      if (object.type === "segment" || object.type === "circle") {
+        if (object.type === "circle") {
+          validateReferenceList(object.pointIds, `objects[${index}].pointIds`, 2, 2, pointIds);
+          return;
+        }
         if (!SEGMENT_ROLES.has(object.role)) addError(`objects[${index}].roleが不正です`);
         if (!SEGMENT_LINE_STYLES.has(object.lineStyle)) addError(`objects[${index}].lineStyleが不正です`);
         validateReferenceList(object.pointIds, `objects[${index}].pointIds`, 2, 2, pointIds);
@@ -303,8 +308,12 @@
         validateId(annotation.objectId, `${path}.objectId`);
         if (!objectIds.has(annotation.objectId)) addError(`${path}.objectIdの参照先が存在しません`);
       }
-      if (annotation.type === "length-label" && objectById.has(annotation.objectId) && objectById.get(annotation.objectId).type !== "segment") {
-        addError(`${path}は線分だけを参照できます`);
+      if (annotation.type === "length-label" && objectById.has(annotation.objectId)) {
+        const target = objectById.get(annotation.objectId);
+        if (!['segment', 'polygon'].includes(target.type)) addError(`${path}は線分または多角形だけを参照できます`);
+        if (annotation.edgeIndex !== undefined && (!Number.isInteger(annotation.edgeIndex) || annotation.edgeIndex < 0 || annotation.edgeIndex >= target.pointIds.length)) {
+          addError(`${path}.edgeIndexが不正です`);
+        }
       }
       if (annotation.type === "fill-region" && objectById.has(annotation.objectId) && !["polygon", "region"].includes(objectById.get(annotation.objectId).type)) {
         addError(`${path}は多角形または領域だけを参照できます`);

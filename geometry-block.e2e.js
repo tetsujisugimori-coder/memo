@@ -107,6 +107,17 @@ function assertCoordinates(actual, expected, message, tolerance = 0.25) {
     assert.equal((await geometry(page)).objects.length, 2, "Escapeで作成途中の多角形を解除できる");
     assert.equal(await editor.locator(".geometry-draft").count(), 0, "Escape後に作成途中の破線を残さない");
 
+    await editor.locator('[data-geometry-mode="triangle"]').click();
+    for (const position of [{ x: 265, y: 55 }, { x: 315, y: 95 }, { x: 270, y: 145 }]) await svg.click({ position });
+    assert.equal((await geometry(page)).objects.filter((object) => object.type === "polygon").length, 2, "三角形をキャンバス上の3点指定で作成できる");
+    await editor.locator('[data-geometry-mode="quadrilateral"]').click();
+    for (const position of [{ x: 350, y: 55 }, { x: 400, y: 55 }, { x: 400, y: 115 }, { x: 350, y: 115 }]) await svg.click({ position });
+    assert.equal((await geometry(page)).objects.filter((object) => object.type === "polygon").length, 3, "四角形をキャンバス上の4点指定で作成できる");
+    await editor.locator('[data-geometry-mode="circle"]').click();
+    await svg.click({ position: { x: 455, y: 95 } });
+    await svg.click({ position: { x: 485, y: 95 } });
+    assert.equal((await geometry(page)).objects.filter((object) => object.type === "circle").length, 1, "円を中心と円周上の点指定で作成できる");
+
     await editor.locator('[data-geometry-mode="select"]').click();
     const beforeMove = await geometry(page);
     const pointHit = editor.locator(".geometry-point-hit").nth(0);
@@ -122,16 +133,25 @@ function assertCoordinates(actual, expected, message, tolerance = 0.25) {
     await editor.locator('input[aria-label="選択した点の頂点名"]').blur();
     await editor.locator(".geometry-segment-hit").click();
     await editor.locator('select[aria-label="選択した線分の線種"]').selectOption("dashed");
+    await editor.locator('input[aria-label="選択した辺の長さ表示"]').fill("5 cm");
+    await editor.locator('input[aria-label="選択した辺の長さ表示"]').blur();
+    await editor.locator(".geometry-polygon").nth(1).click();
+    await editor.locator('select[aria-label="選択した図形の辺"]').selectOption("1");
+    await editor.locator('input[aria-label="選択した辺の長さ表示"]').fill("a");
+    await editor.locator('input[aria-label="選択した辺の長さ表示"]').blur();
     await page.waitForTimeout(350);
     const beforeReload = await geometry(page);
     assert.equal(beforeReload.annotations.find((annotation) => annotation.pointId === beforeReload.points[0].id).label, "P");
     assert.equal(beforeReload.objects.find((object) => object.type === "segment").lineStyle, "dashed");
+    assert.equal(beforeReload.annotations.some((annotation) => annotation.type === "length-label" && annotation.label === "5 cm"), true, "線分の長さ表示を保存する");
+    assert.equal(beforeReload.annotations.some((annotation) => annotation.type === "length-label" && annotation.label === "a" && annotation.edgeIndex === 1), true, "多角形の辺の長さ表示を保存する");
 
     await page.reload({ waitUntil: "domcontentloaded" });
     await page.locator("#appStartupGuard").waitFor({ state: "hidden" });
     const restored = await geometry(page);
-    assert.equal(restored.points.length, 3, "再読み込み後も点を復元する");
-    assert.equal(restored.objects.filter((object) => object.type === "polygon").length, 1, "再読み込み後も多角形を復元する");
+    assert.equal(restored.points.length, 12, "再読み込み後も図形を構成する点を復元する");
+    assert.equal(restored.objects.filter((object) => object.type === "polygon").length, 3, "再読み込み後も三角形・四角形を含む多角形を復元する");
+    assert.equal(restored.objects.filter((object) => object.type === "circle").length, 1, "再読み込み後も円を復元する");
     assert.equal(restored.objects.find((object) => object.type === "segment").lineStyle, "dashed", "線種を復元する");
 
     await page.setViewportSize({ width: 390, height: 760 });

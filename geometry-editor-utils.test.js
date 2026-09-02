@@ -2,8 +2,8 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const { createGeometryBlock, cloneGeometryBlock, parseGeometryBlockLine, serializeGeometryBlock } = require("./geometry-block-utils.js");
 const {
-  addPoint, addPolygon, addSegment, createHistory, deleteSelection, movePoint,
-  screenPointToViewBox, updateSegmentLineStyle, updateVertexLabel
+  addCircle, addPoint, addPolygon, addSegment, createHistory, deleteSelection, moveObject, movePoint,
+  screenPointToViewBox, updateLengthLabel, updateSegmentLineStyle, updateVertexLabel
 } = require("./geometry-editor-utils.js");
 
 function withPoints(count = 3) {
@@ -67,6 +67,19 @@ test("三角形、四角形、5点以上の多角形は頂点順を保持する"
   });
 });
 
+test("円、三角形、四角形を点参照で作成し、辺の表示文字列を保存・復元する", () => {
+  let geometry = withPoints(4);
+  geometry = addPolygon(geometry, geometry.points.slice(0, 3).map((point) => point.id));
+  geometry = addPolygon(geometry, geometry.points.map((point) => point.id));
+  geometry = addCircle(geometry, geometry.points[0].id, geometry.points[1].id);
+  geometry = updateLengthLabel(geometry, geometry.objects[0].id, "a", 0);
+  geometry = updateLengthLabel(geometry, geometry.objects[1].id, "5 cm", 2);
+  const restored = parseGeometryBlockLine(serializeGeometryBlock(geometry));
+  assert.equal(restored.objects.filter((object) => object.type === "circle").length, 1);
+  assert.equal(restored.annotations.find((annotation) => annotation.objectId === geometry.objects[0].id && annotation.edgeIndex === 0).label, "a");
+  assert.equal(restored.annotations.find((annotation) => annotation.objectId === geometry.objects[1].id && annotation.edgeIndex === 2).label, "5 cm");
+});
+
 test("点移動は参照先の線分・多角形を変えず、論理座標だけを更新する", () => {
   let geometry = withPoints(3);
   geometry = addSegment(geometry, geometry.points[0].id, geometry.points[1].id);
@@ -74,6 +87,17 @@ test("点移動は参照先の線分・多角形を変えず、論理座標だ�
   const moved = movePoint(geometry, geometry.points[0].id, 61.5, 18.25);
   assert.equal(moved.points[0].x, 61.5);
   assert.equal(moved.points[0].y, 18.25);
+  assert.deepEqual(moved.objects, geometry.objects);
+});
+
+test("図形全体の移動はその構成点だけを同じ距離だけ移動する", () => {
+  let geometry = withPoints(3);
+  geometry = addPolygon(geometry, geometry.points.map((point) => point.id));
+  const moved = moveObject(geometry, geometry.objects[0].id, 15, -5);
+  moved.points.forEach((point, index) => {
+    assert.equal(point.x, geometry.points[index].x + 15);
+    assert.equal(point.y, geometry.points[index].y - 5);
+  });
   assert.deepEqual(moved.objects, geometry.objects);
 });
 
