@@ -105,6 +105,16 @@ test("同一座標の異なる点IDから半径0の円を作成しない", () =>
   assert.throws(() => addCircle(geometry, geometry.points[0].id, geometry.points[1].id), /中心と異なる位置/);
 });
 
+test("円を構成する点の移動で半径0になる操作を拒否し、元データを変更しない", () => {
+  let geometry = createGeometryBlock("circle-drag");
+  geometry = addPoint(geometry, { x: 20, y: 30 });
+  geometry = addPoint(geometry, { x: 60, y: 30 });
+  geometry = addCircle(geometry, geometry.points[0].id, geometry.points[1].id);
+  const before = JSON.parse(JSON.stringify(geometry));
+  assert.throws(() => movePoint(geometry, geometry.points[0].id, 60, 30), /中心と異なる位置/);
+  assert.deepEqual(geometry, before);
+});
+
 test("点移動は参照先の線分・多角形を変えず、論理座標だけを更新する", () => {
   let geometry = withPoints(3);
   geometry = addSegment(geometry, geometry.points[0].id, geometry.points[1].id);

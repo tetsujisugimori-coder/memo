@@ -60,12 +60,21 @@ function assertCoordinates(actual, expected, message, tolerance = 0.25) {
   assert.ok(Math.abs(actual.y - expected.y) <= tolerance, `${message}: y (${actual.y} ≈ ${expected.y})`);
 }
 
+async function locatorCenter(locator, message) {
+  const box = await locator.boundingBox();
+  assert.ok(box, message);
+  return { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+}
+
 (async () => {
   const { server, url } = await startStaticServer();
   const browser = await launchBrowser();
   try {
     const page = await browser.newPage({ viewport: { width: 1100, height: 800 } });
     await waitForApp(page, url);
+    await page.addStyleTag({ content: ".geometry-block-editors { max-height: 430px !important; }" });
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(error.message));
     await page.locator("#editor").fill("前\n後");
     await page.locator("#editor").press("End");
     await page.locator("#insertGeometryBtn").click();
@@ -117,6 +126,34 @@ function assertCoordinates(actual, expected, message, tolerance = 0.25) {
     await svg.click({ position: { x: 455, y: 95 } });
     await svg.click({ position: { x: 485, y: 95 } });
     assert.equal((await geometry(page)).objects.filter((object) => object.type === "circle").length, 1, "円を中心と円周上の点指定で作成できる");
+
+    await editor.locator('[data-geometry-mode="select"]').click();
+    const dragCircleBefore = (await geometry(page)).objects.find((object) => object.type === "circle");
+    const centerPointBefore = (await geometry(page)).points.find((point) => point.id === dragCircleBefore.pointIds[0]);
+    const radiusPointBefore = (await geometry(page)).points.find((point) => point.id === dragCircleBefore.pointIds[1]);
+    const centerHit = editor.locator(`[data-geometry-kind="point"][data-geometry-id="${dragCircleBefore.pointIds[0]}"]`);
+    const radiusHit = editor.locator(`[data-geometry-kind="point"][data-geometry-id="${dragCircleBefore.pointIds[1]}"]`);
+    const centerPosition = await locatorCenter(centerHit, "円の中心点を操作できる");
+    const radiusPosition = await locatorCenter(radiusHit, "円周上の点を操作できる");
+    await page.mouse.move(centerPosition.x, centerPosition.y);
+    await page.mouse.down();
+    await page.mouse.move(radiusPosition.x, radiusPosition.y);
+    const afterInvalidDrag = await geometry(page);
+    assertCoordinates(afterInvalidDrag.points.find((point) => point.id === dragCircleBefore.pointIds[0]), centerPointBefore, "半径0になるドラッグでは最後の正常な中心座標を維持する");
+    assert.match(await editor.locator(".geometry-block-status").textContent(), /中心と円周上の点は同じ位置にできません/, "無効なドラッグ理由を表示する");
+    assert.equal(pageErrors.length, 0, "無効なドラッグで未処理例外を出さない");
+    await page.mouse.move(radiusPosition.x + 25, radiusPosition.y + 15);
+    await page.mouse.up();
+    const afterRecoveredDrag = await geometry(page);
+    const recoveredCenter = afterRecoveredDrag.points.find((point) => point.id === dragCircleBefore.pointIds[0]);
+    const recoveredRadius = afterRecoveredDrag.points.find((point) => point.id === dragCircleBefore.pointIds[1]);
+    assert.notDeepEqual(recoveredCenter, centerPointBefore, "正常な位置へ戻すと同じドラッグを継続できる");
+    assert.equal(recoveredCenter.x === recoveredRadius.x && recoveredCenter.y === recoveredRadius.y, false, "正常な円として保存する");
+    await editor.focus();
+    await page.keyboard.press("Control+z");
+    assertCoordinates((await geometry(page)).points.find((point) => point.id === dragCircleBefore.pointIds[0]), centerPointBefore, "Undoでドラッグ前の正常な円へ戻せる");
+    await page.keyboard.press("Control+Shift+z");
+    assertCoordinates((await geometry(page)).points.find((point) => point.id === dragCircleBefore.pointIds[0]), recoveredCenter, "Redoで正常なドラッグ結果を復元できる");
 
     await editor.locator('[data-geometry-mode="circle"]').click();
     await editor.locator(".geometry-point-hit").nth(0).click();
@@ -189,6 +226,11 @@ function assertCoordinates(actual, expected, message, tolerance = 0.25) {
     assert.equal(restored.points.length, 15, "再読み込み後も図形を構成する点を復元する");
     assert.equal(restored.objects.filter((object) => object.type === "polygon").length, 3, "再読み込み後も三角形・四角形を含む多角形を復元する");
     assert.equal(restored.objects.filter((object) => object.type === "circle").length, 3, "再読み込み後も円を復元する");
+    const restoredDraggedCircle = restored.objects.find((object) => object.id === dragCircleBefore.id);
+    const restoredCenter = restored.points.find((point) => point.id === restoredDraggedCircle.pointIds[0]);
+    const restoredRadius = restored.points.find((point) => point.id === restoredDraggedCircle.pointIds[1]);
+    assertCoordinates(restoredCenter, recoveredCenter, "無効位置を避けて確定した円を再読み込み後も復元する");
+    assert.equal(restoredCenter.x === restoredRadius.x && restoredCenter.y === restoredRadius.y, false, "再読み込み後も半径0の円にしない");
     assert.equal(restored.objects.find((object) => object.type === "segment").lineStyle, "dashed", "線種を復元する");
 
     await page.setViewportSize({ width: 390, height: 760 });

@@ -394,30 +394,38 @@
     svg.addEventListener("pointermove", (event) => {
       if (!drag) return;
       const position = coordinates(event);
-      geometry = drag.kind === "point"
-        ? model.movePoint(geometry, drag.id, position.x, position.y)
-        : model.moveObject(drag.original, drag.id, position.x - drag.origin.x, position.y - drag.origin.y);
-      drag.moved = true;
-      draw();
+      try {
+        geometry = drag.kind === "point"
+          ? model.movePoint(geometry, drag.id, position.x, position.y)
+          : model.moveObject(drag.original, drag.id, position.x - drag.origin.x, position.y - drag.origin.y);
+        drag.moved = true;
+        drag.hasMoveError = false;
+        draw();
+      } catch (_) {
+        drag.hasMoveError = true;
+        status.textContent = "円の中心と円周上の点は同じ位置にできません。別の位置へ移動してください。";
+      }
       event.preventDefault();
     });
     svg.addEventListener("pointerup", (event) => {
       if (!drag) return;
       const didMove = drag.moved;
       const movedKind = drag.kind;
+      const hasMoveError = drag.hasMoveError;
       drag = null;
       svg.releasePointerCapture?.(event.pointerId);
       if (didMove) {
         history.push(geometry);
         onChange?.(geometry);
-        status.textContent = movedKind === "object" ? "図形を移動しました" : "点を移動しました";
+        if (!hasMoveError) status.textContent = movedKind === "object" ? "図形を移動しました" : "点を移動しました";
         updateControls();
       }
     });
-    svg.addEventListener("pointercancel", () => {
+    svg.addEventListener("pointercancel", (event) => {
       if (!drag) return;
       geometry = drag.original;
       drag = null;
+      svg.releasePointerCapture?.(event.pointerId);
       draw();
     });
     svg.addEventListener("pointermove", (event) => {
