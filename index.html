@@ -198,6 +198,7 @@
       <div class="editor-tools" aria-label="エディタ操作">
         <button id="focusNoteTagBtn" type="button" title="タグを追加" aria-label="タグを追加" class="editor-tool-btn"># タグ</button>
         <button id="insertTableBtn" type="button" title="カーソル位置へ表ブロックを挿入" aria-label="表ブロックを挿入" class="editor-tool-btn">表</button>
+        <button id="insertGeometryBtn" type="button" title="カーソル位置へ図形ブロックを挿入" aria-label="図形ブロックを挿入" class="editor-tool-btn">図形</button>
         <label class="callout-tool" for="calloutTypeSelect">注意書き
           <select id="calloutTypeSelect" aria-label="注意書きの種類"><option value="NOTE">NOTE</option><option value="TIP">TIP</option><option value="IMPORTANT">IMPORTANT</option><option value="WARNING">WARNING</option></select>
         </label>
@@ -215,11 +216,13 @@
       </div>
       <textarea id="editor" placeholder="すぐ書けます。[[語句]] で語句を登録し、[[* メモ名]] で既存メモを参照できます。"></textarea>
       <div id="tableBlockEditors" class="table-block-editors" role="region" aria-label="表ブロック編集" hidden></div>
+      <div id="geometryBlockEditors" class="geometry-block-editors" role="region" aria-label="図形ブロック編集" hidden></div>
       <div id="mobileWritingTools" class="mobile-writing-tools" aria-label="執筆モードのエディタ操作">
         <details class="mobile-writing-menu">
           <summary aria-label="追加メニューを開く">追加</summary>
           <div class="mobile-writing-menu-panel" role="menu">
             <button type="button" role="menuitem" data-mobile-editor-tool="insertTableBtn">表を挿入</button>
+            <button type="button" role="menuitem" data-mobile-editor-tool="insertGeometryBtn">図形を挿入</button>
             <label class="mobile-callout-option">注意書き
               <select id="mobileCalloutTypeSelect" aria-label="注意書きの種類"><option value="NOTE">NOTE</option><option value="TIP">TIP</option><option value="IMPORTANT">IMPORTANT</option><option value="WARNING">WARNING</option></select>
             </label>
@@ -951,6 +954,9 @@
   <script src="web-clipper-config.js?v=0.5.0-4"></script>
   <script src="attachment-utils.js?v=0.5.0-12"></script>
   <script src="table-block-utils.js?v=0.5.0-4"></script>
+  <script src="geometry-block-utils.js?v=0.5.0-2"></script>
+  <script src="geometry-editor-utils.js?v=0.5.0-1"></script>
+  <script src="geometry-block-editor.js?v=0.5.0-1"></script>
   <script src="tags.js?v=0.5.0-4"></script>
   <script src="memo-list-utils.js?v=0.5.0-5"></script>
   <script src="term-link-utils.js?v=0.5.0-6"></script>

@@ -464,6 +464,13 @@ const {
   writeTextToClipboard
 } = window.MemoNexusTableBlockUtils;
 const {
+  createGeometryBlock,
+  insertGeometryBlock,
+  replaceGeometryBlock,
+  splitGeometryBlocks
+} = window.MemoNexusGeometryBlockUtils;
+const { createGeometryBlockEditor } = window.MemoNexusGeometryBlockEditor;
+const {
   AI_CONNECTION_STATES,
   AI_GENERATION_STATES,
   AI_SETTINGS_STORAGE_KEY,
@@ -814,6 +821,7 @@ const mobileWritingTools = $("mobileWritingTools");
 const mobileCalloutTypeSelect = $("mobileCalloutTypeSelect");
 const focusNoteTagBtn = $("focusNoteTagBtn");
 const insertTableBtn = $("insertTableBtn");
+const insertGeometryBtn = $("insertGeometryBtn");
 const calloutTypeSelect = $("calloutTypeSelect");
 const insertCalloutBtn = $("insertCalloutBtn");
 const insertImageBlockBtn = $("insertImageBlockBtn");
@@ -827,6 +835,7 @@ const closeExplanationDialogBtn = $("closeExplanationDialogBtn");
 const cancelExplanationBtn = $("cancelExplanationBtn");
 const calculatorLinkBtn = $("calculatorLinkBtn");
 const tableBlockEditors = $("tableBlockEditors");
+const geometryBlockEditors = $("geometryBlockEditors");
 const tableAxisDeleteDialog = $("tableAxisDeleteDialog");
 const tableAxisDeleteTitle = $("tableAxisDeleteTitle");
 const tableAxisDeleteMessage = $("tableAxisDeleteMessage");
@@ -6081,6 +6090,7 @@ function openNote(id) {
   renderList();
   renderCollectionExplorer();
   renderTableBlockEditors();
+  globalThis.renderGeometryBlockEditors?.();
   applyEffectiveFontSettings();
   renderPreview();
   renderAttachmentsForCurrentNote();
@@ -6127,6 +6137,7 @@ async function initPopout() {
   renderNoteMeta();
   renderTextStats();
   renderTableBlockEditors();
+  globalThis.renderGeometryBlockEditors?.();
   applyEffectiveFontSettings();
   document.title = `${note.title} — Memo Nexus`;
   requestAnimationFrame(() => editor.focus());
@@ -6826,6 +6837,7 @@ function handleNoteBatchSaveSuccess(results, { invalidateTermRelations = true, r
       editor.value = note.body;
       removeDraftMirrorForNote(note.id);
       renderTableBlockEditors();
+      globalThis.renderGeometryBlockEditors?.();
     }
   }
   if (isPopoutWindow) {
@@ -7236,11 +7248,13 @@ function applyMemoSync(note) {
   if (isPopoutWindow) {
     renderNoteMeta();
     renderTableBlockEditors();
+    globalThis.renderGeometryBlockEditors?.();
     document.title = `${note.title} — Memo Nexus`;
     return;
   }
   renderAll();
   renderTableBlockEditors();
+  globalThis.renderGeometryBlockEditors?.();
   renderPreview();
   if (isPopoutWindow) document.title = `${note.title} — Memo Nexus`;
 }
@@ -7575,6 +7589,7 @@ function undoLastEdit() {
   editor.value = snapshot.body;
   lastUndoSnapshotAt = 0;
   renderTableBlockEditors();
+  globalThis.renderGeometryBlockEditors?.();
   scheduleSave();
   renderNoteMeta();
   updateUndoButton();
@@ -7756,6 +7771,70 @@ function currentTableBlock(blockIndex, tableId) {
   const blocks = splitTableBlocks(editor.value).filter((segment) => segment.type === "table");
   const block = blocks[Number(blockIndex)];
   return block && block.table.id === tableId ? block : null;
+}
+
+function currentGeometryBlock(blockIndex, geometryId) {
+  const blocks = splitGeometryBlocks(editor.value).filter((segment) => segment.type === "geometry");
+  const block = blocks[Number(blockIndex)];
+  return block && block.geometry.id === geometryId ? block : null;
+}
+
+function renderGeometryBlockEditors() {
+  if (!geometryBlockEditors) return;
+  const blocks = splitGeometryBlocks(editor.value).filter((segment) => segment.type === "geometry");
+  geometryBlockEditors.replaceChildren();
+  geometryBlockEditors.hidden = blocks.length === 0;
+  if (!blocks.length) return;
+  const heading = document.createElement("div");
+  heading.className = "geometry-block-editors-heading";
+  heading.textContent = `本文内の図形（${blocks.length}件）`;
+  geometryBlockEditors.append(heading);
+  blocks.forEach((block, blockIndex) => {
+    geometryBlockEditors.append(createGeometryBlockEditor(block.geometry, {
+      blockIndex,
+      onChange: (nextGeometry) => commitGeometryBlockChange(blockIndex, block.geometry.id, nextGeometry),
+      onDelete: () => removeGeometryBlock(blockIndex, block.geometry.id)
+    }));
+  });
+}
+
+function commitGeometryBlockChange(blockIndex, geometryId, nextGeometry) {
+  const block = currentGeometryBlock(blockIndex, geometryId);
+  if (!block) {
+    renderGeometryBlockEditors();
+    return false;
+  }
+  try {
+    captureUndoSnapshot({ inputType: "insertText" });
+    editor.value = replaceGeometryBlock(editor.value, block, nextGeometry);
+    scheduleSave({ render: false });
+    return true;
+  } catch (error) {
+    alert(error.message || String(error));
+    renderGeometryBlockEditors();
+    return false;
+  }
+}
+
+function removeGeometryBlock(blockIndex, geometryId) {
+  const block = currentGeometryBlock(blockIndex, geometryId);
+  if (!block) return;
+  captureUndoSnapshot({ inputType: "deleteContentForward" });
+  editor.value = replaceGeometryBlock(editor.value, block, null);
+  renderGeometryBlockEditors();
+  scheduleSave({ render: false });
+}
+
+function insertGeometryAtSelection() {
+  if (!currentNote() || currentNote().deletedAt) return;
+  const geometry = createGeometryBlock();
+  const result = insertGeometryBlock(editor.value, editor.selectionStart, editor.selectionEnd, geometry);
+  captureUndoSnapshot({ inputType: "insertText" });
+  editor.value = result.value;
+  editor.setSelectionRange(result.selectionStart, result.selectionEnd);
+  renderGeometryBlockEditors();
+  scheduleSave({ render: false });
+  requestAnimationFrame(() => geometryBlockEditors?.querySelector(`.geometry-block-editor[data-geometry-id="${CSS.escape(geometry.id)}"]`)?.focus({ preventScroll: true }));
 }
 
 function tableEditorButton(label, action, danger = false) {
@@ -9105,10 +9184,17 @@ function renderPreviewHtml(body, noteId = "preview", renderGeneration = 0) {
   const cleanedBody = stripExplanationAnchorComments(body);
   let codeBlockIndex = 0;
   let tableBlockIndex = 0;
+  let geometryBlockIndex = 0;
   const html = splitImageBlocks(cleanedBody)
     .map((segment, imageBlockIndex) => {
       if (segment.type === "image") return renderImageBlock(segment, imageBlockIndex);
-      return splitTableBlocks(segment.text).map((tableSegment) => {
+      return splitGeometryBlocks(segment.text).map((geometrySegment) => {
+        if (geometrySegment.type === "geometry") {
+          const rendered = renderGeometryBlock(geometrySegment.geometry, geometryBlockIndex);
+          geometryBlockIndex += 1;
+          return rendered;
+        }
+        return splitTableBlocks(geometrySegment.text).map((tableSegment) => {
         if (tableSegment.type === "table") {
           const rendered = renderTableBlock(tableSegment.table, tableBlockIndex);
           tableBlockIndex += 1;
@@ -9128,12 +9214,32 @@ function renderPreviewHtml(body, noteId = "preview", renderGeneration = 0) {
           codeBlockIndex += 1;
           return rendered;
         }).join("");
+        }).join("");
       }).join("");
     })
     .filter(Boolean)
     .join("");
 
   return html || `<p class="empty">本文を書くとカード表示されます。</p>`;
+}
+
+function renderGeometryBlock(geometry, blockIndex) {
+  const points = new Map(geometry.points.map((point) => [point.id, point]));
+  const polygons = geometry.objects.filter((object) => object.type === "polygon").map((polygon) => {
+    const vertices = polygon.pointIds.map((pointId) => points.get(pointId)).filter(Boolean);
+    return vertices.length >= 3 ? `<polygon class="geometry-preview-polygon" points="${vertices.map((point) => `${point.x},${point.y}`).join(" ")}"/>` : "";
+  }).join("");
+  const segments = geometry.objects.filter((object) => object.type === "segment").map((segment) => {
+    const [start, end] = segment.pointIds.map((pointId) => points.get(pointId));
+    return start && end ? `<line class="geometry-preview-segment${segment.lineStyle === "dashed" ? " is-dashed" : ""}" x1="${start.x}" y1="${start.y}" x2="${end.x}" y2="${end.y}"/>` : "";
+  }).join("");
+  const labels = geometry.points.filter((point) => point.visible).map((point) => {
+    const label = geometry.annotations.find((annotation) => annotation.type === "vertex-label" && annotation.pointId === point.id);
+    const text = label?.label ? `<text class="geometry-preview-label" x="${point.x + label.offsetX}" y="${point.y + label.offsetY}">${escapeHtml(label.label)}</text>` : "";
+    return `<circle class="geometry-preview-point" cx="${point.x}" cy="${point.y}" r="1.8"/>${text}`;
+  }).join("");
+  const title = geometry.caption.trim() || `図形ブロック${blockIndex + 1}`;
+  return `<figure class="geometry-preview" data-geometry-id="${escapeAttr(geometry.id)}"><svg viewBox="${geometry.viewBox.x} ${geometry.viewBox.y} ${geometry.viewBox.width} ${geometry.viewBox.height}" role="img" aria-label="${escapeAttr(title)}">${polygons}${segments}${labels}</svg>${geometry.caption ? `<figcaption>${escapeHtml(geometry.caption)}</figcaption>` : ""}</figure>`;
 }
 
 function renderTableBlock(tableValue, blockIndex) {
@@ -13542,6 +13648,7 @@ if (imagePreviewDialog) imagePreviewDialog.addEventListener("close", () => image
 if (syntaxGuideBtn && syntaxGuideDialog) syntaxGuideBtn.addEventListener("click", openSyntaxGuide);
 focusNoteTagBtn?.addEventListener("click", focusNoteTagInput);
 if (insertTableBtn) insertTableBtn.addEventListener("click", insertTableAtSelection);
+if (insertGeometryBtn) insertGeometryBtn.addEventListener("click", insertGeometryAtSelection);
 if (insertCalloutBtn) insertCalloutBtn.addEventListener("click", insertCalloutAtSelection);
 if (insertImageBlockBtn) insertImageBlockBtn.addEventListener("click", () => {
   const note = currentNote();
