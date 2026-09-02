@@ -9,6 +9,18 @@ const {
   supportsDirectoryPicker,
   uniqueFileName
 } = require("./export-utils.js");
+const { createGeometryBlock, serializeGeometryBlock } = require("./geometry-block-utils.js");
+
+test("通常Markdownエクスポートで幾何学ブロック本文をそのまま保持する", () => {
+  const geometryMarker = serializeGeometryBlock(createGeometryBlock("export-round-trip"));
+  const body = `前\n${geometryMarker}\n後`;
+  const plan = buildCollectionLocalPlan(
+    [{ id: "root", name: "Root", parentId: null }, { id: "child", name: "幾何", parentId: "root" }],
+    [{ id: "geometry-note", title: "図形", body, collectionId: "child" }],
+    "root"
+  );
+  assert.equal(plan.files[0].content, body);
+});
 
 test("Windowsで危険な文字、末尾、予約デバイス名を安全化する", () => {
   assert.equal(sanitizeWindowsName('A\\B/C:*?"<>|. ', "無題のメモ"), "A_B_C_______");

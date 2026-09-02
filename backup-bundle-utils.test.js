@@ -7,6 +7,7 @@ const { mergeTagDefinitionsFromNotes, normalizeTagDefinitions, tagColorFromId } 
 const {
   BACKUP_FORMAT, BACKUP_VERSION, attachmentIdsToReplace, buildPortableBackupFiles, importedWins, isPortableBackup, parsePortableBackup
 } = require("./backup-bundle-utils.js");
+const { createGeometryBlock, serializeGeometryBlock } = require("./geometry-block-utils.js");
 
 function entry(name, content) {
   return { name, data: typeof content === "string" ? new TextEncoder().encode(content) : content };
@@ -45,6 +46,24 @@ test("完全バックアップはメモ個別のWebフォントIDをそのまま
     entry("notes/web-font.md", markdown)
   ], { parseNote: parseLocalNote });
   assert.deepEqual(parsed.notes[0].note.fontSettings, fontSettings);
+});
+
+test("Memo Nexus形式ZIPの書き出しと復元で幾何学ブロック本文をそのまま保持する", () => {
+  const geometryMarker = serializeGeometryBlock(createGeometryBlock("backup-round-trip"));
+  const body = `前\n${geometryMarker}\n後`;
+  const markdown = serializeLocalNote({ id: "geometry-backup", title: "幾何学バックアップ" }, body);
+  const files = buildPortableBackupFiles({
+    manifest: manifest(),
+    collections: [],
+    tagDefinitions: [],
+    notePlans: [{ fileName: "geometry.md", markdown }],
+    normalizeTagDefinitions
+  });
+  const parsed = parsePortableBackup(files.map((file) => entry(file.name, file.content)), {
+    parseNote: parseLocalNote,
+    normalizeTagDefinitions
+  });
+  assert.equal(parsed.notes[0].note.body, body);
 });
 
 test("ZIP出力・復元でUTCの作成・更新時刻の瞬間を変更しない", () => {

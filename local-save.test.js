@@ -42,10 +42,18 @@ const {
 const localFs = require("./local-fs-adapter.js");
 const { runManualLocalSave } = require("./manual-local-save.js");
 const { remapImportedAttachmentReferences, resolveImportedAttachmentId } = require("./attachment-utils.js");
+const { createGeometryBlock, serializeGeometryBlock } = require("./geometry-block-utils.js");
 
 const app = fs.readFileSync("app.js", "utf8");
 const html = fs.readFileSync("index.html", "utf8");
 const css = fs.readFileSync("style.css", "utf8");
+
+test("ローカルMarkdownの書き出しと読み戻しで幾何学ブロック本文をそのまま保持する", () => {
+  const geometryMarker = serializeGeometryBlock(createGeometryBlock("local-round-trip"));
+  const body = `前\n${geometryMarker}\n後`;
+  const markdown = serializeLocalNote({ id: "geometry-local", title: "幾何学" }, body);
+  assert.equal(parseLocalNote(markdown).body, body);
+});
 
 function extractFunction(source, name) {
   const start = source.indexOf(`function ${name}(`);
