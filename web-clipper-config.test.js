@@ -38,6 +38,8 @@ test("設定画面は許可ID一覧・復旧案内・接続状態・受信版を
   assert.match(app, /recordWebClipperReceipt\(event\.origin, event\.data\.clip\)/);
   assert.match(app, /拡張バージョン/);
   assert.match(config, /minimumCompatibleVersion: "0\.3\.0"/);
+  assert.match(config, /transferProtocol: \{[\s\S]*currentVersion: 2,[\s\S]*currentExtensionVersion: "0\.3\.8"/);
+  assert.match(app, /旧転送方式で受信しました。保存できますが/);
   assert.match(app, /古いWeb Clipperが動作しています。拡張機能を更新してください。/);
   assert.doesNotMatch(app, /Memo-Nexus独自の受信ID/);
 });

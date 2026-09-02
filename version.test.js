@@ -42,9 +42,9 @@ test("全ローカルCSS・JavaScriptを0.5.0のキャッシュ識別子で読�
   assert.match(html, /layout-resize-utils\.js\?v=0\.5\.0-2/);
   assert.match(html, /web-clip-utils\.js\?v=0\.5\.0-7/);
   assert.match(html, /extensions\/web-clipper\/clip-result\.js\?v=0\.5\.0-1/);
-  assert.match(html, /extensions\/web-clipper\/transfer-lifecycle\.js\?v=0\.5\.0-1/);
-  assert.match(html, /web-clipper-config\.js\?v=0\.5\.0-3/);
-  assert.match(html, /app\.js\?v=0\.5\.0-137/);
+  assert.match(html, /extensions\/web-clipper\/transfer-lifecycle\.js\?v=0\.5\.0-2/);
+  assert.match(html, /web-clipper-config\.js\?v=0\.5\.0-4/);
+  assert.match(html, /app\.js\?v=0\.5\.0-138/);
 });
 
 test("本体リリースと別管理の互換性バージョンを変更しない", () => {

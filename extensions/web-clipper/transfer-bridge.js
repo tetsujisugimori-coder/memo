@@ -23,6 +23,7 @@
     let attempt = 0;
     let phase = "idle";
     let payloadSent = false;
+    let receiverProtocol = "current";
     let stopped = false;
 
     function diagnostic(code, extra = {}) {
@@ -54,8 +55,9 @@
       log(details);
     }
 
-    async function deliver() {
+    async function deliver(protocol = "current") {
       if (stopped || !key || phase === "reading" || phase === "awaiting_ack" || phase === "complete") return;
+      receiverProtocol = protocol;
       phase = "reading";
       attempt += 1;
       let record;
@@ -75,8 +77,8 @@
       }
       phase = "awaiting_ack";
       payloadSent = true;
-      post({ type: TYPES.PAYLOAD, transferId, record });
-      log(diagnostic("payload_sent", { recordPresent: true }));
+      post({ type: TYPES.PAYLOAD, transferId, record, clip: record.clip });
+      log(diagnostic("payload_sent", { recordPresent: true, receiverProtocol }));
       clearAckTimer();
       ackTimer = setTimeoutFn(() => {
         ackTimer = 0;
@@ -119,11 +121,12 @@
 
     async function handleMessage(message) {
       if (stopped || !message || message.transferId !== transferId) return;
-      if (message.type === TYPES.RECEIVER_READY && phase === "waiting_receiver") await deliver();
+      if (message.type === TYPES.RECEIVER_READY && phase === "waiting_receiver") await deliver("current");
+      else if (message.type === TYPES.CONTENT_READY && phase === "waiting_receiver" && !Number.isFinite(message.attempt)) await deliver("legacy");
       else if (message.type === TYPES.RETRY) {
         clearAckTimer();
         phase = "waiting_receiver";
-        await deliver();
+        await deliver(receiverProtocol);
       } else if (message.type === TYPES.ACK) await acknowledge();
       else if (message.type === TYPES.CANCEL) await cancel();
     }

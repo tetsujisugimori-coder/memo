@@ -4803,13 +4803,15 @@ function clearWebClipTransferResponseTimer() {
 
 function safeWebClipTransferDiagnostics(value = {}) {
   const attempt = Number(value.attempt);
+  const transferProtocol = ["current", "legacy"].includes(value.transferProtocol) ? value.transferProtocol : "unknown";
   return {
     transferId: pendingWebClipTransferId,
     state: pendingWebClipTransferState,
     code: String(value.code || pendingWebClipTransferErrorCode || "").slice(0, 64),
     attempt: Number.isFinite(attempt) ? Math.max(0, Math.min(9999, Math.trunc(attempt))) : 0,
     ackReceived: value.ackReceived === true,
-    extensionVersion: String(value.extensionVersion || pendingWebClipDiagnostics.extensionVersion || "").slice(0, 32)
+    extensionVersion: String(value.extensionVersion || pendingWebClipDiagnostics.extensionVersion || "").slice(0, 32),
+    transferProtocol
   };
 }
 
@@ -4839,6 +4841,7 @@ function webClipTransferErrorMessage(code) {
     host_invalid: "payloadのホスト名が不正です。",
     selection_invalid: "payloadの本文が不正です。",
     captured_at_invalid: "payloadの取得日時が不正です。",
+    extension_update_required: "この転送payload形式には対応していません。Web Clipperを更新してください。",
     transfer_id_invalid: "転送IDの形式が不正です。",
     storage_unavailable: "拡張機能の一時データを読み取れませんでした。",
     storage_remove_failed: "受信確認後に一時データを削除できませんでした。",
@@ -5199,15 +5202,21 @@ function consumeWebClipLaunchMarker() {
   return true;
 }
 
-function webClipperCompatibilityWarning(clip) {
+function webClipperCompatibilityWarning(clip, transferProtocol = "") {
   if (!clip) return "";
   const minimum = window.MemoNexusWebClipperConfig?.minimumCompatibleVersion || "0.3.0";
   const current = String(clip.extensionVersion || "").trim();
-  if (isWebClipperVersionCompatible(current, minimum)) return "";
-  return `古いWeb Clipperが動作しています。拡張機能を更新してください。現在: ${current || "不明"}／必要: ${minimum}以上`;
+  if (!isWebClipperVersionCompatible(current, minimum)) {
+    return `古いWeb Clipperが動作しています。拡張機能を更新してください。現在: ${current || "不明"}／必要: ${minimum}以上`;
+  }
+  if (transferProtocol === "legacy") {
+    const recommended = window.MemoNexusWebClipperConfig?.transferProtocol?.currentExtensionVersion || "0.3.8";
+    return `旧転送方式で受信しました。保存できますが、Web Clipper ${recommended}以上への更新を推奨します。`;
+  }
+  return "";
 }
 
-function openWebClipDialog(clip = null, receiveError = "", { preserveTransferState = false } = {}) {
+function openWebClipDialog(clip = null, receiveError = "", { preserveTransferState = false, transferProtocol = "" } = {}) {
   if (!webClipDialog || !webClipReceiverReady) return;
   cancelWebClipImageRetry();
   if (!preserveTransferState) {
@@ -5243,7 +5252,7 @@ function openWebClipDialog(clip = null, receiveError = "", { preserveTransferSta
   webClipCapturedAt.value = normalized.capturedAt;
   webClipError.textContent = "";
   pendingWebClipReceiveError = receiveError;
-  pendingWebClipCompatibilityWarning = webClipperCompatibilityWarning(clip ? normalized : null);
+  pendingWebClipCompatibilityWarning = webClipperCompatibilityWarning(clip ? normalized : null, transferProtocol);
   pendingWebClipFromExtension = Boolean(clip);
   renderPendingWebClipOutcome();
   if (clip && normalized.clipResult.diagnostic.code) {
@@ -5399,19 +5408,34 @@ function receiveWebClipMessage(event) {
       }
       clearWebClipTransferResponseTimer();
       setPendingWebClipTransferState("validating", "", message.diagnostics);
-      const validation = webClipTransferLifecycle?.validateTransferRecord(message.record);
+      const validation = webClipTransferLifecycle?.resolveTransferPayload(message);
       if (!validation?.ok) {
-        const code = validation?.code || "unknown_transfer_error";
-        setPendingWebClipTransferState("error", code, message.diagnostics);
-        console.info("Memo-Nexus Web Clip transfer rejected", safeWebClipTransferDiagnostics({ ...message.diagnostics, code }));
+        const code = validation?.code || "extension_update_required";
+        const diagnostics = { ...message.diagnostics, code, transferProtocol: validation?.protocol || "unknown" };
+        setPendingWebClipTransferState("error", code, diagnostics);
+        console.info("Memo-Nexus Web Clip transfer rejected", safeWebClipTransferDiagnostics(diagnostics));
         return;
       }
+      const clip = validation.clip;
+      const transferProtocol = validation.protocol;
       completedWebClipTransferIds.add(transferId);
-      recordWebClipperReceipt(null, message.record.clip);
-      openWebClipDialog(message.record.clip, "", { preserveTransferState: true });
+      recordWebClipperReceipt(null, clip);
+      openWebClipDialog(clip, "", { preserveTransferState: true, transferProtocol });
+      if (transferProtocol === "legacy") {
+        window.postMessage({ type: WEB_CLIP_TRANSFER_TYPES.ACK, transferId }, location.origin);
+        clearPendingWebClipTransferSession(transferId);
+        setPendingWebClipTransferState("success", "", {
+          ...message.diagnostics,
+          extensionVersion: clip.extensionVersion || "",
+          transferProtocol: "legacy",
+          ackReceived: true
+        });
+        return;
+      }
       setPendingWebClipTransferState("ack_waiting", "", {
         ...message.diagnostics,
-        extensionVersion: message.record.clip.extensionVersion || ""
+        extensionVersion: clip.extensionVersion || "",
+        transferProtocol: "current"
       });
       window.postMessage({ type: WEB_CLIP_TRANSFER_TYPES.ACK, transferId }, location.origin);
       scheduleWebClipTransferAckTimeout();
@@ -5427,7 +5451,7 @@ function receiveWebClipMessage(event) {
       const knownCodes = new Set([
         "record_missing", "transfer_expired", "record_invalid", "created_at_missing", "created_at_invalid", "created_at_future",
         "clip_invalid", "title_invalid", "url_invalid", "host_invalid", "selection_invalid", "captured_at_invalid",
-        "storage_unavailable", "storage_remove_failed", "ack_timeout"
+        "extension_update_required", "storage_unavailable", "storage_remove_failed", "ack_timeout"
       ]);
       const code = knownCodes.has(message.code) ? message.code : "unknown_transfer_error";
       setPendingWebClipTransferState("error", code, message.diagnostics);

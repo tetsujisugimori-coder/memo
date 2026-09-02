@@ -90,9 +90,9 @@ SVGとAVIFは生データを本体へ渡さず、必要時だけ作るOffscreen 
 4. 本体の確認画面でタイトル、本文、コレクション、画像候補を確認します。画像は個別または全選択・全解除で保存対象を変更できます。保存前に自動保存はされません。
 5. 選択なしでも同じ操作でURLクリップ候補を開けます。
 
-2026-09-02にMicrosoft Edgeの`msedge` channelへ展開読み込み版0.3.8を実際に読み込み、`web-clipper.e2e.js`を実行しました。受信開始を15.5秒遅らせたページ全文、ACK遮断後の再読み込み再開、欠落後の再受信、期限切れ、重複payload、2タブ同時転送、受信用スクリプト欠落、無関係Origin拒否を、既存4方式、長文、画像、再クリップ、保存失敗保持、画像再試行とともに確認しています。これはローカルHTTP接続先での実Edge確認であり、GitHub Pages本番とWikipedia実ページを操作した確認ではありません。Windowsでは`set MEMO_NEXUS_E2E_CHANNEL=msedge&& node web-clipper.e2e.js`で再現できます。
+2026-09-02にMicrosoft Edgeの`msedge` channelへ展開読み込み版0.3.8を実際に読み込み、`web-clipper.e2e.js`を実行しました。固定した旧本体fixtureへの`record`＋互換`clip`送信と旧ACK、固定した0.3.7旧payloadの新本体受信・保存・重複保護を確認しています。受信開始を15.5秒遅らせたページ全文、ACK遮断後の再読み込み再開、欠落後の再受信、期限切れ、重複payload、2タブ同時転送、受信用スクリプト欠落、無関係Origin拒否も、既存4方式、長文、画像、再クリップ、保存失敗保持、画像再試行とともに確認しています。これはローカルHTTP接続先での実Edge確認であり、GitHub Pages本番とWikipedia実ページを操作した確認ではありません。Windowsでは`set MEMO_NEXUS_E2E_CHANNEL=msedge&& node web-clipper.e2e.js`で再現できます。
 
-本文は通常のURLパラメータへ入れません。リンクのみ、メモ付き、画像のない短い選択は `?web-clip=1#clip=<base64url>` のフラグメントへUTF-8のbase64url形式で入れます。ページ全文と画像付きクリップは`?web-clip=1#clip-transfer=<UUID>`だけをURLへ付け、payload本体は拡張ストレージに保持します。フラグメントはGitHub Pagesを含むサーバーへのリクエストに送信されません。本体は`history.replaceState()`でフラグメントと`web-clip`だけをURL・履歴から削除し、転送中UUIDはACKまで`sessionStorage`から復元します。ほかのクエリは維持します。旧来の許可済みextension-originからの`postMessage`受信経路とアプリ内の手動起動は維持します。
+本文は通常のURLパラメータへ入れません。リンクのみ、メモ付き、画像のない短い選択は `?web-clip=1#clip=<base64url>` のフラグメントへUTF-8のbase64url形式で入れます。ページ全文と画像付きクリップは`?web-clip=1#clip-transfer=<UUID>`だけをURLへ付け、payload本体は拡張ストレージに保持します。フラグメントはGitHub Pagesを含むサーバーへのリクエストに送信されません。本体は`history.replaceState()`でフラグメントと`web-clip`だけをURL・履歴から削除し、転送中UUIDはACKまで`sessionStorage`から復元します。ほかのクエリは維持します。0.3.8は新本体の`receiver-ready`に加え、`attempt`のない旧本体の`content-ready`も準備完了として扱い、payloadには正本の`record`と移行用`clip`を併記します。拡張自身の`attempt`付き`content-ready`だけではpayloadを送りません。旧来の許可済みextension-originからの`postMessage`受信経路とアプリ内の手動起動は維持します。
 
 ## 画像の保存仕様
 

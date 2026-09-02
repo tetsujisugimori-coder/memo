@@ -22,6 +22,21 @@
     return isTransferId(id) ? `${TRANSFER_STORAGE_PREFIX}${id}` : "";
   }
 
+  function validateTransferClip(clip) {
+    if (!clip || typeof clip !== "object" || Array.isArray(clip)) return { ok: false, code: "clip_invalid" };
+    if (typeof clip.title !== "string" || !clip.title.trim()) return { ok: false, code: "title_invalid" };
+    try {
+      const url = new URL(clip.url);
+      if (!["http:", "https:"].includes(url.protocol) || !url.hostname) return { ok: false, code: "url_invalid" };
+    } catch (_) {
+      return { ok: false, code: "url_invalid" };
+    }
+    if (typeof clip.host !== "string" || !clip.host.trim()) return { ok: false, code: "host_invalid" };
+    if (typeof clip.selection !== "string") return { ok: false, code: "selection_invalid" };
+    if (!Number.isFinite(Date.parse(clip.capturedAt))) return { ok: false, code: "captured_at_invalid" };
+    return { ok: true, code: "ok" };
+  }
+
   function validateTransferRecord(value, now = Date.now()) {
     if (value === undefined || value === null) return { ok: false, code: "record_missing" };
     if (typeof value !== "object" || Array.isArray(value)) return { ok: false, code: "record_invalid" };
@@ -30,14 +45,22 @@
     if (!Number.isFinite(age)) return { ok: false, code: "created_at_invalid" };
     if (age < 0) return { ok: false, code: "created_at_future" };
     if (age > TRANSFER_TTL_MS) return { ok: false, code: "transfer_expired" };
-    const clip = value.clip;
-    if (!clip || typeof clip !== "object" || Array.isArray(clip)) return { ok: false, code: "clip_invalid" };
-    if (typeof clip.title !== "string" || !clip.title.trim()) return { ok: false, code: "title_invalid" };
-    if (!/^https?:\/\//i.test(String(clip.url || ""))) return { ok: false, code: "url_invalid" };
-    if (typeof clip.host !== "string" || !clip.host.trim()) return { ok: false, code: "host_invalid" };
-    if (typeof clip.selection !== "string") return { ok: false, code: "selection_invalid" };
-    if (!Number.isFinite(Date.parse(clip.capturedAt))) return { ok: false, code: "captured_at_invalid" };
-    return { ok: true, code: "ok" };
+    return validateTransferClip(value.clip);
+  }
+
+  function resolveTransferPayload(message, now = Date.now()) {
+    if (!message || typeof message !== "object" || Array.isArray(message)) {
+      return { ok: false, code: "extension_update_required", protocol: "unknown", clip: null };
+    }
+    if (Object.prototype.hasOwnProperty.call(message, "record")) {
+      const validation = validateTransferRecord(message.record, now);
+      return { ...validation, protocol: "current", clip: validation.ok ? message.record.clip : null };
+    }
+    if (Object.prototype.hasOwnProperty.call(message, "clip")) {
+      const validation = validateTransferClip(message.clip);
+      return { ...validation, protocol: "legacy", clip: validation.ok ? message.clip : null };
+    }
+    return { ok: false, code: "extension_update_required", protocol: "unknown", clip: null };
   }
 
   function isActiveTransferRecord(value, now = Date.now()) {
@@ -67,7 +90,9 @@
     isActiveTransferRecord,
     isTerminalTransferRecordError,
     isTransferId,
+    resolveTransferPayload,
     transferStorageKey,
+    validateTransferClip,
     validateTransferRecord
   };
   if (typeof module !== "undefined" && module.exports) module.exports = api;

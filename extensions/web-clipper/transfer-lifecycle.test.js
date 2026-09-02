@@ -4,6 +4,8 @@ const {
   TRANSFER_TTL_MS,
   inspectTransferEntries,
   isActiveTransferRecord,
+  resolveTransferPayload,
+  validateTransferClip,
   validateTransferRecord,
   transferStorageKey
 } = require("./transfer-lifecycle.js");
@@ -67,4 +69,25 @@ test("転送レコードの検証失敗項目を安全なエラーコードで�
   assert.equal(validateTransferRecord({ clip: { ...validClip, capturedAt: "invalid" }, createdAt: now }, now).code, "captured_at_invalid");
   assert.equal(validateTransferRecord({ clip: validClip, createdAt: now - TRANSFER_TTL_MS - 1 }, now).code, "transfer_expired");
   assert.deepEqual(validateTransferRecord({ clip: validClip, createdAt: now }, now), { ok: true, code: "ok" });
+});
+
+test("旧payloadのclipも新形式と同じ基準で検証し、createdAtを要求しない", () => {
+  assert.deepEqual(validateTransferClip(validClip), { ok: true, code: "ok" });
+  assert.equal(validateTransferClip({ ...validClip, title: "" }).code, "title_invalid");
+  assert.equal(validateTransferClip({ ...validClip, url: "file:///secret" }).code, "url_invalid");
+  assert.equal(validateTransferClip({ ...validClip, url: "https://" }).code, "url_invalid");
+  assert.equal(validateTransferClip({ ...validClip, host: "" }).code, "host_invalid");
+  assert.equal(validateTransferClip({ ...validClip, selection: null }).code, "selection_invalid");
+  assert.equal(validateTransferClip({ ...validClip, capturedAt: "invalid" }).code, "captured_at_invalid");
+});
+
+test("新旧payloadを区別し、未知形式は拡張更新が必要なエラーにする", () => {
+  assert.deepEqual(resolveTransferPayload({ record: { clip: validClip, createdAt: now }, clip: { ...validClip, title: "互換フィールド" } }, now), {
+    ok: true, code: "ok", protocol: "current", clip: validClip
+  });
+  assert.deepEqual(resolveTransferPayload({ clip: validClip }, now), {
+    ok: true, code: "ok", protocol: "legacy", clip: validClip
+  });
+  assert.equal(resolveTransferPayload({}, now).code, "extension_update_required");
+  assert.equal(resolveTransferPayload({ clip: { ...validClip, url: "javascript:alert(1)" } }, now).code, "url_invalid");
 });

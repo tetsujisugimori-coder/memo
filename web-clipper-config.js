@@ -2,6 +2,10 @@
 // 追加する場合も、必要な拡張IDだけをこの配列へ登録してください。
 window.MemoNexusWebClipperConfig = {
   minimumCompatibleVersion: "0.3.0",
+  transferProtocol: {
+    currentVersion: 2,
+    currentExtensionVersion: "0.3.8"
+  },
   allowedExtensionOrigins: [
     "chrome-extension://lecpajkpnjnagbeokicilagdonkcimbo",
     "chrome-extension://aelacnladkiohkhbjhfbmeknbfgpcmlh",

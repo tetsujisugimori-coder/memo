@@ -118,6 +118,10 @@ function server() {
       response.writeHead(200, { "content-type": "text/html; charset=utf-8" });
       return response.end("<!doctype html><script>window.transferEvents=0;window.timeoutSeen=false;window.addEventListener('message',e=>{const m=e.data||{};if(m.type==='memo-nexus-web-clip-content-ready')window.postMessage({type:'memo-nexus-web-clip-receiver-ready',transferId:m.transferId},location.origin);if(m.type==='memo-nexus-web-clip-transfer')window.transferEvents++;if(m.type==='memo-nexus-web-clip-transfer-error'&&m.code==='ack_timeout')window.timeoutSeen=true});</script><p>ACKなし受信先</p>");
     }
+    if (url.pathname === "/legacy-receiver.html") {
+      response.writeHead(200, { "content-type": "text/html; charset=utf-8" });
+      return response.end("<!doctype html><script>window.legacyPayloads=[];window.addEventListener('message',e=>{const m=e.data||{};if(m.type==='memo-nexus-web-clip-transfer')window.legacyPayloads.push(m)});window.signalLegacyReady=id=>window.postMessage({type:'memo-nexus-web-clip-content-ready',transferId:id},location.origin);window.sendLegacyAck=id=>window.postMessage({type:'memo-nexus-web-clip-transfer-ack',transferId:id},location.origin);</script><p>旧本体受信fixture</p>");
+    }
     const relative = decodeURIComponent(url.pathname === "/" ? "/index.html" : url.pathname).replace(/^[/\\]+/, "");
     const file = path.resolve(root, relative);
     if (!file.startsWith(root) || !fs.existsSync(file) || fs.statSync(file).isDirectory()) {
@@ -225,6 +229,15 @@ async function waitForClipPage(context, before) {
 
 async function capture(context, worker, extensionId, mode) {
   const before = new Set(context.pages());
+  const sourcePage = context.pages().find((page) => page.url() === articleUrl);
+  if (sourcePage) {
+    await sourcePage.evaluate((text) => {
+      const node = [...document.querySelectorAll("p")].find((item) => item.textContent.includes(text))?.firstChild;
+      if (!node) return;
+      const range = document.createRange(); range.selectNodeContents(node);
+      const selection = getSelection(); selection.removeAllRanges(); selection.addRange(range);
+    }, selectionText);
+  }
   await worker.evaluate(async (url) => {
     const [tab] = await chrome.tabs.query({ url });
     if (tab?.id) await chrome.tabs.update(tab.id, { active: true });
@@ -409,6 +422,95 @@ async function main() {
     await source.bringToFront();
     assert.equal(new URL(worker.url()).host, extensionId, "extension ID changed after Service Worker restart");
 
+    // 固定した旧本体fixtureで、0.3.8ブリッジが自己通知をreadyと誤認せず、
+    // 旧content-ready後だけrecord＋互換clipを送り、対応するACKだけで削除することを確認します。
+    const currentToLegacyId = crypto.randomUUID();
+    const currentToLegacyKey = `memoNexusTransfer:${currentToLegacyId}`;
+    const currentToLegacyRecord = {
+      createdAt: Date.now(),
+      clip: { title: "0.3.8から旧本体", url: `${articleUrl}?compat=current-to-legacy`, host: "127.0.0.1", selection: "互換フィールドで届く本文", clipMode: "page", capturedAt: new Date().toISOString(), extensionVersion: "0.3.8" }
+    };
+    await setStorage(worker, currentToLegacyKey, currentToLegacyRecord);
+    const legacyReceiver = await context.newPage();
+    await legacyReceiver.goto(`${appUrl}legacy-receiver.html#clip-transfer=${currentToLegacyId}`);
+    await legacyReceiver.waitForTimeout(1_250);
+    assert.equal(await legacyReceiver.evaluate(() => window.legacyPayloads.length), 0, "ブリッジ自身のCONTENT_READYでpayloadを送った");
+    await legacyReceiver.evaluate((id) => window.signalLegacyReady(id), currentToLegacyId);
+    await legacyReceiver.waitForFunction(() => window.legacyPayloads.length === 1);
+    const compatibilityPayload = await legacyReceiver.evaluate(() => {
+      const payload = window.legacyPayloads[0];
+      return { record: payload.record, clip: payload.clip };
+    });
+    assert.deepEqual(compatibilityPayload.record, currentToLegacyRecord);
+    assert.deepEqual(compatibilityPayload.clip, currentToLegacyRecord.clip);
+    assert(await storage(worker, currentToLegacyKey), "旧本体のACK前に一時レコードを削除した");
+    await legacyReceiver.evaluate((id) => window.sendLegacyAck(id), crypto.randomUUID());
+    await legacyReceiver.waitForTimeout(150);
+    assert(await storage(worker, currentToLegacyKey), "別IDの旧ACKで一時レコードを削除した");
+    await legacyReceiver.evaluate((id) => window.sendLegacyAck(id), currentToLegacyId);
+    await waitForStorageRemoval(worker, currentToLegacyKey);
+    await legacyReceiver.close();
+
+    // 0.3.7の旧payload契約を固定し、新本体がACK_CONFIRMEDなしで成功扱いにし、
+    // 確認画面の利用者編集を重複payloadで初期化しないことを確認します。
+    const legacyToCurrentId = crypto.randomUUID();
+    const legacyToCurrentClip = {
+      title: "0.3.7から新本体", url: `${articleUrl}?compat=legacy-to-current`, host: "127.0.0.1",
+      selection: "旧payloadで届く本文", clipMode: "page", capturedAt: new Date().toISOString(), extensionVersion: "0.3.7"
+    };
+    const currentReceiver = await context.newPage();
+    await currentReceiver.addInitScript(() => {
+      window.memoNexusLegacyAcks = [];
+      window.addEventListener("message", (event) => {
+        if (event.data?.type === "memo-nexus-web-clip-transfer-ack") window.memoNexusLegacyAcks.push(event.data.transferId);
+      });
+    });
+    await currentReceiver.goto(`${appUrl}?web-clip=1#clip-transfer=${legacyToCurrentId}`);
+    await currentReceiver.locator("#webClipDialog[open]").waitFor();
+    await currentReceiver.evaluate(({ transferId, clip }) => window.postMessage({ type: "memo-nexus-web-clip-transfer", transferId, clip }, location.origin), {
+      transferId: crypto.randomUUID(), clip: legacyToCurrentClip
+    });
+    await currentReceiver.waitForTimeout(100);
+    assert.equal(await currentReceiver.locator("#webClipTitle").inputValue(), "", "別IDの旧payloadを受理した");
+    await currentReceiver.evaluate(({ transferId, clip }) => window.postMessage({ type: "memo-nexus-web-clip-transfer", transferId, clip }, location.origin), {
+      transferId: legacyToCurrentId, clip: legacyToCurrentClip
+    });
+    await currentReceiver.waitForFunction((title) => document.getElementById("webClipTitle")?.value === title, legacyToCurrentClip.title);
+    assert.equal(await currentReceiver.locator("#webClipUrl").inputValue(), legacyToCurrentClip.url);
+    assert.equal(await currentReceiver.locator("#webClipSelection").inputValue(), legacyToCurrentClip.selection);
+    assert.doesNotMatch(await currentReceiver.locator("#webClipReceivedStatus").textContent(), /record_missing|ack_timeout/);
+    assert.match(await currentReceiver.locator("#webClipReceivedStatus").textContent(), /旧転送方式/);
+    assert.equal(await currentReceiver.locator("#saveWebClipBtn").isEnabled(), true, "旧payload正常受信後に保存できない");
+    assert.equal(await currentReceiver.evaluate(() => safeWebClipTransferDiagnostics(pendingWebClipTransferDiagnostics).transferProtocol), "legacy");
+    await currentReceiver.waitForTimeout(8_250);
+    assert.doesNotMatch(await currentReceiver.locator("#webClipReceivedStatus").textContent(), /ack_timeout/);
+    assert.equal(await currentReceiver.locator("#saveWebClipBtn").isEnabled(), true, "ACK_CONFIRMEDなしの旧方式が後からタイムアウトした");
+    await currentReceiver.locator("#webClipTitle").fill("利用者が変更した旧転送タイトル");
+    await currentReceiver.locator("#webClipSelection").fill("利用者が変更した旧転送本文");
+    await currentReceiver.evaluate(({ transferId, clip }) => window.postMessage({ type: "memo-nexus-web-clip-transfer", transferId, clip }, location.origin), {
+      transferId: legacyToCurrentId, clip: legacyToCurrentClip
+    });
+    await currentReceiver.waitForTimeout(150);
+    assert.equal(await currentReceiver.locator("#webClipTitle").inputValue(), "利用者が変更した旧転送タイトル", "重複した旧payloadがタイトルを初期化した");
+    assert.equal(await currentReceiver.locator("#webClipSelection").inputValue(), "利用者が変更した旧転送本文", "重複した旧payloadが本文を初期化した");
+    assert((await currentReceiver.evaluate((id) => window.memoNexusLegacyAcks.filter((value) => value === id).length, legacyToCurrentId)) >= 2, "旧payloadへACKを返していない");
+    await currentReceiver.locator("#saveWebClipBtn").click();
+    await currentReceiver.locator("#webClipDialog").waitFor({ state: "hidden" });
+    assert.match(await currentReceiver.locator("#editor").inputValue(), /利用者が変更した旧転送本文/);
+    await currentReceiver.close();
+
+    const invalidLegacyId = crypto.randomUUID();
+    const invalidLegacyReceiver = await context.newPage();
+    await invalidLegacyReceiver.goto(`${appUrl}?web-clip=1#clip-transfer=${invalidLegacyId}`);
+    await invalidLegacyReceiver.locator("#webClipDialog[open]").waitFor();
+    await invalidLegacyReceiver.evaluate(({ transferId, clip }) => window.postMessage({ type: "memo-nexus-web-clip-transfer", transferId, clip }, location.origin), {
+      transferId: invalidLegacyId,
+      clip: { ...legacyToCurrentClip, url: "file:///invalid" }
+    });
+    await invalidLegacyReceiver.waitForFunction(() => /url_invalid/.test(document.getElementById("webClipReceivedStatus")?.textContent || ""));
+    assert.equal(await invalidLegacyReceiver.locator("#saveWebClipBtn").isDisabled(), true, "不正な旧payloadで保存が有効になった");
+    await invalidLegacyReceiver.close();
+
     const delayedTransferId = crypto.randomUUID();
     const delayedTransferKey = `memoNexusTransfer:${delayedTransferId}`;
     const delayedRecord = {
@@ -505,6 +607,10 @@ async function main() {
       secondTab.goto(`${appUrl}?web-clip=1#clip-transfer=${secondTabId}`)
     ]);
     await Promise.all([firstTab.locator("#webClipDialog[open]").waitFor(), secondTab.locator("#webClipDialog[open]").waitFor()]);
+    await Promise.all([
+      firstTab.waitForFunction(() => document.getElementById("webClipTitle")?.value === "複数タブ一件目"),
+      secondTab.waitForFunction(() => document.getElementById("webClipTitle")?.value === "複数タブ二件目")
+    ]);
     assert.equal(await firstTab.locator("#webClipTitle").inputValue(), "複数タブ一件目");
     assert.equal(await secondTab.locator("#webClipTitle").inputValue(), "複数タブ二件目");
     await Promise.all([waitForStorageRemoval(worker, firstTabKey), waitForStorageRemoval(worker, secondTabKey)]);

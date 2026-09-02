@@ -152,8 +152,19 @@ test("ページ全文転送は明示的な受信準備、ID一致ACK、再試行
   assert.match(transferContent, /sessionStorage\.getItem/);
   assert.match(app, /postWebClipReceiverReady/);
   assert.match(app, /completedWebClipTransferIds/);
-  assert.match(app, /validateTransferRecord\(message\.record\)/);
+  assert.match(app, /resolveTransferPayload\(message\)/);
   assert.match(app, /scheduleWebClipTransferAckTimeout\(\)/);
+});
+
+test("新旧転送payloadを区別し、旧方式は更新推奨のまま保存可能にする", () => {
+  assert.match(transferLifecycle, /function validateTransferClip/);
+  assert.match(transferLifecycle, /function resolveTransferPayload/);
+  assert.match(transferLifecycle, /extension_update_required/);
+  assert.match(transferBridge, /clip: record\.clip/);
+  assert.match(transferBridge, /message\.type === TYPES\.CONTENT_READY/);
+  assert.match(app, /resolveTransferPayload\(message\)/);
+  assert.match(app, /transferProtocol: "legacy"/);
+  assert.match(app, /旧転送方式/);
 });
 
 test("転送失敗画面は再受信、診断コピー、リンクのみの代替案内と保存ロックを備える", () => {

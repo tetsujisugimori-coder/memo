@@ -2374,3 +2374,14 @@
 * 修正前に、項目別検証APIと受信準備ブリッジが存在しないため失敗する回帰テストを追加した。最終的に転送ライフサイクル、15秒超遅延、ACK保持・別ID拒否・タイムアウト保持・再読込・欠落・期限切れ・不正項目・キャンセル、UI、Originを含むWeb Clipper関連87件と`npm test`全951件が成功した。
 * Microsoft Edgeの`msedge` channelで展開読み込み版0.3.8を実際に起動し、実ID`aelacnladkiohkhbjhfbmekpbfgpcmlh`のManifest V3拡張で、15.5秒の本体起動遅延、ACK遮断後の再読み込み、欠落後の再受信、期限切れ、重複、2タブ同時転送、content script欠落、削除Origin拒否、ACKタイムアウト保持、既存4方式、長文、画像、更新／新規保存、保存失敗保持、画像再試行を確認した。通常経路の予期しないconsole errorとpage errorは0件だった。意図的な画像保存失敗fixtureが出す既存の処理済み`console.error`だけは期待値として分離した。
 * `app.js`、`web-clipper-config.js`、転送3ファイル、`web-clipper.e2e.js`の`node --check`、manifest JSON解析、`git diff --check`を実施した。拡張版は0.3.8、配信識別子は`style.css?v=0.5.0-74`、`web-clipper-config.js?v=0.5.0-3`、`app.js?v=0.5.0-137`へ更新した。GitHub Pages本番はこの未配信変更を含まないため、JoplinのWikipedia実ページ、本番URL、複数の既存本番タブ、拡張管理画面の未処理エラー0件はデプロイ後の手動確認として残す。
+
+## 2026-09-02 PR #171 Web Clipper新旧混在時の転送互換修正
+
+* PR #171の新本体は`message.record`だけを検証していたため、0.3.7拡張の`{ transferId, clip }`を`record_missing`として拒否していた。逆方向では、0.3.8ブリッジが新本体の`receiver-ready`までpayloadを送らないため、従来の`content-ready`だけを送る旧本体と相互待ちになっていた。本体がGitHub Pagesから先に更新され、展開読み込み版拡張は利用者が後から再読み込みする配布差を考慮できていなかった。
+* `validateTransferClip()`へclip項目検証を分離し、`resolveTransferPayload()`で正本`record`の現行方式、clip単体の旧方式、未知形式を区別した。現行方式は`createdAt`とTTLを含むrecord検証を維持する。旧方式は存在しない`createdAt`を補わず、title・HTTP(S) URL・host・selection・capturedAtを同じ基準で検証する。未知形式は`extension_update_required`とし、現在タブのUUID不一致や不正clipは受理しない。
+* 0.3.7→新本体は、旧payload検証後に確認画面へ反映し、ACK送信時点で`success`へ進める。ACK_CONFIRMEDを待たず保存を許可し、診断へ`transferProtocol: legacy`を残して0.3.8以上への更新推奨を表示する。完了済みUUIDの重複payloadにはACKだけを再送し、利用者が変更したタイトル・本文は初期化しない。空・不正payloadはエラー状態のまま保存を無効にする。
+* 0.3.8→旧本体は、payloadへ正本`record`と移行用`clip`を併記する。ブリッジ自身の`attempt`付き`content-ready`はreadyとして扱わず、旧本体が送る`attempt`なしの同ID通知後だけ送信する。旧本体の同ID ACKで対象レコードだけを削除し、別ID ACKは無視する。新本体の`receiver-ready → payload → ACK → ACK_CONFIRMED`は変更していない。
+* 一時レコードの削除条件は、一致ACK、明示キャンセル、期限切れ、不正形式、受信ページを開けない場合の対象キーだけとした。受信準備待ち、ACKタイムアウト、ストレージ一時失敗、ページ終了、ACK前の再読み込みではTTL内レコードを保持する。`sessionStorage`再開、複数タブ分離、保存ロック、診断の本文・選択文・Cookie・認証情報・URL query／fragment非保持、許可Origin一覧は後退させていない。
+* 修正前に交差バージョンテストを追加し、clip単体検証、payload形式判別、旧本体ready、互換clipの4件が失敗することを確認した。最終的にWeb Clipper関連91件、`npm test`全955件が成功した。変更JavaScriptの`node --check`、manifest JSON解析、`git diff --check`も成功した。
+* Microsoft Edgeの`msedge` channelで実ID`aelacnladkiohkhbjhfbmekpbfgpcmlh`のunpacked MV3拡張を起動し、固定した旧本体fixtureへの0.3.8互換送信・旧ACK削除と、固定した0.3.7旧payloadの新本体受信・ACK・保存・重複保護・不正拒否を確認した。同じ実行で15.5秒遅延、ACK遮断後再読込、再試行、複数タブ、期限切れ、不正形式、明示キャンセル、content script欠落、保存ロック、画像付き長文と既存4方式も成功し、予期しないconsole error・page errorは0件だった。画像リダイレクト監視fixtureは途中2回タイミング依存で失敗したがassertionは変更せず、最終実行は全経路成功した。
+* PR #171は未マージなので拡張版は0.3.8を維持した。配信識別子は`transfer-lifecycle.js?v=0.5.0-2`、`web-clipper-config.js?v=0.5.0-4`、`app.js?v=0.5.0-138`へ更新した。GitHub Pages本番での0.3.7→新本体、更新前本体タブでの0.3.8→旧本体、Wikipedia実ページ、複数既存タブ、拡張管理画面の未処理エラー0件はデプロイ後の手動確認として残す。

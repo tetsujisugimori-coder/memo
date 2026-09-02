@@ -88,6 +88,29 @@ test("受信準備が15秒以上遅れてもpayloadを保持し、準備完了�
   assert(state.messages.some((message) => message.type === "memo-nexus-web-clip-transfer-ack-confirmed"));
 });
 
+test("自己CONTENT_READYでは送信せず、旧本体のCONTENT_READY後だけ互換payloadを送る", async () => {
+  const state = harness();
+  state.bridge.start();
+  const ownReady = state.messages.find((message) => message.type === "memo-nexus-web-clip-content-ready");
+  assert.equal(typeof ownReady.attempt, "number");
+
+  await state.bridge.handleMessage(ownReady);
+  assert.equal(state.messages.some((message) => message.type === "memo-nexus-web-clip-transfer"), false);
+
+  await state.bridge.handleMessage({ type: "memo-nexus-web-clip-content-ready", transferId });
+  const payload = state.messages.find((message) => message.type === "memo-nexus-web-clip-transfer");
+  assert(payload);
+  assert.deepEqual(payload.record, validRecord);
+  assert.deepEqual(payload.clip, validRecord.clip);
+  assert(state.records.has(transferKey), "旧本体のACK前にレコードを削除した");
+
+  await state.bridge.handleMessage({ type: "memo-nexus-web-clip-transfer-ack", transferId: "22222222-2222-2222-2222-222222222222" });
+  assert(state.records.has(transferKey), "別IDの旧ACKでレコードを削除した");
+  await state.bridge.handleMessage({ type: "memo-nexus-web-clip-transfer-ack", transferId });
+  assert.equal(state.records.has(transferKey), false);
+  assert.deepEqual(state.removed, [transferKey]);
+});
+
 test("ACKタイムアウトではTTL内のレコードを保持し、再試行で再送できる", async () => {
   const state = harness();
   state.bridge.start();
