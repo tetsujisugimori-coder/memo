@@ -268,11 +268,44 @@ test("タブインデントコード内のマーカーを認識しない", () =>
   assert.equal(segmentsToMarkdown(splitGeometryBlocks(markdown)), markdown);
 });
 
-test("3スペース以下のインデント行は通常本文として認識する", () => {
+test("半角スペースとタブが混在するインデントコード内のマーカーを認識しない", () => {
+  const marker = serializeGeometryBlock(createGeometryBlock("indent-mixed"));
+  const indents = [" \t", "  \t", "   \t", " \t\t", "  \t \t"];
+  const markdown = indents.map((indent) => `${indent}${marker}`).join("\n");
+  assert.equal(geometryBlocks(markdown).length, 0);
+  assert.equal(segmentsToMarkdown(splitGeometryBlocks(markdown)), markdown);
+});
+
+test("インデントなしと1～3スペースの行は通常の幾何学ブロックとして認識する", () => {
   const marker = serializeGeometryBlock(createGeometryBlock("indent-short"));
-  const markdown = ["通常行", `  ${marker}`, "通常行"].join("\n");
-  assert.equal(geometryBlocks(markdown).length, 1);
-  assert.equal(geometryBlocks(markdown)[0].start, "通常行\n".length);
+  const markdown = [marker, ` ${marker}`, `  ${marker}`, `   ${marker}`].join("\n");
+  assert.equal(geometryBlocks(markdown).length, 4);
+  assert.equal(segmentsToMarkdown(splitGeometryBlocks(markdown)), markdown);
+});
+
+test("リスト項目の子要素として配置したマーカーを幾何学ブロックとして認識する", () => {
+  const marker = serializeGeometryBlock(createGeometryBlock("list-child"));
+  const markdown = ["- 図形", `    ${marker}`, "    説明"].join("\n");
+  const [block] = geometryBlocks(markdown);
+  assert.equal(block.geometry.id, "list-child");
+  assert.equal(markdown.slice(block.start, block.end), block.raw);
+  assert.equal(block.raw, `    ${marker}`);
+  assert.equal(segmentsToMarkdown(splitGeometryBlocks(markdown)), markdown);
+});
+
+test("空行を挟んだ明確なリスト継続内のマーカーを幾何学ブロックとして認識する", () => {
+  const marker = serializeGeometryBlock(createGeometryBlock("list-child-after-blank"));
+  const markdown = ["- 図形", "", `    ${marker}`, "", "    説明"].join("\r\n");
+  const [block] = geometryBlocks(markdown);
+  assert.equal(block.geometry.id, "list-child-after-blank");
+  assert.equal(markdown.slice(block.start, block.end), block.raw);
+  assert.equal(segmentsToMarkdown(splitGeometryBlocks(markdown)), markdown);
+});
+
+test("リストの基準インデントに加えて4列字下げしたマーカーはコードとして扱う", () => {
+  const marker = serializeGeometryBlock(createGeometryBlock("list-code"));
+  const markdown = ["- 図形", `      ${marker}`].join("\n");
+  assert.equal(geometryBlocks(markdown).length, 0);
   assert.equal(segmentsToMarkdown(splitGeometryBlocks(markdown)), markdown);
 });
 
