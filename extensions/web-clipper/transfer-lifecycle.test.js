@@ -4,6 +4,7 @@ const {
   TRANSFER_TTL_MS,
   inspectTransferEntries,
   isActiveTransferRecord,
+  validateTransferRecord,
   transferStorageKey
 } = require("./transfer-lifecycle.js");
 const { decideDevelopmentUpdate } = require("./update-manager.js");
@@ -54,4 +55,16 @@ test("清掃後に有効な転送がなければ新版reload判定へ進める",
     currentVersion: "0.3.1", latestVersion: "0.3.2",
     hasPendingTransfer: inspection.hasActiveTransfer
   }).action, "reload");
+});
+
+test("転送レコードの検証失敗項目を安全なエラーコードで返す", () => {
+  assert.deepEqual(validateTransferRecord(undefined, now), { ok: false, code: "record_missing" });
+  assert.equal(validateTransferRecord({ clip: validClip }, now).code, "created_at_missing");
+  assert.equal(validateTransferRecord({ clip: { ...validClip, title: "" }, createdAt: now }, now).code, "title_invalid");
+  assert.equal(validateTransferRecord({ clip: { ...validClip, url: "file:///secret" }, createdAt: now }, now).code, "url_invalid");
+  assert.equal(validateTransferRecord({ clip: { ...validClip, host: "" }, createdAt: now }, now).code, "host_invalid");
+  assert.equal(validateTransferRecord({ clip: { ...validClip, selection: null }, createdAt: now }, now).code, "selection_invalid");
+  assert.equal(validateTransferRecord({ clip: { ...validClip, capturedAt: "invalid" }, createdAt: now }, now).code, "captured_at_invalid");
+  assert.equal(validateTransferRecord({ clip: validClip, createdAt: now - TRANSFER_TTL_MS - 1 }, now).code, "transfer_expired");
+  assert.deepEqual(validateTransferRecord({ clip: validClip, createdAt: now }, now), { ok: true, code: "ok" });
 });

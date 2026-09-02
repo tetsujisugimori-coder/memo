@@ -7,7 +7,7 @@
   <script>try { document.documentElement.dataset.initialTheme = localStorage.getItem("memo-nexus-theme") === "dark" ? "dark" : "light"; } catch (_) { document.documentElement.dataset.initialTheme = "light"; }</script>
   <style>html,body{background:#f6f7f4;color:#222522;color-scheme:light}html[data-initial-theme="dark"],html[data-initial-theme="dark"] body{background:#111513;color:#e7ece7;color-scheme:dark}</style>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css">
-  <link rel="stylesheet" href="style.css?v=0.5.0-73">
+  <link rel="stylesheet" href="style.css?v=0.5.0-74">
 </head>
 <body class="app-starting">
   <section id="appStartupGuard" class="app-startup-guard" role="status" aria-live="polite" aria-busy="true">
@@ -796,6 +796,10 @@
     </div>
     <form id="webClipForm" class="web-clip-form">
       <p id="webClipReceivedStatus" class="web-clip-status" role="status" aria-live="polite"></p>
+      <section id="webClipReceiveActions" class="web-clip-receive-actions" hidden aria-labelledby="webClipReceiveGuidance">
+        <p id="webClipReceiveGuidance" class="web-clip-status"></p>
+        <div><button id="retryWebClipTransferBtn" type="button">もう一度受信する</button><button id="copyWebClipTransferDiagnosticsBtn" type="button">診断情報をコピー</button></div>
+      </section>
       <label>タイトル<input id="webClipTitle" type="text" maxlength="300" autocomplete="off" placeholder="ページタイトル"></label>
       <label>URL<input id="webClipUrl" type="url" maxlength="2000" inputmode="url" placeholder="https://example.com/"></label>
       <label>サイト名 / ホスト名<input id="webClipHost" type="text" maxlength="255" autocomplete="off" placeholder="example.com"></label>
@@ -942,8 +946,9 @@
   <script src="https://cdn.jsdelivr.net/npm/mathjs@15.2.0/lib/browser/math.js"></script>
   <script src="export-utils.js?v=0.5.0-8"></script>
   <script src="extensions/web-clipper/clip-result.js?v=0.5.0-1"></script>
+  <script src="extensions/web-clipper/transfer-lifecycle.js?v=0.5.0-1"></script>
   <script src="web-clip-utils.js?v=0.5.0-7"></script>
-  <script src="web-clipper-config.js?v=0.5.0-2"></script>
+  <script src="web-clipper-config.js?v=0.5.0-3"></script>
   <script src="attachment-utils.js?v=0.5.0-12"></script>
   <script src="table-block-utils.js?v=0.5.0-4"></script>
   <script src="tags.js?v=0.5.0-4"></script>
@@ -985,7 +990,7 @@
   <script src="draft-mirror-scheduler.js?v=0.5.0-2"></script>
   <script src="typing-performance-monitor.js?v=0.5.0-3"></script>
   <script src="layout-resize-utils.js?v=0.5.0-2"></script>
-  <script src="app.js?v=0.5.0-136"></script>
+  <script src="app.js?v=0.5.0-137"></script>
   <script src="codex-chat.js?v=0.5.0-6"></script>
 </body>
 </html>

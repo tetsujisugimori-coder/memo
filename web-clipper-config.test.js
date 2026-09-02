@@ -12,13 +12,13 @@ test("Web Clipperは登録済みの拡張originだけを許可する", () => {
 
   assert.deepEqual(origins, [
     "chrome-extension://lecpajkpnjnagbeokicilagdonkcimbo",
-    "chrome-extension://opejammnohhbjflpbhmmdlknhjkhfhdp",
     "chrome-extension://aelacnladkiohkhbjhfbmeknbfgpcmlh",
     "chrome-extension://aelacnladkiohkhbjhfbmekpbfgpcmlh"
   ]);
   assert.equal(new Set(origins).size, origins.length);
   assert.equal(origins.filter((origin) => origin === "chrome-extension://lecpajkpnjnagbeokicilagdonkcimbo").length, 1);
   assert.doesNotMatch(config, /opejamnnohhbjflpbhnmdlknhjkfhfdp/);
+  assert.doesNotMatch(config, /opejammnohhbjflpbhmmdlknhjkhfhdp/);
   assert.doesNotMatch(config, /mhfbofiokmppgdliakminbgdgcmbhbac/);
   assert.doesNotMatch(config, /YOUR_(?:DEVELOPMENT|PRODUCTION)_EXTENSION_ID/);
   assert.ok(origins.every((origin) => /^chrome-extension:\/\/[a-p]{32}$/.test(origin)));

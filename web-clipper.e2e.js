@@ -65,6 +65,7 @@ const browserChannel = String(process.env.MEMO_NEXUS_E2E_CHANNEL || "").trim();
 let unsafeSvgRequests = 0;
 let developmentManifestRequests = 0;
 let developmentManifestUnavailable = false;
+let appScriptDelayMs = 0;
 
 function articleHtml() {
   const decorativeSvg = Array.from({ length: 25 }, (_, index) => `<img class="share-icon" src="${appUrl}safe.svg?icon=${index}" alt="共有アイコン" width="160" height="120">`).join("");
@@ -77,6 +78,10 @@ function server() {
     if (url.pathname === "/e2e-source.html") {
       response.writeHead(200, { "content-type": "text/html; charset=utf-8" });
       return response.end(articleHtml());
+    }
+    if (url.pathname === "/favicon.ico") {
+      response.writeHead(204);
+      return response.end();
     }
     if (url.pathname === "/local-image.png") {
       response.writeHead(200, { "content-type": "image/png", "content-length": localImage.length });
@@ -111,7 +116,7 @@ function server() {
     }
     if (url.pathname === "/no-ack.html") {
       response.writeHead(200, { "content-type": "text/html; charset=utf-8" });
-      return response.end("<!doctype html><script>window.transferEvents=0;window.timeoutSeen=false;window.addEventListener('message',e=>{if(e.data&&e.data.type==='memo-nexus-web-clip-transfer')window.transferEvents++;if(e.data&&e.data.code==='timeout')window.timeoutSeen=true});</script><p>ACKなし受信先</p>");
+      return response.end("<!doctype html><script>window.transferEvents=0;window.timeoutSeen=false;window.addEventListener('message',e=>{const m=e.data||{};if(m.type==='memo-nexus-web-clip-content-ready')window.postMessage({type:'memo-nexus-web-clip-receiver-ready',transferId:m.transferId},location.origin);if(m.type==='memo-nexus-web-clip-transfer')window.transferEvents++;if(m.type==='memo-nexus-web-clip-transfer-error'&&m.code==='ack_timeout')window.timeoutSeen=true});</script><p>ACKなし受信先</p>");
     }
     const relative = decodeURIComponent(url.pathname === "/" ? "/index.html" : url.pathname).replace(/^[/\\]+/, "");
     const file = path.resolve(root, relative);
@@ -119,8 +124,18 @@ function server() {
       response.writeHead(404); return response.end("not found");
     }
     const mime = file.endsWith(".html") ? "text/html" : file.endsWith(".js") ? "text/javascript" : file.endsWith(".css") ? "text/css" : "application/octet-stream";
-    response.writeHead(200, { "content-type": `${mime}; charset=utf-8` });
-    response.end(fs.readFileSync(file));
+    const finish = () => {
+      if (response.destroyed) return;
+      response.writeHead(200, { "content-type": `${mime}; charset=utf-8` });
+      response.end(fs.readFileSync(file));
+    };
+    if (url.pathname === "/app.js" && appScriptDelayMs > 0) {
+      const delay = appScriptDelayMs;
+      appScriptDelayMs = 0;
+      setTimeout(finish, delay);
+      return;
+    }
+    finish();
   });
 }
 
@@ -168,6 +183,15 @@ async function setStorage(worker, key, value) {
   await worker.evaluate(async ({ keyName, item }) => chrome.storage.local.set({ [keyName]: item }), { keyName: key, item: value });
 }
 
+async function waitForStorageRemoval(worker, key, timeoutMs = 5000) {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    if (await storage(worker, key) === undefined) return;
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+  assert.fail(`storage.local entry was not removed after ACK: ${key}`);
+}
+
 async function transferKeys(worker) {
   return worker.evaluate(async () => Object.keys(await chrome.storage.local.get(null)).filter((key) => key.startsWith("memoNexusTransfer:")).sort());
 }
@@ -185,7 +209,7 @@ async function openPopup(context, worker, extensionId) {
   const popup = await popupPromise;
   try {
     await popup.locator("#send:not([disabled])").waitFor({ timeout: 5000 });
-    assert.equal(await popup.locator("#extensionVersion").textContent(), "0.3.7");
+    assert.equal(await popup.locator("#extensionVersion").textContent(), "0.3.8");
   } catch (cause) {
     throw new Error(`popup did not become ready: status=${await popup.locator("#selectionStatus").textContent()} error=${await popup.locator("#error").textContent()} (${cause.message})`);
   }
@@ -229,6 +253,9 @@ async function main() {
   await new Promise((resolve) => imageServer.listen(5501, "127.0.0.1", resolve));
   const profile = fs.mkdtempSync(path.join(os.tmpdir(), "memo-nexus-web-clipper-"));
   let context;
+  const appConsoleErrors = [];
+  const appPageErrors = [];
+  const expectedConsoleErrorPages = new WeakSet();
   try {
     const extension = path.join(root, "extensions", "web-clipper");
     context = await chromium.launchPersistentContext(profile, {
@@ -241,6 +268,16 @@ async function main() {
         `--load-extension=${extension}`,
         "--host-resolver-rules=MAP assets.memo-nexus.test 127.0.0.1, MAP cdn.memo-nexus.test 127.0.0.1"
       ]
+    });
+    context.on("page", (page) => {
+      page.on("console", (message) => {
+        const isAppPage = (() => { try { const url = new URL(page.url()); return url.origin === new URL(appUrl).origin && url.pathname === "/"; } catch (_) { return false; } })();
+        if (message.type() === "error" && isAppPage && !(expectedConsoleErrorPages.has(page) && message.text().startsWith("Web clip save failed"))) appConsoleErrors.push(message.text());
+      });
+      page.on("pageerror", (error) => {
+        const isAppPage = (() => { try { const url = new URL(page.url()); return url.origin === new URL(appUrl).origin && url.pathname === "/"; } catch (_) { return false; } })();
+        if (isAppPage) appPageErrors.push(error.message);
+      });
     });
     let worker = await waitForWorker(context);
     const extensionId = new URL(worker.url()).host;
@@ -372,23 +409,134 @@ async function main() {
     await source.bringToFront();
     assert.equal(new URL(worker.url()).host, extensionId, "extension ID changed after Service Worker restart");
 
-    // Suppress the app's first ACKs to exercise actual transfer retries and
-    // duplicate receipt. The pending entry must remain until an ACK is sent.
+    const delayedTransferId = crypto.randomUUID();
+    const delayedTransferKey = `memoNexusTransfer:${delayedTransferId}`;
+    const delayedRecord = {
+      createdAt: Date.now(),
+      clip: { title: "15秒遅延転送", url: `${articleUrl}?delayed=1`, host: "127.0.0.1", selection: "15秒を超えて保持された本文", clipMode: "page", capturedAt: new Date().toISOString(), extensionVersion: "0.3.8", manifestVersion: 3 }
+    };
+    await setStorage(worker, delayedTransferKey, delayedRecord);
+    appScriptDelayMs = 15_500;
+    const delayedReceiver = await context.newPage();
+    const delayedNavigation = delayedReceiver.goto(`${appUrl}?web-clip=1#clip-transfer=${delayedTransferId}`, { waitUntil: "domcontentloaded", timeout: 45000 });
+    await delayedReceiver.waitForTimeout(13_000);
+    assert(await storage(worker, delayedTransferKey), "15秒の受信準備待ち中に転送レコードが削除された");
+    await delayedNavigation;
+    await delayedReceiver.locator("#webClipDialog[open]").waitFor({ timeout: 20000 });
+    assert.equal(await delayedReceiver.locator("#webClipTitle").inputValue(), delayedRecord.clip.title);
+    assert.equal(await delayedReceiver.locator("#webClipSelection").inputValue(), delayedRecord.clip.selection);
+    await waitForStorageRemoval(worker, delayedTransferKey);
+    await delayedReceiver.close();
+
     await context.addInitScript(() => {
+      const params = new URLSearchParams(location.search);
+      const blockKey = "memoNexusE2EFirstAckBlocked";
+      if (!params.has("e2e-block-first-transfer-ack") || sessionStorage.getItem(blockKey)) return;
       const post = window.postMessage.bind(window);
-      window.__memoNexusOriginalPostMessage = post;
-      window.__memoNexusBlockedAcks = 0;
       window.postMessage = (message, targetOrigin, transfer) => {
-        if (message?.type === "memo-nexus-web-clip-transfer-ack") { window.__memoNexusBlockedAcks++; window.__memoNexusTransferId = message.transferId; return; }
+        if (message?.type === "memo-nexus-web-clip-transfer-ack") {
+          sessionStorage.setItem(blockKey, "1");
+          return;
+        }
         return post(message, targetOrigin, transfer);
       };
     });
+    const reloadTransferId = crypto.randomUUID();
+    const reloadTransferKey = `memoNexusTransfer:${reloadTransferId}`;
+    const reloadRecord = {
+      createdAt: Date.now(),
+      clip: { title: "再読込転送", url: `${articleUrl}?reload=1`, host: "127.0.0.1", selection: "再読込後に復元する本文", clipMode: "page", capturedAt: new Date().toISOString() }
+    };
+    await setStorage(worker, reloadTransferKey, reloadRecord);
+    const reloadReceiver = await context.newPage();
+    await reloadReceiver.goto(`${appUrl}?web-clip=1&e2e-block-first-transfer-ack=1#clip-transfer=${reloadTransferId}`);
+    await reloadReceiver.locator("#webClipDialog[open]").waitFor();
+    assert.equal(await reloadReceiver.locator("#webClipTitle").inputValue(), reloadRecord.clip.title);
+    assert(await storage(worker, reloadTransferKey), "ACKを遮断したのに転送レコードが削除された");
+    await reloadReceiver.reload();
+    await reloadReceiver.locator("#webClipDialog[open]").waitFor();
+    assert.equal(await reloadReceiver.locator("#webClipSelection").inputValue(), reloadRecord.clip.selection);
+    await waitForStorageRemoval(worker, reloadTransferKey);
+    await reloadReceiver.close();
+
+    const missingTransferId = crypto.randomUUID();
+    const missingTransferKey = `memoNexusTransfer:${missingTransferId}`;
+    const recoveredRecord = {
+      createdAt: Date.now(),
+      clip: { title: "欠落後の再受信", url: `${articleUrl}?recovered=1`, host: "127.0.0.1", selection: "失敗後に受信した本文", clipMode: "page", capturedAt: new Date().toISOString() }
+    };
+    const missingReceiver = await context.newPage();
+    await missingReceiver.goto(`${appUrl}?web-clip=1#clip-transfer=${missingTransferId}`);
+    await missingReceiver.locator("#webClipReceiveActions:visible").waitFor();
+    assert.match(await missingReceiver.locator("#webClipReceivedStatus").textContent(), /\[record_missing\]/);
+    assert.equal(await missingReceiver.locator("#saveWebClipBtn").isDisabled(), true);
+    await setStorage(worker, missingTransferKey, recoveredRecord);
+    await missingReceiver.locator("#retryWebClipTransferBtn").click();
+    await missingReceiver.waitForFunction(() => document.getElementById("webClipTitle")?.value === "欠落後の再受信");
+    await waitForStorageRemoval(worker, missingTransferKey);
+    await missingReceiver.locator("#webClipTitle").fill("ユーザーが変更した題名");
+    await missingReceiver.evaluate(({ transferId, record }) => window.postMessage({ type: "memo-nexus-web-clip-transfer", transferId, record }, location.origin), { transferId: missingTransferId, record: recoveredRecord });
+    await missingReceiver.waitForTimeout(150);
+    assert.equal(await missingReceiver.locator("#webClipTitle").inputValue(), "ユーザーが変更した題名", "重複payloadが確認画面を初期化した");
+    await missingReceiver.close();
+
+    const expiredTransferId = crypto.randomUUID();
+    const expiredTransferKey = `memoNexusTransfer:${expiredTransferId}`;
+    await setStorage(worker, expiredTransferKey, { ...recoveredRecord, createdAt: Date.now() - 10 * 60 * 1000 - 1 });
+    const expiredReceiver = await context.newPage();
+    await expiredReceiver.goto(`${appUrl}?web-clip=1#clip-transfer=${expiredTransferId}`);
+    await expiredReceiver.locator("#webClipReceiveActions:visible").waitFor();
+    assert.match(await expiredReceiver.locator("#webClipReceivedStatus").textContent(), /\[transfer_expired\]/);
+    assert.equal(await storage(worker, expiredTransferKey), undefined, "期限切れの対象レコードが清掃されなかった");
+    await expiredReceiver.close();
+
+    const firstTabId = crypto.randomUUID();
+    const secondTabId = crypto.randomUUID();
+    const firstTabKey = `memoNexusTransfer:${firstTabId}`;
+    const secondTabKey = `memoNexusTransfer:${secondTabId}`;
+    const firstTabRecord = { ...recoveredRecord, createdAt: Date.now(), clip: { ...recoveredRecord.clip, title: "複数タブ一件目", url: `${articleUrl}?tab=1` } };
+    const secondTabRecord = { ...recoveredRecord, createdAt: Date.now(), clip: { ...recoveredRecord.clip, title: "複数タブ二件目", url: `${articleUrl}?tab=2` } };
+    await setStorage(worker, firstTabKey, firstTabRecord);
+    await setStorage(worker, secondTabKey, secondTabRecord);
+    const firstTab = await context.newPage();
+    const secondTab = await context.newPage();
+    await Promise.all([
+      firstTab.goto(`${appUrl}?web-clip=1#clip-transfer=${firstTabId}`),
+      secondTab.goto(`${appUrl}?web-clip=1#clip-transfer=${secondTabId}`)
+    ]);
+    await Promise.all([firstTab.locator("#webClipDialog[open]").waitFor(), secondTab.locator("#webClipDialog[open]").waitFor()]);
+    assert.equal(await firstTab.locator("#webClipTitle").inputValue(), "複数タブ一件目");
+    assert.equal(await secondTab.locator("#webClipTitle").inputValue(), "複数タブ二件目");
+    await Promise.all([waitForStorageRemoval(worker, firstTabKey), waitForStorageRemoval(worker, secondTabKey)]);
+    await firstTab.close();
+    await secondTab.close();
+
+    const missingContentId = crypto.randomUUID();
+    const plainBrowser = await chromium.launch({ ...(browserChannel ? { channel: browserChannel } : {}), headless: true });
+    try {
+      const missingContentReceiver = await plainBrowser.newPage();
+      await missingContentReceiver.goto(`${appUrl}?web-clip=1#clip-transfer=${missingContentId}`);
+      await missingContentReceiver.locator("#webClipReceiveActions:visible").waitFor({ timeout: 12000 });
+      assert.match(await missingContentReceiver.locator("#webClipReceivedStatus").textContent(), /\[content_script_missing\]/);
+      assert.equal(await missingContentReceiver.locator("#saveWebClipBtn").isDisabled(), true);
+    } finally {
+      await plainBrowser.close();
+    }
+
+    const rejectedOriginPage = await context.newPage();
+    await rejectedOriginPage.goto(appUrl);
+    await rejectedOriginPage.waitForFunction(() => document.getElementById("titleInput") && !document.getElementById("appStartupGuard")?.open);
+    await rejectedOriginPage.evaluate((clip) => {
+      window.dispatchEvent(new MessageEvent("message", { source: window, origin: "chrome-extension://opejammnohhbjflpbhmmdlknhjkhfhdp", data: { type: "memo-nexus-web-clip", clip } }));
+    }, recoveredRecord.clip);
+    await rejectedOriginPage.waitForTimeout(150);
+    assert.equal(await rejectedOriginPage.locator("#webClipDialog").getAttribute("open"), null, "削除したOriginのlegacyメッセージを受理した");
+    await rejectedOriginPage.close();
+
+    const transferKeysBeforePageClip = await transferKeys(worker);
     const { popup, receiver } = await capture(context, worker, extensionId, "page");
-    await receiver.waitForFunction(() => window.__memoNexusBlockedAcks >= 2, null, { timeout: 5000 });
-    const transferId = await receiver.evaluate(() => window.__memoNexusTransferId);
-    const transferKey = `memoNexusTransfer:${transferId}`;
-    assert(await storage(worker, transferKey), "storage.local entry was removed before ACK");
-    assert.doesNotMatch(await receiver.locator("#webClipReceivedStatus").textContent(), /ページ本文を受信しています。/);
+    await receiver.waitForFunction(() => !/受信しています|受信確認を完了しています/.test(document.getElementById("webClipReceivedStatus")?.textContent || ""));
+    assert.deepEqual(await transferKeys(worker), transferKeysBeforePageClip, "ACK後にページ全文の転送レコードが残った");
     const body = await receiver.locator("#webClipSelection").inputValue();
     assert.match(body, /# 取得元の見出し/);
     assert.match(body, new RegExp(marker));
@@ -411,9 +559,6 @@ async function main() {
     assert.match(await receiver.locator("#webClipImagesList").textContent(), /タイムアウト \[TIMEOUT\]/);
     assert.equal(unsafeSvgRequests, 0, "sanitized SVG executed a script or loaded an external image");
     await receiver.screenshot({ path: path.join(artifacts, "web-clipper-page-transfer.png"), fullPage: true });
-    await receiver.evaluate(() => window.__memoNexusOriginalPostMessage({ type: "memo-nexus-web-clip-transfer-ack", transferId: window.__memoNexusTransferId }, location.origin));
-    await receiver.waitForTimeout(250);
-    assert.equal(await storage(worker, transferKey), undefined, "storage.local entry remains after ACK");
     const initialSaveState = await receiver.evaluate(() => ({
       disabled: document.getElementById("saveWebClipBtn").disabled,
       formValid: document.getElementById("webClipForm").checkValidity(),
@@ -440,7 +585,7 @@ async function main() {
       manifestVersion: savedClipSource?.manifestVersion,
       targetEnvironment: savedClipSource?.targetEnvironment,
       distributionChannel: savedClipSource?.distributionChannel
-    }, { extensionVersion: "0.3.7", manifestVersion: 3, targetEnvironment: "development", distributionChannel: "unpacked-development" });
+    }, { extensionVersion: "0.3.8", manifestVersion: 3, targetEnvironment: "development", distributionChannel: "unpacked-development" });
     const storedAttachments = await receiver.evaluate(() => new Promise((resolve, reject) => {
       const request = indexedDB.open("memo-nexus");
       request.onerror = () => reject(request.error);
@@ -490,7 +635,7 @@ async function main() {
       createdAt: Date.now(),
       clip: {
         title: "再クリップ更新", url: `${articleUrl}#reclip`, host: "127.0.0.1", clipMode: "page", capturedAt: new Date().toISOString(),
-        selection: "新しい本文\n\n<!-- memo-nexus:web-clip-image:web-clip-image-1 -->",
+      selection: "新しい本文\n\n<!-- memo-nexus:web-clip-image:web-clip-image-1 -->",
         images: [{ token: "web-clip-image-1", url: `${appUrl}local-image.png`, alt: "新しい画像", caption: "", status: "ready", mimeType: "image/png", size: localImage.length, fileName: "replacement.png", dataBase64: localImage.toString("base64"), selected: true }]
       }
     });
@@ -556,7 +701,7 @@ async function main() {
 
     const retryId = crypto.randomUUID();
     await setStorage(worker, `memoNexusTransfer:${retryId}`, { createdAt: Date.now(), clip: {
-      title: "再試行確認", url: `${articleUrl}?retry=1`, host: "127.0.0.1", clipMode: "page", capturedAt: new Date().toISOString(), selection: "<!-- memo-nexus:web-clip-image:web-clip-image-1 -->", extensionVersion: "0.3.7", manifestVersion: 3,
+      title: "再試行確認", url: `${articleUrl}?retry=1`, host: "127.0.0.1", clipMode: "page", capturedAt: new Date().toISOString(), selection: "<!-- memo-nexus:web-clip-image:web-clip-image-1 -->", extensionVersion: "0.3.8", manifestVersion: 3,
       clipResult: {
         status: "partial",
         notice: "本文は取得できましたが、一部の画像を取得できませんでした。",
@@ -626,6 +771,7 @@ async function main() {
       }
     });
     const failedSave = await context.newPage();
+    expectedConsoleErrorPages.add(failedSave);
     await failedSave.goto(`${appUrl}#clip-transfer=${invalidImageId}`);
     await failedSave.locator("#webClipDialog[open]").waitFor();
     await failedSave.locator("#saveWebClipBtn").click();
@@ -639,8 +785,8 @@ async function main() {
     assert.equal(await failedSave.locator("#attachmentCount").textContent(), "0件");
     await failedSave.close();
 
-    // A real content script retries without ACK and removes only its transfer
-    // entry before emitting the timeout message.
+    // A real content script reports an ACK timeout but retains its transfer
+    // entry so the app can retry within the TTL.
     const timeoutId = crypto.randomUUID();
     const timeoutKey = `memoNexusTransfer:${timeoutId}`;
     const otherTransferKey = `memoNexusTransfer:${crypto.randomUUID()}`;
@@ -648,14 +794,16 @@ async function main() {
     await setStorage(worker, otherTransferKey, { clip: { title: "other", url: articleUrl, host: "127.0.0.1", selection: "other", clipMode: "page", capturedAt: new Date().toISOString() }, createdAt: Date.now() });
     const noAck = await context.newPage();
     await noAck.goto(`${appUrl}no-ack.html#clip-transfer=${timeoutId}`);
-    await noAck.waitForFunction(() => window.transferEvents >= 2, null, { timeout: 5000 });
+    await noAck.waitForFunction(() => window.transferEvents === 1, null, { timeout: 5000 });
     assert(await storage(worker, timeoutKey), "storage.local entry was removed without ACK");
     await noAck.waitForFunction(() => window.timeoutSeen === true, null, { timeout: 14000 });
-    assert.equal(await storage(worker, timeoutKey), undefined, "timeout transfer entry remains in storage.local");
+    assert(await storage(worker, timeoutKey), "ACK timeout removed the transfer entry before TTL expiry");
     assert(await storage(worker, otherTransferKey), "timeout cleanup removed another active transfer");
-    await worker.evaluate(async (key) => chrome.storage.local.remove(key), otherTransferKey);
+    await worker.evaluate(async (keys) => chrome.storage.local.remove(keys), [timeoutKey, otherTransferKey]);
     await noAck.screenshot({ path: path.join(artifacts, "web-clipper-timeout.png"), fullPage: true });
-    console.log("PASS: actual MV3 extension, direct/single/multiple redirect images, retry diagnostics, save locking, JPEG/PNG/WebP/GIF/SVG/AVIF, IndexedDB, reload, failure, ACK lifecycle, and long article");
+    assert.deepEqual(appPageErrors, [], `app page errors: ${JSON.stringify(appPageErrors)}`);
+    assert.deepEqual(appConsoleErrors, [], `app console errors: ${JSON.stringify(appConsoleErrors)}`);
+    console.log("PASS: actual MV3 extension, 15s delayed ready handshake, reload recovery, multi-tab isolation, retry/failure UI, Origin rejection, ACK retention, images, IndexedDB, and all clip modes");
   } finally {
     if (context) await context.close();
     await new Promise((resolve) => httpServer.close(resolve));

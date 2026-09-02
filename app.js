@@ -624,6 +624,10 @@ const webClipCapturedAt = $("webClipCapturedAt");
 const webClipCollection = $("webClipCollection");
 const webClipError = $("webClipError");
 const webClipReceivedStatus = $("webClipReceivedStatus");
+const webClipReceiveActions = $("webClipReceiveActions");
+const webClipReceiveGuidance = $("webClipReceiveGuidance");
+const retryWebClipTransferBtn = $("retryWebClipTransferBtn");
+const copyWebClipTransferDiagnosticsBtn = $("copyWebClipTransferDiagnosticsBtn");
 const settingsImportAiBtn = $("settingsImportAiBtn");
 const settingsPasteJsonBtn = $("settingsPasteJsonBtn");
 const settingsBackupBtn = $("settingsBackupBtn");
@@ -1059,6 +1063,15 @@ let pendingMoveMemoIds = [];
 let pendingMoveCollectionId = null;
 let collectionToastTimer = null;
 let webClipReceiverReady = false;
+const webClipTransferLifecycle = window.MemoNexusClipperTransferLifecycle;
+const WEB_CLIP_TRANSFER_TYPES = webClipTransferLifecycle?.TRANSFER_MESSAGE_TYPES || {};
+const WEB_CLIP_TRANSFER_RESPONSE_TIMEOUT_MS = 8000;
+let pendingWebClipTransferId = readInitialWebClipTransferId();
+let pendingWebClipTransferState = pendingWebClipTransferId ? "receiver_waiting" : "idle";
+let pendingWebClipTransferErrorCode = "";
+let pendingWebClipTransferDiagnostics = {};
+let webClipTransferResponseTimer = 0;
+const completedWebClipTransferIds = new Set();
 let pendingWebClipImages = [];
 let pendingWebClipOmittedImageCount = 0;
 let pendingWebClipDiagnostics = {};
@@ -1310,8 +1323,10 @@ async function init() {
   try {
     if (webClipLaunchRequested || webClipFragment.present) {
       if (webClipFragment.clip) recordWebClipperReceipt(null, webClipFragment.clip);
-      openWebClipDialog(webClipFragment.clip, webClipFragment.error);
-      if (webClipFragment.transferId) window.postMessage({ type: "memo-nexus-web-clip-content-ready", transferId: webClipFragment.transferId }, location.origin);
+      if (webClipFragment.transferId) setPendingWebClipTransferState("receiver_waiting");
+      else if (webClipFragment.errorCode) setPendingWebClipTransferState("error", webClipFragment.errorCode);
+      openWebClipDialog(webClipFragment.clip, webClipFragment.error, { preserveTransferState: Boolean(webClipFragment.transferId || webClipFragment.errorCode) });
+      if (webClipFragment.transferId) postWebClipReceiverReady();
     }
   } finally {
     if (webClipLaunchRequested) consumeWebClipLaunchMarker();
@@ -4755,8 +4770,151 @@ function renderWebClipExistingNoteChoice() {
   if (webClipSaveAsUpdate) webClipSaveAsUpdate.checked = true;
 }
 
+function readInitialWebClipTransferId() {
+  const fragment = new URLSearchParams(location.hash.replace(/^#/, ""));
+  if (fragment.has("clip-transfer")) {
+    const fragmentId = fragment.get("clip-transfer");
+    if (webClipTransferLifecycle?.isTransferId(fragmentId)) {
+      try { sessionStorage.setItem(webClipTransferLifecycle.TRANSFER_SESSION_STORAGE_KEY, fragmentId); } catch (_) {}
+      return fragmentId;
+    }
+    try { sessionStorage.removeItem(webClipTransferLifecycle?.TRANSFER_SESSION_STORAGE_KEY || ""); } catch (_) {}
+    return "";
+  }
+  try {
+    const sessionId = sessionStorage.getItem(webClipTransferLifecycle?.TRANSFER_SESSION_STORAGE_KEY || "");
+    return webClipTransferLifecycle?.isTransferId(sessionId) ? sessionId : "";
+  } catch (_) {
+    return "";
+  }
+}
+
+function clearPendingWebClipTransferSession(transferId = pendingWebClipTransferId) {
+  try {
+    const key = webClipTransferLifecycle?.TRANSFER_SESSION_STORAGE_KEY;
+    if (key && sessionStorage.getItem(key) === transferId) sessionStorage.removeItem(key);
+  } catch (_) {}
+}
+
+function clearWebClipTransferResponseTimer() {
+  if (webClipTransferResponseTimer) clearTimeout(webClipTransferResponseTimer);
+  webClipTransferResponseTimer = 0;
+}
+
+function safeWebClipTransferDiagnostics(value = {}) {
+  const attempt = Number(value.attempt);
+  return {
+    transferId: pendingWebClipTransferId,
+    state: pendingWebClipTransferState,
+    code: String(value.code || pendingWebClipTransferErrorCode || "").slice(0, 64),
+    attempt: Number.isFinite(attempt) ? Math.max(0, Math.min(9999, Math.trunc(attempt))) : 0,
+    ackReceived: value.ackReceived === true,
+    extensionVersion: String(value.extensionVersion || pendingWebClipDiagnostics.extensionVersion || "").slice(0, 32)
+  };
+}
+
+function setPendingWebClipTransferState(state, code = "", diagnostics = {}) {
+  pendingWebClipTransferState = state;
+  pendingWebClipTransferErrorCode = code;
+  pendingWebClipTransferDiagnostics = safeWebClipTransferDiagnostics({ ...diagnostics, code });
+  if (state === "error" || state === "success") clearWebClipTransferResponseTimer();
+  if (webClipDialog?.open) {
+    renderPendingWebClipOutcome();
+    syncWebClipActionButtons();
+  }
+}
+
+function webClipTransferErrorMessage(code) {
+  const messages = {
+    content_script_missing: "拡張機能の受信用スクリプトが見つかりません。",
+    record_missing: "拡張機能の一時データが見つかりません。",
+    transfer_expired: "拡張機能の一時データは期限切れです。",
+    record_invalid: "転送レコードの形式が不正です。",
+    created_at_missing: "転送レコードの作成日時が不正です。",
+    created_at_invalid: "転送レコードの作成日時が不正です。",
+    created_at_future: "転送レコードの作成日時が不正です。",
+    clip_invalid: "payload形式が不正です。",
+    title_invalid: "payloadのタイトルが不正です。",
+    url_invalid: "payloadのURLが不正です。",
+    host_invalid: "payloadのホスト名が不正です。",
+    selection_invalid: "payloadの本文が不正です。",
+    captured_at_invalid: "payloadの取得日時が不正です。",
+    transfer_id_invalid: "転送IDの形式が不正です。",
+    storage_unavailable: "拡張機能の一時データを読み取れませんでした。",
+    storage_remove_failed: "受信確認後に一時データを削除できませんでした。",
+    ack_timeout: "本文は届きましたが、受信確認がタイムアウトしました。",
+    unknown_transfer_error: "不明な転送エラーが発生しました。"
+  };
+  return messages[code] || messages.unknown_transfer_error;
+}
+
+function webClipTransferBlocksSave() {
+  if (!pendingWebClipTransferId && pendingWebClipTransferState !== "error") return false;
+  if (pendingWebClipTransferFromExtension()) return ["receiver_waiting", "receiving", "validating", "ack_waiting"].includes(pendingWebClipTransferState);
+  return pendingWebClipTransferState !== "idle" && pendingWebClipTransferState !== "success";
+}
+
+function pendingWebClipTransferFromExtension() {
+  return Boolean(pendingWebClipFromExtension && webClipTitle?.value.trim() && /^https?:\/\//i.test(webClipUrl?.value.trim() || ""));
+}
+
+function scheduleWebClipTransferResponseTimeout() {
+  clearWebClipTransferResponseTimer();
+  webClipTransferResponseTimer = setTimeout(() => {
+    if (pendingWebClipTransferId && ["receiver_waiting", "receiving"].includes(pendingWebClipTransferState)) {
+      setPendingWebClipTransferState("error", "content_script_missing", pendingWebClipTransferDiagnostics);
+    }
+  }, WEB_CLIP_TRANSFER_RESPONSE_TIMEOUT_MS);
+}
+
+function scheduleWebClipTransferAckTimeout() {
+  clearWebClipTransferResponseTimer();
+  webClipTransferResponseTimer = setTimeout(() => {
+    if (pendingWebClipTransferId && pendingWebClipTransferState === "ack_waiting") {
+      setPendingWebClipTransferState("error", "ack_timeout", pendingWebClipTransferDiagnostics);
+    }
+  }, WEB_CLIP_TRANSFER_RESPONSE_TIMEOUT_MS);
+}
+
+function postWebClipReceiverReady() {
+  if (!webClipReceiverReady || !pendingWebClipTransferId) return;
+  setPendingWebClipTransferState("receiving", "", pendingWebClipTransferDiagnostics);
+  window.postMessage({ type: WEB_CLIP_TRANSFER_TYPES.RECEIVER_READY, transferId: pendingWebClipTransferId }, location.origin);
+  scheduleWebClipTransferResponseTimeout();
+}
+
+function retryPendingWebClipTransfer() {
+  if (!pendingWebClipTransferId) return;
+  setPendingWebClipTransferState("receiving");
+  window.postMessage({ type: WEB_CLIP_TRANSFER_TYPES.RETRY, transferId: pendingWebClipTransferId }, location.origin);
+  scheduleWebClipTransferResponseTimeout();
+}
+
+function cancelPendingWebClipTransfer() {
+  if (!pendingWebClipTransferId || pendingWebClipTransferState === "success") return;
+  const transferId = pendingWebClipTransferId;
+  window.postMessage({ type: WEB_CLIP_TRANSFER_TYPES.CANCEL, transferId }, location.origin);
+  clearWebClipTransferResponseTimer();
+  clearPendingWebClipTransferSession(transferId);
+  pendingWebClipTransferId = "";
+  pendingWebClipTransferState = "idle";
+  pendingWebClipTransferErrorCode = "";
+  pendingWebClipTransferDiagnostics = {};
+}
+
+async function copyPendingWebClipTransferDiagnostics() {
+  const diagnostics = safeWebClipTransferDiagnostics(pendingWebClipTransferDiagnostics);
+  try {
+    await writeSyntaxGuideText(JSON.stringify(diagnostics, null, 2));
+    copyWebClipTransferDiagnosticsBtn.textContent = "診断情報をコピーしました";
+    setTimeout(() => { copyWebClipTransferDiagnosticsBtn.textContent = "診断情報をコピー"; }, 1800);
+  } catch (_) {
+    copyWebClipTransferDiagnosticsBtn.textContent = "コピーできませんでした";
+  }
+}
+
 function syncWebClipActionButtons() {
-  const disabled = webClipSaveInProgress || webClipImageRetryInProgress;
+  const disabled = webClipSaveInProgress || webClipImageRetryInProgress || webClipTransferBlocksSave();
   if (saveWebClipBtn) saveWebClipBtn.disabled = disabled;
   if (saveWebClipTextOnlyBtn) saveWebClipTextOnlyBtn.disabled = disabled;
   if (retryFailedWebClipImagesBtn) retryFailedWebClipImagesBtn.disabled = disabled;
@@ -4765,9 +4923,26 @@ function syncWebClipActionButtons() {
 function renderPendingWebClipOutcome() {
   const result = pendingWebClipDiagnostics.clipResult || {};
   const resultNotice = pendingWebClipFromExtension ? result.notice : "";
-  webClipReceivedStatus.textContent = [pendingWebClipReceiveError, resultNotice, pendingWebClipCompatibilityWarning].filter(Boolean).join(" ")
+  const transferMessages = {
+    receiver_waiting: "Memo Nexusの受信準備中です。",
+    receiving: "ページ本文を受信しています。",
+    validating: "受信したpayloadを検証しています。",
+    ack_waiting: "ページ本文を受信しました。受信確認を完了しています。"
+  };
+  const transferError = pendingWebClipTransferState === "error"
+    ? `[${pendingWebClipTransferErrorCode || "unknown_transfer_error"}] ${webClipTransferErrorMessage(pendingWebClipTransferErrorCode)}`
+    : "";
+  const transferProgress = transferMessages[pendingWebClipTransferState] || "";
+  webClipReceivedStatus.textContent = [transferError || transferProgress || pendingWebClipReceiveError, pendingWebClipTransferState === "success" ? resultNotice : "", pendingWebClipCompatibilityWarning].filter(Boolean).join(" ")
     || (pendingWebClipFromExtension ? "拡張からクリップ候補を受け取りました。内容を確認して保存してください。" : "タイトル・URL・本文を入力して、通常メモとして保存できます。");
-  webClipReceivedStatus.dataset.outcome = pendingWebClipReceiveError ? "failure" : pendingWebClipFromExtension ? result.status : "success";
+  webClipReceivedStatus.dataset.outcome = transferError || pendingWebClipReceiveError ? "failure" : transferProgress ? "partial" : pendingWebClipFromExtension ? result.status : "success";
+  if (webClipReceiveActions) webClipReceiveActions.hidden = !transferError;
+  if (retryWebClipTransferBtn) retryWebClipTransferBtn.disabled = !pendingWebClipTransferId;
+  if (webClipReceiveGuidance) {
+    webClipReceiveGuidance.textContent = transferError
+      ? "「もう一度受信する」を試してください。復旧しない場合は元のページから再実行するか、拡張機能で「リンクのみ」を選んで保存してください。"
+      : "";
+  }
 }
 
 function rebuildPendingWebClipResult() {
@@ -4994,12 +5169,21 @@ async function createWebClipNoteWithImages(title, clip, source, collectionId, ex
 
 function consumeWebClipFragment() {
   const result = readWebClipFragment(location.hash);
-  const transferId = new URLSearchParams(location.hash.replace(/^#/, "")).get("clip-transfer");
-  if (transferId) {
+  const fragment = new URLSearchParams(location.hash.replace(/^#/, ""));
+  const hasTransferId = fragment.has("clip-transfer");
+  const transferId = fragment.get("clip-transfer");
+  if (hasTransferId) {
     const url = new URL(location.href); url.hash = "";
     history.replaceState(history.state, "", `${url.pathname}${url.search}`);
-    return { present: true, clip: null, error: "ページ本文を受信しています。", transferId };
+    if (!webClipTransferLifecycle?.isTransferId(transferId)) {
+      pendingWebClipTransferId = "";
+      return { present: true, clip: null, error: "転送IDの形式が不正です。", errorCode: "transfer_id_invalid", transferId: "" };
+    }
+    pendingWebClipTransferId = transferId;
+    try { sessionStorage.setItem(webClipTransferLifecycle.TRANSFER_SESSION_STORAGE_KEY, transferId); } catch (_) {}
+    return { present: true, clip: null, error: "", transferId };
   }
+  if (pendingWebClipTransferId) return { present: true, clip: null, error: "", transferId: pendingWebClipTransferId };
   if (!result.present) return { present: false, clip: null, error: "" };
   const url = new URL(location.href);
   url.hash = "";
@@ -5023,9 +5207,15 @@ function webClipperCompatibilityWarning(clip) {
   return `古いWeb Clipperが動作しています。拡張機能を更新してください。現在: ${current || "不明"}／必要: ${minimum}以上`;
 }
 
-function openWebClipDialog(clip = null, receiveError = "") {
+function openWebClipDialog(clip = null, receiveError = "", { preserveTransferState = false } = {}) {
   if (!webClipDialog || !webClipReceiverReady) return;
   cancelWebClipImageRetry();
+  if (!preserveTransferState) {
+    pendingWebClipTransferId = "";
+    pendingWebClipTransferState = "idle";
+    pendingWebClipTransferErrorCode = "";
+    pendingWebClipTransferDiagnostics = {};
+  }
   webClipDialogSessionId += 1;
   const normalized = normalizeWebClip(clip || { capturedAt: new Date().toISOString() });
   webClipTitle.value = normalized.title;
@@ -5116,7 +5306,7 @@ function retryFailedWebClipImages() {
 }
 
 async function saveWebClip({ textOnly = false } = {}) {
-  if (webClipSaveInProgress || webClipImageRetryInProgress) return;
+  if (webClipSaveInProgress || webClipImageRetryInProgress || webClipTransferBlocksSave()) return;
   const rawUrl = webClipUrl.value.trim();
   const urlValidation = validateWebClipUrl(rawUrl);
   const safeUrl = urlValidation.url;
@@ -5194,20 +5384,61 @@ async function saveWebClipFromDialog(event) {
 }
 
 function receiveWebClipMessage(event) {
-  if (event.source === window && event.origin === location.origin && event.data?.type === "memo-nexus-web-clip-transfer") {
-    if (!/^[a-f0-9-]{36}$/i.test(event.data.transferId || "")) return;
-    recordWebClipperReceipt(null, event.data.clip);
-    openWebClipDialog(event.data.clip);
-    window.postMessage({ type: "memo-nexus-web-clip-transfer-ack", transferId: event.data.transferId }, location.origin);
-    return;
-  }
-  if (event.source === window && event.origin === location.origin && event.data?.type === "memo-nexus-web-clip-transfer-error") {
-    openWebClipDialog(null, "ページ本文を取得できませんでした。もう一度お試しください。"); return;
+  if (event.source === window && event.origin === location.origin) {
+    const message = event.data;
+    const transferId = String(message?.transferId || "");
+    if (message?.type === WEB_CLIP_TRANSFER_TYPES.CONTENT_READY) {
+      if (webClipReceiverReady && transferId === pendingWebClipTransferId) postWebClipReceiverReady();
+      return;
+    }
+    if (message?.type === WEB_CLIP_TRANSFER_TYPES.PAYLOAD) {
+      if (!webClipReceiverReady || !pendingWebClipTransferId || transferId !== pendingWebClipTransferId) return;
+      if (completedWebClipTransferIds.has(transferId)) {
+        window.postMessage({ type: WEB_CLIP_TRANSFER_TYPES.ACK, transferId }, location.origin);
+        return;
+      }
+      clearWebClipTransferResponseTimer();
+      setPendingWebClipTransferState("validating", "", message.diagnostics);
+      const validation = webClipTransferLifecycle?.validateTransferRecord(message.record);
+      if (!validation?.ok) {
+        const code = validation?.code || "unknown_transfer_error";
+        setPendingWebClipTransferState("error", code, message.diagnostics);
+        console.info("Memo-Nexus Web Clip transfer rejected", safeWebClipTransferDiagnostics({ ...message.diagnostics, code }));
+        return;
+      }
+      completedWebClipTransferIds.add(transferId);
+      recordWebClipperReceipt(null, message.record.clip);
+      openWebClipDialog(message.record.clip, "", { preserveTransferState: true });
+      setPendingWebClipTransferState("ack_waiting", "", {
+        ...message.diagnostics,
+        extensionVersion: message.record.clip.extensionVersion || ""
+      });
+      window.postMessage({ type: WEB_CLIP_TRANSFER_TYPES.ACK, transferId }, location.origin);
+      scheduleWebClipTransferAckTimeout();
+      return;
+    }
+    if (message?.type === WEB_CLIP_TRANSFER_TYPES.ACK_CONFIRMED) {
+      if (transferId !== pendingWebClipTransferId || !completedWebClipTransferIds.has(transferId)) return;
+      setPendingWebClipTransferState("success", "", message.diagnostics);
+      return;
+    }
+    if (message?.type === WEB_CLIP_TRANSFER_TYPES.ERROR) {
+      if (!pendingWebClipTransferId || transferId !== pendingWebClipTransferId) return;
+      const knownCodes = new Set([
+        "record_missing", "transfer_expired", "record_invalid", "created_at_missing", "created_at_invalid", "created_at_future",
+        "clip_invalid", "title_invalid", "url_invalid", "host_invalid", "selection_invalid", "captured_at_invalid",
+        "storage_unavailable", "storage_remove_failed", "ack_timeout"
+      ]);
+      const code = knownCodes.has(message.code) ? message.code : "unknown_transfer_error";
+      setPendingWebClipTransferState("error", code, message.diagnostics);
+      console.info("Memo-Nexus Web Clip transfer error", safeWebClipTransferDiagnostics({ ...message.diagnostics, code }));
+      return;
+    }
   }
   if (event.data?.type !== "memo-nexus-web-clip") return;
   if (!isWebClipperOrigin(event.origin)) return;
-  recordWebClipperReceipt(event.origin, event.data.clip);
   if (!webClipReceiverReady || !allowedWebClipperOrigins().includes(event.origin)) return;
+  recordWebClipperReceipt(event.origin, event.data.clip);
   openWebClipDialog(event.data.clip);
 }
 
@@ -13181,7 +13412,12 @@ if (runCollectionMoveBtn) runCollectionMoveBtn.addEventListener("click", () => r
 if (webClipBtn) webClipBtn.addEventListener("click", () => openWebClipDialog());
 if (closeWebClipBtn) closeWebClipBtn.addEventListener("click", () => webClipDialog.close());
 if (cancelWebClipBtn) cancelWebClipBtn.addEventListener("click", () => webClipDialog.close());
-webClipDialog?.addEventListener("close", cancelWebClipImageRetry);
+webClipDialog?.addEventListener("close", () => {
+  cancelWebClipImageRetry();
+  cancelPendingWebClipTransfer();
+});
+retryWebClipTransferBtn?.addEventListener("click", retryPendingWebClipTransfer);
+copyWebClipTransferDiagnosticsBtn?.addEventListener("click", copyPendingWebClipTransferDiagnostics);
 if (webClipForm) webClipForm.addEventListener("submit", saveWebClipFromDialog);
 saveWebClipTextOnlyBtn?.addEventListener("click", () => saveWebClip({ textOnly: true }));
 retryFailedWebClipImagesBtn?.addEventListener("click", retryFailedWebClipImages);

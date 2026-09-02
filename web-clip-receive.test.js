@@ -10,6 +10,10 @@ const config = fs.readFileSync("extensions/web-clipper/config.js", "utf8");
 const manifest = fs.readFileSync("extensions/web-clipper/manifest.json", "utf8");
 const readme = fs.readFileSync("extensions/web-clipper/README.md", "utf8");
 const updateManager = fs.readFileSync("extensions/web-clipper/update-manager.js", "utf8");
+const transferLifecycle = fs.readFileSync("extensions/web-clipper/transfer-lifecycle.js", "utf8");
+const transferBridge = fs.readFileSync("extensions/web-clipper/transfer-bridge.js", "utf8");
+const transferContent = fs.readFileSync("extensions/web-clipper/transfer-content.js", "utf8");
+const index = fs.readFileSync("index.html", "utf8");
 
 test("本体はフラグメントを消費して履歴からクリップpayloadを除去する", () => {
   assert.match(app, /function consumeWebClipFragment\(\)/);
@@ -82,7 +86,7 @@ test("4方式はポップアップで取得してから確認画面へ渡す", (
 });
 
 test("拡張はmanifest由来の診断情報と保存済み接続先を全方式へ付与する", () => {
-  assert.match(manifest, /"version": "0\.3\.7"/);
+  assert.match(manifest, /"version": "0\.3\.8"/);
   assert.match(popupHtml, /拡張機能バージョン:/);
   assert.match(popup, /const currentExtensionManifest = chrome\.runtime\.getManifest\(\);/);
   assert.match(popup, /extensionVersion\.textContent = currentExtensionManifest\.version/);
@@ -131,10 +135,36 @@ test("接続先と配布方式を分離し、現在版をローカル展開と�
 
 test("転送レコードをTTLで清掃し、open失敗時は今回のキーだけ削除する", () => {
   assert.match(popupHtml, /transfer-lifecycle\.js/);
-  assert.match(manifest, /"transfer-lifecycle\.js", "transfer-content\.js"/);
+  assert.match(manifest, /"transfer-lifecycle\.js", "transfer-bridge\.js", "transfer-content\.js"/);
   assert.match(popup, /inspectTransferEntries\(stored\)/);
   assert.match(popup, /chrome\.storage\.local\.remove\(inspection\.invalidKeys\)/);
   assert.match(popup, /if \(transferKey\) await chrome\.storage\.local\.remove\(transferKey\)/);
+});
+
+test("ページ全文転送は明示的な受信準備、ID一致ACK、再試行、session再開を使う", () => {
+  assert.match(transferLifecycle, /TRANSFER_SESSION_STORAGE_KEY/);
+  assert.match(transferLifecycle, /validateTransferRecord/);
+  assert.match(transferBridge, /CONTENT_READY/);
+  assert.match(transferBridge, /RECEIVER_READY/);
+  assert.match(transferBridge, /ACK_CONFIRMED/);
+  assert.match(transferBridge, /message\.transferId !== transferId/);
+  assert.match(transferBridge, /await remove\(key\)/);
+  assert.match(transferContent, /sessionStorage\.getItem/);
+  assert.match(app, /postWebClipReceiverReady/);
+  assert.match(app, /completedWebClipTransferIds/);
+  assert.match(app, /validateTransferRecord\(message\.record\)/);
+  assert.match(app, /scheduleWebClipTransferAckTimeout\(\)/);
+});
+
+test("転送失敗画面は再受信、診断コピー、リンクのみの代替案内と保存ロックを備える", () => {
+  assert.match(index, /id="retryWebClipTransferBtn"[^>]*>もう一度受信する/);
+  assert.match(index, /id="copyWebClipTransferDiagnosticsBtn"[^>]*>診断情報をコピー/);
+  assert.match(app, /元のページから再実行するか、拡張機能で「リンクのみ」を選んで保存してください/);
+  assert.match(app, /webClipTransferBlocksSave\(\)/);
+  assert.match(app, /content_script_missing/);
+  assert.match(app, /record_missing/);
+  assert.match(app, /transfer_expired/);
+  assert.match(app, /ack_timeout/);
 });
 
 test("開発版更新は転送中を避け、同一対象版の連続reloadを止める", () => {

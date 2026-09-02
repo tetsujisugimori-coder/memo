@@ -2364,3 +2364,13 @@
 * CIは通常チェックでも`npm ci`後に`npm test`を実行する。モバイルE2EはChromiumとWebKitのmatrixジョブへ分離し、各ジョブで対象ブラウザとLinux依存ライブラリを導入して2本のE2Eを実行する。片方の失敗でもCI全体を失敗させ、ブラウザ別390pxスクリーンショットを7日間のartifactとして保存する。timeoutはブラウザ導入と2本の実行を含め15分とした。
 * 通常モバイル表示へ320x667pxを追加し、横超過0、本文234px、関連メモ・NEX-2との重複0、主要操作・「その他」・閉じた右パネルの収納を確認した。Chromium 151とPlaywright WebKit 26.5の双方で、通常表示、320・375・390・430pxの執筆モード、IME相当のキーボード入力、ツール操作、完了復元、wide・compact・メモ切替・ポップアウト、console error・page error 0件が成功した。WebKitの高さ差は最大0.015625pxで既存条件内に収まり、アプリCSS・JavaScriptやassertionの変更は不要だった。
 * `npm ci`、`npm test`全943件、Chromium／WebKitそれぞれの`npm run test:e2e:mobile`、3ファイルの`node --check`、`git diff --check`が成功した。Playwright WebKitはSafari系レンダリングエンジンの自動回帰検査であり、iPhone Safari実機確認ではない。実機のアドレスバー伸縮、ソフトウェアキーボード、IME、ノッチ形状別safe-areaは未確認として残す。
+
+## 2026-09-02 Web Clipperページ全文転送の受信ハンドシェイク修正
+
+* 根本原因は、`transfer-content.js`が本体の受信準備を確認せず`document_start`から約12秒だけpayloadを送っていた一方、本体の同一window受信処理が`webClipReceiverReady`を確認せずACKを返していたことだった。本体初期化中に届くと確認画面へ反映されないまま拡張ストレージだけが削除され、初期化後は既に消したfragmentから空の「ページ本文を受信しています。」画面を開いていた。本体が送る既存のcontent-ready通知もcontent script側で未処理だった。
+* content scriptの起動通知、本体のreceiver-ready、検証済みrecord送信、ACK、ACK確認を同じUUIDで照合する明示ハンドシェイクへ変更した。UUIDはタブ単位の`sessionStorage`へ保持し、fragment消去後の再読み込みでも10分TTL内なら再開する。本体は`createdAt`、`title`、`url`、`host`、`selection`、`capturedAt`を項目別コードで検証し、現在タブのID以外を無視する。同じpayloadはダイアログを作り直さずACKだけ再送する。
+* 一時レコードは一致するACKまたは明示キャンセル後だけ対象キーを削除する。期限切れ・不正形式は対象キーだけ清掃するが、受信準備待ち、record欠落、ストレージ一時失敗、ACKタイムアウト、ページ終了ではTTL内のrecordを保持する。確認画面は受信準備、本文受信、payload検証、ACK待ち、成功を分離し、失敗時はコード、再受信、元ページからの再実行、リンクのみの代替、本文を含まない診断コピーを表示する。空の受信失敗状態では保存を無効にした。
+* `web-clipper-config.js`から、Memo-Nexusと無関係なEdgeアドオン版Web Clipper 1.42.0の`opejammnohhbjflpbhmmdlknhjkhfhdp`を削除した。現在の展開読み込みID`aelacnladkiohkhbjhfbmekpbfgpcmlh`と、履歴上Memo-Nexus用と確認できる`lecpajkpnjnagbeokicilagdonkcimbo`、`aelacnladkiohkhbjhfbmeknbfgpcmlh`は維持した。許可一覧は旧来のextension-origin直送だけに適用し、同一window転送は同一origin・現在タブUUID・payload検証で制限する。
+* 修正前に、項目別検証APIと受信準備ブリッジが存在しないため失敗する回帰テストを追加した。最終的に転送ライフサイクル、15秒超遅延、ACK保持・別ID拒否・タイムアウト保持・再読込・欠落・期限切れ・不正項目・キャンセル、UI、Originを含むWeb Clipper関連87件と`npm test`全951件が成功した。
+* Microsoft Edgeの`msedge` channelで展開読み込み版0.3.8を実際に起動し、実ID`aelacnladkiohkhbjhfbmekpbfgpcmlh`のManifest V3拡張で、15.5秒の本体起動遅延、ACK遮断後の再読み込み、欠落後の再受信、期限切れ、重複、2タブ同時転送、content script欠落、削除Origin拒否、ACKタイムアウト保持、既存4方式、長文、画像、更新／新規保存、保存失敗保持、画像再試行を確認した。通常経路の予期しないconsole errorとpage errorは0件だった。意図的な画像保存失敗fixtureが出す既存の処理済み`console.error`だけは期待値として分離した。
+* `app.js`、`web-clipper-config.js`、転送3ファイル、`web-clipper.e2e.js`の`node --check`、manifest JSON解析、`git diff --check`を実施した。拡張版は0.3.8、配信識別子は`style.css?v=0.5.0-74`、`web-clipper-config.js?v=0.5.0-3`、`app.js?v=0.5.0-137`へ更新した。GitHub Pages本番はこの未配信変更を含まないため、JoplinのWikipedia実ページ、本番URL、複数の既存本番タブ、拡張管理画面の未処理エラー0件はデプロイ後の手動確認として残す。

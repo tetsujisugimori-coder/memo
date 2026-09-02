@@ -2224,6 +2224,9 @@ body.layout-resizing iframe {
 .web-clip-status[data-outcome="success"] { color: var(--success, #067647); }
 .web-clip-status[data-outcome="partial"] { color: var(--warning, #b54708); font-weight: 700; }
 .web-clip-status[data-outcome="failure"] { color: var(--danger, #b42318); font-weight: 700; }
+.web-clip-receive-actions { display: grid; gap: 8px; padding: 10px; border: 1px solid var(--danger, #b42318); border-radius: 8px; background: color-mix(in srgb, var(--paper) 88%, var(--danger, #b42318) 12%); }
+.web-clip-receive-actions[hidden] { display: none; }
+.web-clip-receive-actions > div { display: flex; flex-wrap: wrap; gap: 8px; }
 .web-clip-error { min-height: 1.2em; margin: 0; color: var(--danger, #b42318); }
 .web-clip-images { display: grid; gap: 8px; min-width: 0; padding: 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--section-bg); }
 .web-clip-images[hidden] { display: none; }
