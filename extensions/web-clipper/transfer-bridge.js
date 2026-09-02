@@ -27,7 +27,16 @@
     let stopped = false;
 
     function diagnostic(code, extra = {}) {
-      return { transferId, phase, code, attempt, ackReceived: false, extensionVersion: String(extensionVersion || ""), ...extra };
+      return {
+        transferId,
+        phase,
+        code,
+        attempt,
+        ackReceived: false,
+        extensionVersion: String(extensionVersion || ""),
+        ...extra,
+        transferProtocol: receiverProtocol
+      };
     }
 
     function announce() {
@@ -77,8 +86,9 @@
       }
       phase = "awaiting_ack";
       payloadSent = true;
-      post({ type: TYPES.PAYLOAD, transferId, record, clip: record.clip });
-      log(diagnostic("payload_sent", { recordPresent: true, receiverProtocol }));
+      const details = diagnostic("payload_sent", { recordPresent: true });
+      post({ type: TYPES.PAYLOAD, transferId, record, clip: record.clip, diagnostics: details });
+      log(details);
       clearAckTimer();
       ackTimer = setTimeoutFn(() => {
         ackTimer = 0;

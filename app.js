@@ -4803,7 +4803,11 @@ function clearWebClipTransferResponseTimer() {
 
 function safeWebClipTransferDiagnostics(value = {}) {
   const attempt = Number(value.attempt);
-  const transferProtocol = ["current", "legacy"].includes(value.transferProtocol) ? value.transferProtocol : "unknown";
+  const suppliedTransferProtocol = ["current", "legacy", "unknown"].includes(value.transferProtocol) ? value.transferProtocol : "";
+  const existingTransferProtocol = ["current", "legacy"].includes(pendingWebClipTransferDiagnostics.transferProtocol)
+    ? pendingWebClipTransferDiagnostics.transferProtocol
+    : "";
+  const transferProtocol = suppliedTransferProtocol || existingTransferProtocol || "unknown";
   return {
     transferId: pendingWebClipTransferId,
     state: pendingWebClipTransferState,

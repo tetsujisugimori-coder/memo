@@ -576,10 +576,12 @@ async function main() {
     await missingReceiver.locator("#retryWebClipTransferBtn").click();
     await missingReceiver.waitForFunction(() => document.getElementById("webClipTitle")?.value === "欠落後の再受信");
     await waitForStorageRemoval(worker, missingTransferKey);
+    assert.equal(await missingReceiver.evaluate(() => safeWebClipTransferDiagnostics(pendingWebClipTransferDiagnostics).transferProtocol), "current", "ACK_CONFIRMED後に現行方式の診断値が失われた");
     await missingReceiver.locator("#webClipTitle").fill("ユーザーが変更した題名");
     await missingReceiver.evaluate(({ transferId, record }) => window.postMessage({ type: "memo-nexus-web-clip-transfer", transferId, record }, location.origin), { transferId: missingTransferId, record: recoveredRecord });
     await missingReceiver.waitForTimeout(150);
     assert.equal(await missingReceiver.locator("#webClipTitle").inputValue(), "ユーザーが変更した題名", "重複payloadが確認画面を初期化した");
+    assert.equal(await missingReceiver.evaluate(() => safeWebClipTransferDiagnostics(pendingWebClipTransferDiagnostics).transferProtocol), "current", "重複payloadへのACK再送後に現行方式の診断値が失われた");
     await missingReceiver.close();
 
     const expiredTransferId = crypto.randomUUID();

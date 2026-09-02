@@ -88,6 +88,10 @@ test("新旧payloadを区別し、未知形式は拡張更新が必要なエラ�
   assert.deepEqual(resolveTransferPayload({ clip: validClip }, now), {
     ok: true, code: "ok", protocol: "legacy", clip: validClip
   });
-  assert.equal(resolveTransferPayload({}, now).code, "extension_update_required");
-  assert.equal(resolveTransferPayload({ clip: { ...validClip, url: "javascript:alert(1)" } }, now).code, "url_invalid");
+  assert.deepEqual(resolveTransferPayload({}, now), {
+    ok: false, code: "extension_update_required", protocol: "unknown", clip: null
+  });
+  assert.deepEqual(resolveTransferPayload({ clip: { ...validClip, url: "javascript:alert(1)" } }, now), {
+    ok: false, code: "url_invalid", protocol: "legacy", clip: null
+  });
 });

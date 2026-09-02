@@ -22,7 +22,7 @@ function flush() {
   return new Promise((resolve) => setImmediate(resolve));
 }
 
-function harness(record = validRecord) {
+function harness(record = validRecord, { readError = null, removeError = null } = {}) {
   let now = validRecord.createdAt;
   let sequence = 0;
   const scheduled = new Map();
@@ -56,8 +56,15 @@ function harness(record = validRecord) {
     transferId,
     lifecycle,
     now: () => now,
-    read: async (key) => records.get(key),
-    remove: async (key) => { removed.push(key); records.delete(key); },
+    read: async (key) => {
+      if (readError) throw readError;
+      return records.get(key);
+    },
+    remove: async (key) => {
+      if (removeError) throw removeError;
+      removed.push(key);
+      records.delete(key);
+    },
     post: (message) => messages.push(message),
     setInterval: (callback, delay) => schedule(callback, delay, true),
     clearInterval: (id) => scheduled.delete(id),
@@ -77,7 +84,9 @@ test("受信準備が15秒以上遅れてもpayloadを保持し、準備完了�
   assert.equal(state.messages.some((message) => message.type === "memo-nexus-web-clip-transfer"), false);
 
   await state.bridge.handleMessage({ type: "memo-nexus-web-clip-receiver-ready", transferId });
-  assert.equal(state.messages.filter((message) => message.type === "memo-nexus-web-clip-transfer").length, 1);
+  const payload = state.messages.find((message) => message.type === "memo-nexus-web-clip-transfer");
+  assert(payload);
+  assert.equal(payload.diagnostics.transferProtocol, "current");
   assert(state.records.has(transferKey), "ACK前に転送レコードを削除した");
 
   await state.bridge.handleMessage({ type: "memo-nexus-web-clip-transfer-ack", transferId: "22222222-2222-2222-2222-222222222222" });
@@ -85,7 +94,9 @@ test("受信準備が15秒以上遅れてもpayloadを保持し、準備完了�
   await state.bridge.handleMessage({ type: "memo-nexus-web-clip-transfer-ack", transferId });
   assert.equal(state.records.has(transferKey), false);
   assert.deepEqual(state.removed, [transferKey]);
-  assert(state.messages.some((message) => message.type === "memo-nexus-web-clip-transfer-ack-confirmed"));
+  const confirmed = state.messages.find((message) => message.type === "memo-nexus-web-clip-transfer-ack-confirmed");
+  assert(confirmed);
+  assert.equal(confirmed.diagnostics.transferProtocol, "current");
 });
 
 test("自己CONTENT_READYでは送信せず、旧本体のCONTENT_READY後だけ互換payloadを送る", async () => {
@@ -102,6 +113,7 @@ test("自己CONTENT_READYでは送信せず、旧本体のCONTENT_READY後だけ
   assert(payload);
   assert.deepEqual(payload.record, validRecord);
   assert.deepEqual(payload.clip, validRecord.clip);
+  assert.equal(payload.diagnostics.transferProtocol, "legacy");
   assert(state.records.has(transferKey), "旧本体のACK前にレコードを削除した");
 
   await state.bridge.handleMessage({ type: "memo-nexus-web-clip-transfer-ack", transferId: "22222222-2222-2222-2222-222222222222" });
@@ -109,6 +121,8 @@ test("自己CONTENT_READYでは送信せず、旧本体のCONTENT_READY後だけ
   await state.bridge.handleMessage({ type: "memo-nexus-web-clip-transfer-ack", transferId });
   assert.equal(state.records.has(transferKey), false);
   assert.deepEqual(state.removed, [transferKey]);
+  const confirmed = state.messages.find((message) => message.type === "memo-nexus-web-clip-transfer-ack-confirmed");
+  assert.equal(confirmed.diagnostics.transferProtocol, "legacy");
 });
 
 test("ACKタイムアウトではTTL内のレコードを保持し、再試行で再送できる", async () => {
@@ -117,11 +131,53 @@ test("ACKタイムアウトではTTL内のレコードを保持し、再試行�
   await state.bridge.handleMessage({ type: "memo-nexus-web-clip-receiver-ready", transferId });
   await state.advance(ACK_TIMEOUT_MS + 1);
   assert(state.records.has(transferKey));
-  assert(state.messages.some((message) => message.type === "memo-nexus-web-clip-transfer-error" && message.code === "ack_timeout"));
+  const timeout = state.messages.find((message) => message.type === "memo-nexus-web-clip-transfer-error" && message.code === "ack_timeout");
+  assert(timeout);
+  assert.equal(timeout.diagnostics.transferProtocol, "current");
 
   await state.bridge.handleMessage({ type: "memo-nexus-web-clip-transfer-retry", transferId });
-  assert.equal(state.messages.filter((message) => message.type === "memo-nexus-web-clip-transfer").length, 2);
+  const payloads = state.messages.filter((message) => message.type === "memo-nexus-web-clip-transfer");
+  assert.equal(payloads.length, 2);
+  assert.equal(payloads[1].diagnostics.transferProtocol, "current");
 });
+
+test("旧方式のACKタイムアウトと再試行でもlegacyを維持する", async () => {
+  const state = harness();
+  state.bridge.start();
+  await state.bridge.handleMessage({ type: "memo-nexus-web-clip-content-ready", transferId });
+  await state.advance(ACK_TIMEOUT_MS + 1);
+  const timeout = state.messages.find((message) => message.type === "memo-nexus-web-clip-transfer-error" && message.code === "ack_timeout");
+  assert.equal(timeout.diagnostics.transferProtocol, "legacy");
+
+  await state.bridge.handleMessage({ type: "memo-nexus-web-clip-transfer-retry", transferId });
+  const payloads = state.messages.filter((message) => message.type === "memo-nexus-web-clip-transfer");
+  assert.equal(payloads.length, 2);
+  assert.equal(payloads[1].diagnostics.transferProtocol, "legacy");
+});
+
+for (const [protocol, readyType] of [
+  ["current", "memo-nexus-web-clip-receiver-ready"],
+  ["legacy", "memo-nexus-web-clip-content-ready"]
+]) {
+  test(`${protocol}方式のストレージ読込失敗でもプロトコルを維持する`, async () => {
+    const state = harness(validRecord, { readError: new Error("read failed") });
+    state.bridge.start();
+    await state.bridge.handleMessage({ type: readyType, transferId });
+    const error = state.messages.find((message) => message.code === "storage_unavailable");
+    assert(error);
+    assert.equal(error.diagnostics.transferProtocol, protocol);
+  });
+
+  test(`${protocol}方式のストレージ削除失敗でもプロトコルを維持する`, async () => {
+    const state = harness(validRecord, { removeError: new Error("remove failed") });
+    state.bridge.start();
+    await state.bridge.handleMessage({ type: readyType, transferId });
+    await state.bridge.handleMessage({ type: "memo-nexus-web-clip-transfer-ack", transferId });
+    const error = state.messages.find((message) => message.code === "storage_remove_failed");
+    assert(error);
+    assert.equal(error.diagnostics.transferProtocol, protocol);
+  });
+}
 
 test("再読み込み相当のbridge再生成後もTTL内の同じ転送を再開する", async () => {
   const state = harness();
