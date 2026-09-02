@@ -254,6 +254,52 @@ test("バッククォートとチルダのコードフェンス内では記法�
   assert.equal(segmentsToMarkdown(splitGeometryBlocks(markdown)), markdown);
 });
 
+test("リスト内のバッククォート・チルダコードフェンスでは記法例を認識しない", () => {
+  const marker = serializeGeometryBlock(createGeometryBlock("list-fence"));
+  const cases = [
+    ["箇条書きバッククォート", ["- 図形", "    ```markdown", `    ${marker}`, "    ```"]],
+    ["箇条書きチルダ", ["- 図形", "    ~~~markdown", `    ${marker}`, "    ~~~"]],
+    ["番号付きバッククォート", ["1. 図形", "    ```markdown", `    ${marker}`, "    ```"]],
+    ["番号付きチルダ", ["1. 図形", "    ~~~markdown", `    ${marker}`, "    ~~~"]],
+    ["入れ子バッククォート", ["- 親", "  - 子", "      ```markdown", `      ${marker}`, "      ```"]],
+    ["入れ子チルダ", ["- 親", "  - 子", "      ~~~markdown", `      ${marker}`, "      ~~~"]],
+    ["空行を挟んだリスト継続", ["- 図形", "", "    ```markdown", `    ${marker}`, "    ```"]],
+    ["スペースとタブが混在", ["- 図形", "  \t ```markdown", `  \t ${marker}`, "  \t ```"]]
+  ];
+  cases.forEach(([name, lines]) => {
+    const markdown = lines.join("\n");
+    assert.equal(geometryBlocks(markdown).length, 0, name);
+    assert.equal(segmentsToMarkdown(splitGeometryBlocks(markdown)), markdown, name);
+  });
+});
+
+test("リスト基準から4列以上深い終了フェンス風の行ではコードフェンスを閉じない", () => {
+  const first = serializeGeometryBlock(createGeometryBlock("still-fenced-first"));
+  const second = serializeGeometryBlock(createGeometryBlock("still-fenced-second"));
+  const markdown = [
+    "- 図形", "    ```markdown", `    ${first}`, "      ```", `    ${second}`, "    ```"
+  ].join("\n");
+  assert.equal(geometryBlocks(markdown).length, 0);
+  assert.equal(segmentsToMarkdown(splitGeometryBlocks(markdown)), markdown);
+});
+
+test("コードフェンス外のリスト子要素マーカーは引き続き認識する", () => {
+  const marker = serializeGeometryBlock(createGeometryBlock("list-geometry"));
+  const cases = [
+    ["箇条書き", ["- 図形", `    ${marker}`]],
+    ["番号付き", ["1. 図形", `    ${marker}`]],
+    ["入れ子", ["- 親", "  - 子", `      ${marker}`]],
+    ["空行を挟んだリスト継続", ["- 図形", "", `    ${marker}`]]
+  ];
+  cases.forEach(([name, lines]) => {
+    const markdown = lines.join("\n");
+    const [block] = geometryBlocks(markdown);
+    assert.equal(block.geometry.id, "list-geometry", name);
+    assert.equal(markdown.slice(block.start, block.end), block.raw, name);
+    assert.equal(segmentsToMarkdown(splitGeometryBlocks(markdown)), markdown, name);
+  });
+});
+
 test("4スペースインデントコード内のマーカーを認識しない", () => {
   const marker = serializeGeometryBlock(createGeometryBlock("indent-space"));
   const markdown = ["通常行", `    ${marker}`, "通常行"].join("\n");

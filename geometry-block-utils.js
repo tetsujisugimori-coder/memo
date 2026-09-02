@@ -403,6 +403,29 @@
     return indent - listContentIndent >= 4;
   }
 
+  function fenceStart(text, listContentIndent) {
+    const indent = leadingIndentColumns(text);
+    const relativeIndent = indent.column - listContentIndent;
+    if (relativeIndent < 0 || relativeIndent > 3) return null;
+    const match = text.slice(indent.index).match(/^(`{3,}|~{3,})/);
+    if (!match) return null;
+    return {
+      character: match[1][0],
+      length: match[1].length,
+      listContentIndent
+    };
+  }
+
+  function closesFence(text, fence) {
+    const indent = leadingIndentColumns(text);
+    const relativeIndent = indent.column - fence.listContentIndent;
+    if (relativeIndent < 0 || relativeIndent > 3) return false;
+    const remaining = text.slice(indent.index);
+    let length = 0;
+    while (remaining[length] === fence.character) length += 1;
+    return length >= fence.length && /^[ \t]*$/.test(remaining.slice(length));
+  }
+
   function scanGeometryLines(markdown, includeInvalidCandidates = false) {
     const source = String(markdown || "");
     const matches = [];
@@ -412,7 +435,7 @@
     markdownLines(source).forEach((line) => {
       const trimmed = line.text.trim();
       if (fence) {
-        if (trimmed.length >= fence.length && [...trimmed].every((character) => character === fence.character)) fence = null;
+        if (closesFence(line.text, fence)) fence = null;
         return;
       }
       const indent = leadingIndentColumns(line.text).column;
@@ -433,9 +456,9 @@
       if (isIndentedCodeLine(line.text, listContentIndent) && GEOMETRY_BLOCK_CANDIDATE_PATTERN.test(line.text)) {
         return;
       }
-      const fenceMatch = line.text.match(/^\s{0,3}(`{3,}|~{3,})/);
-      if (fenceMatch) {
-        fence = { character: fenceMatch[1][0], length: fenceMatch[1].length };
+      const openingFence = fenceStart(line.text, listContentIndent);
+      if (openingFence) {
+        fence = openingFence;
         return;
       }
       if (trimmed === IMAGE_BLOCK_START) {
