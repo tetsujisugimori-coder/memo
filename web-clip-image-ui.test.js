@@ -35,6 +35,8 @@ test("拡張はページ・選択画像を取得し、リンクのみでは画�
   assert.match(background, /return true/);
   assert.match(popup, /mode === "link"[\s\S]*images: \[\]/);
   assert.match(manifest, /"unlimitedStorage"/);
+  assert.match(manifest, /"webRequest"/);
+  assert.match(background, /observeImageRedirects/);
   assert.match(manifest, /"http:\/\/\*\/\*"/);
   assert.match(manifest, /"https:\/\/\*\/\*"/);
 });
@@ -83,6 +85,24 @@ test("MV3 E2Eは再クリップ更新・新規保存・失敗画像のみ再試�
 test("確認画面はモバイルで1列になり内部スクロールする", () => {
   assert.match(css, /\.web-clip-images-list[^}]*overflow:\s*auto/);
   assert.match(css, /@media \(max-width: 640px\)[\s\S]*\.web-clip-images-list\s*\{[^}]*grid-template-columns:\s*1fr/);
+});
+
+test("成功・部分成功・失敗を意味付き状態で表示し、保存失敗でも入力と再試行経路を保つ", () => {
+  assert.match(app, /webClipReceivedStatus\.dataset\.outcome = pendingWebClipReceiveError/);
+  assert.match(css, /\.web-clip-status\[data-outcome="success"\]/);
+  assert.match(css, /\.web-clip-status\[data-outcome="partial"\]/);
+  assert.match(css, /\.web-clip-status\[data-outcome="failure"\]/);
+  assert.match(app, /let webClipSaveInProgress = false/);
+  assert.match(app, /let webClipImageRetryInProgress = false/);
+  assert.match(app, /if \(webClipSaveInProgress \|\| webClipImageRetryInProgress\) return/);
+  assert.match(app, /saveWebClipBtn\.disabled = disabled/);
+  assert.match(app, /saveWebClipTextOnlyBtn\.disabled = disabled/);
+  assert.match(app, /activeWebClipImageRetry !== retryState/);
+  assert.match(app, /rebuildPendingWebClipResult\(\)/);
+  assert.match(app, /clipResult: rebuildClipResultForImages/);
+  assert.match(app, /clipResult: clip\.clipResult/);
+  assert.match(app, /入力内容は保持されています。再試行してください。/);
+  assert.doesNotMatch(app, /webClipError\.textContent = `保存に失敗しました: \$\{error\.message/);
 });
 
 test("Memo-NexusのMarkdown ZIPを画像付きで再取り込みできる入口を持つ", () => {

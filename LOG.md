@@ -2318,3 +2318,29 @@
 * Playwrightの`getBoundingClientRect()`と計算済みpaddingを使う`layout-resize.e2e.js`を追加した。1pxの許容差で、外側隙間0px、カード右側16px、本文―カード間16px、残り幅の使い切りを直接検証し、本文最小・既定・中間・最大、右側欄240／340／520px、再読み込み、初期化、開閉、1039px compact、719px mobile、popout、横スクロールなしを確認する。
 * 1363pxの修正前は、workspace 1023px、本文541.66px、セパレーター16px、カード346.67px、カード―右側欄102.67px、余計な空白86.67pxだった。修正後はworkspace 1023px、本文541.66px、セパレーター16px、カード433.34px、カード―右側欄16px、余計な空白0pxとなった。1040／1280／1363／1600pxでもカード―右側欄はすべて16pxだった。
 * `style.css`の配信識別子を`0.5.0-71`へ更新した。`npm test`は全920件成功し、Playwright座標テストも成功、console error・page errorは0件だった。実ブラウザでも2本の境界ドラッグ、カード追従、右側パネル開閉、compact・mobile・wide往復、二重線なし、横スクロール0を確認した。
+
+## 2026-09-02 Web Clipperの失敗分類・部分保存・取得境界改善
+
+### 変更内容と判断理由
+
+* 現行構成を横断確認し、入口を拡張`popup.js`と本体`?web-clip`、本文入力元を表示済みタブDOM、抽出を`page-extractor.js`、画像取得をService Worker、保存を既存`createNote`／`createWebClipNoteWithImages`と整理した。URLからページHTMLを再取得するサーバー処理は存在しないため、アクセス制限回避やサイト別規則は追加していない。
+* `clip-result.js`を追加し、入力検証、ページ取得、HTML解析、メタデータ抽出、本文抽出、画像取得、メモ変換、保存の段階と、`invalid_url`から`unknown`までの分類、利用者向け文言、限定した診断情報、再試行可否、部分保存可否をUI・通信から分離した。
+* 通常本文が得られない場合は、利用者の選択文、JSON-LD `articleBody`、Open Graph／通常description、メタデータのみの順で候補を作る。全文方式をリンク方式へ暗黙変更せず、選択文と追記メモを通信・抽出・画像失敗から独立して保持する。
+* 画像は既存の20件、1件5MB、合計20MBと個別確定を維持した。Cookie・認証情報・referrerを送らず、HTTP(S)以外、明示的なlocalhost／ループバック／リンクローカル／プライベート宛先、危険なリダイレクト、5回超のリダイレクト、応答サイズ超過を画像単位で拒否する。
+* 本体確認画面は成功・部分成功・失敗を意味と色で区別し、画像一部失敗件数を明示する。保存失敗では内部例外を画面へ出さず入力を保持し、同一操作の二重保存をガードした。保存自体は既存の通常メモ／添付トランザクションと同一URL更新選択を再利用した。
+* 診断URLは認証情報、query、fragmentを除去し、本文、選択文、追記メモ、Cookie、tokenをログへ出さない。拡張版は`0.3.6`へ更新した。
+
+### テスト、確認結果、残課題
+
+* 分類、HTTP 401／403／404／429／500系、URL検証、フォールバック順、選択文保持、メタデータのみ、画像部分失敗、診断URL秘匿、JSON-LD／description抽出、未対応scheme、ローカル宛先、リダイレクト、資格情報なし取得の単体テストを追加した。
+* 既存関連テスト初回実行はサンドボックスの子プロセス起動制限で`spawn EPERM`となり、同じコマンドを許可済みのサンドボックス外実行へ切り替えた。最終的にWeb Clipper関連68件、`npm test`全931件が成功し、変更JavaScriptとE2Eスクリプトの`node --check`、manifest JSON解析、`git diff --check`も成功した。`package.json`にlint、型チェック、ビルドのスクリプトはない。配信識別子は`style.css?v=0.5.0-72`、`web-clip-utils.js?v=0.5.0-7`、`app.js?v=0.5.0-133`へ更新した。
+* 実サイト固定の自動テスト、実ブラウザでのログイン必須／bot対策ページ、DNS解決後にプライベートIPとなるホストの判定は未実施・未対応である。実ブラウザE2Eは画像fixtureを公開形ホスト名＋テスト専用host resolverへ変更したが、この環境に`playwright`パッケージがないため未実行である。現在の取得元は表示済みDOMなので、HTTP状態は将来のURL取得アダプターが提供した場合に分類する。将来の別拡張／取得元は`buildClipResult`へ抽出済み本文、メタデータ、画像結果、分類済みissueを渡して接続する。
+
+### PR #165追加修正: リダイレクト画像・再試行診断・保存競合
+
+* Manifest V3では`redirect: "manual"`の応答が`opaqueredirect`となり得るため、3xx statusと`Location`をJavaScriptから読める前提を除いた。Fetchは`credentials: "omit"`、`referrerPolicy: "no-referrer"`のまま自動追従し、`webRequest`で同じrequest IDの転送先と回数を観測する。レスポンス本文を読む前に`response.url`を再検証し、HTTP(S)外、localhost、ループバック、リンクローカル、プライベートIP、監視できないチェーン、危険な最終URL、5回超過を画像単位の失敗にする。1画像5MB、合計20MB、タイムアウトは維持した。
+* ブラウザは監視側の中断より先に転送先へ通信を開始する場合があるため、危険な転送先への通信自体を完全に防止する保証はしない。安全性を確認できない最終レスポンスの本文は読み込まず、Memo-Nexusの画像データや保存対象にはしない。DNS解決後に公開名がプライベートIPへ変わるケースは、ブラウザ拡張APIだけでは判定していない。
+* 初回受信と画像再試行で`rebuildClipResultForImages()`を共用し、現在の画像配列から`status`、`notice`、`issues`、成功・失敗件数、`stage`、`code`、`finalResult`を再計算する。全画像成功かつ非画像issueなしなら`partial`から`success`へ移り、画像失敗または本文抽出フォールバックが残れば`partial`を維持する。古い`image_fetch_partial`は除去して1件だけ作り直し、画面の`data-outcome`、保存通知、保存済み`source.clipResult`を同じ結果へ揃えた。
+* 再試行にはダイアログsession IDとrequest IDを持つ明示状態を追加した。再試行中は通常保存・画像なし保存・再試行ボタンを無効にし、成功・失敗・20秒タイムアウトで必ず復元する。ダイアログを閉じるか別クリップを開くと古いlistenerとtimerを解除し、旧結果を新しいクリップへ反映しない。保存開始時も再試行中でないことを確認し、既存の二重保存防止とは同じボタン同期関数で共存する。
+* 一時ディレクトリへPlaywrightを導入し、Microsoft Edgeの`msedge` channelで展開読み込み版0.3.7を実行した。実際のManifest V3 Service Workerでリダイレクトなし、単一302、複数回リダイレクト、404・タイムアウトを含む部分保存、失敗画像の再試行成功、再試行中の保存ロック、`partial`から`success`への表示更新、通常保存通知、IndexedDBへ保存した`source.clipResult`の成功1・失敗0を確認した。既存の4方式、長文転送、同一URL更新／新規保存、画像なし保存、保存失敗時の入力保持、ACKライフサイクルも同じE2Eで成功した。
+* Web Clipper関連38件と`npm test`全936件が成功した。`app.js`、`image-fetcher.js`、`background.js`、`clip-result.js`、`web-clipper.e2e.js`の`node --check`、manifest JSON解析、`git diff --check`も成功した。配信識別子は`app.js?v=0.5.0-134`、拡張版は`0.3.7`へ更新した。

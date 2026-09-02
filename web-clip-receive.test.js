@@ -44,18 +44,19 @@ test("拡張は選択した接続先のURLへフラグメントpayloadで遷移�
   assert.match(updateManager, /environment !== "development"/);
 });
 
-test("拡張は選択なしをリンクのみに切り替えず、取得失敗を案内する", () => {
-  assert.match(popup, /選択範囲が長すぎてクリップできません。範囲を短くして再度お試しください。/);
-  assert.match(popup, /クリップを開始できませんでした。もう一度お試しください。/);
-  assert.match(popup, /ページ本文を取得できませんでした。選択部分またはリンクのみでお試しください。/);
-  assert.match(popup, /page-injection-failed/);
-  assert.match(popup, /page-content-empty/);
-  assert.match(popup, /page-markdown-empty/);
-  assert.match(popup, /selection-required/);
+test("拡張は選択なしをリンクのみに切り替えず、分類済みの取得結果を案内する", () => {
+  assert.match(popupHtml, /clip-result\.js/);
+  assert.match(popup, /clipResult\.issueError/);
+  assert.match(popup, /clipResult\.buildClipResult/);
+  assert.match(popup, /partialSaveAvailable: false/);
+  assert.match(popup, /code: "access_denied"/);
+  assert.match(popup, /code: "html_parse_failed"/);
+  assert.match(popup, /code: content\?\.metadata\?\.description \|\| content\?\.metadata\?\.articleBody \? "metadata_only" : "article_not_found"/);
   assert.match(popup, /選択部分をクリップするには、ページ上で文章を選択してください。/);
   assert.match(popup, /clipMode\.value = "selection"/);
   assert.doesNotMatch(popup, /clipMode\.value = hasSelection \? "selection" : "link"/);
-  assert.match(popup, /console\.error\("Memo-Nexus Web Clipper could not open Memo-Nexus", cause\)/);
+  assert.match(popup, /sourceSelection: base\.selection/);
+  assert.match(popup, /console\.info\("Memo-Nexus Web Clipper could not open Memo-Nexus"/);
 });
 
 test("4方式はポップアップで取得してから確認画面へ渡す", () => {
@@ -67,10 +68,10 @@ test("4方式はポップアップで取得してから確認画面へ渡す", (
   assert.match(popup, /ページ本文を取得しています…/);
   assert.match(popup, /MemoNexusPageExtractor\.extractPageContent\(\)/);
   assert.match(popup, /fetchImagesInServiceWorker\(content\.images\)/);
-  assert.match(popup, /Memo-Nexusの確認画面を開きます…/);
+  assert.match(popup, /modeStatus\.textContent = finalized\.result\.notice/);
   assert.ok(popup.indexOf("fetchImagesInServiceWorker(content.images)") < popup.indexOf("window.open(MemoNexusClipPayload.buildWebClipDestination"));
   assert.match(popup, /mode === "link" \|\| mode === "memo"/);
-  assert.match(popup, /selection: mode === "link" \? "" : base\.selection, images: \[\]/);
+  assert.match(popup, /selection: finalized\.content, metadata: finalized\.metadata, clipResult: finalized\.result, images: \[\]/);
   assert.match(clipPayload, /clip-transfer=\$\{encodeURIComponent\(options\.transferId\)\}/);
   assert.match(popup, /chrome\.storage\.local\.set/);
   assert.doesNotMatch(popup, /receiver\.postMessage\(/);
@@ -81,7 +82,7 @@ test("4方式はポップアップで取得してから確認画面へ渡す", (
 });
 
 test("拡張はmanifest由来の診断情報と保存済み接続先を全方式へ付与する", () => {
-  assert.match(manifest, /"version": "0\.3\.5"/);
+  assert.match(manifest, /"version": "0\.3\.7"/);
   assert.match(popupHtml, /拡張機能バージョン:/);
   assert.match(popup, /const currentExtensionManifest = chrome\.runtime\.getManifest\(\);/);
   assert.match(popup, /extensionVersion\.textContent = currentExtensionManifest\.version/);

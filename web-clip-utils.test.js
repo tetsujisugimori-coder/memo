@@ -1,7 +1,7 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const {
-  safeExternalUrl, normalizeWebClip, buildWebClipMarkdown, encodeWebClipPayload, decodeWebClipPayload,
+  safeExternalUrl, validateWebClipUrl, normalizeWebClip, buildWebClipMarkdown, encodeWebClipPayload, decodeWebClipPayload,
   readWebClipFragment, compareSemanticVersions, isWebClipperVersionCompatible, webClipUrlWithoutLaunchMarker,
   normalizeWebClipComparisonUrl
 } = require("./web-clip-utils.js");
@@ -11,6 +11,9 @@ test("web clip accepts only http and https URLs", () => {
   assert.equal(safeExternalUrl("https://example.com/a"), "https://example.com/a");
   assert.equal(safeExternalUrl("javascript:alert(1)"), "");
   assert.equal(safeExternalUrl("data:text/plain,test"), "");
+  assert.deepEqual(validateWebClipUrl("not a url"), { ok: false, url: "", code: "invalid_url" });
+  assert.deepEqual(validateWebClipUrl("file:///secret"), { ok: false, url: "", code: "unsupported_scheme" });
+  assert.deepEqual(validateWebClipUrl(""), { ok: true, url: "", code: "" });
 });
 
 test("再クリップ比較URLはfragmentと末尾slashだけを正規化し、queryは維持する", () => {
@@ -97,7 +100,23 @@ test("Web Clipper最低互換版をSemVerで比較し、欠落を旧版として
 test("Web Clipper診断情報をpayload往復で維持する", () => {
   const clip = {
     title: "診断", url: "https://example.com/", host: "example.com", selection: "本文", capturedAt: "2026-08-12T00:00:00.000Z",
-    extensionVersion: "0.3.2", manifestVersion: 3, browserFamily: "Edge", targetEnvironment: "development", distributionChannel: "unpacked-development"
+    extensionVersion: "0.3.6", manifestVersion: 3, browserFamily: "Edge", targetEnvironment: "development", distributionChannel: "unpacked-development",
+    metadata: { title: "OGタイトル", description: "説明", siteName: "サイト", articleBody: "" },
+    clipResult: {
+      status: "partial",
+      notice: "本文を取得できなかったため、タイトルとURLのみ保存します。",
+      issues: [{ stage: "article_extraction", code: "metadata_only", userMessage: "案内", developerMessage: "no article", retryable: false, partialSaveAvailable: true }],
+      diagnostic: {
+        occurredAt: "2026-08-12T00:00:00.000Z", stage: "article_extraction", code: "metadata_only",
+        articleFound: false, metadataFound: true, imageSuccessCount: 0, imageFailureCount: 0,
+        fallbackUsed: true, fallbackKind: "metadata_only", finalResult: "partial",
+        sourceUrl: "https://user:pass@example.com/path?token=secret#part"
+      }
+    }
   };
-  assert.deepEqual(decodeWebClipPayload(encodeWebClipPayload(clip)), normalizeWebClip(clip));
+  const decoded = decodeWebClipPayload(encodeWebClipPayload(clip));
+  assert.deepEqual(decoded, normalizeWebClip(clip));
+  assert.equal(decoded.clipResult.diagnostic.sourceUrl, "https://example.com/path");
+  assert.equal(decoded.clipResult.status, "partial");
+  assert.equal(decoded.metadata.description, "説明");
 });

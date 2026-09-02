@@ -407,7 +407,7 @@ const {
 } = window.MemoNexusStatusTimeUtils;
 const {
   MAX_WEB_CLIP_IMAGE_BYTES,
-  safeExternalUrl: safeWebClipUrl,
+  validateWebClipUrl,
   normalizeWebClipComparisonUrl,
   normalizeWebClip,
   buildWebClipMarkdown,
@@ -417,6 +417,7 @@ const {
   isWebClipperVersionCompatible,
   webClipUrlWithoutLaunchMarker
 } = window.MemoNexusWebClipUtils;
+const { rebuildClipResultForImages } = window.MemoNexusClipResult;
 const { createTermRelationCache, extractExplicitTerms, findAutomaticTermMatches, findTermCountMatches, termColor } = window.MemoNexusTermLinkUtils;
 const { buildMemoLinkRelationIndex, createMemoLinkRelationCache, parseMemoLinks, resolveMemoLinkTitle, rewriteMemoLinksFromRenameNotification, rewriteResolvedMemoLinks } = window.MemoNexusMemoLinkUtils;
 const { openCalculatorMemo } = window.MemoNexusCalculatorLink;
@@ -1061,6 +1062,13 @@ let pendingWebClipImages = [];
 let pendingWebClipOmittedImageCount = 0;
 let pendingWebClipDiagnostics = {};
 let pendingWebClipMatches = [];
+let webClipSaveInProgress = false;
+let webClipImageRetryInProgress = false;
+let activeWebClipImageRetry = null;
+let webClipDialogSessionId = 0;
+let pendingWebClipReceiveError = "";
+let pendingWebClipCompatibilityWarning = "";
+let pendingWebClipFromExtension = false;
 const WEB_CLIPPER_RECEIPT_STORAGE_KEY = "memoNexusWebClipperLastReceipt";
 let editingCollectionId = null;
 let draggedCollectionId = null;
@@ -4739,6 +4747,39 @@ function renderWebClipExistingNoteChoice() {
   if (webClipSaveAsUpdate) webClipSaveAsUpdate.checked = true;
 }
 
+function syncWebClipActionButtons() {
+  const disabled = webClipSaveInProgress || webClipImageRetryInProgress;
+  if (saveWebClipBtn) saveWebClipBtn.disabled = disabled;
+  if (saveWebClipTextOnlyBtn) saveWebClipTextOnlyBtn.disabled = disabled;
+  if (retryFailedWebClipImagesBtn) retryFailedWebClipImagesBtn.disabled = disabled;
+}
+
+function renderPendingWebClipOutcome() {
+  const result = pendingWebClipDiagnostics.clipResult || {};
+  const resultNotice = pendingWebClipFromExtension ? result.notice : "";
+  webClipReceivedStatus.textContent = [pendingWebClipReceiveError, resultNotice, pendingWebClipCompatibilityWarning].filter(Boolean).join(" ")
+    || (pendingWebClipFromExtension ? "拡張からクリップ候補を受け取りました。内容を確認して保存してください。" : "タイトル・URL・本文を入力して、通常メモとして保存できます。");
+  webClipReceivedStatus.dataset.outcome = pendingWebClipReceiveError ? "failure" : pendingWebClipFromExtension ? result.status : "success";
+}
+
+function rebuildPendingWebClipResult() {
+  pendingWebClipDiagnostics = {
+    ...pendingWebClipDiagnostics,
+    clipResult: rebuildClipResultForImages(pendingWebClipDiagnostics.clipResult, pendingWebClipImages)
+  };
+  renderPendingWebClipOutcome();
+}
+
+function cancelWebClipImageRetry() {
+  if (activeWebClipImageRetry) {
+    clearTimeout(activeWebClipImageRetry.timer);
+    window.removeEventListener("message", activeWebClipImageRetry.receive);
+  }
+  activeWebClipImageRetry = null;
+  webClipImageRetryInProgress = false;
+  syncWebClipActionButtons();
+}
+
 function renderWebClipImages() {
   if (!webClipImagesSection || !webClipImagesList) return;
   const supportsImages = webClipMode.value === "page" || webClipMode.value === "selection";
@@ -4747,6 +4788,7 @@ function renderWebClipImages() {
   if (saveWebClipTextOnlyBtn) saveWebClipTextOnlyBtn.hidden = !supportsImages || !pendingWebClipImages.length;
   const failed = pendingWebClipImages.filter((image) => image.status !== "ready");
   if (retryFailedWebClipImagesBtn) retryFailedWebClipImagesBtn.hidden = !failed.length;
+  syncWebClipActionButtons();
   webClipImagesList.replaceChildren();
   if (webClipImagesSection.hidden) return;
   const ready = pendingWebClipImages.filter((image) => image.status === "ready");
@@ -4754,6 +4796,7 @@ function renderWebClipImages() {
   webClipImagesCount.textContent = `候補 ${pendingWebClipImages.length}件`;
   webClipImagesSummary.textContent = [
     `候補${pendingWebClipImages.length}件のうち、保存可能${ready.length}件・選択${selected.length}件です。`,
+    failed.length ? `本文は保存できますが、画像${pendingWebClipImages.length}件のうち${failed.length}件を取得できませんでした。` : "",
     pendingWebClipOmittedImageCount ? `候補上限を超えた${pendingWebClipOmittedImageCount}件は除外しました。` : ""
   ].filter(Boolean).join(" ");
   selectAllWebClipImagesBtn.disabled = !ready.length;
@@ -4974,6 +5017,8 @@ function webClipperCompatibilityWarning(clip) {
 
 function openWebClipDialog(clip = null, receiveError = "") {
   if (!webClipDialog || !webClipReceiverReady) return;
+  cancelWebClipImageRetry();
+  webClipDialogSessionId += 1;
   const normalized = normalizeWebClip(clip || { capturedAt: new Date().toISOString() });
   webClipTitle.value = normalized.title;
   webClipUrl.value = normalized.url;
@@ -4989,16 +5034,23 @@ function openWebClipDialog(clip = null, receiveError = "") {
     manifestVersion: normalized.manifestVersion,
     browserFamily: normalized.browserFamily,
     targetEnvironment: normalized.targetEnvironment,
-    distributionChannel: normalized.distributionChannel
+    distributionChannel: normalized.distributionChannel,
+    metadata: normalized.metadata,
+    clipResult: normalized.clipResult
   };
+  pendingWebClipDiagnostics.clipResult = rebuildClipResultForImages(pendingWebClipDiagnostics.clipResult, pendingWebClipImages);
   pendingWebClipMatches = clip ? findMatchingWebClipNotes(normalized.url) : [];
   webClipUserMemo.value = normalized.userMemo;
   webClipUserMemoRow.hidden = normalized.clipMode !== "memo";
   webClipCapturedAt.value = normalized.capturedAt;
   webClipError.textContent = "";
-  const compatibilityWarning = webClipperCompatibilityWarning(clip ? normalized : null);
-  webClipReceivedStatus.textContent = [receiveError, compatibilityWarning].filter(Boolean).join(" ")
-    || (clip ? "拡張からクリップ候補を受け取りました。内容を確認して保存してください。" : "タイトル・URL・本文を入力して、通常メモとして保存できます。");
+  pendingWebClipReceiveError = receiveError;
+  pendingWebClipCompatibilityWarning = webClipperCompatibilityWarning(clip ? normalized : null);
+  pendingWebClipFromExtension = Boolean(clip);
+  renderPendingWebClipOutcome();
+  if (clip && normalized.clipResult.diagnostic.code) {
+    console.info("Memo-Nexus Web Clipper diagnostic", normalized.clipResult.diagnostic);
+  }
   fillWebClipCollection(selectedCollectionId);
   renderWebClipExistingNoteChoice();
   renderWebClipImages();
@@ -5014,41 +5066,57 @@ function selectedWebClipUpdateTarget() {
 }
 
 function retryFailedWebClipImages() {
+  if (webClipImageRetryInProgress || webClipSaveInProgress) return;
   const failed = pendingWebClipImages.filter((image) => image.status !== "ready" && image.url);
   if (!failed.length) return;
   const requestId = crypto.randomUUID();
+  const sessionId = webClipDialogSessionId;
+  const retryState = { requestId, sessionId, timer: null, receive: null };
+  activeWebClipImageRetry = retryState;
+  webClipImageRetryInProgress = true;
   pendingWebClipImages = pendingWebClipImages.map((image) => failed.some((item) => item.token === image.token)
     ? { ...image, status: "pending", error: "", errorCode: "", saveError: "", selected: false }
     : image);
   renderWebClipImages();
   webClipError.textContent = "失敗した画像だけを拡張機能で再取得しています。";
-  const timer = setTimeout(() => finish(new Error("再試行がタイムアウトしました")), 20000);
   function finish(error, images = []) {
-    clearTimeout(timer);
+    if (activeWebClipImageRetry !== retryState || retryState.sessionId !== webClipDialogSessionId || !webClipDialog.open) return;
+    clearTimeout(retryState.timer);
     window.removeEventListener("message", receive);
+    activeWebClipImageRetry = null;
+    webClipImageRetryInProgress = false;
     if (error) {
       pendingWebClipImages = pendingWebClipImages.map((image) => image.status === "pending" ? { ...image, status: "failed", error: error.message, errorCode: "RETRY_FAILED" } : image);
       webClipError.textContent = `${error.message}。画像なしで保存することもできます。`;
     } else {
-      const results = new Map(images.map((image) => [image.token, image]));
-      pendingWebClipImages = pendingWebClipImages.map((image) => results.get(image.token) || image);
+      const results = new Map((Array.isArray(images) ? images : []).map((image) => [image.token, image]));
+      pendingWebClipImages = pendingWebClipImages.map((image) => image.status !== "pending" ? image
+        : results.get(image.token) || { ...image, status: "failed", error: "画像取得結果を受信できませんでした", errorCode: "RESPONSE_MISSING" });
       webClipError.textContent = "画像の再試行が完了しました。";
     }
+    rebuildPendingWebClipResult();
     renderWebClipImages();
   }
   function receive(event) {
     if (event.source !== window || event.origin !== location.origin || event.data?.type !== "memo-nexus-web-clip-retry-images-result" || event.data.requestId !== requestId) return;
     finish(event.data.ok ? null : new Error(event.data.error || "画像を再取得できませんでした"), event.data.images);
   }
+  retryState.receive = receive;
+  retryState.timer = setTimeout(() => finish(new Error("再試行がタイムアウトしました")), 20000);
   window.addEventListener("message", receive);
   window.postMessage({ type: "memo-nexus-web-clip-retry-images", requestId, candidates: failed }, location.origin);
 }
 
 async function saveWebClip({ textOnly = false } = {}) {
+  if (webClipSaveInProgress || webClipImageRetryInProgress) return;
   const rawUrl = webClipUrl.value.trim();
-  const safeUrl = safeWebClipUrl(rawUrl);
-  if (rawUrl && !safeUrl) {
-    webClipError.textContent = "URLは http:// または https:// のみ保存できます。";
+  const urlValidation = validateWebClipUrl(rawUrl);
+  const safeUrl = urlValidation.url;
+  if (!urlValidation.ok) {
+    webClipReceivedStatus.dataset.outcome = "failure";
+    webClipError.textContent = urlValidation.code === "unsupported_scheme"
+      ? "このURL形式には対応していません。http:// または https:// のURLを入力してください。"
+      : "URLが無効です。入力内容を確認してください。";
     webClipUrl.focus();
     return;
   }
@@ -5071,11 +5139,13 @@ async function saveWebClip({ textOnly = false } = {}) {
     url: clip.url || null, host: clip.host || null, capturedAt: clip.capturedAt,
     extensionVersion: clip.extensionVersion || null, manifestVersion: clip.manifestVersion || null,
     browserFamily: clip.browserFamily || null, targetEnvironment: clip.targetEnvironment || null,
-    distributionChannel: clip.distributionChannel || null
+    distributionChannel: clip.distributionChannel || null,
+    metadata: clip.metadata,
+    clipResult: clip.clipResult
   };
   webClipError.textContent = "";
-  if (saveWebClipBtn) saveWebClipBtn.disabled = true;
-  if (saveWebClipTextOnlyBtn) saveWebClipTextOnlyBtn.disabled = true;
+  webClipSaveInProgress = true;
+  syncWebClipActionButtons();
   try {
     const updateTarget = selectedWebClipUpdateTarget();
     const note = clip.images.length || updateTarget
@@ -5085,16 +5155,28 @@ async function saveWebClip({ textOnly = false } = {}) {
     webClipDialog.close();
     renderAll();
     openNote(note.id);
+    setSaveStatusNotice(clip.clipResult.status === "partial"
+      ? `Webクリップを部分保存しました。${clip.clipResult.notice}`
+      : "Webクリップを保存しました");
   } catch (error) {
     if (Array.isArray(error.imageFailures)) {
       const failures = new Map(error.imageFailures.map((failure) => [failure.token, failure.reason]));
       pendingWebClipImages = pendingWebClipImages.map((image) => failures.has(image.token) ? { ...image, saveError: failures.get(image.token) } : image);
       renderWebClipImages();
     }
-    webClipError.textContent = `保存に失敗しました: ${error.message || error}`;
+    console.error("Web clip save failed", {
+      stage: "memo_save",
+      code: "save_failed",
+      imageFailureCount: Array.isArray(error.imageFailures) ? error.imageFailures.length : 0,
+      clipResult: clip.clipResult.diagnostic
+    });
+    webClipReceivedStatus.dataset.outcome = "failure";
+    webClipError.textContent = Array.isArray(error.imageFailures)
+      ? "選択した画像を保存できませんでした。画像を確認して再試行するか、「画像なしで保存」を選んでください。入力内容は保持されています。"
+      : "メモを保存できませんでした。入力内容は保持されています。再試行してください。";
   } finally {
-    if (saveWebClipBtn) saveWebClipBtn.disabled = false;
-    if (saveWebClipTextOnlyBtn) saveWebClipTextOnlyBtn.disabled = false;
+    webClipSaveInProgress = false;
+    syncWebClipActionButtons();
   }
 }
 
@@ -13091,6 +13173,7 @@ if (runCollectionMoveBtn) runCollectionMoveBtn.addEventListener("click", () => r
 if (webClipBtn) webClipBtn.addEventListener("click", () => openWebClipDialog());
 if (closeWebClipBtn) closeWebClipBtn.addEventListener("click", () => webClipDialog.close());
 if (cancelWebClipBtn) cancelWebClipBtn.addEventListener("click", () => webClipDialog.close());
+webClipDialog?.addEventListener("close", cancelWebClipImageRetry);
 if (webClipForm) webClipForm.addEventListener("submit", saveWebClipFromDialog);
 saveWebClipTextOnlyBtn?.addEventListener("click", () => saveWebClip({ textOnly: true }));
 retryFailedWebClipImagesBtn?.addEventListener("click", retryFailedWebClipImages);

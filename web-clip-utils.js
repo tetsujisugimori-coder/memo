@@ -28,6 +28,77 @@
     return String(value || "").replace(/\u0000/g, "").trim().slice(0, limit);
   }
 
+  function validateWebClipUrl(value) {
+    const raw = String(value || "").trim();
+    if (!raw) return { ok: true, url: "", code: "" };
+    let url;
+    try { url = new URL(raw); }
+    catch (_) { return { ok: false, url: "", code: "invalid_url" }; }
+    if (url.protocol !== "http:" && url.protocol !== "https:") return { ok: false, url: "", code: "unsupported_scheme" };
+    return { ok: true, url: url.href, code: "" };
+  }
+
+  function normalizeWebClipMetadata(value) {
+    const input = value && typeof value === "object" ? value : {};
+    return {
+      title: cleanText(input.title, 300),
+      description: cleanText(input.description, 2000),
+      siteName: cleanText(input.siteName, 255),
+      articleBody: cleanText(input.articleBody, MAX_WEB_CLIP_PAGE_LENGTH)
+    };
+  }
+
+  function normalizeWebClipIssue(value) {
+    const input = value && typeof value === "object" ? value : {};
+    const stages = ["input_validation", "page_fetch", "html_parse", "metadata_extraction", "article_extraction", "image_fetch", "memo_conversion", "memo_save"];
+    const codes = ["invalid_url", "unsupported_scheme", "network_error", "timeout", "http_error", "access_denied", "authentication_required", "blocked_by_site", "empty_response", "html_parse_failed", "metadata_only", "article_not_found", "image_fetch_partial", "save_failed", "unknown"];
+    return {
+      stage: stages.includes(input.stage) ? input.stage : "page_fetch",
+      code: codes.includes(input.code) ? input.code : "unknown",
+      userMessage: cleanText(input.userMessage, 500),
+      developerMessage: cleanText(input.developerMessage, 300),
+      httpStatus: Number.isFinite(Number(input.httpStatus)) && Number(input.httpStatus) > 0 ? Math.floor(Number(input.httpStatus)) : null,
+      timedOut: Boolean(input.timedOut),
+      retryable: Boolean(input.retryable),
+      partialSaveAvailable: Boolean(input.partialSaveAvailable)
+    };
+  }
+
+  function normalizeWebClipResult(value) {
+    const input = value && typeof value === "object" ? value : {};
+    const diagnostic = input.diagnostic && typeof input.diagnostic === "object" ? input.diagnostic : {};
+    const status = ["success", "partial", "failure"].includes(input.status) ? input.status : "success";
+    let diagnosticSourceUrl = safeExternalUrl(diagnostic.sourceUrl);
+    if (diagnosticSourceUrl) {
+      const sourceUrl = new URL(diagnosticSourceUrl);
+      sourceUrl.username = "";
+      sourceUrl.password = "";
+      sourceUrl.search = "";
+      sourceUrl.hash = "";
+      diagnosticSourceUrl = sourceUrl.href;
+    }
+    return {
+      status,
+      notice: cleanText(input.notice, 500),
+      issues: (Array.isArray(input.issues) ? input.issues : []).slice(0, 10).map(normalizeWebClipIssue),
+      diagnostic: {
+        occurredAt: Number.isFinite(Date.parse(diagnostic.occurredAt)) ? new Date(diagnostic.occurredAt).toISOString() : "",
+        stage: cleanText(diagnostic.stage, 40),
+        code: cleanText(diagnostic.code, 40),
+        httpStatus: Number.isFinite(Number(diagnostic.httpStatus)) && Number(diagnostic.httpStatus) > 0 ? Math.floor(Number(diagnostic.httpStatus)) : null,
+        timedOut: Boolean(diagnostic.timedOut),
+        articleFound: Boolean(diagnostic.articleFound),
+        metadataFound: Boolean(diagnostic.metadataFound),
+        imageSuccessCount: Math.max(0, Math.floor(Number(diagnostic.imageSuccessCount) || 0)),
+        imageFailureCount: Math.max(0, Math.floor(Number(diagnostic.imageFailureCount) || 0)),
+        fallbackUsed: Boolean(diagnostic.fallbackUsed),
+        fallbackKind: cleanText(diagnostic.fallbackKind, 60),
+        finalResult: ["success", "partial", "failure"].includes(diagnostic.finalResult) ? diagnostic.finalResult : status,
+        sourceUrl: diagnosticSourceUrl
+      }
+    };
+  }
+
   function parseSemanticVersion(value) {
     const match = String(value || "").trim().match(/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-([0-9A-Za-z.-]+))?(?:\+[0-9A-Za-z.-]+)?$/);
     if (!match) return null;
@@ -121,6 +192,8 @@
       distributionChannel: ["unpacked-development", "edge-store"].includes(input.distributionChannel) ? input.distributionChannel : "",
       selection: cleanText(input.selection, input.clipMode === "page" ? MAX_WEB_CLIP_PAGE_LENGTH : MAX_WEB_CLIP_SELECTION_LENGTH),
       capturedAt: Number.isFinite(Date.parse(input.capturedAt)) ? new Date(input.capturedAt).toISOString() : new Date().toISOString(),
+      metadata: normalizeWebClipMetadata(input.metadata),
+      clipResult: normalizeWebClipResult(input.clipResult),
       images,
       omittedImageCount: Math.max(0, Math.floor(Number(input.omittedImageCount) || 0))
     };
@@ -229,7 +302,10 @@
     parseSemanticVersion,
     webClipUrlWithoutLaunchMarker,
     safeExternalUrl,
+    validateWebClipUrl,
     normalizeWebClipComparisonUrl,
+    normalizeWebClipMetadata,
+    normalizeWebClipResult,
     normalizeWebClip,
     buildWebClipMarkdown,
     replaceWebClipImageMarkers,
