@@ -88,13 +88,13 @@ test("確認画面はモバイルで1列になり内部スクロールする", (
 });
 
 test("成功・部分成功・失敗を意味付き状態で表示し、保存失敗でも入力と再試行経路を保つ", () => {
-  assert.match(app, /webClipReceivedStatus\.dataset\.outcome = pendingWebClipReceiveError/);
+  assert.match(app, /webClipReceivedStatus\.dataset\.outcome = transferError \|\| pendingWebClipReceiveError/);
   assert.match(css, /\.web-clip-status\[data-outcome="success"\]/);
   assert.match(css, /\.web-clip-status\[data-outcome="partial"\]/);
   assert.match(css, /\.web-clip-status\[data-outcome="failure"\]/);
   assert.match(app, /let webClipSaveInProgress = false/);
   assert.match(app, /let webClipImageRetryInProgress = false/);
-  assert.match(app, /if \(webClipSaveInProgress \|\| webClipImageRetryInProgress\) return/);
+  assert.match(app, /if \(webClipSaveInProgress \|\| webClipImageRetryInProgress \|\| webClipTransferBlocksSave\(\)\) return/);
   assert.match(app, /saveWebClipBtn\.disabled = disabled/);
   assert.match(app, /saveWebClipTextOnlyBtn\.disabled = disabled/);
   assert.match(app, /activeWebClipImageRetry !== retryState/);

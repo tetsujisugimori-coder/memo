@@ -168,11 +168,11 @@ test("タグは付箋形状と色フォールバックを持ち語句リンク�
 });
 
 test("タグ関連スクリプトのキャッシュ番号を更新する", () => {
-  assert.match(html, /href="style\.css\?v=0\.5\.0-73"/);
+  assert.match(html, /href="style\.css\?v=0\.5\.0-74"/);
   assert.match(html, /src="tags\.js\?v=0\.5\.0-4"/);
   assert.match(html, /src="memo-list-utils\.js\?v=0\.5\.0-5"/);
   assert.match(html, /src="local-markdown\.js\?v=0\.5\.0-4"/);
-  assert.match(html, /src="app\.js\?v=0\.5\.0-136"/);
+  assert.match(html, /src="app\.js\?v=0\.5\.0-138"/);
   assert.ok(html.indexOf('src="tags.js?v=0.5.0-4"') < html.indexOf('src="memo-list-utils.js?v=0.5.0-5"'));
-  assert.ok(html.indexOf('src="memo-list-utils.js?v=0.5.0-5"') < html.indexOf('src="app.js?v=0.5.0-136"'));
+  assert.ok(html.indexOf('src="memo-list-utils.js?v=0.5.0-5"') < html.indexOf('src="app.js?v=0.5.0-138"'));
 });

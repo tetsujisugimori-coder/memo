@@ -11,36 +11,42 @@
       });
     });
   }
-  const id = new URLSearchParams(location.hash.slice(1)).get("clip-transfer");
-  const lifecycle = globalThis.MemoNexusClipperTransferLifecycle;
-  const key = lifecycle.transferStorageKey(id);
   installRetryBridge();
-  if (!key) return;
-  let timer = 0;
-  let attempts = 0;
-  let delivered = false;
-  let finished = false;
-  async function fail(code) {
-    if (delivered || finished) return;
-    finished = true;
-    if (timer) clearInterval(timer);
-    try {
-      await chrome.storage.local.remove(key);
-    } finally {
-      window.postMessage({ type: "memo-nexus-web-clip-transfer-error", transferId: id, code }, location.origin);
-    }
+  const lifecycle = globalThis.MemoNexusClipperTransferLifecycle;
+  const bridgeApi = globalThis.MemoNexusClipperTransferBridge;
+  if (!lifecycle || !bridgeApi) return;
+  const fragment = new URLSearchParams(location.hash.slice(1));
+  const hasFragmentId = fragment.has("clip-transfer");
+  const fragmentId = fragment.get("clip-transfer");
+  let sessionId = "";
+  try { sessionId = sessionStorage.getItem(lifecycle.TRANSFER_SESSION_STORAGE_KEY) || ""; } catch (_) {}
+  const id = hasFragmentId
+    ? lifecycle.isTransferId(fragmentId) ? fragmentId : ""
+    : lifecycle.isTransferId(sessionId) ? sessionId : "";
+  if (hasFragmentId && !id) {
+    try { sessionStorage.removeItem(lifecycle.TRANSFER_SESSION_STORAGE_KEY); } catch (_) {}
   }
-  async function transfer() {
-    if (delivered || finished) return;
-    if (attempts++ >= 30) return fail("timeout");
-    const stored = (await chrome.storage.local.get(key))[key];
-    if (!lifecycle.isActiveTransferRecord(stored)) return fail("expired-or-missing");
-    window.postMessage({ type: "memo-nexus-web-clip-transfer", transferId: id, clip: stored.clip }, location.origin);
-  }
-  timer = setInterval(() => { transfer().catch(() => {}); }, 400);
-  transfer().catch(() => {});
+  if (!id) return;
+  try { sessionStorage.setItem(lifecycle.TRANSFER_SESSION_STORAGE_KEY, id); } catch (_) {}
+
+  const bridge = bridgeApi.createTransferBridge({
+    transferId: id,
+    lifecycle,
+    extensionVersion: chrome.runtime.getManifest().version,
+    read: async (key) => (await chrome.storage.local.get(key))[key],
+    remove: async (key) => chrome.storage.local.remove(key),
+    post: (message) => window.postMessage(message, location.origin),
+    clearSession: () => {
+      try {
+        if (sessionStorage.getItem(lifecycle.TRANSFER_SESSION_STORAGE_KEY) === id) sessionStorage.removeItem(lifecycle.TRANSFER_SESSION_STORAGE_KEY);
+      } catch (_) {}
+    },
+    log: (diagnostics) => console.info("Memo-Nexus Web Clipper transfer", diagnostics)
+  });
   window.addEventListener("message", async (event) => {
     if (event.source !== window || event.origin !== location.origin) return;
-    if (event.data?.type === "memo-nexus-web-clip-transfer-ack" && event.data.transferId === id) { delivered = true; finished = true; clearInterval(timer); await chrome.storage.local.remove(key); }
+    await bridge.handleMessage(event.data).catch(() => {});
   });
+  window.addEventListener("pagehide", bridge.stop, { once: true });
+  bridge.start();
 })();

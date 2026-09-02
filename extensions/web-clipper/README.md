@@ -1,6 +1,6 @@
 # Memo-Nexus Web Clipper
 
-Chrome / Edge 共通の Manifest V3 拡張です。現在の展開読み込み版はローカル開発版`0.3.7`で、すべて保存前の確認画面を経由します。
+Chrome / Edge 共通の Manifest V3 拡張です。現在の展開読み込み版はローカル開発版`0.3.8`で、すべて保存前の確認画面を経由します。
 
 ## クリップ方式
 
@@ -46,7 +46,7 @@ GitHubでPRをマージしても、PC内へ展開読み込みした拡張機能�
 
 1. PC内のMemo-Nexusリポジトリを`git pull`で最新化します。
 2. Edgeで`edge://extensions`を開き、Memo-Nexus Web Clipperカードのバージョンを確認します。
-3. `0.3.7`より古ければ、そのカードの「再読み込み」を押します。
+3. `0.3.8`より古ければ、そのカードの「再読み込み」を押します。
 4. 再読み込み後も版数が変わらない場合は、Edgeが別フォルダを参照している可能性があります。古いMemo-Nexus Web Clipperを削除し、現在のMemo-Nexusリポジトリの`extensions/web-clipper`フォルダを「展開して読み込み」で登録し直します。
 5. 再登録後は拡張機能IDが変わることがあります。Memo-Nexusの「設定 → データ管理 → Web Clipper」で許可済みIDを確認し、表示されたIDを登録します。
 
@@ -60,7 +60,11 @@ GitHubでPRをマージしても、PC内へ展開読み込みした拡張機能�
 
 ローカル開発版かつ接続先が開発環境の場合だけ、ポップアップを開いた直後に開発サーバー上の`manifest.json`を確認し、有効な転送がなければ一度だけ再読み込みを試みます。production接続ではこの確認を行わないため、上記の手動手順を使います。
 
-転送データは共通設定の10分TTLで検証します。期限切れ、`createdAt`欠落、不正なclipは更新確認時にそのキーだけ自動清掃し、`window.open()`失敗またはACKタイムアウトでも今回の転送キーだけを削除します。10分以内の正常な転送が1件以上ある場合だけ更新を延期します。
+転送データは共通設定の10分TTLで検証します。ページ全文または画像付きクリップでは、content scriptが受信可能であることを通知し、本体が同じ転送IDで受信準備完了を返した後にだけ`chrome.storage.local`からpayloadを送ります。本体は転送IDと`createdAt`、`title`、`url`、`host`、`selection`、`capturedAt`を検証してからACKを返します。content scriptは一致するACKを受け取った時だけ対象キーを削除します。
+
+ACKタイムアウト、受信準備待ち、ストレージの一時的な読取失敗ではTTL内のpayloadを保持します。転送IDはタブ単位の`sessionStorage`にも保持するため、フラグメントを履歴から消した後に再読み込みしても再開できます。期限切れまたは不正形式は対象キーだけを清掃し、利用者が確認画面を明示的に閉じた場合も対象転送だけをキャンセルします。`window.open()`自体が失敗した場合は開かなかった今回のキーだけを削除します。確認画面は受信準備、本文受信、payload検証、ACK待ち、成功を区別し、失敗時はエラーコード、再受信、元ページからの再実行、リンクのみの代替、診断コピーを表示します。診断には転送ID、段階、コード、試行回数、ACK有無、拡張版だけを含め、本文、選択文、Cookie、認証情報、画像データを含めません。
+
+本体の`allowedExtensionOrigins`は旧来のextension-origin直送経路だけに適用します。`clip-transfer`経路は同一window・同一originに加え、現在タブが保持する転送IDと検証済みpayloadの一致を必須にします。現在実機で使う展開読み込みIDは`aelacnladkiohkhbjhfbmekpbfgpcmlh`です。履歴上Memo-Nexus用と確認できる`lecpajkpnjnagbeokicilagdonkcimbo`と`aelacnladkiohkhbjhfbmeknbfgpcmlh`は維持し、無関係なEdgeアドオン版Web Clipperの`opejammnohhbjflpbhmmdlknhjkhfhdp`は許可しません。
 
 開発サーバーが停止している場合は小さな診断だけを表示し、更新確認を省略して通常のクリップ機能を続けます。同じ対象バージョンを再読み込みしても現在版が変わらない時は自動処理を繰り返しません。「Edgeが別の拡張機能フォルダを読み込んでいる可能性があります」と表示された場合は、拡張管理画面でこのREADMEのある`extensions/web-clipper`フォルダが読み込み元か確認します。サーバー側のmanifestがさらに新しい版へ上がった時は、その版について再び一度だけ自動更新を試します。
 
@@ -86,9 +90,9 @@ SVGとAVIFは生データを本体へ渡さず、必要時だけ作るOffscreen 
 4. 本体の確認画面でタイトル、本文、コレクション、画像候補を確認します。画像は個別または全選択・全解除で保存対象を変更できます。保存前に自動保存はされません。
 5. 選択なしでも同じ操作でURLクリップ候補を開けます。
 
-2026-09-02にMicrosoft Edgeの`msedge` channelへ展開読み込み版0.3.7を実際に読み込み、`web-clipper.e2e.js`を実行しました。リダイレクトなし、HTTP 302で別の安全なホストへ移る画像、複数回リダイレクトする画像、取得失敗・タイムアウト画像を含む記事、失敗画像の再試行成功を確認しています。再試行中は通常保存と「画像なしで保存」が無効になり、完了後は`partial`から`success`へ変わって案内文、保存通知、保存済み`source.clipResult`の成功数・失敗数と一致しました。`NODE_PATH`でPlaywrightを利用可能にしたうえで、Windowsでは`set MEMO_NEXUS_E2E_CHANNEL=msedge&& node web-clipper.e2e.js`で再現できます。
+2026-09-02にMicrosoft Edgeの`msedge` channelへ展開読み込み版0.3.8を実際に読み込み、`web-clipper.e2e.js`を実行しました。固定した旧本体fixtureへの`record`＋互換`clip`送信と旧ACK、固定した0.3.7旧payloadの新本体受信・保存・重複保護を確認しています。受信開始を15.5秒遅らせたページ全文、ACK遮断後の再読み込み再開、欠落後の再受信、期限切れ、重複payload、2タブ同時転送、受信用スクリプト欠落、無関係Origin拒否も、既存4方式、長文、画像、再クリップ、保存失敗保持、画像再試行とともに確認しています。これはローカルHTTP接続先での実Edge確認であり、GitHub Pages本番とWikipedia実ページを操作した確認ではありません。Windowsでは`set MEMO_NEXUS_E2E_CHANNEL=msedge&& node web-clipper.e2e.js`で再現できます。
 
-本文は通常のURLパラメータへ入れません。選択した接続先の `?web-clip=1#clip=<base64url>` のフラグメントへUTF-8のbase64url形式で入れます。フラグメントはGitHub Pagesを含むサーバーへのリクエストに送信されません。本体は起動判定を保持して確認画面を一度だけ開き、成功・失敗にかかわらず`history.replaceState()`でフラグメントと`web-clip`だけをURL・履歴から削除します。ほかのクエリは維持するため、確認画面を閉じた後や保存後にページを更新しても空の確認画面は再表示されません。旧来の`postMessage`受信経路とアプリ内の手動起動は維持します。
+本文は通常のURLパラメータへ入れません。リンクのみ、メモ付き、画像のない短い選択は `?web-clip=1#clip=<base64url>` のフラグメントへUTF-8のbase64url形式で入れます。ページ全文と画像付きクリップは`?web-clip=1#clip-transfer=<UUID>`だけをURLへ付け、payload本体は拡張ストレージに保持します。フラグメントはGitHub Pagesを含むサーバーへのリクエストに送信されません。本体は`history.replaceState()`でフラグメントと`web-clip`だけをURL・履歴から削除し、転送中UUIDはACKまで`sessionStorage`から復元します。ほかのクエリは維持します。0.3.8は新本体の`receiver-ready`に加え、`attempt`のない旧本体の`content-ready`も準備完了として扱い、payloadには正本の`record`と移行用`clip`を併記します。拡張自身の`attempt`付き`content-ready`だけではpayloadを送りません。旧来の許可済みextension-originからの`postMessage`受信経路とアプリ内の手動起動は維持します。
 
 ## 画像の保存仕様
 
