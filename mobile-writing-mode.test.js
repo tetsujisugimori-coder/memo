@@ -26,7 +26,7 @@ test("執筆モードの常設ツールは追加・画像・AI・記法ガイド
 
 test("720px未満ではフォーカス前から既存ツール欄を非表示にする", () => {
   assert.match(css, /\.editor-tools\s*\{[^}]*display:\s*flex;/s);
-  assert.match(css, /@container app-width \(max-width: 719\.98px\)\s*\{[\s\S]*?\.editor-tools\s*\{\s*display:\s*none;/s);
+  assert.match(css, /@media \(max-width: 719\.98px\)\s*\{[\s\S]*?\.editor-tools\s*\{\s*display:\s*none;/s);
 });
 
 test("追加・AI・画像・記法ガイドは既存ボタンの処理へ委譲する", () => {
@@ -59,7 +59,7 @@ test("既存720px境界だけでモバイルに限定しデスクトップでは
   assert.equal(layoutModeForWidth(720), "compact");
   assert.equal(layoutModeForWidth(1040), "wide");
   assert.match(css, /\.mobile-writing-tools\s*\{\s*display:\s*none;/s);
-  assert.match(css, /@container app-width \(max-width: 719\.98px\)[\s\S]*body\.mobile-writing-mode \.workspace/s);
+  assert.match(css, /@media \(max-width: 719\.98px\)[\s\S]*body\.mobile-writing-mode \.workspace/s);
 });
 
 test("選択範囲・本文スクロールをツール操作前後で復元する", () => {

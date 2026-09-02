@@ -190,7 +190,7 @@ test("existing memo list is placed at the furthest right without duplication", (
   assert.equal((html.match(/id="memoList"/g) || []).length, 1);
   assert.match(css, /grid-template-columns:\s*minmax\(360px, 1fr\) 300px/);
   assert.match(css, /\.sidebar\s*\{[\s\S]*?grid-column:\s*2/);
-  assert.match(css, /@container app-width \(max-width: 1039\.98px\)[\s\S]*?inset:\s*0 0 0 auto/);
+  assert.match(css, /@media \(max-width: 1039\.98px\)[\s\S]*?inset:\s*0 0 0 auto/);
 });
 
 test("AI panel is responsive, dark-theme compatible, and reduced-motion safe", () => {

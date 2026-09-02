@@ -628,7 +628,7 @@ test("管理対象Markdownはsync-stateのnote IDとfileNameで特定する", ()
   assert.match(html, /attachment-utils\.js\?v=0\.5\.0-12/);
   assert.match(html, /local-sync-utils\.js\?v=0\.5\.0-10/);
   assert.match(html, /backup-bundle-utils\.js\?v=0\.5\.0-5/);
-  assert.match(html, /app\.js\?v=0\.5\.0-135/);
+  assert.match(html, /app\.js\?v=0\.5\.0-136/);
   const syncState = {
     notes: {
       "note-1": { fileName: "題名--note-1.md", hash: "last" },
@@ -1663,7 +1663,7 @@ test("非対応環境はZIP代替を案内し、狭幅でも日時を残す", ()
   assert.equal(localFs.supportStatus({ isSecureContext: true }).supported, false);
   assert.match(localFs.supportStatus({ isSecureContext: true }).reason, /Markdown ZIP/);
   assert.match(css, /--amber:/);
-  assert.match(css, /@container app-width \(max-width: 719\.98px\)[\s\S]*\.note-meta\s*\{[^}]*flex-direction:\s*row[^}]*flex-wrap:\s*wrap/);
+  assert.match(css, /@media \(max-width: 719\.98px\)[\s\S]*\.note-meta\s*\{[^}]*flex-direction:\s*row[^}]*flex-wrap:\s*nowrap/);
   assert.match(css, /body\.dark[\s\S]*--amber:/);
   assert.match(app, /event\.key === "Escape"/);
 });

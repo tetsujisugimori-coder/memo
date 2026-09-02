@@ -28,17 +28,18 @@ test("本文入力欄の後ろに表ブロック編集領域と境界余白を�
 });
 
 test("画面配置用CSSの配信キャッシュを更新する", () => {
-  assert.match(html, /style\.css\?v=0\.5\.0-72/);
+  assert.match(html, /style\.css\?v=0\.5\.0-73/);
   assert.match(html, /layout-resize-utils\.js\?v=0\.5\.0-2/);
-  assert.match(html, /app\.js\?v=0\.5\.0-135/);
+  assert.match(html, /app\.js\?v=0\.5\.0-136/);
   assert.ok(html.indexOf("layout-resize-utils.js") < html.indexOf("app.js"));
 });
 
-test("狭幅ではタイトル日時と保存状態・成功時刻を重ねずに折り返す", () => {
-  assert.match(css, /@container app-width \(max-width: 719\.98px\)[\s\S]*\.title-content\s*\{[^}]*grid-template-columns:\s*minmax\(0, 1fr\)/s);
-  assert.match(css, /@container app-width \(max-width: 719\.98px\)[\s\S]*\.note-meta\s*\{[^}]*flex-direction:\s*row[^}]*flex-wrap:\s*wrap/s);
-  assert.match(css, /@media \(max-width: 620px\)[\s\S]*\.save-status-actions\s*\{[^}]*flex:\s*1 1 100%[^}]*flex-wrap:\s*wrap/s);
-  assert.match(css, /@media \(max-width: 420px\)[\s\S]*\.save-status-group\s*\{[^}]*justify-content:\s*flex-end/s);
+test("狭幅ではタイトル日時と保存状態を重ねず一段へ収める", () => {
+  assert.match(css, /@media \(max-width: 719\.98px\)[\s\S]*\.title-content\s*\{[^}]*grid-template-columns:\s*minmax\(0, 1fr\)/s);
+  assert.match(css, /@media \(max-width: 719\.98px\)[\s\S]*\.note-meta\s*\{[^}]*flex-direction:\s*row[^}]*flex-wrap:\s*nowrap/s);
+  assert.match(css, /@media \(max-width: 620px\)[\s\S]*\.save-status-actions\s*\{[^}]*flex:\s*0 0 auto[^}]*flex-wrap:\s*nowrap/s);
+  assert.match(css, /\.save-status-actions > \.save-status-group\s*\{\s*display:\s*none/);
+  assert.match(css, /\.combined-save-status\s*\{\s*display:\s*inline-flex/);
 });
 
 test("右側コンテキストパネルは空白帯のない第2列とモバイルドロワーを持つ", () => {
@@ -49,7 +50,7 @@ test("右側コンテキストパネルは空白帯のない第2列とモバイ�
   assert.doesNotMatch(css, /grid-template-columns:\s*minmax\(0, 1fr\) 10px var\(--context-panel-width/);
   assert.match(css, /body\.context-panel-closed\s*\{\s*grid-template-columns:\s*minmax\(0, 1fr\)/s);
   assert.match(css, /\.context-panel\.context-panel-closed\s*\{\s*display:\s*none/);
-  assert.match(css, /@container app-width \(max-width: 719\.98px\)[\s\S]*?width:\s*100vw/);
+  assert.match(css, /@media \(max-width: 719\.98px\)[\s\S]*?width:\s*100vw/);
 });
 
 test("広幅の2境界はARIA付きセパレーターとしてGridへ組み込まれる", () => {
@@ -159,10 +160,10 @@ test("主要操作はペイン操作の後ろへ左寄せで既存順序のま�
   assert.match(css, /\.toolbar\s*\{[^}]*overflow-x:\s*auto;/s);
 });
 
-test("コンテナ幅から3モードを判定しモード変更時に既定状態へ戻す", () => {
-  assert.match(css, /container:\s*app-width\s*\/\s*inline-size/);
-  assert.match(css, /@container app-width \(max-width: 1039\.98px\)/);
-  assert.match(css, /@container app-width \(max-width: 719\.98px\)/);
+test("viewport幅から3モードを判定しSafari互換の同一境界を使う", () => {
+  assert.doesNotMatch(css, /@container app-width/);
+  assert.match(css, /@media \(max-width: 1039\.98px\)/);
+  assert.match(css, /@media \(max-width: 719\.98px\)/);
   assert.match(app, /if \(width < 720\) return "mobile";\s*if \(width < 1040\) return "compact";\s*return "wide";/);
   assert.match(app, /mobileCardOpen = false;\s*compactCardVisible = true;/);
 
@@ -172,6 +173,23 @@ test("コンテナ幅から3モードを判定しモード変更時に既定状�
   assert.equal(layoutModeForWidth(720), "compact");
   assert.equal(layoutModeForWidth(1039), "compact");
   assert.equal(layoutModeForWidth(1040), "wide");
+});
+
+test("モバイルはsafe area対応viewportと折りたたみ主要操作を持つ", () => {
+  assert.match(html, /name="viewport" content="width=device-width, initial-scale=1\.0, viewport-fit=cover"/);
+  assert.match(html, /id="mobileAppMenu" class="mobile-app-menu" open/);
+  assert.match(html, /<summary aria-label="その他の操作を開く">その他<\/summary>/);
+  assert.match(app, /mobileAppMenu\.open = layoutMode !== "mobile"/);
+  assert.match(app, /layoutMode === "mobile" && event\.target\.closest\("button"\)/);
+  assert.match(css, /grid-template-columns:\s*repeat\(4, minmax\(0, 1fr\)\)/);
+  assert.match(css, /padding:\s*0 env\(safe-area-inset-right\) env\(safe-area-inset-bottom\) env\(safe-area-inset-left\)/);
+});
+
+test("モバイルの関連メモとNEX-2は本文外の下段へ置く", () => {
+  assert.match(css, /\.related-toggle\s*\{[^}]*position:\s*static[^}]*grid-row:\s*2/s);
+  assert.match(css, /\.ai-robot-button\s*\{[^}]*position:\s*static[^}]*grid-row:\s*2/s);
+  assert.match(css, /\.ai-robot-status::before\s*\{\s*content:\s*"NEX-2 · "/s);
+  assert.match(css, /body\.collections-open:not\(\.context-panel-closed\) \.context-panel/);
 });
 
 test("Compactカード収納とMobile左右ドロワーの排他制御を行う", () => {

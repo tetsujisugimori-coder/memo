@@ -70,10 +70,10 @@ test("関連メモUIはモバイルを含む全幅で一元管理した階層順
   assert.match(css, /\.related-backdrop\s*\{[^}]*z-index:\s*var\(--z-related-backdrop\)/s);
   assert.match(css, /\.related-panel\s*\{[^}]*z-index:\s*var\(--z-related-drawer\)/s);
   assert.match(css, /\.related-toggle\s*\{[^}]*z-index:\s*var\(--z-related-trigger\)/s);
-  assert.doesNotMatch(css, /@container app-width \(max-width: 1039\.98px\)[\s\S]*?\.context-panel[^}]*z-index:\s*80/);
+  assert.doesNotMatch(css, /@media \(max-width: 1039\.98px\)[\s\S]*?\.context-panel[^}]*z-index:\s*80/);
 });
 
-test("右端の関連メモとロボット操作は上下に固定され、ドロワー表示中も右端に残る", () => {
+test("デスクトップの関連メモとロボット操作は右端に固定し、モバイル規則で画面外へずらさない", () => {
   const relatedRule = css.match(/\.related-toggle\s*\{([\s\S]*?)\}/)?.[1] || "";
   const robotRule = css.match(/\.ai-robot-button\s*\{([\s\S]*?)\}/)?.[1] || "";
   assert.match(relatedRule, /top:\s*40vh/);
@@ -83,5 +83,5 @@ test("右端の関連メモとロボット操作は上下に固定され、ド�
   assert.match(css, /body\.related-open \.related-toggle\s*\{[^}]*right:\s*0/);
   assert.match(css, /\.ai-robot-button\s*\{[^}]*z-index:\s*var\(--z-ai-trigger\)/s);
   assert.doesNotMatch(css, /\.ai-robot-button\s*\{[^}]*right:\s*-/s);
-  assert.doesNotMatch(css, /@container app-width[\s\S]*?\.ai-robot-button\s*\{[^}]*right:\s*-/s);
+  assert.doesNotMatch(css, /@media \(max-width: 719\.98px\)[\s\S]*?\.ai-robot-button\s*\{[^}]*right:\s*-/s);
 });
