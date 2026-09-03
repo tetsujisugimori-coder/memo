@@ -61,9 +61,15 @@ function assertCoordinates(actual, expected, message, tolerance = 0.25) {
 }
 
 async function locatorCenter(locator, message) {
+  await locator.scrollIntoViewIfNeeded();
   const box = await locator.boundingBox();
   assert.ok(box, message);
   return { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+}
+
+async function clickLocatorCenter(page, locator, message) {
+  const position = await locatorCenter(locator, message);
+  await page.mouse.click(position.x, position.y);
 }
 
 (async () => {
@@ -72,7 +78,6 @@ async function locatorCenter(locator, message) {
   try {
     const page = await browser.newPage({ viewport: { width: 1100, height: 800 } });
     await waitForApp(page, url);
-    await page.addStyleTag({ content: ".geometry-block-editors { max-height: 430px !important; }" });
     const pageErrors = [];
     page.on("pageerror", (error) => pageErrors.push(error.message));
     await page.locator("#editor").fill("前\n後");
@@ -90,27 +95,27 @@ async function locatorCenter(locator, message) {
     afterPoints.points.forEach((point, index) => assertCoordinates(point, desktopExpected[index], "デスクトップ幅でクリック位置を論理座標へ変換する"));
 
     await editor.locator('[data-geometry-mode="segment"]').click();
-    await editor.locator(".geometry-point-hit").nth(0).click();
-    await editor.locator(".geometry-point-hit").nth(1).click();
+    await clickLocatorCenter(page, editor.locator(".geometry-point-hit").nth(0), "線分の始点を選択できる");
+    await clickLocatorCenter(page, editor.locator(".geometry-point-hit").nth(1), "線分の終点を選択できる");
     assert.equal((await geometry(page)).objects.filter((object) => object.type === "segment").length, 1, "線分を追加できる");
 
     await editor.locator('[data-geometry-mode="polygon"]').click();
-    await editor.locator(".geometry-point-hit").nth(0).click();
-    await editor.locator(".geometry-point-hit").nth(1).click();
-    await editor.locator(".geometry-point-hit").nth(2).click();
-    await editor.locator(".geometry-point-hit").nth(0).click();
+    await clickLocatorCenter(page, editor.locator(".geometry-point-hit").nth(0), "多角形の始点を選択できる");
+    await clickLocatorCenter(page, editor.locator(".geometry-point-hit").nth(1), "多角形の2点目を選択できる");
+    await clickLocatorCenter(page, editor.locator(".geometry-point-hit").nth(2), "多角形の3点目を選択できる");
+    await clickLocatorCenter(page, editor.locator(".geometry-point-hit").nth(0), "多角形を始点で完成できる");
     assert.equal((await geometry(page)).objects.filter((object) => object.type === "polygon").length, 1, "多角形を追加できる");
     assert.equal(await editor.locator(".geometry-draft").count(), 0, "多角形完成後に作成途中の破線を残さない");
 
     await editor.locator('[data-geometry-mode="polygon"]').click();
-    await editor.locator(".geometry-point-hit").nth(0).click();
-    await editor.locator(".geometry-point-hit").nth(1).click();
+    await clickLocatorCenter(page, editor.locator(".geometry-point-hit").nth(0), "作成途中の多角形の始点を選択できる");
+    await clickLocatorCenter(page, editor.locator(".geometry-point-hit").nth(1), "作成途中の多角形へ点を追加できる");
     assert.equal(await editor.locator(".geometry-draft").count(), 1, "多角形作成中は破線を表示する");
     await editor.locator('[data-geometry-mode="segment"]').click();
     assert.equal(await editor.locator(".geometry-draft").count(), 0, "モード切替後に作成途中の破線を残さない");
     assert.equal(await editor.locator(".geometry-point.is-draft").count(), 0, "モード切替後に作成途中の点強調を残さない");
     await editor.locator('[data-geometry-mode="polygon"]').click();
-    await editor.locator(".geometry-point-hit").nth(0).click();
+    await clickLocatorCenter(page, editor.locator(".geometry-point-hit").nth(0), "作成途中の多角形の点を選択できる");
     await editor.focus();
     await page.keyboard.press("Escape");
     assert.equal((await geometry(page)).objects.length, 2, "Escapeで作成途中の多角形を解除できる");
@@ -123,8 +128,15 @@ async function locatorCenter(locator, message) {
     for (const position of [{ x: 350, y: 55 }, { x: 400, y: 55 }, { x: 400, y: 115 }, { x: 350, y: 115 }]) await svg.click({ position });
     assert.equal((await geometry(page)).objects.filter((object) => object.type === "polygon").length, 3, "四角形をキャンバス上の4点指定で作成できる");
     await editor.locator('[data-geometry-mode="circle"]').click();
-    await svg.click({ position: { x: 455, y: 95 } });
-    await svg.click({ position: { x: 485, y: 95 } });
+    const circleSvgBoxBefore = await svg.boundingBox();
+    assert.ok(circleSvgBoxBefore, "円作成用SVGを取得できる");
+    const circleCenterClient = { x: Math.round(circleSvgBoxBefore.x + 455), y: Math.round(circleSvgBoxBefore.y + 95) };
+    const circleRadiusClient = { x: Math.round(circleSvgBoxBefore.x + 485), y: Math.round(circleSvgBoxBefore.y + 95) };
+    await page.mouse.click(circleCenterClient.x, circleCenterClient.y);
+    await page.waitForFunction(() => window.MemoNexusGeometryBlockUtils.splitGeometryBlocks(document.getElementById("editor").value).some((segment) => segment.type === "geometry" && segment.geometry.points.length >= 11));
+    await page.mouse.click(circleRadiusClient.x, circleRadiusClient.y);
+    await page.waitForFunction(() => window.MemoNexusGeometryBlockUtils.splitGeometryBlocks(document.getElementById("editor").value).some((segment) => segment.type === "geometry" && segment.geometry.objects.some((object) => object.type === "circle")));
+    assert.deepEqual(await svg.boundingBox(), circleSvgBoxBefore, "円作成後もSVGの表示領域を維持する");
     assert.equal((await geometry(page)).objects.filter((object) => object.type === "circle").length, 1, "円を中心と円周上の点指定で作成できる");
 
     await editor.locator('[data-geometry-mode="select"]').click();
@@ -133,16 +145,16 @@ async function locatorCenter(locator, message) {
     const radiusPointBefore = (await geometry(page)).points.find((point) => point.id === dragCircleBefore.pointIds[1]);
     const centerHit = editor.locator(`[data-geometry-kind="point"][data-geometry-id="${dragCircleBefore.pointIds[0]}"]`);
     const radiusHit = editor.locator(`[data-geometry-kind="point"][data-geometry-id="${dragCircleBefore.pointIds[1]}"]`);
-    const centerPosition = await locatorCenter(centerHit, "円の中心点を操作できる");
-    const radiusPosition = await locatorCenter(radiusHit, "円周上の点を操作できる");
-    await page.mouse.move(centerPosition.x, centerPosition.y);
+    await centerHit.waitFor({ state: "visible" });
+    await radiusHit.waitFor({ state: "visible" });
+    await page.mouse.move(circleCenterClient.x, circleCenterClient.y);
     await page.mouse.down();
-    await page.mouse.move(radiusPosition.x, radiusPosition.y);
+    await page.mouse.move(circleRadiusClient.x, circleRadiusClient.y);
     const afterInvalidDrag = await geometry(page);
     assertCoordinates(afterInvalidDrag.points.find((point) => point.id === dragCircleBefore.pointIds[0]), centerPointBefore, "半径0になるドラッグでは最後の正常な中心座標を維持する");
     assert.match(await editor.locator(".geometry-block-status").textContent(), /中心と円周上の点は同じ位置にできません/, "無効なドラッグ理由を表示する");
     assert.equal(pageErrors.length, 0, "無効なドラッグで未処理例外を出さない");
-    await page.mouse.move(radiusPosition.x + 25, radiusPosition.y + 15);
+    await page.mouse.move(circleRadiusClient.x + 25, circleRadiusClient.y + 15);
     await page.mouse.up();
     const afterRecoveredDrag = await geometry(page);
     const recoveredCenter = afterRecoveredDrag.points.find((point) => point.id === dragCircleBefore.pointIds[0]);
@@ -156,7 +168,7 @@ async function locatorCenter(locator, message) {
     assertCoordinates((await geometry(page)).points.find((point) => point.id === dragCircleBefore.pointIds[0]), recoveredCenter, "Redoで正常なドラッグ結果を復元できる");
 
     await editor.locator('[data-geometry-mode="circle"]').click();
-    await editor.locator(".geometry-point-hit").nth(0).click();
+    await clickLocatorCenter(page, editor.locator(".geometry-point-hit").nth(0), "既存点を円の中心に選択できる");
     await svg.click({ position: { x: 320, y: 70 } });
     assert.equal((await geometry(page)).objects.filter((object) => object.type === "circle").length, 2, "線分を内包する円を作成できる");
 
@@ -181,7 +193,7 @@ async function locatorCenter(locator, message) {
     const movedCircle = circleAfterMove.objects.filter((object) => object.type === "circle").at(-1);
     const originalCircle = circleBeforeMove.objects.find((object) => object.id === movedCircle.id);
     assert.notEqual(circleAfterMove.points.find((point) => point.id === movedCircle.pointIds[0]).x, circleBeforeMove.points.find((point) => point.id === originalCircle.pointIds[0]).x, "円周からドラッグすると円全体を移動できる");
-    await editor.locator(".geometry-point-hit").nth(0).click();
+    await clickLocatorCenter(page, editor.locator(".geometry-point-hit").nth(0), "円内の点を選択できる");
     assert.equal(await editor.locator(".geometry-point.is-selected").count(), 1, "円内の点を個別に選択できる");
 
     await editor.locator('[data-geometry-mode="circle"]').click();
@@ -202,7 +214,7 @@ async function locatorCenter(locator, message) {
     assert.notEqual(moved.points[0].x, beforeMove.points[0].x, "点をドラッグ移動できる");
     assertCoordinates(moved.points[0], expectedDragEnd, "ドラッグ終了位置を保存する");
     assert.equal(moved.objects.filter((object) => object.type === "segment" || object.type === "polygon").every((object) => object.pointIds.includes(moved.points[0].id)), true, "移動後も参照構造を維持する");
-    await editor.locator(".geometry-point-hit").nth(0).click();
+    await clickLocatorCenter(page, editor.locator(".geometry-point-hit").nth(0), "点の頂点名を編集できる");
     await editor.locator('input[aria-label="選択した点の頂点名"]').fill("P");
     await editor.locator('input[aria-label="選択した点の頂点名"]').blur();
     await editor.locator(".geometry-segment-hit").click();
