@@ -172,6 +172,59 @@
     return normalizeGeometryBlock(next, next.id);
   }
 
+  // These helpers add semantic annotations only.  They intentionally do not
+  // introduce a drawing UI: the SVG renderer derives every visible position
+  // from the referenced vertices and segments.
+  function addRightAngle(geometry, { vertexId, rayVertexIds, segmentIds, size } = {}) {
+    const next = copy(geometry);
+    next.annotations.push({
+      id: generatedEntityId("right-angle"), type: "right-angle", vertexId,
+      rayVertexIds: Array.isArray(rayVertexIds) ? [...rayVertexIds] : rayVertexIds,
+      pointIds: Array.isArray(rayVertexIds) ? [rayVertexIds[0], vertexId, rayVertexIds[1]] : undefined,
+      ...(segmentIds === undefined ? {} : { segmentIds: [...segmentIds] }),
+      ...(size === undefined ? {} : { size })
+    });
+    return normalizeGeometryBlock(next, next.id);
+  }
+
+  function addAngle(geometry, { vertexId, rayVertexIds, segmentIds, value, unit = "°", label = "", radius, labelOffsetX, labelOffsetY } = {}) {
+    const next = copy(geometry);
+    next.annotations.push({
+      id: generatedEntityId("angle"), type: "angle", vertexId,
+      rayVertexIds: Array.isArray(rayVertexIds) ? [...rayVertexIds] : rayVertexIds,
+      pointIds: Array.isArray(rayVertexIds) ? [rayVertexIds[0], vertexId, rayVertexIds[1]] : undefined,
+      ...(segmentIds === undefined ? {} : { segmentIds: [...segmentIds] }),
+      ...(value === undefined ? {} : { value }), unit, label,
+      ...(radius === undefined ? {} : { radius }),
+      ...(labelOffsetX === undefined ? {} : { labelOffsetX }),
+      ...(labelOffsetY === undefined ? {} : { labelOffsetY })
+    });
+    return normalizeGeometryBlock(next, next.id);
+  }
+
+  function addLengthAnnotation(geometry, { segmentId, value, unit = "", label = "", offsetX, offsetY } = {}) {
+    const next = copy(geometry);
+    next.annotations.push({
+      id: generatedEntityId("length-label"), type: "length-label", objectId: segmentId, segmentId,
+      value, unit, label,
+      ...(offsetX === undefined ? {} : { offsetX }),
+      ...(offsetY === undefined ? {} : { offsetY })
+    });
+    return normalizeGeometryBlock(next, next.id);
+  }
+
+  function addEqualLengthMark(geometry, { segmentIds, markCount = 1 } = {}) {
+    const next = copy(geometry);
+    next.annotations.push({ id: generatedEntityId("equal-length"), type: "equal-length", objectIds: Array.isArray(segmentIds) ? [...segmentIds] : segmentIds, markCount });
+    return normalizeGeometryBlock(next, next.id);
+  }
+
+  function addParallelMark(geometry, { segmentIds, markCount = 1 } = {}) {
+    const next = copy(geometry);
+    next.annotations.push({ id: generatedEntityId("parallel"), type: "parallel", objectIds: Array.isArray(segmentIds) ? [...segmentIds] : segmentIds, markCount });
+    return normalizeGeometryBlock(next, next.id);
+  }
+
   function deleteSelection(geometry, selection) {
     if (!selection || !selection.id) return normalizeGeometryBlock(copy(geometry), geometry.id);
     const next = copy(geometry);
@@ -182,14 +235,16 @@
       next.annotations = next.annotations.filter((annotation) => annotation.pointId !== selection.id
         && !(annotation.pointIds || []).includes(selection.id)
         && (!annotation.objectId || objectIds.has(annotation.objectId))
-        && !(annotation.objectIds || []).some((objectId) => !objectIds.has(objectId)));
+        && !(annotation.objectIds || []).some((objectId) => !objectIds.has(objectId))
+        && !(annotation.segmentIds || []).some((objectId) => !objectIds.has(objectId)));
     } else if (selection.kind === "object") {
       next.objects = next.objects.filter((object) => object.id !== selection.id);
       const objectIds = new Set(next.objects.map((object) => object.id));
       next.annotations = next.annotations.filter((annotation) => annotation.objectId !== selection.id
         && !(annotation.objectIds || []).includes(selection.id)
         && (!annotation.objectId || objectIds.has(annotation.objectId))
-        && !(annotation.objectIds || []).some((objectId) => !objectIds.has(objectId)));
+        && !(annotation.objectIds || []).some((objectId) => !objectIds.has(objectId))
+        && !(annotation.segmentIds || []).some((objectId) => !objectIds.has(objectId)));
     }
     return normalizeGeometryBlock(next, next.id);
   }
@@ -210,7 +265,7 @@
     };
   }
 
-  const api = { pointName, screenPointToViewBox, pointById, objectById, vertexLabel, lengthLabel, edgeCount, addPoint, addSegment, addPolygon, addCircle, movePoint, moveObject, updateVertexLabel, updateSegmentLineStyle, updateLengthLabel, deleteSelection, createHistory };
+  const api = { pointName, screenPointToViewBox, pointById, objectById, vertexLabel, lengthLabel, edgeCount, addPoint, addSegment, addPolygon, addCircle, movePoint, moveObject, updateVertexLabel, updateSegmentLineStyle, updateLengthLabel, addRightAngle, addAngle, addLengthAnnotation, addEqualLengthMark, addParallelMark, deleteSelection, createHistory };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   if (globalScope) globalScope.MemoNexusGeometryEditorUtils = api;
 })(typeof window !== "undefined" ? window : globalThis);

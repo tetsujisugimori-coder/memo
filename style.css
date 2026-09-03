@@ -2331,6 +2331,11 @@ body.layout-resizing iframe {
 .geometry-point.is-selected, .geometry-point.is-draft { fill: var(--accent); stroke: var(--accent); }
 .geometry-label { fill: var(--ink); font: 5px sans-serif; user-select: none; }
 .geometry-length-label { fill: var(--ink); font: 4.5px sans-serif; user-select: none; paint-order: stroke; stroke: var(--input-bg); stroke-width: 1.5px; }
+.geometry-right-angle-mark,
+.geometry-angle-arc,
+.geometry-equal-length-mark,
+.geometry-parallel-mark { stroke: var(--ink); stroke-width: 1.1; vector-effect: non-scaling-stroke; }
+.geometry-angle-label { fill: var(--ink); font: 4.5px sans-serif; user-select: none; paint-order: stroke; stroke: var(--input-bg); stroke-width: 1.5px; }
 
 .geometry-preview { margin: 14px 0; padding: 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--section-bg); }
 .geometry-preview svg { display: block; width: 100%; max-height: 320px; min-height: 160px; }

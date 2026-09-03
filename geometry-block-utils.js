@@ -17,7 +17,9 @@
   const IMAGE_BLOCK_START = "<!-- memo-nexus:image-block -->";
   const IMAGE_BLOCK_END = "<!-- /memo-nexus:image-block -->";
   const OBJECT_TYPES = new Set(["segment", "polygon", "region", "circle"]);
-  const SEGMENT_ROLES = new Set(["edge", "diagonal", "auxiliary"]);
+  // "edge" is the original name for a normal segment.  Keep it for stored
+  // documents, while also accepting the clearer "normal" spelling.
+  const SEGMENT_ROLES = new Set(["edge", "normal", "diagonal", "auxiliary"]);
   const SEGMENT_LINE_STYLES = new Set(["solid", "dashed"]);
   const ANNOTATION_TYPES = new Set([
     "right-angle", "angle", "equal-length", "parallel", "length-label", "vertex-label", "fill-region"
@@ -118,12 +120,38 @@
       id: normalizedId(source.id),
       type: normalizedId(source.type)
     };
-    if (["right-angle", "angle"].includes(normalized.type)) normalized.pointIds = normalizedIdList(source.pointIds);
+    if (["right-angle", "angle"].includes(normalized.type)) {
+      const legacyPointIds = normalizedIdList(source.pointIds);
+      const rayVertexIds = normalizedIdList(source.rayVertexIds);
+      normalized.vertexId = normalizedId(source.vertexId || (Array.isArray(legacyPointIds) ? legacyPointIds[1] : ""));
+      normalized.rayVertexIds = Array.isArray(rayVertexIds)
+        ? rayVertexIds
+        : (Array.isArray(legacyPointIds) ? [legacyPointIds[0], legacyPointIds[2]] : rayVertexIds);
+      // pointIds is retained as a stable V1-compatible representation.
+      normalized.pointIds = Array.isArray(legacyPointIds)
+        ? legacyPointIds
+        : (Array.isArray(normalized.rayVertexIds) ? [normalized.rayVertexIds[0], normalized.vertexId, normalized.rayVertexIds[1]] : legacyPointIds);
+      if (source.segmentIds !== undefined) normalized.segmentIds = normalizedIdList(source.segmentIds);
+    }
+    if (normalized.type === "right-angle") normalized.size = source.size === undefined ? 6 : source.size;
+    if (normalized.type === "angle") {
+      normalized.radius = source.radius === undefined ? 12 : source.radius;
+      normalized.unit = source.unit === undefined ? "°" : normalizedText(source.unit);
+      normalized.labelOffsetX = source.labelOffsetX === undefined ? 0 : source.labelOffsetX;
+      normalized.labelOffsetY = source.labelOffsetY === undefined ? 0 : source.labelOffsetY;
+    }
     if (["equal-length", "parallel"].includes(normalized.type)) {
       normalized.objectIds = normalizedIdList(source.objectIds);
-      normalized.mark = source.mark === undefined ? 1 : source.mark;
+      normalized.markCount = source.markCount === undefined
+        ? (source.mark === undefined ? 1 : source.mark)
+        : source.markCount;
+      // Retain the historic field so V1 consumers and existing notes round-trip.
+      normalized.mark = normalized.markCount;
     }
-    if (["length-label", "fill-region"].includes(normalized.type)) normalized.objectId = normalizedId(source.objectId);
+    if (["length-label", "fill-region"].includes(normalized.type)) {
+      normalized.objectId = normalizedId(source.objectId === undefined ? source.segmentId : source.objectId);
+      if (source.segmentId !== undefined) normalized.segmentId = normalizedId(source.segmentId);
+    }
     if (normalized.type === "length-label" && source.edgeIndex !== undefined) normalized.edgeIndex = source.edgeIndex;
     if (normalized.type === "vertex-label") {
       normalized.pointId = normalizedId(source.pointId);
@@ -132,6 +160,11 @@
     }
     if (["angle", "length-label", "vertex-label"].includes(normalized.type)) normalized.label = normalizedText(source.label);
     if (["angle", "length-label"].includes(normalized.type) && source.value !== undefined) normalized.value = source.value;
+    if (normalized.type === "length-label") {
+      normalized.unit = source.unit === undefined ? "" : normalizedText(source.unit);
+      normalized.offsetX = source.offsetX === undefined ? 0 : source.offsetX;
+      normalized.offsetY = source.offsetY === undefined ? 4 : source.offsetY;
+    }
     if (normalized.type === "fill-region") normalized.fill = source.fill === undefined ? "primary" : normalizedId(source.fill);
     return normalized;
   }
@@ -299,6 +332,32 @@
       }
       if (["right-angle", "angle"].includes(annotation.type)) {
         validateReferenceList(annotation.pointIds, `${path}.pointIds`, 3, 3, pointIds);
+        validateId(annotation.vertexId, `${path}.vertexId`);
+        if (!pointIds.has(annotation.vertexId)) addError(`${path}.vertexIdの参照先が存在しません`);
+        validateReferenceList(annotation.rayVertexIds, `${path}.rayVertexIds`, 2, 2, pointIds);
+        if (Array.isArray(annotation.rayVertexIds) && annotation.rayVertexIds.includes(annotation.vertexId)) {
+          addError(`${path}.rayVertexIdsに頂点自身を指定できません`);
+        }
+        if (annotation.segmentIds !== undefined) {
+          validateReferenceList(annotation.segmentIds, `${path}.segmentIds`, 2, 2, objectIds);
+          if (Array.isArray(annotation.segmentIds)) {
+            annotation.segmentIds.forEach((id) => {
+              const segment = objectById.get(id);
+              if (segment && (segment.type !== "segment" || !segment.pointIds.includes(annotation.vertexId))) {
+                addError(`${path}.segmentIdsは頂点に接続する線分を参照する必要があります`);
+              }
+            });
+          }
+        }
+        if (annotation.type === "right-angle" && (!Number.isFinite(annotation.size) || annotation.size <= 0)) {
+          addError(`${path}.sizeは正の有限数である必要があります`);
+        }
+        if (annotation.type === "angle") {
+          if (!Number.isFinite(annotation.radius) || annotation.radius <= 0) addError(`${path}.radiusは正の有限数である必要があります`);
+          validateText(annotation.unit, `${path}.unit`, GEOMETRY_BLOCK_LIMITS.labelChars);
+          validateFinite(annotation.labelOffsetX, `${path}.labelOffsetX`);
+          validateFinite(annotation.labelOffsetY, `${path}.labelOffsetY`);
+        }
       }
       if (["equal-length", "parallel"].includes(annotation.type)) {
         validateReferenceList(
@@ -313,8 +372,8 @@
             if (objectById.has(id) && objectById.get(id).type !== "segment") addError(`${path}は線分だけを参照できます`);
           });
         }
-        if (!Number.isInteger(annotation.mark) || annotation.mark < 1 || annotation.mark > 10) {
-          addError(`${path}.markは1から10の整数である必要があります`);
+        if (!Number.isInteger(annotation.markCount) || annotation.markCount < 1 || annotation.markCount > 10) {
+          addError(`${path}.markCountは1から10の整数である必要があります`);
         }
       }
       if (["length-label", "fill-region"].includes(annotation.type)) {
@@ -327,6 +386,12 @@
         if (annotation.edgeIndex !== undefined && (!Number.isInteger(annotation.edgeIndex) || annotation.edgeIndex < 0 || annotation.edgeIndex >= edgeCount(target))) {
           addError(`${path}.edgeIndexが不正です`);
         }
+        if (annotation.segmentId !== undefined && annotation.segmentId !== annotation.objectId) {
+          addError(`${path}.segmentIdとobjectIdが一致しません`);
+        }
+        validateText(annotation.unit, `${path}.unit`, GEOMETRY_BLOCK_LIMITS.labelChars);
+        validateFinite(annotation.offsetX, `${path}.offsetX`);
+        validateFinite(annotation.offsetY, `${path}.offsetY`);
       }
       if (annotation.type === "fill-region" && objectById.has(annotation.objectId) && !["polygon", "region"].includes(objectById.get(annotation.objectId).type)) {
         addError(`${path}は多角形または領域だけを参照できます`);
@@ -395,9 +460,13 @@
       annotations: source.annotations.map((annotation) => {
         const next = { ...annotation, id: annotationIds.get(annotation.id) };
         if (Array.isArray(next.pointIds)) next.pointIds = next.pointIds.map((pointId) => pointIds.get(pointId));
+        if (Array.isArray(next.rayVertexIds)) next.rayVertexIds = next.rayVertexIds.map((pointId) => pointIds.get(pointId));
         if (Array.isArray(next.objectIds)) next.objectIds = next.objectIds.map((objectId) => objectIds.get(objectId));
+        if (Array.isArray(next.segmentIds)) next.segmentIds = next.segmentIds.map((objectId) => objectIds.get(objectId));
+        if (next.vertexId) next.vertexId = pointIds.get(next.vertexId);
         if (next.pointId) next.pointId = pointIds.get(next.pointId);
         if (next.objectId) next.objectId = objectIds.get(next.objectId);
+        if (next.segmentId) next.segmentId = objectIds.get(next.segmentId);
         return next;
       })
     });
