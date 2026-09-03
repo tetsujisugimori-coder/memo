@@ -254,7 +254,18 @@
     renderModel.objects.filter((object) => object.type === "polygon").forEach((polygon) => {
       const vertices = polygon.pointIds.map((id) => points.get(id));
       if (vertices.some((point) => !point)) return;
-      svg.append(svgElement("polygon", { points: vertices.map((point) => `${point.x},${point.y}`).join(" "), class: `geometry-polygon${selection?.kind === "object" && selection.id === polygon.id ? " is-selected" : ""}`, fill: "transparent", "data-geometry-kind": "object", "data-geometry-type": "polygon", "data-geometry-id": polygon.id, "aria-label": "多角形" }));
+      svg.append(svgElement("polygon", {
+        points: vertices.map((point) => `${point.x},${point.y}`).join(" "),
+        class: `geometry-polygon${selection?.kind === "object" && selection.id === polygon.id ? " is-selected" : ""}`,
+        fill: "transparent",
+        "data-geometry-kind": "object",
+        "data-geometry-type": "polygon",
+        "data-geometry-id": polygon.id,
+        "data-geometry-source-kind": "object",
+        "data-geometry-source-type": "polygon",
+        "data-geometry-source-id": polygon.id,
+        "aria-label": "多角形"
+      }));
     });
     renderModel.objects.filter((object) => object.type === "segment").forEach((segment) => {
       const [start, end] = segment.pointIds.map((id) => points.get(id));
