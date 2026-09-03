@@ -117,10 +117,11 @@ test("共通レンダラーは点・線分・円・多角形をID付きで決定
     geometry = addPolygon(geometry, [geometry.points[0].id, geometry.points[1].id, geometry.points[2].id, geometry.points[3].id]);
     const polygon = geometry.objects[geometry.objects.length - 1];
     const svg = new MockElement("svg");
-    renderGeometrySvg(svg, geometry, { selection: { kind: "object", id: polygon.id } });
+    renderGeometrySvg(svg, geometry, { selection: { kind: "object", id: segment.id } });
     const first = svgSnapshot(svg);
     const firstNodes = descendants(svg);
     const segmentDisplay = firstNodes.find((node) => node.getAttribute("data-geometry-source-id") === segment.id);
+    assert.match(segmentDisplay.getAttribute("class"), /is-selected/, "線分表示の選択状態をDOMへ反映する");
     const circleHit = firstNodes.find((node) => node.getAttribute("data-geometry-id") === circle.id);
     const circleDisplay = firstNodes.find((node) => node.getAttribute("data-geometry-source-id") === circle.id);
     const polygonElement = firstNodes.find((node) => node.getAttribute("data-geometry-id") === polygon.id);
@@ -136,11 +137,6 @@ test("共通レンダラーは点・線分・円・多角形をID付きで決定
     assert.equal(polygonSource.getAttribute("data-geometry-source-type"), "polygon", "多角形表示に既存要素参照typeを付与する");
     assert.equal(polygonSource.getAttribute("data-geometry-source-id"), polygon.id, "多角形表示に既存要素参照idを付与する");
     assert.equal(polygonElement.getAttribute("data-geometry-id"), polygon.id, "多角形要素を元のオブジェクトIDで特定できる");
-    assert.match(polygonElement.getAttribute("class"), /is-selected/, "多角形の選択状態は既存フラグへ反映する");
-
-    renderGeometrySvg(svg, geometry, { selection: { kind: "object", id: segment.id } });
-    const segmentDisplayAfterSegmentSelection = descendants(svg).find((node) => node.getAttribute("data-geometry-source-id") === segment.id);
-    assert.match(segmentDisplayAfterSegmentSelection.getAttribute("class"), /is-selected/, "線分表示の選択状態をDOMへ反映する");
 
     renderGeometrySvg(svg, geometry, { selection: { kind: "object", id: polygon.id } });
     const polygonElementAfterPolygonSelection = descendants(svg).find((node) => node.getAttribute("data-geometry-id") === polygon.id);
