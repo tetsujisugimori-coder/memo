@@ -269,30 +269,30 @@ async function runCircleInteriorSelectionScenario(browser, url) {
 
     await editor.locator('[data-geometry-mode="segment"]').click();
     const segmentPointIds = afterPoints.points.slice(0, 2).map((point) => point.id);
-    await clickLocatorCenter(page, editor.locator(".geometry-point-hit").nth(0), "線分の始点を選択できる");
-    await clickLocatorCenter(page, editor.locator(".geometry-point-hit").nth(1), "線分の終点を選択できる");
+    await clickLocatorCenter(page, editor.locator(`.geometry-point-hit[data-geometry-id="${segmentPointIds[0]}"]`), "線分の始点を選択できる");
+    await clickLocatorCenter(page, editor.locator(`.geometry-point-hit[data-geometry-id="${segmentPointIds[1]}"]`), "線分の終点を選択できる");
     assert.equal((await geometry(page)).objects.filter((object) => object.type === "segment").length, 1, "線分を追加できる");
     assert.deepEqual((await geometry(page)).objects.find((object) => object.type === "segment").pointIds, segmentPointIds, "線分は選択した2点を参照する");
 
     await editor.locator('[data-geometry-mode="polygon"]').click();
     const polygonPointIds = afterPoints.points.map((point) => point.id);
-    await clickLocatorCenter(page, editor.locator(".geometry-point-hit").nth(0), "多角形の始点を選択できる");
-    await clickLocatorCenter(page, editor.locator(".geometry-point-hit").nth(1), "多角形の2点目を選択できる");
-    await clickLocatorCenter(page, editor.locator(".geometry-point-hit").nth(2), "多角形の3点目を選択できる");
-    await clickLocatorCenter(page, editor.locator(".geometry-point-hit").nth(0), "多角形を始点で完成できる");
+    await clickLocatorCenter(page, editor.locator(`.geometry-point-hit[data-geometry-id="${polygonPointIds[0]}"]`), "多角形の始点を選択できる");
+    await clickLocatorCenter(page, editor.locator(`.geometry-point-hit[data-geometry-id="${polygonPointIds[1]}"]`), "多角形の2点目を選択できる");
+    await clickLocatorCenter(page, editor.locator(`.geometry-point-hit[data-geometry-id="${polygonPointIds[2]}"]`), "多角形の3点目を選択できる");
+    await clickLocatorCenter(page, editor.locator(`.geometry-point-hit[data-geometry-id="${polygonPointIds[0]}"]`), "多角形を始点で完成できる");
     assert.equal((await geometry(page)).objects.filter((object) => object.type === "polygon").length, 1, "多角形を追加できる");
     assert.deepEqual((await geometry(page)).objects.find((object) => object.type === "polygon").pointIds, polygonPointIds, "多角形は選択した点を指定順に参照する");
     assert.equal(await editor.locator(".geometry-draft").count(), 0, "多角形完成後に作成途中の破線を残さない");
 
     await editor.locator('[data-geometry-mode="polygon"]').click();
-    await clickLocatorCenter(page, editor.locator(".geometry-point-hit").nth(0), "作成途中の多角形の始点を選択できる");
-    await clickLocatorCenter(page, editor.locator(".geometry-point-hit").nth(1), "作成途中の多角形へ点を追加できる");
+    await clickLocatorCenter(page, editor.locator(`.geometry-point-hit[data-geometry-id="${polygonPointIds[0]}"]`), "作成途中の多角形の始点を選択できる");
+    await clickLocatorCenter(page, editor.locator(`.geometry-point-hit[data-geometry-id="${polygonPointIds[1]}"]`), "作成途中の多角形へ点を追加できる");
     assert.equal(await editor.locator(".geometry-draft").count(), 1, "多角形作成中は破線を表示する");
     await editor.locator('[data-geometry-mode="segment"]').click();
     assert.equal(await editor.locator(".geometry-draft").count(), 0, "モード切替後に作成途中の破線を残さない");
     assert.equal(await editor.locator(".geometry-point.is-draft").count(), 0, "モード切替後に作成途中の点強調を残さない");
     await editor.locator('[data-geometry-mode="polygon"]').click();
-    await clickLocatorCenter(page, editor.locator(".geometry-point-hit").nth(0), "作成途中の多角形の点を選択できる");
+    await clickLocatorCenter(page, editor.locator(`.geometry-point-hit[data-geometry-id="${polygonPointIds[0]}"]`), "作成途中の多角形の点を選択できる");
     await editor.focus();
     await page.keyboard.press("Escape");
     assert.equal((await geometry(page)).objects.length, 2, "Escapeで作成途中の多角形を解除できる");
@@ -413,7 +413,7 @@ async function runCircleInteriorSelectionScenario(browser, url) {
     await editor.locator('select[aria-label="選択した図形の辺"]').selectOption("1");
     await editor.locator('input[aria-label="選択した辺の長さ表示"]').fill("a");
     await editor.locator('input[aria-label="選択した辺の長さ表示"]').blur();
-    await page.waitForTimeout(350);
+    await page.evaluate(() => window.flushSave());
     const beforeReload = await geometry(page);
     assert.equal(beforeReload.annotations.find((annotation) => annotation.pointId === beforeReload.points[0].id).label, "P");
     assert.equal(beforeReload.objects.find((object) => object.type === "segment").lineStyle, "dashed");
@@ -493,7 +493,7 @@ async function runCircleInteriorSelectionScenario(browser, url) {
     }, semanticBeforeReload.points[0].id);
     semanticBeforeReload = await geometry(page);
     assert.equal(semanticBeforeReload.annotations.find((annotation) => annotation.pointId === semanticBeforeReload.points[0].id)?.label, "A1", "構造化図形編集は本文の意味付きデータを更新する");
-    await page.waitForTimeout(350);
+    await page.evaluate(() => window.flushSave());
     await page.reload({ waitUntil: "domcontentloaded" });
     await page.locator("#appStartupGuard").waitFor({ state: "hidden" });
     const semanticRestored = await geometry(page);
@@ -539,7 +539,7 @@ async function runCircleInteriorSelectionScenario(browser, url) {
     const bodyAfterDelete = await page.locator("#editor").inputValue();
     assert.equal(bodyAfterDelete.includes("memo-nexus:geometry-block"), false, "図形マーカーだけを削除する");
     assert.equal(bodyAfterDelete.includes("前") && bodyAfterDelete.includes("後"), true, "図形以外の本文は維持する");
-    await page.waitForTimeout(350);
+    await page.evaluate(() => window.flushSave());
     await page.reload({ waitUntil: "domcontentloaded" });
     await page.locator("#appStartupGuard").waitFor({ state: "hidden" });
     assert.equal(await geometry(page), null, "削除後の再読み込みで図形を復元しない");
