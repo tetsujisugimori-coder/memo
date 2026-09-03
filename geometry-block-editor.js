@@ -3,6 +3,8 @@
 
   const model = globalScope.MemoNexusGeometryEditorUtils;
   if (!model) throw new Error("MemoNexusGeometryEditorUtils is required");
+  const renderer = globalScope.MemoNexusGeometrySvgRenderer;
+  if (!renderer) throw new Error("MemoNexusGeometrySvgRenderer is required");
   const svgNamespace = "http://www.w3.org/2000/svg";
   const modes = [
     ["select", "選択"], ["point", "点"], ["segment", "線分"], ["triangle", "三角形"],
@@ -297,42 +299,8 @@
     }
 
     function draw() {
-      svg.replaceChildren();
-      svg.setAttribute("viewBox", `${geometry.viewBox.x} ${geometry.viewBox.y} ${geometry.viewBox.width} ${geometry.viewBox.height}`);
+      renderer.renderGeometrySvg(svg, geometry, { selection, vertexLabel: model.vertexLabel });
       const points = new Map(geometry.points.map((point) => [point.id, point]));
-      const appendLengthLabel = (object, start, end, edgeIndex = 0) => {
-        const annotation = model.lengthLabel(geometry, object.id, edgeIndex);
-        if (!annotation?.label) return;
-        const middleX = (start.x + end.x) / 2;
-        const middleY = (start.y + end.y) / 2;
-        const length = Math.hypot(end.x - start.x, end.y - start.y) || 1;
-        const text = svgElement("text", { x: middleX - (end.y - start.y) / length * 4, y: middleY + (end.x - start.x) / length * 4, class: "geometry-length-label", "pointer-events": "none" });
-        text.textContent = annotation.label;
-        svg.append(text);
-      };
-      geometry.objects.filter((object) => object.type === "polygon").forEach((polygon) => {
-        const vertices = polygon.pointIds.map((pointId) => points.get(pointId)).filter(Boolean);
-        if (vertices.length < 3) return;
-        const node = svgElement("polygon", { points: vertices.map((point) => `${point.x},${point.y}`).join(" "), class: `geometry-polygon${selection?.kind === "object" && selection.id === polygon.id ? " is-selected" : ""}`, fill: "transparent", "data-geometry-kind": "object", "data-geometry-id": polygon.id });
-        svg.append(node);
-        vertices.forEach((point, index) => appendLengthLabel(polygon, point, vertices[(index + 1) % vertices.length], index));
-      });
-      geometry.objects.filter((object) => object.type === "segment").forEach((segment) => {
-        const [start, end] = segment.pointIds.map((pointId) => points.get(pointId));
-        if (!start || !end) return;
-        const hit = svgElement("line", { x1: start.x, y1: start.y, x2: end.x, y2: end.y, class: "geometry-segment-hit", "data-geometry-kind": "object", "data-geometry-id": segment.id });
-        const node = svgElement("line", { x1: start.x, y1: start.y, x2: end.x, y2: end.y, class: `geometry-segment${segment.lineStyle === "dashed" ? " is-dashed" : ""}${selection?.kind === "object" && selection.id === segment.id ? " is-selected" : ""}`, "pointer-events": "none" });
-        svg.append(hit, node);
-        appendLengthLabel(segment, start, end);
-      });
-      geometry.objects.filter((object) => object.type === "circle").forEach((circle) => {
-        const [center, radiusPoint] = circle.pointIds.map((pointId) => points.get(pointId));
-        if (!center || !radiusPoint) return;
-        const radius = Math.hypot(radiusPoint.x - center.x, radiusPoint.y - center.y);
-        const hit = svgElement("circle", { cx: center.x, cy: center.y, r: radius, fill: "none", class: "geometry-circle-hit", "data-geometry-kind": "object", "data-geometry-id": circle.id });
-        const node = svgElement("circle", { cx: center.x, cy: center.y, r: radius, class: `geometry-circle${selection?.kind === "object" && selection.id === circle.id ? " is-selected" : ""}`, fill: "transparent", "pointer-events": "none" });
-        svg.append(hit, node);
-      });
       const draftPoints = draftVertices.map((entry) => pointForDraft(entry, points)).filter(Boolean);
       const previewPoints = draftPreview ? [...draftPoints, draftPreview] : draftPoints;
       if (mode === "circle" && previewPoints.length === 2) {
@@ -341,17 +309,12 @@
       } else if ((mode === "polygon" || requiredVertices()) && previewPoints.length > 1) {
         svg.append(svgElement("polyline", { points: previewPoints.map((point) => `${point.x},${point.y}`).join(" "), class: "geometry-draft", "pointer-events": "none" }));
       }
-      geometry.points.forEach((point) => {
-        if (!point.visible) return;
-        const hit = svgElement("circle", { cx: point.x, cy: point.y, r: 5, class: "geometry-point-hit", "data-geometry-kind": "point", "data-geometry-id": point.id });
-        const node = svgElement("circle", { cx: point.x, cy: point.y, r: 1.8, class: `geometry-point${selection?.kind === "point" && selection.id === point.id ? " is-selected" : ""}${draftVertices.some((entry) => entry.pointId === point.id) ? " is-draft" : ""}`, "pointer-events": "none" });
-        const label = model.vertexLabel(geometry, point.id);
-        svg.append(hit, node);
-        if (label?.label) {
-          const text = svgElement("text", { x: point.x + label.offsetX, y: point.y + label.offsetY, class: "geometry-label", "pointer-events": "none" });
-          text.textContent = label.label;
-          svg.append(text);
-        }
+      // Draft-only presentation stays in the editor; persisted geometry is
+      // rendered exclusively by the semantic renderer above.
+      draftVertices.forEach((entry) => {
+        if (!entry.pointId) return;
+        const node = svg.querySelector?.(`.geometry-point[data-geometry-id="${entry.pointId}"]`);
+        node?.classList?.add("is-draft");
       });
     }
 

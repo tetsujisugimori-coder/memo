@@ -7749,6 +7749,7 @@ function renderPreview() {
   previewAutomaticTerms = currentTermRelationIndex().byNoteId.get(note.id)?.automaticTerms || [];
   checklistRenderIndex = 0;
   preview.innerHTML = renderPreviewHtml(body, note.id, renderGeneration);
+  hydrateGeometryPreviews();
   hydrateMathExpressions();
   hydrateInlineAttachmentImages();
   bindImageBlockControls();
@@ -9224,34 +9225,24 @@ function renderPreviewHtml(body, noteId = "preview", renderGeneration = 0) {
 }
 
 function renderGeometryBlock(geometry, blockIndex) {
-  const points = new Map(geometry.points.map((point) => [point.id, point]));
-  const lengthLabel = (object, start, end, edgeIndex = 0) => {
-    const annotation = geometry.annotations.find((item) => item.type === "length-label" && item.objectId === object.id && (item.edgeIndex || 0) === edgeIndex);
-    if (!annotation?.label) return "";
-    const length = Math.hypot(end.x - start.x, end.y - start.y) || 1;
-    const x = (start.x + end.x) / 2 - (end.y - start.y) / length * 4;
-    const y = (start.y + end.y) / 2 + (end.x - start.x) / length * 4;
-    return `<text class="geometry-preview-length-label" x="${x}" y="${y}">${escapeHtml(annotation.label)}</text>`;
-  };
-  const polygons = geometry.objects.filter((object) => object.type === "polygon").map((polygon) => {
-    const vertices = polygon.pointIds.map((pointId) => points.get(pointId)).filter(Boolean);
-    return vertices.length >= 3 ? `<polygon class="geometry-preview-polygon" points="${vertices.map((point) => `${point.x},${point.y}`).join(" ")}"/>${vertices.map((point, index) => lengthLabel(polygon, point, vertices[(index + 1) % vertices.length], index)).join("")}` : "";
-  }).join("");
-  const segments = geometry.objects.filter((object) => object.type === "segment").map((segment) => {
-    const [start, end] = segment.pointIds.map((pointId) => points.get(pointId));
-    return start && end ? `<line class="geometry-preview-segment${segment.lineStyle === "dashed" ? " is-dashed" : ""}" x1="${start.x}" y1="${start.y}" x2="${end.x}" y2="${end.y}"/>${lengthLabel(segment, start, end)}` : "";
-  }).join("");
-  const circles = geometry.objects.filter((object) => object.type === "circle").map((circle) => {
-    const [center, radiusPoint] = circle.pointIds.map((pointId) => points.get(pointId));
-    return center && radiusPoint ? `<circle class="geometry-preview-circle" cx="${center.x}" cy="${center.y}" r="${Math.hypot(radiusPoint.x - center.x, radiusPoint.y - center.y)}"/>` : "";
-  }).join("");
-  const labels = geometry.points.filter((point) => point.visible).map((point) => {
-    const label = geometry.annotations.find((annotation) => annotation.type === "vertex-label" && annotation.pointId === point.id);
-    const text = label?.label ? `<text class="geometry-preview-label" x="${point.x + label.offsetX}" y="${point.y + label.offsetY}">${escapeHtml(label.label)}</text>` : "";
-    return `<circle class="geometry-preview-point" cx="${point.x}" cy="${point.y}" r="1.8"/>${text}`;
-  }).join("");
   const title = geometry.caption.trim() || `図形ブロック${blockIndex + 1}`;
-  return `<figure class="geometry-preview" data-geometry-id="${escapeAttr(geometry.id)}"><svg viewBox="${geometry.viewBox.x} ${geometry.viewBox.y} ${geometry.viewBox.width} ${geometry.viewBox.height}" role="img" aria-label="${escapeAttr(title)}">${polygons}${segments}${circles}${labels}</svg>${geometry.caption ? `<figcaption>${escapeHtml(geometry.caption)}</figcaption>` : ""}</figure>`;
+  const payload = encodeURIComponent(JSON.stringify(geometry));
+  return `<figure class="geometry-preview" data-geometry-id="${escapeAttr(geometry.id)}"><svg data-geometry-preview="${escapeAttr(payload)}" viewBox="${geometry.viewBox.x} ${geometry.viewBox.y} ${geometry.viewBox.width} ${geometry.viewBox.height}" role="img" aria-label="${escapeAttr(title)}"></svg>${geometry.caption ? `<figcaption>${escapeHtml(geometry.caption)}</figcaption>` : ""}</figure>`;
+}
+
+function hydrateGeometryPreviews() {
+  const renderer = window.MemoNexusGeometrySvgRenderer;
+  if (!renderer) return;
+  preview.querySelectorAll("svg[data-geometry-preview]").forEach((svg) => {
+    try {
+      const geometry = JSON.parse(decodeURIComponent(svg.dataset.geometryPreview));
+      renderer.renderGeometrySvg(svg, geometry, {
+        vertexLabel: (value, pointId) => value.annotations.find((annotation) => annotation.type === "vertex-label" && annotation.pointId === pointId) || null
+      });
+    } catch (error) {
+      console.warn("Geometry preview render failed", error);
+    }
+  });
 }
 
 function renderTableBlock(tableValue, blockIndex) {

@@ -433,6 +433,50 @@ async function runCircleInteriorSelectionScenario(browser, url) {
     assert.equal(restoredCenter.x === restoredRadius.x && restoredCenter.y === restoredRadius.y, false, "再読み込み後も半径0の円にしない");
     assert.equal(restored.objects.find((object) => object.type === "segment").lineStyle, "dashed", "線種を復元する");
 
+    // 作図用UIの有無に依存させず、意味付き幾何スキーマそのものを
+    // 保存して再読込する。SVGのdata属性も正規化済みモデルを検証する。
+    const semanticBeforeReload = await page.evaluate(() => {
+      const blocks = window.MemoNexusGeometryBlockUtils;
+      const model = window.MemoNexusGeometryEditorUtils;
+      let value = blocks.createGeometryBlock("semantic-e2e");
+      [[20, 80], [20, 20], [80, 20], [80, 80]].forEach(([x, y]) => { value = model.addPoint(value, { x, y }); });
+      value = model.updateVertexLabel(value, value.points[0].id, "A");
+      value = model.updateVertexLabel(value, value.points[1].id, "B");
+      value = model.updateVertexLabel(value, value.points[2].id, "C");
+      value = model.updateVertexLabel(value, value.points[3].id, "D");
+      value = model.addSegment(value, value.points[0].id, value.points[1].id);
+      value = model.addSegment(value, value.points[1].id, value.points[2].id);
+      value = model.addSegment(value, value.points[2].id, value.points[3].id);
+      value = model.addSegment(value, value.points[0].id, value.points[2].id, "dashed");
+      const [ab, bc, cd, ac] = value.objects;
+      value = model.addRightAngle(value, { vertexId: value.points[1].id, rayVertexIds: [value.points[0].id, value.points[2].id], segmentIds: [ab.id, bc.id] });
+      value = model.addAngle(value, { vertexId: value.points[1].id, rayVertexIds: [value.points[0].id, value.points[2].id], segmentIds: [ab.id, bc.id], value: 90, unit: "°" });
+      value = model.addLengthAnnotation(value, { segmentId: ab.id, value: 5, unit: "cm" });
+      value = model.addEqualLengthMark(value, { segmentIds: [ab.id, bc.id], markCount: 1 });
+      value = model.addParallelMark(value, { segmentIds: [ab.id, cd.id], markCount: 2 });
+      value.objects.find((object) => object.id === ac.id).role = "diagonal";
+      const input = document.getElementById("editor");
+      input.value = `前\n${blocks.serializeGeometryBlock(value)}\n後`;
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+      return value;
+    });
+    await page.waitForFunction(() => document.querySelectorAll('.geometry-block-editor [data-geometry-type="right-angle"]').length === 1);
+    const semanticEditor = page.locator(".geometry-block-editor");
+    assert.equal(await semanticEditor.locator('[data-geometry-type="right-angle"]').getAttribute("data-vertex-id"), semanticBeforeReload.points[1].id, "直角記号が頂点IDを保持する");
+    assert.equal(await semanticEditor.locator('[data-geometry-type="angle"]').getAttribute("data-vertex-id"), semanticBeforeReload.points[1].id, "角度表示が中心頂点IDを保持する");
+    assert.equal(await semanticEditor.locator('[data-geometry-type="length-label"]').getAttribute("data-segment-id"), semanticBeforeReload.objects[0].id, "辺長表示が線分IDを保持する");
+    assert.equal(await semanticEditor.locator('[data-geometry-type="equal-length"]').count(), 2, "等辺記号が対象2線分へ描画される");
+    assert.equal(await semanticEditor.locator('[data-geometry-type="parallel"]').count(), 2, "平行記号が対象2線分へ描画される");
+    assert.equal(await semanticEditor.locator(`[data-geometry-id="${semanticBeforeReload.objects[3].id}"]`).getAttribute("data-segment-role"), "diagonal", "対角線の意味ロールをSVGへ反映する");
+    await page.waitForFunction(() => document.querySelectorAll('#preview [data-geometry-type="right-angle"]').length === 1);
+    assert.equal(await page.locator('#preview [data-geometry-type="angle"]').getAttribute("data-vertex-id"), semanticBeforeReload.points[1].id, "カード表示も同じ意味付きSVGレンダラーで角度を描画する");
+    await page.waitForTimeout(350);
+    await page.reload({ waitUntil: "domcontentloaded" });
+    await page.locator("#appStartupGuard").waitFor({ state: "hidden" });
+    const semanticRestored = await geometry(page);
+    assert.deepEqual(semanticRestored, semanticBeforeReload, "意味付き図形を保存・再読み込み後も同じデータとして復元する");
+    assert.equal(await page.locator('.geometry-block-editor [data-geometry-type="right-angle"]').getAttribute("data-vertex-id"), semanticBeforeReload.points[1].id, "再読み込み後も直角の意味属性を復元する");
+
     await page.setViewportSize({ width: 390, height: 760 });
     const contextPanel = page.locator("#contextPanel");
     if (await contextPanel.getAttribute("aria-hidden") === "false") {
