@@ -6,7 +6,8 @@
     "test": "node --test",
     "test:e2e:mobile:layout": "node mobile-layout.e2e.js",
     "test:e2e:mobile:writing": "node mobile-writing-mode.e2e.js",
-    "test:e2e:mobile": "npm run test:e2e:mobile:layout && npm run test:e2e:mobile:writing"
+    "test:e2e:mobile": "npm run test:e2e:mobile:layout && npm run test:e2e:mobile:writing",
+    "test:e2e:geometry": "node geometry-block.e2e.js"
   },
   "devDependencies": {
     "playwright": "1.62.1"

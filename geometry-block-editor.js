@@ -5,7 +5,8 @@
   if (!model) throw new Error("MemoNexusGeometryEditorUtils is required");
   const svgNamespace = "http://www.w3.org/2000/svg";
   const modes = [
-    ["select", "選択"], ["point", "点"], ["segment", "線分"], ["polygon", "多角形"]
+    ["select", "選択"], ["point", "点"], ["segment", "線分"], ["triangle", "三角形"],
+    ["quadrilateral", "四角形"], ["circle", "円"], ["polygon", "多角形"]
   ];
 
   function svgElement(name, attributes = {}) {
@@ -23,8 +24,11 @@
     let geometry = initialGeometry;
     let mode = "select";
     let selection = null;
-    let draftPointIds = [];
+    let draftVertices = [];
+    let draftPreview = null;
+    let selectedEdgeIndex = 0;
     let drag = null;
+    let pointerSelection = null;
     const history = model.createHistory(geometry);
     const article = document.createElement("article");
     article.className = "geometry-block-editor";
@@ -76,6 +80,14 @@
     completeButton.textContent = "多角形を完了";
     completeButton.setAttribute("aria-label", "選択した点で多角形を完了");
     completeButton.addEventListener("click", () => completePolygon());
+    const cancelButton = document.createElement("button");
+    cancelButton.type = "button";
+    cancelButton.textContent = "作成をキャンセル";
+    cancelButton.setAttribute("aria-label", "図形の作成途中の操作をキャンセル");
+    cancelButton.addEventListener("click", () => {
+      clearDraft();
+      status.textContent = "作成途中の操作を解除しました";
+    });
     const undoButton = document.createElement("button");
     undoButton.type = "button";
     undoButton.textContent = "戻す";
@@ -97,7 +109,7 @@
       status.textContent = "選択を削除しました";
       updateControls();
     });
-    tools.append(completeButton, undoButton, redoButton, deleteButton);
+    tools.append(completeButton, cancelButton, undoButton, redoButton, deleteButton);
 
     const properties = document.createElement("div");
     properties.className = "geometry-block-properties";
@@ -131,7 +143,30 @@
       updateControls();
     });
     lineField.append(lineStyle);
-    properties.append(labelField, lineField);
+    const lengthField = document.createElement("label");
+    lengthField.textContent = "辺";
+    const edgeSelect = document.createElement("select");
+    edgeSelect.setAttribute("aria-label", "選択した図形の辺");
+    edgeSelect.addEventListener("change", () => {
+      selectedEdgeIndex = Number(edgeSelect.value) || 0;
+      updateControls();
+    });
+    lengthField.append(edgeSelect);
+    const lengthLabelField = document.createElement("label");
+    lengthLabelField.textContent = "辺の長さ表示";
+    const lengthInput = document.createElement("input");
+    lengthInput.type = "text";
+    lengthInput.maxLength = 500;
+    lengthInput.setAttribute("aria-label", "選択した辺の長さ表示");
+    lengthInput.addEventListener("change", () => {
+      const object = selection?.kind === "object" ? model.objectById(geometry, selection.id) : null;
+      if (!object || !["segment", "polygon"].includes(object.type)) return;
+      commit(model.updateLengthLabel(geometry, object.id, lengthInput.value, selectedEdgeIndex));
+      status.textContent = "辺の長さ表示を更新しました";
+      updateControls();
+    });
+    lengthLabelField.append(lengthInput);
+    properties.append(labelField, lineField, lengthField, lengthLabelField);
 
     const canvas = document.createElement("div");
     canvas.className = "geometry-canvas";
@@ -145,13 +180,15 @@
     }
 
     function clearDraft() {
-      draftPointIds = [];
+      draftVertices = [];
+      draftPreview = null;
       draw();
       updateControls();
     }
 
     function setSelection(next) {
       selection = next;
+      selectedEdgeIndex = 0;
       updateControls();
       draw();
     }
@@ -178,25 +215,62 @@
       return { kind: node.dataset.geometryKind, id: node.dataset.geometryId };
     }
 
-    function completePolygon() {
-      if (mode !== "polygon" || draftPointIds.length < 3) return;
+    function requiredVertices() {
+      return { segment: 2, triangle: 3, quadrilateral: 4, circle: 2 }[mode] || null;
+    }
+
+    function pointForDraft(entry, points) {
+      return entry.pointId ? points.get(entry.pointId) : entry;
+    }
+
+    function materializeDraft() {
+      let next = geometry;
+      const pointIds = [];
+      draftVertices.forEach((entry) => {
+        if (entry.pointId) pointIds.push(entry.pointId);
+        else {
+          next = model.addPoint(next, entry);
+          pointIds.push(next.points.at(-1).id);
+        }
+      });
+      return { next, pointIds };
+    }
+
+    function completeShape() {
+      const required = requiredVertices();
+      if ((!required && (mode !== "polygon" || draftVertices.length < 3)) || (required && draftVertices.length !== required)) return;
       try {
-        const pointIds = [...draftPointIds];
-        const next = model.addPolygon(geometry, pointIds);
-        draftPointIds = [];
+        const { next: withPoints, pointIds } = materializeDraft();
+        const next = mode === "circle" ? model.addCircle(withPoints, pointIds[0], pointIds[1])
+          : mode === "segment" ? model.addSegment(withPoints, pointIds[0], pointIds[1])
+            : model.addPolygon(withPoints, pointIds);
+        const label = mode === "triangle" ? "三角形" : mode === "quadrilateral" ? "四角形" : mode === "circle" ? "円" : mode === "segment" ? "線分" : `${pointIds.length}点の多角形`;
+        clearDraft();
         commit(next);
-        status.textContent = `${pointIds.length}点の多角形を作成しました`;
+        status.textContent = `${label}を作成しました`;
       } catch (error) {
+        if (mode === "circle") {
+          draftVertices = draftVertices.slice(0, 1);
+          draftPreview = null;
+          draw();
+          updateControls();
+        }
         status.textContent = error.message || String(error);
       }
+    }
+
+    function completePolygon() {
+      if (mode === "polygon") completeShape();
     }
 
     function handleCanvasClick(event) {
       if (drag?.moved) return;
       const target = selectTarget(event.target);
       if (mode === "select") {
-        setSelection(target);
-        status.textContent = target ? "図形を選択しました" : "選択を解除しました";
+        const nextSelection = target || pointerSelection;
+        pointerSelection = null;
+        setSelection(nextSelection);
+        status.textContent = nextSelection ? "図形を選択しました" : "選択を解除しました";
         return;
       }
       if (mode === "point") {
@@ -209,46 +283,39 @@
         status.textContent = "点を追加しました";
         return;
       }
-      if (!target || target.kind !== "point") return;
-      if (mode === "segment") {
-        if (!draftPointIds.length) {
-          draftPointIds = [target.id];
-          status.textContent = "終点を選択してください";
-          draw();
-          return;
-        }
-        try {
-          const next = model.addSegment(geometry, draftPointIds[0], target.id);
-          draftPointIds = [];
-          commit(next);
-          status.textContent = "線分を作成しました";
-        } catch (error) {
-          status.textContent = error.message || String(error);
-        }
-        clearDraft();
-        return;
-      }
-      if (mode === "polygon") {
-        if (target.id === draftPointIds[0] && draftPointIds.length >= 3) return completePolygon();
-        if (!draftPointIds.includes(target.id)) draftPointIds.push(target.id);
-        status.textContent = `${draftPointIds.length}点を選択中。最初の点または「多角形を完了」で確定します`;
-        if (event.detail >= 2) completePolygon();
-        else {
-          draw();
-          updateControls();
-        }
-      }
+      const required = requiredVertices();
+      if (mode !== "polygon" && !required) return;
+      if (target?.kind === "point" && target.id === draftVertices[0]?.pointId && mode === "polygon" && draftVertices.length >= 3) return completePolygon();
+      if (target?.kind === "point" && draftVertices.some((entry) => entry.pointId === target.id)) return;
+      draftVertices.push(target?.kind === "point" ? { pointId: target.id } : coordinates(event));
+      if (required && draftVertices.length === required) return completeShape();
+      status.textContent = mode === "polygon"
+        ? `${draftVertices.length}点を選択中。最初の点または「多角形を完了」で確定します`
+        : `${required - draftVertices.length}点を指定してください`;
+      if (mode === "polygon" && event.detail >= 2) completePolygon();
+      else { draw(); updateControls(); }
     }
 
     function draw() {
       svg.replaceChildren();
       svg.setAttribute("viewBox", `${geometry.viewBox.x} ${geometry.viewBox.y} ${geometry.viewBox.width} ${geometry.viewBox.height}`);
       const points = new Map(geometry.points.map((point) => [point.id, point]));
+      const appendLengthLabel = (object, start, end, edgeIndex = 0) => {
+        const annotation = model.lengthLabel(geometry, object.id, edgeIndex);
+        if (!annotation?.label) return;
+        const middleX = (start.x + end.x) / 2;
+        const middleY = (start.y + end.y) / 2;
+        const length = Math.hypot(end.x - start.x, end.y - start.y) || 1;
+        const text = svgElement("text", { x: middleX - (end.y - start.y) / length * 4, y: middleY + (end.x - start.x) / length * 4, class: "geometry-length-label", "pointer-events": "none" });
+        text.textContent = annotation.label;
+        svg.append(text);
+      };
       geometry.objects.filter((object) => object.type === "polygon").forEach((polygon) => {
         const vertices = polygon.pointIds.map((pointId) => points.get(pointId)).filter(Boolean);
         if (vertices.length < 3) return;
         const node = svgElement("polygon", { points: vertices.map((point) => `${point.x},${point.y}`).join(" "), class: `geometry-polygon${selection?.kind === "object" && selection.id === polygon.id ? " is-selected" : ""}`, fill: "transparent", "data-geometry-kind": "object", "data-geometry-id": polygon.id });
         svg.append(node);
+        vertices.forEach((point, index) => appendLengthLabel(polygon, point, vertices[(index + 1) % vertices.length], index));
       });
       geometry.objects.filter((object) => object.type === "segment").forEach((segment) => {
         const [start, end] = segment.pointIds.map((pointId) => points.get(pointId));
@@ -256,15 +323,28 @@
         const hit = svgElement("line", { x1: start.x, y1: start.y, x2: end.x, y2: end.y, class: "geometry-segment-hit", "data-geometry-kind": "object", "data-geometry-id": segment.id });
         const node = svgElement("line", { x1: start.x, y1: start.y, x2: end.x, y2: end.y, class: `geometry-segment${segment.lineStyle === "dashed" ? " is-dashed" : ""}${selection?.kind === "object" && selection.id === segment.id ? " is-selected" : ""}`, "pointer-events": "none" });
         svg.append(hit, node);
+        appendLengthLabel(segment, start, end);
       });
-      if (mode === "polygon" && draftPointIds.length > 1) {
-        const vertices = draftPointIds.map((pointId) => points.get(pointId)).filter(Boolean);
-        if (vertices.length > 1) svg.append(svgElement("polyline", { points: vertices.map((point) => `${point.x},${point.y}`).join(" "), class: "geometry-draft", "pointer-events": "none" }));
+      geometry.objects.filter((object) => object.type === "circle").forEach((circle) => {
+        const [center, radiusPoint] = circle.pointIds.map((pointId) => points.get(pointId));
+        if (!center || !radiusPoint) return;
+        const radius = Math.hypot(radiusPoint.x - center.x, radiusPoint.y - center.y);
+        const hit = svgElement("circle", { cx: center.x, cy: center.y, r: radius, fill: "none", class: "geometry-circle-hit", "data-geometry-kind": "object", "data-geometry-id": circle.id });
+        const node = svgElement("circle", { cx: center.x, cy: center.y, r: radius, class: `geometry-circle${selection?.kind === "object" && selection.id === circle.id ? " is-selected" : ""}`, fill: "transparent", "pointer-events": "none" });
+        svg.append(hit, node);
+      });
+      const draftPoints = draftVertices.map((entry) => pointForDraft(entry, points)).filter(Boolean);
+      const previewPoints = draftPreview ? [...draftPoints, draftPreview] : draftPoints;
+      if (mode === "circle" && previewPoints.length === 2) {
+        const [center, radiusPoint] = previewPoints;
+        svg.append(svgElement("circle", { cx: center.x, cy: center.y, r: Math.hypot(radiusPoint.x - center.x, radiusPoint.y - center.y), class: "geometry-draft", fill: "transparent", "pointer-events": "none" }));
+      } else if ((mode === "polygon" || requiredVertices()) && previewPoints.length > 1) {
+        svg.append(svgElement("polyline", { points: previewPoints.map((point) => `${point.x},${point.y}`).join(" "), class: "geometry-draft", "pointer-events": "none" }));
       }
       geometry.points.forEach((point) => {
         if (!point.visible) return;
         const hit = svgElement("circle", { cx: point.x, cy: point.y, r: 5, class: "geometry-point-hit", "data-geometry-kind": "point", "data-geometry-id": point.id });
-        const node = svgElement("circle", { cx: point.x, cy: point.y, r: 1.8, class: `geometry-point${selection?.kind === "point" && selection.id === point.id ? " is-selected" : ""}${draftPointIds.includes(point.id) ? " is-draft" : ""}`, "pointer-events": "none" });
+        const node = svgElement("circle", { cx: point.x, cy: point.y, r: 1.8, class: `geometry-point${selection?.kind === "point" && selection.id === point.id ? " is-selected" : ""}${draftVertices.some((entry) => entry.pointId === point.id) ? " is-draft" : ""}`, "pointer-events": "none" });
         const label = model.vertexLabel(geometry, point.id);
         svg.append(hit, node);
         if (label?.label) {
@@ -277,7 +357,8 @@
 
     function updateControls() {
       modeButtons.forEach((button, value) => button.setAttribute("aria-pressed", String(value === mode)));
-      completeButton.disabled = mode !== "polygon" || draftPointIds.length < 3;
+      completeButton.disabled = mode !== "polygon" || draftVertices.length < 3;
+      cancelButton.disabled = draftVertices.length === 0;
       undoButton.disabled = !history.canUndo;
       redoButton.disabled = !history.canRedo;
       deleteButton.disabled = !selection;
@@ -286,12 +367,30 @@
       labelInput.value = selectedLabel(geometry, selection);
       lineStyle.disabled = !segment || segment.type !== "segment";
       if (segment?.type === "segment") lineStyle.value = segment.lineStyle;
+      const hasEdges = Boolean(segment && ["segment", "polygon"].includes(segment.type));
+      edgeSelect.replaceChildren();
+      if (hasEdges) {
+        const count = model.edgeCount(segment);
+        selectedEdgeIndex = Math.min(selectedEdgeIndex, count - 1);
+        for (let index = 0; index < count; index += 1) {
+          const option = document.createElement("option");
+          option.value = String(index);
+          option.textContent = segment.type === "segment" ? "線分" : `辺 ${index + 1}`;
+          edgeSelect.append(option);
+        }
+        edgeSelect.value = String(selectedEdgeIndex);
+      }
+      edgeSelect.disabled = !hasEdges;
+      lengthInput.disabled = !hasEdges;
+      lengthInput.value = hasEdges ? model.lengthLabel(geometry, segment.id, selectedEdgeIndex)?.label || "" : "";
     }
 
     svg.addEventListener("pointerdown", (event) => {
+      pointerSelection = null;
       const target = selectTarget(event.target);
-      if (mode !== "select" || target?.kind !== "point") return;
-      drag = { pointId: target.id, original: geometry, moved: false };
+      if (mode !== "select" || !target || !["point", "object"].includes(target.kind)) return;
+      pointerSelection = target;
+      drag = { ...target, original: geometry, origin: coordinates(event), moved: false };
       svg.setPointerCapture?.(event.pointerId);
       selection = target;
       updateControls();
@@ -300,27 +399,49 @@
     svg.addEventListener("pointermove", (event) => {
       if (!drag) return;
       const position = coordinates(event);
-      geometry = model.movePoint(geometry, drag.pointId, position.x, position.y);
-      drag.moved = true;
-      draw();
+      try {
+        geometry = drag.kind === "point"
+          ? model.movePoint(geometry, drag.id, position.x, position.y)
+          : model.moveObject(drag.original, drag.id, position.x - drag.origin.x, position.y - drag.origin.y);
+        drag.moved = true;
+        drag.hasMoveError = false;
+        draw();
+      } catch (_) {
+        drag.hasMoveError = true;
+        status.textContent = "円の中心と円周上の点は同じ位置にできません。別の位置へ移動してください。";
+      }
       event.preventDefault();
     });
     svg.addEventListener("pointerup", (event) => {
       if (!drag) return;
       const didMove = drag.moved;
+      const movedKind = drag.kind;
+      const hasMoveError = drag.hasMoveError;
       drag = null;
       svg.releasePointerCapture?.(event.pointerId);
       if (didMove) {
         history.push(geometry);
         onChange?.(geometry);
-        status.textContent = "点を移動しました";
+        if (!hasMoveError) status.textContent = movedKind === "object" ? "図形を移動しました" : "点を移動しました";
         updateControls();
       }
     });
-    svg.addEventListener("pointercancel", () => {
+    svg.addEventListener("pointercancel", (event) => {
       if (!drag) return;
       geometry = drag.original;
       drag = null;
+      pointerSelection = null;
+      svg.releasePointerCapture?.(event.pointerId);
+      draw();
+    });
+    svg.addEventListener("pointermove", (event) => {
+      if (drag || (!draftVertices.length && mode !== "point")) return;
+      draftPreview = coordinates(event);
+      draw();
+    });
+    svg.addEventListener("pointerleave", () => {
+      if (!draftPreview) return;
+      draftPreview = null;
       draw();
     });
     svg.addEventListener("click", handleCanvasClick);
@@ -328,7 +449,12 @@
       if (event.target.matches("input, textarea, select")) return;
       if (event.key === "Escape") {
         clearDraft();
-        status.textContent = "作成途中の操作を解除しました";
+        if (selection) {
+          selection = null;
+          updateControls();
+          draw();
+          status.textContent = "選択と作成途中の操作を解除しました";
+        } else status.textContent = "作成途中の操作を解除しました";
         event.preventDefault();
       } else if ((event.key === "Delete" || event.key === "Backspace") && selection) {
         deleteButton.click();

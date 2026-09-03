@@ -2385,3 +2385,7 @@
 * 修正前に交差バージョンテストを追加し、clip単体検証、payload形式判別、旧本体ready、互換clipの4件が失敗することを確認した。最終的にWeb Clipper関連91件、`npm test`全955件が成功した。変更JavaScriptの`node --check`、manifest JSON解析、`git diff --check`も成功した。
 * Microsoft Edgeの`msedge` channelで実ID`aelacnladkiohkhbjhfbmekpbfgpcmlh`のunpacked MV3拡張を起動し、固定した旧本体fixtureへの0.3.8互換送信・旧ACK削除と、固定した0.3.7旧payloadの新本体受信・ACK・保存・重複保護・不正拒否を確認した。同じ実行で15.5秒遅延、ACK遮断後再読込、再試行、複数タブ、期限切れ、不正形式、明示キャンセル、content script欠落、保存ロック、画像付き長文と既存4方式も成功し、予期しないconsole error・page errorは0件だった。画像リダイレクト監視fixtureは途中2回タイミング依存で失敗したがassertionは変更せず、最終実行は全経路成功した。
 * PR #171は未マージなので拡張版は0.3.8を維持した。配信識別子は`transfer-lifecycle.js?v=0.5.0-2`、`web-clipper-config.js?v=0.5.0-4`、`app.js?v=0.5.0-138`へ更新した。GitHub Pages本番での0.3.7→新本体、更新前本体タブでの0.3.8→旧本体、Wikipedia実ページ、複数既存タブ、拡張管理画面の未処理エラー0件はデプロイ後の手動確認として残す。
+
+## 2026-09-03 Geometry E2Eのモバイル証跡更新
+
+* `npm run test:e2e:mobile` の実行により、追跡済みの390px通常モバイル表示の証跡 `e2e-artifacts/mobile-layout-390.png` を更新した。Chromiumのレイアウト回帰確認で生成されるテスト成果物であり、アプリ本体の画像変更ではない。

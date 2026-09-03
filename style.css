@@ -2322,19 +2322,25 @@ body.layout-resizing iframe {
 .geometry-segment { stroke: var(--ink); stroke-width: 1.25; vector-effect: non-scaling-stroke; }
 .geometry-segment.is-dashed { stroke-dasharray: 5 4; }
 .geometry-segment.is-selected { stroke: var(--accent); stroke-width: 2.5; }
+.geometry-circle-hit { fill: none; stroke: transparent; stroke-width: 12; vector-effect: non-scaling-stroke; pointer-events: stroke; cursor: grab; }
+.geometry-circle { fill: transparent; stroke: var(--ink); stroke-width: 1.25; vector-effect: non-scaling-stroke; }
+.geometry-circle.is-selected { stroke: var(--accent); stroke-width: 2.5; }
 .geometry-draft { fill: none; stroke: var(--accent); stroke-width: 1; stroke-dasharray: 3 3; vector-effect: non-scaling-stroke; }
 .geometry-point-hit { fill: transparent; stroke: transparent; stroke-width: 10; cursor: grab; }
 .geometry-point { fill: var(--ink); stroke: var(--paper); stroke-width: .7; vector-effect: non-scaling-stroke; }
 .geometry-point.is-selected, .geometry-point.is-draft { fill: var(--accent); stroke: var(--accent); }
 .geometry-label { fill: var(--ink); font: 5px sans-serif; user-select: none; }
+.geometry-length-label { fill: var(--ink); font: 4.5px sans-serif; user-select: none; paint-order: stroke; stroke: var(--input-bg); stroke-width: 1.5px; }
 
 .geometry-preview { margin: 14px 0; padding: 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--section-bg); }
 .geometry-preview svg { display: block; width: 100%; max-height: 320px; min-height: 160px; }
 .geometry-preview-polygon { fill: transparent; stroke: var(--muted); stroke-width: .8; vector-effect: non-scaling-stroke; }
 .geometry-preview-segment { stroke: var(--ink); stroke-width: 1.25; vector-effect: non-scaling-stroke; }
 .geometry-preview-segment.is-dashed { stroke-dasharray: 5 4; }
+.geometry-preview-circle { fill: transparent; stroke: var(--ink); stroke-width: 1.25; vector-effect: non-scaling-stroke; }
 .geometry-preview-point { fill: var(--ink); }
 .geometry-preview-label { fill: var(--ink); font: 5px sans-serif; }
+.geometry-preview-length-label { fill: var(--ink); font: 4.5px sans-serif; paint-order: stroke; stroke: var(--section-bg); stroke-width: 1.5px; }
 .geometry-preview figcaption { margin-top: 6px; color: var(--muted); font-size: 12px; }
 
 .table-block-editors {

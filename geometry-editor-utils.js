@@ -5,7 +5,7 @@
     || (typeof require === "function" ? require("./geometry-block-utils.js") : null);
   if (!geometryUtils) throw new Error("MemoNexusGeometryBlockUtils is required");
 
-  const { generatedEntityId, normalizeGeometryBlock } = geometryUtils;
+  const { edgeCount, generatedEntityId, normalizeGeometryBlock } = geometryUtils;
 
   function copy(value) {
     return JSON.parse(JSON.stringify(value));
@@ -105,12 +105,37 @@
     return normalizeGeometryBlock(next, next.id);
   }
 
+  function addCircle(geometry, centerPointId, radiusPointId) {
+    if (!centerPointId || centerPointId === radiusPointId) throw new Error("円には中心と円周上の異なる2点を指定してください");
+    const center = pointById(geometry, centerPointId);
+    const radiusPoint = pointById(geometry, radiusPointId);
+    if (!center || !radiusPoint) throw new Error("円の点が見つかりません");
+    if (center.x === radiusPoint.x && center.y === radiusPoint.y) throw new Error("円には中心と異なる位置を指定してください");
+    const next = copy(geometry);
+    next.objects.push({ id: generatedEntityId("circle"), type: "circle", pointIds: [centerPointId, radiusPointId] });
+    return normalizeGeometryBlock(next, next.id);
+  }
+
   function movePoint(geometry, pointId, x, y) {
     const next = copy(geometry);
     const point = pointById(next, pointId);
     if (!point) throw new Error("点が見つかりません");
     point.x = x;
     point.y = y;
+    return normalizeGeometryBlock(next, next.id);
+  }
+
+  function moveObject(geometry, objectId, deltaX, deltaY) {
+    const next = copy(geometry);
+    const object = objectById(next, objectId);
+    if (!object) throw new Error("図形が見つかりません");
+    if (!Number.isFinite(deltaX) || !Number.isFinite(deltaY)) throw new Error("移動量が不正です");
+    const pointIds = new Set(object.pointIds);
+    next.points.forEach((point) => {
+      if (!pointIds.has(point.id)) return;
+      point.x += deltaX;
+      point.y += deltaY;
+    });
     return normalizeGeometryBlock(next, next.id);
   }
 
@@ -128,6 +153,22 @@
     const segment = objectById(next, objectId);
     if (!segment || segment.type !== "segment") throw new Error("線分が見つかりません");
     segment.lineStyle = lineStyle;
+    return normalizeGeometryBlock(next, next.id);
+  }
+
+  function lengthLabel(geometry, objectId, edgeIndex = 0) {
+    return geometry.annotations.find((annotation) => annotation.type === "length-label"
+      && annotation.objectId === objectId && (annotation.edgeIndex || 0) === edgeIndex) || null;
+  }
+
+  function updateLengthLabel(geometry, objectId, label, edgeIndex = 0) {
+    const next = copy(geometry);
+    const object = objectById(next, objectId);
+    if (!object || !["segment", "polygon"].includes(object.type)) throw new Error("辺を持つ図形が見つかりません");
+    if (!Number.isInteger(edgeIndex) || edgeIndex < 0 || edgeIndex >= edgeCount(object)) throw new Error("辺の指定が不正です");
+    const annotation = lengthLabel(next, objectId, edgeIndex);
+    if (annotation) annotation.label = String(label);
+    else next.annotations.push({ id: generatedEntityId("length-label"), type: "length-label", objectId, edgeIndex, label: String(label) });
     return normalizeGeometryBlock(next, next.id);
   }
 
@@ -169,7 +210,7 @@
     };
   }
 
-  const api = { pointName, screenPointToViewBox, pointById, objectById, vertexLabel, addPoint, addSegment, addPolygon, movePoint, updateVertexLabel, updateSegmentLineStyle, deleteSelection, createHistory };
+  const api = { pointName, screenPointToViewBox, pointById, objectById, vertexLabel, lengthLabel, edgeCount, addPoint, addSegment, addPolygon, addCircle, movePoint, moveObject, updateVertexLabel, updateSegmentLineStyle, updateLengthLabel, deleteSelection, createHistory };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   if (globalScope) globalScope.MemoNexusGeometryEditorUtils = api;
 })(typeof window !== "undefined" ? window : globalThis);
