@@ -7451,6 +7451,7 @@ function renderTypingDerivedUi(noteId, revision, requestType = "full") {
   measureTypingPerformanceOperation(performanceDurations, "renderRelated", renderRelated);
   measureTypingPerformanceOperation(performanceDurations, "renderTextStats", renderTextStats);
   measureTypingPerformanceOperation(performanceDurations, "renderTableBlockEditors", renderTableBlockEditors);
+  measureTypingPerformanceOperation(performanceDurations, "renderGeometryBlockEditors", renderGeometryBlockEditors);
   measureTypingPerformanceOperation(performanceDurations, "updateAiTargetPreview", updateAiTargetPreview);
   if (shouldMeasure) {
     const totalDuration = typingPerformance.elapsed(totalStartedAt);

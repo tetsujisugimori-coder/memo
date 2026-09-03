@@ -362,6 +362,7 @@ function createHarness({
     let relatedRenderCount = 0;
     let textStatsRenderCount = 0;
     let tableEditorsRenderCount = 0;
+    let geometryEditorsRenderCount = 0;
     let aiTargetRenderCount = 0;
     let extractLinksCount = 0;
     let renderAllOptions = [];
@@ -436,6 +437,7 @@ function createHarness({
       typingDerivedRenderCount += 1;
     };
     const renderTableBlockEditors = () => { tableEditorsRenderCount += 1; };
+    const renderGeometryBlockEditors = () => { geometryEditorsRenderCount += 1; };
     const applyEffectiveFontSettings = noop;
     const renderPreview = () => { previewRenderCount += 1; };
     const renderAttachmentsForCurrentNote = noop;
@@ -662,6 +664,7 @@ function createHarness({
           ,relatedRenderCount
           ,textStatsRenderCount
           ,tableEditorsRenderCount
+          ,geometryEditorsRenderCount
           ,aiTargetRenderCount
           ,extractLinksCount
           ,lastDiscovery
@@ -1708,6 +1711,7 @@ test("未反映の通常1件保存は派生UIを補完し保存成功専用UIだ
   assert.equal(state.relatedRenderCount, 1);
   assert.equal(state.textStatsRenderCount, 1);
   assert.equal(state.tableEditorsRenderCount, 1);
+  assert.equal(state.geometryEditorsRenderCount, 1);
   assert.equal(state.aiTargetRenderCount, 1);
   assert.equal(state.collectionExplorerRenderCount, 0);
   assert.equal(state.tagPanelRenderCount, 0);

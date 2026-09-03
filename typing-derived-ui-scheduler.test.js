@@ -453,6 +453,7 @@ test("app wiring uses typed requests, table IME holding, and dedicated save-succ
   const editorDraft = app.slice(app.indexOf("function applyCurrentEditorDraft"), app.indexOf("function waitForNoteSave"));
   const schedule = app.slice(app.indexOf("function scheduleSave"), app.indexOf("function captureUndoSnapshot"));
   const inputEvents = app.slice(app.indexOf('titleInput.addEventListener("beforeinput"'), app.indexOf('editor.addEventListener("select"'));
+  const full = app.slice(app.indexOf("function renderTypingDerivedUi"), app.indexOf("function renderTypingDerivedUiAfterStructuredEdit"));
   const auxiliary = app.slice(app.indexOf("function renderTypingDerivedUiAfterStructuredEdit"), app.indexOf("function captureUndoSnapshot"));
   const tableCommit = app.slice(app.indexOf("function commitTableBlockChange"), app.indexOf("function focusTableCell"));
   const currentSaveUi = app.slice(app.indexOf("function renderCurrentNoteSaveSuccessUi"), app.indexOf("function renderList"));
@@ -475,7 +476,9 @@ test("app wiring uses typed requests, table IME holding, and dedicated save-succ
   assert.match(auxiliary, /"renderTextStats", renderTextStats/);
   assert.match(auxiliary, /"updateAiTargetPreview", updateAiTargetPreview/);
   assert.match(auxiliary, /recordDerivedSample/);
+  assert.match(full, /"renderGeometryBlockEditors", renderGeometryBlockEditors/);
   assert.doesNotMatch(auxiliary, /renderTableBlockEditors/);
+  assert.doesNotMatch(auxiliary, /renderGeometryBlockEditors/);
   assert.doesNotMatch(tableCommit, /renderPreview\(\)/);
   assert.match(tableCommit, /typingPerformanceMeasurement: performanceMeasurement/);
   assert.match(editorDraft, /noteSaveBeforeBodies\.set\(note\.id, note\.body\)/);

@@ -435,7 +435,7 @@ async function runCircleInteriorSelectionScenario(browser, url) {
 
     // 作図用UIの有無に依存させず、意味付き幾何スキーマそのものを
     // 保存して再読込する。SVGのdata属性も正規化済みモデルを検証する。
-    const semanticBeforeReload = await page.evaluate(() => {
+    let semanticBeforeReload = await page.evaluate(() => {
       const blocks = window.MemoNexusGeometryBlockUtils;
       const model = window.MemoNexusGeometryEditorUtils;
       let value = blocks.createGeometryBlock("semantic-e2e");
@@ -456,12 +456,20 @@ async function runCircleInteriorSelectionScenario(browser, url) {
       value = model.addParallelMark(value, { segmentIds: [ab.id, cd.id], markCount: 2 });
       value.objects.find((object) => object.id === ac.id).role = "diagonal";
       const input = document.getElementById("editor");
+      window.__geometryEditorsBeforeSemanticInput = Array.from(document.querySelectorAll(".geometry-block-editor"));
       input.value = `前\n${blocks.serializeGeometryBlock(value)}\n後`;
       input.dispatchEvent(new Event("input", { bubbles: true }));
       return value;
     });
-    await page.waitForFunction(() => document.querySelectorAll('.geometry-block-editor [data-geometry-type="right-angle"]').length === 1);
+    await page.waitForFunction(() => {
+      const editors = Array.from(document.querySelectorAll(".geometry-block-editor"));
+      return editors.length === 1
+        && editors[0].dataset.geometryId === "semantic-e2e"
+        && editors[0].querySelectorAll('[data-geometry-type="right-angle"]').length === 1
+        && window.__geometryEditorsBeforeSemanticInput.every((editor) => !editor.isConnected);
+    });
     const semanticEditor = page.locator(".geometry-block-editor");
+    await semanticEditor.evaluate((element) => { window.__semanticGeometryEditor = element; });
     assert.equal(await semanticEditor.locator('[data-geometry-type="right-angle"]').getAttribute("data-vertex-id"), semanticBeforeReload.points[1].id, "直角記号が頂点IDを保持する");
     assert.equal(await semanticEditor.locator('[data-geometry-type="angle"]').getAttribute("data-vertex-id"), semanticBeforeReload.points[1].id, "角度表示が中心頂点IDを保持する");
     assert.equal(await semanticEditor.locator('[data-geometry-type="length-label"]').getAttribute("data-segment-id"), semanticBeforeReload.objects[0].id, "辺長表示が線分IDを保持する");
@@ -470,6 +478,21 @@ async function runCircleInteriorSelectionScenario(browser, url) {
     assert.equal(await semanticEditor.locator(`[data-geometry-id="${semanticBeforeReload.objects[3].id}"]`).getAttribute("data-segment-role"), "diagonal", "対角線の意味ロールをSVGへ反映する");
     await page.waitForFunction(() => document.querySelectorAll('#preview [data-geometry-type="right-angle"]').length === 1);
     assert.equal(await page.locator('#preview [data-geometry-type="angle"]').getAttribute("data-vertex-id"), semanticBeforeReload.points[1].id, "カード表示も同じ意味付きSVGレンダラーで角度を描画する");
+    await semanticEditor.locator(".geometry-point-hit").first().click();
+    const semanticLabelInput = semanticEditor.locator('input[aria-label="選択した点の頂点名"]');
+    await semanticLabelInput.fill("A1");
+    await semanticLabelInput.press("Tab");
+    await page.waitForFunction((pointId) => {
+      const editor = document.querySelector('.geometry-block-editor[data-geometry-id="semantic-e2e"]');
+      const geometry = window.MemoNexusGeometryBlockUtils.splitGeometryBlocks(document.getElementById("editor").value)
+        .find((segment) => segment.type === "geometry")?.geometry;
+      const point = editor?.querySelector(`.geometry-point-hit[data-geometry-id="${pointId}"]`);
+      return editor === window.__semanticGeometryEditor
+        && point?.nextElementSibling?.classList.contains("is-selected") === true
+        && geometry?.annotations.find((annotation) => annotation.pointId === pointId)?.label === "A1";
+    }, semanticBeforeReload.points[0].id);
+    semanticBeforeReload = await geometry(page);
+    assert.equal(semanticBeforeReload.annotations.find((annotation) => annotation.pointId === semanticBeforeReload.points[0].id)?.label, "A1", "構造化図形編集は本文の意味付きデータを更新する");
     await page.waitForTimeout(350);
     await page.reload({ waitUntil: "domcontentloaded" });
     await page.locator("#appStartupGuard").waitFor({ state: "hidden" });
