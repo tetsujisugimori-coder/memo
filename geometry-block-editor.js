@@ -313,7 +313,7 @@
       // rendered exclusively by the semantic renderer above.
       draftVertices.forEach((entry) => {
         if (!entry.pointId) return;
-        const node = svg.querySelector?.(`.geometry-point[data-geometry-id="${entry.pointId}"]`);
+        const node = svg.querySelector?.(`.geometry-point[data-geometry-source-id="${entry.pointId}"]`);
         node?.classList?.add("is-draft");
       });
     }

@@ -3,6 +3,61 @@
 
   const svgNamespace = "http://www.w3.org/2000/svg";
 
+  function isRecord(value) {
+    return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+  }
+
+  function stableById(items) {
+    return Array.isArray(items)
+      ? [...items].sort((first, second) => String(first?.id || "").localeCompare(String(second?.id || "")))
+      : [];
+  }
+
+  function isFinitePoint(point) {
+    return isRecord(point) && typeof point.id === "string" && point.id
+      && Number.isFinite(point.x) && Number.isFinite(point.y);
+  }
+
+  // Saved blocks are normalized before they arrive here.  This small defensive
+  // projection is intentionally read-only: it keeps one malformed item from
+  // preventing the remaining valid geometry from being displayed, without
+  // altering the persisted source.
+  function buildGeometryRenderModel(value) {
+    const source = isRecord(value) ? value : {};
+    const sourceViewBox = isRecord(source.viewBox) ? source.viewBox : {};
+    const viewBox = [sourceViewBox.x, sourceViewBox.y, sourceViewBox.width, sourceViewBox.height]
+      .every(Number.isFinite) && sourceViewBox.width > 0 && sourceViewBox.height > 0
+      ? sourceViewBox
+      : { x: 0, y: 0, width: 100, height: 100 };
+    const points = stableById(source.points).filter(isFinitePoint);
+    const pointIds = new Set(points.map((point) => point.id));
+    const objects = stableById(source.objects).filter((object) => {
+      if (!isRecord(object) || typeof object.id !== "string" || !object.id || !Array.isArray(object.pointIds)) return false;
+      const expectedCount = object.type === "segment" || object.type === "circle" ? 2 : object.type === "polygon" ? 3 : 0;
+      return expectedCount && object.pointIds.length >= expectedCount
+        && (object.type !== "polygon" || object.pointIds.length >= 3)
+        && object.pointIds.every((pointId) => typeof pointId === "string" && pointIds.has(pointId));
+    });
+    const objectIds = new Set(objects.map((object) => object.id));
+    const annotations = stableById(source.annotations).filter((annotation) => {
+      if (!isRecord(annotation) || typeof annotation.id !== "string" || !annotation.id) return false;
+      if (["right-angle", "angle"].includes(annotation.type)) {
+        const rayVertexIds = Array.isArray(annotation.rayVertexIds)
+          ? annotation.rayVertexIds
+          : Array.isArray(annotation.pointIds) ? [annotation.pointIds[0], annotation.pointIds[2]] : null;
+        return typeof annotation.vertexId === "string" && pointIds.has(annotation.vertexId)
+          && Array.isArray(rayVertexIds) && rayVertexIds.length >= 2
+          && rayVertexIds.slice(0, 2).every((pointId) => pointIds.has(pointId));
+      }
+      if (annotation.type === "length-label") return typeof annotation.objectId === "string" && objectIds.has(annotation.objectId);
+      if (["equal-length", "parallel"].includes(annotation.type)) {
+        return Array.isArray(annotation.objectIds) && annotation.objectIds.every((objectId) => objectIds.has(objectId));
+      }
+      return annotation.type === "vertex-label" && typeof annotation.pointId === "string" && pointIds.has(annotation.pointId);
+    });
+    return { ...source, viewBox, points, objects, annotations };
+  }
+
   function svgElement(name, attributes = {}) {
     const element = globalScope.document.createElementNS(svgNamespace, name);
     Object.entries(attributes).forEach(([key, value]) => {
@@ -11,8 +66,18 @@
     return element;
   }
 
+  function labelForPoint(geometry, pointId, vertexLabel) {
+    try {
+      return vertexLabel?.(geometry, pointId)
+        || geometry.annotations.find((annotation) => annotation.type === "vertex-label" && annotation.pointId === pointId)
+        || null;
+    } catch (_) {
+      return null;
+    }
+  }
+
   function pointName(geometry, pointId, vertexLabel) {
-    return vertexLabel?.(geometry, pointId)?.label || pointId;
+    return labelForPoint(geometry, pointId, vertexLabel)?.label || pointId;
   }
 
   function pointMap(geometry) {
@@ -57,6 +122,7 @@
   function semanticGroup(type, annotation, ariaLabel) {
     return svgElement("g", {
       class: `geometry-annotation geometry-${type}`,
+      "data-geometry-kind": "annotation",
       "data-geometry-type": type,
       "data-geometry-id": annotation.id,
       role: "img",
@@ -126,7 +192,7 @@
   }
 
   function renderEqualLength(svg, annotation, objects, points) {
-    annotation.objectIds.forEach((objectId) => {
+    [...annotation.objectIds].sort().forEach((objectId) => {
       const object = objects.get(objectId);
       const edge = object && edgePairs(object, points)[0];
       if (!edge) return;
@@ -147,7 +213,7 @@
   }
 
   function renderParallel(svg, annotation, objects, points) {
-    annotation.objectIds.forEach((objectId) => {
+    [...annotation.objectIds].sort().forEach((objectId) => {
       const object = objects.get(objectId);
       const edge = object && edgePairs(object, points)[0];
       if (!edge) return;
@@ -180,52 +246,60 @@
   }
 
   function renderGeometrySvg(svg, geometry, { selection = null, vertexLabel } = {}) {
+    const renderModel = buildGeometryRenderModel(geometry);
     svg.replaceChildren();
-    svg.setAttribute("viewBox", `${geometry.viewBox.x} ${geometry.viewBox.y} ${geometry.viewBox.width} ${geometry.viewBox.height}`);
-    const points = pointMap(geometry);
-    const objects = new Map(geometry.objects.map((object) => [object.id, object]));
-    geometry.objects.filter((object) => object.type === "polygon").forEach((polygon) => {
+    svg.setAttribute("viewBox", `${renderModel.viewBox.x} ${renderModel.viewBox.y} ${renderModel.viewBox.width} ${renderModel.viewBox.height}`);
+    const points = pointMap(renderModel);
+    const objects = new Map(renderModel.objects.map((object) => [object.id, object]));
+    renderModel.objects.filter((object) => object.type === "polygon").forEach((polygon) => {
       const vertices = polygon.pointIds.map((id) => points.get(id));
       if (vertices.some((point) => !point)) return;
       svg.append(svgElement("polygon", { points: vertices.map((point) => `${point.x},${point.y}`).join(" "), class: `geometry-polygon${selection?.kind === "object" && selection.id === polygon.id ? " is-selected" : ""}`, fill: "transparent", "data-geometry-kind": "object", "data-geometry-type": "polygon", "data-geometry-id": polygon.id, "aria-label": "多角形" }));
     });
-    geometry.objects.filter((object) => object.type === "segment").forEach((segment) => {
+    renderModel.objects.filter((object) => object.type === "segment").forEach((segment) => {
       const [start, end] = segment.pointIds.map((id) => points.get(id));
       if (!start || !end) return;
       const semanticRole = segment.role || "edge";
       const dashed = segment.lineStyle === "dashed" || semanticRole === "auxiliary";
+      const hitAttributes = { "data-geometry-kind": "object", "data-geometry-type": "segment", "data-geometry-id": segment.id, "data-segment-role": semanticRole };
+      const displayAttributes = { "data-geometry-source-kind": "object", "data-geometry-source-type": "segment", "data-geometry-source-id": segment.id, "data-segment-role": semanticRole };
       svg.append(
-        svgElement("line", { x1: start.x, y1: start.y, x2: end.x, y2: end.y, class: "geometry-segment-hit", "data-geometry-kind": "object", "data-geometry-type": "segment", "data-geometry-id": segment.id, "data-segment-role": semanticRole, "aria-label": `線分 ${pointName(geometry, segment.pointIds[0], vertexLabel)}${pointName(geometry, segment.pointIds[1], vertexLabel)}` }),
-        svgElement("line", { x1: start.x, y1: start.y, x2: end.x, y2: end.y, class: `geometry-segment${dashed ? " is-dashed" : ""}${selection?.kind === "object" && selection.id === segment.id ? " is-selected" : ""}`, "pointer-events": "none" })
+        svgElement("line", { x1: start.x, y1: start.y, x2: end.x, y2: end.y, class: "geometry-segment-hit", ...hitAttributes, "aria-label": `線分 ${pointName(renderModel, segment.pointIds[0], vertexLabel)}${pointName(renderModel, segment.pointIds[1], vertexLabel)}` }),
+        svgElement("line", { x1: start.x, y1: start.y, x2: end.x, y2: end.y, class: `geometry-segment${dashed ? " is-dashed" : ""}${selection?.kind === "object" && selection.id === segment.id ? " is-selected" : ""}`, ...displayAttributes, "pointer-events": "none" })
       );
     });
-    geometry.objects.filter((object) => object.type === "circle").forEach((circle) => {
+    renderModel.objects.filter((object) => object.type === "circle").forEach((circle) => {
       const [center, radiusPoint] = circle.pointIds.map((id) => points.get(id));
       if (!center || !radiusPoint) return;
       const radius = Math.hypot(radiusPoint.x - center.x, radiusPoint.y - center.y);
+      if (!Number.isFinite(radius) || radius <= 0) return;
+      const hitAttributes = { "data-geometry-kind": "object", "data-geometry-type": "circle", "data-geometry-id": circle.id };
+      const displayAttributes = { "data-geometry-source-kind": "object", "data-geometry-source-type": "circle", "data-geometry-source-id": circle.id };
       svg.append(
-        svgElement("circle", { cx: center.x, cy: center.y, r: radius, fill: "none", class: "geometry-circle-hit", "data-geometry-kind": "object", "data-geometry-type": "circle", "data-geometry-id": circle.id, "aria-label": "円" }),
-        svgElement("circle", { cx: center.x, cy: center.y, r: radius, class: `geometry-circle${selection?.kind === "object" && selection.id === circle.id ? " is-selected" : ""}`, fill: "transparent", "pointer-events": "none" })
+        svgElement("circle", { cx: center.x, cy: center.y, r: radius, fill: "none", class: "geometry-circle-hit", ...hitAttributes, "aria-label": "円" }),
+        svgElement("circle", { cx: center.x, cy: center.y, r: radius, class: `geometry-circle${selection?.kind === "object" && selection.id === circle.id ? " is-selected" : ""}`, fill: "transparent", ...displayAttributes, "pointer-events": "none" })
       );
     });
-    renderAnnotations(svg, geometry, points, objects, vertexLabel);
-    geometry.points.forEach((point) => {
+    renderAnnotations(svg, renderModel, points, objects, vertexLabel);
+    renderModel.points.forEach((point) => {
       if (!point.visible) return;
-      const name = pointName(geometry, point.id, vertexLabel);
+      const name = pointName(renderModel, point.id, vertexLabel);
+      const hitAttributes = { "data-geometry-kind": "point", "data-geometry-type": "vertex", "data-geometry-id": point.id };
+      const displayAttributes = { "data-geometry-source-kind": "point", "data-geometry-source-type": "vertex", "data-geometry-source-id": point.id };
       svg.append(
-        svgElement("circle", { cx: point.x, cy: point.y, r: 5, class: "geometry-point-hit", "data-geometry-kind": "point", "data-geometry-type": "vertex", "data-geometry-id": point.id, "aria-label": `頂点 ${name}` }),
-        svgElement("circle", { cx: point.x, cy: point.y, r: 1.8, class: `geometry-point${selection?.kind === "point" && selection.id === point.id ? " is-selected" : ""}`, "data-geometry-id": point.id, "pointer-events": "none" })
+        svgElement("circle", { cx: point.x, cy: point.y, r: 5, class: "geometry-point-hit", ...hitAttributes, "aria-label": `頂点 ${name}` }),
+        svgElement("circle", { cx: point.x, cy: point.y, r: 1.8, class: `geometry-point${selection?.kind === "point" && selection.id === point.id ? " is-selected" : ""}`, ...displayAttributes, "pointer-events": "none" })
       );
-      const label = vertexLabel?.(geometry, point.id);
+      const label = labelForPoint(renderModel, point.id, vertexLabel);
       if (label?.label) {
-        const text = svgElement("text", { x: point.x + label.offsetX, y: point.y + label.offsetY, class: "geometry-label", "pointer-events": "none", "aria-hidden": "true" });
+        const text = svgElement("text", { x: point.x + label.offsetX, y: point.y + label.offsetY, class: "geometry-label", "data-geometry-kind": "annotation", "data-geometry-type": "vertex-label", "data-geometry-id": label.id, "data-point-id": point.id, "pointer-events": "none", "aria-hidden": "true" });
         text.textContent = label.label;
         svg.append(text);
       }
     });
   }
 
-  const api = { annotationAnglePoints, displayValue, renderGeometrySvg };
+  const api = { annotationAnglePoints, buildGeometryRenderModel, displayValue, renderGeometrySvg };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   if (globalScope) globalScope.MemoNexusGeometrySvgRenderer = api;
 })(typeof window !== "undefined" ? window : globalThis);

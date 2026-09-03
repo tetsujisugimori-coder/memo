@@ -2,7 +2,7 @@ const assert = require("node:assert/strict");
 const { test } = require("node:test");
 const { cloneGeometryBlock, createGeometryBlock, parseGeometryBlockLine, serializeGeometryBlock } = require("./geometry-block-utils.js");
 const {
-  addAngle, addEqualLengthMark, addLengthAnnotation, addParallelMark, addPoint,
+  addAngle, addCircle, addEqualLengthMark, addLengthAnnotation, addParallelMark, addPoint,
   addRightAngle, addSegment, deleteSelection, movePoint, updateVertexLabel
 } = require("./geometry-editor-utils.js");
 
@@ -21,6 +21,10 @@ class MockElement {
 
 function descendants(node) {
   return node.children.flatMap((child) => [child, ...descendants(child)]);
+}
+
+function svgSnapshot(svg) {
+  return descendants(svg).map((node) => ({ name: node.name, attributes: Object.fromEntries(node.attributes) }));
 }
 
 function semanticTriangle() {
@@ -91,6 +95,72 @@ test("SVGは意味付きデータから生成され、頂点移動後に注釈�
     renderGeometrySvg(svg, moved, { vertexLabel: labels });
     const movedRightAngle = descendants(svg).find((node) => node.getAttribute("data-geometry-type") === "right-angle");
     assert.notEqual(movedRightAngle.children[0].getAttribute("d"), beforePath);
+  } finally {
+    global.document = priorDocument;
+  }
+});
+
+test("共通レンダラーは点・線分・円をID付きで決定的に再構築し、再描画を重複させない", () => {
+  const priorDocument = global.document;
+  global.document = { createElementNS: (_namespace, name) => new MockElement(name) };
+  try {
+    const { renderGeometrySvg } = require("./geometry-svg-renderer.js");
+    let geometry = createGeometryBlock("shared-renderer");
+    geometry = addPoint(geometry, { x: 12, y: 20 });
+    geometry = addPoint(geometry, { x: 72, y: 20 });
+    geometry = addPoint(geometry, { x: 12, y: 70 });
+    geometry = addSegment(geometry, geometry.points[0].id, geometry.points[1].id);
+    geometry = addCircle(geometry, geometry.points[0].id, geometry.points[2].id);
+    const svg = new MockElement("svg");
+    renderGeometrySvg(svg, geometry, { selection: { kind: "object", id: geometry.objects[0].id } });
+    const first = svgSnapshot(svg);
+    const firstNodes = descendants(svg);
+    const segmentHit = firstNodes.find((node) => node.getAttribute("data-geometry-id") === geometry.objects[0].id);
+    const segmentDisplay = firstNodes.find((node) => node.getAttribute("data-geometry-source-id") === geometry.objects[0].id);
+    const circleHit = firstNodes.find((node) => node.getAttribute("data-geometry-id") === geometry.objects[1].id);
+    const circleDisplay = firstNodes.find((node) => node.getAttribute("data-geometry-source-id") === geometry.objects[1].id);
+    assert.equal(segmentHit.getAttribute("data-geometry-type"), "segment", "線分の当たり判定をオブジェクトIDへ対応させる");
+    assert.equal(segmentDisplay.getAttribute("data-geometry-source-type"), "segment", "線分表示を元のオブジェクトIDへ対応させる");
+    assert.equal(circleHit.getAttribute("data-geometry-type"), "circle", "円の当たり判定をオブジェクトIDへ対応させる");
+    assert.equal(circleDisplay.getAttribute("data-geometry-source-type"), "circle", "円表示を元のオブジェクトIDへ対応させる");
+    assert.match(segmentDisplay.getAttribute("class"), /is-selected/, "選択状態は入力状態から表示する");
+
+    renderGeometrySvg(svg, geometry, { selection: null });
+    const second = svgSnapshot(svg);
+    assert.equal(second.length, first.length, "同じSVGへの再描画で要素を追加し続けない");
+    assert.equal(descendants(svg).some((node) => /is-selected/.test(node.getAttribute("class") || "")), false, "選択解除をDOMへ反映する");
+
+    const reordered = { ...geometry, points: [...geometry.points].reverse(), objects: [...geometry.objects].reverse(), annotations: [...geometry.annotations].reverse() };
+    renderGeometrySvg(svg, reordered);
+    assert.deepEqual(svgSnapshot(svg), second, "入力配列の偶発的な列挙順に描画順序を依存させない");
+
+    const restored = parseGeometryBlockLine(serializeGeometryBlock(geometry));
+    renderGeometrySvg(svg, restored);
+    assert.deepEqual(svgSnapshot(svg), second, "保存・復元後も位置・形状・参照IDから同じSVGを再構築する");
+  } finally {
+    global.document = priorDocument;
+  }
+});
+
+test("共通レンダラーは未知または描画不能な要素を保存値へ触れずに無視する", () => {
+  const priorDocument = global.document;
+  global.document = { createElementNS: (_namespace, name) => new MockElement(name) };
+  try {
+    const { renderGeometrySvg } = require("./geometry-svg-renderer.js");
+    let geometry = createGeometryBlock("safe-renderer");
+    geometry = addPoint(geometry, { x: 10, y: 10 });
+    geometry = addPoint(geometry, { x: 70, y: 70 });
+    geometry = addSegment(geometry, geometry.points[0].id, geometry.points[1].id);
+    const source = {
+      ...geometry,
+      objects: [{ id: "unknown-object", type: "future-shape", pointIds: [] }, { id: "broken-segment", type: "segment", pointIds: [geometry.points[0].id, "missing"] }, ...geometry.objects],
+      annotations: [{ id: "unknown-annotation", type: "future-annotation" }, ...geometry.annotations]
+    };
+    const before = JSON.stringify(source);
+    const svg = new MockElement("svg");
+    assert.doesNotThrow(() => renderGeometrySvg(svg, source));
+    assert.equal(descendants(svg).some((node) => node.getAttribute("data-geometry-id") === geometry.objects[0].id), true, "正常な線分は継続して描画する");
+    assert.equal(JSON.stringify(source), before, "描画エラー処理のために入力スキーマを変更しない");
   } finally {
     global.document = priorDocument;
   }
