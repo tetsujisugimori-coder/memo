@@ -42,7 +42,7 @@ test("全ローカルCSS・JavaScriptを0.5.0のキャッシュ識別子で読�
   assert.match(html, /layout-resize-utils\.js\?v=0\.5\.0-2/);
   assert.match(html, /geometry-block-utils\.js\?v=0\.5\.0-4/);
   assert.match(html, /geometry-editor-utils\.js\?v=0\.5\.0-3/);
-  assert.match(html, /geometry-block-editor\.js\?v=0\.5\.0-4/);
+  assert.match(html, /geometry-block-editor\.js\?v=0\.5\.0-5/);
   assert.match(html, /web-clip-utils\.js\?v=0\.5\.0-7/);
   assert.match(html, /extensions\/web-clipper\/clip-result\.js\?v=0\.5\.0-1/);
   assert.match(html, /extensions\/web-clipper\/transfer-lifecycle\.js\?v=0\.5\.0-2/);

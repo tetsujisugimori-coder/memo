@@ -28,6 +28,7 @@
     let draftPreview = null;
     let selectedEdgeIndex = 0;
     let drag = null;
+    let pointerSelection = null;
     const history = model.createHistory(geometry);
     const article = document.createElement("article");
     article.className = "geometry-block-editor";
@@ -266,8 +267,10 @@
       if (drag?.moved) return;
       const target = selectTarget(event.target);
       if (mode === "select") {
-        setSelection(target);
-        status.textContent = target ? "図形を選択しました" : "選択を解除しました";
+        const nextSelection = target || pointerSelection;
+        pointerSelection = null;
+        setSelection(nextSelection);
+        status.textContent = nextSelection ? "図形を選択しました" : "選択を解除しました";
         return;
       }
       if (mode === "point") {
@@ -383,8 +386,10 @@
     }
 
     svg.addEventListener("pointerdown", (event) => {
+      pointerSelection = null;
       const target = selectTarget(event.target);
       if (mode !== "select" || !target || !["point", "object"].includes(target.kind)) return;
+      pointerSelection = target;
       drag = { ...target, original: geometry, origin: coordinates(event), moved: false };
       svg.setPointerCapture?.(event.pointerId);
       selection = target;
@@ -425,6 +430,7 @@
       if (!drag) return;
       geometry = drag.original;
       drag = null;
+      pointerSelection = null;
       svg.releasePointerCapture?.(event.pointerId);
       draw();
     });
