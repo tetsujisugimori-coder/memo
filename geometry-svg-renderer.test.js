@@ -3,7 +3,7 @@ const { test } = require("node:test");
 const { cloneGeometryBlock, createGeometryBlock, parseGeometryBlockLine, serializeGeometryBlock } = require("./geometry-block-utils.js");
 const {
   addAngle, addCircle, addEqualLengthMark, addLengthAnnotation, addParallelMark, addPoint,
-  addRightAngle, addSegment, deleteSelection, movePoint, updateVertexLabel
+  addPolygon, addRightAngle, addSegment, deleteSelection, movePoint, updateVertexLabel
 } = require("./geometry-editor-utils.js");
 
 class MockElement {
@@ -100,7 +100,7 @@ test("SVGは意味付きデータから生成され、頂点移動後に注釈�
   }
 });
 
-test("共通レンダラーは点・線分・円をID付きで決定的に再構築し、再描画を重複させない", () => {
+test("共通レンダラーは点・線分・円・多角形をID付きで決定的に再構築し、再描画を重複させない", () => {
   const priorDocument = global.document;
   global.document = { createElementNS: (_namespace, name) => new MockElement(name) };
   try {
@@ -109,21 +109,38 @@ test("共通レンダラーは点・線分・円をID付きで決定的に再構
     geometry = addPoint(geometry, { x: 12, y: 20 });
     geometry = addPoint(geometry, { x: 72, y: 20 });
     geometry = addPoint(geometry, { x: 12, y: 70 });
+    geometry = addPoint(geometry, { x: 70, y: 70 });
     geometry = addSegment(geometry, geometry.points[0].id, geometry.points[1].id);
+    const segment = geometry.objects[geometry.objects.length - 1];
     geometry = addCircle(geometry, geometry.points[0].id, geometry.points[2].id);
+    const circle = geometry.objects[geometry.objects.length - 1];
+    geometry = addPolygon(geometry, [geometry.points[0].id, geometry.points[1].id, geometry.points[2].id, geometry.points[3].id]);
+    const polygon = geometry.objects[geometry.objects.length - 1];
     const svg = new MockElement("svg");
-    renderGeometrySvg(svg, geometry, { selection: { kind: "object", id: geometry.objects[0].id } });
+    renderGeometrySvg(svg, geometry, { selection: { kind: "object", id: segment.id } });
     const first = svgSnapshot(svg);
     const firstNodes = descendants(svg);
-    const segmentHit = firstNodes.find((node) => node.getAttribute("data-geometry-id") === geometry.objects[0].id);
-    const segmentDisplay = firstNodes.find((node) => node.getAttribute("data-geometry-source-id") === geometry.objects[0].id);
-    const circleHit = firstNodes.find((node) => node.getAttribute("data-geometry-id") === geometry.objects[1].id);
-    const circleDisplay = firstNodes.find((node) => node.getAttribute("data-geometry-source-id") === geometry.objects[1].id);
+    const segmentDisplay = firstNodes.find((node) => node.getAttribute("data-geometry-source-id") === segment.id);
+    assert.match(segmentDisplay.getAttribute("class"), /is-selected/, "線分表示の選択状態をDOMへ反映する");
+    const circleHit = firstNodes.find((node) => node.getAttribute("data-geometry-id") === circle.id);
+    const circleDisplay = firstNodes.find((node) => node.getAttribute("data-geometry-source-id") === circle.id);
+    const polygonElement = firstNodes.find((node) => node.getAttribute("data-geometry-id") === polygon.id);
+    const polygonSource = firstNodes.find((node) => node.getAttribute("data-geometry-source-id") === polygon.id);
+    const segmentHit = firstNodes.find((node) => node.getAttribute("data-geometry-id") === segment.id);
     assert.equal(segmentHit.getAttribute("data-geometry-type"), "segment", "線分の当たり判定をオブジェクトIDへ対応させる");
     assert.equal(segmentDisplay.getAttribute("data-geometry-source-type"), "segment", "線分表示を元のオブジェクトIDへ対応させる");
     assert.equal(circleHit.getAttribute("data-geometry-type"), "circle", "円の当たり判定をオブジェクトIDへ対応させる");
     assert.equal(circleDisplay.getAttribute("data-geometry-source-type"), "circle", "円表示を元のオブジェクトIDへ対応させる");
-    assert.match(segmentDisplay.getAttribute("class"), /is-selected/, "選択状態は入力状態から表示する");
+    assert.equal(polygonElement.getAttribute("data-geometry-type"), "polygon", "多角形の当たり判定をオブジェクトIDへ対応させる");
+    assert.equal(polygonElement.getAttribute("data-geometry-kind"), "object", "多角形の既存kind属性を維持する");
+    assert.equal(polygonSource.getAttribute("data-geometry-source-kind"), "object", "多角形表示に既存要素参照kindを付与する");
+    assert.equal(polygonSource.getAttribute("data-geometry-source-type"), "polygon", "多角形表示に既存要素参照typeを付与する");
+    assert.equal(polygonSource.getAttribute("data-geometry-source-id"), polygon.id, "多角形表示に既存要素参照idを付与する");
+    assert.equal(polygonElement.getAttribute("data-geometry-id"), polygon.id, "多角形要素を元のオブジェクトIDで特定できる");
+
+    renderGeometrySvg(svg, geometry, { selection: { kind: "object", id: polygon.id } });
+    const polygonElementAfterPolygonSelection = descendants(svg).find((node) => node.getAttribute("data-geometry-id") === polygon.id);
+    assert.match(polygonElementAfterPolygonSelection.getAttribute("class"), /is-selected/, "多角形の選択状態は既存フラグへ反映する");
 
     renderGeometrySvg(svg, geometry, { selection: null });
     const second = svgSnapshot(svg);
@@ -136,6 +153,7 @@ test("共通レンダラーは点・線分・円をID付きで決定的に再構
 
     const restored = parseGeometryBlockLine(serializeGeometryBlock(geometry));
     renderGeometrySvg(svg, restored);
+    assert.equal(descendants(svg).find((node) => node.getAttribute("data-geometry-source-id") === polygon.id).getAttribute("data-geometry-source-type"), "polygon", "保存復元後も多角形と参照を再構築できる");
     assert.deepEqual(svgSnapshot(svg), second, "保存・復元後も位置・形状・参照IDから同じSVGを再構築する");
   } finally {
     global.document = priorDocument;
