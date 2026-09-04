@@ -146,14 +146,14 @@ async function runRightAngleEditorScenario(browser, url) {
     await editor.locator('[data-geometry-mode="point"]').click();
     const alignment = await alignSvgForPointer(svg);
     assertSvgAlignment(alignment.before, alignment.after, "直角注釈シナリオの点作成前にSVGを安定させる");
-    for (const logicalPoint of [{ x: 20, y: 75 }, { x: 20, y: 20 }, { x: 75, y: 20 }]) {
+    for (const logicalPoint of [{ x: 20, y: 75 }, { x: 20, y: 20 }, { x: 75, y: 20 }, { x: 75, y: 75 }]) {
       const client = await logicalClientPosition(svg, logicalPoint);
       assert.equal(client.top.tag?.toLowerCase(), "svg", "新しい頂点の位置は既存の選択対象と重ならない");
       await page.mouse.click(client.x, client.y);
     }
     const pointsGeometry = await geometry(page);
-    assert.equal(pointsGeometry.points.length, 3, "直角注釈用に3点を作成する");
-    const [firstRay, vertex, secondRay] = pointsGeometry.points;
+    assert.equal(pointsGeometry.points.length, 4, "直角注釈用に有効・無効方向を含む4点を作成する");
+    const [firstRay, vertex, secondRay, invalidRay] = pointsGeometry.points;
 
     await editor.locator('[data-geometry-mode="segment"]').click();
     await clickLocatorCenter(page, editor.locator(`[data-geometry-kind="point"][data-geometry-id="${vertex.id}"]`), "頂点と第1方向を結ぶ線分の頂点を選択できる");
@@ -171,6 +171,9 @@ async function runRightAngleEditorScenario(browser, url) {
     assert.match(await editor.locator(".geometry-block-status").textContent(), /1本目の方向/);
     await clickLocatorCenter(page, editor.locator(`[data-geometry-kind="point"][data-geometry-id="${firstRay.id}"]`), "直角の1本目の方向を選択できる");
     assert.match(await editor.locator(".geometry-block-status").textContent(), /2本目の方向/);
+    await clickLocatorCenter(page, editor.locator(`[data-geometry-kind="point"][data-geometry-id="${invalidRay.id}"]`), "直角から外れた2本目の方向を選択できる");
+    assert.equal((await geometry(page)).annotations.filter((item) => item.type === "right-angle").length, 0, "範囲外の角度では直角注釈を追加しない");
+    assert.match(await editor.locator(".geometry-block-status").textContent(), /80度から100度/, "許容角度のエラーを表示する");
     await clickLocatorCenter(page, editor.locator(`[data-geometry-kind="point"][data-geometry-id="${secondRay.id}"]`), "直角の2本目の方向を選択できる");
     await page.waitForFunction(() => document.querySelectorAll(".geometry-block-editor g.geometry-right-angle").length === 1);
     const annotated = await geometry(page);
@@ -178,13 +181,20 @@ async function runRightAngleEditorScenario(browser, url) {
     assert.equal(annotation.vertexId, vertex.id, "直角注釈は選択した頂点IDを保存する");
     assert.deepEqual(annotation.rayVertexIds, [firstRay.id, secondRay.id], "直角注釈は選択順の方向点IDを保存する");
     assert.equal(annotation.segmentIds?.length, 2, "安全に特定できる2本の線分IDも保存する");
+    await clickLocatorCenter(page, editor.locator(`[data-geometry-kind="point"][data-geometry-id="${vertex.id}"]`), "重複確認用に直角の頂点を再選択できる");
+    await clickLocatorCenter(page, editor.locator(`[data-geometry-kind="point"][data-geometry-id="${secondRay.id}"]`), "重複確認用に方向点を逆順で選択できる");
+    await clickLocatorCenter(page, editor.locator(`[data-geometry-kind="point"][data-geometry-id="${firstRay.id}"]`), "重複確認用に2本目の方向を選択できる");
+    assert.equal((await geometry(page)).annotations.filter((item) => item.type === "right-angle").length, 1, "方向点の順序を変えても直角注釈を重複追加しない");
+    assert.match(await editor.locator(".geometry-block-status").textContent(), /既に追加/, "重複エラーを表示する");
+    await editor.locator("button", { hasText: "作成をキャンセル" }).click();
+    await editor.locator('[data-geometry-mode="select"]').click();
+    assert.equal(await editor.locator('[data-geometry-mode="select"]').getAttribute("aria-pressed"), "true", "エラー後もキャンセルとモード切替を行える");
     const mark = editor.locator(`g.geometry-right-angle[data-geometry-id="${annotation.id}"]`);
     const hit = mark.locator(".geometry-right-angle-hit");
     assert.equal(await hit.getAttribute("data-geometry-id"), annotation.id, "直角記号のヒット領域は対象注釈IDを持つ");
     assert.equal(await mark.locator(".geometry-right-angle-mark").getAttribute("pointer-events"), "none", "直角記号の表示線はポインターを奪わない");
     const beforePath = await mark.locator(".geometry-right-angle-mark").getAttribute("d");
 
-    await editor.locator('[data-geometry-mode="select"]').click();
     const rightAngleAlignment = await alignSvgForPointer(svg);
     assertSvgAlignment(rightAngleAlignment.before, rightAngleAlignment.after, "直角記号選択前にSVGを安定させる");
     const hitClient = await rightAngleHitClientPosition(svg, annotation.id);

@@ -12,6 +12,21 @@ function withPoints(count = 3) {
   return geometry;
 }
 
+function withRightAnglePoints() {
+  let geometry = createGeometryBlock("right-angle-test");
+  [[10, 70], [10, 10], [70, 10], [70, 70]].forEach(([x, y]) => { geometry = addPoint(geometry, { x, y }); });
+  return geometry;
+}
+
+function geometryWithAngle(degrees) {
+  let geometry = createGeometryBlock(`angle-${degrees}`);
+  geometry = addPoint(geometry, { x: 50, y: 50 });
+  geometry = addPoint(geometry, { x: 70, y: 50 });
+  const radians = degrees * Math.PI / 180;
+  geometry = addPoint(geometry, { x: 50 + Math.cos(radians) * 20, y: 50 + Math.sin(radians) * 20 });
+  return geometry;
+}
+
 function svgFallbackMock(rect) {
   return { getBoundingClientRect: () => rect };
 }
@@ -147,7 +162,7 @@ test("点削除は参照する線分・多角形・注釈をまとめて削除�
 });
 
 test("直角注釈は異なる3点を参照して追加・移動・削除・Undo/Redoできる", () => {
-  const geometry = withPoints(3);
+  const geometry = withRightAnglePoints();
   const [firstRay, vertex, secondRay] = geometry.points;
   const history = createHistory(geometry);
   const annotated = addRightAngle(geometry, {
@@ -174,7 +189,7 @@ test("直角注釈は異なる3点を参照して追加・移動・削除・Undo
 });
 
 test("直角注釈の線分参照は対応する方向点との組を検証し、保存時も不整合を拒否する", () => {
-  let geometry = withPoints(4);
+  let geometry = withRightAnglePoints();
   const [firstRay, vertex, secondRay, other] = geometry.points;
   geometry = addSegment(geometry, vertex.id, firstRay.id);
   geometry = addSegment(geometry, vertex.id, secondRay.id);
@@ -210,6 +225,46 @@ test("直角注釈の線分参照は対応する方向点との組を検証し�
   });
   assert.ok(deleteSelection(annotated, { kind: "object", id: wrongDirectionSegment.id }).annotations.some((item) => item.type === "right-angle"), "無関係な線分の削除では直角注釈を維持する");
   assert.equal(deleteSelection(annotated, { kind: "object", id: firstSegment.id }).annotations.some((item) => item.type === "right-angle"), false, "参照中の線分の削除では直角注釈を削除する");
+});
+
+test("直角注釈は80度から100度の境界を受理し、範囲外と退化角を拒否する", () => {
+  [80, 90, 100].forEach((degrees) => {
+    const geometry = geometryWithAngle(degrees);
+    assert.doesNotThrow(() => addRightAngle(geometry, {
+      vertexId: geometry.points[0].id,
+      rayVertexIds: [geometry.points[1].id, geometry.points[2].id]
+    }), `${degrees}度の直角注釈を受理する`);
+  });
+  [79.9, 100.1, .001, 179.999].forEach((degrees) => {
+    const geometry = geometryWithAngle(degrees);
+    const before = JSON.parse(JSON.stringify(geometry));
+    assert.throws(() => addRightAngle(geometry, {
+      vertexId: geometry.points[0].id,
+      rayVertexIds: [geometry.points[1].id, geometry.points[2].id]
+    }), /80度から100度/, `${degrees}度の直角注釈を拒否する`);
+    assert.deepEqual(geometry, before, "拒否時に元のgeometryを変更しない");
+  });
+
+  let degenerate = geometryWithAngle(90);
+  degenerate = addPoint(degenerate, { x: 50, y: 50 });
+  const beforeDegenerate = JSON.parse(JSON.stringify(degenerate));
+  assert.throws(() => addRightAngle(degenerate, {
+    vertexId: degenerate.points[0].id,
+    rayVertexIds: [degenerate.points[3].id, degenerate.points[2].id]
+  }), /異なる位置/);
+  assert.deepEqual(degenerate, beforeDegenerate, "同座標の別IDを拒否してもgeometryを変更しない");
+});
+
+test("直角注釈は方向点の順序に関係なく重複を拒否し、別頂点は追加できる", () => {
+  const geometry = withRightAnglePoints();
+  const [firstRay, vertex, secondRay, otherVertex] = geometry.points;
+  const first = addRightAngle(geometry, { vertexId: vertex.id, rayVertexIds: [firstRay.id, secondRay.id] });
+  const beforeDuplicate = JSON.parse(JSON.stringify(first));
+  assert.throws(() => addRightAngle(first, { vertexId: vertex.id, rayVertexIds: [firstRay.id, secondRay.id] }), /既に追加/);
+  assert.throws(() => addRightAngle(first, { vertexId: vertex.id, rayVertexIds: [secondRay.id, firstRay.id] }), /既に追加/);
+  assert.deepEqual(first, beforeDuplicate, "順不同の重複拒否時に元のgeometryを変更しない");
+  const second = addRightAngle(first, { vertexId: otherVertex.id, rayVertexIds: [firstRay.id, secondRay.id] });
+  assert.equal(second.annotations.filter((annotation) => annotation.type === "right-angle").length, 2, "頂点が異なる直角は別注釈として追加できる");
 });
 
 test("保存・読込で点、参照、頂点名、線種を維持し、不正参照を安全に拒否する", () => {

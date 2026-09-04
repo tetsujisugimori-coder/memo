@@ -298,6 +298,10 @@
         commit(next);
         status.textContent = "直角記号を追加しました";
       } catch (error) {
+        draftVertices = draftVertices.slice(0, 2);
+        draftPreview = null;
+        draw();
+        updateControls();
         status.textContent = error.message || String(error);
       }
     }
