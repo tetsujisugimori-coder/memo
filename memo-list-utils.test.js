@@ -168,7 +168,7 @@ test("タグは付箋形状と色フォールバックを持ち語句リンク�
 });
 
 test("タグ関連スクリプトのキャッシュ番号を更新する", () => {
-  assert.match(html, /href="style\.css\?v=0\.5\.0-77"/);
+  assert.match(html, /href="style\.css\?v=0\.5\.0-78"/);
   assert.match(html, /src="tags\.js\?v=0\.5\.0-4"/);
   assert.match(html, /src="memo-list-utils\.js\?v=0\.5\.0-5"/);
   assert.match(html, /src="local-markdown\.js\?v=0\.5\.0-4"/);

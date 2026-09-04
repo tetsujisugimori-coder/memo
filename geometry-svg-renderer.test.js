@@ -100,6 +100,37 @@ test("SVGは意味付きデータから生成され、頂点移動後に注釈�
   }
 });
 
+test("直角記号は参照点から再構築され、保存復元・再描画で重複しない", () => {
+  const priorDocument = global.document;
+  global.document = { createElementNS: (_namespace, name) => new MockElement(name) };
+  try {
+    const { renderGeometrySvg } = require("./geometry-svg-renderer.js");
+    let geometry = createGeometryBlock("right-angle-renderer");
+    geometry = addPoint(geometry, { x: 15, y: 75 });
+    geometry = addPoint(geometry, { x: 15, y: 15 });
+    geometry = addPoint(geometry, { x: 75, y: 15 });
+    geometry = addRightAngle(geometry, { vertexId: geometry.points[1].id, rayVertexIds: [geometry.points[0].id, geometry.points[2].id] });
+    const annotation = geometry.annotations.find((item) => item.type === "right-angle");
+    const svg = new MockElement("svg");
+    renderGeometrySvg(svg, geometry, { selection: { kind: "annotation", id: annotation.id } });
+    const firstMark = descendants(svg).find((node) => node.getAttribute("data-geometry-id") === annotation.id);
+    const firstPath = firstMark.children[0].getAttribute("d");
+    assert.equal(firstMark.getAttribute("pointer-events"), "visiblePainted", "直角記号は選択対象として描画する");
+    assert.match(firstMark.getAttribute("class"), /is-selected/);
+
+    const moved = movePoint(geometry, geometry.points[2].id, 85, 35);
+    renderGeometrySvg(svg, moved);
+    const movedMark = descendants(svg).find((node) => node.getAttribute("data-geometry-id") === annotation.id);
+    assert.notEqual(movedMark.children[0].getAttribute("d"), firstPath, "点移動後は保存座標に依存せず直角記号を再配置する");
+    const restored = parseGeometryBlockLine(serializeGeometryBlock(moved));
+    renderGeometrySvg(svg, restored);
+    assert.equal(descendants(svg).filter((node) => node.getAttribute("data-geometry-id") === annotation.id).length, 1, "保存復元後の再描画で直角記号を重複させない");
+    assert.deepEqual(restored.annotations.find((item) => item.id === annotation.id).rayVertexIds, annotation.rayVertexIds, "保存復元後も同じ参照関係を使う");
+  } finally {
+    global.document = priorDocument;
+  }
+});
+
 test("共通レンダラーは点・線分・円・多角形をID付きで決定的に再構築し、再描画を重複させない", () => {
   const priorDocument = global.document;
   global.document = { createElementNS: (_namespace, name) => new MockElement(name) };

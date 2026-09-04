@@ -2,7 +2,7 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const { createGeometryBlock, cloneGeometryBlock, parseGeometryBlockLine, serializeGeometryBlock } = require("./geometry-block-utils.js");
 const {
-  addCircle, addPoint, addPolygon, addSegment, createHistory, deleteSelection, moveObject, movePoint,
+  addCircle, addPoint, addPolygon, addRightAngle, addSegment, createHistory, deleteSelection, moveObject, movePoint,
   screenPointToViewBox, updateLengthLabel, updateSegmentLineStyle, updateVertexLabel
 } = require("./geometry-editor-utils.js");
 
@@ -144,6 +144,33 @@ test("点削除は参照する線分・多角形・注釈をまとめて削除�
   assert.equal(result.points.length, 2);
   assert.equal(result.objects.length, 0);
   assert.equal(result.annotations.some((annotation) => annotation.pointId === geometry.points[0].id), false);
+});
+
+test("直角注釈は異なる3点を参照して追加・移動・削除・Undo/Redoできる", () => {
+  const geometry = withPoints(3);
+  const [firstRay, vertex, secondRay] = geometry.points;
+  const history = createHistory(geometry);
+  const annotated = addRightAngle(geometry, {
+    vertexId: vertex.id,
+    rayVertexIds: [firstRay.id, secondRay.id]
+  });
+  const annotation = annotated.annotations.find((item) => item.type === "right-angle");
+  assert.ok(annotation, "有効な3点から直角注釈を追加する");
+  assert.equal(annotation.vertexId, vertex.id);
+  assert.deepEqual(annotation.rayVertexIds, [firstRay.id, secondRay.id]);
+  history.push(annotated);
+
+  assert.throws(() => addRightAngle(geometry, { vertexId: vertex.id, rayVertexIds: [vertex.id, secondRay.id] }), /異なる2つの方向点/);
+  assert.throws(() => addRightAngle(geometry, { vertexId: vertex.id, rayVertexIds: [firstRay.id, firstRay.id] }), /異なる2つの方向点/);
+  assert.throws(() => addRightAngle(geometry, { vertexId: "missing", rayVertexIds: [firstRay.id, secondRay.id] }), /頂点/);
+
+  const moved = movePoint(annotated, vertex.id, 55, 35);
+  assert.deepEqual(moved.annotations.find((item) => item.id === annotation.id).rayVertexIds, annotation.rayVertexIds, "点移動後も注釈の参照IDを維持する");
+  const deletedByPoint = deleteSelection(moved, { kind: "point", id: firstRay.id });
+  assert.equal(deletedByPoint.annotations.some((item) => item.id === annotation.id), false, "関連点削除時に直角注釈も削除する");
+  assert.equal(deleteSelection(annotated, { kind: "annotation", id: annotation.id }).annotations.some((item) => item.id === annotation.id), false, "直角注釈を単体でも削除できる");
+  assert.equal(history.undo().annotations.some((item) => item.type === "right-angle"), false, "Undoで直角注釈の追加を戻せる");
+  assert.equal(history.redo().annotations.find((item) => item.type === "right-angle").id, annotation.id, "Redoで同じ直角注釈を復元できる");
 });
 
 test("保存・読込で点、参照、頂点名、線種を維持し、不正参照を安全に拒否する", () => {

@@ -176,6 +176,22 @@
   // introduce a drawing UI: the SVG renderer derives every visible position
   // from the referenced vertices and segments.
   function addRightAngle(geometry, { vertexId, rayVertexIds, segmentIds, size } = {}) {
+    if (!vertexId || !pointById(geometry, vertexId)) throw new Error("直角の頂点となる点が見つかりません");
+    if (!Array.isArray(rayVertexIds) || rayVertexIds.length !== 2
+      || new Set(rayVertexIds).size !== 2 || rayVertexIds.includes(vertexId)
+      || rayVertexIds.some((pointId) => !pointById(geometry, pointId))) {
+      throw new Error("直角には頂点と異なる2つの方向点を指定してください");
+    }
+    if (segmentIds !== undefined) {
+      if (!Array.isArray(segmentIds) || segmentIds.length !== 2 || new Set(segmentIds).size !== 2
+        || segmentIds.some((segmentId) => {
+          const segment = objectById(geometry, segmentId);
+          return !segment || segment.type !== "segment" || !segment.pointIds.includes(vertexId);
+        })) {
+        throw new Error("直角の線分参照が不正です");
+      }
+    }
+    if (size !== undefined && (!Number.isFinite(size) || size <= 0)) throw new Error("直角記号の大きさが不正です");
     const next = copy(geometry);
     next.annotations.push({
       id: generatedEntityId("right-angle"), type: "right-angle", vertexId,
@@ -232,7 +248,9 @@
       next.points = next.points.filter((point) => point.id !== selection.id);
       next.objects = next.objects.filter((object) => !object.pointIds.includes(selection.id));
       const objectIds = new Set(next.objects.map((object) => object.id));
-      next.annotations = next.annotations.filter((annotation) => annotation.pointId !== selection.id
+      next.annotations = next.annotations.filter((annotation) => annotation.vertexId !== selection.id
+        && !(annotation.rayVertexIds || []).includes(selection.id)
+        && annotation.pointId !== selection.id
         && !(annotation.pointIds || []).includes(selection.id)
         && (!annotation.objectId || objectIds.has(annotation.objectId))
         && !(annotation.objectIds || []).some((objectId) => !objectIds.has(objectId))
@@ -245,6 +263,8 @@
         && (!annotation.objectId || objectIds.has(annotation.objectId))
         && !(annotation.objectIds || []).some((objectId) => !objectIds.has(objectId))
         && !(annotation.segmentIds || []).some((objectId) => !objectIds.has(objectId)));
+    } else if (selection.kind === "annotation") {
+      next.annotations = next.annotations.filter((annotation) => annotation.id !== selection.id);
     }
     return normalizeGeometryBlock(next, next.id);
   }

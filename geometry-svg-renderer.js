@@ -119,29 +119,32 @@
     return annotation.value === undefined ? "" : `${annotation.value}${annotation.unit || ""}`;
   }
 
-  function semanticGroup(type, annotation, ariaLabel) {
+  function semanticGroup(type, annotation, ariaLabel, { interactive = false, selected = false } = {}) {
     return svgElement("g", {
-      class: `geometry-annotation geometry-${type}`,
+      class: `geometry-annotation geometry-${type}${selected ? " is-selected" : ""}`,
       "data-geometry-kind": "annotation",
       "data-geometry-type": type,
       "data-geometry-id": annotation.id,
       role: "img",
       "aria-label": ariaLabel,
       focusable: "false",
-      "pointer-events": "none"
+      "pointer-events": interactive ? "visiblePainted" : "none"
     });
   }
 
-  function renderRightAngle(svg, annotation, geometry, points, vertexLabel) {
+  function renderRightAngle(svg, annotation, geometry, points, vertexLabel, selection) {
     const angle = annotationAnglePoints(annotation, points);
     if (!angle) return;
     const size = annotation.size || 6;
     const p1 = { x: angle.vertex.x + angle.firstDirection.x * size, y: angle.vertex.y + angle.firstDirection.y * size };
     const corner = { x: p1.x + angle.secondDirection.x * size, y: p1.y + angle.secondDirection.y * size };
     const p2 = { x: angle.vertex.x + angle.secondDirection.x * size, y: angle.vertex.y + angle.secondDirection.y * size };
-    const group = semanticGroup("right-angle", annotation, `頂点 ${pointName(geometry, angle.vertexId, vertexLabel)} の直角`);
+    const group = semanticGroup("right-angle", annotation, `頂点 ${pointName(geometry, angle.vertexId, vertexLabel)} の直角`, {
+      interactive: true,
+      selected: selection?.kind === "annotation" && selection.id === annotation.id
+    });
     group.setAttribute("data-vertex-id", angle.vertexId);
-    group.append(svgElement("path", { d: `M ${p1.x} ${p1.y} L ${corner.x} ${corner.y} L ${p2.x} ${p2.y}`, class: "geometry-right-angle-mark", fill: "none" }));
+    group.append(svgElement("path", { d: `M ${p1.x} ${p1.y} L ${corner.x} ${corner.y} L ${p2.x} ${p2.y}`, class: "geometry-right-angle-mark", fill: "none", "pointer-events": "stroke" }));
     svg.append(group);
   }
 
@@ -233,9 +236,9 @@
     });
   }
 
-  function renderAnnotations(svg, geometry, points, objects, vertexLabel) {
+  function renderAnnotations(svg, geometry, points, objects, vertexLabel, selection) {
     geometry.annotations.forEach((annotation) => {
-      if (annotation.type === "right-angle") renderRightAngle(svg, annotation, geometry, points, vertexLabel);
+      if (annotation.type === "right-angle") renderRightAngle(svg, annotation, geometry, points, vertexLabel, selection);
       else if (annotation.type === "angle") renderAngle(svg, annotation, geometry, points, vertexLabel);
       else if (annotation.type === "length-label") {
         const object = objects.get(annotation.objectId);
@@ -291,7 +294,7 @@
         svgElement("circle", { cx: center.x, cy: center.y, r: radius, class: `geometry-circle${selection?.kind === "object" && selection.id === circle.id ? " is-selected" : ""}`, fill: "transparent", ...displayAttributes, "pointer-events": "none" })
       );
     });
-    renderAnnotations(svg, renderModel, points, objects, vertexLabel);
+    renderAnnotations(svg, renderModel, points, objects, vertexLabel, selection);
     renderModel.points.forEach((point) => {
       if (!point.visible) return;
       const name = pointName(renderModel, point.id, vertexLabel);
