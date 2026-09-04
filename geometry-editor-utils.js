@@ -184,9 +184,10 @@
     }
     if (segmentIds !== undefined) {
       if (!Array.isArray(segmentIds) || segmentIds.length !== 2 || new Set(segmentIds).size !== 2
-        || segmentIds.some((segmentId) => {
+        || segmentIds.some((segmentId, index) => {
           const segment = objectById(geometry, segmentId);
-          return !segment || segment.type !== "segment" || !segment.pointIds.includes(vertexId);
+          return !segment || segment.type !== "segment" || segment.pointIds.length !== 2
+            || !segment.pointIds.includes(vertexId) || !segment.pointIds.includes(rayVertexIds[index]);
         })) {
         throw new Error("直角の線分参照が不正です");
       }

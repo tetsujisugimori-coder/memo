@@ -135,7 +135,7 @@
   function renderRightAngle(svg, annotation, geometry, points, vertexLabel, selection) {
     const angle = annotationAnglePoints(annotation, points);
     if (!angle) return;
-    const size = annotation.size || 6;
+    const size = annotation.size || 12;
     const p1 = { x: angle.vertex.x + angle.firstDirection.x * size, y: angle.vertex.y + angle.firstDirection.y * size };
     const corner = { x: p1.x + angle.secondDirection.x * size, y: p1.y + angle.secondDirection.y * size };
     const p2 = { x: angle.vertex.x + angle.secondDirection.x * size, y: angle.vertex.y + angle.secondDirection.y * size };
@@ -144,7 +144,21 @@
       selected: selection?.kind === "annotation" && selection.id === annotation.id
     });
     group.setAttribute("data-vertex-id", angle.vertexId);
-    group.append(svgElement("path", { d: `M ${p1.x} ${p1.y} L ${corner.x} ${corner.y} L ${p2.x} ${p2.y}`, class: "geometry-right-angle-mark", fill: "none", "pointer-events": "stroke" }));
+    const path = `M ${p1.x} ${p1.y} L ${corner.x} ${corner.y} L ${p2.x} ${p2.y}`;
+    group.append(
+      svgElement("path", {
+        d: path,
+        class: "geometry-right-angle-hit",
+        fill: "none",
+        stroke: "transparent",
+        "pointer-events": "stroke",
+        "data-geometry-kind": "annotation",
+        "data-geometry-type": "right-angle",
+        "data-geometry-id": annotation.id,
+        "aria-hidden": "true"
+      }),
+      svgElement("path", { d: path, class: "geometry-right-angle-mark", fill: "none", "pointer-events": "none" })
+    );
     svg.append(group);
   }
 

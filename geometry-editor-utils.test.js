@@ -173,6 +173,45 @@ test("直角注釈は異なる3点を参照して追加・移動・削除・Undo
   assert.equal(history.redo().annotations.find((item) => item.type === "right-angle").id, annotation.id, "Redoで同じ直角注釈を復元できる");
 });
 
+test("直角注釈の線分参照は対応する方向点との組を検証し、保存時も不整合を拒否する", () => {
+  let geometry = withPoints(4);
+  const [firstRay, vertex, secondRay, other] = geometry.points;
+  geometry = addSegment(geometry, vertex.id, firstRay.id);
+  geometry = addSegment(geometry, vertex.id, secondRay.id);
+  geometry = addSegment(geometry, vertex.id, other.id);
+  const [firstSegment, secondSegment, wrongDirectionSegment] = geometry.objects;
+  assert.doesNotThrow(() => addRightAngle(geometry, {
+    vertexId: vertex.id,
+    rayVertexIds: [firstRay.id, secondRay.id],
+    segmentIds: [firstSegment.id, secondSegment.id]
+  }), "対応する2本の線分参照を受理する");
+  assert.throws(() => addRightAngle(geometry, {
+    vertexId: vertex.id,
+    rayVertexIds: [firstRay.id, secondRay.id],
+    segmentIds: [wrongDirectionSegment.id, secondSegment.id]
+  }), /線分参照が不正/, "頂点だけを共有する別方向の線分参照を拒否する");
+  const invalidStored = {
+    ...geometry,
+    annotations: [{
+      id: "invalid-right-angle", type: "right-angle",
+      vertexId: vertex.id,
+      rayVertexIds: [firstRay.id, secondRay.id],
+      pointIds: [firstRay.id, vertex.id, secondRay.id],
+      segmentIds: [wrongDirectionSegment.id, secondSegment.id]
+    }]
+  };
+  assert.throws(() => serializeGeometryBlock(invalidStored), /対応する頂点と方向点/);
+  assert.equal(parseGeometryBlockLine(`<!-- memo-nexus:geometry-block:${Buffer.from(JSON.stringify(invalidStored)).toString("hex")} -->`), null, "保存済みの不整合な線分参照も読込時に拒否する");
+
+  const annotated = addRightAngle(geometry, {
+    vertexId: vertex.id,
+    rayVertexIds: [firstRay.id, secondRay.id],
+    segmentIds: [firstSegment.id, secondSegment.id]
+  });
+  assert.ok(deleteSelection(annotated, { kind: "object", id: wrongDirectionSegment.id }).annotations.some((item) => item.type === "right-angle"), "無関係な線分の削除では直角注釈を維持する");
+  assert.equal(deleteSelection(annotated, { kind: "object", id: firstSegment.id }).annotations.some((item) => item.type === "right-angle"), false, "参照中の線分の削除では直角注釈を削除する");
+});
+
 test("保存・読込で点、参照、頂点名、線種を維持し、不正参照を安全に拒否する", () => {
   let geometry = withPoints(3);
   geometry = updateVertexLabel(geometry, geometry.points[0].id, "頂点A");
