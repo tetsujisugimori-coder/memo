@@ -190,6 +190,46 @@ test("右角・角注釈のpointIds順序を始点・頂点・終点で保持す
   assert.deepEqual(restored.annotations[1].pointIds, ["origin", "vertex", "end"]);
 });
 
+test("直角注釈はsize未指定時に既定値6を補完する", () => {
+  const block = normalizeGeometryBlock({
+    id: "right-angle-default-size",
+    points: [
+      { id: "origin", x: 0, y: 0 },
+      { id: "vertex", x: 10, y: 10 },
+      { id: "end", x: 10, y: 20 }
+    ],
+    objects: [
+      { id: "origin-vertex", type: "segment", pointIds: ["origin", "vertex"] },
+      { id: "vertex-end", type: "segment", pointIds: ["vertex", "end"] }
+    ],
+    annotations: [
+      { id: "right-angle", type: "right-angle", pointIds: ["origin", "vertex", "end"] }
+    ]
+  });
+  const rightAngle = block.annotations.find((annotation) => annotation.type === "right-angle");
+  assert.equal(rightAngle.size, 6, "直角注釈の既定表示サイズは6");
+});
+
+test("直角注釈はsize指定値を保持して正規化する", () => {
+  const block = normalizeGeometryBlock({
+    id: "right-angle-explicit-size",
+    points: [
+      { id: "origin", x: 0, y: 0 },
+      { id: "vertex", x: 10, y: 10 },
+      { id: "end", x: 10, y: 20 }
+    ],
+    objects: [
+      { id: "origin-vertex", type: "segment", pointIds: ["origin", "vertex"] },
+      { id: "vertex-end", type: "segment", pointIds: ["vertex", "end"] }
+    ],
+    annotations: [
+      { id: "right-angle", type: "right-angle", pointIds: ["origin", "vertex", "end"], size: 9 }
+    ]
+  });
+  const rightAngle = block.annotations.find((annotation) => annotation.type === "right-angle");
+  assert.equal(rightAngle.size, 9, "直角注釈の指定sizeは保持される");
+});
+
 test("重複IDは正規化時に安全に拒否する", () => {
   assert.throws(() => normalizeGeometryBlock({
     id: "duplicates",

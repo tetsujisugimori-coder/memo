@@ -111,11 +111,34 @@ async function rightAngleHitClientPosition(svg, annotationId) {
     if (!hit) throw new Error(`直角注釈 ${id} のヒット領域が見つかりません`);
     const matrix = element.getScreenCTM();
     const length = hit.getTotalLength();
-    const candidates = [.5, .35, .65, .25, .75];
+    const candidates = [
+      { fraction: .05, offsetSign: -1 },
+      { fraction: .05, offsetSign: 1 },
+      { fraction: .25, offsetSign: -1 },
+      { fraction: .25, offsetSign: 1 },
+      { fraction: .75, offsetSign: -1 },
+      { fraction: .75, offsetSign: 1 },
+      { fraction: .95, offsetSign: -1 },
+      { fraction: .95, offsetSign: 1 }
+    ];
     const attempts = [];
-    for (const fraction of candidates) {
-      const point = hit.getPointAtLength(length * fraction);
-      const screen = new DOMPoint(point.x, point.y).matrixTransform(matrix);
+    for (const { fraction, offsetSign } of candidates) {
+      const pointAtLength = length * fraction;
+      const point = hit.getPointAtLength(pointAtLength);
+      const before = hit.getPointAtLength(Math.max(0, pointAtLength - 1));
+      const after = hit.getPointAtLength(Math.min(length, pointAtLength + 1));
+      const tangentLength = Math.hypot(after.x - before.x, after.y - before.y);
+      if (!tangentLength) continue;
+      const normalX = -(after.y - before.y) / tangentLength;
+      const normalY = (after.x - before.x) / tangentLength;
+      const screenNormalLength = Math.hypot(matrix.a * normalX + matrix.c * normalY, matrix.b * normalX + matrix.d * normalY);
+      if (!screenNormalLength) continue;
+      const offset = offsetSign * 5 / screenNormalLength;
+      const logicalPoint = {
+        x: point.x + normalX * offset,
+        y: point.y + normalY * offset
+      };
+      const screen = new DOMPoint(logicalPoint.x, logicalPoint.y).matrixTransform(matrix);
       const x = Math.round(screen.x);
       const y = Math.round(screen.y);
       const top = document.elementFromPoint(x, y);
@@ -620,7 +643,10 @@ async function runCircleInteriorSelectionScenario(browser, url) {
     assert.equal(await semanticEditor.locator(`[data-geometry-id="${semanticBeforeReload.objects[3].id}"]`).getAttribute("data-segment-role"), "diagonal", "対角線の意味ロールをSVGへ反映する");
     await page.waitForFunction(() => document.querySelectorAll("#preview g.geometry-right-angle").length === 1);
     assert.equal(await page.locator('#preview [data-geometry-type="angle"]').getAttribute("data-vertex-id"), semanticBeforeReload.points[1].id, "カード表示も同じ意味付きSVGレンダラーで角度を描画する");
-    await semanticEditor.locator(".geometry-point-hit").first().click();
+    const targetPointId = semanticBeforeReload.points[0].id;
+    const targetPoint = semanticEditor.locator(`.geometry-point-hit[data-geometry-kind="point"][data-geometry-id="${targetPointId}"]`);
+    await targetPoint.waitFor();
+    await clickLocatorCenter(page, targetPoint, "セマンティック図形編集の対象点IDを指定して選択する");
     const semanticLabelInput = semanticEditor.locator('input[aria-label="選択した点の頂点名"]');
     await semanticLabelInput.fill("A1");
     await semanticLabelInput.press("Tab");
@@ -628,13 +654,15 @@ async function runCircleInteriorSelectionScenario(browser, url) {
       const editor = document.querySelector('.geometry-block-editor[data-geometry-id="semantic-e2e"]');
       const geometry = window.MemoNexusGeometryBlockUtils.splitGeometryBlocks(document.getElementById("editor").value)
         .find((segment) => segment.type === "geometry")?.geometry;
-      const point = editor?.querySelector(`.geometry-point-hit[data-geometry-id="${pointId}"]`);
+      const point = editor?.querySelector(`.geometry-point-hit[data-geometry-kind="point"][data-geometry-id="${pointId}"]`);
+      const selectedPoints = editor?.querySelectorAll(".geometry-point.is-selected") || [];
       return editor === window.__semanticGeometryEditor
+        && selectedPoints.length === 1
         && point?.nextElementSibling?.classList.contains("is-selected") === true
         && geometry?.annotations.find((annotation) => annotation.pointId === pointId)?.label === "A1";
-    }, semanticBeforeReload.points[0].id);
+    }, targetPointId);
     semanticBeforeReload = await geometry(page);
-    assert.equal(semanticBeforeReload.annotations.find((annotation) => annotation.pointId === semanticBeforeReload.points[0].id)?.label, "A1", "構造化図形編集は本文の意味付きデータを更新する");
+    assert.equal(semanticBeforeReload.annotations.find((annotation) => annotation.pointId === targetPointId)?.label, "A1", "構造化図形編集は本文の意味付きデータを更新する");
     await page.evaluate(() => window.flushSave());
     await page.reload({ waitUntil: "domcontentloaded" });
     await page.locator("#appStartupGuard").waitFor({ state: "hidden" });

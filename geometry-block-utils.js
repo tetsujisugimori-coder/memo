@@ -133,7 +133,7 @@
         : (Array.isArray(normalized.rayVertexIds) ? [normalized.rayVertexIds[0], normalized.vertexId, normalized.rayVertexIds[1]] : legacyPointIds);
       if (source.segmentIds !== undefined) normalized.segmentIds = normalizedIdList(source.segmentIds);
     }
-    if (normalized.type === "right-angle") normalized.size = source.size === undefined ? 12 : source.size;
+    if (normalized.type === "right-angle") normalized.size = source.size === undefined ? 6 : source.size;
     if (normalized.type === "angle") {
       normalized.radius = source.radius === undefined ? 12 : source.radius;
       normalized.unit = source.unit === undefined ? "°" : normalizedText(source.unit);

@@ -135,22 +135,28 @@
   function renderRightAngle(svg, annotation, geometry, points, vertexLabel, selection) {
     const angle = annotationAnglePoints(annotation, points);
     if (!angle) return;
-    const size = annotation.size || 12;
+    const size = annotation.size || 6;
     const p1 = { x: angle.vertex.x + angle.firstDirection.x * size, y: angle.vertex.y + angle.firstDirection.y * size };
     const corner = { x: p1.x + angle.secondDirection.x * size, y: p1.y + angle.secondDirection.y * size };
     const p2 = { x: angle.vertex.x + angle.secondDirection.x * size, y: angle.vertex.y + angle.secondDirection.y * size };
+    const hitSize = Math.max(size, 12);
+    const hitP1 = { x: angle.vertex.x + angle.firstDirection.x * hitSize, y: angle.vertex.y + angle.firstDirection.y * hitSize };
+    const hitCorner = { x: hitP1.x + angle.secondDirection.x * hitSize, y: hitP1.y + angle.secondDirection.y * hitSize };
+    const hitP2 = { x: angle.vertex.x + angle.secondDirection.x * hitSize, y: angle.vertex.y + angle.secondDirection.y * hitSize };
     const group = semanticGroup("right-angle", annotation, `頂点 ${pointName(geometry, angle.vertexId, vertexLabel)} の直角`, {
       interactive: true,
       selected: selection?.kind === "annotation" && selection.id === annotation.id
     });
     group.setAttribute("data-vertex-id", angle.vertexId);
     const path = `M ${p1.x} ${p1.y} L ${corner.x} ${corner.y} L ${p2.x} ${p2.y}`;
+    const hitPath = `M ${hitP1.x} ${hitP1.y} L ${hitCorner.x} ${hitCorner.y} L ${hitP2.x} ${hitP2.y}`;
     group.append(
       svgElement("path", {
-        d: path,
+        d: hitPath,
         class: "geometry-right-angle-hit",
         fill: "none",
         stroke: "transparent",
+        "stroke-width": 12,
         "pointer-events": "stroke",
         "data-geometry-kind": "annotation",
         "data-geometry-type": "right-angle",

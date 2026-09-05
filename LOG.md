@@ -2402,3 +2402,12 @@
 * 既存の直角注釈と頂点IDおよび順不同の2方向点IDが一致する場合は、線分参照の有無や順序によらず重複として拒否する。比較時に保存済みの配列を並べ替えないため、既存データを変更しない。
 * 直角の3点目が無効で確定に失敗した場合は、頂点と1本目の方向点だけを残してプレビューを消し、描画・操作状態を更新してからエラーを表示する。利用者はそのまま別の2本目を選べ、重複・角度エラー後もキャンセルおよび選択モードへの切替ができる。
 * 保存済みの直角注釈には今回の角度・重複判定を読込時に強制せず、既存の`segmentIds`と方向点の参照整合性だけを従来どおり検証することで後方互換性を維持する。直角作成、境界値、退化、重複、線分対応、実ブラウザでの再試行をテストへ追加した。
+
+## 2026-09-05 PR #184 Geometry E2Eの決定化と直角記号表示サイズ修正
+
+* CI run #164 の Geometry E2E (chromium) は `geometry-block.e2e.js:627` 付近の `page.waitForFunction()` が30秒でタイムアウトしていた。DOMの点は `buildGeometryRenderModel()` の `stableById()` でUUID辞書順に並ぶ一方、テストは `.geometry-point-hit.first()` をクリックして保存配列の `points[0]` の更新を待っており、同じ点である保証がなかった。
+* セマンティック図形E2Eは `targetPointId` を保存し、`data-geometry-kind="point"` と `data-geometry-id` を併用したlocatorを `clickLocatorCenter()` で実クリックする形へ変更した。選択状態、頂点ラベル保存、再読み込み後の保存データ確認まで同じIDを使い、対象点だけが選択され、対象外の点にはラベルを書き込まないことを維持した。
+* 直角注釈の保存データに `size` がない場合の既定値とレンダラーのフォールバックを6へ戻した。表示用 `.geometry-right-angle-mark` はサイズ6のまま `pointer-events: none` とし、透明な `.geometry-right-angle-hit` は `pointer-events: stroke` と `stroke-width: 12` を維持した。頂点ヒット円と競合しない外側のヒットパスを分離し、表示サイズ6でもCTM変換、`elementFromPoint()`で注釈IDを確認した実マウス操作で選択・削除できるようにした。
+* `geometry-block-utils.test.js` にsize未指定時の既定値6と明示size維持を、`geometry-svg-renderer.test.js` に表示サイズ6・明示size・ヒット幅12・ポインターイベントの検証を追加した。既存の80/90/100度受理、79.9/100.1度拒否、退化角拒否、順不同重複拒否、失敗後再選択、`segmentIds`と`rayVertexIds`の対応、頂点選択・ドラッグ、円内部線分選択の検証は維持した。
+* `npm test` は1031件すべて成功した。`npm run test:e2e:geometry` は5回連続で成功した。変更JavaScriptの `node --check` と `git diff --check` も成功した。
+* Chromium自動E2E以外の手動ブラウザー操作、タッチ端末での当たり判定、GitHub Actionsのpush後結果はこの追記時点では未確認として残す。

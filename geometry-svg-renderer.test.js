@@ -23,6 +23,20 @@ function descendants(node) {
   return node.children.flatMap((child) => [child, ...descendants(child)]);
 }
 
+function pathPoints(path) {
+  const raw = path.match(/[-+]?\d*\.?\d+(?:e[-+]?\d+)?/gi) || [];
+  const values = raw.map(Number);
+  const points = [];
+  for (let i = 0; i + 1 < values.length; i += 2) {
+    points.push({ x: values[i], y: values[i + 1] });
+  }
+  return points;
+}
+
+function distance(pointA, pointB) {
+  return Math.hypot(pointA.x - pointB.x, pointA.y - pointB.y);
+}
+
 function svgSnapshot(svg) {
   return descendants(svg).map((node) => ({ name: node.name, attributes: Object.fromEntries(node.attributes) }));
 }
@@ -93,6 +107,7 @@ test("SVGは意味付きデータから生成され、頂点移動後に注釈�
     assert.equal(rightAngleHit.getAttribute("data-geometry-kind"), "annotation", "直角記号のヒット領域から注釈種別を取得できる");
     assert.equal(rightAngleHit.getAttribute("data-geometry-id"), rightAngle.getAttribute("data-geometry-id"), "直角記号のヒット領域から注釈IDを取得できる");
     assert.equal(rightAngleHit.getAttribute("pointer-events"), "stroke", "直角記号のヒット領域だけがポインターを受け取る");
+    assert.equal(rightAngleHit.getAttribute("stroke-width"), "12", "直角記号のヒット領域は表示サイズから独立して幅12を保つ");
     assert.equal(rightAngleMark.getAttribute("pointer-events"), "none", "直角記号の表示線はクリックを奪わない");
     assert.equal(first.filter((node) => node.getAttribute("data-geometry-type") === "equal-length").length, 2);
     assert.equal(first.filter((node) => node.getAttribute("data-geometry-type") === "parallel").length, 2);
@@ -101,6 +116,54 @@ test("SVGは意味付きデータから生成され、頂点移動後に注釈�
     renderGeometrySvg(svg, moved, { vertexLabel: labels });
     const movedRightAngle = descendants(svg).find((node) => node.getAttribute("data-geometry-type") === "right-angle");
     assert.notEqual(movedRightAngle.children.find((node) => node.getAttribute("class") === "geometry-right-angle-mark").getAttribute("d"), beforePath);
+  } finally {
+    global.document = priorDocument;
+  }
+});
+
+test("直角記号は既定size6で描画し、明示sizeを尊重する", () => {
+  const priorDocument = global.document;
+  global.document = { createElementNS: (_namespace, name) => new MockElement(name) };
+  try {
+    const { renderGeometrySvg } = require("./geometry-svg-renderer.js");
+    const svg = new MockElement("svg");
+    let defaultGeometry = createGeometryBlock("right-angle-renderer-default");
+    defaultGeometry = addPoint(defaultGeometry, { x: 10, y: 10 });
+    defaultGeometry = addPoint(defaultGeometry, { x: 20, y: 10 });
+    defaultGeometry = addPoint(defaultGeometry, { x: 10, y: 20 });
+    const origin = defaultGeometry.points[0].id;
+    const right = defaultGeometry.points[1].id;
+    const down = defaultGeometry.points[2].id;
+    defaultGeometry = addRightAngle(defaultGeometry, {
+      vertexId: origin,
+      rayVertexIds: [right, down]
+    });
+
+    let explicitGeometry = createGeometryBlock("right-angle-renderer-explicit");
+    explicitGeometry = addPoint(explicitGeometry, { x: 10, y: 10 });
+    explicitGeometry = addPoint(explicitGeometry, { x: 20, y: 10 });
+    explicitGeometry = addPoint(explicitGeometry, { x: 10, y: 20 });
+    const explicitOrigin = explicitGeometry.points[0].id;
+    const explicitRight = explicitGeometry.points[1].id;
+    const explicitDown = explicitGeometry.points[2].id;
+    explicitGeometry = addRightAngle(explicitGeometry, {
+      vertexId: explicitOrigin,
+      rayVertexIds: [explicitRight, explicitDown],
+      size: 12
+    });
+
+    renderGeometrySvg(svg, defaultGeometry);
+    const defaultMark = descendants(svg).find((node) => node.getAttribute("data-geometry-type") === "right-angle");
+    const defaultPath = defaultMark.children.find((node) => node.getAttribute("class") === "geometry-right-angle-mark").getAttribute("d");
+    const defaultPoints = pathPoints(defaultPath);
+    assert.equal(defaultMark.getAttribute("pointer-events"), "visiblePainted", "直角記号は選択対象として描画する");
+    assert.ok(Math.abs(distance(defaultPoints[0], defaultPoints[1]) - 6) < 1e-9, "既定size6で描画される");
+
+    renderGeometrySvg(svg, explicitGeometry);
+    const explicitMark = descendants(svg).find((node) => node.getAttribute("data-geometry-type") === "right-angle");
+    const explicitPath = explicitMark.children.find((node) => node.getAttribute("class") === "geometry-right-angle-mark").getAttribute("d");
+    const explicitPoints = pathPoints(explicitPath);
+    assert.ok(Math.abs(distance(explicitPoints[0], explicitPoints[1]) - 12) < 1e-9, "明示size 12 は反映される");
   } finally {
     global.document = priorDocument;
   }
