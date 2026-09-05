@@ -105,50 +105,61 @@ async function clickLocatorCenter(page, locator, message) {
   await page.mouse.click(position.x, position.y);
 }
 
-async function rightAngleHitClientPosition(svg, annotationId) {
+async function rightAngleMarkClientPosition(svg, annotationId) {
   return svg.evaluate((element, id) => {
-    const hit = element.querySelector(`.geometry-right-angle-hit[data-geometry-id="${id}"]`);
-    if (!hit) throw new Error(`直角注釈 ${id} のヒット領域が見つかりません`);
+    const mark = element.querySelector(`.geometry-right-angle-mark[data-geometry-id="${id}"]`);
+    if (!mark) throw new Error(`直角注釈 ${id} の表示線が見つかりません`);
+    const vertexId = mark.closest("g.geometry-right-angle")?.dataset.vertexId;
+    const vertex = element.querySelector(`.geometry-point-hit[data-geometry-id="${vertexId}"]`);
+    if (!vertex) throw new Error(`直角注釈 ${id} の頂点が見つかりません`);
     const matrix = element.getScreenCTM();
-    const length = hit.getTotalLength();
-    const candidates = [
-      { fraction: .05, offsetSign: -1 },
-      { fraction: .05, offsetSign: 1 },
-      { fraction: .25, offsetSign: -1 },
-      { fraction: .25, offsetSign: 1 },
-      { fraction: .75, offsetSign: -1 },
-      { fraction: .75, offsetSign: 1 },
-      { fraction: .95, offsetSign: -1 },
-      { fraction: .95, offsetSign: 1 }
-    ];
+    const vertexScreen = new DOMPoint(Number(vertex.getAttribute("cx")), Number(vertex.getAttribute("cy"))).matrixTransform(matrix);
+    const length = mark.getTotalLength();
     const attempts = [];
-    for (const { fraction, offsetSign } of candidates) {
-      const pointAtLength = length * fraction;
-      const point = hit.getPointAtLength(pointAtLength);
-      const before = hit.getPointAtLength(Math.max(0, pointAtLength - 1));
-      const after = hit.getPointAtLength(Math.min(length, pointAtLength + 1));
-      const tangentLength = Math.hypot(after.x - before.x, after.y - before.y);
-      if (!tangentLength) continue;
-      const normalX = -(after.y - before.y) / tangentLength;
-      const normalY = (after.x - before.x) / tangentLength;
-      const screenNormalLength = Math.hypot(matrix.a * normalX + matrix.c * normalY, matrix.b * normalX + matrix.d * normalY);
-      if (!screenNormalLength) continue;
-      const offset = offsetSign * 5 / screenNormalLength;
-      const logicalPoint = {
-        x: point.x + normalX * offset,
-        y: point.y + normalY * offset
-      };
-      const screen = new DOMPoint(logicalPoint.x, logicalPoint.y).matrixTransform(matrix);
+    for (const fraction of [.15, .35, .65, .85]) {
+      const point = mark.getPointAtLength(length * fraction);
+      const screen = new DOMPoint(point.x, point.y).matrixTransform(matrix);
       const x = Math.round(screen.x);
       const y = Math.round(screen.y);
-      const top = document.elementFromPoint(x, y);
-      const target = top?.closest("[data-geometry-kind='annotation']");
-      if (target?.dataset.geometryId === id) {
-        return { x, y, fraction, top: { tag: top.tagName, className: top.getAttribute("class"), id: target.dataset.geometryId } };
+      const stack = document.elementsFromPoint(x, y);
+      const hit = stack.find((node) => node.matches?.(`.geometry-right-angle-hit[data-geometry-id="${id}"]`));
+      const top = stack[0];
+      const distanceFromVertexCenter = Math.hypot(x - vertexScreen.x, y - vertexScreen.y);
+      if (hit && distanceFromVertexCenter > 6) {
+        return {
+          x,
+          y,
+          fraction,
+          distanceFromVertexCenter,
+          top: { tag: top?.tagName, className: top?.getAttribute("class") },
+          resolved: { id: hit.dataset.geometryId }
+        };
       }
-      attempts.push({ fraction, x, y, tag: top?.tagName, className: top?.getAttribute("class"), annotationId: target?.dataset.geometryId });
+      attempts.push({ fraction, x, y, distanceFromVertexCenter, tag: top?.tagName, className: top?.getAttribute("class"), hitId: hit?.dataset.geometryId });
     }
-    throw new Error(`直角注釈 ${id} のヒット領域を頂点判定と重ならない座標へ投影できません: ${JSON.stringify(attempts)}`);
+    throw new Error(`直角注釈 ${id} の表示線を操作優先順位に従って選択できません: ${JSON.stringify(attempts)}`);
+  }, annotationId);
+}
+
+async function formerRightAngleHitClientPosition(svg, annotationId) {
+  return svg.evaluate((element, id) => {
+    const mark = element.querySelector(`.geometry-right-angle-mark[data-geometry-id="${id}"]`);
+    const vertexId = mark?.closest("g.geometry-right-angle")?.dataset.vertexId;
+    const vertex = element.querySelector(`.geometry-point-hit[data-geometry-id="${vertexId}"]`);
+    if (!mark || !vertex) throw new Error(`直角注釈 ${id} の旧ヒット位置を計算できません`);
+    const point = mark.getPointAtLength(mark.getTotalLength() / 2);
+    const vertexX = Number(vertex.getAttribute("cx"));
+    const vertexY = Number(vertex.getAttribute("cy"));
+    const logicalPoint = { x: vertexX + (point.x - vertexX) * 2, y: vertexY + (point.y - vertexY) * 2 };
+    const screen = new DOMPoint(logicalPoint.x, logicalPoint.y).matrixTransform(element.getScreenCTM());
+    const x = Math.round(screen.x);
+    const y = Math.round(screen.y);
+    const stack = document.elementsFromPoint(x, y);
+    return {
+      x,
+      y,
+      annotationId: stack.find((node) => node.matches?.(`.geometry-right-angle-hit[data-geometry-id="${id}"]`))?.dataset.geometryId
+    };
   }, annotationId);
 }
 
@@ -217,22 +228,31 @@ async function runRightAngleEditorScenario(browser, url) {
     assert.equal(await hit.getAttribute("data-geometry-id"), annotation.id, "直角記号のヒット領域は対象注釈IDを持つ");
     assert.equal(await mark.locator(".geometry-right-angle-mark").getAttribute("pointer-events"), "none", "直角記号の表示線はポインターを奪わない");
     const beforePath = await mark.locator(".geometry-right-angle-mark").getAttribute("d");
+    assert.equal(await hit.getAttribute("d"), beforePath, "表示線とヒット領域は同じ直角記号を表す");
 
     const rightAngleAlignment = await alignSvgForPointer(svg);
     assertSvgAlignment(rightAngleAlignment.before, rightAngleAlignment.after, "直角記号選択前にSVGを安定させる");
-    const hitClient = await rightAngleHitClientPosition(svg, annotation.id);
-    assert.equal(hitClient.top.id, annotation.id, "直角記号の実クリック座標は対象注釈を最前面にする");
-    await page.mouse.click(hitClient.x, hitClient.y);
+    const markClient = await rightAngleMarkClientPosition(svg, annotation.id);
+    assert.equal(markClient.resolved.id, annotation.id, "表示線上の実クリック座標は対象直角注釈へ解決する");
+    const vertexBefore = (await geometry(page)).points.find((point) => point.id === vertex.id);
+    await page.mouse.click(markClient.x, markClient.y);
     assert.match(await mark.getAttribute("class"), /is-selected/, "直角記号自身を選択できる");
-    const movedPoint = (await geometry(page)).points.find((point) => point.id === secondRay.id);
-    const pointStart = await logicalClientPosition(svg, movedPoint);
-    const pointEnd = await logicalClientPosition(svg, { x: movedPoint.x + 8, y: movedPoint.y + 7 });
-    assert.equal(pointStart.top.kind, "point", "頂点の近傍は従来どおり頂点の操作対象を優先する");
-    await page.mouse.move(pointStart.x, pointStart.y);
+    assertCoordinates((await geometry(page)).points.find((point) => point.id === vertex.id), vertexBefore, "直角記号のクリックだけでは頂点を移動しない");
+    const vertexClient = await logicalClientPosition(svg, vertexBefore);
+    assert.equal(vertexClient.top.kind, "point", "頂点中心は従来どおり頂点の操作対象を優先する");
+    await page.mouse.click(vertexClient.x, vertexClient.y);
+    await page.waitForFunction((pointId) => document.querySelector(`.geometry-point-hit[data-geometry-id="${pointId}"]`)?.nextElementSibling?.classList.contains("is-selected") === true, vertex.id);
+    const formerHitClient = await formerRightAngleHitClientPosition(svg, annotation.id);
+    assert.equal(formerHitClient.annotationId, undefined, "旧hitSize: 12相当の外側位置に直角注釈のヒット領域を残さない");
+    await page.mouse.click(formerHitClient.x, formerHitClient.y);
+    await page.waitForFunction((annotationId) => !document.querySelector(`g.geometry-right-angle[data-geometry-id="${annotationId}"]`)?.classList.contains("is-selected"), annotation.id);
+    const pointEnd = await logicalClientPosition(svg, { x: vertexBefore.x + 8, y: vertexBefore.y + 7 });
+    await page.mouse.move(vertexClient.x, vertexClient.y);
     await page.mouse.down();
     await page.mouse.move(pointEnd.x, pointEnd.y);
     await page.mouse.up();
     await page.waitForFunction(({ id, path }) => document.querySelector(`g.geometry-right-angle[data-geometry-id="${id}"] .geometry-right-angle-mark`)?.getAttribute("d") !== path, { id: annotation.id, path: beforePath });
+    assert.notDeepEqual((await geometry(page)).points.find((point) => point.id === vertex.id), vertexBefore, "頂点中心からのドラッグで対象頂点を移動できる");
     assert.deepEqual((await geometry(page)).annotations.find((item) => item.id === annotation.id).rayVertexIds, annotation.rayVertexIds, "点移動後も直角注釈の参照IDを維持する");
 
     await page.evaluate(() => window.flushSave());
@@ -248,9 +268,10 @@ async function runRightAngleEditorScenario(browser, url) {
     const restoredSvg = restoredEditor.locator("svg");
     const restoredAlignment = await alignSvgForPointer(restoredSvg);
     assertSvgAlignment(restoredAlignment.before, restoredAlignment.after, "再読込後の直角記号選択前にSVGを安定させる");
-    const restoredHitClient = await rightAngleHitClientPosition(restoredSvg, annotation.id);
-    assert.equal(restoredHitClient.top.id, annotation.id, "再読込後も直角記号のヒット領域を実際に選択できる");
-    await page.mouse.click(restoredHitClient.x, restoredHitClient.y);
+    const restoredMarkClient = await rightAngleMarkClientPosition(restoredSvg, annotation.id);
+    assert.equal(restoredMarkClient.resolved.id, annotation.id, "再読込後も表示線上の実クリック座標を直角注釈へ解決する");
+    await page.mouse.click(restoredMarkClient.x, restoredMarkClient.y);
+    await page.waitForFunction((annotationId) => document.querySelector(`g.geometry-right-angle[data-geometry-id="${annotationId}"]`)?.classList.contains("is-selected") === true, annotation.id);
     await restoredEditor.locator("button", { hasText: "選択を削除" }).click();
     await page.waitForFunction((annotationId) => !document.querySelector(`g.geometry-right-angle[data-geometry-id="${annotationId}"]`), annotation.id);
     await restoredEditor.locator("button", { hasText: "戻す" }).click();

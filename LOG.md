@@ -2411,3 +2411,11 @@
 * `geometry-block-utils.test.js` にsize未指定時の既定値6と明示size維持を、`geometry-svg-renderer.test.js` に表示サイズ6・明示size・ヒット幅12・ポインターイベントの検証を追加した。既存の80/90/100度受理、79.9/100.1度拒否、退化角拒否、順不同重複拒否、失敗後再選択、`segmentIds`と`rayVertexIds`の対応、頂点選択・ドラッグ、円内部線分選択の検証は維持した。
 * `npm test` は1031件すべて成功した。`npm run test:e2e:geometry` は5回連続で成功した。変更JavaScriptの `node --check` と `git diff --check` も成功した。
 * Chromium自動E2E以外の手動ブラウザー操作、タッチ端末での当たり判定、GitHub Actionsのpush後結果はこの追記時点では未確認として残す。
+
+## 2026-09-06 PR #184 表示直角記号と操作ヒット領域の整合修正
+
+* CI #165 は成功していたが、既定size 6の表示用 `.geometry-right-angle-mark` と、`hitSize = Math.max(size, 12)` の透明 `.geometry-right-angle-hit` が別位置に描画されていた。従来E2Eは外側へ移動した透明パスをクリックしていたため、利用者が見ている直角線をクリックできることを検証できていなかった。
+* 表示サイズ6の直角線は頂点から約6〜8.5の範囲にあり、後から描画される半径5・透明stroke幅10の頂点ヒット円に覆われていた。表示線とヒット用パスを同じ`d`へ統一し、`hitSize`による離れた透明な直角形状を廃止した。ヒット用パスの`fill: none`、透明stroke、`stroke-width: 12`、`pointer-events: stroke`、表示線の`pointer-events: none`は維持した。
+* 操作優先順位は、頂点中心から6画面px以内では頂点を優先し、それ以外で`elementsFromPoint()`に表示位置の直角ヒットパスも含まれる場合は直角注釈を優先する方式とした。頂点の広い既存ヒット領域とドラッグは縮小せず、表示直角線上のクリックだけを注釈選択へ解決する。
+* 表示用パスにも注釈ID属性を付与した。単体テストでsize未指定時の6、明示size、表示・ヒットの`d`一致、幅12、ポインターイベント、選択時クラス、頂点移動後の同一再計算を確認した。Geometry E2Eは表示線の`getPointAtLength()`、CTM、`elementsFromPoint()`から実クリック座標を選び、直角注釈選択・削除、頂点中心の選択・ドラッグ、直角クリック時の非移動、旧hitSize:12相当外側位置の非選択、保存・再読み込みを確認した。
+* `npm test` は1031件すべて成功した。`npm run test:e2e:geometry` は5回連続で成功した。変更JavaScriptの`node --check`と`git diff --check`は後続の最終確認で実施する。自動Chromium E2E以外の手動ブラウザー操作およびタッチ端末での当たり判定は未確認として残す。

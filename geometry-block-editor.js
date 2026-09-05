@@ -217,6 +217,21 @@
       return { kind: node.dataset.geometryKind, id: node.dataset.geometryId };
     }
 
+    function selectPointerTarget(event) {
+      const direct = selectTarget(event.target);
+      if (direct?.kind !== "point" || typeof document.elementsFromPoint !== "function") return direct;
+      const rightAngleHit = document.elementsFromPoint(event.clientX, event.clientY)
+        .find((node) => node.matches?.(".geometry-right-angle-hit[data-geometry-kind='annotation']"));
+      if (!rightAngleHit) return direct;
+      const point = geometry.points.find((entry) => entry.id === direct.id);
+      const matrix = svg.getScreenCTM();
+      if (!point || !matrix) return direct;
+      const screenPoint = new DOMPoint(point.x, point.y).matrixTransform(matrix);
+      return Math.hypot(event.clientX - screenPoint.x, event.clientY - screenPoint.y) <= 6
+        ? direct
+        : { kind: "annotation", id: rightAngleHit.dataset.geometryId };
+    }
+
     function requiredVertices() {
       return { segment: 2, triangle: 3, quadrilateral: 4, circle: 2 }[mode] || null;
     }
@@ -308,7 +323,7 @@
 
     function handleCanvasClick(event) {
       if (drag?.moved) return;
-      const target = selectTarget(event.target);
+      const target = mode === "select" ? selectPointerTarget(event) : selectTarget(event.target);
       if (mode === "select") {
         const nextSelection = target || pointerSelection;
         pointerSelection = null;
@@ -408,7 +423,7 @@
 
     svg.addEventListener("pointerdown", (event) => {
       pointerSelection = null;
-      const target = selectTarget(event.target);
+      const target = mode === "select" ? selectPointerTarget(event) : selectTarget(event.target);
       if (mode !== "select" || !target || !["point", "object"].includes(target.kind)) return;
       pointerSelection = target;
       drag = { ...target, original: geometry, origin: coordinates(event), moved: false };
