@@ -27,6 +27,15 @@ function geometryWithAngle(degrees) {
   return geometry;
 }
 
+function geometryWithAnnotationAngle(degrees = 60) {
+  let geometry = geometryWithAngle(degrees);
+  geometry = addAngle(geometry, {
+    vertexId: geometry.points[0].id,
+    rayVertexIds: [geometry.points[1].id, geometry.points[2].id]
+  });
+  return geometry;
+}
+
 function svgFallbackMock(rect) {
   return { getBoundingClientRect: () => rect };
 }
@@ -320,6 +329,44 @@ test("一般角注釈は退化・重複・不整合な参照を拒否し、参�
   const copiedAngle = copied.annotations.find((item) => item.type === "angle");
   assert.equal(copiedAngle.id === first.annotations.find((item) => item.type === "angle").id, false, "複製時に角度注釈IDを再生成する");
   assert.equal(copiedAngle.segmentIds.every((id) => copied.objects.some((object) => object.id === id)), true, "複製時に角度注釈の線分参照を再接続する");
+});
+
+test("一般角を新たに退化させる点移動は拒否し、無関係な点移動と既存退化角の修復は許可する", () => {
+  const cases = [
+    { name: "頂点と方向点の一致", pointIndex: 0, destination: { x: 70, y: 50 } },
+    { name: "0度", pointIndex: 2, destination: { x: 90, y: 50 } },
+    { name: "180度", pointIndex: 2, destination: { x: 30, y: 50 } }
+  ];
+  cases.forEach(({ name, pointIndex, destination }) => {
+    const geometry = geometryWithAnnotationAngle();
+    const before = JSON.parse(JSON.stringify(geometry));
+    assert.throws(() => movePoint(geometry, geometry.points[pointIndex].id, destination.x, destination.y), /角度注釈が0度または180度/);
+    assert.deepEqual(geometry, before, `${name}になる移動は元のgeometryを変更しない`);
+  });
+
+  let unrelated = geometryWithAnnotationAngle();
+  unrelated = addPoint(unrelated, { x: 5, y: 5 });
+  const unrelatedPoint = unrelated.points.at(-1);
+  const movedUnrelated = movePoint(unrelated, unrelatedPoint.id, 9, 14);
+  assert.deepEqual(movedUnrelated.points.at(-1), { ...unrelatedPoint, x: 9, y: 14 }, "一般角と無関係な点は移動できる");
+
+  const legacyDegenerate = geometryWithAnnotationAngle();
+  legacyDegenerate.points[2].x = 90;
+  legacyDegenerate.points[2].y = 50;
+  const restoredLegacy = parseGeometryBlockLine(serializeGeometryBlock(legacyDegenerate));
+  assert.equal(restoredLegacy.annotations.some((annotation) => annotation.type === "angle"), true, "保存済みの退化角は従来どおり読込できる");
+  const repaired = movePoint(restoredLegacy, restoredLegacy.points[2].id, 60, 67.32050807568877);
+  assert.equal(repaired.points[2].y, 67.32050807568877, "既に退化している一般角を正常な角へ修復できる");
+});
+
+test("一般角を新たに退化させる図形移動は拒否し、元のgeometryを変更しない", () => {
+  let geometry = geometryWithAnnotationAngle();
+  geometry = addPoint(geometry, { x: 90, y: 50 });
+  geometry = addSegment(geometry, geometry.points[1].id, geometry.points[3].id);
+  const movingSegment = geometry.objects.at(-1);
+  const before = JSON.parse(JSON.stringify(geometry));
+  assert.throws(() => moveObject(geometry, movingSegment.id, -20, 0), /角度注釈が0度または180度/);
+  assert.deepEqual(geometry, before, "図形移動の拒否時も元のgeometryを変更しない");
 });
 
 test("保存・読込で点、参照、頂点名、線種を維持し、不正参照を安全に拒否する", () => {
