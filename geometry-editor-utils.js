@@ -6,6 +6,10 @@
   if (!geometryUtils) throw new Error("MemoNexusGeometryBlockUtils is required");
 
   const { edgeCount, generatedEntityId, normalizeGeometryBlock } = geometryUtils;
+  const RIGHT_ANGLE_MIN_DEGREES = 80;
+  const RIGHT_ANGLE_MAX_DEGREES = 100;
+  const RIGHT_ANGLE_ANGLE_EPSILON_DEGREES = 1e-9;
+  const RIGHT_ANGLE_MIN_RAY_LENGTH = 1e-6;
 
   function copy(value) {
     return JSON.parse(JSON.stringify(value));
@@ -161,6 +165,25 @@
       && annotation.objectId === objectId && (annotation.edgeIndex || 0) === edgeIndex) || null;
   }
 
+  function rightAngleDegrees(vertex, firstRay, secondRay) {
+    const firstX = firstRay.x - vertex.x;
+    const firstY = firstRay.y - vertex.y;
+    const secondX = secondRay.x - vertex.x;
+    const secondY = secondRay.y - vertex.y;
+    const firstLength = Math.hypot(firstX, firstY);
+    const secondLength = Math.hypot(secondX, secondY);
+    if (firstLength <= RIGHT_ANGLE_MIN_RAY_LENGTH || secondLength <= RIGHT_ANGLE_MIN_RAY_LENGTH) return null;
+    const cosine = Math.max(-1, Math.min(1, (firstX * secondX + firstY * secondY) / (firstLength * secondLength)));
+    const degrees = Math.acos(cosine) * 180 / Math.PI;
+    return Number.isFinite(degrees) ? degrees : null;
+  }
+
+  function hasSameRightAngle(annotation, vertexId, rayVertexIds) {
+    if (annotation.type !== "right-angle" || annotation.vertexId !== vertexId || !Array.isArray(annotation.rayVertexIds) || annotation.rayVertexIds.length !== 2) return false;
+    return (annotation.rayVertexIds[0] === rayVertexIds[0] && annotation.rayVertexIds[1] === rayVertexIds[1])
+      || (annotation.rayVertexIds[0] === rayVertexIds[1] && annotation.rayVertexIds[1] === rayVertexIds[0]);
+  }
+
   function updateLengthLabel(geometry, objectId, label, edgeIndex = 0) {
     const next = copy(geometry);
     const object = objectById(next, objectId);
@@ -176,6 +199,34 @@
   // introduce a drawing UI: the SVG renderer derives every visible position
   // from the referenced vertices and segments.
   function addRightAngle(geometry, { vertexId, rayVertexIds, segmentIds, size } = {}) {
+    if (!vertexId || !pointById(geometry, vertexId)) throw new Error("直角の頂点となる点が見つかりません");
+    if (!Array.isArray(rayVertexIds) || rayVertexIds.length !== 2
+      || new Set(rayVertexIds).size !== 2 || rayVertexIds.includes(vertexId)
+      || rayVertexIds.some((pointId) => !pointById(geometry, pointId))) {
+      throw new Error("直角には頂点と異なる2つの方向点を指定してください");
+    }
+    const vertex = pointById(geometry, vertexId);
+    const [firstRay, secondRay] = rayVertexIds.map((pointId) => pointById(geometry, pointId));
+    const degrees = rightAngleDegrees(vertex, firstRay, secondRay);
+    if (degrees === null) throw new Error("頂点と方向点は異なる位置にしてください");
+    if (degrees < RIGHT_ANGLE_MIN_DEGREES - RIGHT_ANGLE_ANGLE_EPSILON_DEGREES
+      || degrees > RIGHT_ANGLE_MAX_DEGREES + RIGHT_ANGLE_ANGLE_EPSILON_DEGREES) {
+      throw new Error(`直角記号は${RIGHT_ANGLE_MIN_DEGREES}度から${RIGHT_ANGLE_MAX_DEGREES}度の角度に追加できます`);
+    }
+    if (geometry.annotations.some((annotation) => hasSameRightAngle(annotation, vertexId, rayVertexIds))) {
+      throw new Error("この直角記号は既に追加されています");
+    }
+    if (segmentIds !== undefined) {
+      if (!Array.isArray(segmentIds) || segmentIds.length !== 2 || new Set(segmentIds).size !== 2
+        || segmentIds.some((segmentId, index) => {
+          const segment = objectById(geometry, segmentId);
+          return !segment || segment.type !== "segment" || segment.pointIds.length !== 2
+            || !segment.pointIds.includes(vertexId) || !segment.pointIds.includes(rayVertexIds[index]);
+        })) {
+        throw new Error("直角の線分参照が不正です");
+      }
+    }
+    if (size !== undefined && (!Number.isFinite(size) || size <= 0)) throw new Error("直角記号の大きさが不正です");
     const next = copy(geometry);
     next.annotations.push({
       id: generatedEntityId("right-angle"), type: "right-angle", vertexId,
@@ -232,7 +283,9 @@
       next.points = next.points.filter((point) => point.id !== selection.id);
       next.objects = next.objects.filter((object) => !object.pointIds.includes(selection.id));
       const objectIds = new Set(next.objects.map((object) => object.id));
-      next.annotations = next.annotations.filter((annotation) => annotation.pointId !== selection.id
+      next.annotations = next.annotations.filter((annotation) => annotation.vertexId !== selection.id
+        && !(annotation.rayVertexIds || []).includes(selection.id)
+        && annotation.pointId !== selection.id
         && !(annotation.pointIds || []).includes(selection.id)
         && (!annotation.objectId || objectIds.has(annotation.objectId))
         && !(annotation.objectIds || []).some((objectId) => !objectIds.has(objectId))
@@ -245,6 +298,8 @@
         && (!annotation.objectId || objectIds.has(annotation.objectId))
         && !(annotation.objectIds || []).some((objectId) => !objectIds.has(objectId))
         && !(annotation.segmentIds || []).some((objectId) => !objectIds.has(objectId)));
+    } else if (selection.kind === "annotation") {
+      next.annotations = next.annotations.filter((annotation) => annotation.id !== selection.id);
     }
     return normalizeGeometryBlock(next, next.id);
   }
@@ -265,7 +320,7 @@
     };
   }
 
-  const api = { pointName, screenPointToViewBox, pointById, objectById, vertexLabel, lengthLabel, edgeCount, addPoint, addSegment, addPolygon, addCircle, movePoint, moveObject, updateVertexLabel, updateSegmentLineStyle, updateLengthLabel, addRightAngle, addAngle, addLengthAnnotation, addEqualLengthMark, addParallelMark, deleteSelection, createHistory };
+  const api = { RIGHT_ANGLE_MIN_DEGREES, RIGHT_ANGLE_MAX_DEGREES, pointName, screenPointToViewBox, pointById, objectById, vertexLabel, lengthLabel, edgeCount, addPoint, addSegment, addPolygon, addCircle, movePoint, moveObject, updateVertexLabel, updateSegmentLineStyle, updateLengthLabel, addRightAngle, addAngle, addLengthAnnotation, addEqualLengthMark, addParallelMark, deleteSelection, createHistory };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   if (globalScope) globalScope.MemoNexusGeometryEditorUtils = api;
 })(typeof window !== "undefined" ? window : globalThis);

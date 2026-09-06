@@ -341,10 +341,12 @@
         if (annotation.segmentIds !== undefined) {
           validateReferenceList(annotation.segmentIds, `${path}.segmentIds`, 2, 2, objectIds);
           if (Array.isArray(annotation.segmentIds)) {
-            annotation.segmentIds.forEach((id) => {
+            annotation.segmentIds.forEach((id, segmentIndex) => {
               const segment = objectById.get(id);
-              if (segment && (segment.type !== "segment" || !segment.pointIds.includes(annotation.vertexId))) {
-                addError(`${path}.segmentIdsは頂点に接続する線分を参照する必要があります`);
+              const rayVertexId = annotation.rayVertexIds?.[segmentIndex];
+              if (segment && (segment.type !== "segment" || segment.pointIds.length !== 2
+                || !segment.pointIds.includes(annotation.vertexId) || !segment.pointIds.includes(rayVertexId))) {
+                addError(`${path}.segmentIdsは対応する頂点と方向点を結ぶ線分を参照する必要があります`);
               }
             });
           }

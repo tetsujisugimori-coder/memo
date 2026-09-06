@@ -23,6 +23,20 @@ function descendants(node) {
   return node.children.flatMap((child) => [child, ...descendants(child)]);
 }
 
+function pathPoints(path) {
+  const raw = path.match(/[-+]?\d*\.?\d+(?:e[-+]?\d+)?/gi) || [];
+  const values = raw.map(Number);
+  const points = [];
+  for (let i = 0; i + 1 < values.length; i += 2) {
+    points.push({ x: values[i], y: values[i + 1] });
+  }
+  return points;
+}
+
+function distance(pointA, pointB) {
+  return Math.hypot(pointA.x - pointB.x, pointA.y - pointB.y);
+}
+
 function svgSnapshot(svg) {
   return descendants(svg).map((node) => ({ name: node.name, attributes: Object.fromEntries(node.attributes) }));
 }
@@ -88,13 +102,113 @@ test("SVGは意味付きデータから生成され、頂点移動後に注釈�
     assert.equal(rightAngle.getAttribute("data-vertex-id"), geometry.points[1].id);
     assert.match(rightAngle.getAttribute("aria-label"), /頂点 B の直角/);
     assert.match(angle.getAttribute("aria-label"), /角 B 90°/);
+    const rightAngleHit = rightAngle.children.find((node) => node.getAttribute("class") === "geometry-right-angle-hit");
+    const rightAngleMark = rightAngle.children.find((node) => node.getAttribute("class") === "geometry-right-angle-mark");
+    assert.equal(rightAngleHit.getAttribute("data-geometry-kind"), "annotation", "直角記号のヒット領域から注釈種別を取得できる");
+    assert.equal(rightAngleHit.getAttribute("data-geometry-id"), rightAngle.getAttribute("data-geometry-id"), "直角記号のヒット領域から注釈IDを取得できる");
+    assert.equal(rightAngleHit.getAttribute("pointer-events"), "stroke", "直角記号のヒット領域だけがポインターを受け取る");
+    assert.equal(rightAngleHit.getAttribute("stroke-width"), "12", "直角記号のヒット領域は表示サイズから独立して幅12を保つ");
+    assert.equal(rightAngleMark.getAttribute("pointer-events"), "none", "直角記号の表示線はクリックを奪わない");
+    assert.equal(rightAngleHit.getAttribute("d"), rightAngleMark.getAttribute("d"), "直角記号の表示線とヒット領域は同じ位置に描画する");
     assert.equal(first.filter((node) => node.getAttribute("data-geometry-type") === "equal-length").length, 2);
     assert.equal(first.filter((node) => node.getAttribute("data-geometry-type") === "parallel").length, 2);
-    const beforePath = rightAngle.children[0].getAttribute("d");
+    const beforePath = rightAngleMark.getAttribute("d");
     const moved = movePoint(geometry, geometry.points[1].id, 20, 20);
     renderGeometrySvg(svg, moved, { vertexLabel: labels });
     const movedRightAngle = descendants(svg).find((node) => node.getAttribute("data-geometry-type") === "right-angle");
-    assert.notEqual(movedRightAngle.children[0].getAttribute("d"), beforePath);
+    const movedRightAngleMark = movedRightAngle.children.find((node) => node.getAttribute("class") === "geometry-right-angle-mark");
+    const movedRightAngleHit = movedRightAngle.children.find((node) => node.getAttribute("class") === "geometry-right-angle-hit");
+    assert.notEqual(movedRightAngleMark.getAttribute("d"), beforePath);
+    assert.equal(movedRightAngleHit.getAttribute("d"), movedRightAngleMark.getAttribute("d"), "頂点移動後も表示線とヒット領域を同じ参照点から再計算する");
+  } finally {
+    global.document = priorDocument;
+  }
+});
+
+test("直角記号は既定size6で描画し、明示sizeを尊重する", () => {
+  const priorDocument = global.document;
+  global.document = { createElementNS: (_namespace, name) => new MockElement(name) };
+  try {
+    const { renderGeometrySvg } = require("./geometry-svg-renderer.js");
+    const svg = new MockElement("svg");
+    let defaultGeometry = createGeometryBlock("right-angle-renderer-default");
+    defaultGeometry = addPoint(defaultGeometry, { x: 10, y: 10 });
+    defaultGeometry = addPoint(defaultGeometry, { x: 20, y: 10 });
+    defaultGeometry = addPoint(defaultGeometry, { x: 10, y: 20 });
+    const origin = defaultGeometry.points[0].id;
+    const right = defaultGeometry.points[1].id;
+    const down = defaultGeometry.points[2].id;
+    defaultGeometry = addRightAngle(defaultGeometry, {
+      vertexId: origin,
+      rayVertexIds: [right, down]
+    });
+
+    let explicitGeometry = createGeometryBlock("right-angle-renderer-explicit");
+    explicitGeometry = addPoint(explicitGeometry, { x: 10, y: 10 });
+    explicitGeometry = addPoint(explicitGeometry, { x: 20, y: 10 });
+    explicitGeometry = addPoint(explicitGeometry, { x: 10, y: 20 });
+    const explicitOrigin = explicitGeometry.points[0].id;
+    const explicitRight = explicitGeometry.points[1].id;
+    const explicitDown = explicitGeometry.points[2].id;
+    explicitGeometry = addRightAngle(explicitGeometry, {
+      vertexId: explicitOrigin,
+      rayVertexIds: [explicitRight, explicitDown],
+      size: 12
+    });
+
+    renderGeometrySvg(svg, defaultGeometry);
+    const defaultMark = descendants(svg).find((node) => node.getAttribute("data-geometry-type") === "right-angle");
+    const defaultPath = defaultMark.children.find((node) => node.getAttribute("class") === "geometry-right-angle-mark").getAttribute("d");
+    const defaultHitPath = defaultMark.children.find((node) => node.getAttribute("class") === "geometry-right-angle-hit").getAttribute("d");
+    const defaultPoints = pathPoints(defaultPath);
+    assert.equal(defaultMark.getAttribute("pointer-events"), "visiblePainted", "直角記号は選択対象として描画する");
+    assert.ok(Math.abs(distance(defaultPoints[0], defaultPoints[1]) - 6) < 1e-9, "既定size6で描画される");
+    assert.equal(defaultHitPath, defaultPath, "既定size6でも表示線から離れた透明な直角形状を作らない");
+
+    const defaultRightAngle = defaultGeometry.annotations.find((annotation) => annotation.type === "right-angle");
+    renderGeometrySvg(svg, defaultGeometry, { selection: { kind: "annotation", id: defaultRightAngle.id } });
+    const selectedDefaultMark = descendants(svg).find((node) => node.getAttribute("data-geometry-type") === "right-angle");
+    assert.match(selectedDefaultMark.getAttribute("class"), /is-selected/, "選択時は表示用の直角記号へアクセントを付ける");
+    assert.equal(selectedDefaultMark.children.find((node) => node.getAttribute("class") === "geometry-right-angle-mark").getAttribute("d"), defaultPath, "選択状態でも表示位置を変えない");
+
+    renderGeometrySvg(svg, explicitGeometry);
+    const explicitMark = descendants(svg).find((node) => node.getAttribute("data-geometry-type") === "right-angle");
+    const explicitPath = explicitMark.children.find((node) => node.getAttribute("class") === "geometry-right-angle-mark").getAttribute("d");
+    const explicitHitPath = explicitMark.children.find((node) => node.getAttribute("class") === "geometry-right-angle-hit").getAttribute("d");
+    const explicitPoints = pathPoints(explicitPath);
+    assert.ok(Math.abs(distance(explicitPoints[0], explicitPoints[1]) - 12) < 1e-9, "明示size 12 は反映される");
+    assert.equal(explicitHitPath, explicitPath, "明示sizeでも表示線とヒット領域を同じ位置に保つ");
+  } finally {
+    global.document = priorDocument;
+  }
+});
+
+test("直角記号は参照点から再構築され、保存復元・再描画で重複しない", () => {
+  const priorDocument = global.document;
+  global.document = { createElementNS: (_namespace, name) => new MockElement(name) };
+  try {
+    const { renderGeometrySvg } = require("./geometry-svg-renderer.js");
+    let geometry = createGeometryBlock("right-angle-renderer");
+    geometry = addPoint(geometry, { x: 15, y: 75 });
+    geometry = addPoint(geometry, { x: 15, y: 15 });
+    geometry = addPoint(geometry, { x: 75, y: 15 });
+    geometry = addRightAngle(geometry, { vertexId: geometry.points[1].id, rayVertexIds: [geometry.points[0].id, geometry.points[2].id] });
+    const annotation = geometry.annotations.find((item) => item.type === "right-angle");
+    const svg = new MockElement("svg");
+    renderGeometrySvg(svg, geometry, { selection: { kind: "annotation", id: annotation.id } });
+    const firstMark = descendants(svg).find((node) => node.getAttribute("data-geometry-id") === annotation.id);
+    const firstPath = firstMark.children.find((node) => node.getAttribute("class") === "geometry-right-angle-mark").getAttribute("d");
+    assert.equal(firstMark.getAttribute("pointer-events"), "visiblePainted", "直角記号は選択対象として描画する");
+    assert.match(firstMark.getAttribute("class"), /is-selected/);
+
+    const moved = movePoint(geometry, geometry.points[2].id, 85, 35);
+    renderGeometrySvg(svg, moved);
+    const movedMark = descendants(svg).find((node) => node.getAttribute("data-geometry-id") === annotation.id);
+    assert.notEqual(movedMark.children.find((node) => node.getAttribute("class") === "geometry-right-angle-mark").getAttribute("d"), firstPath, "点移動後は保存座標に依存せず直角記号を再配置する");
+    const restored = parseGeometryBlockLine(serializeGeometryBlock(moved));
+    renderGeometrySvg(svg, restored);
+    assert.equal(descendants(svg).filter((node) => node.name === "g" && node.getAttribute("data-geometry-id") === annotation.id).length, 1, "保存復元後の再描画で直角記号を重複させない");
+    assert.deepEqual(restored.annotations.find((item) => item.id === annotation.id).rayVertexIds, annotation.rayVertexIds, "保存復元後も同じ参照関係を使う");
   } finally {
     global.document = priorDocument;
   }

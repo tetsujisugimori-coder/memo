@@ -2335,6 +2335,9 @@ body.layout-resizing iframe {
 .geometry-angle-arc,
 .geometry-equal-length-mark,
 .geometry-parallel-mark { stroke: var(--ink); stroke-width: 1.1; vector-effect: non-scaling-stroke; }
+.geometry-right-angle-hit { fill: none; stroke: transparent; stroke-width: 12; vector-effect: non-scaling-stroke; pointer-events: stroke; cursor: pointer; }
+.geometry-right-angle { cursor: pointer; }
+.geometry-right-angle.is-selected .geometry-right-angle-mark { stroke: var(--accent); stroke-width: 2; }
 .geometry-angle-label { fill: var(--ink); font: 4.5px sans-serif; user-select: none; paint-order: stroke; stroke: var(--input-bg); stroke-width: 1.5px; }
 
 .geometry-preview { margin: 14px 0; padding: 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--section-bg); }

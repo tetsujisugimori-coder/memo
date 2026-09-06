@@ -2389,3 +2389,42 @@
 ## 2026-09-03 Geometry E2Eのモバイル証跡更新
 
 * `npm run test:e2e:mobile` の実行により、追跡済みの390px通常モバイル表示の証跡 `e2e-artifacts/mobile-layout-390.png` を更新した。Chromiumのレイアウト回帰確認で生成されるテスト成果物であり、アプリ本体の画像変更ではない。
+
+## 2026-09-04 PR #184 直角注釈のヒット領域と線分参照整合性修正
+
+* 直角記号は表示用の `.geometry-right-angle-mark` と、透明・幅12・`pointer-events: stroke` の `.geometry-right-angle-hit` を同じパス形状で分離した。ヒット用パス自身へ注釈の `data-geometry-kind`、type、IDを付け、表示線はポインターイベントを受けない。頂点ヒット円と重ならないクリック線を確保するため、直角記号の既定サイズは12とした。これにより頂点の当たり判定を回避して、直角記号の線上を実際に選択できる。
+* 直角注釈の `segmentIds[i]` は `rayVertexIds[i]` に対応する2点線分であることを、作成APIと保存データ検証の両方で確認する。頂点だけを共有する別方向の線分は拒否し、無関係な線分削除では注釈を残す。
+* Playwright E2Eはグループ中央のlocator clickを廃止し、ヒット用パスの長さから線上の点を選び、SVG CTMで画面座標へ変換後、`elementFromPoint()`で対象注釈IDを確認してから実マウスクリックする。注釈の実ポインター選択・削除・Undo、頂点操作優先、保存復元、関連点削除を検証する。
+
+## 2026-09-04 PR #184 直角注釈の作成条件と失敗後の再試行
+
+* `addRightAngle()` に80度から100度までの角度判定を追加した。頂点から各方向点へのベクトルの内積と長さから角度を求め、`acos()`入力をクランプする。座標が同一または極端に近い退化ベクトル、有限値でない計算結果、範囲外の角度は新規追加前に拒否する。
+* 既存の直角注釈と頂点IDおよび順不同の2方向点IDが一致する場合は、線分参照の有無や順序によらず重複として拒否する。比較時に保存済みの配列を並べ替えないため、既存データを変更しない。
+* 直角の3点目が無効で確定に失敗した場合は、頂点と1本目の方向点だけを残してプレビューを消し、描画・操作状態を更新してからエラーを表示する。利用者はそのまま別の2本目を選べ、重複・角度エラー後もキャンセルおよび選択モードへの切替ができる。
+* 保存済みの直角注釈には今回の角度・重複判定を読込時に強制せず、既存の`segmentIds`と方向点の参照整合性だけを従来どおり検証することで後方互換性を維持する。直角作成、境界値、退化、重複、線分対応、実ブラウザでの再試行をテストへ追加した。
+
+## 2026-09-05 PR #184 Geometry E2Eの決定化と直角記号表示サイズ修正
+
+* CI run #164 の Geometry E2E (chromium) は `geometry-block.e2e.js:627` 付近の `page.waitForFunction()` が30秒でタイムアウトしていた。DOMの点は `buildGeometryRenderModel()` の `stableById()` でUUID辞書順に並ぶ一方、テストは `.geometry-point-hit.first()` をクリックして保存配列の `points[0]` の更新を待っており、同じ点である保証がなかった。
+* セマンティック図形E2Eは `targetPointId` を保存し、`data-geometry-kind="point"` と `data-geometry-id` を併用したlocatorを `clickLocatorCenter()` で実クリックする形へ変更した。選択状態、頂点ラベル保存、再読み込み後の保存データ確認まで同じIDを使い、対象点だけが選択され、対象外の点にはラベルを書き込まないことを維持した。
+* 直角注釈の保存データに `size` がない場合の既定値とレンダラーのフォールバックを6へ戻した。表示用 `.geometry-right-angle-mark` はサイズ6のまま `pointer-events: none` とし、透明な `.geometry-right-angle-hit` は `pointer-events: stroke` と `stroke-width: 12` を維持した。頂点ヒット円と競合しない外側のヒットパスを分離し、表示サイズ6でもCTM変換、`elementFromPoint()`で注釈IDを確認した実マウス操作で選択・削除できるようにした。
+* `geometry-block-utils.test.js` にsize未指定時の既定値6と明示size維持を、`geometry-svg-renderer.test.js` に表示サイズ6・明示size・ヒット幅12・ポインターイベントの検証を追加した。既存の80/90/100度受理、79.9/100.1度拒否、退化角拒否、順不同重複拒否、失敗後再選択、`segmentIds`と`rayVertexIds`の対応、頂点選択・ドラッグ、円内部線分選択の検証は維持した。
+* `npm test` は1031件すべて成功した。`npm run test:e2e:geometry` は5回連続で成功した。変更JavaScriptの `node --check` と `git diff --check` も成功した。
+* Chromium自動E2E以外の手動ブラウザー操作、タッチ端末での当たり判定、GitHub Actionsのpush後結果はこの追記時点では未確認として残す。
+
+## 2026-09-06 PR #184 表示直角記号と操作ヒット領域の整合修正
+
+* CI #165 は成功していたが、既定size 6の表示用 `.geometry-right-angle-mark` と、`hitSize = Math.max(size, 12)` の透明 `.geometry-right-angle-hit` が別位置に描画されていた。従来E2Eは外側へ移動した透明パスをクリックしていたため、利用者が見ている直角線をクリックできることを検証できていなかった。
+* 表示サイズ6の直角線は頂点から約6〜8.5の範囲にあり、後から描画される半径5・透明stroke幅10の頂点ヒット円に覆われていた。表示線とヒット用パスを同じ`d`へ統一し、`hitSize`による離れた透明な直角形状を廃止した。ヒット用パスの`fill: none`、透明stroke、`stroke-width: 12`、`pointer-events: stroke`、表示線の`pointer-events: none`は維持した。
+* 操作優先順位は、頂点中心から6画面px以内では頂点を優先し、それ以外で`elementsFromPoint()`に表示位置の直角ヒットパスも含まれる場合は直角注釈を優先する方式とした。頂点の広い既存ヒット領域とドラッグは縮小せず、表示直角線上のクリックだけを注釈選択へ解決する。
+* 表示用パスにも注釈ID属性を付与した。単体テストでsize未指定時の6、明示size、表示・ヒットの`d`一致、幅12、ポインターイベント、選択時クラス、頂点移動後の同一再計算を確認した。Geometry E2Eは表示線の`getPointAtLength()`、CTM、`elementsFromPoint()`から実クリック座標を選び、直角注釈選択・削除、頂点中心の選択・ドラッグ、直角クリック時の非移動、旧hitSize:12相当外側位置の非選択、保存・再読み込みを確認した。
+* `npm test` は1031件すべて成功した。`npm run test:e2e:geometry` は5回連続で成功した。変更JavaScriptの`node --check`と`git diff --check`は後続の最終確認で実施する。自動Chromium E2E以外の手動ブラウザー操作およびタッチ端末での当たり判定は未確認として残す。
+
+## 2026-09-06 PR #184 縮小直角記号と頂点ヒットの動的競合解決
+
+* CI run #164 のランダムID順依存は前回修正済みだが、その後のCI #166成功時点の `selectPointerTarget()` は頂点中心から固定6画面px以内を無条件に頂点優先していた。そのため、明示sizeを小さくした直角記号や大きなviewBoxでは、表示線が頂点近傍にあっても注釈を選択できなかった。
+* `selectPointerTarget()` は、現在のSVGのCTMで変換した頂点中心と、同じ注釈の表示用L字パスの2線分への最短距離を比較する方式へ変更した。固定閾値は使わず、表示線に近ければ注釈、同距離を含め頂点中心に近ければ頂点を選択する。保存済みの `size` と `viewBox`、表示size 6、透明ヒット領域の `stroke-width: 12` は変更していない。
+* `elementsFromPoint()` で得る直角注釈ヒットは `svg.contains(node)` で現在のSVGに限定した。複数の図形ブロックがあるE2Eで、対象SVGの縮小直角記号だけを選択し、別SVGの注釈を選択しないことを確認した。
+* Geometry E2Eへ、明示 `size: 2` と `viewBox: 500` の縮小ケースを追加した。CTM変換後の表示線上クリックが頂点中心から6px以内であること、`elementFromPoint()` が頂点ヒット円を返す競合状態、同一SVGのヒット領域ID、実際の `page.mouse.click()` による注釈選択、クリック時の非移動、削除・Undo・保存再読込、頂点中心の選択とドラッグを検証する。通常size 6の注釈の実クリックも維持した。
+* `geometry-block-editor.js` のキャッシュ識別子を `0.5.0-11` へ更新し、`version.test.js` の期待値を同期した。`npm test` は1031件すべて成功、`npm run test:e2e:geometry` は修正後の単発成功に続き5回連続成功、変更JavaScriptの `node --check` と `git diff --check` は成功した。
+* 自動Chromium E2E以外の手動ブラウザー操作、実タッチ端末での当たり判定、push後のGitHub Actionsはこの追記時点では未確認として残す。

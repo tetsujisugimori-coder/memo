@@ -8,7 +8,7 @@
   const svgNamespace = "http://www.w3.org/2000/svg";
   const modes = [
     ["select", "選択"], ["point", "点"], ["segment", "線分"], ["triangle", "三角形"],
-    ["quadrilateral", "四角形"], ["circle", "円"], ["polygon", "多角形"]
+    ["quadrilateral", "四角形"], ["circle", "円"], ["polygon", "多角形"], ["right-angle", "直角"]
   ];
 
   function svgElement(name, attributes = {}) {
@@ -72,7 +72,7 @@
       button.addEventListener("click", () => {
         mode = value;
         clearDraft();
-        status.textContent = value === "select" ? "選択モード" : `${label}モード`;
+        status.textContent = value === "right-angle" ? rightAngleDraftStatus() : value === "select" ? "選択モード" : `${label}モード`;
       });
       modeButtons.set(value, button);
       tools.append(button);
@@ -217,8 +217,52 @@
       return { kind: node.dataset.geometryKind, id: node.dataset.geometryId };
     }
 
+    function selectPointerTarget(event) {
+      const direct = selectTarget(event.target);
+      if (direct?.kind !== "point" || typeof document.elementsFromPoint !== "function") return direct;
+      const rightAngleHit = document.elementsFromPoint(event.clientX, event.clientY)
+        .find((node) => svg.contains(node) && node.matches?.(".geometry-right-angle-hit[data-geometry-kind='annotation']"));
+      if (!rightAngleHit) return direct;
+      const point = geometry.points.find((entry) => entry.id === direct.id);
+      const matrix = svg.getScreenCTM();
+      const mark = svg.querySelector(`.geometry-right-angle-mark[data-geometry-id="${rightAngleHit.dataset.geometryId}"]`);
+      const length = mark?.getTotalLength();
+      if (!point || !matrix || !Number.isFinite(length) || length <= 0) return direct;
+      const screenPoint = new DOMPoint(point.x, point.y).matrixTransform(matrix);
+      const screenPath = [0, length / 2, length].map((position) => {
+        const pathPoint = mark.getPointAtLength(position);
+        return new DOMPoint(pathPoint.x, pathPoint.y).matrixTransform(matrix);
+      });
+      if (screenPath.some((pathPoint) => !Number.isFinite(pathPoint.x) || !Number.isFinite(pathPoint.y))) return direct;
+      const distanceToSegment = (start, end) => {
+        const dx = end.x - start.x;
+        const dy = end.y - start.y;
+        const lengthSquared = dx * dx + dy * dy;
+        if (lengthSquared === 0) return Math.hypot(event.clientX - start.x, event.clientY - start.y);
+        const ratio = Math.max(0, Math.min(1, ((event.clientX - start.x) * dx + (event.clientY - start.y) * dy) / lengthSquared));
+        return Math.hypot(event.clientX - (start.x + dx * ratio), event.clientY - (start.y + dy * ratio));
+      };
+      // A right-angle mark has two line segments. Compare their displayed screen-space
+      // distance with the vertex center so zoom, viewBox, and an explicit size stay meaningful.
+      const markDistance = Math.min(distanceToSegment(screenPath[0], screenPath[1]), distanceToSegment(screenPath[1], screenPath[2]));
+      const pointDistance = Math.hypot(event.clientX - screenPoint.x, event.clientY - screenPoint.y);
+      return markDistance < pointDistance ? { kind: "annotation", id: rightAngleHit.dataset.geometryId } : direct;
+    }
+
     function requiredVertices() {
       return { segment: 2, triangle: 3, quadrilateral: 4, circle: 2 }[mode] || null;
+    }
+
+    function annotationDraft() {
+      return mode === "right-angle" ? { type: "right-angle", required: 3 } : null;
+    }
+
+    function rightAngleDraftStatus() {
+      return [
+        "直角の頂点を選択してください",
+        "1本目の方向を選択してください",
+        "2本目の方向を選択してください"
+      ][draftVertices.length] || "直角の頂点を選択してください";
     }
 
     function pointForDraft(entry, points) {
@@ -265,9 +309,38 @@
       if (mode === "polygon") completeShape();
     }
 
+    function connectedSegmentIds(vertexId, rayVertexIds) {
+      const segmentIds = rayVertexIds.map((rayVertexId) => geometry.objects.find((object) => object.type === "segment"
+        && object.pointIds.includes(vertexId) && object.pointIds.includes(rayVertexId))?.id);
+      return segmentIds.every(Boolean) ? segmentIds : undefined;
+    }
+
+    function completeAnnotation() {
+      const draft = annotationDraft();
+      if (!draft || draftVertices.length !== draft.required || draftVertices.some((entry) => !entry.pointId)) return;
+      const [vertex, firstRay, secondRay] = draftVertices.map((entry) => entry.pointId);
+      try {
+        const rayVertexIds = [firstRay, secondRay];
+        const next = model.addRightAngle(geometry, {
+          vertexId: vertex,
+          rayVertexIds,
+          segmentIds: connectedSegmentIds(vertex, rayVertexIds)
+        });
+        clearDraft();
+        commit(next);
+        status.textContent = "直角記号を追加しました";
+      } catch (error) {
+        draftVertices = draftVertices.slice(0, 2);
+        draftPreview = null;
+        draw();
+        updateControls();
+        status.textContent = error.message || String(error);
+      }
+    }
+
     function handleCanvasClick(event) {
       if (drag?.moved) return;
-      const target = selectTarget(event.target);
+      const target = mode === "select" ? selectPointerTarget(event) : selectTarget(event.target);
       if (mode === "select") {
         const nextSelection = target || pointerSelection;
         pointerSelection = null;
@@ -283,6 +356,23 @@
         const position = coordinates(event);
         commit(model.addPoint(geometry, position));
         status.textContent = "点を追加しました";
+        return;
+      }
+      const annotation = annotationDraft();
+      if (annotation) {
+        if (target?.kind !== "point") {
+          status.textContent = "直角記号は既存の点を順に選択してください";
+          return;
+        }
+        if (draftVertices.some((entry) => entry.pointId === target.id)) {
+          status.textContent = "直角には異なる3点を指定してください";
+          return;
+        }
+        draftVertices.push({ pointId: target.id });
+        if (draftVertices.length === annotation.required) return completeAnnotation();
+        status.textContent = rightAngleDraftStatus();
+        draw();
+        updateControls();
         return;
       }
       const required = requiredVertices();
@@ -350,7 +440,7 @@
 
     svg.addEventListener("pointerdown", (event) => {
       pointerSelection = null;
-      const target = selectTarget(event.target);
+      const target = mode === "select" ? selectPointerTarget(event) : selectTarget(event.target);
       if (mode !== "select" || !target || !["point", "object"].includes(target.kind)) return;
       pointerSelection = target;
       drag = { ...target, original: geometry, origin: coordinates(event), moved: false };
