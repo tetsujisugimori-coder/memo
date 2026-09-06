@@ -184,6 +184,12 @@
       || (annotation.rayVertexIds[0] === rayVertexIds[1] && annotation.rayVertexIds[1] === rayVertexIds[0]);
   }
 
+  function hasSameAngle(annotation, vertexId, rayVertexIds) {
+    if (annotation.type !== "angle" || annotation.vertexId !== vertexId || !Array.isArray(annotation.rayVertexIds) || annotation.rayVertexIds.length !== 2) return false;
+    return (annotation.rayVertexIds[0] === rayVertexIds[0] && annotation.rayVertexIds[1] === rayVertexIds[1])
+      || (annotation.rayVertexIds[0] === rayVertexIds[1] && annotation.rayVertexIds[1] === rayVertexIds[0]);
+  }
+
   function updateLengthLabel(geometry, objectId, label, edgeIndex = 0) {
     const next = copy(geometry);
     const object = objectById(next, objectId);
@@ -239,6 +245,32 @@
   }
 
   function addAngle(geometry, { vertexId, rayVertexIds, segmentIds, value, unit = "°", label = "", radius, labelOffsetX, labelOffsetY } = {}) {
+    if (!vertexId || !pointById(geometry, vertexId)) throw new Error("角度の頂点となる点が見つかりません");
+    if (!Array.isArray(rayVertexIds) || rayVertexIds.length !== 2
+      || new Set(rayVertexIds).size !== 2 || rayVertexIds.includes(vertexId)
+      || rayVertexIds.some((pointId) => !pointById(geometry, pointId))) {
+      throw new Error("角度には頂点と異なる2つの方向点を指定してください");
+    }
+    const vertex = pointById(geometry, vertexId);
+    const [firstRay, secondRay] = rayVertexIds.map((pointId) => pointById(geometry, pointId));
+    const degrees = rightAngleDegrees(vertex, firstRay, secondRay);
+    if (degrees === null) throw new Error("頂点と方向点は異なる位置にしてください");
+    if (degrees <= RIGHT_ANGLE_ANGLE_EPSILON_DEGREES || degrees >= 180 - RIGHT_ANGLE_ANGLE_EPSILON_DEGREES) {
+      throw new Error("角度注釈は0度より大きく180度より小さい角度に追加できます");
+    }
+    if (geometry.annotations.some((annotation) => hasSameAngle(annotation, vertexId, rayVertexIds))) {
+      throw new Error("この角度注釈は既に追加されています");
+    }
+    if (segmentIds !== undefined) {
+      if (!Array.isArray(segmentIds) || segmentIds.length !== 2 || new Set(segmentIds).size !== 2
+        || segmentIds.some((segmentId, index) => {
+          const segment = objectById(geometry, segmentId);
+          return !segment || segment.type !== "segment" || segment.pointIds.length !== 2
+            || !segment.pointIds.includes(vertexId) || !segment.pointIds.includes(rayVertexIds[index]);
+        })) {
+        throw new Error("角度の線分参照が不正です");
+      }
+    }
     const next = copy(geometry);
     next.annotations.push({
       id: generatedEntityId("angle"), type: "angle", vertexId,
@@ -250,6 +282,14 @@
       ...(labelOffsetX === undefined ? {} : { labelOffsetX }),
       ...(labelOffsetY === undefined ? {} : { labelOffsetY })
     });
+    return normalizeGeometryBlock(next, next.id);
+  }
+
+  function updateAngleLabel(geometry, annotationId, label) {
+    const next = copy(geometry);
+    const annotation = next.annotations.find((entry) => entry.id === annotationId && entry.type === "angle");
+    if (!annotation) throw new Error("角度注釈が見つかりません");
+    annotation.label = String(label);
     return normalizeGeometryBlock(next, next.id);
   }
 
@@ -320,7 +360,7 @@
     };
   }
 
-  const api = { RIGHT_ANGLE_MIN_DEGREES, RIGHT_ANGLE_MAX_DEGREES, pointName, screenPointToViewBox, pointById, objectById, vertexLabel, lengthLabel, edgeCount, addPoint, addSegment, addPolygon, addCircle, movePoint, moveObject, updateVertexLabel, updateSegmentLineStyle, updateLengthLabel, addRightAngle, addAngle, addLengthAnnotation, addEqualLengthMark, addParallelMark, deleteSelection, createHistory };
+  const api = { RIGHT_ANGLE_MIN_DEGREES, RIGHT_ANGLE_MAX_DEGREES, pointName, screenPointToViewBox, pointById, objectById, vertexLabel, lengthLabel, edgeCount, addPoint, addSegment, addPolygon, addCircle, movePoint, moveObject, updateVertexLabel, updateSegmentLineStyle, updateLengthLabel, updateAngleLabel, addRightAngle, addAngle, addLengthAnnotation, addEqualLengthMark, addParallelMark, deleteSelection, createHistory };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   if (globalScope) globalScope.MemoNexusGeometryEditorUtils = api;
 })(typeof window !== "undefined" ? window : globalThis);

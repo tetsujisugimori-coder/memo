@@ -2449,3 +2449,12 @@
 * `runCircleInteriorSelectionScenario()` は、最小構成（共有2点、線分1本、円1個）のまま、点作成もSVGローカル座標 `{x:25,y:50}` と `{x:75,y:50}` を `getScreenCTM()` でclient座標へ投影してから実クリックする方式に変更した。スクロールと二重`requestAnimationFrame`による安定化を先に行い、クリック直前の`document.elementFromPoint()`が空のSVG面を返すことを確認する。
 * 線分中点のクリック前には、同じCTM投影・整数丸め後の`document.elementFromPoint()`が `.geometry-segment-hit` と対象線分IDを返すことを検証する。クリック後は対象線分の表示要素の`is-selected`、選択線分数1、選択円数0で、円ではなく線分が選択されたことを確認する。円周選択、円ドラッグ、円内部の点選択も同一の独立context内で回帰確認する。
 * production側は変更していない。SVGは線分用の透明stroke幅12 hit line、円周だけを受ける透明stroke幅12 hit circle、点hit circleを別要素として描画し、選択開始は`pointerdown`、最終選択状態は`click`で処理する既存設計を維持する。
+
+## 2026-09-07 図形ブロックの一般角注釈
+
+* 図形ブロックには直角注釈だけがあり、任意の0度超180度未満の角を、頂点と2本の方向点から作成・選択・表示文字編集する経路がなかった。新規作成時だけ参照、退化、0度／180度、重複、対応線分を検証し、保存済みデータの読込には新しい幾何条件を強制しないことで後方互換性を維持した。
+* `addAngle()` は順不同の方向点を重複判定し、対応する2本の線分が両方ある場合だけ`segmentIds`を保存する。`updateAngleLabel()`は`label`だけを更新するため、旧来の`value`、`unit`、`radius`、オフセットを上書きしない。削除、Undo／Redo、関連点・線分削除時の参照整理、複製時のID再生成は既存注釈処理を再利用した。
+* 編集UIへ角度モードと選択済み角度の表示文字入力を追加した。頂点、1本目、2本目の順で既存点だけを選び、2点選択後はポインター位置へ一時円弧を描画する。3点目の確定失敗時は先の2点を保持し、別の方向点を選び直せる。プレビューは永続化せず、操作hitも無効化した。
+* SVGでは表示円弧と透明な幅12のhit pathへ同一の`d`、注釈ID、typeを付与し、表示側はポインターイベントを受けない。頂点と重なる場合は現在SVGの`elementsFromPoint()`候補だけを対象に、CTMで画面へ変換した実表示パスへの最短距離と頂点中心への距離を比較し、同距離では点を優先する。複数注釈hitが重なる場合も全候補の表示パス距離から最も近い注釈を選ぶ。
+* Playwrightの独立シナリオは最小構成（頂点、2方向点、2線分）を作り、`scrollIntoView()`とレイアウト安定化後に円弧上のSVGローカル座標を`getScreenCTM()`でclient座標へ投影する。クリック直前に`document.elementFromPoint()`が対象の`.geometry-angle-hit`、期待する注釈ID、`type=angle`を返すことを確認し、クリック後は`g.geometry-angle.is-selected`、ラベル保存・再読込、削除・Undo／Redo、参照点削除を検証した。小さい注釈と頂点の競合、別SVGを選択しないこと、ドラッグ後の円弧更新も確認した。
+* `npm test` は1,043件すべて成功、`npm run test:e2e:geometry` は最終状態で5回連続成功、`npm run test:e2e:mobile` は成功した。変更JavaScript全ファイルの`node --check`も成功した。Chromium自動E2E以外の手動ブラウザー操作と実タッチ端末での当たり判定、push後のGitHub Actionsは未確認として残す。

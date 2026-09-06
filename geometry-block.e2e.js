@@ -170,6 +170,35 @@ async function formerRightAngleHitClientPosition(svg, annotationId) {
   }, annotationId);
 }
 
+async function angleArcClientPosition(svg, annotationId) {
+  return svg.evaluate((element, id) => {
+    const arc = element.querySelector(`.geometry-angle-arc[data-geometry-id="${id}"]`);
+    if (!arc) throw new Error(`角度注釈 ${id} の表示円弧が見つかりません`);
+    const matrix = element.getScreenCTM();
+    const length = arc.getTotalLength();
+    const attempts = [];
+    for (const fraction of [.2, .4, .6, .8]) {
+      const point = arc.getPointAtLength(length * fraction);
+      const screen = new DOMPoint(point.x, point.y).matrixTransform(matrix);
+      const x = Math.round(screen.x);
+      const y = Math.round(screen.y);
+      const stack = document.elementsFromPoint(x, y);
+      const hit = stack.find((node) => element.contains(node) && node.matches?.(`.geometry-angle-hit[data-geometry-id="${id}"]`));
+      const top = document.elementFromPoint(x, y);
+      const topTarget = top?.closest("[data-geometry-kind]");
+      if (hit) return {
+        x,
+        y,
+        fraction,
+        top: { tag: top?.tagName, className: top?.getAttribute("class"), kind: topTarget?.dataset?.geometryKind, id: topTarget?.dataset?.geometryId },
+        resolved: { id: hit.dataset.geometryId, type: hit.dataset.geometryType }
+      };
+      attempts.push({ fraction, x, y, tag: top?.tagName, className: top?.getAttribute("class"), hitId: hit?.dataset.geometryId });
+    }
+    throw new Error(`角度注釈 ${id} の表示円弧上に実クリック座標を取得できません: ${JSON.stringify(attempts)}`);
+  }, annotationId);
+}
+
 async function runRightAngleEditorScenario(browser, url) {
   const context = await browser.newContext({ viewport: { width: 1100, height: 800 } });
   const page = await context.newPage();
@@ -322,14 +351,21 @@ async function runRightAngleOverlapScenario(browser, url) {
           segmentIds: [firstSegment.id, secondSegment.id],
           size
         });
-        return { geometry: value, vertexId: vertex.id, annotationId: value.annotations.find((annotation) => annotation.type === "right-angle").id };
+        return {
+          geometry: value,
+          vertexId: vertex.id,
+          annotationId: value.annotations.find((annotation) => annotation.type === "right-angle").id
+        };
       };
       const small = build("right-angle-overlap-small", 500, 2);
       const standard = build("right-angle-overlap-standard", 100, 6);
       const input = document.getElementById("editor");
       input.value = `${blocks.serializeGeometryBlock(small.geometry)}\n${blocks.serializeGeometryBlock(standard.geometry)}`;
       input.dispatchEvent(new Event("input", { bubbles: true }));
-      return { small: { id: small.geometry.id, vertexId: small.vertexId, annotationId: small.annotationId }, standard: { id: standard.geometry.id, annotationId: standard.annotationId } };
+      return {
+        small: { id: small.geometry.id, vertexId: small.vertexId, annotationId: small.annotationId },
+        standard: { id: standard.geometry.id, vertexId: standard.vertexId, annotationId: standard.annotationId }
+      };
     });
     await page.waitForFunction(({ small, standard }) => document.querySelectorAll(".geometry-block-editor").length === 2
       && document.querySelector(`.geometry-block-editor[data-geometry-id="${small.id}"] g.geometry-right-angle[data-geometry-id="${small.annotationId}"]`)
@@ -400,6 +436,115 @@ async function runRightAngleOverlapScenario(browser, url) {
       return point && (point.x !== before.x || point.y !== before.y);
     }, { geometryId: setup.small.id, pointId: setup.small.vertexId, before: restoredVertex });
     assert.equal(pageErrors.length, 0, "縮小直角記号の競合シナリオで未処理例外を出さない");
+  } finally {
+    await context.close();
+  }
+}
+
+async function runAngleEditorScenario(browser, url) {
+  const context = await browser.newContext({ viewport: { width: 1100, height: 800 } });
+  const page = await context.newPage();
+  const pageErrors = [];
+  page.on("pageerror", (error) => pageErrors.push(error.message));
+  try {
+    await waitForApp(page, url);
+    await page.locator("#editor").fill("一般角注釈のUI編集");
+    await page.locator("#editor").press("End");
+    await page.locator("#insertGeometryBtn").click();
+    const editor = page.locator(".geometry-block-editor");
+    await editor.waitFor();
+    const svg = editor.locator("svg");
+
+    await editor.locator('[data-geometry-mode="point"]').click();
+    const pointAlignment = await alignSvgForPointer(svg);
+    assertSvgAlignment(pointAlignment.before, pointAlignment.after, "一般角の点作成前にSVGを安定させる");
+    for (const logicalPoint of [{ x: 30, y: 70 }, { x: 30, y: 20 }, { x: 73, y: 45 }]) {
+      const client = await logicalClientPosition(svg, logicalPoint);
+      assert.equal(client.top.tag?.toLowerCase(), "svg", `一般角の頂点を置く前の最前面要素: ${JSON.stringify({ logicalPoint, projection: client })}`);
+      await page.mouse.click(client.x, client.y);
+    }
+    let angleGeometry = await geometry(page);
+    assert.equal(angleGeometry.points.length, 3, "一般角用に3点だけ追加する");
+    const [vertex, firstRay, secondRay] = angleGeometry.points;
+
+    await editor.locator('[data-geometry-mode="segment"]').click();
+    await clickLocatorCenter(page, editor.locator(`[data-geometry-kind="point"][data-geometry-id="${vertex.id}"]`), "一般角の頂点と第1方向を結ぶ線分の頂点を選択できる");
+    await clickLocatorCenter(page, editor.locator(`[data-geometry-kind="point"][data-geometry-id="${firstRay.id}"]`), "一般角の第1方向点を選択できる");
+    await clickLocatorCenter(page, editor.locator(`[data-geometry-kind="point"][data-geometry-id="${vertex.id}"]`), "一般角の頂点と第2方向を結ぶ線分の頂点を選択できる");
+    await clickLocatorCenter(page, editor.locator(`[data-geometry-kind="point"][data-geometry-id="${secondRay.id}"]`), "一般角の第2方向点を選択できる");
+    angleGeometry = await geometry(page);
+    assert.equal(angleGeometry.objects.filter((object) => object.type === "segment").length, 2, "一般角に対応する2本の線分を作成する");
+
+    const angleButton = editor.locator('[data-geometry-mode="angle"]');
+    await angleButton.click();
+    assert.equal(await angleButton.getAttribute("aria-pressed"), "true", "角度モードを有効化する");
+    assert.match(await editor.locator(".geometry-block-status").textContent(), /角度の頂点を選択/);
+    await clickLocatorCenter(page, editor.locator(`[data-geometry-kind="point"][data-geometry-id="${vertex.id}"]`), "一般角の頂点を選択できる");
+    assert.match(await editor.locator(".geometry-block-status").textContent(), /1本目の方向/);
+    await clickLocatorCenter(page, editor.locator(`[data-geometry-kind="point"][data-geometry-id="${firstRay.id}"]`), "一般角の第1方向を選択できる");
+    assert.match(await editor.locator(".geometry-block-status").textContent(), /2本目の方向/);
+    const secondRayClient = await logicalClientPosition(svg, secondRay);
+    await page.mouse.move(secondRayClient.x, secondRayClient.y);
+    await page.waitForFunction(() => document.querySelectorAll(".geometry-angle-draft").length === 1);
+    await clickLocatorCenter(page, editor.locator(`[data-geometry-kind="point"][data-geometry-id="${secondRay.id}"]`), "一般角の第2方向を選択できる");
+    await page.waitForFunction(() => document.querySelectorAll(".geometry-angle").length === 1);
+    assert.equal(await page.locator(".geometry-angle-draft").count(), 0, "正式な角度注釈の作成後にドラフトを残さない");
+    angleGeometry = await geometry(page);
+    const annotation = angleGeometry.annotations.find((item) => item.type === "angle");
+    assert.deepEqual(annotation.pointIds, [firstRay.id, vertex.id, secondRay.id], "角度注釈は方向点・頂点・方向点の順で保存する");
+    assert.equal(annotation.segmentIds?.length, 2, "対応する2本の線分参照を保存する");
+
+    await editor.locator('[data-geometry-mode="select"]').click();
+    const selectionAlignment = await alignSvgForPointer(svg);
+    assertSvgAlignment(selectionAlignment.before, selectionAlignment.after, "一般角選択前にSVGを安定させる");
+    const arcClient = await angleArcClientPosition(svg, annotation.id);
+    assert.equal(arcClient.resolved.id, annotation.id, "円弧上の実クリック座標は対象角度注釈へ解決する");
+    assert.equal(arcClient.resolved.type, "angle", "円弧上のhit領域は角度注釈種別を持つ");
+    assert.equal(arcClient.top.kind, "annotation", `円弧の最前面要素: ${JSON.stringify({ annotationId: annotation.id, projection: arcClient })}`);
+    assert.equal(arcClient.top.id, annotation.id, `円弧の最前面要素ID: ${JSON.stringify({ annotationId: annotation.id, projection: arcClient })}`);
+    assert.match(arcClient.top.className || "", /geometry-angle-hit/, "円弧の最前面要素は角度hit領域である");
+    await page.mouse.click(arcClient.x, arcClient.y);
+    await page.waitForFunction((annotationId) => document.querySelector(`g.geometry-angle[data-geometry-id="${annotationId}"]`)?.classList.contains("is-selected") === true, annotation.id);
+
+    const angleLabelInput = editor.locator('[aria-label="選択した角度の表示"]');
+    assert.equal(await angleLabelInput.isEnabled(), true, "選択中の角度だけ表示文字を編集できる");
+    await angleLabelInput.fill("60°");
+    await angleLabelInput.press("Tab");
+    await page.waitForFunction((annotationId) => window.MemoNexusGeometryBlockUtils.splitGeometryBlocks(document.getElementById("editor").value)
+      .find((segment) => segment.type === "geometry")?.geometry.annotations.find((item) => item.id === annotationId)?.label === "60°", annotation.id);
+    const beforeMovePath = await editor.locator(`.geometry-angle-arc[data-geometry-id="${annotation.id}"]`).getAttribute("d");
+    const movedEnd = await logicalClientPosition(svg, { x: secondRay.x + 8, y: secondRay.y + 5 });
+    await page.mouse.move(secondRayClient.x, secondRayClient.y);
+    await page.mouse.down();
+    await page.mouse.move(movedEnd.x, movedEnd.y);
+    await page.mouse.up();
+    await page.waitForFunction(({ annotationId, path }) => document.querySelector(`.geometry-angle-arc[data-geometry-id="${annotationId}"]`)?.getAttribute("d") !== path, { annotationId: annotation.id, path: beforeMovePath });
+    assert.equal(await editor.locator(`g.geometry-angle[data-geometry-id="${annotation.id}"] .geometry-angle-label`).textContent(), "60°", "点移動後も角度の表示文字を維持する");
+
+    const movedArcClient = await angleArcClientPosition(svg, annotation.id);
+    await page.mouse.click(movedArcClient.x, movedArcClient.y);
+    await editor.locator("button", { hasText: "選択を削除" }).click();
+    await page.waitForFunction((annotationId) => !document.querySelector(`g.geometry-angle[data-geometry-id="${annotationId}"]`), annotation.id);
+    await editor.locator("button", { hasText: "戻す" }).click();
+    await page.waitForFunction((annotationId) => Boolean(document.querySelector(`g.geometry-angle[data-geometry-id="${annotationId}"]`)), annotation.id);
+    await editor.locator("button", { hasText: "やり直す" }).click();
+    await page.waitForFunction((annotationId) => !document.querySelector(`g.geometry-angle[data-geometry-id="${annotationId}"]`), annotation.id);
+    await editor.locator("button", { hasText: "戻す" }).click();
+    await page.waitForFunction((annotationId) => Boolean(document.querySelector(`g.geometry-angle[data-geometry-id="${annotationId}"]`)), annotation.id);
+
+    await page.evaluate(() => window.flushSave());
+    await page.reload({ waitUntil: "domcontentloaded" });
+    await page.locator("#appStartupGuard").waitFor({ state: "hidden" });
+    const restoredEditor = page.locator(".geometry-block-editor");
+    const restored = await geometry(page);
+    const restoredAnnotation = restored.annotations.find((item) => item.id === annotation.id);
+    assert.equal(restoredAnnotation.label, "60°", "保存・再読込後も角度表示文字を復元する");
+    assert.deepEqual(restoredAnnotation.segmentIds, annotation.segmentIds, "保存・再読込後も角度の線分参照を復元する");
+    await restoredEditor.locator(`[data-geometry-kind="point"][data-geometry-id="${firstRay.id}"]`).click();
+    await restoredEditor.locator("button", { hasText: "選択を削除" }).click();
+    await page.waitForFunction((annotationId) => !window.MemoNexusGeometryBlockUtils.splitGeometryBlocks(document.getElementById("editor").value)
+      .find((segment) => segment.type === "geometry")?.geometry.annotations.some((item) => item.id === annotationId), annotation.id);
+    assert.equal(pageErrors.length, 0, "一般角注釈シナリオで未処理例外を出さない");
   } finally {
     await context.close();
   }
@@ -551,6 +696,7 @@ async function runCircleInteriorSelectionScenario(browser, url) {
   try {
     await runRightAngleEditorScenario(browser, url);
     await runRightAngleOverlapScenario(browser, url);
+    await runAngleEditorScenario(browser, url);
     await runCircleInteriorSelectionScenario(browser, url);
     const page = await browser.newPage({ viewport: { width: 1100, height: 800 } });
     await waitForApp(page, url);
@@ -774,13 +920,13 @@ async function runCircleInteriorSelectionScenario(browser, url) {
     const semanticEditor = page.locator(".geometry-block-editor");
     await semanticEditor.evaluate((element) => { window.__semanticGeometryEditor = element; });
     assert.equal(await semanticEditor.locator("g.geometry-right-angle").getAttribute("data-vertex-id"), semanticBeforeReload.points[1].id, "直角記号が頂点IDを保持する");
-    assert.equal(await semanticEditor.locator('[data-geometry-type="angle"]').getAttribute("data-vertex-id"), semanticBeforeReload.points[1].id, "角度表示が中心頂点IDを保持する");
+    assert.equal(await semanticEditor.locator('g.geometry-angle[data-geometry-type="angle"]').getAttribute("data-vertex-id"), semanticBeforeReload.points[1].id, "角度表示が中心頂点IDを保持する");
     assert.equal(await semanticEditor.locator('[data-geometry-type="length-label"]').getAttribute("data-segment-id"), semanticBeforeReload.objects[0].id, "辺長表示が線分IDを保持する");
     assert.equal(await semanticEditor.locator('[data-geometry-type="equal-length"]').count(), 2, "等辺記号が対象2線分へ描画される");
     assert.equal(await semanticEditor.locator('[data-geometry-type="parallel"]').count(), 2, "平行記号が対象2線分へ描画される");
     assert.equal(await semanticEditor.locator(`[data-geometry-id="${semanticBeforeReload.objects[3].id}"]`).getAttribute("data-segment-role"), "diagonal", "対角線の意味ロールをSVGへ反映する");
     await page.waitForFunction(() => document.querySelectorAll("#preview g.geometry-right-angle").length === 1);
-    assert.equal(await page.locator('#preview [data-geometry-type="angle"]').getAttribute("data-vertex-id"), semanticBeforeReload.points[1].id, "カード表示も同じ意味付きSVGレンダラーで角度を描画する");
+    assert.equal(await page.locator('#preview g.geometry-angle[data-geometry-type="angle"]').getAttribute("data-vertex-id"), semanticBeforeReload.points[1].id, "カード表示も同じ意味付きSVGレンダラーで角度を描画する");
     const targetPointId = semanticBeforeReload.points[0].id;
     const targetPoint = semanticEditor.locator(`.geometry-point-hit[data-geometry-kind="point"][data-geometry-id="${targetPointId}"]`);
     await targetPoint.waitFor();

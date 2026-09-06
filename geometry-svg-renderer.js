@@ -119,6 +119,21 @@
     return annotation.value === undefined ? "" : `${annotation.value}${annotation.unit || ""}`;
   }
 
+  function angleArcPath(vertex, firstDirection, secondDirection, radius) {
+    if (!vertex || !firstDirection || !secondDirection || !Number.isFinite(radius) || radius <= 0) return null;
+    const start = { x: vertex.x + firstDirection.x * radius, y: vertex.y + firstDirection.y * radius };
+    const end = { x: vertex.x + secondDirection.x * radius, y: vertex.y + secondDirection.y * radius };
+    const dot = Math.max(-1, Math.min(1, firstDirection.x * secondDirection.x + firstDirection.y * secondDirection.y));
+    const cross = firstDirection.x * secondDirection.y - firstDirection.y * secondDirection.x;
+    const degrees = Math.acos(dot) * 180 / Math.PI;
+    if (!Number.isFinite(degrees)) return null;
+    return {
+      d: `M ${start.x} ${start.y} A ${radius} ${radius} 0 0 ${cross >= 0 ? 1 : 0} ${end.x} ${end.y}`,
+      degrees,
+      labelDirection: unitVector({ x: 0, y: 0 }, { x: firstDirection.x + secondDirection.x, y: firstDirection.y + secondDirection.y }) || { x: -firstDirection.y, y: firstDirection.x }
+    };
+  }
+
   function semanticGroup(type, annotation, ariaLabel, { interactive = false, selected = false } = {}) {
     return svgElement("g", {
       class: `geometry-annotation geometry-${type}${selected ? " is-selected" : ""}`,
@@ -171,27 +186,45 @@
     svg.append(group);
   }
 
-  function renderAngle(svg, annotation, geometry, points, vertexLabel) {
+  function renderAngle(svg, annotation, geometry, points, vertexLabel, selection) {
     const angle = annotationAnglePoints(annotation, points);
     if (!angle) return;
     const radius = annotation.radius || 12;
-    const start = { x: angle.vertex.x + angle.firstDirection.x * radius, y: angle.vertex.y + angle.firstDirection.y * radius };
-    const end = { x: angle.vertex.x + angle.secondDirection.x * radius, y: angle.vertex.y + angle.secondDirection.y * radius };
-    const dot = Math.max(-1, Math.min(1, angle.firstDirection.x * angle.secondDirection.x + angle.firstDirection.y * angle.secondDirection.y));
-    const cross = angle.firstDirection.x * angle.secondDirection.y - angle.firstDirection.y * angle.secondDirection.x;
-    const degrees = Math.acos(dot) * 180 / Math.PI;
+    const arc = angleArcPath(angle.vertex, angle.firstDirection, angle.secondDirection, radius);
+    if (!arc) return;
     const text = displayValue(annotation);
-    const labelDirection = unitVector({ x: 0, y: 0 }, { x: angle.firstDirection.x + angle.secondDirection.x, y: angle.firstDirection.y + angle.secondDirection.y }) || { x: -angle.firstDirection.y, y: angle.firstDirection.x };
     const labelRadius = radius + 7;
-    const labelX = angle.vertex.x + labelDirection.x * labelRadius + (annotation.labelOffsetX || 0);
-    const labelY = angle.vertex.y + labelDirection.y * labelRadius + (annotation.labelOffsetY || 0);
+    const labelX = angle.vertex.x + arc.labelDirection.x * labelRadius + (annotation.labelOffsetX || 0);
+    const labelY = angle.vertex.y + arc.labelDirection.y * labelRadius + (annotation.labelOffsetY || 0);
     const name = pointName(geometry, angle.vertexId, vertexLabel);
-    const group = semanticGroup("angle", annotation, `角 ${name}${text ? ` ${text}` : degrees ? ` ${Math.round(degrees)}度` : ""}`);
+    const group = semanticGroup("angle", annotation, `角 ${name}${text ? ` ${text}` : arc.degrees ? ` ${Math.round(arc.degrees)}度` : ""}`, {
+      interactive: true,
+      selected: selection?.kind === "annotation" && selection.id === annotation.id
+    });
     group.setAttribute("data-vertex-id", angle.vertexId);
-    group.append(svgElement("path", {
-      d: `M ${start.x} ${start.y} A ${radius} ${radius} 0 ${degrees > 180 ? 1 : 0} ${cross >= 0 ? 1 : 0} ${end.x} ${end.y}`,
-      class: "geometry-angle-arc", fill: "none"
-    }));
+    group.append(
+      svgElement("path", {
+        d: arc.d,
+        class: "geometry-angle-hit",
+        fill: "none",
+        stroke: "transparent",
+        "stroke-width": 12,
+        "pointer-events": "stroke",
+        "data-geometry-kind": "annotation",
+        "data-geometry-type": "angle",
+        "data-geometry-id": annotation.id,
+        "aria-hidden": "true"
+      }),
+      svgElement("path", {
+        d: arc.d,
+        class: "geometry-angle-arc",
+        fill: "none",
+        "pointer-events": "none",
+        "data-geometry-kind": "annotation",
+        "data-geometry-type": "angle",
+        "data-geometry-id": annotation.id
+      })
+    );
     if (text) {
       const label = svgElement("text", { x: labelX, y: labelY, class: "geometry-angle-label" });
       label.textContent = text;
@@ -262,7 +295,7 @@
   function renderAnnotations(svg, geometry, points, objects, vertexLabel, selection) {
     geometry.annotations.forEach((annotation) => {
       if (annotation.type === "right-angle") renderRightAngle(svg, annotation, geometry, points, vertexLabel, selection);
-      else if (annotation.type === "angle") renderAngle(svg, annotation, geometry, points, vertexLabel);
+      else if (annotation.type === "angle") renderAngle(svg, annotation, geometry, points, vertexLabel, selection);
       else if (annotation.type === "length-label") {
         const object = objects.get(annotation.objectId);
         if (object) renderLengthLabel(svg, annotation, object, points);
@@ -336,7 +369,7 @@
     });
   }
 
-  const api = { annotationAnglePoints, buildGeometryRenderModel, displayValue, renderGeometrySvg };
+  const api = { angleArcPath, annotationAnglePoints, buildGeometryRenderModel, displayValue, renderGeometrySvg };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   if (globalScope) globalScope.MemoNexusGeometrySvgRenderer = api;
 })(typeof window !== "undefined" ? window : globalThis);

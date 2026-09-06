@@ -104,15 +104,25 @@ test("SVGは意味付きデータから生成され、頂点移動後に注釈�
     assert.match(angle.getAttribute("aria-label"), /角 B 90°/);
     const rightAngleHit = rightAngle.children.find((node) => node.getAttribute("class") === "geometry-right-angle-hit");
     const rightAngleMark = rightAngle.children.find((node) => node.getAttribute("class") === "geometry-right-angle-mark");
+    const angleHit = angle.children.find((node) => node.getAttribute("class") === "geometry-angle-hit");
+    const angleArc = angle.children.find((node) => node.getAttribute("class") === "geometry-angle-arc");
     assert.equal(rightAngleHit.getAttribute("data-geometry-kind"), "annotation", "直角記号のヒット領域から注釈種別を取得できる");
     assert.equal(rightAngleHit.getAttribute("data-geometry-id"), rightAngle.getAttribute("data-geometry-id"), "直角記号のヒット領域から注釈IDを取得できる");
     assert.equal(rightAngleHit.getAttribute("pointer-events"), "stroke", "直角記号のヒット領域だけがポインターを受け取る");
     assert.equal(rightAngleHit.getAttribute("stroke-width"), "12", "直角記号のヒット領域は表示サイズから独立して幅12を保つ");
     assert.equal(rightAngleMark.getAttribute("pointer-events"), "none", "直角記号の表示線はクリックを奪わない");
     assert.equal(rightAngleHit.getAttribute("d"), rightAngleMark.getAttribute("d"), "直角記号の表示線とヒット領域は同じ位置に描画する");
+    assert.equal(angleHit.getAttribute("data-geometry-kind"), "annotation", "角度円弧のヒット領域から注釈種別を取得できる");
+    assert.equal(angleHit.getAttribute("data-geometry-id"), angle.getAttribute("data-geometry-id"), "角度円弧のヒット領域から注釈IDを取得できる");
+    assert.equal(angleHit.getAttribute("pointer-events"), "stroke", "角度円弧のヒット領域だけがポインターを受け取る");
+    assert.equal(angleHit.getAttribute("stroke-width"), "12", "角度円弧のヒット領域は幅12を保つ");
+    assert.equal(angleArc.getAttribute("pointer-events"), "none", "角度円弧の表示線はクリックを奪わない");
+    assert.equal(angleHit.getAttribute("d"), angleArc.getAttribute("d"), "角度円弧の表示線とヒット領域は同じ位置に描画する");
     assert.equal(first.filter((node) => node.getAttribute("data-geometry-type") === "equal-length").length, 2);
     assert.equal(first.filter((node) => node.getAttribute("data-geometry-type") === "parallel").length, 2);
     const beforePath = rightAngleMark.getAttribute("d");
+    const beforeAnglePath = angleArc.getAttribute("d");
+    const beforeAngleLabel = angle.children.find((node) => node.getAttribute("class") === "geometry-angle-label");
     const moved = movePoint(geometry, geometry.points[1].id, 20, 20);
     renderGeometrySvg(svg, moved, { vertexLabel: labels });
     const movedRightAngle = descendants(svg).find((node) => node.getAttribute("data-geometry-type") === "right-angle");
@@ -120,6 +130,16 @@ test("SVGは意味付きデータから生成され、頂点移動後に注釈�
     const movedRightAngleHit = movedRightAngle.children.find((node) => node.getAttribute("class") === "geometry-right-angle-hit");
     assert.notEqual(movedRightAngleMark.getAttribute("d"), beforePath);
     assert.equal(movedRightAngleHit.getAttribute("d"), movedRightAngleMark.getAttribute("d"), "頂点移動後も表示線とヒット領域を同じ参照点から再計算する");
+    const movedAngle = descendants(svg).find((node) => node.getAttribute("data-geometry-type") === "angle");
+    const movedAngleArc = movedAngle.children.find((node) => node.getAttribute("class") === "geometry-angle-arc");
+    const movedAngleHit = movedAngle.children.find((node) => node.getAttribute("class") === "geometry-angle-hit");
+    const movedAngleLabel = movedAngle.children.find((node) => node.getAttribute("class") === "geometry-angle-label");
+    assert.notEqual(movedAngleArc.getAttribute("d"), beforeAnglePath, "点移動後に角度円弧を再計算する");
+    assert.equal(movedAngleHit.getAttribute("d"), movedAngleArc.getAttribute("d"), "点移動後も角度円弧の表示線とヒット領域を一致させる");
+    assert.notDeepEqual({ x: movedAngleLabel.getAttribute("x"), y: movedAngleLabel.getAttribute("y") }, { x: beforeAngleLabel.getAttribute("x"), y: beforeAngleLabel.getAttribute("y") }, "点移動後に角度表示位置を再計算する");
+    const angleAnnotation = geometry.annotations.find((annotation) => annotation.type === "angle");
+    renderGeometrySvg(svg, geometry, { selection: { kind: "annotation", id: angleAnnotation.id }, vertexLabel: labels });
+    assert.match(descendants(svg).find((node) => node.getAttribute("data-geometry-id") === angleAnnotation.id).getAttribute("class"), /is-selected/, "選択時は角度円弧へアクセントを付ける");
   } finally {
     global.document = priorDocument;
   }
