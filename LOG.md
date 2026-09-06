@@ -2419,3 +2419,12 @@
 * 操作優先順位は、頂点中心から6画面px以内では頂点を優先し、それ以外で`elementsFromPoint()`に表示位置の直角ヒットパスも含まれる場合は直角注釈を優先する方式とした。頂点の広い既存ヒット領域とドラッグは縮小せず、表示直角線上のクリックだけを注釈選択へ解決する。
 * 表示用パスにも注釈ID属性を付与した。単体テストでsize未指定時の6、明示size、表示・ヒットの`d`一致、幅12、ポインターイベント、選択時クラス、頂点移動後の同一再計算を確認した。Geometry E2Eは表示線の`getPointAtLength()`、CTM、`elementsFromPoint()`から実クリック座標を選び、直角注釈選択・削除、頂点中心の選択・ドラッグ、直角クリック時の非移動、旧hitSize:12相当外側位置の非選択、保存・再読み込みを確認した。
 * `npm test` は1031件すべて成功した。`npm run test:e2e:geometry` は5回連続で成功した。変更JavaScriptの`node --check`と`git diff --check`は後続の最終確認で実施する。自動Chromium E2E以外の手動ブラウザー操作およびタッチ端末での当たり判定は未確認として残す。
+
+## 2026-09-06 PR #184 縮小直角記号と頂点ヒットの動的競合解決
+
+* CI run #164 のランダムID順依存は前回修正済みだが、その後のCI #165成功時点の `selectPointerTarget()` は頂点中心から固定6画面px以内を無条件に頂点優先していた。そのため、明示sizeを小さくした直角記号や大きなviewBoxでは、表示線が頂点近傍にあっても注釈を選択できなかった。
+* `selectPointerTarget()` は、現在のSVGのCTMで変換した頂点中心と、同じ注釈の表示用L字パスの2線分への最短距離を比較する方式へ変更した。固定閾値は使わず、表示線に近ければ注釈、同距離を含め頂点中心に近ければ頂点を選択する。保存済みの `size` と `viewBox`、表示size 6、透明ヒット領域の `stroke-width: 12` は変更していない。
+* `elementsFromPoint()` で得る直角注釈ヒットは `svg.contains(node)` で現在のSVGに限定した。複数の図形ブロックがあるE2Eで、対象SVGの縮小直角記号だけを選択し、別SVGの注釈を選択しないことを確認した。
+* Geometry E2Eへ、明示 `size: 2` と `viewBox: 500` の縮小ケースを追加した。CTM変換後の表示線上クリックが頂点中心から6px以内であること、`elementFromPoint()` が頂点ヒット円を返す競合状態、同一SVGのヒット領域ID、実際の `page.mouse.click()` による注釈選択、クリック時の非移動、削除・Undo・保存再読込、頂点中心の選択とドラッグを検証する。通常size 6の注釈の実クリックも維持した。
+* `geometry-block-editor.js` のキャッシュ識別子を `0.5.0-11` へ更新し、`version.test.js` の期待値を同期した。`npm test` は1031件すべて成功、`npm run test:e2e:geometry` は修正後の単発成功に続き5回連続成功、変更JavaScriptの `node --check` と `git diff --check` は成功した。
+* 自動Chromium E2E以外の手動ブラウザー操作、実タッチ端末での当たり判定、push後のGitHub Actionsはこの追記時点では未確認として残す。

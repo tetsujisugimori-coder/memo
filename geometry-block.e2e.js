@@ -46,6 +46,11 @@ async function geometry(page) {
   });
 }
 
+async function geometryById(page, geometryId) {
+  return page.evaluate((id) => window.MemoNexusGeometryBlockUtils.splitGeometryBlocks(document.getElementById("editor").value)
+    .find((segment) => segment.type === "geometry" && segment.geometry.id === id)?.geometry || null, geometryId);
+}
+
 async function expectedLogicalPosition(svg, position) {
   return svg.evaluate((element, relative) => {
     const rect = element.getBoundingClientRect();
@@ -114,6 +119,7 @@ async function rightAngleMarkClientPosition(svg, annotationId) {
     if (!vertex) throw new Error(`直角注釈 ${id} の頂点が見つかりません`);
     const matrix = element.getScreenCTM();
     const vertexScreen = new DOMPoint(Number(vertex.getAttribute("cx")), Number(vertex.getAttribute("cy"))).matrixTransform(matrix);
+    const vertexPixel = { x: Math.round(vertexScreen.x), y: Math.round(vertexScreen.y) };
     const length = mark.getTotalLength();
     const attempts = [];
     for (const fraction of [.15, .35, .65, .85]) {
@@ -122,22 +128,23 @@ async function rightAngleMarkClientPosition(svg, annotationId) {
       const x = Math.round(screen.x);
       const y = Math.round(screen.y);
       const stack = document.elementsFromPoint(x, y);
-      const hit = stack.find((node) => node.matches?.(`.geometry-right-angle-hit[data-geometry-id="${id}"]`));
-      const top = stack[0];
+      const hit = stack.find((node) => element.contains(node) && node.matches?.(`.geometry-right-angle-hit[data-geometry-id="${id}"]`));
+      const top = document.elementFromPoint(x, y);
+      const topTarget = top?.closest("[data-geometry-kind]");
       const distanceFromVertexCenter = Math.hypot(x - vertexScreen.x, y - vertexScreen.y);
-      if (hit && distanceFromVertexCenter > 6) {
+      if (hit && (x !== vertexPixel.x || y !== vertexPixel.y)) {
         return {
           x,
           y,
           fraction,
           distanceFromVertexCenter,
-          top: { tag: top?.tagName, className: top?.getAttribute("class") },
+          top: { tag: top?.tagName, className: top?.getAttribute("class"), kind: topTarget?.dataset?.geometryKind, id: topTarget?.dataset?.geometryId },
           resolved: { id: hit.dataset.geometryId }
         };
       }
       attempts.push({ fraction, x, y, distanceFromVertexCenter, tag: top?.tagName, className: top?.getAttribute("class"), hitId: hit?.dataset.geometryId });
     }
-    throw new Error(`直角注釈 ${id} の表示線を操作優先順位に従って選択できません: ${JSON.stringify(attempts)}`);
+    throw new Error(`直角注釈 ${id} の表示線上に、頂点中心と異なる実クリック座標を取得できません: ${JSON.stringify(attempts)}`);
   }, annotationId);
 }
 
@@ -158,7 +165,7 @@ async function formerRightAngleHitClientPosition(svg, annotationId) {
     return {
       x,
       y,
-      annotationId: stack.find((node) => node.matches?.(`.geometry-right-angle-hit[data-geometry-id="${id}"]`))?.dataset.geometryId
+      annotationId: stack.find((node) => element.contains(node) && node.matches?.(`.geometry-right-angle-hit[data-geometry-id="${id}"]`))?.dataset.geometryId
     };
   }, annotationId);
 }
@@ -285,6 +292,114 @@ async function runRightAngleEditorScenario(browser, url) {
     }, annotation.id);
     assert.equal((await geometry(page)).annotations.some((item) => item.id === annotation.id), false, "関連点の削除後に参照切れの直角注釈を残さない");
     assert.equal(pageErrors.length, 0, "直角注釈シナリオで未処理例外を出さない");
+  } finally {
+    await context.close();
+  }
+}
+
+async function runRightAngleOverlapScenario(browser, url) {
+  const context = await browser.newContext({ viewport: { width: 1100, height: 800 } });
+  const page = await context.newPage();
+  const pageErrors = [];
+  page.on("pageerror", (error) => pageErrors.push(error.message));
+  try {
+    await waitForApp(page, url);
+    const setup = await page.evaluate(() => {
+      const blocks = window.MemoNexusGeometryBlockUtils;
+      const model = window.MemoNexusGeometryEditorUtils;
+      const build = (id, viewBoxSize, size) => {
+        let value = blocks.createGeometryBlock(id);
+        value = { ...value, viewBox: { x: 0, y: 0, width: viewBoxSize, height: viewBoxSize } };
+        const offset = viewBoxSize / 5;
+        [[offset, offset * 3], [offset, offset], [offset * 3, offset]].forEach(([x, y]) => { value = model.addPoint(value, { x, y }); });
+        const [firstRay, vertex, secondRay] = value.points;
+        value = model.addSegment(value, vertex.id, firstRay.id);
+        value = model.addSegment(value, vertex.id, secondRay.id);
+        const [firstSegment, secondSegment] = value.objects;
+        value = model.addRightAngle(value, {
+          vertexId: vertex.id,
+          rayVertexIds: [firstRay.id, secondRay.id],
+          segmentIds: [firstSegment.id, secondSegment.id],
+          size
+        });
+        return { geometry: value, vertexId: vertex.id, annotationId: value.annotations.find((annotation) => annotation.type === "right-angle").id };
+      };
+      const small = build("right-angle-overlap-small", 500, 2);
+      const standard = build("right-angle-overlap-standard", 100, 6);
+      const input = document.getElementById("editor");
+      input.value = `${blocks.serializeGeometryBlock(small.geometry)}\n${blocks.serializeGeometryBlock(standard.geometry)}`;
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+      return { small: { id: small.geometry.id, vertexId: small.vertexId, annotationId: small.annotationId }, standard: { id: standard.geometry.id, annotationId: standard.annotationId } };
+    });
+    await page.waitForFunction(({ small, standard }) => document.querySelectorAll(".geometry-block-editor").length === 2
+      && document.querySelector(`.geometry-block-editor[data-geometry-id="${small.id}"] g.geometry-right-angle[data-geometry-id="${small.annotationId}"]`)
+      && document.querySelector(`.geometry-block-editor[data-geometry-id="${standard.id}"] g.geometry-right-angle[data-geometry-id="${standard.annotationId}"]`), setup);
+
+    const smallEditor = page.locator(`.geometry-block-editor[data-geometry-id="${setup.small.id}"]`);
+    const smallSvg = smallEditor.locator("svg");
+    const smallMark = smallEditor.locator(`g.geometry-right-angle[data-geometry-id="${setup.small.annotationId}"]`);
+    const standardEditor = page.locator(`.geometry-block-editor[data-geometry-id="${setup.standard.id}"]`);
+    const standardSvg = standardEditor.locator("svg");
+    const standardMark = standardEditor.locator(`g.geometry-right-angle[data-geometry-id="${setup.standard.annotationId}"]`);
+    assert.equal(await page.locator(".geometry-block-editor").count(), 2, "複数SVGでも直角注釈用の編集領域を独立して描画する");
+
+    const smallBefore = await geometryById(page, setup.small.id);
+    assert.equal(smallBefore.viewBox.width, 500, "縮小競合ケースのviewBoxを保存する");
+    assert.equal(smallBefore.annotations.find((annotation) => annotation.id === setup.small.annotationId)?.size, 2, "縮小競合ケースの明示sizeを保存する");
+    const smallAlignment = await alignSvgForPointer(smallSvg);
+    assertSvgAlignment(smallAlignment.before, smallAlignment.after, "縮小直角記号の実クリック前にSVGを安定させる");
+    const smallClient = await rightAngleMarkClientPosition(smallSvg, setup.small.annotationId);
+    assert.ok(smallClient.distanceFromVertexCenter <= 6, "縮小直角記号の実クリック座標はCTM変換後も頂点中心から6px以内にある");
+    assert.equal(smallClient.top.kind, "point", "縮小直角記号と頂点ヒット円が競合する座標をelementFromPointで確認する");
+    assert.equal(smallClient.resolved.id, setup.small.annotationId, "競合座標の同一SVG内ヒット領域は対象直角注釈IDを持つ");
+    await page.mouse.click(smallClient.x, smallClient.y);
+    await page.waitForFunction(({ geometryId, annotationId }) => document.querySelector(`.geometry-block-editor[data-geometry-id="${geometryId}"] g.geometry-right-angle[data-geometry-id="${annotationId}"]`)?.classList.contains("is-selected") === true, { geometryId: setup.small.id, annotationId: setup.small.annotationId });
+    assert.equal(await standardMark.evaluate((element) => element.classList.contains("is-selected")), false, "別SVGの直角注釈を選択しない");
+    assertCoordinates((await geometryById(page, setup.small.id)).points.find((point) => point.id === setup.small.vertexId), smallBefore.points.find((point) => point.id === setup.small.vertexId), "縮小直角記号のクリックだけでは頂点を移動しない");
+
+    await smallEditor.locator("button", { hasText: "選択を削除" }).click();
+    await page.waitForFunction(({ geometryId, annotationId }) => !document.querySelector(`.geometry-block-editor[data-geometry-id="${geometryId}"] g.geometry-right-angle[data-geometry-id="${annotationId}"]`), { geometryId: setup.small.id, annotationId: setup.small.annotationId });
+    await smallEditor.locator("button", { hasText: "戻す" }).click();
+    await page.waitForFunction(({ geometryId, annotationId }) => Boolean(document.querySelector(`.geometry-block-editor[data-geometry-id="${geometryId}"] g.geometry-right-angle[data-geometry-id="${annotationId}"]`)), { geometryId: setup.small.id, annotationId: setup.small.annotationId });
+
+    const standardAlignment = await alignSvgForPointer(standardSvg);
+    assertSvgAlignment(standardAlignment.before, standardAlignment.after, "通常サイズ直角記号の実クリック前にSVGを安定させる");
+    const standardClient = await rightAngleMarkClientPosition(standardSvg, setup.standard.annotationId);
+    assert.equal(standardClient.resolved.id, setup.standard.annotationId, "通常サイズの直角記号も現在のSVG内ヒット領域へ解決する");
+    await page.mouse.click(standardClient.x, standardClient.y);
+    await page.waitForFunction(({ geometryId, annotationId }) => document.querySelector(`.geometry-block-editor[data-geometry-id="${geometryId}"] g.geometry-right-angle[data-geometry-id="${annotationId}"]`)?.classList.contains("is-selected") === true, { geometryId: setup.standard.id, annotationId: setup.standard.annotationId });
+
+    await page.evaluate(() => window.flushSave());
+    await page.reload({ waitUntil: "domcontentloaded" });
+    await page.locator("#appStartupGuard").waitFor({ state: "hidden" });
+    const restoredSmall = await geometryById(page, setup.small.id);
+    assert.equal(restoredSmall.viewBox.width, 500, "縮小競合ケースのviewBoxを再読み込み後も維持する");
+    assert.equal(restoredSmall.annotations.find((annotation) => annotation.id === setup.small.annotationId)?.size, 2, "縮小競合ケースの明示sizeを再読み込み後も維持する");
+    const restoredSmallEditor = page.locator(`.geometry-block-editor[data-geometry-id="${setup.small.id}"]`);
+    const restoredSmallSvg = restoredSmallEditor.locator("svg");
+    const restoredSmallAlignment = await alignSvgForPointer(restoredSmallSvg);
+    assertSvgAlignment(restoredSmallAlignment.before, restoredSmallAlignment.after, "再読み込み後の縮小直角記号の頂点操作前にSVGを安定させる");
+    const restoredVertex = restoredSmall.points.find((point) => point.id === setup.small.vertexId);
+    const restoredVertexClient = await logicalClientPosition(restoredSmallSvg, restoredVertex);
+    assert.equal(restoredVertexClient.top.kind, "point", "縮小直角記号の頂点中心は従来どおり頂点の操作対象を優先する");
+    await page.mouse.click(restoredVertexClient.x, restoredVertexClient.y);
+    await page.waitForFunction(({ geometryId, pointId }) => {
+      const editor = document.querySelector(`.geometry-block-editor[data-geometry-id="${geometryId}"]`);
+      return editor?.querySelector(`.geometry-point-hit[data-geometry-id="${pointId}"]`)?.nextElementSibling?.classList.contains("is-selected") === true
+        && editor.querySelectorAll(".geometry-point.is-selected").length === 1;
+    }, { geometryId: setup.small.id, pointId: setup.small.vertexId });
+    const movedVertexClient = await logicalClientPosition(restoredSmallSvg, { x: restoredVertex.x + 10, y: restoredVertex.y + 10 });
+    await page.mouse.move(restoredVertexClient.x, restoredVertexClient.y);
+    await page.mouse.down();
+    await page.mouse.move(movedVertexClient.x, movedVertexClient.y);
+    await page.mouse.up();
+    await page.waitForFunction(({ geometryId, pointId, before }) => {
+      const geometry = window.MemoNexusGeometryBlockUtils.splitGeometryBlocks(document.getElementById("editor").value)
+        .find((segment) => segment.type === "geometry" && segment.geometry.id === geometryId)?.geometry;
+      const point = geometry?.points.find((entry) => entry.id === pointId);
+      return point && (point.x !== before.x || point.y !== before.y);
+    }, { geometryId: setup.small.id, pointId: setup.small.vertexId, before: restoredVertex });
+    assert.equal(pageErrors.length, 0, "縮小直角記号の競合シナリオで未処理例外を出さない");
   } finally {
     await context.close();
   }
@@ -434,6 +549,7 @@ async function runCircleInteriorSelectionScenario(browser, url) {
   const browser = await launchBrowser();
   try {
     await runRightAngleEditorScenario(browser, url);
+    await runRightAngleOverlapScenario(browser, url);
     await runCircleInteriorSelectionScenario(browser, url);
     const page = await browser.newPage({ viewport: { width: 1100, height: 800 } });
     await waitForApp(page, url);

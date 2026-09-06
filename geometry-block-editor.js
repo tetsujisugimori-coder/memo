@@ -221,15 +221,32 @@
       const direct = selectTarget(event.target);
       if (direct?.kind !== "point" || typeof document.elementsFromPoint !== "function") return direct;
       const rightAngleHit = document.elementsFromPoint(event.clientX, event.clientY)
-        .find((node) => node.matches?.(".geometry-right-angle-hit[data-geometry-kind='annotation']"));
+        .find((node) => svg.contains(node) && node.matches?.(".geometry-right-angle-hit[data-geometry-kind='annotation']"));
       if (!rightAngleHit) return direct;
       const point = geometry.points.find((entry) => entry.id === direct.id);
       const matrix = svg.getScreenCTM();
-      if (!point || !matrix) return direct;
+      const mark = svg.querySelector(`.geometry-right-angle-mark[data-geometry-id="${rightAngleHit.dataset.geometryId}"]`);
+      const length = mark?.getTotalLength();
+      if (!point || !matrix || !Number.isFinite(length) || length <= 0) return direct;
       const screenPoint = new DOMPoint(point.x, point.y).matrixTransform(matrix);
-      return Math.hypot(event.clientX - screenPoint.x, event.clientY - screenPoint.y) <= 6
-        ? direct
-        : { kind: "annotation", id: rightAngleHit.dataset.geometryId };
+      const screenPath = [0, length / 2, length].map((position) => {
+        const pathPoint = mark.getPointAtLength(position);
+        return new DOMPoint(pathPoint.x, pathPoint.y).matrixTransform(matrix);
+      });
+      if (screenPath.some((pathPoint) => !Number.isFinite(pathPoint.x) || !Number.isFinite(pathPoint.y))) return direct;
+      const distanceToSegment = (start, end) => {
+        const dx = end.x - start.x;
+        const dy = end.y - start.y;
+        const lengthSquared = dx * dx + dy * dy;
+        if (lengthSquared === 0) return Math.hypot(event.clientX - start.x, event.clientY - start.y);
+        const ratio = Math.max(0, Math.min(1, ((event.clientX - start.x) * dx + (event.clientY - start.y) * dy) / lengthSquared));
+        return Math.hypot(event.clientX - (start.x + dx * ratio), event.clientY - (start.y + dy * ratio));
+      };
+      // A right-angle mark has two line segments. Compare their displayed screen-space
+      // distance with the vertex center so zoom, viewBox, and an explicit size stay meaningful.
+      const markDistance = Math.min(distanceToSegment(screenPath[0], screenPath[1]), distanceToSegment(screenPath[1], screenPath[2]));
+      const pointDistance = Math.hypot(event.clientX - screenPoint.x, event.clientY - screenPoint.y);
+      return markDistance < pointDistance ? { kind: "annotation", id: rightAngleHit.dataset.geometryId } : direct;
     }
 
     function requiredVertices() {
