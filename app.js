@@ -3987,32 +3987,7 @@ async function importPastedItNewsJson() {
 }
 
 function parsePastedJson(text) {
-  let payload;
-  try {
-    payload = JSON.parse(text);
-  } catch (error) {
-    throw new Error("JSONの読み込みに失敗しました。JSONの構文を確認してください。");
-  }
-
-  if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
-    throw new Error("JSONのルートはオブジェクトにしてください。");
-  }
-
-  if (isLangBenchResultJson(payload)) {
-    return {
-      ...buildLangBenchResultNote(payload),
-      importMessage: "LangBench Result を取り込みました。"
-    };
-  }
-
-  if (Array.isArray(payload.items)) {
-    return {
-      ...buildItNewsNotes(validateItNewsJsonPayload(payload)),
-      importMessage: "JSONから1件のニュースメモを作成しました"
-    };
-  }
-
-  throw new Error("対応していないJSON形式です。items配列を持つニュースJSON、または type: \"langbench_result\" を持つLangBench結果JSONを貼り付けてください。");
+  return jsonImportRouterApi.parseJsonImportText(text, jsonImportRouter, { source: "paste" });
 }
 
 function parseItNewsJson(text) {
@@ -4176,14 +4151,6 @@ function formatSource(item) {
     return `${item.sourceLabel} (${item.sourceUrl})`;
   }
   return item.sourceLabel || item.sourceUrl || "";
-}
-
-function isLangBenchResultJson(payload) {
-  return Boolean(
-    payload &&
-    typeof payload === "object" &&
-    payload.type === "langbench_result"
-  );
 }
 
 function buildLangBenchResultNote(payload) {
@@ -4447,10 +4414,13 @@ function extractJsonCodeBlock(text) {
 }
 
 function buildNewsNoteFromJson(fileName, payload) {
-  if (isLangBenchResultJson(payload)) {
-    return buildLangBenchResultNote(payload);
-  }
+  const converted = jsonImportRouter.convert(payload, { source: "file", fileName });
+  if (converted) return converted;
 
+  return buildLegacyNewsNoteFromJson(fileName, payload);
+}
+
+function buildLegacyNewsNoteFromJson(fileName, payload) {
   const normalized = normalizeNewsPayload(payload);
   if (!normalized.items.length) {
     return buildPlainTextImport(fileName, JSON.stringify(payload, null, 2));
@@ -4491,6 +4461,22 @@ function buildNewsNoteFromJson(fileName, payload) {
     body: body.join("\n").trim()
   };
 }
+
+const jsonImportRouterApi = globalThis.MemoJsonImportRouter;
+const jsonImportAdaptersApi = globalThis.MemoJsonImportAdapters;
+const jsonImportRouter = jsonImportRouterApi.createJsonImportRouter([
+  jsonImportAdaptersApi.createLangBenchResultAdapter({
+    buildNote: buildLangBenchResultNote
+  }),
+  jsonImportAdaptersApi.createLegacyItNewsAdapter({
+    buildPastedNote(payload) {
+      return buildItNewsNotes(validateItNewsJsonPayload(payload));
+    },
+    buildFileNote(payload, context) {
+      return buildLegacyNewsNoteFromJson(context.fileName, payload);
+    }
+  })
+]);
 
 function normalizeNewsPayload(payload) {
   const root = Array.isArray(payload) ? { items: payload } : (payload || {});

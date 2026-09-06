@@ -2428,3 +2428,11 @@
 * Geometry E2Eへ、明示 `size: 2` と `viewBox: 500` の縮小ケースを追加した。CTM変換後の表示線上クリックが頂点中心から6px以内であること、`elementFromPoint()` が頂点ヒット円を返す競合状態、同一SVGのヒット領域ID、実際の `page.mouse.click()` による注釈選択、クリック時の非移動、削除・Undo・保存再読込、頂点中心の選択とドラッグを検証する。通常size 6の注釈の実クリックも維持した。
 * `geometry-block-editor.js` のキャッシュ識別子を `0.5.0-11` へ更新し、`version.test.js` の期待値を同期した。`npm test` は1031件すべて成功、`npm run test:e2e:geometry` は修正後の単発成功に続き5回連続成功、変更JavaScriptの `node --check` と `git diff --check` は成功した。
 * 自動Chromium E2E以外の手動ブラウザー操作、実タッチ端末での当たり判定、push後のGitHub Actionsはこの追記時点では未確認として残す。
+
+## 2026-09-06 汎用JSON Import Router
+
+* DOM／IndexedDBに依存しない `json-import-router.js` を追加した。Routerは登録済みAdapterをpriority順で照合し、選択したAdapterの結果へ `adapterId` を付けて返す。JSON構文・ルート型・非対応形式のエラーもここへ集約し、非対応時の表示は特定形式を列挙しない汎用文言にした。
+* `json-import-adapters.js` に既存のLangBench Resultとlegacy IT News Adapterを追加した。LangBenchは既存 `buildLangBenchResultNote()`、貼り付けIT Newsは既存 `validateItNewsJsonPayload()` と `buildItNewsNotes()` を再利用し、出力内容と成功通知を維持する。`items` 配列だけを手掛かりにするIT Newsはpriority 1000のlegacy fallbackとした。
+* `parsePastedJson()` とJSONファイルの `buildNewsNoteFromJson()` は同じRouterを通す。ファイル取り込みで未知JSONをプレーンテキストとして取り込む既存fallback、貼り付け成功後だけ入力をクリアする既存順序、IndexedDBの保存スキーマは変更していない。
+* 将来は `json-import-adapters.js` 相当のAdapterを `id`、`canHandle(payload)`、`convert(payload, context)` の契約で登録するだけで追加できる。Shogi-App、Calculator、Neo Paintの専用Adapterは今回実装していない。
+* `node --check json-import-router.js`、`json-import-adapters.js`、`json-import-router.test.js`、`app.js`、`node --test json-import-router.test.js json-import-input.test.js`（9件）、`npm test`（全1037件）、`git diff --check` が成功した。
