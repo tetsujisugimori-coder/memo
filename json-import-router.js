@@ -9,6 +9,15 @@
   const INVALID_ROOT_MESSAGE = "JSONのルートはオブジェクトにしてください。";
   const UNSUPPORTED_JSON_MESSAGE = "対応していないJSON形式です。JSONの形式または取り込み元アプリを確認してください。";
 
+  class AdapterConversionError extends Error {
+    constructor(adapterId, cause) {
+      super(cause?.message || `JSON取り込みアダプター ${adapterId} の変換に失敗しました。`);
+      this.name = "AdapterConversionError";
+      this.adapterId = adapterId;
+      this.cause = cause;
+    }
+  }
+
   function compareAdapters(left, right) {
     return (Number(left.priority) || 0) - (Number(right.priority) || 0);
   }
@@ -42,11 +51,16 @@
     function convert(payload, context) {
       const adapter = findAdapter(payload);
       if (!adapter) return null;
-      const converted = adapter.convert(payload, context || {});
-      if (!converted || typeof converted !== "object") {
-        throw new Error(`JSON取り込みアダプター ${adapter.id} の変換結果が不正です。`);
+      let converted;
+      try {
+        converted = adapter.convert(payload, context || {});
+      } catch (error) {
+        throw new AdapterConversionError(adapter.id, error);
       }
-      return { adapterId: adapter.id, ...converted };
+      if (!converted || typeof converted !== "object") {
+        throw new AdapterConversionError(adapter.id, new Error(`JSON取り込みアダプター ${adapter.id} の変換結果が不正です。`));
+      }
+      return { ...converted, adapterId: adapter.id };
     }
 
     initialAdapters.forEach(registerAdapter);
@@ -74,6 +88,8 @@
     INVALID_JSON_MESSAGE,
     INVALID_ROOT_MESSAGE,
     UNSUPPORTED_JSON_MESSAGE,
+    AdapterConversionError,
+    isAdapterConversionError: (error) => error instanceof AdapterConversionError,
     createJsonImportRouter,
     parseJsonImportText
   };

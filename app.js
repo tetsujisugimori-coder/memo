@@ -4379,6 +4379,7 @@ function parseImportedNote(fileName, text) {
       const payload = JSON.parse(fencedJson);
       return { ...buildNewsNoteFromJson(fileName, payload), isFlagged: flagged.isFlagged };
     } catch (error) {
+      if (jsonImportRouterApi.isAdapterConversionError(error)) throw error;
       // Fall through to other parsers when the fenced block is not valid JSON.
     }
   }
@@ -4393,6 +4394,7 @@ function parseImportedNote(fileName, text) {
     const payload = JSON.parse(text);
     return { ...buildNewsNoteFromJson(fileName, payload), isFlagged: flagged.isFlagged };
   } catch (error) {
+    if (jsonImportRouterApi.isAdapterConversionError(error)) throw error;
     return { ...buildPlainTextImport(fileName, text), isFlagged: flagged.isFlagged };
   }
 }

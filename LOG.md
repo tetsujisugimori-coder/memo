@@ -2436,3 +2436,9 @@
 * `parsePastedJson()` とJSONファイルの `buildNewsNoteFromJson()` は同じRouterを通す。ファイル取り込みで未知JSONをプレーンテキストとして取り込む既存fallback、貼り付け成功後だけ入力をクリアする既存順序、IndexedDBの保存スキーマは変更していない。
 * 将来は `json-import-adapters.js` 相当のAdapterを `id`、`canHandle(payload)`、`convert(payload, context)` の契約で登録するだけで追加できる。Shogi-App、Calculator、Neo Paintの専用Adapterは今回実装していない。
 * `node --check json-import-router.js`、`json-import-adapters.js`、`json-import-router.test.js`、`app.js`、`node --test json-import-router.test.js json-import-input.test.js`（9件）、`npm test`（全1037件）、`git diff --check` が成功した。
+
+## 2026-09-06 汎用JSON Import Routerの変換エラー区別
+
+* Routerは、Adapterが見つからない非対応JSONと、選択済みAdapterの変換・検証失敗を区別する `AdapterConversionError` を返すようにした。JSONファイル取り込みでは前者とJSON構文エラーのプレーンテキストfallbackを維持し、後者だけを上位へ伝播して内容不正を握り潰さない。
+* 変換結果の `adapterId` は展開後にRouterが設定する確定値へ変更し、Adapterの返却値では上書きできないようにした。LangBench Result、legacy IT Newsのpriority 1000 fallback、貼り付け取り込みの保存順序、IndexedDBスキーマは変更していない。
+* `json-import-router.test.js` にAdapter変換エラーと偽 `adapterId` の検証を追加し、`json-import-file.test.js` に未知JSONのファイルfallbackと認識済みAdapterエラーの伝播を追加した。`node --check json-import-router.js`、`json-import-adapters.js`、`json-import-file.test.js`、`app.js`、関連13件、`npm test`全1041件、`git diff --check` が成功した。手動ブラウザー操作は未実施。

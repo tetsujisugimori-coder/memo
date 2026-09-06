@@ -58,6 +58,31 @@ test("未知形式は非対応として扱える", () => {
   );
 });
 
+test("Adapterが認識後に変換へ失敗した場合は識別可能なエラーを返す", () => {
+  const router = routerApi.createJsonImportRouter([{
+    id: "broken-app-v1",
+    canHandle: (payload) => payload.app === "broken-app",
+    convert: () => { throw new Error("必須フィールドがありません。"); }
+  }]);
+
+  assert.throws(
+    () => router.convert({ app: "broken-app" }),
+    (error) => error instanceof routerApi.AdapterConversionError
+      && error.adapterId === "broken-app-v1"
+      && error.message === "必須フィールドがありません。"
+  );
+});
+
+test("Adapterが返したadapterIdではなくRouterが選択したadapterIdを確定する", () => {
+  const router = routerApi.createJsonImportRouter([{
+    id: "actual-adapter",
+    canHandle: () => true,
+    convert: () => ({ title: "Title", body: "Body", importMessage: "Imported", adapterId: "forged-adapter" })
+  }]);
+
+  assert.equal(router.convert({}).adapterId, "actual-adapter");
+});
+
 test("不正JSONは既存と同等の案内を返す", () => {
   const router = routerApi.createJsonImportRouter(createExistingAdapters());
   assert.throws(
