@@ -2,8 +2,8 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const { createGeometryBlock, cloneGeometryBlock, parseGeometryBlockLine, serializeGeometryBlock } = require("./geometry-block-utils.js");
 const {
-  addCircle, addPoint, addPolygon, addRightAngle, addSegment, createHistory, deleteSelection, moveObject, movePoint,
-  screenPointToViewBox, updateLengthLabel, updateSegmentLineStyle, updateVertexLabel
+  addAngle, addCircle, addPoint, addPolygon, addRightAngle, addSegment, createHistory, deleteSelection, moveObject, movePoint,
+  screenPointToViewBox, updateAngleLabel, updateLengthLabel, updateSegmentLineStyle, updateVertexLabel
 } = require("./geometry-editor-utils.js");
 
 function withPoints(count = 3) {
@@ -265,6 +265,61 @@ test("直角注釈は方向点の順序に関係なく重複を拒否し、別�
   assert.deepEqual(first, beforeDuplicate, "順不同の重複拒否時に元のgeometryを変更しない");
   const second = addRightAngle(first, { vertexId: otherVertex.id, rayVertexIds: [firstRay.id, secondRay.id] });
   assert.equal(second.annotations.filter((annotation) => annotation.type === "right-angle").length, 2, "頂点が異なる直角は別注釈として追加できる");
+});
+
+test("一般角注釈は有効な3点と対応線分を保存し、表示文字だけを更新できる", () => {
+  let geometry = geometryWithAngle(60);
+  const [vertex, firstRay, secondRay] = geometry.points;
+  assert.throws(() => addAngle(geometry, { vertexId: vertex.id, rayVertexIds: [firstRay.id, firstRay.id] }), /異なる2つの方向点/);
+  let coincident = addPoint(geometry, { x: vertex.x, y: vertex.y });
+  assert.throws(() => addAngle(coincident, { vertexId: vertex.id, rayVertexIds: [coincident.points.at(-1).id, secondRay.id] }), /異なる位置/);
+  geometry = addSegment(geometry, vertex.id, firstRay.id);
+  geometry = addSegment(geometry, vertex.id, secondRay.id);
+  const [firstSegment, secondSegment] = geometry.objects;
+  const annotated = addAngle(geometry, {
+    vertexId: vertex.id,
+    rayVertexIds: [firstRay.id, secondRay.id],
+    segmentIds: [firstSegment.id, secondSegment.id],
+    value: 60,
+    unit: "°",
+    label: "x",
+    radius: 14,
+    labelOffsetX: 2,
+    labelOffsetY: -3
+  });
+  const annotation = annotated.annotations.find((item) => item.type === "angle");
+  assert.deepEqual(annotation.pointIds, [firstRay.id, vertex.id, secondRay.id]);
+  assert.deepEqual(annotation.segmentIds, [firstSegment.id, secondSegment.id]);
+  assert.equal(annotation.label, "x");
+  const relabeled = updateAngleLabel(annotated, annotation.id, "α");
+  const updated = relabeled.annotations.find((item) => item.id === annotation.id);
+  assert.equal(updated.label, "α");
+  assert.deepEqual({ value: updated.value, unit: updated.unit, radius: updated.radius, labelOffsetX: updated.labelOffsetX, labelOffsetY: updated.labelOffsetY }, { value: 60, unit: "°", radius: 14, labelOffsetX: 2, labelOffsetY: -3 });
+  assert.throws(() => updateAngleLabel(annotated, "missing", "x"), /見つかりません/);
+});
+
+test("一般角注釈は退化・重複・不整合な参照を拒否し、参照削除へ追従する", () => {
+  [0, 180].forEach((degrees) => {
+    const geometry = geometryWithAngle(degrees);
+    const before = JSON.parse(JSON.stringify(geometry));
+    assert.throws(() => addAngle(geometry, { vertexId: geometry.points[0].id, rayVertexIds: [geometry.points[1].id, geometry.points[2].id] }), /0度より大きく180度より小さい/);
+    assert.deepEqual(geometry, before, "失敗時に元のgeometryを変更しない");
+  });
+  let geometry = geometryWithAngle(60);
+  const [vertex, firstRay, secondRay] = geometry.points;
+  geometry = addSegment(geometry, vertex.id, firstRay.id);
+  geometry = addSegment(geometry, vertex.id, secondRay.id);
+  const [firstSegment, secondSegment] = geometry.objects;
+  const first = addAngle(geometry, { vertexId: vertex.id, rayVertexIds: [firstRay.id, secondRay.id], segmentIds: [firstSegment.id, secondSegment.id] });
+  assert.throws(() => addAngle(first, { vertexId: vertex.id, rayVertexIds: [secondRay.id, firstRay.id] }), /既に追加/);
+  assert.throws(() => addAngle(geometry, { vertexId: vertex.id, rayVertexIds: [firstRay.id, secondRay.id], segmentIds: [secondSegment.id, firstSegment.id] }), /線分参照/);
+  assert.equal(deleteSelection(first, { kind: "point", id: firstRay.id }).annotations.some((item) => item.type === "angle"), false, "参照点削除時に角度注釈も削除する");
+  assert.equal(deleteSelection(first, { kind: "object", id: firstSegment.id }).annotations.some((item) => item.type === "angle"), false, "参照線分削除時に角度注釈も削除する");
+  assert.equal(deleteSelection(first, { kind: "annotation", id: first.annotations.find((item) => item.type === "angle").id }).points.length, first.points.length, "角度注釈だけの削除では点を残す");
+  const copied = cloneGeometryBlock(first);
+  const copiedAngle = copied.annotations.find((item) => item.type === "angle");
+  assert.equal(copiedAngle.id === first.annotations.find((item) => item.type === "angle").id, false, "複製時に角度注釈IDを再生成する");
+  assert.equal(copiedAngle.segmentIds.every((id) => copied.objects.some((object) => object.id === id)), true, "複製時に角度注釈の線分参照を再接続する");
 });
 
 test("保存・読込で点、参照、頂点名、線種を維持し、不正参照を安全に拒否する", () => {

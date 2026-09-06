@@ -8,7 +8,7 @@
   const svgNamespace = "http://www.w3.org/2000/svg";
   const modes = [
     ["select", "選択"], ["point", "点"], ["segment", "線分"], ["triangle", "三角形"],
-    ["quadrilateral", "四角形"], ["circle", "円"], ["polygon", "多角形"], ["right-angle", "直角"]
+    ["quadrilateral", "四角形"], ["circle", "円"], ["polygon", "多角形"], ["right-angle", "直角"], ["angle", "角度"]
   ];
 
   function svgElement(name, attributes = {}) {
@@ -20,6 +20,11 @@
   function selectedLabel(geometry, selection) {
     if (selection?.kind !== "point") return "";
     return model.vertexLabel(geometry, selection.id)?.label || "";
+  }
+
+  function selectedAngle(geometry, selection) {
+    if (selection?.kind !== "annotation") return null;
+    return geometry.annotations.find((annotation) => annotation.id === selection.id && annotation.type === "angle") || null;
   }
 
   function createGeometryBlockEditor(initialGeometry, { blockIndex = 0, onChange, onDelete } = {}) {
@@ -72,7 +77,7 @@
       button.addEventListener("click", () => {
         mode = value;
         clearDraft();
-        status.textContent = value === "right-angle" ? rightAngleDraftStatus() : value === "select" ? "選択モード" : `${label}モード`;
+        status.textContent = annotationDraft() ? annotationDraftStatus() : value === "select" ? "選択モード" : `${label}モード`;
       });
       modeButtons.set(value, button);
       tools.append(button);
@@ -128,6 +133,19 @@
       updateControls();
     });
     labelField.append(labelInput);
+    const angleLabelField = document.createElement("label");
+    angleLabelField.textContent = "角度の表示";
+    const angleLabelInput = document.createElement("input");
+    angleLabelInput.type = "text";
+    angleLabelInput.maxLength = 500;
+    angleLabelInput.setAttribute("aria-label", "選択した角度の表示");
+    angleLabelInput.addEventListener("change", () => {
+      if (!selectedAngle(geometry, selection)) return;
+      commit(model.updateAngleLabel(geometry, selection.id, angleLabelInput.value));
+      status.textContent = "角度の表示を更新しました";
+      updateControls();
+    });
+    angleLabelField.append(angleLabelInput);
     const lineField = document.createElement("label");
     lineField.textContent = "線種";
     const lineStyle = document.createElement("select");
@@ -168,7 +186,7 @@
       updateControls();
     });
     lengthLabelField.append(lengthInput);
-    properties.append(labelField, lineField, lengthField, lengthLabelField);
+    properties.append(labelField, angleLabelField, lineField, lengthField, lengthLabelField);
 
     const canvas = document.createElement("div");
     canvas.className = "geometry-canvas";
@@ -220,20 +238,13 @@
     function selectPointerTarget(event) {
       const direct = selectTarget(event.target);
       if (direct?.kind !== "point" || typeof document.elementsFromPoint !== "function") return direct;
-      const rightAngleHit = document.elementsFromPoint(event.clientX, event.clientY)
-        .find((node) => svg.contains(node) && node.matches?.(".geometry-right-angle-hit[data-geometry-kind='annotation']"));
-      if (!rightAngleHit) return direct;
+      const annotationHits = document.elementsFromPoint(event.clientX, event.clientY)
+        .filter((node) => svg.contains(node) && node.matches?.(".geometry-right-angle-hit[data-geometry-kind='annotation'], .geometry-angle-hit[data-geometry-kind='annotation']"));
+      if (!annotationHits.length) return direct;
       const point = geometry.points.find((entry) => entry.id === direct.id);
       const matrix = svg.getScreenCTM();
-      const mark = svg.querySelector(`.geometry-right-angle-mark[data-geometry-id="${rightAngleHit.dataset.geometryId}"]`);
-      const length = mark?.getTotalLength();
-      if (!point || !matrix || !Number.isFinite(length) || length <= 0) return direct;
+      if (!point || !matrix) return direct;
       const screenPoint = new DOMPoint(point.x, point.y).matrixTransform(matrix);
-      const screenPath = [0, length / 2, length].map((position) => {
-        const pathPoint = mark.getPointAtLength(position);
-        return new DOMPoint(pathPoint.x, pathPoint.y).matrixTransform(matrix);
-      });
-      if (screenPath.some((pathPoint) => !Number.isFinite(pathPoint.x) || !Number.isFinite(pathPoint.y))) return direct;
       const distanceToSegment = (start, end) => {
         const dx = end.x - start.x;
         const dy = end.y - start.y;
@@ -242,11 +253,27 @@
         const ratio = Math.max(0, Math.min(1, ((event.clientX - start.x) * dx + (event.clientY - start.y) * dy) / lengthSquared));
         return Math.hypot(event.clientX - (start.x + dx * ratio), event.clientY - (start.y + dy * ratio));
       };
-      // A right-angle mark has two line segments. Compare their displayed screen-space
-      // distance with the vertex center so zoom, viewBox, and an explicit size stay meaningful.
-      const markDistance = Math.min(distanceToSegment(screenPath[0], screenPath[1]), distanceToSegment(screenPath[1], screenPath[2]));
+      const candidates = annotationHits.map((annotationHit) => {
+        const annotationType = annotationHit.dataset.geometryType;
+        const markClass = annotationType === "angle" ? ".geometry-angle-arc" : ".geometry-right-angle-mark";
+        const mark = svg.querySelector(`${markClass}[data-geometry-id="${annotationHit.dataset.geometryId}"]`);
+        const length = mark?.getTotalLength();
+        if (!Number.isFinite(length) || length <= 0) return null;
+        const sampleCount = annotationType === "angle" ? Math.max(8, Math.ceil(length / 2)) : 2;
+        const screenPath = Array.from({ length: sampleCount + 1 }, (_, index) => index * length / sampleCount).map((position) => {
+          const pathPoint = mark.getPointAtLength(position);
+          return new DOMPoint(pathPoint.x, pathPoint.y).matrixTransform(matrix);
+        });
+        if (screenPath.some((pathPoint) => !Number.isFinite(pathPoint.x) || !Number.isFinite(pathPoint.y))) return null;
+        return {
+          id: annotationHit.dataset.geometryId,
+          distance: Math.min(...screenPath.slice(1).map((pathPoint, index) => distanceToSegment(screenPath[index], pathPoint)))
+        };
+      }).filter(Boolean);
+      if (!candidates.length) return direct;
+      const nearest = candidates.reduce((closest, candidate) => candidate.distance < closest.distance ? candidate : closest);
       const pointDistance = Math.hypot(event.clientX - screenPoint.x, event.clientY - screenPoint.y);
-      return markDistance < pointDistance ? { kind: "annotation", id: rightAngleHit.dataset.geometryId } : direct;
+      return nearest.distance < pointDistance ? { kind: "annotation", id: nearest.id } : direct;
     }
 
     function requiredVertices() {
@@ -254,15 +281,16 @@
     }
 
     function annotationDraft() {
-      return mode === "right-angle" ? { type: "right-angle", required: 3 } : null;
+      return mode === "right-angle" || mode === "angle" ? { type: mode, required: 3 } : null;
     }
 
-    function rightAngleDraftStatus() {
+    function annotationDraftStatus() {
+      const name = mode === "angle" ? "角度" : "直角";
       return [
-        "直角の頂点を選択してください",
+        `${name}の頂点を選択してください`,
         "1本目の方向を選択してください",
         "2本目の方向を選択してください"
-      ][draftVertices.length] || "直角の頂点を選択してください";
+      ][draftVertices.length] || `${name}の頂点を選択してください`;
     }
 
     function pointForDraft(entry, points) {
@@ -321,14 +349,18 @@
       const [vertex, firstRay, secondRay] = draftVertices.map((entry) => entry.pointId);
       try {
         const rayVertexIds = [firstRay, secondRay];
-        const next = model.addRightAngle(geometry, {
+        const next = draft.type === "angle" ? model.addAngle(geometry, {
+          vertexId: vertex,
+          rayVertexIds,
+          segmentIds: connectedSegmentIds(vertex, rayVertexIds)
+        }) : model.addRightAngle(geometry, {
           vertexId: vertex,
           rayVertexIds,
           segmentIds: connectedSegmentIds(vertex, rayVertexIds)
         });
         clearDraft();
         commit(next);
-        status.textContent = "直角記号を追加しました";
+        status.textContent = draft.type === "angle" ? "角度を追加しました" : "直角記号を追加しました";
       } catch (error) {
         draftVertices = draftVertices.slice(0, 2);
         draftPreview = null;
@@ -361,16 +393,16 @@
       const annotation = annotationDraft();
       if (annotation) {
         if (target?.kind !== "point") {
-          status.textContent = "直角記号は既存の点を順に選択してください";
+          status.textContent = annotation.type === "angle" ? "角度は既存の点を順に選択してください" : "直角記号は既存の点を順に選択してください";
           return;
         }
         if (draftVertices.some((entry) => entry.pointId === target.id)) {
-          status.textContent = "直角には異なる3点を指定してください";
+          status.textContent = annotation.type === "angle" ? "角度には異なる3点を指定してください" : "直角には異なる3点を指定してください";
           return;
         }
         draftVertices.push({ pointId: target.id });
         if (draftVertices.length === annotation.required) return completeAnnotation();
-        status.textContent = rightAngleDraftStatus();
+        status.textContent = annotationDraftStatus();
         draw();
         updateControls();
         return;
@@ -396,6 +428,14 @@
       if (mode === "circle" && previewPoints.length === 2) {
         const [center, radiusPoint] = previewPoints;
         svg.append(svgElement("circle", { cx: center.x, cy: center.y, r: Math.hypot(radiusPoint.x - center.x, radiusPoint.y - center.y), class: "geometry-draft", fill: "transparent", "pointer-events": "none" }));
+      } else if (annotationDraft()?.type === "angle" && previewPoints.length === 3) {
+        const [vertex, firstRay, secondRay] = previewPoints;
+        const firstLength = Math.hypot(firstRay.x - vertex.x, firstRay.y - vertex.y);
+        const secondLength = Math.hypot(secondRay.x - vertex.x, secondRay.y - vertex.y);
+        const firstDirection = firstLength ? { x: (firstRay.x - vertex.x) / firstLength, y: (firstRay.y - vertex.y) / firstLength } : null;
+        const secondDirection = secondLength ? { x: (secondRay.x - vertex.x) / secondLength, y: (secondRay.y - vertex.y) / secondLength } : null;
+        const arc = renderer.angleArcPath(vertex, firstDirection, secondDirection, 12);
+        if (arc) svg.append(svgElement("path", { d: arc.d, class: "geometry-draft geometry-angle-draft", fill: "none", "pointer-events": "none" }));
       } else if ((mode === "polygon" || requiredVertices()) && previewPoints.length > 1) {
         svg.append(svgElement("polyline", { points: previewPoints.map((point) => `${point.x},${point.y}`).join(" "), class: "geometry-draft", "pointer-events": "none" }));
       }
@@ -416,8 +456,11 @@
       redoButton.disabled = !history.canRedo;
       deleteButton.disabled = !selection;
       const segment = selection?.kind === "object" ? model.objectById(geometry, selection.id) : null;
+      const angle = selectedAngle(geometry, selection);
       labelInput.disabled = selection?.kind !== "point";
       labelInput.value = selectedLabel(geometry, selection);
+      angleLabelInput.disabled = !angle;
+      angleLabelInput.value = angle?.label || "";
       lineStyle.disabled = !segment || segment.type !== "segment";
       if (segment?.type === "segment") lineStyle.value = segment.lineStyle;
       const hasEdges = Boolean(segment && ["segment", "polygon"].includes(segment.type));
