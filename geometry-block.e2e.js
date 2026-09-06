@@ -422,10 +422,11 @@ async function runCircleInteriorSelectionScenario(browser, url) {
     await editor.locator('[data-geometry-mode="point"]').click();
     const pointAlignment = await alignSvgForPointer(svg);
     assertSvgAlignment(pointAlignment.before, pointAlignment.after, "独立シナリオの点作成前にSVGを安定させる");
-    const segmentStartClient = { x: Math.round(pointAlignment.after.x + 150), y: Math.round(pointAlignment.after.y + 130) };
-    const segmentEndClient = { x: Math.round(pointAlignment.after.x + 350), y: Math.round(pointAlignment.after.y + 130) };
-    await page.mouse.click(segmentStartClient.x, segmentStartClient.y);
-    await page.mouse.click(segmentEndClient.x, segmentEndClient.y);
+    for (const logicalPoint of [{ x: 25, y: 50 }, { x: 75, y: 50 }]) {
+      const client = await logicalClientPosition(svg, logicalPoint);
+      assert.equal(client.top.tag?.toLowerCase(), "svg", `線分・円の共有点を置く前の最前面要素: ${JSON.stringify({ logicalPoint, projection: client })}`);
+      await page.mouse.click(client.x, client.y);
+    }
     const pointsGeometry = await geometry(page);
     assert.equal(pointsGeometry.points.length, 2, "独立シナリオへ2点だけ追加する");
     const segmentPointIds = pointsGeometry.points.map((point) => point.id);

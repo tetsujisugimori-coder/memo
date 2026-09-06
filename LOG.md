@@ -2442,3 +2442,10 @@
 * Routerは、Adapterが見つからない非対応JSONと、選択済みAdapterの変換・検証失敗を区別する `AdapterConversionError` を返すようにした。JSONファイル取り込みでは前者とJSON構文エラーのプレーンテキストfallbackを維持し、後者だけを上位へ伝播して内容不正を握り潰さない。
 * 変換結果の `adapterId` は展開後にRouterが設定する確定値へ変更し、Adapterの返却値では上書きできないようにした。LangBench Result、legacy IT Newsのpriority 1000 fallback、貼り付け取り込みの保存順序、IndexedDBスキーマは変更していない。
 * `json-import-router.test.js` にAdapter変換エラーと偽 `adapterId` の検証を追加し、`json-import-file.test.js` に未知JSONのファイルfallbackと認識済みAdapterエラーの伝播を追加した。`node --check json-import-router.js`、`json-import-adapters.js`、`json-import-file.test.js`、`app.js`、関連13件、`npm test`全1041件、`git diff --check` が成功した。手動ブラウザー操作は未実施。
+
+## 2026-09-07 円内部の線分選択E2Eの安定化
+
+* 原因はproductionのhit testingではなく、独立した円内部線分シナリオが点を置く初期2クリックにSVG左上からの固定画面ピクセル加算を使っていたこと。SVGの表示倍率、余白、スクロール後の位置が変わると、図形の論理配置が不必要に変動し得た。
+* `runCircleInteriorSelectionScenario()` は、最小構成（共有2点、線分1本、円1個）のまま、点作成もSVGローカル座標 `{x:25,y:50}` と `{x:75,y:50}` を `getScreenCTM()` でclient座標へ投影してから実クリックする方式に変更した。スクロールと二重`requestAnimationFrame`による安定化を先に行い、クリック直前の`document.elementFromPoint()`が空のSVG面を返すことを確認する。
+* 線分中点のクリック前には、同じCTM投影・整数丸め後の`document.elementFromPoint()`が `.geometry-segment-hit` と対象線分IDを返すことを検証する。クリック後は対象線分の表示要素の`is-selected`、選択線分数1、選択円数0で、円ではなく線分が選択されたことを確認する。円周選択、円ドラッグ、円内部の点選択も同一の独立context内で回帰確認する。
+* production側は変更していない。SVGは線分用の透明stroke幅12 hit line、円周だけを受ける透明stroke幅12 hit circle、点hit circleを別要素として描画し、選択開始は`pointerdown`、最終選択状態は`click`で処理する既存設計を維持する。
