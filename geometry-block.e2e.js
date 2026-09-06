@@ -68,6 +68,16 @@ function assertCoordinates(actual, expected, message, tolerance = 0.25) {
 async function alignSvgForPointer(svg) {
   return svg.evaluate(async (element) => {
     element.scrollIntoView({ block: "center", inline: "nearest", behavior: "instant" });
+    for (let ancestor = element.parentElement; ancestor; ancestor = ancestor.parentElement) {
+      const style = getComputedStyle(ancestor);
+      if (!/(auto|scroll)/.test(style.overflowY) || ancestor.scrollHeight <= ancestor.clientHeight) continue;
+      const elementRect = element.getBoundingClientRect();
+      const ancestorRect = ancestor.getBoundingClientRect();
+      ancestor.scrollTop += elementRect.top - ancestorRect.top - (ancestor.clientHeight - elementRect.height) / 2;
+    }
+    const viewportRect = element.getBoundingClientRect();
+    if (viewportRect.bottom > window.innerHeight) window.scrollBy(0, viewportRect.bottom - window.innerHeight + 1);
+    if (viewportRect.top < 0) window.scrollBy(0, viewportRect.top - 1);
     const snapshot = () => {
       const rect = element.getBoundingClientRect();
       const matrix = element.getScreenCTM();
@@ -197,6 +207,40 @@ async function angleArcClientPosition(svg, annotationId) {
     }
     throw new Error(`角度注釈 ${id} の表示円弧上に実クリック座標を取得できません: ${JSON.stringify(attempts)}`);
   }, annotationId);
+}
+
+async function overlappingAnnotationClientPosition(svg, { preferredId, preferredPathClass, otherId, expectedTopId }) {
+  return svg.evaluate((element, options) => {
+    const path = element.querySelector(`${options.preferredPathClass}[data-geometry-id="${options.preferredId}"]`);
+    if (!path) throw new Error(`注釈 ${options.preferredId} の表示パスが見つかりません`);
+    const matrix = element.getScreenCTM();
+    const length = path.getTotalLength();
+    const attempts = [];
+    for (const fraction of [.15, .3, .5, .7, .85]) {
+      const point = path.getPointAtLength(length * fraction);
+      const screen = new DOMPoint(point.x, point.y).matrixTransform(matrix);
+      const x = Math.round(screen.x);
+      const y = Math.round(screen.y);
+      const stack = document.elementsFromPoint(x, y);
+      const hits = stack.filter((node) => element.contains(node)
+        && node.matches?.(".geometry-right-angle-hit[data-geometry-kind='annotation'], .geometry-angle-hit[data-geometry-kind='annotation']"));
+      const hitIds = hits.map((node) => node.dataset.geometryId);
+      const top = document.elementFromPoint(x, y);
+      const topTarget = top?.closest("[data-geometry-kind]");
+      if (hitIds.includes(options.preferredId) && hitIds.includes(options.otherId)
+        && (!options.expectedTopId || topTarget?.dataset.geometryId === options.expectedTopId)) {
+        return {
+          x,
+          y,
+          fraction,
+          hitIds,
+          top: { tag: top?.tagName, className: top?.getAttribute("class"), kind: topTarget?.dataset?.geometryKind, id: topTarget?.dataset?.geometryId }
+        };
+      }
+      attempts.push({ fraction, x, y, hitIds, topId: topTarget?.dataset?.geometryId, topClass: top?.getAttribute("class") });
+    }
+    throw new Error(`重なった注釈 ${options.preferredId} と ${options.otherId} の実クリック座標を取得できません: ${JSON.stringify(attempts)}`);
+  }, { preferredId, preferredPathClass, otherId, expectedTopId });
 }
 
 async function runRightAngleEditorScenario(browser, url) {
@@ -550,6 +594,162 @@ async function runAngleEditorScenario(browser, url) {
   }
 }
 
+async function runAngleMoveValidationScenario(browser, url) {
+  const context = await browser.newContext({ viewport: { width: 1100, height: 1400 } });
+  const page = await context.newPage();
+  const pageErrors = [];
+  page.on("pageerror", (error) => pageErrors.push(error.message));
+  try {
+    await waitForApp(page, url);
+    await page.locator("#editor").fill("一般角の退化移動");
+    await page.locator("#editor").press("End");
+    await page.locator("#insertGeometryBtn").click();
+    await page.locator(".geometry-block-editor").waitFor();
+    const setup = await page.evaluate(() => {
+      const blocks = window.MemoNexusGeometryBlockUtils;
+      const model = window.MemoNexusGeometryEditorUtils;
+      let value = blocks.createGeometryBlock("angle-move-validation");
+      [[50, 50], [75, 50], [62.5, 71.65063509461096]].forEach(([x, y]) => { value = model.addPoint(value, { x, y }); });
+      const [vertex, firstRay, secondRay] = value.points;
+      value = model.addSegment(value, vertex.id, firstRay.id);
+      value = model.addSegment(value, vertex.id, secondRay.id);
+      value = model.addAngle(value, { vertexId: vertex.id, rayVertexIds: [firstRay.id, secondRay.id] });
+      const input = document.getElementById("editor");
+      input.value = blocks.serializeGeometryBlock(value);
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+      return { geometryId: value.id, vertexId: vertex.id, rayId: firstRay.id, annotationId: value.annotations.find((annotation) => annotation.type === "angle").id };
+    });
+    await page.waitForFunction(({ geometryId, annotationId }) => document.querySelector(`.geometry-block-editor[data-geometry-id="${geometryId}"] .geometry-angle-arc[data-geometry-id="${annotationId}"]`), setup);
+    const editor = page.locator(`.geometry-block-editor[data-geometry-id="${setup.geometryId}"]`);
+    const svg = editor.locator("svg");
+    await editor.locator('[data-geometry-mode="select"]').click();
+    await svg.scrollIntoViewIfNeeded();
+    await alignSvgForPointer(svg);
+    const snappedVertex = await svg.evaluate((element) => {
+      const matrix = element.getScreenCTM();
+      const screen = new DOMPoint(50, 40).matrixTransform(matrix);
+      return window.MemoNexusGeometryEditorUtils.screenPointToViewBox(element, Math.round(screen.x), Math.round(screen.y), { x: 0, y: 0, width: 100, height: 100 });
+    });
+    await page.evaluate(({ geometryId, vertexId, snapped }) => {
+      const blocks = window.MemoNexusGeometryBlockUtils;
+      const input = document.getElementById("editor");
+      const geometry = blocks.splitGeometryBlocks(input.value).find((segment) => segment.type === "geometry" && segment.geometry.id === geometryId).geometry;
+      const vertex = geometry.points.find((point) => point.id === vertexId);
+      const firstRay = geometry.points[1];
+      const secondRay = geometry.points[2];
+      vertex.x = snapped.x;
+      vertex.y = snapped.y;
+      firstRay.x = snapped.x + 25;
+      firstRay.y = snapped.y;
+      secondRay.x = snapped.x + 12.5;
+      secondRay.y = snapped.y + 21.65063509461096;
+      input.value = blocks.serializeGeometryBlock(geometry);
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+    }, { geometryId: setup.geometryId, vertexId: setup.vertexId, snapped: snappedVertex });
+    await page.waitForFunction(({ geometryId, vertexId, x, annotationId }) => {
+      const editor = document.querySelector(`.geometry-block-editor[data-geometry-id="${geometryId}"]`);
+      const vertex = editor?.querySelector(`.geometry-point-hit[data-geometry-id="${vertexId}"]`);
+      return Math.abs(Number(vertex?.getAttribute("cx")) - x) < 1e-9
+        && Boolean(editor?.querySelector(`.geometry-angle-arc[data-geometry-id="${annotationId}"]`));
+    }, { geometryId: setup.geometryId, vertexId: setup.vertexId, x: snappedVertex.x, annotationId: setup.annotationId });
+    await page.locator("#geometryBlockEditors").evaluate((element) => { element.scrollTop = element.scrollHeight; });
+    await editor.locator('[data-geometry-mode="select"]').click();
+    await svg.scrollIntoViewIfNeeded();
+    const alignment = await alignSvgForPointer(svg);
+    assertSvgAlignment(alignment.before, alignment.after, "一般角の退化ドラッグ前にSVGを安定させる");
+    const before = await geometry(page);
+    const beforePath = await editor.locator(`.geometry-angle-arc[data-geometry-id="${setup.annotationId}"]`).getAttribute("d");
+    const rayClient = await logicalClientPosition(svg, before.points.find((point) => point.id === setup.rayId));
+    const vertexClient = await logicalClientPosition(svg, before.points.find((point) => point.id === setup.vertexId));
+    assert.equal(rayClient.top.id, setup.rayId, `退化ドラッグの始点は方向点をhitする: ${JSON.stringify(rayClient)}`);
+    assert.equal(vertexClient.top.id, setup.vertexId, `退化ドラッグの終点は頂点をhitする: ${JSON.stringify(vertexClient)}`);
+    await page.mouse.move(rayClient.x, rayClient.y);
+    await page.mouse.down();
+    await page.mouse.move(vertexClient.x, vertexClient.y);
+    const rejectedDrag = await page.evaluate(() => ({
+      status: document.querySelector(".geometry-block-status")?.textContent,
+      geometry: window.MemoNexusGeometryBlockUtils.splitGeometryBlocks(document.getElementById("editor").value).find((segment) => segment.type === "geometry")?.geometry
+    }));
+    assert.match(rejectedDrag.status || "", /角度注釈が0度または180度/, `退化ドラッグの実状態: ${JSON.stringify(rejectedDrag)}`);
+    assert.deepEqual(await geometry(page), before, "退化角を作るドラッグ後も保存データを最後の有効状態に保つ");
+    assert.equal(await editor.locator(`.geometry-angle-arc[data-geometry-id="${setup.annotationId}"]`).getAttribute("d"), beforePath, "退化角を作るドラッグ後も円弧を残す");
+    assert.equal(await editor.locator(`.geometry-angle-hit[data-geometry-id="${setup.annotationId}"]`).count(), 1, "退化角を作るドラッグ後もhit pathを残す");
+    assert.doesNotMatch(await editor.locator(".geometry-block-status").textContent(), /円の中心/, "一般角の拒否理由を円のエラーへ変換しない");
+    await page.mouse.up();
+    await page.evaluate(() => window.flushSave());
+    await page.reload({ waitUntil: "domcontentloaded" });
+    await page.locator("#appStartupGuard").waitFor({ state: "hidden" });
+    assert.deepEqual(await geometry(page), before, "再読み込み後も最後の有効な一般角を復元する");
+    assert.equal(pageErrors.length, 0, "一般角の退化ドラッグで未処理例外を出さない");
+  } finally {
+    await context.close();
+  }
+}
+
+async function runOverlappingAnnotationSelectionScenario(browser, url) {
+  const context = await browser.newContext({ viewport: { width: 1100, height: 800 } });
+  const page = await context.newPage();
+  const pageErrors = [];
+  page.on("pageerror", (error) => pageErrors.push(error.message));
+  try {
+    await waitForApp(page, url);
+    const setup = await page.evaluate(() => {
+      const blocks = window.MemoNexusGeometryBlockUtils;
+      const model = window.MemoNexusGeometryEditorUtils;
+      const build = (id) => {
+        let value = blocks.createGeometryBlock(id);
+        [[50, 50], [80, 50], [50, 20]].forEach(([x, y]) => { value = model.addPoint(value, { x, y }); });
+        const [vertex, firstRay, secondRay] = value.points;
+        value = model.addRightAngle(value, { vertexId: vertex.id, rayVertexIds: [firstRay.id, secondRay.id], size: 16 });
+        value = model.addAngle(value, { vertexId: vertex.id, rayVertexIds: [firstRay.id, secondRay.id], radius: 18 });
+        return {
+          geometry: value,
+          rightId: value.annotations.find((annotation) => annotation.type === "right-angle").id,
+          angleId: value.annotations.find((annotation) => annotation.type === "angle").id
+        };
+      };
+      const target = build("overlapping-annotations-target");
+      const other = build("overlapping-annotations-other");
+      const input = document.getElementById("editor");
+      input.value = `${blocks.serializeGeometryBlock(target.geometry)}\n${blocks.serializeGeometryBlock(other.geometry)}`;
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+      return { target: { geometryId: target.geometry.id, rightId: target.rightId, angleId: target.angleId }, other: { geometryId: other.geometry.id, rightId: other.rightId, angleId: other.angleId } };
+    });
+    await page.waitForFunction(({ target, other }) => document.querySelectorAll(".geometry-block-editor").length === 2
+      && document.querySelector(`.geometry-block-editor[data-geometry-id="${target.geometryId}"] .geometry-right-angle-hit[data-geometry-id="${target.rightId}"]`)
+      && document.querySelector(`.geometry-block-editor[data-geometry-id="${target.geometryId}"] .geometry-angle-hit[data-geometry-id="${target.angleId}"]`)
+      && document.querySelector(`.geometry-block-editor[data-geometry-id="${other.geometryId}"] .geometry-angle-hit[data-geometry-id="${other.angleId}"]`), setup);
+    const editor = page.locator(`.geometry-block-editor[data-geometry-id="${setup.target.geometryId}"]`);
+    const svg = editor.locator("svg");
+    const alignment = await alignSvgForPointer(svg);
+    assertSvgAlignment(alignment.before, alignment.after, "重なった注釈の選択前にSVGを安定させる");
+
+    const angleClient = await overlappingAnnotationClientPosition(svg, {
+      preferredId: setup.target.angleId,
+      preferredPathClass: ".geometry-angle-arc",
+      otherId: setup.target.rightId,
+      expectedTopId: setup.target.rightId
+    });
+    assert.deepEqual([...new Set(angleClient.hitIds)].sort(), [setup.target.angleId, setup.target.rightId].sort(), "一般角表示円弧上で同一SVGの2つの注釈hit候補を確認する");
+    assert.equal(angleClient.top.id, setup.target.rightId, "旧実装で前面の直角が選択される配置を固定する");
+    await page.mouse.click(angleClient.x, angleClient.y);
+    await page.waitForFunction((annotationId) => document.querySelector(`g.geometry-angle[data-geometry-id="${annotationId}"]`)?.classList.contains("is-selected") === true, setup.target.angleId);
+    assert.equal(await page.locator(`.geometry-block-editor[data-geometry-id="${setup.other.geometryId}"] g.geometry-angle[data-geometry-id="${setup.other.angleId}"]`).evaluate((element) => element.classList.contains("is-selected")), false, "別SVGの注釈を選択しない");
+
+    const rightClient = await overlappingAnnotationClientPosition(svg, {
+      preferredId: setup.target.rightId,
+      preferredPathClass: ".geometry-right-angle-mark",
+      otherId: setup.target.angleId
+    });
+    assert.deepEqual([...new Set(rightClient.hitIds)].sort(), [setup.target.angleId, setup.target.rightId].sort(), "直角表示線上でも2つの注釈hit候補を確認する");
+    await page.mouse.click(rightClient.x, rightClient.y);
+    await page.waitForFunction((annotationId) => document.querySelector(`g.geometry-right-angle[data-geometry-id="${annotationId}"]`)?.classList.contains("is-selected") === true, setup.target.rightId);
+    assert.equal(pageErrors.length, 0, "重なった注釈の距離選択で未処理例外を出さない");
+  } finally {
+    await context.close();
+  }
+}
+
 async function runCircleInteriorSelectionScenario(browser, url) {
   const context = await browser.newContext({ viewport: { width: 1100, height: 800 } });
   const page = await context.newPage();
@@ -697,6 +897,8 @@ async function runCircleInteriorSelectionScenario(browser, url) {
     await runRightAngleEditorScenario(browser, url);
     await runRightAngleOverlapScenario(browser, url);
     await runAngleEditorScenario(browser, url);
+    await runAngleMoveValidationScenario(browser, url);
+    await runOverlappingAnnotationSelectionScenario(browser, url);
     await runCircleInteriorSelectionScenario(browser, url);
     const page = await browser.newPage({ viewport: { width: 1100, height: 800 } });
     await waitForApp(page, url);

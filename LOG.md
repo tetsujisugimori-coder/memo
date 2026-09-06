@@ -2458,3 +2458,11 @@
 * SVGでは表示円弧と透明な幅12のhit pathへ同一の`d`、注釈ID、typeを付与し、表示側はポインターイベントを受けない。頂点と重なる場合は現在SVGの`elementsFromPoint()`候補だけを対象に、CTMで画面へ変換した実表示パスへの最短距離と頂点中心への距離を比較し、同距離では点を優先する。複数注釈hitが重なる場合も全候補の表示パス距離から最も近い注釈を選ぶ。
 * Playwrightの独立シナリオは最小構成（頂点、2方向点、2線分）を作り、`scrollIntoView()`とレイアウト安定化後に円弧上のSVGローカル座標を`getScreenCTM()`でclient座標へ投影する。クリック直前に`document.elementFromPoint()`が対象の`.geometry-angle-hit`、期待する注釈ID、`type=angle`を返すことを確認し、クリック後は`g.geometry-angle.is-selected`、ラベル保存・再読込、削除・Undo／Redo、参照点削除を検証した。小さい注釈と頂点の競合、別SVGを選択しないこと、ドラッグ後の円弧更新も確認した。
 * `npm test` は1,043件すべて成功、`npm run test:e2e:geometry` は最終状態で5回連続成功、`npm run test:e2e:mobile` は成功した。変更JavaScript全ファイルの`node --check`も成功した。Chromium自動E2E以外の手動ブラウザー操作と実タッチ端末での当たり判定、push後のGitHub Actionsは未確認として残す。
+
+## 2026-09-07 PR #190後の一般角編集・重なり選択フォローアップ
+
+* PR #190で追加した一般角は、点または図形の移動で頂点と方向点が重なる、0度、180度になると、保存データだけが残り円弧とhit pathが描画されない状態になり得た。`isAngleDrawable()`と移動前後比較を追加し、`movePoint()`と`moveObject()`の両方で、移動前に描画可能だった一般角だけが新たに退化する操作を拒否するようにした。拒否時はコピーした候補を破棄するため、元の座標、選択、円弧、hit path、保存データは最後の有効状態を保つ。
+* `normalizeGeometryBlock()`、`validateGeometryBlock()`、`parseGeometryBlockLine()`は厳格化していない。従来保存されていた退化一般角は読込・正規化を維持し、その状態から正常な角へ修復する移動は許可する。ドラッグ時は捕捉したエラーの日本語文言を表示し、一般角の拒否理由を円のエラーへ変換しない。
+* `selectPointerTarget()`は点だけでなく注釈を直接hitした場合にも、現在のSVGに限定した`elementsFromPoint()`の一般角／直角hit候補を比較する。各候補の`.geometry-angle-arc`または`.geometry-right-angle-mark`を`getScreenCTM()`で画面座標へ投影し、最短の表示パスを選択する。同距離は注釈ID順で決定的に扱い、点との競合は従来どおり同距離なら点を優先する。
+* 単体テストは頂点一致・0度・180度への点移動拒否、元データ不変、無関係な点移動、`moveObject()`拒否、保存済み退化角の読込、退化角の修復を追加した。独立E2EはCTM投影・整数client座標・`elementFromPoint()`で退化ドラッグ後の座標、円弧、hit path、保存復元、エラー文言を確認した。別の独立E2Eでは同一SVGの直角／一般角hitが両方返る前面直角配置で、表示円弧に近い一般角を選び、別位置では直角を選ぶことと、別SVGを選ばないことを確認した。
+* `npm test`は1,045件すべて成功、`npm run test:e2e:geometry`は最終状態で5回連続成功、`npm run test:e2e:mobile`は成功した。変更JavaScriptの`node --check`と`git diff --check`は最終確認で実施する。自動Chromium E2E以外の手動ブラウザー操作、実タッチ端末、push後のGitHub Actionsは未確認として残す。
