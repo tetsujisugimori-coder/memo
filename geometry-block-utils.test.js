@@ -564,3 +564,25 @@ test("未知フィールドを保持せず、許可された型と表示値だ�
   assert.equal("rawHtml" in normalized, false);
   assert.equal("onclick" in normalized.points[0], false);
 });
+
+test("等辺のlegacy objectIdsをedgeRefsへ補完し、多角形の各辺を検証する", () => {
+  const source = {
+    id: "edge-refs", points: [
+      { id: "a", x: 0, y: 0 }, { id: "b", x: 20, y: 0 }, { id: "c", x: 20, y: 20 }, { id: "d", x: 0, y: 20 }
+    ],
+    objects: [
+      { id: "ab", type: "segment", pointIds: ["a", "b"] },
+      { id: "square", type: "polygon", pointIds: ["a", "b", "c", "d"] }
+    ],
+    annotations: [{ id: "legacy", type: "equal-length", objectIds: ["ab", "ab"], markCount: 1 }]
+  };
+  assert.throws(() => normalizeGeometryBlock(source), /重複参照/);
+  source.annotations[0].objectIds = ["ab", "ab2"];
+  source.objects.push({ id: "ab2", type: "segment", pointIds: ["c", "d"] });
+  const legacy = normalizeGeometryBlock(source);
+  assert.deepEqual(legacy.annotations[0].edgeRefs, [{ objectId: "ab", edgeIndex: 0 }, { objectId: "ab2", edgeIndex: 0 }]);
+  const polygon = normalizeGeometryBlock({ ...legacy, annotations: [{ id: "polygon-equal", type: "equal-length", edgeRefs: [{ objectId: "square", edgeIndex: 0 }, { objectId: "square", edgeIndex: 2 }], markCount: 2 }] });
+  assert.deepEqual(polygon.annotations[0].edgeRefs.map((ref) => ref.edgeIndex), [0, 2]);
+  assert.throws(() => normalizeGeometryBlock({ ...polygon, annotations: [{ id: "bad", type: "equal-length", edgeRefs: [{ objectId: "square", edgeIndex: 4 }, { objectId: "ab", edgeIndex: 0 }], markCount: 1 }] }), /edgeIndex/);
+  assert.throws(() => normalizeGeometryBlock({ ...polygon, annotations: [{ id: "bad", type: "equal-length", edgeRefs: [{ objectId: "square", edgeIndex: 0 }, { objectId: "square", edgeIndex: 0 }], markCount: 1 }] }), /重複参照/);
+});

@@ -317,3 +317,25 @@ test("共通レンダラーは未知または描画不能な要素を保存値�
     global.document = priorDocument;
   }
 });
+
+test("共通レンダラーは多角形の先頭・途中・末尾辺を個別の等辺印とヒット領域へ出力する", () => {
+  let geometry = createGeometryBlock("polygon-edge-render");
+  [[10, 10], [60, 10], [70, 50], [30, 75]].forEach(([x, y]) => { geometry = addPoint(geometry, { x, y }); });
+  geometry = addPolygon(geometry, geometry.points.map((point) => point.id));
+  const polygon = geometry.objects[0];
+  geometry = addEqualLengthMark(geometry, { edgeRefs: [{ objectId: polygon.id, edgeIndex: 0 }, { objectId: polygon.id, edgeIndex: 2 }, { objectId: polygon.id, edgeIndex: 3 }], markCount: 3 });
+  const priorDocument = global.document;
+  global.document = { createElementNS: (_namespace, name) => new MockElement(name) };
+  try {
+    const { renderGeometrySvg } = require("./geometry-svg-renderer.js");
+    const svg = new MockElement("svg");
+    renderGeometrySvg(svg, geometry);
+    const edgeHits = descendants(svg).filter((node) => node.getAttribute("data-geometry-kind") === "edge" && node.getAttribute("data-geometry-object-id") === polygon.id);
+    assert.deepEqual(edgeHits.map((node) => node.getAttribute("data-geometry-edge-index")).sort(), ["0", "1", "2", "3"]);
+    const marks = descendants(svg).filter((node) => node.getAttribute("data-geometry-type") === "equal-length");
+    assert.equal(marks.length, 3);
+    assert.deepEqual(marks.map((node) => node.getAttribute("data-edge-index")).sort(), ["0", "2", "3"]);
+  } finally {
+    global.document = priorDocument;
+  }
+});

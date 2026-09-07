@@ -2443,6 +2443,13 @@
 * 変換結果の `adapterId` は展開後にRouterが設定する確定値へ変更し、Adapterの返却値では上書きできないようにした。LangBench Result、legacy IT Newsのpriority 1000 fallback、貼り付け取り込みの保存順序、IndexedDBスキーマは変更していない。
 * `json-import-router.test.js` にAdapter変換エラーと偽 `adapterId` の検証を追加し、`json-import-file.test.js` に未知JSONのファイルfallbackと認識済みAdapterエラーの伝播を追加した。`node --check json-import-router.js`、`json-import-adapters.js`、`json-import-file.test.js`、`app.js`、関連13件、`npm test`全1041件、`git diff --check` が成功した。手動ブラウザー操作は未実施。
 
+## 2026-09-07 多角形辺の共通参照と等辺印編集
+
+* `equal-length`へV1追加の`edgeRefs: [{ objectId, edgeIndex }]`を導入した。線分は`edgeIndex: 0`、多角形は連続する頂点対（末尾から先頭を含む）として解決する。旧`objectIds`だけのデータは読み込み時にedgeRefsへ補完し、旧フィールドを残して往復する。ブロックversionは1のままとした。
+* 共通SVGレンダラーは線分・多角形の各辺へ透明なヒット領域を出し、等辺モードだけで辺単位選択を有効にする。等辺印は同じedgeRefsを使い、表示の短線、透明な注釈ヒット領域、選択状態を辺の中心・法線から再計算する。等辺印は長さを強制する制約ではない。
+* 編集UIへ「等辺」モード、選択解除できる下書き、2本以上で有効な「等辺を完了」、日本語の残数表示、印の本数（1〜10）編集、選択した印だけの削除を追加した。参照先の図形を削除した場合は当該辺だけを外し、残り2辺未満なら注釈を削除する。点・図形移動で表示可能な等辺辺が新たにゼロ長になる操作は拒否する。
+* `geometry-block-utils.test.js`、`geometry-editor-utils.test.js`、`geometry-svg-renderer.test.js`へlegacy互換、polygon edgeIndex、重複・範囲外参照、描画、更新、削除、退化拒否の回帰を追加した。`npm test`と`npm run test:e2e:mobile`は成功し、変更JavaScriptの`node --check`と`git diff --check`も成功した。Geometry E2Eは既存選択との競合を検出して修正したが、この環境では5連続実行の完了結果を取得できなかったため未確認とする。実タッチ端末操作とpush後CIも未確認。
+
 ## 2026-09-07 円内部の線分選択E2Eの安定化
 
 * 原因はproductionのhit testingではなく、独立した円内部線分シナリオが点を置く初期2クリックにSVG左上からの固定画面ピクセル加算を使っていたこと。SVGの表示倍率、余白、スクロール後の位置が変わると、図形の論理配置が不必要に変動し得た。

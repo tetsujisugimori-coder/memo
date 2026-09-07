@@ -89,6 +89,21 @@
     return object.type === "polygon" && Array.isArray(object.pointIds) ? object.pointIds.length : 0;
   }
 
+  // Segments own edge 0; polygons own one edge per consecutive point pair.
+  // This shared, small value object is also usable by future edge annotations.
+  function normalizeEdgeRef(value) {
+    const source = isRecord(value) ? value : {};
+    return { objectId: normalizedId(source.objectId), edgeIndex: source.edgeIndex };
+  }
+
+  function edgeRefsForAnnotation(annotation) {
+    if (!isRecord(annotation)) return [];
+    if (Array.isArray(annotation.edgeRefs)) return annotation.edgeRefs.map(normalizeEdgeRef);
+    return Array.isArray(annotation.objectIds)
+      ? annotation.objectIds.map((objectId) => ({ objectId: normalizedId(objectId), edgeIndex: 0 }))
+      : [];
+  }
+
   function normalizePoint(point) {
     const source = isRecord(point) ? point : {};
     return {
@@ -141,12 +156,19 @@
       normalized.labelOffsetY = source.labelOffsetY === undefined ? 0 : source.labelOffsetY;
     }
     if (["equal-length", "parallel"].includes(normalized.type)) {
-      normalized.objectIds = normalizedIdList(source.objectIds);
+      if (source.objectIds !== undefined) normalized.objectIds = normalizedIdList(source.objectIds);
       normalized.markCount = source.markCount === undefined
         ? (source.mark === undefined ? 1 : source.mark)
         : source.markCount;
       // Retain the historic field so V1 consumers and existing notes round-trip.
       normalized.mark = normalized.markCount;
+    }
+    if (normalized.type === "equal-length") {
+      // Legacy V1 data had objectIds only. Preserve it while adding the common
+      // edge representation used by the editor and renderer.
+      normalized.edgeRefs = source.edgeRefs === undefined
+        ? edgeRefsForAnnotation({ objectIds: normalized.objectIds })
+        : normalizeLimitedArray(source.edgeRefs, GEOMETRY_BLOCK_LIMITS.referencesPerItem, normalizeEdgeRef);
     }
     if (["length-label", "fill-region"].includes(normalized.type)) {
       normalized.objectId = normalizedId(source.objectId === undefined ? source.segmentId : source.objectId);
@@ -361,7 +383,36 @@
           validateFinite(annotation.labelOffsetY, `${path}.labelOffsetY`);
         }
       }
-      if (["equal-length", "parallel"].includes(annotation.type)) {
+      if (annotation.type === "equal-length") {
+        if (!validateArray(annotation.edgeRefs, `${path}.edgeRefs`, GEOMETRY_BLOCK_LIMITS.referencesPerItem)) return;
+        if (annotation.edgeRefs.length < 2) addError(`${path}.edgeRefsの参照数が不正です`);
+        const seenEdges = new Set();
+        annotation.edgeRefs.forEach((edgeRef, refIndex) => {
+          if (!isRecord(edgeRef)) {
+            addError(`${path}.edgeRefs[${refIndex}]はオブジェクトである必要があります`);
+            return;
+          }
+          validateId(edgeRef.objectId, `${path}.edgeRefs[${refIndex}].objectId`);
+          const object = objectById.get(edgeRef.objectId);
+          if (!object) addError(`${path}.edgeRefs[${refIndex}]の参照先が存在しません`);
+          else if (!["segment", "polygon"].includes(object.type)) addError(`${path}.edgeRefs[${refIndex}]は線分または多角形の辺を参照する必要があります`);
+          else if (!Number.isInteger(edgeRef.edgeIndex) || edgeRef.edgeIndex < 0 || edgeRef.edgeIndex >= edgeCount(object)
+            || (object.type === "segment" && edgeRef.edgeIndex !== 0)) addError(`${path}.edgeRefs[${refIndex}].edgeIndexが不正です`);
+          const key = `${edgeRef.objectId}:${edgeRef.edgeIndex}`;
+          if (seenEdges.has(key)) addError(`${path}.edgeRefsに重複参照があります`);
+          seenEdges.add(key);
+        });
+        // objectIds is intentionally retained only as the legacy segment view.
+        if (annotation.objectIds !== undefined) {
+          validateReferenceList(annotation.objectIds, `${path}.objectIds`, 2, GEOMETRY_BLOCK_LIMITS.referencesPerItem, objectIds);
+          annotation.objectIds.forEach((id) => {
+            if (objectById.get(id)?.type !== "segment") addError(`${path}.objectIdsは線分だけを参照できます`);
+          });
+        }
+        if (!Number.isInteger(annotation.markCount) || annotation.markCount < 1 || annotation.markCount > 10) {
+          addError(`${path}.markCountは1から10の整数である必要があります`);
+        }
+      } else if (annotation.type === "parallel") {
         validateReferenceList(
           annotation.objectIds,
           `${path}.objectIds`,
@@ -464,6 +515,7 @@
         if (Array.isArray(next.pointIds)) next.pointIds = next.pointIds.map((pointId) => pointIds.get(pointId));
         if (Array.isArray(next.rayVertexIds)) next.rayVertexIds = next.rayVertexIds.map((pointId) => pointIds.get(pointId));
         if (Array.isArray(next.objectIds)) next.objectIds = next.objectIds.map((objectId) => objectIds.get(objectId));
+        if (Array.isArray(next.edgeRefs)) next.edgeRefs = next.edgeRefs.map((edgeRef) => ({ ...edgeRef, objectId: objectIds.get(edgeRef.objectId) }));
         if (Array.isArray(next.segmentIds)) next.segmentIds = next.segmentIds.map((objectId) => objectIds.get(objectId));
         if (next.vertexId) next.vertexId = pointIds.get(next.vertexId);
         if (next.pointId) next.pointId = pointIds.get(next.pointId);
@@ -689,6 +741,8 @@
     GEOMETRY_BLOCK_VERSION,
     GEOMETRY_BLOCK_LIMITS,
     edgeCount,
+    normalizeEdgeRef,
+    edgeRefsForAnnotation,
     generatedEntityId,
     createGeometryBlock,
     cloneGeometryBlock,

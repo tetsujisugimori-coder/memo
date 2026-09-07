@@ -2,8 +2,8 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const { createGeometryBlock, cloneGeometryBlock, parseGeometryBlockLine, serializeGeometryBlock } = require("./geometry-block-utils.js");
 const {
-  addAngle, addCircle, addPoint, addPolygon, addRightAngle, addSegment, createHistory, deleteSelection, moveObject, movePoint,
-  screenPointToViewBox, updateAngleLabel, updateLengthLabel, updateSegmentLineStyle, updateVertexLabel
+  addAngle, addCircle, addEqualLengthMark, addPoint, addPolygon, addRightAngle, addSegment, createHistory, deleteSelection, moveObject, movePoint,
+  screenPointToViewBox, updateAngleLabel, updateEqualLengthMarkCount, updateLengthLabel, updateSegmentLineStyle, updateVertexLabel
 } = require("./geometry-editor-utils.js");
 
 function withPoints(count = 3) {
@@ -401,4 +401,23 @@ test("図形内履歴は追加、移動、削除をUndo/Redoでき、移動は�
   assert.deepEqual(history.undo().points[0], geometry.points[0]);
   assert.equal(history.redo().points[0].x, 30);
   assert.equal(history.redo().points.length, 0);
+});
+
+test("等辺注釈は線分と多角形辺を共通参照し、編集・削除・退化拒否できる", () => {
+  let geometry = createGeometryBlock("equal-editor");
+  [[0, 0], [20, 0], [20, 20], [0, 20], [40, 0], [40, 20]].forEach(([x, y]) => { geometry = addPoint(geometry, { x, y }); });
+  geometry = addPolygon(geometry, geometry.points.slice(0, 4).map((point) => point.id));
+  geometry = addSegment(geometry, geometry.points[4].id, geometry.points[5].id);
+  const [square, segment] = geometry.objects;
+  geometry = addEqualLengthMark(geometry, { edgeRefs: [{ objectId: square.id, edgeIndex: 0 }, { objectId: square.id, edgeIndex: 3 }, { objectId: segment.id, edgeIndex: 0 }], markCount: 2 });
+  const annotation = geometry.annotations.find((entry) => entry.type === "equal-length");
+  assert.equal(annotation.edgeRefs.length, 3);
+  assert.throws(() => addEqualLengthMark(geometry, { edgeRefs: [{ objectId: square.id, edgeIndex: 1 }, { objectId: segment.id, edgeIndex: 0 }], markCount: 1 }), /既に等辺記号/);
+  geometry = updateEqualLengthMarkCount(geometry, annotation.id, 3);
+  assert.equal(geometry.annotations.find((entry) => entry.id === annotation.id).markCount, 3);
+  assert.throws(() => movePoint(geometry, geometry.points[1].id, 0, 0), /等辺記号の辺が0/);
+  const afterSegmentDelete = deleteSelection(geometry, { kind: "object", id: segment.id });
+  assert.equal(afterSegmentDelete.annotations.find((entry) => entry.id === annotation.id).edgeRefs.length, 2);
+  const afterPolygonDelete = deleteSelection(afterSegmentDelete, { kind: "object", id: square.id });
+  assert.equal(afterPolygonDelete.annotations.some((entry) => entry.id === annotation.id), false);
 });

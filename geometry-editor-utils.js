@@ -5,7 +5,7 @@
     || (typeof require === "function" ? require("./geometry-block-utils.js") : null);
   if (!geometryUtils) throw new Error("MemoNexusGeometryBlockUtils is required");
 
-  const { edgeCount, generatedEntityId, normalizeGeometryBlock } = geometryUtils;
+  const { edgeCount, edgeRefsForAnnotation, generatedEntityId, normalizeGeometryBlock } = geometryUtils;
   const RIGHT_ANGLE_MIN_DEGREES = 80;
   const RIGHT_ANGLE_MAX_DEGREES = 100;
   const RIGHT_ANGLE_ANGLE_EPSILON_DEGREES = 1e-9;
@@ -127,6 +127,7 @@
     point.x = x;
     point.y = y;
     rejectNewDegenerateAngles(geometry, next);
+    rejectNewDegenerateEqualLengths(geometry, next);
     return normalizeGeometryBlock(next, next.id);
   }
 
@@ -142,6 +143,7 @@
       point.y += deltaY;
     });
     rejectNewDegenerateAngles(geometry, next);
+    rejectNewDegenerateEqualLengths(geometry, next);
     return normalizeGeometryBlock(next, next.id);
   }
 
@@ -200,6 +202,36 @@
       && isAngleDrawable(before, previousById.get(annotation.id))
       && !isAngleDrawable(next, annotation));
     if (newlyDegenerate) throw new Error("角度注釈が0度または180度になるため移動できません。別の位置へ移動してください。");
+  }
+
+  function edgeForRef(geometry, edgeRef) {
+    const object = objectById(geometry, edgeRef?.objectId);
+    if (!object || !["segment", "polygon"].includes(object.type) || !Number.isInteger(edgeRef?.edgeIndex)
+      || edgeRef.edgeIndex < 0 || edgeRef.edgeIndex >= edgeCount(object)) return null;
+    const startId = object.pointIds[edgeRef.edgeIndex];
+    const endId = object.pointIds[(edgeRef.edgeIndex + 1) % object.pointIds.length];
+    const start = pointById(geometry, startId);
+    const end = pointById(geometry, endId);
+    return start && end ? { object, start, end, edgeIndex: edgeRef.edgeIndex } : null;
+  }
+
+  function isEdgeDrawable(geometry, edgeRef) {
+    const edge = edgeForRef(geometry, edgeRef);
+    return Boolean(edge && Math.hypot(edge.end.x - edge.start.x, edge.end.y - edge.start.y) > 1e-6);
+  }
+
+  function rejectNewDegenerateEqualLengths(before, next) {
+    for (const annotation of next.annotations) {
+      if (annotation.type !== "equal-length") continue;
+      const previous = before.annotations.find((entry) => entry.id === annotation.id && entry.type === "equal-length");
+      if (!previous) continue;
+      const previousRefs = edgeRefsForAnnotation(previous);
+      const nextRefs = edgeRefsForAnnotation(annotation);
+      if (previousRefs.some((edgeRef) => isEdgeDrawable(before, edgeRef))
+        && nextRefs.some((edgeRef) => !isEdgeDrawable(next, edgeRef))) {
+        throw new Error("等辺記号の辺が0になるため移動できません。別の位置へ移動してください。");
+      }
+    }
   }
 
   function hasSameRightAngle(annotation, vertexId, rayVertexIds) {
@@ -328,9 +360,34 @@
     return normalizeGeometryBlock(next, next.id);
   }
 
-  function addEqualLengthMark(geometry, { segmentIds, markCount = 1 } = {}) {
+  function edgeRefKey(edgeRef) {
+    return `${edgeRef.objectId}:${edgeRef.edgeIndex}`;
+  }
+
+  function addEqualLengthMark(geometry, { edgeRefs, segmentIds, markCount = 1 } = {}) {
+    const refs = Array.isArray(edgeRefs) ? edgeRefs.map((edgeRef) => ({ objectId: edgeRef?.objectId, edgeIndex: edgeRef?.edgeIndex }))
+      : Array.isArray(segmentIds) ? segmentIds.map((objectId) => ({ objectId, edgeIndex: 0 })) : edgeRefs || segmentIds;
+    if (!Array.isArray(refs) || refs.length < 2) throw new Error("等辺記号には2本以上の辺を指定してください");
+    if (new Set(refs.map(edgeRefKey)).size !== refs.length) throw new Error("同じ辺を重複して指定できません");
+    if (refs.some((edgeRef) => !isEdgeDrawable(geometry, edgeRef))) throw new Error("等辺記号には長さがある線分または多角形の辺を指定してください");
+    if (geometry.annotations.some((annotation) => annotation.type === "equal-length" && edgeRefsForAnnotation(annotation).some((edgeRef) => refs.some((candidate) => edgeRefKey(candidate) === edgeRefKey(edgeRef))))) {
+      throw new Error("この辺には既に等辺記号が付いています");
+    }
+    if (!Number.isInteger(markCount) || markCount < 1 || markCount > 10) throw new Error("等辺記号の本数は1から10で指定してください");
+    if (geometry.annotations.some((annotation) => annotation.type === "equal-length" && annotation.markCount === markCount)) throw new Error("同じ本数の等辺記号が既にあります");
     const next = copy(geometry);
-    next.annotations.push({ id: generatedEntityId("equal-length"), type: "equal-length", objectIds: Array.isArray(segmentIds) ? [...segmentIds] : segmentIds, markCount });
+    next.annotations.push({ id: generatedEntityId("equal-length"), type: "equal-length", edgeRefs: refs, markCount });
+    return normalizeGeometryBlock(next, next.id);
+  }
+
+  function updateEqualLengthMarkCount(geometry, annotationId, markCount) {
+    if (!Number.isInteger(markCount) || markCount < 1 || markCount > 10) throw new Error("等辺記号の本数は1から10で指定してください");
+    const next = copy(geometry);
+    const annotation = next.annotations.find((entry) => entry.id === annotationId && entry.type === "equal-length");
+    if (!annotation) throw new Error("等辺記号が見つかりません");
+    if (next.annotations.some((entry) => entry.type === "equal-length" && entry.id !== annotationId && entry.markCount === markCount)) throw new Error("同じ本数の等辺記号が既にあります");
+    annotation.markCount = markCount;
+    annotation.mark = markCount;
     return normalizeGeometryBlock(next, next.id);
   }
 
@@ -352,7 +409,7 @@
         && annotation.pointId !== selection.id
         && !(annotation.pointIds || []).includes(selection.id)
         && (!annotation.objectId || objectIds.has(annotation.objectId))
-        && !(annotation.objectIds || []).some((objectId) => !objectIds.has(objectId))
+        && (annotation.type === "equal-length" || !(annotation.objectIds || []).some((objectId) => !objectIds.has(objectId)))
         && !(annotation.segmentIds || []).some((objectId) => !objectIds.has(objectId)));
     } else if (selection.kind === "object") {
       next.objects = next.objects.filter((object) => object.id !== selection.id);
@@ -360,11 +417,23 @@
       next.annotations = next.annotations.filter((annotation) => annotation.objectId !== selection.id
         && !(annotation.objectIds || []).includes(selection.id)
         && (!annotation.objectId || objectIds.has(annotation.objectId))
-        && !(annotation.objectIds || []).some((objectId) => !objectIds.has(objectId))
+        && (annotation.type === "equal-length" || !(annotation.objectIds || []).some((objectId) => !objectIds.has(objectId)))
         && !(annotation.segmentIds || []).some((objectId) => !objectIds.has(objectId)));
     } else if (selection.kind === "annotation") {
       next.annotations = next.annotations.filter((annotation) => annotation.id !== selection.id);
     }
+    // Equal-length uses edge references.  Remove only the vanished edges and
+    // retain its annotation when at least two edges remain.
+    const remainingObjectIds = new Set(next.objects.map((object) => object.id));
+    next.annotations = next.annotations.flatMap((annotation) => {
+      if (annotation.type !== "equal-length") return [annotation];
+      const edgeRefs = edgeRefsForAnnotation(annotation).filter((edgeRef) => remainingObjectIds.has(edgeRef.objectId));
+      if (edgeRefs.length < 2) return [];
+      const legacyObjectIds = Array.isArray(annotation.objectIds)
+        ? edgeRefs.filter((edgeRef) => objectById(next, edgeRef.objectId)?.type === "segment").map((edgeRef) => edgeRef.objectId)
+        : undefined;
+      return [{ ...annotation, edgeRefs, ...(legacyObjectIds === undefined ? {} : { objectIds: legacyObjectIds }) }];
+    });
     return normalizeGeometryBlock(next, next.id);
   }
 
@@ -384,7 +453,7 @@
     };
   }
 
-  const api = { RIGHT_ANGLE_MIN_DEGREES, RIGHT_ANGLE_MAX_DEGREES, pointName, screenPointToViewBox, pointById, objectById, vertexLabel, lengthLabel, edgeCount, isAngleDrawable, addPoint, addSegment, addPolygon, addCircle, movePoint, moveObject, updateVertexLabel, updateSegmentLineStyle, updateLengthLabel, updateAngleLabel, addRightAngle, addAngle, addLengthAnnotation, addEqualLengthMark, addParallelMark, deleteSelection, createHistory };
+  const api = { RIGHT_ANGLE_MIN_DEGREES, RIGHT_ANGLE_MAX_DEGREES, pointName, screenPointToViewBox, pointById, objectById, vertexLabel, lengthLabel, edgeCount, edgeForRef, isEdgeDrawable, isAngleDrawable, addPoint, addSegment, addPolygon, addCircle, movePoint, moveObject, updateVertexLabel, updateSegmentLineStyle, updateLengthLabel, updateAngleLabel, addRightAngle, addAngle, addLengthAnnotation, addEqualLengthMark, updateEqualLengthMarkCount, addParallelMark, deleteSelection, createHistory };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   if (globalScope) globalScope.MemoNexusGeometryEditorUtils = api;
 })(typeof window !== "undefined" ? window : globalThis);
