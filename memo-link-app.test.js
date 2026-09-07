@@ -23,9 +23,9 @@ function readFunctionSource(name) {
 
 test("インラインtokenは語句・メモ・不正式予約記法を分離しコードを優先する", () => {
   const functions = Function(
-    "findAttachmentReference", "findInlineMathToken", "safeExternalUrl", "findDelimitedInlineToken",
+    "findAttachmentReference", "findInlineMathToken", "safeExternalUrl", "findDelimitedInlineToken", "findHighlightInlineToken",
     `${readFunctionSource("findNextKnowledgeLinkToken")} ${readFunctionSource("findNextInlineToken")} return { findNextKnowledgeLinkToken, findNextInlineToken };`
-  )(() => null, () => null, () => false, () => null);
+  )(() => null, () => null, () => false, () => null, () => null);
   assert.equal(functions.findNextInlineToken("[[語句]]", 0).type, "term-link");
   assert.deepEqual(functions.findNextInlineToken("[[* メモ名]]", 0), { type: "memo-link", start: 0, end: 9, content: "メモ名" });
   ["[[*メモ名]]", "[[ * メモ名]]", "[[* ]]", "[[＊ メモ名]]"].forEach((value) => {
@@ -149,7 +149,7 @@ test("改名batch成功時はcommitted snapshotへ統一し遅延通常保存後
 });
 
 test("専用モジュールはapp.jsより前に読み込み、保存基盤とDB schemaを変更しない", () => {
-  assert.ok(html.indexOf('memo-link-utils.js?v=0.5.0-3') < html.indexOf('app.js?v=0.5.0-142'));
-  assert.match(html, /term-link-utils\.js\?v=0\.5\.0-6[\s\S]*memo-link-utils\.js\?v=0\.5\.0-3[\s\S]*app\.js\?v=0\.5\.0-142/);
+  assert.ok(html.indexOf('memo-link-utils.js?v=0.5.0-3') < html.indexOf('app.js?v=0.5.0-143'));
+  assert.match(html, /term-link-utils\.js\?v=0\.5\.0-6[\s\S]*memo-link-utils\.js\?v=0\.5\.0-3[\s\S]*app\.js\?v=0\.5\.0-143/);
   assert.doesNotMatch(app, /memo-link-store|backlink-store|createObjectStore\([^)]*link/i);
 });

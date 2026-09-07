@@ -36,7 +36,7 @@ test("全ローカルCSS・JavaScriptを0.5.0のキャッシュ識別子で読�
   assert.match(html, /draft-mirror-scheduler\.js\?v=0\.5\.0-2/);
   assert.match(html, /term-link-utils\.js\?v=0\.5\.0-6/);
   assert.match(html, /memo-link-utils\.js\?v=0\.5\.0-3/);
-  assert.match(html, /style\.css\?v=0\.5\.0-80/);
+  assert.match(html, /style\.css\?v=0\.5\.0-81/);
   assert.match(html, /logo-animation-utils\.js\?v=0\.5\.0-8/);
   assert.match(html, /editor-caret-animation-utils\.js\?v=0\.5\.0-2/);
   assert.match(html, /layout-resize-utils\.js\?v=0\.5\.0-2/);
@@ -48,7 +48,7 @@ test("全ローカルCSS・JavaScriptを0.5.0のキャッシュ識別子で読�
   assert.match(html, /extensions\/web-clipper\/clip-result\.js\?v=0\.5\.0-1/);
   assert.match(html, /extensions\/web-clipper\/transfer-lifecycle\.js\?v=0\.5\.0-2/);
   assert.match(html, /web-clipper-config\.js\?v=0\.5\.0-4/);
-  assert.match(html, /app\.js\?v=0\.5\.0-142/);
+  assert.match(html, /app\.js\?v=0\.5\.0-143/);
 });
 
 test("本体リリースと別管理の互換性バージョンを変更しない", () => {

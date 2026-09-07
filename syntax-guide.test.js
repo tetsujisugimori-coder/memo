@@ -195,6 +195,7 @@ test("対応するMarkdown記法とMemo Nexus独自機能を掲載する", () =>
     "**重要**",
     "*強調* または _強調_",
     "~~削除予定~~",
+    "==重要な部分==",
     "1. 1つ目\n2. 2つ目",
     "- [ ] 未完了\n- [x] 完了",
     "---",
@@ -212,10 +213,12 @@ test("対応するMarkdown記法とMemo Nexus独自機能を掲載する", () =>
     "[[* SQLite実験結果]]"
   ]);
   assert.ok(markdown.every((item) => item.name && item.description && item.notes));
-  ["画像ブロック", "画像キャプション", "解説ブロック", "画像", "本文から画像を削除して添付保持", "斜体", "打ち消し線", "番号付きリスト", "チェックリスト", "通常リンク", "水平線", "注意書き"].forEach((name) => {
+  ["画像ブロック", "画像キャプション", "解説ブロック", "画像", "本文から画像を削除して添付保持", "斜体", "打ち消し線", "ハイライト", "番号付きリスト", "チェックリスト", "通常リンク", "水平線", "注意書き"].forEach((name) => {
     assert.ok(markdown.some((item) => item.name === name));
   });
   assert.match(markdown.find((item) => item.name === "通常リンク").notes, /javascript/);
+  assert.equal(markdown.find((item) => item.name === "ハイライト").syntax, "==重要な部分==");
+  assert.match(markdown.find((item) => item.name === "ハイライト").notes, /コードブロックとインラインコード内/);
   assert.equal(markdown.find((item) => item.name === "解説ブロック").copyable, false);
   assert.equal(markdown.find((item) => item.name === "画像ブロック").copyable, false);
   assert.match(markdown.find((item) => item.name === "語句リンク").description, /登録語句/);
@@ -467,7 +470,7 @@ test("ライト・ダーク共通変数と狭幅container queryで表示する",
 });
 
 test("app.jsのキャッシュ番号を更新し、PR #24の画面外Mermaid描画経路を維持する", () => {
-  assert.match(html, /app\.js\?v=0\.5\.0-142/);
+  assert.match(html, /app\.js\?v=0\.5\.0-143/);
   assert.match(html, /table-block-utils\.js\?v=0\.5\.0-4/);
   assert.match(app, /mermaid\.render\(/);
   assert.doesNotMatch(app, /mermaid\.run\(/);
