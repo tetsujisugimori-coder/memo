@@ -19,6 +19,8 @@
   --line: #dedfd6;
   --accent: #236c73;
   --accent-soft: #d9eef0;
+  --highlight-bg: #fff08a;
+  --highlight-ink: #222522;
   --memo-nexus-logo-node: var(--accent);
   --memo-nexus-logo-node: color-mix(in srgb, var(--accent) 72%, var(--panel));
   --memo-nexus-logo-node-secondary: #81789e;
@@ -75,6 +77,8 @@ body.dark {
   --line: #3a443d;
   --accent: #75c7ce;
   --accent-soft: #153b40;
+  --highlight-bg: #8a761b;
+  --highlight-ink: #fffbe0;
   --memo-nexus-logo-node: var(--accent);
   --memo-nexus-logo-node: color-mix(in srgb, var(--accent) 84%, var(--panel));
   --memo-nexus-logo-node-secondary: #a49ac3;
@@ -2179,6 +2183,14 @@ body.layout-resizing iframe {
 .task-list-item { display: flex; align-items: flex-start; gap: 8px; }
 .task-list-checkbox { margin: .3em 0 0; min-width: 18px; min-height: 18px; accent-color: var(--accent); }
 .markdown-link { color: var(--accent); overflow-wrap: anywhere; }
+.preview .markdown-highlight {
+  padding: 0 .1em;
+  border-radius: .15em;
+  background: var(--highlight-bg);
+  color: var(--highlight-ink);
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}
 .callout { margin: 12px 0; padding: 11px 14px; border: 1px solid var(--line); border-left: 4px solid var(--accent); border-radius: 8px; background: var(--section-bg); overflow-wrap: anywhere; }
 .callout-title { display: block; margin-bottom: 5px; }
 .callout-note { border-left-color: #3182ce; }

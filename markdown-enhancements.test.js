@@ -146,6 +146,22 @@ function loadAppFunction(name, deps = {}) {
 
 const safeExternalUrl = Function(`${sourceOf("safeExternalUrl")} return safeExternalUrl;`)();
 const renderOrderedListBlock = Function("renderMarkdownInline", `${sourceOf("renderOrderedListBlock")} return renderOrderedListBlock;`)((text) => text);
+const toggleHighlightMarkdown = Function(`${sourceOf("toggleHighlightMarkdown")} return toggleHighlightMarkdown;`)();
+const findDelimitedInlineToken = (text, fromIndex, delimiter, type) => {
+  const start = text.indexOf(delimiter, fromIndex);
+  if (start === -1) return null;
+  const end = text.indexOf(delimiter, start + delimiter.length);
+  if (end === -1) return null;
+  const content = text.slice(start + delimiter.length, end);
+  return content.trim() ? { type, start, end: end + delimiter.length, content } : null;
+};
+const findHighlightInlineToken = Function("findDelimitedInlineToken", `${sourceOf("findHighlightInlineToken")} return findHighlightInlineToken;`)(findDelimitedInlineToken);
+const splitFencedBlocks = Function(`${sourceOf("splitFencedBlocks")} return splitFencedBlocks;`)();
+const renderCodeBlock = Function("normalizeHighlightLanguage", "escapeAttr", "escapeHtml", `${sourceOf("renderCodeBlock")} return renderCodeBlock;`)(
+  (value) => value,
+  (value) => String(value),
+  (value) => String(value).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+);
 
 test("通常リンクはhttp/httpsだけを許可する", () => {
   assert.equal(safeExternalUrl("https://openai.com/a_b"), true);
@@ -158,6 +174,52 @@ test("斜体トークンは単語内アンダースコア、太字、エスケ�
   assert.match(app, /function findDelimitedInlineToken[\s\S]*?options\.wordBoundary/);
   assert.match(app, /function findDelimitedInlineToken[\s\S]*?options\.rejectDouble/);
   assert.match(app, /function findDelimitedInlineToken[\s\S]*?isEscapedMarkdownCharacter/);
+});
+
+test("蛍光ペン操作は選択文字列を==で囲み、同じ選択で解除する", () => {
+  assert.deepEqual(toggleHighlightMarkdown("重要な部分", 0, 5), {
+    value: "==重要な部分==", start: 0, end: 5, selectionStart: 2, selectionEnd: 7
+  });
+  assert.deepEqual(toggleHighlightMarkdown("==重要な部分==", 2, 7), {
+    value: "重要な部分", start: 0, end: 9, selectionStart: 0, selectionEnd: 5
+  });
+  assert.deepEqual(toggleHighlightMarkdown("==text==", 0, 8), {
+    value: "text", start: 0, end: 8, selectionStart: 0, selectionEnd: 4
+  });
+  assert.equal(toggleHighlightMarkdown("本文", 1, 1), null);
+});
+
+test("ハイライト記法は通常文と日本語を黄色表示し、コード領域は変換しない", () => {
+  assert.deepEqual(findHighlightInlineToken("通常 ==highlight text== です", 0), {
+    type: "highlight", start: 3, end: 21, content: "highlight text"
+  });
+  assert.deepEqual(findHighlightInlineToken("==日本語の文章です==", 0), {
+    type: "highlight", start: 0, end: 12, content: "日本語の文章です"
+  });
+  assert.equal(findHighlightInlineToken("通常テキストです", 0), null);
+  assert.equal(findHighlightInlineToken("====", 0), null);
+  assert.equal(findHighlightInlineToken("https://example.test/==text==", 0), null);
+  assert.equal(findHighlightInlineToken("<span>==text==</span>", 0), null);
+  assert.deepEqual(findHighlightInlineToken("https://example.test/==skip== と ==表示==", 0), {
+    type: "highlight", start: 32, end: 38, content: "表示"
+  });
+  assert.match(app, /token\.type === "highlight"[\s\S]*?<mark class="markdown-highlight">/);
+  assert.match(app, /const codeStart = text\.indexOf\("`", fromIndex\);[\s\S]*?const highlight = findHighlightInlineToken/);
+
+  const [codeBlock] = splitFencedBlocks("```js\n==text==\n```");
+  assert.equal(codeBlock.type, "code");
+  assert.doesNotMatch(renderCodeBlock(codeBlock.code, codeBlock.language), /markdown-highlight|<mark/);
+});
+
+test("蛍光ペンは既存の選択範囲編集とモバイル追加メニューを再利用する", () => {
+  assert.match(html, /id="toggleHighlightBtn"[^>]*title="選択範囲を黄色でハイライト／解除"[^>]*aria-label="選択範囲を黄色でハイライトまたは解除"/);
+  assert.match(html, /data-mobile-editor-tool="toggleHighlightBtn">蛍光ペン<\/button>/);
+  assert.match(app, /editor\.setRangeText\(result\.value, result\.start, result\.end, "select"\)/);
+  assert.match(app, /captureUndoSnapshot\(\{ inputType: "insertText" \}\)/);
+  assert.match(app, /scheduleSave\(\);/);
+  assert.match(app, /toggleHighlightBtn\) toggleHighlightBtn\.addEventListener\("click", toggleHighlightAtSelection\)/);
+  assert.match(css, /--highlight-bg:/);
+  assert.match(css, /\.preview \.markdown-highlight/);
 });
 
 test("行レンダラは番号付きリスト、チェックリスト、水平線、Calloutを区別する", () => {
@@ -707,7 +769,7 @@ test("折りたたみ保存はメモIDとカードIDを固定し、短時間の�
 
 test("Markdown拡張スクリプトとapp.jsは更新済みキャッシュ番号で読み込む", () => {
   assert.match(html, /markdown-enhancements-utils\.js\?v=0\.5\.0-4/);
-  assert.match(html, /app\.js\?v=0\.5\.0-142/);
+  assert.match(html, /app\.js\?v=0\.5\.0-143/);
   assert.doesNotMatch(html, /app\.js\?v=0\.5\.0-40/);
 });
 

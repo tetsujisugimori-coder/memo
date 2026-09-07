@@ -61,6 +61,7 @@ const SYNTAX_GUIDE_ITEMS = [
   { category: "markdown", name: "太字", syntax: "**重要**", description: "文字を太字で強調します。", notes: "文字の前後を**で囲みます。" },
   { category: "markdown", name: "斜体", syntax: "*強調* または _強調_", description: "文字を斜体で強調します。", notes: "単語の途中のアンダースコア、コード、エスケープした記号は変換しません。" },
   { category: "markdown", name: "打ち消し線", syntax: "~~削除予定~~", description: "文字に打ち消し線を付けます。", notes: "コード内では変換しません。" },
+  { category: "markdown", name: "ハイライト", syntax: "==重要な部分==", description: "選択した文字列を黄色の蛍光ペンで強調します。", notes: "［蛍光ペン］で追加・解除できます。コードブロックとインラインコード内は変換しません。" },
   { category: "markdown", name: "番号付きリスト", syntax: "1. 1つ目\n2. 2つ目", description: "連続した項目を番号付きリストで表示します。", notes: "番号はHTMLの自然な番号付きリストとして表示されます。" },
   { category: "markdown", name: "チェックリスト", syntax: "- [ ] 未完了\n- [x] 完了", description: "完了状態を持つ項目を表示します。", notes: "プレビューのチェック操作は、現在開いているメモの本文だけを更新します。" },
   { category: "markdown", name: "水平線", syntax: "---", description: "内容の区切り線を表示します。", notes: "行全体をハイフン3個以上にします。" },
@@ -824,6 +825,7 @@ const insertTableBtn = $("insertTableBtn");
 const insertGeometryBtn = $("insertGeometryBtn");
 const calloutTypeSelect = $("calloutTypeSelect");
 const insertCalloutBtn = $("insertCalloutBtn");
+const toggleHighlightBtn = $("toggleHighlightBtn");
 const insertImageBlockBtn = $("insertImageBlockBtn");
 const addExplanationBtn = $("addExplanationBtn");
 const explanationDialog = $("explanationDialog");
@@ -9648,6 +9650,8 @@ function renderMarkdownInline(text, { automaticTerms = previewAutomaticTerms, au
       html += `<em>${renderMarkdownInline(token.content, { automaticTerms, automaticEnabled })}</em>`;
     } else if (token.type === "strike") {
       html += `<del>${renderMarkdownInline(token.content, { automaticTerms, automaticEnabled })}</del>`;
+    } else if (token.type === "highlight") {
+      html += `<mark class="markdown-highlight">${renderMarkdownInline(token.content, { automaticTerms, automaticEnabled })}</mark>`;
     } else if (token.type === "link") {
       html += `<a class="markdown-link" href="${escapeAttr(token.href)}" target="_blank" rel="noopener noreferrer">${renderMarkdownInline(token.content, { automaticTerms, automaticEnabled: false })}</a>`;
     } else if (token.type === "image") {
@@ -9724,7 +9728,9 @@ function findNextInlineToken(text, fromIndex) {
   }
 
   const strike = findDelimitedInlineToken(text, fromIndex, "~~", "strike");
+  const highlight = findHighlightInlineToken(text, fromIndex);
   if (strike) tokens.push(strike);
+  if (highlight) tokens.push(highlight);
   const italicStar = findDelimitedInlineToken(text, fromIndex, "*", "italic", { rejectDouble: true });
   const italicUnderscore = findDelimitedInlineToken(text, fromIndex, "_", "italic", { wordBoundary: true });
   if (italicStar) tokens.push(italicStar);
@@ -9767,10 +9773,72 @@ function findDelimitedInlineToken(text, fromIndex, delimiter, type, options = {}
   return null;
 }
 
+// ==...== は通常テキストだけを対象にし、裸のURLや生HTML内の記号はそのまま表示します。
+function findHighlightInlineToken(text, fromIndex) {
+  const isInsideBareUrl = (token) => {
+    const before = text.slice(0, token.start);
+    const after = text.slice(token.end);
+    const wordStart = Math.max(before.lastIndexOf(" "), before.lastIndexOf("\n"), before.lastIndexOf("\t")) + 1;
+    const wordEndMatch = after.search(/[\s<>]/);
+    const word = text.slice(wordStart, wordEndMatch === -1 ? text.length : token.end + wordEndMatch);
+    return /^(?:https?:\/\/|www\.)/i.test(word);
+  };
+  const isInsideHtmlElement = (token) => {
+    const elements = /<([A-Za-z][\w-]*)(?:\s[^>]*)?>[\s\S]*?<\/\1\s*>/g;
+    let match;
+    while ((match = elements.exec(text))) {
+      if (token.start >= match.index && token.end <= elements.lastIndex) return true;
+    }
+    const lastOpen = text.lastIndexOf("<", token.start);
+    return lastOpen > text.lastIndexOf(">", token.start);
+  };
+
+  for (let cursor = fromIndex; cursor < text.length;) {
+    const token = findDelimitedInlineToken(text, cursor, "==", "highlight");
+    if (!token) return null;
+    if (!isInsideBareUrl(token) && !isInsideHtmlElement(token)) return token;
+    cursor = token.end;
+  }
+  return null;
+}
+
 function isEscapedMarkdownCharacter(text, index) {
   let count = 0;
   for (let cursor = index - 1; cursor >= 0 && text[cursor] === "\\"; cursor -= 1) count += 1;
   return count % 2 === 1;
+}
+
+// 選択範囲をMarkdownの==...==で囲むか、すでに囲まれていれば外します。
+function toggleHighlightMarkdown(body, selectionStart, selectionEnd) {
+  const text = String(body || "");
+  const start = Math.max(0, Math.min(text.length, Number(selectionStart) || 0));
+  const end = Math.max(start, Math.min(text.length, Number(selectionEnd) || start));
+  if (start === end) return null;
+
+  const selected = text.slice(start, end);
+  const selectedHasMarkers = selected.startsWith("==") && selected.endsWith("==") && selected.length > 4;
+  const surroundingMarkers = text.slice(start - 2, start) === "==" && text.slice(end, end + 2) === "==";
+  if (selectedHasMarkers) {
+    const value = selected.slice(2, -2);
+    return { value, start, end, selectionStart: 0, selectionEnd: value.length };
+  }
+  if (surroundingMarkers) {
+    return {
+      value: selected,
+      start: start - 2,
+      end: end + 2,
+      selectionStart: 0,
+      selectionEnd: selected.length
+    };
+  }
+
+  return {
+    value: `==${selected}==`,
+    start,
+    end,
+    selectionStart: 2,
+    selectionEnd: selected.length + 2
+  };
 }
 
 function safeExternalUrl(value) {
@@ -13332,6 +13400,16 @@ function openCalculatorMemoFromSelection() {
   }
 }
 
+function toggleHighlightAtSelection() {
+  const result = toggleHighlightMarkdown(editor.value, editor.selectionStart, editor.selectionEnd);
+  if (!result) return;
+  captureUndoSnapshot({ inputType: "insertText" });
+  editor.setRangeText(result.value, result.start, result.end, "select");
+  editor.setSelectionRange(result.start + result.selectionStart, result.start + result.selectionEnd);
+  editor.focus();
+  scheduleSave();
+}
+
 function insertCalloutAtSelection() {
   const type = calloutTypeSelect?.value || "NOTE";
   const start = editor.selectionStart;
@@ -13642,6 +13720,7 @@ focusNoteTagBtn?.addEventListener("click", focusNoteTagInput);
 if (insertTableBtn) insertTableBtn.addEventListener("click", insertTableAtSelection);
 if (insertGeometryBtn) insertGeometryBtn.addEventListener("click", insertGeometryAtSelection);
 if (insertCalloutBtn) insertCalloutBtn.addEventListener("click", insertCalloutAtSelection);
+if (toggleHighlightBtn) toggleHighlightBtn.addEventListener("click", toggleHighlightAtSelection);
 if (insertImageBlockBtn) insertImageBlockBtn.addEventListener("click", () => {
   const note = currentNote();
   if (!note || note.deletedAt || !imageBlockInput) return;
