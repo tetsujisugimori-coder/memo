@@ -1,9 +1,9 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { createGeometryBlock, cloneGeometryBlock, parseGeometryBlockLine, serializeGeometryBlock } = require("./geometry-block-utils.js");
+const { createGeometryBlock, cloneGeometryBlock, normalizeGeometryBlock, parseGeometryBlockLine, serializeGeometryBlock } = require("./geometry-block-utils.js");
 const {
-  addAngle, addCircle, addPoint, addPolygon, addRightAngle, addSegment, createHistory, deleteSelection, moveObject, movePoint,
-  screenPointToViewBox, updateAngleLabel, updateLengthLabel, updateSegmentLineStyle, updateVertexLabel
+  addAngle, addCircle, addEqualLengthMark, addPoint, addPolygon, addRightAngle, addSegment, createHistory, deleteSelection, moveObject, movePoint,
+  screenPointToViewBox, updateAngleLabel, updateEqualLengthMarkCount, updateLengthLabel, updateSegmentLineStyle, updateVertexLabel
 } = require("./geometry-editor-utils.js");
 
 function withPoints(count = 3) {
@@ -402,3 +402,71 @@ test("図形内履歴は追加、移動、削除をUndo/Redoでき、移動は�
   assert.equal(history.redo().points[0].x, 30);
   assert.equal(history.redo().points.length, 0);
 });
+
+test("等辺注釈は線分と多角形辺を共通参照し、編集・削除・退化拒否できる", () => {
+  let geometry = createGeometryBlock("equal-editor");
+  [[0, 0], [20, 0], [20, 20], [0, 20], [40, 0], [40, 20]].forEach(([x, y]) => { geometry = addPoint(geometry, { x, y }); });
+  geometry = addPolygon(geometry, geometry.points.slice(0, 4).map((point) => point.id));
+  geometry = addSegment(geometry, geometry.points[4].id, geometry.points[5].id);
+  const [square, segment] = geometry.objects;
+  geometry = addEqualLengthMark(geometry, { edgeRefs: [{ objectId: square.id, edgeIndex: 0 }, { objectId: square.id, edgeIndex: 3 }, { objectId: segment.id, edgeIndex: 0 }], markCount: 2 });
+  const annotation = geometry.annotations.find((entry) => entry.type === "equal-length");
+  assert.equal(annotation.edgeRefs.length, 3);
+  assert.throws(() => addEqualLengthMark(geometry, { edgeRefs: [{ objectId: square.id, edgeIndex: 1 }, { objectId: segment.id, edgeIndex: 0 }], markCount: 1 }), /既に等辺記号/);
+  geometry = updateEqualLengthMarkCount(geometry, annotation.id, 3);
+  assert.equal(geometry.annotations.find((entry) => entry.id === annotation.id).markCount, 3);
+  assert.throws(() => movePoint(geometry, geometry.points[1].id, 0, 0), /等辺記号の辺が0/);
+  const afterSegmentDelete = deleteSelection(geometry, { kind: "object", id: segment.id });
+  assert.equal(afterSegmentDelete.annotations.find((entry) => entry.id === annotation.id).edgeRefs.length, 2);
+  const afterPolygonDelete = deleteSelection(afterSegmentDelete, { kind: "object", id: square.id });
+  assert.equal(afterPolygonDelete.annotations.some((entry) => entry.id === annotation.id), false);
+});
+
+for (const type of ["segment", "polygon"]) {
+  test(`等辺の${type}参照は同じ辺の前後を比較し、既存ゼロ長辺の修復と正常移動を許可する`, () => {
+    const geometry = normalizeGeometryBlock({
+      id: "legacy-degenerate-equal",
+      points: [
+        { id: "a", x: 10, y: 10 }, { id: "b", x: 10, y: 10 },
+        { id: "c", x: 50, y: 10 }, { id: "d", x: 70, y: 10 },
+        { id: "e", x: 70, y: 40 }, { id: "other", x: 90, y: 90 }
+      ],
+      objects: type === "segment" ? [
+        { id: "zero", type, pointIds: ["a", "b"] },
+        { id: "healthy", type, pointIds: ["c", "d"] },
+        { id: "moving", type, pointIds: ["d", "e"] }
+      ] : [
+        { id: "polygon", type, pointIds: ["a", "b", "c", "d", "e"] },
+        { id: "moving", type: "segment", pointIds: ["d", "e"] }
+      ],
+      annotations: [{
+        id: "equal", type: "equal-length", markCount: 1,
+        edgeRefs: type === "segment"
+          ? [{ objectId: "zero", edgeIndex: 0 }, { objectId: "healthy", edgeIndex: 0 }]
+          : [{ objectId: "polygon", edgeIndex: 0 }, { objectId: "polygon", edgeIndex: 2 }]
+      }]
+    });
+    const original = structuredClone(geometry);
+    const moved = movePoint(geometry, "d", 75, 15);
+    assert.deepEqual(moved.points.find((point) => point.id === "d"), { ...geometry.points[3], x: 75, y: 15 });
+    assert.deepEqual(moved.objects, geometry.objects);
+    assert.deepEqual(moved.annotations, geometry.annotations);
+    assert.deepEqual(moved.points.filter((point) => point.id !== "d"), geometry.points.filter((point) => point.id !== "d"));
+    assert.throws(() => movePoint(geometry, "d", 50, 10), /等辺記号の辺が0/);
+    assert.throws(() => moveObject(geometry, "moving", -20, 0), /等辺記号の辺が0/);
+    const translated = moveObject(geometry, type === "segment" ? "healthy" : "polygon", 3, 4);
+    const movedIds = geometry.objects.find((object) => object.id === (type === "segment" ? "healthy" : "polygon")).pointIds;
+    for (const point of geometry.points) {
+      assert.deepEqual(translated.points.find((entry) => entry.id === point.id),
+        movedIds.includes(point.id) ? { ...point, x: point.x + 3, y: point.y + 4 } : point);
+    }
+    assert.deepEqual(translated.annotations, geometry.annotations);
+    const unrelated = movePoint(geometry, "other", 95, 95);
+    assert.deepEqual(unrelated.points.slice(0, 5), geometry.points.slice(0, 5));
+    const repaired = movePoint(geometry, "b", 15, 10);
+    assert.equal(repaired.points[1].x, 15);
+    const restored = parseGeometryBlockLine(serializeGeometryBlock(repaired));
+    assert.deepEqual(restored.annotations, geometry.annotations);
+    assert.deepEqual(geometry, original, "成功・拒否とも入力モデルを変更しない");
+  });
+}

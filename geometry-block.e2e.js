@@ -51,13 +51,45 @@ async function geometryById(page, geometryId) {
     .find((segment) => segment.type === "geometry" && segment.geometry.id === id)?.geometry || null, geometryId);
 }
 
-async function expectedLogicalPosition(svg, position) {
-  return svg.evaluate((element, relative) => {
-    const rect = element.getBoundingClientRect();
-    const point = new DOMPoint(rect.left + relative.x, rect.top + relative.y)
+async function expectedLogicalPosition(svg, client) {
+  return svg.evaluate((element, position) => {
+    const point = new DOMPoint(position.x, position.y)
       .matrixTransform(element.getScreenCTM().inverse());
     return { x: point.x, y: point.y };
-  }, position);
+  }, client);
+}
+
+// Send integer screen pixels explicitly: MouseEvent click coordinates can be
+// quantized even when Playwright's locator position contains fractional pixels.
+async function clickAtClient(page, svg, client) {
+  assert.ok(Number.isInteger(client.x) && Number.isInteger(client.y));
+  const expected = await expectedLogicalPosition(svg, client);
+  await svg.evaluate((element) => {
+    window.__geometryClickEvidence = null;
+    element.addEventListener("click", (event) => {
+      const matrix = element.getScreenCTM();
+      const rect = element.getBoundingClientRect();
+      const logical = new DOMPoint(event.clientX, event.clientY).matrixTransform(matrix.inverse());
+      const scroll = [];
+      for (let node = element.parentElement; node; node = node.parentElement) {
+        if (node.scrollTop || node.scrollLeft) scroll.push({ id: node.id, top: node.scrollTop, left: node.scrollLeft });
+      }
+      window.__geometryClickEvidence = {
+        client: { x: event.clientX, y: event.clientY },
+        logical: { x: logical.x, y: logical.y },
+        rect: { x: rect.x, y: rect.y, width: rect.width, height: rect.height },
+        matrix: { a: matrix.a, b: matrix.b, c: matrix.c, d: matrix.d, e: matrix.e, f: matrix.f },
+        scroll: { windowX: scrollX, windowY: scrollY, ancestors: scroll }
+      };
+    }, { once: true, capture: true });
+  });
+  await page.mouse.click(client.x, client.y);
+  const event = await page.evaluate(() => window.__geometryClickEvidence);
+  const evidence = JSON.stringify({ sent: client, expected, event });
+  assert.ok(event, `対象SVGがclickイベントを受信する: ${evidence}`);
+  assert.deepEqual(event.client, { x: client.x, y: client.y }, `送出座標と実イベント座標が一致する: ${evidence}`);
+  assertCoordinates(event.logical, expected, `送出前とイベント時のCTMを比較する: ${evidence}`, 1e-6);
+  return { expected, evidence };
 }
 
 function assertCoordinates(actual, expected, message, tolerance = 0.25) {
@@ -890,6 +922,179 @@ async function runCircleInteriorSelectionScenario(browser, url) {
   }
 }
 
+async function runEqualLengthEditorScenario(browser, url, width) {
+  const context = await browser.newContext({ viewport: { width, height: 844 } });
+  const page = await context.newPage();
+  const pageErrors = [];
+  const consoleErrors = [];
+  page.on("pageerror", (error) => pageErrors.push(error.message));
+  page.on("console", (message) => { if (message.type() === "error") consoleErrors.push(message.text()); });
+  const closeMobilePanel = async () => {
+    if (width <= 720 && await page.locator("#contextPanel").getAttribute("aria-hidden") === "false") {
+      await page.locator("#closeContextPanelBtn").click();
+      await page.waitForFunction(() => getComputedStyle(document.getElementById("contextPanel")).visibility === "hidden");
+    }
+  };
+  try {
+    await waitForApp(page, url);
+    await page.locator("#editor").fill("等辺印の独立操作テスト");
+    await closeMobilePanel();
+    if (width <= 720) {
+      await page.locator("#editor").click();
+      await page.getByLabel("追加メニューを開く", { exact: true }).click();
+      await page.locator('[data-mobile-editor-tool="insertGeometryBtn"]').click();
+    } else await page.locator("#insertGeometryBtn").click();
+    const editor = page.locator(".geometry-block-editor");
+    const svg = editor.locator("svg");
+    const mode = async (name) => {
+      await editor.locator(`[data-geometry-mode="${name}"]`).click();
+      assert.equal(await editor.locator(`[data-geometry-mode="${name}"]`).getAttribute("aria-pressed"), "true");
+      await alignSvgForPointer(svg);
+    };
+    await mode("point");
+    // Exercise the CI regression at fractional screen Y on both widths.
+    await svg.evaluate((element) => {
+      const y = element.getBoundingClientRect().top;
+      element.style.transform = `translateY(${0.703125 - (y - Math.floor(y))}px)`;
+    });
+    for (const point of [{ x: 10, y: 20 }, { x: 40, y: 20 }, { x: 60, y: 20 }, { x: 90, y: 20 }, { x: 85, y: 80 }, { x: 60, y: 80 }]) {
+      const client = await logicalClientPosition(svg, point);
+      assert.equal(client.top.tag?.toLowerCase(), "svg", JSON.stringify(client));
+      const click = await clickAtClient(page, svg, client);
+      assertCoordinates((await geometry(page)).points.at(-1), click.expected, click.evidence, 1e-6);
+    }
+    await svg.evaluate((element) => { element.style.transform = ""; });
+    const initial = await geometry(page);
+    assert.equal(initial.points.length, 6);
+    const clickPoint = async (point) => {
+      await alignSvgForPointer(svg);
+      const client = await logicalClientPosition(svg, point);
+      assert.equal(client.top.id, point.id, JSON.stringify(client));
+      await clickAtClient(page, svg, client);
+    };
+    await mode("segment");
+    for (const point of initial.points.slice(0, 2)) await clickPoint(point);
+    await mode("polygon");
+    for (const point of initial.points.slice(2)) await clickPoint(point);
+    await editor.getByRole("button", { name: "選択した点で多角形を完了", exact: true }).click();
+    const created = await geometry(page);
+    assert.equal(created.objects.length, 2);
+    const segment = created.objects.find((object) => object.type === "segment");
+    const polygon = created.objects.find((object) => object.type === "polygon");
+    assert.deepEqual(segment.pointIds, initial.points.slice(0, 2).map((point) => point.id));
+    assert.deepEqual(polygon.pointIds, initial.points.slice(2).map((point) => point.id));
+    const refs = [
+      { objectId: segment.id, edgeIndex: 0 },
+      { objectId: polygon.id, edgeIndex: 0 },
+      { objectId: polygon.id, edgeIndex: 1 },
+      { objectId: polygon.id, edgeIndex: 3 }
+    ];
+    const edgeClient = async (ref) => {
+      await alignSvgForPointer(svg);
+      const current = await geometry(page);
+      const object = current.objects.find((entry) => entry.id === ref.objectId);
+      const start = current.points.find((point) => point.id === object.pointIds[ref.edgeIndex]);
+      const end = current.points.find((point) => point.id === object.pointIds[(ref.edgeIndex + 1) % object.pointIds.length]);
+      return logicalClientPosition(svg, { x: (start.x + end.x) / 2, y: (start.y + end.y) / 2 });
+    };
+    const clickEdge = async (ref) => {
+      const client = await edgeClient(ref);
+      const hit = await svg.evaluate((element, position) => {
+        const top = document.elementFromPoint(position.x, position.y);
+        const edge = top?.closest(".geometry-edge-hit");
+        return {
+          sameSvg: edge?.ownerSVGElement === element,
+          objectId: edge?.dataset.geometryObjectId,
+          edgeIndex: Number(edge?.dataset.geometryEdgeIndex),
+          type: edge?.dataset.geometryType
+        };
+      }, client);
+      assert.deepEqual(hit, { sameSvg: true, ...ref, type: ref.objectId === segment.id ? "segment" : "polygon" }, JSON.stringify({ ref, client, hit }));
+      await clickAtClient(page, svg, client);
+    };
+    await mode("equal-length");
+    const complete = editor.getByRole("button", { name: "選択した辺で等辺記号を作成", exact: true });
+    assert.equal(await complete.isDisabled(), true);
+    await clickEdge(refs[0]);
+    assert.equal(await complete.isDisabled(), true);
+    assert.equal(await svg.locator(".geometry-edge-hit.is-draft").count(), 1);
+    await clickEdge(refs[0]);
+    assert.equal(await svg.locator(".geometry-edge-hit.is-draft").count(), 0);
+    assert.equal(await complete.isDisabled(), true);
+    for (let index = 0; index < refs.length; index += 1) {
+      await clickEdge(refs[index]);
+      assert.equal(await svg.locator(".geometry-edge-hit.is-draft").count(), index + 1);
+      assert.equal(await complete.isEnabled(), index >= 1);
+    }
+    assert.equal((await geometry(page)).annotations.some((annotation) => annotation.type === "equal-length"), false, "明示完了まで保存しない");
+    await complete.click();
+    const annotated = await geometry(page);
+    const annotation = annotated.annotations.find((entry) => entry.type === "equal-length");
+    assert.deepEqual(annotation.edgeRefs, refs);
+    assert.deepEqual(annotated.points, created.points, "等辺作成で長さを変えない");
+    assert.equal(await svg.locator(".geometry-edge-hit.is-draft").count(), 0);
+    const assertMarks = async (count) => {
+      const current = await geometry(page);
+      const equal = current.annotations.find((entry) => entry.id === annotation.id);
+      assert.deepEqual(equal.edgeRefs, refs);
+      assert.equal(equal.markCount, count);
+      assert.equal(equal.mark, count);
+      const groups = svg.locator(`g.geometry-equal-length[data-geometry-id="${annotation.id}"]`);
+      assert.equal(await groups.count(), refs.length);
+      for (const ref of refs) {
+        // Use the SVG scope so every edge of a shared annotation is counted.
+        assert.equal(await svg.locator(`g.geometry-equal-length[data-geometry-id="${annotation.id}"][data-object-id="${ref.objectId}"][data-edge-index="${ref.edgeIndex}"] .geometry-equal-length-mark`).count(), count);
+      }
+    };
+    await assertMarks(1);
+    await mode("select");
+    for (const ref of refs) {
+      const client = await edgeClient(ref);
+      const target = await svg.evaluate((element, position) => {
+        const hit = document.elementFromPoint(position.x, position.y);
+        const group = hit?.closest("g.geometry-equal-length");
+        return { sameSvg: group?.ownerSVGElement === element, id: group?.dataset.geometryId, objectId: group?.dataset.objectId, edgeIndex: Number(group?.dataset.edgeIndex) };
+      }, client);
+      assert.deepEqual(target, { sameSvg: true, id: annotation.id, ...ref }, JSON.stringify({ client, target }));
+      await clickAtClient(page, svg, client);
+      assert.equal(await svg.locator("g.geometry-equal-length.is-selected").count(), refs.length);
+      assert.equal(await svg.locator(".geometry-segment.is-selected, .geometry-polygon.is-selected, .geometry-point.is-selected").count(), 0);
+    }
+    const countInput = editor.getByRole("spinbutton", { name: "選択した等辺印の本数" });
+    await countInput.fill("3");
+    await countInput.blur();
+    await assertMarks(3);
+    const beforeReload = await geometry(page);
+    await page.evaluate(() => window.flushSave());
+    await page.reload({ waitUntil: "domcontentloaded" });
+    await page.locator("#appStartupGuard").waitFor({ state: "hidden" });
+    await svg.waitFor({ state: "visible" });
+    assert.deepEqual(await geometry(page), beforeReload);
+    await assertMarks(3);
+    await closeMobilePanel();
+    await mode("select");
+    const selected = await edgeClient(refs[3]);
+    await clickAtClient(page, svg, selected);
+    assert.equal(await countInput.isEnabled(), true);
+    await editor.focus();
+    await page.keyboard.press("Delete");
+    const deleted = await geometry(page);
+    assert.deepEqual(deleted.objects, beforeReload.objects);
+    assert.deepEqual(deleted.points, beforeReload.points);
+    assert.deepEqual(deleted.annotations, beforeReload.annotations.filter((entry) => entry.id !== annotation.id));
+    assert.equal(await svg.locator("g.geometry-equal-length").count(), 0);
+    await page.keyboard.press("Control+z");
+    await assertMarks(3);
+    await page.keyboard.press("Control+Shift+z");
+    assert.equal(await svg.locator("g.geometry-equal-length").count(), 0);
+    assert.deepEqual(pageErrors, []);
+    assert.deepEqual(consoleErrors, []);
+    console.log(`Equal-length UI E2E (${width}px): passed; console/page errors: 0`);
+  } finally {
+    await context.close();
+  }
+}
+
 (async () => {
   const { server, url } = await startStaticServer();
   const browser = await launchBrowser();
@@ -900,6 +1105,8 @@ async function runCircleInteriorSelectionScenario(browser, url) {
     await runAngleMoveValidationScenario(browser, url);
     await runOverlappingAnnotationSelectionScenario(browser, url);
     await runCircleInteriorSelectionScenario(browser, url);
+    await runEqualLengthEditorScenario(browser, url, 1100);
+    await runEqualLengthEditorScenario(browser, url, 390);
     const page = await browser.newPage({ viewport: { width: 1100, height: 800 } });
     await waitForApp(page, url);
     const pageErrors = [];
@@ -912,11 +1119,19 @@ async function runCircleInteriorSelectionScenario(browser, url) {
     const svg = editor.locator("svg");
     await editor.locator('[data-geometry-mode="point"]').click();
     const desktopPositions = [{ x: 70, y: 70 }, { x: 180, y: 110 }, { x: 120, y: 185 }];
-    const desktopExpected = await Promise.all(desktopPositions.map((position) => expectedLogicalPosition(svg, position)));
-    for (const position of desktopPositions) await svg.click({ position });
+    const desktopClicks = [];
+    for (const position of desktopPositions) {
+      await alignSvgForPointer(svg);
+      const client = await svg.evaluate((element, relative) => {
+        const rect = element.getBoundingClientRect();
+        return { x: Math.round(rect.left + relative.x), y: Math.round(rect.top + relative.y) };
+      }, position);
+      desktopClicks.push(await clickAtClient(page, svg, client));
+    }
     const afterPoints = await geometry(page);
     assert.equal(afterPoints.points.length, 3, "点を追加できる");
-    afterPoints.points.forEach((point, index) => assertCoordinates(point, desktopExpected[index], "デスクトップ幅でクリック位置を論理座標へ変換する"));
+    afterPoints.points.forEach((point, index) => assertCoordinates(point, desktopClicks[index].expected,
+      `デスクトップ幅でクリック位置を論理座標へ変換する: ${desktopClicks[index].evidence}`, 1e-6));
 
     await editor.locator('[data-geometry-mode="segment"]').click();
     const segmentPointIds = afterPoints.points.slice(0, 2).map((point) => point.id);
@@ -1178,10 +1393,11 @@ async function runCircleInteriorSelectionScenario(browser, url) {
     const mobilePointClient = await logicalClientPosition(mobileSvg, expectedMobilePoint);
     assert.equal(mobilePointClient.top.kind, undefined, `モバイル幅の新規点位置を既存図形と重ねない: ${JSON.stringify({ expectedMobilePoint, projection: mobilePointClient })}`);
     assert.equal(mobilePointClient.top.tag?.toLowerCase(), "svg", `モバイル幅の新規点位置をSVG内に置く: ${JSON.stringify({ expectedMobilePoint, projection: mobilePointClient })}`);
-    await page.mouse.click(mobilePointClient.x, mobilePointClient.y);
+    const mobileClick = await clickAtClient(page, mobileSvg, mobilePointClient);
     const mobileGeometry = await geometry(page);
     assert.equal(mobileGeometry.points.length, beforeMobilePoint.points.length + 1, "モバイル幅で新しい点を1件追加する");
-    assertCoordinates(mobileGeometry.points.at(-1), expectedMobilePoint, "モバイル幅でクリック位置を論理座標へ変換する");
+    assertCoordinates(mobileGeometry.points.at(-1), mobileClick.expected,
+      `モバイル幅でクリック位置を論理座標へ変換する: ${mobileClick.evidence}`, 1e-6);
 
     let cancelled = false;
     page.once("dialog", async (dialog) => { cancelled = true; await dialog.dismiss(); });

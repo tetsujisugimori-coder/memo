@@ -50,7 +50,15 @@
           && rayVertexIds.slice(0, 2).every((pointId) => pointIds.has(pointId));
       }
       if (annotation.type === "length-label") return typeof annotation.objectId === "string" && objectIds.has(annotation.objectId);
-      if (["equal-length", "parallel"].includes(annotation.type)) {
+      if (annotation.type === "equal-length") {
+        const edgeRefs = edgeRefsForAnnotation(annotation);
+        return edgeRefs.length >= 2 && edgeRefs.every((edgeRef) => {
+          const object = objects.find((entry) => entry.id === edgeRef.objectId);
+          return object && ["segment", "polygon"].includes(object.type) && Number.isInteger(edgeRef.edgeIndex)
+            && edgeRef.edgeIndex >= 0 && edgeRef.edgeIndex < object.pointIds.length;
+        });
+      }
+      if (annotation.type === "parallel") {
         return Array.isArray(annotation.objectIds) && annotation.objectIds.every((objectId) => objectIds.has(objectId));
       }
       return annotation.type === "vertex-label" && typeof annotation.pointId === "string" && pointIds.has(annotation.pointId);
@@ -112,6 +120,16 @@
     if (object.type !== "polygon") return [];
     const vertices = object.pointIds.map((id) => points.get(id));
     return vertices.some((point) => !point) ? [] : vertices.map((start, edgeIndex) => ({ start, end: vertices[(edgeIndex + 1) % vertices.length], edgeIndex }));
+  }
+
+  function edgeRefsForAnnotation(annotation) {
+    return Array.isArray(annotation?.edgeRefs) ? annotation.edgeRefs
+      : Array.isArray(annotation?.objectIds) ? annotation.objectIds.map((objectId) => ({ objectId, edgeIndex: 0 })) : [];
+  }
+
+  function edgeForRef(edgeRef, objects, points) {
+    const object = objects.get(edgeRef?.objectId);
+    return object ? edgePairs(object, points).find((edge) => edge.edgeIndex === edgeRef.edgeIndex) || null : null;
   }
 
   function displayValue(annotation) {
@@ -250,17 +268,27 @@
     svg.append(group);
   }
 
-  function renderEqualLength(svg, annotation, objects, points) {
-    [...annotation.objectIds].sort().forEach((objectId) => {
-      const object = objects.get(objectId);
-      const edge = object && edgePairs(object, points)[0];
+  function renderEqualLength(svg, annotation, objects, points, selection) {
+    [...edgeRefsForAnnotation(annotation)].sort((first, second) => `${first.objectId}:${first.edgeIndex}`.localeCompare(`${second.objectId}:${second.edgeIndex}`)).forEach((edgeRef) => {
+      const edge = edgeForRef(edgeRef, objects, points);
       if (!edge) return;
       const direction = unitVector(edge.start, edge.end);
       if (!direction) return;
       const normal = { x: -direction.y, y: direction.x };
       const center = { x: (edge.start.x + edge.end.x) / 2, y: (edge.start.y + edge.end.y) / 2 };
-      const group = semanticGroup("equal-length", annotation, `線分の等しい辺の印 ${annotation.markCount} 本`);
-      group.setAttribute("data-segment-id", objectId);
+      const group = semanticGroup("equal-length", annotation, `等しい辺の印 ${annotation.markCount} 本`, {
+        interactive: true,
+        selected: selection?.kind === "annotation" && selection.id === annotation.id
+      });
+      group.setAttribute("data-object-id", edgeRef.objectId);
+      group.setAttribute("data-edge-index", String(edgeRef.edgeIndex));
+      group.append(svgElement("line", {
+        x1: center.x - direction.x * 8, y1: center.y - direction.y * 8,
+        x2: center.x + direction.x * 8, y2: center.y + direction.y * 8,
+        class: "geometry-equal-length-hit", stroke: "transparent", "stroke-width": 14,
+        "pointer-events": "stroke",
+        "aria-hidden": "true"
+      }));
       for (let index = 0; index < annotation.markCount; index += 1) {
         const shift = (index - (annotation.markCount - 1) / 2) * 3;
         const x = center.x + direction.x * shift;
@@ -299,17 +327,30 @@
       else if (annotation.type === "length-label") {
         const object = objects.get(annotation.objectId);
         if (object) renderLengthLabel(svg, annotation, object, points);
-      } else if (annotation.type === "equal-length") renderEqualLength(svg, annotation, objects, points);
+      } else if (annotation.type === "equal-length") renderEqualLength(svg, annotation, objects, points, selection);
       else if (annotation.type === "parallel") renderParallel(svg, annotation, objects, points);
     });
   }
 
-  function renderGeometrySvg(svg, geometry, { selection = null, vertexLabel } = {}) {
+  function renderGeometrySvg(svg, geometry, { selection = null, vertexLabel, draftEdgeRefs = [], edgeHitEnabled = false } = {}) {
     const renderModel = buildGeometryRenderModel(geometry);
     svg.replaceChildren();
     svg.setAttribute("viewBox", `${renderModel.viewBox.x} ${renderModel.viewBox.y} ${renderModel.viewBox.width} ${renderModel.viewBox.height}`);
     const points = pointMap(renderModel);
     const objects = new Map(renderModel.objects.map((object) => [object.id, object]));
+    const draftEdges = new Set(draftEdgeRefs.map((edgeRef) => `${edgeRef.objectId}:${edgeRef.edgeIndex}`));
+    const appendEdgeHit = (object, edge) => {
+      const selected = draftEdges.has(`${object.id}:${edge.edgeIndex}`);
+      svg.append(svgElement("line", {
+        x1: edge.start.x, y1: edge.start.y, x2: edge.end.x, y2: edge.end.y,
+        class: `geometry-edge-hit${selected ? " is-draft" : ""}`, stroke: "transparent", "stroke-width": 14,
+        "vector-effect": "non-scaling-stroke", "pointer-events": edgeHitEnabled ? "stroke" : "none",
+        "data-geometry-kind": "edge", "data-geometry-type": object.type,
+        "data-geometry-object-id": object.id,
+        "data-geometry-edge-index": edge.edgeIndex,
+        "aria-label": object.type === "segment" ? "線分" : `多角形の辺 ${edge.edgeIndex + 1}`
+      }));
+    };
     renderModel.objects.filter((object) => object.type === "polygon").forEach((polygon) => {
       const vertices = polygon.pointIds.map((id) => points.get(id));
       if (vertices.some((point) => !point)) return;
@@ -325,6 +366,7 @@
         "data-geometry-source-id": polygon.id,
         "aria-label": "多角形"
       }));
+      edgePairs(polygon, points).forEach((edge) => appendEdgeHit(polygon, edge));
     });
     renderModel.objects.filter((object) => object.type === "segment").forEach((segment) => {
       const [start, end] = segment.pointIds.map((id) => points.get(id));
@@ -337,6 +379,7 @@
         svgElement("line", { x1: start.x, y1: start.y, x2: end.x, y2: end.y, class: "geometry-segment-hit", ...hitAttributes, "aria-label": `線分 ${pointName(renderModel, segment.pointIds[0], vertexLabel)}${pointName(renderModel, segment.pointIds[1], vertexLabel)}` }),
         svgElement("line", { x1: start.x, y1: start.y, x2: end.x, y2: end.y, class: `geometry-segment${dashed ? " is-dashed" : ""}${selection?.kind === "object" && selection.id === segment.id ? " is-selected" : ""}`, ...displayAttributes, "pointer-events": "none" })
       );
+      edgePairs(segment, points).forEach((edge) => appendEdgeHit(segment, edge));
     });
     renderModel.objects.filter((object) => object.type === "circle").forEach((circle) => {
       const [center, radiusPoint] = circle.pointIds.map((id) => points.get(id));

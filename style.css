@@ -2331,6 +2331,8 @@ body.layout-resizing iframe {
 .geometry-polygon { fill: transparent; stroke: var(--muted); stroke-width: .8; vector-effect: non-scaling-stroke; cursor: pointer; }
 .geometry-polygon.is-selected { stroke: var(--accent); stroke-width: 2; }
 .geometry-segment-hit { stroke: transparent; stroke-width: 12; vector-effect: non-scaling-stroke; cursor: pointer; }
+.geometry-edge-hit { stroke: transparent; stroke-width: 14; vector-effect: non-scaling-stroke; cursor: pointer; }
+.geometry-edge-hit.is-draft { stroke: var(--accent); stroke-opacity: .45; stroke-width: 8; stroke-dasharray: 3 3; }
 .geometry-segment { stroke: var(--ink); stroke-width: 1.25; vector-effect: non-scaling-stroke; }
 .geometry-segment.is-dashed { stroke-dasharray: 5 4; }
 .geometry-segment.is-selected { stroke: var(--accent); stroke-width: 2.5; }
@@ -2347,6 +2349,8 @@ body.layout-resizing iframe {
 .geometry-angle-arc,
 .geometry-equal-length-mark,
 .geometry-parallel-mark { stroke: var(--ink); stroke-width: 1.1; vector-effect: non-scaling-stroke; }
+.geometry-equal-length-hit { fill: none; vector-effect: non-scaling-stroke; cursor: pointer; }
+.geometry-equal-length.is-selected .geometry-equal-length-mark { stroke: var(--accent); stroke-width: 2; }
 .geometry-right-angle-hit { fill: none; stroke: transparent; stroke-width: 12; vector-effect: non-scaling-stroke; pointer-events: stroke; cursor: pointer; }
 .geometry-right-angle { cursor: pointer; }
 .geometry-right-angle.is-selected .geometry-right-angle-mark { stroke: var(--accent); stroke-width: 2; }

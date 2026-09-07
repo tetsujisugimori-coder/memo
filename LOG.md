@@ -2443,6 +2443,13 @@
 * 変換結果の `adapterId` は展開後にRouterが設定する確定値へ変更し、Adapterの返却値では上書きできないようにした。LangBench Result、legacy IT Newsのpriority 1000 fallback、貼り付け取り込みの保存順序、IndexedDBスキーマは変更していない。
 * `json-import-router.test.js` にAdapter変換エラーと偽 `adapterId` の検証を追加し、`json-import-file.test.js` に未知JSONのファイルfallbackと認識済みAdapterエラーの伝播を追加した。`node --check json-import-router.js`、`json-import-adapters.js`、`json-import-file.test.js`、`app.js`、関連13件、`npm test`全1041件、`git diff --check` が成功した。手動ブラウザー操作は未実施。
 
+## 2026-09-07 多角形辺の共通参照と等辺印編集
+
+* `equal-length`へV1追加の`edgeRefs: [{ objectId, edgeIndex }]`を導入した。線分は`edgeIndex: 0`、多角形は連続する頂点対（末尾から先頭を含む）として解決する。旧`objectIds`だけのデータは読み込み時にedgeRefsへ補完し、旧フィールドを残して往復する。ブロックversionは1のままとした。
+* 共通SVGレンダラーは線分・多角形の各辺へ透明なヒット領域を出し、等辺モードだけで辺単位選択を有効にする。等辺印は同じedgeRefsを使い、表示の短線、透明な注釈ヒット領域、選択状態を辺の中心・法線から再計算する。等辺印は長さを強制する制約ではない。
+* 編集UIへ「等辺」モード、選択解除できる下書き、2本以上で有効な「等辺を完了」、日本語の残数表示、印の本数（1〜10）編集、選択した印だけの削除を追加した。参照先の図形を削除した場合は当該辺だけを外し、残り2辺未満なら注釈を削除する。点・図形移動で表示可能な等辺辺が新たにゼロ長になる操作は拒否する。
+* `geometry-block-utils.test.js`、`geometry-editor-utils.test.js`、`geometry-svg-renderer.test.js`へlegacy互換、polygon edgeIndex、重複・範囲外参照、描画、更新、削除、退化拒否の回帰を追加した。`npm test`と`npm run test:e2e:mobile`は成功し、変更JavaScriptの`node --check`と`git diff --check`も成功した。Geometry E2Eは既存選択との競合を検出して修正したが、この環境では5連続実行の完了結果を取得できなかったため未確認とする。実タッチ端末操作とpush後CIも未確認。
+
 ## 2026-09-07 円内部の線分選択E2Eの安定化
 
 * 原因はproductionのhit testingではなく、独立した円内部線分シナリオが点を置く初期2クリックにSVG左上からの固定画面ピクセル加算を使っていたこと。SVGの表示倍率、余白、スクロール後の位置が変わると、図形の論理配置が不必要に変動し得た。
@@ -2472,3 +2479,13 @@
 * Markdown本文へ `==...==` を保存する黄色1色の蛍光ペン機能を追加した。選択範囲へ追加し、同じ範囲または記法全体を選んだ操作で解除できる。保存は既存の本文入力と同じdirty状態・自動保存・Markdown入出力経路を使い、専用メタデータは追加していない。
 * デスクトップの既存エディタ操作列へ［蛍光ペン］を追加し、モバイルは本文領域を狭めない既存［追加］メニューから同じ操作を呼び出す。プレビューはテーマ変数を使う黄色背景で表示し、インラインコード・コードブロック・裸URL・生HTML内の記法は変換しない。
 * `markdown-enhancements.test.js`へ追加・解除、日本語、プレビューの`mark`出力、通常テキスト、インラインコード、コードブロック、URL、HTML、モバイル入口の検証を追加し、`syntax-guide.test.js`へ新記法を追加した。複数色、分類、一覧、検索、コメント、AI連携は今回の対象外である。
+
+## 2026-09-07 PR #196 座標検証・等辺UI E2E・既存ゼロ長辺の移動修正
+
+* CI run #181（34123782313）のGeometry E2Eは、期待する論理Y=28に対し保存値27.71875で失敗した。通常のローカル実行では再現しなかったが、SVG上端を小数ピクセル位置に置く診断で同じ差を再現した。SVG rectはx=37、y=510.703125、width=353.546875、height=250、CTMはa=d=2.5、e=88.7734375、f=510.703125だった。旧期待値はrect.top+70=580.703125を逆変換する一方、実clickイベントのclientYは580へ整数化され、(580-510.703125)/2.5=27.71875になっていた。windowスクロールは0、図形編集領域scrollTopは423で、実イベント時のrect・CTMにもずれはなかった。
+* `expectedLogicalPosition()`を実際に送る整数client座標の逆CTM変換へ変更し、デスクトップ・モバイルで`page.mouse.click()`へ同じ座標を渡す。`clickAtClient()`はcapture listenerで実イベント座標、rect、CTM、windowと祖先のスクロール量を記録し、送出値と受信値、イベント時の論理座標、保存された点を照合する。1画面pxはこの再現時0.4論理単位であり、0.703125pxの丸め差が0.28125論理単位となることを確認した。許容誤差を広げず、新しい座標照合は1e-6にした。固定待機・skip・失敗時再試行は追加していない。
+* 独立browser contextで1100pxと390pxの等辺UI E2Eを追加した。点6個から実操作で線分と四角形を作り、線分の辺0、四角形の先頭0・途中1・末尾3を選択する。CTMで辺中央を画面へ投影し、elementFromPointから得るobjectId・edgeIndex・図形種別・ownerSVGElementを確認する。下書きの選択解除、2辺未満の完了無効、4辺の明示完了とedgeRefs、全印から同じ注釈の選択、本数1→3、markCountとmarkとSVG本数の一致、保存・再読み込み、Delete後の元図形・点・無関係な注釈の維持、削除Undo/Redo、console/page error 0を検証する。両幅で小数ピクセルのSVG配置も通す。
+* モバイルの初期状態と再読み込み後はコレクションパネルが前面に出るため、既存の閉じるボタンで閉じてから操作する。図形挿入はモバイルの「追加」メニューを使う。初回のE2E追加中に検出した非表示ボタンと前面パネルによるtimeoutは、DOMログに基づいてこの操作経路へ修正した。
+* `rejectNewDegenerateEqualLengths()`はobjectId+edgeIndexの同じ参照が前後にあることを照合し、その辺が描画可能→描画不能になったときだけ拒否する。既存ゼロ長辺を含む注釈でも正常な辺の移動・全体平行移動・無関係な点の移動・修復を許可する。線分／多角形それぞれの回帰テストは修正前に失敗し、修正後に成功した。新たなゼロ長化を伴う点移動／図形移動の拒否、入力モデル不変、保存復元も検証した。V1保存形式は維持し、変更JSの配信識別子をgeometry-editor-utils.js?v=0.5.0-12へ更新した。
+* 検証：`npm test`は1,053件成功（fail/skip 0）、`npm run test:e2e:mobile`は成功、変更JS4ファイルの`node --check`と`git diff --check`は成功。`npm run test:e2e:geometry`は同じ修正コードで5回連続成功（各回exit 0、各回1100px・390pxの等辺UI操作とconsole/page error 0を確認）した。Mobile E2Eの画像出力は一時ディレクトリへ変更し、利用者の未コミットPNGを保持した。
+* 手動ブラウザー操作・実タッチ端末・Safariは未確認。自動E2Eの390px確認はChromiumのマウス操作であり、タッチ実機確認ではない。push後CIは確認後に報告する。
