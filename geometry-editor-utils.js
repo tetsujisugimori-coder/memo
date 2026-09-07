@@ -225,10 +225,12 @@
       if (annotation.type !== "equal-length") continue;
       const previous = before.annotations.find((entry) => entry.id === annotation.id && entry.type === "equal-length");
       if (!previous) continue;
-      const previousRefs = edgeRefsForAnnotation(previous);
+      const previousRefs = new Set(edgeRefsForAnnotation(previous).map(edgeRefKey));
       const nextRefs = edgeRefsForAnnotation(annotation);
-      if (previousRefs.some((edgeRef) => isEdgeDrawable(before, edgeRef))
-        && nextRefs.some((edgeRef) => !isEdgeDrawable(next, edgeRef))) {
+      // Compare the same edge on both sides. An already collapsed legacy edge
+      // must not prevent moving or repairing another edge in this group.
+      if (nextRefs.some((edgeRef) => previousRefs.has(edgeRefKey(edgeRef))
+        && isEdgeDrawable(before, edgeRef) && !isEdgeDrawable(next, edgeRef))) {
         throw new Error("等辺記号の辺が0になるため移動できません。別の位置へ移動してください。");
       }
     }

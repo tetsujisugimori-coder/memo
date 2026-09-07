@@ -41,7 +41,7 @@ test("全ローカルCSS・JavaScriptを0.5.0のキャッシュ識別子で読�
   assert.match(html, /editor-caret-animation-utils\.js\?v=0\.5\.0-2/);
   assert.match(html, /layout-resize-utils\.js\?v=0\.5\.0-2/);
   assert.match(html, /geometry-block-utils\.js\?v=0\.5\.0-11/);
-  assert.match(html, /geometry-editor-utils\.js\?v=0\.5\.0-11/);
+  assert.match(html, /geometry-editor-utils\.js\?v=0\.5\.0-12/);
   assert.match(html, /geometry-svg-renderer\.js\?v=0\.5\.0-9/);
   assert.match(html, /geometry-block-editor\.js\?v=0\.5\.0-14/);
   assert.match(html, /web-clip-utils\.js\?v=0\.5\.0-7/);
