@@ -237,14 +237,12 @@
 
     function selectPointerTarget(event) {
       const direct = selectTarget(event.target);
-      if (direct?.kind !== "point" || typeof document.elementsFromPoint !== "function") return direct;
+      if (!direct || !["point", "annotation"].includes(direct.kind) || typeof document.elementsFromPoint !== "function") return direct;
       const annotationHits = document.elementsFromPoint(event.clientX, event.clientY)
         .filter((node) => svg.contains(node) && node.matches?.(".geometry-right-angle-hit[data-geometry-kind='annotation'], .geometry-angle-hit[data-geometry-kind='annotation']"));
       if (!annotationHits.length) return direct;
-      const point = geometry.points.find((entry) => entry.id === direct.id);
       const matrix = svg.getScreenCTM();
-      if (!point || !matrix) return direct;
-      const screenPoint = new DOMPoint(point.x, point.y).matrixTransform(matrix);
+      if (!matrix) return direct;
       const distanceToSegment = (start, end) => {
         const dx = end.x - start.x;
         const dy = end.y - start.y;
@@ -271,9 +269,19 @@
         };
       }).filter(Boolean);
       if (!candidates.length) return direct;
-      const nearest = candidates.reduce((closest, candidate) => candidate.distance < closest.distance ? candidate : closest);
+      const nearest = candidates.reduce((closest, candidate) => candidate.distance < closest.distance
+        || (candidate.distance === closest.distance && candidate.id.localeCompare(closest.id) < 0) ? candidate : closest);
+      if (direct.kind === "annotation") return { kind: "annotation", id: nearest.id };
+      const point = geometry.points.find((entry) => entry.id === direct.id);
+      if (!point) return direct;
+      const screenPoint = new DOMPoint(point.x, point.y).matrixTransform(matrix);
       const pointDistance = Math.hypot(event.clientX - screenPoint.x, event.clientY - screenPoint.y);
       return nearest.distance < pointDistance ? { kind: "annotation", id: nearest.id } : direct;
+    }
+
+    function dragErrorMessage(error) {
+      if (/中心と異なる位置/.test(error?.message || "")) return "円の中心と円周上の点は同じ位置にできません。別の位置へ移動してください。";
+      return error?.message || "図形を移動できません。別の位置へ移動してください。";
     }
 
     function requiredVertices() {
@@ -502,9 +510,9 @@
         drag.moved = true;
         drag.hasMoveError = false;
         draw();
-      } catch (_) {
+      } catch (error) {
         drag.hasMoveError = true;
-        status.textContent = "円の中心と円周上の点は同じ位置にできません。別の位置へ移動してください。";
+        status.textContent = dragErrorMessage(error);
       }
       event.preventDefault();
     });

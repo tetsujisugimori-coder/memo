@@ -126,6 +126,7 @@
     if (!point) throw new Error("点が見つかりません");
     point.x = x;
     point.y = y;
+    rejectNewDegenerateAngles(geometry, next);
     return normalizeGeometryBlock(next, next.id);
   }
 
@@ -140,6 +141,7 @@
       point.x += deltaX;
       point.y += deltaY;
     });
+    rejectNewDegenerateAngles(geometry, next);
     return normalizeGeometryBlock(next, next.id);
   }
 
@@ -166,6 +168,7 @@
   }
 
   function rightAngleDegrees(vertex, firstRay, secondRay) {
+    if (!vertex || !firstRay || !secondRay) return null;
     const firstX = firstRay.x - vertex.x;
     const firstY = firstRay.y - vertex.y;
     const secondX = secondRay.x - vertex.x;
@@ -176,6 +179,27 @@
     const cosine = Math.max(-1, Math.min(1, (firstX * secondX + firstY * secondY) / (firstLength * secondLength)));
     const degrees = Math.acos(cosine) * 180 / Math.PI;
     return Number.isFinite(degrees) ? degrees : null;
+  }
+
+  function isAngleDrawable(geometry, annotation) {
+    if (annotation?.type !== "angle") return false;
+    const vertex = pointById(geometry, annotation.vertexId);
+    const [firstRayId, secondRayId] = annotation.rayVertexIds || [];
+    const firstRay = pointById(geometry, firstRayId);
+    const secondRay = pointById(geometry, secondRayId);
+    const degrees = rightAngleDegrees(vertex, firstRay, secondRay);
+    return degrees !== null
+      && degrees > RIGHT_ANGLE_ANGLE_EPSILON_DEGREES
+      && degrees < 180 - RIGHT_ANGLE_ANGLE_EPSILON_DEGREES;
+  }
+
+  function rejectNewDegenerateAngles(before, next) {
+    const previousById = new Map(before.annotations.filter((annotation) => annotation.type === "angle").map((annotation) => [annotation.id, annotation]));
+    const newlyDegenerate = next.annotations.find((annotation) => annotation.type === "angle"
+      && previousById.has(annotation.id)
+      && isAngleDrawable(before, previousById.get(annotation.id))
+      && !isAngleDrawable(next, annotation));
+    if (newlyDegenerate) throw new Error("角度注釈が0度または180度になるため移動できません。別の位置へ移動してください。");
   }
 
   function hasSameRightAngle(annotation, vertexId, rayVertexIds) {
@@ -360,7 +384,7 @@
     };
   }
 
-  const api = { RIGHT_ANGLE_MIN_DEGREES, RIGHT_ANGLE_MAX_DEGREES, pointName, screenPointToViewBox, pointById, objectById, vertexLabel, lengthLabel, edgeCount, addPoint, addSegment, addPolygon, addCircle, movePoint, moveObject, updateVertexLabel, updateSegmentLineStyle, updateLengthLabel, updateAngleLabel, addRightAngle, addAngle, addLengthAnnotation, addEqualLengthMark, addParallelMark, deleteSelection, createHistory };
+  const api = { RIGHT_ANGLE_MIN_DEGREES, RIGHT_ANGLE_MAX_DEGREES, pointName, screenPointToViewBox, pointById, objectById, vertexLabel, lengthLabel, edgeCount, isAngleDrawable, addPoint, addSegment, addPolygon, addCircle, movePoint, moveObject, updateVertexLabel, updateSegmentLineStyle, updateLengthLabel, updateAngleLabel, addRightAngle, addAngle, addLengthAnnotation, addEqualLengthMark, addParallelMark, deleteSelection, createHistory };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   if (globalScope) globalScope.MemoNexusGeometryEditorUtils = api;
 })(typeof window !== "undefined" ? window : globalThis);
