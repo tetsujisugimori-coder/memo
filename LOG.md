@@ -2489,3 +2489,12 @@
 * `rejectNewDegenerateEqualLengths()`はobjectId+edgeIndexの同じ参照が前後にあることを照合し、その辺が描画可能→描画不能になったときだけ拒否する。既存ゼロ長辺を含む注釈でも正常な辺の移動・全体平行移動・無関係な点の移動・修復を許可する。線分／多角形それぞれの回帰テストは修正前に失敗し、修正後に成功した。新たなゼロ長化を伴う点移動／図形移動の拒否、入力モデル不変、保存復元も検証した。V1保存形式は維持し、変更JSの配信識別子をgeometry-editor-utils.js?v=0.5.0-12へ更新した。
 * 検証：`npm test`は1,053件成功（fail/skip 0）、`npm run test:e2e:mobile`は成功、変更JS4ファイルの`node --check`と`git diff --check`は成功。`npm run test:e2e:geometry`は同じ修正コードで5回連続成功（各回exit 0、各回1100px・390pxの等辺UI操作とconsole/page error 0を確認）した。Mobile E2Eの画像出力は一時ディレクトリへ変更し、利用者の未コミットPNGを保持した。
 * 手動ブラウザー操作・実タッチ端末・Safariは未確認。自動E2Eの390px確認はChromiumのマウス操作であり、タッチ実機確認ではない。push後CIは確認後に報告する。
+
+## 2026-09-08 図形ブロックの編集可能な平行記号
+
+* `parallel` 注釈を等辺印と同じ `edgeRefs: [{ objectId, edgeIndex }]` で正式に扱うようにした。V1の `objectIds` だけを持つ保存データは各線分の辺0へ補完し、`mark` と `markCount` の往復互換、geometry block version 1、IndexedDBスキーマは維持する。線分の辺0、多角形の先頭・途中・末尾を検証し、2辺未満、重複、存在しない図形、辺を持たない図形、範囲外の辺番号、1〜10外の本数を拒否する。
+* 編集UIへ「平行」モード、「平行を完了」、選択済み平行記号の本数入力を追加した。2辺以上を下書き選択し、再クリックで解除、Escape・キャンセル・モード変更では保存せず破棄する。平行記号の本数候補は等辺印と別に未使用最小値を選ぶ。選択、Delete／Backspace削除、Undo／Redoは既存注釈操作を再利用する。
+* SVGは各edgeRefから矢印状記号を再計算する。辺方向を決定的に正規化し、短辺ではサイズと間隔を制限する。透明hit pathと表示pathを分離し、平行記号は辺の片側、等辺印は反対側へ小さくずらして同じ辺でも識別できるようにした。現在SVG内の表示pathまでのCTM画面距離で注釈選択を解決する。
+* 参照図形の削除時は平行注釈からその辺だけを除外し、残り2辺未満なら注釈を削除する。既にゼロ長のlegacy辺は読込・修復・無関係移動・図形全体の平行移動を許可し、描画可能だった平行辺を新たにゼロ長にする移動だけを拒否する。
+* `geometry-block-utils.test.js`、`geometry-editor-utils.test.js`、`geometry-svg-renderer.test.js`へlegacy補完、検証、編集、削除、履歴、退化、描画・選択属性・移動追従を追加した。`geometry-block.e2e.js`は既存の等辺独立シナリオを平行記号にも適用し、1100pxと390pxでedgeRefs、下書き、表示pathのCTMクリック、本数、保存再読込、削除、Undo／Redo、console/page error 0を確認する。
+* 検証：`npm test` は1,056件成功（fail 0）、`npm run test:e2e:mobile` は成功、`npm run test:e2e:geometry` は最終状態で5回連続成功（各回で等辺印・平行記号の1100px／390px、console/page error 0）、変更JavaScriptの `node --check` と `git diff --check` は成功した。手動ブラウザー操作、実タッチ端末、Safari、push後CIは未確認。

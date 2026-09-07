@@ -8,7 +8,7 @@
   const svgNamespace = "http://www.w3.org/2000/svg";
   const modes = [
     ["select", "選択"], ["point", "点"], ["segment", "線分"], ["triangle", "三角形"],
-    ["quadrilateral", "四角形"], ["circle", "円"], ["polygon", "多角形"], ["right-angle", "直角"], ["angle", "角度"], ["equal-length", "等辺"]
+    ["quadrilateral", "四角形"], ["circle", "円"], ["polygon", "多角形"], ["right-angle", "直角"], ["angle", "角度"], ["equal-length", "等辺"], ["parallel", "平行"]
   ];
 
   function svgElement(name, attributes = {}) {
@@ -30,6 +30,11 @@
   function selectedEqualLength(geometry, selection) {
     if (selection?.kind !== "annotation") return null;
     return geometry.annotations.find((annotation) => annotation.id === selection.id && annotation.type === "equal-length") || null;
+  }
+
+  function selectedParallel(geometry, selection) {
+    if (selection?.kind !== "annotation") return null;
+    return geometry.annotations.find((annotation) => annotation.id === selection.id && annotation.type === "parallel") || null;
   }
 
   function createGeometryBlockEditor(initialGeometry, { blockIndex = 0, onChange, onDelete } = {}) {
@@ -83,7 +88,7 @@
       button.addEventListener("click", () => {
         mode = value;
         clearDraft();
-        status.textContent = annotationDraft() ? annotationDraftStatus() : value === "equal-length" ? equalLengthDraftStatus() : value === "select" ? "選択モード" : `${label}モード`;
+        status.textContent = annotationDraft() ? annotationDraftStatus() : edgeMarkDraftStatus() || (value === "select" ? "選択モード" : `${label}モード`);
       });
       modeButtons.set(value, button);
       tools.append(button);
@@ -92,7 +97,7 @@
     completeButton.type = "button";
     completeButton.textContent = "多角形を完了";
     completeButton.setAttribute("aria-label", "選択した点で多角形を完了");
-    completeButton.addEventListener("click", () => mode === "equal-length" ? completeEqualLength() : completePolygon());
+    completeButton.addEventListener("click", () => mode === "equal-length" ? completeEqualLength() : mode === "parallel" ? completeParallel() : completePolygon());
     const cancelButton = document.createElement("button");
     cancelButton.type = "button";
     cancelButton.textContent = "作成をキャンセル";
@@ -212,7 +217,27 @@
       updateControls();
     });
     equalLengthField.append(equalLengthCount);
-    properties.append(labelField, angleLabelField, lineField, lengthField, lengthLabelField, equalLengthField);
+    const parallelField = document.createElement("label");
+    parallelField.textContent = "平行記号の本数";
+    const parallelCount = document.createElement("input");
+    parallelCount.type = "number";
+    parallelCount.min = "1";
+    parallelCount.max = "10";
+    parallelCount.step = "1";
+    parallelCount.setAttribute("aria-label", "選択した平行記号の本数");
+    parallelCount.addEventListener("change", () => {
+      const annotation = selectedParallel(geometry, selection);
+      if (!annotation) return;
+      try {
+        commit(model.updateParallelMarkCount(geometry, annotation.id, Number(parallelCount.value)));
+        status.textContent = "平行記号の本数を更新しました";
+      } catch (error) {
+        status.textContent = error.message || String(error);
+      }
+      updateControls();
+    });
+    parallelField.append(parallelCount);
+    properties.append(labelField, angleLabelField, lineField, lengthField, lengthLabelField, equalLengthField, parallelField);
 
     const canvas = document.createElement("div");
     canvas.className = "geometry-canvas";
@@ -269,7 +294,7 @@
       const direct = selectTarget(event.target);
       if (!direct || !["point", "annotation"].includes(direct.kind) || typeof document.elementsFromPoint !== "function") return direct;
       const annotationHits = document.elementsFromPoint(event.clientX, event.clientY)
-        .filter((node) => svg.contains(node) && node.matches?.(".geometry-right-angle-hit[data-geometry-kind='annotation'], .geometry-angle-hit[data-geometry-kind='annotation']"));
+        .filter((node) => svg.contains(node) && node.matches?.(".geometry-right-angle-hit[data-geometry-kind='annotation'], .geometry-angle-hit[data-geometry-kind='annotation'], .geometry-equal-length-hit[data-geometry-kind='annotation'], .geometry-parallel-hit[data-geometry-kind='annotation']"));
       if (!annotationHits.length) return direct;
       const matrix = svg.getScreenCTM();
       if (!matrix) return direct;
@@ -282,12 +307,13 @@
         return Math.hypot(event.clientX - (start.x + dx * ratio), event.clientY - (start.y + dy * ratio));
       };
       const candidates = annotationHits.map((annotationHit) => {
-        const annotationType = annotationHit.dataset.geometryType;
-        const markClass = annotationType === "angle" ? ".geometry-angle-arc" : ".geometry-right-angle-mark";
-        const mark = svg.querySelector(`${markClass}[data-geometry-id="${annotationHit.dataset.geometryId}"]`);
+        const annotationType = geometry.annotations.find((annotation) => annotation.id === annotationHit.dataset.geometryId)?.type;
+        const markClass = annotationType === "angle" ? ".geometry-angle-arc" : annotationType === "right-angle" ? ".geometry-right-angle-mark" : annotationType === "parallel" ? ".geometry-parallel-mark" : ".geometry-equal-length-mark";
+        const mark = annotationHit.closest("g")?.querySelector(`${markClass}[data-geometry-id="${annotationHit.dataset.geometryId}"]`)
+          || svg.querySelector(`${markClass}[data-geometry-id="${annotationHit.dataset.geometryId}"]`);
         const length = mark?.getTotalLength();
         if (!Number.isFinite(length) || length <= 0) return null;
-        const sampleCount = annotationType === "angle" ? Math.max(8, Math.ceil(length / 2)) : 2;
+        const sampleCount = annotationType === "angle" ? Math.max(8, Math.ceil(length / 2)) : Math.max(2, Math.ceil(length / 2));
         const screenPath = Array.from({ length: sampleCount + 1 }, (_, index) => index * length / sampleCount).map((position) => {
           const pathPoint = mark.getPointAtLength(position);
           return new DOMPoint(pathPoint.x, pathPoint.y).matrixTransform(matrix);
@@ -328,8 +354,18 @@
         : `${draftEdgeRefs.length}本の辺を選択中。「等辺を完了」で確定します`;
     }
 
+    function parallelDraftStatus() {
+      return draftEdgeRefs.length < 2
+        ? `平行にする辺を選択中。あと${2 - draftEdgeRefs.length}本必要です`
+        : `${draftEdgeRefs.length}本の辺を選択中。「平行を完了」で確定します`;
+    }
+
+    function edgeMarkDraftStatus() {
+      return mode === "equal-length" ? equalLengthDraftStatus() : mode === "parallel" ? parallelDraftStatus() : "";
+    }
+
     function suggestedMarkCount() {
-      const used = new Set(geometry.annotations.filter((annotation) => annotation.type === "equal-length").map((annotation) => annotation.markCount));
+      const used = new Set(geometry.annotations.filter((annotation) => annotation.type === mode).map((annotation) => annotation.markCount));
       return Array.from({ length: 10 }, (_, index) => index + 1).find((count) => !used.has(count)) || null;
     }
 
@@ -345,6 +381,23 @@
         clearDraft();
         commit(next);
         status.textContent = "等辺記号を追加しました";
+      } catch (error) {
+        status.textContent = error.message || String(error);
+      }
+    }
+
+    function completeParallel() {
+      if (mode !== "parallel" || draftEdgeRefs.length < 2) return;
+      const markCount = suggestedMarkCount();
+      if (!markCount) {
+        status.textContent = "平行記号の本数がすべて使われています。既存の平行記号を編集してください。";
+        return;
+      }
+      try {
+        const next = model.addParallelMark(geometry, { edgeRefs: draftEdgeRefs, markCount });
+        clearDraft();
+        commit(next);
+        status.textContent = "平行記号を追加しました";
       } catch (error) {
         status.textContent = error.message || String(error);
       }
@@ -458,15 +511,15 @@
         return;
       }
       const annotation = annotationDraft();
-      if (mode === "equal-length") {
+      if (mode === "equal-length" || mode === "parallel") {
         if (target?.kind !== "edge" || !Number.isInteger(target.edgeIndex)) {
-          status.textContent = "等辺にする線分または多角形の辺を選択してください";
+          status.textContent = mode === "parallel" ? "平行にする線分または多角形の辺を選択してください" : "等辺にする線分または多角形の辺を選択してください";
           return;
         }
         const index = draftEdgeRefs.findIndex((edgeRef) => edgeRef.objectId === target.objectId && edgeRef.edgeIndex === target.edgeIndex);
         if (index >= 0) draftEdgeRefs.splice(index, 1);
         else draftEdgeRefs.push({ objectId: target.objectId, edgeIndex: target.edgeIndex });
-        status.textContent = equalLengthDraftStatus();
+        status.textContent = edgeMarkDraftStatus();
         draw();
         updateControls();
         return;
@@ -501,7 +554,7 @@
     }
 
     function draw() {
-      renderer.renderGeometrySvg(svg, geometry, { selection, vertexLabel: model.vertexLabel, draftEdgeRefs, edgeHitEnabled: mode === "equal-length" });
+      renderer.renderGeometrySvg(svg, geometry, { selection, vertexLabel: model.vertexLabel, draftEdgeRefs, edgeHitEnabled: mode === "equal-length" || mode === "parallel" });
       const points = new Map(geometry.points.map((point) => [point.id, point]));
       const draftPoints = draftVertices.map((entry) => pointForDraft(entry, points)).filter(Boolean);
       const previewPoints = draftPreview ? [...draftPoints, draftPreview] : draftPoints;
@@ -530,9 +583,9 @@
 
     function updateControls() {
       modeButtons.forEach((button, value) => button.setAttribute("aria-pressed", String(value === mode)));
-      completeButton.textContent = mode === "equal-length" ? "等辺を完了" : "多角形を完了";
-      completeButton.setAttribute("aria-label", mode === "equal-length" ? "選択した辺で等辺記号を作成" : "選択した点で多角形を完了");
-      completeButton.disabled = mode === "equal-length" ? draftEdgeRefs.length < 2 : mode !== "polygon" || draftVertices.length < 3;
+      completeButton.textContent = mode === "equal-length" ? "等辺を完了" : mode === "parallel" ? "平行を完了" : "多角形を完了";
+      completeButton.setAttribute("aria-label", mode === "equal-length" ? "選択した辺で等辺記号を作成" : mode === "parallel" ? "選択した辺で平行記号を作成" : "選択した点で多角形を完了");
+      completeButton.disabled = ["equal-length", "parallel"].includes(mode) ? draftEdgeRefs.length < 2 : mode !== "polygon" || draftVertices.length < 3;
       cancelButton.disabled = draftVertices.length === 0 && draftEdgeRefs.length === 0;
       undoButton.disabled = !history.canUndo;
       redoButton.disabled = !history.canRedo;
@@ -540,6 +593,7 @@
       const segment = selection?.kind === "object" ? model.objectById(geometry, selection.id) : null;
       const angle = selectedAngle(geometry, selection);
       const equalLength = selectedEqualLength(geometry, selection);
+      const parallel = selectedParallel(geometry, selection);
       labelInput.disabled = selection?.kind !== "point";
       labelInput.value = selectedLabel(geometry, selection);
       angleLabelInput.disabled = !angle;
@@ -564,6 +618,8 @@
       lengthInput.value = hasEdges ? model.lengthLabel(geometry, segment.id, selectedEdgeIndex)?.label || "" : "";
       equalLengthCount.disabled = !equalLength;
       equalLengthCount.value = equalLength ? String(equalLength.markCount) : "";
+      parallelCount.disabled = !parallel;
+      parallelCount.value = parallel ? String(parallel.markCount) : "";
     }
 
     svg.addEventListener("pointerdown", (event) => {

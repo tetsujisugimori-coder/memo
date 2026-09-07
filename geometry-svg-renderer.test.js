@@ -339,3 +339,36 @@ test("共通レンダラーは多角形の先頭・途中・末尾辺を個別�
     global.document = priorDocument;
   }
 });
+
+test("平行記号は多角形の任意辺へ本数分描画し、逆向きの辺でも選択属性を保つ", () => {
+  let geometry = createGeometryBlock("parallel-render");
+  [[10, 10], [70, 10], [70, 50], [10, 50]].forEach(([x, y]) => { geometry = addPoint(geometry, { x, y }); });
+  geometry = addPolygon(geometry, geometry.points.map((point) => point.id));
+  const polygon = geometry.objects[0];
+  geometry = addParallelMark(geometry, { edgeRefs: [{ objectId: polygon.id, edgeIndex: 0 }, { objectId: polygon.id, edgeIndex: 2 }, { objectId: polygon.id, edgeIndex: 3 }], markCount: 2 });
+  const annotation = geometry.annotations.find((entry) => entry.type === "parallel");
+  const priorDocument = global.document;
+  global.document = { createElementNS: (_namespace, name) => new MockElement(name) };
+  try {
+    const { renderGeometrySvg } = require("./geometry-svg-renderer.js");
+    const svg = new MockElement("svg");
+    renderGeometrySvg(svg, geometry, { selection: { kind: "annotation", id: annotation.id } });
+    const groups = descendants(svg).filter((node) => node.getAttribute("class") === "geometry-annotation geometry-parallel is-selected");
+    assert.equal(groups.length, 3);
+    assert.deepEqual(groups.map((node) => node.getAttribute("data-edge-index")).sort(), ["0", "2", "3"]);
+    groups.forEach((group) => {
+      assert.equal(group.children.filter((node) => node.getAttribute("class") === "geometry-parallel-mark").length, 2);
+      const hit = group.children.find((node) => node.getAttribute("class") === "geometry-parallel-hit");
+      assert.equal(hit.getAttribute("data-geometry-id"), annotation.id);
+      assert.equal(hit.getAttribute("pointer-events"), "stroke");
+      assert.equal(group.children.filter((node) => node.getAttribute("class") === "geometry-parallel-mark").every((mark) => mark.getAttribute("pointer-events") === "none"), true);
+    });
+    const before = groups.map((group) => group.children.find((node) => node.getAttribute("class") === "geometry-parallel-mark").getAttribute("d"));
+    const moved = movePoint(geometry, geometry.points[1].id, 80, 15);
+    renderGeometrySvg(svg, moved, { selection: { kind: "annotation", id: annotation.id } });
+    const after = descendants(svg).filter((node) => node.getAttribute("class") === "geometry-parallel-mark").map((node) => node.getAttribute("d"));
+    assert.notDeepEqual(after, before);
+  } finally {
+    global.document = priorDocument;
+  }
+});

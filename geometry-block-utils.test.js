@@ -586,3 +586,29 @@ test("等辺のlegacy objectIdsをedgeRefsへ補完し、多角形の各辺を�
   assert.throws(() => normalizeGeometryBlock({ ...polygon, annotations: [{ id: "bad", type: "equal-length", edgeRefs: [{ objectId: "square", edgeIndex: 4 }, { objectId: "ab", edgeIndex: 0 }], markCount: 1 }] }), /edgeIndex/);
   assert.throws(() => normalizeGeometryBlock({ ...polygon, annotations: [{ id: "bad", type: "equal-length", edgeRefs: [{ objectId: "square", edgeIndex: 0 }, { objectId: "square", edgeIndex: 0 }], markCount: 1 }] }), /重複参照/);
 });
+
+test("平行記号はlegacy objectIdsをedgeRefsへ補完し、多角形の任意辺を検証する", () => {
+  const source = {
+    id: "parallel-edge-refs", points: [
+      { id: "a", x: 0, y: 0 }, { id: "b", x: 20, y: 0 }, { id: "c", x: 20, y: 20 }, { id: "d", x: 0, y: 20 },
+      { id: "e", x: 40, y: 0 }, { id: "f", x: 60, y: 0 }
+    ],
+    objects: [
+      { id: "ab", type: "segment", pointIds: ["a", "b"] }, { id: "ef", type: "segment", pointIds: ["e", "f"] },
+      { id: "square", type: "polygon", pointIds: ["a", "b", "c", "d"] }
+    ],
+    annotations: [{ id: "legacy", type: "parallel", objectIds: ["ab", "ef"], mark: 2 }]
+  };
+  const legacy = normalizeGeometryBlock(source);
+  assert.deepEqual(legacy.annotations[0].edgeRefs, [{ objectId: "ab", edgeIndex: 0 }, { objectId: "ef", edgeIndex: 0 }]);
+  assert.equal(legacy.annotations[0].markCount, 2);
+  const polygon = normalizeGeometryBlock({ ...legacy, annotations: [{ id: "parallel", type: "parallel", edgeRefs: [
+    { objectId: "square", edgeIndex: 0 }, { objectId: "square", edgeIndex: 2 }, { objectId: "square", edgeIndex: 3 }
+  ], markCount: 3 }] });
+  assert.deepEqual(polygon.annotations[0].edgeRefs.map((ref) => ref.edgeIndex), [0, 2, 3]);
+  assert.throws(() => normalizeGeometryBlock({ ...polygon, annotations: [{ id: "one", type: "parallel", edgeRefs: [{ objectId: "ab", edgeIndex: 0 }], markCount: 1 }] }), /参照数/);
+  assert.throws(() => normalizeGeometryBlock({ ...polygon, annotations: [{ id: "duplicate", type: "parallel", edgeRefs: [{ objectId: "ab", edgeIndex: 0 }, { objectId: "ab", edgeIndex: 0 }], markCount: 1 }] }), /重複参照/);
+  assert.throws(() => normalizeGeometryBlock({ ...polygon, annotations: [{ id: "bad-edge", type: "parallel", edgeRefs: [{ objectId: "square", edgeIndex: 4 }, { objectId: "ab", edgeIndex: 0 }], markCount: 1 }] }), /edgeIndex/);
+  assert.throws(() => normalizeGeometryBlock({ ...polygon, annotations: [{ id: "circle", type: "parallel", edgeRefs: [{ objectId: "ab", edgeIndex: 0 }, { objectId: "circle", edgeIndex: 0 }], markCount: 1 }], objects: [...polygon.objects, { id: "circle", type: "circle", pointIds: ["a", "c"] }] }), /線分または多角形/);
+  assert.throws(() => normalizeGeometryBlock({ ...polygon, annotations: [{ id: "marks", type: "parallel", edgeRefs: [{ objectId: "ab", edgeIndex: 0 }, { objectId: "ef", edgeIndex: 0 }], markCount: 11 }] }), /1から10/);
+});

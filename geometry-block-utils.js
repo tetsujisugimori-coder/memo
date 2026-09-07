@@ -163,7 +163,7 @@
       // Retain the historic field so V1 consumers and existing notes round-trip.
       normalized.mark = normalized.markCount;
     }
-    if (normalized.type === "equal-length") {
+    if (["equal-length", "parallel"].includes(normalized.type)) {
       // Legacy V1 data had objectIds only. Preserve it while adding the common
       // edge representation used by the editor and renderer.
       normalized.edgeRefs = source.edgeRefs === undefined
@@ -413,16 +413,28 @@
           addError(`${path}.markCountは1から10の整数である必要があります`);
         }
       } else if (annotation.type === "parallel") {
-        validateReferenceList(
-          annotation.objectIds,
-          `${path}.objectIds`,
-          2,
-          GEOMETRY_BLOCK_LIMITS.referencesPerItem,
-          objectIds
-        );
-        if (Array.isArray(annotation.objectIds)) {
+        if (!validateArray(annotation.edgeRefs, `${path}.edgeRefs`, GEOMETRY_BLOCK_LIMITS.referencesPerItem)) return;
+        if (annotation.edgeRefs.length < 2) addError(`${path}.edgeRefsの参照数が不正です`);
+        const seenEdges = new Set();
+        annotation.edgeRefs.forEach((edgeRef, refIndex) => {
+          if (!isRecord(edgeRef)) {
+            addError(`${path}.edgeRefs[${refIndex}]はオブジェクトである必要があります`);
+            return;
+          }
+          validateId(edgeRef.objectId, `${path}.edgeRefs[${refIndex}].objectId`);
+          const object = objectById.get(edgeRef.objectId);
+          if (!object) addError(`${path}.edgeRefs[${refIndex}]の参照先が存在しません`);
+          else if (!["segment", "polygon"].includes(object.type)) addError(`${path}.edgeRefs[${refIndex}]は線分または多角形の辺を参照する必要があります`);
+          else if (!Number.isInteger(edgeRef.edgeIndex) || edgeRef.edgeIndex < 0 || edgeRef.edgeIndex >= edgeCount(object)
+            || (object.type === "segment" && edgeRef.edgeIndex !== 0)) addError(`${path}.edgeRefs[${refIndex}].edgeIndexが不正です`);
+          const key = `${edgeRef.objectId}:${edgeRef.edgeIndex}`;
+          if (seenEdges.has(key)) addError(`${path}.edgeRefsに重複参照があります`);
+          seenEdges.add(key);
+        });
+        if (annotation.objectIds !== undefined) {
+          validateReferenceList(annotation.objectIds, `${path}.objectIds`, 2, GEOMETRY_BLOCK_LIMITS.referencesPerItem, objectIds);
           annotation.objectIds.forEach((id) => {
-            if (objectById.has(id) && objectById.get(id).type !== "segment") addError(`${path}は線分だけを参照できます`);
+            if (objectById.get(id)?.type !== "segment") addError(`${path}.objectIdsは線分だけを参照できます`);
           });
         }
         if (!Number.isInteger(annotation.markCount) || annotation.markCount < 1 || annotation.markCount > 10) {

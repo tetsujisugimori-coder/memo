@@ -2,8 +2,8 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const { createGeometryBlock, cloneGeometryBlock, normalizeGeometryBlock, parseGeometryBlockLine, serializeGeometryBlock } = require("./geometry-block-utils.js");
 const {
-  addAngle, addCircle, addEqualLengthMark, addPoint, addPolygon, addRightAngle, addSegment, createHistory, deleteSelection, moveObject, movePoint,
-  screenPointToViewBox, updateAngleLabel, updateEqualLengthMarkCount, updateLengthLabel, updateSegmentLineStyle, updateVertexLabel
+  addAngle, addCircle, addEqualLengthMark, addParallelMark, addPoint, addPolygon, addRightAngle, addSegment, createHistory, deleteSelection, moveObject, movePoint,
+  screenPointToViewBox, updateAngleLabel, updateEqualLengthMarkCount, updateLengthLabel, updateParallelMarkCount, updateSegmentLineStyle, updateVertexLabel
 } = require("./geometry-editor-utils.js");
 
 function withPoints(count = 3) {
@@ -418,6 +418,34 @@ test("等辺注釈は線分と多角形辺を共通参照し、編集・削除�
   assert.throws(() => movePoint(geometry, geometry.points[1].id, 0, 0), /等辺記号の辺が0/);
   const afterSegmentDelete = deleteSelection(geometry, { kind: "object", id: segment.id });
   assert.equal(afterSegmentDelete.annotations.find((entry) => entry.id === annotation.id).edgeRefs.length, 2);
+  const afterPolygonDelete = deleteSelection(afterSegmentDelete, { kind: "object", id: square.id });
+  assert.equal(afterPolygonDelete.annotations.some((entry) => entry.id === annotation.id), false);
+});
+
+test("平行注釈は辺参照で追加・編集・削除・Undo/Redoでき、等辺印と本数が独立する", () => {
+  let geometry = createGeometryBlock("parallel-editor");
+  [[0, 0], [20, 0], [20, 20], [0, 20], [40, 0], [40, 20]].forEach(([x, y]) => { geometry = addPoint(geometry, { x, y }); });
+  geometry = addPolygon(geometry, geometry.points.slice(0, 4).map((point) => point.id));
+  geometry = addSegment(geometry, geometry.points[4].id, geometry.points[5].id);
+  const [square, segment] = geometry.objects;
+  geometry = addEqualLengthMark(geometry, { edgeRefs: [{ objectId: square.id, edgeIndex: 0 }, { objectId: square.id, edgeIndex: 2 }], markCount: 1 });
+  geometry = addParallelMark(geometry, { edgeRefs: [{ objectId: square.id, edgeIndex: 0 }, { objectId: square.id, edgeIndex: 2 }, { objectId: segment.id, edgeIndex: 0 }], markCount: 1 });
+  const annotation = geometry.annotations.find((entry) => entry.type === "parallel");
+  assert.deepEqual(annotation.edgeRefs.map((ref) => ref.edgeIndex), [0, 2, 0]);
+  assert.equal(annotation.mark, 1);
+  assert.throws(() => addParallelMark(geometry, { edgeRefs: [{ objectId: square.id, edgeIndex: 0 }, { objectId: square.id, edgeIndex: 0 }] }), /重複/);
+  assert.throws(() => addParallelMark(geometry, { edgeRefs: [{ objectId: square.id, edgeIndex: 1 }, { objectId: segment.id, edgeIndex: 0 }], markCount: 1 }), /同じ本数/);
+  geometry = updateParallelMarkCount(geometry, annotation.id, 3);
+  assert.equal(geometry.annotations.find((entry) => entry.id === annotation.id).markCount, 3);
+  assert.equal(geometry.annotations.find((entry) => entry.id === annotation.id).mark, 3);
+  assert.throws(() => updateParallelMarkCount(geometry, annotation.id, 11), /1から10/);
+  assert.throws(() => movePoint(geometry, geometry.points[5].id, 40, 0), /平行記号の辺が0/);
+  const afterSegmentDelete = deleteSelection(geometry, { kind: "object", id: segment.id });
+  assert.equal(afterSegmentDelete.annotations.find((entry) => entry.id === annotation.id).edgeRefs.length, 2);
+  const history = createHistory(geometry);
+  history.push(afterSegmentDelete);
+  assert.equal(history.undo().annotations.some((entry) => entry.id === annotation.id), true);
+  assert.equal(history.redo().annotations.find((entry) => entry.id === annotation.id).edgeRefs.length, 2);
   const afterPolygonDelete = deleteSelection(afterSegmentDelete, { kind: "object", id: square.id });
   assert.equal(afterPolygonDelete.annotations.some((entry) => entry.id === annotation.id), false);
 });
