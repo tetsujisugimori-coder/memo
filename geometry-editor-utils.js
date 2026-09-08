@@ -5,7 +5,7 @@
     || (typeof require === "function" ? require("./geometry-block-utils.js") : null);
   if (!geometryUtils) throw new Error("MemoNexusGeometryBlockUtils is required");
 
-  const { edgeCount, edgeRefsForAnnotation, generatedEntityId, normalizeGeometryBlock } = geometryUtils;
+  const { edgeCount, edgeRefsForAnnotation, generatedEntityId, normalizeGeometryBlock, LENGTH_LABEL_ALONG_OFFSET_LIMIT = 20 } = geometryUtils;
   const RIGHT_ANGLE_MIN_DEGREES = 80;
   const RIGHT_ANGLE_MAX_DEGREES = 100;
   const RIGHT_ANGLE_ANGLE_EPSILON_DEGREES = 1e-9;
@@ -268,9 +268,30 @@
     const object = objectById(next, objectId);
     if (!object || !["segment", "polygon"].includes(object.type)) throw new Error("辺を持つ図形が見つかりません");
     if (!Number.isInteger(edgeIndex) || edgeIndex < 0 || edgeIndex >= edgeCount(object)) throw new Error("辺の指定が不正です");
+    const text = String(label == null ? "" : label).trim();
     const annotation = lengthLabel(next, objectId, edgeIndex);
-    if (annotation) annotation.label = String(label);
-    else next.annotations.push({ id: generatedEntityId("length-label"), type: "length-label", objectId, edgeIndex, label: String(label) });
+    if (!text) {
+      if (annotation) next.annotations = next.annotations.filter((entry) => entry.id !== annotation.id);
+      return normalizeGeometryBlock(next, next.id);
+    }
+    if (annotation) annotation.label = text;
+    else next.annotations.push({
+      id: generatedEntityId("length-label"), type: "length-label", objectId, edgeIndex, label: text,
+      side: "positive", alongOffset: 0
+    });
+    return normalizeGeometryBlock(next, next.id);
+  }
+
+  function updateLengthLabelPlacement(geometry, annotationId, { side, alongOffset } = {}) {
+    if (side !== "positive" && side !== "negative") throw new Error("辺の長さ表示の側が不正です");
+    if (!Number.isFinite(alongOffset) || Math.abs(alongOffset) > LENGTH_LABEL_ALONG_OFFSET_LIMIT) {
+      throw new Error(`辺の長さ表示の位置は${-LENGTH_LABEL_ALONG_OFFSET_LIMIT}から${LENGTH_LABEL_ALONG_OFFSET_LIMIT}で指定してください`);
+    }
+    const next = copy(geometry);
+    const annotation = next.annotations.find((entry) => entry.id === annotationId && entry.type === "length-label");
+    if (!annotation) throw new Error("辺の長さ表示が見つかりません");
+    annotation.side = side;
+    annotation.alongOffset = alongOffset;
     return normalizeGeometryBlock(next, next.id);
   }
 
@@ -368,6 +389,7 @@
 
   function addLengthAnnotation(geometry, { segmentId, value, unit = "", label = "", offsetX, offsetY } = {}) {
     const next = copy(geometry);
+    if (lengthLabel(next, segmentId, 0)) throw new Error("この辺には既に長さ表示があります");
     next.annotations.push({
       id: generatedEntityId("length-label"), type: "length-label", objectId: segmentId, segmentId,
       value, unit, label,
@@ -493,7 +515,7 @@
     };
   }
 
-  const api = { RIGHT_ANGLE_MIN_DEGREES, RIGHT_ANGLE_MAX_DEGREES, pointName, screenPointToViewBox, pointById, objectById, vertexLabel, lengthLabel, edgeCount, edgeForRef, isEdgeDrawable, isAngleDrawable, addPoint, addSegment, addPolygon, addCircle, movePoint, moveObject, updateVertexLabel, updateSegmentLineStyle, updateLengthLabel, updateAngleLabel, addRightAngle, addAngle, addLengthAnnotation, addEqualLengthMark, updateEqualLengthMarkCount, addParallelMark, updateParallelMarkCount, deleteSelection, createHistory };
+  const api = { RIGHT_ANGLE_MIN_DEGREES, RIGHT_ANGLE_MAX_DEGREES, pointName, screenPointToViewBox, pointById, objectById, vertexLabel, lengthLabel, edgeCount, edgeForRef, isEdgeDrawable, isAngleDrawable, addPoint, addSegment, addPolygon, addCircle, movePoint, moveObject, updateVertexLabel, updateSegmentLineStyle, updateLengthLabel, updateLengthLabelPlacement, updateAngleLabel, addRightAngle, addAngle, addLengthAnnotation, addEqualLengthMark, updateEqualLengthMarkCount, addParallelMark, updateParallelMarkCount, deleteSelection, createHistory };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   if (globalScope) globalScope.MemoNexusGeometryEditorUtils = api;
 })(typeof window !== "undefined" ? window : globalThis);

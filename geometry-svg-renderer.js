@@ -256,18 +256,40 @@
     svg.append(group);
   }
 
-  function renderLengthLabel(svg, annotation, object, points) {
+  function renderLengthLabel(svg, annotation, object, points, selection) {
     const edge = edgePairs(object, points).find((entry) => entry.edgeIndex === (annotation.edgeIndex || 0));
     const text = displayValue(annotation);
     if (!edge || !text) return;
-    const direction = unitVector(edge.start, edge.end);
-    if (!direction) return;
-    const normal = { x: -direction.y, y: direction.x };
-    const x = (edge.start.x + edge.end.x) / 2 + normal.x * (annotation.offsetY || 0) + (annotation.offsetX || 0);
-    const y = (edge.start.y + edge.end.y) / 2 + normal.y * (annotation.offsetY || 0);
-    const group = semanticGroup("length-label", annotation, `辺の長さ ${text}`);
+    let x;
+    let y;
+    if (annotation.side) {
+      const direction = normalizedEdgeDirection(edge.start, edge.end);
+      if (!direction) return;
+      const normal = { x: -direction.y, y: direction.x };
+      const side = annotation.side === "negative" ? -1 : 1;
+      const alongOffset = Number.isFinite(annotation.alongOffset) ? annotation.alongOffset : 0;
+      x = (edge.start.x + edge.end.x) / 2 + direction.x * alongOffset + normal.x * 8 * side;
+      y = (edge.start.y + edge.end.y) / 2 + direction.y * alongOffset + normal.y * 8 * side;
+    } else {
+      // V1 labels saved before side/alongOffset retain their Cartesian layout.
+      const direction = unitVector(edge.start, edge.end);
+      if (!direction) return;
+      const normal = { x: -direction.y, y: direction.x };
+      x = (edge.start.x + edge.end.x) / 2 + normal.x * (annotation.offsetY || 0) + (annotation.offsetX || 0);
+      y = (edge.start.y + edge.end.y) / 2 + normal.y * (annotation.offsetY || 0);
+    }
+    const group = semanticGroup("length-label", annotation, `辺の長さ ${text}`, {
+      interactive: true,
+      selected: selection?.kind === "annotation" && selection.id === annotation.id
+    });
+    group.setAttribute("data-object-id", annotation.objectId);
     group.setAttribute("data-segment-id", annotation.segmentId || annotation.objectId);
-    const label = svgElement("text", { x, y, class: "geometry-length-label" });
+    group.setAttribute("data-edge-index", String(annotation.edgeIndex || 0));
+    const label = svgElement("text", {
+      x, y, class: "geometry-length-label",
+      "data-geometry-kind": "annotation", "data-geometry-type": "length-label", "data-geometry-id": annotation.id,
+      "pointer-events": "visiblePainted"
+    });
     label.textContent = text;
     group.append(label);
     svg.append(group);
@@ -372,7 +394,7 @@
       else if (annotation.type === "angle") renderAngle(svg, annotation, geometry, points, vertexLabel, selection);
       else if (annotation.type === "length-label") {
         const object = objects.get(annotation.objectId);
-        if (object) renderLengthLabel(svg, annotation, object, points);
+        if (object) renderLengthLabel(svg, annotation, object, points, selection);
       } else if (annotation.type === "equal-length") renderEqualLength(svg, annotation, objects, points, selection, geometry.annotations);
       else if (annotation.type === "parallel") renderParallel(svg, annotation, objects, points, selection, geometry.annotations);
     });

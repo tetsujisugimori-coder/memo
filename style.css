@@ -2344,7 +2344,10 @@ body.layout-resizing iframe {
 .geometry-point { fill: var(--ink); stroke: var(--paper); stroke-width: .7; vector-effect: non-scaling-stroke; }
 .geometry-point.is-selected, .geometry-point.is-draft { fill: var(--accent); stroke: var(--accent); }
 .geometry-label { fill: var(--ink); font: 5px sans-serif; user-select: none; }
-.geometry-length-label { fill: var(--ink); font: 4.5px sans-serif; user-select: none; paint-order: stroke; stroke: var(--input-bg); stroke-width: 1.5px; }
+.geometry-length-label { fill: var(--ink); font: 4.5px sans-serif; user-select: none; paint-order: stroke; stroke: var(--input-bg); stroke-width: 1.5px; cursor: pointer; }
+.geometry-length-label.is-selected,
+.geometry-length-label.is-selected .geometry-length-label { fill: var(--accent); stroke: var(--input-bg); }
+.geometry-length-label.is-selected { cursor: pointer; }
 .geometry-right-angle-mark,
 .geometry-angle-arc,
 .geometry-equal-length-mark,

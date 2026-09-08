@@ -3,7 +3,7 @@ const assert = require("node:assert/strict");
 const { createGeometryBlock, cloneGeometryBlock, normalizeGeometryBlock, parseGeometryBlockLine, serializeGeometryBlock } = require("./geometry-block-utils.js");
 const {
   addAngle, addCircle, addEqualLengthMark, addParallelMark, addPoint, addPolygon, addRightAngle, addSegment, createHistory, deleteSelection, moveObject, movePoint,
-  screenPointToViewBox, updateAngleLabel, updateEqualLengthMarkCount, updateLengthLabel, updateParallelMarkCount, updateSegmentLineStyle, updateVertexLabel
+  screenPointToViewBox, updateAngleLabel, updateEqualLengthMarkCount, updateLengthLabel, updateLengthLabelPlacement, updateParallelMarkCount, updateSegmentLineStyle, updateVertexLabel
 } = require("./geometry-editor-utils.js");
 
 function withPoints(count = 3) {
@@ -103,6 +103,31 @@ test("線分の辺ラベルは辺0だけを保存し、既存の省略edgeIndex�
     annotations: [{ id: "legacy-length", type: "length-label", objectId: segment.id, label: "a" }]
   };
   assert.equal(parseGeometryBlockLine(serializeGeometryBlock(legacy)).annotations[0].edgeIndex, undefined);
+});
+
+test("辺の長さ表示は文字列を整理し、側・線分方向位置を保存、空欄で削除する", () => {
+  let geometry = withPoints(2);
+  geometry = addSegment(geometry, geometry.points[0].id, geometry.points[1].id);
+  const segment = geometry.objects[0];
+  geometry = updateLengthLabel(geometry, segment.id, "  x + 2  ");
+  let annotation = geometry.annotations.find((entry) => entry.type === "length-label");
+  assert.equal(annotation.label, "x + 2");
+  assert.deepEqual({ side: annotation.side, alongOffset: annotation.alongOffset }, { side: "positive", alongOffset: 0 });
+  geometry = updateLengthLabel(geometry, segment.id, "y");
+  assert.equal(geometry.annotations.filter((entry) => entry.type === "length-label").length, 1, "同じ辺の表示は1件だけにする");
+  annotation = geometry.annotations.find((entry) => entry.type === "length-label");
+  assert.equal(annotation.label, "y", "既存表示を再編集する");
+  geometry = updateLengthLabelPlacement(geometry, annotation.id, { side: "negative", alongOffset: -7 });
+  annotation = geometry.annotations.find((entry) => entry.id === annotation.id);
+  assert.deepEqual({ side: annotation.side, alongOffset: annotation.alongOffset }, { side: "negative", alongOffset: -7 });
+  const restored = parseGeometryBlockLine(serializeGeometryBlock(geometry));
+  assert.deepEqual(restored.annotations.find((entry) => entry.id === annotation.id), annotation, "再読込後も表示文字列と配置を復元する");
+  assert.throws(() => updateLengthLabelPlacement(geometry, annotation.id, { side: "outside", alongOffset: 0 }), /側が不正/);
+  assert.throws(() => updateLengthLabelPlacement(geometry, annotation.id, { side: "positive", alongOffset: 21 }), /-20から20/);
+  const removed = updateLengthLabel(geometry, segment.id, "   ");
+  assert.equal(removed.annotations.some((entry) => entry.type === "length-label"), false, "空欄の確定は長さ表示を削除する");
+  const afterObjectDelete = deleteSelection(geometry, { kind: "object", id: segment.id });
+  assert.equal(afterObjectDelete.annotations.some((entry) => entry.type === "length-label"), false, "参照線分の削除時に長さ表示も削除する");
 });
 
 test("円、三角形、四角形を点参照で作成し、辺の表示文字列を保存・復元する", () => {
