@@ -373,31 +373,59 @@ test("平行記号は多角形の任意辺へ本数分描画し、逆向きの�
   }
 });
 
-test("等辺印と平行記号は多角形の順方向・逆方向の辺でも常に反対側へ分離する", () => {
-  let geometry = createGeometryBlock("opposite-mark-sides");
+test("等辺印と平行記号は辺上を保ち、共存時だけ接線方向へ分離する", () => {
+  let geometry = createGeometryBlock("tangent-mark-sides");
   [[10, 10], [70, 10], [70, 50], [10, 50]].forEach(([x, y]) => { geometry = addPoint(geometry, { x, y }); });
   geometry = addPolygon(geometry, geometry.points.map((point) => point.id));
   const polygon = geometry.objects[0];
-  const edgeRefs = [{ objectId: polygon.id, edgeIndex: 0 }, { objectId: polygon.id, edgeIndex: 2 }];
-  geometry = addEqualLengthMark(geometry, { edgeRefs, markCount: 1 });
-  geometry = addParallelMark(geometry, { edgeRefs, markCount: 1 });
+  const edgeRefs = [0, 1, 2].map((edgeIndex) => ({ objectId: polygon.id, edgeIndex }));
+  const edgeData = [
+    { index: 0, midpoint: { x: 40, y: 10 }, direction: { x: 1, y: 0 } },
+    { index: 1, midpoint: { x: 70, y: 30 }, direction: { x: 0, y: 1 } },
+    { index: 2, midpoint: { x: 40, y: 50 }, direction: { x: 1, y: 0 } }
+  ];
+  const equalOnly = addEqualLengthMark(geometry, { edgeRefs, markCount: 2 });
+  const parallelOnly = addParallelMark(geometry, { edgeRefs, markCount: 3 });
+  let shared = addEqualLengthMark(geometry, { edgeRefs, markCount: 2 });
+  shared = addParallelMark(shared, { edgeRefs, markCount: 3 });
+  const equalAnnotation = shared.annotations.find((annotation) => annotation.type === "equal-length");
   const priorDocument = global.document;
   global.document = { createElementNS: (_namespace, name) => new MockElement(name) };
   try {
     const { renderGeometrySvg } = require("./geometry-svg-renderer.js");
-    const svg = new MockElement("svg");
-    renderGeometrySvg(svg, geometry);
-    const centerY = (group) => {
-      const hit = group.children.find((node) => /geometry-(equal-length|parallel)-hit/.test(node.getAttribute("class") || ""));
-      return (Number(hit.getAttribute("y1")) + Number(hit.getAttribute("y2"))) / 2;
+    const render = (value, selection) => {
+      const svg = new MockElement("svg");
+      renderGeometrySvg(svg, value, { selection });
+      return svg;
     };
-    [0, 2].forEach((edgeIndex) => {
-      const equal = descendants(svg).find((node) => node.getAttribute("class") === "geometry-annotation geometry-equal-length" && node.getAttribute("data-edge-index") === String(edgeIndex));
-      const parallel = descendants(svg).find((node) => node.getAttribute("class") === "geometry-annotation geometry-parallel" && node.getAttribute("data-edge-index") === String(edgeIndex));
-      const edgeCenterY = edgeIndex === 0 ? 10 : 50;
-      assert.notEqual(centerY(equal), centerY(parallel), `辺${edgeIndex + 1}の記号を重ねない`);
-      assert.equal(Math.sign(centerY(equal) - edgeCenterY), -Math.sign(centerY(parallel) - edgeCenterY), `辺${edgeIndex + 1}は反対側へ配置する`);
+    const center = (group) => {
+      const hit = group.children.find((node) => /geometry-(equal-length|parallel)-hit/.test(node.getAttribute("class") || ""));
+      return { x: (Number(hit.getAttribute("x1")) + Number(hit.getAttribute("x2"))) / 2, y: (Number(hit.getAttribute("y1")) + Number(hit.getAttribute("y2"))) / 2 };
+    };
+    const group = (svg, type, edgeIndex) => descendants(svg).find((node) => node.getAttribute("class")?.includes(`geometry-${type}`) && node.getAttribute("data-edge-index") === String(edgeIndex));
+    const equalSvg = render(equalOnly);
+    const parallelSvg = render(parallelOnly);
+    const sharedSvg = render(shared, { kind: "annotation", id: equalAnnotation.id });
+    edgeData.forEach(({ index, midpoint, direction }) => {
+      const normal = { x: -direction.y, y: direction.x };
+      const normalOffset = (position) => (position.x - midpoint.x) * normal.x + (position.y - midpoint.y) * normal.y;
+      const tangentOffset = (position) => (position.x - midpoint.x) * direction.x + (position.y - midpoint.y) * direction.y;
+      assert.ok(Math.abs(normalOffset(center(group(equalSvg, "equal-length", index)))) < 1e-9, `等辺印だけの辺${index + 1}は辺上に置く`);
+      assert.ok(Math.abs(normalOffset(center(group(parallelSvg, "parallel", index)))) < 1e-9, `平行記号だけの辺${index + 1}は辺上に置く`);
+      const equal = group(sharedSvg, "equal-length", index);
+      const parallel = group(sharedSvg, "parallel", index);
+      assert.ok(Math.abs(normalOffset(center(equal))) < 1e-9 && Math.abs(normalOffset(center(parallel))) < 1e-9, `共存時の辺${index + 1}も辺上に置く`);
+      assert.ok(tangentOffset(center(equal)) < 0 && tangentOffset(center(parallel)) > 0, `共存時の辺${index + 1}を接線方向へ分離する`);
+      assert.equal(equal.getAttribute("data-object-id"), polygon.id);
+      assert.equal(parallel.getAttribute("data-edge-index"), String(index));
+      assert.equal(equal.children.filter((node) => node.getAttribute("class") === "geometry-equal-length-mark").length, 2);
+      assert.equal(parallel.children.filter((node) => node.getAttribute("class") === "geometry-parallel-mark").length, 3);
     });
+    assert.equal(group(sharedSvg, "equal-length", 0).getAttribute("class").includes("is-selected"), true, "選択状態を維持する");
+    const beforeMove = center(group(sharedSvg, "equal-length", 0));
+    const moved = movePoint(shared, shared.points[0].id, 16, 16);
+    const afterMove = center(group(render(moved), "equal-length", 0));
+    assert.notDeepEqual(afterMove, beforeMove, "点移動後に辺上の配置を再計算する");
   } finally {
     global.document = priorDocument;
   }

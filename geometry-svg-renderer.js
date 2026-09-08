@@ -273,16 +273,33 @@
     svg.append(group);
   }
 
-  function renderEqualLength(svg, annotation, objects, points, selection) {
+  function edgeAnnotationPlacement(edge, edgeRef, annotationType, annotations) {
+    const direction = normalizedEdgeDirection(edge.start, edge.end);
+    if (!direction) return null;
+    const edgeLength = Math.hypot(edge.end.x - edge.start.x, edge.end.y - edge.start.y);
+    const counterpartType = annotationType === "equal-length" ? "parallel" : "equal-length";
+    const sharedWithCounterpart = annotations.some((annotation) => annotation.type === counterpartType
+      && edgeRefsForAnnotation(annotation).some((candidate) => candidate.objectId === edgeRef.objectId && candidate.edgeIndex === edgeRef.edgeIndex));
+    const tangentOffset = sharedWithCounterpart ? Math.min(6, edgeLength * 0.18) : 0;
+    const side = annotationType === "equal-length" ? -1 : 1;
+    return {
+      direction,
+      normal: { x: -direction.y, y: direction.x },
+      edgeLength,
+      center: {
+        x: (edge.start.x + edge.end.x) / 2 + direction.x * tangentOffset * side,
+        y: (edge.start.y + edge.end.y) / 2 + direction.y * tangentOffset * side
+      }
+    };
+  }
+
+  function renderEqualLength(svg, annotation, objects, points, selection, annotations) {
     [...edgeRefsForAnnotation(annotation)].sort((first, second) => `${first.objectId}:${first.edgeIndex}`.localeCompare(`${second.objectId}:${second.edgeIndex}`)).forEach((edgeRef) => {
       const edge = edgeForRef(edgeRef, objects, points);
       if (!edge) return;
-      // Match the parallel mark's deterministic tangent so both annotations
-      // stay on opposite sides even if this edge's vertices are reversed.
-      const direction = normalizedEdgeDirection(edge.start, edge.end);
-      if (!direction) return;
-      const normal = { x: -direction.y, y: direction.x };
-      const center = { x: (edge.start.x + edge.end.x) / 2 - normal.x * 3, y: (edge.start.y + edge.end.y) / 2 - normal.y * 3 };
+      const placement = edgeAnnotationPlacement(edge, edgeRef, "equal-length", annotations);
+      if (!placement) return;
+      const { direction, normal, center } = placement;
       const group = semanticGroup("equal-length", annotation, `等しい辺の印 ${annotation.markCount} 本`, {
         interactive: true,
         selected: selection?.kind === "annotation" && selection.id === annotation.id
@@ -313,17 +330,15 @@
       ? { x: -direction.x, y: -direction.y } : direction;
   }
 
-  function renderParallel(svg, annotation, objects, points, selection) {
+  function renderParallel(svg, annotation, objects, points, selection, annotations) {
     [...edgeRefsForAnnotation(annotation)].sort((first, second) => `${first.objectId}:${first.edgeIndex}`.localeCompare(`${second.objectId}:${second.edgeIndex}`)).forEach((edgeRef) => {
       const edge = edgeForRef(edgeRef, objects, points);
       if (!edge) return;
-      const direction = normalizedEdgeDirection(edge.start, edge.end);
-      if (!direction) return;
-      const normal = { x: -direction.y, y: direction.x };
-      const edgeLength = Math.hypot(edge.end.x - edge.start.x, edge.end.y - edge.start.y);
+      const placement = edgeAnnotationPlacement(edge, edgeRef, "parallel", annotations);
+      if (!placement) return;
+      const { direction, normal, edgeLength, center } = placement;
       const size = Math.min(3, Math.max(1.25, edgeLength / 12));
       const spacing = Math.min(size * 2.5, Math.max(size * 1.25, edgeLength / Math.max(4, annotation.markCount + 1)));
-      const center = { x: (edge.start.x + edge.end.x) / 2 + normal.x * 3, y: (edge.start.y + edge.end.y) / 2 + normal.y * 3 };
       const group = semanticGroup("parallel", annotation, `平行な辺の記号 ${annotation.markCount} 本`, {
         interactive: true,
         selected: selection?.kind === "annotation" && selection.id === annotation.id
@@ -358,8 +373,8 @@
       else if (annotation.type === "length-label") {
         const object = objects.get(annotation.objectId);
         if (object) renderLengthLabel(svg, annotation, object, points);
-      } else if (annotation.type === "equal-length") renderEqualLength(svg, annotation, objects, points, selection);
-      else if (annotation.type === "parallel") renderParallel(svg, annotation, objects, points, selection);
+      } else if (annotation.type === "equal-length") renderEqualLength(svg, annotation, objects, points, selection, geometry.annotations);
+      else if (annotation.type === "parallel") renderParallel(svg, annotation, objects, points, selection, geometry.annotations);
     });
   }
 
