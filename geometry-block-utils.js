@@ -806,6 +806,7 @@
   const api = {
     GEOMETRY_BLOCK_VERSION,
     GEOMETRY_BLOCK_LIMITS,
+    FILL_STYLES,
     LENGTH_LABEL_ALONG_OFFSET_LIMIT,
     edgeCount,
     normalizeEdgeRef,

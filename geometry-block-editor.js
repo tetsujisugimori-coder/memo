@@ -42,6 +42,11 @@
     return geometry.annotations.find((annotation) => annotation.id === selection.id && annotation.type === "length-label") || null;
   }
 
+  function selectedFillRegion(geometry, selection) {
+    if (selection?.kind !== "object") return null;
+    return model.fillRegion(geometry, selection.id);
+  }
+
   function selectionExists(geometry, selection) {
     if (!selection || typeof selection.id !== "string" || !selection.id) return false;
     const items = selection.kind === "point" ? geometry.points
@@ -306,7 +311,28 @@
       updateControls();
     });
     parallelField.append(parallelCount);
-    properties.append(labelField, angleLabelField, lineField, lengthField, lengthLabelField, lengthSideField, lengthAlongField, equalLengthField, parallelField);
+    const fillField = document.createElement("label");
+    fillField.textContent = "領域の塗り";
+    const fillSelect = document.createElement("select");
+    fillSelect.setAttribute("aria-label", "選択した多角形の領域の塗り");
+    [["", "なし"], ["primary", "基本色"], ["secondary", "副色"], ["accent", "強調色"], ["muted", "控えめ"]].forEach(([value, label]) => {
+      const option = document.createElement("option");
+      option.value = value;
+      option.textContent = label;
+      fillSelect.append(option);
+    });
+    fillSelect.addEventListener("change", () => {
+      if (selection?.kind !== "object") return;
+      try {
+        commit(model.updateFillRegion(geometry, selection.id, fillSelect.value));
+        status.textContent = fillSelect.value ? "領域の塗りを更新しました" : "領域の塗りを解除しました";
+      } catch (error) {
+        status.textContent = error.message || String(error);
+      }
+      updateControls();
+    });
+    fillField.append(fillSelect);
+    properties.append(labelField, angleLabelField, lineField, lengthField, lengthLabelField, lengthSideField, lengthAlongField, equalLengthField, parallelField, fillField);
 
     const canvas = document.createElement("div");
     canvas.className = "geometry-canvas";
@@ -666,6 +692,8 @@
       const angle = selectedAngle(geometry, selection);
       const equalLength = selectedEqualLength(geometry, selection);
       const parallel = selectedParallel(geometry, selection);
+      const fillTarget = selection?.kind === "object" ? model.objectById(geometry, selection.id) : null;
+      const fill = selectedFillRegion(geometry, selection);
       labelInput.disabled = selection?.kind !== "point";
       labelInput.value = selectedLabel(geometry, selection);
       angleLabelInput.disabled = !angle;
@@ -696,6 +724,8 @@
       equalLengthCount.value = equalLength ? String(equalLength.markCount) : "";
       parallelCount.disabled = !parallel;
       parallelCount.value = parallel ? String(parallel.markCount) : "";
+      fillSelect.disabled = fillTarget?.type !== "polygon";
+      fillSelect.value = fill?.fill || "";
     }
 
     svg.addEventListener("pointerdown", (event) => {

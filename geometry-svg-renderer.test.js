@@ -3,7 +3,7 @@ const { test } = require("node:test");
 const { cloneGeometryBlock, createGeometryBlock, parseGeometryBlockLine, serializeGeometryBlock } = require("./geometry-block-utils.js");
 const {
   addAngle, addCircle, addEqualLengthMark, addLengthAnnotation, addParallelMark, addPoint,
-  addPolygon, addRightAngle, addSegment, deleteSelection, movePoint, updateLengthLabel, updateLengthLabelPlacement, updateVertexLabel
+  addPolygon, addRightAngle, addSegment, deleteSelection, movePoint, updateFillRegion, updateLengthLabel, updateLengthLabelPlacement, updateVertexLabel
 } = require("./geometry-editor-utils.js");
 
 class MockElement {
@@ -36,6 +36,56 @@ function pathPoints(path) {
 function distance(pointA, pointB) {
   return Math.hypot(pointA.x - pointB.x, pointA.y - pointB.y);
 }
+
+test("塗り領域は最背面で1つの非操作DOMとして描画し、頂点移動へ追従する", () => {
+  const priorDocument = global.document;
+  global.document = { createElementNS: (_namespace, name) => new MockElement(name) };
+  try {
+    const { renderGeometrySvg } = require("./geometry-svg-renderer.js");
+    let geometry = createGeometryBlock("fill-renderer");
+    [[10, 10], [80, 10], [40, 70]].forEach(([x, y]) => { geometry = addPoint(geometry, { x, y }); });
+    geometry = addPolygon(geometry, geometry.points.map((point) => point.id));
+    const polygon = geometry.objects[0];
+    geometry = updateFillRegion(geometry, polygon.id, "accent");
+    const annotation = geometry.annotations.find((entry) => entry.type === "fill-region");
+    const svg = new MockElement("svg");
+    renderGeometrySvg(svg, geometry);
+    const group = descendants(svg).find((node) => node.name === "g" && node.getAttribute("data-geometry-id") === annotation.id);
+    const fill = group.children[0];
+    assert.equal(svg.children[0], group, "塗りを多角形輪郭より前に描画しない");
+    assert.deepEqual({ kind: group.getAttribute("data-geometry-kind"), type: group.getAttribute("data-geometry-type"), id: group.getAttribute("data-geometry-id"), objectId: group.getAttribute("data-object-id"), fill: group.getAttribute("data-fill-style"), pointerEvents: group.getAttribute("pointer-events") }, { kind: "annotation", type: "fill-region", id: annotation.id, objectId: polygon.id, fill: "accent", pointerEvents: "none" });
+    assert.equal(fill.getAttribute("data-geometry-kind"), null, "子polygonへ意味上の識別情報を重複しない");
+    assert.equal(fill.getAttribute("pointer-events"), "none", "塗り面は操作を奪わない");
+    assert.match(fill.getAttribute("class"), /geometry-fill-accent/, "既知の塗りだけ安全な表示クラスへ対応する");
+    const before = fill.getAttribute("points");
+    renderGeometrySvg(svg, movePoint(geometry, geometry.points[2].id, 55, 75));
+    const moved = descendants(svg).find((node) => node.name === "g" && node.getAttribute("data-geometry-id") === annotation.id).children[0];
+    assert.notEqual(moved.getAttribute("points"), before, "最新の頂点座標から塗りpolygonを再構築する");
+  } finally {
+    global.document = priorDocument;
+  }
+});
+
+test("不正な塗り参照や未知のスタイルは他の図形を止めず、region参照は維持する", () => {
+  const priorDocument = global.document;
+  global.document = { createElementNS: (_namespace, name) => new MockElement(name) };
+  try {
+    const { buildGeometryRenderModel, renderGeometrySvg } = require("./geometry-svg-renderer.js");
+    const geometry = {
+      ...createGeometryBlock("fill-safe"),
+      points: [{ id: "a", x: 0, y: 0, visible: true, style: "default" }, { id: "b", x: 40, y: 0, visible: true, style: "default" }, { id: "c", x: 20, y: 30, visible: true, style: "default" }],
+      objects: [{ id: "polygon", type: "polygon", pointIds: ["a", "b", "c"] }, { id: "region", type: "region", pointIds: ["a", "b", "c"] }, { id: "edge", type: "segment", pointIds: ["a", "b"], role: "edge", lineStyle: "solid" }],
+      annotations: [{ id: "valid-region", type: "fill-region", objectId: "region", fill: "secondary" }, { id: "unknown-fill", type: "fill-region", objectId: "polygon", fill: "unsafe class" }, { id: "bad-ref", type: "fill-region", objectId: "missing", fill: "primary" }]
+    };
+    assert.deepEqual(buildGeometryRenderModel(geometry).annotations.map((entry) => entry.id), ["valid-region"], "正当なregionだけを防御的絞り込みから落とさない");
+    const svg = new MockElement("svg");
+    assert.doesNotThrow(() => renderGeometrySvg(svg, geometry));
+    assert.equal(descendants(svg).some((node) => node.getAttribute("data-geometry-id") === "edge"), true, "不正な塗りがあっても他の図形を描画する");
+    assert.equal(descendants(svg).filter((node) => node.getAttribute("data-geometry-type") === "fill-region").length, 1, "正当な塗りを1回だけ描画する");
+  } finally {
+    global.document = priorDocument;
+  }
+});
 
 function svgSnapshot(svg) {
   return descendants(svg).map((node) => ({ name: node.name, attributes: Object.fromEntries(node.attributes) }));

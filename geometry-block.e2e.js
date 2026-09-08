@@ -1115,6 +1115,124 @@ async function runEqualLengthEditorScenario(browser, url, width, markType = "equ
   }
 }
 
+async function runFillRegionEditorScenario(browser, url, width) {
+  const context = await browser.newContext({ viewport: { width, height: 844 } });
+  const page = await context.newPage();
+  const pageErrors = [];
+  const consoleErrors = [];
+  page.on("pageerror", (error) => pageErrors.push(error.message));
+  page.on("console", (message) => { if (message.type() === "error") consoleErrors.push(message.text()); });
+  try {
+    await waitForApp(page, url);
+    await page.locator("#editor").fill("塗り領域の独立操作テスト");
+    if (width <= 720 && await page.locator("#contextPanel").getAttribute("aria-hidden") === "false") {
+      await page.locator("#closeContextPanelBtn").click();
+      await page.waitForFunction(() => getComputedStyle(document.getElementById("contextPanel")).visibility === "hidden");
+    }
+    if (width <= 720) {
+      await page.locator("#editor").click();
+      await page.getByLabel("追加メニューを開く", { exact: true }).click();
+      await page.locator('[data-mobile-editor-tool="insertGeometryBtn"]').click();
+    } else await page.locator("#insertGeometryBtn").click();
+    const editor = page.locator(".geometry-block-editor");
+    const svg = editor.locator("svg");
+    await editor.locator('[data-geometry-mode="point"]').click();
+    for (const point of [{ x: 20, y: 20 }, { x: 80, y: 20 }, { x: 50, y: 75 }]) {
+      await alignSvgForPointer(svg);
+      const client = await logicalClientPosition(svg, point);
+      assert.equal(client.top.tag?.toLowerCase(), "svg", JSON.stringify(client));
+      const click = await clickAtClient(page, svg, client);
+      assertCoordinates((await geometry(page)).points.at(-1), click.expected, click.evidence, 1e-6);
+    }
+    const points = (await geometry(page)).points;
+    await editor.locator('[data-geometry-mode="polygon"]').click();
+    for (const point of points) {
+      await alignSvgForPointer(svg);
+      const client = await logicalClientPosition(svg, point);
+      assert.equal(client.top.id, point.id, JSON.stringify(client));
+      await clickAtClient(page, svg, client);
+    }
+    await editor.getByRole("button", { name: "選択した点で多角形を完了", exact: true }).click();
+    let current = await geometry(page);
+    const polygon = current.objects.find((object) => object.type === "polygon");
+    assert.ok(polygon, "三角形を多角形として作成する");
+    await editor.locator('[data-geometry-mode="select"]').click();
+    const center = { x: 50, y: 38 };
+    await alignSvgForPointer(svg);
+    let client = await logicalClientPosition(svg, center);
+    assert.deepEqual({ kind: client.top.kind, id: client.top.id }, { kind: "object", id: polygon.id }, JSON.stringify(client));
+    await clickAtClient(page, svg, client);
+    const fillSelect = editor.getByLabel("選択した多角形の領域の塗り", { exact: true });
+    assert.equal(await fillSelect.isEnabled(), true, "選択した多角形だけで塗りを操作できる");
+    await fillSelect.selectOption("accent");
+    await page.waitForFunction((objectId) => {
+      const value = window.MemoNexusGeometryBlockUtils.splitGeometryBlocks(document.getElementById("editor").value).find((part) => part.type === "geometry")?.geometry;
+      return value?.annotations.filter((annotation) => annotation.type === "fill-region" && annotation.objectId === objectId && annotation.fill === "accent").length === 1;
+    }, polygon.id);
+    current = await geometry(page);
+    const annotationId = current.annotations.find((annotation) => annotation.type === "fill-region").id;
+    const fillGroup = svg.locator(`g.geometry-fill-region[data-geometry-id="${annotationId}"]`);
+    assert.equal(await fillGroup.count(), 1, "塗り注釈は意味上の親gを1件だけ描画する");
+    assert.equal(await fillGroup.getAttribute("pointer-events"), "none");
+    assert.equal(await fillGroup.getAttribute("data-fill-style"), "accent");
+    assert.equal(await fillGroup.locator("polygon").getAttribute("data-geometry-kind"), null, "子polygonに意味上の識別情報を重複しない");
+    assert.equal(await fillGroup.locator("polygon").getAttribute("pointer-events"), "none");
+    await alignSvgForPointer(svg);
+    client = await logicalClientPosition(svg, center);
+    assert.deepEqual({ kind: client.top.kind, id: client.top.id }, { kind: "object", id: polygon.id }, "塗りの上から多角形を再選択できる");
+    await clickAtClient(page, svg, client);
+    const beforeMove = await geometry(page);
+    const movedCenter = { x: 56, y: 43 };
+    await alignSvgForPointer(svg);
+    const moveStart = await logicalClientPosition(svg, center);
+    const moveEnd = await logicalClientPosition(svg, movedCenter);
+    await page.mouse.move(moveStart.x, moveStart.y);
+    await page.mouse.down();
+    await page.mouse.move(moveEnd.x, moveEnd.y);
+    await page.mouse.up();
+    const afterMove = await geometry(page);
+    assert.notDeepEqual(afterMove.points, beforeMove.points, "多角形をドラッグ移動できる");
+    assert.notEqual(await fillGroup.locator("polygon").getAttribute("points"), null, "ドラッグ後も塗りを再描画する");
+    assert.equal(await svg.locator(".geometry-polygon.is-selected").count(), 1, "ドラッグ後も多角形を選択したままにする");
+    await fillSelect.selectOption("secondary");
+    current = await geometry(page);
+    assert.deepEqual(current.annotations.filter((annotation) => annotation.type === "fill-region").map((annotation) => ({ id: annotation.id, fill: annotation.fill })), [{ id: annotationId, fill: "secondary" }], "色変更で塗り注釈を増やさない");
+    await editor.focus();
+    await page.keyboard.press("Control+z");
+    assert.equal((await geometry(page)).annotations.find((annotation) => annotation.id === annotationId).fill, "accent", "Undoで前の色へ戻す");
+    await page.keyboard.press("Control+Shift+z");
+    assert.equal((await geometry(page)).annotations.find((annotation) => annotation.id === annotationId).fill, "secondary", "Redoで色変更を復元する");
+    await page.evaluate(() => window.flushSave());
+    await page.reload({ waitUntil: "domcontentloaded" });
+    await page.locator("#appStartupGuard").waitFor({ state: "hidden" });
+    await svg.waitFor({ state: "visible" });
+    if (width <= 720 && await page.locator("#contextPanel").getAttribute("aria-hidden") === "false") {
+      await page.locator("#closeContextPanelBtn").click();
+      await page.waitForFunction(() => getComputedStyle(document.getElementById("contextPanel")).visibility === "hidden");
+    }
+    assert.equal(await svg.locator(`g.geometry-fill-region[data-geometry-id="${annotationId}"]`).count(), 1, "保存再読込後に編集SVGの塗りを復元する");
+    assert.equal(await page.locator(`#preview g.geometry-fill-region[data-geometry-id="${annotationId}"]`).count(), 1, "読み取り専用プレビューにも塗りを1回だけ描画する");
+    const restoredPolygon = (await geometry(page)).objects.find((object) => object.id === polygon.id);
+    const restoredCenter = (await geometry(page)).points.filter((point) => restoredPolygon.pointIds.includes(point.id)).reduce((sum, point) => ({ x: sum.x + point.x / 3, y: sum.y + point.y / 3 }), { x: 0, y: 0 });
+    await alignSvgForPointer(svg);
+    client = await logicalClientPosition(svg, restoredCenter);
+    await clickAtClient(page, svg, client);
+    await fillSelect.selectOption("");
+    assert.equal((await geometry(page)).annotations.some((annotation) => annotation.type === "fill-region"), false, "なしで塗り注釈を削除する");
+    await editor.focus();
+    await page.keyboard.press("Control+z");
+    assert.equal((await geometry(page)).annotations.some((annotation) => annotation.type === "fill-region"), true, "解除もUndoできる");
+    await page.keyboard.press("Delete");
+    assert.equal((await geometry(page)).objects.some((object) => object.id === polygon.id), false, "多角形を削除できる");
+    assert.equal((await geometry(page)).annotations.some((annotation) => annotation.type === "fill-region"), false, "多角形削除後に孤立した塗りを残さない");
+    assert.deepEqual(pageErrors, []);
+    assert.deepEqual(consoleErrors, []);
+    console.log(`塗り領域 UI E2E (${width}px): passed; console/page errors: 0`);
+  } finally {
+    await context.close();
+  }
+}
+
 (async () => {
   const { server, url } = await startStaticServer();
   const browser = await launchBrowser();
@@ -1129,6 +1247,8 @@ async function runEqualLengthEditorScenario(browser, url, width, markType = "equ
     await runEqualLengthEditorScenario(browser, url, 390);
     await runEqualLengthEditorScenario(browser, url, 1100, "parallel");
     await runEqualLengthEditorScenario(browser, url, 390, "parallel");
+    await runFillRegionEditorScenario(browser, url, 1100);
+    await runFillRegionEditorScenario(browser, url, 390);
     const page = await browser.newPage({ viewport: { width: 1100, height: 800 } });
     await waitForApp(page, url);
     const pageErrors = [];
