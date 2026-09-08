@@ -3,7 +3,7 @@ const { test } = require("node:test");
 const { cloneGeometryBlock, createGeometryBlock, parseGeometryBlockLine, serializeGeometryBlock } = require("./geometry-block-utils.js");
 const {
   addAngle, addCircle, addEqualLengthMark, addLengthAnnotation, addParallelMark, addPoint,
-  addPolygon, addRightAngle, addSegment, deleteSelection, movePoint, updateVertexLabel
+  addPolygon, addRightAngle, addSegment, deleteSelection, movePoint, updateLengthLabel, updateLengthLabelPlacement, updateVertexLabel
 } = require("./geometry-editor-utils.js");
 
 class MockElement {
@@ -85,6 +85,49 @@ test("意味付き注釈の線分参照は複製・削除時にもID整合性を
   assert.equal(copiedAngle.segmentIds.some((id) => geometry.objects.some((object) => object.id === id)), false);
   const afterDelete = deleteSelection(geometry, { kind: "object", id: geometry.objects[0].id });
   assert.equal(afterDelete.annotations.some((annotation) => annotation.type === "right-angle" || annotation.type === "angle"), false);
+});
+
+test("辺の長さ表示は水平・垂直・斜めで安定した法線側に描画し、反対側と線分方向位置を反映する", () => {
+  const priorDocument = global.document;
+  global.document = { createElementNS: (_namespace, name) => new MockElement(name) };
+  try {
+    const { renderGeometrySvg } = require("./geometry-svg-renderer.js");
+    let geometry = createGeometryBlock("length-label-placement");
+    [[10, 10], [50, 10], [70, 10], [70, 50], [10, 40], [50, 80], [50, 90], [10, 90]].forEach(([x, y]) => { geometry = addPoint(geometry, { x, y }); });
+    [[0, 1], [2, 3], [4, 5], [6, 7]].forEach(([start, end]) => { geometry = addSegment(geometry, geometry.points[start].id, geometry.points[end].id); });
+    geometry.objects.forEach((segment, index) => { geometry = updateLengthLabel(geometry, segment.id, ["5 cm", "a", "x + 2", "r"][index]); });
+    const horizontal = geometry.annotations.find((annotation) => annotation.objectId === geometry.objects[0].id);
+    geometry = updateLengthLabelPlacement(geometry, horizontal.id, { side: "negative", alongOffset: 5 });
+    geometry = addEqualLengthMark(geometry, { segmentIds: [geometry.objects[0].id, geometry.objects[1].id], markCount: 1 });
+    geometry = addParallelMark(geometry, { segmentIds: [geometry.objects[0].id, geometry.objects[2].id], markCount: 1 });
+    const svg = new MockElement("svg");
+    renderGeometrySvg(svg, geometry, { selection: { kind: "annotation", id: horizontal.id } });
+    const label = (objectId) => {
+      const annotation = geometry.annotations.find((entry) => entry.objectId === objectId);
+      const group = descendants(svg).find((node) => node.name === "g" && node.getAttribute("data-geometry-id") === annotation.id);
+      return group?.children.find((node) => node.getAttribute("class") === "geometry-length-label");
+    };
+    const horizontalLabel = label(geometry.objects[0].id);
+    const verticalLabel = label(geometry.objects[1].id);
+    const diagonalLabel = label(geometry.objects[2].id);
+    const reversedLabel = label(geometry.objects[3].id);
+    assert.deepEqual({ x: Number(horizontalLabel.getAttribute("x")), y: Number(horizontalLabel.getAttribute("y")) }, { x: 35, y: 2 }, "水平辺は反対側と線分方向位置を反映する");
+    assert.deepEqual({ x: Number(verticalLabel.getAttribute("x")), y: Number(verticalLabel.getAttribute("y")) }, { x: 62, y: 30 }, "垂直辺は中点の法線側へ置く");
+    assert.ok(Math.abs(Number(diagonalLabel.getAttribute("x")) - (30 - 8 / Math.sqrt(2))) < 1e-9);
+    assert.ok(Math.abs(Number(diagonalLabel.getAttribute("y")) - (60 + 8 / Math.sqrt(2))) < 1e-9, "斜め辺は中点の法線側へ置く");
+    assert.deepEqual({ x: Number(reversedLabel.getAttribute("x")), y: Number(reversedLabel.getAttribute("y")) }, { x: 30, y: 98 }, "端点の保存順が逆でも自然な側を維持する");
+    assert.equal(horizontalLabel.getAttribute("data-geometry-kind"), null, "描画用textへ注釈種別を重複させない");
+    assert.equal(horizontalLabel.getAttribute("data-geometry-type"), null, "描画用textへ注釈型を重複させない");
+    assert.equal(horizontalLabel.getAttribute("data-geometry-id"), null, "描画用textへ注釈IDを重複させない");
+    assert.match(horizontalLabel.getAttribute("pointer-events"), /visiblePainted/);
+    const horizontalGroup = descendants(svg).find((node) => node.name === "g" && node.getAttribute("data-geometry-id") === horizontal.id);
+    assert.equal(descendants(svg).filter((node) => node.getAttribute("data-geometry-type") === "length-label" && node.getAttribute("data-geometry-id") === horizontal.id).length, 1, "長さ注釈の意味上のDOMノードは親gだけにする");
+    assert.match(horizontalGroup.getAttribute("class"), /is-selected/, "選択状態をラベルへ反映する");
+    assert.equal(descendants(svg).some((node) => node.getAttribute("class") === "geometry-equal-length-mark"), true, "等辺印と共存する");
+    assert.equal(descendants(svg).some((node) => node.getAttribute("class") === "geometry-parallel-mark"), true, "平行記号と共存する");
+  } finally {
+    global.document = priorDocument;
+  }
 });
 
 test("SVGは意味付きデータから生成され、頂点移動後に注釈を追従させる", () => {

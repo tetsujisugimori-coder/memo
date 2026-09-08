@@ -37,6 +37,19 @@
     return geometry.annotations.find((annotation) => annotation.id === selection.id && annotation.type === "parallel") || null;
   }
 
+  function selectedLengthLabel(geometry, selection) {
+    if (selection?.kind !== "annotation") return null;
+    return geometry.annotations.find((annotation) => annotation.id === selection.id && annotation.type === "length-label") || null;
+  }
+
+  function selectionExists(geometry, selection) {
+    if (!selection || typeof selection.id !== "string" || !selection.id) return false;
+    const items = selection.kind === "point" ? geometry.points
+      : selection.kind === "object" ? geometry.objects
+        : selection.kind === "annotation" ? geometry.annotations : null;
+    return Array.isArray(items) && items.some((item) => item.id === selection.id);
+  }
+
   function createGeometryBlockEditor(initialGeometry, { blockIndex = 0, onChange, onDelete } = {}) {
     let geometry = initialGeometry;
     let mode = "select";
@@ -190,13 +203,69 @@
     lengthInput.maxLength = 500;
     lengthInput.setAttribute("aria-label", "選択した辺の長さ表示");
     lengthInput.addEventListener("change", () => {
-      const object = selection?.kind === "object" ? model.objectById(geometry, selection.id) : null;
+      const annotation = selectedLengthLabel(geometry, selection);
+      const object = annotation ? model.objectById(geometry, annotation.objectId)
+        : selection?.kind === "object" ? model.objectById(geometry, selection.id) : null;
       if (!object || !["segment", "polygon"].includes(object.type)) return;
-      commit(model.updateLengthLabel(geometry, object.id, lengthInput.value, selectedEdgeIndex));
+      const edgeIndex = annotation ? (annotation.edgeIndex || 0) : selectedEdgeIndex;
+      const next = model.updateLengthLabel(geometry, object.id, lengthInput.value, edgeIndex);
+      const removed = annotation && !next.annotations.some((entry) => entry.id === annotation.id);
+      const created = !annotation && model.lengthLabel(next, object.id, edgeIndex);
+      commit(next);
+      if (removed) selection = null;
+      else if (created) setSelection({ kind: "annotation", id: created.id });
       status.textContent = "辺の長さ表示を更新しました";
       updateControls();
     });
     lengthLabelField.append(lengthInput);
+    const lengthSideField = document.createElement("label");
+    lengthSideField.textContent = "表示する側";
+    const lengthSide = document.createElement("select");
+    lengthSide.setAttribute("aria-label", "選択した辺の長さ表示の側");
+    [["positive", "既定側"], ["negative", "反対側"]].forEach(([value, label]) => {
+      const option = document.createElement("option");
+      option.value = value;
+      option.textContent = label;
+      lengthSide.append(option);
+    });
+    lengthSide.addEventListener("change", () => {
+      const annotation = selectedLengthLabel(geometry, selection);
+      if (!annotation) return;
+      try {
+        commit(model.updateLengthLabelPlacement(geometry, annotation.id, {
+          side: lengthSide.value,
+          alongOffset: Number(lengthAlongOffset.value)
+        }));
+        status.textContent = "辺の長さ表示の側を更新しました";
+      } catch (error) {
+        status.textContent = error.message || String(error);
+      }
+      updateControls();
+    });
+    lengthSideField.append(lengthSide);
+    const lengthAlongField = document.createElement("label");
+    lengthAlongField.textContent = "線分方向の位置";
+    const lengthAlongOffset = document.createElement("input");
+    lengthAlongOffset.type = "number";
+    lengthAlongOffset.min = "-20";
+    lengthAlongOffset.max = "20";
+    lengthAlongOffset.step = "1";
+    lengthAlongOffset.setAttribute("aria-label", "選択した辺の長さ表示の線分方向位置");
+    lengthAlongOffset.addEventListener("change", () => {
+      const annotation = selectedLengthLabel(geometry, selection);
+      if (!annotation) return;
+      try {
+        commit(model.updateLengthLabelPlacement(geometry, annotation.id, {
+          side: lengthSide.value,
+          alongOffset: Number(lengthAlongOffset.value)
+        }));
+        status.textContent = "辺の長さ表示の位置を更新しました";
+      } catch (error) {
+        status.textContent = error.message || String(error);
+      }
+      updateControls();
+    });
+    lengthAlongField.append(lengthAlongOffset);
     const equalLengthField = document.createElement("label");
     equalLengthField.textContent = "等辺印の本数";
     const equalLengthCount = document.createElement("input");
@@ -237,7 +306,7 @@
       updateControls();
     });
     parallelField.append(parallelCount);
-    properties.append(labelField, angleLabelField, lineField, lengthField, lengthLabelField, equalLengthField, parallelField);
+    properties.append(labelField, angleLabelField, lineField, lengthField, lengthLabelField, lengthSideField, lengthAlongField, equalLengthField, parallelField);
 
     const canvas = document.createElement("div");
     canvas.className = "geometry-canvas";
@@ -275,6 +344,7 @@
 
     function restoreHistory(direction) {
       geometry = history[direction]();
+      if (!selectionExists(geometry, selection)) selection = null;
       onChange?.(geometry);
       status.textContent = direction === "undo" ? "図形操作を元に戻しました" : "図形操作をやり直しました";
       draw();
@@ -590,7 +660,9 @@
       undoButton.disabled = !history.canUndo;
       redoButton.disabled = !history.canRedo;
       deleteButton.disabled = !selection;
-      const segment = selection?.kind === "object" ? model.objectById(geometry, selection.id) : null;
+      const selectedLength = selectedLengthLabel(geometry, selection);
+      const segment = selectedLength ? model.objectById(geometry, selectedLength.objectId)
+        : selection?.kind === "object" ? model.objectById(geometry, selection.id) : null;
       const angle = selectedAngle(geometry, selection);
       const equalLength = selectedEqualLength(geometry, selection);
       const parallel = selectedParallel(geometry, selection);
@@ -604,7 +676,7 @@
       edgeSelect.replaceChildren();
       if (hasEdges) {
         const count = model.edgeCount(segment);
-        selectedEdgeIndex = Math.min(selectedEdgeIndex, count - 1);
+        selectedEdgeIndex = selectedLength ? (selectedLength.edgeIndex || 0) : Math.min(selectedEdgeIndex, count - 1);
         for (let index = 0; index < count; index += 1) {
           const option = document.createElement("option");
           option.value = String(index);
@@ -613,9 +685,13 @@
         }
         edgeSelect.value = String(selectedEdgeIndex);
       }
-      edgeSelect.disabled = !hasEdges;
+      edgeSelect.disabled = !hasEdges || Boolean(selectedLength);
       lengthInput.disabled = !hasEdges;
-      lengthInput.value = hasEdges ? model.lengthLabel(geometry, segment.id, selectedEdgeIndex)?.label || "" : "";
+      lengthInput.value = hasEdges ? (selectedLength || model.lengthLabel(geometry, segment.id, selectedEdgeIndex))?.label || "" : "";
+      lengthSide.disabled = !selectedLength;
+      lengthSide.value = selectedLength?.side || "positive";
+      lengthAlongOffset.disabled = !selectedLength;
+      lengthAlongOffset.value = selectedLength ? String(selectedLength.alongOffset || 0) : "";
       equalLengthCount.disabled = !equalLength;
       equalLengthCount.value = equalLength ? String(equalLength.markCount) : "";
       parallelCount.disabled = !parallel;

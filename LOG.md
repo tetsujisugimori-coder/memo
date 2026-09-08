@@ -2511,3 +2511,24 @@
 * `edgeAnnotationPlacement()` を追加し、正規化済み接線、辺長、共存判定、基準中心を共通で計算する。単独の等辺印・平行記号は辺の中点上に置き、同じobjectIdとedgeIndexに両種がある場合だけ、等辺印を正規化接線の負側、平行記号を正側へ `min(6, edgeLength * 0.18)` だけ分離する。法線方向の移動はしないため、短辺でも端点から過度にはみ出さない。
 * 回帰テストは旧来の「反対側」を置き換え、水平・垂直・頂点順が逆の辺で、単独時は辺上、共存時は辺上を保った接線方向分離、印数、選択クラス、data属性、点移動後の再計算を数値で確認する。E2Eは従来どおり表示pathをCTMで画面座標に変換して選択する。
 * 追加した辺上配置の回帰条件は、修正前のHEADレンダラーをメモリ上で再現して確認した。等辺印だけの左から右の水平辺で中心Y=7（辺上の期待Y=10）となり失敗し、修正後のテストは成功した。`npm test` は1,058件成功（fail 0）、変更JavaScriptの `node --check` と `git diff --check` は成功した。`npm run test:e2e:geometry` と `npm run test:e2e:mobile` は実行したが、このWindows実行環境では子プロセスの出力収集が途中で切れ、最終終了コードを取得できなかったため、今回の最終状態での完走は未確認として扱う。手動ブラウザー操作、実タッチ端末、Safari、push後CIも未確認。
+
+## 2026-09-09 幾何学ブロックの辺の長さ表示
+
+* 既存の `length-label` 注釈を拡張し、安定した `objectId` と `edgeIndex` の辺参照、表示文字列 `label`、表示側 `side`（`positive`／`negative`）、線分方向の `alongOffset`（-20〜20）を保存するようにした。文字列は確定時に前後空白を除去し、空欄は注釈を削除する。同じ辺は1件だけにし、`value`／`unit` を持つ既存表示は維持して将来の構造化に備えた。
+* 新規ラベルは、端点保存順に依存しない正規化済みの辺方向から中点・法線方向へ8論理単位離して横書き表示する。既存の `offsetX`／`offsetY` だけを持つV1ラベルは従来配置のまま描画する。ラベルを直接クリックして注釈として選択でき、選択中は表示文字列、既定側／反対側、線分方向位置を編集できる。等辺印・平行記号と同一辺でも併存する。
+* 読込では不正な長さラベルの辺参照・重複だけを除外し、側と位置の不正値は安全な既定値／範囲へ正規化するため、図形ブロック全体は復元する。対象図形の削除時は既存の注釈削除経路で長さ表示も消える。読み取り専用プレビューは表示だけで編集器を作らない。
+* テストを `geometry-block-utils.test.js`、`geometry-editor-utils.test.js`、`geometry-svg-renderer.test.js`、`geometry-block.e2e.js`、`version.test.js` へ追加・更新した。水平・垂直・斜め・逆向き、側切替、線分方向位置、編集・空欄削除、保存復元、不正入力、等辺／平行との共存、読み取り専用、実SVGクリックとCTM経由のE2Eを確認した。
+* 検証：関連単体85件、`version.test.js` 3件、`npm test`、`npm run test:e2e:geometry`、`npm run test:e2e:mobile`、変更JSの `node --check`、`git diff --check` は成功。手動ブラウザー操作、実タッチ端末、Safari、push後CIは未確認。作業開始時から未コミットだった `e2e-artifacts/mobile-layout-390.png` は保持し、モバイルE2Eは同ファイルへ既定のスクリーンショットを出力するため内容の作業前後差は分離できない。
+
+## 2026-09-09 PR #200 レビュー修正：長さ注釈のDOM識別と履歴選択
+
+* 原因は、`renderLengthLabel()` の親 `g` が `semanticGroup()` で既に注釈の意味情報を持つにもかかわらず、描画専用の子 `text` にも同じ `data-geometry-kind`、`data-geometry-type`、`data-geometry-id` を付けていたことだった。子 `text` から3属性を外し、親 `g.geometry-length-label` だけを注釈の意味上のDOMノードとした。子は描画クラス、座標、`pointer-events` だけを保ち、クリック時は既存の `closest("[data-geometry-kind]")` で親注釈を選択する。
+* `selectionExists()` を編集器内の点・図形・注釈共通の小さな整合性判定として追加し、`restoreHistory()` のUndo/Redo直後に現在の図形モデルと選択IDを照合するようにした。復元先に選択対象がなければ `selection` を `null` にし、対象が残る場合は選択を維持するため、削除済み注釈で「選択を削除」が有効になる状態を防ぐ。保存済みgeometryのID、objectId、segmentId、edgeIndex、V1の `value`/`unit`/`offsetX`/`offsetY`/`side`/`alongOffset` は変更していない。
+* レンダラー単体テストは、子 `text` に3つの識別属性がないことと、同一長さ注釈の `data-geometry-type=length-label` ノードが親 `g` の1件だけであることを確認する。Geometry E2Eは親 `g` を明示セレクターに統一し、子 `text` の実クリック選択、作成直後の選択、Undoでの注釈・選択の除去と削除ボタン無効化、Redoでの復元、注釈が残るUndoでの選択維持、読み取り専用プレビューの親 `g` 一意性を確認する。
+* 検証：`geometry-svg-renderer.test.js` と `version.test.js` の14件、`npm run test:e2e:geometry` の4シナリオ（等辺印・平行記号の1100px/390px、console/page error 0）、`npm run test:e2e:mobile`（layout 6表示条件、writing 4幅とdesktop/compact/note-switch/popout、console/page error 0）はすべて終了コード0で成功した。モバイルlayoutのスクリーンショットは一時ディレクトリへ出力し、作業開始前からの `e2e-artifacts/mobile-layout-390.png` は上書きしていない。`npm test` は今回の変更と無関係な既存 `text-stats-ui.test.js:31` が `style.css?v=0.5.0-83` を期待し、現在のHTMLの`0.5.0-84`と不一致のため失敗した。変更JavaScriptの `node --check` と `git diff --check` は成功した。push後CI、手動ブラウザー、実タッチ端末、Safariは未確認として残す。
+
+## 2026-09-09 PR #200 レビュー修正：CSSキャッシュ識別子の期待値同期
+
+* 上記の `npm test` 失敗は無関係な既存問題ではなかった。PR内の辺の長さ表示追加コミットで `style.css` のキャッシュ識別子を `0.5.0-83` から `0.5.0-84` へ更新した際、`text-stats-ui.test.js` の固定期待値を83のまま残したことが最初の失敗原因だった。全テストを完走して追加で検出した `memo-list-utils.test.js`、`responsive-layout.test.js`、`table-paste.test.js` の同じ固定期待値漏れも、検証を弱めず84へ同期した。
+* `index.html`、`version.test.js`、`text-stats-ui.test.js` を含む5つのCSSキャッシュ契約テストはすべて `style.css?v=0.5.0-84` を厳密に検証する。機能コード、幾何学ブロック、保存スキーマ、CSS本体は変更していない。
+* 修正後の `npm test` は1,061件すべてpass、fail 0、cancelled/skipped/todo 0、終了コード0で完走した。`node --test text-stats-ui.test.js` は5件、`node --test version.test.js` は3件で各fail 0・終了コード0、`git diff --check` は成功した。再確認した `npm run test:e2e:geometry` は4シナリオ、`npm run test:e2e:mobile` はlayout 6条件とwriting 4幅およびdesktop/compact/note-switch/popoutで終了コード0、console/page error 0だった。モバイルlayoutのスクリーンショットは一時ディレクトリへ出力し、作業開始前からの `e2e-artifacts/mobile-layout-390.png` は上書き・コミットしていない。push後CI、手動ブラウザー、実タッチ端末、Safariは未確認として残す。

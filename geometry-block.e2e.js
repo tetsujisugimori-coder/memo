@@ -1284,6 +1284,39 @@ async function runEqualLengthEditorScenario(browser, url, width, markType = "equ
     await editor.locator('select[aria-label="選択した線分の線種"]').selectOption("dashed");
     await editor.locator('input[aria-label="選択した辺の長さ表示"]').fill("5 cm");
     await editor.locator('input[aria-label="選択した辺の長さ表示"]').blur();
+    await page.waitForFunction(() => {
+      const annotation = window.MemoNexusGeometryBlockUtils.splitGeometryBlocks(document.getElementById("editor").value)
+        .find((segment) => segment.type === "geometry")?.geometry.annotations.find((entry) => entry.type === "length-label" && entry.label === "5 cm");
+      const labels = annotation ? document.querySelectorAll(`g.geometry-length-label[data-geometry-type="length-label"][data-geometry-id="${annotation.id}"]`) : [];
+      return Boolean(annotation?.side === "positive" && annotation?.alongOffset === 0 && labels.length === 1);
+    });
+    const firstLength = (await geometry(page)).annotations.find((annotation) => annotation.type === "length-label" && annotation.label === "5 cm");
+    const firstLengthLabel = editor.locator(`g.geometry-length-label[data-geometry-type="length-label"][data-geometry-id="${firstLength.id}"]`);
+    await firstLengthLabel.waitFor({ state: "visible" });
+    assert.equal(await firstLengthLabel.count(), 1, "長さ注釈の意味上の親gは1件だけ描画する");
+    const firstLengthText = editor.locator(`g.geometry-length-label[data-geometry-id="${firstLength.id}"] > text.geometry-length-label`);
+    assert.equal(await firstLengthText.count(), 1, "長さ注釈は親g配下に描画用textを1件持つ");
+    assert.equal(await firstLengthText.getAttribute("data-geometry-kind"), null, "描画用textは注釈の意味上の識別情報を持たない");
+    await page.waitForFunction((annotationId) => document.querySelector(`g.geometry-length-label[data-geometry-id="${annotationId}"]`)?.classList.contains("is-selected") === true, firstLength.id);
+    await editor.locator('button[aria-label="図形操作を元に戻す"]').click();
+    await page.waitForFunction((annotationId) => !document.querySelector(`g.geometry-length-label[data-geometry-id="${annotationId}"]`), firstLength.id);
+    assert.equal(await editor.locator("button", { hasText: "選択を削除" }).isDisabled(), true, "削除済み長さ注釈の選択をUndo後に残さない");
+    await editor.locator('button[aria-label="図形操作をやり直す"]').click();
+    await page.waitForFunction((annotationId) => document.querySelectorAll(`g.geometry-length-label[data-geometry-type="length-label"][data-geometry-id="${annotationId}"]`).length === 1, firstLength.id);
+    await clickLocatorCenter(page, firstLengthText, "辺の長さ表示の子textをクリックして親注釈を選択する");
+    await page.waitForFunction((annotationId) => document.querySelector(`g.geometry-length-label[data-geometry-id="${annotationId}"]`)?.classList.contains("is-selected") === true, firstLength.id);
+    await editor.locator('select[aria-label="選択した辺の長さ表示の側"]').selectOption("negative");
+    await editor.locator('button[aria-label="図形操作を元に戻す"]').click();
+    await page.waitForFunction((annotationId) => document.querySelector(`g.geometry-length-label[data-geometry-id="${annotationId}"]`)?.classList.contains("is-selected") === true, firstLength.id);
+    assert.equal(await editor.locator("button", { hasText: "選択を削除" }).isDisabled(), false, "Undo後も残っている注釈の選択は維持する");
+    await editor.locator('select[aria-label="選択した辺の長さ表示の側"]').selectOption("negative");
+    await editor.locator('input[aria-label="選択した辺の長さ表示の線分方向位置"]').fill("6");
+    await editor.locator('input[aria-label="選択した辺の長さ表示の線分方向位置"]').blur();
+    await page.waitForFunction((annotationId) => {
+      const annotation = window.MemoNexusGeometryBlockUtils.splitGeometryBlocks(document.getElementById("editor").value)
+        .find((segment) => segment.type === "geometry")?.geometry.annotations.find((entry) => entry.id === annotationId);
+      return annotation?.side === "negative" && annotation?.alongOffset === 6;
+    }, firstLength.id);
     const polygonSelectionAlignment = await alignSvgForPointer(svg);
     assertSvgAlignment(polygonSelectionAlignment.before, polygonSelectionAlignment.after, "多角形選択前のSVG表示領域を安定させる");
     const geometryForPolygonSelection = await geometry(page);
@@ -1301,12 +1334,22 @@ async function runEqualLengthEditorScenario(browser, url, width, markType = "equ
     await editor.locator('select[aria-label="選択した図形の辺"]').selectOption("1");
     await editor.locator('input[aria-label="選択した辺の長さ表示"]').fill("a");
     await editor.locator('input[aria-label="選択した辺の長さ表示"]').blur();
+    const polygonLength = (await geometry(page)).annotations.find((annotation) => annotation.type === "length-label" && annotation.label === "a" && annotation.edgeIndex === 1);
+    const polygonLengthLabel = editor.locator(`g.geometry-length-label[data-geometry-type="length-label"][data-geometry-id="${polygonLength.id}"]`);
+    await polygonLengthLabel.waitFor({ state: "visible" });
+    await clickLocatorCenter(page, polygonLengthLabel, "多角形辺の長さ表示を選択する");
+    await editor.locator('input[aria-label="選択した辺の長さ表示"]').fill("   ");
+    await editor.locator('input[aria-label="選択した辺の長さ表示"]').blur();
+    await page.waitForFunction((annotationId) => !window.MemoNexusGeometryBlockUtils.splitGeometryBlocks(document.getElementById("editor").value)
+      .find((segment) => segment.type === "geometry")?.geometry.annotations.some((entry) => entry.id === annotationId), polygonLength.id);
     await page.evaluate(() => window.flushSave());
     const beforeReload = await geometry(page);
     assert.equal(beforeReload.annotations.find((annotation) => annotation.pointId === beforeReload.points[0].id).label, "P");
     assert.equal(beforeReload.objects.find((object) => object.type === "segment").lineStyle, "dashed");
-    assert.equal(beforeReload.annotations.some((annotation) => annotation.type === "length-label" && annotation.label === "5 cm"), true, "線分の長さ表示を保存する");
-    assert.equal(beforeReload.annotations.some((annotation) => annotation.type === "length-label" && annotation.label === "a" && annotation.edgeIndex === 1), true, "多角形の辺の長さ表示を保存する");
+    assert.deepEqual(beforeReload.annotations.find((annotation) => annotation.id === firstLength.id && annotation.type === "length-label"), {
+      ...firstLength, side: "negative", alongOffset: 6
+    }, "線分の長さ表示・側・線分方向位置を保存する");
+    assert.equal(beforeReload.annotations.some((annotation) => annotation.id === polygonLength.id), false, "空欄で確定した長さ表示を削除する");
 
     await page.reload({ waitUntil: "domcontentloaded" });
     await page.locator("#appStartupGuard").waitFor({ state: "hidden" });
@@ -1320,6 +1363,9 @@ async function runEqualLengthEditorScenario(browser, url, width, markType = "equ
     assertCoordinates(restoredCenter, recoveredCenter, "無効位置を避けて確定した円を再読み込み後も復元する");
     assert.equal(restoredCenter.x === restoredRadius.x && restoredCenter.y === restoredRadius.y, false, "再読み込み後も半径0の円にしない");
     assert.equal(restored.objects.find((object) => object.type === "segment").lineStyle, "dashed", "線種を復元する");
+    assert.deepEqual(restored.annotations.find((annotation) => annotation.id === firstLength.id && annotation.type === "length-label"), {
+      ...firstLength, side: "negative", alongOffset: 6
+    }, "再読み込み後も長さ表示の調整を復元する");
 
     // 作図用UIの有無に依存させず、意味付き幾何スキーマそのものを
     // 保存して再読込する。SVGのdata属性も正規化済みモデルを検証する。
@@ -1366,6 +1412,9 @@ async function runEqualLengthEditorScenario(browser, url, width, markType = "equ
     assert.equal(await semanticEditor.locator(`[data-geometry-id="${semanticBeforeReload.objects[3].id}"]`).getAttribute("data-segment-role"), "diagonal", "対角線の意味ロールをSVGへ反映する");
     await page.waitForFunction(() => document.querySelectorAll("#preview g.geometry-right-angle").length === 1);
     assert.equal(await page.locator('#preview g.geometry-angle[data-geometry-type="angle"]').getAttribute("data-vertex-id"), semanticBeforeReload.points[1].id, "カード表示も同じ意味付きSVGレンダラーで角度を描画する");
+    assert.equal(await page.locator("#preview .geometry-block-editor").count(), 0, "読み取り専用プレビューでは長さ表示を編集するUIを作らない");
+    assert.equal(await page.locator('#preview g.geometry-length-label[data-geometry-type="length-label"]').count(), 1, "読み取り専用プレビューでも長さ注釈の意味上の親gを1件だけ描画する");
+    assert.equal(await page.locator('#preview g.geometry-length-label[data-geometry-type="length-label"] > text.geometry-length-label').count(), 1, "読み取り専用プレビューでも描画用textは親gの子として1件だけ描画する");
     const targetPointId = semanticBeforeReload.points[0].id;
     const targetPoint = semanticEditor.locator(`.geometry-point-hit[data-geometry-kind="point"][data-geometry-id="${targetPointId}"]`);
     await targetPoint.waitFor();

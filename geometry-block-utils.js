@@ -12,6 +12,8 @@
     captionChars: 4000,
     jsonBytes: 262144
   });
+  const LENGTH_LABEL_SIDES = new Set(["positive", "negative"]);
+  const LENGTH_LABEL_ALONG_OFFSET_LIMIT = 20;
   const GEOMETRY_BLOCK_PATTERN = /^\s*<!-- memo-nexus:geometry-block:([0-9a-f]+) -->\s*$/i;
   const GEOMETRY_BLOCK_CANDIDATE_PATTERN = /^\s*<!-- memo-nexus:geometry-block:.* -->\s*$/i;
   const IMAGE_BLOCK_START = "<!-- memo-nexus:image-block -->";
@@ -58,6 +60,39 @@
 
   function normalizedText(value) {
     return value == null ? "" : String(value).replace(/\r\n?/g, "\n");
+  }
+
+  function normalizedLengthLabelSide(value) {
+    return value === "negative" ? "negative" : "positive";
+  }
+
+  function normalizedLengthLabelAlongOffset(value) {
+    const numeric = Number(value);
+    if (!Number.isFinite(numeric)) return 0;
+    return Math.max(-LENGTH_LABEL_ALONG_OFFSET_LIMIT, Math.min(LENGTH_LABEL_ALONG_OFFSET_LIMIT, numeric));
+  }
+
+  function recoverImportedLengthLabels(value) {
+    if (!isRecord(value) || !Array.isArray(value.annotations) || !Array.isArray(value.objects)) return value;
+    const objectsById = new Map(value.objects.filter(isRecord).map((object) => [normalizedId(object.id), object]));
+    const seen = new Set();
+    return {
+      ...value,
+      annotations: value.annotations.filter((annotation) => {
+        if (!isRecord(annotation) || normalizedId(annotation.type) !== "length-label") return true;
+        const objectId = normalizedId(annotation.objectId === undefined ? annotation.segmentId : annotation.objectId);
+        const target = objectsById.get(objectId);
+        const edgeIndex = annotation.edgeIndex === undefined ? 0 : annotation.edgeIndex;
+        const edgeTotal = edgeCount(target);
+        const key = `${objectId}:${edgeIndex}`;
+        const label = normalizedText(annotation.label).trim();
+        if (!target || !["segment", "polygon"].includes(target.type)
+          || !Number.isInteger(edgeIndex) || edgeIndex < 0 || edgeIndex >= edgeTotal
+          || (!label && annotation.value === undefined) || seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      })
+    };
   }
 
   function normalizedIdList(value) {
@@ -180,12 +215,17 @@
       normalized.offsetX = source.offsetX === undefined ? 8 : source.offsetX;
       normalized.offsetY = source.offsetY === undefined ? -8 : source.offsetY;
     }
-    if (["angle", "length-label", "vertex-label"].includes(normalized.type)) normalized.label = normalizedText(source.label);
+    if (["angle", "vertex-label"].includes(normalized.type)) normalized.label = normalizedText(source.label);
+    if (normalized.type === "length-label") normalized.label = normalizedText(source.label).trim();
     if (["angle", "length-label"].includes(normalized.type) && source.value !== undefined) normalized.value = source.value;
     if (normalized.type === "length-label") {
       normalized.unit = source.unit === undefined ? "" : normalizedText(source.unit);
       normalized.offsetX = source.offsetX === undefined ? 0 : source.offsetX;
       normalized.offsetY = source.offsetY === undefined ? 4 : source.offsetY;
+      // Keep old Cartesian offsets for old notes. New labels use stable edge
+      // axes, leaving room for future structured value/unit/expression data.
+      if (source.side !== undefined) normalized.side = normalizedLengthLabelSide(source.side);
+      if (source.alongOffset !== undefined) normalized.alongOffset = normalizedLengthLabelAlongOffset(source.alongOffset);
     }
     if (normalized.type === "fill-region") normalized.fill = source.fill === undefined ? "primary" : normalizedId(source.fill);
     return normalized;
@@ -295,6 +335,7 @@
     const objectIds = validateUniqueIds(objects, "objects");
     validateUniqueIds(annotations, "annotations");
     const pointById = new Map(points.map((point) => [point && point.id, point]));
+    const lengthLabelEdges = new Set();
 
     points.forEach((point, index) => {
       if (!isRecord(point)) {
@@ -457,6 +498,14 @@
         validateText(annotation.unit, `${path}.unit`, GEOMETRY_BLOCK_LIMITS.labelChars);
         validateFinite(annotation.offsetX, `${path}.offsetX`);
         validateFinite(annotation.offsetY, `${path}.offsetY`);
+        if (annotation.side !== undefined && !LENGTH_LABEL_SIDES.has(annotation.side)) addError(`${path}.sideが不正です`);
+        if (annotation.alongOffset !== undefined
+          && (!Number.isFinite(annotation.alongOffset) || Math.abs(annotation.alongOffset) > LENGTH_LABEL_ALONG_OFFSET_LIMIT)) {
+          addError(`${path}.alongOffsetが不正です`);
+        }
+        const edgeKey = `${annotation.objectId}:${annotation.edgeIndex === undefined ? 0 : annotation.edgeIndex}`;
+        if (lengthLabelEdges.has(edgeKey)) addError(`${path}には同じ辺の長さ表示を複数設定できません`);
+        lengthLabelEdges.add(edgeKey);
       }
       if (annotation.type === "fill-region" && objectById.has(annotation.objectId) && !["polygon", "region"].includes(objectById.get(annotation.objectId).type)) {
         addError(`${path}は多角形または領域だけを参照できます`);
@@ -549,10 +598,15 @@
     const match = source.match(GEOMETRY_BLOCK_PATTERN);
     if (!match) return null;
     try {
-      return normalizeGeometryBlock(JSON.parse(hexToUtf8(match[1])));
-    } catch (_) {
-      return null;
-    }
+      const parsed = JSON.parse(hexToUtf8(match[1]));
+      try {
+        return normalizeGeometryBlock(parsed);
+      } catch (_) {
+        // Keep strict programmatic validation, but recover a document if only
+        // optional, display-only length labels have stale references.
+        return normalizeGeometryBlock(recoverImportedLengthLabels(parsed));
+      }
+    } catch (_) { return null; }
   }
 
   function markdownLines(source) {
@@ -752,6 +806,7 @@
   const api = {
     GEOMETRY_BLOCK_VERSION,
     GEOMETRY_BLOCK_LIMITS,
+    LENGTH_LABEL_ALONG_OFFSET_LIMIT,
     edgeCount,
     normalizeEdgeRef,
     edgeRefsForAnnotation,

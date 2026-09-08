@@ -149,7 +149,7 @@ test("予定する図形・注釈の全種類を点IDまたは図形ID参照で�
   assert.deepEqual(parseGeometryBlockLine(serializeGeometryBlock(block)), block);
 });
 
-test("線分のedgeIndex 1と半径0の円を外部データとして拒否する", () => {
+test("線分のedgeIndex 1と半径0の円を外部データとして検証し、孤立長さ表示だけは読込時に除外する", () => {
   const valid = triangle();
   const invalidSegmentLabel = {
     ...valid,
@@ -157,12 +157,28 @@ test("線分のedgeIndex 1と半径0の円を外部データとして拒否す�
   };
   assert.equal(validateGeometryBlock(invalidSegmentLabel).valid, false);
   assert.throws(() => serializeGeometryBlock(invalidSegmentLabel), /edgeIndex/);
-  assert.equal(parseGeometryBlockLine(markerForJson(JSON.stringify(invalidSegmentLabel))), null);
+  const recovered = parseGeometryBlockLine(markerForJson(JSON.stringify(invalidSegmentLabel)));
+  assert.equal(recovered?.annotations.some((annotation) => annotation.type === "length-label"), false, "不正な辺参照の長さ表示だけを除外する");
   assert.throws(() => normalizeGeometryBlock({
     id: "zero-radius-circle",
     points: [{ id: "center", x: 30, y: 30 }, { id: "radius", x: 30, y: 30 }],
     objects: [{ id: "circle", type: "circle", pointIds: ["center", "radius"] }]
   }), /中心と異なる位置/);
+});
+
+test("読込時は不正な長さ表示の参照・調整値を回復し、古い配置なしデータも維持する", () => {
+  const valid = triangle();
+  const source = { ...valid, annotations: [
+    { id: "legacy", type: "length-label", objectId: "ab", label: " a " },
+    { id: "bad-target", type: "length-label", objectId: "missing", label: "5" },
+    { id: "bad-edge", type: "length-label", objectId: "bc", edgeIndex: 4, label: "6" },
+    { id: "bad-placement", type: "length-label", objectId: "ca", label: "x", side: "unexpected", alongOffset: "not-a-number" }
+  ] };
+  const restored = parseGeometryBlockLine(markerForJson(JSON.stringify(source)));
+  assert.deepEqual(restored.annotations.map((annotation) => ({ id: annotation.id, label: annotation.label, side: annotation.side, alongOffset: annotation.alongOffset })), [
+    { id: "legacy", label: "a", side: undefined, alongOffset: undefined },
+    { id: "bad-placement", label: "x", side: "positive", alongOffset: 0 }
+  ]);
 });
 
 test("右角・角注釈のpointIds順序を始点・頂点・終点で保持する", () => {
