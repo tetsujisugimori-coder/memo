@@ -2349,8 +2349,10 @@ body.layout-resizing iframe {
 .geometry-angle-arc,
 .geometry-equal-length-mark,
 .geometry-parallel-mark { stroke: var(--ink); stroke-width: 1.1; vector-effect: non-scaling-stroke; }
-.geometry-equal-length-hit { fill: none; vector-effect: non-scaling-stroke; cursor: pointer; }
+.geometry-equal-length-hit,
+.geometry-parallel-hit { fill: none; vector-effect: non-scaling-stroke; cursor: pointer; }
 .geometry-equal-length.is-selected .geometry-equal-length-mark { stroke: var(--accent); stroke-width: 2; }
+.geometry-parallel.is-selected .geometry-parallel-mark { stroke: var(--accent); stroke-width: 2; }
 .geometry-right-angle-hit { fill: none; stroke: transparent; stroke-width: 12; vector-effect: non-scaling-stroke; pointer-events: stroke; cursor: pointer; }
 .geometry-right-angle { cursor: pointer; }
 .geometry-right-angle.is-selected .geometry-right-angle-mark { stroke: var(--accent); stroke-width: 2; }

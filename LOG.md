@@ -2489,3 +2489,25 @@
 * `rejectNewDegenerateEqualLengths()`はobjectId+edgeIndexの同じ参照が前後にあることを照合し、その辺が描画可能→描画不能になったときだけ拒否する。既存ゼロ長辺を含む注釈でも正常な辺の移動・全体平行移動・無関係な点の移動・修復を許可する。線分／多角形それぞれの回帰テストは修正前に失敗し、修正後に成功した。新たなゼロ長化を伴う点移動／図形移動の拒否、入力モデル不変、保存復元も検証した。V1保存形式は維持し、変更JSの配信識別子をgeometry-editor-utils.js?v=0.5.0-12へ更新した。
 * 検証：`npm test`は1,053件成功（fail/skip 0）、`npm run test:e2e:mobile`は成功、変更JS4ファイルの`node --check`と`git diff --check`は成功。`npm run test:e2e:geometry`は同じ修正コードで5回連続成功（各回exit 0、各回1100px・390pxの等辺UI操作とconsole/page error 0を確認）した。Mobile E2Eの画像出力は一時ディレクトリへ変更し、利用者の未コミットPNGを保持した。
 * 手動ブラウザー操作・実タッチ端末・Safariは未確認。自動E2Eの390px確認はChromiumのマウス操作であり、タッチ実機確認ではない。push後CIは確認後に報告する。
+
+## 2026-09-08 図形ブロックの編集可能な平行記号
+
+* `parallel` 注釈を等辺印と同じ `edgeRefs: [{ objectId, edgeIndex }]` で正式に扱うようにした。V1の `objectIds` だけを持つ保存データは各線分の辺0へ補完し、`mark` と `markCount` の往復互換、geometry block version 1、IndexedDBスキーマは維持する。線分の辺0、多角形の先頭・途中・末尾を検証し、2辺未満、重複、存在しない図形、辺を持たない図形、範囲外の辺番号、1〜10外の本数を拒否する。
+* 編集UIへ「平行」モード、「平行を完了」、選択済み平行記号の本数入力を追加した。2辺以上を下書き選択し、再クリックで解除、Escape・キャンセル・モード変更では保存せず破棄する。平行記号の本数候補は等辺印と別に未使用最小値を選ぶ。選択、Delete／Backspace削除、Undo／Redoは既存注釈操作を再利用する。
+* SVGは各edgeRefから矢印状記号を再計算する。辺方向を決定的に正規化し、短辺ではサイズと間隔を制限する。透明hit pathと表示pathを分離し、平行記号は辺の片側、等辺印は反対側へ小さくずらして同じ辺でも識別できるようにした。現在SVG内の表示pathまでのCTM画面距離で注釈選択を解決する。
+* 参照図形の削除時は平行注釈からその辺だけを除外し、残り2辺未満なら注釈を削除する。既にゼロ長のlegacy辺は読込・修復・無関係移動・図形全体の平行移動を許可し、描画可能だった平行辺を新たにゼロ長にする移動だけを拒否する。
+* `geometry-block-utils.test.js`、`geometry-editor-utils.test.js`、`geometry-svg-renderer.test.js`へlegacy補完、検証、編集、削除、履歴、退化、描画・選択属性・移動追従を追加した。`geometry-block.e2e.js`は既存の等辺独立シナリオを平行記号にも適用し、1100pxと390pxでedgeRefs、下書き、表示pathのCTMクリック、本数、保存再読込、削除、Undo／Redo、console/page error 0を確認する。
+* 検証：`npm test` は1,056件成功（fail 0）、`npm run test:e2e:mobile` は成功、`npm run test:e2e:geometry` は最終状態で5回連続成功（各回で等辺印・平行記号の1100px／390px、console/page error 0）、変更JavaScriptの `node --check` と `git diff --check` は成功した。手動ブラウザー操作、実タッチ端末、Safari、push後CIは未確認。
+
+## 2026-09-08 PR #198 レビュー修正：辺方向とlegacy objectIdsの安全性
+
+* 原因は、平行記号だけが正規化済みの辺方向から法線を作る一方、等辺印は保存された頂点順のままの方向から法線を作っていたことだった。逆向き辺では両方が同じ側へ出る可能性があったため、等辺印も既存の `normalizedEdgeDirection()` を使うようにし、等辺印は負側、平行記号は正側という配置を辺順に依存しない形で維持した。
+* `equal-length` と `parallel` のlegacy `objectIds` 検証では、既存の `validateReferenceList()` を残したまま、各要素の線分種別確認を `Array.isArray()` 時だけにした。配列以外は暗黙補正せず、`forEach is not a function` ではなくアプリのobjectIds形式エラーとして拒否する。正常なlegacy配列からのedgeRefs補完、version 1、`mark`／`markCount`、IndexedDBスキーマは変更していない。
+* 回帰テストは、同じ多角形の順方向・逆方向辺に等辺印と平行記号を重ね、双方が反対側へ分離されることを確認する。また両注釈の配列以外のlegacy objectIdsがTypeErrorにならず形式エラーとなることを確認する。描画位置を正規化した後に検出したE2Eの辺中央クリック前提は、等辺印・平行記号とも実表示pathをCTMで画面座標へ変換する既存方式へ修正した。
+
+## 2026-09-08 PR #198 レビュー修正：辺上の接線方向配置
+
+* 平行記号を法線方向へ3移動する方式では、左から右の水平辺で記号が辺より下に浮いて見えた。等辺印と平行記号を反対側へ逃がす前回の方式も、どちらの辺を示す記号かを分かりにくくしていたため見直した。
+* `edgeAnnotationPlacement()` を追加し、正規化済み接線、辺長、共存判定、基準中心を共通で計算する。単独の等辺印・平行記号は辺の中点上に置き、同じobjectIdとedgeIndexに両種がある場合だけ、等辺印を正規化接線の負側、平行記号を正側へ `min(6, edgeLength * 0.18)` だけ分離する。法線方向の移動はしないため、短辺でも端点から過度にはみ出さない。
+* 回帰テストは旧来の「反対側」を置き換え、水平・垂直・頂点順が逆の辺で、単独時は辺上、共存時は辺上を保った接線方向分離、印数、選択クラス、data属性、点移動後の再計算を数値で確認する。E2Eは従来どおり表示pathをCTMで画面座標に変換して選択する。
+* 追加した辺上配置の回帰条件は、修正前のHEADレンダラーをメモリ上で再現して確認した。等辺印だけの左から右の水平辺で中心Y=7（辺上の期待Y=10）となり失敗し、修正後のテストは成功した。`npm test` は1,058件成功（fail 0）、変更JavaScriptの `node --check` と `git diff --check` は成功した。`npm run test:e2e:geometry` と `npm run test:e2e:mobile` は実行したが、このWindows実行環境では子プロセスの出力収集が途中で切れ、最終終了コードを取得できなかったため、今回の最終状態での完走は未確認として扱う。手動ブラウザー操作、実タッチ端末、Safari、push後CIも未確認。

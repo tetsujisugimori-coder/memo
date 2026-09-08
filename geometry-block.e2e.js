@@ -922,7 +922,13 @@ async function runCircleInteriorSelectionScenario(browser, url) {
   }
 }
 
-async function runEqualLengthEditorScenario(browser, url, width) {
+async function runEqualLengthEditorScenario(browser, url, width, markType = "equal-length") {
+  const parallel = markType === "parallel";
+  const modeName = parallel ? "parallel" : "equal-length";
+  const annotationName = parallel ? "平行記号" : "等辺印";
+  const completionLabel = parallel ? "選択した辺で平行記号を作成" : "選択した辺で等辺記号を作成";
+  const groupClass = parallel ? "geometry-parallel" : "geometry-equal-length";
+  const markClass = parallel ? "geometry-parallel-mark" : "geometry-equal-length-mark";
   const context = await browser.newContext({ viewport: { width, height: 844 } });
   const page = await context.newPage();
   const pageErrors = [];
@@ -937,7 +943,7 @@ async function runEqualLengthEditorScenario(browser, url, width) {
   };
   try {
     await waitForApp(page, url);
-    await page.locator("#editor").fill("等辺印の独立操作テスト");
+    await page.locator("#editor").fill(`${annotationName}の独立操作テスト`);
     await closeMobilePanel();
     if (width <= 720) {
       await page.locator("#editor").click();
@@ -1012,8 +1018,8 @@ async function runEqualLengthEditorScenario(browser, url, width) {
       assert.deepEqual(hit, { sameSvg: true, ...ref, type: ref.objectId === segment.id ? "segment" : "polygon" }, JSON.stringify({ ref, client, hit }));
       await clickAtClient(page, svg, client);
     };
-    await mode("equal-length");
-    const complete = editor.getByRole("button", { name: "選択した辺で等辺記号を作成", exact: true });
+    await mode(modeName);
+    const complete = editor.getByRole("button", { name: completionLabel, exact: true });
     assert.equal(await complete.isDisabled(), true);
     await clickEdge(refs[0]);
     assert.equal(await complete.isDisabled(), true);
@@ -1026,10 +1032,10 @@ async function runEqualLengthEditorScenario(browser, url, width) {
       assert.equal(await svg.locator(".geometry-edge-hit.is-draft").count(), index + 1);
       assert.equal(await complete.isEnabled(), index >= 1);
     }
-    assert.equal((await geometry(page)).annotations.some((annotation) => annotation.type === "equal-length"), false, "明示完了まで保存しない");
+    assert.equal((await geometry(page)).annotations.some((annotation) => annotation.type === markType), false, "明示完了まで保存しない");
     await complete.click();
     const annotated = await geometry(page);
-    const annotation = annotated.annotations.find((entry) => entry.type === "equal-length");
+    const annotation = annotated.annotations.find((entry) => entry.type === markType);
     assert.deepEqual(annotation.edgeRefs, refs);
     assert.deepEqual(annotated.points, created.points, "等辺作成で長さを変えない");
     assert.equal(await svg.locator(".geometry-edge-hit.is-draft").count(), 0);
@@ -1039,28 +1045,35 @@ async function runEqualLengthEditorScenario(browser, url, width) {
       assert.deepEqual(equal.edgeRefs, refs);
       assert.equal(equal.markCount, count);
       assert.equal(equal.mark, count);
-      const groups = svg.locator(`g.geometry-equal-length[data-geometry-id="${annotation.id}"]`);
+      const groups = svg.locator(`g.${groupClass}[data-geometry-id="${annotation.id}"]`);
       assert.equal(await groups.count(), refs.length);
       for (const ref of refs) {
         // Use the SVG scope so every edge of a shared annotation is counted.
-        assert.equal(await svg.locator(`g.geometry-equal-length[data-geometry-id="${annotation.id}"][data-object-id="${ref.objectId}"][data-edge-index="${ref.edgeIndex}"] .geometry-equal-length-mark`).count(), count);
+        assert.equal(await svg.locator(`g.${groupClass}[data-geometry-id="${annotation.id}"][data-object-id="${ref.objectId}"][data-edge-index="${ref.edgeIndex}"] .${markClass}`).count(), count);
       }
     };
     await assertMarks(1);
     await mode("select");
     for (const ref of refs) {
-      const client = await edgeClient(ref);
-      const target = await svg.evaluate((element, position) => {
+      const edgeClientPosition = await edgeClient(ref);
+      const client = await svg.evaluate((element, { annotationId, edgeRef, groupClass: targetGroupClass, markClass: targetMarkClass }) => {
+        const mark = element.querySelector(`g.${targetGroupClass}[data-geometry-id="${annotationId}"][data-object-id="${edgeRef.objectId}"][data-edge-index="${edgeRef.edgeIndex}"] .${targetMarkClass}`);
+        const point = mark?.getPointAtLength(mark.getTotalLength() / 2);
+        const screen = point && new DOMPoint(point.x, point.y).matrixTransform(element.getScreenCTM());
+        return screen ? { x: Math.round(screen.x), y: Math.round(screen.y) } : null;
+      }, { annotationId: annotation.id, edgeRef: ref, groupClass, markClass });
+      assert.ok(client, JSON.stringify({ annotation: annotation.id, ref, edgeClientPosition }));
+      const target = await svg.evaluate((element, { position, groupClass: targetGroupClass }) => {
         const hit = document.elementFromPoint(position.x, position.y);
-        const group = hit?.closest("g.geometry-equal-length");
+        const group = hit?.closest(`g.${targetGroupClass}`);
         return { sameSvg: group?.ownerSVGElement === element, id: group?.dataset.geometryId, objectId: group?.dataset.objectId, edgeIndex: Number(group?.dataset.edgeIndex) };
-      }, client);
+      }, { position: client, groupClass });
       assert.deepEqual(target, { sameSvg: true, id: annotation.id, ...ref }, JSON.stringify({ client, target }));
       await clickAtClient(page, svg, client);
-      assert.equal(await svg.locator("g.geometry-equal-length.is-selected").count(), refs.length);
+      assert.equal(await svg.locator(`g.${groupClass}.is-selected`).count(), refs.length);
       assert.equal(await svg.locator(".geometry-segment.is-selected, .geometry-polygon.is-selected, .geometry-point.is-selected").count(), 0);
     }
-    const countInput = editor.getByRole("spinbutton", { name: "選択した等辺印の本数" });
+    const countInput = editor.getByRole("spinbutton", { name: parallel ? "選択した平行記号の本数" : "選択した等辺印の本数" });
     await countInput.fill("3");
     await countInput.blur();
     await assertMarks(3);
@@ -1073,7 +1086,14 @@ async function runEqualLengthEditorScenario(browser, url, width) {
     await assertMarks(3);
     await closeMobilePanel();
     await mode("select");
-    const selected = await edgeClient(refs[3]);
+    const selectedEdgeClient = await edgeClient(refs[3]);
+    const selected = await svg.evaluate((element, { annotationId, edgeRef, groupClass: targetGroupClass, markClass: targetMarkClass }) => {
+      const mark = element.querySelector(`g.${targetGroupClass}[data-geometry-id="${annotationId}"][data-object-id="${edgeRef.objectId}"][data-edge-index="${edgeRef.edgeIndex}"] .${targetMarkClass}`);
+      const point = mark?.getPointAtLength(mark.getTotalLength() / 2);
+      const screen = point && new DOMPoint(point.x, point.y).matrixTransform(element.getScreenCTM());
+      return screen ? { x: Math.round(screen.x), y: Math.round(screen.y) } : null;
+    }, { annotationId: annotation.id, edgeRef: refs[3], groupClass, markClass });
+    assert.ok(selected, JSON.stringify({ annotation: annotation.id, ref: refs[3], selectedEdgeClient }));
     await clickAtClient(page, svg, selected);
     assert.equal(await countInput.isEnabled(), true);
     await editor.focus();
@@ -1082,14 +1102,14 @@ async function runEqualLengthEditorScenario(browser, url, width) {
     assert.deepEqual(deleted.objects, beforeReload.objects);
     assert.deepEqual(deleted.points, beforeReload.points);
     assert.deepEqual(deleted.annotations, beforeReload.annotations.filter((entry) => entry.id !== annotation.id));
-    assert.equal(await svg.locator("g.geometry-equal-length").count(), 0);
+    assert.equal(await svg.locator(`g.${groupClass}`).count(), 0);
     await page.keyboard.press("Control+z");
     await assertMarks(3);
     await page.keyboard.press("Control+Shift+z");
-    assert.equal(await svg.locator("g.geometry-equal-length").count(), 0);
+    assert.equal(await svg.locator(`g.${groupClass}`).count(), 0);
     assert.deepEqual(pageErrors, []);
     assert.deepEqual(consoleErrors, []);
-    console.log(`Equal-length UI E2E (${width}px): passed; console/page errors: 0`);
+    console.log(`${annotationName} UI E2E (${width}px): passed; console/page errors: 0`);
   } finally {
     await context.close();
   }
@@ -1107,6 +1127,8 @@ async function runEqualLengthEditorScenario(browser, url, width) {
     await runCircleInteriorSelectionScenario(browser, url);
     await runEqualLengthEditorScenario(browser, url, 1100);
     await runEqualLengthEditorScenario(browser, url, 390);
+    await runEqualLengthEditorScenario(browser, url, 1100, "parallel");
+    await runEqualLengthEditorScenario(browser, url, 390, "parallel");
     const page = await browser.newPage({ viewport: { width: 1100, height: 800 } });
     await waitForApp(page, url);
     const pageErrors = [];

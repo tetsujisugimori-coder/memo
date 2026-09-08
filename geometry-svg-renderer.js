@@ -59,7 +59,12 @@
         });
       }
       if (annotation.type === "parallel") {
-        return Array.isArray(annotation.objectIds) && annotation.objectIds.every((objectId) => objectIds.has(objectId));
+        const edgeRefs = edgeRefsForAnnotation(annotation);
+        return edgeRefs.length >= 2 && edgeRefs.every((edgeRef) => {
+          const object = objects.find((entry) => entry.id === edgeRef.objectId);
+          return object && ["segment", "polygon"].includes(object.type) && Number.isInteger(edgeRef.edgeIndex)
+            && edgeRef.edgeIndex >= 0 && edgeRef.edgeIndex < object.pointIds.length;
+        });
       }
       return annotation.type === "vertex-label" && typeof annotation.pointId === "string" && pointIds.has(annotation.pointId);
     });
@@ -268,14 +273,33 @@
     svg.append(group);
   }
 
-  function renderEqualLength(svg, annotation, objects, points, selection) {
+  function edgeAnnotationPlacement(edge, edgeRef, annotationType, annotations) {
+    const direction = normalizedEdgeDirection(edge.start, edge.end);
+    if (!direction) return null;
+    const edgeLength = Math.hypot(edge.end.x - edge.start.x, edge.end.y - edge.start.y);
+    const counterpartType = annotationType === "equal-length" ? "parallel" : "equal-length";
+    const sharedWithCounterpart = annotations.some((annotation) => annotation.type === counterpartType
+      && edgeRefsForAnnotation(annotation).some((candidate) => candidate.objectId === edgeRef.objectId && candidate.edgeIndex === edgeRef.edgeIndex));
+    const tangentOffset = sharedWithCounterpart ? Math.min(6, edgeLength * 0.18) : 0;
+    const side = annotationType === "equal-length" ? -1 : 1;
+    return {
+      direction,
+      normal: { x: -direction.y, y: direction.x },
+      edgeLength,
+      center: {
+        x: (edge.start.x + edge.end.x) / 2 + direction.x * tangentOffset * side,
+        y: (edge.start.y + edge.end.y) / 2 + direction.y * tangentOffset * side
+      }
+    };
+  }
+
+  function renderEqualLength(svg, annotation, objects, points, selection, annotations) {
     [...edgeRefsForAnnotation(annotation)].sort((first, second) => `${first.objectId}:${first.edgeIndex}`.localeCompare(`${second.objectId}:${second.edgeIndex}`)).forEach((edgeRef) => {
       const edge = edgeForRef(edgeRef, objects, points);
       if (!edge) return;
-      const direction = unitVector(edge.start, edge.end);
-      if (!direction) return;
-      const normal = { x: -direction.y, y: direction.x };
-      const center = { x: (edge.start.x + edge.end.x) / 2, y: (edge.start.y + edge.end.y) / 2 };
+      const placement = edgeAnnotationPlacement(edge, edgeRef, "equal-length", annotations);
+      if (!placement) return;
+      const { direction, normal, center } = placement;
       const group = semanticGroup("equal-length", annotation, `等しい辺の印 ${annotation.markCount} 本`, {
         interactive: true,
         selected: selection?.kind === "annotation" && selection.id === annotation.id
@@ -299,22 +323,44 @@
     });
   }
 
-  function renderParallel(svg, annotation, objects, points) {
-    [...annotation.objectIds].sort().forEach((objectId) => {
-      const object = objects.get(objectId);
-      const edge = object && edgePairs(object, points)[0];
+  function normalizedEdgeDirection(start, end) {
+    const direction = unitVector(start, end);
+    if (!direction) return null;
+    return direction.x < -1e-9 || (Math.abs(direction.x) <= 1e-9 && direction.y < 0)
+      ? { x: -direction.x, y: -direction.y } : direction;
+  }
+
+  function renderParallel(svg, annotation, objects, points, selection, annotations) {
+    [...edgeRefsForAnnotation(annotation)].sort((first, second) => `${first.objectId}:${first.edgeIndex}`.localeCompare(`${second.objectId}:${second.edgeIndex}`)).forEach((edgeRef) => {
+      const edge = edgeForRef(edgeRef, objects, points);
       if (!edge) return;
-      const direction = unitVector(edge.start, edge.end);
-      if (!direction) return;
-      const normal = { x: -direction.y, y: direction.x };
-      const center = { x: (edge.start.x + edge.end.x) / 2, y: (edge.start.y + edge.end.y) / 2 };
-      const group = semanticGroup("parallel", annotation, `線分の平行記号 ${annotation.markCount} 本`);
-      group.setAttribute("data-segment-id", objectId);
+      const placement = edgeAnnotationPlacement(edge, edgeRef, "parallel", annotations);
+      if (!placement) return;
+      const { direction, normal, edgeLength, center } = placement;
+      const size = Math.min(3, Math.max(1.25, edgeLength / 12));
+      const spacing = Math.min(size * 2.5, Math.max(size * 1.25, edgeLength / Math.max(4, annotation.markCount + 1)));
+      const group = semanticGroup("parallel", annotation, `平行な辺の記号 ${annotation.markCount} 本`, {
+        interactive: true,
+        selected: selection?.kind === "annotation" && selection.id === annotation.id
+      });
+      group.setAttribute("data-object-id", edgeRef.objectId);
+      group.setAttribute("data-edge-index", String(edgeRef.edgeIndex));
+      group.append(svgElement("line", {
+        x1: center.x - direction.x * Math.min(8, edgeLength / 3), y1: center.y - direction.y * Math.min(8, edgeLength / 3),
+        x2: center.x + direction.x * Math.min(8, edgeLength / 3), y2: center.y + direction.y * Math.min(8, edgeLength / 3),
+        class: "geometry-parallel-hit", stroke: "transparent", "stroke-width": 14,
+        "pointer-events": "stroke", "data-geometry-kind": "annotation", "data-geometry-id": annotation.id,
+        "aria-hidden": "true"
+      }));
       for (let index = 0; index < annotation.markCount; index += 1) {
-        const shift = (index - (annotation.markCount - 1) / 2) * 5;
+        const shift = (index - (annotation.markCount - 1) / 2) * spacing;
         const x = center.x + direction.x * shift;
         const y = center.y + direction.y * shift;
-        group.append(svgElement("path", { d: `M ${x - direction.x * 3 - normal.x * 2} ${y - direction.y * 3 - normal.y * 2} L ${x + direction.x * 3} ${y + direction.y * 3} L ${x - direction.x * 3 + normal.x * 2} ${y - direction.y * 3 + normal.y * 2}`, class: "geometry-parallel-mark", fill: "none" }));
+        group.append(svgElement("path", {
+          d: `M ${x - direction.x * size - normal.x * size * 0.7} ${y - direction.y * size - normal.y * size * 0.7} L ${x + direction.x * size} ${y + direction.y * size} L ${x - direction.x * size + normal.x * size * 0.7} ${y - direction.y * size + normal.y * size * 0.7}`,
+          class: "geometry-parallel-mark", fill: "none", "pointer-events": "none",
+          "data-geometry-kind": "annotation", "data-geometry-id": annotation.id
+        }));
       }
       svg.append(group);
     });
@@ -327,8 +373,8 @@
       else if (annotation.type === "length-label") {
         const object = objects.get(annotation.objectId);
         if (object) renderLengthLabel(svg, annotation, object, points);
-      } else if (annotation.type === "equal-length") renderEqualLength(svg, annotation, objects, points, selection);
-      else if (annotation.type === "parallel") renderParallel(svg, annotation, objects, points);
+      } else if (annotation.type === "equal-length") renderEqualLength(svg, annotation, objects, points, selection, geometry.annotations);
+      else if (annotation.type === "parallel") renderParallel(svg, annotation, objects, points, selection, geometry.annotations);
     });
   }
 
