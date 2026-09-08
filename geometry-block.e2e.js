@@ -1056,12 +1056,12 @@ async function runEqualLengthEditorScenario(browser, url, width, markType = "equ
     await mode("select");
     for (const ref of refs) {
       const edgeClientPosition = await edgeClient(ref);
-      const client = parallel ? await svg.evaluate((element, { annotationId, edgeRef }) => {
-        const mark = element.querySelector(`g.geometry-parallel[data-geometry-id="${annotationId}"][data-object-id="${edgeRef.objectId}"][data-edge-index="${edgeRef.edgeIndex}"] .geometry-parallel-mark`);
+      const client = await svg.evaluate((element, { annotationId, edgeRef, groupClass: targetGroupClass, markClass: targetMarkClass }) => {
+        const mark = element.querySelector(`g.${targetGroupClass}[data-geometry-id="${annotationId}"][data-object-id="${edgeRef.objectId}"][data-edge-index="${edgeRef.edgeIndex}"] .${targetMarkClass}`);
         const point = mark?.getPointAtLength(mark.getTotalLength() / 2);
         const screen = point && new DOMPoint(point.x, point.y).matrixTransform(element.getScreenCTM());
         return screen ? { x: Math.round(screen.x), y: Math.round(screen.y) } : null;
-      }, { annotationId: annotation.id, edgeRef: ref }) : edgeClientPosition;
+      }, { annotationId: annotation.id, edgeRef: ref, groupClass, markClass });
       assert.ok(client, JSON.stringify({ annotation: annotation.id, ref, edgeClientPosition }));
       const target = await svg.evaluate((element, { position, groupClass: targetGroupClass }) => {
         const hit = document.elementFromPoint(position.x, position.y);
@@ -1087,12 +1087,12 @@ async function runEqualLengthEditorScenario(browser, url, width, markType = "equ
     await closeMobilePanel();
     await mode("select");
     const selectedEdgeClient = await edgeClient(refs[3]);
-    const selected = parallel ? await svg.evaluate((element, { annotationId, edgeRef }) => {
-      const mark = element.querySelector(`g.geometry-parallel[data-geometry-id="${annotationId}"][data-object-id="${edgeRef.objectId}"][data-edge-index="${edgeRef.edgeIndex}"] .geometry-parallel-mark`);
+    const selected = await svg.evaluate((element, { annotationId, edgeRef, groupClass: targetGroupClass, markClass: targetMarkClass }) => {
+      const mark = element.querySelector(`g.${targetGroupClass}[data-geometry-id="${annotationId}"][data-object-id="${edgeRef.objectId}"][data-edge-index="${edgeRef.edgeIndex}"] .${targetMarkClass}`);
       const point = mark?.getPointAtLength(mark.getTotalLength() / 2);
       const screen = point && new DOMPoint(point.x, point.y).matrixTransform(element.getScreenCTM());
       return screen ? { x: Math.round(screen.x), y: Math.round(screen.y) } : null;
-    }, { annotationId: annotation.id, edgeRef: refs[3] }) : selectedEdgeClient;
+    }, { annotationId: annotation.id, edgeRef: refs[3], groupClass, markClass });
     assert.ok(selected, JSON.stringify({ annotation: annotation.id, ref: refs[3], selectedEdgeClient }));
     await clickAtClient(page, svg, selected);
     assert.equal(await countInput.isEnabled(), true);

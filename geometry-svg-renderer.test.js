@@ -372,3 +372,33 @@ test("平行記号は多角形の任意辺へ本数分描画し、逆向きの�
     global.document = priorDocument;
   }
 });
+
+test("等辺印と平行記号は多角形の順方向・逆方向の辺でも常に反対側へ分離する", () => {
+  let geometry = createGeometryBlock("opposite-mark-sides");
+  [[10, 10], [70, 10], [70, 50], [10, 50]].forEach(([x, y]) => { geometry = addPoint(geometry, { x, y }); });
+  geometry = addPolygon(geometry, geometry.points.map((point) => point.id));
+  const polygon = geometry.objects[0];
+  const edgeRefs = [{ objectId: polygon.id, edgeIndex: 0 }, { objectId: polygon.id, edgeIndex: 2 }];
+  geometry = addEqualLengthMark(geometry, { edgeRefs, markCount: 1 });
+  geometry = addParallelMark(geometry, { edgeRefs, markCount: 1 });
+  const priorDocument = global.document;
+  global.document = { createElementNS: (_namespace, name) => new MockElement(name) };
+  try {
+    const { renderGeometrySvg } = require("./geometry-svg-renderer.js");
+    const svg = new MockElement("svg");
+    renderGeometrySvg(svg, geometry);
+    const centerY = (group) => {
+      const hit = group.children.find((node) => /geometry-(equal-length|parallel)-hit/.test(node.getAttribute("class") || ""));
+      return (Number(hit.getAttribute("y1")) + Number(hit.getAttribute("y2"))) / 2;
+    };
+    [0, 2].forEach((edgeIndex) => {
+      const equal = descendants(svg).find((node) => node.getAttribute("class") === "geometry-annotation geometry-equal-length" && node.getAttribute("data-edge-index") === String(edgeIndex));
+      const parallel = descendants(svg).find((node) => node.getAttribute("class") === "geometry-annotation geometry-parallel" && node.getAttribute("data-edge-index") === String(edgeIndex));
+      const edgeCenterY = edgeIndex === 0 ? 10 : 50;
+      assert.notEqual(centerY(equal), centerY(parallel), `辺${edgeIndex + 1}の記号を重ねない`);
+      assert.equal(Math.sign(centerY(equal) - edgeCenterY), -Math.sign(centerY(parallel) - edgeCenterY), `辺${edgeIndex + 1}は反対側へ配置する`);
+    });
+  } finally {
+    global.document = priorDocument;
+  }
+});

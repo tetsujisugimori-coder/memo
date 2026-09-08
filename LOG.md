@@ -2498,3 +2498,9 @@
 * 参照図形の削除時は平行注釈からその辺だけを除外し、残り2辺未満なら注釈を削除する。既にゼロ長のlegacy辺は読込・修復・無関係移動・図形全体の平行移動を許可し、描画可能だった平行辺を新たにゼロ長にする移動だけを拒否する。
 * `geometry-block-utils.test.js`、`geometry-editor-utils.test.js`、`geometry-svg-renderer.test.js`へlegacy補完、検証、編集、削除、履歴、退化、描画・選択属性・移動追従を追加した。`geometry-block.e2e.js`は既存の等辺独立シナリオを平行記号にも適用し、1100pxと390pxでedgeRefs、下書き、表示pathのCTMクリック、本数、保存再読込、削除、Undo／Redo、console/page error 0を確認する。
 * 検証：`npm test` は1,056件成功（fail 0）、`npm run test:e2e:mobile` は成功、`npm run test:e2e:geometry` は最終状態で5回連続成功（各回で等辺印・平行記号の1100px／390px、console/page error 0）、変更JavaScriptの `node --check` と `git diff --check` は成功した。手動ブラウザー操作、実タッチ端末、Safari、push後CIは未確認。
+
+## 2026-09-08 PR #198 レビュー修正：辺方向とlegacy objectIdsの安全性
+
+* 原因は、平行記号だけが正規化済みの辺方向から法線を作る一方、等辺印は保存された頂点順のままの方向から法線を作っていたことだった。逆向き辺では両方が同じ側へ出る可能性があったため、等辺印も既存の `normalizedEdgeDirection()` を使うようにし、等辺印は負側、平行記号は正側という配置を辺順に依存しない形で維持した。
+* `equal-length` と `parallel` のlegacy `objectIds` 検証では、既存の `validateReferenceList()` を残したまま、各要素の線分種別確認を `Array.isArray()` 時だけにした。配列以外は暗黙補正せず、`forEach is not a function` ではなくアプリのobjectIds形式エラーとして拒否する。正常なlegacy配列からのedgeRefs補完、version 1、`mark`／`markCount`、IndexedDBスキーマは変更していない。
+* 回帰テストは、同じ多角形の順方向・逆方向辺に等辺印と平行記号を重ね、双方が反対側へ分離されることを確認する。また両注釈の配列以外のlegacy objectIdsがTypeErrorにならず形式エラーとなることを確認する。描画位置を正規化した後に検出したE2Eの辺中央クリック前提は、等辺印・平行記号とも実表示pathをCTMで画面座標へ変換する既存方式へ修正した。

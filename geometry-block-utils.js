@@ -405,7 +405,7 @@
         // objectIds is intentionally retained only as the legacy segment view.
         if (annotation.objectIds !== undefined) {
           validateReferenceList(annotation.objectIds, `${path}.objectIds`, 2, GEOMETRY_BLOCK_LIMITS.referencesPerItem, objectIds);
-          annotation.objectIds.forEach((id) => {
+          if (Array.isArray(annotation.objectIds)) annotation.objectIds.forEach((id) => {
             if (objectById.get(id)?.type !== "segment") addError(`${path}.objectIdsは線分だけを参照できます`);
           });
         }
@@ -433,7 +433,7 @@
         });
         if (annotation.objectIds !== undefined) {
           validateReferenceList(annotation.objectIds, `${path}.objectIds`, 2, GEOMETRY_BLOCK_LIMITS.referencesPerItem, objectIds);
-          annotation.objectIds.forEach((id) => {
+          if (Array.isArray(annotation.objectIds)) annotation.objectIds.forEach((id) => {
             if (objectById.get(id)?.type !== "segment") addError(`${path}.objectIdsは線分だけを参照できます`);
           });
         }

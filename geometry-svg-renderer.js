@@ -277,7 +277,9 @@
     [...edgeRefsForAnnotation(annotation)].sort((first, second) => `${first.objectId}:${first.edgeIndex}`.localeCompare(`${second.objectId}:${second.edgeIndex}`)).forEach((edgeRef) => {
       const edge = edgeForRef(edgeRef, objects, points);
       if (!edge) return;
-      const direction = unitVector(edge.start, edge.end);
+      // Match the parallel mark's deterministic tangent so both annotations
+      // stay on opposite sides even if this edge's vertices are reversed.
+      const direction = normalizedEdgeDirection(edge.start, edge.end);
       if (!direction) return;
       const normal = { x: -direction.y, y: direction.x };
       const center = { x: (edge.start.x + edge.end.x) / 2 - normal.x * 3, y: (edge.start.y + edge.end.y) / 2 - normal.y * 3 };

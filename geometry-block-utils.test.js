@@ -612,3 +612,19 @@ test("平行記号はlegacy objectIdsをedgeRefsへ補完し、多角形の任�
   assert.throws(() => normalizeGeometryBlock({ ...polygon, annotations: [{ id: "circle", type: "parallel", edgeRefs: [{ objectId: "ab", edgeIndex: 0 }, { objectId: "circle", edgeIndex: 0 }], markCount: 1 }], objects: [...polygon.objects, { id: "circle", type: "circle", pointIds: ["a", "c"] }] }), /線分または多角形/);
   assert.throws(() => normalizeGeometryBlock({ ...polygon, annotations: [{ id: "marks", type: "parallel", edgeRefs: [{ objectId: "ab", edgeIndex: 0 }, { objectId: "ef", edgeIndex: 0 }], markCount: 11 }] }), /1から10/);
 });
+
+test("等辺印と平行記号の配列以外のlegacy objectIdsはTypeErrorにせず形式エラーとして拒否する", () => {
+  const source = {
+    id: "invalid-legacy-object-ids", points: [
+      { id: "a", x: 0, y: 0 }, { id: "b", x: 20, y: 0 }, { id: "c", x: 40, y: 0 }
+    ],
+    objects: [
+      { id: "ab", type: "segment", pointIds: ["a", "b"] }, { id: "bc", type: "segment", pointIds: ["b", "c"] }
+    ]
+  };
+  ["equal-length", "parallel"].forEach((type) => {
+    assert.throws(() => normalizeGeometryBlock({ ...source, annotations: [{
+      id: `${type}-invalid`, type, objectIds: "ab", edgeRefs: [{ objectId: "ab", edgeIndex: 0 }, { objectId: "bc", edgeIndex: 0 }], markCount: 1
+    }] }), (error) => /objectIdsは配列である必要があります/.test(error.message) && !/forEach is not a function/.test(error.message));
+  });
+});
