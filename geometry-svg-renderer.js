@@ -287,7 +287,6 @@
     group.setAttribute("data-edge-index", String(annotation.edgeIndex || 0));
     const label = svgElement("text", {
       x, y, class: "geometry-length-label",
-      "data-geometry-kind": "annotation", "data-geometry-type": "length-label", "data-geometry-id": annotation.id,
       "pointer-events": "visiblePainted"
     });
     label.textContent = text;

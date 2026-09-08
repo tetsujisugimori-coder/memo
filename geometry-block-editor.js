@@ -42,6 +42,14 @@
     return geometry.annotations.find((annotation) => annotation.id === selection.id && annotation.type === "length-label") || null;
   }
 
+  function selectionExists(geometry, selection) {
+    if (!selection || typeof selection.id !== "string" || !selection.id) return false;
+    const items = selection.kind === "point" ? geometry.points
+      : selection.kind === "object" ? geometry.objects
+        : selection.kind === "annotation" ? geometry.annotations : null;
+    return Array.isArray(items) && items.some((item) => item.id === selection.id);
+  }
+
   function createGeometryBlockEditor(initialGeometry, { blockIndex = 0, onChange, onDelete } = {}) {
     let geometry = initialGeometry;
     let mode = "select";
@@ -336,6 +344,7 @@
 
     function restoreHistory(direction) {
       geometry = history[direction]();
+      if (!selectionExists(geometry, selection)) selection = null;
       onChange?.(geometry);
       status.textContent = direction === "undo" ? "図形操作を元に戻しました" : "図形操作をやり直しました";
       draw();

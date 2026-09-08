@@ -102,8 +102,11 @@ test("辺の長さ表示は水平・垂直・斜めで安定した法線側に�
     geometry = addParallelMark(geometry, { segmentIds: [geometry.objects[0].id, geometry.objects[2].id], markCount: 1 });
     const svg = new MockElement("svg");
     renderGeometrySvg(svg, geometry, { selection: { kind: "annotation", id: horizontal.id } });
-    const label = (objectId) => descendants(svg).find((node) => node.getAttribute("class") === "geometry-length-label"
-      && node.getAttribute("data-geometry-id") === geometry.annotations.find((annotation) => annotation.objectId === objectId).id);
+    const label = (objectId) => {
+      const annotation = geometry.annotations.find((entry) => entry.objectId === objectId);
+      const group = descendants(svg).find((node) => node.name === "g" && node.getAttribute("data-geometry-id") === annotation.id);
+      return group?.children.find((node) => node.getAttribute("class") === "geometry-length-label");
+    };
     const horizontalLabel = label(geometry.objects[0].id);
     const verticalLabel = label(geometry.objects[1].id);
     const diagonalLabel = label(geometry.objects[2].id);
@@ -113,9 +116,12 @@ test("辺の長さ表示は水平・垂直・斜めで安定した法線側に�
     assert.ok(Math.abs(Number(diagonalLabel.getAttribute("x")) - (30 - 8 / Math.sqrt(2))) < 1e-9);
     assert.ok(Math.abs(Number(diagonalLabel.getAttribute("y")) - (60 + 8 / Math.sqrt(2))) < 1e-9, "斜め辺は中点の法線側へ置く");
     assert.deepEqual({ x: Number(reversedLabel.getAttribute("x")), y: Number(reversedLabel.getAttribute("y")) }, { x: 30, y: 98 }, "端点の保存順が逆でも自然な側を維持する");
-    assert.equal(horizontalLabel.getAttribute("data-geometry-kind"), "annotation", "ラベル自体を注釈として選択できる");
+    assert.equal(horizontalLabel.getAttribute("data-geometry-kind"), null, "描画用textへ注釈種別を重複させない");
+    assert.equal(horizontalLabel.getAttribute("data-geometry-type"), null, "描画用textへ注釈型を重複させない");
+    assert.equal(horizontalLabel.getAttribute("data-geometry-id"), null, "描画用textへ注釈IDを重複させない");
     assert.match(horizontalLabel.getAttribute("pointer-events"), /visiblePainted/);
     const horizontalGroup = descendants(svg).find((node) => node.name === "g" && node.getAttribute("data-geometry-id") === horizontal.id);
+    assert.equal(descendants(svg).filter((node) => node.getAttribute("data-geometry-type") === "length-label" && node.getAttribute("data-geometry-id") === horizontal.id).length, 1, "長さ注釈の意味上のDOMノードは親gだけにする");
     assert.match(horizontalGroup.getAttribute("class"), /is-selected/, "選択状態をラベルへ反映する");
     assert.equal(descendants(svg).some((node) => node.getAttribute("class") === "geometry-equal-length-mark"), true, "等辺印と共存する");
     assert.equal(descendants(svg).some((node) => node.getAttribute("class") === "geometry-parallel-mark"), true, "平行記号と共存する");

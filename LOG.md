@@ -2519,3 +2519,10 @@
 * 読込では不正な長さラベルの辺参照・重複だけを除外し、側と位置の不正値は安全な既定値／範囲へ正規化するため、図形ブロック全体は復元する。対象図形の削除時は既存の注釈削除経路で長さ表示も消える。読み取り専用プレビューは表示だけで編集器を作らない。
 * テストを `geometry-block-utils.test.js`、`geometry-editor-utils.test.js`、`geometry-svg-renderer.test.js`、`geometry-block.e2e.js`、`version.test.js` へ追加・更新した。水平・垂直・斜め・逆向き、側切替、線分方向位置、編集・空欄削除、保存復元、不正入力、等辺／平行との共存、読み取り専用、実SVGクリックとCTM経由のE2Eを確認した。
 * 検証：関連単体85件、`version.test.js` 3件、`npm test`、`npm run test:e2e:geometry`、`npm run test:e2e:mobile`、変更JSの `node --check`、`git diff --check` は成功。手動ブラウザー操作、実タッチ端末、Safari、push後CIは未確認。作業開始時から未コミットだった `e2e-artifacts/mobile-layout-390.png` は保持し、モバイルE2Eは同ファイルへ既定のスクリーンショットを出力するため内容の作業前後差は分離できない。
+
+## 2026-09-09 PR #200 レビュー修正：長さ注釈のDOM識別と履歴選択
+
+* 原因は、`renderLengthLabel()` の親 `g` が `semanticGroup()` で既に注釈の意味情報を持つにもかかわらず、描画専用の子 `text` にも同じ `data-geometry-kind`、`data-geometry-type`、`data-geometry-id` を付けていたことだった。子 `text` から3属性を外し、親 `g.geometry-length-label` だけを注釈の意味上のDOMノードとした。子は描画クラス、座標、`pointer-events` だけを保ち、クリック時は既存の `closest("[data-geometry-kind]")` で親注釈を選択する。
+* `selectionExists()` を編集器内の点・図形・注釈共通の小さな整合性判定として追加し、`restoreHistory()` のUndo/Redo直後に現在の図形モデルと選択IDを照合するようにした。復元先に選択対象がなければ `selection` を `null` にし、対象が残る場合は選択を維持するため、削除済み注釈で「選択を削除」が有効になる状態を防ぐ。保存済みgeometryのID、objectId、segmentId、edgeIndex、V1の `value`/`unit`/`offsetX`/`offsetY`/`side`/`alongOffset` は変更していない。
+* レンダラー単体テストは、子 `text` に3つの識別属性がないことと、同一長さ注釈の `data-geometry-type=length-label` ノードが親 `g` の1件だけであることを確認する。Geometry E2Eは親 `g` を明示セレクターに統一し、子 `text` の実クリック選択、作成直後の選択、Undoでの注釈・選択の除去と削除ボタン無効化、Redoでの復元、注釈が残るUndoでの選択維持、読み取り専用プレビューの親 `g` 一意性を確認する。
+* 検証：`geometry-svg-renderer.test.js` と `version.test.js` の14件、`npm run test:e2e:geometry` の4シナリオ（等辺印・平行記号の1100px/390px、console/page error 0）、`npm run test:e2e:mobile`（layout 6表示条件、writing 4幅とdesktop/compact/note-switch/popout、console/page error 0）はすべて終了コード0で成功した。モバイルlayoutのスクリーンショットは一時ディレクトリへ出力し、作業開始前からの `e2e-artifacts/mobile-layout-390.png` は上書きしていない。`npm test` は今回の変更と無関係な既存 `text-stats-ui.test.js:31` が `style.css?v=0.5.0-83` を期待し、現在のHTMLの`0.5.0-84`と不一致のため失敗した。変更JavaScriptの `node --check` と `git diff --check` は成功した。push後CI、手動ブラウザー、実タッチ端末、Safariは未確認として残す。
