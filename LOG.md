@@ -2562,3 +2562,21 @@
 * 回帰テストを `attachment-utils.test.js`、`image-block-layout.test.js`、`markdown-bundle-utils.test.js`、`backup-bundle-utils.test.js` に追加・更新した。旧データと不正値の中央復元、左・中央・右、サイズと配置の分離、2枚グループ、追加・入替・削除後の配置維持、説明文の位置と左揃え、狭幅CSS、アクセシブルUI、Markdown書出し・再取込、Memo Nexus ZIP往復を検証する。更新した `app.js` と `style.css` の配信キャッシュ識別子を144/87へ上げ、既存の固定契約テストも同期した。
 * 検証：`node --check attachment-utils.js`、`node --check app.js`、関連192件の `node --test`、`npm test`（1,074件、fail 0）、`npm run test:e2e:mobile:writing`（Chromium、320/375/390/430px、console/page error 0）、`git diff --check` を実行した。モバイルの既存未コミット成果物 `e2e-artifacts/mobile-layout-390.png` は上書きしていない。画像ブロック専用の既存ブラウザーE2Eはないため、画像の実画面組合せは追加した保存・描画・狭幅回帰テストで確認し、実タッチ端末、Safari、push後CIは未確認である。
 * 本文の画像横回り込み、画像ごとの個別配置、自由ドラッグ・任意幅・トリミング・回転・画像加工・注釈・OCR・Neo Paint連携、元画像データの変更は今回の対象外とした。
+
+## 2026-09-09 グラフブロック第1段階：縦棒グラフ
+
+* 独立したグラフブロックを追加した。本文には `<!-- memo-nexus:chart-block:<UTF-8 hex JSON> -->` を保存し、`schemaVersion: 1`、`chartType: "bar"`、`title`、`unit`、安定IDを持つ `items`、共通 `appearance`（`color`、`showValues`、将来用の常にfalseな `showLegend`）を保持する。通常の本文保存を使うため、既存メモ、再読み込み、Markdown/ZIPエクスポート、複製、削除、Undo/Redoの本文経路を変更せずにグラフを保持する。
+* エディタ上部とモバイルの追加メニューへ「グラフ」を追加した。挿入後の専用編集欄でタイトル、単位、項目名と数値の小さな入力表、行追加・削除、棒色、棒上の数値表示、入力確定、削除を操作できる。入力のたびに保存済みモデルと編集欄内のSVGプレビューを更新し、カードの「編集」から同じグラフ編集欄へ戻れる。
+* 描画は追加ライブラリなしのSVGで実装した。幅に追従するviewBoxと横スクロール用コンテナを使い、項目名は長さを省略してカード幅を守る。SVGにはタイトル・単位・各項目の支援技術用テキストを持たせ、テーマ変数で軸・文字・背景をライト／ダーク双方で見分けられるようにした。値が全て0でも最大値を0として高さ0にし、ゼロ除算しない。
+* 読込時は未知のグラフ種別をbarへ、安全でない色を既定色へ、`NaN`、`Infinity`、負数、空値を0へ正規化する。項目名は保存時に前後空白を除去し、最大50件、重複時も安定IDを補正する。無効な項目名だけのときは棒を描かず、入力を促す空状態を表示する。編集途中の空・不正数値は入力欄に残し、保存モデルや描画計算へ渡さない。
+* `chart-block-utils.test.js` を追加し、作成、直列化、安定ID、整数・小数・0、不正入力、コードフェンス・画像ブロック内マーカー、挿入・更新・削除を確認した。`chart-block.e2e.js` は作成、リアルタイム描画、色、値表示、再編集、保存、再読み込み、390px幅の横はみ出しなし、page errorなしをChromiumで確認する。カードの確認スクリーンショットは一時フォルダ `C:\Users\tetsu\AppData\Local\Temp\memo-nexus-chart-block-390.png` に記録した。
+* 検証：`node --test chart-block-utils.test.js`、`npm run test:e2e:chart`、`npm test`（1,082件、fail 0）、`npm run test:e2e:mobile`（layoutとwriting、console/page error 0）、変更JavaScriptの `node --check`、`git diff --check` を実行した。モバイルE2Eが既定出力先へ一時書込した開始時から未コミットの `e2e-artifacts/mobile-layout-390.png` は、開始時blob `97b3401` から正確に復元した。
+* 円グラフ、折れ線グラフ、横棒グラフ、複数系列、表ブロック連携、CSV読込、項目ごとの色、アニメーション、画像エクスポート、単一系列で不要な凡例UIは今回の対象外とした。円・折れ線・複数系列・表ブロック連携は次段階の候補である。項目並べ替えと複数系列を追加する際は、既存item IDを変えずに順序と系列を別概念として扱う必要がある。
+
+## 2026-09-09 PR #206 レビュー修正：グラフ確定・CI・E2E後始末
+
+* 数値欄の空文字、`NaN`、`Infinity`、負数は入力時に保存モデル更新を止めていたが、「入力を確定」は無条件で成功表示していた。数値欄ごとに0以上の有限値を検証し、不正時は入力文字列をDOMへ残したまま`aria-invalid="true"`を設定する。有効値へ直すと属性を外す。確定時には対象グラフの全数値欄を再検証し、不正値があれば成功表示をせず最初の不正欄へフォーカスする。
+* 全数値欄が有効なときだけ既存の本文置換・Undo/Redo・自動保存経路を使い、共通`flushSave()`の完了後に「入力内容を保存しました」と表示する。保存失敗時は成功表示を出さず、グラフ編集欄へエラーを表示する。グラフの保存形式、`schemaVersion`、DB_VERSION、安定IDは変更していない。
+* GitHub Actionsへ`Chart E2E (chromium)`と`Chart E2E (webkit)`の専用マトリクスを追加した。既存のCI checks、Mobile E2E、Geometry E2Eは変更していない。
+* `chart-block.e2e.js`は静的サーバー作成後にブラウザー起動が失敗すると`finally`へ入らず、サーバーが残ってNodeが終了しない経路を持っていた。ブラウザーをnull初期化し、起動・ページ操作・assertionを同じ`try/finally`へ入れた。後始末の失敗は本来のテスト失敗を隠さず、ブラウザーと静的サーバーを順に終了する。
+* 検証：`node --check app.js`、`node --check chart-block-utils.js`、`node --check chart-block.e2e.js`、`node --test chart-block-utils.test.js`（8件）、`npm test`（1,082件、fail 0）、Chromium／WebKitの`npm run test:e2e:chart`、未対応ブラウザー指定時の非0終了（ハングなし）、`npm run test:e2e:mobile`、`git diff --check`を実行して成功した。モバイルE2E後は開始時から未コミットだった`e2e-artifacts/mobile-layout-390.png`を作業前のSHA-256 `0C93C26B12EBB45AA251746E01030B84152C52386F32E2319772044123038DAF` と同じ内容へ復元した。push後のGitHub ActionsではCI checks、Mobile E2E（Chromium／WebKit）、Geometry E2E（Chromium）、Chart E2E（Chromium／WebKit）がすべて成功した。
