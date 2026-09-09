@@ -43,6 +43,13 @@ async function launchBrowser() {
   }
 }
 
+async function closeStaticServer(server) {
+  if (!server) return;
+  await new Promise((resolve, reject) => {
+    server.close((error) => error ? reject(error) : resolve());
+  });
+}
+
 async function waitForApp(page) {
   await page.goto(appUrl, { waitUntil: "domcontentloaded", timeout: 30000 });
   await page.locator("#appStartupGuard").waitFor({ state: "hidden", timeout: 30000 });
@@ -55,9 +62,12 @@ function chart(page) {
 }
 
 (async () => {
-  const server = await startStaticServer();
-  const browser = await launchBrowser();
+  let server = null;
+  let browser = null;
+  let runError = null;
   try {
+    server = await startStaticServer();
+    browser = await launchBrowser();
     const page = await browser.newPage({ viewport: { width: 1100, height: 820 } });
     const pageErrors = [];
     page.on("pageerror", (error) => pageErrors.push(error.message));
@@ -87,8 +97,27 @@ function chart(page) {
     assert.equal(await page.locator("#preview .chart-block-edit").count(), 1, "カードに再編集操作を表示する");
     await page.locator("#preview .chart-block-edit").click();
     assert.equal(await editor.evaluate((element) => document.activeElement === element), true, "カードの編集操作が対応する編集欄へ移動する");
-    await page.evaluate(() => window.flushSave());
+    const firstValue = editor.locator('input[aria-label="1件目の数値"]');
+    await firstValue.fill("");
+    assert.equal(await firstValue.getAttribute("aria-invalid"), "true", "空の数値欄を不正として公開する");
+    assert.equal((await chart(page)).items[0].value, 70.5, "不正な空入力は直前の有効な保存値を置き換えない");
+    await editor.locator('button[data-chart-action="confirm"]').click();
+    await page.waitForFunction(() => document.activeElement?.getAttribute("aria-label") === "1件目の数値");
+    assert.match(await editor.locator(".chart-block-status").textContent(), /数値は0以上の有限な数値/, "不正値では保存成功を表示しない");
+    await firstValue.fill("-1");
+    assert.equal(await firstValue.getAttribute("aria-invalid"), "true", "負数を不正として公開する");
+    await firstValue.fill("NaN");
+    assert.equal(await firstValue.getAttribute("aria-invalid"), "true", "NaNを不正として公開する");
+    await firstValue.fill("Infinity");
+    assert.equal(await firstValue.getAttribute("aria-invalid"), "true", "有限でない数値を不正として公開する");
+    await firstValue.fill("72.25");
+    await page.waitForFunction(() => window.MemoNexusChartBlockUtils.splitChartBlocks(document.getElementById("editor").value)
+      .find((segment) => segment.type === "chart")?.chart.items[0].value === 72.25);
+    assert.equal(await firstValue.getAttribute("aria-invalid"), null, "有効な数値へ修正すると不正状態を解除する");
+    await editor.locator('button[data-chart-action="confirm"]').click();
+    await page.waitForFunction(() => document.querySelector(".chart-block-editor .chart-block-status")?.textContent === "入力内容を保存しました");
     const beforeReload = await chart(page);
+    assert.equal(beforeReload.items[0].value, 72.25, "有効値の確定は保存モデルを更新する");
     await page.reload({ waitUntil: "domcontentloaded" });
     await page.locator("#appStartupGuard").waitFor({ state: "hidden" });
     assert.deepEqual(await chart(page), beforeReload, "再読み込み後もグラフ保存データを復元する");
@@ -101,8 +130,23 @@ function chart(page) {
     assert.ok(metrics.card <= metrics.viewport, "390px幅でもグラフカードが画面からはみ出さない");
     assert.equal(metrics.pageOverflow, 0, "390px幅でもページ全体の横スクロールを作らない");
     assert.deepEqual(pageErrors, [], `ページエラーなし: ${pageErrors.join("\n")}`);
+  } catch (error) {
+    runError = error;
+    throw error;
   } finally {
-    await browser.close();
-    if (server) await new Promise((resolve) => server.close(resolve));
+    let cleanupError = null;
+    try {
+      if (browser) await browser.close();
+    } catch (error) {
+      if (runError) console.error("Browser cleanup failed", error);
+      else cleanupError = error;
+    }
+    try {
+      await closeStaticServer(server);
+    } catch (error) {
+      if (runError) console.error("Static server cleanup failed", error);
+      else if (!cleanupError) cleanupError = error;
+    }
+    if (cleanupError) throw cleanupError;
   }
 })().catch((error) => { console.error(error); process.exitCode = 1; });

@@ -8342,6 +8342,19 @@ function chartDisplayNumber(value) {
   return Number.isInteger(value) ? String(value) : String(value);
 }
 
+function isValidChartNumber(value) {
+  const text = String(value ?? "").trim();
+  const number = Number(text);
+  return text !== "" && Number.isFinite(number) && number >= 0;
+}
+
+function setChartNumberValidity(input) {
+  const valid = isValidChartNumber(input.value);
+  if (valid) input.removeAttribute("aria-invalid");
+  else input.setAttribute("aria-invalid", "true");
+  return valid;
+}
+
 function chartLabel(value, maxLength = 14) {
   const text = String(value || "");
   return text.length > maxLength ? `${text.slice(0, Math.max(1, maxLength - 1))}…` : text;
@@ -8542,7 +8555,7 @@ function handleChartEditorInput(event) {
     const itemIndex = Number(event.target.closest(".chart-block-item-row")?.dataset.chartItemIndex);
     if (!next.items[itemIndex]) return;
     const field = event.target.dataset.chartItemField;
-    if (field === "value" && (event.target.value.trim() === "" || !Number.isFinite(Number(event.target.value)) || Number(event.target.value) < 0)) {
+    if (field === "value" && !setChartNumberValidity(event.target)) {
       chartEditorStatus(editorBlock, "数値は0以上の有限な数値を入力してください");
       return;
     }
@@ -8558,6 +8571,32 @@ function handleChartEditorInput(event) {
   chartEditorStatus(editorBlock, "");
   renderChartEditorPreview(editorBlock.querySelector(".chart-block-editor-preview"), next, blockIndex);
   commitChartBlockChange(blockIndex, chartId, next);
+}
+
+async function confirmChartEditor(editorBlock, blockIndex, chartId) {
+  const invalidInput = [...editorBlock.querySelectorAll('input[data-chart-item-field="value"]')]
+    .find((input) => !setChartNumberValidity(input));
+  if (invalidInput) {
+    chartEditorStatus(editorBlock, "数値は0以上の有限な数値を入力してください");
+    invalidInput.focus({ preventScroll: true });
+    return;
+  }
+
+  const block = currentChartBlock(blockIndex, chartId);
+  if (!block) return;
+  if (!commitChartBlockChange(blockIndex, chartId, normalizeChartBlock(block.chart, chartId))) {
+    chartEditorStatus(editorBlock, "入力内容を保存できませんでした");
+    return;
+  }
+
+  chartEditorStatus(editorBlock, "保存中...");
+  try {
+    await flushSave();
+    chartEditorStatus(editorBlock, "入力内容を保存しました");
+  } catch (error) {
+    console.error("Chart block save failed", error);
+    chartEditorStatus(editorBlock, `入力内容を保存できませんでした: ${error.message || error}`);
+  }
 }
 
 function handleChartEditorAction(event) {
@@ -8593,7 +8632,7 @@ function handleChartEditorAction(event) {
       editor.focus();
       return;
     case "confirm":
-      chartEditorStatus(editorBlock, "入力内容を保存しました");
+      confirmChartEditor(editorBlock, blockIndex, chartId);
       return;
     default:
       return;
