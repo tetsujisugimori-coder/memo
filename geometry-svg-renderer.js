@@ -2,7 +2,7 @@
   "use strict";
 
   const svgNamespace = "http://www.w3.org/2000/svg";
-  const FILL_STYLES = new Set(["primary", "secondary", "accent", "muted"]);
+  const FILL_STYLES = globalScope.MemoNexusGeometryBlockUtils?.FILL_STYLES || new Set(["primary", "secondary", "accent", "muted"]);
 
   function isRecord(value) {
     return Boolean(value) && typeof value === "object" && !Array.isArray(value);

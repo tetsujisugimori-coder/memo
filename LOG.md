@@ -2543,3 +2543,12 @@
 * 回帰テストはモデルの追加・更新・解除・不変性・不正値拒否・保存再読込・複製・削除、レンダラーの描画順・DOM識別一意性・pointer-events・頂点追従・安全な未知値無視・region互換を追加した。E2Eは1100pxと390pxでCTM投影・整数座標を使い、多角形作成、内部選択、accent設定、再選択、ドラッグ、色更新での注釈非増殖、Undo/Redo、保存再読込、読み取り専用プレビュー、解除、削除を確認する。
 * 検証：`npm test` は1,065件、fail 0、exit 0。関連単体（幾何学・キャッシュ契約）は146件、fail 0、exit 0。`npm run test:e2e:geometry` は既存の等辺印／平行記号各1100px・390pxと塗り領域各1100px・390pxを含み、exit 0、console/page error 0。`npm run test:e2e:mobile` はlayout 6条件とwriting 4幅・desktop・compact・note-switch・popoutでexit 0、console/page error 0。変更した5本のJavaScriptの `node --check` と `git diff --check` はexit 0。モバイルE2Eが開始時から未コミットだった `e2e-artifacts/mobile-layout-390.png` を一時上書きしたため、開始時blob `97b3401` へ復元し、差分を保持した。
 * `agent-browser` CLI はこのWindows環境に存在せず利用できなかった。Playwrightによる自動E2Eは完走した。手動ブラウザー操作、実タッチ端末、Safari、push後CIは未確認として残す。
+
+## 2026-09-09 PR #202 レビュー修正：多角形塗りの操作性と視認性
+
+* 色を塗れないように見えた原因は、`completeShape()` が三角形・四角形・多角形を追加しても選択状態を更新せず、作成直後に塗りを設定できなかったことと、塗り操作がプロパティ末尾の文字だけのselectだったことにある。作成前のobject ID集合と追加後の差分から新規polygonを特定し、既存の作成モードを維持したままそのpolygonを自動選択する。ステータスには作成完了と「領域の塗りを選択できます」を表示する。
+* `select`は、なし・基本色・副色・強調色・控えめの実色スウォッチを持つボタン群へ置き換えた。各ボタンは日本語のaria-label、選択状態の`aria-pressed`、キーボードのEnter/Space、タッチ操作に対応する。390pxでは3列の折り返しgridにし、領域の塗り欄が横にはみ出さない。polygon未選択または非対応図形選択時はボタンを無効にした上で「三角形・四角形・多角形を選択してください」と案内する。
+* 編集UIで変更できる対象はpolygonだけのままにし、線分、円、扇形、交差領域、自由形状は対象外とした。非対応図形を選択しても既存`fill-region`を更新しない。保存形式はV1の`fill-region`、`objectId`、`fill`を維持し、なしは注釈削除、同一polygonの色変更は既存注釈更新、複製・削除・Undo/Redo・region型既存データの互換経路も変更していない。rendererは既に公開済みの`FILL_STYLES`を優先参照し、読込順がない単体利用時だけ既定Setへフォールバックする。
+* Geometry E2Eは1100pxと390pxで、作成直後の自動選択、可視かつ有効なスウォッチのクリック、キーボードでの色変更、色注釈非増殖、Undo/Redo、保存再読込、読み取り専用プレビュー、なし、対象polygon削除、線分選択時の無効化と案内を検証する。`getComputedStyle()`でfillがnone/完全透明でなく、CSSカスタムプロパティが定義され、半透明であり、塗りが輪郭・頂点より背面であることを検証する。ライトテーマは1100px、ダークテーマは390pxで既存の設定画面から実際に切り替えて確認し、pointer-events:noneと塗り上からの選択・ドラッグも確認する。
+* 検証：関連単体・キャッシュ契約146件、`npm test` 1,065件はすべてpass、fail 0。`npm run test:e2e:geometry` は等辺印・平行記号・塗り領域の1100px/390pxすべてpass、console/page error 0。`npm run test:e2e:mobile` はlayout 6条件、writing 4幅、desktop・compact・note-switch・popoutをpass、console/page error 0。変更JavaScriptの`node --check`と`git diff --check`は成功した。モバイルE2Eが一時上書きした開始時から未コミットの`e2e-artifacts/mobile-layout-390.png`は開始時blob `97b3401`へ復元した。
+* 手動ブラウザーは、既存Edgeプロファイルの保存済みメモを変更しないため、実データ上での作図・色変更は行わなかった。Playwrightの実ブラウザーE2Eでライト／ダーク、1100px／390pxを確認済み。実タッチ端末、Safari、push後CIは未確認として残す。
