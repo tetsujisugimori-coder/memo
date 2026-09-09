@@ -3,7 +3,7 @@ const assert = require("node:assert/strict");
 const { createGeometryBlock, cloneGeometryBlock, normalizeGeometryBlock, parseGeometryBlockLine, serializeGeometryBlock } = require("./geometry-block-utils.js");
 const {
   addAngle, addCircle, addEqualLengthMark, addParallelMark, addPoint, addPolygon, addRightAngle, addSegment, createHistory, deleteSelection, moveObject, movePoint,
-  screenPointToViewBox, updateAngleLabel, updateEqualLengthMarkCount, updateLengthLabel, updateLengthLabelPlacement, updateParallelMarkCount, updateSegmentLineStyle, updateVertexLabel
+  screenPointToViewBox, updateAngleLabel, updateEqualLengthMarkCount, updateFillRegion, updateLengthLabel, updateLengthLabelPlacement, updateParallelMarkCount, updateSegmentLineStyle, updateVertexLabel
 } = require("./geometry-editor-utils.js");
 
 function withPoints(count = 3) {
@@ -89,6 +89,36 @@ test("三角形、四角形、5点以上の多角形は頂点順を保持する"
     const polygon = addPolygon(geometry, geometry.points.map((point) => point.id)).objects[0];
     assert.deepEqual(polygon.pointIds, geometry.points.map((point) => point.id));
   });
+});
+
+test("多角形の塗りはV1 fill-regionを1件だけ追加・更新・解除し、元データを変更しない", () => {
+  let geometry = withPoints(3);
+  geometry = addPolygon(geometry, geometry.points.map((point) => point.id));
+  const polygon = geometry.objects[0];
+  const before = JSON.stringify(geometry);
+  let changed = updateFillRegion(geometry, polygon.id, "primary");
+  let annotation = changed.annotations.find((entry) => entry.type === "fill-region");
+  assert.equal(JSON.stringify(geometry), before, "入力geometryを直接変更しない");
+  assert.deepEqual({ objectId: annotation.objectId, fill: annotation.fill }, { objectId: polygon.id, fill: "primary" });
+  const annotationId = annotation.id;
+  changed = updateFillRegion(changed, polygon.id, "accent");
+  annotation = changed.annotations.find((entry) => entry.type === "fill-region");
+  assert.equal(changed.annotations.filter((entry) => entry.type === "fill-region").length, 1, "同じ多角形の塗り注釈を増やさない");
+  assert.deepEqual({ id: annotation.id, fill: annotation.fill }, { id: annotationId, fill: "accent" }, "既存注釈を更新する");
+  const restored = parseGeometryBlockLine(serializeGeometryBlock(changed));
+  assert.deepEqual(restored.annotations.find((entry) => entry.id === annotationId), annotation, "保存再読込後もobjectIdとfillを維持する");
+  assert.equal(cloneGeometryBlock(changed).annotations.find((entry) => entry.type === "fill-region").objectId === polygon.id, false, "複製時に塗り参照先を複製後の多角形へ付け替える");
+  assert.equal(updateFillRegion(changed, polygon.id, "").annotations.some((entry) => entry.type === "fill-region"), false, "なしは注釈を削除する");
+  assert.equal(deleteSelection(changed, { kind: "object", id: polygon.id }).annotations.some((entry) => entry.type === "fill-region"), false, "多角形削除時に塗り注釈を削除する");
+});
+
+test("塗りは許可済みスタイルと新規多角形だけへ設定できる", () => {
+  let geometry = withPoints(3);
+  geometry = addPolygon(geometry, geometry.points.map((point) => point.id));
+  geometry = addSegment(geometry, geometry.points[0].id, geometry.points[1].id);
+  assert.throws(() => updateFillRegion(geometry, geometry.objects[0].id, "rainbow"), /種類が不正/);
+  assert.throws(() => updateFillRegion(geometry, geometry.objects[1].id, "primary"), /多角形/);
+  assert.throws(() => updateFillRegion(geometry, "missing", "primary"), /多角形/);
 });
 
 test("線分の辺ラベルは辺0だけを保存し、既存の省略edgeIndexは辺0として復元する", () => {

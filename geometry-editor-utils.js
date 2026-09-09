@@ -5,7 +5,7 @@
     || (typeof require === "function" ? require("./geometry-block-utils.js") : null);
   if (!geometryUtils) throw new Error("MemoNexusGeometryBlockUtils is required");
 
-  const { edgeCount, edgeRefsForAnnotation, generatedEntityId, normalizeGeometryBlock, LENGTH_LABEL_ALONG_OFFSET_LIMIT = 20 } = geometryUtils;
+  const { edgeCount, edgeRefsForAnnotation, generatedEntityId, normalizeGeometryBlock, FILL_STYLES, LENGTH_LABEL_ALONG_OFFSET_LIMIT = 20 } = geometryUtils;
   const RIGHT_ANGLE_MIN_DEGREES = 80;
   const RIGHT_ANGLE_MAX_DEGREES = 100;
   const RIGHT_ANGLE_ANGLE_EPSILON_DEGREES = 1e-9;
@@ -169,6 +169,25 @@
   function lengthLabel(geometry, objectId, edgeIndex = 0) {
     return geometry.annotations.find((annotation) => annotation.type === "length-label"
       && annotation.objectId === objectId && (annotation.edgeIndex || 0) === edgeIndex) || null;
+  }
+
+  function fillRegion(geometry, objectId) {
+    return geometry.annotations.find((annotation) => annotation.type === "fill-region" && annotation.objectId === objectId) || null;
+  }
+
+  function updateFillRegion(geometry, objectId, fill) {
+    const next = copy(geometry);
+    const object = objectById(next, objectId);
+    if (!object || object.type !== "polygon") throw new Error("塗りを設定できる多角形が見つかりません");
+    const annotation = fillRegion(next, objectId);
+    if (fill == null || fill === "") {
+      if (annotation) next.annotations = next.annotations.filter((entry) => entry.id !== annotation.id);
+      return normalizeGeometryBlock(next, next.id);
+    }
+    if (!FILL_STYLES?.has(fill)) throw new Error("領域の塗りの種類が不正です");
+    if (annotation) annotation.fill = fill;
+    else next.annotations.push({ id: generatedEntityId("fill-region"), type: "fill-region", objectId, fill });
+    return normalizeGeometryBlock(next, next.id);
   }
 
   function rightAngleDegrees(vertex, firstRay, secondRay) {
@@ -515,7 +534,7 @@
     };
   }
 
-  const api = { RIGHT_ANGLE_MIN_DEGREES, RIGHT_ANGLE_MAX_DEGREES, pointName, screenPointToViewBox, pointById, objectById, vertexLabel, lengthLabel, edgeCount, edgeForRef, isEdgeDrawable, isAngleDrawable, addPoint, addSegment, addPolygon, addCircle, movePoint, moveObject, updateVertexLabel, updateSegmentLineStyle, updateLengthLabel, updateLengthLabelPlacement, updateAngleLabel, addRightAngle, addAngle, addLengthAnnotation, addEqualLengthMark, updateEqualLengthMarkCount, addParallelMark, updateParallelMarkCount, deleteSelection, createHistory };
+  const api = { RIGHT_ANGLE_MIN_DEGREES, RIGHT_ANGLE_MAX_DEGREES, pointName, screenPointToViewBox, pointById, objectById, vertexLabel, lengthLabel, fillRegion, edgeCount, edgeForRef, isEdgeDrawable, isAngleDrawable, addPoint, addSegment, addPolygon, addCircle, movePoint, moveObject, updateVertexLabel, updateSegmentLineStyle, updateLengthLabel, updateLengthLabelPlacement, updateFillRegion, updateAngleLabel, addRightAngle, addAngle, addLengthAnnotation, addEqualLengthMark, updateEqualLengthMarkCount, addParallelMark, updateParallelMarkCount, deleteSelection, createHistory };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   if (globalScope) globalScope.MemoNexusGeometryEditorUtils = api;
 })(typeof window !== "undefined" ? window : globalThis);

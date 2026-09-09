@@ -2,6 +2,7 @@
   "use strict";
 
   const svgNamespace = "http://www.w3.org/2000/svg";
+  const FILL_STYLES = globalScope.MemoNexusGeometryBlockUtils?.FILL_STYLES || new Set(["primary", "secondary", "accent", "muted"]);
 
   function isRecord(value) {
     return Boolean(value) && typeof value === "object" && !Array.isArray(value);
@@ -33,7 +34,7 @@
     const pointIds = new Set(points.map((point) => point.id));
     const objects = stableById(source.objects).filter((object) => {
       if (!isRecord(object) || typeof object.id !== "string" || !object.id || !Array.isArray(object.pointIds)) return false;
-      const expectedCount = object.type === "segment" || object.type === "circle" ? 2 : object.type === "polygon" ? 3 : 0;
+      const expectedCount = object.type === "segment" || object.type === "circle" ? 2 : ["polygon", "region"].includes(object.type) ? 3 : 0;
       return expectedCount && object.pointIds.length >= expectedCount
         && (object.type !== "polygon" || object.pointIds.length >= 3)
         && object.pointIds.every((pointId) => typeof pointId === "string" && pointIds.has(pointId));
@@ -50,6 +51,10 @@
           && rayVertexIds.slice(0, 2).every((pointId) => pointIds.has(pointId));
       }
       if (annotation.type === "length-label") return typeof annotation.objectId === "string" && objectIds.has(annotation.objectId);
+      if (annotation.type === "fill-region") {
+        const object = objects.find((entry) => entry.id === annotation.objectId);
+        return ["polygon", "region"].includes(object?.type) && FILL_STYLES.has(annotation.fill === undefined ? "primary" : annotation.fill);
+      }
       if (annotation.type === "equal-length") {
         const edgeRefs = edgeRefsForAnnotation(annotation);
         return edgeRefs.length >= 2 && edgeRefs.every((edgeRef) => {
@@ -168,6 +173,23 @@
       focusable: "false",
       "pointer-events": interactive ? "visiblePainted" : "none"
     });
+  }
+
+  function renderFillRegion(svg, annotation, object, points) {
+    const fill = annotation.fill === undefined ? "primary" : annotation.fill;
+    if (!FILL_STYLES.has(fill)) return;
+    const vertices = object.pointIds.map((id) => points.get(id));
+    if (vertices.length < 3 || vertices.some((point) => !point)) return;
+    const group = semanticGroup("fill-region", annotation, `領域の塗り ${fill}`, { interactive: false });
+    group.setAttribute("data-object-id", annotation.objectId);
+    group.setAttribute("data-fill-style", fill);
+    group.append(svgElement("polygon", {
+      points: vertices.map((point) => `${point.x},${point.y}`).join(" "),
+      class: `geometry-fill-region-polygon geometry-fill-${fill}`,
+      "pointer-events": "none",
+      "aria-hidden": "true"
+    }));
+    svg.append(group);
   }
 
   function renderRightAngle(svg, annotation, geometry, points, vertexLabel, selection) {
@@ -406,6 +428,10 @@
     const points = pointMap(renderModel);
     const objects = new Map(renderModel.objects.map((object) => [object.id, object]));
     const draftEdges = new Set(draftEdgeRefs.map((edgeRef) => `${edgeRef.objectId}:${edgeRef.edgeIndex}`));
+    renderModel.annotations.filter((annotation) => annotation.type === "fill-region").forEach((annotation) => {
+      const object = objects.get(annotation.objectId);
+      if (object) renderFillRegion(svg, annotation, object, points);
+    });
     const appendEdgeHit = (object, edge) => {
       const selected = draftEdges.has(`${object.id}:${edge.edgeIndex}`);
       svg.append(svgElement("line", {

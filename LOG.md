@@ -2532,3 +2532,23 @@
 * 上記の `npm test` 失敗は無関係な既存問題ではなかった。PR内の辺の長さ表示追加コミットで `style.css` のキャッシュ識別子を `0.5.0-83` から `0.5.0-84` へ更新した際、`text-stats-ui.test.js` の固定期待値を83のまま残したことが最初の失敗原因だった。全テストを完走して追加で検出した `memo-list-utils.test.js`、`responsive-layout.test.js`、`table-paste.test.js` の同じ固定期待値漏れも、検証を弱めず84へ同期した。
 * `index.html`、`version.test.js`、`text-stats-ui.test.js` を含む5つのCSSキャッシュ契約テストはすべて `style.css?v=0.5.0-84` を厳密に検証する。機能コード、幾何学ブロック、保存スキーマ、CSS本体は変更していない。
 * 修正後の `npm test` は1,061件すべてpass、fail 0、cancelled/skipped/todo 0、終了コード0で完走した。`node --test text-stats-ui.test.js` は5件、`node --test version.test.js` は3件で各fail 0・終了コード0、`git diff --check` は成功した。再確認した `npm run test:e2e:geometry` は4シナリオ、`npm run test:e2e:mobile` はlayout 6条件とwriting 4幅およびdesktop/compact/note-switch/popoutで終了コード0、console/page error 0だった。モバイルlayoutのスクリーンショットは一時ディレクトリへ出力し、作業開始前からの `e2e-artifacts/mobile-layout-390.png` は上書き・コミットしていない。push後CI、手動ブラウザー、実タッチ端末、Safariは未確認として残す。
+
+## 2026-09-09 幾何学ブロックの多角形塗り領域
+
+* 三角形・四角形・多角形の内部を、既存V1の `fill-region` 注釈（`objectId`、`fill`）で半透明に描画できるようにした。新しい保存形式・別名・バージョン2は追加せず、`GEOMETRY_BLOCK_VERSION` は1のままである。既存スキーマ上で正当な `region` 参照も読み取り・描画で維持するが、新規編集UIで設定できるのは `polygon` のみとした。円、扇形、交差領域、自由形状、グラデーション、パターン、任意色入力は対象外である。
+* `fillRegion()` と `updateFillRegion()` は入力geometryを変更せず、新規の多角形だけへ `primary`、`secondary`、`accent`、`muted` を設定する。同じ多角形には注釈を追加せず既存注釈を更新し、空欄（UIの「なし」）は `fill: "none"` を保存せず注釈自体を削除する。既存の複製時objectId付替えと対象図形削除時の参照注釈削除をそのまま利用する。
+* 編集プロパティへ文字ラベル付きの「領域の塗り」を追加した。選択中の多角形だけで有効にし、既存の `commit()`、Undo/Redo、`onChange`、選択状態を再利用する。SVGは各描画時に参照先の頂点座標から塗り用polygonを再構築し、頂点移動へ追従する。
+* 塗りは最背面に描画し、輪郭・線分・円・既存注釈・頂点を前面に保つ。親 `g.geometry-fill-region` だけに意味上の注釈属性を置き、子polygonは描画属性だけとした。親子とも `pointer-events: none` とし、透明な既存の多角形選択面、内部クリック、ドラッグ、頂点・辺の操作を阻害しない。未知のfill値・不正参照はその項目だけを無視し、CSSクラスへ未検証値を連結しない。
+* CSSは既存テーマ変数で4種類の半透明スタイルを追加し、ライト／ダーク双方で輪郭と補助線を隠さない濃さにした。`index.html`のCSS・4本の関連JavaScript識別子と、厳密なキャッシュ契約テストを同期した。
+* 回帰テストはモデルの追加・更新・解除・不変性・不正値拒否・保存再読込・複製・削除、レンダラーの描画順・DOM識別一意性・pointer-events・頂点追従・安全な未知値無視・region互換を追加した。E2Eは1100pxと390pxでCTM投影・整数座標を使い、多角形作成、内部選択、accent設定、再選択、ドラッグ、色更新での注釈非増殖、Undo/Redo、保存再読込、読み取り専用プレビュー、解除、削除を確認する。
+* 検証：`npm test` は1,065件、fail 0、exit 0。関連単体（幾何学・キャッシュ契約）は146件、fail 0、exit 0。`npm run test:e2e:geometry` は既存の等辺印／平行記号各1100px・390pxと塗り領域各1100px・390pxを含み、exit 0、console/page error 0。`npm run test:e2e:mobile` はlayout 6条件とwriting 4幅・desktop・compact・note-switch・popoutでexit 0、console/page error 0。変更した5本のJavaScriptの `node --check` と `git diff --check` はexit 0。モバイルE2Eが開始時から未コミットだった `e2e-artifacts/mobile-layout-390.png` を一時上書きしたため、開始時blob `97b3401` へ復元し、差分を保持した。
+* `agent-browser` CLI はこのWindows環境に存在せず利用できなかった。Playwrightによる自動E2Eは完走した。手動ブラウザー操作、実タッチ端末、Safari、push後CIは未確認として残す。
+
+## 2026-09-09 PR #202 レビュー修正：多角形塗りの操作性と視認性
+
+* 色を塗れないように見えた原因は、`completeShape()` が三角形・四角形・多角形を追加しても選択状態を更新せず、作成直後に塗りを設定できなかったことと、塗り操作がプロパティ末尾の文字だけのselectだったことにある。作成前のobject ID集合と追加後の差分から新規polygonを特定し、既存の作成モードを維持したままそのpolygonを自動選択する。ステータスには作成完了と「領域の塗りを選択できます」を表示する。
+* `select`は、なし・基本色・副色・強調色・控えめの実色スウォッチを持つボタン群へ置き換えた。各ボタンは日本語のaria-label、選択状態の`aria-pressed`、キーボードのEnter/Space、タッチ操作に対応する。390pxでは3列の折り返しgridにし、領域の塗り欄が横にはみ出さない。polygon未選択または非対応図形選択時はボタンを無効にした上で「三角形・四角形・多角形を選択してください」と案内する。
+* 編集UIで変更できる対象はpolygonだけのままにし、線分、円、扇形、交差領域、自由形状は対象外とした。非対応図形を選択しても既存`fill-region`を更新しない。保存形式はV1の`fill-region`、`objectId`、`fill`を維持し、なしは注釈削除、同一polygonの色変更は既存注釈更新、複製・削除・Undo/Redo・region型既存データの互換経路も変更していない。rendererは既に公開済みの`FILL_STYLES`を優先参照し、読込順がない単体利用時だけ既定Setへフォールバックする。
+* Geometry E2Eは1100pxと390pxで、作成直後の自動選択、可視かつ有効なスウォッチのクリック、キーボードでの色変更、色注釈非増殖、Undo/Redo、保存再読込、読み取り専用プレビュー、なし、対象polygon削除、線分選択時の無効化と案内を検証する。`getComputedStyle()`でfillがnone/完全透明でなく、CSSカスタムプロパティが定義され、半透明であり、塗りが輪郭・頂点より背面であることを検証する。ライトテーマは1100px、ダークテーマは390pxで既存の設定画面から実際に切り替えて確認し、pointer-events:noneと塗り上からの選択・ドラッグも確認する。
+* 検証：関連単体・キャッシュ契約146件、`npm test` 1,065件はすべてpass、fail 0。`npm run test:e2e:geometry` は等辺印・平行記号・塗り領域の1100px/390pxすべてpass、console/page error 0。`npm run test:e2e:mobile` はlayout 6条件、writing 4幅、desktop・compact・note-switch・popoutをpass、console/page error 0。変更JavaScriptの`node --check`と`git diff --check`は成功した。モバイルE2Eが一時上書きした開始時から未コミットの`e2e-artifacts/mobile-layout-390.png`は開始時blob `97b3401`へ復元した。
+* 手動ブラウザーは、既存Edgeプロファイルの保存済みメモを変更しないため、実データ上での作図・色変更は行わなかった。Playwrightの実ブラウザーE2Eでライト／ダーク、1100px／390pxを確認済み。実タッチ端末、Safari、push後CIは未確認として残す。

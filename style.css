@@ -2324,12 +2324,39 @@ body.layout-resizing iframe {
 .geometry-block-properties label { display: inline-flex; align-items: center; gap: 5px; color: var(--muted); font-size: 12px; }
 .geometry-block-properties input,
 .geometry-block-properties select { min-height: 34px; max-width: 150px; padding: 4px 6px; }
+.geometry-fill-field { min-width: min(100%, 312px); margin: 0; padding: 7px; border: 1px solid var(--line); border-radius: 6px; }
+.geometry-fill-field legend { padding: 0 3px; color: var(--ink); font-size: 12px; font-weight: 700; }
+.geometry-fill-choices { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; }
+.geometry-fill-choice { display: grid; min-width: 0; min-height: 46px; place-items: center; gap: 3px; padding: 4px; color: var(--ink); font-size: 11px; line-height: 1.1; }
+.geometry-fill-choice[aria-pressed="true"] { border-color: var(--accent); box-shadow: inset 0 0 0 2px var(--accent); background: var(--accent-soft); color: var(--ink); font-weight: 700; }
+.geometry-fill-choice:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.geometry-fill-swatch { display: block; width: 20px; height: 14px; border: 1px solid var(--line); border-radius: 3px; }
+.geometry-fill-swatch-none { background: linear-gradient(135deg, transparent 44%, var(--danger) 45%, var(--danger) 55%, transparent 56%), var(--input-bg); }
+.geometry-fill-swatch-primary { background: var(--accent); }
+.geometry-fill-swatch-secondary { background: var(--memo-nexus-logo-node-secondary); }
+.geometry-fill-swatch-accent { background: var(--gold); }
+.geometry-fill-swatch-muted { background: var(--muted); }
+.geometry-fill-guidance { margin: 6px 0 0; color: var(--muted); font-size: 11px; line-height: 1.35; }
+.geometry-fill-field.is-disabled { background: var(--input-bg); }
+.geometry-fill-field.is-disabled .geometry-fill-choice { opacity: .62; }
+
+@media (max-width: 480px) {
+  .geometry-fill-field { width: 100%; min-width: 0; }
+  .geometry-fill-choices { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
 
 .geometry-canvas { min-height: 210px; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; background: var(--input-bg); touch-action: none; }
 .geometry-canvas svg { display: block; width: 100%; height: 250px; outline: none; }
 .geometry-canvas svg:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 .geometry-polygon { fill: transparent; stroke: var(--muted); stroke-width: .8; vector-effect: non-scaling-stroke; cursor: pointer; }
 .geometry-polygon.is-selected { stroke: var(--accent); stroke-width: 2; }
+.geometry-fill-region,
+.geometry-fill-region-polygon { pointer-events: none; }
+.geometry-fill-region-polygon { stroke: none; }
+.geometry-fill-primary { fill: var(--accent); fill-opacity: .18; }
+.geometry-fill-secondary { fill: var(--memo-nexus-logo-node-secondary); fill-opacity: .2; }
+.geometry-fill-accent { fill: var(--gold); fill-opacity: .22; }
+.geometry-fill-muted { fill: var(--muted); fill-opacity: .16; }
 .geometry-segment-hit { stroke: transparent; stroke-width: 12; vector-effect: non-scaling-stroke; cursor: pointer; }
 .geometry-edge-hit { stroke: transparent; stroke-width: 14; vector-effect: non-scaling-stroke; cursor: pointer; }
 .geometry-edge-hit.is-draft { stroke: var(--accent); stroke-opacity: .45; stroke-width: 8; stroke-dasharray: 3 3; }

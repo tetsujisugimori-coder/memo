@@ -10,6 +10,13 @@
     ["select", "選択"], ["point", "点"], ["segment", "線分"], ["triangle", "三角形"],
     ["quadrilateral", "四角形"], ["circle", "円"], ["polygon", "多角形"], ["right-angle", "直角"], ["angle", "角度"], ["equal-length", "等辺"], ["parallel", "平行"]
   ];
+  const fillChoices = [
+    { value: "", label: "なし", swatch: "none" },
+    { value: "primary", label: "基本色", swatch: "primary" },
+    { value: "secondary", label: "副色", swatch: "secondary" },
+    { value: "accent", label: "強調色", swatch: "accent" },
+    { value: "muted", label: "控えめ", swatch: "muted" }
+  ];
 
   function svgElement(name, attributes = {}) {
     const element = document.createElementNS(svgNamespace, name);
@@ -40,6 +47,11 @@
   function selectedLengthLabel(geometry, selection) {
     if (selection?.kind !== "annotation") return null;
     return geometry.annotations.find((annotation) => annotation.id === selection.id && annotation.type === "length-label") || null;
+  }
+
+  function selectedFillRegion(geometry, selection) {
+    if (selection?.kind !== "object") return null;
+    return model.fillRegion(geometry, selection.id);
   }
 
   function selectionExists(geometry, selection) {
@@ -306,7 +318,46 @@
       updateControls();
     });
     parallelField.append(parallelCount);
-    properties.append(labelField, angleLabelField, lineField, lengthField, lengthLabelField, lengthSideField, lengthAlongField, equalLengthField, parallelField);
+    const fillField = document.createElement("fieldset");
+    fillField.className = "geometry-fill-field";
+    const fillLegend = document.createElement("legend");
+    fillLegend.textContent = "領域の塗り";
+    const fillChoicesGroup = document.createElement("div");
+    fillChoicesGroup.className = "geometry-fill-choices";
+    fillChoicesGroup.setAttribute("role", "group");
+    fillChoicesGroup.setAttribute("aria-label", "領域の塗りの色");
+    const fillGuidance = document.createElement("p");
+    fillGuidance.className = "geometry-fill-guidance";
+    fillGuidance.setAttribute("aria-live", "polite");
+    const fillButtons = new Map();
+    fillChoices.forEach(({ value, label, swatch }) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "geometry-fill-choice";
+      button.dataset.geometryFillChoice = value || "none";
+      button.setAttribute("aria-label", `領域の塗りを${label}にする`);
+      button.setAttribute("aria-pressed", "false");
+      const swatchElement = document.createElement("span");
+      swatchElement.className = `geometry-fill-swatch geometry-fill-swatch-${swatch}`;
+      swatchElement.setAttribute("aria-hidden", "true");
+      const labelElement = document.createElement("span");
+      labelElement.textContent = label;
+      button.append(swatchElement, labelElement);
+      button.addEventListener("click", () => {
+        if (selection?.kind !== "object") return;
+        try {
+          commit(model.updateFillRegion(geometry, selection.id, value));
+          status.textContent = value ? `${label}で領域の塗りを更新しました` : "領域の塗りを解除しました";
+        } catch (error) {
+          status.textContent = error.message || String(error);
+        }
+        updateControls();
+      });
+      fillButtons.set(value, button);
+      fillChoicesGroup.append(button);
+    });
+    fillField.append(fillLegend, fillChoicesGroup, fillGuidance);
+    properties.append(labelField, angleLabelField, lineField, lengthField, lengthLabelField, lengthSideField, lengthAlongField, equalLengthField, parallelField, fillField);
 
     const canvas = document.createElement("div");
     canvas.className = "geometry-canvas";
@@ -503,14 +554,19 @@
       const required = requiredVertices();
       if ((!required && (mode !== "polygon" || draftVertices.length < 3)) || (required && draftVertices.length !== required)) return;
       try {
+        const objectIdsBeforeCreate = new Set(geometry.objects.map((object) => object.id));
         const { next: withPoints, pointIds } = materializeDraft();
         const next = mode === "circle" ? model.addCircle(withPoints, pointIds[0], pointIds[1])
           : mode === "segment" ? model.addSegment(withPoints, pointIds[0], pointIds[1])
             : model.addPolygon(withPoints, pointIds);
         const label = mode === "triangle" ? "三角形" : mode === "quadrilateral" ? "四角形" : mode === "circle" ? "円" : mode === "segment" ? "線分" : `${pointIds.length}点の多角形`;
+        const createdPolygon = next.objects.find((object) => object.type === "polygon" && !objectIdsBeforeCreate.has(object.id));
         clearDraft();
         commit(next);
-        status.textContent = `${label}を作成しました`;
+        if (createdPolygon) {
+          setSelection({ kind: "object", id: createdPolygon.id });
+          status.textContent = `${label}を作成しました。領域の塗りを選択できます。`;
+        } else status.textContent = `${label}を作成しました`;
       } catch (error) {
         if (mode === "circle") {
           draftVertices = draftVertices.slice(0, 1);
@@ -666,6 +722,8 @@
       const angle = selectedAngle(geometry, selection);
       const equalLength = selectedEqualLength(geometry, selection);
       const parallel = selectedParallel(geometry, selection);
+      const fillTarget = selection?.kind === "object" ? model.objectById(geometry, selection.id) : null;
+      const fill = selectedFillRegion(geometry, selection);
       labelInput.disabled = selection?.kind !== "point";
       labelInput.value = selectedLabel(geometry, selection);
       angleLabelInput.disabled = !angle;
@@ -696,6 +754,16 @@
       equalLengthCount.value = equalLength ? String(equalLength.markCount) : "";
       parallelCount.disabled = !parallel;
       parallelCount.value = parallel ? String(parallel.markCount) : "";
+      const canFill = fillTarget?.type === "polygon";
+      const selectedFill = fill?.fill || "";
+      fillField.classList.toggle("is-disabled", !canFill);
+      fillGuidance.textContent = canFill
+        ? "選択中の多角形に色を付けます。色を選択してください。"
+        : "三角形・四角形・多角形を選択してください。";
+      fillButtons.forEach((button, value) => {
+        button.disabled = !canFill;
+        button.setAttribute("aria-pressed", String(canFill && value === selectedFill));
+      });
     }
 
     svg.addEventListener("pointerdown", (event) => {
