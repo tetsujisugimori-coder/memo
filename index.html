@@ -7,7 +7,7 @@
   <script>try { document.documentElement.dataset.initialTheme = localStorage.getItem("memo-nexus-theme") === "dark" ? "dark" : "light"; } catch (_) { document.documentElement.dataset.initialTheme = "light"; }</script>
   <style>html,body{background:#f6f7f4;color:#222522;color-scheme:light}html[data-initial-theme="dark"],html[data-initial-theme="dark"] body{background:#111513;color:#e7ece7;color-scheme:dark}</style>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css">
-  <link rel="stylesheet" href="style.css?v=0.5.0-87">
+  <link rel="stylesheet" href="style.css?v=0.5.0-88">
 </head>
 <body class="app-starting">
   <section id="appStartupGuard" class="app-startup-guard" role="status" aria-live="polite" aria-busy="true">
@@ -199,6 +199,7 @@
         <button id="focusNoteTagBtn" type="button" title="タグを追加" aria-label="タグを追加" class="editor-tool-btn"># タグ</button>
         <button id="insertTableBtn" type="button" title="カーソル位置へ表ブロックを挿入" aria-label="表ブロックを挿入" class="editor-tool-btn">表</button>
         <button id="insertGeometryBtn" type="button" title="カーソル位置へ図形ブロックを挿入" aria-label="図形ブロックを挿入" class="editor-tool-btn">図形</button>
+        <button id="insertChartBtn" type="button" title="カーソル位置へグラフブロックを挿入" aria-label="グラフブロックを挿入" class="editor-tool-btn">グラフ</button>
         <label class="callout-tool" for="calloutTypeSelect">注意書き
           <select id="calloutTypeSelect" aria-label="注意書きの種類"><option value="NOTE">NOTE</option><option value="TIP">TIP</option><option value="IMPORTANT">IMPORTANT</option><option value="WARNING">WARNING</option></select>
         </label>
@@ -220,12 +221,14 @@
       <textarea id="editor" placeholder="すぐ書けます。[[語句]] で語句を登録し、[[* メモ名]] で既存メモを参照できます。"></textarea>
       <div id="tableBlockEditors" class="table-block-editors" role="region" aria-label="表ブロック編集" hidden></div>
       <div id="geometryBlockEditors" class="geometry-block-editors" role="region" aria-label="図形ブロック編集" hidden></div>
+      <div id="chartBlockEditors" class="chart-block-editors" role="region" aria-label="グラフブロック編集" hidden></div>
       <div id="mobileWritingTools" class="mobile-writing-tools" aria-label="執筆モードのエディタ操作">
         <details class="mobile-writing-menu">
           <summary aria-label="追加メニューを開く">追加</summary>
           <div class="mobile-writing-menu-panel" role="menu">
             <button type="button" role="menuitem" data-mobile-editor-tool="insertTableBtn">表を挿入</button>
             <button type="button" role="menuitem" data-mobile-editor-tool="insertGeometryBtn">図形を挿入</button>
+            <button type="button" role="menuitem" data-mobile-editor-tool="insertChartBtn">グラフを挿入</button>
             <label class="mobile-callout-option">注意書き
               <select id="mobileCalloutTypeSelect" aria-label="注意書きの種類"><option value="NOTE">NOTE</option><option value="TIP">TIP</option><option value="IMPORTANT">IMPORTANT</option><option value="WARNING">WARNING</option></select>
             </label>
@@ -958,6 +961,7 @@
   <script src="web-clipper-config.js?v=0.5.0-4"></script>
   <script src="attachment-utils.js?v=0.5.0-12"></script>
   <script src="table-block-utils.js?v=0.5.0-4"></script>
+  <script src="chart-block-utils.js?v=0.5.0-1"></script>
   <script src="geometry-block-utils.js?v=0.5.0-15"></script>
   <script src="geometry-editor-utils.js?v=0.5.0-15"></script>
   <script src="geometry-svg-renderer.js?v=0.5.0-16"></script>
@@ -1003,7 +1007,7 @@
   <script src="draft-mirror-scheduler.js?v=0.5.0-2"></script>
   <script src="typing-performance-monitor.js?v=0.5.0-3"></script>
   <script src="layout-resize-utils.js?v=0.5.0-2"></script>
-  <script src="app.js?v=0.5.0-144"></script>
+  <script src="app.js?v=0.5.0-145"></script>
   <script src="codex-chat.js?v=0.5.0-6"></script>
 </body>
 </html>

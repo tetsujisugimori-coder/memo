@@ -466,6 +466,15 @@ const {
   writeTextToClipboard
 } = window.MemoNexusTableBlockUtils;
 const {
+  chartBlockPlainText,
+  createChartBlock,
+  insertChartBlock,
+  nonNegativeFiniteNumber,
+  normalizeChartBlock,
+  replaceChartBlock,
+  splitChartBlocks
+} = window.MemoNexusChartBlockUtils;
+const {
   createGeometryBlock,
   insertGeometryBlock,
   replaceGeometryBlock,
@@ -824,6 +833,7 @@ const mobileCalloutTypeSelect = $("mobileCalloutTypeSelect");
 const focusNoteTagBtn = $("focusNoteTagBtn");
 const insertTableBtn = $("insertTableBtn");
 const insertGeometryBtn = $("insertGeometryBtn");
+const insertChartBtn = $("insertChartBtn");
 const calloutTypeSelect = $("calloutTypeSelect");
 const insertCalloutBtn = $("insertCalloutBtn");
 const toggleHighlightBtn = $("toggleHighlightBtn");
@@ -839,6 +849,7 @@ const cancelExplanationBtn = $("cancelExplanationBtn");
 const calculatorLinkBtn = $("calculatorLinkBtn");
 const tableBlockEditors = $("tableBlockEditors");
 const geometryBlockEditors = $("geometryBlockEditors");
+const chartBlockEditors = $("chartBlockEditors");
 const tableAxisDeleteDialog = $("tableAxisDeleteDialog");
 const tableAxisDeleteTitle = $("tableAxisDeleteTitle");
 const tableAxisDeleteMessage = $("tableAxisDeleteMessage");
@@ -6020,7 +6031,8 @@ async function saveEditedTagColor() {
 
 // メモ一覧カードに出す短い本文プレビューを作ります。
 function snippet(body) {
-  const text = stripLinkMarkupForText(tableBlockPlainText(body)).replace(/#/g, "").trim();
+  const blockText = tableBlockPlainText(body);
+  const text = stripLinkMarkupForText(typeof chartBlockPlainText === "function" ? chartBlockPlainText(blockText) : blockText).replace(/#/g, "").trim();
   return text || "空のカード";
 }
 
@@ -6081,6 +6093,7 @@ function openNote(id) {
   renderList();
   renderCollectionExplorer();
   renderTableBlockEditors();
+  globalThis.renderChartBlockEditors?.();
   globalThis.renderGeometryBlockEditors?.();
   applyEffectiveFontSettings();
   renderPreview();
@@ -6128,6 +6141,7 @@ async function initPopout() {
   renderNoteMeta();
   renderTextStats();
   renderTableBlockEditors();
+  globalThis.renderChartBlockEditors?.();
   globalThis.renderGeometryBlockEditors?.();
   applyEffectiveFontSettings();
   document.title = `${note.title} — Memo Nexus`;
@@ -6828,6 +6842,7 @@ function handleNoteBatchSaveSuccess(results, { invalidateTermRelations = true, r
       editor.value = note.body;
       removeDraftMirrorForNote(note.id);
       renderTableBlockEditors();
+      globalThis.renderChartBlockEditors?.();
       globalThis.renderGeometryBlockEditors?.();
     }
   }
@@ -7239,12 +7254,14 @@ function applyMemoSync(note) {
   if (isPopoutWindow) {
     renderNoteMeta();
     renderTableBlockEditors();
+    globalThis.renderChartBlockEditors?.();
     globalThis.renderGeometryBlockEditors?.();
     document.title = `${note.title} — Memo Nexus`;
     return;
   }
   renderAll();
   renderTableBlockEditors();
+  globalThis.renderChartBlockEditors?.();
   globalThis.renderGeometryBlockEditors?.();
   renderPreview();
   if (isPopoutWindow) document.title = `${note.title} — Memo Nexus`;
@@ -7442,6 +7459,7 @@ function renderTypingDerivedUi(noteId, revision, requestType = "full") {
   measureTypingPerformanceOperation(performanceDurations, "renderRelated", renderRelated);
   measureTypingPerformanceOperation(performanceDurations, "renderTextStats", renderTextStats);
   measureTypingPerformanceOperation(performanceDurations, "renderTableBlockEditors", renderTableBlockEditors);
+  measureTypingPerformanceOperation(performanceDurations, "renderChartBlockEditors", () => globalThis.renderChartBlockEditors?.());
   measureTypingPerformanceOperation(performanceDurations, "renderGeometryBlockEditors", renderGeometryBlockEditors);
   measureTypingPerformanceOperation(performanceDurations, "updateAiTargetPreview", updateAiTargetPreview);
   if (shouldMeasure) {
@@ -7745,6 +7763,7 @@ function renderPreview() {
   hydrateMathExpressions();
   hydrateInlineAttachmentImages();
   bindImageBlockControls();
+  bindChartBlockControls();
   hydrateExplanationCards(note, body);
   bindChecklistControls(note);
 
@@ -8307,6 +8326,288 @@ function handleTableEditorAction(event) {
   if (commitTableBlockChange(blockIndex, tableId, next, { rerenderEditors: true })) {
     if (focusCell) focusTableCell(tableId, focusCell.rowIndex, focusCell.columnIndex);
   }
+}
+
+function currentChartBlock(blockIndex, chartId) {
+  const blocks = splitChartBlocks(editor.value).filter((segment) => segment.type === "chart");
+  const block = blocks[Number(blockIndex)];
+  return block && block.chart.id === chartId ? block : null;
+}
+
+function chartDisplayItems(chart) {
+  return chart.items.filter((item) => item.label && Number.isFinite(item.value) && item.value >= 0);
+}
+
+function chartDisplayNumber(value) {
+  return Number.isInteger(value) ? String(value) : String(value);
+}
+
+function chartLabel(value, maxLength = 14) {
+  const text = String(value || "");
+  return text.length > maxLength ? `${text.slice(0, Math.max(1, maxLength - 1))}…` : text;
+}
+
+function renderChartBlock(chartValue, blockIndex, { editable = true } = {}) {
+  const chart = normalizeChartBlock(chartValue, `chart-${blockIndex + 1}`);
+  const items = chartDisplayItems(chart);
+  const title = chart.title || `グラフ${blockIndex + 1}`;
+  const width = Math.max(420, items.length * 74 + 76);
+  const height = 260;
+  const baseline = 196;
+  const maximum = Math.max(0, ...items.map((item) => item.value));
+  const barWidth = Math.min(48, Math.max(24, (width - 76) / Math.max(1, items.length) - 22));
+  const bars = items.map((item, index) => {
+    const center = 52 + index * ((width - 70) / Math.max(1, items.length)) + ((width - 70) / Math.max(1, items.length) / 2);
+    const barHeight = maximum > 0 ? Math.max(0, (item.value / maximum) * 142) : 0;
+    const x = center - barWidth / 2;
+    const y = baseline - barHeight;
+    const value = chart.appearance.showValues
+      ? `<text class="chart-block-value" x="${center}" y="${Math.max(22, y - 8)}" text-anchor="middle">${escapeHtml(chartDisplayNumber(item.value))}</text>`
+      : "";
+    return `<g class="chart-block-bar" data-chart-item-id="${escapeAttr(item.id)}"><title>${escapeHtml(`${item.label}: ${chartDisplayNumber(item.value)}${chart.unit}`)}</title><rect x="${x}" y="${y}" width="${barWidth}" height="${barHeight}" rx="4" fill="${escapeAttr(chart.appearance.color)}"></rect>${value}<text class="chart-block-label" x="${center}" y="${baseline + 22}" text-anchor="middle">${escapeHtml(chartLabel(item.label))}</text></g>`;
+  }).join("");
+  const empty = items.length ? "" : `<text class="chart-block-empty" x="${width / 2}" y="${height / 2}" text-anchor="middle">項目名と0以上の数値を入力してください</text>`;
+  const controls = editable
+    ? `<button class="chart-block-edit" type="button" data-chart-id="${escapeAttr(chart.id)}" aria-label="${escapeAttr(`${title}を編集`)}">編集</button>`
+    : "";
+  const accessibleItems = items.map((item) => `<li>${escapeHtml(`${item.label}: ${chartDisplayNumber(item.value)}${chart.unit}`)}</li>`).join("");
+  return `<figure class="chart-block" data-chart-id="${escapeAttr(chart.id)}"><figcaption>${escapeHtml(title)}</figcaption>${controls}<div class="chart-block-scroll" role="region" tabindex="0" aria-label="${escapeAttr(title)}"><svg viewBox="0 0 ${width} ${height}" role="img" aria-label="${escapeAttr(`${title}${chart.unit ? `（単位: ${chart.unit}）` : ""}`)}"><line class="chart-block-axis" x1="42" y1="22" x2="42" y2="${baseline}"/><line class="chart-block-axis" x1="42" y1="${baseline}" x2="${width - 18}" y2="${baseline}"/>${chart.unit ? `<text class="chart-block-unit" x="48" y="18">${escapeHtml(chart.unit)}</text>` : ""}${bars}${empty}</svg></div><ul class="sr-only">${accessibleItems || "<li>有効な項目はありません</li>"}</ul></figure>`;
+}
+
+function renderChartEditorPreview(host, chart, blockIndex) {
+  if (host) host.innerHTML = renderChartBlock(chart, blockIndex, { editable: false });
+}
+
+function createChartEditor(chartValue, blockIndex) {
+  const chart = normalizeChartBlock(chartValue, `chart-${blockIndex + 1}`);
+  const article = document.createElement("article");
+  article.className = "chart-block-editor";
+  article.dataset.chartId = chart.id;
+  article.dataset.chartIndex = String(blockIndex);
+  article.tabIndex = -1;
+  const header = document.createElement("div");
+  header.className = "chart-block-editor-head";
+  const title = document.createElement("strong");
+  title.textContent = `グラフ ${blockIndex + 1}`;
+  const remove = document.createElement("button");
+  remove.type = "button";
+  remove.className = "danger-button";
+  remove.dataset.chartAction = "delete-chart";
+  remove.textContent = "グラフを削除";
+  header.append(title, remove);
+  const fields = document.createElement("div");
+  fields.className = "chart-block-fields";
+  [["title", "タイトル", "例: テスト得点"], ["unit", "単位", "例: 点"]].forEach(([field, label, placeholder]) => {
+    const wrapper = document.createElement("label");
+    wrapper.textContent = label;
+    const input = document.createElement("input");
+    input.type = "text";
+    input.dataset.chartField = field;
+    input.value = chart[field];
+    input.placeholder = placeholder;
+    input.setAttribute("aria-label", `グラフ${blockIndex + 1}の${label}`);
+    wrapper.append(input);
+    fields.append(wrapper);
+  });
+  const appearance = document.createElement("div");
+  appearance.className = "chart-block-appearance";
+  const colorLabel = document.createElement("label");
+  colorLabel.textContent = "棒の色";
+  const color = document.createElement("input");
+  color.type = "color";
+  color.dataset.chartField = "color";
+  color.value = chart.appearance.color;
+  color.setAttribute("aria-label", `グラフ${blockIndex + 1}の棒の色`);
+  colorLabel.append(color);
+  const valuesLabel = document.createElement("label");
+  const values = document.createElement("input");
+  values.type = "checkbox";
+  values.dataset.chartField = "showValues";
+  values.checked = chart.appearance.showValues;
+  values.setAttribute("aria-label", `グラフ${blockIndex + 1}の棒の上に数値を表示`);
+  valuesLabel.append(values, document.createTextNode("棒の上に数値を表示"));
+  appearance.append(colorLabel, valuesLabel);
+  const table = document.createElement("div");
+  table.className = "chart-block-item-table";
+  const tableTitle = document.createElement("p");
+  tableTitle.textContent = "項目データ（最大50件）";
+  table.append(tableTitle);
+  chart.items.forEach((item, itemIndex) => {
+    const row = document.createElement("div");
+    row.className = "chart-block-item-row";
+    row.dataset.chartItemIndex = String(itemIndex);
+    const label = document.createElement("input");
+    label.type = "text";
+    label.dataset.chartItemField = "label";
+    label.value = item.label;
+    label.placeholder = "項目名";
+    label.setAttribute("aria-label", `${itemIndex + 1}件目の項目名`);
+    const value = document.createElement("input");
+    value.type = "text";
+    value.inputMode = "decimal";
+    value.dataset.chartItemField = "value";
+    value.value = chartDisplayNumber(item.value);
+    value.placeholder = "数値";
+    value.setAttribute("aria-label", `${itemIndex + 1}件目の数値`);
+    const deleteButton = document.createElement("button");
+    deleteButton.type = "button";
+    deleteButton.dataset.chartAction = "delete-item";
+    deleteButton.setAttribute("aria-label", `${itemIndex + 1}件目の項目を削除`);
+    deleteButton.textContent = "削除";
+    deleteButton.disabled = chart.items.length <= 1;
+    row.append(label, value, deleteButton);
+    table.append(row);
+  });
+  const actions = document.createElement("div");
+  actions.className = "chart-block-editor-actions";
+  const add = document.createElement("button");
+  add.type = "button";
+  add.dataset.chartAction = "add-item";
+  add.textContent = "項目を追加";
+  add.disabled = chart.items.length >= 50;
+  const save = document.createElement("button");
+  save.type = "button";
+  save.dataset.chartAction = "confirm";
+  save.textContent = "入力を確定";
+  actions.append(add, save);
+  const status = document.createElement("p");
+  status.className = "chart-block-status";
+  status.setAttribute("role", "status");
+  status.setAttribute("aria-live", "polite");
+  const previewHost = document.createElement("div");
+  previewHost.className = "chart-block-editor-preview";
+  previewHost.setAttribute("aria-label", "グラフのプレビュー");
+  renderChartEditorPreview(previewHost, chart, blockIndex);
+  article.append(header, fields, appearance, table, actions, status, previewHost);
+  return article;
+}
+
+function renderChartBlockEditors() {
+  if (!chartBlockEditors) return;
+  const blocks = splitChartBlocks(editor.value).filter((segment) => segment.type === "chart");
+  chartBlockEditors.replaceChildren();
+  chartBlockEditors.hidden = blocks.length === 0;
+  if (!blocks.length) return;
+  const heading = document.createElement("div");
+  heading.className = "chart-block-editors-heading";
+  heading.textContent = `本文内のグラフ（${blocks.length}件）`;
+  chartBlockEditors.append(heading);
+  blocks.forEach((block, blockIndex) => chartBlockEditors.append(createChartEditor(block.chart, blockIndex)));
+}
+
+globalThis.renderChartBlockEditors = renderChartBlockEditors;
+
+function commitChartBlockChange(blockIndex, chartId, nextChart, { rerenderEditors = false } = {}) {
+  const block = currentChartBlock(blockIndex, chartId);
+  if (!block) return false;
+  try {
+    captureUndoSnapshot({ inputType: "insertText" });
+    editor.value = replaceChartBlock(editor.value, block, nextChart);
+    if (rerenderEditors) renderChartBlockEditors();
+    scheduleSave({ render: false });
+    return true;
+  } catch (error) {
+    alert(error.message || String(error));
+    renderChartBlockEditors();
+    return false;
+  }
+}
+
+function insertChartAtSelection() {
+  if (!currentNote() || currentNote().deletedAt) return;
+  const chart = createChartBlock(crypto.randomUUID());
+  const result = insertChartBlock(editor.value, editor.selectionStart, editor.selectionEnd, chart);
+  captureUndoSnapshot({ inputType: "insertText" });
+  editor.value = result.value;
+  editor.setSelectionRange(result.selectionStart, result.selectionEnd);
+  renderChartBlockEditors();
+  scheduleSave({ render: false });
+  requestAnimationFrame(() => chartBlockEditors?.querySelector(`.chart-block-editor[data-chart-id="${CSS.escape(chart.id)}"] input`)?.focus());
+}
+
+function chartEditorStatus(editorBlock, message) {
+  const status = editorBlock?.querySelector(".chart-block-status");
+  if (status) status.textContent = message;
+}
+
+function handleChartEditorInput(event) {
+  const editorBlock = event.target.closest(".chart-block-editor");
+  if (!editorBlock) return;
+  const blockIndex = Number(editorBlock.dataset.chartIndex);
+  const chartId = editorBlock.dataset.chartId;
+  const block = currentChartBlock(blockIndex, chartId);
+  if (!block) return;
+  let next = normalizeChartBlock(block.chart, chartId);
+  if (event.target.dataset.chartItemField) {
+    const itemIndex = Number(event.target.closest(".chart-block-item-row")?.dataset.chartItemIndex);
+    if (!next.items[itemIndex]) return;
+    const field = event.target.dataset.chartItemField;
+    if (field === "value" && (event.target.value.trim() === "" || !Number.isFinite(Number(event.target.value)) || Number(event.target.value) < 0)) {
+      chartEditorStatus(editorBlock, "数値は0以上の有限な数値を入力してください");
+      return;
+    }
+    next.items = next.items.map((item, index) => index === itemIndex ? { ...item, [field]: field === "value" ? nonNegativeFiniteNumber(event.target.value) : event.target.value } : item);
+  } else if (event.target.dataset.chartField === "color") {
+    next.appearance = { ...next.appearance, color: event.target.value };
+  } else if (event.target.dataset.chartField === "showValues") {
+    next.appearance = { ...next.appearance, showValues: event.target.checked };
+  } else if (event.target.dataset.chartField) {
+    next[event.target.dataset.chartField] = event.target.value;
+  } else return;
+  next = normalizeChartBlock(next, chartId);
+  chartEditorStatus(editorBlock, "");
+  renderChartEditorPreview(editorBlock.querySelector(".chart-block-editor-preview"), next, blockIndex);
+  commitChartBlockChange(blockIndex, chartId, next);
+}
+
+function handleChartEditorAction(event) {
+  const button = event.target.closest("[data-chart-action]");
+  if (!button) return;
+  const editorBlock = button.closest(".chart-block-editor");
+  const blockIndex = Number(editorBlock.dataset.chartIndex);
+  const chartId = editorBlock.dataset.chartId;
+  const block = currentChartBlock(blockIndex, chartId);
+  if (!block) return;
+  let next = normalizeChartBlock(block.chart, chartId);
+  switch (button.dataset.chartAction) {
+    case "add-item":
+      if (next.items.length >= 50) return;
+      next.items = [...next.items, { id: crypto.randomUUID(), label: "", value: 0 }];
+      if (commitChartBlockChange(blockIndex, chartId, next, { rerenderEditors: true })) {
+        requestAnimationFrame(() => chartBlockEditors?.querySelector(`.chart-block-editor[data-chart-id="${CSS.escape(chartId)}"] .chart-block-item-row:last-of-type input`)?.focus());
+      }
+      return;
+    case "delete-item": {
+      const itemIndex = Number(button.closest(".chart-block-item-row")?.dataset.chartItemIndex);
+      if (next.items.length <= 1 || !next.items[itemIndex]) return;
+      next.items = next.items.filter((_, index) => index !== itemIndex);
+      commitChartBlockChange(blockIndex, chartId, next, { rerenderEditors: true });
+      return;
+    }
+    case "delete-chart":
+      if (!confirm("このグラフブロックを削除しますか？")) return;
+      captureUndoSnapshot({ inputType: "deleteContentForward" });
+      editor.value = replaceChartBlock(editor.value, block, null);
+      renderChartBlockEditors();
+      scheduleSave({ render: false });
+      editor.focus();
+      return;
+    case "confirm":
+      chartEditorStatus(editorBlock, "入力内容を保存しました");
+      return;
+    default:
+      return;
+  }
+}
+
+function bindChartBlockControls() {
+  preview.querySelectorAll(".chart-block-edit").forEach((button) => button.addEventListener("click", () => {
+    const target = chartBlockEditors?.querySelector(`.chart-block-editor[data-chart-id="${CSS.escape(button.dataset.chartId)}"]`);
+    if (target) {
+      target.scrollIntoView({ block: "nearest" });
+      target.focus({ preventScroll: true });
+    }
+  }));
 }
 
 function attachmentTotalSize(items = currentAttachments) {
@@ -9187,6 +9488,7 @@ function renderPreviewHtml(body, noteId = "preview", renderGeneration = 0) {
   let codeBlockIndex = 0;
   let tableBlockIndex = 0;
   let geometryBlockIndex = 0;
+  let chartBlockIndex = 0;
   const html = splitImageBlocks(cleanedBody)
     .map((segment, imageBlockIndex) => {
       if (segment.type === "image") return renderImageBlock(segment, imageBlockIndex);
@@ -9196,7 +9498,13 @@ function renderPreviewHtml(body, noteId = "preview", renderGeneration = 0) {
           geometryBlockIndex += 1;
           return rendered;
         }
-        return splitTableBlocks(geometrySegment.text).map((tableSegment) => {
+        return splitChartBlocks(geometrySegment.text).map((chartSegment) => {
+        if (chartSegment.type === "chart") {
+          const rendered = renderChartBlock(chartSegment.chart, chartBlockIndex);
+          chartBlockIndex += 1;
+          return rendered;
+        }
+        return splitTableBlocks(chartSegment.text).map((tableSegment) => {
         if (tableSegment.type === "table") {
           const rendered = renderTableBlock(tableSegment.table, tableBlockIndex);
           tableBlockIndex += 1;
@@ -9215,6 +9523,7 @@ function renderPreviewHtml(body, noteId = "preview", renderGeneration = 0) {
             : renderCodeBlock(block.code, block.language);
           codeBlockIndex += 1;
           return rendered;
+        }).join("");
         }).join("");
         }).join("");
       }).join("");
@@ -13736,6 +14045,7 @@ if (syntaxGuideBtn && syntaxGuideDialog) syntaxGuideBtn.addEventListener("click"
 focusNoteTagBtn?.addEventListener("click", focusNoteTagInput);
 if (insertTableBtn) insertTableBtn.addEventListener("click", insertTableAtSelection);
 if (insertGeometryBtn) insertGeometryBtn.addEventListener("click", insertGeometryAtSelection);
+if (insertChartBtn) insertChartBtn.addEventListener("click", insertChartAtSelection);
 if (insertCalloutBtn) insertCalloutBtn.addEventListener("click", insertCalloutAtSelection);
 if (toggleHighlightBtn) toggleHighlightBtn.addEventListener("click", toggleHighlightAtSelection);
 if (insertImageBlockBtn) insertImageBlockBtn.addEventListener("click", () => {
@@ -13797,6 +14107,10 @@ if (tableBlockEditors) {
   tableBlockEditors.addEventListener("keydown", handleTableEditorKeydown);
   tableBlockEditors.addEventListener("click", handleTableAxisSelection);
   tableBlockEditors.addEventListener("click", handleTableEditorAction);
+}
+if (chartBlockEditors) {
+  chartBlockEditors.addEventListener("input", handleChartEditorInput);
+  chartBlockEditors.addEventListener("click", handleChartEditorAction);
 }
 if (closeTableAxisDeleteBtn) closeTableAxisDeleteBtn.addEventListener("click", closeTableAxisDeleteDialog);
 if (cancelTableAxisDeleteBtn) cancelTableAxisDeleteBtn.addEventListener("click", closeTableAxisDeleteDialog);
