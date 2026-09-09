@@ -82,6 +82,14 @@ test("サイズ別の上限と縦横比維持をCSSで適用する", () => {
   assert.doesNotMatch(css, /\.image-block[^}]*object-fit:\s*cover/s);
 });
 
+test("配置は画像ブロック全体へ適用し、説明文の文字揃えは左を維持する", () => {
+  assert.match(css, /\.image-block\.image-align-left\s*\{[^}]*margin-right:\s*auto/s);
+  assert.match(css, /\.image-block\.image-align-center\s*\{[^}]*margin-inline:\s*auto/s);
+  assert.match(css, /\.image-block\.image-align-right\s*\{[^}]*margin-left:\s*auto/s);
+  assert.match(css, /\.image-block-caption\s*\{[^}]*text-align:\s*left/s);
+  assert.match(css, /@container \(max-width: 560px\)[\s\S]*image-align-left[\s\S]*image-align-right[\s\S]*margin-inline:\s*auto/s);
+});
+
 test("連続画像ブロックは本文中で8〜12px間隔で区別する", () => {
   assert.match(css, /\.preview \.image-block \+ \.image-block \{\s*margin-top:\s*10px;/s);
   assert.match(css, /\.preview \.image-block \{[\s\S]*margin:\s*10px 0;\s*padding:\s*10px;/s);
@@ -125,6 +133,14 @@ test("画像ブロック操作は通常非表示のキーボード対応メニ�
   assert.match(app, /元データは削除されません/);
 });
 
+test("画像ブロック操作メニューは現在の配置を示す3択を提供する", () => {
+  assert.match(app, /class="image-block-alignment" role="group" aria-label="画像ブロックの配置"/);
+  assert.match(app, /data-image-alignment="\$\{alignmentValue\}" title="\$\{label\}配置" aria-label="画像ブロックを\$\{label\}配置" aria-pressed=/);
+  assert.match(app, /preview\.querySelectorAll\("\.image-block-alignment-button"\)/);
+  assert.match(app, /alignment === block\.alignment\) return/);
+  assert.match(app, /commitImageBlockChange\(block, block\.images, block\.caption, \{ alignment \}\)/);
+});
+
 test("画像ブロック変更は本文だけを同期更新しプレビューを派生UI予約へ任せる", () => {
   const events = [];
   const editor = { value: "before" };
@@ -147,6 +163,33 @@ test("画像ブロック変更は本文だけを同期更新しプレビュー�
   assert.equal(commit({ start: 0 }, [], "説明"), true);
   assert.equal(editor.value, "after");
   assert.deepEqual(events, ["undo", "save:false"]);
+});
+
+test("配置変更は本文の画像ブロックだけを置換して通常保存へ渡す", () => {
+  const events = [];
+  const editor = { value: "before" };
+  const commit = new Function(
+    "editor",
+    "replaceImageBlock",
+    "captureUndoSnapshot",
+    "renderPreview",
+    "scheduleSave",
+    "alert",
+    `return (${extractFunction("commitImageBlockChange")});`
+  )(
+    editor,
+    (_body, _block, _images, _caption, alignment) => {
+      events.push(`alignment:${alignment}`);
+      return "after";
+    },
+    () => events.push("undo"),
+    () => events.push("render"),
+    (options) => events.push(`save:${options.render}`),
+    () => assert.fail("正常時にalertしない")
+  );
+  assert.equal(commit({ alignment: "center" }, [], "説明", { alignment: "right" }), true);
+  assert.equal(editor.value, "after");
+  assert.deepEqual(events, ["alignment:right", "undo", "save:false"]);
 });
 
 test("説明文編集時は通常メニューと差し替え、キャンセルで通常状態へ戻る", () => {

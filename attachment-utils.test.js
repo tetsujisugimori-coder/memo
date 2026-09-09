@@ -13,6 +13,7 @@ const {
   findAttachmentReference,
   formatAttachmentBytes,
   insertAttachmentReferences,
+  normalizeImageBlockAlignment,
   normalizeImageBlockSize,
   renderImageCaptionMarkdown,
   remapImportedAttachmentReferences,
@@ -215,6 +216,14 @@ test("カード内画像サイズは3値だけを許可し標準へフォール�
   assert.equal(normalizeImageBlockSize(undefined), "medium");
 });
 
+test("画像ブロック配置は左・中央・右だけを許可し中央へフォールバックする", () => {
+  assert.equal(normalizeImageBlockAlignment("left"), "left");
+  assert.equal(normalizeImageBlockAlignment("center"), "center");
+  assert.equal(normalizeImageBlockAlignment("right"), "right");
+  assert.equal(normalizeImageBlockAlignment("outside"), "center");
+  assert.equal(normalizeImageBlockAlignment(undefined), "center");
+});
+
 test("画像2枚と共通説明文を標準Markdownが読める形式で保存・復元する", () => {
   const markdown = serializeImageBlock([
     { id: "before-id", alt: "変更前" },
@@ -227,6 +236,35 @@ test("画像2枚と共通説明文を標準Markdownが読める形式で保存�
   assert.equal(block.type, "image");
   assert.deepEqual(block.images.map((image) => image.id), ["before-id", "after-id"]);
   assert.equal(block.caption, "**比較結果**\n\n- 左が変更前\n- 右が変更後");
+  assert.equal(block.alignment, "center");
+});
+
+test("画像ブロック配置は本文の任意コメントとして保存・復元し、画像と説明文を保つ", () => {
+  const markdown = serializeImageBlock([
+    { id: "first-id", alt: "1枚目" },
+    { id: "second-id", alt: "2枚目" }
+  ], "**共通説明**", "right");
+  assert.match(markdown, /<!-- memo-nexus:image-align:right -->/);
+  const [block] = splitImageBlocks(markdown);
+  assert.equal(block.alignment, "right");
+  assert.deepEqual(block.images.map((image) => image.id), ["first-id", "second-id"]);
+  assert.equal(block.caption, "**共通説明**");
+});
+
+test("配置情報がない旧画像ブロックと不正な配置値は中央として復元する", () => {
+  const legacy = [
+    "<!-- memo-nexus:image-block -->",
+    "![旧画像](attachment://legacy-id)",
+    "<!-- memo-nexus:image-caption -->",
+    "旧説明",
+    "<!-- /memo-nexus:image-block -->"
+  ].join("\n");
+  assert.equal(splitImageBlocks(legacy)[0].alignment, "center");
+  const invalid = legacy.replace("![旧画像]", "<!-- memo-nexus:image-align:diagonal -->\n![旧画像]");
+  const [block] = splitImageBlocks(invalid);
+  assert.equal(block.alignment, "center");
+  assert.equal(block.caption, "旧説明");
+  assert.deepEqual(block.images.map((image) => image.id), ["legacy-id"]);
 });
 
 test("既存の単独画像参照を説明文なしの画像ブロックとして遅延解釈する", () => {
@@ -261,11 +299,11 @@ test("コードフェンス内の画像参照や専用コメントとは衝突�
   assert.deepEqual(splitImageBlocks(markdown), [{ type: "text", text: markdown, start: 0, end: markdown.length }]);
 });
 
-test("画像の入れ替えと2枚から1枚への削除で説明文を維持する", () => {
+test("画像の入れ替えと2枚から1枚への削除で説明文と配置を維持する", () => {
   const source = serializeImageBlock([
     { id: "left-id", alt: "左" },
     { id: "right-id", alt: "右" }
-  ], "共通説明");
+  ], "共通説明", "left");
   const block = splitImageBlocks(source)[0];
   const swapped = replaceImageBlock(source, block, [...block.images].reverse(), block.caption);
   assert.deepEqual(splitImageBlocks(swapped)[0].images.map((image) => image.id), ["right-id", "left-id"]);
@@ -273,6 +311,20 @@ test("画像の入れ替えと2枚から1枚への削除で説明文を維持す
   const reduced = replaceImageBlock(swapped, swappedBlock, [swappedBlock.images[0]], swappedBlock.caption);
   assert.deepEqual(splitImageBlocks(reduced)[0].images.map((image) => image.id), ["right-id"]);
   assert.equal(splitImageBlocks(reduced)[0].caption, "共通説明");
+  assert.equal(splitImageBlocks(reduced)[0].alignment, "left");
+});
+
+test("画像の追加を含む置換でも配置を維持する", () => {
+  const source = serializeImageBlock([{ id: "first-id", alt: "1枚目" }], "説明", "right");
+  const block = splitImageBlocks(source)[0];
+  const updated = replaceImageBlock(source, block, [
+    ...block.images,
+    { id: "second-id", alt: "2枚目" }
+  ], block.caption);
+  const restored = splitImageBlocks(updated)[0];
+  assert.equal(restored.alignment, "right");
+  assert.deepEqual(restored.images.map((image) => image.id), ["first-id", "second-id"]);
+  assert.equal(restored.caption, "説明");
 });
 
 test("3枚の挿入は最大2枚ずつの画像ブロックへ分割する", () => {

@@ -312,6 +312,7 @@ const {
   findAttachmentReference,
   formatAttachmentBytes,
   insertAttachmentReferences,
+  normalizeImageBlockAlignment,
   normalizeImageBlockSize,
   prepareAttachmentItems,
   renderImageCaptionMarkdown,
@@ -8384,10 +8385,10 @@ function currentImageBlock(element) {
   return segment && segment.type === "image" ? segment : null;
 }
 
-function commitImageBlockChange(block, images, caption, { throwOnError = false } = {}) {
+function commitImageBlockChange(block, images, caption, { alignment = block && block.alignment, throwOnError = false } = {}) {
   if (!block) return false;
   try {
-    const nextBody = replaceImageBlock(editor.value, block, images, caption);
+    const nextBody = replaceImageBlock(editor.value, block, images, caption, alignment);
     captureUndoSnapshot({ inputType: "insertText" });
     editor.value = nextBody;
     scheduleSave({ render: false });
@@ -8468,6 +8469,15 @@ function bindImageBlockControls() {
       const block = currentImageBlock(button);
       if (!block || block.images.length !== 2) return;
       commitImageBlockChange(block, [...block.images].reverse(), block.caption);
+    });
+  });
+
+  preview.querySelectorAll(".image-block-alignment-button").forEach((button) => {
+    button.addEventListener("click", () => {
+      const block = currentImageBlock(button);
+      const alignment = normalizeImageBlockAlignment(button.dataset.imageAlignment);
+      if (!block || alignment === block.alignment) return;
+      commitImageBlockChange(block, block.images, block.caption, { alignment });
     });
   });
 
@@ -9269,6 +9279,7 @@ function renderTableBlock(tableValue, blockIndex) {
 
 function renderImageBlock(block, blockIndex) {
   const count = block.images.length;
+  const alignment = normalizeImageBlockAlignment(block.alignment);
   const images = block.images.map((image) => `
     <div class="image-block-item">
       <button class="image-block-open" type="button" data-image-id="${escapeAttr(image.id)}" aria-label="${escapeAttr(image.alt || "添付画像")}を拡大表示">
@@ -9280,7 +9291,7 @@ function renderImageBlock(block, blockIndex) {
     ? `<figcaption class="image-block-caption">${renderImageCaptionMarkdown(block.caption)}</figcaption>`
     : "";
   return `
-    <figure class="image-block image-count-${count} image-size-${imageBlockSize}${block.caption ? " has-caption" : ""}" data-image-block-index="${blockIndex}" tabindex="0">
+    <figure class="image-block image-count-${count} image-size-${imageBlockSize} image-align-${alignment}${block.caption ? " has-caption" : ""}" data-image-block-index="${blockIndex}" tabindex="0">
       <div class="image-block-media">${images}</div>
       ${caption}
       <div class="image-block-menu-shell">
@@ -9288,6 +9299,12 @@ function renderImageBlock(block, blockIndex) {
         <div id="image-block-menu-${blockIndex}" class="image-block-actions" aria-label="画像ブロック操作" hidden>
           ${count < 2 ? '<button class="image-block-add" type="button">画像を追加</button>' : ""}
           ${count === 2 ? '<button class="image-block-swap" type="button">左右を入れ替える</button>' : ""}
+          <div class="image-block-alignment" role="group" aria-label="画像ブロックの配置">
+            ${["left", "center", "right"].map((alignmentValue) => {
+              const label = ({ left: "左", center: "中央", right: "右" })[alignmentValue];
+              return `<button class="image-block-alignment-button" type="button" data-image-alignment="${alignmentValue}" title="${label}配置" aria-label="画像ブロックを${label}配置" aria-pressed="${String(alignment === alignmentValue)}">${label}</button>`;
+            }).join("")}
+          </div>
           <button class="image-block-edit-caption" type="button">${block.caption ? "説明文を編集" : "説明文を追加"}</button>
           ${block.images.map((_, imageIndex) => `<button class="image-block-remove" type="button" data-image-index="${imageIndex}">画像${imageIndex + 1}を外す</button>`).join("")}
         </div>

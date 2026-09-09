@@ -2552,3 +2552,13 @@
 * Geometry E2Eは1100pxと390pxで、作成直後の自動選択、可視かつ有効なスウォッチのクリック、キーボードでの色変更、色注釈非増殖、Undo/Redo、保存再読込、読み取り専用プレビュー、なし、対象polygon削除、線分選択時の無効化と案内を検証する。`getComputedStyle()`でfillがnone/完全透明でなく、CSSカスタムプロパティが定義され、半透明であり、塗りが輪郭・頂点より背面であることを検証する。ライトテーマは1100px、ダークテーマは390pxで既存の設定画面から実際に切り替えて確認し、pointer-events:noneと塗り上からの選択・ドラッグも確認する。
 * 検証：関連単体・キャッシュ契約146件、`npm test` 1,065件はすべてpass、fail 0。`npm run test:e2e:geometry` は等辺印・平行記号・塗り領域の1100px/390pxすべてpass、console/page error 0。`npm run test:e2e:mobile` はlayout 6条件、writing 4幅、desktop・compact・note-switch・popoutをpass、console/page error 0。変更JavaScriptの`node --check`と`git diff --check`は成功した。モバイルE2Eが一時上書きした開始時から未コミットの`e2e-artifacts/mobile-layout-390.png`は開始時blob `97b3401`へ復元した。
 * 手動ブラウザーは、既存Edgeプロファイルの保存済みメモを変更しないため、実データ上での作図・色変更は行わなかった。Playwrightの実ブラウザーE2Eでライト／ダーク、1100px／390pxを確認済み。実タッチ端末、Safari、push後CIは未確認として残す。
+
+## 2026-09-09 画像ブロックの左・中央・右配置
+
+* 画像ブロックの本文記法へ任意の `<!-- memo-nexus:image-align:left -->`／`right` コメントを追加し、左・中央・右の配置をブロック単位で選択・保存できるようにした。中央は既定値のためコメントがない従来形式のままでも中央として描画し、中央を選び直した場合も余分な専用データを必須にしない。既存の「小・標準・大」は従来どおり表示サイズの設定として残し、配置は別のブロック状態として独立している。
+* `splitImageBlocks()` は旧形式、未知の配置値、重複した配置コメントを安全に中央へ正規化する。画像参照、説明文、添付参照は失わず、`replaceImageBlock()` の追加・左右入替・個別削除・説明文編集の既存経路は現在の配置を引き継ぐ。全保存データの一括変換やバックアップ形式の変更は行っていない。
+* プレビューは画像と説明文を含む `figure.image-block` 全体へ幅と左・中央・右の余白を適用する。2枚の場合も1グループのまま既存の広幅横並び／狭幅縦並びを維持する。説明文には明示的に左揃えを指定し、右配置でも文章の文字揃えは変えない。狭幅コンテナではCSSだけで左右指定を見た目上中央へ寄せ、本文の保存値・dirty状態・更新日時は変更しない。
+* 操作メニューには左・中央・右の3択を追加し、現在値を `aria-pressed` で表す。各ボタンに日本語の `title` と `aria-label` を付け、既存のキーボード操作・フォーカス表示・プレビュー・追加・入替・削除・説明文編集を変更していない。同じ配置を押した場合は本文置換や保存予約を行わない。
+* 回帰テストを `attachment-utils.test.js`、`image-block-layout.test.js`、`markdown-bundle-utils.test.js`、`backup-bundle-utils.test.js` に追加・更新した。旧データと不正値の中央復元、左・中央・右、サイズと配置の分離、2枚グループ、追加・入替・削除後の配置維持、説明文の位置と左揃え、狭幅CSS、アクセシブルUI、Markdown書出し・再取込、Memo Nexus ZIP往復を検証する。更新した `app.js` と `style.css` の配信キャッシュ識別子を144/87へ上げ、既存の固定契約テストも同期した。
+* 検証：`node --check attachment-utils.js`、`node --check app.js`、関連192件の `node --test`、`npm test`（1,074件、fail 0）、`npm run test:e2e:mobile:writing`（Chromium、320/375/390/430px、console/page error 0）、`git diff --check` を実行した。モバイルの既存未コミット成果物 `e2e-artifacts/mobile-layout-390.png` は上書きしていない。画像ブロック専用の既存ブラウザーE2Eはないため、画像の実画面組合せは追加した保存・描画・狭幅回帰テストで確認し、実タッチ端末、Safari、push後CIは未確認である。
+* 本文の画像横回り込み、画像ごとの個別配置、自由ドラッグ・任意幅・トリミング・回転・画像加工・注釈・OCR・Neo Paint連携、元画像データの変更は今回の対象外とした。

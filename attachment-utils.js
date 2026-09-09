@@ -10,6 +10,8 @@
   const IMAGE_BLOCK_CAPTION = "<!-- memo-nexus:image-caption -->";
   const IMAGE_BLOCK_END = "<!-- /memo-nexus:image-block -->";
   const IMAGE_BLOCK_SIZES = new Set(["small", "medium", "large"]);
+  const IMAGE_BLOCK_ALIGNMENTS = new Set(["left", "center", "right"]);
+  const IMAGE_BLOCK_ALIGNMENT_PATTERN = /^<!--\s*memo-nexus:image-align:([^\s>]+)\s*-->$/;
   const IMAGE_TYPES = new Map([
     ["image/jpeg", new Set(["jpg", "jpeg"])],
     ["image/png", new Set(["png"])],
@@ -143,6 +145,15 @@
     return IMAGE_BLOCK_SIZES.has(value) ? value : "medium";
   }
 
+  function normalizeImageBlockAlignment(value) {
+    return IMAGE_BLOCK_ALIGNMENTS.has(value) ? value : "center";
+  }
+
+  function parseImageBlockAlignment(line) {
+    const match = String(line || "").trim().match(IMAGE_BLOCK_ALIGNMENT_PATTERN);
+    return match ? normalizeImageBlockAlignment(match[1]) : null;
+  }
+
   function parseImageReferenceLine(line) {
     const source = String(line || "");
     const reference = findAttachmentReference(source, 0);
@@ -150,13 +161,16 @@
     return { id: reference.id, alt: reference.alt };
   }
 
-  function serializeImageBlock(images, caption = "") {
+  function serializeImageBlock(images, caption = "", alignment = "center") {
     const normalizedImages = (Array.isArray(images) ? images : [])
       .filter((image) => image && image.id)
       .slice(0, 2)
       .map((image) => ({ id: String(image.id), fileName: image.alt || image.fileName || "画像" }));
     if (!normalizedImages.length) return "";
-    const lines = [IMAGE_BLOCK_START, ...normalizedImages.map(attachmentMarkdownReference)];
+    const normalizedAlignment = normalizeImageBlockAlignment(alignment);
+    const lines = [IMAGE_BLOCK_START];
+    if (normalizedAlignment !== "center") lines.push(`<!-- memo-nexus:image-align:${normalizedAlignment} -->`);
+    lines.push(...normalizedImages.map(attachmentMarkdownReference));
     const normalizedCaption = String(caption || "").replace(/\r\n?/g, "\n").trim();
     if (normalizedCaption) lines.push("", IMAGE_BLOCK_CAPTION, normalizedCaption);
     lines.push(IMAGE_BLOCK_END);
@@ -180,7 +194,7 @@
     const pushText = (end) => {
       if (end > textStart) segments.push({ type: "text", text: source.slice(textStart, end), start: textStart, end });
     };
-    const pushImage = (startLine, endLine, images, caption, explicit) => {
+    const pushImage = (startLine, endLine, images, caption, explicit, alignment = "center") => {
       const start = offsets[startLine];
       const end = endLine < lines.length - 1 ? offsets[endLine] + lines[endLine].length + 1 : source.length;
       pushText(start);
@@ -191,7 +205,8 @@
         raw: source.slice(start, end).replace(/\n$/, ""),
         images,
         caption,
-        explicit
+        explicit,
+        alignment: normalizeImageBlockAlignment(alignment)
       });
       textStart = end;
     };
@@ -212,11 +227,14 @@
         if (endLine < lines.length) {
           const content = lines.slice(index + 1, endLine);
           const captionIndex = content.findIndex((line) => line.trim() === IMAGE_BLOCK_CAPTION);
-          const imageLines = captionIndex === -1 ? content : content.slice(0, captionIndex);
+          const blockLines = captionIndex === -1 ? content : content.slice(0, captionIndex);
+          const alignmentLines = blockLines.filter((line) => parseImageBlockAlignment(line) !== null);
+          const imageLines = blockLines.filter((line) => parseImageBlockAlignment(line) === null);
           const images = imageLines.map(parseImageReferenceLine).filter(Boolean);
           if (images.length >= 1 && images.length <= 2 && images.length === imageLines.filter((line) => line.trim()).length) {
             const caption = captionIndex === -1 ? "" : content.slice(captionIndex + 1).join("\n").trim();
-            pushImage(index, endLine, images, caption, true);
+            const alignment = alignmentLines.length === 1 ? parseImageBlockAlignment(alignmentLines[0]) : "center";
+            pushImage(index, endLine, images, caption, true, alignment);
             index = endLine + 1;
             continue;
           }
@@ -270,12 +288,12 @@
     return prepared;
   }
 
-  function replaceImageBlock(markdown, block, images, caption = "") {
+  function replaceImageBlock(markdown, block, images, caption = "", alignment = block && block.alignment) {
     const source = String(markdown || "").replace(/\r\n?/g, "\n");
     if (!block || source.slice(block.start, block.end).replace(/\n$/, "") !== block.raw) {
       throw new Error("画像ブロックが更新されたため操作できません。もう一度お試しください");
     }
-    const replacement = serializeImageBlock(images, caption);
+    const replacement = serializeImageBlock(images, caption, alignment);
     const prefix = replacement && block.start > 0 && source[block.start - 1] !== "\n" ? "\n" : "";
     const suffix = replacement && block.end < source.length && source[block.end] !== "\n" ? "\n" : "";
     return `${source.slice(0, block.start)}${prefix}${replacement}${suffix}${source.slice(block.end)}`;
@@ -504,6 +522,7 @@
     findAttachmentReference,
     formatAttachmentBytes,
     insertAttachmentReferences,
+    normalizeImageBlockAlignment,
     normalizeImageBlockSize,
     prepareAttachmentItems,
     renderImageCaptionMarkdown,
