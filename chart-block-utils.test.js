@@ -5,6 +5,7 @@ const test = require("node:test");
 const {
   CHART_BLOCK_VERSION,
   DEFAULT_CHART_COLOR,
+  PIE_CHART_COLORS,
   chartBlockPlainText,
   createChartBlock,
   insertChartBlock,
@@ -81,6 +82,46 @@ test("1項目の円グラフ、合計0、chartTypeなしの旧データを区別
   const legacy = normalizeChartBlock({ id: "legacy", items: [{ label: "従来", value: 1 }] });
   assert.equal(legacy.chartType, "bar");
   assert.equal(legacy.appearance.pieLabelMode, "percentage");
+});
+
+test("巨大な有限値も最大値で正規化して有限な比率と角度にする", () => {
+  const equal = pieChartSegments([
+    { id: "a", label: "項目A", value: 1e308 },
+    { id: "b", label: "項目B", value: 1e308 }
+  ]);
+  assert.ok(Math.abs(equal.segments[0].percentage - 50) < 1e-9);
+  assert.ok(Math.abs(equal.segments[1].percentage - 50) < 1e-9);
+  assert.ok(equal.segments.every((segment) => Number.isFinite(segment.percentage) && Number.isFinite(segment.startAngle) && Number.isFinite(segment.endAngle)));
+  assert.equal(equal.segments.at(-1).endAngle, (Math.PI * 3) / 2);
+
+  const unequal = pieChartSegments([
+    { id: "a", label: "項目A", value: 1e308 },
+    { id: "b", label: "項目B", value: 5e307 }
+  ]);
+  assert.ok(Math.abs(unequal.segments[0].percentage - (200 / 3)) < 1e-9);
+  assert.ok(Math.abs(unequal.segments[1].percentage - (100 / 3)) < 1e-9);
+});
+
+test("通常値、合計0、1項目、0を挟む色順の円グラフ契約を維持する", () => {
+  const normal = pieChartSegments([{ id: "a", label: "A", value: 2 }, { id: "b", label: "B", value: 3 }]);
+  assert.equal(normal.total, 5);
+  assert.ok(Math.abs(normal.segments[0].percentage - 40) < 1e-9);
+  assert.ok(Math.abs(normal.segments[1].percentage - 60) < 1e-9);
+
+  assert.deepEqual(pieChartSegments([{ id: "zero", label: "ゼロ", value: 0 }]), { total: 0, segments: [] });
+  const single = pieChartSegments([{ id: "only", label: "唯一", value: 4 }]);
+  assert.equal(single.segments.length, 1);
+  assert.equal(single.segments[0].endAngle, (Math.PI * 3) / 2);
+
+  const withZero = pieChartSegments([
+    { id: "first", label: "最初", value: 2 },
+    { id: "zero", label: "ゼロ", value: 0 },
+    { id: "third", label: "3番目", value: 3 }
+  ]);
+  assert.deepEqual(withZero.segments.map(({ id, label, value, color }) => ({ id, label, value, color })), [
+    { id: "first", label: "最初", value: 2, color: PIE_CHART_COLORS[0] },
+    { id: "third", label: "3番目", value: 3, color: PIE_CHART_COLORS[2] }
+  ]);
 });
 
 test("未知の保存データで不正な行があっても最大50件に収めて安定IDを作る", () => {

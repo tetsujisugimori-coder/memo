@@ -2590,3 +2590,10 @@
 * テスト：`chart-block-utils.test.js`へ複数値の割合・終端角、完全な円、合計0、旧データの棒グラフ復元、保存設定の試験を追加した。`chart-block.e2e.js`は入力、負数検証、棒→円→棒→円のデータ保持、色、凡例、3種ラベル、合計0の空状態、保存・再読み込み・再編集、390px幅の領域内表示をChromiumで確認するフローへ更新した。
 * 検証：変更JavaScriptの`node --check`、`node --test chart-block-utils.test.js`（10件）、`npm test`（1,084件、fail 0）、`npm run test:e2e:chart`（Chromium／WebKit）、`npm run test:e2e:mobile`（layoutとwriting、console/page error 0）、`git diff --check`を実行して成功した。パッケージにlint、型チェック、ビルドのスクリプトはない。実タッチ端末、Safari、push後のGitHub Actionsは未確認である。
 * 対象外：折れ線、ドーナツ、3D、複数系列、CSV/Excel、画像/PDF書出し、扇形の直接編集、グラフ全体の再設計は実装していない。円グラフの色は項目順の固定パレットであり、今回、項目別の色選択UIは追加していない（既存の項目別色機構がないため）。
+
+## 2026-09-10 円グラフの巨大値比率オーバーフロー修正
+
+* `pieChartSegments()` は正の項目の直接合計を戻り値の `total` として維持しつつ、割合と扇形角度には直接合計を使わないようにした。正の最大値で各値を縮小し、その有限な縮小合計から比率を求めるため、`1e308 + 1e308` が `Infinity` になる場合も 50% / 50% を描画できる。
+* 0の項目を扇形から除外しつつ元の項目順で固定パレットの色を選ぶ処理、合計0の空配列、1項目の完全な円、最後の扇形を3時方向（`3π/2`）へ固定する処理は変更していない。保存形式、`schemaVersion`、`chartType`、既存カード互換、`DB_VERSION`、外部依存も変更していない。
+* 回帰テストで `[1e308, 1e308]` の50% / 50%、`[1e308, 5e307]` の約66.666...% / 33.333...%、巨大値での有限な割合・開始角・終了角、最後の終了角、通常値 `[2, 3]` の合計5・40% / 60%、合計0、1項目、0を挟む色順を確認する。`chart-block-utils.js` の配信キャッシュ識別子だけを `0.5.0-3` へ更新した。
+* 検証：`node --check chart-block-utils.js`、`node --test chart-block-utils.test.js`（12件、fail 0）、`npm test`（1,086件、fail 0）、`npm run test:e2e:chart`（Chromium／WebKit、各exit 0）、`git diff --check`を実行した。ブラウザーE2Eは各ブラウザーの完了メッセージまで確認した。

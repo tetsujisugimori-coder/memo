@@ -108,18 +108,21 @@
 
   function pieChartSegments(items) {
     const displayItems = Array.isArray(items) ? items.filter((item) => item && item.label && Number.isFinite(item.value) && item.value >= 0) : [];
-    const total = displayItems.reduce((sum, item) => sum + (item.value > 0 ? item.value : 0), 0);
-    if (!(total > 0)) return { total: 0, segments: [] };
-    let startAngle = -Math.PI / 2;
     const positiveItems = displayItems.filter((item) => item.value > 0);
+    const total = positiveItems.reduce((sum, item) => sum + item.value, 0);
+    const maximumValue = positiveItems.reduce((maximum, item) => Math.max(maximum, item.value), 0);
+    if (!(maximumValue > 0)) return { total: 0, segments: [] };
+    const scaledTotal = positiveItems.reduce((sum, item) => sum + item.value / maximumValue, 0);
+    let startAngle = -Math.PI / 2;
     const segments = positiveItems.map((item, index) => {
-      const endAngle = index === positiveItems.length - 1 ? (Math.PI * 3) / 2 : startAngle + (item.value / total) * Math.PI * 2;
+      const ratio = (item.value / maximumValue) / scaledTotal;
+      const endAngle = index === positiveItems.length - 1 ? (Math.PI * 3) / 2 : startAngle + ratio * Math.PI * 2;
       const segment = {
         ...item,
         color: PIE_CHART_COLORS[displayItems.indexOf(item) % PIE_CHART_COLORS.length],
         startAngle,
         endAngle,
-        percentage: (item.value / total) * 100
+        percentage: ratio * 100
       };
       startAngle = endAngle;
       return segment;
