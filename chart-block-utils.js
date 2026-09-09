@@ -4,6 +4,7 @@
   const CHART_BLOCK_VERSION = 1;
   const CHART_BLOCK_PATTERN = /^\s*<!-- memo-nexus:chart-block:([0-9a-f]+) -->\s*$/i;
   const DEFAULT_CHART_COLOR = "#4f46e5";
+  const PIE_CHART_COLORS = ["#4f46e5", "#dc2626", "#059669", "#d97706", "#0891b2", "#7c3aed", "#db2777", "#65a30d"];
   const IMAGE_BLOCK_START = "<!-- memo-nexus:image-block -->";
   const IMAGE_BLOCK_END = "<!-- /memo-nexus:image-block -->";
 
@@ -63,7 +64,7 @@
       type: "chart",
       id,
       schemaVersion: Number.isInteger(source.schemaVersion) && source.schemaVersion > 0 ? source.schemaVersion : CHART_BLOCK_VERSION,
-      chartType: source.chartType === "bar" ? "bar" : "bar",
+      chartType: source.chartType === "pie" ? "pie" : "bar",
       title: normalizedText(source.title).trim(),
       unit: normalizedText(source.unit).trim(),
       items,
@@ -71,7 +72,9 @@
         ...appearanceSource,
         color: normalizedColor(appearanceSource.color),
         showValues: appearanceSource.showValues !== false,
-        showLegend: false
+        showLegend: appearanceSource.showLegend === true,
+        pieLabelMode: ["percentage", "value", "none"].includes(appearanceSource.pieLabelMode)
+          ? appearanceSource.pieLabelMode : "percentage"
       }
     };
   }
@@ -85,7 +88,7 @@
       title: "",
       unit: "",
       items: [{ id: `${id}-item-1`, label: "", value: 0 }],
-      appearance: { color: DEFAULT_CHART_COLOR, showValues: true, showLegend: false }
+      appearance: { color: DEFAULT_CHART_COLOR, showValues: true, showLegend: false, pieLabelMode: "percentage" }
     }, id);
   }
 
@@ -101,6 +104,27 @@
     } catch (error) {
       return null;
     }
+  }
+
+  function pieChartSegments(items) {
+    const displayItems = Array.isArray(items) ? items.filter((item) => item && item.label && Number.isFinite(item.value) && item.value >= 0) : [];
+    const total = displayItems.reduce((sum, item) => sum + (item.value > 0 ? item.value : 0), 0);
+    if (!(total > 0)) return { total: 0, segments: [] };
+    let startAngle = -Math.PI / 2;
+    const positiveItems = displayItems.filter((item) => item.value > 0);
+    const segments = positiveItems.map((item, index) => {
+      const endAngle = index === positiveItems.length - 1 ? (Math.PI * 3) / 2 : startAngle + (item.value / total) * Math.PI * 2;
+      const segment = {
+        ...item,
+        color: PIE_CHART_COLORS[displayItems.indexOf(item) % PIE_CHART_COLORS.length],
+        startAngle,
+        endAngle,
+        percentage: (item.value / total) * 100
+      };
+      startAngle = endAngle;
+      return segment;
+    });
+    return { total, segments };
   }
 
   function splitChartBlocks(markdown) {
@@ -163,12 +187,14 @@
   const api = {
     CHART_BLOCK_VERSION,
     DEFAULT_CHART_COLOR,
+    PIE_CHART_COLORS,
     chartBlockPlainText,
     createChartBlock,
     insertChartBlock,
     nonNegativeFiniteNumber,
     normalizeChartBlock,
     parseChartBlockLine,
+    pieChartSegments,
     replaceChartBlock,
     serializeChartBlock,
     splitChartBlocks

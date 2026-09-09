@@ -2580,3 +2580,13 @@
 * GitHub Actionsへ`Chart E2E (chromium)`と`Chart E2E (webkit)`の専用マトリクスを追加した。既存のCI checks、Mobile E2E、Geometry E2Eは変更していない。
 * `chart-block.e2e.js`は静的サーバー作成後にブラウザー起動が失敗すると`finally`へ入らず、サーバーが残ってNodeが終了しない経路を持っていた。ブラウザーをnull初期化し、起動・ページ操作・assertionを同じ`try/finally`へ入れた。後始末の失敗は本来のテスト失敗を隠さず、ブラウザーと静的サーバーを順に終了する。
 * 検証：`node --check app.js`、`node --check chart-block-utils.js`、`node --check chart-block.e2e.js`、`node --test chart-block-utils.test.js`（8件）、`npm test`（1,082件、fail 0）、Chromium／WebKitの`npm run test:e2e:chart`、未対応ブラウザー指定時の非0終了（ハングなし）、`npm run test:e2e:mobile`、`git diff --check`を実行して成功した。モバイルE2E後は開始時から未コミットだった`e2e-artifacts/mobile-layout-390.png`を作業前のSHA-256 `0C93C26B12EBB45AA251746E01030B84152C52386F32E2319772044123038DAF` と同じ内容へ復元した。push後のGitHub ActionsではCI checks、Mobile E2E（Chromium／WebKit）、Geometry E2E（Chromium）、Chart E2E（Chromium／WebKit）がすべて成功した。
+
+## 2026-09-09 グラフブロック第2段階：円グラフ
+
+* 目的：第1段階の棒グラフが持つ単一系列の`items`（安定ID、項目名、数値）、タイトル、単位をそのまま再利用し、棒グラフ／円グラフを切り替えて作成、保存、再編集できるようにした。新しい外部ライブラリや円専用の入力データ形式は追加していない。
+* 保存形式：既存の`schemaVersion: 1`と本文マーカーを維持し、`chartType`は`"bar" | "pie"`を受け付ける。`appearance.showLegend`と`appearance.pieLabelMode`（`percentage`、`value`、`none`）を追加で直列化する。`chartType`がないデータや未知の種類は従来どおり棒グラフへ正規化するため、既存カード、本文保存、Markdown/ZIP経路、DB_VERSIONは変更していない。棒グラフ固有の共通色・数値表示も切替後に保持する。
+* 描画とUI：SVGの扇形を合計値から計算し、最後の扇形は常に3時方向まで到達させて丸めによる隙間を防ぐ。1項目は`circle`で完全な円にする。円グラフでは固定パレットから項目順に異なる色を割り当て、凡例の表示切替と、ラベルの「割合」「数値」「表示しない」を編集欄へ追加した。割合は小数第1位へ統一して丸め、数値ラベルには単位を付けるが割合には付けない。0の項目は扇形を描かず、凡例を表示する場合は項目識別のため凡例へ残す。
+* 入力値：保存モデルへ渡す有効値は0以上の有限数だけで、空欄、負数、`NaN`、`Infinity`は既存と同じ入力検証メッセージ「数値は0以上の有限な数値を入力してください」を出して直前の保存値を保持する。ラベル付き項目の合計が0なら円を描かず「円グラフを表示できる有効な数値がありません」を表示する。
+* テスト：`chart-block-utils.test.js`へ複数値の割合・終端角、完全な円、合計0、旧データの棒グラフ復元、保存設定の試験を追加した。`chart-block.e2e.js`は入力、負数検証、棒→円→棒→円のデータ保持、色、凡例、3種ラベル、合計0の空状態、保存・再読み込み・再編集、390px幅の領域内表示をChromiumで確認するフローへ更新した。
+* 検証：変更JavaScriptの`node --check`、`node --test chart-block-utils.test.js`（10件）、`npm test`（1,084件、fail 0）、`npm run test:e2e:chart`（Chromium／WebKit）、`npm run test:e2e:mobile`（layoutとwriting、console/page error 0）、`git diff --check`を実行して成功した。パッケージにlint、型チェック、ビルドのスクリプトはない。実タッチ端末、Safari、push後のGitHub Actionsは未確認である。
+* 対象外：折れ線、ドーナツ、3D、複数系列、CSV/Excel、画像/PDF書出し、扇形の直接編集、グラフ全体の再設計は実装していない。円グラフの色は項目順の固定パレットであり、今回、項目別の色選択UIは追加していない（既存の項目別色機構がないため）。

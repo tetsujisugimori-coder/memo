@@ -10,6 +10,7 @@ const {
   insertChartBlock,
   normalizeChartBlock,
   parseChartBlockLine,
+  pieChartSegments,
   replaceChartBlock,
   serializeChartBlock,
   splitChartBlocks
@@ -19,17 +20,17 @@ function charts(markdown) {
   return splitChartBlocks(markdown).filter((segment) => segment.type === "chart");
 }
 
-test("初期グラフは棒グラフ、空の1行、将来用の凡例設定を持つ", () => {
+test("初期グラフは棒グラフ、空の1行、円グラフ用の既定設定を持つ", () => {
   const chart = createChartBlock("chart-1");
   assert.equal(chart.type, "chart");
   assert.equal(chart.id, "chart-1");
   assert.equal(chart.schemaVersion, CHART_BLOCK_VERSION);
   assert.equal(chart.chartType, "bar");
   assert.deepEqual(chart.items, [{ id: "chart-1-item-1", label: "", value: 0 }]);
-  assert.deepEqual(chart.appearance, { color: DEFAULT_CHART_COLOR, showValues: true, showLegend: false });
+  assert.deepEqual(chart.appearance, { color: DEFAULT_CHART_COLOR, showValues: true, showLegend: false, pieLabelMode: "percentage" });
 });
 
-test("項目名と小数を含む保存形式を同じ内容へ復元する", () => {
+test("項目名と小数を含む保存形式を同じ内容へ復元し、凡例設定を保持する", () => {
   const source = normalizeChartBlock({
     id: "scores", title: "得点", unit: "点", items: [
       { id: "japanese", label: " 国語 ", value: 70.5 },
@@ -37,10 +38,10 @@ test("項目名と小数を含む保存形式を同じ内容へ復元する", ()
     ], appearance: { color: "#336699", showValues: false, showLegend: true }
   });
   const restored = parseChartBlockLine(serializeChartBlock(source));
-  assert.deepEqual(restored, { ...source, appearance: { ...source.appearance, showLegend: false } });
+  assert.deepEqual(restored, source);
 });
 
-test("不正な種別、数値、色、凡例設定を安全な既定値へ正規化する", () => {
+test("不正な種別、数値、色、ラベル設定を安全な既定値へ正規化する", () => {
   const chart = normalizeChartBlock({
     id: "unsafe", chartType: "line", items: [
       { id: "same", label: " A ", value: "NaN" },
@@ -52,7 +53,34 @@ test("不正な種別、数値、色、凡例設定を安全な既定値へ正�
   assert.deepEqual(chart.items.map(({ id, label, value }) => ({ id, label, value })), [
     { id: "same", label: "A", value: 0 }, { id: "same-2", label: "B", value: 0 }, { id: "unsafe-item-3", label: "C", value: 0 }
   ]);
-  assert.deepEqual(chart.appearance, { color: DEFAULT_CHART_COLOR, showValues: false, showLegend: false });
+  assert.deepEqual(chart.appearance, { color: DEFAULT_CHART_COLOR, showValues: false, showLegend: true, pieLabelMode: "percentage" });
+});
+
+test("円グラフは共通項目データを使い、最後の扇形まで合計100%にする", () => {
+  const chart = normalizeChartBlock({
+    id: "pie", chartType: "pie", unit: "個", items: [
+      { id: "a", label: "A", value: 2 }, { id: "b", label: "B", value: 3 }, { id: "zero", label: "0", value: 0 }
+    ], appearance: { showLegend: true, pieLabelMode: "value" }
+  });
+  const pie = pieChartSegments(chart.items);
+  assert.equal(chart.chartType, "pie");
+  assert.equal(chart.appearance.showLegend, true);
+  assert.equal(chart.appearance.pieLabelMode, "value");
+  assert.equal(pie.total, 5);
+  assert.equal(pie.segments.length, 2);
+  assert.ok(Math.abs(pie.segments[0].percentage - 40) < 1e-9);
+  assert.ok(Math.abs(pie.segments[1].percentage - 60) < 1e-9);
+  assert.ok(Math.abs(pie.segments.at(-1).endAngle - (Math.PI * 3) / 2) < 1e-12);
+});
+
+test("1項目の円グラフ、合計0、chartTypeなしの旧データを区別して正規化する", () => {
+  const single = pieChartSegments([{ id: "only", label: "唯一", value: 4 }]);
+  assert.equal(single.segments.length, 1);
+  assert.ok(Math.abs(single.segments[0].endAngle - single.segments[0].startAngle - Math.PI * 2) < 1e-9);
+  assert.deepEqual(pieChartSegments([{ id: "zero", label: "ゼロ", value: 0 }]), { total: 0, segments: [] });
+  const legacy = normalizeChartBlock({ id: "legacy", items: [{ label: "従来", value: 1 }] });
+  assert.equal(legacy.chartType, "bar");
+  assert.equal(legacy.appearance.pieLabelMode, "percentage");
 });
 
 test("未知の保存データで不正な行があっても最大50件に収めて安定IDを作る", () => {
