@@ -2597,3 +2597,12 @@
 * 0の項目を扇形から除外しつつ元の項目順で固定パレットの色を選ぶ処理、合計0の空配列、1項目の完全な円、最後の扇形を3時方向（`3π/2`）へ固定する処理は変更していない。保存形式、`schemaVersion`、`chartType`、既存カード互換、`DB_VERSION`、外部依存も変更していない。
 * 回帰テストで `[1e308, 1e308]` の50% / 50%、`[1e308, 5e307]` の約66.666...% / 33.333...%、巨大値での有限な割合・開始角・終了角、最後の終了角、通常値 `[2, 3]` の合計5・40% / 60%、合計0、1項目、0を挟む色順を確認する。`chart-block-utils.js` の配信キャッシュ識別子だけを `0.5.0-3` へ更新した。
 * 検証：`node --check chart-block-utils.js`、`node --test chart-block-utils.test.js`（12件、fail 0）、`npm test`（1,086件、fail 0）、`npm run test:e2e:chart`（Chromium／WebKit、各exit 0）、`git diff --check`を実行した。ブラウザーE2Eは各ブラウザーの完了メッセージまで確認した。
+
+## 2026-09-10 グラフブロック第3段階：折れ線グラフ
+
+* 既存の単一系列`items`（安定ID、項目名、0以上の有限数）を変更せず、`chartType: "line"`を追加した。本文マーカー、`schemaVersion: 1`、既存の本文保存・再読込・Markdown/ZIP経路、DB_VERSION、外部依存は変更していない。`bar`、`pie`、`line`以外の種別と種別なしの旧データは、従来どおり棒グラフへ正規化する。
+* SVG描画は既存の軸・viewBox・横スクロールコンテナを再利用する。入力順を横軸順にして点を直線で結び、各点には色だけに依存しない円形マーカーを表示する。0件は既存の入力案内を表示し、1件は線を描かず点だけを表示する。最大値を使う0始点の縦軸スケールは、全て0、同値、小数、巨大な有限値でもゼロ除算、`NaN`、`Infinity`を作らない。
+* タイトル、単位、色、既存の`showValues`、既存の`showLegend`を折れ線にも再利用した。データ点の表示切替だけは既存設定がなかったため、後方互換な`appearance.showPoints`を追加し、未保存の過去グラフでは`true`へ明示的に正規化する。新しい折れ線では点を既定表示し、数値表示の既定は既存の`showValues: true`と一致する。棒・円・折れ線の切替は共通`items`のID、順序、項目名、数値を保持する。
+* `chart-block-utils.test.js`では折れ線種別と設定の直列化、旧データの点表示既定値、0件・1件・同値・小数での有限座標、入力順を確認した。`chart-block.e2e.js`では棒→折れ線→円→折れ線の切替、線・点・数値・凡例、0件空状態、1件、同値、小数、保存・再読込・再編集、実際の設定UIでのライト／ダークテーマ、390px幅のカード内表示を確認するようにした。変更した`chart-block-utils.js`、`style.css`、`app.js`のキャッシュ識別子をそれぞれ`0.5.0-4`、`0.5.0-90`、`0.5.0-147`へ上げ、対応する既存キャッシュ契約テストを同期した。
+* 検証：`node --check chart-block-utils.js`、`node --check app.js`、`node --check chart-block.e2e.js`、`node --test chart-block-utils.test.js`（14件、fail 0）、`npm test`（1,088件、fail 0）、`npm run test:e2e:chart`（Chromium／WebKit、各exit 0）、`npm run test:e2e:mobile`（layoutとwriting、console/page error 0）、`git diff --check`を実行した。package.jsonにlint、型チェック、ビルドのスクリプトはない。実タッチ端末、Safari、push後のGitHub Actionsは未確認である。モバイルE2Eが更新した追跡済みスクリーンショットは、開始時の内容へ復元している。
+* 複数系列、日付解釈、不等間隔横軸、曲線補間、ズーム、パン、ツールチップ、第2縦軸、CSV取込、新規グラフライブラリ、グラフ全体の再設計は対象外とした。

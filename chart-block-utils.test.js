@@ -9,6 +9,7 @@ const {
   chartBlockPlainText,
   createChartBlock,
   insertChartBlock,
+  lineChartPoints,
   normalizeChartBlock,
   parseChartBlockLine,
   pieChartSegments,
@@ -28,7 +29,7 @@ test("初期グラフは棒グラフ、空の1行、円グラフ用の既定設�
   assert.equal(chart.schemaVersion, CHART_BLOCK_VERSION);
   assert.equal(chart.chartType, "bar");
   assert.deepEqual(chart.items, [{ id: "chart-1-item-1", label: "", value: 0 }]);
-  assert.deepEqual(chart.appearance, { color: DEFAULT_CHART_COLOR, showValues: true, showLegend: false, pieLabelMode: "percentage" });
+  assert.deepEqual(chart.appearance, { color: DEFAULT_CHART_COLOR, showValues: true, showPoints: true, showLegend: false, pieLabelMode: "percentage" });
 });
 
 test("項目名と小数を含む保存形式を同じ内容へ復元し、凡例設定を保持する", () => {
@@ -44,7 +45,7 @@ test("項目名と小数を含む保存形式を同じ内容へ復元し、凡�
 
 test("不正な種別、数値、色、ラベル設定を安全な既定値へ正規化する", () => {
   const chart = normalizeChartBlock({
-    id: "unsafe", chartType: "line", items: [
+    id: "unsafe", chartType: "area", items: [
       { id: "same", label: " A ", value: "NaN" },
       { id: "same", label: "B", value: Infinity },
       { label: "C", value: -1 }
@@ -54,7 +55,31 @@ test("不正な種別、数値、色、ラベル設定を安全な既定値へ�
   assert.deepEqual(chart.items.map(({ id, label, value }) => ({ id, label, value })), [
     { id: "same", label: "A", value: 0 }, { id: "same-2", label: "B", value: 0 }, { id: "unsafe-item-3", label: "C", value: 0 }
   ]);
-  assert.deepEqual(chart.appearance, { color: DEFAULT_CHART_COLOR, showValues: false, showLegend: true, pieLabelMode: "percentage" });
+  assert.deepEqual(chart.appearance, { color: DEFAULT_CHART_COLOR, showValues: false, showPoints: true, showLegend: true, pieLabelMode: "percentage" });
+});
+
+test("折れ線グラフは共通データと表示設定を保存し、旧データの点表示は既定で有効にする", () => {
+  const line = normalizeChartBlock({
+    id: "line", chartType: "line", title: "推移", unit: "点",
+    items: [{ id: "first", label: "一回目", value: 1.5 }, { id: "second", label: "二回目", value: 3 }],
+    appearance: { color: "#336699", showValues: false, showPoints: false, showLegend: true }
+  });
+  assert.equal(line.chartType, "line");
+  assert.deepEqual(parseChartBlockLine(serializeChartBlock(line)), line);
+  const legacy = normalizeChartBlock({ id: "legacy", chartType: "bar", items: [{ label: "従来", value: 1 }] });
+  assert.equal(legacy.appearance.showPoints, true);
+});
+
+test("折れ線の座標は入力順を保ち、0件・1件・同値・小数でも有限にする", () => {
+  assert.deepEqual(lineChartPoints([], 420), []);
+  const single = lineChartPoints([{ id: "only", value: 4 }], 420);
+  assert.equal(single.length, 1);
+  assert.ok(Number.isFinite(single[0].x) && Number.isFinite(single[0].y));
+  const equal = lineChartPoints([{ id: "a", value: 2.5 }, { id: "b", value: 2.5 }, { id: "c", value: 2.5 }], 420);
+  assert.deepEqual(equal.map((point) => point.id), ["a", "b", "c"]);
+  assert.ok(equal.every((point) => Number.isFinite(point.x) && Number.isFinite(point.y)));
+  assert.ok(equal[0].x < equal[1].x && equal[1].x < equal[2].x);
+  assert.equal(equal[0].y, equal[1].y);
 });
 
 test("円グラフは共通項目データを使い、最後の扇形まで合計100%にする", () => {
@@ -82,6 +107,7 @@ test("1項目の円グラフ、合計0、chartTypeなしの旧データを区別
   const legacy = normalizeChartBlock({ id: "legacy", items: [{ label: "従来", value: 1 }] });
   assert.equal(legacy.chartType, "bar");
   assert.equal(legacy.appearance.pieLabelMode, "percentage");
+  assert.equal(legacy.appearance.showPoints, true);
 });
 
 test("巨大な有限値も最大値で正規化して有限な比率と角度にする", () => {

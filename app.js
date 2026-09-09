@@ -469,6 +469,7 @@ const {
   chartBlockPlainText,
   createChartBlock,
   insertChartBlock,
+  lineChartPoints,
   nonNegativeFiniteNumber,
   normalizeChartBlock,
   PIE_CHART_COLORS,
@@ -8410,6 +8411,27 @@ function renderChartBlock(chartValue, blockIndex, { editable = true } = {}) {
   const width = Math.max(420, items.length * 74 + 76);
   const height = 260;
   const baseline = 196;
+  if (chart.chartType === "line") {
+    const points = lineChartPoints(items, width, { baseline });
+    const maximum = Math.max(0, ...items.map((item) => item.value));
+    const path = points.length > 1
+      ? `<polyline class="chart-block-line-path" points="${points.map((point) => `${point.x},${point.y}`).join(" ")}" fill="none" stroke="${escapeAttr(chart.appearance.color)}"></polyline>`
+      : "";
+    const pointItems = points.map((point) => {
+      const value = chart.appearance.showValues
+        ? `<text class="chart-block-value" x="${point.x}" y="${Math.max(16, point.y - 8)}" text-anchor="middle">${escapeHtml(chartDisplayNumber(point.value))}</text>`
+        : "";
+      const marker = chart.appearance.showPoints
+        ? `<circle class="chart-block-line-point" cx="${point.x}" cy="${point.y}" r="4.5" fill="var(--section-bg)" stroke="${escapeAttr(chart.appearance.color)}"></circle>`
+        : "";
+      return `<g class="chart-block-line-item" data-chart-item-id="${escapeAttr(point.id)}"><title>${escapeHtml(`${point.label}: ${chartDisplayNumber(point.value)}${chart.unit}`)}</title>${value}${marker}<text class="chart-block-label" x="${point.x}" y="${baseline + 22}" text-anchor="middle">${escapeHtml(chartLabel(point.label))}</text></g>`;
+    }).join("");
+    const empty = points.length ? "" : `<text class="chart-block-empty" x="${width / 2}" y="${height / 2}" text-anchor="middle">項目名と0以上の数値を入力してください</text>`;
+    const legend = chart.appearance.showLegend
+      ? `<ul class="chart-block-legend" aria-label="${escapeAttr(`${title}の凡例`)}"><li><span class="chart-block-line-legend-swatch" style="color:${escapeAttr(chart.appearance.color)}"></span><span>${escapeHtml(title)}</span></li></ul>`
+      : "";
+    return `<figure class="chart-block chart-block-line" data-chart-id="${escapeAttr(chart.id)}"><figcaption>${escapeHtml(title)}</figcaption>${controls}<div class="chart-block-line-layout"><div class="chart-block-scroll" role="region" tabindex="0" aria-label="${escapeAttr(title)}"><svg viewBox="0 0 ${width} ${height}" role="img" aria-label="${escapeAttr(`${title}${chart.unit ? `（単位: ${chart.unit}）` : ""}`)}"><line class="chart-block-axis" x1="42" y1="22" x2="42" y2="${baseline}"/><line class="chart-block-axis" x1="42" y1="${baseline}" x2="${width - 18}" y2="${baseline}"/><text class="chart-block-axis-value" x="36" y="26" text-anchor="end">${escapeHtml(chartDisplayNumber(maximum))}</text><text class="chart-block-axis-value" x="36" y="${baseline + 4}" text-anchor="end">0</text>${chart.unit ? `<text class="chart-block-unit" x="48" y="18">${escapeHtml(chart.unit)}</text>` : ""}${path}${pointItems}${empty}</svg></div>${legend}</div><ul class="sr-only">${accessibleItems || "<li>有効な項目はありません</li>"}</ul></figure>`;
+  }
   const maximum = Math.max(0, ...items.map((item) => item.value));
   const barWidth = Math.min(48, Math.max(24, (width - 76) / Math.max(1, items.length) - 22));
   const bars = items.map((item, index) => {
@@ -8466,7 +8488,7 @@ function createChartEditor(chartValue, blockIndex) {
   const chartType = document.createElement("select");
   chartType.dataset.chartField = "chartType";
   chartType.setAttribute("aria-label", `グラフ${blockIndex + 1}の種類`);
-  [["bar", "棒グラフ"], ["pie", "円グラフ"]].forEach(([value, label]) => {
+  [["bar", "棒グラフ"], ["line", "折れ線グラフ"], ["pie", "円グラフ"]].forEach(([value, label]) => {
     const option = document.createElement("option");
     option.value = value;
     option.textContent = label;
@@ -8477,23 +8499,42 @@ function createChartEditor(chartValue, blockIndex) {
   fields.append(chartTypeLabel);
   const appearance = document.createElement("div");
   appearance.className = "chart-block-appearance";
-  if (chart.chartType === "bar") {
+  if (chart.chartType !== "pie") {
     const colorLabel = document.createElement("label");
-    colorLabel.textContent = "棒の色";
+    const chartTerm = chart.chartType === "line" ? "線" : "棒";
+    colorLabel.textContent = `${chartTerm}の色`;
     const color = document.createElement("input");
     color.type = "color";
     color.dataset.chartField = "color";
     color.value = chart.appearance.color;
-    color.setAttribute("aria-label", `グラフ${blockIndex + 1}の棒の色`);
+    color.setAttribute("aria-label", `グラフ${blockIndex + 1}の${chartTerm}の色`);
     colorLabel.append(color);
     const valuesLabel = document.createElement("label");
     const values = document.createElement("input");
     values.type = "checkbox";
     values.dataset.chartField = "showValues";
     values.checked = chart.appearance.showValues;
-    values.setAttribute("aria-label", `グラフ${blockIndex + 1}の棒の上に数値を表示`);
-    valuesLabel.append(values, document.createTextNode("棒の上に数値を表示"));
+    const valuesText = chart.chartType === "line" ? "データ点の数値を表示" : "棒の上に数値を表示";
+    values.setAttribute("aria-label", `グラフ${blockIndex + 1}の${valuesText}`);
+    valuesLabel.append(values, document.createTextNode(valuesText));
     appearance.append(colorLabel, valuesLabel);
+    if (chart.chartType === "line") {
+      const pointsLabel = document.createElement("label");
+      const points = document.createElement("input");
+      points.type = "checkbox";
+      points.dataset.chartField = "showPoints";
+      points.checked = chart.appearance.showPoints;
+      points.setAttribute("aria-label", `グラフ${blockIndex + 1}のデータ点を表示`);
+      pointsLabel.append(points, document.createTextNode("データ点を表示"));
+      const legendLabel = document.createElement("label");
+      const legend = document.createElement("input");
+      legend.type = "checkbox";
+      legend.dataset.chartField = "showLegend";
+      legend.checked = chart.appearance.showLegend;
+      legend.setAttribute("aria-label", `グラフ${blockIndex + 1}の凡例を表示`);
+      legendLabel.append(legend, document.createTextNode("凡例を表示"));
+      appearance.append(pointsLabel, legendLabel);
+    }
   } else {
     const legendLabel = document.createElement("label");
     const legend = document.createElement("input");
@@ -8639,7 +8680,7 @@ function handleChartEditorInput(event) {
     next.items = next.items.map((item, index) => index === itemIndex ? { ...item, [field]: field === "value" ? nonNegativeFiniteNumber(event.target.value) : event.target.value } : item);
   } else if (event.target.dataset.chartField === "color") {
     next.appearance = { ...next.appearance, color: event.target.value };
-  } else if (["showValues", "showLegend"].includes(event.target.dataset.chartField)) {
+  } else if (["showValues", "showPoints", "showLegend"].includes(event.target.dataset.chartField)) {
     next.appearance = { ...next.appearance, [event.target.dataset.chartField]: event.target.checked };
   } else if (event.target.dataset.chartField === "pieLabelMode") {
     next.appearance = { ...next.appearance, pieLabelMode: event.target.value };
