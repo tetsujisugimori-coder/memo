@@ -38,6 +38,23 @@ test("画像ブロックを書き出して再取り込みしてもローカル�
   assert.doesNotMatch(plan.body, /<attachments\//);
 });
 
+test("画像ブロック配置コメントはMarkdown書き出しと再取り込みで保持される", async () => {
+  const bundle = buildMemoExportBundle({
+    markdownPath: "配置.md",
+    markdownContent: "<!-- memo-nexus:image-block -->\n<!-- memo-nexus:image-align:right -->\n![図](attachment://image-id)\n<!-- /memo-nexus:image-block -->",
+    attachments: [{ id: "image-id", kind: "image", fileName: "図.png", blob: new Blob(["png"], { type: "image/png" }) }]
+  });
+  assert.match(bundle.files[0].content, /<!-- memo-nexus:image-align:right -->/);
+  assert.match(bundle.files[0].content, /!\[図\]\(<attachments\/図\.png>\)/);
+  const entries = await Promise.all(bundle.files.map(async (file) => ({
+    name: file.name,
+    data: typeof file.content === "string" ? new TextEncoder().encode(file.content) : new Uint8Array(await file.content.arrayBuffer())
+  })));
+  const [plan] = buildMarkdownBundleImport(entries, () => "restored-image-id");
+  assert.match(plan.body, /<!-- memo-nexus:image-align:right -->/);
+  assert.match(plan.body, /attachment:\/\/restored-image-id/);
+});
+
 test("通常Markdown ZIPのfront matterタグを取り込み経路へ渡せる", () => {
   const markdown = serializeLocalNote({ id: "source", title: "タグ付き", tags: ["AI", "資料"] }, "本文");
   const [plan] = buildMarkdownBundleImport([{ name: "タグ付き.md", data: new TextEncoder().encode(markdown) }]);

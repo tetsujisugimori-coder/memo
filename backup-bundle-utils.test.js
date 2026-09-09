@@ -25,7 +25,7 @@ test("タグバックアップ関連スクリプトのキャッシュ番号を�
   assert.match(html, /tags\.js\?v=0\.5\.0-4/);
   assert.match(html, /local-sync-utils\.js\?v=0\.5\.0-10/);
   assert.match(html, /backup-bundle-utils\.js\?v=0\.5\.0-5/);
-  assert.match(html, /app\.js\?v=0\.5\.0-143/);
+  assert.match(html, /app\.js\?v=0\.5\.0-144/);
 });
 
 test("完全バックアップはメモ個別のWebフォントIDをそのまま往復する", () => {
@@ -57,6 +57,30 @@ test("Memo Nexus形式ZIPの書き出しと復元で幾何学ブロック本文�
     collections: [],
     tagDefinitions: [],
     notePlans: [{ fileName: "geometry.md", markdown }],
+    normalizeTagDefinitions
+  });
+  const parsed = parsePortableBackup(files.map((file) => entry(file.name, file.content)), {
+    parseNote: parseLocalNote,
+    normalizeTagDefinitions
+  });
+  assert.equal(parsed.notes[0].note.body, body);
+});
+
+test("Memo Nexus形式ZIPの書き出しと復元で画像ブロック配置コメントを保持する", () => {
+  const body = [
+    "<!-- memo-nexus:image-block -->",
+    "<!-- memo-nexus:image-align:left -->",
+    "![図](attachment://asset-1)",
+    "<!-- memo-nexus:image-caption -->",
+    "説明文",
+    "<!-- /memo-nexus:image-block -->"
+  ].join("\n");
+  const markdown = serializeLocalNote({ id: "image-alignment-backup", title: "画像配置" }, body);
+  const files = buildPortableBackupFiles({
+    manifest: manifest(),
+    collections: [],
+    tagDefinitions: [],
+    notePlans: [{ fileName: "image-alignment.md", markdown }],
     normalizeTagDefinitions
   });
   const parsed = parsePortableBackup(files.map((file) => entry(file.name, file.content)), {
