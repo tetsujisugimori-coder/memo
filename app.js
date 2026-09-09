@@ -471,6 +471,8 @@ const {
   insertChartBlock,
   nonNegativeFiniteNumber,
   normalizeChartBlock,
+  PIE_CHART_COLORS,
+  pieChartSegments,
   replaceChartBlock,
   splitChartBlocks
 } = window.MemoNexusChartBlockUtils;
@@ -8360,10 +8362,51 @@ function chartLabel(value, maxLength = 14) {
   return text.length > maxLength ? `${text.slice(0, Math.max(1, maxLength - 1))}…` : text;
 }
 
+function chartPieLabel(segment, unit, mode) {
+  if (mode === "none") return "";
+  if (mode === "value") return `${chartDisplayNumber(segment.value)}${unit}`;
+  return `${segment.percentage.toFixed(1)}%`;
+}
+
+function chartPiePath(segment, centerX, centerY, radius) {
+  if (Math.abs(segment.endAngle - segment.startAngle) >= (Math.PI * 2) - 1e-9) {
+    return `<circle class="chart-block-pie-slice" data-chart-item-id="${escapeAttr(segment.id)}" cx="${centerX}" cy="${centerY}" r="${radius}" fill="${escapeAttr(segment.color)}"></circle>`;
+  }
+  const startX = centerX + Math.cos(segment.startAngle) * radius;
+  const startY = centerY + Math.sin(segment.startAngle) * radius;
+  const endX = centerX + Math.cos(segment.endAngle) * radius;
+  const endY = centerY + Math.sin(segment.endAngle) * radius;
+  const largeArc = segment.endAngle - segment.startAngle > Math.PI ? 1 : 0;
+  return `<path class="chart-block-pie-slice" data-chart-item-id="${escapeAttr(segment.id)}" d="M ${centerX} ${centerY} L ${startX} ${startY} A ${radius} ${radius} 0 ${largeArc} 1 ${endX} ${endY} Z" fill="${escapeAttr(segment.color)}"></path>`;
+}
+
 function renderChartBlock(chartValue, blockIndex, { editable = true } = {}) {
   const chart = normalizeChartBlock(chartValue, `chart-${blockIndex + 1}`);
   const items = chartDisplayItems(chart);
   const title = chart.title || `グラフ${blockIndex + 1}`;
+  const controls = editable
+    ? `<button class="chart-block-edit" type="button" data-chart-id="${escapeAttr(chart.id)}" aria-label="${escapeAttr(`${title}を編集`)}">編集</button>`
+    : "";
+  const accessibleItems = items.map((item) => `<li>${escapeHtml(`${item.label}: ${chartDisplayNumber(item.value)}${chart.unit}`)}</li>`).join("");
+  if (chart.chartType === "pie") {
+    const pie = pieChartSegments(items);
+    const centerX = 140;
+    const centerY = 130;
+    const radius = 92;
+    const colorById = new Map(pie.segments.map((segment) => [segment.id, segment.color]));
+    const slices = pie.segments.map((segment) => {
+      const label = chartPieLabel(segment, chart.unit, chart.appearance.pieLabelMode);
+      const middle = (segment.startAngle + segment.endAngle) / 2;
+      const labelX = centerX + Math.cos(middle) * (radius * 0.61);
+      const labelY = centerY + Math.sin(middle) * (radius * 0.61);
+      return `<g><title>${escapeHtml(`${segment.label}: ${chartDisplayNumber(segment.value)}${chart.unit} (${segment.percentage.toFixed(1)}%)`)}</title>${chartPiePath(segment, centerX, centerY, radius)}${label ? `<text class="chart-block-pie-label" x="${labelX}" y="${labelY}" text-anchor="middle" dominant-baseline="middle">${escapeHtml(label)}</text>` : ""}</g>`;
+    }).join("");
+    const empty = pie.total > 0 ? "" : `<text class="chart-block-empty" x="180" y="130" text-anchor="middle">円グラフを表示できる有効な数値がありません</text>`;
+    const legend = chart.appearance.showLegend
+      ? `<ul class="chart-block-legend" aria-label="${escapeAttr(`${title}の凡例`)}">${items.map((item, index) => `<li><span class="chart-block-legend-swatch" style="background:${escapeAttr(colorById.get(item.id) || PIE_CHART_COLORS[index % PIE_CHART_COLORS.length])}"></span><span>${escapeHtml(`${chartLabel(item.label, 20)}: ${chartDisplayNumber(item.value)}${chart.unit}`)}</span></li>`).join("")}</ul>`
+      : "";
+    return `<figure class="chart-block chart-block-pie" data-chart-id="${escapeAttr(chart.id)}"><figcaption>${escapeHtml(title)}</figcaption>${controls}<div class="chart-block-pie-layout"><div class="chart-block-scroll" role="region" tabindex="0" aria-label="${escapeAttr(title)}"><svg viewBox="0 0 360 260" role="img" aria-label="${escapeAttr(`${title}${chart.unit ? `（単位: ${chart.unit}）` : ""}`)}">${slices}${empty}</svg></div>${legend}</div><ul class="sr-only">${accessibleItems || "<li>有効な項目はありません</li>"}</ul></figure>`;
+  }
   const width = Math.max(420, items.length * 74 + 76);
   const height = 260;
   const baseline = 196;
@@ -8380,10 +8423,6 @@ function renderChartBlock(chartValue, blockIndex, { editable = true } = {}) {
     return `<g class="chart-block-bar" data-chart-item-id="${escapeAttr(item.id)}"><title>${escapeHtml(`${item.label}: ${chartDisplayNumber(item.value)}${chart.unit}`)}</title><rect x="${x}" y="${y}" width="${barWidth}" height="${barHeight}" rx="4" fill="${escapeAttr(chart.appearance.color)}"></rect>${value}<text class="chart-block-label" x="${center}" y="${baseline + 22}" text-anchor="middle">${escapeHtml(chartLabel(item.label))}</text></g>`;
   }).join("");
   const empty = items.length ? "" : `<text class="chart-block-empty" x="${width / 2}" y="${height / 2}" text-anchor="middle">項目名と0以上の数値を入力してください</text>`;
-  const controls = editable
-    ? `<button class="chart-block-edit" type="button" data-chart-id="${escapeAttr(chart.id)}" aria-label="${escapeAttr(`${title}を編集`)}">編集</button>`
-    : "";
-  const accessibleItems = items.map((item) => `<li>${escapeHtml(`${item.label}: ${chartDisplayNumber(item.value)}${chart.unit}`)}</li>`).join("");
   return `<figure class="chart-block" data-chart-id="${escapeAttr(chart.id)}"><figcaption>${escapeHtml(title)}</figcaption>${controls}<div class="chart-block-scroll" role="region" tabindex="0" aria-label="${escapeAttr(title)}"><svg viewBox="0 0 ${width} ${height}" role="img" aria-label="${escapeAttr(`${title}${chart.unit ? `（単位: ${chart.unit}）` : ""}`)}"><line class="chart-block-axis" x1="42" y1="22" x2="42" y2="${baseline}"/><line class="chart-block-axis" x1="42" y1="${baseline}" x2="${width - 18}" y2="${baseline}"/>${chart.unit ? `<text class="chart-block-unit" x="48" y="18">${escapeHtml(chart.unit)}</text>` : ""}${bars}${empty}</svg></div><ul class="sr-only">${accessibleItems || "<li>有効な項目はありません</li>"}</ul></figure>`;
 }
 
@@ -8422,24 +8461,62 @@ function createChartEditor(chartValue, blockIndex) {
     wrapper.append(input);
     fields.append(wrapper);
   });
+  const chartTypeLabel = document.createElement("label");
+  chartTypeLabel.textContent = "グラフの種類";
+  const chartType = document.createElement("select");
+  chartType.dataset.chartField = "chartType";
+  chartType.setAttribute("aria-label", `グラフ${blockIndex + 1}の種類`);
+  [["bar", "棒グラフ"], ["pie", "円グラフ"]].forEach(([value, label]) => {
+    const option = document.createElement("option");
+    option.value = value;
+    option.textContent = label;
+    option.selected = chart.chartType === value;
+    chartType.append(option);
+  });
+  chartTypeLabel.append(chartType);
+  fields.append(chartTypeLabel);
   const appearance = document.createElement("div");
   appearance.className = "chart-block-appearance";
-  const colorLabel = document.createElement("label");
-  colorLabel.textContent = "棒の色";
-  const color = document.createElement("input");
-  color.type = "color";
-  color.dataset.chartField = "color";
-  color.value = chart.appearance.color;
-  color.setAttribute("aria-label", `グラフ${blockIndex + 1}の棒の色`);
-  colorLabel.append(color);
-  const valuesLabel = document.createElement("label");
-  const values = document.createElement("input");
-  values.type = "checkbox";
-  values.dataset.chartField = "showValues";
-  values.checked = chart.appearance.showValues;
-  values.setAttribute("aria-label", `グラフ${blockIndex + 1}の棒の上に数値を表示`);
-  valuesLabel.append(values, document.createTextNode("棒の上に数値を表示"));
-  appearance.append(colorLabel, valuesLabel);
+  if (chart.chartType === "bar") {
+    const colorLabel = document.createElement("label");
+    colorLabel.textContent = "棒の色";
+    const color = document.createElement("input");
+    color.type = "color";
+    color.dataset.chartField = "color";
+    color.value = chart.appearance.color;
+    color.setAttribute("aria-label", `グラフ${blockIndex + 1}の棒の色`);
+    colorLabel.append(color);
+    const valuesLabel = document.createElement("label");
+    const values = document.createElement("input");
+    values.type = "checkbox";
+    values.dataset.chartField = "showValues";
+    values.checked = chart.appearance.showValues;
+    values.setAttribute("aria-label", `グラフ${blockIndex + 1}の棒の上に数値を表示`);
+    valuesLabel.append(values, document.createTextNode("棒の上に数値を表示"));
+    appearance.append(colorLabel, valuesLabel);
+  } else {
+    const legendLabel = document.createElement("label");
+    const legend = document.createElement("input");
+    legend.type = "checkbox";
+    legend.dataset.chartField = "showLegend";
+    legend.checked = chart.appearance.showLegend;
+    legend.setAttribute("aria-label", `グラフ${blockIndex + 1}の凡例を表示`);
+    legendLabel.append(legend, document.createTextNode("凡例を表示"));
+    const labelModeLabel = document.createElement("label");
+    labelModeLabel.textContent = "円グラフのラベル";
+    const labelMode = document.createElement("select");
+    labelMode.dataset.chartField = "pieLabelMode";
+    labelMode.setAttribute("aria-label", `グラフ${blockIndex + 1}の円グラフのラベル`);
+    [["percentage", "割合"], ["value", "数値"], ["none", "表示しない"]].forEach(([value, label]) => {
+      const option = document.createElement("option");
+      option.value = value;
+      option.textContent = label;
+      option.selected = chart.appearance.pieLabelMode === value;
+      labelMode.append(option);
+    });
+    labelModeLabel.append(labelMode);
+    appearance.append(legendLabel, labelModeLabel);
+  }
   const table = document.createElement("div");
   table.className = "chart-block-item-table";
   const tableTitle = document.createElement("p");
@@ -8562,15 +8639,17 @@ function handleChartEditorInput(event) {
     next.items = next.items.map((item, index) => index === itemIndex ? { ...item, [field]: field === "value" ? nonNegativeFiniteNumber(event.target.value) : event.target.value } : item);
   } else if (event.target.dataset.chartField === "color") {
     next.appearance = { ...next.appearance, color: event.target.value };
-  } else if (event.target.dataset.chartField === "showValues") {
-    next.appearance = { ...next.appearance, showValues: event.target.checked };
+  } else if (["showValues", "showLegend"].includes(event.target.dataset.chartField)) {
+    next.appearance = { ...next.appearance, [event.target.dataset.chartField]: event.target.checked };
+  } else if (event.target.dataset.chartField === "pieLabelMode") {
+    next.appearance = { ...next.appearance, pieLabelMode: event.target.value };
   } else if (event.target.dataset.chartField) {
     next[event.target.dataset.chartField] = event.target.value;
   } else return;
   next = normalizeChartBlock(next, chartId);
   chartEditorStatus(editorBlock, "");
   renderChartEditorPreview(editorBlock.querySelector(".chart-block-editor-preview"), next, blockIndex);
-  commitChartBlockChange(blockIndex, chartId, next);
+  commitChartBlockChange(blockIndex, chartId, next, { rerenderEditors: event.target.dataset.chartField === "chartType" });
 }
 
 async function confirmChartEditor(editorBlock, blockIndex, chartId) {
