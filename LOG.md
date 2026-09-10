@@ -2621,3 +2621,11 @@
 * `handleChartEditorChange()`を追加し、`showValues`、`showPoints`、`showLegend`のチェックボックスだけは`change`でも既存の入力処理へ渡すようにした。入力とchangeの両方が来るブラウザーでは、すでに保存モデルの値と一致する更新を早期に返すため、二重の本文置換・保存予約は行わない。保存スキーマ、items、描画、CSS、DB_VERSION、本文マーカーは変更していない。
 * 失敗していた既存の実UI操作（チェックボックスを`uncheck()`し、保存モデルの`showValues: false`を待つChart E2E）を維持したまま、ChromiumとWebKitで通過を確認した。`app.js`の配信キャッシュ識別子を`0.5.0-149`へ1回だけ更新し、既存の全契約テストを同期した。
 * 検証：`node --check app.js`、`node --check chart-block-utils.js`、`node --check chart-block.e2e.js`、`node --test chart-block-utils.test.js`（14件）、`npm test`（1,088件、fail 0）、`npm run test:e2e:chart`（Chromium／WebKit、各exit 0）、`npm run test:e2e:mobile`（320px・390pxを含むlayoutとwriting、exit 0）、`git diff --check`を実行して成功した。GitHub Actionsの再実行結果、Safari実機、実タッチ端末は未確認である。
+
+## 2026-09-10 グラフ種類切替の取消・バックアップ回帰
+
+* PR #210がすでに`chartType: "bar" | "line" | "pie"`、共通の`items`、即時SVGプレビュー、未知／未指定種別の棒グラフフォールバックをmainへ取り込んでいることを確認した。今回、グラフ編集欄へ`編集を取り消す`を追加し、編集欄を開いた時点の正規化済みブロックを同じIDで復元する。確定して`flushSave()`が成功した時点だけ、その状態を次の取消基準へ更新する。
+* 種類切替中もタイトル、単位、項目ID・順序・項目名・数値、`appearance`を一括で保持する。円の`pieLabelMode`、折れ線の`showPoints`、凡例・数値表示、共通色は、別の種類では編集欄から一時的に非表示になっても削除しない。円の扇形色は既存どおり項目順の固定パレットを使うため、項目を並べ替えない種類切替では項目との対応を維持する。
+* 回帰範囲を棒→折れ線→円→棒、取消後のIDを含む保存データ完全復元、再読み込み後の棒グラフ選択、ZIPバックアップ往復後の`chartType: "pie"`・項目ID・円ラベル設定へ拡張した。既存の0以上有限数検証、50件上限、巨大有限値の円比率正規化、本文マーカー、`schemaVersion: 1`、通常のMarkdown/ZIP経路、DB_VERSIONは変更していない。
+* 検証：`node --check app.js`、`node --check chart-block-utils.js`、`node --check chart-block.e2e.js`、`node --test chart-block-utils.test.js backup-bundle-utils.test.js`（35件）、`npm test`（1,090件、fail 0）、`npm run test:e2e:chart`（Chromium／WebKit、各exit 0）、`npm run test:e2e:mobile`（320px・390pxを含むlayoutとwriting、page/console error 0）、`git diff --check`を実行して成功した。package.jsonにlint、型チェック、ビルドのスクリプトはない。
+* 残課題：実タッチ端末とSafari実機、push後のGitHub Actionsは未確認。PC／390px幅のブラウザー回帰は既存Chart E2Eで確認する。

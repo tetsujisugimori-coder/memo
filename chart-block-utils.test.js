@@ -70,6 +70,22 @@ test("折れ線グラフは共通データと表示設定を保存し、旧デ�
   assert.equal(legacy.appearance.showPoints, true);
 });
 
+test("種類を棒から折れ線、円、棒へ切り替えてもID、共通データ、表示設定を保持する", () => {
+  const bar = normalizeChartBlock({
+    id: "switchable", chartType: "bar", title: "比較", unit: "点",
+    items: [{ id: "first", label: "一回目", value: 70.5 }, { id: "second", label: "二回目", value: 27.75 }],
+    appearance: { color: "#dc2626", showValues: false, showPoints: false, showLegend: true, pieLabelMode: "value" }
+  });
+  const common = ({ id, title, unit, items, appearance }) => ({ id, title, unit, items, appearance });
+  const line = normalizeChartBlock({ ...bar, chartType: "line" });
+  const pie = normalizeChartBlock({ ...line, chartType: "pie" });
+  const restoredBar = parseChartBlockLine(serializeChartBlock({ ...pie, chartType: "bar" }));
+  assert.equal(line.chartType, "line");
+  assert.equal(pie.chartType, "pie");
+  assert.equal(restoredBar.chartType, "bar");
+  assert.deepEqual(common(restoredBar), common(bar));
+});
+
 test("折れ線の座標は入力順を保ち、0件・1件・同値・小数でも有限にする", () => {
   assert.deepEqual(lineChartPoints([], 420), []);
   const single = lineChartPoints([{ id: "only", value: 4 }], 420);

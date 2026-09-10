@@ -8337,6 +8337,14 @@ function currentChartBlock(blockIndex, chartId) {
   return block && block.chart.id === chartId ? block : null;
 }
 
+const chartEditorOriginalCharts = new Map();
+let chartEditorOriginalNoteId = null;
+
+function chartEditorOriginalChart(chartId) {
+  const original = chartEditorOriginalCharts.get(chartId);
+  return original ? normalizeChartBlock(original, chartId) : null;
+}
+
 function chartDisplayItems(chart) {
   return chart.items.filter((item) => item.label && Number.isFinite(item.value) && item.value >= 0);
 }
@@ -8473,6 +8481,7 @@ function renderChartEditorPreview(host, chart, blockIndex) {
 
 function createChartEditor(chartValue, blockIndex) {
   const chart = normalizeChartBlock(chartValue, `chart-${blockIndex + 1}`);
+  if (!chartEditorOriginalCharts.has(chart.id)) chartEditorOriginalCharts.set(chart.id, normalizeChartBlock(chart, chart.id));
   const article = document.createElement("article");
   article.className = "chart-block-editor";
   article.dataset.chartId = chart.id;
@@ -8623,7 +8632,11 @@ function createChartEditor(chartValue, blockIndex) {
   save.type = "button";
   save.dataset.chartAction = "confirm";
   save.textContent = "入力を確定";
-  actions.append(add, save);
+  const cancel = document.createElement("button");
+  cancel.type = "button";
+  cancel.dataset.chartAction = "cancel";
+  cancel.textContent = "編集を取り消す";
+  actions.append(add, cancel, save);
   const status = document.createElement("p");
   status.className = "chart-block-status";
   status.setAttribute("role", "status");
@@ -8638,7 +8651,16 @@ function createChartEditor(chartValue, blockIndex) {
 
 function renderChartBlockEditors() {
   if (!chartBlockEditors) return;
+  const noteId = currentNote()?.id || null;
+  if (chartEditorOriginalNoteId !== noteId) {
+    chartEditorOriginalCharts.clear();
+    chartEditorOriginalNoteId = noteId;
+  }
   const blocks = splitChartBlocks(editor.value).filter((segment) => segment.type === "chart");
+  const chartIds = new Set(blocks.map((block) => block.chart.id));
+  for (const chartId of chartEditorOriginalCharts.keys()) {
+    if (!chartIds.has(chartId)) chartEditorOriginalCharts.delete(chartId);
+  }
   chartBlockEditors.replaceChildren();
   chartBlockEditors.hidden = blocks.length === 0;
   if (!blocks.length) return;
@@ -8743,6 +8765,7 @@ async function confirmChartEditor(editorBlock, blockIndex, chartId) {
   chartEditorStatus(editorBlock, "保存中...");
   try {
     await flushSave();
+    chartEditorOriginalCharts.set(chartId, normalizeChartBlock(block.chart, chartId));
     chartEditorStatus(editorBlock, "入力内容を保存しました");
   } catch (error) {
     console.error("Chart block save failed", error);
@@ -8778,10 +8801,21 @@ function handleChartEditorAction(event) {
       if (!confirm("このグラフブロックを削除しますか？")) return;
       captureUndoSnapshot({ inputType: "deleteContentForward" });
       editor.value = replaceChartBlock(editor.value, block, null);
+      chartEditorOriginalCharts.delete(chartId);
       renderChartBlockEditors();
       scheduleSave({ render: false });
       editor.focus();
       return;
+    case "cancel": {
+      const original = chartEditorOriginalChart(chartId);
+      if (!original || !commitChartBlockChange(blockIndex, chartId, original, { rerenderEditors: true })) return;
+      requestAnimationFrame(() => {
+        const restoredEditor = chartBlockEditors?.querySelector(`.chart-block-editor[data-chart-id="${CSS.escape(chartId)}"]`);
+        chartEditorStatus(restoredEditor, "編集内容を取り消しました");
+        restoredEditor?.focus({ preventScroll: true });
+      });
+      return;
+    }
     case "confirm":
       confirmChartEditor(editorBlock, blockIndex, chartId);
       return;

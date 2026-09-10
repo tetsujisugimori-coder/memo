@@ -8,6 +8,7 @@ const {
   BACKUP_FORMAT, BACKUP_VERSION, attachmentIdsToReplace, buildPortableBackupFiles, importedWins, isPortableBackup, parsePortableBackup
 } = require("./backup-bundle-utils.js");
 const { createGeometryBlock, serializeGeometryBlock } = require("./geometry-block-utils.js");
+const { normalizeChartBlock, parseChartBlockLine, serializeChartBlock } = require("./chart-block-utils.js");
 
 function entry(name, content) {
   return { name, data: typeof content === "string" ? new TextEncoder().encode(content) : content };
@@ -25,7 +26,7 @@ test("タグバックアップ関連スクリプトのキャッシュ番号を�
   assert.match(html, /tags\.js\?v=0\.5\.0-4/);
   assert.match(html, /local-sync-utils\.js\?v=0\.5\.0-10/);
   assert.match(html, /backup-bundle-utils\.js\?v=0\.5\.0-5/);
-  assert.match(html, /app\.js\?v=0\.5\.0-149/);
+  assert.match(html, /app\.js\?v=0\.5\.0-150/);
 });
 
 test("完全バックアップはメモ個別のWebフォントIDをそのまま往復する", () => {
@@ -64,6 +65,26 @@ test("Memo Nexus形式ZIPの書き出しと復元で幾何学ブロック本文�
     normalizeTagDefinitions
   });
   assert.equal(parsed.notes[0].note.body, body);
+});
+
+test("Memo Nexus形式ZIPの書き出しと復元でグラフ種類を保持する", () => {
+  const chartMarker = serializeChartBlock(normalizeChartBlock({
+    id: "chart-backup", chartType: "pie", title: "内訳", unit: "件",
+    items: [{ id: "a", label: "A", value: 2 }, { id: "b", label: "B", value: 3 }],
+    appearance: { color: "#dc2626", showLegend: true, pieLabelMode: "value" }
+  }));
+  const body = `前\n${chartMarker}\n後`;
+  const markdown = serializeLocalNote({ id: "chart-backup-note", title: "グラフバックアップ" }, body);
+  const files = buildPortableBackupFiles({
+    manifest: manifest(), collections: [], tagDefinitions: [], notePlans: [{ fileName: "chart.md", markdown }], normalizeTagDefinitions
+  });
+  const parsed = parsePortableBackup(files.map((file) => entry(file.name, file.content)), {
+    parseNote: parseLocalNote, normalizeTagDefinitions
+  });
+  const restored = parseChartBlockLine(parsed.notes[0].note.body.split("\n").find((line) => line.includes("memo-nexus:chart-block")));
+  assert.equal(restored.chartType, "pie");
+  assert.deepEqual(restored.items.map((item) => item.id), ["a", "b"]);
+  assert.equal(restored.appearance.pieLabelMode, "value");
 });
 
 test("Memo Nexus形式ZIPの書き出しと復元で画像ブロック配置コメントを保持する", () => {
