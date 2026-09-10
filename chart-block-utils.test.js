@@ -80,6 +80,9 @@ test("折れ線の座標は入力順を保ち、0件・1件・同値・小数で
   assert.ok(equal.every((point) => Number.isFinite(point.x) && Number.isFinite(point.y)));
   assert.ok(equal[0].x < equal[1].x && equal[1].x < equal[2].x);
   assert.equal(equal[0].y, equal[1].y);
+  const separated = lineChartPoints([{ id: "maximum", value: Number.MAX_VALUE }, { id: "lower", value: Number.MAX_VALUE / 2 }], 420, { left: 86, right: 18, top: 42, baseline: 196 });
+  assert.ok(separated.every((point) => Number.isFinite(point.x) && Number.isFinite(point.y)), "巨大な有限値と分離したプロット領域でも有限座標にする");
+  assert.ok(separated[0].x > 42, "先頭点をY軸より右のプロット領域へ置く");
 });
 
 test("円グラフは共通項目データを使い、最後の扇形まで合計100%にする", () => {

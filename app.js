@@ -8412,14 +8412,33 @@ function renderChartBlock(chartValue, blockIndex, { editable = true } = {}) {
   const height = 260;
   const baseline = 196;
   if (chart.chartType === "line") {
-    const points = lineChartPoints(items, width, { baseline });
+    const lineLayout = {
+      axisX: 42,
+      axisTop: 40,
+      axisLabelX: 36,
+      axisMaximumY: 30,
+      unitX: 48,
+      unitY: 18,
+      plotLeft: 86,
+      plotRight: 18,
+      plotTop: 42,
+      baseline,
+      valueOffset: 8,
+      valueMinimumY: 34
+    };
+    const points = lineChartPoints(items, width, {
+      left: lineLayout.plotLeft,
+      right: lineLayout.plotRight,
+      top: lineLayout.plotTop,
+      baseline: lineLayout.baseline
+    });
     const maximum = Math.max(0, ...items.map((item) => item.value));
     const path = points.length > 1
       ? `<polyline class="chart-block-line-path" points="${points.map((point) => `${point.x},${point.y}`).join(" ")}" fill="none" stroke="${escapeAttr(chart.appearance.color)}"></polyline>`
       : "";
     const pointItems = points.map((point) => {
       const value = chart.appearance.showValues
-        ? `<text class="chart-block-value" x="${point.x}" y="${Math.max(16, point.y - 8)}" text-anchor="middle">${escapeHtml(chartDisplayNumber(point.value))}</text>`
+        ? `<text class="chart-block-value" x="${point.x}" y="${Math.max(lineLayout.valueMinimumY, point.y - lineLayout.valueOffset)}" text-anchor="middle">${escapeHtml(chartDisplayNumber(point.value))}</text>`
         : "";
       const marker = chart.appearance.showPoints
         ? `<circle class="chart-block-line-point" cx="${point.x}" cy="${point.y}" r="4.5" fill="var(--section-bg)" stroke="${escapeAttr(chart.appearance.color)}"></circle>`
@@ -8430,7 +8449,7 @@ function renderChartBlock(chartValue, blockIndex, { editable = true } = {}) {
     const legend = chart.appearance.showLegend
       ? `<ul class="chart-block-legend" aria-label="${escapeAttr(`${title}の凡例`)}"><li><span class="chart-block-line-legend-swatch" style="color:${escapeAttr(chart.appearance.color)}"></span><span>${escapeHtml(title)}</span></li></ul>`
       : "";
-    return `<figure class="chart-block chart-block-line" data-chart-id="${escapeAttr(chart.id)}"><figcaption>${escapeHtml(title)}</figcaption>${controls}<div class="chart-block-line-layout"><div class="chart-block-scroll" role="region" tabindex="0" aria-label="${escapeAttr(title)}"><svg viewBox="0 0 ${width} ${height}" role="img" aria-label="${escapeAttr(`${title}${chart.unit ? `（単位: ${chart.unit}）` : ""}`)}"><line class="chart-block-axis" x1="42" y1="22" x2="42" y2="${baseline}"/><line class="chart-block-axis" x1="42" y1="${baseline}" x2="${width - 18}" y2="${baseline}"/><text class="chart-block-axis-value" x="36" y="26" text-anchor="end">${escapeHtml(chartDisplayNumber(maximum))}</text><text class="chart-block-axis-value" x="36" y="${baseline + 4}" text-anchor="end">0</text>${chart.unit ? `<text class="chart-block-unit" x="48" y="18">${escapeHtml(chart.unit)}</text>` : ""}${path}${pointItems}${empty}</svg></div>${legend}</div><ul class="sr-only">${accessibleItems || "<li>有効な項目はありません</li>"}</ul></figure>`;
+    return `<figure class="chart-block chart-block-line" data-chart-id="${escapeAttr(chart.id)}"><figcaption>${escapeHtml(title)}</figcaption>${controls}<div class="chart-block-line-layout"><div class="chart-block-scroll" role="region" tabindex="0" aria-label="${escapeAttr(title)}"><svg viewBox="0 0 ${width} ${height}" role="img" aria-label="${escapeAttr(`${title}${chart.unit ? `（単位: ${chart.unit}）` : ""}`)}"><line class="chart-block-axis" x1="${lineLayout.axisX}" y1="${lineLayout.axisTop}" x2="${lineLayout.axisX}" y2="${lineLayout.baseline}"/><line class="chart-block-axis" x1="${lineLayout.axisX}" y1="${lineLayout.baseline}" x2="${width - lineLayout.plotRight}" y2="${lineLayout.baseline}"/><text class="chart-block-axis-value chart-block-axis-maximum" x="${lineLayout.axisLabelX}" y="${lineLayout.axisMaximumY}" text-anchor="end">${escapeHtml(chartDisplayNumber(maximum))}</text><text class="chart-block-axis-value chart-block-axis-zero" x="${lineLayout.axisLabelX}" y="${lineLayout.baseline + 4}" text-anchor="end">0</text>${chart.unit ? `<text class="chart-block-unit" x="${lineLayout.unitX}" y="${lineLayout.unitY}">${escapeHtml(chart.unit)}</text>` : ""}${path}${pointItems}${empty}</svg></div>${legend}</div><ul class="sr-only">${accessibleItems || "<li>有効な項目はありません</li>"}</ul></figure>`;
   }
   const maximum = Math.max(0, ...items.map((item) => item.value));
   const barWidth = Math.min(48, Math.max(24, (width - 76) / Math.max(1, items.length) - 22));
@@ -8510,6 +8529,7 @@ function createChartEditor(chartValue, blockIndex) {
     color.setAttribute("aria-label", `グラフ${blockIndex + 1}の${chartTerm}の色`);
     colorLabel.append(color);
     const valuesLabel = document.createElement("label");
+    valuesLabel.className = "chart-block-appearance-checkbox";
     const values = document.createElement("input");
     values.type = "checkbox";
     values.dataset.chartField = "showValues";
@@ -8520,6 +8540,7 @@ function createChartEditor(chartValue, blockIndex) {
     appearance.append(colorLabel, valuesLabel);
     if (chart.chartType === "line") {
       const pointsLabel = document.createElement("label");
+      pointsLabel.className = "chart-block-appearance-checkbox";
       const points = document.createElement("input");
       points.type = "checkbox";
       points.dataset.chartField = "showPoints";
@@ -8527,6 +8548,7 @@ function createChartEditor(chartValue, blockIndex) {
       points.setAttribute("aria-label", `グラフ${blockIndex + 1}のデータ点を表示`);
       pointsLabel.append(points, document.createTextNode("データ点を表示"));
       const legendLabel = document.createElement("label");
+      legendLabel.className = "chart-block-appearance-checkbox";
       const legend = document.createElement("input");
       legend.type = "checkbox";
       legend.dataset.chartField = "showLegend";
@@ -8537,6 +8559,7 @@ function createChartEditor(chartValue, blockIndex) {
     }
   } else {
     const legendLabel = document.createElement("label");
+    legendLabel.className = "chart-block-appearance-checkbox";
     const legend = document.createElement("input");
     legend.type = "checkbox";
     legend.dataset.chartField = "showLegend";

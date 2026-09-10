@@ -61,6 +61,33 @@ function chart(page) {
     .find((segment) => segment.type === "chart")?.chart || null);
 }
 
+async function checkboxLayout(input) {
+  return input.evaluate((checkbox) => {
+    const label = checkbox.closest("label");
+    const textNode = [...label.childNodes].find((node) => node.nodeType === Node.TEXT_NODE && node.textContent.trim());
+    const textRange = document.createRange();
+    textRange.selectNode(textNode);
+    const toRect = (rect) => ({ left: rect.left, right: rect.right, top: rect.top, bottom: rect.bottom });
+    return {
+      className: label.className,
+      display: getComputedStyle(label).display,
+      checkbox: toRect(checkbox.getBoundingClientRect()),
+      text: toRect(textRange.getBoundingClientRect())
+    };
+  });
+}
+
+function assertInlineCheckboxLayout(layout, name) {
+  assert.match(layout.className, /\bchart-block-appearance-checkbox\b/, `${name}に専用クラスを付ける`);
+  assert.equal(layout.display, "flex", `${name}を横並びflexで表示する`);
+  assert.ok(layout.checkbox.right <= layout.text.left, `${name}のチェックボックスを文言の左に置く`);
+  assert.ok(Math.abs((layout.checkbox.top + layout.checkbox.bottom) / 2 - (layout.text.top + layout.text.bottom) / 2) <= 2, `${name}のチェックボックスと文言を縦中央で揃える`);
+}
+
+function boxesOverlap(first, second) {
+  return first.x < second.x + second.width && second.x < first.x + first.width && first.y < second.y + second.height && second.y < first.y + first.height;
+}
+
 (async () => {
   let server = null;
   let browser = null;
@@ -85,6 +112,7 @@ function chart(page) {
     await editor.locator('input[aria-label="2件目の項目名"]').fill("数学");
     await editor.locator('input[aria-label="2件目の数値"]').fill("0");
     await editor.locator('input[aria-label="グラフ1の棒の色"]').evaluate((input) => { input.value = "#dc2626"; input.dispatchEvent(new Event("input", { bubbles: true })); });
+    assertInlineCheckboxLayout(await checkboxLayout(editor.locator('input[aria-label="グラフ1の棒の上に数値を表示"]')), "棒の上に数値を表示");
     await editor.locator('input[aria-label="グラフ1の棒の上に数値を表示"]').uncheck();
     await page.waitForFunction(() => {
       const current = window.MemoNexusChartBlockUtils.splitChartBlocks(document.getElementById("editor").value).find((segment) => segment.type === "chart")?.chart;
@@ -123,6 +151,9 @@ function chart(page) {
     assert.equal(await lineEditor.locator('input[aria-label="1件目の項目名"]').inputValue(), "国語", "棒グラフから折れ線グラフへの切替でも項目名を保持する");
     assert.equal(await lineEditor.locator('input[aria-label="1件目の数値"]').inputValue(), "72.25", "棒グラフから折れ線グラフへの切替でも数値を保持する");
     assert.equal(await lineEditor.locator('input[aria-label="グラフ1のデータ点を表示"]').isChecked(), true, "折れ線グラフはデータ点を既定で表示する");
+    assertInlineCheckboxLayout(await checkboxLayout(lineEditor.locator('input[aria-label="グラフ1のデータ点の数値を表示"]')), "データ点の数値を表示");
+    assertInlineCheckboxLayout(await checkboxLayout(lineEditor.locator('input[aria-label="グラフ1のデータ点を表示"]')), "データ点を表示");
+    assertInlineCheckboxLayout(await checkboxLayout(lineEditor.locator('input[aria-label="グラフ1の凡例を表示"]')), "折れ線グラフの凡例を表示");
     await lineEditor.locator('input[aria-label="グラフ1のデータ点の数値を表示"]').check();
     await lineEditor.locator('input[aria-label="グラフ1の凡例を表示"]').check();
     await lineEditor.locator('input[aria-label="2件目の数値"]').fill("27.75");
@@ -132,6 +163,31 @@ function chart(page) {
     const lineCoordinates = await page.locator("#preview .chart-block-line-point").evaluateAll((points) => points.map((point) => ({ x: Number(point.getAttribute("cx")), y: Number(point.getAttribute("cy")) })));
     assert.ok(lineCoordinates.every((point) => Number.isFinite(point.x) && Number.isFinite(point.y)), "小数値でも有限な折れ線座標を描画する");
     assert.ok(lineCoordinates[0].x < lineCoordinates[1].x, "入力順に横軸を左から右へ並べる");
+    const lineChart = await chart(page);
+    const lineSvgState = await page.locator("#preview .chart-block-line svg").evaluate((svg, firstItemId) => {
+      const firstItem = [...svg.querySelectorAll(".chart-block-line-item")].find((item) => item.dataset.chartItemId === firstItemId);
+      const toBox = (element) => {
+        const box = element.getBBox();
+        return { x: box.x, y: box.y, width: box.width, height: box.height };
+      };
+      const polyline = svg.querySelector(".chart-block-line-path");
+      return {
+        pathCount: svg.querySelectorAll(".chart-block-line-path").length,
+        pointCount: svg.querySelectorAll(".chart-block-line-point").length,
+        valueCount: svg.querySelectorAll(".chart-block-value").length,
+        labelCount: svg.querySelectorAll(".chart-block-label").length,
+        pointCoordinates: [...svg.querySelectorAll(".chart-block-line-point")].map((point) => [Number(point.getAttribute("cx")), Number(point.getAttribute("cy"))]),
+        polylineCoordinates: (polyline?.getAttribute("points") || "").trim().split(/\s+/).filter(Boolean).flatMap((point) => point.split(",").map(Number)),
+        firstValue: toBox(firstItem.querySelector(".chart-block-value")),
+        unit: toBox(svg.querySelector(".chart-block-unit")),
+        maximum: toBox(svg.querySelector(".chart-block-axis-maximum"))
+      };
+    }, lineChart.items[0].id);
+    assert.deepEqual([lineSvgState.pathCount, lineSvgState.pointCount, lineSvgState.valueCount, lineSvgState.labelCount], [1, 2, 2, 2], "先頭が最大値でも線・点・数値・項目名を表示する");
+    assert.ok([...lineSvgState.pointCoordinates.flat(), ...lineSvgState.polylineCoordinates].every(Number.isFinite), "折れ線と点の生成座標をすべて有限にする");
+    assert.equal(boxesOverlap(lineSvgState.firstValue, lineSvgState.unit), false, "先頭の数値と単位を重ねない");
+    assert.equal(boxesOverlap(lineSvgState.firstValue, lineSvgState.maximum), false, "先頭の数値とY軸最大値を重ねない");
+    assert.equal(boxesOverlap(lineSvgState.unit, lineSvgState.maximum), false, "単位とY軸最大値を重ねない");
     await lineEditor.locator('input[aria-label="1件目の数値"]').fill("2.5");
     await lineEditor.locator('input[aria-label="2件目の数値"]').fill("2.5");
     await page.waitForFunction(() => {
@@ -165,6 +221,7 @@ function chart(page) {
     assert.match(await page.locator("#preview .chart-block-pie-label").first().textContent(), /72\.3%/, "割合は小数第1位で統一して丸める");
     const pieFills = await page.locator("#preview .chart-block-pie-slice").evaluateAll((slices) => slices.map((slice) => slice.getAttribute("fill")));
     assert.notEqual(pieFills[0], pieFills[1], "各扇形を識別可能な色で描画する");
+    assertInlineCheckboxLayout(await checkboxLayout(pieEditor.locator('input[aria-label="グラフ1の凡例を表示"]')), "円グラフの凡例を表示");
     await pieEditor.locator('input[aria-label="グラフ1の凡例を表示"]').check();
     await page.waitForFunction(() => document.querySelectorAll("#preview .chart-block-legend li").length === 2);
     await pieEditor.locator('select[aria-label="グラフ1の円グラフのラベル"]').selectOption("value");

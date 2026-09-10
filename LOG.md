@@ -2606,3 +2606,11 @@
 * `chart-block-utils.test.js`では折れ線種別と設定の直列化、旧データの点表示既定値、0件・1件・同値・小数での有限座標、入力順を確認した。`chart-block.e2e.js`では棒→折れ線→円→折れ線の切替、線・点・数値・凡例、0件空状態、1件、同値、小数、保存・再読込・再編集、実際の設定UIでのライト／ダークテーマ、390px幅のカード内表示を確認するようにした。変更した`chart-block-utils.js`、`style.css`、`app.js`のキャッシュ識別子をそれぞれ`0.5.0-4`、`0.5.0-90`、`0.5.0-147`へ上げ、対応する既存キャッシュ契約テストを同期した。
 * 検証：`node --check chart-block-utils.js`、`node --check app.js`、`node --check chart-block.e2e.js`、`node --test chart-block-utils.test.js`（14件、fail 0）、`npm test`（1,088件、fail 0）、`npm run test:e2e:chart`（Chromium／WebKit、各exit 0）、`npm run test:e2e:mobile`（layoutとwriting、console/page error 0）、`git diff --check`を実行した。package.jsonにlint、型チェック、ビルドのスクリプトはない。実タッチ端末、Safari、push後のGitHub Actionsは未確認である。モバイルE2Eが更新した追跡済みスクリーンショットは、開始時の内容へ復元している。
 * 複数系列、日付解釈、不等間隔横軸、曲線補間、ズーム、パン、ツールチップ、第2縦軸、CSV取込、新規グラフライブラリ、グラフ全体の再設計は対象外とした。
+
+## 2026-09-10 PR #210 レビュー修正：折れ線グラフの左上表示と設定チェック項目
+
+* 原因：複数点の折れ線で先頭点をY軸と同じ`x=42`へ配置し、最大値のときに点の数値も上端へ寄せていたため、左上にある単位とY軸最大値表示と同じ領域に集まっていた。
+* `renderChartBlock()` の折れ線描画へ、軸位置、軸ラベル位置、単位位置、プロット領域、値ラベル位置をまとめた`lineLayout`を追加した。`lineChartPoints()`へ同じプロット左右端・上端・基線を渡し、先頭点をY軸の右側へ分離した。0件、1件、全0、同値、小数、巨大な有限値の既存計算と、1件では線を描かず点だけを描く仕様、最大50件のスクロールは維持している。
+* 表示設定は一般ラベルの`display:grid`に対し最後の1件だけを`:last-child`で`flex`化していたため、折れ線で増えたチェック項目が縦方向に分離していた。棒の値、折れ線の値・点・凡例、円の凡例の各ラベルへ`chart-block-appearance-checkbox`を付け、専用クラスで横並び・中央揃えにした。色入力と円ラベル選択のレイアウト、保存形式、グラフデータは変更していない。
+* `chart-block.e2e.js`は、単位・値表示ありで先頭が最大の2項目について、SVGの`getBBox()`で先頭値・単位・Y軸最大値の矩形が重ならないこと、折れ線・点・値・項目名、折れ線と点の有限座標を確認する。さらに棒・折れ線・円の対象チェック項目の専用クラス、計算済み`display:flex`、チェックボックスと文言の同一行・中央揃えを確認する。`chart-block-utils.test.js`は分離したプロット領域と巨大有限値の有限座標を追加で確認する。
+* 検証：`node --check app.js`、`node --check chart-block-utils.js`、`node --check chart-block.e2e.js`、`node --test chart-block-utils.test.js`（14件）、`npm test`（1,088件、fail 0）、`npm run test:e2e:chart`（Chromium／WebKit、各exit 0）、`npm run test:e2e:mobile`（320px・390pxを含むlayoutとwriting、exit 0）、`git diff --check`を実行して成功した。Safari実機、実タッチ端末、push後のGitHub Actionsは未確認である。

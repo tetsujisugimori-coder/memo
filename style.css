@@ -6143,7 +6143,7 @@ body.collections-open:not(.context-panel-closed) .context-panel {
   font-size: 12px;
 }
 
-.chart-block-appearance label:last-child { display: flex; align-items: center; gap: 6px; min-height: 34px; }
+.chart-block-appearance .chart-block-appearance-checkbox { display: flex; align-items: center; gap: 6px; min-height: 34px; }
 .chart-block-fields input { min-width: min(220px, 100%); min-height: 34px; }
 .chart-block-appearance input[type="color"] { width: 44px; min-height: 34px; padding: 2px; }
 .chart-block-item-table { overflow-x: auto; }
