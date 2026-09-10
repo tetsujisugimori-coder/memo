@@ -2614,3 +2614,10 @@
 * 表示設定は一般ラベルの`display:grid`に対し最後の1件だけを`:last-child`で`flex`化していたため、折れ線で増えたチェック項目が縦方向に分離していた。棒の値、折れ線の値・点・凡例、円の凡例の各ラベルへ`chart-block-appearance-checkbox`を付け、専用クラスで横並び・中央揃えにした。色入力と円ラベル選択のレイアウト、保存形式、グラフデータは変更していない。
 * `chart-block.e2e.js`は、単位・値表示ありで先頭が最大の2項目について、SVGの`getBBox()`で先頭値・単位・Y軸最大値の矩形が重ならないこと、折れ線・点・値・項目名、折れ線と点の有限座標を確認する。さらに棒・折れ線・円の対象チェック項目の専用クラス、計算済み`display:flex`、チェックボックスと文言の同一行・中央揃えを確認する。`chart-block-utils.test.js`は分離したプロット領域と巨大有限値の有限座標を追加で確認する。
 * 検証：`node --check app.js`、`node --check chart-block-utils.js`、`node --check chart-block.e2e.js`、`node --test chart-block-utils.test.js`（14件）、`npm test`（1,088件、fail 0）、`npm run test:e2e:chart`（Chromium／WebKit、各exit 0）、`npm run test:e2e:mobile`（320px・390pxを含むlayoutとwriting、exit 0）、`git diff --check`を実行して成功した。Safari実機、実タッチ端末、push後のGitHub Actionsは未確認である。
+
+## 2026-09-10 PR #210 CI修正：Chart E2E WebKitのチェックボックス更新
+
+* GitHub ActionsのPRマージ結果で`Chart E2E (webkit)`だけが失敗し、`chart-block.e2e.js:117`の待機が30秒でタイムアウトしていた。待機条件のうち`appearance.showValues === false`は、バーの「棒の上に数値を表示」を外した後に保存モデルへ反映されることを確認する既存回帰である。グラフ編集器は`input`イベントだけを購読しており、WebKitのチェックボックスで`change`だけが届く経路を補完していなかった。
+* `handleChartEditorChange()`を追加し、`showValues`、`showPoints`、`showLegend`のチェックボックスだけは`change`でも既存の入力処理へ渡すようにした。入力とchangeの両方が来るブラウザーでは、すでに保存モデルの値と一致する更新を早期に返すため、二重の本文置換・保存予約は行わない。保存スキーマ、items、描画、CSS、DB_VERSION、本文マーカーは変更していない。
+* 失敗していた既存の実UI操作（チェックボックスを`uncheck()`し、保存モデルの`showValues: false`を待つChart E2E）を維持したまま、ChromiumとWebKitで通過を確認した。`app.js`の配信キャッシュ識別子を`0.5.0-149`へ1回だけ更新し、既存の全契約テストを同期した。
+* 検証：`node --check app.js`、`node --check chart-block-utils.js`、`node --check chart-block.e2e.js`、`node --test chart-block-utils.test.js`（14件）、`npm test`（1,088件、fail 0）、`npm run test:e2e:chart`（Chromium／WebKit、各exit 0）、`npm run test:e2e:mobile`（320px・390pxを含むlayoutとwriting、exit 0）、`git diff --check`を実行して成功した。GitHub Actionsの再実行結果、Safari実機、実タッチ端末は未確認である。

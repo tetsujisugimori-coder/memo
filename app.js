@@ -8704,6 +8704,7 @@ function handleChartEditorInput(event) {
   } else if (event.target.dataset.chartField === "color") {
     next.appearance = { ...next.appearance, color: event.target.value };
   } else if (["showValues", "showPoints", "showLegend"].includes(event.target.dataset.chartField)) {
+    if (next.appearance[event.target.dataset.chartField] === event.target.checked) return;
     next.appearance = { ...next.appearance, [event.target.dataset.chartField]: event.target.checked };
   } else if (event.target.dataset.chartField === "pieLabelMode") {
     next.appearance = { ...next.appearance, pieLabelMode: event.target.value };
@@ -8714,6 +8715,13 @@ function handleChartEditorInput(event) {
   chartEditorStatus(editorBlock, "");
   renderChartEditorPreview(editorBlock.querySelector(".chart-block-editor-preview"), next, blockIndex);
   commitChartBlockChange(blockIndex, chartId, next, { rerenderEditors: event.target.dataset.chartField === "chartType" });
+}
+
+function handleChartEditorChange(event) {
+  const target = event.target;
+  if (target instanceof HTMLInputElement && target.type === "checkbox" && ["showValues", "showPoints", "showLegend"].includes(target.dataset.chartField)) {
+    handleChartEditorInput(event);
+  }
 }
 
 async function confirmChartEditor(editorBlock, blockIndex, chartId) {
@@ -14292,6 +14300,7 @@ if (tableBlockEditors) {
 }
 if (chartBlockEditors) {
   chartBlockEditors.addEventListener("input", handleChartEditorInput);
+  chartBlockEditors.addEventListener("change", handleChartEditorChange);
   chartBlockEditors.addEventListener("click", handleChartEditorAction);
 }
 if (closeTableAxisDeleteBtn) closeTableAxisDeleteBtn.addEventListener("click", closeTableAxisDeleteDialog);
