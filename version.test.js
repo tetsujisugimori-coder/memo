@@ -50,7 +50,7 @@ test("全ローカルCSS・JavaScriptを0.5.0のキャッシュ識別子で読�
   assert.match(html, /extensions\/web-clipper\/clip-result\.js\?v=0\.5\.0-1/);
   assert.match(html, /extensions\/web-clipper\/transfer-lifecycle\.js\?v=0\.5\.0-2/);
   assert.match(html, /web-clipper-config\.js\?v=0\.5\.0-4/);
-  assert.match(html, /app\.js\?v=0\.5\.0-150/);
+  assert.match(html, /app\.js\?v=0\.5\.0-151/);
 });
 
 test("本体リリースと別管理の互換性バージョンを変更しない", () => {

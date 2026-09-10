@@ -61,6 +61,11 @@ function chart(page) {
     .find((segment) => segment.type === "chart")?.chart || null);
 }
 
+function charts(page) {
+  return page.evaluate(() => window.MemoNexusChartBlockUtils.splitChartBlocks(document.getElementById("editor").value)
+    .filter((segment) => segment.type === "chart").map((segment) => segment.chart));
+}
+
 async function checkboxLayout(input) {
   return input.evaluate((checkbox) => {
     const label = checkbox.closest("label");
@@ -119,6 +124,7 @@ function boxesOverlap(first, second) {
       return current?.title === "テスト得点" && current.unit === "点" && current.items.length === 2 && current.items[0].value === 70.5 && current.items[1].value === 0 && current.appearance.color === "#dc2626" && current.appearance.showValues === false;
     });
     await page.waitForFunction(() => document.querySelectorAll("#preview .chart-block-bar").length === 2);
+    await page.waitForFunction(() => document.querySelectorAll("#preview .chart-block-value").length === 0);
     assert.equal(await page.locator("#preview .chart-block-bar").count(), 2, "保存前プレビューは2本の棒を描画する");
     assert.equal(await page.locator("#preview .chart-block-value").count(), 0, "数値表示オフを即時反映する");
     assert.equal(await page.locator("#preview .chart-block-bar rect").first().getAttribute("fill"), "#dc2626", "選択色を全棒へ反映する");
@@ -158,6 +164,7 @@ function boxesOverlap(first, second) {
     await lineEditor.locator('input[aria-label="グラフ1の凡例を表示"]').check();
     await lineEditor.locator('input[aria-label="2件目の数値"]').fill("27.75");
     await page.waitForFunction(() => document.querySelectorAll("#preview .chart-block-line-item").length === 2 && document.querySelectorAll("#preview .chart-block-line-point").length === 2);
+    await page.waitForFunction(() => document.querySelectorAll("#preview .chart-block-line .chart-block-value").length === 2);
     assert.equal(await page.locator("#preview .chart-block-line-path").count(), 1, "複数項目の折れ線グラフは点を直線で接続する");
     assert.deepEqual(await page.locator("#preview .chart-block-line-item").evaluateAll((items) => items.map((item) => item.dataset.chartItemId)), (await chart(page)).items.map((item) => item.id), "入力順を点と接続順へ維持する");
     const lineCoordinates = await page.locator("#preview .chart-block-line-point").evaluateAll((points) => points.map((point) => ({ x: Number(point.getAttribute("cx")), y: Number(point.getAttribute("cy")) })));
@@ -259,20 +266,110 @@ function boxesOverlap(first, second) {
     assert.equal(await page.locator("#preview .chart-block-bar").count(), 2, "再読み込み後もカードの棒グラフを復元する");
     assert.equal(await page.locator('select[aria-label="グラフ1の種類"]').inputValue(), "bar", "再編集時に棒グラフ種別を復元する");
     assert.equal(await page.locator('input[aria-label="グラフ1の棒の上に数値を表示"]').isChecked(), true, "再編集時に数値表示設定を復元する");
+    await page.locator('select[aria-label="グラフ1の種類"]').selectOption("line");
+    await page.locator('.chart-block-editor button[data-chart-action="confirm"]').click();
+    await page.waitForFunction(() => document.querySelector(".chart-block-editor .chart-block-status")?.textContent === "入力内容を保存しました");
+    const lineBeforeReload = await chart(page);
+    await page.reload({ waitUntil: "domcontentloaded" });
+    await page.locator("#appStartupGuard").waitFor({ state: "hidden" });
+    assert.deepEqual(await chart(page), lineBeforeReload, "折れ線グラフも再読み込み後に保存データを復元する");
+    assert.equal(await page.locator("#preview .chart-block-line").count(), 1, "再読み込み後もカードの折れ線グラフを復元する");
+    assert.equal(await page.locator('select[aria-label="グラフ1の種類"]').inputValue(), "line", "再編集時に折れ線グラフ種別を復元する");
     await page.locator('input[aria-label="グラフ1のタイトル"]').fill("更新後の得点");
     await page.waitForFunction(() => document.querySelectorAll("#preview .chart-block").length === 1 && document.querySelector("#preview .chart-block figcaption")?.textContent === "更新後の得点");
     await page.locator("#settingsBtn").click();
     await page.locator("#themeSelect").selectOption("dark");
     await page.waitForFunction(() => document.body.classList.contains("dark"));
+    const darkLineStyles = await page.locator("#preview .chart-block-line-path").evaluate((line) => ({ stroke: getComputedStyle(line).stroke, visibility: getComputedStyle(line).visibility }));
+    assert.notEqual(darkLineStyles.stroke, "none", "ダークテーマでも折れ線の色を維持する");
+    assert.equal(darkLineStyles.visibility, "visible", "ダークテーマでも折れ線を表示する");
+    await page.locator('select[aria-label="グラフ1の種類"]').selectOption("bar");
+    await page.waitForFunction(() => document.querySelectorAll("#preview .chart-block-bar").length === 2);
     const darkBarStyles = await page.locator("#preview .chart-block-bar rect").first().evaluate((bar) => ({ fill: getComputedStyle(bar).fill, visibility: getComputedStyle(bar).visibility }));
     assert.notEqual(darkBarStyles.fill, "none", "ダークテーマでも棒の色を維持する");
     assert.equal(darkBarStyles.visibility, "visible", "ダークテーマでも棒を表示する");
     await page.locator("#themeSelect").selectOption("light");
     await page.waitForFunction(() => !document.body.classList.contains("dark"));
     await page.locator("#closeSettingsBtn").click();
-    await page.locator("#preview .chart-block").screenshot({ path: screenshotPath });
+    const duplicateSetup = await page.evaluate(() => {
+      const { normalizeChartBlock, serializeChartBlock } = window.MemoNexusChartBlockUtils;
+      const first = normalizeChartBlock({
+        id: "duplicated-chart", chartType: "bar", title: "一つ目", unit: "件",
+        items: [{ id: "first-item", label: "前半", value: 3 }],
+        appearance: { color: "#2563eb", showValues: true, showPoints: true, showLegend: false, pieLabelMode: "percentage" }
+      });
+      const second = normalizeChartBlock({
+        id: "duplicated-chart", chartType: "bar", title: "二つ目", unit: "個",
+        items: [{ id: "second-item", label: "後半", value: 8 }],
+        appearance: { color: "#16a34a", showValues: false, showPoints: false, showLegend: false, pieLabelMode: "percentage" }
+      });
+      const front = normalizeChartBlock({
+        id: "front-chart", chartType: "pie", title: "前方追加", unit: "件",
+        items: [{ id: "front-item", label: "先頭", value: 1 }],
+        appearance: { color: "#7c3aed", showValues: true, showPoints: true, showLegend: true, pieLabelMode: "value" }
+      });
+      return { body: `${serializeChartBlock(first)}\n${serializeChartBlock(second)}`, first, second, frontMarker: serializeChartBlock(front) };
+    });
+    await page.locator("#editor").fill(duplicateSetup.body);
+    await page.waitForFunction(() => document.querySelectorAll(".chart-block-editor").length === 2);
+    let secondEditor = page.locator(".chart-block-editor").nth(1);
+    await secondEditor.locator('input[aria-label="グラフ2のタイトル"]').fill("二つ目を変更");
+    await secondEditor.locator('input[aria-label="グラフ2の単位"]').fill("点");
+    await secondEditor.locator('input[aria-label="1件目の項目名"]').fill("後半を変更");
+    await secondEditor.locator('input[aria-label="1件目の数値"]').fill("18.5");
+    await secondEditor.locator('select[aria-label="グラフ2の種類"]').selectOption("pie");
+    await page.waitForFunction(() => window.MemoNexusChartBlockUtils.splitChartBlocks(document.getElementById("editor").value)
+      .filter((segment) => segment.type === "chart")[1]?.chart.chartType === "pie");
+    secondEditor = page.locator(".chart-block-editor").nth(1);
+    await secondEditor.locator('input[aria-label="グラフ2の凡例を表示"]').check();
+    await secondEditor.locator('select[aria-label="グラフ2の円グラフのラベル"]').selectOption("value");
+    await secondEditor.locator('button[data-chart-action="cancel"]').click();
+    await page.waitForFunction(() => window.MemoNexusChartBlockUtils.splitChartBlocks(document.getElementById("editor").value)
+      .filter((segment) => segment.type === "chart")[1]?.chart.title === "二つ目");
+    let duplicateCharts = await charts(page);
+    assert.deepEqual(duplicateCharts, [duplicateSetup.first, duplicateSetup.second], "同一chartIdでも2件目の取消は2件目自身の開始時状態だけを復元する");
+    secondEditor = page.locator(".chart-block-editor").nth(1);
+    await secondEditor.locator('select[aria-label="グラフ2の種類"]').selectOption("line");
+    await page.waitForFunction(() => window.MemoNexusChartBlockUtils.splitChartBlocks(document.getElementById("editor").value)
+      .filter((segment) => segment.type === "chart")[1]?.chart.chartType === "line");
+    secondEditor = page.locator(".chart-block-editor").nth(1);
+    await secondEditor.locator('input[aria-label="グラフ2のデータ点の数値を表示"]').check();
+    await secondEditor.locator('input[aria-label="グラフ2の凡例を表示"]').check();
+    await secondEditor.locator('button[data-chart-action="confirm"]').click();
+    await page.waitForFunction(() => document.querySelectorAll(".chart-block-editor")[1]?.querySelector(".chart-block-status")?.textContent === "入力内容を保存しました");
+    const confirmedSecond = (await charts(page))[1];
+    secondEditor = page.locator(".chart-block-editor").nth(1);
+    await secondEditor.locator('select[aria-label="グラフ2の種類"]').selectOption("pie");
+    await page.waitForFunction(() => window.MemoNexusChartBlockUtils.splitChartBlocks(document.getElementById("editor").value)
+      .filter((segment) => segment.type === "chart")[1]?.chart.chartType === "pie");
+    await page.locator(".chart-block-editor").nth(1).locator('button[data-chart-action="cancel"]').click();
+    await page.waitForFunction(() => window.MemoNexusChartBlockUtils.splitChartBlocks(document.getElementById("editor").value)
+      .filter((segment) => segment.type === "chart")[1]?.chart.chartType === "line");
+    duplicateCharts = await charts(page);
+    assert.deepEqual(duplicateCharts[0], duplicateSetup.first, "2件目の確定・取消でも1件目を変更しない");
+    assert.deepEqual(duplicateCharts[1], confirmedSecond, "確定保存後の取消は直近の確定状態へ戻す");
+    const duplicateBody = await page.locator("#editor").inputValue();
+    await page.locator("#editor").fill(`${duplicateSetup.frontMarker}\n${duplicateBody}`);
+    await page.waitForFunction(() => document.querySelectorAll(".chart-block-editor").length === 3);
+    let movedSecondEditor = page.locator(".chart-block-editor").nth(2);
+    await movedSecondEditor.locator('input[aria-label="グラフ3のタイトル"]').fill("前方追加後の変更");
+    await movedSecondEditor.locator('button[data-chart-action="cancel"]').click();
+    await page.waitForFunction((title) => window.MemoNexusChartBlockUtils.splitChartBlocks(document.getElementById("editor").value)
+      .filter((segment) => segment.type === "chart")[2]?.chart.title === title, confirmedSecond.title);
+    duplicateCharts = await charts(page);
+    assert.deepEqual(duplicateCharts.slice(1), [duplicateSetup.first, confirmedSecond], "前方グラフ追加後も2件目へ別ブロックの取消状態を適用しない");
+    await page.locator("#editor").fill((await page.locator("#editor").inputValue()).replace(`${duplicateSetup.frontMarker}\n`, ""));
+    await page.waitForFunction(() => document.querySelectorAll(".chart-block-editor").length === 2);
+    movedSecondEditor = page.locator(".chart-block-editor").nth(1);
+    await movedSecondEditor.locator('input[aria-label="グラフ2のタイトル"]').fill("前方削除後の変更");
+    await movedSecondEditor.locator('button[data-chart-action="cancel"]').click();
+    await page.waitForFunction((title) => window.MemoNexusChartBlockUtils.splitChartBlocks(document.getElementById("editor").value)
+      .filter((segment) => segment.type === "chart")[1]?.chart.title === title, confirmedSecond.title);
+    assert.deepEqual(await charts(page), [duplicateSetup.first, confirmedSecond], "前方グラフ削除後も対象外のグラフを復元しない");
+    const previewChart = page.locator("#preview .chart-block").first();
+    await page.screenshot({ path: screenshotPath });
     await page.setViewportSize({ width: 390, height: 760 });
-    const metrics = await page.locator("#preview .chart-block").evaluate((element) => ({ card: element.getBoundingClientRect().width, viewport: innerWidth, pageOverflow: document.documentElement.scrollWidth - document.documentElement.clientWidth }));
+    const metrics = await previewChart.evaluate((element) => ({ card: element.getBoundingClientRect().width, viewport: innerWidth, pageOverflow: document.documentElement.scrollWidth - document.documentElement.clientWidth }));
     assert.ok(metrics.card <= metrics.viewport, "390px幅でもグラフカードが画面からはみ出さない");
     assert.equal(metrics.pageOverflow, 0, "390px幅でもページ全体の横スクロールを作らない");
     assert.deepEqual(pageErrors, [], `ページエラーなし: ${pageErrors.join("\n")}`);

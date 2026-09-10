@@ -2629,3 +2629,11 @@
 * 回帰範囲を棒→折れ線→円→棒、取消後のIDを含む保存データ完全復元、再読み込み後の棒グラフ選択、ZIPバックアップ往復後の`chartType: "pie"`・項目ID・円ラベル設定へ拡張した。既存の0以上有限数検証、50件上限、巨大有限値の円比率正規化、本文マーカー、`schemaVersion: 1`、通常のMarkdown/ZIP経路、DB_VERSIONは変更していない。
 * 検証：`node --check app.js`、`node --check chart-block-utils.js`、`node --check chart-block.e2e.js`、`node --test chart-block-utils.test.js backup-bundle-utils.test.js`（35件）、`npm test`（1,090件、fail 0）、`npm run test:e2e:chart`（Chromium／WebKit、各exit 0）、`npm run test:e2e:mobile`（320px・390pxを含むlayoutとwriting、page/console error 0）、`git diff --check`を実行して成功した。package.jsonにlint、型チェック、ビルドのスクリプトはない。
 * 残課題：実タッチ端末とSafari実機、push後のGitHub Actionsは未確認。PC／390px幅のブラウザー回帰は既存Chart E2Eで確認する。
+
+## 2026-09-11 PR #212 レビュー修正：同一グラフIDの取消スナップショット
+
+* 原因：`chartEditorOriginalCharts` が `chartId` をキーにしていたため、Markdownマーカーの複製やMarkdown／ZIP取込で同じIDのグラフが同一メモに複数ある場合、後続ブロックが先頭ブロックの取消基準を共有していた。
+* 取消基準は永続化しない編集セッション内の一意キーごとに保持するよう変更した。各キーは開始時の正規化済みグラフと直近の本文状態シグネチャを持ち、編集欄再描画時には直近状態と照合して対応付ける。したがって前方のグラフ追加・削除で表示インデックスが変わっても、`chartId`単独や固定インデックスで別ブロックの状態を復元しない。本文マーカー、既存ID、`schemaVersion: 1`、`chartType`、`items`、`appearance`、DB_VERSIONは変更していない。
+* 種類切替を含む本文置換では対象キーの直近状態だけを更新し、`flushSave()`成功後だけ開始時スナップショットを確定状態へ更新する。削除、メモ切替、本文再読込相当の編集欄再構成では一致しないキーを破棄する。プレビューの編集ボタンもグラフ番号とIDで対応する編集欄を選ぶため、同一IDの先頭欄へ常に移動しない。
+* `chart-block.e2e.js` は同一`chartId`で内容の異なる2グラフを置き、2件目のタイトル・単位・項目・数値・種類・凡例／ラベル設定の取消が2件目自身だけを復元すること、確定後の再取消、前方グラフの追加・削除後の取消を確認する。棒→折れ線→円→棒、棒と折れ線の再読み込み、ライト／ダーク双方の折れ線・棒表示、ZIP往復の既存回帰も保持した。WebKitでは本文モデル更新とSVG再描画の完了を待ってから既存SVGアサーションを実行する。
+* 検証：`node --check app.js`、`node --check chart-block.e2e.js`、`node --test chart-block-utils.test.js backup-bundle-utils.test.js`（35件）、`npm test`（1,090件、fail 0）、`npm run test:e2e:chart`（Chromium／WebKit）、`npm run test:e2e:mobile`（320px・390pxを含むlayoutとwriting）、`git diff --check`を実行して成功した。`app.js`の配信キャッシュ識別子を`0.5.0-151`へ1回だけ更新し、既存の固定契約テストを同期した。
