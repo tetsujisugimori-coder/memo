@@ -66,6 +66,23 @@ function charts(page) {
     .filter((segment) => segment.type === "chart").map((segment) => segment.chart));
 }
 
+async function waitForChartEditorSyncAfterBodyInput(page, expectedCount) {
+  // 1. Playwrightが書き込んだ本文自体にマーカーがあることを確認する。
+  await page.waitForFunction((count) => window.MemoNexusChartBlockUtils.splitChartBlocks(document.getElementById("editor").value)
+    .filter((segment) => segment.type === "chart").length === count, expectedCount);
+  // 2. full要求の登録、またはその要求が現行revisionの本文モデルからプレビューまで描画済みであることを待つ。
+  await page.waitForFunction((count) => window.MemoNexusTypingDerivedUiScheduler?.pendingRequestType() === "full"
+    || document.querySelectorAll("#preview .chart-block").length === count, expectedCount);
+  await page.waitForFunction((count) => document.querySelectorAll("#preview .chart-block").length === count, expectedCount);
+  // 3. 同じfull描画で構造化編集欄も追従したことを最後に確認する。
+  await page.waitForFunction((count) => document.querySelectorAll(".chart-block-editor").length === count, expectedCount);
+}
+
+async function waitForChartCancelCompletion(page, chartIndex) {
+  await page.waitForFunction((index) => document.querySelectorAll(".chart-block-editor")[index]
+    ?.querySelector(".chart-block-status")?.textContent === "編集内容を取り消しました", chartIndex);
+}
+
 async function checkboxLayout(input) {
   return input.evaluate((checkbox) => {
     const label = checkbox.closest("label");
@@ -345,21 +362,23 @@ function boxesOverlap(first, second) {
     await page.locator(".chart-block-editor").nth(1).locator('button[data-chart-action="cancel"]').click();
     await page.waitForFunction(() => window.MemoNexusChartBlockUtils.splitChartBlocks(document.getElementById("editor").value)
       .filter((segment) => segment.type === "chart")[1]?.chart.chartType === "line");
+    await waitForChartCancelCompletion(page, 1);
     duplicateCharts = await charts(page);
     assert.deepEqual(duplicateCharts[0], duplicateSetup.first, "2件目の確定・取消でも1件目を変更しない");
     assert.deepEqual(duplicateCharts[1], confirmedSecond, "確定保存後の取消は直近の確定状態へ戻す");
     const duplicateBody = await page.locator("#editor").inputValue();
     await page.locator("#editor").fill(`${duplicateSetup.frontMarker}\n${duplicateBody}`);
-    await page.waitForFunction(() => document.querySelectorAll(".chart-block-editor").length === 3);
+    await waitForChartEditorSyncAfterBodyInput(page, 3);
     let movedSecondEditor = page.locator(".chart-block-editor").nth(2);
     await movedSecondEditor.locator('input[aria-label="グラフ3のタイトル"]').fill("前方追加後の変更");
     await movedSecondEditor.locator('button[data-chart-action="cancel"]').click();
     await page.waitForFunction((title) => window.MemoNexusChartBlockUtils.splitChartBlocks(document.getElementById("editor").value)
       .filter((segment) => segment.type === "chart")[2]?.chart.title === title, confirmedSecond.title);
+    await waitForChartCancelCompletion(page, 2);
     duplicateCharts = await charts(page);
     assert.deepEqual(duplicateCharts.slice(1), [duplicateSetup.first, confirmedSecond], "前方グラフ追加後も2件目へ別ブロックの取消状態を適用しない");
     await page.locator("#editor").fill((await page.locator("#editor").inputValue()).replace(`${duplicateSetup.frontMarker}\n`, ""));
-    await page.waitForFunction(() => document.querySelectorAll(".chart-block-editor").length === 2);
+    await waitForChartEditorSyncAfterBodyInput(page, 2);
     movedSecondEditor = page.locator(".chart-block-editor").nth(1);
     await movedSecondEditor.locator('input[aria-label="グラフ2のタイトル"]').fill("前方削除後の変更");
     await movedSecondEditor.locator('button[data-chart-action="cancel"]').click();
