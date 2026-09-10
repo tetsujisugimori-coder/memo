@@ -6143,7 +6143,7 @@ body.collections-open:not(.context-panel-closed) .context-panel {
   font-size: 12px;
 }
 
-.chart-block-appearance label:last-child { display: flex; align-items: center; gap: 6px; min-height: 34px; }
+.chart-block-appearance .chart-block-appearance-checkbox { display: flex; align-items: center; gap: 6px; min-height: 34px; }
 .chart-block-fields input { min-width: min(220px, 100%); min-height: 34px; }
 .chart-block-appearance input[type="color"] { width: 44px; min-height: 34px; padding: 2px; }
 .chart-block-item-table { overflow-x: auto; }
@@ -6173,10 +6173,18 @@ body.collections-open:not(.context-panel-closed) .context-panel {
 .chart-block-label,
 .chart-block-value,
 .chart-block-unit,
+.chart-block-axis-value,
 .chart-block-empty { fill: var(--ink); font-size: 12px; }
 .chart-block-label { fill: var(--muted); }
+.chart-block-axis-value { fill: var(--muted); font-size: 11px; }
 .chart-block-value { font-weight: 700; }
 .chart-block-empty { fill: var(--muted); }
+.chart-block-line-layout { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+.chart-block-line .chart-block-scroll { flex: 1 1 260px; min-width: 0; }
+.chart-block-line-path { fill: none; stroke-width: 3; stroke-linejoin: round; stroke-linecap: round; }
+.chart-block-line-point { stroke-width: 3; }
+.chart-block-line-legend-swatch { position: relative; display: inline-block; flex: 0 0 20px; width: 20px; height: 12px; border-top: 3px solid currentColor; }
+.chart-block-line-legend-swatch::after { position: absolute; top: -5px; left: 6px; width: 7px; height: 7px; border: 2px solid currentColor; border-radius: 50%; background: var(--section-bg); content: ""; }
 .chart-block-pie-layout { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
 .chart-block-pie .chart-block-scroll { flex: 1 1 260px; min-width: 0; }
 .chart-block-pie svg { min-width: 0; }

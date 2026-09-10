@@ -64,7 +64,7 @@
       type: "chart",
       id,
       schemaVersion: Number.isInteger(source.schemaVersion) && source.schemaVersion > 0 ? source.schemaVersion : CHART_BLOCK_VERSION,
-      chartType: source.chartType === "pie" ? "pie" : "bar",
+      chartType: ["bar", "pie", "line"].includes(source.chartType) ? source.chartType : "bar",
       title: normalizedText(source.title).trim(),
       unit: normalizedText(source.unit).trim(),
       items,
@@ -72,6 +72,7 @@
         ...appearanceSource,
         color: normalizedColor(appearanceSource.color),
         showValues: appearanceSource.showValues !== false,
+        showPoints: appearanceSource.showPoints !== false,
         showLegend: appearanceSource.showLegend === true,
         pieLabelMode: ["percentage", "value", "none"].includes(appearanceSource.pieLabelMode)
           ? appearanceSource.pieLabelMode : "percentage"
@@ -88,7 +89,7 @@
       title: "",
       unit: "",
       items: [{ id: `${id}-item-1`, label: "", value: 0 }],
-      appearance: { color: DEFAULT_CHART_COLOR, showValues: true, showLegend: false, pieLabelMode: "percentage" }
+      appearance: { color: DEFAULT_CHART_COLOR, showValues: true, showPoints: true, showLegend: false, pieLabelMode: "percentage" }
     }, id);
   }
 
@@ -128,6 +129,18 @@
       return segment;
     });
     return { total, segments };
+  }
+
+  function lineChartPoints(items, width, { left = 42, right = 18, top = 22, baseline = 196 } = {}) {
+    const displayItems = Array.isArray(items) ? items.filter((item) => item && Number.isFinite(item.value) && item.value >= 0) : [];
+    const chartWidth = Number.isFinite(width) ? width : left + right;
+    const maximum = Math.max(0, ...displayItems.map((item) => item.value));
+    const span = Math.max(0, chartWidth - left - right);
+    return displayItems.map((item, index) => ({
+      ...item,
+      x: displayItems.length === 1 ? left + span / 2 : left + (span * index) / Math.max(1, displayItems.length - 1),
+      y: maximum > 0 ? baseline - (item.value / maximum) * (baseline - top) : baseline
+    }));
   }
 
   function splitChartBlocks(markdown) {
@@ -194,6 +207,7 @@
     chartBlockPlainText,
     createChartBlock,
     insertChartBlock,
+    lineChartPoints,
     nonNegativeFiniteNumber,
     normalizeChartBlock,
     parseChartBlockLine,

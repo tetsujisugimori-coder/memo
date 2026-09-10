@@ -61,6 +61,33 @@ function chart(page) {
     .find((segment) => segment.type === "chart")?.chart || null);
 }
 
+async function checkboxLayout(input) {
+  return input.evaluate((checkbox) => {
+    const label = checkbox.closest("label");
+    const textNode = [...label.childNodes].find((node) => node.nodeType === Node.TEXT_NODE && node.textContent.trim());
+    const textRange = document.createRange();
+    textRange.selectNode(textNode);
+    const toRect = (rect) => ({ left: rect.left, right: rect.right, top: rect.top, bottom: rect.bottom });
+    return {
+      className: label.className,
+      display: getComputedStyle(label).display,
+      checkbox: toRect(checkbox.getBoundingClientRect()),
+      text: toRect(textRange.getBoundingClientRect())
+    };
+  });
+}
+
+function assertInlineCheckboxLayout(layout, name) {
+  assert.match(layout.className, /\bchart-block-appearance-checkbox\b/, `${name}に専用クラスを付ける`);
+  assert.equal(layout.display, "flex", `${name}を横並びflexで表示する`);
+  assert.ok(layout.checkbox.right <= layout.text.left, `${name}のチェックボックスを文言の左に置く`);
+  assert.ok(Math.abs((layout.checkbox.top + layout.checkbox.bottom) / 2 - (layout.text.top + layout.text.bottom) / 2) <= 2, `${name}のチェックボックスと文言を縦中央で揃える`);
+}
+
+function boxesOverlap(first, second) {
+  return first.x < second.x + second.width && second.x < first.x + first.width && first.y < second.y + second.height && second.y < first.y + first.height;
+}
+
 (async () => {
   let server = null;
   let browser = null;
@@ -85,6 +112,7 @@ function chart(page) {
     await editor.locator('input[aria-label="2件目の項目名"]').fill("数学");
     await editor.locator('input[aria-label="2件目の数値"]').fill("0");
     await editor.locator('input[aria-label="グラフ1の棒の色"]').evaluate((input) => { input.value = "#dc2626"; input.dispatchEvent(new Event("input", { bubbles: true })); });
+    assertInlineCheckboxLayout(await checkboxLayout(editor.locator('input[aria-label="グラフ1の棒の上に数値を表示"]')), "棒の上に数値を表示");
     await editor.locator('input[aria-label="グラフ1の棒の上に数値を表示"]').uncheck();
     await page.waitForFunction(() => {
       const current = window.MemoNexusChartBlockUtils.splitChartBlocks(document.getElementById("editor").value).find((segment) => segment.type === "chart")?.chart;
@@ -116,18 +144,84 @@ function chart(page) {
     assert.equal(await firstValue.getAttribute("aria-invalid"), null, "有効な数値へ修正すると不正状態を解除する");
     await editor.locator('button[data-chart-action="confirm"]').click();
     await page.waitForFunction(() => document.querySelector(".chart-block-editor .chart-block-status")?.textContent === "入力内容を保存しました");
-    await editor.locator('select[aria-label="グラフ1の種類"]').selectOption("pie");
+    await editor.locator('select[aria-label="グラフ1の種類"]').selectOption("line");
+    await page.waitForFunction(() => window.MemoNexusChartBlockUtils.splitChartBlocks(document.getElementById("editor").value)
+      .find((segment) => segment.type === "chart")?.chart.chartType === "line");
+    const lineEditor = page.locator(".chart-block-editor");
+    assert.equal(await lineEditor.locator('input[aria-label="1件目の項目名"]').inputValue(), "国語", "棒グラフから折れ線グラフへの切替でも項目名を保持する");
+    assert.equal(await lineEditor.locator('input[aria-label="1件目の数値"]').inputValue(), "72.25", "棒グラフから折れ線グラフへの切替でも数値を保持する");
+    assert.equal(await lineEditor.locator('input[aria-label="グラフ1のデータ点を表示"]').isChecked(), true, "折れ線グラフはデータ点を既定で表示する");
+    assertInlineCheckboxLayout(await checkboxLayout(lineEditor.locator('input[aria-label="グラフ1のデータ点の数値を表示"]')), "データ点の数値を表示");
+    assertInlineCheckboxLayout(await checkboxLayout(lineEditor.locator('input[aria-label="グラフ1のデータ点を表示"]')), "データ点を表示");
+    assertInlineCheckboxLayout(await checkboxLayout(lineEditor.locator('input[aria-label="グラフ1の凡例を表示"]')), "折れ線グラフの凡例を表示");
+    await lineEditor.locator('input[aria-label="グラフ1のデータ点の数値を表示"]').check();
+    await lineEditor.locator('input[aria-label="グラフ1の凡例を表示"]').check();
+    await lineEditor.locator('input[aria-label="2件目の数値"]').fill("27.75");
+    await page.waitForFunction(() => document.querySelectorAll("#preview .chart-block-line-item").length === 2 && document.querySelectorAll("#preview .chart-block-line-point").length === 2);
+    assert.equal(await page.locator("#preview .chart-block-line-path").count(), 1, "複数項目の折れ線グラフは点を直線で接続する");
+    assert.deepEqual(await page.locator("#preview .chart-block-line-item").evaluateAll((items) => items.map((item) => item.dataset.chartItemId)), (await chart(page)).items.map((item) => item.id), "入力順を点と接続順へ維持する");
+    const lineCoordinates = await page.locator("#preview .chart-block-line-point").evaluateAll((points) => points.map((point) => ({ x: Number(point.getAttribute("cx")), y: Number(point.getAttribute("cy")) })));
+    assert.ok(lineCoordinates.every((point) => Number.isFinite(point.x) && Number.isFinite(point.y)), "小数値でも有限な折れ線座標を描画する");
+    assert.ok(lineCoordinates[0].x < lineCoordinates[1].x, "入力順に横軸を左から右へ並べる");
+    const lineChart = await chart(page);
+    const lineSvgState = await page.locator("#preview .chart-block-line svg").evaluate((svg, firstItemId) => {
+      const firstItem = [...svg.querySelectorAll(".chart-block-line-item")].find((item) => item.dataset.chartItemId === firstItemId);
+      const toBox = (element) => {
+        const box = element.getBBox();
+        return { x: box.x, y: box.y, width: box.width, height: box.height };
+      };
+      const polyline = svg.querySelector(".chart-block-line-path");
+      return {
+        pathCount: svg.querySelectorAll(".chart-block-line-path").length,
+        pointCount: svg.querySelectorAll(".chart-block-line-point").length,
+        valueCount: svg.querySelectorAll(".chart-block-value").length,
+        labelCount: svg.querySelectorAll(".chart-block-label").length,
+        pointCoordinates: [...svg.querySelectorAll(".chart-block-line-point")].map((point) => [Number(point.getAttribute("cx")), Number(point.getAttribute("cy"))]),
+        polylineCoordinates: (polyline?.getAttribute("points") || "").trim().split(/\s+/).filter(Boolean).flatMap((point) => point.split(",").map(Number)),
+        firstValue: toBox(firstItem.querySelector(".chart-block-value")),
+        unit: toBox(svg.querySelector(".chart-block-unit")),
+        maximum: toBox(svg.querySelector(".chart-block-axis-maximum"))
+      };
+    }, lineChart.items[0].id);
+    assert.deepEqual([lineSvgState.pathCount, lineSvgState.pointCount, lineSvgState.valueCount, lineSvgState.labelCount], [1, 2, 2, 2], "先頭が最大値でも線・点・数値・項目名を表示する");
+    assert.ok([...lineSvgState.pointCoordinates.flat(), ...lineSvgState.polylineCoordinates].every(Number.isFinite), "折れ線と点の生成座標をすべて有限にする");
+    assert.equal(boxesOverlap(lineSvgState.firstValue, lineSvgState.unit), false, "先頭の数値と単位を重ねない");
+    assert.equal(boxesOverlap(lineSvgState.firstValue, lineSvgState.maximum), false, "先頭の数値とY軸最大値を重ねない");
+    assert.equal(boxesOverlap(lineSvgState.unit, lineSvgState.maximum), false, "単位とY軸最大値を重ねない");
+    await lineEditor.locator('input[aria-label="1件目の数値"]').fill("2.5");
+    await lineEditor.locator('input[aria-label="2件目の数値"]').fill("2.5");
+    await page.waitForFunction(() => {
+      const points = [...document.querySelectorAll("#preview .chart-block-line-point")];
+      return points.length === 2 && points[0].getAttribute("cy") === points[1].getAttribute("cy");
+    });
+    await lineEditor.locator('input[aria-label="1件目の数値"]').fill("72.25");
+    await lineEditor.locator('input[aria-label="2件目の数値"]').fill("27.75");
+    await lineEditor.locator('input[aria-label="グラフ1のデータ点を表示"]').uncheck();
+    await page.waitForFunction(() => document.querySelectorAll("#preview .chart-block-line-point").length === 0);
+    await lineEditor.locator('input[aria-label="グラフ1のデータ点を表示"]').check();
+    await lineEditor.locator('input[aria-label="1件目の項目名"]').fill("");
+    await lineEditor.locator('input[aria-label="2件目の項目名"]').fill("");
+    await page.waitForFunction(() => document.querySelector("#preview .chart-block-line .chart-block-empty")?.textContent === "項目名と0以上の数値を入力してください");
+    await lineEditor.locator('input[aria-label="1件目の項目名"]').fill("国語");
+    await lineEditor.locator('input[aria-label="2件目の項目名"]').fill("数学");
+    await lineEditor.locator('button[data-chart-action="delete-item"]').last().click();
+    await page.waitForFunction(() => document.querySelectorAll("#preview .chart-block-line-point").length === 1 && document.querySelectorAll("#preview .chart-block-line-path").length === 0);
+    await page.locator('.chart-block-editor button[data-chart-action="add-item"]').click();
+    await page.locator('input[aria-label="2件目の項目名"]').fill("数学");
+    await page.locator('input[aria-label="2件目の数値"]').fill("27.75");
+    await page.waitForFunction(() => document.querySelectorAll("#preview .chart-block-line-point").length === 2);
+    await page.locator('select[aria-label="グラフ1の種類"]').selectOption("pie");
     await page.waitForFunction(() => window.MemoNexusChartBlockUtils.splitChartBlocks(document.getElementById("editor").value)
       .find((segment) => segment.type === "chart")?.chart.chartType === "pie");
     const pieEditor = page.locator(".chart-block-editor");
-    assert.equal(await pieEditor.locator('input[aria-label="1件目の項目名"]').inputValue(), "国語", "棒グラフから円グラフへの切替でも項目名を保持する");
-    assert.equal(await pieEditor.locator('input[aria-label="1件目の数値"]').inputValue(), "72.25", "棒グラフから円グラフへの切替でも数値を保持する");
-    await pieEditor.locator('input[aria-label="2件目の数値"]').fill("27.75");
+    assert.equal(await pieEditor.locator('input[aria-label="1件目の項目名"]').inputValue(), "国語", "折れ線グラフから円グラフへの切替でも項目名を保持する");
+    assert.equal(await pieEditor.locator('input[aria-label="1件目の数値"]').inputValue(), "72.25", "折れ線グラフから円グラフへの切替でも数値を保持する");
     await page.waitForFunction(() => document.querySelectorAll("#preview .chart-block-pie-slice").length === 2);
     assert.equal(await page.locator("#preview .chart-block-pie-label").count(), 2, "割合ラベルを既定で描画する");
     assert.match(await page.locator("#preview .chart-block-pie-label").first().textContent(), /72\.3%/, "割合は小数第1位で統一して丸める");
     const pieFills = await page.locator("#preview .chart-block-pie-slice").evaluateAll((slices) => slices.map((slice) => slice.getAttribute("fill")));
     assert.notEqual(pieFills[0], pieFills[1], "各扇形を識別可能な色で描画する");
+    assertInlineCheckboxLayout(await checkboxLayout(pieEditor.locator('input[aria-label="グラフ1の凡例を表示"]')), "円グラフの凡例を表示");
     await pieEditor.locator('input[aria-label="グラフ1の凡例を表示"]').check();
     await page.waitForFunction(() => document.querySelectorAll("#preview .chart-block-legend li").length === 2);
     await pieEditor.locator('select[aria-label="グラフ1の円グラフのラベル"]').selectOption("value");
@@ -143,24 +237,32 @@ function chart(page) {
     await page.waitForFunction(() => document.querySelectorAll("#preview .chart-block-pie-slice").length === 2);
     await pieEditor.locator('button[data-chart-action="confirm"]').click();
     await page.waitForFunction(() => document.querySelector(".chart-block-editor .chart-block-status")?.textContent === "入力内容を保存しました");
-    await pieEditor.locator('select[aria-label="グラフ1の種類"]').selectOption("bar");
-    await page.waitForFunction(() => document.querySelectorAll("#preview .chart-block-bar").length === 2);
-    assert.equal(await page.locator('input[aria-label="2件目の数値"]').inputValue(), "27.75", "円グラフから棒グラフへの切替でも数値を保持する");
-    await page.locator('select[aria-label="グラフ1の種類"]').selectOption("pie");
-    await page.waitForFunction(() => document.querySelectorAll("#preview .chart-block-pie-slice").length === 2);
+    await pieEditor.locator('select[aria-label="グラフ1の種類"]').selectOption("line");
+    await page.waitForFunction(() => document.querySelectorAll("#preview .chart-block-line-point").length === 2);
+    assert.equal(await page.locator('input[aria-label="2件目の数値"]').inputValue(), "27.75", "円グラフから折れ線グラフへの切替でも数値を保持する");
     await page.locator('.chart-block-editor button[data-chart-action="confirm"]').click();
     await page.waitForFunction(() => document.querySelector(".chart-block-editor .chart-block-status")?.textContent === "入力内容を保存しました");
     const beforeReload = await chart(page);
-    assert.deepEqual(beforeReload.appearance, { color: "#dc2626", showValues: false, showLegend: true, pieLabelMode: "percentage" }, "円グラフの凡例・ラベル・共通色設定を保存する");
+    assert.deepEqual(beforeReload.appearance, { color: "#dc2626", showValues: true, showPoints: true, showLegend: true, pieLabelMode: "percentage" }, "折れ線グラフの色・数値・点・凡例設定を保存する");
     await page.reload({ waitUntil: "domcontentloaded" });
     await page.locator("#appStartupGuard").waitFor({ state: "hidden" });
     assert.deepEqual(await chart(page), beforeReload, "再読み込み後もグラフ保存データを復元する");
-    assert.equal(await page.locator("#preview .chart-block-pie-slice").count(), 2, "再読み込み後もカードの円グラフを復元する");
-    assert.equal(await page.locator('select[aria-label="グラフ1の種類"]').inputValue(), "pie", "再編集時に円グラフ種別を復元する");
+    assert.equal(await page.locator("#preview .chart-block-line-point").count(), 2, "再読み込み後もカードの折れ線グラフを復元する");
+    assert.equal(await page.locator('select[aria-label="グラフ1の種類"]').inputValue(), "line", "再編集時に折れ線グラフ種別を復元する");
     assert.equal(await page.locator('input[aria-label="グラフ1の凡例を表示"]').isChecked(), true, "再編集時に凡例設定を復元する");
-    assert.equal(await page.locator('select[aria-label="グラフ1の円グラフのラベル"]').inputValue(), "percentage", "再編集時にラベル設定を復元する");
+    assert.equal(await page.locator('input[aria-label="グラフ1のデータ点を表示"]').isChecked(), true, "再編集時に点表示設定を復元する");
+    assert.equal(await page.locator('input[aria-label="グラフ1のデータ点の数値を表示"]').isChecked(), true, "再編集時に数値表示設定を復元する");
     await page.locator('input[aria-label="グラフ1のタイトル"]').fill("更新後の得点");
     await page.waitForFunction(() => document.querySelectorAll("#preview .chart-block").length === 1 && document.querySelector("#preview .chart-block figcaption")?.textContent === "更新後の得点");
+    await page.locator("#settingsBtn").click();
+    await page.locator("#themeSelect").selectOption("dark");
+    await page.waitForFunction(() => document.body.classList.contains("dark"));
+    const darkLineStyles = await page.locator("#preview .chart-block-line-path").evaluate((line) => ({ stroke: getComputedStyle(line).stroke, visibility: getComputedStyle(line).visibility }));
+    assert.notEqual(darkLineStyles.stroke, "none", "ダークテーマでも折れ線の色を維持する");
+    assert.equal(darkLineStyles.visibility, "visible", "ダークテーマでも折れ線を表示する");
+    await page.locator("#themeSelect").selectOption("light");
+    await page.waitForFunction(() => !document.body.classList.contains("dark"));
+    await page.locator("#closeSettingsBtn").click();
     await page.locator("#preview .chart-block").screenshot({ path: screenshotPath });
     await page.setViewportSize({ width: 390, height: 760 });
     const metrics = await page.locator("#preview .chart-block").evaluate((element) => ({ card: element.getBoundingClientRect().width, viewport: innerWidth, pageOverflow: document.documentElement.scrollWidth - document.documentElement.clientWidth }));
