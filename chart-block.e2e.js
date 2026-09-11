@@ -494,6 +494,10 @@ function boxesOverlap(first, second) {
       });
       if (await cardPaneButton.getAttribute("aria-expanded") !== "true") await cardPaneButton.click();
       await page.waitForFunction(() => document.getElementById("previewCard")?.getAttribute("aria-hidden") === "false");
+      await page.waitForFunction(() => {
+        const card = document.getElementById("previewCard")?.getBoundingClientRect();
+        return card && card.left >= 0 && card.right <= window.innerWidth;
+      });
       const mobileLineMetrics = await page.locator("#preview .chart-block-line").evaluate((element) => {
         const rect = (selector) => {
           const box = element.querySelector(selector)?.getBoundingClientRect();
