@@ -5189,6 +5189,10 @@ body.related-open .related-toggle {
     font-size: min(var(--memo-title-font-size), 18px);
   }
 
+  .title-row {
+    position: relative;
+  }
+
   .title-side {
     position: absolute;
     z-index: 2;
