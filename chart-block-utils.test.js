@@ -4,7 +4,9 @@ const assert = require("node:assert/strict");
 const test = require("node:test");
 const {
   CHART_BLOCK_VERSION,
+  CHART_SERIES_COLORS,
   DEFAULT_CHART_COLOR,
+  DEFAULT_CHART_SERIES_NAME,
   PIE_CHART_COLORS,
   chartBlockPlainText,
   createChartBlock,
@@ -28,7 +30,8 @@ test("初期グラフは棒グラフ、空の1行、円グラフ用の既定設�
   assert.equal(chart.id, "chart-1");
   assert.equal(chart.schemaVersion, CHART_BLOCK_VERSION);
   assert.equal(chart.chartType, "bar");
-  assert.deepEqual(chart.items, [{ id: "chart-1-item-1", label: "", value: 0 }]);
+  assert.deepEqual(chart.items, [{ id: "chart-1-item-1", label: "" }]);
+  assert.deepEqual(chart.series, [{ id: "chart-1-series-1", name: DEFAULT_CHART_SERIES_NAME, color: DEFAULT_CHART_COLOR, values: [0] }]);
   assert.deepEqual(chart.appearance, { color: DEFAULT_CHART_COLOR, showValues: true, showPoints: true, showLegend: false, pieLabelMode: "percentage" });
 });
 
@@ -52,9 +55,10 @@ test("不正な種別、数値、色、ラベル設定を安全な既定値へ�
     ], appearance: { color: "javascript:alert(1)", showValues: false, showLegend: true }
   });
   assert.equal(chart.chartType, "bar");
-  assert.deepEqual(chart.items.map(({ id, label, value }) => ({ id, label, value })), [
-    { id: "same", label: "A", value: 0 }, { id: "same-2", label: "B", value: 0 }, { id: "unsafe-item-3", label: "C", value: 0 }
+  assert.deepEqual(chart.items, [
+    { id: "same", label: "A" }, { id: "same-2", label: "B" }, { id: "unsafe-item-3", label: "C" }
   ]);
+  assert.deepEqual(chart.series[0].values, [0, 0, 0]);
   assert.deepEqual(chart.appearance, { color: DEFAULT_CHART_COLOR, showValues: false, showPoints: true, showLegend: true, pieLabelMode: "percentage" });
 });
 
@@ -107,7 +111,7 @@ test("円グラフは共通項目データを使い、最後の扇形まで合�
       { id: "a", label: "A", value: 2 }, { id: "b", label: "B", value: 3 }, { id: "zero", label: "0", value: 0 }
     ], appearance: { showLegend: true, pieLabelMode: "value" }
   });
-  const pie = pieChartSegments(chart.items);
+  const pie = pieChartSegments(chart.items.map((item, index) => ({ ...item, value: chart.series[0].values[index] })));
   assert.equal(chart.chartType, "pie");
   assert.equal(chart.appearance.showLegend, true);
   assert.equal(chart.appearance.pieLabelMode, "value");
@@ -204,4 +208,41 @@ test("壊れたマーカーは本文として残し、要約用テキストへ�
   assert.equal(charts("<!-- memo-nexus:chart-block:zz -->").length, 0);
   const source = serializeChartBlock(normalizeChartBlock({ id: "summary", title: "得点", unit: "点", items: [{ id: "a", label: "国語", value: 70 }] }));
   assert.match(chartBlockPlainText(`前\n${source}\n後`), /得点 点 国語 70/);
+});
+
+test("旧形式は第1系列へ読み込み時に正規化し、保存時だけ新形式へ移行する", () => {
+  const legacy = { id: "legacy", chartType: "bar", items: [{ id: "jan", label: "1月", value: 100 }, { id: "feb", label: "2月", value: 140 }], appearance: { color: "#336699" } };
+  const chart = normalizeChartBlock(legacy);
+  assert.deepEqual(chart.items, [{ id: "jan", label: "1月" }, { id: "feb", label: "2月" }]);
+  assert.deepEqual(chart.series, [{ id: "legacy-series-1", name: "系列 1", color: "#336699", values: [100, 140] }]);
+  assert.equal(Object.hasOwn(chart.items[0], "value"), false);
+  const stored = JSON.parse(Buffer.from(serializeChartBlock(chart).match(/:([0-9a-f]+) -->/i)[1], "hex").toString("utf8"));
+  assert.equal(Object.hasOwn(stored.items[0], "value"), false, "新形式だけを保存する");
+  assert.deepEqual(stored.series[0].values, [100, 140]);
+});
+
+test("2系列・3系列を項目順へ正規化し、不正値、余剰値、4系列目を安全に扱う", () => {
+  const chart = normalizeChartBlock({
+    id: "months", items: [{ id: "jan", label: "1月" }, { id: "feb", label: "2月" }],
+    series: [
+      { id: "sales", name: "売上", color: "#2563eb", values: [100, "140", 999] },
+      { id: "profit", name: "利益", color: "#16a34a", values: [30, Infinity] },
+      { id: "cost", name: "原価", color: "bad", values: [0, 38] },
+      { id: "ignored", name: "対象外", values: [1, 1] }
+    ]
+  });
+  assert.equal(chart.series.length, 3);
+  assert.deepEqual(chart.series.map(({ id, name, color, values }) => ({ id, name, color, values })), [
+    { id: "sales", name: "売上", color: "#2563eb", values: [100, 140] },
+    { id: "profit", name: "利益", color: "#16a34a", values: [30, 0] },
+    { id: "cost", name: "原価", color: CHART_SERIES_COLORS[2], values: [0, 38] }
+  ]);
+});
+
+test("系列の値は項目の追加・削除を経ても対応を保てる正規化長へそろえる", () => {
+  const chart = normalizeChartBlock({
+    id: "aligned", items: [{ id: "a", label: "A" }, { id: "b", label: "B" }, { id: "c", label: "C" }],
+    series: [{ id: "one", name: "一", values: [1, 2] }, { id: "two", name: "二", values: [3, 4, 5, 6] }]
+  });
+  assert.deepEqual(chart.series.map((series) => series.values), [[1, 2, 0], [3, 4, 5]]);
 });

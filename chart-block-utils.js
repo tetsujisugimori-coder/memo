@@ -4,6 +4,8 @@
   const CHART_BLOCK_VERSION = 1;
   const CHART_BLOCK_PATTERN = /^\s*<!-- memo-nexus:chart-block:([0-9a-f]+) -->\s*$/i;
   const DEFAULT_CHART_COLOR = "#4f46e5";
+  const DEFAULT_CHART_SERIES_NAME = "系列 1";
+  const CHART_SERIES_COLORS = ["#4f46e5", "#dc2626", "#059669"];
   const PIE_CHART_COLORS = ["#4f46e5", "#dc2626", "#059669", "#d97706", "#0891b2", "#7c3aed", "#db2777", "#65a30d"];
   const IMAGE_BLOCK_START = "<!-- memo-nexus:image-block -->";
   const IMAGE_BLOCK_END = "<!-- /memo-nexus:image-block -->";
@@ -24,8 +26,8 @@
     return value == null ? "" : String(value).replace(/\r\n?/g, "\n");
   }
 
-  function normalizedColor(value) {
-    return /^#[0-9a-f]{6}$/i.test(String(value || "").trim()) ? String(value).trim().toLowerCase() : DEFAULT_CHART_COLOR;
+  function normalizedColor(value, fallback = DEFAULT_CHART_COLOR) {
+    return /^#[0-9a-f]{6}$/i.test(String(value || "").trim()) ? String(value).trim().toLowerCase() : fallback;
   }
 
   function nonNegativeFiniteNumber(value, fallback = 0) {
@@ -46,8 +48,26 @@
     usedIds.add(id);
     return {
       id,
-      label: normalizedText(source.label).trim(),
-      value: nonNegativeFiniteNumber(source.value)
+      label: normalizedText(source.label).trim()
+    };
+  }
+
+  function normalizeChartSeries(series, fallbackId, index, itemCount, usedIds, legacyValues) {
+    const source = series && typeof series === "object" && !Array.isArray(series) ? series : {};
+    const baseId = normalizedText(source.id).trim() || `${fallbackId}-series-${index + 1}`;
+    let id = baseId;
+    let suffix = 2;
+    while (usedIds.has(id)) {
+      id = `${baseId}-${suffix}`;
+      suffix += 1;
+    }
+    usedIds.add(id);
+    const sourceValues = Array.isArray(source.values) ? source.values : legacyValues;
+    return {
+      id,
+      name: normalizedText(source.name).trim() || `${DEFAULT_CHART_SERIES_NAME.replace("1", String(index + 1))}`,
+      color: normalizedColor(source.color, CHART_SERIES_COLORS[index % CHART_SERIES_COLORS.length]),
+      values: Array.from({ length: itemCount }, (_, itemIndex) => nonNegativeFiniteNumber(sourceValues?.[itemIndex]))
     };
   }
 
@@ -59,6 +79,12 @@
     const items = sourceItems.map((item, index) => normalizeChartItem(item, id, index, usedIds));
     const appearanceSource = source.appearance && typeof source.appearance === "object" && !Array.isArray(source.appearance)
       ? source.appearance : {};
+    const legacyValues = sourceItems.map((item) => nonNegativeFiniteNumber(item?.value));
+    const sourceSeries = Array.isArray(source.series) && source.series.length ? source.series.slice(0, 3) : [
+      { id: `${id}-series-1`, name: DEFAULT_CHART_SERIES_NAME, color: appearanceSource.color, values: legacyValues }
+    ];
+    const usedSeriesIds = new Set();
+    const series = sourceSeries.map((entry, index) => normalizeChartSeries(entry, id, index, items.length, usedSeriesIds, index === 0 ? legacyValues : []));
     return {
       ...source,
       type: "chart",
@@ -68,9 +94,11 @@
       title: normalizedText(source.title).trim(),
       unit: normalizedText(source.unit).trim(),
       items,
+      series,
       appearance: {
         ...appearanceSource,
-        color: normalizedColor(appearanceSource.color),
+        // appearance.color is retained as a compatibility mirror. Series colors are authoritative.
+        color: series[0].color,
         showValues: appearanceSource.showValues !== false,
         showPoints: appearanceSource.showPoints !== false,
         showLegend: appearanceSource.showLegend === true,
@@ -88,8 +116,9 @@
       chartType: "bar",
       title: "",
       unit: "",
-      items: [{ id: `${id}-item-1`, label: "", value: 0 }],
-      appearance: { color: DEFAULT_CHART_COLOR, showValues: true, showPoints: true, showLegend: false, pieLabelMode: "percentage" }
+      items: [{ id: `${id}-item-1`, label: "" }],
+      series: [{ id: `${id}-series-1`, name: DEFAULT_CHART_SERIES_NAME, color: DEFAULT_CHART_COLOR, values: [0] }],
+      appearance: { showValues: true, showPoints: true, showLegend: false, pieLabelMode: "percentage" }
     }, id);
   }
 
@@ -197,12 +226,14 @@
   function chartBlockPlainText(markdown) {
     return splitChartBlocks(markdown).map((segment) => segment.type === "text"
       ? segment.text
-      : [segment.chart.title, segment.chart.unit, ...segment.chart.items.flatMap((item) => [item.label, String(item.value)])].filter(Boolean).join(" ")).join("");
+      : [segment.chart.title, segment.chart.unit, ...segment.chart.items.flatMap((item, itemIndex) => [item.label, ...segment.chart.series.map((series) => String(series.values[itemIndex]))])].filter(Boolean).join(" ")).join("");
   }
 
   const api = {
     CHART_BLOCK_VERSION,
     DEFAULT_CHART_COLOR,
+    DEFAULT_CHART_SERIES_NAME,
+    CHART_SERIES_COLORS,
     PIE_CHART_COLORS,
     chartBlockPlainText,
     createChartBlock,
