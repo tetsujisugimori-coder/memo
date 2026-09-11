@@ -8396,7 +8396,8 @@ function chartDisplayItems(chart, series = chart.series[0]) {
 }
 
 function chartAccessibleItems(chart) {
-  return chart.items.filter((item) => item.label).flatMap((item, itemIndex) => chart.series.map((series) =>
+  const accessibleSeries = chart.chartType === "bar" ? chart.series : chart.series.slice(0, 1);
+  return chart.items.filter((item) => item.label).flatMap((item, itemIndex) => accessibleSeries.map((series) =>
     `<li>${escapeHtml(`${item.label}、${series.name}: ${chartDisplayNumber(series.values[itemIndex])}${chart.unit}`)}</li>`
   )).join("");
 }
@@ -8469,7 +8470,8 @@ function renderChartBlock(chartValue, blockIndex, { editable = true } = {}) {
       : "";
     return `<figure class="chart-block chart-block-pie" data-chart-id="${escapeAttr(chart.id)}"><figcaption>${escapeHtml(title)}</figcaption>${controls}<div class="chart-block-pie-layout"><div class="chart-block-scroll" role="region" tabindex="0" aria-label="${escapeAttr(title)}"><svg viewBox="0 0 360 260" role="img" aria-label="${escapeAttr(`${title}${chart.unit ? `（単位: ${chart.unit}）` : ""}`)}">${slices}${empty}</svg></div>${legend}</div><ul class="sr-only">${accessibleItems || "<li>有効な項目はありません</li>"}</ul></figure>`;
   }
-  const width = Math.max(420, chart.items.filter((item) => item.label).length * Math.max(74, chart.series.length * 32 + 34) + 76);
+  const visibleSeriesCount = chart.chartType === "bar" ? chart.series.length : 1;
+  const width = Math.max(420, chart.items.filter((item) => item.label).length * Math.max(74, visibleSeriesCount * 32 + 34) + 76);
   const height = 260;
   const baseline = 196;
   if (chart.chartType === "line") {
@@ -8721,7 +8723,12 @@ function createChartEditor(chartValue, blockIndex, snapshotKey) {
   tableHeader.className = "chart-block-item-row chart-block-item-header";
   tableHeader.style.gridTemplateColumns = `minmax(150px, 1fr) repeat(${chart.series.length}, minmax(110px, 0.55fr)) auto`;
   tableHeader.append(Object.assign(document.createElement("span"), { textContent: "項目名" }));
-  chart.series.forEach((series) => tableHeader.append(Object.assign(document.createElement("span"), { textContent: series.name })));
+  chart.series.forEach((series, seriesIndex) => {
+    const seriesHeader = document.createElement("span");
+    seriesHeader.dataset.chartSeriesHeaderIndex = String(seriesIndex);
+    seriesHeader.textContent = series.name;
+    tableHeader.append(seriesHeader);
+  });
   tableHeader.append(Object.assign(document.createElement("span"), { textContent: "操作" }));
   table.append(tableHeader);
   chart.items.forEach((item, itemIndex) => {
@@ -8840,6 +8847,18 @@ function chartEditorStatus(editorBlock, message) {
   if (status) status.textContent = message;
 }
 
+function syncChartSeriesNameInItemTable(editorBlock, seriesIndex, seriesName) {
+  const header = editorBlock.querySelector(`[data-chart-series-header-index="${seriesIndex}"]`);
+  if (header) header.textContent = seriesName;
+  editorBlock.querySelectorAll(`input[data-chart-series-value][data-chart-series-index="${seriesIndex}"]`).forEach((input) => {
+    const itemIndex = Number(input.closest(".chart-block-item-row")?.dataset.chartItemIndex);
+    if (!Number.isInteger(itemIndex) || itemIndex < 0) return;
+    input.setAttribute("aria-label", seriesIndex === 0
+      ? `${itemIndex + 1}件目の数値`
+      : `${itemIndex + 1}件目の${seriesName}の数値`);
+  });
+}
+
 function handleChartEditorInput(event) {
   const editorBlock = event.target.closest(".chart-block-editor");
   if (!editorBlock) return;
@@ -8849,6 +8868,7 @@ function handleChartEditorInput(event) {
   const block = currentChartBlock(blockIndex, chartId, snapshotKey);
   if (!block) return;
   let next = normalizeChartBlock(block.chart, chartId);
+  let renamedSeriesIndex = null;
   if (event.target.dataset.chartSeriesValue) {
     const itemIndex = Number(event.target.closest(".chart-block-item-row")?.dataset.chartItemIndex);
     const seriesIndex = Number(event.target.dataset.chartSeriesIndex);
@@ -8865,6 +8885,7 @@ function handleChartEditorInput(event) {
     if (!next.series[seriesIndex]) return;
     const field = event.target.dataset.chartSeriesField;
     next.series = next.series.map((series, index) => index === seriesIndex ? { ...series, [field]: event.target.value } : series);
+    if (field === "name") renamedSeriesIndex = seriesIndex;
   } else if (event.target.dataset.chartItemField) {
     const itemIndex = Number(event.target.closest(".chart-block-item-row")?.dataset.chartItemIndex);
     if (!next.items[itemIndex]) return;
@@ -8885,6 +8906,9 @@ function handleChartEditorInput(event) {
     next[event.target.dataset.chartField] = event.target.value;
   } else return;
   next = normalizeChartBlock(next, chartId);
+  if (renamedSeriesIndex !== null) {
+    syncChartSeriesNameInItemTable(editorBlock, renamedSeriesIndex, next.series[renamedSeriesIndex].name);
+  }
   chartEditorStatus(editorBlock, "");
   renderChartEditorPreview(editorBlock.querySelector(".chart-block-editor-preview"), next, blockIndex);
   commitChartBlockChange(blockIndex, chartId, next, { rerenderEditors: event.target.dataset.chartField === "chartType", snapshotKey });

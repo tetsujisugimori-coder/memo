@@ -2653,3 +2653,11 @@
 * 編集欄は系列名・色・追加・削除と、項目×系列の入力表を提供する。最後の系列は削除できず、3系列では追加操作を無効にして理由を表示する。項目の追加・削除は全系列の値配列を同時に更新する。入力表だけを横スクロール可能にし、カード全体の横はみ出しを避ける。
 * 折れ線・円グラフは第1系列だけを描画し、編集欄でこの制限を案内する。第2系列以降は保存・編集を継続し、棒グラフへ戻すと復元する。積み上げ棒、折れ線・円の複数系列描画、CSV/表連携、項目並べ替えUIは今回の対象外である。
 * 検証：`node --check chart-block-utils.js`、`node --check app.js`、`node --check chart-block.e2e.js`、`node --test chart-block-utils.test.js backup-bundle-utils.test.js version.test.js`（41件）、`npm test`（1,093件、fail 0）、`npm run test:e2e:chart`（Chromium／WebKit）、`npm run test:e2e:mobile`（320px・390pxを含むlayoutとwriting、page/console error 0）、`git diff --check`を実行した。`package.json`にlint、型チェック、ビルド用スクリプトはない。モバイルE2Eが更新した追跡済みスクリーンショットは開始時の内容へ復元した。Safari実機は未確認である。
+
+## 2026-09-11 PR #214 追加修正：集合棒グラフの表示系列同期
+
+* 原因：Chart E2Eの項目削除後の待機条件が、`splitChartBlocks()` の返すセグメントに存在しない`series`を直接参照していた。そのためChromium／WebKitとも保存済みの第3系列`60,80,70`を確認できず、30秒でタイムアウトしていた。
+* `chart-block.e2e.js`はセグメントの`chart.series`を参照するよう修正した。項目追加後の0初期化、項目削除後の第3系列値、系列削除後の残存系列を同じ実UI操作で検証し、待機時間やリトライは変更していない。
+* スクリーンリーダー向けの非表示リストは実際の描画系列と統一した。棒グラフは全系列、折れ線・円グラフは第1系列だけを読み上げ、棒へ戻すと保持していた全系列を再び読み上げる。折れ線のSVG幅は表示する第1系列だけから計算し、集合棒グラフだけが全系列数に応じて項目グループ幅を広げる。円グラフのレイアウトは変更していない。
+* 系列名入力時は編集画面を再構築せず、該当する入力表列見出しと数値入力欄の`aria-label`だけを同期する。プレビュー凡例と保存モデルは既存の同じ入力経路で更新するため、フォーカスとキャレットを維持する。
+* 検証：`node --check chart-block-utils.js`、`node --check app.js`、`node --check chart-block.e2e.js`、関連単体テスト、`npm test`（1,093件、fail 0）、Chart E2E（Chromium／WebKit）、Mobile E2E（Chromium／WebKit、320px・390pxのdocument/body横方向オーバーフロー0）、`git diff --check`を実行した。旧形式の読込、保存・再読込、取消、種類切替、全系列の棒高さ、有限SVG属性の既存回帰も維持している。Safari実機は未確認である。
