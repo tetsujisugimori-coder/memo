@@ -476,7 +476,12 @@ function boxesOverlap(first, second) {
     assert.ok(lineMetrics.some((point) => point.cy === 42), "全系列の最大値140を折れ線の共通スケールへ使う");
     for (const viewportWidth of [320, 390]) {
       await page.setViewportSize({ width: viewportWidth, height: 760 });
-      await page.waitForFunction((width) => innerWidth === width, viewportWidth);
+      await page.waitForFunction((width) => innerWidth === width && document.body.dataset.layoutMode === "mobile", viewportWidth);
+      const contextPanel = page.locator("#contextPanel");
+      if (await contextPanel.getAttribute("aria-hidden") !== "true") {
+        await page.locator("#closeContextPanelBtn").click();
+        await page.waitForFunction(() => document.getElementById("contextPanel")?.getAttribute("aria-hidden") === "true");
+      }
       const cardPaneButton = page.locator("#cardPaneBtn");
       if (await cardPaneButton.getAttribute("aria-expanded") !== "true") await cardPaneButton.click();
       await page.waitForFunction(() => document.getElementById("previewCard")?.getAttribute("aria-hidden") === "false");
