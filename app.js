@@ -8390,8 +8390,15 @@ function confirmChartEditorSnapshot(snapshotKey, chartValue, chartId) {
   snapshot.currentSignature = chartEditorSignature(chart, chart.id);
 }
 
-function chartDisplayItems(chart) {
-  return chart.items.filter((item) => item.label && Number.isFinite(item.value) && item.value >= 0);
+function chartDisplayItems(chart, series = chart.series[0]) {
+  return chart.items.map((item, index) => ({ ...item, value: series?.values[index] }))
+    .filter((item) => item.label && Number.isFinite(item.value) && item.value >= 0);
+}
+
+function chartAccessibleItems(chart) {
+  return chart.items.filter((item) => item.label).flatMap((item, itemIndex) => chart.series.map((series) =>
+    `<li>${escapeHtml(`${item.label}、${series.name}: ${chartDisplayNumber(series.values[itemIndex])}${chart.unit}`)}</li>`
+  )).join("");
 }
 
 function chartDisplayNumber(value) {
@@ -8436,12 +8443,13 @@ function chartPiePath(segment, centerX, centerY, radius) {
 
 function renderChartBlock(chartValue, blockIndex, { editable = true } = {}) {
   const chart = normalizeChartBlock(chartValue, `chart-${blockIndex + 1}`);
-  const items = chartDisplayItems(chart);
+  const firstSeries = chart.series[0];
+  const items = chartDisplayItems(chart, firstSeries);
   const title = chart.title || `グラフ${blockIndex + 1}`;
   const controls = editable
     ? `<button class="chart-block-edit" type="button" data-chart-id="${escapeAttr(chart.id)}" data-chart-index="${blockIndex}" aria-label="${escapeAttr(`${title}を編集`)}">編集</button>`
     : "";
-  const accessibleItems = items.map((item) => `<li>${escapeHtml(`${item.label}: ${chartDisplayNumber(item.value)}${chart.unit}`)}</li>`).join("");
+  const accessibleItems = chartAccessibleItems(chart);
   if (chart.chartType === "pie") {
     const pie = pieChartSegments(items);
     const centerX = 140;
@@ -8461,7 +8469,7 @@ function renderChartBlock(chartValue, blockIndex, { editable = true } = {}) {
       : "";
     return `<figure class="chart-block chart-block-pie" data-chart-id="${escapeAttr(chart.id)}"><figcaption>${escapeHtml(title)}</figcaption>${controls}<div class="chart-block-pie-layout"><div class="chart-block-scroll" role="region" tabindex="0" aria-label="${escapeAttr(title)}"><svg viewBox="0 0 360 260" role="img" aria-label="${escapeAttr(`${title}${chart.unit ? `（単位: ${chart.unit}）` : ""}`)}">${slices}${empty}</svg></div>${legend}</div><ul class="sr-only">${accessibleItems || "<li>有効な項目はありません</li>"}</ul></figure>`;
   }
-  const width = Math.max(420, items.length * 74 + 76);
+  const width = Math.max(420, chart.items.filter((item) => item.label).length * Math.max(74, chart.series.length * 32 + 34) + 76);
   const height = 260;
   const baseline = 196;
   if (chart.chartType === "line") {
@@ -8487,37 +8495,49 @@ function renderChartBlock(chartValue, blockIndex, { editable = true } = {}) {
     });
     const maximum = Math.max(0, ...items.map((item) => item.value));
     const path = points.length > 1
-      ? `<polyline class="chart-block-line-path" points="${points.map((point) => `${point.x},${point.y}`).join(" ")}" fill="none" stroke="${escapeAttr(chart.appearance.color)}"></polyline>`
+      ? `<polyline class="chart-block-line-path" points="${points.map((point) => `${point.x},${point.y}`).join(" ")}" fill="none" stroke="${escapeAttr(firstSeries.color)}"></polyline>`
       : "";
     const pointItems = points.map((point) => {
       const value = chart.appearance.showValues
         ? `<text class="chart-block-value" x="${point.x}" y="${Math.max(lineLayout.valueMinimumY, point.y - lineLayout.valueOffset)}" text-anchor="middle">${escapeHtml(chartDisplayNumber(point.value))}</text>`
         : "";
       const marker = chart.appearance.showPoints
-        ? `<circle class="chart-block-line-point" cx="${point.x}" cy="${point.y}" r="4.5" fill="var(--section-bg)" stroke="${escapeAttr(chart.appearance.color)}"></circle>`
+        ? `<circle class="chart-block-line-point" cx="${point.x}" cy="${point.y}" r="4.5" fill="var(--section-bg)" stroke="${escapeAttr(firstSeries.color)}"></circle>`
         : "";
       return `<g class="chart-block-line-item" data-chart-item-id="${escapeAttr(point.id)}"><title>${escapeHtml(`${point.label}: ${chartDisplayNumber(point.value)}${chart.unit}`)}</title>${value}${marker}<text class="chart-block-label" x="${point.x}" y="${baseline + 22}" text-anchor="middle">${escapeHtml(chartLabel(point.label))}</text></g>`;
     }).join("");
     const empty = points.length ? "" : `<text class="chart-block-empty" x="${width / 2}" y="${height / 2}" text-anchor="middle">項目名と0以上の数値を入力してください</text>`;
     const legend = chart.appearance.showLegend
-      ? `<ul class="chart-block-legend" aria-label="${escapeAttr(`${title}の凡例`)}"><li><span class="chart-block-line-legend-swatch" style="color:${escapeAttr(chart.appearance.color)}"></span><span>${escapeHtml(title)}</span></li></ul>`
+      ? `<ul class="chart-block-legend" aria-label="${escapeAttr(`${title}の凡例`)}"><li><span class="chart-block-line-legend-swatch" style="color:${escapeAttr(firstSeries.color)}"></span><span>${escapeHtml(firstSeries.name)}</span></li></ul>`
       : "";
     return `<figure class="chart-block chart-block-line" data-chart-id="${escapeAttr(chart.id)}"><figcaption>${escapeHtml(title)}</figcaption>${controls}<div class="chart-block-line-layout"><div class="chart-block-scroll" role="region" tabindex="0" aria-label="${escapeAttr(title)}"><svg viewBox="0 0 ${width} ${height}" role="img" aria-label="${escapeAttr(`${title}${chart.unit ? `（単位: ${chart.unit}）` : ""}`)}"><line class="chart-block-axis" x1="${lineLayout.axisX}" y1="${lineLayout.axisTop}" x2="${lineLayout.axisX}" y2="${lineLayout.baseline}"/><line class="chart-block-axis" x1="${lineLayout.axisX}" y1="${lineLayout.baseline}" x2="${width - lineLayout.plotRight}" y2="${lineLayout.baseline}"/><text class="chart-block-axis-value chart-block-axis-maximum" x="${lineLayout.axisLabelX}" y="${lineLayout.axisMaximumY}" text-anchor="end">${escapeHtml(chartDisplayNumber(maximum))}</text><text class="chart-block-axis-value chart-block-axis-zero" x="${lineLayout.axisLabelX}" y="${lineLayout.baseline + 4}" text-anchor="end">0</text>${chart.unit ? `<text class="chart-block-unit" x="${lineLayout.unitX}" y="${lineLayout.unitY}">${escapeHtml(chart.unit)}</text>` : ""}${path}${pointItems}${empty}</svg></div>${legend}</div><ul class="sr-only">${accessibleItems || "<li>有効な項目はありません</li>"}</ul></figure>`;
   }
-  const maximum = Math.max(0, ...items.map((item) => item.value));
-  const barWidth = Math.min(48, Math.max(24, (width - 76) / Math.max(1, items.length) - 22));
-  const bars = items.map((item, index) => {
-    const center = 52 + index * ((width - 70) / Math.max(1, items.length)) + ((width - 70) / Math.max(1, items.length) / 2);
-    const barHeight = maximum > 0 ? Math.max(0, (item.value / maximum) * 142) : 0;
-    const x = center - barWidth / 2;
-    const y = baseline - barHeight;
-    const value = chart.appearance.showValues
-      ? `<text class="chart-block-value" x="${center}" y="${Math.max(22, y - 8)}" text-anchor="middle">${escapeHtml(chartDisplayNumber(item.value))}</text>`
-      : "";
-    return `<g class="chart-block-bar" data-chart-item-id="${escapeAttr(item.id)}"><title>${escapeHtml(`${item.label}: ${chartDisplayNumber(item.value)}${chart.unit}`)}</title><rect x="${x}" y="${y}" width="${barWidth}" height="${barHeight}" rx="4" fill="${escapeAttr(chart.appearance.color)}"></rect>${value}<text class="chart-block-label" x="${center}" y="${baseline + 22}" text-anchor="middle">${escapeHtml(chartLabel(item.label))}</text></g>`;
+  const barItems = chart.items.filter((item) => item.label);
+  const maximum = Math.max(0, ...chart.series.flatMap((series) => barItems.map((item) => series.values[chart.items.indexOf(item)])));
+  const plotWidth = Math.max(1, width - 70);
+  const groupWidth = plotWidth / Math.max(1, barItems.length);
+  const innerGap = 4;
+  const barWidth = Math.max(4, Math.min(48, (Math.max(12, groupWidth - 20) - innerGap * (chart.series.length - 1)) / chart.series.length));
+  const bars = barItems.map((item, itemIndex) => {
+    const sourceIndex = chart.items.indexOf(item);
+    const groupStart = 52 + itemIndex * groupWidth + (groupWidth - (barWidth * chart.series.length + innerGap * (chart.series.length - 1))) / 2;
+    const seriesBars = chart.series.map((series, seriesIndex) => {
+      const valueNumber = series.values[sourceIndex];
+      const barHeight = maximum > 0 ? Math.max(0, Math.min(142, (valueNumber / maximum) * 142)) : 0;
+      const x = groupStart + seriesIndex * (barWidth + innerGap);
+      const y = baseline - barHeight;
+      const value = chart.appearance.showValues
+        ? `<text class="chart-block-value" x="${x + barWidth / 2}" y="${Math.max(22, y - 8)}" text-anchor="middle">${escapeHtml(chartDisplayNumber(valueNumber))}</text>`
+        : "";
+      return `<g class="chart-block-bar" data-chart-item-id="${escapeAttr(item.id)}" data-chart-series-id="${escapeAttr(series.id)}"><title>${escapeHtml(`${item.label}、${series.name}: ${chartDisplayNumber(valueNumber)}${chart.unit}`)}</title><rect x="${x}" y="${y}" width="${barWidth}" height="${barHeight}" rx="4" fill="${escapeAttr(series.color)}"></rect>${value}</g>`;
+    }).join("");
+    return `<g class="chart-block-bar-group" data-chart-item-id="${escapeAttr(item.id)}">${seriesBars}<text class="chart-block-label" x="${52 + itemIndex * groupWidth + groupWidth / 2}" y="${baseline + 22}" text-anchor="middle">${escapeHtml(chartLabel(item.label))}</text></g>`;
   }).join("");
-  const empty = items.length ? "" : `<text class="chart-block-empty" x="${width / 2}" y="${height / 2}" text-anchor="middle">項目名と0以上の数値を入力してください</text>`;
-  return `<figure class="chart-block" data-chart-id="${escapeAttr(chart.id)}"><figcaption>${escapeHtml(title)}</figcaption>${controls}<div class="chart-block-scroll" role="region" tabindex="0" aria-label="${escapeAttr(title)}"><svg viewBox="0 0 ${width} ${height}" role="img" aria-label="${escapeAttr(`${title}${chart.unit ? `（単位: ${chart.unit}）` : ""}`)}"><line class="chart-block-axis" x1="42" y1="22" x2="42" y2="${baseline}"/><line class="chart-block-axis" x1="42" y1="${baseline}" x2="${width - 18}" y2="${baseline}"/>${chart.unit ? `<text class="chart-block-unit" x="48" y="18">${escapeHtml(chart.unit)}</text>` : ""}${bars}${empty}</svg></div><ul class="sr-only">${accessibleItems || "<li>有効な項目はありません</li>"}</ul></figure>`;
+  const empty = barItems.length ? "" : `<text class="chart-block-empty" x="${width / 2}" y="${height / 2}" text-anchor="middle">項目名と0以上の数値を入力してください</text>`;
+  const legend = chart.appearance.showLegend
+    ? `<ul class="chart-block-legend" aria-label="${escapeAttr(`${title}の凡例`)}">${chart.series.map((series) => `<li><span class="chart-block-legend-swatch" style="background:${escapeAttr(series.color)}"></span><span>${escapeHtml(series.name)}</span></li>`).join("")}</ul>`
+    : "";
+  return `<figure class="chart-block chart-block-bar-chart" data-chart-id="${escapeAttr(chart.id)}"><figcaption>${escapeHtml(title)}</figcaption>${controls}<div class="chart-block-bar-layout"><div class="chart-block-scroll" role="region" tabindex="0" aria-label="${escapeAttr(title)}"><svg viewBox="0 0 ${width} ${height}" role="img" aria-label="${escapeAttr(`${title}${chart.unit ? `（単位: ${chart.unit}）` : ""}`)}"><line class="chart-block-axis" x1="42" y1="22" x2="42" y2="${baseline}"/><line class="chart-block-axis" x1="42" y1="${baseline}" x2="${width - 18}" y2="${baseline}"/>${chart.unit ? `<text class="chart-block-unit" x="48" y="18">${escapeHtml(chart.unit)}</text>` : ""}${bars}${empty}</svg></div>${legend}</div><ul class="sr-only">${accessibleItems || "<li>有効な項目はありません</li>"}</ul></figure>`;
 }
 
 function renderChartEditorPreview(host, chart, blockIndex) {
@@ -8573,15 +8593,6 @@ function createChartEditor(chartValue, blockIndex, snapshotKey) {
   const appearance = document.createElement("div");
   appearance.className = "chart-block-appearance";
   if (chart.chartType !== "pie") {
-    const colorLabel = document.createElement("label");
-    const chartTerm = chart.chartType === "line" ? "線" : "棒";
-    colorLabel.textContent = `${chartTerm}の色`;
-    const color = document.createElement("input");
-    color.type = "color";
-    color.dataset.chartField = "color";
-    color.value = chart.appearance.color;
-    color.setAttribute("aria-label", `グラフ${blockIndex + 1}の${chartTerm}の色`);
-    colorLabel.append(color);
     const valuesLabel = document.createElement("label");
     valuesLabel.className = "chart-block-appearance-checkbox";
     const values = document.createElement("input");
@@ -8591,7 +8602,18 @@ function createChartEditor(chartValue, blockIndex, snapshotKey) {
     const valuesText = chart.chartType === "line" ? "データ点の数値を表示" : "棒の上に数値を表示";
     values.setAttribute("aria-label", `グラフ${blockIndex + 1}の${valuesText}`);
     valuesLabel.append(values, document.createTextNode(valuesText));
-    appearance.append(colorLabel, valuesLabel);
+    appearance.append(valuesLabel);
+    if (chart.chartType === "bar") {
+      const legendLabel = document.createElement("label");
+      legendLabel.className = "chart-block-appearance-checkbox";
+      const legend = document.createElement("input");
+      legend.type = "checkbox";
+      legend.dataset.chartField = "showLegend";
+      legend.checked = chart.appearance.showLegend;
+      legend.setAttribute("aria-label", `グラフ${blockIndex + 1}の凡例を表示`);
+      legendLabel.append(legend, document.createTextNode("凡例を表示"));
+      appearance.append(legendLabel);
+    }
     if (chart.chartType === "line") {
       const pointsLabel = document.createElement("label");
       pointsLabel.className = "chart-block-appearance-checkbox";
@@ -8635,35 +8657,103 @@ function createChartEditor(chartValue, blockIndex, snapshotKey) {
     labelModeLabel.append(labelMode);
     appearance.append(legendLabel, labelModeLabel);
   }
+  const unsupportedNotice = document.createElement("p");
+  unsupportedNotice.className = "chart-block-series-notice";
+  unsupportedNotice.hidden = chart.chartType === "bar";
+  unsupportedNotice.textContent = "このグラフ形式では第1系列のみ表示されます。ほかの系列は保持され、棒グラフへ戻すと再表示されます。";
+  const seriesPanel = document.createElement("section");
+  seriesPanel.className = "chart-block-series-panel";
+  seriesPanel.setAttribute("aria-label", "系列の設定");
+  const seriesHeading = document.createElement("p");
+  seriesHeading.textContent = `系列（最大3件、現在${chart.series.length}件）`;
+  seriesPanel.append(seriesHeading);
+  chart.series.forEach((series, seriesIndex) => {
+    const row = document.createElement("div");
+    row.className = "chart-block-series-row";
+    row.dataset.chartSeriesIndex = String(seriesIndex);
+    const nameLabel = document.createElement("label");
+    nameLabel.textContent = `系列${seriesIndex + 1}の名前`;
+    const name = document.createElement("input");
+    name.type = "text";
+    name.dataset.chartSeriesField = "name";
+    name.value = series.name;
+    name.setAttribute("aria-label", `系列${seriesIndex + 1}の名前`);
+    nameLabel.append(name);
+    const colorLabel = document.createElement("label");
+    colorLabel.textContent = `系列${seriesIndex + 1}の色`;
+    const color = document.createElement("input");
+    color.type = "color";
+    color.dataset.chartSeriesField = "color";
+    color.value = series.color;
+    const legacyColorLabel = seriesIndex === 0 && chart.chartType !== "pie"
+      ? `グラフ${blockIndex + 1}の${chart.chartType === "line" ? "線" : "棒"}の色`
+      : `系列${seriesIndex + 1}の色`;
+    color.setAttribute("aria-label", legacyColorLabel);
+    colorLabel.append(color);
+    const deleteButton = document.createElement("button");
+    deleteButton.type = "button";
+    deleteButton.dataset.chartAction = "delete-series";
+    deleteButton.setAttribute("aria-label", `系列${seriesIndex + 1}を削除`);
+    deleteButton.textContent = "系列を削除";
+    deleteButton.disabled = chart.series.length <= 1;
+    row.append(nameLabel, colorLabel, deleteButton);
+    seriesPanel.append(row);
+  });
+  const addSeries = document.createElement("button");
+  addSeries.type = "button";
+  addSeries.dataset.chartAction = "add-series";
+  addSeries.textContent = "系列を追加";
+  addSeries.disabled = chart.series.length >= 3;
+  if (addSeries.disabled) addSeries.setAttribute("aria-describedby", `chart-series-limit-${snapshotKey}`);
+  seriesPanel.append(addSeries);
+  const seriesLimit = document.createElement("p");
+  seriesLimit.className = "chart-block-series-limit";
+  seriesLimit.id = `chart-series-limit-${snapshotKey}`;
+  seriesLimit.setAttribute("role", "status");
+  seriesLimit.textContent = chart.series.length >= 3 ? "系列は最大3つまでです。" : "";
+  seriesPanel.append(seriesLimit);
   const table = document.createElement("div");
   table.className = "chart-block-item-table";
   const tableTitle = document.createElement("p");
   tableTitle.textContent = "項目データ（最大50件）";
   table.append(tableTitle);
+  const tableHeader = document.createElement("div");
+  tableHeader.className = "chart-block-item-row chart-block-item-header";
+  tableHeader.style.gridTemplateColumns = `minmax(150px, 1fr) repeat(${chart.series.length}, minmax(110px, 0.55fr)) auto`;
+  tableHeader.append(Object.assign(document.createElement("span"), { textContent: "項目名" }));
+  chart.series.forEach((series) => tableHeader.append(Object.assign(document.createElement("span"), { textContent: series.name })));
+  tableHeader.append(Object.assign(document.createElement("span"), { textContent: "操作" }));
+  table.append(tableHeader);
   chart.items.forEach((item, itemIndex) => {
     const row = document.createElement("div");
     row.className = "chart-block-item-row";
     row.dataset.chartItemIndex = String(itemIndex);
+    row.style.gridTemplateColumns = `minmax(150px, 1fr) repeat(${chart.series.length}, minmax(110px, 0.55fr)) auto`;
     const label = document.createElement("input");
     label.type = "text";
     label.dataset.chartItemField = "label";
     label.value = item.label;
     label.placeholder = "項目名";
     label.setAttribute("aria-label", `${itemIndex + 1}件目の項目名`);
-    const value = document.createElement("input");
-    value.type = "text";
-    value.inputMode = "decimal";
-    value.dataset.chartItemField = "value";
-    value.value = chartDisplayNumber(item.value);
-    value.placeholder = "数値";
-    value.setAttribute("aria-label", `${itemIndex + 1}件目の数値`);
+    row.append(label);
+    chart.series.forEach((series, seriesIndex) => {
+      const value = document.createElement("input");
+      value.type = "text";
+      value.inputMode = "decimal";
+      value.dataset.chartSeriesValue = "true";
+      value.dataset.chartSeriesIndex = String(seriesIndex);
+      value.value = chartDisplayNumber(series.values[itemIndex]);
+      value.placeholder = "数値";
+      value.setAttribute("aria-label", seriesIndex === 0 ? `${itemIndex + 1}件目の数値` : `${itemIndex + 1}件目の${series.name}の数値`);
+      row.append(value);
+    });
     const deleteButton = document.createElement("button");
     deleteButton.type = "button";
     deleteButton.dataset.chartAction = "delete-item";
     deleteButton.setAttribute("aria-label", `${itemIndex + 1}件目の項目を削除`);
     deleteButton.textContent = "削除";
     deleteButton.disabled = chart.items.length <= 1;
-    row.append(label, value, deleteButton);
+    row.append(deleteButton);
     table.append(row);
   });
   const actions = document.createElement("div");
@@ -8690,7 +8780,7 @@ function createChartEditor(chartValue, blockIndex, snapshotKey) {
   previewHost.className = "chart-block-editor-preview";
   previewHost.setAttribute("aria-label", "グラフのプレビュー");
   renderChartEditorPreview(previewHost, chart, blockIndex);
-  article.append(header, fields, appearance, table, actions, status, previewHost);
+  article.append(header, fields, appearance, unsupportedNotice, seriesPanel, table, actions, status, previewHost);
   return article;
 }
 
@@ -8759,7 +8849,23 @@ function handleChartEditorInput(event) {
   const block = currentChartBlock(blockIndex, chartId, snapshotKey);
   if (!block) return;
   let next = normalizeChartBlock(block.chart, chartId);
-  if (event.target.dataset.chartItemField) {
+  if (event.target.dataset.chartSeriesValue) {
+    const itemIndex = Number(event.target.closest(".chart-block-item-row")?.dataset.chartItemIndex);
+    const seriesIndex = Number(event.target.dataset.chartSeriesIndex);
+    if (!next.items[itemIndex] || !next.series[seriesIndex]) return;
+    if (!setChartNumberValidity(event.target)) {
+      chartEditorStatus(editorBlock, "数値は0以上の有限な数値を入力してください");
+      return;
+    }
+    next.series = next.series.map((series, index) => index === seriesIndex
+      ? { ...series, values: series.values.map((value, valueIndex) => valueIndex === itemIndex ? nonNegativeFiniteNumber(event.target.value) : value) }
+      : series);
+  } else if (event.target.dataset.chartSeriesField) {
+    const seriesIndex = Number(event.target.closest(".chart-block-series-row")?.dataset.chartSeriesIndex);
+    if (!next.series[seriesIndex]) return;
+    const field = event.target.dataset.chartSeriesField;
+    next.series = next.series.map((series, index) => index === seriesIndex ? { ...series, [field]: event.target.value } : series);
+  } else if (event.target.dataset.chartItemField) {
     const itemIndex = Number(event.target.closest(".chart-block-item-row")?.dataset.chartItemIndex);
     if (!next.items[itemIndex]) return;
     const field = event.target.dataset.chartItemField;
@@ -8792,7 +8898,7 @@ function handleChartEditorChange(event) {
 }
 
 async function confirmChartEditor(editorBlock, blockIndex, chartId, snapshotKey) {
-  const invalidInput = [...editorBlock.querySelectorAll('input[data-chart-item-field="value"]')]
+  const invalidInput = [...editorBlock.querySelectorAll('input[data-chart-series-value]')]
     .find((input) => !setChartNumberValidity(input));
   if (invalidInput) {
     chartEditorStatus(editorBlock, "数値は0以上の有限な数値を入力してください");
@@ -8831,7 +8937,8 @@ function handleChartEditorAction(event) {
   switch (button.dataset.chartAction) {
     case "add-item":
       if (next.items.length >= 50) return;
-      next.items = [...next.items, { id: crypto.randomUUID(), label: "", value: 0 }];
+      next.items = [...next.items, { id: crypto.randomUUID(), label: "" }];
+      next.series = next.series.map((series) => ({ ...series, values: [...series.values, 0] }));
       if (commitChartBlockChange(blockIndex, chartId, next, { rerenderEditors: true, snapshotKey })) {
         requestAnimationFrame(() => chartBlockEditors?.querySelector(`.chart-block-editor[data-chart-snapshot-key="${CSS.escape(snapshotKey)}"] .chart-block-item-row:last-of-type input`)?.focus());
       }
@@ -8840,6 +8947,25 @@ function handleChartEditorAction(event) {
       const itemIndex = Number(button.closest(".chart-block-item-row")?.dataset.chartItemIndex);
       if (next.items.length <= 1 || !next.items[itemIndex]) return;
       next.items = next.items.filter((_, index) => index !== itemIndex);
+      next.series = next.series.map((series) => ({ ...series, values: series.values.filter((_, index) => index !== itemIndex) }));
+      commitChartBlockChange(blockIndex, chartId, next, { rerenderEditors: true, snapshotKey });
+      return;
+    }
+    case "add-series":
+      if (next.series.length >= 3) return;
+      next.series = [...next.series, {
+        id: crypto.randomUUID(),
+        name: `系列 ${next.series.length + 1}`,
+        color: ["#4f46e5", "#dc2626", "#059669"][next.series.length],
+        values: next.items.map(() => 0)
+      }];
+      next.appearance = { ...next.appearance, showLegend: true };
+      commitChartBlockChange(blockIndex, chartId, next, { rerenderEditors: true, snapshotKey });
+      return;
+    case "delete-series": {
+      const seriesIndex = Number(button.closest(".chart-block-series-row")?.dataset.chartSeriesIndex);
+      if (next.series.length <= 1 || !next.series[seriesIndex]) return;
+      next.series = next.series.filter((_, index) => index !== seriesIndex);
       commitChartBlockChange(blockIndex, chartId, next, { rerenderEditors: true, snapshotKey });
       return;
     }

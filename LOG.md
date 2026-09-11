@@ -2645,3 +2645,11 @@
 * `chart-block.e2e.js`は取消完了のライブステータスを待ってから本文を変更する。本文変更後は、(1) `splitChartBlocks(editor.value)`のマーカー件数、(2) full描画要求の登録または現行revisionの本文モデルからのプレビュー反映、(3) グラフ編集欄件数の順に待つ。固定時間、タイムアウト延長、直接の`renderChartBlockEditors()`呼出しは使わず、前方追加と削除の両方を同じ経路で検証する。アプリ配信JavaScriptは変更していないため、キャッシュ識別子とその固定契約テストは更新していない。
 * 回帰テストは、取消後のフォーカス復帰、本文マーカーの3件／2件反映、現行モデル由来のプレビュー、編集欄件数を明示的に確認する。これにより、遅延保存で本文が巻き戻る、full要求が補助要求に負ける、または本文モデルと編集欄が不一致になる場合も、どの段階で止まったかを判別できる。
 * 検証：WebKit Chart E2Eは連続実行、Chromium Chart E2E、構文確認、全単体テスト、Mobile E2E、`git diff --check`を本修正後に再実行する。GitHub Actionsの同一run再実行は個人アクセストークンの権限不足で実行できなかったため、push後の新規CI結果を確認する。
+
+## 2026-09-11 グラフブロック：集合棒グラフの複数系列
+
+* 棒グラフへ最大3系列を追加した。正規化済みの保存モデルは、安定IDと項目名だけを持つ`items`と、安定ID・系列名・色・項目順の値配列を持つ`series`を共通化する。1項目内では各系列の棒を横に並べ、系列間の小さい間隔と項目グループ間の余白を分ける。棒の高さは表示する全系列の最大値から計算し、0、巨大な有限値、不正値で`NaN`、`Infinity`、負の幅・高さをSVGへ渡さない。
+* 旧形式の`items[].value`は読み込み時に第1系列へ正規化するだけで、読むだけではMarkdownマーカーを変更しない。編集して確定保存したときだけ新しい`items`と`series`形式を直列化する。既存の本文保存、dirty状態、`flushSave()`、Undo/Redo、DB_VERSION、Markdown/ZIP経路は変更していない。
+* 編集欄は系列名・色・追加・削除と、項目×系列の入力表を提供する。最後の系列は削除できず、3系列では追加操作を無効にして理由を表示する。項目の追加・削除は全系列の値配列を同時に更新する。入力表だけを横スクロール可能にし、カード全体の横はみ出しを避ける。
+* 折れ線・円グラフは第1系列だけを描画し、編集欄でこの制限を案内する。第2系列以降は保存・編集を継続し、棒グラフへ戻すと復元する。積み上げ棒、折れ線・円の複数系列描画、CSV/表連携、項目並べ替えUIは今回の対象外である。
+* 検証：`node --check chart-block-utils.js`、`node --check app.js`、`node --check chart-block.e2e.js`、`node --test chart-block-utils.test.js backup-bundle-utils.test.js version.test.js`（41件）、`npm test`（1,093件、fail 0）、`npm run test:e2e:chart`（Chromium／WebKit）、`npm run test:e2e:mobile`（320px・390pxを含むlayoutとwriting、page/console error 0）、`git diff --check`を実行した。`package.json`にlint、型チェック、ビルド用スクリプトはない。モバイルE2Eが更新した追跡済みスクリーンショットは開始時の内容へ復元した。Safari実機は未確認である。
