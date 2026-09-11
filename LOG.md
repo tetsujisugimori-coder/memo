@@ -2678,3 +2678,9 @@
 * 編集欄の既存の最大3系列、系列名・色、項目×系列入力、名称変更時の列見出し・`aria-label`・プレビュー同期をそのまま利用する。円グラフ専用の「第1系列のみ表示」案内だけを残し、折れ線では表示しない。保存形式、`schemaVersion: 1`、Markdownマーカー、DB_VERSION、既存ID、旧`items[].value`読み込み、Undo/Redo、取消、Markdown/ZIP経路は変更していない。
 * 単体テストへ、折れ線の全系列表示、円の第1系列限定、全系列最大値、系列数に依存しない折れ線幅、全値0の有限座標を追加した。Chart E2Eは3系列・3項目の3線と9点、色付き凡例、共通スケール、読み上げ、棒→折れ線→円→棒の保持、再読み込み、取消・Undo/Redo既存回帰を確認する。320px／390pxでは、実際にモバイルのカード表示を開いてカード内表示、凡例折返し、編集ボタン、入力表だけの横スクロール、ページ横オーバーフローなしを確認する。
 * 検証：`node --check chart-block-utils.js`、`node --check app.js`、`node --check chart-block.e2e.js`、`node --test chart-block-utils.test.js`（19件、fail 0）、`npm test`（1,094件、fail 0）、`npm run test:e2e:chart`（Chromium）、`MEMO_NEXUS_E2E_BROWSER=webkit node chart-block.e2e.js`（WebKit）、`npm run test:e2e:mobile`（Chromium／WebKit、320px・390pxを含む）、`git diff --check`を実行した。モバイルE2Eの追跡済みスクリーンショットは更新せず、一時パスへ出力した。push後のGitHub ActionsとSafari実機は未確認である。
+
+## 2026-09-12 PR #216 CI修正：モバイルのカード表示操作
+
+* Chart E2Eのモバイル検証では、レイアウトモードの切替完了とコンテキストパネルの通常の閉鎖を待ってから、可視のカード表示ボタンを実クリックする。固定時間待機、`force`クリック、状態の直接変更は使わない。
+* モバイル幅では、ヘッダーを編集カードより前面に保持する。これによりカード表示ボタンが本文のエクスポートボタンに覆われず、実機とE2Eのどちらでも操作できる。系列データ、グラフ描画、保存形式は変更していない。
+* CSS配信識別子を`style.css?v=0.5.0-93`へ更新し、`version.test.js`の固定契約を同期した。修正後にChart E2E（Chromium／WebKit）、Mobile E2E（Chromium／WebKit）、全単体テスト、`git diff --check`を再実行し、push後のGitHub Actionsを確認する。
