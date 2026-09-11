@@ -9,9 +9,12 @@ const {
   DEFAULT_CHART_SERIES_NAME,
   PIE_CHART_COLORS,
   chartBlockPlainText,
+  chartDisplaySeries,
+  chartValueMaximum,
   createChartBlock,
   insertChartBlock,
   lineChartPoints,
+  lineChartWidth,
   normalizeChartBlock,
   parseChartBlockLine,
   pieChartSegments,
@@ -103,6 +106,25 @@ test("折れ線の座標は入力順を保ち、0件・1件・同値・小数で
   const separated = lineChartPoints([{ id: "maximum", value: Number.MAX_VALUE }, { id: "lower", value: Number.MAX_VALUE / 2 }], 420, { left: 86, right: 18, top: 42, baseline: 196 });
   assert.ok(separated.every((point) => Number.isFinite(point.x) && Number.isFinite(point.y)), "巨大な有限値と分離したプロット領域でも有限座標にする");
   assert.ok(separated[0].x > 42, "先頭点をY軸より右のプロット領域へ置く");
+});
+
+test("表示系列、共通スケール、折れ線横幅はグラフ種別ごとの規則を共有する", () => {
+  const source = normalizeChartBlock({
+    id: "multi-line", chartType: "line", items: [{ id: "jan", label: "1月" }, { id: "feb", label: "2月" }, { id: "mar", label: "3月" }],
+    series: [
+      { id: "sales", name: "売上", values: [40, 60, 50] },
+      { id: "profit", name: "営業利益", values: [20, 80, 30] },
+      { id: "cost", name: "原価", values: [10, 15, 12] }
+    ]
+  });
+  assert.deepEqual(chartDisplaySeries(source).map((series) => series.id), ["sales", "profit", "cost"]);
+  const displayedItems = chartDisplaySeries(source).flatMap((series) => source.items.map((item, index) => ({ ...item, value: series.values[index] })));
+  assert.equal(chartValueMaximum(displayedItems), 80, "折れ線は表示する全系列の最大値を共通スケールに使う");
+  const points = lineChartPoints(displayedItems.slice(3, 6), lineChartWidth(source.items), { maximum: chartValueMaximum(displayedItems) });
+  assert.equal(points[1].y, 22, "最大値80の点を共通スケールの上端へ描画する");
+  assert.equal(lineChartWidth(source.items), lineChartWidth([{ label: "1月" }, { label: "2月" }, { label: "3月" }]), "系列数は折れ線の横幅へ加算しない");
+  assert.ok(lineChartPoints([{ id: "zero", value: 0 }], 420, { maximum: 0 }).every((point) => Number.isFinite(point.x) && Number.isFinite(point.y) && point.x >= 0 && point.y >= 0));
+  assert.deepEqual(chartDisplaySeries({ ...source, chartType: "pie" }).map((series) => series.id), ["sales"], "円は第1系列だけを表示する");
 });
 
 test("円グラフは共通項目データを使い、最後の扇形まで合計100%にする", () => {

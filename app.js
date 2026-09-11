@@ -467,9 +467,12 @@ const {
 } = window.MemoNexusTableBlockUtils;
 const {
   chartBlockPlainText,
+  chartDisplaySeries,
+  chartValueMaximum,
   createChartBlock,
   insertChartBlock,
   lineChartPoints,
+  lineChartWidth,
   nonNegativeFiniteNumber,
   normalizeChartBlock,
   PIE_CHART_COLORS,
@@ -8396,7 +8399,7 @@ function chartDisplayItems(chart, series = chart.series[0]) {
 }
 
 function chartAccessibleItems(chart) {
-  const accessibleSeries = chart.chartType === "bar" ? chart.series : chart.series.slice(0, 1);
+  const accessibleSeries = chartDisplaySeries(chart);
   return chart.items.filter((item) => item.label).flatMap((item, itemIndex) => accessibleSeries.map((series) =>
     `<li>${escapeHtml(`${item.label}、${series.name}: ${chartDisplayNumber(series.values[itemIndex])}${chart.unit}`)}</li>`
   )).join("");
@@ -8470,7 +8473,7 @@ function renderChartBlock(chartValue, blockIndex, { editable = true } = {}) {
       : "";
     return `<figure class="chart-block chart-block-pie" data-chart-id="${escapeAttr(chart.id)}"><figcaption>${escapeHtml(title)}</figcaption>${controls}<div class="chart-block-pie-layout"><div class="chart-block-scroll" role="region" tabindex="0" aria-label="${escapeAttr(title)}"><svg viewBox="0 0 360 260" role="img" aria-label="${escapeAttr(`${title}${chart.unit ? `（単位: ${chart.unit}）` : ""}`)}">${slices}${empty}</svg></div>${legend}</div><ul class="sr-only">${accessibleItems || "<li>有効な項目はありません</li>"}</ul></figure>`;
   }
-  const visibleSeriesCount = chart.chartType === "bar" ? chart.series.length : 1;
+  const visibleSeriesCount = chartDisplaySeries(chart).length;
   const width = Math.max(420, chart.items.filter((item) => item.label).length * Math.max(74, visibleSeriesCount * 32 + 34) + 76);
   const height = 260;
   const baseline = 196;
@@ -8489,30 +8492,39 @@ function renderChartBlock(chartValue, blockIndex, { editable = true } = {}) {
       valueOffset: 8,
       valueMinimumY: 34
     };
-    const points = lineChartPoints(items, width, {
-      left: lineLayout.plotLeft,
-      right: lineLayout.plotRight,
-      top: lineLayout.plotTop,
-      baseline: lineLayout.baseline
-    });
-    const maximum = Math.max(0, ...items.map((item) => item.value));
-    const path = points.length > 1
-      ? `<polyline class="chart-block-line-path" points="${points.map((point) => `${point.x},${point.y}`).join(" ")}" fill="none" stroke="${escapeAttr(firstSeries.color)}"></polyline>`
-      : "";
-    const pointItems = points.map((point) => {
-      const value = chart.appearance.showValues
-        ? `<text class="chart-block-value" x="${point.x}" y="${Math.max(lineLayout.valueMinimumY, point.y - lineLayout.valueOffset)}" text-anchor="middle">${escapeHtml(chartDisplayNumber(point.value))}</text>`
+    const lineWidth = lineChartWidth(chart.items);
+    const lineSeries = chartDisplaySeries(chart).map((series) => ({ series, items: chartDisplayItems(chart, series) }));
+    const maximum = chartValueMaximum(lineSeries.flatMap(({ items: seriesItems }) => seriesItems));
+    const lines = lineSeries.map(({ series, items: seriesItems }, seriesIndex) => {
+      const points = lineChartPoints(seriesItems, lineWidth, {
+        left: lineLayout.plotLeft,
+        right: lineLayout.plotRight,
+        top: lineLayout.plotTop,
+        baseline: lineLayout.baseline,
+        maximum
+      });
+      const path = points.length > 1
+        ? `<polyline class="chart-block-line-path" data-chart-series-id="${escapeAttr(series.id)}" points="${points.map((point) => `${point.x},${point.y}`).join(" ")}" fill="none" stroke="${escapeAttr(series.color)}"></polyline>`
         : "";
-      const marker = chart.appearance.showPoints
-        ? `<circle class="chart-block-line-point" cx="${point.x}" cy="${point.y}" r="4.5" fill="var(--section-bg)" stroke="${escapeAttr(firstSeries.color)}"></circle>`
-        : "";
-      return `<g class="chart-block-line-item" data-chart-item-id="${escapeAttr(point.id)}"><title>${escapeHtml(`${point.label}: ${chartDisplayNumber(point.value)}${chart.unit}`)}</title>${value}${marker}<text class="chart-block-label" x="${point.x}" y="${baseline + 22}" text-anchor="middle">${escapeHtml(chartLabel(point.label))}</text></g>`;
+      const pointItems = points.map((point) => {
+        const value = chart.appearance.showValues
+          ? `<text class="chart-block-value" x="${point.x}" y="${Math.max(lineLayout.valueMinimumY, point.y - lineLayout.valueOffset)}" text-anchor="middle">${escapeHtml(chartDisplayNumber(point.value))}</text>`
+          : "";
+        const marker = chart.appearance.showPoints
+          ? `<circle class="chart-block-line-point" data-chart-series-id="${escapeAttr(series.id)}" cx="${point.x}" cy="${point.y}" r="4.5" fill="var(--section-bg)" stroke="${escapeAttr(series.color)}"></circle>`
+          : "";
+        const label = seriesIndex === 0
+          ? `<text class="chart-block-label" x="${point.x}" y="${baseline + 22}" text-anchor="middle">${escapeHtml(chartLabel(point.label))}</text>`
+          : "";
+        return `<g class="chart-block-line-item" data-chart-item-id="${escapeAttr(point.id)}" data-chart-series-id="${escapeAttr(series.id)}"><title>${escapeHtml(`${point.label}、${series.name}: ${chartDisplayNumber(point.value)}${chart.unit}`)}</title>${value}${marker}${label}</g>`;
+      }).join("");
+      return `<g class="chart-block-line-series" data-chart-series-id="${escapeAttr(series.id)}">${path}${pointItems}</g>`;
     }).join("");
-    const empty = points.length ? "" : `<text class="chart-block-empty" x="${width / 2}" y="${height / 2}" text-anchor="middle">項目名と0以上の数値を入力してください</text>`;
+    const empty = lineSeries.some(({ items: seriesItems }) => seriesItems.length) ? "" : `<text class="chart-block-empty" x="${lineWidth / 2}" y="${height / 2}" text-anchor="middle">項目名と0以上の数値を入力してください</text>`;
     const legend = chart.appearance.showLegend
-      ? `<ul class="chart-block-legend" aria-label="${escapeAttr(`${title}の凡例`)}"><li><span class="chart-block-line-legend-swatch" style="color:${escapeAttr(firstSeries.color)}"></span><span>${escapeHtml(firstSeries.name)}</span></li></ul>`
+      ? `<ul class="chart-block-legend" aria-label="${escapeAttr(`${title}の凡例`)}">${chartDisplaySeries(chart).map((series) => `<li><span class="chart-block-line-legend-swatch" style="color:${escapeAttr(series.color)}"></span><span>${escapeHtml(series.name)}</span></li>`).join("")}</ul>`
       : "";
-    return `<figure class="chart-block chart-block-line" data-chart-id="${escapeAttr(chart.id)}"><figcaption>${escapeHtml(title)}</figcaption>${controls}<div class="chart-block-line-layout"><div class="chart-block-scroll" role="region" tabindex="0" aria-label="${escapeAttr(title)}"><svg viewBox="0 0 ${width} ${height}" role="img" aria-label="${escapeAttr(`${title}${chart.unit ? `（単位: ${chart.unit}）` : ""}`)}"><line class="chart-block-axis" x1="${lineLayout.axisX}" y1="${lineLayout.axisTop}" x2="${lineLayout.axisX}" y2="${lineLayout.baseline}"/><line class="chart-block-axis" x1="${lineLayout.axisX}" y1="${lineLayout.baseline}" x2="${width - lineLayout.plotRight}" y2="${lineLayout.baseline}"/><text class="chart-block-axis-value chart-block-axis-maximum" x="${lineLayout.axisLabelX}" y="${lineLayout.axisMaximumY}" text-anchor="end">${escapeHtml(chartDisplayNumber(maximum))}</text><text class="chart-block-axis-value chart-block-axis-zero" x="${lineLayout.axisLabelX}" y="${lineLayout.baseline + 4}" text-anchor="end">0</text>${chart.unit ? `<text class="chart-block-unit" x="${lineLayout.unitX}" y="${lineLayout.unitY}">${escapeHtml(chart.unit)}</text>` : ""}${path}${pointItems}${empty}</svg></div>${legend}</div><ul class="sr-only">${accessibleItems || "<li>有効な項目はありません</li>"}</ul></figure>`;
+    return `<figure class="chart-block chart-block-line" data-chart-id="${escapeAttr(chart.id)}"><figcaption>${escapeHtml(title)}</figcaption>${controls}<div class="chart-block-line-layout"><div class="chart-block-scroll" role="region" tabindex="0" aria-label="${escapeAttr(title)}"><svg viewBox="0 0 ${lineWidth} ${height}" role="img" aria-label="${escapeAttr(`${title}${chart.unit ? `（単位: ${chart.unit}）` : ""}`)}"><line class="chart-block-axis" x1="${lineLayout.axisX}" y1="${lineLayout.axisTop}" x2="${lineLayout.axisX}" y2="${lineLayout.baseline}"/><line class="chart-block-axis" x1="${lineLayout.axisX}" y1="${lineLayout.baseline}" x2="${lineWidth - lineLayout.plotRight}" y2="${lineLayout.baseline}"/><text class="chart-block-axis-value chart-block-axis-maximum" x="${lineLayout.axisLabelX}" y="${lineLayout.axisMaximumY}" text-anchor="end">${escapeHtml(chartDisplayNumber(maximum))}</text><text class="chart-block-axis-value chart-block-axis-zero" x="${lineLayout.axisLabelX}" y="${lineLayout.baseline + 4}" text-anchor="end">0</text>${chart.unit ? `<text class="chart-block-unit" x="${lineLayout.unitX}" y="${lineLayout.unitY}">${escapeHtml(chart.unit)}</text>` : ""}${lines}${empty}</svg></div>${legend}</div><ul class="sr-only">${accessibleItems || "<li>有効な項目はありません</li>"}</ul></figure>`;
   }
   const barItems = chart.items.filter((item) => item.label);
   const maximum = Math.max(0, ...chart.series.flatMap((series) => barItems.map((item) => series.values[chart.items.indexOf(item)])));
@@ -8667,8 +8679,8 @@ function createChartEditor(chartValue, blockIndex, snapshotKey) {
   }
   const unsupportedNotice = document.createElement("p");
   unsupportedNotice.className = "chart-block-series-notice";
-  unsupportedNotice.hidden = chart.chartType === "bar";
-  unsupportedNotice.textContent = "このグラフ形式では第1系列のみ表示されます。ほかの系列は保持され、棒グラフへ戻すと再表示されます。";
+  unsupportedNotice.hidden = chart.chartType !== "pie";
+  unsupportedNotice.textContent = "円グラフでは第1系列のみ表示されます。ほかの系列は保持され、棒グラフまたは折れ線グラフへ戻すと再表示されます。";
   const seriesPanel = document.createElement("section");
   seriesPanel.className = "chart-block-series-panel";
   seriesPanel.setAttribute("aria-label", "系列の設定");

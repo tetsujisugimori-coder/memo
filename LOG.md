@@ -2669,3 +2669,12 @@
 * 編集画面の初期生成と、系列名入力中の`syncChartSeriesNameInItemTable()`は同じラベル関数を使う。名称変更時は該当列見出しと同系列の数値入力欄の属性だけを部分更新し、編集画面を作り直さないため、名称入力欄のフォーカスとキャレットを維持する。系列追加・削除は既存の編集画面再描画経路で系列数に応じた規則へ切り替える。
 * 検証：`node --check app.js`、`node --check chart-block.e2e.js`、`node --test chart-block-utils.test.js`（18件、fail 0）、`npm test`（1,093件、fail 0）、Chart E2E（Chromium／WebKit）、Mobile E2E（Chromium／WebKit）を実行した。Chart E2Eは1系列時の旧ラベル、1→2系列時の第1系列名称、名称変更直後の全行・列見出し・凡例・保存モデル・フォーカス／キャレット、2→1系列時の旧ラベル復帰、保存・再読み込みを明示的に確認する。Mobile E2Eは320px／390pxでdocument/body横方向オーバーフロー0、page/console error 0を確認した。GitHub Actionsは本コミットのpush後に確認する。
 * GitHub Actions：コミット`3ae01d1`のrun `34598959726`で、CI checks、Chart E2E（Chromium／WebKit）、Mobile E2E（Chromium／WebKit）、Geometry E2E（Chromium）の全6ジョブが成功した。
+
+## 2026-09-12 グラフブロック：折れ線グラフの複数系列
+
+* 折れ線グラフでも、保存済みの最大3系列を同時に比較できるようにした。表示系列の規則を共通化し、棒グラフと折れ線グラフは全系列、円グラフは第1系列だけを表示する。円へ切り替えても第2・第3系列を保存モデルから削除せず、棒または折れ線へ戻すと再表示する。
+* 折れ線は系列ごとの`chart-block-line-series`、`data-chart-series-id`、線、点を出力し、各系列の設定色を使う。折れ線・点・凡例・スクリーンリーダー用リストは同じ表示系列規則を使うため、見える系列と読み上げる系列が一致する。凡例を非表示にしてもスクリーンリーダー用のデータは維持する。
+* 折れ線の縦軸は、表示中の全系列の有限な0以上の値から求めた最大値を共通スケールにする。座標生成は0値、空項目、巨大な有限値、不正なレイアウト値でも有限かつ非負に正規化する。横幅は項目数だけで決め、系列数では増やさないため、複数系列でも既存のグラフ領域内横スクロールを維持する。
+* 編集欄の既存の最大3系列、系列名・色、項目×系列入力、名称変更時の列見出し・`aria-label`・プレビュー同期をそのまま利用する。円グラフ専用の「第1系列のみ表示」案内だけを残し、折れ線では表示しない。保存形式、`schemaVersion: 1`、Markdownマーカー、DB_VERSION、既存ID、旧`items[].value`読み込み、Undo/Redo、取消、Markdown/ZIP経路は変更していない。
+* 単体テストへ、折れ線の全系列表示、円の第1系列限定、全系列最大値、系列数に依存しない折れ線幅、全値0の有限座標を追加した。Chart E2Eは3系列・3項目の3線と9点、色付き凡例、共通スケール、読み上げ、棒→折れ線→円→棒の保持、再読み込み、取消・Undo/Redo既存回帰を確認する。320px／390pxでは、実際にモバイルのカード表示を開いてカード内表示、凡例折返し、編集ボタン、入力表だけの横スクロール、ページ横オーバーフローなしを確認する。
+* 検証：`node --check chart-block-utils.js`、`node --check app.js`、`node --check chart-block.e2e.js`、`node --test chart-block-utils.test.js`（19件、fail 0）、`npm test`（1,094件、fail 0）、`npm run test:e2e:chart`（Chromium）、`MEMO_NEXUS_E2E_BROWSER=webkit node chart-block.e2e.js`（WebKit）、`npm run test:e2e:mobile`（Chromium／WebKit、320px・390pxを含む）、`git diff --check`を実行した。モバイルE2Eの追跡済みスクリーンショットは更新せず、一時パスへ出力した。push後のGitHub ActionsとSafari実機は未確認である。
