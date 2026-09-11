@@ -482,7 +482,16 @@ function boxesOverlap(first, second) {
         await page.locator("#closeContextPanelBtn").click();
         await page.waitForFunction(() => document.getElementById("contextPanel")?.getAttribute("aria-hidden") === "true");
       }
+      await page.evaluate(() => window.scrollTo(0, 0));
+      await page.waitForFunction(() => window.scrollY === 0);
       const cardPaneButton = page.locator("#cardPaneBtn");
+      await page.waitForFunction(() => {
+        const button = document.getElementById("cardPaneBtn");
+        if (!button) return false;
+        const rect = button.getBoundingClientRect();
+        const hit = document.elementFromPoint(Math.round(rect.left + rect.width / 2), Math.round(rect.top + rect.height / 2));
+        return hit === button || button.contains(hit);
+      });
       if (await cardPaneButton.getAttribute("aria-expanded") !== "true") await cardPaneButton.click();
       await page.waitForFunction(() => document.getElementById("previewCard")?.getAttribute("aria-hidden") === "false");
       const mobileLineMetrics = await page.locator("#preview .chart-block-line").evaluate((element) => {
