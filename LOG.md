@@ -2621,3 +2621,27 @@
 * `handleChartEditorChange()`を追加し、`showValues`、`showPoints`、`showLegend`のチェックボックスだけは`change`でも既存の入力処理へ渡すようにした。入力とchangeの両方が来るブラウザーでは、すでに保存モデルの値と一致する更新を早期に返すため、二重の本文置換・保存予約は行わない。保存スキーマ、items、描画、CSS、DB_VERSION、本文マーカーは変更していない。
 * 失敗していた既存の実UI操作（チェックボックスを`uncheck()`し、保存モデルの`showValues: false`を待つChart E2E）を維持したまま、ChromiumとWebKitで通過を確認した。`app.js`の配信キャッシュ識別子を`0.5.0-149`へ1回だけ更新し、既存の全契約テストを同期した。
 * 検証：`node --check app.js`、`node --check chart-block-utils.js`、`node --check chart-block.e2e.js`、`node --test chart-block-utils.test.js`（14件）、`npm test`（1,088件、fail 0）、`npm run test:e2e:chart`（Chromium／WebKit、各exit 0）、`npm run test:e2e:mobile`（320px・390pxを含むlayoutとwriting、exit 0）、`git diff --check`を実行して成功した。GitHub Actionsの再実行結果、Safari実機、実タッチ端末は未確認である。
+
+## 2026-09-10 グラフ種類切替の取消・バックアップ回帰
+
+* PR #210がすでに`chartType: "bar" | "line" | "pie"`、共通の`items`、即時SVGプレビュー、未知／未指定種別の棒グラフフォールバックをmainへ取り込んでいることを確認した。今回、グラフ編集欄へ`編集を取り消す`を追加し、編集欄を開いた時点の正規化済みブロックを同じIDで復元する。確定して`flushSave()`が成功した時点だけ、その状態を次の取消基準へ更新する。
+* 種類切替中もタイトル、単位、項目ID・順序・項目名・数値、`appearance`を一括で保持する。円の`pieLabelMode`、折れ線の`showPoints`、凡例・数値表示、共通色は、別の種類では編集欄から一時的に非表示になっても削除しない。円の扇形色は既存どおり項目順の固定パレットを使うため、項目を並べ替えない種類切替では項目との対応を維持する。
+* 回帰範囲を棒→折れ線→円→棒、取消後のIDを含む保存データ完全復元、再読み込み後の棒グラフ選択、ZIPバックアップ往復後の`chartType: "pie"`・項目ID・円ラベル設定へ拡張した。既存の0以上有限数検証、50件上限、巨大有限値の円比率正規化、本文マーカー、`schemaVersion: 1`、通常のMarkdown/ZIP経路、DB_VERSIONは変更していない。
+* 検証：`node --check app.js`、`node --check chart-block-utils.js`、`node --check chart-block.e2e.js`、`node --test chart-block-utils.test.js backup-bundle-utils.test.js`（35件）、`npm test`（1,090件、fail 0）、`npm run test:e2e:chart`（Chromium／WebKit、各exit 0）、`npm run test:e2e:mobile`（320px・390pxを含むlayoutとwriting、page/console error 0）、`git diff --check`を実行して成功した。package.jsonにlint、型チェック、ビルドのスクリプトはない。
+* 残課題：実タッチ端末とSafari実機、push後のGitHub Actionsは未確認。PC／390px幅のブラウザー回帰は既存Chart E2Eで確認する。
+
+## 2026-09-11 PR #212 レビュー修正：同一グラフIDの取消スナップショット
+
+* 原因：`chartEditorOriginalCharts` が `chartId` をキーにしていたため、Markdownマーカーの複製やMarkdown／ZIP取込で同じIDのグラフが同一メモに複数ある場合、後続ブロックが先頭ブロックの取消基準を共有していた。
+* 取消基準は永続化しない編集セッション内の一意キーごとに保持するよう変更した。各キーは開始時の正規化済みグラフと直近の本文状態シグネチャを持ち、編集欄再描画時には直近状態と照合して対応付ける。したがって前方のグラフ追加・削除で表示インデックスが変わっても、`chartId`単独や固定インデックスで別ブロックの状態を復元しない。本文マーカー、既存ID、`schemaVersion: 1`、`chartType`、`items`、`appearance`、DB_VERSIONは変更していない。
+* 種類切替を含む本文置換では対象キーの直近状態だけを更新し、`flushSave()`成功後だけ開始時スナップショットを確定状態へ更新する。削除、メモ切替、本文再読込相当の編集欄再構成では一致しないキーを破棄する。プレビューの編集ボタンもグラフ番号とIDで対応する編集欄を選ぶため、同一IDの先頭欄へ常に移動しない。
+* `chart-block.e2e.js` は同一`chartId`で内容の異なる2グラフを置き、2件目のタイトル・単位・項目・数値・種類・凡例／ラベル設定の取消が2件目自身だけを復元すること、確定後の再取消、前方グラフの追加・削除後の取消を確認する。棒→折れ線→円→棒、棒と折れ線の再読み込み、ライト／ダーク双方の折れ線・棒表示、ZIP往復の既存回帰も保持した。WebKitでは本文モデル更新とSVG再描画の完了を待ってから既存SVGアサーションを実行する。
+* 検証：`node --check app.js`、`node --check chart-block.e2e.js`、`node --test chart-block-utils.test.js backup-bundle-utils.test.js`（35件）、`npm test`（1,090件、fail 0）、`npm run test:e2e:chart`（Chromium／WebKit）、`npm run test:e2e:mobile`（320px・390pxを含むlayoutとwriting）、`git diff --check`を実行して成功した。`app.js`の配信キャッシュ識別子を`0.5.0-151`へ1回だけ更新し、既存の固定契約テストを同期した。
+
+## 2026-09-11 PR #212 WebKit CI修正：取消直後の本文入力同期
+
+* CI run `34508680460` の `Chart E2E (webkit)` は、同一IDの2グラフを確定・取消した直後に本文先頭へマーカーを追加し、編集欄が3件になるのを待つ箇所でタイムアウトした。失敗時のページ例外・コンソール例外はなく、保存基盤と`MemoNexusTypingDerivedUiScheduler`は`render: false`の補助要求を通常本文入力のfull要求で置換する既存動作を維持していた。
+* 原因はアプリの永続化や描画優先順位ではなく、取消処理が`requestAnimationFrame`で行う編集欄へのフォーカス復帰を待たず、E2Eが直後に`#editor.fill()`を始めていたことだった。Chromiumでは順序が安定して見えた一方、WebKitではこの未完了のフォーカス復帰が本文入力の非同期操作と競合し得た。
+* `chart-block.e2e.js`は取消完了のライブステータスを待ってから本文を変更する。本文変更後は、(1) `splitChartBlocks(editor.value)`のマーカー件数、(2) full描画要求の登録または現行revisionの本文モデルからのプレビュー反映、(3) グラフ編集欄件数の順に待つ。固定時間、タイムアウト延長、直接の`renderChartBlockEditors()`呼出しは使わず、前方追加と削除の両方を同じ経路で検証する。アプリ配信JavaScriptは変更していないため、キャッシュ識別子とその固定契約テストは更新していない。
+* 回帰テストは、取消後のフォーカス復帰、本文マーカーの3件／2件反映、現行モデル由来のプレビュー、編集欄件数を明示的に確認する。これにより、遅延保存で本文が巻き戻る、full要求が補助要求に負ける、または本文モデルと編集欄が不一致になる場合も、どの段階で止まったかを判別できる。
+* 検証：WebKit Chart E2Eは連続実行、Chromium Chart E2E、構文確認、全単体テスト、Mobile E2E、`git diff --check`を本修正後に再実行する。GitHub Actionsの同一run再実行は個人アクセストークンの権限不足で実行できなかったため、push後の新規CI結果を確認する。

@@ -8331,10 +8331,63 @@ function handleTableEditorAction(event) {
   }
 }
 
-function currentChartBlock(blockIndex, chartId) {
+function currentChartBlock(blockIndex, chartId, snapshotKey = null) {
   const blocks = splitChartBlocks(editor.value).filter((segment) => segment.type === "chart");
   const block = blocks[Number(blockIndex)];
-  return block && block.chart.id === chartId ? block : null;
+  if (!block || block.chart.id !== chartId) return null;
+  const snapshot = snapshotKey ? chartEditorOriginalCharts.get(snapshotKey) : null;
+  if (snapshotKey && (!snapshot || snapshot.currentSignature !== chartEditorSignature(block.chart, chartId))) return null;
+  return block;
+}
+
+const chartEditorOriginalCharts = new Map();
+let chartEditorSnapshotKeys = [];
+let chartEditorSnapshotSequence = 0;
+let chartEditorOriginalNoteId = null;
+
+function chartEditorSignature(chartValue, fallbackId) {
+  return JSON.stringify(normalizeChartBlock(chartValue, fallbackId));
+}
+
+function createChartEditorSnapshot(chartValue, fallbackId) {
+  const chart = normalizeChartBlock(chartValue, fallbackId);
+  const key = `chart-editor-${++chartEditorSnapshotSequence}`;
+  chartEditorOriginalCharts.set(key, { original: chart, currentSignature: chartEditorSignature(chart, chart.id) });
+  return key;
+}
+
+function syncChartEditorSnapshots(blocks) {
+  const unmatched = chartEditorSnapshotKeys
+    .map((key) => ({ key, snapshot: chartEditorOriginalCharts.get(key) }))
+    .filter(({ snapshot }) => snapshot);
+  const nextKeys = blocks.map((block) => {
+    const signature = chartEditorSignature(block.chart, block.chart.id);
+    const index = unmatched.findIndex(({ snapshot }) => snapshot.currentSignature === signature);
+    if (index >= 0) return unmatched.splice(index, 1)[0].key;
+    return createChartEditorSnapshot(block.chart, block.chart.id);
+  });
+  unmatched.forEach(({ key }) => chartEditorOriginalCharts.delete(key));
+  chartEditorSnapshotKeys = nextKeys;
+  return nextKeys;
+}
+
+function chartEditorOriginalChart(snapshotKey, chartId) {
+  const snapshot = chartEditorOriginalCharts.get(snapshotKey);
+  return snapshot ? normalizeChartBlock(snapshot.original, chartId) : null;
+}
+
+function updateChartEditorSnapshotCurrent(snapshotKey, chartValue, chartId) {
+  const snapshot = chartEditorOriginalCharts.get(snapshotKey);
+  if (!snapshot) return;
+  snapshot.currentSignature = chartEditorSignature(chartValue, chartId);
+}
+
+function confirmChartEditorSnapshot(snapshotKey, chartValue, chartId) {
+  const snapshot = chartEditorOriginalCharts.get(snapshotKey);
+  if (!snapshot) return;
+  const chart = normalizeChartBlock(chartValue, chartId);
+  snapshot.original = chart;
+  snapshot.currentSignature = chartEditorSignature(chart, chart.id);
 }
 
 function chartDisplayItems(chart) {
@@ -8386,7 +8439,7 @@ function renderChartBlock(chartValue, blockIndex, { editable = true } = {}) {
   const items = chartDisplayItems(chart);
   const title = chart.title || `グラフ${blockIndex + 1}`;
   const controls = editable
-    ? `<button class="chart-block-edit" type="button" data-chart-id="${escapeAttr(chart.id)}" aria-label="${escapeAttr(`${title}を編集`)}">編集</button>`
+    ? `<button class="chart-block-edit" type="button" data-chart-id="${escapeAttr(chart.id)}" data-chart-index="${blockIndex}" aria-label="${escapeAttr(`${title}を編集`)}">編集</button>`
     : "";
   const accessibleItems = items.map((item) => `<li>${escapeHtml(`${item.label}: ${chartDisplayNumber(item.value)}${chart.unit}`)}</li>`).join("");
   if (chart.chartType === "pie") {
@@ -8471,12 +8524,13 @@ function renderChartEditorPreview(host, chart, blockIndex) {
   if (host) host.innerHTML = renderChartBlock(chart, blockIndex, { editable: false });
 }
 
-function createChartEditor(chartValue, blockIndex) {
+function createChartEditor(chartValue, blockIndex, snapshotKey) {
   const chart = normalizeChartBlock(chartValue, `chart-${blockIndex + 1}`);
   const article = document.createElement("article");
   article.className = "chart-block-editor";
   article.dataset.chartId = chart.id;
   article.dataset.chartIndex = String(blockIndex);
+  article.dataset.chartSnapshotKey = snapshotKey;
   article.tabIndex = -1;
   const header = document.createElement("div");
   header.className = "chart-block-editor-head";
@@ -8623,7 +8677,11 @@ function createChartEditor(chartValue, blockIndex) {
   save.type = "button";
   save.dataset.chartAction = "confirm";
   save.textContent = "入力を確定";
-  actions.append(add, save);
+  const cancel = document.createElement("button");
+  cancel.type = "button";
+  cancel.dataset.chartAction = "cancel";
+  cancel.textContent = "編集を取り消す";
+  actions.append(add, cancel, save);
   const status = document.createElement("p");
   status.className = "chart-block-status";
   status.setAttribute("role", "status");
@@ -8638,7 +8696,14 @@ function createChartEditor(chartValue, blockIndex) {
 
 function renderChartBlockEditors() {
   if (!chartBlockEditors) return;
+  const noteId = currentNote()?.id || null;
+  if (chartEditorOriginalNoteId !== noteId) {
+    chartEditorOriginalCharts.clear();
+    chartEditorSnapshotKeys = [];
+    chartEditorOriginalNoteId = noteId;
+  }
   const blocks = splitChartBlocks(editor.value).filter((segment) => segment.type === "chart");
+  const snapshotKeys = syncChartEditorSnapshots(blocks);
   chartBlockEditors.replaceChildren();
   chartBlockEditors.hidden = blocks.length === 0;
   if (!blocks.length) return;
@@ -8646,17 +8711,18 @@ function renderChartBlockEditors() {
   heading.className = "chart-block-editors-heading";
   heading.textContent = `本文内のグラフ（${blocks.length}件）`;
   chartBlockEditors.append(heading);
-  blocks.forEach((block, blockIndex) => chartBlockEditors.append(createChartEditor(block.chart, blockIndex)));
+  blocks.forEach((block, blockIndex) => chartBlockEditors.append(createChartEditor(block.chart, blockIndex, snapshotKeys[blockIndex])));
 }
 
 globalThis.renderChartBlockEditors = renderChartBlockEditors;
 
-function commitChartBlockChange(blockIndex, chartId, nextChart, { rerenderEditors = false } = {}) {
-  const block = currentChartBlock(blockIndex, chartId);
+function commitChartBlockChange(blockIndex, chartId, nextChart, { rerenderEditors = false, snapshotKey = null } = {}) {
+  const block = currentChartBlock(blockIndex, chartId, snapshotKey);
   if (!block) return false;
   try {
     captureUndoSnapshot({ inputType: "insertText" });
     editor.value = replaceChartBlock(editor.value, block, nextChart);
+    if (snapshotKey) updateChartEditorSnapshotCurrent(snapshotKey, nextChart, chartId);
     if (rerenderEditors) renderChartBlockEditors();
     scheduleSave({ render: false });
     return true;
@@ -8689,7 +8755,8 @@ function handleChartEditorInput(event) {
   if (!editorBlock) return;
   const blockIndex = Number(editorBlock.dataset.chartIndex);
   const chartId = editorBlock.dataset.chartId;
-  const block = currentChartBlock(blockIndex, chartId);
+  const snapshotKey = editorBlock.dataset.chartSnapshotKey;
+  const block = currentChartBlock(blockIndex, chartId, snapshotKey);
   if (!block) return;
   let next = normalizeChartBlock(block.chart, chartId);
   if (event.target.dataset.chartItemField) {
@@ -8714,7 +8781,7 @@ function handleChartEditorInput(event) {
   next = normalizeChartBlock(next, chartId);
   chartEditorStatus(editorBlock, "");
   renderChartEditorPreview(editorBlock.querySelector(".chart-block-editor-preview"), next, blockIndex);
-  commitChartBlockChange(blockIndex, chartId, next, { rerenderEditors: event.target.dataset.chartField === "chartType" });
+  commitChartBlockChange(blockIndex, chartId, next, { rerenderEditors: event.target.dataset.chartField === "chartType", snapshotKey });
 }
 
 function handleChartEditorChange(event) {
@@ -8724,7 +8791,7 @@ function handleChartEditorChange(event) {
   }
 }
 
-async function confirmChartEditor(editorBlock, blockIndex, chartId) {
+async function confirmChartEditor(editorBlock, blockIndex, chartId, snapshotKey) {
   const invalidInput = [...editorBlock.querySelectorAll('input[data-chart-item-field="value"]')]
     .find((input) => !setChartNumberValidity(input));
   if (invalidInput) {
@@ -8733,9 +8800,9 @@ async function confirmChartEditor(editorBlock, blockIndex, chartId) {
     return;
   }
 
-  const block = currentChartBlock(blockIndex, chartId);
+  const block = currentChartBlock(blockIndex, chartId, snapshotKey);
   if (!block) return;
-  if (!commitChartBlockChange(blockIndex, chartId, normalizeChartBlock(block.chart, chartId))) {
+  if (!commitChartBlockChange(blockIndex, chartId, normalizeChartBlock(block.chart, chartId), { snapshotKey })) {
     chartEditorStatus(editorBlock, "入力内容を保存できませんでした");
     return;
   }
@@ -8743,6 +8810,7 @@ async function confirmChartEditor(editorBlock, blockIndex, chartId) {
   chartEditorStatus(editorBlock, "保存中...");
   try {
     await flushSave();
+    confirmChartEditorSnapshot(snapshotKey, block.chart, chartId);
     chartEditorStatus(editorBlock, "入力内容を保存しました");
   } catch (error) {
     console.error("Chart block save failed", error);
@@ -8756,34 +8824,47 @@ function handleChartEditorAction(event) {
   const editorBlock = button.closest(".chart-block-editor");
   const blockIndex = Number(editorBlock.dataset.chartIndex);
   const chartId = editorBlock.dataset.chartId;
-  const block = currentChartBlock(blockIndex, chartId);
+  const snapshotKey = editorBlock.dataset.chartSnapshotKey;
+  const block = currentChartBlock(blockIndex, chartId, snapshotKey);
   if (!block) return;
   let next = normalizeChartBlock(block.chart, chartId);
   switch (button.dataset.chartAction) {
     case "add-item":
       if (next.items.length >= 50) return;
       next.items = [...next.items, { id: crypto.randomUUID(), label: "", value: 0 }];
-      if (commitChartBlockChange(blockIndex, chartId, next, { rerenderEditors: true })) {
-        requestAnimationFrame(() => chartBlockEditors?.querySelector(`.chart-block-editor[data-chart-id="${CSS.escape(chartId)}"] .chart-block-item-row:last-of-type input`)?.focus());
+      if (commitChartBlockChange(blockIndex, chartId, next, { rerenderEditors: true, snapshotKey })) {
+        requestAnimationFrame(() => chartBlockEditors?.querySelector(`.chart-block-editor[data-chart-snapshot-key="${CSS.escape(snapshotKey)}"] .chart-block-item-row:last-of-type input`)?.focus());
       }
       return;
     case "delete-item": {
       const itemIndex = Number(button.closest(".chart-block-item-row")?.dataset.chartItemIndex);
       if (next.items.length <= 1 || !next.items[itemIndex]) return;
       next.items = next.items.filter((_, index) => index !== itemIndex);
-      commitChartBlockChange(blockIndex, chartId, next, { rerenderEditors: true });
+      commitChartBlockChange(blockIndex, chartId, next, { rerenderEditors: true, snapshotKey });
       return;
     }
     case "delete-chart":
       if (!confirm("このグラフブロックを削除しますか？")) return;
       captureUndoSnapshot({ inputType: "deleteContentForward" });
       editor.value = replaceChartBlock(editor.value, block, null);
+      chartEditorOriginalCharts.delete(snapshotKey);
+      chartEditorSnapshotKeys = chartEditorSnapshotKeys.filter((key) => key !== snapshotKey);
       renderChartBlockEditors();
       scheduleSave({ render: false });
       editor.focus();
       return;
+    case "cancel": {
+      const original = chartEditorOriginalChart(snapshotKey, chartId);
+      if (!original || !commitChartBlockChange(blockIndex, chartId, original, { rerenderEditors: true, snapshotKey })) return;
+      requestAnimationFrame(() => {
+        const restoredEditor = chartBlockEditors?.querySelector(`.chart-block-editor[data-chart-snapshot-key="${CSS.escape(snapshotKey)}"]`);
+        chartEditorStatus(restoredEditor, "編集内容を取り消しました");
+        restoredEditor?.focus({ preventScroll: true });
+      });
+      return;
+    }
     case "confirm":
-      confirmChartEditor(editorBlock, blockIndex, chartId);
+      confirmChartEditor(editorBlock, blockIndex, chartId, snapshotKey);
       return;
     default:
       return;
@@ -8792,7 +8873,7 @@ function handleChartEditorAction(event) {
 
 function bindChartBlockControls() {
   preview.querySelectorAll(".chart-block-edit").forEach((button) => button.addEventListener("click", () => {
-    const target = chartBlockEditors?.querySelector(`.chart-block-editor[data-chart-id="${CSS.escape(button.dataset.chartId)}"]`);
+    const target = chartBlockEditors?.querySelector(`.chart-block-editor[data-chart-index="${CSS.escape(button.dataset.chartIndex)}"][data-chart-id="${CSS.escape(button.dataset.chartId)}"]`);
     if (target) {
       target.scrollIntoView({ block: "nearest" });
       target.focus({ preventScroll: true });
