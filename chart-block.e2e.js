@@ -485,14 +485,22 @@ function boxesOverlap(first, second) {
       await page.evaluate(() => window.scrollTo(0, 0));
       await page.waitForFunction(() => window.scrollY === 0);
       const cardPaneButton = page.locator("#cardPaneBtn");
-      await page.waitForFunction(() => {
-        const button = document.getElementById("cardPaneBtn");
-        if (!button) return false;
-        const rect = button.getBoundingClientRect();
-        const hit = document.elementFromPoint(Math.round(rect.left + rect.width / 2), Math.round(rect.top + rect.height / 2));
-        return hit === button || button.contains(hit);
-      });
-      if (await cardPaneButton.getAttribute("aria-expanded") !== "true") await cardPaneButton.click();
+      if (await cardPaneButton.getAttribute("aria-expanded") !== "true") {
+        const cardPaneClickPoint = await page.evaluate(() => {
+          const button = document.getElementById("cardPaneBtn");
+          if (!button) return null;
+          const rect = button.getBoundingClientRect();
+          for (let y = 2; y < rect.height - 1; y += 2) {
+            for (let x = 2; x < rect.width - 1; x += 2) {
+              const hit = document.elementFromPoint(Math.round(rect.left + x), Math.round(rect.top + y));
+              if (hit === button || button.contains(hit)) return { x: Math.round(x), y: Math.round(y) };
+            }
+          }
+          return null;
+        });
+        assert.ok(cardPaneClickPoint, `${viewportWidth}pxでカード表示ボタンの実ヒット領域を持つ`);
+        await cardPaneButton.click({ position: cardPaneClickPoint });
+      }
       await page.waitForFunction(() => document.getElementById("previewCard")?.getAttribute("aria-hidden") === "false");
       await page.waitForFunction(() => {
         const card = document.getElementById("previewCard")?.getBoundingClientRect();
