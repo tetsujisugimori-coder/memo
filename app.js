@@ -8546,6 +8546,12 @@ function renderChartEditorPreview(host, chart, blockIndex) {
   if (host) host.innerHTML = renderChartBlock(chart, blockIndex, { editable: false });
 }
 
+function chartSeriesValueAriaLabel(itemIndex, seriesName, seriesCount) {
+  return seriesCount === 1
+    ? `${itemIndex + 1}件目の数値`
+    : `${itemIndex + 1}件目の${seriesName}の数値`;
+}
+
 function createChartEditor(chartValue, blockIndex, snapshotKey) {
   const chart = normalizeChartBlock(chartValue, `chart-${blockIndex + 1}`);
   const article = document.createElement("article");
@@ -8751,7 +8757,7 @@ function createChartEditor(chartValue, blockIndex, snapshotKey) {
       value.dataset.chartSeriesIndex = String(seriesIndex);
       value.value = chartDisplayNumber(series.values[itemIndex]);
       value.placeholder = "数値";
-      value.setAttribute("aria-label", seriesIndex === 0 ? `${itemIndex + 1}件目の数値` : `${itemIndex + 1}件目の${series.name}の数値`);
+      value.setAttribute("aria-label", chartSeriesValueAriaLabel(itemIndex, series.name, chart.series.length));
       row.append(value);
     });
     const deleteButton = document.createElement("button");
@@ -8847,15 +8853,13 @@ function chartEditorStatus(editorBlock, message) {
   if (status) status.textContent = message;
 }
 
-function syncChartSeriesNameInItemTable(editorBlock, seriesIndex, seriesName) {
+function syncChartSeriesNameInItemTable(editorBlock, seriesIndex, seriesName, seriesCount) {
   const header = editorBlock.querySelector(`[data-chart-series-header-index="${seriesIndex}"]`);
   if (header) header.textContent = seriesName;
   editorBlock.querySelectorAll(`input[data-chart-series-value][data-chart-series-index="${seriesIndex}"]`).forEach((input) => {
     const itemIndex = Number(input.closest(".chart-block-item-row")?.dataset.chartItemIndex);
     if (!Number.isInteger(itemIndex) || itemIndex < 0) return;
-    input.setAttribute("aria-label", seriesIndex === 0
-      ? `${itemIndex + 1}件目の数値`
-      : `${itemIndex + 1}件目の${seriesName}の数値`);
+    input.setAttribute("aria-label", chartSeriesValueAriaLabel(itemIndex, seriesName, seriesCount));
   });
 }
 
@@ -8907,7 +8911,7 @@ function handleChartEditorInput(event) {
   } else return;
   next = normalizeChartBlock(next, chartId);
   if (renamedSeriesIndex !== null) {
-    syncChartSeriesNameInItemTable(editorBlock, renamedSeriesIndex, next.series[renamedSeriesIndex].name);
+    syncChartSeriesNameInItemTable(editorBlock, renamedSeriesIndex, next.series[renamedSeriesIndex].name, next.series.length);
   }
   chartEditorStatus(editorBlock, "");
   renderChartEditorPreview(editorBlock.querySelector(".chart-block-editor-preview"), next, blockIndex);

@@ -2661,3 +2661,10 @@
 * スクリーンリーダー向けの非表示リストは実際の描画系列と統一した。棒グラフは全系列、折れ線・円グラフは第1系列だけを読み上げ、棒へ戻すと保持していた全系列を再び読み上げる。折れ線のSVG幅は表示する第1系列だけから計算し、集合棒グラフだけが全系列数に応じて項目グループ幅を広げる。円グラフのレイアウトは変更していない。
 * 系列名入力時は編集画面を再構築せず、該当する入力表列見出しと数値入力欄の`aria-label`だけを同期する。プレビュー凡例と保存モデルは既存の同じ入力経路で更新するため、フォーカスとキャレットを維持する。
 * 検証：`node --check chart-block-utils.js`、`node --check app.js`、`node --check chart-block.e2e.js`、関連単体テスト、`npm test`（1,093件、fail 0）、Chart E2E（Chromium／WebKit）、Mobile E2E（Chromium／WebKit、320px・390pxのdocument/body横方向オーバーフロー0）、`git diff --check`を実行した。旧形式の読込、保存・再読込、取消、種類切替、全系列の棒高さ、有限SVG属性の既存回帰も維持している。Safari実機は未確認である。
+
+## 2026-09-11 PR #214 追加修正：複数系列の第1系列数値ラベル
+
+* 原因：項目入力表は`div`ベースのグリッドで、列見出しとのHTML上の自動関連付けを持たない。しかし数値入力欄の`aria-label`は第1系列だけを系列数に関係なく従来の「○件目の数値」としており、複数系列では第1系列を名称で判別できなかった。
+* `chartSeriesValueAriaLabel()`へ規則を集約した。1系列は既存互換の「○件目の数値」、2系列以上は第1系列を含む全系列で「○件目の{系列名}の数値」とする。空の名称は既存の正規化後の既定名を利用する。保存形式、旧`items[].value`の読込、マーカー、描画、読み上げ対象、Undo/Redo、DB_VERSION、本文保存経路は変更していない。
+* 編集画面の初期生成と、系列名入力中の`syncChartSeriesNameInItemTable()`は同じラベル関数を使う。名称変更時は該当列見出しと同系列の数値入力欄の属性だけを部分更新し、編集画面を作り直さないため、名称入力欄のフォーカスとキャレットを維持する。系列追加・削除は既存の編集画面再描画経路で系列数に応じた規則へ切り替える。
+* 検証：`node --check app.js`、`node --check chart-block.e2e.js`、`node --test chart-block-utils.test.js`（18件、fail 0）、`npm test`（1,093件、fail 0）、Chart E2E（Chromium／WebKit）、Mobile E2E（Chromium／WebKit）を実行した。Chart E2Eは1系列時の旧ラベル、1→2系列時の第1系列名称、名称変更直後の全行・列見出し・凡例・保存モデル・フォーカス／キャレット、2→1系列時の旧ラベル復帰、保存・再読み込みを明示的に確認する。Mobile E2Eは320px／390pxでdocument/body横方向オーバーフロー0、page/console error 0を確認した。GitHub Actionsは本コミットのpush後に確認する。
