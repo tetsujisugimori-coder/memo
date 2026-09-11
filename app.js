@@ -8916,7 +8916,7 @@ function handleChartEditorInput(event) {
 
 function handleChartEditorChange(event) {
   const target = event.target;
-  if (target instanceof HTMLInputElement && target.type === "checkbox" && ["showValues", "showPoints", "showLegend"].includes(target.dataset.chartField)) {
+  if (target?.matches?.('input[type="checkbox"][data-chart-field]') && ["showValues", "showPoints", "showLegend"].includes(target.dataset.chartField)) {
     handleChartEditorInput(event);
   }
 }
