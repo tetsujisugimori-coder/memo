@@ -5024,6 +5024,7 @@ body.related-open .related-toggle {
 
   .app-header {
     position: relative;
+    z-index: 3;
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
     align-items: center;
@@ -5154,6 +5155,8 @@ body.related-open .related-toggle {
 
   .editor-card {
     grid-column: 1;
+    position: relative;
+    z-index: 0;
   }
 
   .preview-card,
@@ -5184,6 +5187,10 @@ body.related-open .related-toggle {
     min-height: 42px;
     padding: 7px 48px 5px 10px;
     font-size: min(var(--memo-title-font-size), 18px);
+  }
+
+  .title-row {
+    position: relative;
   }
 
   .title-side {

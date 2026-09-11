@@ -461,9 +461,74 @@ function boxesOverlap(first, second) {
     assert.ok(barMetrics.some((bar) => bar.height === 142), "全系列の最大値140を高さ計算の基準へ使う");
     assert.notEqual(barMetrics[0].x, barMetrics[1].x, "同じ項目の系列を横に並べる");
     await multiEditor.locator('select[aria-label="グラフ1の種類"]').selectOption("line");
-    await page.waitForFunction(() => document.querySelector(".chart-block-series-notice")?.hidden === false && document.querySelectorAll("#preview .chart-block-line-item").length === 3);
+    await page.waitForFunction(() => document.querySelector(".chart-block-series-notice")?.hidden === true && document.querySelectorAll("#preview .chart-block-line-series").length === 3 && document.querySelectorAll("#preview .chart-block-line-item").length === 9);
     assert.equal(await page.locator("#preview .chart-block-line svg").getAttribute("viewBox"), "0 0 420 260", "折れ線は非表示系列を横幅へ加算しない");
-    assert.deepEqual(await page.locator("#preview .chart-block-line .sr-only li").allTextContents(), ["1月、売上: 100万円", "2月、売上: 140万円", "3月、売上: 120万円"], "折れ線は第1系列だけを読み上げ対象にする");
+    assert.equal(await page.locator("#preview .chart-block-line-path").count(), 3, "3系列を独立した折れ線で描画する");
+    assert.equal(await page.locator("#preview .chart-block-line-point").count(), 9, "3系列・3項目の9点を描画する");
+    assert.deepEqual(await page.locator("#preview .chart-block-line .chart-block-legend li").allTextContents(), ["売上", "営業利益", "原価"], "折れ線の凡例へ全系列の名前と色を表示する");
+    assert.deepEqual(await page.locator("#preview .chart-block-line .sr-only li").allTextContents(), [
+      "1月、売上: 100万円", "1月、営業利益: 30万円", "1月、原価: 60万円",
+      "2月、売上: 140万円", "2月、営業利益: 45万円", "2月、原価: 80万円",
+      "3月、売上: 120万円", "3月、営業利益: 38万円", "3月、原価: 70万円"
+    ], "折れ線は表示中の全系列を読み上げ対象にする");
+    const lineMetrics = await page.locator("#preview .chart-block-line-point").evaluateAll((points) => points.map((point) => ({ cy: Number(point.getAttribute("cy")), stroke: point.getAttribute("stroke") })));
+    assert.ok(lineMetrics.every((point) => Number.isFinite(point.cy) && point.cy >= 0), "複数系列の折れ線SVGへ不正な座標を渡さない");
+    assert.ok(lineMetrics.some((point) => point.cy === 42), "全系列の最大値140を折れ線の共通スケールへ使う");
+    for (const viewportWidth of [320, 390]) {
+      await page.setViewportSize({ width: viewportWidth, height: 760 });
+      await page.waitForFunction((width) => innerWidth === width && document.body.dataset.layoutMode === "mobile", viewportWidth);
+      const contextPanel = page.locator("#contextPanel");
+      if (await contextPanel.getAttribute("aria-hidden") !== "true") {
+        await page.locator("#closeContextPanelBtn").click();
+        await page.waitForFunction(() => document.getElementById("contextPanel")?.getAttribute("aria-hidden") === "true");
+      }
+      await page.evaluate(() => window.scrollTo(0, 0));
+      await page.waitForFunction(() => window.scrollY === 0);
+      const cardPaneButton = page.locator("#cardPaneBtn");
+      if (await cardPaneButton.getAttribute("aria-expanded") !== "true") {
+        const cardPaneClickPoint = await page.evaluate(() => {
+          const button = document.getElementById("cardPaneBtn");
+          if (!button) return null;
+          const rect = button.getBoundingClientRect();
+          for (let y = 2; y < rect.height - 1; y += 2) {
+            for (let x = 2; x < rect.width - 1; x += 2) {
+              const hit = document.elementFromPoint(Math.round(rect.left + x), Math.round(rect.top + y));
+              if (hit === button || button.contains(hit)) return { x: Math.round(x), y: Math.round(y) };
+            }
+          }
+          return null;
+        });
+        assert.ok(cardPaneClickPoint, `${viewportWidth}pxでカード表示ボタンの実ヒット領域を持つ`);
+        await cardPaneButton.click({ position: cardPaneClickPoint });
+      }
+      await page.waitForFunction(() => document.getElementById("previewCard")?.getAttribute("aria-hidden") === "false");
+      await page.waitForFunction(() => {
+        const card = document.getElementById("previewCard")?.getBoundingClientRect();
+        return card && card.left >= 0 && card.right <= window.innerWidth;
+      });
+      const mobileLineMetrics = await page.locator("#preview .chart-block-line").evaluate((element) => {
+        const rect = (selector) => {
+          const box = element.querySelector(selector)?.getBoundingClientRect();
+          return box && { left: box.left, right: box.right, top: box.top, bottom: box.bottom, width: box.width };
+        };
+        return {
+          card: element.getBoundingClientRect().width,
+          viewport: innerWidth,
+          pageOverflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+          scroll: rect(".chart-block-scroll"),
+          legend: rect(".chart-block-legend"),
+          edit: rect(".chart-block-edit"),
+          tableScrollable: document.querySelector(".chart-block-item-table")?.scrollWidth > document.querySelector(".chart-block-item-table")?.clientWidth
+        };
+      });
+      assert.ok(mobileLineMetrics.card <= mobileLineMetrics.viewport, `${viewportWidth}pxで3系列折れ線カードを画面内へ収める`);
+      assert.equal(mobileLineMetrics.pageOverflow, 0, `${viewportWidth}pxでページ全体の横スクロールを作らない`);
+      assert.ok(mobileLineMetrics.legend.top >= mobileLineMetrics.scroll.bottom - 0.5, `${viewportWidth}pxで凡例をグラフ領域の後ろへ折り返す`);
+      assert.ok(mobileLineMetrics.edit.left >= -0.5 && mobileLineMetrics.edit.right <= mobileLineMetrics.viewport + 0.5, `${viewportWidth}pxで編集ボタンを操作可能にする: ${JSON.stringify(mobileLineMetrics)}`);
+      assert.equal(mobileLineMetrics.tableScrollable, true, `${viewportWidth}pxで入力表だけを横スクロール可能にする`);
+    }
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.waitForFunction(() => document.body.dataset.layoutMode === "wide");
     await page.locator('.chart-block-editor select[aria-label="グラフ1の種類"]').selectOption("pie");
     await page.waitForFunction(() => document.querySelector(".chart-block-series-notice")?.hidden === false && document.querySelectorAll("#preview .chart-block-pie-slice").length === 3);
     assert.deepEqual(await page.locator("#preview .chart-block-pie .sr-only li").allTextContents(), ["1月、売上: 100万円", "2月、売上: 140万円", "3月、売上: 120万円"], "円グラフは第1系列だけを読み上げ対象にする");
@@ -486,7 +551,7 @@ function boxesOverlap(first, second) {
     await page.waitForFunction(() => document.querySelectorAll("#preview .chart-block-bar").length === 6);
     assert.equal(await page.locator("#preview .chart-block-bar").count(), 6, "系列削除後も他系列の値をずらさない");
     await multiEditor.locator('select[aria-label="グラフ1の種類"]').selectOption("line");
-    await page.waitForFunction(() => document.querySelector(".chart-block-series-notice")?.hidden === false && document.querySelectorAll("#preview .chart-block-line-item").length === 3);
+    await page.waitForFunction(() => document.querySelector(".chart-block-series-notice")?.hidden === true && document.querySelectorAll("#preview .chart-block-line-item").length === 6);
     assert.equal((await chart(page)).series.length, 2, "折れ線へ切替えても第2系列を保持する");
     await page.locator('.chart-block-editor select[aria-label="グラフ1の種類"]').selectOption("pie");
     await page.waitForFunction(() => document.querySelector(".chart-block-series-notice")?.hidden === false && document.querySelectorAll("#preview .chart-block-pie-slice").length === 3);

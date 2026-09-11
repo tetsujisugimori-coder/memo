@@ -160,15 +160,35 @@
     return { total, segments };
   }
 
-  function lineChartPoints(items, width, { left = 42, right = 18, top = 22, baseline = 196 } = {}) {
+  function chartDisplaySeries(chart) {
+    const normalized = normalizeChartBlock(chart, chart?.id);
+    return normalized.chartType === "pie" ? normalized.series.slice(0, 1) : normalized.series;
+  }
+
+  function chartValueMaximum(items) {
+    return Math.max(0, ...(Array.isArray(items) ? items : [])
+      .filter((item) => item && Number.isFinite(item.value) && item.value >= 0)
+      .map((item) => item.value));
+  }
+
+  function lineChartWidth(items) {
+    const itemCount = (Array.isArray(items) ? items : []).filter((item) => normalizedText(item?.label).trim()).length;
+    return Math.max(420, itemCount * 74 + 76);
+  }
+
+  function lineChartPoints(items, width, { left = 42, right = 18, top = 22, baseline = 196, maximum: requestedMaximum } = {}) {
     const displayItems = Array.isArray(items) ? items.filter((item) => item && Number.isFinite(item.value) && item.value >= 0) : [];
-    const chartWidth = Number.isFinite(width) ? width : left + right;
-    const maximum = Math.max(0, ...displayItems.map((item) => item.value));
-    const span = Math.max(0, chartWidth - left - right);
+    const plotLeft = Number.isFinite(left) && left >= 0 ? left : 42;
+    const plotRight = Number.isFinite(right) && right >= 0 ? right : 18;
+    const plotTop = Number.isFinite(top) && top >= 0 ? top : 22;
+    const plotBaseline = Math.max(plotTop, Number.isFinite(baseline) && baseline >= 0 ? baseline : 196);
+    const chartWidth = Math.max(plotLeft + plotRight, Number.isFinite(width) && width >= 0 ? width : plotLeft + plotRight);
+    const maximum = Number.isFinite(requestedMaximum) && requestedMaximum >= 0 ? requestedMaximum : chartValueMaximum(displayItems);
+    const span = Math.max(0, chartWidth - plotLeft - plotRight);
     return displayItems.map((item, index) => ({
       ...item,
-      x: displayItems.length === 1 ? left + span / 2 : left + (span * index) / Math.max(1, displayItems.length - 1),
-      y: maximum > 0 ? baseline - (item.value / maximum) * (baseline - top) : baseline
+      x: displayItems.length === 1 ? plotLeft + span / 2 : plotLeft + (span * index) / Math.max(1, displayItems.length - 1),
+      y: maximum > 0 ? plotBaseline - (item.value / maximum) * (plotBaseline - plotTop) : plotBaseline
     }));
   }
 
@@ -236,9 +256,12 @@
     CHART_SERIES_COLORS,
     PIE_CHART_COLORS,
     chartBlockPlainText,
+    chartDisplaySeries,
+    chartValueMaximum,
     createChartBlock,
     insertChartBlock,
     lineChartPoints,
+    lineChartWidth,
     nonNegativeFiniteNumber,
     normalizeChartBlock,
     parseChartBlockLine,
