@@ -473,6 +473,7 @@ const {
   insertChartBlock,
   lineChartPoints,
   lineChartWidth,
+  moveChartItem,
   nonNegativeFiniteNumber,
   normalizeChartBlock,
   PIE_CHART_COLORS,
@@ -8616,6 +8617,15 @@ function chartSeriesValueAriaLabel(itemIndex, seriesName, seriesCount) {
     : `${itemIndex + 1}件目の${seriesName}の数値`;
 }
 
+function chartItemAccessibleName(item, itemIndex) {
+  return String(item?.label || "").trim() || `${itemIndex + 1}件目の項目`;
+}
+
+function firstInvalidChartNumberInput(editorBlock) {
+  return [...editorBlock.querySelectorAll('input[data-chart-series-value]')]
+    .find((input) => !setChartNumberValidity(input));
+}
+
 function createChartEditor(chartValue, blockIndex, snapshotKey) {
   const chart = normalizeChartBlock(chartValue, `chart-${blockIndex + 1}`);
   const article = document.createElement("article");
@@ -8805,7 +8815,7 @@ function createChartEditor(chartValue, blockIndex, snapshotKey) {
   table.append(tableTitle);
   const tableHeader = document.createElement("div");
   tableHeader.className = "chart-block-item-row chart-block-item-header";
-  tableHeader.style.gridTemplateColumns = `minmax(150px, 1fr) repeat(${chart.series.length}, minmax(110px, 0.55fr)) auto`;
+  tableHeader.style.gridTemplateColumns = `minmax(150px, 1fr) repeat(${chart.series.length}, minmax(110px, 0.55fr)) minmax(166px, auto)`;
   tableHeader.append(Object.assign(document.createElement("span"), { textContent: "項目名" }));
   chart.series.forEach((series, seriesIndex) => {
     const seriesHeader = document.createElement("span");
@@ -8819,7 +8829,7 @@ function createChartEditor(chartValue, blockIndex, snapshotKey) {
     const row = document.createElement("div");
     row.className = "chart-block-item-row";
     row.dataset.chartItemIndex = String(itemIndex);
-    row.style.gridTemplateColumns = `minmax(150px, 1fr) repeat(${chart.series.length}, minmax(110px, 0.55fr)) auto`;
+    row.style.gridTemplateColumns = `minmax(150px, 1fr) repeat(${chart.series.length}, minmax(110px, 0.55fr)) minmax(166px, auto)`;
     const label = document.createElement("input");
     label.type = "text";
     label.dataset.chartItemField = "label";
@@ -8838,13 +8848,29 @@ function createChartEditor(chartValue, blockIndex, snapshotKey) {
       value.setAttribute("aria-label", chartSeriesValueAriaLabel(itemIndex, series.name, chart.series.length));
       row.append(value);
     });
+    const itemActions = document.createElement("div");
+    itemActions.className = "chart-block-item-actions";
+    const itemName = chartItemAccessibleName(item, itemIndex);
+    const moveUpButton = document.createElement("button");
+    moveUpButton.type = "button";
+    moveUpButton.dataset.chartAction = "move-item-up";
+    moveUpButton.setAttribute("aria-label", `${itemName}を上へ移動`);
+    moveUpButton.textContent = "上へ";
+    moveUpButton.disabled = itemIndex === 0;
+    const moveDownButton = document.createElement("button");
+    moveDownButton.type = "button";
+    moveDownButton.dataset.chartAction = "move-item-down";
+    moveDownButton.setAttribute("aria-label", `${itemName}を下へ移動`);
+    moveDownButton.textContent = "下へ";
+    moveDownButton.disabled = itemIndex === chart.items.length - 1;
     const deleteButton = document.createElement("button");
     deleteButton.type = "button";
     deleteButton.dataset.chartAction = "delete-item";
     deleteButton.setAttribute("aria-label", `${itemIndex + 1}件目の項目を削除`);
     deleteButton.textContent = "削除";
     deleteButton.disabled = chart.items.length <= 1;
-    row.append(deleteButton);
+    itemActions.append(moveUpButton, moveDownButton, deleteButton);
+    row.append(itemActions);
     table.append(row);
   });
   const actions = document.createElement("div");
@@ -9006,8 +9032,7 @@ function handleChartEditorChange(event) {
 }
 
 async function confirmChartEditor(editorBlock, blockIndex, chartId, snapshotKey) {
-  const invalidInput = [...editorBlock.querySelectorAll('input[data-chart-series-value]')]
-    .find((input) => !setChartNumberValidity(input));
+  const invalidInput = firstInvalidChartNumberInput(editorBlock);
   if (invalidInput) {
     chartEditorStatus(editorBlock, "数値は0以上の有限な数値を入力してください");
     invalidInput.focus({ preventScroll: true });
@@ -9057,6 +9082,32 @@ function handleChartEditorAction(event) {
       next.items = next.items.filter((_, index) => index !== itemIndex);
       next.series = next.series.map((series) => ({ ...series, values: series.values.filter((_, index) => index !== itemIndex) }));
       commitChartBlockChange(blockIndex, chartId, next, { rerenderEditors: true, snapshotKey });
+      return;
+    }
+    case "move-item-up":
+    case "move-item-down": {
+      const itemIndex = Number(button.closest(".chart-block-item-row")?.dataset.chartItemIndex);
+      const direction = button.dataset.chartAction === "move-item-up" ? -1 : 1;
+      const destinationIndex = itemIndex + direction;
+      if (!Number.isInteger(itemIndex) || destinationIndex < 0 || destinationIndex >= next.items.length) return;
+      const invalidInput = firstInvalidChartNumberInput(editorBlock);
+      if (invalidInput) {
+        chartEditorStatus(editorBlock, "数値は0以上の有限な数値を入力してください");
+        invalidInput.focus({ preventScroll: true });
+        return;
+      }
+      const itemName = chartItemAccessibleName(next.items[itemIndex], itemIndex);
+      next = moveChartItem(next, itemIndex, direction);
+      if (commitChartBlockChange(blockIndex, chartId, next, { rerenderEditors: true, snapshotKey })) {
+        requestAnimationFrame(() => {
+          const restoredEditor = chartBlockEditors?.querySelector(`.chart-block-editor[data-chart-snapshot-key="${CSS.escape(snapshotKey)}"]`);
+          const movedRow = restoredEditor?.querySelector(`.chart-block-item-row[data-chart-item-index="${destinationIndex}"]`);
+          const sameAction = movedRow?.querySelector(`button[data-chart-action="${button.dataset.chartAction}"]:not(:disabled)`);
+          const fallbackAction = movedRow?.querySelector('button[data-chart-action^="move-item-"]:not(:disabled)');
+          (sameAction || fallbackAction)?.focus({ preventScroll: true });
+          chartEditorStatus(restoredEditor, `「${itemName}」を${destinationIndex + 1}件目へ移動しました`);
+        });
+      }
       return;
     }
     case "add-series":

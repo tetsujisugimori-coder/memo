@@ -113,6 +113,23 @@
     };
   }
 
+  function moveChartItem(chartValue, itemIndex, direction) {
+    const chart = normalizeChartBlock(chartValue, chartValue?.id);
+    if (!Number.isInteger(itemIndex) || !Number.isInteger(direction)) return chart;
+    const destinationIndex = itemIndex + direction;
+    if (itemIndex < 0 || itemIndex >= chart.items.length || destinationIndex < 0 || destinationIndex >= chart.items.length) return chart;
+    const moveAtIndex = (values) => values.map((value, index) => {
+      if (index === itemIndex) return values[destinationIndex];
+      if (index === destinationIndex) return values[itemIndex];
+      return value;
+    });
+    return {
+      ...chart,
+      items: moveAtIndex(chart.items),
+      series: chart.series.map((series) => ({ ...series, values: moveAtIndex(series.values) }))
+    };
+  }
+
   function createChartBlock(id) {
     return normalizeChartBlock({
       type: "chart",
@@ -327,6 +344,7 @@
     insertChartBlock,
     lineChartPoints,
     lineChartWidth,
+    moveChartItem,
     nonNegativeFiniteNumber,
     normalizeChartBlock,
     parseChartBlockLine,
