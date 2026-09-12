@@ -168,6 +168,28 @@ test("100%積み上げは項目ごとの割合をscaleBase経由で安全に計�
   assert.deepEqual(series.map((entry) => entry.values), sourceValues, "割合を入力元の値配列へ上書きしない");
 });
 
+test("100%積み上げは項目単位の安全な縮小で極端な桁差を保ち、通常積み上げを変えない", () => {
+  const items = [{ id: "huge", label: "巨大" }, { id: "tiny", label: "微小" }, { id: "zero", label: "全0" }];
+  const series = [
+    { id: "a", values: [1e308, 1e-300, 0] },
+    { id: "b", values: [1e308, 1e-300, 0] }
+  ];
+  const sourceValues = series.map((entry) => entry.values.slice());
+  const percent = stackedBarSegments(items, series, { mode: "percent-stacked" });
+  const stacked = stackedBarSegments(items, series);
+
+  for (const itemId of ["huge", "tiny"]) {
+    const segments = percent.segments.filter((segment) => segment.item.id === itemId);
+    assert.deepEqual(segments.map((segment) => segment.percentage), [50, 50], `${itemId}の同値2系列は50%ずつになる`);
+    assert.equal(segments.at(-1).y, 54, `${itemId}は正の値があれば100%まで描画する`);
+    assert.ok(segments.every((segment) => [segment.percentage, segment.y, segment.height, segment.stackStart, segment.stackEnd].every(Number.isFinite)), `${itemId}の割合と描画用数値を有限にする`);
+  }
+  assert.ok(percent.segments.filter((segment) => segment.item.id === "zero").every((segment) => segment.height === 0 && segment.percentage === 0), "全0項目だけを空の棒にする");
+  assert.deepEqual(series.map((entry) => entry.values), sourceValues, "項目ごとの割合計算も元の系列値配列を変更しない");
+  assert.equal(stacked.scaleBase, 1e308, "通常積み上げは従来どおり全項目共通のscaleBaseを使う");
+  assert.ok(stacked.segments.filter((segment) => segment.item.id === "tiny").every((segment) => segment.height === 0), "通常積み上げの既存の極端な桁差の結果を変えない");
+});
+
 test("100%積み上げは0、単一系列、巨大有限値、系列の追加削除後も有限に再計算する", () => {
   const items = [{ id: "zero", label: "全0" }, { id: "partial", label: "一部0" }, { id: "single", label: "単一" }];
   const initial = [

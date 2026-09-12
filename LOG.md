@@ -2703,3 +2703,10 @@
 * 対象外：負数を含む積み上げ、横棒、通常積み上げの合計ラベル、CSV／表連携、項目並べ替え、外部グラフライブラリ、schemaVersion／DB_VERSION更新は追加していない。iPhone Safari実機は未確認であり、WebKit E2Eの成功を実機確認とは扱わない。
 * テスト：`chart-block-utils.test.js`へ60:40、90:60、1系列、全0、一部0、小数、巨大有限値、系列・項目追加削除後、barMode不正値、3モードでの元値不変、種類切替・保存復元を追加した。`chart-block.e2e.js`へ集合→積み上げ→100%積み上げ、100%→集合の元値復元、3系列の色・順序・凡例、0合計、区間ラベル、割合軸、読み上げ、保存・再読込・取消、console/page error 0、320px／375px／390px／430pxの横オーバーフロー検査を追加した。
 * 検証結果：`node --check chart-block-utils.js`、`node --check app.js`、`node --check chart-block.e2e.js`、`node --test chart-block-utils.test.js`（25件、fail 0）、`npm test`（1,100件、fail 0）、`npm run test:e2e:chart`（Chromium、成功）、`MEMO_NEXUS_E2E_BROWSER=webkit node chart-block.e2e.js`（WebKit、成功）、`npm run test:e2e:mobile`（Chromium、成功）、`MEMO_NEXUS_E2E_BROWSER=webkit npm run test:e2e:mobile`（WebKit、成功）、`git diff --check`（成功）を実行した。E2EのChromium／WebKit成功はiPhone Safari実機確認を意味しない。GitHub Actionsはpush後に確認する。
+
+## 2026-09-13 PR #221 レビュー修正
+
+* WebKit CI失敗の原因：`chart-block.e2e.js`のCDNモックがKaTeX CSSを含む全要求へ`text/javascript`を返していたため、WebKitの厳格なMIME検査がCSS読込エラーをconsole errorとして検出した。pathnameの拡張子で分岐し、`.css`へ空の`text/css`、JavaScriptへ既存のKaTeX／Mermaid／highlight.jsスタブを`text/javascript`で返すようにした。console errorおよびpage errorの収集・0件検査は維持している。
+* 100%積み上げの安全な割合計算：`stackedBarSegments()`は通常の積み上げでは従来の全項目共通`scaleBase`を維持する。`percent-stacked`だけは各項目内の最大値で先に縮小して構成比を計算するため、`1e308`級と`1e-300`級の項目が共存しても、正の値を持つ各項目は100%まで描画される。表示モデルだけを変更し、元の系列値・保存形式・互換性は変更していない。
+* 追加した回帰テスト：極端な桁差の同一グラフ、微小同値2系列の50%対50%、描画用数値の有限性、元配列不変、全0項目、通常積み上げの既存スケール結果を確認する。
+* 最終検証結果：`node --check chart-block-utils.js`、`node --check app.js`、`node --check chart-block.e2e.js`、`node --test chart-block-utils.test.js`（26件、fail 0）、`npm test`（1,101件、fail 0）、`npm run test:e2e:chart`（Chromium、成功）、`MEMO_NEXUS_E2E_BROWSER=webkit npm run test:e2e:chart`（WebKit、成功）、`npm run test:e2e:mobile`（Chromium、成功）、`MEMO_NEXUS_E2E_BROWSER=webkit npm run test:e2e:mobile`（WebKit、成功）、`git diff --check`（成功）を実行した。各E2Eのpage error／console error検査は0件で通過した。WebKit E2Eの成功はiPhone Safari実機確認を意味しない。

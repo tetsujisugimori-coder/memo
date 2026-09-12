@@ -124,7 +124,12 @@ function boxesOverlap(first, second) {
     page.on("console", (message) => {
       if (message.type() === "error") consoleErrors.push(message.text());
     });
-    await page.route("https://cdn.jsdelivr.net/**", (route) => route.fulfill({ contentType: "text/javascript", body: "window.katex={renderToString:String};window.mermaid={initialize(){},render:async()=>({svg:'<svg></svg>'})};window.hljs={highlightAuto:()=>({value:''}),getLanguage:()=>false};" }));
+    await page.route("https://cdn.jsdelivr.net/**", (route) => {
+      const pathname = new URL(route.request().url()).pathname.toLowerCase();
+      return pathname.endsWith(".css")
+        ? route.fulfill({ contentType: "text/css", body: "" })
+        : route.fulfill({ contentType: "text/javascript", body: "window.katex={renderToString:String};window.mermaid={initialize(){},render:async()=>({svg:'<svg></svg>'})};window.hljs={highlightAuto:()=>({value:''}),getLanguage:()=>false};" });
+    });
     await waitForApp(page);
     await page.locator("#editor").fill("グラフの前\nグラフの後");
     await page.locator("#insertChartBtn").click();

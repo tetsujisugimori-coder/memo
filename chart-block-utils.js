@@ -218,9 +218,13 @@
         seriesIndex,
         value: nonNegativeFiniteNumber(entry?.values?.[itemIndex])
       }));
-      const scaledTotal = scaleBase > 0 ? entries.reduce((total, entry) => total + entry.value / scaleBase, 0) : 0;
+      // 100%積み上げは項目内の構成比だけを比較する。全項目共通の
+      // scaleBaseを使うと、別項目の巨大値によって小さい正数が0へ
+      // アンダーフローするため、項目内の最大値で安全に縮小する。
+      const groupScaleBase = percentStacked ? Math.max(0, ...entries.map((entry) => entry.value)) : scaleBase;
+      const scaledTotal = groupScaleBase > 0 ? entries.reduce((total, entry) => total + entry.value / groupScaleBase, 0) : 0;
       const rawTotal = entries.reduce((total, entry) => total + entry.value, 0);
-      return { item, itemIndex, displayIndex, entries, scaledTotal, total: Number.isFinite(rawTotal) ? rawTotal : null };
+      return { item, itemIndex, displayIndex, entries, groupScaleBase, scaledTotal, total: Number.isFinite(rawTotal) ? rawTotal : null };
     });
     const maximumScaledTotal = Math.max(0, ...groups.map((group) => group.scaledTotal));
     const plotWidth = Math.max(1, chartWidth - plotLeft - plotRight);
@@ -230,7 +234,7 @@
       const x = plotLeft + group.displayIndex * groupWidth + (groupWidth - barWidth) / 2;
       let cumulativeScaled = 0;
       return group.entries.map((entry) => {
-        const scaledValue = scaleBase > 0 ? entry.value / scaleBase : 0;
+        const scaledValue = group.groupScaleBase > 0 ? entry.value / group.groupScaleBase : 0;
         const ratioBase = percentStacked ? group.scaledTotal : maximumScaledTotal;
         const startRatio = ratioBase > 0 ? Math.min(1, cumulativeScaled / ratioBase) : 0;
         cumulativeScaled += scaledValue;
