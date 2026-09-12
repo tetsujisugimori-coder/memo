@@ -276,7 +276,7 @@ function boxesOverlap(first, second) {
     await page.locator('.chart-block-editor button[data-chart-action="confirm"]').click();
     await page.waitForFunction(() => document.querySelector(".chart-block-editor .chart-block-status")?.textContent === "入力内容を保存しました");
     const beforeReload = await chart(page);
-    assert.deepEqual(beforeReload.appearance, { color: "#dc2626", showValues: true, showPoints: true, showLegend: true, pieLabelMode: "percentage" }, "棒グラフへ戻しても色・数値・点・凡例設定を保存する");
+    assert.deepEqual(beforeReload.appearance, { color: "#dc2626", barMode: "grouped", showValues: true, showPoints: true, showLegend: true, pieLabelMode: "percentage" }, "棒グラフへ戻しても色・数値・点・凡例設定を保存する");
     await page.reload({ waitUntil: "domcontentloaded" });
     await page.locator("#appStartupGuard").waitFor({ state: "hidden" });
     assert.deepEqual(await chart(page), beforeReload, "再読み込み後もグラフ保存データを復元する");
@@ -460,6 +460,38 @@ function boxesOverlap(first, second) {
     assert.ok(barMetrics.every((bar) => Number.isFinite(bar.x) && Number.isFinite(bar.height) && bar.height >= 0), "SVG属性に不正値を混入しない");
     assert.ok(barMetrics.some((bar) => bar.height === 142), "全系列の最大値140を高さ計算の基準へ使う");
     assert.notEqual(barMetrics[0].x, barMetrics[1].x, "同じ項目の系列を横に並べる");
+    const barMode = multiEditor.locator('select[aria-label="グラフ1の棒の表示方法"]');
+    assert.equal(await barMode.inputValue(), "grouped", "旧形式の棒グラフは集合表示として開く");
+    await barMode.selectOption("stacked");
+    await page.waitForFunction(() => {
+      const current = window.MemoNexusChartBlockUtils.splitChartBlocks(document.getElementById("editor").value).find((segment) => segment.type === "chart")?.chart;
+      return current?.appearance?.barMode === "stacked" && document.querySelector("#preview .chart-block-bar-chart")?.dataset.chartBarMode === "stacked";
+    });
+    const stackedMetrics = await page.locator("#preview .chart-block-stacked-bar rect").evaluateAll((bars) => bars.map((bar) => ({
+      itemId: bar.closest(".chart-block-bar")?.dataset.chartItemId,
+      seriesId: bar.closest(".chart-block-bar")?.dataset.chartSeriesId,
+      x: Number(bar.getAttribute("x")), y: Number(bar.getAttribute("y")), height: Number(bar.getAttribute("height")), fill: bar.getAttribute("fill")
+    })));
+    assert.equal(stackedMetrics.length, 9, "3項目・3系列を積み上げ棒として描画する");
+    for (const itemId of ["jan", "feb", "mar"]) {
+      const segments = stackedMetrics.filter((segment) => segment.itemId === itemId);
+      assert.equal(new Set(segments.map((segment) => segment.x)).size, 1, `${itemId}の積み上げ系列は同じx位置を使う`);
+      assert.equal(segments[0].y + segments[0].height, 196, `${itemId}の第1系列は基線から積み上げる`);
+      assert.equal(segments[1].y + segments[1].height, segments[0].y, `${itemId}の第2系列は連続して積み上げる`);
+      assert.equal(segments[2].y + segments[2].height, segments[1].y, `${itemId}の第3系列は連続して積み上げる`);
+    }
+    assert.deepEqual(stackedMetrics.slice(0, 3).map((segment) => [segment.seriesId, segment.fill]), (await chart(page)).series.map((series) => [series.id, series.color]), "系列色と積み上げ順を維持する");
+    assert.deepEqual(await page.locator("#preview .chart-block-bar-chart .sr-only li").allTextContents(), [
+      "1月、売上: 100万円", "1月、営業利益: 30万円", "1月、原価: 60万円",
+      "2月、売上: 140万円", "2月、営業利益: 45万円", "2月、原価: 80万円",
+      "3月、売上: 120万円", "3月、営業利益: 38万円", "3月、原価: 70万円"
+    ], "積み上げ棒も全系列を読み上げ対象にする");
+    await multiEditor.locator('input[aria-label="グラフ1の棒の上に数値を表示"]').uncheck();
+    await page.waitForFunction(() => document.querySelectorAll("#preview .chart-block-stacked-value").length === 0);
+    await multiEditor.locator('input[aria-label="グラフ1の棒の上に数値を表示"]').check();
+    await page.waitForFunction(() => document.querySelectorAll("#preview .chart-block-stacked-value").length > 0);
+    await multiEditor.locator('button[data-chart-action="confirm"]').click();
+    await page.waitForFunction(() => document.querySelector(".chart-block-editor .chart-block-status")?.textContent === "入力内容を保存しました");
     await multiEditor.locator('select[aria-label="グラフ1の種類"]').selectOption("line");
     await page.waitForFunction(() => document.querySelector(".chart-block-series-notice")?.hidden === true && document.querySelectorAll("#preview .chart-block-line-series").length === 3 && document.querySelectorAll("#preview .chart-block-line-item").length === 9);
     assert.equal(await page.locator("#preview .chart-block-line svg").getAttribute("viewBox"), "0 0 420 260", "折れ線は非表示系列を横幅へ加算しない");
@@ -534,6 +566,7 @@ function boxesOverlap(first, second) {
     assert.deepEqual(await page.locator("#preview .chart-block-pie .sr-only li").allTextContents(), ["1月、売上: 100万円", "2月、売上: 140万円", "3月、売上: 120万円"], "円グラフは第1系列だけを読み上げ対象にする");
     await page.locator('.chart-block-editor select[aria-label="グラフ1の種類"]').selectOption("bar");
     await page.waitForFunction(() => document.querySelectorAll("#preview .chart-block-bar").length === 9);
+    assert.equal((await chart(page)).appearance.barMode, "stacked", "棒から折れ線、円を経由しても積み上げ設定を保持する");
     assert.equal(await page.locator("#preview .chart-block-bar-chart .sr-only li").count(), 9, "棒グラフへ戻すと全系列を再び読み上げ対象にする");
     multiEditor = page.locator(".chart-block-editor");
     await multiEditor.locator('button[data-chart-action="add-item"]').click();
@@ -565,6 +598,12 @@ function boxesOverlap(first, second) {
     assert.deepEqual(await chart(page), multiBeforeReload, "複数系列を保存・再読み込み後も復元する");
     assert.equal(await page.locator("#preview .chart-block-bar").count(), 6, "再読み込み後も集合棒を復元する");
     multiEditor = page.locator(".chart-block-editor");
+    assert.equal(await multiEditor.locator('select[aria-label="グラフ1の棒の表示方法"]').inputValue(), "stacked", "再読み込み後も積み上げ表示を復元する");
+    await multiEditor.locator('select[aria-label="グラフ1の棒の表示方法"]').selectOption("grouped");
+    await page.waitForFunction(() => document.querySelector("#preview .chart-block-bar-chart")?.dataset.chartBarMode === "grouped");
+    await multiEditor.locator('button[data-chart-action="cancel"]').click();
+    await page.waitForFunction(() => document.querySelector("#preview .chart-block-bar-chart")?.dataset.chartBarMode === "stacked");
+    await waitForChartCancelCompletion(page, 0);
     await multiEditor.locator('.chart-block-series-row[data-chart-series-index="1"] button[data-chart-action="delete-series"]').click();
     await page.waitForFunction(() => {
       const editor = document.querySelector(".chart-block-editor");
