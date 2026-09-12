@@ -20,6 +20,7 @@ const {
   pieChartSegments,
   replaceChartBlock,
   serializeChartBlock,
+  stackedBarSegments,
   splitChartBlocks
 } = require("./chart-block-utils.js");
 
@@ -35,7 +36,7 @@ test("初期グラフは棒グラフ、空の1行、円グラフ用の既定設�
   assert.equal(chart.chartType, "bar");
   assert.deepEqual(chart.items, [{ id: "chart-1-item-1", label: "" }]);
   assert.deepEqual(chart.series, [{ id: "chart-1-series-1", name: DEFAULT_CHART_SERIES_NAME, color: DEFAULT_CHART_COLOR, values: [0] }]);
-  assert.deepEqual(chart.appearance, { color: DEFAULT_CHART_COLOR, showValues: true, showPoints: true, showLegend: false, pieLabelMode: "percentage" });
+  assert.deepEqual(chart.appearance, { color: DEFAULT_CHART_COLOR, barMode: "grouped", showValues: true, showPoints: true, showLegend: false, pieLabelMode: "percentage" });
 });
 
 test("項目名と小数を含む保存形式を同じ内容へ復元し、凡例設定を保持する", () => {
@@ -62,7 +63,7 @@ test("不正な種別、数値、色、ラベル設定を安全な既定値へ�
     { id: "same", label: "A" }, { id: "same-2", label: "B" }, { id: "unsafe-item-3", label: "C" }
   ]);
   assert.deepEqual(chart.series[0].values, [0, 0, 0]);
-  assert.deepEqual(chart.appearance, { color: DEFAULT_CHART_COLOR, showValues: false, showPoints: true, showLegend: true, pieLabelMode: "percentage" });
+  assert.deepEqual(chart.appearance, { color: DEFAULT_CHART_COLOR, barMode: "grouped", showValues: false, showPoints: true, showLegend: true, pieLabelMode: "percentage" });
 });
 
 test("折れ線グラフは共通データと表示設定を保存し、旧データの点表示は既定で有効にする", () => {
@@ -91,6 +92,56 @@ test("種類を棒から折れ線、円、棒へ切り替えてもID、共通デ
   assert.equal(pie.chartType, "pie");
   assert.equal(restoredBar.chartType, "bar");
   assert.deepEqual(common(restoredBar), common(bar));
+});
+
+test("棒の表示方法は既定の集合へ正規化し、種類切替後も積み上げ設定を保持する", () => {
+  const legacy = normalizeChartBlock({ id: "legacy", chartType: "bar", items: [{ label: "1月", value: 1 }] });
+  const stacked = normalizeChartBlock({ ...legacy, appearance: { ...legacy.appearance, barMode: "stacked" } });
+  const invalid = normalizeChartBlock({ ...legacy, appearance: { ...legacy.appearance, barMode: "percent" } });
+  assert.equal(legacy.appearance.barMode, "grouped");
+  assert.equal(stacked.appearance.barMode, "stacked");
+  assert.equal(invalid.appearance.barMode, "grouped");
+  assert.equal(normalizeChartBlock({ ...stacked, chartType: "line" }).appearance.barMode, "stacked");
+  assert.equal(normalizeChartBlock({ ...stacked, chartType: "pie" }).appearance.barMode, "stacked");
+  assert.equal(parseChartBlockLine(serializeChartBlock(stacked)).appearance.barMode, "stacked");
+});
+
+test("積み上げ棒の座標は系列順を保ち、同じ項目で連続して積み上がる", () => {
+  const items = [{ id: "jan", label: "1月" }, { id: "feb", label: "2月" }, { id: "mar", label: "3月" }];
+  const series = [
+    { id: "shop", name: "店舗", values: [50, 20, 10] },
+    { id: "online", name: "オンライン", values: [30, 40, 20] },
+    { id: "corporate", name: "法人", values: [20, 10, 30] }
+  ];
+  const sourceValues = series.map((entry) => entry.values.slice());
+  const layout = stackedBarSegments(items, series, { width: 466, top: 54, baseline: 196 });
+  assert.deepEqual(layout.segments.map((segment) => [segment.item.id, segment.series.id]), [
+    ["jan", "shop"], ["jan", "online"], ["jan", "corporate"],
+    ["feb", "shop"], ["feb", "online"], ["feb", "corporate"],
+    ["mar", "shop"], ["mar", "online"], ["mar", "corporate"]
+  ]);
+  for (const itemId of items.map((item) => item.id)) {
+    const segments = layout.segments.filter((segment) => segment.item.id === itemId);
+    assert.equal(new Set(segments.map((segment) => segment.x)).size, 1, `${itemId}の系列は同じx位置を使う`);
+    assert.equal(segments[0].y + segments[0].height, 196, `${itemId}の第1系列は基線から開始する`);
+    assert.equal(segments[1].y + segments[1].height, segments[0].y, `${itemId}の第2系列は第1系列の上へ続く`);
+    assert.equal(segments[2].y + segments[2].height, segments[1].y, `${itemId}の第3系列は第2系列の上へ続く`);
+  }
+  assert.equal(Math.min(...layout.segments.filter((segment) => segment.item.id === "jan").map((segment) => segment.y)), 54, "最大合計の棒をプロット上端へ収める");
+  assert.deepEqual(series.map((entry) => entry.values), sourceValues, "入力値配列を変更しない");
+});
+
+test("積み上げ棒は0、単一系列、巨大値でも有限で負でない座標にする", () => {
+  const items = [{ id: "one", label: "1月" }, { id: "two", label: "2月" }];
+  const zero = stackedBarSegments(items, [{ id: "a", values: [0, 0] }, { id: "b", values: [0, 0] }]);
+  const single = stackedBarSegments([{ id: "one", label: "1月" }], [{ id: "a", values: [10] }]);
+  const huge = stackedBarSegments(items, [{ id: "a", values: [1e308, 1e308] }, { id: "b", values: [1e308, 1] }, { id: "c", values: [0, 1e307] }]);
+  for (const layout of [zero, single, huge]) {
+    assert.ok(layout.segments.every((segment) => [segment.x, segment.y, segment.width, segment.height, segment.stackStart, segment.stackEnd].every(Number.isFinite) && segment.height >= 0), "全てのSVG座標を有限かつ非負にする");
+  }
+  assert.ok(zero.segments.every((segment) => segment.height === 0), "全値0では高さ0にする");
+  assert.equal(single.segments[0].height, 142, "単一系列は既存棒と同じプロット高を使う");
+  assert.equal(Math.min(...huge.segments.filter((segment) => segment.item.id === "one").map((segment) => segment.y)), 54, "巨大値の最大積み上げも上端を越えない");
 });
 
 test("折れ線の座標は入力順を保ち、0件・1件・同値・小数でも有限にする", () => {

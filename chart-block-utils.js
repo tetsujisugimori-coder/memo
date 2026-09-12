@@ -36,6 +36,10 @@
     return Number.isFinite(number) && number >= 0 ? number : fallback;
   }
 
+  function normalizeBarMode(value) {
+    return value === "stacked" ? "stacked" : "grouped";
+  }
+
   function normalizeChartItem(item, fallbackId, index, usedIds) {
     const source = item && typeof item === "object" && !Array.isArray(item) ? item : {};
     const baseId = normalizedText(source.id).trim() || `${fallbackId}-item-${index + 1}`;
@@ -99,6 +103,7 @@
         ...appearanceSource,
         // appearance.color is retained as a compatibility mirror. Series colors are authoritative.
         color: series[0].color,
+        barMode: normalizeBarMode(appearanceSource.barMode),
         showValues: appearanceSource.showValues !== false,
         showPoints: appearanceSource.showPoints !== false,
         showLegend: appearanceSource.showLegend === true,
@@ -118,7 +123,7 @@
       unit: "",
       items: [{ id: `${id}-item-1`, label: "" }],
       series: [{ id: `${id}-series-1`, name: DEFAULT_CHART_SERIES_NAME, color: DEFAULT_CHART_COLOR, values: [0] }],
-      appearance: { showValues: true, showPoints: true, showLegend: false, pieLabelMode: "percentage" }
+      appearance: { barMode: "grouped", showValues: true, showPoints: true, showLegend: false, pieLabelMode: "percentage" }
     }, id);
   }
 
@@ -190,6 +195,57 @@
       x: displayItems.length === 1 ? plotLeft + span / 2 : plotLeft + (span * index) / Math.max(1, displayItems.length - 1),
       y: maximum > 0 ? plotBaseline - (item.value / maximum) * (plotBaseline - plotTop) : plotBaseline
     }));
+  }
+
+  function stackedBarSegments(items, series, { left = 52, right = 18, top = 54, baseline = 196, width = 420 } = {}) {
+    const displayItems = (Array.isArray(items) ? items : []).map((item, itemIndex) => ({ item, itemIndex }))
+      .filter(({ item }) => item && normalizedText(item.label).trim());
+    const displaySeries = Array.isArray(series) ? series : [];
+    const plotLeft = Number.isFinite(left) && left >= 0 ? left : 52;
+    const plotRight = Number.isFinite(right) && right >= 0 ? right : 18;
+    const plotTop = Number.isFinite(top) && top >= 0 ? top : 54;
+    const plotBaseline = Math.max(plotTop, Number.isFinite(baseline) && baseline >= 0 ? baseline : 196);
+    const chartWidth = Math.max(plotLeft + plotRight, Number.isFinite(width) && width >= 0 ? width : 420);
+    const plotHeight = Math.max(0, plotBaseline - plotTop);
+    const values = displayItems.flatMap(({ itemIndex }) => displaySeries.map((entry) => nonNegativeFiniteNumber(entry?.values?.[itemIndex])));
+    const scaleBase = Math.max(0, ...values);
+    const groups = displayItems.map(({ item, itemIndex }, displayIndex) => {
+      const entries = displaySeries.map((entry, seriesIndex) => ({
+        item,
+        itemIndex,
+        series: entry,
+        seriesIndex,
+        value: nonNegativeFiniteNumber(entry?.values?.[itemIndex])
+      }));
+      const scaledTotal = scaleBase > 0 ? entries.reduce((total, entry) => total + entry.value / scaleBase, 0) : 0;
+      return { item, itemIndex, displayIndex, entries, scaledTotal };
+    });
+    const maximumScaledTotal = Math.max(0, ...groups.map((group) => group.scaledTotal));
+    const plotWidth = Math.max(1, chartWidth - plotLeft - plotRight);
+    const groupWidth = plotWidth / Math.max(1, groups.length);
+    const barWidth = Math.max(4, Math.min(48, Math.max(12, groupWidth - 20)));
+    const segments = groups.flatMap((group) => {
+      const x = plotLeft + group.displayIndex * groupWidth + (groupWidth - barWidth) / 2;
+      let cumulativeScaled = 0;
+      return group.entries.map((entry) => {
+        const scaledValue = scaleBase > 0 ? entry.value / scaleBase : 0;
+        const startRatio = maximumScaledTotal > 0 ? Math.min(1, cumulativeScaled / maximumScaledTotal) : 0;
+        cumulativeScaled += scaledValue;
+        const endRatio = maximumScaledTotal > 0 ? Math.min(1, cumulativeScaled / maximumScaledTotal) : 0;
+        const y = plotBaseline - endRatio * plotHeight;
+        const bottom = plotBaseline - startRatio * plotHeight;
+        return {
+          ...entry,
+          x,
+          y,
+          width: barWidth,
+          height: Math.max(0, bottom - y),
+          stackStart: startRatio,
+          stackEnd: endRatio
+        };
+      });
+    });
+    return { scaleBase, maximumScaledTotal, groups, segments };
   }
 
   function splitChartBlocks(markdown) {
@@ -268,6 +324,7 @@
     pieChartSegments,
     replaceChartBlock,
     serializeChartBlock,
+    stackedBarSegments,
     splitChartBlocks
   };
   if (typeof module !== "undefined" && module.exports) module.exports = api;

@@ -6195,6 +6195,7 @@ body.collections-open:not(.context-panel-closed) .context-panel {
 .chart-block-label { fill: var(--muted); }
 .chart-block-axis-value { fill: var(--muted); font-size: 11px; }
 .chart-block-value { font-weight: 700; }
+.chart-block-stacked-value { fill: #fff; font-size: 11px; paint-order: stroke; stroke: rgba(0, 0, 0, 0.45); stroke-width: 2px; }
 .chart-block-empty { fill: var(--muted); }
 .chart-block-line-layout { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
 .chart-block-line .chart-block-scroll { flex: 1 1 260px; min-width: 0; }

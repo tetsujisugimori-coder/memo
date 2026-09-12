@@ -478,6 +478,7 @@ const {
   PIE_CHART_COLORS,
   pieChartSegments,
   replaceChartBlock,
+  stackedBarSegments,
   splitChartBlocks
 } = window.MemoNexusChartBlockUtils;
 const {
@@ -8527,31 +8528,50 @@ function renderChartBlock(chartValue, blockIndex, { editable = true } = {}) {
     return `<figure class="chart-block chart-block-line" data-chart-id="${escapeAttr(chart.id)}"><figcaption>${escapeHtml(title)}</figcaption>${controls}<div class="chart-block-line-layout"><div class="chart-block-scroll" role="region" tabindex="0" aria-label="${escapeAttr(title)}"><svg viewBox="0 0 ${lineWidth} ${height}" role="img" aria-label="${escapeAttr(`${title}${chart.unit ? `（単位: ${chart.unit}）` : ""}`)}"><line class="chart-block-axis" x1="${lineLayout.axisX}" y1="${lineLayout.axisTop}" x2="${lineLayout.axisX}" y2="${lineLayout.baseline}"/><line class="chart-block-axis" x1="${lineLayout.axisX}" y1="${lineLayout.baseline}" x2="${lineWidth - lineLayout.plotRight}" y2="${lineLayout.baseline}"/><text class="chart-block-axis-value chart-block-axis-maximum" x="${lineLayout.axisLabelX}" y="${lineLayout.axisMaximumY}" text-anchor="end">${escapeHtml(chartDisplayNumber(maximum))}</text><text class="chart-block-axis-value chart-block-axis-zero" x="${lineLayout.axisLabelX}" y="${lineLayout.baseline + 4}" text-anchor="end">0</text>${chart.unit ? `<text class="chart-block-unit" x="${lineLayout.unitX}" y="${lineLayout.unitY}">${escapeHtml(chart.unit)}</text>` : ""}${lines}${empty}</svg></div>${legend}</div><ul class="sr-only">${accessibleItems || "<li>有効な項目はありません</li>"}</ul></figure>`;
   }
   const barItems = chart.items.filter((item) => item.label);
-  const maximum = Math.max(0, ...chart.series.flatMap((series) => barItems.map((item) => series.values[chart.items.indexOf(item)])));
-  const plotWidth = Math.max(1, width - 70);
-  const groupWidth = plotWidth / Math.max(1, barItems.length);
-  const innerGap = 4;
-  const barWidth = Math.max(4, Math.min(48, (Math.max(12, groupWidth - 20) - innerGap * (chart.series.length - 1)) / chart.series.length));
-  const bars = barItems.map((item, itemIndex) => {
-    const sourceIndex = chart.items.indexOf(item);
-    const groupStart = 52 + itemIndex * groupWidth + (groupWidth - (barWidth * chart.series.length + innerGap * (chart.series.length - 1))) / 2;
-    const seriesBars = chart.series.map((series, seriesIndex) => {
-      const valueNumber = series.values[sourceIndex];
-      const barHeight = maximum > 0 ? Math.max(0, Math.min(142, (valueNumber / maximum) * 142)) : 0;
-      const x = groupStart + seriesIndex * (barWidth + innerGap);
-      const y = baseline - barHeight;
-      const value = chart.appearance.showValues
-        ? `<text class="chart-block-value" x="${x + barWidth / 2}" y="${Math.max(22, y - 8)}" text-anchor="middle">${escapeHtml(chartDisplayNumber(valueNumber))}</text>`
-        : "";
-      return `<g class="chart-block-bar" data-chart-item-id="${escapeAttr(item.id)}" data-chart-series-id="${escapeAttr(series.id)}"><title>${escapeHtml(`${item.label}、${series.name}: ${chartDisplayNumber(valueNumber)}${chart.unit}`)}</title><rect x="${x}" y="${y}" width="${barWidth}" height="${barHeight}" rx="4" fill="${escapeAttr(series.color)}"></rect>${value}</g>`;
-    }).join("");
-    return `<g class="chart-block-bar-group" data-chart-item-id="${escapeAttr(item.id)}">${seriesBars}<text class="chart-block-label" x="${52 + itemIndex * groupWidth + groupWidth / 2}" y="${baseline + 22}" text-anchor="middle">${escapeHtml(chartLabel(item.label))}</text></g>`;
-  }).join("");
+  const bars = chart.appearance.barMode === "stacked"
+    ? (() => {
+      const layout = stackedBarSegments(chart.items, chart.series, { width, top: 54, baseline });
+      return layout.groups.map((group) => {
+        const segments = layout.segments.filter((segment) => segment.itemIndex === group.itemIndex).map((segment) => {
+          const rect = segment.height > 0
+            ? `<rect x="${segment.x}" y="${segment.y}" width="${segment.width}" height="${segment.height}" fill="${escapeAttr(segment.series.color)}"></rect>`
+            : "";
+          const value = chart.appearance.showValues && segment.height >= 20
+            ? `<text class="chart-block-value chart-block-stacked-value" x="${segment.x + segment.width / 2}" y="${segment.y + segment.height / 2}" text-anchor="middle" dominant-baseline="middle">${escapeHtml(chartDisplayNumber(segment.value))}</text>`
+            : "";
+          return `<g class="chart-block-bar chart-block-stacked-bar" data-chart-item-id="${escapeAttr(segment.item.id)}" data-chart-series-id="${escapeAttr(segment.series.id)}"><title>${escapeHtml(`${segment.item.label}、${segment.series.name}: ${chartDisplayNumber(segment.value)}${chart.unit}`)}</title>${rect}${value}</g>`;
+        }).join("");
+        const labelX = layout.segments.find((segment) => segment.itemIndex === group.itemIndex)?.x + (layout.segments.find((segment) => segment.itemIndex === group.itemIndex)?.width / 2);
+        return `<g class="chart-block-bar-group" data-chart-item-id="${escapeAttr(group.item.id)}">${segments}<text class="chart-block-label" x="${labelX}" y="${baseline + 22}" text-anchor="middle">${escapeHtml(chartLabel(group.item.label))}</text></g>`;
+      }).join("");
+    })()
+    : (() => {
+      const maximum = Math.max(0, ...chart.series.flatMap((series) => barItems.map((item) => series.values[chart.items.indexOf(item)])));
+      const plotWidth = Math.max(1, width - 70);
+      const groupWidth = plotWidth / Math.max(1, barItems.length);
+      const innerGap = 4;
+      const barWidth = Math.max(4, Math.min(48, (Math.max(12, groupWidth - 20) - innerGap * (chart.series.length - 1)) / chart.series.length));
+      return barItems.map((item, itemIndex) => {
+        const sourceIndex = chart.items.indexOf(item);
+        const groupStart = 52 + itemIndex * groupWidth + (groupWidth - (barWidth * chart.series.length + innerGap * (chart.series.length - 1))) / 2;
+        const seriesBars = chart.series.map((series, seriesIndex) => {
+          const valueNumber = series.values[sourceIndex];
+          const barHeight = maximum > 0 ? Math.max(0, Math.min(142, (valueNumber / maximum) * 142)) : 0;
+          const x = groupStart + seriesIndex * (barWidth + innerGap);
+          const y = baseline - barHeight;
+          const value = chart.appearance.showValues
+            ? `<text class="chart-block-value" x="${x + barWidth / 2}" y="${Math.max(22, y - 8)}" text-anchor="middle">${escapeHtml(chartDisplayNumber(valueNumber))}</text>`
+            : "";
+          return `<g class="chart-block-bar" data-chart-item-id="${escapeAttr(item.id)}" data-chart-series-id="${escapeAttr(series.id)}"><title>${escapeHtml(`${item.label}、${series.name}: ${chartDisplayNumber(valueNumber)}${chart.unit}`)}</title><rect x="${x}" y="${y}" width="${barWidth}" height="${barHeight}" rx="4" fill="${escapeAttr(series.color)}"></rect>${value}</g>`;
+        }).join("");
+        return `<g class="chart-block-bar-group" data-chart-item-id="${escapeAttr(item.id)}">${seriesBars}<text class="chart-block-label" x="${52 + itemIndex * groupWidth + groupWidth / 2}" y="${baseline + 22}" text-anchor="middle">${escapeHtml(chartLabel(item.label))}</text></g>`;
+      }).join("");
+    })();
   const empty = barItems.length ? "" : `<text class="chart-block-empty" x="${width / 2}" y="${height / 2}" text-anchor="middle">項目名と0以上の数値を入力してください</text>`;
   const legend = chart.appearance.showLegend
     ? `<ul class="chart-block-legend" aria-label="${escapeAttr(`${title}の凡例`)}">${chart.series.map((series) => `<li><span class="chart-block-legend-swatch" style="background:${escapeAttr(series.color)}"></span><span>${escapeHtml(series.name)}</span></li>`).join("")}</ul>`
     : "";
-  return `<figure class="chart-block chart-block-bar-chart" data-chart-id="${escapeAttr(chart.id)}"><figcaption>${escapeHtml(title)}</figcaption>${controls}<div class="chart-block-bar-layout"><div class="chart-block-scroll" role="region" tabindex="0" aria-label="${escapeAttr(title)}"><svg viewBox="0 0 ${width} ${height}" role="img" aria-label="${escapeAttr(`${title}${chart.unit ? `（単位: ${chart.unit}）` : ""}`)}"><line class="chart-block-axis" x1="42" y1="22" x2="42" y2="${baseline}"/><line class="chart-block-axis" x1="42" y1="${baseline}" x2="${width - 18}" y2="${baseline}"/>${chart.unit ? `<text class="chart-block-unit" x="48" y="18">${escapeHtml(chart.unit)}</text>` : ""}${bars}${empty}</svg></div>${legend}</div><ul class="sr-only">${accessibleItems || "<li>有効な項目はありません</li>"}</ul></figure>`;
+  return `<figure class="chart-block chart-block-bar-chart" data-chart-id="${escapeAttr(chart.id)}" data-chart-bar-mode="${escapeAttr(chart.appearance.barMode)}"><figcaption>${escapeHtml(title)}</figcaption>${controls}<div class="chart-block-bar-layout"><div class="chart-block-scroll" role="region" tabindex="0" aria-label="${escapeAttr(title)}"><svg viewBox="0 0 ${width} ${height}" role="img" aria-label="${escapeAttr(`${title}${chart.unit ? `（単位: ${chart.unit}）` : ""}`)}"><line class="chart-block-axis" x1="42" y1="22" x2="42" y2="${baseline}"/><line class="chart-block-axis" x1="42" y1="${baseline}" x2="${width - 18}" y2="${baseline}"/>${chart.unit ? `<text class="chart-block-unit" x="48" y="18">${escapeHtml(chart.unit)}</text>` : ""}${bars}${empty}</svg></div>${legend}</div><ul class="sr-only">${accessibleItems || "<li>有効な項目はありません</li>"}</ul></figure>`;
 }
 
 function renderChartEditorPreview(host, chart, blockIndex) {
@@ -8624,6 +8644,20 @@ function createChartEditor(chartValue, blockIndex, snapshotKey) {
     valuesLabel.append(values, document.createTextNode(valuesText));
     appearance.append(valuesLabel);
     if (chart.chartType === "bar") {
+      const barModeLabel = document.createElement("label");
+      barModeLabel.textContent = "棒の表示方法";
+      const barMode = document.createElement("select");
+      barMode.dataset.chartField = "barMode";
+      barMode.setAttribute("aria-label", `グラフ${blockIndex + 1}の棒の表示方法`);
+      [["grouped", "集合"], ["stacked", "積み上げ"]].forEach(([value, label]) => {
+        const option = document.createElement("option");
+        option.value = value;
+        option.textContent = label;
+        option.selected = chart.appearance.barMode === value;
+        barMode.append(option);
+      });
+      barModeLabel.append(barMode);
+      appearance.append(barModeLabel);
       const legendLabel = document.createElement("label");
       legendLabel.className = "chart-block-appearance-checkbox";
       const legend = document.createElement("input");
@@ -8916,6 +8950,8 @@ function handleChartEditorInput(event) {
   } else if (["showValues", "showPoints", "showLegend"].includes(event.target.dataset.chartField)) {
     if (next.appearance[event.target.dataset.chartField] === event.target.checked) return;
     next.appearance = { ...next.appearance, [event.target.dataset.chartField]: event.target.checked };
+  } else if (event.target.dataset.chartField === "barMode") {
+    next.appearance = { ...next.appearance, barMode: event.target.value };
   } else if (event.target.dataset.chartField === "pieLabelMode") {
     next.appearance = { ...next.appearance, pieLabelMode: event.target.value };
   } else if (event.target.dataset.chartField) {
