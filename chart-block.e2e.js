@@ -56,6 +56,26 @@ async function waitForApp(page) {
   await page.locator("#editor").waitFor({ state: "visible" });
 }
 
+async function waitForPieSlices(page, expectedCount) {
+  try {
+    await page.waitForFunction((count) => document.querySelectorAll("#preview .chart-block-pie-slice").length === count, expectedCount);
+  } catch (error) {
+    const state = await page.evaluate(() => {
+      const chart = window.MemoNexusChartBlockUtils.splitChartBlocks(document.getElementById("editor").value)
+        .find((segment) => segment.type === "chart")?.chart;
+      return {
+        chartType: chart?.chartType,
+        itemLabels: chart?.items?.map((item) => item.label),
+        editorChartType: document.querySelector('.chart-block-editor select[data-chart-field="chartType"]')?.value,
+        previewClass: document.querySelector("#preview .chart-block")?.className,
+        previewSliceCount: document.querySelectorAll("#preview .chart-block-pie-slice").length
+      };
+    });
+    error.message = `${error.message}\nPie preview state: ${JSON.stringify(state)}`;
+    throw error;
+  }
+}
+
 function chart(page) {
   return page.evaluate(() => window.MemoNexusChartBlockUtils.splitChartBlocks(document.getElementById("editor").value)
     .find((segment) => segment.type === "chart")?.chart || null);
@@ -249,7 +269,7 @@ function boxesOverlap(first, second) {
     const pieEditor = page.locator(".chart-block-editor");
     assert.equal(await pieEditor.locator('input[aria-label="1件目の項目名"]').inputValue(), "国語", "折れ線グラフから円グラフへの切替でも項目名を保持する");
     assert.equal(await pieEditor.locator('input[aria-label="1件目の数値"]').inputValue(), "72.25", "折れ線グラフから円グラフへの切替でも数値を保持する");
-    await page.waitForFunction(() => document.querySelectorAll("#preview .chart-block-pie-slice").length === 2);
+    await waitForPieSlices(page, 2);
     assert.equal(await page.locator("#preview .chart-block-pie-label").count(), 2, "割合ラベルを既定で描画する");
     assert.match(await page.locator("#preview .chart-block-pie-label").first().textContent(), /72\.3%/, "割合は小数第1位で統一して丸める");
     const pieFills = await page.locator("#preview .chart-block-pie-slice").evaluateAll((slices) => slices.map((slice) => slice.getAttribute("fill")));
