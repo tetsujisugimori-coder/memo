@@ -8399,7 +8399,16 @@ function chartDisplayItems(chart, series = chart.series[0]) {
     .filter((item) => item.label && Number.isFinite(item.value) && item.value >= 0);
 }
 
-function chartAccessibleItems(chart) {
+function chartAccessibleItems(chart, percentStackedLayout = null) {
+  if (percentStackedLayout) {
+    return percentStackedLayout.groups.flatMap((group) => group.entries.map((entry) => {
+      const segment = percentStackedLayout.segments.find((candidate) => candidate.itemIndex === group.itemIndex && candidate.seriesIndex === entry.seriesIndex);
+      const total = Number.isFinite(group.total)
+        ? `${chartDisplayNumber(group.total)}${chart.unit}`
+        : "非常に大きいため表示できません";
+      return `<li>${escapeHtml(`${group.item.label}、${entry.series.name}: ${chartDisplayNumber(entry.value)}${chart.unit}、${chartPercentDisplay(segment?.percentage)}、項目合計: ${total}`)}</li>`;
+    })).join("");
+  }
   const accessibleSeries = chartDisplaySeries(chart);
   return chart.items.filter((item) => item.label).flatMap((item, itemIndex) => accessibleSeries.map((series) =>
     `<li>${escapeHtml(`${item.label}、${series.name}: ${chartDisplayNumber(series.values[itemIndex])}${chart.unit}`)}</li>`
@@ -8408,6 +8417,12 @@ function chartAccessibleItems(chart) {
 
 function chartDisplayNumber(value) {
   return Number.isInteger(value) ? String(value) : String(value);
+}
+
+function chartPercentDisplay(value) {
+  const percentage = Number.isFinite(value) && value >= 0 ? value : 0;
+  const rounded = Math.round(percentage);
+  return percentage > 0 && rounded === 0 ? `${percentage.toFixed(1)}%` : `${rounded}%`;
 }
 
 function isValidChartNumber(value) {
@@ -8454,7 +8469,7 @@ function renderChartBlock(chartValue, blockIndex, { editable = true } = {}) {
   const controls = editable
     ? `<button class="chart-block-edit" type="button" data-chart-id="${escapeAttr(chart.id)}" data-chart-index="${blockIndex}" aria-label="${escapeAttr(`${title}を編集`)}">編集</button>`
     : "";
-  const accessibleItems = chartAccessibleItems(chart);
+  let accessibleItems = chartAccessibleItems(chart);
   if (chart.chartType === "pie") {
     const pie = pieChartSegments(items);
     const centerX = 140;
@@ -8528,18 +8543,28 @@ function renderChartBlock(chartValue, blockIndex, { editable = true } = {}) {
     return `<figure class="chart-block chart-block-line" data-chart-id="${escapeAttr(chart.id)}"><figcaption>${escapeHtml(title)}</figcaption>${controls}<div class="chart-block-line-layout"><div class="chart-block-scroll" role="region" tabindex="0" aria-label="${escapeAttr(title)}"><svg viewBox="0 0 ${lineWidth} ${height}" role="img" aria-label="${escapeAttr(`${title}${chart.unit ? `（単位: ${chart.unit}）` : ""}`)}"><line class="chart-block-axis" x1="${lineLayout.axisX}" y1="${lineLayout.axisTop}" x2="${lineLayout.axisX}" y2="${lineLayout.baseline}"/><line class="chart-block-axis" x1="${lineLayout.axisX}" y1="${lineLayout.baseline}" x2="${lineWidth - lineLayout.plotRight}" y2="${lineLayout.baseline}"/><text class="chart-block-axis-value chart-block-axis-maximum" x="${lineLayout.axisLabelX}" y="${lineLayout.axisMaximumY}" text-anchor="end">${escapeHtml(chartDisplayNumber(maximum))}</text><text class="chart-block-axis-value chart-block-axis-zero" x="${lineLayout.axisLabelX}" y="${lineLayout.baseline + 4}" text-anchor="end">0</text>${chart.unit ? `<text class="chart-block-unit" x="${lineLayout.unitX}" y="${lineLayout.unitY}">${escapeHtml(chart.unit)}</text>` : ""}${lines}${empty}</svg></div>${legend}</div><ul class="sr-only">${accessibleItems || "<li>有効な項目はありません</li>"}</ul></figure>`;
   }
   const barItems = chart.items.filter((item) => item.label);
-  const bars = chart.appearance.barMode === "stacked"
+  const percentStacked = chart.appearance.barMode === "percent-stacked";
+  const stacked = chart.appearance.barMode === "stacked" || percentStacked;
+  const percentStackedLayout = percentStacked
+    ? stackedBarSegments(chart.items, chart.series, { width, top: 54, baseline, mode: "percent-stacked" })
+    : null;
+  if (percentStackedLayout) accessibleItems = chartAccessibleItems(chart, percentStackedLayout);
+  const bars = stacked
     ? (() => {
-      const layout = stackedBarSegments(chart.items, chart.series, { width, top: 54, baseline });
+      const layout = percentStackedLayout || stackedBarSegments(chart.items, chart.series, { width, top: 54, baseline });
       return layout.groups.map((group) => {
         const segments = layout.segments.filter((segment) => segment.itemIndex === group.itemIndex).map((segment) => {
           const rect = segment.height > 0
             ? `<rect x="${segment.x}" y="${segment.y}" width="${segment.width}" height="${segment.height}" fill="${escapeAttr(segment.series.color)}"></rect>`
             : "";
-          const value = chart.appearance.showValues && segment.height >= 20
-            ? `<text class="chart-block-value chart-block-stacked-value" x="${segment.x + segment.width / 2}" y="${segment.y + segment.height / 2}" text-anchor="middle" dominant-baseline="middle">${escapeHtml(chartDisplayNumber(segment.value))}</text>`
+          const value = chart.appearance.showValues && segment.height >= 20 && segment.width >= 28
+            ? `<text class="chart-block-value chart-block-stacked-value${percentStacked ? " chart-block-percent-stacked-value" : ""}" x="${segment.x + segment.width / 2}" y="${segment.y + segment.height / 2}" text-anchor="middle" dominant-baseline="middle">${escapeHtml(percentStacked ? chartPercentDisplay(segment.percentage) : chartDisplayNumber(segment.value))}</text>`
             : "";
-          return `<g class="chart-block-bar chart-block-stacked-bar" data-chart-item-id="${escapeAttr(segment.item.id)}" data-chart-series-id="${escapeAttr(segment.series.id)}"><title>${escapeHtml(`${segment.item.label}、${segment.series.name}: ${chartDisplayNumber(segment.value)}${chart.unit}`)}</title>${rect}${value}</g>`;
+          const total = Number.isFinite(segment.total) ? `${chartDisplayNumber(segment.total)}${chart.unit}` : "非常に大きいため表示できません";
+          const title = percentStacked
+            ? `${segment.item.label}、${segment.series.name}: ${chartDisplayNumber(segment.value)}${chart.unit}（${chartPercentDisplay(segment.percentage)}、項目合計: ${total}）`
+            : `${segment.item.label}、${segment.series.name}: ${chartDisplayNumber(segment.value)}${chart.unit}`;
+          return `<g class="chart-block-bar chart-block-stacked-bar${percentStacked ? " chart-block-percent-stacked-bar" : ""}" data-chart-item-id="${escapeAttr(segment.item.id)}" data-chart-series-id="${escapeAttr(segment.series.id)}"><title>${escapeHtml(title)}</title>${rect}${value}</g>`;
         }).join("");
         const labelX = layout.segments.find((segment) => segment.itemIndex === group.itemIndex)?.x + (layout.segments.find((segment) => segment.itemIndex === group.itemIndex)?.width / 2);
         return `<g class="chart-block-bar-group" data-chart-item-id="${escapeAttr(group.item.id)}">${segments}<text class="chart-block-label" x="${labelX}" y="${baseline + 22}" text-anchor="middle">${escapeHtml(chartLabel(group.item.label))}</text></g>`;
@@ -8571,7 +8596,14 @@ function renderChartBlock(chartValue, blockIndex, { editable = true } = {}) {
   const legend = chart.appearance.showLegend
     ? `<ul class="chart-block-legend" aria-label="${escapeAttr(`${title}の凡例`)}">${chart.series.map((series) => `<li><span class="chart-block-legend-swatch" style="background:${escapeAttr(series.color)}"></span><span>${escapeHtml(series.name)}</span></li>`).join("")}</ul>`
     : "";
-  return `<figure class="chart-block chart-block-bar-chart" data-chart-id="${escapeAttr(chart.id)}" data-chart-bar-mode="${escapeAttr(chart.appearance.barMode)}"><figcaption>${escapeHtml(title)}</figcaption>${controls}<div class="chart-block-bar-layout"><div class="chart-block-scroll" role="region" tabindex="0" aria-label="${escapeAttr(title)}"><svg viewBox="0 0 ${width} ${height}" role="img" aria-label="${escapeAttr(`${title}${chart.unit ? `（単位: ${chart.unit}）` : ""}`)}"><line class="chart-block-axis" x1="42" y1="22" x2="42" y2="${baseline}"/><line class="chart-block-axis" x1="42" y1="${baseline}" x2="${width - 18}" y2="${baseline}"/>${chart.unit ? `<text class="chart-block-unit" x="48" y="18">${escapeHtml(chart.unit)}</text>` : ""}${bars}${empty}</svg></div>${legend}</div><ul class="sr-only">${accessibleItems || "<li>有効な項目はありません</li>"}</ul></figure>`;
+  const percentAxis = percentStacked
+    ? [0, 25, 50, 75, 100].map((percentage) => `<text class="chart-block-axis-value chart-block-percent-axis-value" x="36" y="${baseline - (percentage / 100) * 142 + 4}" text-anchor="end">${percentage}%</text>`).join("")
+    : "";
+  const unit = percentStacked ? `<text class="chart-block-unit" x="48" y="18">構成比（%）</text>` : chart.unit ? `<text class="chart-block-unit" x="48" y="18">${escapeHtml(chart.unit)}</text>` : "";
+  const ariaLabel = percentStacked
+    ? `${title}（100%積み上げ、元データの単位: ${chart.unit || "なし"}）`
+    : `${title}${chart.unit ? `（単位: ${chart.unit}）` : ""}`;
+  return `<figure class="chart-block chart-block-bar-chart" data-chart-id="${escapeAttr(chart.id)}" data-chart-bar-mode="${escapeAttr(chart.appearance.barMode)}"><figcaption>${escapeHtml(title)}</figcaption>${controls}<div class="chart-block-bar-layout"><div class="chart-block-scroll" role="region" tabindex="0" aria-label="${escapeAttr(title)}"><svg viewBox="0 0 ${width} ${height}" role="img" aria-label="${escapeAttr(ariaLabel)}"><line class="chart-block-axis" x1="42" y1="22" x2="42" y2="${baseline}"/><line class="chart-block-axis" x1="42" y1="${baseline}" x2="${width - 18}" y2="${baseline}"/>${unit}${percentAxis}${bars}${empty}</svg></div>${legend}</div><ul class="sr-only">${accessibleItems || "<li>有効な項目はありません</li>"}</ul></figure>`;
 }
 
 function renderChartEditorPreview(host, chart, blockIndex) {
@@ -8649,7 +8681,7 @@ function createChartEditor(chartValue, blockIndex, snapshotKey) {
       const barMode = document.createElement("select");
       barMode.dataset.chartField = "barMode";
       barMode.setAttribute("aria-label", `グラフ${blockIndex + 1}の棒の表示方法`);
-      [["grouped", "集合"], ["stacked", "積み上げ"]].forEach(([value, label]) => {
+      [["grouped", "集合"], ["stacked", "積み上げ"], ["percent-stacked", "100%積み上げ"]].forEach(([value, label]) => {
         const option = document.createElement("option");
         option.value = value;
         option.textContent = label;
