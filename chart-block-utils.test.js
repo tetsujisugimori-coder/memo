@@ -15,6 +15,7 @@ const {
   insertChartBlock,
   lineChartPoints,
   lineChartWidth,
+  moveChartItem,
   normalizeChartBlock,
   parseChartBlockLine,
   pieChartSegments,
@@ -406,4 +407,55 @@ test("系列の値は項目の追加・削除を経ても対応を保てる正�
     series: [{ id: "one", name: "一", values: [1, 2] }, { id: "two", name: "二", values: [3, 4, 5, 6] }]
   });
   assert.deepEqual(chart.series.map((series) => series.values), [[1, 2, 0], [3, 4, 5]]);
+});
+
+test("項目の移動は3系列の値を同じ位置で一体に並べ替え、IDと入力を維持する", () => {
+  const source = normalizeChartBlock({
+    id: "months", chartType: "bar", items: [{ id: "jan", label: "1月" }, { id: "feb", label: "2月" }, { id: "mar", label: "3月" }],
+    series: [
+      { id: "sales", name: "売上", values: [10, 20, 30] },
+      { id: "profit", name: "利益", values: [100, 200, 300] },
+      { id: "cost", name: "原価", values: [1, 2, 3] }
+    ]
+  });
+  const original = structuredClone(source);
+  const moved = moveChartItem(source, 2, -1);
+  assert.deepEqual(moved.items.map((item) => [item.id, item.label]), [["jan", "1月"], ["mar", "3月"], ["feb", "2月"]]);
+  assert.deepEqual(moved.series.map((series) => series.values), [[10, 30, 20], [100, 300, 200], [1, 3, 2]]);
+  assert.equal(moved.id, "months");
+  assert.deepEqual(moved.series.map((series) => series.id), ["sales", "profit", "cost"]);
+  assert.deepEqual(source, original, "入力の配列・項目・系列を直接変更しない");
+  assert.notEqual(moved.items, source.items);
+  assert.notEqual(moved.series[0].values, source.series[0].values);
+});
+
+test("項目の連続移動と範囲外操作は安全で、少数・0・巨大な有限値を保持する", () => {
+  const source = normalizeChartBlock({
+    id: "values", items: [{ id: "a", label: "A" }, { id: "b", label: "B" }, { id: "c", label: "C" }],
+    series: [{ id: "one", values: [0, 1.5, 1e308] }, { id: "two", values: [2.25, 0, 3] }]
+  });
+  const lastToFirst = moveChartItem(moveChartItem(source, 2, -1), 1, -1);
+  assert.deepEqual(lastToFirst.items.map((item) => item.id), ["c", "a", "b"]);
+  assert.deepEqual(lastToFirst.series.map((series) => series.values), [[1e308, 0, 1.5], [3, 2.25, 0]]);
+  const restored = moveChartItem(moveChartItem(lastToFirst, 0, 1), 1, 1);
+  assert.deepEqual(restored.items.map((item) => item.id), ["a", "b", "c"]);
+  assert.deepEqual(restored.series.map((series) => series.values), source.series.map((series) => series.values));
+  [-1, 3, 1.5, "1"].forEach((index) => assert.deepEqual(moveChartItem(source, index, 1), source));
+  assert.deepEqual(moveChartItem(source, 0, -1), source);
+  assert.deepEqual(moveChartItem(source, 2, 1), source);
+  assert.deepEqual(moveChartItem(createChartBlock("only"), 0, 1), createChartBlock("only"));
+});
+
+test("旧形式の正規化後も移動、直列化、表示系列、積み上げ座標の対応を維持する", () => {
+  const legacy = { id: "legacy", chartType: "bar", items: [{ id: "jan", label: "1月", value: 60 }, { id: "feb", label: "2月", value: 40 }] };
+  const moved = moveChartItem(normalizeChartBlock(legacy), 1, -1);
+  const restored = parseChartBlockLine(serializeChartBlock(moved));
+  assert.deepEqual(restored.items.map((item) => item.id), ["feb", "jan"]);
+  assert.deepEqual(restored.series[0].values, [40, 60]);
+  assert.deepEqual(chartDisplaySeries({ ...restored, chartType: "line" }).map((series) => series.id), restored.series.map((series) => series.id));
+  assert.deepEqual(chartDisplaySeries({ ...restored, chartType: "pie" }).map((series) => series.id), [restored.series[0].id]);
+  ["stacked", "percent-stacked"].forEach((barMode) => {
+    const layout = stackedBarSegments(restored.items, restored.series, { mode: barMode });
+    assert.ok(layout.segments.every((segment) => [segment.x, segment.y, segment.width, segment.height, segment.percentage].every(Number.isFinite)));
+  });
 });

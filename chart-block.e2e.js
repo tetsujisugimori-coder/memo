@@ -155,6 +155,9 @@ function boxesOverlap(first, second) {
     await page.locator("#insertChartBtn").click();
     const editor = page.locator(".chart-block-editor");
     await editor.waitFor({ state: "visible" });
+    assert.equal(await editor.locator('button[data-chart-action="move-item-up"]').isDisabled(), true, "1項目だけでは上へを無効化する");
+    assert.equal(await editor.locator('button[data-chart-action="move-item-down"]').isDisabled(), true, "1項目だけでは下へを無効化する");
+    assert.equal(await editor.locator('button[data-chart-action="move-item-up"]').getAttribute("aria-label"), "1件目の項目を上へ移動", "空の項目名は項目番号で移動操作を識別する");
     await editor.locator('input[aria-label="グラフ1のタイトル"]').fill("テスト得点");
     await editor.locator('input[aria-label="グラフ1の単位"]').fill("点");
     await editor.locator('input[aria-label="1件目の項目名"]').fill("国語");
@@ -489,6 +492,31 @@ function boxesOverlap(first, second) {
     assert.ok(barMetrics.every((bar) => Number.isFinite(bar.x) && Number.isFinite(bar.height) && bar.height >= 0), "SVG属性に不正値を混入しない");
     assert.ok(barMetrics.some((bar) => bar.height === 142), "全系列の最大値140を高さ計算の基準へ使う");
     assert.notEqual(barMetrics[0].x, barMetrics[1].x, "同じ項目の系列を横に並べる");
+    assert.equal(await multiEditor.locator('.chart-block-item-row[data-chart-item-index="0"] button[data-chart-action="move-item-up"]').isDisabled(), true, "先頭項目の上へを無効化する");
+    assert.equal(await multiEditor.locator('.chart-block-item-row[data-chart-item-index="2"] button[data-chart-action="move-item-down"]').isDisabled(), true, "末尾項目の下へを無効化する");
+    assert.equal(await multiEditor.locator('.chart-block-item-row[data-chart-item-index="2"] button[data-chart-action="move-item-up"]').getAttribute("aria-label"), "3月を上へ移動", "項目名を含む上へボタンのアクセシブルな名前を付ける");
+    await multiEditor.locator('.chart-block-item-row[data-chart-item-index="2"] button[data-chart-action="move-item-up"]').click();
+    await page.waitForFunction(() => {
+      const current = window.MemoNexusChartBlockUtils.splitChartBlocks(document.getElementById("editor").value).find((segment) => segment.type === "chart")?.chart;
+      return current?.items.map((item) => item.label).join(",") === "1月,3月,2月"
+        && JSON.stringify(current.series.map((series) => series.values)) === JSON.stringify([[100, 120, 140], [30, 38, 45], [60, 70, 80]])
+        && document.activeElement?.getAttribute("data-chart-action") === "move-item-up"
+        && document.querySelector(".chart-block-editor .chart-block-status")?.textContent === "「3月」を2件目へ移動しました";
+    });
+    await page.waitForFunction(() => [...document.querySelectorAll("#preview .chart-block-label")].map((label) => label.textContent).join(",") === "1月,3月,2月");
+    assert.deepEqual(await page.locator("#preview .chart-block-label").allTextContents(), ["1月", "3月", "2月"], "集合棒の横軸を項目と全系列値の新しい対応へ更新する");
+    multiEditor = page.locator(".chart-block-editor");
+    await multiEditor.locator('.chart-block-item-row[data-chart-item-index="1"] button[data-chart-action="move-item-down"]').click();
+    await page.waitForFunction(() => window.MemoNexusChartBlockUtils.splitChartBlocks(document.getElementById("editor").value)
+      .find((segment) => segment.type === "chart")?.chart?.items.map((item) => item.label).join(",") === "1月,2月,3月");
+    multiEditor = page.locator(".chart-block-editor");
+    const invalidReorderValue = multiEditor.locator('.chart-block-item-row[data-chart-item-index="1"] input[data-chart-series-value][data-chart-series-index="0"]');
+    await invalidReorderValue.fill("Infinity");
+    await multiEditor.locator('.chart-block-item-row[data-chart-item-index="1"] button[data-chart-action="move-item-down"]').click();
+    await page.waitForFunction(() => document.activeElement?.getAttribute("aria-label") === "2件目の売上の数値" && document.querySelector(".chart-block-editor .chart-block-status")?.textContent === "数値は0以上の有限な数値を入力してください");
+    assert.equal(await invalidReorderValue.inputValue(), "Infinity", "不正な編集中の文字列を並べ替えで破棄しない");
+    assert.deepEqual((await chart(page)).items.map((item) => item.label), ["1月", "2月", "3月"], "不正値では項目を移動しない");
+    await invalidReorderValue.fill("140");
     const barMode = multiEditor.locator('select[aria-label="グラフ1の棒の表示方法"]');
     assert.equal(await barMode.inputValue(), "grouped", "旧形式の棒グラフは集合表示として開く");
     await barMode.selectOption("stacked");
@@ -726,6 +754,32 @@ function boxesOverlap(first, second) {
     await multiEditor.locator('button[data-chart-action="cancel"]').click();
     await page.waitForFunction(() => document.querySelector("#preview .chart-block-bar-chart")?.dataset.chartBarMode === "percent-stacked");
     await waitForChartCancelCompletion(page, 0);
+    multiEditor = page.locator(".chart-block-editor");
+    await multiEditor.locator('.chart-block-item-row[data-chart-item-index="1"] button[data-chart-action="move-item-down"]').click();
+    await page.waitForFunction(() => window.MemoNexusChartBlockUtils.splitChartBlocks(document.getElementById("editor").value)
+      .find((segment) => segment.type === "chart")?.chart?.items.map((item) => item.label).join(",") === "1月,3月,2月");
+    await multiEditor.locator('button[data-chart-action="cancel"]').click();
+    await waitForChartCancelCompletion(page, 0);
+    assert.deepEqual((await chart(page)).items.map((item) => item.label), ["1月", "2月", "3月"], "並べ替え後の取消で編集開始時の順序へ戻す");
+    multiEditor = page.locator(".chart-block-editor");
+    await multiEditor.locator('.chart-block-item-row[data-chart-item-index="1"] button[data-chart-action="move-item-down"]').click();
+    await page.waitForFunction(() => window.MemoNexusChartBlockUtils.splitChartBlocks(document.getElementById("editor").value)
+      .find((segment) => segment.type === "chart")?.chart?.items.map((item) => item.label).join(",") === "1月,3月,2月");
+    await multiEditor.locator('button[data-chart-action="confirm"]').click();
+    await page.waitForFunction(() => document.querySelector(".chart-block-editor .chart-block-status")?.textContent === "入力内容を保存しました");
+    await multiEditor.locator('select[aria-label="グラフ1の種類"]').selectOption("line");
+    await page.waitForFunction(() => document.querySelectorAll("#preview .chart-block-line-item").length === 6 && [...document.querySelectorAll("#preview .chart-block-label")].map((label) => label.textContent).join(",") === "1月,3月,2月");
+    await multiEditor.locator('select[aria-label="グラフ1の種類"]').selectOption("pie");
+    await waitForPieSlices(page, 3);
+    assert.deepEqual(await page.locator("#preview .chart-block-pie .sr-only li").allTextContents(), ["1月、売上: 100万円", "3月、売上: 120万円", "2月、売上: 140万円"], "円グラフも並べ替えた第1系列との対応を維持する");
+    await multiEditor.locator('select[aria-label="グラフ1の種類"]').selectOption("bar");
+    await page.waitForFunction(() => document.querySelectorAll("#preview .chart-block-bar").length === 6 && [...document.querySelectorAll("#preview .chart-block-label")].map((label) => label.textContent).join(",") === "1月,3月,2月");
+    await multiEditor.locator('button[data-chart-action="confirm"]').click();
+    await page.waitForFunction(() => document.querySelector(".chart-block-editor .chart-block-status")?.textContent === "入力内容を保存しました");
+    await page.reload({ waitUntil: "domcontentloaded" });
+    await page.locator("#appStartupGuard").waitFor({ state: "hidden" });
+    assert.deepEqual((await chart(page)).items.map((item) => item.label), ["1月", "3月", "2月"], "確定した並べ替えを再読み込み後も復元する");
+    multiEditor = page.locator(".chart-block-editor");
     await multiEditor.locator('.chart-block-series-row[data-chart-series-index="1"] button[data-chart-action="delete-series"]').click();
     await page.waitForFunction(() => {
       const editor = document.querySelector(".chart-block-editor");
