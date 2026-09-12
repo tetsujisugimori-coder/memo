@@ -56,6 +56,26 @@ async function waitForApp(page) {
   await page.locator("#editor").waitFor({ state: "visible" });
 }
 
+async function waitForPieSlices(page, expectedCount) {
+  try {
+    await page.waitForFunction((count) => document.querySelectorAll("#preview .chart-block-pie-slice").length === count, expectedCount);
+  } catch (error) {
+    const state = await page.evaluate(() => {
+      const chart = window.MemoNexusChartBlockUtils.splitChartBlocks(document.getElementById("editor").value)
+        .find((segment) => segment.type === "chart")?.chart;
+      return {
+        chartType: chart?.chartType,
+        itemLabels: chart?.items?.map((item) => item.label),
+        editorChartType: document.querySelector('.chart-block-editor select[data-chart-field="chartType"]')?.value,
+        previewClass: document.querySelector("#preview .chart-block")?.className,
+        previewSliceCount: document.querySelectorAll("#preview .chart-block-pie-slice").length
+      };
+    });
+    error.message = `${error.message}\nPie preview state: ${JSON.stringify(state)}`;
+    throw error;
+  }
+}
+
 function chart(page) {
   return page.evaluate(() => window.MemoNexusChartBlockUtils.splitChartBlocks(document.getElementById("editor").value)
     .find((segment) => segment.type === "chart")?.chart || null);
@@ -119,8 +139,17 @@ function boxesOverlap(first, second) {
     browser = await launchBrowser();
     const page = await browser.newPage({ viewport: { width: 1100, height: 820 } });
     const pageErrors = [];
+    const consoleErrors = [];
     page.on("pageerror", (error) => pageErrors.push(error.message));
-    await page.route("https://cdn.jsdelivr.net/**", (route) => route.fulfill({ contentType: "text/javascript", body: "window.katex={renderToString:String};window.mermaid={initialize(){},render:async()=>({svg:'<svg></svg>'})};window.hljs={highlightAuto:()=>({value:''}),getLanguage:()=>false};" }));
+    page.on("console", (message) => {
+      if (message.type() === "error") consoleErrors.push(message.text());
+    });
+    await page.route("https://cdn.jsdelivr.net/**", (route) => {
+      const pathname = new URL(route.request().url()).pathname.toLowerCase();
+      return pathname.endsWith(".css")
+        ? route.fulfill({ contentType: "text/css", body: "" })
+        : route.fulfill({ contentType: "text/javascript", body: "window.katex={renderToString:String};window.mermaid={initialize(){},render:async()=>({svg:'<svg></svg>'})};window.hljs={highlightAuto:()=>({value:''}),getLanguage:()=>false};" });
+    });
     await waitForApp(page);
     await page.locator("#editor").fill("グラフの前\nグラフの後");
     await page.locator("#insertChartBtn").click();
@@ -240,7 +269,7 @@ function boxesOverlap(first, second) {
     const pieEditor = page.locator(".chart-block-editor");
     assert.equal(await pieEditor.locator('input[aria-label="1件目の項目名"]').inputValue(), "国語", "折れ線グラフから円グラフへの切替でも項目名を保持する");
     assert.equal(await pieEditor.locator('input[aria-label="1件目の数値"]').inputValue(), "72.25", "折れ線グラフから円グラフへの切替でも数値を保持する");
-    await page.waitForFunction(() => document.querySelectorAll("#preview .chart-block-pie-slice").length === 2);
+    await waitForPieSlices(page, 2);
     assert.equal(await page.locator("#preview .chart-block-pie-label").count(), 2, "割合ラベルを既定で描画する");
     assert.match(await page.locator("#preview .chart-block-pie-label").first().textContent(), /72\.3%/, "割合は小数第1位で統一して丸める");
     const pieFills = await page.locator("#preview .chart-block-pie-slice").evaluateAll((slices) => slices.map((slice) => slice.getAttribute("fill")));
@@ -486,10 +515,101 @@ function boxesOverlap(first, second) {
       "2月、売上: 140万円", "2月、営業利益: 45万円", "2月、原価: 80万円",
       "3月、売上: 120万円", "3月、営業利益: 38万円", "3月、原価: 70万円"
     ], "積み上げ棒も全系列を読み上げ対象にする");
+    const valuesBeforePercentStacked = (await chart(page)).series.map((series) => series.values.slice());
+    await barMode.selectOption("percent-stacked");
+    await page.waitForFunction(() => {
+      const current = window.MemoNexusChartBlockUtils.splitChartBlocks(document.getElementById("editor").value).find((segment) => segment.type === "chart")?.chart;
+      return current?.appearance?.barMode === "percent-stacked" && document.querySelector("#preview .chart-block-bar-chart")?.dataset.chartBarMode === "percent-stacked";
+    });
+    assert.deepEqual((await chart(page)).series.map((series) => series.values), valuesBeforePercentStacked, "100%積み上げへの切替で元の実数値を変更しない");
+    const percentStackedMetrics = await page.locator("#preview .chart-block-percent-stacked-bar rect").evaluateAll((bars) => bars.map((bar) => ({
+      itemId: bar.closest(".chart-block-bar")?.dataset.chartItemId,
+      seriesId: bar.closest(".chart-block-bar")?.dataset.chartSeriesId,
+      x: Number(bar.getAttribute("x")), y: Number(bar.getAttribute("y")), height: Number(bar.getAttribute("height")), fill: bar.getAttribute("fill")
+    })));
+    assert.equal(percentStackedMetrics.length, 9, "3項目・3系列を100%積み上げとして描画する");
+    for (const itemId of ["jan", "feb", "mar"]) {
+      const segments = percentStackedMetrics.filter((segment) => segment.itemId === itemId);
+      assert.equal(new Set(segments.map((segment) => segment.x)).size, 1, `${itemId}の100%積み上げ系列は同じx位置を使う`);
+      assert.equal(segments[0].y + segments[0].height, 196, `${itemId}の第1系列は基線から積み上げる`);
+      assert.equal(segments.at(-1).y, 54, `${itemId}の棒は100%で同じ高さにする`);
+      assert.ok(segments.every((segment) => Number.isFinite(segment.y) && Number.isFinite(segment.height) && segment.height > 0), `${itemId}のSVG属性へNaNやInfinityを出さない`);
+    }
+    assert.deepEqual(percentStackedMetrics.slice(0, 3).map((segment) => [segment.seriesId, segment.fill]), (await chart(page)).series.map((series) => [series.id, series.color]), "100%積み上げでも系列順と色を維持する");
+    assert.deepEqual(await page.locator("#preview .chart-block-percent-stacked-value").allTextContents(), ["53%", "16%", "32%", "53%", "17%", "30%", "53%", "17%", "31%"], "値表示を未丸めの割合から一貫して丸める");
+    const percentLabelBoxes = await page.locator("#preview .chart-block-percent-stacked-value").evaluateAll((labels) => labels.map((label) => {
+      const text = label.getBoundingClientRect();
+      const rect = label.closest(".chart-block-bar")?.querySelector("rect")?.getBoundingClientRect();
+      return { text: { x: text.x, y: text.y, width: text.width, height: text.height }, rect: rect && { x: rect.x, y: rect.y, width: rect.width, height: rect.height } };
+    }));
+    assert.ok(percentLabelBoxes.every(({ text, rect }) => rect && text.x >= rect.x && text.y >= rect.y && text.x + text.width <= rect.x + rect.width && text.y + text.height <= rect.y + rect.height), "区間ラベルを対応する棒の内側へ安全に配置する");
+    assert.ok(percentLabelBoxes.every(({ text }, index) => percentLabelBoxes.slice(index + 1).every((other) => !boxesOverlap(text, other.text))), "表示した割合ラベルを重ねない");
+    assert.deepEqual(await page.locator("#preview .chart-block-percent-axis-value").allTextContents(), ["0%", "25%", "50%", "75%", "100%"], "100%積み上げのY軸を割合表示にする");
+    assert.deepEqual(await page.locator("#preview .chart-block-bar-chart .sr-only li").allTextContents(), [
+      "1月、売上: 100万円、53%、項目合計: 190万円", "1月、営業利益: 30万円、16%、項目合計: 190万円", "1月、原価: 60万円、32%、項目合計: 190万円",
+      "2月、売上: 140万円、53%、項目合計: 265万円", "2月、営業利益: 45万円、17%、項目合計: 265万円", "2月、原価: 80万円、30%、項目合計: 265万円",
+      "3月、売上: 120万円、53%、項目合計: 228万円", "3月、営業利益: 38万円、17%、項目合計: 228万円", "3月、原価: 70万円、31%、項目合計: 228万円"
+    ], "100%積み上げは元の値、割合、項目合計を読み上げ対象にする");
+    await barMode.selectOption("grouped");
+    await page.waitForFunction(() => document.querySelector("#preview .chart-block-bar-chart")?.dataset.chartBarMode === "grouped");
+    assert.deepEqual((await chart(page)).series.map((series) => series.values), valuesBeforePercentStacked, "集合へ戻しても元の実数値を復元する");
+    await barMode.selectOption("percent-stacked");
+    await page.waitForFunction(() => document.querySelector("#preview .chart-block-bar-chart")?.dataset.chartBarMode === "percent-stacked");
     await multiEditor.locator('input[aria-label="グラフ1の棒の上に数値を表示"]').uncheck();
     await page.waitForFunction(() => document.querySelectorAll("#preview .chart-block-stacked-value").length === 0);
     await multiEditor.locator('input[aria-label="グラフ1の棒の上に数値を表示"]').check();
     await page.waitForFunction(() => document.querySelectorAll("#preview .chart-block-stacked-value").length > 0);
+    for (const viewportWidth of [320, 375, 390, 430]) {
+      await page.setViewportSize({ width: viewportWidth, height: 760 });
+      await page.waitForFunction((width) => innerWidth === width && document.body.dataset.layoutMode === "mobile", viewportWidth);
+      const contextPanel = page.locator("#contextPanel");
+      if (await contextPanel.getAttribute("aria-hidden") !== "true") {
+        await page.locator("#closeContextPanelBtn").click();
+        await page.waitForFunction(() => document.getElementById("contextPanel")?.getAttribute("aria-hidden") === "true");
+      }
+      await page.evaluate(() => window.scrollTo(0, 0));
+      const cardPaneButton = page.locator("#cardPaneBtn");
+      if (await cardPaneButton.getAttribute("aria-expanded") !== "true") {
+        const cardPaneClickPoint = await page.evaluate(() => {
+          const button = document.getElementById("cardPaneBtn");
+          if (!button) return null;
+          const rect = button.getBoundingClientRect();
+          for (let y = 2; y < rect.height - 1; y += 2) {
+            for (let x = 2; x < rect.width - 1; x += 2) {
+              const hit = document.elementFromPoint(Math.round(rect.left + x), Math.round(rect.top + y));
+              if (hit === button || button.contains(hit)) return { x: Math.round(x), y: Math.round(y) };
+            }
+          }
+          return null;
+        });
+        assert.ok(cardPaneClickPoint, `${viewportWidth}pxで100%積み上げカード表示ボタンの実ヒット領域を持つ`);
+        await cardPaneButton.click({ position: cardPaneClickPoint });
+      }
+      await page.waitForFunction(() => document.getElementById("previewCard")?.getAttribute("aria-hidden") === "false");
+      await page.waitForFunction(() => {
+        const card = document.getElementById("previewCard")?.getBoundingClientRect();
+        return card && card.left >= 0 && card.right <= window.innerWidth;
+      });
+      const percentMobileMetrics = await page.locator("#preview .chart-block-percent-stacked-bar-chart, #preview .chart-block-bar-chart[data-chart-bar-mode='percent-stacked']").evaluate((element) => {
+        const select = document.querySelector('.chart-block-editor select[aria-label="グラフ1の棒の表示方法"]')?.getBoundingClientRect();
+        const table = document.querySelector(".chart-block-item-table");
+        const card = element.getBoundingClientRect();
+        return {
+          card: { left: card.left, right: card.right, width: card.width },
+          select: select && { left: select.left, right: select.right },
+          documentOverflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+          bodyOverflow: document.body.scrollWidth - document.body.clientWidth,
+          tableScrollable: table?.scrollWidth > table?.clientWidth
+        };
+      });
+      assert.ok(percentMobileMetrics.card.left >= -0.5 && percentMobileMetrics.card.right <= viewportWidth + 0.5, `${viewportWidth}pxで100%積み上げカードを画面内へ収める`);
+      assert.ok(percentMobileMetrics.select && percentMobileMetrics.select.left >= -0.5 && percentMobileMetrics.select.right <= viewportWidth + 0.5, `${viewportWidth}pxで棒の表示方法を操作可能にする`);
+      assert.equal(percentMobileMetrics.documentOverflow, 0, `${viewportWidth}pxでdocumentの横スクロールを作らない`);
+      assert.equal(percentMobileMetrics.bodyOverflow, 0, `${viewportWidth}pxでbodyの横スクロールを作らない`);
+      assert.equal(percentMobileMetrics.tableScrollable, true, `${viewportWidth}pxで入力表だけを横スクロール可能にする`);
+    }
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.waitForFunction(() => document.body.dataset.layoutMode === "wide");
     await multiEditor.locator('button[data-chart-action="confirm"]').click();
     await page.waitForFunction(() => document.querySelector(".chart-block-editor .chart-block-status")?.textContent === "入力内容を保存しました");
     await multiEditor.locator('select[aria-label="グラフ1の種類"]').selectOption("line");
@@ -506,7 +626,7 @@ function boxesOverlap(first, second) {
     const lineMetrics = await page.locator("#preview .chart-block-line-point").evaluateAll((points) => points.map((point) => ({ cy: Number(point.getAttribute("cy")), stroke: point.getAttribute("stroke") })));
     assert.ok(lineMetrics.every((point) => Number.isFinite(point.cy) && point.cy >= 0), "複数系列の折れ線SVGへ不正な座標を渡さない");
     assert.ok(lineMetrics.some((point) => point.cy === 42), "全系列の最大値140を折れ線の共通スケールへ使う");
-    for (const viewportWidth of [320, 390]) {
+    for (const viewportWidth of [320, 375, 390, 430]) {
       await page.setViewportSize({ width: viewportWidth, height: 760 });
       await page.waitForFunction((width) => innerWidth === width && document.body.dataset.layoutMode === "mobile", viewportWidth);
       const contextPanel = page.locator("#contextPanel");
@@ -566,7 +686,7 @@ function boxesOverlap(first, second) {
     assert.deepEqual(await page.locator("#preview .chart-block-pie .sr-only li").allTextContents(), ["1月、売上: 100万円", "2月、売上: 140万円", "3月、売上: 120万円"], "円グラフは第1系列だけを読み上げ対象にする");
     await page.locator('.chart-block-editor select[aria-label="グラフ1の種類"]').selectOption("bar");
     await page.waitForFunction(() => document.querySelectorAll("#preview .chart-block-bar").length === 9);
-    assert.equal((await chart(page)).appearance.barMode, "stacked", "棒から折れ線、円を経由しても積み上げ設定を保持する");
+    assert.equal((await chart(page)).appearance.barMode, "percent-stacked", "棒から折れ線、円を経由しても100%積み上げ設定を保持する");
     assert.equal(await page.locator("#preview .chart-block-bar-chart .sr-only li").count(), 9, "棒グラフへ戻すと全系列を再び読み上げ対象にする");
     multiEditor = page.locator(".chart-block-editor");
     await multiEditor.locator('button[data-chart-action="add-item"]').click();
@@ -574,6 +694,8 @@ function boxesOverlap(first, second) {
     const newRow = multiEditor.locator('.chart-block-item-row[data-chart-item-index="3"]');
     await newRow.locator('input[data-chart-item-field="label"]').fill("4月");
     assert.deepEqual(await newRow.locator('input[data-chart-series-value]').evaluateAll((inputs) => inputs.map((input) => input.value)), ["0", "0", "0"], "項目追加時に全系列の値を0で初期化する");
+    await page.waitForFunction(() => document.querySelectorAll('#preview .chart-block-percent-stacked-bar[data-chart-item-id]').length === 12 && document.querySelectorAll('#preview .chart-block-percent-stacked-bar[data-chart-item-id] rect').length === 9);
+    assert.equal(await page.locator('#preview .chart-block-percent-stacked-bar[data-chart-item-id] text').count(), 9, "合計0の項目では棒区間と割合ラベルを表示しない");
     await newRow.locator('button[data-chart-action="delete-item"]').click();
     await page.waitForFunction(() => window.MemoNexusChartBlockUtils.splitChartBlocks(document.getElementById("editor").value)
       .find((segment) => segment.type === "chart")?.chart?.series?.[2]?.values.join(",") === "60,80,70");
@@ -598,11 +720,11 @@ function boxesOverlap(first, second) {
     assert.deepEqual(await chart(page), multiBeforeReload, "複数系列を保存・再読み込み後も復元する");
     assert.equal(await page.locator("#preview .chart-block-bar").count(), 6, "再読み込み後も集合棒を復元する");
     multiEditor = page.locator(".chart-block-editor");
-    assert.equal(await multiEditor.locator('select[aria-label="グラフ1の棒の表示方法"]').inputValue(), "stacked", "再読み込み後も積み上げ表示を復元する");
+    assert.equal(await multiEditor.locator('select[aria-label="グラフ1の棒の表示方法"]').inputValue(), "percent-stacked", "再読み込み後も100%積み上げ表示を復元する");
     await multiEditor.locator('select[aria-label="グラフ1の棒の表示方法"]').selectOption("grouped");
     await page.waitForFunction(() => document.querySelector("#preview .chart-block-bar-chart")?.dataset.chartBarMode === "grouped");
     await multiEditor.locator('button[data-chart-action="cancel"]').click();
-    await page.waitForFunction(() => document.querySelector("#preview .chart-block-bar-chart")?.dataset.chartBarMode === "stacked");
+    await page.waitForFunction(() => document.querySelector("#preview .chart-block-bar-chart")?.dataset.chartBarMode === "percent-stacked");
     await waitForChartCancelCompletion(page, 0);
     await multiEditor.locator('.chart-block-series-row[data-chart-series-index="1"] button[data-chart-action="delete-series"]').click();
     await page.waitForFunction(() => {
@@ -618,6 +740,7 @@ function boxesOverlap(first, second) {
     assert.ok(metrics.card <= metrics.viewport, "390px幅でもグラフカードが画面からはみ出さない");
     assert.equal(metrics.pageOverflow, 0, "390px幅でもページ全体の横スクロールを作らない");
     assert.deepEqual(pageErrors, [], `ページエラーなし: ${pageErrors.join("\n")}`);
+    assert.deepEqual(consoleErrors, [], `console errorなし: ${consoleErrors.join("\n")}`);
   } catch (error) {
     runError = error;
     throw error;

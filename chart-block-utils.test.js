@@ -97,13 +97,18 @@ test("種類を棒から折れ線、円、棒へ切り替えてもID、共通デ
 test("棒の表示方法は既定の集合へ正規化し、種類切替後も積み上げ設定を保持する", () => {
   const legacy = normalizeChartBlock({ id: "legacy", chartType: "bar", items: [{ label: "1月", value: 1 }] });
   const stacked = normalizeChartBlock({ ...legacy, appearance: { ...legacy.appearance, barMode: "stacked" } });
+  const percentStacked = normalizeChartBlock({ ...legacy, appearance: { ...legacy.appearance, barMode: "percent-stacked" } });
   const invalid = normalizeChartBlock({ ...legacy, appearance: { ...legacy.appearance, barMode: "percent" } });
   assert.equal(legacy.appearance.barMode, "grouped");
   assert.equal(stacked.appearance.barMode, "stacked");
+  assert.equal(percentStacked.appearance.barMode, "percent-stacked");
   assert.equal(invalid.appearance.barMode, "grouped");
   assert.equal(normalizeChartBlock({ ...stacked, chartType: "line" }).appearance.barMode, "stacked");
   assert.equal(normalizeChartBlock({ ...stacked, chartType: "pie" }).appearance.barMode, "stacked");
   assert.equal(parseChartBlockLine(serializeChartBlock(stacked)).appearance.barMode, "stacked");
+  assert.equal(normalizeChartBlock({ ...percentStacked, chartType: "line" }).appearance.barMode, "percent-stacked");
+  assert.equal(normalizeChartBlock({ ...percentStacked, chartType: "pie" }).appearance.barMode, "percent-stacked");
+  assert.equal(parseChartBlockLine(serializeChartBlock(percentStacked)).appearance.barMode, "percent-stacked");
 });
 
 test("積み上げ棒の座標は系列順を保ち、同じ項目で連続して積み上がる", () => {
@@ -142,6 +147,89 @@ test("積み上げ棒は0、単一系列、巨大値でも有限で負でない�
   assert.ok(zero.segments.every((segment) => segment.height === 0), "全値0では高さ0にする");
   assert.equal(single.segments[0].height, 142, "単一系列は既存棒と同じプロット高を使う");
   assert.equal(Math.min(...huge.segments.filter((segment) => segment.item.id === "one").map((segment) => segment.y)), 54, "巨大値の最大積み上げも上端を越えない");
+});
+
+test("100%積み上げは項目ごとの割合をscaleBase経由で安全に計算し、元値を変えない", () => {
+  const items = [{ id: "first", label: "60と40" }, { id: "second", label: "90と60" }, { id: "decimal", label: "小数" }];
+  const series = [
+    { id: "a", name: "A", values: [60, 90, 1.25] },
+    { id: "b", name: "B", values: [40, 60, 3.75] }
+  ];
+  const sourceValues = series.map((entry) => entry.values.slice());
+  const layout = stackedBarSegments(items, series, { width: 466, top: 54, baseline: 196, mode: "percent-stacked" });
+  assert.equal(layout.mode, "percent-stacked");
+  assert.deepEqual(layout.segments.map((segment) => Math.round(segment.percentage * 1000) / 1000), [60, 40, 60, 40, 25, 75]);
+  for (const item of items) {
+    const segments = layout.segments.filter((segment) => segment.item.id === item.id);
+    assert.equal(segments[0].y + segments[0].height, 196, `${item.label}の第1系列は基線から開始する`);
+    assert.equal(segments.at(-1).y, 54, `${item.label}は合計100%で上端に届く`);
+    assert.equal(segments.reduce((sum, segment) => sum + segment.percentage, 0), 100, `${item.label}の未丸め割合は100%になる`);
+  }
+  assert.deepEqual(series.map((entry) => entry.values), sourceValues, "割合を入力元の値配列へ上書きしない");
+});
+
+test("100%積み上げは項目単位の安全な縮小で極端な桁差を保ち、通常積み上げを変えない", () => {
+  const items = [{ id: "huge", label: "巨大" }, { id: "tiny", label: "微小" }, { id: "zero", label: "全0" }];
+  const series = [
+    { id: "a", values: [1e308, 1e-300, 0] },
+    { id: "b", values: [1e308, 1e-300, 0] }
+  ];
+  const sourceValues = series.map((entry) => entry.values.slice());
+  const percent = stackedBarSegments(items, series, { mode: "percent-stacked" });
+  const stacked = stackedBarSegments(items, series);
+
+  for (const itemId of ["huge", "tiny"]) {
+    const segments = percent.segments.filter((segment) => segment.item.id === itemId);
+    assert.deepEqual(segments.map((segment) => segment.percentage), [50, 50], `${itemId}の同値2系列は50%ずつになる`);
+    assert.equal(segments.at(-1).y, 54, `${itemId}は正の値があれば100%まで描画する`);
+    assert.ok(segments.every((segment) => [segment.percentage, segment.y, segment.height, segment.stackStart, segment.stackEnd].every(Number.isFinite)), `${itemId}の割合と描画用数値を有限にする`);
+  }
+  assert.ok(percent.segments.filter((segment) => segment.item.id === "zero").every((segment) => segment.height === 0 && segment.percentage === 0), "全0項目だけを空の棒にする");
+  assert.deepEqual(series.map((entry) => entry.values), sourceValues, "項目ごとの割合計算も元の系列値配列を変更しない");
+  assert.equal(stacked.scaleBase, 1e308, "通常積み上げは従来どおり全項目共通のscaleBaseを使う");
+  assert.ok(stacked.segments.filter((segment) => segment.item.id === "tiny").every((segment) => segment.height === 0), "通常積み上げの既存の極端な桁差の結果を変えない");
+});
+
+test("100%積み上げは0、単一系列、巨大有限値、系列の追加削除後も有限に再計算する", () => {
+  const items = [{ id: "zero", label: "全0" }, { id: "partial", label: "一部0" }, { id: "single", label: "単一" }];
+  const initial = [
+    { id: "a", values: [0, 0, 8] },
+    { id: "b", values: [0, 4, 0] },
+    { id: "c", values: [0, 0, 0] }
+  ];
+  const zeroAndPartial = stackedBarSegments(items, initial, { mode: "percent-stacked" });
+  assert.ok(zeroAndPartial.segments.filter((segment) => segment.item.id === "zero").every((segment) => segment.height === 0 && segment.percentage === 0), "合計0では空の棒にする");
+  assert.deepEqual(zeroAndPartial.segments.filter((segment) => segment.item.id === "partial").map((segment) => segment.percentage), [0, 100, 0], "一部0でも残りの系列を100%にする");
+  assert.deepEqual(zeroAndPartial.segments.filter((segment) => segment.item.id === "single").map((segment) => segment.percentage), [100, 0, 0], "1系列だけの項目を100%にする");
+  const reduced = stackedBarSegments(items.slice(1), [
+    { ...initial[0], values: initial[0].values.slice(1) },
+    { ...initial[1], values: initial[1].values.slice(1) }
+  ], { mode: "percent-stacked" });
+  assert.deepEqual(reduced.segments.filter((segment) => segment.item.id === "partial").map((segment) => segment.percentage), [0, 100], "系列と項目の削除後も現在の全系列だけで再計算する");
+  const huge = stackedBarSegments([{ id: "huge", label: "巨大" }], [
+    { id: "a", values: [1e308] }, { id: "b", values: [1e308] }, { id: "c", values: [1e307] }
+  ], { mode: "percent-stacked" });
+  assert.ok(huge.segments.every((segment) => [segment.x, segment.y, segment.width, segment.height, segment.percentage].every(Number.isFinite) && segment.height >= 0), "巨大な有限値でもSVG用の値にNaNやInfinityを出さない");
+  assert.equal(huge.groups[0].total, null, "表現不能な元値合計をInfinityとして公開しない");
+});
+
+test("集合、積み上げ、100%積み上げの切替は元データを変えず、保存後も復元する", () => {
+  const source = normalizeChartBlock({
+    id: "percent-switch", chartType: "bar", items: [{ id: "a", label: "" }, { id: "b", label: "B" }],
+    series: [{ id: "one", name: "", values: [60, 90] }, { id: "two", name: "B", values: [40, 60] }],
+    appearance: { barMode: "grouped", showLegend: true }
+  });
+  const values = source.series.map((series) => series.values.slice());
+  const grouped = normalizeChartBlock(source);
+  const stacked = normalizeChartBlock({ ...grouped, appearance: { ...grouped.appearance, barMode: "stacked" } });
+  const percent = normalizeChartBlock({ ...stacked, appearance: { ...stacked.appearance, barMode: "percent-stacked" } });
+  const restored = parseChartBlockLine(serializeChartBlock({ ...percent, chartType: "line" }));
+  assert.deepEqual(grouped.series.map((series) => series.values), values);
+  assert.deepEqual(stacked.series.map((series) => series.values), values);
+  assert.deepEqual(percent.series.map((series) => series.values), values);
+  assert.deepEqual(restored.series.map((series) => series.values), values, "種類切替と保存後も全系列の元値を保持する");
+  assert.equal(restored.appearance.barMode, "percent-stacked");
+  assert.equal(restored.items[0].label, "", "空の項目名も保存データから失わない");
 });
 
 test("折れ線の座標は入力順を保ち、0件・1件・同値・小数でも有限にする", () => {
