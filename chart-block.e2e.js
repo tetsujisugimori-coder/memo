@@ -310,7 +310,7 @@ function boxesOverlap(first, second) {
     await page.locator('.chart-block-editor button[data-chart-action="confirm"]').click();
     await page.waitForFunction(() => document.querySelector(".chart-block-editor .chart-block-status")?.textContent === "入力内容を保存しました");
     const beforeReload = await chart(page);
-    assert.deepEqual(beforeReload.appearance, { color: "#dc2626", barMode: "grouped", showValues: true, showPoints: true, showLegend: true, pieLabelMode: "percentage" }, "棒グラフへ戻しても色・数値・点・凡例設定を保存する");
+    assert.deepEqual(beforeReload.appearance, { color: "#dc2626", barMode: "grouped", showStackTotals: false, showValues: true, showPoints: true, showLegend: true, pieLabelMode: "percentage" }, "棒グラフへ戻しても色・数値・点・凡例設定を保存する");
     await page.reload({ waitUntil: "domcontentloaded" });
     await page.locator("#appStartupGuard").waitFor({ state: "hidden" });
     assert.deepEqual(await chart(page), beforeReload, "再読み込み後もグラフ保存データを復元する");
@@ -629,6 +629,40 @@ function boxesOverlap(first, second) {
       "2月、売上: 140万円", "2月、営業利益: 45万円", "2月、原価: 80万円",
       "3月、売上: 120万円", "3月、営業利益: 38万円", "3月、原価: 70万円"
     ], "積み上げ棒も全系列を読み上げ対象にする");
+    const stackTotals = multiEditor.locator('input[aria-label="グラフ1の合計値を表示"]');
+    assert.equal(await stackTotals.isChecked(), false, "新規の合計値表示はオフで始める");
+    await stackTotals.check();
+    await page.waitForFunction(() => {
+      const current = window.MemoNexusChartBlockUtils.splitChartBlocks(document.getElementById("editor").value).find((segment) => segment.type === "chart")?.chart;
+      return current?.appearance?.showStackTotals === true && document.querySelectorAll("#preview .chart-block-stacked-total-value").length === 3;
+    });
+    assert.deepEqual(await page.locator("#preview .chart-block-stacked-total-value").allTextContents(), ["190", "265", "228"], "各積み上げ棒の上へ系列合計を表示する");
+    assert.deepEqual(await page.locator("#preview .chart-block-bar-chart .sr-only li").allTextContents(), [
+      "1月、売上: 100万円", "1月、営業利益: 30万円", "1月、原価: 60万円", "1月、合計190万円",
+      "2月、売上: 140万円", "2月、営業利益: 45万円", "2月、原価: 80万円", "2月、合計265万円",
+      "3月、売上: 120万円", "3月、営業利益: 38万円", "3月、原価: 70万円", "3月、合計228万円"
+    ], "合計表示時は項目名と合計をスクリーンリーダーへ追加する");
+    const totalLabelBoxes = await page.locator("#preview .chart-block-stacked-total-value").evaluateAll((labels) => labels.map((label) => {
+      const total = label.getBoundingClientRect();
+      const segment = label.closest(".chart-block-bar-group")?.querySelector(".chart-block-stacked-value")?.getBoundingClientRect();
+      const svg = label.ownerSVGElement?.getBoundingClientRect();
+      return { total: { x: total.x, y: total.y, width: total.width, height: total.height }, segment: segment && { x: segment.x, y: segment.y, width: segment.width, height: segment.height }, svg: svg && { top: svg.top, bottom: svg.bottom } };
+    }));
+    assert.ok(totalLabelBoxes.every(({ total, segment, svg }) => total.y >= svg.top && total.y + total.height <= svg.bottom && (!segment || !boxesOverlap(total, segment))), "合計ラベルをSVG内かつ系列値と重ならない位置へ置く");
+    const valuesToggle = multiEditor.locator('input[aria-label="グラフ1の棒の上に数値を表示"]');
+    await valuesToggle.uncheck();
+    await page.waitForFunction(() => document.querySelectorAll("#preview .chart-block-stacked-value").length === 0 && document.querySelectorAll("#preview .chart-block-stacked-total-value").length === 3);
+    await valuesToggle.check();
+    await page.waitForFunction(() => document.querySelectorAll("#preview .chart-block-stacked-value").length > 0);
+    await barMode.selectOption("percent-stacked");
+    await page.waitForFunction(() => document.querySelector("#preview .chart-block-bar-chart")?.dataset.chartBarMode === "percent-stacked" && document.querySelectorAll("#preview .chart-block-stacked-total-value").length === 0);
+    assert.equal(await multiEditor.locator('input[aria-label="グラフ1の合計値を表示"]').count(), 0, "100%積み上げでは合計値の操作欄を表示しない");
+    await barMode.selectOption("grouped");
+    await page.waitForFunction(() => document.querySelector("#preview .chart-block-bar-chart")?.dataset.chartBarMode === "grouped" && document.querySelectorAll("#preview .chart-block-stacked-total-value").length === 0);
+    assert.equal(await multiEditor.locator('input[aria-label="グラフ1の合計値を表示"]').count(), 0, "集合棒では合計値の操作欄を表示しない");
+    await barMode.selectOption("stacked");
+    await page.waitForFunction(() => document.querySelector("#preview .chart-block-bar-chart")?.dataset.chartBarMode === "stacked" && document.querySelectorAll("#preview .chart-block-stacked-total-value").length === 3);
+    assert.equal(await multiEditor.locator('input[aria-label="グラフ1の合計値を表示"]').isChecked(), true, "通常積み上げへ戻すと保存中の合計値設定を復元する");
     const valuesBeforePercentStacked = (await chart(page)).series.map((series) => series.values.slice());
     await barMode.selectOption("percent-stacked");
     await page.waitForFunction(() => {

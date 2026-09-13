@@ -470,6 +470,7 @@ const {
   chartDisplaySeries,
   chartValueMaximum,
   createChartBlock,
+  formatChartStackTotal,
   insertChartBlock,
   lineChartPoints,
   lineChartWidth,
@@ -480,6 +481,7 @@ const {
   PIE_CHART_COLORS,
   pieChartSegments,
   replaceChartBlock,
+  shouldShowStackTotals,
   stackedBarSegments,
   splitChartBlocks
 } = window.MemoNexusChartBlockUtils;
@@ -8401,7 +8403,11 @@ function chartDisplayItems(chart, series = chart.series[0]) {
     .filter((item) => item.label && Number.isFinite(item.value) && item.value >= 0);
 }
 
-function chartAccessibleItems(chart, percentStackedLayout = null) {
+function chartStackTotalDisplay(total) {
+  return formatChartStackTotal(total);
+}
+
+function chartAccessibleItems(chart, percentStackedLayout = null, stackedTotals = null) {
   if (percentStackedLayout) {
     return percentStackedLayout.groups.flatMap((group) => group.entries.map((entry) => {
       const segment = percentStackedLayout.segments.find((candidate) => candidate.itemIndex === group.itemIndex && candidate.seriesIndex === entry.seriesIndex);
@@ -8412,9 +8418,15 @@ function chartAccessibleItems(chart, percentStackedLayout = null) {
     })).join("");
   }
   const accessibleSeries = chartDisplaySeries(chart);
-  return chart.items.filter((item) => item.label).flatMap((item, itemIndex) => accessibleSeries.map((series) =>
-    `<li>${escapeHtml(`${item.label}、${series.name}: ${chartDisplayNumber(series.values[itemIndex])}${chart.unit}`)}</li>`
-  )).join("");
+  const totalsByItemIndex = new Map((Array.isArray(stackedTotals) ? stackedTotals : []).map((entry) => [entry.itemIndex, entry]));
+  return chart.items.filter((item) => item.label).flatMap((item, itemIndex) => {
+    const entries = accessibleSeries.map((series) =>
+      `<li>${escapeHtml(`${item.label}、${series.name}: ${chartDisplayNumber(series.values[itemIndex])}${chart.unit}`)}</li>`
+    );
+    const total = totalsByItemIndex.get(itemIndex);
+    if (total) entries.push(`<li>${escapeHtml(`${item.label}、合計${chartStackTotalDisplay(total)}${chart.unit}`)}</li>`);
+    return entries;
+  }).join("");
 }
 
 function chartDisplayNumber(value) {
@@ -8547,15 +8559,19 @@ function renderChartBlock(chartValue, blockIndex, { editable = true } = {}) {
   const barItems = chart.items.filter((item) => item.label);
   const percentStacked = chart.appearance.barMode === "percent-stacked";
   const stacked = chart.appearance.barMode === "stacked" || percentStacked;
-  const percentStackedLayout = percentStacked
-    ? stackedBarSegments(chart.items, chart.series, { width, top: 54, baseline, mode: "percent-stacked" })
+  const showStackTotals = shouldShowStackTotals(chart);
+  const stackedPlotTop = showStackTotals ? 64 : 54;
+  const stackedLayout = stacked
+    ? stackedBarSegments(chart.items, chart.series, { width, top: stackedPlotTop, baseline, mode: percentStacked ? "percent-stacked" : "stacked" })
     : null;
-  if (percentStackedLayout) accessibleItems = chartAccessibleItems(chart, percentStackedLayout);
+  if (percentStacked) accessibleItems = chartAccessibleItems(chart, stackedLayout);
+  else if (showStackTotals) accessibleItems = chartAccessibleItems(chart, null, stackedLayout?.groups);
   const bars = stacked
     ? (() => {
-      const layout = percentStackedLayout || stackedBarSegments(chart.items, chart.series, { width, top: 54, baseline });
+      const layout = stackedLayout;
       return layout.groups.map((group) => {
-        const segments = layout.segments.filter((segment) => segment.itemIndex === group.itemIndex).map((segment) => {
+        const groupSegments = layout.segments.filter((segment) => segment.itemIndex === group.itemIndex);
+        const segments = groupSegments.map((segment) => {
           const rect = segment.height > 0
             ? `<rect x="${segment.x}" y="${segment.y}" width="${segment.width}" height="${segment.height}" fill="${escapeAttr(segment.series.color)}"></rect>`
             : "";
@@ -8568,8 +8584,13 @@ function renderChartBlock(chartValue, blockIndex, { editable = true } = {}) {
             : `${segment.item.label}、${segment.series.name}: ${chartDisplayNumber(segment.value)}${chart.unit}`;
           return `<g class="chart-block-bar chart-block-stacked-bar${percentStacked ? " chart-block-percent-stacked-bar" : ""}" data-chart-item-id="${escapeAttr(segment.item.id)}" data-chart-series-id="${escapeAttr(segment.series.id)}"><title>${escapeHtml(title)}</title>${rect}${value}</g>`;
         }).join("");
-        const labelX = layout.segments.find((segment) => segment.itemIndex === group.itemIndex)?.x + (layout.segments.find((segment) => segment.itemIndex === group.itemIndex)?.width / 2);
-        return `<g class="chart-block-bar-group" data-chart-item-id="${escapeAttr(group.item.id)}">${segments}<text class="chart-block-label" x="${labelX}" y="${baseline + 22}" text-anchor="middle">${escapeHtml(chartLabel(group.item.label))}</text></g>`;
+        const firstSegment = groupSegments[0];
+        const labelX = firstSegment.x + firstSegment.width / 2;
+        const topY = Math.min(...groupSegments.map((segment) => segment.y));
+        const totalLabel = showStackTotals
+          ? `<text class="chart-block-stacked-total-value" data-chart-total-overflow="${group.totalOverflow ? "true" : "false"}" x="${labelX}" y="${Math.max(34, topY - 8)}" text-anchor="middle">${escapeHtml(chartStackTotalDisplay({ total: group.total, overflow: group.totalOverflow }))}</text>`
+          : "";
+        return `<g class="chart-block-bar-group" data-chart-item-id="${escapeAttr(group.item.id)}">${segments}${totalLabel}<text class="chart-block-label" x="${labelX}" y="${baseline + 22}" text-anchor="middle">${escapeHtml(chartLabel(group.item.label))}</text></g>`;
       }).join("");
     })()
     : (() => {
@@ -8717,6 +8738,17 @@ function createChartEditor(chartValue, blockIndex, snapshotKey) {
       });
       barModeLabel.append(barMode);
       appearance.append(barModeLabel);
+      if (chart.appearance.barMode === "stacked") {
+        const totalsLabel = document.createElement("label");
+        totalsLabel.className = "chart-block-appearance-checkbox";
+        const totals = document.createElement("input");
+        totals.type = "checkbox";
+        totals.dataset.chartField = "showStackTotals";
+        totals.checked = chart.appearance.showStackTotals;
+        totals.setAttribute("aria-label", `グラフ${blockIndex + 1}の合計値を表示`);
+        totalsLabel.append(totals, document.createTextNode("合計値を表示"));
+        appearance.append(totalsLabel);
+      }
       const legendLabel = document.createElement("label");
       legendLabel.className = "chart-block-appearance-checkbox";
       const legend = document.createElement("input");
@@ -9037,7 +9069,7 @@ function handleChartEditorInput(event) {
     if (field === "label") renamedItemIndex = itemIndex;
   } else if (event.target.dataset.chartField === "color") {
     next.appearance = { ...next.appearance, color: event.target.value };
-  } else if (["showValues", "showPoints", "showLegend"].includes(event.target.dataset.chartField)) {
+  } else if (["showStackTotals", "showValues", "showPoints", "showLegend"].includes(event.target.dataset.chartField)) {
     if (next.appearance[event.target.dataset.chartField] === event.target.checked) return;
     next.appearance = { ...next.appearance, [event.target.dataset.chartField]: event.target.checked };
   } else if (event.target.dataset.chartField === "barMode") {
@@ -9065,12 +9097,12 @@ function handleChartEditorInput(event) {
   }
   chartEditorStatus(editorBlock, "");
   renderChartEditorPreview(editorBlock.querySelector(".chart-block-editor-preview"), next, blockIndex);
-  commitChartBlockChange(blockIndex, chartId, next, { rerenderEditors: event.target.dataset.chartField === "chartType", snapshotKey });
+  commitChartBlockChange(blockIndex, chartId, next, { rerenderEditors: ["chartType", "barMode"].includes(event.target.dataset.chartField), snapshotKey });
 }
 
 function handleChartEditorChange(event) {
   const target = event.target;
-  if (target?.matches?.('input[type="checkbox"][data-chart-field]') && ["showValues", "showPoints", "showLegend"].includes(target.dataset.chartField)) {
+  if (target?.matches?.('input[type="checkbox"][data-chart-field]') && ["showStackTotals", "showValues", "showPoints", "showLegend"].includes(target.dataset.chartField)) {
     handleChartEditorInput(event);
   }
 }
