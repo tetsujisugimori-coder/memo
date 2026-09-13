@@ -130,6 +130,24 @@
     };
   }
 
+  function moveChartSeries(chartValue, seriesIndex, direction) {
+    const chart = normalizeChartBlock(chartValue, chartValue?.id);
+    if (!Number.isInteger(seriesIndex) || !Number.isInteger(direction)) return chart;
+    const destinationIndex = seriesIndex + direction;
+    if (seriesIndex < 0 || seriesIndex >= chart.series.length || destinationIndex < 0 || destinationIndex >= chart.series.length) return chart;
+    const series = chart.series.map((entry, index) => {
+      if (index === seriesIndex) return chart.series[destinationIndex];
+      if (index === destinationIndex) return chart.series[seriesIndex];
+      return entry;
+    });
+    return {
+      ...chart,
+      series,
+      // appearance.color remains a compatibility mirror of the first series.
+      appearance: { ...chart.appearance, color: series[0].color }
+    };
+  }
+
   function createChartBlock(id) {
     return normalizeChartBlock({
       type: "chart",
@@ -345,6 +363,7 @@
     lineChartPoints,
     lineChartWidth,
     moveChartItem,
+    moveChartSeries,
     nonNegativeFiniteNumber,
     normalizeChartBlock,
     parseChartBlockLine,

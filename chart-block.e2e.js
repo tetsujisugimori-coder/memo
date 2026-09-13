@@ -158,6 +158,8 @@ function boxesOverlap(first, second) {
     assert.equal(await editor.locator('button[data-chart-action="move-item-up"]').isDisabled(), true, "1項目だけでは上へを無効化する");
     assert.equal(await editor.locator('button[data-chart-action="move-item-down"]').isDisabled(), true, "1項目だけでは下へを無効化する");
     assert.equal(await editor.locator('button[data-chart-action="move-item-up"]').getAttribute("aria-label"), "1件目の項目を上へ移動", "空の項目名は項目番号で移動操作を識別する");
+    assert.equal(await editor.locator('button[data-chart-action="move-series-up"]').isDisabled(), true, "1系列だけでは系列の上へを無効化する");
+    assert.equal(await editor.locator('button[data-chart-action="move-series-down"]').isDisabled(), true, "1系列だけでは系列の下へを無効化する");
     await editor.locator('input[aria-label="グラフ1のタイトル"]').fill("テスト得点");
     await editor.locator('input[aria-label="グラフ1の単位"]').fill("点");
     await editor.locator('input[aria-label="1件目の項目名"]').fill("国語");
@@ -449,6 +451,8 @@ function boxesOverlap(first, second) {
       return header === "売上"
         && labels.join(",") === "1件目の売上の数値,2件目の売上の数値,3件目の売上の数値"
         && legend === "売上,系列 2"
+        && editor?.querySelector('.chart-block-series-row[data-chart-series-index="0"] button[data-chart-action="move-series-up"]')?.getAttribute("aria-label") === "売上を上へ移動"
+        && editor?.querySelector('.chart-block-series-row[data-chart-series-index="0"] button[data-chart-action="move-series-down"]')?.getAttribute("aria-label") === "売上を下へ移動"
         && document.activeElement === nameInput
         && nameInput.selectionStart === nameInput.value.length
         && nameInput.selectionEnd === nameInput.value.length;
@@ -456,6 +460,8 @@ function boxesOverlap(first, second) {
     await multiEditor.locator('input[data-chart-series-field="name"]').nth(1).fill("利益");
     await multiEditor.locator('input[data-chart-series-field="color"]').nth(1).evaluate((input) => { input.value = "#16a34a"; input.dispatchEvent(new Event("input", { bubbles: true })); });
     await multiEditor.locator('input[data-chart-series-field="name"]').nth(1).fill("営業利益");
+    assert.equal(await multiEditor.locator('.chart-block-series-row[data-chart-series-index="1"] button[data-chart-action="move-series-up"]').getAttribute("aria-label"), "営業利益を上へ移動", "系列名変更直後に上へ操作の読み上げ名を同期する");
+    assert.equal(await multiEditor.locator('.chart-block-series-row[data-chart-series-index="1"] button[data-chart-action="move-series-down"]').getAttribute("aria-label"), "営業利益を下へ移動", "系列名変更直後に下へ操作の読み上げ名を同期する");
     await page.waitForFunction(() => {
       const editor = document.querySelector(".chart-block-editor");
       const header = editor?.querySelector('[data-chart-series-header-index="1"]')?.textContent;
@@ -468,6 +474,9 @@ function boxesOverlap(first, second) {
     }
     await multiEditor.locator('button[data-chart-action="add-series"]').click();
     multiEditor = page.locator(".chart-block-editor");
+    await multiEditor.locator('input[data-chart-series-field="name"]').nth(2).fill(" ");
+    assert.equal(await multiEditor.locator('.chart-block-series-row[data-chart-series-index="2"] button[data-chart-action="move-series-up"]').getAttribute("aria-label"), "3件目の系列を上へ移動", "空白だけの系列名は番号へフォールバックする");
+    assert.equal(await multiEditor.locator('.chart-block-series-row[data-chart-series-index="2"] button[data-chart-action="move-series-down"]').getAttribute("aria-label"), "3件目の系列を下へ移動", "空白だけの系列名は番号へフォールバックする");
     await multiEditor.locator('input[data-chart-series-field="name"]').nth(2).fill("原価");
     for (const [itemIndex, value] of [60, 80, 70].entries()) {
       await multiEditor.locator(`.chart-block-item-row[data-chart-item-index="${itemIndex}"] input[data-chart-series-value][data-chart-series-index="2"]`).fill(String(value));
@@ -480,6 +489,59 @@ function boxesOverlap(first, second) {
         && JSON.stringify(current.series.map((series) => series.values)) === JSON.stringify([[100, 140, 120], [30, 45, 38], [60, 80, 70]]);
     });
     await page.waitForFunction(() => document.querySelectorAll("#preview .chart-block-bar").length === 9);
+    assert.equal(await multiEditor.locator('.chart-block-series-row[data-chart-series-index="0"] button[data-chart-action="move-series-up"]').isDisabled(), true, "先頭系列の上へを無効化する");
+    assert.equal(await multiEditor.locator('.chart-block-series-row[data-chart-series-index="2"] button[data-chart-action="move-series-down"]').isDisabled(), true, "末尾系列の下へを無効化する");
+    const [salesSeriesId, profitSeriesId, costSeriesId] = (await chart(page)).series.map((series) => series.id);
+    await multiEditor.locator('.chart-block-series-row[data-chart-series-index="1"] button[data-chart-action="move-series-up"]').click();
+    await page.waitForFunction((profitId) => {
+      const editor = document.querySelector(".chart-block-editor");
+      return document.activeElement?.closest(".chart-block-series-row")?.dataset.chartSeriesId === profitId
+        && document.activeElement?.getAttribute("data-chart-action") === "move-series-down"
+        && editor?.querySelector(".chart-block-status")?.textContent === "営業利益を1番目へ移動しました";
+    }, profitSeriesId);
+    assert.deepEqual((await chart(page)).series.map((series) => [series.id, series.name, series.color, series.values]), [
+      [profitSeriesId, "営業利益", "#16a34a", [30, 45, 38]],
+      [salesSeriesId, "売上", "#2563eb", [100, 140, 120]],
+      [costSeriesId, "原価", "#059669", [60, 80, 70]]
+    ], "系列ID、名前、色、全値を一体で移動する");
+    assert.deepEqual(await multiEditor.locator('[data-chart-series-header-index]').allTextContents(), ["営業利益", "売上", "原価"], "入力表の系列列を移動する");
+    await page.waitForFunction(() => [...document.querySelectorAll("#preview .chart-block-legend li")].map((item) => item.textContent).join(",") === "営業利益,売上,原価");
+    assert.deepEqual(await page.locator("#preview .chart-block-legend li").allTextContents(), ["営業利益", "売上", "原価"], "集合棒の凡例順を移動する");
+    assert.deepEqual(await page.locator("#preview .chart-block-bar").evaluateAll((bars) => bars.slice(0, 3).map((bar) => bar.dataset.chartSeriesId)), [profitSeriesId, salesSeriesId, costSeriesId], "集合棒の左右順を移動する");
+    const reorderBarMode = multiEditor.locator('select[aria-label="グラフ1の棒の表示方法"]');
+    await reorderBarMode.selectOption("stacked");
+    await page.waitForFunction((seriesIds) => JSON.stringify([...document.querySelectorAll("#preview .chart-block-stacked-bar")].slice(0, 3).map((entry) => entry.dataset.chartSeriesId)) === JSON.stringify(seriesIds), [profitSeriesId, salesSeriesId, costSeriesId]);
+    assert.deepEqual(await page.locator("#preview .chart-block-stacked-bar").evaluateAll((bars) => bars.slice(0, 3).map((bar) => bar.dataset.chartSeriesId)), [profitSeriesId, salesSeriesId, costSeriesId], "積み上げ棒の順を移動する");
+    await reorderBarMode.selectOption("percent-stacked");
+    await page.waitForFunction(() => document.querySelector("#preview .chart-block-bar-chart")?.dataset.chartBarMode === "percent-stacked");
+    assert.deepEqual(await page.locator("#preview .chart-block-percent-stacked-bar").evaluateAll((bars) => bars.slice(0, 3).map((bar) => bar.dataset.chartSeriesId)), [profitSeriesId, salesSeriesId, costSeriesId], "100%積み上げ棒の順を移動する");
+    await multiEditor.locator('select[aria-label="グラフ1の種類"]').selectOption("line");
+    await page.waitForFunction(() => document.querySelectorAll("#preview .chart-block-line-series").length === 3);
+    assert.deepEqual(await page.locator("#preview .chart-block-line-series").evaluateAll((lines) => lines.map((line) => line.dataset.chartSeriesId)), [profitSeriesId, salesSeriesId, costSeriesId], "折れ線の描画順を移動する");
+    assert.deepEqual(await page.locator("#preview .chart-block-legend li").allTextContents(), ["営業利益", "売上", "原価"], "折れ線の凡例順を移動する");
+    await multiEditor.locator('select[aria-label="グラフ1の種類"]').selectOption("pie");
+    await page.waitForFunction(() => document.querySelector("#preview .chart-block-pie .sr-only li")?.textContent?.includes("営業利益") === true);
+    assert.equal((await chart(page)).series[0].id, profitSeriesId, "円グラフは移動後の第1系列を表示する");
+    assert.equal((await chart(page)).series.length, 3, "円グラフでも非表示系列を保持する");
+    await multiEditor.locator('select[aria-label="グラフ1の種類"]').selectOption("bar");
+    await page.waitForFunction(() => document.querySelector("#preview .chart-block-bar-chart")?.dataset.chartBarMode === "percent-stacked");
+    multiEditor = page.locator(".chart-block-editor");
+    await multiEditor.locator(`.chart-block-series-row[data-chart-series-id="${profitSeriesId}"] button[data-chart-action="move-series-down"]`).click();
+    await page.waitForFunction((profitId) => document.activeElement?.closest(".chart-block-series-row")?.dataset.chartSeriesId === profitId
+      && document.querySelector(".chart-block-editor .chart-block-status")?.textContent === "営業利益を2番目へ移動しました", profitSeriesId);
+    assert.deepEqual((await chart(page)).series.map((series) => series.id), [salesSeriesId, profitSeriesId, costSeriesId], "連続操作で元の系列順へ戻せる");
+    await page.waitForFunction(() => [...document.querySelectorAll("#preview .chart-block-legend li")].map((item) => item.textContent).join(",") === "売上,営業利益,原価");
+    multiEditor = page.locator(".chart-block-editor");
+    const invalidSeriesReorderValue = multiEditor.locator('.chart-block-item-row[data-chart-item-index="0"] input[data-chart-series-value][data-chart-series-index="1"]');
+    await invalidSeriesReorderValue.fill("Infinity");
+    await multiEditor.locator('.chart-block-series-row[data-chart-series-index="1"] button[data-chart-action="move-series-up"]').click();
+    await page.waitForFunction(() => document.activeElement?.getAttribute("aria-label") === "1件目の営業利益の数値"
+      && document.querySelector(".chart-block-editor .chart-block-status")?.textContent === "数値は0以上の有限な数値を入力してください");
+    assert.equal(await invalidSeriesReorderValue.inputValue(), "Infinity", "不正な編集中の数値を系列移動で破棄しない");
+    assert.deepEqual((await chart(page)).series.map((series) => series.id), [salesSeriesId, profitSeriesId, costSeriesId], "不正値では系列を移動しない");
+    await invalidSeriesReorderValue.fill("30");
+    await multiEditor.locator('select[aria-label="グラフ1の棒の表示方法"]').selectOption("grouped");
+    await page.waitForFunction(() => document.querySelector("#preview .chart-block-bar-chart")?.dataset.chartBarMode === "grouped");
     assert.equal(await page.locator("#preview .chart-block-bar").count(), 9, "3項目・3系列を集合棒として描画する");
     assert.deepEqual(await page.locator("#preview .chart-block-legend li").allTextContents(), ["売上", "営業利益", "原価"], "凡例を系列名と色で表示する");
     assert.deepEqual(await page.locator("#preview .chart-block-bar-chart .sr-only li").allTextContents(), [

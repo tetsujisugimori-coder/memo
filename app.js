@@ -474,6 +474,7 @@ const {
   lineChartPoints,
   lineChartWidth,
   moveChartItem,
+  moveChartSeries,
   nonNegativeFiniteNumber,
   normalizeChartBlock,
   PIE_CHART_COLORS,
@@ -8621,10 +8622,20 @@ function chartItemAccessibleName(item, itemIndex) {
   return String(item?.label || "").trim() || `${itemIndex + 1}件目の項目`;
 }
 
+function chartSeriesAccessibleName(series, seriesIndex) {
+  return String(series?.name || "").trim() || `${seriesIndex + 1}件目の系列`;
+}
+
 function syncChartItemMoveActionLabels(itemRow, item, itemIndex) {
   const itemName = chartItemAccessibleName(item, itemIndex);
   itemRow?.querySelector('button[data-chart-action="move-item-up"]')?.setAttribute("aria-label", `${itemName}を上へ移動`);
   itemRow?.querySelector('button[data-chart-action="move-item-down"]')?.setAttribute("aria-label", `${itemName}を下へ移動`);
+}
+
+function syncChartSeriesMoveActionLabels(seriesRow, series, seriesIndex) {
+  const seriesName = chartSeriesAccessibleName(series, seriesIndex);
+  seriesRow?.querySelector('button[data-chart-action="move-series-up"]')?.setAttribute("aria-label", `${seriesName}を上へ移動`);
+  seriesRow?.querySelector('button[data-chart-action="move-series-down"]')?.setAttribute("aria-label", `${seriesName}を下へ移動`);
 }
 
 function firstInvalidChartNumberInput(editorBlock) {
@@ -8773,6 +8784,7 @@ function createChartEditor(chartValue, blockIndex, snapshotKey) {
     const row = document.createElement("div");
     row.className = "chart-block-series-row";
     row.dataset.chartSeriesIndex = String(seriesIndex);
+    row.dataset.chartSeriesId = series.id;
     const nameLabel = document.createElement("label");
     nameLabel.textContent = `系列${seriesIndex + 1}の名前`;
     const name = document.createElement("input");
@@ -8792,13 +8804,27 @@ function createChartEditor(chartValue, blockIndex, snapshotKey) {
       : `系列${seriesIndex + 1}の色`;
     color.setAttribute("aria-label", legacyColorLabel);
     colorLabel.append(color);
+    const seriesActions = document.createElement("div");
+    seriesActions.className = "chart-block-series-actions";
+    const moveUpButton = document.createElement("button");
+    moveUpButton.type = "button";
+    moveUpButton.dataset.chartAction = "move-series-up";
+    moveUpButton.textContent = "上へ";
+    moveUpButton.disabled = seriesIndex === 0;
+    const moveDownButton = document.createElement("button");
+    moveDownButton.type = "button";
+    moveDownButton.dataset.chartAction = "move-series-down";
+    moveDownButton.textContent = "下へ";
+    moveDownButton.disabled = seriesIndex === chart.series.length - 1;
     const deleteButton = document.createElement("button");
     deleteButton.type = "button";
     deleteButton.dataset.chartAction = "delete-series";
     deleteButton.setAttribute("aria-label", `系列${seriesIndex + 1}を削除`);
     deleteButton.textContent = "系列を削除";
     deleteButton.disabled = chart.series.length <= 1;
-    row.append(nameLabel, colorLabel, deleteButton);
+    seriesActions.append(moveUpButton, moveDownButton, deleteButton);
+    row.append(nameLabel, colorLabel, seriesActions);
+    syncChartSeriesMoveActionLabels(row, series, seriesIndex);
     seriesPanel.append(row);
   });
   const addSeries = document.createElement("button");
@@ -9024,6 +9050,11 @@ function handleChartEditorInput(event) {
   next = normalizeChartBlock(next, chartId);
   if (renamedSeriesIndex !== null) {
     syncChartSeriesNameInItemTable(editorBlock, renamedSeriesIndex, next.series[renamedSeriesIndex].name, next.series.length);
+    syncChartSeriesMoveActionLabels(
+      editorBlock.querySelector(`.chart-block-series-row[data-chart-series-index="${renamedSeriesIndex}"]`),
+      { ...next.series[renamedSeriesIndex], name: event.target.value },
+      renamedSeriesIndex
+    );
   }
   if (renamedItemIndex !== null) {
     syncChartItemMoveActionLabels(
@@ -9139,6 +9170,37 @@ function handleChartEditorAction(event) {
       if (next.series.length <= 1 || !next.series[seriesIndex]) return;
       next.series = next.series.filter((_, index) => index !== seriesIndex);
       commitChartBlockChange(blockIndex, chartId, next, { rerenderEditors: true, snapshotKey });
+      return;
+    }
+    case "move-series-up":
+    case "move-series-down": {
+      const seriesRow = button.closest(".chart-block-series-row");
+      const seriesIndex = Number(seriesRow?.dataset.chartSeriesIndex);
+      const direction = button.dataset.chartAction === "move-series-up" ? -1 : 1;
+      const destinationIndex = seriesIndex + direction;
+      if (!Number.isInteger(seriesIndex) || destinationIndex < 0 || destinationIndex >= next.series.length) return;
+      const invalidInput = firstInvalidChartNumberInput(editorBlock);
+      if (invalidInput) {
+        chartEditorStatus(editorBlock, "数値は0以上の有限な数値を入力してください");
+        invalidInput.focus({ preventScroll: true });
+        return;
+      }
+      const series = next.series[seriesIndex];
+      const seriesName = chartSeriesAccessibleName(
+        { ...series, name: seriesRow?.querySelector('input[data-chart-series-field="name"]')?.value },
+        seriesIndex
+      );
+      next = moveChartSeries(next, seriesIndex, direction);
+      if (commitChartBlockChange(blockIndex, chartId, next, { rerenderEditors: true, snapshotKey })) {
+        requestAnimationFrame(() => {
+          const restoredEditor = chartBlockEditors?.querySelector(`.chart-block-editor[data-chart-snapshot-key="${CSS.escape(snapshotKey)}"]`);
+          const movedRow = restoredEditor?.querySelector(`.chart-block-series-row[data-chart-series-id="${CSS.escape(series.id)}"]`);
+          const sameAction = movedRow?.querySelector(`button[data-chart-action="${button.dataset.chartAction}"]:not(:disabled)`);
+          const fallbackAction = movedRow?.querySelector('button[data-chart-action^="move-series-"]:not(:disabled)');
+          (sameAction || fallbackAction)?.focus({ preventScroll: true });
+          chartEditorStatus(restoredEditor, `${seriesName}を${destinationIndex + 1}番目へ移動しました`);
+        });
+      }
       return;
     }
     case "delete-chart":

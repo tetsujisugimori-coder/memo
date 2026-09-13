@@ -16,6 +16,7 @@ const {
   lineChartPoints,
   lineChartWidth,
   moveChartItem,
+  moveChartSeries,
   normalizeChartBlock,
   parseChartBlockLine,
   pieChartSegments,
@@ -444,6 +445,48 @@ test("項目の連続移動と範囲外操作は安全で、少数・0・巨大�
   assert.deepEqual(moveChartItem(source, 0, -1), source);
   assert.deepEqual(moveChartItem(source, 2, 1), source);
   assert.deepEqual(moveChartItem(createChartBlock("only"), 0, 1), createChartBlock("only"));
+});
+
+test("系列の移動はID、名前、色、全項目値を一体で並べ替え、項目を変更しない", () => {
+  const source = normalizeChartBlock({
+    id: "series-order", chartType: "bar",
+    items: [{ id: "jan", label: "1月" }, { id: "feb", label: "2月" }, { id: "mar", label: "3月" }],
+    series: [
+      { id: "sales", name: "売上", color: "#4f46e5", values: [0, 1.5, 1e308] },
+      { id: "profit", name: "利益", color: "#dc2626", values: [20, 30, 40] },
+      { id: "cost", name: "原価", color: "#059669", values: [2.25, 0, 3] }
+    ]
+  });
+  const original = structuredClone(source);
+  const up = moveChartSeries(source, 1, -1);
+  assert.deepEqual(up.series.map((series) => [series.id, series.name, series.color, series.values]), [
+    ["profit", "利益", "#dc2626", [20, 30, 40]],
+    ["sales", "売上", "#4f46e5", [0, 1.5, 1e308]],
+    ["cost", "原価", "#059669", [2.25, 0, 3]]
+  ]);
+  assert.deepEqual(up.items, source.items, "項目と項目ID・順序を変更しない");
+  assert.deepEqual(source, original, "入力オブジェクトと配列を直接変更しない");
+  assert.notEqual(up.series, source.series);
+  assert.equal(up.appearance.color, "#dc2626");
+  const down = moveChartSeries(up, 0, 1);
+  assert.deepEqual(down.series, source.series, "連続移動で元の系列順へ戻せる");
+  [-1, 3, 1.5, "1"].forEach((index) => assert.deepEqual(moveChartSeries(source, index, 1), source));
+  assert.deepEqual(moveChartSeries(source, 0, -1), source);
+  assert.deepEqual(moveChartSeries(source, 2, 1), source);
+  assert.deepEqual(moveChartSeries(createChartBlock("only"), 0, 1), createChartBlock("only"));
+});
+
+test("旧形式の正規化後も系列順は直列化、表示系列、積み上げ順で維持される", () => {
+  const legacy = normalizeChartBlock({ id: "legacy-series", items: [{ id: "a", label: "A", value: 10 }, { id: "b", label: "B", value: 20 }] });
+  const withSecond = normalizeChartBlock({ ...legacy, series: [...legacy.series, { id: "second", name: "次", color: "#dc2626", values: [30, 40] }] });
+  const moved = parseChartBlockLine(serializeChartBlock(moveChartSeries(withSecond, 1, -1)));
+  assert.deepEqual(moved.series.map((series) => series.id), ["second", legacy.series[0].id]);
+  assert.deepEqual(chartDisplaySeries({ ...moved, chartType: "line" }).map((series) => series.id), ["second", legacy.series[0].id]);
+  assert.deepEqual(chartDisplaySeries({ ...moved, chartType: "pie" }).map((series) => series.id), ["second"]);
+  ["stacked", "percent-stacked"].forEach((mode) => assert.deepEqual(
+    stackedBarSegments(moved.items, moved.series, { mode }).segments.map((segment) => segment.series.id),
+    ["second", legacy.series[0].id, "second", legacy.series[0].id]
+  ));
 });
 
 test("旧形式の正規化後も移動、直列化、表示系列、積み上げ座標の対応を維持する", () => {
