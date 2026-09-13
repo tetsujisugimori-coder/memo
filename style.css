@@ -6160,6 +6160,7 @@ body.collections-open:not(.context-panel-closed) .context-panel {
 .chart-block-series-row input[type="text"] { min-width: min(200px, 100%); min-height: 34px; }
 .chart-block-series-row input[type="color"] { width: 44px; min-height: 34px; padding: 2px; }
 .chart-block-series-row button, .chart-block-series-panel > button { min-height: 34px; }
+.chart-block-series-actions { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
 .chart-block-series-limit { min-height: 1.3em; }
 .chart-block-series-notice { margin: 8px 0; color: var(--muted); font-size: 12px; }
 .chart-block-item-table { overflow-x: auto; }
@@ -6223,7 +6224,7 @@ body.collections-open:not(.context-panel-closed) .context-panel {
   .chart-block-series-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; }
   .chart-block-series-row label:first-child { min-width: 0; }
   .chart-block-series-row label:first-child input { width: 100%; }
-  .chart-block-series-row button { grid-column: 1 / -1; }
+  .chart-block-series-actions { grid-column: 1 / -1; }
   .preview .chart-block { padding: 9px; }
   .chart-block-pie-layout { gap: 4px; }
   .chart-block-pie .chart-block-scroll { flex-basis: 100%; }
