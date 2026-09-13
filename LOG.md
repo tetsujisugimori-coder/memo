@@ -2710,3 +2710,18 @@
 * 100%積み上げの安全な割合計算：`stackedBarSegments()`は通常の積み上げでは従来の全項目共通`scaleBase`を維持する。`percent-stacked`だけは各項目内の最大値で先に縮小して構成比を計算するため、`1e308`級と`1e-300`級の項目が共存しても、正の値を持つ各項目は100%まで描画される。表示モデルだけを変更し、元の系列値・保存形式・互換性は変更していない。
 * 追加した回帰テスト：極端な桁差の同一グラフ、微小同値2系列の50%対50%、描画用数値の有限性、元配列不変、全0項目、通常積み上げの既存スケール結果を確認する。
 * 最終検証結果：`node --check chart-block-utils.js`、`node --check app.js`、`node --check chart-block.e2e.js`、`node --test chart-block-utils.test.js`（26件、fail 0）、`npm test`（1,101件、fail 0）、`npm run test:e2e:chart`（Chromium、成功）、`MEMO_NEXUS_E2E_BROWSER=webkit npm run test:e2e:chart`（WebKit、成功）、`npm run test:e2e:mobile`（Chromium、成功）、`MEMO_NEXUS_E2E_BROWSER=webkit npm run test:e2e:mobile`（WebKit、成功）、`git diff --check`（成功）を実行した。各E2Eのpage error／console error検査は0件で通過した。GitHub Actions実行`34707379161`はCI checks、Geometry E2E（Chromium）、Chart E2E（Chromium／WebKit）、Mobile E2E（Chromium／WebKit）の全6ジョブが成功した。WebKit E2Eの成功はiPhone Safari実機確認を意味しない。
+
+## 2026-09-13 グラフブロック：項目並べ替えUI
+
+* 目的と設計：項目行へ「上へ」「下へ」を追加した。`moveChartItem()`は正規化済みグラフから新しい配列を返し、`items`と全`series[].values`の同じ添字を一体で交換する。グラフ・項目・系列の既存ID、`schemaVersion: 1`、DB_VERSION、Markdownマーカー、旧`items[].value`読込は変更していない。
+* 編集とアクセシビリティ：先頭の上へ、末尾の下へ、1項目時の両操作を無効化する。項目名、または空名時の項目番号を含むアクセシブル名、移動後の同じ項目の操作ボタンへのフォーカス復帰、既存ライブステータスでの結果通知を実装した。不正な未確定数値がある場合は並べ替えず、その文字列を維持したまま既存検証と最初の不正欄へのフォーカスを使う。
+* 表示と保存：既存のマーカー置換、Undo/Redo、自動保存、`flushSave()`、編集取消スナップショットをそのまま使う。集合棒、積み上げ、100%積み上げ、折れ線、円は共通項目順で再描画し、円の色は既存どおり新しい項目位置の固定パレットを使う。確定・再読込・型切替・取消で順序と全系列値の対応を保持する。
+* テスト：単体テストへ3項目・3系列、連続移動、範囲外no-op、不変性、0・小数・巨大有限値、旧形式の正規化・直列化、表示系列、積み上げ座標を追加した。Chart E2Eは1項目の無効状態、アクセシブル名、3系列の移動とプレビュー、フォーカス・ライブ通知、不正入力、取消、確定・再読込、棒→折れ線→円→棒を実UIで確認する。キャッシュ識別子は変更した`style.css`、`chart-block-utils.js`、`app.js`だけを更新し、固定契約テストを同期した。
+* 検証：変更したJavaScriptの`node --check`、`node --test chart-block-utils.test.js backup-bundle-utils.test.js version.test.js`（52件、fail 0）、`npm test`（1,104件、fail 0）、`npm run test:e2e:chart`（Chromium、成功）、`MEMO_NEXUS_E2E_BROWSER=webkit npm run test:e2e:chart`（WebKit、成功）、`npm run test:e2e:mobile`（Chromium、成功）、`MEMO_NEXUS_E2E_BROWSER=webkit npm run test:e2e:mobile`（WebKit、成功）、`git diff --check`（成功）を実行した。WebKit E2Eの成功はiPhone Safari実機確認を意味しない。GitHub Actionsはpush後に確認する。
+
+## 2026-09-13 PR #223 レビュー修正：項目名変更時の移動操作名
+
+* 原因：項目名入力は編集画面を再描画せず、保存モデルとプレビューだけを更新していた。そのため、`createChartEditor()`で初期設定した同じ項目行の「上へ」「下へ」ボタンの`aria-label`が、変更前の項目名のまま残っていた。
+* 修正方針：`chartItemAccessibleName()`を使う対象行限定の同期関数を追加し、項目名の`input`イベントで両移動ボタンの属性だけを即時更新する。編集画面を再構築しないため、項目名入力欄のフォーカス、キャレット、入力中文字列は維持する。空文字・空白だけの名称は従来どおり「N件目の項目」へフォールバックする。
+* 回帰テスト：3系列グラフで「1月」から「4月」への変更直後に同じDOM行の両操作名を確認し、空白名での項目番号フォールバックも確認する。再描画操作を挟まず、有効な移動操作で全系列値の対応、フォーカス復帰、ライブ通知を確認してから既存の順序へ戻す。
+* 検証：`node --check app.js`、`node --check chart-block.e2e.js`、`node --test chart-block-utils.test.js backup-bundle-utils.test.js version.test.js`（52件、fail 0）、`npm test`（1,104件、fail 0）、`npm run test:e2e:chart`（Chromium、成功）、`MEMO_NEXUS_E2E_BROWSER=webkit npm run test:e2e:chart`（WebKit、成功）、`npm run test:e2e:mobile`（Chromium、成功）、`MEMO_NEXUS_E2E_BROWSER=webkit npm run test:e2e:mobile`（WebKit、成功）、`git diff --check`（成功）を実行した。E2Eのpage error／console errorは0件である。WebKit E2Eの成功はSafari/iPhone実機確認を意味しない。GitHub Actionsはpush後に確認する。
