@@ -492,6 +492,30 @@ function boxesOverlap(first, second) {
     assert.ok(barMetrics.every((bar) => Number.isFinite(bar.x) && Number.isFinite(bar.height) && bar.height >= 0), "SVG属性に不正値を混入しない");
     assert.ok(barMetrics.some((bar) => bar.height === 142), "全系列の最大値140を高さ計算の基準へ使う");
     assert.notEqual(barMetrics[0].x, barMetrics[1].x, "同じ項目の系列を横に並べる");
+    const firstItemNameInput = multiEditor.locator('.chart-block-item-row[data-chart-item-index="0"] input[data-chart-item-field="label"]');
+    await firstItemNameInput.fill("4月");
+    assert.equal(await multiEditor.locator('.chart-block-item-row[data-chart-item-index="0"] button[data-chart-action="move-item-up"]').getAttribute("aria-label"), "4月を上へ移動", "項目名変更直後に上へボタンの読み上げ名を同期する");
+    assert.equal(await multiEditor.locator('.chart-block-item-row[data-chart-item-index="0"] button[data-chart-action="move-item-down"]').getAttribute("aria-label"), "4月を下へ移動", "項目名変更直後に下へボタンの読み上げ名を同期する");
+    assert.equal(await firstItemNameInput.evaluate((input) => document.activeElement === input && input.selectionStart === input.value.length && input.selectionEnd === input.value.length), true, "項目名入力中に編集欄を再描画せずフォーカスとキャレットを維持する");
+    await firstItemNameInput.fill(" ");
+    assert.equal(await multiEditor.locator('.chart-block-item-row[data-chart-item-index="0"] button[data-chart-action="move-item-up"]').getAttribute("aria-label"), "1件目の項目を上へ移動", "空白だけの項目名は上へボタンで項目番号へフォールバックする");
+    assert.equal(await multiEditor.locator('.chart-block-item-row[data-chart-item-index="0"] button[data-chart-action="move-item-down"]').getAttribute("aria-label"), "1件目の項目を下へ移動", "空白だけの項目名は下へボタンで項目番号へフォールバックする");
+    await firstItemNameInput.fill("4月");
+    await multiEditor.locator('.chart-block-item-row[data-chart-item-index="0"] button[data-chart-action="move-item-down"]').click();
+    await page.waitForFunction(() => {
+      const current = window.MemoNexusChartBlockUtils.splitChartBlocks(document.getElementById("editor").value).find((segment) => segment.type === "chart")?.chart;
+      return current?.items.map((item) => item.label).join(",") === "2月,4月,3月"
+        && JSON.stringify(current.series.map((series) => series.values)) === JSON.stringify([[140, 100, 120], [45, 30, 38], [80, 60, 70]])
+        && document.activeElement?.getAttribute("data-chart-action") === "move-item-down"
+        && document.querySelector(".chart-block-editor .chart-block-status")?.textContent === "「4月」を2件目へ移動しました";
+    });
+    multiEditor = page.locator(".chart-block-editor");
+    await multiEditor.locator('.chart-block-item-row[data-chart-item-index="1"] input[data-chart-item-field="label"]').fill("1月");
+    await multiEditor.locator('.chart-block-item-row[data-chart-item-index="1"] button[data-chart-action="move-item-up"]').click();
+    const restoredItemOrder = await chart(page);
+    assert.deepEqual(restoredItemOrder.items.map((item) => item.label), ["1月", "2月", "3月"], "回帰確認後に項目順を戻す");
+    assert.deepEqual(restoredItemOrder.series.map((series) => series.values), [[100, 140, 120], [30, 45, 38], [60, 80, 70]], "回帰確認後に全系列値の対応を戻す");
+    multiEditor = page.locator(".chart-block-editor");
     assert.equal(await multiEditor.locator('.chart-block-item-row[data-chart-item-index="0"] button[data-chart-action="move-item-up"]').isDisabled(), true, "先頭項目の上へを無効化する");
     assert.equal(await multiEditor.locator('.chart-block-item-row[data-chart-item-index="2"] button[data-chart-action="move-item-down"]').isDisabled(), true, "末尾項目の下へを無効化する");
     assert.equal(await multiEditor.locator('.chart-block-item-row[data-chart-item-index="2"] button[data-chart-action="move-item-up"]').getAttribute("aria-label"), "3月を上へ移動", "項目名を含む上へボタンのアクセシブルな名前を付ける");

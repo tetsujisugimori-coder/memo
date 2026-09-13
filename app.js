@@ -8621,6 +8621,12 @@ function chartItemAccessibleName(item, itemIndex) {
   return String(item?.label || "").trim() || `${itemIndex + 1}件目の項目`;
 }
 
+function syncChartItemMoveActionLabels(itemRow, item, itemIndex) {
+  const itemName = chartItemAccessibleName(item, itemIndex);
+  itemRow?.querySelector('button[data-chart-action="move-item-up"]')?.setAttribute("aria-label", `${itemName}を上へ移動`);
+  itemRow?.querySelector('button[data-chart-action="move-item-down"]')?.setAttribute("aria-label", `${itemName}を下へ移動`);
+}
+
 function firstInvalidChartNumberInput(editorBlock) {
   return [...editorBlock.querySelectorAll('input[data-chart-series-value]')]
     .find((input) => !setChartNumberValidity(input));
@@ -8850,17 +8856,14 @@ function createChartEditor(chartValue, blockIndex, snapshotKey) {
     });
     const itemActions = document.createElement("div");
     itemActions.className = "chart-block-item-actions";
-    const itemName = chartItemAccessibleName(item, itemIndex);
     const moveUpButton = document.createElement("button");
     moveUpButton.type = "button";
     moveUpButton.dataset.chartAction = "move-item-up";
-    moveUpButton.setAttribute("aria-label", `${itemName}を上へ移動`);
     moveUpButton.textContent = "上へ";
     moveUpButton.disabled = itemIndex === 0;
     const moveDownButton = document.createElement("button");
     moveDownButton.type = "button";
     moveDownButton.dataset.chartAction = "move-item-down";
-    moveDownButton.setAttribute("aria-label", `${itemName}を下へ移動`);
     moveDownButton.textContent = "下へ";
     moveDownButton.disabled = itemIndex === chart.items.length - 1;
     const deleteButton = document.createElement("button");
@@ -8871,6 +8874,7 @@ function createChartEditor(chartValue, blockIndex, snapshotKey) {
     deleteButton.disabled = chart.items.length <= 1;
     itemActions.append(moveUpButton, moveDownButton, deleteButton);
     row.append(itemActions);
+    syncChartItemMoveActionLabels(row, item, itemIndex);
     table.append(row);
   });
   const actions = document.createElement("div");
@@ -8977,6 +8981,7 @@ function handleChartEditorInput(event) {
   if (!block) return;
   let next = normalizeChartBlock(block.chart, chartId);
   let renamedSeriesIndex = null;
+  let renamedItemIndex = null;
   if (event.target.dataset.chartSeriesValue) {
     const itemIndex = Number(event.target.closest(".chart-block-item-row")?.dataset.chartItemIndex);
     const seriesIndex = Number(event.target.dataset.chartSeriesIndex);
@@ -9003,6 +9008,7 @@ function handleChartEditorInput(event) {
       return;
     }
     next.items = next.items.map((item, index) => index === itemIndex ? { ...item, [field]: field === "value" ? nonNegativeFiniteNumber(event.target.value) : event.target.value } : item);
+    if (field === "label") renamedItemIndex = itemIndex;
   } else if (event.target.dataset.chartField === "color") {
     next.appearance = { ...next.appearance, color: event.target.value };
   } else if (["showValues", "showPoints", "showLegend"].includes(event.target.dataset.chartField)) {
@@ -9018,6 +9024,13 @@ function handleChartEditorInput(event) {
   next = normalizeChartBlock(next, chartId);
   if (renamedSeriesIndex !== null) {
     syncChartSeriesNameInItemTable(editorBlock, renamedSeriesIndex, next.series[renamedSeriesIndex].name, next.series.length);
+  }
+  if (renamedItemIndex !== null) {
+    syncChartItemMoveActionLabels(
+      editorBlock.querySelector(`.chart-block-item-row[data-chart-item-index="${renamedItemIndex}"]`),
+      next.items[renamedItemIndex],
+      renamedItemIndex
+    );
   }
   chartEditorStatus(editorBlock, "");
   renderChartEditorPreview(editorBlock.querySelector(".chart-block-editor-preview"), next, blockIndex);

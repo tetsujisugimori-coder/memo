@@ -2718,3 +2718,10 @@
 * 表示と保存：既存のマーカー置換、Undo/Redo、自動保存、`flushSave()`、編集取消スナップショットをそのまま使う。集合棒、積み上げ、100%積み上げ、折れ線、円は共通項目順で再描画し、円の色は既存どおり新しい項目位置の固定パレットを使う。確定・再読込・型切替・取消で順序と全系列値の対応を保持する。
 * テスト：単体テストへ3項目・3系列、連続移動、範囲外no-op、不変性、0・小数・巨大有限値、旧形式の正規化・直列化、表示系列、積み上げ座標を追加した。Chart E2Eは1項目の無効状態、アクセシブル名、3系列の移動とプレビュー、フォーカス・ライブ通知、不正入力、取消、確定・再読込、棒→折れ線→円→棒を実UIで確認する。キャッシュ識別子は変更した`style.css`、`chart-block-utils.js`、`app.js`だけを更新し、固定契約テストを同期した。
 * 検証：変更したJavaScriptの`node --check`、`node --test chart-block-utils.test.js backup-bundle-utils.test.js version.test.js`（52件、fail 0）、`npm test`（1,104件、fail 0）、`npm run test:e2e:chart`（Chromium、成功）、`MEMO_NEXUS_E2E_BROWSER=webkit npm run test:e2e:chart`（WebKit、成功）、`npm run test:e2e:mobile`（Chromium、成功）、`MEMO_NEXUS_E2E_BROWSER=webkit npm run test:e2e:mobile`（WebKit、成功）、`git diff --check`（成功）を実行した。WebKit E2Eの成功はiPhone Safari実機確認を意味しない。GitHub Actionsはpush後に確認する。
+
+## 2026-09-13 PR #223 レビュー修正：項目名変更時の移動操作名
+
+* 原因：項目名入力は編集画面を再描画せず、保存モデルとプレビューだけを更新していた。そのため、`createChartEditor()`で初期設定した同じ項目行の「上へ」「下へ」ボタンの`aria-label`が、変更前の項目名のまま残っていた。
+* 修正方針：`chartItemAccessibleName()`を使う対象行限定の同期関数を追加し、項目名の`input`イベントで両移動ボタンの属性だけを即時更新する。編集画面を再構築しないため、項目名入力欄のフォーカス、キャレット、入力中文字列は維持する。空文字・空白だけの名称は従来どおり「N件目の項目」へフォールバックする。
+* 回帰テスト：3系列グラフで「1月」から「4月」への変更直後に同じDOM行の両操作名を確認し、空白名での項目番号フォールバックも確認する。再描画操作を挟まず、有効な移動操作で全系列値の対応、フォーカス復帰、ライブ通知を確認してから既存の順序へ戻す。
+* 検証：`node --check app.js`、`node --check chart-block.e2e.js`、`node --test chart-block-utils.test.js backup-bundle-utils.test.js version.test.js`（52件、fail 0）、`npm test`（1,104件、fail 0）、`npm run test:e2e:chart`（Chromium、成功）、`MEMO_NEXUS_E2E_BROWSER=webkit npm run test:e2e:chart`（WebKit、成功）、`npm run test:e2e:mobile`（Chromium、成功）、`MEMO_NEXUS_E2E_BROWSER=webkit npm run test:e2e:mobile`（WebKit、成功）、`git diff --check`（成功）を実行した。E2Eのpage error／console errorは0件である。WebKit E2Eの成功はSafari/iPhone実機確認を意味しない。GitHub Actionsはpush後に確認する。
