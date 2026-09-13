@@ -251,9 +251,18 @@
     });
   }
 
-  function formatChartStackTotal(total) {
+  function formatChartStackTotalDetail(total) {
     if (total?.overflow || !Number.isFinite(total?.total)) return "上限超過";
-    return Number(total.total.toPrecision(15)).toString();
+    return String(total.total);
+  }
+
+  function formatChartStackTotal(total) {
+    const detail = formatChartStackTotalDetail(total);
+    const readable = detail === "上限超過" ? detail : Number(total.total.toPrecision(15)).toString();
+    if (readable === "上限超過" || readable.length <= 10) return readable;
+    const [mantissa, exponent] = total.total.toExponential(4).split("e");
+    const compactMantissa = mantissa.includes(".") ? mantissa.replace(/0+$/, "").replace(/\.$/, "") : mantissa;
+    return `${compactMantissa}e${exponent}`;
   }
 
   function shouldShowStackTotals(chartValue) {
@@ -391,6 +400,7 @@
     chartValueMaximum,
     createChartBlock,
     formatChartStackTotal,
+    formatChartStackTotalDetail,
     insertChartBlock,
     lineChartPoints,
     lineChartWidth,

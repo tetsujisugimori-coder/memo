@@ -638,17 +638,79 @@ function boxesOverlap(first, second) {
     });
     assert.deepEqual(await page.locator("#preview .chart-block-stacked-total-value").allTextContents(), ["190", "265", "228"], "各積み上げ棒の上へ系列合計を表示する");
     assert.deepEqual(await page.locator("#preview .chart-block-bar-chart .sr-only li").allTextContents(), [
-      "1月、売上: 100万円", "1月、営業利益: 30万円", "1月、原価: 60万円", "1月、合計190万円",
-      "2月、売上: 140万円", "2月、営業利益: 45万円", "2月、原価: 80万円", "2月、合計265万円",
-      "3月、売上: 120万円", "3月、営業利益: 38万円", "3月、原価: 70万円", "3月、合計228万円"
+      "1月、売上: 100万円", "1月、営業利益: 30万円", "1月、原価: 60万円", "1月、合計: 190万円",
+      "2月、売上: 140万円", "2月、営業利益: 45万円", "2月、原価: 80万円", "2月、合計: 265万円",
+      "3月、売上: 120万円", "3月、営業利益: 38万円", "3月、原価: 70万円", "3月、合計: 228万円"
     ], "合計表示時は項目名と合計をスクリーンリーダーへ追加する");
     const totalLabelBoxes = await page.locator("#preview .chart-block-stacked-total-value").evaluateAll((labels) => labels.map((label) => {
       const total = label.getBoundingClientRect();
-      const segment = label.closest(".chart-block-bar-group")?.querySelector(".chart-block-stacked-value")?.getBoundingClientRect();
+      const segments = [...label.closest(".chart-block-bar-group")?.querySelectorAll(".chart-block-stacked-value") || []].map((segment) => segment.getBoundingClientRect());
       const svg = label.ownerSVGElement?.getBoundingClientRect();
-      return { total: { x: total.x, y: total.y, width: total.width, height: total.height }, segment: segment && { x: segment.x, y: segment.y, width: segment.width, height: segment.height }, svg: svg && { top: svg.top, bottom: svg.bottom } };
+      return {
+        total: { x: total.x, y: total.y, width: total.width, height: total.height },
+        segments: segments.map((segment) => ({ x: segment.x, y: segment.y, width: segment.width, height: segment.height })),
+        svg: svg && { left: svg.left, right: svg.right, top: svg.top, bottom: svg.bottom }
+      };
     }));
-    assert.ok(totalLabelBoxes.every(({ total, segment, svg }) => total.y >= svg.top && total.y + total.height <= svg.bottom && (!segment || !boxesOverlap(total, segment))), "合計ラベルをSVG内かつ系列値と重ならない位置へ置く");
+    assert.ok(totalLabelBoxes.every(({ total, svg }) => total.x >= svg.left && total.x + total.width <= svg.right && total.y >= svg.top && total.y + total.height <= svg.bottom), "合計ラベルをSVG内へ置く");
+    assert.ok(totalLabelBoxes.every(({ total }, index) => totalLabelBoxes.slice(index + 1).every((other) => !boxesOverlap(total, other.total))), "すべての隣接合計ラベルを重ねない");
+    assert.ok(totalLabelBoxes.every(({ total, segments }) => segments.every((segment) => !boxesOverlap(total, segment))), "合計ラベルを関連するすべての系列内ラベルと重ねない");
+    assert.deepEqual(await page.locator("#preview .chart-block-stacked-total-title").allTextContents(), ["1月、合計: 190万円", "2月、合計: 265万円", "3月、合計: 228万円"], "短い合計も詳細titleを持つ");
+    const originalStackedValues = (await chart(page)).series.map((series) => series.values.slice());
+    const longTotalValues = [
+      [9.87654321098765e122, 1.23456789012345e123, 2.34567890123456e123],
+      [8.76543210987654e122, 1.34567890123456e123, 2.45678901234567e123],
+      [7.65432109876543e122, 1.45678901234567e123, 2.56789012345678e123]
+    ];
+    for (let seriesIndex = 0; seriesIndex < longTotalValues.length; seriesIndex += 1) {
+      for (let itemIndex = 0; itemIndex < longTotalValues[seriesIndex].length; itemIndex += 1) {
+        await multiEditor.locator(`.chart-block-item-row[data-chart-item-index="${itemIndex}"] input[data-chart-series-value][data-chart-series-index="${seriesIndex}"]`).fill(String(longTotalValues[seriesIndex][itemIndex]));
+      }
+    }
+    await page.waitForFunction((expected) => {
+      const current = window.MemoNexusChartBlockUtils.splitChartBlocks(document.getElementById("editor").value).find((segment) => segment.type === "chart")?.chart;
+      return JSON.stringify(current?.series.map((series) => series.values)) === JSON.stringify(expected);
+    }, longTotalValues);
+    await page.waitForFunction(() => {
+      const current = window.MemoNexusChartBlockUtils.splitChartBlocks(document.getElementById("editor").value).find((segment) => segment.type === "chart")?.chart;
+      const totals = window.MemoNexusChartBlockUtils.chartStackedTotals(current?.items, current?.series);
+      const labels = [...document.querySelectorAll("#preview .chart-block-stacked-total-value")];
+      return labels.length === totals.length && labels.every((label, index) => label.textContent === window.MemoNexusChartBlockUtils.formatChartStackTotal(totals[index]));
+    });
+    const longTotalLayout = await page.locator("#preview .chart-block-stacked-total-value").evaluateAll((labels) => labels.map((label) => {
+      const group = label.closest(".chart-block-bar-group");
+      const total = label.getBoundingClientRect();
+      const svg = label.ownerSVGElement?.getBoundingClientRect();
+      const segmentLabels = [...group.querySelectorAll(".chart-block-stacked-value")].map((segment) => segment.getBoundingClientRect());
+      const current = window.MemoNexusChartBlockUtils.splitChartBlocks(document.getElementById("editor").value).find((segment) => segment.type === "chart")?.chart;
+      const itemIndex = current.items.findIndex((item) => item.id === group.dataset.chartItemId);
+      const totalEntry = window.MemoNexusChartBlockUtils.chartStackedTotals(current.items, current.series)[itemIndex];
+      return {
+        item: current.items[itemIndex].label,
+        display: label.textContent,
+        detail: window.MemoNexusChartBlockUtils.formatChartStackTotalDetail(totalEntry),
+        title: group.querySelector(".chart-block-stacked-total-title")?.textContent,
+        total: { x: total.x, y: total.y, width: total.width, height: total.height },
+        segmentLabels: segmentLabels.map((segment) => ({ x: segment.x, y: segment.y, width: segment.width, height: segment.height })),
+        svg: svg && { left: svg.left, right: svg.right, top: svg.top, bottom: svg.bottom }
+      };
+    }));
+    assert.ok(longTotalLayout.every((entry) => entry.display.length <= 11 && entry.display !== entry.detail && /e[+-]\d+$/.test(entry.display)), `長い有限合計を短い科学表記へ表示する: ${JSON.stringify(longTotalLayout)}`);
+    assert.ok(longTotalLayout.every((entry) => entry.title === `${entry.item}、合計: ${entry.detail}万円`), "短縮前の有限合計をtitleへ残す");
+    assert.ok(longTotalLayout.every(({ total, svg }) => total.x >= svg.left && total.x + total.width <= svg.right && total.y >= svg.top && total.y + total.height <= svg.bottom), "長い合計ラベルもSVG左右内に収める");
+    assert.ok(longTotalLayout.every(({ total }, index) => longTotalLayout.slice(index + 1).every((other) => !boxesOverlap(total, other.total))), "長い隣接合計ラベル同士を重ねない");
+    assert.ok(longTotalLayout.every(({ total, segmentLabels }) => segmentLabels.every((segment) => !boxesOverlap(total, segment))), "長い合計ラベルを関連するすべての系列内ラベルと重ねない");
+    const longTotalAccessibleItems = await page.locator("#preview .chart-block-bar-chart .sr-only li").allTextContents();
+    assert.ok(longTotalLayout.every((entry) => longTotalAccessibleItems.includes(`${entry.item}、合計: ${entry.detail}万円`)), "読み上げには短縮前の安全な合計を残す");
+    for (let seriesIndex = 0; seriesIndex < originalStackedValues.length; seriesIndex += 1) {
+      for (let itemIndex = 0; itemIndex < originalStackedValues[seriesIndex].length; itemIndex += 1) {
+        await multiEditor.locator(`.chart-block-item-row[data-chart-item-index="${itemIndex}"] input[data-chart-series-value][data-chart-series-index="${seriesIndex}"]`).fill(String(originalStackedValues[seriesIndex][itemIndex]));
+      }
+    }
+    await page.waitForFunction((expected) => {
+      const current = window.MemoNexusChartBlockUtils.splitChartBlocks(document.getElementById("editor").value).find((segment) => segment.type === "chart")?.chart;
+      return JSON.stringify(current?.series.map((series) => series.values)) === JSON.stringify(expected);
+    }, originalStackedValues);
     const valuesToggle = multiEditor.locator('input[aria-label="グラフ1の棒の上に数値を表示"]');
     await valuesToggle.uncheck();
     await page.waitForFunction(() => document.querySelectorAll("#preview .chart-block-stacked-value").length === 0 && document.querySelectorAll("#preview .chart-block-stacked-total-value").length === 3);
