@@ -104,6 +104,7 @@
         // appearance.color is retained as a compatibility mirror. Series colors are authoritative.
         color: series[0].color,
         barMode: normalizeBarMode(appearanceSource.barMode),
+        showStackTotals: appearanceSource.showStackTotals === true,
         showValues: appearanceSource.showValues !== false,
         showPoints: appearanceSource.showPoints !== false,
         showLegend: appearanceSource.showLegend === true,
@@ -158,7 +159,7 @@
       unit: "",
       items: [{ id: `${id}-item-1`, label: "" }],
       series: [{ id: `${id}-series-1`, name: DEFAULT_CHART_SERIES_NAME, color: DEFAULT_CHART_COLOR, values: [0] }],
-      appearance: { barMode: "grouped", showValues: true, showPoints: true, showLegend: false, pieLabelMode: "percentage" }
+      appearance: { barMode: "grouped", showStackTotals: false, showValues: true, showPoints: true, showLegend: false, pieLabelMode: "percentage" }
     }, id);
   }
 
@@ -232,6 +233,34 @@
     }));
   }
 
+  function chartStackedTotals(items, series) {
+    const sourceItems = Array.isArray(items) ? items : [];
+    const sourceSeries = Array.isArray(series) && series.length ? series : [{ values: sourceItems.map((item) => item?.value) }];
+    return sourceItems.map((item, itemIndex) => {
+      let total = 0;
+      let overflow = false;
+      sourceSeries.forEach((entry) => {
+        const value = nonNegativeFiniteNumber(entry?.values?.[itemIndex]);
+        if (!overflow && total > Number.MAX_VALUE - value) {
+          overflow = true;
+        } else if (!overflow) {
+          total += value;
+        }
+      });
+      return { item, itemIndex, total: overflow ? null : total, overflow };
+    });
+  }
+
+  function formatChartStackTotal(total) {
+    if (total?.overflow || !Number.isFinite(total?.total)) return "上限超過";
+    return Number(total.total.toPrecision(15)).toString();
+  }
+
+  function shouldShowStackTotals(chartValue) {
+    const chart = normalizeChartBlock(chartValue, chartValue?.id);
+    return chart.chartType === "bar" && chart.appearance.barMode === "stacked" && chart.appearance.showStackTotals;
+  }
+
   function stackedBarSegments(items, series, { left = 52, right = 18, top = 54, baseline = 196, width = 420, mode = "stacked" } = {}) {
     const displayItems = (Array.isArray(items) ? items : []).map((item, itemIndex) => ({ item, itemIndex }))
       .filter(({ item }) => item && normalizedText(item.label).trim());
@@ -245,6 +274,7 @@
     const percentStacked = mode === "percent-stacked";
     const values = displayItems.flatMap(({ itemIndex }) => displaySeries.map((entry) => nonNegativeFiniteNumber(entry?.values?.[itemIndex])));
     const scaleBase = Math.max(0, ...values);
+    const totalsByItemIndex = new Map(chartStackedTotals(items, series).map((entry) => [entry.itemIndex, entry]));
     const groups = displayItems.map(({ item, itemIndex }, displayIndex) => {
       const entries = displaySeries.map((entry, seriesIndex) => ({
         item,
@@ -258,8 +288,8 @@
       // アンダーフローするため、項目内の最大値で安全に縮小する。
       const groupScaleBase = percentStacked ? Math.max(0, ...entries.map((entry) => entry.value)) : scaleBase;
       const scaledTotal = groupScaleBase > 0 ? entries.reduce((total, entry) => total + entry.value / groupScaleBase, 0) : 0;
-      const rawTotal = entries.reduce((total, entry) => total + entry.value, 0);
-      return { item, itemIndex, displayIndex, entries, groupScaleBase, scaledTotal, total: Number.isFinite(rawTotal) ? rawTotal : null };
+      const total = totalsByItemIndex.get(itemIndex);
+      return { item, itemIndex, displayIndex, entries, groupScaleBase, scaledTotal, total: total?.total ?? null, totalOverflow: total?.overflow === true };
     });
     const maximumScaledTotal = Math.max(0, ...groups.map((group) => group.scaledTotal));
     const plotWidth = Math.max(1, chartWidth - plotLeft - plotRight);
@@ -357,8 +387,10 @@
     PIE_CHART_COLORS,
     chartBlockPlainText,
     chartDisplaySeries,
+    chartStackedTotals,
     chartValueMaximum,
     createChartBlock,
+    formatChartStackTotal,
     insertChartBlock,
     lineChartPoints,
     lineChartWidth,
@@ -370,6 +402,7 @@
     pieChartSegments,
     replaceChartBlock,
     serializeChartBlock,
+    shouldShowStackTotals,
     stackedBarSegments,
     splitChartBlocks
   };

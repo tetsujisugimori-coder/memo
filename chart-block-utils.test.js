@@ -10,8 +10,10 @@ const {
   PIE_CHART_COLORS,
   chartBlockPlainText,
   chartDisplaySeries,
+  chartStackedTotals,
   chartValueMaximum,
   createChartBlock,
+  formatChartStackTotal,
   insertChartBlock,
   lineChartPoints,
   lineChartWidth,
@@ -22,6 +24,7 @@ const {
   pieChartSegments,
   replaceChartBlock,
   serializeChartBlock,
+  shouldShowStackTotals,
   stackedBarSegments,
   splitChartBlocks
 } = require("./chart-block-utils.js");
@@ -38,7 +41,7 @@ test("初期グラフは棒グラフ、空の1行、円グラフ用の既定設�
   assert.equal(chart.chartType, "bar");
   assert.deepEqual(chart.items, [{ id: "chart-1-item-1", label: "" }]);
   assert.deepEqual(chart.series, [{ id: "chart-1-series-1", name: DEFAULT_CHART_SERIES_NAME, color: DEFAULT_CHART_COLOR, values: [0] }]);
-  assert.deepEqual(chart.appearance, { color: DEFAULT_CHART_COLOR, barMode: "grouped", showValues: true, showPoints: true, showLegend: false, pieLabelMode: "percentage" });
+  assert.deepEqual(chart.appearance, { color: DEFAULT_CHART_COLOR, barMode: "grouped", showStackTotals: false, showValues: true, showPoints: true, showLegend: false, pieLabelMode: "percentage" });
 });
 
 test("項目名と小数を含む保存形式を同じ内容へ復元し、凡例設定を保持する", () => {
@@ -65,7 +68,7 @@ test("不正な種別、数値、色、ラベル設定を安全な既定値へ�
     { id: "same", label: "A" }, { id: "same-2", label: "B" }, { id: "unsafe-item-3", label: "C" }
   ]);
   assert.deepEqual(chart.series[0].values, [0, 0, 0]);
-  assert.deepEqual(chart.appearance, { color: DEFAULT_CHART_COLOR, barMode: "grouped", showValues: false, showPoints: true, showLegend: true, pieLabelMode: "percentage" });
+  assert.deepEqual(chart.appearance, { color: DEFAULT_CHART_COLOR, barMode: "grouped", showStackTotals: false, showValues: false, showPoints: true, showLegend: true, pieLabelMode: "percentage" });
 });
 
 test("折れ線グラフは共通データと表示設定を保存し、旧データの点表示は既定で有効にする", () => {
@@ -111,6 +114,56 @@ test("棒の表示方法は既定の集合へ正規化し、種類切替後も�
   assert.equal(normalizeChartBlock({ ...percentStacked, chartType: "line" }).appearance.barMode, "percent-stacked");
   assert.equal(normalizeChartBlock({ ...percentStacked, chartType: "pie" }).appearance.barMode, "percent-stacked");
   assert.equal(parseChartBlockLine(serializeChartBlock(percentStacked)).appearance.barMode, "percent-stacked");
+});
+
+test("通常積み上げの合計値設定は安全に正規化、直列化し、表示対象だけを判定する", () => {
+  const source = normalizeChartBlock({
+    id: "totals", chartType: "bar", items: [{ id: "jan", label: "1月", value: 1 }],
+    appearance: { barMode: "stacked", showStackTotals: true }
+  });
+  const invalid = normalizeChartBlock({ ...source, appearance: { ...source.appearance, showStackTotals: "true" } });
+  assert.equal(source.appearance.showStackTotals, true);
+  assert.equal(invalid.appearance.showStackTotals, false, "欠損以外の不正値もfalseへ正規化する");
+  assert.equal(normalizeChartBlock({ id: "missing", items: [] }).appearance.showStackTotals, false, "旧データの欠損値はfalseにする");
+  assert.equal(parseChartBlockLine(serializeChartBlock(source)).appearance.showStackTotals, true, "保存と再正規化で設定を維持する");
+  assert.equal(shouldShowStackTotals(source), true);
+  [
+    { ...source, appearance: { ...source.appearance, barMode: "grouped" } },
+    { ...source, appearance: { ...source.appearance, barMode: "percent-stacked" } },
+    { ...source, chartType: "line" },
+    { ...source, chartType: "pie" }
+  ].forEach((chart) => assert.equal(shouldShowStackTotals(chart), false));
+});
+
+test("項目別合計は全系列から不変に導出し、旧形式、並べ替え、追加削除へ追従する", () => {
+  const items = [{ id: "jan", label: "1月" }, { id: "feb", label: "2月" }, { id: "mar", label: "3月" }];
+  const series = [
+    { id: "sales", values: [0.1, 0, 10] },
+    { id: "profit", values: [0.2, 0, 20] },
+    { id: "cost", values: [0, 0, 30] }
+  ];
+  const original = structuredClone({ items, series });
+  assert.deepEqual(chartStackedTotals(items, series).map(({ itemIndex, total, overflow }) => ({ itemIndex, total, overflow })), [
+    { itemIndex: 0, total: 0.30000000000000004, overflow: false },
+    { itemIndex: 1, total: 0, overflow: false },
+    { itemIndex: 2, total: 60, overflow: false }
+  ]);
+  assert.equal(formatChartStackTotal(chartStackedTotals(items, series)[0]), "0.3", "浮動小数点誤差を長い表示文字列にしない");
+  assert.deepEqual(chartStackedTotals([{ label: "旧形式", value: 4.5 }]).map((entry) => entry.total), [4.5], "旧items[].value形式も第1系列として安全に扱う");
+  assert.deepEqual({ items, series }, original, "入力オブジェクトと配列を変更しない");
+  assert.deepEqual(chartStackedTotals([items[2], items[0]], series.map((entry) => ({ ...entry, values: [entry.values[2], entry.values[0]] }))).map((entry) => entry.total), [60, 0.30000000000000004], "項目の並べ替え後も対応する合計になる");
+  assert.deepEqual(chartStackedTotals(items, [series[2], series[0], series[1]]).map((entry) => entry.total), [0.30000000000000004, 0, 60], "系列順を変えても合計は変わらない");
+  assert.deepEqual(chartStackedTotals(items, series.slice(0, 2)).map((entry) => entry.total), [0.30000000000000004, 0, 30], "系列の追加削除後は現在の系列だけで再計算する");
+});
+
+test("項目別合計は巨大な有限値の上限超過をInfinityにせず公開する", () => {
+  const items = [{ id: "huge", label: "巨大" }, { id: "finite", label: "有限" }];
+  const series = [{ values: [Number.MAX_VALUE, 1e308] }, { values: [1e308, 1e307] }];
+  const totals = chartStackedTotals(items, series);
+  assert.deepEqual(totals.map(({ total, overflow }) => ({ total, overflow })), [
+    { total: null, overflow: true }, { total: 1.1e308, overflow: false }
+  ]);
+  assert.ok(totals.every((entry) => entry.total === null || Number.isFinite(entry.total)), "NaNやInfinityを表示用データへ渡さない");
 });
 
 test("積み上げ棒の座標は系列順を保ち、同じ項目で連続して積み上がる", () => {
