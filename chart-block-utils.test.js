@@ -14,6 +14,7 @@ const {
   chartValueMaximum,
   createChartBlock,
   formatChartStackTotal,
+  formatChartStackTotalDetail,
   insertChartBlock,
   lineChartPoints,
   lineChartWidth,
@@ -164,6 +165,28 @@ test("項目別合計は巨大な有限値の上限超過をInfinityにせず公
     { total: null, overflow: true }, { total: 1.1e308, overflow: false }
   ]);
   assert.ok(totals.every((entry) => entry.total === null || Number.isFinite(entry.total)), "NaNやInfinityを表示用データへ渡さない");
+});
+
+test("積み上げ合計は視覚用を短縮し、詳細値と非有限値保護を分離する", () => {
+  const shortInteger = { total: 190, overflow: false };
+  const decimal = { total: 0.1 + 0.2, overflow: false };
+  const longInteger = { total: 123456789012345, overflow: false };
+  const hugeFinite = { total: 1.23456789012345e308, overflow: false };
+  const overflow = { total: null, overflow: true };
+  const nonFinite = [{ total: NaN, overflow: false }, { total: Infinity, overflow: false }];
+  assert.equal(formatChartStackTotal(shortInteger), "190");
+  assert.equal(formatChartStackTotal(decimal), "0.3");
+  assert.equal(formatChartStackTotalDetail(decimal), "0.3", "詳細値にも浮動小数点誤差を露出しない");
+  assert.equal(formatChartStackTotal(longInteger), "1.23e+14");
+  assert.equal(formatChartStackTotalDetail(longInteger), "123456789012345");
+  assert.equal(formatChartStackTotal(hugeFinite), "1.23e+308");
+  assert.equal(formatChartStackTotalDetail(hugeFinite), "1.23456789012345e+308");
+  assert.equal(formatChartStackTotal(overflow), "上限超過");
+  assert.equal(formatChartStackTotalDetail(overflow), "上限超過");
+  nonFinite.forEach((total) => {
+    assert.equal(formatChartStackTotal(total), "上限超過");
+    assert.equal(formatChartStackTotalDetail(total), "上限超過");
+  });
 });
 
 test("積み上げ棒の座標は系列順を保ち、同じ項目で連続して積み上がる", () => {
