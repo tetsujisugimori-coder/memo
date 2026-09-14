@@ -176,10 +176,10 @@ test("積み上げ合計は視覚用を短縮し、詳細値と非有限値保�
   const nonFinite = [{ total: NaN, overflow: false }, { total: Infinity, overflow: false }];
   assert.equal(formatChartStackTotal(shortInteger), "190");
   assert.equal(formatChartStackTotal(decimal), "0.3");
-  assert.equal(formatChartStackTotalDetail(decimal), "0.30000000000000004", "詳細値は視覚用の丸め前を保持する");
-  assert.equal(formatChartStackTotal(longInteger), "1.2346e+14");
+  assert.equal(formatChartStackTotalDetail(decimal), "0.3", "詳細値にも浮動小数点誤差を露出しない");
+  assert.equal(formatChartStackTotal(longInteger), "1.23e+14");
   assert.equal(formatChartStackTotalDetail(longInteger), "123456789012345");
-  assert.equal(formatChartStackTotal(hugeFinite), "1.2346e+308");
+  assert.equal(formatChartStackTotal(hugeFinite), "1.23e+308");
   assert.equal(formatChartStackTotalDetail(hugeFinite), "1.23456789012345e+308");
   assert.equal(formatChartStackTotal(overflow), "上限超過");
   assert.equal(formatChartStackTotalDetail(overflow), "上限超過");

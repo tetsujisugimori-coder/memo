@@ -2747,3 +2747,10 @@
 * 方針：合計値の計算、`items`／`series`、保存マーカー、`schemaVersion: 1`、DB_VERSIONは変更せず、視覚表示と詳細情報を分離した。短い既存の整数・小数は維持し、表示文字列が10文字を超える有限値だけを有効数字5桁までの科学表記へ短縮する。短縮前の安全な有限値は合計ラベル親グループの`title`と`.sr-only`へ残す。オーバーフローは単位を付けず「項目名、合計: 上限超過」とし、`NaN`／`Infinity`をSVG、`title`、読み上げ情報へ出さない。
 * テスト：`chart-block-utils.test.js`へ短い整数、`0.1 + 0.2`の視覚表示`0.3`と詳細値、長い整数、巨大有限値、上限超過、`NaN`／`Infinity`保護を追加した。`chart-block.e2e.js`は短い既存表示を維持しつつ、長い有限合計を持つ隣接3項目について、全合計ラベルのSVG左右・上下境界、全ラベル同士、各項目の全系列内ラベルとの矩形非重複、短縮前の`title`と読み上げを実UIで確認する。
 * 検証：`node --check chart-block-utils.js`、`node --check app.js`、`node --check chart-block.e2e.js`、`node --test chart-block-utils.test.js backup-bundle-utils.test.js version.test.js`（58件、fail 0）、`npm test`（1,110件、fail 0）、`npm run test:e2e:chart`（Chromium、成功）、PowerShell等価のWebKit Chart E2E（成功）、`npm run test:e2e:mobile`（Chromium、成功）、PowerShell等価のWebKit Mobile E2E（成功）、`git diff --check`を実行した。WebKit E2Eの成功はSafari／iPhone実機確認を意味しない。Safari／iPhone実機は未確認である。GitHub ActionsはPR作成後に確認する。
+
+## 2026-09-14 PR #228 レビュー後修正：合計詳細値と最狭幅E2E
+
+* 原因と詳細値方針：`formatChartStackTotalDetail()`が有限値を生の`String(total.total)`へ渡していたため、`0.1 + 0.2`のようなJavaScriptのIEEE 754由来の末尾誤差が`title`と読み上げへ露出していた。有限値は`toPrecision(15)`相当で正規化してから文字列化し、`0.3`のような人間向け詳細値を使う。短い整数と既存の科学表記は保ち、`NaN`／`Infinity`は「上限超過」だけを返す。
+* 視覚表示：詳細値が10文字を超える場合だけ、正規化済み有限値を有効数字3桁の科学表記へ短縮する。詳細値、親グループの`title`、`.sr-only`は短縮しないため、保存値と合計の導出は変えない。
+* 最狭幅：既存の3系列・3項目は棒グラフの横幅計算により1項目あたり約130pxとなり、科学表記の衝突を十分に厳しく検査できなかった。既存の3系列回帰を残したうえで、320px viewport、1系列・5項目、通常積み上げ、`showStackTotals: true`、各項目に長い有限値を設定するE2Eを追加した。`viewBox`幅446、プロット上の1項目約75pxで、全合計ラベルのSVG上下左右、相互の2px安全余白、関連する全系列内ラベルとの間隔、科学表記、`title`、`.sr-only`を実測し、本文と画面幅を後続テスト前に復元する。
+* 検証：`node --check chart-block-utils.js`、`node --check app.js`、`node --check chart-block.e2e.js`、`node --test chart-block-utils.test.js backup-bundle-utils.test.js version.test.js`（58件、fail 0）、`npm test`（1,110件、fail 0）、`npm run test:e2e:chart`（Chromium、成功）、PowerShell等価のWebKit Chart E2E（成功）、`npm run test:e2e:mobile`（Chromium、成功）、PowerShell等価のWebKit Mobile E2E（成功）、`git diff --check`を実行した。Safari／iPhone実機は未確認であり、WebKit E2Eの成功は実機確認を意味しない。
