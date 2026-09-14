@@ -717,6 +717,12 @@ function boxesHaveGap(first, second, minimumGap = 2) {
       return JSON.stringify(current?.series.map((series) => series.values)) === JSON.stringify(expected);
     }, originalStackedValues);
     await page.setViewportSize({ width: 320, height: 820 });
+    await page.waitForFunction(() => innerWidth === 320 && document.body.dataset.layoutMode === "mobile");
+    const narrowContextPanel = page.locator("#contextPanel");
+    if (await narrowContextPanel.getAttribute("aria-hidden") !== "true") {
+      await page.locator("#closeContextPanelBtn").click();
+      await page.waitForFunction(() => document.getElementById("contextPanel")?.getAttribute("aria-hidden") === "true");
+    }
     await multiEditor.locator('.chart-block-series-row button[data-chart-action="delete-series"]').last().click();
     await page.waitForFunction(() => window.MemoNexusChartBlockUtils.splitChartBlocks(document.getElementById("editor").value)
       .find((segment) => segment.type === "chart")?.chart?.series.length === 2);
