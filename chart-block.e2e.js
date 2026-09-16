@@ -831,6 +831,7 @@ function boxesHaveGap(first, second, minimumGap = 2) {
     assert.ok(narrowTotalLayout.every((entry) => narrowAccessibleItems.includes(`${entry.item}、合計: ${entry.detail}万円`) && !entry.detail.includes("00000000000000004")), "最狭幅でも読み上げへ人間向け詳細値を残す");
     assert.ok(narrowAccessibleItems.includes(`${maximumFiniteLayout.item}、合計: ${maximumFiniteLayout.detail}万円`), "最大有限値も読み上げで上限超過にしない");
     await page.setViewportSize({ width: 1100, height: 820 });
+    await page.waitForFunction(() => innerWidth === 1100 && document.body.dataset.layoutMode !== "mobile");
     await page.locator("#editor").fill(originalStackedBody);
     await waitForChartEditorSyncAfterBodyInput(page, 1);
     await page.waitForFunction(() => {
@@ -891,8 +892,8 @@ function boxesHaveGap(first, second, minimumGap = 2) {
     await page.waitForFunction((chartId) => {
       const chart = [...document.querySelectorAll("#preview .chart-block-bar-chart")]
         .find((candidate) => candidate.dataset.chartId === chartId);
-      return chart?.dataset.chartBarOrientation === "vertical"
-        && chart?.dataset.chartBarMode === "percent-stacked";
+      return chart?.dataset.chartBarMode === "percent-stacked"
+        && !chart.classList.contains("chart-block-horizontal-bar-chart");
     }, multiChartId);
     await barMode.selectOption("grouped");
     await page.waitForFunction(() => document.querySelector("#preview .chart-block-bar-chart")?.dataset.chartBarMode === "grouped" && document.querySelectorAll("#preview .chart-block-stacked-total-value").length === 0);
@@ -1135,7 +1136,13 @@ function boxesHaveGap(first, second, minimumGap = 2) {
     await waitForPieSlices(page, 3);
     assert.deepEqual(await page.locator("#preview .chart-block-pie .sr-only li").allTextContents(), ["1月、売上: 100万円", "3月、売上: 120万円", "2月、売上: 140万円"], "円グラフも並べ替えた第1系列との対応を維持する");
     await multiEditor.locator('select[aria-label="グラフ1の種類"]').selectOption("bar");
-    await page.waitForFunction(() => document.querySelectorAll("#preview .chart-block-bar").length === 6 && [...document.querySelectorAll("#preview .chart-block-label")].map((label) => label.textContent).join(",") === "1月,3月,2月");
+    await page.waitForFunction(() => {
+      const chart = document.querySelector("#preview .chart-block-bar-chart");
+      const labels = [...chart?.querySelectorAll(".chart-block-label") || []]
+        .map((label) => label.querySelector("tspan")?.textContent ?? label.textContent);
+      return chart?.querySelectorAll(".chart-block-bar").length === 6
+        && labels.join(",") === "1月,3月,2月";
+    });
     await multiEditor.locator('button[data-chart-action="confirm"]').click();
     await page.waitForFunction(() => document.querySelector(".chart-block-editor .chart-block-status")?.textContent === "入力内容を保存しました");
     await page.reload({ waitUntil: "domcontentloaded" });
