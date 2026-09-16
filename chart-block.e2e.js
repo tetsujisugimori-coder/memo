@@ -314,7 +314,7 @@ function boxesHaveGap(first, second, minimumGap = 2) {
     await page.locator('.chart-block-editor button[data-chart-action="confirm"]').click();
     await page.waitForFunction(() => document.querySelector(".chart-block-editor .chart-block-status")?.textContent === "入力内容を保存しました");
     const beforeReload = await chart(page);
-    assert.deepEqual({ ...beforeReload.appearance, pieSeriesId: undefined }, { color: "#dc2626", barMode: "grouped", showStackTotals: false, showValues: true, showPoints: true, showLegend: true, pieLabelMode: "percentage", pieSeriesId: undefined }, "棒グラフへ戻しても色・数値・点・凡例設定を保存する");
+    assert.deepEqual({ ...beforeReload.appearance, pieSeriesId: undefined }, { color: "#dc2626", barMode: "grouped", barOrientation: "vertical", showStackTotals: false, showValues: true, showPoints: true, showLegend: true, pieLabelMode: "percentage", pieSeriesId: undefined }, "棒グラフへ戻しても色・数値・点・凡例設定を保存する");
     assert.equal(beforeReload.appearance.pieSeriesId, beforeReload.series[0].id, "既定の円グラフ表示系列IDを保存する");
     await page.reload({ waitUntil: "domcontentloaded" });
     await page.locator("#appStartupGuard").waitFor({ state: "hidden" });
@@ -845,6 +845,44 @@ function boxesHaveGap(first, second, minimumGap = 2) {
     await barMode.selectOption("percent-stacked");
     await page.waitForFunction(() => document.querySelector("#preview .chart-block-bar-chart")?.dataset.chartBarMode === "percent-stacked" && document.querySelectorAll("#preview .chart-block-stacked-total-value").length === 0);
     assert.equal(await multiEditor.locator('input[aria-label="グラフ1の合計値を表示"]').count(), 0, "100%積み上げでは合計値の操作欄を表示しない");
+    const orientation = multiEditor.locator('select[aria-label="グラフ1の棒の向き"]');
+    await orientation.selectOption("horizontal");
+    await page.waitForFunction(() => document.querySelector("#preview .chart-block-bar-chart")?.dataset.chartBarOrientation === "horizontal");
+    const longHorizontalLabel = "空白を含まない非常に長い日本語項目名を横棒で確認するためのテストです";
+    await multiEditor.locator('input[aria-label="1件目の項目名"]').fill(longHorizontalLabel);
+    await page.waitForFunction((label) => [...document.querySelectorAll("#preview .chart-block-horizontal-label title")].some((title) => title.textContent === label), longHorizontalLabel);
+    const longLabelLayout = await page.locator("#preview .chart-block-horizontal-label").first().evaluate((label) => {
+      const text = label.getBoundingClientRect();
+      const bars = [...label.closest(".chart-block-bar-group").querySelectorAll("rect")].map((bar) => bar.getBoundingClientRect());
+      const svg = label.ownerSVGElement.getBoundingClientRect();
+      return { text, leftBar: Math.min(...bars.map((bar) => bar.left)), svg, title: label.querySelector("title")?.textContent, lines: label.querySelectorAll("tspan").length };
+    });
+    assert.equal(longLabelLayout.title, longHorizontalLabel, "省略した横棒項目名もSVG titleに全文を残す");
+    assert.ok(longLabelLayout.lines <= 2 && longLabelLayout.text.right <= longLabelLayout.leftBar && longLabelLayout.text.left >= longLabelLayout.svg.left, "長い横棒項目名を最大2行で棒と重ねずSVG内へ置く");
+    await multiEditor.locator('input[aria-label="1件目の項目名"]').fill("1月");
+    await page.waitForFunction(() => [...document.querySelectorAll("#preview .chart-block-horizontal-label")].some((label) => label.textContent === "1月"));
+    const horizontalPercent = await page.locator("#preview .chart-block-percent-stacked-bar rect").evaluateAll((bars) => bars.map((bar) => ({ x: Number(bar.getAttribute("x")), y: Number(bar.getAttribute("y")), width: Number(bar.getAttribute("width")), height: Number(bar.getAttribute("height")) })));
+    assert.equal(horizontalPercent.length, 9, "横向き100%積み上げでも3項目・3系列を描画する");
+    assert.ok(horizontalPercent.every((segment) => Object.values(segment).every(Number.isFinite) && segment.width > 0 && segment.height > 0), "横棒のSVG属性へNaNやInfinityを出さない");
+    assert.deepEqual(await page.locator("#preview .chart-block-percent-axis-value").allTextContents(), ["0%", "25%", "50%", "75%", "100%"], "横向き100%積み上げも割合目盛りを表示する");
+    await barMode.selectOption("stacked");
+    await page.waitForFunction(() => document.querySelectorAll("#preview .chart-block-horizontal-bar-chart .chart-block-stacked-total-value").length === 3);
+    const horizontalTotals = await page.locator("#preview .chart-block-horizontal-bar-chart .chart-block-stacked-total-value").evaluateAll((labels) => labels.map((label) => {
+      const labelBox = label.getBoundingClientRect();
+      const bars = [...label.closest(".chart-block-bar-group").querySelectorAll("rect")].map((bar) => bar.getBoundingClientRect());
+      return { label: labelBox, right: Math.max(...bars.map((bar) => bar.right)), svg: label.ownerSVGElement.getBoundingClientRect() };
+    }));
+    assert.ok(horizontalTotals.every(({ label, right, svg }) => label.left >= right && label.right <= svg.right), "横向き通常積み上げの合計ラベルを棒の右端かつSVG内へ置く");
+    await page.locator('select[aria-label="グラフ1の種類"]').selectOption("line");
+    await page.waitForFunction(() => document.querySelector("#preview .chart-block-line"));
+    await page.locator('select[aria-label="グラフ1の種類"]').selectOption("pie");
+    await page.waitForFunction(() => document.querySelector("#preview .chart-block-pie"));
+    await page.locator('select[aria-label="グラフ1の種類"]').selectOption("bar");
+    await page.waitForFunction(() => document.querySelector("#preview .chart-block-bar-chart")?.dataset.chartBarOrientation === "horizontal");
+    assert.equal((await chart(page)).appearance.barOrientation, "horizontal", "棒→折れ線→円→棒でも横向き設定を保持する");
+    await orientation.selectOption("vertical");
+    await barMode.selectOption("percent-stacked");
+    await page.waitForFunction(() => document.querySelector("#preview .chart-block-bar-chart")?.dataset.chartBarOrientation === "vertical" && document.querySelector("#preview .chart-block-bar-chart")?.dataset.chartBarMode === "percent-stacked");
     await barMode.selectOption("grouped");
     await page.waitForFunction(() => document.querySelector("#preview .chart-block-bar-chart")?.dataset.chartBarMode === "grouped" && document.querySelectorAll("#preview .chart-block-stacked-total-value").length === 0);
     assert.equal(await multiEditor.locator('input[aria-label="グラフ1の合計値を表示"]').count(), 0, "集合棒では合計値の操作欄を表示しない");
@@ -895,6 +933,8 @@ function boxesHaveGap(first, second, minimumGap = 2) {
     await page.waitForFunction(() => document.querySelectorAll("#preview .chart-block-stacked-value").length === 0);
     await multiEditor.locator('input[aria-label="グラフ1の棒の上に数値を表示"]').check();
     await page.waitForFunction(() => document.querySelectorAll("#preview .chart-block-stacked-value").length > 0);
+    await orientation.selectOption("horizontal");
+    await page.waitForFunction(() => document.querySelector("#preview .chart-block-bar-chart")?.dataset.chartBarOrientation === "horizontal");
     for (const viewportWidth of [320, 375, 390, 430]) {
       await page.setViewportSize({ width: viewportWidth, height: 760 });
       await page.waitForFunction((width) => innerWidth === width && document.body.dataset.layoutMode === "mobile", viewportWidth);
@@ -929,13 +969,15 @@ function boxesHaveGap(first, second, minimumGap = 2) {
       const percentMobileMetrics = await page.locator("#preview .chart-block-percent-stacked-bar-chart, #preview .chart-block-bar-chart[data-chart-bar-mode='percent-stacked']").evaluate((element) => {
         const select = document.querySelector('.chart-block-editor select[aria-label="グラフ1の棒の表示方法"]')?.getBoundingClientRect();
         const table = document.querySelector(".chart-block-item-table");
+        const chartScroll = element.querySelector(".chart-block-scroll");
         const card = element.getBoundingClientRect();
         return {
           card: { left: card.left, right: card.right, width: card.width },
           select: select && { left: select.left, right: select.right },
           documentOverflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
           bodyOverflow: document.body.scrollWidth - document.body.clientWidth,
-          tableScrollable: table?.scrollWidth > table?.clientWidth
+          tableScrollable: table?.scrollWidth > table?.clientWidth,
+          chartScrollable: chartScroll?.scrollWidth > chartScroll?.clientWidth
         };
       });
       assert.ok(percentMobileMetrics.card.left >= -0.5 && percentMobileMetrics.card.right <= viewportWidth + 0.5, `${viewportWidth}pxで100%積み上げカードを画面内へ収める`);
@@ -943,6 +985,7 @@ function boxesHaveGap(first, second, minimumGap = 2) {
       assert.equal(percentMobileMetrics.documentOverflow, 0, `${viewportWidth}pxでdocumentの横スクロールを作らない`);
       assert.equal(percentMobileMetrics.bodyOverflow, 0, `${viewportWidth}pxでbodyの横スクロールを作らない`);
       assert.equal(percentMobileMetrics.tableScrollable, true, `${viewportWidth}pxで入力表だけを横スクロール可能にする`);
+      assert.equal(percentMobileMetrics.chartScrollable, true, `${viewportWidth}pxで横棒の横スクロールをグラフ領域だけへ閉じ込める`);
     }
     await page.setViewportSize({ width: 1280, height: 900 });
     await page.waitForFunction(() => document.body.dataset.layoutMode === "wide");
