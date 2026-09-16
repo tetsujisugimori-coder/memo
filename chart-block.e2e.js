@@ -860,7 +860,13 @@ function boxesHaveGap(first, second, minimumGap = 2) {
     assert.equal(longLabelLayout.title, longHorizontalLabel, "省略した横棒項目名もSVG titleに全文を残す");
     assert.ok(longLabelLayout.lines <= 2 && longLabelLayout.text.right <= longLabelLayout.leftBar && longLabelLayout.text.left >= longLabelLayout.svg.left, "長い横棒項目名を最大2行で棒と重ねずSVG内へ置く");
     await multiEditor.locator('input[aria-label="1件目の項目名"]').fill("1月");
-    await page.waitForFunction(() => [...document.querySelectorAll("#preview .chart-block-horizontal-label")].some((label) => label.textContent === "1月"));
+    await page.waitForFunction((expectedLabel) => {
+      const chart = document.querySelector('#preview .chart-block-horizontal-bar-chart[data-chart-bar-mode="percent-stacked"]');
+      const firstGroup = chart?.querySelector(".chart-block-bar-group");
+      const label = firstGroup?.querySelector(".chart-block-horizontal-label");
+      return label?.querySelector("tspan")?.textContent === expectedLabel
+        && label?.querySelector("title")?.textContent === expectedLabel;
+    }, "1月");
     const horizontalPercent = await page.locator("#preview .chart-block-percent-stacked-bar rect").evaluateAll((bars) => bars.map((bar) => ({ x: Number(bar.getAttribute("x")), y: Number(bar.getAttribute("y")), width: Number(bar.getAttribute("width")), height: Number(bar.getAttribute("height")) })));
     assert.equal(horizontalPercent.length, 9, "横向き100%積み上げでも3項目・3系列を描画する");
     assert.ok(horizontalPercent.every((segment) => Object.values(segment).every(Number.isFinite) && segment.width > 0 && segment.height > 0), "横棒のSVG属性へNaNやInfinityを出さない");

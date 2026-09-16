@@ -2776,3 +2776,9 @@
 * 通常積み上げの合計は棒の右端に表示し、集合と100%積み上げでは既存どおり表示しない。系列内の視覚ラベルは十分な幅・高さがある区間だけ終端寄りに出し、短い区間でもSVGの`title`と読み上げリストには項目名、系列名、元値、必要な割合を残す。
 * 左側の項目名領域は最長名を基準に上限付きで広げる。上限を超える空白なしの日本語名も最大2行と省略記号で表示し、全文はSVGの`title`とスクリーンリーダー用情報に保持する。グラフ本体が不足するとSVG内部幅だけを広げ、カード内の横スクロールへ収める。
 * `chart-block-utils.test.js`へ向きの正規化・直列化、並べ替え、集合／通常積み上げ／100%積み上げ横棒、0と巨大有限値、長い日本語名を追加した。`npm test`は1,114件成功、Chart E2EはChromium／WebKitで成功、Mobile E2EはChromium／WebKitで成功した。Safari／iPhone実機とpush後のGitHub Actionsは未確認である。
+
+## 2026-09-17 PR #233 Chart E2E待機条件の修正
+
+* 失敗と原因：PR #233の初回GitHub Actions run `35142690612` はCI checks、Geometry E2E、Mobile E2Eが成功した一方、Chart E2EはChromium／WebKitの両方で`chart-block.e2e.js`旧863行付近の30秒タイムアウトにより失敗した。横棒項目ラベルの親`text`要素には全文保持用の`title`と表示用の`tspan`がともに入るため、親の`textContent`は`1月1月`となり、`1月`との完全一致を待つ条件は成立しなかった。
+* 修正：製品側の横棒グラフ、保存形式、キャッシュ識別子は変更せず、100%積み上げ横棒の対象グラフに限定して1件目の項目グループを取得する待機条件へ置き換えた。表示文字は子`tspan`の`textContent`、全文保持は子`title`の`textContent`を個別に`1月`と確認する。長い日本語項目名の最大2行、全文を`title`へ保持、棒との非重なり、SVG内配置、Chromium／WebKit、モバイル画面全体の横スクロールなしの検証は残す。
+* 検証：`node --check chart-block.e2e.js`（成功）、`npm test`（1,114件、fail 0）、`npm run test:e2e:chart`（Chromium、成功）、`MEMO_NEXUS_E2E_BROWSER=webkit npm run test:e2e:chart`（WebKit、成功）をこの修正後に実行した。GitHub Actionsの最終結果はpush後に追記する。Safari／iPhone実機は未確認である。
