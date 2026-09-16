@@ -471,6 +471,7 @@ const {
   chartValueMaximum,
   createChartBlock,
   formatChartStackTotal,
+  formatChartStackTotalDetail,
   insertChartBlock,
   lineChartPoints,
   lineChartWidth,
@@ -8407,6 +8408,15 @@ function chartStackTotalDisplay(total) {
   return formatChartStackTotal(total);
 }
 
+function chartStackTotalDetail(total) {
+  return formatChartStackTotalDetail(total);
+}
+
+function chartStackTotalDescription(total, unit) {
+  const detail = chartStackTotalDetail(total);
+  return detail === "上限超過" ? "合計: 上限超過" : `合計: ${detail}${unit}`;
+}
+
 function chartAccessibleItems(chart, percentStackedLayout = null, stackedTotals = null) {
   if (percentStackedLayout) {
     return percentStackedLayout.groups.flatMap((group) => group.entries.map((entry) => {
@@ -8424,7 +8434,7 @@ function chartAccessibleItems(chart, percentStackedLayout = null, stackedTotals 
       `<li>${escapeHtml(`${item.label}、${series.name}: ${chartDisplayNumber(series.values[itemIndex])}${chart.unit}`)}</li>`
     );
     const total = totalsByItemIndex.get(itemIndex);
-    if (total) entries.push(`<li>${escapeHtml(`${item.label}、合計${chartStackTotalDisplay(total)}${chart.unit}`)}</li>`);
+    if (total) entries.push(`<li>${escapeHtml(`${item.label}、${chartStackTotalDescription(total, chart.unit)}`)}</li>`);
     return entries;
   }).join("");
 }
@@ -8587,8 +8597,9 @@ function renderChartBlock(chartValue, blockIndex, { editable = true } = {}) {
         const firstSegment = groupSegments[0];
         const labelX = firstSegment.x + firstSegment.width / 2;
         const topY = Math.min(...groupSegments.map((segment) => segment.y));
+        const stackTotal = { total: group.total, overflow: group.totalOverflow };
         const totalLabel = showStackTotals
-          ? `<text class="chart-block-stacked-total-value" data-chart-total-overflow="${group.totalOverflow ? "true" : "false"}" x="${labelX}" y="${Math.max(34, topY - 8)}" text-anchor="middle">${escapeHtml(chartStackTotalDisplay({ total: group.total, overflow: group.totalOverflow }))}</text>`
+          ? `<title class="chart-block-stacked-total-title">${escapeHtml(`${group.item.label}、${chartStackTotalDescription(stackTotal, chart.unit)}`)}</title><text class="chart-block-stacked-total-value" data-chart-total-overflow="${group.totalOverflow ? "true" : "false"}" x="${labelX}" y="${Math.max(34, topY - 8)}" text-anchor="middle">${escapeHtml(chartStackTotalDisplay(stackTotal))}</text>`
           : "";
         return `<g class="chart-block-bar-group" data-chart-item-id="${escapeAttr(group.item.id)}">${segments}${totalLabel}<text class="chart-block-label" x="${labelX}" y="${baseline + 22}" text-anchor="middle">${escapeHtml(chartLabel(group.item.label))}</text></g>`;
       }).join("");
