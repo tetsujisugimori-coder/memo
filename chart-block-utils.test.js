@@ -24,6 +24,7 @@ const {
   parseChartBlockLine,
   pieChartSegments,
   replaceChartBlock,
+  resolvePieSeries,
   serializeChartBlock,
   shouldShowStackTotals,
   stackedBarSegments,
@@ -42,7 +43,47 @@ test("初期グラフは棒グラフ、空の1行、円グラフ用の既定設�
   assert.equal(chart.chartType, "bar");
   assert.deepEqual(chart.items, [{ id: "chart-1-item-1", label: "" }]);
   assert.deepEqual(chart.series, [{ id: "chart-1-series-1", name: DEFAULT_CHART_SERIES_NAME, color: DEFAULT_CHART_COLOR, values: [0] }]);
-  assert.deepEqual(chart.appearance, { color: DEFAULT_CHART_COLOR, barMode: "grouped", showStackTotals: false, showValues: true, showPoints: true, showLegend: false, pieLabelMode: "percentage" });
+  assert.deepEqual(chart.appearance, { color: DEFAULT_CHART_COLOR, barMode: "grouped", showStackTotals: false, showValues: true, showPoints: true, showLegend: false, pieLabelMode: "percentage", pieSeriesId: "chart-1-series-1" });
+});
+
+test("円グラフの表示系列は安定IDで正規化、保存、系列操作後も解決する", () => {
+  const source = {
+    id: "pie-series", chartType: "pie", items: [{ id: "a", label: "A" }, { id: "b", label: "B" }],
+    series: [
+      { id: "sales", name: "売上", values: [90, 10] },
+      { id: "profit", name: "利益", values: [20, 80] },
+      { id: "cost", name: "原価", values: [50, 50] }
+    ],
+    appearance: { pieSeriesId: "profit", showLegend: true }
+  };
+  const original = structuredClone(source);
+  const selected = normalizeChartBlock(source);
+  assert.equal(createChartBlock("new").appearance.pieSeriesId, "new-series-1");
+  assert.equal(selected.appearance.pieSeriesId, "profit");
+  assert.equal(resolvePieSeries(selected).id, "profit");
+  assert.deepEqual(chartDisplaySeries(selected).map((series) => series.id), ["profit"]);
+  assert.deepEqual(chartDisplaySeries(selected)[0].values, [20, 80]);
+  assert.deepEqual(source, original, "正規化と選択解決は入力を変更しない");
+
+  [undefined, 1, "missing"].forEach((pieSeriesId) => {
+    const fallback = normalizeChartBlock({ ...source, appearance: { pieSeriesId } });
+    assert.equal(fallback.appearance.pieSeriesId, "sales");
+    assert.equal(resolvePieSeries(fallback).id, "sales");
+  });
+
+  const restored = parseChartBlockLine(serializeChartBlock(selected));
+  assert.equal(restored.appearance.pieSeriesId, "profit");
+  ["bar", "line", "pie"].forEach((chartType) => assert.equal(normalizeChartBlock({ ...restored, chartType }).appearance.pieSeriesId, "profit"));
+  assert.equal(resolvePieSeries(moveChartSeries(restored, 1, -1)).id, "profit", "並べ替え後も選択IDを解決する");
+
+  const renamed = normalizeChartBlock({ ...restored, series: restored.series.map((series) => series.id === "profit" ? { ...series, name: "営業利益" } : series) });
+  assert.equal(resolvePieSeries(renamed).name, "営業利益");
+  const withoutOther = normalizeChartBlock({ ...renamed, series: renamed.series.filter((series) => series.id !== "cost") });
+  assert.equal(resolvePieSeries(withoutOther).id, "profit");
+  const withoutSelected = normalizeChartBlock({ ...withoutOther, series: withoutOther.series.filter((series) => series.id !== "profit") });
+  assert.equal(withoutSelected.appearance.pieSeriesId, "sales");
+  const withAdded = normalizeChartBlock({ ...withoutOther, series: [...withoutOther.series, { id: "forecast", name: "予測", values: [30, 70] }] });
+  assert.equal(withAdded.appearance.pieSeriesId, "profit");
 });
 
 test("項目名と小数を含む保存形式を同じ内容へ復元し、凡例設定を保持する", () => {
@@ -69,7 +110,7 @@ test("不正な種別、数値、色、ラベル設定を安全な既定値へ�
     { id: "same", label: "A" }, { id: "same-2", label: "B" }, { id: "unsafe-item-3", label: "C" }
   ]);
   assert.deepEqual(chart.series[0].values, [0, 0, 0]);
-  assert.deepEqual(chart.appearance, { color: DEFAULT_CHART_COLOR, barMode: "grouped", showStackTotals: false, showValues: false, showPoints: true, showLegend: true, pieLabelMode: "percentage" });
+  assert.deepEqual(chart.appearance, { color: DEFAULT_CHART_COLOR, barMode: "grouped", showStackTotals: false, showValues: false, showPoints: true, showLegend: true, pieLabelMode: "percentage", pieSeriesId: "unsafe-series-1" });
 });
 
 test("折れ線グラフは共通データと表示設定を保存し、旧データの点表示は既定で有効にする", () => {
@@ -580,7 +621,7 @@ test("旧形式の正規化後も系列順は直列化、表示系列、積み�
   const moved = parseChartBlockLine(serializeChartBlock(moveChartSeries(withSecond, 1, -1)));
   assert.deepEqual(moved.series.map((series) => series.id), ["second", legacy.series[0].id]);
   assert.deepEqual(chartDisplaySeries({ ...moved, chartType: "line" }).map((series) => series.id), ["second", legacy.series[0].id]);
-  assert.deepEqual(chartDisplaySeries({ ...moved, chartType: "pie" }).map((series) => series.id), ["second"]);
+  assert.deepEqual(chartDisplaySeries({ ...moved, chartType: "pie" }).map((series) => series.id), [legacy.series[0].id], "系列順を変えても既定選択の系列IDを維持する");
   ["stacked", "percent-stacked"].forEach((mode) => assert.deepEqual(
     stackedBarSegments(moved.items, moved.series, { mode }).segments.map((segment) => segment.series.id),
     ["second", legacy.series[0].id, "second", legacy.series[0].id]

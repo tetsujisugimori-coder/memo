@@ -482,6 +482,7 @@ const {
   PIE_CHART_COLORS,
   pieChartSegments,
   replaceChartBlock,
+  resolvePieSeries,
   shouldShowStackTotals,
   stackedBarSegments,
   splitChartBlocks
@@ -8487,8 +8488,8 @@ function chartPiePath(segment, centerX, centerY, radius) {
 
 function renderChartBlock(chartValue, blockIndex, { editable = true } = {}) {
   const chart = normalizeChartBlock(chartValue, `chart-${blockIndex + 1}`);
-  const firstSeries = chart.series[0];
-  const items = chartDisplayItems(chart, firstSeries);
+  const pieSeries = chart.chartType === "pie" ? resolvePieSeries(chart) : null;
+  const items = chartDisplayItems(chart, pieSeries || chart.series[0]);
   const title = chart.title || `グラフ${blockIndex + 1}`;
   const controls = editable
     ? `<button class="chart-block-edit" type="button" data-chart-id="${escapeAttr(chart.id)}" data-chart-index="${blockIndex}" aria-label="${escapeAttr(`${title}を編集`)}">編集</button>`
@@ -8511,7 +8512,9 @@ function renderChartBlock(chartValue, blockIndex, { editable = true } = {}) {
     const legend = chart.appearance.showLegend
       ? `<ul class="chart-block-legend" aria-label="${escapeAttr(`${title}の凡例`)}">${items.map((item, index) => `<li><span class="chart-block-legend-swatch" style="background:${escapeAttr(colorById.get(item.id) || PIE_CHART_COLORS[index % PIE_CHART_COLORS.length])}"></span><span>${escapeHtml(`${chartLabel(item.label, 20)}: ${chartDisplayNumber(item.value)}${chart.unit}`)}</span></li>`).join("")}</ul>`
       : "";
-    return `<figure class="chart-block chart-block-pie" data-chart-id="${escapeAttr(chart.id)}"><figcaption>${escapeHtml(title)}</figcaption>${controls}<div class="chart-block-pie-layout"><div class="chart-block-scroll" role="region" tabindex="0" aria-label="${escapeAttr(title)}"><svg viewBox="0 0 360 260" role="img" aria-label="${escapeAttr(`${title}${chart.unit ? `（単位: ${chart.unit}）` : ""}`)}">${slices}${empty}</svg></div>${legend}</div><ul class="sr-only">${accessibleItems || "<li>有効な項目はありません</li>"}</ul></figure>`;
+    const pieTitle = chart.series.length > 1 ? `${title}（${pieSeries.name}）` : title;
+    const pieAriaLabel = `${title}${chart.unit ? `（単位: ${chart.unit}）` : ""}（表示系列: ${pieSeries.name}）`;
+    return `<figure class="chart-block chart-block-pie" data-chart-id="${escapeAttr(chart.id)}" data-chart-series-id="${escapeAttr(pieSeries.id)}"><figcaption>${escapeHtml(pieTitle)}</figcaption>${controls}<div class="chart-block-pie-layout"><div class="chart-block-scroll" role="region" tabindex="0" aria-label="${escapeAttr(pieTitle)}"><svg viewBox="0 0 360 260" role="img" aria-label="${escapeAttr(pieAriaLabel)}">${slices}${empty}</svg></div>${legend}</div><ul class="sr-only">${accessibleItems || "<li>有効な項目はありません</li>"}</ul></figure>`;
   }
   const visibleSeriesCount = chartDisplaySeries(chart).length;
   const width = Math.max(420, chart.items.filter((item) => item.label).length * Math.max(74, visibleSeriesCount * 32 + 34) + 76);
@@ -8790,6 +8793,20 @@ function createChartEditor(chartValue, blockIndex, snapshotKey) {
       appearance.append(pointsLabel, legendLabel);
     }
   } else {
+    const pieSeriesLabel = document.createElement("label");
+    pieSeriesLabel.textContent = "表示する系列";
+    const pieSeries = document.createElement("select");
+    pieSeries.dataset.chartField = "pieSeriesId";
+    pieSeries.disabled = chart.series.length <= 1;
+    pieSeries.setAttribute("aria-label", `グラフ${blockIndex + 1}の表示する系列`);
+    chart.series.forEach((series) => {
+      const option = document.createElement("option");
+      option.value = series.id;
+      option.textContent = series.name;
+      option.selected = chart.appearance.pieSeriesId === series.id;
+      pieSeries.append(option);
+    });
+    pieSeriesLabel.append(pieSeries);
     const legendLabel = document.createElement("label");
     legendLabel.className = "chart-block-appearance-checkbox";
     const legend = document.createElement("input");
@@ -8811,12 +8828,12 @@ function createChartEditor(chartValue, blockIndex, snapshotKey) {
       labelMode.append(option);
     });
     labelModeLabel.append(labelMode);
-    appearance.append(legendLabel, labelModeLabel);
+    appearance.append(pieSeriesLabel, legendLabel, labelModeLabel);
   }
   const unsupportedNotice = document.createElement("p");
   unsupportedNotice.className = "chart-block-series-notice";
   unsupportedNotice.hidden = chart.chartType !== "pie";
-  unsupportedNotice.textContent = "円グラフでは第1系列のみ表示されます。ほかの系列は保持され、棒グラフまたは折れ線グラフへ戻すと再表示されます。";
+  unsupportedNotice.textContent = "円グラフでは選択した1系列を表示します。ほかの系列は保持され、棒グラフまたは折れ線グラフへ戻すと再表示されます。";
   const seriesPanel = document.createElement("section");
   seriesPanel.className = "chart-block-series-panel";
   seriesPanel.setAttribute("aria-label", "系列の設定");
@@ -9030,7 +9047,7 @@ function chartEditorStatus(editorBlock, message) {
   if (status) status.textContent = message;
 }
 
-function syncChartSeriesNameInItemTable(editorBlock, seriesIndex, seriesName, seriesCount) {
+function syncChartSeriesNameInItemTable(editorBlock, seriesIndex, seriesId, seriesName, seriesCount) {
   const header = editorBlock.querySelector(`[data-chart-series-header-index="${seriesIndex}"]`);
   if (header) header.textContent = seriesName;
   editorBlock.querySelectorAll(`input[data-chart-series-value][data-chart-series-index="${seriesIndex}"]`).forEach((input) => {
@@ -9038,6 +9055,9 @@ function syncChartSeriesNameInItemTable(editorBlock, seriesIndex, seriesName, se
     if (!Number.isInteger(itemIndex) || itemIndex < 0) return;
     input.setAttribute("aria-label", chartSeriesValueAriaLabel(itemIndex, seriesName, seriesCount));
   });
+  const pieSeriesOption = [...editorBlock.querySelectorAll('select[data-chart-field="pieSeriesId"] option')]
+    .find((option) => option.value === seriesId);
+  if (pieSeriesOption) pieSeriesOption.textContent = seriesName;
 }
 
 function handleChartEditorInput(event) {
@@ -9087,12 +9107,14 @@ function handleChartEditorInput(event) {
     next.appearance = { ...next.appearance, barMode: event.target.value };
   } else if (event.target.dataset.chartField === "pieLabelMode") {
     next.appearance = { ...next.appearance, pieLabelMode: event.target.value };
+  } else if (event.target.dataset.chartField === "pieSeriesId") {
+    next.appearance = { ...next.appearance, pieSeriesId: event.target.value };
   } else if (event.target.dataset.chartField) {
     next[event.target.dataset.chartField] = event.target.value;
   } else return;
   next = normalizeChartBlock(next, chartId);
   if (renamedSeriesIndex !== null) {
-    syncChartSeriesNameInItemTable(editorBlock, renamedSeriesIndex, next.series[renamedSeriesIndex].name, next.series.length);
+    syncChartSeriesNameInItemTable(editorBlock, renamedSeriesIndex, next.series[renamedSeriesIndex].id, next.series[renamedSeriesIndex].name, next.series.length);
     syncChartSeriesMoveActionLabels(
       editorBlock.querySelector(`.chart-block-series-row[data-chart-series-index="${renamedSeriesIndex}"]`),
       { ...next.series[renamedSeriesIndex], name: event.target.value },

@@ -89,6 +89,8 @@
     ];
     const usedSeriesIds = new Set();
     const series = sourceSeries.map((entry, index) => normalizeChartSeries(entry, id, index, items.length, usedSeriesIds, index === 0 ? legacyValues : []));
+    const pieSeriesId = typeof appearanceSource.pieSeriesId === "string" && series.some((entry) => entry.id === appearanceSource.pieSeriesId)
+      ? appearanceSource.pieSeriesId : series[0].id;
     return {
       ...source,
       type: "chart",
@@ -109,7 +111,8 @@
         showPoints: appearanceSource.showPoints !== false,
         showLegend: appearanceSource.showLegend === true,
         pieLabelMode: ["percentage", "value", "none"].includes(appearanceSource.pieLabelMode)
-          ? appearanceSource.pieLabelMode : "percentage"
+          ? appearanceSource.pieLabelMode : "percentage",
+        pieSeriesId
       }
     };
   }
@@ -159,7 +162,7 @@
       unit: "",
       items: [{ id: `${id}-item-1`, label: "" }],
       series: [{ id: `${id}-series-1`, name: DEFAULT_CHART_SERIES_NAME, color: DEFAULT_CHART_COLOR, values: [0] }],
-      appearance: { barMode: "grouped", showStackTotals: false, showValues: true, showPoints: true, showLegend: false, pieLabelMode: "percentage" }
+      appearance: { barMode: "grouped", showStackTotals: false, showValues: true, showPoints: true, showLegend: false, pieLabelMode: "percentage", pieSeriesId: `${id}-series-1` }
     }, id);
   }
 
@@ -201,9 +204,14 @@
     return { total, segments };
   }
 
+  function resolvePieSeries(chartValue) {
+    const chart = normalizeChartBlock(chartValue, chartValue?.id);
+    return chart.series.find((series) => series.id === chart.appearance.pieSeriesId) || chart.series[0];
+  }
+
   function chartDisplaySeries(chart) {
     const normalized = normalizeChartBlock(chart, chart?.id);
-    return normalized.chartType === "pie" ? normalized.series.slice(0, 1) : normalized.series;
+    return normalized.chartType === "pie" ? [resolvePieSeries(normalized)] : normalized.series;
   }
 
   function chartValueMaximum(items) {
@@ -412,6 +420,7 @@
     parseChartBlockLine,
     pieChartSegments,
     replaceChartBlock,
+    resolvePieSeries,
     serializeChartBlock,
     shouldShowStackTotals,
     stackedBarSegments,
