@@ -733,7 +733,7 @@ function boxesHaveGap(first, second, minimumGap = 2) {
     await multiEditor.locator('button[data-chart-action="add-item"]').click();
     await page.waitForFunction(() => window.MemoNexusChartBlockUtils.splitChartBlocks(document.getElementById("editor").value)
       .find((segment) => segment.type === "chart")?.chart?.items.length === 5);
-    const narrowValues = [1.23456789012345e123, 2.34567890123456e123, 3.45678901234567e123, 4.56789012345678e123, 5.67890123456789e123];
+    const narrowValues = [Number.MAX_VALUE, 1.7e308, 1.6e308, 1.5e308, 1.4e308];
     for (let itemIndex = 0; itemIndex < narrowValues.length; itemIndex += 1) {
       await multiEditor.locator(`.chart-block-item-row[data-chart-item-index="${itemIndex}"] input[data-chart-item-field="label"]`).fill(`最狭${itemIndex + 1}`);
       await multiEditor.locator(`.chart-block-item-row[data-chart-item-index="${itemIndex}"] input[data-chart-series-value][data-chart-series-index="0"]`).fill(String(narrowValues[itemIndex]));
@@ -768,11 +768,15 @@ function boxesHaveGap(first, second, minimumGap = 2) {
     assert.equal(narrowTotalLayout[0].viewBox, "0 0 446 260", "1系列・5項目では約75pxの項目幅を使う");
     assert.ok(narrowTotalLayout.every((entry) => entry.display.length <= 10 && /e[+-]\d+$/.test(entry.display)), "最狭幅でも長い有限合計を短い科学表記へ表示する");
     assert.ok(narrowTotalLayout.every((entry) => entry.title === `${entry.item}、合計: ${entry.detail}万円` && !entry.title.includes("00000000000000004")), "最狭幅でもtitleへ人間向け詳細値を残す");
+    const maximumFiniteLayout = narrowTotalLayout[0];
+    assert.ok(maximumFiniteLayout.display !== "上限超過" && !/Infinity|NaN/.test(maximumFiniteLayout.display) && /e[+-]\d+$/.test(maximumFiniteLayout.display), "最大有限値も最狭幅で科学表記として表示する");
+    assert.ok(maximumFiniteLayout.detail !== "上限超過" && !/Infinity|NaN/.test(maximumFiniteLayout.detail) && !/上限超過|Infinity|NaN/.test(maximumFiniteLayout.title), "最大有限値のtitleへ有限な詳細値を残す");
     assert.ok(narrowTotalLayout.every(({ total, svg }) => total.x >= svg.left && total.x + total.width <= svg.right && total.y >= svg.top && total.y + total.height <= svg.bottom), "最狭幅でも合計ラベルをSVG上下左右内へ置く");
     assert.ok(narrowTotalLayout.every(({ total }, index) => narrowTotalLayout.slice(index + 1).every((other) => boxesHaveGap(total, other.total))), "最狭幅でも全合計ラベルの間に安全余白を持たせる");
     assert.ok(narrowTotalLayout.every(({ total, segmentLabels }) => segmentLabels.every((segment) => boxesHaveGap(total, segment))), "最狭幅でも合計ラベルを関連する全系列内ラベルから離す");
     const narrowAccessibleItems = await page.locator("#preview .chart-block-bar-chart .sr-only li").allTextContents();
     assert.ok(narrowTotalLayout.every((entry) => narrowAccessibleItems.includes(`${entry.item}、合計: ${entry.detail}万円`) && !entry.detail.includes("00000000000000004")), "最狭幅でも読み上げへ人間向け詳細値を残す");
+    assert.ok(narrowAccessibleItems.includes(`${maximumFiniteLayout.item}、合計: ${maximumFiniteLayout.detail}万円`), "最大有限値も読み上げで上限超過にしない");
     await page.setViewportSize({ width: 1100, height: 820 });
     await page.locator("#editor").fill(originalStackedBody);
     await waitForChartEditorSyncAfterBodyInput(page, 1);

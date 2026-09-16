@@ -167,6 +167,28 @@ test("項目別合計は巨大な有限値の上限超過をInfinityにせず公
   assert.ok(totals.every((entry) => entry.total === null || Number.isFinite(entry.total)), "NaNやInfinityを表示用データへ渡さない");
 });
 
+test("最大有限の積み上げ合計は表示の丸めで上限超過にしない", () => {
+  const maximumFinite = { total: Number.MAX_VALUE, overflow: false };
+  const nearMaximumFinite = { total: 1.79e308, overflow: false };
+  const directNonFinite = [{ total: NaN, overflow: false }, { total: Infinity, overflow: false }];
+  const totals = chartStackedTotals([{ id: "max", label: "最大" }], [{ values: [Number.MAX_VALUE] }]);
+  assert.deepEqual(totals.map(({ total, overflow }) => ({ total, overflow })), [{ total: Number.MAX_VALUE, overflow: false }]);
+  [maximumFinite, nearMaximumFinite].forEach((entry) => {
+    const detail = formatChartStackTotalDetail(entry);
+    const display = formatChartStackTotal(entry);
+    assert.notEqual(detail, "上限超過");
+    assert.doesNotMatch(detail, /Infinity|NaN/);
+    assert.match(display, /^\d(?:\.\d+)?e\+\d+$/, "最大付近の有限値は短い科学表記で表示する");
+    assert.doesNotMatch(display, /上限超過|Infinity|NaN/);
+  });
+  assert.equal(formatChartStackTotalDetail({ total: 0.1 + 0.2, overflow: false }), "0.3", "小数の誤差正規化を維持する");
+  assert.equal(formatChartStackTotal(chartStackedTotals([{ label: "超過" }], [{ values: [Number.MAX_VALUE] }, { values: [1e308] }])[0]), "上限超過", "実際の加算上限超過は表示しない");
+  directNonFinite.forEach((entry) => {
+    assert.equal(formatChartStackTotalDetail(entry), "上限超過");
+    assert.equal(formatChartStackTotal(entry), "上限超過");
+  });
+});
+
 test("積み上げ合計は視覚用を短縮し、詳細値と非有限値保護を分離する", () => {
   const shortInteger = { total: 190, overflow: false };
   const decimal = { total: 0.1 + 0.2, overflow: false };

@@ -2754,3 +2754,10 @@
 * 視覚表示：詳細値が10文字を超える場合だけ、正規化済み有限値を有効数字3桁の科学表記へ短縮する。詳細値、親グループの`title`、`.sr-only`は短縮しないため、保存値と合計の導出は変えない。
 * 最狭幅：既存の3系列・3項目は棒グラフの横幅計算により1項目あたり約130pxとなり、科学表記の衝突を十分に厳しく検査できなかった。既存の3系列回帰を残したうえで、320px viewport、1系列・5項目、通常積み上げ、`showStackTotals: true`、各項目に長い有限値を設定するE2Eを追加した。`viewBox`幅446、プロット上の1項目約75pxで、全合計ラベルのSVG上下左右、相互の2px安全余白、関連する全系列内ラベルとの間隔、科学表記、`title`、`.sr-only`を実測し、本文と画面幅を後続テスト前に復元する。
 * 検証：`node --check chart-block-utils.js`、`node --check app.js`、`node --check chart-block.e2e.js`、`node --test chart-block-utils.test.js backup-bundle-utils.test.js version.test.js`（58件、fail 0）、`npm test`（1,110件、fail 0）、`npm run test:e2e:chart`（Chromium、成功）、PowerShell等価のWebKit Chart E2E（成功）、`npm run test:e2e:mobile`（Chromium、成功）、PowerShell等価のWebKit Mobile E2E（成功）、`git diff --check`を実行した。Safari／iPhone実機は未確認であり、WebKit E2Eの成功は実機確認を意味しない。
+
+## 2026-09-17 PR #228 境界値修正：最大有限合計
+
+* 原因：`Number.MAX_VALUE`は有限値だが、詳細表示の`toPrecision(15)`結果を再び`Number()`へ変換すると丸め上げで`Infinity`になり、表示用の中間値が非有限であることを根拠に誤って「上限超過」としていた。
+* 方針：オーバーフロー判定を表示の丸め処理から分離した。「上限超過」は計算済みの`overflow`、または元の合計値そのものが`NaN`／`Infinity`の場合だけにする。有限値の丸め結果を数値へ戻せない場合は、元の有限値の安全な文字列表現へフォールバックする。視覚用科学表記は丸め済み詳細文字列を再変換せず、元の有限値から有効数字3桁で作る。これにより`0.1 + 0.2`は詳細・`title`・読み上げとも`0.3`のまま、`Number.MAX_VALUE`は詳細で有限の指数表記、視覚表示で短い有限の科学表記になる。
+* テスト：`chart-block-utils.test.js`へ、単一系列の`Number.MAX_VALUE`と`1.79e308`が有限・非オーバーフローのまま詳細・視覚表示されること、実際の加算オーバーフロー、直接の`NaN`／`Infinity`、および`0.1 + 0.2`の`0.3`正規化を追加した。既存の320px・1系列・5項目の最狭幅E2Eへ最大有限値を含め、SVG境界、ラベル間2px余白、系列内ラベル、`title`、`.sr-only`、有限の科学表記をChromium／WebKitで確認する。
+* 検証：`node --check chart-block-utils.js`、`node --check app.js`、`node --check chart-block.e2e.js`、`node --test chart-block-utils.test.js backup-bundle-utils.test.js version.test.js`（59件、fail 0）、`npm test`（1,111件、fail 0）、`npm run test:e2e:chart`（Chromium、成功）、PowerShell等価のWebKit Chart E2E（成功）、`npm run test:e2e:mobile`（Chromium、成功）、PowerShell等価のWebKit Mobile E2E（成功）、`git diff --check`を実行した。Safari／iPhone実機は未確認であり、WebKit E2Eの成功は実機確認を意味しない。

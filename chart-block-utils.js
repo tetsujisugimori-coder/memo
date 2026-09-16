@@ -254,14 +254,14 @@
   function formatChartStackTotalDetail(total) {
     if (total?.overflow || !Number.isFinite(total?.total)) return "上限超過";
     const normalized = Number(total.total.toPrecision(15));
-    return Number.isFinite(normalized) ? String(normalized) : "上限超過";
+    return Number.isFinite(normalized) ? String(normalized) : String(total.total);
   }
 
   function formatChartStackTotal(total) {
     const detail = formatChartStackTotalDetail(total);
     const readable = detail;
     if (readable === "上限超過" || readable.length <= 10) return readable;
-    const [mantissa, exponent] = Number(detail).toExponential(2).split("e");
+    const [mantissa, exponent] = total.total.toExponential(2).split("e");
     const compactMantissa = mantissa.includes(".") ? mantissa.replace(/0+$/, "").replace(/\.$/, "") : mantissa;
     return `${compactMantissa}e${exponent}`;
   }
