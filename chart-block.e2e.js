@@ -848,6 +848,7 @@ function boxesHaveGap(first, second, minimumGap = 2) {
     const orientation = multiEditor.locator('select[aria-label="グラフ1の棒の向き"]');
     await orientation.selectOption("horizontal");
     await page.waitForFunction(() => document.querySelector("#preview .chart-block-bar-chart")?.dataset.chartBarOrientation === "horizontal");
+    const horizontalFirstItemId = (await chart(page)).items[0].id;
     const longHorizontalLabel = "空白を含まない非常に長い日本語項目名を横棒で確認するためのテストです";
     await multiEditor.locator('input[aria-label="1件目の項目名"]').fill(longHorizontalLabel);
     await page.waitForFunction((label) => [...document.querySelectorAll("#preview .chart-block-horizontal-label title")].some((title) => title.textContent === label), longHorizontalLabel);
@@ -860,13 +861,14 @@ function boxesHaveGap(first, second, minimumGap = 2) {
     assert.equal(longLabelLayout.title, longHorizontalLabel, "省略した横棒項目名もSVG titleに全文を残す");
     assert.ok(longLabelLayout.lines <= 2 && longLabelLayout.text.right <= longLabelLayout.leftBar && longLabelLayout.text.left >= longLabelLayout.svg.left, "長い横棒項目名を最大2行で棒と重ねずSVG内へ置く");
     await multiEditor.locator('input[aria-label="1件目の項目名"]').fill("1月");
-    await page.waitForFunction((expectedLabel) => {
-      const chart = document.querySelector('#preview .chart-block-horizontal-bar-chart[data-chart-bar-mode="percent-stacked"]');
-      const firstGroup = chart?.querySelector(".chart-block-bar-group");
-      const label = firstGroup?.querySelector(".chart-block-horizontal-label");
+    await page.waitForFunction(({ expectedLabel, itemId }) => {
+      const chart = document.querySelector("#preview .chart-block-horizontal-bar-chart");
+      const group = [...chart?.querySelectorAll(".chart-block-bar-group") || []]
+        .find((candidate) => candidate.dataset.chartItemId === itemId);
+      const label = group?.querySelector(".chart-block-horizontal-label");
       return label?.querySelector("tspan")?.textContent === expectedLabel
         && label?.querySelector("title")?.textContent === expectedLabel;
-    }, "1月");
+    }, { expectedLabel: "1月", itemId: horizontalFirstItemId });
     const horizontalPercent = await page.locator("#preview .chart-block-percent-stacked-bar rect").evaluateAll((bars) => bars.map((bar) => ({ x: Number(bar.getAttribute("x")), y: Number(bar.getAttribute("y")), width: Number(bar.getAttribute("width")), height: Number(bar.getAttribute("height")) })));
     assert.equal(horizontalPercent.length, 9, "横向き100%積み上げでも3項目・3系列を描画する");
     assert.ok(horizontalPercent.every((segment) => Object.values(segment).every(Number.isFinite) && segment.width > 0 && segment.height > 0), "横棒のSVG属性へNaNやInfinityを出さない");
