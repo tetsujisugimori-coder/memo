@@ -2769,3 +2769,17 @@
 * 操作：型切替、追加、選択外系列の削除では選択IDを維持する。系列を並べ替えても同じIDを解決し、`appearance.color`の第1系列色ミラーは既存どおり維持する。選択中系列の削除だけ安全な先頭系列フォールバックとなる。既存の本文置換、Undo/Redo、自動保存、`flushSave()`、編集取消スナップショットをそのまま通す。
 * テスト：`chart-block-utils.test.js`へ既定値、欠損・不正ID、2・3系列の選択、直列化、型切替、並べ替え、名称変更、追加・削除、不変性、選択表示値を追加した。`chart-block.e2e.js`は3系列の第2位置選択、即時の凡例・読み上げ・aria更新、名称変更、並べ替え、選択外／選択中の削除、1系列選択欄無効化、取消、保存・再読込を実UIで確認する。
 * 検証：`node --check chart-block-utils.js`、`node --check app.js`、`node --check chart-block.e2e.js`、`node --test chart-block-utils.test.js backup-bundle-utils.test.js version.test.js`（60件、fail 0）、`npm test`（1,112件、fail 0）、`npm run test:e2e:chart`（Chromium、成功）、`MEMO_NEXUS_E2E_BROWSER=webkit npm run test:e2e:chart`（WebKit、成功）、`npm run test:e2e:mobile`（Chromium、成功）、`MEMO_NEXUS_E2E_BROWSER=webkit npm run test:e2e:mobile`（WebKit、成功）を実行した。各E2Eのpage error／console errorは0件で、モバイル確認の320px／375px／390px／430pxは横方向オーバーフロー0件だった。WebKit E2Eの成功はSafari／iPhone実機確認を意味しない。
+## 2026-09-17 横棒グラフと長い項目名
+
+* 横棒は新しい`chartType`にせず、既存の棒グラフ表示設定`appearance.barOrientation: "vertical" | "horizontal"`として追加した。欠損・不正値と新規グラフは`vertical`へ正規化するため、`schemaVersion: 1`、本文マーカー、DB_VERSION、ID、旧`items[].value`読込、Markdown/ZIP、自動保存、Undo/Redoを変更していない。棒・折れ線・円の切替と取消でも設定は保持する。
+* 横棒はSVGを回転せず、`chart-block-utils.js`の純粋な座標計算で項目を縦に、値を左から右へ配置する。集合は系列を上下へ、通常積み上げは同一行で連結し、100%積み上げは項目内の安全な縮小比率で0/25/50/75/100%を描く。巨大な有限値、0、合計上限超過ではNaN、Infinity、負の幅を出さない。
+* 通常積み上げの合計は棒の右端に表示し、集合と100%積み上げでは既存どおり表示しない。系列内の視覚ラベルは十分な幅・高さがある区間だけ終端寄りに出し、短い区間でもSVGの`title`と読み上げリストには項目名、系列名、元値、必要な割合を残す。
+* 左側の項目名領域は最長名を基準に上限付きで広げる。上限を超える空白なしの日本語名も最大2行と省略記号で表示し、全文はSVGの`title`とスクリーンリーダー用情報に保持する。グラフ本体が不足するとSVG内部幅だけを広げ、カード内の横スクロールへ収める。
+* `chart-block-utils.test.js`へ向きの正規化・直列化、並べ替え、集合／通常積み上げ／100%積み上げ横棒、0と巨大有限値、長い日本語名を追加した。`npm test`は1,114件成功、Chart E2EはChromium／WebKitで成功、Mobile E2EはChromium／WebKitで成功した。Safari／iPhone実機とpush後のGitHub Actionsは未確認である。
+
+## 2026-09-17 PR #233 Chart E2E待機条件の修正
+
+* 失敗と原因：PR #233の初回GitHub Actions run `35142690612` はCI checks、Geometry E2E、Mobile E2Eが成功した一方、Chart E2EはChromium／WebKitの両方で`chart-block.e2e.js`旧863行付近の30秒タイムアウトにより失敗した。横棒項目ラベルの親`text`要素には全文保持用の`title`と表示用の`tspan`がともに入るため、親の`textContent`は`1月1月`となり、`1月`との完全一致を待つ条件は成立しなかった。
+* 修正：製品側の横棒グラフ、保存形式、キャッシュ識別子は変更せず、対象の横棒グラフ内の1件目ラベルだけを取得する待機条件へ置き換えた。表示文字は子`tspan`の`textContent`、全文保持は子`title`の`textContent`を個別に`1月`と確認する。長い日本語項目名の最大2行、全文を`title`へ保持、棒との非重なり、SVG内配置、Chromium／WebKit、モバイル画面全体の横スクロールなしの検証は残す。
+* 経過と検証：最初の修正コミット`62b399e`は、対象グラフの先頭DOMグループを使う待機条件でローカルの`node --check chart-block.e2e.js`、`npm test`（1,114件、fail 0）、`npm run test:e2e:chart`（Chromium、成功）、`MEMO_NEXUS_E2E_BROWSER=webkit npm run test:e2e:chart`（WebKit、成功）が通ったが、GitHub Actions run `35144693649`のChart E2Eは両エンジンで失敗した。次の`b420e68`も安定項目IDによる探索を加えたが、GitHub Actions run `35145443565`ではChart E2Eが両エンジンで失敗した。直接の`tspan`／`title`確認へ置き換えた`5a6099a`では、GitHub Actions run `35146473764`によりラベル待機の先へ進むことを確認したが、後続の縦向き復帰待機がグラフIDを限定せず両エンジンで失敗した。`fbab573`で対象グラフIDへ限定しても、縦棒レンダラーが`data-chart-bar-orientation="vertical"`を出力しないため条件自体が不可能だった。縦棒は横棒用クラスを持たず、表示モードが100%積み上げであることを対象グラフIDで確認するよう修正した。その後のローカル実行で露出した型切替後の並べ替え確認も、横棒ラベルの親`textContent`ではなく子`tspan`の表示文字を使うよう対象グラフへ限定した。WebKitではモバイル幅から通常幅へ戻す操作後に本文復元を始めていたため、`innerWidth`と既存の`layoutMode`が通常幅へ反映済みであることを待つ。GitHub Actionsの最終結果はこのpush後に追記する。Safari／iPhone実機は未確認である。
+* GitHub Actions最終結果：修正コミット`1390f8f`のrun `35148025284`で、CI checks、Geometry E2E（Chromium）、Chart E2E（Chromium／WebKit）、Mobile E2E（Chromium／WebKit）の全6ジョブが成功した。WebKit E2Eの成功はSafari／iPhone実機確認を意味せず、Safari／iPhone実機は未確認である。

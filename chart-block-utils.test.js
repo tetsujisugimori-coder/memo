@@ -15,6 +15,9 @@ const {
   createChartBlock,
   formatChartStackTotal,
   formatChartStackTotalDetail,
+  horizontalBarLabel,
+  horizontalBarLabelWidth,
+  horizontalBarSegments,
   insertChartBlock,
   lineChartPoints,
   lineChartWidth,
@@ -43,7 +46,7 @@ test("初期グラフは棒グラフ、空の1行、円グラフ用の既定設�
   assert.equal(chart.chartType, "bar");
   assert.deepEqual(chart.items, [{ id: "chart-1-item-1", label: "" }]);
   assert.deepEqual(chart.series, [{ id: "chart-1-series-1", name: DEFAULT_CHART_SERIES_NAME, color: DEFAULT_CHART_COLOR, values: [0] }]);
-  assert.deepEqual(chart.appearance, { color: DEFAULT_CHART_COLOR, barMode: "grouped", showStackTotals: false, showValues: true, showPoints: true, showLegend: false, pieLabelMode: "percentage", pieSeriesId: "chart-1-series-1" });
+  assert.deepEqual(chart.appearance, { color: DEFAULT_CHART_COLOR, barMode: "grouped", barOrientation: "vertical", showStackTotals: false, showValues: true, showPoints: true, showLegend: false, pieLabelMode: "percentage", pieSeriesId: "chart-1-series-1" });
 });
 
 test("円グラフの表示系列は安定IDで正規化、保存、系列操作後も解決する", () => {
@@ -110,7 +113,7 @@ test("不正な種別、数値、色、ラベル設定を安全な既定値へ�
     { id: "same", label: "A" }, { id: "same-2", label: "B" }, { id: "unsafe-item-3", label: "C" }
   ]);
   assert.deepEqual(chart.series[0].values, [0, 0, 0]);
-  assert.deepEqual(chart.appearance, { color: DEFAULT_CHART_COLOR, barMode: "grouped", showStackTotals: false, showValues: false, showPoints: true, showLegend: true, pieLabelMode: "percentage", pieSeriesId: "unsafe-series-1" });
+  assert.deepEqual(chart.appearance, { color: DEFAULT_CHART_COLOR, barMode: "grouped", barOrientation: "vertical", showStackTotals: false, showValues: false, showPoints: true, showLegend: true, pieLabelMode: "percentage", pieSeriesId: "unsafe-series-1" });
 });
 
 test("折れ線グラフは共通データと表示設定を保存し、旧データの点表示は既定で有効にする", () => {
@@ -141,12 +144,16 @@ test("種類を棒から折れ線、円、棒へ切り替えてもID、共通デ
   assert.deepEqual(common(restoredBar), common(bar));
 });
 
-test("棒の表示方法は既定の集合へ正規化し、種類切替後も積み上げ設定を保持する", () => {
+test("棒の向きは既定の縦へ正規化し、種類切替、保存、並べ替え後も保持する", () => {
   const legacy = normalizeChartBlock({ id: "legacy", chartType: "bar", items: [{ label: "1月", value: 1 }] });
   const stacked = normalizeChartBlock({ ...legacy, appearance: { ...legacy.appearance, barMode: "stacked" } });
   const percentStacked = normalizeChartBlock({ ...legacy, appearance: { ...legacy.appearance, barMode: "percent-stacked" } });
   const invalid = normalizeChartBlock({ ...legacy, appearance: { ...legacy.appearance, barMode: "percent" } });
+  const horizontal = normalizeChartBlock({ ...stacked, appearance: { ...stacked.appearance, barOrientation: "horizontal" } });
+  const invalidOrientation = normalizeChartBlock({ ...stacked, appearance: { ...stacked.appearance, barOrientation: "sideways" } });
   assert.equal(legacy.appearance.barMode, "grouped");
+  assert.equal(legacy.appearance.barOrientation, "vertical");
+  assert.equal(createChartBlock("vertical").appearance.barOrientation, "vertical");
   assert.equal(stacked.appearance.barMode, "stacked");
   assert.equal(percentStacked.appearance.barMode, "percent-stacked");
   assert.equal(invalid.appearance.barMode, "grouped");
@@ -156,6 +163,39 @@ test("棒の表示方法は既定の集合へ正規化し、種類切替後も�
   assert.equal(normalizeChartBlock({ ...percentStacked, chartType: "line" }).appearance.barMode, "percent-stacked");
   assert.equal(normalizeChartBlock({ ...percentStacked, chartType: "pie" }).appearance.barMode, "percent-stacked");
   assert.equal(parseChartBlockLine(serializeChartBlock(percentStacked)).appearance.barMode, "percent-stacked");
+  assert.equal(horizontal.appearance.barOrientation, "horizontal");
+  assert.equal(invalidOrientation.appearance.barOrientation, "vertical");
+  assert.equal(parseChartBlockLine(serializeChartBlock(horizontal)).appearance.barOrientation, "horizontal");
+  assert.equal(moveChartSeries(moveChartItem(horizontal, 0, 0), 0, 0).appearance.barOrientation, "horizontal");
+  ["bar", "line", "pie"].forEach((chartType) => assert.equal(normalizeChartBlock({ ...horizontal, chartType }).appearance.barOrientation, "horizontal"));
+});
+
+test("横棒の座標は集合、積み上げ、100%積み上げで有限かつ連続になる", () => {
+  const items = [{ id: "a", label: "長い日本語の項目名です" }, { id: "b", label: "B" }];
+  const series = [{ id: "one", values: [60, 0] }, { id: "two", values: [40, 0] }, { id: "three", values: [20, 0] }];
+  const grouped = horizontalBarSegments(items, series, { left: 140, width: 520, mode: "grouped" });
+  const stacked = horizontalBarSegments(items, series, { left: 140, width: 520, mode: "stacked" });
+  const percent = horizontalBarSegments(items, series, { left: 140, width: 520, mode: "percent-stacked" });
+  assert.equal(grouped.segments.length, 6);
+  assert.ok(grouped.segments.filter((segment) => segment.item.id === "a").every((segment, index, entries) => segment.y < entries[Math.min(index + 1, entries.length - 1)].y || index === entries.length - 1), "集合横棒は同じ項目の系列を上下へ配置する");
+  const stackedA = stacked.segments.filter((segment) => segment.item.id === "a");
+  assert.equal(stackedA[0].x, 140);
+  assert.equal(stackedA[0].x + stackedA[0].width, stackedA[1].x);
+  assert.equal(stackedA[1].x + stackedA[1].width, stackedA[2].x);
+  assert.deepEqual(percent.segments.filter((segment) => segment.item.id === "a").map((segment) => Math.round(segment.percentage)), [50, 33, 17]);
+  assert.ok(percent.segments.filter((segment) => segment.item.id === "b").every((segment) => segment.width === 0 && segment.percentage === 0));
+  [grouped, stacked, percent, horizontalBarSegments(items, [{ values: [Number.MAX_VALUE, 0] }, { values: [1e308, 0] }], { mode: "stacked" })].forEach((layout) => assert.ok(layout.segments.every((segment) => [segment.x, segment.y, segment.width, segment.height, segment.stackStart, segment.stackEnd, segment.percentage].every(Number.isFinite) && segment.width >= 0 && segment.height >= 0)));
+});
+
+test("横棒の長い日本語項目名は左領域を上限付きで確保し、全文を保持して短縮する", () => {
+  const full = "空白を含まない非常に長い日本語項目名を二行までで表示するためのテストです";
+  const width = horizontalBarLabelWidth([{ label: full }]);
+  const label = horizontalBarLabel(full, { maximumWidth: 90 });
+  assert.ok(width > 94 && width <= 180);
+  assert.equal(label.fullText, full);
+  assert.ok(label.lines.length <= 2);
+  assert.equal(label.shortened, true);
+  assert.match(label.text, /…$/);
 });
 
 test("通常積み上げの合計値設定は安全に正規化、直列化し、表示対象だけを判定する", () => {

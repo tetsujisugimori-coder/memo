@@ -40,6 +40,10 @@
     return ["stacked", "percent-stacked"].includes(value) ? value : "grouped";
   }
 
+  function normalizeBarOrientation(value) {
+    return value === "horizontal" ? "horizontal" : "vertical";
+  }
+
   function normalizeChartItem(item, fallbackId, index, usedIds) {
     const source = item && typeof item === "object" && !Array.isArray(item) ? item : {};
     const baseId = normalizedText(source.id).trim() || `${fallbackId}-item-${index + 1}`;
@@ -106,6 +110,7 @@
         // appearance.color is retained as a compatibility mirror. Series colors are authoritative.
         color: series[0].color,
         barMode: normalizeBarMode(appearanceSource.barMode),
+        barOrientation: normalizeBarOrientation(appearanceSource.barOrientation),
         showStackTotals: appearanceSource.showStackTotals === true,
         showValues: appearanceSource.showValues !== false,
         showPoints: appearanceSource.showPoints !== false,
@@ -162,7 +167,7 @@
       unit: "",
       items: [{ id: `${id}-item-1`, label: "" }],
       series: [{ id: `${id}-series-1`, name: DEFAULT_CHART_SERIES_NAME, color: DEFAULT_CHART_COLOR, values: [0] }],
-      appearance: { barMode: "grouped", showStackTotals: false, showValues: true, showPoints: true, showLegend: false, pieLabelMode: "percentage", pieSeriesId: `${id}-series-1` }
+      appearance: { barMode: "grouped", barOrientation: "vertical", showStackTotals: false, showValues: true, showPoints: true, showLegend: false, pieLabelMode: "percentage", pieSeriesId: `${id}-series-1` }
     }, id);
   }
 
@@ -340,6 +345,74 @@
     return { scaleBase, maximumScaledTotal, groups, segments, mode: percentStacked ? "percent-stacked" : "stacked" };
   }
 
+  function horizontalBarLabel(itemLabel, { maximumWidth = 180, characterWidth = 12, maximumLines = 2 } = {}) {
+    const fullText = normalizedText(itemLabel).trim();
+    const safeWidth = Number.isFinite(maximumWidth) ? Math.max(54, maximumWidth) : 180;
+    const safeCharacterWidth = Number.isFinite(characterWidth) ? Math.max(1, characterWidth) : 12;
+    const charactersPerLine = Math.max(4, Math.floor(safeWidth / safeCharacterWidth));
+    const maximumCharacters = charactersPerLine * Math.max(1, maximumLines);
+    const characters = Array.from(fullText);
+    const shortened = characters.length > maximumCharacters;
+    const visible = shortened ? characters.slice(0, Math.max(1, maximumCharacters - 1)).concat("…") : characters;
+    const lines = Array.from({ length: Math.max(1, Math.ceil(visible.length / charactersPerLine)) }, (_, index) => visible.slice(index * charactersPerLine, (index + 1) * charactersPerLine).join(""));
+    return { fullText, text: visible.join(""), lines, shortened, charactersPerLine };
+  }
+
+  function horizontalBarLabelWidth(items, { minimum = 94, maximum = 180, characterWidth = 12 } = {}) {
+    const labels = Array.isArray(items) ? items.map((item) => normalizedText(item?.label).trim()) : [];
+    const longest = Math.max(0, ...labels.map((label) => Array.from(label).length));
+    const requested = longest * (Number.isFinite(characterWidth) ? Math.max(1, characterWidth) : 12) + 18;
+    return Math.max(minimum, Math.min(maximum, requested));
+  }
+
+  function horizontalBarSegments(items, series, { left = 140, right = 62, top = 34, rowHeight = 44, width = 520, mode = "grouped" } = {}) {
+    const displayItems = (Array.isArray(items) ? items : []).map((item, itemIndex) => ({ item, itemIndex }))
+      .filter(({ item }) => item && normalizedText(item.label).trim());
+    const displaySeries = Array.isArray(series) ? series : [];
+    const plotLeft = Number.isFinite(left) ? Math.max(0, left) : 140;
+    const plotRight = Number.isFinite(right) ? Math.max(0, right) : 62;
+    const safeRowHeight = Number.isFinite(rowHeight) ? Math.max(22, rowHeight) : 44;
+    const chartWidth = Math.max(plotLeft + plotRight + 1, Number.isFinite(width) ? width : 520);
+    const plotWidth = Math.max(1, chartWidth - plotLeft - plotRight);
+    const stacked = mode === "stacked" || mode === "percent-stacked";
+    const percentStacked = mode === "percent-stacked";
+    const values = displayItems.flatMap(({ itemIndex }) => displaySeries.map((entry) => nonNegativeFiniteNumber(entry?.values?.[itemIndex])));
+    const scaleBase = Math.max(0, ...values);
+    const totalsByItemIndex = new Map(chartStackedTotals(items, series).map((entry) => [entry.itemIndex, entry]));
+    const groups = displayItems.map(({ item, itemIndex }, displayIndex) => {
+      const entries = displaySeries.map((entry, seriesIndex) => ({ item, itemIndex, series: entry, seriesIndex, value: nonNegativeFiniteNumber(entry?.values?.[itemIndex]) }));
+      const groupScaleBase = percentStacked ? Math.max(0, ...entries.map((entry) => entry.value)) : scaleBase;
+      const scaledTotal = groupScaleBase > 0 ? entries.reduce((total, entry) => total + entry.value / groupScaleBase, 0) : 0;
+      const total = totalsByItemIndex.get(itemIndex);
+      return { item, itemIndex, displayIndex, entries, groupScaleBase, scaledTotal, y: top + displayIndex * safeRowHeight, height: safeRowHeight, total: total?.total ?? null, totalOverflow: total?.overflow === true };
+    });
+    const maximumScaledTotal = Math.max(0, ...groups.map((group) => group.scaledTotal));
+    const segments = groups.flatMap((group) => {
+      if (!stacked) {
+        const gap = 3;
+        const barHeight = Math.max(4, Math.min(18, (group.height - gap * Math.max(0, displaySeries.length - 1)) / Math.max(1, displaySeries.length)));
+        const usedHeight = barHeight * displaySeries.length + gap * Math.max(0, displaySeries.length - 1);
+        const startY = group.y + (group.height - usedHeight) / 2;
+        return group.entries.map((entry) => {
+          const ratio = scaleBase > 0 ? entry.value / scaleBase : 0;
+          return { ...entry, x: plotLeft, y: startY + entry.seriesIndex * (barHeight + gap), width: Math.max(0, Math.min(plotWidth, ratio * plotWidth)), height: barHeight, stackStart: 0, stackEnd: Math.max(0, Math.min(1, ratio)), percentage: 0, total: group.total };
+        });
+      }
+      let cumulativeScaled = 0;
+      const barHeight = Math.max(8, Math.min(26, group.height - 12));
+      const y = group.y + (group.height - barHeight) / 2;
+      return group.entries.map((entry) => {
+        const scaledValue = group.groupScaleBase > 0 ? entry.value / group.groupScaleBase : 0;
+        const ratioBase = percentStacked ? group.scaledTotal : maximumScaledTotal;
+        const startRatio = ratioBase > 0 ? Math.min(1, cumulativeScaled / ratioBase) : 0;
+        cumulativeScaled += scaledValue;
+        const endRatio = ratioBase > 0 ? Math.min(1, cumulativeScaled / ratioBase) : 0;
+        return { ...entry, x: plotLeft + startRatio * plotWidth, y, width: Math.max(0, (endRatio - startRatio) * plotWidth), height: barHeight, stackStart: startRatio, stackEnd: endRatio, percentage: percentStacked && ratioBase > 0 ? (scaledValue / ratioBase) * 100 : 0, total: group.total };
+      });
+    });
+    return { scaleBase, maximumScaledTotal, groups, segments, left: plotLeft, right: plotRight, top, rowHeight: safeRowHeight, width: chartWidth, height: Math.max(0, top + groups.length * safeRowHeight + 30), plotWidth, mode: percentStacked ? "percent-stacked" : stacked ? "stacked" : "grouped" };
+  }
+
   function splitChartBlocks(markdown) {
     const source = String(markdown || "").replace(/\r\n?/g, "\n");
     const lines = source.split("\n");
@@ -410,12 +483,16 @@
     createChartBlock,
     formatChartStackTotal,
     formatChartStackTotalDetail,
+    horizontalBarLabel,
+    horizontalBarLabelWidth,
+    horizontalBarSegments,
     insertChartBlock,
     lineChartPoints,
     lineChartWidth,
     moveChartItem,
     moveChartSeries,
     nonNegativeFiniteNumber,
+    normalizeBarOrientation,
     normalizeChartBlock,
     parseChartBlockLine,
     pieChartSegments,
