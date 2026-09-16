@@ -2761,3 +2761,11 @@
 * 方針：オーバーフロー判定を表示の丸め処理から分離した。「上限超過」は計算済みの`overflow`、または元の合計値そのものが`NaN`／`Infinity`の場合だけにする。有限値の丸め結果を数値へ戻せない場合は、元の有限値の安全な文字列表現へフォールバックする。視覚用科学表記は丸め済み詳細文字列を再変換せず、元の有限値から有効数字3桁で作る。これにより`0.1 + 0.2`は詳細・`title`・読み上げとも`0.3`のまま、`Number.MAX_VALUE`は詳細で有限の指数表記、視覚表示で短い有限の科学表記になる。
 * テスト：`chart-block-utils.test.js`へ、単一系列の`Number.MAX_VALUE`と`1.79e308`が有限・非オーバーフローのまま詳細・視覚表示されること、実際の加算オーバーフロー、直接の`NaN`／`Infinity`、および`0.1 + 0.2`の`0.3`正規化を追加した。既存の320px・1系列・5項目の最狭幅E2Eへ最大有限値を含め、SVG境界、ラベル間2px余白、系列内ラベル、`title`、`.sr-only`、有限の科学表記をChromium／WebKitで確認する。
 * 検証：`node --check chart-block-utils.js`、`node --check app.js`、`node --check chart-block.e2e.js`、`node --test chart-block-utils.test.js backup-bundle-utils.test.js version.test.js`（59件、fail 0）、`npm test`（1,111件、fail 0）、`npm run test:e2e:chart`（Chromium、成功）、PowerShell等価のWebKit Chart E2E（成功）、`npm run test:e2e:mobile`（Chromium、成功）、PowerShell等価のWebKit Mobile E2E（成功）、`git diff --check`を実行した。Safari／iPhone実機は未確認であり、WebKit E2Eの成功は実機確認を意味しない。
+
+## 2026-09-17 グラフブロック：円グラフの表示系列選択
+
+* 保存と互換性：`appearance.pieSeriesId`へ系列の添字ではなく安定IDを保存する。新規グラフと値がない旧データは先頭系列IDを既定とし、文字列以外・存在しないID・選択中系列の削除は残る先頭系列へ正規化する。`schemaVersion: 1`、DB_VERSION、Markdownマーカー、`items`／`series`、旧`items[].value`読込と、読むだけでは本文を書き換えない方針は変更していない。
+* 描画と編集：`resolvePieSeries()`を共通の表示系列解決にし、円の扇形、凡例、値、割合、tooltip、スクリーンリーダー情報は同じ選択系列を使う。円グラフ編集時だけ「表示する系列」をID値の選択欄として表示し、1系列時は現在値を表示したまま無効化する。系列名変更はカード見出しとaria情報へ即時反映し、複数系列カードは選択系列名を併記する。棒・折れ線は従来どおり全系列を表示する。
+* 操作：型切替、追加、選択外系列の削除では選択IDを維持する。系列を並べ替えても同じIDを解決し、`appearance.color`の第1系列色ミラーは既存どおり維持する。選択中系列の削除だけ安全な先頭系列フォールバックとなる。既存の本文置換、Undo/Redo、自動保存、`flushSave()`、編集取消スナップショットをそのまま通す。
+* テスト：`chart-block-utils.test.js`へ既定値、欠損・不正ID、2・3系列の選択、直列化、型切替、並べ替え、名称変更、追加・削除、不変性、選択表示値を追加した。`chart-block.e2e.js`は3系列の第2位置選択、即時の凡例・読み上げ・aria更新、名称変更、並べ替え、選択外／選択中の削除、1系列選択欄無効化、取消、保存・再読込を実UIで確認する。
+* 検証：`node --check chart-block-utils.js`、`node --check app.js`、`node --check chart-block.e2e.js`、`node --test chart-block-utils.test.js backup-bundle-utils.test.js version.test.js`（60件、fail 0）、`npm test`（1,112件、fail 0）、`npm run test:e2e:chart`（Chromium、成功）、`MEMO_NEXUS_E2E_BROWSER=webkit npm run test:e2e:chart`（WebKit、成功）、`npm run test:e2e:mobile`（Chromium、成功）、`MEMO_NEXUS_E2E_BROWSER=webkit npm run test:e2e:mobile`（WebKit、成功）を実行した。各E2Eのpage error／console errorは0件で、モバイル確認の320px／375px／390px／430pxは横方向オーバーフロー0件だった。WebKit E2Eの成功はSafari／iPhone実機確認を意味しない。

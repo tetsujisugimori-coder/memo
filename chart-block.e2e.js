@@ -314,7 +314,8 @@ function boxesHaveGap(first, second, minimumGap = 2) {
     await page.locator('.chart-block-editor button[data-chart-action="confirm"]').click();
     await page.waitForFunction(() => document.querySelector(".chart-block-editor .chart-block-status")?.textContent === "入力内容を保存しました");
     const beforeReload = await chart(page);
-    assert.deepEqual(beforeReload.appearance, { color: "#dc2626", barMode: "grouped", showStackTotals: false, showValues: true, showPoints: true, showLegend: true, pieLabelMode: "percentage" }, "棒グラフへ戻しても色・数値・点・凡例設定を保存する");
+    assert.deepEqual({ ...beforeReload.appearance, pieSeriesId: undefined }, { color: "#dc2626", barMode: "grouped", showStackTotals: false, showValues: true, showPoints: true, showLegend: true, pieLabelMode: "percentage", pieSeriesId: undefined }, "棒グラフへ戻しても色・数値・点・凡例設定を保存する");
+    assert.equal(beforeReload.appearance.pieSeriesId, beforeReload.series[0].id, "既定の円グラフ表示系列IDを保存する");
     await page.reload({ waitUntil: "domcontentloaded" });
     await page.locator("#appStartupGuard").waitFor({ state: "hidden" });
     assert.deepEqual(await chart(page), beforeReload, "再読み込み後もグラフ保存データを復元する");
@@ -524,9 +525,60 @@ function boxesHaveGap(first, second, minimumGap = 2) {
     assert.deepEqual(await page.locator("#preview .chart-block-line-series").evaluateAll((lines) => lines.map((line) => line.dataset.chartSeriesId)), [profitSeriesId, salesSeriesId, costSeriesId], "折れ線の描画順を移動する");
     assert.deepEqual(await page.locator("#preview .chart-block-legend li").allTextContents(), ["営業利益", "売上", "原価"], "折れ線の凡例順を移動する");
     await multiEditor.locator('select[aria-label="グラフ1の種類"]').selectOption("pie");
-    await page.waitForFunction(() => document.querySelector("#preview .chart-block-pie .sr-only li")?.textContent?.includes("営業利益") === true);
-    assert.equal((await chart(page)).series[0].id, profitSeriesId, "円グラフは移動後の第1系列を表示する");
+    const pieSeriesSelect = multiEditor.locator('select[aria-label="グラフ1の表示する系列"]');
+    await page.waitForFunction((salesId) => document.querySelector("#preview .chart-block-pie")?.dataset.chartSeriesId === salesId, salesSeriesId);
+    assert.deepEqual(await pieSeriesSelect.locator("option").evaluateAll((options) => options.map((option) => option.value)), [profitSeriesId, salesSeriesId, costSeriesId], "円グラフの表示系列選択肢は現在の系列順と安定IDを使う");
+    assert.equal(await pieSeriesSelect.inputValue(), salesSeriesId, "並べ替え後も既定選択の系列IDを維持する");
+    assert.deepEqual(await page.locator("#preview .chart-block-pie .sr-only li").allTextContents(), ["1月、売上: 100万円", "2月、売上: 140万円", "3月、売上: 120万円"], "円グラフの読み上げは選択系列の値を使う");
+    await pieSeriesSelect.selectOption(profitSeriesId);
+    await page.waitForFunction((profitId) => document.querySelector("#preview .chart-block-pie")?.dataset.chartSeriesId === profitId, profitSeriesId);
+    await pieSeriesSelect.selectOption(salesSeriesId);
+    await page.waitForFunction((salesId) => {
+      const pie = document.querySelector("#preview .chart-block-pie");
+      return pie?.dataset.chartSeriesId === salesId
+        && pie.querySelector("svg")?.getAttribute("aria-label")?.includes("表示系列: 売上")
+        && [...pie.querySelectorAll(".chart-block-legend li")].map((item) => item.textContent).join(",") === "1月: 100万円,2月: 140万円,3月: 120万円";
+    }, salesSeriesId);
+    await multiEditor.locator(`.chart-block-series-row[data-chart-series-id="${salesSeriesId}"] input[data-chart-series-field="name"]`).fill("売上実績");
+    await page.waitForFunction((salesId) => document.querySelector("#preview .chart-block-pie")?.dataset.chartSeriesId === salesId
+      && document.querySelector("#preview .chart-block-pie figcaption")?.textContent?.includes("売上実績")
+      && document.querySelector("#preview .chart-block-pie svg")?.getAttribute("aria-label")?.includes("表示系列: 売上実績"), salesSeriesId);
+    await multiEditor.locator(`.chart-block-series-row[data-chart-series-id="${salesSeriesId}"] input[data-chart-series-field="name"]`).fill("売上");
+    await multiEditor.locator(`.chart-block-series-row[data-chart-series-id="${salesSeriesId}"] button[data-chart-action="move-series-down"]`).click();
+    await page.waitForFunction((salesId) => document.querySelector("#preview .chart-block-pie")?.dataset.chartSeriesId === salesId, salesSeriesId);
+    multiEditor = page.locator(".chart-block-editor");
+    await multiEditor.locator(`.chart-block-series-row[data-chart-series-id="${salesSeriesId}"] button[data-chart-action="move-series-up"]`).click();
+    await page.waitForFunction((salesId) => document.querySelector("#preview .chart-block-pie")?.dataset.chartSeriesId === salesId, salesSeriesId);
     assert.equal((await chart(page)).series.length, 3, "円グラフでも非表示系列を保持する");
+    await multiEditor.locator('button[data-chart-action="confirm"]').click();
+    await page.waitForFunction(() => document.querySelector(".chart-block-editor .chart-block-status")?.textContent === "入力内容を保存しました");
+    multiEditor = page.locator(".chart-block-editor");
+    await multiEditor.locator(`.chart-block-series-row[data-chart-series-id="${costSeriesId}"] button[data-chart-action="delete-series"]`).click();
+    await page.waitForFunction((salesId) => {
+      const current = window.MemoNexusChartBlockUtils.splitChartBlocks(document.getElementById("editor").value).find((segment) => segment.type === "chart")?.chart;
+      return current?.series.length === 2 && current.appearance.pieSeriesId === salesId && document.querySelector("#preview .chart-block-pie")?.dataset.chartSeriesId === salesId;
+    }, salesSeriesId);
+    await multiEditor.locator('button[data-chart-action="cancel"]').click();
+    await page.waitForFunction((salesId) => {
+      const current = window.MemoNexusChartBlockUtils.splitChartBlocks(document.getElementById("editor").value).find((segment) => segment.type === "chart")?.chart;
+      return current?.series.length === 3 && current.appearance.pieSeriesId === salesId;
+    }, salesSeriesId);
+    multiEditor = page.locator(".chart-block-editor");
+    await multiEditor.locator(`.chart-block-series-row[data-chart-series-id="${salesSeriesId}"] button[data-chart-action="delete-series"]`).click();
+    await page.waitForFunction((profitId) => {
+      const current = window.MemoNexusChartBlockUtils.splitChartBlocks(document.getElementById("editor").value).find((segment) => segment.type === "chart")?.chart;
+      return current?.appearance.pieSeriesId === profitId && document.querySelector("#preview .chart-block-pie")?.dataset.chartSeriesId === profitId;
+    }, profitSeriesId);
+    multiEditor = page.locator(".chart-block-editor");
+    await multiEditor.locator(`.chart-block-series-row[data-chart-series-id="${costSeriesId}"] button[data-chart-action="delete-series"]`).click();
+    await page.waitForFunction((profitId) => {
+      const select = document.querySelector('.chart-block-editor select[data-chart-field="pieSeriesId"]');
+      return select?.disabled === true && select.value === profitId;
+    }, profitSeriesId);
+    await multiEditor.locator('button[data-chart-action="cancel"]').click();
+    await page.waitForFunction((salesId) => window.MemoNexusChartBlockUtils.splitChartBlocks(document.getElementById("editor").value)
+      .find((segment) => segment.type === "chart")?.chart?.appearance?.pieSeriesId === salesId, salesSeriesId);
+    multiEditor = page.locator(".chart-block-editor");
     await multiEditor.locator('select[aria-label="グラフ1の種類"]').selectOption("bar");
     await page.waitForFunction(() => document.querySelector("#preview .chart-block-bar-chart")?.dataset.chartBarMode === "percent-stacked");
     multiEditor = page.locator(".chart-block-editor");
