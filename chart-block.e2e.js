@@ -659,6 +659,7 @@ function boxesHaveGap(first, second, minimumGap = 2) {
     assert.equal(await invalidReorderValue.inputValue(), "Infinity", "不正な編集中の文字列を並べ替えで破棄しない");
     assert.deepEqual((await chart(page)).items.map((item) => item.label), ["1月", "2月", "3月"], "不正値では項目を移動しない");
     await invalidReorderValue.fill("140");
+    const multiChartId = (await chart(page)).id;
     const barMode = multiEditor.locator('select[aria-label="グラフ1の棒の表示方法"]');
     assert.equal(await barMode.inputValue(), "grouped", "旧形式の棒グラフは集合表示として開く");
     await barMode.selectOption("stacked");
@@ -887,7 +888,12 @@ function boxesHaveGap(first, second, minimumGap = 2) {
     assert.equal((await chart(page)).appearance.barOrientation, "horizontal", "棒→折れ線→円→棒でも横向き設定を保持する");
     await orientation.selectOption("vertical");
     await barMode.selectOption("percent-stacked");
-    await page.waitForFunction(() => document.querySelector("#preview .chart-block-bar-chart")?.dataset.chartBarOrientation === "vertical" && document.querySelector("#preview .chart-block-bar-chart")?.dataset.chartBarMode === "percent-stacked");
+    await page.waitForFunction((chartId) => {
+      const chart = [...document.querySelectorAll("#preview .chart-block-bar-chart")]
+        .find((candidate) => candidate.dataset.chartId === chartId);
+      return chart?.dataset.chartBarOrientation === "vertical"
+        && chart?.dataset.chartBarMode === "percent-stacked";
+    }, multiChartId);
     await barMode.selectOption("grouped");
     await page.waitForFunction(() => document.querySelector("#preview .chart-block-bar-chart")?.dataset.chartBarMode === "grouped" && document.querySelectorAll("#preview .chart-block-stacked-total-value").length === 0);
     assert.equal(await multiEditor.locator('input[aria-label="グラフ1の合計値を表示"]').count(), 0, "集合棒では合計値の操作欄を表示しない");
