@@ -6168,6 +6168,9 @@ body.collections-open:not(.context-panel-closed) .context-panel {
 .chart-block-item-row { display: grid; grid-template-columns: minmax(150px, 1fr) minmax(94px, 0.45fr) auto; gap: 6px; min-width: 330px; margin-top: 5px; }
 .chart-block-item-header { align-items: center; color: var(--muted); font-size: 12px; font-weight: 700; }
 .chart-block-item-row input { min-width: 0; min-height: 34px; }
+.chart-block-item-color { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; min-width: 104px; color: var(--muted); font-size: 12px; }
+.chart-block-item-color input[type="color"] { flex: 0 0 44px; width: 44px; min-height: 34px; padding: 2px; }
+.chart-block-item-color button { min-height: 34px; white-space: nowrap; }
 .chart-block-editor-actions button,
 .chart-block-item-row button { min-height: 34px; }
 .chart-block-item-actions { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
@@ -6229,6 +6232,7 @@ body.collections-open:not(.context-panel-closed) .context-panel {
   .chart-block-series-row label:first-child { min-width: 0; }
   .chart-block-series-row label:first-child input { width: 100%; }
   .chart-block-series-actions { grid-column: 1 / -1; }
+  .chart-block-item-color { min-width: 104px; }
   .preview .chart-block { padding: 9px; }
   .chart-block-pie-layout { gap: 4px; }
   .chart-block-pie .chart-block-scroll { flex-basis: 100%; }

@@ -89,6 +89,44 @@ test("円グラフの表示系列は安定IDで正規化、保存、系列操作
   assert.equal(withAdded.appearance.pieSeriesId, "profit");
 });
 
+test("円グラフの項目色は安定IDで保存し、旧データと不正値を安全に扱う", () => {
+  const legacy = normalizeChartBlock({
+    id: "pie-colors", chartType: "pie",
+    items: [{ id: "north", label: "同名" }, { id: "south", label: "同名" }, { id: "zero", label: "ゼロ" }],
+    series: [
+      { id: "sales", name: "売上", values: [10, 20, 0] },
+      { id: "profit", name: "利益", values: [30, 40, 0] }
+    ],
+    appearance: { pieSeriesId: "profit" }
+  });
+  assert.equal(Object.hasOwn(legacy.appearance, "pieItemColors"), false, "旧形式を読むだけでは項目色を追加しない");
+  assert.deepEqual(pieChartSegments(legacy.items.map((item, index) => ({ ...item, value: legacy.series[1].values[index] }))).segments.map((segment) => segment.color), PIE_CHART_COLORS.slice(0, 2), "旧形式は従来の固定パレットを使う");
+
+  const colored = normalizeChartBlock({
+    ...legacy,
+    appearance: { ...legacy.appearance, pieItemColors: { north: "#123456", south: "#abcdef", zero: "#0f0f0f", missing: "#fedcba", invalid: "url(javascript:alert(1))" } }
+  });
+  assert.deepEqual(colored.appearance.pieItemColors, { north: "#123456", south: "#abcdef", zero: "#0f0f0f" }, "既存項目IDに対応する安全な色だけを保存する");
+  const coloredSegments = pieChartSegments(colored.items.map((item, index) => ({ ...item, value: colored.series[1].values[index], color: colored.appearance.pieItemColors[item.id] })));
+  assert.deepEqual(coloredSegments.segments.map((segment) => [segment.id, segment.color]), [["north", "#123456"], ["south", "#abcdef"]], "選択系列にかかわらず項目IDの色を使う");
+
+  const reordered = moveChartItem(colored, 1, -1);
+  assert.deepEqual(reordered.items.map((item) => item.id), ["south", "north", "zero"]);
+  assert.deepEqual(reordered.appearance.pieItemColors, colored.appearance.pieItemColors, "項目並べ替えで色の対応を移動しない");
+  const renamed = normalizeChartBlock({ ...reordered, items: reordered.items.map((item) => ({ ...item, label: "同名" })) });
+  assert.deepEqual(renamed.appearance.pieItemColors, colored.appearance.pieItemColors, "名前変更と同名項目でもIDごとの色を維持する");
+  const added = normalizeChartBlock({ ...renamed, items: [...renamed.items, { id: "new", label: "新規" }], series: renamed.series.map((series) => ({ ...series, values: [...series.values, 5] })) });
+  assert.equal(Object.hasOwn(added.appearance.pieItemColors, "new"), false, "追加項目は保存色なしで既定パレットへフォールバックする");
+  const deleted = normalizeChartBlock({ ...added, items: added.items.filter((item) => item.id !== "north"), series: added.series.map((series) => ({ ...series, values: series.values.filter((_, index) => added.items[index].id !== "north") })) });
+  assert.equal(Object.hasOwn(deleted.appearance.pieItemColors, "north"), false, "削除項目の色を保存結果から除く");
+  const seriesMoved = moveChartSeries(deleted, 1, -1);
+  const seriesDeleted = normalizeChartBlock({ ...seriesMoved, series: seriesMoved.series.filter((series) => series.id !== "sales") });
+  assert.deepEqual(seriesDeleted.appearance.pieItemColors, deleted.appearance.pieItemColors, "系列の並べ替え・削除で項目色を変えない");
+  const restored = parseChartBlockLine(serializeChartBlock(seriesDeleted));
+  assert.deepEqual(restored.appearance.pieItemColors, seriesDeleted.appearance.pieItemColors, "保存・再読み込み・再編集用の正規化後も色を保持する");
+  assert.equal(pieChartSegments([{ id: "bad", label: "不正", value: 1, color: "invalid" }]).segments[0].color, PIE_CHART_COLORS[0], "不正な描画色は既定パレットへフォールバックする");
+});
+
 test("項目名と小数を含む保存形式を同じ内容へ復元し、凡例設定を保持する", () => {
   const source = normalizeChartBlock({
     id: "scores", title: "得点", unit: "点", items: [
