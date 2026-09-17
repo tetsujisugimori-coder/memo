@@ -2799,3 +2799,35 @@
 * 互換性：`appearance.pieItemColors` の既存正規化、`schemaVersion`、DB_VERSION、本文マーカー、項目ID、系列ID、`pieSeriesId`は変更していない。棒、横棒、折れ線、積み上げ棒の描画・保存仕様にも変更はない。
 * 回帰テスト：単体で0値と正数の往復時の項目ID／保存色の維持、並べ替え・名称変更・同名、不正色／未指定色の安全なフォールバックを追加した。Chart E2Eで0値の凡例色、0↔正数、保存・再読込・再編集、空欄→入力→空欄時の未指定色入力同期、明示色の保護を確認する。
 * 検証：`node --check chart-block-utils.js`、`node --check app.js`、`node --check chart-block.e2e.js`、`node --test chart-block-utils.test.js`（41件、fail 0）、`npm test`（1,116件、fail 0）、`npm run test:e2e:chart`（Chromium、成功）、`MEMO_NEXUS_E2E_BROWSER=webkit npm run test:e2e:chart`（WebKit、成功）、`npm run test:e2e:mobile`（Chromium、成功）、`MEMO_NEXUS_E2E_BROWSER=webkit npm run test:e2e:mobile`（WebKit、成功）、`git diff --check`（成功）を実行した。E2Eのpage error／console errorは0件で、320px／375px／390px／430pxの横方向オーバーフローは0件だった。WebKit E2Eの成功はSafari／iPhone実機確認を意味せず、Safari／iPhone実機は未確認である。
+
+## 2026-09-17 グラフブロック：軸・目盛り・長いラベル調整
+
+* 軸余白と目盛り：`chartValueAxisLayout()` は実際に表示する有限目盛り文字列の保守的な文字幅から左余白を42〜124 SVG単位で決める。`chartNumericTicks()` は描画可能な高さ／幅と最小間隔から2〜5個を選び、全値0・不正値では0だけを残す。縦棒、横棒、折れ線は同じ目盛り計算を使い、横棒では項目名側余白と数値軸終端側余白を別に扱う。値のスケール、最大値、積み上げの安全な縮小計算は変更していない。
+* 項目名：`chartLabelLayout()` を共通化し、保守的な文字幅で最大2行へ分割し、収まらない日本語・英数字・空白なし文字列を末尾の省略記号へ短縮する。縦棒と折れ線は`chartCategoryLabels()`で描画幅、項目数、推定ラベル幅から間引き間隔を算出し、可能な場合は先頭・末尾を残す。横棒の既存`horizontalBarLabel()`はこの共通処理を再利用し、既存の94〜180 SVG単位の左余白上限を維持する。回転表示は追加していない。
+* アクセシビリティと保存：SVGの省略ラベルと単位は全文を`title`と`aria-label`へ残す。項目名、目盛り、余白、折返し、間引きはいずれも描画時に算出し、`schemaVersion: 1`、本文マーカー、DB_VERSION、`items`、`series`、`appearance`の保存形式は変更していない。編集欄、確定、再読み込み、再編集では元の項目名を保持する。
+* モバイルと画面確認：Chart E2Eで縦棒・横棒・折れ線、集合・通常積み上げ・100%積み上げ、円グラフを確認し、長い縦棒／折れ線ラベルの2行化、SVG内配置、軸線との非重複、全文属性、保存後再編集を追加確認した。Chromium／WebKitのChart E2EとMobile E2Eで320px、375px、390px、430pxおよびデスクトップ幅のページ横方向オーバーフロー0、page error／console error 0を確認した。WebKit E2Eの成功はSafari／iPhone実機確認を意味しない。
+* テスト：`node --check chart-block-utils.js`、`node --check app.js`、`node --check chart-block.e2e.js`、`node --test chart-block-utils.test.js`（44件、fail 0）、`npm test`（1,119件、fail 0）、`npm run test:e2e:chart`（Chromium、成功）、`MEMO_NEXUS_E2E_BROWSER=webkit npm run test:e2e:chart`（WebKit、成功）、`node mobile-layout.e2e.js`／`node mobile-writing-mode.e2e.js`（Chromium、成功）、各WebKit相当コマンド（成功）、`git diff --check`を実行した。`package.json`にlint、型チェック、ビルド用スクリプトはない。
+* 対象外：負数、日付軸、ズーム／パン／補間、4系列以上、CSV等の取り込み、画像・SVG・PDF出力、数値／系列の共通ツールチップ、新種別、保存形式変更は実装していない。
+
+## 2026-09-17 PR #237 Chart E2Eカテゴリ軸ラベル取得の修正
+
+* 失敗と原因：PR #237のGitHub Actions run `35233060707`はChart E2E（Chromium／WebKit）がともに`chart-block.e2e.js`旧775行付近の30秒タイムアウトで失敗した。SVGカテゴリ軸ラベルの親`text`には全文保持用の`title`と表示用の`tspan`がともに入るため、親`textContent`は`1月1月`となり、旧テストの`1月`との一致条件は成立しなかった。
+* 修正：表示実装、最大2行表示、省略記号、ラベル間引き、`title`、`aria-label`、保存形式は変更せず、E2Eのカテゴリ軸ラベル取得を目的別に分離した。完全な項目名と並び順は`aria-label`、SVG上の表示文字は`tspan`から取得し、棒グラフの並べ替え後の待機・assert、折れ線切り替え後の待機・assert、既存の棒復帰待機で親`textContent`を項目名として扱わない。
+* 検証：`node --check chart-block.e2e.js`、`node --check chart-block-utils.js`、`node --check app.js`、`git diff --check`は成功した。`node --test chart-block-utils.test.js`は44件成功（fail 0）、`npm test`は1,119件成功（fail 0）、`npm run test:e2e:chart`はChromiumで成功、`MEMO_NEXUS_E2E_BROWSER=webkit npm run test:e2e:chart`はWebKitで成功した。今回はE2Eの文字列取得だけの修正のため、既存のモバイルE2Eは再実行していない。WebKit E2Eの成功はSafari／iPhone実機確認を意味しない。
+
+## 2026-09-18 PR #237 Chart E2Eの動的余白・検証前提の修正
+
+* 失敗と原因：GitHub Actions run `35235200602`（HEAD `3c5f825`）はChart E2E（Chromium／WebKit）がともに旧967行で失敗した。前回のカテゴリラベル取得待機は通過したが、巨大有限値の数値軸余白を含むSVG全幅を446へ固定していた。実装は左描画開始140、右余白18、5項目分の描画幅376を確保して全幅534となるため、旧assertの前提が誤っていた。以前のローカル成功記録とCI失敗を区別し、今回の最終結果を以下に記録する。
+* 修正：`chart-block.e2e.js`だけを変更し、SVG全幅の固定比較を有限な4要素・高さ260・棒中心間隔75.2±0.05・5項目分の描画幅376±0.05の直接検証へ置き換えた。目盛り、棒、合計ラベルのSVG内配置とSVG属性にNaN／Infinityがないことも検証する。Number.MAX_VALUEの科学表記、詳細title／読み上げ、合計同士／系列内ラベルとの非重複検証は維持した。
+* 関連検証：旧1154行は3系列すべて表示中なのに非表示系列を理由として全幅420を固定していたため、3系列の共通3項目x座標、等間隔、最小描画幅、軸終端、有限viewBoxと高さの検証へ変更した。旧751行の集合棒検証は動的余白を許容するため維持した。カテゴリ名のaria-label／tspan取得も維持している。
+* 後続で発見した問題：両エンジンのローカル実行は固定幅検証を通過し、縦棒の長いラベル検証で失敗した。前段で保存した横向きを引き継いでいたため、保存設定の保持をassertし、既存の向き選択UIで縦向きへ変更・描画反映を待ってから縦棒の検証を行う。製品の表示処理・保存形式は変更していない。テスト削除、skip、待機時間延長は行っていない。
+* 最終ローカル検証：`node --check chart-block.e2e.js`、`node --check chart-block-utils.js`、`node --check app.js`は成功。`node --test chart-block-utils.test.js`は44件成功、`npm test`は1,119件成功（fail／skip 0）。`npm run test:e2e:chart`（Chromium）と`MEMO_NEXUS_E2E_BROWSER=webkit npm run test:e2e:chart`（WebKit）は全シナリオを終了コード0で完走した。中断で終了結果を回収できなかった実行は成功件数に含めていない。`git diff --check`成功。モバイルE2Eのローカル再実行は省略し、push後の全CIジョブを別途確認する。Safari／iPhone実機は未確認。
+
+## 2026-09-18 PR #237 CI実測による数値軸余白の補修
+
+* 追加の失敗：上記ローカル成功後のrun `35237602101`はChart E2Eが両方失敗した。Chromiumは円グラフ切替待機、WebKitは新設したSVG境界検証で失敗した。診断を追加したrun `35238191214`では円グラフ切替を両方通過し、双方の目盛り文字幅が約124.31 SVG単位、左端が約-0.31となることを確認した。旧全幅assertだけでなく、数値軸余白を124へ固定上限で切り詰める表示側の問題も実在した。
+* 修正：`chartValueAxisLayout()`は全文の推定文字幅＋10の安全余白を確保する。カテゴリ側の上限、目盛りの値・密度・表示文字、スケール、描画領域の項目間隔、保存形式は変更しない。小さい値の余白は従来どおりとし、巨大有限値／極小値の回帰テストを追加した。配信キャッシュ識別子と対応テストも更新した。E2EのSVG境界許容値を広げる対応はしていない。
+* 検証経過：構文確認3件と`git diff --check`成功、グラフ単体45件成功、`npm test`1,120件成功。Chromium Chart E2Eは終了コード0。WebKitは数値軸検証より前の円グラフ色同期待機でタイムアウトしたため、失敗時の保存データ・入力・扇形を記録する診断を追加して調査を継続する。最終結果は後続へ追記する。
+* フォーカス競合：WebKitの診断実行でも色同期待機が失敗し、空欄にしたはずの入力名が`国語`のまま残っていた。項目追加／色リセットは次の描画フレームでフォーカスを戻すため、E2Eの直後のfillと競合し得る。該当2箇所はUIのフォーカス復帰完了を条件として待ち、空欄が保存モデルにも反映されたことをassertするよう変更した。製品の入力処理は変更せず、固定待機・タイムアウト延長・skipは追加していない。
+* 最終再検証：上記フォーカス待機を含むローカルのChart E2E（Chromium／WebKit）はいずれも終了コード0で完走。`node --check chart-block.e2e.js`、`node --check chart-block-utils.js`、`node --check app.js`、`git diff --check`成功。`node --test chart-block-utils.test.js`は45件成功、`npm test`は1,120件成功（fail／skip 0）。数値軸補修コミット`f6cff6c`のGitHub Actions run `35238992796`ではCI checks、Chart E2E（Chromium／WebKit）、Mobile E2E（Chromium／WebKit）、Geometry E2E（Chromium）の全6ジョブ成功を確認した。最終pushのCI結果はPR報告にも記載する。既存のモバイル画像と手書きHTML2件はハッシュ一致で保持を確認した。
+* 取消操作の待ち漏れ：後続のrun `35239432672`はChromiumを含む5ジョブが成功したが、WebKitの旧577行で本文フィクスチャの反映待機が失敗した。診断には旧本文のグラフ2件が残っており、直前の取消後にデータ復元だけを待っていた。取消も次の描画フレームでフォーカスを復帰するため、同じ待ち漏れ5箇所に既存の`waitForChartCancelCompletion()`を適用した。修正後に再実行した構文確認3件、グラフ単体45件、全体1,120件、Chart E2E（Chromium／WebKit、終了コード0）、`git diff --check`はすべて成功した。

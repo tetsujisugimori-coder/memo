@@ -8,10 +8,14 @@ const {
   DEFAULT_CHART_COLOR,
   DEFAULT_CHART_SERIES_NAME,
   PIE_CHART_COLORS,
+  chartCategoryLabels,
   chartBlockPlainText,
   chartDisplaySeries,
+  chartLabelLayout,
+  chartNumericTicks,
   chartStackedTotals,
   chartValueMaximum,
+  chartValueAxisLayout,
   createChartBlock,
   formatChartStackTotal,
   formatChartStackTotalDetail,
@@ -255,6 +259,54 @@ test("横棒の長い日本語項目名は左領域を上限付きで確保し�
   assert.ok(label.lines.length <= 2);
   assert.equal(label.shortened, true);
   assert.match(label.text, /…$/);
+});
+
+test("共通ラベル整形は短い日本語を保持し、長い日本語・英数字・空白なし文字列を2行と省略記号へ収める", () => {
+  const short = chartLabelLayout("4月", { maximumWidth: 72 });
+  const japanese = chartLabelLayout("空白を含まない非常に長い日本語項目名を二行へ収めるテスト", { maximumWidth: 72 });
+  const latin = chartLabelLayout("VeryLongAlphaNumericCategoryIdentifierWithoutSpaces", { maximumWidth: 72 });
+  assert.deepEqual(short.lines, ["4月"]);
+  [japanese, latin].forEach((label) => {
+    assert.equal(label.lines.length, 2);
+    assert.equal(label.shortened, true);
+    assert.ok(label.text.endsWith("…"));
+    assert.ok(label.lines.every((line) => Array.from(line).length <= label.charactersPerLine));
+  });
+  assert.equal(japanese.fullText, "空白を含まない非常に長い日本語項目名を二行へ収めるテスト");
+});
+
+test("カテゴリ軸ラベルは幅・件数から間引き、短いラベルは全件、狭幅では重なりなく先頭または末尾を残す", () => {
+  const short = chartCategoryLabels([{ label: "1月" }, { label: "2月" }, { label: "3月" }], { plotWidth: 360 });
+  const many = chartCategoryLabels(Array.from({ length: 20 }, (_, index) => ({ label: `空白なし長い項目名${index + 1}` })), { plotWidth: 240 });
+  assert.ok(short.every((entry) => entry.visible), "十分な幅なら全ラベルを表示する");
+  assert.ok(many.some((entry) => !entry.visible), "狭幅で多数なら軸ラベルだけを間引く");
+  assert.equal(many[0].visible, true);
+  assert.ok(many.at(-1).visible || many.filter((entry) => entry.visible).length === 1, "重なりを避けられる場合は末尾も残す");
+  assert.ok(many.filter((entry) => entry.visible).every((entry) => entry.layout.lines.length <= 2));
+});
+
+test("数値目盛りと軸余白は有限値だけを使い、狭い領域で密度を下げ、0でも少なくとも1目盛りを返す", () => {
+  const narrow = chartNumericTicks(12345.678, { availableSpace: 48, minimumSpacing: 32 });
+  const wide = chartNumericTicks(12345.678, { availableSpace: 180, minimumSpacing: 32 });
+  const zero = chartNumericTicks(0, { availableSpace: 180 });
+  const invalid = chartNumericTicks(Infinity, { availableSpace: 180 });
+  const axis = chartValueAxisLayout(123456789012345, { availableSpace: 80, minimumSpacing: 40 });
+  assert.ok(narrow.length >= 2 && narrow.length < wide.length);
+  assert.deepEqual(zero, [{ value: 0, label: "0" }]);
+  assert.deepEqual(invalid, [{ value: 0, label: "0" }]);
+  assert.equal(axis.margin, Math.max(42, Math.ceil(axis.labelWidth + 10)));
+  assert.ok(axis.ticks.every((tick) => Number.isFinite(tick.value) && !tick.label.includes("Infinity") && !tick.label.includes("NaN")));
+});
+
+test("数値軸は巨大有限値の目盛り全体と安全余白を確保し、小さい値の余白は広げない", () => {
+  for (const maximum of [Number.MAX_VALUE, 1.7e308, 123456789012345, 1e-7, Number.MIN_VALUE]) {
+    const axis = chartValueAxisLayout(maximum);
+    assert.deepEqual(axis.ticks, chartNumericTicks(maximum), "余白計算は目盛りの値・密度・表示文字を変更しない");
+    assert.ok(Number.isFinite(axis.margin));
+    assert.ok(axis.margin >= axis.labelWidth + 10, "固定上限で全文幅や安全余白を切り捨てない");
+  }
+  assert.equal(chartValueAxisLayout(0).margin, 42);
+  assert.equal(chartValueAxisLayout(10).margin, 42);
 });
 
 test("通常積み上げの合計値設定は安全に正規化、直列化し、表示対象だけを判定する", () => {

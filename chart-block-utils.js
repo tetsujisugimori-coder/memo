@@ -244,6 +244,89 @@
       .map((item) => item.value));
   }
 
+  function chartTextWidth(value, { characterWidth = 12 } = {}) {
+    const safeCharacterWidth = Number.isFinite(characterWidth) ? Math.max(1, characterWidth) : 12;
+    return Array.from(normalizedText(value)).reduce((width, character) => {
+      // SVG fonts differ slightly by browser. Treating Latin characters as a
+      // little wider than their usual glyph width leaves a stable safety gap.
+      return width + (/^[\u0000-\u00ff]$/.test(character) ? safeCharacterWidth * 0.72 : safeCharacterWidth);
+    }, 0);
+  }
+
+  function chartLabelLayout(value, { maximumWidth = 180, characterWidth = 12, maximumLines = 2 } = {}) {
+    const fullText = normalizedText(value).trim();
+    const safeWidth = Number.isFinite(maximumWidth) ? Math.max(42, maximumWidth) : 180;
+    const safeCharacterWidth = Number.isFinite(characterWidth) ? Math.max(1, characterWidth) : 12;
+    // Use the full-width character estimate for line breaks. This is deliberately
+    // conservative for unbroken Japanese and alphanumeric identifiers.
+    const charactersPerLine = Math.max(3, Math.floor(safeWidth / safeCharacterWidth));
+    const maximumCharacters = charactersPerLine * Math.max(1, Math.floor(maximumLines) || 1);
+    const characters = Array.from(fullText);
+    const shortened = characters.length > maximumCharacters;
+    const visible = shortened ? characters.slice(0, Math.max(1, maximumCharacters - 1)).concat("…") : characters;
+    const lines = Array.from({ length: Math.max(1, Math.ceil(visible.length / charactersPerLine)) }, (_, index) => visible.slice(index * charactersPerLine, (index + 1) * charactersPerLine).join(""));
+    return { fullText, text: visible.join(""), lines, shortened, charactersPerLine, width: safeWidth };
+  }
+
+  function chartCategoryLabels(items, { plotWidth = 320, maximumLabelWidth = 120, characterWidth = 12, minimumGap = 8 } = {}) {
+    const entries = (Array.isArray(items) ? items : []).map((item, itemIndex) => ({ item, itemIndex, fullText: normalizedText(item?.label).trim() }))
+      .filter((entry) => entry.fullText);
+    const safePlotWidth = Number.isFinite(plotWidth) ? Math.max(1, plotWidth) : 320;
+    const safeMaximumWidth = Number.isFinite(maximumLabelWidth) ? Math.max(42, maximumLabelWidth) : 120;
+    const safeGap = Number.isFinite(minimumGap) ? Math.max(2, minimumGap) : 8;
+    const longest = Math.max(42, ...entries.map((entry) => chartTextWidth(entry.fullText, { characterWidth })));
+    const desiredWidth = Math.min(safeMaximumWidth, longest);
+    const slotWidth = safePlotWidth / Math.max(1, entries.length);
+    const interval = Math.max(1, Math.ceil((desiredWidth + safeGap) / Math.max(1, slotWidth)));
+    const visibleIndexes = [];
+    entries.forEach((entry, index) => {
+      if (index % interval === 0) visibleIndexes.push(index);
+    });
+    // Keep the final category where it can coexist with the prior label. When
+    // it cannot, replace the prior candidate instead of allowing an overlap.
+    if (entries.length > 1 && !visibleIndexes.includes(entries.length - 1)) {
+      const previous = visibleIndexes[visibleIndexes.length - 1];
+      if ((entries.length - 1) - previous < interval) visibleIndexes[visibleIndexes.length - 1] = entries.length - 1;
+      else visibleIndexes.push(entries.length - 1);
+    }
+    const labelWidth = Math.min(safeMaximumWidth, Math.max(42, slotWidth * interval - safeGap));
+    const visible = new Set(visibleIndexes);
+    return entries.map((entry, index) => ({
+      ...entry,
+      visible: visible.has(index),
+      layout: chartLabelLayout(entry.fullText, { maximumWidth: labelWidth, characterWidth, maximumLines: 2 })
+    }));
+  }
+
+  function formatChartAxisValue(value) {
+    if (!Number.isFinite(value) || value < 0) return "0";
+    if (value === 0) return "0";
+    const rounded = Number(value.toPrecision(12));
+    return Number.isFinite(rounded) ? String(rounded) : String(value);
+  }
+
+  function chartNumericTicks(maximum, { availableSpace = 140, minimumSpacing = 32, maximumCount = 5 } = {}) {
+    const safeMaximum = Number.isFinite(maximum) && maximum >= 0 ? maximum : 0;
+    if (safeMaximum === 0) return [{ value: 0, label: "0" }];
+    const safeSpace = Number.isFinite(availableSpace) ? Math.max(1, availableSpace) : 140;
+    const safeSpacing = Number.isFinite(minimumSpacing) ? Math.max(12, minimumSpacing) : 32;
+    const safeMaximumCount = Number.isFinite(maximumCount) ? Math.max(2, Math.floor(maximumCount)) : 5;
+    const count = Math.max(2, Math.min(safeMaximumCount, Math.floor(safeSpace / safeSpacing) + 1));
+    return Array.from({ length: count }, (_, index) => {
+      const value = safeMaximum * (index / Math.max(1, count - 1));
+      return { value: Number.isFinite(value) ? value : 0, label: formatChartAxisValue(value) };
+    });
+  }
+
+  function chartValueAxisLayout(maximum, { availableSpace = 140, characterWidth = 12, minimum = 42, minimumSpacing = 32, maximumCount = 5 } = {}) {
+    const ticks = chartNumericTicks(maximum, { availableSpace, minimumSpacing, maximumCount });
+    const labelWidth = Math.max(...ticks.map((tick) => chartTextWidth(tick.label, { characterWidth })));
+    const safeMinimum = Number.isFinite(minimum) ? Math.max(24, minimum) : 42;
+    // Numeric ticks keep their full text. Unlike category labels, they cannot be
+    // capped without clipping; renderers add this margin to the required plot width.
+    return { ticks, labelWidth, margin: Math.max(safeMinimum, Math.ceil(labelWidth + 10)) };
+  }
+
   function lineChartWidth(items) {
     const itemCount = (Array.isArray(items) ? items : []).filter((item) => normalizedText(item?.label).trim()).length;
     return Math.max(420, itemCount * 74 + 76);
@@ -365,16 +448,7 @@
   }
 
   function horizontalBarLabel(itemLabel, { maximumWidth = 180, characterWidth = 12, maximumLines = 2 } = {}) {
-    const fullText = normalizedText(itemLabel).trim();
-    const safeWidth = Number.isFinite(maximumWidth) ? Math.max(54, maximumWidth) : 180;
-    const safeCharacterWidth = Number.isFinite(characterWidth) ? Math.max(1, characterWidth) : 12;
-    const charactersPerLine = Math.max(4, Math.floor(safeWidth / safeCharacterWidth));
-    const maximumCharacters = charactersPerLine * Math.max(1, maximumLines);
-    const characters = Array.from(fullText);
-    const shortened = characters.length > maximumCharacters;
-    const visible = shortened ? characters.slice(0, Math.max(1, maximumCharacters - 1)).concat("…") : characters;
-    const lines = Array.from({ length: Math.max(1, Math.ceil(visible.length / charactersPerLine)) }, (_, index) => visible.slice(index * charactersPerLine, (index + 1) * charactersPerLine).join(""));
-    return { fullText, text: visible.join(""), lines, shortened, charactersPerLine };
+    return chartLabelLayout(itemLabel, { maximumWidth, characterWidth, maximumLines });
   }
 
   function horizontalBarLabelWidth(items, { minimum = 94, maximum = 180, characterWidth = 12 } = {}) {
@@ -495,10 +569,15 @@
     DEFAULT_CHART_SERIES_NAME,
     CHART_SERIES_COLORS,
     PIE_CHART_COLORS,
+    chartCategoryLabels,
     chartBlockPlainText,
     chartDisplaySeries,
+    chartLabelLayout,
+    chartNumericTicks,
     chartStackedTotals,
+    chartTextWidth,
     chartValueMaximum,
+    chartValueAxisLayout,
     createChartBlock,
     formatChartStackTotal,
     formatChartStackTotalDetail,

@@ -66,12 +66,14 @@ async function waitForPieSlices(page, expectedCount) {
       return {
         chartType: chart?.chartType,
         itemLabels: chart?.items?.map((item) => item.label),
+        series: chart?.series,
+        inputValues: [...document.querySelectorAll('.chart-block-editor input[data-chart-series-value]')].map((input) => input.value),
         editorChartType: document.querySelector('.chart-block-editor select[data-chart-field="chartType"]')?.value,
         previewClass: document.querySelector("#preview .chart-block")?.className,
         previewSliceCount: document.querySelectorAll("#preview .chart-block-pie-slice").length
       };
     });
-    error.message = `${error.message}\nPie preview state: ${JSON.stringify(state)}`;
+    console.error(`Pie preview state: ${JSON.stringify(state)}`);
     throw error;
   }
 }
@@ -84,6 +86,23 @@ function chart(page) {
 function charts(page) {
   return page.evaluate(() => window.MemoNexusChartBlockUtils.splitChartBlocks(document.getElementById("editor").value)
     .filter((segment) => segment.type === "chart").map((segment) => segment.chart));
+}
+
+async function chartCategoryLabelNames(locator) {
+  return locator.evaluateAll((labels) => labels.map((label) => label.getAttribute("aria-label") || ""));
+}
+
+async function chartCategoryLabelText(locator) {
+  return locator.evaluateAll((labels) => labels.map((label) => [...label.querySelectorAll("tspan")]
+    .map((tspan) => tspan.textContent || "").join("")));
+}
+
+async function waitForChartCategoryLabelNames(page, selector, expectedNames, expectedCount = expectedNames.length) {
+  await page.waitForFunction(({ selector, expectedNames, expectedCount }) => {
+    const labels = [...document.querySelectorAll(selector)];
+    return labels.length === expectedCount
+      && labels.map((label) => label.getAttribute("aria-label") || "").join(",") === expectedNames.join(",");
+  }, { selector, expectedNames, expectedCount });
 }
 
 async function waitForChartEditorSyncAfterBodyInput(page, expectedCount) {
@@ -269,6 +288,9 @@ function boxesHaveGap(first, second, minimumGap = 2) {
     await lineEditor.locator('button[data-chart-action="delete-item"]').last().click();
     await page.waitForFunction(() => document.querySelectorAll("#preview .chart-block-line-point").length === 1 && document.querySelectorAll("#preview .chart-block-line-path").length === 0);
     await page.locator('.chart-block-editor button[data-chart-action="add-item"]').click();
+    // add-item restores focus on the next animation frame. Finish that UI action
+    // before fill() can send text to a different field while focus is moving.
+    await page.waitForFunction(() => document.activeElement?.matches('.chart-block-item-row[data-chart-item-index="1"] input[data-chart-item-field="label"]'));
     await page.locator('input[aria-label="2件目の項目名"]').fill("数学");
     await page.locator('input[aria-label="2件目の数値"]').fill("27.75");
     await page.waitForFunction(() => document.querySelectorAll("#preview .chart-block-line-point").length === 2);
@@ -342,10 +364,12 @@ function boxesHaveGap(first, second, minimumGap = 2) {
       .find((segment) => segment.type === "chart")?.chart?.appearance?.pieItemColors?.[id], pieItemIds[0]);
     pieEditor = page.locator(".chart-block-editor");
     await pieEditor.locator(`.chart-block-item-row[data-chart-item-id="${pieItemIds[1]}"] button[data-chart-action="reset-pie-item-color"]`).click();
+    await page.waitForFunction((id) => document.activeElement?.matches(`.chart-block-item-row[data-chart-item-id="${id}"] input[data-chart-pie-item-color]`), pieItemIds[1]);
     pieEditor = page.locator(".chart-block-editor");
     const firstPieLabel = pieEditor.locator(`.chart-block-item-row[data-chart-item-id="${pieItemIds[0]}"] input[data-chart-item-field="label"]`);
     const syncedSecondPieColor = pieEditor.locator(`.chart-block-item-row[data-chart-item-id="${pieItemIds[1]}"] input[data-chart-pie-item-color]`);
     await firstPieLabel.fill("");
+    assert.equal((await chart(page)).items[0].label, "", "フォーカス復帰後の空欄入力を保存データへ反映する");
     await pieEditor.locator(`.chart-block-item-row[data-chart-item-id="${pieItemIds[0]}"] input[data-chart-pie-item-color]`).fill("#123456");
     await page.waitForFunction((id) => document.querySelector(`#preview .chart-block-pie-slice[data-chart-item-id="${id}"]`)?.getAttribute("fill") === "#4f46e5", pieItemIds[1]);
     assert.equal(await syncedSecondPieColor.inputValue(), "#4f46e5", "先頭項目名が空欄なら未指定色入力は第1パレット色へ同期する");
@@ -423,6 +447,7 @@ function boxesHaveGap(first, second, minimumGap = 2) {
     await page.locator('select[aria-label="グラフ1の種類"]').selectOption("pie");
     await page.waitForFunction(() => document.querySelectorAll("#preview .chart-block-pie-slice").length === 2);
     await page.locator('.chart-block-editor button[data-chart-action="cancel"]').click();
+    await waitForChartCancelCompletion(page, 0);
     await page.waitForFunction(() => window.MemoNexusChartBlockUtils.splitChartBlocks(document.getElementById("editor").value)
       .find((segment) => segment.type === "chart")?.chart.chartType === "bar");
     assert.deepEqual(await chart(page), beforeCancel, "編集を取り消すと開始時の棒グラフ、ID、共通データ、表示設定へ戻す");
@@ -496,6 +521,7 @@ function boxesHaveGap(first, second, minimumGap = 2) {
     await secondEditor.locator('input[aria-label="グラフ2の凡例を表示"]').check();
     await secondEditor.locator('select[aria-label="グラフ2の円グラフのラベル"]').selectOption("value");
     await secondEditor.locator('button[data-chart-action="cancel"]').click();
+    await waitForChartCancelCompletion(page, 1);
     await page.waitForFunction(() => window.MemoNexusChartBlockUtils.splitChartBlocks(document.getElementById("editor").value)
       .filter((segment) => segment.type === "chart")[1]?.chart.title === "二つ目");
     let duplicateCharts = await charts(page);
@@ -539,6 +565,7 @@ function boxesHaveGap(first, second, minimumGap = 2) {
     await movedSecondEditor.locator('button[data-chart-action="cancel"]').click();
     await page.waitForFunction((title) => window.MemoNexusChartBlockUtils.splitChartBlocks(document.getElementById("editor").value)
       .filter((segment) => segment.type === "chart")[1]?.chart.title === title, confirmedSecond.title);
+    await waitForChartCancelCompletion(page, 1);
     assert.deepEqual(await charts(page), [duplicateSetup.first, confirmedSecond], "前方グラフ削除後も対象外のグラフを復元しない");
     const legacyMultiMarker = await page.evaluate(() => window.MemoNexusChartBlockUtils.serializeChartBlock({
       id: "legacy-multi", chartType: "bar", title: "月別比較", unit: "万円",
@@ -689,6 +716,7 @@ function boxesHaveGap(first, second, minimumGap = 2) {
       const current = window.MemoNexusChartBlockUtils.splitChartBlocks(document.getElementById("editor").value).find((segment) => segment.type === "chart")?.chart;
       return current?.series.length === 3 && current.appearance.pieSeriesId === salesId;
     }, salesSeriesId);
+    await waitForChartCancelCompletion(page, 0);
     multiEditor = page.locator(".chart-block-editor");
     await multiEditor.locator(`.chart-block-series-row[data-chart-series-id="${salesSeriesId}"] button[data-chart-action="delete-series"]`).click();
     await page.waitForFunction((profitId) => {
@@ -704,6 +732,7 @@ function boxesHaveGap(first, second, minimumGap = 2) {
     await multiEditor.locator('button[data-chart-action="cancel"]').click();
     await page.waitForFunction((salesId) => window.MemoNexusChartBlockUtils.splitChartBlocks(document.getElementById("editor").value)
       .find((segment) => segment.type === "chart")?.chart?.appearance?.pieSeriesId === salesId, salesSeriesId);
+    await waitForChartCancelCompletion(page, 0);
     multiEditor = page.locator(".chart-block-editor");
     await multiEditor.locator('select[aria-label="グラフ1の種類"]').selectOption("bar");
     await page.waitForFunction(() => document.querySelector("#preview .chart-block-bar-chart")?.dataset.chartBarMode === "percent-stacked");
@@ -731,7 +760,8 @@ function boxesHaveGap(first, second, minimumGap = 2) {
       "2月、売上: 140万円", "2月、営業利益: 45万円", "2月、原価: 80万円",
       "3月、売上: 120万円", "3月、営業利益: 38万円", "3月、原価: 70万円"
     ], "棒グラフは表示中の全系列を読み上げ対象にする");
-    assert.equal(await page.locator("#preview .chart-block-bar-chart svg").getAttribute("viewBox"), "0 0 466 260", "集合棒グラフは全系列に必要な幅を確保する");
+    const groupedViewBox = (await page.locator("#preview .chart-block-bar-chart svg").getAttribute("viewBox")).split(" ").map(Number);
+    assert.ok(groupedViewBox[2] >= 466 && groupedViewBox[3] === 260, "集合棒グラフは系列幅を縮めず、数値軸の必要余白だけを加える");
     const barMetrics = await page.locator("#preview .chart-block-bar rect").evaluateAll((bars) => bars.map((bar) => ({ x: Number(bar.getAttribute("x")), height: Number(bar.getAttribute("height")), fill: bar.getAttribute("fill") })));
     assert.ok(barMetrics.every((bar) => Number.isFinite(bar.x) && Number.isFinite(bar.height) && bar.height >= 0), "SVG属性に不正値を混入しない");
     assert.ok(barMetrics.some((bar) => bar.height === 142), "全系列の最大値140を高さ計算の基準へ使う");
@@ -771,8 +801,10 @@ function boxesHaveGap(first, second, minimumGap = 2) {
         && document.activeElement?.getAttribute("data-chart-action") === "move-item-up"
         && document.querySelector(".chart-block-editor .chart-block-status")?.textContent === "「3月」を2件目へ移動しました";
     });
-    await page.waitForFunction(() => [...document.querySelectorAll("#preview .chart-block-label")].map((label) => label.textContent).join(",") === "1月,3月,2月");
-    assert.deepEqual(await page.locator("#preview .chart-block-label").allTextContents(), ["1月", "3月", "2月"], "集合棒の横軸を項目と全系列値の新しい対応へ更新する");
+    await waitForChartCategoryLabelNames(page, "#preview .chart-block-bar-chart .chart-block-label", ["1月", "3月", "2月"]);
+    const barCategoryLabels = page.locator("#preview .chart-block-bar-chart .chart-block-label");
+    assert.deepEqual(await chartCategoryLabelNames(barCategoryLabels), ["1月", "3月", "2月"], "集合棒の横軸の完全な項目名をaria-labelから取得する");
+    assert.deepEqual(await chartCategoryLabelText(barCategoryLabels), ["1月", "3月", "2月"], "集合棒の横軸の表示文字はtspanから取得する");
     multiEditor = page.locator(".chart-block-editor");
     await multiEditor.locator('.chart-block-item-row[data-chart-item-index="1"] button[data-chart-action="move-item-down"]').click();
     await page.waitForFunction(() => window.MemoNexusChartBlockUtils.splitChartBlocks(document.getElementById("editor").value)
@@ -940,11 +972,47 @@ function boxesHaveGap(first, second, minimumGap = 2) {
         title: group.querySelector(".chart-block-stacked-total-title")?.textContent,
         total: { x: total.x, y: total.y, width: total.width, height: total.height },
         segmentLabels: segmentLabels.map((segment) => ({ x: segment.x, y: segment.y, width: segment.width, height: segment.height })),
-        svg: svg && { left: svg.left, right: svg.right, top: svg.top, bottom: svg.bottom },
-        viewBox: label.ownerSVGElement?.getAttribute("viewBox")
+        svg: svg && { left: svg.left, right: svg.right, top: svg.top, bottom: svg.bottom }
       };
     }));
-    assert.equal(narrowTotalLayout[0].viewBox, "0 0 446 260", "1系列・5項目では約75pxの項目幅を使う");
+    const narrowPlot = await page.locator("#preview .chart-block-bar-chart svg").evaluate((svg) => {
+      const axis = [...svg.querySelectorAll(".chart-block-axis")].find((line) => line.getAttribute("y1") === line.getAttribute("y2"));
+      const boxes = (selector) => [...svg.querySelectorAll(selector)].map((element) => {
+        const { x, y, width, height } = element.getBBox();
+        return { x, y, width, height, text: element.textContent, className: element.getAttribute("class") };
+      });
+      return {
+        viewBox: svg.getAttribute("viewBox").trim().split(/\s+/).map(Number),
+        centers: [...svg.querySelectorAll(".chart-block-bar-group")].map((group) => {
+          const rect = group.querySelector("rect");
+          return Number(rect.getAttribute("x")) + Number(rect.getAttribute("width")) / 2;
+        }),
+        axisStart: Number(axis.getAttribute("x1")),
+        axisEnd: Number(axis.getAttribute("x2")),
+        ticks: boxes(".chart-block-axis-value"),
+        bars: boxes(".chart-block-bar rect"),
+        totals: boxes(".chart-block-stacked-total-value"),
+        invalidAttributes: [svg, ...svg.querySelectorAll("*")].flatMap((element) => [...element.attributes]
+          .filter((attribute) => /NaN|Infinity/.test(attribute.value)).map((attribute) => attribute.name))
+      };
+    });
+    assert.equal(narrowPlot.viewBox.length, 4, "viewBoxは4要素を持つ");
+    assert.ok(narrowPlot.viewBox.every(Number.isFinite), "巨大有限値でもviewBoxの全要素が有限である");
+    assert.deepEqual([narrowPlot.viewBox[0], narrowPlot.viewBox[1], narrowPlot.viewBox[3]], [0, 0, 260], "SVGの原点と高さを維持する");
+    assert.equal(narrowPlot.centers.length, 5, "巨大有限値の5項目をすべて描画する");
+    const narrowGaps = narrowPlot.centers.slice(1).map((center, index) => center - narrowPlot.centers[index]);
+    assert.ok(narrowGaps.every((gap) => Math.abs(gap - 75.2) <= 0.05), "1系列・5項目の棒中心間隔は74単位＋6単位の余裕を5等分した75.2単位を保つ");
+    const narrowPlotStart = narrowPlot.centers[0] - narrowGaps[0] / 2;
+    assert.ok(Math.abs(narrowPlot.axisEnd - narrowPlotStart - 376) <= 0.05, "動的な軸余白が増えても5項目分の描画領域376単位を縮めない");
+    assert.ok(Math.abs(narrowPlot.axisEnd - narrowPlot.centers.at(-1) - narrowGaps.at(-1) / 2) <= 0.05, "末尾にも半項目分の領域を確保する");
+    assert.ok(narrowPlot.ticks.length > 0, "巨大有限値の数値目盛りを表示する");
+    assert.equal(narrowPlot.bars.length, 5, "巨大有限値の棒を省略しない");
+    assert.equal(narrowPlot.totals.length, 5, "巨大有限値の合計を省略しない");
+    assert.ok([...narrowPlot.ticks, ...narrowPlot.bars, ...narrowPlot.totals].every(({ x, y, width, height }) =>
+      [x, y, width, height].every(Number.isFinite) && x >= -0.05 && y >= -0.05
+      && x + width <= narrowPlot.viewBox[2] + 0.05 && y + height <= 260.05), `目盛り・棒・合計ラベルをSVG内に収める: ${JSON.stringify(narrowPlot)}`);
+    assert.ok(narrowPlot.ticks.every(({ x, width }) => x + width < narrowPlot.axisStart), "数値目盛りを軸線より左へ収めて描画領域と重ねない");
+    assert.deepEqual(narrowPlot.invalidAttributes, [], "巨大有限値でもNaN・InfinityをSVG属性へ渡さない");
     assert.ok(narrowTotalLayout.every((entry) => entry.display.length <= 10 && /e[+-]\d+$/.test(entry.display)), "最狭幅でも長い有限合計を短い科学表記へ表示する");
     assert.ok(narrowTotalLayout.every((entry) => entry.title === `${entry.item}、合計: ${entry.detail}万円` && !entry.title.includes("00000000000000004")), "最狭幅でもtitleへ人間向け詳細値を残す");
     const maximumFiniteLayout = narrowTotalLayout[0];
@@ -1131,7 +1199,24 @@ function boxesHaveGap(first, second, minimumGap = 2) {
     await page.waitForFunction(() => document.querySelector(".chart-block-editor .chart-block-status")?.textContent === "入力内容を保存しました");
     await multiEditor.locator('select[aria-label="グラフ1の種類"]').selectOption("line");
     await page.waitForFunction(() => document.querySelector(".chart-block-series-notice")?.hidden === true && document.querySelectorAll("#preview .chart-block-line-series").length === 3 && document.querySelectorAll("#preview .chart-block-line-item").length === 9);
-    assert.equal(await page.locator("#preview .chart-block-line svg").getAttribute("viewBox"), "0 0 420 260", "折れ線は非表示系列を横幅へ加算しない");
+    const multiLineLayout = await page.locator("#preview .chart-block-line svg").evaluate((svg) => ({
+      viewBox: svg.getAttribute("viewBox").trim().split(/\s+/).map(Number),
+      positions: [...svg.querySelectorAll(".chart-block-line-series")].map((series) =>
+        [...series.querySelectorAll(".chart-block-line-point")].map((point) => Number(point.getAttribute("cx")))),
+      axisEnd: Number([...svg.querySelectorAll(".chart-block-axis")].find((axis) => axis.getAttribute("y1") === axis.getAttribute("y2")).getAttribute("x2"))
+    }));
+    assert.equal(multiLineLayout.viewBox.length, 4, "折れ線のviewBoxは4要素を持つ");
+    assert.ok(multiLineLayout.viewBox.every(Number.isFinite), "折れ線の動的viewBoxは有限である");
+    assert.deepEqual([multiLineLayout.viewBox[0], multiLineLayout.viewBox[1], multiLineLayout.viewBox[3]], [0, 0, 260], "折れ線の原点と高さを維持する");
+    assert.equal(multiLineLayout.positions.length, 3, "3系列の描画領域を検証する");
+    const linePositions = multiLineLayout.positions[0];
+    assert.equal(linePositions.length, 3, "折れ線の横軸は系列数ではなく3項目で構成する");
+    assert.ok(linePositions.every(Number.isFinite), "各項目のx座標は有限である");
+    assert.ok(multiLineLayout.positions.every((positions) => JSON.stringify(positions) === JSON.stringify(linePositions)), "全系列は同じ3項目のx座標を共有し、系列ごとに領域を横へ追加しない");
+    assert.ok(Math.abs((linePositions[1] - linePositions[0]) - (linePositions[2] - linePositions[1])) <= 0.05, "3項目を等間隔で配置する");
+    assert.ok(linePositions[2] - linePositions[0] >= 3 * 74 + 6, "数値軸余白を除いた描画領域に3項目分の最小幅を保つ");
+    assert.ok(linePositions[0] > 0 && Math.abs(linePositions[2] - multiLineLayout.axisEnd) <= 0.05
+      && multiLineLayout.axisEnd < multiLineLayout.viewBox[2], "折れ線が確保された横軸領域を使いSVG内に収まる");
     assert.equal(await page.locator("#preview .chart-block-line-path").count(), 3, "3系列を独立した折れ線で描画する");
     assert.equal(await page.locator("#preview .chart-block-line-point").count(), 9, "3系列・3項目の9点を描画する");
     assert.deepEqual(await page.locator("#preview .chart-block-line .chart-block-legend li").allTextContents(), ["売上", "営業利益", "原価"], "折れ線の凡例へ全系列の名前と色を表示する");
@@ -1257,7 +1342,10 @@ function boxesHaveGap(first, second, minimumGap = 2) {
     await multiEditor.locator('button[data-chart-action="confirm"]').click();
     await page.waitForFunction(() => document.querySelector(".chart-block-editor .chart-block-status")?.textContent === "入力内容を保存しました");
     await multiEditor.locator('select[aria-label="グラフ1の種類"]').selectOption("line");
-    await page.waitForFunction(() => document.querySelectorAll("#preview .chart-block-line-item").length === 6 && [...document.querySelectorAll("#preview .chart-block-label")].map((label) => label.textContent).join(",") === "1月,3月,2月");
+    await waitForChartCategoryLabelNames(page, "#preview .chart-block-line .chart-block-label", ["1月", "3月", "2月"]);
+    assert.deepEqual(await chartCategoryLabelNames(page.locator("#preview .chart-block-line .chart-block-label")), ["1月", "3月", "2月"], "折れ線の横軸の完全な項目名をaria-labelから取得する");
+    assert.deepEqual(await chartCategoryLabelText(page.locator("#preview .chart-block-line .chart-block-label")), ["1月", "3月", "2月"], "折れ線の横軸の表示文字はtspanから取得する");
+    assert.equal(await page.locator("#preview .chart-block-line-item").count(), 6, "折れ線は並べ替え後も全系列のデータ点を描画する");
     await multiEditor.locator('select[aria-label="グラフ1の種類"]').selectOption("pie");
     await waitForPieSlices(page, 3);
     assert.deepEqual(await page.locator("#preview .chart-block-pie .sr-only li").allTextContents(), ["1月、売上: 100万円", "3月、売上: 120万円", "2月、売上: 140万円"], "円グラフも並べ替えた第1系列との対応を維持する");
@@ -1265,7 +1353,7 @@ function boxesHaveGap(first, second, minimumGap = 2) {
     await page.waitForFunction(() => {
       const chart = document.querySelector("#preview .chart-block-bar-chart");
       const labels = [...chart?.querySelectorAll(".chart-block-label") || []]
-        .map((label) => label.querySelector("tspan")?.textContent ?? label.textContent);
+        .map((label) => label.querySelector("tspan")?.textContent || "");
       return chart?.querySelectorAll(".chart-block-bar").length === 6
         && labels.join(",") === "1月,3月,2月";
     });
@@ -1282,6 +1370,50 @@ function boxesHaveGap(first, second, minimumGap = 2) {
       const labels = [...editor?.querySelectorAll('input[data-chart-series-value][data-chart-series-index="0"]') || []].map((input) => input.getAttribute("aria-label"));
       return current?.series.length === 1 && labels.join(",") === "1件目の数値,2件目の数値,3件目の数値";
     });
+    const persistentLongLabel = "空白を含まないVeryLongCategoryIdentifierForAxisLayout確認用項目名";
+    assert.equal((await chart(page)).appearance.barOrientation, "horizontal", "前段で保存した横向き設定が再読み込み後も残る");
+    await multiEditor.locator('select[aria-label="グラフ1の棒の向き"]').selectOption("vertical");
+    await page.waitForFunction(() => {
+      const chart = document.querySelector("#preview .chart-block-bar-chart");
+      return chart && !chart.classList.contains("chart-block-horizontal-bar-chart")
+        && document.querySelector('select[aria-label="グラフ1の棒の向き"]')?.value === "vertical";
+    });
+    await multiEditor.locator('input[aria-label="1件目の項目名"]').fill(persistentLongLabel);
+    await page.waitForFunction((label) => {
+      const text = document.querySelector("#preview .chart-block-bar-chart .chart-block-label");
+      return text?.getAttribute("aria-label") === label
+        && text.querySelector("title")?.textContent === label
+        && text.querySelectorAll("tspan").length === 2;
+    }, persistentLongLabel);
+    const verticalLongLabelLayout = await page.locator("#preview .chart-block-bar-chart .chart-block-label").first().evaluate((label) => {
+      const text = label.getBoundingClientRect();
+      const svg = label.ownerSVGElement.getBoundingClientRect();
+      const horizontalAxis = [...label.ownerSVGElement.querySelectorAll(".chart-block-axis")].at(-1).getBoundingClientRect();
+      return { text, svg, horizontalAxis, title: label.querySelector("title")?.textContent, aria: label.getAttribute("aria-label") };
+    });
+    assert.equal(verticalLongLabelLayout.title, persistentLongLabel, "縦棒で省略前の項目名をtitleへ保持する");
+    assert.equal(verticalLongLabelLayout.aria, persistentLongLabel, "縦棒で省略前の項目名をaria-labelへ保持する");
+    assert.ok(verticalLongLabelLayout.text.left >= verticalLongLabelLayout.svg.left && verticalLongLabelLayout.text.right <= verticalLongLabelLayout.svg.right && verticalLongLabelLayout.text.top >= verticalLongLabelLayout.horizontalAxis.bottom, "縦棒の長い項目名を軸線とSVG領域の外へ出さない");
+    await multiEditor.locator('button[data-chart-action="confirm"]').click();
+    await page.waitForFunction(() => document.querySelector(".chart-block-editor .chart-block-status")?.textContent === "入力内容を保存しました");
+    await page.reload({ waitUntil: "domcontentloaded" });
+    await page.locator("#appStartupGuard").waitFor({ state: "hidden" });
+    multiEditor = page.locator(".chart-block-editor");
+    assert.equal(await multiEditor.locator('input[aria-label="1件目の項目名"]').inputValue(), persistentLongLabel, "保存・再読み込み・再編集後も元の長い項目名を保持する");
+    await multiEditor.locator('select[aria-label="グラフ1の種類"]').selectOption("line");
+    await page.waitForFunction((label) => {
+      const text = document.querySelector("#preview .chart-block-line .chart-block-label");
+      return text?.getAttribute("aria-label") === label && text.querySelector("title")?.textContent === label && text.querySelectorAll("tspan").length === 2;
+    }, persistentLongLabel);
+    const lineLongLabelLayout = await page.locator("#preview .chart-block-line .chart-block-label").first().evaluate((label) => {
+      const text = label.getBoundingClientRect();
+      const svg = label.ownerSVGElement.getBoundingClientRect();
+      const horizontalAxis = [...label.ownerSVGElement.querySelectorAll(".chart-block-axis")].at(-1).getBoundingClientRect();
+      return { text, svg, horizontalAxis };
+    });
+    assert.ok(lineLongLabelLayout.text.left >= lineLongLabelLayout.svg.left && lineLongLabelLayout.text.right <= lineLongLabelLayout.svg.right && lineLongLabelLayout.text.top >= lineLongLabelLayout.horizontalAxis.bottom, "折れ線の長い項目名を軸線とSVG領域の外へ出さない");
+    await multiEditor.locator('select[aria-label="グラフ1の種類"]').selectOption("bar");
+    await page.waitForFunction(() => document.querySelector("#preview .chart-block-bar-chart"));
     const previewChart = page.locator("#preview .chart-block").first();
     await page.screenshot({ path: screenshotPath });
     await page.setViewportSize({ width: 390, height: 760 });
@@ -1292,6 +1424,14 @@ function boxesHaveGap(first, second, minimumGap = 2) {
     assert.deepEqual(consoleErrors, [], `console errorなし: ${consoleErrors.join("\n")}`);
   } catch (error) {
     runError = error;
+    const activePage = browser?.contexts()[0]?.pages()[0];
+    if (activePage && !activePage.isClosed()) {
+      console.error("Chart failure state:", JSON.stringify(await activePage.evaluate(() => ({
+        charts: window.MemoNexusChartBlockUtils.splitChartBlocks(document.getElementById("editor").value).filter((segment) => segment.type === "chart").map((segment) => segment.chart),
+        inputs: [...document.querySelectorAll(".chart-block-editor input")].map((input) => ({ label: input.getAttribute("aria-label"), value: input.value })),
+        slices: [...document.querySelectorAll("#preview .chart-block-pie-slice")].map((slice) => ({ id: slice.dataset.chartItemId, fill: slice.getAttribute("fill") }))
+      })).catch((diagnosticError) => ({ diagnosticError: String(diagnosticError) }))));
+    }
     throw error;
   } finally {
     let cleanupError = null;
