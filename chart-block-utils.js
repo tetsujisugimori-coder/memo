@@ -318,12 +318,13 @@
     });
   }
 
-  function chartValueAxisLayout(maximum, { availableSpace = 140, characterWidth = 12, minimum = 42, maximumWidth = 124, minimumSpacing = 32, maximumCount = 5 } = {}) {
+  function chartValueAxisLayout(maximum, { availableSpace = 140, characterWidth = 12, minimum = 42, minimumSpacing = 32, maximumCount = 5 } = {}) {
     const ticks = chartNumericTicks(maximum, { availableSpace, minimumSpacing, maximumCount });
     const labelWidth = Math.max(...ticks.map((tick) => chartTextWidth(tick.label, { characterWidth })));
     const safeMinimum = Number.isFinite(minimum) ? Math.max(24, minimum) : 42;
-    const safeMaximumWidth = Number.isFinite(maximumWidth) ? Math.max(safeMinimum, maximumWidth) : 124;
-    return { ticks, labelWidth, margin: Math.max(safeMinimum, Math.min(safeMaximumWidth, Math.ceil(labelWidth + 10))) };
+    // Numeric ticks keep their full text. Unlike category labels, they cannot be
+    // capped without clipping; renderers add this margin to the required plot width.
+    return { ticks, labelWidth, margin: Math.max(safeMinimum, Math.ceil(labelWidth + 10)) };
   }
 
   function lineChartWidth(items) {

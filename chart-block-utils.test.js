@@ -294,8 +294,19 @@ test("数値目盛りと軸余白は有限値だけを使い、狭い領域で�
   assert.ok(narrow.length >= 2 && narrow.length < wide.length);
   assert.deepEqual(zero, [{ value: 0, label: "0" }]);
   assert.deepEqual(invalid, [{ value: 0, label: "0" }]);
-  assert.ok(axis.margin >= 42 && axis.margin <= 124);
+  assert.equal(axis.margin, Math.max(42, Math.ceil(axis.labelWidth + 10)));
   assert.ok(axis.ticks.every((tick) => Number.isFinite(tick.value) && !tick.label.includes("Infinity") && !tick.label.includes("NaN")));
+});
+
+test("数値軸は巨大有限値の目盛り全体と安全余白を確保し、小さい値の余白は広げない", () => {
+  for (const maximum of [Number.MAX_VALUE, 1.7e308, 123456789012345, 1e-7, Number.MIN_VALUE]) {
+    const axis = chartValueAxisLayout(maximum);
+    assert.deepEqual(axis.ticks, chartNumericTicks(maximum), "余白計算は目盛りの値・密度・表示文字を変更しない");
+    assert.ok(Number.isFinite(axis.margin));
+    assert.ok(axis.margin >= axis.labelWidth + 10, "固定上限で全文幅や安全余白を切り捨てない");
+  }
+  assert.equal(chartValueAxisLayout(0).margin, 42);
+  assert.equal(chartValueAxisLayout(10).margin, 42);
 });
 
 test("通常積み上げの合計値設定は安全に正規化、直列化し、表示対象だけを判定する", () => {

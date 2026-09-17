@@ -1414,6 +1414,14 @@ function boxesHaveGap(first, second, minimumGap = 2) {
     assert.deepEqual(consoleErrors, [], `console errorなし: ${consoleErrors.join("\n")}`);
   } catch (error) {
     runError = error;
+    const activePage = browser?.contexts()[0]?.pages()[0];
+    if (activePage && !activePage.isClosed()) {
+      console.error("Chart failure state:", await activePage.evaluate(() => ({
+        charts: window.MemoNexusChartBlockUtils.splitChartBlocks(document.getElementById("editor").value).filter((segment) => segment.type === "chart").map((segment) => segment.chart),
+        inputs: [...document.querySelectorAll(".chart-block-editor input")].map((input) => ({ label: input.getAttribute("aria-label"), value: input.value })),
+        slices: [...document.querySelectorAll("#preview .chart-block-pie-slice")].map((slice) => ({ id: slice.dataset.chartItemId, fill: slice.getAttribute("fill") }))
+      })).catch((diagnosticError) => ({ diagnosticError: String(diagnosticError) })));
+    }
     throw error;
   } finally {
     let cleanupError = null;
