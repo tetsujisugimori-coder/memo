@@ -483,6 +483,7 @@ const {
   nonNegativeFiniteNumber,
   normalizeChartBlock,
   PIE_CHART_COLORS,
+  pieItemColor,
   pieChartSegments,
   replaceChartBlock,
   resolvePieSeries,
@@ -8408,6 +8409,25 @@ function chartDisplayItems(chart, series = chart.series[0]) {
     .filter((item) => item.label && Number.isFinite(item.value) && item.value >= 0);
 }
 
+function resolvedPieItemColors(chart, series = resolvePieSeries(chart)) {
+  const items = chartDisplayItems(chart, series);
+  return new Map(items.map((item) => [
+    item.id,
+    pieItemColor({ ...item, color: chart.appearance.pieItemColors?.[item.id] }, items)
+  ]));
+}
+
+function syncPieItemColorInputs(editorBlock, chart) {
+  if (chart.chartType !== "pie") return;
+  const colors = resolvedPieItemColors(chart);
+  editorBlock.querySelectorAll(".chart-block-item-row[data-chart-item-id] input[data-chart-pie-item-color]").forEach((input) => {
+    const itemId = input.closest(".chart-block-item-row")?.dataset.chartItemId;
+    if (!itemId || Object.hasOwn(chart.appearance.pieItemColors || {}, itemId)) return;
+    const color = colors.get(itemId);
+    if (color) input.value = color;
+  });
+}
+
 function chartStackTotalDisplay(total) {
   return formatChartStackTotal(total);
 }
@@ -8544,11 +8564,14 @@ function renderChartBlock(chartValue, blockIndex, { editable = true } = {}) {
     : "";
   let accessibleItems = chartAccessibleItems(chart);
   if (chart.chartType === "pie") {
-    const pie = pieChartSegments(items);
+    const pieColors = resolvedPieItemColors(chart, pieSeries);
+    const pie = pieChartSegments(items.map((item) => ({
+      ...item,
+      color: pieColors.get(item.id)
+    })));
     const centerX = 140;
     const centerY = 130;
     const radius = 92;
-    const colorById = new Map(pie.segments.map((segment) => [segment.id, segment.color]));
     const slices = pie.segments.map((segment) => {
       const label = chartPieLabel(segment, chart.unit, chart.appearance.pieLabelMode);
       const middle = (segment.startAngle + segment.endAngle) / 2;
@@ -8558,7 +8581,7 @@ function renderChartBlock(chartValue, blockIndex, { editable = true } = {}) {
     }).join("");
     const empty = pie.total > 0 ? "" : `<text class="chart-block-empty" x="180" y="130" text-anchor="middle">円グラフを表示できる有効な数値がありません</text>`;
     const legend = chart.appearance.showLegend
-      ? `<ul class="chart-block-legend" aria-label="${escapeAttr(`${title}の凡例`)}">${items.map((item, index) => `<li><span class="chart-block-legend-swatch" style="background:${escapeAttr(colorById.get(item.id) || PIE_CHART_COLORS[index % PIE_CHART_COLORS.length])}"></span><span>${escapeHtml(`${chartLabel(item.label, 20)}: ${chartDisplayNumber(item.value)}${chart.unit}`)}</span></li>`).join("")}</ul>`
+      ? `<ul class="chart-block-legend" aria-label="${escapeAttr(`${title}の凡例`)}">${items.map((item) => `<li><span class="chart-block-legend-swatch" style="background:${escapeAttr(pieColors.get(item.id) || PIE_CHART_COLORS[0])}"></span><span>${escapeHtml(`${chartLabel(item.label, 20)}: ${chartDisplayNumber(item.value)}${chart.unit}`)}</span></li>`).join("")}</ul>`
       : "";
     const pieTitle = chart.series.length > 1 ? `${title}（${pieSeries.name}）` : title;
     const pieAriaLabel = `${title}${chart.unit ? `（単位: ${chart.unit}）` : ""}（表示系列: ${pieSeries.name}）`;
@@ -8729,6 +8752,7 @@ function firstInvalidChartNumberInput(editorBlock) {
 
 function createChartEditor(chartValue, blockIndex, snapshotKey) {
   const chart = normalizeChartBlock(chartValue, `chart-${blockIndex + 1}`);
+  const pieColors = chart.chartType === "pie" ? resolvedPieItemColors(chart) : null;
   const article = document.createElement("article");
   article.className = "chart-block-editor";
   article.dataset.chartId = chart.id;
@@ -8970,8 +8994,11 @@ function createChartEditor(chartValue, blockIndex, snapshotKey) {
   table.append(tableTitle);
   const tableHeader = document.createElement("div");
   tableHeader.className = "chart-block-item-row chart-block-item-header";
-  tableHeader.style.gridTemplateColumns = `minmax(150px, 1fr) repeat(${chart.series.length}, minmax(110px, 0.55fr)) minmax(166px, auto)`;
+  const pieItemColors = chart.chartType === "pie";
+  const itemRowColumns = `minmax(150px, 1fr)${pieItemColors ? " minmax(104px, 0.45fr)" : ""} repeat(${chart.series.length}, minmax(110px, 0.55fr)) minmax(166px, auto)`;
+  tableHeader.style.gridTemplateColumns = itemRowColumns;
   tableHeader.append(Object.assign(document.createElement("span"), { textContent: "項目名" }));
+  if (pieItemColors) tableHeader.append(Object.assign(document.createElement("span"), { textContent: "円の色" }));
   chart.series.forEach((series, seriesIndex) => {
     const seriesHeader = document.createElement("span");
     seriesHeader.dataset.chartSeriesHeaderIndex = String(seriesIndex);
@@ -8984,7 +9011,8 @@ function createChartEditor(chartValue, blockIndex, snapshotKey) {
     const row = document.createElement("div");
     row.className = "chart-block-item-row";
     row.dataset.chartItemIndex = String(itemIndex);
-    row.style.gridTemplateColumns = `minmax(150px, 1fr) repeat(${chart.series.length}, minmax(110px, 0.55fr)) minmax(166px, auto)`;
+    row.dataset.chartItemId = item.id;
+    row.style.gridTemplateColumns = itemRowColumns;
     const label = document.createElement("input");
     label.type = "text";
     label.dataset.chartItemField = "label";
@@ -8992,6 +9020,25 @@ function createChartEditor(chartValue, blockIndex, snapshotKey) {
     label.placeholder = "項目名";
     label.setAttribute("aria-label", `${itemIndex + 1}件目の項目名`);
     row.append(label);
+    if (pieItemColors) {
+      const colorLabel = document.createElement("label");
+      colorLabel.className = "chart-block-item-color";
+      colorLabel.textContent = "色";
+      const color = document.createElement("input");
+      color.type = "color";
+      color.dataset.chartPieItemColor = "true";
+      const paletteIndex = chart.items.slice(0, itemIndex).filter((entry) => entry.label).length;
+      color.value = pieColors.get(item.id) || PIE_CHART_COLORS[paletteIndex % PIE_CHART_COLORS.length];
+      color.setAttribute("aria-label", `${itemIndex + 1}件目の項目の色`);
+      colorLabel.append(color);
+      const resetColor = document.createElement("button");
+      resetColor.type = "button";
+      resetColor.dataset.chartAction = "reset-pie-item-color";
+      resetColor.textContent = "既定色へ戻す";
+      resetColor.setAttribute("aria-label", `${itemIndex + 1}件目の項目の色を既定色へ戻す`);
+      colorLabel.append(resetColor);
+      row.append(colorLabel);
+    }
     chart.series.forEach((series, seriesIndex) => {
       const value = document.createElement("input");
       value.type = "text";
@@ -9145,6 +9192,14 @@ function handleChartEditorInput(event) {
     next.series = next.series.map((series, index) => index === seriesIndex
       ? { ...series, values: series.values.map((value, valueIndex) => valueIndex === itemIndex ? nonNegativeFiniteNumber(event.target.value) : value) }
       : series);
+  } else if (event.target.dataset.chartPieItemColor) {
+    const itemIndex = Number(event.target.closest(".chart-block-item-row")?.dataset.chartItemIndex);
+    const item = next.items[itemIndex];
+    if (!item) return;
+    next.appearance = {
+      ...next.appearance,
+      pieItemColors: { ...next.appearance.pieItemColors, [item.id]: event.target.value }
+    };
   } else if (event.target.dataset.chartSeriesField) {
     const seriesIndex = Number(event.target.closest(".chart-block-series-row")?.dataset.chartSeriesIndex);
     if (!next.series[seriesIndex]) return;
@@ -9193,6 +9248,7 @@ function handleChartEditorInput(event) {
       renamedItemIndex
     );
   }
+  if (event.target.dataset.chartItemField === "label") syncPieItemColorInputs(editorBlock, next);
   chartEditorStatus(editorBlock, "");
   renderChartEditorPreview(editorBlock.querySelector(".chart-block-editor-preview"), next, blockIndex);
   commitChartBlockChange(blockIndex, chartId, next, { rerenderEditors: ["chartType", "barMode", "barOrientation"].includes(event.target.dataset.chartField), snapshotKey });
@@ -9256,6 +9312,17 @@ function handleChartEditorAction(event) {
       next.items = next.items.filter((_, index) => index !== itemIndex);
       next.series = next.series.map((series) => ({ ...series, values: series.values.filter((_, index) => index !== itemIndex) }));
       commitChartBlockChange(blockIndex, chartId, next, { rerenderEditors: true, snapshotKey });
+      return;
+    }
+    case "reset-pie-item-color": {
+      const itemId = button.closest(".chart-block-item-row")?.dataset.chartItemId;
+      if (!itemId || !next.appearance.pieItemColors?.[itemId]) return;
+      const pieItemColors = { ...next.appearance.pieItemColors };
+      delete pieItemColors[itemId];
+      next.appearance = { ...next.appearance, pieItemColors };
+      if (commitChartBlockChange(blockIndex, chartId, next, { rerenderEditors: true, snapshotKey })) {
+        requestAnimationFrame(() => chartBlockEditors?.querySelector(`.chart-block-editor[data-chart-snapshot-key="${CSS.escape(snapshotKey)}"] .chart-block-item-row[data-chart-item-id="${CSS.escape(itemId)}"] input[data-chart-pie-item-color]`)?.focus({ preventScroll: true }));
+      }
       return;
     }
     case "move-item-up":

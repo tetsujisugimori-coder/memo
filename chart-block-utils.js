@@ -44,6 +44,15 @@
     return value === "horizontal" ? "horizontal" : "vertical";
   }
 
+  function normalizePieItemColors(value, items) {
+    const source = value && typeof value === "object" && !Array.isArray(value) ? value : {};
+    return Object.fromEntries((Array.isArray(items) ? items : []).flatMap((item) => {
+      const id = normalizedText(item?.id).trim();
+      const color = id && Object.hasOwn(source, id) ? String(source[id] || "").trim() : "";
+      return /^#[0-9a-f]{6}$/i.test(color) ? [[id, color.toLowerCase()]] : [];
+    }));
+  }
+
   function normalizeChartItem(item, fallbackId, index, usedIds) {
     const source = item && typeof item === "object" && !Array.isArray(item) ? item : {};
     const baseId = normalizedText(source.id).trim() || `${fallbackId}-item-${index + 1}`;
@@ -87,6 +96,8 @@
     const items = sourceItems.map((item, index) => normalizeChartItem(item, id, index, usedIds));
     const appearanceSource = source.appearance && typeof source.appearance === "object" && !Array.isArray(source.appearance)
       ? source.appearance : {};
+    const appearanceWithoutPieItemColors = { ...appearanceSource };
+    delete appearanceWithoutPieItemColors.pieItemColors;
     const legacyValues = sourceItems.map((item) => nonNegativeFiniteNumber(item?.value));
     const sourceSeries = Array.isArray(source.series) && source.series.length ? source.series.slice(0, 3) : [
       { id: `${id}-series-1`, name: DEFAULT_CHART_SERIES_NAME, color: appearanceSource.color, values: legacyValues }
@@ -95,6 +106,7 @@
     const series = sourceSeries.map((entry, index) => normalizeChartSeries(entry, id, index, items.length, usedSeriesIds, index === 0 ? legacyValues : []));
     const pieSeriesId = typeof appearanceSource.pieSeriesId === "string" && series.some((entry) => entry.id === appearanceSource.pieSeriesId)
       ? appearanceSource.pieSeriesId : series[0].id;
+    const pieItemColors = normalizePieItemColors(appearanceSource.pieItemColors, items);
     return {
       ...source,
       type: "chart",
@@ -106,7 +118,7 @@
       items,
       series,
       appearance: {
-        ...appearanceSource,
+        ...appearanceWithoutPieItemColors,
         // appearance.color is retained as a compatibility mirror. Series colors are authoritative.
         color: series[0].color,
         barMode: normalizeBarMode(appearanceSource.barMode),
@@ -117,7 +129,8 @@
         showLegend: appearanceSource.showLegend === true,
         pieLabelMode: ["percentage", "value", "none"].includes(appearanceSource.pieLabelMode)
           ? appearanceSource.pieLabelMode : "percentage",
-        pieSeriesId
+        pieSeriesId,
+        ...(Object.keys(pieItemColors).length ? { pieItemColors } : {})
       }
     };
   }
@@ -198,7 +211,7 @@
       const endAngle = index === positiveItems.length - 1 ? (Math.PI * 3) / 2 : startAngle + ratio * Math.PI * 2;
       const segment = {
         ...item,
-        color: PIE_CHART_COLORS[displayItems.indexOf(item) % PIE_CHART_COLORS.length],
+        color: pieItemColor(item, displayItems),
         startAngle,
         endAngle,
         percentage: ratio * 100
@@ -207,6 +220,12 @@
       return segment;
     });
     return { total, segments };
+  }
+
+  function pieItemColor(item, displayItems) {
+    const items = Array.isArray(displayItems) ? displayItems : [];
+    const index = items.findIndex((entry) => entry?.id === item?.id);
+    return normalizedColor(item?.color, PIE_CHART_COLORS[(index < 0 ? 0 : index) % PIE_CHART_COLORS.length]);
   }
 
   function resolvePieSeries(chartValue) {
@@ -494,7 +513,9 @@
     nonNegativeFiniteNumber,
     normalizeBarOrientation,
     normalizeChartBlock,
+    normalizePieItemColors,
     parseChartBlockLine,
+    pieItemColor,
     pieChartSegments,
     replaceChartBlock,
     resolvePieSeries,
