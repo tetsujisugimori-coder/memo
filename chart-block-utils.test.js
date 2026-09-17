@@ -954,3 +954,26 @@ test("桁差の大きい軸では0と重なる側の目盛りを間引き元の�
   assert.equal(ticks.filter((t) => chartValueRatio(t.value, range) === 0).length, 1);
   assert.deepEqual(range, { minimum: -1e-300, maximum: 1e300 });
 });
+
+test("種別欠損・未知種別も正規化後の積み上げ契約で負数を拒否する", () => {
+  for (const chartType of [undefined, "unknown"]) {
+    const source = { chartType, items: [{ label: "旧形式", value: -1 }], appearance: { barMode: "stacked" } };
+    assert.match(chartValidationError(source), /負数に未対応/);
+    assert.throws(() => serializeChartBlock(source), /負数に未対応/);
+  }
+});
+
+test("負数の事前検証後も配列でない円データを安全に扱う", () => {
+  for (const input of [null, undefined, {}, "invalid"]) assert.deepEqual(pieChartSegments(input), { total: 0, segments: [] });
+});
+
+test("負数の事前検証後も欠損した旧系列値を安全に扱う", () => {
+  const items = [{ label: "A" }];
+  for (const series of [[null], [{ values: "invalid" }]]) {
+    assert.doesNotThrow(() => stackedBarSegments(items, series));
+    assert.doesNotThrow(() => horizontalBarSegments(items, series, { mode: "stacked" }));
+    assert.doesNotThrow(() => serializeChartBlock(normalizeChartBlock({ items, series })));
+    if (series[0] === null) assert.doesNotThrow(() => serializeChartBlock({ items, series }));
+    else assert.throws(() => serializeChartBlock({ items, series }), /有限な数値/);
+  }
+});

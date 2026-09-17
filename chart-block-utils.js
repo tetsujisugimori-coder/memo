@@ -50,11 +50,12 @@
 
   function chartValidationError(chart) {
     const values = Array.isArray(chart?.series) && chart.series.length
-      ? chart.series.flatMap((series) => series.values || [])
+      ? chart.series.flatMap((series) => series?.values || [])
       : (chart?.items || []).map((item) => item.value ?? 0);
     if (values.some((value) => !isValidChartNumber(value))) return "数値は有限な数値を入力してください";
+    const chartType = ["bar", "pie", "line"].includes(chart?.chartType) ? chart.chartType : "bar";
     if (values.some((value) => Number(value) < 0)
-      && (chart.chartType === "pie" || (chart.chartType === "bar" && normalizeBarMode(chart.appearance?.barMode) !== "grouped"))) {
+      && (chartType === "pie" || (chartType === "bar" && normalizeBarMode(chart?.appearance?.barMode) !== "grouped"))) {
       return "この形式は負数に未対応です。集合棒または折れ線に切り替えてください";
     }
     return "";
@@ -250,7 +251,7 @@
   }
 
   function pieChartSegments(items) {
-    if (items?.some((item) => item?.value < 0)) return { total: 0, segments: [] };
+    if (Array.isArray(items) && items.some((item) => item?.value < 0)) return { total: 0, segments: [] };
     const displayItems = Array.isArray(items) ? items.filter((item) => item && item.label && Number.isFinite(item.value) && item.value >= 0) : [];
     const positiveItems = displayItems.filter((item) => item.value > 0);
     const total = positiveItems.reduce((sum, item) => sum + item.value, 0);
@@ -472,7 +473,7 @@
     const displayItems = (Array.isArray(items) ? items : []).map((item, itemIndex) => ({ item, itemIndex }))
       .filter(({ item }) => item && normalizedText(item.label).trim());
     const displaySeries = Array.isArray(series) ? series : [];
-    if (displaySeries.some((entry) => entry.values?.some((value) => value < 0))) return { scaleBase: 0, maximumScaledTotal: 0, groups: [], segments: [], mode };
+    if (displaySeries.some((entry) => Array.isArray(entry?.values) && entry.values.some((value) => value < 0))) return { scaleBase: 0, maximumScaledTotal: 0, groups: [], segments: [], mode };
     const plotLeft = Number.isFinite(left) && left >= 0 ? left : 52;
     const plotRight = Number.isFinite(right) && right >= 0 ? right : 18;
     const plotTop = Number.isFinite(top) && top >= 0 ? top : 54;
@@ -552,7 +553,7 @@
     const plotWidth = Math.max(1, chartWidth - plotLeft - plotRight);
     const stacked = mode === "stacked" || mode === "percent-stacked";
     const percentStacked = mode === "percent-stacked";
-    if (stacked && displaySeries.some((entry) => entry.values?.some((value) => value < 0))) return { groups: [], segments: [], mode };
+    if (stacked && displaySeries.some((entry) => Array.isArray(entry?.values) && entry.values.some((value) => value < 0))) return { groups: [], segments: [], mode };
     const values = displayItems.flatMap(({ itemIndex }) => displaySeries.map((entry) => finiteChartNumber(entry?.values?.[itemIndex])));
     const range = chartValueRange(values.map((value) => ({ value })));
     const scaleBase = Math.max(0, ...values);

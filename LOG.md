@@ -2843,5 +2843,7 @@
 * 保存互換性：schemaVersion: 1、DB_VERSION: 6、本文マーカーは変更しない。読み込みだけでは旧本文を書き換えず、取消時は元のマーカー文字列も復元する。既存のUndo snapshot、自動保存、flushSave経路を継続利用する。配信キャッシュはapp 165、chart utils 18、CSS 102へ更新し、参照する契約テストをすべて追従させた。
 * 回帰テスト：旧「負数は0／不正」の期待値は今回の有限値契約に合わせて負数保持へ変更し、他の検証を削除・skipしていない。単体は正／負／混在／全0、負の0、小数、複数系列、MAX_VALUE／MIN_VALUE／桁差、座標方向、目盛り、並べ替え、形式別拒否、旧形式、ラベルを追加。Chart E2EはUI入力、5幅、両テーマ、座標・寸法・有限性、系列・色・順序、未対応形式で本文不変、対応形式復帰、縦／横／折れ線の保存・再読み込み・再編集、エラー中取消、旧マーカーの本文復元を追加した。
 * 検証中に検出・修正：0基準線の未定義CSS変数を既存のinkへ変更し、取消用直列化関数の参照を追加した。E2Eでは同じIDの編集ボタンとfigureを区別し、極端値の待機先を単位titleからデータtitleへ限定した。固定待機、テストのskip、座標検証の撤去は行っていない。
-* 最終ローカル結果：変更JavaScriptすべてのnode --check成功、グラフ単体71/71成功、npm test 1,146/1,146成功（fail／skip 0）。正式npm run test:e2e:chartはChromium／WebKitとも終了コード0。npm run test:e2e:mobile（layout＋writing）はChromium／WebKitとも終了コード0。320／375／390／430pxとデスクトップ、ライト／ダークの正負グラフ座標、SVGのNaN／Infinityなし、document／bodyの意図しない横方向オーバーフロー0、page error／console error 0を確認。git diff --check成功。
+* 最終ローカル結果：変更JavaScriptすべてのnode --check成功、グラフ単体74/74成功、npm test 1,149/1,149成功（fail／skip 0）。正式npm run test:e2e:chartはChromium／WebKitとも終了コード0。npm run test:e2e:mobile（layout＋writing）はChromium／WebKitとも終了コード0。320／375／390／430pxとデスクトップ、ライト／ダークの正負グラフ座標、SVGのNaN／Infinityなし、document／bodyの意図しない横方向オーバーフロー0、page error／console error 0を確認。git diff --check成功。
 * 制限・対象外：極端な桁差では小さい有限値の座標が画面解像度や浮動小数点精度により0と重なることがあるが、保存値は維持する。負数の積み上げ・100%積み上げ・円、正負別積み上げ、二軸、複合、CSV／TSV・表連携、4系列以上、日付軸、ズーム／パン、画像等出力、外部ライブラリは未実装。Safari／iPhone実機は未確認であり、Playwright WebKit成功を実機確認とは扱わない。CI結果は新規PRで別途確認する。
+
+* 提出後の境界レビュー：未正規化の旧データでも種別欠損・未知種別はbarとして負数の積み上げを拒否する。円・積み上げの負数事前チェックが非配列入力・欠損系列へTypeErrorを出さないよう、従来の安全な扱いを維持する3テストを追加した。元のPR HEAD 285d884のCI run 35259812938は全6ジョブ成功。補修後のHEADでもCIを再確認する。
