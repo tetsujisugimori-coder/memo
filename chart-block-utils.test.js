@@ -25,6 +25,7 @@ const {
   moveChartSeries,
   normalizeChartBlock,
   parseChartBlockLine,
+  pieItemColor,
   pieChartSegments,
   replaceChartBlock,
   resolvePieSeries,
@@ -125,6 +126,26 @@ test("円グラフの項目色は安定IDで保存し、旧データと不正値
   const restored = parseChartBlockLine(serializeChartBlock(seriesDeleted));
   assert.deepEqual(restored.appearance.pieItemColors, seriesDeleted.appearance.pieItemColors, "保存・再読み込み・再編集用の正規化後も色を保持する");
   assert.equal(pieChartSegments([{ id: "bad", label: "不正", value: 1, color: "invalid" }]).segments[0].color, PIE_CHART_COLORS[0], "不正な描画色は既定パレットへフォールバックする");
+});
+
+test("円グラフの0値項目も安定IDの保存色を保持し、表示対象順で既定色を解決する", () => {
+  const chart = normalizeChartBlock({
+    id: "pie-zero-colors", chartType: "pie",
+    items: [{ id: "blank", label: "" }, { id: "zero", label: "ゼロ" }, { id: "same", label: "ゼロ" }],
+    series: [{ id: "sales", name: "売上", values: [0, 0, 4] }],
+    appearance: { pieItemColors: { zero: "#123456", same: "#abcdef", invalid: "red" } }
+  });
+  const displayItems = chart.items.map((item, index) => ({ ...item, value: chart.series[0].values[index] }))
+    .filter((item) => item.label && item.value >= 0);
+  assert.deepEqual(chart.appearance.pieItemColors, { zero: "#123456", same: "#abcdef" }, "0値項目の安全な保存色を正規化後も残す");
+  assert.equal(pieItemColor({ ...displayItems[0], color: chart.appearance.pieItemColors.zero }, displayItems), "#123456", "0値項目の凡例用色も保存色を使う");
+  assert.equal(pieItemColor(displayItems[1], displayItems), PIE_CHART_COLORS[1], "未指定色は表示対象内の順序で既定色を使う");
+  const positive = normalizeChartBlock({ ...chart, series: [{ ...chart.series[0], values: [0, 3, 4] }] });
+  const backToZero = normalizeChartBlock({ ...positive, series: [{ ...positive.series[0], values: [0, 0, 4] }] });
+  assert.deepEqual(backToZero.appearance.pieItemColors, chart.appearance.pieItemColors, "0値と正数の往復でIDごとの保存色を失わない");
+  const moved = moveChartItem(backToZero, 2, -1);
+  const renamed = normalizeChartBlock({ ...moved, items: moved.items.map((item) => ({ ...item, label: item.id === "zero" || item.id === "same" ? "同名" : item.label })) });
+  assert.deepEqual(renamed.appearance.pieItemColors, chart.appearance.pieItemColors, "並べ替え、名前変更、同名項目でも保存色を別項目へ移動しない");
 });
 
 test("項目名と小数を含む保存形式を同じ内容へ復元し、凡例設定を保持する", () => {

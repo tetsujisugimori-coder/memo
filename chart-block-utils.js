@@ -211,7 +211,7 @@
       const endAngle = index === positiveItems.length - 1 ? (Math.PI * 3) / 2 : startAngle + ratio * Math.PI * 2;
       const segment = {
         ...item,
-        color: normalizedColor(item.color, PIE_CHART_COLORS[displayItems.indexOf(item) % PIE_CHART_COLORS.length]),
+        color: pieItemColor(item, displayItems),
         startAngle,
         endAngle,
         percentage: ratio * 100
@@ -220,6 +220,12 @@
       return segment;
     });
     return { total, segments };
+  }
+
+  function pieItemColor(item, displayItems) {
+    const items = Array.isArray(displayItems) ? displayItems : [];
+    const index = items.findIndex((entry) => entry?.id === item?.id);
+    return normalizedColor(item?.color, PIE_CHART_COLORS[(index < 0 ? 0 : index) % PIE_CHART_COLORS.length]);
   }
 
   function resolvePieSeries(chartValue) {
@@ -509,6 +515,7 @@
     normalizeChartBlock,
     normalizePieItemColors,
     parseChartBlockLine,
+    pieItemColor,
     pieChartSegments,
     replaceChartBlock,
     resolvePieSeries,

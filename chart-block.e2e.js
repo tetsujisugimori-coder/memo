@@ -298,6 +298,12 @@ function boxesHaveGap(first, second, minimumGap = 2) {
         && chart?.appearance?.pieItemColors?.[ids[1]] === "#abcdef";
     }, pieItemIds);
     assert.deepEqual(await page.locator("#preview .chart-block-legend-swatch").evaluateAll((swatches) => swatches.map((swatch) => getComputedStyle(swatch).backgroundColor)), ["rgb(18, 52, 86)", "rgb(171, 205, 239)"], "凡例も扇形と同じ項目色を使う");
+    await pieEditor.locator(`.chart-block-item-row[data-chart-item-id="${pieItemIds[1]}"] input[data-chart-series-value]`).fill("0");
+    await page.waitForFunction((id) => document.querySelectorAll("#preview .chart-block-pie-slice").length === 1
+      && document.querySelector(`#preview .chart-block-pie-slice[data-chart-item-id="${id}"]`) === null, pieItemIds[1]);
+    assert.deepEqual(await page.locator("#preview .chart-block-legend-swatch").evaluateAll((swatches) => swatches.map((swatch) => getComputedStyle(swatch).backgroundColor)), ["rgb(18, 52, 86)", "rgb(171, 205, 239)"], "0値で扇形がなくても凡例は保存済み項目色を使う");
+    await pieEditor.locator(`.chart-block-item-row[data-chart-item-id="${pieItemIds[1]}"] input[data-chart-series-value]`).fill("27.75");
+    await page.waitForFunction((id) => document.querySelector(`#preview .chart-block-pie-slice[data-chart-item-id="${id}"]`)?.getAttribute("fill") === "#abcdef", pieItemIds[1]);
     await pieEditor.locator(`.chart-block-item-row[data-chart-item-id="${pieItemIds[0]}"] input[data-chart-item-field="label"]`).fill("同名項目");
     await pieEditor.locator(`.chart-block-item-row[data-chart-item-id="${pieItemIds[1]}"] input[data-chart-item-field="label"]`).fill("同名項目");
     await page.waitForFunction((ids) => {
@@ -335,7 +341,26 @@ function boxesHaveGap(first, second, minimumGap = 2) {
     await page.waitForFunction((id) => !window.MemoNexusChartBlockUtils.splitChartBlocks(document.getElementById("editor").value)
       .find((segment) => segment.type === "chart")?.chart?.appearance?.pieItemColors?.[id], pieItemIds[0]);
     pieEditor = page.locator(".chart-block-editor");
+    await pieEditor.locator(`.chart-block-item-row[data-chart-item-id="${pieItemIds[1]}"] button[data-chart-action="reset-pie-item-color"]`).click();
+    pieEditor = page.locator(".chart-block-editor");
+    const firstPieLabel = pieEditor.locator(`.chart-block-item-row[data-chart-item-id="${pieItemIds[0]}"] input[data-chart-item-field="label"]`);
+    const syncedSecondPieColor = pieEditor.locator(`.chart-block-item-row[data-chart-item-id="${pieItemIds[1]}"] input[data-chart-pie-item-color]`);
+    await firstPieLabel.fill("");
     await pieEditor.locator(`.chart-block-item-row[data-chart-item-id="${pieItemIds[0]}"] input[data-chart-pie-item-color]`).fill("#123456");
+    await page.waitForFunction((id) => document.querySelector(`#preview .chart-block-pie-slice[data-chart-item-id="${id}"]`)?.getAttribute("fill") === "#4f46e5", pieItemIds[1]);
+    assert.equal(await syncedSecondPieColor.inputValue(), "#4f46e5", "先頭項目名が空欄なら未指定色入力は第1パレット色へ同期する");
+    await firstPieLabel.fill("国語");
+    await page.waitForFunction((ids) => document.querySelector(`#preview .chart-block-pie-slice[data-chart-item-id="${ids[0]}"]`)?.getAttribute("fill") === "#123456"
+      && document.querySelector(`#preview .chart-block-pie-slice[data-chart-item-id="${ids[1]}"]`)?.getAttribute("fill") === "#dc2626", pieItemIds);
+    assert.equal(await syncedSecondPieColor.inputValue(), "#dc2626", "項目名を入力すると未指定色入力は第2パレット色へ同期する");
+    assert.equal(await pieEditor.locator(`.chart-block-item-row[data-chart-item-id="${pieItemIds[0]}"] input[data-chart-pie-item-color]`).inputValue(), "#123456", "明示色は同期で上書きしない");
+    await firstPieLabel.fill("");
+    await page.waitForFunction((id) => document.querySelector(`#preview .chart-block-pie-slice[data-chart-item-id="${id}"]`)?.getAttribute("fill") === "#4f46e5", pieItemIds[1]);
+    assert.equal(await syncedSecondPieColor.inputValue(), "#4f46e5", "項目名を空欄へ戻すと未指定色入力は第1パレット色へ戻る");
+    assert.equal(await pieEditor.locator(`.chart-block-item-row[data-chart-item-id="${pieItemIds[0]}"] input[data-chart-pie-item-color]`).inputValue(), "#123456", "空欄への変更でも明示色は保持する");
+    await firstPieLabel.fill("国語");
+    await pieEditor.locator(`.chart-block-item-row[data-chart-item-id="${pieItemIds[0]}"] input[data-chart-pie-item-color]`).fill("#123456");
+    await syncedSecondPieColor.fill("#abcdef");
     for (const viewportWidth of [320, 375, 390, 430]) {
       await page.setViewportSize({ width: viewportWidth, height: 760 });
       await page.waitForFunction((width) => innerWidth === width && document.body.dataset.layoutMode === "mobile", viewportWidth);
@@ -362,6 +387,20 @@ function boxesHaveGap(first, second, minimumGap = 2) {
     assertInlineCheckboxLayout(await checkboxLayout(pieEditor.locator('input[aria-label="グラフ1の凡例を表示"]')), "円グラフの凡例を表示");
     await pieEditor.locator('input[aria-label="グラフ1の凡例を表示"]').check();
     await page.waitForFunction(() => document.querySelectorAll("#preview .chart-block-legend li").length === 2);
+    await pieEditor.locator(`.chart-block-item-row[data-chart-item-id="${pieItemIds[1]}"] input[data-chart-series-value]`).fill("0");
+    await page.waitForFunction((id) => document.querySelectorAll("#preview .chart-block-pie-slice").length === 1
+      && document.querySelector(`#preview .chart-block-pie-slice[data-chart-item-id="${id}"]`) === null, pieItemIds[1]);
+    await pieEditor.locator('button[data-chart-action="confirm"]').click();
+    await page.waitForFunction(() => document.querySelector(".chart-block-editor .chart-block-status")?.textContent === "入力内容を保存しました");
+    await page.reload({ waitUntil: "domcontentloaded" });
+    await page.locator("#appStartupGuard").waitFor({ state: "hidden" });
+    pieEditor = page.locator(".chart-block-editor");
+    assert.equal(await pieEditor.locator('select[aria-label="グラフ1の種類"]').inputValue(), "pie", "0値の項目色を保存した再編集でも円グラフを復元する");
+    assert.equal(await pieEditor.locator(`.chart-block-item-row[data-chart-item-id="${pieItemIds[1]}"] input[data-chart-series-value]`).inputValue(), "0", "再読み込み後も0値を復元する");
+    assert.equal(await pieEditor.locator(`.chart-block-item-row[data-chart-item-id="${pieItemIds[1]}"] input[data-chart-pie-item-color]`).inputValue(), "#abcdef", "再編集でも0値項目の保存色を復元する");
+    assert.deepEqual(await page.locator("#preview .chart-block-legend-swatch").evaluateAll((swatches) => swatches.map((swatch) => getComputedStyle(swatch).backgroundColor)), ["rgb(18, 52, 86)", "rgb(171, 205, 239)"], "再読み込み後も0値項目の凡例色を保持する");
+    await pieEditor.locator(`.chart-block-item-row[data-chart-item-id="${pieItemIds[1]}"] input[data-chart-series-value]`).fill("27.75");
+    await page.waitForFunction((id) => document.querySelector(`#preview .chart-block-pie-slice[data-chart-item-id="${id}"]`)?.getAttribute("fill") === "#abcdef", pieItemIds[1]);
     await pieEditor.locator('select[aria-label="グラフ1の円グラフのラベル"]').selectOption("value");
     await page.waitForFunction(() => [...document.querySelectorAll("#preview .chart-block-pie-label")].some((label) => label.textContent === "72.25点"));
     await pieEditor.locator('select[aria-label="グラフ1の円グラフのラベル"]').selectOption("none");

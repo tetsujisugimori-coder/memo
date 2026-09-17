@@ -2791,3 +2791,11 @@
 * 描画と編集：`pieChartSegments()`は項目に保存された安全な色を優先し、未指定・不正値では従来どおり表示対象内の固定パレットへフォールバックする。扇形、凡例、title、tooltipの色参照を同じセグメントへ統一した。円グラフ時だけ項目名の隣に色入力と「既定色へ戻す」を置き、既定色を見せつつ明示色だけを保存する。項目IDに結び付くため、項目の並べ替え、名前変更、同名項目、0値、表示系列の切替、系列の並べ替え・削除、型切替、保存・再編集で対応がずれない。
 * テスト：`chart-block-utils.test.js`へ、旧形式、未指定色、個別指定、不正色、同名、項目／系列の並べ替え、追加、削除、保存・再読込を追加した。`chart-block.e2e.js`では色入力、扇形と凡例への反映、同名、項目移動、追加削除、既定色への復帰、保存・再読込・再編集、複数系列の選択／並べ替え／削除、320px／375px／390px／430pxの重なり・ページ横はみ出しなしを確認する。
 * 検証：`node --check chart-block-utils.js`、`node --check app.js`、`node --check chart-block.e2e.js`、`node --test chart-block-utils.test.js`（40件、fail 0）、`npm test`（1,115件、fail 0）、`npm run test:e2e:chart`（Chromium、成功）、`MEMO_NEXUS_E2E_BROWSER=webkit npm run test:e2e:chart`（WebKit、成功）、`npm run test:e2e:mobile`（Chromium、成功）、`MEMO_NEXUS_E2E_BROWSER=webkit npm run test:e2e:mobile`（WebKit、成功）、`git diff --check`（成功）を実行した。E2Eのpage error／console errorは0件。WebKit E2EはSafari／iPhone実機確認を意味せず、Safari／iPhone実機は未確認である。
+
+## 2026-09-17 PR #235 円グラフ項目色の0値凡例・入力同期修正
+
+* 原因：`renderChartBlock()` が正数の扇形だけを返す `pieChartSegments()` から凡例色を作っていたため、値が0の項目は保存済みの明示色を持っていても固定パレットへ戻っていた。また、編集画面の未指定色入力は行生成時だけ既定色を計算するため、項目名の空欄／入力で表示対象の順序が変わっても表示値が同期されなかった。
+* 修正：安全な共通色解決 `pieItemColor()` を追加し、表示対象の全項目（0値を含む）に対して、正規化済みの明示色または固定パレット色を安定項目IDで解決するようにした。扇形・凡例・編集初期値で同じ解決結果を使う。項目名入力時は編集画面を再生成せず、安定項目IDで特定した未指定の色入力だけを同期するため、フォーカスとキャレットを維持し、明示色は上書きしない。
+* 互換性：`appearance.pieItemColors` の既存正規化、`schemaVersion`、DB_VERSION、本文マーカー、項目ID、系列ID、`pieSeriesId`は変更していない。棒、横棒、折れ線、積み上げ棒の描画・保存仕様にも変更はない。
+* 回帰テスト：単体で0値と正数の往復時の項目ID／保存色の維持、並べ替え・名称変更・同名、不正色／未指定色の安全なフォールバックを追加した。Chart E2Eで0値の凡例色、0↔正数、保存・再読込・再編集、空欄→入力→空欄時の未指定色入力同期、明示色の保護を確認する。
+* 検証：`node --check chart-block-utils.js`、`node --check app.js`、`node --check chart-block.e2e.js`、`node --test chart-block-utils.test.js`（41件、fail 0）、`npm test`（1,116件、fail 0）、`npm run test:e2e:chart`（Chromium、成功）、`MEMO_NEXUS_E2E_BROWSER=webkit npm run test:e2e:chart`（WebKit、成功）、`npm run test:e2e:mobile`（Chromium、成功）、`MEMO_NEXUS_E2E_BROWSER=webkit npm run test:e2e:mobile`（WebKit、成功）、`git diff --check`（成功）を実行した。E2Eのpage error／console errorは0件で、320px／375px／390px／430pxの横方向オーバーフローは0件だった。WebKit E2Eの成功はSafari／iPhone実機確認を意味せず、Safari／iPhone実機は未確認である。
