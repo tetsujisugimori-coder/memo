@@ -36,6 +36,55 @@
     return Number.isFinite(number) && number >= 0 ? number : fallback;
   }
 
+  // Invalid legacy data still falls back safely; editing/serialization validates first.
+  function finiteChartNumber(value, fallback = 0) {
+    if (!isValidChartNumber(value)) return fallback;
+    const number = Number(value);
+    return number === 0 ? 0 : number;
+  }
+
+  function isValidChartNumber(value) {
+    return (typeof value === "number" || typeof value === "string")
+      && String(value).trim() !== "" && Number.isFinite(Number(value));
+  }
+
+  function chartValidationError(chart) {
+    const values = Array.isArray(chart?.series) && chart.series.length
+      ? chart.series.flatMap((series) => series.values || [])
+      : (chart?.items || []).map((item) => item.value ?? 0);
+    if (values.some((value) => !isValidChartNumber(value))) return "数値は有限な数値を入力してください";
+    if (values.some((value) => Number(value) < 0)
+      && (chart.chartType === "pie" || (chart.chartType === "bar" && normalizeBarMode(chart.appearance?.barMode) !== "grouped"))) {
+      return "この形式は負数に未対応です。集合棒または折れ線に切り替えてください";
+    }
+    return "";
+  }
+
+  function chartValueRange(items) {
+    const values = (Array.isArray(items) ? items : []).map((item) => item?.value).filter(Number.isFinite);
+    return { minimum: Math.min(0, ...values) || 0, maximum: Math.max(0, ...values) || 0 };
+  }
+
+  function chartAxisRange(range) {
+    return typeof range === "number" ? chartValueRange([{ value: range }])
+      : chartValueRange([{ value: range?.minimum }, { value: range?.maximum }]);
+  }
+
+  function chartValueRatio(value, range) {
+    const { minimum, maximum } = chartAxisRange(range);
+    const scale = Math.max(Math.abs(minimum), maximum);
+    if (!scale || !Number.isFinite(value)) return 0;
+    // Subtract only after scaling: MAX_VALUE - (-MAX_VALUE) would overflow.
+    const low = minimum / scale;
+    return Math.max(0, Math.min(1, (value / scale - low) / (maximum / scale - low)));
+  }
+
+  function chartBarExtent(value, range, start, end) {
+    const zero = start + chartValueRatio(0, range) * (end - start);
+    const tip = start + chartValueRatio(value, range) * (end - start);
+    return { zero, tip, start: Math.min(zero, tip), size: Math.abs(tip - zero) };
+  }
+
   function normalizeBarMode(value) {
     return ["stacked", "percent-stacked"].includes(value) ? value : "grouped";
   }
@@ -84,7 +133,7 @@
       id,
       name: normalizedText(source.name).trim() || `${DEFAULT_CHART_SERIES_NAME.replace("1", String(index + 1))}`,
       color: normalizedColor(source.color, CHART_SERIES_COLORS[index % CHART_SERIES_COLORS.length]),
-      values: Array.from({ length: itemCount }, (_, itemIndex) => nonNegativeFiniteNumber(sourceValues?.[itemIndex]))
+      values: Array.from({ length: itemCount }, (_, itemIndex) => finiteChartNumber(sourceValues?.[itemIndex]))
     };
   }
 
@@ -98,7 +147,7 @@
       ? source.appearance : {};
     const appearanceWithoutPieItemColors = { ...appearanceSource };
     delete appearanceWithoutPieItemColors.pieItemColors;
-    const legacyValues = sourceItems.map((item) => nonNegativeFiniteNumber(item?.value));
+    const legacyValues = sourceItems.map((item) => finiteChartNumber(item?.value));
     const sourceSeries = Array.isArray(source.series) && source.series.length ? source.series.slice(0, 3) : [
       { id: `${id}-series-1`, name: DEFAULT_CHART_SERIES_NAME, color: appearanceSource.color, values: legacyValues }
     ];
@@ -185,6 +234,8 @@
   }
 
   function serializeChartBlock(chart) {
+    const error = chartValidationError(chart);
+    if (error) throw new Error(error);
     return `<!-- memo-nexus:chart-block:${utf8ToHex(JSON.stringify(normalizeChartBlock(chart, chart && chart.id)))} -->`;
   }
 
@@ -199,6 +250,7 @@
   }
 
   function pieChartSegments(items) {
+    if (items?.some((item) => item?.value < 0)) return { total: 0, segments: [] };
     const displayItems = Array.isArray(items) ? items.filter((item) => item && item.label && Number.isFinite(item.value) && item.value >= 0) : [];
     const positiveItems = displayItems.filter((item) => item.value > 0);
     const total = positiveItems.reduce((sum, item) => sum + item.value, 0);
@@ -299,23 +351,34 @@
   }
 
   function formatChartAxisValue(value) {
-    if (!Number.isFinite(value) || value < 0) return "0";
+    if (!Number.isFinite(value)) return "0";
     if (value === 0) return "0";
     const rounded = Number(value.toPrecision(12));
     return Number.isFinite(rounded) ? String(rounded) : String(value);
   }
 
-  function chartNumericTicks(maximum, { availableSpace = 140, minimumSpacing = 32, maximumCount = 5 } = {}) {
-    const safeMaximum = Number.isFinite(maximum) && maximum >= 0 ? maximum : 0;
-    if (safeMaximum === 0) return [{ value: 0, label: "0" }];
+  function chartNumericTicks(range, { availableSpace = 140, minimumSpacing = 32, maximumCount = 5 } = {}) {
+    const { minimum, maximum } = chartAxisRange(range);
+    if (minimum === 0 && maximum === 0) return [{ value: 0, label: "0" }];
     const safeSpace = Number.isFinite(availableSpace) ? Math.max(1, availableSpace) : 140;
     const safeSpacing = Number.isFinite(minimumSpacing) ? Math.max(12, minimumSpacing) : 32;
-    const safeMaximumCount = Number.isFinite(maximumCount) ? Math.max(2, Math.floor(maximumCount)) : 5;
-    const count = Math.max(2, Math.min(safeMaximumCount, Math.floor(safeSpace / safeSpacing) + 1));
-    return Array.from({ length: count }, (_, index) => {
-      const value = safeMaximum * (index / Math.max(1, count - 1));
-      return { value: Number.isFinite(value) ? value : 0, label: formatChartAxisValue(value) };
-    });
+    const mixed = minimum < 0 && maximum > 0;
+    const least = mixed ? 3 : 2;
+    const safeCount = Number.isFinite(maximumCount) ? Math.max(least, Math.floor(maximumCount)) : 5;
+    const count = Math.max(least, Math.min(safeCount, Math.floor(safeSpace / safeSpacing) + 1));
+    const negativeRatio = chartValueRatio(0, { minimum, maximum });
+    const negativeSteps = mixed ? Math.max(1, Math.min(count - 2, Math.round((count - 1) * negativeRatio))) : minimum < 0 ? count - 1 : 0;
+    const positiveSteps = count - 1 - negativeSteps;
+    const values = [0];
+    for (let index = 1; index <= negativeSteps; index++) values.push(minimum * (index / negativeSteps));
+    for (let index = 1; index <= positiveSteps; index++) values.push(maximum * (index / positiveSteps));
+    return [...new Set(values)].sort((a, b) => a < b ? -1 : a > b ? 1 : 0)
+      // On highly asymmetric ranges the smaller side can be subpixel-sized.
+      // Keep the zero tick instead of painting another label over it.
+      .filter((value) => !mixed || value === 0
+        || (value < 0 ? negativeRatio >= 0.5 : negativeRatio <= 0.5)
+        || Math.abs(chartValueRatio(value, { minimum, maximum }) - negativeRatio) * safeSpace >= safeSpacing)
+      .map((value) => ({ value, label: formatChartAxisValue(value) }));
   }
 
   function chartValueAxisLayout(maximum, { availableSpace = 140, characterWidth = 12, minimum = 42, minimumSpacing = 32, maximumCount = 5 } = {}) {
@@ -332,19 +395,19 @@
     return Math.max(420, itemCount * 74 + 76);
   }
 
-  function lineChartPoints(items, width, { left = 42, right = 18, top = 22, baseline = 196, maximum: requestedMaximum } = {}) {
-    const displayItems = Array.isArray(items) ? items.filter((item) => item && Number.isFinite(item.value) && item.value >= 0) : [];
+  function lineChartPoints(items, width, { left = 42, right = 18, top = 22, baseline = 196, maximum: requestedMaximum, range: requestedRange } = {}) {
+    const displayItems = Array.isArray(items) ? items.filter((item) => item && Number.isFinite(item.value)) : [];
     const plotLeft = Number.isFinite(left) && left >= 0 ? left : 42;
     const plotRight = Number.isFinite(right) && right >= 0 ? right : 18;
     const plotTop = Number.isFinite(top) && top >= 0 ? top : 22;
     const plotBaseline = Math.max(plotTop, Number.isFinite(baseline) && baseline >= 0 ? baseline : 196);
     const chartWidth = Math.max(plotLeft + plotRight, Number.isFinite(width) && width >= 0 ? width : plotLeft + plotRight);
-    const maximum = Number.isFinite(requestedMaximum) && requestedMaximum >= 0 ? requestedMaximum : chartValueMaximum(displayItems);
+    const range = requestedRange || (Number.isFinite(requestedMaximum) ? chartAxisRange(requestedMaximum) : chartValueRange(displayItems));
     const span = Math.max(0, chartWidth - plotLeft - plotRight);
     return displayItems.map((item, index) => ({
       ...item,
       x: displayItems.length === 1 ? plotLeft + span / 2 : plotLeft + (span * index) / Math.max(1, displayItems.length - 1),
-      y: maximum > 0 ? plotBaseline - (item.value / maximum) * (plotBaseline - plotTop) : plotBaseline
+      y: plotBaseline - chartValueRatio(item.value, range) * (plotBaseline - plotTop)
     }));
   }
 
@@ -381,6 +444,25 @@
     return `${compactMantissa}e${exponent}`;
   }
 
+  function chartValueLabelLayout(value, { x, tip, left, right, top = 24, bottom = 212, occupied = [] }) {
+    const text = formatChartStackTotal({ total: value });
+    const width = chartTextWidth(text) + 4;
+    const center = Math.max(left + width / 2, Math.min(right - width / 2, x));
+    const direction = value < 0 ? 1 : -1;
+    const preferred = tip + (value < 0 ? 14 : -8);
+    const candidates = [preferred, ...Array.from({ length: 12 }, (_, index) => preferred + direction * (index + 1) * 16), ...Array.from({ length: 12 }, (_, index) => preferred - direction * (index + 1) * 16)];
+    let y = Math.max(top, Math.min(bottom, preferred));
+    for (const candidate of candidates) {
+      if (candidate < top || candidate > bottom) continue;
+      const box = { x: center - width / 2, y: candidate - 12, width, height: 14 };
+      if (occupied.every((other) => box.x >= other.x + other.width || box.x + box.width <= other.x || box.y >= other.y + other.height || box.y + box.height <= other.y)) {
+        y = candidate;
+        break;
+      }
+    }
+    return { text, x: center, y, box: { x: center - width / 2, y: y - 12, width, height: 14 } };
+  }
+
   function shouldShowStackTotals(chartValue) {
     const chart = normalizeChartBlock(chartValue, chartValue?.id);
     return chart.chartType === "bar" && chart.appearance.barMode === "stacked" && chart.appearance.showStackTotals;
@@ -390,6 +472,7 @@
     const displayItems = (Array.isArray(items) ? items : []).map((item, itemIndex) => ({ item, itemIndex }))
       .filter(({ item }) => item && normalizedText(item.label).trim());
     const displaySeries = Array.isArray(series) ? series : [];
+    if (displaySeries.some((entry) => entry.values?.some((value) => value < 0))) return { scaleBase: 0, maximumScaledTotal: 0, groups: [], segments: [], mode };
     const plotLeft = Number.isFinite(left) && left >= 0 ? left : 52;
     const plotRight = Number.isFinite(right) && right >= 0 ? right : 18;
     const plotTop = Number.isFinite(top) && top >= 0 ? top : 54;
@@ -469,11 +552,13 @@
     const plotWidth = Math.max(1, chartWidth - plotLeft - plotRight);
     const stacked = mode === "stacked" || mode === "percent-stacked";
     const percentStacked = mode === "percent-stacked";
-    const values = displayItems.flatMap(({ itemIndex }) => displaySeries.map((entry) => nonNegativeFiniteNumber(entry?.values?.[itemIndex])));
+    if (stacked && displaySeries.some((entry) => entry.values?.some((value) => value < 0))) return { groups: [], segments: [], mode };
+    const values = displayItems.flatMap(({ itemIndex }) => displaySeries.map((entry) => finiteChartNumber(entry?.values?.[itemIndex])));
+    const range = chartValueRange(values.map((value) => ({ value })));
     const scaleBase = Math.max(0, ...values);
     const totalsByItemIndex = new Map(chartStackedTotals(items, series).map((entry) => [entry.itemIndex, entry]));
     const groups = displayItems.map(({ item, itemIndex }, displayIndex) => {
-      const entries = displaySeries.map((entry, seriesIndex) => ({ item, itemIndex, series: entry, seriesIndex, value: nonNegativeFiniteNumber(entry?.values?.[itemIndex]) }));
+      const entries = displaySeries.map((entry, seriesIndex) => ({ item, itemIndex, series: entry, seriesIndex, value: finiteChartNumber(entry?.values?.[itemIndex]) }));
       const groupScaleBase = percentStacked ? Math.max(0, ...entries.map((entry) => entry.value)) : scaleBase;
       const scaledTotal = groupScaleBase > 0 ? entries.reduce((total, entry) => total + entry.value / groupScaleBase, 0) : 0;
       const total = totalsByItemIndex.get(itemIndex);
@@ -487,8 +572,9 @@
         const usedHeight = barHeight * displaySeries.length + gap * Math.max(0, displaySeries.length - 1);
         const startY = group.y + (group.height - usedHeight) / 2;
         return group.entries.map((entry) => {
-          const ratio = scaleBase > 0 ? entry.value / scaleBase : 0;
-          return { ...entry, x: plotLeft, y: startY + entry.seriesIndex * (barHeight + gap), width: Math.max(0, Math.min(plotWidth, ratio * plotWidth)), height: barHeight, stackStart: 0, stackEnd: Math.max(0, Math.min(1, ratio)), percentage: 0, total: group.total };
+          const extent = chartBarExtent(entry.value, range, plotLeft, plotLeft + plotWidth);
+          const ratio = chartValueRatio(entry.value, range);
+          return { ...entry, x: extent.start, y: startY + entry.seriesIndex * (barHeight + gap), width: extent.size, height: barHeight, stackStart: 0, stackEnd: Math.max(0, Math.min(1, ratio)), percentage: 0, total: group.total };
         });
       }
       let cumulativeScaled = 0;
@@ -503,7 +589,7 @@
         return { ...entry, x: plotLeft + startRatio * plotWidth, y, width: Math.max(0, (endRatio - startRatio) * plotWidth), height: barHeight, stackStart: startRatio, stackEnd: endRatio, percentage: percentStacked && ratioBase > 0 ? (scaledValue / ratioBase) * 100 : 0, total: group.total };
       });
     });
-    return { scaleBase, maximumScaledTotal, groups, segments, left: plotLeft, right: plotRight, top, rowHeight: safeRowHeight, width: chartWidth, height: Math.max(0, top + groups.length * safeRowHeight + 30), plotWidth, mode: percentStacked ? "percent-stacked" : stacked ? "stacked" : "grouped" };
+    return { range, scaleBase, maximumScaledTotal, groups, segments, left: plotLeft, right: plotRight, top, rowHeight: safeRowHeight, width: chartWidth, height: Math.max(0, top + groups.length * safeRowHeight + 30), plotWidth, mode: percentStacked ? "percent-stacked" : stacked ? "stacked" : "grouped" };
   }
 
   function splitChartBlocks(markdown) {
@@ -569,6 +655,13 @@
     DEFAULT_CHART_SERIES_NAME,
     CHART_SERIES_COLORS,
     PIE_CHART_COLORS,
+    chartValueLabelLayout,
+    chartBarExtent,
+    chartValueRange,
+    chartValueRatio,
+    chartValidationError,
+    finiteChartNumber,
+    isValidChartNumber,
     chartCategoryLabels,
     chartBlockPlainText,
     chartDisplaySeries,

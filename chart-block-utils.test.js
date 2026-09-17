@@ -8,6 +8,13 @@ const {
   DEFAULT_CHART_COLOR,
   DEFAULT_CHART_SERIES_NAME,
   PIE_CHART_COLORS,
+  chartValueLabelLayout,
+  chartBarExtent,
+  chartValueRange,
+  chartValueRatio,
+  chartValidationError,
+  finiteChartNumber,
+  isValidChartNumber,
   chartCategoryLabels,
   chartBlockPlainText,
   chartDisplaySeries,
@@ -175,7 +182,7 @@ test("不正な種別、数値、色、ラベル設定を安全な既定値へ�
   assert.deepEqual(chart.items, [
     { id: "same", label: "A" }, { id: "same-2", label: "B" }, { id: "unsafe-item-3", label: "C" }
   ]);
-  assert.deepEqual(chart.series[0].values, [0, 0, 0]);
+  assert.deepEqual(chart.series[0].values, [0, 0, -1], "有限な負数は保持し、不正な旧値だけを安全化する");
   assert.deepEqual(chart.appearance, { color: DEFAULT_CHART_COLOR, barMode: "grouped", barOrientation: "vertical", showStackTotals: false, showValues: false, showPoints: true, showLegend: true, pieLabelMode: "percentage", pieSeriesId: "unsafe-series-1" });
 });
 
@@ -791,4 +798,159 @@ test("旧形式の正規化後も移動、直列化、表示系列、積み上�
     const layout = stackedBarSegments(restored.items, restored.series, { mode: barMode });
     assert.ok(layout.segments.every((segment) => [segment.x, segment.y, segment.width, segment.height, segment.percentage].every(Number.isFinite)));
   });
+});
+
+function signedChart(values = [-30, 0, 25.75]) {
+  return normalizeChartBlock({ id: "signed", chartType: "bar",
+    items: values.map((value, index) => ({ id: "item-" + index, label: "項目" + index })),
+    series: [{ id: "first", name: "第一", color: "#123456", values }, { id: "second", name: "第二", color: "#abcdef", values: values.map((v) => -v) }],
+    appearance: { showLegend: true, showValues: true }
+  });
+}
+
+for (const [name, values, expected] of [
+  ["正数", [1, 25.75], { minimum: 0, maximum: 25.75 }],
+  ["負数", [-30, -0.5], { minimum: -30, maximum: 0 }],
+  ["混在", [-30, 0, 25.75], { minimum: -30, maximum: 25.75 }],
+  ["全値0", [0, 0], { minimum: 0, maximum: 0 }],
+  ["負の0", [-0], { minimum: 0, maximum: 0 }]
+]) test(name + "の軸範囲に0を含める", () => {
+  const range = chartValueRange(values.map((value) => ({ value })));
+  assert.deepEqual(range, expected);
+  assert.ok(Number.isFinite(chartValueRatio(0, range)));
+});
+
+test("複数系列の共通範囲を求める", () => {
+  const chart = signedChart();
+  assert.deepEqual(chartValueRange(chart.series.flatMap((s) => s.values.map((value) => ({ value })))), { minimum: -30, maximum: 30 });
+});
+
+test("有限な負数、小数と負の0を正規化・直列化・再読込する", () => {
+  const chart = signedChart([-0.5, -0, 25.75]);
+  assert.deepEqual(chart.series[0].values, [-0.5, 0, 25.75]);
+  assert.equal(Object.is(chart.series[0].values[1], -0), false);
+  assert.deepEqual(parseChartBlockLine(serializeChartBlock(chart)), chart);
+  assert.equal(chart.schemaVersion, 1);
+  assert.equal(finiteChartNumber("-0.5"), -0.5);
+});
+
+test("負数を含む項目と系列をID・色ごと並べ替えて保存する", () => {
+  const chart = signedChart();
+  const moved = moveChartSeries(moveChartItem(chart, 2, -1), 1, -1);
+  assert.deepEqual(moved.items.map((i) => i.id), ["item-0", "item-2", "item-1"]);
+  assert.deepEqual(moved.series.map((s) => [s.id, s.color, s.values]), [["second", "#abcdef", [30, -25.75, 0]], ["first", "#123456", [-30, 25.75, 0]]]);
+  assert.deepEqual(parseChartBlockLine(serializeChartBlock(moved)), moved);
+});
+
+for (const values of [[-Number.MAX_VALUE, Number.MAX_VALUE], [-Number.MIN_VALUE, Number.MIN_VALUE], [-0.0000003, 0.0000002], [-1e-300, 1e300], [-1e300, 1e-300], [0, 0]]) {
+  test("極端な正負値の有限な軸・目盛り・座標: " + values, () => {
+    const range = chartValueRange(values.map((value) => ({ value })));
+    const ticks = chartNumericTicks(range, { availableSpace: 300 });
+    assert.equal(ticks.filter((t) => t.value === 0).length, 1);
+    assert.ok(ticks.every((t) => Number.isFinite(t.value) && !/NaN|Infinity|^-0$/.test(t.label)));
+    assert.equal(new Set(ticks.map((t) => t.value)).size, ticks.length);
+    const layout = chartValueAxisLayout(range);
+    assert.ok(Number.isFinite(layout.margin));
+    for (const v of values) {
+      const extent = chartBarExtent(v, range, 196, 54);
+      assert.ok(Object.values(extent).every(Number.isFinite));
+      assert.ok(extent.size >= 0 && extent.start >= 54 && extent.start + extent.size <= 196 + 1e-10);
+    }
+  });
+}
+
+for (const [orientation, start, end] of [["縦", 196, 54], ["横", 100, 450]]) {
+  test(orientation + "棒は0から正負の反対方向へ伸び、寸法が非負になる", () => {
+    const range = { minimum: -30, maximum: 60 };
+    const negative = chartBarExtent(-30, range, start, end);
+    const positive = chartBarExtent(60, range, start, end);
+    assert.equal(negative.zero, positive.zero);
+    assert.ok((negative.tip - negative.zero) * (positive.tip - positive.zero) < 0);
+    for (const extent of [negative, positive, chartBarExtent(0, range, start, end)]) assert.ok(extent.size >= 0);
+    assert.equal(chartBarExtent(0, range, start, end).size, 0);
+    if (orientation === "縦") assert.ok(negative.tip > negative.zero && positive.tip < positive.zero);
+    else assert.ok(negative.tip < negative.zero && positive.tip > positive.zero);
+  });
+}
+
+test("横棒の複数系列は同じ0位置と系列順を使う", () => {
+  const chart = signedChart();
+  const layout = horizontalBarSegments(chart.items, chart.series);
+  const zero = layout.left + chartValueRatio(0, layout.range) * layout.plotWidth;
+  layout.segments.forEach((s) => {
+    assert.ok(s.width >= 0 && s.height >= 0);
+    assert.ok(s.value < 0 ? Math.abs(s.x + s.width - zero) < 1e-9 : Math.abs(s.x - zero) < 1e-9);
+    assert.equal(s.series.id, chart.series[s.seriesIndex].id);
+  });
+});
+
+test("折れ線は共通軸の正数・0・負数順で配置し不正値を描かない", () => {
+  const points = lineChartPoints([30, 0, -30, NaN, Infinity].map((value) => ({ value })), 420, { range: { minimum: -60, maximum: 60 } });
+  assert.equal(points.length, 3);
+  assert.ok(points[0].y < points[1].y && points[1].y < points[2].y);
+  assert.ok(points.every((p) => Number.isFinite(p.x) && Number.isFinite(p.y)));
+});
+
+for (const [chartType, barMode] of [["bar", "stacked"], ["bar", "percent-stacked"], ["pie", "grouped"]]) {
+  test(chartType + "/" + barMode + "は負数を保持し描画と保存を拒否する", () => {
+    const original = signedChart();
+    const unsupported = normalizeChartBlock({ ...original, chartType, appearance: { ...original.appearance, barMode } });
+    assert.match(chartValidationError(unsupported), /負数に未対応/);
+    assert.throws(() => serializeChartBlock(unsupported), /負数に未対応/);
+    assert.deepEqual(unsupported.series, original.series);
+    if (chartType === "pie") assert.deepEqual(pieChartSegments([{ label: "A", value: -1 }, { label: "B", value: 3 }]).segments, []);
+    else {
+      assert.deepEqual(stackedBarSegments(unsupported.items, unsupported.series, { mode: barMode }).segments, []);
+      assert.deepEqual(horizontalBarSegments(unsupported.items, unsupported.series, { mode: barMode }).segments, []);
+    }
+    for (const type of ["bar", "line"]) {
+      const restored = normalizeChartBlock({ ...unsupported, chartType: type, appearance: { ...unsupported.appearance, barMode: "grouped" } });
+      assert.equal(chartValidationError(restored), "");
+      assert.deepEqual(parseChartBlockLine(serializeChartBlock(restored)).series, original.series);
+    }
+  });
+}
+
+test("円グラフの非選択系列や空項目の負数も保存前に検出する", () => {
+  const chart = signedChart([1, 2]);
+  chart.chartType = "pie";
+  chart.items[0].label = "";
+  assert.match(chartValidationError(chart), /負数に未対応/);
+});
+
+test("NaN・Infinity・不正文字列・途中入力は有限値として確定しない", () => {
+  for (const value of [NaN, Infinity, -Infinity, "NaN", "Infinity", "-Infinity", "", " ", "-", "abc", null, true]) {
+    assert.equal(isValidChartNumber(value), false);
+    const chart = signedChart();
+    chart.series[0].values[0] = value;
+    assert.throws(() => serializeChartBlock(chart), /有限な数値/);
+  }
+  for (const value of ["-30", "-0.5", "0", "25.75"]) assert.equal(isValidChartNumber(value), true);
+});
+
+test("旧単一系列の正負値を本文の読込だけで変更しない", () => {
+  const raw = '<!-- memo-nexus:chart-block:' + Buffer.from(JSON.stringify({ id: "legacy-signed", items: [{ id: "a", label: "A", value: -0.5 }, { id: "b", label: "B", value: 20 }] })).toString("hex") + ' -->';
+  const block = splitChartBlocks(raw)[0];
+  assert.equal(block.raw, raw);
+  assert.deepEqual(block.chart.series[0].values, [-0.5, 20]);
+  assert.deepEqual(parseChartBlockLine(serializeChartBlock(block.chart)).series, block.chart.series);
+});
+
+test("負数の値ラベルを短縮し元値を変えずSVG内と衝突回避位置へ置く", () => {
+  const value = -Number.MAX_VALUE;
+  const first = chartValueLabelLayout(value, { x: 110, tip: 196, left: 50, right: 420 });
+  assert.match(first.text, /^-/);
+  assert.ok(first.text.length < String(value).length);
+  assert.ok(first.box.x >= 50 && first.box.x + first.box.width <= 420);
+  assert.ok(first.y > 196 && first.y <= 212);
+  const second = chartValueLabelLayout(value, { x: 110, tip: 196, left: 50, right: 420, occupied: [first.box] });
+  assert.ok(second.box.y + second.box.height <= first.box.y || second.box.y >= first.box.y + first.box.height);
+  assert.equal(value, -Number.MAX_VALUE);
+});
+
+test("桁差の大きい軸では0と重なる側の目盛りを間引き元の範囲を維持する", () => {
+  const range = { minimum: -1e-300, maximum: 1e300 };
+  const ticks = chartNumericTicks(range, { availableSpace: 140, minimumSpacing: 32 });
+  assert.equal(ticks.filter((t) => chartValueRatio(t.value, range) === 0).length, 1);
+  assert.deepEqual(range, { minimum: -1e-300, maximum: 1e300 });
 });
