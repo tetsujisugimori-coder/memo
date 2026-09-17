@@ -960,11 +960,47 @@ function boxesHaveGap(first, second, minimumGap = 2) {
         title: group.querySelector(".chart-block-stacked-total-title")?.textContent,
         total: { x: total.x, y: total.y, width: total.width, height: total.height },
         segmentLabels: segmentLabels.map((segment) => ({ x: segment.x, y: segment.y, width: segment.width, height: segment.height })),
-        svg: svg && { left: svg.left, right: svg.right, top: svg.top, bottom: svg.bottom },
-        viewBox: label.ownerSVGElement?.getAttribute("viewBox")
+        svg: svg && { left: svg.left, right: svg.right, top: svg.top, bottom: svg.bottom }
       };
     }));
-    assert.equal(narrowTotalLayout[0].viewBox, "0 0 446 260", "1系列・5項目では約75pxの項目幅を使う");
+    const narrowPlot = await page.locator("#preview .chart-block-bar-chart svg").evaluate((svg) => {
+      const axis = [...svg.querySelectorAll(".chart-block-axis")].find((line) => line.getAttribute("y1") === line.getAttribute("y2"));
+      const boxes = (selector) => [...svg.querySelectorAll(selector)].map((element) => {
+        const { x, y, width, height } = element.getBBox();
+        return { x, y, width, height };
+      });
+      return {
+        viewBox: svg.getAttribute("viewBox").trim().split(/\s+/).map(Number),
+        centers: [...svg.querySelectorAll(".chart-block-bar-group")].map((group) => {
+          const rect = group.querySelector("rect");
+          return Number(rect.getAttribute("x")) + Number(rect.getAttribute("width")) / 2;
+        }),
+        axisStart: Number(axis.getAttribute("x1")),
+        axisEnd: Number(axis.getAttribute("x2")),
+        ticks: boxes(".chart-block-axis-value"),
+        bars: boxes(".chart-block-bar rect"),
+        totals: boxes(".chart-block-stacked-total-value"),
+        invalidAttributes: [svg, ...svg.querySelectorAll("*")].flatMap((element) => [...element.attributes]
+          .filter((attribute) => /NaN|Infinity/.test(attribute.value)).map((attribute) => attribute.name))
+      };
+    });
+    assert.equal(narrowPlot.viewBox.length, 4, "viewBoxは4要素を持つ");
+    assert.ok(narrowPlot.viewBox.every(Number.isFinite), "巨大有限値でもviewBoxの全要素が有限である");
+    assert.deepEqual([narrowPlot.viewBox[0], narrowPlot.viewBox[1], narrowPlot.viewBox[3]], [0, 0, 260], "SVGの原点と高さを維持する");
+    assert.equal(narrowPlot.centers.length, 5, "巨大有限値の5項目をすべて描画する");
+    const narrowGaps = narrowPlot.centers.slice(1).map((center, index) => center - narrowPlot.centers[index]);
+    assert.ok(narrowGaps.every((gap) => Math.abs(gap - 75.2) <= 0.05), "1系列・5項目の棒中心間隔は74単位＋6単位の余裕を5等分した75.2単位を保つ");
+    const narrowPlotStart = narrowPlot.centers[0] - narrowGaps[0] / 2;
+    assert.ok(Math.abs(narrowPlot.axisEnd - narrowPlotStart - 376) <= 0.05, "動的な軸余白が増えても5項目分の描画領域376単位を縮めない");
+    assert.ok(Math.abs(narrowPlot.axisEnd - narrowPlot.centers.at(-1) - narrowGaps.at(-1) / 2) <= 0.05, "末尾にも半項目分の領域を確保する");
+    assert.ok(narrowPlot.ticks.length > 0, "巨大有限値の数値目盛りを表示する");
+    assert.equal(narrowPlot.bars.length, 5, "巨大有限値の棒を省略しない");
+    assert.equal(narrowPlot.totals.length, 5, "巨大有限値の合計を省略しない");
+    assert.ok([...narrowPlot.ticks, ...narrowPlot.bars, ...narrowPlot.totals].every(({ x, y, width, height }) =>
+      [x, y, width, height].every(Number.isFinite) && x >= -0.05 && y >= -0.05
+      && x + width <= narrowPlot.viewBox[2] + 0.05 && y + height <= 260.05), "目盛り・棒・合計ラベルをSVG内に収める");
+    assert.ok(narrowPlot.ticks.every(({ x, width }) => x + width < narrowPlot.axisStart), "数値目盛りを軸線より左へ収めて描画領域と重ねない");
+    assert.deepEqual(narrowPlot.invalidAttributes, [], "巨大有限値でもNaN・InfinityをSVG属性へ渡さない");
     assert.ok(narrowTotalLayout.every((entry) => entry.display.length <= 10 && /e[+-]\d+$/.test(entry.display)), "最狭幅でも長い有限合計を短い科学表記へ表示する");
     assert.ok(narrowTotalLayout.every((entry) => entry.title === `${entry.item}、合計: ${entry.detail}万円` && !entry.title.includes("00000000000000004")), "最狭幅でもtitleへ人間向け詳細値を残す");
     const maximumFiniteLayout = narrowTotalLayout[0];
@@ -1151,7 +1187,24 @@ function boxesHaveGap(first, second, minimumGap = 2) {
     await page.waitForFunction(() => document.querySelector(".chart-block-editor .chart-block-status")?.textContent === "入力内容を保存しました");
     await multiEditor.locator('select[aria-label="グラフ1の種類"]').selectOption("line");
     await page.waitForFunction(() => document.querySelector(".chart-block-series-notice")?.hidden === true && document.querySelectorAll("#preview .chart-block-line-series").length === 3 && document.querySelectorAll("#preview .chart-block-line-item").length === 9);
-    assert.equal(await page.locator("#preview .chart-block-line svg").getAttribute("viewBox"), "0 0 420 260", "折れ線は非表示系列を横幅へ加算しない");
+    const multiLineLayout = await page.locator("#preview .chart-block-line svg").evaluate((svg) => ({
+      viewBox: svg.getAttribute("viewBox").trim().split(/\s+/).map(Number),
+      positions: [...svg.querySelectorAll(".chart-block-line-series")].map((series) =>
+        [...series.querySelectorAll(".chart-block-line-point")].map((point) => Number(point.getAttribute("cx")))),
+      axisEnd: Number([...svg.querySelectorAll(".chart-block-axis")].find((axis) => axis.getAttribute("y1") === axis.getAttribute("y2")).getAttribute("x2"))
+    }));
+    assert.equal(multiLineLayout.viewBox.length, 4, "折れ線のviewBoxは4要素を持つ");
+    assert.ok(multiLineLayout.viewBox.every(Number.isFinite), "折れ線の動的viewBoxは有限である");
+    assert.deepEqual([multiLineLayout.viewBox[0], multiLineLayout.viewBox[1], multiLineLayout.viewBox[3]], [0, 0, 260], "折れ線の原点と高さを維持する");
+    assert.equal(multiLineLayout.positions.length, 3, "3系列の描画領域を検証する");
+    const linePositions = multiLineLayout.positions[0];
+    assert.equal(linePositions.length, 3, "折れ線の横軸は系列数ではなく3項目で構成する");
+    assert.ok(linePositions.every(Number.isFinite), "各項目のx座標は有限である");
+    assert.ok(multiLineLayout.positions.every((positions) => JSON.stringify(positions) === JSON.stringify(linePositions)), "全系列は同じ3項目のx座標を共有し、系列ごとに領域を横へ追加しない");
+    assert.ok(Math.abs((linePositions[1] - linePositions[0]) - (linePositions[2] - linePositions[1])) <= 0.05, "3項目を等間隔で配置する");
+    assert.ok(linePositions[2] - linePositions[0] >= 3 * 74 + 6, "数値軸余白を除いた描画領域に3項目分の最小幅を保つ");
+    assert.ok(linePositions[0] > 0 && Math.abs(linePositions[2] - multiLineLayout.axisEnd) <= 0.05
+      && multiLineLayout.axisEnd < multiLineLayout.viewBox[2], "折れ線が確保された横軸領域を使いSVG内に収まる");
     assert.equal(await page.locator("#preview .chart-block-line-path").count(), 3, "3系列を独立した折れ線で描画する");
     assert.equal(await page.locator("#preview .chart-block-line-point").count(), 9, "3系列・3項目の9点を描画する");
     assert.deepEqual(await page.locator("#preview .chart-block-line .chart-block-legend li").allTextContents(), ["売上", "営業利益", "原価"], "折れ線の凡例へ全系列の名前と色を表示する");
@@ -1306,6 +1359,13 @@ function boxesHaveGap(first, second, minimumGap = 2) {
       return current?.series.length === 1 && labels.join(",") === "1件目の数値,2件目の数値,3件目の数値";
     });
     const persistentLongLabel = "空白を含まないVeryLongCategoryIdentifierForAxisLayout確認用項目名";
+    assert.equal((await chart(page)).appearance.barOrientation, "horizontal", "前段で保存した横向き設定が再読み込み後も残る");
+    await multiEditor.locator('select[aria-label="グラフ1の棒の向き"]').selectOption("vertical");
+    await page.waitForFunction(() => {
+      const chart = document.querySelector("#preview .chart-block-bar-chart");
+      return chart && !chart.classList.contains("chart-block-horizontal-bar-chart")
+        && document.querySelector('select[aria-label="グラフ1の棒の向き"]')?.value === "vertical";
+    });
     await multiEditor.locator('input[aria-label="1件目の項目名"]').fill(persistentLongLabel);
     await page.waitForFunction((label) => {
       const text = document.querySelector("#preview .chart-block-bar-chart .chart-block-label");

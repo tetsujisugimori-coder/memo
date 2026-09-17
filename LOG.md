@@ -2814,3 +2814,11 @@
 * 失敗と原因：PR #237のGitHub Actions run `35233060707`はChart E2E（Chromium／WebKit）がともに`chart-block.e2e.js`旧775行付近の30秒タイムアウトで失敗した。SVGカテゴリ軸ラベルの親`text`には全文保持用の`title`と表示用の`tspan`がともに入るため、親`textContent`は`1月1月`となり、旧テストの`1月`との一致条件は成立しなかった。
 * 修正：表示実装、最大2行表示、省略記号、ラベル間引き、`title`、`aria-label`、保存形式は変更せず、E2Eのカテゴリ軸ラベル取得を目的別に分離した。完全な項目名と並び順は`aria-label`、SVG上の表示文字は`tspan`から取得し、棒グラフの並べ替え後の待機・assert、折れ線切り替え後の待機・assert、既存の棒復帰待機で親`textContent`を項目名として扱わない。
 * 検証：`node --check chart-block.e2e.js`、`node --check chart-block-utils.js`、`node --check app.js`、`git diff --check`は成功した。`node --test chart-block-utils.test.js`は44件成功（fail 0）、`npm test`は1,119件成功（fail 0）、`npm run test:e2e:chart`はChromiumで成功、`MEMO_NEXUS_E2E_BROWSER=webkit npm run test:e2e:chart`はWebKitで成功した。今回はE2Eの文字列取得だけの修正のため、既存のモバイルE2Eは再実行していない。WebKit E2Eの成功はSafari／iPhone実機確認を意味しない。
+
+## 2026-09-18 PR #237 Chart E2Eの動的余白・検証前提の修正
+
+* 失敗と原因：GitHub Actions run `35235200602`（HEAD `3c5f825`）はChart E2E（Chromium／WebKit）がともに旧967行で失敗した。前回のカテゴリラベル取得待機は通過したが、巨大有限値の数値軸余白を含むSVG全幅を446へ固定していた。実装は左描画開始140、右余白18、5項目分の描画幅376を確保して全幅534となるため、旧assertの前提が誤っていた。以前のローカル成功記録とCI失敗を区別し、今回の最終結果を以下に記録する。
+* 修正：`chart-block.e2e.js`だけを変更し、SVG全幅の固定比較を有限な4要素・高さ260・棒中心間隔75.2±0.05・5項目分の描画幅376±0.05の直接検証へ置き換えた。目盛り、棒、合計ラベルのSVG内配置とSVG属性にNaN／Infinityがないことも検証する。Number.MAX_VALUEの科学表記、詳細title／読み上げ、合計同士／系列内ラベルとの非重複検証は維持した。
+* 関連検証：旧1154行は3系列すべて表示中なのに非表示系列を理由として全幅420を固定していたため、3系列の共通3項目x座標、等間隔、最小描画幅、軸終端、有限viewBoxと高さの検証へ変更した。旧751行の集合棒検証は動的余白を許容するため維持した。カテゴリ名のaria-label／tspan取得も維持している。
+* 後続で発見した問題：両エンジンのローカル実行は固定幅検証を通過し、縦棒の長いラベル検証で失敗した。前段で保存した横向きを引き継いでいたため、保存設定の保持をassertし、既存の向き選択UIで縦向きへ変更・描画反映を待ってから縦棒の検証を行う。製品の表示処理・保存形式は変更していない。テスト削除、skip、待機時間延長は行っていない。
+* 最終ローカル検証：`node --check chart-block.e2e.js`、`node --check chart-block-utils.js`、`node --check app.js`は成功。`node --test chart-block-utils.test.js`は44件成功、`npm test`は1,119件成功（fail／skip 0）。`npm run test:e2e:chart`（Chromium）と`MEMO_NEXUS_E2E_BROWSER=webkit npm run test:e2e:chart`（WebKit）は全シナリオを終了コード0で完走した。中断で終了結果を回収できなかった実行は成功件数に含めていない。`git diff --check`成功。モバイルE2Eのローカル再実行は省略し、push後の全CIジョブを別途確認する。Safari／iPhone実機は未確認。
