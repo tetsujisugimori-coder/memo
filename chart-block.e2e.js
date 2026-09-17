@@ -66,12 +66,14 @@ async function waitForPieSlices(page, expectedCount) {
       return {
         chartType: chart?.chartType,
         itemLabels: chart?.items?.map((item) => item.label),
+        series: chart?.series,
+        inputValues: [...document.querySelectorAll('.chart-block-editor input[data-chart-series-value]')].map((input) => input.value),
         editorChartType: document.querySelector('.chart-block-editor select[data-chart-field="chartType"]')?.value,
         previewClass: document.querySelector("#preview .chart-block")?.className,
         previewSliceCount: document.querySelectorAll("#preview .chart-block-pie-slice").length
       };
     });
-    error.message = `${error.message}\nPie preview state: ${JSON.stringify(state)}`;
+    console.error(`Pie preview state: ${JSON.stringify(state)}`);
     throw error;
   }
 }
@@ -967,7 +969,7 @@ function boxesHaveGap(first, second, minimumGap = 2) {
       const axis = [...svg.querySelectorAll(".chart-block-axis")].find((line) => line.getAttribute("y1") === line.getAttribute("y2"));
       const boxes = (selector) => [...svg.querySelectorAll(selector)].map((element) => {
         const { x, y, width, height } = element.getBBox();
-        return { x, y, width, height };
+        return { x, y, width, height, text: element.textContent, className: element.getAttribute("class") };
       });
       return {
         viewBox: svg.getAttribute("viewBox").trim().split(/\s+/).map(Number),
@@ -998,7 +1000,7 @@ function boxesHaveGap(first, second, minimumGap = 2) {
     assert.equal(narrowPlot.totals.length, 5, "巨大有限値の合計を省略しない");
     assert.ok([...narrowPlot.ticks, ...narrowPlot.bars, ...narrowPlot.totals].every(({ x, y, width, height }) =>
       [x, y, width, height].every(Number.isFinite) && x >= -0.05 && y >= -0.05
-      && x + width <= narrowPlot.viewBox[2] + 0.05 && y + height <= 260.05), "目盛り・棒・合計ラベルをSVG内に収める");
+      && x + width <= narrowPlot.viewBox[2] + 0.05 && y + height <= 260.05), `目盛り・棒・合計ラベルをSVG内に収める: ${JSON.stringify(narrowPlot)}`);
     assert.ok(narrowPlot.ticks.every(({ x, width }) => x + width < narrowPlot.axisStart), "数値目盛りを軸線より左へ収めて描画領域と重ねない");
     assert.deepEqual(narrowPlot.invalidAttributes, [], "巨大有限値でもNaN・InfinityをSVG属性へ渡さない");
     assert.ok(narrowTotalLayout.every((entry) => entry.display.length <= 10 && /e[+-]\d+$/.test(entry.display)), "最狭幅でも長い有限合計を短い科学表記へ表示する");
