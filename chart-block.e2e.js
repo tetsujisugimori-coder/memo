@@ -86,6 +86,23 @@ function charts(page) {
     .filter((segment) => segment.type === "chart").map((segment) => segment.chart));
 }
 
+async function chartCategoryLabelNames(locator) {
+  return locator.evaluateAll((labels) => labels.map((label) => label.getAttribute("aria-label") || ""));
+}
+
+async function chartCategoryLabelText(locator) {
+  return locator.evaluateAll((labels) => labels.map((label) => [...label.querySelectorAll("tspan")]
+    .map((tspan) => tspan.textContent || "").join("")));
+}
+
+async function waitForChartCategoryLabelNames(page, selector, expectedNames, expectedCount = expectedNames.length) {
+  await page.waitForFunction(({ selector, expectedNames, expectedCount }) => {
+    const labels = [...document.querySelectorAll(selector)];
+    return labels.length === expectedCount
+      && labels.map((label) => label.getAttribute("aria-label") || "").join(",") === expectedNames.join(",");
+  }, { selector, expectedNames, expectedCount });
+}
+
 async function waitForChartEditorSyncAfterBodyInput(page, expectedCount) {
   // 1. Playwrightが書き込んだ本文自体にマーカーがあることを確認する。
   await page.waitForFunction((count) => window.MemoNexusChartBlockUtils.splitChartBlocks(document.getElementById("editor").value)
@@ -772,8 +789,10 @@ function boxesHaveGap(first, second, minimumGap = 2) {
         && document.activeElement?.getAttribute("data-chart-action") === "move-item-up"
         && document.querySelector(".chart-block-editor .chart-block-status")?.textContent === "「3月」を2件目へ移動しました";
     });
-    await page.waitForFunction(() => [...document.querySelectorAll("#preview .chart-block-label")].map((label) => label.textContent).join(",") === "1月,3月,2月");
-    assert.deepEqual(await page.locator("#preview .chart-block-label").allTextContents(), ["1月", "3月", "2月"], "集合棒の横軸を項目と全系列値の新しい対応へ更新する");
+    await waitForChartCategoryLabelNames(page, "#preview .chart-block-bar-chart .chart-block-label", ["1月", "3月", "2月"]);
+    const barCategoryLabels = page.locator("#preview .chart-block-bar-chart .chart-block-label");
+    assert.deepEqual(await chartCategoryLabelNames(barCategoryLabels), ["1月", "3月", "2月"], "集合棒の横軸の完全な項目名をaria-labelから取得する");
+    assert.deepEqual(await chartCategoryLabelText(barCategoryLabels), ["1月", "3月", "2月"], "集合棒の横軸の表示文字はtspanから取得する");
     multiEditor = page.locator(".chart-block-editor");
     await multiEditor.locator('.chart-block-item-row[data-chart-item-index="1"] button[data-chart-action="move-item-down"]').click();
     await page.waitForFunction(() => window.MemoNexusChartBlockUtils.splitChartBlocks(document.getElementById("editor").value)
@@ -1258,7 +1277,10 @@ function boxesHaveGap(first, second, minimumGap = 2) {
     await multiEditor.locator('button[data-chart-action="confirm"]').click();
     await page.waitForFunction(() => document.querySelector(".chart-block-editor .chart-block-status")?.textContent === "入力内容を保存しました");
     await multiEditor.locator('select[aria-label="グラフ1の種類"]').selectOption("line");
-    await page.waitForFunction(() => document.querySelectorAll("#preview .chart-block-line-item").length === 6 && [...document.querySelectorAll("#preview .chart-block-label")].map((label) => label.textContent).join(",") === "1月,3月,2月");
+    await waitForChartCategoryLabelNames(page, "#preview .chart-block-line .chart-block-label", ["1月", "3月", "2月"]);
+    assert.deepEqual(await chartCategoryLabelNames(page.locator("#preview .chart-block-line .chart-block-label")), ["1月", "3月", "2月"], "折れ線の横軸の完全な項目名をaria-labelから取得する");
+    assert.deepEqual(await chartCategoryLabelText(page.locator("#preview .chart-block-line .chart-block-label")), ["1月", "3月", "2月"], "折れ線の横軸の表示文字はtspanから取得する");
+    assert.equal(await page.locator("#preview .chart-block-line-item").count(), 6, "折れ線は並べ替え後も全系列のデータ点を描画する");
     await multiEditor.locator('select[aria-label="グラフ1の種類"]').selectOption("pie");
     await waitForPieSlices(page, 3);
     assert.deepEqual(await page.locator("#preview .chart-block-pie .sr-only li").allTextContents(), ["1月、売上: 100万円", "3月、売上: 120万円", "2月、売上: 140万円"], "円グラフも並べ替えた第1系列との対応を維持する");
@@ -1266,7 +1288,7 @@ function boxesHaveGap(first, second, minimumGap = 2) {
     await page.waitForFunction(() => {
       const chart = document.querySelector("#preview .chart-block-bar-chart");
       const labels = [...chart?.querySelectorAll(".chart-block-label") || []]
-        .map((label) => label.querySelector("tspan")?.textContent ?? label.textContent);
+        .map((label) => label.querySelector("tspan")?.textContent || "");
       return chart?.querySelectorAll(".chart-block-bar").length === 6
         && labels.join(",") === "1月,3月,2月";
     });

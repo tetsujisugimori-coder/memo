@@ -2808,3 +2808,9 @@
 * モバイルと画面確認：Chart E2Eで縦棒・横棒・折れ線、集合・通常積み上げ・100%積み上げ、円グラフを確認し、長い縦棒／折れ線ラベルの2行化、SVG内配置、軸線との非重複、全文属性、保存後再編集を追加確認した。Chromium／WebKitのChart E2EとMobile E2Eで320px、375px、390px、430pxおよびデスクトップ幅のページ横方向オーバーフロー0、page error／console error 0を確認した。WebKit E2Eの成功はSafari／iPhone実機確認を意味しない。
 * テスト：`node --check chart-block-utils.js`、`node --check app.js`、`node --check chart-block.e2e.js`、`node --test chart-block-utils.test.js`（44件、fail 0）、`npm test`（1,119件、fail 0）、`npm run test:e2e:chart`（Chromium、成功）、`MEMO_NEXUS_E2E_BROWSER=webkit npm run test:e2e:chart`（WebKit、成功）、`node mobile-layout.e2e.js`／`node mobile-writing-mode.e2e.js`（Chromium、成功）、各WebKit相当コマンド（成功）、`git diff --check`を実行した。`package.json`にlint、型チェック、ビルド用スクリプトはない。
 * 対象外：負数、日付軸、ズーム／パン／補間、4系列以上、CSV等の取り込み、画像・SVG・PDF出力、数値／系列の共通ツールチップ、新種別、保存形式変更は実装していない。
+
+## 2026-09-17 PR #237 Chart E2Eカテゴリ軸ラベル取得の修正
+
+* 失敗と原因：PR #237のGitHub Actions run `35233060707`はChart E2E（Chromium／WebKit）がともに`chart-block.e2e.js`旧775行付近の30秒タイムアウトで失敗した。SVGカテゴリ軸ラベルの親`text`には全文保持用の`title`と表示用の`tspan`がともに入るため、親`textContent`は`1月1月`となり、旧テストの`1月`との一致条件は成立しなかった。
+* 修正：表示実装、最大2行表示、省略記号、ラベル間引き、`title`、`aria-label`、保存形式は変更せず、E2Eのカテゴリ軸ラベル取得を目的別に分離した。完全な項目名と並び順は`aria-label`、SVG上の表示文字は`tspan`から取得し、棒グラフの並べ替え後の待機・assert、折れ線切り替え後の待機・assert、既存の棒復帰待機で親`textContent`を項目名として扱わない。
+* 検証：`node --check chart-block.e2e.js`、`node --check chart-block-utils.js`、`node --check app.js`、`git diff --check`は成功した。`node --test chart-block-utils.test.js`は44件成功（fail 0）、`npm test`は1,119件成功（fail 0）、`npm run test:e2e:chart`はChromiumで成功、`MEMO_NEXUS_E2E_BROWSER=webkit npm run test:e2e:chart`はWebKitで成功した。今回はE2Eの文字列取得だけの修正のため、既存のモバイルE2Eは再実行していない。WebKit E2Eの成功はSafari／iPhone実機確認を意味しない。
