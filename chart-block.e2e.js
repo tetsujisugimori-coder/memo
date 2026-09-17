@@ -447,6 +447,7 @@ function boxesHaveGap(first, second, minimumGap = 2) {
     await page.locator('select[aria-label="グラフ1の種類"]').selectOption("pie");
     await page.waitForFunction(() => document.querySelectorAll("#preview .chart-block-pie-slice").length === 2);
     await page.locator('.chart-block-editor button[data-chart-action="cancel"]').click();
+    await waitForChartCancelCompletion(page, 0);
     await page.waitForFunction(() => window.MemoNexusChartBlockUtils.splitChartBlocks(document.getElementById("editor").value)
       .find((segment) => segment.type === "chart")?.chart.chartType === "bar");
     assert.deepEqual(await chart(page), beforeCancel, "編集を取り消すと開始時の棒グラフ、ID、共通データ、表示設定へ戻す");
@@ -520,6 +521,7 @@ function boxesHaveGap(first, second, minimumGap = 2) {
     await secondEditor.locator('input[aria-label="グラフ2の凡例を表示"]').check();
     await secondEditor.locator('select[aria-label="グラフ2の円グラフのラベル"]').selectOption("value");
     await secondEditor.locator('button[data-chart-action="cancel"]').click();
+    await waitForChartCancelCompletion(page, 1);
     await page.waitForFunction(() => window.MemoNexusChartBlockUtils.splitChartBlocks(document.getElementById("editor").value)
       .filter((segment) => segment.type === "chart")[1]?.chart.title === "二つ目");
     let duplicateCharts = await charts(page);
@@ -563,6 +565,7 @@ function boxesHaveGap(first, second, minimumGap = 2) {
     await movedSecondEditor.locator('button[data-chart-action="cancel"]').click();
     await page.waitForFunction((title) => window.MemoNexusChartBlockUtils.splitChartBlocks(document.getElementById("editor").value)
       .filter((segment) => segment.type === "chart")[1]?.chart.title === title, confirmedSecond.title);
+    await waitForChartCancelCompletion(page, 1);
     assert.deepEqual(await charts(page), [duplicateSetup.first, confirmedSecond], "前方グラフ削除後も対象外のグラフを復元しない");
     const legacyMultiMarker = await page.evaluate(() => window.MemoNexusChartBlockUtils.serializeChartBlock({
       id: "legacy-multi", chartType: "bar", title: "月別比較", unit: "万円",
@@ -713,6 +716,7 @@ function boxesHaveGap(first, second, minimumGap = 2) {
       const current = window.MemoNexusChartBlockUtils.splitChartBlocks(document.getElementById("editor").value).find((segment) => segment.type === "chart")?.chart;
       return current?.series.length === 3 && current.appearance.pieSeriesId === salesId;
     }, salesSeriesId);
+    await waitForChartCancelCompletion(page, 0);
     multiEditor = page.locator(".chart-block-editor");
     await multiEditor.locator(`.chart-block-series-row[data-chart-series-id="${salesSeriesId}"] button[data-chart-action="delete-series"]`).click();
     await page.waitForFunction((profitId) => {
@@ -728,6 +732,7 @@ function boxesHaveGap(first, second, minimumGap = 2) {
     await multiEditor.locator('button[data-chart-action="cancel"]').click();
     await page.waitForFunction((salesId) => window.MemoNexusChartBlockUtils.splitChartBlocks(document.getElementById("editor").value)
       .find((segment) => segment.type === "chart")?.chart?.appearance?.pieSeriesId === salesId, salesSeriesId);
+    await waitForChartCancelCompletion(page, 0);
     multiEditor = page.locator(".chart-block-editor");
     await multiEditor.locator('select[aria-label="グラフ1の種類"]').selectOption("bar");
     await page.waitForFunction(() => document.querySelector("#preview .chart-block-bar-chart")?.dataset.chartBarMode === "percent-stacked");
