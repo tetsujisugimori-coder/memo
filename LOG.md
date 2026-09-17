@@ -2799,3 +2799,12 @@
 * 互換性：`appearance.pieItemColors` の既存正規化、`schemaVersion`、DB_VERSION、本文マーカー、項目ID、系列ID、`pieSeriesId`は変更していない。棒、横棒、折れ線、積み上げ棒の描画・保存仕様にも変更はない。
 * 回帰テスト：単体で0値と正数の往復時の項目ID／保存色の維持、並べ替え・名称変更・同名、不正色／未指定色の安全なフォールバックを追加した。Chart E2Eで0値の凡例色、0↔正数、保存・再読込・再編集、空欄→入力→空欄時の未指定色入力同期、明示色の保護を確認する。
 * 検証：`node --check chart-block-utils.js`、`node --check app.js`、`node --check chart-block.e2e.js`、`node --test chart-block-utils.test.js`（41件、fail 0）、`npm test`（1,116件、fail 0）、`npm run test:e2e:chart`（Chromium、成功）、`MEMO_NEXUS_E2E_BROWSER=webkit npm run test:e2e:chart`（WebKit、成功）、`npm run test:e2e:mobile`（Chromium、成功）、`MEMO_NEXUS_E2E_BROWSER=webkit npm run test:e2e:mobile`（WebKit、成功）、`git diff --check`（成功）を実行した。E2Eのpage error／console errorは0件で、320px／375px／390px／430pxの横方向オーバーフローは0件だった。WebKit E2Eの成功はSafari／iPhone実機確認を意味せず、Safari／iPhone実機は未確認である。
+
+## 2026-09-17 グラフブロック：軸・目盛り・長いラベル調整
+
+* 軸余白と目盛り：`chartValueAxisLayout()` は実際に表示する有限目盛り文字列の保守的な文字幅から左余白を42〜124 SVG単位で決める。`chartNumericTicks()` は描画可能な高さ／幅と最小間隔から2〜5個を選び、全値0・不正値では0だけを残す。縦棒、横棒、折れ線は同じ目盛り計算を使い、横棒では項目名側余白と数値軸終端側余白を別に扱う。値のスケール、最大値、積み上げの安全な縮小計算は変更していない。
+* 項目名：`chartLabelLayout()` を共通化し、保守的な文字幅で最大2行へ分割し、収まらない日本語・英数字・空白なし文字列を末尾の省略記号へ短縮する。縦棒と折れ線は`chartCategoryLabels()`で描画幅、項目数、推定ラベル幅から間引き間隔を算出し、可能な場合は先頭・末尾を残す。横棒の既存`horizontalBarLabel()`はこの共通処理を再利用し、既存の94〜180 SVG単位の左余白上限を維持する。回転表示は追加していない。
+* アクセシビリティと保存：SVGの省略ラベルと単位は全文を`title`と`aria-label`へ残す。項目名、目盛り、余白、折返し、間引きはいずれも描画時に算出し、`schemaVersion: 1`、本文マーカー、DB_VERSION、`items`、`series`、`appearance`の保存形式は変更していない。編集欄、確定、再読み込み、再編集では元の項目名を保持する。
+* モバイルと画面確認：Chart E2Eで縦棒・横棒・折れ線、集合・通常積み上げ・100%積み上げ、円グラフを確認し、長い縦棒／折れ線ラベルの2行化、SVG内配置、軸線との非重複、全文属性、保存後再編集を追加確認した。Chromium／WebKitのChart E2EとMobile E2Eで320px、375px、390px、430pxおよびデスクトップ幅のページ横方向オーバーフロー0、page error／console error 0を確認した。WebKit E2Eの成功はSafari／iPhone実機確認を意味しない。
+* テスト：`node --check chart-block-utils.js`、`node --check app.js`、`node --check chart-block.e2e.js`、`node --test chart-block-utils.test.js`（44件、fail 0）、`npm test`（1,119件、fail 0）、`npm run test:e2e:chart`（Chromium、成功）、`MEMO_NEXUS_E2E_BROWSER=webkit npm run test:e2e:chart`（WebKit、成功）、`node mobile-layout.e2e.js`／`node mobile-writing-mode.e2e.js`（Chromium、成功）、各WebKit相当コマンド（成功）、`git diff --check`を実行した。`package.json`にlint、型チェック、ビルド用スクリプトはない。
+* 対象外：負数、日付軸、ズーム／パン／補間、4系列以上、CSV等の取り込み、画像・SVG・PDF出力、数値／系列の共通ツールチップ、新種別、保存形式変更は実装していない。

@@ -731,7 +731,8 @@ function boxesHaveGap(first, second, minimumGap = 2) {
       "2月、売上: 140万円", "2月、営業利益: 45万円", "2月、原価: 80万円",
       "3月、売上: 120万円", "3月、営業利益: 38万円", "3月、原価: 70万円"
     ], "棒グラフは表示中の全系列を読み上げ対象にする");
-    assert.equal(await page.locator("#preview .chart-block-bar-chart svg").getAttribute("viewBox"), "0 0 466 260", "集合棒グラフは全系列に必要な幅を確保する");
+    const groupedViewBox = (await page.locator("#preview .chart-block-bar-chart svg").getAttribute("viewBox")).split(" ").map(Number);
+    assert.ok(groupedViewBox[2] >= 466 && groupedViewBox[3] === 260, "集合棒グラフは系列幅を縮めず、数値軸の必要余白だけを加える");
     const barMetrics = await page.locator("#preview .chart-block-bar rect").evaluateAll((bars) => bars.map((bar) => ({ x: Number(bar.getAttribute("x")), height: Number(bar.getAttribute("height")), fill: bar.getAttribute("fill") })));
     assert.ok(barMetrics.every((bar) => Number.isFinite(bar.x) && Number.isFinite(bar.height) && bar.height >= 0), "SVG属性に不正値を混入しない");
     assert.ok(barMetrics.some((bar) => bar.height === 142), "全系列の最大値140を高さ計算の基準へ使う");
@@ -1282,6 +1283,43 @@ function boxesHaveGap(first, second, minimumGap = 2) {
       const labels = [...editor?.querySelectorAll('input[data-chart-series-value][data-chart-series-index="0"]') || []].map((input) => input.getAttribute("aria-label"));
       return current?.series.length === 1 && labels.join(",") === "1件目の数値,2件目の数値,3件目の数値";
     });
+    const persistentLongLabel = "空白を含まないVeryLongCategoryIdentifierForAxisLayout確認用項目名";
+    await multiEditor.locator('input[aria-label="1件目の項目名"]').fill(persistentLongLabel);
+    await page.waitForFunction((label) => {
+      const text = document.querySelector("#preview .chart-block-bar-chart .chart-block-label");
+      return text?.getAttribute("aria-label") === label
+        && text.querySelector("title")?.textContent === label
+        && text.querySelectorAll("tspan").length === 2;
+    }, persistentLongLabel);
+    const verticalLongLabelLayout = await page.locator("#preview .chart-block-bar-chart .chart-block-label").first().evaluate((label) => {
+      const text = label.getBoundingClientRect();
+      const svg = label.ownerSVGElement.getBoundingClientRect();
+      const horizontalAxis = [...label.ownerSVGElement.querySelectorAll(".chart-block-axis")].at(-1).getBoundingClientRect();
+      return { text, svg, horizontalAxis, title: label.querySelector("title")?.textContent, aria: label.getAttribute("aria-label") };
+    });
+    assert.equal(verticalLongLabelLayout.title, persistentLongLabel, "縦棒で省略前の項目名をtitleへ保持する");
+    assert.equal(verticalLongLabelLayout.aria, persistentLongLabel, "縦棒で省略前の項目名をaria-labelへ保持する");
+    assert.ok(verticalLongLabelLayout.text.left >= verticalLongLabelLayout.svg.left && verticalLongLabelLayout.text.right <= verticalLongLabelLayout.svg.right && verticalLongLabelLayout.text.top >= verticalLongLabelLayout.horizontalAxis.bottom, "縦棒の長い項目名を軸線とSVG領域の外へ出さない");
+    await multiEditor.locator('button[data-chart-action="confirm"]').click();
+    await page.waitForFunction(() => document.querySelector(".chart-block-editor .chart-block-status")?.textContent === "入力内容を保存しました");
+    await page.reload({ waitUntil: "domcontentloaded" });
+    await page.locator("#appStartupGuard").waitFor({ state: "hidden" });
+    multiEditor = page.locator(".chart-block-editor");
+    assert.equal(await multiEditor.locator('input[aria-label="1件目の項目名"]').inputValue(), persistentLongLabel, "保存・再読み込み・再編集後も元の長い項目名を保持する");
+    await multiEditor.locator('select[aria-label="グラフ1の種類"]').selectOption("line");
+    await page.waitForFunction((label) => {
+      const text = document.querySelector("#preview .chart-block-line .chart-block-label");
+      return text?.getAttribute("aria-label") === label && text.querySelector("title")?.textContent === label && text.querySelectorAll("tspan").length === 2;
+    }, persistentLongLabel);
+    const lineLongLabelLayout = await page.locator("#preview .chart-block-line .chart-block-label").first().evaluate((label) => {
+      const text = label.getBoundingClientRect();
+      const svg = label.ownerSVGElement.getBoundingClientRect();
+      const horizontalAxis = [...label.ownerSVGElement.querySelectorAll(".chart-block-axis")].at(-1).getBoundingClientRect();
+      return { text, svg, horizontalAxis };
+    });
+    assert.ok(lineLongLabelLayout.text.left >= lineLongLabelLayout.svg.left && lineLongLabelLayout.text.right <= lineLongLabelLayout.svg.right && lineLongLabelLayout.text.top >= lineLongLabelLayout.horizontalAxis.bottom, "折れ線の長い項目名を軸線とSVG領域の外へ出さない");
+    await multiEditor.locator('select[aria-label="グラフ1の種類"]').selectOption("bar");
+    await page.waitForFunction(() => document.querySelector("#preview .chart-block-bar-chart"));
     const previewChart = page.locator("#preview .chart-block").first();
     await page.screenshot({ path: screenshotPath });
     await page.setViewportSize({ width: 390, height: 760 });
