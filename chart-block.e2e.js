@@ -288,6 +288,9 @@ function boxesHaveGap(first, second, minimumGap = 2) {
     await lineEditor.locator('button[data-chart-action="delete-item"]').last().click();
     await page.waitForFunction(() => document.querySelectorAll("#preview .chart-block-line-point").length === 1 && document.querySelectorAll("#preview .chart-block-line-path").length === 0);
     await page.locator('.chart-block-editor button[data-chart-action="add-item"]').click();
+    // add-item restores focus on the next animation frame. Finish that UI action
+    // before fill() can send text to a different field while focus is moving.
+    await page.waitForFunction(() => document.activeElement?.matches('.chart-block-item-row[data-chart-item-index="1"] input[data-chart-item-field="label"]'));
     await page.locator('input[aria-label="2件目の項目名"]').fill("数学");
     await page.locator('input[aria-label="2件目の数値"]').fill("27.75");
     await page.waitForFunction(() => document.querySelectorAll("#preview .chart-block-line-point").length === 2);
@@ -361,10 +364,12 @@ function boxesHaveGap(first, second, minimumGap = 2) {
       .find((segment) => segment.type === "chart")?.chart?.appearance?.pieItemColors?.[id], pieItemIds[0]);
     pieEditor = page.locator(".chart-block-editor");
     await pieEditor.locator(`.chart-block-item-row[data-chart-item-id="${pieItemIds[1]}"] button[data-chart-action="reset-pie-item-color"]`).click();
+    await page.waitForFunction((id) => document.activeElement?.matches(`.chart-block-item-row[data-chart-item-id="${id}"] input[data-chart-pie-item-color]`), pieItemIds[1]);
     pieEditor = page.locator(".chart-block-editor");
     const firstPieLabel = pieEditor.locator(`.chart-block-item-row[data-chart-item-id="${pieItemIds[0]}"] input[data-chart-item-field="label"]`);
     const syncedSecondPieColor = pieEditor.locator(`.chart-block-item-row[data-chart-item-id="${pieItemIds[1]}"] input[data-chart-pie-item-color]`);
     await firstPieLabel.fill("");
+    assert.equal((await chart(page)).items[0].label, "", "フォーカス復帰後の空欄入力を保存データへ反映する");
     await pieEditor.locator(`.chart-block-item-row[data-chart-item-id="${pieItemIds[0]}"] input[data-chart-pie-item-color]`).fill("#123456");
     await page.waitForFunction((id) => document.querySelector(`#preview .chart-block-pie-slice[data-chart-item-id="${id}"]`)?.getAttribute("fill") === "#4f46e5", pieItemIds[1]);
     assert.equal(await syncedSecondPieColor.inputValue(), "#4f46e5", "先頭項目名が空欄なら未指定色入力は第1パレット色へ同期する");
@@ -1416,11 +1421,11 @@ function boxesHaveGap(first, second, minimumGap = 2) {
     runError = error;
     const activePage = browser?.contexts()[0]?.pages()[0];
     if (activePage && !activePage.isClosed()) {
-      console.error("Chart failure state:", await activePage.evaluate(() => ({
+      console.error("Chart failure state:", JSON.stringify(await activePage.evaluate(() => ({
         charts: window.MemoNexusChartBlockUtils.splitChartBlocks(document.getElementById("editor").value).filter((segment) => segment.type === "chart").map((segment) => segment.chart),
         inputs: [...document.querySelectorAll(".chart-block-editor input")].map((input) => ({ label: input.getAttribute("aria-label"), value: input.value })),
         slices: [...document.querySelectorAll("#preview .chart-block-pie-slice")].map((slice) => ({ id: slice.dataset.chartItemId, fill: slice.getAttribute("fill") }))
-      })).catch((diagnosticError) => ({ diagnosticError: String(diagnosticError) })));
+      })).catch((diagnosticError) => ({ diagnosticError: String(diagnosticError) }))));
     }
     throw error;
   } finally {
