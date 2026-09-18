@@ -892,18 +892,14 @@ test("折れ線は共通軸の正数・0・負数順で配置し不正値を描�
   assert.ok(points.every((p) => Number.isFinite(p.x) && Number.isFinite(p.y)));
 });
 
-for (const [chartType, barMode] of [["bar", "percent-stacked"], ["pie", "grouped"]]) {
+for (const [chartType, barMode] of [["pie", "grouped"]]) {
   test(chartType + "/" + barMode + "は負数を保持し描画と保存を拒否する", () => {
     const original = signedChart();
     const unsupported = normalizeChartBlock({ ...original, chartType, appearance: { ...original.appearance, barMode } });
     assert.match(chartValidationError(unsupported), /負数に未対応/);
     assert.throws(() => serializeChartBlock(unsupported), /負数に未対応/);
     assert.deepEqual(unsupported.series, original.series);
-    if (chartType === "pie") assert.deepEqual(pieChartSegments([{ label: "A", value: -1 }, { label: "B", value: 3 }]).segments, []);
-    else {
-      assert.deepEqual(stackedBarSegments(unsupported.items, unsupported.series, { mode: barMode }).segments, []);
-      assert.deepEqual(horizontalBarSegments(unsupported.items, unsupported.series, { mode: barMode }).segments, []);
-    }
+    assert.deepEqual(pieChartSegments([{ label: "A", value: -1 }, { label: "B", value: 3 }]).segments, []);
     for (const type of ["bar", "line"]) {
       const restored = normalizeChartBlock({ ...unsupported, chartType: type, appearance: { ...unsupported.appearance, barMode: "grouped" } });
       assert.equal(chartValidationError(restored), "");
@@ -956,11 +952,11 @@ test("桁差の大きい軸では0と重なる側の目盛りを間引き元の�
   assert.deepEqual(range, { minimum: -1e-300, maximum: 1e300 });
 });
 
-test("種別欠損・未知種別も正規化後の100%積み上げ契約で負数を拒否する", () => {
+test("種別欠損・未知種別も正規化後の100%積み上げ契約で負数を保持する", () => {
   for (const chartType of [undefined, "unknown"]) {
     const source = { chartType, items: [{ label: "旧形式", value: -1 }], appearance: { barMode: "percent-stacked" } };
-    assert.match(chartValidationError(source), /負数に未対応/);
-    assert.throws(() => serializeChartBlock(source), /負数に未対応/);
+    assert.equal(chartValidationError(source), "");
+    assert.equal(parseChartBlockLine(serializeChartBlock(source)).series[0].values[0], -1);
   }
 });
 
@@ -1066,7 +1062,7 @@ test("通常積み上げは形式を往復してもID・値・色・向き・保
     const original = normalizeChartBlock({ ...signedChart(), appearance: { barMode: "stacked", barOrientation, showStackTotals: true } });
     for (const [chartType, barMode] of [["bar","grouped"],["line","stacked"],["bar","percent-stacked"],["pie","stacked"]]) {
       const switched = { ...original, chartType, appearance: { ...original.appearance, barMode } };
-      if (chartType === "pie" || barMode === "percent-stacked") assert.throws(() => serializeChartBlock(switched), /負数に未対応/);
+      if (chartType === "pie") assert.throws(() => serializeChartBlock(switched), /負数に未対応/);
       else assert.deepEqual(parseChartBlockLine(serializeChartBlock(switched)).series, original.series);
       const restored = { ...switched, chartType: "bar", appearance: original.appearance };
       assert.deepEqual(parseChartBlockLine(serializeChartBlock(restored)), original);
@@ -1082,4 +1078,76 @@ test("通常積み上げは形式を往復してもID・値・色・向き・保
   assert.equal(new Set(ticks.map((tick) => tick.label)).size, ticks.length);
   assert.equal(ticks.at(-1).label, "5e-324");
   assert.equal(ticks.at(-1).value, range.maximum, "同じ表示値では端の目盛りを残す");
+});
+
+
+for (const [name, values, expected, range] of [
+  ["混在", [30, -10, 20], [60, -100, 40], [-100, 100]],
+  ["正のみ", [30, 10, 20], [50, 100 / 6, 100 / 3], [0, 100]],
+  ["負のみ", [-30, -10, -20], [-50, -100 / 6, -100 / 3], [-100, 0]],
+  ["全0", [0, -0, 0], [0, 0, 0], [0, 100]],
+  ["単一負数", [-0.25], [-100], [-100, 0]],
+  ["巨大正側", [Number.MAX_VALUE, -Number.MAX_VALUE, Number.MAX_VALUE], [50, -100, 50], [-100, 100]],
+  ["巨大負側", [-Number.MAX_VALUE, Number.MAX_VALUE, -Number.MAX_VALUE], [-50, 100, -50], [-100, 100]],
+  ["微小負側", [Number.MAX_VALUE, -Number.MIN_VALUE, 0], [100, -100, 0], [-100, 100]],
+  ["微小正側", [-Number.MAX_VALUE, Number.MIN_VALUE, 0], [-100, 100, 0], [-100, 100]],
+  ["同符号桁差", [-Number.MAX_VALUE, -Number.MIN_VALUE, 1], [-100, 0, 100], [-100, 100]],
+  ["小数", [0.1, -0.3, 0.2], [100 / 3, -100, 200 / 3], [-100, 100]],
+  ["最小値", [-Number.MIN_VALUE, -Number.MIN_VALUE], [-50, -50], [-100, 0]]
+]) {
+  test(`発散型100%: ${name}を縦横共通で正負別正規化する`, () => {
+    const items = Object.freeze([Object.freeze({ id: "a", label: "項目A" })]);
+    const series = Object.freeze(values.map((value, index) => Object.freeze({ id: `s${index}`, name: `系列${index}`, color: "#123456", values: Object.freeze([value]) })));
+    const before = JSON.stringify(series);
+    for (const horizontal of [false, true]) {
+      const layout = (horizontal ? horizontalBarSegments : stackedBarSegments)(items, series, { mode: "percent-stacked" });
+      assert.deepEqual([layout.range.minimum, layout.range.maximum], range);
+      const zero = chartValueRatio(0, layout.range);
+      const previous = { positive: zero, negative: zero };
+      layout.segments.forEach((segment, index) => {
+        const side = values[index] < 0 ? "negative" : "positive";
+        assert.ok(Math.abs(segment.percentage - expected[index]) < 1e-12);
+        assert.equal(Object.is(segment.percentage, -0), false);
+        assert.equal(segment.stackStart, previous[side]);
+        assert.ok(values[index] < 0 ? segment.stackEnd <= segment.stackStart : segment.stackEnd >= segment.stackStart);
+        previous[side] = segment.stackEnd;
+        assert.equal(segment.value, values[index] === 0 ? 0 : values[index]);
+        assert.equal(segment.series, series[index]);
+        assert.ok([segment.x, segment.y, segment.width, segment.height, segment.percentage].every(Number.isFinite));
+        assert.ok(segment.width >= 0 && segment.height >= 0);
+      });
+      if (values.some((value) => value > 0)) assert.equal(previous.positive, 1, "正側の最終端は正確に+100%");
+      if (values.some((value) => value < 0)) assert.equal(previous.negative, 0, "負側の最終端は正確に-100%");
+    }
+    assert.equal(JSON.stringify(series), before);
+    const chart = normalizeChartBlock({ items, series, appearance: { barMode: "percent-stacked" } });
+    assert.deepEqual(parseChartBlockLine(serializeChartBlock(chart)), chart, "割合や座標を保存せず元値・ID・順序を保持");
+  });
+}
+
+test("発散型100%は別項目の正負も全体軸へ反映し、片側ごとの微小値を保持する", () => {
+  const items = [{ label: "正だけ" }, { label: "負だけ" }, { label: "全0" }];
+  const series = [{ values: [Number.MAX_VALUE, -Number.MIN_VALUE, 0] }, { values: [Number.MAX_VALUE, -Number.MIN_VALUE, 0] }];
+  const layout = chartDivergingStacks(items, series, { percent: true });
+  assert.deepEqual([layout.range.minimum, layout.range.maximum], [-100, 100]);
+  assert.deepEqual(layout.groups.flatMap((group) => group.entries.map((entry) => entry.percentage)), [50, 50, -50, -50, 0, 0]);
+  assert.ok(layout.groups[2].entries.every((entry) => entry.stackStart === 0.5 && entry.stackEnd === 0.5));
+  assert.equal(layout.groups[0].positive.total, null);
+  assert.equal(layout.groups[0].positive.overflow, true);
+});
+
+test("発散型100%でも非有限値・途中入力の確定を拒否し円の負数制限を保持する", () => {
+  for (const invalid of [NaN, Infinity, -Infinity, "", "-", "1e", "1e-"]) {
+    const chart = { items: [{ label: "A" }], series: [{ values: [invalid] }], appearance: { barMode: "percent-stacked" } };
+    assert.match(chartValidationError(chart), /有限な数値/);
+    assert.throws(() => serializeChartBlock(chart), /有限な数値/);
+    assert.throws(() => stackedBarSegments(chart.items, chart.series, { mode: "percent-stacked" }), /有限な数値/);
+    assert.throws(() => horizontalBarSegments(chart.items, chart.series, { mode: "percent-stacked" }), /有限な数値/);
+  }
+  const original = normalizeChartBlock({ ...signedChart(), appearance: { barMode: "percent-stacked" } });
+  assert.throws(() => serializeChartBlock({ ...original, chartType: "pie" }), /負数に未対応/);
+  for (const barMode of ["grouped", "stacked", "percent-stacked"]) {
+    const restored = parseChartBlockLine(serializeChartBlock({ ...original, appearance: { ...original.appearance, barMode } }));
+    assert.deepEqual(restored.series, original.series);
+  }
 });

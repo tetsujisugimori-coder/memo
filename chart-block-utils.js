@@ -55,8 +55,8 @@
     if (values.some((value) => !isValidChartNumber(value))) return "数値は有限な数値を入力してください";
     const chartType = ["bar", "pie", "line"].includes(chart?.chartType) ? chart.chartType : "bar";
     if (values.some((value) => Number(value) < 0)
-      && (chartType === "pie" || (chartType === "bar" && normalizeBarMode(chart?.appearance?.barMode) === "percent-stacked"))) {
-      return "この形式は負数に未対応です。集合棒・通常積み上げ棒または折れ線に切り替えてください";
+      && chartType === "pie") {
+      return "この形式は負数に未対応です。棒グラフまたは折れ線に切り替えてください";
     }
     return "";
   }
@@ -419,9 +419,9 @@
     }));
   }
 
-  // Coordinates use a common maximum magnitude before addition. Saved values are
-  // never scaled or clamped; unrepresentable totals are explicitly marked.
-  function chartDivergingStacks(items, series) {
+  // Ordinary stacks use a shared scale; percentages use an item-local scale per
+  // sign. Saved values are never scaled or clamped; overflowing totals are marked.
+  function chartDivergingStacks(items, series, { percent = false } = {}) {
     const sourceItems = Array.isArray(items) ? items : [];
     const sourceSeries = Array.isArray(series) && series.length ? series : [{ values: sourceItems.map((item) => item?.value) }];
     const error = chartValidationError({ items: sourceItems, series: sourceSeries.map((entry) => ({ values: Array.isArray(entry?.values) ? entry.values : [] })) });
@@ -432,11 +432,16 @@
     const groups = displayItems.map(({ item, itemIndex }, displayIndex) => {
       const positive = { side: "positive", total: 0, overflow: false, scaled: 0 };
       const negative = { side: "negative", total: 0, overflow: false, scaled: 0 };
+      // Each sign needs its own item-local scale: a tiny negative side must
+      // still reach -100% beside a MAX_VALUE positive side (and vice versa).
+      const values = sourceSeries.map((entry) => finiteChartNumber(entry?.values?.[itemIndex]));
+      positive.scale = percent ? Math.max(0, ...values.filter((value) => value > 0)) : scaleBase;
+      negative.scale = percent ? Math.max(0, ...values.filter((value) => value < 0).map(Math.abs)) : scaleBase;
       const entries = sourceSeries.map((series, seriesIndex) => {
         const value = finiteChartNumber(series?.values?.[itemIndex]);
         const side = value < 0 ? negative : positive;
         const scaledStart = side.scaled;
-        side.scaled += scaleBase > 0 ? value / scaleBase : 0;
+        side.scaled += side.scale > 0 ? value / side.scale : 0;
         if (!side.overflow) {
           if (Math.abs(side.total) > Number.MAX_VALUE - Math.abs(value)) {
             side.total = null;
@@ -446,14 +451,29 @@
         return { item, itemIndex, series, seriesIndex, value, scaledStart, scaledEnd: side.scaled };
       });
       return { item, itemIndex, displayIndex, entries, positive, negative,
-        groupScaleBase: scaleBase, scaledTotal: positive.scaled, total: positive.total, totalOverflow: positive.overflow };
+        groupScaleBase: positive.scale, scaledTotal: positive.scaled, total: positive.total, totalOverflow: positive.overflow };
     });
     const range = { minimum: Math.min(0, ...groups.map((group) => group.negative.scaled)), maximum: Math.max(0, ...groups.map((group) => group.positive.scaled)), valueScale: scaleBase };
+    if (percent) {
+      range.minimum = groups.some((group) => group.negative.scaled < 0) ? -100 : 0;
+      // Keep the existing 0..100% axis for all-zero data.
+      range.maximum = groups.some((group) => group.positive.scaled > 0) || range.minimum === 0 ? 100 : 0;
+      range.valueScale = 1;
+    }
     groups.forEach((group) => {
-      group.entries = group.entries.map((entry) => ({ ...entry, stackStart: chartValueRatio(entry.scaledStart, range), stackEnd: chartValueRatio(entry.scaledEnd, range) }));
+      group.entries = group.entries.map((entry) => {
+        const side = entry.value < 0 ? group.negative : group.positive;
+        const ratioBase = Math.abs(side.scaled);
+        const start = percent ? (ratioBase > 0 ? entry.scaledStart / ratioBase * 100 : 0) : entry.scaledStart;
+        const end = percent ? (ratioBase > 0 ? entry.scaledEnd / ratioBase * 100 : 0) : entry.scaledEnd;
+        const percentage = percent && ratioBase > 0 ? (entry.value / side.scale) / ratioBase * 100 : 0;
+        return { ...entry, stackStart: chartValueRatio(start, range), stackEnd: chartValueRatio(end, range),
+          percentage: percentage === 0 ? 0 : percentage, total: side.total,
+          totalLabel: group.negative.scaled < 0 ? (entry.value < 0 ? "負側合計" : "正側合計") : "項目合計" };
+      });
       group.totals = [group.positive, group.negative]
         .filter((side) => side.overflow || side.total !== 0 || (side === group.positive && group.negative.total === 0))
-        .map((side) => ({ ...side, ratio: chartValueRatio(side.scaled, range), labelPrefix: group.negative.total !== 0 ? (side.side === "positive" ? "正側合計" : "負側合計") : "合計" }));
+        .map((side) => ({ ...side, ratio: chartValueRatio(percent ? (side.scaled === 0 ? 0 : Math.sign(side.scaled) * 100) : side.scaled, range), labelPrefix: group.negative.total !== 0 ? (side.side === "positive" ? "正側合計" : "負側合計") : "合計" }));
     });
     return { scaleBase, range, maximumScaledTotal: range.maximum, groups };
   }
@@ -516,82 +536,21 @@
   }
 
   function stackedBarSegments(items, series, { left = 52, right = 18, top = 54, baseline = 196, width = 420, mode = "stacked" } = {}) {
-    if (mode === "stacked") {
-      const layout = chartDivergingStacks(items, series);
-      const plotLeft = Number.isFinite(left) ? Math.max(0, left) : 52;
-      const plotRight = Number.isFinite(right) ? Math.max(0, right) : 18;
-      const plotTop = Number.isFinite(top) ? Math.max(0, top) : 54;
-      const plotBaseline = Math.max(plotTop, Number.isFinite(baseline) ? baseline : 196);
-      const chartWidth = Math.max(plotLeft + plotRight, Number.isFinite(width) ? width : 420);
-      const groupWidth = Math.max(1, chartWidth - plotLeft - plotRight) / Math.max(1, layout.groups.length);
-      const barWidth = Math.max(4, Math.min(48, Math.max(12, groupWidth - 20)));
-      const segments = layout.groups.flatMap((group) => group.entries.map((entry) => {
-        const start = plotBaseline - entry.stackStart * (plotBaseline - plotTop);
-        const end = plotBaseline - entry.stackEnd * (plotBaseline - plotTop);
-        return { ...entry, x: plotLeft + group.displayIndex * groupWidth + (groupWidth - barWidth) / 2,
-          y: Math.min(start, end), width: barWidth, height: Math.abs(end - start), percentage: 0, total: group.total };
-      }));
-      return { ...layout, segments, mode };
-    }
-    const displayItems = (Array.isArray(items) ? items : []).map((item, itemIndex) => ({ item, itemIndex }))
-      .filter(({ item }) => item && normalizedText(item.label).trim());
-    const displaySeries = Array.isArray(series) ? series : [];
-    if (displaySeries.some((entry) => Array.isArray(entry?.values) && entry.values.some((value) => value < 0))) return { scaleBase: 0, maximumScaledTotal: 0, groups: [], segments: [], mode };
-    const plotLeft = Number.isFinite(left) && left >= 0 ? left : 52;
-    const plotRight = Number.isFinite(right) && right >= 0 ? right : 18;
-    const plotTop = Number.isFinite(top) && top >= 0 ? top : 54;
-    const plotBaseline = Math.max(plotTop, Number.isFinite(baseline) && baseline >= 0 ? baseline : 196);
-    const chartWidth = Math.max(plotLeft + plotRight, Number.isFinite(width) && width >= 0 ? width : 420);
-    const plotHeight = Math.max(0, plotBaseline - plotTop);
-    const percentStacked = mode === "percent-stacked";
-    const values = displayItems.flatMap(({ itemIndex }) => displaySeries.map((entry) => nonNegativeFiniteNumber(entry?.values?.[itemIndex])));
-    const scaleBase = Math.max(0, ...values);
-    const totalsByItemIndex = new Map(chartStackedTotals(items, series).map((entry) => [entry.itemIndex, entry]));
-    const groups = displayItems.map(({ item, itemIndex }, displayIndex) => {
-      const entries = displaySeries.map((entry, seriesIndex) => ({
-        item,
-        itemIndex,
-        series: entry,
-        seriesIndex,
-        value: nonNegativeFiniteNumber(entry?.values?.[itemIndex])
-      }));
-      // 100%積み上げは項目内の構成比だけを比較する。全項目共通の
-      // scaleBaseを使うと、別項目の巨大値によって小さい正数が0へ
-      // アンダーフローするため、項目内の最大値で安全に縮小する。
-      const groupScaleBase = percentStacked ? Math.max(0, ...entries.map((entry) => entry.value)) : scaleBase;
-      const scaledTotal = groupScaleBase > 0 ? entries.reduce((total, entry) => total + entry.value / groupScaleBase, 0) : 0;
-      const total = totalsByItemIndex.get(itemIndex);
-      return { item, itemIndex, displayIndex, entries, groupScaleBase, scaledTotal, total: total?.total ?? null, totalOverflow: total?.overflow === true };
-    });
-    const maximumScaledTotal = Math.max(0, ...groups.map((group) => group.scaledTotal));
-    const plotWidth = Math.max(1, chartWidth - plotLeft - plotRight);
-    const groupWidth = plotWidth / Math.max(1, groups.length);
+    const layout = chartDivergingStacks(items, series, { percent: mode === "percent-stacked" });
+    const plotLeft = Number.isFinite(left) ? Math.max(0, left) : 52;
+    const plotRight = Number.isFinite(right) ? Math.max(0, right) : 18;
+    const plotTop = Number.isFinite(top) ? Math.max(0, top) : 54;
+    const plotBaseline = Math.max(plotTop, Number.isFinite(baseline) ? baseline : 196);
+    const chartWidth = Math.max(plotLeft + plotRight, Number.isFinite(width) ? width : 420);
+    const groupWidth = Math.max(1, chartWidth - plotLeft - plotRight) / Math.max(1, layout.groups.length);
     const barWidth = Math.max(4, Math.min(48, Math.max(12, groupWidth - 20)));
-    const segments = groups.flatMap((group) => {
-      const x = plotLeft + group.displayIndex * groupWidth + (groupWidth - barWidth) / 2;
-      let cumulativeScaled = 0;
-      return group.entries.map((entry) => {
-        const scaledValue = group.groupScaleBase > 0 ? entry.value / group.groupScaleBase : 0;
-        const ratioBase = percentStacked ? group.scaledTotal : maximumScaledTotal;
-        const startRatio = ratioBase > 0 ? Math.min(1, cumulativeScaled / ratioBase) : 0;
-        cumulativeScaled += scaledValue;
-        const endRatio = ratioBase > 0 ? Math.min(1, cumulativeScaled / ratioBase) : 0;
-        const y = plotBaseline - endRatio * plotHeight;
-        const bottom = plotBaseline - startRatio * plotHeight;
-        return {
-          ...entry,
-          x,
-          y,
-          width: barWidth,
-          height: Math.max(0, bottom - y),
-          stackStart: startRatio,
-          stackEnd: endRatio,
-          percentage: percentStacked && ratioBase > 0 ? (scaledValue / ratioBase) * 100 : 0,
-          total: group.total
-        };
-      });
-    });
-    return { scaleBase, maximumScaledTotal, groups, segments, mode: percentStacked ? "percent-stacked" : "stacked" };
+    const segments = layout.groups.flatMap((group) => group.entries.map((entry) => {
+      const start = plotBaseline - entry.stackStart * (plotBaseline - plotTop);
+      const end = plotBaseline - entry.stackEnd * (plotBaseline - plotTop);
+      return { ...entry, x: plotLeft + group.displayIndex * groupWidth + (groupWidth - barWidth) / 2,
+        y: Math.min(start, end), width: barWidth, height: Math.abs(end - start) };
+    }));
+    return { ...layout, segments, mode };
   }
 
   function horizontalBarLabel(itemLabel, { maximumWidth = 180, characterWidth = 12, maximumLines = 2 } = {}) {
@@ -615,8 +574,8 @@
     const chartWidth = Math.max(plotLeft + plotRight + 1, Number.isFinite(width) ? width : 520);
     const plotWidth = Math.max(1, chartWidth - plotLeft - plotRight);
     const stacked = mode === "stacked" || mode === "percent-stacked";
-    if (mode === "stacked") {
-      const layout = chartDivergingStacks(items, series);
+    if (stacked) {
+      const layout = chartDivergingStacks(items, series, { percent: mode === "percent-stacked" });
       const safeTop = Number.isFinite(top) ? Math.max(0, top) : 34;
       const groups = layout.groups.map((group) => ({ ...group, y: safeTop + group.displayIndex * safeRowHeight, height: safeRowHeight }));
       const segments = groups.flatMap((group) => {
@@ -625,51 +584,36 @@
           const start = plotLeft + entry.stackStart * plotWidth;
           const end = plotLeft + entry.stackEnd * plotWidth;
           return { ...entry, x: Math.min(start, end), y: group.y + (group.height - barHeight) / 2,
-            width: Math.abs(end - start), height: barHeight, percentage: 0, total: group.total };
+            width: Math.abs(end - start), height: barHeight };
         });
       });
       return { ...layout, groups, segments, left: plotLeft, right: plotRight, top: safeTop, rowHeight: safeRowHeight,
         width: chartWidth, height: safeTop + groups.length * safeRowHeight + 30, plotWidth, mode };
     }
-    const percentStacked = mode === "percent-stacked";
-    if (stacked && displaySeries.some((entry) => Array.isArray(entry?.values) && entry.values.some((value) => value < 0))) return { groups: [], segments: [], mode };
     const values = displayItems.flatMap(({ itemIndex }) => displaySeries.map((entry) => finiteChartNumber(entry?.values?.[itemIndex])));
     const range = chartValueRange(values.map((value) => ({ value })));
     const scaleBase = Math.max(0, ...values);
     const totalsByItemIndex = new Map(chartStackedTotals(items, series).map((entry) => [entry.itemIndex, entry]));
     const groups = displayItems.map(({ item, itemIndex }, displayIndex) => {
       const entries = displaySeries.map((entry, seriesIndex) => ({ item, itemIndex, series: entry, seriesIndex, value: finiteChartNumber(entry?.values?.[itemIndex]) }));
-      const groupScaleBase = percentStacked ? Math.max(0, ...entries.map((entry) => entry.value)) : scaleBase;
+      const groupScaleBase = scaleBase;
       const scaledTotal = groupScaleBase > 0 ? entries.reduce((total, entry) => total + entry.value / groupScaleBase, 0) : 0;
       const total = totalsByItemIndex.get(itemIndex);
       return { item, itemIndex, displayIndex, entries, groupScaleBase, scaledTotal, y: top + displayIndex * safeRowHeight, height: safeRowHeight, total: total?.total ?? null, totalOverflow: total?.overflow === true };
     });
     const maximumScaledTotal = Math.max(0, ...groups.map((group) => group.scaledTotal));
     const segments = groups.flatMap((group) => {
-      if (!stacked) {
-        const gap = 3;
-        const barHeight = Math.max(4, Math.min(18, (group.height - gap * Math.max(0, displaySeries.length - 1)) / Math.max(1, displaySeries.length)));
-        const usedHeight = barHeight * displaySeries.length + gap * Math.max(0, displaySeries.length - 1);
-        const startY = group.y + (group.height - usedHeight) / 2;
-        return group.entries.map((entry) => {
-          const extent = chartBarExtent(entry.value, range, plotLeft, plotLeft + plotWidth);
-          const ratio = chartValueRatio(entry.value, range);
-          return { ...entry, x: extent.start, y: startY + entry.seriesIndex * (barHeight + gap), width: extent.size, height: barHeight, stackStart: 0, stackEnd: Math.max(0, Math.min(1, ratio)), percentage: 0, total: group.total };
-        });
-      }
-      let cumulativeScaled = 0;
-      const barHeight = Math.max(8, Math.min(26, group.height - 12));
-      const y = group.y + (group.height - barHeight) / 2;
+      const gap = 3;
+      const barHeight = Math.max(4, Math.min(18, (group.height - gap * Math.max(0, displaySeries.length - 1)) / Math.max(1, displaySeries.length)));
+      const usedHeight = barHeight * displaySeries.length + gap * Math.max(0, displaySeries.length - 1);
+      const startY = group.y + (group.height - usedHeight) / 2;
       return group.entries.map((entry) => {
-        const scaledValue = group.groupScaleBase > 0 ? entry.value / group.groupScaleBase : 0;
-        const ratioBase = percentStacked ? group.scaledTotal : maximumScaledTotal;
-        const startRatio = ratioBase > 0 ? Math.min(1, cumulativeScaled / ratioBase) : 0;
-        cumulativeScaled += scaledValue;
-        const endRatio = ratioBase > 0 ? Math.min(1, cumulativeScaled / ratioBase) : 0;
-        return { ...entry, x: plotLeft + startRatio * plotWidth, y, width: Math.max(0, (endRatio - startRatio) * plotWidth), height: barHeight, stackStart: startRatio, stackEnd: endRatio, percentage: percentStacked && ratioBase > 0 ? (scaledValue / ratioBase) * 100 : 0, total: group.total };
+        const extent = chartBarExtent(entry.value, range, plotLeft, plotLeft + plotWidth);
+        const ratio = chartValueRatio(entry.value, range);
+        return { ...entry, x: extent.start, y: startY + entry.seriesIndex * (barHeight + gap), width: extent.size, height: barHeight, stackStart: 0, stackEnd: Math.max(0, Math.min(1, ratio)), percentage: 0, total: group.total };
       });
     });
-    return { range, scaleBase, maximumScaledTotal, groups, segments, left: plotLeft, right: plotRight, top, rowHeight: safeRowHeight, width: chartWidth, height: Math.max(0, top + groups.length * safeRowHeight + 30), plotWidth, mode: percentStacked ? "percent-stacked" : stacked ? "stacked" : "grouped" };
+    return { range, scaleBase, maximumScaledTotal, groups, segments, left: plotLeft, right: plotRight, top, rowHeight: safeRowHeight, width: chartWidth, height: Math.max(0, top + groups.length * safeRowHeight + 30), plotWidth, mode: "grouped" };
   }
 
   function splitChartBlocks(markdown) {

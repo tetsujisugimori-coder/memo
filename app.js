@@ -8458,13 +8458,7 @@ function chartStackTotalDescription(total, unit) {
 
 function chartAccessibleItems(chart, percentStackedLayout = null, stackedTotals = null) {
   if (percentStackedLayout) {
-    return percentStackedLayout.groups.flatMap((group) => group.entries.map((entry) => {
-      const segment = percentStackedLayout.segments.find((candidate) => candidate.itemIndex === group.itemIndex && candidate.seriesIndex === entry.seriesIndex);
-      const total = Number.isFinite(group.total)
-        ? `${chartDisplayNumber(group.total)}${chart.unit}`
-        : "非常に大きいため表示できません";
-      return `<li>${escapeHtml(`${group.item.label}、${entry.series.name}: ${chartDisplayNumber(entry.value)}${chart.unit}、${chartPercentDisplay(segment?.percentage)}、項目合計: ${total}`)}</li>`;
-    })).join("");
+    return percentStackedLayout.segments.map((segment) => `<li>${escapeHtml(chartPercentSegmentDescription(segment, chart.unit))}</li>`).join("");
   }
   const accessibleSeries = chartDisplaySeries(chart);
   const totalsByItemIndex = new Map((Array.isArray(stackedTotals) ? stackedTotals : []).map((entry) => [entry.itemIndex, entry]));
@@ -8502,9 +8496,16 @@ function chartZeroLine(range, { left, right, top, bottom, horizontal = false }) 
 }
 
 function chartPercentDisplay(value) {
-  const percentage = Number.isFinite(value) && value >= 0 ? value : 0;
+  const percentage = Number.isFinite(value) ? Math.abs(value) : 0;
   const rounded = Math.round(percentage);
-  return percentage > 0 && rounded === 0 ? `${percentage.toFixed(1)}%` : `${rounded}%`;
+  const sign = value < 0 ? "-" : "";
+  return percentage > 0 && rounded === 0 ? `${sign}${percentage.toFixed(1)}%` : `${sign}${rounded}%`;
+}
+
+function chartPercentSegmentDescription(segment, unit) {
+  const total = Number.isFinite(segment.total) ? `${chartDisplayNumber(segment.total)}${unit}` : "非常に大きいため表示できません";
+  const percentage = chartDisplayNumber(segment.percentage);
+  return `${segment.item.label}、${segment.series.name}: ${chartDisplayNumber(segment.value)}${unit}（${chartPercentDisplay(segment.percentage)}、割合: ${percentage}%、${segment.totalLabel}: ${total}）`;
 }
 
 function setChartNumberValidity(input) {
@@ -8551,7 +8552,7 @@ function chartHorizontalTickMarkup(axis, maximum, { left, plotWidth, y, suffix =
 }
 
 function chartBarAxisMaximum(chart, barItems, { stacked = false, percentStacked = false } = {}) {
-  if (percentStacked) return 100;
+  if (percentStacked) return chartDivergingStacks(chart.items, chart.series, { percent: true }).range;
   if (stacked) return chartDivergingStacks(chart.items, chart.series).range;
   return Math.max(0, ...chart.series.flatMap((series) => barItems.map((item) => series.values[chart.items.indexOf(item)])));
 }
@@ -8598,10 +8599,9 @@ function renderHorizontalBarChart(chart, { title, controls, accessibleItems }) {
       const labelWidth = chartTextWidth(visual);
       const labelX = Math.max(layout.left + (labelAnchor === "end" ? labelWidth : 0), Math.min(width - layout.right - (labelAnchor === "start" ? labelWidth : 0), requestedX));
       const value = chart.appearance.showValues && (!stacked || (segment.height >= 16 && inside))
-        ? `<text class="chart-block-value${inside ? " chart-block-horizontal-value" : ""}${percentStacked ? " chart-block-percent-stacked-value" : ""}" x="${labelX}" y="${segment.y + segment.height / 2}" text-anchor="${labelAnchor}" dominant-baseline="middle" aria-label="${escapeAttr(chartDisplayNumber(segment.value))}">${escapeHtml(visual)}</text>`
+        ? `<text class="chart-block-value${inside ? " chart-block-horizontal-value" : ""}${percentStacked ? " chart-block-percent-stacked-value" : ""}" x="${labelX}" y="${segment.y + segment.height / 2}" text-anchor="${labelAnchor}" dominant-baseline="middle" aria-label="${escapeAttr(percentStacked ? chartPercentSegmentDescription(segment, chart.unit) : chartDisplayNumber(segment.value))}">${escapeHtml(visual)}</text>`
         : "";
-      const total = Number.isFinite(segment.total) ? `${chartDisplayNumber(segment.total)}${chart.unit}` : "非常に大きいため表示できません";
-      const description = percentStacked ? `${segment.item.label}、${segment.series.name}: ${chartDisplayNumber(segment.value)}${chart.unit}（${chartPercentDisplay(segment.percentage)}、項目合計: ${total}）` : `${segment.item.label}、${segment.series.name}: ${chartDisplayNumber(segment.value)}${chart.unit}`;
+      const description = percentStacked ? chartPercentSegmentDescription(segment, chart.unit) : `${segment.item.label}、${segment.series.name}: ${chartDisplayNumber(segment.value)}${chart.unit}`;
       return `<g class="chart-block-bar${stacked ? " chart-block-stacked-bar" : ""}${percentStacked ? " chart-block-percent-stacked-bar" : ""}" data-chart-item-id="${escapeAttr(segment.item.id)}" data-chart-series-id="${escapeAttr(segment.series.id)}"><title>${escapeHtml(description)}</title>${rect}${value}</g>`;
     }).join("");
     const totalLabel = showStackTotals ? group.totals.map((total) => {
@@ -8768,9 +8768,8 @@ function renderChartBlock(chartValue, blockIndex, { editable = true } = {}) {
           const value = chart.appearance.showValues && segment.height >= 20 && segment.width >= Math.max(28, chartTextWidth(visual) + 4)
             ? `<text class="chart-block-value chart-block-stacked-value${percentStacked ? " chart-block-percent-stacked-value" : ""}" x="${segment.x + segment.width / 2}" y="${segment.y + segment.height / 2}" text-anchor="middle" dominant-baseline="middle">${escapeHtml(visual)}</text>`
             : "";
-          const total = Number.isFinite(segment.total) ? `${chartDisplayNumber(segment.total)}${chart.unit}` : "非常に大きいため表示できません";
           const title = percentStacked
-            ? `${segment.item.label}、${segment.series.name}: ${chartDisplayNumber(segment.value)}${chart.unit}（${chartPercentDisplay(segment.percentage)}、項目合計: ${total}）`
+            ? chartPercentSegmentDescription(segment, chart.unit)
             : `${segment.item.label}、${segment.series.name}: ${chartDisplayNumber(segment.value)}${chart.unit}`;
           return `<g class="chart-block-bar chart-block-stacked-bar${percentStacked ? " chart-block-percent-stacked-bar" : ""}" data-chart-item-id="${escapeAttr(segment.item.id)}" data-chart-series-id="${escapeAttr(segment.series.id)}"><title>${escapeHtml(title)}</title>${rect}${value}</g>`;
         }).join("");
