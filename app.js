@@ -471,6 +471,14 @@ const {
   chartCategoryLabels,
   chartLabelLayout,
   chartStackedTotals,
+  chartValueLabelLayout,
+  chartBarExtent,
+  chartValueRange,
+  chartValueRatio,
+  chartValidationError,
+  finiteChartNumber,
+  isValidChartNumber,
+  chartTextWidth,
   chartValueMaximum,
   chartValueAxisLayout,
   createChartBlock,
@@ -491,6 +499,7 @@ const {
   pieChartSegments,
   replaceChartBlock,
   resolvePieSeries,
+  serializeChartBlock,
   shouldShowStackTotals,
   stackedBarSegments,
   splitChartBlocks
@@ -8355,7 +8364,7 @@ function currentChartBlock(blockIndex, chartId, snapshotKey = null) {
   if (!block || block.chart.id !== chartId) return null;
   const snapshot = snapshotKey ? chartEditorOriginalCharts.get(snapshotKey) : null;
   if (snapshotKey && (!snapshot || snapshot.currentSignature !== chartEditorSignature(block.chart, chartId))) return null;
-  return block;
+  return snapshot?.draft ? { ...block, chart: snapshot.draft } : block;
 }
 
 const chartEditorOriginalCharts = new Map();
@@ -8367,10 +8376,10 @@ function chartEditorSignature(chartValue, fallbackId) {
   return JSON.stringify(normalizeChartBlock(chartValue, fallbackId));
 }
 
-function createChartEditorSnapshot(chartValue, fallbackId) {
+function createChartEditorSnapshot(chartValue, fallbackId, raw) {
   const chart = normalizeChartBlock(chartValue, fallbackId);
   const key = `chart-editor-${++chartEditorSnapshotSequence}`;
-  chartEditorOriginalCharts.set(key, { original: chart, currentSignature: chartEditorSignature(chart, chart.id) });
+  chartEditorOriginalCharts.set(key, { original: chart, originalRaw: raw, currentSignature: chartEditorSignature(chart, chart.id) });
   return key;
 }
 
@@ -8382,7 +8391,7 @@ function syncChartEditorSnapshots(blocks) {
     const signature = chartEditorSignature(block.chart, block.chart.id);
     const index = unmatched.findIndex(({ snapshot }) => snapshot.currentSignature === signature);
     if (index >= 0) return unmatched.splice(index, 1)[0].key;
-    return createChartEditorSnapshot(block.chart, block.chart.id);
+    return createChartEditorSnapshot(block.chart, block.chart.id, block.raw);
   });
   unmatched.forEach(({ key }) => chartEditorOriginalCharts.delete(key));
   chartEditorSnapshotKeys = nextKeys;
@@ -8405,12 +8414,13 @@ function confirmChartEditorSnapshot(snapshotKey, chartValue, chartId) {
   if (!snapshot) return;
   const chart = normalizeChartBlock(chartValue, chartId);
   snapshot.original = chart;
+  snapshot.originalRaw = serializeChartBlock(chart);
   snapshot.currentSignature = chartEditorSignature(chart, chart.id);
 }
 
 function chartDisplayItems(chart, series = chart.series[0]) {
   return chart.items.map((item, index) => ({ ...item, value: series?.values[index] }))
-    .filter((item) => item.label && Number.isFinite(item.value) && item.value >= 0);
+    .filter((item) => item.label && Number.isFinite(item.value));
 }
 
 function resolvedPieItemColors(chart, series = resolvePieSeries(chart)) {
@@ -8457,7 +8467,8 @@ function chartAccessibleItems(chart, percentStackedLayout = null, stackedTotals 
   }
   const accessibleSeries = chartDisplaySeries(chart);
   const totalsByItemIndex = new Map((Array.isArray(stackedTotals) ? stackedTotals : []).map((entry) => [entry.itemIndex, entry]));
-  return chart.items.filter((item) => item.label).flatMap((item, itemIndex) => {
+  return chart.items.flatMap((item, itemIndex) => {
+    if (!item.label) return [];
     const entries = accessibleSeries.map((series) =>
       `<li>${escapeHtml(`${item.label}、${series.name}: ${chartDisplayNumber(series.values[itemIndex])}${chart.unit}`)}</li>`
     );
@@ -8468,19 +8479,31 @@ function chartAccessibleItems(chart, percentStackedLayout = null, stackedTotals 
 }
 
 function chartDisplayNumber(value) {
-  return Number.isInteger(value) ? String(value) : String(value);
+  return Number.isFinite(value) ? String(value === 0 ? 0 : value) : "0";
+}
+
+function chartValueLabel(value) {
+  return formatChartStackTotal({ total: value });
+}
+
+function chartVerticalValueMarkup(value, x, tip, options) {
+  const label = chartValueLabelLayout(value, { ...options, x, tip });
+  options.occupied.push(label.box);
+  return `<text class="chart-block-value" x="${label.x}" y="${label.y}" text-anchor="middle" aria-label="${escapeAttr(chartDisplayNumber(value))}">${escapeHtml(label.text)}</text>`;
+}
+
+function chartZeroLine(range, { left, right, top, bottom, horizontal = false }) {
+  const ratio = chartValueRatio(0, range);
+  const position = horizontal ? left + ratio * (right - left) : bottom - ratio * (bottom - top);
+  return horizontal
+    ? `<line class="chart-block-axis chart-block-zero-line" aria-hidden="true" x1="${position}" x2="${position}" y1="${top}" y2="${bottom}"/>`
+    : `<line class="chart-block-axis chart-block-zero-line" aria-hidden="true" x1="${left}" x2="${right}" y1="${position}" y2="${position}"/>`;
 }
 
 function chartPercentDisplay(value) {
   const percentage = Number.isFinite(value) && value >= 0 ? value : 0;
   const rounded = Math.round(percentage);
   return percentage > 0 && rounded === 0 ? `${percentage.toFixed(1)}%` : `${rounded}%`;
-}
-
-function isValidChartNumber(value) {
-  const text = String(value ?? "").trim();
-  const number = Number(text);
-  return text !== "" && Number.isFinite(number) && number >= 0;
 }
 
 function setChartNumberValidity(input) {
@@ -8510,16 +8533,16 @@ function chartUnitMarkup(unit, x, y, maximumWidth) {
 function chartVerticalTickMarkup(axis, maximum, { x, top, baseline, suffix = "", className = "" } = {}) {
   const span = Math.max(0, baseline - top);
   return axis.ticks.map((tick, index) => {
-    const ratio = maximum > 0 ? tick.value / maximum : 0;
+    const ratio = chartValueRatio(tick.value, maximum);
     const y = baseline - Math.max(0, Math.min(1, ratio)) * span;
-    const endpointClass = `${index === 0 ? " chart-block-axis-zero" : ""}${index === axis.ticks.length - 1 ? " chart-block-axis-maximum" : ""}`;
+    const endpointClass = `${tick.value === 0 ? " chart-block-axis-zero" : ""}${index === axis.ticks.length - 1 ? " chart-block-axis-maximum" : ""}`;
     return `<text class="chart-block-axis-value${className ? ` ${className}` : ""}${endpointClass}" x="${x}" y="${y + 4}" text-anchor="end">${escapeHtml(`${tick.label}${suffix}`)}</text>`;
   }).join("");
 }
 
 function chartHorizontalTickMarkup(axis, maximum, { left, plotWidth, y, suffix = "", className = "" } = {}) {
   return axis.ticks.map((tick, index) => {
-    const ratio = maximum > 0 ? tick.value / maximum : 0;
+    const ratio = chartValueRatio(tick.value, maximum);
     const x = left + Math.max(0, Math.min(1, ratio)) * plotWidth;
     const anchor = index === 0 ? "start" : index === axis.ticks.length - 1 ? "end" : "middle";
     return `<text class="chart-block-axis-value${className ? ` ${className}` : ""}" x="${x}" y="${y}" text-anchor="${anchor}">${escapeHtml(`${tick.label}${suffix}`)}</text>`;
@@ -8543,7 +8566,8 @@ function renderHorizontalBarChart(chart, { title, controls, accessibleItems }) {
   const stacked = chart.appearance.barMode === "stacked" || percentStacked;
   const showStackTotals = shouldShowStackTotals(chart);
   const labelWidth = horizontalBarLabelWidth(barItems);
-  const maximum = chartBarAxisMaximum(chart, barItems, { stacked, percentStacked });
+  const maximum = stacked ? chartBarAxisMaximum(chart, barItems, { stacked, percentStacked })
+    : chartValueRange(chart.series.flatMap((series) => chartDisplayItems(chart, series)));
   const provisionalAxis = chartValueAxisLayout(maximum, { availableSpace: 300, minimumSpacing: 72 });
   const axisRight = Math.ceil(provisionalAxis.labelWidth / 2 + 8);
   const right = Math.max(showStackTotals ? 66 : 28, axisRight);
@@ -8565,10 +8589,17 @@ function renderHorizontalBarChart(chart, { title, controls, accessibleItems }) {
     const labelY = group.y + group.height / 2 - ((label.lines.length - 1) * 7);
     const labelText = `<text class="chart-block-label chart-block-horizontal-label" x="${layout.left - 8}" y="${labelY}" text-anchor="end" dominant-baseline="middle" aria-label="${escapeAttr(label.fullText)}"><title>${escapeHtml(label.fullText)}</title>${label.lines.map((line, index) => `<tspan x="${layout.left - 8}" dy="${index === 0 ? 0 : 14}">${escapeHtml(line)}</tspan>`).join("")}</text>`;
     const segments = groupSegments.map((segment) => {
-      const visual = percentStacked ? chartPercentDisplay(segment.percentage) : chartDisplayNumber(segment.value);
-      const rect = segment.width > 0 ? `<rect x="${segment.x}" y="${segment.y}" width="${segment.width}" height="${segment.height}" rx="4" fill="${escapeAttr(segment.series.color)}"></rect>` : "";
-      const value = chart.appearance.showValues && segment.height >= 16 && segment.width >= (visual.length * 8 + 8)
-        ? `<text class="chart-block-value chart-block-horizontal-value${percentStacked ? " chart-block-percent-stacked-value" : ""}" x="${segment.x + segment.width - 4}" y="${segment.y + segment.height / 2}" text-anchor="end" dominant-baseline="middle">${escapeHtml(visual)}</text>`
+      const visual = percentStacked ? chartPercentDisplay(segment.percentage) : chartValueLabel(segment.value);
+      const rect = segment.width > 0 || !stacked ? `<rect x="${segment.x}" y="${segment.y}" width="${segment.width}" height="${segment.height}" rx="4" fill="${escapeAttr(segment.series.color)}"></rect>` : "";
+      const inside = segment.width >= visual.length * 8 + 8;
+      const negative = segment.value < 0;
+      const labelAnchor = negative ? (inside ? "start" : "end") : (inside ? "end" : "start");
+      const labelTip = negative ? segment.x : segment.x + segment.width;
+      const requestedX = labelTip + (negative ? (inside ? 4 : -4) : (inside ? -4 : 4));
+      const labelWidth = chartTextWidth(visual);
+      const labelX = Math.max(layout.left + (labelAnchor === "end" ? labelWidth : 0), Math.min(width - layout.right - (labelAnchor === "start" ? labelWidth : 0), requestedX));
+      const value = chart.appearance.showValues && (!stacked || (segment.height >= 16 && inside))
+        ? `<text class="chart-block-value${inside ? " chart-block-horizontal-value" : ""}${percentStacked ? " chart-block-percent-stacked-value" : ""}" x="${labelX}" y="${segment.y + segment.height / 2}" text-anchor="${labelAnchor}" dominant-baseline="middle" aria-label="${escapeAttr(chartDisplayNumber(segment.value))}">${escapeHtml(visual)}</text>`
         : "";
       const total = Number.isFinite(segment.total) ? `${chartDisplayNumber(segment.total)}${chart.unit}` : "非常に大きいため表示できません";
       const description = percentStacked ? `${segment.item.label}、${segment.series.name}: ${chartDisplayNumber(segment.value)}${chart.unit}（${chartPercentDisplay(segment.percentage)}、項目合計: ${total}）` : `${segment.item.label}、${segment.series.name}: ${chartDisplayNumber(segment.value)}${chart.unit}`;
@@ -8579,12 +8610,13 @@ function renderHorizontalBarChart(chart, { title, controls, accessibleItems }) {
     const totalLabel = showStackTotals ? `<text class="chart-block-stacked-total-value chart-block-horizontal-total-value" data-chart-total-overflow="${group.totalOverflow ? "true" : "false"}" x="${endX + 5}" y="${group.y + group.height / 2}" dominant-baseline="middle"><title>${escapeHtml(`${group.item.label}、${chartStackTotalDescription(stackTotal, chart.unit)}`)}</title>${escapeHtml(chartStackTotalDisplay(stackTotal))}</text>` : "";
     return `<g class="chart-block-bar-group" data-chart-item-id="${escapeAttr(group.item.id)}">${segments}${totalLabel}${labelText}</g>`;
   }).join("");
-  const empty = barItems.length ? "" : `<text class="chart-block-empty" x="${width / 2}" y="${height / 2}" text-anchor="middle">項目名と0以上の数値を入力してください</text>`;
+  const empty = barItems.length ? "" : `<text class="chart-block-empty" x="${width / 2}" y="${height / 2}" text-anchor="middle">項目名と有限な数値を入力してください</text>`;
   const legend = chart.appearance.showLegend ? `<ul class="chart-block-legend" aria-label="${escapeAttr(`${title}の凡例`)}">${chart.series.map((series) => `<li><span class="chart-block-legend-swatch" style="background:${escapeAttr(series.color)}"></span><span>${escapeHtml(series.name)}</span></li>`).join("")}</ul>` : "";
+  const zeroLine = chartZeroLine(maximum, { left: layout.left, right: width - layout.right, top: layout.top - 6, bottom: height - 24, horizontal: true });
   const numericAxis = chartHorizontalTickMarkup(axis, maximum, { left: layout.left, plotWidth: layout.plotWidth, y: height - 10, suffix: percentStacked ? "%" : "", className: percentStacked ? "chart-block-percent-axis-value" : "" });
   const unit = chartUnitMarkup(percentStacked ? "構成比（%）" : chart.unit, layout.left, 18, layout.plotWidth);
   const ariaLabel = percentStacked ? `${title}（横棒、100%積み上げ、元データの単位: ${chart.unit || "なし"}）` : `${title}（横棒${chart.unit ? `、単位: ${chart.unit}` : ""}）`;
-  return `<figure class="chart-block chart-block-bar-chart chart-block-horizontal-bar-chart" data-chart-id="${escapeAttr(chart.id)}" data-chart-bar-mode="${escapeAttr(chart.appearance.barMode)}" data-chart-bar-orientation="horizontal"><figcaption>${escapeHtml(title)}</figcaption>${controls}<div class="chart-block-bar-layout"><div class="chart-block-scroll" role="region" tabindex="0" aria-label="${escapeAttr(title)}"><svg viewBox="0 0 ${width} ${height}" role="img" aria-label="${escapeAttr(ariaLabel)}"><line class="chart-block-axis" x1="${layout.left}" y1="${layout.top - 6}" x2="${layout.left}" y2="${height - 24}"/><line class="chart-block-axis" x1="${layout.left}" y1="${height - 24}" x2="${width - layout.right}" y2="${height - 24}"/>${unit}${numericAxis}${bars}${empty}</svg></div>${legend}</div><ul class="sr-only">${accessible || "<li>有効な項目はありません</li>"}</ul></figure>`;
+  return `<figure class="chart-block chart-block-bar-chart chart-block-horizontal-bar-chart" data-chart-id="${escapeAttr(chart.id)}" data-chart-bar-mode="${escapeAttr(chart.appearance.barMode)}" data-chart-bar-orientation="horizontal"><figcaption>${escapeHtml(title)}</figcaption>${controls}<div class="chart-block-bar-layout"><div class="chart-block-scroll" role="region" tabindex="0" aria-label="${escapeAttr(title)}"><svg viewBox="0 0 ${width} ${height}" role="img" aria-label="${escapeAttr(ariaLabel)}">${zeroLine}<line class="chart-block-axis" x1="${layout.left}" y1="${height - 24}" x2="${width - layout.right}" y2="${height - 24}"/>${unit}${numericAxis}${bars}${empty}</svg></div>${legend}</div><ul class="sr-only">${accessible || "<li>有効な項目はありません</li>"}</ul></figure>`;
 }
 
 function chartPieLabel(segment, unit, mode) {
@@ -8614,6 +8646,8 @@ function renderChartBlock(chartValue, blockIndex, { editable = true } = {}) {
     ? `<button class="chart-block-edit" type="button" data-chart-id="${escapeAttr(chart.id)}" data-chart-index="${blockIndex}" aria-label="${escapeAttr(`${title}を編集`)}">編集</button>`
     : "";
   let accessibleItems = chartAccessibleItems(chart);
+  const validationError = chartValidationError(chart);
+  if (validationError) return `<figure class="chart-block" data-chart-id="${escapeAttr(chart.id)}"><figcaption>${escapeHtml(title)}</figcaption>${controls}<p class="chart-block-status" role="status">${escapeHtml(validationError)}</p></figure>`;
   if (chart.chartType === "pie") {
     const pieColors = resolvedPieItemColors(chart, pieSeries);
     const pie = pieChartSegments(items.map((item) => ({
@@ -8639,19 +8673,20 @@ function renderChartBlock(chartValue, blockIndex, { editable = true } = {}) {
     return `<figure class="chart-block chart-block-pie" data-chart-id="${escapeAttr(chart.id)}" data-chart-series-id="${escapeAttr(pieSeries.id)}"><figcaption>${escapeHtml(pieTitle)}</figcaption>${controls}<div class="chart-block-pie-layout"><div class="chart-block-scroll" role="region" tabindex="0" aria-label="${escapeAttr(pieTitle)}"><svg viewBox="0 0 360 260" role="img" aria-label="${escapeAttr(pieAriaLabel)}">${slices}${empty}</svg></div>${legend}</div><ul class="sr-only">${accessibleItems || "<li>有効な項目はありません</li>"}</ul></figure>`;
   }
   const visibleSeriesCount = chartDisplaySeries(chart).length;
-  const baseWidth = Math.max(420, chart.items.filter((item) => item.label).length * Math.max(74, visibleSeriesCount * 32 + 34) + 76);
+  const valueSlotWidth = Math.max(32, ...chart.series.flatMap((series) => series.values.map((value) => chartTextWidth(chartValueLabel(value)) + 8)));
+  const baseWidth = Math.max(420, chart.items.filter((item) => item.label).length * Math.max(74, visibleSeriesCount * (chart.chartType === "line" || chart.appearance.barMode === "grouped" ? valueSlotWidth : 32) + 34) + 76);
   const height = 260;
   const baseline = 196;
   if (chart.chartType === "line") {
     const lineSeries = chartDisplaySeries(chart).map((series) => ({ series, items: chartDisplayItems(chart, series) }));
-    const maximum = chartValueMaximum(lineSeries.flatMap(({ items: seriesItems }) => seriesItems));
+    const maximum = chartValueRange(lineSeries.flatMap(({ items: seriesItems }) => seriesItems));
     const axis = chartValueAxisLayout(maximum, { availableSpace: 154 });
     const lineLayout = {
       axisX: axis.margin + 6,
       axisTop: 40,
       axisLabelX: axis.margin,
       plotLeft: axis.margin + 50,
-      plotRight: 18,
+      plotRight: Math.max(18, valueSlotWidth / 2),
       plotTop: 42,
       baseline,
       valueOffset: 8,
@@ -8660,42 +8695,47 @@ function renderChartBlock(chartValue, blockIndex, { editable = true } = {}) {
     const lineWidth = Math.max(baseWidth, lineChartWidth(chart.items), lineLayout.plotLeft + lineLayout.plotRight + lineSeries[0]?.items.length * 74 + 6);
     const categoryEntries = chartCategoryLabels(lineSeries[0]?.items, { plotWidth: lineWidth - lineLayout.plotLeft - lineLayout.plotRight });
     const categoryById = new Map(categoryEntries.map((entry) => [entry.item.id, entry]));
+    const lineZero = baseline - chartValueRatio(0, maximum) * (baseline - lineLayout.plotTop);
+    const valueLabelOptions = { left: lineLayout.plotLeft - 40, right: lineWidth - 4, occupied: [{ x: lineLayout.axisX, y: lineZero - 2, width: lineWidth - lineLayout.axisX, height: 4 }] };
+    const categoryY = maximum.minimum < 0 ? baseline + 36 : baseline + 18;
     const lines = lineSeries.map(({ series, items: seriesItems }, seriesIndex) => {
       const points = lineChartPoints(seriesItems, lineWidth, {
         left: lineLayout.plotLeft,
         right: lineLayout.plotRight,
         top: lineLayout.plotTop,
         baseline: lineLayout.baseline,
-        maximum
+        range: maximum
       });
       const path = points.length > 1
         ? `<polyline class="chart-block-line-path" data-chart-series-id="${escapeAttr(series.id)}" points="${points.map((point) => `${point.x},${point.y}`).join(" ")}" fill="none" stroke="${escapeAttr(series.color)}"></polyline>`
         : "";
       const pointItems = points.map((point) => {
         const value = chart.appearance.showValues
-          ? `<text class="chart-block-value" x="${point.x}" y="${Math.max(lineLayout.valueMinimumY, point.y - lineLayout.valueOffset)}" text-anchor="middle">${escapeHtml(chartDisplayNumber(point.value))}</text>`
+          ? chartVerticalValueMarkup(point.value, point.x, point.y, valueLabelOptions)
           : "";
         const marker = chart.appearance.showPoints
           ? `<circle class="chart-block-line-point" data-chart-series-id="${escapeAttr(series.id)}" cx="${point.x}" cy="${point.y}" r="4.5" fill="var(--section-bg)" stroke="${escapeAttr(series.color)}"></circle>`
           : "";
-        const label = seriesIndex === 0 ? chartCategoryLabelMarkup(categoryById.get(point.id), point.x, baseline + 18) : "";
+        const label = seriesIndex === 0 ? chartCategoryLabelMarkup(categoryById.get(point.id), point.x, categoryY) : "";
         return `<g class="chart-block-line-item" data-chart-item-id="${escapeAttr(point.id)}" data-chart-series-id="${escapeAttr(series.id)}"><title>${escapeHtml(`${point.label}、${series.name}: ${chartDisplayNumber(point.value)}${chart.unit}`)}</title>${value}${marker}${label}</g>`;
       }).join("");
       return `<g class="chart-block-line-series" data-chart-series-id="${escapeAttr(series.id)}">${path}${pointItems}</g>`;
     }).join("");
-    const empty = lineSeries.some(({ items: seriesItems }) => seriesItems.length) ? "" : `<text class="chart-block-empty" x="${lineWidth / 2}" y="${height / 2}" text-anchor="middle">項目名と0以上の数値を入力してください</text>`;
+    const empty = lineSeries.some(({ items: seriesItems }) => seriesItems.length) ? "" : `<text class="chart-block-empty" x="${lineWidth / 2}" y="${height / 2}" text-anchor="middle">項目名と有限な数値を入力してください</text>`;
     const legend = chart.appearance.showLegend
       ? `<ul class="chart-block-legend" aria-label="${escapeAttr(`${title}の凡例`)}">${chartDisplaySeries(chart).map((series) => `<li><span class="chart-block-line-legend-swatch" style="color:${escapeAttr(series.color)}"></span><span>${escapeHtml(series.name)}</span></li>`).join("")}</ul>`
       : "";
+    const zeroLine = chartZeroLine(maximum, { left: lineLayout.axisX, right: lineWidth - lineLayout.plotRight, top: lineLayout.plotTop, bottom: baseline });
     const numericAxis = chartVerticalTickMarkup(axis, maximum, { x: lineLayout.axisLabelX, top: lineLayout.plotTop, baseline: lineLayout.baseline });
-    return `<figure class="chart-block chart-block-line" data-chart-id="${escapeAttr(chart.id)}"><figcaption>${escapeHtml(title)}</figcaption>${controls}<div class="chart-block-line-layout"><div class="chart-block-scroll" role="region" tabindex="0" aria-label="${escapeAttr(title)}"><svg viewBox="0 0 ${lineWidth} ${height}" role="img" aria-label="${escapeAttr(`${title}${chart.unit ? `（単位: ${chart.unit}）` : ""}`)}"><line class="chart-block-axis" x1="${lineLayout.axisX}" y1="${lineLayout.axisTop}" x2="${lineLayout.axisX}" y2="${lineLayout.baseline}"/><line class="chart-block-axis" x1="${lineLayout.axisX}" y1="${lineLayout.baseline}" x2="${lineWidth - lineLayout.plotRight}" y2="${lineLayout.baseline}"/>${numericAxis}${chartUnitMarkup(chart.unit, lineLayout.axisX + 6, 18, lineWidth - lineLayout.axisX - lineLayout.plotRight)}${lines}${empty}</svg></div>${legend}</div><ul class="sr-only">${accessibleItems || "<li>有効な項目はありません</li>"}</ul></figure>`;
+    return `<figure class="chart-block chart-block-line" data-chart-id="${escapeAttr(chart.id)}"><figcaption>${escapeHtml(title)}</figcaption>${controls}<div class="chart-block-line-layout"><div class="chart-block-scroll" role="region" tabindex="0" aria-label="${escapeAttr(title)}"><svg viewBox="0 0 ${lineWidth} ${height}" role="img" aria-label="${escapeAttr(`${title}${chart.unit ? `（単位: ${chart.unit}）` : ""}`)}"><line class="chart-block-axis" x1="${lineLayout.axisX}" y1="${lineLayout.axisTop}" x2="${lineLayout.axisX}" y2="${lineLayout.baseline}"/>${zeroLine}${numericAxis}${chartUnitMarkup(chart.unit, lineLayout.axisX + 6, 18, lineWidth - lineLayout.axisX - lineLayout.plotRight)}${lines}${empty}</svg></div>${legend}</div><ul class="sr-only">${accessibleItems || "<li>有効な項目はありません</li>"}</ul></figure>`;
   }
   if (chart.appearance.barOrientation === "horizontal") return renderHorizontalBarChart(chart, { title, controls, accessibleItems });
   const barItems = chart.items.filter((item) => item.label);
   const percentStacked = chart.appearance.barMode === "percent-stacked";
   const stacked = chart.appearance.barMode === "stacked" || percentStacked;
   const showStackTotals = shouldShowStackTotals(chart);
-  const maximum = chartBarAxisMaximum(chart, barItems, { stacked, percentStacked });
+  const maximum = stacked ? chartBarAxisMaximum(chart, barItems, { stacked, percentStacked })
+    : chartValueRange(chart.series.flatMap((series) => chartDisplayItems(chart, series)));
   const axis = chartValueAxisLayout(maximum, { availableSpace: baseline - (showStackTotals ? 64 : 54) });
   const axisX = axis.margin + 6;
   const plotLeft = axisX + 10;
@@ -8742,33 +8782,37 @@ function renderChartBlock(chartValue, blockIndex, { editable = true } = {}) {
       const groupWidth = plotWidth / Math.max(1, barItems.length);
       const innerGap = 4;
       const barWidth = Math.max(4, Math.min(48, (Math.max(12, groupWidth - 20) - innerGap * (chart.series.length - 1)) / chart.series.length));
+      const barZero = baseline - chartValueRatio(0, maximum) * (baseline - stackedPlotTop);
+      const valueLabelOptions = { left: plotLeft, right: width - 4, occupied: [{ x: axisX, y: barZero - 2, width: width - axisX, height: 4 }] };
+      const categoryY = maximum.minimum < 0 ? baseline + 36 : baseline + 18;
       return barItems.map((item, itemIndex) => {
         const sourceIndex = chart.items.indexOf(item);
         const groupStart = plotLeft + itemIndex * groupWidth + (groupWidth - (barWidth * chart.series.length + innerGap * (chart.series.length - 1))) / 2;
         const seriesBars = chart.series.map((series, seriesIndex) => {
           const valueNumber = series.values[sourceIndex];
-          const plotHeight = baseline - stackedPlotTop;
-          const barHeight = maximum > 0 ? Math.max(0, Math.min(plotHeight, (valueNumber / maximum) * plotHeight)) : 0;
+          const extent = chartBarExtent(valueNumber, maximum, baseline, stackedPlotTop);
+          const barHeight = extent.size;
           const x = groupStart + seriesIndex * (barWidth + innerGap);
-          const y = baseline - barHeight;
+          const y = extent.start;
           const value = chart.appearance.showValues
-            ? `<text class="chart-block-value" x="${x + barWidth / 2}" y="${Math.max(22, y - 8)}" text-anchor="middle">${escapeHtml(chartDisplayNumber(valueNumber))}</text>`
+            ? chartVerticalValueMarkup(valueNumber, x + barWidth / 2, extent.tip, valueLabelOptions)
             : "";
           return `<g class="chart-block-bar" data-chart-item-id="${escapeAttr(item.id)}" data-chart-series-id="${escapeAttr(series.id)}"><title>${escapeHtml(`${item.label}、${series.name}: ${chartDisplayNumber(valueNumber)}${chart.unit}`)}</title><rect x="${x}" y="${y}" width="${barWidth}" height="${barHeight}" rx="4" fill="${escapeAttr(series.color)}"></rect>${value}</g>`;
         }).join("");
-        return `<g class="chart-block-bar-group" data-chart-item-id="${escapeAttr(item.id)}">${seriesBars}${chartCategoryLabelMarkup(categoryById.get(item.id), plotLeft + itemIndex * groupWidth + groupWidth / 2, baseline + 18)}</g>`;
+        return `<g class="chart-block-bar-group" data-chart-item-id="${escapeAttr(item.id)}">${seriesBars}${chartCategoryLabelMarkup(categoryById.get(item.id), plotLeft + itemIndex * groupWidth + groupWidth / 2, categoryY)}</g>`;
       }).join("");
     })();
-  const empty = barItems.length ? "" : `<text class="chart-block-empty" x="${width / 2}" y="${height / 2}" text-anchor="middle">項目名と0以上の数値を入力してください</text>`;
+  const empty = barItems.length ? "" : `<text class="chart-block-empty" x="${width / 2}" y="${height / 2}" text-anchor="middle">項目名と有限な数値を入力してください</text>`;
   const legend = chart.appearance.showLegend
     ? `<ul class="chart-block-legend" aria-label="${escapeAttr(`${title}の凡例`)}">${chart.series.map((series) => `<li><span class="chart-block-legend-swatch" style="background:${escapeAttr(series.color)}"></span><span>${escapeHtml(series.name)}</span></li>`).join("")}</ul>`
     : "";
+  const zeroLine = chartZeroLine(maximum, { left: axisX, right: width - plotRight, top: stackedPlotTop, bottom: baseline });
   const numericAxis = chartVerticalTickMarkup(axis, maximum, { x: axis.margin, top: stackedPlotTop, baseline, suffix: percentStacked ? "%" : "", className: percentStacked ? "chart-block-percent-axis-value" : "" });
   const unit = chartUnitMarkup(percentStacked ? "構成比（%）" : chart.unit, axisX + 6, 18, width - axisX - plotRight);
   const ariaLabel = percentStacked
     ? `${title}（100%積み上げ、元データの単位: ${chart.unit || "なし"}）`
     : `${title}${chart.unit ? `（単位: ${chart.unit}）` : ""}`;
-  return `<figure class="chart-block chart-block-bar-chart" data-chart-id="${escapeAttr(chart.id)}" data-chart-bar-mode="${escapeAttr(chart.appearance.barMode)}"><figcaption>${escapeHtml(title)}</figcaption>${controls}<div class="chart-block-bar-layout"><div class="chart-block-scroll" role="region" tabindex="0" aria-label="${escapeAttr(title)}"><svg viewBox="0 0 ${width} ${height}" role="img" aria-label="${escapeAttr(ariaLabel)}"><line class="chart-block-axis" x1="${axisX}" y1="${stackedPlotTop}" x2="${axisX}" y2="${baseline}"/><line class="chart-block-axis" x1="${axisX}" y1="${baseline}" x2="${width - plotRight}" y2="${baseline}"/>${unit}${numericAxis}${bars}${empty}</svg></div>${legend}</div><ul class="sr-only">${accessibleItems || "<li>有効な項目はありません</li>"}</ul></figure>`;
+  return `<figure class="chart-block chart-block-bar-chart" data-chart-id="${escapeAttr(chart.id)}" data-chart-bar-mode="${escapeAttr(chart.appearance.barMode)}"><figcaption>${escapeHtml(title)}</figcaption>${controls}<div class="chart-block-bar-layout"><div class="chart-block-scroll" role="region" tabindex="0" aria-label="${escapeAttr(title)}"><svg viewBox="0 0 ${width} ${height}" role="img" aria-label="${escapeAttr(ariaLabel)}"><line class="chart-block-axis" x1="${axisX}" y1="${stackedPlotTop}" x2="${axisX}" y2="${baseline}"/>${zeroLine}${unit}${numericAxis}${bars}${empty}</svg></div>${legend}</div><ul class="sr-only">${accessibleItems || "<li>有効な項目はありません</li>"}</ul></figure>`;
 }
 
 function renderChartEditorPreview(host, chart, blockIndex) {
@@ -9140,6 +9184,7 @@ function createChartEditor(chartValue, blockIndex, snapshotKey) {
   save.type = "button";
   save.dataset.chartAction = "confirm";
   save.textContent = "入力を確定";
+  save.disabled = Boolean(chartValidationError(chart));
   const cancel = document.createElement("button");
   cancel.type = "button";
   cancel.dataset.chartAction = "cancel";
@@ -9149,6 +9194,7 @@ function createChartEditor(chartValue, blockIndex, snapshotKey) {
   status.className = "chart-block-status";
   status.setAttribute("role", "status");
   status.setAttribute("aria-live", "polite");
+  status.textContent = chartValidationError(chart);
   const previewHost = document.createElement("div");
   previewHost.className = "chart-block-editor-preview";
   previewHost.setAttribute("aria-label", "グラフのプレビュー");
@@ -9174,17 +9220,34 @@ function renderChartBlockEditors() {
   heading.className = "chart-block-editors-heading";
   heading.textContent = `本文内のグラフ（${blocks.length}件）`;
   chartBlockEditors.append(heading);
-  blocks.forEach((block, blockIndex) => chartBlockEditors.append(createChartEditor(block.chart, blockIndex, snapshotKeys[blockIndex])));
+  blocks.forEach((block, blockIndex) => chartBlockEditors.append(createChartEditor(chartEditorOriginalCharts.get(snapshotKeys[blockIndex])?.draft || block.chart, blockIndex, snapshotKeys[blockIndex])));
 }
 
 globalThis.renderChartBlockEditors = renderChartBlockEditors;
 
-function commitChartBlockChange(blockIndex, chartId, nextChart, { rerenderEditors = false, snapshotKey = null } = {}) {
+function commitChartBlockChange(blockIndex, chartId, nextChart, { rerenderEditors = false, snapshotKey = null, restoreRaw = null } = {}) {
   const block = currentChartBlock(blockIndex, chartId, snapshotKey);
   if (!block) return false;
+  const snapshot = chartEditorOriginalCharts.get(snapshotKey);
+  const validationError = chartValidationError(nextChart);
+  if (validationError) {
+    if (!snapshot) return false;
+    snapshot.draft = nextChart;
+    if (rerenderEditors) renderChartBlockEditors();
+    const target = chartBlockEditors?.querySelector(`[data-chart-snapshot-key="${CSS.escape(snapshotKey)}"]`);
+    chartEditorStatus(target, validationError);
+    const confirm = target?.querySelector('[data-chart-action="confirm"]');
+    if (confirm) confirm.disabled = true;
+    return true;
+  }
+  if (snapshot) delete snapshot.draft;
+  const target = chartBlockEditors?.querySelector(`[data-chart-snapshot-key="${CSS.escape(snapshotKey)}"]`);
+  const confirm = target?.querySelector('[data-chart-action="confirm"]');
+  if (confirm) confirm.disabled = false;
   try {
     captureUndoSnapshot({ inputType: "insertText" });
-    editor.value = replaceChartBlock(editor.value, block, nextChart);
+    editor.value = restoreRaw === null ? replaceChartBlock(editor.value, block, nextChart)
+      : editor.value.slice(0, block.start) + restoreRaw + editor.value.slice(block.start + block.raw.length);
     if (snapshotKey) updateChartEditorSnapshotCurrent(snapshotKey, nextChart, chartId);
     if (rerenderEditors) renderChartBlockEditors();
     scheduleSave({ render: false });
@@ -9235,6 +9298,15 @@ function handleChartEditorInput(event) {
   const block = currentChartBlock(blockIndex, chartId, snapshotKey);
   if (!block) return;
   let next = normalizeChartBlock(block.chart, chartId);
+  if (["chartType", "barMode", "barOrientation"].includes(event.target.dataset.chartField)) {
+    const invalidInput = firstInvalidChartNumberInput(editorBlock);
+    if (invalidInput) {
+      event.target.value = event.target.dataset.chartField === "chartType" ? next.chartType : next.appearance[event.target.dataset.chartField];
+      chartEditorStatus(editorBlock, "数値は有限な数値を入力してください");
+      invalidInput.focus({ preventScroll: true });
+      return;
+    }
+  }
   let renamedSeriesIndex = null;
   let renamedItemIndex = null;
   if (event.target.dataset.chartSeriesValue) {
@@ -9242,11 +9314,11 @@ function handleChartEditorInput(event) {
     const seriesIndex = Number(event.target.dataset.chartSeriesIndex);
     if (!next.items[itemIndex] || !next.series[seriesIndex]) return;
     if (!setChartNumberValidity(event.target)) {
-      chartEditorStatus(editorBlock, "数値は0以上の有限な数値を入力してください");
+      chartEditorStatus(editorBlock, "数値は有限な数値を入力してください");
       return;
     }
     next.series = next.series.map((series, index) => index === seriesIndex
-      ? { ...series, values: series.values.map((value, valueIndex) => valueIndex === itemIndex ? nonNegativeFiniteNumber(event.target.value) : value) }
+      ? { ...series, values: series.values.map((value, valueIndex) => valueIndex === itemIndex ? finiteChartNumber(event.target.value) : value) }
       : series);
   } else if (event.target.dataset.chartPieItemColor) {
     const itemIndex = Number(event.target.closest(".chart-block-item-row")?.dataset.chartItemIndex);
@@ -9267,10 +9339,10 @@ function handleChartEditorInput(event) {
     if (!next.items[itemIndex]) return;
     const field = event.target.dataset.chartItemField;
     if (field === "value" && !setChartNumberValidity(event.target)) {
-      chartEditorStatus(editorBlock, "数値は0以上の有限な数値を入力してください");
+      chartEditorStatus(editorBlock, "数値は有限な数値を入力してください");
       return;
     }
-    next.items = next.items.map((item, index) => index === itemIndex ? { ...item, [field]: field === "value" ? nonNegativeFiniteNumber(event.target.value) : event.target.value } : item);
+    next.items = next.items.map((item, index) => index === itemIndex ? { ...item, [field]: field === "value" ? finiteChartNumber(event.target.value) : event.target.value } : item);
     if (field === "label") renamedItemIndex = itemIndex;
   } else if (event.target.dataset.chartField === "color") {
     next.appearance = { ...next.appearance, color: event.target.value };
@@ -9320,13 +9392,18 @@ function handleChartEditorChange(event) {
 async function confirmChartEditor(editorBlock, blockIndex, chartId, snapshotKey) {
   const invalidInput = firstInvalidChartNumberInput(editorBlock);
   if (invalidInput) {
-    chartEditorStatus(editorBlock, "数値は0以上の有限な数値を入力してください");
+    chartEditorStatus(editorBlock, "数値は有限な数値を入力してください");
     invalidInput.focus({ preventScroll: true });
     return;
   }
 
   const block = currentChartBlock(blockIndex, chartId, snapshotKey);
   if (!block) return;
+  const validationError = chartValidationError(block.chart);
+  if (validationError) {
+    chartEditorStatus(editorBlock, validationError);
+    return;
+  }
   if (!commitChartBlockChange(blockIndex, chartId, normalizeChartBlock(block.chart, chartId), { snapshotKey })) {
     chartEditorStatus(editorBlock, "入力内容を保存できませんでした");
     return;
@@ -9389,7 +9466,7 @@ function handleChartEditorAction(event) {
       if (!Number.isInteger(itemIndex) || destinationIndex < 0 || destinationIndex >= next.items.length) return;
       const invalidInput = firstInvalidChartNumberInput(editorBlock);
       if (invalidInput) {
-        chartEditorStatus(editorBlock, "数値は0以上の有限な数値を入力してください");
+        chartEditorStatus(editorBlock, "数値は有限な数値を入力してください");
         invalidInput.focus({ preventScroll: true });
         return;
       }
@@ -9434,7 +9511,7 @@ function handleChartEditorAction(event) {
       if (!Number.isInteger(seriesIndex) || destinationIndex < 0 || destinationIndex >= next.series.length) return;
       const invalidInput = firstInvalidChartNumberInput(editorBlock);
       if (invalidInput) {
-        chartEditorStatus(editorBlock, "数値は0以上の有限な数値を入力してください");
+        chartEditorStatus(editorBlock, "数値は有限な数値を入力してください");
         invalidInput.focus({ preventScroll: true });
         return;
       }
@@ -9468,7 +9545,7 @@ function handleChartEditorAction(event) {
       return;
     case "cancel": {
       const original = chartEditorOriginalChart(snapshotKey, chartId);
-      if (!original || !commitChartBlockChange(blockIndex, chartId, original, { rerenderEditors: true, snapshotKey })) return;
+      if (!original || !commitChartBlockChange(blockIndex, chartId, original, { rerenderEditors: true, snapshotKey, restoreRaw: chartEditorOriginalCharts.get(snapshotKey)?.originalRaw ?? null })) return;
       requestAnimationFrame(() => {
         const restoredEditor = chartBlockEditors?.querySelector(`.chart-block-editor[data-chart-snapshot-key="${CSS.escape(snapshotKey)}"]`);
         chartEditorStatus(restoredEditor, "編集内容を取り消しました");
