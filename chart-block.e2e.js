@@ -154,6 +154,135 @@ function boxesHaveGap(first, second, minimumGap = 2) {
 }
 
 
+
+async function verifyDivergingStacks(page) {
+  await page.setViewportSize({ width: 1100, height: 820 });
+  const seed = {
+    id: 'diverging-e2e', chartType: 'bar', title: '発散型積み上げ', unit: '万円',
+    items: [{ id: 'a', label: '正負混在' }, { id: 'b', label: '別の構成' }, { id: 'c', label: 'ゼロ項目' }],
+    series: [{ id: 's1', name: '系列A', color: '#123456', values: [30,-20,0] }, { id: 's2', name: '系列B', color: '#dc2626', values: [-10,10,0] }, { id: 's3', name: '系列C', color: '#059669', values: [20,-30,0] }],
+    appearance: { barMode: 'stacked', showValues: true, showStackTotals: true, showLegend: true }
+  };
+  await page.locator('#editor').fill(await page.evaluate((seed) => window.MemoNexusChartBlockUtils.serializeChartBlock(seed), seed));
+  const panel = page.locator('.chart-block-editor[data-chart-id="diverging-e2e"]');
+  await panel.waitFor({ state: 'visible' });
+  const type = panel.locator('[data-chart-field="chartType"]');
+  const mode = panel.locator('[data-chart-field="barMode"]');
+  const orientation = panel.locator('[data-chart-field="barOrientation"]');
+  const input = (item, series) => panel.locator('[data-chart-item-index="' + item + '"] input[data-chart-series-index="' + series + '"]');
+  const confirm = panel.locator('[data-chart-action="confirm"]');
+  const cancel = panel.locator('[data-chart-action="cancel"]');
+  async function geometry(horizontal, values) {
+    await page.waitForFunction((horizontal) => {
+      const fig = document.querySelector('#preview figure[data-chart-id="diverging-e2e"]');
+      return fig?.dataset.chartBarMode === 'stacked' && fig.classList.contains('chart-block-horizontal-bar-chart') === horizontal;
+    }, horizontal);
+    const state = await page.locator('#preview figure[data-chart-id="diverging-e2e"]').evaluate((figure) => {
+      const svg = figure.querySelector('svg');
+      const zero = svg.querySelector('.chart-block-zero-line');
+      const box = (el) => { const b = el.getBBox(); return { x:b.x,y:b.y,width:b.width,height:b.height }; };
+      const totals = [...svg.querySelectorAll('.chart-block-stacked-total-value')];
+      const texts = [...svg.querySelectorAll('.chart-block-value,.chart-block-stacked-total-value,.chart-block-axis-value,.chart-block-label')];
+      return {
+        zero: { x:Number(zero.getAttribute('x1')), y:Number(zero.getAttribute('y1')), count:svg.querySelectorAll('.chart-block-zero-line').length, hidden:zero.getAttribute('aria-hidden'), stroke:getComputedStyle(zero).stroke },
+        axes: [...svg.querySelectorAll('line')].map((el) => ['x1','x2','y1','y2'].map((name) => el.getAttribute(name)).join(',')),
+        groups: [...svg.querySelectorAll('.chart-block-bar-group')].map((group) => ({
+          bars: [...group.querySelectorAll('.chart-block-bar')].map((g) => { const rect=g.querySelector('rect'); return { id:g.dataset.chartSeriesId, title:g.querySelector('title').textContent, rect:rect ? ['x','y','width','height'].map((n)=>Number(rect.getAttribute(n))) : null, color:rect?.getAttribute('fill') }; }),
+          totals: [...group.querySelectorAll('.chart-block-stacked-total-value')].map((el) => ({ side:el.dataset.chartTotalSide, description:el.getAttribute('aria-label'), box:box(el) }))
+        })),
+        collisions: totals.flatMap((total) => texts.filter((other) => other !== total && (() => { const a=box(total),b=box(other); return a.x < b.x+b.width && a.x+a.width > b.x && a.y < b.y+b.height && a.y+a.height > b.y; })()).map((other) => [total.getAttribute('aria-label'),other.textContent])),
+        outside: texts.filter((el)=>{const b=box(el),v=svg.viewBox.baseVal;return b.x < -0.1 || b.y < -0.1 || b.x+b.width > v.width+0.1 || b.y+b.height > v.height+0.1;}).map((el)=>el.textContent),
+        invalid: [...svg.querySelectorAll('*')].flatMap((el)=>[...el.attributes].filter((a)=>/NaN|Infinity/.test(a.value)).map((a)=>a.name)),
+        zeros: [...svg.querySelectorAll('.chart-block-axis-value')].filter((el)=>el.textContent==='0').length,
+        overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth || document.body.scrollWidth > document.documentElement.clientWidth,
+        accessible: figure.querySelector('.sr-only').textContent,
+        legend: [...figure.querySelectorAll('.chart-block-legend li')].map((el)=>el.textContent)
+      };
+    });
+    assert.equal(state.zero.count,1); assert.equal(state.zero.hidden,'true'); assert.notEqual(state.zero.stroke,'none');
+    assert.equal(new Set(state.axes).size,state.axes.length,'軸線の重複なし');
+    assert.equal(state.zeros,1); assert.equal(state.overflow,false);
+    assert.deepEqual(state.invalid,[]); assert.deepEqual(state.outside,[]); assert.deepEqual(state.collisions,[], '合計ラベルの衝突なし');
+    assert.deepEqual(state.legend,seed.series.map((s)=>s.name));
+    for (let item=0;item<3;item++) {
+      const group=state.groups[item];
+      const previous={positive:horizontal?state.zero.x:state.zero.y,negative:horizontal?state.zero.x:state.zero.y};
+      assert.deepEqual(group.bars.map((b)=>b.id),seed.series.map((s)=>s.id));
+      for (let index=0;index<3;index++) {
+        const bar=group.bars[index],value=values[index][item],side=value<0?'negative':'positive';
+        assert.ok(bar.title.includes(String(value)));
+        if (!bar.rect) {
+          const magnitude = Math.max(...values.flat().map(Math.abs));
+          assert.ok(value === 0 || Math.abs(value) / magnitude < 1e-12, "通常の非0値の棒を省略しない");
+          continue;
+        }
+        const [x,y,w,h]=bar.rect;
+        assert.ok(bar.rect.every(Number.isFinite)&&w>=0&&h>=0); assert.equal(bar.color,seed.series[index].color);
+        const start=horizontal?(value<0?x+w:x):(value<0?y:y+h);
+        const end=horizontal?(value<0?x:x+w):(value<0?y+h:y);
+        assert.ok(Math.abs(start-previous[side])<0.0001,'同符号だけが連続して積み上がる');
+        assert.ok(horizontal?(value<0?end<=state.zero.x:end>=state.zero.x):(value<0?end>=state.zero.y:end<=state.zero.y));
+        previous[side]=end;
+      }
+      const itemValues=values.map((s)=>s[item]);
+      const positive=itemValues.filter((n)=>n>0),negative=itemValues.filter((n)=>n<0);
+      assert.deepEqual(group.totals.map((t)=>t.side),[...(positive.length||!negative.length?['positive']:[]),...(negative.length?['negative']:[])]);
+      for (const total of group.totals) {
+        const sum=(total.side==='positive'?positive:negative).reduce((a,b)=>a+b,0);
+        assert.ok(total.description.includes(Number.isFinite(sum)?String(sum):'上限超過'));
+        assert.ok(state.accessible.includes(total.description));
+      }
+    }
+  }
+  const datasets = [seed.series.map((s)=>s.values), [[30,30,30],[10,10,10],[20,20,20]], [[-30,-30,-30],[-10,-10,-10],[-20,-20,-20]], [[0,0,0],[0,0,0],[0,0,0]], [[Number.MAX_VALUE,-Number.MAX_VALUE,1e-300],[Number.MAX_VALUE,-Number.MAX_VALUE,-1e300],[-Number.MAX_VALUE,Number.MAX_VALUE,0]], [[1e300,1e300,1e300],[-1e-300,-1e-300,-1e-300],[0,0,0]], [[-1e300,-1e300,-1e300],[1e-300,1e-300,1e-300],[0,0,0]]];
+  for (const values of datasets) {
+    for (let item=0;item<3;item++) for(let series=0;series<3;series++) await input(item,series).fill(String(values[series][item]));
+    for(const theme of ['light','dark']) {
+      await page.locator('#settingsBtn').click();await page.locator('#themeSelect').selectOption(theme);await page.locator('#closeSettingsBtn').click();
+      for(const width of [320,375,390,430,1100]) {
+        await page.setViewportSize({width,height:820});
+        for(const horizontal of [false,true]) {await orientation.selectOption(horizontal?'horizontal':'vertical');await geometry(horizontal,values);}
+      }
+    }
+  }
+  for(let item=0;item<3;item++) for(let series=0;series<3;series++) await input(item,series).fill(String(seed.series[series].values[item]));
+  for(const kind of ['vertical','horizontal']) {
+    await orientation.selectOption(kind); await confirm.click();
+    await page.waitForFunction(()=>document.querySelector('.chart-block-editor .chart-block-status')?.textContent==='入力内容を保存しました');
+    const saved=await chart(page), savedBody=await page.locator('#editor').inputValue();
+    await page.reload({waitUntil:'domcontentloaded'});await page.locator('#appStartupGuard').waitFor({state:'hidden'});await panel.waitFor({state:'visible'});
+    assert.deepEqual(await chart(page),saved);assert.equal(await page.locator('#editor').inputValue(),savedBody);
+    await geometry(kind==='horizontal',seed.series.map((s)=>s.values));
+    for(const supported of ['grouped','line']) {
+      if(supported==='line')await type.selectOption('line');else await mode.selectOption('grouped');
+      assert.deepEqual((await chart(page)).series,seed.series);
+      await type.selectOption('bar');await mode.selectOption('stacked');assert.deepEqual((await chart(page)).series,seed.series);
+    }
+    for(const unsupported of ['percent-stacked','pie']) {
+      if(unsupported==='pie')await type.selectOption('pie');else await mode.selectOption(unsupported);
+      assert.equal(await confirm.isDisabled(),true);assert.match(await panel.locator('.chart-block-editor-preview').textContent(),/負数に未対応/);
+      assert.equal(await page.locator('#editor').inputValue(),savedBody);
+      await input(0,1).fill('-11');assert.equal(await page.locator('#editor').inputValue(),savedBody);
+      if(unsupported==='pie')await type.selectOption('bar');else await mode.selectOption('stacked');
+      assert.equal((await chart(page)).series[1].values[0],-11);assert.equal(await confirm.isDisabled(),false);
+      await cancel.click();await waitForChartCancelCompletion(page,0);assert.equal(await page.locator('#editor').inputValue(),savedBody);
+      if(unsupported==='pie')await type.selectOption('pie');else await mode.selectOption(unsupported);
+      await input(0,1).fill('-12');await cancel.click();await waitForChartCancelCompletion(page,0);assert.equal(await page.locator('#editor').inputValue(),savedBody);
+    }
+    await mode.selectOption('percent-stacked');await input(0,1).fill('-99');
+    await page.reload({waitUntil:'domcontentloaded'});await page.locator('#appStartupGuard').waitFor({state:'hidden'});await panel.waitFor({state:'visible'});
+    assert.equal(await page.locator('#editor').inputValue(),savedBody,'未確定エラーをページ終了時に保存しない');
+    assert.deepEqual((await chart(page)).series,seed.series);
+  }
+  const legacy='<!-- memo-nexus:chart-block:'+Buffer.from(JSON.stringify({id:'legacy-stacked',items:[{label:'旧項目',value:30}],appearance:{barMode:'stacked'}})).toString('hex')+' -->';
+  await page.locator('#editor').fill(legacy);await page.locator('.chart-block-editor[data-chart-id="legacy-stacked"]').waitFor({state:'visible'});
+  assert.equal(await page.locator('#editor').inputValue(),legacy);
+  await page.locator('.chart-block-editor input[data-chart-series-value]').fill('-30');
+  await page.locator('.chart-block-editor [data-chart-action="cancel"]').click();await waitForChartCancelCompletion(page,0);
+  assert.equal(await page.locator('#editor').inputValue(),legacy);
+  console.log('Diverging stack checks passed: 140 geometry combinations, signed totals, persistence, type switches, invalid drafts, reload and cancel');
+}
+
 async function verifySignedCharts(page) {
   await page.setViewportSize({ width: 1100, height: 820 });
   const seed = {
@@ -253,7 +382,7 @@ async function verifySignedCharts(page) {
   await page.waitForFunction(() => document.querySelector('.chart-block-editor .chart-block-status')?.textContent === '入力内容を保存しました');
   const savedBody = await page.locator('#editor').inputValue();
   const saved = await chart(page);
-  for (const unsupported of ['stacked', 'percent-stacked', 'pie']) {
+  for (const unsupported of ['percent-stacked', 'pie']) {
     if (unsupported === 'pie') await type.selectOption('pie');
     else await mode.selectOption(unsupported);
     assert.match(await panel.locator('.chart-block-editor-preview').textContent(), /負数に未対応/);
@@ -270,7 +399,7 @@ async function verifySignedCharts(page) {
     await waitForChartCancelCompletion(page, 0);
     assert.deepEqual(await chart(page), saved, '取消で対応形式と全系列・設定へ戻す');
   }
-  await mode.selectOption('stacked');
+  await mode.selectOption('percent-stacked');
   await cancel.click();
   await waitForChartCancelCompletion(page, 0);
   assert.equal(await page.locator('#editor').inputValue(), savedBody, '未対応エラー状態から直接取消できる');
@@ -1608,6 +1737,7 @@ async function verifySignedCharts(page) {
     assert.ok(metrics.card <= metrics.viewport, "390px幅でもグラフカードが画面からはみ出さない");
     assert.equal(metrics.pageOverflow, 0, "390px幅でもページ全体の横スクロールを作らない");
     await verifySignedCharts(page);
+    await verifyDivergingStacks(page);
     assert.deepEqual(pageErrors, [], `ページエラーなし: ${pageErrors.join("\n")}`);
     assert.deepEqual(consoleErrors, [], `console errorなし: ${consoleErrors.join("\n")}`);
   } catch (error) {
