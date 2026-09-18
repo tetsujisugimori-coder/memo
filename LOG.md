@@ -2862,3 +2862,4 @@
 * 検証中の修正: 初回Chart E2Eが正数のみの棒中心間隔の変化を検出したため、幅拡張を負数がある場合だけへ限定（既存assert維持）。レビューで0位置へ丸められる負数にもラベル余白を確保し、最小有限値の丸め目盛りについて0と端を保持する検証を追加。
 * 制限: 極端な桁差では小さい有限値の描画寸法が0へ丸められる場合があるが、値は保存・読み上げ情報に保持。100%積み上げ・円の負数、二軸、複合、4系列以上、日付軸、CSV/TSV・表連携、ズーム／パン、画像等出力、外部ライブラリは対象外。Safari／iPhone実機は未確認であり、Playwright WebKitは実機確認とは区別する。
 * 最終ローカル結果: 変更JavaScript 22ファイルのnode --check成功、node --test chart-block-utils.test.jsは98/98、npm testは1,173/1,173成功（fail/skip 0）。正式npm run test:e2e:chartはChromium／WebKitとも終了コード0で140通りの追加検証まで完走。npm run test:e2e:mobile（layout＋writing）も両ブラウザで終了コード0。page error／console error 0、非有限SVG属性・負の寸法・意図しないページ横はみ出しなし。git diff --check成功。最終HEADのCI結果はPR本文へ追記する。
+* CI追跡: 初回run 35339961019は5/6ジョブ成功、WebKit Chart E2Eは既存verifySignedCharts()開始時の本文差し替えでタイムアウト。診断には新しいsigned-e2eマーカーではなく旧本文が残っていた。モバイルからwideへのresize反映はsetMobileWritingMode(false)でeditor.blur()するため、直後のPlaywright fillと競合し得る。既存Mobile E2Eと同じdataset.layoutMode条件を本文入力前に待ち、fill直後の本文一致assertを追加した。固定待機・タイムアウト延長・assert撤去・製品コードの変更は行わない。

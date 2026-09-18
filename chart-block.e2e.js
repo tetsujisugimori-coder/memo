@@ -157,6 +157,8 @@ function boxesHaveGap(first, second, minimumGap = 2) {
 
 async function verifyDivergingStacks(page) {
   await page.setViewportSize({ width: 1100, height: 820 });
+  // Responsive mode changes can blur the editor; wait before starting a new input.
+  await page.waitForFunction(() => document.body.dataset.layoutMode === "wide");
   const seed = {
     id: 'diverging-e2e', chartType: 'bar', title: '発散型積み上げ', unit: '万円',
     items: [{ id: 'a', label: '正負混在' }, { id: 'b', label: '別の構成' }, { id: 'c', label: 'ゼロ項目' }],
@@ -285,6 +287,8 @@ async function verifyDivergingStacks(page) {
 
 async function verifySignedCharts(page) {
   await page.setViewportSize({ width: 1100, height: 820 });
+  // Responsive mode changes can blur the editor; wait before starting a new input.
+  await page.waitForFunction(() => document.body.dataset.layoutMode === "wide");
   const seed = {
     id: "signed-e2e", chartType: "bar", title: "正負の比較", unit: "万円",
     items: [{ id: "a", label: "正負の項目A" }, { id: "b", label: "ゼロ項目B" }, { id: "c", label: "正負の項目C" }],
@@ -293,6 +297,7 @@ async function verifySignedCharts(page) {
   };
   const body = await page.evaluate((seed) => window.MemoNexusChartBlockUtils.serializeChartBlock(seed), seed);
   await page.locator("#editor").fill(body);
+  assert.equal(await page.locator("#editor").inputValue(), body, "レイアウト反映後に負数テスト本文を入力する");
   await page.waitForFunction(() => document.querySelector('.chart-block-editor[data-chart-id="signed-e2e"]'));
   const panel = page.locator('.chart-block-editor[data-chart-id="signed-e2e"]');
   const input = (item, series) => panel.locator('[data-chart-item-index="' + item + '"] input[data-chart-series-index="' + series + '"]');
@@ -376,6 +381,8 @@ async function verifySignedCharts(page) {
     }
   }
   await page.setViewportSize({ width: 1100, height: 820 });
+  // Responsive mode changes can blur the editor; wait before starting a new input.
+  await page.waitForFunction(() => document.body.dataset.layoutMode === "wide");
   await type.selectOption('bar');
   await orientation.selectOption('vertical');
   await confirm.click();
