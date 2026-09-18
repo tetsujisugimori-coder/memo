@@ -546,6 +546,9 @@ async function verifySignedCharts(page) {
     await page.locator("#insertChartBtn").click();
     const editor = page.locator(".chart-block-editor");
     await editor.waitFor({ state: "visible" });
+    // Insertion focuses the title on the next animation frame. Finish that
+    // focus handoff before fill() can move to another field.
+    await page.waitForFunction(() => document.activeElement?.getAttribute("aria-label") === "グラフ1のタイトル");
     assert.equal(await editor.locator('button[data-chart-action="move-item-up"]').isDisabled(), true, "1項目だけでは上へを無効化する");
     assert.equal(await editor.locator('button[data-chart-action="move-item-down"]').isDisabled(), true, "1項目だけでは下へを無効化する");
     assert.equal(await editor.locator('button[data-chart-action="move-item-up"]').getAttribute("aria-label"), "1件目の項目を上へ移動", "空の項目名は項目番号で移動操作を識別する");
@@ -553,9 +556,12 @@ async function verifySignedCharts(page) {
     assert.equal(await editor.locator('button[data-chart-action="move-series-down"]').isDisabled(), true, "1系列だけでは系列の下へを無効化する");
     await editor.locator('input[aria-label="グラフ1のタイトル"]').fill("テスト得点");
     await editor.locator('input[aria-label="グラフ1の単位"]').fill("点");
+    assert.equal(await editor.locator('input[aria-label="グラフ1のタイトル"]').inputValue(), "テスト得点");
+    assert.equal(await editor.locator('input[aria-label="グラフ1の単位"]').inputValue(), "点");
     await editor.locator('input[aria-label="1件目の項目名"]').fill("国語");
     await editor.locator('input[aria-label="1件目の数値"]').fill("70.5");
     await editor.locator('button[data-chart-action="add-item"]').click();
+    await page.waitForFunction(() => document.activeElement?.matches('.chart-block-item-row[data-chart-item-index="1"] input[data-chart-item-field="label"]'));
     await editor.locator('input[aria-label="2件目の項目名"]').fill("数学");
     await editor.locator('input[aria-label="2件目の数値"]').fill("0");
     await editor.locator('input[aria-label="グラフ1の棒の色"]').evaluate((input) => { input.value = "#dc2626"; input.dispatchEvent(new Event("input", { bubbles: true })); });
