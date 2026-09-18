@@ -197,6 +197,9 @@
         pieSeriesId,
         ...(source.chartType === "combo" || Object.hasOwn(appearanceSource, "comboLineSeriesId")
           ? { comboLineSeriesId: normalizeComboLineSeriesId(appearanceSource.comboLineSeriesId, series) } : {}),
+        ...(source.chartType === "combo" || Object.hasOwn(appearanceSource, "comboAxisMode") || Object.hasOwn(appearanceSource, "comboSecondaryUnit")
+          ? { comboAxisMode: appearanceSource.comboAxisMode === "dual" ? "dual" : "single",
+            comboSecondaryUnit: normalizedText(appearanceSource.comboSecondaryUnit).trim() } : {}),
         ...(Object.keys(pieItemColors).length ? { pieItemColors } : {})
       }
     };
@@ -600,18 +603,54 @@
     return { range, groupWidth, groups, segments: groups.flatMap((group) => group.segments) };
   }
 
+  // Expand only at render time. Symmetric domains align mixed signs without
+  // ever adding magnitudes or expanding an endpoint beyond MAX_VALUE.
+  function comboAxisRanges(chartValue) {
+    const chart = normalizeChartBlock(chartValue, chartValue?.id);
+    const kinds = comboSeriesKinds(chart);
+    const rangeOf = (entries) => chartValueRange(chart.items.flatMap((item, index) => item.label
+      ? entries.map(({ series }) => ({ value: series.values[index] })) : []));
+    const sharedRange = rangeOf(kinds);
+    if (chart.appearance.comboAxisMode !== "dual") {
+      return { mode: "single", leftRange: sharedRange, rightRange: sharedRange, zeroRatio: chartValueRatio(0, sharedRange) };
+    }
+    const leftDataRange = rangeOf(kinds.filter(({ kind }) => kind === "bar"));
+    const rightDataRange = rangeOf(kinds.filter(({ kind }) => kind === "line"));
+    const positive = sharedRange.maximum > 0;
+    const negative = sharedRange.minimum < 0;
+    const align = (range) => {
+      if (!negative) return range;
+      // A zero-only axis has no scale: use one unit of empty space so its zero
+      // follows the other axis (top for negative-only, center for mixed signs).
+      const magnitude = Math.max(-range.minimum, range.maximum) || 1;
+      return { minimum: -magnitude, maximum: positive ? magnitude : 0 };
+    };
+    return { mode: "dual", leftDataRange, rightDataRange,
+      leftRange: align(leftDataRange), rightRange: align(rightDataRange), zeroRatio: negative ? (positive ? 0.5 : 1) : 0 };
+  }
+
+  function comboValueAxisLayout(range, options = {}) {
+    const ticks = chartNumericTicks(range, options).map((tick) => ({ ...tick,
+      fullLabel: String(tick.value),
+      label: chartTextWidth(tick.label) > 80 ? tick.value.toExponential(2) : tick.label
+    }));
+    const labelWidth = Math.max(...ticks.map((tick) => chartTextWidth(tick.label)));
+    return { ticks, labelWidth, margin: Math.max(42, Math.ceil(labelWidth + 10)) };
+  }
+
   function comboChartLayout(chartValue, options = {}) {
     const chart = normalizeChartBlock(chartValue, chartValue?.id);
     const kinds = comboSeriesKinds(chart);
-    const range = chartValueRange(chart.items.flatMap((item, index) => item.label
-      ? chart.series.map((series) => ({ value: series.values[index] })) : []));
+    const axes = comboAxisRanges(chart);
+    const range = axes.leftRange;
     const layout = groupedBarLayout(chart.items, kinds.filter((entry) => entry.kind === "bar").map((entry) => entry.series), { ...options, range });
     const lineSeries = kinds.find((entry) => entry.kind === "line")?.series;
     const points = lineChartPoints(layout.groups.map(({ item, itemIndex }) => ({ ...item, value: lineSeries.values[itemIndex] })), options.width ?? 420, {
-      ...options, top: options.top ?? 54, baseline: options.baseline ?? 196, range, left: (options.left ?? 52) + layout.groupWidth / 2,
+      ...options, top: options.top ?? 54, baseline: options.baseline ?? 196, range: axes.rightRange, left: (options.left ?? 52) + layout.groupWidth / 2,
       right: (options.right ?? 18) + layout.groupWidth / 2
     });
-    return { ...layout, kinds, lineSeries, points };
+    const zero = (options.baseline ?? 196) - axes.zeroRatio * ((options.baseline ?? 196) - (options.top ?? 54));
+    return { ...layout, ...axes, zero, kinds, lineSeries, points };
   }
 
   function horizontalBarLabel(itemLabel, { maximumWidth = 180, characterWidth = 12, maximumLines = 2 } = {}) {
@@ -736,6 +775,8 @@
 
   const api = {
     comboChartLayout,
+    comboAxisRanges,
+    comboValueAxisLayout,
     comboSeriesKinds,
     groupedBarLayout,
     normalizeComboLineSeriesId,
