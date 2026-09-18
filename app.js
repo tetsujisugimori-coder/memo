@@ -472,6 +472,9 @@ const {
   chartLabelLayout,
   chartDivergingStacks,
   chartStackedTotals,
+  comboChartLayout,
+  comboSeriesKinds,
+  groupedBarLayout,
   chartValueLabelLayout,
   chartBarExtent,
   chartValueRange,
@@ -8461,11 +8464,12 @@ function chartAccessibleItems(chart, percentStackedLayout = null, stackedTotals 
     return percentStackedLayout.segments.map((segment) => `<li>${escapeHtml(chartPercentSegmentDescription(segment, chart.unit))}</li>`).join("");
   }
   const accessibleSeries = chartDisplaySeries(chart);
+  const kinds = chart.chartType === "combo" ? new Map(comboSeriesKinds(chart).map(({ series, kind }) => [series.id, kind === "line" ? "折れ線" : "棒"])) : null;
   const totalsByItemIndex = new Map((Array.isArray(stackedTotals) ? stackedTotals : []).map((entry) => [entry.itemIndex, entry]));
   return chart.items.flatMap((item, itemIndex) => {
     if (!item.label) return [];
     const entries = accessibleSeries.map((series) =>
-      `<li>${escapeHtml(`${item.label}、${series.name}: ${chartDisplayNumber(series.values[itemIndex])}${chart.unit}`)}</li>`
+      `<li>${escapeHtml(`${item.label}、${series.name}${kinds ? `（${kinds.get(series.id)}）` : ""}: ${chartDisplayNumber(series.values[itemIndex])}${chart.unit}`)}</li>`
     );
     const total = totalsByItemIndex.get(itemIndex);
     if (total) (total.totals || [total]).forEach((side) => entries.push(`<li>${escapeHtml(`${item.label}、${chartStackTotalDescription(side, chart.unit)}`)}</li>`));
@@ -8483,6 +8487,7 @@ function chartValueLabel(value) {
 
 function chartVerticalValueMarkup(value, x, tip, options) {
   const label = chartValueLabelLayout(value, { ...options, x, tip });
+  if (!label) return "";
   options.occupied.push(label.box);
   return `<text class="chart-block-value" x="${label.x}" y="${label.y}" text-anchor="middle" aria-label="${escapeAttr(chartDisplayNumber(value))}">${escapeHtml(label.text)}</text>`;
 }
@@ -8639,6 +8644,23 @@ function chartPiePath(segment, centerX, centerY, radius) {
   return `<path class="chart-block-pie-slice" data-chart-item-id="${escapeAttr(segment.id)}" d="M ${centerX} ${centerY} L ${startX} ${startY} A ${radius} ${radius} 0 ${largeArc} 1 ${endX} ${endY} Z" fill="${escapeAttr(segment.color)}"></path>`;
 }
 
+function chartLineSeriesMarkup(chart, series, points, { valueLabelOptions, categoryById = null, categoryY = 214 }) {
+  const path = points.length > 1
+    ? `<polyline class="chart-block-line-path" data-chart-series-id="${escapeAttr(series.id)}" points="${points.map((point) => `${point.x},${point.y}`).join(" ")}" fill="none" stroke="${escapeAttr(series.color)}"></polyline>`
+    : "";
+  const pointItems = points.map((point) => {
+    const value = chart.appearance.showValues
+      ? chartVerticalValueMarkup(point.value, point.x, point.y, valueLabelOptions)
+      : "";
+    const marker = chart.appearance.showPoints
+      ? `<circle class="chart-block-line-point" data-chart-series-id="${escapeAttr(series.id)}" cx="${point.x}" cy="${point.y}" r="4.5" fill="var(--section-bg)" stroke="${escapeAttr(series.color)}"></circle>`
+      : "";
+    const label = chartCategoryLabelMarkup(categoryById?.get(point.id), point.x, categoryY);
+    return `<g class="chart-block-line-item" data-chart-item-id="${escapeAttr(point.id)}" data-chart-series-id="${escapeAttr(series.id)}"><title>${escapeHtml(`${point.label}、${series.name}${chart.chartType === "combo" ? "（折れ線）" : ""}: ${chartDisplayNumber(point.value)}${chart.unit}`)}</title>${value}${marker}${label}</g>`;
+  }).join("");
+  return `<g class="chart-block-line-series" data-chart-series-id="${escapeAttr(series.id)}">${path}${pointItems}</g>`;
+}
+
 function renderChartBlock(chartValue, blockIndex, { editable = true } = {}) {
   const chart = normalizeChartBlock(chartValue, `chart-${blockIndex + 1}`);
   const pieSeries = chart.chartType === "pie" ? resolvePieSeries(chart) : null;
@@ -8674,9 +8696,10 @@ function renderChartBlock(chartValue, blockIndex, { editable = true } = {}) {
     const pieAriaLabel = `${title}${chart.unit ? `（単位: ${chart.unit}）` : ""}（表示系列: ${pieSeries.name}）`;
     return `<figure class="chart-block chart-block-pie" data-chart-id="${escapeAttr(chart.id)}" data-chart-series-id="${escapeAttr(pieSeries.id)}"><figcaption>${escapeHtml(pieTitle)}</figcaption>${controls}<div class="chart-block-pie-layout"><div class="chart-block-scroll" role="region" tabindex="0" aria-label="${escapeAttr(pieTitle)}"><svg viewBox="0 0 360 260" role="img" aria-label="${escapeAttr(pieAriaLabel)}">${slices}${empty}</svg></div>${legend}</div><ul class="sr-only">${accessibleItems || "<li>有効な項目はありません</li>"}</ul></figure>`;
   }
+  const combo = chart.chartType === "combo";
   const visibleSeriesCount = chartDisplaySeries(chart).length;
   const valueSlotWidth = Math.max(32, ...chart.series.flatMap((series) => series.values.map((value) => chartTextWidth(chartValueLabel(value)) + 8)));
-  const baseWidth = Math.max(420, chart.items.filter((item) => item.label).length * Math.max(74, visibleSeriesCount * (chart.chartType === "line" || chart.appearance.barMode === "grouped" ? valueSlotWidth : 32) + 34) + 76);
+  const baseWidth = Math.max(420, chart.items.filter((item) => item.label).length * Math.max(74, visibleSeriesCount * (chart.chartType === "line" || combo || chart.appearance.barMode === "grouped" ? valueSlotWidth : 32) + 34) + 76);
   const height = 260;
   const baseline = 196;
   if (chart.chartType === "line") {
@@ -8708,20 +8731,7 @@ function renderChartBlock(chartValue, blockIndex, { editable = true } = {}) {
         baseline: lineLayout.baseline,
         range: maximum
       });
-      const path = points.length > 1
-        ? `<polyline class="chart-block-line-path" data-chart-series-id="${escapeAttr(series.id)}" points="${points.map((point) => `${point.x},${point.y}`).join(" ")}" fill="none" stroke="${escapeAttr(series.color)}"></polyline>`
-        : "";
-      const pointItems = points.map((point) => {
-        const value = chart.appearance.showValues
-          ? chartVerticalValueMarkup(point.value, point.x, point.y, valueLabelOptions)
-          : "";
-        const marker = chart.appearance.showPoints
-          ? `<circle class="chart-block-line-point" data-chart-series-id="${escapeAttr(series.id)}" cx="${point.x}" cy="${point.y}" r="4.5" fill="var(--section-bg)" stroke="${escapeAttr(series.color)}"></circle>`
-          : "";
-        const label = seriesIndex === 0 ? chartCategoryLabelMarkup(categoryById.get(point.id), point.x, categoryY) : "";
-        return `<g class="chart-block-line-item" data-chart-item-id="${escapeAttr(point.id)}" data-chart-series-id="${escapeAttr(series.id)}"><title>${escapeHtml(`${point.label}、${series.name}: ${chartDisplayNumber(point.value)}${chart.unit}`)}</title>${value}${marker}${label}</g>`;
-      }).join("");
-      return `<g class="chart-block-line-series" data-chart-series-id="${escapeAttr(series.id)}">${path}${pointItems}</g>`;
+      return chartLineSeriesMarkup(chart, series, points, { valueLabelOptions, categoryById: seriesIndex === 0 ? categoryById : null, categoryY });
     }).join("");
     const empty = lineSeries.some(({ items: seriesItems }) => seriesItems.length) ? "" : `<text class="chart-block-empty" x="${lineWidth / 2}" y="${height / 2}" text-anchor="middle">項目名と有限な数値を入力してください</text>`;
     const legend = chart.appearance.showLegend
@@ -8731,10 +8741,10 @@ function renderChartBlock(chartValue, blockIndex, { editable = true } = {}) {
     const numericAxis = chartVerticalTickMarkup(axis, maximum, { x: lineLayout.axisLabelX, top: lineLayout.plotTop, baseline: lineLayout.baseline });
     return `<figure class="chart-block chart-block-line" data-chart-id="${escapeAttr(chart.id)}"><figcaption>${escapeHtml(title)}</figcaption>${controls}<div class="chart-block-line-layout"><div class="chart-block-scroll" role="region" tabindex="0" aria-label="${escapeAttr(title)}"><svg viewBox="0 0 ${lineWidth} ${height}" role="img" aria-label="${escapeAttr(`${title}${chart.unit ? `（単位: ${chart.unit}）` : ""}`)}"><line class="chart-block-axis" x1="${lineLayout.axisX}" y1="${lineLayout.axisTop}" x2="${lineLayout.axisX}" y2="${lineLayout.baseline}"/>${zeroLine}${numericAxis}${chartUnitMarkup(chart.unit, lineLayout.axisX + 6, 18, lineWidth - lineLayout.axisX - lineLayout.plotRight)}${lines}${empty}</svg></div>${legend}</div><ul class="sr-only">${accessibleItems || "<li>有効な項目はありません</li>"}</ul></figure>`;
   }
-  if (chart.appearance.barOrientation === "horizontal") return renderHorizontalBarChart(chart, { title, controls, accessibleItems });
+  if (!combo && chart.appearance.barOrientation === "horizontal") return renderHorizontalBarChart(chart, { title, controls, accessibleItems });
   const barItems = chart.items.filter((item) => item.label);
-  const percentStacked = chart.appearance.barMode === "percent-stacked";
-  const stacked = chart.appearance.barMode === "stacked" || percentStacked;
+  const percentStacked = !combo && chart.appearance.barMode === "percent-stacked";
+  const stacked = !combo && (chart.appearance.barMode === "stacked" || percentStacked);
   const showStackTotals = shouldShowStackTotals(chart);
   const maximum = stacked ? chartBarAxisMaximum(chart, barItems, { stacked, percentStacked })
     : chartValueRange(chart.series.flatMap((series) => chartDisplayItems(chart, series)));
@@ -8755,6 +8765,24 @@ function renderChartBlock(chartValue, blockIndex, { editable = true } = {}) {
     : null;
   if (percentStacked) accessibleItems = chartAccessibleItems(chart, stackedLayout);
   else if (showStackTotals) accessibleItems = chartAccessibleItems(chart, null, stackedLayout?.groups);
+  const groupedLayout = stacked ? null : combo
+    ? comboChartLayout(chart, { left: plotLeft, right: plotRight, width, top: stackedPlotTop, baseline: barBaseline })
+    : groupedBarLayout(chart.items, chart.series, { left: plotLeft, right: plotRight, width, top: stackedPlotTop, baseline: barBaseline, range: maximum });
+  const barZero = baseline - chartValueRatio(0, maximum) * (baseline - stackedPlotTop);
+  const valueLabelOptions = { left: plotLeft, right: width - 4, hideOnCollision: combo,
+    bottom: combo && maximum.minimum >= 0 ? 194 : 212,
+    occupied: [{ x: axisX, y: barZero - 2, width: width - axisX, height: 4 }] };
+  if (combo) {
+    // Reserve marks before labels; omit a label if no free position remains.
+    valueLabelOptions.occupied.push(...groupedLayout.segments.map(({ x, y, width, height }) => ({ x, y, width, height })));
+    groupedLayout.points.forEach((point, index, points) => {
+      valueLabelOptions.occupied.push({ x: point.x - 6, y: point.y - 6, width: 12, height: 12 });
+      if (!index) return;
+      const previous = points[index - 1];
+      valueLabelOptions.occupied.push({ x: previous.x - 2, y: Math.min(previous.y, point.y) - 2,
+        width: point.x - previous.x + 4, height: Math.abs(point.y - previous.y) + 4 });
+    });
+  }
   const bars = stacked
     ? (() => {
       const layout = stackedLayout;
@@ -8785,41 +8813,29 @@ function renderChartBlock(chartValue, blockIndex, { editable = true } = {}) {
       }).join("");
     })()
     : (() => {
-      const plotWidth = Math.max(1, width - plotLeft - plotRight);
-      const groupWidth = plotWidth / Math.max(1, barItems.length);
-      const innerGap = 4;
-      const barWidth = Math.max(4, Math.min(48, (Math.max(12, groupWidth - 20) - innerGap * (chart.series.length - 1)) / chart.series.length));
-      const barZero = baseline - chartValueRatio(0, maximum) * (baseline - stackedPlotTop);
-      const valueLabelOptions = { left: plotLeft, right: width - 4, occupied: [{ x: axisX, y: barZero - 2, width: width - axisX, height: 4 }] };
       const categoryY = maximum.minimum < 0 ? baseline + 36 : baseline + 18;
-      return barItems.map((item, itemIndex) => {
-        const sourceIndex = chart.items.indexOf(item);
-        const groupStart = plotLeft + itemIndex * groupWidth + (groupWidth - (barWidth * chart.series.length + innerGap * (chart.series.length - 1))) / 2;
-        const seriesBars = chart.series.map((series, seriesIndex) => {
-          const valueNumber = series.values[sourceIndex];
-          const extent = chartBarExtent(valueNumber, maximum, baseline, stackedPlotTop);
-          const barHeight = extent.size;
-          const x = groupStart + seriesIndex * (barWidth + innerGap);
-          const y = extent.start;
+      return groupedLayout.groups.map((group) => {
+        const seriesBars = group.segments.map((segment) => {
+          const { item, series, value: valueNumber, x, y, width: barWidth, height: barHeight, tip } = segment;
           const value = chart.appearance.showValues
-            ? chartVerticalValueMarkup(valueNumber, x + barWidth / 2, extent.tip, valueLabelOptions)
+            ? chartVerticalValueMarkup(valueNumber, x + barWidth / 2, tip, valueLabelOptions)
             : "";
-          return `<g class="chart-block-bar" data-chart-item-id="${escapeAttr(item.id)}" data-chart-series-id="${escapeAttr(series.id)}"><title>${escapeHtml(`${item.label}、${series.name}: ${chartDisplayNumber(valueNumber)}${chart.unit}`)}</title><rect x="${x}" y="${y}" width="${barWidth}" height="${barHeight}" rx="4" fill="${escapeAttr(series.color)}"></rect>${value}</g>`;
+          return `<g class="chart-block-bar" data-chart-item-id="${escapeAttr(item.id)}" data-chart-series-id="${escapeAttr(series.id)}"><title>${escapeHtml(`${item.label}、${series.name}${combo ? "（棒）" : ""}: ${chartDisplayNumber(valueNumber)}${chart.unit}`)}</title><rect x="${x}" y="${y}" width="${barWidth}" height="${barHeight}" rx="4" fill="${escapeAttr(series.color)}"></rect>${value}</g>`;
         }).join("");
-        return `<g class="chart-block-bar-group" data-chart-item-id="${escapeAttr(item.id)}">${seriesBars}${chartCategoryLabelMarkup(categoryById.get(item.id), plotLeft + itemIndex * groupWidth + groupWidth / 2, categoryY)}</g>`;
+        return `<g class="chart-block-bar-group" data-chart-item-id="${escapeAttr(group.item.id)}">${seriesBars}${chartCategoryLabelMarkup(categoryById.get(group.item.id), group.center, categoryY)}</g>`;
       }).join("");
     })();
+  const comboLine = combo ? chartLineSeriesMarkup(chart, groupedLayout.lineSeries, groupedLayout.points, { valueLabelOptions }) : "";
   const empty = barItems.length ? "" : `<text class="chart-block-empty" x="${width / 2}" y="${height / 2}" text-anchor="middle">項目名と有限な数値を入力してください</text>`;
-  const legend = chart.appearance.showLegend
-    ? `<ul class="chart-block-legend" aria-label="${escapeAttr(`${title}の凡例`)}">${chart.series.map((series) => `<li><span class="chart-block-legend-swatch" style="background:${escapeAttr(series.color)}"></span><span>${escapeHtml(series.name)}</span></li>`).join("")}</ul>`
-    : "";
+  const legend = chart.appearance.showLegend ? `<ul class="chart-block-legend" aria-label="${escapeAttr(`${title}の凡例`)}">${(combo ? groupedLayout.kinds : chart.series.map((series) => ({ series, kind: "bar" }))).map(({ series, kind }) => `<li><span class="${kind === "line" ? "chart-block-line-legend-swatch" : "chart-block-legend-swatch"}" style="${kind === "line" ? "color" : "background"}:${escapeAttr(series.color)}"></span><span>${escapeHtml(`${series.name}${combo ? `（${kind === "line" ? "折れ線" : "棒"}）` : ""}`)}</span></li>`).join("")}</ul>` : "";
+
   const zeroLine = chartZeroLine(maximum, { left: axisX, right: width - plotRight, top: stackedPlotTop, bottom: barBaseline });
   const numericAxis = chartVerticalTickMarkup(axis, maximum, { x: axis.margin, top: stackedPlotTop, baseline: barBaseline, suffix: percentStacked ? "%" : "", className: percentStacked ? "chart-block-percent-axis-value" : "" });
   const unit = chartUnitMarkup(percentStacked ? "構成比（%）" : chart.unit, axisX + 6, 18, width - axisX - plotRight);
   const ariaLabel = percentStacked
     ? `${title}（100%積み上げ、元データの単位: ${chart.unit || "なし"}）`
-    : `${title}${chart.unit ? `（単位: ${chart.unit}）` : ""}`;
-  return `<figure class="chart-block chart-block-bar-chart" data-chart-id="${escapeAttr(chart.id)}" data-chart-bar-mode="${escapeAttr(chart.appearance.barMode)}"><figcaption>${escapeHtml(title)}</figcaption>${controls}<div class="chart-block-bar-layout"><div class="chart-block-scroll" role="region" tabindex="0" aria-label="${escapeAttr(title)}"><svg viewBox="0 0 ${width} ${height}" role="img" aria-label="${escapeAttr(ariaLabel)}"><line class="chart-block-axis" x1="${axisX}" y1="${stackedPlotTop}" x2="${axisX}" y2="${barBaseline}"/>${zeroLine}${unit}${numericAxis}${bars}${empty}</svg></div>${legend}</div><ul class="sr-only">${accessibleItems || "<li>有効な項目はありません</li>"}</ul></figure>`;
+    : `${title}${combo ? "（複合グラフ、単一Y軸）" : ""}${chart.unit ? `（単位: ${chart.unit}）` : ""}`;
+  return `<figure class="chart-block chart-block-bar-chart${combo ? " chart-block-combo" : ""}" data-chart-id="${escapeAttr(chart.id)}" data-chart-bar-mode="${combo ? "grouped" : escapeAttr(chart.appearance.barMode)}"><figcaption>${escapeHtml(title)}</figcaption>${controls}<div class="chart-block-bar-layout"><div class="chart-block-scroll" role="region" tabindex="0" aria-label="${escapeAttr(title)}"><svg viewBox="0 0 ${width} ${height}" role="img" aria-label="${escapeAttr(ariaLabel)}"><line class="chart-block-axis" x1="${axisX}" y1="${stackedPlotTop}" x2="${axisX}" y2="${barBaseline}"/>${zeroLine}${unit}${numericAxis}${bars}${comboLine}${empty}</svg></div>${legend}</div><ul class="sr-only">${accessibleItems || "<li>有効な項目はありません</li>"}</ul></figure>`;
 }
 
 function renderChartEditorPreview(host, chart, blockIndex) {
@@ -8895,7 +8911,7 @@ function createChartEditor(chartValue, blockIndex, snapshotKey) {
   const chartType = document.createElement("select");
   chartType.dataset.chartField = "chartType";
   chartType.setAttribute("aria-label", `グラフ${blockIndex + 1}の種類`);
-  [["bar", "棒グラフ"], ["line", "折れ線グラフ"], ["pie", "円グラフ"]].forEach(([value, label]) => {
+  [["bar", "棒グラフ"], ["line", "折れ線グラフ"], ["combo", "複合"], ["pie", "円グラフ"]].forEach(([value, label]) => {
     const option = document.createElement("option");
     option.value = value;
     option.textContent = label;
@@ -8913,7 +8929,7 @@ function createChartEditor(chartValue, blockIndex, snapshotKey) {
     values.type = "checkbox";
     values.dataset.chartField = "showValues";
     values.checked = chart.appearance.showValues;
-    const valuesText = chart.chartType === "line" ? "データ点の数値を表示" : "棒の上に数値を表示";
+    const valuesText = chart.chartType === "combo" ? "数値を表示" : chart.chartType === "line" ? "データ点の数値を表示" : "棒の上に数値を表示";
     values.setAttribute("aria-label", `グラフ${blockIndex + 1}の${valuesText}`);
     valuesLabel.append(values, document.createTextNode(valuesText));
     appearance.append(valuesLabel);
@@ -8967,7 +8983,7 @@ function createChartEditor(chartValue, blockIndex, snapshotKey) {
       legendLabel.append(legend, document.createTextNode("凡例を表示"));
       appearance.append(legendLabel);
     }
-    if (chart.chartType === "line") {
+    if (chart.chartType === "line" || chart.chartType === "combo") {
       const pointsLabel = document.createElement("label");
       pointsLabel.className = "chart-block-appearance-checkbox";
       const points = document.createElement("input");
@@ -9024,10 +9040,26 @@ function createChartEditor(chartValue, blockIndex, snapshotKey) {
     labelModeLabel.append(labelMode);
     appearance.append(pieSeriesLabel, legendLabel, labelModeLabel);
   }
+  if (chart.chartType === "combo") {
+    const label = document.createElement("label");
+    label.textContent = "折れ線にする系列";
+    const select = document.createElement("select");
+    select.dataset.chartField = "comboLineSeriesId";
+    select.setAttribute("aria-label", `グラフ${blockIndex + 1}の折れ線にする系列`);
+    chart.series.forEach((series) => {
+      const option = document.createElement("option");
+      option.value = series.id;
+      option.textContent = series.name;
+      option.selected = chart.appearance.comboLineSeriesId === series.id;
+      select.append(option);
+    });
+    label.append(select);
+    appearance.append(label);
+  }
   const unsupportedNotice = document.createElement("p");
   unsupportedNotice.className = "chart-block-series-notice";
-  unsupportedNotice.hidden = chart.chartType !== "pie";
-  unsupportedNotice.textContent = "円グラフでは選択した1系列を表示します。ほかの系列は保持され、棒グラフまたは折れ線グラフへ戻すと再表示されます。";
+  unsupportedNotice.hidden = !["pie", "combo"].includes(chart.chartType);
+  unsupportedNotice.textContent = chart.chartType === "combo" ? "複合は2〜3系列の縦の集合棒＋折れ線です。全系列で同じ単位・単一Y軸を使います。" : "円グラフでは選択した1系列を表示します。ほかの系列は保持され、棒グラフまたは折れ線グラフへ戻すと再表示されます。";
   const seriesPanel = document.createElement("section");
   seriesPanel.className = "chart-block-series-panel";
   seriesPanel.setAttribute("aria-label", "系列の設定");
@@ -9291,7 +9323,7 @@ function syncChartSeriesNameInItemTable(editorBlock, seriesIndex, seriesId, seri
     if (!Number.isInteger(itemIndex) || itemIndex < 0) return;
     input.setAttribute("aria-label", chartSeriesValueAriaLabel(itemIndex, seriesName, seriesCount));
   });
-  const pieSeriesOption = [...editorBlock.querySelectorAll('select[data-chart-field="pieSeriesId"] option')]
+  const pieSeriesOption = [...editorBlock.querySelectorAll('select[data-chart-field="pieSeriesId"] option, select[data-chart-field="comboLineSeriesId"] option')]
     .find((option) => option.value === seriesId);
   if (pieSeriesOption) pieSeriesOption.textContent = seriesName;
 }
@@ -9362,8 +9394,8 @@ function handleChartEditorInput(event) {
     next.appearance = { ...next.appearance, barOrientation: event.target.value };
   } else if (event.target.dataset.chartField === "pieLabelMode") {
     next.appearance = { ...next.appearance, pieLabelMode: event.target.value };
-  } else if (event.target.dataset.chartField === "pieSeriesId") {
-    next.appearance = { ...next.appearance, pieSeriesId: event.target.value };
+  } else if (["pieSeriesId", "comboLineSeriesId"].includes(event.target.dataset.chartField)) {
+    next.appearance = { ...next.appearance, [event.target.dataset.chartField]: event.target.value };
   } else if (event.target.dataset.chartField) {
     next[event.target.dataset.chartField] = event.target.value;
   } else return;

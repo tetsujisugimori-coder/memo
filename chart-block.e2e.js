@@ -331,6 +331,245 @@ async function verifyDivergingStacks(page, percent = false) {
   console.log(`Diverging ${barMode} checks passed: 140 geometry combinations, persistence, type switches, invalid drafts, reload and cancel`);
 }
 
+async function verifyComboCharts(page) {
+  await page.setViewportSize({ width: 1100, height: 820 });
+  await page.waitForFunction(() => document.body.dataset.layoutMode === "wide");
+  await page.locator("#editor").fill("複合の新規作成");
+  await page.locator("#insertChartBtn").click();
+  const panel = page.locator(".chart-block-editor");
+  await page.waitForFunction(() => document.activeElement?.getAttribute("aria-label") === "グラフ1のタイトル");
+  const type = panel.locator('[data-chart-field="chartType"]');
+  const select = panel.locator('[data-chart-field="comboLineSeriesId"]');
+  const confirm = panel.locator('[data-chart-action="confirm"]');
+  const cancel = panel.locator('[data-chart-action="cancel"]');
+  const input = (item, series) => panel.locator('[data-chart-item-index="' + item + '"] input[data-chart-series-index="' + series + '"]');
+  const saved = async () => {
+    await confirm.click();
+    await page.waitForFunction(() => document.querySelector('.chart-block-editor > .chart-block-status')?.textContent === "入力内容を保存しました");
+    return page.locator("#editor").inputValue();
+  };
+  const cancelled = async () => { await cancel.click(); await waitForChartCancelCompletion(page, 0); };
+  const beforeSingle = await page.locator("#editor").inputValue();
+  await type.selectOption("combo");
+  assert.equal(await confirm.isDisabled(), true);
+  assert.match(await panel.locator('.chart-block-editor-preview').textContent(), /2系列以上/);
+  assert.equal(await page.locator("#editor").inputValue(), beforeSingle);
+  await panel.locator('[data-chart-item-field="label"]').fill("最初の項目");
+  await input(0, 0).fill("-25");
+  assert.equal(await page.locator("#editor").inputValue(), beforeSingle);
+  await panel.locator('[data-chart-action="add-series"]').click();
+  assert.equal(await confirm.isDisabled(), false);
+  assert.equal((await chart(page)).series[0].values[0], -25);
+  assert.equal((await chart(page)).items[0].label, "最初の項目");
+  await page.waitForFunction(() => document.querySelector('#preview .chart-block-combo circle'));
+  assert.equal(await page.locator('#preview .chart-block-bar rect').count(), 1);
+  assert.equal(await page.locator('#preview .chart-block-line-point').count(), 1);
+  await saved();
+
+  const seed = {
+    id: "combo-e2e", chartType: "bar", title: "実績と見込み", unit: "万円",
+    items: [{ id: "a", label: "長い日本語の項目名を折り返し省略しても完全な情報を残す東京地域" }, { id: "b", label: "大阪地域" }, { id: "c", label: "名古屋地域" }],
+    series: [{ id: "s1", name: "実績", color: "#4f46e5", values: [30, 20, 0] }, { id: "s2", name: "見込み", color: "#dc2626", values: [20, 40, 0] }],
+    appearance: { barOrientation: "horizontal", barMode: "stacked", showValues: true, showLegend: true, showStackTotals: true }
+  };
+  const body = await page.evaluate((seed) => window.MemoNexusChartBlockUtils.serializeChartBlock(seed), seed);
+  await page.locator("#editor").fill(body);
+  await page.locator('.chart-block-editor[data-chart-id="combo-e2e"]').waitFor({ state: "visible" });
+  await type.selectOption("combo");
+  assert.equal(await select.inputValue(), "s2", "初回は最後の系列ID");
+  assert.equal(await panel.locator('[data-chart-field="barMode"], [data-chart-field="barOrientation"]').count(), 0);
+  assert.equal((await chart(page)).appearance.barOrientation, "horizontal");
+  assert.equal((await chart(page)).appearance.barMode, "stacked");
+  await select.selectOption("s1");
+  await panel.locator('[data-chart-series-index="0"] input[data-chart-series-field="name"]').fill("変更後の実績");
+  assert.equal(await select.locator('option[value="s1"]').textContent(), "変更後の実績");
+  await panel.locator('[data-chart-series-index="0"] input[data-chart-series-field="color"]').evaluate((input) => { input.value = "#059669"; input.dispatchEvent(new Event("input", { bubbles: true })); });
+  assert.equal((await chart(page)).appearance.comboLineSeriesId, "s1");
+  await panel.locator('[data-chart-series-index="0"] [data-chart-action="move-series-down"]').click();
+  await page.waitForFunction(() => document.activeElement?.closest('[data-chart-series-id="s1"]'));
+  assert.equal(await select.inputValue(), "s1");
+  await panel.locator('[data-chart-item-index="1"] [data-chart-action="move-item-up"]').click();
+  await page.waitForFunction(() => document.activeElement?.closest('[data-chart-item-id="b"]'));
+  const reordered = await chart(page);
+  assert.deepEqual(reordered.items.map((i) => i.id), ["b", "a", "c"]);
+  assert.deepEqual(reordered.series.map((s) => s.values), [[40, 20, 0], [20, 30, 0]]);
+  const reorderedBody = await saved();
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await page.locator("#appStartupGuard").waitFor({ state: "hidden" });
+  await panel.waitFor({ state: "visible" });
+  assert.deepEqual(await chart(page), reordered);
+  assert.equal(await select.inputValue(), "s1");
+  await page.locator('#preview .chart-block-edit').click();
+  assert.equal(await panel.evaluate((el) => document.activeElement === el), true);
+  await input(0, 0).fill("41"); await cancelled();
+  assert.equal(await page.locator("#editor").inputValue(), reorderedBody);
+  for (const destination of ["bar", "line", "pie", "bar"]) {
+    await type.selectOption(destination);
+    assert.deepEqual((await chart(page)).series, reordered.series);
+    if (destination === "bar") {
+      assert.equal(await panel.locator('[data-chart-field="barOrientation"]').inputValue(), "horizontal");
+      assert.equal(await panel.locator('[data-chart-field="barMode"]').inputValue(), "stacked");
+    }
+    await type.selectOption("combo");
+    assert.equal(await select.inputValue(), "s1");
+    assert.deepEqual((await chart(page)).items, reordered.items);
+  }
+  await cancelled(); assert.equal(await page.locator("#editor").inputValue(), reorderedBody);
+  for (const mode of ["grouped", "percent-stacked"]) {
+    await type.selectOption("bar"); await panel.locator('[data-chart-field="barMode"]').selectOption(mode);
+    await type.selectOption("combo"); await type.selectOption("bar");
+    assert.equal(await panel.locator('[data-chart-field="barMode"]').inputValue(), mode);
+    await type.selectOption("combo");
+  }
+  await cancelled();
+  await panel.locator('[data-chart-action="add-series"]').click();
+  const third = (await chart(page)).series.at(-1).id;
+  assert.equal(await select.inputValue(), "s1");
+  await select.selectOption(third);
+  await panel.locator('[data-chart-series-index="2"] [data-chart-action="delete-series"]').click();
+  assert.equal(await select.inputValue(), "s1", "選択系列削除時は残存する最後のID");
+  const beforeDelete = await page.locator("#editor").inputValue();
+  await panel.locator('[data-chart-series-index="1"] [data-chart-action="delete-series"]').click();
+  assert.equal(await confirm.isDisabled(), true);
+  assert.match(await panel.locator('.chart-block-editor-preview').textContent(), /2系列以上/);
+  assert.equal(await page.locator("#editor").inputValue(), beforeDelete);
+  await input(0, 0).fill("-44");
+  assert.equal(await page.locator("#editor").inputValue(), beforeDelete);
+  await type.selectOption("line");
+  assert.equal((await chart(page)).series[0].values[0], -44);
+  await cancelled(); assert.equal(await page.locator("#editor").inputValue(), reorderedBody);
+  for (const invalid of ["", "-", "NaN", "Infinity", "-Infinity", "1e"]) {
+    await input(0, 0).fill(invalid); await confirm.click();
+    assert.equal(await input(0, 0).getAttribute("aria-invalid"), "true");
+    assert.equal(await page.locator("#editor").inputValue(), reorderedBody);
+    await cancelled();
+  }
+  await input(0, 0).fill("-30");
+  const negativeBody = await saved();
+  await type.selectOption("pie");
+  assert.equal(await confirm.isDisabled(), true);
+  assert.match(await panel.locator('.chart-block-editor-preview').textContent(), /負数/);
+  assert.equal(await page.locator("#editor").inputValue(), negativeBody);
+  await type.selectOption("combo"); assert.equal((await chart(page)).series[0].values[0], -30);
+  await cancelled(); assert.equal(await page.locator("#editor").inputValue(), negativeBody);
+
+  async function geometry(model) {
+    const state = await page.locator('#preview .chart-block-combo').evaluate((figure) => {
+      const svg = figure.querySelector("svg"), view = svg.viewBox.baseVal;
+      const box = (el) => { const b = el.getBBox(); return { x: b.x, y: b.y, width: b.width, height: b.height }; };
+      const texts = [...svg.querySelectorAll('text')];
+      const labels = [...svg.querySelectorAll('.chart-block-value')];
+      const marks = [...svg.querySelectorAll('rect, circle, polyline')];
+      const overlaps = (a, b) => a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y;
+      const obstacles = [...texts, ...marks].flatMap((el) => {
+        if (el.tagName !== "polyline") return [{ element: el, box: box(el) }];
+        return Array.from({ length: Math.max(0, el.points.numberOfItems - 1) }, (_, index) => {
+          const a = el.points.getItem(index), b = el.points.getItem(index + 1);
+          return { element: el, box: { x: Math.min(a.x, b.x) - 2, y: Math.min(a.y, b.y) - 2, width: Math.abs(b.x - a.x) + 4, height: Math.abs(b.y - a.y) + 4 } };
+        });
+      });
+      const zero = svg.querySelector('.chart-block-zero-line');
+      const bars = [...svg.querySelectorAll('.chart-block-bar')];
+      const line = svg.querySelector('.chart-block-line-series');
+      return {
+        visible: figure.closest("#previewCard").getAttribute("aria-hidden") === "false" && svg.getBoundingClientRect().width > 0,
+        width: view.width, top: Number(svg.querySelector('line.chart-block-axis').getAttribute('y1')), bottom: Number(svg.querySelector('line.chart-block-axis').getAttribute('y2')),
+        zero: Number(zero.getAttribute('y1')), zeroCount: svg.querySelectorAll('.chart-block-zero-line').length, hidden: zero.getAttribute('aria-hidden'),
+        zeroTicks: [...svg.querySelectorAll('.chart-block-axis-value')].filter((el) => el.textContent === '0').length,
+        axes: [...svg.querySelectorAll('line')].map((el) => ['x1', 'x2', 'y1', 'y2'].map((a) => el.getAttribute(a)).join(',')),
+        bars: bars.map((g) => ({ item: g.dataset.chartItemId, series: g.dataset.chartSeriesId, rect: Object.fromEntries(['x', 'y', 'width', 'height'].map((name) => [name, Number(g.querySelector('rect').getAttribute(name))])), color: g.querySelector('rect').getAttribute('fill'), title: g.querySelector('title').textContent })),
+        points: [...svg.querySelectorAll('.chart-block-line-item')].map((g) => ({ item: g.dataset.chartItemId, series: g.dataset.chartSeriesId, x: Number(g.querySelector('circle').getAttribute('cx')), y: Number(g.querySelector('circle').getAttribute('cy')), color: g.querySelector('circle').getAttribute('stroke'), title: g.querySelector('title').textContent })),
+        foreground: bars.every((g) => Boolean(g.compareDocumentPosition(line) & Node.DOCUMENT_POSITION_FOLLOWING)),
+        invalid: [...svg.querySelectorAll('*')].flatMap((el) => [...el.attributes].filter((a) => /NaN|Infinity/.test(a.value)).map((a) => a.name)),
+        outside: [...texts, ...marks].filter((el) => { const b = box(el); return b.x < -0.1 || b.y < -0.1 || b.x + b.width > view.width + 0.1 || b.y + b.height > view.height + 0.1; }).map((el) => el.outerHTML),
+        collisions: labels.flatMap((el) => obstacles.filter((other) => other.element !== el && overlaps(box(el), other.box)).map((other) => [el.textContent, other.element.tagName, box(el), other.box])),
+        axisStrokes: [...svg.querySelectorAll('line')].map((el) => getComputedStyle(el).stroke),
+        lineStroke: getComputedStyle(svg.querySelector('polyline')).stroke,
+        accessible: figure.querySelector('.sr-only').textContent, aria: svg.getAttribute('aria-label'),
+        legend: [...figure.querySelectorAll('.chart-block-legend li')].map((el) => el.textContent),
+        docOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
+        bodyOverflow: document.body.scrollWidth > document.documentElement.clientWidth
+      };
+    });
+    assert.equal(state.visible, true, "カードを開いた実表示を検証");
+    assert.equal(state.foreground, true); assert.equal(state.zeroCount, 1); assert.equal(state.zeroTicks, 1); assert.equal(state.hidden, "true");
+    assert.equal(new Set(state.axes).size, state.axes.length);
+    assert.deepEqual(state.invalid, []); assert.deepEqual(state.outside, []); assert.deepEqual(state.collisions, []);
+    assert.equal(state.docOverflow, false); assert.equal(state.bodyOverflow, false);
+    assert.ok(state.axisStrokes.every((stroke) => stroke !== "none" && stroke !== "rgba(0, 0, 0, 0)"));
+    assert.notEqual(state.lineStroke, "none"); assert.match(state.aria, /複合グラフ、単一Y軸/); assert.ok(state.aria.includes(model.title) && state.aria.includes(model.unit));
+    const selected = model.appearance.comboLineSeriesId;
+    assert.deepEqual(state.legend, model.series.map((s) => s.name + (s.id === selected ? "（折れ線）" : "（棒）")));
+    assert.equal(state.bars.length, model.items.length * (model.series.length - 1)); assert.equal(state.points.length, model.items.length);
+    const values = model.series.flatMap((s) => s.values), magnitude = Math.max(...values.map(Math.abs));
+    const low = magnitude ? Math.min(0, ...values) / magnitude : 0, high = magnitude ? Math.max(0, ...values) / magnitude : 0;
+    const expectedY = (v) => magnitude ? state.bottom - (v / magnitude - low) / (high - low) * (state.bottom - state.top) : state.bottom;
+    assert.ok(Math.abs(state.zero - expectedY(0)) < 1e-8);
+    for (const mark of [...state.bars, ...state.points]) {
+      const series = model.series.find((s) => s.id === mark.series), index = model.items.findIndex((i) => i.id === mark.item), value = series.values[index];
+      assert.equal(mark.color, series.color); assert.ok(mark.title.includes(model.items[index].label)); assert.ok(mark.title.includes(String(value)));
+      assert.ok(state.accessible.includes(model.items[index].label) && state.accessible.includes(String(value)));
+      if (mark.rect) {
+        assert.notEqual(mark.series, selected); assert.match(mark.title, /（棒）/);
+        assert.ok(Object.values(mark.rect).every(Number.isFinite)); assert.ok(mark.rect.width >= 0 && mark.rect.height >= 0);
+        assert.ok(Math.abs(mark.rect.y - Math.min(state.zero, expectedY(value))) < 1e-8);
+        assert.ok(Math.abs(mark.rect.height - Math.abs(state.zero - expectedY(value))) < 1e-8);
+      } else {
+        assert.equal(mark.series, selected); assert.match(mark.title, /（折れ線）/);
+        assert.ok(Number.isFinite(mark.x) && Number.isFinite(mark.y)); assert.ok(Math.abs(mark.y - expectedY(value)) < 1e-8);
+        const bars = state.bars.filter((b) => b.item === mark.item), left = Math.min(...bars.map((b) => b.rect.x)), right = Math.max(...bars.map((b) => b.rect.x + b.rect.width));
+        assert.ok(Math.abs(mark.x - (left + right) / 2) < 1e-8, "点は棒グループの中央");
+      }
+    }
+  }
+
+  const datasets = [ [[30,20,0],[20,40,0],[10,20,0]], [[-30,-20,0],[-20,-40,0],[-10,-20,0]], [[30,-20,0],[-20,40,0],[10,-30,0]], [[0,0,0],[0,0,0],[0,0,0]], [[Number.MAX_VALUE,-Number.MAX_VALUE,0],[-Number.MAX_VALUE,Number.MAX_VALUE,0],[1e-300,-1e300,0]], [[1e300,-1e-300,0],[1e-300,-1e300,0],[Number.MIN_VALUE,-Number.MIN_VALUE,0]] ];
+  let geometryCount = 0;
+  for (const count of [2, 3]) {
+    if (count === 3) await panel.locator('[data-chart-action="add-series"]').click();
+    for (const values of datasets) {
+      for (let item = 0; item < 3; item++) for (let series = 0; series < count; series++) await input(item, series).fill(String(values[series][item]));
+      await select.selectOption((await chart(page)).series.at(-1).id);
+      const model = await chart(page);
+      await page.waitForFunction((model) => {
+        const fig = document.querySelector('#preview .chart-block-combo');
+        return model.items.every((item, index) => model.series.every((s) => [...(fig?.querySelectorAll('g > title') || [])].some((el) => el.textContent === item.label + '、' + s.name + (s.id === model.appearance.comboLineSeriesId ? '（折れ線）' : '（棒）') + ': ' + String(s.values[index]) + model.unit)));
+      }, model);
+      for (const theme of ["light", "dark"]) {
+        await page.locator("#settingsBtn").click(); await page.locator("#themeSelect").selectOption(theme); await page.locator("#closeSettingsBtn").click();
+        for (const width of [320, 375, 390, 430, 1100]) {
+          await page.setViewportSize({ width, height: 820 });
+          await page.waitForFunction((width) => innerWidth === width && document.body.dataset.layoutMode === (width >= 1100 ? 'wide' : 'mobile'), width);
+          if (width < 1100) {
+            if (await page.locator("#contextPanel").getAttribute("aria-hidden") === "false") {
+              await page.locator("#closeContextPanelBtn").click();
+              await page.waitForFunction(() => document.getElementById("contextPanel").getAttribute("aria-hidden") === "true");
+            }
+            await page.locator("#cardPaneBtn").click();
+            await page.waitForFunction(() => { const card = document.getElementById("previewCard"); return card.getAttribute("aria-hidden") === "false" && Math.abs(card.getBoundingClientRect().right - innerWidth) < 1; });
+          }
+          await geometry(model); geometryCount++;
+          if (width < 1100) {
+            await page.locator("#closeCardPaneBtn").click();
+            await page.waitForFunction(() => document.getElementById("previewCard").getAttribute("aria-hidden") === "true");
+          }
+        }
+      }
+    }
+  }
+  const finalBody = await saved(), finalModel = await chart(page);
+  await page.reload({ waitUntil: "domcontentloaded" }); await page.locator("#appStartupGuard").waitFor({ state: "hidden" }); await panel.waitFor({ state: "visible" });
+  assert.equal(await page.locator("#editor").inputValue(), finalBody); assert.deepEqual(await chart(page), finalModel); await geometry(finalModel);
+  const invalidId = { ...finalModel, id: "combo-fallback", appearance: { ...finalModel.appearance, comboLineSeriesId: "deleted" } };
+  const raw = '<!-- memo-nexus:chart-block:' + Buffer.from(JSON.stringify(invalidId)).toString('hex') + ' -->';
+  await page.locator("#editor").fill(raw);
+  await page.locator('.chart-block-editor[data-chart-id="combo-fallback"]').waitFor({ state: "visible" });
+  await page.waitForFunction(() => document.querySelector('[data-chart-field="comboLineSeriesId"]')?.value === window.MemoNexusChartBlockUtils.splitChartBlocks(document.getElementById('editor').value).find((s) => s.type === 'chart').chart.series.at(-1).id);
+  assert.equal(await page.locator("#editor").inputValue(), raw);
+  await input(0, 0).fill("15"); await cancelled(); assert.equal(await page.locator("#editor").inputValue(), raw);
+  console.log("Combo checks passed: " + geometryCount + " geometry combinations, stable IDs, shared axis, save/reload, type switches, invalid drafts and cancel");
+}
+
 async function verifySignedCharts(page) {
   await page.setViewportSize({ width: 1100, height: 820 });
   // Responsive mode changes can blur the editor; wait before starting a new input.
@@ -1804,6 +2043,7 @@ async function verifySignedCharts(page) {
     await verifySignedCharts(page);
     await verifyDivergingStacks(page);
     await verifyDivergingStacks(page, true);
+    await verifyComboCharts(page);
     assert.deepEqual(pageErrors, [], `ページエラーなし: ${pageErrors.join("\n")}`);
     assert.deepEqual(consoleErrors, [], `console errorなし: ${consoleErrors.join("\n")}`);
   } catch (error) {

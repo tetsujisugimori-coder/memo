@@ -53,10 +53,13 @@
       ? chart.series.flatMap((series) => series?.values || [])
       : (chart?.items || []).map((item) => item.value ?? 0);
     if (values.some((value) => !isValidChartNumber(value))) return "数値は有限な数値を入力してください";
-    const chartType = ["bar", "pie", "line"].includes(chart?.chartType) ? chart.chartType : "bar";
+    const chartType = ["bar", "pie", "line", "combo"].includes(chart?.chartType) ? chart.chartType : "bar";
     if (values.some((value) => Number(value) < 0)
       && chartType === "pie") {
       return "この形式は負数に未対応です。棒グラフまたは折れ線に切り替えてください";
+    }
+    if (chartType === "combo" && (!Array.isArray(chart?.series) || chart.series.length < 2)) {
+      return "複合グラフには2系列以上が必要です。系列を追加するか、別の種類に切り替えてください";
     }
     return "";
   }
@@ -138,6 +141,18 @@
     };
   }
 
+  // Resolve only after series IDs have been normalized; never persist an index.
+  function normalizeComboLineSeriesId(value, series) {
+    return typeof value === "string" && series.some((entry) => entry.id === value)
+      ? value : series.at(-1)?.id || "";
+  }
+
+  function comboSeriesKinds(chartValue) {
+    const chart = normalizeChartBlock(chartValue, chartValue?.id);
+    const selected = normalizeComboLineSeriesId(chart.appearance.comboLineSeriesId, chart.series);
+    return chart.series.map((series) => ({ series, kind: series.id === selected ? "line" : "bar" }));
+  }
+
   function normalizeChartBlock(value, fallbackId = "chart") {
     const source = value && typeof value === "object" && !Array.isArray(value) ? value : {};
     const id = normalizedText(source.id).trim() || normalizedText(fallbackId).trim() || "chart";
@@ -162,7 +177,7 @@
       type: "chart",
       id,
       schemaVersion: Number.isInteger(source.schemaVersion) && source.schemaVersion > 0 ? source.schemaVersion : CHART_BLOCK_VERSION,
-      chartType: ["bar", "pie", "line"].includes(source.chartType) ? source.chartType : "bar",
+      chartType: ["bar", "pie", "line", "combo"].includes(source.chartType) ? source.chartType : "bar",
       title: normalizedText(source.title).trim(),
       unit: normalizedText(source.unit).trim(),
       items,
@@ -180,6 +195,8 @@
         pieLabelMode: ["percentage", "value", "none"].includes(appearanceSource.pieLabelMode)
           ? appearanceSource.pieLabelMode : "percentage",
         pieSeriesId,
+        ...(source.chartType === "combo" || Object.hasOwn(appearanceSource, "comboLineSeriesId")
+          ? { comboLineSeriesId: normalizeComboLineSeriesId(appearanceSource.comboLineSeriesId, series) } : {}),
         ...(Object.keys(pieItemColors).length ? { pieItemColors } : {})
       }
     };
@@ -511,7 +528,7 @@
     return `${compactMantissa}e${exponent}`;
   }
 
-  function chartValueLabelLayout(value, { x, tip, left, right, top = 24, bottom = 212, occupied = [] }) {
+  function chartValueLabelLayout(value, { x, tip, left, right, top = 24, bottom = 212, occupied = [], hideOnCollision = false }) {
     const text = formatChartStackTotal({ total: value });
     const width = chartTextWidth(text) + 4;
     const center = Math.max(left + width / 2, Math.min(right - width / 2, x));
@@ -519,15 +536,20 @@
     const preferred = tip + (value < 0 ? 14 : -8);
     const candidates = [preferred, ...Array.from({ length: 12 }, (_, index) => preferred + direction * (index + 1) * 16), ...Array.from({ length: 12 }, (_, index) => preferred - direction * (index + 1) * 16)];
     let y = Math.max(top, Math.min(bottom, preferred));
+    let fits = false;
+    const ascent = hideOnCollision ? 16 : 12;
+    const labelHeight = hideOnCollision ? 20 : 14;
     for (const candidate of candidates) {
       if (candidate < top || candidate > bottom) continue;
-      const box = { x: center - width / 2, y: candidate - 12, width, height: 14 };
+      const box = { x: center - width / 2, y: candidate - ascent, width, height: labelHeight };
       if (occupied.every((other) => box.x >= other.x + other.width || box.x + box.width <= other.x || box.y >= other.y + other.height || box.y + box.height <= other.y)) {
         y = candidate;
+        fits = true;
         break;
       }
     }
-    return { text, x: center, y, box: { x: center - width / 2, y: y - 12, width, height: 14 } };
+    if (hideOnCollision && (!fits || width > right - left)) return null;
+    return { text, x: center, y, box: { x: center - width / 2, y: y - ascent, width, height: labelHeight } };
   }
 
   function shouldShowStackTotals(chartValue) {
@@ -551,6 +573,45 @@
         y: Math.min(start, end), width: barWidth, height: Math.abs(end - start) };
     }));
     return { ...layout, segments, mode };
+  }
+
+  // The same category slots and zero-based extents serve grouped bars and combo.
+  function groupedBarLayout(items, series, { left = 52, right = 18, top = 54, baseline = 196, width = 420, range: requestedRange } = {}) {
+    const displayItems = (Array.isArray(items) ? items : []).map((item, itemIndex) => ({ item, itemIndex }))
+      .filter(({ item }) => item && normalizedText(item.label).trim());
+    const displaySeries = Array.isArray(series) ? series : [];
+    const range = requestedRange || chartValueRange(displayItems.flatMap(({ itemIndex }) => displaySeries.map((entry) => ({ value: finiteChartNumber(entry.values?.[itemIndex]) }))));
+    const plotWidth = Math.max(1, width - left - right);
+    const groupWidth = plotWidth / Math.max(1, displayItems.length);
+    const count = Math.max(1, displaySeries.length);
+    const gap = 4;
+    const barWidth = Math.max(4, Math.min(48, (Math.max(12, groupWidth - 20) - gap * (count - 1)) / count));
+    const groups = displayItems.map(({ item, itemIndex }, displayIndex) => {
+      const center = left + displayIndex * groupWidth + groupWidth / 2;
+      const start = center - (barWidth * count + gap * (count - 1)) / 2;
+      const segments = displaySeries.map((entry, seriesIndex) => {
+        const value = finiteChartNumber(entry.values?.[itemIndex]);
+        const extent = chartBarExtent(value, range, baseline, top);
+        return { item, itemIndex, series: entry, value, x: start + seriesIndex * (barWidth + gap),
+          y: extent.start, width: barWidth, height: extent.size, tip: extent.tip, zero: extent.zero };
+      });
+      return { item, itemIndex, center, segments };
+    });
+    return { range, groupWidth, groups, segments: groups.flatMap((group) => group.segments) };
+  }
+
+  function comboChartLayout(chartValue, options = {}) {
+    const chart = normalizeChartBlock(chartValue, chartValue?.id);
+    const kinds = comboSeriesKinds(chart);
+    const range = chartValueRange(chart.items.flatMap((item, index) => item.label
+      ? chart.series.map((series) => ({ value: series.values[index] })) : []));
+    const layout = groupedBarLayout(chart.items, kinds.filter((entry) => entry.kind === "bar").map((entry) => entry.series), { ...options, range });
+    const lineSeries = kinds.find((entry) => entry.kind === "line")?.series;
+    const points = lineChartPoints(layout.groups.map(({ item, itemIndex }) => ({ ...item, value: lineSeries.values[itemIndex] })), options.width ?? 420, {
+      ...options, top: options.top ?? 54, baseline: options.baseline ?? 196, range, left: (options.left ?? 52) + layout.groupWidth / 2,
+      right: (options.right ?? 18) + layout.groupWidth / 2
+    });
+    return { ...layout, kinds, lineSeries, points };
   }
 
   function horizontalBarLabel(itemLabel, { maximumWidth = 180, characterWidth = 12, maximumLines = 2 } = {}) {
@@ -674,6 +735,10 @@
   }
 
   const api = {
+    comboChartLayout,
+    comboSeriesKinds,
+    groupedBarLayout,
+    normalizeComboLineSeriesId,
     CHART_BLOCK_VERSION,
     DEFAULT_CHART_COLOR,
     DEFAULT_CHART_SERIES_NAME,
