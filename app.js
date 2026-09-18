@@ -470,6 +470,7 @@ const {
   chartDisplaySeries,
   chartCategoryLabels,
   chartLabelLayout,
+  chartDivergingStacks,
   chartStackedTotals,
   chartValueLabelLayout,
   chartBarExtent,
@@ -8452,7 +8453,7 @@ function chartStackTotalDetail(total) {
 
 function chartStackTotalDescription(total, unit) {
   const detail = chartStackTotalDetail(total);
-  return detail === "上限超過" ? "合計: 上限超過" : `合計: ${detail}${unit}`;
+  return detail === "上限超過" ? `${total.labelPrefix || "合計"}: 上限超過` : `${total.labelPrefix || "合計"}: ${detail}${unit}`;
 }
 
 function chartAccessibleItems(chart, percentStackedLayout = null, stackedTotals = null) {
@@ -8473,7 +8474,7 @@ function chartAccessibleItems(chart, percentStackedLayout = null, stackedTotals 
       `<li>${escapeHtml(`${item.label}、${series.name}: ${chartDisplayNumber(series.values[itemIndex])}${chart.unit}`)}</li>`
     );
     const total = totalsByItemIndex.get(itemIndex);
-    if (total) entries.push(`<li>${escapeHtml(`${item.label}、${chartStackTotalDescription(total, chart.unit)}`)}</li>`);
+    if (total) (total.totals || [total]).forEach((side) => entries.push(`<li>${escapeHtml(`${item.label}、${chartStackTotalDescription(side, chart.unit)}`)}</li>`));
     return entries;
   }).join("");
 }
@@ -8551,12 +8552,7 @@ function chartHorizontalTickMarkup(axis, maximum, { left, plotWidth, y, suffix =
 
 function chartBarAxisMaximum(chart, barItems, { stacked = false, percentStacked = false } = {}) {
   if (percentStacked) return 100;
-  if (stacked) {
-    const totals = chartStackedTotals(chart.items, chart.series)
-      .filter((entry) => barItems.includes(entry.item) && Number.isFinite(entry.total))
-      .map((entry) => entry.total);
-    if (totals.length) return Math.max(0, ...totals);
-  }
+  if (stacked) return chartDivergingStacks(chart.items, chart.series).range;
   return Math.max(0, ...chart.series.flatMap((series) => barItems.map((item) => series.values[chart.items.indexOf(item)])));
 }
 
@@ -8570,10 +8566,13 @@ function renderHorizontalBarChart(chart, { title, controls, accessibleItems }) {
     : chartValueRange(chart.series.flatMap((series) => chartDisplayItems(chart, series)));
   const provisionalAxis = chartValueAxisLayout(maximum, { availableSpace: 300, minimumSpacing: 72 });
   const axisRight = Math.ceil(provisionalAxis.labelWidth / 2 + 8);
-  const right = Math.max(showStackTotals ? 66 : 28, axisRight);
-  const width = Math.max(520, labelWidth + right + 340);
+  const stackTotals = showStackTotals ? chartDivergingStacks(chart.items, chart.series).groups.flatMap((group) => group.totals) : [];
+  const totalWidth = Math.max(0, ...stackTotals.map((total) => chartTextWidth(chartStackTotalDisplay(total)) + 12));
+  const negativeMargin = stackTotals.some((total) => total.side === "negative") ? totalWidth : 0;
+  const right = Math.max(showStackTotals ? Math.max(66, totalWidth) : 28, axisRight);
+  const width = Math.max(520, labelWidth + negativeMargin + right + 340);
   const layout = horizontalBarSegments(chart.items, chart.series, {
-    left: labelWidth + 18,
+    left: labelWidth + 18 + negativeMargin,
     right,
     top: 34,
     rowHeight: chart.series.length === 3 && !stacked ? 58 : 44,
@@ -8587,7 +8586,7 @@ function renderHorizontalBarChart(chart, { title, controls, accessibleItems }) {
     const groupSegments = layout.segments.filter((segment) => segment.itemIndex === group.itemIndex);
     const label = horizontalBarLabel(group.item.label, { maximumWidth: labelWidth - 12 });
     const labelY = group.y + group.height / 2 - ((label.lines.length - 1) * 7);
-    const labelText = `<text class="chart-block-label chart-block-horizontal-label" x="${layout.left - 8}" y="${labelY}" text-anchor="end" dominant-baseline="middle" aria-label="${escapeAttr(label.fullText)}"><title>${escapeHtml(label.fullText)}</title>${label.lines.map((line, index) => `<tspan x="${layout.left - 8}" dy="${index === 0 ? 0 : 14}">${escapeHtml(line)}</tspan>`).join("")}</text>`;
+    const labelText = `<text class="chart-block-label chart-block-horizontal-label" x="${labelWidth + 10}" y="${labelY}" text-anchor="end" dominant-baseline="middle" aria-label="${escapeAttr(label.fullText)}"><title>${escapeHtml(label.fullText)}</title>${label.lines.map((line, index) => `<tspan x="${labelWidth + 10}" dy="${index === 0 ? 0 : 14}">${escapeHtml(line)}</tspan>`).join("")}</text>`;
     const segments = groupSegments.map((segment) => {
       const visual = percentStacked ? chartPercentDisplay(segment.percentage) : chartValueLabel(segment.value);
       const rect = segment.width > 0 || !stacked ? `<rect x="${segment.x}" y="${segment.y}" width="${segment.width}" height="${segment.height}" rx="4" fill="${escapeAttr(segment.series.color)}"></rect>` : "";
@@ -8605,9 +8604,12 @@ function renderHorizontalBarChart(chart, { title, controls, accessibleItems }) {
       const description = percentStacked ? `${segment.item.label}、${segment.series.name}: ${chartDisplayNumber(segment.value)}${chart.unit}（${chartPercentDisplay(segment.percentage)}、項目合計: ${total}）` : `${segment.item.label}、${segment.series.name}: ${chartDisplayNumber(segment.value)}${chart.unit}`;
       return `<g class="chart-block-bar${stacked ? " chart-block-stacked-bar" : ""}${percentStacked ? " chart-block-percent-stacked-bar" : ""}" data-chart-item-id="${escapeAttr(segment.item.id)}" data-chart-series-id="${escapeAttr(segment.series.id)}"><title>${escapeHtml(description)}</title>${rect}${value}</g>`;
     }).join("");
-    const stackTotal = { total: group.total, overflow: group.totalOverflow };
-    const endX = Math.max(layout.left, ...groupSegments.map((segment) => segment.x + segment.width));
-    const totalLabel = showStackTotals ? `<text class="chart-block-stacked-total-value chart-block-horizontal-total-value" data-chart-total-overflow="${group.totalOverflow ? "true" : "false"}" x="${endX + 5}" y="${group.y + group.height / 2}" dominant-baseline="middle"><title>${escapeHtml(`${group.item.label}、${chartStackTotalDescription(stackTotal, chart.unit)}`)}</title>${escapeHtml(chartStackTotalDisplay(stackTotal))}</text>` : "";
+    const totalLabel = showStackTotals ? group.totals.map((total) => {
+      const negative = total.side === "negative";
+      const tip = layout.left + total.ratio * layout.plotWidth;
+      const description = `${group.item.label}、${chartStackTotalDescription(total, chart.unit)}`;
+      return `<text class="chart-block-stacked-total-value chart-block-horizontal-total-value" data-chart-total-side="${total.side}" data-chart-total-overflow="${total.overflow}" x="${tip + (negative ? -5 : 5)}" y="${group.y + group.height / 2}" text-anchor="${negative ? "end" : "start"}" dominant-baseline="middle" aria-label="${escapeAttr(description)}"><title>${escapeHtml(description)}</title>${escapeHtml(chartStackTotalDisplay(total))}</text>`;
+    }).join("") : "";
     return `<g class="chart-block-bar-group" data-chart-item-id="${escapeAttr(group.item.id)}">${segments}${totalLabel}${labelText}</g>`;
   }).join("");
   const empty = barItems.length ? "" : `<text class="chart-block-empty" x="${width / 2}" y="${height / 2}" text-anchor="middle">項目名と有限な数値を入力してください</text>`;
@@ -8736,16 +8738,20 @@ function renderChartBlock(chartValue, blockIndex, { editable = true } = {}) {
   const showStackTotals = shouldShowStackTotals(chart);
   const maximum = stacked ? chartBarAxisMaximum(chart, barItems, { stacked, percentStacked })
     : chartValueRange(chart.series.flatMap((series) => chartDisplayItems(chart, series)));
-  const axis = chartValueAxisLayout(maximum, { availableSpace: baseline - (showStackTotals ? 64 : 54) });
+  const stackTotals = showStackTotals ? chartDivergingStacks(chart.items, chart.series).groups.flatMap((group) => group.totals) : [];
+  const hasNegativeTotals = stackTotals.some((total) => total.side === "negative");
+  const barBaseline = baseline - (hasNegativeTotals ? 24 : 0);
+  const axis = chartValueAxisLayout(maximum, { availableSpace: barBaseline - (showStackTotals ? 64 : 54) });
   const axisX = axis.margin + 6;
   const plotLeft = axisX + 10;
   const plotRight = 18;
-  const width = Math.max(baseWidth, barItems.length * Math.max(74, visibleSeriesCount * 32 + 34) + plotLeft + plotRight + 6);
+  const totalSlotWidth = hasNegativeTotals ? Math.max(0, ...stackTotals.map((total) => chartTextWidth(chartStackTotalDisplay(total)) + 16)) : 0;
+  const width = Math.max(baseWidth, barItems.length * Math.max(74, totalSlotWidth, visibleSeriesCount * 32 + 34) + plotLeft + plotRight + 6);
   const categoryEntries = chartCategoryLabels(barItems, { plotWidth: width - plotLeft - plotRight });
   const categoryById = new Map(categoryEntries.map((entry) => [entry.item.id, entry]));
   const stackedPlotTop = showStackTotals ? 64 : 54;
   const stackedLayout = stacked
-    ? stackedBarSegments(chart.items, chart.series, { left: plotLeft, right: plotRight, width, top: stackedPlotTop, baseline, mode: percentStacked ? "percent-stacked" : "stacked" })
+    ? stackedBarSegments(chart.items, chart.series, { left: plotLeft, right: plotRight, width, top: stackedPlotTop, baseline: barBaseline, mode: percentStacked ? "percent-stacked" : "stacked" })
     : null;
   if (percentStacked) accessibleItems = chartAccessibleItems(chart, stackedLayout);
   else if (showStackTotals) accessibleItems = chartAccessibleItems(chart, null, stackedLayout?.groups);
@@ -8758,8 +8764,9 @@ function renderChartBlock(chartValue, blockIndex, { editable = true } = {}) {
           const rect = segment.height > 0
             ? `<rect x="${segment.x}" y="${segment.y}" width="${segment.width}" height="${segment.height}" fill="${escapeAttr(segment.series.color)}"></rect>`
             : "";
-          const value = chart.appearance.showValues && segment.height >= 20 && segment.width >= 28
-            ? `<text class="chart-block-value chart-block-stacked-value${percentStacked ? " chart-block-percent-stacked-value" : ""}" x="${segment.x + segment.width / 2}" y="${segment.y + segment.height / 2}" text-anchor="middle" dominant-baseline="middle">${escapeHtml(percentStacked ? chartPercentDisplay(segment.percentage) : chartDisplayNumber(segment.value))}</text>`
+          const visual = percentStacked ? chartPercentDisplay(segment.percentage) : chartValueLabel(segment.value);
+          const value = chart.appearance.showValues && segment.height >= 20 && segment.width >= Math.max(28, chartTextWidth(visual) + 4)
+            ? `<text class="chart-block-value chart-block-stacked-value${percentStacked ? " chart-block-percent-stacked-value" : ""}" x="${segment.x + segment.width / 2}" y="${segment.y + segment.height / 2}" text-anchor="middle" dominant-baseline="middle">${escapeHtml(visual)}</text>`
             : "";
           const total = Number.isFinite(segment.total) ? `${chartDisplayNumber(segment.total)}${chart.unit}` : "非常に大きいため表示できません";
           const title = percentStacked
@@ -8769,11 +8776,12 @@ function renderChartBlock(chartValue, blockIndex, { editable = true } = {}) {
         }).join("");
         const firstSegment = groupSegments[0];
         const labelX = firstSegment.x + firstSegment.width / 2;
-        const topY = Math.min(...groupSegments.map((segment) => segment.y));
-        const stackTotal = { total: group.total, overflow: group.totalOverflow };
-        const totalLabel = showStackTotals
-          ? `<title class="chart-block-stacked-total-title">${escapeHtml(`${group.item.label}、${chartStackTotalDescription(stackTotal, chart.unit)}`)}</title><text class="chart-block-stacked-total-value" data-chart-total-overflow="${group.totalOverflow ? "true" : "false"}" x="${labelX}" y="${Math.max(34, topY - 8)}" text-anchor="middle">${escapeHtml(chartStackTotalDisplay(stackTotal))}</text>`
-          : "";
+        const totalLabel = showStackTotals ? group.totals.map((total) => {
+          const tip = barBaseline - total.ratio * (barBaseline - stackedPlotTop);
+          const y = total.side === "negative" ? tip + 14 : Math.max(34, tip - 8);
+          const description = `${group.item.label}、${chartStackTotalDescription(total, chart.unit)}`;
+          return `<title class="chart-block-stacked-total-title">${escapeHtml(description)}</title><text class="chart-block-stacked-total-value" data-chart-total-side="${total.side}" data-chart-total-overflow="${total.overflow}" x="${labelX}" y="${y}" text-anchor="middle" aria-label="${escapeAttr(description)}">${escapeHtml(chartStackTotalDisplay(total))}</text>`;
+        }).join("") : "";
         return `<g class="chart-block-bar-group" data-chart-item-id="${escapeAttr(group.item.id)}">${segments}${totalLabel}${chartCategoryLabelMarkup(categoryById.get(group.item.id), labelX, baseline + 18)}</g>`;
       }).join("");
     })()
@@ -8806,13 +8814,13 @@ function renderChartBlock(chartValue, blockIndex, { editable = true } = {}) {
   const legend = chart.appearance.showLegend
     ? `<ul class="chart-block-legend" aria-label="${escapeAttr(`${title}の凡例`)}">${chart.series.map((series) => `<li><span class="chart-block-legend-swatch" style="background:${escapeAttr(series.color)}"></span><span>${escapeHtml(series.name)}</span></li>`).join("")}</ul>`
     : "";
-  const zeroLine = chartZeroLine(maximum, { left: axisX, right: width - plotRight, top: stackedPlotTop, bottom: baseline });
-  const numericAxis = chartVerticalTickMarkup(axis, maximum, { x: axis.margin, top: stackedPlotTop, baseline, suffix: percentStacked ? "%" : "", className: percentStacked ? "chart-block-percent-axis-value" : "" });
+  const zeroLine = chartZeroLine(maximum, { left: axisX, right: width - plotRight, top: stackedPlotTop, bottom: barBaseline });
+  const numericAxis = chartVerticalTickMarkup(axis, maximum, { x: axis.margin, top: stackedPlotTop, baseline: barBaseline, suffix: percentStacked ? "%" : "", className: percentStacked ? "chart-block-percent-axis-value" : "" });
   const unit = chartUnitMarkup(percentStacked ? "構成比（%）" : chart.unit, axisX + 6, 18, width - axisX - plotRight);
   const ariaLabel = percentStacked
     ? `${title}（100%積み上げ、元データの単位: ${chart.unit || "なし"}）`
     : `${title}${chart.unit ? `（単位: ${chart.unit}）` : ""}`;
-  return `<figure class="chart-block chart-block-bar-chart" data-chart-id="${escapeAttr(chart.id)}" data-chart-bar-mode="${escapeAttr(chart.appearance.barMode)}"><figcaption>${escapeHtml(title)}</figcaption>${controls}<div class="chart-block-bar-layout"><div class="chart-block-scroll" role="region" tabindex="0" aria-label="${escapeAttr(title)}"><svg viewBox="0 0 ${width} ${height}" role="img" aria-label="${escapeAttr(ariaLabel)}"><line class="chart-block-axis" x1="${axisX}" y1="${stackedPlotTop}" x2="${axisX}" y2="${baseline}"/>${zeroLine}${unit}${numericAxis}${bars}${empty}</svg></div>${legend}</div><ul class="sr-only">${accessibleItems || "<li>有効な項目はありません</li>"}</ul></figure>`;
+  return `<figure class="chart-block chart-block-bar-chart" data-chart-id="${escapeAttr(chart.id)}" data-chart-bar-mode="${escapeAttr(chart.appearance.barMode)}"><figcaption>${escapeHtml(title)}</figcaption>${controls}<div class="chart-block-bar-layout"><div class="chart-block-scroll" role="region" tabindex="0" aria-label="${escapeAttr(title)}"><svg viewBox="0 0 ${width} ${height}" role="img" aria-label="${escapeAttr(ariaLabel)}"><line class="chart-block-axis" x1="${axisX}" y1="${stackedPlotTop}" x2="${axisX}" y2="${barBaseline}"/>${zeroLine}${unit}${numericAxis}${bars}${empty}</svg></div>${legend}</div><ul class="sr-only">${accessibleItems || "<li>有効な項目はありません</li>"}</ul></figure>`;
 }
 
 function renderChartEditorPreview(host, chart, blockIndex) {

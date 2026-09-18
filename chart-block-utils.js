@@ -55,8 +55,8 @@
     if (values.some((value) => !isValidChartNumber(value))) return "数値は有限な数値を入力してください";
     const chartType = ["bar", "pie", "line"].includes(chart?.chartType) ? chart.chartType : "bar";
     if (values.some((value) => Number(value) < 0)
-      && (chartType === "pie" || (chartType === "bar" && normalizeBarMode(chart?.appearance?.barMode) !== "grouped"))) {
-      return "この形式は負数に未対応です。集合棒または折れ線に切り替えてください";
+      && (chartType === "pie" || (chartType === "bar" && normalizeBarMode(chart?.appearance?.barMode) === "percent-stacked"))) {
+      return "この形式は負数に未対応です。集合棒・通常積み上げ棒または折れ線に切り替えてください";
     }
     return "";
   }
@@ -379,7 +379,14 @@
       .filter((value) => !mixed || value === 0
         || (value < 0 ? negativeRatio >= 0.5 : negativeRatio <= 0.5)
         || Math.abs(chartValueRatio(value, { minimum, maximum }) - negativeRatio) * safeSpace >= safeSpacing)
-      .map((value) => ({ value, label: formatChartAxisValue(value) }));
+      .map((value) => {
+        const scale = range?.valueScale ?? 1;
+        const overflow = scale > 1 && Math.abs(value) > Number.MAX_VALUE / scale;
+        const label = overflow ? (value < 0 ? "負側上限超過" : "正側上限超過") : formatChartAxisValue(value * scale);
+        return { value, label };
+      })
+      .filter((tick, index, ticks) => tick.value === 0 || (tick.label !== "0"
+        && !ticks.some((other) => other.label === tick.label && Math.abs(other.value) > Math.abs(tick.value))));
   }
 
   function chartValueAxisLayout(maximum, { availableSpace = 140, characterWidth = 12, minimum = 42, minimumSpacing = 32, maximumCount = 5 } = {}) {
@@ -410,6 +417,45 @@
       x: displayItems.length === 1 ? plotLeft + span / 2 : plotLeft + (span * index) / Math.max(1, displayItems.length - 1),
       y: plotBaseline - chartValueRatio(item.value, range) * (plotBaseline - plotTop)
     }));
+  }
+
+  // Coordinates use a common maximum magnitude before addition. Saved values are
+  // never scaled or clamped; unrepresentable totals are explicitly marked.
+  function chartDivergingStacks(items, series) {
+    const sourceItems = Array.isArray(items) ? items : [];
+    const sourceSeries = Array.isArray(series) && series.length ? series : [{ values: sourceItems.map((item) => item?.value) }];
+    const error = chartValidationError({ items: sourceItems, series: sourceSeries.map((entry) => ({ values: Array.isArray(entry?.values) ? entry.values : [] })) });
+    if (error) throw new Error(error);
+    const displayItems = sourceItems.map((item, itemIndex) => ({ item, itemIndex }))
+      .filter(({ item }) => item && normalizedText(item.label).trim());
+    const scaleBase = Math.max(0, ...displayItems.flatMap(({ itemIndex }) => sourceSeries.map((entry) => Math.abs(finiteChartNumber(entry?.values?.[itemIndex])))));
+    const groups = displayItems.map(({ item, itemIndex }, displayIndex) => {
+      const positive = { side: "positive", total: 0, overflow: false, scaled: 0 };
+      const negative = { side: "negative", total: 0, overflow: false, scaled: 0 };
+      const entries = sourceSeries.map((series, seriesIndex) => {
+        const value = finiteChartNumber(series?.values?.[itemIndex]);
+        const side = value < 0 ? negative : positive;
+        const scaledStart = side.scaled;
+        side.scaled += scaleBase > 0 ? value / scaleBase : 0;
+        if (!side.overflow) {
+          if (Math.abs(side.total) > Number.MAX_VALUE - Math.abs(value)) {
+            side.total = null;
+            side.overflow = true;
+          } else side.total += value;
+        }
+        return { item, itemIndex, series, seriesIndex, value, scaledStart, scaledEnd: side.scaled };
+      });
+      return { item, itemIndex, displayIndex, entries, positive, negative,
+        groupScaleBase: scaleBase, scaledTotal: positive.scaled, total: positive.total, totalOverflow: positive.overflow };
+    });
+    const range = { minimum: Math.min(0, ...groups.map((group) => group.negative.scaled)), maximum: Math.max(0, ...groups.map((group) => group.positive.scaled)), valueScale: scaleBase };
+    groups.forEach((group) => {
+      group.entries = group.entries.map((entry) => ({ ...entry, stackStart: chartValueRatio(entry.scaledStart, range), stackEnd: chartValueRatio(entry.scaledEnd, range) }));
+      group.totals = [group.positive, group.negative]
+        .filter((side) => side.overflow || side.total !== 0 || (side === group.positive && group.negative.total === 0))
+        .map((side) => ({ ...side, ratio: chartValueRatio(side.scaled, range), labelPrefix: group.negative.total !== 0 ? (side.side === "positive" ? "正側合計" : "負側合計") : "合計" }));
+    });
+    return { scaleBase, range, maximumScaledTotal: range.maximum, groups };
   }
 
   function chartStackedTotals(items, series) {
@@ -470,6 +516,23 @@
   }
 
   function stackedBarSegments(items, series, { left = 52, right = 18, top = 54, baseline = 196, width = 420, mode = "stacked" } = {}) {
+    if (mode === "stacked") {
+      const layout = chartDivergingStacks(items, series);
+      const plotLeft = Number.isFinite(left) ? Math.max(0, left) : 52;
+      const plotRight = Number.isFinite(right) ? Math.max(0, right) : 18;
+      const plotTop = Number.isFinite(top) ? Math.max(0, top) : 54;
+      const plotBaseline = Math.max(plotTop, Number.isFinite(baseline) ? baseline : 196);
+      const chartWidth = Math.max(plotLeft + plotRight, Number.isFinite(width) ? width : 420);
+      const groupWidth = Math.max(1, chartWidth - plotLeft - plotRight) / Math.max(1, layout.groups.length);
+      const barWidth = Math.max(4, Math.min(48, Math.max(12, groupWidth - 20)));
+      const segments = layout.groups.flatMap((group) => group.entries.map((entry) => {
+        const start = plotBaseline - entry.stackStart * (plotBaseline - plotTop);
+        const end = plotBaseline - entry.stackEnd * (plotBaseline - plotTop);
+        return { ...entry, x: plotLeft + group.displayIndex * groupWidth + (groupWidth - barWidth) / 2,
+          y: Math.min(start, end), width: barWidth, height: Math.abs(end - start), percentage: 0, total: group.total };
+      }));
+      return { ...layout, segments, mode };
+    }
     const displayItems = (Array.isArray(items) ? items : []).map((item, itemIndex) => ({ item, itemIndex }))
       .filter(({ item }) => item && normalizedText(item.label).trim());
     const displaySeries = Array.isArray(series) ? series : [];
@@ -552,6 +615,22 @@
     const chartWidth = Math.max(plotLeft + plotRight + 1, Number.isFinite(width) ? width : 520);
     const plotWidth = Math.max(1, chartWidth - plotLeft - plotRight);
     const stacked = mode === "stacked" || mode === "percent-stacked";
+    if (mode === "stacked") {
+      const layout = chartDivergingStacks(items, series);
+      const safeTop = Number.isFinite(top) ? Math.max(0, top) : 34;
+      const groups = layout.groups.map((group) => ({ ...group, y: safeTop + group.displayIndex * safeRowHeight, height: safeRowHeight }));
+      const segments = groups.flatMap((group) => {
+        const barHeight = Math.max(8, Math.min(26, group.height - 12));
+        return group.entries.map((entry) => {
+          const start = plotLeft + entry.stackStart * plotWidth;
+          const end = plotLeft + entry.stackEnd * plotWidth;
+          return { ...entry, x: Math.min(start, end), y: group.y + (group.height - barHeight) / 2,
+            width: Math.abs(end - start), height: barHeight, percentage: 0, total: group.total };
+        });
+      });
+      return { ...layout, groups, segments, left: plotLeft, right: plotRight, top: safeTop, rowHeight: safeRowHeight,
+        width: chartWidth, height: safeTop + groups.length * safeRowHeight + 30, plotWidth, mode };
+    }
     const percentStacked = mode === "percent-stacked";
     if (stacked && displaySeries.some((entry) => Array.isArray(entry?.values) && entry.values.some((value) => value < 0))) return { groups: [], segments: [], mode };
     const values = displayItems.flatMap(({ itemIndex }) => displaySeries.map((entry) => finiteChartNumber(entry?.values?.[itemIndex])));
@@ -668,6 +747,7 @@
     chartDisplaySeries,
     chartLabelLayout,
     chartNumericTicks,
+    chartDivergingStacks,
     chartStackedTotals,
     chartTextWidth,
     chartValueMaximum,
