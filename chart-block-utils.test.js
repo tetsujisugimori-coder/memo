@@ -3,6 +3,10 @@
 const assert = require("node:assert/strict");
 const test = require("node:test");
 const {
+  comboChartLayout,
+  comboSeriesKinds,
+  groupedBarLayout,
+  normalizeComboLineSeriesId,
   CHART_BLOCK_VERSION,
   CHART_SERIES_COLORS,
   DEFAULT_CHART_COLOR,
@@ -1150,4 +1154,156 @@ test("発散型100%でも非有限値・途中入力の確定を拒否し円の�
     const restored = parseChartBlockLine(serializeChartBlock({ ...original, appearance: { ...original.appearance, barMode } }));
     assert.deepEqual(restored.series, original.series);
   }
+});
+
+function comboFixture(values = [[30, -20, 0], [10, 40, -10], [20, -30, 0]]) {
+  return { id: "combo", chartType: "combo", title: "比較", unit: "万円",
+    items: [{ id: "a", label: "項目A" }, { id: "b", label: "項目B" }, { id: "c", label: "項目C" }],
+    series: values.map((values, index) => ({ id: "s" + index, name: "系列" + index, color: CHART_SERIES_COLORS[index], values })),
+    appearance: { barMode: "stacked", barOrientation: "horizontal", showStackTotals: true } };
+}
+
+test("複合は初回だけ最後の正規化済みIDを選び、旧棒へ設定を追加しない", () => {
+  const source = comboFixture();
+  const normalized = normalizeChartBlock(source);
+  assert.equal(normalized.chartType, "combo");
+  assert.equal(normalized.appearance.comboLineSeriesId, "s2");
+  assert.equal(normalizeChartBlock({ ...source, chartType: "bar" }).appearance.comboLineSeriesId, undefined);
+  for (const invalid of [undefined, null, 1, "missing"]) {
+    assert.equal(normalizeComboLineSeriesId(invalid, normalized.series), "s2");
+  }
+  const repaired = normalizeChartBlock({ ...source, series: [{ values: [1] }, { values: [2] }, { id: "combo-series-2", values: [3] }] });
+  assert.equal(repaired.appearance.comboLineSeriesId, "combo-series-2-2");
+  assert.equal(repaired.series.length, 3);
+  assert.deepEqual(comboSeriesKinds(normalized).map(({ series, kind }) => [series.id, kind]), [["s0", "bar"], ["s1", "bar"], ["s2", "line"]]);
+});
+
+test("複合の安定IDは名前・色・項目系列の並べ替え・追加削除で保持する", () => {
+  const original = normalizeChartBlock({ ...comboFixture(), appearance: { comboLineSeriesId: "s1" } });
+  const renamed = normalizeChartBlock({ ...original, series: original.series.map((series) => ({ ...series, name: "同名", color: "#123456" })) });
+  const moved = moveChartSeries(moveChartItem(renamed, 1, -1), 1, 1);
+  assert.equal(moved.appearance.comboLineSeriesId, "s1");
+  assert.equal(comboSeriesKinds(moved).find((entry) => entry.kind === "line").series.name, "同名");
+  const deletedOther = normalizeChartBlock({ ...moved, series: moved.series.filter((s) => s.id !== "s0") });
+  assert.equal(deletedOther.appearance.comboLineSeriesId, "s1");
+  assert.equal(normalizeChartBlock({ ...deletedOther, series: [...deletedOther.series, original.series[0]] }).appearance.comboLineSeriesId, "s1");
+  const deletedSelected = normalizeChartBlock({ ...moved, series: moved.series.filter((s) => s.id !== "s1") });
+  assert.equal(deletedSelected.appearance.comboLineSeriesId, "s2");
+  assert.equal(chartValidationError(deletedSelected), "");
+  assert.equal(original.series[1].name, "系列1");
+});
+
+test("複合の1系列と欠損系列は日本語で保存を拒否し値を失わない", () => {
+  for (const series of [undefined, [], [comboFixture().series[0]]]) {
+    const source = { ...comboFixture(), series };
+    const before = structuredClone(source);
+    assert.match(chartValidationError(source), /2系列以上/);
+    assert.throws(() => serializeChartBlock(source), /2系列以上/);
+    assert.deepEqual(source, before);
+  }
+});
+
+for (const [name, values] of [
+  ["正のみ", [[30, 10, 0], [10, 20, 5]]], ["負のみ", [[-30, -10, 0], [-10, -20, -5]]],
+  ["混在", [[30, -20, 0], [-10, 20, 0], [30, -20, 0]]], ["全0", [[0, 0, 0], [-0, 0, 0]]],
+  ["巨大有限", [[Number.MAX_VALUE, -Number.MAX_VALUE, 0], [-Number.MAX_VALUE, Number.MAX_VALUE, 0]]],
+  ["桁差", [[1e300, -1e-300, 0], [1e-300, -1e300, Number.MIN_VALUE]]],
+  ["極小", [[Number.MIN_VALUE, -Number.MIN_VALUE, 0], [-Number.MIN_VALUE, Number.MIN_VALUE, 0]]]
+]) test("複合の共通軸とカテゴリ中央・有限座標: " + name, () => {
+  const source = comboFixture(values);
+  const before = structuredClone(source);
+  const freeze = (value) => { if (value && typeof value === "object") { Object.values(value).forEach(freeze); Object.freeze(value); } };
+  freeze(source);
+  const options = { width: 600, left: 80, right: 20, top: 54, baseline: 196 };
+  const result = comboChartLayout(source, options);
+  assert.deepEqual(result.range, { minimum: Math.min(0, ...values.flat()) || 0, maximum: Math.max(0, ...values.flat()) || 0 });
+  const scale = Math.max(...values.flat().map(Math.abs));
+  const low = scale ? result.range.minimum / scale : 0;
+  const high = scale ? result.range.maximum / scale : 0;
+  const expectedY = (value) => scale ? 196 - (value / scale - low) / (high - low) * 142 : 196;
+  const zero = expectedY(0);
+  result.groups.forEach((group, index) => {
+    assert.ok(Math.abs(group.center - (80 + (index + 0.5) * 500 / 3)) < 1e-10);
+    assert.ok(Math.abs(result.points[index].x - group.center) < 1e-10);
+    assert.ok(Math.abs(result.points[index].y - expectedY(values.at(-1)[index])) < 1e-10);
+    group.segments.forEach((segment) => {
+      assert.ok([segment.x, segment.y, segment.width, segment.height, segment.tip, segment.zero].every(Number.isFinite));
+      assert.ok(segment.width >= 0 && segment.height >= 0);
+      assert.ok(Math.abs(segment.zero - zero) < 1e-10);
+      assert.ok(Math.abs(segment.tip - expectedY(segment.value)) < 1e-10);
+      assert.ok(segment.value < 0 ? segment.tip >= zero : segment.tip <= zero);
+    });
+  });
+  assert.deepEqual(source, before);
+  const parsed = parseChartBlockLine(serializeChartBlock(source));
+  assert.equal(Object.is(parsed.series.at(-1).values[0], -0), false);
+  assert.equal(parsed.appearance.barMode, "stacked");
+  assert.equal(parsed.appearance.barOrientation, "horizontal");
+  assert.equal(shouldShowStackTotals(parsed), false);
+});
+
+test("集合棒の共通化は既存の棒幅・間隔・0基準を保つ", () => {
+  for (const count of [1, 2, 3]) for (const width of [420, 600, 1100]) {
+    const source = comboFixture().series.slice(0, count);
+    const layout = groupedBarLayout(comboFixture().items, source, { width });
+    const groupWidth = (width - 52 - 18) / 3;
+    const barWidth = Math.max(4, Math.min(48, (Math.max(12, groupWidth - 20) - 4 * (count - 1)) / count));
+    layout.groups.forEach((group, itemIndex) => group.segments.forEach((bar, seriesIndex) => {
+      const x = 52 + itemIndex * groupWidth + (groupWidth - (barWidth * count + 4 * (count - 1))) / 2 + seriesIndex * (barWidth + 4);
+      assert.ok(Math.abs(bar.x - x) < 1e-10);
+      assert.equal(bar.width, barWidth);
+    }));
+  }
+});
+
+test("複合は空項目を除き単一項目でもカテゴリ中央へ点を配置する", () => {
+  const source = comboFixture();
+  source.items = [{ id: "a", label: "" }, { id: "b", label: "表示" }, { id: "c", label: "" }];
+  const layout = comboChartLayout(source);
+  assert.equal(layout.points.length, 1);
+  assert.equal(layout.points[0].x, (52 + 420 - 18) / 2);
+  assert.equal(layout.points[0].value, -30);
+  assert.deepEqual(comboChartLayout({ ...source, items: [] }).points, []);
+});
+
+for (const invalid of [NaN, Infinity, -Infinity, "", "-", "1e"]) test("複合は不正入力を確定しない: " + invalid, () => {
+  const source = comboFixture();
+  source.series[1].values[0] = invalid;
+  assert.match(chartValidationError(source), /有限/);
+  assert.throws(() => serializeChartBlock(source), /有限/);
+});
+
+test("複合の種類往復は選択・旧棒設定・ID・値を維持し描画座標を保存しない", () => {
+  const source = normalizeChartBlock(comboFixture([[30, 20, 0], [10, 30, 0], [20, 10, 0]]));
+  let current = source;
+  for (const chartType of ["bar", "combo", "line", "combo", "pie", "combo"]) {
+    current = parseChartBlockLine(serializeChartBlock({ ...current, chartType }));
+    assert.deepEqual(current.items, source.items);
+    assert.deepEqual(current.series, source.series);
+    assert.deepEqual(current.appearance, source.appearance);
+    assert.equal(current.schemaVersion, 1);
+    assert.equal(Object.hasOwn(current, "points"), false);
+    assert.equal(Object.hasOwn(current, "range"), false);
+  }
+  assert.match(chartValidationError({ ...comboFixture(), chartType: "pie" }), /負数/);
+});
+
+test("旧本文と不正な複合IDは読み込みだけでは変更せず表示用フォールバックを使う", () => {
+  for (const source of [{ id: "legacy", items: [{ label: "旧", value: -1 }] }, { ...comboFixture(), appearance: { comboLineSeriesId: "deleted" } }]) {
+    const raw = "<!-- memo-nexus:chart-block:" + Buffer.from(JSON.stringify(source)).toString("hex") + " -->";
+    const block = splitChartBlocks(raw)[0];
+    assert.equal(block.raw, raw);
+    if (source.chartType === "combo") {
+      assert.equal(block.chart.appearance.comboLineSeriesId, "s2");
+      assert.equal(comboChartLayout(block.chart).lineSeries.id, "s2");
+    }
+    assert.equal(block.raw, raw);
+  }
+});
+
+test("複合の値ラベルは衝突・幅不足時に省略を選べる", () => {
+  const options = { x: 60, tip: 60, left: 0, right: 100, top: 24, bottom: 100, occupied: [{ x: 0, y: 0, width: 100, height: 100 }], hideOnCollision: true };
+  assert.equal(chartValueLabelLayout(30, options), null);
+  assert.equal(chartValueLabelLayout(30, { ...options, occupied: [], right: 1 }), null);
+  assert.ok(chartValueLabelLayout(30, { ...options, hideOnCollision: false }));
 });
