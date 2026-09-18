@@ -155,15 +155,16 @@ function boxesHaveGap(first, second, minimumGap = 2) {
 
 
 
-async function verifyDivergingStacks(page) {
+async function verifyDivergingStacks(page, percent = false) {
+  const barMode = percent ? "percent-stacked" : "stacked";
   await page.setViewportSize({ width: 1100, height: 820 });
   // Responsive mode changes can blur the editor; wait before starting a new input.
   await page.waitForFunction(() => document.body.dataset.layoutMode === "wide");
   const seed = {
-    id: 'diverging-e2e', chartType: 'bar', title: '発散型積み上げ', unit: '万円',
-    items: [{ id: 'a', label: '正負混在' }, { id: 'b', label: '別の構成' }, { id: 'c', label: 'ゼロ項目' }],
+    id: 'diverging-e2e', chartType: 'bar', title: '発散型積み上げ', unit: percent ? '%' : '万円',
+    items: [{ id: 'a', label: percent ? '正負混在のとても長い項目名を省略しても全文を保持' : '正負混在' }, { id: 'b', label: '別の構成' }, { id: 'c', label: 'ゼロ項目' }],
     series: [{ id: 's1', name: '系列A', color: '#123456', values: [30,-20,0] }, { id: 's2', name: '系列B', color: '#dc2626', values: [-10,10,0] }, { id: 's3', name: '系列C', color: '#059669', values: [20,-30,0] }],
-    appearance: { barMode: 'stacked', showValues: true, showStackTotals: true, showLegend: true }
+    appearance: { barMode, showValues: true, showStackTotals: true, showLegend: true }
   };
   await page.locator('#editor').fill(await page.evaluate((seed) => window.MemoNexusChartBlockUtils.serializeChartBlock(seed), seed));
   const panel = page.locator('.chart-block-editor[data-chart-id="diverging-e2e"]');
@@ -175,15 +176,15 @@ async function verifyDivergingStacks(page) {
   const confirm = panel.locator('[data-chart-action="confirm"]');
   const cancel = panel.locator('[data-chart-action="cancel"]');
   async function geometry(horizontal, values) {
-    await page.waitForFunction((horizontal) => {
+    await page.waitForFunction(({ horizontal, barMode }) => {
       const fig = document.querySelector('#preview figure[data-chart-id="diverging-e2e"]');
-      return fig?.dataset.chartBarMode === 'stacked' && fig.classList.contains('chart-block-horizontal-bar-chart') === horizontal;
-    }, horizontal);
+      return fig?.dataset.chartBarMode === barMode && fig.classList.contains('chart-block-horizontal-bar-chart') === horizontal;
+    }, { horizontal, barMode });
     const state = await page.locator('#preview figure[data-chart-id="diverging-e2e"]').evaluate((figure) => {
       const svg = figure.querySelector('svg');
       const zero = svg.querySelector('.chart-block-zero-line');
       const box = (el) => { const b = el.getBBox(); return { x:b.x,y:b.y,width:b.width,height:b.height }; };
-      const totals = [...svg.querySelectorAll('.chart-block-stacked-total-value')];
+      const totals = [...svg.querySelectorAll('.chart-block-stacked-total-value, .chart-block-percent-stacked-value')];
       const texts = [...svg.querySelectorAll('.chart-block-value,.chart-block-stacked-total-value,.chart-block-axis-value,.chart-block-label')];
       return {
         zero: { x:Number(zero.getAttribute('x1')), y:Number(zero.getAttribute('y1')), count:svg.querySelectorAll('.chart-block-zero-line').length, hidden:zero.getAttribute('aria-hidden'), stroke:getComputedStyle(zero).stroke },
@@ -195,8 +196,11 @@ async function verifyDivergingStacks(page) {
         collisions: totals.flatMap((total) => texts.filter((other) => other !== total && (() => { const a=box(total),b=box(other); return a.x < b.x+b.width && a.x+a.width > b.x && a.y < b.y+b.height && a.y+a.height > b.y; })()).map((other) => [total.getAttribute('aria-label'),other.textContent])),
         outside: texts.filter((el)=>{const b=box(el),v=svg.viewBox.baseVal;return b.x < -0.1 || b.y < -0.1 || b.x+b.width > v.width+0.1 || b.y+b.height > v.height+0.1;}).map((el)=>el.textContent),
         invalid: [...svg.querySelectorAll('*')].flatMap((el)=>[...el.attributes].filter((a)=>/NaN|Infinity/.test(a.value)).map((a)=>a.name)),
-        zeros: [...svg.querySelectorAll('.chart-block-axis-value')].filter((el)=>el.textContent==='0').length,
+        zeros: [...svg.querySelectorAll('.chart-block-axis-value')].filter((el)=>/^0%?$/.test(el.textContent)).length,
         overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth || document.body.scrollWidth > document.documentElement.clientWidth,
+        ticks: [...svg.querySelectorAll('.chart-block-axis-value')].map((el)=>el.textContent),
+        endpoints: Object.fromEntries([...svg.querySelectorAll('.chart-block-axis-value')].map((el)=>[el.textContent, figure.classList.contains('chart-block-horizontal-bar-chart') ? Number(el.getAttribute('x')) : Number(el.getAttribute('y')) - 4])),
+        labelsOutsideBars: [...svg.querySelectorAll('.chart-block-percent-stacked-value')].filter((el)=>{ const a=box(el),r=box(el.closest('.chart-block-bar').querySelector('rect')); return a.x<r.x-0.1 || a.y<r.y-0.1 || a.x+a.width>r.x+r.width+0.1 || a.y+a.height>r.y+r.height+0.1; }).map((el)=>el.textContent),
         accessible: figure.querySelector('.sr-only').textContent,
         legend: [...figure.querySelectorAll('.chart-block-legend li')].map((el)=>el.textContent)
       };
@@ -204,7 +208,13 @@ async function verifyDivergingStacks(page) {
     assert.equal(state.zero.count,1); assert.equal(state.zero.hidden,'true'); assert.notEqual(state.zero.stroke,'none');
     assert.equal(new Set(state.axes).size,state.axes.length,'軸線の重複なし');
     assert.equal(state.zeros,1); assert.equal(state.overflow,false);
-    assert.deepEqual(state.invalid,[]); assert.deepEqual(state.outside,[]); assert.deepEqual(state.collisions,[], '合計ラベルの衝突なし');
+    if (percent) {
+      const all = values.flat();
+      assert.equal(state.ticks.includes('-100%'), all.some((n)=>n<0));
+      assert.equal(state.ticks.includes('100%'), all.some((n)=>n>0) || all.every((n)=>n===0));
+    }
+    assert.deepEqual(state.invalid,[]); assert.deepEqual(state.outside,[]); assert.deepEqual(state.collisions,[], '合計・割合ラベルの衝突なし');
+    assert.deepEqual(state.labelsOutsideBars, [], '割合ラベルを棒の内側へ収める');
     assert.deepEqual(state.legend,seed.series.map((s)=>s.name));
     for (let item=0;item<3;item++) {
       const group=state.groups[item];
@@ -214,7 +224,7 @@ async function verifyDivergingStacks(page) {
         const bar=group.bars[index],value=values[index][item],side=value<0?'negative':'positive';
         assert.ok(bar.title.includes(String(value)));
         if (!bar.rect) {
-          const magnitude = Math.max(...values.flat().map(Math.abs));
+          const magnitude = Math.max(...(percent ? values.map((series)=>series[item]).filter((n)=>Math.sign(n)===Math.sign(value)) : values.flat()).map(Math.abs));
           assert.ok(value === 0 || Math.abs(value) / magnitude < 1e-12, "通常の非0値の棒を省略しない");
           continue;
         }
@@ -228,7 +238,25 @@ async function verifyDivergingStacks(page) {
       }
       const itemValues=values.map((s)=>s[item]);
       const positive=itemValues.filter((n)=>n>0),negative=itemValues.filter((n)=>n<0);
-      assert.deepEqual(group.totals.map((t)=>t.side),[...(positive.length||!negative.length?['positive']:[]),...(negative.length?['negative']:[])]);
+      if (percent) {
+        assert.deepEqual(group.totals, [], "100%モードに合計ラベルを出さない");
+        const sides = { positive, negative };
+        for (let index = 0; index < 3; index++) {
+          const value = itemValues[index], side = sides[value < 0 ? 'negative' : 'positive'];
+          const scale = Math.max(0, ...side.map(Math.abs));
+          const sum = scale ? side.reduce((total, n) => total + Math.abs(n) / scale, 0) : 0;
+          const expected = sum ? (value / scale) / sum * 100 : 0;
+          assert.ok(group.bars[index].title.includes(seed.items[item].label));
+          assert.ok(group.bars[index].title.includes(seed.series[index].name));
+          assert.ok(group.bars[index].title.includes(`割合: ${expected === 0 ? 0 : expected}%`));
+          assert.ok(state.accessible.includes(group.bars[index].title));
+          assert.ok(!group.bars[index].title.includes('%%'));
+        }
+        if (positive.length) assert.ok(Math.abs(previous.positive-state.endpoints['100%'])<0.0001, '正側の端は+100%目盛りと一致');
+        if (negative.length) assert.ok(Math.abs(previous.negative-state.endpoints['-100%'])<0.0001, '負側の端は-100%目盛りと一致');
+      } else {
+        assert.deepEqual(group.totals.map((t)=>t.side),[...(positive.length||!negative.length?['positive']:[]),...(negative.length?['negative']:[])]);
+      }
       for (const total of group.totals) {
         const sum=(total.side==='positive'?positive:negative).reduce((a,b)=>a+b,0);
         assert.ok(total.description.includes(Number.isFinite(sum)?String(sum):'上限超過'));
@@ -255,12 +283,12 @@ async function verifyDivergingStacks(page) {
     await page.reload({waitUntil:'domcontentloaded'});await page.locator('#appStartupGuard').waitFor({state:'hidden'});await panel.waitFor({state:'visible'});
     assert.deepEqual(await chart(page),saved);assert.equal(await page.locator('#editor').inputValue(),savedBody);
     await geometry(kind==='horizontal',seed.series.map((s)=>s.values));
-    for(const supported of ['grouped','line']) {
-      if(supported==='line')await type.selectOption('line');else await mode.selectOption('grouped');
+    for(const supported of ['grouped','line', ...(percent ? ['stacked'] : ['percent-stacked'])]) {
+      if(supported==='line')await type.selectOption('line');else await mode.selectOption(supported);
       assert.deepEqual((await chart(page)).series,seed.series);
-      await type.selectOption('bar');await mode.selectOption('stacked');assert.deepEqual((await chart(page)).series,seed.series);
+      await type.selectOption('bar');await mode.selectOption(barMode);assert.deepEqual((await chart(page)).series,seed.series);
     }
-    for(const unsupported of ['percent-stacked','pie']) {
+    for(const unsupported of ['pie']) {
       if(unsupported==='pie')await type.selectOption('pie');else await mode.selectOption(unsupported);
       assert.equal(await confirm.isDisabled(),true);assert.match(await panel.locator('.chart-block-editor-preview').textContent(),/負数に未対応/);
       assert.equal(await page.locator('#editor').inputValue(),savedBody);
@@ -271,18 +299,36 @@ async function verifyDivergingStacks(page) {
       if(unsupported==='pie')await type.selectOption('pie');else await mode.selectOption(unsupported);
       await input(0,1).fill('-12');await cancel.click();await waitForChartCancelCompletion(page,0);assert.equal(await page.locator('#editor').inputValue(),savedBody);
     }
-    await mode.selectOption('percent-stacked');await input(0,1).fill('-99');
+    await type.selectOption('pie');await input(0,1).fill('-99');
     await page.reload({waitUntil:'domcontentloaded'});await page.locator('#appStartupGuard').waitFor({state:'hidden'});await panel.waitFor({state:'visible'});
     assert.equal(await page.locator('#editor').inputValue(),savedBody,'未確定エラーをページ終了時に保存しない');
     assert.deepEqual((await chart(page)).series,seed.series);
   }
-  const legacy='<!-- memo-nexus:chart-block:'+Buffer.from(JSON.stringify({id:'legacy-stacked',items:[{label:'旧項目',value:30}],appearance:{barMode:'stacked'}})).toString('hex')+' -->';
+  if (percent) {
+    const savedBody = await page.locator('#editor').inputValue();
+    for (const invalid of ['-', 'NaN', 'Infinity', '-Infinity', '1e', '']) {
+      await input(0, 0).fill(invalid);
+      await confirm.click();
+      assert.equal(await input(0, 0).getAttribute('aria-invalid'), 'true');
+      assert.equal(await page.locator('#editor').inputValue(), savedBody);
+      await cancel.click(); await waitForChartCancelCompletion(page, 0);
+    }
+    await input(0, 1).fill('-12.5');
+    assert.equal((await chart(page)).series[1].values[0], -12.5, '再編集した有限負数を保持');
+    await cancel.click(); await waitForChartCancelCompletion(page, 0);
+    await panel.locator('[data-chart-item-index="1"] [data-chart-action="move-item-up"]').click();
+    await page.waitForFunction(() => document.activeElement?.closest('[data-chart-item-id="b"]'));
+    assert.deepEqual((await chart(page)).series.map((series)=>series.values), seed.series.map((series)=>[series.values[1],series.values[0],series.values[2]]));
+    await cancel.click(); await waitForChartCancelCompletion(page, 0);
+    assert.equal(await page.locator('#editor').inputValue(), savedBody);
+  }
+  const legacy='<!-- memo-nexus:chart-block:'+Buffer.from(JSON.stringify({id:'legacy-stacked',items:[{label:'旧項目',value:percent ? -30 : 30}],appearance:{barMode}})).toString('hex')+' -->';
   await page.locator('#editor').fill(legacy);await page.locator('.chart-block-editor[data-chart-id="legacy-stacked"]').waitFor({state:'visible'});
   assert.equal(await page.locator('#editor').inputValue(),legacy);
-  await page.locator('.chart-block-editor input[data-chart-series-value]').fill('-30');
+  await page.locator('.chart-block-editor input[data-chart-series-value]').fill(percent ? '-31' : '-30');
   await page.locator('.chart-block-editor [data-chart-action="cancel"]').click();await waitForChartCancelCompletion(page,0);
   assert.equal(await page.locator('#editor').inputValue(),legacy);
-  console.log('Diverging stack checks passed: 140 geometry combinations, signed totals, persistence, type switches, invalid drafts, reload and cancel');
+  console.log(`Diverging ${barMode} checks passed: 140 geometry combinations, persistence, type switches, invalid drafts, reload and cancel`);
 }
 
 async function verifySignedCharts(page) {
@@ -389,7 +435,7 @@ async function verifySignedCharts(page) {
   await page.waitForFunction(() => document.querySelector('.chart-block-editor .chart-block-status')?.textContent === '入力内容を保存しました');
   const savedBody = await page.locator('#editor').inputValue();
   const saved = await chart(page);
-  for (const unsupported of ['percent-stacked', 'pie']) {
+  for (const unsupported of ['pie']) {
     if (unsupported === 'pie') await type.selectOption('pie');
     else await mode.selectOption(unsupported);
     assert.match(await panel.locator('.chart-block-editor-preview').textContent(), /負数に未対応/);
@@ -409,7 +455,7 @@ async function verifySignedCharts(page) {
   await mode.selectOption('percent-stacked');
   await cancel.click();
   await waitForChartCancelCompletion(page, 0);
-  assert.equal(await page.locator('#editor').inputValue(), savedBody, '未対応エラー状態から直接取消できる');
+  assert.equal(await page.locator('#editor').inputValue(), savedBody, '100%形式への切替から直接取消できる');
   await input(0, 0).fill('-');
   await type.selectOption('line');
   assert.equal(await input(0, 0).inputValue(), '-', '途中入力を種類切替で消さない');
@@ -1452,7 +1498,13 @@ async function verifySignedCharts(page) {
       "1月、売上: 100万円、53%、項目合計: 190万円", "1月、営業利益: 30万円、16%、項目合計: 190万円", "1月、原価: 60万円、32%、項目合計: 190万円",
       "2月、売上: 140万円、53%、項目合計: 265万円", "2月、営業利益: 45万円、17%、項目合計: 265万円", "2月、原価: 80万円、30%、項目合計: 265万円",
       "3月、売上: 120万円、53%、項目合計: 228万円", "3月、営業利益: 38万円、17%、項目合計: 228万円", "3月、原価: 70万円、31%、項目合計: 228万円"
-    ], "100%積み上げは元の値、割合、項目合計を読み上げ対象にする");
+    ].map((entry, index) => {
+      const item = Math.floor(index / 3), series = index % 3;
+      const values = valuesBeforePercentStacked.map((row) => row[item]);
+      const scale = Math.max(...values);
+      const percentage = (values[series] / scale) / values.reduce((sum, value) => sum + value / scale, 0) * 100;
+      return entry.replace(/、(\d+%)、項目合計:/, `（$1、割合: ${percentage}%、項目合計:`) + "）";
+    }), "100%積み上げは元の値、丸め割合、未丸め割合、項目合計を読み上げ対象にする");
     await barMode.selectOption("grouped");
     await page.waitForFunction(() => document.querySelector("#preview .chart-block-bar-chart")?.dataset.chartBarMode === "grouped");
     assert.deepEqual((await chart(page)).series.map((series) => series.values), valuesBeforePercentStacked, "集合へ戻しても元の実数値を復元する");
@@ -1745,6 +1797,7 @@ async function verifySignedCharts(page) {
     assert.equal(metrics.pageOverflow, 0, "390px幅でもページ全体の横スクロールを作らない");
     await verifySignedCharts(page);
     await verifyDivergingStacks(page);
+    await verifyDivergingStacks(page, true);
     assert.deepEqual(pageErrors, [], `ページエラーなし: ${pageErrors.join("\n")}`);
     assert.deepEqual(consoleErrors, [], `console errorなし: ${consoleErrors.join("\n")}`);
   } catch (error) {
