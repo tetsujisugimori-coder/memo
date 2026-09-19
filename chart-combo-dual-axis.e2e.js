@@ -32,8 +32,15 @@ async function verifyDualAxisCharts(page, { chart, waitForChartCancelCompletion 
   await field("comboSecondaryUnit").fill("  人  ");
   assert.equal((await chart(page)).appearance.comboSecondaryUnit, "人");
   await input(0, 0).fill("30"); await input(0, 1).fill("2000");
-  for (let i = 0; i < 2; i++) await action("add-item").click();
-  for (let i = 0; i < 3; i++) await panel.locator('[data-chart-item-index="' + i + '"] [data-chart-item-field="label"]').fill(i ? "地域" + i : "非常に長い項目名の日本語とLongIdentifierを省略しても情報を残す");
+  for (let i = 1; i < 3; i++) {
+    await action("add-item").click();
+    // Addition transfers focus on the next animation frame, before the next fill.
+    await page.waitForFunction((index) => document.activeElement?.matches('input[data-chart-item-field="label"]')
+      && document.activeElement.closest("[data-chart-item-index]")?.dataset.chartItemIndex === String(index), i);
+  }
+  const itemLabels = ["非常に長い項目名の日本語とLongIdentifierを省略しても情報を残す", "地域1", "地域2"];
+  for (let i = 0; i < itemLabels.length; i++) await panel.locator('[data-chart-item-index="' + i + '"] [data-chart-item-field="label"]').fill(itemLabels[i]);
+  assert.deepEqual((await chart(page)).items.map((item) => item.label), itemLabels, "追加後のフォーカス完了後に全項目名を入力する");
   for (let i = 1; i < 3; i++) { await input(i, 0).fill(String(i * 20)); await input(i, 1).fill(String(i * 1000)); }
   await field("showLegend").check();
   const initial = await chart(page);

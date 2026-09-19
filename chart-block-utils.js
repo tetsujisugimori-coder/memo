@@ -2,6 +2,8 @@
   "use strict";
 
   const CHART_BLOCK_VERSION = 1;
+  const MAX_CHART_ITEMS = 50;
+  const MAX_CHART_SERIES = 3;
   const CHART_BLOCK_PATTERN = /^\s*<!-- memo-nexus:chart-block:([0-9a-f]+) -->\s*$/i;
   const DEFAULT_CHART_COLOR = "#4f46e5";
   const DEFAULT_CHART_SERIES_NAME = "系列 1";
@@ -46,6 +48,55 @@
   function isValidChartNumber(value) {
     return (typeof value === "number" || typeof value === "string")
       && String(value).trim() !== "" && Number.isFinite(Number(value));
+  }
+
+  // TSV is a rectangular table, with one header row and no CSV quoting or formulas.
+  function parseChartTsv(text) {
+    const fail = (row, column, value, reason) => ({ ok: false, error: { row, column, value, reason } });
+    const rows = String(text ?? "").replace(/\r\n/g, "\n").split("\n");
+    while (rows.length && rows.at(-1).trim() === "") rows.pop();
+    if (!rows.length) return fail(1, 1, "", "見出し行と項目データをTSV（タブ区切り）で貼り付けてください。");
+    const header = rows[0].split("\t");
+    if (header.length < 2) return fail(1, 2, rows[0], "系列列がありません。表をTSV（タブ区切り）で貼り付けてください。CSVには対応していません。");
+    if (header.length - 1 > MAX_CHART_SERIES) return fail(1, MAX_CHART_SERIES + 2, header[MAX_CHART_SERIES + 1], "系列は最大3件です。列を減らしてください。");
+    const names = header.slice(1).map((cell) => cell.trim());
+    for (let index = 0; index < names.length; index += 1) {
+      if (!names[index]) return fail(1, index + 2, header[index + 1], "系列名が空欄です。名前を入力してください。");
+    }
+    if (rows.length < 2) return fail(2, 1, "", "項目データがありません。1件以上の項目を入力してください。");
+    if (rows.length - 1 > MAX_CHART_ITEMS) return fail(MAX_CHART_ITEMS + 2, 1, rows[MAX_CHART_ITEMS + 1].split("\t")[0], "項目は最大50件です。行を減らしてください。");
+    const items = [];
+    const series = names.map((name) => ({ name, values: [] }));
+    for (let index = 1; index < rows.length; index += 1) {
+      const cells = rows[index].split("\t");
+      if (!rows[index].trim()) return fail(index + 1, 1, "", "表の途中に空行があります。空行を削除してください。");
+      if (cells.length !== header.length) {
+        const column = cells.length < header.length ? cells.length + 1 : header.length + 1;
+        return fail(index + 1, column, cells[column - 1] ?? "", "列数が見出し行と一致しません。空欄を埋め、余分な列を削除してください。");
+      }
+      const label = cells[0].trim();
+      if (!label) return fail(index + 1, 1, cells[0], "項目名が空欄です。名前を入力してください。");
+      items.push({ label });
+      for (let column = 1; column < cells.length; column += 1) {
+        if (!isValidChartNumber(cells[column])) return fail(index + 1, column + 1, cells[column], "有限な数値を入力してください。空欄、カンマ、%、通貨記号、数式には対応していません。");
+        series[column - 1].values.push(finiteChartNumber(cells[column]));
+      }
+    }
+    return { ok: true, table: { items, series } };
+  }
+
+  // IDs for new positions are supplied by the caller's existing UUID route.
+  // This transformation neither mutates inputs nor stores import UI state.
+  function replaceChartTable(chartValue, table, newIds) {
+    const chart = normalizeChartBlock(chartValue, chartValue?.id);
+    const items = table.items.map((item, index) => ({ id: chart.items[index]?.id || newIds.items[index], label: item.label }));
+    const series = table.series.map((entry, index) => ({
+      id: chart.series[index]?.id || newIds.series[index],
+      name: entry.name,
+      color: chart.series[index]?.color || CHART_SERIES_COLORS[index],
+      values: [...entry.values]
+    }));
+    return normalizeChartBlock({ ...chart, items, series }, chart.id);
   }
 
   function chartValidationError(chart) {
@@ -169,7 +220,7 @@
   function normalizeChartBlock(value, fallbackId = "chart") {
     const source = value && typeof value === "object" && !Array.isArray(value) ? value : {};
     const id = normalizedText(source.id).trim() || normalizedText(fallbackId).trim() || "chart";
-    const sourceItems = Array.isArray(source.items) ? source.items.slice(0, 50) : [];
+    const sourceItems = Array.isArray(source.items) ? source.items.slice(0, MAX_CHART_ITEMS) : [];
     const usedIds = new Set();
     const items = sourceItems.map((item, index) => normalizeChartItem(item, id, index, usedIds));
     const appearanceSource = source.appearance && typeof source.appearance === "object" && !Array.isArray(source.appearance)
@@ -177,7 +228,7 @@
     const appearanceWithoutPieItemColors = { ...appearanceSource };
     delete appearanceWithoutPieItemColors.pieItemColors;
     const legacyValues = sourceItems.map((item) => finiteChartNumber(item?.value));
-    const sourceSeries = Array.isArray(source.series) && source.series.length ? source.series.slice(0, 3) : [
+    const sourceSeries = Array.isArray(source.series) && source.series.length ? source.series.slice(0, MAX_CHART_SERIES) : [
       { id: `${id}-series-1`, name: DEFAULT_CHART_SERIES_NAME, color: appearanceSource.color, values: legacyValues }
     ];
     const usedSeriesIds = new Set();
@@ -796,6 +847,10 @@
   }
 
   const api = {
+    MAX_CHART_ITEMS,
+    MAX_CHART_SERIES,
+    parseChartTsv,
+    replaceChartTable,
     formatChartAxisTitle,
     chartSeriesUnit,
     chartDatumDescription,

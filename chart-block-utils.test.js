@@ -3,6 +3,8 @@
 const assert = require("node:assert/strict");
 const test = require("node:test");
 const {
+  parseChartTsv,
+  replaceChartTable,
   comboChartLayout,
   formatChartAxisTitle,
   chartSeriesUnit,
@@ -1545,4 +1547,96 @@ test("左右タイトルと単位はMarkdown・ZIP用bundle・ローカル保存
   assert.equal(local.body, body);
   assert.deepEqual(charts(plan.body)[0].chart, chart);
   assert.deepEqual(charts(local.body)[0].chart, chart);
+});
+
+
+for (const newline of ["\n", "\r\n"]) for (const corner of ["項目", ""]) {
+  test("TSV: 改行と左上セル " + JSON.stringify([newline, corner]), () => {
+    const result = parseChartTsv([corner + "\t 売上 \t 売上 ", " 日本語A \t100\t-0", " 日本語A \t-2.5\t1e3", "", ""].join(newline));
+    assert.deepEqual(result, { ok: true, table: { items: [{ label: "日本語A" }, { label: "日本語A" }], series: [{ name: "売上", values: [100, -2.5] }, { name: "売上", values: [0, 1000] }] } });
+  });
+}
+for (const value of ["1", "0", "-0", "-12", "0.125", "1e-4", "5e-324", "1.7976931348623157e308", "-1.7976931348623157e308"]) {
+  test("TSV: 有限値を保持 " + value, () => {
+    const result = parseChartTsv("月\tseries1\nJan\t" + value);
+    assert.equal(result.ok, true);
+    assert.deepEqual(result.table.series[0].values, [Number(value) === 0 ? 0 : Number(value)]);
+  });
+}
+for (const value of ["NaN", "Infinity", "-Infinity", "", " ", "abc", "1,234", "25%", "￥100", "=1+2", '"12"']) {
+  test("TSV: 無効な数値と位置 " + JSON.stringify(value), () => {
+    const result = parseChartTsv("項目\tA\tB\n1月\t10\t" + value);
+    assert.equal(result.ok, false);
+    assert.equal(result.error.row, 2);
+    assert.equal(result.error.column, 3);
+    assert.equal(result.error.value, value);
+    assert.match(result.error.reason, /有限な数値/);
+  });
+}
+for (const [text, row, column, reason] of [
+  ["", 1, 1, /TSV/], ["項目\tA", 2, 1, /項目データ/],
+  ["項目\n1月", 1, 2, /タブ区切り/], ["項目,A\n1月,10", 1, 2, /CSV/],
+  ["項目\t \n1月\t1", 1, 2, /系列名/], ["項目\tA\n \t1", 2, 1, /項目名/],
+  ["項目\tA\n1月\t1\n\n2月\t2", 3, 1, /空行/],
+  ["項目\tA\tB\n1月\t1", 2, 3, /列数/], ["項目\tA\n1月\t1\t2", 2, 3, /列数/],
+  ["項目\tA\tB\tC\tD\n1月\t1\t2\t3\t4", 1, 5, /最大3件/],
+  ["項目\tA\n" + Array.from({length:51}, (_,i) => "項目" + i + "\t1").join("\n"), 52, 1, /最大50件/]
+]) {
+  test("TSV: 構造エラー " + reason + " " + row + ":" + column, () => {
+    const result = parseChartTsv(text);
+    assert.equal(result.ok, false); assert.equal(result.error.row, row); assert.equal(result.error.column, column);
+    assert.match(result.error.reason, reason);
+  });
+}
+test("TSV: 既存上限50項目3系列を受理", () => {
+  const result = parseChartTsv("\tA\tB\tC\n" + Array.from({length:50}, (_,i) => "項目" + i + "\t1\t2\t3").join("\n"));
+  assert.equal(result.ok, true); assert.equal(result.table.items.length, 50); assert.equal(result.table.series.length, 3);
+});
+function tsvFrozen(value) {
+  if (value && typeof value === "object") { Object.values(value).forEach(tsvFrozen); Object.freeze(value); }
+  return value;
+}
+function tsvSeed() {
+  return normalizeChartBlock({ id: "tsv", chartType: "combo", title: "タイトル", unit: "万円",
+    items: [{id:"a",label:"同名"},{id:"b",label:"同名"},{id:"c",label:"C"}],
+    series: [{id:"s1",name:"同名",color:"#123456",values:[1,2,3]},{id:"s2",name:"同名",color:"#654321",values:[4,5,6]},{id:"s3",name:"C",color:"#abcdef",values:[7,8,9]}],
+    appearance: { barOrientation:"horizontal",barMode:"percent-stacked",showPoints:false,showLegend:true,showValues:false,showStackTotals:true,pieLabelMode:"none",pieSeriesId:"s2",pieItemColors:{a:"#123456",b:"#654321",c:"#abcdef"},comboLineSeriesId:"s2",comboAxisMode:"dual",comboSecondaryUnit:"%",leftAxisTitle:"左",rightAxisTitle:"右" }
+  });
+}
+test("TSV: 位置でID・色・全設定を維持し凍結入力を変更しない", () => {
+  const original = tsvFrozen(tsvSeed()); const before = JSON.stringify(original);
+  const table = tsvFrozen(parseChartTsv("\tC\tC\tC\nC\t3\t2\t1\nC\t6\t5\t4\nC\t9\t8\t7").table);
+  const result = replaceChartTable(original, table, {items:[],series:[]});
+  assert.deepEqual(result.items.map(x=>x.id), ["a","b","c"]);
+  assert.deepEqual(result.series.map(x=>[x.id,x.color]), original.series.map(x=>[x.id,x.color]));
+  assert.deepEqual(result.appearance, original.appearance);
+  assert.equal(result.chartType, original.chartType); assert.equal(result.title, original.title); assert.equal(result.unit, original.unit);
+  assert.equal(JSON.stringify(original), before); assert.deepEqual(normalizeChartBlock(result), result);
+  assert.deepEqual(parseChartBlockLine(serializeChartBlock(result)), result);
+  assert.deepEqual(Object.keys(result).sort(), Object.keys(original).sort(), "永続フィールドを増やさない");
+});
+test("TSV: 削除された色を整理し系列選択を維持・フォールバック", () => {
+  const original = tsvSeed();
+  const two = replaceChartTable(original, parseChartTsv("\tX\tY\nX\t1\t2\nY\t3\t4").table, {items:[],series:[]});
+  assert.deepEqual(two.appearance.pieItemColors, {a:"#123456",b:"#654321"});
+  assert.equal(two.appearance.pieSeriesId,"s2"); assert.equal(two.appearance.comboLineSeriesId,"s2");
+  const one = replaceChartTable(two, parseChartTsv("\tX\nX\t1").table, {items:[],series:[]});
+  assert.deepEqual(one.appearance.pieItemColors, {a:"#123456"});
+  assert.equal(one.appearance.pieSeriesId,"s1"); assert.equal(one.appearance.comboLineSeriesId,"s1");
+  assert.match(chartValidationError(one), /2系列/);
+});
+test("TSV: 再追加で削除IDを再利用せず既定色を割り当てる", () => {
+  const original = tsvSeed();
+  const one = replaceChartTable(original, parseChartTsv("\tX\nX\t1").table, {items:[],series:[]});
+  const added = replaceChartTable(one, parseChartTsv("\tX\tY\tZ\nX\t1\t2\t3\nY\t4\t5\t6").table, {items:[null,"new-item"],series:[null,"new-series-2","new-series-3"]});
+  assert.deepEqual(added.items.map(x=>x.id),["a","new-item"]);
+  assert.deepEqual(added.series.map(x=>x.id),["s1","new-series-2","new-series-3"]);
+  assert.deepEqual(added.series.map(x=>x.color),["#123456",CHART_SERIES_COLORS[1],CHART_SERIES_COLORS[2]]);
+  assert.deepEqual(added.appearance.pieItemColors,{a:"#123456"});
+});
+test("TSV: 種類の検証を迂回せず無効draftを保持", () => {
+  const original = {...tsvSeed(),chartType:"pie"};
+  const result = replaceChartTable(original, parseChartTsv("\tX\nX\t-1").table, {items:[],series:[]});
+  assert.equal(result.chartType,"pie"); assert.equal(result.series[0].values[0],-1);
+  assert.match(chartValidationError(result), /負数/); assert.throws(()=>serializeChartBlock(result), /負数/);
 });

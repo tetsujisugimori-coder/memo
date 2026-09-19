@@ -476,6 +476,9 @@ const {
   comboAxisRanges,
   formatChartAxisTitle,
   chartSeriesUnit,
+  parseChartTsv,
+  replaceChartTable,
+  CHART_SERIES_COLORS,
   chartDatumDescription,
   comboValueAxisLayout,
   comboSeriesKinds,
@@ -8921,6 +8924,131 @@ function firstInvalidChartNumberInput(editorBlock) {
     .find((input) => !setChartNumberValidity(input));
 }
 
+let activeChartTsvDialog = null;
+
+function closeChartTsvDialog() {
+  if (!activeChartTsvDialog) return;
+  const { dialog, trigger } = activeChartTsvDialog;
+  activeChartTsvDialog = null;
+  dialog.close();
+  dialog.remove();
+  if (trigger.isConnected) trigger.focus({ preventScroll: true });
+}
+
+function openChartTsvDialog(editorBlock, trigger) {
+  closeChartTsvDialog();
+  const blockIndex = Number(editorBlock.dataset.chartIndex);
+  const chartId = editorBlock.dataset.chartId;
+  const snapshotKey = editorBlock.dataset.chartSnapshotKey;
+  const noteId = currentNote()?.id;
+  const dialog = document.createElement("dialog");
+  dialog.className = "chart-tsv-dialog";
+  dialog.setAttribute("aria-labelledby", "chart-tsv-title");
+  const heading = document.createElement("h2");
+  heading.id = "chart-tsv-title";
+  heading.textContent = "表データを貼り付け";
+  const help = document.createElement("p");
+  help.id = "chart-tsv-help";
+  help.textContent = "Excel・Googleスプレッドシートの表をTSV（タブ区切り）で貼り付けます。1行目は系列名、1列目は項目名です（最大50項目・3系列）。表全体を置き換えます。反映後に「入力を確定」で保存してください。";
+  const example = document.createElement("pre");
+  example.textContent = "項目\t売上\t利益\n1月\t100\t20\n2月\t120\t25";
+  const label = document.createElement("label");
+  label.textContent = "TSV表データ";
+  const input = document.createElement("textarea");
+  input.rows = 6;
+  input.setAttribute("aria-label", "TSV表データ");
+  input.setAttribute("aria-describedby", "chart-tsv-help chart-tsv-error");
+  input.spellcheck = false;
+  label.append(input);
+  const error = document.createElement("p");
+  error.id = "chart-tsv-error";
+  error.setAttribute("role", "status");
+  const summary = document.createElement("p");
+  summary.className = "chart-tsv-summary";
+  summary.setAttribute("aria-live", "polite");
+  const preview = document.createElement("div");
+  preview.className = "chart-tsv-preview";
+  preview.tabIndex = 0;
+  preview.setAttribute("role", "region");
+  preview.setAttribute("aria-label", "貼り付け内容のプレビュー");
+  const actions = document.createElement("div");
+  actions.className = "chart-tsv-actions";
+  const cancel = document.createElement("button");
+  cancel.type = "button";
+  cancel.textContent = "キャンセル";
+  cancel.addEventListener("click", closeChartTsvDialog);
+  const apply = document.createElement("button");
+  apply.type = "button";
+  apply.textContent = "貼り付け内容を反映";
+  apply.disabled = true;
+  actions.append(cancel, apply);
+  dialog.append(heading, help, example, label, error, summary, preview, actions);
+  let parsed = null;
+  input.addEventListener("input", () => {
+    parsed = parseChartTsv(input.value);
+    preview.replaceChildren();
+    summary.textContent = "";
+    apply.disabled = !parsed.ok;
+    input.setAttribute("aria-invalid", String(!parsed.ok));
+    if (!parsed.ok) {
+      const detail = parsed.error;
+      error.textContent = detail.row + "行 " + detail.column + "列「" + detail.value + "」: " + detail.reason;
+      return;
+    }
+    error.textContent = "";
+    summary.textContent = "項目数: " + parsed.table.items.length + "、系列数: " + parsed.table.series.length;
+    const table = document.createElement("table");
+    const head = table.createTHead().insertRow();
+    ["項目", ...parsed.table.series.map((series) => series.name)].forEach((name) => {
+      const cell = document.createElement("th");
+      cell.scope = "col";
+      cell.textContent = name;
+      head.append(cell);
+    });
+    const body = table.createTBody();
+    parsed.table.items.forEach((item, index) => {
+      const row = body.insertRow();
+      const name = document.createElement("th");
+      name.scope = "row";
+      name.textContent = item.label;
+      row.append(name);
+      parsed.table.series.forEach((series) => { row.insertCell().textContent = String(series.values[index]); });
+    });
+    preview.append(table);
+  });
+  apply.addEventListener("click", () => {
+    if (!parsed?.ok || currentNote()?.id !== noteId) return;
+    const block = currentChartBlock(blockIndex, chartId, snapshotKey);
+    const snapshot = chartEditorOriginalCharts.get(snapshotKey);
+    if (!block || !snapshot) { closeChartTsvDialog(); return; }
+    const next = replaceChartTable(block.chart, parsed.table, {
+      items: parsed.table.items.map((_, index) => block.chart.items[index]?.id || crypto.randomUUID()),
+      series: parsed.table.series.map((_, index) => block.chart.series[index]?.id || crypto.randomUUID())
+    });
+    // Keep even a type-invalid table in the edit session, never in the note/save queue.
+    snapshot.draft = next;
+    snapshot.deferSave = true;
+    closeChartTsvDialog();
+    renderChartBlockEditors();
+    const restored = chartBlockEditors.querySelector('[data-chart-snapshot-key="' + CSS.escape(snapshotKey) + '"]');
+    restored?.focus({ preventScroll: true });
+    chartEditorStatus(restored, chartValidationError(next) || "表データを反映しました。「入力を確定」で保存してください。");
+  });
+  dialog.addEventListener("keydown", (event) => {
+    if (event.key !== "Tab") return;
+    const targets = [...dialog.querySelectorAll('textarea, button:not(:disabled), [tabindex="0"]')];
+    const first = targets[0];
+    const last = targets.at(-1);
+    if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+    else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+  });
+  dialog.addEventListener("cancel", (event) => { event.preventDefault(); closeChartTsvDialog(); });
+  document.body.append(dialog);
+  activeChartTsvDialog = { dialog, trigger };
+  dialog.showModal();
+  input.focus();
+}
+
 function createChartEditor(chartValue, blockIndex, snapshotKey) {
   const chart = normalizeChartBlock(chartValue, `chart-${blockIndex + 1}`);
   const pieColors = chart.chartType === "pie" ? resolvedPieItemColors(chart) : null;
@@ -9320,11 +9448,16 @@ function createChartEditor(chartValue, blockIndex, snapshotKey) {
   previewHost.className = "chart-block-editor-preview";
   previewHost.setAttribute("aria-label", "グラフのプレビュー");
   renderChartEditorPreview(previewHost, chart, blockIndex);
-  article.append(header, fields, appearance, unsupportedNotice, seriesPanel, table, actions, status, previewHost);
+  const paste = document.createElement("button");
+  paste.type = "button";
+  paste.dataset.chartAction = "paste-table";
+  paste.textContent = "表データを貼り付け";
+  article.append(header, fields, appearance, unsupportedNotice, seriesPanel, paste, table, actions, status, previewHost);
   return article;
 }
 
 function renderChartBlockEditors() {
+  closeChartTsvDialog();
   closeChartTooltip();
   if (!chartBlockEditors) return;
   const noteId = currentNote()?.id || null;
@@ -9347,27 +9480,31 @@ function renderChartBlockEditors() {
 
 globalThis.renderChartBlockEditors = renderChartBlockEditors;
 
-function commitChartBlockChange(blockIndex, chartId, nextChart, { rerenderEditors = false, snapshotKey = null, restoreRaw = null } = {}) {
+function commitChartBlockChange(blockIndex, chartId, nextChart, { rerenderEditors = false, snapshotKey = null, restoreRaw = null, confirmDraft = false } = {}) {
   const block = currentChartBlock(blockIndex, chartId, snapshotKey);
   if (!block) return false;
   const snapshot = chartEditorOriginalCharts.get(snapshotKey);
   const validationError = chartValidationError(nextChart);
-  if (validationError) {
+  if (validationError || (snapshot?.deferSave && !confirmDraft && restoreRaw === null)) {
     if (!snapshot) return false;
     snapshot.draft = nextChart;
     if (rerenderEditors) renderChartBlockEditors();
     const target = chartBlockEditors?.querySelector(`[data-chart-snapshot-key="${CSS.escape(snapshotKey)}"]`);
     chartEditorStatus(target, validationError);
     const confirm = target?.querySelector('[data-chart-action="confirm"]');
-    if (confirm) confirm.disabled = true;
+    if (confirm) confirm.disabled = Boolean(validationError);
     return true;
   }
-  if (snapshot) delete snapshot.draft;
+  const importedTable = snapshot?.deferSave && confirmDraft;
+  if (snapshot) {
+    delete snapshot.draft;
+    delete snapshot.deferSave;
+  }
   const target = chartBlockEditors?.querySelector(`[data-chart-snapshot-key="${CSS.escape(snapshotKey)}"]`);
   const confirm = target?.querySelector('[data-chart-action="confirm"]');
   if (confirm) confirm.disabled = false;
   try {
-    captureUndoSnapshot({ inputType: "insertText" });
+    captureUndoSnapshot({ inputType: importedTable ? "insertFromPaste" : "insertText" });
     editor.value = restoreRaw === null ? replaceChartBlock(editor.value, block, nextChart)
       : editor.value.slice(0, block.start) + restoreRaw + editor.value.slice(block.start + block.raw.length);
     if (snapshotKey) updateChartEditorSnapshotCurrent(snapshotKey, nextChart, chartId);
@@ -9526,7 +9663,7 @@ async function confirmChartEditor(editorBlock, blockIndex, chartId, snapshotKey)
     chartEditorStatus(editorBlock, validationError);
     return;
   }
-  if (!commitChartBlockChange(blockIndex, chartId, normalizeChartBlock(block.chart, chartId), { snapshotKey })) {
+  if (!commitChartBlockChange(blockIndex, chartId, normalizeChartBlock(block.chart, chartId), { snapshotKey, confirmDraft: true })) {
     chartEditorStatus(editorBlock, "入力内容を保存できませんでした");
     return;
   }
@@ -9553,6 +9690,9 @@ function handleChartEditorAction(event) {
   if (!block) return;
   let next = normalizeChartBlock(block.chart, chartId);
   switch (button.dataset.chartAction) {
+    case "paste-table":
+      openChartTsvDialog(editorBlock, button);
+      return;
     case "add-item":
       if (next.items.length >= 50) return;
       next.items = [...next.items, { id: crypto.randomUUID(), label: "" }];
@@ -9611,7 +9751,7 @@ function handleChartEditorAction(event) {
       next.series = [...next.series, {
         id: crypto.randomUUID(),
         name: `系列 ${next.series.length + 1}`,
-        color: ["#4f46e5", "#dc2626", "#059669"][next.series.length],
+        color: CHART_SERIES_COLORS[next.series.length],
         values: next.items.map(() => 0)
       }];
       next.appearance = { ...next.appearance, showLegend: true };
