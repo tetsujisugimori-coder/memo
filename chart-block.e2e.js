@@ -7,6 +7,7 @@ const os = require("node:os");
 const path = require("node:path");
 const playwright = require("playwright");
 const { verifyDualAxisCharts } = require("./chart-combo-dual-axis.e2e.js");
+const { verifyAxisTitles } = require("./chart-axis-titles.e2e.js");
 
 let appUrl = process.env.MEMO_NEXUS_E2E_URL || "";
 const browserName = process.env.MEMO_NEXUS_E2E_BROWSER || "chromium";
@@ -2046,6 +2047,7 @@ async function verifySignedCharts(page) {
     await verifyDivergingStacks(page, true);
     await verifyComboCharts(page);
     await verifyDualAxisCharts(page, { chart, waitForChartCancelCompletion });
+    await verifyAxisTitles(page, { chart, waitForChartCancelCompletion });
     assert.deepEqual(pageErrors, [], `ページエラーなし: ${pageErrors.join("\n")}`);
     assert.deepEqual(consoleErrors, [], `console errorなし: ${consoleErrors.join("\n")}`);
   } catch (error) {

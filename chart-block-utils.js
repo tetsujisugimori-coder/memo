@@ -147,6 +147,19 @@
       ? value : series.at(-1)?.id || "";
   }
 
+  function formatChartAxisTitle(title, unit) {
+    const name = normalizedText(title).trim();
+    const suffix = normalizedText(unit).trim();
+    return name && suffix ? `${name}（${suffix}）` : name || suffix;
+  }
+
+  function chartSeriesUnit(chart, series) {
+    const appearance = chart?.appearance || {};
+    const rightAxis = chart?.chartType === "combo" && appearance.comboAxisMode === "dual"
+      && series?.id === normalizeComboLineSeriesId(appearance.comboLineSeriesId, chart.series || []);
+    return normalizedText(rightAxis ? appearance.comboSecondaryUnit : chart?.unit).trim();
+  }
+
   function comboSeriesKinds(chartValue) {
     const chart = normalizeChartBlock(chartValue, chartValue?.id);
     const selected = normalizeComboLineSeriesId(chart.appearance.comboLineSeriesId, chart.series);
@@ -200,6 +213,8 @@
         ...(source.chartType === "combo" || Object.hasOwn(appearanceSource, "comboAxisMode") || Object.hasOwn(appearanceSource, "comboSecondaryUnit")
           ? { comboAxisMode: appearanceSource.comboAxisMode === "dual" ? "dual" : "single",
             comboSecondaryUnit: normalizedText(appearanceSource.comboSecondaryUnit).trim() } : {}),
+        ...Object.fromEntries(["leftAxisTitle", "rightAxisTitle"].filter((key) => Object.hasOwn(appearanceSource, key))
+          .map((key) => [key, normalizedText(appearanceSource[key]).trim()])),
         ...(Object.keys(pieItemColors).length ? { pieItemColors } : {})
       }
     };
@@ -774,6 +789,8 @@
   }
 
   const api = {
+    formatChartAxisTitle,
+    chartSeriesUnit,
     comboChartLayout,
     comboAxisRanges,
     comboValueAxisLayout,

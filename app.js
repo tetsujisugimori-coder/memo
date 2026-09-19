@@ -474,6 +474,8 @@ const {
   chartStackedTotals,
   comboChartLayout,
   comboAxisRanges,
+  formatChartAxisTitle,
+  chartSeriesUnit,
   comboValueAxisLayout,
   comboSeriesKinds,
   groupedBarLayout,
@@ -8466,11 +8468,6 @@ function chartComboSeriesLabel(chart, kind) {
   return chart.appearance.comboAxisMode === "dual" ? label + (kind === "line" ? "・右軸" : "・左軸") : label;
 }
 
-function chartSeriesUnit(chart, series) {
-  return chart.chartType === "combo" && chart.appearance.comboAxisMode === "dual" && series.id === chart.appearance.comboLineSeriesId
-    ? chart.appearance.comboSecondaryUnit : chart.unit;
-}
-
 function chartAccessibleItems(chart, percentStackedLayout = null, stackedTotals = null) {
   if (percentStackedLayout) {
     return percentStackedLayout.segments.map((segment) => `<li>${escapeHtml(chartPercentSegmentDescription(segment, chart.unit))}</li>`).join("");
@@ -8786,7 +8783,7 @@ function renderChartBlock(chartValue, blockIndex, { editable = true } = {}) {
     ? comboChartLayout(chart, { left: plotLeft, right: plotRight, width, top: stackedPlotTop, baseline: barBaseline })
     : groupedBarLayout(chart.items, chart.series, { left: plotLeft, right: plotRight, width, top: stackedPlotTop, baseline: barBaseline, range: maximum });
   const barZero = baseline - chartValueRatio(0, maximum) * (baseline - stackedPlotTop);
-  const valueLabelOptions = { left: plotLeft, right: dual ? width - plotRight - 8 : width - 4, top: dual ? 46 : 24, hideOnCollision: combo,
+  const valueLabelOptions = { left: plotLeft, right: dual ? width - plotRight - 8 : width - 4, top: dual || (combo && chart.appearance.leftAxisTitle) ? 46 : 24, hideOnCollision: combo,
     bottom: combo && maximum.minimum >= 0 ? 194 : 212,
     occupied: [{ x: axisX, y: barZero - 2, width: width - axisX, height: 4 }] };
   if (combo) {
@@ -8850,14 +8847,16 @@ function renderChartBlock(chartValue, blockIndex, { editable = true } = {}) {
   const numericAxis = chartVerticalTickMarkup(axis, maximum, { x: axis.margin, top: stackedPlotTop, baseline: barBaseline, suffix: percentStacked ? "%" : "", className: dual ? "chart-block-left-axis-value" : percentStacked ? "chart-block-percent-axis-value" : "", axisSide: dual ? "左軸" : "", unit: chart.unit });
   const rightAxisX = width - plotRight + 10;
   const secondaryAxis = dual ? `<line class="chart-block-axis chart-block-right-axis" aria-hidden="true" x1="${rightAxisX}" x2="${rightAxisX}" y1="${stackedPlotTop}" y2="${barBaseline}"/>${chartVerticalTickMarkup(rightAxis, comboAxes.rightRange, { x: rightAxisX + 6, top: stackedPlotTop, baseline: barBaseline, anchor: "start", className: "chart-block-right-axis-value", axisSide: "右軸", unit: chart.appearance.comboSecondaryUnit })}` : "";
+  const leftAxisTitle = combo ? formatChartAxisTitle(chart.appearance.leftAxisTitle, chart.unit) : chart.unit;
+  const rightAxisTitle = dual ? formatChartAxisTitle(chart.appearance.rightAxisTitle, chart.appearance.comboSecondaryUnit) : "";
   const unit = dual
-    ? chartUnitMarkup(`左軸・棒: ${chart.unit || "単位なし"}`, 8, 18, width / 2 - 20)
-      + chartUnitMarkup(`右軸・折れ線: ${chart.appearance.comboSecondaryUnit || "単位なし"}`, width / 2 + 8, 18, width / 2 - 20)
-    : chartUnitMarkup(percentStacked ? "構成比（%）" : chart.unit, axisX + 6, 18, width - axisX - plotRight);
+    ? chartUnitMarkup(`左軸・棒: ${leftAxisTitle || "単位なし"}`, 8, 18, width / 2 - 20)
+      + chartUnitMarkup(`右軸・折れ線: ${rightAxisTitle || "単位なし"}`, width / 2 + 8, 18, width / 2 - 20)
+    : chartUnitMarkup(percentStacked ? "構成比（%）" : leftAxisTitle, axisX + 6, 18, width - axisX - plotRight);
   const ariaLabel = percentStacked
     ? `${title}（100%積み上げ、元データの単位: ${chart.unit || "なし"}）`
-    : dual ? `${title}（複合グラフ、左右2軸。棒・左軸: ${chart.unit || "単位なし"}、折れ線・右軸: ${chart.appearance.comboSecondaryUnit || "単位なし"}。左右で尺度が異なります）`
-    : `${title}${combo ? "（複合グラフ、単一Y軸）" : ""}${chart.unit ? `（単位: ${chart.unit}）` : ""}`;
+    : dual ? `${title}（複合グラフ、左右2軸。棒・左軸: ${leftAxisTitle || "単位なし"}、折れ線・右軸: ${rightAxisTitle || "単位なし"}。左右で尺度が異なります）`
+    : `${title}${combo ? "（複合グラフ、単一Y軸）" : ""}${combo && chart.appearance.leftAxisTitle ? `（左軸: ${leftAxisTitle}）` : chart.unit ? `（単位: ${chart.unit}）` : ""}`;
   return `<figure class="chart-block chart-block-bar-chart${combo ? " chart-block-combo" : ""}${dual ? " chart-block-combo-dual" : ""}" data-chart-id="${escapeAttr(chart.id)}" data-chart-bar-mode="${combo ? "grouped" : escapeAttr(chart.appearance.barMode)}"><figcaption>${escapeHtml(title)}</figcaption>${controls}<div class="chart-block-bar-layout"><div class="chart-block-scroll" role="region" tabindex="0" aria-label="${escapeAttr(title)}"><svg viewBox="0 0 ${width} ${height}" role="img" aria-label="${escapeAttr(ariaLabel)}"><line class="chart-block-axis"${dual ? ' aria-hidden="true"' : ""} x1="${axisX}" y1="${stackedPlotTop}" x2="${axisX}" y2="${barBaseline}"/>${zeroLine}${unit}${numericAxis}${secondaryAxis}${bars}${comboLine}${empty}</svg></div>${legend}</div>${dual ? `<p class="chart-block-series-notice">左右で尺度が異なります。高さや傾きだけで値を比較しないでください。</p>` : ""}<ul class="sr-only">${accessibleItems || "<li>有効な項目はありません</li>"}</ul></figure>`;
 }
 
@@ -9092,18 +9091,26 @@ function createChartEditor(chartValue, blockIndex, snapshotKey) {
     });
     axisLabel.append(axisMode);
     appearance.append(axisLabel);
-    if (chart.appearance.comboAxisMode === "dual") {
-      const unitLabel = document.createElement("label");
-      unitLabel.textContent = "右軸の単位";
-      const unitInput = document.createElement("input");
-      unitInput.type = "text";
-      unitInput.dataset.chartField = "comboSecondaryUnit";
-      unitInput.value = chart.appearance.comboSecondaryUnit;
-      unitInput.setAttribute("aria-label", `グラフ${blockIndex + 1}の右軸の単位`);
-      unitLabel.append(unitInput);
-      fields.append(unitLabel);
-      fields.querySelector('[data-chart-field="unit"]').previousSibling.textContent = "左軸の単位";
-    }
+    const unitInput = fields.querySelector('[data-chart-field="unit"]');
+    unitInput.previousSibling.textContent = "左軸の単位";
+    unitInput.placeholder = "例: 万円";
+    unitInput.setAttribute("aria-label", `グラフ${blockIndex + 1}の左軸の単位`);
+    const axisFields = [["leftAxisTitle", "左軸のタイトル", "例: 売上"]];
+    if (chart.appearance.comboAxisMode === "dual") axisFields.push(
+      ["rightAxisTitle", "右軸のタイトル", "例: 成長率"], ["comboSecondaryUnit", "右軸の単位", "例: %"]
+    );
+    axisFields.forEach(([field, label, placeholder]) => {
+      const wrapper = document.createElement("label");
+      wrapper.textContent = label;
+      const input = document.createElement("input");
+      input.type = "text";
+      input.dataset.chartField = field;
+      input.value = chart.appearance[field] || "";
+      input.placeholder = placeholder;
+      input.setAttribute("aria-label", `グラフ${blockIndex + 1}の${label}`);
+      wrapper.append(input);
+      fields.append(wrapper);
+    });
   }
   const unsupportedNotice = document.createElement("p");
   unsupportedNotice.className = "chart-block-series-notice";
@@ -9443,7 +9450,7 @@ function handleChartEditorInput(event) {
     next.appearance = { ...next.appearance, barOrientation: event.target.value };
   } else if (event.target.dataset.chartField === "pieLabelMode") {
     next.appearance = { ...next.appearance, pieLabelMode: event.target.value };
-  } else if (["pieSeriesId", "comboLineSeriesId", "comboAxisMode", "comboSecondaryUnit"].includes(event.target.dataset.chartField)) {
+  } else if (["pieSeriesId", "comboLineSeriesId", "comboAxisMode", "comboSecondaryUnit", "leftAxisTitle", "rightAxisTitle"].includes(event.target.dataset.chartField)) {
     next.appearance = { ...next.appearance, [event.target.dataset.chartField]: event.target.value };
   } else if (event.target.dataset.chartField) {
     next[event.target.dataset.chartField] = event.target.value;
