@@ -473,6 +473,8 @@ const {
   chartDivergingStacks,
   chartStackedTotals,
   comboChartLayout,
+  comboAxisRanges,
+  comboValueAxisLayout,
   comboSeriesKinds,
   groupedBarLayout,
   chartValueLabelLayout,
@@ -8459,17 +8461,27 @@ function chartStackTotalDescription(total, unit) {
   return detail === "上限超過" ? `${total.labelPrefix || "合計"}: 上限超過` : `${total.labelPrefix || "合計"}: ${detail}${unit}`;
 }
 
+function chartComboSeriesLabel(chart, kind) {
+  const label = kind === "line" ? "折れ線" : "棒";
+  return chart.appearance.comboAxisMode === "dual" ? label + (kind === "line" ? "・右軸" : "・左軸") : label;
+}
+
+function chartSeriesUnit(chart, series) {
+  return chart.chartType === "combo" && chart.appearance.comboAxisMode === "dual" && series.id === chart.appearance.comboLineSeriesId
+    ? chart.appearance.comboSecondaryUnit : chart.unit;
+}
+
 function chartAccessibleItems(chart, percentStackedLayout = null, stackedTotals = null) {
   if (percentStackedLayout) {
     return percentStackedLayout.segments.map((segment) => `<li>${escapeHtml(chartPercentSegmentDescription(segment, chart.unit))}</li>`).join("");
   }
   const accessibleSeries = chartDisplaySeries(chart);
-  const kinds = chart.chartType === "combo" ? new Map(comboSeriesKinds(chart).map(({ series, kind }) => [series.id, kind === "line" ? "折れ線" : "棒"])) : null;
+  const kinds = chart.chartType === "combo" ? new Map(comboSeriesKinds(chart).map(({ series, kind }) => [series.id, chartComboSeriesLabel(chart, kind)])) : null;
   const totalsByItemIndex = new Map((Array.isArray(stackedTotals) ? stackedTotals : []).map((entry) => [entry.itemIndex, entry]));
   return chart.items.flatMap((item, itemIndex) => {
     if (!item.label) return [];
     const entries = accessibleSeries.map((series) =>
-      `<li>${escapeHtml(`${item.label}、${series.name}${kinds ? `（${kinds.get(series.id)}）` : ""}: ${chartDisplayNumber(series.values[itemIndex])}${chart.unit}`)}</li>`
+      `<li>${escapeHtml(`${item.label}、${series.name}${kinds ? `（${kinds.get(series.id)}）` : ""}: ${chartDisplayNumber(series.values[itemIndex])}${chartSeriesUnit(chart, series)}`)}</li>`
     );
     const total = totalsByItemIndex.get(itemIndex);
     if (total) (total.totals || [total]).forEach((side) => entries.push(`<li>${escapeHtml(`${item.label}、${chartStackTotalDescription(side, chart.unit)}`)}</li>`));
@@ -8537,13 +8549,14 @@ function chartUnitMarkup(unit, x, y, maximumWidth) {
   return `<text class="chart-block-unit" x="${x}" y="${y}" aria-label="${escapeAttr(label.fullText)}"><title>${escapeHtml(label.fullText)}</title>${escapeHtml(label.text)}</text>`;
 }
 
-function chartVerticalTickMarkup(axis, maximum, { x, top, baseline, suffix = "", className = "" } = {}) {
+function chartVerticalTickMarkup(axis, maximum, { x, top, baseline, suffix = "", className = "", anchor = "end", axisSide = "", unit = "" } = {}) {
   const span = Math.max(0, baseline - top);
   return axis.ticks.map((tick, index) => {
     const ratio = chartValueRatio(tick.value, maximum);
     const y = baseline - Math.max(0, Math.min(1, ratio)) * span;
     const endpointClass = `${tick.value === 0 ? " chart-block-axis-zero" : ""}${index === axis.ticks.length - 1 ? " chart-block-axis-maximum" : ""}`;
-    return `<text class="chart-block-axis-value${className ? ` ${className}` : ""}${endpointClass}" x="${x}" y="${y + 4}" text-anchor="end">${escapeHtml(`${tick.label}${suffix}`)}</text>`;
+    const detail = axisSide ? `${axisSide}: ${tick.fullLabel ?? tick.label}${unit}` : "";
+    return `<text class="chart-block-axis-value${className ? ` ${className}` : ""}${endpointClass}" x="${x}" y="${y + 4}" text-anchor="${anchor}"${detail ? ` aria-label="${escapeAttr(detail)}"` : ""}>${detail ? `<title>${escapeHtml(detail)}</title><tspan>${escapeHtml(tick.label)}</tspan>` : escapeHtml(`${tick.label}${suffix}`)}</text>`;
   }).join("");
 }
 
@@ -8656,7 +8669,7 @@ function chartLineSeriesMarkup(chart, series, points, { valueLabelOptions, categ
       ? `<circle class="chart-block-line-point" data-chart-series-id="${escapeAttr(series.id)}" cx="${point.x}" cy="${point.y}" r="4.5" fill="var(--section-bg)" stroke="${escapeAttr(series.color)}"></circle>`
       : "";
     const label = chartCategoryLabelMarkup(categoryById?.get(point.id), point.x, categoryY);
-    return `<g class="chart-block-line-item" data-chart-item-id="${escapeAttr(point.id)}" data-chart-series-id="${escapeAttr(series.id)}"><title>${escapeHtml(`${point.label}、${series.name}${chart.chartType === "combo" ? "（折れ線）" : ""}: ${chartDisplayNumber(point.value)}${chart.unit}`)}</title>${value}${marker}${label}</g>`;
+    return `<g class="chart-block-line-item" data-chart-item-id="${escapeAttr(point.id)}" data-chart-series-id="${escapeAttr(series.id)}"><title>${escapeHtml(`${point.label}、${series.name}${chart.chartType === "combo" ? `（${chartComboSeriesLabel(chart, "line")}）` : ""}: ${chartDisplayNumber(point.value)}${chartSeriesUnit(chart, series)}`)}</title>${value}${marker}${label}</g>`;
   }).join("");
   return `<g class="chart-block-line-series" data-chart-series-id="${escapeAttr(series.id)}">${path}${pointItems}</g>`;
 }
@@ -8746,15 +8759,19 @@ function renderChartBlock(chartValue, blockIndex, { editable = true } = {}) {
   const percentStacked = !combo && chart.appearance.barMode === "percent-stacked";
   const stacked = !combo && (chart.appearance.barMode === "stacked" || percentStacked);
   const showStackTotals = shouldShowStackTotals(chart);
-  const maximum = stacked ? chartBarAxisMaximum(chart, barItems, { stacked, percentStacked })
+  const dual = combo && chart.appearance.comboAxisMode === "dual";
+  const comboAxes = dual ? comboAxisRanges(chart) : null;
+  const maximum = dual ? comboAxes.leftRange : stacked ? chartBarAxisMaximum(chart, barItems, { stacked, percentStacked })
     : chartValueRange(chart.series.flatMap((series) => chartDisplayItems(chart, series)));
   const stackTotals = showStackTotals ? chartDivergingStacks(chart.items, chart.series).groups.flatMap((group) => group.totals) : [];
   const hasNegativeTotals = stackTotals.some((total) => total.side === "negative");
   const barBaseline = baseline - (hasNegativeTotals ? 24 : 0);
-  const axis = chartValueAxisLayout(maximum, { availableSpace: barBaseline - (showStackTotals ? 64 : 54) });
+  const axisOptions = { availableSpace: barBaseline - (showStackTotals ? 64 : 54) };
+  const axis = dual ? comboValueAxisLayout(maximum, axisOptions) : chartValueAxisLayout(maximum, axisOptions);
+  const rightAxis = dual ? comboValueAxisLayout(comboAxes.rightRange, axisOptions) : null;
   const axisX = axis.margin + 6;
   const plotLeft = axisX + 10;
-  const plotRight = 18;
+  const plotRight = dual ? rightAxis.margin + 16 : 18;
   const totalSlotWidth = hasNegativeTotals ? Math.max(0, ...stackTotals.map((total) => chartTextWidth(chartStackTotalDisplay(total)) + 16)) : 0;
   const width = Math.max(baseWidth, barItems.length * Math.max(74, totalSlotWidth, visibleSeriesCount * 32 + 34) + plotLeft + plotRight + 6);
   const categoryEntries = chartCategoryLabels(barItems, { plotWidth: width - plotLeft - plotRight });
@@ -8769,7 +8786,7 @@ function renderChartBlock(chartValue, blockIndex, { editable = true } = {}) {
     ? comboChartLayout(chart, { left: plotLeft, right: plotRight, width, top: stackedPlotTop, baseline: barBaseline })
     : groupedBarLayout(chart.items, chart.series, { left: plotLeft, right: plotRight, width, top: stackedPlotTop, baseline: barBaseline, range: maximum });
   const barZero = baseline - chartValueRatio(0, maximum) * (baseline - stackedPlotTop);
-  const valueLabelOptions = { left: plotLeft, right: width - 4, hideOnCollision: combo,
+  const valueLabelOptions = { left: plotLeft, right: dual ? width - plotRight - 8 : width - 4, top: dual ? 46 : 24, hideOnCollision: combo,
     bottom: combo && maximum.minimum >= 0 ? 194 : 212,
     occupied: [{ x: axisX, y: barZero - 2, width: width - axisX, height: 4 }] };
   if (combo) {
@@ -8820,22 +8837,28 @@ function renderChartBlock(chartValue, blockIndex, { editable = true } = {}) {
           const value = chart.appearance.showValues
             ? chartVerticalValueMarkup(valueNumber, x + barWidth / 2, tip, valueLabelOptions)
             : "";
-          return `<g class="chart-block-bar" data-chart-item-id="${escapeAttr(item.id)}" data-chart-series-id="${escapeAttr(series.id)}"><title>${escapeHtml(`${item.label}、${series.name}${combo ? "（棒）" : ""}: ${chartDisplayNumber(valueNumber)}${chart.unit}`)}</title><rect x="${x}" y="${y}" width="${barWidth}" height="${barHeight}" rx="4" fill="${escapeAttr(series.color)}"></rect>${value}</g>`;
+          return `<g class="chart-block-bar" data-chart-item-id="${escapeAttr(item.id)}" data-chart-series-id="${escapeAttr(series.id)}"><title>${escapeHtml(`${item.label}、${series.name}${combo ? `（${chartComboSeriesLabel(chart, "bar")}）` : ""}: ${chartDisplayNumber(valueNumber)}${chart.unit}`)}</title><rect x="${x}" y="${y}" width="${barWidth}" height="${barHeight}" rx="4" fill="${escapeAttr(series.color)}"></rect>${value}</g>`;
         }).join("");
         return `<g class="chart-block-bar-group" data-chart-item-id="${escapeAttr(group.item.id)}">${seriesBars}${chartCategoryLabelMarkup(categoryById.get(group.item.id), group.center, categoryY)}</g>`;
       }).join("");
     })();
   const comboLine = combo ? chartLineSeriesMarkup(chart, groupedLayout.lineSeries, groupedLayout.points, { valueLabelOptions }) : "";
   const empty = barItems.length ? "" : `<text class="chart-block-empty" x="${width / 2}" y="${height / 2}" text-anchor="middle">項目名と有限な数値を入力してください</text>`;
-  const legend = chart.appearance.showLegend ? `<ul class="chart-block-legend" aria-label="${escapeAttr(`${title}の凡例`)}">${(combo ? groupedLayout.kinds : chart.series.map((series) => ({ series, kind: "bar" }))).map(({ series, kind }) => `<li><span class="${kind === "line" ? "chart-block-line-legend-swatch" : "chart-block-legend-swatch"}" style="${kind === "line" ? "color" : "background"}:${escapeAttr(series.color)}"></span><span>${escapeHtml(`${series.name}${combo ? `（${kind === "line" ? "折れ線" : "棒"}）` : ""}`)}</span></li>`).join("")}</ul>` : "";
+  const legend = chart.appearance.showLegend ? `<ul class="chart-block-legend" aria-label="${escapeAttr(`${title}の凡例`)}">${(combo ? groupedLayout.kinds : chart.series.map((series) => ({ series, kind: "bar" }))).map(({ series, kind }) => `<li><span class="${kind === "line" ? "chart-block-line-legend-swatch" : "chart-block-legend-swatch"}" style="${kind === "line" ? "color" : "background"}:${escapeAttr(series.color)}"></span><span>${escapeHtml(`${series.name}${combo ? `（${chartComboSeriesLabel(chart, kind)}）` : ""}`)}</span></li>`).join("")}</ul>` : "";
 
-  const zeroLine = chartZeroLine(maximum, { left: axisX, right: width - plotRight, top: stackedPlotTop, bottom: barBaseline });
-  const numericAxis = chartVerticalTickMarkup(axis, maximum, { x: axis.margin, top: stackedPlotTop, baseline: barBaseline, suffix: percentStacked ? "%" : "", className: percentStacked ? "chart-block-percent-axis-value" : "" });
-  const unit = chartUnitMarkup(percentStacked ? "構成比（%）" : chart.unit, axisX + 6, 18, width - axisX - plotRight);
+  const zeroLine = chartZeroLine(maximum, { left: axisX, right: width - plotRight + (dual ? 10 : 0), top: stackedPlotTop, bottom: barBaseline });
+  const numericAxis = chartVerticalTickMarkup(axis, maximum, { x: axis.margin, top: stackedPlotTop, baseline: barBaseline, suffix: percentStacked ? "%" : "", className: dual ? "chart-block-left-axis-value" : percentStacked ? "chart-block-percent-axis-value" : "", axisSide: dual ? "左軸" : "", unit: chart.unit });
+  const rightAxisX = width - plotRight + 10;
+  const secondaryAxis = dual ? `<line class="chart-block-axis chart-block-right-axis" aria-hidden="true" x1="${rightAxisX}" x2="${rightAxisX}" y1="${stackedPlotTop}" y2="${barBaseline}"/>${chartVerticalTickMarkup(rightAxis, comboAxes.rightRange, { x: rightAxisX + 6, top: stackedPlotTop, baseline: barBaseline, anchor: "start", className: "chart-block-right-axis-value", axisSide: "右軸", unit: chart.appearance.comboSecondaryUnit })}` : "";
+  const unit = dual
+    ? chartUnitMarkup(`左軸・棒: ${chart.unit || "単位なし"}`, 8, 18, width / 2 - 20)
+      + chartUnitMarkup(`右軸・折れ線: ${chart.appearance.comboSecondaryUnit || "単位なし"}`, width / 2 + 8, 18, width / 2 - 20)
+    : chartUnitMarkup(percentStacked ? "構成比（%）" : chart.unit, axisX + 6, 18, width - axisX - plotRight);
   const ariaLabel = percentStacked
     ? `${title}（100%積み上げ、元データの単位: ${chart.unit || "なし"}）`
+    : dual ? `${title}（複合グラフ、左右2軸。棒・左軸: ${chart.unit || "単位なし"}、折れ線・右軸: ${chart.appearance.comboSecondaryUnit || "単位なし"}。左右で尺度が異なります）`
     : `${title}${combo ? "（複合グラフ、単一Y軸）" : ""}${chart.unit ? `（単位: ${chart.unit}）` : ""}`;
-  return `<figure class="chart-block chart-block-bar-chart${combo ? " chart-block-combo" : ""}" data-chart-id="${escapeAttr(chart.id)}" data-chart-bar-mode="${combo ? "grouped" : escapeAttr(chart.appearance.barMode)}"><figcaption>${escapeHtml(title)}</figcaption>${controls}<div class="chart-block-bar-layout"><div class="chart-block-scroll" role="region" tabindex="0" aria-label="${escapeAttr(title)}"><svg viewBox="0 0 ${width} ${height}" role="img" aria-label="${escapeAttr(ariaLabel)}"><line class="chart-block-axis" x1="${axisX}" y1="${stackedPlotTop}" x2="${axisX}" y2="${barBaseline}"/>${zeroLine}${unit}${numericAxis}${bars}${comboLine}${empty}</svg></div>${legend}</div><ul class="sr-only">${accessibleItems || "<li>有効な項目はありません</li>"}</ul></figure>`;
+  return `<figure class="chart-block chart-block-bar-chart${combo ? " chart-block-combo" : ""}${dual ? " chart-block-combo-dual" : ""}" data-chart-id="${escapeAttr(chart.id)}" data-chart-bar-mode="${combo ? "grouped" : escapeAttr(chart.appearance.barMode)}"><figcaption>${escapeHtml(title)}</figcaption>${controls}<div class="chart-block-bar-layout"><div class="chart-block-scroll" role="region" tabindex="0" aria-label="${escapeAttr(title)}"><svg viewBox="0 0 ${width} ${height}" role="img" aria-label="${escapeAttr(ariaLabel)}"><line class="chart-block-axis"${dual ? ' aria-hidden="true"' : ""} x1="${axisX}" y1="${stackedPlotTop}" x2="${axisX}" y2="${barBaseline}"/>${zeroLine}${unit}${numericAxis}${secondaryAxis}${bars}${comboLine}${empty}</svg></div>${legend}</div>${dual ? `<p class="chart-block-series-notice">左右で尺度が異なります。高さや傾きだけで値を比較しないでください。</p>` : ""}<ul class="sr-only">${accessibleItems || "<li>有効な項目はありません</li>"}</ul></figure>`;
 }
 
 function renderChartEditorPreview(host, chart, blockIndex) {
@@ -9055,11 +9078,37 @@ function createChartEditor(chartValue, blockIndex, snapshotKey) {
     });
     label.append(select);
     appearance.append(label);
+    const axisLabel = document.createElement("label");
+    axisLabel.textContent = "軸モード";
+    const axisMode = document.createElement("select");
+    axisMode.dataset.chartField = "comboAxisMode";
+    axisMode.setAttribute("aria-label", `グラフ${blockIndex + 1}の軸モード`);
+    [["single", "単一軸"], ["dual", "左右2軸"]].forEach(([value, text]) => {
+      const option = document.createElement("option");
+      option.value = value;
+      option.textContent = text;
+      option.selected = chart.appearance.comboAxisMode === value;
+      axisMode.append(option);
+    });
+    axisLabel.append(axisMode);
+    appearance.append(axisLabel);
+    if (chart.appearance.comboAxisMode === "dual") {
+      const unitLabel = document.createElement("label");
+      unitLabel.textContent = "右軸の単位";
+      const unitInput = document.createElement("input");
+      unitInput.type = "text";
+      unitInput.dataset.chartField = "comboSecondaryUnit";
+      unitInput.value = chart.appearance.comboSecondaryUnit;
+      unitInput.setAttribute("aria-label", `グラフ${blockIndex + 1}の右軸の単位`);
+      unitLabel.append(unitInput);
+      fields.append(unitLabel);
+      fields.querySelector('[data-chart-field="unit"]').previousSibling.textContent = "左軸の単位";
+    }
   }
   const unsupportedNotice = document.createElement("p");
   unsupportedNotice.className = "chart-block-series-notice";
   unsupportedNotice.hidden = !["pie", "combo"].includes(chart.chartType);
-  unsupportedNotice.textContent = chart.chartType === "combo" ? "複合は2〜3系列の縦の集合棒＋折れ線です。全系列で同じ単位・単一Y軸を使います。" : "円グラフでは選択した1系列を表示します。ほかの系列は保持され、棒グラフまたは折れ線グラフへ戻すと再表示されます。";
+  unsupportedNotice.textContent = chart.chartType === "combo" ? (chart.appearance.comboAxisMode === "dual" ? "棒は左軸、選択した折れ線は右軸を使います。0位置は共通ですが、左右で単位と尺度が異なります。" : "複合は2〜3系列の縦の集合棒＋折れ線です。全系列で同じ単位・単一Y軸を使います。") : "円グラフでは選択した1系列を表示します。ほかの系列は保持され、棒グラフまたは折れ線グラフへ戻すと再表示されます。";
   const seriesPanel = document.createElement("section");
   seriesPanel.className = "chart-block-series-panel";
   seriesPanel.setAttribute("aria-label", "系列の設定");
@@ -9337,7 +9386,7 @@ function handleChartEditorInput(event) {
   const block = currentChartBlock(blockIndex, chartId, snapshotKey);
   if (!block) return;
   let next = normalizeChartBlock(block.chart, chartId);
-  if (["chartType", "barMode", "barOrientation"].includes(event.target.dataset.chartField)) {
+  if (["chartType", "barMode", "barOrientation", "comboAxisMode"].includes(event.target.dataset.chartField)) {
     const invalidInput = firstInvalidChartNumberInput(editorBlock);
     if (invalidInput) {
       event.target.value = event.target.dataset.chartField === "chartType" ? next.chartType : next.appearance[event.target.dataset.chartField];
@@ -9394,7 +9443,7 @@ function handleChartEditorInput(event) {
     next.appearance = { ...next.appearance, barOrientation: event.target.value };
   } else if (event.target.dataset.chartField === "pieLabelMode") {
     next.appearance = { ...next.appearance, pieLabelMode: event.target.value };
-  } else if (["pieSeriesId", "comboLineSeriesId"].includes(event.target.dataset.chartField)) {
+  } else if (["pieSeriesId", "comboLineSeriesId", "comboAxisMode", "comboSecondaryUnit"].includes(event.target.dataset.chartField)) {
     next.appearance = { ...next.appearance, [event.target.dataset.chartField]: event.target.value };
   } else if (event.target.dataset.chartField) {
     next[event.target.dataset.chartField] = event.target.value;
@@ -9418,7 +9467,7 @@ function handleChartEditorInput(event) {
   if (event.target.dataset.chartItemField === "label") syncPieItemColorInputs(editorBlock, next);
   chartEditorStatus(editorBlock, "");
   renderChartEditorPreview(editorBlock.querySelector(".chart-block-editor-preview"), next, blockIndex);
-  commitChartBlockChange(blockIndex, chartId, next, { rerenderEditors: ["chartType", "barMode", "barOrientation"].includes(event.target.dataset.chartField), snapshotKey });
+  commitChartBlockChange(blockIndex, chartId, next, { rerenderEditors: ["chartType", "barMode", "barOrientation", "comboAxisMode"].includes(event.target.dataset.chartField), snapshotKey });
 }
 
 function handleChartEditorChange(event) {

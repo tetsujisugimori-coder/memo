@@ -4,6 +4,8 @@ const assert = require("node:assert/strict");
 const test = require("node:test");
 const {
   comboChartLayout,
+  comboAxisRanges,
+  comboValueAxisLayout,
   comboSeriesKinds,
   groupedBarLayout,
   normalizeComboLineSeriesId,
@@ -1306,4 +1308,117 @@ test("複合の値ラベルは衝突・幅不足時に省略を選べる", () =>
   assert.equal(chartValueLabelLayout(30, options), null);
   assert.equal(chartValueLabelLayout(30, { ...options, occupied: [], right: 1 }), null);
   assert.ok(chartValueLabelLayout(30, { ...options, hideOnCollision: false }));
+});
+
+
+for (const mode of [undefined, null, "", "other", 1, {}, "single"]) test("二軸の欠損・不正モードは単一軸: " + JSON.stringify(mode), () => {
+  const source = comboFixture();
+  source.appearance.comboAxisMode = mode;
+  const raw = "<!-- memo-nexus:chart-block:" + Buffer.from(JSON.stringify(source)).toString("hex") + " -->";
+  const block = splitChartBlocks(raw)[0];
+  assert.equal(block.chart.appearance.comboAxisMode, "single");
+  assert.equal(block.chart.appearance.comboSecondaryUnit, "");
+  assert.equal(block.raw, raw);
+  assert.equal(comboAxisRanges(block.chart).mode, "single");
+});
+
+test("二軸設定・安全な単位は保存、種類往復、系列と項目の移動・削除で保持する", () => {
+  let chart = normalizeChartBlock({ ...comboFixture([[30, 20, 0], [10, 40, 0], [20, 30, 0]]),
+    appearance: { comboAxisMode: "dual", comboLineSeriesId: "s1", comboSecondaryUnit: "  人\r\n<script>単位</script>  " } });
+  const original = structuredClone(chart);
+  assert.equal(chart.appearance.comboSecondaryUnit, "人\n<script>単位</script>");
+  for (const chartType of ["bar", "line", "pie", "combo"]) {
+    chart = parseChartBlockLine(serializeChartBlock({ ...chart, chartType }));
+    assert.deepEqual(chart.appearance, original.appearance);
+    assert.deepEqual(chart.series, original.series);
+    assert.equal(chart.unit, original.unit);
+    assert.equal(chart.schemaVersion, 1);
+    assert.equal(Object.hasOwn(chart, "leftRange"), false);
+    assert.equal(Object.hasOwn(chart, "zeroRatio"), false);
+  }
+  for (const comboAxisMode of ["single", "dual"]) {
+    chart = parseChartBlockLine(serializeChartBlock({ ...chart, appearance: { ...chart.appearance, comboAxisMode } }));
+    assert.equal(chart.appearance.comboSecondaryUnit, original.appearance.comboSecondaryUnit);
+    assert.deepEqual(chart.series, original.series);
+    assert.equal(chart.appearance.comboLineSeriesId, "s1");
+  }
+  chart = moveChartSeries(moveChartItem(chart, 0, 1), 1, 1);
+  chart = normalizeChartBlock({ ...chart, series: chart.series.map((series) => ({ ...series, name: "同名" })) });
+  assert.equal(chart.appearance.comboLineSeriesId, "s1");
+  assert.equal(comboChartLayout(chart).lineSeries.id, "s1");
+  chart = normalizeChartBlock({ ...chart, series: chart.series.filter((s) => s.id !== "s1") });
+  assert.equal(chart.appearance.comboLineSeriesId, "s2");
+  assert.equal(chart.appearance.comboAxisMode, "dual");
+  assert.equal(chart.appearance.comboSecondaryUnit, original.appearance.comboSecondaryUnit);
+});
+
+const dualCases = [
+  ["左右正数", [[30, 20, 0], [1000, 2000, 0]], 0],
+  ["左右負数", [[-30, -20, 0], [-1000, -2000, 0]], 1],
+  ["左右混在", [[30, -20, 0], [-1000, 2000, 0]], 0.5],
+  ["正と負の片側拡張", [[30, 20, 0], [-1000, -2000, 0]], 0.5],
+  ["片側混在", [[30, 20, 0], [-1000, 2000, 0]], 0.5],
+  ["棒全0", [[0, 0, 0], [-1000, 2000, 0]], 0.5],
+  ["折れ線全0", [[-30, -20, 0], [0, 0, 0]], 1],
+  ["全0", [[0, 0, 0], [-0, 0, 0]], 0],
+  ["小数", [[0.3, -0.2, -0], [-1.2, 2.4, 0]], 0.5],
+  ["最小有限", [[Number.MIN_VALUE, -Number.MIN_VALUE, 0], [-Number.MIN_VALUE, Number.MIN_VALUE, 0]], 0.5],
+  ["最大有限", [[Number.MAX_VALUE, -Number.MAX_VALUE, 0], [-Number.MAX_VALUE, Number.MAX_VALUE, 0]], 0.5],
+  ["軸間の桁差", [[Number.MAX_VALUE, -Number.MAX_VALUE, 0], [-Number.MIN_VALUE, Number.MIN_VALUE, 0]], 0.5],
+  ["軸内の桁差", [[Number.MAX_VALUE, -Number.MIN_VALUE, 0], [-Number.MAX_VALUE, Number.MIN_VALUE, 0]], 0.5],
+  ["3系列", [[30, -20, 0], [-100, 40, 0], [0.002, -0.001, 0]], 0.5]
+];
+for (const [name, values, zeroRatio] of dualCases) test("二軸の独立範囲・共通0・有限座標・凍結入力: " + name, () => {
+  const source = { ...comboFixture(values), appearance: { comboAxisMode: "dual", comboSecondaryUnit: "人" } };
+  const before = structuredClone(source);
+  const freeze = (value) => { if (value && typeof value === "object") { Object.values(value).forEach(freeze); Object.freeze(value); } };
+  freeze(source);
+  const layout = comboChartLayout(source, { width: 500, left: 90, right: 90, top: 54, baseline: 196 });
+  assert.equal(layout.mode, "dual");
+  assert.equal(layout.zeroRatio, zeroRatio);
+  assert.equal(layout.zero, 196 - 142 * zeroRatio);
+  for (const [range, data] of [[layout.leftRange, values.slice(0, -1).flat()], [layout.rightRange, values.at(-1)]]) {
+    assert.ok(Number.isFinite(range.minimum) && Number.isFinite(range.maximum));
+    assert.ok(range.minimum <= 0 && range.maximum >= 0);
+    assert.ok(data.every((v) => range.minimum <= v && v <= range.maximum), "切り捨てなし");
+    assert.equal(chartValueRatio(0, range), zeroRatio);
+    const axis = comboValueAxisLayout(range);
+    assert.ok(Number.isFinite(axis.margin));
+    assert.ok(axis.ticks.every((t) => Number.isFinite(t.value) && Number.isFinite(chartValueRatio(t.value, range))));
+    assert.ok(axis.ticks.every((t) => t.fullLabel === String(t.value)));
+    assert.equal(axis.ticks.filter((t) => t.value === 0).length, 1);
+  }
+  // Independent oracle: each axis uses its own magnitude, without the other
+  // axis influencing its numeric scale. No subtraction of raw extreme values.
+  const expectedY = (v, data) => {
+    const magnitude = Math.max(...data.map(Math.abs)) || 1;
+    return 196 - (zeroRatio + (v / magnitude) * (zeroRatio === 0.5 ? 0.5 : 1)) * 142;
+  };
+  layout.segments.forEach((s) => {
+    assert.equal(s.zero, layout.zero);
+    assert.ok(Math.abs(s.tip - expectedY(s.value, values.slice(0, -1).flat())) < 1e-10);
+    assert.ok([s.x, s.y, s.width, s.height].every(Number.isFinite));
+    assert.ok(s.width >= 0 && s.height >= 0);
+  });
+  layout.points.forEach((p, i) => {
+    assert.ok(Number.isFinite(p.x) && Number.isFinite(p.y));
+    assert.ok(Math.abs(p.y - expectedY(p.value, values.at(-1))) < 1e-10);
+    assert.ok(Math.abs(p.x - layout.groups[i].center) < 1e-10);
+    if (i) assert.ok(Number.isFinite(p.y - layout.points[i - 1].y));
+  });
+  assert.deepEqual(source, before);
+  const loaded = parseChartBlockLine(serializeChartBlock(source));
+  assert.deepEqual(loaded.series.map((s) => s.values), values.map((vs) => vs.map((v) => v === 0 ? 0 : v)));
+  assert.equal(loaded.appearance.comboAxisMode, "dual");
+});
+
+test("二軸の往復後も単一軸の座標・軸ラベルは従来と一致する", () => {
+  for (const [, values] of dualCases) {
+    const original = comboFixture(values);
+    const before = comboChartLayout(original);
+    const dual = normalizeChartBlock({ ...original, appearance: { comboAxisMode: "dual", comboSecondaryUnit: "人" } });
+    const single = comboChartLayout({ ...dual, appearance: { ...dual.appearance, comboAxisMode: "single" } });
+    assert.deepEqual(single, before);
+    assert.deepEqual(chartNumericTicks(single.range), chartNumericTicks(before.range));
+  }
 });
