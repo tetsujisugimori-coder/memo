@@ -3079,8 +3079,8 @@
 - 追加TSVコピーE2EはChromium／WebKitで成功。実UI作成、並べ替え、コピー文字列、再取込プレビュー、draft非保存／取消／確定／再読込、10グラフ構成、API成功／拒否／非対応、フォールバック成功／失敗、保存状態・Undo・draftの不変性、生マーカーの不正値、Tab／Enter／Space、390pxタッチエミュレーションを確認。
 - ライト／ダーク×320／375／390／430／1100pxで編集・閲覧のボタンと説明の収まり、ページの横はみ出し、表の横スクロールによるSVG位置・幅の不変を確認。
 - 実Clipboard API／execCommandの呼び出しはネイティブ処理へ委譲して文字列と成功経路を観測（ChromiumではAPI拒否後のネイティブexecCommand成功も確認）。Chromiumはネイティブ貼り付けでもTSV一致を確認。Windows版WebKitの自動テストではキーボード貼り付けが空で、clipboard-readをテスト側で許可してもreadTextはNotAllowedErrorとなるため、OSクリップボードの読み戻しは未確認。失敗注入は外部Clipboard API／execCommandだけに限定し、アプリ状態をテストから書き換えない。
-- Mobile E2E（layout／writing）はChromium・WebKit、Geometry E2EはChromiumで終了コード0。Chart E2EのChromiumは終了コード0で完走。WebKit全体と最終CIは引き続き確認する。
-- WebKit全Chartの最初の実行で既存発散積み上げ検証のページ横はみ出しassertが失敗。viewport変更の直後にレイアウト状態の完了を待っていなかったため、innerWidthと既存layoutModeの条件待機および失敗診断を追加。固定待機・タイムアウト延長・skip・assert緩和は行わない。未変更mainのWebKit全Chartは完走し、同じ失敗は再現しなかった。描画コードの変更はなく、幅切替直後の測定条件を明確にしたうえで再実行する。
+- Mobile E2E（layout／writing）はChromium・WebKit、Geometry E2EはChromiumで終了コード0。Chart E2EはChromium・WebKitとも終了コード0で完走し、既存全グラフ／ツールチップ／TSV取込／データ表と追加コピーを確認した。最終テスト修正後の重点データ表E2E・コピーE2Eも両エンジンで終了コード0。
+- WebKit全Chartの最初の実行で既存発散積み上げ検証のページ横はみ出しassertが失敗。viewport変更の直後にレイアウト状態の完了を待っていなかったため、innerWidthと既存layoutModeの条件待機および失敗診断を追加。固定待機・タイムアウト延長・skip・assert緩和は行わない。未変更mainのWebKit全Chartは完走し、同じ失敗は再現しなかった。描画コードの変更はなく、幅切替直後の測定条件を明確にしたうえで再実行は成功。
 
 ### 対象外・制約・プロンプト
 
@@ -3095,3 +3095,5 @@
 - CI再実行run 35471330770のChromiumでは、既存chart-data-table.e2e.jsの同じ閲覧パネル開閉でも遷移中の配置測定が発生（320px画面に対して表のx=354.89）。verifyChartDataTableにも開いたパネルの右端到達条件を追加し、表の配置・SVG・横スクロールassertはそのまま維持した。修正前のローカル全Chart Chromiumは終了コード0で追加コピーまで完走しており、タイミング依存を解消するテスト修正。
 
 - run 35471683834はChromiumを含む5ジョブ成功。Chart WebKitは確認画像の準備中に横スクロールを矢印キーで左へ戻す待機が停止した。横ホイールでもWindows Chromiumで反映されず、診断では表のDOM・位置は正常でscrollLeft=40のままだった。画像撮影だけの追加スクロール再調整を除き、コピーボタンをfocusして表示する準備へ整理。機能を検証するlayout内のキーボード横スクロール、SVG位置・幅、全コピーassertは維持する。固定待機・タイムアウト延長・skip・アプリ状態の直接変更は行わない。
+
+- 最終検証: テスト修正を含む4afa85eの[GitHub Actions run 35472332643](https://github.com/tetsujisugimori-coder/memo/actions/runs/35472332643)は全6ジョブ成功（CI checks、Chart E2E Chromium／WebKit、Mobile E2E Chromium／WebKit、Geometry E2E Chromium）。全単体1,378/1,378、変更JavaScript25ファイルの構文検査、git diff --check成功。PR #255はIssue #254を参照し、通常幅・390px画像付きで作成済み。既存3ファイルのSHA-256・元mainのHEAD／statusを保持し、mainへはマージしない。検証記録のみを更新する最終コミットのCI結果はPR本文へ記載する。
