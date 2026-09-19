@@ -7,6 +7,7 @@ const os = require("node:os");
 const path = require("node:path");
 const playwright = require("playwright");
 const { verifyChartTsv, verifyChartTsvTouch } = require("./chart-tsv-import.e2e.js");
+const { verifyChartDataTable, verifyChartDataTableTouch } = require("./chart-data-table.e2e.js");
 const { verifyDualAxisCharts } = require("./chart-combo-dual-axis.e2e.js");
 const { verifyAxisTitles } = require("./chart-axis-titles.e2e.js");
 const { verifyChartTooltips, verifyTouchTooltips } = require("./chart-tooltips.e2e.js");
@@ -1072,7 +1073,7 @@ async function verifySignedCharts(page) {
     await page.locator('.chart-block-editor button[data-chart-action="confirm"]').click();
     await page.waitForFunction(() => document.querySelector(".chart-block-editor .chart-block-status")?.textContent === "入力内容を保存しました");
     const beforeReload = await chart(page);
-    assert.deepEqual({ ...beforeReload.appearance, pieSeriesId: undefined, pieItemColors: undefined }, { color: "#dc2626", barMode: "grouped", barOrientation: "vertical", showStackTotals: false, showValues: true, showPoints: true, showLegend: true, pieLabelMode: "percentage", pieSeriesId: undefined, pieItemColors: undefined }, "棒グラフへ戻しても既存の色・数値・点・凡例設定を保存する");
+    assert.deepEqual({ ...beforeReload.appearance, pieSeriesId: undefined, pieItemColors: undefined }, { color: "#dc2626", barMode: "grouped", barOrientation: "vertical", showStackTotals: false, showDataTable: false, showValues: true, showPoints: true, showLegend: true, pieLabelMode: "percentage", pieSeriesId: undefined, pieItemColors: undefined }, "棒グラフへ戻しても既存の色・数値・点・凡例設定を保存する");
     assert.deepEqual(beforeReload.appearance.pieItemColors, { [pieItemIds[0]]: "#123456", [pieItemIds[1]]: "#abcdef" }, "円グラフの項目色は棒グラフへ切り替えても項目IDへ保存する");
     assert.equal(beforeReload.appearance.pieSeriesId, beforeReload.series[0].id, "既定の円グラフ表示系列IDを保存する");
     await page.reload({ waitUntil: "domcontentloaded" });
@@ -2054,6 +2055,8 @@ async function verifySignedCharts(page) {
     await verifyTouchTooltips(browser, appUrl);
     await verifyChartTsv(page);
     await verifyChartTsvTouch(browser, appUrl);
+    await verifyChartDataTable(page);
+    await verifyChartDataTableTouch(browser, appUrl);
     assert.deepEqual(pageErrors, [], `ページエラーなし: ${pageErrors.join("\n")}`);
     assert.deepEqual(consoleErrors, [], `console errorなし: ${consoleErrors.join("\n")}`);
   } catch (error) {

@@ -101,7 +101,7 @@ test("初期グラフは棒グラフ、空の1行、円グラフ用の既定設�
   assert.equal(chart.chartType, "bar");
   assert.deepEqual(chart.items, [{ id: "chart-1-item-1", label: "" }]);
   assert.deepEqual(chart.series, [{ id: "chart-1-series-1", name: DEFAULT_CHART_SERIES_NAME, color: DEFAULT_CHART_COLOR, values: [0] }]);
-  assert.deepEqual(chart.appearance, { color: DEFAULT_CHART_COLOR, barMode: "grouped", barOrientation: "vertical", showStackTotals: false, showValues: true, showPoints: true, showLegend: false, pieLabelMode: "percentage", pieSeriesId: "chart-1-series-1" });
+  assert.deepEqual(chart.appearance, { color: DEFAULT_CHART_COLOR, barMode: "grouped", barOrientation: "vertical", showStackTotals: false, showDataTable: false, showValues: true, showPoints: true, showLegend: false, pieLabelMode: "percentage", pieSeriesId: "chart-1-series-1" });
 });
 
 test("円グラフの表示系列は安定IDで正規化、保存、系列操作後も解決する", () => {
@@ -226,7 +226,7 @@ test("不正な種別、数値、色、ラベル設定を安全な既定値へ�
     { id: "same", label: "A" }, { id: "same-2", label: "B" }, { id: "unsafe-item-3", label: "C" }
   ]);
   assert.deepEqual(chart.series[0].values, [0, 0, -1], "有限な負数は保持し、不正な旧値だけを安全化する");
-  assert.deepEqual(chart.appearance, { color: DEFAULT_CHART_COLOR, barMode: "grouped", barOrientation: "vertical", showStackTotals: false, showValues: false, showPoints: true, showLegend: true, pieLabelMode: "percentage", pieSeriesId: "unsafe-series-1" });
+  assert.deepEqual(chart.appearance, { color: DEFAULT_CHART_COLOR, barMode: "grouped", barOrientation: "vertical", showStackTotals: false, showDataTable: false, showValues: false, showPoints: true, showLegend: true, pieLabelMode: "percentage", pieSeriesId: "unsafe-series-1" });
 });
 
 test("折れ線グラフは共通データと表示設定を保存し、旧データの点表示は既定で有効にする", () => {
