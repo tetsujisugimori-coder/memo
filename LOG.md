@@ -3011,7 +3011,7 @@
 
 - 単体40件追加。chart-block-utils.test.js 217/217、backup-bundle-utils.test.js 20/20、version.test.js 3/3、重点合計240/240、npm test全1,292/1,292成功（fail/skip 0）。構文検査23ファイル、git diff --check成功。
 - 正式グラフE2Eへchart-tsv-import.e2e.jsを接続。TSVの10構成（縦横の集合／積み上げ／100%、折れ線、円、単一軸／二軸複合）、ライト／ダーク×320／375／390／430／1100pxの10表示条件、入力・プレビュー・エラー・増減・色と選択・保存・再読み込み・取消・確定後Undoを確認。本文／note／revision／dirty／保存予約／IndexedDBの完全一致、無効draftの非保存、SVGの非有限値・負寸法なし、ページ横overflowなし、TSV後のクリック／キーボード／390pxタッチのツールチップを検証。
-- Chromium正式グラフE2Eは終了コード0。WebKitのTSV重点E2Eは終了コード0（最終Undo検証を含む）。WebKit正式グラフE2EとCIは実行中で、完了結果を追記する。
+- 正式グラフE2Eおよび最終Undo検証を含むTSV重点E2EはChromium・WebKitとも終了コード0。既存の通常積み上げ140条件、100%積み上げ140条件、単一軸120条件、二軸160条件、軸タイトル8条件、ツールチップ12構成／120表示条件／150対象／12構成タッチを維持し、page／console errorなし。CI完了結果は後述。
 - 正式モバイルE2E（layout／writing）はChromium・WebKitとも終了コード0。画像はTEMPへ出力し、元の変更画像を保持。320／375／390／430px、保存・フォーカス・メモ切替を確認、page／console errorなし。
 - 検証中にダイアログ末尾のTabが外へ出るケースを検出し、明示的な循環を追加。追加E2Eの編集エラー要素をプレビュー内の同名要素と区別し、モバイルの既存サイドパネルを閉じる実操作を追加。固定待機・タイムアウト延長・skip・既存assertの削除／弱体化なし。
 
@@ -3019,3 +3019,7 @@
 
 - CSV、ファイル読込、部分貼り付け・追加モード、数式評価、セル内改行、結合セル、グラフ種類／上限の拡張、表との自動同期、画像出力、DB移行は対象外。TSV反映後の未確定draftはページを閉じると失われる。
 - Safari／iPhone実機および実スクリーンリーダー音声は未確認。Playwright WebKit・タッチエミュレーションと区別する。本文の既存UIはUndoのみで、グラフ用Redoは今回追加しない。図形ブロックの既存Undo／Redoは変更しない。
+
+- 320pxの貼り付けダイアログは実画像でも確認し、説明・textarea・表・両ボタンがviewport内に収まることを確認。
+- 作業保護の最終確認: 元ツリーはmainのHEAD 2bed513と開始時statusを維持。e2e-artifacts/mobile-layout-390.png、freehand-canvas.html、work/freehand-canvas.htmlのSHA-256は開始時と一致。実装コミットf871aa0をpushし、CLIのPR作成はPAT権限不足だったためログイン済みブラウザからPR #252を作成した。
+- CI: 実装コミットf871aa0の[GitHub Actions run 35453466505](https://github.com/tetsujisugimori-coder/memo/actions/runs/35453466505)は全6ジョブ成功（CI checks、Chart E2E Chromium／WebKit、Mobile E2E Chromium／WebKit、Geometry E2E Chromium）。PR #252は未マージ。検証記録だけを更新した最終コミットのCI結果はPR本文へ記載する。
