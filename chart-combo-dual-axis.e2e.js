@@ -159,7 +159,10 @@ async function verifyDualAxisCharts(page, { chart, waitForChartCancelCompletion 
 }
 
 async function verifyDualGeometry(page, model) {
-  const state = await page.locator('#preview .chart-block-combo-dual').evaluate((figure) => {
+  await page.locator('#preview .chart-block-combo-dual').waitFor({ state: 'attached' });
+  // Acquire and measure the current preview in one task; rendering can replace a locator's resolved node.
+  const state = await page.evaluate(() => {
+    const figure = document.querySelector('#preview .chart-block-combo-dual');
     const svg = figure.querySelector('svg'), view = svg.viewBox.baseVal;
     const box = (el) => { const b = el.getBBox(); return { x:b.x, y:b.y, width:b.width, height:b.height }; };
     const overlaps = (a,b) => a.x < b.x+b.width && a.x+a.width > b.x && a.y < b.y+b.height && a.y+a.height > b.y;
@@ -192,7 +195,8 @@ async function verifyDualGeometry(page, model) {
   assert.deepEqual(state.invalid,[]); assert.deepEqual(state.outside,[]); assert.deepEqual(state.collisions,[]); assert.equal(state.overflow,false);
   assert.ok(state.axisStrokes.every((s)=>s!=='none' && s!=='rgba(0, 0, 0, 0)'));
   assert.ok(state.ticks.every((t)=>t.text && t.detail===t.title && /左軸|右軸/.test(t.detail)));
-  assert.deepEqual(state.units,['左軸・棒: '+model.unit,'右軸・折れ線: '+model.appearance.comboSecondaryUnit]);
+  const axisTitle = (title, unit) => title && unit ? title + '（' + unit + '）' : title || unit || '単位なし';
+  assert.deepEqual(state.units,['左軸・棒: '+axisTitle(model.appearance.leftAxisTitle,model.unit),'右軸・折れ線: '+axisTitle(model.appearance.rightAxisTitle,model.appearance.comboSecondaryUnit)]);
   assert.match(state.aria,/左右2軸/); assert.match(state.aria,/尺度が異なります/);
   const lineId=model.appearance.comboLineSeriesId;
   const kind=(s)=>s.id===lineId?'折れ線・右軸':'棒・左軸';
@@ -218,4 +222,4 @@ async function verifyDualGeometry(page, model) {
   }
 }
 
-module.exports = { verifyDualAxisCharts };
+module.exports = { verifyDualAxisCharts, verifyDualGeometry };

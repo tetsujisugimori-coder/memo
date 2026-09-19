@@ -4,6 +4,8 @@ const assert = require("node:assert/strict");
 const test = require("node:test");
 const {
   comboChartLayout,
+  formatChartAxisTitle,
+  chartSeriesUnit,
   comboAxisRanges,
   comboValueAxisLayout,
   comboSeriesKinds,
@@ -1421,4 +1423,94 @@ test("二軸の往復後も単一軸の座標・軸ラベルは従来と一致�
     assert.deepEqual(single, before);
     assert.deepEqual(chartNumericTicks(single.range), chartNumericTicks(before.range));
   }
+});
+
+
+test("軸タイトルのない旧マーカーへ任意フィールドを追加しない", () => {
+  for (const chartType of ["bar", "line", "pie", "combo"]) {
+    const source = { ...comboFixture([[1, 2], [3, 4]]), chartType };
+    const raw = "<!-- memo-nexus:chart-block:" + Buffer.from(JSON.stringify(source)).toString("hex") + " -->";
+    const block = charts(raw)[0];
+    assert.equal(block.raw, raw);
+    assert.equal(Object.hasOwn(block.chart.appearance, "leftAxisTitle"), false);
+    assert.equal(Object.hasOwn(block.chart.appearance, "rightAxisTitle"), false);
+    assert.equal(formatChartAxisTitle(block.chart.appearance.leftAxisTitle, block.chart.unit), block.chart.unit);
+  }
+});
+
+for (const [title, unit, expected] of [
+  ["売上", "万円", "売上（万円）"], ["成長率", "%", "成長率（%）"],
+  [" 売上 ", "", "売上"], ["", " 万円 ", "万円"], ["", "", ""],
+  [undefined, null, ""], ["  ", " ", ""]
+]) test("軸タイトル表示: " + JSON.stringify([title, unit]), () => {
+  assert.equal(formatChartAxisTitle(title, unit), expected);
+});
+
+function axisTitleFixture() {
+  return normalizeChartBlock({ ...comboFixture([[0, -12.5, Number.MAX_VALUE], [0, 0.3, 12]]), unit: "万円",
+    appearance: { comboAxisMode: "dual", leftAxisTitle: "  売上\r\n合計  ", rightAxisTitle: "  成長率<script>  ", comboSecondaryUnit: " % " } });
+}
+
+test("左右軸の任意タイトルを安全な文字列へ正規化し元値とともに保存復元する", () => {
+  const chart = axisTitleFixture();
+  assert.equal(chart.appearance.leftAxisTitle, "売上\n合計");
+  assert.equal(chart.appearance.rightAxisTitle, "成長率<script>");
+  assert.equal(chart.appearance.comboSecondaryUnit, "%");
+  assert.deepEqual(parseChartBlockLine(serializeChartBlock(chart)), chart);
+  assert.equal(chart.schemaVersion, 1);
+  assert.ok(chart.series.every((s) => s.values.every((value) => typeof value === "number")));
+  const empty = normalizeChartBlock({ ...chart, appearance: { leftAxisTitle: null, rightAxisTitle: undefined } });
+  assert.equal(empty.appearance.leftAxisTitle, ""); assert.equal(empty.appearance.rightAxisTitle, "");
+});
+
+test("二軸の解除・種類往復・系列順変更でも左右タイトルと単位を保持する", () => {
+  const original = axisTitleFixture();
+  let chart = original;
+  for (const chartType of ["bar", "line", "combo"]) for (const comboAxisMode of ["single", "dual"]) {
+    chart = parseChartBlockLine(serializeChartBlock({ ...chart, chartType, appearance: { ...chart.appearance, comboAxisMode } }));
+    assert.equal(chart.appearance.leftAxisTitle, original.appearance.leftAxisTitle);
+    assert.equal(chart.appearance.rightAxisTitle, original.appearance.rightAxisTitle);
+    assert.equal(chart.appearance.comboSecondaryUnit, "%"); assert.equal(chart.unit, "万円");
+    assert.deepEqual(chart.series, original.series);
+  }
+  chart = moveChartSeries(chart, 1, -1);
+  assert.equal(chartSeriesUnit(chart, chart.series[0]), "%");
+  assert.equal(chartSeriesUnit(chart, chart.series[1]), "万円");
+  const pie = parseChartBlockLine(serializeChartBlock({ ...chart, chartType: "pie", series: chart.series.map((s) => ({ ...s, values: [0, 1, 2] })) }));
+  assert.equal(pie.appearance.rightAxisTitle, original.appearance.rightAxisTitle);
+  assert.equal(chartSeriesUnit(pie, pie.series[0]), "万円");
+});
+
+test("系列の単位は二軸の安定ID選択を参照し、空単位と単一軸へ安全に戻る", () => {
+  const chart = axisTitleFixture(), [bar, line] = chart.series;
+  assert.equal(chartSeriesUnit(chart, bar), "万円"); assert.equal(chartSeriesUnit(chart, line), "%");
+  const swapped = { ...chart, appearance: { ...chart.appearance, comboLineSeriesId: bar.id } };
+  assert.equal(chartSeriesUnit(swapped, bar), "%"); assert.equal(chartSeriesUnit(swapped, line), "万円");
+  assert.equal(chartSeriesUnit({ ...chart, appearance: { ...chart.appearance, comboAxisMode: "single" } }, line), "万円");
+  assert.equal(chartSeriesUnit({ ...chart, appearance: { ...chart.appearance, comboSecondaryUnit: "" } }, line), "");
+  assert.equal(chartSeriesUnit({ ...chart, appearance: { ...chart.appearance, comboLineSeriesId: "deleted" } }, line), "%");
+});
+
+test("軸タイトルは座標・軸範囲・目盛り計算を変えない", () => {
+  const chart = axisTitleFixture();
+  const old = { ...chart, appearance: { comboAxisMode: "dual", comboSecondaryUnit: "%" } };
+  assert.deepEqual(comboChartLayout(chart), comboChartLayout(old));
+});
+
+test("左右タイトルと単位はMarkdown・ZIP用bundle・ローカル保存の入出力経路で保持する", () => {
+  const { buildMemoExportBundle } = require("./attachment-utils.js");
+  const { buildMarkdownBundleImport } = require("./markdown-bundle-utils.js");
+  const { serializeNoteForMarkdown, parseFlaggedMarkdown } = require("./note-flag-utils.js");
+  const { serializeLocalNote, parseLocalNote } = require("./local-markdown.js");
+  const chart = axisTitleFixture(), body = "前\n" + serializeChartBlock(chart) + "\n後";
+  const note = { id: "axis-export", title: "軸設定", body, tags: [], isFlagged: true };
+  const markdown = serializeNoteForMarkdown(note, body);
+  assert.equal(parseFlaggedMarkdown(markdown).body, body);
+  const bundle = buildMemoExportBundle({ markdownPath: "軸設定.md", markdownContent: markdown, attachments: [] });
+  const [plan] = buildMarkdownBundleImport(bundle.files.map((file) => ({ name: file.name, data: new TextEncoder().encode(file.content) })));
+  assert.equal(parseFlaggedMarkdown(plan.body).body, body);
+  const local = parseLocalNote(serializeLocalNote(note, body));
+  assert.equal(local.body, body);
+  assert.deepEqual(charts(plan.body)[0].chart, chart);
+  assert.deepEqual(charts(local.body)[0].chart, chart);
 });
