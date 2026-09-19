@@ -169,6 +169,10 @@ async function verifyChartTsvCopy(page) {
       }
       await action(page,'copy-tsv').scrollIntoViewIfNeeded();await layout(page,panel(page),width);await copy(page,tsv);
       if(width<1100){if(await page.locator('#mobileWritingDoneBtn').isVisible())await page.locator('#mobileWritingDoneBtn').click();await page.locator('#cardPaneBtn').click();}
+      if(width<1100)await page.waitForFunction(()=>{
+        const card=document.getElementById('previewCard');
+        return card.getAttribute('aria-hidden')==='false'&&Math.abs(card.getBoundingClientRect().right-innerWidth)<1;
+      });
       const viewer=page.locator('#preview .chart-block');await viewer.locator('[data-chart-copy-index]').scrollIntoViewIfNeeded();await layout(page,viewer,width);
       await viewer.locator('[data-chart-copy-index]').click();
       assert.equal(await page.evaluate(()=>window.copyCalls.at(-1)),tsv);
