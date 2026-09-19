@@ -8,6 +8,7 @@ const path = require("node:path");
 const playwright = require("playwright");
 const { verifyDualAxisCharts } = require("./chart-combo-dual-axis.e2e.js");
 const { verifyAxisTitles } = require("./chart-axis-titles.e2e.js");
+const { verifyChartTooltips, verifyTouchTooltips } = require("./chart-tooltips.e2e.js");
 
 let appUrl = process.env.MEMO_NEXUS_E2E_URL || "";
 const browserName = process.env.MEMO_NEXUS_E2E_BROWSER || "chromium";
@@ -1295,7 +1296,7 @@ async function verifySignedCharts(page) {
     await page.waitForFunction((salesId) => document.querySelector("#preview .chart-block-pie")?.dataset.chartSeriesId === salesId, salesSeriesId);
     assert.deepEqual(await pieSeriesSelect.locator("option").evaluateAll((options) => options.map((option) => option.value)), [profitSeriesId, salesSeriesId, costSeriesId], "円グラフの表示系列選択肢は現在の系列順と安定IDを使う");
     assert.equal(await pieSeriesSelect.inputValue(), salesSeriesId, "並べ替え後も既定選択の系列IDを維持する");
-    assert.deepEqual(await page.locator("#preview .chart-block-pie .sr-only li").allTextContents(), ["1月、売上: 100万円", "2月、売上: 140万円", "3月、売上: 120万円"], "円グラフの読み上げは選択系列の値を使う");
+    assert.deepEqual(await page.locator("#preview .chart-block-pie .sr-only li").allTextContents(), ["1月、売上: 100万円（割合: 27.77777777777778%）", "2月、売上: 140万円（割合: 38.888888888888886%）", "3月、売上: 120万円（割合: 33.33333333333333%）"], "円グラフの読み上げは選択系列の値を使う");
     await pieSeriesSelect.selectOption(profitSeriesId);
     await page.waitForFunction((profitId) => document.querySelector("#preview .chart-block-pie")?.dataset.chartSeriesId === profitId, profitSeriesId);
     assert.deepEqual((await chart(page)).appearance.pieItemColors, { [multiPieItemIds[0]]: "#654321", [multiPieItemIds[1]]: "#2468ac" }, "表示系列を切り替えても項目IDごとの色を維持する");
@@ -1907,7 +1908,7 @@ async function verifySignedCharts(page) {
     await page.waitForFunction(() => document.body.dataset.layoutMode === "wide");
     await page.locator('.chart-block-editor select[aria-label="グラフ1の種類"]').selectOption("pie");
     await page.waitForFunction(() => document.querySelector(".chart-block-series-notice")?.hidden === false && document.querySelectorAll("#preview .chart-block-pie-slice").length === 3);
-    assert.deepEqual(await page.locator("#preview .chart-block-pie .sr-only li").allTextContents(), ["1月、売上: 100万円", "2月、売上: 140万円", "3月、売上: 120万円"], "円グラフは第1系列だけを読み上げ対象にする");
+    assert.deepEqual(await page.locator("#preview .chart-block-pie .sr-only li").allTextContents(), ["1月、売上: 100万円（割合: 27.77777777777778%）", "2月、売上: 140万円（割合: 38.888888888888886%）", "3月、売上: 120万円（割合: 33.33333333333333%）"], "円グラフは第1系列だけを読み上げ対象にする");
     await page.locator('.chart-block-editor select[aria-label="グラフ1の種類"]').selectOption("bar");
     await page.waitForFunction(() => document.querySelectorAll("#preview .chart-block-bar").length === 9);
     assert.equal((await chart(page)).appearance.barMode, "percent-stacked", "棒から折れ線、円を経由しても100%積み上げ設定を保持する");
@@ -1970,7 +1971,7 @@ async function verifySignedCharts(page) {
     assert.equal(await page.locator("#preview .chart-block-line-item").count(), 6, "折れ線は並べ替え後も全系列のデータ点を描画する");
     await multiEditor.locator('select[aria-label="グラフ1の種類"]').selectOption("pie");
     await waitForPieSlices(page, 3);
-    assert.deepEqual(await page.locator("#preview .chart-block-pie .sr-only li").allTextContents(), ["1月、売上: 100万円", "3月、売上: 120万円", "2月、売上: 140万円"], "円グラフも並べ替えた第1系列との対応を維持する");
+    assert.deepEqual(await page.locator("#preview .chart-block-pie .sr-only li").allTextContents(), ["1月、売上: 100万円（割合: 27.77777777777778%）", "3月、売上: 120万円（割合: 33.333333333333336%）", "2月、売上: 140万円（割合: 38.88888888888889%）"], "円グラフも並べ替えた第1系列との対応を維持する");
     await multiEditor.locator('select[aria-label="グラフ1の種類"]').selectOption("bar");
     await page.waitForFunction(() => {
       const chart = document.querySelector("#preview .chart-block-bar-chart");
@@ -2048,6 +2049,8 @@ async function verifySignedCharts(page) {
     await verifyComboCharts(page);
     await verifyDualAxisCharts(page, { chart, waitForChartCancelCompletion });
     await verifyAxisTitles(page, { chart, waitForChartCancelCompletion });
+    await verifyChartTooltips(page);
+    await verifyTouchTooltips(browser, appUrl);
     assert.deepEqual(pageErrors, [], `ページエラーなし: ${pageErrors.join("\n")}`);
     assert.deepEqual(consoleErrors, [], `console errorなし: ${consoleErrors.join("\n")}`);
   } catch (error) {
