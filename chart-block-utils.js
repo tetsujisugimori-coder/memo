@@ -253,6 +253,7 @@
         barMode: normalizeBarMode(appearanceSource.barMode),
         barOrientation: normalizeBarOrientation(appearanceSource.barOrientation),
         showStackTotals: appearanceSource.showStackTotals === true,
+        showDataTable: appearanceSource.showDataTable === true,
         showValues: appearanceSource.showValues !== false,
         showPoints: appearanceSource.showPoints !== false,
         showLegend: appearanceSource.showLegend === true,
@@ -382,6 +383,31 @@
   function chartDisplaySeries(chart) {
     const normalized = normalizeChartBlock(chart, chart?.id);
     return normalized.chartType === "pie" ? [resolvePieSeries(normalized)] : normalized.series;
+  }
+
+  // Display-only data: preserve saved ordering and finite Number round trips.
+  function chartDataTable(chartValue) {
+    const chart = normalizeChartBlock(chartValue, chartValue?.id);
+    if (chartValidationError(chartValue)) return null;
+    const series = chartDisplaySeries(chart);
+    const combo = chart.chartType === "combo";
+    const dual = combo && chart.appearance.comboAxisMode === "dual";
+    return {
+      caption: `${chart.title ? `${chart.title}のデータ` : "グラフのデータ"}（元の入力値）`,
+      columns: series.map((entry) => {
+        const line = combo && entry.id === chart.appearance.comboLineSeriesId;
+        return {
+          id: entry.id, name: entry.name, color: entry.color,
+          kind: combo ? (line ? "折れ線" : "棒") : "",
+          axis: combo ? (dual && line ? "右軸" : "左軸") : "",
+          unit: chartSeriesUnit(chart, entry)
+        };
+      }),
+      rows: chart.items.map((item, index) => ({
+        id: item.id, label: item.label,
+        values: series.map((entry) => String(finiteChartNumber(entry.values[index])))
+      }))
+    };
   }
 
   function chartValueMaximum(items) {
@@ -875,6 +901,7 @@
     chartCategoryLabels,
     chartBlockPlainText,
     chartDisplaySeries,
+    chartDataTable,
     chartLabelLayout,
     chartNumericTicks,
     chartDivergingStacks,
