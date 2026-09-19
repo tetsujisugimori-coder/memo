@@ -3091,3 +3091,5 @@
 - 最終静的検証: 変更JavaScript23ファイルのnode --check、全単体1,378/1,378、git diff --check成功。lint／型チェック／build専用scriptは存在しない。通常幅1100px・390pxの画像を確認し、既存3ファイルのSHA-256と元mainのHEAD／statusが開始時と一致することを確認。
 
 - CI初回run 35470776207ではCI checks、Mobile両エンジン、Geometryは成功。Chart WebKitは既存verifyAxisTitlesの連続項目追加後の非同期focusとfillが競合し、先頭項目名が空になってtitle待機が失敗。各追加後の新行focusを条件待機し、各入力直後と全項目名のassertを追加。Chart Chromiumは新規コピーE2Eでモバイル閲覧パネルのスライド中に配置を測定していたため、aria-hidden=falseかつ右端がviewportへ到達したことを条件待機。アプリコードや既存assert、タイムアウトは変更しない。修正後の全単体1,378件、変更JavaScript24ファイル構文検査、git diff --checkは成功。全Chart両エンジンと最終CIを再確認する。
+
+- CI再実行run 35471330770のChromiumでは、既存chart-data-table.e2e.jsの同じ閲覧パネル開閉でも遷移中の配置測定が発生（320px画面に対して表のx=354.89）。verifyChartDataTableにも開いたパネルの右端到達条件を追加し、表の配置・SVG・横スクロールassertはそのまま維持した。修正前のローカル全Chart Chromiumは終了コード0で追加コピーまで完走しており、タイミング依存を解消するテスト修正。
