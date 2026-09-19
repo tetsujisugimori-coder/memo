@@ -327,11 +327,12 @@
     return `<!-- memo-nexus:chart-block:${utf8ToHex(JSON.stringify(normalizeChartBlock(chart, chart && chart.id)))} -->`;
   }
 
-  function parseChartBlockLine(line) {
+  function parseChartBlockLine(line, { normalize = true } = {}) {
     const match = String(line || "").match(CHART_BLOCK_PATTERN);
     if (!match) return null;
     try {
-      return normalizeChartBlock(JSON.parse(hexToUtf8(match[1])));
+      const source = JSON.parse(hexToUtf8(match[1]));
+      return normalize ? normalizeChartBlock(source) : source;
     } catch (error) {
       return null;
     }
@@ -385,6 +386,45 @@
     return normalized.chartType === "pie" ? [resolvePieSeries(normalized)] : normalized.series;
   }
 
+  // Shared row projection: callers choose all series or the displayed pie series.
+  function chartTableRows(items, series) {
+    return items.map((item, index) => ({
+      id: item.id, label: item.label,
+      values: series.map((entry) => String(finiteChartNumber(entry.values[index])))
+    }));
+  }
+
+  // Validate before normalization can hide invalid values or trim control characters.
+  function chartToTsv(chartValue) {
+    const sourceItems = chartValue?.items || [];
+    const sourceSeries = chartValue?.series;
+    const checkName = (value, kind, index) => {
+      const name = String(value ?? "");
+      if (/[\t\r\n]/.test(name)) throw new Error(
+        `${kind}${index + 1}「${name}」にタブまたは改行が含まれているためコピーできません`);
+      if (!name.trim()) throw new Error(`${kind}${index + 1}の名前が空欄のためコピーできません`);
+      return name;
+    };
+    if (!sourceItems.length || sourceItems.length > MAX_CHART_ITEMS
+      || (sourceSeries && (!sourceSeries.length || sourceSeries.length > MAX_CHART_SERIES))) {
+      throw new Error("1〜50項目・1〜3系列のデータが必要です");
+    }
+    const labels = sourceItems.map((item, index) => checkName(item.label, "項目", index));
+    const names = sourceSeries?.map((entry, index) => checkName(entry.name, "系列", index));
+    const values = sourceSeries ? sourceSeries.map((entry) => entry.values)
+      : [sourceItems.map((item) => item.value ?? 0)];
+    values.forEach((column, seriesIndex) => sourceItems.forEach((item, itemIndex) => {
+      if (!isValidChartNumber(column?.[itemIndex])) throw new Error(
+        `項目${itemIndex + 1}「${labels[itemIndex]}」・系列${seriesIndex + 1}の値が有限な数値ではないためコピーできません`);
+    }));
+    const chart = normalizeChartBlock(chartValue, chartValue?.id);
+    const items = chart.items.map((item, index) => ({ ...item, label: labels[index] }));
+    const series = chart.series.map((entry, index) => ({ ...entry, name: names?.[index] ?? entry.name }));
+    return [["項目", ...series.map((entry) => entry.name)],
+      ...chartTableRows(items, series).map((row) => [row.label, ...row.values])]
+      .map((row) => row.join("\t")).join("\n");
+  }
+
   // Display-only data: preserve saved ordering and finite Number round trips.
   function chartDataTable(chartValue) {
     const chart = normalizeChartBlock(chartValue, chartValue?.id);
@@ -403,10 +443,7 @@
           unit: chartSeriesUnit(chart, entry)
         };
       }),
-      rows: chart.items.map((item, index) => ({
-        id: item.id, label: item.label,
-        values: series.map((entry) => String(finiteChartNumber(entry.values[index])))
-      }))
+      rows: chartTableRows(chart.items, series)
     };
   }
 
@@ -902,6 +939,7 @@
     chartBlockPlainText,
     chartDisplaySeries,
     chartDataTable,
+    chartToTsv,
     chartLabelLayout,
     chartNumericTicks,
     chartDivergingStacks,

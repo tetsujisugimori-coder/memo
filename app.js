@@ -469,6 +469,8 @@ const {
   chartBlockPlainText,
   chartDisplaySeries,
   chartDataTable,
+  chartToTsv,
+  parseChartBlockLine,
   chartCategoryLabels,
   chartLabelLayout,
   chartDivergingStacks,
@@ -8587,7 +8589,7 @@ function chartBarAxisMaximum(chart, barItems, { stacked = false, percentStacked 
   return Math.max(0, ...chart.series.flatMap((series) => barItems.map((item) => series.values[chart.items.indexOf(item)])));
 }
 
-function renderHorizontalBarChart(chart, { title, controls, accessibleItems }) {
+function renderHorizontalBarChart(chart, { title, controls, accessibleItems, blockIndex }) {
   const barItems = chart.items.filter((item) => item.label);
   const percentStacked = chart.appearance.barMode === "percent-stacked";
   const stacked = chart.appearance.barMode === "stacked" || percentStacked;
@@ -8650,7 +8652,7 @@ function renderHorizontalBarChart(chart, { title, controls, accessibleItems }) {
   const numericAxis = chartHorizontalTickMarkup(axis, maximum, { left: layout.left, plotWidth: layout.plotWidth, y: height - 10, suffix: percentStacked ? "%" : "", className: percentStacked ? "chart-block-percent-axis-value" : "" });
   const unit = chartUnitMarkup(percentStacked ? "構成比（%）" : chart.unit, layout.left, 18, layout.plotWidth);
   const ariaLabel = percentStacked ? `${title}（横棒、100%積み上げ、元データの単位: ${chart.unit || "なし"}）` : `${title}（横棒${chart.unit ? `、単位: ${chart.unit}` : ""}）`;
-  return `<figure class="chart-block chart-block-bar-chart chart-block-horizontal-bar-chart" data-chart-id="${escapeAttr(chart.id)}" data-chart-bar-mode="${escapeAttr(chart.appearance.barMode)}" data-chart-bar-orientation="horizontal"><figcaption>${escapeHtml(title)}</figcaption>${controls}<div class="chart-block-bar-layout"><div class="chart-block-scroll" role="region" tabindex="0" aria-label="${escapeAttr(title)}"><svg viewBox="0 0 ${width} ${height}" role="img" aria-label="${escapeAttr(ariaLabel)}">${zeroLine}<line class="chart-block-axis" x1="${layout.left}" y1="${height - 24}" x2="${width - layout.right}" y2="${height - 24}"/>${unit}${numericAxis}${bars}${empty}</svg></div>${legend}</div><ul class="sr-only">${accessible || "<li>有効な項目はありません</li>"}</ul>${renderChartDataTable(chart)}</figure>`;
+  return `<figure class="chart-block chart-block-bar-chart chart-block-horizontal-bar-chart" data-chart-id="${escapeAttr(chart.id)}" data-chart-bar-mode="${escapeAttr(chart.appearance.barMode)}" data-chart-bar-orientation="horizontal"><figcaption>${escapeHtml(title)}</figcaption>${controls}<div class="chart-block-bar-layout"><div class="chart-block-scroll" role="region" tabindex="0" aria-label="${escapeAttr(title)}"><svg viewBox="0 0 ${width} ${height}" role="img" aria-label="${escapeAttr(ariaLabel)}">${zeroLine}<line class="chart-block-axis" x1="${layout.left}" y1="${height - 24}" x2="${width - layout.right}" y2="${height - 24}"/>${unit}${numericAxis}${bars}${empty}</svg></div>${legend}</div><ul class="sr-only">${accessible || "<li>有効な項目はありません</li>"}</ul>${renderChartDataTable(chart, blockIndex, Boolean(controls))}</figure>`;
 }
 
 function chartPieLabel(segment, unit, mode) {
@@ -8687,7 +8689,49 @@ function chartLineSeriesMarkup(chart, series, points, { valueLabelOptions, categ
   return `<g class="chart-block-line-series" data-chart-series-id="${escapeAttr(series.id)}">${path}${pointItems}</g>`;
 }
 
-function renderChartDataTable(chart) {
+function chartTsvCopyControls(blockIndex) {
+  return `<div class="chart-tsv-copy-controls"><button type="button" data-chart-copy-index="${blockIndex}">全データをTSVでコピー</button><span>項目名・全系列名・元の入力値をコピーします</span><p class="chart-block-status" role="status" aria-live="polite"></p></div>`;
+}
+
+async function copyChartTsv(button, editorBlock = null) {
+  const host = editorBlock || button.closest(".chart-tsv-copy-controls");
+  const status = host?.querySelector(":scope > .chart-block-status");
+  if (status) status.textContent = "";
+  try {
+    const blockIndex = Number(editorBlock?.dataset.chartIndex ?? button.dataset.chartCopyIndex);
+    const block = splitChartBlocks(editor.value).filter((segment) => segment.type === "chart")[blockIndex];
+    if (!block) throw new Error("対象のグラフが見つかりません");
+    let chart = parseChartBlockLine(block.raw, { normalize: false });
+    if (editorBlock) {
+      const current = currentChartBlock(blockIndex, editorBlock.dataset.chartId, editorBlock.dataset.chartSnapshotKey);
+      if (!current) throw new Error("対象のグラフが変更されています");
+      const draft = chartEditorOriginalCharts.get(editorBlock.dataset.chartSnapshotKey)?.draft;
+      // Check raw saved values before the legacy display fallback can hide corruption.
+      if (!draft) chartToTsv(chart);
+      const rows = [...editorBlock.querySelectorAll(".chart-block-item-row[data-chart-item-index]")];
+      chart = {
+        ...current.chart,
+        items: rows.map((row, index) => ({ ...current.chart.items[index], label: row.querySelector('[data-chart-item-field="label"]').value })),
+        series: [...editorBlock.querySelectorAll(".chart-block-series-row")].map((row, index) => ({
+          ...current.chart.series[index],
+          name: row.querySelector('[data-chart-series-field="name"]').value,
+          values: rows.map((itemRow) => itemRow.querySelector(`[data-chart-series-value][data-chart-series-index="${index}"]`).value)
+        }))
+      };
+    }
+    const text = chartToTsv(chart);
+    try {
+      await writeSyntaxGuideText(text);
+    } catch {
+      throw new Error("ブラウザがクリップボードへの書き込みを許可しませんでした。コピー操作を利用できる環境で再試行してください");
+    }
+    if (status) status.textContent = `TSVをコピーしました（${chart.items.length}項目・${chart.series?.length || 1}系列）`;
+  } catch (error) {
+    if (status) status.textContent = `コピーできませんでした: ${error.message || "クリップボードを利用できません"}`;
+  }
+}
+
+function renderChartDataTable(chart, blockIndex, copyEnabled) {
   if (!chart.appearance.showDataTable) return "";
   const table = chartDataTable(chart);
   if (!table) return "";
@@ -8698,7 +8742,7 @@ function renderChartDataTable(chart) {
     return `<th scope="col">${pieColors ? "" : swatch(column.color)}${escapeHtml(column.name)}${detail ? `<span class="chart-data-table-detail">${escapeHtml(detail)}</span>` : ""}</th>`;
   }).join("");
   const rows = table.rows.map((row) => `<tr><th scope="row">${swatch(pieColors?.get(row.id))}${escapeHtml(row.label)}</th>${row.values.map((value) => `<td>${escapeHtml(value)}</td>`).join("")}</tr>`).join("");
-  return `<div class="chart-data-table-scroll" role="region" tabindex="0" aria-label="${escapeAttr(table.caption)}"><table class="chart-data-table"><caption>${escapeHtml(table.caption)}</caption><thead><tr><th scope="col">項目</th>${columns}</tr></thead><tbody>${rows}</tbody></table></div>`;
+  return `${copyEnabled ? chartTsvCopyControls(blockIndex) : ""}<div class="chart-data-table-scroll" role="region" tabindex="0" aria-label="${escapeAttr(table.caption)}"><table class="chart-data-table"><caption>${escapeHtml(table.caption)}</caption><thead><tr><th scope="col">項目</th>${columns}</tr></thead><tbody>${rows}</tbody></table></div>`;
 }
 
 function renderChartBlock(chartValue, blockIndex, { editable = true } = {}) {
@@ -8744,7 +8788,7 @@ function renderChartBlock(chartValue, blockIndex, { editable = true } = {}) {
       : "";
     const pieTitle = chart.series.length > 1 ? `${title}（${pieSeries.name}）` : title;
     const pieAriaLabel = `${title}${chart.unit ? `（単位: ${chart.unit}）` : ""}（表示系列: ${pieSeries.name}）`;
-    return `<figure class="chart-block chart-block-pie" data-chart-id="${escapeAttr(chart.id)}" data-chart-series-id="${escapeAttr(pieSeries.id)}"><figcaption>${escapeHtml(pieTitle)}</figcaption>${controls}<div class="chart-block-pie-layout"><div class="chart-block-scroll" role="region" tabindex="0" aria-label="${escapeAttr(pieTitle)}"><svg viewBox="0 0 360 260" role="img" aria-label="${escapeAttr(pieAriaLabel)}">${slices}${empty}</svg></div>${legend}</div><ul class="sr-only">${accessibleItems || "<li>有効な項目はありません</li>"}</ul>${renderChartDataTable(chart)}</figure>`;
+    return `<figure class="chart-block chart-block-pie" data-chart-id="${escapeAttr(chart.id)}" data-chart-series-id="${escapeAttr(pieSeries.id)}"><figcaption>${escapeHtml(pieTitle)}</figcaption>${controls}<div class="chart-block-pie-layout"><div class="chart-block-scroll" role="region" tabindex="0" aria-label="${escapeAttr(pieTitle)}"><svg viewBox="0 0 360 260" role="img" aria-label="${escapeAttr(pieAriaLabel)}">${slices}${empty}</svg></div>${legend}</div><ul class="sr-only">${accessibleItems || "<li>有効な項目はありません</li>"}</ul>${renderChartDataTable(chart, blockIndex, Boolean(controls))}</figure>`;
   }
   const combo = chart.chartType === "combo";
   const visibleSeriesCount = chartDisplaySeries(chart).length;
@@ -8789,9 +8833,9 @@ function renderChartBlock(chartValue, blockIndex, { editable = true } = {}) {
       : "";
     const zeroLine = chartZeroLine(maximum, { left: lineLayout.axisX, right: lineWidth - lineLayout.plotRight, top: lineLayout.plotTop, bottom: baseline });
     const numericAxis = chartVerticalTickMarkup(axis, maximum, { x: lineLayout.axisLabelX, top: lineLayout.plotTop, baseline: lineLayout.baseline });
-    return `<figure class="chart-block chart-block-line" data-chart-id="${escapeAttr(chart.id)}"><figcaption>${escapeHtml(title)}</figcaption>${controls}<div class="chart-block-line-layout"><div class="chart-block-scroll" role="region" tabindex="0" aria-label="${escapeAttr(title)}"><svg viewBox="0 0 ${lineWidth} ${height}" role="img" aria-label="${escapeAttr(`${title}${chart.unit ? `（単位: ${chart.unit}）` : ""}`)}"><line class="chart-block-axis" x1="${lineLayout.axisX}" y1="${lineLayout.axisTop}" x2="${lineLayout.axisX}" y2="${lineLayout.baseline}"/>${zeroLine}${numericAxis}${chartUnitMarkup(chart.unit, lineLayout.axisX + 6, 18, lineWidth - lineLayout.axisX - lineLayout.plotRight)}${lines}${empty}</svg></div>${legend}</div><ul class="sr-only">${accessibleItems || "<li>有効な項目はありません</li>"}</ul>${renderChartDataTable(chart)}</figure>`;
+    return `<figure class="chart-block chart-block-line" data-chart-id="${escapeAttr(chart.id)}"><figcaption>${escapeHtml(title)}</figcaption>${controls}<div class="chart-block-line-layout"><div class="chart-block-scroll" role="region" tabindex="0" aria-label="${escapeAttr(title)}"><svg viewBox="0 0 ${lineWidth} ${height}" role="img" aria-label="${escapeAttr(`${title}${chart.unit ? `（単位: ${chart.unit}）` : ""}`)}"><line class="chart-block-axis" x1="${lineLayout.axisX}" y1="${lineLayout.axisTop}" x2="${lineLayout.axisX}" y2="${lineLayout.baseline}"/>${zeroLine}${numericAxis}${chartUnitMarkup(chart.unit, lineLayout.axisX + 6, 18, lineWidth - lineLayout.axisX - lineLayout.plotRight)}${lines}${empty}</svg></div>${legend}</div><ul class="sr-only">${accessibleItems || "<li>有効な項目はありません</li>"}</ul>${renderChartDataTable(chart, blockIndex, Boolean(controls))}</figure>`;
   }
-  if (!combo && chart.appearance.barOrientation === "horizontal") return renderHorizontalBarChart(chart, { title, controls, accessibleItems });
+  if (!combo && chart.appearance.barOrientation === "horizontal") return renderHorizontalBarChart(chart, { title, controls, accessibleItems, blockIndex });
   const barItems = chart.items.filter((item) => item.label);
   const percentStacked = !combo && chart.appearance.barMode === "percent-stacked";
   const stacked = !combo && (chart.appearance.barMode === "stacked" || percentStacked);
@@ -8897,7 +8941,7 @@ function renderChartBlock(chartValue, blockIndex, { editable = true } = {}) {
     ? `${title}（100%積み上げ、元データの単位: ${chart.unit || "なし"}）`
     : dual ? `${title}（複合グラフ、左右2軸。棒・左軸: ${leftAxisTitle || "単位なし"}、折れ線・右軸: ${rightAxisTitle || "単位なし"}。左右で尺度が異なります）`
     : `${title}${combo ? "（複合グラフ、単一Y軸）" : ""}${combo && chart.appearance.leftAxisTitle ? `（左軸: ${leftAxisTitle}）` : chart.unit ? `（単位: ${chart.unit}）` : ""}`;
-  return `<figure class="chart-block chart-block-bar-chart${combo ? " chart-block-combo" : ""}${dual ? " chart-block-combo-dual" : ""}" data-chart-id="${escapeAttr(chart.id)}" data-chart-bar-mode="${combo ? "grouped" : escapeAttr(chart.appearance.barMode)}"><figcaption>${escapeHtml(title)}</figcaption>${controls}<div class="chart-block-bar-layout"><div class="chart-block-scroll" role="region" tabindex="0" aria-label="${escapeAttr(title)}"><svg viewBox="0 0 ${width} ${height}" role="img" aria-label="${escapeAttr(ariaLabel)}"><line class="chart-block-axis"${dual ? ' aria-hidden="true"' : ""} x1="${axisX}" y1="${stackedPlotTop}" x2="${axisX}" y2="${barBaseline}"/>${zeroLine}${unit}${numericAxis}${secondaryAxis}${bars}${comboLine}${empty}</svg></div>${legend}</div>${dual ? `<p class="chart-block-series-notice">左右で尺度が異なります。高さや傾きだけで値を比較しないでください。</p>` : ""}<ul class="sr-only">${accessibleItems || "<li>有効な項目はありません</li>"}</ul>${renderChartDataTable(chart)}</figure>`;
+  return `<figure class="chart-block chart-block-bar-chart${combo ? " chart-block-combo" : ""}${dual ? " chart-block-combo-dual" : ""}" data-chart-id="${escapeAttr(chart.id)}" data-chart-bar-mode="${combo ? "grouped" : escapeAttr(chart.appearance.barMode)}"><figcaption>${escapeHtml(title)}</figcaption>${controls}<div class="chart-block-bar-layout"><div class="chart-block-scroll" role="region" tabindex="0" aria-label="${escapeAttr(title)}"><svg viewBox="0 0 ${width} ${height}" role="img" aria-label="${escapeAttr(ariaLabel)}"><line class="chart-block-axis"${dual ? ' aria-hidden="true"' : ""} x1="${axisX}" y1="${stackedPlotTop}" x2="${axisX}" y2="${barBaseline}"/>${zeroLine}${unit}${numericAxis}${secondaryAxis}${bars}${comboLine}${empty}</svg></div>${legend}</div>${dual ? `<p class="chart-block-series-notice">左右で尺度が異なります。高さや傾きだけで値を比較しないでください。</p>` : ""}<ul class="sr-only">${accessibleItems || "<li>有効な項目はありません</li>"}</ul>${renderChartDataTable(chart, blockIndex, Boolean(controls))}</figure>`;
 }
 
 function renderChartEditorPreview(host, chart, blockIndex) {
@@ -9476,7 +9520,13 @@ function createChartEditor(chartValue, blockIndex, snapshotKey) {
   paste.type = "button";
   paste.dataset.chartAction = "paste-table";
   paste.textContent = "表データを貼り付け";
-  article.append(header, fields, appearance, unsupportedNotice, seriesPanel, paste, table, actions, status, previewHost);
+  const transfer = document.createElement("div");
+  transfer.innerHTML = chartTsvCopyControls(blockIndex);
+  const copyControls = transfer.firstElementChild;
+  copyControls.querySelector("button").dataset.chartAction = "copy-tsv";
+  copyControls.querySelector(".chart-block-status").remove();
+  copyControls.prepend(paste);
+  article.append(header, fields, appearance, unsupportedNotice, seriesPanel, copyControls, table, actions, status, previewHost);
   return article;
 }
 
@@ -9718,6 +9768,10 @@ function handleChartEditorAction(event) {
   const snapshotKey = editorBlock.dataset.chartSnapshotKey;
   const block = currentChartBlock(blockIndex, chartId, snapshotKey);
   if (!block) return;
+  if (button.dataset.chartAction === "copy-tsv") {
+    copyChartTsv(button, editorBlock);
+    return;
+  }
   let next = normalizeChartBlock(block.chart, chartId);
   switch (button.dataset.chartAction) {
     case "paste-table":
@@ -10014,6 +10068,7 @@ function bindChartDataTooltips(host) {
 
 function bindChartBlockControls() {
   bindChartDataTooltips(preview);
+  preview.querySelectorAll("[data-chart-copy-index]").forEach((button) => button.addEventListener("click", () => copyChartTsv(button)));
   preview.querySelectorAll(".chart-block-edit").forEach((button) => button.addEventListener("click", () => {
     const target = chartBlockEditors?.querySelector(`.chart-block-editor[data-chart-index="${CSS.escape(button.dataset.chartIndex)}"][data-chart-id="${CSS.escape(button.dataset.chartId)}"]`);
     if (target) {
@@ -15062,6 +15117,10 @@ function renderSyntaxGuide() {
 
 function fallbackCopyText(text) {
   const previousActiveElement = document.activeElement;
+  const inputSelection = typeof previousActiveElement?.selectionStart === "number"
+    ? [previousActiveElement.selectionStart, previousActiveElement.selectionEnd, previousActiveElement.selectionDirection] : null;
+  const selection = document.getSelection();
+  const ranges = selection ? Array.from({ length: selection.rangeCount }, (_, index) => selection.getRangeAt(index).cloneRange()) : [];
   const textarea = document.createElement("textarea");
   textarea.value = text;
   textarea.setAttribute("readonly", "");
@@ -15080,6 +15139,11 @@ function fallbackCopyText(text) {
     if (previousActiveElement?.isConnected && typeof previousActiveElement.focus === "function") {
       try {
         previousActiveElement.focus({ preventScroll: true });
+        if (selection) {
+          selection.removeAllRanges();
+          ranges.forEach((range) => selection.addRange(range));
+        }
+        if (inputSelection) previousActiveElement.setSelectionRange(...inputSelection);
       } catch (error) {
         console.warn("Could not restore focus after fallback copy", error);
       }

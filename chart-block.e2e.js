@@ -7,6 +7,7 @@ const os = require("node:os");
 const path = require("node:path");
 const playwright = require("playwright");
 const { verifyChartTsv, verifyChartTsvTouch } = require("./chart-tsv-import.e2e.js");
+const { verifyChartTsvCopy, verifyChartTsvCopyTouch } = require("./chart-tsv-copy.e2e.js");
 const { verifyChartDataTable, verifyChartDataTableTouch } = require("./chart-data-table.e2e.js");
 const { verifyDualAxisCharts } = require("./chart-combo-dual-axis.e2e.js");
 const { verifyAxisTitles } = require("./chart-axis-titles.e2e.js");
@@ -212,7 +213,9 @@ async function verifyDivergingStacks(page, percent = false) {
     });
     assert.equal(state.zero.count,1); assert.equal(state.zero.hidden,'true'); assert.notEqual(state.zero.stroke,'none');
     assert.equal(new Set(state.axes).size,state.axes.length,'軸線の重複なし');
-    assert.equal(state.zeros,1); assert.equal(state.overflow,false);
+    assert.equal(state.zeros,1);
+    if (state.overflow) console.log("Stack layout overflow", await page.evaluate(() => ({width:innerWidth,mode:document.body.dataset.layoutMode,doc:document.documentElement.scrollWidth,body:document.body.scrollWidth,outside:[...document.querySelectorAll("body *")].filter(el=>{const r=el.getBoundingClientRect();return r.width>0 && r.right>innerWidth;}).slice(0,20).map(el=>({tag:el.tagName,class:el.className,right:el.getBoundingClientRect().right}))})));
+    assert.equal(state.overflow,false);
     if (percent) {
       const all = values.flat();
       assert.equal(state.ticks.includes('-100%'), all.some((n)=>n<0));
@@ -276,6 +279,7 @@ async function verifyDivergingStacks(page, percent = false) {
       await page.locator('#settingsBtn').click();await page.locator('#themeSelect').selectOption(theme);await page.locator('#closeSettingsBtn').click();
       for(const width of [320,375,390,430,1100]) {
         await page.setViewportSize({width,height:820});
+        await page.waitForFunction(w => innerWidth === w && document.body.dataset.layoutMode === (w === 1100 ? 'wide' : 'mobile'), width);
         for(const horizontal of [false,true]) {await orientation.selectOption(horizontal?'horizontal':'vertical');await geometry(horizontal,values);}
       }
     }
@@ -2057,6 +2061,8 @@ async function verifySignedCharts(page) {
     await verifyChartTsvTouch(browser, appUrl);
     await verifyChartDataTable(page);
     await verifyChartDataTableTouch(browser, appUrl);
+    await verifyChartTsvCopy(page);
+    await verifyChartTsvCopyTouch(browser, appUrl);
     assert.deepEqual(pageErrors, [], `ページエラーなし: ${pageErrors.join("\n")}`);
     assert.deepEqual(consoleErrors, [], `console errorなし: ${consoleErrors.join("\n")}`);
   } catch (error) {
