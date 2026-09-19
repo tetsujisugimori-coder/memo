@@ -26,7 +26,7 @@ test("タグバックアップ関連スクリプトのキャッシュ番号を�
   assert.match(html, /tags\.js\?v=0\.5\.0-4/);
   assert.match(html, /local-sync-utils\.js\?v=0\.5\.0-10/);
   assert.match(html, /backup-bundle-utils\.js\?v=0\.5\.0-5/);
-  assert.match(html, /app\.js\?v=0\.5\.0-172/);
+  assert.match(html, /app\.js\?v=0\.5\.0-173/);
 });
 
 test("完全バックアップはメモ個別のWebフォントIDをそのまま往復する", () => {
@@ -85,6 +85,21 @@ test("Memo Nexus形式ZIPの書き出しと復元でグラフ種類を保持す�
   assert.equal(restored.chartType, "pie");
   assert.deepEqual(restored.items.map((item) => item.id), ["a", "b"]);
   assert.equal(restored.appearance.pieLabelMode, "value");
+});
+
+for (const showDataTable of [true, false]) test(`Markdown・ZIP復元でデータ表設定と元データを保持する: ${showDataTable}`, () => {
+  const chart = normalizeChartBlock({ id: "data-table-backup", chartType: "combo", title: "比較", unit: "万円",
+    items: [{ id: "a", label: "同名" }, { id: "b", label: "同名" }],
+    series: [{ id: "s1", name: "同名", values: [Number.MAX_VALUE, Number.MIN_VALUE] }, { id: "s2", name: "同名", values: [-1.23, 0] }],
+    appearance: { showDataTable, comboLineSeriesId: "s2", comboAxisMode: "dual", comboSecondaryUnit: "%" } });
+  const body = serializeChartBlock(chart);
+  const markdown = serializeLocalNote({ id: "table-backup", title: "表表示" }, body);
+  assert.deepEqual(parseChartBlockLine(parseLocalNote(markdown).body), chart);
+  const files = buildPortableBackupFiles({ manifest: manifest(), collections: [], tagDefinitions: [],
+    notePlans: [{ fileName: "table.md", markdown }], normalizeTagDefinitions });
+  const parsed = parsePortableBackup(files.map(file => entry(file.name, file.content)), { parseNote: parseLocalNote, normalizeTagDefinitions });
+  assert.equal(parsed.notes[0].note.body, body);
+  assert.deepEqual(parseChartBlockLine(parsed.notes[0].note.body), chart);
 });
 
 test("Memo Nexus形式ZIPの書き出しと復元で画像ブロック配置コメントを保持する", () => {

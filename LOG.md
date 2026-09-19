@@ -3025,3 +3025,34 @@
 - CI: 実装コミットf871aa0の[GitHub Actions run 35453466505](https://github.com/tetsujisugimori-coder/memo/actions/runs/35453466505)は全6ジョブ成功（CI checks、Chart E2E Chromium／WebKit、Mobile E2E Chromium／WebKit、Geometry E2E Chromium）。PR #252は未マージ。検証記録だけを更新した最終コミットのCI結果はPR本文へ記載する。
 - CI追跡: 記録更新ebcd3daのrun 35453915909ではChromium／WebKit Chart E2Eが同じ箇所で失敗（TSV検証前の既存二軸テスト）。保存データの元先頭項目名が空欄のため、描画対象から除外されtitle待機が完了しなかった。項目追加は次フレームで末尾へfocusするが、verifyDualAxisChartsは連続追加直後に先頭の名前をfillしていた。各追加後に新行へのfocus完了を条件待機し、名前入力直後の全項目名assertを追加。既存assert・タイムアウト・アプリコードは変更せず、修正後の検証とCIを追跡する。
 - 上記CI修正後: 二軸重点E2EはChromium／WebKitとも160条件＋作成・保存・再読込・取消を終了コード0で完走。差分JavaScript24ファイルのnode --check、全単体1,292/1,292、git diff --check成功。最終PRのCIはこのテスト修正を含むHEADで確認する。
+
+## 2026-09-20 グラフ付属の読み取り専用データ表
+
+### 目的・保存・互換性
+
+- 複数項目・系列の正確な入力値を同じグラフの下で確認するための付属表示。独立した表ブロックや表計算は追加しない。PR #252がmainへマージ済み（768a63c）であることをfetchとPR情報で確認し、feature/chart-data-tableの独立worktreeで作業。元ツリーの画像差分、freehand-canvas.html、work/を保持する。
+- appearance.showDataTableを厳密なbooleanとして正規化し、欠損・不正値はfalse。schemaVersion: 1、DB_VERSION: 6、本文のUTF-8 hex JSONマーカー、items／series／既存appearance設定は維持。読むだけで旧マーカーを書き換えない。Markdown・ZIPの既存保存経路で設定と値を往復する。
+- 表示設定の変更時にPR #252のsnapshot.draft／deferSaveを再利用。その後の項目・系列・表示設定の編集も「入力を確定」まで本文・note・revision・dirty・保存予約・IndexedDBへ渡さず、flushSaveも未確定draftを保存しない。取消は編集開始時の設定と生マーカーを復元。既存の確定条件、Undo、TSV解析・ID再利用規則を維持する。
+
+### 表の生成・UI
+
+- DOM非依存のchartDataTableが現在の正規化済みグラフから列メタ情報と行を毎回生成。項目・系列・値を重複保存しない。安定IDと順序を使い、同名も別の行・列として保持。有限Number値をStringで丸めず表示し、-0は既存finiteChartNumberで0、非有限値を含むdraftは表を生成しない。
+- 縦横の集合／通常積み上げ／100%積み上げ、折れ線は全系列の元値を表示。合計や割合は追加せず、captionに「元の入力値」と明示。円はresolvePieSeriesの選択系列だけを表示し、0値の行と安定IDの項目色も保持する。複合は全系列の棒／折れ線、左／右軸と対応する単位を見出しに表示し、数値へ単位を連結しない。
+- renderChartDataTableを既存の棒・横棒・折れ線・円の描画経路で共有し、編集プレビューと閲覧を一致させる。TSVの解析結果は表示に流用せず、反映後のdraftから再生成する。貼り付けだけでは変えず、反映後の取消で元表へ戻す。
+- caption、thead、tbody、scope付き行列th、tdを使用。安全な既存色正規化と円の項目色解決を再利用し、色見本はaria-hidden。名前・単位はエスケープする。チェックボックスのキーボードフォーカスを維持し、無効な数値入力がある場合は既存検証を優先する。
+- 表だけの横スクロール領域にラベル・Tab入口を設定。セル最小幅と長文の折り返し、既存テーマ変数で狭幅とライト／ダークに対応。固定高さの表内縦スクロールは追加せず、表の横移動からSVGを独立させる。
+- 配信識別子はapp 173、chart utils 26、CSS 105へ更新し、すべての固定参照テストを同期する。
+
+### 検証
+
+- 全単体1,325/1,325成功（追加33件、fail／skip 0）。グラフ関連248件、Markdown・ZIP互換22件を含む。1項目1系列／50項目3系列、同名、順序・削除、MIN_VALUE／MAX_VALUE、正負・小数・指数・0、無効値、種類別メタ情報、TSV後の表生成を検証。
+- Mobile E2E（layout／writing）はChromium・WebKitとも終了コード0。Geometry E2E（Chromium）も終了コード0。既存画像を上書きせずTEMPへ出力。
+- 追加Chart E2Eは実UIのチェック・手入力・順序変更・確定・取消・Undo・再読込・TSVを操作し、本文／note／revision／dirty／予約／IndexedDBの保存境界を比較。10グラフ構成、ライト／ダーク×320／375／390／430／1100pxの編集と閲覧、セマンティックなDOM、横スクロール、クリック／キー／390pxタッチのツールチップを検証。最終実行結果とCIは後述。
+- 正式Chart E2EはChromium・WebKitとも終了コード0で完走。既存の通常積み上げ140条件、100%積み上げ140条件、単一軸120条件、二軸160条件、軸タイトル8条件、ツールチップ120表示条件、TSV10構成を維持。色・文字列エスケープを追加したデータ表重点E2Eも両エンジンで成功。page／console errorなし。
+- 変更JavaScript24ファイルのnode --check、git diff --check成功。専用lint／型チェック／build scriptは存在しない。複合二軸のデスクトップと390pxの表を実画像で確認し、新規スクリーンショット2枚を追加した。元ツリーはmainのHEAD 768a63cと既存statusを維持し、変更画像のSHA-256も開始時と一致。
+- 検証中の修正: 既存の完全一致期待値にshowDataTable: falseを追加。WebKitではクリック時の標準フォーカス差があるため、フォーカス維持はTab相当のfocus＋Space操作で検証。旧グラフ読み込みはページ終了時の既存ドラフト復元によるrevision更新と分離し、別メモの新規作成・切替完了を待ってから再読込して対象メモを開く。固定待機・タイムアウト延長・skip・期待値の緩和なし。
+
+### 対象外・未確認
+
+- iPhone Safari実機と実スクリーンリーダー音声は未確認。WebKit、タッチエミュレーション、DOMの行列構造の検証と区別する。
+- 独立表、セル編集・選択、表だけのソート／検索／絞り込み、合計・平均・割合列、CSV／TSVファイル入出力、画像／PDF出力、閲覧時の一時開閉、4系列以上、日付軸、ズーム／パン、DB移行・外部依存は追加しない。
