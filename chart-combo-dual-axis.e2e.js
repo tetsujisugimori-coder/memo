@@ -159,7 +159,10 @@ async function verifyDualAxisCharts(page, { chart, waitForChartCancelCompletion 
 }
 
 async function verifyDualGeometry(page, model) {
-  const state = await page.locator('#preview .chart-block-combo-dual').evaluate((figure) => {
+  await page.locator('#preview .chart-block-combo-dual').waitFor({ state: 'attached' });
+  // Acquire and measure the current preview in one task; rendering can replace a locator's resolved node.
+  const state = await page.evaluate(() => {
+    const figure = document.querySelector('#preview .chart-block-combo-dual');
     const svg = figure.querySelector('svg'), view = svg.viewBox.baseVal;
     const box = (el) => { const b = el.getBBox(); return { x:b.x, y:b.y, width:b.width, height:b.height }; };
     const overlaps = (a,b) => a.x < b.x+b.width && a.x+a.width > b.x && a.y < b.y+b.height && a.y+a.height > b.y;
