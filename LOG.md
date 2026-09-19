@@ -3023,3 +3023,5 @@
 - 320pxの貼り付けダイアログは実画像でも確認し、説明・textarea・表・両ボタンがviewport内に収まることを確認。
 - 作業保護の最終確認: 元ツリーはmainのHEAD 2bed513と開始時statusを維持。e2e-artifacts/mobile-layout-390.png、freehand-canvas.html、work/freehand-canvas.htmlのSHA-256は開始時と一致。実装コミットf871aa0をpushし、CLIのPR作成はPAT権限不足だったためログイン済みブラウザからPR #252を作成した。
 - CI: 実装コミットf871aa0の[GitHub Actions run 35453466505](https://github.com/tetsujisugimori-coder/memo/actions/runs/35453466505)は全6ジョブ成功（CI checks、Chart E2E Chromium／WebKit、Mobile E2E Chromium／WebKit、Geometry E2E Chromium）。PR #252は未マージ。検証記録だけを更新した最終コミットのCI結果はPR本文へ記載する。
+- CI追跡: 記録更新ebcd3daのrun 35453915909ではChromium／WebKit Chart E2Eが同じ箇所で失敗（TSV検証前の既存二軸テスト）。保存データの元先頭項目名が空欄のため、描画対象から除外されtitle待機が完了しなかった。項目追加は次フレームで末尾へfocusするが、verifyDualAxisChartsは連続追加直後に先頭の名前をfillしていた。各追加後に新行へのfocus完了を条件待機し、名前入力直後の全項目名assertを追加。既存assert・タイムアウト・アプリコードは変更せず、修正後の検証とCIを追跡する。
+- 上記CI修正後: 二軸重点E2EはChromium／WebKitとも160条件＋作成・保存・再読込・取消を終了コード0で完走。差分JavaScript24ファイルのnode --check、全単体1,292/1,292、git diff --check成功。最終PRのCIはこのテスト修正を含むHEADで確認する。
