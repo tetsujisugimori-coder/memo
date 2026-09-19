@@ -6,6 +6,7 @@ const http = require("node:http");
 const os = require("node:os");
 const path = require("node:path");
 const playwright = require("playwright");
+const { verifyChartTsv, verifyChartTsvTouch } = require("./chart-tsv-import.e2e.js");
 const { verifyDualAxisCharts } = require("./chart-combo-dual-axis.e2e.js");
 const { verifyAxisTitles } = require("./chart-axis-titles.e2e.js");
 const { verifyChartTooltips, verifyTouchTooltips } = require("./chart-tooltips.e2e.js");
@@ -2051,6 +2052,8 @@ async function verifySignedCharts(page) {
     await verifyAxisTitles(page, { chart, waitForChartCancelCompletion });
     await verifyChartTooltips(page);
     await verifyTouchTooltips(browser, appUrl);
+    await verifyChartTsv(page);
+    await verifyChartTsvTouch(browser, appUrl);
     assert.deepEqual(pageErrors, [], `ページエラーなし: ${pageErrors.join("\n")}`);
     assert.deepEqual(consoleErrors, [], `console errorなし: ${consoleErrors.join("\n")}`);
   } catch (error) {

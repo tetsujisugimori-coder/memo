@@ -2988,3 +2988,34 @@
 - iPhone Safari実機と実スクリーンリーダー音声は未確認。Playwright WebKit・タッチエミュレーションの証拠と区別する。
 - ゼロ寸法や重なる極小図形はキーボードから確認。可視領域の高さを超える極端な長文は吹き出し内でクリップし、全文はSVG titleと読み上げ一覧へ保持。
 - 軸範囲指定、新グラフ、表／CSV連携、ズーム・パン・ドラッグ、ツールチップの編集・保存、画像／PDF出力、外部依存・DB移行は実装しない。
+
+
+## 2026-09-20 グラフのTSV表データ貼り付け取り込み
+
+### 依頼・設計・保存互換性
+
+- Excel／Googleスプレッドシートの表から項目・系列・値を一括入力する依頼。fetch後のorigin/mainとPR #249のマージコミット2bed513747a2fc5d5f61e8e43eb98e440a2ba774を確認し、TEMP配下の独立worktree・feature/chart-tsv-importで作業。元ツリーの画像差分、freehand-canvas.html、work/は編集・コミット対象に含めない。
+- parseChartTsvはDOM非依存でLF／CRLFとタブを解析し、1行目の2列目以降を系列名、2行目以降の1列目を項目名として扱う。左上セルは保存しない。末尾空行だけを除去し、途中空行・空名・空値・不揃いの列数・既存50項目／3系列上限超過を行／列／該当値／日本語理由付きで拒否する。同名を許可し、名前をIDにしない。
+- isValidChartNumber／finiteChartNumberを共有し、正負・0・小数・指数表記・MIN_VALUE／MAX_VALUE級の有限値を保持する。-0は0へ正規化。NaN／Infinity、カンマ・%・通貨記号・数式を無言変換しない。CSV自動判定・引用符解釈はしない。
+- 第1段階は確認可能な表全体置換とし、部分追加・選択セル貼り付けの曖昧な結合を導入しない。replaceChartTableは渡されたIDを使う純粋変換で、同じ位置の項目ID、系列ID・色を再利用する。新しい位置のIDだけ既存crypto.randomUUID経路で生成し、新系列色は既存追加と同じCHART_SERIES_COLORS。削除した項目色の整理、円の先頭系列・複合の最終系列への選択フォールバックは既存normalizeChartBlockを利用。
+- グラフ種類、タイトル、単位、軸タイトル、向き、棒モード、表示フラグ、円の項目色と系列選択、複合の系列選択と軸設定を保持。凍結入力・元snapshotを変更しない。円の負数／複合1系列はdraftを保持し、既存chartValidationErrorで確定を止める。
+- 貼り付けダイアログは開閉・入力・プレビューだけではdraftを変更しない。「貼り付け内容を反映」はsnapshotのdraftとdeferSaveだけを更新。その後の通常編集も確定までは本文・note・revision・dirty・保存予約・IndexedDBへ渡さず、flushSaveでも未確定表を保存しない。「入力を確定」で既存の保存・競合検査を使い、確定時は貼り付け用Undo snapshotとして一操作を記録する。取消は編集開始時の生の本文マーカーを復元する。
+- schemaVersion: 1、DB_VERSION: 6、UTF-8 hex JSON本文マーカー、items／series／appearanceを維持。TSV原文・解析結果・エラー・開閉状態・deferSaveを永続データへ追加しない。app 172、chart utils 25、CSS 104と全固定参照テストを同期。外部依存の追加なし。
+
+### UI・アクセシビリティ
+
+- 項目表付近の「表データを貼り付け」からtextareaへ通常の貼り付けを行う。説明・例・項目数／系列数・見出し／項目／値の表を表示し、不正入力では反映ボタンを無効化。Clipboard API・権限要求なし。
+- native dialogのラベル、textareaと説明／エラーの関連、live status、表の行列見出し、開いた時のフォーカス、Tab／Shift+Tab循環、Escape／キャンセル後の元ボタンへの復帰を実装。文字列はtextContentのみで表示。狭幅の表は専用領域で横スクロールし、ダイアログとエラーはviewport内で折り返す。
+
+### 検証
+
+- 単体40件追加。chart-block-utils.test.js 217/217、backup-bundle-utils.test.js 20/20、version.test.js 3/3、重点合計240/240、npm test全1,292/1,292成功（fail/skip 0）。構文検査23ファイル、git diff --check成功。
+- 正式グラフE2Eへchart-tsv-import.e2e.jsを接続。TSVの10構成（縦横の集合／積み上げ／100%、折れ線、円、単一軸／二軸複合）、ライト／ダーク×320／375／390／430／1100pxの10表示条件、入力・プレビュー・エラー・増減・色と選択・保存・再読み込み・取消・確定後Undoを確認。本文／note／revision／dirty／保存予約／IndexedDBの完全一致、無効draftの非保存、SVGの非有限値・負寸法なし、ページ横overflowなし、TSV後のクリック／キーボード／390pxタッチのツールチップを検証。
+- Chromium正式グラフE2Eは終了コード0。WebKitのTSV重点E2Eは終了コード0（最終Undo検証を含む）。WebKit正式グラフE2EとCIは実行中で、完了結果を追記する。
+- 正式モバイルE2E（layout／writing）はChromium・WebKitとも終了コード0。画像はTEMPへ出力し、元の変更画像を保持。320／375／390／430px、保存・フォーカス・メモ切替を確認、page／console errorなし。
+- 検証中にダイアログ末尾のTabが外へ出るケースを検出し、明示的な循環を追加。追加E2Eの編集エラー要素をプレビュー内の同名要素と区別し、モバイルの既存サイドパネルを閉じる実操作を追加。固定待機・タイムアウト延長・skip・既存assertの削除／弱体化なし。
+
+### 対象外・未確認
+
+- CSV、ファイル読込、部分貼り付け・追加モード、数式評価、セル内改行、結合セル、グラフ種類／上限の拡張、表との自動同期、画像出力、DB移行は対象外。TSV反映後の未確定draftはページを閉じると失われる。
+- Safari／iPhone実機および実スクリーンリーダー音声は未確認。Playwright WebKit・タッチエミュレーションと区別する。本文の既存UIはUndoのみで、グラフ用Redoは今回追加しない。図形ブロックの既存Undo／Redoは変更しない。

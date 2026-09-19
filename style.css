@@ -6274,3 +6274,37 @@ body.collections-open:not(.context-panel-closed) .context-panel {
   .chart-block-bar-chart .chart-block-scroll { flex-basis: 100%; }
   .chart-block-legend { margin: 4px 0; }
 }
+
+
+/* Only the preview table may scroll horizontally inside the TSV dialog. */
+.chart-tsv-dialog {
+  box-sizing: border-box;
+  width: min(680px, calc(100vw - 24px));
+  max-width: calc(100vw - 24px);
+  max-height: calc(100dvh - 24px);
+  padding: 16px;
+  overflow-y: auto;
+  color: var(--text);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  overflow-wrap: anywhere;
+}
+.chart-tsv-dialog::backdrop { background: var(--dialog-backdrop); }
+.chart-tsv-dialog h2 { font-size: 1.2rem; }
+.chart-tsv-dialog label { display: block; min-width: 0; }
+.chart-tsv-dialog textarea {
+  box-sizing: border-box;
+  display: block;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  resize: vertical;
+}
+.chart-tsv-dialog pre { white-space: pre-wrap; tab-size: 5; font-size: 12px; }
+.chart-tsv-preview { max-width: 100%; overflow-x: auto; }
+.chart-tsv-preview table { border-collapse: collapse; width: 100%; }
+.chart-tsv-preview th, .chart-tsv-preview td { border: 1px solid var(--line); padding: 6px; min-width: 70px; }
+.chart-tsv-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.chart-tsv-actions button { max-width: 100%; white-space: normal; }
+#chart-tsv-error { color: var(--danger); }
