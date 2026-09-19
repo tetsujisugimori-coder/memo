@@ -476,6 +476,7 @@ const {
   comboAxisRanges,
   formatChartAxisTitle,
   chartSeriesUnit,
+  chartDatumDescription,
   comboValueAxisLayout,
   comboSeriesKinds,
   groupedBarLayout,
@@ -7784,6 +7785,7 @@ function stripLinkMarkupForText(text) {
 
 // 右側のカード表示を更新します。本文中の[[名前]]はクリック可能なリンクに変換します。
 function renderPreview() {
+  closeChartTooltip();
   const renderGeneration = ++mermaidRenderGeneration;
   const note = currentNote();
   if (!note) {
@@ -8468,17 +8470,26 @@ function chartComboSeriesLabel(chart, kind) {
   return chart.appearance.comboAxisMode === "dual" ? label + (kind === "line" ? "・右軸" : "・左軸") : label;
 }
 
+function chartDataDescription(chart, item, series, value, percentage = null) {
+  const kind = chart.chartType === "combo" ? comboSeriesKinds(chart).find((entry) => entry.series.id === series.id)?.kind : null;
+  return chartDatumDescription({ item, series, value, unit: chartSeriesUnit(chart, series),
+    assignment: kind ? chartComboSeriesLabel(chart, kind) : "", percentage });
+}
+
+function chartDatumAttributes(item, series, description) {
+  return `data-chart-datum data-chart-item-id="${escapeAttr(item.id)}" data-chart-series-id="${escapeAttr(series.id)}" data-chart-description="${escapeAttr(description)}" tabindex="-1" role="button" aria-label="${escapeAttr(description)}"`;
+}
+
 function chartAccessibleItems(chart, percentStackedLayout = null, stackedTotals = null) {
   if (percentStackedLayout) {
     return percentStackedLayout.segments.map((segment) => `<li>${escapeHtml(chartPercentSegmentDescription(segment, chart.unit))}</li>`).join("");
   }
   const accessibleSeries = chartDisplaySeries(chart);
-  const kinds = chart.chartType === "combo" ? new Map(comboSeriesKinds(chart).map(({ series, kind }) => [series.id, chartComboSeriesLabel(chart, kind)])) : null;
   const totalsByItemIndex = new Map((Array.isArray(stackedTotals) ? stackedTotals : []).map((entry) => [entry.itemIndex, entry]));
   return chart.items.flatMap((item, itemIndex) => {
     if (!item.label) return [];
     const entries = accessibleSeries.map((series) =>
-      `<li>${escapeHtml(`${item.label}、${series.name}${kinds ? `（${kinds.get(series.id)}）` : ""}: ${chartDisplayNumber(series.values[itemIndex])}${chartSeriesUnit(chart, series)}`)}</li>`
+      `<li>${escapeHtml(chartDataDescription(chart, item, series, series.values[itemIndex]))}</li>`
     );
     const total = totalsByItemIndex.get(itemIndex);
     if (total) (total.totals || [total]).forEach((side) => entries.push(`<li>${escapeHtml(`${item.label}、${chartStackTotalDescription(side, chart.unit)}`)}</li>`));
@@ -8519,7 +8530,7 @@ function chartPercentDisplay(value) {
 function chartPercentSegmentDescription(segment, unit) {
   const total = Number.isFinite(segment.total) ? `${chartDisplayNumber(segment.total)}${unit}` : "非常に大きいため表示できません";
   const percentage = chartDisplayNumber(segment.percentage);
-  return `${segment.item.label}、${segment.series.name}: ${chartDisplayNumber(segment.value)}${unit}（${chartPercentDisplay(segment.percentage)}、割合: ${percentage}%、${segment.totalLabel}: ${total}）`;
+  return `${chartDatumDescription({ item: segment.item, series: segment.series, value: segment.value, unit })}（${chartPercentDisplay(segment.percentage)}、割合: ${percentage}%、${segment.totalLabel}: ${total}）`;
 }
 
 function setChartNumberValidity(input) {
@@ -8605,7 +8616,10 @@ function renderHorizontalBarChart(chart, { title, controls, accessibleItems }) {
     const labelText = `<text class="chart-block-label chart-block-horizontal-label" x="${labelWidth + 10}" y="${labelY}" text-anchor="end" dominant-baseline="middle" aria-label="${escapeAttr(label.fullText)}"><title>${escapeHtml(label.fullText)}</title>${label.lines.map((line, index) => `<tspan x="${labelWidth + 10}" dy="${index === 0 ? 0 : 14}">${escapeHtml(line)}</tspan>`).join("")}</text>`;
     const segments = groupSegments.map((segment) => {
       const visual = percentStacked ? chartPercentDisplay(segment.percentage) : chartValueLabel(segment.value);
-      const rect = segment.width > 0 || !stacked ? `<rect x="${segment.x}" y="${segment.y}" width="${segment.width}" height="${segment.height}" rx="4" fill="${escapeAttr(segment.series.color)}"></rect>` : "";
+      const description = percentStacked ? chartPercentSegmentDescription(segment, chart.unit) : chartDataDescription(chart, segment.item, segment.series, segment.value);
+      const rect = segment.width > 0 || !stacked
+        ? `<rect ${chartDatumAttributes(segment.item, segment.series, description)} x="${segment.x}" y="${segment.y}" width="${segment.width}" height="${segment.height}" rx="4" fill="${escapeAttr(segment.series.color)}"></rect>`
+        : `<path ${chartDatumAttributes(segment.item, segment.series, description)} d="M ${segment.x} ${segment.y} L ${segment.x} ${segment.y + segment.height}" fill="none" stroke="none"/>`;
       const inside = segment.width >= visual.length * 8 + 8;
       const negative = segment.value < 0;
       const labelAnchor = negative ? (inside ? "start" : "end") : (inside ? "end" : "start");
@@ -8616,7 +8630,6 @@ function renderHorizontalBarChart(chart, { title, controls, accessibleItems }) {
       const value = chart.appearance.showValues && (!stacked || (segment.height >= 16 && inside))
         ? `<text class="chart-block-value${inside ? " chart-block-horizontal-value" : ""}${percentStacked ? " chart-block-percent-stacked-value" : ""}" x="${labelX}" y="${segment.y + segment.height / 2}" text-anchor="${labelAnchor}" dominant-baseline="middle" aria-label="${escapeAttr(percentStacked ? chartPercentSegmentDescription(segment, chart.unit) : chartDisplayNumber(segment.value))}">${escapeHtml(visual)}</text>`
         : "";
-      const description = percentStacked ? chartPercentSegmentDescription(segment, chart.unit) : `${segment.item.label}、${segment.series.name}: ${chartDisplayNumber(segment.value)}${chart.unit}`;
       return `<g class="chart-block-bar${stacked ? " chart-block-stacked-bar" : ""}${percentStacked ? " chart-block-percent-stacked-bar" : ""}" data-chart-item-id="${escapeAttr(segment.item.id)}" data-chart-series-id="${escapeAttr(segment.series.id)}"><title>${escapeHtml(description)}</title>${rect}${value}</g>`;
     }).join("");
     const totalLabel = showStackTotals ? group.totals.map((total) => {
@@ -8642,16 +8655,16 @@ function chartPieLabel(segment, unit, mode) {
   return `${segment.percentage.toFixed(1)}%`;
 }
 
-function chartPiePath(segment, centerX, centerY, radius) {
+function chartPiePath(segment, centerX, centerY, radius, attributes = "") {
   if (Math.abs(segment.endAngle - segment.startAngle) >= (Math.PI * 2) - 1e-9) {
-    return `<circle class="chart-block-pie-slice" data-chart-item-id="${escapeAttr(segment.id)}" cx="${centerX}" cy="${centerY}" r="${radius}" fill="${escapeAttr(segment.color)}"></circle>`;
+    return `<circle ${attributes} class="chart-block-pie-slice" cx="${centerX}" cy="${centerY}" r="${radius}" fill="${escapeAttr(segment.color)}"></circle>`;
   }
   const startX = centerX + Math.cos(segment.startAngle) * radius;
   const startY = centerY + Math.sin(segment.startAngle) * radius;
   const endX = centerX + Math.cos(segment.endAngle) * radius;
   const endY = centerY + Math.sin(segment.endAngle) * radius;
   const largeArc = segment.endAngle - segment.startAngle > Math.PI ? 1 : 0;
-  return `<path class="chart-block-pie-slice" data-chart-item-id="${escapeAttr(segment.id)}" d="M ${centerX} ${centerY} L ${startX} ${startY} A ${radius} ${radius} 0 ${largeArc} 1 ${endX} ${endY} Z" fill="${escapeAttr(segment.color)}"></path>`;
+  return `<path ${attributes} class="chart-block-pie-slice" d="M ${centerX} ${centerY} L ${startX} ${startY} A ${radius} ${radius} 0 ${largeArc} 1 ${endX} ${endY} Z" fill="${escapeAttr(segment.color)}"></path>`;
 }
 
 function chartLineSeriesMarkup(chart, series, points, { valueLabelOptions, categoryById = null, categoryY = 214 }) {
@@ -8662,11 +8675,10 @@ function chartLineSeriesMarkup(chart, series, points, { valueLabelOptions, categ
     const value = chart.appearance.showValues
       ? chartVerticalValueMarkup(point.value, point.x, point.y, valueLabelOptions)
       : "";
-    const marker = chart.appearance.showPoints
-      ? `<circle class="chart-block-line-point" data-chart-series-id="${escapeAttr(series.id)}" cx="${point.x}" cy="${point.y}" r="4.5" fill="var(--section-bg)" stroke="${escapeAttr(series.color)}"></circle>`
-      : "";
+    const description = chartDataDescription(chart, point, series, point.value);
+    const marker = `<circle ${chartDatumAttributes(point, series, description)} class="${chart.appearance.showPoints ? "chart-block-line-point" : "chart-block-line-hit-target"}" cx="${point.x}" cy="${point.y}" r="${chart.appearance.showPoints ? 4.5 : 8}" fill="${chart.appearance.showPoints ? "var(--section-bg)" : "transparent"}" stroke="${chart.appearance.showPoints ? escapeAttr(series.color) : "none"}"></circle>`;
     const label = chartCategoryLabelMarkup(categoryById?.get(point.id), point.x, categoryY);
-    return `<g class="chart-block-line-item" data-chart-item-id="${escapeAttr(point.id)}" data-chart-series-id="${escapeAttr(series.id)}"><title>${escapeHtml(`${point.label}、${series.name}${chart.chartType === "combo" ? `（${chartComboSeriesLabel(chart, "line")}）` : ""}: ${chartDisplayNumber(point.value)}${chartSeriesUnit(chart, series)}`)}</title>${value}${marker}${label}</g>`;
+    return `<g class="chart-block-line-item" data-chart-item-id="${escapeAttr(point.id)}" data-chart-series-id="${escapeAttr(series.id)}"><title>${escapeHtml(description)}</title>${value}${marker}${label}</g>`;
   }).join("");
   return `<g class="chart-block-line-series" data-chart-series-id="${escapeAttr(series.id)}">${path}${pointItems}</g>`;
 }
@@ -8691,13 +8703,23 @@ function renderChartBlock(chartValue, blockIndex, { editable = true } = {}) {
     const centerX = 140;
     const centerY = 130;
     const radius = 92;
-    const slices = pie.segments.map((segment) => {
+    const segmentsById = new Map(pie.segments.map((segment) => [segment.id, segment]));
+    const slices = items.map((item) => {
+      const segment = segmentsById.get(item.id);
+      if (!segment) {
+        // Zero values have no sector; retain their original item order for keyboard access.
+        const description = chartDataDescription(chart, item, pieSeries, item.value, 0);
+        return `<circle ${chartDatumAttributes(item, pieSeries, description)} cx="${centerX}" cy="${centerY}" r="0" fill="none"><title>${escapeHtml(description)}</title></circle>`;
+      }
       const label = chartPieLabel(segment, chart.unit, chart.appearance.pieLabelMode);
       const middle = (segment.startAngle + segment.endAngle) / 2;
       const labelX = centerX + Math.cos(middle) * (radius * 0.61);
       const labelY = centerY + Math.sin(middle) * (radius * 0.61);
-      return `<g><title>${escapeHtml(`${segment.label}: ${chartDisplayNumber(segment.value)}${chart.unit} (${segment.percentage.toFixed(1)}%)`)}</title>${chartPiePath(segment, centerX, centerY, radius)}${label ? `<text class="chart-block-pie-label" x="${labelX}" y="${labelY}" text-anchor="middle" dominant-baseline="middle">${escapeHtml(label)}</text>` : ""}</g>`;
+      const description = chartDataDescription(chart, segment, pieSeries, segment.value, segment.percentage);
+      return `<g><title>${escapeHtml(description)}</title>${chartPiePath(segment, centerX, centerY, radius, chartDatumAttributes(segment, pieSeries, description))}${label ? `<text class="chart-block-pie-label" x="${labelX}" y="${labelY}" text-anchor="middle" dominant-baseline="middle">${escapeHtml(label)}</text>` : ""}</g>`;
     }).join("");
+    const percentages = new Map(pie.segments.map((segment) => [segment.id, segment.percentage]));
+    accessibleItems = items.map((item) => `<li>${escapeHtml(chartDataDescription(chart, item, pieSeries, item.value, percentages.get(item.id) || 0))}</li>`).join("");
     const empty = pie.total > 0 ? "" : `<text class="chart-block-empty" x="180" y="130" text-anchor="middle">円グラフを表示できる有効な数値がありません</text>`;
     const legend = chart.appearance.showLegend
       ? `<ul class="chart-block-legend" aria-label="${escapeAttr(`${title}の凡例`)}">${items.map((item) => `<li><span class="chart-block-legend-swatch" style="background:${escapeAttr(pieColors.get(item.id) || PIE_CHART_COLORS[0])}"></span><span>${escapeHtml(`${chartLabel(item.label, 20)}: ${chartDisplayNumber(item.value)}${chart.unit}`)}</span></li>`).join("")}</ul>`
@@ -8803,16 +8825,15 @@ function renderChartBlock(chartValue, blockIndex, { editable = true } = {}) {
       return layout.groups.map((group) => {
         const groupSegments = layout.segments.filter((segment) => segment.itemIndex === group.itemIndex);
         const segments = groupSegments.map((segment) => {
+          const description = percentStacked ? chartPercentSegmentDescription(segment, chart.unit) : chartDataDescription(chart, segment.item, segment.series, segment.value);
           const rect = segment.height > 0
-            ? `<rect x="${segment.x}" y="${segment.y}" width="${segment.width}" height="${segment.height}" fill="${escapeAttr(segment.series.color)}"></rect>`
-            : "";
+            ? `<rect ${chartDatumAttributes(segment.item, segment.series, description)} x="${segment.x}" y="${segment.y}" width="${segment.width}" height="${segment.height}" fill="${escapeAttr(segment.series.color)}"></rect>`
+            : `<path ${chartDatumAttributes(segment.item, segment.series, description)} d="M ${segment.x} ${segment.y} L ${segment.x + segment.width} ${segment.y}" fill="none" stroke="none"/>`;
           const visual = percentStacked ? chartPercentDisplay(segment.percentage) : chartValueLabel(segment.value);
           const value = chart.appearance.showValues && segment.height >= 20 && segment.width >= Math.max(28, chartTextWidth(visual) + 4)
             ? `<text class="chart-block-value chart-block-stacked-value${percentStacked ? " chart-block-percent-stacked-value" : ""}" x="${segment.x + segment.width / 2}" y="${segment.y + segment.height / 2}" text-anchor="middle" dominant-baseline="middle">${escapeHtml(visual)}</text>`
             : "";
-          const title = percentStacked
-            ? chartPercentSegmentDescription(segment, chart.unit)
-            : `${segment.item.label}、${segment.series.name}: ${chartDisplayNumber(segment.value)}${chart.unit}`;
+          const title = description;
           return `<g class="chart-block-bar chart-block-stacked-bar${percentStacked ? " chart-block-percent-stacked-bar" : ""}" data-chart-item-id="${escapeAttr(segment.item.id)}" data-chart-series-id="${escapeAttr(segment.series.id)}"><title>${escapeHtml(title)}</title>${rect}${value}</g>`;
         }).join("");
         const firstSegment = groupSegments[0];
@@ -8834,7 +8855,8 @@ function renderChartBlock(chartValue, blockIndex, { editable = true } = {}) {
           const value = chart.appearance.showValues
             ? chartVerticalValueMarkup(valueNumber, x + barWidth / 2, tip, valueLabelOptions)
             : "";
-          return `<g class="chart-block-bar" data-chart-item-id="${escapeAttr(item.id)}" data-chart-series-id="${escapeAttr(series.id)}"><title>${escapeHtml(`${item.label}、${series.name}${combo ? `（${chartComboSeriesLabel(chart, "bar")}）` : ""}: ${chartDisplayNumber(valueNumber)}${chart.unit}`)}</title><rect x="${x}" y="${y}" width="${barWidth}" height="${barHeight}" rx="4" fill="${escapeAttr(series.color)}"></rect>${value}</g>`;
+          const description = chartDataDescription(chart, item, series, valueNumber);
+          return `<g class="chart-block-bar" data-chart-item-id="${escapeAttr(item.id)}" data-chart-series-id="${escapeAttr(series.id)}"><title>${escapeHtml(description)}</title><rect ${chartDatumAttributes(item, series, description)} x="${x}" y="${y}" width="${barWidth}" height="${barHeight}" rx="4" fill="${escapeAttr(series.color)}"></rect>${value}</g>`;
         }).join("");
         return `<g class="chart-block-bar-group" data-chart-item-id="${escapeAttr(group.item.id)}">${seriesBars}${chartCategoryLabelMarkup(categoryById.get(group.item.id), group.center, categoryY)}</g>`;
       }).join("");
@@ -8861,7 +8883,11 @@ function renderChartBlock(chartValue, blockIndex, { editable = true } = {}) {
 }
 
 function renderChartEditorPreview(host, chart, blockIndex) {
-  if (host) host.innerHTML = renderChartBlock(chart, blockIndex, { editable: false });
+  closeChartTooltip();
+  if (host) {
+    host.innerHTML = renderChartBlock(chart, blockIndex, { editable: false });
+    bindChartDataTooltips(host);
+  }
 }
 
 function chartSeriesValueAriaLabel(itemIndex, seriesName, seriesCount) {
@@ -9299,6 +9325,7 @@ function createChartEditor(chartValue, blockIndex, snapshotKey) {
 }
 
 function renderChartBlockEditors() {
+  closeChartTooltip();
   if (!chartBlockEditors) return;
   const noteId = currentNote()?.id || null;
   if (chartEditorOriginalNoteId !== noteId) {
@@ -9656,7 +9683,167 @@ function handleChartEditorAction(event) {
   }
 }
 
+// Ephemeral DOM state only: never enters a chart, note, draft, or save scheduler.
+let activeChartTooltip = null;
+let chartTooltipSequence = 0;
+let chartTooltipEventsBound = false;
+let chartPointerTarget = null;
+let chartTooltipResizeObserver = null;
+
+function closeChartTooltip() {
+  if (!activeChartTooltip) return;
+  const { target, tooltip, focusMark } = activeChartTooltip;
+  chartTooltipResizeObserver?.unobserve(activeChartTooltip.card);
+  target.removeAttribute("aria-describedby");
+  target.setAttribute("aria-label", target.dataset.chartDescription);
+  target.classList.remove("chart-datum-selected");
+  tooltip.remove();
+  focusMark.remove();
+  activeChartTooltip = null;
+}
+
+function positionChartTooltip() {
+  if (!activeChartTooltip) return;
+  const { target, card, tooltip, focusMark } = activeChartTooltip;
+  if (!target.isConnected) return closeChartTooltip();
+  const rect = target.getBoundingClientRect();
+  const bounds = card.getBoundingClientRect();
+  const scroll = target.closest(".chart-block-scroll").getBoundingClientRect();
+  const viewport = window.visualViewport;
+  const viewLeft = viewport?.offsetLeft || 0;
+  const viewTop = viewport?.offsetTop || 0;
+  const viewRight = viewLeft + (viewport?.width || document.documentElement.clientWidth);
+  const viewBottom = viewTop + (viewport?.height || window.innerHeight);
+  const left = Math.max(bounds.left + 8, viewLeft + 8);
+  const right = Math.min(bounds.right - 8, viewRight - 8);
+  const top = Math.max(bounds.top + 8, viewTop + 8);
+  const bottom = Math.min(bounds.bottom - 8, viewBottom - 8);
+  const visibleLeft = Math.max(rect.left, scroll.left, left);
+  const visibleRight = Math.min(rect.right, scroll.right, right);
+  const visibleTop = Math.max(rect.top, scroll.top, top);
+  const visibleBottom = Math.min(rect.bottom, scroll.bottom, bottom);
+  if (right <= left || bottom <= top || visibleRight < visibleLeft || visibleBottom < visibleTop) return closeChartTooltip();
+  const originX = bounds.left + card.clientLeft;
+  const originY = bounds.top + card.clientTop;
+  tooltip.style.maxWidth = `${Math.min(320, right - left)}px`;
+  tooltip.style.maxHeight = `${bottom - top}px`;
+  const size = tooltip.getBoundingClientRect();
+  const x = Math.max(left, Math.min(right - size.width, (visibleLeft + visibleRight - size.width) / 2));
+  const above = visibleTop - size.height - 8;
+  const y = Math.max(top, Math.min(bottom - size.height, above >= top ? above : visibleBottom + 8));
+  tooltip.style.left = `${x - originX}px`;
+  tooltip.style.top = `${y - originY}px`;
+  // A small ring also marks zero-size bars/points without changing SVG geometry.
+  const markWidth = Math.min(right - left, Math.max(10, visibleRight - visibleLeft));
+  const markHeight = Math.min(bottom - top, Math.max(10, visibleBottom - visibleTop));
+  focusMark.style.width = `${markWidth}px`;
+  focusMark.style.height = `${markHeight}px`;
+  focusMark.style.left = `${Math.max(left, Math.min(right - markWidth, (visibleLeft + visibleRight - markWidth) / 2)) - originX}px`;
+  focusMark.style.top = `${Math.max(top, Math.min(bottom - markHeight, (visibleTop + visibleBottom - markHeight) / 2)) - originY}px`;
+}
+
+function showChartTooltip(target) {
+  if (activeChartTooltip?.target === target) return positionChartTooltip();
+  const previous = activeChartTooltip;
+  closeChartTooltip();
+  const card = target.closest(".chart-block");
+  card.querySelectorAll("[data-chart-datum]").forEach((datum) => { datum.tabIndex = datum === target ? 0 : -1; });
+  const tooltip = previous?.tooltip || document.createElement("div");
+  tooltip.className = "chart-data-tooltip";
+  if (!tooltip.id) tooltip.id = `chart-data-tooltip-${++chartTooltipSequence}`;
+  tooltip.setAttribute("role", "tooltip");
+  tooltip.textContent = target.dataset.chartDescription;
+  const focusMark = previous?.focusMark || document.createElement("span");
+  focusMark.className = "chart-data-focus";
+  focusMark.setAttribute("aria-hidden", "true");
+  card.append(focusMark, tooltip);
+  // The description is announced once, without an additional live region.
+  target.setAttribute("aria-label", "グラフのデータ");
+  target.setAttribute("aria-describedby", tooltip.id);
+  target.classList.add("chart-datum-selected");
+  activeChartTooltip = { target, card, tooltip, focusMark };
+  chartTooltipResizeObserver?.observe(card);
+  positionChartTooltip();
+}
+
+function chartDatumFromEvent(event) {
+  const target = event.target.closest?.("[data-chart-datum]");
+  return target && (preview.contains(target) || chartBlockEditors?.contains(target)) ? target : null;
+}
+
+function bindChartDataTooltips(host) {
+  host.querySelectorAll(".chart-block").forEach((card) => {
+    const first = card.querySelector("[data-chart-datum]");
+    if (first) {
+      first.tabIndex = 0;
+      // Preserve the named scrolling region, using its data as the single Tab entrance.
+      card.querySelector(".chart-block-scroll").tabIndex = -1;
+    }
+  });
+  if (chartTooltipEventsBound) return;
+  chartTooltipEventsBound = true;
+  chartTooltipResizeObserver = new ResizeObserver(positionChartTooltip);
+  document.addEventListener("pointerdown", (event) => {
+    chartPointerTarget = chartDatumFromEvent(event);
+    if (activeChartTooltip && !activeChartTooltip.card.contains(event.target)) closeChartTooltip();
+  }, { passive: true });
+  document.addEventListener("pointercancel", () => { chartPointerTarget = null; }, { passive: true });
+  document.addEventListener("click", (event) => {
+    const target = chartDatumFromEvent(event);
+    chartPointerTarget = null;
+    if (!target) return;
+    if (activeChartTooltip?.target === target) closeChartTooltip();
+    else showChartTooltip(target);
+  });
+  document.addEventListener("focusin", (event) => {
+    const target = chartDatumFromEvent(event);
+    if (target) {
+      if (chartPointerTarget !== target) showChartTooltip(target);
+    } else closeChartTooltip();
+  });
+  document.addEventListener("focusout", (event) => {
+    if (activeChartTooltip?.target === event.target && !event.relatedTarget?.matches?.("[data-chart-datum]")) closeChartTooltip();
+  });
+  document.addEventListener("keydown", (event) => {
+    chartPointerTarget = null;
+    if (event.key === "Escape" && activeChartTooltip) {
+      event.preventDefault();
+      event.stopPropagation();
+      closeChartTooltip();
+      return;
+    }
+    const target = chartDatumFromEvent(event);
+    if (!target) return;
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      if (activeChartTooltip?.target === target) closeChartTooltip();
+      else showChartTooltip(target);
+      return;
+    }
+    const keys = ["ArrowLeft", "ArrowUp", "ArrowRight", "ArrowDown", "Home", "End"];
+    if (!keys.includes(event.key)) return;
+    event.preventDefault();
+    const targets = [...target.closest(".chart-block").querySelectorAll("[data-chart-datum]")];
+    const index = targets.indexOf(target);
+    const next = event.key === "Home" ? 0 : event.key === "End" ? targets.length - 1
+      : (index + (event.key === "ArrowLeft" || event.key === "ArrowUp" ? -1 : 1) + targets.length) % targets.length;
+    targets[next].scrollIntoView({ block: "nearest", inline: "nearest" });
+    targets[next].focus({ preventScroll: true });
+    showChartTooltip(targets[next]);
+  }, true);
+  document.addEventListener("scroll", positionChartTooltip, { capture: true, passive: true });
+  window.addEventListener("resize", positionChartTooltip, { passive: true });
+  window.visualViewport?.addEventListener("resize", positionChartTooltip, { passive: true });
+  window.visualViewport?.addEventListener("scroll", positionChartTooltip, { passive: true });
+  const observer = new MutationObserver(() => {
+    if (activeChartTooltip && !activeChartTooltip.target.isConnected) closeChartTooltip();
+  });
+  observer.observe(preview, { childList: true, subtree: true });
+  if (chartBlockEditors) observer.observe(chartBlockEditors, { childList: true, subtree: true });
+}
+
 function bindChartBlockControls() {
+  bindChartDataTooltips(preview);
   preview.querySelectorAll(".chart-block-edit").forEach((button) => button.addEventListener("click", () => {
     const target = chartBlockEditors?.querySelector(`.chart-block-editor[data-chart-index="${CSS.escape(button.dataset.chartIndex)}"][data-chart-id="${CSS.escape(button.dataset.chartId)}"]`);
     if (target) {

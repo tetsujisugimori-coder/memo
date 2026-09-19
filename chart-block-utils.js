@@ -285,6 +285,13 @@
     }
   }
 
+  // Display-only text; percentages come from the existing geometry helpers.
+  function chartDatumDescription({ item, series, value, unit = "", assignment = "", percentage = null }) {
+    const number = Number.isFinite(value) ? String(value === 0 ? 0 : value) : "0";
+    const ratio = percentage === null ? "" : `（割合: ${Number.isFinite(percentage) ? percentage : 0}%）`;
+    return `${item.label}、${series.name}${assignment ? `（${assignment}）` : ""}: ${number}${unit}${ratio}`;
+  }
+
   function pieChartSegments(items) {
     if (Array.isArray(items) && items.some((item) => item?.value < 0)) return { total: 0, segments: [] };
     const displayItems = Array.isArray(items) ? items.filter((item) => item && item.label && Number.isFinite(item.value) && item.value >= 0) : [];
@@ -791,6 +798,7 @@
   const api = {
     formatChartAxisTitle,
     chartSeriesUnit,
+    chartDatumDescription,
     comboChartLayout,
     comboAxisRanges,
     comboValueAxisLayout,

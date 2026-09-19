@@ -6189,6 +6189,38 @@ body.collections-open:not(.context-panel-closed) .context-panel {
 
 .chart-block figcaption { padding-right: 54px; color: var(--ink); font-weight: 700; }
 .chart-block-edit { position: absolute; top: 8px; right: 8px; min-height: 30px; }
+.chart-data-tooltip {
+  position: absolute;
+  z-index: 3;
+  box-sizing: border-box;
+  width: max-content;
+  max-width: min(320px, 100%);
+  padding: 8px 10px;
+  border: 1px solid var(--ink);
+  border-radius: 8px;
+  background: var(--section-bg);
+  color: var(--ink);
+  font-size: 12px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+  overflow: hidden;
+  pointer-events: none;
+}
+.chart-data-focus {
+  position: absolute;
+  z-index: 2;
+  box-sizing: border-box;
+  border: 2px solid var(--ink);
+  outline: 2px solid var(--section-bg);
+  border-radius: 3px;
+  pointer-events: none;
+}
+.chart-block [data-chart-datum] { cursor: pointer; }
+.chart-block [data-chart-datum]:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.chart-block-bar > .chart-block-value,
+.chart-block-line-item > .chart-block-value,
+.chart-block-pie-label { pointer-events: none; }
 .chart-block-scroll { max-width: 100%; overflow-x: auto; margin-top: 6px; }
 .chart-block svg { display: block; width: 100%; min-width: 420px; height: auto; overflow: visible; }
 .chart-block-horizontal-bar-chart svg { min-width: 520px; }

@@ -6,6 +6,7 @@ const {
   comboChartLayout,
   formatChartAxisTitle,
   chartSeriesUnit,
+  chartDatumDescription,
   comboAxisRanges,
   comboValueAxisLayout,
   comboSeriesKinds,
@@ -54,6 +55,37 @@ const {
   stackedBarSegments,
   splitChartBlocks
 } = require("./chart-block-utils.js");
+
+for (const value of [0, -0, -12, 0.125, Number.MIN_VALUE, Number.MAX_VALUE, -Number.MAX_VALUE]) {
+  test(`データ説明は元の有限値を保持する: ${value}`, () => {
+    const item = Object.freeze({ id: "item", label: "項目<>&" });
+    const series = Object.freeze({ id: "series", name: "系列<>&" });
+    assert.equal(chartDatumDescription({ item, series, value, unit: "万円" }),
+      `項目<>&、系列<>&: ${value === 0 ? 0 : value}万円`);
+  });
+}
+
+test("データ説明は軸割当と割合を共有し、保存マーカーと入力を変更しない", () => {
+  const chart = normalizeChartBlock({ id: "description", chartType: "combo", unit: "万円",
+    items: [{ id: "a", label: "同名" }, { id: "b", label: "同名" }],
+    series: [{ id: "sales", name: "売上", values: [30, -10] }, { id: "rate", name: "成長率", values: [0.5, -0.25] }],
+    appearance: { comboLineSeriesId: "rate", comboAxisMode: "dual", comboSecondaryUnit: "%", leftAxisTitle: "売上", rightAxisTitle: "成長率" }
+  });
+  const marker = serializeChartBlock(chart);
+  assert.equal(chartDatumDescription({ item: chart.items[1], series: chart.series[1], value: -0.25,
+    unit: chartSeriesUnit(chart, chart.series[1]), assignment: "折れ線・右軸" }), "同名、成長率（折れ線・右軸）: -0.25%");
+  assert.equal(chartDatumDescription({ item: chart.items[0], series: chart.series[0], value: 30,
+    unit: "万円", percentage: -60 }), "同名、売上: 30万円（割合: -60%）");
+  assert.equal(serializeChartBlock(chart), marker);
+  assert.equal(parseChartBlockLine(marker).schemaVersion, 1);
+});
+
+test("データ説明は非有限な表示引数でもNaNとInfinityを出さない", () => {
+  for (const value of [NaN, Infinity, -Infinity]) {
+    const description = chartDatumDescription({ item: { label: "項目" }, series: { name: "系列" }, value, percentage: value });
+    assert.equal(description, "項目、系列: 0（割合: 0%）");
+  }
+});
 
 function charts(markdown) {
   return splitChartBlocks(markdown).filter((segment) => segment.type === "chart");

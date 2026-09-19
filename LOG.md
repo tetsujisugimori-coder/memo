@@ -2955,3 +2955,36 @@
 
 - タイトルの設定・表示は複合グラフに限定。通常の棒・折れ線・円は従来の表示を維持する。軸最小最大の手動指定、単位自動換算、通貨書式、桁区切り変更は行わない。
 - 狭幅では既存のグラフ内横スクロールを利用し、長いタイトルの全文はtitle／読み上げで参照する。新たなタップ式ツールチップは追加しない。Safari／iPhone実機は未確認でPlaywright WebKitとは区別する。
+
+
+## 2026-09-19 グラフのデータツールチップ
+
+### 設計と変更
+
+- git fetch origin後、PR #248のマージコミット5e8fe0bf28dae01a2a2b59e3cbddc75f233e2eaeとorigin/mainの一致を確認。TEMPの独立worktreeとfeature/chart-interactive-tooltipsを作成し、元作業ツリーの画像差分・freehand-canvas.html・work/を保持。
+- データのrect/circle/pathへ安定した項目ID・系列IDとエスケープ済み説明を付与。共通のchartDatumDescriptionをSVG title・読み上げ一覧・HTMLツールチップで利用。100%積み上げの既存正負別正規化・未丸め割合はそのまま使用し、円は選択中の系列名と割合も共通表示。HTML表示はtextContent。
+- 1グラフ1か所のroving tabindex、矢印・Home・End、Enter／Space／Escapeを実装。ゼロ寸法の積み上げ棒は棒を描かない既存仕様を維持し、不可視pathをキーボード対象にする。点非表示の折れ線は透明な操作対象、0値の円も不可視対象で確認可能。軸・凡例・項目ラベル・合計値は対象外。
+- イベントはdocumentで委譲し、対象を既存previewとグラフ編集プレビューに限定。pointerdownの標準動作は阻止せず、フォーカス発生とclickの二重トグルを回避。編集・再描画・メモ切替・保存時に破棄し、DOM削除の監視でも古い表示を除去。
+- tooltipはrole=tooltipと一意IDで選択図形に関連付け、同一説明をaria-labelとaria-describedbyで二重通知しない。live regionは追加しない。既存SVG role=img、title、スクロールregion、sr-only一覧を維持。実スクリーンリーダーの音声確認は未実施。
+- カードとviewportと内部スクロールの交差範囲から位置を決定し、上が不足すれば下へ配置。テーマ変数・折返し・最大幅・pointer-events:noneを使用。選択表示はゼロ寸法でも判別可能。
+
+### 保存互換性
+
+- schemaVersion: 1、DB_VERSION: 6、UTF-8 hex JSONマーカー、items、series、appearanceと全既存設定は変更しない。保存／正規化／座標・軸計算の関数を変更せず、表示状態はDOM参照だけで保持。ツールチップイベントから本文・revision・dirty・自動保存・IndexedDBへ書き込まない。
+- app.js 171、style.css 103、chart-block-utils.js 24の配信識別子と全既存固定参照を同期。他の配信ファイルの識別子は変更しない。
+
+### 検証
+
+- 変更JavaScript23ファイルのnode --check、git diff --check成功。重点単体200/200、npm test全1,252/1,252成功（追加9件、fail/skip 0）。
+- 正式グラフE2EはChromium・WebKitとも終了コード0で完走。既存の正負値・通常積み上げ140条件・100%積み上げ140条件・単一軸複合120条件・二軸160条件・軸タイトル8条件を維持し、新規12構成／120表示条件（light/dark×320/375/390/430/1100px）／150データ対象／12構成タッチ操作を各エンジンで通過。page/console error 0件、document/body横overflowなし。
+- クリック・再クリック・タップ・再タップ・矢印・Home/End・Enter/Space・Escape・外側操作、説明とaria-describedbyの関連、負数・ゼロ・小数・巨大値、安全な文字列表示、スクロール後の位置、表示破棄を確認。操作前後の本文・note・revision・dirty・保存予約・IndexedDB記録の完全一致を確認。
+- 正式モバイルE2E（layout／writing）は最終コードでChromium・WebKitとも終了コード0。320/375/390/430pxの既存操作を維持し、page/console errorなし。画像出力はTEMPで元作業ツリーを保護。320pxの長文ツールチップを実画像でも確認し、scrollHeight=clientHeight=106pxで項目名・系列名・元値まで表示されることを確認。
+- 検証中の修正: モバイルカードの既存Escape処理にツールチップ閉鎖が伝播する問題をcaptureで限定処理。ゼロ値対象のlineが既存の軸線重複検証に混入するため、描画しないpathへ変更。円の説明共通化で読み上げへ割合が追加されるため、既存3か所の完全一致assertへ割合を追加（項目・系列・値・順序の検証は維持）。追加テストは保存後の予約描画完了を条件待機し、円区画の塗り内部をヒットテストして実ポインター操作を行う。
+- 固定待機、タイムアウト延長、skip、既存assertの削除・弱体化なし。追加の重点E2EはChromium・WebKitでも独立実行して成功。
+- 元作業ツリーはmainのHEAD 5e8fe0bと既存statusを維持。e2e-artifacts/mobile-layout-390.png、freehand-canvas.html、work/freehand-canvas.htmlのSHA-256は開始時と一致。
+
+### 対象外・未確認・制限
+
+- iPhone Safari実機と実スクリーンリーダー音声は未確認。Playwright WebKit・タッチエミュレーションの証拠と区別する。
+- ゼロ寸法や重なる極小図形はキーボードから確認。可視領域の高さを超える極端な長文は吹き出し内でクリップし、全文はSVG titleと読み上げ一覧へ保持。
+- 軸範囲指定、新グラフ、表／CSV連携、ズーム・パン・ドラッグ、ツールチップの編集・保存、画像／PDF出力、外部依存・DB移行は実装しない。
