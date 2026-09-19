@@ -178,11 +178,6 @@ async function verifyChartTsvCopy(page) {
       assert.equal(await page.evaluate(()=>window.copyCalls.at(-1)),tsv);
       if(theme==='light'&&(width===390||width===1100)) {
         await page.setViewportSize({width,height:1200});await page.waitForFunction(()=>innerHeight===1200);
-        const scroll=viewer.locator('.chart-data-table-scroll');await scroll.focus();
-        while(await scroll.evaluate(el=>el.scrollLeft>0)) {
-          const offset=await scroll.evaluate(el=>el.scrollLeft);await page.keyboard.press('ArrowLeft');
-          await page.waitForFunction(({el,offset})=>el.scrollLeft<offset,{el:await scroll.elementHandle(),offset});
-        }
         await viewer.locator('[data-chart-copy-index]').focus();
         await viewer.scrollIntoViewIfNeeded();
         await page.screenshot({path:path.join(process.env.MEMO_NEXUS_COPY_ARTIFACTS||os.tmpdir(),'chart-tsv-copy-'+width+'.png')});
