@@ -47,6 +47,34 @@ async function confirm(page) {
   await idle(page);
   return id;
 }
+async function copyPendingTsv(page, expected) {
+  const before = await snapshot(page);
+  const draftBefore = await page.evaluate(() => ({ pending: { ...pendingTableChart, trigger: undefined }, drafts: structuredClone([...chartEditorOriginalCharts]) }));
+  const chartId = await pending(page).getAttribute('data-chart-id');
+  // Stub only the clipboard boundary; application and persistence state remain read-only.
+  await page.evaluate(() => {
+    window.tableChartClipboardDescriptor = Object.getOwnPropertyDescriptor(navigator, 'clipboard');
+    window.tableChartCopyCalls = [];
+    Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText: async text => { window.tableChartCopyCalls.push(text); } } });
+  });
+  try {
+    await action(page, 'copy-tsv').click();
+    await page.waitForFunction(() => document.querySelector('[data-chart-pending-table] > .chart-block-status')?.textContent);
+    assert.equal(await pending(page).locator(':scope > .chart-block-status').textContent(), 'TSVをコピーしました（2項目・2系列）');
+    assert.deepEqual(await page.evaluate(() => window.tableChartCopyCalls), [expected]);
+    assert.deepEqual(await snapshot(page), before, 'copy preserves full body/note/revision/dirty/save timer/IndexedDB/Undo/Redo');
+    assert.deepEqual(await page.evaluate(() => ({ pending: { ...pendingTableChart, trigger: undefined }, drafts: structuredClone([...chartEditorOriginalCharts]) })), draftBefore, 'copy preserves the pending draft');
+    assert.equal(await pending(page).getAttribute('data-chart-id'), chartId);
+    assert.deepEqual(await models(page), [], 'copy does not insert a chart marker');
+  } finally {
+    await page.evaluate(() => {
+      if (window.tableChartClipboardDescriptor) Object.defineProperty(navigator, 'clipboard', window.tableChartClipboardDescriptor);
+      else delete navigator.clipboard;
+      delete window.tableChartClipboardDescriptor;
+      delete window.tableChartCopyCalls;
+    });
+  }
+}
 async function verifyTableToChart(page) {
   await page.setViewportSize({width:1100,height:900});
   await page.waitForFunction(()=>document.body.dataset.layoutMode==='wide');
@@ -56,12 +84,18 @@ async function verifyTableToChart(page) {
   const body = '前\n' + marker('source') + '\n間\n' + marker('same-content') + '\n後';
   await load(page,body);
   const before = await snapshot(page);
+  assert.deepEqual(await models(page), []);
   await start(page);
   assert.equal(await pending(page).count(),1);
   assert.equal(await pending(page).locator('input').first().evaluate(el=>el===document.activeElement),true);
   assert.deepEqual(await pending(page).locator('[data-chart-item-field="label"]').evaluateAll(els=>els.map(el=>el.value)),['1月','2月']);
   assert.deepEqual(await pending(page).locator('[data-chart-series-field="name"]').evaluateAll(els=>els.map(el=>el.value)),['売上','利益']);
   assert.deepEqual(await pending(page).locator('[data-chart-series-value]').evaluateAll(els=>els.map(el=>el.value)),['100','20','120','25']);
+  await copyPendingTsv(page, rows.map(row => row.join('\t')).join('\n'));
+  await pending(page).locator('[data-chart-series-field="name"]').first().fill('編集売上');
+  await pending(page).locator('[data-chart-item-field="label"]').first().fill('編集月');
+  await pending(page).locator('[data-chart-series-value]').first().fill('-12.5');
+  await copyPendingTsv(page, '項目\t編集売上\t利益\n編集月\t-12.5\t20\n2月\t120\t25');
   await start(page); // a second activation only focuses the existing draft
   assert.equal(await pending(page).count(),1);
   await pending(page).locator('[data-chart-field="title"]').fill('表から作成');
@@ -74,6 +108,7 @@ async function verifyTableToChart(page) {
   await start(page,'source','Enter'); await page.keyboard.press('Escape');
   assert.deepEqual(await snapshot(page),before);
   await start(page,'same-content','Space');
+  await copyPendingTsv(page, rows.map(row => row.join('\t')).join('\n'));
   const id = await confirm(page);
   const saved = (await models(page))[0];
   const created = (await snapshot(page)).body;
@@ -83,6 +118,9 @@ async function verifyTableToChart(page) {
   await page.locator('#undoBtn').click(); await idle(page);
   assert.equal((await snapshot(page)).body,body,'Undo only removes insertion');
   assert.deepEqual(await models(page),[]);
+  assert.ok((await snapshot(page)).redo.length > 0, 'exercise copy with an existing Redo history');
+  await start(page); await copyPendingTsv(page, rows.map(row => row.join('\t')).join('\n'));
+  await action(page,'cancel').click();
   await page.locator('#redoBtn').click(); await idle(page);
   assert.equal((await snapshot(page)).body,created,'Redo restores the identical marker and IDs');
   assert.deepEqual((await models(page))[0],saved);

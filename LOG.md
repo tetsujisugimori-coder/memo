@@ -3176,3 +3176,25 @@
 
 - 自動同期、逆変換、複数表結合、集計、グラフ種類推測、%/通貨/桁区切り変換、数式、上限拡張、DB移行、UI全面再設計は実装しない。
 - 元作業ツリーのe2e-artifacts/mobile-layout-390.png、freehand-canvas.html、work/を含む679ファイルをSHA-256で記録。別worktreeで作業し、上書き・削除・stash・reset・混入コミットを行わない。
+
+## 2026-09-21 PR #260: 表から作成中の未確定グラフのTSVコピー修正
+
+### 原因と修正
+
+- copyChartTsvが編集画面のdraft取得前に本文内の保存済みグラフを検索していたため、まだグラフマーカーを持たない表由来のdraftで「対象のグラフが見つかりません」となった。追加した回帰テストで修正前の失敗を再現した。
+- 編集画面ではdatasetのindex/ID/snapshotKeyからcurrentChartBlockを先に呼び、現在入力中の系列名・項目名・値をTSV化する。保存済み編集画面のdraftがない場合はcurrent.rawをnormalize:falseで検証する。プレビューでは従来どおり本文の対象rawをnormalize:falseで解析しchartToTsvで検証する。共通のコピー処理・成功表示・クリップボード失敗時の案内を維持する。
+- ボタンの表示、保存処理、グラフ/表スキーマ、DB_VERSION、エクスポート形式、外部依存は変更しない。app.jsの配信識別子を177へ更新し、関連18テストの固定参照のみ同期した。
+
+### 回帰テスト
+
+- table-to-chart.e2e.jsに未確定コピーの共通検証を追加。保存済みグラフ0件から開始し、コピー成功表示と元表のTSV完全一致、確定前に編集した系列名・項目名・負の小数値の反映を検証する。クリップボード書込境界だけを差し替えて内容を記録し、アプリ状態は読み取りのみで検査する。
+- コピー前後の本文全体/note/revision/dirty/保存予約/IndexedDB/Undo/Redoを完全比較し、draftとグラフIDの維持、本文への未挿入を確認。コピー後の取消・確定、および実際のRedo履歴がある状態でのコピー/取消/Redoも検証する。
+- 既存chart-tsv-copy.e2e.jsの保存済み編集画面/プレビューでの成功、rawのタブ入り項目名・Infinityの拒否、ネイティブコピー、API拒否/未提供とfallback成功/失敗を標準Chart E2Eで継続検証する。固定wait、タイムアウト延長、skip、assert弱体化は追加しない。
+
+### 実行結果
+
+- npm test: 1,469件成功、fail/skip 0。変更したJavaScript 20ファイルのnode --checkとgit diff --check成功。
+- 表→グラフ集中E2E（最終テスト版）: Chromium/WebKitとも終了コード0。タッチエミュレーションを含む。
+- 標準Chart E2E（npm run test:e2e:chart、MEMO_NEXUS_E2E_BROWSER=chromium/webkit）: 両方とも終了コード0。既存TSVコピー/raw破損検出/API失敗とfallback、および追加の未確定コピーを含む全経路成功。
+- 保護対象679ファイルのSHA-256と元mainの既存差分が開始時と一致。既存PR #260へ修正を追加し、mainにはマージしない。
+- iPhone Safari実機は未確認。WebKit/タッチエミュレーションは実機確認ではない。

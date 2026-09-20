@@ -8833,16 +8833,15 @@ async function copyChartTsv(button, editorBlock = null) {
   const status = host?.querySelector(":scope > .chart-block-status");
   if (status) status.textContent = "";
   try {
-    const blockIndex = Number(editorBlock?.dataset.chartIndex ?? button.dataset.chartCopyIndex);
-    const block = splitChartBlocks(editor.value).filter((segment) => segment.type === "chart")[blockIndex];
-    if (!block) throw new Error("対象のグラフが見つかりません");
-    let chart = parseChartBlockLine(block.raw, { normalize: false });
+    let chart;
     if (editorBlock) {
-      const current = currentChartBlock(blockIndex, editorBlock.dataset.chartId, editorBlock.dataset.chartSnapshotKey);
+      const { chartIndex, chartId, chartSnapshotKey } = editorBlock.dataset;
+      const current = currentChartBlock(Number(chartIndex), chartId, chartSnapshotKey);
       if (!current) throw new Error("対象のグラフが変更されています");
-      const draft = chartEditorOriginalCharts.get(editorBlock.dataset.chartSnapshotKey)?.draft;
-      // Check raw saved values before the legacy display fallback can hide corruption.
-      if (!draft) chartToTsv(chart);
+      const draft = chartEditorOriginalCharts.get(chartSnapshotKey)?.draft;
+      // Saved editors must validate raw values before the display fallback hides corruption.
+      // Pending table drafts have no body marker and are validated from their current inputs.
+      if (!draft) chartToTsv(parseChartBlockLine(current.raw, { normalize: false }));
       const rows = [...editorBlock.querySelectorAll(".chart-block-item-row[data-chart-item-index]")];
       chart = {
         ...current.chart,
@@ -8853,6 +8852,11 @@ async function copyChartTsv(button, editorBlock = null) {
           values: rows.map((itemRow) => itemRow.querySelector(`[data-chart-series-value][data-chart-series-index="${index}"]`).value)
         }))
       };
+    } else {
+      const blockIndex = Number(button.dataset.chartCopyIndex);
+      const block = splitChartBlocks(editor.value).filter((segment) => segment.type === "chart")[blockIndex];
+      if (!block) throw new Error("対象のグラフが見つかりません");
+      chart = parseChartBlockLine(block.raw, { normalize: false });
     }
     const text = chartToTsv(chart);
     try {
