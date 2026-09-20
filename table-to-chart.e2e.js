@@ -4,6 +4,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const os = require("node:os");
 const { serializeTableBlock } = require("./table-block-utils.js");
+const { serializeChartBlock } = require("./chart-block-utils.js");
 const rows = [["項目", "売上", "利益"], ["1月", "100", "20"], ["2月", "120", "25"]];
 const marker = (id, data = rows) => serializeTableBlock({ id, rows:data });
 const pending = page => page.locator('[data-chart-pending-table]');
@@ -76,7 +77,7 @@ async function verifyTableToChart(page) {
   const id = await confirm(page);
   const saved = (await models(page))[0];
   const created = (await snapshot(page)).body;
-  assert.ok(created.indexOf(marker('same-content')) < created.indexOf('<!-- memo-nexus:chart-block:'));
+  assert.equal(created, '前\n' + marker('source') + '\n間\n' + marker('same-content') + '\n' + serializeChartBlock(saved) + '\n後', 'only the selected table gets an immediately following chart');
   assert.equal(created.split('<!-- memo-nexus:chart-block:').length-1,1);
   assert.deepEqual(await page.evaluate(()=>window.MemoNexusTableBlockUtils.splitTableBlocks(editor.value).filter(x=>x.type==='table').map(x=>x.raw)),[marker('source'),marker('same-content')]);
   await page.locator('#undoBtn').click(); await idle(page);
@@ -112,7 +113,7 @@ async function verifyTableToChart(page) {
     const unchanged=await snapshot(page);
     if(scenario==='moved') {
       await confirm(page);
-      assert.ok((await snapshot(page)).body.indexOf(marker('source')) < (await snapshot(page)).body.indexOf('<!-- memo-nexus:chart-block:'));
+      assert.equal((await snapshot(page)).body,changed+'\n'+serializeChartBlock((await models(page))[0]),'moved source is followed immediately by the chart');
       assert.deepEqual((await models(page))[0].series.map(x=>x.values),[[100,120],[20,25]]);
     } else {
       await action(page,'confirm').click();

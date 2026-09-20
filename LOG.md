@@ -3167,10 +3167,12 @@
 - 175 JavaScriptファイルの構文検査、git diff --check成功。標準Mobile E2EはChromium/WebKitとも成功。標準Geometry E2E成功。lint/型チェック/ビルドのコマンドは既存package.jsonに定義なし。
 - iPhone Safari実機は未確認。WebKitとPlaywrightタッチエミュレーションは実機確認と区別する。
 
+- 追加の変換E2EはChromium/WebKitとも終了コード0。クリック、Tab/Enter/Space、タッチ相当、draftの本文/note/revision/dirty/保存予約/IndexedDB/Undo不変、取消、同一マーカーUndo/Redo、再読込・再編集、独立編集、表移動/削除/置換/同一ID重複、不正値/上限、10グラフ構成、TSVコピー/データ表/ツールチップ/PNGを検証。320/375/390/430/1100pxとライト/ダークのdocument/body横スクロールなしを確認。
+- 通常幅/390pxの操作欄・編集画面・元表直後のグラフ画像をe2e-artifacts/table-to-chartへ保存し目視確認。標準Chart E2EはChromiumでローカル成功。CIではChromium/WebKitとも全経路が成功。
+- PR #260の初回CI（d19c501、run 35512028183）は全6ジョブ成功: CI checks、Chart E2E Chromium/WebKit、Mobile E2E Chromium/WebKit、Geometry E2E Chromium。挿入位置のassertを本文全体の完全一致へ強化し、Chromium集中E2Eも再成功。最終記録コミット後も最新HEADの全CIを確認し、PR本文へ結果を記録する。
+- gh issue createはPAT権限不足だったため接続済みGitHub経路でIssue #259とPR #260を作成。保護対象679ファイルは作業後もSHA-256一致、元mainは7605b5cのまま、元の画像差分/未追跡ファイルのstatusも開始時と一致。
+
 ### 対象外・作業保護
 
 - 自動同期、逆変換、複数表結合、集計、グラフ種類推測、%/通貨/桁区切り変換、数式、上限拡張、DB移行、UI全面再設計は実装しない。
 - 元作業ツリーのe2e-artifacts/mobile-layout-390.png、freehand-canvas.html、work/を含む679ファイルをSHA-256で記録。別worktreeで作業し、上書き・削除・stash・reset・混入コミットを行わない。
-
-- 追加の変換E2EはChromium/WebKitとも終了コード0。クリック、Tab/Enter/Space、タッチ相当、draftの本文/note/revision/dirty/保存予約/IndexedDB/Undo不変、取消、同一マーカーUndo/Redo、再読込・再編集、独立編集、表移動/削除/置換/同一ID重複、不正値/上限、10グラフ構成、TSVコピー/データ表/ツールチップ/PNGを検証。320/375/390/430/1100pxとライト/ダークのdocument/body横スクロールなしを確認。
-- 通常幅/390pxの操作欄・編集画面・元表直後のグラフ画像をe2e-artifacts/table-to-chartへ保存し目視確認。標準Chart E2EはPR準備時点で両エンジン実行中。終了結果とCIは後続記録で確認する。
