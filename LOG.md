@@ -3198,3 +3198,17 @@
 - 標準Chart E2E（npm run test:e2e:chart、MEMO_NEXUS_E2E_BROWSER=chromium/webkit）: 両方とも終了コード0。既存TSVコピー/raw破損検出/API失敗とfallback、および追加の未確定コピーを含む全経路成功。
 - 保護対象679ファイルのSHA-256と元mainの既存差分が開始時と一致。既存PR #260へ修正を追加し、mainにはマージしない。
 - iPhone Safari実機は未確認。WebKit/タッチエミュレーションは実機確認ではない。
+
+
+## 2026-09-21 保存済みグラフのPNG画像クリップボードコピー
+
+- Issue #262。PR #260のMERGEDとorigin/main = 6dac2d63008acb94c951d16b32ccfcc7a4b85315を確認。PR #257のPNG経路・テスト・README・LOGを確認し、TEMPの独立worktree、feature/chart-png-clipboardで作業。元ツリーの保護対象679ファイルをSHA-256で記録。
+- generateChartPngへフォント待機、対象確認、既存SVG構成、テーマ・寸法制限、Canvas・Blob・PNGヘッダー/IHDR検証をまとめ、保存とコピーで共有。コピーにFileReader、ファイル名、一時リンク、ダウンロードを持ち込まない。描画済みSVGを再利用し数値・設定を変更しない。
+- [Clipboard API仕様](https://www.w3.org/TR/clipboard-apis/#clipboarditem)のPromise<Blob>をClipboardItemのimage/pngへ渡し、最初のawait前にwriteを開始。PNG生成とwriteの双方が成功した後だけ成功通知。同期例外・非同期拒否でもPNG Promiseを観測し、AbortControllerで待機を解除、Object URL・画像イベント・Canvasをfinallyで解放する。
+- secure context、基本API、明示的なPNG未対応を先に判定。supports関数欠落では試行する。権限・SecurityError・DataError・AbortError、コンストラクタ・同期write・非同期write、生成/Blob検証失敗、対象消失/再描画を分けて処理し、日本語で再試行やPNG保存を案内。権限状態を永続化せず自動代替なし。
+- 保存ボタン横に標準buttonを追加。既存の折返しCSSとstatus/live領域を共用。同じカード内で保存/コピーを相互排他にし、別カードは独立。aria-busy/aria-disabledをfinallyで解除しnative disabledは使わない。既存mousedown選択保持を共用し、pointerdownはキャンセルしない。ツールチップのfocus除外へコピーも追加。カード再描画・保存経路呼出しなし。
+- 単体31件を追加。ネイティブClipboardItemへ実PNG Promiseを渡す重点E2EをChromium/WebKit共通に追加し、標準Chart E2Eへ組み込む。既存PNG保存重点テストを維持し、共有snapshotへRedoも追加。
+- キャッシュ: app.js 0.5.0-178、chart-png-export.js 0.5.0-2。index.htmlと固定参照テストを同期。schemaVersion:1、DB_VERSION:6、表/グラフマーカー、各出力形式は維持。
+- 初回全単体: 1,500/1,500成功。重点E2E初回は新規テスト文字列の改行エスケープを修正して再実行。検証結果は以下に追記。iPhone Safari実機・他アプリへの手動貼付は未確認。
+
+- WebKit重点の初回は機能assert成功後、即時write拒否時のSVGリクエスト中断に伴うresource errorを最終console検査で検出。生成Promiseを予約して同一スタック内でwriteを開始し、即時拒否を画像要求前に処理するよう順序を修正。対象SVG参照はクリック時点で保持し、再描画後のPNGを生成しない。assert削除や待機時間延長は行っていない。
