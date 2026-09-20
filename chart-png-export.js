@@ -150,11 +150,14 @@
       const xml = new view.XMLSerializer().serializeToString(plan.svg);
       url = view.URL.createObjectURL(new view.Blob([xml], { type: "image/svg+xml;charset=utf-8" }));
       image = new view.Image();
-      await pngWait(new Promise((resolve, reject) => {
+      // An in-flight SVG load must settle before revoking its URL. Cancelling
+      // the resource itself makes WebKit report a failed resource request.
+      await new Promise((resolve, reject) => {
         image.onload = resolve;
         image.onerror = () => reject(new Error("グラフ画像の読み込みに失敗しました"));
         image.src = url;
-      }), signal);
+      });
+      if (signal?.aborted) throw signal.reason;
       if (typeof image.decode === "function") {
         try { await pngWait(image.decode(), signal); } catch { throw new Error("グラフ画像のデコードに失敗しました"); }
       }
@@ -279,7 +282,12 @@
       // Do not await fonts, image load/decode or toBlob before starting write.
       const written = view.navigator.clipboard.write([item]);
       phase = "write-async";
-      await Promise.all([blobPromise, written]);
+      const writePromise = Promise.resolve(written).catch(error => {
+        const failure = pngError("write-async", "画像コピー失敗", error);
+        controller.abort(failure);
+        throw failure;
+      });
+      await Promise.all([blobPromise, writePromise]);
       requireChartPngTarget(card, source);
     } catch (error) {
       controller.abort(error);

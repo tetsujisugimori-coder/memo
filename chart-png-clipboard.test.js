@@ -103,3 +103,11 @@ test("カード単位の競合防止、通知分離、失敗後のbusy解除と�
 });
 
 test("writeが先に解決してもPNG生成失敗を成功にしない",async()=>{const e=browser(),font=deferred();e.doc.fonts.ready=font.promise;e.view.navigator.clipboard.write=()=>Promise.resolve();const copying=copyChartPng(e.card);font.reject(new Error("fonts"));await assert.rejects(copying,{code:"generation"});assert.ok(!e.log.includes("blob"));});
+
+test("write拒否時も読み込み中SVGはload完了後にURLを解放する",async()=>{
+  const e=browser(),started=deferred(),write=deferred();let image;
+  e.view.Image=class{constructor(){image=this;}set src(value){started.resolve();}removeAttribute(){}decode(){return Promise.resolve();}};
+  e.view.navigator.clipboard.write=()=>write.promise;
+  const copying=copyChartPng(e.card);await started.promise;write.reject(new Error("denied"));await Promise.resolve();await Promise.resolve();
+  assert.equal(e.urls.size,1,"keep URL while its image is loading");image.onload();await assert.rejects(copying,{code:"write-async"});assert.equal(e.urls.size,0);assert.equal(image.onload,null);assert.equal(image.onerror,null);
+});

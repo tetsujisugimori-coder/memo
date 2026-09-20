@@ -78,6 +78,7 @@ async function verifyChartPngClipboard(page){
 async function failures(page){
   await h.load(page,h.fixture());
   for(const failure of ['api','write-missing','item','unsupported','insecure','constructor','write-sync','write-async','NotAllowedError','SecurityError','DataError','AbortError','fonts','load','decode','canvas','toBlob','null','empty','mime','signature']){
+    console.log('PNG clipboard failure case:',failure);
     await page.evaluate(failure=>{
       window.clipFailureRestore=[];const swap=(o,k,v)=>{const d=Object.getOwnPropertyDescriptor(o,k);Object.defineProperty(o,k,{configurable:true,value:v});window.clipFailureRestore.push(()=>{if(d)Object.defineProperty(o,k,d);else delete o[k];});};
       if(failure==='api')swap(navigator,'clipboard',undefined);
@@ -171,7 +172,7 @@ if(require.main===module)(async()=>{
   try{
     browser=await playwright[process.env.MEMO_NEXUS_E2E_BROWSER||'chromium'].launch({headless:true});
     const page=await browser.newPage({viewport:{width:1100,height:820}}),errors=[];
-    page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error')errors.push(m.text()+' '+JSON.stringify(m.location()));});
+    page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error'){errors.push(m.text()+' '+JSON.stringify(m.location()));console.error('Browser console error:',m.text(),m.location());}});
     await page.route('https://cdn.jsdelivr.net/**',r=>r.fulfill({contentType:r.request().url().endsWith('.css')?'text/css':'text/javascript',body:''}));
     const url=`http://127.0.0.1:${server.address().port}/`;
     await page.goto(url,{waitUntil:'domcontentloaded'});await page.locator('#appStartupGuard').waitFor({state:'hidden'});
