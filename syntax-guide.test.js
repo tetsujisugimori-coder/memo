@@ -33,7 +33,7 @@ function createCopyHarness({ dialogOpen = false, detailDialogOpen = false, clipb
   const createdElements = [];
   const execCommands = [];
   const warnings = [];
-  const documentMock = { activeElement: null };
+  const documentMock = { activeElement: null, getSelection: () => null };
 
   class TestElement {
     constructor(tagName) {
@@ -64,7 +64,10 @@ function createCopyHarness({ dialogOpen = false, detailDialogOpen = false, clipb
       this.selectCalled = true;
     }
 
-    setSelectionRange(start, end) {
+    setSelectionRange(start, end, direction = "none") {
+      this.selectionStart = start;
+      this.selectionEnd = end;
+      this.selectionDirection = direction;
       this.selectionRange = [start, end];
     }
 
@@ -470,7 +473,7 @@ test("ライト・ダーク共通変数と狭幅container queryで表示する",
 });
 
 test("app.jsのキャッシュ番号を更新し、PR #24の画面外Mermaid描画経路を維持する", () => {
-  assert.match(html, /app\.js\?v=0\.5\.0-173/);
+  assert.match(html, /app\.js\?v=0\.5\.0-174/);
   assert.match(html, /table-block-utils\.js\?v=0\.5\.0-4/);
   assert.match(app, /mermaid\.render\(/);
   assert.doesNotMatch(app, /mermaid\.run\(/);

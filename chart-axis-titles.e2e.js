@@ -50,8 +50,18 @@ async function verifyAxisTitles(page, { chart, waitForChartCancelCompletion }) {
   await panel.locator('[data-chart-series-index="0"] [data-chart-series-field="name"]').fill("売上");
   await panel.locator('[data-chart-series-index="1"] [data-chart-series-field="name"]').fill("成長率");
   await value(0, 0).fill("350"); await value(0, 1).fill("12");
-  await action("add-item").click(); await action("add-item").click();
-  for (let i = 0; i < 3; i++) await panel.locator('[data-chart-item-index="' + i + '"] [data-chart-item-field="label"]').fill("長い項目名と地域名称".repeat(3) + i);
+  for (let i = 1; i < 3; i++) {
+    await action("add-item").click();
+    await page.waitForFunction((index) => document.activeElement?.matches('input[data-chart-item-field="label"]')
+      && document.activeElement.closest("[data-chart-item-index]")?.dataset.chartItemIndex === String(index), i);
+  }
+  const itemLabels = Array.from({ length: 3 }, (_, i) => "長い項目名と地域名称".repeat(3) + i);
+  for (let i = 0; i < itemLabels.length; i++) {
+    const label = panel.locator('[data-chart-item-index="' + i + '"] [data-chart-item-field="label"]');
+    await label.fill(itemLabels[i]);
+    assert.equal(await label.inputValue(), itemLabels[i]);
+  }
+  assert.deepEqual((await chart(page)).items.map((item) => item.label), itemLabels);
   await field("showLegend").check();
   const saved = await save(), original = await chart(page);
   await page.reload({ waitUntil: "domcontentloaded" });

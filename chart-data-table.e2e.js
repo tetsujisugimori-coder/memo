@@ -164,6 +164,10 @@ async function verifyChartDataTable(page) {
       if(width<1100){
         if(await page.locator('#mobileWritingDoneBtn').isVisible())await page.locator('#mobileWritingDoneBtn').click();
         await page.locator('#cardPaneBtn').click();
+        await page.waitForFunction(()=>{
+          const card=document.getElementById('previewCard');
+          return card.getAttribute('aria-hidden')==='false'&&Math.abs(card.getBoundingClientRect().right-innerWidth)<1;
+        });
       }
       const viewer=page.locator('#preview .chart-block');await viewer.locator('.chart-data-table').scrollIntoViewIfNeeded();
       await checkLayout(page,viewer,width);

@@ -3056,3 +3056,44 @@
 
 - iPhone Safari実機と実スクリーンリーダー音声は未確認。WebKit、タッチエミュレーション、DOMの行列構造の検証と区別する。
 - 独立表、セル編集・選択、表だけのソート／検索／絞り込み、合計・平均・割合列、CSV／TSVファイル入出力、画像／PDF出力、閲覧時の一時開閉、4系列以上、日付軸、ズーム／パン、DB移行・外部依存は追加しない。
+
+## 2026-09-20 グラフの全データをTSVでコピー
+
+### 目的・設計
+
+- PR #252のTSV取込、PR #253の読み取り専用データ表に続き、Issue #254の全項目・全系列・元値コピーを実装。PR #253のマージコミットe692cffをfetchで確認し、feature/chart-tsv-copyの独立worktreeを使用。mainは変更しない。
+- 純粋関数chartToTsvを追加。chartDataTableとchartTableRowsを共有し、円の選択系列による表示フィルターはコピーに適用しない。円・単一軸／左右2軸複合も全系列、100%積み上げも割合へ変換しない元値を、現在の項目・系列順に出力する。
+- 左上は「項目」、以降は全系列名。タブ列区切り・LF行区切りで末尾空行を付けない。finiteChartNumberとStringで正負・小数・指数・MIN_VALUE／MAX_VALUEを丸めず表し、-0は0。単位・通貨・色・軸設定・IDなどは出力しない。
+- 正規化前に名前のタブ／CR／LF、空欄名、非有限値／欠損値を検証し、日本語で原因位置を通知してコピーを中止。名前を置換せず、同名は保持。parseChartBlockLineの既定正規化は維持し、コピー時だけnormalize:falseで生マーカーを読み、読み込み補正に不正値が隠れることを防ぐ。
+
+### UI・保存・互換性
+
+- 再編集の「表データを貼り付け」の隣と、閲覧時のデータ表の上に「全データをTSVでコピー」を追加。「項目名・全系列名・元の入力値」を説明し、role=status／aria-liveで件数付き成功または日本語の失敗理由を表示。標準buttonを用い、色だけの通知やalertは追加しない。
+- 編集ではDOM上の現在の名前・数値も読み取り、未確定draftや無効な入力を見逃さない。閲覧では本文の確定済みマーカーが対象。コピー経路は保存・snapshot変更・Undo記録を呼び出さず、本文、note、revision、dirty、予約、IndexedDB、ID、色、軸、順序、表示設定、貼り付けdraftを変更しない。
+- 既存writeSyntaxGuideText／fallbackCopyTextを再利用。クリック／キー操作からClipboard APIを使用し、非対応／拒否時は既存execCommandへ進む。false／例外は失敗通知。一時textareaはfinallyで削除し、フォーカス・DOM選択・input選択を復元する。input選択をDOM選択の後に復元し、Chromiumでの選択消失を修正。既存syntax-guideテストのDOMモックをAPIに同期。アプリは権限を事前要求しない。
+- schemaVersion:1、DB_VERSION:6、UTF-8 hex JSONマーカー、Markdown／ZIP／ローカルMarkdownを維持。保存用フィールドや依存ライブラリは追加しない。配信識別子は変更したapp 174、chart utils 27、CSS 106のみ更新し、固定参照テストを同期。
+
+### 検証
+
+- 関連単体301件、全単体1,378件成功（fail／skip 0）。新規53件は50項目3系列、順序／削除／並べ替え、同名／長い日本語・英数字名、全構成、有限数の極値、不正文字、不正値、凍結入力、parseChartTsv往復、旧形式と生マーカーを検証。
+- 追加TSVコピーE2EはChromium／WebKitで成功。実UI作成、並べ替え、コピー文字列、再取込プレビュー、draft非保存／取消／確定／再読込、10グラフ構成、API成功／拒否／非対応、フォールバック成功／失敗、保存状態・Undo・draftの不変性、生マーカーの不正値、Tab／Enter／Space、390pxタッチエミュレーションを確認。
+- ライト／ダーク×320／375／390／430／1100pxで編集・閲覧のボタンと説明の収まり、ページの横はみ出し、表の横スクロールによるSVG位置・幅の不変を確認。
+- 実Clipboard API／execCommandの呼び出しはネイティブ処理へ委譲して文字列と成功経路を観測（ChromiumではAPI拒否後のネイティブexecCommand成功も確認）。Chromiumはネイティブ貼り付けでもTSV一致を確認。Windows版WebKitの自動テストではキーボード貼り付けが空で、clipboard-readをテスト側で許可してもreadTextはNotAllowedErrorとなるため、OSクリップボードの読み戻しは未確認。失敗注入は外部Clipboard API／execCommandだけに限定し、アプリ状態をテストから書き換えない。
+- Mobile E2E（layout／writing）はChromium・WebKit、Geometry E2EはChromiumで終了コード0。Chart E2EはChromium・WebKitとも終了コード0で完走し、既存全グラフ／ツールチップ／TSV取込／データ表と追加コピーを確認した。最終テスト修正後の重点データ表E2E・コピーE2Eも両エンジンで終了コード0。
+- WebKit全Chartの最初の実行で既存発散積み上げ検証のページ横はみ出しassertが失敗。viewport変更の直後にレイアウト状態の完了を待っていなかったため、innerWidthと既存layoutModeの条件待機および失敗診断を追加。固定待機・タイムアウト延長・skip・assert緩和は行わない。未変更mainのWebKit全Chartは完走し、同じ失敗は再現しなかった。描画コードの変更はなく、幅切替直後の測定条件を明確にしたうえで再実行は成功。
+
+### 対象外・制約・プロンプト
+
+- CSV／TSVファイル出力、画像／PDF、表の直接編集・検索・計算、式評価、独自引用符、4系列以上、日付軸、ズーム／パン、新グラフ種別は追加しない。名前にタブ・改行がある場合はコピー不可。名前の前後空白は既存TSV取込がtrimする仕様を維持。
+- iPhone Safari実機、実スクリーンリーダー音声、Excel／Googleスプレッドシートの実アプリでの貼り付けは未確認。WebKitとタッチエミュレーションの結果と区別する。
+- 実装プロンプト要旨: #252／#253を踏まえて全系列元データのTSVコピーだけを追加し、既存保存境界・互換性・作業変更を保護、単体／両エンジンE2E／CI検証と画像付きPRを提出し、mainへマージしない。
+
+- 最終静的検証: 変更JavaScript23ファイルのnode --check、全単体1,378/1,378、git diff --check成功。lint／型チェック／build専用scriptは存在しない。通常幅1100px・390pxの画像を確認し、既存3ファイルのSHA-256と元mainのHEAD／statusが開始時と一致することを確認。
+
+- CI初回run 35470776207ではCI checks、Mobile両エンジン、Geometryは成功。Chart WebKitは既存verifyAxisTitlesの連続項目追加後の非同期focusとfillが競合し、先頭項目名が空になってtitle待機が失敗。各追加後の新行focusを条件待機し、各入力直後と全項目名のassertを追加。Chart Chromiumは新規コピーE2Eでモバイル閲覧パネルのスライド中に配置を測定していたため、aria-hidden=falseかつ右端がviewportへ到達したことを条件待機。アプリコードや既存assert、タイムアウトは変更しない。修正後の全単体1,378件、変更JavaScript24ファイル構文検査、git diff --checkは成功。全Chart両エンジンと最終CIを再確認する。
+
+- CI再実行run 35471330770のChromiumでは、既存chart-data-table.e2e.jsの同じ閲覧パネル開閉でも遷移中の配置測定が発生（320px画面に対して表のx=354.89）。verifyChartDataTableにも開いたパネルの右端到達条件を追加し、表の配置・SVG・横スクロールassertはそのまま維持した。修正前のローカル全Chart Chromiumは終了コード0で追加コピーまで完走しており、タイミング依存を解消するテスト修正。
+
+- run 35471683834はChromiumを含む5ジョブ成功。Chart WebKitは確認画像の準備中に横スクロールを矢印キーで左へ戻す待機が停止した。横ホイールでもWindows Chromiumで反映されず、診断では表のDOM・位置は正常でscrollLeft=40のままだった。画像撮影だけの追加スクロール再調整を除き、コピーボタンをfocusして表示する準備へ整理。機能を検証するlayout内のキーボード横スクロール、SVG位置・幅、全コピーassertは維持する。固定待機・タイムアウト延長・skip・アプリ状態の直接変更は行わない。
+
+- 最終検証: テスト修正を含む4afa85eの[GitHub Actions run 35472332643](https://github.com/tetsujisugimori-coder/memo/actions/runs/35472332643)は全6ジョブ成功（CI checks、Chart E2E Chromium／WebKit、Mobile E2E Chromium／WebKit、Geometry E2E Chromium）。全単体1,378/1,378、変更JavaScript25ファイルの構文検査、git diff --check成功。PR #255はIssue #254を参照し、通常幅・390px画像付きで作成済み。既存3ファイルのSHA-256・元mainのHEAD／statusを保持し、mainへはマージしない。検証記録のみを更新する最終コミットのCI結果はPR本文へ記載する。
