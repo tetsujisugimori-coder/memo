@@ -3207,9 +3207,21 @@
 - [Clipboard API仕様](https://www.w3.org/TR/clipboard-apis/#clipboarditem)のPromise<Blob>をClipboardItemのimage/pngへ渡し、最初のawait前にwriteを開始。PNG生成とwriteの双方が成功した後だけ成功通知。同期例外・非同期拒否でもPNG Promiseを観測し、AbortControllerで待機を解除、Object URL・画像イベント・Canvasをfinallyで解放する。
 - secure context、基本API、明示的なPNG未対応を先に判定。supports関数欠落では試行する。権限・SecurityError・DataError・AbortError、コンストラクタ・同期write・非同期write、生成/Blob検証失敗、対象消失/再描画を分けて処理し、日本語で再試行やPNG保存を案内。権限状態を永続化せず自動代替なし。
 - 保存ボタン横に標準buttonを追加。既存の折返しCSSとstatus/live領域を共用。同じカード内で保存/コピーを相互排他にし、別カードは独立。aria-busy/aria-disabledをfinallyで解除しnative disabledは使わない。既存mousedown選択保持を共用し、pointerdownはキャンセルしない。ツールチップのfocus除外へコピーも追加。カード再描画・保存経路呼出しなし。
-- 単体31件を追加。ネイティブClipboardItemへ実PNG Promiseを渡す重点E2EをChromium/WebKit共通に追加し、標準Chart E2Eへ組み込む。既存PNG保存重点テストを維持し、共有snapshotへRedoも追加。
+- 単体33件を追加。ネイティブClipboardItemへ実PNG Promiseを渡す重点E2EをChromium/WebKit共通に追加し、標準Chart E2Eへ組み込む。既存PNG保存重点テストを維持し、共有snapshotへRedoも追加。
 - キャッシュ: app.js 0.5.0-178、chart-png-export.js 0.5.0-2。index.htmlと固定参照テストを同期。schemaVersion:1、DB_VERSION:6、表/グラフマーカー、各出力形式は維持。
 - 初回全単体: 1,500/1,500成功。重点E2E初回は新規テスト文字列の改行エスケープを修正して再実行。検証結果は以下に追記。iPhone Safari実機・他アプリへの手動貼付は未確認。
 
 - WebKit重点の初回は機能assert成功後、即時write拒否時のSVGリクエスト中断に伴うresource errorを最終console検査で検出。生成Promiseを予約して同一スタック内でwriteを開始し、即時拒否を画像要求前に処理するよう順序を修正。対象SVG参照はクリック時点で保持し、再描画後のPNGを生成しない。assert削除や待機時間延長は行っていない。
 - 上記の順序調整だけではWebKit resource errorは解消しなかった。Blob URLを追跡し、非同期write拒否の5ケースで読み込み中SVGを中断・revokeしていたことを特定。write拒否を直接観測してキャンセルを伝えつつ、すでに開始したSVGはload/errorイベントで完了するまで待ってからfinallyで解放するよう修正。単独再現はエラーなしで成功し、このライフサイクルを単体テストで追加検証。固定waitやconsole検査の除外は導入していない。
+
+### 検証結果
+
+- `npm test`: 1,502/1,502成功、fail/skip 0。PNG関連は既存57件＋追加33件。変更JavaScriptの`node --check`、`git diff --check`成功。
+- 画像コピー重点`node chart-png-clipboard.e2e.js`: Chromium/WebKitともexit 0。ネイティブClipboardItemへのPromise、getTypeの実PNG、write開始順、6種類のグラフと保存PNGのバイト一致、ライト/ダーク×320/375/390/430/1100px、Enter/Space/390pxタッチ、21失敗条件、再試行、複数カード・保存との排他、状態・選択・スクロール不変性を確認。
+- Chromiumの新規コンテキストで、実際のnavigator.clipboard.write/readとPNG読戻しも成功。ヘッドレステスト環境での結果であり、手動での他アプリ貼付やiPhone実機ではない。WebKitはOS I/Oのみ差し替えたAPI境界検証。
+- 既存PNG重点`node chart-png-export.e2e.js`: Chromium/WebKitともexit 0。49グラフ/値/表示条件、10テーマ/幅、PNG画素、保存/失敗/タッチ/互換性を維持。390pxのUIとダークPNG全体を目視確認。
+- 標準`npm run test:e2e:mobile`: Chromium/WebKitともexit 0（layout/writing）。`npm run test:e2e:geometry`: Chromium exit 0。ローカル標準Chart Chromiumもexit 0。標準Chartの最終実装・両ブラウザ完走は下記CIで確認した。
+- 実装9002ebb0f2ea551483b75c4f84c9d9a2d30aba05の[CI run 35539522121](https://github.com/tetsujisugimori-coder/memo/actions/runs/35539522121)は全6ジョブ成功（CI checks、Chart Chromium/WebKit、Mobile Chromium/WebKit、Geometry Chromium）。表→グラフ、TSV、データ表、ツールチップ、PNG保存・コピーも標準Chartに含む。
+- 初回23303b5のCI run 35539332453は修正pushでChart途中にキャンセルされたため完走成功には含めない。CI自体の失敗はなく、ローカルWebKitの失敗原因と修正は上記に記録。
+- [PR #263](https://github.com/tetsujisugimori-coder/memo/pull/263)を新規作成しCloses #262で関連付け。CLIのIssue作成はトークン権限不足のため、接続済みGitHub APIを使用した。mainへはマージしていない。
+- 元ツリーの保護対象679ファイルのSHA-256一致を確認。独立worktreeのテスト生成画像はコミットせず、検証後にそのworktree内だけ元へ戻した。iPhone Safari実機、実スクリーンリーダー音声、他アプリへの手動貼付は未確認。
