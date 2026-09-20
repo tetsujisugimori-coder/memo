@@ -3141,3 +3141,36 @@
 - ローカルの最終PNG重点E2E Chromiumも終了コード0。WebKitは全49条件・10テーマ幅の生成検証に加え、修正後のUndo／入力・DOM選択／再読込・旧マーカー／選択済みツールチップ・タッチ重点実行が終了コード0。PNGのロード・decode・Canvas・toBlob例外・null／空／異MIME／不正ヘッダー・FileReader・ダウンロード開始の計10失敗条件で壊れたファイルを出さず、通知・再操作・URL／DOM後始末を確認。
 - ローカル全Chartの修正前実行はChromiumでDOM選択テストの空白ダブルクリック条件により停止。古いテストを読み込んだWebKit実行は現行CI全成功後に終了した。最終の全Chart完走証拠は上記CI両エンジンであり、ローカル旧実行を成功扱いしない。
 - 変更JavaScript24ファイルのnode --check、全単体1,435件、git diff --check成功。元mainの保護対象679ファイルのSHA-256一致を確認し、元の変更と未追跡ファイルはコミットしていない。記録更新のみの最終コミットについてもCI完了を確認し、最終結果をPR本文へ記載する。
+
+## 2026-09-20 表ブロックからグラフを作成（Issue #259）
+
+### 依頼・設計判断
+
+- 依頼: 表の入力済みデータを既存グラフ編集へ複製し、確定時だけ元表直後へ挿入する。実装・単体/E2E・README/LOG・コミット・push・新規PR・CI確認まで行い、mainへはマージしない。PR #257のマージと7605b5cのorigin/mainへの包含を確認し、feature/table-to-chartをTEMP配下の独立worktreeへ作成した。
+- 正規化済み保存データをDOM非依存のtableToChartDraftへ渡すスナップショット方式を採用。表の将来の変更によるグラフの意図しない更新を避け、表とグラフの責務を独立させる。同期・参照関係・変換履歴は保存しない。
+- TSVのセル検証をparseChartTableRowsへ抽出して共用。先頭行2列目以降を系列名、先頭列2行目以降を項目名、残りを有限数とする。左上セルは捨てる。最大50項目3系列、同名可、空欄不可、前後空白と改行を既存規則で正規化する。負数・指数・極小/極大値を保持し、-0は0。記号付き数値やNaN/Infinityは変換せず行列付きの日本語エラーにする。表の末尾空行・列を無言で捨てず、不揃い行の補完セルも検証する。
+- createChartBlockとreplaceChartTableを再利用し、新規作成/系列追加と同じUUID経路・CHART_SERIES_COLORS・既定設定を使う。タイトル/単位/種類を推測しない。円の項目色は既定パレットに任せ、既存の円の負数検証と複合の2系列条件を維持する。
+
+### UI・挿入・保存
+
+- 表の操作メニューへ標準button「グラフを作成」を追加。既存createChartEditorの未確定セッションへ渡し、TSVのdeferSave境界を再利用する。開始・編集・取消は本文/note/revision/dirty/保存予約/IndexedDB/Undo/Redoを変更しない。連続起動は既存draftへフォーカスし、複製しない。Escapeと取消はdraftを破棄し起動ボタンへ戻す。変換開始時に操作メニューを閉じ、重なりを防ぐ。
+- 一意の表IDと開始時rawマーカーを確定時に再確認する。内容が同一の別IDの表を混同せず、同じID/内容の移動は追跡する。編集・削除・置換・ID重複で安全に特定できない場合は本文を変えずやり直しを案内する。開始時データを確定時の表内容へ差し替えない。
+- 既存splitTableBlocksから得たマーカー末尾へinsertChartBlockで境界改行を設けて挿入する。captureUndoSnapshot、scheduleSave、flushSaveと既存revision/競合経路を再利用する。元表マーカーを維持する。
+- 現行に独自Redoがなかったため、完了条件の同一グラフ復元を満たす最小のRedo履歴/ボタンをUndoへ追加。メモIDで履歴を分離し、本文マーカーをそのまま復元、新しい編集でそのメモのRedoを無効化。通常の保存経路を使い、履歴を永続化しない。
+- schemaVersion:1、DB_VERSION:6、UTF-8 hex JSON、表形式、Markdown/ZIP/ローカルMarkdown形式を維持。sourceTableId等の専用フィールドや外部依存を追加しない。app 176/chart utils 28の配信識別子と分散した固定参照テストを同期。
+
+### 検証と修正記録
+
+- 初回全単体はキャッシュ固定参照17件が旧app 175のため失敗。参照箇所を全検索し、期待する配信番号のみ同期して全1,469件成功（fail/skip 0）。新規34件は変換32件とUndo/Redo2件。既存表、グラフ、保存、競合、エクスポートのテストを含む。
+- UI検証で種類変更の再描画後にフォーカスが外れるとEscape取消できない問題を発見し、既存ダイアログを除いた文書のキー処理へ接続して修正。
+- 集中E2E準備時のWindowsパス比較、新規メモ非同期切替前の入力、別表の開いたメニュー、モバイルドロワー/カード切替の失敗は、パス正規化と実際の状態/フォーカス待ち・UIの閉じる操作で修正した。固定wait、タイムアウト延長、skip、assert弱体化は行わない。
+- 175 JavaScriptファイルの構文検査、git diff --check成功。標準Mobile E2EはChromium/WebKitとも成功。標準Geometry E2E成功。lint/型チェック/ビルドのコマンドは既存package.jsonに定義なし。
+- iPhone Safari実機は未確認。WebKitとPlaywrightタッチエミュレーションは実機確認と区別する。
+
+### 対象外・作業保護
+
+- 自動同期、逆変換、複数表結合、集計、グラフ種類推測、%/通貨/桁区切り変換、数式、上限拡張、DB移行、UI全面再設計は実装しない。
+- 元作業ツリーのe2e-artifacts/mobile-layout-390.png、freehand-canvas.html、work/を含む679ファイルをSHA-256で記録。別worktreeで作業し、上書き・削除・stash・reset・混入コミットを行わない。
+
+- 追加の変換E2EはChromium/WebKitとも終了コード0。クリック、Tab/Enter/Space、タッチ相当、draftの本文/note/revision/dirty/保存予約/IndexedDB/Undo不変、取消、同一マーカーUndo/Redo、再読込・再編集、独立編集、表移動/削除/置換/同一ID重複、不正値/上限、10グラフ構成、TSVコピー/データ表/ツールチップ/PNGを検証。320/375/390/430/1100pxとライト/ダークのdocument/body横スクロールなしを確認。
+- 通常幅/390pxの操作欄・編集画面・元表直後のグラフ画像をe2e-artifacts/table-to-chartへ保存し目視確認。標準Chart E2EはPR準備時点で両エンジン実行中。終了結果とCIは後続記録で確認する。

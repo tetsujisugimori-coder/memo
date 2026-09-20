@@ -480,6 +480,7 @@ const {
   formatChartAxisTitle,
   chartSeriesUnit,
   parseChartTsv,
+  tableToChartDraft,
   replaceChartTable,
   CHART_SERIES_COLORS,
   chartDatumDescription,
@@ -593,6 +594,7 @@ const appStartupReloadBtn = $("appStartupReloadBtn");
 const newBtn = $("newBtn");
 const todayBtn = $("todayBtn");
 const undoBtn = $("undoBtn");
+const redoBtn = $("redoBtn");
 const backupBtn = $("backupBtn");
 const graphBtn = $("graphBtn");
 const linkStatsBtn = $("linkStatsBtn");
@@ -1113,6 +1115,7 @@ let mermaidRenderGeneration = 0;
 let mermaidRenderQueue = Promise.resolve();
 let mermaidSvgRenderSequence = 0;
 let undoStack = [];
+let redoStack = [];
 let lastUndoSnapshotAt = 0;
 let deletedNoteSnapshot = null;
 let selectedCollectionId = null;
@@ -7557,6 +7560,8 @@ function captureUndoSnapshot(event) {
   const performanceStartedAt = performanceToken !== null ? typingPerformance.start() : null;
   try {
     if (!currentId) return;
+    redoStack = redoStack.filter((snapshot) => snapshot.noteId !== currentId);
+    updateUndoButton();
 
     const now = Date.now();
     const force = shouldForceUndoSnapshot(event && event.inputType);
@@ -7639,6 +7644,8 @@ function undoLastEdit() {
     return;
   }
 
+  redoStack.push({ noteId: currentId, title: titleInput.value, body: editor.value, savedAt: Date.now() });
+  if (redoStack.length > UNDO_LIMIT) redoStack = redoStack.slice(-UNDO_LIMIT);
   const [snapshot] = undoStack.splice(index, 1);
   titleInput.value = snapshot.title;
   editor.value = snapshot.body;
@@ -7650,7 +7657,25 @@ function undoLastEdit() {
   updateUndoButton();
 }
 
+function redoLastEdit() {
+  if (!currentId) return;
+  const index = redoStack.map((snapshot) => snapshot.noteId).lastIndexOf(currentId);
+  if (index === -1) return;
+  const [snapshot] = redoStack.splice(index, 1);
+  pushUndoSnapshot({ noteId: currentId, title: titleInput.value, body: editor.value, savedAt: Date.now() });
+  titleInput.value = snapshot.title;
+  editor.value = snapshot.body;
+  lastUndoSnapshotAt = 0;
+  renderTableBlockEditors();
+  globalThis.renderChartBlockEditors?.();
+  globalThis.renderGeometryBlockEditors?.();
+  scheduleSave();
+  renderNoteMeta();
+  updateUndoButton();
+}
+
 function updateUndoButton() {
+  if (redoBtn) redoBtn.disabled = !currentId || !redoStack.some((snapshot) => snapshot.noteId === currentId);
   if (!undoBtn) return;
   undoBtn.disabled = !currentId || !undoStack.some((snapshot) => snapshot.noteId === currentId);
 }
@@ -8008,6 +8033,7 @@ function createTableEditor(tableValue, blockIndex) {
     tableEditorButton("行を削除", "delete-row"),
     tableEditorButton("列を追加", "add-column"),
     tableEditorButton("列を削除", "delete-column"),
+    tableEditorButton("グラフを作成", "create-chart"),
     tableEditorButton("表をコピー", "copy-table"),
     tableEditorButton("Markdown表としてコピー", "copy-markdown"),
     tableEditorButton(table.hasHeader ? "見出し行をオフ" : "見出し行をオン", "toggle-header"),
@@ -8312,6 +8338,9 @@ function handleTableEditorAction(event) {
   let next = block.table;
   let focusCell = null;
   switch (button.dataset.tableAction) {
+    case "create-chart":
+      startTableChartDraft(block, button, editorBlock);
+      return;
     case "copy-table":
       void copyTableBlock(editorBlock, block.table, "table");
       return;
@@ -8374,7 +8403,89 @@ function handleTableEditorAction(event) {
   }
 }
 
+// Transient conversion state belongs to the editor session, never the chart schema.
+let pendingTableChart = null;
+
+function startTableChartDraft(block, trigger, tableEditor) {
+  if (!currentNote() || currentNote().deletedAt) return;
+  if (pendingTableChart) {
+    chartBlockEditors?.querySelector('[data-chart-pending-table] input')?.focus();
+    return;
+  }
+  const sameId = splitTableBlocks(editor.value).filter((entry) => entry.type === "table" && entry.table.id === block.table.id);
+  if (sameId.length !== 1) {
+    setTableEditorStatus(tableEditor, "同じIDの表が複数あるため特定できません。表を作り直してから変換してください。");
+    return;
+  }
+  const table = normalizeTableBlock(block.table, block.table.id);
+  const result = tableToChartDraft(table, crypto.randomUUID(), {
+    items: table.rows.slice(1).map(() => crypto.randomUUID()),
+    series: table.rows[0].slice(1).map(() => crypto.randomUUID())
+  });
+  if (!result.ok) {
+    const { row, column, value, reason } = result.error;
+    setTableEditorStatus(tableEditor, row + "行 " + column + "列「" + value + "」: " + reason);
+    return;
+  }
+  // Establish the note baseline before adding a draft with no body marker.
+  renderChartBlockEditors();
+  const key = createChartEditorSnapshot(result.chart, result.chart.id, null);
+  Object.assign(chartEditorOriginalCharts.get(key), { draft: result.chart, deferSave: true });
+  const menu = trigger.closest("details");
+  if (menu) menu.open = false;
+  pendingTableChart = { key, chartId: result.chart.id, noteId: currentNote().id,
+    tableId: table.id, raw: block.raw, trigger };
+  renderChartBlockEditors();
+  setTableEditorStatus(tableEditor, "表の内容をグラフ編集へ取り込みました。入力を確定すると表の直後へ追加します。");
+  chartBlockEditors.querySelector('[data-chart-pending-table] input')?.focus();
+}
+
+function cancelTableChartDraft() {
+  if (!pendingTableChart) return;
+  const { key, trigger, tableId } = pendingTableChart;
+  pendingTableChart = null;
+  chartEditorOriginalCharts.delete(key);
+  renderChartBlockEditors();
+  const tableEditor = tableBlockEditors?.querySelector('[data-table-id="' + CSS.escape(tableId) + '"]');
+  const target = trigger.isConnected ? trigger : tableEditor?.querySelector('[data-table-action="create-chart"]');
+  if (target) {
+    const menu = target.closest("details");
+    if (menu) menu.open = true;
+    target.focus({ preventScroll: true });
+  } else editor.focus({ preventScroll: true });
+  setTableEditorStatus(tableEditor, "グラフの作成を取り消しました。");
+}
+
+function insertPendingTableChart(chart, snapshotKey) {
+  const pending = pendingTableChart;
+  const matches = splitTableBlocks(editor.value).filter((entry) => entry.type === "table" && entry.table.id === pending?.tableId);
+  if (!pending || pending.key !== snapshotKey || currentNote()?.id !== pending.noteId || currentNote()?.deletedAt
+    || matches.length !== 1 || matches[0].raw !== pending.raw) {
+    const target = chartBlockEditors?.querySelector('[data-chart-pending-table]');
+    chartEditorStatus(target, "変換元の表が変更または削除され、挿入位置を安全に特定できません。取り消して変換をやり直してください。");
+    return false;
+  }
+  const position = matches[0].start + matches[0].raw.length;
+  const result = insertChartBlock(editor.value, position, position, chart);
+  captureUndoSnapshot({ inputType: "insertFromPaste" });
+  editor.value = result.value;
+  editor.setSelectionRange(result.selectionStart, result.selectionEnd);
+  pendingTableChart = null;
+  const snapshot = chartEditorOriginalCharts.get(snapshotKey);
+  delete snapshot.draft;
+  delete snapshot.deferSave;
+  updateChartEditorSnapshotCurrent(snapshotKey, chart, chart.id);
+  chartEditorSnapshotKeys.push(snapshotKey);
+  scheduleSave({ render: false });
+  renderChartBlockEditors();
+  return true;
+}
+
 function currentChartBlock(blockIndex, chartId, snapshotKey = null) {
+  if (pendingTableChart?.key === snapshotKey && pendingTableChart.chartId === chartId
+    && pendingTableChart.noteId === currentNote()?.id) {
+    return { type: "chart", chart: chartEditorOriginalCharts.get(snapshotKey)?.draft };
+  }
   const blocks = splitChartBlocks(editor.value).filter((segment) => segment.type === "chart");
   const block = blocks[Number(blockIndex)];
   if (!block || block.chart.id !== chartId) return null;
@@ -9560,6 +9671,7 @@ function renderChartBlockEditors() {
   if (!chartBlockEditors) return;
   const noteId = currentNote()?.id || null;
   if (chartEditorOriginalNoteId !== noteId) {
+    pendingTableChart = null;
     chartEditorOriginalCharts.clear();
     chartEditorSnapshotKeys = [];
     chartEditorOriginalNoteId = noteId;
@@ -9567,13 +9679,20 @@ function renderChartBlockEditors() {
   const blocks = splitChartBlocks(editor.value).filter((segment) => segment.type === "chart");
   const snapshotKeys = syncChartEditorSnapshots(blocks);
   chartBlockEditors.replaceChildren();
-  chartBlockEditors.hidden = blocks.length === 0;
-  if (!blocks.length) return;
+  chartBlockEditors.hidden = blocks.length === 0 && !pendingTableChart;
+  if (!blocks.length && !pendingTableChart) return;
   const heading = document.createElement("div");
   heading.className = "chart-block-editors-heading";
   heading.textContent = `本文内のグラフ（${blocks.length}件）`;
   chartBlockEditors.append(heading);
   blocks.forEach((block, blockIndex) => chartBlockEditors.append(createChartEditor(chartEditorOriginalCharts.get(snapshotKeys[blockIndex])?.draft || block.chart, blockIndex, snapshotKeys[blockIndex])));
+  if (pendingTableChart) {
+    const pendingEditor = createChartEditor(chartEditorOriginalCharts.get(pendingTableChart.key).draft, blocks.length, pendingTableChart.key);
+    pendingEditor.dataset.chartPendingTable = "true";
+    pendingEditor.querySelector(".chart-block-editor-head strong").textContent = "表からグラフを作成（未確定）";
+    pendingEditor.querySelector('[data-chart-action="delete-chart"]').hidden = true;
+    chartBlockEditors.append(pendingEditor);
+  }
 }
 
 globalThis.renderChartBlockEditors = renderChartBlockEditors;
@@ -9593,6 +9712,7 @@ function commitChartBlockChange(blockIndex, chartId, nextChart, { rerenderEditor
     if (confirm) confirm.disabled = Boolean(validationError);
     return true;
   }
+  if (pendingTableChart?.key === snapshotKey && confirmDraft) return insertPendingTableChart(nextChart, snapshotKey);
   const importedTable = snapshot?.deferSave && confirmDraft;
   if (snapshot) {
     delete snapshot.draft;
@@ -9767,11 +9887,17 @@ async function confirmChartEditor(editorBlock, blockIndex, chartId, snapshotKey)
     chartEditorStatus(editorBlock, validationError);
     return;
   }
+  const fromTable = pendingTableChart?.key === snapshotKey;
   if (!commitChartBlockChange(blockIndex, chartId, normalizeChartBlock(block.chart, chartId), { snapshotKey, confirmDraft: true })) {
+    if (fromTable) return;
     chartEditorStatus(editorBlock, "入力内容を保存できませんでした");
     return;
   }
 
+  if (fromTable) {
+    editorBlock = chartBlockEditors.querySelector('[data-chart-snapshot-key="' + CSS.escape(snapshotKey) + '"]');
+    editorBlock?.focus({ preventScroll: true });
+  }
   chartEditorStatus(editorBlock, "保存中...");
   try {
     await flushSave();
@@ -9794,6 +9920,10 @@ function handleChartEditorAction(event) {
   if (!block) return;
   if (button.dataset.chartAction === "copy-tsv") {
     copyChartTsv(button, editorBlock);
+    return;
+  }
+  if (pendingTableChart?.key === snapshotKey && ["cancel", "delete-chart"].includes(button.dataset.chartAction)) {
+    cancelTableChartDraft();
     return;
   }
   let next = normalizeChartBlock(block.chart, chartId);
@@ -15668,6 +15798,7 @@ todayBtn.addEventListener("click", async () => {
 backupBtn.addEventListener("click", downloadMarkdownZip);
 if (undoBtn) {
   undoBtn.addEventListener("click", undoLastEdit);
+  redoBtn?.addEventListener("click", redoLastEdit);
 }
 settingsBtn.addEventListener("click", () => {
   openSettingsDialog().catch((error) => {
@@ -16059,6 +16190,11 @@ document.addEventListener("click", (event) => {
   if (!event.target.closest(".collection-popup-menu,.collection-more,.collection-memo-more,#collectionAddMenuBtn")) closeCollectionMenus();
 });
 document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && pendingTableChart && !document.querySelector("dialog[open]") && !activeChartTooltip) {
+    event.preventDefault();
+    cancelTableChartDraft();
+    return;
+  }
   if (event.key === "Escape" && !document.querySelector("dialog[open]") && closeLayoutOverlays()) {
     event.preventDefault();
     return;
