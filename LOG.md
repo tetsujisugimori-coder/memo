@@ -3133,3 +3133,11 @@
 
 - WebKit重点検証でUndo・入力選択・DOM文字選択・再読込・旧マーカー・選択済みツールチップを確認。DOM選択テストはfigcaptionの空白部分ではなくRangeで測った文字の実領域をダブルクリックして、選択成立もassertする。
 - ライト／ダーク×1100px／390pxの画面4枚と実PNG4枚を開いて目視確認。代表PNGは1114×832pxで、各テーマの通常幅と390pxはSHA-256が一致し、モバイルで隠れた右端まで含む。新規e2e-artifacts/chart-png-example-*へ記録。元ツリーの保護対象全ファイルのハッシュが開始時と一致。
+
+### 最終検証・PR
+
+- Issue #256は添付依頼と同一内容であることを確認し、[PR #257](https://github.com/tetsujisugimori-coder/memo/pull/257)へCloses #256と画面／実PNGの画像を記載。CLIのPR作成はトークン権限で拒否されたため、利用可能なGitHub接続から作成した。作業ブランチはfeature/chart-png-export、実装コミットは21532dafd266a0acbb945b822df89e36c4a5a526。mainへのマージは行っていない。
+- [GitHub Actions run 35508142315](https://github.com/tetsujisugimori-coder/memo/actions/runs/35508142315)は最新実装21532daの全6ジョブ成功。CI checks（全単体1,435/1,435・全JS構文・差分）、Chart E2E Chromium／WebKit、Mobile E2E Chromium／WebKit、Geometry E2E Chromiumを完走。両ChartログでPNG49条件・10テーマ幅・390pxタッチを含む全経路成功を確認した。
+- ローカルの最終PNG重点E2E Chromiumも終了コード0。WebKitは全49条件・10テーマ幅の生成検証に加え、修正後のUndo／入力・DOM選択／再読込・旧マーカー／選択済みツールチップ・タッチ重点実行が終了コード0。PNGのロード・decode・Canvas・toBlob例外・null／空／異MIME／不正ヘッダー・FileReader・ダウンロード開始の計10失敗条件で壊れたファイルを出さず、通知・再操作・URL／DOM後始末を確認。
+- ローカル全Chartの修正前実行はChromiumでDOM選択テストの空白ダブルクリック条件により停止。古いテストを読み込んだWebKit実行は現行CI全成功後に終了した。最終の全Chart完走証拠は上記CI両エンジンであり、ローカル旧実行を成功扱いしない。
+- 変更JavaScript24ファイルのnode --check、全単体1,435件、git diff --check成功。元mainの保護対象679ファイルのSHA-256一致を確認し、元の変更と未追跡ファイルはコミットしていない。記録更新のみの最終コミットについてもCI完了を確認し、最終結果をPR本文へ記載する。
