@@ -6,6 +6,7 @@ const http = require("node:http");
 const os = require("node:os");
 const path = require("node:path");
 const playwright = require("playwright");
+const { verifyTableToChart, verifyTableToChartTouch } = require("./table-to-chart.e2e.js");
 const { verifyChartPng, verifyChartPngTouch } = require("./chart-png-export.e2e.js");
 const { verifyChartTsv, verifyChartTsvTouch } = require("./chart-tsv-import.e2e.js");
 const { verifyChartTsvCopy, verifyChartTsvCopyTouch } = require("./chart-tsv-copy.e2e.js");
@@ -2066,6 +2067,8 @@ async function verifySignedCharts(page) {
     await verifyChartTsvCopyTouch(browser, appUrl);
     await verifyChartPng(page);
     await verifyChartPngTouch(browser, appUrl);
+    await verifyTableToChart(page);
+    await verifyTableToChartTouch(browser, appUrl);
     assert.deepEqual(pageErrors, [], `ページエラーなし: ${pageErrors.join("\n")}`);
     assert.deepEqual(consoleErrors, [], `console errorなし: ${consoleErrors.join("\n")}`);
   } catch (error) {

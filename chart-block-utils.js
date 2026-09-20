@@ -52,29 +52,34 @@
 
   // TSV is a rectangular table, with one header row and no CSV quoting or formulas.
   function parseChartTsv(text) {
-    const fail = (row, column, value, reason) => ({ ok: false, error: { row, column, value, reason } });
     const rows = String(text ?? "").replace(/\r\n/g, "\n").split("\n");
     while (rows.length && rows.at(-1).trim() === "") rows.pop();
+    return parseChartTableRows(rows.map((row) => row.split("\t")));
+  }
+
+  // Shared validation for TSV cells and normalized saved table cells.
+  function parseChartTableRows(rows) {
+    const fail = (row, column, value, reason) => ({ ok: false, error: { row, column, value, reason } });
     if (!rows.length) return fail(1, 1, "", "見出し行と項目データをTSV（タブ区切り）で貼り付けてください。");
-    const header = rows[0].split("\t");
-    if (header.length < 2) return fail(1, 2, rows[0], "系列列がありません。表をTSV（タブ区切り）で貼り付けてください。CSVには対応していません。");
+    const header = rows[0];
+    if (header.length < 2) return fail(1, 2, header.join("\t"), "系列列がありません。表をTSV（タブ区切り）で貼り付けてください。CSVには対応していません。");
     if (header.length - 1 > MAX_CHART_SERIES) return fail(1, MAX_CHART_SERIES + 2, header[MAX_CHART_SERIES + 1], "系列は最大3件です。列を減らしてください。");
-    const names = header.slice(1).map((cell) => cell.trim());
+    const names = header.slice(1).map((cell) => normalizedText(cell).trim());
     for (let index = 0; index < names.length; index += 1) {
       if (!names[index]) return fail(1, index + 2, header[index + 1], "系列名が空欄です。名前を入力してください。");
     }
     if (rows.length < 2) return fail(2, 1, "", "項目データがありません。1件以上の項目を入力してください。");
-    if (rows.length - 1 > MAX_CHART_ITEMS) return fail(MAX_CHART_ITEMS + 2, 1, rows[MAX_CHART_ITEMS + 1].split("\t")[0], "項目は最大50件です。行を減らしてください。");
+    if (rows.length - 1 > MAX_CHART_ITEMS) return fail(MAX_CHART_ITEMS + 2, 1, rows[MAX_CHART_ITEMS + 1][0], "項目は最大50件です。行を減らしてください。");
     const items = [];
     const series = names.map((name) => ({ name, values: [] }));
     for (let index = 1; index < rows.length; index += 1) {
-      const cells = rows[index].split("\t");
-      if (!rows[index].trim()) return fail(index + 1, 1, "", "表の途中に空行があります。空行を削除してください。");
+      const cells = rows[index];
+      if (cells.every((cell) => !normalizedText(cell).trim())) return fail(index + 1, 1, "", "表の途中に空行があります。空行を削除してください。");
       if (cells.length !== header.length) {
         const column = cells.length < header.length ? cells.length + 1 : header.length + 1;
         return fail(index + 1, column, cells[column - 1] ?? "", "列数が見出し行と一致しません。空欄を埋め、余分な列を削除してください。");
       }
-      const label = cells[0].trim();
+      const label = normalizedText(cells[0]).trim();
       if (!label) return fail(index + 1, 1, cells[0], "項目名が空欄です。名前を入力してください。");
       items.push({ label });
       for (let column = 1; column < cells.length; column += 1) {
@@ -97,6 +102,14 @@
       values: [...entry.values]
     }));
     return normalizeChartBlock({ ...chart, items, series }, chart.id);
+  }
+
+  // Caller supplies IDs through the same UUID route as new charts and TSV imports.
+  // The table is normalized by its owner; no table metadata enters the chart.
+  function tableToChartDraft(table, id, newIds) {
+    const parsed = parseChartTableRows(table.rows);
+    if (!parsed.ok) return parsed;
+    return { ok: true, chart: replaceChartTable(createChartBlock(id), parsed.table, newIds) };
   }
 
   function chartValidationError(chart) {
@@ -913,6 +926,7 @@
     MAX_CHART_ITEMS,
     MAX_CHART_SERIES,
     parseChartTsv,
+    tableToChartDraft,
     replaceChartTable,
     formatChartAxisTitle,
     chartSeriesUnit,
