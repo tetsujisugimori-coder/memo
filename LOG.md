@@ -3097,3 +3097,47 @@
 - run 35471683834はChromiumを含む5ジョブ成功。Chart WebKitは確認画像の準備中に横スクロールを矢印キーで左へ戻す待機が停止した。横ホイールでもWindows Chromiumで反映されず、診断では表のDOM・位置は正常でscrollLeft=40のままだった。画像撮影だけの追加スクロール再調整を除き、コピーボタンをfocusして表示する準備へ整理。機能を検証するlayout内のキーボード横スクロール、SVG位置・幅、全コピーassertは維持する。固定待機・タイムアウト延長・skip・アプリ状態の直接変更は行わない。
 
 - 最終検証: テスト修正を含む4afa85eの[GitHub Actions run 35472332643](https://github.com/tetsujisugimori-coder/memo/actions/runs/35472332643)は全6ジョブ成功（CI checks、Chart E2E Chromium／WebKit、Mobile E2E Chromium／WebKit、Geometry E2E Chromium）。全単体1,378/1,378、変更JavaScript25ファイルの構文検査、git diff --check成功。PR #255はIssue #254を参照し、通常幅・390px画像付きで作成済み。既存3ファイルのSHA-256・元mainのHEAD／statusを保持し、mainへはマージしない。検証記録のみを更新する最終コミットのCI結果はPR本文へ記載する。
+
+
+## 2026-09-20 グラフをPNG画像として保存
+
+### 目的・依頼・設計
+
+- 保存済みグラフを資料・メール・チャットへ再利用するPNG保存のみを実装する依頼。PR #255がMERGEDで、指定の30d19c44a89d49078724d0cdeb8b4f5f2d9eda15がfetch後のorigin/mainへ含まれることを確認。feature/chart-png-exportをTEMPの独立worktreeへ作成し、元ツリーの画像差分、freehand-canvas.html、work/の全ファイルを保護する。
+- SVG外のタイトル・凡例・左右2軸の注意書きが欠落しないよう、chart-png-export.jsに出力専用SVG構成を分離。画面のSVGを複製し、既存の座標、色、選択系列、割合、値／合計ラベル、軸・単位・省略規則をそのまま使用。軸範囲・元値・単位換算を再計算しない。円は表示中系列・項目色・凡例だけを使用する。
+- computed styleの描画プロパティを複製へインライン化し、fill/stroke・フォント・paint-orderなどとCSS変数を確定。document.fonts.readyと画像load/decodeを条件待機する。タイトルと凡例はtextContentと安全な属性設定で明示的SVG要素へ構成し、foreignObjectや外部変換サービス・追加依存は使わない。長文は実測して折返し・最終行省略する。
+- SVGのviewBox論理寸法を基準に通常2倍、長辺4096px・総1600万画素以内へ縦横比を維持して縮小。0・負数・NaN・Infinity・1px未満にしかできない極端な寸法は日本語エラーで中止。Canvasは描画前に不透明背景で塗り、現在のライト／ダークのカード背景と文字・軸色を使う。
+- 純粋なchartPngFilenameで日本語を維持し、制御文字・禁止文字を_へ置換、末尾空白・ピリオドを除去、拡張子重複を除きUnicodeコードポイント80文字までに短縮。空はmemo-nexus-chart.png。Windows予約名も回避する。chartPngDimensionsとテキスト折返しもDOM非依存。
+- SVG用Object URLはload/decode・描画後のfinallyでrevokeし、画像イベントと一時Canvasを解放。PNGダウンロードにはFileReaderのdata URLを使用し、WebKitが受け取る前のURL revokeを避ける。一時リンクはhidden/aria-hiddenで作成しfinallyで削除、hrefも破棄。生成用SVG／Canvasは文書へ挿入しない。
+
+### UI・互換性・失敗処理
+
+- 閲覧カードのグラフ下へ標準button「PNG画像として保存」とrole=status／aria-live通知を追加。データ表非表示でも使用可能、編集中プレビューには追加しない。ボタン／通知は折返し可能。aria-busy／aria-disabledと再入防止で連打を抑え、finallyで解除する。ネイティブdisabledによるフォーカス喪失を避ける。
+- mousedown（タップ由来の互換イベントも含む）はフォーカス・選択を動かさず、PNGボタンへのfocusin/outだけツールチップを維持する。通常のツールチップ操作は維持。スクロール位置、DOM／入力選択を出力処理から変更しない。
+- 成功は「PNG画像の保存を開始しました」とし、最終保存完了を断定しない。Canvas、画像load/decode、toBlob、空／異MIME Blob、FileReader、ダウンロード開始の失敗は日本語で通知し、壊れたファイルの保存を開始しない。alertは使用しない。
+- PNG出力は読み取り専用で、本文・note・revision・dirty・保存予約・IndexedDB・Undo・draftへ書き込まない。PNGやファイル名を永続化しない。schemaVersion:1、DB_VERSION:6、UTF-8 hex JSONマーカー、Markdown／ZIP／ローカルMarkdown互換性を維持。
+- キャッシュ識別子はapp 175／CSS 107、新規PNGモジュール1を使用。index.htmlと固定参照テスト、ローカルasset数の契約を同期。
+
+### 検証
+
+- 全単体1,435/1,435成功（PNG専用57件追加、fail／skip 0）。純粋なファイル名・寸法・テーマ取得・Blob検証に加え、凍結した描画結果を再計算・変更せずにタイトル／凡例／注意書きを構成する12条件を検証。実ブラウザでは10グラフ構成の実SVGと出力SVGの全座標・可視ラベルを比較する。
+- Mobile E2E（layout／writing）はChromium・WebKit、Geometry E2EはCIと同じChromiumで終了コード0。PNG重点E2EはChromiumの49グラフ／数値／表示設定、10テーマ／画面幅条件、実画像のシグネチャ・寸法・不透明背景・複数色画素、スクロール前後のバイト一致、保存状態・Undo／draft不変性を確認。WebKitも49条件を通過。
+- WebKitタッチの初回検証でpointerdownキャンセルが標準clickを抑えるため保存開始しないことを確認。mousedownのキャンセルへ変更し、互換click・フォーカス・選択済みツールチップを両立した。修正後の390pxタッチで実PNG画素とツールチップ維持まで成功。
+- 全Chart初回では既存ツールチップテストのカード内aria-live数0が追加通知と不一致になった。新仕様としてカード内はPNG通知1、tooltip自体にはaria-liveなしと厳密に確認する契約へ更新。固定待機、タイムアウト延長、skip、assert削除による回避はしない。
+- PNGヘッダーのシグネチャ・IHDR・Canvas寸法一致をダウンロード前にも確認し、空Blob・不正MIME・不正ヘッダーを成功扱いしない。最終の全Chart・重点テスト・CI結果は後続記録へ追記する。
+
+### 対象外・未確認
+
+- 画像クリップボードコピー、SVG／PDF／JPEG／WebP、一括出力、メモ全体・データ表・draftの画像化、透過背景、画像設定UI、自動添付、共有API、サーバー画像生成、新グラフ種別、DB移行、外部依存は対象外。
+- iPhone Safari実機、実スクリーンリーダー音声、各OSの最終保存先は未確認。Playwright WebKit／タッチエミュレーションと実機確認は区別する。
+
+- WebKit重点検証でUndo・入力選択・DOM文字選択・再読込・旧マーカー・選択済みツールチップを確認。DOM選択テストはfigcaptionの空白部分ではなくRangeで測った文字の実領域をダブルクリックして、選択成立もassertする。
+- ライト／ダーク×1100px／390pxの画面4枚と実PNG4枚を開いて目視確認。代表PNGは1114×832pxで、各テーマの通常幅と390pxはSHA-256が一致し、モバイルで隠れた右端まで含む。新規e2e-artifacts/chart-png-example-*へ記録。元ツリーの保護対象全ファイルのハッシュが開始時と一致。
+
+### 最終検証・PR
+
+- Issue #256は添付依頼と同一内容であることを確認し、[PR #257](https://github.com/tetsujisugimori-coder/memo/pull/257)へCloses #256と画面／実PNGの画像を記載。CLIのPR作成はトークン権限で拒否されたため、利用可能なGitHub接続から作成した。作業ブランチはfeature/chart-png-export、実装コミットは21532dafd266a0acbb945b822df89e36c4a5a526。mainへのマージは行っていない。
+- [GitHub Actions run 35508142315](https://github.com/tetsujisugimori-coder/memo/actions/runs/35508142315)は最新実装21532daの全6ジョブ成功。CI checks（全単体1,435/1,435・全JS構文・差分）、Chart E2E Chromium／WebKit、Mobile E2E Chromium／WebKit、Geometry E2E Chromiumを完走。両ChartログでPNG49条件・10テーマ幅・390pxタッチを含む全経路成功を確認した。
+- ローカルの最終PNG重点E2E Chromiumも終了コード0。WebKitは全49条件・10テーマ幅の生成検証に加え、修正後のUndo／入力・DOM選択／再読込・旧マーカー／選択済みツールチップ・タッチ重点実行が終了コード0。PNGのロード・decode・Canvas・toBlob例外・null／空／異MIME／不正ヘッダー・FileReader・ダウンロード開始の計10失敗条件で壊れたファイルを出さず、通知・再操作・URL／DOM後始末を確認。
+- ローカル全Chartの修正前実行はChromiumでDOM選択テストの空白ダブルクリック条件により停止。古いテストを読み込んだWebKit実行は現行CI全成功後に終了した。最終の全Chart完走証拠は上記CI両エンジンであり、ローカル旧実行を成功扱いしない。
+- 変更JavaScript24ファイルのnode --check、全単体1,435件、git diff --check成功。元mainの保護対象679ファイルのSHA-256一致を確認し、元の変更と未追跡ファイルはコミットしていない。記録更新のみの最終コミットについてもCI完了を確認し、最終結果をPR本文へ記載する。

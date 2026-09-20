@@ -69,7 +69,9 @@ async function checkTooltip(page, datum) {
   }));
   assert.equal(details.title, expected);
   assert.ok(details.accessible.includes(expected));
-  assert.equal(details.tabStops, 1); assert.equal(details.image, "img"); assert.equal(details.live, 0);
+  assert.equal(details.tabStops, 1); assert.equal(details.image, "img"); assert.equal(details.live, 1);
+  assert.equal(await page.locator('#preview .chart-png-controls [role="status"][aria-live="polite"]').count(), 1);
+  assert.equal(await page.locator('[role="tooltip"]').getAttribute("aria-live"), null);
   await page.waitForFunction(() => {
     const tooltip = document.querySelector(".chart-data-tooltip");
     if (!tooltip) return false;

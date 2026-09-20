@@ -6222,6 +6222,10 @@ body.collections-open:not(.context-panel-closed) .context-panel {
 .chart-block-line-item > .chart-block-value,
 .chart-block-pie-label { pointer-events: none; }
 .chart-block-scroll { max-width: 100%; overflow-x: auto; margin-top: 6px; }
+.chart-png-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 12px; min-width: 0; }
+.chart-png-controls button { max-width: 100%; white-space: normal; overflow-wrap: anywhere; }
+.chart-png-controls button[aria-busy="true"] { opacity: 0.65; cursor: progress; }
+.chart-png-controls .chart-block-status { flex-basis: 100%; margin: 0; overflow-wrap: anywhere; }
 .chart-tsv-copy-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 12px; min-width: 0; }
 .chart-tsv-copy-controls button { max-width: 100%; white-space: normal; overflow-wrap: anywhere; }
 .chart-tsv-copy-controls span, .chart-tsv-copy-controls .chart-block-status { flex-basis: 100%; margin: 0; overflow-wrap: anywhere; }
