@@ -3,6 +3,7 @@
   const SVG_NS = "http://www.w3.org/2000/svg";
   const MAX_EDGE = 4096;
   const MAX_PIXELS = 16000000;
+  const svgDownloads = new WeakMap();
   const DRAW_STYLES = ["fill", "fill-opacity", "stroke", "stroke-width", "stroke-opacity", "stroke-linecap", "stroke-linejoin", "stroke-dasharray", "stroke-dashoffset", "opacity", "font-family", "font-size", "font-weight", "font-style", "font-variant-numeric", "letter-spacing", "text-anchor", "dominant-baseline", "paint-order", "visibility", "color"];
 
   function chartPngFilename(title) {
@@ -242,6 +243,110 @@
     }
   }
 
+  function chartSvgFilename(title) {
+    return chartPngFilename(title).replace(/\.png$/, ".svg");
+  }
+
+  async function validateChartSvgBlob(blob, view) {
+    const invalid = () => new Error("安全で有効なSVG画像を確認できませんでした");
+    if (!blob || !blob.size || !/^image\/svg\+xml(?:;charset=utf-8)?$/i.test(blob.type)) throw invalid();
+    const xml = new view.TextDecoder("utf-8", { fatal: true }).decode(await blob.arrayBuffer());
+    const parsed = new view.DOMParser().parseFromString(xml, "image/svg+xml");
+    const root = parsed.documentElement;
+    if (parsed.querySelector("parsererror") || !root || root.localName !== "svg" || root.namespaceURI !== SVG_NS
+      || [...parsed.childNodes].some(node => node.nodeType === 7 || node.nodeType === 10)) throw invalid();
+    const positive = value => /^\+?(?:\d+\.?\d*|\.\d+)(?:e[-+]?\d+)?$/i.test(value || "") && Number.isFinite(Number(value)) && Number(value) > 0;
+    const boxParts = (root.getAttribute("viewBox") || "").trim().split(/\s*,\s*|\s+/);
+    const box = boxParts.map(Number);
+    if (!positive(root.getAttribute("width")) || !positive(root.getAttribute("height"))
+      || box.length !== 4 || !boxParts.every(value => /^[-+]?(?:\d+\.?\d*|\.\d+)(?:e[-+]?\d+)?$/i.test(value))
+      || !box.every(Number.isFinite) || box[2] <= 0 || box[3] <= 0) throw invalid();
+    // Closed vocabulary: the current renderer uses only vector geometry/text.
+    // Reject future images, links, animation, CSS/resources rather than exporting dependencies.
+    const elements = new Set(["svg", "g", "rect", "line", "polyline", "polygon", "path", "circle", "ellipse", "text", "tspan"]);
+    const attributes = new Set(["xmlns", "width", "height", "viewBox", "x", "y", "x1", "y1", "x2", "y2", "cx", "cy", "r", "rx", "ry", "dx", "dy", "points", "d", "transform", "overflow", "preserveAspectRatio", "style", ...DRAW_STYLES]);
+    const unsafe = /(?:NaN|[-+]?Infinity)\b|currentcolor|var\s*\(|url\s*\(|javascript\s*:|expression\s*\(|[\\@]/i;
+    for (const element of [root, ...root.querySelectorAll("*")]) {
+      if (element.namespaceURI !== SVG_NS || !elements.has(element.localName)) throw invalid();
+      for (const attribute of element.attributes) {
+        if (!attributes.has(attribute.name) || unsafe.test(attribute.value)
+          || (attribute.namespaceURI && attribute.name !== "xmlns")) throw invalid();
+        if (attribute.name === "xmlns" && attribute.value !== SVG_NS) throw invalid();
+        if (["width", "height", "viewBox", "x", "y", "x1", "y1", "x2", "y2", "cx", "cy", "r", "rx", "ry", "dx", "dy", "points", "d", "transform", "style"].includes(attribute.name)
+          && (attribute.value.match(/[-+]?(?:\d+\.?\d*|\.\d+)(?:e[-+]?\d+)?/ig) || []).some(value => !Number.isFinite(Number(value)))) throw invalid();
+        if (attribute.name === "style") {
+          for (const property of element.style) if (!DRAW_STYLES.includes(property)) throw invalid();
+        }
+      }
+    }
+    return blob;
+  }
+
+  async function generateChartSvg(card, source = card.querySelector(".chart-block-scroll > svg")) {
+    requireChartPngTarget(card, source);
+    const doc = card.ownerDocument, view = doc.defaultView;
+    await doc.fonts.ready;
+    requireChartPngTarget(card, source);
+    const plan = composeChartPng(captureChartPng(card));
+    // Match PNG's raster dimensions and opaque white backing, retaining its logical viewBox.
+    plan.svg.setAttribute("width", plan.dimensions.width);
+    plan.svg.setAttribute("height", plan.dimensions.height);
+    plan.svg.prepend(svgElement(doc, "rect", { width: "100%", height: "100%", fill: "#fff" }));
+    const xml = new view.XMLSerializer().serializeToString(plan.svg);
+    const blob = await validateChartSvgBlob(new view.Blob([xml], { type: "image/svg+xml;charset=utf-8" }), view);
+    requireChartPngTarget(card, source);
+    return blob;
+  }
+
+  async function saveChartSvg(card, title) {
+    const source = card.querySelector(".chart-block-scroll > svg");
+    const blob = await generateChartSvg(card, source);
+    await downloadChartSvg(blob, chartSvgFilename(title), card.ownerDocument, () => requireChartPngTarget(card, source));
+  }
+
+  async function downloadChartSvg(blob, filename, doc, beforeClick = () => {}) {
+    const view = doc.defaultView;
+    await validateChartSvgBlob(blob, view);
+    // WebKit may coalesce two link navigations in the same task. Serialize only
+    // activation/cleanup; each card still generates and reports independently.
+    const previous = svgDownloads.get(doc);
+    let release;
+    const pending = new Promise(resolve => { release = resolve; });
+    svgDownloads.set(doc, pending);
+    await previous;
+    let url, anchor, started = false;
+    try {
+      url = view.URL.createObjectURL(blob);
+      anchor = doc.createElement("a");
+      anchor.download = filename; anchor.href = url; anchor.hidden = true;
+      anchor.setAttribute("aria-hidden", "true");
+      beforeClick();
+      doc.body.append(anchor);
+      anchor.click();
+      started = true;
+    } finally {
+      try {
+        anchor?.remove(); anchor?.removeAttribute("href");
+        if (url) {
+          // Link activation queues a navigation task. Release in the following task,
+          // not during activation; no arbitrary retention timeout or persistent listener.
+          try {
+            if (started) await new Promise(resolve => {
+              const channel = new view.MessageChannel();
+              channel.port1.onmessage = () => {
+                channel.port1.onmessage = null; channel.port1.close(); channel.port2.close(); resolve();
+              };
+              channel.port2.postMessage(null);
+            });
+          } finally { view.URL.revokeObjectURL(url); }
+        }
+      } finally {
+        if (svgDownloads.get(doc) === pending) svgDownloads.delete(doc);
+        release();
+      }
+    }
+  }
+
   function chartPngCopyMessage(error) {
     const fallback = "『PNG画像として保存』を利用してください。";
     const code = error?.code, name = error?.cause?.name || error?.name;
@@ -295,7 +400,7 @@
       throw typeof error?.code === "string" ? error : pngError(phase, "画像コピー失敗", error);
     }
   }
-  const api = { chartPngFilename, chartPngDimensions, chartPngTextLines, chartPngTheme, captureChartPng, composeChartPng, validateChartPngBlob, chartPngBlob, downloadChartPng, generateChartPng, saveChartPng, copyChartPng, chartPngCopyMessage };
+  const api = { downloadChartSvg, chartSvgFilename, validateChartSvgBlob, generateChartSvg, saveChartSvg, chartPngFilename, chartPngDimensions, chartPngTextLines, chartPngTheme, captureChartPng, composeChartPng, validateChartPngBlob, chartPngBlob, downloadChartPng, generateChartPng, saveChartPng, copyChartPng, chartPngCopyMessage };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   if (scope) scope.MemoNexusChartPngExport = api;
 })(typeof window !== "undefined" ? window : globalThis);
