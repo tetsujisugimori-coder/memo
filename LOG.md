@@ -3259,3 +3259,29 @@
 - 実装コミット750a1d83fa2027f54ba84527de5c08560ef5bd7aの[CI run 35594502496](https://github.com/tetsujisugimori-coder/memo/actions/runs/35594502496)は6/6ジョブ成功（CI checks、Chart Chromium/WebKit、Mobile Chromium/WebKit、Geometry Chromium）。Chartは8分22秒/10分34秒で完了し、タイムアウト延長やskipなし。
 - [PR #265](https://github.com/tetsujisugimori-coder/memo/pull/265)を新規作成、Closes #264で関連付け。CLIのcreatePullRequestはPAT権限不足で拒否されたため、接続済みGitHub APIで作成した。Issue新規作成とmainへのマージは行っていない。
 - 本追記は検証記録のみで、上記で検証済みの実装/テストに変更なし。追記後の最終HEADのCI結果はPR本文へ記録する。単独表示用SVG/画像、テスト実行ログ、利用者の既存変更はコミットに含めない。
+
+## 2026-09-22 文章と複数HTML表の混在貼り付け（Issue #266）
+
+### 依頼・設計
+
+- 最新main f04b7faを基点に、文章A→表1→文章B→表2→文章Cを文章と独立した表ブロックへ順序どおり一括挿入する依頼。PR #34/#35/#260と既存保存・Undo・描画を調査。同目的の未完了Issue #266を使用し、#33/#258は再利用しない。
+- 既存parseHtmlTableのquerySelector("table")が最初の表だけを返す制約を解消するため、parseHtmlTableElementを分離。単一表互換APIを残し、別のparseHtmlTableContentが外側の表と文章を文書順に走査する。入れ子表は外側セルの文字列に含め、文章や別表へ重複しない。
+- 文章はMarkdown化せず安全なプレーンテキスト。ブロック境界とbrは改行、リンク・装飾は表示文字列のみ。script/style/template/noscript等・コメント・属性は取り込まず、解析したDOMを画面へ挿入しない。UIはtextContent/createTextNodeで表示する。
+- 混在時だけ文章区間数・表数・各表サイズ・見出しチェック・結合警告を表示。th判定を各チェックの初期値にし、混在チェックでEnter誤確定を防止。単一表ダイアログと左上セルフォーカスは維持する。
+- 各表100行・30列、全表3000セル・10表。解析失敗や超過時は全体を中止し、元text/plain全文またはHTML全体からの安全な文章・表テキストへ退避できる。
+- 全表を既存createTableBlock/normalizeTableBlock/serializeTableBlockとUUIDで直列化してから、共有の安全な表マーカー境界で選択範囲を一度だけ置換。Undo・保存予約は各1回。メモ・本文・選択範囲の競合時は変更せず中止。混在後は本文の挿入末尾へ戻す。
+- TABLE_BLOCK_VERSION=1、UTF-8 hex JSON、DB_VERSION=6、Markdown/ZIP/ローカルMarkdown、表→グラフ、画像・添付・Web Clipperは変更しない。HTML→Markdown、CSS再現、HTML画像取込、CSV、計算・並替・絞込、結合状態の保存、表とグラフ同期、外部依存追加は対象外。
+- 元mainの画像差分・freehand-canvas.html・work/を保護。679ファイルのSHA-256を記録し、TEMPの専用worktreeとfeature/mixed-html-table-pasteで作業する。
+
+### 検証経過
+
+- シェル起動はCreateProcessAsUserW / spawn EPERMとなったため、許可された実行経路へ切り替えた。既存簡易DOMフィクスチャへchildNodes/tagNameとnoscript除去を補い、従来のセル・テキスト期待値を維持。TABLE_PASTE_LIMITSの期待値へ新しい10表制限を追加。
+- 単体では文書順、文字・改行、安全性、入れ子、結合、単一互換、全体失敗、上限境界、凍結入力、固有ID、安全挿入を追加。アプリ関数の実行テストでUndo/保存予約/再描画各1回と失敗・競合時に0回を検証。
+- E2E初回のサーバーポート参照誤記を修正。Undo後の既存仕様では選択が先頭へ戻るため、独立した次シナリオの選択範囲を明示。確認ダイアログ終了時のネイティブフォーカス復帰に合わせ、同じメモ・本文の場合は選択を復元する。
+
+- モバイルE2Eで幅変更直後の既存context panelと入力が競合したため、body.dataset.layoutModeとパネルのaria-hiddenを条件として待つ手順に修正。WebKitの新規メモ作成もcurrentId変更と本文フォーカスを待つ。固定wait・タイムアウト延長・skipは追加しない。
+- 追加実験の画像ファイル保存はWindows WebKitで「添付ファイルの保存に失敗しました」となった。元main f04b7faを別ブラウザコンテキストで起動して同じ失敗を再現し、今回の差分がない画像保存経路の問題と確認。Chromiumの実画像挿入は成功。専用E2Eの画像優先確認では添付処理境界を記録するfixtureを使い、Fileのtype/size、選択範囲、insertFromPaste、呼出回数1、表ダイアログ非表示を検証する。WebKitの実画像保存成功とは報告しない。
+- 最終単体はnpm test 1,601/1,601（新規35件、fail/skip 0）。表・混在・表→グラフ・保存の重点224件成功。変更JavaScript 23ファイルのnode --checkとgit diff --check成功。lint/型チェック/ビルド専用コマンドはpackage.jsonに存在しない。
+- test:e2e:tableはChromium/WebKitとも終了コード0。文章3区間・表2件、個別見出し、固有ID、独立編集、操作入口、全文順序、プレビュー、保存/再読込、Undo/Redo、取消状態不変、メモ/本文/選択競合、2表目のID生成失敗時不変、コード内通常貼付、単一HTML/Markdown/TSV、結合/入れ子、全上限超過、危険HTML非実行と外部要求0を検証。
+- 320/375/390/430/1100px × ライト/ダークで横はみ出しなし、長い表一覧の内部スクロール、Enter誤確定抑止、Tab/Shift+Tab/Escape/閉じる/復帰、390pxタップ相当を確認。e2e-artifacts/mixed-table-paste/へ両エンジンの390/1100px確認画像を保存。iPhone Safari実機は未確認であり、WebKit/タッチエミュレーションと区別する。
+- 既存Mobile E2Eのlayout/writingはChromium/WebKitとも終了コード0、Geometry E2EはChromiumで6シナリオ成功。標準Chart E2Eは両エンジンで実行を継続し、最新HEADのCIと完走結果はPR本文に記録する。

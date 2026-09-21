@@ -2998,7 +2998,7 @@ body.layout-resizing iframe {
 .table-paste-body {
   display: grid;
   gap: 14px;
-  max-height: calc(100dvh - 96px);
+  max-height: min(600px, calc(100dvh - 112px));
   overflow-y: auto;
   padding: 16px;
   overscroll-behavior: contain;
@@ -3007,6 +3007,27 @@ body.layout-resizing iframe {
 .table-paste-body p {
   margin: 0;
   line-height: 1.6;
+}
+
+#tablePasteDialog [hidden] {
+  display: none;
+}
+
+.table-paste-tables {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
+.table-paste-entry {
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  overflow-wrap: anywhere;
+}
+
+.table-paste-header-option input {
+  flex-shrink: 0;
 }
 
 .table-paste-format {

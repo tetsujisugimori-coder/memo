@@ -39,7 +39,7 @@ class HtmlTableTestParser {
   parseFromString(html) {
     const tableMatch = String(html).match(/<table\b[^>]*>([\s\S]*?)<\/table>/i);
     if (!tableMatch) return { querySelector: () => null };
-    const table = { querySelectorAll: () => rows };
+    const table = { tagName: "TABLE", querySelectorAll: () => rows };
     const rows = Array.from(tableMatch[1].matchAll(/<tr\b[^>]*>([\s\S]*?)<\/tr>/gi)).map((rowMatch) => ({
       closest: () => table,
       children: Array.from(rowMatch[1].matchAll(/<(th|td)\b([^>]*)>([\s\S]*?)<\/\1>/gi)).map((cellMatch) => {
@@ -54,8 +54,8 @@ class HtmlTableTestParser {
             let content = cellMatch[3];
             const clone = {
               querySelectorAll(selector) {
-                if (selector === "script, style, template") {
-                  const matches = Array.from(content.matchAll(/<(script|style|template)\b[^>]*>[\s\S]*?<\/\1>/gi));
+                if (selector === "script, style, template, noscript") {
+                  const matches = Array.from(content.matchAll(/<(script|style|template|noscript)\b[^>]*>[\s\S]*?<\/\1>/gi));
                   return matches.map((match) => ({ remove: () => { content = content.replace(match[0], ""); } }));
                 }
                 if (selector === "br") {
@@ -73,7 +73,7 @@ class HtmlTableTestParser {
         };
       })
     }));
-    return { querySelector: (selector) => selector === "table" ? table : null };
+    return { childNodes: [table], querySelector: (selector) => selector === "table" ? table : null };
   }
 }
 
@@ -287,7 +287,7 @@ test("貼り付けデータは末尾の空行・空列だけ除き途中の空�
 });
 
 test("表貼り付け上限は100行、30列、3000セルを切り捨てず判定する", () => {
-  assert.deepEqual(TABLE_PASTE_LIMITS, { rows: 100, columns: 30, cells: 3000 });
+  assert.deepEqual(TABLE_PASTE_LIMITS, { rows: 100, columns: 30, cells: 3000, tables: 10 });
   assert.equal(validatePastedTableSize(Array.from({ length: 100 }, () => Array(30).fill("x"))).allowed, true);
   const tooManyRows = validatePastedTableSize(Array.from({ length: 101 }, () => ["x"]));
   const tooManyColumns = validatePastedTableSize([Array(31).fill("x")]);

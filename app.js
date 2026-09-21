@@ -446,6 +446,9 @@ const { recommendationTarget, recommendFonts } = window.MemoNexusFontRecommendat
 const { createWebFontLoader } = window.MemoNexusWebFontLoader;
 const {
   TABLE_PASTE_LIMITS,
+  validateMixedTablePaste,
+  serializeMixedTablePaste,
+  insertTablePasteContent,
   addTableColumn,
   addTableRow,
   createTableBlock,
@@ -908,6 +911,7 @@ const tablePasteTitle = $("tablePasteTitle");
 const tablePasteSummary = $("tablePasteSummary");
 const tablePasteFormat = $("tablePasteFormat");
 const tablePasteWarning = $("tablePasteWarning");
+const tablePasteTables = $("tablePasteTables");
 const tablePasteHeaderOption = $("tablePasteHeaderOption");
 const tablePasteHeaderCheckbox = $("tablePasteHeaderCheckbox");
 const closeTablePasteBtn = $("closeTablePasteBtn");
@@ -10976,7 +10980,7 @@ function handleClipboardAttachmentPaste(event) {
 }
 
 function restoreTablePasteEditorContext(pending) {
-  if (!pending || currentId !== pending.noteId) return;
+  if (!pending || currentId !== pending.noteId || editor.value !== pending.editorValue) return;
   editor.focus({ preventScroll: true });
   editor.setSelectionRange(pending.selectionStart, pending.selectionEnd);
 }
@@ -10991,7 +10995,8 @@ function closeTablePasteDialog({ restoreFocus = true } = {}) {
 function openTablePasteDialog(detected, selectionStart, selectionEnd) {
   const note = currentNote();
   if (!note || note.deletedAt || !tablePasteDialog) return;
-  const size = validatePastedTableSize(detected.rows);
+  const mixed = detected.format === "html-mixed";
+  const size = mixed ? validateMixedTablePaste(detected) : validatePastedTableSize(detected.rows);
   pendingTablePaste = {
     noteId: note.id,
     editorValue: editor.value,
@@ -11001,11 +11006,45 @@ function openTablePasteDialog(detected, selectionStart, selectionEnd) {
     size
   };
   const exceedsLimit = !size.allowed;
+  tablePasteTables.replaceChildren();
+  tablePasteTables.hidden = !mixed;
+  confirmTablePasteBtn.textContent = mixed ? "文章と表を分けて貼り付け" : "表として貼り付け";
   tablePasteTitle.textContent = exceedsLimit ? "貼り付ける表が上限を超えています" : "表として貼り付けますか？";
   tablePasteSummary.textContent = exceedsLimit
     ? `検出したサイズ：${size.rowCount}行 × ${size.columnCount}列（${size.cellCount}セル）`
     : `${size.rowCount}行 × ${size.columnCount}列のデータを検出しました。`;
   tablePasteFormat.textContent = `検出形式：${detected.formatLabel}`;
+  if (mixed) {
+    tablePasteTitle.textContent = "文章と表を分けて貼り付けますか？";
+    tablePasteSummary.textContent = "文章" + size.textCount + "区間・表" + size.tableCount + "件（合計" + size.cellCount + "セル）";
+    detected.segments.filter(segment => segment.type === "table").forEach((segment, index) => {
+      const entry = document.createElement("div");
+      entry.className = "table-paste-entry";
+      const summary = document.createElement("p");
+      const itemSize = size.sizes[index];
+      summary.textContent = "表" + (index + 1) + "：" + itemSize.rowCount + "行 × " + itemSize.columnCount + "列（" + itemSize.cellCount + "セル）";
+      entry.append(summary);
+      if (segment.table) {
+        const label = document.createElement("label");
+        label.className = "table-paste-header-option";
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.checked = segment.table.hasHeader;
+        checkbox.disabled = exceedsLimit;
+        checkbox.dataset.tablePasteIndex = String(index);
+        label.append(checkbox, document.createTextNode("表" + (index + 1) + "：1行目を見出しにする"));
+        entry.append(label);
+      }
+      if (!segment.table || segment.table.hasMergedCells) {
+        const warning = document.createElement("p");
+        warning.className = "table-paste-warning";
+        warning.textContent = !segment.table ? "表" + (index + 1) + "を解析できませんでした。全体の変換を中止します。"
+          : "表" + (index + 1) + "：結合セルは左上セルへ値を置き、残りを空セルとして変換します。";
+        entry.append(warning);
+      }
+      tablePasteTables.append(entry);
+    });
+  }
   const warnings = [];
   if (exceedsLimit) {
     warnings.push(
@@ -11015,9 +11054,10 @@ function openTablePasteDialog(detected, selectionStart, selectionEnd) {
   } else if (detected.hasMergedCells) {
     warnings.push("結合セルは左上セルへ値を置き、残りを空セルとして変換します。元の結合表示は完全には再現されません。");
   }
+  if (mixed && exceedsLimit) warnings.push("全体の上限：表" + TABLE_PASTE_LIMITS.tables + "件・合計" + TABLE_PASTE_LIMITS.cells + "セル。解析失敗または上限超過があるため、一部だけの挿入は行いません。");
   tablePasteWarning.textContent = warnings.join("\n");
   tablePasteWarning.hidden = warnings.length === 0;
-  tablePasteHeaderOption.hidden = exceedsLimit;
+  tablePasteHeaderOption.hidden = mixed || exceedsLimit;
   tablePasteHeaderCheckbox.checked = detected.hasHeader !== false;
   confirmTablePasteBtn.hidden = exceedsLimit;
   tablePasteDialog.showModal();
@@ -11028,6 +11068,8 @@ function pendingTablePasteIsCurrent(pending) {
   return Boolean(pending)
     && currentId === pending.noteId
     && editor.value === pending.editorValue
+    && editor.selectionStart === pending.selectionStart
+    && editor.selectionEnd === pending.selectionEnd
     && currentNote()
     && !currentNote().deletedAt;
 }
@@ -11057,27 +11099,42 @@ function insertPastedTable() {
     alert("貼り付け先のメモが変更されたため、貼り付けをキャンセルしました。");
     return;
   }
-  const tableId = crypto.randomUUID();
-  const table = normalizeTableBlock({
-    ...createTableBlock(tableId),
-    rows: pending.detected.rows,
-    hasHeader: tablePasteHeaderCheckbox.checked,
-    alignments: pending.detected.alignments
-  }, tableId);
-  const result = insertTableBlock(
-    editor.value,
-    pending.selectionStart,
-    pending.selectionEnd,
-    table
-  );
+  const mixed = pending.detected.format === "html-mixed";
+  let result;
+  let table;
+  try {
+    if (mixed) {
+      const headers = Array.from(tablePasteTables.querySelectorAll("input[data-table-paste-index]"), input => input.checked);
+      const content = serializeMixedTablePaste(pending.detected, () => crypto.randomUUID(), headers);
+      result = insertTablePasteContent(editor.value, pending.selectionStart, pending.selectionEnd, content);
+    } else {
+      const tableId = crypto.randomUUID();
+      table = normalizeTableBlock({
+        ...createTableBlock(tableId), rows: pending.detected.rows,
+        hasHeader: tablePasteHeaderCheckbox.checked, alignments: pending.detected.alignments
+      }, tableId);
+      result = insertTableBlock(editor.value, pending.selectionStart, pending.selectionEnd, table);
+    }
+  } catch (error) {
+    tablePasteWarning.textContent = "貼り付け内容を作成できませんでした。テキストとして貼り付けるか、キャンセルしてください。";
+    tablePasteWarning.hidden = false;
+    confirmTablePasteBtn.hidden = true;
+    pasteTableAsTextBtn.focus();
+    return;
+  }
   captureUndoSnapshot({ inputType: "insertFromPaste" });
   editor.value = result.value;
   editor.setSelectionRange(result.selectionStart, result.selectionEnd);
-  tableAxisSelections.delete(table.id);
+  if (table) tableAxisSelections.delete(table.id);
   closeTablePasteDialog({ restoreFocus: false });
   renderTableBlockEditors();
   scheduleSave({ render: false });
-  focusTableCell(table.id, 0, 0);
+  if (mixed) {
+    editor.focus();
+    editor.setSelectionRange(result.selectionStart, result.selectionEnd);
+  } else {
+    focusTableCell(table.id, 0, 0);
+  }
 }
 
 function editorSelectionIsInsideCodeFence() {
@@ -15787,6 +15844,7 @@ if (tablePasteDialog) {
   tablePasteDialog.addEventListener("keydown", (event) => {
     if (event.key !== "Enter" || event.target.closest("button") || confirmTablePasteBtn.hidden) return;
     event.preventDefault();
+    if (pendingTablePaste?.detected.format === "html-mixed") return;
     insertPastedTable();
   });
   tablePasteDialog.addEventListener("close", () => {
