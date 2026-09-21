@@ -134,7 +134,56 @@ test("表コピーは選択・Undo・保存を変更せず成功または失敗�
 });
 
 test("配信キャッシュ番号を貼り付け機能の変更に合わせて更新する", () => {
-  assert.match(html, /style\.css\?v=0\.5\.0-107/);
-  assert.match(html, /table-block-utils\.js\?v=0\.5\.0-4/);
-  assert.match(html, /app\.js\?v=0\.5\.0-179/);
+  assert.match(html, /style\.css\?v=0\.5\.0-108/);
+  assert.match(html, /table-block-utils\.js\?v=0\.5\.0-5/);
+  assert.match(html, /app\.js\?v=0\.5\.0-180/);
+});
+
+const vm = require("node:vm");
+const utilities = require("./table-block-utils.js");
+function pasteHarness(detected, failId = false) {
+  const editor = { value: "前XX後", selectionStart: 1, selectionEnd: 3, setSelectionRange(a,b){this.selectionStart=a;this.selectionEnd=b;},focus(){} };
+  const pending = { noteId:"note",editorValue:editor.value,selectionStart:1,selectionEnd:3,detected,size:utilities.validateMixedTablePaste(detected) };
+  const calls = {undo:0,save:0,render:0};
+  const context = { ...utilities, editor,pendingTablePaste:pending, currentId:"note",currentNote:()=>({id:"note"}),
+    crypto:{randomUUID:()=>{if(failId)throw Error("injected");return "new-"+(++context.ids);}},ids:0,
+    tablePasteTables:{querySelectorAll:()=>[{checked:true},{checked:false}]},tablePasteHeaderCheckbox:{checked:true},
+    tablePasteWarning:{textContent:"",hidden:true},confirmTablePasteBtn:{hidden:false},pasteTableAsTextBtn:{focus(){}},
+    tableAxisSelections:new Map(), captureUndoSnapshot:()=>calls.undo++,scheduleSave:()=>calls.save++,
+    renderTableBlockEditors:()=>calls.render++,closeTablePasteDialog:()=>{},focusTableCell:()=>{},alert:()=>{}
+  };
+  vm.createContext(context);
+  vm.runInContext(functionSource("pendingTablePasteIsCurrent","insertPastedPlainText")+functionSource("insertPastedTable","editorSelectionIsInsideCodeFence"),context);
+  return {context,calls,editor,pending};
+}
+test("混在確定は全変換の後にUndo・保存予約・再描画を各一回だけ行う",()=>{
+ const input={format:"html-mixed",segments:[{type:"text",text:"文章A"},{type:"table",table:{rows:[["A"]],hasHeader:true}},{type:"text",text:"文章B"},{type:"table",table:{rows:[["B"]],hasHeader:false}}]};
+ const {context,calls,editor}=pasteHarness(input);
+ context.insertPastedTable();
+ assert.deepEqual(calls,{undo:1,save:1,render:1});
+ assert.equal(utilities.splitTableBlocks(editor.value).filter(x=>x.type==="table").length,2);
+});
+test("直列化前の失敗では本文・Undo・保存予約・再描画へ到達しない",()=>{
+ const input={format:"html-mixed",segments:[{type:"table",table:{rows:[["A"]]}}]};
+ const {context,calls,editor}=pasteHarness(input,true);
+ context.insertPastedTable();
+ assert.deepEqual(calls,{undo:0,save:0,render:0});assert.equal(editor.value,"前XX後");
+ assert.equal(context.confirmTablePasteBtn.hidden,true);
+});
+for(const conflict of ["selectionStart","selectionEnd","value","note"])test("確認中の"+conflict+"変更では全体を中止する",()=>{
+ const {context,calls,editor}=pasteHarness({format:"html-mixed",segments:[{type:"table",table:{rows:[["A"]]}}]});
+ if(conflict==="note")context.currentId="other";
+ else editor[conflict]=conflict==="value"?"変更":0;
+ const before=editor.value;context.insertPastedTable();
+ assert.deepEqual(calls,{undo:0,save:0,render:0});assert.equal(editor.value,before);
+});
+test("混在UIはtextContentとネイティブ入力で表示しHTMLを注入しない",()=>{
+ const open=functionSource("openTablePasteDialog","pendingTablePasteIsCurrent");
+ assert.match(open,/文章と表を分けて貼り付けますか/);
+ assert.match(open,/validateMixedTablePaste/);
+ assert.match(open,/checkbox\.checked = segment\.table\.hasHeader/);
+ assert.match(open,/createTextNode/);
+ assert.match(open,/tablePasteIndex/);
+ assert.doesNotMatch(open,/innerHTML/);
+ assert.match(css,/#tablePasteDialog \[hidden\]\s*\{\s*display: none/);
 });
