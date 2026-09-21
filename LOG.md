@@ -3225,3 +3225,37 @@
 - 初回23303b5のCI run 35539332453は修正pushでChart途中にキャンセルされたため完走成功には含めない。CI自体の失敗はなく、ローカルWebKitの失敗原因と修正は上記に記録。
 - [PR #263](https://github.com/tetsujisugimori-coder/memo/pull/263)を新規作成しCloses #262で関連付け。CLIのIssue作成はトークン権限不足のため、接続済みGitHub APIを使用した。mainへはマージしていない。
 - 元ツリーの保護対象679ファイルのSHA-256一致を確認。独立worktreeのテスト生成画像はコミットせず、検証後にそのworktree内だけ元へ戻した。iPhone Safari実機、実スクリーンリーダー音声、他アプリへの手動貼付は未確認。
+
+
+## 2026-09-21 保存済みグラフのSVG画像保存
+
+### 目的・設計・互換性
+
+- 拡大しても線や文字が劣化しにくいSVGファイルとして保存済みグラフを再利用する。対応する未完了Issueは #264 の1件。新規Issueは作成しない。PR #257/#263のMERGED、fetch後のorigin/mainにc4eb64f59c45e8ad4a13316f6e183a87fc85bc44が含まれることを確認し、TEMPの独立worktree、feature/chart-svg-exportで作業。元ツリーの画像、freehand-canvas.html、work/のハッシュを記録して保護。
+- PR #257/#263のcaptureChartPng/composeChartPngをそのまま使用。描画済みSVG・computed style、タイトル、軸・目盛り・0基準線、単位、表示中の凡例、二軸注意書き、テーマ、全体幅を共有し、値・割合・座標・省略規則を再計算しない。PNG保存・PNGコピーの生成、配送、エラー処理は変更しない。
+- SVGのwidth/heightは共通の出力寸法、viewBoxは共通の論理寸法を保持。PNGと同じ白の下地をSVGにも追加し、テーマが将来半透明になっても不透明背景を確保する。SVG名前空間はXMLSerializerで明示。UTF-8のimage/svg+xml;charset=utf-8 Blobを生成する。
+- validateChartSvgBlobで非空/MIME、fatal UTF-8 decode、DOMParser/parsererror、SVGルート/名前空間、正の有限width/heightとviewBoxを検証。全要素・属性の許可リストでscript、on*、href、外部画像/リンク、foreignObject、アニメーション、スタイルシート/DTDを拒否。NaN/Infinity/オーバーフロー、currentColor、var()、url()、javascript:、CSSエスケープ、未知スタイルも拒否する。現在の対象グラフに外部リソース参照がないことをE2Eで検証する。
+- フォントは共通構築で安全なfont-family指定を保持し、外部フォントの取得・埋め込みはしない。閲覧環境のフォールバックで文字幅が変わる可能性をREADMEへ記載。ファイル名は既存PNG無害化の結果から拡張子だけ.svgへ変更し、ブラウザの連番処理は重複実装しない。
+- フォント待機前後、Blob検証後、配送直前にカードの接続と元SVGの同一性を確認。途中の消失/再描画は失敗とし、別のグラフを保存しない。SVG配送はBlob Object URLと一時a要素を使用し、FileReader/Data URLへ変換しない。クリック後の次タスクをMessageChannelで待ってfinallyでrevokeし、リンク/hrefとportイベント参照を解放。失敗でもrevoke、長い固定時間の保持なし。
+- 閲覧カードの既存操作グループにtype=buttonを追加。3操作でaria-busy/aria-disabled、通知用live regionを共用し同一カードは相互排他、別カードは独立。選択保持用mousedownとツールチップ例外を共用し、pointerdownはキャンセルしない。失敗時は日本語で再試行/PNG保存を案内し、自動代替せずbusyを解除。
+- 本文/note/revision/dirty/保存予約/IndexedDB/Undo/Redo/draftへ書込みなし。schemaVersion:1、DB_VERSION:6、グラフUTF-8 hex JSON、表、Markdown/ZIP/ローカルMarkdown形式、添付一覧は変更なし。app.js 0.5.0-179、chart-png-export.js 0.5.0-3に更新し固定参照テストを同期。
+
+### 検証経過
+
+- 新規単体64件でファイル名、Blob/UTF-8/解析結果/名前空間/寸法/危険要素・属性・URL、対象変更、Object URL/リンク後始末、3操作の排他、別カード通知、失敗後再試行を検証。XMLパースはChromium/WebKitのネイティブDOMParserでも確認する。
+- 初回重点E2Eの出力比較はHTML DOMとXML DOMのouterHTML表記差で失敗。全要素・属性・文字内容を比較する形へ修正し、内容一致の確認を維持。単独表示は所有コンテキスト制約に合わせ独立タブを使用。XML文書のfullPage撮影は停止するため、SVGの寸法全体を覆うviewportで撮影する方法へ修正。製品コードの待機延長やテストskipは追加しない。
+- SVGコピー、PDF、一括出力、メモ全体/データ表/draftの画像化、自動添付、SVG編集/取込み、外部フォント/画像取得、フォント埋込み、foreignObject、サイズ/倍率/透明背景設定は対象外。iPhone Safari実機、実スクリーンリーダー音声、各OSの最終保存先は未確認。
+
+- WebKitで2カードのBlob検証を同時解放すると同一タスク内のリンク起動が競合し、1件しかdownloadイベントが出ないことを確認。生成/通知はカード別のまま、WeakMapで配送開始から次タスクの後始末までだけ直列化した。2件の実ダウンロードとURL解放を確認し、単体にも同時配送を追加。
+- 最終全単体は1,566/1,566成功、fail/skip 0。変更JavaScriptのnode --check、git diff --check成功。package.jsonにlint/型チェック/buildコマンドはない。
+- SVG重点E2EはChromium/WebKitとも終了コード0。41グラフ/数値条件、表示設定、空/日本語ファイル名、Tab+Enter/Space、5幅×2テーマ、単独SVG表示、外部要求なし、13故障境界と再試行、3操作排他/2カード独立、生成中と配送直前の消失/再描画、本文/note/revision/dirty/保存予約/DB/Undo/Redo/draft/選択/スクロール/ツールチップ不変、未確定TSV/確定/Undo/Redo/再読込/旧グラフを検証。390pxタッチエミュレーションでも実ダウンロード成功。
+- 重点PNG保存・PNGコピーはChromium/WebKitとも終了コード0。PNGは49グラフ/値/表示条件と10テーマ/幅、画素/背景を確認。コピーはネイティブClipboardItemに渡すPromise/実PNG内容、拒否/再試行、状態を確認。Chromiumではネイティブclipboard write/readも成功。
+- Mobile E2E（layout/writing）はChromium/WebKitとも終了コード0、Geometry E2Eは標準Chromiumで終了コード0。保存SVGを単独タブで開いた画像を確認し、390px/1100pxで作成したライト/ダークの日本語・左右2軸・凡例・背景・長文の既存省略、円の選択系列/項目色、50項目の全体幅に欠落がないことを確認。画像/SVGは独立worktreeのsvg-review/へ保存しコミットしない。
+- 元ツリーの保護対象677ファイルのSHA-256一致を確認。元mainの画像差分、freehand-canvas.html、work/は保持。
+
+### 最終検証記録
+
+- 標準Chart E2E（npm run test:e2e:chart）はChromium/WebKitとも終了コード0。SVG・PNG保存/コピー・表→グラフ・TSV・データ表・ツールチップを含め完走。
+- 実装コミット750a1d83fa2027f54ba84527de5c08560ef5bd7aの[CI run 35594502496](https://github.com/tetsujisugimori-coder/memo/actions/runs/35594502496)は6/6ジョブ成功（CI checks、Chart Chromium/WebKit、Mobile Chromium/WebKit、Geometry Chromium）。Chartは8分22秒/10分34秒で完了し、タイムアウト延長やskipなし。
+- [PR #265](https://github.com/tetsujisugimori-coder/memo/pull/265)を新規作成、Closes #264で関連付け。CLIのcreatePullRequestはPAT権限不足で拒否されたため、接続済みGitHub APIで作成した。Issue新規作成とmainへのマージは行っていない。
+- 本追記は検証記録のみで、上記で検証済みの実装/テストに変更なし。追記後の最終HEADのCI結果はPR本文へ記録する。単独表示用SVG/画像、テスト実行ログ、利用者の既存変更はコミットに含めない。
