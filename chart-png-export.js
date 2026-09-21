@@ -95,51 +95,53 @@
     const { svg, width, height, theme, title, legend, notice } = capture;
     const doc = svg.ownerDocument;
     const measureCanvas = doc.createElement("canvas");
-    const context = measureCanvas.getContext("2d");
-    if (!context) throw new Error("画像作成用のCanvasを利用できません");
-    const padding = 20, outputWidth = width + padding * 2;
-    const output = svgElement(doc, "svg", { width: outputWidth });
-    let y = padding;
-    const addText = (text, x, fontSize, maxLines, weight = "400", color = theme.text) => {
-      context.font = weight + " " + fontSize + "px " + theme.font;
-      const lines = chartPngTextLines(text, outputWidth - padding - x, value => context.measureText(value).width, maxLines);
-      lines.forEach((line, index) => output.append(svgElement(doc, "text", {
-        x, y: y + fontSize + index * (fontSize + 6), fill: color,
-        "font-family": theme.font, "font-size": fontSize, "font-weight": weight
-      }, line)));
-      return lines.length * (fontSize + 6);
-    };
-    y += addText(title, padding, 18, 3, "700") + 8;
-    const plot = svg.cloneNode(true);
-    plot.setAttribute("x", padding); plot.setAttribute("y", y);
-    output.append(plot);
-    y += height + 12;
-    for (const entry of legend) {
-      if (entry.line) {
-        output.append(svgElement(doc, "line", { x1: padding, x2: padding + 20, y1: y + 8, y2: y + 8, stroke: entry.color, "stroke-width": 3 }));
-        output.append(svgElement(doc, "circle", { cx: padding + 10, cy: y + 8, r: 3, fill: theme.background, stroke: entry.color, "stroke-width": 2 }));
-      } else output.append(svgElement(doc, "circle", { cx: padding + 8, cy: y + 8, r: 6, fill: entry.color }));
-      y += addText(entry.text, padding + 28, 12, 2) + 5;
-    }
-    if (notice) { y += 8; y += addText(notice, padding, 12, 3, "400", capture.noticeColor || theme.text); }
-    const outputHeight = y + padding;
-    const dimensions = chartPngDimensions(outputWidth, outputHeight);
-    output.setAttribute("height", outputHeight);
-    output.setAttribute("viewBox", "0 0 " + outputWidth + " " + outputHeight);
-    output.prepend(svgElement(doc, "rect", { width: outputWidth, height: outputHeight, fill: theme.background }));
-    return { svg: output, dimensions, background: theme.background };
+    try {
+      const context = measureCanvas.getContext("2d");
+      if (!context) throw new Error("画像作成用のCanvasを利用できません");
+      const padding = 20, outputWidth = width + padding * 2;
+      const output = svgElement(doc, "svg", { width: outputWidth });
+      let y = padding;
+      const addText = (text, x, fontSize, maxLines, weight = "400", color = theme.text) => {
+        context.font = weight + " " + fontSize + "px " + theme.font;
+        const lines = chartPngTextLines(text, outputWidth - padding - x, value => context.measureText(value).width, maxLines);
+        lines.forEach((line, index) => output.append(svgElement(doc, "text", {
+          x, y: y + fontSize + index * (fontSize + 6), fill: color,
+          "font-family": theme.font, "font-size": fontSize, "font-weight": weight
+        }, line)));
+        return lines.length * (fontSize + 6);
+      };
+      y += addText(title, padding, 18, 3, "700") + 8;
+      const plot = svg.cloneNode(true);
+      plot.setAttribute("x", padding); plot.setAttribute("y", y);
+      output.append(plot);
+      y += height + 12;
+      for (const entry of legend) {
+        if (entry.line) {
+          output.append(svgElement(doc, "line", { x1: padding, x2: padding + 20, y1: y + 8, y2: y + 8, stroke: entry.color, "stroke-width": 3 }));
+          output.append(svgElement(doc, "circle", { cx: padding + 10, cy: y + 8, r: 3, fill: theme.background, stroke: entry.color, "stroke-width": 2 }));
+        } else output.append(svgElement(doc, "circle", { cx: padding + 8, cy: y + 8, r: 6, fill: entry.color }));
+        y += addText(entry.text, padding + 28, 12, 2) + 5;
+      }
+      if (notice) { y += 8; y += addText(notice, padding, 12, 3, "400", capture.noticeColor || theme.text); }
+      const outputHeight = y + padding;
+      const dimensions = chartPngDimensions(outputWidth, outputHeight);
+      output.setAttribute("height", outputHeight);
+      output.setAttribute("viewBox", "0 0 " + outputWidth + " " + outputHeight);
+      output.prepend(svgElement(doc, "rect", { width: outputWidth, height: outputHeight, fill: theme.background }));
+      return { svg: output, dimensions, background: theme.background };
+    } finally { measureCanvas.width = 0; measureCanvas.height = 0; }
   }
 
   function validateChartPngBlob(blob) {
-    if (!blob || blob.type !== "image/png" || blob.size < 33) throw new Error("有効なPNG画像を生成できませんでした");
+    if (!blob || blob.type !== "image/png" || blob.size < 33) throw pngError("invalid-png", "有効なPNG画像を生成できませんでした");
     return blob;
   }
 
-  async function chartPngBlob(plan) {
+  async function chartPngBlob(plan, signal) {
     const doc = plan.svg.ownerDocument, view = doc.defaultView;
-    const canvas = doc.createElement("canvas");
     const { width, height } = plan.dimensions;
     if (![width, height].every(value => Number.isInteger(value) && value > 0 && value <= MAX_EDGE) || width * height > MAX_PIXELS) throw new Error("画像の寸法が不正です");
+    const canvas = doc.createElement("canvas");
     let url, image;
     try {
       canvas.width = width; canvas.height = height;
@@ -148,25 +150,28 @@
       const xml = new view.XMLSerializer().serializeToString(plan.svg);
       url = view.URL.createObjectURL(new view.Blob([xml], { type: "image/svg+xml;charset=utf-8" }));
       image = new view.Image();
+      // An in-flight SVG load must settle before revoking its URL. Cancelling
+      // the resource itself makes WebKit report a failed resource request.
       await new Promise((resolve, reject) => {
         image.onload = resolve;
         image.onerror = () => reject(new Error("グラフ画像の読み込みに失敗しました"));
         image.src = url;
       });
+      if (signal?.aborted) throw signal.reason;
       if (typeof image.decode === "function") {
-        try { await image.decode(); } catch { throw new Error("グラフ画像のデコードに失敗しました"); }
+        try { await pngWait(image.decode(), signal); } catch { throw new Error("グラフ画像のデコードに失敗しました"); }
       }
       // Paint an opaque base even if a future theme supplies an alpha color.
       context.fillStyle = "#fff"; context.fillRect(0, 0, width, height);
       context.fillStyle = plan.background; context.fillRect(0, 0, width, height);
       context.drawImage(image, 0, 0, width, height);
-      const blob = validateChartPngBlob(await new Promise((resolve, reject) => {
+      const blob = validateChartPngBlob(await pngWait(new Promise((resolve, reject) => {
         try { canvas.toBlob(resolve, "image/png"); } catch { reject(new Error("PNG画像への変換に失敗しました")); }
-      }));
+      }), signal));
       const header = new Uint8Array(await blob.slice(0, 24).arrayBuffer());
       const signature = [137, 80, 78, 71, 13, 10, 26, 10, 0, 0, 0, 13, 73, 72, 68, 82];
       const sizes = new DataView(header.buffer, header.byteOffset, header.byteLength);
-      if (!signature.every((byte, index) => header[index] === byte) || sizes.getUint32(16) !== width || sizes.getUint32(20) !== height) throw new Error("有効なPNG画像を生成できませんでした");
+      if (!signature.every((byte, index) => header[index] === byte) || sizes.getUint32(16) !== width || sizes.getUint32(20) !== height) throw pngError("invalid-png", "有効なPNG画像を生成できませんでした");
       return blob;
     } finally {
       if (image) { image.onload = null; image.onerror = null; image.removeAttribute("src"); }
@@ -194,18 +199,103 @@
     finally { anchor.remove(); anchor.removeAttribute("href"); }
   }
 
+  function pngError(code, message, cause) {
+    const error = new Error(message, { cause });
+    error.code = code;
+    return error;
+  }
+
+  // Cancellation observes the original promise too, so late failures never escape.
+  function pngWait(promise, signal) {
+    if (!signal) return promise;
+    return new Promise((resolve, reject) => {
+      const finish = (callback, value) => { signal.removeEventListener("abort", abort); callback(value); };
+      const abort = () => finish(reject, signal.reason);
+      signal.addEventListener("abort", abort, { once: true });
+      Promise.resolve(promise).then(value => finish(resolve, value), error => finish(reject, error));
+      if (signal.aborted) abort();
+    });
+  }
+
+  function requireChartPngTarget(card, source) {
+    if (!card.isConnected || !source || card.querySelector(".chart-block-scroll > svg") !== source) {
+      throw pngError("target-changed", "対象のグラフが変更されています");
+    }
+  }
+
+  async function generateChartPng(card, signal, source = card.querySelector(".chart-block-scroll > svg")) {
+    if (signal?.aborted) throw signal.reason;
+    requireChartPngTarget(card, source);
+    await pngWait(card.ownerDocument.fonts.ready, signal);
+    requireChartPngTarget(card, source);
+    const blob = await chartPngBlob(composeChartPng(captureChartPng(card)), signal);
+    requireChartPngTarget(card, source);
+    return blob;
+  }
+
   async function saveChartPng(card, title) {
     try {
-      await card.ownerDocument.fonts.ready;
-      if (!card.isConnected) throw new Error("対象のグラフが変更されています");
-      const plan = composeChartPng(captureChartPng(card));
-      const blob = await chartPngBlob(plan);
+      const blob = await generateChartPng(card);
       await downloadChartPng(blob, chartPngFilename(title), card.ownerDocument);
     } catch (error) {
       throw new Error("PNG画像を保存できませんでした: " + (/[ぁ-んァ-ヶ一-龠]/.test(error.message) ? error.message : "画像の生成に失敗しました。再試行してください"));
     }
   }
-  const api = { chartPngFilename, chartPngDimensions, chartPngTextLines, chartPngTheme, captureChartPng, composeChartPng, validateChartPngBlob, chartPngBlob, downloadChartPng, saveChartPng };
+
+  function chartPngCopyMessage(error) {
+    const fallback = "『PNG画像として保存』を利用してください。";
+    const code = error?.code, name = error?.cause?.name || error?.name;
+    if (code === "insecure") return "安全な接続で開き直すか、" + fallback;
+    if (code === "clipboard-unavailable") return "このブラウザではクリップボードへの書き込みを利用できません。" + fallback;
+    if (code === "item-unavailable") return "このブラウザでは画像のクリップボードコピーを利用できません。" + fallback;
+    if (code === "png-unsupported") return "このブラウザではPNG画像のコピーに対応していません。" + fallback;
+    if (code === "target-changed") return "対象のグラフが変更されたためコピーを完了できませんでした。表示中のグラフで再試行するか、" + fallback;
+    if (code === "invalid-png") return "作成したPNG画像を確認できなかったため、コピーしませんでした。もう一度試すか、" + fallback;
+    if (code === "generation") return "グラフ画像を作成できなかったため、コピーしませんでした。もう一度試すか、" + fallback;
+    if (name === "NotAllowedError") return "グラフ画像をコピーできませんでした。ブラウザのクリップボード権限を確認するか、" + fallback;
+    if (name === "SecurityError") return "ブラウザのセキュリティ制限でコピーできませんでした。安全な接続とサイトの設定を確認するか、" + fallback;
+    if (name === "DataError") return "ブラウザがPNG画像を受け取れませんでした。もう一度試すか、" + fallback;
+    if (name === "AbortError") return "画像のコピーが中断されました。もう一度試すか、" + fallback;
+    if (code === "item-construction") return "画像をクリップボードへ渡す準備ができませんでした。もう一度試すか、" + fallback;
+    return "グラフ画像をコピーできませんでした。もう一度試すか、" + fallback;
+  }
+
+  async function copyChartPng(card) {
+    const view = card.ownerDocument.defaultView;
+    if (!view.isSecureContext) throw pngError("insecure");
+    if (typeof view.navigator.clipboard?.write !== "function") throw pngError("clipboard-unavailable");
+    if (typeof view.ClipboardItem !== "function") throw pngError("item-unavailable");
+    if (typeof view.ClipboardItem.supports === "function" && view.ClipboardItem.supports("image/png") === false) throw pngError("png-unsupported");
+    const source = card.querySelector(".chart-block-scroll > svg");
+    const controller = new view.AbortController();
+    // Schedule generation without awaiting it; an immediate write rejection can
+    // cancel before starting an SVG resource request (including in WebKit).
+    const blobPromise = Promise.resolve().then(() => generateChartPng(card, controller.signal, source)).catch(error => {
+      throw typeof error?.code === "string" ? error : pngError("generation", "PNG生成失敗", error);
+    });
+    // Observe immediately, including constructor/write synchronous failures.
+    blobPromise.catch(() => {});
+    let phase = "item-construction";
+    try {
+      const item = new view.ClipboardItem({ "image/png": blobPromise });
+      phase = "write-sync";
+      // Do not await fonts, image load/decode or toBlob before starting write.
+      const written = view.navigator.clipboard.write([item]);
+      phase = "write-async";
+      const writePromise = Promise.resolve(written).catch(error => {
+        const failure = pngError("write-async", "画像コピー失敗", error);
+        controller.abort(failure);
+        throw failure;
+      });
+      await Promise.all([blobPromise, writePromise]);
+      requireChartPngTarget(card, source);
+    } catch (error) {
+      controller.abort(error);
+      await blobPromise.catch(() => {});
+      throw typeof error?.code === "string" ? error : pngError(phase, "画像コピー失敗", error);
+    }
+  }
+  const api = { chartPngFilename, chartPngDimensions, chartPngTextLines, chartPngTheme, captureChartPng, composeChartPng, validateChartPngBlob, chartPngBlob, downloadChartPng, generateChartPng, saveChartPng, copyChartPng, chartPngCopyMessage };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   if (scope) scope.MemoNexusChartPngExport = api;
 })(typeof window !== "undefined" ? window : globalThis);

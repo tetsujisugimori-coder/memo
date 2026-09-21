@@ -16,7 +16,7 @@ async function idle(page) {
 }
 async function snapshot(page) {
   return page.evaluate(async()=>({body:editor.value,note:structuredClone(currentNote()),state:noteSaveFoundation.getState(currentId),saveTimer,
-    undo:structuredClone(undoStack),drafts:structuredClone([...chartEditorOriginalCharts]),stored:(await getStoredNotes()).find(n=>n.id===currentId)}));
+    undo:structuredClone(undoStack),redo:structuredClone(redoStack),drafts:structuredClone([...chartEditorOriginalCharts]),stored:(await getStoredNotes()).find(n=>n.id===currentId)}));
 }
 function fixture(config={},values=[30,-10,0,20]) {
   return normalizeChartBlock({id:'png',title:'月別売上',unit:'万円',chartType:config.chartType||'bar',
@@ -261,7 +261,7 @@ async function verifyChartPngTouch(browser,url) {
     console.log('PNG touch passed at 390px (emulation)');
   }finally{await context.close();}
 }
-module.exports={verifyChartPng,verifyChartPngTouch};
+module.exports={verifyChartPng,verifyChartPngTouch, helpers:{idle,snapshot,fixture,load,observe,pngPixels,composition,viewer,viewerSetup,exportPng}};
 
 if(require.main===module)(async()=>{
   const http=require('node:http'),playwright=require('playwright');

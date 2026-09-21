@@ -8801,26 +8801,39 @@ function chartLineSeriesMarkup(chart, series, points, { valueLabelOptions, categ
 }
 
 function chartPngControls(blockIndex, enabled) {
-  return enabled ? `<div class="chart-png-controls"><button type="button" data-chart-png-index="${blockIndex}">PNG画像として保存</button><p class="chart-block-status" role="status" aria-live="polite"></p></div>` : "";
+  return enabled ? `<div class="chart-png-controls"><button type="button" data-chart-png-index="${blockIndex}">PNG画像として保存</button><button type="button" data-chart-png-copy-index="${blockIndex}">画像をクリップボードへコピー</button><p class="chart-block-status" role="status" aria-live="polite"></p></div>` : "";
 }
 
-async function saveChartPngFromButton(button) {
-  if (button.getAttribute("aria-busy") === "true") return;
+async function runChartPngFromButton(button) {
+  const controls = button.closest(".chart-png-controls");
+  if (!controls || controls.getAttribute("aria-busy") === "true") return;
   const card = button.closest(".chart-block");
-  const status = button.parentElement.querySelector('[role="status"]');
+  const status = controls.querySelector('[role="status"]');
+  const buttons = controls.querySelectorAll("button");
+  const copy = button.hasAttribute("data-chart-png-copy-index");
+  const api = window.MemoNexusChartPngExport;
+  controls.setAttribute("aria-busy", "true");
   button.setAttribute("aria-busy", "true");
-  button.setAttribute("aria-disabled", "true");
-  status.textContent = "PNG画像を生成しています…";
+  buttons.forEach(element => element.setAttribute("aria-disabled", "true"));
+  status.textContent = copy ? "グラフ画像をコピーしています…" : "PNG画像を生成しています…";
   try {
-    const block = splitChartBlocks(editor.value).filter(segment => segment.type === "chart")[Number(button.dataset.chartPngIndex)];
-    if (!block || block.chart.id !== card.dataset.chartId) throw new Error("対象のグラフが変更されています");
-    await window.MemoNexusChartPngExport.saveChartPng(card, block.chart.title);
-    status.textContent = "PNG画像の保存を開始しました";
+    const index = Number(copy ? button.dataset.chartPngCopyIndex : button.dataset.chartPngIndex);
+    const block = splitChartBlocks(editor.value).filter(segment => segment.type === "chart")[index];
+    if (!block || block.chart.id !== card.dataset.chartId || !card.isConnected) {
+      const error = new Error("対象のグラフが変更されています");
+      error.code = "target-changed";
+      throw error;
+    }
+    if (copy) await api.copyChartPng(card);
+    else await api.saveChartPng(card, block.chart.title);
+    status.textContent = copy ? "グラフ画像をクリップボードへコピーしました" : "PNG画像の保存を開始しました";
   } catch (error) {
-    status.textContent = error.message?.startsWith("PNG画像を保存できませんでした") ? error.message : "PNG画像を保存できませんでした: " + (error.message || "画像を生成できません");
+    status.textContent = copy ? api.chartPngCopyMessage(error)
+      : error.message?.startsWith("PNG画像を保存できませんでした") ? error.message : "PNG画像を保存できませんでした: " + (error.message || "画像を生成できません");
   } finally {
+    controls.removeAttribute("aria-busy");
     button.removeAttribute("aria-busy");
-    button.removeAttribute("aria-disabled");
+    buttons.forEach(element => element.removeAttribute("aria-disabled"));
   }
 }
 
@@ -10181,10 +10194,10 @@ function bindChartDataTooltips(host) {
     const target = chartDatumFromEvent(event);
     if (target) {
       if (chartPointerTarget !== target) showChartTooltip(target);
-    } else if (!event.target.closest?.("[data-chart-png-index]")) closeChartTooltip();
+    } else if (!event.target.closest?.("[data-chart-png-index], [data-chart-png-copy-index]")) closeChartTooltip();
   });
   document.addEventListener("focusout", (event) => {
-    if (activeChartTooltip?.target === event.target && !event.relatedTarget?.matches?.("[data-chart-datum], [data-chart-png-index]")) closeChartTooltip();
+    if (activeChartTooltip?.target === event.target && !event.relatedTarget?.matches?.("[data-chart-datum], [data-chart-png-index], [data-chart-png-copy-index]")) closeChartTooltip();
   });
   document.addEventListener("keydown", (event) => {
     chartPointerTarget = null;
@@ -10226,9 +10239,9 @@ function bindChartDataTooltips(host) {
 
 function bindChartBlockControls() {
   bindChartDataTooltips(preview);
-  preview.querySelectorAll("[data-chart-png-index]").forEach((button) => {
+  preview.querySelectorAll("[data-chart-png-index], [data-chart-png-copy-index]").forEach((button) => {
     button.addEventListener("mousedown", (event) => { if (event.button === 0) event.preventDefault(); });
-    button.addEventListener("click", () => saveChartPngFromButton(button));
+    button.addEventListener("click", () => runChartPngFromButton(button));
   });
   preview.querySelectorAll("[data-chart-copy-index]").forEach((button) => button.addEventListener("click", () => copyChartTsv(button)));
   preview.querySelectorAll(".chart-block-edit").forEach((button) => button.addEventListener("click", () => {
