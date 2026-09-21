@@ -3252,3 +3252,10 @@
 - 重点PNG保存・PNGコピーはChromium/WebKitとも終了コード0。PNGは49グラフ/値/表示条件と10テーマ/幅、画素/背景を確認。コピーはネイティブClipboardItemに渡すPromise/実PNG内容、拒否/再試行、状態を確認。Chromiumではネイティブclipboard write/readも成功。
 - Mobile E2E（layout/writing）はChromium/WebKitとも終了コード0、Geometry E2Eは標準Chromiumで終了コード0。保存SVGを単独タブで開いた画像を確認し、390px/1100pxで作成したライト/ダークの日本語・左右2軸・凡例・背景・長文の既存省略、円の選択系列/項目色、50項目の全体幅に欠落がないことを確認。画像/SVGは独立worktreeのsvg-review/へ保存しコミットしない。
 - 元ツリーの保護対象677ファイルのSHA-256一致を確認。元mainの画像差分、freehand-canvas.html、work/は保持。
+
+### 最終検証記録
+
+- 標準Chart E2E（npm run test:e2e:chart）はChromium/WebKitとも終了コード0。SVG・PNG保存/コピー・表→グラフ・TSV・データ表・ツールチップを含め完走。
+- 実装コミット750a1d83fa2027f54ba84527de5c08560ef5bd7aの[CI run 35594502496](https://github.com/tetsujisugimori-coder/memo/actions/runs/35594502496)は6/6ジョブ成功（CI checks、Chart Chromium/WebKit、Mobile Chromium/WebKit、Geometry Chromium）。Chartは8分22秒/10分34秒で完了し、タイムアウト延長やskipなし。
+- [PR #265](https://github.com/tetsujisugimori-coder/memo/pull/265)を新規作成、Closes #264で関連付け。CLIのcreatePullRequestはPAT権限不足で拒否されたため、接続済みGitHub APIで作成した。Issue新規作成とmainへのマージは行っていない。
+- 本追記は検証記録のみで、上記で検証済みの実装/テストに変更なし。追記後の最終HEADのCI結果はPR本文へ記録する。単独表示用SVG/画像、テスト実行ログ、利用者の既存変更はコミットに含めない。
