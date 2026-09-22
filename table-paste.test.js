@@ -43,7 +43,7 @@ test("pasteはイベント中に画像を抽出し、表との共存時だけ形
   const detection = utils.slice(detectionStart, detectionEnd);
   assert.ok(detection.indexOf("parseHtmlTable") < detection.indexOf("parseMarkdownTable"));
   assert.ok(detection.indexOf("parseMarkdownTable") < detection.indexOf("parseTabSeparatedTable"));
-  assert.doesNotMatch(utils, /parseCsv|CSV/i);
+  assert.doesNotMatch(detection, /parseCsv|CSV/i);
 });
 
 test("保留画像は表ダイアログの状態だけに置き、画像選択は既存添付経路へ一度だけ渡す", () => {
@@ -152,9 +152,9 @@ test("表コピーは選択・Undo・保存を変更せず成功または失敗�
 });
 
 test("配信キャッシュ番号を貼り付け機能の変更に合わせて更新する", () => {
-  assert.match(html, /style\.css\?v=0\.5\.0-109/);
-  assert.match(html, /table-block-utils\.js\?v=0\.5\.0-5/);
-  assert.match(html, /app\.js\?v=0\.5\.0-181/);
+  assert.match(html, /style\.css\?v=0\.5\.0-110/);
+  assert.match(html, /table-block-utils\.js\?v=0\.5\.0-6/);
+  assert.match(html, /app\.js\?v=0\.5\.0-182/);
 });
 
 const vm = require("node:vm");

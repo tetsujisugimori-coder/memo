@@ -446,6 +446,7 @@ const { recommendationTarget, recommendFonts } = window.MemoNexusFontRecommendat
 const { createWebFontLoader } = window.MemoNexusWebFontLoader;
 const {
   TABLE_PASTE_LIMITS,
+  TABLE_FILE_IMPORT_LIMITS,
   validateMixedTablePaste,
   serializeMixedTablePaste,
   insertTablePasteContent,
@@ -458,6 +459,8 @@ const {
   insertTableBlock,
   moveTableCell,
   normalizeTableBlock,
+  parseCsvTable,
+  parseTsvTable,
   replaceTableBlock,
   splitTableBlocks,
   tableColumnLabel,
@@ -882,6 +885,9 @@ const mobileWritingTools = $("mobileWritingTools");
 const mobileCalloutTypeSelect = $("mobileCalloutTypeSelect");
 const focusNoteTagBtn = $("focusNoteTagBtn");
 const insertTableBtn = $("insertTableBtn");
+const importTableFileBtn = $("importTableFileBtn");
+const tableFileImportInput = $("tableFileImportInput");
+const tableFileImportStatus = $("tableFileImportStatus");
 const insertGeometryBtn = $("insertGeometryBtn");
 const insertChartBtn = $("insertChartBtn");
 const calloutTypeSelect = $("calloutTypeSelect");
@@ -909,6 +915,7 @@ const confirmTableAxisDeleteBtn = $("confirmTableAxisDeleteBtn");
 const tablePasteDialog = $("tablePasteDialog");
 const tablePasteTitle = $("tablePasteTitle");
 const tablePasteSummary = $("tablePasteSummary");
+const tablePasteFileName = $("tablePasteFileName");
 const tablePasteFormat = $("tablePasteFormat");
 const tablePasteWarning = $("tablePasteWarning");
 const tablePasteTables = $("tablePasteTables");
@@ -1174,6 +1181,9 @@ let activeTableCell = null;
 const tableAxisSelections = new Map();
 let pendingTableAxisDeletion = null;
 let pendingTablePaste = null;
+let preparedTableFileImport = null;
+let tableFileImportRequestId = 0;
+let tableFileImportReading = false;
 let mermaidTemplateTrigger = null;
 let currentAttachments = [];
 let imageBlockSize = "medium";
@@ -10986,6 +10996,122 @@ function restoreTablePasteEditorContext(pending) {
   editor.setSelectionRange(pending.selectionStart, pending.selectionEnd);
 }
 
+function setTableFileImportStatus(message = "", isError = false) {
+  if (!tableFileImportStatus) return;
+  tableFileImportStatus.textContent = message;
+  tableFileImportStatus.classList.toggle("error", isError);
+}
+
+function tableFileImportContext() {
+  const note = currentNote();
+  if (!note || note.deletedAt || !editor) return null;
+  return {
+    requestId: ++tableFileImportRequestId,
+    noteId: note.id,
+    editorValue: editor.value,
+    selectionStart: editor.selectionStart,
+    selectionEnd: editor.selectionEnd
+  };
+}
+
+function tableFileImportContextIsCurrent(context) {
+  return Boolean(context)
+    && context.requestId === tableFileImportRequestId
+    && currentId === context.noteId
+    && editor.value === context.editorValue
+    && editor.selectionStart === context.selectionStart
+    && editor.selectionEnd === context.selectionEnd
+    && currentNote()
+    && !currentNote().deletedAt;
+}
+
+function prepareTableFileImport() {
+  preparedTableFileImport = tableFileImportContext();
+}
+
+function openTableFileImportPicker() {
+  const context = preparedTableFileImport || tableFileImportContext();
+  preparedTableFileImport = null;
+  if (!context || tableFileImportReading || !tableFileImportInput) return;
+  preparedTableFileImport = context;
+  tableFileImportInput.value = "";
+  tableFileImportInput.dataset.requestId = String(context.requestId);
+  tableFileImportInput.click();
+}
+
+function tableFileFormat(fileName) {
+  const match = /\.([^.]+)$/.exec(String(fileName || ""));
+  const extension = match && match[1].toLowerCase();
+  if (extension === "csv") return { extension, label: "CSV", formatLabel: "CSV（カンマ区切り）", parse: parseCsvTable };
+  if (extension === "tsv") return { extension, label: "TSV", formatLabel: "TSV（タブ区切り）", parse: parseTsvTable };
+  return null;
+}
+
+async function readTableFileImport() {
+  const context = preparedTableFileImport;
+  const file = tableFileImportInput?.files?.[0];
+  preparedTableFileImport = null;
+  if (tableFileImportInput) tableFileImportInput.value = "";
+  if (!context || !file) return;
+  const format = tableFileFormat(file.name);
+  if (!format) {
+    setTableFileImportStatus("CSVまたはTSVファイルを選択してください。", true);
+    return;
+  }
+  if (!file.size) {
+    setTableFileImportStatus("空のファイルは読み込めません。", true);
+    return;
+  }
+  if (file.size > TABLE_FILE_IMPORT_LIMITS.bytes) {
+    setTableFileImportStatus("ファイルサイズが上限の5MiBを超えています。", true);
+    return;
+  }
+  tableFileImportReading = true;
+  importTableFileBtn?.setAttribute("aria-busy", "true");
+  setTableFileImportStatus("ファイルを読み込んでいます。");
+  try {
+    const bytes = await file.arrayBuffer();
+    if (!tableFileImportContextIsCurrent(context)) {
+      setTableFileImportStatus("読み込み中に本文または選択範囲が変更されたため、読込を中止しました。", true);
+      return;
+    }
+    let text;
+    try {
+      text = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+    } catch (_) {
+      setTableFileImportStatus("UTF-8として読み込めません。UTF-8形式で保存し直してください。", true);
+      return;
+    }
+    const parsed = format.parse(text);
+    if (!tableFileImportContextIsCurrent(context)) {
+      setTableFileImportStatus("読み込み中に本文または選択範囲が変更されたため、読込を中止しました。", true);
+      return;
+    }
+    openTablePasteDialog({
+      format: "file-" + format.extension,
+      formatLabel: format.formatLabel,
+      rows: parsed.rows,
+      hasHeader: true,
+      alignments: [],
+      hasMergedCells: false
+    }, context.selectionStart, context.selectionEnd, [], {
+      fileName: file.name,
+      label: format.label,
+      size: parsed,
+      requestId: context.requestId
+    });
+    setTableFileImportStatus("内容を確認してから表として読み込めます。");
+  } catch (error) {
+    const message = error && error.name === "TableFileImportError"
+      ? error.message
+      : "ファイルを読み込めませんでした。UTF-8形式で保存し直してください。";
+    setTableFileImportStatus(message, true);
+  } finally {
+    tableFileImportReading = false;
+    importTableFileBtn?.removeAttribute("aria-busy");
+  }
+}
+
 function closeTablePasteDialog({ restoreFocus = true } = {}) {
   const pending = pendingTablePaste;
   pendingTablePaste = null;
@@ -10993,11 +11119,11 @@ function closeTablePasteDialog({ restoreFocus = true } = {}) {
   if (restoreFocus) requestAnimationFrame(() => restoreTablePasteEditorContext(pending));
 }
 
-function openTablePasteDialog(detected, selectionStart, selectionEnd, imageFiles = []) {
+function openTablePasteDialog(detected, selectionStart, selectionEnd, imageFiles = [], fileImport = null) {
   const note = currentNote();
   if (!note || note.deletedAt || !tablePasteDialog) return;
   const mixed = detected.format === "html-mixed";
-  const size = mixed ? validateMixedTablePaste(detected) : validatePastedTableSize(detected.rows);
+  const size = fileImport?.size || (mixed ? validateMixedTablePaste(detected) : validatePastedTableSize(detected.rows));
   pendingTablePaste = {
     noteId: note.id,
     editorValue: editor.value,
@@ -11005,17 +11131,26 @@ function openTablePasteDialog(detected, selectionStart, selectionEnd, imageFiles
     selectionEnd,
     detected,
     size,
-    imageFiles
+    imageFiles,
+    fileImport
   };
   const exceedsLimit = !size.allowed;
   tablePasteTables.replaceChildren();
   tablePasteTables.hidden = !mixed;
-  confirmTablePasteBtn.textContent = mixed ? "文章と表を分けて貼り付け" : "表として貼り付け";
+  const fileMode = Boolean(fileImport);
+  tablePasteDialog.dataset.mode = fileMode ? "file" : "paste";
+  tablePasteFileName.hidden = !fileMode;
+  tablePasteFileName.textContent = fileMode ? `ファイル名：${fileImport.fileName}` : "";
+  confirmTablePasteBtn.textContent = fileMode ? "表として読み込む" : (mixed ? "文章と表を分けて貼り付け" : "表として貼り付け");
   tablePasteTitle.textContent = exceedsLimit ? "貼り付ける表が上限を超えています" : "表として貼り付けますか？";
   tablePasteSummary.textContent = exceedsLimit
     ? `検出したサイズ：${size.rowCount}行 × ${size.columnCount}列（${size.cellCount}セル）`
     : `${size.rowCount}行 × ${size.columnCount}列のデータを検出しました。`;
   tablePasteFormat.textContent = `検出形式：${detected.formatLabel}`;
+  if (fileMode) {
+    tablePasteTitle.textContent = `${fileImport.label}ファイルを表として読み込みますか？`;
+    tablePasteSummary.textContent = `${size.rowCount}行 × ${size.columnCount}列（${size.cellCount}セル）`;
+  }
   if (mixed) {
     tablePasteTitle.textContent = "文章と表を分けて貼り付けますか？";
     tablePasteSummary.textContent = "文章" + size.textCount + "区間・表" + size.tableCount + "件（合計" + size.cellCount + "セル）";
@@ -11062,13 +11197,20 @@ function openTablePasteDialog(detected, selectionStart, selectionEnd, imageFiles
   tablePasteHeaderOption.hidden = mixed || exceedsLimit;
   tablePasteHeaderCheckbox.checked = detected.hasHeader !== false;
   confirmTablePasteBtn.hidden = exceedsLimit;
-  pasteTableAsImageBtn.hidden = imageFiles.length === 0;
+  if (fileMode) {
+    pasteTableAsImageBtn.hidden = true;
+    pasteTableAsTextBtn.hidden = true;
+  } else {
+    pasteTableAsImageBtn.hidden = imageFiles.length === 0;
+    pasteTableAsTextBtn.hidden = false;
+  }
   tablePasteDialog.showModal();
   (exceedsLimit ? pasteTableAsTextBtn : confirmTablePasteBtn).focus();
 }
 
 function pendingTablePasteIsCurrent(pending) {
   return Boolean(pending)
+    && (!pending.fileImport || pending.fileImport.requestId === tableFileImportRequestId)
     && currentId === pending.noteId
     && editor.value === pending.editorValue
     && editor.selectionStart === pending.selectionStart
@@ -11115,11 +11257,12 @@ function insertPastedImage() {
 
 function insertPastedTable() {
   const pending = pendingTablePaste;
-  if (!pendingTablePasteIsCurrent(pending) || !pending.size.allowed) {
+  if (!pendingTablePasteIsCurrent(pending) || !pending.size.allowed || pending.submitting) {
     closeTablePasteDialog({ restoreFocus: false });
     alert("貼り付け先のメモが変更されたため、貼り付けをキャンセルしました。");
     return;
   }
+  pending.submitting = true;
   const mixed = pending.detected.format === "html-mixed";
   let result;
   let table;
@@ -11137,13 +11280,15 @@ function insertPastedTable() {
       result = insertTableBlock(editor.value, pending.selectionStart, pending.selectionEnd, table);
     }
   } catch (error) {
+    pending.submitting = false;
     tablePasteWarning.textContent = "貼り付け内容を作成できませんでした。テキストとして貼り付けるか、キャンセルしてください。";
     tablePasteWarning.hidden = false;
     confirmTablePasteBtn.hidden = true;
     pasteTableAsTextBtn.focus();
     return;
   }
-  captureUndoSnapshot({ inputType: "insertFromPaste" });
+  if (pending.fileImport) captureUndoSnapshot({ inputType: "insertFromFile" });
+  else captureUndoSnapshot({ inputType: "insertFromPaste" });
   editor.value = result.value;
   editor.setSelectionRange(result.selectionStart, result.selectionEnd);
   if (table) tableAxisSelections.delete(table.id);
@@ -15782,6 +15927,14 @@ if (imagePreviewDialog) imagePreviewDialog.addEventListener("close", () => image
 if (syntaxGuideBtn && syntaxGuideDialog) syntaxGuideBtn.addEventListener("click", openSyntaxGuide);
 focusNoteTagBtn?.addEventListener("click", focusNoteTagInput);
 if (insertTableBtn) insertTableBtn.addEventListener("click", insertTableAtSelection);
+if (importTableFileBtn) importTableFileBtn.addEventListener("pointerdown", prepareTableFileImport);
+if (importTableFileBtn) importTableFileBtn.addEventListener("click", openTableFileImportPicker);
+if (tableFileImportInput) tableFileImportInput.addEventListener("change", readTableFileImport);
+if (tableFileImportInput) tableFileImportInput.addEventListener("cancel", () => {
+  preparedTableFileImport = null;
+  tableFileImportInput.value = "";
+  setTableFileImportStatus("");
+});
 if (insertGeometryBtn) insertGeometryBtn.addEventListener("click", insertGeometryAtSelection);
 if (insertChartBtn) insertChartBtn.addEventListener("click", insertChartAtSelection);
 if (insertCalloutBtn) insertCalloutBtn.addEventListener("click", insertCalloutAtSelection);

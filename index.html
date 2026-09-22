@@ -7,7 +7,7 @@
   <script>try { document.documentElement.dataset.initialTheme = localStorage.getItem("memo-nexus-theme") === "dark" ? "dark" : "light"; } catch (_) { document.documentElement.dataset.initialTheme = "light"; }</script>
   <style>html,body{background:#f6f7f4;color:#222522;color-scheme:light}html[data-initial-theme="dark"],html[data-initial-theme="dark"] body{background:#111513;color:#e7ece7;color-scheme:dark}</style>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css">
-  <link rel="stylesheet" href="style.css?v=0.5.0-109">
+  <link rel="stylesheet" href="style.css?v=0.5.0-110">
 </head>
 <body class="app-starting">
   <section id="appStartupGuard" class="app-startup-guard" role="status" aria-live="polite" aria-busy="true">
@@ -199,6 +199,7 @@
       <div class="editor-tools" aria-label="エディタ操作">
         <button id="focusNoteTagBtn" type="button" title="タグを追加" aria-label="タグを追加" class="editor-tool-btn"># タグ</button>
         <button id="insertTableBtn" type="button" title="カーソル位置へ表ブロックを挿入" aria-label="表ブロックを挿入" class="editor-tool-btn">表</button>
+        <button id="importTableFileBtn" type="button" title="CSVまたはTSVファイルを表として読み込む" aria-label="CSVまたはTSVファイルを表として読み込む" class="editor-tool-btn">CSV/TSV</button>
         <button id="insertGeometryBtn" type="button" title="カーソル位置へ図形ブロックを挿入" aria-label="図形ブロックを挿入" class="editor-tool-btn">図形</button>
         <button id="insertChartBtn" type="button" title="カーソル位置へグラフブロックを挿入" aria-label="グラフブロックを挿入" class="editor-tool-btn">グラフ</button>
         <label class="callout-tool" for="calloutTypeSelect">注意書き
@@ -218,7 +219,9 @@
         <button id="syntaxGuideBtn" type="button" title="Markdown・数式・計算ブロック・コード・Mermaidの記法を確認" aria-label="記法ガイドを開く" aria-controls="syntaxGuideDialog" aria-expanded="false">記法ガイド</button>
         <button id="aiSummarizeNoteBtn" type="button">このメモを要約</button>
         <button id="aiSendSelectionBtn" type="button">選択範囲をAIに送る</button>
+        <p id="tableFileImportStatus" class="table-file-import-status" role="status" aria-live="polite"></p>
       </div>
+      <input id="tableFileImportInput" type="file" accept=".csv,.tsv" hidden>
       <textarea id="editor" placeholder="すぐ書けます。[[語句]] で語句を登録し、[[* メモ名]] で既存メモを参照できます。"></textarea>
       <div id="tableBlockEditors" class="table-block-editors" role="region" aria-label="表ブロック編集" hidden></div>
       <div id="geometryBlockEditors" class="geometry-block-editors" role="region" aria-label="図形ブロック編集" hidden></div>
@@ -228,6 +231,7 @@
           <summary aria-label="追加メニューを開く">追加</summary>
           <div class="mobile-writing-menu-panel" role="menu">
             <button type="button" role="menuitem" data-mobile-editor-tool="insertTableBtn">表を挿入</button>
+            <button type="button" role="menuitem" data-mobile-editor-tool="importTableFileBtn">CSV/TSVを読み込む</button>
             <button type="button" role="menuitem" data-mobile-editor-tool="insertGeometryBtn">図形を挿入</button>
             <button type="button" role="menuitem" data-mobile-editor-tool="insertChartBtn">グラフを挿入</button>
             <label class="mobile-callout-option">注意書き
@@ -909,6 +913,7 @@
     </div>
     <div class="table-paste-body">
       <p id="tablePasteSummary"></p>
+      <p id="tablePasteFileName" class="table-paste-format" hidden></p>
       <p id="tablePasteFormat" class="table-paste-format"></p>
       <p id="tablePasteWarning" class="table-paste-warning" role="alert" hidden></p>
       <div id="tablePasteTables" class="table-paste-tables" hidden></div>
@@ -963,7 +968,7 @@
   <script src="web-clip-utils.js?v=0.5.0-7"></script>
   <script src="web-clipper-config.js?v=0.5.0-4"></script>
   <script src="attachment-utils.js?v=0.5.0-12"></script>
-  <script src="table-block-utils.js?v=0.5.0-5"></script>
+  <script src="table-block-utils.js?v=0.5.0-6"></script>
   <script src="chart-block-utils.js?v=0.5.0-28"></script>
   <script src="chart-png-export.js?v=0.5.0-3"></script>
   <script src="geometry-block-utils.js?v=0.5.0-15"></script>
@@ -1011,7 +1016,7 @@
   <script src="draft-mirror-scheduler.js?v=0.5.0-2"></script>
   <script src="typing-performance-monitor.js?v=0.5.0-3"></script>
   <script src="layout-resize-utils.js?v=0.5.0-2"></script>
-  <script src="app.js?v=0.5.0-181"></script>
+  <script src="app.js?v=0.5.0-182"></script>
   <script src="codex-chat.js?v=0.5.0-6"></script>
 </body>
 </html>

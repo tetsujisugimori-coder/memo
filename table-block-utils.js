@@ -3,6 +3,7 @@
 
   const TABLE_BLOCK_VERSION = 1;
   const TABLE_PASTE_LIMITS = Object.freeze({ rows: 100, columns: 30, cells: 3000, tables: 10 });
+  const TABLE_FILE_IMPORT_LIMITS = Object.freeze({ ...TABLE_PASTE_LIMITS, bytes: 5 * 1024 * 1024 });
   const TABLE_BLOCK_PATTERN = /^\s*<!-- memo-nexus:table-block:([0-9a-f]+) -->\s*$/i;
   const IMAGE_BLOCK_START = "<!-- memo-nexus:image-block -->";
   const IMAGE_BLOCK_END = "<!-- /memo-nexus:image-block -->";
@@ -38,6 +39,104 @@
     while (columnCount > 0 && rows.every((row) => (row[columnCount - 1] || "") === "")) columnCount -= 1;
     if (!columnCount) return [];
     return rows.map((row) => Array.from({ length: columnCount }, (_, index) => normalizedCell(row[index])));
+  }
+
+  function tableFileImportError(message) {
+    const error = new Error(message);
+    error.name = "TableFileImportError";
+    return error;
+  }
+
+  // This deliberately does not use normalizePastedTableRows(): a file can explicitly
+  // contain trailing empty columns that must survive import unchanged.
+  function validateTableFileRows(rows, limits = TABLE_PASTE_LIMITS) {
+    if (!Array.isArray(rows) || !rows.length) throw tableFileImportError("実データがありません。");
+    const columnCount = Array.isArray(rows[0]) ? rows[0].length : 0;
+    if (!columnCount) throw tableFileImportError("実データがありません。");
+    rows.forEach((row, index) => {
+      if (!Array.isArray(row) || row.length !== columnCount) {
+        throw tableFileImportError(`${index + 1}行目の列数が他の行と一致しません。`);
+      }
+    });
+    const rowCount = rows.length;
+    const cellCount = rowCount * columnCount;
+    if (rowCount > limits.rows) throw tableFileImportError(`行数が上限の${limits.rows}行を超えています。`);
+    if (columnCount > limits.columns) throw tableFileImportError(`列数が上限の${limits.columns}列を超えています。`);
+    if (cellCount > limits.cells) throw tableFileImportError(`セル数が上限の${limits.cells}セルを超えています。`);
+    if (!rows.some((row) => row.some((cell) => cell !== ""))) throw tableFileImportError("実データがありません。");
+    return { allowed: true, rowCount, columnCount, cellCount, limits };
+  }
+
+  function parseDelimitedTable(text, delimiter, limits = TABLE_PASTE_LIMITS) {
+    const separator = String(delimiter || "");
+    if (separator.length !== 1) throw new TypeError("区切り文字は1文字で指定してください。");
+    const original = String(text == null ? "" : text);
+    if (original.includes("\0")) throw tableFileImportError("NUL文字を含むファイルは読み込めません。");
+    let source = original.charCodeAt(0) === 0xfeff ? original.slice(1) : original;
+    if (!source.length) throw tableFileImportError("ファイルが空です。");
+
+    const rows = [];
+    let row = [];
+    let field = "";
+    let state = "field";
+    let line = 1;
+    let column = 1;
+    const finishField = () => { row.push(field); field = ""; column += 1; };
+    const finishRow = () => { finishField(); rows.push(row); row = []; column = 1; line += 1; };
+
+    for (let index = 0; index < source.length; index += 1) {
+      const character = source[index];
+      const lineBreakLength = character === "\r" && source[index + 1] === "\n" ? 2 : 1;
+      const isLineBreak = character === "\n" || character === "\r";
+      if (state === "quoted") {
+        if (character === '"') {
+          if (source[index + 1] === '"') { field += '"'; index += 1; }
+          else state = "after-quote";
+        } else if (isLineBreak) {
+          field += "\n";
+          if (lineBreakLength === 2) index += 1;
+          line += 1;
+          column = 1;
+        } else field += character;
+        continue;
+      }
+      if (state === "after-quote") {
+        if (character === separator) { finishField(); state = "field"; continue; }
+        if (isLineBreak) {
+          finishRow();
+          if (lineBreakLength === 2) index += 1;
+          state = "field";
+          continue;
+        }
+        throw tableFileImportError(`${line}行${column}列目：閉じ引用符の後に不正な文字があります。`);
+      }
+      if (character === separator) { finishField(); continue; }
+      if (isLineBreak) {
+        finishRow();
+        if (lineBreakLength === 2) index += 1;
+        continue;
+      }
+      if (character === '"') {
+        if (field.length) throw tableFileImportError(`${line}行${column}列目：引用符はセルの先頭でのみ使用できます。`);
+        state = "quoted";
+        continue;
+      }
+      field += character;
+    }
+    if (state === "quoted") throw tableFileImportError(`${line}行${column}列目：引用符が閉じられていません。`);
+    if (!source.endsWith("\n") && !source.endsWith("\r")) {
+      finishField();
+      rows.push(row);
+    }
+    return { rows, ...validateTableFileRows(rows, limits) };
+  }
+
+  function parseCsvTable(text, limits = TABLE_PASTE_LIMITS) {
+    return parseDelimitedTable(text, ",", limits);
+  }
+
+  function parseTsvTable(text, limits = TABLE_PASTE_LIMITS) {
+    return parseDelimitedTable(text, "\t", limits);
   }
 
   function parseTabSeparatedTable(text) {
@@ -648,6 +747,7 @@
 
   const api = {
     TABLE_BLOCK_VERSION,
+    TABLE_FILE_IMPORT_LIMITS,
     TABLE_PASTE_LIMITS,
     addTableColumn,
     addTableRow,
@@ -666,6 +766,9 @@
     serializeMixedTablePaste,
     insertTablePasteContent,
     parseMarkdownTable,
+    parseDelimitedTable,
+    parseCsvTable,
+    parseTsvTable,
     parseTableBlockLine,
     parseTabSeparatedTable,
     replaceTableBlock,
@@ -677,6 +780,7 @@
     tableBlockToMarkdown,
     updateTableCell,
     validatePastedTableSize,
+    validateTableFileRows,
     tableRowsToTabSeparated,
     writeTableToClipboard,
     writeTextToClipboard

@@ -2155,6 +2155,22 @@ body.layout-resizing iframe {
   font-size: 12px;
 }
 
+.table-file-import-status {
+  flex-basis: 100%;
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.table-file-import-status:empty {
+  display: none;
+}
+
+.table-file-import-status.error {
+  color: var(--danger);
+}
+
 .editor-tool-btn {
   display: inline-flex;
   align-items: center;
