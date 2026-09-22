@@ -31,10 +31,11 @@ async function paste(page, source=html, text=plain) {
  },{source,text});
 }
 async function cancel(page,method="button") {
+ const selection=await page.evaluate(()=>pendingTablePaste&&[pendingTablePaste.selectionStart,pendingTablePaste.selectionEnd]);
  if(method==="escape")await page.keyboard.press("Escape");
  else await page.locator(method==="close"?"#closeTablePasteBtn":"#cancelTablePasteBtn").click();
  await page.locator("#tablePasteDialog").waitFor({state:"hidden"});
- try { await page.waitForFunction(()=>document.activeElement===editor); } catch(error) { console.error("Cancel state",await page.evaluate(()=>({active:document.activeElement?.tagName,body:editor.value,pending:pendingTablePaste,currentId,open:tablePasteDialog.open,selection:[editor.selectionStart,editor.selectionEnd]})));throw error; }
+ try { await page.waitForFunction(selection=>document.activeElement===editor&&editor.selectionStart===selection[0]&&editor.selectionEnd===selection[1],selection); } catch(error) { console.error("Cancel state",await page.evaluate(()=>({active:document.activeElement?.tagName,body:editor.value,pending:pendingTablePaste,currentId,open:tablePasteDialog.open,selection:[editor.selectionStart,editor.selectionEnd]})));throw error; }
 }
 async function models(page) {return page.evaluate(()=>MemoNexusTableBlockUtils.splitTableBlocks(editor.value).filter(x=>x.type==="table").map(x=>x.table));}
 async function chooseTableFile(page, file) {
