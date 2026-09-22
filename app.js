@@ -11281,10 +11281,13 @@ function insertPastedTable() {
     }
   } catch (error) {
     pending.submitting = false;
-    tablePasteWarning.textContent = "貼り付け内容を作成できませんでした。テキストとして貼り付けるか、キャンセルしてください。";
+    const fileMode = Boolean(pending.fileImport);
+    tablePasteWarning.textContent = fileMode
+      ? "表を作成できませんでした。ファイルを選び直すか、キャンセルしてください。"
+      : "貼り付け内容を作成できませんでした。テキストとして貼り付けるか、キャンセルしてください。";
     tablePasteWarning.hidden = false;
     confirmTablePasteBtn.hidden = true;
-    pasteTableAsTextBtn.focus();
+    (fileMode ? cancelTablePasteBtn : pasteTableAsTextBtn).focus();
     return;
   }
   if (pending.fileImport) captureUndoSnapshot({ inputType: "insertFromFile" });

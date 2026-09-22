@@ -347,6 +347,16 @@ async function verifyTableFileImport(page) {
  await chooseTableFile(page,{name:"invalid.csv",mimeType:"text/csv",buffer:Buffer.from("\"未終了")});
  await page.waitForFunction(()=>tableFileImportStatus.textContent.includes("閉じられていません"));
  assert.equal(await page.locator("#tablePasteDialog").isVisible(),false);assert.deepEqual(await models(page),[]);
+ await load(page);const fileFailureBefore=await snapshot(page);
+ await chooseTableFile(page,{name:"failure.csv",mimeType:"text/csv",buffer:Buffer.from("A,B\n1,2")});
+ await page.locator("#tablePasteDialog").waitFor({state:"visible"});
+ await page.evaluate(()=>{window.fileImportOriginalUUID=crypto.randomUUID;crypto.randomUUID=()=>{throw Error("injected file table failure");};});
+ await page.locator("#confirmTablePasteBtn").click();
+ assert.deepEqual(await snapshot(page),fileFailureBefore);assert.deepEqual(await page.evaluate(()=>[editor.selectionStart,editor.selectionEnd]),[1,3]);
+ assert.equal(await page.locator("#tablePasteDialog").isVisible(),true);assert.equal(await page.locator("#pasteTableAsImageBtn").isVisible(),false);assert.equal(await page.locator("#pasteTableAsTextBtn").isVisible(),false);
+ assert.match(await page.locator("#tablePasteWarning").textContent(),/表を作成できません/);assert.equal(await page.evaluate(()=>document.activeElement===cancelTablePasteBtn),true);
+ await page.evaluate(()=>{crypto.randomUUID=window.fileImportOriginalUUID;delete window.fileImportOriginalUUID;});await cancel(page);
+ assert.deepEqual(await snapshot(page),fileFailureBefore);assert.deepEqual(await page.evaluate(()=>[editor.selectionStart,editor.selectionEnd]),[1,3]);
  await chooseTableFile(page,{name:"conflict.csv",mimeType:"text/csv",buffer:Buffer.from("A,B\n1,2")});
  await page.locator("#tablePasteDialog").waitFor({state:"visible"});await page.locator("#editor").fill("競合");
  page.once("dialog",dialog=>dialog.accept());await page.locator("#confirmTablePasteBtn").click();await page.locator("#tablePasteDialog").waitFor({state:"hidden"});
@@ -369,11 +379,13 @@ async function layouts(page) {
   if(width===390||width===1100)await page.screenshot({path:path.join(artifacts,theme+"-"+width+"-dialog.png")});
   await cancel(page);
   if(width===390||width===1100) {
-   await load(page);await page.evaluate(()=>prepareTableFileImport());
+   assert.equal(await page.locator("#editor").inputValue(),"先XX末");assert.deepEqual(await page.evaluate(()=>[editor.selectionStart,editor.selectionEnd]),[1,3]);
+   await page.evaluate(()=>prepareTableFileImport());
    await page.locator("#tableFileImportInput").setInputFiles({name:"layout.csv",mimeType:"text/csv",buffer:Buffer.from("項目,値\n確認,1")});
    await page.locator("#tablePasteDialog").waitFor({state:"visible"});
    await page.screenshot({path:path.join(artifacts,"file-"+theme+"-"+width+"-dialog.png")});
    await cancel(page);
+   assert.equal(await page.locator("#editor").inputValue(),"先XX末");assert.deepEqual(await page.evaluate(()=>[editor.selectionStart,editor.selectionEnd]),[1,3]);
   }
   await paste(page,one.repeat(10),"");
   assert.equal(await page.locator(".table-paste-entry").count(),10);

@@ -3354,3 +3354,10 @@
 - 初回Chromium E2Eは新しいUndo直後の履歴メタデータまで完全一致させるテスト期待値が既存仕様と合わず失敗した。本文・表状態を検証する期待値に直し、assertや待機時間を緩めずに再実行して成功した。隔離worktreeにPlaywrightが無かったため`npm ci`でロック済み依存を復元してから実行した。
 - 元作業ツリーの`e2e-artifacts/mobile-layout-390.png`、`freehand-canvas.html`、`work/`は変更・削除・stash・commitせず、PR #271を含むorigin/mainから隔離worktreeで作業した。Safari/iPhone実機は未確認であり、Playwright WebKitとは区別する。
 - 最終検証では、単体全件、Chromium・WebKitの表E2E（CSV/TSVの実ファイル選択、デスクトップ／390pxモバイル起点、確認、取消、保存・再読込、Undo/Redo、競合中止）、Mobile E2E、Geometry E2E、Chart E2E、構文・差分検査を完走した。Chartの390px結果はタッチエミュレーションであり、Safari/iPhone実機や実スクリーンリーダーは未確認である。
+
+### 追補: PR #273 WebKit Table E2E・成果物・例外処理の修正
+
+- PR #273 の WebKit Table E2E は、通常貼り付けダイアログ取消後に本文・選択範囲が復元済みであるにもかかわらず、レイアウト確認のCSVダイアログ撮影前に `load(page)` をもう一度呼んでいた。WebKitではこの `locator.fill()` と入力処理が重なり、選択範囲へ同じ本文が再挿入されて `先先XX末末` となった。製品コードの挿入処理ではなく、不要なE2E再初期化が根本原因である。
+- 再初期化を削除し、通常貼り付け取消後とCSVダイアログ取消後に本文 `先XX末` と選択範囲 `1..3` を厳密に確認する。WebKit専用のskip、固定wait、timeout延長、assertion緩和は加えていない。
+- Table CIは実行前に `e2e-artifacts/table-file-import/${browser}` だけを削除し、テストが新規生成するCSV/TSVダイアログ画像を同じパスからアップロードするよう修正した。既存のmixed-table-pasteやモバイル成果物は削除・アップロード対象にしない。
+- `crypto.randomUUID()` を意図的に失敗させるファイルモード回帰を追加した。本文・保存・Undo/Redoと選択範囲が不変、ダイアログが開いたまま、テキスト／画像ボタンが非表示、ファイル向けのエラーと操作可能な取消ボタンへのフォーカス、取消成功を確認する。通常貼り付けのテキスト案内・フォーカス経路は変更しない。

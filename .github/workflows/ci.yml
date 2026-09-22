@@ -206,17 +206,20 @@ jobs:
       - name: Install Playwright browser
         run: npx playwright install --with-deps ${{ matrix.browser }}
 
+      - name: Clear table E2E screenshots
+        run: rm -rf "e2e-artifacts/table-file-import/${{ matrix.browser }}"
+
       - name: Run table block E2E
         env:
           MEMO_NEXUS_E2E_BROWSER: ${{ matrix.browser }}
         run: npm run test:e2e:table
 
-      - name: Upload table paste screenshots
+      - name: Upload table file import screenshots
         if: always()
         uses: actions/upload-artifact@v6
         with:
-          name: table-paste-${{ matrix.browser }}
-          path: e2e-artifacts/mixed-table-paste/${{ matrix.browser }}
+          name: table-file-import-${{ matrix.browser }}
+          path: e2e-artifacts/table-file-import/${{ matrix.browser }}
           if-no-files-found: error
           retention-days: 7
 
