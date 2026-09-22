@@ -18,7 +18,7 @@ async function snapshot(page) {
   undo:structuredClone(undoStack),redo:structuredClone(redoStack),stored:(await getStoredNotes()).find(n=>n.id===currentId)}));
 }
 async function load(page,body="先XX末") {
- await page.locator("#editor").fill(body); await idle(page);
+ await page.locator("#editor").evaluate((editor,body)=>{editor.value=body;editor.dispatchEvent(new InputEvent("input",{bubbles:true,inputType:"insertText",data:body}));},body); await idle(page);
  assert.equal(await page.locator("#editor").inputValue(),body);
  await page.locator("#editor").focus();
  await page.evaluate(()=>editor.setSelectionRange(1,3));
