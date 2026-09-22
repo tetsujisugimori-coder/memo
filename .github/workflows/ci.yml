@@ -206,7 +206,7 @@ jobs:
       - name: Install Playwright browser
         run: npx playwright install --with-deps ${{ matrix.browser }}
 
-      - name: Run table paste E2E
+      - name: Run table block E2E
         env:
           MEMO_NEXUS_E2E_BROWSER: ${{ matrix.browser }}
         run: npm run test:e2e:table

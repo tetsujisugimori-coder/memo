@@ -37,6 +37,118 @@ async function cancel(page,method="button") {
  try { await page.waitForFunction(()=>document.activeElement===editor); } catch(error) { console.error("Cancel state",await page.evaluate(()=>({active:document.activeElement?.tagName,body:editor.value,pending:pendingTablePaste,currentId,open:tablePasteDialog.open,selection:[editor.selectionStart,editor.selectionEnd]})));throw error; }
 }
 async function models(page) {return page.evaluate(()=>MemoNexusTableBlockUtils.splitTableBlocks(editor.value).filter(x=>x.type==="table").map(x=>x.table));}
+
+// Assert rendered cells independently of the application's table parser.
+function tableEditor(page, index = 0) {
+  return page.locator('#tableBlockEditors > article[data-table-id]').nth(index);
+}
+async function assertTableDom(page, index, rows, hasHeader = true) {
+  await idle(page);
+  const block = tableEditor(page, index);
+  assert.deepEqual(await block.locator('tbody tr').evaluateAll(elements => elements.map(row =>
+    Array.from(row.querySelectorAll('input[data-row-index][data-column-index]'), input => input.value))), rows);
+  assert.equal(await block.locator('thead [data-table-axis="column"]').count(), rows[0].length);
+  const rendered = page.locator('#preview table').nth(index);
+  assert.deepEqual(await rendered.locator('tr').evaluateAll(elements => elements.map(row =>
+    Array.from(row.cells, cell => cell.textContent))), rows);
+  assert.equal(await rendered.locator('thead tr').count(), hasHeader ? 1 : 0);
+}
+async function waitForCellFocus(block, row, column) {
+  const id = await block.getAttribute('data-table-id');
+  await block.page().waitForFunction(({ id, row, column }) => {
+    const input = document.activeElement;
+    return input?.closest('article[data-table-id]')?.dataset.tableId === id
+      && input.dataset.rowIndex === String(row) && input.dataset.columnIndex === String(column);
+  }, { id, row, column });
+}
+async function tableAction(block, action) {
+  const menu = block.locator('details');
+  if (!await menu.evaluate(element => element.open)) await menu.locator('summary').click();
+  await menu.locator('[data-table-action="' + action + '"]').click();
+}
+async function editCell(block, row, column, value) {
+  const input = block.locator('[data-row-index="' + row + '"][data-column-index="' + column + '"]');
+  await input.fill(value);
+  assert.equal(await input.inputValue(), value);
+}
+async function reopen(page, title) {
+  // A real reload reconstructs the editor and preview from saved storage.
+  await idle(page);
+  const saved = await snapshot(page);
+  assert.equal(saved.stored.body, saved.body, 'IndexedDB contains the latest body before reopening');
+  await page.reload({ waitUntil: 'domcontentloaded' });
+  await page.locator('#appStartupGuard').waitFor({ state: 'hidden' });
+  await idle(page);
+  assert.equal(await page.locator('#titleInput').inputValue(), title);
+  assert.equal(await page.locator('#editor').inputValue(), saved.body);
+}
+async function verifyTableLifecycle(page) {
+  const previousId = await page.evaluate(() => currentId);
+  await page.locator('#newBtn').click();
+  await page.waitForFunction(id => currentId !== id && document.activeElement === editor, previousId);
+  const title = 'table-e2e-lifecycle-' + require('node:crypto').randomUUID();
+  await page.locator('#titleInput').fill(title);
+  await page.locator('#editor').fill('ライフサイクル本文');
+  await idle(page);
+  await page.getByRole('button', { name: '表ブロックを挿入', exact: true }).click();
+  const block = tableEditor(page);
+  await waitForCellFocus(block, 0, 0);
+  assert.equal(await page.locator('#tableBlockEditors > article[data-table-id]').count(), 1);
+  const tableId = await block.getAttribute('data-table-id');
+  await assertTableDom(page, 0, [['', ''], ['', '']]);
+  for (const [row, values] of [['項目A', '削除列B'], ['削除行C', '削除交点D']].entries()) {
+    for (const [column, value] of values.entries()) await editCell(block, row, column, value);
+  }
+  await assertTableDom(page, 0, [['項目A', '削除列B'], ['削除行C', '削除交点D']]);
+  await tableAction(block, 'add-row');
+  await waitForCellFocus(block, 2, 0);
+  await assertTableDom(page, 0, [['項目A', '削除列B'], ['削除行C', '削除交点D'], ['', '']]);
+  await editCell(block, 2, 0, '追加行E');
+  await editCell(block, 2, 1, '削除列F');
+  await tableAction(block, 'add-column');
+  await waitForCellFocus(block, 0, 2);
+  await assertTableDom(page, 0, [['項目A', '削除列B', ''], ['削除行C', '削除交点D', ''], ['追加行E', '削除列F', '']]);
+  for (const [row, value] of ['追加列G', '削除行H', '追加交点I'].entries()) await editCell(block, row, 2, value);
+  await assertTableDom(page, 0, [['項目A', '削除列B', '追加列G'], ['削除行C', '削除交点D', '削除行H'], ['追加行E', '削除列F', '追加交点I']]);
+  // Delete the middle axes so shifted surviving cells must retain their values.
+  for (const axis of ['row', 'column']) {
+    await block.locator('[data-table-axis="' + axis + '"][data-table-axis-index="1"]').click();
+    await tableAction(block, 'delete-' + axis);
+    await page.locator('#tableAxisDeleteDialog').waitFor({ state: 'visible' });
+    await page.locator('#confirmTableAxisDeleteBtn').click();
+    await page.locator('#tableAxisDeleteDialog').waitFor({ state: 'hidden' });
+    await idle(page);
+    await assertTableDom(page, 0, axis === 'row'
+      ? [['項目A', '削除列B', '追加列G'], ['追加行E', '削除列F', '追加交点I']]
+      : [['項目A', '追加列G'], ['追加行E', '追加交点I']]);
+  }
+  await reopen(page, title);
+  assert.equal(await block.getAttribute('data-table-id'), tableId);
+  await assertTableDom(page, 0, [['項目A', '追加列G'], ['追加行E', '追加交点I']]);
+  await editCell(block, 0, 1, '再編集J');
+  await editCell(block, 1, 0, '再編集K');
+  await assertTableDom(page, 0, [['項目A', '再編集J'], ['再編集K', '追加交点I']]);
+  await reopen(page, title);
+  assert.equal(await block.getAttribute('data-table-id'), tableId);
+  await assertTableDom(page, 0, [['項目A', '再編集J'], ['再編集K', '追加交点I']]);
+  console.log('Table lifecycle: UI creation, cell edits, row/column addition/deletion, save/reopen and re-edit/re-save passed');
+}
+async function assertMixedDom(page, values = ['10', '20']) {
+  await assertTableDom(page, 0, [['項目', '値'], ['りんご', values[0]]], false);
+  await assertTableDom(page, 1, [['品目', '数'], ['みかん', values[1]]], true);
+  assert.equal(await page.locator('#tableBlockEditors > article[data-table-id]').count(), 2);
+  assert.equal(await page.locator('#preview table').count(), 2);
+  const ids = await page.locator('#tableBlockEditors > article[data-table-id]').evaluateAll(elements => elements.map(el => el.dataset.tableId));
+  assert.equal(new Set(ids).size, 2);
+  assert.deepEqual(await page.locator('#preview [data-table-id]').evaluateAll(elements => elements.map(el => el.dataset.tableId)), ids);
+  const order = await page.locator('#preview').evaluate(element =>
+    Array.from(element.querySelectorAll('p, table'), node => node.tagName === 'TABLE'
+      ? { table: Array.from(node.rows, row => Array.from(row.cells, cell => cell.textContent)) }
+      : node.textContent.replace(/\s+/g, '')));
+  assert.deepEqual(order, ['先文章A😀', { table: [['項目', '値'], ['りんご', values[0]]] },
+    '文章BABC123', { table: [['品目', '数'], ['みかん', values[1]]] }, '文章C末']);
+}
+
 async function nativeParsing(page) {
  const result=await page.evaluate(({html,one,two})=>{
   const u=MemoNexusTableBlockUtils;
@@ -66,6 +178,8 @@ async function verify(page) {
  const previousId=await page.evaluate(()=>currentId);
  await page.locator("#newBtn").click();
  await page.waitForFunction(id=>currentId!==id&&document.activeElement===editor,previousId);await idle(page);
+ const title = "table-e2e-mixed-" + require("node:crypto").randomUUID();
+ await page.locator("#titleInput").fill(title); await idle(page);
  await nativeParsing(page);
  await load(page); const before=await snapshot(page);
  assert.equal(await paste(page),true);
@@ -82,6 +196,7 @@ async function verify(page) {
  for(const key of ["Tab","Shift+Tab"]){await page.keyboard.press(key);assert.equal(await page.evaluate(()=>tablePasteDialog.contains(document.activeElement)),true);}
  assert.deepEqual(await snapshot(page),before,"preview/header changes are read-only");
  await page.locator("#confirmTablePasteBtn").click(); await idle(page);
+ await assertMixedDom(page);
  const saved=await snapshot(page),tables=await models(page);
  assert.equal(tables.length,2);assert.notEqual(tables[0].id,tables[1].id);
  assert.deepEqual(tables.map(x=>x.hasHeader),[false,true]);
@@ -95,6 +210,7 @@ async function verify(page) {
  await page.locator("#redoBtn").click();await idle(page);assert.equal((await snapshot(page)).body,saved.body);
  await page.reload({waitUntil:"domcontentloaded"});await page.locator("#appStartupGuard").waitFor({state:"hidden"});await idle(page);
  assert.equal((await snapshot(page)).body,saved.body);assert.deepEqual(await models(page),tables);
+ await assertMixedDom(page);
  for(let i=0;i<2;i++){
   const block=page.locator(".table-block-editor").nth(i);
   await block.locator('[data-row-index="1"][data-column-index="1"]').fill(String(100+i)); await idle(page);
@@ -102,8 +218,11 @@ async function verify(page) {
   assert.equal(current[1-i].rows[1][1],i===0?"20":"100");
   assert.equal(await block.locator(".table-block-caption-input").count(),1);
   assert.equal(await block.locator(".table-block-note-input").count(),1);
-  for(const action of ["add-row","add-column","copy-table","copy-markdown","create-chart"])assert.equal(await block.locator('[data-table-action="'+action+'"]').count(),1);
+  for(const action of ["add-row","add-column","copy-table","copy-markdown"])assert.equal(await block.locator('[data-table-action="'+action+'"]').count(),1);
  }
+ await assertMixedDom(page, ["100", "101"]);
+ await reopen(page, title);
+ await assertMixedDom(page, ["100", "101"]);
  for(const method of ["button","escape","close"]){
   await load(page);const unchanged=await snapshot(page);await paste(page);await cancel(page,method);
   assert.deepEqual(await snapshot(page),unchanged);assert.deepEqual(await page.evaluate(()=>[editor.selectionStart,editor.selectionEnd]),[1,3]);
@@ -236,11 +355,11 @@ async function layouts(page) {
   page.on("request",r=>{if(r.url().includes("paste.invalid"))external.push(r.url());});
   await page.goto("http://127.0.0.1:"+server.address().port,{waitUntil:"domcontentloaded"});
   await page.locator("#appStartupGuard").waitFor({state:"hidden"});await page.locator("#editor").waitFor();
-  await verify(page);await layouts(page);
+  await verifyTableLifecycle(page);await verify(page);await layouts(page);
   await page.setViewportSize({width:390,height:844});await page.waitForFunction(()=>document.body.dataset.layoutMode==="mobile");if(await page.locator("#contextPanel").getAttribute("aria-hidden")==="false")await page.locator("#closeContextPanelBtn").click();await load(page);await paste(page);
   await page.locator("#confirmTablePasteBtn").tap();await idle(page);assert.equal((await models(page)).length,2);
   assert.deepEqual(external,[],"clipboard HTML must not request external resources");
   assert.deepEqual(errors,[],"no page or console errors/warnings");
-  console.log("Table paste E2E ("+browserName+") passed");
+  console.log("Table block E2E ("+browserName+") passed");
  } finally {if(browser)await browser.close();await new Promise(resolve=>server.close(resolve));}
 })().catch(error=>{console.error(error);process.exitCode=1;});

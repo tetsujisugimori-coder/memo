@@ -3285,3 +3285,33 @@
 - test:e2e:tableはChromium/WebKitとも終了コード0。文章3区間・表2件、個別見出し、固有ID、独立編集、操作入口、全文順序、プレビュー、保存/再読込、Undo/Redo、取消状態不変、メモ/本文/選択競合、2表目のID生成失敗時不変、コード内通常貼付、単一HTML/Markdown/TSV、結合/入れ子、全上限超過、危険HTML非実行と外部要求0を検証。
 - 320/375/390/430/1100px × ライト/ダークで横はみ出しなし、長い表一覧の内部スクロール、Enter誤確定抑止、Tab/Shift+Tab/Escape/閉じる/復帰、390pxタップ相当を確認。e2e-artifacts/mixed-table-paste/へ両エンジンの390/1100px確認画像を保存。iPhone Safari実機は未確認であり、WebKit/タッチエミュレーションと区別する。
 - 既存Mobile E2Eのlayout/writingはChromium/WebKitとも終了コード0、Geometry E2EはChromiumで6シナリオ成功。標準Chart E2Eは両エンジンで実行を継続し、最新HEADのCIと完走結果はPR本文に記録する。
+
+
+## 2026-09-22 表ブロック専用E2Eの拡充（Issue #268）
+
+### 目的・変更内容
+
+- 表のUI作成・編集・自動保存・再編集と、文章A→表1→文章B→表2→文章Cの混在HTML貼り付けを独立して検証する。既存の表専用コマンドとTable CIを確認し、貼り付けspecを複製せずtable-paste.e2e.jsからtable-block.e2e.jsへ移動して拡充した。
+- verifyTableLifecycleを追加。UIから空の2行2列表を作成し識別可能な値を入力、行・列を追加して3行3列へ拡張、中間の行・列を確認ダイアログ経由で削除し、残存セルの位置と値を検証する。IndexedDBへの保存完了後にページを再読み込み、表ID・構造・内容を確認。複数セルの再編集・再保存・再読み込みも確認する。
+- assertTableDom/assertMixedDomを追加し、内部パーサーによる検証とは独立に、編集DOMとプレビューの全セル、行列数、見出し、2表の固有IDと順序、前後・表間の文章を検証する。混在貼り付け後および再読み込み後に確認し、各表の独立編集後にも再保存・再読み込みを確認する。実際のpasteハンドラーへDataTransfer/ClipboardEventを渡す既存経路を維持する。
+- 新規メモ名にUUIDを付け、独立したブラウザコンテキスト・動的ポートを使用する。新規の操作は既存ID/data属性/アクセシブル名で特定し、フォーカス・保存・描画の実状態を待つ。固定時間待機、skip、期待値緩和、画像差分による判定は追加しない。
+- Markdown/TSVは既存の単体テストと貼り付けUI経路で確認済みのため重複追加しない。既存の取消、Undo/Redo、上限、競合、HTML安全性、モバイル/テーマ検証を維持する。表→グラフはtable-to-chart.e2e.jsを呼ぶ既存Chart E2Eに残し、表専用specからグラフ作成ボタン存在確認を外した。
+- 専用コマンドはnpm run test:e2e:table。既存scriptsの実行先をnode table-block.e2e.jsへ更新した。リポジトリに単一の全E2Eコマンドはなく、通常CIはMobile/Table/ChartのChromium・WebKitとGeometryのChromiumを実行する。Tableジョブを維持し、ステップ名だけRun table block E2Eへ更新した。専用コマンドでしか走らないテストにはしていない。
+- 本番コード、UI、保存形式、依存、表→グラフのspecは変更しない。main bd9d84ca1afe5a330a126f16bc6df501030cb786からTEMPの独立worktree、test/table-block-e2eで作業。元ツリーの画像差分、freehand-canvas.html、work/は変更・削除・退避せず、677ファイルのSHA-256一致を確認した。依頼と同内容の既存Issue #268を確認し、新規Issueは作成していない。
+
+### 検証結果・停止理由
+
+- node --test table-block-utils.test.js table-paste.test.js mixed-table-paste.test.js table-to-chart.test.js: 138/138成功、fail/skip 0。
+- npm test: 1,601/1,601成功、fail/skip 0。全JavaScript 181ファイルのnode --check、git diff --checkも成功。package.jsonにlint/型チェック/ビルド専用コマンドはない。
+- npm run test:e2e:table: Chromium/WebKitとも終了コード0。追加ライフサイクル、混在HTMLのDOM・保存検証と既存貼り付け検証を完走。320/375/390/430/1100px、ライト/ダークと390pxタップ相当も既存検証を維持した。OSの実クリップボード操作やiPhone Safari実機の成功を示すものではない。
+- npm run test:e2e:mobile: Chromium/WebKitともlayout/writingを完走し終了コード0。npm run test:e2e:geometry: Chromiumで6シナリオ成功、終了コード0。
+- npm run test:e2e:chartのローカルWebKit初回は終了コード1。chart-block.e2e.js:657の棒サイズ正数assert（kind === 'horizontal' ? w > 0 : h > 0）が、verifySignedChartsの±Number.MAX_VALUEの条件（746行目）で失敗した。失敗したChart spec、本番コード、package-lock.jsonは基点mainと差分がない。
+- 別のTEMP worktreeで基点mainのChart WebKitを実行し、失敗したsigned/extremeシナリオの通過を確認した。また基点mainの同シナリオを、assertと待機条件を保持して状態出力のみ加えた一時診断ファイルで単独実行し終了コード0。初回失敗は再現しなかった。既存の待機が先頭セル表示だけを確認するためモデルと描画の競合を疑ったが、原因は未確定であり、確定した不具合として扱わない。
+- 基点mainのGitHub CI run 35659258029/35659256091は成功している。今回のブランチのCI結果ではない。
+- 「原因が判断できない場合は停止」の依頼に従い、Chart側を修正せずコミット・push・PR作成前で停止した。実行中だった変更側Chart Chromiumと基点main Chart WebKitは中断し、全体完走成功には含めない。変更側Chromiumは符号付き/積み上げ/100%/複合/二軸/軸タイトル/ツールチップ/TSVまで通過、後続を含むChart全体は未確認。基点main WebKitも全体未完走。
+- 今回の変更は未コミット。ブランチCIは未実行、PR URLなし。残課題はローカルChart WebKit初回失敗の原因切り分け、既存Chart E2E全体の完走確認、その後のコミット・push・PR（Closes #268）と最終HEADのCI確認。検証生成画像と一時診断ファイルはPR対象に含めない。
+
+### PR作成の再開
+
+- 停止報告後、ユーザーからPR作成の明示依頼を受けたため、上記の失敗・未確認事項を保持してコミット・push・PR作成を再開する。テストコードと本番コードへの追加変更は行わない。今回の差分は表specの移動・拡充、package.json、CIステップ名、LOG.mdの4ファイルに限定し、生成画像は含めない。
+- 既存Issue #268と関連付け、PR本文へ成功した検証、Chart WebKit初回失敗、Chart全体の中断、実機未確認を明記する。最終コミットのCI状況はPRのChecksで確認し、未完了の検証を成功と報告しない。
