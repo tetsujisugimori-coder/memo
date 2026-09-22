@@ -15,21 +15,27 @@ function functionSource(name, nextName) {
   return app.slice(start, end);
 }
 
-test("表貼り付けdialogは形式・サイズ・見出し選択と3操作を持つ", () => {
+test("表貼り付けdialogは画像候補がある時だけ使える4操作を持つ", () => {
   assert.match(html, /id="tablePasteDialog"[^>]*aria-labelledby="tablePasteTitle"/);
   assert.match(html, /id="tablePasteSummary"/);
   assert.match(html, /id="tablePasteFormat"/);
   assert.match(html, /id="tablePasteHeaderCheckbox"[^>]*type="checkbox"/);
   assert.match(html, /id="confirmTablePasteBtn"[^>]*>表として貼り付け</);
+  assert.match(html, /id="pasteTableAsImageBtn"[^>]*type="button" hidden[^>]*>画像として貼り付け</);
   assert.match(html, /id="pasteTableAsTextBtn"[^>]*>テキストとして貼り付け</);
   assert.match(html, /id="cancelTablePasteBtn"[^>]*>キャンセル</);
 });
 
-test("pasteは画像の既存処理後にHTML・Markdown・タブ区切りを判定し通常貼り付けを妨げない", () => {
+test("pasteはイベント中に画像を抽出し、表との共存時だけ形式選択を開く", () => {
   const source = functionSource("handleEditorPaste");
-  assert.match(source, /handleClipboardAttachmentPaste\(event\)/);
+  const extract = functionSource("extractClipboardImageFiles", "handleClipboardAttachmentPaste");
+  assert.match(source, /const imageFiles = extractClipboardImageFiles\(clipboardData\)/);
+  assert.match(source, /openTablePasteDialog\(detected, editor\.selectionStart, editor\.selectionEnd, imageFiles\)/);
+  assert.match(source, /if \(!detected\) \{[\s\S]*handleClipboardAttachmentPaste\(event, imageFiles\)/);
+  assert.match(extract, /item\.getAsFile\(\)/);
+  assert.match(app, /CLIPBOARD_IMAGE_MIME_TYPES = \["image\/jpeg", "image\/png", "image\/webp"\]/);
+  assert.match(extract, /if \(itemFiles\.length\) return itemFiles/);
   assert.match(source, /detectPastedTable\(\{[\s\S]*text\/html[\s\S]*text\/plain/);
-  assert.match(source, /if \(!detected\) return;/);
   assert.match(source, /editorSelectionIsInsideCodeFence\(\)/);
   assert.match(source, /event\.preventDefault\(\);[\s\S]*openTablePasteDialog/);
   const detectionStart = utils.indexOf("function detectPastedTable(");
@@ -38,6 +44,18 @@ test("pasteは画像の既存処理後にHTML・Markdown・タブ区切りを判
   assert.ok(detection.indexOf("parseHtmlTable") < detection.indexOf("parseMarkdownTable"));
   assert.ok(detection.indexOf("parseMarkdownTable") < detection.indexOf("parseTabSeparatedTable"));
   assert.doesNotMatch(utils, /parseCsv|CSV/i);
+});
+
+test("保留画像は表ダイアログの状態だけに置き、画像選択は既存添付経路へ一度だけ渡す", () => {
+  const open = functionSource("openTablePasteDialog", "pendingTablePasteIsCurrent");
+  const image = functionSource("insertPastedImage", "insertPastedTable");
+  assert.match(open, /imageFiles/);
+  assert.match(open, /pasteTableAsImageBtn\.hidden = imageFiles\.length === 0/);
+  assert.match(image, /pendingTablePasteIsCurrent\(pending\)/);
+  assert.match(image, /pending\.submittingImage/);
+  assert.match(image, /closeTablePasteDialog\(\{ restoreFocus: false \}\)/);
+  assert.match(image, /handleAttachmentFiles\(imageFiles, \{[\s\S]*insertIntoEditor: true[\s\S]*inputType: "insertFromPaste"/);
+  assert.match(app, /pasteTableAsImageBtn\.addEventListener\("click", insertPastedImage\)/);
 });
 
 test("コードフェンス内はタブやMarkdown記号を表へ変換せず通常貼り付けへ戻す", () => {
@@ -134,9 +152,9 @@ test("表コピーは選択・Undo・保存を変更せず成功または失敗�
 });
 
 test("配信キャッシュ番号を貼り付け機能の変更に合わせて更新する", () => {
-  assert.match(html, /style\.css\?v=0\.5\.0-108/);
+  assert.match(html, /style\.css\?v=0\.5\.0-109/);
   assert.match(html, /table-block-utils\.js\?v=0\.5\.0-5/);
-  assert.match(html, /app\.js\?v=0\.5\.0-180/);
+  assert.match(html, /app\.js\?v=0\.5\.0-181/);
 });
 
 const vm = require("node:vm");
