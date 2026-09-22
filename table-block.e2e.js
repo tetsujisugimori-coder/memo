@@ -313,7 +313,7 @@ async function verify(page) {
  assert.equal(imageChoice.length,1);assert.equal(imageChoice[0].files.length,1);assert.equal(imageChoice[0].files[0].type,"image/png");assert.ok(imageChoice[0].files[0].size>0);
  assert.deepEqual(imageChoice[0].options,{insertIntoEditor:true,inputType:"insertFromPaste",selectionStart:1,selectionEnd:3});
  assert.equal(await page.locator("#tablePasteDialog").isVisible(),false);assert.equal((await snapshot(page)).body,"先XX末");assert.deepEqual(await models(page),[]);
- await load(page);await paste(page,one,"");assert.equal(await page.locator("#pasteTableAsImageBtn").isVisible(),false);
+ await load(page);await paste(page,one,"");assert.equal(await page.locator("#pasteTableAsImageBtn").isVisible(),false);await cancel(page);
  console.log("Mixed paste: merged/nested/security and table/image/text routing passed");
  console.log("Mixed paste: parser, insertion, independent edits, persistence, Undo/Redo, cancellation, conflicts and compatibility passed");
 }

@@ -3334,3 +3334,4 @@
 - node --test table-block-utils.test.js table-paste.test.js mixed-table-paste.test.jsは105/105成功、npm testは1,602/1,602成功、変更したJavaScriptのnode --checkとgit diff --checkも成功。初回npm testはindex.htmlのキャッシュ番号更新に追随していない既存の資産順序テストで失敗したため、app.jsとstyle.cssの番号期待値だけを同じ181/109へ更新して再実行した。
 - Chromiumの表E2Eでは、表＋PNGのClipboardEvent直後にダイアログと画像ボタンが表示され添付処理0件、画像選択後に抽出済み1件と元選択範囲がhandleAttachmentFilesへ一度だけ渡ること、表だけで画像ボタンが非表示であることを確認した。表ライフサイクル、混在貼り付けの保存・Undo/Redo・安全性も同じ実行で通過した。モバイルE2EはChromiumでlayout/writingを完走し、320/375/390/430pxで横スクロール0、console/page error 0を確認した。
 - 実行環境の1回約30秒の子プロセス上限により、table/geometry E2Eのレイアウト後半・WebKit、chart E2Eはこの時点でローカル完走未確認。固定wait、timeout延長、skip、assert緩和は加えず、push後のCIで確認する。モバイルE2Eが隔離worktree内で更新した既存mobile-layout-390.pngはコミット対象から除外し、元作業ツリーの同名画像は変更していない。
+- 初回PR CIのTable E2E Chromium/WebKitは、画像候補なしを確認する最後の単一表ダイアログをテスト側で閉じず、次の狭幅ループがcontext panelを閉じようとしてモーダルに遮られたため失敗した。本番処理ではなくE2E後始末の欠落であり、同じcancel helperを追加した。待機時間やアサートは変更していない。
