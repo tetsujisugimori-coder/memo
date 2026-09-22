@@ -916,6 +916,7 @@ const tablePasteHeaderOption = $("tablePasteHeaderOption");
 const tablePasteHeaderCheckbox = $("tablePasteHeaderCheckbox");
 const closeTablePasteBtn = $("closeTablePasteBtn");
 const confirmTablePasteBtn = $("confirmTablePasteBtn");
+const pasteTableAsImageBtn = $("pasteTableAsImageBtn");
 const pasteTableAsTextBtn = $("pasteTableAsTextBtn");
 const cancelTablePasteBtn = $("cancelTablePasteBtn");
 const editorCard = document.querySelector(".editor-card");
@@ -10937,15 +10938,27 @@ function canvasToBlob(canvas, type, quality) {
   });
 }
 
-function handleClipboardAttachmentPaste(event) {
-  const clipboardData = event.clipboardData;
-  const supportedTypes = ["image/jpeg", "image/png", "image/webp"];
+const CLIPBOARD_IMAGE_MIME_TYPES = ["image/jpeg", "image/png", "image/webp"];
+
+function extractClipboardImageFiles(clipboardData) {
   const imageItems = Array.from(clipboardData && clipboardData.items || [])
-    .filter((item) => item.kind === "file" && supportedTypes.includes(item.type));
-  const clipboardFiles = Array.from(clipboardData && clipboardData.files || [])
-    .filter((file) => supportedTypes.includes(file.type));
+    .filter((item) => item.kind === "file" && CLIPBOARD_IMAGE_MIME_TYPES.includes(item.type));
+  const itemFiles = imageItems.map((item, index) => {
+    const blob = item.getAsFile();
+    if (!blob) return null;
+    const extension = item.type === "image/jpeg" ? "jpg" : item.type.split("/")[1];
+    const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+    return new File([blob], `clipboard-${stamp}-${index + 1}.${extension}`, { type: item.type });
+  }).filter(Boolean);
+  if (itemFiles.length) return itemFiles;
+  return Array.from(clipboardData && clipboardData.files || [])
+    .filter((file) => CLIPBOARD_IMAGE_MIME_TYPES.includes(file.type));
+}
+
+function handleClipboardAttachmentPaste(event, imageFiles = extractClipboardImageFiles(event.clipboardData)) {
+  const clipboardData = event.clipboardData;
   const plainText = clipboardData ? clipboardData.getData("text/plain").trim() : "";
-  if (!imageItems.length && !clipboardFiles.length) {
+  if (!imageFiles.length) {
     if (plainText.startsWith("blob:")) {
       event.preventDefault();
       setAttachmentStatus("一時的なblob URLは本文へ貼り付けられません。画像データをコピーし直してください。", true);
@@ -10958,19 +10971,7 @@ function handleClipboardAttachmentPaste(event) {
   event.preventDefault();
   const selectionStart = editor.selectionStart;
   const selectionEnd = editor.selectionEnd;
-  const itemFiles = imageItems.map((item, index) => {
-    const blob = item.getAsFile();
-    if (!blob) return null;
-    const extension = item.type === "image/jpeg" ? "jpg" : item.type.split("/")[1];
-    const stamp = new Date().toISOString().replace(/[:.]/g, "-");
-    return new File([blob], `clipboard-${stamp}-${index + 1}.${extension}`, { type: item.type });
-  }).filter(Boolean);
-  const files = itemFiles.length ? itemFiles : clipboardFiles;
-  if (!files.length) {
-    setAttachmentStatus("クリップボードから画像データを取得できませんでした。画像をコピーし直してください。", true);
-    return true;
-  }
-  handleAttachmentFiles(files, {
+  handleAttachmentFiles(imageFiles, {
     insertIntoEditor: true,
     inputType: "insertFromPaste",
     selectionStart,
@@ -10992,7 +10993,7 @@ function closeTablePasteDialog({ restoreFocus = true } = {}) {
   if (restoreFocus) requestAnimationFrame(() => restoreTablePasteEditorContext(pending));
 }
 
-function openTablePasteDialog(detected, selectionStart, selectionEnd) {
+function openTablePasteDialog(detected, selectionStart, selectionEnd, imageFiles = []) {
   const note = currentNote();
   if (!note || note.deletedAt || !tablePasteDialog) return;
   const mixed = detected.format === "html-mixed";
@@ -11003,7 +11004,8 @@ function openTablePasteDialog(detected, selectionStart, selectionEnd) {
     selectionStart,
     selectionEnd,
     detected,
-    size
+    size,
+    imageFiles
   };
   const exceedsLimit = !size.allowed;
   tablePasteTables.replaceChildren();
@@ -11060,6 +11062,7 @@ function openTablePasteDialog(detected, selectionStart, selectionEnd) {
   tablePasteHeaderOption.hidden = mixed || exceedsLimit;
   tablePasteHeaderCheckbox.checked = detected.hasHeader !== false;
   confirmTablePasteBtn.hidden = exceedsLimit;
+  pasteTableAsImageBtn.hidden = imageFiles.length === 0;
   tablePasteDialog.showModal();
   (exceedsLimit ? pasteTableAsTextBtn : confirmTablePasteBtn).focus();
 }
@@ -11090,6 +11093,24 @@ function insertPastedPlainText() {
   scheduleSave({ render: false });
   editor.focus();
   editor.setSelectionRange(nextPosition, nextPosition);
+}
+
+function insertPastedImage() {
+  const pending = pendingTablePaste;
+  if (!pendingTablePasteIsCurrent(pending) || !pending.imageFiles.length || pending.submittingImage) {
+    closeTablePasteDialog({ restoreFocus: false });
+    alert("貼り付け先のメモが変更されたため、貼り付けをキャンセルしました。");
+    return;
+  }
+  pending.submittingImage = true;
+  const imageFiles = pending.imageFiles;
+  closeTablePasteDialog({ restoreFocus: false });
+  handleAttachmentFiles(imageFiles, {
+    insertIntoEditor: true,
+    inputType: "insertFromPaste",
+    selectionStart: pending.selectionStart,
+    selectionEnd: pending.selectionEnd
+  });
 }
 
 function insertPastedTable() {
@@ -11147,18 +11168,24 @@ function editorSelectionIsInsideCodeFence() {
 }
 
 function handleEditorPaste(event) {
-  if (handleClipboardAttachmentPaste(event)) return;
   const clipboardData = event.clipboardData;
-  if (!clipboardData || editorSelectionIsInsideCodeFence()) return;
+  const imageFiles = extractClipboardImageFiles(clipboardData);
+  if (!clipboardData || editorSelectionIsInsideCodeFence()) {
+    handleClipboardAttachmentPaste(event, imageFiles);
+    return;
+  }
   const detected = detectPastedTable({
     html: clipboardData.getData("text/html"),
     text: clipboardData.getData("text/plain")
   });
-  if (!detected) return;
+  if (!detected) {
+    handleClipboardAttachmentPaste(event, imageFiles);
+    return;
+  }
   const note = currentNote();
   if (!note || note.deletedAt) return;
   event.preventDefault();
-  openTablePasteDialog(detected, editor.selectionStart, editor.selectionEnd);
+  openTablePasteDialog(detected, editor.selectionStart, editor.selectionEnd, imageFiles);
 }
 
 function editorDropHasFiles(event) {
@@ -15835,6 +15862,7 @@ if (tableAxisDeleteDialog) tableAxisDeleteDialog.addEventListener("close", () =>
 if (closeTablePasteBtn) closeTablePasteBtn.addEventListener("click", () => closeTablePasteDialog());
 if (cancelTablePasteBtn) cancelTablePasteBtn.addEventListener("click", () => closeTablePasteDialog());
 if (confirmTablePasteBtn) confirmTablePasteBtn.addEventListener("click", insertPastedTable);
+if (pasteTableAsImageBtn) pasteTableAsImageBtn.addEventListener("click", insertPastedImage);
 if (pasteTableAsTextBtn) pasteTableAsTextBtn.addEventListener("click", insertPastedPlainText);
 if (tablePasteDialog) {
   tablePasteDialog.addEventListener("cancel", (event) => {

@@ -294,24 +294,27 @@ async function verify(page) {
  // Verify the clipboard routing boundary; the attachment pipeline has its own tests.
  // Windows WebKit's existing attachment storage failure is recorded separately against main.
  await load(page);
- const priority = await page.locator("#editor").evaluate(async(editor,html)=>{
+ const mixedClipboard = await page.locator("#editor").evaluate(async(editor,{html,plain})=>{
   const canvas=document.createElement("canvas");canvas.width=2;canvas.height=2;
   canvas.getContext("2d").fillRect(0,0,2,2);
   const blob=await new Promise(resolve=>canvas.toBlob(resolve,"image/png"));
-  const data=new DataTransfer();data.setData("text/html",html);data.items.add(new File([blob],"paste.png",{type:"image/png"}));
-  const original=handleAttachmentFiles;const calls=[];
-  handleAttachmentFiles=(files,options)=>{calls.push({files:files.map(file=>({type:file.type,size:file.size})),options});return Promise.resolve([]);};
-  try {
-   const event=new ClipboardEvent("paste",{clipboardData:data,bubbles:true,cancelable:true});
-   editor.dispatchEvent(event);
-   return {calls,prevented:event.defaultPrevented,body:editor.value};
-  } finally {handleAttachmentFiles=original;}
- },html);
- assert.equal(priority.prevented,true);assert.equal(priority.calls.length,1);
- assert.equal(priority.calls[0].files.length,1);assert.equal(priority.calls[0].files[0].type,"image/png");assert.ok(priority.calls[0].files[0].size>0);
- assert.deepEqual(priority.calls[0].options,{insertIntoEditor:true,inputType:"insertFromPaste",selectionStart:1,selectionEnd:3});
- assert.equal(priority.body,"先XX末");assert.equal(await page.locator("#tablePasteDialog").isVisible(),false);assert.deepEqual(await models(page),[]);
- console.log("Mixed paste: merged/nested/security and image priority passed");
+  const data=new DataTransfer();data.setData("text/html",html);data.setData("text/plain",plain);data.items.add(new File([blob],"paste.png",{type:"image/png"}));
+  window.clipboardPasteOriginalHandler=handleAttachmentFiles;window.clipboardPasteCalls=[];
+  handleAttachmentFiles=(files,options)=>{clipboardPasteCalls.push({files:files.map(file=>({type:file.type,size:file.size})),options});return Promise.resolve([]);};
+  const event=new ClipboardEvent("paste",{clipboardData:data,bubbles:true,cancelable:true});
+  editor.dispatchEvent(event);
+  return {prevented:event.defaultPrevented,body:editor.value,pendingFiles:pendingTablePaste?.imageFiles.length||0};
+ },{html,plain});
+ assert.equal(mixedClipboard.prevented,true);assert.equal(mixedClipboard.pendingFiles,1);assert.equal(mixedClipboard.body,"先XX末");
+ assert.equal(await page.locator("#tablePasteDialog").isVisible(),true);assert.equal(await page.locator("#pasteTableAsImageBtn").isVisible(),true);
+ assert.equal(await page.evaluate(()=>clipboardPasteCalls.length),0);
+ await page.locator("#pasteTableAsImageBtn").click();
+ const imageChoice=await page.evaluate(()=>{const result=structuredClone(clipboardPasteCalls);handleAttachmentFiles=clipboardPasteOriginalHandler;delete window.clipboardPasteOriginalHandler;delete window.clipboardPasteCalls;return result;});
+ assert.equal(imageChoice.length,1);assert.equal(imageChoice[0].files.length,1);assert.equal(imageChoice[0].files[0].type,"image/png");assert.ok(imageChoice[0].files[0].size>0);
+ assert.deepEqual(imageChoice[0].options,{insertIntoEditor:true,inputType:"insertFromPaste",selectionStart:1,selectionEnd:3});
+ assert.equal(await page.locator("#tablePasteDialog").isVisible(),false);assert.equal((await snapshot(page)).body,"先XX末");assert.deepEqual(await models(page),[]);
+ await load(page);await paste(page,one,"");assert.equal(await page.locator("#pasteTableAsImageBtn").isVisible(),false);await cancel(page);
+ console.log("Mixed paste: merged/nested/security and table/image/text routing passed");
  console.log("Mixed paste: parser, insertion, independent edits, persistence, Undo/Redo, cancellation, conflicts and compatibility passed");
 }
 async function layouts(page) {

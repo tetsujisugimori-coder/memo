@@ -3315,3 +3315,23 @@
 
 - 停止報告後、ユーザーからPR作成の明示依頼を受けたため、上記の失敗・未確認事項を保持してコミット・push・PR作成を再開する。テストコードと本番コードへの追加変更は行わない。今回の差分は表specの移動・拡充、package.json、CIステップ名、LOG.mdの4ファイルに限定し、生成画像は含めない。
 - 既存Issue #268と関連付け、PR本文へ成功した検証、Chart WebKit初回失敗、Chart全体の中断、実機未確認を明記する。最終コミットのCI状況はPRのChecksで確認し、未完了の検証を成功と報告しない。
+
+## 2026-09-22 クリップボードの表・画像形式選択（関連Issueなし）
+
+### 目的・設計
+
+- Excel等の通常コピーではHTML表、text/plain、画像が同時に入ることがある。従来はhandleEditorPasteが表判定より先にhandleClipboardAttachmentPasteを完了させるため、構造化表を選べる状況でも画像だけが取り込まれていた。
+- 単純な処理順の逆転では純粋な画像や解析不能HTMLの既存動作を変えるため、貼り付けイベント中にJPEG/PNG/WebPをFileとして抽出し、HTML表・Markdown表・TSVの判定成功時だけ既存tablePasteDialogへ保留する形式選択にした。itemsから取得できた画像を優先し、filesとの重複登録を避ける。
+- ダイアログは表（混在HTMLでは文章と表）、画像、テキスト、キャンセルを排他的に選ぶ。画像候補がない表貼り付けでは画像ボタンをhiddenにし、レイアウトの空白を残さない。画像File、ClipboardEvent、DataTransferは永続化せず、閉じる・Escape・キャンセルでpendingTablePasteを解放する。
+- 画像選択時は既存pendingTablePasteIsCurrentでメモ、本文、選択範囲を検査してから閉じ、同じhandleAttachmentFilesへinsertIntoEditor/inputType/元選択範囲を渡す。既存の画像圧縮、妥当性検査、容量、保存、ロールバック、本文参照、Undo、自動保存、エラー表示を再利用し、連打は保留状態を閉じて一度だけ開始する。競合時は保存せず日本語の中止案内を出す。
+- TABLE_BLOCK_VERSION、UTF-8 hex表マーカー、DB_VERSION、添付スキーマ、Markdown/ZIP保存、表→グラフ、Web Clipper、画像ブロック、ドロップ、ファイル選択は変更しない。Excelファイル読込、CSV判定、書式再現、表と画像の同時挿入、永続設定、外部依存は対象外。
+
+### 実装・検証経過
+
+- app.jsへ画像抽出の小さな責務を追加し、handleEditorPasteは表＋画像でダイアログ、画像だけ・通常文章＋画像・解析不能HTML＋画像・コードフェンス内画像で既存直接添付経路へ分岐する。index.htmlへ標準buttonを1つだけ追加し、既存の折返し可能なactionsレイアウトとライト/ダークテーマを維持した。README.mdへ利用方法を追記した。
+- table-paste.test.jsとtable-block.e2e.jsを更新し、イベント中のgetAsFile、対応MIME、画像候補の保留、表のみ時のボタン非表示、画像選択時の既存添付境界・元選択範囲を確認する。表、テキスト、キャンセルでは画像処理を開始しない既存の状態不変検証を維持する。
+- 利用者の元作業ツリーにあるe2e-artifacts/mobile-layout-390.png、freehand-canvas.html、work/を変更・削除・stash・commitせず、origin/main（PR #269マージ済み）からfeature/clipboard-paste-format-choiceの隔離worktreeで作業した。Issue検索では未完了の対応Issueは0件だった。
+- node --test table-block-utils.test.js table-paste.test.js mixed-table-paste.test.jsは105/105成功、npm testは1,602/1,602成功、変更したJavaScriptのnode --checkとgit diff --checkも成功。初回npm testはindex.htmlのキャッシュ番号更新に追随していない既存の資産順序テストで失敗したため、app.jsとstyle.cssの番号期待値だけを同じ181/109へ更新して再実行した。
+- Chromiumの表E2Eでは、表＋PNGのClipboardEvent直後にダイアログと画像ボタンが表示され添付処理0件、画像選択後に抽出済み1件と元選択範囲がhandleAttachmentFilesへ一度だけ渡ること、表だけで画像ボタンが非表示であることを確認した。表ライフサイクル、混在貼り付けの保存・Undo/Redo・安全性も同じ実行で通過した。モバイルE2EはChromiumでlayout/writingを完走し、320/375/390/430pxで横スクロール0、console/page error 0を確認した。
+- 実行環境の1回約30秒の子プロセス上限により、table/geometry E2Eのレイアウト後半・WebKit、chart E2Eはこの時点でローカル完走未確認。固定wait、timeout延長、skip、assert緩和は加えず、push後のCIで確認する。モバイルE2Eが隔離worktree内で更新した既存mobile-layout-390.pngはコミット対象から除外し、元作業ツリーの同名画像は変更していない。
+- 初回PR CIのTable E2E Chromium/WebKitは、画像候補なしを確認する最後の単一表ダイアログをテスト側で閉じず、次の狭幅ループがcontext panelを閉じようとしてモーダルに遮られたため失敗した。本番処理ではなくE2E後始末の欠落であり、同じcancel helperを追加した。待機時間やアサートは変更していない。
