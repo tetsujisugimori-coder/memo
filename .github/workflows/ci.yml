@@ -8,6 +8,11 @@ on:
     branches:
       - main
   workflow_dispatch:
+    inputs:
+      dual_axis_profile:
+        description: Profile dual-axis Chart E2E on WebKit
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -174,6 +179,7 @@ jobs:
       - name: Run chart E2E with feature and total durations
         env:
           MEMO_NEXUS_E2E_BROWSER: ${{ matrix.browser }}
+          MEMO_NEXUS_E2E_DUAL_AXIS_PROFILE: ${{ github.event_name == 'workflow_dispatch' && inputs.dual_axis_profile && matrix.browser == 'webkit' && '1' || '' }}
         run: npm run test:e2e:chart:all
 
   table-e2e:
