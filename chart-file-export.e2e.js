@@ -300,9 +300,37 @@ async function expectInputError(page, events, target, value, pattern) {
       page.waitForEvent("download", { predicate: (download) => download.suggestedFilename() === "売上_集計-chart-2.tsv" })
     ];
     await page.evaluate(() => {
-      document.querySelector('#preview [data-chart-file-index="0"][data-chart-file-format="csv"]').click();
-      document.querySelector('#preview [data-chart-file-index="1"][data-chart-file-format="tsv"]').click();
+      const NativeChannel = window.MessageChannel;
+      const gate = { release: null, restore: () => { window.MessageChannel = NativeChannel; } };
+      window.chartDeliveryGate = gate;
+      window.MessageChannel = class {
+        constructor() {
+          const channel = new NativeChannel();
+          this.port1 = channel.port1;
+          this.port2 = {
+            close: () => channel.port2.close(),
+            postMessage: (...args) => {
+              if (!gate.release) gate.release = () => channel.port2.postMessage(...args);
+              else channel.port2.postMessage(...args);
+            }
+          };
+        }
+      };
     });
+    try {
+      await cardButton(page, 0, "csv").click();
+      await page.waitForFunction(() => chartDeliveryGate.release
+        && document.querySelector('#preview [data-chart-file-index="0"][data-chart-file-format="csv"]')?.disabled);
+      await cardButton(page, 1, "tsv").click();
+      await page.waitForFunction(() => document.querySelector('#preview [data-chart-file-index="1"][data-chart-file-format="tsv"]')?.disabled);
+      assert.equal((await probe(page)).created.length, parallelBefore.created.length + 1,
+        "second user activation is in flight while the first delivery remains pending");
+    } finally {
+      await page.evaluate(() => {
+        chartDeliveryGate.restore();
+        chartDeliveryGate.release?.();
+      });
+    }
     try {
       await Promise.all(downloads);
     } catch (error) {

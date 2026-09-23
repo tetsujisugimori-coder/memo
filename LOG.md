@@ -3422,7 +3422,7 @@
 
 ### 追補: PR #278 Issue #277の検証・配送修正
 
-* 専用`chart-file-export.e2e.js`を、項目・3系列を並べ替えた未確定draftのCSV/TSV、未丸め元値、本文・保存済みデータ・draft・dirty・Undo/Redo・保存予約・IndexedDB不変、取消後の保存済みカード、再読込後の既存パーサー往復まで拡張した。2カードを同一タスクで保存し、各1回のdownloadイベント、別々の正しいファイル名・内容・Object URL・一時リンク/href解放を確認する。NUL、非有限値、5MiB超過はdownload 0件・日本語理由・ボタン復帰・再操作を、同じボタンの連打はdownload 1件を確認する。
+* 専用`chart-file-export.e2e.js`を、項目・3系列を並べ替えた未確定draftのCSV/TSV、未丸め元値、本文・保存済みデータ・draft・dirty・Undo/Redo・保存予約・IndexedDB不変、取消後の保存済みカード、再読込後の既存パーサー往復まで拡張した。先行配送を保留して別カードの実ブラウザークリックを重ね、両要求が同時に処理中であること、各1回のdownloadイベント、別々の正しいファイル名・内容・Object URL・一時リンク/href解放を確認する。NUL、非有限値、5MiB超過はdownload 0件・日本語理由・ボタン復帰・再操作を、同じボタンの連打はdownload 1件を確認する。
 * 320/375/390/430/1100px、ライト／ダークの編集画面と保存済みカードでCSV/TSVを実際に保存し、ボタンの重なりと横スクロール、フォーカス可能性、成功通知を確認した。タップはPlaywrightエミュレーションであり、iPhone Safari実機と実スクリーンリーダーは未確認である。
 * WebKitでは同一タスクの2リンクが両方クリック・成功表示・解放されても、実downloadは後者1件だけになった。`downloadDelimitedFile()`が先行要求の配送タスク完了を待ってから次のリンクを起動するようにし、独立URL・解放・先行失敗後の継続をunit testに追加した。キーボード保存時に一時`disabled`で失われたフォーカスは`exportChartFile()`の完了後、利用者が他へ移していない場合だけ復元する。配信キャッシュ識別子と参照テストを同期し、保存スキーマは変更しない。
 * `.github/workflows/ci.yml`の既存Chart E2E Chromium／WebKitマトリクスへ専用E2Eの独立ステップを追加した。変更前のCI成功は専用E2E成功とは数えない。前回WebKit Chartジョブは約10分52秒で15分枠内だったため、ジョブ構成とタイムアウトは変更しない。
@@ -3430,3 +3430,4 @@
 * 開始時からの`e2e-artifacts/mobile-layout-390.png`、`freehand-canvas.html`、`svg-review/`、`work/`は変更・stage・commitしない。表E2Eが再生成した画像だけ検証後に元へ戻した。PRレビューの「間違い」は対象行のない本文コメントであり、対象を特定できないため推測で別箇所を変更しない。
 * 初回修正HEAD `dd3910e`のCI run 35855732218では、既存Chart WebKitは成功したが専用Chart export WebKitだけ失敗した。先行CSVと後続TSVの2リンクがクリックされ成功表示も出たのに、実downloadイベントはTSVだけだった。直列化だけでは不足し、既存SVG同時保存と同じくリンク本体とObject URLを配送タスク完了まで保持してから解放するよう修正した。unit testは保留した配送タスク中のリンク・URL寿命と解放順、配送後cleanup例外を固定した。修正後ローカル専用E2EとTable E2EはChromium／WebKitとも完走し、現行ルート全unit 1,583件も成功した。失敗したCIを成功として扱わず、次HEADで全ジョブを再確認する。
 * 修正HEAD `0937830`のCI run 35857602950は全8ジョブ成功した。Chromium／WebKitの両Chartジョブで既存Chart E2Eと専用`Run chart file export E2E`が別々に成功し、CI checks（クリーンなcheckoutでの`npm test`を含む）、Table両ブラウザー、Mobile両ブラウザー、Geometryも成功した。ログ追記でHEADが更新されるため、最終HEADのCIも別途確認する。
+* LOG追記HEAD `87266a8`のCI run 35858872980では、専用WebKit E2Eの同一JavaScriptタスク内の2件の合成`button.click()`で先行CSVのdownloadイベントが再び失われた（他7ジョブは成功）。ユーザーの2回のクリックと異なる合成操作がWebKitのナビゲーションを競合させるため、専用E2EをPlaywrightの2件の実クリックに変更した。先行要求の配送完了をテスト境界で保留し、後続を起動して両ボタンが同時に`disabled`、後続のURL作成は先行配送待ちであることを確認してから解放する。固定wait・timeout延長・skip・retry・download回数や内容の期待値緩和はない。修正後の専用E2EはChromium／WebKitとも完走した。同一JSタスクの合成クリックでのWebKit配送は保証できないため、実ユーザー操作の検証と区別する。
