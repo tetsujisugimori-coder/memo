@@ -75,7 +75,8 @@ async function copyPendingTsv(page, expected) {
     });
   }
 }
-async function verifyTableToChart(page) {
+async function verifyTableToChart(page, step = () => {}) {
+  step('Table setup and pending Chart draft');
   await page.setViewportSize({width:1100,height:900});
   await page.waitForFunction(()=>document.body.dataset.layoutMode==='wide');
   const previousId = await page.evaluate(()=>currentId);
@@ -109,6 +110,7 @@ async function verifyTableToChart(page) {
   assert.deepEqual(await snapshot(page),before);
   await start(page,'same-content','Space');
   await copyPendingTsv(page, rows.map(row => row.join('\t')).join('\n'));
+  step('Chart insertion, Undo and Redo');
   const id = await confirm(page);
   const saved = (await models(page))[0];
   const created = (await snapshot(page)).body;
@@ -128,6 +130,7 @@ async function verifyTableToChart(page) {
   await start(page); await confirm(page);
   assert.equal(await page.locator('#redoBtn').isDisabled(),true,'new insertion invalidates Redo');
   const restored=(await models(page))[0];
+  step('save/reload and source independence');
   await page.reload({waitUntil:'domcontentloaded'}); await page.locator('#appStartupGuard').waitFor({state:'hidden'});
   await page.locator('.chart-block-editor').waitFor({state:'visible'}); await idle(page);
   assert.deepEqual((await models(page))[0],restored);
@@ -138,6 +141,7 @@ async function verifyTableToChart(page) {
   await page.locator('.chart-block-editor [data-chart-action="confirm"]').click(); await idle(page);
   assert.ok((await snapshot(page)).body.includes(sourceAfter),'editing chart preserves table');
   // Preserve safe identity across movement; refuse removal/replacement/duplicate IDs.
+  step('source identity and invalid Table rejection');
   for (const scenario of ['moved','deleted','replaced','duplicate','edited']) {
     await load(page,body); await start(page);
     const draftId=await pending(page).getAttribute('data-chart-id');
@@ -166,6 +170,7 @@ async function verifyTableToChart(page) {
     assert.deepEqual(await snapshot(page),unchanged);
   }
   const configs=[...['vertical','horizontal'].flatMap(barOrientation=>['grouped','stacked','percent-stacked'].map(barMode=>({chartType:'bar',barOrientation,barMode}))),{chartType:'line'},{chartType:'pie'},{chartType:'combo',comboAxisMode:'single'},{chartType:'combo',comboAxisMode:'dual'}];
+  step('Chart types and rendered output');
   for (const config of configs) {
     await load(page,marker('source')); await start(page);
     await pending(page).locator('[data-chart-field="chartType"]').selectOption(config.chartType);
@@ -190,6 +195,7 @@ async function verifyTableToChart(page) {
   const downloadEvent=page.waitForEvent('download'); await page.locator('#preview [data-chart-png-index]').click(); const download=await downloadEvent;
   assert.deepEqual([...fs.readFileSync(await download.path()).subarray(0,8)],[137,80,78,71,13,10,26,10]);
   fs.mkdirSync(artifacts,{recursive:true});
+  step('responsive editor and preview layouts');
   for(const theme of ['light','dark']) {
     await page.setViewportSize({width:1100,height:900}); await page.waitForFunction(()=>document.body.dataset.layoutMode==='wide');
     await page.locator('#settingsBtn').click(); await page.locator('#themeSelect').selectOption(theme); await page.locator('#closeSettingsBtn').click();

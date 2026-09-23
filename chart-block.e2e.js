@@ -6,6 +6,7 @@ const http = require("node:http");
 const os = require("node:os");
 const path = require("node:path");
 const playwright = require("playwright");
+const { createE2eTiming } = require("./e2e-timing.js");
 const { verifyTableToChart, verifyTableToChartTouch } = require("./table-to-chart.e2e.js");
 const { verifyChartPngClipboard, verifyChartPngClipboardTouch, verifyNativeClipboard } = require("./chart-png-clipboard.e2e.js");
 const { verifyChartSvg, verifyChartSvgTouch } = require("./chart-svg-export.e2e.js");
@@ -165,7 +166,8 @@ function boxesHaveGap(first, second, minimumGap = 2) {
 
 
 
-async function verifyDivergingStacks(page, percent = false) {
+async function verifyDivergingStacks(page, percent = false, step = () => {}) {
+  step("Chart setup and preview geometry");
   const barMode = percent ? "percent-stacked" : "stacked";
   await page.setViewportSize({ width: 1100, height: 820 });
   // Responsive mode changes can blur the editor; wait before starting a new input.
@@ -277,6 +279,7 @@ async function verifyDivergingStacks(page, percent = false) {
     }
   }
   const datasets = [seed.series.map((s)=>s.values), [[30,30,30],[10,10,10],[20,20,20]], [[-30,-30,-30],[-10,-10,-10],[-20,-20,-20]], [[0,0,0],[0,0,0],[0,0,0]], [[Number.MAX_VALUE,-Number.MAX_VALUE,1e-300],[Number.MAX_VALUE,-Number.MAX_VALUE,-1e300],[-Number.MAX_VALUE,Number.MAX_VALUE,0]], [[1e300,1e300,1e300],[-1e-300,-1e-300,-1e-300],[0,0,0]], [[-1e300,-1e300,-1e300],[1e-300,1e-300,1e-300],[0,0,0]]];
+  step("140 geometry combinations across data, theme and width");
   for (const values of datasets) {
     for (let item=0;item<3;item++) for(let series=0;series<3;series++) await input(item,series).fill(String(values[series][item]));
     for(const theme of ['light','dark']) {
@@ -289,6 +292,7 @@ async function verifyDivergingStacks(page, percent = false) {
     }
   }
   for(let item=0;item<3;item++) for(let series=0;series<3;series++) await input(item,series).fill(String(seed.series[series].values[item]));
+  step("save/reload, type changes and invalid drafts");
   for(const kind of ['vertical','horizontal']) {
     await orientation.selectOption(kind); await confirm.click();
     await page.waitForFunction(()=>document.querySelector('.chart-block-editor .chart-block-status')?.textContent==='入力内容を保存しました');
@@ -344,7 +348,8 @@ async function verifyDivergingStacks(page, percent = false) {
   console.log(`Diverging ${barMode} checks passed: 140 geometry combinations, persistence, type switches, invalid drafts, reload and cancel`);
 }
 
-async function verifyComboCharts(page) {
+async function verifyComboCharts(page, step = () => {}) {
+  step("Chart creation, series editing and persistence");
   await page.setViewportSize({ width: 1100, height: 820 });
   await page.waitForFunction(() => document.body.dataset.layoutMode === "wide");
   await page.locator("#editor").fill("複合の新規作成");
@@ -537,6 +542,7 @@ async function verifyComboCharts(page) {
   }
 
   const datasets = [ [[30,20,0],[20,40,0],[10,20,0]], [[-30,-20,0],[-20,-40,0],[-10,-20,0]], [[30,-20,0],[-20,40,0],[10,-30,0]], [[0,0,0],[0,0,0],[0,0,0]], [[Number.MAX_VALUE,-Number.MAX_VALUE,0],[-Number.MAX_VALUE,Number.MAX_VALUE,0],[1e-300,-1e300,0]], [[1e300,-1e-300,0],[1e-300,-1e300,0],[Number.MIN_VALUE,-Number.MIN_VALUE,0]] ];
+  step("120 geometry combinations across data, theme and width");
   let geometryCount = 0;
   for (const count of [2, 3]) {
     if (count === 3) await panel.locator('[data-chart-action="add-series"]').click();
@@ -571,6 +577,7 @@ async function verifyComboCharts(page) {
     }
   }
   const finalBody = await saved(), finalModel = await chart(page);
+  step("final save/reload and legacy fallback");
   await page.reload({ waitUntil: "domcontentloaded" }); await page.locator("#appStartupGuard").waitFor({ state: "hidden" }); await panel.waitFor({ state: "visible" });
   assert.equal(await page.locator("#editor").inputValue(), finalBody); assert.deepEqual(await chart(page), finalModel); await geometry(finalModel);
   const invalidId = { ...finalModel, id: "combo-fallback", appearance: { ...finalModel.appearance, comboLineSeriesId: "deleted" } };
@@ -777,23 +784,52 @@ async function verifySignedCharts(page) {
   let server = null;
   let browser = null;
   let runError = null;
+  const featureFlag = process.argv.indexOf("--feature");
+  const selectedFeature = featureFlag < 0 ? "" : process.argv[featureFlag + 1];
+  if (featureFlag >= 0 && !selectedFeature) throw new Error("--feature requires a feature name");
+  const report = createE2eTiming(`Chart E2E (${browserName})`, selectedFeature);
+
+  async function runPageFeature(name, verify) {
+    await report.feature(name, async ({ beginStep }) => {
+      beginStep("fresh browser context and editor startup");
+      const page = await browser.newPage({ viewport: { width: 1100, height: 820 } });
+      const pageErrors = [];
+      const consoleErrors = [];
+      page.on("pageerror", (error) => pageErrors.push(error.message));
+      page.on("console", (message) => {
+        if (message.type() === "error") consoleErrors.push(message.text());
+      });
+      try {
+        await page.route("https://cdn.jsdelivr.net/**", (route) => {
+          const pathname = new URL(route.request().url()).pathname.toLowerCase();
+          return pathname.endsWith(".css")
+            ? route.fulfill({ contentType: "text/css", body: "" })
+            : route.fulfill({ contentType: "text/javascript", body: "window.katex={renderToString:String};window.mermaid={initialize(){},render:async()=>({svg:'<svg></svg>'})};window.hljs={highlightAuto:()=>({value:''}),getLanguage:()=>false};" });
+        });
+        await waitForApp(page);
+        beginStep("UI operations and assertions");
+        await verify(page, beginStep);
+        assert.deepEqual(pageErrors, [], `ページエラーなし: ${pageErrors.join("\n")}`);
+        assert.deepEqual(consoleErrors, [], `console errorなし: ${consoleErrors.join("\n")}`);
+      } catch (error) {
+        if (!page.isClosed()) {
+          console.error("Chart failure state:", JSON.stringify(await page.evaluate(() => ({
+            charts: window.MemoNexusChartBlockUtils.splitChartBlocks(document.getElementById("editor").value).filter((segment) => segment.type === "chart").map((segment) => segment.chart),
+            chartStatus: [...document.querySelectorAll(".chart-block-status")].map((el) => el.textContent)
+          })).catch((diagnosticError) => ({ diagnosticError: String(diagnosticError) }))));
+        }
+        throw error;
+      } finally {
+        await page.close();
+      }
+    });
+  }
+
   try {
     server = await startStaticServer();
     browser = await launchBrowser();
-    const page = await browser.newPage({ viewport: { width: 1100, height: 820 } });
-    const pageErrors = [];
-    const consoleErrors = [];
-    page.on("pageerror", (error) => pageErrors.push(error.message));
-    page.on("console", (message) => {
-      if (message.type() === "error") consoleErrors.push(message.text());
-    });
-    await page.route("https://cdn.jsdelivr.net/**", (route) => {
-      const pathname = new URL(route.request().url()).pathname.toLowerCase();
-      return pathname.endsWith(".css")
-        ? route.fulfill({ contentType: "text/css", body: "" })
-        : route.fulfill({ contentType: "text/javascript", body: "window.katex={renderToString:String};window.mermaid={initialize(){},render:async()=>({svg:'<svg></svg>'})};window.hljs={highlightAuto:()=>({value:''}),getLanguage:()=>false};" });
-    });
-    await waitForApp(page);
+    await runPageFeature("chart-create-edit-save", async (page, step) => {
+      step("chart-create: insert and render");
     await page.locator("#editor").fill("グラフの前\nグラフの後");
     await page.locator("#insertChartBtn").click();
     const editor = page.locator(".chart-block-editor");
@@ -831,6 +867,7 @@ async function verifySignedCharts(page) {
     assert.equal(await page.locator("#preview .chart-block-edit").count(), 1, "カードに再編集操作を表示する");
     await page.locator("#preview .chart-block-edit").click();
     assert.equal(await editor.evaluate((element) => document.activeElement === element), true, "カードの編集操作が対応する編集欄へ移動する");
+    step("chart-edit: validation and type changes");
     const firstValue = editor.locator('input[aria-label="1件目の数値"]');
     await firstValue.fill("");
     assert.equal(await firstValue.getAttribute("aria-invalid"), "true", "空の数値欄を不正として公開する");
@@ -1043,6 +1080,7 @@ async function verifySignedCharts(page) {
       && document.querySelector(`#preview .chart-block-pie-slice[data-chart-item-id="${id}"]`) === null, pieItemIds[1]);
     await pieEditor.locator('button[data-chart-action="confirm"]').click();
     await page.waitForFunction(() => document.querySelector(".chart-block-editor .chart-block-status")?.textContent === "入力内容を保存しました");
+    step("chart-save-reload: persist and restore");
     await page.reload({ waitUntil: "domcontentloaded" });
     await page.locator("#appStartupGuard").waitFor({ state: "hidden" });
     pieEditor = page.locator(".chart-block-editor");
@@ -1115,6 +1153,10 @@ async function verifySignedCharts(page) {
     await page.locator("#themeSelect").selectOption("light");
     await page.waitForFunction(() => !document.body.classList.contains("dark"));
     await page.locator("#closeSettingsBtn").click();
+    });
+
+    await runPageFeature("chart-multiple-blocks", async (page, step) => {
+      step("duplicate IDs and independent editing");
     const duplicateSetup = await page.evaluate(() => {
       const { normalizeChartBlock, serializeChartBlock } = window.MemoNexusChartBlockUtils;
       const first = normalizeChartBlock({
@@ -1194,6 +1236,10 @@ async function verifySignedCharts(page) {
       .filter((segment) => segment.type === "chart")[1]?.chart.title === title, confirmedSecond.title);
     await waitForChartCancelCompletion(page, 1);
     assert.deepEqual(await charts(page), [duplicateSetup.first, confirmedSecond], "前方グラフ削除後も対象外のグラフを復元しない");
+    });
+
+    await runPageFeature("chart-multi-series", async (page, step) => {
+      step("legacy marker and series editing");
     const legacyMultiMarker = await page.evaluate(() => window.MemoNexusChartBlockUtils.serializeChartBlock({
       id: "legacy-multi", chartType: "bar", title: "月別比較", unit: "万円",
       items: [
@@ -1554,6 +1600,7 @@ async function verifySignedCharts(page) {
       const current = window.MemoNexusChartBlockUtils.splitChartBlocks(document.getElementById("editor").value).find((segment) => segment.type === "chart")?.chart;
       return JSON.stringify(current?.series.map((series) => series.values)) === JSON.stringify(expected);
     }, originalStackedValues);
+    step("stacked geometry and narrow layouts");
     await page.setViewportSize({ width: 320, height: 820 });
     await page.waitForFunction(() => innerWidth === 320 && document.body.dataset.layoutMode === "mobile");
     const narrowContextPanel = page.locator("#contextPanel");
@@ -1826,6 +1873,7 @@ async function verifySignedCharts(page) {
       assert.equal(percentMobileMetrics.tableScrollable, true, `${viewportWidth}pxで入力表だけを横スクロール可能にする`);
       assert.equal(percentMobileMetrics.chartScrollable, true, `${viewportWidth}pxで横棒の横スクロールをグラフ領域だけへ閉じ込める`);
     }
+    step("multi-series type changes, mobile layout and persistence");
     await page.setViewportSize({ width: 1280, height: 900 });
     await page.waitForFunction(() => document.body.dataset.layoutMode === "wide");
     await multiEditor.locator('button[data-chart-action="confirm"]').click();
@@ -2053,42 +2101,33 @@ async function verifySignedCharts(page) {
     const metrics = await previewChart.evaluate((element) => ({ card: element.getBoundingClientRect().width, viewport: innerWidth, pageOverflow: document.documentElement.scrollWidth - document.documentElement.clientWidth }));
     assert.ok(metrics.card <= metrics.viewport, "390px幅でもグラフカードが画面からはみ出さない");
     assert.equal(metrics.pageOverflow, 0, "390px幅でもページ全体の横スクロールを作らない");
-    await verifySignedCharts(page);
-    await verifyDivergingStacks(page);
-    await verifyDivergingStacks(page, true);
-    await verifyComboCharts(page);
-    await verifyDualAxisCharts(page, { chart, waitForChartCancelCompletion });
-    await verifyAxisTitles(page, { chart, waitForChartCancelCompletion });
-    await verifyChartTooltips(page);
-    await verifyTouchTooltips(browser, appUrl);
-    await verifyChartTsv(page);
-    await verifyChartTsvTouch(browser, appUrl);
-    await verifyChartDataTable(page);
-    await verifyChartDataTableTouch(browser, appUrl);
-    await verifyChartTsvCopy(page);
-    await verifyChartTsvCopyTouch(browser, appUrl);
-    await verifyChartPng(page);
-    await verifyChartPngTouch(browser, appUrl);
-    await verifyChartPngClipboard(page);
-    await verifyChartPngClipboardTouch(browser, appUrl);
-    await verifyNativeClipboard(browser, appUrl);
-    await verifyChartSvg(page);
-    await verifyChartSvgTouch(browser, appUrl);
-    await verifyTableToChart(page);
-    await verifyTableToChartTouch(browser, appUrl);
-    assert.deepEqual(pageErrors, [], `ページエラーなし: ${pageErrors.join("\n")}`);
-    assert.deepEqual(consoleErrors, [], `console errorなし: ${consoleErrors.join("\n")}`);
+    });
+
+    await runPageFeature("chart-signed-values", async (page) => verifySignedCharts(page));
+    await runPageFeature("chart-diverging-stacked", async (page, step) => verifyDivergingStacks(page, false, step));
+    await runPageFeature("chart-diverging-percent", async (page, step) => verifyDivergingStacks(page, true, step));
+    await runPageFeature("chart-combo", async (page, step) => verifyComboCharts(page, step));
+    await runPageFeature("chart-dual-axis", async (page, step) => verifyDualAxisCharts(page, { chart, waitForChartCancelCompletion, step }));
+    await runPageFeature("chart-axis-titles", async (page, step) => verifyAxisTitles(page, { chart, waitForChartCancelCompletion, step }));
+    await runPageFeature("chart-tooltips", async (page, step) => verifyChartTooltips(page, step));
+    await runPageFeature("chart-tsv-import", async (page, step) => verifyChartTsv(page, step));
+    await runPageFeature("chart-data-table", async (page, step) => verifyChartDataTable(page, step));
+    await runPageFeature("chart-tsv-copy", async (page, step) => verifyChartTsvCopy(page, step));
+    await runPageFeature("chart-png-export", async (page, step) => verifyChartPng(page, step));
+    await runPageFeature("chart-png-copy", async (page, step) => verifyChartPngClipboard(page, step));
+    await runPageFeature("chart-svg-export", async (page, step) => verifyChartSvg(page, step));
+    await runPageFeature("table-to-chart", async (page, step) => verifyTableToChart(page, step));
+    await report.feature("chart-tooltips-touch", async ({ beginStep }) => { beginStep("touch UI and assertions"); await verifyTouchTooltips(browser, appUrl); });
+    await report.feature("chart-tsv-import-touch", async ({ beginStep }) => { beginStep("touch UI and assertions"); await verifyChartTsvTouch(browser, appUrl); });
+    await report.feature("chart-data-table-touch", async ({ beginStep }) => { beginStep("touch UI and assertions"); await verifyChartDataTableTouch(browser, appUrl); });
+    await report.feature("chart-tsv-copy-touch", async ({ beginStep }) => { beginStep("touch UI and assertions"); await verifyChartTsvCopyTouch(browser, appUrl); });
+    await report.feature("chart-png-export-touch", async ({ beginStep }) => { beginStep("touch UI and assertions"); await verifyChartPngTouch(browser, appUrl); });
+    await report.feature("chart-png-copy-touch", async ({ beginStep }) => { beginStep("touch UI and assertions"); await verifyChartPngClipboardTouch(browser, appUrl); });
+    await report.feature("chart-png-copy-native", async ({ beginStep }) => { beginStep("touch UI and assertions"); await verifyNativeClipboard(browser, appUrl); });
+    await report.feature("chart-svg-export-touch", async ({ beginStep }) => { beginStep("touch UI and assertions"); await verifyChartSvgTouch(browser, appUrl); });
+    await report.feature("table-to-chart-touch", async ({ beginStep }) => { beginStep("touch UI and assertions"); await verifyTableToChartTouch(browser, appUrl); });
   } catch (error) {
     runError = error;
-    const activePage = browser?.contexts()[0]?.pages()[0];
-    if (activePage && !activePage.isClosed()) {
-      console.error("Chart failure state:", JSON.stringify(await activePage.evaluate(() => ({
-        charts: window.MemoNexusChartBlockUtils.splitChartBlocks(document.getElementById("editor").value).filter((segment) => segment.type === "chart").map((segment) => segment.chart),
-        inputs: [...document.querySelectorAll(".chart-block-editor input")].map((input) => ({ label: input.getAttribute("aria-label"), value: input.value })),
-        chartStatus: [...document.querySelectorAll(".chart-block-status")].map((el) => el.textContent),
-        slices: [...document.querySelectorAll("#preview .chart-block-pie-slice")].map((slice) => ({ id: slice.dataset.chartItemId, fill: slice.getAttribute("fill") }))
-      })).catch((diagnosticError) => ({ diagnosticError: String(diagnosticError) }))));
-    }
     throw error;
   } finally {
     let cleanupError = null;
@@ -2104,6 +2143,7 @@ async function verifySignedCharts(page) {
       if (runError) console.error("Static server cleanup failed", error);
       else if (!cleanupError) cleanupError = error;
     }
+    report.summary();
     if (cleanupError) throw cleanupError;
   }
 })().catch((error) => { console.error(error); process.exitCode = 1; });

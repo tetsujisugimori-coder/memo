@@ -144,7 +144,7 @@ jobs:
   chart-e2e:
     name: Chart E2E (${{ matrix.browser }})
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 45
 
     strategy:
       fail-fast: false
@@ -171,15 +171,10 @@ jobs:
       - name: Install Playwright browser
         run: npx playwright install --with-deps ${{ matrix.browser }}
 
-      - name: Run chart E2E
+      - name: Run chart E2E with feature and total durations
         env:
           MEMO_NEXUS_E2E_BROWSER: ${{ matrix.browser }}
-        run: npm run test:e2e:chart
-
-      - name: Run chart file export E2E
-        env:
-          MEMO_NEXUS_E2E_BROWSER: ${{ matrix.browser }}
-        run: npm run test:e2e:chart-export
+        run: npm run test:e2e:chart:all
 
   table-e2e:
     name: Table E2E (${{ matrix.browser }})

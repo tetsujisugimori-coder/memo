@@ -40,7 +40,8 @@ async function copy(page,activate){
   assert.equal(await button(page).getAttribute('aria-busy'),null);assert.equal(data.urls,0);
   const bytes=Buffer.from(data.bytes);return {bytes,pixels:await h.pngPixels(page,bytes)};
 }
-async function verifyChartPngClipboard(page){
+async function verifyChartPngClipboard(page,step=()=>{}){
+  step('clipboard setup and six Chart types versus downloads');
   await h.viewerSetup(page);await h.observe(page);await boundary(page);
   let downloads=0;const onDownload=()=>downloads++;page.on('download',onDownload);
   try{
@@ -51,6 +52,7 @@ async function verifyChartPngClipboard(page){
       page.off('download',onDownload);const saved=await h.exportPng(page,chart.title);page.on('download',onDownload);assert.deepEqual(copied.bytes,saved.bytes,'copy and save use identical pixels, labels, dimensions and theme');
     }
     await button(page).focus();await page.keyboard.press('Shift+Tab');await page.keyboard.press('Tab');assert.equal(await button(page).evaluate(el=>el===document.activeElement),true);
+    step('keyboard, selection, scroll and responsive layouts');
     for(const key of ['Enter','Space']){await copy(page,()=>button(page).press(key));assert.equal(await button(page).evaluate(el=>el===document.activeElement),true);}
     const chart=h.fixture({chartType:'combo',comboAxisMode:'dual'},Array.from({length:30},(_,i)=>i%3?i:-i));await h.load(page,chart);
     const first=await copy(page);await card(page).locator('.chart-block-scroll').evaluate(el=>el.scrollLeft=el.scrollWidth);
@@ -70,6 +72,7 @@ async function verifyChartPngClipboard(page){
       }
     }
     assert.notDeepEqual(backgrounds[0],backgrounds[1]);await h.viewer(page,1100);
+    step('clipboard failures, retry, busy state and compatibility');
     await failures(page);await busy(page);await compatibility(page);
     assert.equal(downloads,2,'only the two explicitly requested save/recovery downloads; no automatic download');
     console.log('PNG clipboard passed: native ClipboardItem Promise/getType, order, 6 chart types vs downloads, keyboard, 10 layouts, state/selection/scroll, failure/retry and card concurrency');

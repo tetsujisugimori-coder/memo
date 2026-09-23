@@ -114,8 +114,12 @@ async function concurrency(page) {
   assert.equal(await button(page).nth(1).getAttribute('aria-disabled'),null);
   assert.equal(await card(page).nth(1).locator('.chart-png-controls [role="status"]').textContent(),'');
   await button(page).nth(1).click();await page.waitForFunction(()=>window.svgReleases.length===2);
-  const events=[page.waitForEvent('download',d=>d.suggestedFilename()===chartSvgFilename(first.title)),page.waitForEvent('download',d=>d.suggestedFilename()===chartSvgFilename(second.title))];
-  await page.evaluate(()=>{Blob.prototype.arrayBuffer=window.svgReader;window.svgReleases.forEach(fn=>fn());});await Promise.all(events);
+  const firstDownload=page.waitForEvent('download',d=>d.suggestedFilename()===chartSvgFilename(first.title));
+  await page.evaluate(()=>{Blob.prototype.arrayBuffer=window.svgReader;window.svgReleases[0]();});await firstDownload;
+  assert.equal(downloads,1);
+  assert.equal(await card(page).nth(1).locator('.chart-png-controls').getAttribute('aria-busy'),'true');
+  const secondDownload=page.waitForEvent('download',d=>d.suggestedFilename()===chartSvgFilename(second.title));
+  await page.evaluate(()=>window.svgReleases[1]());await secondDownload;
   await page.waitForFunction(()=>[...document.querySelectorAll('#preview .chart-png-controls')].every(el=>!el.hasAttribute('aria-busy')));
   assert.equal(downloads,2);page.off('download',count);
   for(const el of await card(page).all()) {assert.equal(await el.locator('[aria-live]').count(),1);assert.equal(await el.locator('.chart-png-controls [role="status"]').textContent(),success);}
@@ -136,7 +140,8 @@ async function concurrency(page) {
     assert.equal(await page.evaluate(()=>window.pngUrls.size),0);
   }
 }
-async function verifyChartSvg(page) {
+async function verifyChartSvg(page,step=()=>{}) {
+  step('SVG setup and 41 Chart/value cases');
   await h.viewerSetup(page);await h.observe(page);await xmlValidation(page);
   const configs=[...['vertical','horizontal'].flatMap(barOrientation=>['grouped','stacked','percent-stacked'].map(barMode=>({barOrientation,barMode}))),
     {chartType:'line'},{chartType:'pie'},{chartType:'combo',comboAxisMode:'single'},{chartType:'combo',comboAxisMode:'dual'}];
@@ -158,6 +163,7 @@ async function verifyChartSvg(page) {
   await card(page).locator('[data-chart-datum]').first().focus();await page.keyboard.press('End');await page.waitForFunction(()=>document.querySelector('#preview .chart-block-scroll').scrollLeft>0);
   assert.equal(await exportSvg(page,wide.title),xml);
   const long=h.fixture({chartType:'combo',comboAxisMode:'dual',showDataTable:true});long.title='月別売上 長い日本語 <画像> & 確認 '.repeat(8);long.items.forEach(i=>i.label='長い日本語項目名'.repeat(8));
+  step('long labels, themes and responsive widths');
   await h.load(page,long);
   for(const theme of ['light','dark']){
     await h.viewer(page,1100);await page.locator('#settingsBtn').click();await page.locator('#themeSelect').selectOption(theme);await page.locator('#closeSettingsBtn').click();
@@ -169,7 +175,11 @@ async function verifyChartSvg(page) {
     }
   }
   const pie=h.fixture({chartType:'pie'},[30,10,0,20]);await h.load(page,pie);await exportSvg(page,pie.title,undefined,'pie');
-  await failures(page);await concurrency(page);
+  step('failure handling and retry');
+  await failures(page);
+  step('concurrent SVG exports and download delivery');
+  await concurrency(page);
+  step('save/reload and compatibility');
   await h.load(page,h.fixture());await page.evaluate(()=>editor.setSelectionRange(3,17));await exportSvg(page,'月別売上');
   await card(page).locator('figcaption').evaluate(el=>{const range=document.createRange();range.selectNodeContents(el);getSelection().removeAllRanges();getSelection().addRange(range);});await exportSvg(page,'月別売上');
   const old=(await h.snapshot(page)).body;

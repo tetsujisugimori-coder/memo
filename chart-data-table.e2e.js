@@ -50,7 +50,8 @@ async function setup(page) {
 async function cells(page) {
   return table(page).locator("tbody tr").evaluateAll(rows => rows.map(r => [...r.cells].map(c => c.textContent)));
 }
-async function verifyChartDataTable(page) {
+async function verifyChartDataTable(page, step = () => {}) {
+  step('data-table creation and persistence');
   await setup(page);
   const before = await snapshot(page);
   assert.equal(await table(page).count(), 0);
@@ -103,6 +104,7 @@ async function verifyChartDataTable(page) {
   await paste(page);await confirm(page);
   const configs=[...['vertical','horizontal'].flatMap(barOrientation=>['grouped','stacked','percent-stacked'].map(barMode=>({chartType:'bar',barOrientation,barMode}))),
     {chartType:'line'},{chartType:'pie'},{chartType:'combo',comboAxisMode:'single'},{chartType:'combo',comboAxisMode:'dual'}];
+  step('10 Chart configurations and semantic data');
   for(const config of configs) {
     await field(page,'chartType').selectOption(config.chartType);
     for(const key of ['barOrientation','barMode','comboAxisMode'])if(config[key])await field(page,key).selectOption(config[key]);
@@ -146,6 +148,7 @@ async function verifyChartDataTable(page) {
   await paste(page,'項目\t'+['長い系列名'.repeat(15),'同名','同名'].join('\t')+'\n'+['長い項目名'.repeat(15),'1.7976931348623157e308','-1.7976931348623157e308','5e-324'].join('\t'));
   await field(page,'unit').fill('長い単位'.repeat(15));await confirm(page);
   assert.deepEqual((await cells(page))[0].slice(1),['1.7976931348623157e+308','-1.7976931348623157e+308','5e-324']);
+  step('10 theme/width editor and viewer layouts');
   for(const theme of ['light','dark']) {
     await page.setViewportSize({width:1100,height:820});
     await page.locator('#settingsBtn').click();await page.locator('#themeSelect').selectOption(theme);await page.locator('#closeSettingsBtn').click();
@@ -184,6 +187,7 @@ async function verifyChartDataTable(page) {
   // Leave the legacy note before reload: pagehide's existing draft mirror concerns the other note.
   await page.locator('#newBtn').click();
   await page.waitForFunction(id=>currentId!==id&&editor.value==="",old.note.id);await idle(page);
+  step('legacy data, reload and final assertions');
   await page.reload({waitUntil:'domcontentloaded'});await page.locator('#appStartupGuard').waitFor({state:'hidden'});await idle(page);
   await page.evaluate(id=>openNote(id),old.note.id);await idle(page);
   const read=await snapshot(page);assert.equal(read.body,raw);assert.deepEqual(read.note,old.note);assert.deepEqual(read.stored,old.stored);

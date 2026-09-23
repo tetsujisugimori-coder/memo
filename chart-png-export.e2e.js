@@ -113,7 +113,8 @@ async function viewer(page,width) {
   }
   await button(page).scrollIntoViewIfNeeded();
 }
-async function verifyChartPng(page) {
+async function verifyChartPng(page, step = () => {}) {
+  step('PNG setup and 49 Chart/value/display cases');
   await viewerSetup(page);await observe(page);
   const configs=[...['vertical','horizontal'].flatMap(barOrientation=>['grouped','stacked','percent-stacked'].map(barMode=>({barOrientation,barMode}))),
     {chartType:'line'},{chartType:'pie'},{chartType:'combo',comboAxisMode:'single'},{chartType:'combo',comboAxisMode:'dual'}];
@@ -143,6 +144,7 @@ async function verifyChartPng(page) {
   const second=await exportPng(page,wide.title);assert.deepEqual(second.bytes,first.bytes,'scroll and tooltip do not change image');
   assert.equal(second.pixels.width,4096);
   // Current theme after UI switching, long text wrapping, safe literal text, five widths.
+  step('long labels, themes and responsive widths');
   const long=fixture({chartType:'combo',comboAxisMode:'dual',showDataTable:true});
   long.title='長い日本語タイトル <画像> & 確認 '.repeat(10);long.items.forEach(i=>i.label='長い日本語項目名'.repeat(10));
   long.series.forEach(s=>s.name='長い日本語系列名'.repeat(10));long.unit='長い単位'.repeat(20);long.appearance.comboSecondaryUnit='長い右単位'.repeat(20);
@@ -171,6 +173,7 @@ async function verifyChartPng(page) {
     }
   }
   await viewer(page,1100);
+  step('failure paths, selection, Undo and compatibility');
   await failures(page);
   await compatibility(page);
   console.log('PNG export passed:',count,'chart/value/display cases, 10 theme/width layouts, PNG pixels, scroll equality, keyboard, state invariance, failures and compatibility');

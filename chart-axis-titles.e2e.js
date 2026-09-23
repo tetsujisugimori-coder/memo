@@ -5,7 +5,8 @@ const os = require("node:os");
 const path = require("node:path");
 const { verifyDualGeometry } = require("./chart-combo-dual-axis.e2e.js");
 
-async function verifyAxisTitles(page, { chart, waitForChartCancelCompletion }) {
+async function verifyAxisTitles(page, { chart, waitForChartCancelCompletion, step = () => {} }) {
+  step("axis-title creation and editing");
   await page.setViewportSize({ width: 1100, height: 820 });
   await page.waitForFunction(() => document.body.dataset.layoutMode === "wide");
   const noteTitle = "軸タイトル保存E2E";
@@ -64,6 +65,7 @@ async function verifyAxisTitles(page, { chart, waitForChartCancelCompletion }) {
   assert.deepEqual((await chart(page)).items.map((item) => item.label), itemLabels);
   await field("showLegend").check();
   const saved = await save(), original = await chart(page);
+  step("save/reload and type/axis switches");
   await page.reload({ waitUntil: "domcontentloaded" });
   await page.locator("#appStartupGuard").waitFor({ state: "hidden" }); await panel.waitFor({ state: "visible" });
   assert.equal(await page.locator("#editor").inputValue(), saved);
@@ -122,6 +124,7 @@ async function verifyAxisTitles(page, { chart, waitForChartCancelCompletion }) {
   await value(1, 0).fill("-20"); await value(1, 1).fill("-0.3");
   await value(2, 0).fill("0"); await value(2, 1).fill("0");
   let count = 0;
+  step("theme/width geometry and long titles");
   for (const long of [false, true]) {
     await field("leftAxisTitle").fill(long ? "長い左軸タイトル<売上>&".repeat(5) : "売上");
     await field("rightAxisTitle").fill(long ? "長い右軸タイトル<script>成長率</script>".repeat(5) : "成長率");
