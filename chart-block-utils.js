@@ -408,14 +408,15 @@
   }
 
   // Validate before normalization can hide invalid values or trim control characters.
-  function chartToTsv(chartValue) {
+  function chartFileRows(chartValue, { allowDelimitedNames = true, rejectNul = true } = {}) {
     const sourceItems = chartValue?.items || [];
     const sourceSeries = chartValue?.series;
     const checkName = (value, kind, index) => {
       const name = String(value ?? "");
-      if (/[\t\r\n]/.test(name)) throw new Error(
+      if (!allowDelimitedNames && /[\t\r\n]/.test(name)) throw new Error(
         `${kind}${index + 1}「${name}」にタブまたは改行が含まれているためコピーできません`);
       if (!name.trim()) throw new Error(`${kind}${index + 1}の名前が空欄のためコピーできません`);
+      if (rejectNul && name.includes("\0")) throw new Error(`${kind}${index + 1}にNUL文字が含まれているため書き出せません`);
       return name;
     };
     if (!sourceItems.length || sourceItems.length > MAX_CHART_ITEMS
@@ -434,7 +435,11 @@
     const items = chart.items.map((item, index) => ({ ...item, label: labels[index] }));
     const series = chart.series.map((entry, index) => ({ ...entry, name: names?.[index] ?? entry.name }));
     return [["項目", ...series.map((entry) => entry.name)],
-      ...chartTableRows(items, series).map((row) => [row.label, ...row.values])]
+      ...chartTableRows(items, series).map((row) => [row.label, ...row.values])];
+  }
+
+  function chartToTsv(chartValue) {
+    return chartFileRows(chartValue, { allowDelimitedNames: false, rejectNul: false })
       .map((row) => row.join("\t")).join("\n");
   }
 
@@ -953,6 +958,7 @@
     chartBlockPlainText,
     chartDisplaySeries,
     chartDataTable,
+    chartFileRows,
     chartToTsv,
     chartLabelLayout,
     chartNumericTicks,

@@ -473,8 +473,8 @@ test("ライト・ダーク共通変数と狭幅container queryで表示する",
 });
 
 test("app.jsのキャッシュ番号を更新し、PR #24の画面外Mermaid描画経路を維持する", () => {
-  assert.match(html, /app\.js\?v=0\.5\.0-185/);
-  assert.match(html, /table-block-utils\.js\?v=0\.5\.0-7/);
+  assert.match(html, /app\.js\?v=0\.5\.0-187/);
+  assert.match(html, /table-block-utils\.js\?v=0\.5\.0-8/);
   assert.match(app, /mermaid\.render\(/);
   assert.doesNotMatch(app, /mermaid\.run\(/);
   assert.match(app, /mermaidRenderGeneration/);

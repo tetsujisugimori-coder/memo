@@ -176,6 +176,11 @@ jobs:
           MEMO_NEXUS_E2E_BROWSER: ${{ matrix.browser }}
         run: npm run test:e2e:chart
 
+      - name: Run chart file export E2E
+        env:
+          MEMO_NEXUS_E2E_BROWSER: ${{ matrix.browser }}
+        run: npm run test:e2e:chart-export
+
   table-e2e:
     name: Table E2E (${{ matrix.browser }})
     runs-on: ubuntu-latest

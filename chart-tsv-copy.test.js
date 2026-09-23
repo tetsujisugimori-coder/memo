@@ -1,7 +1,8 @@
 "use strict";
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { chartToTsv, parseChartTsv, normalizeChartBlock, moveChartItem, moveChartSeries, parseChartBlockLine } = require("./chart-block-utils.js");
+const { chartFileRows, chartToTsv, parseChartTsv, normalizeChartBlock, moveChartItem, moveChartSeries, parseChartBlockLine } = require("./chart-block-utils.js");
+const { serializeDelimitedFile, parseCsvTable, parseTsvTable } = require("./table-block-utils.js");
 const chart = (values = [100, 120]) => normalizeChartBlock({ id: "copy", title: "非出力", unit: "%",
   items: values.map((_, index) => ({ id: "i" + index, label: (index + 1) + "月" })),
   series: [{ id: "s", name: "売上", values }, { id: "t", name: "利益", values: values.map(() => 20) }],
@@ -70,4 +71,30 @@ test("legacy source and raw marker validation do not alter existing load behavio
   assert.throws(()=>chartToTsv(parseChartBlockLine(marker,{normalize:false})),/タブ/);
   corrupt.items[0].label='名前';const raw='<!-- memo-nexus:chart-block:'+Buffer.from(JSON.stringify(corrupt)).toString('hex')+' -->';
   assert.throws(()=>chartToTsv(parseChartBlockLine(raw,{normalize:false})),/有限/);
+});
+
+test("グラフのファイル行列は全系列・元値をCSV/TSVへ安全に出力する", () => {
+  const source = chart([100, -0]);
+  source.chartType = "pie";
+  source.items[0].label = " 1月,\n売上 ";
+  source.series[0].name = '売上 "確定"';
+  source.series[1].name = "利益\t比較";
+  source.series[0].values[0] = 1.2345678901234567;
+  const before = structuredClone(source);
+  const rows = chartFileRows(source);
+  assert.deepEqual(rows, [["項目", '売上 "確定"', "利益\t比較"], [" 1月,\n売上 ", "1.2345678901234567", "20"], ["2月", "0", "20"]]);
+  for (const [delimiter, parse] of [[",", parseCsvTable], ["\t", parseTsvTable]]) {
+    const result = serializeDelimitedFile(rows, delimiter, { byteLimit: 5 * 1024 * 1024 });
+    assert.equal(result.text.startsWith("\ufeff"), true);
+    assert.match(result.text, /\r\n/);
+    assert.deepEqual(parse(result.text).rows, rows);
+  }
+  assert.deepEqual(source, before);
+});
+
+test("グラフのファイル行列は無効数値とNULを拒否する", () => {
+  const invalid = chart(); invalid.series[0].values[0] = Infinity;
+  assert.throws(() => chartFileRows(invalid), /有限/);
+  const nul = chart(); nul.items[0].label = "NUL\0文字";
+  assert.throws(() => chartFileRows(nul), /NUL/);
 });
