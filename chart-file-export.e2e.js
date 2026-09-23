@@ -96,6 +96,7 @@ async function saveAndRead(page, trigger, format, expected) {
       await page.waitForFunction((value) => document.querySelector("#preview .chart-tsv-copy-controls [role=status]")?.textContent.startsWith(value), format.toUpperCase());
     }
     assert.deepEqual(await snapshot(page), savedBefore, "saved export must not change persistence or history");
+    assert.equal(await page.locator("#preview .chart-block [aria-live]").count(), 1, "file export status must not duplicate the existing chart live region");
     for (const width of [320, 375, 390, 430, 1100]) {
       await page.setViewportSize({ width, height: 900 });
       await page.waitForFunction((mode) => document.body.dataset.layoutMode === mode, width < 600 ? "mobile" : "wide");

@@ -8904,7 +8904,7 @@ async function runChartPngFromButton(button) {
 }
 
 function chartTsvCopyControls(blockIndex) {
-  return `<div class="chart-tsv-copy-controls"><button type="button" data-chart-copy-index="${blockIndex}">全データをTSVでコピー</button><button type="button" data-chart-file-format="csv" data-chart-file-index="${blockIndex}">CSVで保存</button><button type="button" data-chart-file-format="tsv" data-chart-file-index="${blockIndex}">TSVで保存</button><span>項目名・全系列名・元の入力値を対象にします</span><p class="chart-block-status" role="status" aria-live="polite"></p></div>`;
+  return `<div class="chart-tsv-copy-controls"><button type="button" data-chart-copy-index="${blockIndex}">全データをTSVでコピー</button><button type="button" data-chart-file-format="csv" data-chart-file-index="${blockIndex}">CSVで保存</button><button type="button" data-chart-file-format="tsv" data-chart-file-index="${blockIndex}">TSVで保存</button><span>項目名・全系列名・元の入力値を対象にします</span><p class="chart-block-status" role="status"></p></div>`;
 }
 
 function chartTransferSource(button, editorBlock = null) {
