@@ -613,18 +613,33 @@
     return tableRowsForCopy(rows).map((row) => row.map(escapeCell).join(separator)).join("\r\n");
   }
 
-  function serializeTableFile(rows, delimiter, limits = TABLE_FILE_IMPORT_LIMITS) {
-    const sourceRows = tableRowsForCopy(rows);
-    validateTableFileRows(sourceRows, limits);
+  // This is deliberately matrix-oriented: table blocks and chart blocks share the
+  // same file bytes without sharing either persistence format.
+  function serializeDelimitedFile(rows, delimiter, {
+    normalizeCell = normalizedCell,
+    validateRows = null,
+    byteLimit = null,
+    nulMessage = "NUL文字を含むデータは書き出せません。"
+  } = {}) {
+    const sourceRows = tableRowsForCopy(rows).map((row) => row.map((cell) => normalizeCell(cell)));
+    if (typeof validateRows === "function") validateRows(sourceRows);
     if (sourceRows.some((row) => row.some((cell) => cell.includes("\0")))) {
-      throw tableFileImportError("NUL文字を含む表は書き出せません。");
+      throw tableFileImportError(nulMessage);
     }
     const text = `\ufeff${serializeDelimitedTable(sourceRows, delimiter)}`;
     const byteLength = new TextEncoder().encode(text).byteLength;
-    if (byteLength > limits.bytes) {
-      throw tableFileImportError(`ファイルサイズが上限の${Math.floor(limits.bytes / (1024 * 1024))}MiBを超えています。`);
+    if (Number.isFinite(byteLimit) && byteLength > byteLimit) {
+      throw tableFileImportError(`ファイルサイズが上限の${Math.floor(byteLimit / (1024 * 1024))}MiBを超えています。`);
     }
     return { text, rows: sourceRows, byteLength };
+  }
+
+  function serializeTableFile(rows, delimiter, limits = TABLE_FILE_IMPORT_LIMITS) {
+    return serializeDelimitedFile(rows, delimiter, {
+      validateRows: (sourceRows) => validateTableFileRows(sourceRows, limits),
+      byteLimit: limits.bytes,
+      nulMessage: "NUL文字を含む表は書き出せません。"
+    });
   }
 
   function copyColumnAlignment(table, columnIndex) {
@@ -808,6 +823,7 @@
     tableBlockPlainText,
     tableBlockToHtml,
     tableBlockToMarkdown,
+    serializeDelimitedFile,
     serializeDelimitedTable,
     serializeTableFile,
     updateTableCell,

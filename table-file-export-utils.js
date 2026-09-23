@@ -6,16 +6,25 @@
     : globalScope.MemoNexusExportUtils;
   const { sanitizeWindowsName } = exportUtils;
 
-  function tableFileExportName(title, tableIndex, extension) {
+  function delimitedFileExportName(title, kind, index, extension) {
     const safeExtension = String(extension || "").toLowerCase();
     if (!/^(csv|tsv)$/.test(safeExtension)) throw new TypeError("書き出し形式が不正です。");
+    if (!/^(table|chart)$/.test(kind)) throw new TypeError("書き出し対象が不正です。");
     const baseTitle = String(title == null ? "" : title).replace(/\.(?:csv|tsv)$/i, "");
     const baseName = sanitizeWindowsName(baseTitle, "無題のメモ", 110);
-    const position = Math.max(0, Number.parseInt(tableIndex, 10) || 0) + 1;
-    return `${baseName}-table-${position}.${safeExtension}`;
+    const position = Math.max(0, Number.parseInt(index, 10) || 0) + 1;
+    return `${baseName}-${kind}-${position}.${safeExtension}`;
   }
 
-  async function downloadTableFile(blob, fileName, doc = globalScope.document) {
+  function tableFileExportName(title, tableIndex, extension) {
+    return delimitedFileExportName(title, "table", tableIndex, extension);
+  }
+
+  function chartFileExportName(title, chartIndex, extension) {
+    return delimitedFileExportName(title, "chart", chartIndex, extension);
+  }
+
+  async function downloadDelimitedFile(blob, fileName, doc = globalScope.document) {
     const view = doc && doc.defaultView;
     if (!blob || !view || !view.URL || typeof view.URL.createObjectURL !== "function") {
       throw new Error("ファイルを保存できませんでした。");
@@ -59,7 +68,8 @@
     }
   }
 
-  const api = { downloadTableFile, tableFileExportName };
+  const downloadTableFile = downloadDelimitedFile;
+  const api = { chartFileExportName, delimitedFileExportName, downloadDelimitedFile, downloadTableFile, tableFileExportName };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   if (globalScope) globalScope.MemoNexusTableFileExportUtils = api;
 })(typeof window !== "undefined" ? window : globalThis);

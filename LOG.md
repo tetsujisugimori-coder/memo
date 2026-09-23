@@ -3399,3 +3399,23 @@
 - `chart-svg-export.test.js`へ、配送タスクを明示的に保留してもクリック後はリンクとObject URLが残り、完了後にリンク/hrefとURLが解放される回帰を追加した。既存の同時配送、各1回のclick、ファイル名、失敗後の後始末、別カード独立の検証を維持する。配布キャッシュ識別子は`chart-png-export.js?v=0.5.0-4`へ更新し、`version.test.js`を同期した。利用者向け仕様は変わらないためREADMEは変更しない。
 - ローカルのTable E2E WebKitでは、CSV/TSV downloadイベントとファイル読込み後に2.2秒表示の成功statusを読む既存順序が、WebKitのファイル配送遅延でstatus消去後になり失敗した。`verifyTableFileExport()`はクリック前に成功statusの監視を開始し、downloadイベントと成功statusの両方を待つようにした。製品コード、期待文字列、download数、timeout、assertion強度は変更していない。
 - `node --test chart-svg-export.test.js`は65件、`npm test`は1,615件が成功した。`node --check chart-png-export.js table-block.e2e.js`、`git diff --check`も成功した。SVG専用WebKit E2E、完全Chart E2E Chromium 1回、WebKit 3回連続、Table file export E2E Chromium/WebKit、Table E2E Chromium/WebKitを完走した。各Chart E2EはSVG matrixの2カード・異なるファイル名・状態不変・URL/リンク解放、各Table E2EはCSV/TSVのBOM、未編集LF往復、編集値、再読込、保存/Undo/Redo不変を含む。
+## 2026-09-23 グラフ元データのCSV／TSVファイル保存
+
+### 変更内容
+
+* グラフ編集draftと保存済みグラフにCSV／TSV保存を追加
+* PR #255の全項目・全系列・元値行列を、PR #276のBOM付きCRLFシリアライザーと安全ファイル名・配送後解放ダウンロードへ接続
+* 表専用だった行列ファイルシリアライザーとダウンロード名生成を、表の既存挙動を保ったまま共用化
+
+### 仕様と互換性
+
+* 円の非表示系列、100%積み上げ、複合、左右2軸を含め、現在の項目・系列順の元値だけを書き出す
+* CSV/TSVはUTF-8 BOM、CRLF、引用符エスケープ、セル内LF、末尾空列を保持し、NUL・無効数値・5MiB超過を拒否する
+* 保存操作は本文、保存済みデータ、draft、dirty、Undo/Redo、IndexedDB、schemaVersion、DB_VERSION、Markdownマーカーを変更しない
+* WebKitを含め、クリック後にMessageChannelで配送タスクを通してから一時リンクとObject URLを解放する
+
+### 確認結果
+
+* focused unit tests 118件、Chromium/WebKitの新規保存E2E、Chromium/WebKitの既存グラフE2E、Chromium/WebKitの既存表保存E2Eを実行
+* モバイル幅320/375/390/430pxとデスクトップ幅で操作表示・横スクロールなしを確認
+* iPhone Safari実機は未確認（WebKitとタッチエミュレーションで代替確認）

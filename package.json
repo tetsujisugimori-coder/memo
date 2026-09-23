@@ -10,7 +10,8 @@
     "test:e2e:geometry": "node geometry-block.e2e.js",
     "test:e2e:chart": "node chart-block.e2e.js",
     "test:e2e:table": "node table-block.e2e.js",
-    "test:e2e:table-export": "node table-file-export.e2e.js"
+    "test:e2e:table-export": "node table-file-export.e2e.js",
+    "test:e2e:chart-export": "node chart-file-export.e2e.js"
   },
   "devDependencies": {
     "playwright": "1.62.1"

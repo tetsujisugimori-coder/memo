@@ -1,7 +1,7 @@
 "use strict";
 const assert = require("node:assert/strict");
 const test = require("node:test");
-const { downloadTableFile, tableFileExportName } = require("./table-file-export-utils.js");
+const { chartFileExportName, downloadDelimitedFile, downloadTableFile, tableFileExportName } = require("./table-file-export-utils.js");
 
 function downloadEnvironment({ clickError = false } = {}) {
   const events = [];
@@ -40,6 +40,12 @@ test("表ファイル名はWindowsで安全なタイトル、表番号、拡張�
   assert.throws(() => tableFileExportName("x", 0, "xlsx"), /書き出し形式/);
 });
 
+test("グラフファイル名も同じWindows安全規則とグラフ番号を使う", () => {
+  assert.equal(chartFileExportName("売上:集計.tsv", 1, "csv"), "売上_集計-chart-2.csv");
+  assert.equal(chartFileExportName("NUL", 0, "tsv"), "_NUL-chart-1.tsv");
+  assert.equal(chartFileExportName("", 0, "csv"), "無題のメモ-chart-1.csv");
+});
+
 test("表ファイルのダウンロードは一時要素とObject URLを解放する", async () => {
   const environment = downloadEnvironment();
   await downloadTableFile({ size: 1 }, "表.csv", environment.doc);
@@ -53,4 +59,17 @@ test("表ファイルのダウンロード失敗時も一時要素とObject URL�
   await assert.rejects(downloadTableFile({ size: 1 }, "表.csv", environment.doc), /download/);
   assert.deepEqual(environment.events, ["create", "append", "click", "remove", "remove-href", "revoke"]);
   assert.deepEqual([...environment.urls], []);
+});
+
+test("独立したグラフ保存要求はそれぞれのURLを解放する", async () => {
+  const first = downloadEnvironment();
+  const second = downloadEnvironment();
+  await Promise.all([
+    downloadDelimitedFile({ size: 1 }, "一つ目.csv", first.doc),
+    downloadDelimitedFile({ size: 1 }, "二つ目.tsv", second.doc)
+  ]);
+  assert.deepEqual([...first.urls], []);
+  assert.deepEqual([...second.urls], []);
+  assert.equal(first.anchor.download, "一つ目.csv");
+  assert.equal(second.anchor.download, "二つ目.tsv");
 });

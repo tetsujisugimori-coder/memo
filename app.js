@@ -461,6 +461,7 @@ const {
   normalizeTableBlock,
   parseCsvTable,
   parseTsvTable,
+  serializeDelimitedFile,
   serializeTableFile,
   replaceTableBlock,
   splitTableBlocks,
@@ -472,11 +473,12 @@ const {
   writeTableToClipboard,
   writeTextToClipboard
 } = window.MemoNexusTableBlockUtils;
-const { downloadTableFile, tableFileExportName } = window.MemoNexusTableFileExportUtils;
+const { chartFileExportName, downloadDelimitedFile, downloadTableFile, tableFileExportName } = window.MemoNexusTableFileExportUtils;
 const {
   chartBlockPlainText,
   chartDisplaySeries,
   chartDataTable,
+  chartFileRows,
   chartToTsv,
   parseChartBlockLine,
   chartCategoryLabels,
@@ -1180,6 +1182,7 @@ let editorSelectionRangeSnapshot = null;
 let pendingExplanationSelection = null;
 const tableCopyStatusTimers = new WeakMap();
 const tableFileExportButtons = new WeakSet();
+const chartFileExportButtons = new WeakSet();
 let activeTableCell = null;
 const tableAxisSelections = new Map();
 let pendingTableAxisDeletion = null;
@@ -8901,25 +8904,19 @@ async function runChartPngFromButton(button) {
 }
 
 function chartTsvCopyControls(blockIndex) {
-  return `<div class="chart-tsv-copy-controls"><button type="button" data-chart-copy-index="${blockIndex}">全データをTSVでコピー</button><span>項目名・全系列名・元の入力値をコピーします</span><p class="chart-block-status" role="status" aria-live="polite"></p></div>`;
+  return `<div class="chart-tsv-copy-controls"><button type="button" data-chart-copy-index="${blockIndex}">全データをTSVでコピー</button><button type="button" data-chart-file-format="csv" data-chart-file-index="${blockIndex}">CSVで保存</button><button type="button" data-chart-file-format="tsv" data-chart-file-index="${blockIndex}">TSVで保存</button><span>項目名・全系列名・元の入力値を対象にします</span><p class="chart-block-status" role="status" aria-live="polite"></p></div>`;
 }
 
-async function copyChartTsv(button, editorBlock = null) {
-  const host = editorBlock || button.closest(".chart-tsv-copy-controls");
-  const status = host?.querySelector(":scope > .chart-block-status");
-  if (status) status.textContent = "";
-  try {
-    let chart;
-    if (editorBlock) {
-      const { chartIndex, chartId, chartSnapshotKey } = editorBlock.dataset;
-      const current = currentChartBlock(Number(chartIndex), chartId, chartSnapshotKey);
-      if (!current) throw new Error("対象のグラフが変更されています");
-      const draft = chartEditorOriginalCharts.get(chartSnapshotKey)?.draft;
-      // Saved editors must validate raw values before the display fallback hides corruption.
-      // Pending table drafts have no body marker and are validated from their current inputs.
-      if (!draft) chartToTsv(parseChartBlockLine(current.raw, { normalize: false }));
-      const rows = [...editorBlock.querySelectorAll(".chart-block-item-row[data-chart-item-index]")];
-      chart = {
+function chartTransferSource(button, editorBlock = null) {
+  if (editorBlock) {
+    const { chartIndex, chartId, chartSnapshotKey } = editorBlock.dataset;
+    const current = currentChartBlock(Number(chartIndex), chartId, chartSnapshotKey);
+    if (!current) throw new Error("対象のグラフが変更されています");
+    const draft = chartEditorOriginalCharts.get(chartSnapshotKey)?.draft;
+    if (!draft) chartFileRows(parseChartBlockLine(current.raw, { normalize: false }));
+    const rows = [...editorBlock.querySelectorAll(".chart-block-item-row[data-chart-item-index]")];
+    return {
+      chart: {
         ...current.chart,
         items: rows.map((row, index) => ({ ...current.chart.items[index], label: row.querySelector('[data-chart-item-field="label"]').value })),
         series: [...editorBlock.querySelectorAll(".chart-block-series-row")].map((row, index) => ({
@@ -8927,27 +8924,75 @@ async function copyChartTsv(button, editorBlock = null) {
           name: row.querySelector('[data-chart-series-field="name"]').value,
           values: rows.map((itemRow) => itemRow.querySelector(`[data-chart-series-value][data-chart-series-index="${index}"]`).value)
         }))
-      };
-    } else {
-      const blockIndex = Number(button.dataset.chartCopyIndex);
-      const block = splitChartBlocks(editor.value).filter((segment) => segment.type === "chart")[blockIndex];
-      if (!block) throw new Error("対象のグラフが見つかりません");
-      chart = parseChartBlockLine(block.raw, { normalize: false });
-    }
+      },
+      index: Number(chartIndex)
+    };
+  }
+  const blockIndex = Number(button.dataset.chartCopyIndex ?? button.dataset.chartFileIndex);
+  const block = splitChartBlocks(editor.value).filter((segment) => segment.type === "chart")[blockIndex];
+  if (!block) throw new Error("対象のグラフが見つかりません");
+  return { chart: parseChartBlockLine(block.raw, { normalize: false }), index: blockIndex };
+}
+
+function chartTransferStatus(host, editorBlock, message) {
+  const status = editorBlock?.querySelector(".chart-block-status") || host?.querySelector(":scope > .chart-block-status");
+  if (status) status.textContent = message;
+}
+
+async function copyChartTsv(button, editorBlock = null) {
+  const host = editorBlock || button.closest(".chart-tsv-copy-controls");
+  chartTransferStatus(host, editorBlock, "");
+  try {
+    const { chart } = chartTransferSource(button, editorBlock);
     const text = chartToTsv(chart);
     try {
       await writeSyntaxGuideText(text);
     } catch {
       throw new Error("ブラウザがクリップボードへの書き込みを許可しませんでした。コピー操作を利用できる環境で再試行してください");
     }
-    if (status) status.textContent = `TSVをコピーしました（${chart.items.length}項目・${chart.series?.length || 1}系列）`;
+    chartTransferStatus(host, editorBlock, `TSVをコピーしました（${chart.items.length}項目・${chart.series?.length || 1}系列）`);
   } catch (error) {
-    if (status) status.textContent = `コピーできませんでした: ${error.message || "クリップボードを利用できません"}`;
+    chartTransferStatus(host, editorBlock, `コピーできませんでした: ${error.message || "クリップボードを利用できません"}`);
+  }
+}
+
+async function exportChartFile(button, editorBlock = null) {
+  const host = editorBlock || button.closest(".chart-tsv-copy-controls");
+  const formats = {
+    csv: { delimiter: ",", extension: "csv", mimeType: "text/csv;charset=utf-8", label: "CSV" },
+    tsv: { delimiter: "\t", extension: "tsv", mimeType: "text/tab-separated-values;charset=utf-8", label: "TSV" }
+  };
+  const selectedFormat = formats[button.dataset.chartFileFormat];
+  if (!selectedFormat || chartFileExportButtons.has(button)) return;
+  chartFileExportButtons.add(button);
+  button.disabled = true;
+  button.setAttribute("aria-busy", "true");
+  chartTransferStatus(host, editorBlock, `${selectedFormat.label}ファイルを準備しています…`);
+  try {
+    const { chart, index } = chartTransferSource(button, editorBlock);
+    const rows = chartFileRows(chart);
+    const file = serializeDelimitedFile(rows, selectedFormat.delimiter, {
+      byteLimit: 5 * 1024 * 1024,
+      nulMessage: "NUL文字を含むグラフは書き出せません。"
+    });
+    const fileName = chartFileExportName(currentNote()?.title, index, selectedFormat.extension);
+    await downloadDelimitedFile(new Blob([file.text], { type: selectedFormat.mimeType }), fileName, document);
+    chartTransferStatus(host, editorBlock, `${selectedFormat.label}ファイルを保存しました（${chart.items.length}項目・${chart.series?.length || 1}系列）`);
+  } catch (error) {
+    const expectedInputError = error?.name === "TableFileImportError"
+      || /(?:有限|NUL|名前が空欄|1〜50項目)/.test(String(error?.message || ""));
+    if (!expectedInputError) console.error("Chart file export failed", error);
+    chartTransferStatus(host, editorBlock, error?.message || "ファイルを書き出せませんでした");
+  } finally {
+    chartFileExportButtons.delete(button);
+    button.disabled = false;
+    button.removeAttribute("aria-busy");
   }
 }
 
 function renderChartDataTable(chart, blockIndex, copyEnabled) {
-  if (!chart.appearance.showDataTable) return "";
+  const transfer = copyEnabled ? chartTsvCopyControls(blockIndex) : "";
+  if (!chart.appearance.showDataTable) return transfer;
   const table = chartDataTable(chart);
   if (!table) return "";
   const pieColors = chart.chartType === "pie" ? resolvedPieItemColors(chart) : null;
@@ -8957,7 +9002,7 @@ function renderChartDataTable(chart, blockIndex, copyEnabled) {
     return `<th scope="col">${pieColors ? "" : swatch(column.color)}${escapeHtml(column.name)}${detail ? `<span class="chart-data-table-detail">${escapeHtml(detail)}</span>` : ""}</th>`;
   }).join("");
   const rows = table.rows.map((row) => `<tr><th scope="row">${swatch(pieColors?.get(row.id))}${escapeHtml(row.label)}</th>${row.values.map((value) => `<td>${escapeHtml(value)}</td>`).join("")}</tr>`).join("");
-  return `${copyEnabled ? chartTsvCopyControls(blockIndex) : ""}<div class="chart-data-table-scroll" role="region" tabindex="0" aria-label="${escapeAttr(table.caption)}"><table class="chart-data-table"><caption>${escapeHtml(table.caption)}</caption><thead><tr><th scope="col">項目</th>${columns}</tr></thead><tbody>${rows}</tbody></table></div>`;
+  return `${transfer}<div class="chart-data-table-scroll" role="region" tabindex="0" aria-label="${escapeAttr(table.caption)}"><table class="chart-data-table"><caption>${escapeHtml(table.caption)}</caption><thead><tr><th scope="col">項目</th>${columns}</tr></thead><tbody>${rows}</tbody></table></div>`;
 }
 
 function renderChartBlock(chartValue, blockIndex, { editable = true } = {}) {
@@ -9739,6 +9784,7 @@ function createChartEditor(chartValue, blockIndex, snapshotKey) {
   transfer.innerHTML = chartTsvCopyControls(blockIndex);
   const copyControls = transfer.firstElementChild;
   copyControls.querySelector("button").dataset.chartAction = "copy-tsv";
+  copyControls.querySelectorAll("[data-chart-file-format]").forEach((button) => { button.dataset.chartAction = "save-file"; });
   copyControls.querySelector(".chart-block-status").remove();
   copyControls.prepend(paste);
   article.append(header, fields, appearance, unsupportedNotice, seriesPanel, copyControls, table, actions, status, previewHost);
@@ -10000,6 +10046,10 @@ function handleChartEditorAction(event) {
   if (!block) return;
   if (button.dataset.chartAction === "copy-tsv") {
     copyChartTsv(button, editorBlock);
+    return;
+  }
+  if (button.dataset.chartAction === "save-file") {
+    exportChartFile(button, editorBlock);
     return;
   }
   if (pendingTableChart?.key === snapshotKey && ["cancel", "delete-chart"].includes(button.dataset.chartAction)) {
@@ -10307,6 +10357,7 @@ function bindChartBlockControls() {
     button.addEventListener("click", () => runChartPngFromButton(button));
   });
   preview.querySelectorAll("[data-chart-copy-index]").forEach((button) => button.addEventListener("click", () => copyChartTsv(button)));
+  preview.querySelectorAll("[data-chart-file-format]").forEach((button) => button.addEventListener("click", () => exportChartFile(button)));
   preview.querySelectorAll(".chart-block-edit").forEach((button) => button.addEventListener("click", () => {
     const target = chartBlockEditors?.querySelector(`.chart-block-editor[data-chart-index="${CSS.escape(button.dataset.chartIndex)}"][data-chart-id="${CSS.escape(button.dataset.chartId)}"]`);
     if (target) {
