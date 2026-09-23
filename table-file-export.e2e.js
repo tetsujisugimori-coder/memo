@@ -39,11 +39,17 @@ async function waitForApp(page) {
     await page.goto(`http://127.0.0.1:${server.address().port}`, { waitUntil: "domcontentloaded" });
     await waitForApp(page);
     await page.locator("#titleInput").fill("売上:集計.csv");
-    await page.getByRole("button", { name: "表ブロックを挿入", exact: true }).click();
+    const chooser = page.waitForEvent("filechooser");
+    await page.getByRole("button", { name: "CSVまたはTSVファイルを表として読み込む", exact: true }).click();
+    await (await chooser).setFiles({
+      name: "export-source.csv",
+      mimeType: "text/csv",
+      buffer: Buffer.from('項目,値,\r\n"りん,ご","引用符 ""x""",\r\n"改行\nセル",,')
+    });
+    await page.locator("#tablePasteDialog").waitFor({ state: "visible" });
+    await page.locator("#confirmTablePasteBtn").click();
+    await waitForApp(page);
     const block = page.locator("#tableBlockEditors > article[data-table-id]");
-    await block.locator('[data-row-index="0"][data-column-index="0"]').evaluate((input) => { input.value = "項目"; });
-    await block.locator('[data-row-index="0"][data-column-index="1"]').evaluate((input) => { input.value = "値"; });
-    await block.locator('[data-row-index="1"][data-column-index="0"]').evaluate((input) => { input.value = 'りん,ご\t"'; });
     await block.locator('[data-row-index="1"][data-column-index="1"]').evaluate((input) => { input.value = "00123"; });
     await page.evaluate(() => {
       window.tableFileExportNativeBlob = Blob;
@@ -56,7 +62,7 @@ async function waitForApp(page) {
       };
     });
     const before = await page.evaluate(async () => ({ body: editor.value, dirty: noteSaveFoundation.isDirty(currentId), undo: structuredClone(undoStack), redo: structuredClone(redoStack), stored: (await getStoredNotes()).find((note) => note.id === currentId) }));
-    const expected = [["項目", "値"], ['りん,ご\t"', "00123"]];
+    const expected = [["項目", "値", ""], ["りん,ご", "00123", ""], ["改行\nセル", "", ""]];
     for (const [action, extension, parse, mime] of [["save-csv", ".csv", parseCsvTable, "text/csv;charset=utf-8"], ["save-tsv", ".tsv", parseTsvTable, "text/tab-separated-values;charset=utf-8"]]) {
       await block.locator("details").evaluate((menu) => { menu.open = true; });
       const event = page.waitForEvent("download");
@@ -66,7 +72,9 @@ async function waitForApp(page) {
       const bytes = fs.readFileSync(await download.path());
       assert.deepEqual([...bytes.subarray(0, 3)], [0xef, 0xbb, 0xbf]);
       assert.equal(download.suggestedFilename().endsWith(extension), true);
-      assert.deepEqual(parse(new TextDecoder("utf-8").decode(bytes)).rows, expected);
+      const text = new TextDecoder("utf-8").decode(bytes);
+      assert.match(text, /"改行\nセル"/);
+      assert.deepEqual(parse(text).rows, expected);
       assert.equal(await download.failure(), null);
     }
     assert.deepEqual(await page.evaluate(() => window.tableFileExportBlobTypes), ["text/csv;charset=utf-8", "text/tab-separated-values;charset=utf-8"]);

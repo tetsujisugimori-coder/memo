@@ -7980,7 +7980,10 @@ function tableSnapshotForCopy(editorBlock, tableValue) {
     const rowIndex = Number(input.dataset.rowIndex);
     const columnIndex = Number(input.dataset.columnIndex);
     if (rows[rowIndex] && columnIndex >= 0 && columnIndex < rows[rowIndex].length) {
-      rows[rowIndex][columnIndex] = input.value;
+      const wasEdited = input.dataset.tableCellEdited === "true";
+      if (wasEdited || input.value !== input.dataset.tableInitialValue) {
+        rows[rowIndex][columnIndex] = input.value;
+      }
     }
   });
   return normalizeTableBlock({ ...table, rows }, table.id);
@@ -8143,6 +8146,7 @@ function createTableEditor(tableValue, blockIndex) {
       input.type = "text";
       input.className = "table-block-cell-input";
       input.value = cell;
+      input.dataset.tableInitialValue = input.value;
       input.dataset.rowIndex = String(rowIndex);
       input.dataset.columnIndex = String(columnIndex);
       input.setAttribute("aria-label", `表${blockIndex + 1} ${rowIndex + 1}行${columnIndex + 1}列`);
@@ -8245,6 +8249,7 @@ function handleTableEditorInput(event) {
   const performanceStartedAt = performanceMeasurement ? typingPerformance.start() : null;
   let next = block.table;
   if (editsCell) {
+    event.target.dataset.tableCellEdited = "true";
     next = updateTableCell(next, Number(event.target.dataset.rowIndex), Number(event.target.dataset.columnIndex), event.target.value);
   } else {
     next = normalizeTableBlock({ ...next, [tableField]: event.target.value }, tableId);

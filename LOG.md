@@ -3382,3 +3382,11 @@
 - 新設した短時間の`npm run test:e2e:table-export`はChromium/WebKitとも成功した。実downloadイベント1回ずつ、`.csv`/`.tsv`、BOM、既存パーサーへの往復、表示中セル、保存/Undo/Redo不変、390px/1100px、ライト/ダーク、横スクロール0、console/page error 0を確認し、`e2e-artifacts/table-file-export/<browser>/table-file-export-<theme>-<width>-actions.png`へ新規画像を保存した。iPhone Safari実機は未確認である。
 - 既存の長い`npm run test:e2e:table`はChromium/WebKitとも表ライフサイクルの完了ログまでは得られたが、この実行環境の約30秒子プロセス制約により最終完了ログを取得できなかった。待機延長、skip、固定wait、assertion緩和は加えず、書出し固有の実ブラウザ検証を別specで完走した。既存Mobile E2EはChromiumで320/375/390/430pxの横スクロール0・console/page error 0まで完走し、Geometry E2Eは1100pxと390pxで成功した。Chart E2Eは同じ実行制約で最終完了ログを取得できず、成功とは記録しない。
 - 利用者の元作業ツリーにあった`e2e-artifacts/mobile-layout-390.png`、`freehand-canvas.html`、`work/`は変更、削除、stash、reset、commitしない。`origin/main`でPR #273のマージを確認してから、`feature/table-file-export`の隔離worktreeで作業する。今回の実装用プロンプトは、CSV/TSVの往復、BOM/CRLF/引用符/末尾空列、最新セル、状態不変、安全ファイル名・URL解放、README/LOG、全テスト、PR作成とCI確認を要求している。
+
+### 追補: PR #276 のセル内LF書出し回帰修正
+
+- CI run 35813872510 の Table E2E Chromium/WebKit は、CSV読込モデルにある `改行\nセル` を `<input type="text">` へ表示した時点でブラウザが `改行セル` に正規化するのに、`tableSnapshotForCopy()` が未編集セルを含めてDOMの`input.value`で上書きしたため失敗した。CSV/TSVシリアライザーではなく、書出し直前のスナップショット境界が原因だった。
+- セル描画直後に、ブラウザ正規化後の`input.value`を`data-table-initial-value`として保持し、`input`イベントを受けたセルは編集済みとして記録する。スナップショットでは、編集済み、または初期表示値と現在値が異なるセルだけDOM値を採用し、それ以外は保存モデルの値を残す。これにより未編集のLFは保持し、セル自身を編集した場合は編集後の値を優先する。テストのようなプログラムによる値変更も初期表示値との差分で検出する。
+- `table-block.e2e.js`はCSV実ファイル読込後、LFセルを未編集のまま別セルを変更してCSV/TSVへ書出し・既存パーサーで再読込する既存期待値`改行\nセル`を維持した。さらにLFセル自体を編集後、CSV/TSVの両方が最新値を出力する回帰を加えた。BOM、CRLFレコード区切り、引用符、区切り文字、空セル、末尾空列、状態不変、download 1回、URL解放、全空/NUL/5MiB拒否の既存検証は保持する。
+- `table-paste.test.js`でスナップショットの条件と初期表示値・編集状態の記録を確認する。READMEの「セル内改行を保持する」仕様は変更していない。`app.js`の配信キャッシュは`0.5.0-184`へ更新し、参照テストも同じ番号へ同期した。
+- ローカルではfocused unit tests 88件、`npm test` 1,613件、`node --check app.js table-block.e2e.js`、CSV/TSV書出しE2E Chromium/WebKitが成功した。長いTable E2EはChromiumでライフサイクル・混在貼り付けまで、WebKitでライフサイクルまで進行したが、この実行環境の約30秒子プロセス制約で最終完了ログを得られず、成功とは記録しない。固定wait、skip、assertion緩和、WebKit例外は追加しない。CIのTable E2Eと全checkで最終確認する。

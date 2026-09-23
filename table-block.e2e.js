@@ -386,13 +386,24 @@ async function verifyTableFileExport(page) {
   assert.deepEqual(await snapshot(page),before,"file export must not persist the displayed draft or change history");
   assert.equal(await input.inputValue(),"編集済み");
  }
+ const newlineCell=block.locator('[data-row-index="2"][data-column-index="0"]');
+ await newlineCell.fill("改行セルを編集");await idle(page);
+ const editedNewlineRows=[["項目","値",""],["りん,ご","編集済み",""],["改行セルを編集","",""]];
+ for(const [action,parse] of [["save-csv",parseCsvTable],["save-tsv",parseTsvTable]]){
+  await block.locator("details").evaluate(menu=>{menu.open=true;});
+  const event=page.waitForEvent("download");
+  await block.locator('[data-table-action="'+action+'"]').evaluate(button=>button.click());
+  const download=await event;const bytes=fs.readFileSync(await download.path());
+  assert.deepEqual(parse(new TextDecoder("utf-8").decode(bytes)).rows,editedNewlineRows,"edited newline cell must use its latest value");
+  assert.equal(await download.failure(),null);
+ }
  await load(page);await page.getByRole("button",{name:"表ブロックを挿入",exact:true}).click();
  const empty=tableEditor(page);await empty.locator("details").evaluate(menu=>{menu.open=true;});
  let downloads=0;const count=()=>downloads++;page.on("download",count);
  await empty.locator('[data-table-action="save-csv"]').evaluate(button=>button.click());
  await page.waitForFunction(()=>document.querySelector(".table-block-operation-status")?.textContent.includes("実データがない"));
  page.off("download",count);assert.equal(downloads,0);assert.match(await empty.locator(".table-block-operation-status").textContent(),/実データがないため書き出せません/);
- console.log("Table file export: CSV/TSV download, BOM, round-trip, latest displayed cells and no-data failure passed");
+ console.log("Table file export: CSV/TSV download, BOM, untouched LF round-trip, latest displayed cells and no-data failure passed");
 }
 async function verifyTableFileExportLayouts(page) {
  await load(page);await page.getByRole("button",{name:"表ブロックを挿入",exact:true}).click();
