@@ -3,6 +3,38 @@
 const assert = require("node:assert/strict");
 const os = require("node:os");
 const path = require("node:path");
+const { performance } = require("node:perf_hooks");
+
+function createDualAxisProfile() {
+  if (process.env.MEMO_NEXUS_E2E_DUAL_AXIS_PROFILE !== "1") return null;
+  const samples = [];
+  return {
+    record(stage, started, context) {
+      samples.push({ stage, ms: performance.now() - started, ...context });
+    },
+    summary() {
+      const aggregate = (filter) => {
+        const groups = {};
+        for (const sample of samples) {
+          const key = filter(sample);
+          if (key === undefined) continue;
+          const group = groups[key] ||= { count: 0, ms: 0 };
+          group.count++;
+          group.ms += sample.ms;
+        }
+        return Object.fromEntries(Object.entries(groups).map(([key, value]) => [key, { count: value.count, ms: Math.round(value.ms) }]));
+      };
+      console.log("[DUAL_AXIS_PROFILE] " + JSON.stringify({
+        conditions: samples.filter((sample) => sample.stage === "geometry-assert").length,
+        stages: aggregate((sample) => sample.stage),
+        seriesCounts: aggregate((sample) => sample.seriesCount),
+        datasets: aggregate((sample) => sample.dataset),
+        themes: aggregate((sample) => sample.theme),
+        widths: aggregate((sample) => sample.width)
+      }));
+    }
+  };
+}
 
 // Runs inside the official chart suite with the same browser, error collection,
 // persistence route and UI completion conditions as the existing chart tests.
@@ -114,43 +146,78 @@ async function verifyDualAxisCharts(page, { chart, waitForChartCancelCompletion,
     [[Number.MAX_VALUE,-Number.MAX_VALUE,0],[-Number.MIN_VALUE,Number.MIN_VALUE,0],[1e300,-1e-300,0]]
   ];
   let count = 0;
+  const profile = createDualAxisProfile();
+  let condition = {};
+  let phase = "data-preview";
   step("160 geometry combinations across data, theme and width");
-  for (const seriesCount of [2, 3]) {
+  try { for (const seriesCount of [2, 3]) {
+    condition = { seriesCount };
+    phase = "series-setup";
     if (seriesCount === 3) await action("add-series").click();
-    for (const values of datasets) {
-      for (let i = 0; i < 3; i++) for (let j = 0; j < seriesCount; j++) await input(i, j).fill(String(values[j][i]));
-      // The second series remains the right axis even when a third bar is added.
-      await field("comboLineSeriesId").selectOption((await chart(page)).series[1].id);
-      const model = await chart(page);
-      await page.waitForFunction((model) => {
-        const fig = document.querySelector('#preview .chart-block-combo-dual');
-        return model.items.every((item, i) => model.series.every((s) => [...(fig?.querySelectorAll('g > title') || [])].some((el) => el.textContent === item.label + '、' + s.name + (s.id === model.appearance.comboLineSeriesId ? '（折れ線・右軸）' : '（棒・左軸）') + ': ' + String(s.values[i]) + (s.id === model.appearance.comboLineSeriesId ? model.appearance.comboSecondaryUnit : model.unit))));
-      }, model);
-      for (const theme of ["light", "dark"]) {
-        await page.locator("#settingsBtn").click(); await page.locator("#themeSelect").selectOption(theme); await page.locator("#closeSettingsBtn").click();
+    for (const theme of ["light", "dark"]) {
+      condition = { seriesCount, theme };
+      phase = "theme";
+      let started = profile && performance.now();
+      await page.locator("#settingsBtn").click(); await page.locator("#themeSelect").selectOption(theme); await page.locator("#closeSettingsBtn").click();
+      if (profile) profile.record(phase, started, condition);
+      for (const [dataset, values] of datasets.entries()) {
+        condition = { seriesCount, dataset, theme };
+        phase = "data-preview";
+        started = profile && performance.now();
+        for (let i = 0; i < 3; i++) for (let j = 0; j < seriesCount; j++) await input(i, j).fill(String(values[j][i]));
+        // The second series remains the right axis even when a third bar is added.
+        await field("comboLineSeriesId").selectOption((await chart(page)).series[1].id);
+        const model = await chart(page);
+        await page.waitForFunction((model) => {
+          const fig = document.querySelector('#preview .chart-block-combo-dual');
+          return model.items.every((item, i) => model.series.every((s) => [...(fig?.querySelectorAll('g > title') || [])].some((el) => el.textContent === item.label + '、' + s.name + (s.id === model.appearance.comboLineSeriesId ? '（折れ線・右軸）' : '（棒・左軸）') + ': ' + String(s.values[i]) + (s.id === model.appearance.comboLineSeriesId ? model.appearance.comboSecondaryUnit : model.unit))));
+        }, model);
+        if (profile) profile.record(phase, started, condition);
         for (const width of [320, 375, 390, 430, 1100]) {
+          condition = { seriesCount, dataset, theme, width };
+          phase = "viewport-layout";
+          started = profile && performance.now();
           await page.setViewportSize({ width, height: 820 });
           await page.waitForFunction((width) => innerWidth === width && document.body.dataset.layoutMode === (width >= 1100 ? "wide" : "mobile"), width);
+          if (profile) profile.record(phase, started, condition);
           if (width < 1100) {
+            phase = "mobile-card-show";
+            started = profile && performance.now();
             if (await page.locator("#contextPanel").getAttribute("aria-hidden") === "false") {
               await page.locator("#closeContextPanelBtn").click();
               await page.waitForFunction(() => document.getElementById("contextPanel").getAttribute("aria-hidden") === "true");
             }
             await page.locator("#cardPaneBtn").click();
             await page.waitForFunction(() => { const card = document.getElementById("previewCard"); return card.getAttribute("aria-hidden") === "false" && Math.abs(card.getBoundingClientRect().right - innerWidth) < 1; });
+            if (profile) profile.record(phase, started, condition);
           }
-          await verifyDualGeometry(page, model); count++;
+          phase = "geometry-read";
+          await verifyDualGeometry(page, model, profile && ((stage, started) => {
+            profile.record(stage, started, condition);
+          }), () => { phase = "geometry-assert"; }); count++;
           if (seriesCount === 2 && values === datasets[2] && theme === "light" && [390, 1100].includes(width)) {
+            phase = "screenshot";
+            started = profile && performance.now();
             await page.screenshot({ path: path.join(os.tmpdir(), `memo-combo-dual-${width}-${process.env.MEMO_NEXUS_E2E_BROWSER || "chromium"}.png`) });
+            if (profile) profile.record(phase, started, condition);
           }
           if (width < 1100) {
+            phase = "mobile-card-close";
+            started = profile && performance.now();
             await page.locator("#closeCardPaneBtn").click();
             await page.waitForFunction(() => document.getElementById("previewCard").getAttribute("aria-hidden") === "true");
+            if (profile) profile.record(phase, started, condition);
           }
         }
       }
     }
+  }} catch (error) {
+    error.message += ` [2-axis condition=${JSON.stringify(condition)}, phase=${phase}]`;
+    throw error;
+  } finally {
+    profile?.summary();
   }
+  assert.equal(count, 160, "2/3 series × 8 datasets × 2 themes × 5 widths");
   const finalBody = await save(), finalModel = await chart(page);
   step("save/reload, legacy marker and cancel");
   await page.reload({ waitUntil: "domcontentloaded" }); await page.locator("#appStartupGuard").waitFor({ state: "hidden" }); await panel.waitFor({ state: "visible" });
@@ -168,7 +235,8 @@ async function verifyDualAxisCharts(page, { chart, waitForChartCancelCompletion,
   console.log("Dual-axis checks passed: " + count + " geometry combinations, UI creation, stable IDs, save/reload, type/axis switches, invalid drafts, legacy marker and cancel");
 }
 
-async function verifyDualGeometry(page, model) {
+async function verifyDualGeometry(page, model, record = null, onAssertStart = null) {
+  let started = record && performance.now();
   await page.locator('#preview .chart-block-combo-dual').waitFor({ state: 'attached' });
   // Acquire and measure the current preview in one task; rendering can replace a locator's resolved node.
   const state = await page.evaluate(() => {
@@ -200,6 +268,8 @@ async function verifyDualGeometry(page, model) {
       legend:[...figure.querySelectorAll('.chart-block-legend li')].map((el)=>el.textContent)
     };
   });
+  onAssertStart?.();
+  if (record) { record("geometry-read", started); started = performance.now(); }
   assert.equal(state.visible,true); assert.equal(state.zeroCount,1); assert.equal(state.hidden,'true');
   assert.equal(state.zeroTicks.length,2); assert.ok(state.zeroTicks.every((y)=>Math.abs(y-state.zero)<1e-8));
   assert.deepEqual(state.invalid,[]); assert.deepEqual(state.outside,[]); assert.deepEqual(state.collisions,[]); assert.equal(state.overflow,false);
@@ -230,6 +300,7 @@ async function verifyDualGeometry(page, model) {
       assert.equal(mark.series,lineId); assert.ok(Number.isFinite(mark.x) && Number.isFinite(mark.y)); assert.ok(Math.abs(mark.y-y)<1e-8);
     }
   }
+  if (record) record("geometry-assert", started);
 }
 
 module.exports = { verifyDualAxisCharts, verifyDualGeometry };
