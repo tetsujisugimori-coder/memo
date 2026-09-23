@@ -146,6 +146,12 @@ test("表セルはブラウザ正規化後の初期表示値とinput編集状態
   assert.match(inputSource, /event\.target\.dataset\.tableCellEdited = "true"/);
 });
 
+test("予期される表ファイル書出し拒否は操作ステータスだけで案内する", () => {
+  const source = functionSource("exportTableBlock", "focusTableAxisHeader");
+  assert.match(source, /error\?\.name !== "TableFileImportError"/);
+  assert.match(source, /showTableCopyStatus\(editorBlock, message, false\)/);
+});
+
 test("表コピーは選択・Undo・保存を変更せず成功または失敗を表付近へ表示する", () => {
   const copySource = functionSource("copyTableBlock", "focusTableAxisHeader");
   const actionSource = functionSource("handleTableEditorAction");
@@ -163,7 +169,7 @@ test("表コピーは選択・Undo・保存を変更せず成功または失敗�
 test("配信キャッシュ番号を貼り付け機能の変更に合わせて更新する", () => {
   assert.match(html, /style\.css\?v=0\.5\.0-110/);
   assert.match(html, /table-block-utils\.js\?v=0\.5\.0-7/);
-  assert.match(html, /app\.js\?v=0\.5\.0-184/);
+  assert.match(html, /app\.js\?v=0\.5\.0-185/);
 });
 
 const vm = require("node:vm");

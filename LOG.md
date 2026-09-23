@@ -3390,3 +3390,4 @@
 - `table-block.e2e.js`はCSV実ファイル読込後、LFセルを未編集のまま別セルを変更してCSV/TSVへ書出し・既存パーサーで再読込する既存期待値`改行\nセル`を維持した。さらにLFセル自体を編集後、CSV/TSVの両方が最新値を出力する回帰を加えた。BOM、CRLFレコード区切り、引用符、区切り文字、空セル、末尾空列、状態不変、download 1回、URL解放、全空/NUL/5MiB拒否の既存検証は保持する。
 - `table-paste.test.js`でスナップショットの条件と初期表示値・編集状態の記録を確認する。READMEの「セル内改行を保持する」仕様は変更していない。`app.js`の配信キャッシュは`0.5.0-184`へ更新し、参照テストも同じ番号へ同期した。
 - ローカルではfocused unit tests 88件、`npm test` 1,613件、`node --check app.js table-block.e2e.js`、CSV/TSV書出しE2E Chromium/WebKitが成功した。長いTable E2EはChromiumでライフサイクル・混在貼り付けまで、WebKitでライフサイクルまで進行したが、この実行環境の約30秒子プロセス制約で最終完了ログを得られず、成功とは記録しない。固定wait、skip、assertion緩和、WebKit例外は追加しない。CIのTable E2Eと全checkで最終確認する。
+- 初回修正後のCIでは、LF往復自体はChromium/WebKitとも通過したが、全空表の拒否を確認する既存E2Eが`TableFileImportError`を期待どおりstatusへ表示した際にも`console.error`を出して、最終のconsole errorなし検証で失敗した。入力不備・上限超過など利用者に表示する既知の`TableFileImportError`はconsole errorにせず、想定外のダウンロード失敗だけを記録するようにした。拒否時のstatus、download 0回、Object URL/一時リンクの既存検証は変えない。

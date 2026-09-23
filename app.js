@@ -8040,7 +8040,7 @@ async function exportTableBlock(editorBlock, tableValue, format, button) {
     await downloadTableFile(new Blob([file.text], { type: selectedFormat.mimeType }), fileName, document);
     showTableCopyStatus(editorBlock, `${selectedFormat.label}ファイルを保存しました`, true);
   } catch (error) {
-    console.error("Table file export failed", error);
+    if (error?.name !== "TableFileImportError") console.error("Table file export failed", error);
     const detail = error && error.message;
     const message = detail === "実データがありません。"
       ? "実データがないため書き出せません"
