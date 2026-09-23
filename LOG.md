@@ -3431,3 +3431,20 @@
 * 初回修正HEAD `dd3910e`のCI run 35855732218では、既存Chart WebKitは成功したが専用Chart export WebKitだけ失敗した。先行CSVと後続TSVの2リンクがクリックされ成功表示も出たのに、実downloadイベントはTSVだけだった。直列化だけでは不足し、既存SVG同時保存と同じくリンク本体とObject URLを配送タスク完了まで保持してから解放するよう修正した。unit testは保留した配送タスク中のリンク・URL寿命と解放順、配送後cleanup例外を固定した。修正後ローカル専用E2EとTable E2EはChromium／WebKitとも完走し、現行ルート全unit 1,583件も成功した。失敗したCIを成功として扱わず、次HEADで全ジョブを再確認する。
 * 修正HEAD `0937830`のCI run 35857602950は全8ジョブ成功した。Chromium／WebKitの両Chartジョブで既存Chart E2Eと専用`Run chart file export E2E`が別々に成功し、CI checks（クリーンなcheckoutでの`npm test`を含む）、Table両ブラウザー、Mobile両ブラウザー、Geometryも成功した。ログ追記でHEADが更新されるため、最終HEADのCIも別途確認する。
 * LOG追記HEAD `87266a8`のCI run 35858872980では、専用WebKit E2Eの同一JavaScriptタスク内の2件の合成`button.click()`で先行CSVのdownloadイベントが再び失われた（他7ジョブは成功）。ユーザーの2回のクリックと異なる合成操作がWebKitのナビゲーションを競合させるため、専用E2EをPlaywrightの2件の実クリックに変更した。先行要求の配送完了をテスト境界で保留し、後続を起動して両ボタンが同時に`disabled`、後続のURL作成は先行配送待ちであることを確認してから解放する。固定wait・timeout延長・skip・retry・download回数や内容の期待値緩和はない。修正後の専用E2EはChromium／WebKitとも完走した。同一JSタスクの合成クリックでのWebKit配送は保証できないため、実ユーザー操作の検証と区別する。
+
+## 2026-09-24 Chart E2E の機能別・工程別計測
+
+### 変更内容
+
+* `chart-block.e2e.js` の既存検査を、作成・編集・保存再読込、複数ブロック、複数系列、描画種別、TSV、コピー、PNG/SVG、Table→Chart、タッチ操作の機能別実行へ分けた。各機能は新しいブラウザcontextで開始し、機能名による単独再実行を可能にした。
+* 小さな共通計測helperで開始・成功・失敗、進行中の工程、機能別時間、合計時間をCIログへ出す。主な長時間機能とCSV/TSVファイルexportには工程名も付けた。
+* `npm run test:e2e:chart:all` でChart本体とファイルexportを実行し、全体時間を出す。CIのChartジョブは両者をこのコマンドで実行する。ローカル実測はChromium約20分、WebKit約35分で既存の15分上限を超えたため、このジョブの上限だけ45分にした。
+* 今回の目的は観測可能性の改善であり、assertion・UI操作・待機条件・productionコードは変更していない。
+
+### 実測と次の候補
+
+* ローカルChromiumでChart本体26機能が成功し、1,149.6秒。CSV/TSVファイルexportは39.8秒、全体は1,191.7秒。ローカルWebKitも26機能が成功し、本体2,072.7秒、ファイルexport20.4秒、全体2,093.8秒。
+* Chromiumの最長はツールチップ175.6秒（12種類、120通りのテーマ・幅、150データ点）。次はPNG export169.6秒（49条件、10レイアウト）。PNGコピー125.8秒、SVG export98.7秒、2軸Chart97.8秒も長い。
+* WebKitのツールチップ367.6秒のうち、120通りのテーマ・幅が270.6秒。複合Chart220.2秒のうち120描画条件が194.0秒、2軸Chart196.4秒のうち160描画条件が182.6秒。PNG export213.1秒のうち49条件が114.7秒。主要な再描画・条件反復が次PRの調査候補。
+* 単独再実行でも軸タイトル、データ表、TSV取込、TSVコピー、Table→Chartは成功。単独実行の時間は全件時より短く、例としてChromiumのTSV取込は9.7秒対28.9秒、データ表は12.9秒対32.7秒。時間の変動を踏まえ、次PRの速度判断ではCIの複数回計測を比較する。
+* 今回は固定待機や重複setupを削っていない。Chart関連E2Eに固定の`waitForTimeout`は見つからなかった。CI上の所要時間は未計測で、上記はWindowsローカルの値。

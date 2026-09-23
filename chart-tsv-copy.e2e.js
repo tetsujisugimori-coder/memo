@@ -59,7 +59,8 @@ async function copy(page,expected,key=null) {
   assert.equal(await page.evaluate(()=>window.copyCalls.at(-1)),expected);
   assert.deepEqual(await snapshot(page),before,'copy does not modify body/note/revision/dirty/save timer/DB/Undo/draft');
 }
-async function verifyChartTsvCopy(page) {
+async function verifyChartTsvCopy(page, step = () => {}) {
+  step('clipboard setup, draft and persistence');
   await setup(page);
   // Observe real write calls without replacing the native operation. WebKit on Windows
   // does not expose a readable system clipboard to the automation host.
@@ -115,6 +116,7 @@ async function verifyChartTsvCopy(page) {
   await field(page,'showDataTable').check();await confirm(page);
   await page.reload({waitUntil:'domcontentloaded'});await page.locator('#appStartupGuard').waitFor({state:'hidden'});await panel(page).waitFor({state:'visible'});await idle(page);await clipboard(page);
   await copy(page,tsv);
+  step('10 Chart configurations and TSV content');
   for(const config of [
     ...['vertical','horizontal'].flatMap(barOrientation=>['grouped','stacked','percent-stacked'].map(barMode=>({chartType:'bar',barOrientation,barMode}))),
     {chartType:'line'},{chartType:'pie'},{chartType:'combo',comboAxisMode:'single'},{chartType:'combo',comboAxisMode:'dual'}
@@ -137,6 +139,7 @@ async function verifyChartTsvCopy(page) {
   await panel(page).locator('[data-chart-item-field="label"]').first().fill('名\t前');
   await action(page,'copy-tsv').click();assert.match(await status(page).textContent(),/項目1.*タブ/);
   await panel(page).locator('[data-chart-item-field="label"]').first().fill('1月');await confirm(page);
+  step('Clipboard API failures and fallback');
   for(const mode of ['reject','missing']) {
     for(const fallback of [true,false]) {
       await clipboard(page,mode,fallback);const before=await snapshot(page);
@@ -158,6 +161,7 @@ async function verifyChartTsvCopy(page) {
   assert.equal(await input.evaluate(el=>el===document.activeElement),true);
   await input.fill('月別売上と費用');await idle(page);
   await clipboard(page);
+  step('10 theme/width layouts and keyboard state');
   for(const theme of ['light','dark']) {
     await page.setViewportSize({width:1100,height:820});await page.waitForFunction(()=>document.body.dataset.layoutMode==='wide');
     await page.locator('#settingsBtn').click();await page.locator('#themeSelect').selectOption(theme);await page.locator('#closeSettingsBtn').click();
@@ -188,6 +192,7 @@ async function verifyChartTsvCopy(page) {
   }
   await page.setViewportSize({width:1100,height:820});
   await page.waitForFunction(()=>document.body.dataset.layoutMode==='wide');
+  step('invalid data and final state checks');
   for(const bad of [{label:'名\t前',value:1,error:/項目1.*タブ/}, {label:'名前',value:'Infinity',error:/有限/}]) {
     const corrupt={id:'raw-copy',items:[{id:'i',label:bad.label}],series:[{id:'s',name:'値',values:[bad.value]}],appearance:{showDataTable:true}};
     const raw='<!-- memo-nexus:chart-block:'+Buffer.from(JSON.stringify(corrupt)).toString('hex')+' -->';

@@ -6,7 +6,8 @@ const path = require("node:path");
 
 // Runs inside the official chart suite with the same browser, error collection,
 // persistence route and UI completion conditions as the existing chart tests.
-async function verifyDualAxisCharts(page, { chart, waitForChartCancelCompletion }) {
+async function verifyDualAxisCharts(page, { chart, waitForChartCancelCompletion, step = () => {} }) {
+  step("2-axis Chart creation, editing and validation");
   await page.setViewportSize({ width: 1100, height: 820 });
   await page.waitForFunction(() => document.body.dataset.layoutMode === "wide");
   await page.locator("#editor").fill("左右2軸の新規作成");
@@ -113,6 +114,7 @@ async function verifyDualAxisCharts(page, { chart, waitForChartCancelCompletion 
     [[Number.MAX_VALUE,-Number.MAX_VALUE,0],[-Number.MIN_VALUE,Number.MIN_VALUE,0],[1e300,-1e-300,0]]
   ];
   let count = 0;
+  step("160 geometry combinations across data, theme and width");
   for (const seriesCount of [2, 3]) {
     if (seriesCount === 3) await action("add-series").click();
     for (const values of datasets) {
@@ -150,6 +152,7 @@ async function verifyDualAxisCharts(page, { chart, waitForChartCancelCompletion 
     }
   }
   const finalBody = await save(), finalModel = await chart(page);
+  step("save/reload, legacy marker and cancel");
   await page.reload({ waitUntil: "domcontentloaded" }); await page.locator("#appStartupGuard").waitFor({ state: "hidden" }); await panel.waitFor({ state: "visible" });
   assert.equal(await page.locator("#editor").inputValue(), finalBody); assert.deepEqual(await chart(page), finalModel);
   await verifyDualGeometry(page, finalModel);

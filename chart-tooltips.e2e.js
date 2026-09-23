@@ -111,7 +111,8 @@ async function datumAction(datum, action) {
   await datum[action]({ position });
 }
 
-async function verifyChartTooltips(page) {
+async function verifyChartTooltips(page, step = () => {}) {
+  step("12 Chart variants and keyboard/tooltip interactions");
   let count = 0;
   for (const config of configs) {
     const model = seed(config, `tooltip-${count}`);
@@ -156,6 +157,7 @@ async function verifyChartTooltips(page) {
     count++;
   }
   // Every type, both themes and all requested viewport widths, with long safe text.
+  step("120 theme/width positions and long labels");
   let positions = 0;
   for (const config of configs) {
     const model = seed(config, `tooltip-long-${positions}`);
@@ -186,6 +188,7 @@ async function verifyChartTooltips(page) {
     }
   }
   // Extreme finite values and 150 data targets still have a single keyboard entrance.
+  step("150 targets, redraw, save/reload and note switch");
   const large = seed({ chartType: "bar", barMode: "percent-stacked" }, "tooltip-extremes");
   large.items = Array.from({ length: 50 }, (_, i) => ({ id: `i-${i}`, label: `項目${i}` }));
   large.series = [Number.MAX_VALUE, -Number.MAX_VALUE, Number.MIN_VALUE].map((value, index) => ({ id: `s-${index}`, name: `系列${index}`, values: Array(50).fill(value) }));

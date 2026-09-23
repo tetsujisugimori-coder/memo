@@ -136,7 +136,8 @@ async function concurrency(page) {
     assert.equal(await page.evaluate(()=>window.pngUrls.size),0);
   }
 }
-async function verifyChartSvg(page) {
+async function verifyChartSvg(page,step=()=>{}) {
+  step('SVG setup and 41 Chart/value cases');
   await h.viewerSetup(page);await h.observe(page);await xmlValidation(page);
   const configs=[...['vertical','horizontal'].flatMap(barOrientation=>['grouped','stacked','percent-stacked'].map(barMode=>({barOrientation,barMode}))),
     {chartType:'line'},{chartType:'pie'},{chartType:'combo',comboAxisMode:'single'},{chartType:'combo',comboAxisMode:'dual'}];
@@ -158,6 +159,7 @@ async function verifyChartSvg(page) {
   await card(page).locator('[data-chart-datum]').first().focus();await page.keyboard.press('End');await page.waitForFunction(()=>document.querySelector('#preview .chart-block-scroll').scrollLeft>0);
   assert.equal(await exportSvg(page,wide.title),xml);
   const long=h.fixture({chartType:'combo',comboAxisMode:'dual',showDataTable:true});long.title='月別売上 長い日本語 <画像> & 確認 '.repeat(8);long.items.forEach(i=>i.label='長い日本語項目名'.repeat(8));
+  step('long labels, themes and responsive widths');
   await h.load(page,long);
   for(const theme of ['light','dark']){
     await h.viewer(page,1100);await page.locator('#settingsBtn').click();await page.locator('#themeSelect').selectOption(theme);await page.locator('#closeSettingsBtn').click();
@@ -169,6 +171,7 @@ async function verifyChartSvg(page) {
     }
   }
   const pie=h.fixture({chartType:'pie'},[30,10,0,20]);await h.load(page,pie);await exportSvg(page,pie.title,undefined,'pie');
+  step('failures, concurrency, save/reload and compatibility');
   await failures(page);await concurrency(page);
   await h.load(page,h.fixture());await page.evaluate(()=>editor.setSelectionRange(3,17));await exportSvg(page,'月別売上');
   await card(page).locator('figcaption').evaluate(el=>{const range=document.createRange();range.selectNodeContents(el);getSelection().removeAllRanges();getSelection().addRange(range);});await exportSvg(page,'月別売上');

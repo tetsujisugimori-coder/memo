@@ -4,6 +4,7 @@ const fs = require("node:fs");
 const http = require("node:http");
 const path = require("node:path");
 const playwright = require("playwright");
+const { createE2eTiming } = require("./e2e-timing.js");
 const { parseCsvTable, parseTsvTable } = require("./table-block-utils.js");
 
 const browserName = process.env.MEMO_NEXUS_E2E_BROWSER || "chromium";
@@ -221,6 +222,7 @@ async function expectInputError(page, events, target, value, pattern) {
 }
 
 (async () => {
+  const report = createE2eTiming(`Chart file export E2E (${browserName})`, "", "npm run test:e2e:chart-export");
   const root = __dirname;
   const server = http.createServer((req, res) => {
     const relative = decodeURIComponent(new URL(req.url, "http://localhost").pathname).replace(/^\/+/, "") || "index.html";
@@ -235,6 +237,8 @@ async function expectInputError(page, events, target, value, pattern) {
   await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
   let browser;
   try {
+    await report.feature("chart-csv-tsv-file-export", async ({ beginStep }) => {
+    beginStep("browser and editor setup");
     browser = await playwright[browserName].launch({ headless: true });
     const context = await browser.newContext({ viewport: { width: 1100, height: 900 }, hasTouch: true, acceptDownloads: true });
     const page = await context.newPage();
@@ -247,6 +251,7 @@ async function expectInputError(page, events, target, value, pattern) {
     await idle(page);
     await installProbe(page);
     await setup(page);
+    beginStep("draft CSV/TSV export and cancel");
     await panel(page).locator('[data-chart-series-value][data-chart-series-index="0"]').first().fill("1.2345678901234567");
     await panel(page).locator('[data-chart-item-field="label"]').first().fill("編集途中, 1月");
     await panel(page).locator('.chart-block-item-row[data-chart-item-index="0"] [data-chart-action="move-item-down"]').click();
@@ -256,6 +261,7 @@ async function expectInputError(page, events, target, value, pattern) {
     const draftBefore = await snapshot(page);
     for (const format of ["csv", "tsv"]) await save(page, events, "editor", 0, format, draftRows);
     assert.deepEqual(await snapshot(page), draftBefore, "draft export changes neither persistence nor draft/history/save scheduling");
+    beginStep("saved card export and keyboard");
     await panel(page).locator('[data-chart-action="cancel"]').click();
     await page.waitForFunction(() => document.querySelector(".chart-block-editor > .chart-block-status")?.textContent === "編集内容を取り消しました");
     await idle(page);
@@ -271,7 +277,9 @@ async function expectInputError(page, events, target, value, pattern) {
     await idle(page);
     await installProbe(page);
     for (const format of ["csv", "tsv"]) await save(page, events, "card", 0, format, savedRows);
+    beginStep("reload and responsive layouts");
     await verifyResponsive(page, events);
+    beginStep("invalid input and retry");
     const firstValue = panel(page).locator('[data-chart-series-value]').first();
     const firstLabel = panel(page).locator('[data-chart-item-field="label"]').first();
     await expectInputError(page, events, firstLabel, "NUL\0項目", /項目1.*NUL文字/);
@@ -290,6 +298,7 @@ async function expectInputError(page, events, target, value, pattern) {
     await save(page, events, "editor", 0, "tsv", savedRows, { keyboard: true });
     assert.equal(await editorButton(page, 0, "tsv").evaluate((button) => button === document.activeElement), true,
       "keyboard export returns focus to its button");
+    beginStep("parallel downloads and cleanup");
     await page.locator("#insertChartBtn").click();
     await page.waitForFunction(() => document.querySelectorAll(".chart-block-editor").length === 2);
     await paste(page, 1, "項目\t人数\n東京\t42\n大阪\t17");
@@ -356,8 +365,10 @@ async function expectInputError(page, events, target, value, pattern) {
     assert.deepEqual(await snapshot(page), twoBefore, "parallel export does not change either chart or save state");
     assert.deepEqual(errors, []);
     console.log(`Chart file export E2E (${browserName}) passed: draft/reorder/cancel/reload, simultaneous downloads and cleanup, input errors/retry, 10 theme-width layouts and touch`);
+    });
   } finally {
     if (browser) await browser.close();
     await new Promise((resolve) => server.close(resolve));
+    report.summary();
   }
 })().catch((error) => { console.error(error); process.exitCode = 1; });

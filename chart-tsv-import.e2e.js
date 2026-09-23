@@ -51,7 +51,8 @@ async function newChart(page) {
   await page.waitForFunction(() => document.activeElement?.getAttribute('aria-label') === 'グラフ1のタイトル');
   await confirm(page);
 }
-async function verifyChartTsv(page) {
+async function verifyChartTsv(page, step = () => {}) {
+  step('Chart creation and TSV preview');
   await newChart(page);
   const before = await snapshot(page), original = await draft(page);
   await paste(page);
@@ -82,6 +83,7 @@ async function verifyChartTsv(page) {
   await cancel(page);
   assert.equal((await snapshot(page)).body,before.body,"編集取消は元マーカーを完全復元");
   assert.deepEqual(await draft(page),original);
+  step('invalid TSV, cancel and save/reload');
   for (const invalid of ['項目\t売上\n1月\tNaN', '項目\t売上\n1月\t', '項目,売上\n1月,10']) {
     await paste(page,invalid);
     assert.equal(await dialog(page).getByRole('button',{name:'貼り付け内容を反映'}).isDisabled(),true);
@@ -127,6 +129,7 @@ async function verifyChartTsv(page) {
     ...['vertical','horizontal'].flatMap(barOrientation=>['grouped','stacked','percent-stacked'].map(barMode=>({chartType:'bar',barOrientation,barMode}))),
     {chartType:'line'}, {chartType:'pie'}, {chartType:'combo',comboAxisMode:'single'}, {chartType:'combo',comboAxisMode:'dual'}
   ];
+  step('10 Chart configurations and imported values');
   for (const config of configs) {
     await paste(page); await apply(page);
     await panel(page).locator('[data-chart-field="chartType"]').selectOption(config.chartType);
@@ -165,6 +168,7 @@ async function verifyChartTsv(page) {
   assert.deepEqual(kept.appearance,combo.appearance,"左右単位・タイトル・選択・色・表示設定を保持");
   await cancel(page);
   let positions = 0;
+  step('theme/width layouts and tooltips');
   for(const theme of ['light','dark']) {
     await page.setViewportSize({width:1100,height:820});
     await page.locator('#settingsBtn').click(); await page.locator('#themeSelect').selectOption(theme); await page.locator('#closeSettingsBtn').click();
