@@ -74,6 +74,20 @@ test('同時配送は別タスクで順に開始して双方のURLを解放',asy
   const e=downloadEnvironment();await Promise.all([downloadChartSvg(blob(),'first.svg',e.doc),downloadChartSvg(blob(),'second.svg',e.doc)]);
   assert.deepEqual(e.events,['append','click','revoke','append','click','revoke']);assert.equal(e.urls.size,0);
 });
+test('配送タスクが終わるまで一時リンクとObject URLを保持する',async()=>{
+  const e=downloadEnvironment();let releaseDelivery, deliveryScheduled;
+  const scheduled=new Promise(resolve=>deliveryScheduled=resolve);
+  e.doc.defaultView.MessageChannel=class {
+    constructor(){
+      this.port1={onmessage:null,close(){}};
+      this.port2={close(){},postMessage:()=>{releaseDelivery=()=>this.port1.onmessage();deliveryScheduled();}};
+    }
+  };
+  const saving=downloadChartSvg(blob(),'delivery.svg',e.doc);await scheduled;
+  assert.deepEqual(e.events,['append','click']);assert.equal(e.urls.size,1);assert.deepEqual(e.clean(),{removed:false,hrefRemoved:false});
+  releaseDelivery();await saving;
+  assert.deepEqual(e.events,['append','click','revoke']);assert.equal(e.urls.size,0);assert.deepEqual(e.clean(),{removed:true,hrefRemoved:true});
+});
 
 const vm=require('node:vm'),fs=require('node:fs');
 const source=fs.readFileSync('app.js','utf8');

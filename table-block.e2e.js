@@ -376,13 +376,14 @@ async function verifyTableFileExport(page) {
  const savedRows=[["項目","値",""],["りん,ご","編集済み",""],["改行\nセル","",""]];
  for(const [action,extension,parse,mime] of [["save-csv",".csv",parseCsvTable,"text/csv;charset=utf-8"],["save-tsv",".tsv",parseTsvTable,"text/tab-separated-values;charset=utf-8"]]){
   await block.locator("details").evaluate(menu=>{menu.open=true;});
+  const message=action==="save-csv"?"CSVファイルを保存しました":"TSVファイルを保存しました";
+  const status=page.waitForFunction(message=>document.querySelector(".table-block-operation-status")?.textContent===message,message);
   const event=page.waitForEvent("download");
   await block.locator('[data-table-action="'+action+'"]').evaluate(button=>button.click());
-  const download=await event;assert.ok(download.suggestedFilename().endsWith(extension));
+  const [download]=await Promise.all([event,status]);assert.ok(download.suggestedFilename().endsWith(extension));
   const bytes=fs.readFileSync(await download.path());assert.deepEqual([...bytes.subarray(0,3)],[0xef,0xbb,0xbf]);
   assert.deepEqual(parse(new TextDecoder("utf-8").decode(bytes)).rows,savedRows);
   assert.equal(await download.failure(),null);
-  assert.equal(await block.locator(".table-block-operation-status").textContent(),action==="save-csv"?"CSVファイルを保存しました":"TSVファイルを保存しました");
   assert.deepEqual(await snapshot(page),before,"file export must not persist the displayed draft or change history");
   assert.equal(await input.inputValue(),"編集済み");
  }

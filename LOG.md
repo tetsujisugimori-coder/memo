@@ -3391,3 +3391,11 @@
 - `table-paste.test.js`でスナップショットの条件と初期表示値・編集状態の記録を確認する。READMEの「セル内改行を保持する」仕様は変更していない。`app.js`の配信キャッシュは`0.5.0-184`へ更新し、参照テストも同じ番号へ同期した。
 - ローカルではfocused unit tests 88件、`npm test` 1,613件、`node --check app.js table-block.e2e.js`、CSV/TSV書出しE2E Chromium/WebKitが成功した。長いTable E2EはChromiumでライフサイクル・混在貼り付けまで、WebKitでライフサイクルまで進行したが、この実行環境の約30秒子プロセス制約で最終完了ログを得られず、成功とは記録しない。固定wait、skip、assertion緩和、WebKit例外は追加しない。CIのTable E2Eと全checkで最終確認する。
 - 初回修正後のCIでは、LF往復自体はChromium/WebKitとも通過したが、全空表の拒否を確認する既存E2Eが`TableFileImportError`を期待どおりstatusへ表示した際にも`console.error`を出して、最終のconsole errorなし検証で失敗した。入力不備・上限超過など利用者に表示する既知の`TableFileImportError`はconsole errorにせず、想定外のダウンロード失敗だけを記録するようにした。拒否時のstatus、download 0回、Object URL/一時リンクの既存検証は変えない。
+
+### 追補: PR #276 Chart WebKit SVG並行保存とTable E2E同期の修正
+
+- CI run 35816878465 の `Chart E2E (webkit)` は、2カードのSVG保存で両方が成功statusへ到達したにもかかわらず、`concurrency(page)` が2件目のdownloadイベントを30秒以内に受け取れず失敗した。同じHEAD `36a87121d331d624cdcaae11ea32ed6ae4e2b7c4` で失敗jobだけを再実行しても同じ箇所で再現したため、偶発失敗とは扱わない。
+- `downloadChartSvg()` は各要求を文書単位で直列化しObject URLを次タスクまで保持していたが、一時`a`要素を`click()`直後に除去していた。WebKitでは配送タスクがリンクを消費する前に、独立した2件目のナビゲーションが失われ得る。リンクとObject URLの両方をMessageChannelで区切られた配送タスク完了後まで保持し、その後finallyで要求単位に必ず解放するよう修正した。固定wait、timeout延長、自動retry、WebKit分岐は加えていない。
+- `chart-svg-export.test.js`へ、配送タスクを明示的に保留してもクリック後はリンクとObject URLが残り、完了後にリンク/hrefとURLが解放される回帰を追加した。既存の同時配送、各1回のclick、ファイル名、失敗後の後始末、別カード独立の検証を維持する。配布キャッシュ識別子は`chart-png-export.js?v=0.5.0-4`へ更新し、`version.test.js`を同期した。利用者向け仕様は変わらないためREADMEは変更しない。
+- ローカルのTable E2E WebKitでは、CSV/TSV downloadイベントとファイル読込み後に2.2秒表示の成功statusを読む既存順序が、WebKitのファイル配送遅延でstatus消去後になり失敗した。`verifyTableFileExport()`はクリック前に成功statusの監視を開始し、downloadイベントと成功statusの両方を待つようにした。製品コード、期待文字列、download数、timeout、assertion強度は変更していない。
+- `node --test chart-svg-export.test.js`は65件、`npm test`は1,615件が成功した。`node --check chart-png-export.js table-block.e2e.js`、`git diff --check`も成功した。SVG専用WebKit E2E、完全Chart E2E Chromium 1回、WebKit 3回連続、Table file export E2E Chromium/WebKit、Table E2E Chromium/WebKitを完走した。各Chart E2EはSVG matrixの2カード・異なるファイル名・状態不変・URL/リンク解放、各Table E2EはCSV/TSVのBOM、未編集LF往復、編集値、再読込、保存/Undo/Redo不変を含む。
