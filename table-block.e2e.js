@@ -5,7 +5,7 @@ const http = require("node:http");
 const path = require("node:path");
 const playwright = require("playwright");
 const browserName = process.env.MEMO_NEXUS_E2E_BROWSER || "chromium";
-const artifacts = path.join(__dirname, "e2e-artifacts", "mixed-table-paste", browserName);
+const artifacts = path.join(__dirname, "e2e-artifacts", "table-file-import", browserName);
 const one = '<table><tr><th>項目</th><th>値</th></tr><tr><td>りんご</td><td>10</td></tr></table>';
 const two = '<table><tr><td>品目</td><td>数</td></tr><tr><td>みかん</td><td>20</td></tr></table>';
 const html = '<p>文章A 😀</p>' + one + '<div>文章B<br>ABC 123</div>' + two + '<p>文章C</p>';
@@ -18,7 +18,7 @@ async function snapshot(page) {
   undo:structuredClone(undoStack),redo:structuredClone(redoStack),stored:(await getStoredNotes()).find(n=>n.id===currentId)}));
 }
 async function load(page,body="先XX末") {
- await page.locator("#editor").fill(body); await idle(page);
+ await page.locator("#editor").evaluate((editor,body)=>{editor.value=body;editor.dispatchEvent(new InputEvent("input",{bubbles:true,inputType:"insertText",data:body}));},body); await idle(page);
  assert.equal(await page.locator("#editor").inputValue(),body);
  await page.locator("#editor").focus();
  await page.evaluate(()=>editor.setSelectionRange(1,3));
@@ -31,12 +31,18 @@ async function paste(page, source=html, text=plain) {
  },{source,text});
 }
 async function cancel(page,method="button") {
+ const selection=await page.evaluate(()=>pendingTablePaste&&[pendingTablePaste.selectionStart,pendingTablePaste.selectionEnd]);
  if(method==="escape")await page.keyboard.press("Escape");
  else await page.locator(method==="close"?"#closeTablePasteBtn":"#cancelTablePasteBtn").click();
  await page.locator("#tablePasteDialog").waitFor({state:"hidden"});
- try { await page.waitForFunction(()=>document.activeElement===editor); } catch(error) { console.error("Cancel state",await page.evaluate(()=>({active:document.activeElement?.tagName,body:editor.value,pending:pendingTablePaste,currentId,open:tablePasteDialog.open,selection:[editor.selectionStart,editor.selectionEnd]})));throw error; }
+ try { await page.waitForFunction(selection=>document.activeElement===editor&&editor.selectionStart===selection[0]&&editor.selectionEnd===selection[1],selection); } catch(error) { console.error("Cancel state",await page.evaluate(()=>({active:document.activeElement?.tagName,body:editor.value,pending:pendingTablePaste,currentId,open:tablePasteDialog.open,selection:[editor.selectionStart,editor.selectionEnd]})));throw error; }
 }
 async function models(page) {return page.evaluate(()=>MemoNexusTableBlockUtils.splitTableBlocks(editor.value).filter(x=>x.type==="table").map(x=>x.table));}
+async function chooseTableFile(page, file) {
+ const chooserPromise=page.waitForEvent("filechooser");
+ await page.getByRole("button",{name:"CSVまたはTSVファイルを表として読み込む",exact:true}).click();
+ await (await chooserPromise).setFiles(file);
+}
 
 // Assert rendered cells independently of the application's table parser.
 function tableEditor(page, index = 0) {
@@ -317,6 +323,47 @@ async function verify(page) {
  console.log("Mixed paste: merged/nested/security and table/image/text routing passed");
  console.log("Mixed paste: parser, insertion, independent edits, persistence, Undo/Redo, cancellation, conflicts and compatibility passed");
 }
+async function verifyTableFileImport(page) {
+ await load(page);const before=await snapshot(page);
+ await chooseTableFile(page,{name:"売上.CSV",mimeType:"text/csv",buffer:Buffer.from("\ufeff項目,値,\r\n\"りん,ご\",\"引用符 \"\"x\"\"\",\r\n\"改行\nセル\",,")});
+ await page.locator("#tablePasteDialog").waitFor({state:"visible"});
+ assert.equal(await page.locator("#tablePasteTitle").textContent(),"CSVファイルを表として読み込みますか？");
+ assert.equal(await page.locator("#tablePasteFileName").textContent(),"ファイル名：売上.CSV");
+ assert.match(await page.locator("#tablePasteFormat").textContent(),/CSV（カンマ区切り）/);
+ assert.match(await page.locator("#tablePasteSummary").textContent(),/3行 × 3列（9セル）/);
+ assert.equal(await page.locator("#pasteTableAsImageBtn").isVisible(),false);
+ assert.equal(await page.locator("#pasteTableAsTextBtn").isVisible(),false);
+ assert.deepEqual(await snapshot(page),before,"file selection and confirmation are read-only");
+ await page.locator("#tablePasteHeaderCheckbox").uncheck();
+ await page.locator("#confirmTablePasteBtn").click();await idle(page);
+ assert.deepEqual((await models(page))[0].rows,[["項目","値",""],["りん,ご","引用符 \"x\"",""],["改行\nセル","",""]]);
+ assert.equal((await models(page))[0].hasHeader,false);
+ await page.locator("#undoBtn").click();await idle(page);assert.equal((await snapshot(page)).body,before.body);assert.deepEqual(await models(page),[]);
+ await page.locator("#redoBtn").click();await idle(page);assert.equal((await models(page)).length,1);
+ const title=await page.locator("#titleInput").inputValue();await reopen(page,title);
+ await editCell(tableEditor(page),1,1,"再編集");await idle(page);assert.equal((await models(page))[0].rows[1][1],"再編集");
+ await load(page);await chooseTableFile(page,{name:"data.tsv",mimeType:"text/tab-separated-values",buffer:Buffer.from("A\tB\n1\t\"x\ty\"")});
+ await page.locator("#tablePasteDialog").waitFor({state:"visible"});assert.match(await page.locator("#tablePasteFormat").textContent(),/TSV（タブ区切り）/);
+ await cancel(page,"escape");assert.equal((await models(page)).length,0);
+ await chooseTableFile(page,{name:"invalid.csv",mimeType:"text/csv",buffer:Buffer.from("\"未終了")});
+ await page.waitForFunction(()=>tableFileImportStatus.textContent.includes("閉じられていません"));
+ assert.equal(await page.locator("#tablePasteDialog").isVisible(),false);assert.deepEqual(await models(page),[]);
+ await load(page);const fileFailureBefore=await snapshot(page);
+ await chooseTableFile(page,{name:"failure.csv",mimeType:"text/csv",buffer:Buffer.from("A,B\n1,2")});
+ await page.locator("#tablePasteDialog").waitFor({state:"visible"});
+ await page.evaluate(()=>{window.fileImportOriginalUUID=crypto.randomUUID;crypto.randomUUID=()=>{throw Error("injected file table failure");};});
+ await page.locator("#confirmTablePasteBtn").click();
+ assert.deepEqual(await snapshot(page),fileFailureBefore);assert.deepEqual(await page.evaluate(()=>[editor.selectionStart,editor.selectionEnd]),[1,3]);
+ assert.equal(await page.locator("#tablePasteDialog").isVisible(),true);assert.equal(await page.locator("#pasteTableAsImageBtn").isVisible(),false);assert.equal(await page.locator("#pasteTableAsTextBtn").isVisible(),false);
+ assert.match(await page.locator("#tablePasteWarning").textContent(),/表を作成できません/);assert.equal(await page.evaluate(()=>document.activeElement===cancelTablePasteBtn),true);
+ await page.evaluate(()=>{crypto.randomUUID=window.fileImportOriginalUUID;delete window.fileImportOriginalUUID;});await cancel(page);
+ assert.deepEqual(await snapshot(page),fileFailureBefore);assert.deepEqual(await page.evaluate(()=>[editor.selectionStart,editor.selectionEnd]),[1,3]);
+ await chooseTableFile(page,{name:"conflict.csv",mimeType:"text/csv",buffer:Buffer.from("A,B\n1,2")});
+ await page.locator("#tablePasteDialog").waitFor({state:"visible"});await page.locator("#editor").fill("競合");
+ page.once("dialog",dialog=>dialog.accept());await page.locator("#confirmTablePasteBtn").click();await page.locator("#tablePasteDialog").waitFor({state:"hidden"});
+ assert.deepEqual(await models(page),[]);
+ console.log("Table file import: CSV/TSV selection, preview, persistence, undo/redo, cancellation and conflicts passed");
+}
 async function layouts(page) {
  for(const theme of ["light","dark"]) for(const width of [320,375,390,430,1100]){
   await page.setViewportSize({width,height:900});
@@ -332,6 +379,15 @@ async function layouts(page) {
   assert.ok(metrics.html<=metrics.client&&metrics.body<=metrics.client);assert.ok(metrics.scroll<=metrics.clientWidth);
   if(width===390||width===1100)await page.screenshot({path:path.join(artifacts,theme+"-"+width+"-dialog.png")});
   await cancel(page);
+  if(width===390||width===1100) {
+   assert.equal(await page.locator("#editor").inputValue(),"先XX末");assert.deepEqual(await page.evaluate(()=>[editor.selectionStart,editor.selectionEnd]),[1,3]);
+   await page.evaluate(()=>prepareTableFileImport());
+   await page.locator("#tableFileImportInput").setInputFiles({name:"layout.csv",mimeType:"text/csv",buffer:Buffer.from("項目,値\n確認,1")});
+   await page.locator("#tablePasteDialog").waitFor({state:"visible"});
+   await page.screenshot({path:path.join(artifacts,"file-"+theme+"-"+width+"-dialog.png")});
+   await cancel(page);
+   assert.equal(await page.locator("#editor").inputValue(),"先XX末");assert.deepEqual(await page.evaluate(()=>[editor.selectionStart,editor.selectionEnd]),[1,3]);
+  }
   await paste(page,one.repeat(10),"");
   assert.equal(await page.locator(".table-paste-entry").count(),10);
   const scroll=await page.locator(".table-paste-body").evaluate(el=>({scroll:el.scrollHeight,client:el.clientHeight}));
@@ -358,9 +414,13 @@ async function layouts(page) {
   page.on("request",r=>{if(r.url().includes("paste.invalid"))external.push(r.url());});
   await page.goto("http://127.0.0.1:"+server.address().port,{waitUntil:"domcontentloaded"});
   await page.locator("#appStartupGuard").waitFor({state:"hidden"});await page.locator("#editor").waitFor();
-  await verifyTableLifecycle(page);await verify(page);await layouts(page);
+  await verifyTableLifecycle(page);await verify(page);await verifyTableFileImport(page);await layouts(page);
   await page.setViewportSize({width:390,height:844});await page.waitForFunction(()=>document.body.dataset.layoutMode==="mobile");if(await page.locator("#contextPanel").getAttribute("aria-hidden")==="false")await page.locator("#closeContextPanelBtn").click();await load(page);await paste(page);
   await page.locator("#confirmTablePasteBtn").tap();await idle(page);assert.equal((await models(page)).length,2);
+  await page.evaluate(()=>setMobileWritingMode(true));await page.locator('#mobileWritingTools summary[aria-label="追加メニューを開く"]').tap();
+  const mobileChooser=page.waitForEvent("filechooser");await page.locator('[data-mobile-editor-tool="importTableFileBtn"]').tap();
+  await (await mobileChooser).setFiles({name:"mobile.tsv",mimeType:"text/tab-separated-values",buffer:Buffer.from("項目\t値\nモバイル\t1")});
+  await page.locator("#tablePasteDialog").waitFor({state:"visible"});assert.match(await page.locator("#tablePasteFormat").textContent(),/TSV/);await page.locator("#cancelTablePasteBtn").tap();await page.locator("#tablePasteDialog").waitFor({state:"hidden"});
   assert.deepEqual(external,[],"clipboard HTML must not request external resources");
   assert.deepEqual(errors,[],"no page or console errors/warnings");
   console.log("Table block E2E ("+browserName+") passed");
