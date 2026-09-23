@@ -3483,3 +3483,22 @@
 * PR #284を含む`main`のマージコミット`088528c`から開始した。手動計測はActionsの`CI` → `Run workflow`で対象ブランチを選び、boolean入力`dual_axis_profile`を有効にして実行する。CLIでは`gh workflow run ci.yml --ref ci/dual-axis-ubuntu-profile -f dual_axis_profile=true`を使う。無指定または`false`の手動実行と、通常の`pull_request`／`push`では無効。`true`でもChart E2EのWebKit実行ステップだけに`MEMO_NEXUS_E2E_DUAL_AXIS_PROFILE=1`を渡す。既存の`npm run test:e2e:chart:all`と45分上限、他ジョブは維持する。
 * ログの`[DUAL_AXIS_PROFILE]`に続く1行JSONから`conditions`と各`stages`の`count`／`ms`を読む。主に`mobile-card-show`、`mobile-card-close`、`viewport-layout`、`theme`、`data-preview`、`geometry-read`、`geometry-assert`を2回の成功したUbuntu WebKit実行で比べる。各工程の秒数は`ms / 1000`、160条件に占める割合は工程の`ms / 160条件の経過時間`、2軸機能全体のChart全体に占める割合は機能時間／Chart全体時間で求める。工程の合計はスクリーンショットなども含み、条件外の初期・後続検査は機能全体に含まれるので、3種類の時間を同一視しない。
 * 通常CIログと手動計測ログで、1行JSONの有無、160条件の完了、全ジョブの成否を確認する。各実行のrun URL、HEAD SHA、Node／Playwright版、160条件・機能全体・Chart全体の時間、工程の回数と合計時間を記録する。失敗した実行は成功時の時間比較から除き、原因を別記する。変更前のUbuntuには工程別値がないため短縮量を推定せず、今回の値は現在のUbuntuの費用分布として読む。Windowsとの絶対秒数も比較しない。
+* 成功した手動計測は[1回目 run 35931978663](https://github.com/tetsujisugimori-coder/memo/actions/runs/35931978663)と[2回目 run 35932957432](https://github.com/tetsujisugimori-coder/memo/actions/runs/35932957432)。両方ともUbuntuの同じChart E2E WebKitジョブで、HEAD `ecdc85d0e7f6d8bfd9b2dd46efc605baa3bff4c7`、Node `22.23.2`、`npm ci`で導入した固定Playwright `1.62.1`、全8ジョブ成功。WebKitの実行ステップには`MEMO_NEXUS_E2E_DUAL_AXIS_PROFILE: 1`、Chart Chromiumには空値が記録され、工程別JSONはWebKitに各1行のみ。両方のJSONで`conditions: 160`と既存の160条件完了メッセージを確認した。
+* 時間の単位は秒。Chart全体は`[TOTAL] Chart E2E all scripts`を用い、通常のChart本体とファイルexportを含む。各欄は1回目／2回目で、工程は`[DUAL_AXIS_PROFILE]`の`count`と`ms`をそのまま換算した。
+
+| 対象 | 回数（各run） | 1回目 | 2回目 |
+| --- | ---: | ---: | ---: |
+| 160条件 | 160 | 57.2 | 59.9 |
+| 2軸機能全体 | 1 | 61.5 | 64.3 |
+| Chart全スクリプト | 1 | 577.1 | 595.8 |
+| theme | 4 | 1.166 | 1.251 |
+| data-preview | 32 | 10.655 | 11.075 |
+| viewport-layout | 160 | 9.555 | 10.350 |
+| mobile-card-show | 128 | 27.718 | 28.556 |
+| geometry-read | 160 | 1.111 | 1.218 |
+| geometry-assert | 160 | 0.015 | 0.015 |
+| mobile-card-close | 128 | 6.668 | 7.059 |
+| screenshot | 2 | 0.189 | 0.190 |
+
+* カード表示・閉操作・幅変更とレイアウト待ちの合計は43.941／45.965秒で、160条件の76.8／76.7%。特にカード表示が27.718／28.556秒と最多で、data-previewは10.655／11.075秒、図形取得＋assertionは1.126／1.233秒。2回の160条件は57.2〜59.9秒、機能全体は61.5〜64.3秒で変動したが、主要工程の順序と割合はほぼ同じ。機能全体はChart全スクリプトの10.7／10.8%。カード操作と幅変更は2軸内で優先して調べる価値があるが、Chart全体では2軸以外が約89%を占め、同じ2回の`chart-tooltips`は75.4／78.9秒だった。Chart全体の短縮を狙う次の調査では、このような長い他機能の工程も計測して優先度を比べる。
+* [PR #284マージ後mainの通常run 35930490714](https://github.com/tetsujisugimori-coder/memo/actions/runs/35930490714)は8ジョブ成功、WebKitの160条件55.9秒・機能59.9秒・Chart全スクリプト567.0秒で、工程別JSONなし。[このブランチの通常PR run 35932137154](https://github.com/tetsujisugimori-coder/memo/actions/runs/35932137154)も8ジョブ成功、WebKitの環境変数は空値、160条件40.4秒・機能43.5秒・Chart全スクリプト465.4秒でJSONなし。計測runと通常PR runの絶対時間には大きな幅があり、この差を計測の負荷やPR #284の効果に帰属しない。変更前Ubuntuの工程別値は未測定であり、工程別短縮量は算出しない。失敗したCI runはなかった。
