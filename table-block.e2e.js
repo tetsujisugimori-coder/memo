@@ -4,6 +4,7 @@ const fs = require("node:fs");
 const http = require("node:http");
 const path = require("node:path");
 const playwright = require("playwright");
+const { parseCsvTable, parseTsvTable } = require("./table-block-utils.js");
 const browserName = process.env.MEMO_NEXUS_E2E_BROWSER || "chromium";
 const artifacts = path.join(__dirname, "e2e-artifacts", "table-file-import", browserName);
 const one = '<table><tr><th>項目</th><th>値</th></tr><tr><td>りんご</td><td>10</td></tr></table>';
@@ -364,6 +365,49 @@ async function verifyTableFileImport(page) {
  assert.deepEqual(await models(page),[]);
  console.log("Table file import: CSV/TSV selection, preview, persistence, undo/redo, cancellation and conflicts passed");
 }
+async function verifyTableFileExport(page) {
+ await load(page);
+ await chooseTableFile(page,{name:"export-source.csv",mimeType:"text/csv",buffer:Buffer.from("項目,値,\r\n\"りん,ご\",\"引用符 \"\"x\"\"\",\r\n\"改行\nセル\",,")});
+ await page.locator("#confirmTablePasteBtn").click();await idle(page);
+ const block=tableEditor(page), input=block.locator('[data-row-index="1"][data-column-index="1"]');
+ await input.focus();
+ await input.evaluate(element=>{element.value="編集済み";});
+ const before=await snapshot(page);
+ const savedRows=[["項目","値",""],["りん,ご","編集済み",""],["改行\nセル","",""]];
+ for(const [action,extension,parse,mime] of [["save-csv",".csv",parseCsvTable,"text/csv;charset=utf-8"],["save-tsv",".tsv",parseTsvTable,"text/tab-separated-values;charset=utf-8"]]){
+  await block.locator("details").evaluate(menu=>{menu.open=true;});
+  const event=page.waitForEvent("download");
+  await block.locator('[data-table-action="'+action+'"]').evaluate(button=>button.click());
+  const download=await event;assert.ok(download.suggestedFilename().endsWith(extension));
+  const bytes=fs.readFileSync(await download.path());assert.deepEqual([...bytes.subarray(0,3)],[0xef,0xbb,0xbf]);
+  assert.deepEqual(parse(new TextDecoder("utf-8").decode(bytes)).rows,savedRows);
+  assert.equal(await download.failure(),null);
+  assert.equal(await block.locator(".table-block-operation-status").textContent(),action==="save-csv"?"CSVファイルを保存しました":"TSVファイルを保存しました");
+  assert.deepEqual(await snapshot(page),before,"file export must not persist the displayed draft or change history");
+  assert.equal(await input.inputValue(),"編集済み");
+ }
+ await load(page);await page.getByRole("button",{name:"表ブロックを挿入",exact:true}).click();
+ const empty=tableEditor(page);await empty.locator("details").evaluate(menu=>{menu.open=true;});
+ let downloads=0;const count=()=>downloads++;page.on("download",count);
+ await empty.locator('[data-table-action="save-csv"]').evaluate(button=>button.click());
+ await page.waitForFunction(()=>document.querySelector(".table-block-operation-status")?.textContent.includes("実データがない"));
+ page.off("download",count);assert.equal(downloads,0);assert.match(await empty.locator(".table-block-operation-status").textContent(),/実データがないため書き出せません/);
+ console.log("Table file export: CSV/TSV download, BOM, round-trip, latest displayed cells and no-data failure passed");
+}
+async function verifyTableFileExportLayouts(page) {
+ await load(page);await page.getByRole("button",{name:"表ブロックを挿入",exact:true}).click();
+ const block=tableEditor(page);
+ assert.equal(await block.locator('[data-table-action="save-csv"]').count(),1);
+ assert.equal(await block.locator('[data-table-action="save-tsv"]').count(),1);
+ for(const theme of ["light","dark"]) for(const width of [390,1100]){
+  await page.setViewportSize({width,height:900});await page.waitForFunction(mode=>document.body.dataset.layoutMode===mode,width<600?"mobile":"wide");
+  await page.evaluate(theme=>applyTheme(theme),theme);await block.locator("details").evaluate(menu=>{menu.open=true;});
+  const metrics=await block.evaluate(element=>({html:document.documentElement.scrollWidth,body:document.body.scrollWidth,client:document.documentElement.clientWidth,menu:element.querySelector("details").getBoundingClientRect().toJSON(),width:innerWidth}));
+  assert.ok(metrics.html<=metrics.client&&metrics.body<=metrics.client);assert.ok(metrics.menu.left>=0&&metrics.menu.right<=metrics.width);
+  await page.screenshot({path:path.join(artifacts,`table-file-export-${theme}-${width}-actions.png`)});
+ }
+ console.log("Table file export: desktop/390px light/dark action-menu screenshots and overflow checks passed");
+}
 async function layouts(page) {
  for(const theme of ["light","dark"]) for(const width of [320,375,390,430,1100]){
   await page.setViewportSize({width,height:900});
@@ -414,7 +458,7 @@ async function layouts(page) {
   page.on("request",r=>{if(r.url().includes("paste.invalid"))external.push(r.url());});
   await page.goto("http://127.0.0.1:"+server.address().port,{waitUntil:"domcontentloaded"});
   await page.locator("#appStartupGuard").waitFor({state:"hidden"});await page.locator("#editor").waitFor();
-  await verifyTableLifecycle(page);await verify(page);await verifyTableFileImport(page);await layouts(page);
+  await verifyTableLifecycle(page);await verify(page);await verifyTableFileImport(page);await verifyTableFileExport(page);await verifyTableFileExportLayouts(page);await layouts(page);
   await page.setViewportSize({width:390,height:844});await page.waitForFunction(()=>document.body.dataset.layoutMode==="mobile");if(await page.locator("#contextPanel").getAttribute("aria-hidden")==="false")await page.locator("#closeContextPanelBtn").click();await load(page);await paste(page);
   await page.locator("#confirmTablePasteBtn").tap();await idle(page);assert.equal((await models(page)).length,2);
   await page.evaluate(()=>setMobileWritingMode(true));await page.locator('#mobileWritingTools summary[aria-label="追加メニューを開く"]').tap();

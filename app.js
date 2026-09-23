@@ -461,6 +461,7 @@ const {
   normalizeTableBlock,
   parseCsvTable,
   parseTsvTable,
+  serializeTableFile,
   replaceTableBlock,
   splitTableBlocks,
   tableColumnLabel,
@@ -471,6 +472,7 @@ const {
   writeTableToClipboard,
   writeTextToClipboard
 } = window.MemoNexusTableBlockUtils;
+const { downloadTableFile, tableFileExportName } = window.MemoNexusTableFileExportUtils;
 const {
   chartBlockPlainText,
   chartDisplaySeries,
@@ -1177,6 +1179,7 @@ let pendingExplanation = null;
 let editorSelectionRangeSnapshot = null;
 let pendingExplanationSelection = null;
 const tableCopyStatusTimers = new WeakMap();
+const tableFileExportButtons = new WeakSet();
 let activeTableCell = null;
 const tableAxisSelections = new Map();
 let pendingTableAxisDeletion = null;
@@ -8017,6 +8020,36 @@ async function copyTableBlock(editorBlock, tableValue, format) {
   }
 }
 
+async function exportTableBlock(editorBlock, tableValue, format, button) {
+  const formats = {
+    csv: { delimiter: ",", extension: "csv", mimeType: "text/csv;charset=utf-8", label: "CSV" },
+    tsv: { delimiter: "\t", extension: "tsv", mimeType: "text/tab-separated-values;charset=utf-8", label: "TSV" }
+  };
+  const selectedFormat = formats[format];
+  if (!selectedFormat || tableFileExportButtons.has(button)) return;
+  tableFileExportButtons.add(button);
+  button.disabled = true;
+  button.setAttribute("aria-busy", "true");
+  try {
+    const table = tableSnapshotForCopy(editorBlock, tableValue);
+    const file = serializeTableFile(table.rows, selectedFormat.delimiter);
+    const fileName = tableFileExportName(currentNote()?.title, editorBlock.dataset.tableIndex, selectedFormat.extension);
+    await downloadTableFile(new Blob([file.text], { type: selectedFormat.mimeType }), fileName, document);
+    showTableCopyStatus(editorBlock, `${selectedFormat.label}ファイルを保存しました`, true);
+  } catch (error) {
+    console.error("Table file export failed", error);
+    const detail = error && error.message;
+    const message = detail === "実データがありません。"
+      ? "実データがないため書き出せません"
+      : detail || "ファイルを書き出せませんでした";
+    showTableCopyStatus(editorBlock, message, false);
+  } finally {
+    tableFileExportButtons.delete(button);
+    button.disabled = false;
+    button.removeAttribute("aria-busy");
+  }
+}
+
 function focusTableAxisHeader(tableId, type, index) {
   requestAnimationFrame(() => {
     const selector = `.table-block-editor[data-table-id="${CSS.escape(tableId)}"] .table-axis-selector[data-table-axis="${type}"][data-table-axis-index="${index}"]`;
@@ -8051,6 +8084,8 @@ function createTableEditor(tableValue, blockIndex) {
     tableEditorButton("グラフを作成", "create-chart"),
     tableEditorButton("表をコピー", "copy-table"),
     tableEditorButton("Markdown表としてコピー", "copy-markdown"),
+    tableEditorButton("CSVで保存", "save-csv"),
+    tableEditorButton("TSVで保存", "save-tsv"),
     tableEditorButton(table.hasHeader ? "見出し行をオフ" : "見出し行をオン", "toggle-header"),
     tableEditorButton("表を削除", "delete-table", true)
   );
@@ -8361,6 +8396,12 @@ function handleTableEditorAction(event) {
       return;
     case "copy-markdown":
       void copyTableBlock(editorBlock, block.table, "markdown");
+      return;
+    case "save-csv":
+      void exportTableBlock(editorBlock, block.table, "csv", button);
+      return;
+    case "save-tsv":
+      void exportTableBlock(editorBlock, block.table, "tsv", button);
       return;
     case "add-row": {
       const afterIndex = selection?.type === "row" ? selection.index : next.rows.length - 1;

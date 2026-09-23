@@ -28,6 +28,8 @@ const {
   tableBlockPlainText,
   tableBlockToHtml,
   tableBlockToMarkdown,
+  serializeDelimitedTable,
+  serializeTableFile,
   tableRowsToTabSeparated,
   updateTableCell,
   validatePastedTableSize,
@@ -321,6 +323,42 @@ test("表の行列を空セルと文字列表現を保ったタブ区切りへ�
     tableRowsToTabSeparated(rows),
     "商品コード\t商品名\t数量\n00123\tりんご\t12\n00007\t\t1-2\nTRUE\t2行\nセル\t"
   );
+});
+
+test("CSV/TSV書き出しはBOM、CRLF、引用符、空セルと末尾空列を保持して往復できる", () => {
+  const rows = Object.freeze([
+    Object.freeze(["項目", "値", "", ""]),
+    Object.freeze(["りん,ご", "\tを含む", '引用符 "x"', " 前後 "]),
+    Object.freeze(["00123", "2026-09-23", "=SUM(A1:A2)", "改行\r\nセル"]),
+    Object.freeze(["😀", "", "", ""])
+  ]);
+  const expected = rows.map((row) => [...row].map((cell) => String(cell).replace(/\r\n?/g, "\n")));
+  const csv = serializeTableFile(rows, ",");
+  const tsv = serializeTableFile(rows, "\t");
+  assert.equal(csv.text.startsWith("\ufeff"), true);
+  assert.equal(tsv.text.startsWith("\ufeff"), true);
+  assert.equal((csv.text.match(/^\ufeff/g) || []).length, 1);
+  assert.match(csv.text, /\r\n/);
+  assert.equal(csv.text.endsWith("\r\n"), false);
+  assert.match(csv.text, /"りん,ご"/);
+  assert.match(tsv.text, /"\tを含む"/);
+  assert.match(csv.text, /"引用符 ""x"""/);
+  assert.match(csv.text, /" 前後 "/);
+  assert.deepEqual(require("./table-block-utils.js").parseCsvTable(csv.text).rows, expected);
+  assert.deepEqual(require("./table-block-utils.js").parseTsvTable(tsv.text).rows, expected);
+  assert.deepEqual(rows, [
+    ["項目", "値", "", ""],
+    ["りん,ご", "\tを含む", '引用符 "x"', " 前後 "],
+    ["00123", "2026-09-23", "=SUM(A1:A2)", "改行\r\nセル"],
+    ["😀", "", "", ""]
+  ]);
+});
+
+test("区切り形式シリアライザーは単純な表をCRLFで出力し、出力不能な表を拒否する", () => {
+  assert.equal(serializeDelimitedTable([["A", "B"], ["1", "2"]], "\t"), "A\tB\r\n1\t2");
+  assert.throws(() => serializeTableFile([["", ""], ["", ""]], ","), /実データ/);
+  assert.throws(() => serializeTableFile([["NUL\0", "x"]], ","), /NUL/);
+  assert.throws(() => serializeTableFile([["a".repeat(5 * 1024 * 1024)]], ","), /5MiB/);
 });
 
 test("HTMLコピーは見出し、配置、改行を表現しセルを安全にエスケープする", () => {

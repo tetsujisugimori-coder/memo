@@ -597,6 +597,36 @@
     return tableRowsForCopy(rows).map((row) => row.join("\t")).join("\n");
   }
 
+  function serializeDelimitedTable(rows, delimiter) {
+    const separator = String(delimiter || "");
+    if (separator.length !== 1) throw new TypeError("区切り文字は1文字で指定してください。");
+    const escapeCell = (value) => {
+      const cell = normalizedCell(value);
+      const requiresQuotes = cell.includes(separator)
+        || cell.includes('"')
+        || cell.includes("\r")
+        || cell.includes("\n")
+        || cell.trim() !== cell;
+      const escaped = cell.replace(/"/g, '""');
+      return requiresQuotes ? `"${escaped}"` : escaped;
+    };
+    return tableRowsForCopy(rows).map((row) => row.map(escapeCell).join(separator)).join("\r\n");
+  }
+
+  function serializeTableFile(rows, delimiter, limits = TABLE_FILE_IMPORT_LIMITS) {
+    const sourceRows = tableRowsForCopy(rows);
+    validateTableFileRows(sourceRows, limits);
+    if (sourceRows.some((row) => row.some((cell) => cell.includes("\0")))) {
+      throw tableFileImportError("NUL文字を含む表は書き出せません。");
+    }
+    const text = `\ufeff${serializeDelimitedTable(sourceRows, delimiter)}`;
+    const byteLength = new TextEncoder().encode(text).byteLength;
+    if (byteLength > limits.bytes) {
+      throw tableFileImportError(`ファイルサイズが上限の${Math.floor(limits.bytes / (1024 * 1024))}MiBを超えています。`);
+    }
+    return { text, rows: sourceRows, byteLength };
+  }
+
   function copyColumnAlignment(table, columnIndex) {
     const alignment = Array.isArray(table.alignments) ? table.alignments[columnIndex] : null;
     return ["left", "center", "right"].includes(alignment) ? alignment : null;
@@ -778,10 +808,13 @@
     tableBlockPlainText,
     tableBlockToHtml,
     tableBlockToMarkdown,
+    serializeDelimitedTable,
+    serializeTableFile,
     updateTableCell,
     validatePastedTableSize,
     validateTableFileRows,
     tableRowsToTabSeparated,
+    tableRowsForCopy,
     writeTableToClipboard,
     writeTextToClipboard
   };
