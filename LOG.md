@@ -3363,3 +3363,39 @@
 - `crypto.randomUUID()` を意図的に失敗させるファイルモード回帰を追加した。本文・保存・Undo/Redoと選択範囲が不変、ダイアログが開いたまま、テキスト／画像ボタンが非表示、ファイル向けのエラーと操作可能な取消ボタンへのフォーカス、取消成功を確認する。通常貼り付けのテキスト案内・フォーカス経路は変更しない。
 - 修正後の初回CI Chromiumでは、取消ヘルパーがエディターへフォーカスした直後に完了し、同じ`requestAnimationFrame`内で続く選択範囲復元を待たずに検証して失敗した。固定待機は加えず、ダイアログが記録した開始・終了位置まで戻ることを取消完了条件にして再実行する。これは製品の復元を省略せず検証を強めるE2E同期修正である。
 - この厳密化で、WebKitの別シナリオにある必要な`load(page)`も、取消後に復元された選択 `1..3` を残したままPlaywright `locator.fill()` が本文を入力して `先先XX末末` にしていることが分かった。`load`はテスト用初期化なので、値を置換してアプリの`input`経路を一度だけ発火する方式へ変更した。取消・選択範囲・保存の製品経路は引き続き実操作で検証し、固定waitやWebKit例外は追加しない。
+
+## 2026-09-23 表ブロックのCSV/TSVファイル書出し（Closes #275）
+
+### 目的・設計
+
+- PR #273で完成したCSV/TSV読込と対になる、`読込 → 表編集 → 書出し → 再読込` の往復経路を完成させる。表の「操作」メニューへ`CSVで保存`と`TSVで保存`を追加し、保存済みマーカーではなく`tableSnapshotForCopy()`が読む操作時点の表示セルを対象にする。
+- CSV/TSVごとの変換を分けず、`serializeDelimitedTable()`と`serializeTableFile()`で区切り文字だけを引数にする。UTF-8 BOMはWindows版Excelでの文字化けを避け、CRLFはWindowsでの行区切り互換性を保つために採用した。区切り文字、引用符、CR/LF、前後空白を含むセルは引用符で囲み、引用符は`""`へエスケープし、セル内改行は既存セル正規化に合わせてLFに統一する。
+- 空セル、末尾空列、数値風文字列、日付風文字列、先頭ゼロ、数式風文字列は変更しない。数式はMemo Nexusで評価しないが、外部の表計算ソフトが解釈する可能性をREADMEへ明記した。表ID、`hasHeader`、列配置、選択、Undo/Redo、メモID、マーカー、グラフ関係はファイルへ含めず、再読込時の見出し選択は既存ダイアログのままとする。
+- 全空表、NUL、UTF-8 BOM込み5MiB超過はダウンロードを開始せず日本語で案内する。表の既存100行・30列・3000セル上限を共有し、Blob/Object URL/一時`a`要素は専用ヘルパーで起動後に解放する。タイトルと表順からWindows安全名・予約名回避・長さ制限済みの`<title>-table-<n>.csv|tsv`を作る。
+- 書出しは本文、表保存データ、dirty、Undo/Redo、IndexedDB、自動保存、表ID、行列選択を変更しない。連打中は操作ボタンを一時無効化し、既存の`role="status"`経路で成功・失敗を通知する。TABLE_BLOCK_VERSION、UTF-8 hexマーカー、DB_VERSION、Markdown/ZIP、読込、貼り付け、表→グラフ、コピーの形式と経路は変更しない。
+
+### 実装・検証経過
+
+- `table-block-utils.js`へ共通シリアライザーとBOM・NUL・サイズ検査を追加し、`table-file-export-utils.js`へ安全ファイル名と解放付きダウンロードを分離した。`app.js`は既存スナップショットと状態表示だけを再利用し、保存のための本文更新・保存予約を行わない。READMEへ利用方法、往復範囲、数式風文字列の外部ソフト注意、非対応形式を追記した。
+- `table-block-utils.test.js`、`table-file-export-utils.test.js`、`table-block.e2e.js`でCSV/TSVのBOM・CRLF・引用符・空セル・末尾空列・改行・Unicode・往復、NUL/空表/5MiB拒否、凍結入力不変、Windows安全名、Object URL/一時要素解放、最新表示セル、downloadイベント、本文/保存/Undo/Redo不変を確認する。既存の表コピー、Markdownコピー、CSV/TSV読込、混在HTML貼り付け、表→グラフのテストも実行する。
+- `node --test table-block-utils.test.js table-file-import.test.js table-file-export-utils.test.js`は66件、`npm test`は1,612件がすべて成功した。変更JavaScriptの`node --check`と`git diff --check`も成功した。package.jsonにlint、型チェック、build専用コマンドはない。
+- 新設した短時間の`npm run test:e2e:table-export`はChromium/WebKitとも成功した。実downloadイベント1回ずつ、`.csv`/`.tsv`、BOM、既存パーサーへの往復、表示中セル、保存/Undo/Redo不変、390px/1100px、ライト/ダーク、横スクロール0、console/page error 0を確認し、`e2e-artifacts/table-file-export/<browser>/table-file-export-<theme>-<width>-actions.png`へ新規画像を保存した。iPhone Safari実機は未確認である。
+- 既存の長い`npm run test:e2e:table`はChromium/WebKitとも表ライフサイクルの完了ログまでは得られたが、この実行環境の約30秒子プロセス制約により最終完了ログを取得できなかった。待機延長、skip、固定wait、assertion緩和は加えず、書出し固有の実ブラウザ検証を別specで完走した。既存Mobile E2EはChromiumで320/375/390/430pxの横スクロール0・console/page error 0まで完走し、Geometry E2Eは1100pxと390pxで成功した。Chart E2Eは同じ実行制約で最終完了ログを取得できず、成功とは記録しない。
+- 利用者の元作業ツリーにあった`e2e-artifacts/mobile-layout-390.png`、`freehand-canvas.html`、`work/`は変更、削除、stash、reset、commitしない。`origin/main`でPR #273のマージを確認してから、`feature/table-file-export`の隔離worktreeで作業する。今回の実装用プロンプトは、CSV/TSVの往復、BOM/CRLF/引用符/末尾空列、最新セル、状態不変、安全ファイル名・URL解放、README/LOG、全テスト、PR作成とCI確認を要求している。
+
+### 追補: PR #276 のセル内LF書出し回帰修正
+
+- CI run 35813872510 の Table E2E Chromium/WebKit は、CSV読込モデルにある `改行\nセル` を `<input type="text">` へ表示した時点でブラウザが `改行セル` に正規化するのに、`tableSnapshotForCopy()` が未編集セルを含めてDOMの`input.value`で上書きしたため失敗した。CSV/TSVシリアライザーではなく、書出し直前のスナップショット境界が原因だった。
+- セル描画直後に、ブラウザ正規化後の`input.value`を`data-table-initial-value`として保持し、`input`イベントを受けたセルは編集済みとして記録する。スナップショットでは、編集済み、または初期表示値と現在値が異なるセルだけDOM値を採用し、それ以外は保存モデルの値を残す。これにより未編集のLFは保持し、セル自身を編集した場合は編集後の値を優先する。テストのようなプログラムによる値変更も初期表示値との差分で検出する。
+- `table-block.e2e.js`はCSV実ファイル読込後、LFセルを未編集のまま別セルを変更してCSV/TSVへ書出し・既存パーサーで再読込する既存期待値`改行\nセル`を維持した。さらにLFセル自体を編集後、CSV/TSVの両方が最新値を出力する回帰を加えた。BOM、CRLFレコード区切り、引用符、区切り文字、空セル、末尾空列、状態不変、download 1回、URL解放、全空/NUL/5MiB拒否の既存検証は保持する。
+- `table-paste.test.js`でスナップショットの条件と初期表示値・編集状態の記録を確認する。READMEの「セル内改行を保持する」仕様は変更していない。`app.js`の配信キャッシュは`0.5.0-184`へ更新し、参照テストも同じ番号へ同期した。
+- ローカルではfocused unit tests 88件、`npm test` 1,613件、`node --check app.js table-block.e2e.js`、CSV/TSV書出しE2E Chromium/WebKitが成功した。長いTable E2EはChromiumでライフサイクル・混在貼り付けまで、WebKitでライフサイクルまで進行したが、この実行環境の約30秒子プロセス制約で最終完了ログを得られず、成功とは記録しない。固定wait、skip、assertion緩和、WebKit例外は追加しない。CIのTable E2Eと全checkで最終確認する。
+- 初回修正後のCIでは、LF往復自体はChromium/WebKitとも通過したが、全空表の拒否を確認する既存E2Eが`TableFileImportError`を期待どおりstatusへ表示した際にも`console.error`を出して、最終のconsole errorなし検証で失敗した。入力不備・上限超過など利用者に表示する既知の`TableFileImportError`はconsole errorにせず、想定外のダウンロード失敗だけを記録するようにした。拒否時のstatus、download 0回、Object URL/一時リンクの既存検証は変えない。
+
+### 追補: PR #276 Chart WebKit SVG並行保存とTable E2E同期の修正
+
+- CI run 35816878465 の `Chart E2E (webkit)` は、2カードのSVG保存で両方が成功statusへ到達したにもかかわらず、`concurrency(page)` が2件目のdownloadイベントを30秒以内に受け取れず失敗した。同じHEAD `36a87121d331d624cdcaae11ea32ed6ae4e2b7c4` で失敗jobだけを再実行しても同じ箇所で再現したため、偶発失敗とは扱わない。
+- `downloadChartSvg()` は各要求を文書単位で直列化しObject URLを次タスクまで保持していたが、一時`a`要素を`click()`直後に除去していた。WebKitでは配送タスクがリンクを消費する前に、独立した2件目のナビゲーションが失われ得る。リンクとObject URLの両方をMessageChannelで区切られた配送タスク完了後まで保持し、その後finallyで要求単位に必ず解放するよう修正した。固定wait、timeout延長、自動retry、WebKit分岐は加えていない。
+- `chart-svg-export.test.js`へ、配送タスクを明示的に保留してもクリック後はリンクとObject URLが残り、完了後にリンク/hrefとURLが解放される回帰を追加した。既存の同時配送、各1回のclick、ファイル名、失敗後の後始末、別カード独立の検証を維持する。配布キャッシュ識別子は`chart-png-export.js?v=0.5.0-4`へ更新し、`version.test.js`を同期した。利用者向け仕様は変わらないためREADMEは変更しない。
+- ローカルのTable E2E WebKitでは、CSV/TSV downloadイベントとファイル読込み後に2.2秒表示の成功statusを読む既存順序が、WebKitのファイル配送遅延でstatus消去後になり失敗した。`verifyTableFileExport()`はクリック前に成功statusの監視を開始し、downloadイベントと成功statusの両方を待つようにした。製品コード、期待文字列、download数、timeout、assertion強度は変更していない。
+- `node --test chart-svg-export.test.js`は65件、`npm test`は1,615件が成功した。`node --check chart-png-export.js table-block.e2e.js`、`git diff --check`も成功した。SVG専用WebKit E2E、完全Chart E2E Chromium 1回、WebKit 3回連続、Table file export E2E Chromium/WebKit、Table E2E Chromium/WebKitを完走した。各Chart E2EはSVG matrixの2カード・異なるファイル名・状態不変・URL/リンク解放、各Table E2EはCSV/TSVのBOM、未編集LF往復、編集値、再読込、保存/Undo/Redo不変を含む。

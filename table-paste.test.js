@@ -129,12 +129,27 @@ test("各表の操作メニューへ表コピーとMarkdownコピーを追加す
   assert.match(source, /tableEditorButton\("Markdown表としてコピー", "copy-markdown"\)/);
 });
 
-test("コピー直前は対象表DOMの最新セル値だけを複製し本文へ書き戻さない", () => {
+test("コピー直前は編集済みまたは初期表示値と異なるセルだけを複製し本文へ書き戻さない", () => {
   const source = functionSource("tableSnapshotForCopy", "showTableCopyStatus");
   assert.match(source, /table\.rows\.map\(\(row\) => \[\.\.\.row\]\)/);
   assert.match(source, /editorBlock\.querySelectorAll\("\.table-block-cell-input"\)/);
+  assert.match(source, /input\.dataset\.tableCellEdited === "true"/);
+  assert.match(source, /input\.value !== input\.dataset\.tableInitialValue/);
   assert.match(source, /rows\[rowIndex\]\[columnIndex\] = input\.value/);
   assert.doesNotMatch(source, /editor\.value|captureUndoSnapshot|scheduleSave/);
+});
+
+test("表セルはブラウザ正規化後の初期表示値とinput編集状態を記録する", () => {
+  const editorSource = functionSource("createTableEditor", "renderTableBlockEditors");
+  const inputSource = functionSource("handleTableEditorInput", "handleTableEditorCompositionStart");
+  assert.match(editorSource, /input\.dataset\.tableInitialValue = input\.value/);
+  assert.match(inputSource, /event\.target\.dataset\.tableCellEdited = "true"/);
+});
+
+test("予期される表ファイル書出し拒否は操作ステータスだけで案内する", () => {
+  const source = functionSource("exportTableBlock", "focusTableAxisHeader");
+  assert.match(source, /error\?\.name !== "TableFileImportError"/);
+  assert.match(source, /showTableCopyStatus\(editorBlock, message, false\)/);
 });
 
 test("表コピーは選択・Undo・保存を変更せず成功または失敗を表付近へ表示する", () => {
@@ -153,8 +168,8 @@ test("表コピーは選択・Undo・保存を変更せず成功または失敗�
 
 test("配信キャッシュ番号を貼り付け機能の変更に合わせて更新する", () => {
   assert.match(html, /style\.css\?v=0\.5\.0-110/);
-  assert.match(html, /table-block-utils\.js\?v=0\.5\.0-6/);
-  assert.match(html, /app\.js\?v=0\.5\.0-182/);
+  assert.match(html, /table-block-utils\.js\?v=0\.5\.0-7/);
+  assert.match(html, /app\.js\?v=0\.5\.0-185/);
 });
 
 const vm = require("node:vm");

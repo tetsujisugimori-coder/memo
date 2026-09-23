@@ -326,23 +326,26 @@
       started = true;
     } finally {
       try {
-        anchor?.remove(); anchor?.removeAttribute("href");
-        if (url) {
-          // Link activation queues a navigation task. Release in the following task,
-          // not during activation; no arbitrary retention timeout or persistent listener.
-          try {
-            if (started) await new Promise(resolve => {
-              const channel = new view.MessageChannel();
-              channel.port1.onmessage = () => {
-                channel.port1.onmessage = null; channel.port1.close(); channel.port2.close(); resolve();
-              };
-              channel.port2.postMessage(null);
-            });
-          } finally { view.URL.revokeObjectURL(url); }
-        }
+        // Link activation queues a navigation task. Keep both the link and its
+        // Object URL alive through that task: WebKit can otherwise drop a
+        // second, independently requested download before navigation starts.
+        if (url && started) await new Promise(resolve => {
+          const channel = new view.MessageChannel();
+          channel.port1.onmessage = () => {
+            channel.port1.onmessage = null; channel.port1.close(); channel.port2.close(); resolve();
+          };
+          channel.port2.postMessage(null);
+        });
       } finally {
-        if (svgDownloads.get(doc) === pending) svgDownloads.delete(doc);
-        release();
+        try {
+          anchor?.remove(); anchor?.removeAttribute("href");
+        } finally {
+          try { if (url) view.URL.revokeObjectURL(url); }
+          finally {
+            if (svgDownloads.get(doc) === pending) svgDownloads.delete(doc);
+            release();
+          }
+        }
       }
     }
   }
