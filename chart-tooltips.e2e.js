@@ -1,6 +1,12 @@
 "use strict";
 
 const assert = require("node:assert/strict");
+const { performance } = require("node:perf_hooks");
+
+const profileTooltip = process.env.MEMO_NEXUS_E2E_TOOLTIP_PROFILE === "1";
+function recordTime(timing, name, started) {
+  if (timing) timing[name] = performance.now() - started;
+}
 
 const configs = [
   ...["vertical", "horizontal"].flatMap((barOrientation) => ["grouped", "stacked", "percent-stacked"]
@@ -21,30 +27,46 @@ function seed(config, id) {
   };
 }
 
-async function loadChart(page, model) {
+async function loadChart(page, model, timing) {
+  let started = performance.now();
   await page.setViewportSize({ width: 1100, height: 820 });
   await page.waitForFunction(() => document.body.dataset.layoutMode === "wide");
+  recordTime(timing, "setupViewport", started);
+  started = performance.now();
   const marker = await page.evaluate((model) => window.MemoNexusChartBlockUtils.serializeChartBlock(model), model);
   await page.locator("#editor").fill(marker);
   await page.locator(`.chart-block-editor[data-chart-id="${model.id}"]`).waitFor({ state: "visible" });
+  recordTime(timing, "dataEntry", started);
+  started = performance.now();
   await page.locator('.chart-block-editor [data-chart-action="confirm"]').click();
   await page.waitForFunction(() => document.querySelector('.chart-block-editor > .chart-block-status')?.textContent === "入力内容を保存しました"
     && !noteSaveFoundation.isDirty(currentId) && saveTimer === null
     && window.MemoNexusTypingDerivedUiScheduler.pendingRequestType() === null);
+  recordTime(timing, "saveWait", started);
+  started = performance.now();
   await page.locator(`#preview .chart-block[data-chart-id="${model.id}"] [data-chart-datum]`).first().waitFor({ state: "attached" });
+  recordTime(timing, "renderWait", started);
 }
 
-async function openPreview(page, width) {
+async function openPreview(page, width, timing) {
+  let started = performance.now();
   await page.setViewportSize({ width, height: 820 });
+  recordTime(timing, "resize", started);
+  started = performance.now();
   await page.waitForFunction((width) => innerWidth === width && document.body.dataset.layoutMode === (width >= 1100 ? "wide" : "mobile"), width);
+  recordTime(timing, "layoutWait", started);
   if (width < 1100) {
+    started = performance.now();
     if (await page.locator("#mobileWritingDoneBtn").isVisible()) await page.locator("#mobileWritingDoneBtn").click();
     if (await page.locator("#contextPanel").getAttribute("aria-hidden") === "false") await page.locator("#closeContextPanelBtn").click();
     if (await page.locator("#previewCard").getAttribute("aria-hidden") === "true") await page.locator("#cardPaneBtn").click();
+    recordTime(timing, "mobileControls", started);
+    started = performance.now();
     await page.waitForFunction(() => {
       const card = document.getElementById("previewCard");
       return card.getAttribute("aria-hidden") === "false" && Math.abs(card.getBoundingClientRect().right - innerWidth) < 1;
     });
+    recordTime(timing, "cardWait", started);
   }
 }
 
@@ -159,7 +181,10 @@ async function verifyChartTooltips(page, step = () => {}) {
   // Every type, both themes and all requested viewport widths, with long safe text.
   step("120 theme/width positions and long labels");
   let positions = 0;
+  const profileStarted = performance.now();
+  const profile = profileTooltip ? { setup: [], themes: [], samples: [], focusScrollChanges: [], alreadyFocused: [] } : null;
   for (const config of configs) {
+    const configIndex = positions / 10;
     const model = seed(config, `tooltip-long-${positions}`);
     model.items[0].label = '<img src=x onerror="throw 1">長い項目名'.repeat(2);
     model.series.forEach((series) => { series.name += "長い系列名".repeat(4); });
@@ -167,26 +192,84 @@ async function verifyChartTooltips(page, step = () => {}) {
     model.appearance.leftAxisTitle = "長い左軸タイトル".repeat(8);
     model.appearance.rightAxisTitle = "長い右軸タイトル".repeat(8);
     model.appearance.comboSecondaryUnit = "長い右単位".repeat(4);
-    await loadChart(page, model);
+    const setup = {};
+    await loadChart(page, model, profile ? setup : null);
+    if (profile) profile.setup.push([configIndex, ...["setupViewport", "dataEntry", "saveWait", "renderWait"].map((key) => Math.round(setup[key]))]);
     for (const theme of ["light", "dark"]) {
+      let started = performance.now();
       await page.setViewportSize({ width: 1100, height: 820 });
       await page.locator('#settingsBtn').click(); await page.locator('#themeSelect').selectOption(theme); await page.locator('#closeSettingsBtn').click();
+      if (profile) profile.themes.push([configIndex, theme, Math.round(performance.now() - started)]);
       for (const width of [320, 375, 390, 430, 1100]) {
-        await openPreview(page, width);
+        const conditionStarted = performance.now();
+        const preview = {};
+        await openPreview(page, width, profile ? preview : null);
+        const previewDone = performance.now();
         const data = page.locator('#preview [data-chart-datum]');
-        await data.first().scrollIntoViewIfNeeded(); await data.first().focus();
-        await checkTooltip(page, data.first());
+        const scrollState = () => data.first().evaluate((el) => {
+          const area = el.closest('.chart-block-scroll');
+          return [scrollX, scrollY, area.scrollLeft, area.scrollTop, document.activeElement === el];
+        });
+        const beforeScroll = profile ? await scrollState() : null;
+        if (profile && beforeScroll[4]) profile.alreadyFocused.push([configIndex, theme, width]);
+        const scrolled = performance.now();
+        await data.first().focus();
+        await page.keyboard.press("Home");
+        const readVisibility = () => data.first().evaluate((el) => {
+          const rect = el.getBoundingClientRect(), area = el.closest('.chart-block-scroll');
+          const clip = area.getBoundingClientRect();
+          // SVG and transformed card bounds can differ by less than one CSS pixel.
+          return { focused: document.activeElement === el, visible: rect.width > 0 && rect.height > 0
+            && rect.left >= Math.max(0, clip.left) - 1 && rect.right <= Math.min(innerWidth, clip.right) + 1
+            && rect.top >= Math.max(0, clip.top) - 1 && rect.bottom <= Math.min(innerHeight, clip.bottom) + 1,
+          scroll: [scrollX, scrollY, area.scrollLeft, area.scrollTop], rect: rect.toJSON(), clip: clip.toJSON() };
+        });
+        let visibility = await readVisibility();
+        if (profile && beforeScroll.slice(0, 4).some((value, index) => value !== visibility.scroll[index]))
+          profile.focusScrollChanges.push([configIndex, theme, width, beforeScroll.slice(0, 4), visibility.scroll]);
+        const firstFocused = performance.now();
+        try { await checkTooltip(page, data.first()); }
+        catch (error) {
+          console.error("Tooltip focus failure:", JSON.stringify({ configIndex, theme, width,
+            state: await page.evaluate(() => ({
+              firstFocused: document.activeElement === document.querySelector('#preview [data-chart-datum]'),
+              activeTag: document.activeElement?.tagName,
+              tooltipCount: document.querySelectorAll('.chart-data-tooltip').length,
+              pointerTarget: typeof chartPointerTarget === 'undefined' ? null : chartPointerTarget?.dataset.chartItemId,
+              activeTooltip: typeof activeChartTooltip === 'undefined' ? null : activeChartTooltip?.target?.dataset.chartItemId
+            })).catch((diagnosticError) => ({ diagnosticError: String(diagnosticError) })) }));
+          throw error;
+        }
+        if (!visibility.focused || !visibility.visible) visibility = await readVisibility();
+        assert.equal(visibility.focused, true, `Homeで先頭のデータ点へフォーカスする: ${JSON.stringify({ configIndex, theme, width, visibility })}`);
+        assert.ok(visibility.visible, `最初のデータ点を表示領域に収める: ${JSON.stringify({ configIndex, theme, width, visibility })}`);
         assert.equal(await page.locator('.chart-data-tooltip img').count(), 0);
-        await page.keyboard.press("End"); await checkTooltip(page, data.last());
+        const firstChecked = performance.now();
+        await page.keyboard.press("End");
+        const endPressed = performance.now();
+        await checkTooltip(page, data.last());
+        const lastChecked = performance.now();
         if (width < 1100 && config.chartType !== "pie") {
           assert.ok(await data.last().evaluate((el) => el.closest('.chart-block-scroll').scrollLeft) > 0, "矢印移動で図形を横スクロール領域に表示する");
         }
-        await page.keyboard.press("Escape"); await closed(page);
+        const scrollChecked = performance.now();
+        await page.keyboard.press("Escape");
+        const escapePressed = performance.now();
+        await closed(page);
+        const closedChecked = performance.now();
         if (width < 1100) await page.locator('#closeCardPaneBtn').click();
+        if (profile) profile.samples.push([configIndex, theme, width, ...[
+          performance.now() - conditionStarted, previewDone - conditionStarted, firstFocused - previewDone,
+          firstChecked - firstFocused, lastChecked - firstChecked, scrollChecked - lastChecked,
+          performance.now() - scrollChecked, ...["resize", "layoutWait", "mobileControls", "cardWait"].map((key) => preview[key] || 0),
+          scrolled - previewDone, firstFocused - scrolled, endPressed - firstChecked, lastChecked - endPressed,
+          escapePressed - scrollChecked, closedChecked - escapePressed, performance.now() - closedChecked
+        ].map(Math.round)]);
         positions++;
       }
     }
   }
+  if (profile) console.log(`[TOOLTIP_PROFILE] ${JSON.stringify({ elapsedMs: Math.round(performance.now() - profileStarted), ...profile })}`);
   // Extreme finite values and 150 data targets still have a single keyboard entrance.
   step("150 targets, redraw, save/reload and note switch");
   const large = seed({ chartType: "bar", barMode: "percent-stacked" }, "tooltip-extremes");
