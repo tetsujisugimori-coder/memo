@@ -3477,3 +3477,9 @@
 * テーマは実UIの設定ボタン、select、閉ボタンで各系列数・テーマごとに変更する。各テーマで8データを入力し直してプレビューの値を待ち、320／375／390／430／1100pxのすべてでカード開閉と幾何検査を続ける。`count===160`もassertする。保存・再読込、無効入力、旧形式、取消、極端な値の検査はそのまま。skip、retry、固定wait、timeout、期待値、製品コード、CI上限、並列度は変更しない。
 * プロファイル無効の追加実行でもChromiumは160条件76.2秒／機能全体82.1秒、WebKitは212.7秒／240.2秒で成功し、詳細JSON行は出なかった。WebKitの機能全体は初期工程が22.6秒とプロファイル有効時の約13秒より遅い回であり、計測の有無だけに時間差を帰属しない。`npm test`は1,622件成功、`node --check chart-combo-dual-axis.e2e.js`と`git diff --check`も成功。
 * Ubuntu CIの変更前参考値はPR #280でWebKit 160条件59.3秒。現在mainのrun 35902362894（Ubuntu、Node 22、Playwright 1.62.1、プロファイル無効）ではChromiumが160条件22.9秒／機能25.1秒／Chart全体392.7秒、WebKitが47.2秒／50.5秒／494.4秒。同じUbuntuジョブの変更後結果と比較する。Windowsの絶対秒数とUbuntuの値は直接比較しない。Chart全体とCIの変更後結果はPRで追跡する。
+
+## 2026-09-24 Ubuntu CIでの2軸Chart E2E工程別計測（Issue #285）
+
+* PR #284を含む`main`のマージコミット`088528c`から開始した。手動計測はActionsの`CI` → `Run workflow`で対象ブランチを選び、boolean入力`dual_axis_profile`を有効にして実行する。CLIでは`gh workflow run ci.yml --ref ci/dual-axis-ubuntu-profile -f dual_axis_profile=true`を使う。無指定または`false`の手動実行と、通常の`pull_request`／`push`では無効。`true`でもChart E2EのWebKit実行ステップだけに`MEMO_NEXUS_E2E_DUAL_AXIS_PROFILE=1`を渡す。既存の`npm run test:e2e:chart:all`と45分上限、他ジョブは維持する。
+* ログの`[DUAL_AXIS_PROFILE]`に続く1行JSONから`conditions`と各`stages`の`count`／`ms`を読む。主に`mobile-card-show`、`mobile-card-close`、`viewport-layout`、`theme`、`data-preview`、`geometry-read`、`geometry-assert`を2回の成功したUbuntu WebKit実行で比べる。各工程の秒数は`ms / 1000`、160条件に占める割合は工程の`ms / 160条件の経過時間`、2軸機能全体のChart全体に占める割合は機能時間／Chart全体時間で求める。工程の合計はスクリーンショットなども含み、条件外の初期・後続検査は機能全体に含まれるので、3種類の時間を同一視しない。
+* 通常CIログと手動計測ログで、1行JSONの有無、160条件の完了、全ジョブの成否を確認する。各実行のrun URL、HEAD SHA、Node／Playwright版、160条件・機能全体・Chart全体の時間、工程の回数と合計時間を記録する。失敗した実行は成功時の時間比較から除き、原因を別記する。変更前のUbuntuには工程別値がないため短縮量を推定せず、今回の値は現在のUbuntuの費用分布として読む。Windowsとの絶対秒数も比較しない。
