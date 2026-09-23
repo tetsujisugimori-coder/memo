@@ -54,7 +54,7 @@ test("グラフファイル名も同じWindows安全規則とグラフ番号を�
 test("表ファイルのダウンロードは一時要素とObject URLを解放する", async () => {
   const environment = downloadEnvironment();
   await downloadTableFile({ size: 1 }, "表.csv", environment.doc);
-  assert.deepEqual(environment.events, ["create", "append", "click", "remove", "remove-href", "port1-close", "port2-close", "revoke"]);
+  assert.deepEqual(environment.events, ["create", "append", "click", "port1-close", "port2-close", "remove", "remove-href", "revoke"]);
   assert.deepEqual([...environment.urls], []);
   assert.equal(environment.anchor.download, "表.csv");
 });
@@ -63,6 +63,17 @@ test("表ファイルのダウンロード失敗時も一時要素とObject URL�
   const environment = downloadEnvironment({ clickError: true });
   await assert.rejects(downloadTableFile({ size: 1 }, "表.csv", environment.doc), /download/);
   assert.deepEqual(environment.events, ["create", "append", "click", "remove", "remove-href", "revoke"]);
+  assert.deepEqual([...environment.urls], []);
+});
+
+test("配送開始後の解放例外は完了したダウンロードを失敗扱いにしない", async () => {
+  const environment = downloadEnvironment();
+  const revoke = environment.doc.defaultView.URL.revokeObjectURL;
+  environment.doc.defaultView.URL.revokeObjectURL = (url) => {
+    revoke(url);
+    throw new Error("cleanup");
+  };
+  await downloadTableFile({ size: 1 }, "表.csv", environment.doc);
   assert.deepEqual([...environment.urls], []);
 });
 
@@ -86,6 +97,8 @@ test("ほぼ同時の2件は最初の配送完了まで次のリンクを起動�
   const firstRequest = downloadDelimitedFile({ size: 1 }, "一つ目.csv", first.doc);
   const secondRequest = downloadDelimitedFile({ size: 1 }, "二つ目.tsv", second.doc);
   assert.deepEqual(clicks, ["first"]);
+  assert.deepEqual(first.events, ["create", "append", "click"], "link and URL remain until the delivery task completes");
+  assert.equal(first.urls.size, 1);
   assert.deepEqual(second.events, [], "second request waits without creating an Object URL");
   first.deliveries.shift()();
   await Promise.all([firstRequest, secondRequest]);

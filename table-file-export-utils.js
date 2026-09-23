@@ -53,11 +53,9 @@
         started = true;
       } finally {
         try {
-          anchor?.remove();
-          anchor?.removeAttribute("href");
-          if (url) {
-            // Let the activation task consume the URL before releasing it, including in WebKit.
-            if (started && typeof view.MessageChannel === "function") {
+          try {
+            // Keep both the link and URL alive until WebKit consumes the navigation task.
+            if (url && started && typeof view.MessageChannel === "function") {
               await new Promise((resolve) => {
                 const channel = new view.MessageChannel();
                 channel.port1.onmessage = () => {
@@ -69,7 +67,13 @@
                 channel.port2.postMessage(null);
               });
             }
-            view.URL.revokeObjectURL(url);
+          } finally {
+            try {
+              anchor?.remove();
+              anchor?.removeAttribute("href");
+            } finally {
+              if (url) view.URL.revokeObjectURL(url);
+            }
           }
         } catch (error) {
           if (!started) throw error;
