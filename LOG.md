@@ -3448,3 +3448,4 @@
 * WebKitのツールチップ367.6秒のうち、120通りのテーマ・幅が270.6秒。複合Chart220.2秒のうち120描画条件が194.0秒、2軸Chart196.4秒のうち160描画条件が182.6秒。PNG export213.1秒のうち49条件が114.7秒。主要な再描画・条件反復が次PRの調査候補。
 * 単独再実行でも軸タイトル、データ表、TSV取込、TSVコピー、Table→Chartは成功。単独実行の時間は全件時より短く、例としてChromiumのTSV取込は9.7秒対28.9秒、データ表は12.9秒対32.7秒。時間の変動を踏まえ、次PRの速度判断ではCIの複数回計測を比較する。
 * 今回は固定待機や重複setupを削っていない。Chart関連E2Eに固定の`waitForTimeout`は見つからなかった。CI上の所要時間は未計測で、上記はWindowsローカルの値。
+* PR #280の初回CIではChromiumを含む7ジョブが成功し、WebKit Chartだけ`chart-svg-export > failures, concurrency, save/reload and compatibility`の同時SVG保存で片方のdownloadイベントが届かず失敗した。2件の実UIクリックと同時処理中の検査を保ち、保留したSVG生成を1件ずつ解放して各downloadを確認するようにした。失敗・再試行、同時保存、保存再読込を別工程として表示する。修正後の`chart-svg-export`単独E2EはChromium／WebKitとも成功した。初回CIの失敗は成功扱いせず、更新HEADの全ジョブを再確認する。

@@ -114,8 +114,12 @@ async function concurrency(page) {
   assert.equal(await button(page).nth(1).getAttribute('aria-disabled'),null);
   assert.equal(await card(page).nth(1).locator('.chart-png-controls [role="status"]').textContent(),'');
   await button(page).nth(1).click();await page.waitForFunction(()=>window.svgReleases.length===2);
-  const events=[page.waitForEvent('download',d=>d.suggestedFilename()===chartSvgFilename(first.title)),page.waitForEvent('download',d=>d.suggestedFilename()===chartSvgFilename(second.title))];
-  await page.evaluate(()=>{Blob.prototype.arrayBuffer=window.svgReader;window.svgReleases.forEach(fn=>fn());});await Promise.all(events);
+  const firstDownload=page.waitForEvent('download',d=>d.suggestedFilename()===chartSvgFilename(first.title));
+  await page.evaluate(()=>{Blob.prototype.arrayBuffer=window.svgReader;window.svgReleases[0]();});await firstDownload;
+  assert.equal(downloads,1);
+  assert.equal(await card(page).nth(1).locator('.chart-png-controls').getAttribute('aria-busy'),'true');
+  const secondDownload=page.waitForEvent('download',d=>d.suggestedFilename()===chartSvgFilename(second.title));
+  await page.evaluate(()=>window.svgReleases[1]());await secondDownload;
   await page.waitForFunction(()=>[...document.querySelectorAll('#preview .chart-png-controls')].every(el=>!el.hasAttribute('aria-busy')));
   assert.equal(downloads,2);page.off('download',count);
   for(const el of await card(page).all()) {assert.equal(await el.locator('[aria-live]').count(),1);assert.equal(await el.locator('.chart-png-controls [role="status"]').textContent(),success);}
@@ -171,8 +175,11 @@ async function verifyChartSvg(page,step=()=>{}) {
     }
   }
   const pie=h.fixture({chartType:'pie'},[30,10,0,20]);await h.load(page,pie);await exportSvg(page,pie.title,undefined,'pie');
-  step('failures, concurrency, save/reload and compatibility');
-  await failures(page);await concurrency(page);
+  step('failure handling and retry');
+  await failures(page);
+  step('concurrent SVG exports and download delivery');
+  await concurrency(page);
+  step('save/reload and compatibility');
   await h.load(page,h.fixture());await page.evaluate(()=>editor.setSelectionRange(3,17));await exportSvg(page,'月別売上');
   await card(page).locator('figcaption').evaluate(el=>{const range=document.createRange();range.selectNodeContents(el);getSelection().removeAllRanges();getSelection().addRange(range);});await exportSvg(page,'月別売上');
   const old=(await h.snapshot(page)).body;
