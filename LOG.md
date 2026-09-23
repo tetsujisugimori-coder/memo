@@ -3419,3 +3419,12 @@
 * focused unit tests 118件、Chromium/WebKitの新規保存E2E、Chromium/WebKitの既存グラフE2E、Chromium/WebKitの既存表保存E2Eを実行
 * モバイル幅320/375/390/430pxとデスクトップ幅で操作表示・横スクロールなしを確認
 * iPhone Safari実機は未確認（WebKitとタッチエミュレーションで代替確認）
+
+### 追補: PR #278 Issue #277の検証・配送修正
+
+* 専用`chart-file-export.e2e.js`を、項目・3系列を並べ替えた未確定draftのCSV/TSV、未丸め元値、本文・保存済みデータ・draft・dirty・Undo/Redo・保存予約・IndexedDB不変、取消後の保存済みカード、再読込後の既存パーサー往復まで拡張した。2カードを同一タスクで保存し、各1回のdownloadイベント、別々の正しいファイル名・内容・Object URL・一時リンク/href解放を確認する。NUL、非有限値、5MiB超過はdownload 0件・日本語理由・ボタン復帰・再操作を、同じボタンの連打はdownload 1件を確認する。
+* 320/375/390/430/1100px、ライト／ダークの編集画面と保存済みカードでCSV/TSVを実際に保存し、ボタンの重なりと横スクロール、フォーカス可能性、成功通知を確認した。タップはPlaywrightエミュレーションであり、iPhone Safari実機と実スクリーンリーダーは未確認である。
+* WebKitでは同一タスクの2リンクが両方クリック・成功表示・解放されても、実downloadは後者1件だけになった。`downloadDelimitedFile()`が先行要求の配送タスク完了を待ってから次のリンクを起動するようにし、独立URL・解放・先行失敗後の継続をunit testに追加した。キーボード保存時に一時`disabled`で失われたフォーカスは`exportChartFile()`の完了後、利用者が他へ移していない場合だけ復元する。配信キャッシュ識別子と参照テストを同期し、保存スキーマは変更しない。
+* `.github/workflows/ci.yml`の既存Chart E2E Chromium／WebKitマトリクスへ専用E2Eの独立ステップを追加した。変更前のCI成功は専用E2E成功とは数えない。前回WebKit Chartジョブは約10分52秒で15分枠内だったため、ジョブ構成とタイムアウトは変更しない。
+* ローカル検証: 関連unit 337件成功、現行ルート全unit 1,582件成功、変更JavaScript 22ファイルの`node --check`と`git diff --check`成功。専用Chart export、既存Chart、Table、Mobile E2EはいずれもChromium／WebKitで完走した。`npm test`だけは未追跡`work/`の旧コピーまで自動発見し、その旧キャッシュ番号テストが失敗した。`work/`は変更せず、現行ルート全unitを別途実行した。
+* 開始時からの`e2e-artifacts/mobile-layout-390.png`、`freehand-canvas.html`、`svg-review/`、`work/`は変更・stage・commitしない。表E2Eが再生成した画像だけ検証後に元へ戻した。PRレビューの「間違い」は対象行のない本文コメントであり、対象を特定できないため推測で別箇所を変更しない。

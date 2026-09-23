@@ -24,47 +24,60 @@
     return delimitedFileExportName(title, "chart", chartIndex, extension);
   }
 
+  let pendingDelivery = null;
   async function downloadDelimitedFile(blob, fileName, doc = globalScope.document) {
     const view = doc && doc.defaultView;
     if (!blob || !view || !view.URL || typeof view.URL.createObjectURL !== "function") {
       throw new Error("ファイルを保存できませんでした。");
     }
-    let url;
-    let anchor;
-    let started = false;
+    // WebKit may accept only the last of two anchors activated in the same task.
+    // Keep each request's URL alive through its own delivery task before starting the next.
+    const previousDelivery = pendingDelivery;
+    let completeDelivery;
+    const currentDelivery = new Promise((resolve) => { completeDelivery = resolve; });
+    pendingDelivery = currentDelivery;
     try {
-      url = view.URL.createObjectURL(blob);
-      anchor = doc.createElement("a");
-      anchor.download = fileName;
-      anchor.href = url;
-      anchor.hidden = true;
-      anchor.setAttribute("aria-hidden", "true");
-      doc.body.append(anchor);
-      anchor.click();
-      started = true;
-    } finally {
+      if (previousDelivery) await previousDelivery;
+      let url;
+      let anchor;
+      let started = false;
       try {
-        anchor?.remove();
-        anchor?.removeAttribute("href");
-        if (url) {
-          // Let the activation task consume the URL before releasing it, including in WebKit.
-          if (started && typeof view.MessageChannel === "function") {
-            await new Promise((resolve) => {
-              const channel = new view.MessageChannel();
-              channel.port1.onmessage = () => {
-                channel.port1.onmessage = null;
-                channel.port1.close();
-                channel.port2.close();
-                resolve();
-              };
-              channel.port2.postMessage(null);
-            });
+        url = view.URL.createObjectURL(blob);
+        anchor = doc.createElement("a");
+        anchor.download = fileName;
+        anchor.href = url;
+        anchor.hidden = true;
+        anchor.setAttribute("aria-hidden", "true");
+        doc.body.append(anchor);
+        anchor.click();
+        started = true;
+      } finally {
+        try {
+          anchor?.remove();
+          anchor?.removeAttribute("href");
+          if (url) {
+            // Let the activation task consume the URL before releasing it, including in WebKit.
+            if (started && typeof view.MessageChannel === "function") {
+              await new Promise((resolve) => {
+                const channel = new view.MessageChannel();
+                channel.port1.onmessage = () => {
+                  channel.port1.onmessage = null;
+                  channel.port1.close();
+                  channel.port2.close();
+                  resolve();
+                };
+                channel.port2.postMessage(null);
+              });
+            }
+            view.URL.revokeObjectURL(url);
           }
-          view.URL.revokeObjectURL(url);
+        } catch (error) {
+          if (!started) throw error;
         }
-      } catch (error) {
-        if (!started) throw error;
       }
+    } finally {
+      completeDelivery();
+      if (pendingDelivery === currentDelivery) pendingDelivery = null;
     }
   }
 

@@ -3,20 +3,25 @@ const assert = require("node:assert/strict");
 const test = require("node:test");
 const { chartFileExportName, downloadDelimitedFile, downloadTableFile, tableFileExportName } = require("./table-file-export-utils.js");
 
-function downloadEnvironment({ clickError = false } = {}) {
+function downloadEnvironment({ clickError = false, holdDelivery = false, onClick = () => {} } = {}) {
   const events = [];
   const urls = new Set();
+  const deliveries = [];
   class MessageChannel {
     constructor() {
       this.port1 = { close: () => events.push("port1-close"), onmessage: null };
-      this.port2 = { close: () => events.push("port2-close"), postMessage: () => queueMicrotask(() => this.port1.onmessage()) };
+      this.port2 = { close: () => events.push("port2-close"), postMessage: () => {
+        const deliver = () => this.port1.onmessage();
+        if (holdDelivery) deliveries.push(deliver);
+        else queueMicrotask(deliver);
+      } };
     }
   }
   const anchor = {
     setAttribute: () => {},
     removeAttribute: () => events.push("remove-href"),
     remove: () => events.push("remove"),
-    click: () => { events.push("click"); if (clickError) throw new Error("download"); }
+    click: () => { events.push("click"); onClick(); if (clickError) throw new Error("download"); }
   };
   const doc = {
     defaultView: {
@@ -29,7 +34,7 @@ function downloadEnvironment({ clickError = false } = {}) {
     createElement: () => anchor,
     body: { append: () => events.push("append") }
   };
-  return { anchor, doc, events, urls };
+  return { anchor, deliveries, doc, events, urls };
 }
 
 test("表ファイル名はWindowsで安全なタイトル、表番号、拡張子を使う", () => {
@@ -72,4 +77,29 @@ test("独立したグラフ保存要求はそれぞれのURLを解放する", as
   assert.deepEqual([...second.urls], []);
   assert.equal(first.anchor.download, "一つ目.csv");
   assert.equal(second.anchor.download, "二つ目.tsv");
+});
+
+test("ほぼ同時の2件は最初の配送完了まで次のリンクを起動しない", async () => {
+  const clicks = [];
+  const first = downloadEnvironment({ holdDelivery: true, onClick: () => clicks.push("first") });
+  const second = downloadEnvironment({ onClick: () => clicks.push("second") });
+  const firstRequest = downloadDelimitedFile({ size: 1 }, "一つ目.csv", first.doc);
+  const secondRequest = downloadDelimitedFile({ size: 1 }, "二つ目.tsv", second.doc);
+  assert.deepEqual(clicks, ["first"]);
+  assert.deepEqual(second.events, [], "second request waits without creating an Object URL");
+  first.deliveries.shift()();
+  await Promise.all([firstRequest, secondRequest]);
+  assert.deepEqual(clicks, ["first", "second"]);
+  assert.deepEqual([...first.urls, ...second.urls], []);
+});
+
+test("先行する保存が失敗しても後続の保存は開始できる", async () => {
+  const first = downloadEnvironment({ clickError: true });
+  const second = downloadEnvironment();
+  const firstRequest = downloadDelimitedFile({ size: 1 }, "失敗.csv", first.doc);
+  const secondRequest = downloadDelimitedFile({ size: 1 }, "次.tsv", second.doc);
+  await assert.rejects(firstRequest, /download/);
+  await secondRequest;
+  assert.equal(second.events.includes("click"), true);
+  assert.deepEqual([...first.urls, ...second.urls], []);
 });

@@ -8964,6 +8964,7 @@ async function exportChartFile(button, editorBlock = null) {
   };
   const selectedFormat = formats[button.dataset.chartFileFormat];
   if (!selectedFormat || chartFileExportButtons.has(button)) return;
+  const restoreFocus = document.activeElement === button;
   chartFileExportButtons.add(button);
   button.disabled = true;
   button.setAttribute("aria-busy", "true");
@@ -8987,6 +8988,9 @@ async function exportChartFile(button, editorBlock = null) {
     chartFileExportButtons.delete(button);
     button.disabled = false;
     button.removeAttribute("aria-busy");
+    if (restoreFocus && button.isConnected && document.activeElement === document.body) {
+      button.focus({ preventScroll: true });
+    }
   }
 }
 
