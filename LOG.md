@@ -3557,3 +3557,39 @@
 * tooltipの既存`[TOOLTIP_PROFILE]`は`setup`・`themes`・`samples`の列構成を保ち、`mobileCardShow`を追加する。`mobileControls`（96回）はWriting終了ボタンの表示状態・必要なclick、contextPanelの状態・必要な閉じるclick、previewCardの状態・必要な開くclick、微小な残差を含む。`cardWait`（96回）は既存の`aria-hidden=false`かつカード右端が画面右端から1px未満となる`waitForFunction`のNode側経過時間である。`previewResidual`は既存プレビュー親工程から幅変更・レイアウト待ち・`mobileControls`・`cardWait`を引いた残差で、計測処理も含み得る。
 * 2軸の既存`[DUAL_AXIS_PROFILE]`は`conditions`・`stages`・系列数／データ／テーマ／幅の集計を保ち、`mobileCardShow`を追加する。親の`mobile-card-show`（128回）にはcontextPanel状態取得、必要な閉じるclickと既存の閉鎖待機、カードclick、既存の表示待ち、残差が含まれる。内訳は親工程と二重加算しない。両機能とも各工程の`count`・`ms`・`perCallMs`・`maxMs`と遅い上位5条件を1行JSONに集約し、未実行の条件付き操作は0回で示す。
 * ページ内では既存の表示待ちの判定時だけ`performance.now()`を読む。最初の判定から`aria-hidden=false`を最初に観測するまで、その観測から既存の右端条件を最初に満たすまでをページ内の同じ時計で計算し、反復終了後にまとめて取得する。click完了前にARIAが変われば最初の観測値は0msとなり、その前の変化時刻までは分離できない。Node側の表示待ちからページ側の**経過時間**2値を引いた`waitResidual`には、判定開始前・結果通知など分離できない時間が入る。両時計の時刻値を直接引かない。観測値は描画時間そのものでも、短縮可能な時間でもない。
+* 同一HEAD `c8bfee6f641202938cc296ddb2d9ddb0b03a2a92`のUbuntu WebKit手動計測は[1回目 run 35944829588](https://github.com/tetsujisugimori-coder/memo/actions/runs/35944829588)と[2回目 run 35945663340](https://github.com/tetsujisugimori-coder/memo/actions/runs/35945663340)で、各8ジョブ成功。workflowのNode 22と固定Playwright 1.62.1を使用した。Chart WebKitは両入力`1`、両JSONが各1行。Chart Chromiumは両入力空値、両JSONが0行。tooltipは12 Chart・24テーマ・120条件と150データ点・保存再読込の後続検査、2軸は160条件と保存再読込・旧形式・取消の後続検査を完走した。以下は1回目／2回目の順で、`合計ms（1回あたりms）`。JSONの各値は独立に丸めてある。
+
+| tooltipモバイル工程 | 回数 | 1回目 | 2回目 |
+| --- | ---: | ---: | ---: |
+| 親：`mobileControls` | 96 | 7103 (74.0) | 6888 (71.7) |
+| Writing終了ボタン状態 | 96 | 190 (2.0) | 191 (2.0) |
+| Writing終了click | 0 | 0 (0) | 0 (0) |
+| contextPanel状態 | 96 | 146 (1.5) | 124 (1.3) |
+| contextPanel閉じるclick | 1 | 130 (129.6) | 113 (113.2) |
+| previewCard状態 | 96 | 119 (1.2) | 111 (1.2) |
+| カードを開くclick | 96 | 6518 (67.9) | 6348 (66.1) |
+| `mobileControls`残差 | 96 | 1 (0.0) | 1 (0.0) |
+| 親：`cardWait` | 96 | 14114 (147.0) | 13988 (145.7) |
+| 最初の判定→ARIA観測 | 96 | 0 (0.0) | 0 (0.0) |
+| ARIA観測→右端条件観測 | 96 | 13640 (142.1) | 13494 (140.6) |
+| `cardWait`残差 | 96 | 474 (4.9) | 494 (5.1) |
+| 既存プレビュー親工程の残差 | 96 | 2 (0.0) | 2 (0.0) |
+
+* tooltipの`mobileControls`は状態・実行したclick・その残差を含み、`cardWait`はARIA観測・右端観測・その残差を含む。既存`samples`のプレビュー全体は幅変更・レイアウト待ち・この2親工程・プレビュー残差を含み、さらに条件全体に含まれる。親と子、`cardWait`とその内訳を二重加算しない。12 Chart準備と24テーマを含む`elapsedMs`は57.995／57.034秒、機能全体は77.0／75.6秒、Chart全スクリプトは585.0／572.3秒。`mobileControls`＋`cardWait`は21.217／20.876秒だが、観測した秒数を削減可能量とはしない。
+
+| 2軸モバイル工程 | 回数 | 1回目 | 2回目 |
+| --- | ---: | ---: | ---: |
+| 親：`mobile-card-show` | 128 | 28249 (220.7) | 27473 (214.6) |
+| contextPanel状態 | 128 | 276 (2.2) | 267 (2.1) |
+| contextPanel閉じるclick | 1 | 121 (121.5) | 93 (92.6) |
+| contextPanel閉鎖待ち | 1 | 2 (2.2) | 2 (1.9) |
+| カードを開くclick | 128 | 8767 (68.5) | 8412 (65.7) |
+| 既存のカード表示待ち | 128 | 19080 (149.1) | 18697 (146.1) |
+| 最初の判定→ARIA観測 | 128 | 0 (0.0) | 0 (0.0) |
+| ARIA観測→右端条件観測 | 128 | 18341 (143.3) | 18024 (140.8) |
+| カード表示待ちの残差 | 128 | 739 (5.8) | 673 (5.3) |
+| `mobile-card-show`残差 | 128 | 3 (0.0) | 3 (0.0) |
+
+* 2軸の`mobile-card-show`はcontextPanel状態・閉操作と待機・カードclick・カード表示待ち・親残差を含む。カード表示待ちはARIA観測・右端観測・待ち残差を含む。2軸の160条件とtooltipの120条件は反復数と検査が異なる。両機能ともARIA変更は最初の判定時には既に観測され、`0ms`は実際のARIA変更所要時間ではない。最長のモバイル親条件は両runとも最初のライト・320pxで、tooltipが384／371ms（Chart番号0）、2軸が379／325ms（2系列・データ0）。JSONには各機能の遅い上位5条件、工程ごとの最大値も残す。
+* [同一HEADの通常PR run 35944819957](https://github.com/tetsujisugimori-coder/memo/actions/runs/35944819957)は8ジョブ成功。Chart WebKit／Chromiumの両変数は空値で両JSONは0行、120／160条件と後続検査は完走した。通常PRのWebKit全スクリプト601.9秒と手動計測585.0／572.3秒の違いを観測負荷や改善効果に帰属しない。ローカルでは`npm test`1622件、両ファイルの構文、tooltip Chromium通常経路、tooltip／2軸WebKit計測経路、2軸WebKit通常経路が成功。2軸のローカル計測経路では初回の既存reloadと次回のカードclickが一度ずつタイムアウトしたが、同一コードの再実行が160条件と後続検査まで成功し、上記Ubuntu計測2回と通常PRも成功した。これらローカル失敗を成功として数えず、Windowsの所要秒数をUbuntuと比較しない。
+* 次に調べるなら、両機能で反復回数分のカードclick（6.518／6.348秒と8.767／8.412秒）と、表示待ちのうちページ内で観測した右端到達（13.640／13.494秒と18.341／18.024秒）が対象候補。右端到達には既存の表示遷移が含まれるため、時間の全量を削れるとは判断しない。状態確認やcontextPanel閉操作はそれより小さく、例外条件として回数と最長値を保持する。
