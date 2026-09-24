@@ -6,11 +6,30 @@ const path = require("node:path");
 const { performance } = require("node:perf_hooks");
 
 function createDualAxisProfile() {
-  if (process.env.MEMO_NEXUS_E2E_DUAL_AXIS_PROFILE !== "1") return null;
+  if (process.env.MEMO_NEXUS_E2E_BROWSER !== "webkit"
+    || process.env.MEMO_NEXUS_E2E_DUAL_AXIS_PROFILE !== "1") return null;
   const samples = [];
+  const cardWaits = [];
   return {
-    record(stage, started, context) {
-      samples.push({ stage, ms: performance.now() - started, ...context });
+    record(stage, started, context, detail = false) {
+      const ms = performance.now() - started;
+      samples.push({ stage, ms, detail, ...context });
+      return ms;
+    },
+    recordDuration(stage, ms, context) {
+      samples.push({ stage, ms, detail: true, ...context });
+    },
+    recordCardWait(ms, context) {
+      cardWaits.push({ ms, context });
+    },
+    addCardObservations(observed) {
+      assert.equal(observed.length, cardWaits.length, "カード表示観測と2軸モバイル条件の件数が一致する");
+      observed.forEach(({ ariaObservedMs, edgeObservedMs }, index) => {
+        const { ms, context } = cardWaits[index];
+        this.recordDuration("aria-observed", ariaObservedMs, context);
+        this.recordDuration("edge-observed", edgeObservedMs, context);
+        this.recordDuration("wait-residual", ms - ariaObservedMs - edgeObservedMs, context);
+      });
     },
     summary() {
       const aggregate = (filter) => {
@@ -18,19 +37,34 @@ function createDualAxisProfile() {
         for (const sample of samples) {
           const key = filter(sample);
           if (key === undefined) continue;
-          const group = groups[key] ||= { count: 0, ms: 0 };
+          const group = groups[key] ||= { count: 0, ms: 0, maxMs: 0 };
           group.count++;
           group.ms += sample.ms;
+          group.maxMs = Math.max(group.maxMs, sample.ms);
         }
-        return Object.fromEntries(Object.entries(groups).map(([key, value]) => [key, { count: value.count, ms: Math.round(value.ms) }]));
+        return Object.fromEntries(Object.entries(groups).map(([key, value]) => [key, {
+          count: value.count, ms: Math.round(value.ms), perCallMs: Math.round(value.ms / value.count * 10) / 10,
+          maxMs: Math.round(value.maxMs)
+        }]));
       };
       console.log("[DUAL_AXIS_PROFILE] " + JSON.stringify({
-        conditions: samples.filter((sample) => sample.stage === "geometry-assert").length,
-        stages: aggregate((sample) => sample.stage),
-        seriesCounts: aggregate((sample) => sample.seriesCount),
-        datasets: aggregate((sample) => sample.dataset),
-        themes: aggregate((sample) => sample.theme),
-        widths: aggregate((sample) => sample.width)
+        conditions: samples.filter((sample) => sample.stage === "geometry-assert" && !sample.detail).length,
+        stages: aggregate((sample) => !sample.detail ? sample.stage : undefined),
+        seriesCounts: aggregate((sample) => !sample.detail ? sample.seriesCount : undefined),
+        datasets: aggregate((sample) => !sample.detail ? sample.dataset : undefined),
+        themes: aggregate((sample) => !sample.detail ? sample.theme : undefined),
+        widths: aggregate((sample) => !sample.detail ? sample.width : undefined),
+        mobileCardShow: {
+          stages: {
+            ...Object.fromEntries(["context-state", "context-close-click", "context-close-wait", "card-click",
+              "card-wait", "aria-observed", "edge-observed", "wait-residual", "show-residual"]
+              .map((name) => [name, { count: 0, ms: 0, perCallMs: 0, maxMs: 0 }])),
+            ...aggregate((sample) => sample.detail ? sample.stage : undefined)
+          },
+          slowest: samples.filter((sample) => sample.stage === "mobile-card-show" && !sample.detail)
+            .sort((a, b) => b.ms - a.ms).slice(0, 5)
+            .map(({ seriesCount, dataset, theme, width, ms }) => ({ seriesCount, dataset, theme, width, ms: Math.round(ms) }))
+        }
       }));
     }
   };
@@ -183,13 +217,44 @@ async function verifyDualAxisCharts(page, { chart, waitForChartCancelCompletion,
           if (width < 1100) {
             phase = "mobile-card-show";
             started = profile && performance.now();
-            if (await page.locator("#contextPanel").getAttribute("aria-hidden") === "false") {
+            const detail = {};
+            let stageStarted = profile && performance.now();
+            const contextOpen = await page.locator("#contextPanel").getAttribute("aria-hidden") === "false";
+            if (profile) detail.contextState = profile.record("context-state", stageStarted, condition, true);
+            if (contextOpen) {
+              stageStarted = profile && performance.now();
               await page.locator("#closeContextPanelBtn").click();
+              if (profile) detail.contextClick = profile.record("context-close-click", stageStarted, condition, true);
+              stageStarted = profile && performance.now();
               await page.waitForFunction(() => document.getElementById("contextPanel").getAttribute("aria-hidden") === "true");
+              if (profile) detail.contextWait = profile.record("context-close-wait", stageStarted, condition, true);
             }
+            stageStarted = profile && performance.now();
             await page.locator("#cardPaneBtn").click();
-            await page.waitForFunction(() => { const card = document.getElementById("previewCard"); return card.getAttribute("aria-hidden") === "false" && Math.abs(card.getBoundingClientRect().right - innerWidth) < 1; });
-            if (profile) profile.record(phase, started, condition);
+            if (profile) detail.cardClick = profile.record("card-click", stageStarted, condition, true);
+            stageStarted = profile && performance.now();
+            if (profile) {
+              await page.waitForFunction((state) => {
+                const now = performance.now();
+                if (state.first === null) state.first = now;
+                const card = document.getElementById("previewCard");
+                const ariaVisible = card.getAttribute("aria-hidden") === "false";
+                if (ariaVisible && state.aria === null) state.aria = now;
+                if (ariaVisible && Math.abs(card.getBoundingClientRect().right - innerWidth) < 1) {
+                  (window.__dualAxisCardWaitProfile ||= []).push({ ariaObservedMs: state.aria - state.first, edgeObservedMs: now - state.aria });
+                  return true;
+                }
+                return false;
+              }, { first: null, aria: null });
+              detail.cardWait = profile.record("card-wait", stageStarted, condition, true);
+              profile.recordCardWait(detail.cardWait, condition);
+            } else {
+              await page.waitForFunction(() => { const card = document.getElementById("previewCard"); return card.getAttribute("aria-hidden") === "false" && Math.abs(card.getBoundingClientRect().right - innerWidth) < 1; });
+            }
+            if (profile) {
+              const parentMs = profile.record(phase, started, condition);
+              profile.recordDuration("show-residual", parentMs - Object.values(detail).reduce((sum, ms) => sum + ms, 0), condition);
+            }
           }
           phase = "geometry-read";
           await verifyDualGeometry(page, model, profile && ((stage, started) => {
@@ -211,7 +276,16 @@ async function verifyDualAxisCharts(page, { chart, waitForChartCancelCompletion,
         }
       }
     }
-  }} catch (error) {
+  }
+  if (profile) {
+    phase = "profile-read";
+    profile.addCardObservations(await page.evaluate(() => {
+      const samples = window.__dualAxisCardWaitProfile || [];
+      delete window.__dualAxisCardWaitProfile;
+      return samples;
+    }));
+  }
+  } catch (error) {
     error.message += ` [2-axis condition=${JSON.stringify(condition)}, phase=${phase}]`;
     throw error;
   } finally {

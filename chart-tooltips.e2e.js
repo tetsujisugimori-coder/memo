@@ -3,9 +3,39 @@
 const assert = require("node:assert/strict");
 const { performance } = require("node:perf_hooks");
 
-const profileTooltip = process.env.MEMO_NEXUS_E2E_TOOLTIP_PROFILE === "1";
+const profileTooltip = process.env.MEMO_NEXUS_E2E_BROWSER === "webkit"
+  && process.env.MEMO_NEXUS_E2E_TOOLTIP_PROFILE === "1";
 function recordTime(timing, name, started) {
   if (timing) timing[name] = performance.now() - started;
+}
+
+function recordMobileStage(timing, name, started) {
+  if (timing) timing.mobileStages[name] = performance.now() - started;
+}
+
+function summarizeMobileCards(entries) {
+  const groups = Object.fromEntries([
+    "mobileControls", "writingState", "writingClick", "contextState", "contextClick", "cardState", "cardClick",
+    "controlsResidual", "cardWait", "ariaObserved", "edgeObserved", "waitResidual", "previewResidual"
+  ].map((name) => [name, { count: 0, ms: 0, maxMs: 0 }]));
+  for (const { timing } of entries) {
+    for (const [name, ms] of Object.entries({ mobileControls: timing.mobileControls, cardWait: timing.cardWait, ...timing.mobileStages })) {
+      const group = groups[name] ||= { count: 0, ms: 0, maxMs: 0 };
+      group.count++;
+      group.ms += ms;
+      group.maxMs = Math.max(group.maxMs, ms);
+    }
+  }
+  return {
+    stages: Object.fromEntries(Object.entries(groups).map(([name, group]) => [name, {
+      count: group.count, ms: Math.round(group.ms), perCallMs: group.count ? Math.round(group.ms / group.count * 10) / 10 : 0,
+      maxMs: Math.round(group.maxMs)
+    }])),
+    slowest: entries.map(({ configIndex, theme, width, timing }) => ({
+      configIndex, theme, width, ms: Math.round(timing.mobileControls + timing.cardWait),
+      cardWaitMs: Math.round(timing.cardWait)
+    })).sort((a, b) => b.ms - a.ms).slice(0, 5)
+  };
 }
 
 const configs = [
@@ -57,16 +87,56 @@ async function openPreview(page, width, timing) {
   recordTime(timing, "layoutWait", started);
   if (width < 1100) {
     started = performance.now();
-    if (await page.locator("#mobileWritingDoneBtn").isVisible()) await page.locator("#mobileWritingDoneBtn").click();
-    if (await page.locator("#contextPanel").getAttribute("aria-hidden") === "false") await page.locator("#closeContextPanelBtn").click();
-    if (await page.locator("#previewCard").getAttribute("aria-hidden") === "true") await page.locator("#cardPaneBtn").click();
+    if (timing) timing.mobileStages = {};
+    let stageStarted = timing && performance.now();
+    const writingVisible = await page.locator("#mobileWritingDoneBtn").isVisible();
+    recordMobileStage(timing, "writingState", stageStarted);
+    if (writingVisible) {
+      stageStarted = timing && performance.now();
+      await page.locator("#mobileWritingDoneBtn").click();
+      recordMobileStage(timing, "writingClick", stageStarted);
+    }
+    stageStarted = timing && performance.now();
+    const contextOpen = await page.locator("#contextPanel").getAttribute("aria-hidden") === "false";
+    recordMobileStage(timing, "contextState", stageStarted);
+    if (contextOpen) {
+      stageStarted = timing && performance.now();
+      await page.locator("#closeContextPanelBtn").click();
+      recordMobileStage(timing, "contextClick", stageStarted);
+    }
+    stageStarted = timing && performance.now();
+    const cardClosed = await page.locator("#previewCard").getAttribute("aria-hidden") === "true";
+    recordMobileStage(timing, "cardState", stageStarted);
+    if (cardClosed) {
+      stageStarted = timing && performance.now();
+      await page.locator("#cardPaneBtn").click();
+      recordMobileStage(timing, "cardClick", stageStarted);
+    }
     recordTime(timing, "mobileControls", started);
+    if (timing) timing.mobileStages.controlsResidual = timing.mobileControls
+      - Object.values(timing.mobileStages).reduce((sum, ms) => sum + ms, 0);
     started = performance.now();
-    await page.waitForFunction(() => {
-      const card = document.getElementById("previewCard");
-      return card.getAttribute("aria-hidden") === "false" && Math.abs(card.getBoundingClientRect().right - innerWidth) < 1;
-    });
-    recordTime(timing, "cardWait", started);
+    if (timing) {
+      await page.waitForFunction((state) => {
+        const now = performance.now();
+        if (state.first === null) state.first = now;
+        const card = document.getElementById("previewCard");
+        const ariaVisible = card.getAttribute("aria-hidden") === "false";
+        if (ariaVisible && state.aria === null) state.aria = now;
+        if (ariaVisible && Math.abs(card.getBoundingClientRect().right - innerWidth) < 1) {
+          (window.__tooltipCardWaitProfile ||= []).push({ ariaObservedMs: state.aria - state.first, edgeObservedMs: now - state.aria });
+          return true;
+        }
+        return false;
+      }, { first: null, aria: null });
+      recordTime(timing, "cardWait", started);
+    } else {
+      await page.waitForFunction(() => {
+        const card = document.getElementById("previewCard");
+        return card.getAttribute("aria-hidden") === "false" && Math.abs(card.getBoundingClientRect().right - innerWidth) < 1;
+      });
+      recordTime(timing, "cardWait", started);
+    }
   }
 }
 
@@ -182,7 +252,7 @@ async function verifyChartTooltips(page, step = () => {}) {
   step("120 theme/width positions and long labels");
   let positions = 0;
   const profileStarted = performance.now();
-  const profile = profileTooltip ? { setup: [], themes: [], samples: [], focusScrollChanges: [], alreadyFocused: [] } : null;
+  const profile = profileTooltip ? { setup: [], themes: [], samples: [], focusScrollChanges: [], alreadyFocused: [], mobileSamples: [] } : null;
   for (const config of configs) {
     const configIndex = positions / 10;
     const model = seed(config, `tooltip-long-${positions}`);
@@ -205,6 +275,11 @@ async function verifyChartTooltips(page, step = () => {}) {
         const preview = {};
         await openPreview(page, width, profile ? preview : null);
         const previewDone = performance.now();
+        if (profile && width < 1100) {
+          preview.mobileStages.previewResidual = previewDone - conditionStarted
+            - ["resize", "layoutWait", "mobileControls", "cardWait"].reduce((sum, key) => sum + preview[key], 0);
+          profile.mobileSamples.push({ configIndex, theme, width, timing: preview });
+        }
         const data = page.locator('#preview [data-chart-datum]');
         const scrollState = () => data.first().evaluate((el) => {
           const area = el.closest('.chart-block-scroll');
@@ -269,7 +344,23 @@ async function verifyChartTooltips(page, step = () => {}) {
       }
     }
   }
-  if (profile) console.log(`[TOOLTIP_PROFILE] ${JSON.stringify({ elapsedMs: Math.round(performance.now() - profileStarted), ...profile })}`);
+  if (profile) {
+    const observed = await page.evaluate(() => {
+      const samples = window.__tooltipCardWaitProfile || [];
+      delete window.__tooltipCardWaitProfile;
+      return samples;
+    });
+    assert.equal(observed.length, profile.mobileSamples.length, "カード表示観測とモバイル条件の件数が一致する");
+    observed.forEach((sample, index) => {
+      const stages = profile.mobileSamples[index].timing.mobileStages;
+      stages.ariaObserved = sample.ariaObservedMs;
+      stages.edgeObserved = sample.edgeObservedMs;
+      stages.waitResidual = profile.mobileSamples[index].timing.cardWait - sample.ariaObservedMs - sample.edgeObservedMs;
+    });
+    const { mobileSamples, ...existing } = profile;
+    console.log(`[TOOLTIP_PROFILE] ${JSON.stringify({ elapsedMs: Math.round(performance.now() - profileStarted), ...existing,
+      mobileCardShow: summarizeMobileCards(mobileSamples) })}`);
+  }
   // Extreme finite values and 150 data targets still have a single keyboard entrance.
   step("150 targets, redraw, save/reload and note switch");
   const large = seed({ chartType: "bar", barMode: "percent-stacked" }, "tooltip-extremes");
