@@ -3,6 +3,7 @@
 const assert = require("node:assert/strict");
 const { performance } = require("node:perf_hooks");
 const { startCardOpenObservation, finishCardOpenObservation, summarizeCardOpenObservations } = require("./chart-card-open-observation.e2e.js");
+const { traceCardOpen } = require("./chart-card-click-trace.e2e.js");
 
 const profileTooltip = process.env.MEMO_NEXUS_E2E_BROWSER === "webkit"
   && process.env.MEMO_NEXUS_E2E_TOOLTIP_PROFILE === "1";
@@ -82,7 +83,7 @@ async function loadChart(page, model, timing) {
   recordTime(timing, "renderWait", started);
 }
 
-async function openPreview(page, width, timing) {
+async function openPreview(page, width, timing, traceCondition) {
   let started = performance.now();
   await page.setViewportSize({ width, height: 820 });
   recordTime(timing, "resize", started);
@@ -111,6 +112,7 @@ async function openPreview(page, width, timing) {
     stageStarted = timing && performance.now();
     const cardClosed = await page.locator("#previewCard").getAttribute("aria-hidden") === "true";
     recordMobileStage(timing, "cardState", stageStarted);
+    await traceCardOpen(page, "tooltip", traceCondition || {}, async () => {
     if (timing && cardClosed) await startCardOpenObservation(page);
     try {
       if (cardClosed) {
@@ -146,6 +148,7 @@ async function openPreview(page, width, timing) {
     } finally {
       if (timing && cardClosed) timing.pageCardObservation = await finishCardOpenObservation(page);
     }
+    });
   }
 }
 
@@ -282,7 +285,7 @@ async function verifyChartTooltips(page, step = () => {}) {
       for (const width of [320, 375, 390, 430, 1100]) {
         const conditionStarted = performance.now();
         const preview = {};
-        await openPreview(page, width, profile ? preview : null);
+        await openPreview(page, width, profile ? preview : null, { configIndex, theme, width });
         const previewDone = performance.now();
         if (profile && width < 1100) {
           preview.mobileStages.previewResidual = previewDone - conditionStarted

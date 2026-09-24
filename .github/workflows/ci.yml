@@ -17,6 +17,10 @@ on:
         description: Profile tooltip Chart E2E on WebKit
         type: boolean
         default: false
+      card_click_trace:
+        description: Trace selected Chart card clicks on WebKit when both profiles are enabled
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -185,7 +189,17 @@ jobs:
           MEMO_NEXUS_E2E_BROWSER: ${{ matrix.browser }}
           MEMO_NEXUS_E2E_DUAL_AXIS_PROFILE: ${{ github.event_name == 'workflow_dispatch' && inputs.dual_axis_profile && matrix.browser == 'webkit' && '1' || '' }}
           MEMO_NEXUS_E2E_TOOLTIP_PROFILE: ${{ github.event_name == 'workflow_dispatch' && inputs.tooltip_profile && matrix.browser == 'webkit' && '1' || '' }}
+          MEMO_NEXUS_E2E_CARD_CLICK_TRACE: ${{ github.event_name == 'workflow_dispatch' && inputs.card_click_trace && inputs.dual_axis_profile && inputs.tooltip_profile && matrix.browser == 'webkit' && '1' || '' }}
         run: npm run test:e2e:chart:all
+
+      - name: Upload selected card click traces
+        if: always() && github.event_name == 'workflow_dispatch' && inputs.card_click_trace && inputs.dual_axis_profile && inputs.tooltip_profile && matrix.browser == 'webkit'
+        uses: actions/upload-artifact@v6
+        with:
+          name: chart-card-click-traces-webkit
+          path: e2e-artifacts/chart-card-click-traces/*.zip
+          if-no-files-found: warn
+          retention-days: 7
 
   table-e2e:
     name: Table E2E (${{ matrix.browser }})

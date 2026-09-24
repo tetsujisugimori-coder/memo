@@ -5,6 +5,7 @@ const os = require("node:os");
 const path = require("node:path");
 const { performance } = require("node:perf_hooks");
 const { startCardOpenObservation, finishCardOpenObservation, summarizeCardOpenObservations } = require("./chart-card-open-observation.e2e.js");
+const { traceCardOpen } = require("./chart-card-click-trace.e2e.js");
 
 function createDualAxisProfile() {
   if (process.env.MEMO_NEXUS_E2E_BROWSER !== "webkit"
@@ -235,6 +236,7 @@ async function verifyDualAxisCharts(page, { chart, waitForChartCancelCompletion,
               await page.waitForFunction(() => document.getElementById("contextPanel").getAttribute("aria-hidden") === "true");
               if (profile) detail.contextWait = profile.record("context-close-wait", stageStarted, condition, true);
             }
+            await traceCardOpen(page, "dual-axis", condition, async () => {
             if (profile) await startCardOpenObservation(page);
             try {
               stageStarted = profile && performance.now();
@@ -262,6 +264,7 @@ async function verifyDualAxisCharts(page, { chart, waitForChartCancelCompletion,
             } finally {
               if (profile) profile.recordCardObservation(await finishCardOpenObservation(page), condition);
             }
+            });
             if (profile) {
               const parentMs = profile.record(phase, started, condition);
               profile.recordDuration("show-residual", parentMs - Object.values(detail).reduce((sum, ms) => sum + ms, 0), condition);

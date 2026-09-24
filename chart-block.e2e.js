@@ -17,6 +17,7 @@ const { verifyChartDataTable, verifyChartDataTableTouch } = require("./chart-dat
 const { verifyDualAxisCharts } = require("./chart-combo-dual-axis.e2e.js");
 const { verifyAxisTitles } = require("./chart-axis-titles.e2e.js");
 const { verifyChartTooltips, verifyTouchTooltips } = require("./chart-tooltips.e2e.js");
+const { stopCardClickTracing } = require("./chart-card-click-trace.e2e.js");
 
 let appUrl = process.env.MEMO_NEXUS_E2E_URL || "";
 const browserName = process.env.MEMO_NEXUS_E2E_BROWSER || "chromium";
@@ -820,7 +821,11 @@ async function verifySignedCharts(page) {
         }
         throw error;
       } finally {
-        await page.close();
+        try {
+          await stopCardClickTracing(page);
+        } finally {
+          await page.close();
+        }
       }
     });
   }
