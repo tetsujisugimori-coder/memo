@@ -3622,3 +3622,11 @@
 * 既存JSONのNode側カードclickはtooltip 96回で6,345ms（66.1ms/回）／5,176ms（53.9ms/回）、2軸128回で8,540ms（66.7ms/回）／6,710ms（52.4ms/回）。上表のtrace操作時間は選定された各1回のPlaywright action、JSONは全条件を包むNode時計の`locator.click()`で、範囲・記録負荷が異なる。PR #291・#293のページ時計で得たclickイベント→右端条件の約162～167msは別の区間で、160msのCSS表示遷移を含み得る。いずれも足し算せず、観測値全量を短縮可能時間としない。
 * [通常PR run 35954180276](https://github.com/tetsujisugimori-coder/memo/actions/runs/35954180276)も同じコードHEADで8ジョブ成功。Chart WebKit／Chromiumの3入力は空値、trace行・両JSONは0行、trace artifactはなく、120／160条件と後続検査は完走した。通常runのChart全スクリプト603.6秒と手動2回の差をtraceの有無に帰属しない。ローカルではWebKitの両機能と後続検査、選定6 zipの各1 click、ルートのNodeテスト1,583件、構文と`git diff --check`を確認。ローカルの`npm test`は既存の未追跡`work/`内の過去コピーまで拾って失敗したため、管理対象のルートテストを明示して再実行した。CIのクリーンcheckoutは成功した。
 * この観測だけでは、実クリックと同じ検査を保ったまま短縮できる最小変更は特定できないため、製品コードやE2E操作の最適化は提案しない。次はtooltipの`configIndex=10,light,320`でclick直前のボタン矩形と周辺レイアウトのframeごとの変化、および多数回のtraceで合同確認内のどの条件が支配するかを確かめる。
+
+## 2026-09-24 Chart tooltipカードのclick前frame観測（Issue #289、PR #294の続き）
+
+* 目的は、PR #294のtraceでtooltip `configIndex=10,theme=light,viewportWidth=320`だけ長かったvisible・enabled・stableの合同確認を一段細かく切り分けること。対照はtooltip `configIndex=4,theme=light,viewportWidth=390`。今回は診断のみで、実`#cardPaneBtn`の`locator.click()`、既存の表示待ち・assertion、tooltipの120条件、150データ点と後続の保存・再読込検査、製品コードは維持する。
+* 既存の`tooltip_profile`・`dual_axis_profile`・`card_click_trace`がすべてtrueのUbuntu WebKit手動実行だけで、対象2条件の実クリック直前にページ内観測を開始し、観測を続けたまま`locator.click()`を実行する。click action完了直後に観測を止める。観測のための追加frame待ちやsleepはない。通常PR／push／Chromiumでは観測もJSON出力もない。既存の6条件のtraceも残す。
+* 観測開始時、各`requestAnimationFrame`、終了時に`performance.now()`、ボタンと直接親`.layout-primary-actions`の`getBoundingClientRect()`のx/y/width/height、ボタンのcomputed display/visibility/opacity、disabled/aria-disabledを収集する。ページ内のpointerdownとclickイベント時刻も記録し、pointerdownより前のサンプルと全サンプルを分ける。ボタン矩形の変化回数、最後の変化までのページ内相対時間、各軸の最大連続差、状態変化の有無を集計する。矩形の「変化」はいずれかのx/y/width/height差が**0.1 CSS px超**の場合とし、生値はJSONに残す。これより小さい揺れを計測上の変化として数えないための閾値であり、Playwrightの内部閾値ではない。
+* Node時計は`locator.click()`の所要時間だけに使い、ページ時計は観測開始・各frame・イベント・終了の相対時間だけに使う。両時計の絶対値を引き算しない。JSONは`e2e-artifacts/chart-card-frame-observation/`に条件ごとに保存し、手動WebKitの専用artifactとして7日保持する。通常ログは条件ごとの集計1行だけとし、生frame列はartifactに限定する。
+* `getBoundingClientRect()`のframe観測はPlaywright内部のstable判定そのものではなく、stable待ちの原因候補を外部から観測する診断である。frame間に起きて戻る動きは見逃し得る。DOM読取とtrace収集自体も時刻やレイアウトに影響し得るため、実測結果をそのまま通常CIの所要時間や短縮可能時間と解釈しない。

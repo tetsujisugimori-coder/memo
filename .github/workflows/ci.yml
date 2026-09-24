@@ -201,6 +201,15 @@ jobs:
           if-no-files-found: warn
           retention-days: 7
 
+      - name: Upload selected card frame observations
+        if: always() && github.event_name == 'workflow_dispatch' && inputs.card_click_trace && inputs.dual_axis_profile && inputs.tooltip_profile && matrix.browser == 'webkit'
+        uses: actions/upload-artifact@v6
+        with:
+          name: chart-card-frame-observation-webkit
+          path: e2e-artifacts/chart-card-frame-observation/*.json
+          if-no-files-found: warn
+          retention-days: 7
+
   table-e2e:
     name: Table E2E (${{ matrix.browser }})
     runs-on: ubuntu-latest
