@@ -3601,8 +3601,24 @@
 * `pageObservation.stages`の`clickToAria`はclickイベント観測→ARIA初回観測、`ariaToEdge`はARIA初回観測→右端条件初回観測、`clickToEdge`はclickイベント観測→右端条件初回観測である。後者は前二者の**親区間**なので、三つを合算しない。各列は有効観測の`count`、合計`ms`、`perCallMs`、`maxMs`、`missingCount`と`missingReasons`を持ち、`pageObservation.slowest`は区間ごとに遅い上位5条件を示す。観測できなかった区間は0msに変換しない。毎条件、イベントリスナー、MutationObserver、animation frame、ページ上の一時状態を回収する。
 * Node時計では従来の`locator.click()`所要時間と`waitForFunction`所要時間を別々に記録し、ページ時計の**時刻値**とは引き算しない。既存の`ariaObserved`／`edgeObserved`はwaitの最初の判定を起点とするPR #291の列として残す。新しいページ内区間はclickイベントを起点とし、Node側のclickやwaitとの重なりがあり得るため、`mobileControls`、`cardWait`、`mobile-card-show`等の親工程へ足し込まない。Nodeのclick所要時間にはPlaywrightの操作待ちとアプリ処理の両方が入り得るが、この計測だけでは分割できない。右端到達には必要な表示遷移も含まれ得るので、全量を削減可能時間として扱わない。
 
-## 2026-09-24 ChartモバイルカードclickのPlaywright trace調査（Issue #292）
+## 2026-09-24 ChartモバイルカードclickのPlaywright trace調査（Issue #289、関連 #292）
 
 * PR #291・#293の計測列、tooltipの120条件（うちモバイル96）と2軸の160条件（うちモバイル128）、実際の`#cardPaneBtn`の`locator.click()`、表示待ち、後続検査を維持する。製品コード、期待値、skip、retry、並列度、Chart CIの45分上限は変更しない。`card_click_trace`は既存の`tooltip_profile`／`dual_axis_profile`とは別の手動入力で、既定false。3入力すべてtrueのChart WebKitだけで6条件のtraceを取得する。通常PR／push、Chart Chromiumでは取得しない。
 * `browser.newPage()`で作られた現行のBrowserContextを使い、対象機能の初回選定時に`context.tracing.start({snapshots:true})`、各選定操作の直前／直後に`startChunk`／`stopChunk({path})`、機能終了時に`stop()`を実行する。`try/finally`でクリックや表示待ちが失敗してもchunkとtracingを閉じる。保存先は`e2e-artifacts/chart-card-click-traces/`で、Chart WebKitの手動実行だけが`*.zip`を7日間の専用artifactとしてアップロードする。traceはGit管理から除外する。
 * 選定条件とファイル名：tooltip初回`configIndex=0,light,320` → `tooltip-first-c0-light-320.zip`、通常反復`4,light,390` → `tooltip-repeat-c4-light-390.zip`、PR #291のUbuntuプロファイルで親工程が遅かった`10,light,320` → `tooltip-slow-c10-light-320.zip`。2軸初回`seriesCount=2,dataset=0,light,320` → `dual-first-s2-d0-light-320.zip`、通常反復`2,3,dark,390` → `dual-repeat-s2-d3-dark-390.zip`、同プロファイルで親工程が遅かった`3,0,light,430` → `dual-slow-s3-d0-light-430.zip`。過去の「遅い」は親のカード表示区間の選定理由であり、その条件のclick単体が遅いと確定した意味ではない。
+* 同一HEAD `9cef8db3fbed37d7d90f62d98aff2d16f0e6889e`のUbuntu手動計測は[1回目 run 35954117755](https://github.com/tetsujisugimori-coder/memo/actions/runs/35954117755)と[2回目 run 35955014818](https://github.com/tetsujisugimori-coder/memo/actions/runs/35955014818)で、各8ジョブ成功。Node 22、固定Playwright 1.62.1。Chart WebKitは3入力とも`1`、両プロファイルJSONが各1行、trace行が6行。Chart Chromiumは3入力空値、両JSON・trace行とも0行。tooltipの12 Chart・24テーマ・120条件、150データ点・保存再読込、2軸の160条件と保存再読込・旧形式・取消は両回完走した。WebKitのChart全スクリプトは578.3／512.0秒だが、計測負荷や改善効果の差とは解釈しない。
+* traceは1回目が6 zip・GitHub artifact 191,090 bytes（個別32,083～34,371 bytes）、2回目が6 zip・artifact 190,915 bytes（個別32,060～34,354 bytes）。各zipには対象`#cardPaneBtn`の実`locator.click()`がちょうど1件。両回とも各clickの操作ログにはlocator解決、visible・enabled・stableの合同確認、必要に応じたスクロール確認、クリック実行、予定ナビゲーションの終了確認が順にあり、再試行・遮蔽エラーは出なかった。以下の「操作」はtraceのclick actionの開始／終了時刻差、「解決」「可視・有効・安定」「スクロール」「実行」は各開始／完了ログの**記録時刻差**で、内部工程の厳密な実行時間ではない。列同士やページ時計の区間を合算しない。単位ms、値は1回目／2回目。
+
+| trace条件（上記zipの先頭名） | 操作 | locator解決ログ間 | 可視・有効・安定ログ間 | スクロールログ間 | click実行ログ間 |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| tooltip-first-c0-light-320 | 71.0／59.5 | 3.1／4.0 | 16.3／26.3 | 0.6／0.4 | 19.0／14.8 |
+| tooltip-repeat-c4-light-390 | 80.3／50.4 | 2.5／3.2 | 29.1／16.9 | 1.2／1.1 | 23.8／14.6 |
+| tooltip-slow-c10-light-320 | 142.2／96.0 | 2.1／1.9 | 98.5／63.2 | 1.0／1.0 | 19.8／17.9 |
+| dual-first-s2-d0-light-320 | 61.6／62.8 | 3.3／3.6 | 22.3／30.9 | 2.1／0.5 | 17.3／13.9 |
+| dual-repeat-s2-d3-dark-390 | 73.5／57.6 | 8.6／7.1 | 28.1／19.6 | 2.2／0.7 | 18.5／13.1 |
+| dual-slow-s3-d0-light-430 | 75.3／50.0 | 8.2／2.3 | 22.7／18.0 | 1.1／0.4 | 17.9／16.1 |
+
+* 6条件すべてに合同の可視・有効・安定確認が反復し、tooltipの`configIndex=10,light,320`だけは2回ともこの**合同確認のログ間隔**が他の条件より長い（98.5／63.2ms、他の5条件は16.3～30.9ms）。ログはvisible・enabled・stableを個別に時刻付けしていないので、そのどれが長さの原因か、ボタンの位置変化やアプリ処理が原因かは確定できない。Playwrightのstable判定は連続する2つのanimation frameでbounding boxが同じことを要するが、このtraceだけで再描画や特定CSS遷移との因果は示せない。初回の親工程にはtrace対象外のcontextPanel閉じるclickが各機能1回（tooltip 130／88ms、2軸97／79ms）あり、trace開始・保存の負荷も選定条件の親工程に入り得る。過去に親工程が遅かった2軸`3,0,light,430`のclick操作は両回とも他条件と近く、親工程の遅さをclick単体へ帰属できない。
+* 既存JSONのNode側カードclickはtooltip 96回で6,345ms（66.1ms/回）／5,176ms（53.9ms/回）、2軸128回で8,540ms（66.7ms/回）／6,710ms（52.4ms/回）。上表のtrace操作時間は選定された各1回のPlaywright action、JSONは全条件を包むNode時計の`locator.click()`で、範囲・記録負荷が異なる。PR #291・#293のページ時計で得たclickイベント→右端条件の約162～167msは別の区間で、160msのCSS表示遷移を含み得る。いずれも足し算せず、観測値全量を短縮可能時間としない。
+* [通常PR run 35954180276](https://github.com/tetsujisugimori-coder/memo/actions/runs/35954180276)も同じコードHEADで8ジョブ成功。Chart WebKit／Chromiumの3入力は空値、trace行・両JSONは0行、trace artifactはなく、120／160条件と後続検査は完走した。通常runのChart全スクリプト603.6秒と手動2回の差をtraceの有無に帰属しない。ローカルではWebKitの両機能と後続検査、選定6 zipの各1 click、ルートのNodeテスト1,583件、構文と`git diff --check`を確認。ローカルの`npm test`は既存の未追跡`work/`内の過去コピーまで拾って失敗したため、管理対象のルートテストを明示して再実行した。CIのクリーンcheckoutは成功した。
+* この観測だけでは、実クリックと同じ検査を保ったまま短縮できる最小変更は特定できないため、製品コードやE2E操作の最適化は提案しない。次はtooltipの`configIndex=10,light,320`でclick直前のボタン矩形と周辺レイアウトのframeごとの変化、および多数回のtraceで合同確認内のどの条件が支配するかを確かめる。
