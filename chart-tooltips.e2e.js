@@ -121,12 +121,16 @@ async function openPreview(page, width, timing, traceCondition) {
         const frameObservation = await startCardFrameObservation(page, traceCondition || {});
         stageStarted = timing && performance.now();
         let clickMs = null;
+        let clickStartNodeMs = null;
+        let clickEndNodeMs = null;
         try {
+          if (frameObservation) clickStartNodeMs = performance.now();
           await diagnoseTooltipCardClick(page, traceCondition, () => page.locator("#cardPaneBtn").click());
+          if (frameObservation) clickEndNodeMs = performance.now();
           if (frameObservation) clickMs = performance.now() - stageStarted;
           recordMobileStage(timing, "cardClick", stageStarted);
         } finally {
-          await finishCardFrameObservation(page, frameObservation, clickMs);
+          await finishCardFrameObservation(page, frameObservation, clickMs, clickStartNodeMs, clickEndNodeMs);
         }
       }
       recordTime(timing, "mobileControls", started);
