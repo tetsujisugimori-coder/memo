@@ -13,6 +13,10 @@ on:
         description: Profile dual-axis Chart E2E on WebKit
         type: boolean
         default: false
+      tooltip_profile:
+        description: Profile tooltip Chart E2E on WebKit
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -180,6 +184,7 @@ jobs:
         env:
           MEMO_NEXUS_E2E_BROWSER: ${{ matrix.browser }}
           MEMO_NEXUS_E2E_DUAL_AXIS_PROFILE: ${{ github.event_name == 'workflow_dispatch' && inputs.dual_axis_profile && matrix.browser == 'webkit' && '1' || '' }}
+          MEMO_NEXUS_E2E_TOOLTIP_PROFILE: ${{ github.event_name == 'workflow_dispatch' && inputs.tooltip_profile && matrix.browser == 'webkit' && '1' || '' }}
         run: npm run test:e2e:chart:all
 
   table-e2e:
