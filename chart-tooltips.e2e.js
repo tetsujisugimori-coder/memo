@@ -2,6 +2,7 @@
 
 const assert = require("node:assert/strict");
 const { performance } = require("node:perf_hooks");
+const { startCardOpenObservation, finishCardOpenObservation, summarizeCardOpenObservations } = require("./chart-card-open-observation.e2e.js");
 
 const profileTooltip = process.env.MEMO_NEXUS_E2E_BROWSER === "webkit"
   && process.env.MEMO_NEXUS_E2E_TOOLTIP_PROFILE === "1";
@@ -34,7 +35,10 @@ function summarizeMobileCards(entries) {
     slowest: entries.map(({ configIndex, theme, width, timing }) => ({
       configIndex, theme, width, ms: Math.round(timing.mobileControls + timing.cardWait),
       cardWaitMs: Math.round(timing.cardWait)
-    })).sort((a, b) => b.ms - a.ms).slice(0, 5)
+    })).sort((a, b) => b.ms - a.ms).slice(0, 5),
+    pageObservation: summarizeCardOpenObservations(entries.map(({ configIndex, theme, width, timing }) => ({
+      context: { configIndex, theme, width }, observation: timing.pageCardObservation
+    })))
   };
 }
 
@@ -107,35 +111,40 @@ async function openPreview(page, width, timing) {
     stageStarted = timing && performance.now();
     const cardClosed = await page.locator("#previewCard").getAttribute("aria-hidden") === "true";
     recordMobileStage(timing, "cardState", stageStarted);
-    if (cardClosed) {
-      stageStarted = timing && performance.now();
-      await page.locator("#cardPaneBtn").click();
-      recordMobileStage(timing, "cardClick", stageStarted);
-    }
-    recordTime(timing, "mobileControls", started);
-    if (timing) timing.mobileStages.controlsResidual = timing.mobileControls
-      - Object.values(timing.mobileStages).reduce((sum, ms) => sum + ms, 0);
-    started = performance.now();
-    if (timing) {
-      await page.waitForFunction((state) => {
-        const now = performance.now();
-        if (state.first === null) state.first = now;
-        const card = document.getElementById("previewCard");
-        const ariaVisible = card.getAttribute("aria-hidden") === "false";
-        if (ariaVisible && state.aria === null) state.aria = now;
-        if (ariaVisible && Math.abs(card.getBoundingClientRect().right - innerWidth) < 1) {
-          (window.__tooltipCardWaitProfile ||= []).push({ ariaObservedMs: state.aria - state.first, edgeObservedMs: now - state.aria });
-          return true;
-        }
-        return false;
-      }, { first: null, aria: null });
-      recordTime(timing, "cardWait", started);
-    } else {
-      await page.waitForFunction(() => {
-        const card = document.getElementById("previewCard");
-        return card.getAttribute("aria-hidden") === "false" && Math.abs(card.getBoundingClientRect().right - innerWidth) < 1;
-      });
-      recordTime(timing, "cardWait", started);
+    if (timing && cardClosed) await startCardOpenObservation(page);
+    try {
+      if (cardClosed) {
+        stageStarted = timing && performance.now();
+        await page.locator("#cardPaneBtn").click();
+        recordMobileStage(timing, "cardClick", stageStarted);
+      }
+      recordTime(timing, "mobileControls", started);
+      if (timing) timing.mobileStages.controlsResidual = timing.mobileControls
+        - Object.values(timing.mobileStages).reduce((sum, ms) => sum + ms, 0);
+      started = performance.now();
+      if (timing) {
+        await page.waitForFunction((state) => {
+          const now = performance.now();
+          if (state.first === null) state.first = now;
+          const card = document.getElementById("previewCard");
+          const ariaVisible = card.getAttribute("aria-hidden") === "false";
+          if (ariaVisible && state.aria === null) state.aria = now;
+          if (ariaVisible && Math.abs(card.getBoundingClientRect().right - innerWidth) < 1) {
+            (window.__tooltipCardWaitProfile ||= []).push({ ariaObservedMs: state.aria - state.first, edgeObservedMs: now - state.aria });
+            return true;
+          }
+          return false;
+        }, { first: null, aria: null });
+        recordTime(timing, "cardWait", started);
+      } else {
+        await page.waitForFunction(() => {
+          const card = document.getElementById("previewCard");
+          return card.getAttribute("aria-hidden") === "false" && Math.abs(card.getBoundingClientRect().right - innerWidth) < 1;
+        });
+        recordTime(timing, "cardWait", started);
+      }
+    } finally {
+      if (timing && cardClosed) timing.pageCardObservation = await finishCardOpenObservation(page);
     }
   }
 }
