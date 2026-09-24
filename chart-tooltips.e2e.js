@@ -5,6 +5,7 @@ const { performance } = require("node:perf_hooks");
 const { startCardOpenObservation, finishCardOpenObservation, summarizeCardOpenObservations } = require("./chart-card-open-observation.e2e.js");
 const { traceCardOpen } = require("./chart-card-click-trace.e2e.js");
 const { startCardFrameObservation, finishCardFrameObservation } = require("./chart-card-frame-observation.e2e.js");
+const { diagnoseTooltipCardClick } = require("./chart-tooltip-click-diagnostic.e2e.js");
 
 const profileTooltip = process.env.MEMO_NEXUS_E2E_BROWSER === "webkit"
   && process.env.MEMO_NEXUS_E2E_TOOLTIP_PROFILE === "1";
@@ -121,7 +122,7 @@ async function openPreview(page, width, timing, traceCondition) {
         stageStarted = timing && performance.now();
         let clickMs = null;
         try {
-          await page.locator("#cardPaneBtn").click();
+          await diagnoseTooltipCardClick(page, traceCondition, () => page.locator("#cardPaneBtn").click());
           if (frameObservation) clickMs = performance.now() - stageStarted;
           recordMobileStage(timing, "cardClick", stageStarted);
         } finally {

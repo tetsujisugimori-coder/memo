@@ -3623,10 +3623,34 @@
 * [通常PR run 35954180276](https://github.com/tetsujisugimori-coder/memo/actions/runs/35954180276)も同じコードHEADで8ジョブ成功。Chart WebKit／Chromiumの3入力は空値、trace行・両JSONは0行、trace artifactはなく、120／160条件と後続検査は完走した。通常runのChart全スクリプト603.6秒と手動2回の差をtraceの有無に帰属しない。ローカルではWebKitの両機能と後続検査、選定6 zipの各1 click、ルートのNodeテスト1,583件、構文と`git diff --check`を確認。ローカルの`npm test`は既存の未追跡`work/`内の過去コピーまで拾って失敗したため、管理対象のルートテストを明示して再実行した。CIのクリーンcheckoutは成功した。
 * この観測だけでは、実クリックと同じ検査を保ったまま短縮できる最小変更は特定できないため、製品コードやE2E操作の最適化は提案しない。次はtooltipの`configIndex=10,light,320`でclick直前のボタン矩形と周辺レイアウトのframeごとの変化、および多数回のtraceで合同確認内のどの条件が支配するかを確かめる。
 
-## 2026-09-24 Chart tooltipカードのclick前frame観測（Issue #289、PR #294の続き）
+## 2026-09-24 Chart tooltipカードのclick前frame観測（Issue #298、PR #294の続き）
 
 * 目的は、PR #294のtraceでtooltip `configIndex=10,theme=light,viewportWidth=320`だけ長かったvisible・enabled・stableの合同確認を一段細かく切り分けること。対照はtooltip `configIndex=4,theme=light,viewportWidth=390`。今回は診断のみで、実`#cardPaneBtn`の`locator.click()`、既存の表示待ち・assertion、tooltipの120条件、150データ点と後続の保存・再読込検査、製品コードは維持する。
 * 既存の`tooltip_profile`・`dual_axis_profile`・`card_click_trace`がすべてtrueのUbuntu WebKit手動実行だけで、対象2条件の実クリック直前にページ内観測を開始し、観測を続けたまま`locator.click()`を実行する。click action完了直後に観測を止める。観測のための追加frame待ちやsleepはない。通常PR／push／Chromiumでは観測もJSON出力もない。既存の6条件のtraceも残す。
 * 観測開始時、各`requestAnimationFrame`、終了時に`performance.now()`、ボタンと直接親`.layout-primary-actions`の`getBoundingClientRect()`のx/y/width/height、ボタンのcomputed display/visibility/opacity、disabled/aria-disabledを収集する。ページ内のpointerdownとclickイベント時刻も記録し、pointerdownより前のサンプルと全サンプルを分ける。ボタン矩形の変化回数、最後の変化までのページ内相対時間、各軸の最大連続差、状態変化の有無を集計する。矩形の「変化」はいずれかのx/y/width/height差が**0.1 CSS px超**の場合とし、生値はJSONに残す。これより小さい揺れを計測上の変化として数えないための閾値であり、Playwrightの内部閾値ではない。
 * Node時計は`locator.click()`の所要時間だけに使い、ページ時計は観測開始・各frame・イベント・終了の相対時間だけに使う。両時計の絶対値を引き算しない。JSONは`e2e-artifacts/chart-card-frame-observation/`に条件ごとに保存し、手動WebKitの専用artifactとして7日保持する。通常ログは条件ごとの集計1行だけとし、生frame列はartifactに限定する。
 * `getBoundingClientRect()`のframe観測はPlaywright内部のstable判定そのものではなく、stable待ちの原因候補を外部から観測する診断である。frame間に起きて戻る動きは見逃し得る。DOM読取とtrace収集自体も時刻やレイアウトに影響し得るため、実測結果をそのまま通常CIの所要時間や短縮可能時間と解釈しない。
+## 2026-09-24 WebKit tooltipカードclickの状態遷移診断（Issue #296）
+
+* 目的：PR #294のtraceで`tooltip-slow-c10-light-320`のvisible・enabled・stable合同確認ログ間がUbuntuで98.5／63.2msだったが、個別状態とボタン矩形は未観測だった。`chart-tooltips.e2e.js`の120条件ループで`configIndex=10`は円グラフ、`light`・320pxのカードを開く実際の`#cardPaneBtn`のclickを調べる。高速化は行わない。
+* 変更箇所：`chart-tooltip-click-diagnostic.e2e.js`を追加し、`openPreview()`の既存`locator.click()`を診断用の関数で囲む。`.github/workflows/ci.yml`に既定falseの手動入力`tooltip_diagnostic`を追加し、手動Chart WebKitだけに`MEMO_NEXUS_E2E_TOOLTIP_DIAGNOSTIC=1`を渡す。ローカルでは同じ環境変数で有効化できる。通常CIとChromiumでは詳細観測・ログは無効。製品コード、120条件、実UI操作、assertion、timeout、固定待機、既存プロファイル・traceの条件は変更していない。
+* 診断方法：対象ボタンを`document.getElementById()`で読み、`requestAnimationFrame`ごとにDOM接続、表示相当の矩形とCSS visibility、`:disabled`、`getBoundingClientRect()`のx/y/width/heightを記録する。矩形4値が3フレーム連続で同値なら診断上の`position-stable`を記録するが、clickの前提条件にはしない。boxが変わった場合も時刻付きで記録する。実clickイベントはcapture listenerで観測し、Nodeの`locator.click()`呼び出し開始／終了も記録する。ページ時計とNode時計は直接減算せず、最初の`page.evaluate()`往復の中点で概算整列し、片道の不確かさ上限をログに示す。状態時刻は「最初に観測した時刻」であり、状態が成立した厳密な時刻ではない。診断による矩形読取やtrace snapshotも計測に影響し得る。
+* 実行したテスト：隔離worktreeで`npm test`が1622/1622、`node --check`（変更したE2E 2ファイル）と`git diff --check`が成功。`MEMO_NEXUS_E2E_BROWSER=webkit npm run test:e2e:chart -- --feature chart-tooltips`の通常経路、および診断フラグ有効経路がそれぞれ12 Chart・120条件・150対象点・保存／再読込まで成功した。さらにWebKitで診断・既存`MEMO_NEXUS_E2E_TOOLTIP_PROFILE=1`・既存`MEMO_NEXUS_E2E_CARD_CLICK_TRACE=1`を同時に有効化し、同じ120条件と後続検査を完走した。いずれもローカルWindowsのPlaywright WebKitであり、Ubuntu CIや実機iPhone Safariの測定ではない。
+
+| `c10 / light / 320` の時刻（開始からms） | 診断のみ | 診断＋既存profile／trace |
+| --- | ---: | ---: |
+| DOM接続を初観測 | 12 | 1 |
+| visible相当を初観測 | 12 | 1 |
+| enabledを初観測 | 12 | 1 |
+| bounding boxを初観測 | 12 | 1 |
+| x / y / width / height | 265 / 15 / 40 / 40 | 265 / 15 / 40 / 40 |
+| 矩形変化を観測 | なし | なし |
+| 3フレーム同値を初観測 | 40 | 77 |
+| `locator.click()`呼び出し開始（概算） | 9.9 ± 9.9 | 34.7 ± 34.7 |
+| 実clickイベントを観測 | 230 | 367 |
+| `locator.click()`完了（概算） | 377.7 ± 9.9 | 511.7 ± 34.7 |
+
+* 同時traceの対象clickには再試行・遮蔽エラーはなく、visible・enabled・stable合同確認のログ間は185.2ms、スクロールログ間は8.4ms、click実行ログ間は127.1msだった。これはtraceログの記録時刻差であり、ページ時計のイベント時刻と直接差し引けない。trace有効時の診断は15フレームを観測し、最大フレーム間隔は114msだった。trace snapshotやローカル環境の負荷を含むため、短い位置変動を全て捕捉できたとは断言しない。
+* 判明したこと：この2回ではボタンは早期に表示・有効・矩形取得可能で、観測中の矩形は同値だった。それでも実clickイベントまで時間が残り、同時traceでは合同確認ログ間が長い。「状態は早期に安定しているのにclickだけ遅い」に近い。ただし診断上の3フレーム同値とPlaywright内部のstable判定は同一ではない。
+* 未確定事項：Playwright合同確認内のどの条件・処理が185.2msを占めたか、長いフレーム間隔の原因、CSS・レイアウト・フォント計算との因果、Ubuntu CIでの再現性は未確定。計測した時間全量を削減可能とは扱わない。
+* 次に調べる箇所（最大3件）：(1) 同一ケースの複数traceで合同確認のログ間隔と診断フレーム間隔を照合する。(2) 長いフレーム間隔が再現する場合、ボタン周辺のレイアウト／スタイル計算とCSS遷移を確認する。(3) 合同確認後からclickイベントまでのスクロール・入力配送・イベント処理を別途測る。今回は修正しない。

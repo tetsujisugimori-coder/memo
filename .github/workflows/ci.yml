@@ -21,6 +21,10 @@ on:
         description: Trace selected Chart card clicks on WebKit when both profiles are enabled
         type: boolean
         default: false
+      tooltip_diagnostic:
+        description: Diagnose the tooltip c10 light 320 card click on WebKit
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -190,6 +194,7 @@ jobs:
           MEMO_NEXUS_E2E_DUAL_AXIS_PROFILE: ${{ github.event_name == 'workflow_dispatch' && inputs.dual_axis_profile && matrix.browser == 'webkit' && '1' || '' }}
           MEMO_NEXUS_E2E_TOOLTIP_PROFILE: ${{ github.event_name == 'workflow_dispatch' && inputs.tooltip_profile && matrix.browser == 'webkit' && '1' || '' }}
           MEMO_NEXUS_E2E_CARD_CLICK_TRACE: ${{ github.event_name == 'workflow_dispatch' && inputs.card_click_trace && inputs.dual_axis_profile && inputs.tooltip_profile && matrix.browser == 'webkit' && '1' || '' }}
+          MEMO_NEXUS_E2E_TOOLTIP_DIAGNOSTIC: ${{ github.event_name == 'workflow_dispatch' && inputs.tooltip_diagnostic && matrix.browser == 'webkit' && '1' || '' }}
         run: npm run test:e2e:chart:all
 
       - name: Upload selected card click traces
