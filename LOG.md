@@ -3623,6 +3623,13 @@
 * [通常PR run 35954180276](https://github.com/tetsujisugimori-coder/memo/actions/runs/35954180276)も同じコードHEADで8ジョブ成功。Chart WebKit／Chromiumの3入力は空値、trace行・両JSONは0行、trace artifactはなく、120／160条件と後続検査は完走した。通常runのChart全スクリプト603.6秒と手動2回の差をtraceの有無に帰属しない。ローカルではWebKitの両機能と後続検査、選定6 zipの各1 click、ルートのNodeテスト1,583件、構文と`git diff --check`を確認。ローカルの`npm test`は既存の未追跡`work/`内の過去コピーまで拾って失敗したため、管理対象のルートテストを明示して再実行した。CIのクリーンcheckoutは成功した。
 * この観測だけでは、実クリックと同じ検査を保ったまま短縮できる最小変更は特定できないため、製品コードやE2E操作の最適化は提案しない。次はtooltipの`configIndex=10,light,320`でclick直前のボタン矩形と周辺レイアウトのframeごとの変化、および多数回のtraceで合同確認内のどの条件が支配するかを確かめる。
 
+## 2026-09-24 Chart tooltipカードのclick前frame観測（Issue #298、PR #294の続き）
+
+* 目的は、PR #294のtraceでtooltip `configIndex=10,theme=light,viewportWidth=320`だけ長かったvisible・enabled・stableの合同確認を一段細かく切り分けること。対照はtooltip `configIndex=4,theme=light,viewportWidth=390`。今回は診断のみで、実`#cardPaneBtn`の`locator.click()`、既存の表示待ち・assertion、tooltipの120条件、150データ点と後続の保存・再読込検査、製品コードは維持する。
+* 既存の`tooltip_profile`・`dual_axis_profile`・`card_click_trace`がすべてtrueのUbuntu WebKit手動実行だけで、対象2条件の実クリック直前にページ内観測を開始し、観測を続けたまま`locator.click()`を実行する。click action完了直後に観測を止める。観測のための追加frame待ちやsleepはない。通常PR／push／Chromiumでは観測もJSON出力もない。既存の6条件のtraceも残す。
+* 観測開始時、各`requestAnimationFrame`、終了時に`performance.now()`、ボタンと直接親`.layout-primary-actions`の`getBoundingClientRect()`のx/y/width/height、ボタンのcomputed display/visibility/opacity、disabled/aria-disabledを収集する。ページ内のpointerdownとclickイベント時刻も記録し、pointerdownより前のサンプルと全サンプルを分ける。ボタン矩形の変化回数、最後の変化までのページ内相対時間、各軸の最大連続差、状態変化の有無を集計する。矩形の「変化」はいずれかのx/y/width/height差が**0.1 CSS px超**の場合とし、生値はJSONに残す。これより小さい揺れを計測上の変化として数えないための閾値であり、Playwrightの内部閾値ではない。
+* Node時計は`locator.click()`の所要時間だけに使い、ページ時計は観測開始・各frame・イベント・終了の相対時間だけに使う。両時計の絶対値を引き算しない。JSONは`e2e-artifacts/chart-card-frame-observation/`に条件ごとに保存し、手動WebKitの専用artifactとして7日保持する。通常ログは条件ごとの集計1行だけとし、生frame列はartifactに限定する。
+* `getBoundingClientRect()`のframe観測はPlaywright内部のstable判定そのものではなく、stable待ちの原因候補を外部から観測する診断である。frame間に起きて戻る動きは見逃し得る。DOM読取とtrace収集自体も時刻やレイアウトに影響し得るため、実測結果をそのまま通常CIの所要時間や短縮可能時間と解釈しない。
 ## 2026-09-24 WebKit tooltipカードclickの状態遷移診断（Issue #296）
 
 * 目的：PR #294のtraceで`tooltip-slow-c10-light-320`のvisible・enabled・stable合同確認ログ間がUbuntuで98.5／63.2msだったが、個別状態とボタン矩形は未観測だった。`chart-tooltips.e2e.js`の120条件ループで`configIndex=10`は円グラフ、`light`・320pxのカードを開く実際の`#cardPaneBtn`のclickを調べる。高速化は行わない。
@@ -3647,3 +3654,19 @@
 * 判明したこと：この2回ではボタンは早期に表示・有効・矩形取得可能で、観測中の矩形は同値だった。それでも実clickイベントまで時間が残り、同時traceでは合同確認ログ間が長い。「状態は早期に安定しているのにclickだけ遅い」に近い。ただし診断上の3フレーム同値とPlaywright内部のstable判定は同一ではない。
 * 未確定事項：Playwright合同確認内のどの条件・処理が185.2msを占めたか、長いフレーム間隔の原因、CSS・レイアウト・フォント計算との因果、Ubuntu CIでの再現性は未確定。計測した時間全量を削減可能とは扱わない。
 * 次に調べる箇所（最大3件）：(1) 同一ケースの複数traceで合同確認のログ間隔と診断フレーム間隔を照合する。(2) 長いフレーム間隔が再現する場合、ボタン周辺のレイアウト／スタイル計算とCSS遷移を確認する。(3) 合同確認後からclickイベントまでのスクロール・入力配送・イベント処理を別途測る。今回は修正しない。
+
+## 2026-09-24 Chart tooltipカードclick前frame観測のUbuntu結果（Issue #298、PR #299）
+
+* 上記frame観測を同一コードHEAD `c48497be1e957a476bea8b704692fd1730bf0b45`で[手動run 35986814239](https://github.com/tetsujisugimori-coder/memo/actions/runs/35986814239)と[手動run 35988077657](https://github.com/tetsujisugimori-coder/memo/actions/runs/35988077657)に実施した。先に起動したrun 35986684960はworkflowの同一ref並行実行取消で途中終了したため、結果に含めない。完走した2回は各8ジョブ成功し、Chart WebKitでは両条件の診断JSONを各1件、既存traceを6件保存した。両回ともtooltipの12 Chart・120条件・150データ点と保存／再読込等の後続検査、2軸の160条件と後続検査を完走した。
+* 表の変化数・最大差・状態変化は**pointerdownより前**の開始サンプルとframeサンプルから求める。`frames`は観測全期間のrAF回数で、最後の矩形変化が「なし」は0msではなく未観測を表す。`max位置`はx/yの最大連続差、`maxサイズ`はwidth/heightの最大連続差（いずれもCSS px）。5状態はdisplay/visibility/opacity/disabled/aria-disabledの順。`最大sample間隔`はクリック前の隣接観測時刻差で、開始サンプルから最初のrAFまでを含む。trace合同ログ間はPR #294と同じ「waiting for element to be visible, enabled and stable」→「element is visible, enabled and stable」の記録時刻差で、Playwright内部条件ごとの実行時間ではない。
+
+| run | tooltip条件 | Node click ms | frames | ボタン矩形変化 | 親矩形変化 | 最後の変化 ms | 最大位置 px | 最大サイズ px | 5状態変化 | 最大sample間隔 ms | trace合同ログ間 ms |
+| --- | --- | ---: | ---: | ---: | ---: | --- | --- | --- | --- | ---: | ---: |
+| 35986814239 | c4/light/390 | 73.257 | 7 | 0 | 0 | なし | x=0, y=0 | w=0, h=0 | なし／なし／なし／なし／なし | 16 | 25.0 |
+| 35986814239 | c10/light/320 | 90.786 | 5 | 0 | 0 | なし | x=0, y=0 | w=0, h=0 | なし／なし／なし／なし／なし | 41 | 48.8 |
+| 35988077657 | c4/light/390 | 75.423 | 6 | 0 | 0 | なし | x=0, y=0 | w=0, h=0 | なし／なし／なし／なし／なし | 16 | 22.3 |
+| 35988077657 | c10/light/320 | 148.783 | 5 | 0 | 0 | なし | x=0, y=0 | w=0, h=0 | なし／なし／なし／なし／なし | 90 | 95.9 |
+
+* 両回の生JSONでは、c10のボタン矩形は開始から終了まで`x=265,y=15,width=40,height=40`、c4は`x=335,y=15,width=40,height=40`で、直接親も変化しなかった。display=`flex`、visibility=`visible`、opacity=`1`、disabled=`false`、aria-disabled=`null`は両条件・両runで不変。c10の最初のrAFは観測開始から41／90ms、c4は15／14msだった。c10のtrace合同ログ間も48.8／95.9msで、c4の25.0／22.3msより長い。これらは別の時計・観測点から得た**区間長**であり、ページ時計の絶対時刻とtrace／Nodeの時刻を直接差し引いていない。trace action全体とNode clickの境界も異なるため合算しない。
+* [通常PR run 35987073635](https://github.com/tetsujisugimori-coder/memo/actions/runs/35987073635)は同一コードHEADで8ジョブ成功し、Nodeテスト1,622件、構文チェック、差分チェックに成功。通常PRのChart WebKitの診断／profile／trace出力行は0、frame JSON artifactはなし。手動runのChart Chromiumも同出力行0。通常PRのartifactは従来のmobile layoutとtable file importだけだった。ローカルWindows WebKitでも両JSONを生成し、tooltipの120条件・150対象点・保存再読込まで通過したが、Ubuntuの数値には混ぜない。ローカルの長い全Chart実行は、同一HEADのUbuntuで全ジョブ成功を確認した時点で終了した。
+* 判定：今回の2条件・2回では、ボタンと直接親の矩形、表示・有効状態はクリック前から観測上安定していた。PR #294の長い合同ログ間を**ボタンまたは直接親の継続的な矩形変化**へ帰属する根拠は得られなかった。c10だけ最初のrAFまでの間隔と合同ログ間がともに長く、フレーム供給またはWebKit／Playwrightのactionability処理、未観測の周辺条件が次の候補となる。ただしframe間の短い変化、他要素の変化、内部stable判定の個別待ちをこの観測では排除・確定できない。`getBoundingClientRect()`のframe観測はPlaywright内部のstable判定そのものではなく、stable待ちの原因候補を外部から観測する診断である。観測・traceの負荷も残る。次はc10の長い初回rAF間隔が発生する工程とメインスレッドの活動を、少数条件で調べる。高速化や挙動変更は今回行わない。
