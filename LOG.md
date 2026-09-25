@@ -3690,3 +3690,10 @@
 
 * c10では観測開始から66／74msまでrAFが供給されなかった一方、両回ともtimer callbackは17／33／49／65msに実行された。gap中に4回ずつページJSのcallbackを実行でき、その遅れは最大1／0ms。したがって、**gap全体にわたる連続的なページメインスレッド占有**は、この2試行の原因候補から外せる。ただしcallback間の短い占有やブラウザ内部の描画工程の影響までは除外できない。click呼び出し開始はページ時計の概算8.842±8.828／5.568±5.531ms、実clickイベントは88／115ms、呼び出し完了は概算124.698±8.828／142.652±5.531msで、イベントと完了は両回ともgap終了後。traceのvisible・enabled・stable合同確認ログ間もc10が67.061／81.769msでc4の25.386／22.490msより長い。ただしtrace時計の区間とページ時計の時刻は直接減算せず、合同確認内のどの内部条件が待ったかも確定しない。3条件ともクリック前のボタン・直接親の矩形変化は0。WebKitのLong Tasks entry typeは非対応で、style/layout/paint/composite工程は未観測。
 * 2回とも分類C（ページevent loopは動いているがrAFとclickが遅い）に最も近い。WebKitのrAF供給、Playwrightのstable/actionability待ち、その他のブラウザ側の描画スケジューリングは残る。ボタンと直接親の継続的なgeometry変化は観測されず、この範囲で主因とは考えにくいが、frame間の一時的なDOM／geometry変化や周辺要素の変化は否定できない。変更前のUbuntu c10 click 90.786／148.783msに対し変更後は115.856／137.085ms、c4は73.257／75.423msに対し86.152／73.296msで、c10に一貫した数十ms増加は見えない。別HEAD・各2試行なので小差を計測負荷に帰属しない。次に最も価値が高い調査は、c10のrAFが止まる間のWebKit描画／frame schedulingをブラウザ側トレースで確認し、Playwright合同確認の内訳との対応を見ること。最適化は行っていない。
+
+## 2026-09-26 Chart複合グラフ120条件E2E計測
+
+* `chart-block.e2e.js` の `verifyComboCharts()` にWebKitかつ手動workflow入力時だけ有効な計測を追加。系列追加、データ入力とプレビュー反映、テーマ、viewport/layout、モバイルカード表示、geometry DOM読取、geometry assertion、カード閉じる操作を別ステージにし、各次元の集計と遅い条件上位5件を1 JSON行にまとめる。既存の待機・クリック・assertion順は維持し、120条件完了を明示検証する。
+* `.github/workflows/ci.yml` の `combo_profile` は既定false、workflow_dispatchかつWebKitの場合だけ有効。この入力をtrueにした場合は既存 `chart-block.e2e.js --feature chart-combo` で対象だけを実行し、それ以外のPR／manual／Chromiumは従来どおり全suite。
+* この環境のローカル確認: `node --check chart-block.e2e.js` と `git diff --check` 成功。`npm test` は既存 `work/` を含むNode test runnerが子プロセス `spawn EPERM` で失敗し、Chromium Chart E2EもPlaywrightブラウザ起動時 `spawn EPERM` で未実施。PowerShell起動問題には変更を加えていない。
+* Ubuntu manual run #396 は計測対象より前の `chart-multi-series` で `page.waitForFunction` 30秒timeout（chart-block.e2e.js:1596）となり、今回の変更範囲外で失敗し `chart-combo` に到達せず。これを受け、combo_profile有効時に対象featureだけを動かすworkflow分岐を追加。単独条件の再計測、PR通常実行結果、Chromium/WebKit E2E結果は未確認。CI実測を得るまで性能値や実行成功を主張しない。
