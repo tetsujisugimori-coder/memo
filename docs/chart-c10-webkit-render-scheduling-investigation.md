@@ -70,11 +70,16 @@ Run 35993568999のc10をページ観測開始からの相対時刻で示す。Pl
 
 ### Ubuntu GitHub Actions
 
-未実行。診断は新しいworkflow_dispatch入力で手動実行が必要であり、CI上のA/B/C分類、CI上での具体的エラー、ローカルとの差は未確定。よって今回の調査全体としてA/B/Cはまだ確定しない。Actions実行で得たJSONLとrun URLを確認してからこの節を更新する。
+手動workflow_dispatchの [run 36181871536](https://github.com/tetsujisugimori-coder/memo/actions/runs/36181871536) で確認。Ubuntu GitHub Actions、Node `v22.23.2`、Playwright `1.62.1`、`/home/runner/.cache/ms-playwright/webkit-2336/pw_run.sh`、WebKit `26.5`。
+
+- WebKit起動・最小ページ操作は成功。起動引数は`--inspector-pipe --headless --no-startup-window`。remote-debugging引数はなく、BrowserServer WebSocketはPlaywright protocol endpointだった。
+- Inspector remote targetを取得できず、失敗地点はtarget取得。ログ上の具体的な失敗理由は「Playwrightは`--inspector-pipe`で起動し、remote-debugging endpointを公開していない。BrowserServer WebSocketはPlaywright protocolであり、Inspector targetではない。Inspector pipeはPlaywright APIからattach可能なtargetとして公開されない」。Inspector session、Timeline開始、event受信は未到達、イベント数0。
+- Local WindowsとUbuntu Actionsの結果は同じ。両方でPlaywright 1.62.1 / WebKit 26.5が`--inspector-pipe`を使い、公開Inspector targetは取得できなかった。
+- Actions artifact `webkit-inspector-timeline`にJSONLを保存。診断jobとCI checksは成功。この調査の分類を**C. Inspector remote session自体を取得不可**とする。範囲は今回のPlaywright 1.62.1 + WebKit 26.5 + Ubuntu GitHub Actionsの接続経路に限る。
 
 ### 今回の範囲と制約
 
-これは公開Playwright APIでInspector remote target/sessionに到達できるかを判定する可否probeである。Playwright内部のpipe transportへ割り込み、追加sessionを注入するprivate実装は試していない。Inspector targetが公開されないことを、WebKit一般のTimeline非対応とは解釈しない。c10計測、製品コード、既存Chart E2E操作・期待値には変更を加えない。
+この環境ではWebKit内部render eventとPlaywright待機をこの接続方法では分離できない。失敗地点を超えるための別方式や追加probeには進まない。Inspector targetが公開されないことを、WebKit一般のTimeline非対応とは解釈しない。c10計測、製品コード、既存Chart E2E操作・期待値には変更を加えない。
 
 ## 変更と検証
 
@@ -84,4 +89,4 @@ Run 35993568999のc10をページ観測開始からの相対時刻で示す。Pl
 - `npm run test:e2e:webkit-inspector-timeline`: Windows Playwright 1.62.1 / WebKit 26.5で起動・ページ操作に成功し、C相当のローカルJSONLを出力。
 - `npm test`: 14,060件中14,016成功、44失敗。Nodeの既定探索が既存の未追跡`work/`配下の複製プロジェクトまで実行し、そのコピー内のcache identifier等の不一致で失敗した。追加した診断や現行トップレベルのChart E2Eによる失敗とは確認されていない。未追跡作業は変更していない。
 - `git diff --check`: 成功。
-- Ubuntu Actions診断は未実行。通常PR CIに診断負荷を加えないことはworkflow条件で確認したが、Actions上の実動作は未検証。
+- Ubuntu Actionsの診断jobとCI checksは成功。通常PR CIに診断負荷を加えない構成で、手動dispatchから実測した。
