@@ -10,6 +10,7 @@
     "test:e2e:geometry": "node geometry-block.e2e.js",
     "test:e2e:chart": "node chart-block.e2e.js",
     "test:e2e:chart:all": "node chart-e2e-suite.js",
+    "test:e2e:webkit-inspector-timeline": "node webkit-inspector-timeline.e2e.js",
     "test:e2e:table": "node table-block.e2e.js",
     "test:e2e:table-export": "node table-file-export.e2e.js",
     "test:e2e:chart-export": "node chart-file-export.e2e.js"

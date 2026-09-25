@@ -25,6 +25,10 @@ on:
         description: Diagnose the tooltip c10 light 320 card click on WebKit
         type: boolean
         default: false
+      webkit_inspector_timeline:
+        description: Probe WebKit Inspector Timeline access on Ubuntu
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -196,6 +200,42 @@ jobs:
           MEMO_NEXUS_E2E_CARD_CLICK_TRACE: ${{ github.event_name == 'workflow_dispatch' && inputs.card_click_trace && inputs.dual_axis_profile && inputs.tooltip_profile && matrix.browser == 'webkit' && '1' || '' }}
           MEMO_NEXUS_E2E_TOOLTIP_DIAGNOSTIC: ${{ github.event_name == 'workflow_dispatch' && inputs.tooltip_diagnostic && matrix.browser == 'webkit' && '1' || '' }}
         run: npm run test:e2e:chart:all
+
+  webkit-inspector-timeline:
+    name: WebKit Inspector Timeline diagnostic
+    if: github.event_name == 'workflow_dispatch' && inputs.webkit_inspector_timeline
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright WebKit
+        run: npx playwright install --with-deps webkit
+
+      - name: Probe WebKit Inspector Timeline
+        run: npm run test:e2e:webkit-inspector-timeline
+
+      - name: Upload diagnostic JSONL
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: webkit-inspector-timeline
+          path: e2e-artifacts/webkit-inspector-timeline.jsonl
+          if-no-files-found: warn
+          retention-days: 14
 
       - name: Upload selected card click traces
         if: always() && github.event_name == 'workflow_dispatch' && inputs.card_click_trace && inputs.dual_axis_profile && inputs.tooltip_profile && matrix.browser == 'webkit'
