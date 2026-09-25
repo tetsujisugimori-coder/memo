@@ -33,16 +33,20 @@ Run 35993568999のc10をページ観測開始からの相対時刻で示す。Pl
 | ---: | --- | --- | --- | --- |
 | 0ms | 観測開始。対象ボタンと親は表示・有効、矩形固定 | callback待ち | engine eventはtrace対象外 | click actionへ進行 |
 | 17 / 33 / 49 / 65ms | timer callbackが各時刻に実行。最大遅れ1ms | まだcallbackなし | paint/layout/compositeは不明 | traceはvisible/enabled/stable合同待機中 |
-| 66ms | ページJS/timerは実行可能 | 最初のcallback、rAF空白が終了 | `RenderingFrame`やpaintの有無は不明 | stable完了ログは同操作で約67msの待機後 |
+| 66ms | ページJS/timerは実行可能 | 最初のcallback、rAF空白が終了 | `RenderingFrame`やpaintの有無は不明 | trace側ではstable待機区間長67.061ms（page clockとの境界対応は未確定） |
 | 約75ms | `pointerdown`とclick eventを観測 | callback供給再開 | 内部描画段階は不明 | click dispatch後の処理へ進む |
 
 この時系列は同じ実行内の対応を示す。rAF gap 66msとtraceの合同確認待機67.061msは近いが、別時計・異なる観測境界の区間長であり、1ms差を因果や厳密な境界一致とはみなさない。
 
 ## 6. 現時点の分類
 
-**WebKit/render scheduling寄り（A）が最も近い。** ページtimerが動くなかrAF callback供給だけに長い空白が生じ、その長さとPlaywrightのvisible/enabled/stable待機が近い。Playwright側の独立したstable停滞を示す材料は得られていないため、stableログの長さはrAF供給間隔を反映した可能性が高い。
+**現時点の観測結果はWebKit/render scheduling仮説（A）と整合的である。**
 
-ただし、この観測だけではWebKit内部でrendering frameが生成されなかったのか、rAF deliveryより後の処理が遅れたのかを区別できない。よってWebKit内部のpaint/layout/composite停滞まで断定しない。試行数は2で、WebKit固有問題とも断定しない。異なるtrace/page時計の対応幅、短いメインスレッド占有、観測による負荷も残る。
+**観測事実：** 2回のc10試行でrAF callbackに66ms/74msの空白があり、その間もtimer callbackは動作した。対象ボタンと直接親に持続的なgeometry等の変化は観測されなかった。Playwright traceのvisible/enabled/stable待機区間も67.061ms/81.769msで、c4より長かった。rAFのpage clockとPlaywright traceは別時計で、区間長は近いものの開始・終了境界の厳密な一致は確認していない。WebKit内部の`RenderingFrame`/`Paint`/`Composite`は未取得であり、同一診断条件のChromium比較もない。
+
+**推測・解釈：** gap全体を通じた連続的なページmain-thread占有だけでは説明しにくく、rAF callback供給の空白とPlaywright stable待機の近接はrender scheduling仮説と整合する材料である。ただし、これだけでWebKit内部のframe/render処理が止まったとは証明できず、stable待機との因果も測定していない。Playwright側の独立したstable停滞を示す証拠は今回得られていないが、存在しないと結論することもできない。stable区間がrAF供給間隔を反映している可能性はあるものの、別clockと観測境界の違いが残るため、現段階では推測にとどまる。
+
+試行数は2回であり、WebKit固有問題とも断定しない。異なるtrace/page時計の対応幅、短いメインスレッド占有、観測による負荷も残る。
 
 ## 7. 次の一手
 
