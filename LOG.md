@@ -3670,3 +3670,23 @@
 * 両回の生JSONでは、c10のボタン矩形は開始から終了まで`x=265,y=15,width=40,height=40`、c4は`x=335,y=15,width=40,height=40`で、直接親も変化しなかった。display=`flex`、visibility=`visible`、opacity=`1`、disabled=`false`、aria-disabled=`null`は両条件・両runで不変。c10の最初のrAFは観測開始から41／90ms、c4は15／14msだった。c10のtrace合同ログ間も48.8／95.9msで、c4の25.0／22.3msより長い。これらは別の時計・観測点から得た**区間長**であり、ページ時計の絶対時刻とtrace／Nodeの時刻を直接差し引いていない。trace action全体とNode clickの境界も異なるため合算しない。
 * [通常PR run 35987073635](https://github.com/tetsujisugimori-coder/memo/actions/runs/35987073635)は同一コードHEADで8ジョブ成功し、Nodeテスト1,622件、構文チェック、差分チェックに成功。通常PRのChart WebKitの診断／profile／trace出力行は0、frame JSON artifactはなし。手動runのChart Chromiumも同出力行0。通常PRのartifactは従来のmobile layoutとtable file importだけだった。ローカルWindows WebKitでも両JSONを生成し、tooltipの120条件・150対象点・保存再読込まで通過したが、Ubuntuの数値には混ぜない。ローカルの長い全Chart実行は、同一HEADのUbuntuで全ジョブ成功を確認した時点で終了した。
 * 判定：今回の2条件・2回では、ボタンと直接親の矩形、表示・有効状態はクリック前から観測上安定していた。PR #294の長い合同ログ間を**ボタンまたは直接親の継続的な矩形変化**へ帰属する根拠は得られなかった。c10だけ最初のrAFまでの間隔と合同ログ間がともに長く、フレーム供給またはWebKit／Playwrightのactionability処理、未観測の周辺条件が次の候補となる。ただしframe間の短い変化、他要素の変化、内部stable判定の個別待ちをこの観測では排除・確定できない。`getBoundingClientRect()`のframe観測はPlaywright内部のstable判定そのものではなく、stable待ちの原因候補を外部から観測する診断である。観測・traceの負荷も残る。次はc10の長い初回rAF間隔が発生する工程とメインスレッドの活動を、少数条件で調べる。高速化や挙動変更は今回行わない。
+
+## 2026-09-24 Chart tooltipカードのrAF空白とtimer診断
+
+* 対象は従来のc10/light/320、c4/light/390と比較用のc0/light/320だけ。手動WebKitの既存profile＋traceフラグ下で、従来のframe/矩形/状態サンプルにrAF引数のtimestampを加え、32ms以上の最初のgapを開始・終了・長さで記録する。16msの単発再予約timerで要求時刻・実際のcallback時刻を収集し、32ms以上のcallback遅れがgapに重なるかを要約する。timerはブラウザのスケジューリングやcoalescingにも左右されるため、遅れをJS実行時間と同一視しない。生時系列は従来の条件別JSON artifact、コンソールは1条件1行の短い集計とする。
+* `#cardPaneBtn`の直接親が`.layout-primary-actions`以外なら診断を失敗させる。状態サンプル0件もfail fastする。Nodeのclick呼び出し開始・完了は観測開始の`page.evaluate()`往復の中点でページ時計に概算整列し、往復半分の誤差幅を併記する。pointerdownとclickイベントはページ時計の実測。Playwright内部のactionability開始、style/layout/paint/composite各工程はこのAPIから直接観測できず、推定値を出さない。ローカルPlaywright 1.62.1 WebKitでは`PerformanceObserver.supportedEntryTypes`に`longtask`がなく、Long Tasks観測は使わない。
+* 変更前後にWindowsローカルWebKitの`chart-tooltips`を各1回、同じ3つの既存フラグで実行した。両回とも12 Chart・120条件・150対象点・後続の保存／再読込までPASS（変更前87.0秒、変更後87.1秒）。変更前はc10の初回frame 10ms、Node click 123.405ms、c4は8ms、123.653ms。変更後はc10の初回rAF timestamp差11ms、Node click 125.089ms、c4は5ms、119.822ms、比較用c0は4ms、114.437ms。変更後の最大timer遅れはc10 25ms、c4 27ms、c0 16ms、各4 callback。3条件とも32ms以上のrAF gapはなく、クリック前のボタン・親矩形変化は0。直接親assertは正常経路で成功した。1回ずつの値は分散を示さず、数ms差を診断負荷の因果と解釈しないが、今回のローカル試行で新たな数十msのclick遅延は見えない。
+* Ubuntuの従来2 runではc10の初回rAF空白が41／90ms、c4は15／14msだったが、上の変更前後ローカル試行では長い空白を再現できなかった。そのため、同じ診断コードをUbuntu WebKitで2回実行した。製品UI、click操作、timeout、待機条件の最適化は行っていない。
+* 同一コードHEAD `adfb11fb11aeb3e64647e8ffa68ee67a17926c64`の[Ubuntu手動run 35993568999](https://github.com/tetsujisugimori-coder/memo/actions/runs/35993568999)、[手動run 35994760494](https://github.com/tetsujisugimori-coder/memo/actions/runs/35994760494)、[通常PR run 35993553106](https://github.com/tetsujisugimori-coder/memo/actions/runs/35993553106)は各8ジョブ成功。手動Chart WebKitは各回とも12 Chart・120条件・150対象点と後続検査まで完走し、3条件のframe JSON・従来の6 traceを保存した。通常PRでは診断フラグを立てていない。
+
+| 手動run | 条件 | Node click ms | 初回rAF間隔 ms | gap内timer callback時刻 ms | gap内最大timer遅れ ms | trace合同確認ログ間 ms | clickイベント／完了とgap |
+| --- | --- | ---: | ---: | --- | ---: | ---: | --- |
+| 35993568999 | c0/light/320 | 83.665 | 6 | 長いgapなし | 対象外 | 31.616 | 対象外 |
+| 35993568999 | c4/light/390 | 86.152 | 18 | 長いgapなし | 対象外 | 25.386 | 対象外 |
+| 35993568999 | c10/light/320 | 115.856 | 66 | 17, 33, 49, 65 | 1 | 67.061 | ともにgap後 |
+| 35994760494 | c0/light/320 | 78.093 | 7 | 長いgapなし | 対象外 | 25.581 | 対象外 |
+| 35994760494 | c4/light/390 | 73.296 | 10 | 長いgapなし | 対象外 | 22.490 | 対象外 |
+| 35994760494 | c10/light/320 | 137.085 | 74 | 17, 33, 49, 65 | 0 | 81.769 | ともにgap後 |
+
+* c10では観測開始から66／74msまでrAFが供給されなかった一方、両回ともtimer callbackは17／33／49／65msに実行された。gap中に4回ずつページJSのcallbackを実行でき、その遅れは最大1／0ms。したがって、**gap全体にわたる連続的なページメインスレッド占有**は、この2試行の原因候補から外せる。ただしcallback間の短い占有やブラウザ内部の描画工程の影響までは除外できない。click呼び出し開始はページ時計の概算8.842±8.828／5.568±5.531ms、実clickイベントは88／115ms、呼び出し完了は概算124.698±8.828／142.652±5.531msで、イベントと完了は両回ともgap終了後。traceのvisible・enabled・stable合同確認ログ間もc10が67.061／81.769msでc4の25.386／22.490msより長い。ただしtrace時計の区間とページ時計の時刻は直接減算せず、合同確認内のどの内部条件が待ったかも確定しない。3条件ともクリック前のボタン・直接親の矩形変化は0。WebKitのLong Tasks entry typeは非対応で、style/layout/paint/composite工程は未観測。
+* 2回とも分類C（ページevent loopは動いているがrAFとclickが遅い）に最も近い。WebKitのrAF供給、Playwrightのstable/actionability待ち、その他のブラウザ側の描画スケジューリングは残る。ボタンと直接親の継続的なgeometry変化は観測されず、この範囲で主因とは考えにくいが、frame間の一時的なDOM／geometry変化や周辺要素の変化は否定できない。変更前のUbuntu c10 click 90.786／148.783msに対し変更後は115.856／137.085ms、c4は73.257／75.423msに対し86.152／73.296msで、c10に一貫した数十ms増加は見えない。別HEAD・各2試行なので小差を計測負荷に帰属しない。次に最も価値が高い調査は、c10のrAFが止まる間のWebKit描画／frame schedulingをブラウザ側トレースで確認し、Playwright合同確認の内訳との対応を見ること。最適化は行っていない。
