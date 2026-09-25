@@ -52,6 +52,36 @@ Run 35993568999のc10をページ観測開始からの相対時刻で示す。Pl
 
 次PRで調べる対象は一つに絞る。対象WebKit実行環境がInspector remote `Timeline` sessionを公開できるか確認し、接続できる場合のみc10再現中の`RenderingFrame`/`FireAnimationFrame`と`Paint`/`Composite`を短い1区間で採取して既存traceと時計対応する。接続できなければ現行環境ではWebKit内部renderとPlaywright待機の分離不能と記録する。ページ側timer/DOM probeやCDPを代替計測として追加しない。
 
+## Inspector Timeline可否確認
+
+### 実装した診断
+
+- `webkit-inspector-timeline.e2e.js`は独立実行し、最小HTMLの読み込み・DOM更新後、各段階を1行JSONで記録する。
+- `npm run test:e2e:webkit-inspector-timeline`で単独実行する。
+- GitHub Actionsは`workflow_dispatch`の`webkit_inspector_timeline`入力がtrueのときだけUbuntu上でWebKitを導入して診断し、JSONLをartifactとして保存する。通常PR CIでは診断jobを起動しない。
+- 試した経路はPlaywright公開APIのWebKit起動とページ操作、および1.62.1同梱server実装の確認。WebKitの起動transportはPlaywright内部の`--inspector-pipe`で、Playwright BrowserServerのWebSocket endpointはInspector endpointではない。TimelineコマンドをInspector sessionへ送信する診断用private adapterは作成していない。
+
+### ローカル実測（Windowsのみ）
+
+- Playwright: `1.62.1`（lockfile固定）。Node: `v24.20.0`。実行ファイル: `webkit-2336/Playwright.exe`、Playwrightが報告したWebKit version: `26.5`。
+- WebKit起動と最小ページのDOM更新は成功。
+- Inspector remote target: 公開API経路では取得できず。Inspector session、Timeline開始、Timeline event受信はいずれも未到達。イベント数は0。失敗地点はtarget取得で、プロトコル接続エラーではなく、Playwright公開APIからInspector targetを返す経路がないため。
+- ローカル出力: `e2e-artifacts/webkit-inspector-timeline.jsonl`。このローカル環境に限った到達状況はC相当だが、内部pipeを通じた別の接続方法の可否まで否定しない。
+
+### Ubuntu GitHub Actions
+
+未実行。診断は新しいworkflow_dispatch入力で手動実行が必要であり、CI上のA/B/C分類、CI上での具体的エラー、ローカルとの差は未確定。よって今回の調査全体としてA/B/Cはまだ確定しない。Actions実行で得たJSONLとrun URLを確認してからこの節を更新する。
+
+### 今回の範囲と制約
+
+これは公開Playwright APIでInspector remote target/sessionに到達できるかを判定する可否probeである。Playwright内部のpipe transportへ割り込み、追加sessionを注入するprivate実装は試していない。Inspector targetが公開されないことを、WebKit一般のTimeline非対応とは解釈しない。c10計測、製品コード、既存Chart E2E操作・期待値には変更を加えない。
+
 ## 変更と検証
 
-このPRでは調査結果文書のみを追加する。テスト/E2Eコード、通常CI設定、製品コード、click操作、待機条件、timeoutは変更しない。既存の`chart-card-frame-observation.test.js`はNode test isolation無効で3/3成功。`npm test`全体はWindows環境の子プロセス起動が`spawn EPERM`となり実行不能だった（CI結果ではない）。`git diff --check`は成功。
+この調査では新規診断スクリプト、npm単独実行script、手動workflow_dispatch job、調査文書を追加した。既存Chart E2E操作・期待値、製品コード、通常PR CI jobは変更していない。
+
+- `node --check webkit-inspector-timeline.e2e.js`: 成功。
+- `npm run test:e2e:webkit-inspector-timeline`: Windows Playwright 1.62.1 / WebKit 26.5で起動・ページ操作に成功し、C相当のローカルJSONLを出力。
+- `npm test`: 14,060件中14,016成功、44失敗。Nodeの既定探索が既存の未追跡`work/`配下の複製プロジェクトまで実行し、そのコピー内のcache identifier等の不一致で失敗した。追加した診断や現行トップレベルのChart E2Eによる失敗とは確認されていない。未追跡作業は変更していない。
+- `git diff --check`: 成功。
+- Ubuntu Actions診断は未実行。通常PR CIに診断負荷を加えないことはworkflow条件で確認したが、Actions上の実動作は未検証。
