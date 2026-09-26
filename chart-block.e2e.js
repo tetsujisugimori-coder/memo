@@ -364,21 +364,27 @@ function createComboProfile() {
       const aggregate = (items) => {
         const result = {};
         for (const item of items) {
-          const group = result[item.key] ||= { count: 0, ms: 0, maxMs: 0 };
+          const group = result[item.key] ||= { count: 0, ms: 0, minMs: Infinity, maxMs: 0 };
           group.count += item.count || 1;
           group.ms += item.ms;
+          group.minMs = Math.min(group.minMs, item.ms);
           group.maxMs = Math.max(group.maxMs, item.ms);
         }
         return Object.fromEntries(Object.entries(result).map(([key, value]) => [key, {
           count: value.count,
           ms: Math.round(value.ms),
           perCallMs: Math.round(value.ms / value.count * 10) / 10,
+          minMs: Math.round(value.minMs * 10) / 10,
           maxMs: Math.round(value.maxMs)
         }]));
       };
       const by = (field, select) => aggregate(samples.filter((sample) => sample[field] !== undefined)
         .map((sample) => ({ key: select ? select(sample[field]) : sample[field], ms: sample.ms })));
       const stages = aggregate(samples.map((sample) => ({ key: sample.stage, ms: sample.ms })));
+      const mobileCardShow = aggregate(samples.filter((sample) => sample.stage === "mobile-card-show")
+        .map((sample) => ({ key: "mobile-card-show", ms: sample.ms })))["mobile-card-show"] || {
+        count: 0, ms: 0, perCallMs: 0, minMs: 0, maxMs: 0
+      };
       const conditionTimes = new Map();
       for (const sample of samples) {
         if (sample.dataset === undefined) continue;
@@ -399,6 +405,7 @@ function createComboProfile() {
       console.log("[COMBO_PROFILE] " + JSON.stringify({
         conditions,
         stages,
+        mobileCardShow,
         seriesCounts: by("seriesCount", String),
         datasets: by("dataset", String),
         themes: by("theme"),
@@ -652,12 +659,24 @@ async function verifyComboCharts(page, step = () => {}) {
           if (width < 1100) {
             phase = "mobile-card-show";
             started = profile && performance.now();
+            let stageStarted = profile && performance.now();
             if (await page.locator("#contextPanel").getAttribute("aria-hidden") === "false") {
+              if (profile) profile.record("mobile-show-context-state", stageStarted);
+              stageStarted = profile && performance.now();
               await page.locator("#closeContextPanelBtn").click();
+              if (profile) profile.record("mobile-show-context-close-click", stageStarted);
+              stageStarted = profile && performance.now();
               await page.waitForFunction(() => document.getElementById("contextPanel").getAttribute("aria-hidden") === "true");
+              if (profile) profile.record("mobile-show-context-close-wait", stageStarted);
+            } else if (profile) {
+              profile.record("mobile-show-context-state", stageStarted);
             }
+            stageStarted = profile && performance.now();
             await page.locator("#cardPaneBtn").click();
+            if (profile) profile.record("mobile-show-card-click", stageStarted);
+            stageStarted = profile && performance.now();
             await page.waitForFunction(() => { const card = document.getElementById("previewCard"); return card.getAttribute("aria-hidden") === "false" && Math.abs(card.getBoundingClientRect().right - innerWidth) < 1; });
+            if (profile) profile.record("mobile-show-card-condition-wait", stageStarted);
             if (profile) profile.record(phase, started, condition);
           }
           await geometry(model); geometryCount++;
