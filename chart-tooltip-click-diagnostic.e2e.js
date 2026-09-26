@@ -2,7 +2,7 @@
 
 const { performance } = require("node:perf_hooks");
 
-// Observe the real card button without using locator auto-wait or changing the click condition.
+// Keep the existing single-condition frame/actionability diagnostic available.
 async function diagnoseTooltipCardClick(page, condition, click) {
   if (process.env.MEMO_NEXUS_E2E_BROWSER !== "webkit"
     || process.env.MEMO_NEXUS_E2E_TOOLTIP_DIAGNOSTIC !== "1"
@@ -92,4 +92,129 @@ async function diagnoseTooltipCardClick(page, condition, click) {
   }
 }
 
-module.exports = { diagnoseTooltipCardClick };
+function createTooltipClickInternals() {
+  if (process.env.MEMO_NEXUS_E2E_BROWSER !== "webkit"
+    || process.env.MEMO_NEXUS_E2E_CARD_CLICK_INTERNALS !== "1") return null;
+
+  let clockOffsetMs = null;
+  let clockAlignmentErrorBoundMs = null;
+  let clickCalls = [];
+  let installed = false;
+
+  return {
+    async start(page) {
+      const nodeBefore = performance.now();
+      let pageStartAt;
+      try {
+        pageStartAt = await page.evaluate(() => {
+          if (window.__cardClickInternals) throw new Error("Previous card click diagnostic was not collected");
+          const button = document.getElementById("cardPaneBtn");
+          const card = document.getElementById("previewCard");
+          const events = [];
+          let pendingIndex = null;
+          const onClick = () => {
+            const index = events.length;
+            events.push({ index, t1: performance.now(), t4: null, mutation: null });
+            pendingIndex = index;
+          };
+          const observer = new MutationObserver((records) => {
+            if (pendingIndex === null) return;
+            const event = events[pendingIndex];
+            event.t4 = performance.now();
+            const record = records[0];
+            event.mutation = record ? {
+              target: record.target.id || record.target.tagName.toLowerCase(),
+              attribute: record.attributeName
+            } : null;
+            pendingIndex = null;
+          });
+          button?.addEventListener("click", onClick, { capture: true });
+          if (button) observer.observe(button, { attributes: true, attributeFilter: ["aria-expanded"] });
+          if (card) observer.observe(card, { attributes: true, attributeFilter: ["aria-hidden", "class", "inert", "style"] });
+          observer.observe(document.body, { attributes: true, attributeFilter: ["class"] });
+          window.__cardClickInternals = { button, onClick, observer, events };
+          return performance.now();
+        });
+        const nodeAfter = performance.now();
+        clockOffsetMs = (nodeBefore + nodeAfter) / 2 - pageStartAt;
+        clockAlignmentErrorBoundMs = (nodeAfter - nodeBefore) / 2;
+        clickCalls = [];
+        installed = true;
+      } catch (error) {
+        console.error(`[TOOLTIP_CLICK_INTERNALS] ${JSON.stringify({ diagnosticError: String(error), stage: "start" })}`);
+      }
+    },
+
+    record(nodeStartMs, nodeEndMs) {
+      if (installed) clickCalls.push({ nodeStartMs, nodeEndMs });
+    },
+
+    async measure(click) {
+      const nodeStartMs = performance.now();
+      const result = await click();
+      const nodeEndMs = performance.now();
+      this.record(nodeStartMs, nodeEndMs);
+      return result;
+    },
+
+    async finish(page) {
+      if (!installed) return;
+      try {
+        const events = await page.evaluate(() => {
+          const state = window.__cardClickInternals;
+          if (!state) return null;
+          delete window.__cardClickInternals;
+          state.button?.removeEventListener("click", state.onClick, { capture: true });
+          state.observer.disconnect();
+          return state.events;
+        });
+        if (!events) throw new Error("Browser observation was not available");
+        const values = { playwrightToDomClick: [], domClickToUiMutationObserved: [],
+          uiMutationObservedToClickResolve: [], domClickToClickResolve: [], clickTotal: [] };
+        for (let index = 0; index < clickCalls.length; index++) {
+          const call = clickCalls[index];
+          const event = events[index];
+          if (!event) continue;
+          const domClickNodeMs = event.t1 + clockOffsetMs;
+          values.playwrightToDomClick.push(domClickNodeMs - call.nodeStartMs);
+          if (Number.isFinite(event.t4)) {
+            const mutationNodeMs = event.t4 + clockOffsetMs;
+            values.domClickToUiMutationObserved.push(event.t4 - event.t1);
+            values.uiMutationObservedToClickResolve.push(call.nodeEndMs - mutationNodeMs);
+          }
+          values.domClickToClickResolve.push(call.nodeEndMs - domClickNodeMs);
+          values.clickTotal.push(call.nodeEndMs - call.nodeStartMs);
+        }
+        const summarize = (samples) => {
+          if (!samples.length) return { count: 0, totalMs: null, perCallMs: null, maxMs: null };
+          const total = samples.reduce((sum, value) => sum + value, 0);
+          return {
+            count: samples.length,
+            totalMs: Math.round(total),
+            perCallMs: Math.round(total / samples.length * 10) / 10,
+            maxMs: Math.round(Math.max(...samples))
+          };
+        };
+        const missing = {
+          domClick: Math.max(0, clickCalls.length - events.length),
+          uiMutation: events.filter((event) => !Number.isFinite(event.t4)).length
+        };
+        console.log(`[TOOLTIP_CLICK_INTERNALS] ${JSON.stringify({
+          calls: clickCalls.length,
+          clock: "Node performance.now aligned to browser performance.now by setup-call midpoint",
+          clockAlignmentErrorBoundMs: Math.round(clockAlignmentErrorBoundMs * 10) / 10,
+          stages: Object.fromEntries(Object.entries(values).map(([name, samples]) => [name, summarize(samples)])),
+          missing,
+          firstUiMutationMeans: "first observed MutationObserver callback for card/body/button state attributes; not the exact mutation timestamp"
+        })}`);
+      } catch (error) {
+        console.error(`[TOOLTIP_CLICK_INTERNALS] ${JSON.stringify({ diagnosticError: String(error), stage: "finish" })}`);
+      } finally {
+        installed = false;
+        clickCalls = [];
+      }
+    }
+  };
+}
+
+module.exports = { diagnoseTooltipCardClick, createTooltipClickInternals };
