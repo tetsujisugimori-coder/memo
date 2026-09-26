@@ -33,6 +33,10 @@ on:
         description: Measure all 96 tooltip card click boundaries on WebKit
         type: boolean
         default: false
+      tooltip_handler_boundary:
+        description: Observe selected tooltip click capture to post-app listener boundaries on WebKit
+        type: boolean
+        default: false
       tooltip_t0_t1_trace:
         description: Save three tooltip card locator.click traces on WebKit
         type: boolean
@@ -209,16 +213,18 @@ jobs:
           MEMO_NEXUS_E2E_BROWSER: ${{ matrix.browser }}
           MEMO_NEXUS_E2E_COMBO_PROFILE: ${{ github.event_name == 'workflow_dispatch' && inputs.combo_profile && matrix.browser == 'webkit' && '1' || '' }}
           MEMO_NEXUS_E2E_DUAL_AXIS_PROFILE: ${{ github.event_name == 'workflow_dispatch' && inputs.dual_axis_profile && matrix.browser == 'webkit' && '1' || '' }}
-          MEMO_NEXUS_E2E_TOOLTIP_PROFILE: ${{ github.event_name == 'workflow_dispatch' && (inputs.tooltip_profile || inputs.card_click_internals) && matrix.browser == 'webkit' && '1' || '' }}
+          MEMO_NEXUS_E2E_TOOLTIP_PROFILE: ${{ github.event_name == 'workflow_dispatch' && (inputs.tooltip_profile || inputs.card_click_internals || inputs.tooltip_handler_boundary) && matrix.browser == 'webkit' && '1' || '' }}
           MEMO_NEXUS_E2E_CARD_CLICK_TRACE: ${{ github.event_name == 'workflow_dispatch' && inputs.card_click_trace && inputs.dual_axis_profile && inputs.tooltip_profile && matrix.browser == 'webkit' && '1' || '' }}
           MEMO_NEXUS_E2E_TOOLTIP_DIAGNOSTIC: ${{ github.event_name == 'workflow_dispatch' && inputs.tooltip_diagnostic && matrix.browser == 'webkit' && '1' || '' }}
           MEMO_NEXUS_E2E_CARD_CLICK_INTERNALS: ${{ github.event_name == 'workflow_dispatch' && inputs.card_click_internals && matrix.browser == 'webkit' && '1' || '' }}
           MEMO_NEXUS_E2E_CARD_CLICK_INTERNALS_REQUESTED: ${{ github.event_name == 'workflow_dispatch' && inputs.card_click_internals && '1' || '' }}
+          MEMO_NEXUS_E2E_TOOLTIP_HANDLER_BOUNDARY: ${{ github.event_name == 'workflow_dispatch' && inputs.tooltip_handler_boundary && matrix.browser == 'webkit' && '1' || '' }}
+          MEMO_NEXUS_E2E_TOOLTIP_HANDLER_BOUNDARY_REQUESTED: ${{ github.event_name == 'workflow_dispatch' && inputs.tooltip_handler_boundary && '1' || '' }}
           MEMO_NEXUS_E2E_TOOLTIP_T0_T1_TRACE: ${{ github.event_name == 'workflow_dispatch' && inputs.tooltip_t0_t1_trace && matrix.browser == 'webkit' && '1' || '' }}
           MEMO_NEXUS_E2E_TOOLTIP_T0_T1_TRACE_REQUESTED: ${{ github.event_name == 'workflow_dispatch' && inputs.tooltip_t0_t1_trace && '1' || '' }}
         shell: bash
         run: |
-          if [[ "$MEMO_NEXUS_E2E_CARD_CLICK_INTERNALS_REQUESTED" == "1" || "$MEMO_NEXUS_E2E_TOOLTIP_T0_T1_TRACE_REQUESTED" == "1" ]]; then
+          if [[ "$MEMO_NEXUS_E2E_CARD_CLICK_INTERNALS_REQUESTED" == "1" || "$MEMO_NEXUS_E2E_TOOLTIP_HANDLER_BOUNDARY_REQUESTED" == "1" || "$MEMO_NEXUS_E2E_TOOLTIP_T0_T1_TRACE_REQUESTED" == "1" ]]; then
             npm run test:e2e:chart -- --feature chart-tooltips
           elif [[ "$MEMO_NEXUS_E2E_COMBO_PROFILE" == "1" ]]; then
             npm run test:e2e:chart -- --feature chart-combo
