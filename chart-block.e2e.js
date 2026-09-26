@@ -5,6 +5,7 @@ const fs = require("node:fs");
 const http = require("node:http");
 const os = require("node:os");
 const path = require("node:path");
+const { performance } = require("node:perf_hooks");
 const playwright = require("playwright");
 const { createE2eTiming } = require("./e2e-timing.js");
 const { verifyTableToChart, verifyTableToChartTouch } = require("./table-to-chart.e2e.js");
@@ -349,6 +350,65 @@ async function verifyDivergingStacks(page, percent = false, step = () => {}) {
   console.log(`Diverging ${barMode} checks passed: 140 geometry combinations, persistence, type switches, invalid drafts, reload and cancel`);
 }
 
+function createComboProfile() {
+  if (process.env.MEMO_NEXUS_E2E_BROWSER !== "webkit"
+    || process.env.MEMO_NEXUS_E2E_COMBO_PROFILE !== "1") return null;
+  const samples = [];
+  return {
+    record(stage, started, context) {
+      const ms = performance.now() - started;
+      samples.push({ stage, ms, ...context });
+      return ms;
+    },
+    summary() {
+      const aggregate = (items) => {
+        const result = {};
+        for (const item of items) {
+          const group = result[item.key] ||= { count: 0, ms: 0, maxMs: 0 };
+          group.count += item.count || 1;
+          group.ms += item.ms;
+          group.maxMs = Math.max(group.maxMs, item.ms);
+        }
+        return Object.fromEntries(Object.entries(result).map(([key, value]) => [key, {
+          count: value.count,
+          ms: Math.round(value.ms),
+          perCallMs: Math.round(value.ms / value.count * 10) / 10,
+          maxMs: Math.round(value.maxMs)
+        }]));
+      };
+      const by = (field, select) => aggregate(samples.filter((sample) => sample[field] !== undefined)
+        .map((sample) => ({ key: select ? select(sample[field]) : sample[field], ms: sample.ms })));
+      const stages = aggregate(samples.map((sample) => ({ key: sample.stage, ms: sample.ms })));
+      const conditionTimes = new Map();
+      for (const sample of samples) {
+        if (sample.dataset === undefined) continue;
+        const themes = sample.theme === undefined ? ["light", "dark"] : [sample.theme];
+        const widths = sample.width === undefined ? [320, 375, 390, 430, 1100] : [sample.width];
+        const share = sample.ms / (themes.length * widths.length);
+        for (const theme of themes) for (const width of widths) {
+          const key = [sample.seriesCount, sample.dataset, theme, width].join("/");
+          conditionTimes.set(key, (conditionTimes.get(key) || 0) + share);
+        }
+      }
+      const slowest = [...conditionTimes.entries()].map(([key, ms]) => {
+        const [seriesCount, dataset, theme, width] = key.split("/");
+        return { seriesCount: Number(seriesCount), dataset: Number(dataset), theme, width: Number(width), ms: Math.round(ms) };
+      }).sort((a, b) => b.ms - a.ms).slice(0, 5);
+      const conditions = new Set(samples.filter((sample) => sample.width !== undefined)
+        .map((sample) => [sample.seriesCount, sample.dataset, sample.theme, sample.width].join("/"))).size;
+      console.log("[COMBO_PROFILE] " + JSON.stringify({
+        conditions,
+        stages,
+        seriesCounts: by("seriesCount", String),
+        datasets: by("dataset", String),
+        themes: by("theme"),
+        widths: by("width", String),
+        slowest
+      }));
+    }
+  };
+}
+
 async function verifyComboCharts(page, step = () => {}) {
   step("Chart creation, series editing and persistence");
   await page.setViewportSize({ width: 1100, height: 820 });
@@ -473,6 +533,7 @@ async function verifyComboCharts(page, step = () => {}) {
   await cancelled(); assert.equal(await page.locator("#editor").inputValue(), negativeBody);
 
   async function geometry(model) {
+    let started = profile && performance.now();
     const state = await page.locator('#preview .chart-block-combo').evaluate((figure) => {
       const svg = figure.querySelector("svg"), view = svg.viewBox.baseVal;
       const box = (el) => { const b = el.getBBox(); return { x: b.x, y: b.y, width: b.width, height: b.height }; };
@@ -510,6 +571,11 @@ async function verifyComboCharts(page, step = () => {}) {
         bodyOverflow: document.body.scrollWidth > document.documentElement.clientWidth
       };
     });
+    if (profile) {
+      profile.record("geometry-read", started, condition);
+      started = performance.now();
+      phase = "geometry-assert";
+    }
     assert.equal(state.visible, true, "カードを開いた実表示を検証");
     assert.equal(state.foreground, true); assert.equal(state.zeroCount, 1); assert.equal(state.zeroTicks, 1); assert.equal(state.hidden, "true");
     assert.equal(new Set(state.axes).size, state.axes.length);
@@ -540,14 +606,28 @@ async function verifyComboCharts(page, step = () => {}) {
         assert.ok(Math.abs(mark.x - (left + right) / 2) < 1e-8, "点は棒グループの中央");
       }
     }
+    if (profile) profile.record("geometry-assert", started, condition);
   }
 
   const datasets = [ [[30,20,0],[20,40,0],[10,20,0]], [[-30,-20,0],[-20,-40,0],[-10,-20,0]], [[30,-20,0],[-20,40,0],[10,-30,0]], [[0,0,0],[0,0,0],[0,0,0]], [[Number.MAX_VALUE,-Number.MAX_VALUE,0],[-Number.MAX_VALUE,Number.MAX_VALUE,0],[1e-300,-1e300,0]], [[1e300,-1e-300,0],[1e-300,-1e300,0],[Number.MIN_VALUE,-Number.MIN_VALUE,0]] ];
+  const profile = createComboProfile();
+  let condition = {};
+  let phase = "series-setup";
   step("120 geometry combinations across data, theme and width");
   let geometryCount = 0;
+  try {
   for (const count of [2, 3]) {
-    if (count === 3) await panel.locator('[data-chart-action="add-series"]').click();
-    for (const values of datasets) {
+    condition = { seriesCount: count };
+    if (count === 3) {
+      phase = "series-setup";
+      const started = profile && performance.now();
+      await panel.locator('[data-chart-action="add-series"]').click();
+      if (profile) profile.record(phase, started, condition);
+    }
+    for (const [dataset, values] of datasets.entries()) {
+      condition = { seriesCount: count, dataset };
+      phase = "data-preview";
+      let started = profile && performance.now();
       for (let item = 0; item < 3; item++) for (let series = 0; series < count; series++) await input(item, series).fill(String(values[series][item]));
       await select.selectOption((await chart(page)).series.at(-1).id);
       const model = await chart(page);
@@ -555,28 +635,50 @@ async function verifyComboCharts(page, step = () => {}) {
         const fig = document.querySelector('#preview .chart-block-combo');
         return model.items.every((item, index) => model.series.every((s) => [...(fig?.querySelectorAll('g > title') || [])].some((el) => el.textContent === item.label + '、' + s.name + (s.id === model.appearance.comboLineSeriesId ? '（折れ線）' : '（棒）') + ': ' + String(s.values[index]) + model.unit)));
       }, model);
+      if (profile) profile.record(phase, started, condition);
       for (const theme of ["light", "dark"]) {
+        condition = { seriesCount: count, dataset, theme };
+        phase = "theme";
+        started = profile && performance.now();
         await page.locator("#settingsBtn").click(); await page.locator("#themeSelect").selectOption(theme); await page.locator("#closeSettingsBtn").click();
+        if (profile) profile.record(phase, started, condition);
         for (const width of [320, 375, 390, 430, 1100]) {
+          condition = { seriesCount: count, dataset, theme, width };
+          phase = "viewport-layout";
+          started = profile && performance.now();
           await page.setViewportSize({ width, height: 820 });
           await page.waitForFunction((width) => innerWidth === width && document.body.dataset.layoutMode === (width >= 1100 ? 'wide' : 'mobile'), width);
+          if (profile) profile.record(phase, started, condition);
           if (width < 1100) {
+            phase = "mobile-card-show";
+            started = profile && performance.now();
             if (await page.locator("#contextPanel").getAttribute("aria-hidden") === "false") {
               await page.locator("#closeContextPanelBtn").click();
               await page.waitForFunction(() => document.getElementById("contextPanel").getAttribute("aria-hidden") === "true");
             }
             await page.locator("#cardPaneBtn").click();
             await page.waitForFunction(() => { const card = document.getElementById("previewCard"); return card.getAttribute("aria-hidden") === "false" && Math.abs(card.getBoundingClientRect().right - innerWidth) < 1; });
+            if (profile) profile.record(phase, started, condition);
           }
           await geometry(model); geometryCount++;
           if (width < 1100) {
+            phase = "mobile-card-close";
+            started = profile && performance.now();
             await page.locator("#closeCardPaneBtn").click();
             await page.waitForFunction(() => document.getElementById("previewCard").getAttribute("aria-hidden") === "true");
+            if (profile) profile.record(phase, started, condition);
           }
         }
       }
     }
   }
+  } catch (error) {
+    error.message += ` [combo condition=${JSON.stringify(condition)}, phase=${phase}]`;
+    throw error;
+  } finally {
+    profile?.summary();
+  }
+  assert.equal(geometryCount, 120, "2/3 series × 6 datasets × 2 themes × 5 widths");
   const finalBody = await saved(), finalModel = await chart(page);
   step("final save/reload and legacy fallback");
   await page.reload({ waitUntil: "domcontentloaded" }); await page.locator("#appStartupGuard").waitFor({ state: "hidden" }); await panel.waitFor({ state: "visible" });

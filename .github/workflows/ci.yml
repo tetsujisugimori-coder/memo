@@ -9,6 +9,10 @@ on:
       - main
   workflow_dispatch:
     inputs:
+      combo_profile:
+        description: Run and profile only the composite Chart E2E on WebKit
+        type: boolean
+        default: false
       dual_axis_profile:
         description: Profile dual-axis Chart E2E on WebKit
         type: boolean
@@ -195,11 +199,18 @@ jobs:
       - name: Run chart E2E with feature and total durations
         env:
           MEMO_NEXUS_E2E_BROWSER: ${{ matrix.browser }}
+          MEMO_NEXUS_E2E_COMBO_PROFILE: ${{ github.event_name == 'workflow_dispatch' && inputs.combo_profile && matrix.browser == 'webkit' && '1' || '' }}
           MEMO_NEXUS_E2E_DUAL_AXIS_PROFILE: ${{ github.event_name == 'workflow_dispatch' && inputs.dual_axis_profile && matrix.browser == 'webkit' && '1' || '' }}
           MEMO_NEXUS_E2E_TOOLTIP_PROFILE: ${{ github.event_name == 'workflow_dispatch' && inputs.tooltip_profile && matrix.browser == 'webkit' && '1' || '' }}
           MEMO_NEXUS_E2E_CARD_CLICK_TRACE: ${{ github.event_name == 'workflow_dispatch' && inputs.card_click_trace && inputs.dual_axis_profile && inputs.tooltip_profile && matrix.browser == 'webkit' && '1' || '' }}
           MEMO_NEXUS_E2E_TOOLTIP_DIAGNOSTIC: ${{ github.event_name == 'workflow_dispatch' && inputs.tooltip_diagnostic && matrix.browser == 'webkit' && '1' || '' }}
-        run: npm run test:e2e:chart:all
+        shell: bash
+        run: |
+          if [[ "$MEMO_NEXUS_E2E_COMBO_PROFILE" == "1" ]]; then
+            npm run test:e2e:chart -- --feature chart-combo
+          else
+            npm run test:e2e:chart:all
+          fi
 
   webkit-inspector-timeline:
     name: WebKit Inspector Timeline diagnostic
