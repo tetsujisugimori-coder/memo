@@ -3739,3 +3739,13 @@
 * `npm test`は14,060件中14,016 PASS・44 FAIL。FAILは未追跡`work/`内の既存コピーで、古いcache-version／asset期待値と現行ファイルの不一致。診断ON/OFFの対象E2EはPASS。変更したJSの`node --check`と`git diff --check`もPASS。
 * 追加の診断OFF Chromium `chart-tooltips`もPASS（12 Chart、120条件、150 targets、lifecycle/persistenceまで完走、feature 159.8秒）。
 * 測れていないもの：厳密なアプリlistener開始時刻、dispatch内でのcapture→handler開始の細分、style/layout、paint、rAF callback時刻・完了。rAF以降は別工程。同期handlerの開始／終了そのものが必要ならproduction handlerへのinstrumentationが必要となり、今回の非侵襲診断には含めない。
+
+## 2026-09-27 Tooltipカードclick pointer/focus/rAF境界計測
+
+* PR #315での既存計測は、Node側locator.click開始→DOM click観測が96回平均192.8ms、DOM click→最初のMutationObserver callbackが平均2.1ms。別の代表3回の同一target post-app listener境界は合計9ms、平均3.0msだった。MutationObserver通知もpost-app listenerも純粋なhandler実行時間ではないため、今回も原因は断定しない。
+* 既存`chart-tooltip-click-diagnostic.e2e.js`を拡張し、既定OFFの`MEMO_NEXUS_E2E_TOOLTIP_CLICK_BOUNDARIES=1`で同じc10/light/320条件を10回観測。T0はNode `performance.now()`の通常`locator.click()`直前、T1はbuttonのcapture `pointerdown`、T2はbutton宛document capture `focusin`、T3はbutton capture `click`、T4はapp target listenerより後の同一button bubble listener、T5はT4から予約した次rAF callback。ブラウザ内差分は`performance.now()`、Node T0との比較は設置時のNode往復中点で整列し、誤差上限も出力する。pointerdownを採用しmousedownは重複観測しない。focusinはdocument captureで対象buttonだけを記録し、focus未観測はnull/not observed。
+* 同条件10回のローカルWindows WebKit試行: T0→pointerdown min 201.804 / median 213.172 / mean 218.178 / max 251.924ms (n=10)。pointerdown→focusin min 516 / median 558 / mean 582.222 / max 673ms (n=9)。focusin→clickは9回で実イベント順が逆（focusinはclick/sync-end/rAFの後）だったため、有効な区間統計はn=0、各統計null、逆順9回として扱う。生ログの負値は保持する。click→sync-end min 1 / median 2 / mean 2.1 / max 3ms (n=10)。sync-end→rAF min 75 / median 99 / mean 108.2 / max 190ms (n=10)。
+* 観測上最も長い計測区間の中央値はpointerdown→focusinの558msだが、そのfocusinはclick後に遅れている。よってfocus遷移単体の時間とはみなせず、イベント系列とfocus発火契機を次に調査する候補とする。T0→pointerdown中央値213.172msも旧96回平均192.8msと同方向の大きさだが、試行・条件・環境が異なるので差の性能比較はしない。click→sync-end中央値2msはPR #315の代表3回平均3msと別試行の観測で、handler高速化の根拠にしない。
+* CI workflow_dispatchに既定falseの`tooltip_click_boundaries`を追加。trueの場合だけtooltip featureを選び、WebKitのみに10回計測を有効化する。通常PR CIとproduction動作は計測無効のまま。診断反復は通常locator.clickと通常のカードclose操作を行い、force/dispatchEvent、focus/scroll/animation変更、待機削除は行わない。listenerは計測中だけ追加し、成功・失敗のどちらでもremoveする。rAF未到達は最大1秒待ちの後missingとして記録する。
+* WebKit `chart-tooltips` E2Eは12チャート、120条件、150対象、lifecycle/persistenceまでPASS（feature 241.4秒）。診断のある試行を含むローカル計測で、通常経路の操作・既存assertionはPASSした。追加集計テスト3件PASS、対象JS構文検査と`git diff --check` PASS。初回試行ではCSS transition中にlocatorのhidden状態を誤って待って30秒timeoutしたため、アプリ既存`aria-hidden`境界を待つ方式へ直して再実行し、最終E2EはPASS。
+* 全`npm test`は既存未追跡`work/`内の過去コピーにあるcache-version/asset期待値不一致で失敗した。これらは作業開始時からの保護対象で変更・stage対象化していない。現状の`npm test`はwork配下も探索するため、通常PR CIのcheckout結果とは区別する。計測有効時の追加時間、focusinの遅延原因、rAF待ちの内訳、他OS/ブラウザでの再現性は未確定。今回は高速化・原因修正をしていない。
