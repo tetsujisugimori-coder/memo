@@ -25,9 +25,11 @@ function selectedTrace(feature, condition) {
 async function traceCardOpen(page, feature, condition, operation) {
   const profile = feature === "tooltip" ? "MEMO_NEXUS_E2E_TOOLTIP_PROFILE" : "MEMO_NEXUS_E2E_DUAL_AXIS_PROFILE";
   const name = selectedTrace(feature, condition);
+  const focusedDiagnostic = feature === "tooltip"
+    && process.env.MEMO_NEXUS_E2E_TOOLTIP_T0_T1_TRACE === "1";
   if (process.env.MEMO_NEXUS_E2E_BROWSER !== "webkit"
-    || process.env.MEMO_NEXUS_E2E_CARD_CLICK_TRACE !== "1"
-    || process.env[profile] !== "1" || !name) return operation();
+    || (!focusedDiagnostic && (process.env.MEMO_NEXUS_E2E_CARD_CLICK_TRACE !== "1"
+      || process.env[profile] !== "1")) || !name) return operation();
 
   const context = page.context();
   if (!startedContexts.has(context)) {
@@ -36,7 +38,9 @@ async function traceCardOpen(page, feature, condition, operation) {
   }
   fs.mkdirSync(traceDir, { recursive: true });
   const tracePath = path.join(traceDir, `${name}.zip`);
-  await context.tracing.startChunk({ title: `${feature} ${JSON.stringify(condition)}` });
+  await context.tracing.startChunk({
+    title: `${feature} T0 locator.click start to T1 DOM click event ${JSON.stringify(condition)}`
+  });
   try {
     return await operation();
   } finally {
