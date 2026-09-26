@@ -3709,3 +3709,19 @@
 * 手動計測WebKit `chart-tooltips` は120条件・150対象と保存／再読込までPASS。96 clickでNode開始→DOM click到達は合計18,507ms、平均192.8ms、最大277ms。DOM click→最初の属性MutationObserver callbackは合計202ms、平均2.1ms、最大12ms。callback→locator Promise resolveは合計6,838ms、平均71.2ms、最大193ms。click全体は合計25,547ms、平均266.1ms、最大418ms。clock整列の誤差上限は5.8ms。既存profileのcardClick平均266.1ms、cardWait平均148.2ms。従来の別試行のclick平均281.6ms、wait平均150.4msと試行・環境が異なるため、改善比較には用いない。
 * 結果はD（複数区間）に近い。観測区間ではclick全体の大部分がNode呼出しからDOMイベント到達までにある一方、残る約73msのDOM click→Promise resolveも未分解。最初のUI状態属性変化はイベント後平均約2msで観測したがMutationObserver通知時刻であり、厳密な属性変更時刻ではない。actionabilityとその他のPlaywright dispatch前処理、アプリhandler本体、Playwrightのdispatch後処理は個別に計れず、handler開始／終了T2/T3は断定しない。wait 148.2msは既存の表示・右端条件waitでありclickと別に測定、遷移時間のみの厳密値ではない。
 * 診断無効Chromium `chart-tooltips` も全検査PASS。Node構文検査と`git diff --check` PASS。`npm test`は14,060件中14,016件PASS・44件FAILで、未追跡の旧`work/`履歴treeにある古いcache-version／asset期待値との不一致。制限環境では全テストがspawn EPERMで起動できず、権限付き再実行で上記結果を得た。次候補はTraceの既存actionability記録との条件付き比較、T2/T3安全計測の可否調査、96回すべてでカード開閉する必要性と条件間setup共有の検討。最適化は本PRに含めない。
+
+## 2026-09-26 Tooltipカードclick T0→T1のPlaywright Trace診断
+
+* 対象は既存`chart-tooltips`の96回のモバイル`#cardPaneBtn` click。既存境界を維持し、T0はNode側の`locator.click()`呼出し直前、T1はボタンcapture listenerで実click eventを最初に観測した時刻。既存の通常計測記録はT0→T1平均192.8ms（96回）で、今回その定義・操作・待機を変更していない。
+* `.github/workflows/ci.yml`に既定falseの手動入力`tooltip_t0_t1_trace`を追加。trueの場合のみtooltip featureを単独実行し、WebKitだけで初回c0/light/320、反復c4/light/390、過去に遅い親工程が記録されたc10/light/320の3 clickをTrace化する。各chunkは既存の`locator.click()`だけを含め、viewport/setup・card表示wait・後続assertionは含めない。TraceはDOM snapshot付きzipとして`e2e-artifacts/chart-card-click-traces/`へ保存し、7日artifactで回収する。trace出力は`.gitignore`済み。通常CI、Chromium、通常ベンチではフラグが空のためtraceは開始しない。
+* ローカルWindowsのPlaywright 1.62.1 WebKitで診断フラグを有効にしたtooltip featureを1回実行。12 Chart、120 theme/width条件、150 target、保存／再読込・note switchまでPASS。selected traceは3件、zipは30,047／30,731／29,417 bytes。今回のtrace付きE2E全体325.7秒は診断実行時間で、Trace負荷を含むため通常ベンチ値や過去計測との性能比較に使わない。
+
+| 条件 | locator解決ログ間 | visible/enabled/stable合同ログ間 | scrollログ間 | click actionログ間 |
+| --- | ---: | ---: | ---: | ---: |
+| c0/light/320 | 16.4ms | 136.6ms | 6.8ms | 92.5ms |
+| c4/light/390 | 19.3ms | 146.5ms | 6.1ms | 99.7ms |
+| c10/light/320 | 12.3ms | 115.6ms | 6.1ms | 35.8ms |
+
+* 上表はTraceの隣接操作ログtimestampの差であり、各内部処理の正確なCPU実行時間ではない。3/3 traceでlocator解決、合同のvisible・enabled・stable確認、scroll確認、click実行の同じ順序を観測し、retryや遮蔽エラーのログはなかった。actionability合同ログ間は3回とも大きい（約116–147ms）ため、T0→T1の候補要因としてPlaywright側auto-wait/actionabilityが有力。visible・stable・enabledのどれが寄与したかはtraceが個別記録しない。Trace有効時の測定膨張があるため、各ログ区間を通常値へ換算できない。
+* 確定：96回の通常計測でT0→T1平均192.8msが記録されていること、Trace代表3回すべてでPlaywrightのactionability確認ログが再現したこと。ブラウザのevent delivery、app handler、DOM更新、style/layout/paintを分ける情報は得られず、Trace上のclick action完了時刻も既存T1（DOM event観測）と別境界。よって193msの全量または正確な割合をPlaywright側に帰属するのは未確定。既存属性observerのDOM event後平均約2.1msという別計測もMutationObserverの最初の通知時刻で、handler所要時間とは断定しない。
+* 次の診断境界はT1→T2（アプリhandler開始／終了を安全に観測できるか）を必要性を見て最小限検討する。直ちに96回/setup共有や性能最適化へ進まず、actionability待ちの通常テスト上の正当性は別工程で確認する。

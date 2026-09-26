@@ -33,6 +33,10 @@ on:
         description: Measure all 96 tooltip card click boundaries on WebKit
         type: boolean
         default: false
+      tooltip_t0_t1_trace:
+        description: Save three tooltip card locator.click traces on WebKit
+        type: boolean
+        default: false
       webkit_inspector_timeline:
         description: Probe WebKit Inspector Timeline access on Ubuntu
         type: boolean
@@ -210,15 +214,44 @@ jobs:
           MEMO_NEXUS_E2E_TOOLTIP_DIAGNOSTIC: ${{ github.event_name == 'workflow_dispatch' && inputs.tooltip_diagnostic && matrix.browser == 'webkit' && '1' || '' }}
           MEMO_NEXUS_E2E_CARD_CLICK_INTERNALS: ${{ github.event_name == 'workflow_dispatch' && inputs.card_click_internals && matrix.browser == 'webkit' && '1' || '' }}
           MEMO_NEXUS_E2E_CARD_CLICK_INTERNALS_REQUESTED: ${{ github.event_name == 'workflow_dispatch' && inputs.card_click_internals && '1' || '' }}
+          MEMO_NEXUS_E2E_TOOLTIP_T0_T1_TRACE: ${{ github.event_name == 'workflow_dispatch' && inputs.tooltip_t0_t1_trace && matrix.browser == 'webkit' && '1' || '' }}
+          MEMO_NEXUS_E2E_TOOLTIP_T0_T1_TRACE_REQUESTED: ${{ github.event_name == 'workflow_dispatch' && inputs.tooltip_t0_t1_trace && '1' || '' }}
         shell: bash
         run: |
-          if [[ "$MEMO_NEXUS_E2E_CARD_CLICK_INTERNALS_REQUESTED" == "1" ]]; then
+          if [[ "$MEMO_NEXUS_E2E_CARD_CLICK_INTERNALS_REQUESTED" == "1" || "$MEMO_NEXUS_E2E_TOOLTIP_T0_T1_TRACE_REQUESTED" == "1" ]]; then
             npm run test:e2e:chart -- --feature chart-tooltips
           elif [[ "$MEMO_NEXUS_E2E_COMBO_PROFILE" == "1" ]]; then
             npm run test:e2e:chart -- --feature chart-combo
           else
             npm run test:e2e:chart:all
           fi
+
+      - name: Upload focused tooltip click traces
+        if: always() && github.event_name == 'workflow_dispatch' && inputs.tooltip_t0_t1_trace && matrix.browser == 'webkit'
+        uses: actions/upload-artifact@v6
+        with:
+          name: tooltip-t0-t1-traces-webkit
+          path: e2e-artifacts/chart-card-click-traces/tooltip-*.zip
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Upload selected card click traces
+        if: always() && github.event_name == 'workflow_dispatch' && inputs.card_click_trace && inputs.dual_axis_profile && inputs.tooltip_profile && matrix.browser == 'webkit'
+        uses: actions/upload-artifact@v6
+        with:
+          name: chart-card-click-traces-webkit
+          path: e2e-artifacts/chart-card-click-traces/*.zip
+          if-no-files-found: warn
+          retention-days: 7
+
+      - name: Upload selected card frame observations
+        if: always() && github.event_name == 'workflow_dispatch' && inputs.card_click_trace && inputs.dual_axis_profile && inputs.tooltip_profile && matrix.browser == 'webkit'
+        uses: actions/upload-artifact@v6
+        with:
+          name: chart-card-frame-observation-webkit
+          path: e2e-artifacts/chart-card-frame-observation/*.json
+          if-no-files-found: warn
+          retention-days: 7
 
   webkit-inspector-timeline:
     name: WebKit Inspector Timeline diagnostic
@@ -255,24 +288,6 @@ jobs:
           path: e2e-artifacts/webkit-inspector-timeline.jsonl
           if-no-files-found: warn
           retention-days: 14
-
-      - name: Upload selected card click traces
-        if: always() && github.event_name == 'workflow_dispatch' && inputs.card_click_trace && inputs.dual_axis_profile && inputs.tooltip_profile && matrix.browser == 'webkit'
-        uses: actions/upload-artifact@v6
-        with:
-          name: chart-card-click-traces-webkit
-          path: e2e-artifacts/chart-card-click-traces/*.zip
-          if-no-files-found: warn
-          retention-days: 7
-
-      - name: Upload selected card frame observations
-        if: always() && github.event_name == 'workflow_dispatch' && inputs.card_click_trace && inputs.dual_axis_profile && inputs.tooltip_profile && matrix.browser == 'webkit'
-        uses: actions/upload-artifact@v6
-        with:
-          name: chart-card-frame-observation-webkit
-          path: e2e-artifacts/chart-card-frame-observation/*.json
-          if-no-files-found: warn
-          retention-days: 7
 
   table-e2e:
     name: Table E2E (${{ matrix.browser }})

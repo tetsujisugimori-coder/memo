@@ -114,7 +114,6 @@ async function openPreview(page, width, timing, traceCondition, clickInternals =
     stageStarted = timing && performance.now();
     const cardClosed = await page.locator("#previewCard").getAttribute("aria-hidden") === "true";
     recordMobileStage(timing, "cardState", stageStarted);
-    await traceCardOpen(page, "tooltip", traceCondition || {}, async () => {
     if (timing && cardClosed) await startCardOpenObservation(page);
     try {
       if (cardClosed) {
@@ -125,8 +124,10 @@ async function openPreview(page, width, timing, traceCondition, clickInternals =
         let clickEndNodeMs = null;
         try {
           if (frameObservation) clickStartNodeMs = performance.now();
-          if (clickInternals) await clickInternals.measure(() => page.locator("#cardPaneBtn").click());
-          else await diagnoseTooltipCardClick(page, traceCondition, () => page.locator("#cardPaneBtn").click());
+          await traceCardOpen(page, "tooltip", traceCondition || {}, async () => {
+            if (clickInternals) await clickInternals.measure(() => page.locator("#cardPaneBtn").click());
+            else await diagnoseTooltipCardClick(page, traceCondition, () => page.locator("#cardPaneBtn").click());
+          });
           if (frameObservation) clickEndNodeMs = performance.now();
           if (frameObservation) clickMs = performance.now() - stageStarted;
           recordMobileStage(timing, "cardClick", stageStarted);
@@ -162,7 +163,6 @@ async function openPreview(page, width, timing, traceCondition, clickInternals =
     } finally {
       if (timing && cardClosed) timing.pageCardObservation = await finishCardOpenObservation(page);
     }
-    });
   }
 }
 
