@@ -29,6 +29,10 @@ on:
         description: Diagnose the tooltip c10 light 320 card click on WebKit
         type: boolean
         default: false
+      card_click_internals:
+        description: Measure all 96 tooltip card click boundaries on WebKit
+        type: boolean
+        default: false
       webkit_inspector_timeline:
         description: Probe WebKit Inspector Timeline access on Ubuntu
         type: boolean
@@ -201,12 +205,16 @@ jobs:
           MEMO_NEXUS_E2E_BROWSER: ${{ matrix.browser }}
           MEMO_NEXUS_E2E_COMBO_PROFILE: ${{ github.event_name == 'workflow_dispatch' && inputs.combo_profile && matrix.browser == 'webkit' && '1' || '' }}
           MEMO_NEXUS_E2E_DUAL_AXIS_PROFILE: ${{ github.event_name == 'workflow_dispatch' && inputs.dual_axis_profile && matrix.browser == 'webkit' && '1' || '' }}
-          MEMO_NEXUS_E2E_TOOLTIP_PROFILE: ${{ github.event_name == 'workflow_dispatch' && inputs.tooltip_profile && matrix.browser == 'webkit' && '1' || '' }}
+          MEMO_NEXUS_E2E_TOOLTIP_PROFILE: ${{ github.event_name == 'workflow_dispatch' && (inputs.tooltip_profile || inputs.card_click_internals) && matrix.browser == 'webkit' && '1' || '' }}
           MEMO_NEXUS_E2E_CARD_CLICK_TRACE: ${{ github.event_name == 'workflow_dispatch' && inputs.card_click_trace && inputs.dual_axis_profile && inputs.tooltip_profile && matrix.browser == 'webkit' && '1' || '' }}
           MEMO_NEXUS_E2E_TOOLTIP_DIAGNOSTIC: ${{ github.event_name == 'workflow_dispatch' && inputs.tooltip_diagnostic && matrix.browser == 'webkit' && '1' || '' }}
+          MEMO_NEXUS_E2E_CARD_CLICK_INTERNALS: ${{ github.event_name == 'workflow_dispatch' && inputs.card_click_internals && matrix.browser == 'webkit' && '1' || '' }}
+          MEMO_NEXUS_E2E_CARD_CLICK_INTERNALS_REQUESTED: ${{ github.event_name == 'workflow_dispatch' && inputs.card_click_internals && '1' || '' }}
         shell: bash
         run: |
-          if [[ "$MEMO_NEXUS_E2E_COMBO_PROFILE" == "1" ]]; then
+          if [[ "$MEMO_NEXUS_E2E_CARD_CLICK_INTERNALS_REQUESTED" == "1" ]]; then
+            npm run test:e2e:chart -- --feature chart-tooltips
+          elif [[ "$MEMO_NEXUS_E2E_COMBO_PROFILE" == "1" ]]; then
             npm run test:e2e:chart -- --feature chart-combo
           else
             npm run test:e2e:chart:all

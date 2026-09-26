@@ -5,7 +5,7 @@ const { performance } = require("node:perf_hooks");
 const { startCardOpenObservation, finishCardOpenObservation, summarizeCardOpenObservations } = require("./chart-card-open-observation.e2e.js");
 const { traceCardOpen } = require("./chart-card-click-trace.e2e.js");
 const { startCardFrameObservation, finishCardFrameObservation } = require("./chart-card-frame-observation.e2e.js");
-const { diagnoseTooltipCardClick } = require("./chart-tooltip-click-diagnostic.e2e.js");
+const { diagnoseTooltipCardClick, createTooltipClickInternals } = require("./chart-tooltip-click-diagnostic.e2e.js");
 
 const profileTooltip = process.env.MEMO_NEXUS_E2E_BROWSER === "webkit"
   && process.env.MEMO_NEXUS_E2E_TOOLTIP_PROFILE === "1";
@@ -85,7 +85,7 @@ async function loadChart(page, model, timing) {
   recordTime(timing, "renderWait", started);
 }
 
-async function openPreview(page, width, timing, traceCondition) {
+async function openPreview(page, width, timing, traceCondition, clickInternals = null) {
   let started = performance.now();
   await page.setViewportSize({ width, height: 820 });
   recordTime(timing, "resize", started);
@@ -125,7 +125,8 @@ async function openPreview(page, width, timing, traceCondition) {
         let clickEndNodeMs = null;
         try {
           if (frameObservation) clickStartNodeMs = performance.now();
-          await diagnoseTooltipCardClick(page, traceCondition, () => page.locator("#cardPaneBtn").click());
+          if (clickInternals) await clickInternals.measure(() => page.locator("#cardPaneBtn").click());
+          else await diagnoseTooltipCardClick(page, traceCondition, () => page.locator("#cardPaneBtn").click());
           if (frameObservation) clickEndNodeMs = performance.now();
           if (frameObservation) clickMs = performance.now() - stageStarted;
           recordMobileStage(timing, "cardClick", stageStarted);
@@ -277,6 +278,8 @@ async function verifyChartTooltips(page, step = () => {}) {
   step("120 theme/width positions and long labels");
   let positions = 0;
   const profileStarted = performance.now();
+  const clickInternals = createTooltipClickInternals();
+  if (clickInternals) await clickInternals.start(page);
   const profile = profileTooltip ? { setup: [], themes: [], samples: [], focusScrollChanges: [], alreadyFocused: [], mobileSamples: [] } : null;
   for (const config of configs) {
     const configIndex = positions / 10;
@@ -298,7 +301,7 @@ async function verifyChartTooltips(page, step = () => {}) {
       for (const width of [320, 375, 390, 430, 1100]) {
         const conditionStarted = performance.now();
         const preview = {};
-        await openPreview(page, width, profile ? preview : null, { configIndex, theme, width });
+        await openPreview(page, width, profile ? preview : null, { configIndex, theme, width }, clickInternals);
         const previewDone = performance.now();
         if (profile && width < 1100) {
           preview.mobileStages.previewResidual = previewDone - conditionStarted
@@ -369,6 +372,7 @@ async function verifyChartTooltips(page, step = () => {}) {
       }
     }
   }
+  if (clickInternals) await clickInternals.finish(page);
   if (profile) {
     const observed = await page.evaluate(() => {
       const samples = window.__tooltipCardWaitProfile || [];
