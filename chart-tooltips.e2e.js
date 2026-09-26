@@ -125,7 +125,7 @@ async function openPreview(page, width, timing, traceCondition, clickInternals =
         try {
           if (frameObservation) clickStartNodeMs = performance.now();
           await traceCardOpen(page, "tooltip", traceCondition || {}, async () => {
-            if (clickInternals) await clickInternals.measure(() => page.locator("#cardPaneBtn").click());
+            if (clickInternals) await clickInternals.measure(() => page.locator("#cardPaneBtn").click(), traceCondition);
             else await diagnoseTooltipCardClick(page, traceCondition, () => page.locator("#cardPaneBtn").click());
           });
           if (frameObservation) clickEndNodeMs = performance.now();
