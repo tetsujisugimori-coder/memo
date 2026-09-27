@@ -1,5 +1,7 @@
 "use strict";
 
+if (process.env.MEMO_NEXUS_E2E_ACTIONABILITY_PHASES === "1") require("./chart-actionability-phase-preload.e2e.js");
+
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const http = require("node:http");
