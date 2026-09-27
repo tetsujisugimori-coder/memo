@@ -287,4 +287,232 @@ function createTooltipClickInternals() {
   };
 }
 
-module.exports = { diagnoseTooltipCardClick, createTooltipClickInternals };
+function installTooltipClickBoundaryState() {
+  const button = document.getElementById("cardPaneBtn");
+  const previewCard = document.getElementById("previewCard");
+  if (!button || !previewCard) throw new Error("Card pane diagnostic targets are missing");
+  if (window.__tooltipClickBoundaries) throw new Error("Previous click boundary diagnostic was not collected");
+  const state = { button, previewCard, active: -1, trials: [], rafByTrial: new Map(), pendingRafs: new Set() };
+  const trial = () => state.trials[state.active];
+  const record = (name) => () => {
+    const current = trial();
+    if (!current) return;
+    const atMs = performance.now();
+    current.order.push(name);
+    if (current[name] === null) current[name] = atMs;
+    if (name !== "syncEnd") return;
+    const index = state.active;
+    const pending = { id: null, done: false, resolve: null, promise: null };
+    pending.promise = new Promise((resolve) => { pending.resolve = resolve; });
+    pending.finish = () => {
+      if (pending.done) return;
+      pending.done = true;
+      state.pendingRafs.delete(pending);
+      pending.resolve();
+    };
+    pending.id = requestAnimationFrame(() => {
+      if (state.active === index) {
+        current.raf = performance.now();
+        current.order.push("raf");
+      }
+      pending.finish();
+    });
+    state.pendingRafs.add(pending);
+    const scheduled = state.rafByTrial.get(index) || [];
+    scheduled.push(pending);
+    state.rafByTrial.set(index, scheduled);
+  };
+  state.onPointerdown = record("pointerdown");
+  state.onClick = record("click");
+  state.onSyncEnd = record("syncEnd");
+  state.onFocusin = (event) => {
+    const current = trial();
+    if (!current) return;
+    const target = event.target;
+    const insidePreviewCard = previewCard.contains(target);
+    const atMs = performance.now();
+    current.focusEvents.push({ atMs, targetId: target?.id || null, targetTag: target?.tagName || null,
+      insidePreviewCard, kind: insidePreviewCard ? "previewCard" : target === button ? "cardPaneBtn" : "other" });
+    current.order.push(insidePreviewCard ? "previewFocusin" : "focusin");
+    if (insidePreviewCard && current.previewFocusin === null) current.previewFocusin = atMs;
+  };
+  button.addEventListener("pointerdown", state.onPointerdown, true);
+  document.addEventListener("focusin", state.onFocusin, true);
+  button.addEventListener("click", state.onClick, true);
+  // Same-target bubble listener runs after the app's existing target listeners.
+  button.addEventListener("click", state.onSyncEnd);
+  state.begin = () => {
+    if (state.active !== -1) throw new Error("Previous click boundary trial is still active");
+    state.active = state.trials.length;
+    state.trials.push({ pointerdown: null, previewFocusin: null, click: null, syncEnd: null,
+      raf: null, order: [], focusEvents: [] });
+  };
+  state.end = () => { state.active = -1; };
+  state.waitForRaf = async (timeoutMs = 1000) => {
+    const pending = state.rafByTrial.get(state.active) || [];
+    if (!pending.length) return "not reached";
+    let timer;
+    const status = await Promise.race([
+      Promise.all(pending.map((item) => item.promise)).then(() => "observed"),
+      new Promise((resolve) => { timer = setTimeout(() => resolve(`timed out after ${timeoutMs}ms`), timeoutMs); })
+    ]);
+    clearTimeout(timer);
+    if (status !== "observed") {
+      for (const item of pending) {
+        if (!item.done) cancelAnimationFrame(item.id);
+        item.finish();
+      }
+    }
+    return status;
+  };
+  state.cleanup = () => {
+    state.end();
+    for (const item of state.pendingRafs) {
+      cancelAnimationFrame(item.id);
+      item.finish();
+    }
+    button.removeEventListener("pointerdown", state.onPointerdown, true);
+    document.removeEventListener("focusin", state.onFocusin, true);
+    button.removeEventListener("click", state.onClick, true);
+    button.removeEventListener("click", state.onSyncEnd);
+    delete window.__tooltipClickBoundaries;
+    return state.trials;
+  };
+  window.__tooltipClickBoundaries = state;
+  return performance.now();
+}
+
+function collectTooltipClickBoundaryState() {
+  return window.__tooltipClickBoundaries?.cleanup() || [];
+}
+
+const clickBoundaryTrials = 10;
+
+function summarizeClickBoundaries(trials) {
+  const intervals = {
+    t0ToPointerdown: { value: (trial) => trial.t0ToPointerdownMs },
+    pointerdownToPreviewFocus: { value: (trial) => trial.pointerdownToPreviewFocusMs, from: "pointerdown", to: "previewFocusin" },
+    clickToPreviewFocus: { value: (trial) => trial.clickToPreviewFocusMs, from: "click", to: "previewFocusin" },
+    syncEndToPreviewFocus: { value: (trial) => trial.syncEndToPreviewFocusMs, from: "syncEnd", to: "previewFocusin" },
+    clickToSyncEnd: { value: (trial) => trial.clickToSyncEndMs, from: "click", to: "syncEnd" },
+    syncEndToRaf: { value: (trial) => trial.syncEndToRafMs, from: "syncEnd", to: "raf" }
+  };
+  const round = (value) => Math.round(value * 1000) / 1000;
+  const summary = Object.fromEntries(Object.entries(intervals).map(([name, interval]) => {
+    const samples = trials.map((trial) => {
+      const value = interval.value(trial);
+      const fromIndex = interval.from && Array.isArray(trial.events) ? trial.events.indexOf(interval.from) : -1;
+      const toIndex = interval.to && Array.isArray(trial.events) ? trial.events.indexOf(interval.to) : -1;
+      const ordered = !interval.from || !Array.isArray(trial.events)
+        || (fromIndex >= 0 && toIndex >= 0 && fromIndex < toIndex);
+      return { value, ordered };
+    });
+    const values = samples.filter(({ value, ordered }) => Number.isFinite(value) && ordered)
+      .map(({ value }) => value).sort((a, b) => a - b);
+    const outOfOrderCount = samples.filter(({ value, ordered }) => Number.isFinite(value) && !ordered).length;
+    if (!values.length) return [name, { count: 0, outOfOrderCount, min: null, median: null, mean: null, max: null }];
+    const middle = Math.floor(values.length / 2);
+    const median = values.length % 2 ? values[middle] : (values[middle - 1] + values[middle]) / 2;
+    return [name, { count: values.length, outOfOrderCount, min: round(values[0]), median: round(median),
+      mean: round(values.reduce((sum, value) => sum + value, 0) / values.length), max: round(values.at(-1)) }];
+  }));
+  return summary;
+}
+
+function createTooltipClickBoundaryDiagnostic() {
+  if (process.env.MEMO_NEXUS_E2E_BROWSER !== "webkit"
+    || process.env.MEMO_NEXUS_E2E_TOOLTIP_CLICK_BOUNDARIES !== "1") return null;
+
+  let page;
+  let nodeToPageOffsetMs = null;
+  let alignmentErrorBoundMs = null;
+
+  return {
+    async measure(click, condition) {
+      const selected = condition?.configIndex === 10 && condition.theme === "light" && condition.width === 320;
+      if (!selected) return click();
+      page = page || this.page;
+      if (!page) throw new Error("Click boundary diagnostic must be started with a page");
+
+      const setupBefore = performance.now();
+      const pageStart = await page.evaluate(installTooltipClickBoundaryState);
+      const setupAfter = performance.now();
+      nodeToPageOffsetMs = (setupBefore + setupAfter) / 2 - pageStart;
+      alignmentErrorBoundMs = (setupAfter - setupBefore) / 2;
+
+      const nodeStarts = [];
+      const rafWaits = [];
+      let browserTrials;
+      try {
+        for (let index = 0; index < clickBoundaryTrials; index++) {
+          await page.evaluate(() => window.__tooltipClickBoundaries.begin());
+          nodeStarts.push(performance.now());
+          let clickError;
+          try { await click(); }
+          catch (error) { clickError = error; }
+          try {
+            rafWaits.push(await page.evaluate(async () => {
+              const state = window.__tooltipClickBoundaries;
+              try { return await state.waitForRaf(1000); }
+              finally { state.end(); }
+            }));
+          } catch (error) {
+            if (!clickError) clickError = error;
+          }
+          if (clickError) throw clickError;
+          if (index < clickBoundaryTrials - 1) {
+            await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(resolve)));
+            await page.locator("#closeCardPaneBtn").click();
+            // aria-hidden is the existing app state boundary; CSS may keep the panel visible during its normal transition.
+            await page.waitForFunction(() => document.getElementById("previewCard")?.getAttribute("aria-hidden") === "true");
+          }
+        }
+      } finally {
+        browserTrials = await page.evaluate(collectTooltipClickBoundaryState);
+      }
+      const round = (value) => Math.round(value * 1000) / 1000;
+      const trials = browserTrials.map((trial, index) => {
+        const down = trial.pointerdown === null ? null : trial.pointerdown + nodeToPageOffsetMs;
+        return {
+          run: index + 1,
+          events: trial.order,
+          t0ToPointerdownMs: down === null ? null : round(down - nodeStarts[index]),
+          pointerdownToPreviewFocusMs: trial.pointerdown === null || trial.previewFocusin === null ? null : round(trial.previewFocusin - trial.pointerdown),
+          clickToPreviewFocusMs: trial.click === null || trial.previewFocusin === null ? null : round(trial.previewFocusin - trial.click),
+          syncEndToPreviewFocusMs: trial.syncEnd === null || trial.previewFocusin === null ? null : round(trial.previewFocusin - trial.syncEnd),
+          clickToSyncEndMs: trial.click === null || trial.syncEnd === null ? null : round(trial.syncEnd - trial.click),
+          syncEndToRafMs: trial.syncEnd === null || trial.raf === null ? null : round(trial.raf - trial.syncEnd),
+          focus: trial.previewFocusin === null ? "not observed" : "observed",
+          focusTarget: trial.focusEvents.find((event) => event.insidePreviewCard) || null,
+          focusEvents: trial.focusEvents,
+          rafWait: rafWaits[index] || "not reached"
+        };
+      });
+      const summary = summarizeClickBoundaries(trials);
+      const categoryByInterval = {
+        t0ToPointerdown: "Playwright click前処理・actionability・stable判定・scroll・hit testingを調査する候補",
+        pointerdownToPreviewFocus: "カードopen時のpreview focusとpointerdownの関係を調査する候補",
+        clickToPreviewFocus: "カードopen時のpreview focusとclickの関係を調査する候補",
+        syncEndToPreviewFocus: "カードopen時のpreview focusと同期click境界の関係を調査する候補",
+        clickToSyncEnd: "アプリの同期click handlerを再調査する候補",
+        syncEndToRaf: "rendering・main thread・frame境界を調査する候補"
+      };
+      const dominant = Object.entries(summary).filter(([, stats]) => stats.count > 0)
+        .sort((a, b) => b[1].median - a[1].median)[0];
+      console.log(`[TOOLTIP_CLICK_BOUNDARIES] ${JSON.stringify({ condition, trials, summary,
+        dominantByMedian: dominant ? { interval: dominant[0], medianMs: dominant[1].median,
+          nextInvestigationCandidate: categoryByInterval[dominant[0]] } : null,
+        clock: "Node performance.now aligned to browser performance.now by setup-call midpoint; browser intervals use performance.now",
+        clockAlignmentErrorBoundMs: round(alignmentErrorBoundMs), trialCount: clickBoundaryTrials,
+        rafWait: rafWaits.every((value) => value === "observed") ? "observed" : "incomplete",
+        focusObservedCount: trials.filter((trial) => trial.focus === "observed").length,
+        focusNotObservedCount: trials.filter((trial) => trial.focus !== "observed").length,
+        syncEndDefinition: "same-target bubble listener registered after app target listeners; approximate synchronous handler boundary" })}`);
+      return undefined;
+    },
+    setPage(value) { this.page = value; }
+  };
+}
+
+module.exports = { diagnoseTooltipCardClick, createTooltipClickInternals, summarizeClickBoundaries,
+  createTooltipClickBoundaryDiagnostic, installTooltipClickBoundaryState, collectTooltipClickBoundaryState };
