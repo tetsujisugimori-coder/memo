@@ -9,6 +9,11 @@ const vm = require("node:vm");
 
 const bundlePath = path.join(path.dirname(require.resolve("playwright-core")), "lib", "coreBundle.js");
 const originalLoader = Module._extensions[".js"];
+const instrumentationStatus = { state: "pending", reason: null };
+
+function getInstrumentationStatus() {
+  return { ...instrumentationStatus };
+}
 
 function replaceOnce(source, before, after) {
   if (source.split(before).length !== 2) throw new Error(`Playwright diagnostic anchor changed: ${before.slice(0, 60)}`);
@@ -65,10 +70,13 @@ Module._extensions[".js"] = function loadWithPhaseDiagnostic(module, filename) {
     instrumented = instrumentCoreBundle(fs.readFileSync(filename, "utf8"));
     new vm.Script(instrumented, { filename });
   } catch (error) {
+    instrumentationStatus.state = "unavailable";
+    instrumentationStatus.reason = String(error);
     process.stderr.write(`[ACTIONABILITY_PHASES] instrumentation unavailable: ${error}\n`);
     return originalLoader(module, filename);
   }
   module._compile(instrumented, filename);
+  instrumentationStatus.state = "active";
 };
 
-module.exports = { instrumentCoreBundle };
+module.exports = { instrumentCoreBundle, getInstrumentationStatus };

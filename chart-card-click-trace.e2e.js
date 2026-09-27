@@ -7,7 +7,26 @@ const path = require("node:path");
 const traceDir = path.join(__dirname, "e2e-artifacts", "chart-card-click-traces");
 let phaseTraceDir;
 const startedContexts = new WeakSet();
+const phaseTraceContexts = new Set();
 const phaseCalls = new WeakMap();
+
+function cleanupPhaseTraceDir() {
+  const directory = phaseTraceDir;
+  phaseTraceDir = undefined;
+  if (!directory) return;
+  const parent = path.resolve(os.tmpdir());
+  const target = path.resolve(directory);
+  if (path.dirname(target).toLowerCase() !== parent.toLowerCase()
+    || !path.basename(target).startsWith(`memo-actionability-phases-${process.pid}-`)) {
+    console.error(`[ACTIONABILITY_PHASES] ${JSON.stringify({ diagnosticError: "Unexpected phase trace directory", stage: "cleanup" })}`);
+    return;
+  }
+  try {
+    fs.rmSync(target, { recursive: true, force: true });
+  } catch (error) {
+    console.error(`[ACTIONABILITY_PHASES] ${JSON.stringify({ diagnosticError: String(error), stage: "cleanup" })}`);
+  }
+}
 
 function selectedTrace(feature, condition) {
   if (feature === "tooltip") {
@@ -42,10 +61,11 @@ async function traceCardOpen(page, feature, condition, operation) {
       await context.tracing.start({ snapshots: !phaseDiagnostic });
       startedContexts.add(context);
     }
+    if (phaseDiagnostic) phaseTraceContexts.add(context);
     const outputDir = phaseDiagnostic
-      ? (phaseTraceDir ||= path.join(os.tmpdir(), `memo-actionability-phases-${process.pid}-${Date.now()}`))
+      ? (phaseTraceDir ||= fs.mkdtempSync(path.join(os.tmpdir(), `memo-actionability-phases-${process.pid}-${Date.now()}-`)))
       : traceDir;
-    fs.mkdirSync(outputDir, { recursive: true });
+    if (!phaseDiagnostic) fs.mkdirSync(outputDir, { recursive: true });
     tracePath = path.join(outputDir, `${name}.zip`);
     await context.tracing.startChunk({
       title: `${feature} T0 locator.click start to T1 DOM click event ${JSON.stringify(condition)}`
@@ -62,12 +82,16 @@ async function traceCardOpen(page, feature, condition, operation) {
       await context.tracing.stopChunk({ path: tracePath });
       console.log(`[CARD_CLICK_TRACE] ${JSON.stringify({ feature, condition, file: path.relative(__dirname, tracePath), bytes: fs.statSync(tracePath).size })}`);
       if (phaseDiagnostic) {
-        const { readTrace, analyzeTrace } = require("./chart-actionability-phase-diagnostic.e2e.js");
+        const { getInstrumentationStatus } = require("./chart-actionability-phase-preload.e2e.js");
+        const { readTrace, analyzeTrace, classifyMeasurement } = require("./chart-actionability-phase-diagnostic.e2e.js");
         const calls = analyzeTrace(await readTrace(tracePath));
-        const recorded = phaseCalls.get(context) || [];
-        recorded.push(...calls);
-        phaseCalls.set(context, recorded);
-        console.log(`[ACTIONABILITY_PHASES] ${JSON.stringify({ feature, condition, calls })}`);
+        const measurement = classifyMeasurement(getInstrumentationStatus(), calls);
+        if (measurement.measurementStatus === "measured") {
+          const recorded = phaseCalls.get(context) || [];
+          recorded.push(...calls);
+          phaseCalls.set(context, recorded);
+        }
+        console.log(`[ACTIONABILITY_PHASES] ${JSON.stringify({ feature, condition, ...measurement })}`);
       }
     } catch (error) {
       if (!phaseDiagnostic) throw error;
@@ -95,6 +119,8 @@ async function stopCardClickTracing(page) {
       phaseCalls.delete(context);
     }
     startedContexts.delete(context);
+    phaseTraceContexts.delete(context);
+    if (phaseTraceContexts.size === 0) cleanupPhaseTraceDir();
   }
 }
 

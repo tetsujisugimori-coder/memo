@@ -1,6 +1,6 @@
 "use strict";
 
-require("./chart-actionability-phase-preload.e2e.js");
+const { getInstrumentationStatus } = require("./chart-actionability-phase-preload.e2e.js");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const os = require("node:os");
@@ -14,6 +14,8 @@ async function main() {
   const tracePath = path.join(directory, "smoke.zip");
   const retryTracePath = path.join(directory, "retry.zip");
   try {
+    const instrumentation = getInstrumentationStatus();
+    assert.equal(instrumentation.state, "active", `Playwright instrumentation unavailable: ${instrumentation.reason || instrumentation.state}`);
     const page = await browser.newPage();
     await page.setContent('<button id="target">Open</button><script>document.querySelector("button").onclick=() => document.body.dataset.clicked="yes"</script>');
     await page.context().tracing.start({ snapshots: false });

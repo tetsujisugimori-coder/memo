@@ -128,4 +128,15 @@ function summarizeCalls(calls) {
     dominantByTotal: dominant ? dominant[0] : null };
 }
 
-module.exports = { readTrace, analyzeTrace, summarize, summarizeCalls };
+function classifyMeasurement(instrumentation, calls) {
+  const missingReadyPhases = calls.some((call) => call.status === "ready"
+    && Object.values(call.phases).every((phase) => phase.count === 0));
+  if (instrumentation.state !== "active" || calls.length === 0 || missingReadyPhases) {
+    return { measurementStatus: "unavailable",
+      reason: instrumentation.reason || (calls.length === 0 ? "No click calls in trace"
+        : missingReadyPhases ? "No phase samples for a ready click" : "Playwright instrumentation is not active") };
+  }
+  return { measurementStatus: "measured", calls };
+}
+
+module.exports = { readTrace, analyzeTrace, summarize, summarizeCalls, classifyMeasurement };
