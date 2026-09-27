@@ -59,6 +59,8 @@ test("Stable frame summary separates a scheduling gap from geometry changes", ()
     { kind: "frame", atMs: 1100, frameTimestampMs: 1099, button: box(1) }
   ], mutations: [], resizes: [{ initial: true }, { initial: false }], animations: [] });
   assert.equal(result.summary.frameDeltaMaxMs, 68);
+  assert.equal(result.summary.frameDeltaTotalMs, 99);
+  assert.equal(result.frames[0].deltaMs, 15);
   assert.equal(result.summary.longFrameGapCount, 1);
   assert.equal(result.summary.longFrameGapTotalMs, 68);
   assert.equal(result.summary.geometryChangeCount, 1);
@@ -79,4 +81,11 @@ test("Stable frame summary tolerates missing frames, detached target and animati
   ], mutations: [], resizes: [], animations: [] });
   assert.equal(detached.summary.detachedFrameCount, 1);
   assert.equal(detached.frames[0].geometryChanged, null);
+  const delayedFirstFrame = summarizeStableFrames({ startMs: 0, endMs: 420, samples: [
+    { kind: "start", button: { x: 0, y: 0, width: 10, height: 10 } },
+    { kind: "frame", atMs: 408, frameTimestampMs: 408,
+      button: { x: 0, y: 0, width: 10, height: 10 } }
+  ], mutations: [], resizes: [] });
+  assert.equal(delayedFirstFrame.summary.frameDeltaMaxMs, 408);
+  assert.equal(delayedFirstFrame.summary.longFrameGapTotalMs, 408);
 });

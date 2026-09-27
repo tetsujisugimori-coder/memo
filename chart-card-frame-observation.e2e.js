@@ -144,7 +144,9 @@ function summarizeStableFrames(observation) {
       firstChangeMs ??= roundMs(sample.atMs - start);
       lastChangeMs = roundMs(sample.atMs - start);
     }
-    const interval = index ? sample.frameTimestampMs - frames[index - 1].frameTimestampMs : null;
+    // The first interval measures start to first rAF, which can dominate a CI outlier.
+    const interval = index ? sample.frameTimestampMs - frames[index - 1].frameTimestampMs
+      : sample.frameTimestampMs - start;
     if (Number.isFinite(interval)) deltas.push(interval);
     previous = current;
     return { index, timestampMs: roundMs(sample.frameTimestampMs - start),
