@@ -260,15 +260,31 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
-      - name: Upload Stable frame diagnostics
+      - name: Validate Stable frame diagnostics
+        id: validate_stable_artifacts
         if: always() && github.event_name == 'workflow_dispatch' && inputs.stable_frames && matrix.browser == 'webkit'
+        shell: bash
+        run: |
+          missing=0
+          if ! compgen -G 'e2e-artifacts/chart-card-frame-observation/*/*.json' > /dev/null; then
+            echo '::error::Missing Stable frame JSON artifact'
+            missing=1
+          fi
+          if ! compgen -G 'e2e-artifacts/chart-card-frame-observation/*/traces/*.zip' > /dev/null; then
+            echo '::error::Missing Stable frame Trace zip artifact'
+            missing=1
+          fi
+          exit "$missing"
+
+      - name: Upload Stable frame diagnostics
+        if: always() && github.event_name == 'workflow_dispatch' && inputs.stable_frames && matrix.browser == 'webkit' && steps.validate_stable_artifacts.outcome == 'success'
         uses: actions/upload-artifact@v6
         with:
           name: tooltip-stable-frames-webkit
           path: |
             e2e-artifacts/chart-card-frame-observation/*/*.json
             e2e-artifacts/chart-card-frame-observation/*/traces/*.zip
-          if-no-files-found: warn
+          if-no-files-found: error
           retention-days: 7
 
       - name: Upload selected card click traces
