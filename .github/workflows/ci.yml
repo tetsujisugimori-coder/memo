@@ -266,8 +266,8 @@ jobs:
         with:
           name: tooltip-stable-frames-webkit
           path: |
-            e2e-artifacts/chart-card-frame-observation/*.json
-            e2e-artifacts/chart-card-click-traces/*.zip
+            e2e-artifacts/chart-card-frame-observation/*/*.json
+            e2e-artifacts/chart-card-frame-observation/*/traces/*.zip
           if-no-files-found: warn
           retention-days: 7
 
