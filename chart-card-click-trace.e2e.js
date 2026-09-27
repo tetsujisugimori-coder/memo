@@ -9,6 +9,7 @@ let phaseTraceDir;
 const startedContexts = new WeakSet();
 const phaseTraceContexts = new Set();
 const phaseCalls = new WeakMap();
+const latestPhases = new WeakMap();
 
 function cleanupPhaseTraceDir() {
   const directory = phaseTraceDir;
@@ -48,24 +49,25 @@ async function traceCardOpen(page, feature, condition, operation) {
   const profile = feature === "tooltip" ? "MEMO_NEXUS_E2E_TOOLTIP_PROFILE" : "MEMO_NEXUS_E2E_DUAL_AXIS_PROFILE";
   const name = selectedTrace(feature, condition);
   const phaseDiagnostic = process.env.MEMO_NEXUS_E2E_ACTIONABILITY_PHASES === "1";
+  const stableFrames = feature === "tooltip" && process.env.MEMO_NEXUS_E2E_STABLE_FRAMES === "1";
   const focusedDiagnostic = feature === "tooltip"
     && process.env.MEMO_NEXUS_E2E_TOOLTIP_T0_T1_TRACE === "1";
   if (process.env.MEMO_NEXUS_E2E_BROWSER !== "webkit"
-    || (!phaseDiagnostic && !focusedDiagnostic && (process.env.MEMO_NEXUS_E2E_CARD_CLICK_TRACE !== "1"
+    || (!phaseDiagnostic && !focusedDiagnostic && !stableFrames && (process.env.MEMO_NEXUS_E2E_CARD_CLICK_TRACE !== "1"
       || process.env[profile] !== "1")) || !name) return operation();
 
   const context = page.context();
   let tracePath;
   try {
     if (!startedContexts.has(context)) {
-      await context.tracing.start({ snapshots: !phaseDiagnostic });
+      await context.tracing.start({ snapshots: !phaseDiagnostic || stableFrames, screenshots: stableFrames });
       startedContexts.add(context);
     }
     if (phaseDiagnostic) phaseTraceContexts.add(context);
-    const outputDir = phaseDiagnostic
+    const outputDir = phaseDiagnostic && !stableFrames
       ? (phaseTraceDir ||= fs.mkdtempSync(path.join(os.tmpdir(), `memo-actionability-phases-${process.pid}-${Date.now()}-`)))
       : traceDir;
-    if (!phaseDiagnostic) fs.mkdirSync(outputDir, { recursive: true });
+    if (!phaseDiagnostic || stableFrames) fs.mkdirSync(outputDir, { recursive: true });
     tracePath = path.join(outputDir, `${name}.zip`);
     await context.tracing.startChunk({
       title: `${feature} T0 locator.click start to T1 DOM click event ${JSON.stringify(condition)}`
@@ -86,6 +88,7 @@ async function traceCardOpen(page, feature, condition, operation) {
         const { readTrace, analyzeTrace, classifyMeasurement } = require("./chart-actionability-phase-diagnostic.e2e.js");
         const calls = analyzeTrace(await readTrace(tracePath));
         const measurement = classifyMeasurement(getInstrumentationStatus(), calls);
+        latestPhases.set(page, { condition, ...measurement });
         if (measurement.measurementStatus === "measured") {
           const recorded = phaseCalls.get(context) || [];
           recorded.push(...calls);
@@ -98,6 +101,13 @@ async function traceCardOpen(page, feature, condition, operation) {
       console.error(`[ACTIONABILITY_PHASES] ${JSON.stringify({ feature, condition, diagnosticError: String(error), stage: "finish" })}`);
     }
   }
+}
+
+function getCardClickPhase(page, condition) {
+  const phase = latestPhases.get(page);
+  if (!phase || JSON.stringify(phase.condition) !== JSON.stringify(condition)) return null;
+  latestPhases.delete(page);
+  return phase;
 }
 
 async function stopCardClickTracing(page) {
@@ -124,4 +134,4 @@ async function stopCardClickTracing(page) {
   }
 }
 
-module.exports = { traceCardOpen, stopCardClickTracing };
+module.exports = { traceCardOpen, stopCardClickTracing, getCardClickPhase };

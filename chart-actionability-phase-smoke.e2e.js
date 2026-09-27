@@ -5,25 +5,46 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
+const { performance } = require("node:perf_hooks");
 const { webkit } = require("playwright");
 const { readTrace, analyzeTrace } = require("./chart-actionability-phase-diagnostic.e2e.js");
+const { startCardFrameObservation, finishCardFrameObservation } = require("./chart-card-frame-observation.e2e.js");
+
+if (process.argv.includes("--stable-frames")) process.env.MEMO_NEXUS_E2E_STABLE_FRAMES = "1";
 
 async function main() {
   const browser = await webkit.launch({ headless: true });
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), "memo-actionability-phases-"));
-  const tracePath = path.join(directory, "smoke.zip");
+  const frameDiagnostic = process.env.MEMO_NEXUS_E2E_STABLE_FRAMES === "1";
+  const smokeTraceDir = path.join(__dirname, "e2e-artifacts", "chart-card-click-traces");
+  if (frameDiagnostic) fs.mkdirSync(smokeTraceDir, { recursive: true });
+  const tracePath = path.join(frameDiagnostic ? smokeTraceDir : directory, "smoke.zip");
   const retryTracePath = path.join(directory, "retry.zip");
   try {
     const instrumentation = getInstrumentationStatus();
     assert.equal(instrumentation.state, "active", `Playwright instrumentation unavailable: ${instrumentation.reason || instrumentation.state}`);
     const page = await browser.newPage();
     await page.setContent('<button id="target">Open</button><script>document.querySelector("button").onclick=() => document.body.dataset.clicked="yes"</script>');
-    await page.context().tracing.start({ snapshots: false });
+    await page.context().tracing.start({ snapshots: frameDiagnostic, screenshots: frameDiagnostic });
     await page.context().tracing.startChunk({ title: "actionability phase smoke" });
+    let selected = null;
+    if (frameDiagnostic) {
+      try { selected = await startCardFrameObservation(page, { fixture: "smoke" }, { smoke: true }); }
+      catch (error) { console.error(`[CARD_FRAME_OBSERVATION] ${JSON.stringify({
+        condition: "smoke", diagnosticError: String(error), stage: "start" })}`); }
+    }
+    const clickStartNodeMs = performance.now();
     await page.locator("#target").click();
+    const clickEndNodeMs = performance.now();
     await page.context().tracing.stopChunk({ path: tracePath });
     assert.equal(await page.locator("body").getAttribute("data-clicked"), "yes");
     const calls = analyzeTrace(await readTrace(tracePath));
+    if (selected) {
+      try { await finishCardFrameObservation(page, selected, clickEndNodeMs - clickStartNodeMs,
+        clickStartNodeMs, clickEndNodeMs, { measurementStatus: "measured", calls }); }
+      catch (error) { console.error(`[CARD_FRAME_OBSERVATION] ${JSON.stringify({
+        condition: "smoke", diagnosticError: String(error), stage: "finish" })}`); }
+    }
     assert.equal(calls.length, 1);
     assert.equal(calls[0].status, "ready");
     assert.equal(calls[0].accountingValid, true);

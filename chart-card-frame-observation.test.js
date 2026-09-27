@@ -3,7 +3,8 @@
 const assert = require("node:assert/strict");
 const test = require("node:test");
 const vm = require("node:vm");
-const { startCardFrameObservation, summarizeStates, summarizeFrameGap } = require("./chart-card-frame-observation.e2e.js");
+const { startCardFrameObservation, summarizeStates, summarizeFrameGap,
+  summarizeStableFrames } = require("./chart-card-frame-observation.e2e.js");
 
 test("card frame observation rejects an unexpected direct parent", async () => {
   const previous = [process.env.MEMO_NEXUS_E2E_BROWSER, process.env.MEMO_NEXUS_E2E_TOOLTIP_PROFILE,
@@ -13,8 +14,8 @@ test("card frame observation rejects an unexpected direct parent", async () => {
   process.env.MEMO_NEXUS_E2E_CARD_CLICK_TRACE = "1";
   try {
     for (const parentElement of [null, { matches: () => false }]) {
-      const page = { evaluate: (callback) => vm.runInNewContext(`(${callback.toString()})()`, {
-        document: { getElementById: () => ({ parentElement }) }
+      const page = { evaluate: (callback, input) => vm.runInNewContext(`(${callback.toString()})(input)`, {
+        input, document: { getElementById: () => ({ parentElement }) }
       }) };
       await assert.rejects(startCardFrameObservation(page, { configIndex: 10, theme: "light", width: 320 }),
         /direct parent must be \.layout-primary-actions/);
@@ -47,4 +48,44 @@ test("frame gap uses rAF timestamps and locates a delayed timer in the gap", () 
   assert.equal(result.gapMaxTimerDelayMs, 33);
   assert.equal(result.gapOverlapWithDelayedTimer, true);
   assert.equal(result.gapTimerCallbackCount, 0);
+});
+
+test("Stable frame summary separates a scheduling gap from geometry changes", () => {
+  const box = (x) => ({ x, y: 2, width: 30, height: 10 });
+  const result = summarizeStableFrames({ startMs: 1000, endMs: 1110, samples: [
+    { kind: "start", button: box(0) },
+    { kind: "frame", atMs: 1016, frameTimestampMs: 1015, button: box(1) },
+    { kind: "frame", atMs: 1032, frameTimestampMs: 1031, button: box(1) },
+    { kind: "frame", atMs: 1100, frameTimestampMs: 1099, button: box(1) }
+  ], mutations: [], resizes: [{ initial: true }, { initial: false }], animations: [] });
+  assert.equal(result.summary.frameDeltaMaxMs, 68);
+  assert.equal(result.summary.frameDeltaTotalMs, 99);
+  assert.equal(result.frames[0].deltaMs, 15);
+  assert.equal(result.summary.longFrameGapCount, 1);
+  assert.equal(result.summary.longFrameGapTotalMs, 68);
+  assert.equal(result.summary.geometryChangeCount, 1);
+  assert.equal(result.summary.firstGeometryChangeMs, 16);
+  assert.equal(result.summary.lastGeometryChangeMs, 16);
+  assert.equal(result.summary.resizeCount, 1);
+  assert.equal(result.summary.resizeInitialCount, 1);
+  assert.equal(result.frames[2].geometryChanged, false);
+  assert.equal(result.frames[2].deltaMs, 68);
+});
+
+test("Stable frame summary tolerates missing frames, detached target and animation data", () => {
+  const empty = summarizeStableFrames({ startMs: 0, endMs: 20, samples: [],
+    mutations: [], resizes: [] });
+  assert.equal(empty.summary.frameDeltaMedianMs, null);
+  const detached = summarizeStableFrames({ startMs: 0, endMs: 20, samples: [
+    { kind: "frame", atMs: 16, frameTimestampMs: 16, button: null }
+  ], mutations: [], resizes: [], animations: [] });
+  assert.equal(detached.summary.detachedFrameCount, 1);
+  assert.equal(detached.frames[0].geometryChanged, null);
+  const delayedFirstFrame = summarizeStableFrames({ startMs: 0, endMs: 420, samples: [
+    { kind: "start", button: { x: 0, y: 0, width: 10, height: 10 } },
+    { kind: "frame", atMs: 408, frameTimestampMs: 408,
+      button: { x: 0, y: 0, width: 10, height: 10 } }
+  ], mutations: [], resizes: [] });
+  assert.equal(delayedFirstFrame.summary.frameDeltaMaxMs, 408);
+  assert.equal(delayedFirstFrame.summary.longFrameGapTotalMs, 408);
 });

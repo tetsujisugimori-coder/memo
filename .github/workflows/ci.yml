@@ -45,6 +45,10 @@ on:
         description: Save three tooltip card locator.click traces on WebKit
         type: boolean
         default: false
+      stable_frames:
+        description: Capture selected tooltip Stable phases, frame geometry and traces on WebKit
+        type: boolean
+        default: false
       webkit_inspector_timeline:
         description: Probe WebKit Inspector Timeline access on Ubuntu
         type: boolean
@@ -214,6 +218,8 @@ jobs:
 
       - name: Smoke actionability phase diagnostics
         if: matrix.browser == 'webkit'
+        env:
+          MEMO_NEXUS_E2E_STABLE_FRAMES: ${{ github.event_name == 'workflow_dispatch' && inputs.stable_frames && '1' || '' }}
         run: node chart-actionability-phase-smoke.e2e.js
 
       - name: Run chart E2E with feature and total durations
@@ -232,9 +238,12 @@ jobs:
           MEMO_NEXUS_E2E_TOOLTIP_CLICK_BOUNDARIES_REQUESTED: ${{ github.event_name == 'workflow_dispatch' && inputs.tooltip_click_boundaries && '1' || '' }}
           MEMO_NEXUS_E2E_TOOLTIP_T0_T1_TRACE: ${{ github.event_name == 'workflow_dispatch' && inputs.tooltip_t0_t1_trace && matrix.browser == 'webkit' && '1' || '' }}
           MEMO_NEXUS_E2E_TOOLTIP_T0_T1_TRACE_REQUESTED: ${{ github.event_name == 'workflow_dispatch' && inputs.tooltip_t0_t1_trace && '1' || '' }}
+          MEMO_NEXUS_E2E_STABLE_FRAMES: ${{ github.event_name == 'workflow_dispatch' && inputs.stable_frames && matrix.browser == 'webkit' && '1' || '' }}
+          MEMO_NEXUS_E2E_ACTIONABILITY_PHASES: ${{ github.event_name == 'workflow_dispatch' && inputs.stable_frames && matrix.browser == 'webkit' && '1' || '' }}
+          MEMO_NEXUS_E2E_STABLE_FRAMES_REQUESTED: ${{ github.event_name == 'workflow_dispatch' && inputs.stable_frames && '1' || '' }}
         shell: bash
         run: |
-          if [[ "$MEMO_NEXUS_E2E_CARD_CLICK_INTERNALS_REQUESTED" == "1" || "$MEMO_NEXUS_E2E_TOOLTIP_HANDLER_BOUNDARY_REQUESTED" == "1" || "$MEMO_NEXUS_E2E_TOOLTIP_CLICK_BOUNDARIES_REQUESTED" == "1" || "$MEMO_NEXUS_E2E_TOOLTIP_T0_T1_TRACE_REQUESTED" == "1" ]]; then
+          if [[ "$MEMO_NEXUS_E2E_CARD_CLICK_INTERNALS_REQUESTED" == "1" || "$MEMO_NEXUS_E2E_TOOLTIP_HANDLER_BOUNDARY_REQUESTED" == "1" || "$MEMO_NEXUS_E2E_TOOLTIP_CLICK_BOUNDARIES_REQUESTED" == "1" || "$MEMO_NEXUS_E2E_TOOLTIP_T0_T1_TRACE_REQUESTED" == "1" || "$MEMO_NEXUS_E2E_STABLE_FRAMES_REQUESTED" == "1" ]]; then
             npm run test:e2e:chart -- --feature chart-tooltips
           elif [[ "$MEMO_NEXUS_E2E_COMBO_PROFILE" == "1" ]]; then
             npm run test:e2e:chart -- --feature chart-combo
@@ -249,6 +258,17 @@ jobs:
           name: tooltip-t0-t1-traces-webkit
           path: e2e-artifacts/chart-card-click-traces/tooltip-*.zip
           if-no-files-found: error
+          retention-days: 7
+
+      - name: Upload Stable frame diagnostics
+        if: always() && github.event_name == 'workflow_dispatch' && inputs.stable_frames && matrix.browser == 'webkit'
+        uses: actions/upload-artifact@v6
+        with:
+          name: tooltip-stable-frames-webkit
+          path: |
+            e2e-artifacts/chart-card-frame-observation/*.json
+            e2e-artifacts/chart-card-click-traces/*.zip
+          if-no-files-found: warn
           retention-days: 7
 
       - name: Upload selected card click traces

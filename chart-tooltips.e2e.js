@@ -117,7 +117,13 @@ async function openPreview(page, width, timing, traceCondition, clickInternals =
     if (timing && cardClosed) await startCardOpenObservation(page);
     try {
       if (cardClosed) {
-        const frameObservation = await startCardFrameObservation(page, traceCondition || {});
+        let frameObservation = null;
+        try { frameObservation = await startCardFrameObservation(page, traceCondition || {}); }
+        catch (error) {
+          if (process.env.MEMO_NEXUS_E2E_STABLE_FRAMES !== "1") throw error;
+          console.error(`[CARD_FRAME_OBSERVATION] ${JSON.stringify({ condition: traceCondition,
+            diagnosticError: String(error), stage: "start" })}`);
+        }
         stageStarted = timing && performance.now();
         let clickMs = null;
         let clickStartNodeMs = null;
@@ -130,10 +136,15 @@ async function openPreview(page, width, timing, traceCondition, clickInternals =
             else await diagnoseTooltipCardClick(page, traceCondition, () => page.locator("#cardPaneBtn").click());
           });
           if (frameObservation) clickEndNodeMs = performance.now();
-          if (frameObservation) clickMs = performance.now() - stageStarted;
+          if (frameObservation) clickMs = clickEndNodeMs - clickStartNodeMs;
           recordMobileStage(timing, "cardClick", stageStarted);
         } finally {
-          await finishCardFrameObservation(page, frameObservation, clickMs, clickStartNodeMs, clickEndNodeMs);
+          try { await finishCardFrameObservation(page, frameObservation, clickMs, clickStartNodeMs, clickEndNodeMs); }
+          catch (error) {
+            if (process.env.MEMO_NEXUS_E2E_STABLE_FRAMES !== "1") throw error;
+            console.error(`[CARD_FRAME_OBSERVATION] ${JSON.stringify({ condition: traceCondition,
+              diagnosticError: String(error), stage: "finish" })}`);
+          }
         }
       }
       recordTime(timing, "mobileControls", started);
