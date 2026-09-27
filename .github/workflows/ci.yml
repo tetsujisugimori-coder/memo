@@ -212,6 +212,10 @@ jobs:
       - name: Install Playwright browser
         run: npx playwright install --with-deps ${{ matrix.browser }}
 
+      - name: Smoke actionability phase diagnostics
+        if: matrix.browser == 'webkit'
+        run: node chart-actionability-phase-smoke.e2e.js
+
       - name: Run chart E2E with feature and total durations
         env:
           MEMO_NEXUS_E2E_BROWSER: ${{ matrix.browser }}
