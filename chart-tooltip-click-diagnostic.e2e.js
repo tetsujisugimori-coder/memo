@@ -287,13 +287,113 @@ function createTooltipClickInternals() {
   };
 }
 
+function installTooltipClickBoundaryState() {
+  const button = document.getElementById("cardPaneBtn");
+  const previewCard = document.getElementById("previewCard");
+  if (!button || !previewCard) throw new Error("Card pane diagnostic targets are missing");
+  if (window.__tooltipClickBoundaries) throw new Error("Previous click boundary diagnostic was not collected");
+  const state = { button, previewCard, active: -1, trials: [], rafByTrial: new Map(), pendingRafs: new Set() };
+  const trial = () => state.trials[state.active];
+  const record = (name) => () => {
+    const current = trial();
+    if (!current) return;
+    const atMs = performance.now();
+    current.order.push(name);
+    if (current[name] === null) current[name] = atMs;
+    if (name !== "syncEnd") return;
+    const index = state.active;
+    const pending = { id: null, done: false, resolve: null, promise: null };
+    pending.promise = new Promise((resolve) => { pending.resolve = resolve; });
+    pending.finish = () => {
+      if (pending.done) return;
+      pending.done = true;
+      state.pendingRafs.delete(pending);
+      pending.resolve();
+    };
+    pending.id = requestAnimationFrame(() => {
+      if (state.active === index) {
+        current.raf = performance.now();
+        current.order.push("raf");
+      }
+      pending.finish();
+    });
+    state.pendingRafs.add(pending);
+    const scheduled = state.rafByTrial.get(index) || [];
+    scheduled.push(pending);
+    state.rafByTrial.set(index, scheduled);
+  };
+  state.onPointerdown = record("pointerdown");
+  state.onClick = record("click");
+  state.onSyncEnd = record("syncEnd");
+  state.onFocusin = (event) => {
+    const current = trial();
+    if (!current) return;
+    const target = event.target;
+    const insidePreviewCard = previewCard.contains(target);
+    const atMs = performance.now();
+    current.focusEvents.push({ atMs, targetId: target?.id || null, targetTag: target?.tagName || null,
+      insidePreviewCard, kind: insidePreviewCard ? "previewCard" : target === button ? "cardPaneBtn" : "other" });
+    current.order.push(insidePreviewCard ? "previewFocusin" : "focusin");
+    if (insidePreviewCard && current.previewFocusin === null) current.previewFocusin = atMs;
+  };
+  button.addEventListener("pointerdown", state.onPointerdown, true);
+  document.addEventListener("focusin", state.onFocusin, true);
+  button.addEventListener("click", state.onClick, true);
+  // Same-target bubble listener runs after the app's existing target listeners.
+  button.addEventListener("click", state.onSyncEnd);
+  state.begin = () => {
+    if (state.active !== -1) throw new Error("Previous click boundary trial is still active");
+    state.active = state.trials.length;
+    state.trials.push({ pointerdown: null, previewFocusin: null, click: null, syncEnd: null,
+      raf: null, order: [], focusEvents: [] });
+  };
+  state.end = () => { state.active = -1; };
+  state.waitForRaf = async (timeoutMs = 1000) => {
+    const pending = state.rafByTrial.get(state.active) || [];
+    if (!pending.length) return "not reached";
+    let timer;
+    const status = await Promise.race([
+      Promise.all(pending.map((item) => item.promise)).then(() => "observed"),
+      new Promise((resolve) => { timer = setTimeout(() => resolve(`timed out after ${timeoutMs}ms`), timeoutMs); })
+    ]);
+    clearTimeout(timer);
+    if (status !== "observed") {
+      for (const item of pending) {
+        if (!item.done) cancelAnimationFrame(item.id);
+        item.finish();
+      }
+    }
+    return status;
+  };
+  state.cleanup = () => {
+    state.end();
+    for (const item of state.pendingRafs) {
+      cancelAnimationFrame(item.id);
+      item.finish();
+    }
+    button.removeEventListener("pointerdown", state.onPointerdown, true);
+    document.removeEventListener("focusin", state.onFocusin, true);
+    button.removeEventListener("click", state.onClick, true);
+    button.removeEventListener("click", state.onSyncEnd);
+    delete window.__tooltipClickBoundaries;
+    return state.trials;
+  };
+  window.__tooltipClickBoundaries = state;
+  return performance.now();
+}
+
+function collectTooltipClickBoundaryState() {
+  return window.__tooltipClickBoundaries?.cleanup() || [];
+}
+
 const clickBoundaryTrials = 10;
 
 function summarizeClickBoundaries(trials) {
   const intervals = {
     t0ToPointerdown: { value: (trial) => trial.t0ToPointerdownMs },
-    pointerdownToFocusin: { value: (trial) => trial.pointerdownToFocusinMs, from: "pointerdown", to: "focusin" },
-    focusinToClick: { value: (trial) => trial.focusinToClickMs, from: "focusin", to: "click" },
+    pointerdownToPreviewFocus: { value: (trial) => trial.pointerdownToPreviewFocusMs, from: "pointerdown", to: "previewFocusin" },
+    clickToPreviewFocus: { value: (trial) => trial.clickToPreviewFocusMs, from: "click", to: "previewFocusin" },
+    syncEndToPreviewFocus: { value: (trial) => trial.syncEndToPreviewFocusMs, from: "syncEnd", to: "previewFocusin" },
     clickToSyncEnd: { value: (trial) => trial.clickToSyncEndMs, from: "click", to: "syncEnd" },
     syncEndToRaf: { value: (trial) => trial.syncEndToRafMs, from: "syncEnd", to: "raf" }
   };
@@ -335,58 +435,31 @@ function createTooltipClickBoundaryDiagnostic() {
       if (!page) throw new Error("Click boundary diagnostic must be started with a page");
 
       const setupBefore = performance.now();
-      const pageStart = await page.evaluate(() => {
-        const button = document.getElementById("cardPaneBtn");
-        if (!button) throw new Error("#cardPaneBtn is missing");
-        if (window.__tooltipClickBoundaries) throw new Error("Previous click boundary diagnostic was not collected");
-        const state = { button, active: -1, trials: [], rafPromises: [], rafIds: new Set() };
-        const trial = () => state.trials[state.active];
-        const record = (name) => (event) => {
-          const current = trial();
-          if (!current) return;
-          const atMs = performance.now();
-          current.order.push(name);
-          if (current[name] === null) current[name] = atMs;
-          if (name === "syncEnd") {
-            state.rafPromises.push(new Promise((resolve) => {
-              const rafId = requestAnimationFrame(() => {
-                state.rafIds.delete(rafId);
-                current.raf = performance.now();
-                current.order.push("raf");
-                resolve();
-              });
-              state.rafIds.add(rafId);
-            }));
-          }
-        };
-        state.onPointerdown = record("pointerdown");
-        state.onFocusin = (event) => { if (event.target === button) record("focusin")(event); };
-        state.onClick = record("click");
-        state.onSyncEnd = record("syncEnd");
-        button.addEventListener("pointerdown", state.onPointerdown, true);
-        document.addEventListener("focusin", state.onFocusin, true);
-        button.addEventListener("click", state.onClick, true);
-        // Same-target bubble listener runs after the app's existing target listeners.
-        button.addEventListener("click", state.onSyncEnd);
-        state.begin = () => {
-          state.active = state.trials.length;
-          state.trials.push({ pointerdown: null, focusin: null, click: null, syncEnd: null, raf: null, order: [] });
-        };
-        window.__tooltipClickBoundaries = state;
-        return performance.now();
-      });
+      const pageStart = await page.evaluate(installTooltipClickBoundaryState);
       const setupAfter = performance.now();
       nodeToPageOffsetMs = (setupBefore + setupAfter) / 2 - pageStart;
       alignmentErrorBoundMs = (setupAfter - setupBefore) / 2;
 
       const nodeStarts = [];
-      let rafWait = "not reached";
+      const rafWaits = [];
       let browserTrials;
       try {
         for (let index = 0; index < clickBoundaryTrials; index++) {
           await page.evaluate(() => window.__tooltipClickBoundaries.begin());
           nodeStarts.push(performance.now());
-          await click();
+          let clickError;
+          try { await click(); }
+          catch (error) { clickError = error; }
+          try {
+            rafWaits.push(await page.evaluate(async () => {
+              const state = window.__tooltipClickBoundaries;
+              try { return await state.waitForRaf(1000); }
+              finally { state.end(); }
+            }));
+          } catch (error) {
+            if (!clickError) clickError = error;
+          }
+          if (clickError) throw clickError;
           if (index < clickBoundaryTrials - 1) {
             await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(resolve)));
             await page.locator("#closeCardPaneBtn").click();
@@ -394,25 +467,8 @@ function createTooltipClickBoundaryDiagnostic() {
             await page.waitForFunction(() => document.getElementById("previewCard")?.getAttribute("aria-hidden") === "true");
           }
         }
-        let rafTimeout;
-        rafWait = await Promise.race([
-          page.evaluate(() => Promise.all(window.__tooltipClickBoundaries.rafPromises).then(() => "observed")),
-          new Promise((resolve) => { rafTimeout = setTimeout(() => resolve("timed out after 1000ms"), 1000); })
-        ]);
-        clearTimeout(rafTimeout);
       } finally {
-        browserTrials = await page.evaluate(() => {
-          const state = window.__tooltipClickBoundaries;
-          if (!state) return [];
-          state.rafIds.forEach(cancelAnimationFrame);
-          state.rafIds.clear();
-          state.button.removeEventListener("pointerdown", state.onPointerdown, true);
-          document.removeEventListener("focusin", state.onFocusin, true);
-          state.button.removeEventListener("click", state.onClick, true);
-          state.button.removeEventListener("click", state.onSyncEnd);
-          delete window.__tooltipClickBoundaries;
-          return state.trials;
-        });
+        browserTrials = await page.evaluate(collectTooltipClickBoundaryState);
       }
       const round = (value) => Math.round(value * 1000) / 1000;
       const trials = browserTrials.map((trial, index) => {
@@ -421,18 +477,23 @@ function createTooltipClickBoundaryDiagnostic() {
           run: index + 1,
           events: trial.order,
           t0ToPointerdownMs: down === null ? null : round(down - nodeStarts[index]),
-          pointerdownToFocusinMs: trial.pointerdown === null || trial.focusin === null ? null : round(trial.focusin - trial.pointerdown),
-          focusinToClickMs: trial.focusin === null || trial.click === null ? null : round(trial.click - trial.focusin),
+          pointerdownToPreviewFocusMs: trial.pointerdown === null || trial.previewFocusin === null ? null : round(trial.previewFocusin - trial.pointerdown),
+          clickToPreviewFocusMs: trial.click === null || trial.previewFocusin === null ? null : round(trial.previewFocusin - trial.click),
+          syncEndToPreviewFocusMs: trial.syncEnd === null || trial.previewFocusin === null ? null : round(trial.previewFocusin - trial.syncEnd),
           clickToSyncEndMs: trial.click === null || trial.syncEnd === null ? null : round(trial.syncEnd - trial.click),
           syncEndToRafMs: trial.syncEnd === null || trial.raf === null ? null : round(trial.raf - trial.syncEnd),
-          focus: trial.focusin === null ? "not observed" : "observed"
+          focus: trial.previewFocusin === null ? "not observed" : "observed",
+          focusTarget: trial.focusEvents.find((event) => event.insidePreviewCard) || null,
+          focusEvents: trial.focusEvents,
+          rafWait: rafWaits[index] || "not reached"
         };
       });
       const summary = summarizeClickBoundaries(trials);
       const categoryByInterval = {
         t0ToPointerdown: "Playwright click前処理・actionability・stable判定・scroll・hit testingを調査する候補",
-        pointerdownToFocusin: "対象要素のfocus遷移を調査する候補",
-        focusinToClick: "ブラウザイベント系列や途中のDOM変化を調査する候補",
+        pointerdownToPreviewFocus: "カードopen時のpreview focusとpointerdownの関係を調査する候補",
+        clickToPreviewFocus: "カードopen時のpreview focusとclickの関係を調査する候補",
+        syncEndToPreviewFocus: "カードopen時のpreview focusと同期click境界の関係を調査する候補",
         clickToSyncEnd: "アプリの同期click handlerを再調査する候補",
         syncEndToRaf: "rendering・main thread・frame境界を調査する候補"
       };
@@ -440,13 +501,12 @@ function createTooltipClickBoundaryDiagnostic() {
         .sort((a, b) => b[1].median - a[1].median)[0];
       console.log(`[TOOLTIP_CLICK_BOUNDARIES] ${JSON.stringify({ condition, trials, summary,
         dominantByMedian: dominant ? { interval: dominant[0], medianMs: dominant[1].median,
-          nextInvestigationCandidate: dominant[0] === "pointerdownToFocusin"
-            && summary.focusinToClick.outOfOrderCount > 0
-            ? "focusinがclick後に観測された試行があるため、focus遷移の原因を断定せずイベント系列とfocus発火契機を調査する候補"
-            : categoryByInterval[dominant[0]] } : null,
+          nextInvestigationCandidate: categoryByInterval[dominant[0]] } : null,
         clock: "Node performance.now aligned to browser performance.now by setup-call midpoint; browser intervals use performance.now",
         clockAlignmentErrorBoundMs: round(alignmentErrorBoundMs), trialCount: clickBoundaryTrials,
-        rafWait,
+        rafWait: rafWaits.every((value) => value === "observed") ? "observed" : "incomplete",
+        focusObservedCount: trials.filter((trial) => trial.focus === "observed").length,
+        focusNotObservedCount: trials.filter((trial) => trial.focus !== "observed").length,
         syncEndDefinition: "same-target bubble listener registered after app target listeners; approximate synchronous handler boundary" })}`);
       return undefined;
     },
@@ -455,4 +515,4 @@ function createTooltipClickBoundaryDiagnostic() {
 }
 
 module.exports = { diagnoseTooltipCardClick, createTooltipClickInternals, summarizeClickBoundaries,
-  createTooltipClickBoundaryDiagnostic };
+  createTooltipClickBoundaryDiagnostic, installTooltipClickBoundaryState, collectTooltipClickBoundaryState };
