@@ -3,6 +3,7 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const { performance } = require("node:perf_hooks");
+const { runId, runDirectory, classifyStableDelay } = require("./chart-stable-delay-diagnostic.e2e.js");
 
 const artifactDir = path.join(__dirname, "e2e-artifacts", "chart-card-frame-observation");
 const rectTolerancePx = 0.1;
@@ -315,7 +316,9 @@ async function finishCardFrameObservation(page, selected, clickMs, clickStartNod
     animations: observation.animations.filter((item) => item.atMs < preClickEndMs) });
   const { getCardClickPhase } = require("./chart-card-click-trace.e2e.js");
   const phase = phaseOverride || getCardClickPhase(page, selected.condition);
-  const result = { condition: selected.condition, clickMs: roundMs(clickMs),
+  const result = { condition: selected.condition, browser: process.env.MEMO_NEXUS_E2E_BROWSER || "chromium",
+    clickTarget: `#${selected.targetId}`, measuredAt: new Date().toISOString(),
+    runId, traceArtifact: phase?.traceArtifact || null, clickMs: roundMs(clickMs),
     stableMs: phase?.calls?.[0]?.phases?.stable?.totalMs ?? null,
     phaseMeasurementStatus: phase?.measurementStatus || "not-observable",
     phaseCalls: phase?.calls || null,
@@ -330,8 +333,10 @@ async function finishCardFrameObservation(page, selected, clickMs, clickStartNod
       firedSinceStartMs: roundMs(sample.firedAtMs - observation.startMs),
       delayMs: roundMs(Math.max(0, sample.firedAtMs - sample.plannedAtMs)) })),
     samples: observation.samples.map((sample) => ({ ...sample, sinceStartMs: roundMs(sample.atMs - observation.startMs) })) };
-  fs.mkdirSync(artifactDir, { recursive: true });
-  fs.writeFileSync(path.join(artifactDir, `${selected.name}.json`), `${JSON.stringify(result, null, 2)}\n`);
+  result.diagnostic = classifyStableDelay(result);
+  const outputDir = process.env.MEMO_NEXUS_E2E_STABLE_FRAMES === "1" ? runDirectory : artifactDir;
+  fs.mkdirSync(outputDir, { recursive: true });
+  fs.writeFileSync(path.join(outputDir, `${selected.name}.json`), `${JSON.stringify(result, null, 2)}\n`);
   const { firstLongGap, eventLoopMaxDelayMs, gapMaxTimerDelayMs, gapTimerCallbackCount,
     gapOverlapWithDelayedTimer, timerProbeSampleCount, clickStartEstimateMs, clickEndEstimateMs,
     clockAlignmentErrorBoundMs, clickCompletedAfterGap, clickEventAfterGap,

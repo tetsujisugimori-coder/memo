@@ -3,6 +3,7 @@
 const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
+const { runId, runDirectory } = require("./chart-stable-delay-diagnostic.e2e.js");
 
 const traceDir = path.join(__dirname, "e2e-artifacts", "chart-card-click-traces");
 let phaseTraceDir;
@@ -66,7 +67,7 @@ async function traceCardOpen(page, feature, condition, operation) {
     if (phaseDiagnostic) phaseTraceContexts.add(context);
     const outputDir = phaseDiagnostic && !stableFrames
       ? (phaseTraceDir ||= fs.mkdtempSync(path.join(os.tmpdir(), `memo-actionability-phases-${process.pid}-${Date.now()}-`)))
-      : traceDir;
+      : stableFrames ? path.join(runDirectory, "traces") : traceDir;
     if (!phaseDiagnostic || stableFrames) fs.mkdirSync(outputDir, { recursive: true });
     tracePath = path.join(outputDir, `${name}.zip`);
     await context.tracing.startChunk({
@@ -88,7 +89,9 @@ async function traceCardOpen(page, feature, condition, operation) {
         const { readTrace, analyzeTrace, classifyMeasurement } = require("./chart-actionability-phase-diagnostic.e2e.js");
         const calls = analyzeTrace(await readTrace(tracePath));
         const measurement = classifyMeasurement(getInstrumentationStatus(), calls);
-        latestPhases.set(page, { condition, ...measurement });
+        latestPhases.set(page, { condition, ...measurement,
+          traceArtifact: stableFrames ? path.relative(__dirname, tracePath) : null,
+          runId: stableFrames ? runId : null });
         if (measurement.measurementStatus === "measured") {
           const recorded = phaseCalls.get(context) || [];
           recorded.push(...calls);

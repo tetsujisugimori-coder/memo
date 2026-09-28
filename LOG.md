@@ -3751,3 +3751,38 @@
 * CI workflow_dispatchに既定falseの`tooltip_click_boundaries`を追加。trueの場合だけtooltip featureを選び、WebKitのみに10回計測を有効化する。通常PR CIとproduction動作は計測無効のまま。診断反復は通常locator.clickと通常のカードclose操作を行い、force/dispatchEvent、focus/scroll/animation変更、待機削除は行わない。listenerは計測中だけ追加し、成功・失敗のどちらでもremoveする。rAF未到達は最大1秒待ちの後missingとして記録する。
 * 修正後WebKit `chart-tooltips` E2Eは12チャート、120条件、150対象、lifecycle/persistenceまでPASS（feature 331.9秒）。診断のある試行を含み、通常経路の操作・既存assertionはPASSした。境界unit test 6件PASS、対象JS構文検査と`git diff --check` PASS。初回PR #317ではCSS transition中にlocatorのhidden状態を誤って待って30秒timeoutしたため、既存`aria-hidden`境界を待つ方式へ直していた。今回その待機は維持した。
 * 全`npm test`は既存未追跡`work/`内の過去コピーにあるcache-version/asset期待値不一致で失敗した。これらは作業開始時からの保護対象で変更・stage対象化していない。現状の`npm test`はwork配下も探索するため、通常PR CIのcheckout結果とは区別する。計測有効時の追加時間、T0→pointerdownとrAF待ちの内訳、他OS/ブラウザでの再現性は未確定。今回は高速化・原因修正をしていない。
+# Chart E2E Stable 遅延の JSON / Trace 診断経路（2026-09-28）
+
+## 目的と既存機構
+
+過去の約1406ms級 Stable 遅延が再発した際、同一 click の JSON と Playwright Trace を照合して遅延層を分類する。今回の変更は診断のみで、性能改善や原因修正ではない。既存の `chart-actionability-phase-run.e2e.js --stable-frames` は WebKit の tooltip 120条件を維持し、代表3条件（c0/light/320、c4/light/390、c10/light/320）のみ Trace とページ側 frame/geometry 観測を採る。通常の Chart E2E では診断を起動しない。Trace 有効時の値は通常ベンチマークの性能値と比較しない。
+
+## 異常判定と対応方法
+
+保存済みの phase 計測付き JSON 3件の Stable 値は78、86、89ms（いずれも1 attempt なので total と max が同じ）。過去の合同確認ログ間は概ね数十〜百数十msで、1406msはこの範囲から大きく外れる。診断対象は **1 attempt の Stable 最大値が250ms以上** とした。複数 retry の通常値を足して誤検出しないため total では判定しない。これは単純な調査用閾値で、性能目標や1406ms固有の条件ではない。Stable が未取得なら `unclassified` として扱う。
+
+診断実行ごとに UTC 開始時刻と PID から `runId` を作り、`e2e-artifacts/chart-card-frame-observation/<runId>/` に条件名の JSON と `traces/` 内の条件名 zip を保存する。JSON の `condition`、`browser`、`clickTarget`、`measuredAt`（収集時刻）、`runId`、`traceArtifact` を照合する。代表条件は同一 run 内で一度ずつなので別の sample ID は不要。既存の生の phase、frame、sample 値を保ち、`diagnostic` は派生判定として追加した。Trace パスがない異常試行は分類不能とする。
+
+手動 `stable_frames` CI の artifact glob もこの実行別パスに合わせた。通常 PR CI ではこの手動診断は有効にならない。
+
+## Measured facts と Interpretation
+
+`diagnostic.facts` は JSON/Trace 由来の Stable、actionability、初回およびクリック前最大 rAF gap、クリック前 geometry 変化数、DOM click 到達までのページ時計値を複写する。`diagnostic.classification` と `reason` は**解釈**であり、WebKit内部原因の確定を意味しない。Trace 時計とページ時計の絶対時刻は直接減算しない。page-clock の gap と click 前区間の重なりは、既存の clock alignment 誤差を考慮した参考情報で、Stable 区間そのものとの厳密な一致ではない。
+
+- `playwright-actionability-or-stable`: Stable の計測値が大きく、frame 証拠だけでは内部要因を分離できない。
+- `webkit-render-scheduling`: 大きい rAF gap が click 前区間と重なり、標本上の geometry は不変。render scheduling と整合的という候補であり、WebKit 内部原因の証明ではない。
+- `input-delivery-or-click-dispatch`: actionability 終了から DOM click 到達までの**同一時計で対応した**異常区間があれば候補とする。現行 JSON/Trace では厳密な境界対応がないため、自動判定しない。
+- `application-handler-or-dom-update`: DOM click 後から UI 更新までの異常区間があれば候補とする。現行 JSON には同一試行の UI 更新境界がないため、自動判定しない。
+- `unclassified`: Stable や Trace が欠ける、あるいは所属区間を決める材料が不足する。
+
+特に C/D の遅延を Stable 自体に帰属させない。DOM click 後の処理は Stable 待機ではない。通常の120条件では Stable の個別計測や Trace がない条件もあり、この診断の判定範囲は既存の代表3条件に限る。
+
+## 実行結果・未確定事項・次回手順
+
+Windows ローカルで `node chart-actionability-phase-run.e2e.js --stable-frames` を実行し、tooltip 120条件・150ターゲット検査まで PASS（373.3秒）。`runId=2026-09-27T20-36-58-959Z-13780` の代表3件は c0=159ms、c4=159ms、c10=142ms で、250ms以上の Stable 遅延は再発しなかった。3 JSON の `traceArtifact` はすべて実在し、zip 内の click は各1件、Stable 値は JSON と一致した。よって再発時に同一試行の JSON/Trace を引いて分類する経路は確認できたが、実異常の原因分類を実証したわけではない。Trace 有効時のこの秒数と Stable 値は通常実行の性能比較値にはしない。
+
+診断無効の `MEMO_NEXUS_E2E_BROWSER=webkit node chart-block.e2e.js --feature chart-tooltips` も120条件・150ターゲットまで PASS（336.2秒）。ローカルのトップレベル `*.test.js` は1610/1610 PASS、診断関連3ファイルの小テストは21/21 PASS。これらは Windows ローカルの結果で、Ubuntu CI の再発確認とは区別する。診断有効/無効の所要秒数差は Trace と観測の負荷を含むため、性能改善・劣化の主張には使わない。
+
+現行の Trace から visible / enabled / Stable の内部因果、WebKit の RenderingFrame / Paint / Composite は確定できない。frame gap があっても一時的な geometry 変化や短い main-thread 占有は完全には排除できない。今回の3件では250ms以上の Stable がなく、C（input delivery）や D（アプリ処理）を同一時計の境界で分離する材料もない。次回異常時は Trace の `performing click action` までとページ側 `pointerdown`/DOM click の境界を先に照合し、post-click の UI 更新境界がなければ D は未判定と記す。
+
+次回は (1) `node chart-actionability-phase-run.e2e.js --stable-frames` の実行ログと artifact を保存し、(2) 同じ `runId` と条件名の JSON・zip を開き、(3) `diagnostic.detected`、生の `stableMs`、`phaseCalls`、`summary` と Trace の click 操作ログを照合し、(4) DOM click 前後を分けて Measured facts と Interpretation を別々に記録する。250ms以上でも Trace 欠落や時計の未対応があれば `unclassified` として、次回必要な境界を明記する。
