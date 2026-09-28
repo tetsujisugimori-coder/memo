@@ -3786,3 +3786,19 @@ Windows ローカルで `node chart-actionability-phase-run.e2e.js --stable-fram
 現行の Trace から visible / enabled / Stable の内部因果、WebKit の RenderingFrame / Paint / Composite は確定できない。frame gap があっても一時的な geometry 変化や短い main-thread 占有は完全には排除できない。今回の3件では250ms以上の Stable がなく、C（input delivery）や D（アプリ処理）を同一時計の境界で分離する材料もない。次回異常時は Trace の `performing click action` までとページ側 `pointerdown`/DOM click の境界を先に照合し、post-click の UI 更新境界がなければ D は未判定と記す。
 
 次回は (1) `node chart-actionability-phase-run.e2e.js --stable-frames` の実行ログと artifact を保存し、(2) 同じ `runId` と条件名の JSON・zip を開き、(3) `diagnostic.detected`、生の `stableMs`、`phaseCalls`、`summary` と Trace の click 操作ログを照合し、(4) DOM click 前後を分けて Measured facts と Interpretation を別々に記録する。250ms以上でも Trace 欠落や時計の未対応があれば `unclassified` として、次回必要な境界を明記する。
+
+## 2026-09-28 PR #323後の Stable 遅延再発観測
+
+Windows 11 Home 10.0.26200、Playwright 1.62.1 のローカル WebKit で、既存の `node chart-actionability-phase-run.e2e.js --stable-frames` を条件を変えず独立して3回実行した。各runはtooltip 120条件・150 targetまでPASSした。表の時刻はrunIdに含まれるUTC開始時刻、時間はE2Eの `[TOTAL]`、Stable値は代表条件のJSONにある `stableMs`（各1 attemptのため `maxMs` も同値）。Trace有効時の診断値を通常ベンチマークとの性能比較には使わない。
+
+| runId（UTC開始） | PASS / 総時間 | c0/light/320 | c4/light/390 | c10/light/320 | Stable最大attempt | 250ms以上 | 1406ms級 | JSON / Trace |
+| --- | --- | ---: | ---: | ---: | ---: | --- | --- | --- |
+| `2026-09-28T13-18-26-341Z-23240` | PASS / 225.7s | 90ms | 158ms | 157ms | 158ms | なし | なし | 各3件あり |
+| `2026-09-28T13-22-20-019Z-796` | PASS / 359.8s | 169ms | 218ms | 225ms | 225ms | なし | なし | 各3件あり |
+| `2026-09-28T13-28-26-408Z-31264` | PASS / 204.9s | 84ms | 82ms | 146ms | 146ms | なし | なし | 各3件あり |
+
+**Measured facts:** 全9試行のStable最小82ms、最大225ms（差143ms）。run間の範囲はc0が84〜169ms（差85ms）、c4が82〜218ms（差136ms）、c10が146〜225ms（差79ms）。9試行ともStable attempt数1、retry数0、`diagnostic.detected=false`、`classification=unclassified`。各runId配下の3 JSONについて、同じrunId・条件に対応する `traceArtifact` のzipが実在し、zip内の `trace.trace` を開けることを確認した。保存先は `e2e-artifacts/chart-card-frame-observation/<runId>/`。生成物は既存の `.gitignore` 対象であり、Gitには追加しない。
+
+**Interpretation:** 今回の代表3条件×3runでは250ms以上のStable最大attemptも、過去の約1406ms級も再発しなかった。したがって原因の候補を絞る異常試行は得られていない。正常範囲の値やrun間差から過去の遅延原因を推定しない。今回の観測はローカルWindows WebKitの代表条件に限られ、他の条件やUbuntu CIでの不発を意味しない。
+
+**次に必要な観測:** 現時点では追加診断を実装・提案する根拠はない。既存経路で250ms以上が再発した場合に、同一runId・条件のJSONとTraceを照合し、Measured factsとInterpretationを分けて未判定箇所を記録する。今回、診断機構・閾値・操作・wait・assertion・製品コードは変更していない。
