@@ -4,7 +4,11 @@
   const exportUtils = typeof module !== "undefined" && module.exports
     ? require("./export-utils.js")
     : globalScope.MemoNexusExportUtils;
+  const figureUtils = typeof module !== "undefined" && module.exports
+    ? require("./figure-metadata-utils.js")
+    : globalScope.MemoNexusFigureMetadataUtils;
   const { sanitizeWindowsName } = exportUtils;
+  const { parseFigureMetadata, serializeFigureMetadata } = figureUtils;
   const MAX_ATTACHMENT_TOTAL_BYTES = 20 * 1024 * 1024;
   const IMAGE_BLOCK_START = "<!-- memo-nexus:image-block -->";
   const IMAGE_BLOCK_CAPTION = "<!-- memo-nexus:image-caption -->";
@@ -165,12 +169,16 @@
     const normalizedImages = (Array.isArray(images) ? images : [])
       .filter((image) => image && image.id)
       .slice(0, 2)
-      .map((image) => ({ id: String(image.id), fileName: image.alt || image.fileName || "画像" }));
+      .map((image) => ({ id: String(image.id), fileName: image.alt || image.fileName || "画像", figureMetadata: image.figureMetadata }));
     if (!normalizedImages.length) return "";
     const normalizedAlignment = normalizeImageBlockAlignment(alignment);
     const lines = [IMAGE_BLOCK_START];
     if (normalizedAlignment !== "center") lines.push(`<!-- memo-nexus:image-align:${normalizedAlignment} -->`);
-    lines.push(...normalizedImages.map(attachmentMarkdownReference));
+    normalizedImages.forEach((image) => {
+      lines.push(attachmentMarkdownReference(image));
+      const marker = serializeFigureMetadata(image.figureMetadata);
+      if (marker) lines.push(marker);
+    });
     const normalizedCaption = String(caption || "").replace(/\r\n?/g, "\n").trim();
     if (normalizedCaption) lines.push("", IMAGE_BLOCK_CAPTION, normalizedCaption);
     lines.push(IMAGE_BLOCK_END);
@@ -230,8 +238,17 @@
           const blockLines = captionIndex === -1 ? content : content.slice(0, captionIndex);
           const alignmentLines = blockLines.filter((line) => parseImageBlockAlignment(line) !== null);
           const imageLines = blockLines.filter((line) => parseImageBlockAlignment(line) === null);
-          const images = imageLines.map(parseImageReferenceLine).filter(Boolean);
-          if (images.length >= 1 && images.length <= 2 && images.length === imageLines.filter((line) => line.trim()).length) {
+          const images = [];
+          let valid = true;
+          imageLines.filter((line) => line.trim()).forEach((line) => {
+            const image = parseImageReferenceLine(line);
+            if (image) { images.push(image); return; }
+            const metadata = parseFigureMetadata(line);
+            if (metadata && images.length && !images[images.length - 1].figureMetadata) {
+              images[images.length - 1].figureMetadata = metadata;
+            } else valid = false;
+          });
+          if (valid && images.length >= 1 && images.length <= 2) {
             const caption = captionIndex === -1 ? "" : content.slice(captionIndex + 1).join("\n").trim();
             const alignment = alignmentLines.length === 1 ? parseImageBlockAlignment(alignmentLines[0]) : "center";
             pushImage(index, endLine, images, caption, true, alignment);

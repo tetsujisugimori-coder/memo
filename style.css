@@ -3213,6 +3213,55 @@ body.layout-resizing iframe {
   min-width: 0;
 }
 
+.preview .figure-metadata {
+  width: 100%;
+  min-width: 0;
+  font-size: 12px;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+
+.preview .figure-metadata-main {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px 9px;
+}
+
+.preview .figure-metadata-main span:first-child {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.preview .figure-metadata details { margin-top: 5px; }
+.preview .figure-metadata dl { margin: 6px 0 0; }
+.preview .figure-metadata dl div { margin-top: 5px; }
+.preview .figure-metadata dt { font-weight: 600; }
+.preview .figure-metadata dd { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+
+.preview .figure-metadata-editor {
+  grid-area: editor;
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.preview .figure-metadata-editor label { display: grid; gap: 3px; font-size: 12px; }
+.preview .figure-metadata-editor input,
+.preview .figure-metadata-editor select,
+.preview .figure-metadata-editor textarea {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  padding: 7px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--input-bg);
+  color: var(--ink);
+  font: inherit;
+}
+
+.preview .figure-metadata-editor textarea { resize: vertical; }
+
 .preview .image-block-open {
   display: grid;
   place-items: center;

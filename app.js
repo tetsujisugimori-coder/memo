@@ -323,6 +323,7 @@ const {
   serializeImageBlock,
   splitImageBlocks
 } = window.MemoNexusAttachmentUtils;
+const { figureSourceTypeLabel, hasFigureMetadata, normalizeFigureMetadata, safeFigureSourceUrl } = window.MemoNexusFigureMetadataUtils;
 const {
   TAG_COLOR_PALETTE,
   assignRegisteredTag,
@@ -10782,12 +10783,15 @@ function bindImageBlockControls() {
   preview.querySelectorAll(".image-block-edit-caption").forEach((button) => {
     button.addEventListener("click", () => openImageCaptionEditor(button));
   });
+  preview.querySelectorAll(".image-block-edit-figure").forEach((button) => {
+    button.addEventListener("click", () => openImageFigureEditor(button));
+  });
 }
 
 function openImageCaptionEditor(button) {
   const block = currentImageBlock(button);
   const figure = button.closest(".image-block");
-  if (!block || !figure || figure.querySelector(".image-caption-editor")) return;
+  if (!block || !figure || figure.querySelector(".image-caption-editor, .figure-metadata-editor")) return;
   const editorPanel = document.createElement("div");
   editorPanel.className = "image-caption-editor";
   const textarea = document.createElement("textarea");
@@ -10815,6 +10819,62 @@ function openImageCaptionEditor(button) {
   setImageBlockMenuOpen(figure, false);
   setImageCaptionEditing(figure, editorPanel, true);
   textarea.focus();
+}
+
+function openImageFigureEditor(button) {
+  const block = currentImageBlock(button);
+  const figure = button.closest(".image-block");
+  const imageIndex = Number(button.dataset.imageIndex);
+  if (!block || !figure || !block.images[imageIndex] || figure.querySelector(".image-caption-editor, .figure-metadata-editor")) return;
+  const current = normalizeFigureMetadata(block.images[imageIndex].figureMetadata) || {};
+  const editorPanel = document.createElement("div");
+  editorPanel.className = "figure-metadata-editor";
+  const title = document.createElement("strong");
+  title.textContent = block.images.length === 1 ? "資料情報" : `画像${imageIndex + 1}の資料情報`;
+  editorPanel.append(title);
+  const fields = [
+    ["caption", "キャプション"], ["dateLabel", "年代・時期"], ["sourceName", "資料名"],
+    ["sourceUrl", "出典URL"], ["sourceType", "資料種別"], ["license", "権利・ライセンス"], ["note", "補足"]
+  ];
+  const inputs = {};
+  fields.forEach(([key, label]) => {
+    const row = document.createElement("label");
+    row.textContent = label;
+    const input = key === "note" ? document.createElement("textarea")
+      : key === "sourceType" ? document.createElement("select") : document.createElement("input");
+    if (key === "sourceType") {
+      [["", "未選択"], ["primary", "一次資料"], ["secondary", "二次資料"], ["report-created", "本レポート作成図"]]
+        .forEach(([value, text]) => input.add(new Option(text, value)));
+    } else if (key === "note") input.rows = 4;
+    else input.type = key === "sourceUrl" ? "url" : "text";
+    input.value = current[key] || "";
+    row.append(input);
+    editorPanel.append(row);
+    inputs[key] = input;
+  });
+  const actions = document.createElement("div");
+  actions.className = "image-caption-editor-actions";
+  const cancel = document.createElement("button");
+  cancel.type = "button";
+  cancel.textContent = "キャンセル";
+  cancel.addEventListener("click", () => {
+    setImageCaptionEditing(figure, editorPanel, false);
+    figure.querySelector(".image-block-menu-toggle")?.focus();
+  });
+  const save = document.createElement("button");
+  save.type = "button";
+  save.textContent = "資料情報を保存";
+  save.addEventListener("click", () => {
+    const metadata = Object.fromEntries(fields.map(([key]) => [key, inputs[key].value]));
+    const images = block.images.map((image, index) => index === imageIndex ? { ...image, figureMetadata: metadata } : image);
+    commitImageBlockChange(block, images, block.caption);
+  });
+  actions.append(cancel, save);
+  editorPanel.append(actions);
+  figure.append(editorPanel);
+  setImageBlockMenuOpen(figure, false);
+  setImageCaptionEditing(figure, editorPanel, true);
+  inputs.caption.focus();
 }
 
 function findPendingImageBlock(target) {
@@ -11790,6 +11850,24 @@ function renderTableBlock(tableValue, blockIndex) {
   `;
 }
 
+function renderFigureMetadata(metadata) {
+  if (!hasFigureMetadata(metadata)) return "";
+  const main = [metadata.caption, metadata.dateLabel, figureSourceTypeLabel(metadata.sourceType), metadata.sourceName || metadata.sourceUrl]
+    .filter((value) => value && value.trim())
+    .map((value) => `<span>${escapeHtml(value)}</span>`).join("");
+  const sourceHref = safeFigureSourceUrl(metadata.sourceUrl);
+  const rows = [
+    ["資料名", metadata.sourceName],
+    ["出典URL", metadata.sourceUrl, sourceHref],
+    ["資料種別", figureSourceTypeLabel(metadata.sourceType)],
+    ["権利・ライセンス", metadata.license],
+    ["補足", metadata.note]
+  ].filter(([, value]) => value && value.trim()).map(([label, value, href]) =>
+    `<div><dt>${label}</dt><dd>${href ? `<a href="${escapeAttr(href)}" target="_blank" rel="noopener noreferrer">${escapeHtml(value)}</a>` : escapeHtml(value)}</dd></div>`
+  ).join("");
+  return `<div class="figure-metadata"><div class="figure-metadata-main">${main}</div><details><summary>資料情報の詳細</summary><dl>${rows}</dl></details></div>`;
+}
+
 function renderImageBlock(block, blockIndex) {
   const count = block.images.length;
   const alignment = normalizeImageBlockAlignment(block.alignment);
@@ -11798,6 +11876,7 @@ function renderImageBlock(block, blockIndex) {
       <button class="image-block-open" type="button" data-image-id="${escapeAttr(image.id)}" aria-label="${escapeAttr(image.alt || "添付画像")}を拡大表示">
         <span class="inline-attachment-image" data-attachment-id="${escapeAttr(image.id)}" data-alt="${escapeAttr(image.alt)}" role="img" aria-label="${escapeAttr(image.alt || "添付画像")}">画像を読み込み中...</span>
       </button>
+      ${renderFigureMetadata(image.figureMetadata)}
     </div>
   `).join("");
   const caption = block.caption
@@ -11819,6 +11898,7 @@ function renderImageBlock(block, blockIndex) {
             }).join("")}
           </div>
           <button class="image-block-edit-caption" type="button">${block.caption ? "説明文を編集" : "説明文を追加"}</button>
+          ${block.images.map((image, imageIndex) => `<button class="image-block-edit-figure" type="button" data-image-index="${imageIndex}">${count === 1 ? "資料情報" : `画像${imageIndex + 1}の資料情報`}</button>`).join("")}
           ${block.images.map((_, imageIndex) => `<button class="image-block-remove" type="button" data-image-index="${imageIndex}">画像${imageIndex + 1}を外す</button>`).join("")}
         </div>
       </div>
