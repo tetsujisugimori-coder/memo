@@ -4086,6 +4086,24 @@ body.related-open .related-toggle {
   background: var(--dialog-backdrop);
 }
 
+.backup-preview-dialog {
+  width: min(760px, calc(100vw - 24px));
+  max-width: calc(100vw - 24px);
+  max-height: calc(100dvh - 24px);
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--paper);
+  color: var(--ink);
+}
+.backup-preview-dialog::backdrop { background: var(--dialog-backdrop); }
+.backup-preview-body { max-height: calc(100dvh - 160px); overflow: auto; padding: 12px 16px; overflow-wrap: anywhere; }
+.backup-preview-body details { margin: 10px 0; border-top: 1px solid var(--line); padding-top: 8px; }
+.backup-preview-body summary { cursor: pointer; font-weight: 600; }
+.backup-preview-body ul { padding-inline-start: 1.4em; }
+.backup-preview-body li { margin: 6px 0; overflow-wrap: anywhere; }
+.backup-preview-actions { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 8px; padding: 12px 16px; border-top: 1px solid var(--line); }
+
 .settings-dialog {
   width: min(760px, calc(100vw - 32px));
   max-height: calc(100vh - 32px);

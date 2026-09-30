@@ -7,7 +7,7 @@
   <script>try { document.documentElement.dataset.initialTheme = localStorage.getItem("memo-nexus-theme") === "dark" ? "dark" : "light"; } catch (_) { document.documentElement.dataset.initialTheme = "light"; }</script>
   <style>html,body{background:#f6f7f4;color:#222522;color-scheme:light}html[data-initial-theme="dark"],html[data-initial-theme="dark"] body{background:#111513;color:#e7ece7;color-scheme:dark}</style>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css">
-  <link rel="stylesheet" href="style.css?v=0.5.0-110">
+  <link rel="stylesheet" href="style.css?v=0.5.0-111">
 </head>
 <body class="app-starting">
   <section id="appStartupGuard" class="app-startup-guard" role="status" aria-live="polite" aria-busy="true">
@@ -465,6 +465,7 @@
           <input id="importAiInput" type="file" accept=".json,.md,.txt,application/json,text/markdown,text/plain" hidden>
           <button id="settingsImportMarkdownZipBtn" type="button">バックアップ／Markdown ZIP取り込み</button>
           <input id="importMarkdownZipInput" type="file" accept=".zip,application/zip" hidden>
+          <button id="cancelBackupReadBtn" type="button" hidden>読み込みをキャンセル</button>
           <button id="settingsPasteJsonBtn" type="button">JSON貼り付け取り込み</button>
         </div>
       </section>
@@ -789,6 +790,19 @@
     </div>
   </dialog>
 
+  <dialog id="backupPreviewDialog" class="backup-preview-dialog" aria-labelledby="backupPreviewTitle">
+    <div class="dialog-head"><h2 id="backupPreviewTitle">バックアップの復元前確認</h2></div>
+    <div class="backup-preview-body">
+      <p>現在のデータにバックアップの内容を追加・更新します。全体をバックアップ時点へ戻す操作ではありません。同じIDのデータは、バックアップ側の更新日時が新しい場合だけ更新します。</p>
+      <div id="backupPreviewContent"></div>
+      <p id="backupPreviewStatus" role="status" aria-live="polite"></p>
+    </div>
+    <div class="backup-preview-actions">
+      <button id="cancelBackupPreviewBtn" type="button">キャンセル</button>
+      <button id="confirmBackupPreviewBtn" type="button">この内容で取り込む</button>
+    </div>
+  </dialog>
+
   <dialog id="jsonImportDialog" class="json-import-dialog">
     <div class="dialog-head">
       <strong>JSON取り込み</strong>
@@ -1008,7 +1022,7 @@
   <script src="note-save-foundation.js?v=0.5.0-8"></script>
   <script src="local-markdown.js?v=0.5.0-4"></script>
   <script src="local-sync-utils.js?v=0.5.0-10"></script>
-  <script src="backup-bundle-utils.js?v=0.5.0-5"></script>
+  <script src="backup-bundle-utils.js?v=0.5.0-6"></script>
   <script src="local-fs-adapter.js?v=0.5.0-1"></script>
   <script src="indexeddb-lifecycle.js?v=0.5.0-1"></script>
   <script src="manual-local-save.js?v=0.5.0-1"></script>
@@ -1017,7 +1031,7 @@
   <script src="draft-mirror-scheduler.js?v=0.5.0-2"></script>
   <script src="typing-performance-monitor.js?v=0.5.0-3"></script>
   <script src="layout-resize-utils.js?v=0.5.0-2"></script>
-  <script src="app.js?v=0.5.0-187"></script>
+  <script src="app.js?v=0.5.0-188"></script>
   <script src="codex-chat.js?v=0.5.0-6"></script>
 </body>
 </html>

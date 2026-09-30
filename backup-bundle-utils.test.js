@@ -25,8 +25,8 @@ test("タグバックアップ関連スクリプトのキャッシュ番号を�
   const html = fs.readFileSync("index.html", "utf8");
   assert.match(html, /tags\.js\?v=0\.5\.0-4/);
   assert.match(html, /local-sync-utils\.js\?v=0\.5\.0-10/);
-  assert.match(html, /backup-bundle-utils\.js\?v=0\.5\.0-5/);
-  assert.match(html, /app\.js\?v=0\.5\.0-187/);
+  assert.match(html, /backup-bundle-utils\.js\?v=0\.5\.0-6/);
+  assert.match(html, /app\.js\?v=0\.5\.0-188/);
 });
 
 test("完全バックアップはメモ個別のWebフォントIDをそのまま往復する", () => {
@@ -355,4 +355,33 @@ test("ID衝突ではimport側のupdatedAtが厳密に新しい場合だけ採用
   assert.equal(importedWins({ updatedAt: "2026-08-02T00:00:00.000Z" }, { updatedAt: "2026-08-03T00:00:00.000Z" }), true);
   assert.equal(importedWins({ updatedAt: "2026-08-03T00:00:00.000Z" }, { updatedAt: "2026-08-02T00:00:00.000Z" }), false);
   assert.equal(importedWins({ updatedAt: "2026-08-03T00:00:00.000Z" }, { updatedAt: "2026-08-03T00:00:00.000Z" }), false);
+  assert.equal(importedWins({ updatedAt: "2026-08-03T00:00:00.000Z" }, { updatedAt: "不正な日時" }), false);
+  assert.equal(importedWins({ updatedAt: null }, { updatedAt: null }), false);
+});
+
+test("重複するZIPパス・メモID・コレクションIDは計画前に中止する", () => {
+  const header = entry("manifest.json", JSON.stringify(manifest()));
+  const markdown = serializeLocalNote({ id: "same-id", title: "同名", updatedAt: "2026-08-02T00:00:00.000Z" }, "本文");
+  const options = { parseNote: parseLocalNote, normalizeTagDefinitions };
+  assert.throws(() => parsePortableBackup([header, header], options), /同じパス/);
+  assert.throws(() => parsePortableBackup([
+    header, entry("notes/a.md", markdown), entry("notes/b.md", markdown)
+  ], options), /メモIDが重複/);
+  assert.throws(() => parsePortableBackup([
+    header, entry("collections.json", JSON.stringify([{ id: "c", name: "A" }, { id: "c", name: "B" }]))
+  ], options), /コレクションIDが重複/);
+  assert.throws(() => parsePortableBackup([
+    entry("manifest.json", JSON.stringify(manifest({ version: BACKUP_VERSION + 1 })))
+  ], options), /新しいMemo-Nexus形式/);
+});
+
+test("同じタイトルでも異なるメモIDを別々に解析する", () => {
+  const parsed = parsePortableBackup([
+    entry("manifest.json", JSON.stringify(manifest())),
+    entry("notes/a.md", serializeLocalNote({ id: "first-id", title: "同じタイトル" }, "一つ目")),
+    entry("notes/b.md", serializeLocalNote({ id: "second-id", title: "同じタイトル" }, "二つ目"))
+  ], { parseNote: parseLocalNote, normalizeTagDefinitions });
+  assert.deepEqual(parsed.notes.map((item) => [item.note.id, item.note.title]), [
+    ["first-id", "同じタイトル"], ["second-id", "同じタイトル"]
+  ]);
 });

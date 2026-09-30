@@ -95,6 +95,11 @@
     const manifest = parseManifest(entries);
     if (!manifest) return null;
     if (typeof parseNote !== "function") throw new Error("バックアップの読み込み処理を初期化できませんでした");
+    const paths = new Set();
+    for (const entry of entries) {
+      if (paths.has(String(entry.name))) throw new Error(`ZIP内に同じパスが複数あります: ${entry.name}`);
+      paths.add(String(entry.name));
+    }
     const files = entryMap(entries);
     const skipped = [];
     const collections = [];
@@ -105,7 +110,11 @@
         if (!Array.isArray(source)) throw new Error("配列ではありません");
         source.forEach((item, index) => { if (!safeCollection(item)) skipped.push(`collections.json:${index + 1}`); });
         collections.push(...normalizeCollections(source, skipped));
-      } catch (_) { skipped.push("collections.json"); }
+        if (new Set(collections.map((item) => item.id)).size !== collections.length) throw new Error("コレクションIDが重複しています");
+      } catch (error) {
+        if (String(error.message).includes("コレクションIDが重複")) throw error;
+        skipped.push("collections.json");
+      }
     } else skipped.push("collections.json");
 
     const tags = [];
@@ -129,6 +138,7 @@
     }
 
     const notes = [];
+    const noteIds = new Set();
     for (const [path, entry] of files) {
       if (!path.startsWith("notes/") || !/\.md$/i.test(path)) continue;
       try {
@@ -163,6 +173,8 @@
           explanations: Array.isArray(metadata.explanations) ? metadata.explanations : undefined,
           fontSettings: metadata.fontSettings || undefined
         };
+        if (noteIds.has(note.id)) throw new Error(`メモIDが重複しています: ${note.id}`);
+        noteIds.add(note.id);
         notes.push({
           note,
           attachments: noteAssets,
@@ -170,9 +182,12 @@
           attachmentsComplete: missingAttachmentPaths.length === 0,
           missingAttachmentPaths
         });
-      } catch (_) { skipped.push(path); }
+      } catch (error) {
+        if (String(error.message).includes("メモIDが重複")) throw error;
+        skipped.push(path);
+      }
     }
-    return migrateBackup(manifest, { collections, tags, tagsFilePresent, notes, skipped });
+    return { ...migrateBackup(manifest, { collections, tags, tagsFilePresent, notes, skipped }), sourceVersion: manifest.version };
   }
 
   function timestamp(value) { const time = Date.parse(value); return Number.isFinite(time) ? time : 0; }
