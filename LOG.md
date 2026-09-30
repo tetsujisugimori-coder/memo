@@ -3802,3 +3802,11 @@ Windows 11 Home 10.0.26200、Playwright 1.62.1 のローカル WebKit で、既�
 **Interpretation:** 今回の代表3条件×3runでは250ms以上のStable最大attemptも、過去の約1406ms級も再発しなかった。したがって原因の候補を絞る異常試行は得られていない。正常範囲の値やrun間差から過去の遅延原因を推定しない。今回の観測はローカルWindows WebKitの代表条件に限られ、他の条件やUbuntu CIでの不発を意味しない。
 
 **次に必要な観測:** 現時点では追加診断を実装・提案する根拠はない。既存経路で250ms以上が再発した場合に、同一runId・条件のJSONとTraceを照合し、Measured factsとInterpretationを分けて未判定箇所を記録する。今回、診断機構・閾値・操作・wait・assertion・製品コードは変更していない。
+
+## 2026-10-01 バックアップZIPの復元前確認
+
+完全バックアップZIPを選んだ時点では保存せず、同じ解析結果から作成した計画に、メモの追加・更新・既存維持・スキップ、コレクション、タグ定義、添付の追加・置換・保持・欠損、ゴミ箱・所属変更、注意事項を表示する。version 2と既存のversion 1移行を対象とし、通常Markdown ZIPの経路は維持する。全体巻き戻し、古いデータの強制採用、メモ別選択は追加しない。解析できないmanifestと同一ZIP内の重複パス・メモID・コレクションIDは保存前に中止する。
+
+確認用計画はIndexedDBの同一readonly transactionから取得したメモ・コレクション・タグ・添付・完全削除情報を基準に作る。確定時のreadwrite transaction内で同じ集合と添付BlobのSHA-256を検査し、変化した場合は書き込まず、最新データで計画を再作成して再確認を求める。判定には既存の`importedWins()`、タグ統合・補完、添付保護を使う。補完タグも計画の保存対象へ含め、確定後の追加書き込みを行わない。通常保存キューは確定前に完了を待ち、失敗時は取り込みを中止する。保存中断時はトランザクション全体を取り消し、保存後の画面更新失敗とは分けて表示する。
+
+検証：`npm test` 1651/1651 PASS、変更したJSの`node --check`、`node backup-restore.e2e.js`（Chromium）、WebKit指定の同E2E、正式な`npm run test:e2e:mobile`（Chromium／WebKit）、`git diff --check`が成功。重点E2Eはプレビュー・取消・同じZIPの再選択・確定、未保存編集の通常保存、同日時本文変更、別タブのID作成・タグ・添付変更、永久削除情報の追加、保存中断と再試行、旧形式、通常Markdown ZIP、コレクション・タグ変更、既存タグ色補完、遅延解析の取消、320/390/1100pxとHTML風のタイトルを確認した。Chromiumでは添付の実保存と同サイズ・同メタデータの添付Blob内容変更の競合検出にも成功した。WindowsのPlaywright WebKitでは添付BlobのIndexedDB保存が失敗し、今回のE2Eではメモと添付が共に残らないことを確認した。既存のLOGにも元mainで同じWebKit Blob保存失敗の再現記録があるため、WebKitでの添付保存成功は未確認である。iPhone Safari実機は未確認。GitHub Actions結果はPR作成後に確認する。

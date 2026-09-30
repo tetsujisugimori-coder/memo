@@ -52,7 +52,7 @@ function readFunctionSource(name) {
 }
 
 test("tags.jsをapp.jsより前に読み込みwindow APIとして公開する", () => {
-  assert.ok(html.indexOf('src="tags.js?v=0.5.0-4"') < html.indexOf('src="app.js?v=0.5.0-187"'));
+  assert.ok(html.indexOf('src="tags.js?v=0.5.0-4"') < html.indexOf('src="app.js?v=0.5.0-188"'));
   assert.match(fs.readFileSync("tags.js", "utf8"), /global\.MemoNexusTags = api/);
 });
 
@@ -236,11 +236,14 @@ test("DB v6のtagsストアを維持し既存タグ色を冪等移行する", ()
   assert.doesNotMatch(source, /updatedAt\s*=/);
 });
 
-test("タグ定義変更はローカル要保存となり各取り込み直後に共通同期する", () => {
+test("タグ定義変更はローカル要保存となり、バックアップ分は確認済み計画に含める", () => {
   assert.match(readFunctionSource("putTagDefinitions"), /transaction\.oncomplete[\s\S]*markLocalWorkspacePending\(\)/);
-  for (const name of ["applyLocalCandidate", "importMarkdownZip", "applyPortableBackupImport", "restoreFromLocalFolder"]) {
+  for (const name of ["applyLocalCandidate", "importMarkdownZip", "restoreFromLocalFolder"]) {
     assert.match(readFunctionSource(name), /synchronizeRegisteredTagsForNotes\(/, `${name}でタグ同期すること`);
   }
+  assert.match(readFunctionSource("createPortableBackupPlan"), /mergeTagDefinitionsFromNotes\(mergedImportedTags/);
+  assert.match(readFunctionSource("createPortableBackupPlan"), /tagUpdates = mergedTags\.filter/);
+  assert.doesNotMatch(readFunctionSource("applyPortableBackupImport"), /synchronizeRegisteredTagsForNotes\(/);
   assert.match(readFunctionSource("applyPortableBackupTransaction"), /TAG_STORE_NAME/);
   assert.doesNotMatch(readFunctionSource("performLocalWorkspaceSave"), /putTagDefinitions|synchronizeRegisteredTagsForNotes/);
   const startup = readFunctionSource("init");

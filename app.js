@@ -668,6 +668,15 @@ const importAiInput = $("importAiInput");
 const settingsImportMarkdownZipBtn = $("settingsImportMarkdownZipBtn");
 const importMarkdownZipInput = $("importMarkdownZipInput");
 const backupImportStatus = $("backupImportStatus");
+const cancelBackupReadBtn = $("cancelBackupReadBtn");
+const backupPreviewDialog = $("backupPreviewDialog");
+const backupPreviewContent = $("backupPreviewContent");
+const backupPreviewStatus = $("backupPreviewStatus");
+const cancelBackupPreviewBtn = $("cancelBackupPreviewBtn");
+const confirmBackupPreviewBtn = $("confirmBackupPreviewBtn");
+let backupImportSession = 0;
+let activeBackupPreview = null;
+const backupImportErrors = new WeakSet();
 const webClipBtn = $("webClipBtn");
 const webClipDialog = $("webClipDialog");
 const webClipForm = $("webClipForm");
@@ -3808,23 +3817,31 @@ function replaceImportedMissingImage(markdown, attachmentId, reason) {
 
 async function importMarkdownZip(file) {
   if (!file) return;
+  const session = ++backupImportSession;
+  cancelBackupReadBtn.hidden = false;
+  if (backupImportStatus) backupImportStatus.textContent = "ZIPを読み込んでいます…";
   await saveCurrentNote();
+  if (session !== backupImportSession) return false;
   const entries = parseStoredZipEntries(new Uint8Array(await file.arrayBuffer()));
+  if (session !== backupImportSession) return false;
   if (isPortableBackup(entries)) {
     const imported = parsePortableBackup(entries, {
       parseNote: parseLocalNote,
       normalizeTagDefinitions,
       idFactory: () => crypto.randomUUID()
     });
-    const report = await applyPortableBackupImport(imported);
-    const tagDetail = report.tags.supplemented ? `（メモから補完 ${report.tags.supplemented}）` : "";
-    const summary = `バックアップを復元しました（メモ ${report.notes.restored}/${report.notes.total}、コレクション ${report.collections.restored}/${report.collections.total}、タグ ${report.tags.restored}/${report.tags.total}${tagDetail}、添付 ${report.attachments.restored}/${report.attachments.total}）`;
-    const preserved = report.attachments.preservedExisting ? " 一部の添付を復元できなかったため、既存の添付ファイルを保持しました。" : "";
-    const details = report.skipped.length ? ` スキップ: ${report.skipped.join("、")}` : "";
-    if (backupImportStatus) backupImportStatus.textContent = `${summary}${preserved}${details}`;
-    setSaveStatusNotice(`${summary}${report.skipped.length ? "（一部をスキップしました）" : ""}`);
-    return;
+    const plan = await createPortableBackupPlan(imported, file.name);
+    if (session !== backupImportSession) return false;
+    activeBackupPreview = { session, imported, plan, busy: false, committed: false };
+    renderPortableBackupPreview(plan);
+    backupPreviewStatus.textContent = "内容を確認してから取り込んでください。";
+    backupPreviewDialog.showModal();
+    cancelBackupPreviewBtn.focus();
+    cancelBackupReadBtn.hidden = true;
+    return false;
   }
+  cancelBackupReadBtn.hidden = true;
+  if (backupImportStatus) backupImportStatus.textContent = "Markdown ZIPを取り込んでいます…";
   const plans = buildMarkdownBundleImport(entries, () => crypto.randomUUID());
   const importedNotes = [];
   let failedImages = 0;
@@ -3887,6 +3904,8 @@ async function importMarkdownZip(file) {
   renderAll();
   if (importedNotes[0]) openNote(importedNotes[0].id);
   setSaveStatusNotice(`${importedNotes.length}件のMarkdownを取り込みました${failedImages ? `（画像${failedImages}件は取り込めませんでした）` : ""}`);
+  cancelBackupReadBtn.hidden = true;
+  return true;
 }
 
 function normalizedBackupNote(note, collectionIds) {
@@ -3905,6 +3924,50 @@ function normalizedBackupNote(note, collectionIds) {
   };
 }
 
+// All stores that can affect a backup decision are read in one snapshot. The
+// signature also includes attachment bytes, so a same-size replacement counts.
+const BACKUP_STATE_STORES = [STORE_NAME, COLLECTION_STORE_NAME, TAG_STORE_NAME, ATTACHMENT_STORE_NAME, TOMBSTONE_STORE_NAME];
+
+function readPortableBackupState() {
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(BACKUP_STATE_STORES, "readonly");
+    const state = {};
+    BACKUP_STATE_STORES.forEach((name) => {
+      const request = transaction.objectStore(name).getAll();
+      request.onsuccess = () => { state[name] = request.result; };
+    });
+    transaction.oncomplete = () => resolve(state);
+    transaction.onerror = () => reject(noteTransactionError(transaction, "復元前の保存データを読めませんでした"));
+    transaction.onabort = () => reject(noteTransactionError(transaction, "復元前の保存データを読めませんでした"));
+  });
+}
+
+async function portableBackupStateSignature(state, attachmentComparison) {
+  const stable = (records, key) => [...records].sort((a, b) => String(a[key]).localeCompare(String(b[key])));
+  const memoIds = new Set(attachmentComparison.memoIds);
+  const assetIds = new Set(attachmentComparison.assetIds);
+  const relevantAttachments = state[ATTACHMENT_STORE_NAME].filter((item) => memoIds.has(item.memoId) || assetIds.has(item.id));
+  const attachments = await Promise.all(stable(relevantAttachments, "id").map(async (record) => {
+    const { blob, ...metadata } = record;
+    const bytes = blob ? await blob.arrayBuffer() : new ArrayBuffer(0);
+    const digest = await crypto.subtle.digest("SHA-256", bytes);
+    return { metadata, digest: Array.from(new Uint8Array(digest)) };
+  }));
+  return JSON.stringify({
+    notes: stable(state[STORE_NAME], "id"),
+    collections: stable(state[COLLECTION_STORE_NAME], "id"),
+    tags: stable(state[TAG_STORE_NAME], "id"),
+    attachments,
+    tombstones: stable(state[TOMBSTONE_STORE_NAME], "noteId")
+  });
+}
+
+function portableBackupConflictError() {
+  const error = new Error("確認後にデータが変更されたため、取り込み内容を再確認してください");
+  error.code = "BACKUP_PREVIEW_STALE";
+  return error;
+}
+
 function restoreMissingBackupAttachmentReferences(note, existingAttachments, missingAttachmentPaths) {
   let body = String(note.body || "");
   for (const assetPath of missingAttachmentPaths || []) {
@@ -3917,25 +3980,45 @@ function restoreMissingBackupAttachmentReferences(note, existingAttachments, mis
   return body === note.body ? note : { ...note, body };
 }
 
-async function applyPortableBackupImport(imported) {
-  const existingNotes = await getAllNotes();
-  const existingCollections = await getAllCollections();
-  const existingTags = await getAllTagDefinitions();
+async function createPortableBackupPlan(imported, fileName) {
+  const state = await readPortableBackupState();
+  const attachmentComparison = {
+    memoIds: imported.notes.map((item) => item.note.id),
+    assetIds: imported.notes.flatMap((item) => item.attachments.map((asset) => asset.id))
+  };
+  const baseline = await portableBackupStateSignature(state, attachmentComparison);
+  const existingNotes = state[STORE_NAME].map(withNormalizedFlag).map(withNormalizedMemoTags);
+  const existingCollections = state[COLLECTION_STORE_NAME];
+  const existingTags = normalizeTagDefinitions(state[TAG_STORE_NAME]);
   const existingByNoteId = new Map(existingNotes.map((note) => [note.id, note]));
   const existingByCollectionId = new Map(existingCollections.map((collection) => [collection.id, collection]));
+  const tombstoneIds = new Set(state[TOMBSTONE_STORE_NAME].map((item) => item.noteId));
   const collectionUpdates = imported.collections.filter((collection) => !collection.isSystem && importedWins(existingByCollectionId.get(collection.id), collection));
   const availableCollectionIds = new Set([...existingByCollectionId.keys(), ...collectionUpdates.map((collection) => collection.id), UNCLASSIFIED_COLLECTION_ID]);
   const skipped = [...imported.skipped];
   const keptExisting = [];
   const importedNotePlans = [];
+  const noteDecisions = [];
   for (const plan of imported.notes) {
     const existing = existingByNoteId.get(plan.note.id);
+    const detail = { id: plan.note.id, title: plan.note.title, incomingAt: plan.note.updatedAt, existingAt: existing?.updatedAt || null };
+    if (tombstoneIds.has(plan.note.id)) {
+      noteDecisions.push({ ...detail, kind: "skip", reason: "このIDのメモは完全削除済みです" });
+      skipped.push(`notes/${plan.note.id}（完全削除済み）`);
+      continue;
+    }
     if (!importedWins(existing, plan.note)) {
-      skipped.push(`notes/${plan.note.id}（同じIDのより新しいデータがあります）`);
+      const existingTime = Date.parse(existing?.updatedAt);
+      const incomingTime = Date.parse(plan.note.updatedAt);
+      const reason = !Number.isFinite(existingTime) || !Number.isFinite(incomingTime)
+        ? "更新日時を比較できないため現在の内容を維持"
+        : existingTime === incomingTime ? "更新日時が同じため現在の内容を維持" : "現在の更新日時が新しいため維持";
+      noteDecisions.push({ ...detail, kind: "keep", reason });
       keptExisting.push(plan.note.id);
       continue;
     }
     const note = normalizedBackupNote(plan.note, availableCollectionIds);
+    noteDecisions.push({ ...detail, kind: existing ? "update" : "add", reason: existing ? "バックアップの更新日時が新しい" : "現在の保存データにないID" });
     if (plan.note.collectionId && note.collectionId === UNCLASSIFIED_COLLECTION_ID) skipped.push(`notes/${plan.note.id}（不明なコレクションを未分類へ移動）`);
     importedNotePlans.push({
       note,
@@ -3945,7 +4028,7 @@ async function applyPortableBackupImport(imported) {
     });
   }
   const existingAttachmentsByMemo = new Map();
-  for (const plan of importedNotePlans) existingAttachmentsByMemo.set(plan.note.id, await getAttachmentsForMemo(plan.note.id));
+  for (const plan of importedNotePlans) existingAttachmentsByMemo.set(plan.note.id, state[ATTACHMENT_STORE_NAME].filter((item) => item.memoId === plan.note.id));
   const preservedAttachmentMemoIds = [];
   const notePlans = importedNotePlans.map((plan) => {
     const existingAttachments = existingAttachmentsByMemo.get(plan.note.id) || [];
@@ -3968,36 +4051,20 @@ async function applyPortableBackupImport(imported) {
   const existingTagIds = new Set(existingTags.map((definition) => definition.id));
   const importedTagIds = new Set(importedTags.map((definition) => definition.id));
   const existingTagsById = new Map(existingTags.map((definition) => [definition.id, definition]));
-  const tagUpdates = mergedTags.filter((definition) => tagDefinitionChanged(existingTagsById.get(definition.id), definition));
+  const rawTagsById = new Map(state[TAG_STORE_NAME].map((definition) => [normalizeTagId(definition?.id ?? definition?.name), definition]));
+  const tagUpdates = mergedTags.filter((definition) => tagDefinitionChanged(existingTagsById.get(definition.id), definition)
+    || rawTagsById.get(definition.id)?.color !== definition.color);
   const supplementedTagIds = tagUpdates.filter((definition) => !existingTagIds.has(definition.id) && !importedTagIds.has(definition.id));
   const attachmentIds = attachmentIdsToReplace(notePlans, existingAttachmentsByMemo);
-  const importedPlansById = new Map(notePlans.map((plan) => [plan.note.id, plan]));
-  notePlans.forEach((plan) => {
-    if (!noteForSave(plan.note.id)) notes.unshift({ ...plan.note, revision: normalizeNoteRevision(plan.note.revision) });
-  });
-  if (notePlans.length) {
-    await mutateNotesAtomically(notePlans.map((plan) => plan.note.id), (note) => {
-      const incoming = importedPlansById.get(note.id)?.note;
-      const revision = normalizeNoteRevision(note.revision);
-      Object.keys(note).forEach((key) => { if (key !== "id") delete note[key]; });
-      Object.assign(note, incoming, { id: incoming.id, revision });
-    }, (snapshots) => applyPortableBackupTransaction({
-      collectionUpdates,
-      notePlans: snapshots.map((note) => ({ ...importedPlansById.get(note.id), note })),
-      oldAttachmentIds: attachmentIds,
-      attachmentRecords,
-      tagUpdates
-    }), { invalidateTermRelations: false, render: "none" });
-  } else {
-    await applyPortableBackupTransaction({ collectionUpdates, notePlans: [], oldAttachmentIds: attachmentIds, attachmentRecords, tagUpdates });
-  }
-  collections = await getAllCollections();
-  await synchronizeRegisteredTagsForNotes();
-  invalidateTermRelationIndex();
-  renderAll();
-  if (notePlans[0]) openNote(notePlans[0].note.id);
-  return {
-    notes: { restored: notePlans.length, total: imported.notes.length },
+  const report = {
+    notes: {
+      restored: notePlans.length, total: imported.notes.length,
+      added: noteDecisions.filter((item) => item.kind === "add").length,
+      updated: noteDecisions.filter((item) => item.kind === "update").length,
+      kept: keptExisting.length,
+      skipped: noteDecisions.filter((item) => item.kind === "skip").length
+        + imported.skipped.filter((item) => item.startsWith("notes/") && !item.includes(":")).length
+    },
     collections: { restored: collectionUpdates.length, total: imported.collections.length },
     tags: {
       restored: tagUpdates.length,
@@ -4007,35 +4074,194 @@ async function applyPortableBackupImport(imported) {
     },
     attachments: {
       restored: attachmentRecords.length,
+      replaced: attachmentIds.length,
       total: imported.notes.flatMap((plan) => plan.attachmentTotal ?? (plan.attachments || []).length).reduce((sum, count) => sum + count, 0),
       preservedExisting: preservedAttachmentMemoIds.length
     },
     keptExisting,
     skipped
   };
+  return {
+    source: { fileName, exportedAt: imported.manifest.exportedAt, version: imported.sourceVersion },
+    baseline, attachmentComparison, existingNotes, existingCollections, existingTags, existingAttachmentsByMemo,
+    noteDecisions, collectionUpdates, tagUpdates, supplementedTagIds,
+    notePlans, oldAttachmentIds: attachmentIds, attachmentRecords, report,
+    parsedCounts: { notes: imported.notes.length, collections: imported.collections.length, tags: importedTags.length,
+      attachments: report.attachments.total },
+    hasChanges: Boolean(notePlans.length || collectionUpdates.length || tagUpdates.length || attachmentIds.length || attachmentRecords.length)
+  };
 }
 
-function applyPortableBackupTransaction({ collectionUpdates, notePlans, oldAttachmentIds, attachmentRecords, tagUpdates }) {
+function appendBackupPreviewSection(title, lines, open = false) {
+  const details = document.createElement("details");
+  details.open = open;
+  const summary = document.createElement("summary");
+  summary.textContent = `${title}（${lines.length}件）`;
+  const list = document.createElement("ul");
+  lines.forEach((line) => {
+    const item = document.createElement("li");
+    item.textContent = line;
+    list.append(item);
+  });
+  details.append(summary, list);
+  backupPreviewContent.append(details);
+}
+
+function renderPortableBackupPreview(plan) {
+  backupPreviewContent.replaceChildren();
+  const { source, parsedCounts, noteDecisions } = plan;
+  const overview = document.createElement("p");
+  overview.textContent = `ファイル: ${source.fileName}／書き出し: ${source.exportedAt}／形式: version ${source.version}${source.version < 2 ? "（旧形式から読み込み時に移行）" : ""}。ZIPから読み取った項目: メモ ${parsedCounts.notes}、コレクション ${parsedCounts.collections}、タグ ${parsedCounts.tags}、添付 ${parsedCounts.attachments}。`;
+  backupPreviewContent.append(overview);
+  const labels = { add: "追加するメモ", update: "更新するメモ", keep: "現在の内容を維持するメモ", skip: "保護によりスキップするメモ" };
+  for (const [kind, label] of Object.entries(labels)) {
+    appendBackupPreviewSection(label, noteDecisions.filter((item) => item.kind === kind).map((item) =>
+      `${item.title}（ID: ${item.id}）: ${item.reason}${item.kind === "update" || item.kind === "keep" ? `。バックアップ: ${item.incomingAt || "日時なし"}／現在: ${item.existingAt || "日時なし"}` : ""}`
+    ), kind === "add" || kind === "update");
+  }
+  const collectionById = new Map(plan.existingCollections.map((item) => [item.id, item]));
+  appendBackupPreviewSection("コレクションの追加・更新", plan.collectionUpdates.map((item) =>
+    `${item.name}（ID: ${item.id}）: ${collectionById.has(item.id) ? "更新" : "追加"}`));
+  const tagById = new Map(plan.existingTags.map((item) => [item.id, item]));
+  const supplemented = new Set(plan.supplementedTagIds.map((item) => item.id));
+  appendBackupPreviewSection("タグ定義の追加・変更・補完", plan.tagUpdates.map((item) =>
+    `${item.name}（ID: ${item.id}）: ${supplemented.has(item.id) ? "メモから補完" : tagById.has(item.id) ? "定義を変更。既存メモの表示にも影響する場合があります" : "追加"}`));
+  appendBackupPreviewSection("添付の追加・置換・保持・欠損", plan.notePlans.filter((item) =>
+    (plan.existingAttachmentsByMemo.get(item.note.id) || []).length || item.attachments.length || !item.attachmentsComplete
+  ).map((item) => {
+    const oldCount = (plan.existingAttachmentsByMemo.get(item.note.id) || []).length;
+    const incomingCount = item.attachments.length;
+    const action = item.attachmentsComplete
+      ? `既存 ${oldCount}件を削除して ${incomingCount}件に置換`
+      : `欠損 ${item.missingAttachmentPaths.length}件。既存 ${oldCount}件は保持し、読めた ${incomingCount}件を追加`;
+    return `${item.note.title}（ID: ${item.note.id}）: ${action}`;
+  }));
+  const oldNoteById = new Map(plan.existingNotes.map((item) => [item.id, item]));
+  appendBackupPreviewSection("ゴミ箱・所属コレクションの変更", plan.notePlans.flatMap((item) => {
+    const old = oldNoteById.get(item.note.id);
+    if (!old) return item.note.deletedAt ? [`${item.note.title}（ID: ${item.note.id}）: ゴミ箱内のメモとして追加`] : [];
+    const changes = [];
+    if (Boolean(old.deletedAt) !== Boolean(item.note.deletedAt)) changes.push(item.note.deletedAt ? "ゴミ箱へ移動" : "ゴミ箱から復元");
+    if (old.collectionId !== item.note.collectionId) changes.push(`所属を ${item.note.collectionId} へ変更`);
+    return changes.length ? [`${item.note.title}（ID: ${item.note.id}）: ${changes.join("、")}`] : [];
+  }));
+  appendBackupPreviewSection("注意事項・読み込めずスキップした項目", plan.report.skipped, plan.report.skipped.length > 0);
+  if (!plan.hasChanges) {
+    const noChange = document.createElement("p");
+    noChange.textContent = "変更する項目はありません。保存処理は行いません。";
+    backupPreviewContent.append(noChange);
+  }
+  confirmBackupPreviewBtn.disabled = !plan.hasChanges;
+  confirmBackupPreviewBtn.hidden = false;
+  cancelBackupPreviewBtn.textContent = "キャンセル";
+}
+
+function portableBackupResultText(report) {
+  return `取り込みが完了しました。メモ追加 ${report.notes.added}件・更新 ${report.notes.updated}件・現在の内容を維持 ${report.notes.kept}件・スキップ ${report.notes.skipped}件、コレクション ${report.collections.restored}件、タグ ${report.tags.restored}件、添付追加 ${report.attachments.restored}件・置換に伴う削除 ${report.attachments.replaced}件を保存しました。${report.skipped.length ? ` 注意事項: ${report.skipped.join("、")}` : ""}`;
+}
+
+async function applyPortableBackupImport(plan) {
+  if (!plan.hasChanges) return { ...plan.report, saved: false };
+  const targetIds = plan.notePlans.map((item) => item.note.id);
+  for (const noteId of targetIds) {
+    if (!noteForSave(noteId)) continue;
+    const state = noteSaveFoundation.getState(noteId);
+    if (!state?.dirty && state?.lastError && backupImportErrors.has(state.lastError)) continue;
+    await flushScheduledNoteSave(noteId);
+    await waitForNoteSave(noteId);
+  }
+  const importedPlansById = new Map(plan.notePlans.map((item) => [item.note.id, item]));
+  const storedById = new Map(plan.existingNotes.map((note) => [note.id, note]));
+  const liveNotesById = new Map(plan.notePlans.map((item) => [
+    item.note.id, cloneNoteSnapshot(storedById.get(item.note.id) || item.note)
+  ]));
+  try {
+    if (plan.notePlans.length) {
+      await mutateNotesAtomically(targetIds, (snapshot) => {
+        const incoming = importedPlansById.get(snapshot.id).note;
+        const revision = normalizeNoteRevision(snapshot.revision);
+        Object.keys(snapshot).forEach((key) => { if (key !== "id") delete snapshot[key]; });
+        Object.assign(snapshot, incoming, { id: incoming.id, revision });
+      }, (snapshots) => applyPortableBackupTransaction(plan, snapshots.map((note) => ({ ...importedPlansById.get(note.id), note }))), {
+        liveNotesById, captureCurrentDraft: false, clearScheduledSaves: false, invalidateTermRelations: false, render: "none"
+      });
+    } else {
+      await applyPortableBackupTransaction(plan, []);
+    }
+  } catch (error) {
+    if (error && typeof error === "object") backupImportErrors.add(error);
+    if (!plan.committed) throw error;
+    console.error("Backup import committed, but save completion failed", error);
+    return { ...plan.report, saved: true, refreshError: error };
+  }
+  try {
+    notes = await getAllNotes();
+    collections = await getAllCollections();
+    registeredTags = await getAllTagDefinitions();
+    invalidateTermRelationIndex();
+    renderAll();
+    if (plan.notePlans[0]) openNote(plan.notePlans[0].note.id);
+    return { ...plan.report, saved: true };
+  } catch (error) {
+    console.error("Backup import committed, but UI refresh failed", error);
+    return { ...plan.report, saved: true, refreshError: error };
+  }
+}
+
+function applyPortableBackupTransaction(plan, notePlans) {
+  const { collectionUpdates, oldAttachmentIds, attachmentRecords, tagUpdates } = plan;
   return new Promise((resolve, reject) => {
     const transaction = db.transaction([STORE_NAME, COLLECTION_STORE_NAME, ATTACHMENT_STORE_NAME, TAG_STORE_NAME, TOMBSTONE_STORE_NAME], "readwrite");
     const noteStore = transaction.objectStore(STORE_NAME);
     const collectionStore = transaction.objectStore(COLLECTION_STORE_NAME);
     const attachmentStore = transaction.objectStore(ATTACHMENT_STORE_NAME);
     const tagStore = transaction.objectStore(TAG_STORE_NAME);
-    guardNoteWrites(transaction, notePlans.map((plan) => plan.note.id), () => {
-      collectionUpdates.forEach((collection) => collectionStore.put(collection));
-      oldAttachmentIds.forEach((id) => attachmentStore.delete(id));
-      attachmentRecords.forEach((attachment) => attachmentStore.put(attachment));
-      tagUpdates.forEach((definition) => tagStore.put(definition));
-      notePlans.forEach((plan) => noteStore.put(plan.note));
-    }, TOMBSTONE_STORE_NAME);
+    let validationError = null;
+    let verified = false;
+    let currentState = null;
+    let applied = false;
+    const reads = BACKUP_STATE_STORES.map((name) => new Promise((readResolve, readReject) => {
+      const request = transaction.objectStore(name).getAll();
+      request.onsuccess = () => readResolve([name, request.result]);
+      request.onerror = () => readReject(request.error);
+    }));
+    const abort = (error) => {
+      validationError = error;
+      try { transaction.abort(); } catch (_) {}
+    };
+    // Keep this transaction active while attachment bytes are hashed. A write
+    // from another tab cannot enter between the comparison and the puts.
+    const keepAlive = () => {
+      const request = noteStore.count();
+      request.onsuccess = () => {
+        if (!verified) { keepAlive(); return; }
+        if (validationError) { abort(validationError); return; }
+        if (applied) return;
+        applied = true;
+        guardNoteWrites(transaction, notePlans.map((item) => item.note.id), () => {
+          collectionUpdates.forEach((collection) => collectionStore.put(collection));
+          oldAttachmentIds.forEach((id) => attachmentStore.delete(id));
+          attachmentRecords.forEach((attachment) => attachmentStore.put(attachment));
+          tagUpdates.forEach((definition) => tagStore.put(definition));
+          notePlans.forEach((item) => noteStore.put(item.note));
+        }, TOMBSTONE_STORE_NAME);
+      };
+    };
+    keepAlive();
+    Promise.all(reads).then(async (pairs) => {
+      currentState = Object.fromEntries(pairs);
+      if (await portableBackupStateSignature(currentState, plan.attachmentComparison) !== plan.baseline) validationError = portableBackupConflictError();
+    }).catch((error) => { validationError = error; }).finally(() => { verified = true; });
     transaction.oncomplete = () => {
-      notePlans.forEach((plan) => notifyMemoChanged(plan.note));
-      markLocalWorkspacePending();
+      plan.committed = true;
+      try {
+        notePlans.forEach((item) => notifyMemoChanged(item.note));
+        markLocalWorkspacePending();
+      } catch (error) { console.error("Backup import committed, but notification failed", error); }
       resolve();
     };
-    transaction.onerror = () => reject(noteTransactionError(transaction, "バックアップの保存に失敗しました"));
-    transaction.onabort = () => reject(noteTransactionError(transaction, "バックアップの保存を安全のため中止しました"));
+    transaction.onerror = () => reject(validationError || noteTransactionError(transaction, "バックアップの保存に失敗しました"));
+    transaction.onabort = () => reject(validationError || noteTransactionError(transaction, "バックアップの保存を安全のため中止しました"));
   });
 }
 
@@ -16372,15 +16598,82 @@ if (settingsImportMarkdownZipBtn && importMarkdownZipInput) {
     const [file] = importMarkdownZipInput.files || [];
     if (!file) return;
     try {
-      await importMarkdownZip(file);
-      settingsDialog.close();
+      if (activeBackupPreview) return;
+      const completed = await importMarkdownZip(file);
+      if (completed) settingsDialog.close();
     } catch (error) {
-      alert(`バックアップ／Markdown ZIPの取り込みに失敗しました: ${error.message || error}`);
+      if (backupImportStatus) backupImportStatus.textContent = `バックアップ／Markdown ZIPの取り込みに失敗しました: ${error.message || error}`;
+      setSaveStatusNotice("ZIPの取り込みを中止しました");
     } finally {
       importMarkdownZipInput.value = "";
+      cancelBackupReadBtn.hidden = true;
     }
   });
 }
+cancelBackupReadBtn?.addEventListener("click", () => {
+  backupImportSession += 1;
+  cancelBackupReadBtn.hidden = true;
+  if (backupImportStatus) backupImportStatus.textContent = "ZIPの読み込みをキャンセルしました。";
+});
+backupPreviewDialog?.addEventListener("cancel", (event) => {
+  if (activeBackupPreview?.busy) { event.preventDefault(); return; }
+  activeBackupPreview = null;
+  backupImportSession += 1;
+});
+backupPreviewDialog?.addEventListener("close", () => {
+  if (activeBackupPreview?.busy) return;
+  if (!backupPreviewDialog.open && activeBackupPreview) {
+    activeBackupPreview = null;
+    backupImportSession += 1;
+  }
+  settingsImportMarkdownZipBtn?.focus();
+});
+cancelBackupPreviewBtn?.addEventListener("click", () => {
+  if (activeBackupPreview?.busy) return;
+  activeBackupPreview = null;
+  backupImportSession += 1;
+  backupPreviewDialog.close();
+});
+confirmBackupPreviewBtn?.addEventListener("click", async () => {
+  const preview = activeBackupPreview;
+  if (!preview || preview.busy || preview.committed || !preview.plan?.hasChanges) return;
+  preview.busy = true;
+  confirmBackupPreviewBtn.disabled = true;
+  cancelBackupPreviewBtn.disabled = true;
+  backupPreviewStatus.textContent = "保存中です…";
+  try {
+    const report = await applyPortableBackupImport(preview.plan);
+    preview.committed = true;
+    preview.imported = null;
+    preview.plan = null;
+    confirmBackupPreviewBtn.hidden = true;
+    cancelBackupPreviewBtn.textContent = "閉じる";
+    const result = portableBackupResultText(report);
+    backupPreviewStatus.textContent = report.refreshError
+      ? `${result} 画面の更新に失敗しました。保存は完了しています。ページを再読み込みして確認してください。`
+      : result;
+    if (backupImportStatus) backupImportStatus.textContent = backupPreviewStatus.textContent;
+    setSaveStatusNotice(report.refreshError ? "バックアップは保存済みです。画面を再読み込みしてください" : "バックアップを取り込みました");
+  } catch (error) {
+    if (error.code === "BACKUP_PREVIEW_STALE" || error.code === "NOTE_PERMANENTLY_DELETED") {
+      backupPreviewStatus.textContent = "確認後にデータが変更されたため、取り込み内容を再確認してください。";
+      try {
+        preview.plan = await createPortableBackupPlan(preview.imported, preview.plan.source.fileName);
+        renderPortableBackupPreview(preview.plan);
+      } catch (refreshError) {
+        backupPreviewStatus.textContent = `再確認できませんでした: ${refreshError.message || refreshError}`;
+        preview.plan = null;
+      }
+    } else {
+      backupPreviewStatus.textContent = `保存に失敗したため取り込みを中止しました: ${error.message || error}`;
+      setSaveStatusNotice("バックアップの保存に失敗しました");
+    }
+  } finally {
+    preview.busy = false;
+    cancelBackupPreviewBtn.disabled = false;
+    if (!preview.committed && preview.plan) confirmBackupPreviewBtn.disabled = !preview.plan.hasChanges;
+  }
+});
 if (settingsPasteJsonBtn && jsonImportDialog) {
   settingsPasteJsonBtn.addEventListener("click", () => {
     settingsDialog.close();
