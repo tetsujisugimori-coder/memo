@@ -266,6 +266,7 @@ test("tags.jsonがないv1バックアップはメモタグから定義を冪等
   assert.equal(parsed.tagsFilePresent, false);
   assert.equal(parsed.sourceVersion, 1);
   assert.equal(parsed.manifest.version, 3);
+  assert.equal(parsed.manifest.formatVersion, 3);
   assert.deepEqual(first, second);
   assert.deepEqual(first.map((tag) => [tag.id, tag.name]), [["ai", "ai"], ["資料", "資料"]]);
 });
@@ -288,7 +289,7 @@ test("v2バックアップは本文・コレクション・タグ・添付を保
   ], { parseNote: parseLocalNote, normalizeTagDefinitions, idFactory: () => "new-image" });
   assert.equal(parsed.sourceVersion, 2);
   assert.equal(parsed.manifest.version, 3);
-  assert.equal(parsed.manifest.formatVersion, 2);
+  assert.equal(parsed.manifest.formatVersion, 3);
   assert.deepEqual(parsed.collections, [collection]);
   assert.deepEqual(parsed.tags, [tag]);
   assert.equal(parsed.notes[0].note.collectionId, "archive");
@@ -299,6 +300,17 @@ test("v2バックアップは本文・コレクション・タグ・添付を保
   assert.equal(parsed.notes[0].attachments[0].id, "new-image");
   assert.deepEqual(parsed.notes[0].attachments[0].data, bytes);
   assert.equal(parsed.notes[0].attachmentsComplete, true);
+});
+
+test("v3バックアップのmanifestはv3のまま読み込む", () => {
+  const parsed = parsePortableBackup([
+    entry("manifest.json", JSON.stringify(manifest({ version: 3, formatVersion: 3 }))),
+    entry("collections.json", "[]"),
+    entry("tags.json", "[]")
+  ], { parseNote: parseLocalNote, normalizeTagDefinitions });
+  assert.equal(parsed.sourceVersion, 3);
+  assert.equal(parsed.manifest.version, 3);
+  assert.equal(parsed.manifest.formatVersion, 3);
 });
 
 test("v4以上のバックアップは新しい形式として拒否する", () => {

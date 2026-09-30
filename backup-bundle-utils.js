@@ -40,6 +40,7 @@
       current = migrate(current);
       version += 1;
       current.manifest.version = version;
+      current.manifest.formatVersion = version;
     }
     return current;
   }
