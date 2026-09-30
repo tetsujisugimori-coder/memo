@@ -99,11 +99,19 @@ async function openFigureEditor(page) {
       await flushSave();
       return (await buildPortableBackupZipFiles()).map((file) => ({ name: file.name, content: file.content instanceof Blob ? null : file.content }));
     });
+    assert.equal(JSON.parse(files.find((file) => file.name === "manifest.json").content).version, 3);
     assert.ok(files.some((file) => file.name.startsWith("assets/")));
     const backup = Buffer.from(await page.evaluate(async () => Array.from(new Uint8Array(await (await makeZip(await buildPortableBackupZipFiles())).arrayBuffer()))));
-    const parsed = await page.evaluate((bytes) => parseStoredZipEntries(Uint8Array.from(bytes)).map((entry) => entry.name), [...backup]);
-    assert.ok(parsed.some((name) => name.startsWith("notes/")));
-    assert.ok(parsed.some((name) => name.startsWith("assets/")));
+    const parsed = await page.evaluate((bytes) => {
+      const entries = parseStoredZipEntries(Uint8Array.from(bytes));
+      return {
+        names: entries.map((entry) => entry.name),
+        manifest: JSON.parse(new TextDecoder().decode(entries.find((entry) => entry.name === "manifest.json").data))
+      };
+    }, [...backup]);
+    assert.equal(parsed.manifest.version, 3);
+    assert.ok(parsed.names.some((name) => name.startsWith("notes/")));
+    assert.ok(parsed.names.some((name) => name.startsWith("assets/")));
 
     const second = await openApp(browser, origin);
     await second.page.locator("#importMarkdownZipInput").setInputFiles({ name: "figure-backup.zip", mimeType: "application/zip", buffer: backup });
@@ -126,6 +134,7 @@ async function openFigureEditor(page) {
       const manifest = files.find((file) => file.name === "manifest.json");
       const parsed = JSON.parse(manifest.content);
       parsed.version = 1;
+      parsed.formatVersion = 1;
       manifest.content = JSON.stringify(parsed);
       return Array.from(new Uint8Array(await (await makeZip(files)).arrayBuffer()));
     }, noteId));

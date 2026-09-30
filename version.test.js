@@ -56,9 +56,9 @@ test("全ローカルCSS・JavaScriptを0.5.0のキャッシュ識別子で読�
   assert.match(html, /app\.js\?v=0\.5\.0-189/);
 });
 
-test("本体リリースと別管理の互換性バージョンを変更しない", () => {
+test("本体リリースと各形式のバージョンを確認する", () => {
   assert.match(app, /const DB_VERSION = 6;/);
-  assert.match(backup, /const BACKUP_VERSION = 2;/);
+  assert.match(backup, /const BACKUP_VERSION = 3;/);
   assert.match(tableBlocks, /const TABLE_BLOCK_VERSION = 1;/);
   assert.match(chartBlocks, /const CHART_BLOCK_VERSION = 1;/);
   assert.match(codexRuntime, /clientInfo: \{ name: "memo-nexus-codex-chat", version: "0\.1\.1" \}/);
