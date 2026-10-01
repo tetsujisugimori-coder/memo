@@ -3810,3 +3810,9 @@ Windows 11 Home 10.0.26200、Playwright 1.62.1 のローカル WebKit で、既�
 確認用計画はIndexedDBの同一readonly transactionから取得したメモ・コレクション・タグ・添付・完全削除情報を基準に作る。確定時のreadwrite transaction内で同じ集合と添付BlobのSHA-256を検査し、変化した場合は書き込まず、最新データで計画を再作成して再確認を求める。判定には既存の`importedWins()`、タグ統合・補完、添付保護を使う。補完タグも計画の保存対象へ含め、確定後の追加書き込みを行わない。通常保存キューは確定前に完了を待ち、失敗時は取り込みを中止する。保存中断時はトランザクション全体を取り消し、保存後の画面更新失敗とは分けて表示する。
 
 検証：`npm test` 1651/1651 PASS、変更したJSの`node --check`、`node backup-restore.e2e.js`（Chromium）、WebKit指定の同E2E、正式な`npm run test:e2e:mobile`（Chromium／WebKit）、`git diff --check`が成功。重点E2Eはプレビュー・取消・同じZIPの再選択・確定、未保存編集の通常保存、同日時本文変更、別タブのID作成・タグ・添付変更、永久削除情報の追加、保存中断と再試行、旧形式、通常Markdown ZIP、コレクション・タグ変更、既存タグ色補完、遅延解析の取消、320/390/1100pxとHTML風のタイトルを確認した。Chromiumでは添付の実保存と同サイズ・同メタデータの添付Blob内容変更の競合検出にも成功した。WindowsのPlaywright WebKitでは添付BlobのIndexedDB保存が失敗し、今回のE2Eではメモと添付が共に残らないことを確認した。既存のLOGにも元mainで同じWebKit Blob保存失敗の再現記録があるため、WebKitでの添付保存成功は未確認である。iPhone Safari実機は未確認。GitHub Actions結果はPR作成後に確認する。
+## 2026-10-01 Visual Markdown Report v1 第3段階
+
+- `source-utils.js` に安定IDのSourceモデル、version 1 のhex UTF-8 JSONマーカー、Citation抽出、参照Source収集、URL検証を追加。
+- 本文 `[@source-id]` を通常/Report Preview共通の `renderPreview()` 経路で番号付きリンクに変換し、参照されたSourceだけを末尾に表示。未登録IDと壊れたマーカーは原文を維持。
+- 最小の出典管理ダイアログを追加。Source編集は本文保存経路を使用し、参照中の削除を防止。
+- Markdown ZIP・完全バックアップは本文を保持する既存経路を再利用。backup manifest はv3のまま。Figure metadata形式は変更しない。

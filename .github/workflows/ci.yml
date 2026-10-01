@@ -170,6 +170,9 @@ jobs:
       - name: Run Report Preview E2E
         run: npm run test:e2e:report-preview
 
+      - name: Run Citation Source E2E
+        run: npm run test:e2e:citation-source
+
   mobile-e2e:
     name: Mobile E2E (${{ matrix.browser }})
     runs-on: ubuntu-latest

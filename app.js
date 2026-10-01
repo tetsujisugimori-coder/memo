@@ -324,6 +324,7 @@ const {
   splitImageBlocks
 } = window.MemoNexusAttachmentUtils;
 const { figureSourceTypeLabel, hasFigureMetadata, normalizeFigureMetadata, safeFigureSourceUrl } = window.MemoNexusFigureMetadataUtils;
+const { SOURCE_TYPES: SOURCE_TYPE_LABELS, parseSourceDocument, withSources, safeSourceUrl, extractCitations } = window.MemoNexusSourceUtils;
 const {
   TAG_COLOR_PALETTE,
   assignRegisteredTag,
@@ -878,6 +879,13 @@ const reportPreviewMobileBtn = $("reportPreviewMobileBtn");
 const reportPreviewBackBtn = $("reportPreviewBackBtn");
 const reportPreviewTitle = $("reportPreviewTitle");
 const reportPreviewHeading = document.querySelector(".report-preview-heading");
+const manageSourcesBtn = $("manageSourcesBtn");
+const sourceDialog = $("sourceDialog");
+const sourceList = $("sourceList");
+const sourceForm = $("sourceForm");
+const sourceStatus = $("sourceStatus");
+let editingSourceId = null;
+let citationRenderContext = null;
 const noteFlagBtn = $("noteFlagBtn");
 const popoutMemoBtn = $("popoutMemoBtn");
 const popoutBackBtn = $("popoutBackBtn");
@@ -8049,7 +8057,7 @@ function clearDeleteUndoMessage() {
 // タイトル欄が空のとき、本文の最初の空でない行をタイトル候補にします。
 // 先頭のMarkdown見出し記号やWikiリンク記号は、タイトルとして読みやすい形に整えます。
 function titleFromBody(body) {
-  const firstLine = body
+  const firstLine = String(body).replace(/^<!-- memo-nexus:sources-v1:[0-9a-f]+ -->\r?\n?/gmi, "")
     .split(/\r?\n/)
     .map((line) => line.trim())
     .find(Boolean);
@@ -8105,6 +8113,105 @@ function renderPreview() {
   renderLinkList();
   renderLinkStats();
   if (document.body.classList.contains("report-preview-mode")) setReportPreviewControlsReadOnly(true);
+}
+
+function commitSourceBody(nextBody) {
+  if (!currentNote() || nextBody === editor.value) return;
+  pushUndoSnapshot({ noteId: currentId, title: titleInput.value, body: editor.value, savedAt: Date.now() });
+  redoStack = [];
+  editor.value = nextBody;
+  scheduleSave();
+  renderPreview();
+  updateUndoButton();
+}
+
+function renderSourceList() {
+  sourceList.replaceChildren();
+  const sources = parseSourceDocument(editor.value).sources;
+  if (!sources.length) {
+    const empty = document.createElement("p");
+    empty.textContent = "登録された出典はありません。";
+    sourceList.append(empty);
+  }
+  sources.forEach((source) => {
+    const row = document.createElement("div");
+    row.className = "source-list-item";
+    const label = document.createElement("span");
+    label.textContent = source.title || source.author || source.url || source.id;
+    const insert = document.createElement("button");
+    insert.type = "button";
+    insert.textContent = "引用を挿入";
+    insert.addEventListener("click", () => {
+      if (sourceDialog.dataset.noteId !== currentId) return;
+      const bodyLength = parseSourceDocument(editor.value).body.length;
+      const start = Math.min(editor.selectionStart, bodyLength);
+      const end = Math.min(editor.selectionEnd, bodyLength);
+      const next = `${editor.value.slice(0, start)}[@${source.id}]${editor.value.slice(end)}`;
+      commitSourceBody(next);
+      editor.setSelectionRange(start + source.id.length + 3, start + source.id.length + 3);
+      sourceDialog.close();
+      editor.focus();
+    });
+    const edit = document.createElement("button");
+    edit.type = "button";
+    edit.textContent = "編集";
+    edit.addEventListener("click", () => {
+      editingSourceId = source.id;
+      for (const key of ["title", "author", "publisher", "date", "url", "accessedAt", "page", "sourceType"]) sourceForm.elements.namedItem(key).value = source[key];
+      $("sourceFormTitle").textContent = "出典を編集";
+      sourceForm.elements.namedItem("title").focus();
+    });
+    const remove = document.createElement("button");
+    remove.type = "button";
+    remove.textContent = "削除";
+    remove.addEventListener("click", () => {
+      if (extractCitations(editor.value).includes(source.id)) {
+        sourceStatus.textContent = "このSourceは本文から参照されています。引用を削除してから出典を削除してください。";
+        return;
+      }
+      commitSourceBody(withSources(editor.value, parseSourceDocument(editor.value).sources.filter((item) => item.id !== source.id)));
+      resetSourceForm();
+      renderSourceList();
+      sourceStatus.textContent = "出典を削除しました。";
+    });
+    row.append(label, insert, edit, remove);
+    sourceList.append(row);
+  });
+}
+
+function resetSourceForm() {
+  editingSourceId = null;
+  sourceForm.reset();
+  $("sourceFormTitle").textContent = "出典を追加";
+}
+
+function openSourceDialog() {
+  if (!currentNote()) return;
+  sourceDialog.dataset.noteId = currentId;
+  resetSourceForm();
+  sourceStatus.textContent = "";
+  renderSourceList();
+  sourceDialog.showModal();
+}
+
+function saveSourceFromForm(event) {
+  event.preventDefault();
+  if (sourceDialog.dataset.noteId !== currentId) return;
+  const sources = parseSourceDocument(editor.value).sources;
+  const values = Object.fromEntries(["title", "author", "publisher", "date", "url", "accessedAt", "page", "sourceType"]
+    .map((key) => [key, sourceForm.elements.namedItem(key).value]));
+  if (!Object.values(values).some((value) => value.trim())) {
+    sourceStatus.textContent = "少なくとも1項目を入力してください。";
+    return;
+  }
+  const id = editingSourceId || `source-${crypto.randomUUID()}`;
+  const next = editingSourceId
+    ? sources.map((source) => source.id === id ? { id, ...values } : source)
+    : [...sources, { id, ...values }];
+  commitSourceBody(withSources(editor.value, next));
+  resetSourceForm();
+  renderSourceList();
+  sourceStatus.textContent = "出典を保存しました。";
 }
 
 function setReportPreviewControlsReadOnly(readOnly) {
@@ -11799,7 +11906,9 @@ function handleEditorAttachmentDrop(event) {
 }
 
 function renderPreviewHtml(body, noteId = "preview", renderGeneration = 0) {
-  const cleanedBody = stripExplanationAnchorComments(body);
+  const documentSources = parseSourceDocument(body);
+  const cleanedBody = stripExplanationAnchorComments(documentSources.body);
+  citationRenderContext = { byId: new Map(documentSources.sources.map((source) => [source.id, source])), numbers: new Map(), ordered: [] };
   let codeBlockIndex = 0;
   let tableBlockIndex = 0;
   let geometryBlockIndex = 0;
@@ -11846,7 +11955,23 @@ function renderPreviewHtml(body, noteId = "preview", renderGeneration = 0) {
     .filter(Boolean)
     .join("");
 
-  return html || `<p class="empty">本文を書くとカード表示されます。</p>`;
+  const sourcesHtml = renderReferencedSources(citationRenderContext.ordered);
+  citationRenderContext = null;
+  return (html || `<p class="empty">本文を書くとカード表示されます。</p>`) + sourcesHtml;
+}
+
+function renderReferencedSources(sources) {
+  if (!sources.length) return "";
+  const rows = sources.map((source, index) => {
+    const fields = [source.author, source.title, source.publisher, source.date, source.page && `p. ${source.page}`, SOURCE_TYPE_LABELS[source.sourceType], source.accessedAt && `閲覧: ${source.accessedAt}`]
+      .filter((value) => value && value.trim()).map(escapeHtml);
+    const href = safeSourceUrl(source.url);
+    if (source.url.trim()) fields.push(href
+      ? `<a href="${escapeAttr(href)}" target="_blank" rel="noopener noreferrer">${escapeHtml(source.url)}</a>`
+      : escapeHtml(source.url));
+    return `<li id="source-${escapeAttr(source.id)}"><span class="source-number">[${index + 1}]</span> ${fields.join(" / ") || "資料情報なし"}</li>`;
+  }).join("");
+  return `<section class="report-sources" aria-label="出典"><h2>出典</h2><ol>${rows}</ol></section>`;
 }
 
 function renderGeometryBlock(geometry, blockIndex) {
@@ -12302,6 +12427,18 @@ function renderMarkdownInline(text, { automaticTerms = previewAutomaticTerms, au
     html += renderPlainText(text.slice(index, token.start));
     if (token.type === "code") {
       html += `<code class="inline-code">${escapeHtml(token.content)}</code>`;
+    } else if (token.type === "citation") {
+      const context = citationRenderContext;
+      const source = context?.byId.get(token.id);
+      if (!source) html += escapeHtml(token.raw);
+      else {
+        if (!context.numbers.has(source.id)) {
+          context.ordered.push(source);
+          context.numbers.set(source.id, context.ordered.length);
+        }
+        const number = context.numbers.get(source.id);
+        html += `<a class="citation-link" href="#source-${escapeAttr(source.id)}" aria-label="出典 ${number} へ移動">[${number}]</a>`;
+      }
     } else if (token.type === "term-link") {
       html += renderWikiButton(token.content);
     } else if (token.type === "memo-link") {
@@ -12333,6 +12470,11 @@ function renderMarkdownInline(text, { automaticTerms = previewAutomaticTerms, au
 
 function findNextInlineToken(text, fromIndex) {
   const tokens = [];
+
+  const citationPattern = /\[@([A-Za-z0-9_-]{1,128})\]/g;
+  citationPattern.lastIndex = fromIndex;
+  const citationMatch = citationPattern.exec(text);
+  if (citationMatch) tokens.push({ type: "citation", start: citationMatch.index, end: citationPattern.lastIndex, id: citationMatch[1], raw: citationMatch[0] });
 
   const attachmentReference = findAttachmentReference(text, fromIndex);
   if (attachmentReference) {
@@ -16318,6 +16460,11 @@ if (noteExportBtn) noteExportBtn.addEventListener("click", openNoteExportDialog)
 reportPreviewBtn?.addEventListener("click", openReportPreview);
 reportPreviewMobileBtn?.addEventListener("click", openReportPreview);
 reportPreviewBackBtn?.addEventListener("click", closeReportPreview);
+manageSourcesBtn?.addEventListener("click", openSourceDialog);
+$("manageSourcesMobileBtn")?.addEventListener("click", openSourceDialog);
+$("closeSourceDialogBtn")?.addEventListener("click", () => sourceDialog.close());
+$("cancelSourceEditBtn")?.addEventListener("click", resetSourceForm);
+sourceForm?.addEventListener("submit", saveSourceFromForm);
 if (noteFlagBtn) noteFlagBtn.addEventListener("click", () => {
   playNoteFlagAnimation(!Boolean(currentNote()?.isFlagged));
   toggleCurrentNoteFlag().catch((error) => {

@@ -7,7 +7,7 @@
   <script>try { document.documentElement.dataset.initialTheme = localStorage.getItem("memo-nexus-theme") === "dark" ? "dark" : "light"; } catch (_) { document.documentElement.dataset.initialTheme = "light"; }</script>
   <style>html,body{background:#f6f7f4;color:#222522;color-scheme:light}html[data-initial-theme="dark"],html[data-initial-theme="dark"] body{background:#111513;color:#e7ece7;color-scheme:dark}</style>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css">
-  <link rel="stylesheet" href="style.css?v=0.5.0-112">
+  <link rel="stylesheet" href="style.css?v=0.5.0-113">
 </head>
 <body class="app-starting">
   <section id="appStartupGuard" class="app-startup-guard" role="status" aria-live="polite" aria-busy="true">
@@ -154,6 +154,7 @@
           <summary aria-label="その他の操作を開く">その他</summary>
           <div class="mobile-app-menu-panel">
             <button id="reportPreviewMobileBtn" type="button">レポート表示</button>
+            <button id="manageSourcesMobileBtn" type="button">出典を管理</button>
             <button id="undoBtn" class="undo-button" title="元に戻す" disabled>Undo</button>
             <button id="redoBtn" class="undo-button" title="やり直す" disabled>Redo</button>
             <button id="backupBtn" title="完全バックアップZIP出力">ZIP</button>
@@ -204,6 +205,7 @@
         <button id="importTableFileBtn" type="button" title="CSVまたはTSVファイルを表として読み込む" aria-label="CSVまたはTSVファイルを表として読み込む" class="editor-tool-btn">CSV/TSV</button>
         <button id="insertGeometryBtn" type="button" title="カーソル位置へ図形ブロックを挿入" aria-label="図形ブロックを挿入" class="editor-tool-btn">図形</button>
         <button id="insertChartBtn" type="button" title="カーソル位置へグラフブロックを挿入" aria-label="グラフブロックを挿入" class="editor-tool-btn">グラフ</button>
+        <button id="manageSourcesBtn" type="button" class="editor-tool-btn">出典</button>
         <label class="callout-tool" for="calloutTypeSelect">注意書き
           <select id="calloutTypeSelect" aria-label="注意書きの種類"><option value="NOTE">NOTE</option><option value="TIP">TIP</option><option value="IMPORTANT">IMPORTANT</option><option value="WARNING">WARNING</option></select>
         </label>
@@ -236,6 +238,7 @@
             <button type="button" role="menuitem" data-mobile-editor-tool="importTableFileBtn">CSV/TSVを読み込む</button>
             <button type="button" role="menuitem" data-mobile-editor-tool="insertGeometryBtn">図形を挿入</button>
             <button type="button" role="menuitem" data-mobile-editor-tool="insertChartBtn">グラフを挿入</button>
+            <button type="button" role="menuitem" data-mobile-editor-tool="manageSourcesBtn">出典を管理</button>
             <label class="mobile-callout-option">注意書き
               <select id="mobileCalloutTypeSelect" aria-label="注意書きの種類"><option value="NOTE">NOTE</option><option value="TIP">TIP</option><option value="IMPORTANT">IMPORTANT</option><option value="WARNING">WARNING</option></select>
             </label>
@@ -977,6 +980,25 @@
     <div id="mermaidTemplateStatus" class="syntax-guide-status" role="status" aria-live="polite"></div>
   </dialog>
   <input id="imageBlockInput" type="file" accept="image/jpeg,image/png,image/webp,image/gif,.jpg,.jpeg,.png,.webp,.gif" hidden>
+  <dialog id="sourceDialog" class="source-dialog" aria-labelledby="sourceDialogTitle">
+    <div class="dialog-head"><strong id="sourceDialogTitle">出典を管理</strong><button id="closeSourceDialogBtn" type="button" aria-label="出典管理を閉じる">×</button></div>
+    <div id="sourceList" class="source-list"></div>
+    <form id="sourceForm">
+      <strong id="sourceFormTitle">出典を追加</strong>
+      <div class="source-fields">
+        <label>資料名<input name="title" type="text"></label>
+        <label>著者<input name="author" type="text"></label>
+        <label>発行元<input name="publisher" type="text"></label>
+        <label>日付<input name="date" type="text"></label>
+        <label>URL<input name="url" type="text"></label>
+        <label>アクセス日<input name="accessedAt" type="text"></label>
+        <label>ページ<input name="page" type="text"></label>
+        <label>資料種別<select name="sourceType"><option value="">未選択</option><option value="primary">一次資料</option><option value="secondary">二次資料</option><option value="report-created">本レポート作成図</option></select></label>
+      </div>
+      <div class="source-actions"><button type="submit">保存</button><button id="cancelSourceEditBtn" type="button">入力をクリア</button></div>
+    </form>
+    <p id="sourceStatus" role="status" aria-live="polite"></p>
+  </dialog>
 
   <script src="https://cdn.jsdelivr.net/npm/@highlightjs/cdn-assets@11.11.1/highlight.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
@@ -988,6 +1010,7 @@
   <script src="web-clip-utils.js?v=0.5.0-7"></script>
   <script src="web-clipper-config.js?v=0.5.0-4"></script>
   <script src="figure-metadata-utils.js?v=0.5.0-1"></script>
+  <script src="source-utils.js?v=0.5.0-1"></script>
   <script src="attachment-utils.js?v=0.5.0-13"></script>
   <script src="table-block-utils.js?v=0.5.0-8"></script>
   <script src="table-file-export-utils.js?v=0.5.0-4"></script>
@@ -1038,7 +1061,7 @@
   <script src="draft-mirror-scheduler.js?v=0.5.0-2"></script>
   <script src="typing-performance-monitor.js?v=0.5.0-3"></script>
   <script src="layout-resize-utils.js?v=0.5.0-2"></script>
-  <script src="app.js?v=0.5.0-189"></script>
+  <script src="app.js?v=0.5.0-190"></script>
   <script src="codex-chat.js?v=0.5.0-6"></script>
 </body>
 </html>
