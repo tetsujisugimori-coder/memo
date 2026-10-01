@@ -43,9 +43,9 @@
     } catch (_) { return null; }
   }
 
-  function parseSourceDocument(body) {
+  function sourceDocumentParts(body) {
     const text = String(body || "");
-    if (!text.includes("<!-- memo-nexus:sources-v1:")) return { body: text, sources: [] };
+    if (!text.includes("<!-- memo-nexus:sources-v1:")) return { body: text, sources: [], removedStart: null, removedEnd: null };
     // Keep the final valid record even if the user writes more Markdown below it.
     let candidate = null;
     let offset = 0;
@@ -56,12 +56,46 @@
       if (sources !== null) candidate = { start: offset, end: offset + line.length, sources, hasLineBreak: line !== content };
       offset += line.length;
     }
-    if (!candidate) return { body: text, sources: [] };
+    if (!candidate) return { body: text, sources: [], removedStart: null, removedEnd: null };
     const before = text.slice(0, candidate.start);
+    const removedStart = candidate.hasLineBreak ? candidate.start : candidate.start - (before.match(/\r?\n$/)?.[0].length || 0);
     return {
-      body: (candidate.hasLineBreak ? before : before.replace(/\r?\n$/, "")) + text.slice(candidate.end),
-      sources: candidate.sources
+      body: text.slice(0, removedStart) + text.slice(candidate.end),
+      sources: candidate.sources,
+      removedStart,
+      removedEnd: candidate.end
     };
+  }
+
+  function parseSourceDocument(body) {
+    const { body: content, sources } = sourceDocumentParts(body);
+    return { body: content, sources };
+  }
+
+  function sourceSelectionFromRaw(body, start, end) {
+    const text = String(body || "");
+    const { removedStart, removedEnd } = sourceDocumentParts(text);
+    const toBodyOffset = (rawOffset) => {
+      const offset = Math.max(0, Math.min(text.length, Number.isFinite(rawOffset) ? Math.floor(rawOffset) : 0));
+      if (removedStart === null || offset <= removedStart) return offset;
+      if (offset < removedEnd) return removedStart;
+      return offset - (removedEnd - removedStart);
+    };
+    const first = toBodyOffset(start);
+    const last = toBodyOffset(end);
+    return { start: Math.min(first, last), end: Math.max(first, last) };
+  }
+
+  function insertSourceCitation(body, sourceId, selection) {
+    if (typeof sourceId !== "string" || !/^[A-Za-z0-9_-]{1,128}$/.test(sourceId)) return null;
+    const document = parseSourceDocument(body);
+    const limit = document.body.length;
+    const clamp = (value) => Math.max(0, Math.min(limit, Number.isFinite(value) ? Math.floor(value) : limit));
+    const start = clamp(selection?.start);
+    const end = Math.max(start, clamp(selection?.end));
+    const citation = `[@${sourceId}]`;
+    const content = document.body.slice(0, start) + citation + document.body.slice(end);
+    return { body: withSources(content, document.sources), caret: start + citation.length };
   }
 
   function withSources(body, values) {
@@ -108,7 +142,7 @@
   }
 
   const api = { SOURCE_TYPES, normalizeSource, normalizeSources, serializeSources, parseSourceMarker,
-    parseSourceDocument, withSources, safeSourceUrl, extractCitations, referencedSources };
+    parseSourceDocument, sourceSelectionFromRaw, insertSourceCitation, withSources, safeSourceUrl, extractCitations, referencedSources };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   if (globalScope) globalScope.MemoNexusSourceUtils = api;
 })(typeof window !== "undefined" ? window : globalThis);

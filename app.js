@@ -324,7 +324,7 @@ const {
   splitImageBlocks
 } = window.MemoNexusAttachmentUtils;
 const { figureSourceTypeLabel, hasFigureMetadata, normalizeFigureMetadata, safeFigureSourceUrl } = window.MemoNexusFigureMetadataUtils;
-const { SOURCE_TYPES: SOURCE_TYPE_LABELS, parseSourceDocument, withSources, safeSourceUrl, extractCitations } = window.MemoNexusSourceUtils;
+const { SOURCE_TYPES: SOURCE_TYPE_LABELS, parseSourceDocument, sourceSelectionFromRaw, insertSourceCitation, withSources, safeSourceUrl, extractCitations } = window.MemoNexusSourceUtils;
 const {
   TAG_COLOR_PALETTE,
   assignRegisteredTag,
@@ -885,6 +885,7 @@ const sourceList = $("sourceList");
 const sourceForm = $("sourceForm");
 const sourceStatus = $("sourceStatus");
 let editingSourceId = null;
+let sourceInsertRange = null;
 let citationRenderContext = null;
 const noteFlagBtn = $("noteFlagBtn");
 const popoutMemoBtn = $("popoutMemoBtn");
@@ -8125,6 +8126,15 @@ function commitSourceBody(nextBody) {
   updateUndoButton();
 }
 
+function commitSourceCitation(sourceId, body = editor.value) {
+  const result = insertSourceCitation(body, sourceId, sourceInsertRange);
+  if (!result) return;
+  commitSourceBody(result.body);
+  editor.setSelectionRange(result.caret, result.caret);
+  sourceDialog.close();
+  editor.focus();
+}
+
 function renderSourceList() {
   sourceList.replaceChildren();
   const sources = parseSourceDocument(editor.value).sources;
@@ -8143,14 +8153,7 @@ function renderSourceList() {
     insert.textContent = "引用を挿入";
     insert.addEventListener("click", () => {
       if (sourceDialog.dataset.noteId !== currentId) return;
-      const bodyLength = parseSourceDocument(editor.value).body.length;
-      const start = Math.min(editor.selectionStart, bodyLength);
-      const end = Math.min(editor.selectionEnd, bodyLength);
-      const next = `${editor.value.slice(0, start)}[@${source.id}]${editor.value.slice(end)}`;
-      commitSourceBody(next);
-      editor.setSelectionRange(start + source.id.length + 3, start + source.id.length + 3);
-      sourceDialog.close();
-      editor.focus();
+      commitSourceCitation(source.id);
     });
     const edit = document.createElement("button");
     edit.type = "button";
@@ -8187,6 +8190,7 @@ function resetSourceForm() {
 
 function openSourceDialog() {
   if (!currentNote()) return;
+  sourceInsertRange = sourceSelectionFromRaw(editor.value, editor.selectionStart, editor.selectionEnd);
   sourceDialog.dataset.noteId = currentId;
   resetSourceForm();
   sourceStatus.textContent = "";
@@ -8208,10 +8212,15 @@ function saveSourceFromForm(event) {
   const next = editingSourceId
     ? sources.map((source) => source.id === id ? { id, ...values } : source)
     : [...sources, { id, ...values }];
-  commitSourceBody(withSources(editor.value, next));
+  const nextBody = withSources(editor.value, next);
+  if (event.submitter?.id === "saveAndInsertSourceBtn") {
+    commitSourceCitation(id, nextBody);
+    return;
+  }
+  commitSourceBody(nextBody);
   resetSourceForm();
   renderSourceList();
-  sourceStatus.textContent = "出典を保存しました。";
+  sourceStatus.textContent = "出典を保存しました。本文に表示するには、登録した出典の「引用を挿入」を選択してください。";
 }
 
 function setReportPreviewControlsReadOnly(readOnly) {

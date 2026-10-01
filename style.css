@@ -6520,7 +6520,7 @@ body.report-preview-mode .chart-tsv-copy-controls {
 .source-list { display: grid; gap: .4rem; margin: .8rem 0; }
 .source-list-item { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem; }
 .source-list-item span { flex: 1 1 10rem; min-width: 0; overflow-wrap: anywhere; }
-.source-actions { display: flex; gap: .4rem; margin-top: .8rem; }
+.source-actions { display: flex; flex-wrap: wrap; gap: .4rem; margin-top: .8rem; }
 .citation-link { font-size: .8em; vertical-align: super; white-space: nowrap; }
 .report-sources { margin-top: 2rem; border-top: 1px solid var(--border-color, #bbb); padding-top: .8rem; min-width: 0; }
 .report-sources ol { list-style: none; padding: 0; }

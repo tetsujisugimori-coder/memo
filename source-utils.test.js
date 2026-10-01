@@ -1,7 +1,7 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const {
-  normalizeSource, parseSourceDocument, parseSourceMarker, withSources, safeSourceUrl,
+  normalizeSource, parseSourceDocument, parseSourceMarker, sourceSelectionFromRaw, insertSourceCitation, withSources, safeSourceUrl,
   extractCitations, referencedSources
 } = require("./source-utils.js");
 const { buildMarkdownBundleImport } = require("./markdown-bundle-utils.js");
@@ -47,6 +47,29 @@ test("Citation order, repetition, missing IDs, code and deletion references", ()
   assert.deepEqual(referencedSources(body, [first, second]).map((source) => source.id), ["source-b", "source-a"]);
   assert.equal(extractCitations("文章 [@source-a] もう一度 [@source-a]").length, 2);
   assert.equal(extractCitations("`[@source-a]`\n```\n[@source-a]\n```" ).length, 0);
+});
+
+test("raw editor offsets after a Source marker map to body offsets without corrupting the marker", () => {
+  const raw = `${withSources("本文", [first])}\n追記`;
+  const rawEnd = raw.length;
+  const selection = sourceSelectionFromRaw(raw, rawEnd, rawEnd);
+  assert.deepEqual(selection, { start: "本文\n追記".length, end: "本文\n追記".length });
+  const inserted = insertSourceCitation(raw, first.id, selection);
+  assert.equal(parseSourceDocument(inserted.body).body, "本文\n追記[@source-a]");
+  assert.deepEqual(parseSourceDocument(inserted.body).sources[0], first);
+  assert.match(inserted.body, /<!-- memo-nexus:sources-v1:[0-9a-f]+ -->$/);
+  assert.equal(inserted.caret, "本文\n追記[@source-a]".length);
+});
+
+test("selection before and across a Source marker replaces only logical body text", () => {
+  const raw = `${withSources("前の文字", [first])}\n後の文字`;
+  const start = raw.indexOf("文字");
+  const end = raw.lastIndexOf("文字") + "文字".length;
+  const selection = sourceSelectionFromRaw(raw, start, end);
+  assert.deepEqual(selection, { start: 2, end: "前の文字\n後の文字".length });
+  const inserted = insertSourceCitation(raw, first.id, selection);
+  assert.equal(parseSourceDocument(inserted.body).body, "前の[@source-a]");
+  assert.equal(parseSourceDocument(inserted.body).sources[0].id, first.id);
 });
 
 test("Markdown ZIP import keeps Source marker and Figure metadata", () => {
