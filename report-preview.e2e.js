@@ -56,9 +56,49 @@ const image = fs.readFileSync(path.join(__dirname, "e2e-artifacts", "chart-png-e
     await page.locator(".image-block-add").click();
     await page.locator("#imageBlockInput").setInputFiles({ name: "second.png", mimeType: "image/png", buffer: image });
     await page.locator(".image-block-open").nth(1).waitFor();
+    await page.locator("#addExplanationBtn").click();
+    await page.locator("#explanationBodyInput").fill("Report Previewでは開閉状態を保存しない解説です。");
+    await page.locator("#saveExplanationBtn").click();
+    await page.locator(".explanation-card details summary").waitFor();
     await page.evaluate(() => flushSave());
-    const before = await page.locator("#editor").inputValue();
     const noteId = await page.evaluate(() => currentId);
+    const explanationState = async () => page.evaluate(async (id) => {
+      const note = (await getStoredNotes()).find((item) => item.id === id);
+      const explanation = note.explanations[0];
+      return {
+        revision: note.revision,
+        updatedAt: note.updatedAt,
+        body: note.body,
+        explanation: { collapsed: explanation.collapsed, updatedAt: explanation.updatedAt }
+      };
+    }, noteId);
+    const storedBeforeReport = await explanationState();
+    const historyBeforeReport = await page.evaluate(() => ({ undo: undoStack.length, redo: redoStack.length }));
+    const explanationDetails = page.locator(".explanation-card details");
+    assert.equal(await explanationDetails.evaluate((details) => details.open), true);
+    await page.locator("#reportPreviewBtn").click();
+    await page.locator("body.report-preview-mode").waitFor();
+    await explanationDetails.locator("summary").click();
+    await page.waitForFunction(() => !document.querySelector(".explanation-card details")?.open);
+    await page.evaluate(async () => {
+      await new Promise(requestAnimationFrame);
+      await new Promise(requestAnimationFrame);
+      await saveExplanationCollapsedState.whenIdle();
+    });
+    assert.deepEqual(await explanationState(), storedBeforeReport);
+    assert.deepEqual(await page.evaluate(() => ({ undo: undoStack.length, redo: redoStack.length })), historyBeforeReport);
+    await page.locator("#reportPreviewBackBtn").click();
+    assert.equal(await page.locator("body.report-preview-mode").count(), 0);
+    const normalExplanationDetails = page.locator(".explanation-card details");
+    assert.equal(await normalExplanationDetails.evaluate((details) => details.open), true);
+    await normalExplanationDetails.locator("summary").click();
+    await page.waitForFunction(() => !document.querySelector(".explanation-card details")?.open);
+    await page.evaluate(() => saveExplanationCollapsedState.whenIdle());
+    const storedAfterNormalToggle = await explanationState();
+    assert.equal(storedAfterNormalToggle.explanation.collapsed, true);
+    assert.equal(storedAfterNormalToggle.body, storedBeforeReport.body);
+    assert.deepEqual(await page.evaluate(() => ({ undo: undoStack.length, redo: redoStack.length })), historyBeforeReport);
+    const before = await page.locator("#editor").inputValue();
     await page.waitForFunction(async (id) => {
       const note = (await getStoredNotes()).find((item) => item.id === id);
       return note?.title === titleInput.value && note?.body === editor.value;

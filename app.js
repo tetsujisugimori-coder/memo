@@ -8122,10 +8122,10 @@ function setReportPreviewControlsReadOnly(readOnly) {
 function openReportPreview(event) {
   if (!currentNote() || document.body.classList.contains("report-preview-mode")) return;
   reportPreviewOrigin = event.currentTarget;
-  renderPreview();
   reportPreviewTitle.textContent = titleInput.value.trim() || "無題メモ";
   reportPreviewHeading.hidden = false;
   document.body.classList.add("report-preview-mode");
+  renderPreview();
   previewCard.setAttribute("aria-labelledby", "reportPreviewTitle");
   updateResponsiveLayoutUi();
   setReportPreviewControlsReadOnly(true);
@@ -8140,6 +8140,7 @@ function closeReportPreview() {
   reportPreviewHeading.hidden = true;
   previewCard.removeAttribute("aria-labelledby");
   setReportPreviewControlsReadOnly(false);
+  renderPreview();
   updateResponsiveLayoutUi();
   const origin = reportPreviewOrigin;
   reportPreviewOrigin = null;
@@ -12221,9 +12222,12 @@ const saveExplanationCollapsedState = createExplanationCollapsedStateSaver({
 
 function hydrateExplanationCards(note, body) {
   const explanations = normalizeExplanations(note);
+  const reportPreview = document.body.classList.contains("report-preview-mode");
   hydrateExplanationCardsIntoDom(preview, body, explanations, {
     onMarkerActivate: (explanation) => document.getElementById(`explanation-card-${explanation.id}`)?.scrollIntoView({ behavior: "smooth", block: "nearest" }),
-    onPersistCollapsed: (explanation, collapsed) => saveExplanationCollapsedState(note.id, explanation.id, collapsed),
+    onPersistCollapsed: reportPreview
+      ? null
+      : (explanation, collapsed) => saveExplanationCollapsedState(note.id, explanation.id, collapsed),
     onEdit: (explanation) => openExplanationDialog(explanation),
     onDelete: (id) => deleteExplanation(id)
   });
