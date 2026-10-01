@@ -78,8 +78,16 @@ const image = fs.readFileSync(path.join(__dirname, "e2e-artifacts", "chart-png-e
     assert.equal(await explanationDetails.evaluate((details) => details.open), true);
     await page.locator("#reportPreviewBtn").click();
     await page.locator("body.report-preview-mode").waitFor();
+    await page.evaluate(() => {
+      const details = document.querySelector(".explanation-card details");
+      details.dataset.reportPreviewToggleObserved = "false";
+      details.addEventListener("toggle", () => { details.dataset.reportPreviewToggleObserved = "true"; }, { once: true });
+    });
     await explanationDetails.locator("summary").click();
-    await page.waitForFunction(() => !document.querySelector(".explanation-card details")?.open);
+    await page.waitForFunction(() => {
+      const details = document.querySelector(".explanation-card details");
+      return details?.open === false && details.dataset.reportPreviewToggleObserved === "true";
+    });
     await page.evaluate(async () => {
       await new Promise(requestAnimationFrame);
       await new Promise(requestAnimationFrame);
@@ -91,8 +99,16 @@ const image = fs.readFileSync(path.join(__dirname, "e2e-artifacts", "chart-png-e
     assert.equal(await page.locator("body.report-preview-mode").count(), 0);
     const normalExplanationDetails = page.locator(".explanation-card details");
     assert.equal(await normalExplanationDetails.evaluate((details) => details.open), true);
+    await page.evaluate(() => {
+      const details = document.querySelector(".explanation-card details");
+      details.dataset.reportPreviewToggleObserved = "false";
+      details.addEventListener("toggle", () => { details.dataset.reportPreviewToggleObserved = "true"; }, { once: true });
+    });
     await normalExplanationDetails.locator("summary").click();
-    await page.waitForFunction(() => !document.querySelector(".explanation-card details")?.open);
+    await page.waitForFunction(() => {
+      const details = document.querySelector(".explanation-card details");
+      return details?.open === false && details.dataset.reportPreviewToggleObserved === "true";
+    });
     await page.evaluate(() => saveExplanationCollapsedState.whenIdle());
     const storedAfterNormalToggle = await explanationState();
     assert.equal(storedAfterNormalToggle.explanation.collapsed, true);
