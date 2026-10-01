@@ -2,10 +2,11 @@
   "use strict";
 
   const BACKUP_FORMAT = "memo-nexus-backup";
-  const BACKUP_VERSION = 2;
-  // 新しい形式では migrateV1ToV2 のような関数をここへ登録し、ZIPは変更せずメモリ上で移行する。
+  const BACKUP_VERSION = 3;
+  // 旧ZIPは変更せず、読み込み時にメモリ上で段階的に移行する。
   const MIGRATIONS = Object.freeze({
-    1: (payload) => ({ ...payload, tags: Array.isArray(payload.tags) ? payload.tags : [], tagsFilePresent: Boolean(payload.tagsFilePresent) })
+    1: (payload) => ({ ...payload, tags: Array.isArray(payload.tags) ? payload.tags : [], tagsFilePresent: Boolean(payload.tagsFilePresent) }),
+    2: (payload) => payload
   });
   const IMAGE_MIME_BY_EXTENSION = Object.freeze({ jpg: "image/jpeg", jpeg: "image/jpeg", png: "image/png", webp: "image/webp", gif: "image/gif", pdf: "application/pdf" });
 
@@ -39,6 +40,7 @@
       current = migrate(current);
       version += 1;
       current.manifest.version = version;
+      current.manifest.formatVersion = version;
     }
     return current;
   }
