@@ -1,0 +1,198 @@
+"use strict";
+
+const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const http = require("node:http");
+const path = require("node:path");
+const { chromium } = require("playwright");
+
+const image = fs.readFileSync(path.join(__dirname, "e2e-artifacts", "chart-png-example-light-390.png"));
+
+(async () => {
+  const root = __dirname;
+  const server = http.createServer((req, res) => {
+    const relative = decodeURIComponent(new URL(req.url, "http://localhost").pathname).replace(/^\/+/, "") || "index.html";
+    const file = path.resolve(root, relative);
+    if (!file.startsWith(root + path.sep)) return res.writeHead(403).end();
+    fs.readFile(file, (error, data) => {
+      if (error) return res.writeHead(404).end();
+      res.writeHead(200, { "Content-Type": file.endsWith(".html") ? "text/html; charset=utf-8" : file.endsWith(".css") ? "text/css" : "application/javascript" });
+      res.end(data);
+    });
+  });
+  await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+  let browser;
+  try {
+    browser = await chromium.launch({ headless: true });
+    const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
+    const errors = [];
+    page.on("pageerror", (error) => errors.push(error.message));
+    await page.goto(`http://127.0.0.1:${server.address().port}`, { waitUntil: "domcontentloaded" });
+    await page.locator("#appStartupGuard").waitFor({ state: "hidden" });
+    await page.locator("#titleInput").fill("レポートの題名");
+    await page.locator("#editor").fill("# 本文の見出し\n\n本文の段落。\n\n- 項目 A\n- 項目 B\n- [ ] 未完了\n\n`code`");
+    await page.locator("#insertTableBtn").click();
+    await page.locator("#preview .table-block").waitFor();
+    await page.locator("#insertChartBtn").click();
+    await page.locator("#preview .chart-block").waitFor();
+    await page.locator("#insertImageBlockBtn").click();
+    await page.locator("#imageBlockInput").setInputFiles({ name: "figure.png", mimeType: "image/png", buffer: image });
+    await page.locator("#preview .image-block").waitFor();
+    await page.locator(".image-block").hover();
+    await page.locator(".image-block-menu-toggle").click();
+    await page.locator(".image-block-edit-figure").first().click();
+    const panel = page.locator(".figure-metadata-editor");
+    await panel.getByLabel("キャプション").fill("資料キャプション");
+    await panel.getByLabel("年代・時期").fill("永禄12年");
+    await panel.getByLabel("資料名").fill("資料名A");
+    await panel.getByLabel("出典URL").fill("https://example.org/source");
+    await panel.getByLabel("資料種別").selectOption("primary");
+    await panel.getByLabel("権利・ライセンス").fill("CC BY 4.0");
+    await panel.getByLabel("補足").fill("補足情報");
+    await panel.getByText("資料情報を保存").click();
+    await page.locator(".figure-metadata-main").getByText("資料キャプション").waitFor();
+    await page.locator(".image-block").hover();
+    await page.locator(".image-block-menu-toggle").click();
+    await page.locator(".image-block-add").click();
+    await page.locator("#imageBlockInput").setInputFiles({ name: "second.png", mimeType: "image/png", buffer: image });
+    await page.locator(".image-block-open").nth(1).waitFor();
+    await page.locator("#addExplanationBtn").click();
+    await page.locator("#explanationBodyInput").fill("Report Previewでは開閉状態を保存しない解説です。");
+    await page.locator("#saveExplanationBtn").click();
+    await page.locator(".explanation-card details summary").waitFor();
+    await page.evaluate(() => flushSave());
+    const noteId = await page.evaluate(() => currentId);
+    const explanationState = async () => page.evaluate(async (id) => {
+      const note = (await getStoredNotes()).find((item) => item.id === id);
+      const explanation = note.explanations[0];
+      return {
+        revision: note.revision,
+        updatedAt: note.updatedAt,
+        body: note.body,
+        explanation: { collapsed: explanation.collapsed, updatedAt: explanation.updatedAt }
+      };
+    }, noteId);
+    const storedBeforeReport = await explanationState();
+    const historyBeforeReport = await page.evaluate(() => ({ undo: undoStack.length, redo: redoStack.length }));
+    const explanationDetails = page.locator(".explanation-card details");
+    assert.equal(await explanationDetails.evaluate((details) => details.open), true);
+    await page.locator("#reportPreviewBtn").click();
+    await page.locator("body.report-preview-mode").waitFor();
+    await page.evaluate(() => {
+      const details = document.querySelector(".explanation-card details");
+      window.reportPreviewExplanationToggleObserved = false;
+      details.addEventListener("toggle", () => { window.reportPreviewExplanationToggleObserved = true; }, { once: true });
+    });
+    await explanationDetails.locator("summary").click();
+    await page.waitForFunction(() => {
+      const details = document.querySelector(".explanation-card details");
+      return details?.open === false && window.reportPreviewExplanationToggleObserved === true;
+    });
+    await page.evaluate(async () => {
+      await new Promise(requestAnimationFrame);
+      await new Promise(requestAnimationFrame);
+      await saveExplanationCollapsedState.whenIdle();
+    });
+    assert.deepEqual(await explanationState(), storedBeforeReport);
+    assert.deepEqual(await page.evaluate(() => ({ undo: undoStack.length, redo: redoStack.length })), historyBeforeReport);
+    await page.locator("#reportPreviewBackBtn").click();
+    assert.equal(await page.locator("body.report-preview-mode").count(), 0);
+    const normalExplanationDetails = page.locator(".explanation-card details");
+    assert.equal(await normalExplanationDetails.evaluate((details) => details.open), true);
+    await page.evaluate(() => {
+      const details = document.querySelector(".explanation-card details");
+      window.reportPreviewExplanationToggleObserved = false;
+      details.addEventListener("toggle", () => { window.reportPreviewExplanationToggleObserved = true; }, { once: true });
+    });
+    await normalExplanationDetails.locator("summary").click();
+    await page.waitForFunction(() => {
+      const details = document.querySelector(".explanation-card details");
+      return details?.open === false && window.reportPreviewExplanationToggleObserved === true;
+    });
+    await page.evaluate(() => saveExplanationCollapsedState.whenIdle());
+    const storedAfterNormalToggle = await explanationState();
+    assert.equal(storedAfterNormalToggle.explanation.collapsed, true);
+    assert.equal(storedAfterNormalToggle.body, storedBeforeReport.body);
+    assert.deepEqual(await page.evaluate(() => ({ undo: undoStack.length, redo: redoStack.length })), historyBeforeReport);
+    const before = await page.locator("#editor").inputValue();
+    await page.waitForFunction(async (id) => {
+      const note = (await getStoredNotes()).find((item) => item.id === id);
+      return note?.title === titleInput.value && note?.body === editor.value;
+    }, noteId);
+    const revisionBefore = await page.evaluate(async (id) => (await getStoredNotes()).find((item) => item.id === id).revision, noteId);
+    const historyBefore = await page.evaluate(() => ({ undo: undoStack.length, redo: redoStack.length }));
+    await page.locator("#reportPreviewBtn").click();
+    await page.locator("body.report-preview-mode").waitFor();
+    assert.equal(await page.locator("#reportPreviewTitle").innerText(), "レポートの題名");
+    assert.equal(await page.evaluate(() => document.activeElement?.id), "reportPreviewTitle");
+    await page.locator("#preview h1").getByText("本文の見出し").waitFor();
+    await page.locator("#preview").getByText("本文の段落。").waitFor();
+    assert.equal(await page.locator("#preview .task-list-checkbox").isDisabled(), true);
+    assert.equal(await page.locator("#preview .image-block-open").count(), 2);
+    await page.locator("#preview .table-block").waitFor();
+    await page.locator("#preview .chart-block").waitFor();
+    await page.locator("#preview .figure-metadata").first().getByText("永禄12年").waitFor();
+    await page.locator("#preview .figure-metadata-main").first().getByText("資料名A").waitFor();
+    await page.locator("#preview .figure-metadata summary").first().click();
+    await page.locator("#preview .figure-metadata").first().getByText("CC BY 4.0").waitFor();
+    assert.equal(await page.locator("#preview .figure-metadata a").first().getAttribute("href"), "https://example.org/source");
+    assert.equal(await page.locator(".image-block-menu-toggle").isVisible(), false);
+    assert.equal(await page.locator(".chart-block-edit").isVisible(), false);
+    assert.equal(await page.locator("#editor").isVisible(), false);
+    assert.equal(await page.locator("#titleInput").isVisible(), false);
+    assert.equal(await page.locator(".app-header").isVisible(), false);
+    assert.equal(await page.locator("#contextPanel").isVisible(), false);
+    assert.equal(await page.locator("#editorCardSeparator").isVisible(), false);
+    assert.equal(await page.locator("#linkStatsPanel").isVisible(), false);
+    assert.equal(await page.locator(".preview-head").isVisible(), false);
+    assert.equal(await page.locator("#preview .image-block-open").first().isEnabled(), true);
+    await page.locator("#preview .image-block-open").first().click();
+    await page.locator("#imagePreviewDialog").waitFor({ state: "visible" });
+    await page.locator("#closeImagePreviewBtn").click();
+    assert.equal(await page.locator("#editor").inputValue(), before);
+    assert.deepEqual(await page.evaluate(() => ({ undo: undoStack.length, redo: redoStack.length })), historyBefore);
+    assert.equal(await page.evaluate(async (id) => (await getStoredNotes()).find((item) => item.id === id).revision, noteId), revisionBefore);
+    await page.setViewportSize({ width: 320, height: 700 });
+    await page.waitForFunction(() => document.body.dataset.layoutMode === "mobile");
+    assert.equal(await page.locator("#reportPreviewBackBtn").isVisible(), true);
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), true);
+    assert.equal(await page.locator("#preview .image-block").evaluate((figure) => {
+      const items = [...figure.querySelectorAll(".image-block-item")].map((item) => item.getBoundingClientRect());
+      return items.length === 2 && items[1].top >= items[0].bottom - 1;
+    }), true);
+    await page.locator("#reportPreviewBackBtn").click();
+    assert.equal(await page.locator("body.report-preview-mode").count(), 0);
+    assert.equal(await page.locator("#editor").inputValue(), before);
+    assert.equal(await page.locator("#preview .image-block-open").first().isEnabled(), true);
+    if (await page.locator("#contextPanel").getAttribute("aria-hidden") === "false")
+      await page.locator("#closeContextPanelBtn").click();
+    await page.locator("#mobileAppMenu summary").click();
+    await page.locator("#reportPreviewMobileBtn").click();
+    await page.locator("#reportPreviewBackBtn").press("Escape");
+    assert.equal(await page.locator("body.report-preview-mode").count(), 0);
+    assert.equal(await page.evaluate(() => document.activeElement?.id), "reportPreviewMobileBtn");
+    await page.setViewportSize({ width: 820, height: 700 });
+    await page.waitForFunction(() => document.body.dataset.layoutMode === "compact");
+    await page.locator("#cardPaneBtn").click();
+    assert.equal(await page.locator("#cardPaneBtn").getAttribute("aria-expanded"), "false");
+    await page.locator("#reportPreviewBtn").click();
+    assert.equal(await page.locator("#previewCard").isVisible(), true);
+    await page.locator("#reportPreviewBackBtn").click();
+    assert.equal(await page.locator("#cardPaneBtn").getAttribute("aria-expanded"), "false");
+    await page.waitForFunction(async (id) => {
+      const note = (await getStoredNotes()).find((item) => item.id === id);
+      return note?.body === editor.value;
+    }, noteId);
+    await page.reload();
+    await page.locator("#appStartupGuard").waitFor({ state: "hidden" });
+    assert.equal(await page.locator("#editor").inputValue(), before);
+    assert.equal(await page.locator("#titleInput").inputValue(), "レポートの題名");
+    assert.equal(await page.locator("#preview .figure-metadata").count(), 1);
+    assert.deepEqual(errors, []);
+    await page.close();
+    process.stdout.write("Report Preview E2E: PASS\n");
+  } finally {
+    if (browser) await browser.close();
+    await new Promise((resolve) => server.close(resolve));
+  }
+})().catch((error) => { console.error(error); process.exitCode = 1; });

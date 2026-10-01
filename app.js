@@ -873,6 +873,11 @@ const clearMemoTagFilterBtn = $("clearMemoTagFilterBtn");
 const memoList = $("memoList");
 const titleInput = $("titleInput");
 const noteExportBtn = $("noteExportBtn");
+const reportPreviewBtn = $("reportPreviewBtn");
+const reportPreviewMobileBtn = $("reportPreviewMobileBtn");
+const reportPreviewBackBtn = $("reportPreviewBackBtn");
+const reportPreviewTitle = $("reportPreviewTitle");
+const reportPreviewHeading = document.querySelector(".report-preview-heading");
 const noteFlagBtn = $("noteFlagBtn");
 const popoutMemoBtn = $("popoutMemoBtn");
 const popoutBackBtn = $("popoutBackBtn");
@@ -946,6 +951,7 @@ const editorCardSeparator = $("editorCardSeparator");
 const appHeader = document.querySelector(".app-header");
 const preview = $("preview");
 const previewCard = $("previewCard");
+let reportPreviewOrigin = null;
 const saveStatus = $("saveStatus");
 const browserSaveStatusBtn = $("browserSaveStatusBtn");
 const localSaveStatusBtn = $("localSaveStatusBtn");
@@ -2310,7 +2316,8 @@ function closeLayoutOverlays({ restoreFocus = true } = {}) {
 }
 
 function updateResponsiveLayoutUi() {
-  const cardVisible = layoutMode === "wide"
+  const reportMode = document.body.classList.contains("report-preview-mode");
+  const cardVisible = reportMode || layoutMode === "wide"
     || (layoutMode === "compact" && compactCardVisible)
     || (layoutMode === "mobile" && mobileCardOpen);
   const contextPanelOverlayOpen = layoutMode !== "wide" && contextPanelOpen;
@@ -2328,6 +2335,7 @@ function updateResponsiveLayoutUi() {
 
   previewCard.setAttribute("aria-hidden", String(!cardVisible));
   previewCard.inert = !cardVisible || contextPanelOverlayOpen;
+  if (reportMode) previewCard.inert = false;
   cardPaneBtn.setAttribute("aria-expanded", String(cardVisible));
   const cardAction = layoutMode === "compact" && cardVisible ? "カード表示を収納する" : cardVisible ? "カード表示を閉じる" : "カード表示を開く";
   cardPaneBtn.title = cardAction;
@@ -8096,6 +8104,49 @@ function renderPreview() {
   void renderMermaidDiagrams(preview, renderGeneration);
   renderLinkList();
   renderLinkStats();
+  if (document.body.classList.contains("report-preview-mode")) setReportPreviewControlsReadOnly(true);
+}
+
+function setReportPreviewControlsReadOnly(readOnly) {
+  preview.querySelectorAll("button:not(.image-block-open), input, select, textarea").forEach((control) => {
+    if (readOnly && !control.disabled) {
+      control.dataset.reportPreviewDisabled = "";
+      control.disabled = true;
+    } else if (!readOnly && Object.hasOwn(control.dataset, "reportPreviewDisabled")) {
+      control.disabled = false;
+      delete control.dataset.reportPreviewDisabled;
+    }
+  });
+}
+
+function openReportPreview(event) {
+  if (!currentNote() || document.body.classList.contains("report-preview-mode")) return;
+  reportPreviewOrigin = event.currentTarget;
+  reportPreviewTitle.textContent = titleInput.value.trim() || "無題メモ";
+  reportPreviewHeading.hidden = false;
+  document.body.classList.add("report-preview-mode");
+  renderPreview();
+  previewCard.setAttribute("aria-labelledby", "reportPreviewTitle");
+  updateResponsiveLayoutUi();
+  setReportPreviewControlsReadOnly(true);
+  previewCard.scrollTop = 0;
+  preview.scrollTop = 0;
+  reportPreviewTitle.focus();
+}
+
+function closeReportPreview() {
+  if (!document.body.classList.contains("report-preview-mode")) return;
+  document.body.classList.remove("report-preview-mode");
+  reportPreviewHeading.hidden = true;
+  previewCard.removeAttribute("aria-labelledby");
+  setReportPreviewControlsReadOnly(false);
+  renderPreview();
+  updateResponsiveLayoutUi();
+  const origin = reportPreviewOrigin;
+  reportPreviewOrigin = null;
+  if (origin === reportPreviewMobileBtn && mobileAppMenu) mobileAppMenu.open = true;
+  if (origin?.isConnected && origin.getClientRects().length) origin.focus();
+  else titleInput.focus();
 }
 
 function currentTableBlock(blockIndex, tableId) {
@@ -12171,9 +12222,12 @@ const saveExplanationCollapsedState = createExplanationCollapsedStateSaver({
 
 function hydrateExplanationCards(note, body) {
   const explanations = normalizeExplanations(note);
+  const reportPreview = document.body.classList.contains("report-preview-mode");
   hydrateExplanationCardsIntoDom(preview, body, explanations, {
     onMarkerActivate: (explanation) => document.getElementById(`explanation-card-${explanation.id}`)?.scrollIntoView({ behavior: "smooth", block: "nearest" }),
-    onPersistCollapsed: (explanation, collapsed) => saveExplanationCollapsedState(note.id, explanation.id, collapsed),
+    onPersistCollapsed: reportPreview
+      ? null
+      : (explanation, collapsed) => saveExplanationCollapsedState(note.id, explanation.id, collapsed),
     onEdit: (explanation) => openExplanationDialog(explanation),
     onDelete: (id) => deleteExplanation(id)
   });
@@ -16261,6 +16315,9 @@ webClipImagesList?.addEventListener("change", (event) => {
 });
 window.addEventListener("message", receiveWebClipMessage);
 if (noteExportBtn) noteExportBtn.addEventListener("click", openNoteExportDialog);
+reportPreviewBtn?.addEventListener("click", openReportPreview);
+reportPreviewMobileBtn?.addEventListener("click", openReportPreview);
+reportPreviewBackBtn?.addEventListener("click", closeReportPreview);
 if (noteFlagBtn) noteFlagBtn.addEventListener("click", () => {
   playNoteFlagAnimation(!Boolean(currentNote()?.isFlagged));
   toggleCurrentNoteFlag().catch((error) => {
@@ -16925,6 +16982,11 @@ document.addEventListener("click", (event) => {
   if (!event.target.closest(".collection-popup-menu,.collection-more,.collection-memo-more,#collectionAddMenuBtn")) closeCollectionMenus();
 });
 document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && document.body.classList.contains("report-preview-mode") && !document.querySelector("dialog[open]") && !activeChartTooltip) {
+    event.preventDefault();
+    closeReportPreview();
+    return;
+  }
   if (event.key === "Escape" && pendingTableChart && !document.querySelector("dialog[open]") && !activeChartTooltip) {
     event.preventDefault();
     cancelTableChartDraft();

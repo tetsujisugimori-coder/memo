@@ -167,6 +167,9 @@ jobs:
       - name: Run Figure metadata E2E
         run: npm run test:e2e:figure
 
+      - name: Run Report Preview E2E
+        run: npm run test:e2e:report-preview
+
   mobile-e2e:
     name: Mobile E2E (${{ matrix.browser }})
     runs-on: ubuntu-latest
