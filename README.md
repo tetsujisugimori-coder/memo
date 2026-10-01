@@ -436,3 +436,10 @@ Web Clipperは、表示中のHTTP/HTTPSページからタイトル、URL、サ�
 ページ全文と画像付きクリップは、拡張ストレージへ10分TTLの一時レコードを置き、content scriptの起動通知に対して本体が同じ転送IDで受信準備完了を返してからpayloadを送ります。本体が項目別に検証してACKを返し、content scriptが一致するACKを受け取った時だけ対象レコードを削除します。ACK待ちや一時エラーでは削除せず、転送IDをタブの`sessionStorage`へ保持するため再読み込み後もTTL内なら再開します。0.3.8のpayloadは正本の`record`と旧本体用の互換`clip`を併記し、旧本体の`content-ready`は拡張自身が`attempt`付きで送る通知と区別してから送信を開始します。新本体は0.3.7の`clip`単体payloadも同じ項目基準で検証し、ACK送信時点で旧方式の受信成功として保存を許可しつつ更新を推奨します。未知形式は`extension_update_required`として案内します。失敗画面では原因コード、再受信、元ページからの再実行、リンクのみの代替、本文を含まない診断コピーを利用できます。空の受信失敗状態は通常の手動Webクリップと区別され、保存できません。
 
 `web-clipper-config.js`ではWeb Clipper全体の最低互換版0.3.0と転送プロトコルv2／推奨拡張版0.3.8を別項目で管理します。旧来のextension-origin直送は明示的な許可一覧に限定します。現在の同一window転送はこの一覧ではなく、同一origin、タブが保持するUUID、検証済みpayloadの一致で制限します。実機の展開読み込み版0.3.8のIDは`aelacnladkiohkhbjhfbmekpbfgpcmlh`です。Memo-Nexus由来を履歴で確認できた旧IDだけを維持し、無関係なEdgeアドオン版Web ClipperのIDは削除しています。
+## Citation / Source 共通基盤 v1
+
+エディタの「出典」から資料を登録し、一覧の「引用を挿入」で本文へ `[@source-id]` 形式の参照を挿入できます。同じ出典を何度参照しても Preview の番号は共通です。番号は本文に保存されず、最初の参照順から毎回導出されます。未登録IDの引用は原文のまま表示されます。出典一覧は参照された資料だけを本文末尾に表示します。
+
+Source は `id`, `title`, `author`, `publisher`, `date`, `url`, `accessedAt`, `page`, `sourceType` を持ちます。本文末尾の `<!-- memo-nexus:sources-v1:<hex UTF-8 JSON> -->` に `{version:1,sources:[...]}` を保存します。本文と一緒に Markdown ZIP と完全バックアップ v3 を往復するため、新しい IndexedDB store やバックアップ形式の変更はありません。Source の変更も通常の本文保存・revision・Undo/Redoを使います。URLは値を保持し、Previewでは有効なHTTP/HTTPSだけをリンク化します。
+
+Figure v1の個別資料情報は変更・自動移行しません。将来のFigure、Comparison、Timeline、Diagramは安定した `sourceId` で同じSourceレコードを参照できます。v1では本文Citationだけを接続し、書誌情報の自動取得や高度な引用スタイルは対象外です。Sourceマーカーはエディタの本文末尾に見えます。壊れたSourceマーカーはプレビューに原文として残します。

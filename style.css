@@ -6505,3 +6505,24 @@ body.report-preview-mode .chart-tsv-copy-controls {
   #reportPreviewMobileBtn { display: block; }
   body.report-preview-mode #previewCard { border-radius: 8px; border-width: 1px; }
 }
+.source-dialog {
+  width: min(36rem, calc(100vw - 2rem));
+  max-height: min(85vh, 45rem);
+  overflow: auto;
+}
+.source-dialog .source-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr));
+  gap: .6rem;
+}
+.source-fields label { display: grid; gap: .2rem; min-width: 0; }
+.source-fields input, .source-fields select { min-width: 0; width: 100%; box-sizing: border-box; }
+.source-list { display: grid; gap: .4rem; margin: .8rem 0; }
+.source-list-item { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem; }
+.source-list-item span { flex: 1 1 10rem; min-width: 0; overflow-wrap: anywhere; }
+.source-actions { display: flex; flex-wrap: wrap; gap: .4rem; margin-top: .8rem; }
+.citation-link { font-size: .8em; vertical-align: super; white-space: nowrap; }
+.report-sources { margin-top: 2rem; border-top: 1px solid var(--border-color, #bbb); padding-top: .8rem; min-width: 0; }
+.report-sources ol { list-style: none; padding: 0; }
+.report-sources li { margin: .5rem 0; overflow-wrap: anywhere; }
+.report-sources a { overflow-wrap: anywhere; }

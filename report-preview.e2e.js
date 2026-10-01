@@ -81,7 +81,7 @@ const image = fs.readFileSync(path.join(__dirname, "e2e-artifacts", "chart-png-e
     await page.evaluate(() => {
       const details = document.querySelector(".explanation-card details");
       window.reportPreviewExplanationToggleObserved = false;
-      details.addEventListener("toggle", () => { window.reportPreviewExplanationToggleObserved = true; }, { once: true });
+      details.addEventListener("toggle", () => { if (!details.open) window.reportPreviewExplanationToggleObserved = true; });
     });
     await explanationDetails.locator("summary").click();
     await page.waitForFunction(() => {
@@ -102,7 +102,7 @@ const image = fs.readFileSync(path.join(__dirname, "e2e-artifacts", "chart-png-e
     await page.evaluate(() => {
       const details = document.querySelector(".explanation-card details");
       window.reportPreviewExplanationToggleObserved = false;
-      details.addEventListener("toggle", () => { window.reportPreviewExplanationToggleObserved = true; }, { once: true });
+      details.addEventListener("toggle", () => { if (!details.open) window.reportPreviewExplanationToggleObserved = true; });
     });
     await normalExplanationDetails.locator("summary").click();
     await page.waitForFunction(() => {
