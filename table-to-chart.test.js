@@ -82,13 +82,15 @@ test("表変換: 円の負数と複合の系列数の確定条件を保持", () 
 });
 
 const vm = require("node:vm");
+const { removeDuplicateFigureIds } = require("./attachment-utils.js");
 const app = require("node:fs").readFileSync("app.js", "utf8");
 function undoFixture() {
   const context = vm.createContext({ currentId:"note", undoStack:[], redoStack:[], UNDO_LIMIT:100, lastUndoSnapshotAt:0,
     titleInput:{value:"title"}, editor:{value:"table"}, undoBtn:{}, redoBtn:{}, saves:0,
     renderTableBlockEditors(){}, renderNoteMeta(){}, scheduleSave(){ context.saves++; },
-    currentNote(){return {id:context.currentId};}, typingPerformanceEnabled:false, UNDO_INPUT_INTERVAL_MS:1000 });
-  for(const name of ["captureUndoSnapshot", "shouldForceUndoSnapshot", "pushUndoSnapshot", "undoLastEdit", "redoLastEdit", "updateUndoButton"]) {
+    currentNote(){return {id:context.currentId};}, noteSaveFoundation:{isTerminal(){return false;}},
+    removeDuplicateFigureIds, typingPerformanceEnabled:false, UNDO_INPUT_INTERVAL_MS:1000 });
+  for(const name of ["normalizeEditorFigureIds", "captureUndoSnapshot", "shouldForceUndoSnapshot", "pushUndoSnapshot", "undoLastEdit", "redoLastEdit", "updateUndoButton"]) {
     const source=app.match(new RegExp("function "+name+"\\([^]*?\\n\\}"))[0];
     vm.runInContext(source,context);
   }

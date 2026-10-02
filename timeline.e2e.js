@@ -49,8 +49,33 @@ async function duplicateReferences(page, baseline) {
   const duplicated = originalFigure.raw + "\n" + baseline.body;
   const defensive = await page.evaluate((body) => renderPreviewHtml(body), duplicated);
   assert.equal((defensive.match(/class="timeline-missing"/g) || []).length, 2);
-  await page.evaluate(() => captureUndoSnapshot({ inputType: "insertFromPaste" }));
-  await page.locator("#editor").fill(duplicated);
+  await page.context().grantPermissions(["clipboard-read", "clipboard-write"]);
+  await page.locator("#editor").focus();
+  await page.evaluate(async (text) => {
+    await navigator.clipboard.writeText(text);
+    editor.setSelectionRange(0, 0);
+    window.timelinePasteInput = null;
+    editor.addEventListener("input", (event) => {
+      // Capture phase observes the inserted body before the app input handler.
+      window.timelinePasteInput = { inputType: event.inputType, body: editor.value };
+    }, { capture: true, once: true });
+  }, originalFigure.raw + "\n");
+  await page.keyboard.press(process.platform === "darwin" ? "Meta+V" : "Control+V");
+  await page.waitForFunction(() => window.timelinePasteInput !== null);
+  const paste = await page.evaluate(() => ({
+    observed: window.timelinePasteInput, body: editor.value,
+    selectionStart: editor.selectionStart, selectionEnd: editor.selectionEnd,
+    selectionDirection: editor.selectionDirection,
+    expected: removeDuplicateFigureIds(window.timelinePasteInput.body).body
+  }));
+  assert.equal(paste.observed.inputType, "insertFromPaste");
+  assert.equal(paste.observed.body, duplicated);
+  assert.equal(paste.body, paste.expected, "normalization completes in the post-insertion input handler");
+  const expectedCaret = originalFigure.raw.length + 1 - ("<!-- memo-nexus:figure-id:" + originalFigure.figureId + " -->\n").length;
+  assert.equal(paste.selectionStart, expectedCaret);
+  assert.equal(paste.selectionEnd, expectedCaret);
+  assert.equal(paste.selectionDirection, "forward");
+
   const normalized = await saved(page);
   assert.equal(normalized.body, normalized.stored);
   assert.deepEqual(normalized.figures.map((figure) => figure.figureId), [undefined, undefined]);

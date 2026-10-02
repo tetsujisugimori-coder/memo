@@ -43,6 +43,7 @@ const saveHandlersSource = sourceBetween("function handleNoteSaveStateChange", "
 const memoLinkRenameSyncSource = sourceBetween("function rememberProcessedMemoLinkRenameSync", "async function refreshMemoFromOtherWindow");
 const draftMirrorHelpersSource = sourceBetween("function scheduleDraftMirror", "// IndexedDBより新しいドラフト");
 const scheduleSaveSource = sourceBetween("function scheduleSave(", "function captureUndoSnapshot");
+const typingInputSource = sourceBetween("function handleTitleTypingInput", "function shouldForceUndoSnapshot");
 const updateTagsSource = sourceBetween("async function updateCurrentNoteTags", "function setNoteTagStatus");
 const localSaveTargetSource = sourceBetween("async function localSaveTargetsMatch", "async function persistLocalSaveSettings");
 const localSaveMetadataSource = sourceBetween("function buildLocalSaveLiveNoteIndex", "async function performLocalWorkspaceSave");
@@ -221,6 +222,7 @@ function createHarness({
   const memoLinkRenameRepairWrites = [];
   let timerSequence = 0;
   let draftTimerSequence = 0;
+  let figureNormalizationCalls = 0;
   const initialNotes = providedNotes || Array.from({ length: noteCount }, (_, index) => {
     const id = index === 0 ? "A" : index === 1 ? "B" : `N${String(index + 1).padStart(3, "0")}`;
     return { id, title: id, body: `${id}0`, revision: 0, tags: [], collectionId: "old", updatedAt: 1 };
@@ -263,7 +265,8 @@ function createHarness({
     memoLinkRenameNotifications,
     memoLinkRenameRepairWrites,
     createDraftMirrorScheduler,
-    removeDuplicateFigureIds,
+    removeDuplicateFigureIds: (...args) => { figureNormalizationCalls += 1; return removeDuplicateFigureIds(...args); },
+    figureNormalizationCallsForHarness: () => figureNormalizationCalls,
     createNoteSaveFoundation,
     createSaveRequest,
     createCodexThreadSaveCoordinator,
@@ -333,6 +336,8 @@ function createHarness({
     let layoutMode = "wide";
     let isPopoutWindow = false;
     const typingPerformanceEnabled = false;
+    const createTypingPerformanceMeasurement = () => null;
+    const resetEditorCaretIdle = () => {};
     const measureTypingPerformanceOperation = (_durations, _name, operation) => operation();
     let registeredTags = ["tag-a", "tag-b"];
     const noteLiveDrafts = new Map();
@@ -551,6 +556,7 @@ function createHarness({
       if (!noteId || noteId !== currentId) return false;
       const note = currentNote();
       if (!note || note.id !== noteId) return false;
+      normalizeEditorFigureIdsBeforeSave(noteId);
       draftMirrorWrites.push({
         id: note.id,
         revision: note.revision,
@@ -575,6 +581,7 @@ function createHarness({
     ${saveHandlersSource}
     ${memoLinkRenameSyncSource}
     ${scheduleSaveSource}
+    ${typingInputSource}
     ${updateTagsSource}
     ${localSaveTargetSource}
     ${localSaveMetadataSource}
@@ -647,6 +654,7 @@ function createHarness({
           currentId,
           title: titleInput.value,
           body: editor.value,
+          figureNormalizationCalls: figureNormalizationCallsForHarness(),
           selectionStart: editor.selectionStart,
           selectionEnd: editor.selectionEnd,
           selectionDirection: editor.selectionDirection,
@@ -698,6 +706,8 @@ function createHarness({
       setEditorComposition(noteId) { editorCompositionNoteId = noteId; },
       setTitleComposition(noteId) { titleCompositionNoteId = noteId; },
       flushPendingMemoLinkRenameSyncs,
+      bodyInput(inputType) { handleEditorTypingInput({ inputType }); },
+      titleInput(inputType) { handleTitleTypingInput({ inputType }); },
       select(start, end, direction) { editor.setSelectionRange(start, end, direction); },
       edit(title, body) { titleInput.value = title; editor.value = body; },
       setCurrentId(id) { currentId = id; },
@@ -2739,4 +2749,84 @@ test("実アプリopenNote: 未正規化の旧保存本文も削除前に競合F
   assert.equal(harness.state().body, normalized);
   await harness.enqueueNoteSave("A");
   assert.equal((await harness.storedNotes())[0].body, normalized);
+});
+
+test("Figure付き長文の通常insertText・削除・タイトル入力は重複Figure解析を呼ばない", () => {
+  const figures = Array.from({ length: 60 }, (_, index) => serializeImageBlock([{ id: "asset-" + index }], "", "center", "normal", "figure-" + index)).join("\n");
+  const original = ("長文レポートの本文\n".repeat(6000)) + figures;
+  const harness = createHarness({ initialNotes: [{ id: "A", title: "A", body: original, revision: 0 }] });
+  assert.match(original, /memo-nexus:figure-id:/);
+  for (let index = 0; index < 20; index += 1) {
+    harness.edit("A", original + "入力" + index);
+    harness.bodyInput("insertText");
+    harness.edit("A", original);
+    harness.bodyInput("deleteContentBackward");
+    harness.edit("題名" + index, original);
+    harness.titleInput("insertText");
+  }
+  assert.equal(harness.state().figureNormalizationCalls, 0);
+  assert.equal(harness.state().body, original);
+  assert.equal(harness.foundation.getState("A").dirty, true);
+});
+for (const inputType of ["insertFromPaste", "insertFromDrop"]) {
+  test("実inputハンドラー: " + inputType + "反映後だけ安全化し通常入力は走査しない", () => {
+    const figure = serializeImageBlock([{ id: "asset", alt: "資料" }], "", "center", "normal", "figure");
+    const timeline = serializeTimelineBlock({ id: "timeline", items: [{ id: "item", figureId: "figure" }] });
+    const original = figure + "\n" + timeline;
+    const duplicated = figure + "\n" + original;
+    const harness = createHarness({ initialNotes: [{ id: "A", title: "A", body: original, revision: 0 }] });
+    harness.edit("A", duplicated);
+    harness.select(figure.length + 1, figure.length + 1, "none");
+    harness.bodyInput(inputType);
+    assert.equal(harness.state().body, removeDuplicateFigureIds(duplicated).body);
+    assert.equal(harness.state().figureNormalizationCalls, 1);
+    assert.equal(harness.state().selectionStart, figure.length + 1 - "<!-- memo-nexus:figure-id:figure -->\n".length);
+    assert.equal(splitTimelineBlocks(harness.state().body).find((entry) => entry.type === "timeline").timeline.items[0].figureId, "figure");
+    assert.ok(splitImageBlocks(harness.state().body).filter((entry) => entry.type === "image").every((entry) => !entry.figureId));
+    harness.bodyInput("insertText");
+    harness.titleInput("insertText");
+    assert.equal(harness.state().figureNormalizationCalls, 1);
+  });
+}
+test("draft mirrorの実書込み境界で安全化し、dirtyと最新revisionを保持する", async () => {
+  const figure = serializeImageBlock([{ id: "asset" }], "", "center", "normal", "figure");
+  const duplicated = figure + "\n" + figure;
+  const harness = createHarness({ initialNotes: [{ id: "A", title: "A", body: figure, revision: 0 }] });
+  harness.edit("A", duplicated);
+  harness.scheduleSave();
+  assert.equal(harness.state().figureNormalizationCalls, 0);
+  assert.equal(harness.state().body, duplicated);
+  harness.runAllDraftTimersIncludingCleared();
+  const normalized = removeDuplicateFigureIds(duplicated).body;
+  assert.equal(harness.state().body, normalized);
+  assert.equal(harness.state().draftMirrorWrites[0].body, normalized);
+  assert.equal(harness.state().draftMirrorWrites[0].revision, harness.foundation.getState("A").currentRevision);
+  assert.equal(harness.foundation.getState("A").dirty, true);
+  await harness.enqueueNoteSave("A");
+  assert.equal((await harness.storedNotes())[0].body, normalized);
+  assert.equal(harness.foundation.getState("A").dirty, false);
+});
+test("ローカルMarkdownの実保存境界でも入力予約ではなく保存直前に安全化する", async () => {
+  const figure = serializeImageBlock([{ id: "asset" }], "", "center", "normal", "figure");
+  const duplicated = figure + "\n" + figure;
+  const harness = createHarness({ initialNotes: [{ id: "A", title: "A", body: figure, revision: 0 }] });
+  harness.edit("A", duplicated);
+  harness.bodyInput("insertText");
+  assert.equal(harness.state().figureNormalizationCalls, 0);
+  await harness.performLocalWorkspaceSave("manual");
+  assert.equal(harness.state().body, removeDuplicateFigureIds(duplicated).body);
+  assert.equal((await harness.storedNotes())[0].body, harness.state().body);
+});
+
+test("Figure正規化は入力draftと保存予約のホットパスに置かず構造的inputだけで行う", () => {
+  const draft = sourceBetween("function applyCurrentEditorDraft(", "function waitForNoteSave(");
+  const schedule = sourceBetween("function scheduleSave(", "function captureUndoSnapshot(");
+  const input = sourceBetween("function handleEditorTypingInput(", "function shouldForceUndoSnapshot(");
+  const title = sourceBetween("function handleTitleTypingInput(", "function handleEditorTypingInput(");
+  for (const source of [draft, schedule, title]) {
+    assert.doesNotMatch(source, /normalizeEditorFigureIds|removeDuplicateFigureIds/);
+  }
+  assert.match(input, /if \(event\?\.inputType === "insertFromPaste" \|\| event\?\.inputType === "insertFromDrop"\) normalizeEditorFigureIds\(\);/);
+  assert.match(sourceBetween("function saveCurrentDraftMirror(", "function scheduleDraftMirror("), /normalizeEditorFigureIdsBeforeSave\(noteId\)/);
+  assert.match(sourceBetween("function enqueueNoteSave(", "function clearScheduledNoteSave("), /normalizeEditorFigureIdsBeforeSave\(noteId\)/);
 });

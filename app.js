@@ -2917,6 +2917,7 @@ async function performLocalWorkspaceSave(reason = "change") {
   if (localSaveRequestIsCurrent(request)) {
     setLocalSaveState("saving", { directoryName: request.directoryName, errorCode: "", errorMessage: "", requiresUserAction: false });
   }
+  normalizeEditorFigureIdsBeforeSave();
   const savedAt = new Date().toISOString();
   const savedChangeVersion = localWorkspaceChangeVersion;
   const resolvedConflicts = new Map(localConflictResolutions);
@@ -3685,6 +3686,7 @@ function saveCurrentDraftMirror(noteId = currentId) {
   if (!noteId || noteId !== currentId) return false;
   const note = currentNote();
   if (!note || note.id !== noteId) return false;
+  normalizeEditorFigureIdsBeforeSave(noteId);
 
   const now = Date.now();
   const draft = {
@@ -6580,10 +6582,18 @@ function normalizeEditorFigureIds() {
   return true;
 }
 
+// Keep normalization outside scheduleSave/applyCurrentEditorDraft: those run on
+// every keystroke. At a persistence boundary, update the live draft/revision
+// before taking the existing save snapshot, rather than rewriting snapshots.
+function normalizeEditorFigureIdsBeforeSave(noteId = currentId) {
+  if (noteId !== currentId || !normalizeEditorFigureIds()) return false;
+  applyCurrentEditorDraft(currentNote());
+  return true;
+}
+
 function applyCurrentEditorDraft(note = currentNote()) {
   if (!note || note.id !== currentId) return false;
   if (noteSaveFoundation.isTerminal(note.id)) return false;
-  normalizeEditorFigureIds();
   const nextBody = editor.value;
   const nextTitle = titleInput.value || titleFromBody(nextBody) || "無題メモ";
   const bodyChanged = note.body !== nextBody;
@@ -6843,6 +6853,7 @@ function enqueueNoteSaveSnapshot(noteId) {
 
 function enqueueNoteSave(noteId) {
   if (noteSaveFoundation.isTerminal(noteId)) return Promise.resolve(null);
+  normalizeEditorFigureIdsBeforeSave(noteId);
   const note = noteForSave(noteId);
   if (!note) return Promise.resolve(null);
   const uiChanges = noteSaveUiChanges.get(noteId);
@@ -6973,7 +6984,10 @@ async function mutateNotesAtomically(noteIds, mutate, writeSnapshots = null, uiO
   const liveNote = (noteId) => liveNotesById ? liveNotesById.get(noteId) : noteForSave(noteId);
   const ids = [...new Set(noteIds || [])].filter(Boolean).sort();
   if (!ids.length) return Promise.resolve([]);
-  if (captureCurrentDraft && ids.includes(currentId)) applyCurrentEditorDraft(currentNote());
+  if (captureCurrentDraft && ids.includes(currentId)) {
+    normalizeEditorFigureIdsBeforeSave();
+    applyCurrentEditorDraft(currentNote());
+  }
 
   const plans = ids.map((noteId) => {
     const note = liveNote(noteId);
@@ -7883,6 +7897,8 @@ function handleEditorTypingInput(event) {
   const performanceMeasurement = createTypingPerformanceMeasurement("body", event);
   const performanceStartedAt = performanceMeasurement ? typingPerformance.start() : null;
   resetEditorCaretIdle();
+  // The input event runs after the browser inserts pasted/dropped text.
+  if (event?.inputType === "insertFromPaste" || event?.inputType === "insertFromDrop") normalizeEditorFigureIds();
   scheduleSave({ typingPerformanceMeasurement: performanceMeasurement });
   if (performanceMeasurement) {
     const totalDuration = typingPerformance.elapsed(performanceStartedAt);
@@ -7934,6 +7950,7 @@ function undoLastEdit() {
   const [snapshot] = undoStack.splice(index, 1);
   titleInput.value = snapshot.title;
   editor.value = snapshot.body;
+  normalizeEditorFigureIds();
   lastUndoSnapshotAt = 0;
   renderTableBlockEditors();
   globalThis.renderGeometryBlockEditors?.();
@@ -7950,6 +7967,7 @@ function redoLastEdit() {
   pushUndoSnapshot({ noteId: currentId, title: titleInput.value, body: editor.value, savedAt: Date.now() });
   titleInput.value = snapshot.title;
   editor.value = snapshot.body;
+  normalizeEditorFigureIds();
   lastUndoSnapshotAt = 0;
   renderTableBlockEditors();
   globalThis.renderChartBlockEditors?.();
@@ -8142,6 +8160,7 @@ function commitSourceBody(nextBody) {
   pushUndoSnapshot({ noteId: currentId, title: titleInput.value, body: editor.value, savedAt: Date.now() });
   redoStack = [];
   editor.value = nextBody;
+  normalizeEditorFigureIds();
   scheduleSave();
   renderPreview();
   updateUndoButton();
