@@ -440,6 +440,22 @@ Web Clipperは、表示中のHTTP/HTTPSページからタイトル、URL、サ�
 
 エディタの「出典」から資料を登録し、一覧の「引用を挿入」で本文へ `[@source-id]` 形式の参照を挿入できます。同じ出典を何度参照しても Preview の番号は共通です。番号は本文に保存されず、最初の参照順から毎回導出されます。未登録IDの引用は原文のまま表示されます。出典一覧は参照された資料だけを本文末尾に表示します。
 
-Source は `id`, `title`, `author`, `publisher`, `date`, `url`, `accessedAt`, `page`, `sourceType` を持ちます。本文末尾の `<!-- memo-nexus:sources-v1:<hex UTF-8 JSON> -->` に `{version:1,sources:[...]}` を保存します。本文と一緒に Markdown ZIP と完全バックアップ v3 を往復するため、新しい IndexedDB store やバックアップ形式の変更はありません。Source の変更も通常の本文保存・revision・Undo/Redoを使います。URLは値を保持し、Previewでは有効なHTTP/HTTPSだけをリンク化します。
+Source は `id`, `title`, `author`, `publisher`, `date`, `url`, `accessedAt`, `page`, `sourceType` を持ちます。本文末尾の `<!-- memo-nexus:sources-v1:<hex UTF-8 JSON> -->` に `{version:1,sources:[...]}` を保存します。本文と一緒に Markdown ZIP と完全バックアップを往復し、Source導入時（第3段階）はバックアップv3を維持しました。Comparison導入後の現行バックアップはv4です。新しい IndexedDB store はありません。Source の変更も通常の本文保存・revision・Undo/Redoを使います。URLは値を保持し、Previewでは有効なHTTP/HTTPSだけをリンク化します。
 
 Figure v1の個別資料情報は変更・自動移行しません。将来のFigure、Comparison、Timeline、Diagramは安定した `sourceId` で同じSourceレコードを参照できます。v1では本文Citationだけを接続し、書誌情報の自動取得や高度な引用スタイルは対象外です。Sourceマーカーはエディタの本文末尾に見えます。壊れたSourceマーカーはプレビューに原文として残します。
+
+## Comparison v1（Visual Markdown Report 第4段階）
+
+画像ブロックの「…」→「比較表示を設定」で、通常表示／比較表示、画像ごとの自由入力ラベル、比較全体の説明を編集できます。比較には2枚の画像が必要です。1枚のときは選択できない理由を設定画面に表示します。空ラベルは表示せず、既定の「変更前／変更後」は保存しません。保存は1回のUndoで戻せ、キャンセルは本文・保存状態を変更しません。
+
+比較全体の説明には既存の画像ブロックの説明文（caption）を使います。各画像のFigureキャプション・年代・資料名・出典URL・資料種別・ライセンス・補足は別情報として維持します。左右の入替ではラベルとFigure情報も画像と一緒に移動します。本文から片方の画像を外すと通常表示へ戻り、説明と残った画像の情報を保持して案内します。元の添付ファイルを完全削除する操作は従来どおり別操作です。画像を再追加しても比較は自動再開せず、設定画面で再選択します。通常表示へ戻した場合もラベルを保持します。
+
+既存Image Blockに、比較時だけブロック単位の `<!-- memo-nexus:image-mode:comparison -->`、任意ラベルがある画像の直後に `<!-- memo-nexus:image-label:<hex UTF-8 JSON> -->` を保存します。ラベルのJSONは `{version:1,label:"自由入力"}` です。Figure metadataとは独立したマーカーで、入替・削除・ZIPの画像参照ID変換に追従できます。独立したComparison Block、document model、Sourceモデル、IndexedDB store／schemaは追加していません。旧画像の読込だけで新マーカーを追加しません。不正／未知の比較モードは通常表示へ退避し、不正ラベルは表示せず、本文と画像参照を保持します。
+
+通常PreviewとReport Previewは同じrendererを使います。PCでは横並び、狭いPreview領域と320pxでは縦並びになり、各ラベルを対応画像の下に表示します。画像は縦横比を保ち、切抜き・引伸ばしを行いません。長文ラベル、URL、説明は折り返します。Report Previewは設定編集を隠し、画像拡大とFigure詳細の閲覧を維持します。
+
+完全バックアップのmanifestはv4（version／formatVersionとも4）です。旧mainのparserで新構文を実行すると、2枚の参照自体は残りますが、通常の独立画像として扱われ、ブロック説明とFigure／比較情報が一体表示されません。このためv3を維持せず、旧アプリはv4完全バックアップを「新しい形式」として拒否する既存契約を使います。新アプリはv1〜v3を本文・Figure・Source・添付を変えずにv4へ読み込み、未知のv5以降を拒否します。Markdown ZIPはmanifestを持たないため旧アプリの拒否はできません。画像参照とマーカーは取り込めますが、比較表示・Figure情報の対応表示は保証できず、旧版での再編集・再保存で情報が失われる可能性があります。Comparisonを含むZIPは対応版で復元してください。
+
+Figure・Comparison・Table・Chartから共通Sourceへの `sourceId` 接続は後続課題です。今回もFigureの `sourceName`／`sourceUrl` の出典表示を維持し、自動移行やSource管理UIの拡張は行いません。スライダー、画像差分検出、3画像以上、PDF／印刷専用レイアウトなどは対象外です。
+
+比較の実操作検証は `npm run test:e2e:comparison`、関連機能まとめは `npm run test:e2e`（Figure → Comparison → Report Preview → Citation / Source）で実行します。CIでは既存Figure job内で各試験を1回ずつ実行し、ComparisonのPC／320pxスクリーンショットを `comparison-review` artifactとして保存します。

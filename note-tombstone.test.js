@@ -441,10 +441,10 @@ test("DB migrationは新規・旧DBへstoreを作成し、作成失敗を握り�
 });
 
 test("変更したブラウザ配信JavaScriptのcache識別子を更新している", () => {
-  assert.match(indexHtml, /attachment-utils\.js\?v=0\.5\.0-13/);
+  assert.match(indexHtml, /attachment-utils\.js\?v=0\.5\.0-14/);
   assert.match(indexHtml, /note-tombstone\.js\?v=0\.5\.0-2/);
   assert.match(indexHtml, /note-save-foundation\.js\?v=0\.5\.0-8/);
-  assert.match(indexHtml, /app\.js\?v=0\.5\.0-191/);
+  assert.match(indexHtml, /app\.js\?v=0\.5\.0-192/);
 });
 
 async function runRepeatedRace(pattern, iteration) {

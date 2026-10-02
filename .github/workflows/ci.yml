@@ -167,6 +167,18 @@ jobs:
       - name: Run Figure metadata E2E
         run: npm run test:e2e:figure
 
+      - name: Run Comparison E2E
+        run: npm run test:e2e:comparison
+
+      - name: Upload Comparison review screenshots
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: comparison-review
+          path: e2e-artifacts/comparison-*.png
+          if-no-files-found: error
+          retention-days: 14
+
       - name: Run Report Preview E2E
         run: npm run test:e2e:report-preview
 

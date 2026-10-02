@@ -165,19 +165,40 @@
     return { id: reference.id, alt: reference.alt };
   }
 
-  function serializeImageBlock(images, caption = "", alignment = "center") {
+  // Comparison is part of the image block. Labels travel with each image.
+  function serializeImageComparisonLabel(value) {
+    if (typeof value !== "string" || !value.trim()) return "";
+    const bytes = new TextEncoder().encode(JSON.stringify({ version: 1, label: value }));
+    const hex = Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
+    return `<!-- memo-nexus:image-label:${hex} -->`;
+  }
+
+  function parseImageComparisonLabel(line) {
+    const match = String(line || "").trim().match(/^<!-- memo-nexus:image-label:([0-9a-f]+) -->$/i);
+    if (!match || match[1].length % 2) return null;
+    try {
+      const bytes = Uint8Array.from(match[1].match(/../g), (pair) => Number.parseInt(pair, 16));
+      const value = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes));
+      return value?.version === 1 && typeof value.label === "string" ? value.label : null;
+    } catch (_) { return null; }
+  }
+
+  function serializeImageBlock(images, caption = "", alignment = "center", displayMode = "normal") {
     const normalizedImages = (Array.isArray(images) ? images : [])
       .filter((image) => image && image.id)
       .slice(0, 2)
-      .map((image) => ({ id: String(image.id), fileName: image.alt || image.fileName || "画像", figureMetadata: image.figureMetadata }));
+      .map((image) => ({ id: String(image.id), fileName: image.alt || image.fileName || "画像", figureMetadata: image.figureMetadata, comparisonLabel: image.comparisonLabel }));
     if (!normalizedImages.length) return "";
     const normalizedAlignment = normalizeImageBlockAlignment(alignment);
     const lines = [IMAGE_BLOCK_START];
+    if (displayMode === "comparison" && normalizedImages.length === 2) lines.push("<!-- memo-nexus:image-mode:comparison -->");
     if (normalizedAlignment !== "center") lines.push(`<!-- memo-nexus:image-align:${normalizedAlignment} -->`);
     normalizedImages.forEach((image) => {
       lines.push(attachmentMarkdownReference(image));
       const marker = serializeFigureMetadata(image.figureMetadata);
       if (marker) lines.push(marker);
+      const labelMarker = serializeImageComparisonLabel(image.comparisonLabel);
+      if (labelMarker) lines.push(labelMarker);
     });
     const normalizedCaption = String(caption || "").replace(/\r\n?/g, "\n").trim();
     if (normalizedCaption) lines.push("", IMAGE_BLOCK_CAPTION, normalizedCaption);
@@ -202,7 +223,7 @@
     const pushText = (end) => {
       if (end > textStart) segments.push({ type: "text", text: source.slice(textStart, end), start: textStart, end });
     };
-    const pushImage = (startLine, endLine, images, caption, explicit, alignment = "center") => {
+    const pushImage = (startLine, endLine, images, caption, explicit, alignment = "center", displayMode = "normal") => {
       const start = offsets[startLine];
       const end = endLine < lines.length - 1 ? offsets[endLine] + lines[endLine].length + 1 : source.length;
       pushText(start);
@@ -214,7 +235,8 @@
         images,
         caption,
         explicit,
-        alignment: normalizeImageBlockAlignment(alignment)
+        alignment: normalizeImageBlockAlignment(alignment),
+        displayMode: displayMode === "comparison" && images.length === 2 ? "comparison" : "normal"
       });
       textStart = end;
     };
@@ -237,12 +259,19 @@
           const captionIndex = content.findIndex((line) => line.trim() === IMAGE_BLOCK_CAPTION);
           const blockLines = captionIndex === -1 ? content : content.slice(0, captionIndex);
           const alignmentLines = blockLines.filter((line) => parseImageBlockAlignment(line) !== null);
-          const imageLines = blockLines.filter((line) => parseImageBlockAlignment(line) === null);
+          const modeLines = blockLines.filter((line) => /^<!--\s*memo-nexus:image-mode:/.test(line.trim()));
+          const imageLines = blockLines.filter((line) => parseImageBlockAlignment(line) === null && !modeLines.includes(line));
           const images = [];
           let valid = true;
           imageLines.filter((line) => line.trim()).forEach((line) => {
             const image = parseImageReferenceLine(line);
             if (image) { images.push(image); return; }
+            // Invalid or future comparison settings must not break image references.
+            if (/^<!--\s*memo-nexus:image-label:/.test(line.trim())) {
+              const label = parseImageComparisonLabel(line);
+              if (label !== null && images.length) images[images.length - 1].comparisonLabel = label;
+              return;
+            }
             const metadata = parseFigureMetadata(line);
             if (metadata && images.length && !images[images.length - 1].figureMetadata) {
               images[images.length - 1].figureMetadata = metadata;
@@ -251,7 +280,8 @@
           if (valid && images.length >= 1 && images.length <= 2) {
             const caption = captionIndex === -1 ? "" : content.slice(captionIndex + 1).join("\n").trim();
             const alignment = alignmentLines.length === 1 ? parseImageBlockAlignment(alignmentLines[0]) : "center";
-            pushImage(index, endLine, images, caption, true, alignment);
+            const displayMode = modeLines.length === 1 && modeLines[0].trim() === "<!-- memo-nexus:image-mode:comparison -->" ? "comparison" : "normal";
+            pushImage(index, endLine, images, caption, true, alignment, displayMode);
             index = endLine + 1;
             continue;
           }
@@ -305,12 +335,12 @@
     return prepared;
   }
 
-  function replaceImageBlock(markdown, block, images, caption = "", alignment = block && block.alignment) {
+  function replaceImageBlock(markdown, block, images, caption = "", alignment = block && block.alignment, displayMode = block && block.displayMode) {
     const source = String(markdown || "").replace(/\r\n?/g, "\n");
     if (!block || source.slice(block.start, block.end).replace(/\n$/, "") !== block.raw) {
       throw new Error("画像ブロックが更新されたため操作できません。もう一度お試しください");
     }
-    const replacement = serializeImageBlock(images, caption, alignment);
+    const replacement = serializeImageBlock(images, caption, alignment, displayMode);
     const prefix = replacement && block.start > 0 && source[block.start - 1] !== "\n" ? "\n" : "";
     const suffix = replacement && block.end < source.length && source[block.end] !== "\n" ? "\n" : "";
     return `${source.slice(0, block.start)}${prefix}${replacement}${suffix}${source.slice(block.end)}`;
