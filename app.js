@@ -324,6 +324,7 @@ const {
   splitImageBlocks
 } = window.MemoNexusAttachmentUtils;
 const { figureSourceTypeLabel, hasFigureMetadata, normalizeFigureMetadata, safeFigureSourceUrl } = window.MemoNexusFigureMetadataUtils;
+const { normalizeTimeline, serializeTimelineBlock, splitTimelineBlocks, replaceTimelineBlock } = window.MemoNexusTimelineBlockUtils;
 const { SOURCE_TYPES: SOURCE_TYPE_LABELS, parseSourceDocument, sourceSelectionFromRaw, insertSourceCitation, withSources, safeSourceUrl, extractCitations } = window.MemoNexusSourceUtils;
 const {
   TAG_COLOR_PALETTE,
@@ -8099,6 +8100,7 @@ function renderPreview() {
   hydrateMathExpressions();
   hydrateInlineAttachmentImages();
   bindImageBlockControls();
+  bindTimelineControls();
   bindChartBlockControls();
   hydrateExplanationCards(note, body);
   bindChecklistControls(note);
@@ -11993,9 +11995,10 @@ function renderPreviewHtml(body, noteId = "preview", renderGeneration = 0) {
   let tableBlockIndex = 0;
   let geometryBlockIndex = 0;
   let chartBlockIndex = 0;
-  const html = splitImageBlocks(cleanedBody)
-    .map((segment, imageBlockIndex) => {
-      if (segment.type === "image") return renderImageBlock(segment, imageBlockIndex);
+  const imageSegments = splitImageBlocks(cleanedBody);
+  const renderContent = (content, offset) => splitImageBlocks(content)
+    .map((segment) => {
+      if (segment.type === "image") return renderImageBlock(segment, imageSegments.findIndex((original) => original.type === "image" && original.start === segment.start + offset));
       return splitGeometryBlocks(segment.text).map((geometrySegment) => {
         if (geometrySegment.type === "geometry") {
           const rendered = renderGeometryBlock(geometrySegment.geometry, geometryBlockIndex);
@@ -12035,10 +12038,194 @@ function renderPreviewHtml(body, noteId = "preview", renderGeneration = 0) {
     .filter(Boolean)
     .join("");
 
+  const html = splitTimelineBlocks(cleanedBody).map((segment, index) => segment.type === "timeline"
+    ? renderTimelineBlock(segment.timeline, index, imageSegments)
+    : renderContent(segment.text, segment.start)).join("");
   const sourcesHtml = renderReferencedSources(citationRenderContext.ordered);
   citationRenderContext = null;
   return (html || `<p class="empty">本文を書くとカード表示されます。</p>`) + sourcesHtml;
 }
+
+
+// Timeline keeps references to canonical Image Blocks and common Source records.
+function renderTimelineItemBody(body) {
+  const originalChecklistIndex = checklistRenderIndex;
+  try {
+    return splitFencedBlocks(body).map((block) => block.type === "code"
+      ? renderCodeBlock(block.code, block.language) : renderTextBlock(block.text)).join("")
+      .replace(/class="task-list-checkbox" type="checkbox" data-task-index="\d+"/g, 'type="checkbox" disabled');
+  } finally {
+    checklistRenderIndex = originalChecklistIndex;
+  }
+}
+
+function renderTimelineBlock(timeline, blockIndex, imageSegments) {
+  const figures = new Map();
+  imageSegments.filter((block) => block.type === "image" && block.figureId).forEach((block) => {
+    if (!figures.has(block.figureId)) figures.set(block.figureId, block);
+  });
+  const items = timeline.items.map((item, index) => {
+    const figure = figures.get(item.figureId);
+    const media = item.figureId ? (figure
+      ? renderImageBlock(figure, "timeline-" + blockIndex + "-" + index, false)
+      : '<p class="timeline-missing">参照先のFigureがありません。</p>') : "";
+    const citations = item.citationIds.length ? '<p class="timeline-citations">' +
+      item.citationIds.map((id) => renderMarkdownInline("[@" + id + "]")).join(" ") + "</p>" : "";
+    return '<li class="timeline-item"><div class="timeline-date">' + escapeHtml(item.dateLabel) +
+      '</div><div class="timeline-content">' + (item.title ? '<h3>' + escapeHtml(item.title) + '</h3>' : "") +
+      '<div class="timeline-body">' + renderTimelineItemBody(item.body) + '</div>' + media + citations + '</div></li>';
+  }).join("");
+  return '<section class="timeline-block" data-timeline-index="' + blockIndex + '">' +
+    (timeline.title ? '<h2>' + escapeHtml(timeline.title) + '</h2>' : "") +
+    (timeline.description ? '<p class="timeline-description">' + escapeHtml(timeline.description).replace(/\n/g, "<br>") + '</p>' : "") +
+    '<ol class="timeline-items">' + items + '</ol><button class="timeline-edit" type="button">Timelineを編集</button></section>';
+}
+
+function bindTimelineControls() {
+  preview.querySelectorAll(".timeline-edit").forEach((button) => button.addEventListener("click", () => {
+    if (document.body.classList.contains("report-preview-mode")) return;
+    const index = Number(button.closest(".timeline-block").dataset.timelineIndex);
+    const segment = splitTimelineBlocks(stripExplanationAnchorComments(parseSourceDocument(editor.value).body))[index];
+    if (!segment || segment.type !== "timeline") return;
+    // Locate the raw marker in the actual editor, without stripping Source/anchor records.
+    const block = splitTimelineBlocks(editor.value).find((entry) => entry.type === "timeline" && entry.raw === segment.raw);
+    if (block) openTimelineEditor(block);
+  }));
+  // Item body checklists are display-only; their offsets are not editor body offsets.
+  preview.querySelectorAll(".timeline-body input").forEach((input) => { input.disabled = true; });
+}
+
+let timelineEditState = null;
+function openTimelineEditor(block = null) {
+  if (!currentNote() || currentNote().deletedAt || document.body.classList.contains("report-preview-mode")) return;
+  const timeline = block ? normalizeTimeline(block.timeline) : {
+    id: "timeline-" + crypto.randomUUID(), title: "", description: "", items: []
+  };
+  timelineEditState = { noteId: currentId, originalBody: editor.value, block, timeline,
+    figures: new Map() };
+  splitImageBlocks(editor.value).filter((entry) => entry.type === "image").forEach((entry) => {
+    const key = entry.figureId || "figure-" + crypto.randomUUID();
+    if (!timelineEditState.figures.has(key)) timelineEditState.figures.set(key, entry);
+  });
+  $("timelineTitleInput").value = timeline.title;
+  $("timelineDescriptionInput").value = timeline.description;
+  $("timelineStatus").textContent = "";
+  $("deleteTimelineBtn").hidden = !block;
+  renderTimelineItemEditors();
+  $("timelineDialog").showModal();
+  $("timelineTitleInput").focus();
+}
+
+function timelineField(parent, labelText, control, value) {
+  const label = document.createElement("label");
+  label.textContent = labelText;
+  control.value = value;
+  label.append(control);
+  parent.append(label);
+  return control;
+}
+
+function renderTimelineItemEditors() {
+  const state = timelineEditState;
+  const container = $("timelineItemEditors");
+  container.replaceChildren();
+  const sources = parseSourceDocument(state.originalBody).sources;
+  state.timeline.items.forEach((item, index) => {
+    const details = document.createElement("details");
+    details.className = "timeline-item-editor";
+    details.open = index === state.timeline.items.length - 1;
+    const summary = document.createElement("summary");
+    summary.textContent = (index + 1) + ". " + (item.title || item.dateLabel || "出来事");
+    details.append(summary);
+    for (const [key, label] of [["dateLabel", "日付・期間"], ["title", "出来事のタイトル"], ["body", "本文"]]) {
+      const input = document.createElement(key === "body" ? "textarea" : "input");
+      if (key === "body") input.rows = 4;
+      timelineField(details, label, input, item[key]);
+      input.addEventListener("input", () => { item[key] = input.value; });
+    }
+    const figureSelect = document.createElement("select");
+    figureSelect.add(new Option("Figureなし", ""));
+    state.figures.forEach((figure, id) => figureSelect.add(new Option(
+      figure.images.map((image) => image.figureMetadata?.caption || image.alt || "画像").join(" / "), id)));
+    if (item.figureId && !state.figures.has(item.figureId)) figureSelect.add(new Option("参照先のFigureがありません", item.figureId));
+    timelineField(details, "Figureを選択", figureSelect, item.figureId);
+    figureSelect.addEventListener("change", () => { item.figureId = figureSelect.value; });
+    const fieldset = document.createElement("fieldset");
+    const legend = document.createElement("legend");
+    legend.textContent = "出典・引用を選択（複数選択可）";
+    fieldset.append(legend);
+    const byId = new Map(sources.map((source) => [source.id, source]));
+    item.citationIds.forEach((id) => { if (!byId.has(id)) byId.set(id, { id, title: "未登録の出典: " + id }); });
+    byId.forEach((source) => {
+      const label = document.createElement("label");
+      label.className = "timeline-source-option";
+      const checkbox = document.createElement("input");
+      checkbox.type = "checkbox";
+      checkbox.checked = item.citationIds.includes(source.id);
+      checkbox.addEventListener("change", () => {
+        item.citationIds = checkbox.checked ? [...item.citationIds, source.id] : item.citationIds.filter((id) => id !== source.id);
+      });
+      label.append(checkbox, source.title || source.author || source.url || source.id);
+      fieldset.append(label);
+    });
+    details.append(fieldset);
+    const actions = document.createElement("div");
+    actions.className = "timeline-editor-actions";
+    for (const [label, delta] of [["上へ", -1], ["下へ", 1], ["項目を削除", 0]]) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.textContent = label;
+      button.disabled = delta !== 0 && (index + delta < 0 || index + delta >= state.timeline.items.length);
+      button.addEventListener("click", () => {
+        if (delta === 0) state.timeline.items.splice(index, 1);
+        else [state.timeline.items[index], state.timeline.items[index + delta]] = [state.timeline.items[index + delta], state.timeline.items[index]];
+        renderTimelineItemEditors();
+      });
+      actions.append(button);
+    }
+    details.append(actions);
+    container.append(details);
+  });
+}
+
+function saveTimelineEditor(remove = false) {
+  const state = timelineEditState;
+  if (!state || state.noteId !== currentId || state.originalBody !== editor.value) {
+    $("timelineStatus").textContent = "メモが更新されました。キャンセルしてTimelineを開き直してください。";
+    return;
+  }
+  state.timeline.title = $("timelineTitleInput").value;
+  state.timeline.description = $("timelineDescriptionInput").value;
+  let body = state.block ? replaceTimelineBlock(editor.value, state.block, remove ? null : state.timeline)
+    : withSources(parseSourceDocument(editor.value).body + "\n" + serializeTimelineBlock(state.timeline) + "\n", parseSourceDocument(editor.value).sources);
+  if (!remove) {
+    const selected = new Set(state.timeline.items.map((item) => item.figureId).filter(Boolean));
+    // Reverse offsets so adding stable IDs does not shift the remaining canonical blocks.
+    for (const [id, original] of [...state.figures].sort((a, b) => b[1].start - a[1].start)) {
+      if (!selected.has(id) || original.figureId) continue;
+      const originalImages = splitImageBlocks(state.originalBody).filter((entry) => entry.type === "image");
+      const ordinal = originalImages.findIndex((entry) => entry.start === original.start);
+      const target = splitImageBlocks(body).filter((entry) => entry.type === "image")[ordinal];
+      if (!target) continue;
+      body = replaceImageBlock(body, target, target.images, target.caption, target.alignment, target.displayMode, id);
+    }
+  }
+  commitSourceBody(body);
+  $("timelineDialog").close();
+  timelineEditState = null;
+}
+
+$("insertTimelineBtn").addEventListener("click", () => openTimelineEditor());
+$("addTimelineItemBtn").addEventListener("click", () => {
+  if (!timelineEditState) return;
+  timelineEditState.timeline.items.push({ id: "item-" + crypto.randomUUID(), dateLabel: "", title: "", body: "", figureId: "", citationIds: [] });
+  renderTimelineItemEditors();
+});
+$("closeTimelineDialogBtn").addEventListener("click", () => $("timelineDialog").close());
+$("cancelTimelineBtn").addEventListener("click", () => $("timelineDialog").close());
+$("timelineForm").addEventListener("submit", (event) => { event.preventDefault(); saveTimelineEditor(); });
+$("deleteTimelineBtn").addEventListener("click", () => saveTimelineEditor(true));
+$("timelineDialog").addEventListener("close", () => { timelineEditState = null; });
 
 function renderReferencedSources(sources) {
   if (!sources.length) return "";
@@ -12124,7 +12311,7 @@ function renderFigureMetadata(metadata) {
   return `<div class="figure-metadata"><div class="figure-metadata-main">${main}</div><details><summary>資料情報の詳細</summary><dl>${rows}</dl></details></div>`;
 }
 
-function renderImageBlock(block, blockIndex) {
+function renderImageBlock(block, blockIndex, editable = true) {
   const count = block.images.length;
   const comparison = block.displayMode === "comparison" && count === 2;
   const alignment = normalizeImageBlockAlignment(block.alignment);
@@ -12144,7 +12331,7 @@ function renderImageBlock(block, blockIndex) {
     <figure class="image-block image-count-${count} image-size-${imageBlockSize} image-align-${alignment}${comparison ? " image-comparison" : ""}${block.caption ? " has-caption" : ""}" data-image-block-index="${blockIndex}" tabindex="0">
       <div class="image-block-media">${images}</div>
       ${caption}
-      <div class="image-block-menu-shell">
+      ${editable ? `<div class="image-block-menu-shell">
         <button class="image-block-menu-toggle" type="button" aria-label="画像ブロック操作メニュー" aria-expanded="false" aria-controls="image-block-menu-${blockIndex}">…</button>
         <div id="image-block-menu-${blockIndex}" class="image-block-actions" aria-label="画像ブロック操作" hidden>
           ${count < 2 ? '<button class="image-block-add" type="button">画像を追加</button>' : ""}
@@ -12160,7 +12347,7 @@ function renderImageBlock(block, blockIndex) {
           ${block.images.map((image, imageIndex) => `<button class="image-block-edit-figure" type="button" data-image-index="${imageIndex}">${count === 1 ? "資料情報" : `画像${imageIndex + 1}の資料情報`}</button>`).join("")}
           ${block.images.map((_, imageIndex) => `<button class="image-block-remove" type="button" data-image-index="${imageIndex}">画像${imageIndex + 1}を外す</button>`).join("")}
         </div>
-      </div>
+      </div>` : ""}
     </figure>
   `;
 }

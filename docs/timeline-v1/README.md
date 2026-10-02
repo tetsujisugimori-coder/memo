@@ -1,0 +1,58 @@
+# Timeline v1
+
+レポート内で出来事を保存した順序どおり縦に表示するコンテナ。専用の画像・Source・Citationモデルは作らない。
+
+## 使い方
+
+「画像」でFigureを、「出典」でSourceを先に追加する。「Timeline」（モバイルは編集ツールメニュー）からタイトル・説明を入力し、「出来事を追加」で日付・期間、タイトル、本文、Figure、出典を選択して保存する。カードの「Timelineを編集」で追加・上下移動・削除できる。新規Timelineは本文末尾のSourceレコードの前に追加する。
+
+画像・出典なしの項目、空のTimelineも扱える。日付は1945、1951年9月、1945–1952、2026 Q3、初期開発期など自由な文字列で保持する。自動並べ替えは行わない。
+
+## モデルと共通部品
+
+本文内の memo-nexus:timeline-v1:<hex UTF-8 JSON> マーカーで保存する。
+
+~~~js
+{
+  version: 1,
+  timeline: {
+    id, title, description,
+    items: [{ id, dateLabel, title, body, figureId, citationIds }]
+  }
+}
+~~~
+
+- items配列順を保持する。項目IDの重複を除き、文字列の欠落は空欄、配列の欠落は空配列に正規化する。
+- Figureは既存Image Blockを参照する。選択したブロックだけに任意の memo-nexus:figure-id:<id> マーカーを追加し、item.figureIdから解決する。画像のattachment ID、alt、figureMetadata、ブロック説明、Comparison設定は元のブロックにあり、Timelineにはコピーしない。画像編集でもFigure IDを保持する。
+- 同じFigureを複数項目・Timelineで共有できる。元のFigureを編集すると全参照へ反映される。通常のFigure表示も維持するため、元の表示とTimeline内の表示は両方表示される。元ブロック削除時は参照先不在の表示を出す。
+- 現行Citationは独立レコードではなく [@source-id] トークン。citationIdsには既存Source IDを保存し、描画時は同じトークンと共通Citationレンダラーを使う。本文引用と同じ通し番号・重複排除・末尾出典一覧を利用する。未知IDは既存どおり文字列で残す。
+- Source削除チェックはTimeline本文と選択citationIdsを解読する。項目本文の未閉じコードフェンスも、他項目や選択Citationの抽出へ影響しない。
+
+保存は既存のcommitSourceBody、Undo/Redo、通常save、IndexedDBを通る。DB schema 6とバックアップv4は変更しない。Report PreviewはrenderPreviewHtmlを共有し、FigureはrenderImageBlockとrenderFigureMetadataを使う。Timeline内にFigure編集メニューを複製しないためDOM IDは衝突しない。Timeline本文のチェックリストは表示専用とし、通常本文のチェックリスト操作位置へ影響しない。
+
+## 保存・ZIP・互換性
+
+Markdown ZIP、ローカルMarkdown、完全バックアップは本文マーカーを保持する。import時に添付IDが変わっても、Figure IDは添付IDと独立しているため参照が維持される。Sourceマーカーも既存経路で保持する。
+
+Timelineのない旧メモ、IDのない旧Figure、Comparison、Sourceは従来どおり扱う。バックアップv1〜v4の復元は既存migration経路を使い本文を保持する。不正・将来版Timelineマーカー、コードフェンス内のマーカーは通常本文として残す。
+
+汎用のメモJSON export/import UIは現行実装に存在しない。既存JSON取込はニュースなどの専用形式であり、新形式は追加していない。本文のJSON直列化による保持は単体テストで確認する。
+
+## 検証
+
+- npm test: 1,696件、失敗0。追加14件はモデル、順序、置換、欠落値、特殊文字、不正マーカー、コードフェンス、引用、Figure編集・添付ID再割当、旧メモ、ローカル保存、Markdown ZIP、バックアップv1〜v4を確認する。
+- npm run test:e2e: Figure、Comparison、Report Preview、Citation Source、TimelineのChromiumフロー。Timelineは実UIで作成、複数項目、並べ替え、共有Figure更新、項目・Timeline削除、保存/reload、Undo/Redo、Source削除保護、ZIP import後のreload、DOM ID重複、通常本文チェックリスト、PC/320px Report・カードとモバイル編集幅を確認する。
+- npm run test:e2e:mobile、node geometry-block.e2e.js、node table-block.e2e.js: 既存機能の回帰確認。
+- node chart-block.e2e.js、node backup-restore.e2e.js: Chromiumで成功。Chartの全サブケースと既存完全バックアップ復元を確認した。
+- 全JavaScriptのnode --check、git diff --check。
+- formatter/lint、typecheck、buildの設定・スクリプトはない。直接配信のJavaScriptアプリとして構文・空白と実ブラウザ起動を確認する。未定義のコマンドは成功扱いしない。
+
+WindowsのPlaywright WebKitでは変更前mainでも画像BlobのIndexedDB保存が「添付ファイルの保存に失敗しました」となることを比較確認した。Figureを含むWebKit全フローは未確認。FigureなしのTimeline＋SourceはWebKitで作成・保存・reload・320px Reportを別途確認した。CIに追加したTimeline E2Eは既存FigureジョブのChromiumで実行する。
+
+レビュー画像（Chromium）: [PC Report](timeline-report-pc.png)、[320px Report](timeline-report-320.png)、[320px カード](timeline-preview-320.png)。
+
+## v1の境界と将来候補
+
+Figure/Sourceの追加・編集は既存UIを使い、Timeline画面では選択する。Figure参照は同じメモ内に限る。元Figureの削除で参照が切れる。共通Figureライブラリと元表示の省略は将来の判断とする。
+
+横型、ズーム、年代スケール自動生成、複数系列、分岐、ガント、高度なスクロール/ドラッグ＆ドロップ、アニメーション、Timeline同士のリンク、AI生成、暦処理・日付自然言語解析、Before/After特殊統合は対象外。

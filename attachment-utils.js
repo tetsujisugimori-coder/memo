@@ -183,7 +183,7 @@
     } catch (_) { return null; }
   }
 
-  function serializeImageBlock(images, caption = "", alignment = "center", displayMode = "normal") {
+  function serializeImageBlock(images, caption = "", alignment = "center", displayMode = "normal", figureId = "") {
     const normalizedImages = (Array.isArray(images) ? images : [])
       .filter((image) => image && image.id)
       .slice(0, 2)
@@ -191,6 +191,7 @@
     if (!normalizedImages.length) return "";
     const normalizedAlignment = normalizeImageBlockAlignment(alignment);
     const lines = [IMAGE_BLOCK_START];
+    if (typeof figureId === "string" && /^[A-Za-z0-9_-]{1,128}$/.test(figureId)) lines.push(`<!-- memo-nexus:figure-id:${figureId} -->`);
     if (displayMode === "comparison" && normalizedImages.length === 2) lines.push("<!-- memo-nexus:image-mode:comparison -->");
     if (normalizedAlignment !== "center") lines.push(`<!-- memo-nexus:image-align:${normalizedAlignment} -->`);
     normalizedImages.forEach((image) => {
@@ -223,7 +224,7 @@
     const pushText = (end) => {
       if (end > textStart) segments.push({ type: "text", text: source.slice(textStart, end), start: textStart, end });
     };
-    const pushImage = (startLine, endLine, images, caption, explicit, alignment = "center", displayMode = "normal") => {
+    const pushImage = (startLine, endLine, images, caption, explicit, alignment = "center", displayMode = "normal", figureId = "") => {
       const start = offsets[startLine];
       const end = endLine < lines.length - 1 ? offsets[endLine] + lines[endLine].length + 1 : source.length;
       pushText(start);
@@ -233,6 +234,7 @@
         end,
         raw: source.slice(start, end).replace(/\n$/, ""),
         images,
+        ...(figureId ? { figureId } : {}),
         caption,
         explicit,
         alignment: normalizeImageBlockAlignment(alignment),
@@ -260,7 +262,10 @@
           const blockLines = captionIndex === -1 ? content : content.slice(0, captionIndex);
           const alignmentLines = blockLines.filter((line) => parseImageBlockAlignment(line) !== null);
           const modeLines = blockLines.filter((line) => /^<!--\s*memo-nexus:image-mode:/.test(line.trim()));
-          const imageLines = blockLines.filter((line) => parseImageBlockAlignment(line) === null && !modeLines.includes(line));
+          const figureIdLines = blockLines.filter((line) => /^<!-- memo-nexus:figure-id:/.test(line.trim()));
+          const figureIdMatch = figureIdLines.length === 1 && figureIdLines[0].trim().match(/^<!-- memo-nexus:figure-id:([A-Za-z0-9_-]{1,128}) -->$/);
+          const figureId = figureIdMatch ? figureIdMatch[1] : "";
+          const imageLines = blockLines.filter((line) => parseImageBlockAlignment(line) === null && !modeLines.includes(line) && !figureIdLines.includes(line));
           const images = [];
           let valid = true;
           imageLines.filter((line) => line.trim()).forEach((line) => {
@@ -281,7 +286,7 @@
             const caption = captionIndex === -1 ? "" : content.slice(captionIndex + 1).join("\n").trim();
             const alignment = alignmentLines.length === 1 ? parseImageBlockAlignment(alignmentLines[0]) : "center";
             const displayMode = modeLines.length === 1 && modeLines[0].trim() === "<!-- memo-nexus:image-mode:comparison -->" ? "comparison" : "normal";
-            pushImage(index, endLine, images, caption, true, alignment, displayMode);
+            pushImage(index, endLine, images, caption, true, alignment, displayMode, figureId);
             index = endLine + 1;
             continue;
           }
@@ -335,12 +340,12 @@
     return prepared;
   }
 
-  function replaceImageBlock(markdown, block, images, caption = "", alignment = block && block.alignment, displayMode = block && block.displayMode) {
+  function replaceImageBlock(markdown, block, images, caption = "", alignment = block && block.alignment, displayMode = block && block.displayMode, figureId = block && block.figureId) {
     const source = String(markdown || "").replace(/\r\n?/g, "\n");
     if (!block || source.slice(block.start, block.end).replace(/\n$/, "") !== block.raw) {
       throw new Error("画像ブロックが更新されたため操作できません。もう一度お試しください");
     }
-    const replacement = serializeImageBlock(images, caption, alignment, displayMode);
+    const replacement = serializeImageBlock(images, caption, alignment, displayMode, figureId);
     const prefix = replacement && block.start > 0 && source[block.start - 1] !== "\n" ? "\n" : "";
     const suffix = replacement && block.end < source.length && source[block.end] !== "\n" ? "\n" : "";
     return `${source.slice(0, block.start)}${prefix}${replacement}${suffix}${source.slice(block.end)}`;

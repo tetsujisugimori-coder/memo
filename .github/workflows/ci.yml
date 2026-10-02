@@ -182,6 +182,9 @@ jobs:
       - name: Run Report Preview E2E
         run: npm run test:e2e:report-preview
 
+      - name: Run Timeline E2E
+        run: npm run test:e2e:timeline
+
       - name: Run Citation Source E2E
         run: npm run test:e2e:citation-source
 

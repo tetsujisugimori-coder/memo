@@ -6554,3 +6554,30 @@ body.report-preview-mode .chart-tsv-copy-controls {
 .report-sources ol { list-style: none; padding: 0; }
 .report-sources li { margin: .5rem 0; overflow-wrap: anywhere; }
 .report-sources a { overflow-wrap: anywhere; }
+
+/* Timeline v1: dates and content share a vertical axis without a fixed mobile date column. */
+.preview .timeline-block { margin: 1.2em 0; min-width: 0; overflow-wrap: anywhere; }
+.preview .timeline-description { white-space: normal; }
+.preview .timeline-items { list-style: none; padding: 0; margin: 1em 0; }
+.preview .timeline-item { position: relative; display: grid; grid-template-columns: minmax(0, 7em) minmax(0, 1fr); gap: 1.3em; padding: 0 0 1.5em 1.3em; margin: 0; border-left: 2px solid var(--line); }
+.preview .timeline-item::before { content: ""; position: absolute; left: -6px; top: .4em; width: 10px; height: 10px; border-radius: 50%; background: var(--accent); }
+.preview .timeline-date { font-weight: 600; }
+.preview .timeline-content { min-width: 0; }
+.preview .timeline-content h3 { margin: 0 0 .5em; }
+.preview .timeline-content .image-block { width: 100%; max-width: 100%; }
+.preview .timeline-content .image-block-media { min-width: 0; }
+.preview .timeline-body > :first-child { margin-top: 0; }
+.preview .timeline-missing { color: var(--muted); }
+body.report-preview-mode .timeline-edit { display: none; }
+.timeline-dialog { width: min(620px, calc(100vw - 32px)); max-width: calc(100vw - 32px); max-height: calc(100dvh - 32px); overflow: auto; padding: 16px; box-sizing: border-box; }
+.timeline-dialog form > label, .timeline-item-editor > label { display: grid; gap: 4px; margin: 10px 0; min-width: 0; }
+.timeline-dialog input:not([type="checkbox"]), .timeline-dialog textarea, .timeline-dialog select { width: 100%; min-width: 0; max-width: 100%; box-sizing: border-box; }
+.timeline-dialog p { overflow-wrap: anywhere; }
+.timeline-item-editor { padding: 10px; border: 1px solid var(--line); border-radius: 8px; margin: 10px 0; min-width: 0; }
+.timeline-item-editor summary { cursor: pointer; overflow-wrap: anywhere; }
+.timeline-item-editor fieldset { min-width: 0; margin: 12px 0; }
+.timeline-source-option { display: flex; align-items: flex-start; gap: 6px; overflow-wrap: anywhere; margin: 6px 0; }
+.timeline-editor-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+@media (max-width: 600px) {
+  .preview .timeline-item { grid-template-columns: minmax(0, 1fr); gap: .4em; padding-left: 1em; }
+}
