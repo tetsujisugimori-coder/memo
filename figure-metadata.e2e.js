@@ -99,7 +99,7 @@ async function openFigureEditor(page) {
       await flushSave();
       return (await buildPortableBackupZipFiles()).map((file) => ({ name: file.name, content: file.content instanceof Blob ? null : file.content }));
     });
-    assert.equal(JSON.parse(files.find((file) => file.name === "manifest.json").content).version, 3);
+    assert.equal(JSON.parse(files.find((file) => file.name === "manifest.json").content).version, 4);
     assert.ok(files.some((file) => file.name.startsWith("assets/")));
     const backup = Buffer.from(await page.evaluate(async () => Array.from(new Uint8Array(await (await makeZip(await buildPortableBackupZipFiles())).arrayBuffer()))));
     const parsed = await page.evaluate((bytes) => {
@@ -109,7 +109,7 @@ async function openFigureEditor(page) {
         manifest: JSON.parse(new TextDecoder().decode(entries.find((entry) => entry.name === "manifest.json").data))
       };
     }, [...backup]);
-    assert.equal(parsed.manifest.version, 3);
+    assert.equal(parsed.manifest.version, 4);
     assert.ok(parsed.names.some((name) => name.startsWith("notes/")));
     assert.ok(parsed.names.some((name) => name.startsWith("assets/")));
 

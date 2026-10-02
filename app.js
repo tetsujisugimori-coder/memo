@@ -10841,11 +10841,15 @@ function currentImageBlock(element) {
   return segment && segment.type === "image" ? segment : null;
 }
 
-function commitImageBlockChange(block, images, caption, { alignment = block && block.alignment, throwOnError = false } = {}) {
+function commitImageBlockChange(block, images, caption, { alignment = block && block.alignment, displayMode = block && block.displayMode, throwOnError = false } = {}) {
   if (!block) return false;
   try {
-    const nextBody = replaceImageBlock(editor.value, block, images, caption, alignment);
-    captureUndoSnapshot({ inputType: "insertText" });
+    const nextBody = replaceImageBlock(editor.value, block, images, caption, alignment, displayMode);
+    if (nextBody === editor.value) {
+      renderPreview();
+      return true;
+    }
+    captureUndoSnapshot({ inputType: "insertFromPaste" });
     editor.value = nextBody;
     scheduleSave({ render: false });
     return true;
@@ -10943,7 +10947,10 @@ function bindImageBlockControls() {
       const imageIndex = Number(button.dataset.imageIndex);
       if (!block || !block.images[imageIndex]) return;
       if (!confirm(`画像${imageIndex + 1}を本文の画像ブロックから外しますか？\n添付ファイル欄の元データは削除されません。`)) return;
-      commitImageBlockChange(block, block.images.filter((_, index) => index !== imageIndex), block.caption);
+      if (commitImageBlockChange(block, block.images.filter((_, index) => index !== imageIndex), block.caption)
+          && block.displayMode === "comparison") {
+        setAttachmentStatus("画像が1枚になったため通常表示に戻しました。説明文と残った画像の比較ラベルは保持しています。");
+      }
     });
   });
 
@@ -10953,12 +10960,76 @@ function bindImageBlockControls() {
   preview.querySelectorAll(".image-block-edit-figure").forEach((button) => {
     button.addEventListener("click", () => openImageFigureEditor(button));
   });
+  preview.querySelectorAll(".image-block-edit-comparison").forEach((button) => {
+    button.addEventListener("click", () => openImageComparisonEditor(button));
+  });
+}
+
+function openImageComparisonEditor(button) {
+  const block = currentImageBlock(button);
+  const figure = button.closest(".image-block");
+  if (!block || !figure || document.body.classList.contains("report-preview-mode")
+      || figure.querySelector(".image-caption-editor, .figure-metadata-editor, .image-comparison-editor")) return;
+  const panel = document.createElement("div");
+  panel.className = "image-comparison-editor";
+  const addField = (text, input) => {
+    const label = document.createElement("label");
+    label.textContent = text;
+    label.append(input);
+    panel.append(label);
+    return input;
+  };
+  const mode = document.createElement("select");
+  mode.add(new Option("通常表示", "normal"));
+  const comparisonOption = new Option("比較表示", "comparison");
+  comparisonOption.disabled = block.images.length !== 2;
+  mode.add(comparisonOption);
+  mode.value = block.displayMode;
+  addField("表示モード", mode);
+  if (block.images.length !== 2) {
+    const reason = document.createElement("p");
+    reason.className = "image-comparison-hint";
+    reason.textContent = "比較表示には2枚の画像が必要です。画像を追加してから選択してください。";
+    panel.append(reason);
+  }
+  const labels = block.images.map((image, index) => {
+    const input = document.createElement("input");
+    input.type = "text";
+    input.value = image.comparisonLabel || "";
+    return addField(`画像${index + 1}の比較ラベル`, input);
+  });
+  const caption = document.createElement("textarea");
+  caption.rows = 5;
+  caption.value = block.caption;
+  addField("比較全体の説明（画像ブロックの説明文）", caption);
+  const actions = document.createElement("div");
+  actions.className = "image-caption-editor-actions";
+  const cancel = document.createElement("button");
+  cancel.type = "button";
+  cancel.textContent = "キャンセル";
+  cancel.addEventListener("click", () => {
+    setImageCaptionEditing(figure, panel, false);
+    figure.querySelector(".image-block-menu-toggle")?.focus();
+  });
+  const save = document.createElement("button");
+  save.type = "button";
+  save.textContent = "比較設定を保存";
+  save.addEventListener("click", () => {
+    const images = block.images.map((image, index) => ({ ...image, comparisonLabel: labels[index].value }));
+    commitImageBlockChange(block, images, caption.value, { displayMode: mode.value });
+  });
+  actions.append(cancel, save);
+  panel.append(actions);
+  figure.append(panel);
+  setImageBlockMenuOpen(figure, false);
+  setImageCaptionEditing(figure, panel, true);
+  mode.focus();
 }
 
 function openImageCaptionEditor(button) {
   const block = currentImageBlock(button);
   const figure = button.closest(".image-block");
-  if (!block || !figure || figure.querySelector(".image-caption-editor, .figure-metadata-editor")) return;
+  if (!block || !figure || figure.querySelector(".image-caption-editor, .figure-metadata-editor, .image-comparison-editor")) return;
   const editorPanel = document.createElement("div");
   editorPanel.className = "image-caption-editor";
   const textarea = document.createElement("textarea");
@@ -10992,7 +11063,7 @@ function openImageFigureEditor(button) {
   const block = currentImageBlock(button);
   const figure = button.closest(".image-block");
   const imageIndex = Number(button.dataset.imageIndex);
-  if (!block || !figure || !block.images[imageIndex] || figure.querySelector(".image-caption-editor, .figure-metadata-editor")) return;
+  if (!block || !figure || !block.images[imageIndex] || figure.querySelector(".image-caption-editor, .figure-metadata-editor, .image-comparison-editor")) return;
   const current = normalizeFigureMetadata(block.images[imageIndex].figureMetadata) || {};
   const editorPanel = document.createElement("div");
   editorPanel.className = "figure-metadata-editor";
@@ -12055,12 +12126,14 @@ function renderFigureMetadata(metadata) {
 
 function renderImageBlock(block, blockIndex) {
   const count = block.images.length;
+  const comparison = block.displayMode === "comparison" && count === 2;
   const alignment = normalizeImageBlockAlignment(block.alignment);
   const images = block.images.map((image) => `
     <div class="image-block-item">
       <button class="image-block-open" type="button" data-image-id="${escapeAttr(image.id)}" aria-label="${escapeAttr(image.alt || "添付画像")}を拡大表示">
         <span class="inline-attachment-image" data-attachment-id="${escapeAttr(image.id)}" data-alt="${escapeAttr(image.alt)}" role="img" aria-label="${escapeAttr(image.alt || "添付画像")}">画像を読み込み中...</span>
       </button>
+      ${comparison && image.comparisonLabel?.trim() ? `<div class="image-comparison-label">${escapeHtml(image.comparisonLabel)}</div>` : ""}
       ${renderFigureMetadata(image.figureMetadata)}
     </div>
   `).join("");
@@ -12068,7 +12141,7 @@ function renderImageBlock(block, blockIndex) {
     ? `<figcaption class="image-block-caption">${renderImageCaptionMarkdown(block.caption)}</figcaption>`
     : "";
   return `
-    <figure class="image-block image-count-${count} image-size-${imageBlockSize} image-align-${alignment}${block.caption ? " has-caption" : ""}" data-image-block-index="${blockIndex}" tabindex="0">
+    <figure class="image-block image-count-${count} image-size-${imageBlockSize} image-align-${alignment}${comparison ? " image-comparison" : ""}${block.caption ? " has-caption" : ""}" data-image-block-index="${blockIndex}" tabindex="0">
       <div class="image-block-media">${images}</div>
       ${caption}
       <div class="image-block-menu-shell">
@@ -12076,6 +12149,7 @@ function renderImageBlock(block, blockIndex) {
         <div id="image-block-menu-${blockIndex}" class="image-block-actions" aria-label="画像ブロック操作" hidden>
           ${count < 2 ? '<button class="image-block-add" type="button">画像を追加</button>' : ""}
           ${count === 2 ? '<button class="image-block-swap" type="button">左右を入れ替える</button>' : ""}
+          <button class="image-block-edit-comparison" type="button">比較表示を設定</button>
           <div class="image-block-alignment" role="group" aria-label="画像ブロックの配置">
             ${["left", "center", "right"].map((alignmentValue) => {
               const label = ({ left: "左", center: "中央", right: "右" })[alignmentValue];

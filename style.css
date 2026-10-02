@@ -3238,6 +3238,29 @@ body.layout-resizing iframe {
 .preview .figure-metadata dt { font-weight: 600; }
 .preview .figure-metadata dd { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
 
+.preview .image-comparison-label {
+  width: 100%;
+  min-width: 0;
+  font-weight: 600;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.preview .image-comparison-hint {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.preview .image-comparison:not(.has-caption):not(.editing) {
+  grid-template-areas: "media";
+}
+
+.preview .image-comparison.has-caption:not(.editing) {
+  grid-template-areas: "media" "caption";
+}
+
+.preview .image-comparison-editor,
 .preview .figure-metadata-editor {
   grid-area: editor;
   display: grid;
@@ -3245,7 +3268,11 @@ body.layout-resizing iframe {
   min-width: 0;
 }
 
+.preview .image-comparison-editor label,
 .preview .figure-metadata-editor label { display: grid; gap: 3px; font-size: 12px; }
+.preview .image-comparison-editor input,
+.preview .image-comparison-editor select,
+.preview .image-comparison-editor textarea,
 .preview .figure-metadata-editor input,
 .preview .figure-metadata-editor select,
 .preview .figure-metadata-editor textarea {
@@ -3260,6 +3287,7 @@ body.layout-resizing iframe {
   font: inherit;
 }
 
+.preview .image-comparison-editor textarea,
 .preview .figure-metadata-editor textarea { resize: vertical; }
 
 .preview .image-block-open {

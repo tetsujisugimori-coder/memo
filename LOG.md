@@ -3816,3 +3816,18 @@ Windows 11 Home 10.0.26200、Playwright 1.62.1 のローカル WebKit で、既�
 - 本文 `[@source-id]` を通常/Report Preview共通の `renderPreview()` 経路で番号付きリンクに変換し、参照されたSourceだけを末尾に表示。未登録IDと壊れたマーカーは原文を維持。
 - 最小の出典管理ダイアログを追加。Source編集は本文保存経路を使用し、参照中の削除を防止。
 - Markdown ZIP・完全バックアップは本文を保持する既存経路を再利用。backup manifest はv3のまま。Figure metadata形式は変更しない。
+
+## 2026-10-02 Visual Markdown Report v1 第4段階: Comparison v1
+
+- 最新main `cd2247b`（PR #333マージ済み）から専用worktreeと `feat/comparison-v1` を作成。元mainの未コミット／未追跡作業を保護し、追跡画像・診断JSONL・手書きcanvas等のSHA-256一致を確認した。
+- 既存Image Blockにブロック単位の `image-mode:comparison` と画像ごとの `image-label:<hex UTF-8 JSON>`（version 1、任意文字列）を追加。説明は既存captionを再利用し、Figure資料情報、添付ID、最大2画像の制約を維持。新しいdocument model／Sourceモデル／IndexedDB store・schemaは導入しない。
+- メニューから通常／比較切替、自由入力ラベル、共通説明を保存・キャンセルできる。1画像では比較を選択できず理由を表示。空ラベルは表示せず既定値を保存しない。保存は既存保存キュー・revision・updatedAt・Undo/Redoへ接続し、1操作を1回のUndoで戻す。変更なしの保存は編集を閉じ、履歴やrevisionを増やさない。
+- 入替ではラベルとFigureも画像と移動。片方を本文から外すと通常表示へ戻って案内し、共通説明と残った画像の情報を保持。2画像に戻しても比較を自動再開しない。添付ファイルの完全削除は従来の別操作を維持する。
+- 通常PreviewとReport Previewは既存 `renderImageBlock()` を共有。PCでは横、320pxでは同じ順序の縦並び、各ラベルは画像の下、共通説明は2画像の下。縦横比を保持し、長文・URLを折り返す。Reportでは比較編集を隠し、拡大とFigure詳細閲覧を維持する。
+- 旧mainの実parserで新マーカーを解析すると、参照IDは保持されるが `explicit:false` の独立画像に分かれ、ブロックcaptionとFigure／比較の一体表示が崩れることを確認。この互換性判断により完全バックアップをv4へ更新（version／formatVersionを同期）。旧アプリのv4拒否、新アプリのv1〜v3読込と未知のv5以降拒否を確認。旧データの読込だけでは比較マーカーを追加しない。manifestのないMarkdown ZIPは旧版の拒否ができず、旧版での再編集・再保存の保持は保証しない。
+- 比較単体16件を追加。実操作E2Eは選択不可、取消、変更なし保存、保存・再読込、通常／比較切替、入替・削除・再追加、Undo/Redo、PC／320px／Report、特殊文字・長文・空欄、両ZIPの実ダウンロードと復元、Figure・共通Source／Citation保持、不正設定でも保存本文を再書換しないことを検証する。
+- 検証結果: `npm test` 1,682/1,682 PASS。最終実装の `npm run test:e2e` を4回連続実行し、各回Figure／Comparison／Report Preview／Citation Sourceの全4試験が成功。`node backup-restore.e2e.js`（Chromium）、変更全JSの `node --check`、`git diff --check`／`git diff --cached --check` も成功。
+- 試験作成中のv3期待値、バックアップfixtureの参照パス、保存・描画とResizeObserverのlayoutMode更新の完了待ち、モバイルのメニュー入口、隠れたPreview／スクロール領域外の撮影を修正した。失敗した実行は4回成功に含めず、固定wait・force click・retry・timeout変更は導入していない。実カードを開き、画面内表示とaria-hidden／inert解除を検証する。
+- PC／320pxの通常・Reportのレビュー画像4枚を `docs/comparison-v1/` へ保存し、目視確認。撮影時だけ高さを増やして比較ブロック全体が収まることを検証し、通常の320×844も別に確認。図とURLは検証用。実在資料の調査結果ではない。
+- Comparison実操作はChromiumで確認。WebKit／Safari／iPhone実機のComparison操作、本番配信後のキャッシュ更新は未確認。app、attachment、backup、local-sync、CSSの配信識別子と対応する既存テストを同期。既存Figure CI jobにComparisonを1回追加し、レビュー画像artifactを保存する。GitHub Actions結果はPR作成後に確認し、PR本文へ反映する。
+- Figure・Comparison・Table・Chartから共通Sourceへの `sourceId` 接続は後続課題。FigureのsourceName／sourceUrlを維持し、自動移行、重複Sourceモデル、Source UI拡張は行っていない。
