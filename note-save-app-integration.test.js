@@ -4,6 +4,8 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const test = require("node:test");
 const vm = require("node:vm");
+const { removeDuplicateFigureIds, serializeImageBlock, splitImageBlocks, replaceImageBlock } = require("./attachment-utils.js");
+const { serializeTimelineBlock, splitTimelineBlocks } = require("./timeline-block-utils.js");
 const { createDraftMirrorScheduler } = require("./draft-mirror-scheduler.js");
 const { createNoteSaveFoundation, createSaveRequest, normalizeRevision } = require("./note-save-foundation.js");
 const { createCodexThreadSaveCoordinator, isCodexThreadSaveRequest, mergeStoredCodexThread } = require("./codex-chat-utils.js");
@@ -261,6 +263,7 @@ function createHarness({
     memoLinkRenameNotifications,
     memoLinkRenameRepairWrites,
     createDraftMirrorScheduler,
+    removeDuplicateFigureIds,
     createNoteSaveFoundation,
     createSaveRequest,
     createCodexThreadSaveCoordinator,
@@ -341,7 +344,7 @@ function createHarness({
     const memoLinkRenameSyncIntents = new Map();
     const memoLinkRenameSyncNoteTails = new Map();
     const titleInput = { value: initialNotes[0]?.title || "A" };
-    const editor = { value: initialNotes[0]?.body || "A0", selectionStart: 0, selectionEnd: 0, focus() {}, setSelectionRange(start, end) { this.selectionStart = start; this.selectionEnd = end; } };
+    const editor = { value: initialNotes[0]?.body || "A0", selectionStart: 0, selectionEnd: 0, selectionDirection: "none", focus() {}, setSelectionRange(start, end, direction = "none") { this.selectionStart = start; this.selectionEnd = end; this.selectionDirection = direction; } };
     const noteTagInput = { value: "" };
     const tableAxisSelections = { clear() {} };
     let pendingTableAxisDeletion = null;
@@ -644,6 +647,9 @@ function createHarness({
           currentId,
           title: titleInput.value,
           body: editor.value,
+          selectionStart: editor.selectionStart,
+          selectionEnd: editor.selectionEnd,
+          selectionDirection: editor.selectionDirection,
           notes: structuredClone(notes),
           timers: timersForHarness().size,
           tagRenderIds: [...tagRenderIds]
@@ -692,6 +698,7 @@ function createHarness({
       setEditorComposition(noteId) { editorCompositionNoteId = noteId; },
       setTitleComposition(noteId) { titleCompositionNoteId = noteId; },
       flushPendingMemoLinkRenameSyncs,
+      select(start, end, direction) { editor.setSelectionRange(start, end, direction); },
       edit(title, body) { titleInput.value = title; editor.value = body; },
       setCurrentId(id) { currentId = id; },
       markDraftDirty(id) {
@@ -2691,4 +2698,45 @@ test("意図的な全体置換writerはCodex保護を適用せず従来どおり
   assert.equal(Object.hasOwn(stored, "codexChat"), false);
   assert.equal(Object.hasOwn(harness.liveNote("A"), "codexChat"), false);
   assert.equal(Object.hasOwn(results[0].savedSnapshot, "codexChat"), false);
+});
+
+test("実アプリ保存経路: Figure複製は全競合IDだけを除去して選択位置・参照を維持する", async () => {
+  const figure = serializeImageBlock([{ id: "asset", alt: "資料", figureMetadata: { caption: "caption" } }], "説明", "left", "normal", "figure-original");
+  const timeline = serializeTimelineBlock({ id: "timeline", items: [{ id: "item", figureId: "figure-original" }] });
+  const original = figure + "\n" + timeline;
+  const duplicate = original + "\n" + figure;
+  const harness = createHarness({ initialNotes: [{ id: "A", title: "A", body: original, revision: 0 }] });
+  harness.edit("A", duplicate);
+  const start = duplicate.lastIndexOf("![資料]");
+  harness.select(start, start + 5, "backward");
+  harness.scheduleSave();
+  await harness.enqueueNoteSave("A");
+  const state = harness.state();
+  const normalized = removeDuplicateFigureIds(duplicate).body;
+  assert.equal(state.body, normalized);
+  assert.equal(state.selectionStart, normalized.lastIndexOf("![資料]"));
+  assert.equal(state.selectionEnd, state.selectionStart + 5);
+  assert.equal(state.selectionDirection, "backward");
+  assert.equal((await harness.storedNotes())[0].body, normalized);
+  assert.ok(splitImageBlocks(normalized).filter((block) => block.type === "image").every((block) => !block.figureId));
+  const removed = replaceImageBlock(normalized, splitImageBlocks(normalized).find((block) => block.type === "image"), [], "");
+  harness.edit("A", removed);
+  harness.scheduleSave();
+  await harness.enqueueNoteSave("A");
+  const stored = await harness.storedNotes();
+  const reloaded = createHarness({ initialNotes: stored });
+  reloaded.openNote("A");
+  assert.equal(reloaded.state().body, removed);
+  assert.equal(splitTimelineBlocks(removed).find((block) => block.type === "timeline").timeline.items[0].figureId, "figure-original");
+  assert.equal(splitImageBlocks(removed).find((block) => block.type === "image").figureId, undefined);
+});
+test("実アプリopenNote: 未正規化の旧保存本文も削除前に競合Figure IDを退役させる", async () => {
+  const figure = serializeImageBlock([{ id: "asset", alt: "資料" }], "", "center", "normal", "duplicate-id");
+  const duplicate = figure + "\n" + figure;
+  const harness = createHarness({ initialNotes: [{ id: "A", title: "A", body: duplicate, revision: 0 }] });
+  harness.openNote("A");
+  const normalized = removeDuplicateFigureIds(duplicate).body;
+  assert.equal(harness.state().body, normalized);
+  await harness.enqueueNoteSave("A");
+  assert.equal((await harness.storedNotes())[0].body, normalized);
 });

@@ -319,6 +319,7 @@ const {
   remapImportedAttachmentReferences,
   resolveImportedAttachmentId,
   replaceImageBlock,
+  removeDuplicateFigureIds,
   saveAttachmentAdditionWithRollback,
   serializeImageBlock,
   splitImageBlocks
@@ -6402,6 +6403,7 @@ function openNote(id) {
   hideNoteTagOptions();
   lastUndoSnapshotAt = 0;
   handleNoteSaveStateChange(note.id, saveState);
+  if (normalizeEditorFigureIds()) scheduleSave({ render: false });
   renderNoteMeta();
   renderTextStats();
   renderList();
@@ -6452,6 +6454,7 @@ async function initPopout() {
   setNoteTagStatus("");
   hideNoteTagOptions();
   handleNoteSaveStateChange(note.id, saveState);
+  if (normalizeEditorFigureIds()) scheduleSave({ render: false });
   renderNoteMeta();
   renderTextStats();
   renderTableBlockEditors();
@@ -6563,9 +6566,24 @@ function captureMemoLinkRenameChange(note, nextBody) {
   };
 }
 
+function normalizeEditorFigureIds() {
+  if (!currentNote() || currentNote().deletedAt || noteSaveFoundation.isTerminal(currentId)) return false;
+  const { body, removals } = removeDuplicateFigureIds(editor.value);
+  if (!removals.length) return false;
+  const adjust = (position) => position - removals.reduce((total, range) =>
+    total + Math.max(0, Math.min(position, range.end) - range.start), 0);
+  const start = adjust(editor.selectionStart);
+  const end = adjust(editor.selectionEnd);
+  const direction = editor.selectionDirection;
+  editor.value = body;
+  editor.setSelectionRange(start, end, direction);
+  return true;
+}
+
 function applyCurrentEditorDraft(note = currentNote()) {
   if (!note || note.id !== currentId) return false;
   if (noteSaveFoundation.isTerminal(note.id)) return false;
+  normalizeEditorFigureIds();
   const nextBody = editor.value;
   const nextTitle = titleInput.value || titleFromBody(nextBody) || "無題メモ";
   const bodyChanged = note.body !== nextBody;
@@ -7565,6 +7583,7 @@ function applyMemoSync(note) {
   pendingMemoSync = null;
   renderMemoSyncNotice();
   setSaveStatus("saved", note.updatedAt);
+  if (normalizeEditorFigureIds()) scheduleSave({ render: false });
   if (isPopoutWindow) {
     renderNoteMeta();
     renderTableBlockEditors();
@@ -12062,7 +12081,8 @@ function renderTimelineItemBody(body) {
 function renderTimelineBlock(timeline, blockIndex, imageSegments) {
   const figures = new Map();
   imageSegments.filter((block) => block.type === "image" && block.figureId).forEach((block) => {
-    if (!figures.has(block.figureId)) figures.set(block.figureId, block);
+    // Defensive read-only rendering of unnormalized imported/legacy bodies.
+    figures.set(block.figureId, figures.has(block.figureId) ? null : block);
   });
   const items = timeline.items.map((item, index) => {
     const figure = figures.get(item.figureId);
@@ -12085,10 +12105,13 @@ function bindTimelineControls() {
   preview.querySelectorAll(".timeline-edit").forEach((button) => button.addEventListener("click", () => {
     if (document.body.classList.contains("report-preview-mode")) return;
     const index = Number(button.closest(".timeline-block").dataset.timelineIndex);
-    const segment = splitTimelineBlocks(stripExplanationAnchorComments(parseSourceDocument(editor.value).body))[index];
+    const displayed = splitTimelineBlocks(stripExplanationAnchorComments(parseSourceDocument(editor.value).body));
+    const segment = displayed[index];
     if (!segment || segment.type !== "timeline") return;
-    // Locate the raw marker in the actual editor, without stripping Source/anchor records.
-    const block = splitTimelineBlocks(editor.value).find((entry) => entry.type === "timeline" && entry.raw === segment.raw);
+    // Source/anchor removal changes offsets and segment indices, but not Timeline
+    // occurrence order. IDs/raw may be identical after copying the entire marker.
+    const ordinal = displayed.slice(0, index).filter((entry) => entry.type === "timeline").length;
+    const block = splitTimelineBlocks(editor.value).filter((entry) => entry.type === "timeline")[ordinal];
     if (block) openTimelineEditor(block);
   }));
   // Item body checklists are display-only; their offsets are not editor body offsets.
@@ -12098,6 +12121,13 @@ function bindTimelineControls() {
 let timelineEditState = null;
 function openTimelineEditor(block = null) {
   if (!currentNote() || currentNote().deletedAt || document.body.classList.contains("report-preview-mode")) return;
+  // Retire legacy/imported conflicts before constructing the Figure selector.
+  const ordinal = block ? splitTimelineBlocks(editor.value).filter((entry) => entry.type === "timeline").findIndex((entry) => entry.start === block.start) : -1;
+  if (normalizeEditorFigureIds()) {
+    scheduleSave();
+    renderPreview();
+    if (block) block = splitTimelineBlocks(editor.value).filter((entry) => entry.type === "timeline")[ordinal];
+  }
   const timeline = block ? normalizeTimeline(block.timeline) : {
     id: "timeline-" + crypto.randomUUID(), title: "", description: "", items: []
   };

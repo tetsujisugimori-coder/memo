@@ -42,6 +42,114 @@ async function layout(page) {
   assert.ok(result.items.every((item) => !item.overflow && item.contentWidth > 170));
   if (page.viewportSize().width <= 600) assert.ok(result.items.every((item) => item.contentY >= item.dateBottom - 1));
 }
+
+async function duplicateReferences(page, baseline) {
+  const originalFigure = baseline.figures[0];
+  // Put the copy before the original too: neither occurrence is trustworthy.
+  const duplicated = originalFigure.raw + "\n" + baseline.body;
+  const defensive = await page.evaluate((body) => renderPreviewHtml(body), duplicated);
+  assert.equal((defensive.match(/class="timeline-missing"/g) || []).length, 2);
+  await page.evaluate(() => captureUndoSnapshot({ inputType: "insertFromPaste" }));
+  await page.locator("#editor").fill(duplicated);
+  const normalized = await saved(page);
+  assert.equal(normalized.body, normalized.stored);
+  assert.deepEqual(normalized.figures.map((figure) => figure.figureId), [undefined, undefined]);
+  assert.deepEqual(normalized.timelines, baseline.timelines);
+  assert.equal(await page.locator(".timeline-block img").count(), 0);
+  assert.equal(await page.locator(".timeline-missing").count(), 2);
+  await page.locator("#undoBtn").click();
+  assert.equal((await saved(page)).body, baseline.body);
+  await page.locator("#redoBtn").click();
+  assert.equal((await saved(page)).body, normalized.body);
+  await page.reload();
+  await page.locator("#appStartupGuard").waitFor({ state: "hidden" });
+  assert.equal((await saved(page)).body, normalized.body);
+  assert.equal(await page.locator(".timeline-missing").count(), 2);
+  // Remove the original (second block), retaining only its copy.
+  const remaining = await page.evaluate(() => {
+    const figure = splitImageBlocks(editor.value).filter((entry) => entry.type === "image")[1];
+    return replaceImageBlock(editor.value, figure, [], "");
+  });
+  await page.locator("#editor").fill(remaining);
+  const deleted = await saved(page);
+  assert.equal(deleted.figures.length, 1);
+  assert.equal(deleted.figures[0].figureId, undefined);
+  assert.deepEqual(deleted.figures[0].images, originalFigure.images);
+  assert.deepEqual(deleted.timelines, baseline.timelines);
+  assert.equal(await page.locator(".timeline-block img").count(), 0);
+  await page.reload();
+  await page.locator("#appStartupGuard").waitFor({ state: "hidden" });
+  assert.equal((await saved(page)).body, deleted.body);
+  assert.equal(await page.locator(".timeline-missing").count(), 2);
+  // Reselection explicitly assigns a fresh, unique identity.
+  await page.locator(".timeline-edit").click();
+  const selector = (await itemEditor(page, 0)).getByLabel("Figureを選択");
+  await selector.selectOption(await selector.locator("option").nth(1).getAttribute("value"));
+  await page.locator("#timelineForm").getByRole("button", { name: "Timelineを保存", exact: true }).click();
+  const reselected = await saved(page);
+  assert.notEqual(reselected.figures[0].figureId, originalFigure.figureId);
+  assert.equal(reselected.timelines[0].items[0].figureId, reselected.figures[0].figureId);
+  assert.equal(await page.locator(".timeline-block img").count(), 1);
+  assert.equal(await page.locator(".timeline-missing").count(), 1);
+
+  // Legacy/restored bodies are normalized upon open, before any deletion can
+  // make a formerly ambiguous reference look unique.
+  await page.evaluate((body) => {
+    currentNote().body = body;
+    openNote(currentId);
+  }, duplicated);
+  assert.deepEqual((await saved(page)).figures.map((figure) => figure.figureId), [undefined, undefined]);
+  assert.equal(await page.locator(".timeline-block img").count(), 0);
+
+  // Fully identical markers/IDs, with stripped Source and anchor records.
+  const copies = await page.evaluate((state) => {
+    const marker = splitTimelineBlocks(state.body).find((entry) => entry.type === "timeline").raw;
+    const anchor = buildExplanationAnchorComment("duplicate-anchor");
+    return withSources("", parseSourceDocument(state.body).sources) + "\n" + anchor + "\n" +
+      marker + "\n" + anchor + "\n" + marker + "\n" + marker + "\n" + state.figures[0].raw;
+  }, baseline);
+  await page.locator("#editor").fill(copies);
+  let state = await saved(page);
+  assert.equal(state.timelines.length, 3);
+  assert.equal(new Set(state.timelines.map((timeline) => timeline.id)).size, 1);
+  assert.deepEqual(state.timelines, Array(3).fill(baseline.timelines[0]));
+  const edit = async (index, title) => {
+    await idle(page);
+    await page.locator(".timeline-edit").nth(index).click();
+    await page.locator("#timelineTitleInput").fill(title);
+    await (await itemEditor(page, 0)).getByLabel("本文", { exact: true }).fill(title + "の本文");
+    await page.locator("#timelineForm").getByRole("button", { name: "Timelineを保存", exact: true }).click();
+    return saved(page);
+  };
+  state = await edit(1, "2個目だけ変更");
+  assert.deepEqual(state.timelines[0], baseline.timelines[0]);
+  assert.deepEqual(state.timelines[2], baseline.timelines[0]);
+  assert.equal(state.timelines[1].title, "2個目だけ変更");
+  assert.equal(state.timelines[1].items[0].body, "2個目だけ変更の本文");
+  state = await edit(0, "1個目だけ変更");
+  assert.equal(state.timelines[1].title, "2個目だけ変更");
+  assert.deepEqual(state.timelines[2], baseline.timelines[0]);
+  const beforeThird = state;
+  state = await edit(2, "3個目だけ変更");
+  assert.deepEqual(state.timelines.map((timeline) => timeline.title), ["1個目だけ変更", "2個目だけ変更", "3個目だけ変更"]);
+  await page.locator("#undoBtn").click();
+  assert.equal((await saved(page)).body, beforeThird.body);
+  await page.locator("#redoBtn").click();
+  assert.equal((await saved(page)).body, state.body);
+  await page.reload();
+  await page.locator("#appStartupGuard").waitFor({ state: "hidden" });
+  assert.equal((await saved(page)).body, state.body);
+  const afterReload = await edit(1, "reload後の2個目");
+  assert.deepEqual(afterReload.timelines[0], state.timelines[0]);
+  assert.deepEqual(afterReload.timelines[2], state.timelines[2]);
+  assert.equal(afterReload.timelines[1].title, "reload後の2個目");
+  const duplicateIds = await page.locator("#preview [id]").evaluateAll((elements) =>
+    elements.map((el) => el.id).filter((id, i, all) => all.indexOf(id) !== i));
+  assert.deepEqual(duplicateIds, []);
+  await page.locator("#editor").fill(baseline.body);
+  assert.equal((await saved(page)).body, baseline.body);
+}
+
 (async () => {
   const root = __dirname;
   const server = http.createServer((req, res) => {
@@ -127,6 +235,7 @@ async function layout(page) {
     await page.reload();
     await page.locator("#appStartupGuard").waitFor({ state: "hidden" });
     assert.equal((await saved(page)).body, expected.body);
+    await duplicateReferences(page, expected);
     // Source removal must see Timeline citations even though its payload is encoded.
     await page.locator("#manageSourcesBtn").click();
     await page.locator(".source-list-item").first().getByRole("button", { name: "削除", exact: true }).click();
@@ -229,7 +338,7 @@ async function layout(page) {
     await page.locator(".timeline-missing").first().waitFor();
     assert.equal(await page.locator(".timeline-missing").count(), 2);
     assert.deepEqual(errors, []);
-    console.log("Timeline E2E passed (" + engine + "): edit, order, shared references, reload, ZIPs, PC/320px and DOM IDs");
+    console.log("Timeline E2E passed (" + engine + "): edit, order, shared references, duplicate IDs, reload, ZIPs, PC/320px and DOM IDs");
   } finally {
     if (browser) await browser.close();
     await new Promise((resolve) => server.close(resolve));

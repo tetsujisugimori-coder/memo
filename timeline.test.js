@@ -2,7 +2,7 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const { normalizeTimeline, serializeTimelineBlock, splitTimelineBlocks, replaceTimelineBlock } = require("./timeline-block-utils.js");
-const { serializeImageBlock, splitImageBlocks, replaceImageBlock, buildMemoExportBundle, remapImportedAttachmentReferences } = require("./attachment-utils.js");
+const { serializeImageBlock, splitImageBlocks, replaceImageBlock, removeDuplicateFigureIds, buildMemoExportBundle, remapImportedAttachmentReferences } = require("./attachment-utils.js");
 const { withSources, parseSourceDocument, extractCitations } = require("./source-utils.js");
 const { serializeLocalNote, parseLocalNote } = require("./local-markdown.js");
 const { buildMarkdownBundleImport } = require("./markdown-bundle-utils.js");
@@ -124,4 +124,49 @@ for (const version of [1, 2, 3, 4]) test("完全バックアップv" + version +
   assert.equal(imageOf(parsed.notes[0].note.body).figureId, "figure-a");
   assert.deepEqual(imageOf(parsed.notes[0].note.body).images[0].figureMetadata, metadata);
   assert.deepEqual(extractCitations(parsed.notes[0].note.body), ["source-a", "source-a", "source-b"]);
+});
+
+test("重複Figure IDは全出現から除去し、既存参照は削除後も別Figureへ接続しない", () => {
+  const comparison = serializeImageBlock([{ id: "asset-a", alt: "前", figureMetadata: metadata }, { id: "asset-b", alt: "後", comparisonLabel: "After" }], "説明", "right", "comparison", "figure-a");
+  const unique = serializeImageBlock([{ id: "asset-c" }], "", "left", "normal", "unique");
+  const original = withSources(comparison + "\n" + unique + "\n" + comparison + "\n" + serializeTimelineBlock(timeline), sources);
+  const result = removeDuplicateFigureIds(original);
+  assert.equal(result.removals.length, 2);
+  const images = splitImageBlocks(result.body).filter((block) => block.type === "image");
+  assert.deepEqual(images.map((block) => block.figureId), [undefined, "unique", undefined]);
+  for (const image of [images[0], images[2]]) {
+    assert.equal(image.raw, comparison.replace("<!-- memo-nexus:figure-id:figure-a -->\n", ""));
+    assert.equal(image.displayMode, "comparison");
+    assert.equal(image.alignment, "right");
+    assert.deepEqual(image.images[0].figureMetadata, metadata);
+  }
+  assert.deepEqual(timelineOf(result.body), timeline);
+  assert.deepEqual(parseSourceDocument(result.body).sources, parseSourceDocument(original).sources);
+  const deleted = replaceImageBlock(result.body, images[0], [], "");
+  assert.equal(imageOf(deleted).figureId, "unique");
+  assert.ok(!splitImageBlocks(deleted).some((image) => image.figureId === timeline.items[0].figureId));
+  const restored = parseLocalNote(serializeLocalNote({ id: "duplicates", title: "重複" }, deleted)).body;
+  assert.equal(restored, deleted);
+  assert.deepEqual(removeDuplicateFigureIds(restored), { body: restored, removals: [] });
+});
+test("一意なFigure IDとコードフェンス内のコピーは本文を変更しない", () => {
+  const fence = String.fromCharCode(96).repeat(3);
+  for (const original of [body, body.replace(/\n/g, "\r\n"), figure + "\n" + fence + "\n" + figure + "\n" + fence]) {
+    assert.deepEqual(removeDuplicateFigureIds(original), { body: original, removals: [] });
+  }
+  const triple = [figure, figure, figure].join("\n");
+  const result = removeDuplicateFigureIds(triple);
+  assert.equal(result.removals.length, 3);
+  assert.equal(result.body, triple.replaceAll("<!-- memo-nexus:figure-id:figure-a -->\n", ""));
+});
+test("同一Timeline ID・item ID・rawの3マーカーも位置指定で独立して編集する", () => {
+  // Timeline IDs are currently metadata, not cross-Timeline lookup keys.
+  // Item IDs are scoped to their own Timeline; copied containers may share them.
+  const marker = serializeTimelineBlock(timeline);
+  const original = withSources([marker, marker, marker].join("\n"), sources);
+  const blocks = splitTimelineBlocks(original).filter((block) => block.type === "timeline");
+  assert.equal(new Set(blocks.map((block) => block.timeline.id)).size, 1);
+  const changed = replaceTimelineBlock(original, blocks[1], { ...timeline, title: "2個目だけ" });
+  const values = splitTimelineBlocks(changed).filter((block) => block.type === "timeline").map((block) => block.timeline);
+  assert.deepEqual(values, [timeline, { ...timeline, title: "2個目だけ" }, timeline]);
 });

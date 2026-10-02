@@ -30,6 +30,16 @@
 
 保存は既存のcommitSourceBody、Undo/Redo、通常save、IndexedDBを通る。DB schema 6とバックアップv4は変更しない。Report PreviewはrenderPreviewHtmlを共有し、FigureはrenderImageBlockとrenderFigureMetadataを使う。Timeline内にFigure編集メニューを複製しないためDOM IDは衝突しない。Timeline本文のチェックリストは表示専用とし、通常本文のチェックリスト操作位置へ影響しない。
 
+
+## IDの範囲とコピー／貼り付け
+
+- Figure IDは同一メモ内のImage Blockへの参照キーであり、一意な場合だけ解決する。
+- 同じIDを持つImage Blockが複数ある場合、完全コピーから元ブロックを識別できないため、競合する全ブロックからFigure IDマーカーだけを除去する。先頭を選ばない。TimelineのfigureIdは保持され、参照先不在になる。片方を削除しても、残ったコピーへ参照が復活しない。
+- ユーザーがFigureを再選択すると、そのImage Blockに新しいIDを付与する。他の参照は自動で付け替えない。画像、attachment ID、alt、figureMetadata、caption、alignment、Comparison設定は除去処理で書き換えない。一意なFigure IDも変更しない。
+- 本文入力・通常の保存用draft取り込み時、メモを開いた時（import/reloadを含む）、別ウィンドウの更新取り込み時に正規化し、既存の保存経路で保持する。除去したマーカー分のカーソル・選択位置を補正する。未正規化本文を直接描画する場合も、重複参照は解決しない。
+- Timeline IDは現時点ではコンテナのメタデータであり、Timeline間参照のキーではない。マーカーのコピーによる同一IDを許容する。編集対象は表示用本文のTimeline出現順を実editor本文の出現順へ対応させ、実本文のstart/endで置換する。Source・説明Anchorの除去によるoffset変化や、同じID/rawに依存しない。
+- Timeline item IDは各Timeline内に限定する。同一Timeline内の重複は既存normalizationで除外するが、別Timelineのitem IDが同じでも編集は各コンテナ内で完結する。将来Timeline間リンクを追加する時には、Timeline IDの一意性とコピー時の再採番を改めて設計する。
+
 ## 保存・ZIP・互換性
 
 Markdown ZIP、ローカルMarkdown、完全バックアップは本文マーカーを保持する。import時に添付IDが変わっても、Figure IDは添付IDと独立しているため参照が維持される。Sourceマーカーも既存経路で保持する。
@@ -40,8 +50,8 @@ Timelineのない旧メモ、IDのない旧Figure、Comparison、Sourceは従来
 
 ## 検証
 
-- npm test: 1,696件、失敗0。追加14件はモデル、順序、置換、欠落値、特殊文字、不正マーカー、コードフェンス、引用、Figure編集・添付ID再割当、旧メモ、ローカル保存、Markdown ZIP、バックアップv1〜v4を確認する。
-- npm run test:e2e: Figure、Comparison、Report Preview、Citation Source、TimelineのChromiumフロー。Timelineは実UIで作成、複数項目、並べ替え、共有Figure更新、項目・Timeline削除、保存/reload、Undo/Redo、Source削除保護、ZIP import後のreload、DOM ID重複、通常本文チェックリスト、PC/320px Report・カードとモバイル編集幅を確認する。
+- npm test: 1,701件、失敗0。Timeline関連19件（初期14件＋追補の単体3件・保存integration2件）はモデル、順序、置換、欠落値、特殊文字、不正マーカー、コードフェンス、引用、Figure編集・添付ID再割当、旧メモ、ローカル保存、Markdown ZIP、バックアップv1〜v4を確認する。
+- npm run test:e2e: Figure、Comparison、Report Preview、Citation Source、TimelineのChromiumフロー。Timelineは実UIで作成、複数項目、並べ替え、共有Figure更新、項目・Timeline削除、保存/reload、Undo/Redo、Source削除保護、ZIP import後のreload、DOM ID重複、通常本文チェックリスト、PC/320px Report・カードとモバイル編集幅を確認する。追補でFigureの前方コピー、全競合ID除去、元ブロック削除後の安全性、明示的再選択、旧保存本文の正規化、同一raw/Timeline IDの3個の独立編集、Source/Anchor除去のoffset差、Undo/Redo、reloadを追加した。
 - npm run test:e2e:mobile、node geometry-block.e2e.js、node table-block.e2e.js: 既存機能の回帰確認。
 - node chart-block.e2e.js、node backup-restore.e2e.js: Chromiumで成功。Chartの全サブケースと既存完全バックアップ復元を確認した。
 - 全JavaScriptのnode --check、git diff --check。

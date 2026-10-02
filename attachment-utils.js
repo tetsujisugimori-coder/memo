@@ -306,6 +306,26 @@
     return segments;
   }
 
+  // A copied block has no reliable "original" identity. Retire every occurrence
+  // of a conflicting ID, leaving Timeline references unresolved until reselection.
+  // Removing just one occurrence would silently redirect references on deletion.
+  function removeDuplicateFigureIds(markdown) {
+    const original = String(markdown || "");
+    if (!original.includes("memo-nexus:figure-id:")) return { body: original, removals: [] };
+    const source = original.replace(/\r\n?/g, "\n");
+    const blocks = splitImageBlocks(source).filter((block) => block.type === "image" && block.figureId);
+    const counts = new Map();
+    blocks.forEach((block) => counts.set(block.figureId, (counts.get(block.figureId) || 0) + 1));
+    const removals = [];
+    blocks.filter((block) => counts.get(block.figureId) > 1).forEach((block) => {
+      const marker = /^[ \t]*<!-- memo-nexus:figure-id:[A-Za-z0-9_-]{1,128} -->[ \t]*\n/gm.exec(block.raw);
+      if (marker) removals.push({ start: block.start + marker.index, end: block.start + marker.index + marker[0].length });
+    });
+    let body = source;
+    for (const removal of [...removals].reverse()) body = body.slice(0, removal.start) + body.slice(removal.end);
+    return { body: removals.length ? body : original, removals };
+  }
+
   async function saveAttachmentAdditionWithRollback({ attachments, validate, save, apply, rollback }) {
     const additions = Array.isArray(attachments) ? attachments : [];
     validate();
@@ -581,6 +601,7 @@
     remapImportedAttachmentReferences,
     resolveImportedAttachmentId,
     replaceImageBlock,
+    removeDuplicateFigureIds,
     saveAttachmentAdditionWithRollback,
     serializeImageBlock,
     splitImageBlocks,
