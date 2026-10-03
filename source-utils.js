@@ -17,6 +17,10 @@
     return source;
   }
 
+  function sourceDisplayLabel(source) {
+    return [source.title, source.author, source.url].find((value) => typeof value === "string" && value.trim()) || source.id;
+  }
+
   function normalizeSources(values) {
     if (!Array.isArray(values)) return [];
     const seen = new Set();
@@ -133,9 +137,17 @@
     return ids;
   }
 
+  function extractGeometryCitations(body) {
+    const geometryUtils = typeof module !== "undefined" && module.exports
+      ? require("./geometry-block-utils.js") : globalScope.MemoNexusGeometryBlockUtils;
+    return geometryUtils.splitGeometryBlocks(body).flatMap((segment) => segment.type === "text"
+      ? extractTextCitations(segment.text)
+      : [...extractTextCitations(segment.geometry.diagram?.description), ...(segment.geometry.diagram?.citationIds || [])]);
+  }
+
   function extractCitations(body) {
     return timelineUtils.splitTimelineBlocks(parseSourceDocument(body).body).flatMap((segment) => {
-      if (segment.type === "text") return extractTextCitations(segment.text);
+      if (segment.type === "text") return extractGeometryCitations(segment.text);
       return segment.timeline.items.flatMap((item) => [...extractTextCitations(item.body), ...item.citationIds]);
     });
   }
@@ -150,7 +162,7 @@
     });
   }
 
-  const api = { SOURCE_TYPES, normalizeSource, normalizeSources, serializeSources, parseSourceMarker,
+  const api = { SOURCE_TYPES, sourceDisplayLabel, normalizeSource, normalizeSources, serializeSources, parseSourceMarker,
     parseSourceDocument, sourceSelectionFromRaw, insertSourceCitation, withSources, safeSourceUrl, extractCitations, referencedSources };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   if (globalScope) globalScope.MemoNexusSourceUtils = api;

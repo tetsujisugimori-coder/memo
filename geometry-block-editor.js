@@ -62,7 +62,7 @@
     return Array.isArray(items) && items.some((item) => item.id === selection.id);
   }
 
-  function createGeometryBlockEditor(initialGeometry, { blockIndex = 0, onChange, onDelete } = {}) {
+  function createGeometryBlockEditor(initialGeometry, { blockIndex = 0, onChange, onDelete, onEditDiagram } = {}) {
     let geometry = initialGeometry;
     let mode = "select";
     let selection = null;
@@ -97,7 +97,14 @@
     status.className = "geometry-block-status";
     status.setAttribute("role", "status");
     status.setAttribute("aria-live", "polite");
-    header.append(title, removeBlockButton, status);
+    const diagramButton = document.createElement("button");
+    diagramButton.type = "button";
+    diagramButton.className = "geometry-diagram-info";
+    diagramButton.textContent = "図版情報";
+    diagramButton.setAttribute("aria-label", "図形" + (blockIndex + 1) + "の図版情報を編集");
+    diagramButton.disabled = typeof onEditDiagram !== "function";
+    diagramButton.addEventListener("click", () => onEditDiagram?.());
+    header.append(title, diagramButton, removeBlockButton, status);
 
     const tools = document.createElement("div");
     tools.className = "geometry-block-tools";

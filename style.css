@@ -6581,3 +6581,17 @@ body.report-preview-mode .timeline-edit { display: none; }
 @media (max-width: 600px) {
   .preview .timeline-item { grid-template-columns: minmax(0, 1fr); gap: .4em; padding-left: 1em; }
 }
+
+/* Diagram uses the existing Geometry SVG and shared citation renderer. */
+.diagram-dialog { width: min(640px, calc(100vw - 24px)); max-width: calc(100vw - 24px); box-sizing: border-box; }
+#diagramForm { display: grid; gap: 10px; min-width: 0; }
+#diagramForm textarea { width: 100%; min-width: 0; box-sizing: border-box; resize: vertical; }
+#diagramForm fieldset { min-width: 0; }
+.diagram-source-option { display: flex; align-items: flex-start; gap: 6px; overflow-wrap: anywhere; }
+.diagram-source-option input { flex-shrink: 0; }
+.geometry-preview { min-width: 0; overflow-wrap: anywhere; }
+.diagram-description { margin-top: 10px; }
+.diagram-description > :first-child { margin-top: 0; }
+.diagram-description > :last-child { margin-bottom: 0; }
+.diagram-description pre { max-width: 100%; overflow-x: auto; }
+.diagram-created, .diagram-citations { margin: 8px 0 0; color: var(--muted); font-size: 12px; }

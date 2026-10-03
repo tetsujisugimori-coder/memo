@@ -2,7 +2,6 @@
   "use strict";
 
   const GEOMETRY_BLOCK_VERSION = 1;
-  const DIAGRAM_GEOMETRY_VERSION = 2;
   const GEOMETRY_BLOCK_LIMITS = Object.freeze({
     points: 1000,
     objects: 1000,
@@ -11,7 +10,6 @@
     idChars: 128,
     labelChars: 500,
     captionChars: 4000,
-    descriptionChars: 16000,
     jsonBytes: 262144
   });
   const LENGTH_LABEL_SIDES = new Set(["positive", "negative"]);
@@ -233,28 +231,12 @@
     return normalized;
   }
 
-  function normalizeDiagram(value) {
-    if (!isRecord(value) || Object.keys(value).some((key) => !["description", "createdForReport", "citationIds"].includes(key))) {
-      throw new Error("図版情報の形式に対応していません");
-    }
-    if ((value.description !== undefined && typeof value.description !== "string")
-      || (value.createdForReport !== undefined && typeof value.createdForReport !== "boolean")
-      || (value.citationIds !== undefined && (!Array.isArray(value.citationIds)
-        || value.citationIds.length > GEOMETRY_BLOCK_LIMITS.referencesPerItem
-        || value.citationIds.some((id) => typeof id !== "string" || !/^[A-Za-z0-9_-]{1,128}$/.test(id))))) {
-      throw new Error("図版情報の値が不正です");
-    }
-    return { description: normalizedText(value.description), createdForReport: value.createdForReport === true,
-      citationIds: [...new Set(value.citationIds || [])] };
-  }
-
   function normalizeGeometryBlockUnchecked(value, fallbackId) {
     const source = isRecord(value) ? value : {};
     const sourceViewBox = source.viewBox === undefined ? {} : source.viewBox;
     return {
       type: source.type === undefined ? "geometry" : normalizedId(source.type),
-      version: source.version === undefined ? (source.diagram === undefined ? GEOMETRY_BLOCK_VERSION : DIAGRAM_GEOMETRY_VERSION) : source.version,
-      ...(source.diagram === undefined ? {} : { diagram: normalizeDiagram(source.diagram) }),
+      version: source.version === undefined ? GEOMETRY_BLOCK_VERSION : source.version,
       id: normalizedId(source.id) || normalizedId(fallbackId),
       caption: normalizedText(source.caption),
       viewBox: isRecord(sourceViewBox) ? {
@@ -276,7 +258,7 @@
     if (!isRecord(value)) return { valid: false, errors: ["幾何学ブロックはオブジェクトである必要があります"] };
 
     if (value.type !== "geometry") addError("typeはgeometryである必要があります");
-    if (!Number.isInteger(value.version) || ![GEOMETRY_BLOCK_VERSION, DIAGRAM_GEOMETRY_VERSION].includes(value.version)) {
+    if (!Number.isInteger(value.version) || value.version !== GEOMETRY_BLOCK_VERSION) {
       addError(`version ${String(value.version)}には対応していません`);
     }
 
@@ -334,14 +316,6 @@
       return seen;
     };
 
-    if (value.version === DIAGRAM_GEOMETRY_VERSION && value.diagram === undefined) addError("図版情報のないversion 2には対応していません");
-    if (value.diagram !== undefined) {
-      if (value.version !== DIAGRAM_GEOMETRY_VERSION) addError("図版情報にはGeometry version 2が必要です");
-      try {
-        const diagram = normalizeDiagram(value.diagram);
-        validateText(diagram.description, "diagram.description", GEOMETRY_BLOCK_LIMITS.descriptionChars);
-      } catch (error) { addError(error.message); }
-    }
     validateId(value.id, "ブロック");
     validateText(value.caption, "caption", GEOMETRY_BLOCK_LIMITS.captionChars);
     if (!isRecord(value.viewBox)) addError("viewBoxはオブジェクトである必要があります");
@@ -568,18 +542,6 @@
     const validation = validateGeometryBlock(normalized);
     if (!validation.valid) throw new Error(validation.errors[0]);
     return normalized;
-  }
-
-  // Canonicalize only explicit diagram saves; imported bodies are not migrated on read.
-  function normalizeGeometryDiagramForSave(geometry, diagram) {
-    const source = normalizeGeometryBlock(geometry, geometry && geometry.id);
-    const normalizedDiagram = normalizeDiagram(diagram);
-    const hasDiagram = normalizedDiagram.description.trim().length > 0
-      || normalizedDiagram.createdForReport || normalizedDiagram.citationIds.length > 0;
-    const next = { ...source, version: hasDiagram ? DIAGRAM_GEOMETRY_VERSION : GEOMETRY_BLOCK_VERSION };
-    if (hasDiagram) next.diagram = normalizedDiagram;
-    else delete next.diagram;
-    return normalizeGeometryBlock(next, next.id);
   }
 
   function createGeometryBlock(id) {
@@ -843,7 +805,6 @@
 
   const api = {
     GEOMETRY_BLOCK_VERSION,
-    DIAGRAM_GEOMETRY_VERSION,
     GEOMETRY_BLOCK_LIMITS,
     FILL_STYLES,
     LENGTH_LABEL_ALONG_OFFSET_LIMIT,
@@ -854,7 +815,6 @@
     createGeometryBlock,
     cloneGeometryBlock,
     normalizeGeometryBlock,
-    normalizeGeometryDiagramForSave,
     validateGeometryBlock,
     serializeGeometryBlock,
     parseGeometryBlockLine,

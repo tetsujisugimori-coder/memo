@@ -339,8 +339,8 @@ async function screenshotBlock(page, file) {
     });
     const backupZip = await download(page, () => page.locator("#backupBtn").click());
     const manifest = await page.evaluate((bytes) => JSON.parse(new TextDecoder().decode(parseStoredZipEntries(Uint8Array.from(bytes)).find((entry) => entry.name === "manifest.json").data)), [...backupZip]);
-    assert.equal(manifest.version, 4);
-    assert.equal(manifest.formatVersion, 4);
+    assert.equal(manifest.version, 5);
+    assert.equal(manifest.formatVersion, 5);
     for (const [name, buffer] of [["markdown", markdownZip], ["backup", backupZip]]) {
       const restored = await open();
       await restored.locator("#importMarkdownZipInput").setInputFiles({ name: `${name}.zip`, mimeType: "application/zip", buffer });

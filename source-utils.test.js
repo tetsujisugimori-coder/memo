@@ -1,7 +1,7 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const {
-  normalizeSource, parseSourceDocument, parseSourceMarker, sourceSelectionFromRaw, insertSourceCitation, withSources, safeSourceUrl,
+  sourceDisplayLabel, normalizeSource, serializeSources, parseSourceDocument, parseSourceMarker, sourceSelectionFromRaw, insertSourceCitation, withSources, safeSourceUrl,
   extractCitations, referencedSources
 } = require("./source-utils.js");
 const { buildMarkdownBundleImport } = require("./markdown-bundle-utils.js");
@@ -77,4 +77,29 @@ test("Markdown ZIP import keeps Source marker and Figure metadata", () => {
   const imported = buildMarkdownBundleImport([{ name: "memo.md", data: new TextEncoder().encode(body) }], () => "unused")[0];
   assert.deepEqual(parseSourceDocument(imported.body).sources[0], first);
   assert.equal(splitImageBlocks(imported.body).find((block) => block.type === "image").images[0].figureMetadata.caption, "旧図");
+});
+
+test("Sourceの表示ラベルはtitle・author・url・idの順にfallbackする", () => {
+  const values = { id: "source-test", title: "資料名", author: "著者のみ", url: "https://example.org/label-test" };
+  assert.equal(sourceDisplayLabel(values), values.title);
+  assert.equal(sourceDisplayLabel({ ...values, title: "" }), values.author);
+  assert.equal(sourceDisplayLabel({ ...values, title: "", author: "" }), values.url);
+  assert.equal(sourceDisplayLabel({ ...values, title: "", author: "", url: "" }), values.id);
+  const cases = [
+    [{ ...values, title: "   " }, values.author],
+    [{ ...values, title: "\n\t ", author: "" }, values.url],
+    [{ ...values, title: "　" }, values.author],
+    [{ ...values, title: " ", author: "\t", url: "　\n" }, values.id],
+    [{ ...values, title: "", author: "　\t", url: "" }, values.id],
+    [{ ...values, title: "  資料名　" }, "  資料名　"],
+    [{ ...values, title: " ", author: " 著者　" }, " 著者　"]
+  ];
+  for (const [source, expected] of cases) {
+    const original = structuredClone(source);
+    const stored = serializeSources([source]);
+    assert.equal(sourceDisplayLabel(source), expected);
+    assert.deepEqual(source, original, "表示判定はSource値を書き換えない");
+    assert.equal(serializeSources([source]), stored);
+    assert.deepEqual(parseSourceMarker(stored), [normalizeSource(original)]);
+  }
 });
