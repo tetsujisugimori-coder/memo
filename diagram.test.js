@@ -113,3 +113,68 @@ test("旧バックアップreaderはv5を拒否する",()=>{
   const manifest=buildManifest({savedAt:"2026-10-03T00:00:00Z"});
   assert.throws(()=>oldBackup.parsePortableBackup([entry({name:"manifest.json",content:JSON.stringify(manifest)})]),/新しいMemo-Nexus形式/);
 });
+
+const legacyGeometry = (() => { const value = { ...geometry, version: 1 }; delete value.diagram; return value; })();
+const emptyDiagram = { description: "", createdForReport: false, citationIds: [] };
+test("v1の空Diagram保存用正規化はversionと全Geometry情報を維持する", () => {
+  const saved = g.normalizeGeometryDiagramForSave(legacyGeometry, emptyDiagram);
+  assert.deepEqual(saved, legacyGeometry);
+  assert.equal(saved.version, 1);
+  assert.equal(Object.hasOwn(saved, "diagram"), false);
+  assert.deepEqual(g.parseGeometryBlockLine(g.serializeGeometryBlock(saved)), legacyGeometry);
+});
+test("captionだけ変更した保存はv1を維持し図形と注釈を失わない", () => {
+  const expected = { ...legacyGeometry, caption: "captionのみ変更" };
+  const saved = g.normalizeGeometryDiagramForSave(expected, emptyDiagram);
+  assert.deepEqual(saved, expected);
+  assert.equal(saved.version, 1);
+  assert.equal(saved.diagram, undefined);
+});
+for (const [name, info] of [
+  ["補足だけ", { ...emptyDiagram, description: "補足説明" }],
+  ["作成図だけ", { ...emptyDiagram, createdForReport: true }],
+  ["Sourceだけ", { ...emptyDiagram, citationIds: ["missing"] }]
+]) test(name + "を保存するとv2になり、他のGeometry情報を保持する", () => {
+  const saved = g.normalizeGeometryDiagramForSave(legacyGeometry, info);
+  assert.deepEqual(saved, { ...legacyGeometry, version: 2, diagram: info });
+  assert.deepEqual(g.parseGeometryBlockLine(g.serializeGeometryBlock(saved)), saved);
+});
+test("v2のDiagram固有情報をすべて消す保存はdiagramを除去してv1へ戻る", () => {
+  const saved = g.normalizeGeometryDiagramForSave(geometry, emptyDiagram);
+  assert.deepEqual(saved, legacyGeometry);
+  assert.ok(old.parseGeometryBlockLine(g.serializeGeometryBlock(saved)));
+  assert.equal(geometry.version, 2);
+  assert.deepEqual(geometry.diagram, diagram, "入力の正本を変更しない");
+});
+test("v2の情報を一部消しても補足・作成図・引用のいずれかが残ればv2を維持する", () => {
+  for (const remaining of [{ ...emptyDiagram, description: diagram.description },
+    { ...emptyDiagram, createdForReport: true }, { ...emptyDiagram, citationIds: diagram.citationIds }]) {
+    const saved = g.normalizeGeometryDiagramForSave(geometry, remaining);
+    assert.deepEqual(saved, { ...geometry, diagram: remaining });
+  }
+});
+test("空白だけの補足は保存時に空とみなし、読込時の空v2は自動移行しない", () => {
+  assert.deepEqual(g.normalizeGeometryDiagramForSave(legacyGeometry, { ...emptyDiagram, description: " \n\t　" }), legacyGeometry);
+  const imported = g.normalizeGeometryBlock({ ...geometry, diagram: emptyDiagram });
+  assert.equal(imported.version, 2);
+  assert.deepEqual(g.normalizeGeometryDiagramForSave(imported, imported.diagram), legacyGeometry);
+  assert.throws(() => g.normalizeGeometryDiagramForSave({ ...geometry, version: 3 }, emptyDiagram), /対応していません/);
+});
+test("CI画像は未追跡の専用生成先をclearしてから実行し、docs画像をuploadしない", () => {
+  const fs = require("node:fs");
+  const workflow = fs.readFileSync(".github/workflows/ci.yml", "utf8");
+  const clear = workflow.indexOf("- name: Clear Diagram review screenshots");
+  const run = workflow.indexOf("- name: Run Diagram E2E");
+  const upload = workflow.indexOf("- name: Upload Diagram review screenshots");
+  assert.ok(clear >= 0 && clear < run && run < upload);
+  const steps = workflow.slice(clear, workflow.indexOf("- name: Run Citation Source E2E", upload));
+  assert.match(steps, /run: rm -rf -- e2e-artifacts\/diagram-review/);
+  assert.match(steps, /path: e2e-artifacts\/diagram-review\/diagram-\*\.png/);
+  assert.match(steps, /if-no-files-found: error/);
+  assert.match(steps, /if: always\(\)/);
+  assert.equal(steps.includes("docs/diagram-v1"), false);
+  const e2e = fs.readFileSync("diagram.e2e.js", "utf8");
+  assert.ok(e2e.includes('path.join(root,"e2e-artifacts/diagram-review")'));
+  assert.ok(!e2e.includes('path.join(root,"docs/diagram-v1")'));
+  assert.ok(fs.readFileSync(".gitignore", "utf8").includes("e2e-artifacts/diagram-review/"));
+});

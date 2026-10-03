@@ -1,7 +1,7 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const {
-  normalizeSource, parseSourceDocument, parseSourceMarker, sourceSelectionFromRaw, insertSourceCitation, withSources, safeSourceUrl,
+  sourceDisplayLabel, normalizeSource, parseSourceDocument, parseSourceMarker, sourceSelectionFromRaw, insertSourceCitation, withSources, safeSourceUrl,
   extractCitations, referencedSources
 } = require("./source-utils.js");
 const { buildMarkdownBundleImport } = require("./markdown-bundle-utils.js");
@@ -77,4 +77,12 @@ test("Markdown ZIP import keeps Source marker and Figure metadata", () => {
   const imported = buildMarkdownBundleImport([{ name: "memo.md", data: new TextEncoder().encode(body) }], () => "unused")[0];
   assert.deepEqual(parseSourceDocument(imported.body).sources[0], first);
   assert.equal(splitImageBlocks(imported.body).find((block) => block.type === "image").images[0].figureMetadata.caption, "旧図");
+});
+
+test("Sourceの表示ラベルはtitle・author・url・idの順にfallbackする", () => {
+  const values = { id: "source-test", title: "資料名", author: "著者のみ", url: "https://example.org/label-test" };
+  assert.equal(sourceDisplayLabel(values), values.title);
+  assert.equal(sourceDisplayLabel({ ...values, title: "" }), values.author);
+  assert.equal(sourceDisplayLabel({ ...values, title: "", author: "" }), values.url);
+  assert.equal(sourceDisplayLabel({ ...values, title: "", author: "", url: "" }), values.id);
 });

@@ -570,6 +570,18 @@
     return normalized;
   }
 
+  // Canonicalize only explicit diagram saves; imported bodies are not migrated on read.
+  function normalizeGeometryDiagramForSave(geometry, diagram) {
+    const source = normalizeGeometryBlock(geometry, geometry && geometry.id);
+    const normalizedDiagram = normalizeDiagram(diagram);
+    const hasDiagram = normalizedDiagram.description.trim().length > 0
+      || normalizedDiagram.createdForReport || normalizedDiagram.citationIds.length > 0;
+    const next = { ...source, version: hasDiagram ? DIAGRAM_GEOMETRY_VERSION : GEOMETRY_BLOCK_VERSION };
+    if (hasDiagram) next.diagram = normalizedDiagram;
+    else delete next.diagram;
+    return normalizeGeometryBlock(next, next.id);
+  }
+
   function createGeometryBlock(id) {
     return normalizeGeometryBlock({
       type: "geometry",
@@ -842,6 +854,7 @@
     createGeometryBlock,
     cloneGeometryBlock,
     normalizeGeometryBlock,
+    normalizeGeometryDiagramForSave,
     validateGeometryBlock,
     serializeGeometryBlock,
     parseGeometryBlockLine,

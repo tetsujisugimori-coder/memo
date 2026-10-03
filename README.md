@@ -464,4 +464,4 @@ Figure・Comparison・Table・Chartから共通Sourceへの `sourceId` 接続は
 
 既存の図形編集欄で「図版情報」を押すと、キャプション、補足説明、「本レポート作成図」の明示選択、同じメモの複数Sourceを編集できます。保存は本文の通常保存・Undo/Redoを使い、キャンセルは本文や履歴を変えません。図形・点・注釈を正本として既存SVG rendererで描画し、通常PreviewとReport Previewの出典番号・一覧を共有します。
 
-図版情報を持つGeometryだけversion 2です。情報のない旧Geometryはversion 1のままです。完全バックアップはv5へ更新し、旧アプリによる新形式の復元を拒否します。Markdown ZIPやローカルMarkdownは対応版で復元してください。旧版ではv2を図形として編集できません。詳細な仕様、旧parserによる情報消失評価、制約と実画面は [docs/diagram-v1/README.md](docs/diagram-v1/README.md) にあります。
+補足説明（空白だけを除く）・作成図設定・Source参照のいずれかを持つGeometryだけversion 2です。すべて空ならdiagramを保存せずversion 1です。captionだけの変更ではv2にならず、v2から図版固有情報をすべて消して保存するとv1へ戻ります。情報のない旧Geometryはversion 1のままです。完全バックアップはv5へ更新し、旧アプリによる新形式の復元を拒否します。Markdown ZIPやローカルMarkdownは対応版で復元してください。旧版ではv2を図形として編集できません。詳細な仕様、旧parserによる情報消失評価、制約と実画面は [docs/diagram-v1/README.md](docs/diagram-v1/README.md) にあります。

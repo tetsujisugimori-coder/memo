@@ -17,6 +17,10 @@
     return source;
   }
 
+  function sourceDisplayLabel(source) {
+    return source.title || source.author || source.url || source.id;
+  }
+
   function normalizeSources(values) {
     if (!Array.isArray(values)) return [];
     const seen = new Set();
@@ -158,7 +162,7 @@
     });
   }
 
-  const api = { SOURCE_TYPES, normalizeSource, normalizeSources, serializeSources, parseSourceMarker,
+  const api = { SOURCE_TYPES, sourceDisplayLabel, normalizeSource, normalizeSources, serializeSources, parseSourceMarker,
     parseSourceDocument, sourceSelectionFromRaw, insertSourceCitation, withSources, safeSourceUrl, extractCitations, referencedSources };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   if (globalScope) globalScope.MemoNexusSourceUtils = api;

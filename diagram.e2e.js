@@ -15,6 +15,11 @@ async function saved(page) {
     revision: currentNote().revision, updatedAt: currentNote().updatedAt, undo: undoStack.length, redo: redoStack.length,
     figures: splitImageBlocks(editor.value).filter((entry) => entry.type === "image"), sources: parseSourceDocument(editor.value).sources }));
 }
+async function persistenceState(page) {
+  return page.evaluate(() => ({ body: editor.value, revision: currentNote().revision, updatedAt: currentNote().updatedAt,
+    dirty: noteSaveFoundation.isDirty(currentId), saveScheduled: saveTimer !== null,
+    undo: undoStack.length, redo: redoStack.length }));
+}
 async function alignSvgForPointer(svg) {
   return svg.evaluate(async (element) => {
     element.scrollIntoView({ block: "center", inline: "nearest", behavior: "instant" });
@@ -130,6 +135,16 @@ async function layout(page) {
       await page.locator('#sourceForm button[type="submit"]').first().click();
       await page.locator("#closeSourceDialogBtn").click();await idle(page);
     }
+    let sourceLabels;
+    for (const [field, value] of [["author", "検証著者（タイトル空）"],
+      ["url", "https://example.org/source-label-test"], ["publisher", "検証出版社（表示はIDへfallback）"]]) {
+      await page.locator("#manageSourcesBtn").click();
+      await page.locator('#sourceForm [name="' + field + '"]').fill(value);
+      await page.locator('#sourceForm button[type="submit"]').first().click();
+      sourceLabels = await page.locator(".source-list-item > span").allInnerTexts();
+      await page.locator("#closeSourceDialogBtn").click();
+      await idle(page);
+    }
     await page.locator("#editor").press("End");
     await page.locator("#insertGeometryBtn").click();
     const drawing=page.locator(".geometry-block-editor");
@@ -142,21 +157,48 @@ async function layout(page) {
     await drawing.locator('[data-geometry-mode="polygon"]').click();
     for(const point of state.geometries[0].points)await clickLogical(page,svg,point);
     await drawing.getByRole("button",{name:"選択した点で多角形を完了"}).click();
-    const legacy=await saved(page);
+    let legacy=await saved(page);
+    // Preserve valid legacy marker formatting, not just canonical JSON, on a no-op.
+    const formattedLegacy = await page.evaluate(() => {
+      const block = splitGeometryBlocks(editor.value).find(entry => entry.type === "geometry");
+      const raw = "  " + block.raw.replace(/:([0-9a-f]+) -->$/, (_, hex) => ":" + hex.toUpperCase() + " -->");
+      return editor.value.slice(0, block.start) + raw + editor.value.slice(block.end);
+    });
+    await page.locator("#editor").fill(formattedLegacy);
+    legacy=await saved(page);
     assert.equal(legacy.geometries[0].objects.length,1);
+    const noOpBefore = await persistenceState(page);
+    await info(page);
+    assert.deepEqual(await page.locator("#diagramSourceOptions label").allInnerTexts(), sourceLabels);
+    assert.equal(sourceLabels[2], "検証著者（タイトル空）");
+    assert.equal(sourceLabels[3], "https://example.org/source-label-test");
+    assert.equal(sourceLabels[4], legacy.sources[4].id);
+    await page.locator('#diagramForm button[type="submit"]').click();
+    await page.locator("#diagramDialog").waitFor({state:"hidden"});
+    assert.deepEqual(await persistenceState(page), noOpBefore, "empty save creates no draft, revision, timestamp, save reservation or history");
+    assert.deepEqual(await saved(page), legacy, "no-op also keeps the original raw marker");
     await info(page);
     assert.equal(await page.locator("#diagramCreatedInput").isChecked(),false);
     await page.locator("#diagramCaptionInput").fill("キャンセルする説明");
     await page.locator("#diagramCreatedInput").check();
     await page.locator("#cancelDiagramBtn").click();
     assert.deepEqual(await saved(page),legacy,"cancel preserves saved data, revision and history");
+    await info(page);
+    await page.locator("#diagramCaptionInput").fill("旧Geometryのcaptionだけ変更");
+    const captionOnly = await saveInfo(page);
+    assert.deepEqual(captionOnly.geometries[0], { ...legacy.geometries[0], caption: "旧Geometryのcaptionだけ変更" });
+    assert.equal(captionOnly.geometries[0].version, 1);
+    assert.equal(captionOnly.geometries[0].diagram, undefined);
+    await page.locator("#undoBtn").click();assert.equal((await saved(page)).body, legacy.body);
+    await page.locator("#redoBtn").click();assert.equal((await saved(page)).body, captionOnly.body);
+    legacy = captionOnly;
     const caption="三角形ABCの辺を比較する模式図";
     const description="三角形の形と頂点の位置関係を示す。長さは実測値ではなく、比較のために模式化した。\n"+"長文の補足説明".repeat(15)+" <script> & 😀";
     await info(page);
     await page.locator("#diagramCaptionInput").fill(caption);
     await page.locator("#diagramDescriptionInput").fill(description);
     await page.locator("#diagramCreatedInput").check();
-    for(const choice of await page.locator('#diagramSourceOptions input').all())await choice.check();
+    for(const choice of (await page.locator('#diagramSourceOptions input').all()).slice(0,2))await choice.check();
     const described=await saveInfo(page);
     assert.equal(described.geometries[0].version,2);
     assert.deepEqual(described.geometries[0].points,legacy.geometries[0].points);
@@ -167,6 +209,24 @@ async function layout(page) {
     await page.locator("#redoBtn").click();assert.equal((await saved(page)).body,described.body);
     await page.reload();await page.locator("#appStartupGuard").waitFor({state:"hidden"});
     assert.equal((await saved(page)).body,described.body);
+    // Clearing all Diagram-specific fields explicitly restores a legacy v1 Geometry.
+    await info(page);
+    await page.locator("#diagramDescriptionInput").fill("");
+    await page.locator("#diagramCreatedInput").uncheck();
+    for (const choice of await page.locator("#diagramSourceOptions input").all()) await choice.uncheck();
+    const cleared = await saveInfo(page);
+    assert.deepEqual(cleared.geometries[0], { ...legacy.geometries[0], caption });
+    assert.equal(cleared.geometries[0].version, 1);
+    assert.equal(cleared.geometries[0].diagram, undefined);
+    await page.locator("#undoBtn").click();assert.equal((await saved(page)).body, described.body);
+    await page.locator("#redoBtn").click();assert.equal((await saved(page)).body, cleared.body);
+    await page.reload();await page.locator("#appStartupGuard").waitFor({state:"hidden"});
+    assert.equal((await saved(page)).body, cleared.body);
+    await info(page);
+    await page.locator("#diagramDescriptionInput").fill(description);
+    await page.locator("#diagramCreatedInput").check();
+    for(const choice of (await page.locator('#diagramSourceOptions input').all()).slice(0,2))await choice.check();
+    assert.equal((await saveInfo(page)).body, described.body);
     // Redrawing through the original model must preserve metadata, including internal history.
     await drawing.locator('[data-geometry-mode="point"]').click();await clickLogical(page,svg,{x:90,y:20});
     const redrawn=await saved(page);assert.equal(redrawn.geometries[0].points.length,4);
@@ -224,7 +284,7 @@ async function layout(page) {
     await page.locator("#reportPreviewBtn").click();await page.locator("body.report-preview-mode").waitFor();
     assert.equal(await page.locator(".geometry-block-editors").isVisible(),false);
     assert.equal(await page.locator(".timeline-edit").isVisible(),false);
-    const review=path.join(root,"docs/diagram-v1");fs.mkdirSync(review,{recursive:true});
+    const review=path.join(root,"e2e-artifacts/diagram-review");fs.mkdirSync(review,{recursive:true});
     await page.setViewportSize({width:1280,height:1600});await layout(page);
     await page.screenshot({path:path.join(review,"diagram-report-pc.png")});
     await page.setViewportSize({width:320,height:844});await page.waitForFunction(()=>layoutMode==="mobile");await layout(page);
@@ -272,6 +332,7 @@ async function layout(page) {
     });await idle(page);
     assert.ok((await page.locator(".diagram-citations").innerText()).includes("[@unregistered-test]"));
     await info(page);assert.equal(await page.locator('#diagramSourceOptions input[value="unregistered-test"]').isChecked(),true);
+    assert.equal(await page.locator('#diagramSourceOptions input[value="unregistered-test"]').locator("..").innerText(), "未登録Source: unregistered-test");
     await saveInfo(page);assert.equal((await saved(page)).geometries[0].diagram.citationIds.includes("unregistered-test"),true);
     await info(page);
     await page.evaluate(()=>commitSourceBody(editor.value+"\n外部の更新"));

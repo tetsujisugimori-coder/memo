@@ -326,7 +326,7 @@ const {
 } = window.MemoNexusAttachmentUtils;
 const { figureSourceTypeLabel, hasFigureMetadata, normalizeFigureMetadata, safeFigureSourceUrl } = window.MemoNexusFigureMetadataUtils;
 const { normalizeTimeline, serializeTimelineBlock, splitTimelineBlocks, replaceTimelineBlock } = window.MemoNexusTimelineBlockUtils;
-const { SOURCE_TYPES: SOURCE_TYPE_LABELS, parseSourceDocument, sourceSelectionFromRaw, insertSourceCitation, withSources, safeSourceUrl, extractCitations } = window.MemoNexusSourceUtils;
+const { SOURCE_TYPES: SOURCE_TYPE_LABELS, parseSourceDocument, sourceSelectionFromRaw, insertSourceCitation, withSources, safeSourceUrl, extractCitations, sourceDisplayLabel } = window.MemoNexusSourceUtils;
 const {
   TAG_COLOR_PALETTE,
   assignRegisteredTag,
@@ -536,6 +536,7 @@ const {
 } = window.MemoNexusChartBlockUtils;
 const {
   createGeometryBlock,
+  normalizeGeometryDiagramForSave,
   insertGeometryBlock,
   replaceGeometryBlock,
   splitGeometryBlocks
@@ -8187,7 +8188,7 @@ function renderSourceList() {
     const row = document.createElement("div");
     row.className = "source-list-item";
     const label = document.createElement("span");
-    label.textContent = source.title || source.author || source.url || source.id;
+    label.textContent = sourceDisplayLabel(source);
     const insert = document.createElement("button");
     insert.type = "button";
     insert.textContent = "引用を挿入";
@@ -12215,7 +12216,7 @@ function renderTimelineItemEditors() {
       checkbox.addEventListener("change", () => {
         item.citationIds = checkbox.checked ? [...item.citationIds, source.id] : item.citationIds.filter((id) => id !== source.id);
       });
-      label.append(checkbox, source.title || source.author || source.url || source.id);
+      label.append(checkbox, sourceDisplayLabel(source));
       fieldset.append(label);
     });
     details.append(fieldset);
@@ -12312,7 +12313,7 @@ function openDiagramEditor(block) {
     input.value = id;
     input.checked = (diagram.citationIds || []).includes(id);
     const source = sources.find((entry) => entry.id === id);
-    label.append(input, document.createTextNode(source ? (source.title || id) : "未登録Source: " + id));
+    label.append(input, document.createTextNode(source ? sourceDisplayLabel(source) : "未登録Source: " + id));
     choices.append(label);
   });
   if (!ids.length) choices.textContent = "このメモに出典がありません。既存の「出典」から登録できます。";
@@ -12326,10 +12327,16 @@ function saveDiagramEditor() {
     $("diagramStatus").textContent = "メモが更新されました。キャンセルして図版情報を開き直してください。";
     return;
   }
-  const geometry = { ...state.block.geometry, version: 2, caption: $("diagramCaptionInput").value,
-    diagram: { description: $("diagramDescriptionInput").value, createdForReport: $("diagramCreatedInput").checked,
-      citationIds: [...$("diagramSourceOptions").querySelectorAll("input:checked")].map((input) => input.value) } };
   try {
+    const geometry = normalizeGeometryDiagramForSave({ ...state.block.geometry, caption: $("diagramCaptionInput").value }, {
+      description: $("diagramDescriptionInput").value, createdForReport: $("diagramCreatedInput").checked,
+      citationIds: [...$("diagramSourceOptions").querySelectorAll("input:checked")].map((input) => input.value)
+    });
+    // A no-op must also preserve legacy raw marker formatting and inferred defaults.
+    if (JSON.stringify(geometry) === JSON.stringify(state.block.geometry)) {
+      $("diagramDialog").close();
+      return;
+    }
     const body = replaceGeometryBlock(editor.value, state.block, geometry);
     if (body !== editor.value) {
       commitSourceBody(body);

@@ -9,7 +9,7 @@ Visual Markdown Report v1 第6段階。既存Geometryを説明・作成図表示
 3. 既存キャプション（短い説明）、補足説明（読み方・前提・省略・模式化）、任意の「本レポート作成図」、既存Sourceの複数選択を編集する。
 4. 「図版情報を保存」で確定する。「キャンセル」・×・Escは本文、revision、updatedAt、保存予約、Undo/Redo履歴を変更しない。
 
-Sourceは既存「出典」で登録・編集する。図版情報には書誌情報をコピーしない。作成図表示は明示的な選択時だけ表示し、権利保有や資料の正確性を証明しない。
+Sourceは既存「出典」で登録・編集する。表示ラベルは共通sourceDisplayLabelを使い、title → author → url → idの順に選ぶ。出典一覧・Timeline・Diagramの3箇所で同じhelperを使い、未登録Sourceは従来どおり「未登録Source: ID」と表示する。図版情報には書誌情報をコピーしない。作成図表示は明示的な選択時だけ表示し、権利保有や資料の正確性を証明しない。
 
 図 → caption → 補足 → 作成図表示 → 選択引用の順に表示する。空欄や空の見出しは表示しない。補足は既存Timeline本文描画を再利用し、MarkdownとCitationを扱う。補足のチェックリストは表示専用。captionは従来のテキスト表示を維持する。SVGの読み上げ説明にはcaptionと補足を使う。
 
@@ -19,7 +19,7 @@ Report Previewは通常Previewと同じrenderPreview / renderPreviewHtml / rende
 
 既存インライン `<!-- memo-nexus:geometry-block:<hex UTF-8 JSON> -->` をそのまま使う。独立Diagramブロック、図形データの二重保存、SVG/HTMLの保存正本、Report専用document modelは追加しない。
 
-図版情報を確定したGeometryは次の項目を追加する。
+補足説明（trim後に空でない）・createdForReport === true・citationIds.length > 0のいずれかを持つGeometryだけversion 2として次の項目を追加する。すべて空ならdiagramプロパティを保存せずversion 1とする。captionだけではversion 2にならない。既存v2でも図版固有情報をすべて消して明示保存するとv1へ戻り、一つでも残ればv2を維持する。
 
 ~~~json
 {
@@ -43,7 +43,7 @@ Report Previewは通常Previewと同じrenderPreview / renderPreviewHtml / rende
 
 captionは既存の4,000文字上限、補足は16,000文字、Source選択は既存referencesPerItemと同じ1,000個、Source IDは共通規則の英数字・_・-の1〜128文字。JSON全体の262,144バイト上限は維持する。改行をLFに正規化し、同じSource IDの重複は最初の参照を保持して除去する。
 
-normalizeGeometryBlockがdiagramを保持するので、geometry-editor-utilsの作図・移動・図形削除、cloneGeometryBlock、createHistoryのコピー／Undo／Redoも情報を保持する。図版情報は現在のGeometryをspreadして更新するので点・線・注釈を変えない。保存後は作図編集モデルを再生成する。
+normalizeGeometryBlockがdiagramを保持するので、geometry-editor-utilsの作図・移動・図形削除、cloneGeometryBlock、createHistoryのコピー／Undo／Redoも情報を保持する。図版情報は現在のGeometryをspreadして更新するので点・線・注釈を変えない。保存後は作図編集モデルを再生成する。normalizeGeometryDiagramForSaveは図版情報の明示保存時だけ空diagramを除去する。読込みでは既存の空v2を自動移行しない。保存用正規化後のGeometryが元と実質同じなら保存を行わず、本文の元マーカー表記、revision / updatedAt / dirty / 保存予約 / Undo履歴を保つ。
 
 保存はreplaceGeometryBlockのstart/end/raw確認とcommitSourceBody → scheduleSave → 既存保存キューを使う。本文revision / updatedAt / dirty状態を通常経路で更新し、pushUndoSnapshotで1項目を確定する。通常入力・タイトル入力・保存予約に新しい全本文走査を追加しない。DB schema 6とIndexedDB storeは変更しない。
 
@@ -72,7 +72,8 @@ Geometry編集欄は実editor本文を解析した出現順で構築し、同じ
 
 ## 検証とレビュー画像
 
-- 単体: 全1,725件成功。diagram.test.jsの16件は正規化、直列化、再読込、旧新混在、空欄、日本語・特殊文字・長文、不正／未知／コード、共有Source、作図・複製・履歴保持、同一ID/rawの対象安全、実旧parser、ローカルMarkdown、両ZIP経路を確認する。
+- 単体: 全1,735件成功。Diagramの25件とSourceラベル追加テストを含む。diagram.test.jsは正規化、直列化、再読込、旧新混在、空欄、日本語・特殊文字・長文、不正／未知／コード、共有Source、作図・複製・履歴保持、同一ID/rawの対象安全、実旧parser、ローカルMarkdown、両ZIP経路を確認する。
+- 追加検証: 空v1の保存、captionだけのv1維持、補足／作成図／Source単独のv2化、すべて削除したv2→v1、一部情報を残したv2維持、空白の補足、元のマーカー表記を保持する無変更保存、Sourceラベルfallback、CI画像clear・実行・upload順序とdocs除外を単体・実ブラウザ／静的構造で確認。
 - Chromium実ブラウザ: npm run test:e2e 全体成功（Figure → Comparison → Report Preview → Citation Source → Timeline → Diagram）。Diagramは作図、図版情報の保存／キャンセル、図の再編集、図形内・本文のUndo/Redo、reload、同一ID/rawの独立編集・削除、Source削除保護・編集反映、本文／Timeline／補足／選択引用の共通番号、未登録ID保持、本文が更新されたダイアログの上書き拒否を確認。
 - 実ダウンロード: 添付なしのローカルMarkdown、添付付きMarkdown ZIP、完全バックアップZIPを既存UIから書出し、両ZIPを新しいブラウザコンテキストへ取り込み、図形・図版情報・Sourceとreload後の保持を確認。
 - 通常PreviewとReport PreviewのPC／320pxで横overflowなし、SVG CTMの縦横倍率一致、Reportの編集UI非表示と本文・revision・updatedAt・履歴不変を確認。
@@ -85,7 +86,9 @@ Geometry編集欄は実editor本文を解析した出現順で構築し、同じ
 - 320px Report Preview: [diagram-report-320.png](diagram-report-320.png)
 - 320px通常Preview: [diagram-preview-320.png](diagram-preview-320.png)
 
-画像はChromium実画面。PCと320pxで実図・caption・補足・作成図表示・共有Source一覧を確認し、長文とURLの横overflowを実DOM計測する。レビュー画像には検証用データであることを表示する。
+docs内の3画像は初版head 33e8d6e3df132c61df0902d75fa435474f16be60で保存したChromiumのレビュー資料であり、今回のCI生成画像ではない。E2Eの新規画像生成先はe2e-artifacts/diagram-review/に統一し、docsへコピー／二重生成しない。CIはClear Diagram review screenshots → Run Diagram E2E → Upload Diagram review screenshotsの順で実行する。uploadは専用生成先だけを対象にし、if-no-files-found: errorを維持する。画像生成前に失敗した場合はcheckout時のdocs画像を拾えず、uploadも画像なしで失敗する。生成先は.gitignoreに指定し、コミットしない。
+
+PCと320pxで実図・caption・補足・作成図表示・共有Source一覧を確認し、長文とURLの横overflowを実DOM計測する。レビュー画像には検証用データであることを表示する。最新CI実画面は各runのdiagram-review artifactを参照する。
 
 ## 制約・対象外
 

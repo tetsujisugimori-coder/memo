@@ -185,6 +185,10 @@ jobs:
       - name: Run Timeline E2E
         run: npm run test:e2e:timeline
 
+      - name: Clear Diagram review screenshots
+        shell: bash
+        run: rm -rf -- e2e-artifacts/diagram-review
+
       - name: Run Diagram E2E
         run: npm run test:e2e:diagram
 
@@ -193,7 +197,7 @@ jobs:
         uses: actions/upload-artifact@v6
         with:
           name: diagram-review
-          path: docs/diagram-v1/diagram-*.png
+          path: e2e-artifacts/diagram-review/diagram-*.png
           if-no-files-found: error
           retention-days: 14
 
