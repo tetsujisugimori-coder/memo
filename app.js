@@ -8331,7 +8331,8 @@ function renderGeometryBlockEditors() {
     geometryBlockEditors.append(createGeometryBlockEditor(block.geometry, {
       blockIndex,
       onChange: (nextGeometry) => commitGeometryBlockChange(blockIndex, block.geometry.id, nextGeometry),
-      onDelete: () => removeGeometryBlock(blockIndex, block.geometry.id)
+      onDelete: () => removeGeometryBlock(blockIndex, block.geometry.id),
+      onEditDiagram: () => openDiagramEditor(currentGeometryBlock(blockIndex, block.geometry.id))
     }));
   });
 }
@@ -12290,10 +12291,67 @@ function renderReferencedSources(sources) {
   return `<section class="report-sources" aria-label="出典"><h2>出典</h2><ol>${rows}</ol></section>`;
 }
 
+let diagramEditState = null;
+function openDiagramEditor(block) {
+  if (!block || !currentNote() || currentNote().deletedAt || document.body.classList.contains("report-preview-mode")) return;
+  diagramEditState = { noteId: currentId, originalBody: editor.value, block };
+  const diagram = block.geometry.diagram || {};
+  $("diagramCaptionInput").value = block.geometry.caption;
+  $("diagramDescriptionInput").value = diagram.description || "";
+  $("diagramCreatedInput").checked = diagram.createdForReport === true;
+  $("diagramStatus").textContent = "";
+  const choices = $("diagramSourceOptions");
+  choices.replaceChildren();
+  const sources = parseSourceDocument(editor.value).sources;
+  const ids = [...new Set([...sources.map((source) => source.id), ...(diagram.citationIds || [])])];
+  ids.forEach((id) => {
+    const label = document.createElement("label");
+    label.className = "diagram-source-option";
+    const input = document.createElement("input");
+    input.type = "checkbox";
+    input.value = id;
+    input.checked = (diagram.citationIds || []).includes(id);
+    const source = sources.find((entry) => entry.id === id);
+    label.append(input, document.createTextNode(source ? (source.title || id) : "未登録Source: " + id));
+    choices.append(label);
+  });
+  if (!ids.length) choices.textContent = "このメモに出典がありません。既存の「出典」から登録できます。";
+  $("diagramDialog").showModal();
+  $("diagramCaptionInput").focus();
+}
+
+function saveDiagramEditor() {
+  const state = diagramEditState;
+  if (!state || state.noteId !== currentId || state.originalBody !== editor.value) {
+    $("diagramStatus").textContent = "メモが更新されました。キャンセルして図版情報を開き直してください。";
+    return;
+  }
+  const geometry = { ...state.block.geometry, version: 2, caption: $("diagramCaptionInput").value,
+    diagram: { description: $("diagramDescriptionInput").value, createdForReport: $("diagramCreatedInput").checked,
+      citationIds: [...$("diagramSourceOptions").querySelectorAll("input:checked")].map((input) => input.value) } };
+  try {
+    const body = replaceGeometryBlock(editor.value, state.block, geometry);
+    if (body !== editor.value) {
+      commitSourceBody(body);
+      renderGeometryBlockEditors();
+    }
+    $("diagramDialog").close();
+  } catch (error) { $("diagramStatus").textContent = error.message; }
+}
+$("diagramForm").addEventListener("submit", (event) => { event.preventDefault(); saveDiagramEditor(); });
+$("cancelDiagramBtn").addEventListener("click", () => $("diagramDialog").close());
+$("closeDiagramDialogBtn").addEventListener("click", () => $("diagramDialog").close());
+$("diagramDialog").addEventListener("close", () => { diagramEditState = null; });
+
 function renderGeometryBlock(geometry, blockIndex) {
-  const title = geometry.caption.trim() || `図形ブロック${blockIndex + 1}`;
+  const title = [geometry.caption.trim(), geometry.diagram?.description.trim()].filter(Boolean).join("。") || `図形ブロック${blockIndex + 1}`;
   const payload = encodeURIComponent(JSON.stringify(geometry));
-  return `<figure class="geometry-preview" data-geometry-id="${escapeAttr(geometry.id)}"><svg data-geometry-preview="${escapeAttr(payload)}" viewBox="${geometry.viewBox.x} ${geometry.viewBox.y} ${geometry.viewBox.width} ${geometry.viewBox.height}" role="img" aria-label="${escapeAttr(title)}"></svg>${geometry.caption ? `<figcaption>${escapeHtml(geometry.caption)}</figcaption>` : ""}</figure>`;
+  const diagram = geometry.diagram;
+  const description = diagram?.description.trim() ? `<div class="diagram-description">${renderTimelineItemBody(diagram.description)}</div>` : "";
+  const created = diagram?.createdForReport ? '<p class="diagram-created">本レポート作成図</p>' : "";
+  const citations = diagram?.citationIds.length ? '<p class="diagram-citations">' +
+    diagram.citationIds.map((id) => renderMarkdownInline("[@" + id + "]")).join(" ") + "</p>" : "";
+  return `<figure class="geometry-preview" data-geometry-id="${escapeAttr(geometry.id)}"><svg data-geometry-preview="${escapeAttr(payload)}" viewBox="${geometry.viewBox.x} ${geometry.viewBox.y} ${geometry.viewBox.width} ${geometry.viewBox.height}" role="img" aria-label="${escapeAttr(title)}"></svg>${geometry.caption.trim() ? `<figcaption>${escapeHtml(geometry.caption)}</figcaption>` : ""}${description}${created}${citations}</figure>`;
 }
 
 function hydrateGeometryPreviews() {

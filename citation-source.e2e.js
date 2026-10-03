@@ -93,7 +93,7 @@ const { chromium } = require("playwright");
     });
     assert.match(bundle.markdown, /memo-nexus:sources-v1:/);
     assert.match(bundle.backupNote, /memo-nexus:sources-v1:/);
-    assert.equal(bundle.backupVersion, 4);
+    assert.equal(bundle.backupVersion, 5);
     await page.reload();
     await page.locator("#appStartupGuard").waitFor({ state: "hidden" });
     assert.equal(await page.locator("#editor").inputValue(), before.body);

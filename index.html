@@ -7,7 +7,7 @@
   <script>try { document.documentElement.dataset.initialTheme = localStorage.getItem("memo-nexus-theme") === "dark" ? "dark" : "light"; } catch (_) { document.documentElement.dataset.initialTheme = "light"; }</script>
   <style>html,body{background:#f6f7f4;color:#222522;color-scheme:light}html[data-initial-theme="dark"],html[data-initial-theme="dark"] body{background:#111513;color:#e7ece7;color-scheme:dark}</style>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css">
-  <link rel="stylesheet" href="style.css?v=0.5.0-116">
+  <link rel="stylesheet" href="style.css?v=0.5.0-117">
 </head>
 <body class="app-starting">
   <section id="appStartupGuard" class="app-startup-guard" role="status" aria-live="polite" aria-busy="true">
@@ -982,6 +982,19 @@
     <div id="mermaidTemplateStatus" class="syntax-guide-status" role="status" aria-live="polite"></div>
   </dialog>
   <input id="imageBlockInput" type="file" accept="image/jpeg,image/png,image/webp,image/gif,.jpg,.jpeg,.png,.webp,.gif" hidden>
+  <dialog id="diagramDialog" class="diagram-dialog" aria-labelledby="diagramDialogTitle">
+    <div class="dialog-head"><strong id="diagramDialogTitle">図版情報</strong><button id="closeDiagramDialogBtn" type="button" aria-label="図版情報を閉じる">×</button></div>
+    <form id="diagramForm">
+      <label for="diagramCaptionInput">キャプション</label><textarea id="diagramCaptionInput" maxlength="4000" rows="2"></textarea>
+      <label for="diagramDescriptionInput">補足説明</label><textarea id="diagramDescriptionInput" maxlength="16000" rows="5"></textarea>
+      <label class="diagram-source-option"><input id="diagramCreatedInput" type="checkbox">本レポート作成図</label>
+      <p class="muted">作成図の表示は、権利保有や資料の正確性を証明するものではありません。</p>
+      <fieldset><legend>既存Sourceを選択</legend><div id="diagramSourceOptions"></div></fieldset>
+      <p id="diagramStatus" role="status"></p>
+      <div class="dialog-actions"><button id="cancelDiagramBtn" type="button">キャンセル</button><button type="submit">図版情報を保存</button></div>
+    </form>
+  </dialog>
+
   <dialog id="timelineDialog" class="timeline-dialog" aria-labelledby="timelineDialogTitle">
     <div class="dialog-head"><strong id="timelineDialogTitle">Timelineを編集</strong><button id="closeTimelineDialogBtn" type="button" aria-label="Timeline編集を閉じる">×</button></div>
     <form id="timelineForm">
@@ -1025,16 +1038,16 @@
   <script src="web-clipper-config.js?v=0.5.0-4"></script>
   <script src="figure-metadata-utils.js?v=0.5.0-1"></script>
   <script src="timeline-block-utils.js?v=0.5.0-1"></script>
-  <script src="source-utils.js?v=0.5.0-3"></script>
+  <script src="source-utils.js?v=0.5.0-4"></script>
   <script src="attachment-utils.js?v=0.5.0-16"></script>
   <script src="table-block-utils.js?v=0.5.0-8"></script>
   <script src="table-file-export-utils.js?v=0.5.0-4"></script>
   <script src="chart-block-utils.js?v=0.5.0-29"></script>
   <script src="chart-png-export.js?v=0.5.0-4"></script>
-  <script src="geometry-block-utils.js?v=0.5.0-15"></script>
+  <script src="geometry-block-utils.js?v=0.5.0-16"></script>
   <script src="geometry-editor-utils.js?v=0.5.0-15"></script>
   <script src="geometry-svg-renderer.js?v=0.5.0-16"></script>
-  <script src="geometry-block-editor.js?v=0.5.0-19"></script>
+  <script src="geometry-block-editor.js?v=0.5.0-20"></script>
   <script src="tags.js?v=0.5.0-4"></script>
   <script src="memo-list-utils.js?v=0.5.0-5"></script>
   <script src="term-link-utils.js?v=0.5.0-6"></script>
@@ -1066,8 +1079,8 @@
   <script src="note-tombstone.js?v=0.5.0-2"></script>
   <script src="note-save-foundation.js?v=0.5.0-8"></script>
   <script src="local-markdown.js?v=0.5.0-4"></script>
-  <script src="local-sync-utils.js?v=0.5.0-12"></script>
-  <script src="backup-bundle-utils.js?v=0.5.0-8"></script>
+  <script src="local-sync-utils.js?v=0.5.0-13"></script>
+  <script src="backup-bundle-utils.js?v=0.5.0-9"></script>
   <script src="local-fs-adapter.js?v=0.5.0-1"></script>
   <script src="indexeddb-lifecycle.js?v=0.5.0-1"></script>
   <script src="manual-local-save.js?v=0.5.0-1"></script>
@@ -1076,7 +1089,7 @@
   <script src="draft-mirror-scheduler.js?v=0.5.0-2"></script>
   <script src="typing-performance-monitor.js?v=0.5.0-3"></script>
   <script src="layout-resize-utils.js?v=0.5.0-2"></script>
-  <script src="app.js?v=0.5.0-195"></script>
+  <script src="app.js?v=0.5.0-196"></script>
   <script src="codex-chat.js?v=0.5.0-6"></script>
 </body>
 </html>

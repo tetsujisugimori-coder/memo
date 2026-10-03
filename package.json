@@ -4,7 +4,7 @@
     "codex:bridge": "node codex-bridge.js",
     "codex:token": "node codex-bridge-token.js",
     "test": "node --test",
-    "test:e2e": "npm run test:e2e:figure && npm run test:e2e:comparison && npm run test:e2e:report-preview && npm run test:e2e:citation-source && npm run test:e2e:timeline",
+    "test:e2e": "npm run test:e2e:figure && npm run test:e2e:comparison && npm run test:e2e:report-preview && npm run test:e2e:citation-source && npm run test:e2e:timeline && npm run test:e2e:diagram",
     "test:e2e:mobile:layout": "node mobile-layout.e2e.js",
     "test:e2e:mobile:writing": "node mobile-writing-mode.e2e.js",
     "test:e2e:mobile": "npm run test:e2e:mobile:layout && npm run test:e2e:mobile:writing",
@@ -19,7 +19,8 @@
     "test:e2e:table": "node table-block.e2e.js",
     "test:e2e:table-export": "node table-file-export.e2e.js",
     "test:e2e:chart-export": "node chart-file-export.e2e.js",
-    "test:e2e:timeline": "node timeline.e2e.js"
+    "test:e2e:timeline": "node timeline.e2e.js",
+    "test:e2e:diagram": "node diagram.e2e.js"
   },
   "devDependencies": {
     "playwright": "1.62.1"

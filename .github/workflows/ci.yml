@@ -185,6 +185,18 @@ jobs:
       - name: Run Timeline E2E
         run: npm run test:e2e:timeline
 
+      - name: Run Diagram E2E
+        run: npm run test:e2e:diagram
+
+      - name: Upload Diagram review screenshots
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: diagram-review
+          path: docs/diagram-v1/diagram-*.png
+          if-no-files-found: error
+          retention-days: 14
+
       - name: Run Citation Source E2E
         run: npm run test:e2e:citation-source
 

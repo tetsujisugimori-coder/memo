@@ -133,9 +133,17 @@
     return ids;
   }
 
+  function extractGeometryCitations(body) {
+    const geometryUtils = typeof module !== "undefined" && module.exports
+      ? require("./geometry-block-utils.js") : globalScope.MemoNexusGeometryBlockUtils;
+    return geometryUtils.splitGeometryBlocks(body).flatMap((segment) => segment.type === "text"
+      ? extractTextCitations(segment.text)
+      : [...extractTextCitations(segment.geometry.diagram?.description), ...(segment.geometry.diagram?.citationIds || [])]);
+  }
+
   function extractCitations(body) {
     return timelineUtils.splitTimelineBlocks(parseSourceDocument(body).body).flatMap((segment) => {
-      if (segment.type === "text") return extractTextCitations(segment.text);
+      if (segment.type === "text") return extractGeometryCitations(segment.text);
       return segment.timeline.items.flatMap((item) => [...extractTextCitations(item.body), ...item.citationIds]);
     });
   }

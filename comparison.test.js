@@ -91,7 +91,7 @@ test("未知モード・重複モード・1画像の比較設定は通常表示�
   assert.equal(blockOf(serializeImageBlock(images.slice(0, 1), "説明", "center", "comparison")).displayMode, "normal");
 });
 
-test("Markdown ZIPと完全バックアップv4を画像・Figure・Source/Citationごと往復する", () => {
+test("Markdown ZIPと完全バックアップv5を画像・Figure・Source/Citationごと往復する", () => {
   const body = withSources(`根拠 [@source-1]\n${serializeImageBlock(images, "全体説明", "center", "comparison")}`, [{ id: "source-1", title: "共通出典", url: "https://example.org/source" }]);
   const attachments = images.map((image, index) => ({ id: image.id, kind: "image", fileName: `image-${index}.png`, blob: Uint8Array.of(1, 2, 3) }));
   const bundle = buildMemoExportBundle({ markdownPath: "比較.md", markdownContent: body, attachments });
@@ -103,8 +103,8 @@ test("Markdown ZIPと完全バックアップv4を画像・Figure・Source/Citat
   assert.deepEqual(extractCitations(imported.body), ["source-1"]);
   const markdown = serializeLocalNote({ id: "comparison-note", title: "比較" }, body, attachments.map((item) => ({ ...item, mimeType: "image/png" })));
   const manifest = buildManifest({ appVersion: "0.5.0", savedAt: "2026-10-02T00:00:00Z" });
-  assert.equal(manifest.version, 4);
-  assert.equal(BACKUP_VERSION, 4);
+  assert.equal(manifest.version, 5);
+  assert.equal(BACKUP_VERSION, 5);
   const files = buildPortableBackupFiles({ manifest, notePlans: [{ fileName: "comparison.md", markdown }], assetPlans: attachments.map((item) => ({ ...item, data: item.blob })), normalizeTagDefinitions });
   counter = 0;
   const restored = parsePortableBackup(files.map((file) => entry(file.name, file.content)), { parseNote: parseLocalNote, normalizeTagDefinitions, idFactory: () => `restored-${++counter}` });
@@ -116,7 +116,7 @@ test("Markdown ZIPと完全バックアップv4を画像・Figure・Source/Citat
   assert.deepEqual(extractCitations(restored.notes[0].note.body), ["source-1"]);
 });
 
-for (const version of [1, 2, 3, 4]) test(`完全バックアップv${version}を読み込んでも旧本文・Figure・Sourceに比較情報を追加しない`, () => {
+for (const version of [1, 2, 3, 4, 5]) test(`完全バックアップv${version}を読み込んでも旧本文・Figure・Sourceに比較情報を追加しない`, () => {
   const body = withSources(`引用 [@source-old]\n${serializeImageBlock([{ id: "old-image", alt: "旧図", figureMetadata: metadata }], "旧説明")}`, [{ id: "source-old", title: "旧出典" }]);
   const manifest = { ...buildManifest({ savedAt: "2026-10-02T00:00:00Z" }), version, formatVersion: version };
   const parsed = parsePortableBackup([
@@ -125,8 +125,8 @@ for (const version of [1, 2, 3, 4]) test(`完全バックアップv${version}を
     entry("assets/old-image.png", Uint8Array.of(1, 2, 3))
   ], { parseNote: parseLocalNote, normalizeTagDefinitions, idFactory: () => "old-image" });
   assert.equal(parsed.sourceVersion, version);
-  assert.equal(parsed.manifest.version, 4);
-  assert.equal(parsed.manifest.formatVersion, 4);
+  assert.equal(parsed.manifest.version, 5);
+  assert.equal(parsed.manifest.formatVersion, 5);
   assert.equal(parsed.notes[0].note.body, body);
   assert.equal(blockOf(parsed.notes[0].note.body).displayMode, "normal");
   assert.deepEqual(blockOf(parsed.notes[0].note.body).images[0].figureMetadata, metadata);
