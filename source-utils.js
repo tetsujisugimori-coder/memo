@@ -1,6 +1,8 @@
 (function initSourceUtils(globalScope) {
   "use strict";
 
+  const timelineUtils = typeof module !== "undefined" && module.exports
+    ? require("./timeline-block-utils.js") : globalScope.MemoNexusTimelineBlockUtils;
   const FIELDS = ["title", "author", "publisher", "date", "url", "accessedAt", "page", "sourceType"];
   const SOURCE_TYPES = Object.freeze({ primary: "一次資料", secondary: "二次資料", "report-created": "本レポート作成図" });
   const MARKER = /^<!-- memo-nexus:sources-v1:([0-9a-f]+) -->$/i;
@@ -113,8 +115,8 @@
     } catch (_) { return ""; }
   }
 
-  function extractCitations(body) {
-    const text = parseSourceDocument(body).body.replace(/\r\n?/g, "\n");
+  function extractTextCitations(body) {
+    const text = String(body || "").replace(/\r\n?/g, "\n");
     const ids = [];
     let inFence = false;
     for (const line of text.split("\n")) {
@@ -129,6 +131,13 @@
       for (const match of plain.matchAll(CITATION)) ids.push(match[1]);
     }
     return ids;
+  }
+
+  function extractCitations(body) {
+    return timelineUtils.splitTimelineBlocks(parseSourceDocument(body).body).flatMap((segment) => {
+      if (segment.type === "text") return extractTextCitations(segment.text);
+      return segment.timeline.items.flatMap((item) => [...extractTextCitations(item.body), ...item.citationIds]);
+    });
   }
 
   function referencedSources(body, values) {

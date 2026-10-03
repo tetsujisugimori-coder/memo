@@ -633,10 +633,10 @@ test("最後に書いたハッシュと異なる外部変更を自動上書き�
 test("管理対象Markdownはsync-stateのnote IDとfileNameで特定する", () => {
   assert.match(html, /local-save-state\.js\?v=0\.5\.0-5/);
   assert.match(html, /local-save-queue\.js\?v=0\.5\.0-3/);
-  assert.match(html, /attachment-utils\.js\?v=0\.5\.0-14/);
+  assert.match(html, /attachment-utils\.js\?v=0\.5\.0-16/);
   assert.match(html, /local-sync-utils\.js\?v=0\.5\.0-12/);
   assert.match(html, /backup-bundle-utils\.js\?v=0\.5\.0-8/);
-  assert.match(html, /app\.js\?v=0\.5\.0-192/);
+  assert.match(html, /app\.js\?v=0\.5\.0-195/);
   const syncState = {
     notes: {
       "note-1": { fileName: "題名--note-1.md", hash: "last" },
