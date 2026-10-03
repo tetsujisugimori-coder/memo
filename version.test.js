@@ -38,8 +38,8 @@ test("全ローカルCSS・JavaScriptを0.5.0のキャッシュ識別子で読�
   assert.match(html, /term-link-utils\.js\?v=0\.5\.0-6/);
   assert.match(html, /memo-link-utils\.js\?v=0\.5\.0-3/);
   assert.match(html, /style\.css\?v=0\.5\.0-117/);
-  assert.match(html, /<script src="source-utils\.js\?v=0\.5\.0-5"><\/script>/);
-  assert.ok(html.indexOf('src="source-utils.js?v=0.5.0-5"') < html.indexOf('src="app.js?v=0.5.0-197"'));
+  assert.match(html, /<script src="source-utils\.js\?v=0\.5\.0-6"><\/script>/);
+  assert.ok(html.indexOf('src="source-utils.js?v=0.5.0-6"') < html.indexOf('src="app.js?v=0.5.0-197"'));
   assert.match(html, /chart-png-export\.js\?v=0\.5\.0-4/);
   assert.ok(html.indexOf("chart-png-export.js?") < html.indexOf("app.js?"));
   assert.match(html, /chart-block-utils\.js\?v=0\.5\.0-29/);

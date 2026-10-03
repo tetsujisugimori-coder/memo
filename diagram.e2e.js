@@ -145,6 +145,14 @@ async function layout(page) {
       await page.locator("#closeSourceDialogBtn").click();
       await idle(page);
     }
+    await page.locator("#manageSourcesBtn").click();
+    await page.locator('#sourceForm [name="title"]').fill("  　 ");
+    await page.locator('#sourceForm [name="author"]').fill("検証著者（タイトルは空白のみ）");
+    await page.locator('#sourceForm button[type="submit"]').first().click();
+    sourceLabels = await page.locator(".source-list-item > span").allInnerTexts();
+    assert.equal(sourceLabels[5], "検証著者（タイトルは空白のみ）");
+    await page.locator("#closeSourceDialogBtn").click();
+    await idle(page);
     await page.locator("#editor").press("End");
     await page.locator("#insertGeometryBtn").click();
     const drawing=page.locator(".geometry-block-editor");
@@ -173,6 +181,9 @@ async function layout(page) {
     assert.equal(sourceLabels[2], "検証著者（タイトル空）");
     assert.equal(sourceLabels[3], "https://example.org/source-label-test");
     assert.equal(sourceLabels[4], legacy.sources[4].id);
+    assert.equal(sourceLabels[5], "検証著者（タイトルは空白のみ）");
+    assert.equal(legacy.sources[5].title, "  　 ", "表示fallbackでも保存した空白titleを保持する");
+    assert.equal(legacy.sources[5].author, "検証著者（タイトルは空白のみ）");
     await page.locator('#diagramForm button[type="submit"]').click();
     await page.locator("#diagramDialog").waitFor({state:"hidden"});
     assert.deepEqual(await persistenceState(page), noOpBefore, "empty save creates no draft, revision, timestamp, save reservation or history");

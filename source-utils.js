@@ -18,7 +18,7 @@
   }
 
   function sourceDisplayLabel(source) {
-    return source.title || source.author || source.url || source.id;
+    return [source.title, source.author, source.url].find((value) => typeof value === "string" && value.trim()) || source.id;
   }
 
   function normalizeSources(values) {

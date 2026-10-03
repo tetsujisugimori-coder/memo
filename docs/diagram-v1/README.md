@@ -9,7 +9,7 @@ Visual Markdown Report v1 第6段階。既存Geometryを説明・作成図表示
 3. 既存キャプション（短い説明）、補足説明（読み方・前提・省略・模式化）、任意の「本レポート作成図」、既存Sourceの複数選択を編集する。
 4. 「図版情報を保存」で確定する。「キャンセル」・×・Escは本文、revision、updatedAt、保存予約、Undo/Redo履歴を変更しない。
 
-Sourceは既存「出典」で登録・編集する。表示ラベルは共通sourceDisplayLabelを使い、title → author → url → idの順に選ぶ。出典一覧・Timeline・Diagramの3箇所で同じhelperを使い、未登録Sourceは従来どおり「未登録Source: ID」と表示する。図版情報には書誌情報をコピーしない。作成図表示は明示的な選択時だけ表示し、権利保有や資料の正確性を証明しない。
+Sourceは既存「出典」で登録・編集する。表示ラベルは共通sourceDisplayLabelを使い、title → author → url → idの順に選ぶ。title / author / urlはtrim()で空白のみ（改行・タブ・全角スペースを含む）を値なしと判定し、有効な候補の元の文字列を表示する。保存値のtrim・書換え・migrationは行わない。出典一覧・Timeline・Diagramの3箇所で同じhelperを使い、未登録Sourceは従来どおり「未登録Source: ID」と表示する。図版情報には書誌情報をコピーしない。作成図表示は明示的な選択時だけ表示し、権利保有や資料の正確性を証明しない。
 
 図 → caption → 補足 → 作成図表示 → 選択引用の順に表示する。空欄や空の見出しは表示しない。補足は既存Timeline本文描画を再利用し、MarkdownとCitationを扱う。補足のチェックリストは表示専用。captionは従来のテキスト表示を維持する。SVGの読み上げ説明にはcaptionと補足を使う。
 
@@ -73,7 +73,7 @@ Geometry編集欄は実editor本文を解析した出現順で構築し、同じ
 ## 検証とレビュー画像
 
 - 単体: 全1,735件成功。Diagramの25件とSourceラベル追加テストを含む。diagram.test.jsは正規化、直列化、再読込、旧新混在、空欄、日本語・特殊文字・長文、不正／未知／コード、共有Source、作図・複製・履歴保持、同一ID/rawの対象安全、実旧parser、ローカルMarkdown、両ZIP経路を確認する。
-- 追加検証: 空v1の保存、captionだけのv1維持、補足／作成図／Source単独のv2化、すべて削除したv2→v1、一部情報を残したv2維持、空白の補足、元のマーカー表記を保持する無変更保存、Sourceラベルfallback、CI画像clear・実行・upload順序とdocs除外を単体・実ブラウザ／静的構造で確認。
+- 追加検証: 空v1の保存、captionだけのv1維持、補足／作成図／Source単独のv2化、すべて削除したv2→v1、一部情報を残したv2維持、空白の補足、元のマーカー表記を保持する無変更保存、Sourceラベルfallback（半角／全角空白・改行・タブを無視する判定、保存値不変、空白titleと有効authorの実UI作成）、CI画像clear・実行・upload順序とdocs除外を単体・実ブラウザ／静的構造で確認。
 - Chromium実ブラウザ: npm run test:e2e 全体成功（Figure → Comparison → Report Preview → Citation Source → Timeline → Diagram）。Diagramは作図、図版情報の保存／キャンセル、図の再編集、図形内・本文のUndo/Redo、reload、同一ID/rawの独立編集・削除、Source削除保護・編集反映、本文／Timeline／補足／選択引用の共通番号、未登録ID保持、本文が更新されたダイアログの上書き拒否を確認。
 - 実ダウンロード: 添付なしのローカルMarkdown、添付付きMarkdown ZIP、完全バックアップZIPを既存UIから書出し、両ZIPを新しいブラウザコンテキストへ取り込み、図形・図版情報・Sourceとreload後の保持を確認。
 - 通常PreviewとReport PreviewのPC／320pxで横overflowなし、SVG CTMの縦横倍率一致、Reportの編集UI非表示と本文・revision・updatedAt・履歴不変を確認。
