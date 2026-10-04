@@ -8,6 +8,11 @@
   const MARKER = /^<!-- memo-nexus:sources-v1:([0-9a-f]+) -->$/i;
   const CITATION = /\[@([A-Za-z0-9_-]{1,128})\]/g;
 
+  function normalizeCitationIds(value) {
+    return [...new Set((Array.isArray(value) ? value : [])
+      .filter((id) => typeof id === "string" && /^[A-Za-z0-9_-]{1,128}$/.test(id)))];
+  }
+
   function normalizeSource(value) {
     if (!value || typeof value !== "object" || Array.isArray(value)
         || typeof value.id !== "string" || !/^[A-Za-z0-9_-]{1,128}$/.test(value.id)) return null;
@@ -54,11 +59,17 @@
     if (!text.includes("<!-- memo-nexus:sources-v1:")) return { body: text, sources: [], removedStart: null, removedEnd: null };
     // Keep the final valid record even if the user writes more Markdown below it.
     let candidate = null;
+    let fence = null;
     let offset = 0;
     for (const line of text.match(/[^\n]*(?:\n|$)/g) || []) {
       if (!line) continue;
       const content = line.replace(/\r?\n$/, "");
-      const sources = parseSourceMarker(content);
+      const delimiter = content.match(/^[ \t]*([\x60]{3,}|~{3,})/);
+      if (delimiter) {
+        if (!fence) fence = delimiter[1];
+        else if (delimiter[1][0] === fence[0] && delimiter[1].length >= fence.length && !content.slice(delimiter[0].length).trim()) fence = null;
+      }
+      const sources = fence || delimiter ? null : parseSourceMarker(content);
       if (sources !== null) candidate = { start: offset, end: offset + line.length, sources, hasLineBreak: line !== content };
       offset += line.length;
     }
@@ -122,9 +133,14 @@
   function extractTextCitations(body) {
     const text = String(body || "").replace(/\r\n?/g, "\n");
     const ids = [];
-    let inFence = false;
+    let inFence = null;
     for (const line of text.split("\n")) {
-      if (/^```\s*[^`]*$/.test(line)) { inFence = !inFence; continue; }
+      const delimiter = line.match(/^[ \t]*([\x60]{3,}|~{3,})/);
+      if (delimiter) {
+        if (!inFence) inFence = delimiter[1];
+        else if (delimiter[1][0] === inFence[0] && delimiter[1].length >= inFence.length && !line.slice(delimiter[0].length).trim()) inFence = null;
+        continue;
+      }
       if (inFence) continue;
       let plain = "";
       let inCode = false;
@@ -137,19 +153,31 @@
     return ids;
   }
 
-  function extractGeometryCitations(body) {
-    const geometryUtils = typeof module !== "undefined" && module.exports
-      ? require("./geometry-block-utils.js") : globalScope.MemoNexusGeometryBlockUtils;
-    return geometryUtils.splitGeometryBlocks(body).flatMap((segment) => segment.type === "text"
-      ? extractTextCitations(segment.text)
-      : [...extractTextCitations(segment.geometry.diagram?.description), ...(segment.geometry.diagram?.citationIds || [])]);
-  }
-
+  // Match Preview's nesting and visible order. Figure captions/legacy metadata and
+  // Table cells/Chart labels are plain data, never implicit Citation syntax.
   function extractCitations(body) {
-    return timelineUtils.splitTimelineBlocks(parseSourceDocument(body).body).flatMap((segment) => {
-      if (segment.type === "text") return extractGeometryCitations(segment.text);
-      return segment.timeline.items.flatMap((item) => [...extractTextCitations(item.body), ...item.citationIds]);
+    const load = (name, globalName) => typeof module !== "undefined" && module.exports
+      ? require("./" + name + ".js") : globalScope[globalName];
+    const images = load("attachment-utils", "MemoNexusAttachmentUtils");
+    const geometry = load("geometry-block-utils", "MemoNexusGeometryBlockUtils");
+    const charts = load("chart-block-utils", "MemoNexusChartBlockUtils");
+    const tables = load("table-block-utils", "MemoNexusTableBlockUtils");
+    const content = parseSourceDocument(body).body;
+    const figures = new Map();
+    images.splitImageBlocks(content).filter((block) => block.type === "image" && block.figureId).forEach((block) => {
+      figures.set(block.figureId, figures.has(block.figureId) ? null : block);
     });
+    const imageIds = (block) => block.images.flatMap((image) => normalizeCitationIds(image.figureMetadata?.citationIds));
+    const textIds = (text) => images.splitImageBlocks(text).flatMap((image) => image.type === "image" ? imageIds(image)
+      : geometry.splitGeometryBlocks(image.text).flatMap((diagram) => diagram.type === "geometry"
+        ? [...extractTextCitations(diagram.geometry.diagram?.description), ...(diagram.geometry.diagram?.citationIds || [])]
+        : charts.splitChartBlocks(diagram.text).flatMap((chart) => chart.type === "chart"
+          ? normalizeCitationIds(chart.chart.citationIds)
+          : tables.splitTableBlocks(chart.text).flatMap((table) => table.type === "table"
+            ? normalizeCitationIds(table.table.citationIds) : extractTextCitations(table.text)))));
+    return timelineUtils.splitTimelineBlocks(content).flatMap((segment) => segment.type === "text" ? textIds(segment.text)
+      : segment.timeline.items.flatMap((item) => [...extractTextCitations(item.body),
+        ...(figures.get(item.figureId) ? imageIds(figures.get(item.figureId)) : []), ...item.citationIds]));
   }
 
   function referencedSources(body, values) {
@@ -162,7 +190,7 @@
     });
   }
 
-  const api = { SOURCE_TYPES, sourceDisplayLabel, normalizeSource, normalizeSources, serializeSources, parseSourceMarker,
+  const api = { normalizeCitationIds, SOURCE_TYPES, sourceDisplayLabel, normalizeSource, normalizeSources, serializeSources, parseSourceMarker,
     parseSourceDocument, sourceSelectionFromRaw, insertSourceCitation, withSources, safeSourceUrl, extractCitations, referencedSources };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   if (globalScope) globalScope.MemoNexusSourceUtils = api;

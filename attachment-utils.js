@@ -187,7 +187,7 @@
     const normalizedImages = (Array.isArray(images) ? images : [])
       .filter((image) => image && image.id)
       .slice(0, 2)
-      .map((image) => ({ id: String(image.id), fileName: image.alt || image.fileName || "画像", figureMetadata: image.figureMetadata, comparisonLabel: image.comparisonLabel }));
+      .map((image) => ({ id: String(image.id), fileName: image.alt || image.fileName || "画像", figureMetadata: image.figureMetadata, figureMetadataRaw: image.figureMetadataRaw, comparisonLabel: image.comparisonLabel }));
     if (!normalizedImages.length) return "";
     const normalizedAlignment = normalizeImageBlockAlignment(alignment);
     const lines = [IMAGE_BLOCK_START];
@@ -196,7 +196,7 @@
     if (normalizedAlignment !== "center") lines.push(`<!-- memo-nexus:image-align:${normalizedAlignment} -->`);
     normalizedImages.forEach((image) => {
       lines.push(attachmentMarkdownReference(image));
-      const marker = serializeFigureMetadata(image.figureMetadata);
+      const marker = image.figureMetadataRaw || serializeFigureMetadata(image.figureMetadata);
       if (marker) lines.push(marker);
       const labelMarker = serializeImageComparisonLabel(image.comparisonLabel);
       if (labelMarker) lines.push(labelMarker);
@@ -219,7 +219,7 @@
     const segments = [];
     let textStart = 0;
     let index = 0;
-    let inCodeFence = false;
+    let inCodeFence = null;
 
     const pushText = (end) => {
       if (end > textStart) segments.push({ type: "text", text: source.slice(textStart, end), start: textStart, end });
@@ -244,8 +244,10 @@
     };
 
     while (index < lines.length) {
-      if (/^```/.test(lines[index].trim())) {
-        inCodeFence = !inCodeFence;
+      const delimiter = lines[index].match(/^[ \t]*([\x60]{3,}|~{3,})/);
+      if (delimiter) {
+        if (!inCodeFence) inCodeFence = delimiter[1];
+        else if (delimiter[1][0] === inCodeFence[0] && delimiter[1].length >= inCodeFence.length && !lines[index].slice(delimiter[0].length).trim()) inCodeFence = null;
         index += 1;
         continue;
       }
@@ -277,8 +279,15 @@
               if (label !== null && images.length) images[images.length - 1].comparisonLabel = label;
               return;
             }
+            // Keep opaque future/broken metadata with its image; swaps and removal
+            // must not turn unsupported information into a different image's data.
+            if (/^<!-- memo-nexus:figure-metadata:/.test(line.trim()) && !parseFigureMetadata(line)) {
+              if (images.length && !images[images.length - 1].figureMetadataRaw && !images[images.length - 1].figureMetadata) images[images.length - 1].figureMetadataRaw = line;
+              else valid = false;
+              return;
+            }
             const metadata = parseFigureMetadata(line);
-            if (metadata && images.length && !images[images.length - 1].figureMetadata) {
+            if (metadata && images.length && !images[images.length - 1].figureMetadata && !images[images.length - 1].figureMetadataRaw) {
               images[images.length - 1].figureMetadata = metadata;
             } else valid = false;
           });

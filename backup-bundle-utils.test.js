@@ -25,9 +25,9 @@ function manifest(overrides = {}) {
 test("タグバックアップ関連スクリプトのキャッシュ番号を更新する", () => {
   const html = fs.readFileSync("index.html", "utf8");
   assert.match(html, /tags\.js\?v=0\.5\.0-4/);
-  assert.match(html, /local-sync-utils\.js\?v=0\.5\.0-13/);
-  assert.match(html, /backup-bundle-utils\.js\?v=0\.5\.0-9/);
-  assert.match(html, /app\.js\?v=0\.5\.0-197/);
+  assert.match(html, /local-sync-utils\.js\?v=0\.5\.0-14/);
+  assert.match(html, /backup-bundle-utils\.js\?v=0\.5\.0-10/);
+  assert.match(html, /app\.js\?v=0\.5\.0-198/);
 });
 
 test("完全バックアップはメモ個別のWebフォントIDをそのまま往復する", () => {
@@ -189,8 +189,8 @@ test("v5バックアップはローカル保存と共通の論理構造を出力
   assert.deepEqual(JSON.parse(files[2].content), [{ id: "unused", name: "未使用", createdAt: "2026-08-01T00:00:00.000Z", updatedAt: "2026-08-02T00:00:00.000Z", color: tagColorFromId("unused") }]);
   assert.match(files[0].content, new RegExp(`"format": "${BACKUP_FORMAT}"`));
   assert.match(files[0].content, new RegExp(`"version": ${BACKUP_VERSION}`));
-  assert.equal(BACKUP_VERSION, 5);
-  assert.equal(JSON.parse(files[0].content).formatVersion, 5);
+  assert.equal(BACKUP_VERSION, 6);
+  assert.equal(JSON.parse(files[0].content).formatVersion, 6);
   assert.match(markdown, /tags: \["work","資料"\]/);
   assert.match(markdown, /attachments: \[\{"id":"asset-1"/);
 });
@@ -265,8 +265,8 @@ test("tags.jsonがないv1バックアップはメモタグから定義を冪等
   const second = mergeTagDefinitionsFromNotes(first, parsed.notes.map((plan) => plan.note), "2026-08-17T00:00:00.000Z");
   assert.equal(parsed.tagsFilePresent, false);
   assert.equal(parsed.sourceVersion, 1);
-  assert.equal(parsed.manifest.version, 5);
-  assert.equal(parsed.manifest.formatVersion, 5);
+  assert.equal(parsed.manifest.version, 6);
+  assert.equal(parsed.manifest.formatVersion, 6);
   assert.deepEqual(first, second);
   assert.deepEqual(first.map((tag) => [tag.id, tag.name]), [["ai", "ai"], ["資料", "資料"]]);
 });
@@ -288,8 +288,8 @@ test("v2バックアップは本文・コレクション・タグ・添付を保
     entry("assets/old-image.png", bytes)
   ], { parseNote: parseLocalNote, normalizeTagDefinitions, idFactory: () => "new-image" });
   assert.equal(parsed.sourceVersion, 2);
-  assert.equal(parsed.manifest.version, 5);
-  assert.equal(parsed.manifest.formatVersion, 5);
+  assert.equal(parsed.manifest.version, 6);
+  assert.equal(parsed.manifest.formatVersion, 6);
   assert.deepEqual(parsed.collections, [collection]);
   assert.deepEqual(parsed.tags, [tag]);
   assert.equal(parsed.notes[0].note.collectionId, "archive");
@@ -309,12 +309,12 @@ test("v3バックアップのmanifestは本文を変更せずv5へ移行する",
     entry("tags.json", "[]")
   ], { parseNote: parseLocalNote, normalizeTagDefinitions });
   assert.equal(parsed.sourceVersion, 3);
-  assert.equal(parsed.manifest.version, 5);
-  assert.equal(parsed.manifest.formatVersion, 5);
+  assert.equal(parsed.manifest.version, 6);
+  assert.equal(parsed.manifest.formatVersion, 6);
 });
 
 test("v6以上のバックアップは新しい形式として拒否する", () => {
-  for (const version of [6, 7]) {
+  for (const version of [7, 8]) {
     assert.throws(() => parsePortableBackup([
       entry("manifest.json", JSON.stringify(manifest({ version })))
     ], { parseNote: parseLocalNote }), {

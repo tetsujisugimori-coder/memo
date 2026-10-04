@@ -113,12 +113,12 @@ test("Markdown ZIPで添付IDが変わってもTimelineから同じFigureとSour
 });
 for (const version of [1, 2, 3, 4, 5]) test("完全バックアップv" + version + "の復元でTimeline・Figure・引用を保持する", () => {
   const manifest = { ...buildManifest({ appVersion: "0.5.0", savedAt: "2026-10-02T00:00:00Z" }), version, formatVersion: version };
-  const files = buildPortableBackupFiles({ manifest: { ...manifest, version: 5, formatVersion: 5 },
+  const files = buildPortableBackupFiles({ manifest: { ...manifest, version: 6, formatVersion: 6 },
     notePlans: [{ fileName: "timeline.md", markdown: serializeLocalNote({ id: "note-a", title: "年表" }, body, [{ id: "asset-a", kind: "image", fileName: "asset.png", mimeType: "image/png" }]) }],
     assetPlans: [{ id: "asset-a", fileName: "asset.png", data: Uint8Array.of(1, 2, 3) }], normalizeTagDefinitions });
   files.find((file) => file.name === "manifest.json").content = JSON.stringify(manifest);
   const parsed = parsePortableBackup(files.map((file) => entry(file.name, file.content)), { parseNote: parseLocalNote, normalizeTagDefinitions, idFactory: () => "restored-asset" });
-  assert.equal(BACKUP_VERSION, 5);
+  assert.equal(BACKUP_VERSION, 6);
   assert.equal(parsed.sourceVersion, version);
   assert.deepEqual(timelineOf(parsed.notes[0].note.body), timeline);
   assert.equal(imageOf(parsed.notes[0].note.body).figureId, "figure-a");

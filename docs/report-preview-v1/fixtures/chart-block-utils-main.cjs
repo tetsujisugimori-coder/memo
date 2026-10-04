@@ -105,11 +105,11 @@
   }
 
   // Caller supplies IDs through the same UUID route as new charts and TSV imports.
-  // The table is normalized by its owner; only the Source IDs at creation are inherited; there is no later synchronization.
+  // The table is normalized by its owner; no table metadata enters the chart.
   function tableToChartDraft(table, id, newIds) {
     const parsed = parseChartTableRows(table.rows);
     if (!parsed.ok) return parsed;
-    return { ok: true, chart: replaceChartTable({ ...createChartBlock(id), ...(table.citationIds?.length ? { citationIds: [...table.citationIds] } : {}) }, parsed.table, newIds) };
+    return { ok: true, chart: replaceChartTable(createChartBlock(id), parsed.table, newIds) };
   }
 
   function chartValidationError(chart) {
@@ -255,8 +255,6 @@
       id,
       schemaVersion: Number.isInteger(source.schemaVersion) && source.schemaVersion > 0 ? source.schemaVersion : CHART_BLOCK_VERSION,
       chartType: ["bar", "pie", "line", "combo"].includes(source.chartType) ? source.chartType : "bar",
-      ...(Object.hasOwn(source, "citationIds") ? { citationIds: (typeof module !== "undefined" && module.exports
-        ? require("./source-utils.js") : globalScope.MemoNexusSourceUtils).normalizeCitationIds(source.citationIds) } : {}),
       title: normalizedText(source.title).trim(),
       unit: normalizedText(source.unit).trim(),
       items,
@@ -880,17 +878,12 @@
     lines.forEach((line, index) => { offsets.push(offset); offset += line.length + (index < lines.length - 1 ? 1 : 0); });
     const segments = [];
     let textStart = 0;
-    let inCodeFence = null;
+    let inCodeFence = false;
     let inImageBlock = false;
     const pushText = (end) => { if (end > textStart) segments.push({ type: "text", text: source.slice(textStart, end), start: textStart, end }); };
     lines.forEach((line, index) => {
       const trimmed = line.trim();
-      const delimiter = line.match(/^[ \t]*([\x60]{3,}|~{3,})/);
-      if (delimiter) {
-        if (!inCodeFence) inCodeFence = delimiter[1];
-        else if (delimiter[1][0] === inCodeFence[0] && delimiter[1].length >= inCodeFence.length && !line.slice(delimiter[0].length).trim()) inCodeFence = null;
-        return;
-      }
+      if (/^```/.test(trimmed)) { inCodeFence = !inCodeFence; return; }
       if (inCodeFence) return;
       if (trimmed === IMAGE_BLOCK_START) { inImageBlock = true; return; }
       if (trimmed === IMAGE_BLOCK_END) { inImageBlock = false; return; }

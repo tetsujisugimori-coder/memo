@@ -397,8 +397,6 @@
       ...source,
       type: "table",
       id: normalizedCell(source.id).trim() || normalizedCell(fallbackId).trim() || "table",
-      ...(Object.hasOwn(source, "citationIds") ? { citationIds: (typeof module !== "undefined" && module.exports
-        ? require("./source-utils.js") : globalScope.MemoNexusSourceUtils).normalizeCitationIds(source.citationIds) } : {}),
       caption: normalizedCell(source.caption),
       note: normalizedCell(source.note),
       hasHeader: source.hasHeader !== false,
@@ -452,7 +450,7 @@
     });
     const segments = [];
     let textStart = 0;
-    let inCodeFence = null;
+    let inCodeFence = false;
     let inImageBlock = false;
 
     const pushText = (end) => {
@@ -461,10 +459,8 @@
 
     lines.forEach((line, index) => {
       const trimmed = line.trim();
-      const delimiter = line.match(/^[ \t]*([\x60]{3,}|~{3,})/);
-      if (delimiter) {
-        if (!inCodeFence) inCodeFence = delimiter[1];
-        else if (delimiter[1][0] === inCodeFence[0] && delimiter[1].length >= inCodeFence.length && !line.slice(delimiter[0].length).trim()) inCodeFence = null;
+      if (/^```/.test(trimmed)) {
+        inCodeFence = !inCodeFence;
         return;
       }
       if (inCodeFence) return;

@@ -37,12 +37,12 @@ test("全ローカルCSS・JavaScriptを0.5.0のキャッシュ識別子で読�
   assert.match(html, /draft-mirror-scheduler\.js\?v=0\.5\.0-2/);
   assert.match(html, /term-link-utils\.js\?v=0\.5\.0-6/);
   assert.match(html, /memo-link-utils\.js\?v=0\.5\.0-3/);
-  assert.match(html, /style\.css\?v=0\.5\.0-117/);
-  assert.match(html, /<script src="source-utils\.js\?v=0\.5\.0-6"><\/script>/);
-  assert.ok(html.indexOf('src="source-utils.js?v=0.5.0-6"') < html.indexOf('src="app.js?v=0.5.0-197"'));
+  assert.match(html, /style\.css\?v=0\.5\.0-118/);
+  assert.match(html, /<script src="source-utils\.js\?v=0\.5\.0-7"><\/script>/);
+  assert.ok(html.indexOf('src="source-utils.js?v=0.5.0-7"') < html.indexOf('src="app.js?v=0.5.0-198"'));
   assert.match(html, /chart-png-export\.js\?v=0\.5\.0-4/);
   assert.ok(html.indexOf("chart-png-export.js?") < html.indexOf("app.js?"));
-  assert.match(html, /chart-block-utils\.js\?v=0\.5\.0-29/);
+  assert.match(html, /chart-block-utils\.js\?v=0\.5\.0-30/);
   assert.match(html, /logo-animation-utils\.js\?v=0\.5\.0-8/);
   assert.match(html, /editor-caret-animation-utils\.js\?v=0\.5\.0-2/);
   assert.match(html, /layout-resize-utils\.js\?v=0\.5\.0-2/);
@@ -55,12 +55,12 @@ test("全ローカルCSS・JavaScriptを0.5.0のキャッシュ識別子で読�
   assert.match(html, /extensions\/web-clipper\/transfer-lifecycle\.js\?v=0\.5\.0-2/);
   assert.match(html, /web-clipper-config\.js\?v=0\.5\.0-4/);
   assert.match(html, /table-file-export-utils\.js\?v=0\.5\.0-4/);
-  assert.match(html, /app\.js\?v=0\.5\.0-197/);
+  assert.match(html, /app\.js\?v=0\.5\.0-198/);
 });
 
 test("本体リリースと各形式のバージョンを確認する", () => {
   assert.match(app, /const DB_VERSION = 6;/);
-  assert.match(backup, /const BACKUP_VERSION = 5;/);
+  assert.match(backup, /const BACKUP_VERSION = 6;/);
   assert.match(tableBlocks, /const TABLE_BLOCK_VERSION = 1;/);
   assert.match(chartBlocks, /const CHART_BLOCK_VERSION = 1;/);
   assert.match(codexRuntime, /clientInfo: \{ name: "memo-nexus-codex-chat", version: "0\.1\.1" \}/);
