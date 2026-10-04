@@ -6350,7 +6350,7 @@ async function saveEditedTagColor() {
 
 // メモ一覧カードに出す短い本文プレビューを作ります。
 function snippet(body) {
-  const blockText = tableBlockPlainText(body);
+  const blockText = tableBlockPlainText(parseSourceDocument(body).body);
   const text = stripLinkMarkupForText(typeof chartBlockPlainText === "function" ? chartBlockPlainText(blockText) : blockText).replace(/#/g, "").trim();
   return text || "空のカード";
 }

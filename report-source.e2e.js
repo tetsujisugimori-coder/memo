@@ -164,6 +164,12 @@ async function verifyFenceSources(page,open) {
     const ids=fixture.sources.map(s=>s.id);
     const body=await page.evaluate(f=>withSources(f.content,f.sources),fixture);
     await fillBody(page,body);
+    const beforeList=await state(page);
+    const card=page.locator(".memo-item.active .memo-snippet");
+    assert.match(await card.innerText(),/^検証データです。実在資料ではありません。本文/);
+    assert.doesNotMatch(await card.innerText(),/<!-- memo-nexus:sources-/);
+    await page.evaluate(()=>renderList());
+    assert.deepEqual(await state(page),beforeList,"list display does not change body, Sources, revision or history");
     // Each Figure/Comparison image and each block has save, empty, cancel and one-step history.
     for(const [kind,index,imageIndex] of [['figure',0,0],['figure',1,0],['figure',1,1],['table',0,0],['chart',0,0]]){
       const before=await state(page);
