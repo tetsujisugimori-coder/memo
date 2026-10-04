@@ -3,6 +3,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const http = require("node:http");
 const path = require("node:path");
+const os = require("node:os");
 const playwright = require("playwright");
 const engine = process.env.MEMO_NEXUS_E2E_BROWSER || "chromium";
 const canonical = '#preview .image-block:not([data-image-block-index^="timeline-"])';
@@ -55,10 +56,19 @@ async function layout(page) {
     fs.readFile(file,(e,data)=>{if(e)return res.writeHead(404).end();res.writeHead(200,{'Content-Type':file.endsWith('.html')?'text/html; charset=utf-8':file.endsWith('.css')?'text/css':'application/javascript'});res.end(data);});
   });
   await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));let browser;
+  const contexts=[],profiles=[];
   try{
-    browser=await playwright[engine].launch({headless:true});const origin='http://127.0.0.1:'+server.address().port;
+    if(engine!=='webkit')browser=await playwright[engine].launch({headless:true});const origin='http://127.0.0.1:'+server.address().port;
     const errors=[];
-    const open=async()=>{const p=await browser.newPage({viewport:{width:1280,height:900}});p.on('pageerror',e=>errors.push(e.message));p.on('console',msg=>{if(msg.type()==='error' && /attachment|添付/i.test(msg.text())) console.error('Browser console:',msg.text());});await p.goto(origin,{waitUntil:'domcontentloaded'});await p.locator('#appStartupGuard').waitFor({state:'hidden'});return p;};
+    const open=async()=>{
+      let p;
+      if(engine==='webkit'){
+        // WebKit ephemeral contexts fail IndexedDB Blob writes even on baseline main.
+        // Every import gets a fresh ordinary profile; the application storage is untouched.
+        const profile=fs.mkdtempSync(path.join(os.tmpdir(),'memo-source-webkit-'));profiles.push(profile);
+        const context=await playwright.webkit.launchPersistentContext(profile,{headless:true,viewport:{width:1280,height:900}});contexts.push(context);p=await context.newPage();
+      }else p=await browser.newPage({viewport:{width:1280,height:900}});
+      p.on('pageerror',e=>errors.push(e.message));p.on('console',msg=>{if(msg.type()==='error' && /attachment|添付/i.test(msg.text())) console.error('Browser console:',msg.text());});await p.goto(origin,{waitUntil:'domcontentloaded'});await p.locator('#appStartupGuard').waitFor({state:'hidden'});return p;};
     const page=await open();
     await page.locator('#titleInput').fill('Report Preview v1 検証用混在レポート');
     await page.locator('#editor').fill('以下は実在資料を示さない検証データです。');await saved(page);
@@ -254,5 +264,13 @@ async function layout(page) {
     assert.equal(await page.locator('.source-list-item').count(),2);assert.deepEqual(errors,[]);
     console.log('Report Source E2E passed ('+engine+'): selectors, cancel, history, live sources, duplicates, conversion, mixed rendering, PC/320, real ZIP restore');
     await page.close();
-  }finally{if(browser)await browser.close();await new Promise(resolve=>server.close(resolve));}
+  }finally{
+    for(const context of contexts)await context.close();
+    if(browser)await browser.close();await new Promise(resolve=>server.close(resolve));
+    for(const profile of profiles){
+      const resolved=path.resolve(profile);
+      if(path.dirname(resolved)!==path.resolve(os.tmpdir())||!path.basename(resolved).startsWith('memo-source-webkit-'))throw new Error('Unexpected temporary profile path');
+      fs.rmSync(resolved,{recursive:true,force:true});
+    }
+  }
 })().catch(error=>{console.error(error);process.exitCode=1;});

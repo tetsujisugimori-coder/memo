@@ -45,7 +45,7 @@ fixturesには基準mainのFigure/Table/Chart/backup実装をそのままコピ�
 
 report-source.test.jsは複数/空/重複/未登録/不正ID、旧形式、旧parser、直列化と復元、初出順、一覧の重複排除、削除保護、同一出現編集、コード除外、Table→Chart独立コピーを検証する。report-source.e2e.jsは実UIで選択・解除・取消・Undo/Redo・再読込・複製独立編集・画像入替/削除/再追加・Source編集/削除拒否・番号共有・Timeline Figure・通常/Report Preview・PC/320px・実ZIP書出し/復元を検証する。
 
-新E2Eは既存Table CIのChromium/WebKitジョブへ追加し、重複する新CIジョブは作らない。新規画像は e2e-artifacts/report-source-review/<browser>/ に生成してCI artifactへアップロードする。docsのPNGはローカルChromiumで採取した今回の変更のレビュー用スナップショットで、最新headの検証は同じheadのCI結果を参照する。画像内の資料名・URL・グラフ値・画像はすべて検証データで、実在資料を示さない。Safari/iPhone実機は未確認。ローカルWindows WebKitでは添付BlobのIndexedDB保存がUnknownError（Error preparing Blob/File data to be stored in object store）となり、新しい実操作E2Eを完走できない。変更前mainと作業ブランチの両方で同じ失敗を確認した。Ubuntu WebKitは既存CIで検証し、ローカル失敗を成功扱いしない。
+新E2Eは既存Table CIのChromium/WebKitジョブへ追加し、重複する新CIジョブは作らない。新規画像は e2e-artifacts/report-source-review/<browser>/ に生成してCI artifactへアップロードする。docsのPNGはローカルChromiumで採取した今回の変更のレビュー用スナップショットで、最新headの検証は同じheadのCI結果を参照する。画像内の資料名・URL・グラフ値・画像はすべて検証データで、実在資料を示さない。Safari/iPhone実機は未確認。WebKitの非永続コンテキストでは添付BlobのIndexedDB保存がUnknownError（Error preparing Blob/File data to be stored in object store）となる。Windowsでは変更前mainと作業ブランチの両方で失敗し、それぞれ新規通常プロファイルなら同じ画像の保存に成功することを確認した。Ubuntu CIでも非永続コンテキストの画像追加に失敗したため、新E2EのWebKitはlaunchPersistentContextで新しい一時プロファイルを使用する。ZIP復元ごとに別の空プロファイルを作り、アプリの保存経路を変更・置換せず、終了時に片付ける。非永続コンテキストの添付保存成功やSafari/iPhone実機の動作を確認したとは扱わない。
 
 ![検証用混在レポート PC](sources-report-pc.png)
 ![検証用混在レポート 320px](sources-report-320.png)
