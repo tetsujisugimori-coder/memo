@@ -408,10 +408,9 @@ test("1ブロックの構文エラー後も残りの図を直列描画する", a
 });
 
 test("空行なしと空行ありの連続Mermaidフェンスを4ブロックへ分割する", () => {
-  const splitFencedBlocks = Function(
+  const splitFencedBlocks = Function("scanFencedLines",
     `${functionSource("splitFencedBlocks", "renderTextBlock")}; return splitFencedBlocks;`
-  )();
-  const fenced = diagramSources.map((source) => `\`\`\`mermaid\n${source}\n\`\`\``);
+  )(require("./markdown-fence-utils.js").scanFencedLines);  const fenced = diagramSources.map((source) => `\`\`\`mermaid\n${source}\n\`\`\``);
 
   for (const separator of ["\n", "\n\n"]) {
     const blocks = splitFencedBlocks(fenced.join(separator)).filter((block) => block.type === "code");
@@ -430,5 +429,5 @@ test("プレビュー世代をDOM IDへ渡し、配信時にapp.jsのキャッ�
   assert.match(app, /if \(nextTheme !== previousTheme\) renderPreview\(\)/);
   assert.match(app, /prepareSource: prepareMermaidSource/);
   assert.match(app, /<pre class="mermaid-source" hidden><code>\$\{escapeHtml\(code\)\}<\/code><\/pre>/);
-  assert.match(indexHtml, /<script src="app\.js\?v=0\.5\.0-198"><\/script>/);
+  assert.match(indexHtml, /<script src="app\.js\?v=0\.5\.0-199"><\/script>/);
 });

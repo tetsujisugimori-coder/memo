@@ -17,10 +17,9 @@ function functionSource(name, nextName) {
   return app.slice(start, end);
 }
 
-const splitFencedBlocks = Function(
+const splitFencedBlocks = Function("scanFencedLines",
   `${functionSource("splitFencedBlocks", "splitMathAndCalculationBlocks")}; return splitFencedBlocks;`
-)();
-const splitMathAndCalculationBlocks = Function(
+)(require("./markdown-fence-utils.js").scanFencedLines);const splitMathAndCalculationBlocks = Function(
   `${functionSource("splitMathAndCalculationBlocks", "renderMathBlock")}; return splitMathAndCalculationBlocks;`
 )();
 

@@ -156,8 +156,7 @@ const findDelimitedInlineToken = (text, fromIndex, delimiter, type) => {
   return content.trim() ? { type, start, end: end + delimiter.length, content } : null;
 };
 const findHighlightInlineToken = Function("findDelimitedInlineToken", `${sourceOf("findHighlightInlineToken")} return findHighlightInlineToken;`)(findDelimitedInlineToken);
-const splitFencedBlocks = Function(`${sourceOf("splitFencedBlocks")} return splitFencedBlocks;`)();
-const renderCodeBlock = Function("normalizeHighlightLanguage", "escapeAttr", "escapeHtml", `${sourceOf("renderCodeBlock")} return renderCodeBlock;`)(
+const splitFencedBlocks = Function("scanFencedLines",`${sourceOf("splitFencedBlocks")} return splitFencedBlocks;`)(require("./markdown-fence-utils.js").scanFencedLines);const renderCodeBlock = Function("normalizeHighlightLanguage", "escapeAttr", "escapeHtml", `${sourceOf("renderCodeBlock")} return renderCodeBlock;`)(
   (value) => value,
   (value) => String(value),
   (value) => String(value).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
@@ -769,7 +768,7 @@ test("折りたたみ保存はメモIDとカードIDを固定し、短時間の�
 
 test("Markdown拡張スクリプトとapp.jsは更新済みキャッシュ番号で読み込む", () => {
   assert.match(html, /markdown-enhancements-utils\.js\?v=0\.5\.0-4/);
-  assert.match(html, /app\.js\?v=0\.5\.0-198/);
+  assert.match(html, /app\.js\?v=0\.5\.0-199/);
   assert.doesNotMatch(html, /app\.js\?v=0\.5\.0-40/);
 });
 

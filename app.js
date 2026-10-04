@@ -326,6 +326,7 @@ const {
 } = window.MemoNexusAttachmentUtils;
 const { figureSourceTypeLabel, hasFigureMetadata, normalizeFigureMetadata, safeFigureSourceUrl } = window.MemoNexusFigureMetadataUtils;
 const { normalizeTimeline, serializeTimelineBlock, splitTimelineBlocks, replaceTimelineBlock } = window.MemoNexusTimelineBlockUtils;
+const { scanFencedLines } = window.MemoNexusMarkdownFenceUtils;
 const { SOURCE_TYPES: SOURCE_TYPE_LABELS, parseSourceDocument, sourceSelectionFromRaw, insertSourceCitation, withSources, safeSourceUrl, extractCitations, sourceDisplayLabel } = window.MemoNexusSourceUtils;
 const {
   TAG_COLOR_PALETTE,
@@ -8168,6 +8169,7 @@ function commitSourceBody(nextBody) {
 }
 
 function commitSourceCitation(sourceId, body = editor.value) {
+  if (sourceStorageEditingBlocked()) return;
   const result = insertSourceCitation(body, sourceId, sourceInsertRange);
   if (!result) return;
   commitSourceBody(result.body);
@@ -8176,9 +8178,16 @@ function commitSourceCitation(sourceId, body = editor.value) {
   editor.focus();
 }
 
+function sourceStorageEditingBlocked() {
+  if (!parseSourceDocument(editor.value).sourceStorageConflict) return false;
+  sourceStatus.textContent = "未完のコード囲み内のSourceマーカーは、コード例か旧保存情報か判別できません。本文と保存情報を保護するため出典の変更を停止しました。旧保存情報と確認できる場合はマーカーをコード囲みの前へ移してください。";
+  return true;
+}
+
 function renderSourceList() {
   sourceList.replaceChildren();
   const sources = parseSourceDocument(editor.value).sources;
+  sourceStorageEditingBlocked();
   if (!sources.length) {
     const empty = document.createElement("p");
     empty.textContent = "登録された出典はありません。";
@@ -8210,6 +8219,7 @@ function renderSourceList() {
     remove.textContent = "削除";
     remove.addEventListener("click", () => {
       if (sourceDialog.dataset.noteId !== currentId || currentNote()?.deletedAt) return;
+      if (sourceStorageEditingBlocked()) return;
       if (extractCitations(editor.value).includes(source.id)) {
         sourceStatus.textContent = "このSourceは本文・Figure／Comparison・Table・Chart・Timeline・Diagramのいずれかから参照されています。引用を解除してから出典を削除してください。";
         return;
@@ -8243,6 +8253,7 @@ function openSourceDialog() {
 function saveSourceFromForm(event) {
   event.preventDefault();
   if (sourceDialog.dataset.noteId !== currentId) return;
+  if (sourceStorageEditingBlocked()) return;
   const sources = parseSourceDocument(editor.value).sources;
   const values = Object.fromEntries(["title", "author", "publisher", "date", "url", "accessedAt", "page", "sourceType"]
     .map((key) => [key, sourceForm.elements.namedItem(key).value]));
@@ -12598,48 +12609,19 @@ function renderImageBlock(block, blockIndex, editable = true) {
 }
 
 function splitFencedBlocks(body) {
-  const lines = String(body).replace(/\r\n?/g, "\n").split("\n");
   const blocks = [];
-  let textLines = [];
-  let codeLines = [];
-  let language = "";
-  let inCode = false;
-  let fenceDelimiter = "";
-
-  lines.forEach((line) => {
-    const fence = line.match(/^(`{3,}|~{3,})\s*([^\s`~]*)\s*$/);
-    if (fence && (!inCode || (fence[1][0] === fenceDelimiter[0] && fence[1].length >= fenceDelimiter.length && !fence[2]))) {
-      if (inCode) {
-        blocks.push({ type: "code", code: codeLines.join("\n"), language });
-        codeLines = [];
-        language = "";
-        inCode = false;
-        return;
-      }
-
-      if (textLines.length) {
-        blocks.push({ type: "text", text: textLines.join("\n") });
-        textLines = [];
-      }
-      language = fence[2] || "";
-      fenceDelimiter = fence[1];
-      inCode = true;
-      return;
-    }
-
-    if (inCode) {
-      codeLines.push(line);
-    } else {
-      textLines.push(line);
-    }
+  let textLines = [], codeLines = [], language = "", inCode = false;
+  const flushText = () => { if (textLines.length) blocks.push({ type: "text", text: textLines.join("\n") }); textLines = []; };
+  scanFencedLines(String(body).replace(/\r\n?/g, "\n")).lines.forEach((line) => {
+    if (line.opening) {
+      flushText(); language = line.opening.info.split(/\s+/)[0] || ""; inCode = true;
+    } else if (line.closing) {
+      blocks.push({ type: "code", code: codeLines.join("\n"), language }); codeLines = []; language = ""; inCode = false;
+    } else if (inCode) codeLines.push(line.text);
+    else textLines.push(line.text);
   });
-
-  if (inCode) {
-    blocks.push({ type: "code", code: codeLines.join("\n"), language });
-  } else if (textLines.length) {
-    blocks.push({ type: "text", text: textLines.join("\n") });
-  }
-
+  if (inCode) blocks.push({ type: "code", code: codeLines.join("\n"), language });
+  else flushText();
   return blocks;
 }
 

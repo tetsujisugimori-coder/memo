@@ -48,6 +48,61 @@ async function layout(page) {
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),true);
   assert.equal(await page.locator('#preview').evaluate(el=>el.scrollWidth<=el.clientWidth+1),true);
 }
+async function verifyFenceSources(page,open) {
+  await page.locator('#titleInput').fill('コード囲みSource検証データ');await saved(page);
+  const known=[{id:'s1',title:'既存資料',author:'保存する著者',publisher:'検証出版社',url:'https://example.org/fence'}];
+  for(const fence of ['~~~','\x60\x60\x60']){
+    const content='本文 [@s1]\n'+fence+'js\n未完成のコード';
+    await fillBody(page,await page.evaluate(({content,known})=>withSources(content,known),{content,known}));
+    assert.deepEqual((await state(page)).sources.map(s=>s.id),['s1'],'unclosed fence keeps registered Source');
+    await page.locator('#manageSourcesBtn').click();await page.locator('.source-list-item').first().getByRole('button',{name:'編集',exact:true}).click();
+    await page.locator('#sourceForm [name="title"]').fill('更新資料');const before=await state(page);
+    await page.locator('#sourceForm button[type="submit"]').first().click();const edited=await saved(page);
+    assert.equal(edited.sources[0].author,known[0].author);assert.equal(edited.sources[0].title,'更新資料');assert.equal(edited.undo,before.undo+1);
+    await page.locator('#sourceForm [name="title"]').fill('追加資料');await page.locator('#sourceForm button[type="submit"]').first().click();await saved(page);
+    await page.locator('#closeSourceDialogBtn').click();const added=await saved(page);
+    assert.equal(added.sources.length,2);assert.equal((added.body.match(/<!-- memo-nexus:sources-v1:/g)||[]).length,1);
+    assert.equal(await page.evaluate(()=>parseSourceDocument(editor.value).body),content);
+    await page.locator('#undoBtn').click();assert.equal((await saved(page)).body,edited.body);
+    await page.locator('#redoBtn').click();assert.equal((await saved(page)).body,added.body);
+    await page.reload();await page.locator('#appStartupGuard').waitFor({state:'hidden'});assert.deepEqual((await saved(page)).sources,added.sources);
+  }
+  for(const [opening,closing] of [['  ~~~js','  ~~~'],['  \x60\x60\x60js','  \x60\x60\x60'],['~~~~js','~~~'],['~~~js','\x60\x60\x60'],['~~~js','~~~ trailing'],['\x60\x60\x60js more','\x60\x60\x60']]){
+    for(const outside of [false,true]){
+      const content=(outside?'本文 [@s1]\n':'')+opening+'\n[@s1]\n'+closing;
+      await fillBody(page,await page.evaluate(({content,known})=>withSources(content,known),{content,known}));
+      assert.equal(await page.locator('#preview .citation-link').count(),outside?1:0,'only actual code-outside citation is visible');
+      assert.deepEqual(await page.evaluate(()=>extractCitations(editor.value)),outside?['s1']:[]);
+      await page.locator('#manageSourcesBtn').click();await page.locator('.source-list-item').first().getByRole('button',{name:'削除',exact:true}).click();await saved(page);
+      if(outside){assert.equal(await page.locator('.source-list-item').count(),1);assert.match(await page.locator('#sourceStatus').innerText(),/参照されています/);}
+      else assert.equal(await page.locator('.source-list-item').count(),0,'code-only reference allows deletion');
+      await page.locator('#closeSourceDialogBtn').click();
+    }
+  }
+  const ambiguous=await page.evaluate(known=>'本文 [@s1]\n~~~js\n未完\n'+window.MemoNexusSourceUtils.serializeSources(known),known);
+  await fillBody(page,ambiguous);const original=await state(page);await page.locator('#manageSourcesBtn').click();
+  await page.locator('#sourceForm [name="title"]').fill('上書きしない資料');await page.locator('#sourceForm button[type="submit"]').first().click();
+  assert.match(await page.locator('#sourceStatus').innerText(),/判別できません/);await page.locator('#closeSourceDialogBtn').click();assert.deepEqual(await state(page),original);
+  const markerExample=await page.evaluate(known=>'~~~text\n'+window.MemoNexusSourceUtils.serializeSources(known)+'\n~~~',known);
+  await fillBody(page,markerExample);assert.equal((await state(page)).sources.length,0);await page.locator('#manageSourcesBtn').click();assert.equal(await page.locator('.source-list-item').count(),0);await page.locator('#closeSourceDialogBtn').click();
+  await page.locator('#insertImageBlockBtn').click();
+  await page.locator('#imageBlockInput').setInputFiles({name:'fence-fixture.png',mimeType:'image/png',buffer:fs.readFileSync(path.join(__dirname,'e2e-artifacts/chart-png-example-light-390.png'))});
+  await page.waitForFunction(()=>currentAttachments.length===1 && document.querySelector('#attachmentStatus')?.textContent.includes('追加しました'));await saved(page);
+  const content=await page.evaluate(()=>serializeImageBlock([{id:currentAttachments[0].id,figureMetadata:{citationIds:['s1']}}])+'\n'+window.MemoNexusTableBlockUtils.serializeTableBlock({...createTableBlock('fence-refs'),citationIds:['s1','missing']})+'\n本文 [@s1]\n~~~js\n未完成のコード');
+  await fillBody(page,await page.evaluate(({content,known})=>withSources(content,known),{content,known}));const originalZip=await state(page),noteId=await page.evaluate(()=>currentId);
+  const markdown=await download(page,async()=>{await page.locator('#noteExportBtn').click();await page.locator('#downloadExportBtn').click();});const backup=await download(page,()=>page.locator('#backupBtn').click());
+  for(const [name,buffer] of [['markdown',markdown],['backup',backup]]){
+    const restored=await open();await restored.locator('#importMarkdownZipInput').setInputFiles({name:'fence-'+name+'.zip',mimeType:'application/zip',buffer});
+    if(name==='backup'){await restored.locator('#backupPreviewDialog').waitFor({state:'visible'});await restored.locator('#confirmBackupPreviewBtn').click();await restored.locator('#backupPreviewStatus').getByText(/取り込みが完了しました/).waitFor();await restored.locator('#cancelBackupPreviewBtn').click();await restored.evaluate(id=>openNote(id),noteId);}
+    await restored.locator('#preview .table-block').waitFor().catch(async error=>{console.error('Fence ZIP diagnostic',name,await restored.evaluate(async()=>({id:currentId,body:editor.value,notes:(await getStoredNotes()).map(n=>({id:n.id,title:n.title,body:n.body})),status:document.querySelector('#importStatus')?.textContent})));throw error;});const imported=await saved(restored);
+    const expectedBody=originalZip.body.replaceAll(originalZip.images[0].images[0].id,imported.images[0].images[0].id);
+    assert.notEqual(imported.images[0].images[0].id,originalZip.images[0].images[0].id,name+' uses the existing attachment ID reassignment');
+    assert.equal(imported.body,expectedBody,name+' changes only attachment IDs');assert.deepEqual(imported.sources,originalZip.sources);assert.deepEqual(imported.tables,originalZip.tables);
+    assert.deepEqual(imported.images[0].images[0].figureMetadata,originalZip.images[0].images[0].figureMetadata);
+    await restored.reload();await restored.locator('#appStartupGuard').waitFor({state:'hidden'});assert.equal((await saved(restored)).body,expectedBody);await restored.context().close();
+  }
+  await fillBody(page,'');console.log('Fence Source regressions passed: unclosed saves, no marker growth, deletion/display agreement, ambiguous legacy protection, history and ZIPs');
+}
 (async()=>{
   const root=__dirname;
   const server=http.createServer((req,res)=>{
@@ -69,6 +124,7 @@ async function layout(page) {
         const context=await playwright.webkit.launchPersistentContext(profile,{headless:true,viewport:{width:1280,height:900}});contexts.push(context);p=await context.newPage();
       }else p=await browser.newPage({viewport:{width:1280,height:900}});
       p.on('pageerror',e=>errors.push(e.message));p.on('console',msg=>{if(msg.type()==='error' && /attachment|添付/i.test(msg.text())) console.error('Browser console:',msg.text());});await p.goto(origin,{waitUntil:'domcontentloaded'});await p.locator('#appStartupGuard').waitFor({state:'hidden'});return p;};
+    const regressionPage=await open();await verifyFenceSources(regressionPage,open);await regressionPage.context().close();
     const page=await open();
     await page.locator('#titleInput').fill('Report Preview v1 検証用混在レポート');
     await page.locator('#editor').fill('以下は実在資料を示さない検証データです。');await saved(page);
@@ -256,14 +312,14 @@ async function layout(page) {
       if(name==='markdown')assert.notEqual(result.images[0].images[0].id,mixed.images[0].images[0].id);
       assert.deepEqual(await restored.locator('.timeline-item .content-citations .citation-link').allTextContents(),['[2]','[1]']);
       assert.equal(await restored.locator('.report-sources li').count(),2);
-      await restored.reload();await restored.locator('#appStartupGuard').waitFor({state:'hidden'});assert.equal((await saved(restored)).body,result.body);await restored.close();
+      await restored.reload();await restored.locator('#appStartupGuard').waitFor({state:'hidden'});assert.equal((await saved(restored)).body,result.body);await restored.context().close();
     }
     // Direct body removal releases references and cannot reconnect to the remaining metadata.
     await fillBody(page,await page.evaluate(()=>withSources('全ブロックを削除した検証',parseSourceDocument(editor.value).sources)));
     await page.locator('#manageSourcesBtn').click();await page.locator('.source-list-item').first().getByRole('button',{name:'削除',exact:true}).click();await saved(page);
     assert.equal(await page.locator('.source-list-item').count(),2);assert.deepEqual(errors,[]);
     console.log('Report Source E2E passed ('+engine+'): selectors, cancel, history, live sources, duplicates, conversion, mixed rendering, PC/320, real ZIP restore');
-    await page.close();
+    await page.context().close();
   }finally{
     for(const context of contexts)await context.close();
     if(browser)await browser.close();await new Promise(resolve=>server.close(resolve));

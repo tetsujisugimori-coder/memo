@@ -1,5 +1,7 @@
 (function initTimelineBlockUtils(globalScope) {
   "use strict";
+  const { scanFencedLines } = typeof module !== "undefined" && module.exports
+    ? require("./markdown-fence-utils.js") : globalScope.MemoNexusMarkdownFenceUtils;
   const validId = (value) => typeof value === "string" && /^[A-Za-z0-9_-]{1,128}$/.test(value);
   const text = (value) => typeof value === "string" ? value : "";
   function normalizeTimeline(value) {
@@ -37,13 +39,10 @@
     const segments = [];
     let offset = 0;
     let textStart = 0;
-    let fence = null;
+    const fencedLines = scanFencedLines(source).lines;
+    let lineIndex = 0;
     for (const line of source.split("\n")) {
-      const delimiter = line.match(/^\s*([\x60]{3,}|~{3,})/);
-      if (delimiter) {
-        if (!fence) fence = delimiter[1];
-        else if (delimiter[1][0] === fence[0] && delimiter[1].length >= fence.length) fence = null;
-      } else if (!fence) {
+      if (!fencedLines[lineIndex++]?.code) {
         const timeline = parseTimelineBlockLine(line);
         if (timeline) {
           if (offset > textStart) segments.push({ type: "text", text: source.slice(textStart, offset), start: textStart, end: offset });

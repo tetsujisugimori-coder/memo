@@ -4,7 +4,7 @@
 
 ## 保存と編集
 
-- Source本体は従来のメモ内 sources-v1 マーカーのみ。参照は安定IDの任意配列 citationIds。同じIDは一度だけ、配列順は維持し、登録されていない有効IDも保持する。番号は保存しない。
+- Source本体は従来のメモ内 sources-v1 マーカーのみ。Sourceを保存する際はマーカーを本文の先頭へ置き、未完のコード囲みに入ることを防ぐ。読込だけでは旧末尾配置を移動しない。コード外に複数の旧記録があれば従来どおり最後の有効記録を採用し、Source保存時にはコード外の記録だけを一件へまとめる。コード内の例は保持する。参照は安定IDの任意配列 citationIds。同じIDは一度だけ、配列順は維持し、登録されていない有効IDも保持する。番号は保存しない。
 - Figure metadataの caption、dateLabel、sourceName、sourceUrl、sourceType、license、note は従来どおり画像に属する。citationIdsを持つ場合だけversion 2とする。解除後は従来情報を保持してversion 1へ戻す。旧画像は読込だけではマーカーを追加しない。
 - Comparisonは既存Image Blockの2画像であり、比較全体にSourceを保存しない。画像オブジェクトの入替と同時に参照も入れ替える。片方の削除で残る画像情報は保持し、再追加した画像へ前画像のSourceを付けない。通常表示切替でも参照を保つ。
 - 構造化TableとChartは既存version 1の任意citationIds。普通のMarkdown表を変換しない。Tableのnoteと共通引用は独立する。セル・行列・系列・並べ替え・種類変更にSourceを維持する。
@@ -25,7 +25,7 @@
 |Timeline|項目順、本文→参照Figure→項目citationIds順|
 |Diagram|補足本文→citationIds順|
 
-コードフェンス（backtick / tilde）とインラインコードの引用を解釈しない。画像caption・従来資料情報、Tableセル、Chartラベルなど既存のplain textフィールドはCitation構文を解釈しない。無効な構文や未対応情報からSourceを作らない。TimelineのFigureは元Image Blockを毎回参照して描画し、情報をTimelineにコピーしない。参照元が削除またはID競合なら参照先不在を表示する。
+コードフェンス（backtick / tilde）とインラインコードの引用を解釈しない。描画・引用抽出・Source解析・Image/Table/Chart/Timeline/Geometry解析は markdown-fence-utils.js の同じ判定を使う。区切りは同じ文字が3個以上、閉じ行は同じ種類で開始以上の長さ、後ろは半角スペース／タブのみ。通常は0〜3列の字下げ、リスト継続は既存Geometryのリスト内容基準から0〜3列を許す。タブは4列のtab stopで数える。バッククォート開始行のinfoにバッククォートがあれば開始しない。infoの最初の語だけを既存language表示に使う。閉じ忘れは残りをコードとして表示し、本文に閉じ行を自動追加しない。Geometryの別規則である4列以上の字下げコードのブロック除外は維持する。この共通化は全Markdown仕様への対応を追加するものではない。画像caption・従来資料情報、Tableセル、Chartラベルなど既存のplain textフィールドはCitation構文を解釈しない。無効な構文や未対応情報からSourceを作らない。TimelineのFigureは元Image Blockを毎回参照して描画し、情報をTimelineにコピーしない。参照元が削除またはID競合なら参照先不在を表示する。
 
 共通引用は「共通Source: [番号]」、従来資料情報は従来の資料情報欄に表示する。一致や正否を推測しない。Sourceの表示名・URLの安全判定は既存sourceDisplayLabel / safeSourceUrlを再利用。未登録IDは共通Source欄に「未登録Source: ID」を表示し、番号も一覧項目も作らない。Source編集は全参照に反映し、いずれかの現在本文参照が残れば削除拒否する。通常入力・タイトル入力ごとに新しい全文走査を追加しない。
 
@@ -33,15 +33,19 @@ Report Previewの編集操作は既存read-only処理で非表示・無効化し
 
 ## 互換性と復元
 
-fixturesには基準mainのFigure/Table/Chart/backup実装をそのままコピーした実行可能ファイルを置く（Sourceユーティリティは追加前のため依存しない）。report-source.test.jsで実行する。
+fixturesには基準mainのFigure/Table/Chart/backup/Source実装をそのままコピーした実行可能ファイルを置く（Source fixtureは実旧コードをVMで実行し、既存Timeline依存を注入する）。report-source.test.jsで実行する。
 
 - 旧Figure readerはversion 1へ足したcitationIdsを黙って落とす。version 2なら拒否するため、新規参照はv2で保存する。新readerは不正・未来の資料情報をopaque原文として画像に結び付け、入替・通常表示切替で保持し、未対応情報の編集は拒否する。
 - Table/Chartの旧readerは未知任意情報をspreadで保持し、直列化・復元でもcitationIdsを維持する。ブロックversionを変更する根拠はない。既存の未来version・未知項目保持方針も維持する。
 - 完全バックアップversion / formatVersionは6へ上げる。旧v5 readerはv6を拒否。v1〜v5の移行は本文を変更せず、未知のv7以降は拒否する。DB schema・storeを変更しない。
-- ローカルMarkdownは本文をそのまま保持。Markdown ZIPは添付IDを新しく割り当てるがSource IDとレコードを変えない。完全バックアップは既存の対象メモ単位の置換・競合計画を使い、Sourceを他メモの同名IDへ統合しない。
+- SourceのJSON version・マーカー構文はv1のままで、配置だけを変更する。実旧main readerが先頭v1を読めることをfixtureで確認した。旧版のSource編集は再び末尾へ保存するため、未完フェンスがある本文のSource編集は修正版で行う。完全バックアップの本文はopaqueであり、既存v6のまま新しい配置を往復できるので、今回の修正でv7には上げない。
+- 旧末尾v1が未完フェンス内に入った場合はコード例との確実な識別情報がない。勝手に登録・移動・削除せず、原文を維持してsourceStorageConflict（読込結果のみ・保存しない）を返す。Source管理では追加・編集・削除・引用挿入を理由付きで拒否し、withSourcesも上書き・マーカー追加を行わない。旧保存情報と利用者が確認できる場合にだけマーカーをコード囲みの前へ移す。登録済みの先頭マーカーがある場合、未完コード内のマーカーはコード例として保持する。完全なコード例には一切登録しない。
+- ローカルMarkdownは本文をそのまま保持。Markdown ZIPと完全バックアップ復元は既存経路で添付IDを新しく割り当てるがSource IDとレコードを変えない。完全バックアップは既存の対象メモ単位の置換・競合計画を使い、Sourceを他メモの同名IDへ統合しない。
 - Markdown ZIPはversion manifestがないため旧版へ警告拒否できない。旧版が画像ブロックを再編集するとFigure情報・Sourceが失われ得る。対応版でのみ復元・再編集する。Markdown ZIPの既存仕様では未使用添付も末尾に追加されるが、新しいSourceは付かない。
 
 ## 検証と画像
+
+fenced-source.test.jsは未完フェンス保存・曖昧な旧末尾保存保護・実旧Source reader互換・各parserと描画の字下げ／閉じ条件一致を検証し、既存Geometryのリスト／字下げ回帰も維持する。新しいSource E2Eはこの回帰の実UI追加・編集・削除・取消・Undo/Redo・再読込・実Markdown ZIP／完全バックアップZIP復元も行う。修正前headでは単体8件と実操作E2EのSource消失を再現した。
 
 report-source.test.jsは複数/空/重複/未登録/不正ID、旧形式、旧parser、直列化と復元、初出順、一覧の重複排除、削除保護、同一出現編集、コード除外、Table→Chart独立コピーを検証する。report-source.e2e.jsは実UIで選択・解除・取消・Undo/Redo・再読込・複製独立編集・画像入替/削除/再追加・Source編集/削除拒否・番号共有・Timeline Figure・通常/Report Preview・PC/320px・実ZIP書出し/復元を検証する。
 

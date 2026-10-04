@@ -168,8 +168,8 @@ test("表コピーは選択・Undo・保存を変更せず成功または失敗�
 
 test("配信キャッシュ番号を貼り付け機能の変更に合わせて更新する", () => {
   assert.match(html, /style\.css\?v=0\.5\.0-118/);
-  assert.match(html, /table-block-utils\.js\?v=0\.5\.0-9/);
-  assert.match(html, /app\.js\?v=0\.5\.0-198/);
+  assert.match(html, /table-block-utils\.js\?v=0\.5\.0-10/);
+  assert.match(html, /app\.js\?v=0\.5\.0-199/);
 });
 
 const vm = require("node:vm");

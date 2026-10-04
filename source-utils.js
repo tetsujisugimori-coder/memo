@@ -1,5 +1,7 @@
 (function initSourceUtils(globalScope) {
   "use strict";
+  const { scanFencedLines } = typeof module !== "undefined" && module.exports
+    ? require("./markdown-fence-utils.js") : globalScope.MemoNexusMarkdownFenceUtils;
 
   const timelineUtils = typeof module !== "undefined" && module.exports
     ? require("./timeline-block-utils.js") : globalScope.MemoNexusTimelineBlockUtils;
@@ -57,46 +59,55 @@
   function sourceDocumentParts(body) {
     const text = String(body || "");
     if (!text.includes("<!-- memo-nexus:sources-v1:")) return { body: text, sources: [], removedStart: null, removedEnd: null };
-    // Keep the final valid record even if the user writes more Markdown below it.
+    // Legacy records outside fences remain readable. A generated header stays
+    // outside unfinished code; a legacy record inside an unfinished fence is
+    // indistinguishable from a code example and must not be rewritten.
     let candidate = null;
-    let fence = null;
-    let offset = 0;
-    for (const line of text.match(/[^\n]*(?:\n|$)/g) || []) {
-      if (!line) continue;
-      const content = line.replace(/\r?\n$/, "");
-      const delimiter = content.match(/^[ \t]*([\x60]{3,}|~{3,})/);
-      if (delimiter) {
-        if (!fence) fence = delimiter[1];
-        else if (delimiter[1][0] === fence[0] && delimiter[1].length >= fence.length && !content.slice(delimiter[0].length).trim()) fence = null;
+    const candidates = [];
+    const scanned = scanFencedLines(text);
+    for (const line of scanned.lines) {
+      if (line.code) continue;
+      const sources = parseSourceMarker(line.text);
+      if (sources !== null) {
+        candidate = { start: line.start, end: line.end, sources, hasLineBreak: Boolean(line.lineEnding) };
+        candidates.push(candidate);
       }
-      const sources = fence || delimiter ? null : parseSourceMarker(content);
-      if (sources !== null) candidate = { start: offset, end: offset + line.length, sources, hasLineBreak: line !== content };
-      offset += line.length;
     }
+    const conflict = candidate?.start !== 0 && scanned.fence && scanned.lines.some(line =>
+      line.start > scanned.fence.start && line.code && parseSourceMarker(line.text) !== null);
+    if (conflict) return { body: text, sources: candidate?.sources || [], sourceStorageConflict: true, removedStart: null, removedEnd: null };
     if (!candidate) return { body: text, sources: [], removedStart: null, removedEnd: null };
-    const before = text.slice(0, candidate.start);
-    const removedStart = candidate.hasLineBreak ? candidate.start : candidate.start - (before.match(/\r?\n$/)?.[0].length || 0);
-    return {
-      body: text.slice(0, removedStart) + text.slice(candidate.end),
-      sources: candidate.sources,
-      removedStart,
-      removedEnd: candidate.end
-    };
+    const removedRanges = [];
+    for (const record of candidates) {
+      const before = text.slice(0, record.start);
+      const start = record.hasLineBreak ? record.start : record.start - (before.match(/\r?\n$/)?.[0].length || 0);
+      const previous = removedRanges.at(-1);
+      if (previous && start <= previous.end) previous.end = record.end;
+      else removedRanges.push({ start, end: record.end });
+    }
+    let content = text;
+    for (const range of [...removedRanges].reverse()) content = content.slice(0, range.start) + content.slice(range.end);
+    return { body: content, sources: candidate.sources, removedRanges,
+      removedStart: removedRanges[0].start, removedEnd: removedRanges[0].end };
   }
 
   function parseSourceDocument(body) {
-    const { body: content, sources } = sourceDocumentParts(body);
-    return { body: content, sources };
+    const { body: content, sources, sourceStorageConflict } = sourceDocumentParts(body);
+    return { body: content, sources, ...(sourceStorageConflict ? { sourceStorageConflict: true } : {}) };
   }
 
   function sourceSelectionFromRaw(body, start, end) {
     const text = String(body || "");
-    const { removedStart, removedEnd } = sourceDocumentParts(text);
+    const { removedRanges = [] } = sourceDocumentParts(text);
     const toBodyOffset = (rawOffset) => {
       const offset = Math.max(0, Math.min(text.length, Number.isFinite(rawOffset) ? Math.floor(rawOffset) : 0));
-      if (removedStart === null || offset <= removedStart) return offset;
-      if (offset < removedEnd) return removedStart;
-      return offset - (removedEnd - removedStart);
+      let removed = 0;
+      for (const range of removedRanges) {
+        if (offset <= range.start) break;
+        if (offset < range.end) return range.start - removed;
+        removed += range.end - range.start;
+      }
+      return offset - removed;
     };
     const first = toBodyOffset(start);
     const last = toBodyOffset(end);
@@ -106,19 +117,25 @@
   function insertSourceCitation(body, sourceId, selection) {
     if (typeof sourceId !== "string" || !/^[A-Za-z0-9_-]{1,128}$/.test(sourceId)) return null;
     const document = parseSourceDocument(body);
+    if (document.sourceStorageConflict) return null;
     const limit = document.body.length;
     const clamp = (value) => Math.max(0, Math.min(limit, Number.isFinite(value) ? Math.floor(value) : limit));
     const start = clamp(selection?.start);
     const end = Math.max(start, clamp(selection?.end));
     const citation = `[@${sourceId}]`;
     const content = document.body.slice(0, start) + citation + document.body.slice(end);
-    return { body: withSources(content, document.sources), caret: start + citation.length };
+    const saved = withSources(content, document.sources);
+    const storage = sourceDocumentParts(saved);
+    const headerLength = storage.removedStart === 0 ? storage.removedEnd : 0;
+    return { body: saved, caret: headerLength + start + citation.length };
   }
 
   function withSources(body, values) {
-    const content = parseSourceDocument(body).body;
+    const document = parseSourceDocument(body);
+    if (document.sourceStorageConflict) return String(body || "");
+    const content = document.body;
     const marker = serializeSources(values);
-    return marker ? `${content}\n${marker}` : content;
+    return marker ? `${marker}\n${content}` : content;
   }
 
   function safeSourceUrl(value) {
@@ -133,15 +150,9 @@
   function extractTextCitations(body) {
     const text = String(body || "").replace(/\r\n?/g, "\n");
     const ids = [];
-    let inFence = null;
-    for (const line of text.split("\n")) {
-      const delimiter = line.match(/^[ \t]*([\x60]{3,}|~{3,})/);
-      if (delimiter) {
-        if (!inFence) inFence = delimiter[1];
-        else if (delimiter[1][0] === inFence[0] && delimiter[1].length >= inFence.length && !line.slice(delimiter[0].length).trim()) inFence = null;
-        continue;
-      }
-      if (inFence) continue;
+    for (const lineRecord of scanFencedLines(text).lines) {
+      if (lineRecord.code) continue;
+      const line = lineRecord.text;
       let plain = "";
       let inCode = false;
       for (let i = 0; i < line.length; i += 1) {

@@ -1,5 +1,7 @@
 (function initTableBlockUtils(globalScope) {
   "use strict";
+  const { scanFencedLines } = typeof module !== "undefined" && module.exports
+    ? require("./markdown-fence-utils.js") : globalScope.MemoNexusMarkdownFenceUtils;
 
   const TABLE_BLOCK_VERSION = 1;
   const TABLE_PASTE_LIMITS = Object.freeze({ rows: 100, columns: 30, cells: 3000, tables: 10 });
@@ -452,7 +454,7 @@
     });
     const segments = [];
     let textStart = 0;
-    let inCodeFence = null;
+    const fencedLines = scanFencedLines(source).lines;
     let inImageBlock = false;
 
     const pushText = (end) => {
@@ -461,13 +463,7 @@
 
     lines.forEach((line, index) => {
       const trimmed = line.trim();
-      const delimiter = line.match(/^[ \t]*([\x60]{3,}|~{3,})/);
-      if (delimiter) {
-        if (!inCodeFence) inCodeFence = delimiter[1];
-        else if (delimiter[1][0] === inCodeFence[0] && delimiter[1].length >= inCodeFence.length && !line.slice(delimiter[0].length).trim()) inCodeFence = null;
-        return;
-      }
-      if (inCodeFence) return;
+      if (fencedLines[index]?.code) return;
       if (trimmed === IMAGE_BLOCK_START) {
         inImageBlock = true;
         return;

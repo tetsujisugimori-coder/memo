@@ -1,5 +1,7 @@
 (function initAttachmentUtils(globalScope) {
   "use strict";
+  const { createFenceScanner } = typeof module !== "undefined" && module.exports
+    ? require("./markdown-fence-utils.js") : globalScope.MemoNexusMarkdownFenceUtils;
 
   const exportUtils = typeof module !== "undefined" && module.exports
     ? require("./export-utils.js")
@@ -219,7 +221,7 @@
     const segments = [];
     let textStart = 0;
     let index = 0;
-    let inCodeFence = null;
+    const fenceScanner = createFenceScanner();
 
     const pushText = (end) => {
       if (end > textStart) segments.push({ type: "text", text: source.slice(textStart, end), start: textStart, end });
@@ -244,14 +246,7 @@
     };
 
     while (index < lines.length) {
-      const delimiter = lines[index].match(/^[ \t]*([\x60]{3,}|~{3,})/);
-      if (delimiter) {
-        if (!inCodeFence) inCodeFence = delimiter[1];
-        else if (delimiter[1][0] === inCodeFence[0] && delimiter[1].length >= inCodeFence.length && !lines[index].slice(delimiter[0].length).trim()) inCodeFence = null;
-        index += 1;
-        continue;
-      }
-      if (inCodeFence) {
+      if (fenceScanner.read(lines[index], offsets[index]).code) {
         index += 1;
         continue;
       }
