@@ -57,8 +57,9 @@ test("raw editor offsets after a Source marker map to body offsets without corru
   const inserted = insertSourceCitation(raw, first.id, selection);
   assert.equal(parseSourceDocument(inserted.body).body, "本文\n追記[@source-a]");
   assert.deepEqual(parseSourceDocument(inserted.body).sources[0], first);
-  assert.match(inserted.body, /<!-- memo-nexus:sources-v1:[0-9a-f]+ -->$/);
-  assert.equal(inserted.caret, "本文\n追記[@source-a]".length);
+  assert.match(inserted.body, /^<!-- memo-nexus:sources-v1:[0-9a-f]+ -->\n/);
+  assert.equal(inserted.body.slice(0, inserted.caret), inserted.body.slice(0, inserted.body.indexOf("\n") + 1) + "本文\n追記[@source-a]");
+  assert.equal(inserted.caret, inserted.body.length);
 });
 
 test("selection before and across a Source marker replaces only logical body text", () => {

@@ -46,7 +46,7 @@ test("プレビューはメモリンクの記号を隠し、不正式予約記�
 test("自動タイトルと一覧snippetから正式なメモリンク記号を除く", () => {
   const strip = Function(`${readFunctionSource("stripLinkMarkupForText")} return stripLinkMarkupForText;`)();
   const titleFromBody = Function(`${readFunctionSource("titleFromBody")} return titleFromBody;`)();
-  const snippet = Function("tableBlockPlainText", "stripLinkMarkupForText", `${readFunctionSource("snippet")} return snippet;`)((value) => value, strip);
+  const snippet = Function("tableBlockPlainText", "stripLinkMarkupForText", "parseSourceDocument", `${readFunctionSource("snippet")} return snippet;`)((value) => value, strip, require("./source-utils.js").parseSourceDocument);
   assert.equal(titleFromBody("[[* 実験結果]]\n本文"), "実験結果");
   assert.equal(snippet("[[* 実験結果]] を参照"), "実験結果 を参照");
 });
@@ -149,7 +149,7 @@ test("改名batch成功時はcommitted snapshotへ統一し遅延通常保存後
 });
 
 test("専用モジュールはapp.jsより前に読み込み、保存基盤とDB schemaを変更しない", () => {
-  assert.ok(html.indexOf('memo-link-utils.js?v=0.5.0-3') < html.indexOf('app.js?v=0.5.0-197'));
-  assert.match(html, /term-link-utils\.js\?v=0\.5\.0-6[\s\S]*memo-link-utils\.js\?v=0\.5\.0-3[\s\S]*app\.js\?v=0\.5\.0-197/);
+  assert.ok(html.indexOf('memo-link-utils.js?v=0.5.0-3') < html.indexOf('app.js?v=0.5.0-200'));
+  assert.match(html, /term-link-utils\.js\?v=0\.5\.0-6[\s\S]*memo-link-utils\.js\?v=0\.5\.0-3[\s\S]*app\.js\?v=0\.5\.0-200/);
   assert.doesNotMatch(app, /memo-link-store|backlink-store|createObjectStore\([^)]*link/i);
 });

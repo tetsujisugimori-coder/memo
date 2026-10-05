@@ -442,6 +442,23 @@ jobs:
           MEMO_NEXUS_E2E_BROWSER: ${{ matrix.browser }}
         run: npm run test:e2e:table
 
+      - name: Clear mixed Report Source review screenshots
+        run: rm -rf "e2e-artifacts/report-source-review/${{ matrix.browser }}"
+
+      - name: Run common Report Source E2E
+        env:
+          MEMO_NEXUS_E2E_BROWSER: ${{ matrix.browser }}
+        run: npm run test:e2e:report-sources
+
+      - name: Upload mixed Report Source review screenshots
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: report-sources-${{ matrix.browser }}
+          path: e2e-artifacts/report-source-review/${{ matrix.browser }}/*.png
+          if-no-files-found: error
+          retention-days: 14
+
       - name: Upload table file import screenshots
         if: always()
         uses: actions/upload-artifact@v6

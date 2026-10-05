@@ -440,9 +440,9 @@ Web Clipperは、表示中のHTTP/HTTPSページからタイトル、URL、サ�
 
 エディタの「出典」から資料を登録し、一覧の「引用を挿入」で本文へ `[@source-id]` 形式の参照を挿入できます。同じ出典を何度参照しても Preview の番号は共通です。番号は本文に保存されず、最初の参照順から毎回導出されます。未登録IDの引用は原文のまま表示されます。出典一覧は参照された資料だけを本文末尾に表示します。
 
-Source は `id`, `title`, `author`, `publisher`, `date`, `url`, `accessedAt`, `page`, `sourceType` を持ちます。本文末尾の `<!-- memo-nexus:sources-v1:<hex UTF-8 JSON> -->` に `{version:1,sources:[...]}` を保存します。本文と一緒に Markdown ZIP と完全バックアップを往復し、Source導入時（第3段階）はバックアップv3を維持しました。Diagram導入後の現行バックアップはv5です。新しい IndexedDB store はありません。Source の変更も通常の本文保存・revision・Undo/Redoを使います。URLは値を保持し、Previewでは有効なHTTP/HTTPSだけをリンク化します。
+Source は `id`, `title`, `author`, `publisher`, `date`, `url`, `accessedAt`, `page`, `sourceType` を持ちます。本文末尾の `<!-- memo-nexus:sources-v1:<hex UTF-8 JSON> -->` に `{version:1,sources:[...]}` を保存します。本文と一緒に Markdown ZIP と完全バックアップを往復し、Source導入時（第3段階）はバックアップv3を維持しました。共通Source接続後の現行バックアップはv6です。新しい IndexedDB store はありません。Source の変更も通常の本文保存・revision・Undo/Redoを使います。URLは値を保持し、Previewでは有効なHTTP/HTTPSだけをリンク化します。
 
-Figure v1の個別資料情報は変更・自動移行しません。将来のFigure、Comparison、Timeline、Diagramは安定した `sourceId` で同じSourceレコードを参照できます。v1では本文Citationだけを接続し、書誌情報の自動取得や高度な引用スタイルは対象外です。Sourceマーカーはエディタの本文末尾に見えます。壊れたSourceマーカーはプレビューに原文として残します。
+Figure v1の個別資料情報は変更・自動移行しません。Figure、Comparisonの各画像、構造化Table、Chart、Timeline、Diagramは任意の `citationIds` で同じSourceレコードを参照します。本文Citationと引用番号・末尾一覧を共有します。書誌情報の自動取得や高度な引用スタイルは対象外です。Sourceマーカーはエディタの本文末尾に見えます。壊れたSourceマーカーはプレビューに原文として残します。
 
 ## Comparison v1（Visual Markdown Report 第4段階）
 
@@ -454,9 +454,9 @@ Figure v1の個別資料情報は変更・自動移行しません。将来のFi
 
 通常PreviewとReport Previewは同じrendererを使います。PCでは横並び、狭いPreview領域と320pxでは縦並びになり、各ラベルを対応画像の下に表示します。画像は縦横比を保ち、切抜き・引伸ばしを行いません。長文ラベル、URL、説明は折り返します。Report Previewは設定編集を隠し、画像拡大とFigure詳細の閲覧を維持します。
 
-Comparison導入時の完全バックアップmanifestはv4（version／formatVersionとも4）でした。旧mainのparserで新構文を実行すると、2枚の参照自体は残りますが、通常の独立画像として扱われ、ブロック説明とFigure／比較情報が一体表示されません。このためv3を維持せず、旧アプリはv4完全バックアップを「新しい形式」として拒否する既存契約を使います。現行アプリはv1〜v4を本文・Figure・Source・添付を変えずにv5へ読み込み、未知のv6以降を拒否します。Markdown ZIPはmanifestを持たないため旧アプリの拒否はできません。画像参照とマーカーは取り込めますが、比較表示・Figure情報の対応表示は保証できず、旧版での再編集・再保存で情報が失われる可能性があります。Comparisonを含むZIPは対応版で復元してください。
+Comparison導入時の完全バックアップmanifestはv4（version／formatVersionとも4）でした。旧mainのparserで新構文を実行すると、2枚の参照自体は残りますが、通常の独立画像として扱われ、ブロック説明とFigure／比較情報が一体表示されません。このためv3を維持せず、旧アプリはv4完全バックアップを「新しい形式」として拒否する既存契約を使います。現行アプリはv1〜v5を本文・Figure・Source・添付を変えずにv6へ読み込み、未知のv7以降を拒否します。Markdown ZIPはmanifestを持たないため旧アプリの拒否はできません。画像参照とマーカーは取り込めますが、比較表示・Figure情報の対応表示は保証できず、旧版での再編集・再保存で情報が失われる可能性があります。Comparisonを含むZIPは対応版で復元してください。
 
-Figure・Comparison・Table・Chartから共通Sourceへの `sourceId` 接続は後続課題です。今回もFigureの `sourceName`／`sourceUrl` の出典表示を維持し、自動移行やSource管理UIの拡張は行いません。スライダー、画像差分検出、3画像以上、PDF／印刷専用レイアウトなどは対象外です。
+Comparison導入時にはFigure・Comparison・Table・Chartの共通Source接続は後続課題でした。現在はReport Preview v1前半で接続済みです。Figureの `sourceName`／`sourceUrl` の出典表示を維持し、自動移行やSource管理UIの拡張は行いません。スライダー、画像差分検出、3画像以上、PDF／印刷専用レイアウトなどは対象外です。
 
 比較の実操作検証は `npm run test:e2e:comparison`、関連機能まとめは `npm run test:e2e`（Figure → Comparison → Report Preview → Citation / Source）で実行します。CIでは既存Figure job内で各試験を1回ずつ実行し、ComparisonのPC／320pxスクリーンショットを `comparison-review` artifactとして保存します。
 
@@ -464,4 +464,14 @@ Figure・Comparison・Table・Chartから共通Sourceへの `sourceId` 接続は
 
 既存の図形編集欄で「図版情報」を押すと、キャプション、補足説明、「本レポート作成図」の明示選択、同じメモの複数Sourceを編集できます。保存は本文の通常保存・Undo/Redoを使い、キャンセルは本文や履歴を変えません。図形・点・注釈を正本として既存SVG rendererで描画し、通常PreviewとReport Previewの出典番号・一覧を共有します。
 
-補足説明（空白だけを除く）・作成図設定・Source参照のいずれかを持つGeometryだけversion 2です。すべて空ならdiagramを保存せずversion 1です。captionだけの変更ではv2にならず、v2から図版固有情報をすべて消して保存するとv1へ戻ります。情報のない旧Geometryはversion 1のままです。完全バックアップはv5へ更新し、旧アプリによる新形式の復元を拒否します。Markdown ZIPやローカルMarkdownは対応版で復元してください。旧版ではv2を図形として編集できません。詳細な仕様、旧parserによる情報消失評価、制約と実画面は [docs/diagram-v1/README.md](docs/diagram-v1/README.md) にあります。
+補足説明（空白だけを除く）・作成図設定・Source参照のいずれかを持つGeometryだけversion 2です。すべて空ならdiagramを保存せずversion 1です。captionだけの変更ではv2にならず、v2から図版固有情報をすべて消して保存するとv1へ戻ります。情報のない旧Geometryはversion 1のままです。Diagram導入時に完全バックアップはv5へ更新し、旧アプリによる新形式の復元を拒否します。Markdown ZIPやローカルMarkdownは対応版で復元してください。旧版ではv2を図形として編集できません。詳細な仕様、旧parserによる情報消失評価、制約と実画面は [docs/diagram-v1/README.md](docs/diagram-v1/README.md) にあります。
+
+### Report Preview v1 前半 — 共通Source接続
+
+画像の「資料情報」、Tableの操作メニュー、Chartの編集画面から、このメモの既存Sourceを複数選択・解除できます。選択・取消だけでは保存せず、保存1回はUndo1回で戻せます。Sourceのない場合は理由と既存「出典」管理へのボタンを表示します。資料情報の文字列は独立して保持し、自動移行やSource生成は行いません。
+
+画像ごとのFigure metadataはSource参照がある時だけversion 2、Table/Chartは現行version 1の任意項目として安定IDの citationIds を保存します。Comparisonは画像ごとに保持し、左右入替でも追従します。TableからChartを作成する場合は作成時のSource配列を独立コピーし、保存済みChartへ後から追従しません。
+
+引用番号は保存せず、上からの表示順で登録済みSourceの初出を1から採番します。画像ブロックは画像の順、その内部は選択配列の順です。Timelineは項目ごとに本文→参照元Figureの画像→項目の選択配列、Diagramは補足本文→選択配列の順です。再参照は同じ番号、未参照Sourceは一覧外、未登録IDは番号を使わず参照先不在を表示します。TimelineへFigureのSourceをコピーしません。
+
+完全バックアップはv6です。実旧parserはFigure v1追加項目を落とすためv2と旧readerのv6拒否で保護します。Markdown ZIP／ローカルMarkdownはmanifestによる旧版拒否ができず、旧版で画像情報を再編集すると参照が失われ得ます。必ず対応版で復元してください。旧parserが任意項目を往復保持するTable/Chartはversionを維持しました。Safari／iPhone実機は未確認です。形式・安全性・検証と検証用画像は [共通Source接続仕様](docs/report-preview-v1/README.md) を参照してください。

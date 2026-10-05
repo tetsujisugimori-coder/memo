@@ -7,7 +7,7 @@
   <script>try { document.documentElement.dataset.initialTheme = localStorage.getItem("memo-nexus-theme") === "dark" ? "dark" : "light"; } catch (_) { document.documentElement.dataset.initialTheme = "light"; }</script>
   <style>html,body{background:#f6f7f4;color:#222522;color-scheme:light}html[data-initial-theme="dark"],html[data-initial-theme="dark"] body{background:#111513;color:#e7ece7;color-scheme:dark}</style>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css">
-  <link rel="stylesheet" href="style.css?v=0.5.0-117">
+  <link rel="stylesheet" href="style.css?v=0.5.0-118">
 </head>
 <body class="app-starting">
   <section id="appStartupGuard" class="app-startup-guard" role="status" aria-live="polite" aria-busy="true">
@@ -982,6 +982,14 @@
     <div id="mermaidTemplateStatus" class="syntax-guide-status" role="status" aria-live="polite"></div>
   </dialog>
   <input id="imageBlockInput" type="file" accept="image/jpeg,image/png,image/webp,image/gif,.jpg,.jpeg,.png,.webp,.gif" hidden>
+  <dialog id="contentSourceDialog" class="diagram-dialog" aria-labelledby="contentSourceDialogTitle">
+    <div class="dialog-head"><strong id="contentSourceDialogTitle">共通Source</strong><button id="closeContentSourceDialogBtn" type="button" aria-label="共通Source選択を閉じる">×</button></div>
+    <form id="contentSourceForm">
+      <div id="contentSourceOptions"></div>
+      <p id="contentSourceStatus" role="status"></p>
+      <div class="settings-actions"><button id="cancelContentSourceBtn" type="button">キャンセル</button><button type="submit">Source選択を保存</button></div>
+    </form>
+  </dialog>
   <dialog id="diagramDialog" class="diagram-dialog" aria-labelledby="diagramDialogTitle">
     <div class="dialog-head"><strong id="diagramDialogTitle">図版情報</strong><button id="closeDiagramDialogBtn" type="button" aria-label="図版情報を閉じる">×</button></div>
     <form id="diagramForm">
@@ -1036,15 +1044,16 @@
   <script src="extensions/web-clipper/transfer-lifecycle.js?v=0.5.0-2"></script>
   <script src="web-clip-utils.js?v=0.5.0-7"></script>
   <script src="web-clipper-config.js?v=0.5.0-4"></script>
-  <script src="figure-metadata-utils.js?v=0.5.0-1"></script>
-  <script src="timeline-block-utils.js?v=0.5.0-1"></script>
-  <script src="source-utils.js?v=0.5.0-6"></script>
-  <script src="attachment-utils.js?v=0.5.0-16"></script>
-  <script src="table-block-utils.js?v=0.5.0-8"></script>
+  <script src="markdown-fence-utils.js?v=0.5.0-1"></script>
+  <script src="figure-metadata-utils.js?v=0.5.0-2"></script>
+  <script src="timeline-block-utils.js?v=0.5.0-2"></script>
+  <script src="source-utils.js?v=0.5.0-8"></script>
+  <script src="attachment-utils.js?v=0.5.0-18"></script>
+  <script src="table-block-utils.js?v=0.5.0-10"></script>
   <script src="table-file-export-utils.js?v=0.5.0-4"></script>
-  <script src="chart-block-utils.js?v=0.5.0-29"></script>
+  <script src="chart-block-utils.js?v=0.5.0-31"></script>
   <script src="chart-png-export.js?v=0.5.0-4"></script>
-  <script src="geometry-block-utils.js?v=0.5.0-17"></script>
+  <script src="geometry-block-utils.js?v=0.5.0-18"></script>
   <script src="geometry-editor-utils.js?v=0.5.0-15"></script>
   <script src="geometry-svg-renderer.js?v=0.5.0-16"></script>
   <script src="geometry-block-editor.js?v=0.5.0-20"></script>
@@ -1079,8 +1088,8 @@
   <script src="note-tombstone.js?v=0.5.0-2"></script>
   <script src="note-save-foundation.js?v=0.5.0-8"></script>
   <script src="local-markdown.js?v=0.5.0-4"></script>
-  <script src="local-sync-utils.js?v=0.5.0-13"></script>
-  <script src="backup-bundle-utils.js?v=0.5.0-9"></script>
+  <script src="local-sync-utils.js?v=0.5.0-14"></script>
+  <script src="backup-bundle-utils.js?v=0.5.0-10"></script>
   <script src="local-fs-adapter.js?v=0.5.0-1"></script>
   <script src="indexeddb-lifecycle.js?v=0.5.0-1"></script>
   <script src="manual-local-save.js?v=0.5.0-1"></script>
@@ -1089,7 +1098,7 @@
   <script src="draft-mirror-scheduler.js?v=0.5.0-2"></script>
   <script src="typing-performance-monitor.js?v=0.5.0-3"></script>
   <script src="layout-resize-utils.js?v=0.5.0-2"></script>
-  <script src="app.js?v=0.5.0-197"></script>
+  <script src="app.js?v=0.5.0-200"></script>
   <script src="codex-chat.js?v=0.5.0-6"></script>
 </body>
 </html>

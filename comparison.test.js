@@ -103,8 +103,8 @@ test("Markdown ZIPと完全バックアップv5を画像・Figure・Source/Citat
   assert.deepEqual(extractCitations(imported.body), ["source-1"]);
   const markdown = serializeLocalNote({ id: "comparison-note", title: "比較" }, body, attachments.map((item) => ({ ...item, mimeType: "image/png" })));
   const manifest = buildManifest({ appVersion: "0.5.0", savedAt: "2026-10-02T00:00:00Z" });
-  assert.equal(manifest.version, 5);
-  assert.equal(BACKUP_VERSION, 5);
+  assert.equal(manifest.version, 6);
+  assert.equal(BACKUP_VERSION, 6);
   const files = buildPortableBackupFiles({ manifest, notePlans: [{ fileName: "comparison.md", markdown }], assetPlans: attachments.map((item) => ({ ...item, data: item.blob })), normalizeTagDefinitions });
   counter = 0;
   const restored = parsePortableBackup(files.map((file) => entry(file.name, file.content)), { parseNote: parseLocalNote, normalizeTagDefinitions, idFactory: () => `restored-${++counter}` });
@@ -125,8 +125,8 @@ for (const version of [1, 2, 3, 4, 5]) test(`完全バックアップv${version}
     entry("assets/old-image.png", Uint8Array.of(1, 2, 3))
   ], { parseNote: parseLocalNote, normalizeTagDefinitions, idFactory: () => "old-image" });
   assert.equal(parsed.sourceVersion, version);
-  assert.equal(parsed.manifest.version, 5);
-  assert.equal(parsed.manifest.formatVersion, 5);
+  assert.equal(parsed.manifest.version, 6);
+  assert.equal(parsed.manifest.formatVersion, 6);
   assert.equal(parsed.notes[0].note.body, body);
   assert.equal(blockOf(parsed.notes[0].note.body).displayMode, "normal");
   assert.deepEqual(blockOf(parsed.notes[0].note.body).images[0].figureMetadata, metadata);

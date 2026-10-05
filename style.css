@@ -6595,3 +6595,10 @@ body.report-preview-mode .timeline-edit { display: none; }
 .diagram-description > :last-child { margin-bottom: 0; }
 .diagram-description pre { max-width: 100%; overflow-x: auto; }
 .diagram-created, .diagram-citations { margin: 8px 0 0; color: var(--muted); font-size: 12px; }
+
+/* Common Source selection uses the existing content editors. */
+.content-source-selector { min-width: 0; margin: 12px 0; }
+.content-source-selector label { display: flex; gap: 8px; align-items: flex-start; overflow-wrap: anywhere; min-width: 0; }
+.content-source-selector input { flex: 0 0 auto; width: auto; margin-top: 4px; }
+.content-citations, .citation-missing { overflow-wrap: anywhere; }
+.content-citations { margin: 8px 0; font-size: .9em; }

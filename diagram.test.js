@@ -101,12 +101,12 @@ test("ローカルMarkdownとMarkdown ZIPの実保存経路で図形と情報を
   assert.deepEqual(blocks(restored.body)[0].geometry,geometry);
   assert.deepEqual(extractCitations(restored.body),extractCitations(body));
 });
-for(const version of [1,2,3,4,5])test("完全バックアップv"+version+"を本文変更なしで復元しv5へ移行する",()=>{
+for(const version of [1,2,3,4,5])test("完全バックアップv"+version+"を本文変更なしで復元しv6へ移行する",()=>{
   const manifest=buildManifest({savedAt:"2026-10-03T00:00:00Z"});
   const files=buildPortableBackupFiles({manifest,normalizeTagDefinitions,notePlans:[{fileName:"note.md",markdown:serializeLocalNote({id:"note",title:"図"},body)}]});
   files[0].content=JSON.stringify({...manifest,version,formatVersion:version});
   const parsed=parsePortableBackup(files.map(entry),{parseNote:parseLocalNote,normalizeTagDefinitions});
-  assert.equal(parsed.manifest.version,5);assert.equal(parsed.sourceVersion,version);
+  assert.equal(parsed.manifest.version,6);assert.equal(parsed.sourceVersion,version);
   assert.deepEqual(blocks(parsed.notes[0].note.body)[0].geometry,geometry);
 });
 test("旧バックアップreaderはv5を拒否する",()=>{

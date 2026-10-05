@@ -13,19 +13,17 @@
     if (!value || typeof value !== "object" || Array.isArray(value)) return null;
     const metadata = Object.fromEntries(FIELDS.map((field) => [field, typeof value[field] === "string" ? value[field] : ""]));
     if (!Object.hasOwn(SOURCE_TYPES, metadata.sourceType)) metadata.sourceType = "";
-    const citationIds = (typeof module !== "undefined" && module.exports ? require("./source-utils.js") : globalScope.MemoNexusSourceUtils).normalizeCitationIds(value.citationIds);
-    if (citationIds.length) metadata.citationIds = citationIds;
     return metadata;
   }
 
   function hasFigureMetadata(value) {
     const metadata = normalizeFigureMetadata(value);
-    return Boolean(metadata && (FIELDS.some((field) => metadata[field].trim()) || metadata.citationIds?.length));
+    return Boolean(metadata && FIELDS.some((field) => metadata[field].trim()));
   }
 
   function serializeFigureMetadata(value) {
     if (!hasFigureMetadata(value)) return "";
-    const bytes = new TextEncoder().encode(JSON.stringify({ version: normalizeFigureMetadata(value).citationIds?.length ? 2 : 1, ...normalizeFigureMetadata(value) }));
+    const bytes = new TextEncoder().encode(JSON.stringify({ version: 1, ...normalizeFigureMetadata(value) }));
     const hex = Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
     return `<!-- memo-nexus:figure-metadata:${hex} -->`;
   }
@@ -36,10 +34,7 @@
     try {
       const bytes = Uint8Array.from(match[1].match(/../g), (pair) => Number.parseInt(pair, 16));
       const value = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes));
-      if (value?.version === 2 && (Object.keys(value).some((key) => !["version", "citationIds", ...FIELDS].includes(key))
-        || FIELDS.some((key) => Object.hasOwn(value, key) && typeof value[key] !== "string")
-        || !Array.isArray(value.citationIds) || value.citationIds.some((id) => typeof id !== "string" || !/^[A-Za-z0-9_-]{1,128}$/.test(id)))) return null;
-      return [1, 2].includes(value?.version) && hasFigureMetadata(value) ? normalizeFigureMetadata(value) : null;
+      return value?.version === 1 && hasFigureMetadata(value) ? normalizeFigureMetadata(value) : null;
     } catch (_) {
       return null;
     }

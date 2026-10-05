@@ -1,7 +1,5 @@
 (function initTableBlockUtils(globalScope) {
   "use strict";
-  const { scanFencedLines } = typeof module !== "undefined" && module.exports
-    ? require("./markdown-fence-utils.js") : globalScope.MemoNexusMarkdownFenceUtils;
 
   const TABLE_BLOCK_VERSION = 1;
   const TABLE_PASTE_LIMITS = Object.freeze({ rows: 100, columns: 30, cells: 3000, tables: 10 });
@@ -399,8 +397,6 @@
       ...source,
       type: "table",
       id: normalizedCell(source.id).trim() || normalizedCell(fallbackId).trim() || "table",
-      ...(Object.hasOwn(source, "citationIds") ? { citationIds: (typeof module !== "undefined" && module.exports
-        ? require("./source-utils.js") : globalScope.MemoNexusSourceUtils).normalizeCitationIds(source.citationIds) } : {}),
       caption: normalizedCell(source.caption),
       note: normalizedCell(source.note),
       hasHeader: source.hasHeader !== false,
@@ -454,7 +450,7 @@
     });
     const segments = [];
     let textStart = 0;
-    const fencedLines = scanFencedLines(source).lines;
+    let inCodeFence = false;
     let inImageBlock = false;
 
     const pushText = (end) => {
@@ -463,7 +459,11 @@
 
     lines.forEach((line, index) => {
       const trimmed = line.trim();
-      if (fencedLines[index]?.code) return;
+      if (/^```/.test(trimmed)) {
+        inCodeFence = !inCodeFence;
+        return;
+      }
+      if (inCodeFence) return;
       if (trimmed === IMAGE_BLOCK_START) {
         inImageBlock = true;
         return;

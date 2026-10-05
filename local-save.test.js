@@ -600,7 +600,7 @@ test("コレクションツリーとmanifestを完全な管理情報として往
   const collections = [{ id: "root", name: "親", parentId: null, sortOrder: 10, isSystem: false, createdAt: "c", updatedAt: "u" }, { id: "child", name: "子", parentId: "root", sortOrder: 20, isSystem: false, createdAt: "c2", updatedAt: "u2" }];
   assert.deepEqual(parseCollections(serializeCollections(collections)), collections);
   assert.deepEqual(buildManifest({ appVersion: "0.5.0", savedAt: "now", notes: [{}, {}], collections, assetsCount: 3 }), {
-    format: "memo-nexus-backup", version: 5, exportedAt: "now", formatVersion: 5,
+    format: "memo-nexus-backup", version: 6, exportedAt: "now", formatVersion: 6,
     appVersion: "0.5.0", savedAt: "now", notesCount: 2, collectionsCount: 2, tagsCount: 0, assetsCount: 3
   });
 });
@@ -633,10 +633,10 @@ test("最後に書いたハッシュと異なる外部変更を自動上書き�
 test("管理対象Markdownはsync-stateのnote IDとfileNameで特定する", () => {
   assert.match(html, /local-save-state\.js\?v=0\.5\.0-5/);
   assert.match(html, /local-save-queue\.js\?v=0\.5\.0-3/);
-  assert.match(html, /attachment-utils\.js\?v=0\.5\.0-16/);
-  assert.match(html, /local-sync-utils\.js\?v=0\.5\.0-13/);
-  assert.match(html, /backup-bundle-utils\.js\?v=0\.5\.0-9/);
-  assert.match(html, /app\.js\?v=0\.5\.0-197/);
+  assert.match(html, /attachment-utils\.js\?v=0\.5\.0-18/);
+  assert.match(html, /local-sync-utils\.js\?v=0\.5\.0-14/);
+  assert.match(html, /backup-bundle-utils\.js\?v=0\.5\.0-10/);
+  assert.match(html, /app\.js\?v=0\.5\.0-200/);
   const syncState = {
     notes: {
       "note-1": { fileName: "題名--note-1.md", hash: "last" },

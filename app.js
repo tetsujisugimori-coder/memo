@@ -326,6 +326,7 @@ const {
 } = window.MemoNexusAttachmentUtils;
 const { figureSourceTypeLabel, hasFigureMetadata, normalizeFigureMetadata, safeFigureSourceUrl } = window.MemoNexusFigureMetadataUtils;
 const { normalizeTimeline, serializeTimelineBlock, splitTimelineBlocks, replaceTimelineBlock } = window.MemoNexusTimelineBlockUtils;
+const { scanFencedLines } = window.MemoNexusMarkdownFenceUtils;
 const { SOURCE_TYPES: SOURCE_TYPE_LABELS, parseSourceDocument, sourceSelectionFromRaw, insertSourceCitation, withSources, safeSourceUrl, extractCitations, sourceDisplayLabel } = window.MemoNexusSourceUtils;
 const {
   TAG_COLOR_PALETTE,
@@ -6349,7 +6350,7 @@ async function saveEditedTagColor() {
 
 // メモ一覧カードに出す短い本文プレビューを作ります。
 function snippet(body) {
-  const blockText = tableBlockPlainText(body);
+  const blockText = tableBlockPlainText(parseSourceDocument(body).body);
   const text = stripLinkMarkupForText(typeof chartBlockPlainText === "function" ? chartBlockPlainText(blockText) : blockText).replace(/#/g, "").trim();
   return text || "空のカード";
 }
@@ -8168,6 +8169,7 @@ function commitSourceBody(nextBody) {
 }
 
 function commitSourceCitation(sourceId, body = editor.value) {
+  if (sourceStorageEditingBlocked()) return;
   const result = insertSourceCitation(body, sourceId, sourceInsertRange);
   if (!result) return;
   commitSourceBody(result.body);
@@ -8176,9 +8178,16 @@ function commitSourceCitation(sourceId, body = editor.value) {
   editor.focus();
 }
 
+function sourceStorageEditingBlocked() {
+  if (!parseSourceDocument(editor.value).sourceStorageConflict) return false;
+  sourceStatus.textContent = "未完のコード囲み内のSourceマーカーは、コード例か旧保存情報か判別できません。本文と保存情報を保護するため出典の変更を停止しました。旧保存情報と確認できる場合はマーカーをコード囲みの前へ移してください。";
+  return true;
+}
+
 function renderSourceList() {
   sourceList.replaceChildren();
   const sources = parseSourceDocument(editor.value).sources;
+  sourceStorageEditingBlocked();
   if (!sources.length) {
     const empty = document.createElement("p");
     empty.textContent = "登録された出典はありません。";
@@ -8209,8 +8218,10 @@ function renderSourceList() {
     remove.type = "button";
     remove.textContent = "削除";
     remove.addEventListener("click", () => {
+      if (sourceDialog.dataset.noteId !== currentId || currentNote()?.deletedAt) return;
+      if (sourceStorageEditingBlocked()) return;
       if (extractCitations(editor.value).includes(source.id)) {
-        sourceStatus.textContent = "このSourceは本文から参照されています。引用を削除してから出典を削除してください。";
+        sourceStatus.textContent = "このSourceは本文・Figure／Comparison・Table・Chart・Timeline・Diagramのいずれかから参照されています。引用を解除してから出典を削除してください。";
         return;
       }
       commitSourceBody(withSources(editor.value, parseSourceDocument(editor.value).sources.filter((item) => item.id !== source.id)));
@@ -8242,6 +8253,7 @@ function openSourceDialog() {
 function saveSourceFromForm(event) {
   event.preventDefault();
   if (sourceDialog.dataset.noteId !== currentId) return;
+  if (sourceStorageEditingBlocked()) return;
   const sources = parseSourceDocument(editor.value).sources;
   const values = Object.fromEntries(["title", "author", "publisher", "date", "url", "accessedAt", "page", "sourceType"]
     .map((key) => [key, sourceForm.elements.namedItem(key).value]));
@@ -8305,6 +8317,85 @@ function closeReportPreview() {
   if (origin?.isConnected && origin.getClientRects().length) origin.focus();
   else titleInput.focus();
 }
+
+// Selection state stays outside the canonical body until the user saves.
+function createContentSourceSelector(citationIds, onManage) {
+  let selected = window.MemoNexusSourceUtils.normalizeCitationIds(citationIds);
+  const fieldset = document.createElement("fieldset");
+  fieldset.className = "content-source-selector";
+  const legend = document.createElement("legend");
+  legend.textContent = "共通Source（複数選択可）";
+  fieldset.append(legend);
+  const sources = parseSourceDocument(editor.value).sources;
+  const byId = new Map(sources.map((source) => [source.id, source]));
+  selected.forEach((id) => { if (!byId.has(id)) byId.set(id, { id, title: "未登録Source: " + id }); });
+  byId.forEach((source) => {
+    const label = document.createElement("label");
+    const input = document.createElement("input");
+    input.type = "checkbox";
+    input.value = source.id;
+    input.checked = selected.includes(source.id);
+    input.addEventListener("change", () => {
+      selected = input.checked ? [...selected, source.id] : selected.filter((id) => id !== source.id);
+    });
+    label.append(input, document.createTextNode(sourceDisplayLabel(source)));
+    fieldset.append(label);
+  });
+  if (!sources.length) {
+    const reason = document.createElement("p");
+    reason.textContent = "このメモに選択できるSourceがありません。「出典」で登録してから開き直してください。";
+    fieldset.append(reason);
+  }
+  const manage = document.createElement("button");
+  manage.type = "button";
+  manage.textContent = "編集を取消して出典を管理";
+  manage.addEventListener("click", () => { onManage(); openSourceDialog(); });
+  fieldset.append(manage);
+  return { element: fieldset, values: () => [...selected] };
+}
+
+let contentSourceEditState = null;
+function openContentSourceEditor(kind, block, snapshotKey = null) {
+  if (!block || !currentNote() || currentNote().deletedAt || document.body.classList.contains("report-preview-mode")) return;
+  const value = block[kind];
+  const selector = createContentSourceSelector(value.citationIds, () => $("contentSourceDialog").close());
+  contentSourceEditState = { kind, block, snapshotKey, selector, noteId: currentId, originalBody: editor.value,
+    signature: JSON.stringify(value) };
+  $("contentSourceDialogTitle").textContent = (kind === "table" ? "Table" : "Chart") + "の共通Source";
+  $("contentSourceOptions").replaceChildren(selector.element);
+  $("contentSourceStatus").textContent = snapshotKey && chartEditorOriginalCharts.get(snapshotKey)?.deferSave
+    ? "未確定のグラフには選択を一時反映します。「入力を確定」で本文へ保存します。" : "保存するまで本文は変更しません。";
+  $("contentSourceDialog").showModal();
+}
+function saveContentSourceEditor() {
+  const state = contentSourceEditState;
+  if (!state || state.noteId !== currentId || state.originalBody !== editor.value || currentNote()?.deletedAt
+    || (state.kind === "chart" && JSON.stringify(currentChartBlock(state.block.index, state.block.chart.id, state.snapshotKey)?.chart) !== state.signature)) {
+    $("contentSourceStatus").textContent = "メモが更新されました。キャンセルしてSource選択を開き直してください。";
+    return;
+  }
+  const value = { ...state.block[state.kind] };
+  const ids = state.selector.values();
+  if (JSON.stringify(ids) === JSON.stringify(value.citationIds || [])) { $("contentSourceDialog").close(); return; }
+  if (ids.length) value.citationIds = ids;
+  else delete value.citationIds;
+  if (state.kind === "chart" && chartEditorOriginalCharts.get(state.snapshotKey)?.deferSave) {
+    commitChartBlockChange(state.block.index, value.id, value, { snapshotKey: state.snapshotKey, rerenderEditors: true });
+  } else {
+    const body = state.kind === "table" ? replaceTableBlock(editor.value, state.block, value)
+      : replaceChartBlock(editor.value, state.block, value);
+    commitSourceBody(body);
+    if (state.kind === "chart") {
+      updateChartEditorSnapshotCurrent(state.snapshotKey, value, value.id);
+      renderChartBlockEditors();
+    } else renderTableBlockEditors();
+  }
+  $("contentSourceDialog").close();
+}
+$("contentSourceForm").addEventListener("submit", (event) => { event.preventDefault(); saveContentSourceEditor(); });
+$("cancelContentSourceBtn").addEventListener("click", () => $("contentSourceDialog").close());
+$("closeContentSourceDialogBtn").addEventListener("click", () => $("contentSourceDialog").close());
+$("contentSourceDialog").addEventListener("close", () => { contentSourceEditState = null; });
 
 function currentTableBlock(blockIndex, tableId) {
   const blocks = splitTableBlocks(editor.value).filter((segment) => segment.type === "table");
@@ -8524,6 +8615,7 @@ function createTableEditor(tableValue, blockIndex) {
     tableEditorButton("列を追加", "add-column"),
     tableEditorButton("列を削除", "delete-column"),
     tableEditorButton("グラフを作成", "create-chart"),
+    tableEditorButton("共通Sourceを選択", "sources"),
     tableEditorButton("表をコピー", "copy-table"),
     tableEditorButton("Markdown表としてコピー", "copy-markdown"),
     tableEditorButton("CSVで保存", "save-csv"),
@@ -8832,6 +8924,9 @@ function handleTableEditorAction(event) {
   let next = block.table;
   let focusCell = null;
   switch (button.dataset.tableAction) {
+    case "sources":
+      openContentSourceEditor("table", block);
+      return;
     case "create-chart":
       startTableChartDraft(block, button, editorBlock);
       return;
@@ -9445,7 +9540,12 @@ function renderChartDataTable(chart, blockIndex, copyEnabled) {
   return `${transfer}<div class="chart-data-table-scroll" role="region" tabindex="0" aria-label="${escapeAttr(table.caption)}"><table class="chart-data-table"><caption>${escapeHtml(table.caption)}</caption><thead><tr><th scope="col">項目</th>${columns}</tr></thead><tbody>${rows}</tbody></table></div>`;
 }
 
-function renderChartBlock(chartValue, blockIndex, { editable = true } = {}) {
+function renderChartBlock(chartValue, blockIndex, options = {}) {
+  const html = renderChartBlockContent(chartValue, blockIndex, options);
+  return html.replace(/<\/figure>$/, () => (citationRenderContext ? renderContentCitations(chartValue.citationIds) : "") + "</figure>");
+}
+
+function renderChartBlockContent(chartValue, blockIndex, { editable = true } = {}) {
   const chart = normalizeChartBlock(chartValue, `chart-${blockIndex + 1}`);
   const pieSeries = chart.chartType === "pie" ? resolvePieSeries(chart) : null;
   const items = chartDisplayItems(chart, pieSeries || chart.series[0]);
@@ -9826,7 +9926,14 @@ function createChartEditor(chartValue, blockIndex, snapshotKey) {
   remove.className = "danger-button";
   remove.dataset.chartAction = "delete-chart";
   remove.textContent = "グラフを削除";
-  header.append(title, remove);
+  const sources = document.createElement("button");
+  sources.type = "button";
+  sources.textContent = "共通Sourceを選択";
+  sources.addEventListener("click", () => {
+    const block = currentChartBlock(blockIndex, chart.id, snapshotKey);
+    if (block) openContentSourceEditor("chart", { ...block, index: blockIndex }, snapshotKey);
+  });
+  header.append(title, sources, remove);
   const fields = document.createElement("div");
   fields.className = "chart-block-fields";
   [["title", "タイトル", "例: テスト得点"], ["unit", "単位", "例: 点"]].forEach(([field, label, placeholder]) => {
@@ -10879,11 +10986,14 @@ function hydrateInlineAttachmentImages() {
 function currentImageBlock(element) {
   const figure = element.closest(".image-block");
   const index = Number(figure && figure.dataset.imageBlockIndex);
-  const segment = splitImageBlocks(editor.value)[index];
+  const displayed = splitImageBlocks(stripExplanationAnchorComments(parseSourceDocument(editor.value).body));
+  if (displayed[index]?.type !== "image") return null;
+  const ordinal = displayed.slice(0, index).filter((segment) => segment.type === "image").length;
+  const segment = splitImageBlocks(editor.value).filter((segment) => segment.type === "image")[ordinal];
   return segment && segment.type === "image" ? segment : null;
 }
 
-function commitImageBlockChange(block, images, caption, { alignment = block && block.alignment, displayMode = block && block.displayMode, throwOnError = false } = {}) {
+function commitImageBlockChange(block, images, caption, { alignment = block && block.alignment, displayMode = block && block.displayMode, throwOnError = false, undoBoundary = false } = {}) {
   if (!block) return false;
   try {
     const nextBody = replaceImageBlock(editor.value, block, images, caption, alignment, displayMode);
@@ -10891,7 +11001,10 @@ function commitImageBlockChange(block, images, caption, { alignment = block && b
       renderPreview();
       return true;
     }
-    captureUndoSnapshot({ inputType: "insertFromPaste" });
+    if (undoBoundary) {
+      pushUndoSnapshot({ noteId: currentId, title: titleInput.value, body: editor.value, savedAt: Date.now() });
+      redoStack = [];
+    } else captureUndoSnapshot({ inputType: "insertFromPaste" });
     editor.value = nextBody;
     scheduleSave({ render: false });
     return true;
@@ -11106,6 +11219,13 @@ function openImageFigureEditor(button) {
   const figure = button.closest(".image-block");
   const imageIndex = Number(button.dataset.imageIndex);
   if (!block || !figure || !block.images[imageIndex] || figure.querySelector(".image-caption-editor, .figure-metadata-editor, .image-comparison-editor")) return;
+  if (document.body.classList.contains("report-preview-mode")) return;
+  if (block.images[imageIndex].figureMetadataRaw) {
+    alert("この画像の資料情報は未対応または不正な形式です。元の情報を保護するため編集できません。");
+    return;
+  }
+  const noteId = currentId;
+  const originalBody = editor.value;
   const current = normalizeFigureMetadata(block.images[imageIndex].figureMetadata) || {};
   const editorPanel = document.createElement("div");
   editorPanel.className = "figure-metadata-editor";
@@ -11143,11 +11263,23 @@ function openImageFigureEditor(button) {
   });
   const save = document.createElement("button");
   save.type = "button";
+  const selector = createContentSourceSelector(current.citationIds, () => setImageCaptionEditing(figure, editorPanel, false));
+  editorPanel.append(selector.element);
   save.textContent = "資料情報を保存";
   save.addEventListener("click", () => {
+    if (noteId !== currentId || originalBody !== editor.value || currentNote()?.deletedAt) {
+      alert("メモが更新されました。キャンセルして資料情報を開き直してください。");
+      return;
+    }
     const metadata = Object.fromEntries(fields.map(([key]) => [key, inputs[key].value]));
+    const citationIds = selector.values();
+    if (citationIds.length) metadata.citationIds = citationIds;
     const images = block.images.map((image, index) => index === imageIndex ? { ...image, figureMetadata: metadata } : image);
-    commitImageBlockChange(block, images, block.caption);
+    if (JSON.stringify(normalizeFigureMetadata(metadata)) === JSON.stringify(normalizeFigureMetadata(block.images[imageIndex].figureMetadata))) {
+      setImageCaptionEditing(figure, editorPanel, false);
+      return;
+    }
+    commitImageBlockChange(block, images, block.caption, { undoBoundary: true });
   });
   actions.append(cancel, save);
   editorPanel.append(actions);
@@ -12106,6 +12238,7 @@ function renderTimelineBlock(timeline, blockIndex, imageSegments) {
     figures.set(block.figureId, figures.has(block.figureId) ? null : block);
   });
   const items = timeline.items.map((item, index) => {
+    const bodyHtml = renderTimelineItemBody(item.body);
     const figure = figures.get(item.figureId);
     const media = item.figureId ? (figure
       ? renderImageBlock(figure, "timeline-" + blockIndex + "-" + index, false)
@@ -12114,7 +12247,7 @@ function renderTimelineBlock(timeline, blockIndex, imageSegments) {
       item.citationIds.map((id) => renderMarkdownInline("[@" + id + "]")).join(" ") + "</p>" : "";
     return '<li class="timeline-item"><div class="timeline-date">' + escapeHtml(item.dateLabel) +
       '</div><div class="timeline-content">' + (item.title ? '<h3>' + escapeHtml(item.title) + '</h3>' : "") +
-      '<div class="timeline-body">' + renderTimelineItemBody(item.body) + '</div>' + media + citations + '</div></li>';
+      '<div class="timeline-body">' + bodyHtml + '</div>' + media + citations + '</div></li>';
   }).join("");
   return '<section class="timeline-block" data-timeline-index="' + blockIndex + '">' +
     (timeline.title ? '<h2>' + escapeHtml(timeline.title) + '</h2>' : "") +
@@ -12403,12 +12536,20 @@ function renderTableBlock(tableValue, blockIndex) {
         <table aria-label="${escapeAttr(label)}">${thead}${tbody}</table>
       </div>
       ${note}
+      ${renderContentCitations(table.citationIds)}
     </figure>
   `;
 }
 
+function renderContentCitations(ids) {
+  const values = window.MemoNexusSourceUtils.normalizeCitationIds(ids);
+  return values.length ? '<p class="content-citations">共通Source: ' + values.map((id) =>
+    citationRenderContext?.byId.has(id) ? renderMarkdownInline("[@" + id + "]")
+      : '<span class="citation-missing">未登録Source: ' + escapeHtml(id) + '</span>').join(" ") + '</p>' : "";
+}
+
 function renderFigureMetadata(metadata) {
-  if (!hasFigureMetadata(metadata)) return "";
+  if (!metadata || !hasFigureMetadata({ ...metadata, citationIds: [] })) return "";
   const main = [metadata.caption, metadata.dateLabel, figureSourceTypeLabel(metadata.sourceType), metadata.sourceName || metadata.sourceUrl]
     .filter((value) => value && value.trim())
     .map((value) => `<span>${escapeHtml(value)}</span>`).join("");
@@ -12436,6 +12577,7 @@ function renderImageBlock(block, blockIndex, editable = true) {
       </button>
       ${comparison && image.comparisonLabel?.trim() ? `<div class="image-comparison-label">${escapeHtml(image.comparisonLabel)}</div>` : ""}
       ${renderFigureMetadata(image.figureMetadata)}
+      ${renderContentCitations(image.figureMetadata?.citationIds)}
     </div>
   `).join("");
   const caption = block.caption
@@ -12467,46 +12609,19 @@ function renderImageBlock(block, blockIndex, editable = true) {
 }
 
 function splitFencedBlocks(body) {
-  const lines = String(body).replace(/\r\n?/g, "\n").split("\n");
   const blocks = [];
-  let textLines = [];
-  let codeLines = [];
-  let language = "";
-  let inCode = false;
-
-  lines.forEach((line) => {
-    const fence = line.match(/^```\s*([^\s`]*)\s*$/);
-    if (fence) {
-      if (inCode) {
-        blocks.push({ type: "code", code: codeLines.join("\n"), language });
-        codeLines = [];
-        language = "";
-        inCode = false;
-        return;
-      }
-
-      if (textLines.length) {
-        blocks.push({ type: "text", text: textLines.join("\n") });
-        textLines = [];
-      }
-      language = fence[1] || "";
-      inCode = true;
-      return;
-    }
-
-    if (inCode) {
-      codeLines.push(line);
-    } else {
-      textLines.push(line);
-    }
+  let textLines = [], codeLines = [], language = "", inCode = false;
+  const flushText = () => { if (textLines.length) blocks.push({ type: "text", text: textLines.join("\n") }); textLines = []; };
+  scanFencedLines(String(body).replace(/\r\n?/g, "\n")).lines.forEach((line) => {
+    if (line.opening) {
+      flushText(); language = line.opening.info.split(/\s+/)[0] || ""; inCode = true;
+    } else if (line.closing) {
+      blocks.push({ type: "code", code: codeLines.join("\n"), language }); codeLines = []; language = ""; inCode = false;
+    } else if (inCode) codeLines.push(line.text);
+    else textLines.push(line.text);
   });
-
-  if (inCode) {
-    blocks.push({ type: "code", code: codeLines.join("\n"), language });
-  } else if (textLines.length) {
-    blocks.push({ type: "text", text: textLines.join("\n") });
-  }
-
+  if (inCode) blocks.push({ type: "code", code: codeLines.join("\n"), language });
+  else flushText();
   return blocks;
 }
 

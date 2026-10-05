@@ -27,26 +27,28 @@ test("現在のアプリ版とリリース名を0.5.0 Bridge Updateへ統一す�
 test("全ローカルCSS・JavaScriptを0.5.0のキャッシュ識別子で読み込む", () => {
   const assetVersions = [...html.matchAll(/(?:href|src)="(?!https?:)([^"?]+)\?v=([^"]+)"/g)]
     .map((match) => ({ path: match[1], version: match[2] }));
-  assert.equal(assetVersions.length, 60);
+  assert.equal(assetVersions.length, 61);
   assetVersions.forEach(({ path, version }) => {
     assert.match(version, /^0\.5\.0-\d+$/, `${path}のキャッシュ識別子`);
   });
+  assert.match(html, /markdown-fence-utils\.js\?v=0\.5\.0-1/);
+  assert.ok(html.indexOf("markdown-fence-utils.js?") < html.indexOf("timeline-block-utils.js?"));
   assert.match(html, /note-tombstone\.js\?v=0\.5\.0-2/);
   assert.match(html, /note-save-foundation\.js\?v=0\.5\.0-8/);
   assert.match(html, /typing-derived-ui-scheduler\.js\?v=0\.5\.0-4/);
   assert.match(html, /draft-mirror-scheduler\.js\?v=0\.5\.0-2/);
   assert.match(html, /term-link-utils\.js\?v=0\.5\.0-6/);
   assert.match(html, /memo-link-utils\.js\?v=0\.5\.0-3/);
-  assert.match(html, /style\.css\?v=0\.5\.0-117/);
-  assert.match(html, /<script src="source-utils\.js\?v=0\.5\.0-6"><\/script>/);
-  assert.ok(html.indexOf('src="source-utils.js?v=0.5.0-6"') < html.indexOf('src="app.js?v=0.5.0-197"'));
+  assert.match(html, /style\.css\?v=0\.5\.0-118/);
+  assert.match(html, /<script src="source-utils\.js\?v=0\.5\.0-8"><\/script>/);
+  assert.ok(html.indexOf('src="source-utils.js?v=0.5.0-8"') < html.indexOf('src="app.js?v=0.5.0-200"'));
   assert.match(html, /chart-png-export\.js\?v=0\.5\.0-4/);
   assert.ok(html.indexOf("chart-png-export.js?") < html.indexOf("app.js?"));
-  assert.match(html, /chart-block-utils\.js\?v=0\.5\.0-29/);
+  assert.match(html, /chart-block-utils\.js\?v=0\.5\.0-31/);
   assert.match(html, /logo-animation-utils\.js\?v=0\.5\.0-8/);
   assert.match(html, /editor-caret-animation-utils\.js\?v=0\.5\.0-2/);
   assert.match(html, /layout-resize-utils\.js\?v=0\.5\.0-2/);
-  assert.match(html, /geometry-block-utils\.js\?v=0\.5\.0-17/);
+  assert.match(html, /geometry-block-utils\.js\?v=0\.5\.0-18/);
   assert.match(html, /geometry-editor-utils\.js\?v=0\.5\.0-15/);
   assert.match(html, /geometry-svg-renderer\.js\?v=0\.5\.0-16/);
   assert.match(html, /geometry-block-editor\.js\?v=0\.5\.0-20/);
@@ -55,12 +57,12 @@ test("全ローカルCSS・JavaScriptを0.5.0のキャッシュ識別子で読�
   assert.match(html, /extensions\/web-clipper\/transfer-lifecycle\.js\?v=0\.5\.0-2/);
   assert.match(html, /web-clipper-config\.js\?v=0\.5\.0-4/);
   assert.match(html, /table-file-export-utils\.js\?v=0\.5\.0-4/);
-  assert.match(html, /app\.js\?v=0\.5\.0-197/);
+  assert.match(html, /app\.js\?v=0\.5\.0-200/);
 });
 
 test("本体リリースと各形式のバージョンを確認する", () => {
   assert.match(app, /const DB_VERSION = 6;/);
-  assert.match(backup, /const BACKUP_VERSION = 5;/);
+  assert.match(backup, /const BACKUP_VERSION = 6;/);
   assert.match(tableBlocks, /const TABLE_BLOCK_VERSION = 1;/);
   assert.match(chartBlocks, /const CHART_BLOCK_VERSION = 1;/);
   assert.match(codexRuntime, /clientInfo: \{ name: "memo-nexus-codex-chat", version: "0\.1\.1" \}/);

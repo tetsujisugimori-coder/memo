@@ -2,7 +2,7 @@
   "use strict";
 
   const BACKUP_FORMAT = "memo-nexus-backup";
-  const BACKUP_VERSION = 6;
+  const BACKUP_VERSION = 5;
   // 旧ZIPは変更せず、読み込み時にメモリ上で段階的に移行する。
   const MIGRATIONS = Object.freeze({
     1: (payload) => ({ ...payload, tags: Array.isArray(payload.tags) ? payload.tags : [], tagsFilePresent: Boolean(payload.tagsFilePresent) }),
@@ -10,9 +10,7 @@
     // Comparison adds optional Markdown markers, not new stores or data migration.
     3: (payload) => payload,
     // Diagram metadata requires a reader that preserves Geometry version 2.
-    4: (payload) => payload,
-    // Figure Source references require a reader that preserves metadata version 2.
-    5: (payload) => payload
+    4: (payload) => payload
   });
   const IMAGE_MIME_BY_EXTENSION = Object.freeze({ jpg: "image/jpeg", jpeg: "image/jpeg", png: "image/png", webp: "image/webp", gif: "image/gif", pdf: "application/pdf" });
 
