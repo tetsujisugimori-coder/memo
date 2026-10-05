@@ -177,7 +177,7 @@ PowerShellを閉じると環境変数は失われるため、次回起動時はt
 - 画像はサムネイルから拡大表示でき、画像とPDFは個別に削除できます。本文で参照中の画像を削除する場合は警告し、参照が残った場合もカードには安全な欠損表示を出します。メモをゴミ箱へ移しても添付は保持され、メモを完全削除したときに関連添付も削除されます。
 - メモ単体、コレクション、全件の各エクスポートと、対応ブラウザでのローカルフォルダ書き出しには添付ファイルも含まれます。内部の `attachment://画像ID` は出力時だけ実ファイルへの相対パスへ変換し、アプリ内の元本文は変更しません。
 - 「バックアップ／Markdown ZIP取り込み」は、従来のMarkdown ZIPに加えてMemo Nexus完全バックアップを復元できます。
-- PDFの本文内埋め込みには対応せず、添付エリアからブラウザ標準ビューアで開きます。カード表示内容全体のPDF保存は将来機能です。
+- PDFの本文内埋め込みには対応せず、添付エリアからブラウザ標準ビューアで開きます。Report Previewの内容は「PDFとして保存」からブラウザの印刷画面でPDFへ保存できます。
 
 ## 可搬バックアップ（format version 2）
 
@@ -456,7 +456,7 @@ Figure v1の個別資料情報は変更・自動移行しません。Figure、Co
 
 Comparison導入時の完全バックアップmanifestはv4（version／formatVersionとも4）でした。旧mainのparserで新構文を実行すると、2枚の参照自体は残りますが、通常の独立画像として扱われ、ブロック説明とFigure／比較情報が一体表示されません。このためv3を維持せず、旧アプリはv4完全バックアップを「新しい形式」として拒否する既存契約を使います。現行アプリはv1〜v5を本文・Figure・Source・添付を変えずにv6へ読み込み、未知のv7以降を拒否します。Markdown ZIPはmanifestを持たないため旧アプリの拒否はできません。画像参照とマーカーは取り込めますが、比較表示・Figure情報の対応表示は保証できず、旧版での再編集・再保存で情報が失われる可能性があります。Comparisonを含むZIPは対応版で復元してください。
 
-Comparison導入時にはFigure・Comparison・Table・Chartの共通Source接続は後続課題でした。現在はReport Preview v1前半で接続済みです。Figureの `sourceName`／`sourceUrl` の出典表示を維持し、自動移行やSource管理UIの拡張は行いません。スライダー、画像差分検出、3画像以上、PDF／印刷専用レイアウトなどは対象外です。
+Comparison導入時にはFigure・Comparison・Table・Chartの共通Source接続は後続課題でした。現在はReport Preview v1前半で接続済みです。Figureの `sourceName`／`sourceUrl` の出典表示を維持し、自動移行やSource管理UIの拡張は行いません。スライダー、画像差分検出、3画像以上は対象外です。PDF保存は後続のReport Preview v1で対応します。
 
 比較の実操作検証は `npm run test:e2e:comparison`、関連機能まとめは `npm run test:e2e`（Figure → Comparison → Report Preview → Citation / Source）で実行します。CIでは既存Figure job内で各試験を1回ずつ実行し、ComparisonのPC／320pxスクリーンショットを `comparison-review` artifactとして保存します。
 
@@ -475,3 +475,15 @@ Comparison導入時にはFigure・Comparison・Table・Chartの共通Source接�
 引用番号は保存せず、上からの表示順で登録済みSourceの初出を1から採番します。画像ブロックは画像の順、その内部は選択配列の順です。Timelineは項目ごとに本文→参照元Figureの画像→項目の選択配列、Diagramは補足本文→選択配列の順です。再参照は同じ番号、未参照Sourceは一覧外、未登録IDは番号を使わず参照先不在を表示します。TimelineへFigureのSourceをコピーしません。
 
 完全バックアップはv6です。実旧parserはFigure v1追加項目を落とすためv2と旧readerのv6拒否で保護します。Markdown ZIP／ローカルMarkdownはmanifestによる旧版拒否ができず、旧版で画像情報を再編集すると参照が失われ得ます。必ず対応版で復元してください。旧parserが任意項目を往復保持するTable/Chartはversionを維持しました。Safari／iPhone実機は未確認です。形式・安全性・検証と検証用画像は [共通Source接続仕様](docs/report-preview-v1/README.md) を参照してください。
+
+### Report Preview v1 — A4 PDF保存
+
+「レポート表示」→「PDFとして保存」でブラウザ標準の印刷画面を開きます。送信先の「PDFとして保存」、A4縦、倍率100%、ヘッダーとフッターOFFを確認し、プレビューを見て保存してください。クリック直後の自動ダウンロードではありません。用紙はA4縦・上下左右20mm・白背景、フッターはページ番号のみです。印刷画面の独自設定がCSSを上書きする場合はプレビューで確認してください。
+
+現行Report PreviewのDOM・共通renderer・Citation番号・末尾出典一覧をそのまま使います。本文、Source、添付、revision、updatedAt、dirty状態、Undo/Redoを印刷処理で更新しません。印刷用の一時的な詳細展開・縮小とファイル名用document.titleは、印刷画面終了（保存／取消）で復元します。PDFの既定ファイル名は既存のWindows安全名処理を通したレポートタイトル、空なら「無題レポート」です。ブラウザがこの候補を採用しない場合は保存画面で指定してください。
+
+本文の画像は配置順を維持し、管理用添付欄は出力しません。図版・Comparison・Chart・Diagram・Timelineの項目は途中改ページを避け、1ページを超える場合は全体の比率を保って縮小します。見出しは直後の内容と改ページを避けます。Tableは9pt、セル内折返し、行内分割回避、見出し行の繰返しを指定します。短い表は一体で配置し、長い表は行間で改ページします。Chartには既存の項目・系列・数値のテキスト一覧も表示します。画像・Mermaid SVG・フォントの描画を待ち、画像decode失敗は理由を表示して印刷を開始しません。
+
+本文のリンク文字列は本文として表示し、ナビゲーションUIは追加しません。Source URLは全文を折り返し、既存の安全なHTTP(S)リンクだけPDFにもリンクとして残します。未登録Source・不正マーカーの既存表示と安全性を維持し、PDF専用に引用を採番しません。
+
+対応目安はChrome／Chromium・Edge 131以降（[CSSのページ余白内番号に対応](https://developer.chrome.com/blog/print-margins?hl=ja)）です。実検証はPlaywright Chromiumで行い、ブラウザ印刷画面の保存／取消操作、Edge実機、Safari／iPhone／Firefoxは未確認です。Ctrl+Pは非同期の準備を行わないため、上のボタンを使ってください。ブラウザの改ページは絶対保証ではなく、1行だけで紙面を超える表・極端に多列の表・非常に長い図版説明・多数のChart項目は可読性や行分割に限界があります。9pt未満へ表を縮小する処理はありません。詳細と実PDF検査方法は [PDF保存の検証と制約](docs/report-preview-v1/README.md#pdf保存v1) を参照してください。内容の変更は原稿を編集して再出力します。PDF編集機能・独自PDFライブラリ・別文書モデル・保存形式変更は追加していません。

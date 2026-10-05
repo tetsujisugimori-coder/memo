@@ -1,0 +1,96 @@
+/* Also enabled temporarily while measuring the existing Report Preview DOM. */
+@page report {
+  size: A4 portrait;
+  margin: 20mm;
+  @bottom-center { content: counter(page); font: 9pt sans-serif; color: #000; }
+}
+body.report-preview-mode {
+  page: report;
+  display: block !important;
+  height: auto !important;
+  overflow: visible !important;
+  background: #fff !important;
+  color: #000 !important;
+  color-scheme: light;
+  --ink: #000;
+  --text: #000;
+  --muted: #333;
+  --line: #777;
+  --section-bg: #fff;
+  --accent-soft: #fff;
+}
+body.report-preview-mode > :not(.workspace),
+body.report-preview-mode .workspace > :not(#previewCard),
+body.report-preview-mode #previewCard > :not(.report-preview-heading):not(#preview),
+body.report-preview-mode .report-preview-heading > :not(h1),
+body.report-preview-mode #preview button:not(.image-block-open):not(.term-wiki-link):not(.memo-link),
+body.report-preview-mode #preview :is(.image-block-menu-shell, .chart-png-controls, .chart-tsv-copy-controls, .chart-tooltip, .chart-data-focus, .timeline-edit, .explanation-actions, .geometry-editor, input, select, textarea) {
+  display: none !important;
+}
+body.report-preview-mode .workspace,
+body.report-preview-mode #previewCard,
+body.report-preview-mode #preview,
+body.report-preview-mode .report-preview-heading {
+  display: block !important;
+  position: static !important;
+  box-sizing: border-box;
+  width: 170mm !important;
+  max-width: 100% !important;
+  height: auto !important;
+  max-height: none !important;
+  overflow: visible !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  transform: none !important;
+  background: #fff !important;
+}
+body.report-preview-mode #preview { font-size: 11pt; line-height: 1.65; overflow-wrap: anywhere; }
+body.report-preview-mode #reportPreviewTitle { font-size: 22pt; margin: 0 0 6mm; color: #000; break-after: avoid-page; }
+body.report-preview-mode #preview * { box-shadow: none !important; text-shadow: none !important; }
+body.report-preview-mode #preview :is(figure, table, th, td, pre, code, blockquote, .explanation-card, .callout) { background: #fff !important; color: #000; }
+body.report-preview-mode #preview :is(.image-block, .chart-block, .geometry-preview, .explanation-card, .callout) { border-radius: 0; }
+body.report-preview-mode #preview .callout { border-left-color: #777; }
+body.report-preview-mode #preview .hljs * { color: #000 !important; }
+body.report-preview-mode #preview :is(h1, h2, h3, h4, h5, h6, figcaption) { break-after: avoid-page; }
+body.report-preview-mode #preview p { orphans: 3; widows: 3; }
+body.report-preview-mode #preview :is(.image-block, .chart-block, .geometry-preview, .timeline-item, .mermaid-block) { break-inside: avoid-page; }
+body.report-preview-mode #preview :is(.image-block, .chart-block, .geometry-preview) { margin-inline: 0; }
+body.report-preview-mode #preview .image-block { display: grid; }
+body.report-preview-mode #preview .image-block-item { display: block; }
+body.report-preview-mode #preview .image-block-media { display: grid; }
+body.report-preview-mode #preview .image-block.image-count-2 .image-block-media { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+body.report-preview-mode #preview .image-block-open { display: block; width: 100%; height: auto; padding: 0; border: 0; background: #fff; }
+body.report-preview-mode #preview img { display: block; max-width: 100%; width: auto; height: auto; max-height: none; object-fit: contain; margin-inline: auto; }
+body.report-preview-mode #preview :is(.chart-block-scroll, .table-block-scroll, .mermaid-diagram) { overflow: visible; min-width: 0; max-width: 100%; }
+body.report-preview-mode #preview :is(.geometry-preview > svg, .chart-block-scroll > svg, .mermaid-diagram > svg) { min-width: 0; width: 100%; height: auto; max-height: none; }
+body.report-preview-mode #preview :is(.chart-block-line-layout, .chart-block-bar-layout, .chart-block-pie-layout) { display: block; }
+body.report-preview-mode #preview .chart-block-legend { display: flex; flex-wrap: wrap; }
+/* Existing accessible values also make multiseries data independent of color. */
+body.report-preview-mode #preview .chart-block > .sr-only {
+  position: static;
+  width: auto;
+  height: auto;
+  margin: 2mm 0;
+  padding-left: 5mm;
+  overflow: visible;
+  clip: auto;
+  clip-path: none;
+  white-space: normal;
+  font-size: 9pt;
+}
+body.report-preview-mode #preview .timeline-item { display: block; }
+body.report-preview-mode #preview :is(.timeline-items, .timeline-content) { display: block; }
+body.report-preview-mode #preview table { width: 100%; table-layout: fixed; border-collapse: collapse; font-size: 9pt; }
+body.report-preview-mode #preview :is(th, td) { min-width: 0; width: auto; padding: 1.5mm; white-space: pre-wrap; overflow-wrap: anywhere; }
+body.report-preview-mode #preview thead { display: table-header-group; }
+body.report-preview-mode #preview tr { break-inside: avoid-page; }
+body.report-preview-mode #preview .table-block { break-inside: auto; }
+body.report-preview-mode #preview :is(a, .term-wiki-link, .memo-link) { color: #000 !important; background: transparent !important; overflow-wrap: anywhere; }
+body.report-preview-mode #preview :is(.term-wiki-link, .memo-link) { display: inline; border: 0; padding: 0; font: inherit; }
+body.report-preview-mode #preview pre { white-space: pre-wrap; overflow-wrap: anywhere; overflow: visible; }
+body.report-preview-mode #preview .figure-metadata details > summary { display: none; }
+body.report-preview-mode #preview details > summary { list-style: none; color: #000; }
+body.report-preview-mode #preview .task-list-item::before { content: "☐"; color: #000; }
+body.report-preview-mode #preview .task-list-item:has(input:checked)::before { content: "☑"; }

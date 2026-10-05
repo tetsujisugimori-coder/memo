@@ -8,6 +8,7 @@
   <style>html,body{background:#f6f7f4;color:#222522;color-scheme:light}html[data-initial-theme="dark"],html[data-initial-theme="dark"] body{background:#111513;color:#e7ece7;color-scheme:dark}</style>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css">
   <link rel="stylesheet" href="style.css?v=0.5.0-118">
+  <link id="reportPrintStyles" rel="stylesheet" href="report-print.css?v=0.5.0-1" media="print">
 </head>
 <body class="app-starting">
   <section id="appStartupGuard" class="app-startup-guard" role="status" aria-live="polite" aria-busy="true">
@@ -305,6 +306,8 @@
     <section id="previewCard" class="preview-card" aria-hidden="false">
       <div class="report-preview-heading" hidden>
         <button id="reportPreviewBackBtn" type="button">編集に戻る</button>
+        <button id="reportPrintBtn" type="button">PDFとして保存</button>
+        <p id="reportPrintStatus" role="status">ブラウザの印刷画面が開きます。「PDFとして保存」を選び、A4縦・倍率100%・ヘッダーとフッターOFFでプレビューを確認してください。</p>
         <h1 id="reportPreviewTitle" tabindex="-1"></h1>
       </div>
       <div class="preview-head">
@@ -1098,7 +1101,7 @@
   <script src="draft-mirror-scheduler.js?v=0.5.0-2"></script>
   <script src="typing-performance-monitor.js?v=0.5.0-3"></script>
   <script src="layout-resize-utils.js?v=0.5.0-2"></script>
-  <script src="app.js?v=0.5.0-200"></script>
+  <script src="app.js?v=0.5.0-201"></script>
   <script src="codex-chat.js?v=0.5.0-6"></script>
 </body>
 </html>

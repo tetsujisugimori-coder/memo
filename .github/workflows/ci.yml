@@ -182,6 +182,24 @@ jobs:
       - name: Run Report Preview E2E
         run: npm run test:e2e:report-preview
 
+      - name: Prepare PDF inspection
+        run: |
+          python -m pip install pymupdf==1.27.2
+          sudo apt-get update
+          sudo apt-get install -y fonts-noto-cjk
+
+      - name: Run Report PDF E2E
+        run: npm run test:e2e:report-pdf
+
+      - name: Upload Report PDF review
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: report-pdf-review
+          path: e2e-artifacts/report-pdf-review/
+          if-no-files-found: error
+          retention-days: 14
+
       - name: Run Timeline E2E
         run: npm run test:e2e:timeline
 
