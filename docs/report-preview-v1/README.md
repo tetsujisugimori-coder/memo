@@ -14,7 +14,7 @@
 
 ### 改ページと縮小
 
-- A4印刷幅170mm、高さ257mmで印刷専用CSSを一時有効化し、同じDOMを測定する。
+- A4印刷幅170mm、高さ257mmで印刷専用CSSを一時有効化し、同じDOMを測定する。320pxなどの狭い画面でも測定幅は画面幅で制限しない。終了後は通常の画面幅へ復元する。
 - Figure／Comparison／Chart／Diagram／Timeline項目／Mermaid／単独画像はbreak-inside: avoid-page。残り領域に入らなければ次ページへ送る。
 - 1ページより高い図は固定した測定幅とCSS zoomで全体を等倍比率で縮小する。親が一体扱いなら内部の図を重複縮小しない。画像とSVGは縦横比を維持する。
 - 見出しはbreak-after: avoid-page。本文はorphans／widowsを3とする。

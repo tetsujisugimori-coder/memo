@@ -35,7 +35,7 @@ body.report-preview-mode .report-preview-heading {
   position: static !important;
   box-sizing: border-box;
   width: 170mm !important;
-  max-width: 100% !important;
+  max-width: none !important;
   height: auto !important;
   max-height: none !important;
   overflow: visible !important;

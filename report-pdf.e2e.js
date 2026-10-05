@@ -74,17 +74,31 @@ async function state(page) {
     await page.evaluate(()=>window.dispatchEvent(new Event("afterprint")));
     await page.emulateMedia({media:"screen"});assert.deepEqual(await state(page),before);assert.equal(await page.title(),title);
     assert.equal(await page.locator('#reportPrintBtn').isEnabled(),true);assert.equal(await page.locator('.figure-metadata details').first().evaluate(e=>e.open),false);
+    await page.setViewportSize({width:320,height:844});
+    const mobileBefore=await state(page);
+    await page.locator("#reportPrintBtn").click();await page.waitForFunction(()=>window.printCalls===2);
+    assert.ok(Math.abs(await page.locator("#preview").evaluate(e=>e.getBoundingClientRect().width)-170*96/25.4)<1,"A4 measurement must not depend on mobile viewport");
+    const mobileOut=path.join(out,"mobile");fs.mkdirSync(mobileOut,{recursive:true});
+    fs.writeFileSync(path.join(mobileOut,"metrics.json"),JSON.stringify({browser:browser.version(),metrics,citations,longUrl},null,2));
+    await page.emulateMedia({media:"print"});
+    await page.pdf({path:path.join(mobileOut,"mixed-report.pdf"),preferCSSPageSize:true,displayHeaderFooter:false,printBackground:false});
+    await page.emulateMedia({media:"screen"});
+    await page.evaluate(()=>window.dispatchEvent(new Event("afterprint")));assert.deepEqual(await state(page),mobileBefore);
+    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),true,"normal mobile Report restored");
+    await page.setViewportSize({width:1280,height:900});
     // A deliberately dirty editor snapshot and nonempty redo stack must also survive.
     await page.evaluate(()=>{applyTheme("dark");clearTimeout(saveTimer);saveTimer=null;editor.value+="\n未保存の本文";noteSaveFoundation.markChanged(currentId);redoStack.push({noteId:currentId,title:titleInput.value,body:editor.value,savedAt:123});renderPreview();});
-    const dirty=await state(page);await page.locator("#reportPrintBtn").click();await page.waitForFunction(()=>window.printCalls===2);
+    const dirty=await state(page);await page.locator("#reportPrintBtn").click();await page.waitForFunction(()=>window.printCalls===3);
     assert.equal(await page.evaluate(()=>getComputedStyle(document.body).backgroundColor),"rgb(255, 255, 255)");
     await page.evaluate(()=>window.dispatchEvent(new Event("afterprint")));assert.deepEqual(await state(page),dirty);
     await page.evaluate(()=>{preview.querySelector("img").src="data:image/png;base64,broken";});
     await page.locator("#reportPrintBtn").click();await page.waitForFunction(()=>document.querySelector("#reportPrintStatus").textContent.startsWith("印刷を開始できません"));
-    assert.equal(await page.evaluate(()=>window.printCalls),2);assert.deepEqual(await state(page),dirty);
+    assert.equal(await page.evaluate(()=>window.printCalls),3);assert.deepEqual(await state(page),dirty);
     assert.deepEqual(errors,[]);
-    const checked=spawnSync(process.env.PYTHON||"python",[path.join(__dirname,"docs/report-preview-v1/inspect-pdf.py"),out],{encoding:"utf8"});
-    if(checked.stdout)process.stdout.write(checked.stdout);if(checked.stderr)process.stderr.write(checked.stderr);assert.equal(checked.status,0,"real PDF inspection");
+    for(const directory of [out,mobileOut]){
+      const checked=spawnSync(process.env.PYTHON||"python",[path.join(__dirname,"docs/report-preview-v1/inspect-pdf.py"),directory],{encoding:"utf8"});
+      if(checked.stdout)process.stdout.write(checked.stdout);if(checked.stderr)process.stderr.write(checked.stderr);assert.equal(checked.status,0,"real PDF inspection");
+    }
     console.log("Report PDF Chromium E2E PASS");
   }finally{if(browser)await browser.close();await new Promise(resolve=>server.close(resolve));}
 })().catch(error=>{console.error(error);process.exitCode=1;});
