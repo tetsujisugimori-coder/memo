@@ -1,6 +1,36 @@
 # Report Preview v1 前半：Figure・Comparison・Table・Chartの共通Source
 
-対象基準はmain 1a0b9a1d5aed8f9f0cbbd08b411207bbf6655d3d（Figure #329、Report Preview #331、Citation #333、Comparison #335、Timeline #337、Diagram #338がマージ済み）。図番号・表番号、全体デザイン変更、PDF・印刷専用処理はこのPRに含まない。
+## PDF保存v1
+
+後続のPDF保存はmain `63b0f8b`（#341を含む）を基準に追加する。「レポート表示」→「PDFとして保存」で標準印刷画面を開き、送信先「PDFとして保存」、A4縦、倍率100%、ヘッダーとフッターOFFを確認して保存する。A4の余白は上下左右20mm。ページ番号のみをCSSのページ余白へ表示する。用紙設定UI、PDF編集、別文書モデル、保存形式変更は追加しない。
+
+### 再利用と印刷準備
+
+既存のPreview DOM、Figure／Table／Chart／Geometry／Timeline／Citation rendererを再利用し、Sourceの番号と表示順を変更しない。画像は本文の位置を維持する。管理用添付一覧はレポートの末尾資料として扱わない。PDF添付そのもののページを合成する機能はない。詳細欄は一時的に開いて全文を出力し、Chartの既存アクセシビリティ用データ一覧も文字で出す。チェックリストの状態は白黒の記号で表示する。
+
+既存の添付読込promise、Mermaid描画queue、document.fonts.ready、画像decodeを待ってから印刷を開始する。lazy画像は一時的にeagerにしてdecodeする。画像失敗や準備中のPreview更新は理由を表示して停止する。印刷画面の終了はafterprintで受け、詳細のopen、loading、要素style、スクロール位置、document.titleを復元する。本文・Source・revision・updatedAt・dirty・Undo/Redo・IndexedDBを変更する処理やflushSaveは印刷経路にない。印刷と独立して既に予約済みの通常保存は通常どおり進む。
+
+ファイル名の候補は既存safeFileName／sanitizeWindowsNameを利用する。空タイトルは「無題レポート」。実際の保存名はブラウザが最終決定する。リンク文字列は本文のまま、Source URLは全文を折り返す。既存のsafeSourceUrl／safeFigureSourceUrlで許可したリンクのみPDFリンクとなり、無効URLは文字として残る。
+
+### 改ページと縮小
+
+- A4印刷幅170mm、高さ257mmで印刷専用CSSを一時有効化し、同じDOMを測定する。320pxなどの狭い画面でも測定幅は画面幅で制限しない。終了後は通常の画面幅へ復元する。
+- Figure／Comparison／Chart／Diagram／Timeline項目／Mermaid／単独画像はbreak-inside: avoid-page。残り領域に入らなければ次ページへ送る。
+- 1ページより高い図は固定した測定幅とCSS zoomで全体を等倍比率で縮小する。親が一体扱いなら内部の図を重複縮小しない。画像とSVGは縦横比を維持する。
+- 見出しはbreak-after: avoid-page。本文はorphans／widowsを3とする。
+- Tableは9pt・固定レイアウト・セル内折返し。短い表は一体で、長い表は行間で改ページする。trは分割回避、theadは見出し繰返し。
+
+CSSの分割回避は絶対保証ではない。1行が1ページを超える表、極端な多列、長い図版説明を含む縮小、非常に横長のChartでは可読性・分割に限界がある。表を9pt未満に自動縮小しない。Chartは比率を保つため軸文字が小さくなる場合があり、併記する9ptの項目・系列・値で全文を確認できる。ブラウザの余白・倍率・ヘッダー設定による上書きは印刷プレビューで確認する。Chrome／Chromium・Edge 131以降のページ余白内番号を前提とする。Ctrl+Pは非同期準備を行わないためボタンを使う。
+
+### 実PDFの検証方法
+
+`npm ci`、`python -m pip install pymupdf==1.27.2` の後、`npm run test:e2e:report-pdf` を実行する。Windowsで別Pythonを使う場合は環境変数PYTHONにその実行ファイルを指定する。Linuxではfonts-noto-cjkも用意する。CIは既存Figureジョブで実行し、report-pdf-review artifactへ生成PDF・全ページPNG・inspection.json・metrics.jsonを保存する。
+
+混在レポートには長い日本語、本文リンク、チェックリスト、Figure、Comparison、55行Table、複数系列Chart、Diagram実図、Timeline Figure、大きな画像、不正マーカー、未登録Source、長いURLを含む。実PDFから日本語・全文URL・リンク注釈・図表ラベル・全数値・ページ番号を抽出し、ページ寸法・文字の余白・画像の比率と紙面内配置・表の見出し繰返し・見出しと図版の同一ページをassertする。印刷開始／終了の保存済み・dirty状態とUndo/Redo全配列を厳密比較する。decode失敗では印刷を呼ばないことも確認する。
+
+ブラウザ標準印刷画面の操作を自動化する代わりに、同じ印刷準備・CSSとChromium page.pdf経路で実PDFを生成する。ファイル名はwindow.print境界でdocument.titleを検査する。ネイティブ印刷画面の保存／取消、Edge実機、Safari／iPhone／Firefox、ユーザー設定による余白上書きは手動確認範囲。独立したbuild scriptはない静的アプリであり、構文チェック・ブラウザ読込・CIを配信前の検証とする。
+
+前半の共通Source接続の対象基準はmain 1a0b9a1d5aed8f9f0cbbd08b411207bbf6655d3d（Figure #329、Report Preview #331、Citation #333、Comparison #335、Timeline #337、Diagram #338がマージ済み）。その段階には図番号・表番号、全体デザイン変更、PDF・印刷専用処理を含まない。後続のPDF保存v1は上記に記載する。
 
 ## 保存と編集
 

@@ -27,7 +27,7 @@ test("現在のアプリ版とリリース名を0.5.0 Bridge Updateへ統一す�
 test("全ローカルCSS・JavaScriptを0.5.0のキャッシュ識別子で読み込む", () => {
   const assetVersions = [...html.matchAll(/(?:href|src)="(?!https?:)([^"?]+)\?v=([^"]+)"/g)]
     .map((match) => ({ path: match[1], version: match[2] }));
-  assert.equal(assetVersions.length, 61);
+  assert.equal(assetVersions.length, 62);
   assetVersions.forEach(({ path, version }) => {
     assert.match(version, /^0\.5\.0-\d+$/, `${path}のキャッシュ識別子`);
   });
@@ -41,7 +41,7 @@ test("全ローカルCSS・JavaScriptを0.5.0のキャッシュ識別子で読�
   assert.match(html, /memo-link-utils\.js\?v=0\.5\.0-3/);
   assert.match(html, /style\.css\?v=0\.5\.0-118/);
   assert.match(html, /<script src="source-utils\.js\?v=0\.5\.0-8"><\/script>/);
-  assert.ok(html.indexOf('src="source-utils.js?v=0.5.0-8"') < html.indexOf('src="app.js?v=0.5.0-200"'));
+  assert.ok(html.indexOf('src="source-utils.js?v=0.5.0-8"') < html.indexOf('src="app.js?v=0.5.0-201"'));
   assert.match(html, /chart-png-export\.js\?v=0\.5\.0-4/);
   assert.ok(html.indexOf("chart-png-export.js?") < html.indexOf("app.js?"));
   assert.match(html, /chart-block-utils\.js\?v=0\.5\.0-31/);
@@ -57,7 +57,8 @@ test("全ローカルCSS・JavaScriptを0.5.0のキャッシュ識別子で読�
   assert.match(html, /extensions\/web-clipper\/transfer-lifecycle\.js\?v=0\.5\.0-2/);
   assert.match(html, /web-clipper-config\.js\?v=0\.5\.0-4/);
   assert.match(html, /table-file-export-utils\.js\?v=0\.5\.0-4/);
-  assert.match(html, /app\.js\?v=0\.5\.0-200/);
+  assert.match(html, /app\.js\?v=0\.5\.0-201/);
+  assert.match(html, /report-print\.css\?v=0\.5\.0-2/);
 });
 
 test("本体リリースと各形式のバージョンを確認する", () => {

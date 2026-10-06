@@ -965,6 +965,8 @@ const appHeader = document.querySelector(".app-header");
 const preview = $("preview");
 const previewCard = $("previewCard");
 let reportPreviewOrigin = null;
+let reportPrintState = null;
+let attachmentRenderPromise = Promise.resolve();
 const saveStatus = $("saveStatus");
 const browserSaveStatusBtn = $("browserSaveStatusBtn");
 const localSaveStatusBtn = $("localSaveStatusBtn");
@@ -6417,7 +6419,7 @@ function openNote(id) {
   globalThis.renderGeometryBlockEditors?.();
   applyEffectiveFontSettings();
   renderPreview();
-  renderAttachmentsForCurrentNote();
+  attachmentRenderPromise = renderAttachmentsForCurrentNote();
   renderRelated();
   renderDiscovery();
   updateUndoButton();
@@ -8304,6 +8306,7 @@ function openReportPreview(event) {
 }
 
 function closeReportPreview() {
+  if (reportPrintState) return;
   if (!document.body.classList.contains("report-preview-mode")) return;
   document.body.classList.remove("report-preview-mode");
   reportPreviewHeading.hidden = true;
@@ -8316,6 +8319,106 @@ function closeReportPreview() {
   if (origin === reportPreviewMobileBtn && mobileAppMenu) mobileAppMenu.open = true;
   if (origin?.isConnected && origin.getClientRects().length) origin.focus();
   else titleInput.focus();
+}
+
+// Print the current shared Preview DOM; never save or construct another document.
+function restoreReportPrint() {
+  const state = reportPrintState;
+  if (!state) return;
+  reportPrintState = null;
+  document.title = state.title;
+  $("reportPrintStyles").media = "print";
+  state.styles.forEach(([element, style]) => {
+    if (style === null) element.removeAttribute("style");
+    else element.setAttribute("style", style);
+  });
+  state.details.forEach(([element, open]) => { element.open = open; });
+  state.images.forEach(([element, loading]) => {
+    if (loading === null) element.removeAttribute("loading");
+    else element.setAttribute("loading", loading);
+  });
+  previewCard.scrollTop = state.scroll;
+  $("reportPrintBtn").disabled = false;
+  $("reportPreviewBackBtn").disabled = false;
+  $("reportPrintBtn").focus({ preventScroll: true });
+}
+
+async function prepareReportPrint() {
+  if (reportPrintState || !document.body.classList.contains("report-preview-mode")) return false;
+  const state = reportPrintState = { title: document.title, scroll: previewCard.scrollTop,
+    styles: [], details: [], images: [] };
+  $("reportPrintBtn").disabled = true;
+  $("reportPreviewBackBtn").disabled = true;
+  $("reportPrintStatus").textContent = "画像・図の描画を確認しています…";
+  try {
+    const generation = mermaidRenderGeneration;
+    await Promise.all([attachmentRenderPromise, mermaidRenderQueue, document.fonts.ready]);
+    if (reportPrintState !== state) return false;
+    if (document.readyState !== "complete") await new Promise(resolve => window.addEventListener("load", resolve, { once: true }));
+    if (reportPrintState !== state) return false;
+    if (!$("reportPrintStyles").sheet) throw new Error("印刷用スタイルを読み込めませんでした。ページを再読み込みしてください。");
+    if (generation !== mermaidRenderGeneration) throw new Error("表示が更新されました。もう一度実行してください。");
+    state.details = [...preview.querySelectorAll("details")].map(element => [element, element.open]);
+    state.details.forEach(([element]) => { element.open = true; });
+    state.images = [...preview.querySelectorAll("img")].map(element => [element, element.getAttribute("loading")]);
+    await Promise.all(state.images.map(async ([element]) => {
+      element.loading = "eager";
+      await element.decode();
+      if (!element.naturalWidth) throw new Error("画像を読み込めませんでした。");
+    }));
+    if (reportPrintState !== state) return false;
+    if (generation !== mermaidRenderGeneration) throw new Error("表示が更新されました。もう一度実行してください。");
+    $("reportPrintStyles").media = "all";
+    await new Promise(resolve => requestAnimationFrame(resolve));
+    await document.fonts.ready;
+    if (reportPrintState !== state) return false;
+    if (generation !== mermaidRenderGeneration) throw new Error("表示が更新されました。もう一度実行してください。");
+    // A4 minus 20 mm on each edge. Leave a little space for rounding/margins.
+    const pageHeight = 257 * 96 / 25.4;
+    const atomic = ".image-block, .chart-block, .geometry-preview, .timeline-item, .mermaid-block, img";
+    const blocks = [...preview.querySelectorAll(atomic)].filter(element => !element.parentElement.closest(atomic));
+    blocks.forEach(element => {
+      const rect = element.getBoundingClientRect();
+      const css = getComputedStyle(element);
+      const height = rect.height + parseFloat(css.marginTop) + parseFloat(css.marginBottom);
+      const heading = element.previousElementSibling;
+      const headingCss = heading?.matches("h1,h2,h3,h4,h5,h6") ? getComputedStyle(heading) : null;
+      const headingHeight = headingCss ? heading.getBoundingClientRect().height + parseFloat(headingCss.marginTop) + parseFloat(headingCss.marginBottom) : 0;
+      const scale = Math.min(1, Math.max(1, pageHeight - headingHeight - 4) / height);
+      if (scale < 1) {
+        state.styles.push([element, element.getAttribute("style")]);
+        element.style.width = `${rect.width}px`;
+        element.style.maxWidth = "none";
+        element.style.zoom = String(scale);
+        const alignment = element.classList.contains("image-align-right") ? 1
+          : element.classList.contains("image-align-center") ? 0.5 : 0;
+        if (alignment) element.style.marginLeft = `${rect.width * (1 - scale) * alignment / scale}px`;
+      }
+    });
+    preview.querySelectorAll(".table-block").forEach(element => {
+      const css = getComputedStyle(element);
+      if (element.getBoundingClientRect().height + parseFloat(css.marginTop) + parseFloat(css.marginBottom) + 4 <= pageHeight) {
+        state.styles.push([element, element.getAttribute("style")]);
+        element.style.breakInside = "avoid-page";
+      }
+    });
+    document.title = safeFileName(titleInput.value.trim() || "無題レポート");
+    $("reportPrintStatus").textContent = "印刷画面で「PDFとして保存」を選び、プレビューを確認してください。";
+    return true;
+  } catch (error) {
+    restoreReportPrint();
+    $("reportPrintStatus").textContent = `印刷を開始できません: ${error.message || error}`;
+    return false;
+  }
+}
+
+async function printReportPreview() {
+  if (!await prepareReportPrint()) return;
+  try { window.print(); }
+  catch (error) {
+    restoreReportPrint();
+    $("reportPrintStatus").textContent = `印刷画面を開けません: ${error.message || error}`;
+  }
 }
 
 // Selection state stays outside the canonical body until the user saves.
@@ -16959,6 +17062,8 @@ if (noteExportBtn) noteExportBtn.addEventListener("click", openNoteExportDialog)
 reportPreviewBtn?.addEventListener("click", openReportPreview);
 reportPreviewMobileBtn?.addEventListener("click", openReportPreview);
 reportPreviewBackBtn?.addEventListener("click", closeReportPreview);
+$("reportPrintBtn")?.addEventListener("click", printReportPreview);
+window.addEventListener("afterprint", restoreReportPrint);
 manageSourcesBtn?.addEventListener("click", openSourceDialog);
 $("manageSourcesMobileBtn")?.addEventListener("click", openSourceDialog);
 $("closeSourceDialogBtn")?.addEventListener("click", () => sourceDialog.close());

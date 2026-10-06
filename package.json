@@ -12,6 +12,7 @@
     "test:e2e:figure": "node figure-metadata.e2e.js",
     "test:e2e:comparison": "node comparison.e2e.js",
     "test:e2e:report-preview": "node report-preview.e2e.js",
+    "test:e2e:report-pdf": "node report-pdf.e2e.js",
     "test:e2e:citation-source": "node citation-source.e2e.js",
     "test:e2e:chart": "node chart-block.e2e.js",
     "test:e2e:chart:all": "node chart-e2e-suite.js",
