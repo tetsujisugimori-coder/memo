@@ -98,6 +98,7 @@ async function state(page) {
     await page.evaluate(()=>{preview.querySelector("img").src="data:image/png;base64,broken";});
     await page.locator("#reportPrintBtn").click();await page.waitForFunction(()=>document.querySelector("#reportPrintStatus").textContent.startsWith("印刷を開始できません"));
     assert.equal(await page.evaluate(()=>window.printCalls),3);assert.deepEqual(await state(page),dirty);
+    await require("./report-caption-regressions.cjs").verifyReportCaptionCases(page,{out:path.join(out,"caption-regressions"),pdf:true});
     assert.deepEqual(errors,[]);
     for(const directory of [out,mobileOut]){
       const checked=spawnSync(process.env.PYTHON||"python",[path.join(__dirname,"docs/report-preview-v1/inspect-pdf.py"),directory],{encoding:"utf8"});

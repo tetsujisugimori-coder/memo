@@ -291,7 +291,12 @@ async function screenshotBlock(page, file) {
     await page.locator("#reportPreviewMobileBtn").click();
     await layout(page, true);
     assert.equal(await page.locator(".image-comparison-label").count(), 0);
-    assert.equal(await page.locator(".image-block-caption").innerText(), "図1 " + figuresBefore.map(figure=>figure.caption.trim()).join(" / "));
+    assert.equal(await page.locator(".report-caption").innerText(), "図1");
+    for(let index=0;index<2;index++) {
+      const group=page.locator(".report-image-source").nth(index);
+      assert.equal(await group.locator(":scope > .report-number").innerText(),`図1(${String.fromCharCode(97+index)})`);
+      assert.ok((await group.locator(".figure-metadata-main").innerText()).includes(figuresBefore[index].caption));
+    }
     await page.locator("#reportPreviewBackBtn").click();
     assert.doesNotMatch((await saved(page)).body, /image-label|image-caption/);
     await page.setViewportSize({ width: 1800, height: 1000 });

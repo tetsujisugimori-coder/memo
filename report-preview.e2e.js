@@ -280,6 +280,7 @@ async function verifyReportNumbering(page) {
     assert.equal(await page.locator("#titleInput").inputValue(), "レポートの題名");
     assert.equal(await page.locator("#preview .figure-metadata").count(), 1);
     await verifyReportNumbering(page);
+    await require("./report-caption-regressions.cjs").verifyReportCaptionCases(page,{out:path.join(__dirname,"e2e-artifacts/report-numbering-review/caption-regressions")});
     assert.deepEqual(errors, []);
     await page.close();
     process.stdout.write("Report Preview E2E: PASS\n");

@@ -8293,7 +8293,7 @@ function applyReportNumbering(root) {
     let caption = element.querySelector(":scope > figcaption");
     if (!caption) caption = document.createElement("figcaption");
     caption.classList.add("report-caption");
-    if (element.dataset.reportEmptyCaption === "true") caption.replaceChildren();
+    if (element.dataset.reportEmptyCaption === "true") caption.textContent = element.dataset.reportSeriesCaption || "";
     const number = document.createElement("span");
     number.className = "report-number";
     number.textContent = label;
@@ -9708,7 +9708,9 @@ function renderChartDataTable(chart, blockIndex, copyEnabled) {
 
 function renderChartBlock(chartValue, blockIndex, options = {}) {
   const html = renderChartBlockContent(chartValue, blockIndex, options);
-  const reportHtml = html.replace("<figure ", `<figure data-report-kind="figure" data-report-key="chart-${blockIndex}" data-report-empty-caption="${!chartValue.title?.trim()}" `);
+  const seriesCaption = !chartValue.title?.trim() && chartValue.chartType === "pie" && chartValue.series?.length > 1
+    ? resolvePieSeries(chartValue).name : "";
+  const reportHtml = html.replace("<figure ", `<figure data-report-kind="figure" data-report-key="chart-${blockIndex}" data-report-empty-caption="${!chartValue.title?.trim()}" data-report-series-caption="${escapeAttr(seriesCaption)}" `);
   return reportHtml.replace(/<\/figure>$/, () => (citationRenderContext ? renderContentCitations(chartValue.citationIds) : "") + "</figure>");
 }
 
@@ -12743,7 +12745,7 @@ function renderImageBlock(block, blockIndex, editable = true, reportKey = blockI
   const reportMode = document.body.classList.contains("report-preview-mode");
   const figure = comparison || Boolean(block.figureId || block.caption?.trim() || block.images.some(image => hasFigureMetadata(image.figureMetadata)));
   const metadataCaptions = [...new Set(block.images.map(image => image.figureMetadata?.caption?.trim()).filter(Boolean))];
-  const reportCaption = block.caption?.trim() || metadataCaptions.join(" / ");
+  const reportCaption = block.caption?.trim() || (comparison ? "" : metadataCaptions.join(" / "));
   const displayCaption = reportMode && figure ? reportCaption : block.caption;
   const reportAttrs = figure ? ` data-report-kind="figure" data-report-key="image-${escapeAttr(reportKey)}"` : "";
   const images = block.images.map((image) => `
@@ -12752,7 +12754,7 @@ function renderImageBlock(block, blockIndex, editable = true, reportKey = blockI
         <span class="inline-attachment-image" data-attachment-id="${escapeAttr(image.id)}" data-alt="${escapeAttr(image.alt)}" role="img" aria-label="${escapeAttr(image.alt || "添付画像")}">画像を読み込み中...</span>
       </button>
       ${comparison && image.comparisonLabel?.trim() ? `<div class="image-comparison-label">${escapeHtml(image.comparisonLabel)}</div>` : ""}
-      ${renderFigureMetadata(image.figureMetadata, reportMode && figure && (!block.caption?.trim() || image.figureMetadata?.caption?.trim() === block.caption.trim()))}
+      ${renderFigureMetadata(image.figureMetadata, reportMode && figure && ((!comparison && !block.caption?.trim()) || (Boolean(block.caption?.trim()) && image.figureMetadata?.caption?.trim() === block.caption.trim())))}
       ${renderContentCitations(image.figureMetadata?.citationIds)}
     </div>
   `).join("");

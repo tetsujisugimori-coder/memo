@@ -77,3 +77,42 @@ for row in range(55):
 for index,page in enumerate(doc):
     page.get_pixmap(matrix=pymupdf.Matrix(1,1),alpha=False).save(root / f"page-{index+1:02}.png")
 print(f"Real PDF PASS: {len(doc)} A4 pages; Japanese text, page numbers, URL links, repeated Table headers, complete images")
+
+
+# Caption-review cases exercise actual PDFs separately from the mixed report.
+review = root / "caption-regressions"
+if (review / "cases.json").exists():
+    cases = json.loads((review / "cases.json").read_text(encoding="utf-8"))
+    assert len(cases) == 10, "All Comparison/pie/single Figure cases must run"
+    for case in cases:
+        pdf = pymupdf.open(review / (case["name"] + ".pdf"))
+        page_texts = ["".join(page.get_text().split()) for page in pdf]
+        combined = "".join(page_texts)
+        expected = "".join(case["caption"].split())
+        assert any(expected in text for text in page_texts), f"Missing/split visible caption: {case['name']}"
+        spans = [span["text"].strip() for page in pdf for block in page.get_text("dict")["blocks"] if "lines" in block for line in block["lines"] for span in line["spans"]]
+        assert spans.count("図1") == 1, f"Extra/missing parent number: {case['name']}"
+        if case["kind"] == "comparison":
+            together = [(page,text) for page,text in zip(pdf,page_texts) if expected in text and all(f"図1({chr(97+side)})" in text for side in case["sides"])]
+            assert together, f"Comparison captions separated: {case['name']}"
+            page, text = together[0]
+            image_rects = {tuple(rect) for image in page.get_images(full=True) for rect in page.get_image_rects(image[0])}
+            assert len(image_rects) == 2, f"Comparison media separated from captions: {case['name']}"
+            offsets = [combined.rindex(f"図1({chr(97+side)})") for side in case["sides"]] + [len(combined)]
+            for order, index in enumerate(case["sides"]):
+                section = combined[offsets[order]:offsets[order+1]]
+                description = "".join(case["individual"][index].split())
+                if description: assert description in section, f"Individual caption lost its side: {case['name']} side {index}"
+                for field in [f"個別資料{index+1}",f"日付{index+1}",f"権利{index+1}",f"補足{index+1}",f"[{order+1}]"]:
+                    assert field in section, f"Side information missing: {case['name']} {field}"
+            if case["parent"]: assert combined.count("".join(case["parent"].split())) == 1, "Parent caption duplicated"
+            links = [link.get("uri", "") for page in pdf for link in page.get_links()]
+            for side in case["sides"]:
+                for suffix in [f"individual-{side+1}", "common-left" if side == 0 else "common-right"]:
+                    assert "https://example.org/" + suffix in links, "Image and shared Source links retained"
+        elif case["kind"] == "pie":
+            for item, value in zip(["A", "B"],case["values"]):
+                assert f"項目{item}:{value}件" in combined, f"Selected pie values changed: {case['name']}"
+        for index,page in enumerate(pdf):
+            page.get_pixmap(matrix=pymupdf.Matrix(1,1),alpha=False).save(review / f"{case['name']}-page-{index+1}.png")
+    print(f"Caption review real PDFs PASS: {len(cases)} cases; side captions/Sources, visible pie series, values and parent numbers")

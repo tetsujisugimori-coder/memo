@@ -95,8 +95,9 @@ Report Previewの表示DOMを使って、Figure・Comparison・Chart・Geometry/
 - Comparisonは全体で1つの図番号。既存の非空画像ラベルに図N(a)/図N(b)を付け、片方だけラベルがある場合も画像位置を維持する。内部画像とChartの値表は別カウントしない。
 - Timeline自体は対象外。参照Figureは最初の表示位置で番号を取り、後続の同じ正本Figure表示にも同じ番号を使う。画像の添付IDや衝突したFigure IDで統合せず、現在の正本ブロックの出現位置を表示専用キーとして共有する。曖昧なIDのTimeline参照は既存の不在表示を維持し、正本ブロックはそれぞれ採番する。
 - GeometryとDiagramは同じSVG/figure rendererなので、説明のない旧Geometryも図として扱う。Mermaidや通常画像を新しくDiagramへ分類しない。
+- 無題の複数系列円グラフは、仮のグラフ名を省いても選択中の系列名を可視captionに残す。有題なら既存のタイトルと系列名、無題の単一系列なら番号のみ。選択系列・数値・凡例・内部値表・Sourceは既存rendererのまま、画面とPDFで同じ表示を使う。
 - 番号はrenderPreviewごとに再計算する。本文、Source、ID、revision、updatedAt、dirty状態、Undo/Redo、IndexedDB、DB schema、バックアップv6を変更しない。図番号・表番号・Citation番号は別体系。
-- 図の番号・説明は対象物の下、表は上。画像説明は既存ブロックcaptionを優先し、空なら既存資料captionを使う。採用した同一資料captionを重ねて表示しない。Tableのcaption/note、Diagramのcaption/descriptionが同じ場合もReportで1度だけ表示し、Diagramの説明内Citationはcaptionへ保つ。
+- 図の番号・説明は対象物の下、表は上。単一Figureの説明は既存ブロックcaptionを優先し、空なら既存資料captionを使う。Comparisonは全体captionと個別captionを分け、個別captionを結合して全体説明へ移さない。異なる個別captionは既存の資料表示グループに残し、画像ラベルが空でも図N(a)/(b)で画像・資料・Citationと結び付ける。右側だけ情報がある場合は(b)を使う。全体captionと同じ個別captionだけを省略し、資料・Sourceの対応は維持する。Tableのcaption/note、Diagramのcaption/descriptionが同じ場合もReportで1度だけ表示し、Diagramの説明内Citationはcaptionへ保つ。
 - Reportだけ白背景・共通サイズ・左配置・折返しを使う。画像の資料・共通Sourceは番号/説明の後へ移し、Comparisonでは画像位置の小番号で資料の対応を保つ。通常編集の並びや見た目は維持する。
 
 PDFは採番後の同じDOMを使い、別の番号計算を持たない。既存A4測定は番号・説明・出典込みのfigure全体を測り、途中分割を避け、ページより大きい図だけ縮小する。短表は一体、長表は従来の行間分割・ヘッダー繰返し・9ptを維持する。表captionと先頭行の分離も回避する。先頭Timeline項目は親sectionの見出し/説明の高さも確保し、内側の余白を含めて測定する。
@@ -109,3 +110,13 @@ PDFは採番後の同じDOMを使い、別の番号計算を持たない。既�
 ![320px採番表示](numbering-report-320.png)
 ![PDFの図番号と長い説明](numbering-pdf-figure.png)
 ![PDFのComparisonと表番号](numbering-pdf-comparison-table.png)
+
+### PR #345の説明保持回帰
+
+レビュー対象head `f6e10b5d57cbf387a314f97390da6b3c0f693d62`でComparisonの個別説明結合と無題の複数系列円グラフの系列名消失を実ブラウザで再現した。`report-caption-regressions.cjs`を既存Report Preview/PDF E2Eから呼び、Comparison 5条件、円グラフ4条件、単一Figure互換の10条件を確認する。左画像の情報がなく右側だけ説明・Sourceがある条件も(b)を維持する。別ID・別画素の画像で左右対応を検証し、SVG・選択系列・凡例・値表・Citationの一致と通常表示への復元を比較する。保存済み/dirty状態とも本文・保存内容・timer・Undo/Redoを厳密比較する。
+
+実PDFの各ケースで親番号の一意性、個別説明・資料・Source/Citationの(a)/(b)対応、可視系列caption、選択中の数値、比較画像と説明の同一ページを検査する。末尾の共通出典一覧は別ページを許容する。生成物は`e2e-artifacts/report-pdf-review/caption-regressions/`、画面画像は`e2e-artifacts/report-numbering-review/caption-regressions/`。既存CI artifactに含まれる。PDFの目視確認・ネイティブ印刷画面と実機の確認状態はPRに記載する。
+
+
+![右画像だけの説明とSourceを図1(b)に対応させた実PDF](numbering-review-comparison-right.png)
+![無題の円グラフで選択中の後期系列を残した実PDF](numbering-review-pie-second.png)
