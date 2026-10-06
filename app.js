@@ -8447,7 +8447,34 @@ async function prepareReportPrint() {
         const style = getComputedStyle(entry);
         return total + entry.getBoundingClientRect().height + parseFloat(style.marginTop) + parseFloat(style.marginBottom);
       }, 0);
-      const scale = Math.min(1, Math.max(1, pageHeight - headingHeight - 4) / height);
+      const available = Math.max(1, pageHeight - headingHeight - 4);
+      const media = element.querySelector?.(".image-block-media, .chart-block-scroll, svg");
+      // Fit large media as before, but let long text flow at its original size.
+      // Reserve at least a third of a page for text before considering whole-group zoom.
+      if (height > pageHeight && ((media && (media.getBoundingClientRect().height < available * 2 / 3
+          || height - media.getBoundingClientRect().height > available / 3))
+          || (!media && element.classList.contains("timeline-item")))) {
+        state.styles.push([element, element.getAttribute("style")]);
+        element.style.breakInside = "auto";
+        element.style.display = "block";
+        // A long Timeline may contain a Figure; fit only its media, never its prose.
+        const visuals = [...element.querySelectorAll(".image-block-media, .chart-block-scroll, .geometry-preview > svg, .mermaid-diagram > svg")];
+        visuals.forEach(visual => {
+          const box = visual.getBoundingClientRect();
+          const owner = visual.closest("figure");
+          const caption = owner?.querySelector(":scope > .report-caption");
+          const captionHeight = caption ? caption.getBoundingClientRect().height : 0;
+          const mediaScale = Math.min(1, Math.max(1, pageHeight - Math.min(captionHeight, pageHeight / 3) - 4) / box.height);
+          if (mediaScale < 1) {
+            state.styles.push([visual, visual.getAttribute("style")]);
+            visual.style.width = `${box.width}px`;
+            visual.style.maxWidth = "none";
+            visual.style.zoom = String(mediaScale);
+          }
+        });
+        return;
+      }
+      const scale = Math.min(1, available / height);
       if (scale < 1) {
         state.styles.push([element, element.getAttribute("style")]);
         element.style.width = `${rect.width}px`;

@@ -1,0 +1,224 @@
+[
+  {
+    "name": "prose",
+    "numbers": [],
+    "measurements": [
+      {
+        "width": 1280,
+        "bodyFontSize": 17,
+        "theme": "light",
+        "overflow": false,
+        "headingSizes": [
+          26.35,
+          22.1,
+          19.04
+        ],
+        "firstHeadingTop": 0
+      },
+      {
+        "width": 1280,
+        "bodyFontSize": 20,
+        "theme": "dark",
+        "overflow": false,
+        "headingSizes": [
+          31,
+          26,
+          22.4
+        ],
+        "firstHeadingTop": 0
+      },
+      {
+        "width": 320,
+        "bodyFontSize": 17,
+        "theme": "light",
+        "overflow": false,
+        "headingSizes": [
+          26.35,
+          22.1,
+          19.04
+        ],
+        "firstHeadingTop": 0
+      },
+      {
+        "width": 320,
+        "bodyFontSize": 20,
+        "theme": "dark",
+        "overflow": false,
+        "headingSizes": [
+          31,
+          26,
+          22.4
+        ],
+        "firstHeadingTop": 0
+      }
+    ]
+  },
+  {
+    "name": "groups",
+    "numbers": [
+      "図1",
+      "図2",
+      "表1",
+      "図3",
+      "図4",
+      "図1"
+    ],
+    "measurements": [
+      {
+        "width": 1280,
+        "bodyFontSize": 17,
+        "theme": "light",
+        "overflow": false,
+        "headingSizes": [
+          22.1,
+          22.1
+        ],
+        "firstHeadingTop": 0,
+        "groupGap": 28.05,
+        "timelineFigureGap": 7.65
+      },
+      {
+        "width": 1280,
+        "bodyFontSize": 20,
+        "theme": "dark",
+        "overflow": false,
+        "headingSizes": [
+          26,
+          26
+        ],
+        "firstHeadingTop": 0,
+        "groupGap": 33,
+        "timelineFigureGap": 9
+      },
+      {
+        "width": 320,
+        "bodyFontSize": 17,
+        "theme": "light",
+        "overflow": false,
+        "headingSizes": [
+          22.1,
+          22.1
+        ],
+        "firstHeadingTop": 0,
+        "groupGap": 28.05,
+        "timelineFigureGap": 7.65
+      },
+      {
+        "width": 320,
+        "bodyFontSize": 20,
+        "theme": "dark",
+        "overflow": false,
+        "headingSizes": [
+          26,
+          26
+        ],
+        "firstHeadingTop": 0,
+        "groupGap": 33,
+        "timelineFigureGap": 9
+      }
+    ]
+  },
+  {
+    "name": "long-groups",
+    "numbers": [
+      "図1",
+      "図2",
+      "図2"
+    ],
+    "measurements": [
+      {
+        "width": 1280,
+        "bodyFontSize": 17,
+        "theme": "light",
+        "overflow": false,
+        "headingSizes": [
+          22.1,
+          22.1
+        ],
+        "firstHeadingTop": 0,
+        "groupGap": 28.05,
+        "timelineFigureGap": 7.65
+      },
+      {
+        "width": 1280,
+        "bodyFontSize": 20,
+        "theme": "dark",
+        "overflow": false,
+        "headingSizes": [
+          26,
+          26
+        ],
+        "firstHeadingTop": 0,
+        "groupGap": 33,
+        "timelineFigureGap": 9
+      },
+      {
+        "width": 320,
+        "bodyFontSize": 17,
+        "theme": "light",
+        "overflow": false,
+        "headingSizes": [
+          22.1,
+          22.1
+        ],
+        "firstHeadingTop": 0,
+        "groupGap": 28.05,
+        "timelineFigureGap": 7.65
+      },
+      {
+        "width": 320,
+        "bodyFontSize": 20,
+        "theme": "dark",
+        "overflow": false,
+        "headingSizes": [
+          26,
+          26
+        ],
+        "firstHeadingTop": 0,
+        "groupGap": 33,
+        "timelineFigureGap": 9
+      }
+    ]
+  },
+  {
+    "name": "optional",
+    "numbers": [
+      "図1",
+      "表1"
+    ],
+    "measurements": [
+      {
+        "width": 1280,
+        "bodyFontSize": 17,
+        "theme": "light",
+        "overflow": false,
+        "headingSizes": [],
+        "groupGap": 0
+      },
+      {
+        "width": 1280,
+        "bodyFontSize": 20,
+        "theme": "dark",
+        "overflow": false,
+        "headingSizes": [],
+        "groupGap": 0
+      },
+      {
+        "width": 320,
+        "bodyFontSize": 17,
+        "theme": "light",
+        "overflow": false,
+        "headingSizes": [],
+        "groupGap": 0
+      },
+      {
+        "width": 320,
+        "bodyFontSize": 20,
+        "theme": "dark",
+        "overflow": false,
+        "headingSizes": [],
+        "groupGap": 0
+      }
+    ]
+  }
+]

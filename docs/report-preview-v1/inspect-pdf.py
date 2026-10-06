@@ -119,3 +119,38 @@ if (review / "cases.json").exists():
         for index,page in enumerate(pdf):
             page.get_pixmap(matrix=pymupdf.Matrix(1,1),alpha=False).save(review / f"{case['name']}-page-{index+1}.png")
     print(f"Caption review real PDFs PASS: {len(cases)} cases; side captions/Sources, visible pie series, values and parent numbers")
+
+# Spacing stress cases: long prose/Timeline/captions must remain readable and complete.
+spacing = root / "spacing"
+if (spacing / "cases.json").exists():
+    spacing_results = []
+    for case in json.loads((spacing / "cases.json").read_text(encoding="utf-8")):
+        pdf = pymupdf.open(spacing / (case["name"] + ".pdf"))
+        compact_text = "".join("".join(page.get_text().split()) for page in pdf)
+        for token in case["tokens"]:
+            assert "".join(token.split()) in compact_text, f"Spacing PDF text missing: {case['name']} {token}"
+        if case["name"] == "groups":
+            for i in range(24):
+                if i != 1:
+                    assert f"出来事{i+1}" in compact_text, f"Timeline item missing: {i+1}"
+            assert compact_text.count("図1検証Figure") == 2, "Timeline keeps canonical figure number"
+        if case["name"] in ("prose", "long-groups"):
+            for i in range(36):
+                assert f"段落{i+1}" in compact_text, f"Long prose paragraph missing: {i+1}"
+        minimum = 100
+        for index, page in enumerate(pdf):
+            spans = [s for b in page.get_text("dict")["blocks"] if "lines" in b for line in b["lines"] for s in line["spans"]]
+            for s in spans:
+                x0, y0, x1, y1 = s["bbox"]
+                assert x0 >= 55 and x1 <= page.rect.width-55, f"Spacing text clipped horizontally: {case['name']} {s}"
+                if y0 < 790:
+                    assert y0 >= 54 and y1 <= page.rect.height-53, f"Spacing text clipped vertically: {case['name']} {s}"
+                if case["name"] == "long-groups" and ("長説明" in s["text"] or "全文を" in s["text"] or "段落" in s["text"]):
+                    minimum = min(minimum, s["size"])
+                    assert s["size"] >= 8.9, f"Long text was shrunk: {s}"
+            page.get_pixmap(matrix=pymupdf.Matrix(1,1),alpha=False).save(spacing / f"{case['name']}-page-{index+1:02}.png")
+        if case["name"] == "long-groups":
+            assert len(pdf) >= 4, "Long text must flow across pages"
+        spacing_results.append({"name":case["name"],"pages":len(pdf),"minimumLongTextPt":minimum if minimum<100 else None})
+    (spacing / "inspection.json").write_text(json.dumps(spacing_results,indent=2),encoding="utf-8")
+    print(f"Spacing real PDFs PASS: {len(spacing_results)} reports; complete long text and Timeline, original font size, page bounds")

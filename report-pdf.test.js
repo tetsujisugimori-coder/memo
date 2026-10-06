@@ -10,7 +10,7 @@ function harness({decode = async () => {}, height = 2000} = {}) {
   const attrs = new Map();
   const element = {open:false, style:{}, classList:{contains:()=>false}, naturalWidth:300, parentElement:{closest:()=>null},
     getAttribute:key=>attrs.get(key) ?? null, setAttribute:(key,value)=>attrs.set(key,value), removeAttribute:key=>attrs.delete(key),
-    decode, getBoundingClientRect:()=>({height,width:500})};
+    decode, querySelector:()=>({getBoundingClientRect:()=>({height,width:500})}), querySelectorAll:()=>[], getBoundingClientRect:()=>({height,width:500})};
   const controls = Object.fromEntries(["reportPrintBtn","reportPreviewBackBtn","reportPrintStyles","reportPrintStatus"].map(id=>[id,{disabled:false,focus(){},media:"print",sheet:{},textContent:""}]));
   const context = vm.createContext({document:{readyState:"complete",title:"Memo Nexus",body:{classList:{contains:()=>true}},fonts:{ready:Promise.resolve()}},
     previewCard:{scrollTop:120}, preview:{querySelectorAll:selector=>selector === "details" || selector === "img" ? [element] : [element]},
@@ -75,4 +75,34 @@ test("先頭Timeline項目は親sectionの見出し分も確保して印刷す�
   const available=257*96/25.4-112-4;
   assert.ok(Number(h.element.style.zoom)*2032<=available+0.01,"heading and complete Timeline media/caption/source fit together");
   h.context.restoreReportPrint();
+});
+
+test("長い説明を含むFigureは全体を縮めず分割でき、一時styleを復元する",async()=>{
+  const h=harness({height:2400});
+  h.element.querySelector=()=>({getBoundingClientRect:()=>({height:300,width:500})});
+  await h.context.prepareReportPrint();
+  assert.equal(h.element.style.breakInside,"auto");assert.equal(h.element.style.zoom,undefined);
+  assert.equal(h.element.style.display,"block");
+  h.context.restoreReportPrint();assert.equal(h.element.getAttribute("style"),null);
+ });
+test("画像を持たない長いTimeline項目は文字サイズを維持して分割できる",async()=>{
+  const h=harness({height:2400});
+  h.element.classList.contains=name=>name==="timeline-item";
+  h.element.querySelector=()=>null;
+  await h.context.prepareReportPrint();
+  assert.equal(h.element.style.breakInside,"auto");assert.equal(h.element.style.zoom,undefined);
+  h.context.restoreReportPrint();
+ });
+
+test("ページを超えるキャプションは画像の縮小余地をすべて奪わない",async()=>{
+  const h=harness({height:4000});
+  const attrs=new Map();
+  const visual={style:{},getBoundingClientRect:()=>({height:1600,width:500}),
+    closest:()=>({querySelector:()=>({getBoundingClientRect:()=>({height:2000})})}),
+    getAttribute:key=>attrs.get(key)??null,setAttribute:(key,value)=>attrs.set(key,value),removeAttribute:key=>attrs.delete(key)};
+  h.element.querySelector=()=>visual;h.element.querySelectorAll=()=>[visual];
+  await h.context.prepareReportPrint();
+  assert.equal(h.element.style.zoom,undefined);
+  assert.ok(Number(visual.style.zoom)>.35&&Number(visual.style.zoom)<1,"fit the large media while leaving caption text unscaled");
+  h.context.restoreReportPrint();assert.equal(visual.getAttribute("style"),null);
 });

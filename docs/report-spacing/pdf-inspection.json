@@ -1,0 +1,22 @@
+[
+  {
+    "name": "prose",
+    "pages": 5,
+    "minimumLongTextPt": null
+  },
+  {
+    "name": "groups",
+    "pages": 9,
+    "minimumLongTextPt": null
+  },
+  {
+    "name": "long-groups",
+    "pages": 9,
+    "minimumLongTextPt": 9.0
+  },
+  {
+    "name": "optional",
+    "pages": 1,
+    "minimumLongTextPt": null
+  }
+]

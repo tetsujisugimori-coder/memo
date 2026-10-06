@@ -104,3 +104,11 @@ body.report-preview-mode #preview :is(.content-citations, .diagram-citations, .f
 
 /* Include nested caption/source margins in the existing atomic-item measurement. */
 body.report-preview-mode #preview .timeline-content { display: flow-root; }
+
+/* Splittable long groups retain the same readable text size and local rhythm. */
+body.report-preview-mode #preview :is(.image-block-media, .chart-block-scroll, .geometry-preview > svg, .mermaid-diagram > svg) { break-inside: avoid-page; }
+body.report-preview-mode #preview :is(.report-image-source, .diagram-description, .content-citations, .diagram-citations, .timeline-citations, .table-block-note) { break-before: avoid-page; }
+body.report-preview-mode #preview .timeline-date { break-after: avoid-page; margin-bottom: var(--report-inner-gap); }
+body.report-preview-mode #preview .timeline-block > :is(h2, .timeline-description) { break-after: avoid-page; }
+body.report-preview-mode #preview .chart-data-table { overflow: visible; }
+body.report-preview-mode #preview .report-sources li { orphans: 3; widows: 3; }
