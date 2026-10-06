@@ -246,7 +246,7 @@ async function screenshotBlock(page, file) {
     await page.setViewportSize({ width: 320, height: 844 });
     const mobileItems = await layout(page, true);
     assert.deepEqual(mobileItems.map((item) => item.id), items.map((item) => item.id));
-    assert.deepEqual(mobileItems.map((item) => item.label), labels);
+    assert.deepEqual(mobileItems.map((item) => item.label), labels.map((label,index)=>`図1(${String.fromCharCode(97+index)}) ${label}`));
     await page.locator(".image-block").screenshot({ path: path.join(screenshotDir, "comparison-stress-320.png") });
     await page.locator("#reportPreviewBackBtn").click();
     await layout(page, true);
@@ -290,7 +290,8 @@ async function screenshotBlock(page, file) {
     await page.locator("#mobileAppMenu summary").click();
     await page.locator("#reportPreviewMobileBtn").click();
     await layout(page, true);
-    assert.equal(await page.locator(".image-comparison-label, .image-block-caption").count(), 0);
+    assert.equal(await page.locator(".image-comparison-label").count(), 0);
+    assert.equal(await page.locator(".image-block-caption").innerText(), "図1 " + figuresBefore.map(figure=>figure.caption.trim()).join(" / "));
     await page.locator("#reportPreviewBackBtn").click();
     assert.doesNotMatch((await saved(page)).body, /image-label|image-caption/);
     await page.setViewportSize({ width: 1800, height: 1000 });

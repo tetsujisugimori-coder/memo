@@ -8137,6 +8137,7 @@ function renderPreview() {
   previewAutomaticTerms = currentTermRelationIndex().byNoteId.get(note.id)?.automaticTerms || [];
   checklistRenderIndex = 0;
   preview.innerHTML = renderPreviewHtml(body, note.id, renderGeneration);
+  if (document.body.classList.contains("report-preview-mode")) applyReportNumbering(preview);
   hydrateGeometryPreviews();
   hydrateMathExpressions();
   hydrateInlineAttachmentImages();
@@ -8278,6 +8279,56 @@ function saveSourceFromForm(event) {
   sourceStatus.textContent = "出典を保存しました。本文に表示するには、登録した出典の「引用を挿入」を選択してください。";
 }
 
+// Display projection only: numbering follows rendered order, never canonical storage.
+function applyReportNumbering(root) {
+  const numbers = new Map();
+  const counts = { figure: 0, table: 0 };
+  root.querySelectorAll("[data-report-kind]").forEach(element => {
+    if (element.parentElement.closest("[data-report-kind]")) return;
+    const kind = element.dataset.reportKind;
+    const key = kind + ":" + element.dataset.reportKey;
+    if (!numbers.has(key)) numbers.set(key, ++counts[kind]);
+    const label = (kind === "table" ? "表" : "図") + numbers.get(key);
+    element.dataset.reportNumber = label;
+    let caption = element.querySelector(":scope > figcaption");
+    if (!caption) caption = document.createElement("figcaption");
+    caption.classList.add("report-caption");
+    if (element.dataset.reportEmptyCaption === "true") caption.replaceChildren();
+    const number = document.createElement("span");
+    number.className = "report-number";
+    number.textContent = label;
+    caption.prepend(number, ...(caption.textContent.trim() ? [document.createTextNode(" ")] : []));
+    if (kind === "table") element.prepend(caption);
+    else if (element.classList.contains("image-block")) {
+      element.querySelector(".image-block-media").after(caption);
+      let after = caption;
+      element.querySelectorAll(".image-block-item").forEach((item, index) => {
+        const source = document.createElement("div");
+        source.className = "report-image-source";
+        source.append(...item.querySelectorAll(":scope > .figure-metadata, :scope > .content-citations"));
+        if (!source.childElementCount) return;
+        if (element.classList.contains("image-comparison")) {
+          const sublabel = document.createElement("span");
+          sublabel.className = "report-number";
+          sublabel.textContent = label + "(" + String.fromCharCode(97 + index) + ")";
+          source.prepend(sublabel);
+        }
+        after.after(source);
+        after = source;
+      });
+    } else if (element.classList.contains("geometry-preview")) element.querySelector("svg").after(caption);
+    else element.insertBefore(caption, element.querySelector(":scope > .content-citations"));
+    element.querySelectorAll(".image-block-item").forEach((item, index) => {
+      const child = item.querySelector(".image-comparison-label");
+      if (!child) return;
+      const subnumber = document.createElement("span");
+      subnumber.className = "report-number";
+      subnumber.textContent = label + "(" + String.fromCharCode(97 + index) + ") ";
+      child.prepend(subnumber);
+    });
+  });
+}
+
 function setReportPreviewControlsReadOnly(readOnly) {
   preview.querySelectorAll("button:not(.image-block-open), input, select, textarea").forEach((control) => {
     if (readOnly && !control.disabled) {
@@ -8381,9 +8432,21 @@ async function prepareReportPrint() {
       const rect = element.getBoundingClientRect();
       const css = getComputedStyle(element);
       const height = rect.height + parseFloat(css.marginTop) + parseFloat(css.marginBottom);
-      const heading = element.previousElementSibling;
-      const headingCss = heading?.matches("h1,h2,h3,h4,h5,h6") ? getComputedStyle(heading) : null;
-      const headingHeight = headingCss ? heading.getBoundingClientRect().height + parseFloat(headingCss.marginTop) + parseFloat(headingCss.marginBottom) : 0;
+      let heading = element.previousElementSibling;
+      const leading = [];
+      // The first Timeline item shares its page with the section's heading/description.
+      if (!heading && element.classList.contains("timeline-item")) {
+        heading = element.parentElement.previousElementSibling;
+        if (heading?.matches(".timeline-description")) {
+          leading.push(heading);
+          heading = heading.previousElementSibling;
+        }
+      }
+      if (heading?.matches("h1,h2,h3,h4,h5,h6")) leading.push(heading);
+      const headingHeight = leading.reduce((total, entry) => {
+        const style = getComputedStyle(entry);
+        return total + entry.getBoundingClientRect().height + parseFloat(style.marginTop) + parseFloat(style.marginBottom);
+      }, 0);
       const scale = Math.min(1, Math.max(1, pageHeight - headingHeight - 4) / height);
       if (scale < 1) {
         state.styles.push([element, element.getAttribute("style")]);
@@ -9645,7 +9708,8 @@ function renderChartDataTable(chart, blockIndex, copyEnabled) {
 
 function renderChartBlock(chartValue, blockIndex, options = {}) {
   const html = renderChartBlockContent(chartValue, blockIndex, options);
-  return html.replace(/<\/figure>$/, () => (citationRenderContext ? renderContentCitations(chartValue.citationIds) : "") + "</figure>");
+  const reportHtml = html.replace("<figure ", `<figure data-report-kind="figure" data-report-key="chart-${blockIndex}" data-report-empty-caption="${!chartValue.title?.trim()}" `);
+  return reportHtml.replace(/<\/figure>$/, () => (citationRenderContext ? renderContentCitations(chartValue.citationIds) : "") + "</figure>");
 }
 
 function renderChartBlockContent(chartValue, blockIndex, { editable = true } = {}) {
@@ -12344,7 +12408,7 @@ function renderTimelineBlock(timeline, blockIndex, imageSegments) {
     const bodyHtml = renderTimelineItemBody(item.body);
     const figure = figures.get(item.figureId);
     const media = item.figureId ? (figure
-      ? renderImageBlock(figure, "timeline-" + blockIndex + "-" + index, false)
+      ? renderImageBlock(figure, "timeline-" + blockIndex + "-" + index, false, imageSegments.indexOf(figure))
       : '<p class="timeline-missing">参照先のFigureがありません。</p>') : "";
     const citations = item.citationIds.length ? '<p class="timeline-citations">' +
       item.citationIds.map((id) => renderMarkdownInline("[@" + id + "]")).join(" ") + "</p>" : "";
@@ -12590,11 +12654,14 @@ function renderGeometryBlock(geometry, blockIndex) {
   const title = [geometry.caption.trim(), geometry.diagram?.description.trim()].filter(Boolean).join("。") || `図形ブロック${blockIndex + 1}`;
   const payload = encodeURIComponent(JSON.stringify(geometry));
   const diagram = geometry.diagram;
-  const description = diagram?.description.trim() ? `<div class="diagram-description">${renderTimelineItemBody(diagram.description)}</div>` : "";
+  const descriptionHtml = diagram?.description.trim() ? renderTimelineItemBody(diagram.description) : "";
+  const sharedCaption = document.body.classList.contains("report-preview-mode") && diagram?.description.trim() === geometry.caption.trim();
+  const description = descriptionHtml && !sharedCaption ? `<div class="diagram-description">${descriptionHtml}</div>` : "";
+  const captionHtml = sharedCaption ? descriptionHtml : escapeHtml(geometry.caption);
   const created = diagram?.createdForReport ? '<p class="diagram-created">本レポート作成図</p>' : "";
   const citations = diagram?.citationIds.length ? '<p class="diagram-citations">' +
     diagram.citationIds.map((id) => renderMarkdownInline("[@" + id + "]")).join(" ") + "</p>" : "";
-  return `<figure class="geometry-preview" data-geometry-id="${escapeAttr(geometry.id)}"><svg data-geometry-preview="${escapeAttr(payload)}" viewBox="${geometry.viewBox.x} ${geometry.viewBox.y} ${geometry.viewBox.width} ${geometry.viewBox.height}" role="img" aria-label="${escapeAttr(title)}"></svg>${geometry.caption.trim() ? `<figcaption>${escapeHtml(geometry.caption)}</figcaption>` : ""}${description}${created}${citations}</figure>`;
+  return `<figure data-report-kind="figure" data-report-key="geometry-${blockIndex}" class="geometry-preview" data-geometry-id="${escapeAttr(geometry.id)}"><svg data-geometry-preview="${escapeAttr(payload)}" viewBox="${geometry.viewBox.x} ${geometry.viewBox.y} ${geometry.viewBox.width} ${geometry.viewBox.height}" role="img" aria-label="${escapeAttr(title)}"></svg>${geometry.caption.trim() ? `<figcaption>${captionHtml}</figcaption>` : ""}${description}${created}${citations}</figure>`;
 }
 
 function hydrateGeometryPreviews() {
@@ -12626,14 +12693,14 @@ function renderTableBlock(tableValue, blockIndex) {
   const caption = table.caption
     ? `<figcaption class="table-block-caption">${escapeHtml(table.caption)}</figcaption>`
     : "";
-  const note = table.note
+  const note = table.note && (!document.body.classList.contains("report-preview-mode") || table.note.trim() !== table.caption.trim())
     ? `<p class="table-block-note">${escapeHtml(table.note)}</p>`
     : "";
   const thead = headerRows.length ? `<thead>${renderRows(headerRows, "th")}</thead>` : "";
   const tbody = `<tbody>${renderRows(bodyRows, "td")}</tbody>`;
   const label = table.caption.trim() || `表ブロック${blockIndex + 1}`;
   return `
-    <figure class="table-block" data-table-id="${escapeAttr(table.id)}">
+    <figure data-report-kind="table" data-report-key="table-${blockIndex}" class="table-block" data-table-id="${escapeAttr(table.id)}">
       ${caption}
       <div class="table-block-scroll" tabindex="0" role="region" aria-label="${escapeAttr(label)}">
         <table aria-label="${escapeAttr(label)}">${thead}${tbody}</table>
@@ -12651,9 +12718,9 @@ function renderContentCitations(ids) {
       : '<span class="citation-missing">未登録Source: ' + escapeHtml(id) + '</span>').join(" ") + '</p>' : "";
 }
 
-function renderFigureMetadata(metadata) {
-  if (!metadata || !hasFigureMetadata({ ...metadata, citationIds: [] })) return "";
-  const main = [metadata.caption, metadata.dateLabel, figureSourceTypeLabel(metadata.sourceType), metadata.sourceName || metadata.sourceUrl]
+function renderFigureMetadata(metadata, omitCaption = false) {
+  if (!metadata || !hasFigureMetadata({ ...metadata, ...(omitCaption ? { caption: "" } : {}), citationIds: [] })) return "";
+  const main = [omitCaption ? "" : metadata.caption, metadata.dateLabel, figureSourceTypeLabel(metadata.sourceType), metadata.sourceName || metadata.sourceUrl]
     .filter((value) => value && value.trim())
     .map((value) => `<span>${escapeHtml(value)}</span>`).join("");
   const sourceHref = safeFigureSourceUrl(metadata.sourceUrl);
@@ -12669,25 +12736,31 @@ function renderFigureMetadata(metadata) {
   return `<div class="figure-metadata"><div class="figure-metadata-main">${main}</div><details><summary>資料情報の詳細</summary><dl>${rows}</dl></details></div>`;
 }
 
-function renderImageBlock(block, blockIndex, editable = true) {
+function renderImageBlock(block, blockIndex, editable = true, reportKey = blockIndex) {
   const count = block.images.length;
   const comparison = block.displayMode === "comparison" && count === 2;
   const alignment = normalizeImageBlockAlignment(block.alignment);
+  const reportMode = document.body.classList.contains("report-preview-mode");
+  const figure = comparison || Boolean(block.figureId || block.caption?.trim() || block.images.some(image => hasFigureMetadata(image.figureMetadata)));
+  const metadataCaptions = [...new Set(block.images.map(image => image.figureMetadata?.caption?.trim()).filter(Boolean))];
+  const reportCaption = block.caption?.trim() || metadataCaptions.join(" / ");
+  const displayCaption = reportMode && figure ? reportCaption : block.caption;
+  const reportAttrs = figure ? ` data-report-kind="figure" data-report-key="image-${escapeAttr(reportKey)}"` : "";
   const images = block.images.map((image) => `
     <div class="image-block-item">
       <button class="image-block-open" type="button" data-image-id="${escapeAttr(image.id)}" aria-label="${escapeAttr(image.alt || "添付画像")}を拡大表示">
         <span class="inline-attachment-image" data-attachment-id="${escapeAttr(image.id)}" data-alt="${escapeAttr(image.alt)}" role="img" aria-label="${escapeAttr(image.alt || "添付画像")}">画像を読み込み中...</span>
       </button>
       ${comparison && image.comparisonLabel?.trim() ? `<div class="image-comparison-label">${escapeHtml(image.comparisonLabel)}</div>` : ""}
-      ${renderFigureMetadata(image.figureMetadata)}
+      ${renderFigureMetadata(image.figureMetadata, reportMode && figure && (!block.caption?.trim() || image.figureMetadata?.caption?.trim() === block.caption.trim()))}
       ${renderContentCitations(image.figureMetadata?.citationIds)}
     </div>
   `).join("");
-  const caption = block.caption
-    ? `<figcaption class="image-block-caption">${renderImageCaptionMarkdown(block.caption)}</figcaption>`
+  const caption = displayCaption
+    ? `<figcaption class="image-block-caption">${block.caption?.trim() ? renderImageCaptionMarkdown(displayCaption) : escapeHtml(displayCaption)}</figcaption>`
     : "";
   return `
-    <figure class="image-block image-count-${count} image-size-${imageBlockSize} image-align-${alignment}${comparison ? " image-comparison" : ""}${block.caption ? " has-caption" : ""}" data-image-block-index="${blockIndex}" tabindex="0">
+    <figure class="image-block image-count-${count} image-size-${imageBlockSize} image-align-${alignment}${comparison ? " image-comparison" : ""}${block.caption ? " has-caption" : ""}" data-image-block-index="${blockIndex}"${reportAttrs} tabindex="0">
       <div class="image-block-media">${images}</div>
       ${caption}
       ${editable ? `<div class="image-block-menu-shell">

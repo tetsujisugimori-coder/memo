@@ -182,6 +182,15 @@ jobs:
       - name: Run Report Preview E2E
         run: npm run test:e2e:report-preview
 
+      - name: Upload Report numbering screenshots
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: report-numbering-review
+          path: e2e-artifacts/report-numbering-review/*.png
+          if-no-files-found: error
+          retention-days: 14
+
       - name: Prepare PDF inspection
         run: |
           python -m pip install pymupdf==1.27.2

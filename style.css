@@ -6463,6 +6463,18 @@ body.collections-open:not(.context-panel-closed) .context-panel {
 .report-preview-heading[hidden] { display: none; }
 
 body.report-preview-mode {
+  color-scheme: light;
+  background: #fff;
+  --bg: #fff;
+  --paper: #fff;
+  --panel: #fff;
+  --button-bg: #fff;
+  --ink: #222;
+  --text: #222;
+  --muted: #555;
+  --line: #ddd;
+  --section-bg: #fff;
+  --accent-soft: #fff;
   grid-template-columns: minmax(0, 1fr);
   overflow: hidden;
 }
@@ -6602,3 +6614,32 @@ body.report-preview-mode .timeline-edit { display: none; }
 .content-source-selector input { flex: 0 0 auto; width: auto; margin-top: 4px; }
 .content-citations, .citation-missing { overflow-wrap: anywhere; }
 .content-citations { margin: 8px 0; font-size: .9em; }
+
+/* Report-only figure/table typography; the editor keeps its existing styles. */
+body.report-preview-mode #previewCard,
+body.report-preview-mode #preview :is(figure, .image-block-open, .table-block-scroll) { background: #fff; }
+body.report-preview-mode #preview :is(.report-caption, .content-citations, .diagram-citations, .figure-metadata, .image-comparison-label, .diagram-description, .diagram-created, .table-block-note) {
+  font-size: 0.875rem;
+  line-height: 1.6;
+  margin: 8px 0 0;
+  text-align: left;
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+body.report-preview-mode #preview .report-caption { font-weight: 400; }
+body.report-preview-mode #preview .report-number { font-weight: 600; }
+body.report-preview-mode #preview .table-block > .report-caption { margin: 0 0 8px; }
+body.report-preview-mode #preview .figure-metadata-main { flex-wrap: wrap; }
+body.report-preview-mode #preview .figure-metadata-main span { min-width: 0; overflow-wrap: anywhere; }
+
+body.report-preview-mode #preview .figure-metadata-main span { font-weight: 400; }
+body.report-preview-mode #preview .report-image-source { font-size: 0.875rem; line-height: 1.6; min-width: 0; overflow-wrap: anywhere; }
+
+body.report-preview-mode #preview .report-caption { padding: 0; color: var(--ink); }
+body.report-preview-mode #preview .report-caption > p:first-of-type { display: inline; margin: 0; }
+
+/* Override Image Block's editor-side caption column at every report width. */
+body.report-preview-mode #preview .image-block { grid-template-columns: minmax(0, 1fr); grid-template-areas: none; }
+body.report-preview-mode #preview .image-block > :is(.image-block-media, .report-caption, .report-image-source) { grid-area: auto; grid-column: 1; }

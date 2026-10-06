@@ -23,6 +23,13 @@ assert "☐" in compact and "☑" in compact, "Checklist states missing"
 assert metrics["longUrl"] in compact, "Long URL must be readable in full"
 for ui in ["編集に戻る", "PDFとして保存", "画像ブロック操作メニュー", "画像をクリップボードへコピー"]:
     assert ui not in compact, f"App UI leaked: {ui}"
+# Captions/numbering come from the same Report DOM, including repeated Timeline Figure.
+for entry in metrics["reportNumbers"]:
+    caption = "".join(entry["caption"].split())
+    assert any(caption in "".join(text.split()) for text in texts), f"Missing or split report number/caption: {caption}"
+for label, content in [("図1", "図版開始F1"), ("図2", "比較終了C1"), ("表1", "表開始T1"), ("図3", "横長グラフG1"), ("図4", "DiagramD1"), ("図5", "大図終了BIG1")]:
+    assert compact.count(label + content) == (2 if label == "図1" else 1), f"Duplicate/missing report caption {label}"
+assert "図2(a)変更前" in compact and "図2(b)変更後" in compact
 links = [link.get("uri", "") for page in doc for link in page.get_links()]
 assert metrics["longUrl"] in links, "Source URL annotation missing"
 assert "https://example.org/source-two" in links
@@ -45,6 +52,21 @@ for index, page in enumerate(doc):
             assert rect.y0 >= 55 and rect.y1 <= page.rect.height - 55, "Image clipped/split"
             image_boxes.append({"page":index+1,"width":img[2],"height":img[3],"rect":list(rect)})
     pages.append({"page":index+1,"text":texts[index],"links":[{"uri":link.get("uri"),"rect":list(link["from"])} for link in page.get_links()]})
+for token, image_height in [("図1図版開始F1", None), ("図2比較終了C1", None), ("図5大図終了BIG1", metrics["metrics"]["bigNatural"])]:
+    matching = [index+1 for index,text in enumerate(texts) if token in "".join(text.split())]
+    assert matching, f"Caption missing: {token}"
+    for number in matching:
+        assert any(box["page"] == number and (image_height is None or box["height"] == image_height) for box in image_boxes), f"Image/caption separated: {token}"
+for text in texts:
+    normalized = "".join(text.split())
+    if "図3横長グラフG1" in normalized:
+        assert all(f"項目{i+1}" in normalized for i in range(8)), "Chart/caption separated"
+    if "図4DiagramD1" in normalized:
+        assert "Diagram補足" in normalized, "Diagram/caption separated"
+    if "TimelineL1" in normalized:
+        assert normalized.count("[1]") >= 2, "Timeline Source separated from referenced Figure"
+    if "表1表開始T1" in normalized:
+        assert "行1" in normalized and "1000" in normalized, "Table caption orphaned before first row"
 assert any(i["height"] == metrics["metrics"]["bigNatural"] and i["rect"][3]-i["rect"][1] <= 729 for i in image_boxes), "Oversized image was not fitted"
 assert any("図版直前見出しH1" in "".join(text.split()) and "図版開始F1" in "".join(text.split()) for text in texts), "Heading separated from Figure"
 assert any("大図直前見出しHBIG1" in "".join(text.split()) and "大図終了BIG1" in "".join(text.split()) for text in texts), "Heading separated from oversized Figure"
