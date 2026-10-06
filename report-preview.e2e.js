@@ -8,6 +8,97 @@ const { chromium } = require("playwright");
 
 const image = fs.readFileSync(path.join(__dirname, "e2e-artifacts", "chart-png-example-light-390.png"));
 
+async function verifyReportNumbering(page) {
+  const {serializeImageBlock} = require("./attachment-utils.js");
+  const {createTableBlock, serializeTableBlock} = require("./table-block-utils.js");
+  const {createChartBlock, serializeChartBlock} = require("./chart-block-utils.js");
+  const {createGeometryBlock, serializeGeometryBlock} = require("./geometry-block-utils.js");
+  const {serializeTimelineBlock} = require("./timeline-block-utils.js");
+  const {withSources} = require("./source-utils.js");
+  const id = await page.evaluate(() => currentAttachments[0].id);
+  const url = "https://example.org/" + "long-url-".repeat(50);
+  const figure = serializeImageBlock([{id,figureMetadata:{caption:"資料説明",sourceUrl:url,citationIds:["s1"]}}],"資料説明","center","normal","numbered-figure");
+  const ordinary = serializeImageBlock([{id}], "");
+  const table = serializeTableBlock({...createTableBlock("numbered-table"),caption:"表の説明",citationIds:["s1"]});
+  const chart = serializeChartBlock({...createChartBlock("numbered-chart"),title:"グラフ説明",appearance:{showDataTable:true},citationIds:["s1"]});
+  const comparison = serializeImageBlock([{id,comparisonLabel:"変更前"},{id,comparisonLabel:"変更後"}],"比較説明","center","comparison","numbered-comparison");
+  const diagram = serializeGeometryBlock({...createGeometryBlock("numbered-diagram"),version:2,caption:"Diagram説明",points:[{id:"p1",x:10,y:10},{id:"p2",x:90,y:90}],objects:[{id:"line",type:"segment",pointIds:["p1","p2"]}],diagram:{description:"補足説明",citationIds:["s1"]}});
+  const timeline = serializeTimelineBlock({id:"numbered-timeline",title:"年表",items:[{id:"i1",figureId:"numbered-figure"},{id:"i2",figureId:"numbered-figure"}]});
+  const sources = [{id:"s1",title:"共通資料",url}];
+  const numbered = '#preview [data-report-number]';
+  const labels = () => page.locator(numbered).evaluateAll(elements => elements.map(e => e.dataset.reportNumber));
+  const snapshot = () => page.evaluate(async () => ({body:editor.value,note:currentNote(),stored:await getStoredNotes(),dirty:noteSaveFoundation.isDirty(currentId),timer:saveTimer,undo:undoStack,redo:redoStack}));
+  async function show(parts, expected) {
+    await page.locator("#editor").fill(withSources(parts.join("\n\n"),sources));
+    await page.evaluate(() => flushSave());
+    await page.waitForFunction(() => !noteSaveFoundation.isDirty(currentId) && saveTimer === null && window.MemoNexusTypingDerivedUiScheduler.pendingRequestType() === null);
+    const before = await snapshot();
+    await page.locator("#reportPreviewBtn").click();
+    assert.deepEqual(await labels(),expected);
+    assert.deepEqual(await snapshot(),before,"Preview must not mutate canonical data or history");
+    return before;
+  }
+  async function back() { await page.locator("#reportPreviewBackBtn").click();assert.equal(await page.locator('.report-caption').count(),0); }
+  await page.setViewportSize({width:1280,height:900});
+  const parts = [figure,ordinary,table,chart,comparison,diagram];
+  const before = await show(parts,["図1","表1","図2","図3","図4"]);
+  const dom = await page.locator(numbered).evaluateAll(elements => elements.map(e => ({number:e.dataset.reportNumber,caption:e.querySelector(':scope > figcaption').textContent,top:e.getBoundingClientRect().top,captionTop:e.querySelector(':scope > figcaption').getBoundingClientRect().top})));
+  assert.deepEqual(dom.map(e=>e.caption),["図1 資料説明","表1 表の説明","図2 グラフ説明","図3 比較説明","図4 Diagram説明"]);
+  assert.ok(dom.filter(e=>e.number.startsWith("図")).every(e=>e.captionTop>e.top));
+  assert.equal(await page.locator("#preview .image-block[data-report-number]").evaluateAll(elements=>elements.every(e=>e.querySelector(":scope > .report-caption").getBoundingClientRect().top >= e.querySelector(".image-block-media").getBoundingClientRect().bottom-1)),true,"Image captions stay below their media at desktop width");
+  assert.equal(await page.locator('#preview .table-block').evaluate(e=>e.firstElementChild.classList.contains('report-caption')),true);
+  assert.equal(await page.locator('#preview .chart-block').evaluate(e=>e.querySelector('.report-caption').getBoundingClientRect().top>=e.querySelector('svg').getBoundingClientRect().bottom),true);
+  assert.equal(await page.locator('#preview .figure-metadata-main').first().innerText(),url,"caption is not repeated in metadata");
+  assert.deepEqual(await page.locator('.image-comparison-label').allTextContents(),["図3(a) 変更前","図3(b) 変更後"]);
+  assert.equal(await page.locator('#preview .report-sources li').count(),1);
+  assert.equal(await page.locator("#preview .chart-data-table").count(),1,"Chart value table is part of its figure, not separately numbered");
+  const citations = await page.locator('#preview .citation-link').allTextContents();
+  const out = path.join(__dirname,'e2e-artifacts','report-numbering-review');fs.mkdirSync(out,{recursive:true});
+  await page.screenshot({path:path.join(out,'report-pc.png'),fullPage:true});
+  await page.setViewportSize({width:320,height:844});
+  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1 && preview.scrollWidth<=preview.clientWidth+1),true);
+  assert.equal(await page.locator('#preview :is(.report-caption,.figure-metadata,.content-citations,.report-sources)').evaluateAll(elements=>elements.every(e=>{const r=e.getBoundingClientRect();return r.left>=0 && r.right<=innerWidth+1 && e.scrollWidth<=e.clientWidth+1;})),true);
+  await page.screenshot({path:path.join(out,'report-320.png'),fullPage:true});
+  await page.locator('#preview .table-block').scrollIntoViewIfNeeded();
+  await page.screenshot({path:path.join(out,'table-320.png'),fullPage:true});
+  await page.locator('#preview .image-comparison').scrollIntoViewIfNeeded();
+  await page.screenshot({path:path.join(out,'comparison-320.png'),fullPage:true});
+  await page.locator('#preview .geometry-preview').scrollIntoViewIfNeeded();
+  await page.screenshot({path:path.join(out,'diagram-320.png'),fullPage:true});
+  await page.evaluate(()=>applyTheme('dark'));
+  assert.equal(await page.locator('#previewCard').evaluate(e=>getComputedStyle(e).backgroundColor),'rgb(255, 255, 255)');
+  await page.setViewportSize({width:1280,height:900});
+  assert.deepEqual(await snapshot(),before);assert.deepEqual(await page.locator('#preview .citation-link').allTextContents(),citations);
+  await back();
+  await show([comparison,table,figure,diagram,chart],["図1","表1","図2","図3","図4"]);await back();
+  await show([table,figure,diagram,chart],["表1","図1","図2","図3"]);await back();
+  await show([table,figure,table,diagram,chart,comparison],["表1","図1","表2","図2","図3","図4"]);await back();
+  await show([timeline,...parts],["図1","図1","図1","表1","図2","図3","図4"]);await back();
+  const emptyFigure=serializeImageBlock([{id}],"","center","normal","empty-figure");
+  const emptyComparison=serializeImageBlock([{id},{id,comparisonLabel:"右のみ"}],"","center","comparison");
+  const emptyTable=serializeTableBlock(createTableBlock('empty-table'));
+  const emptyChart=serializeChartBlock({...createChartBlock('empty-chart'),title:""});
+  const emptyDiagram=serializeGeometryBlock({...createGeometryBlock('empty-diagram'),caption:""});
+  await show([emptyFigure,emptyTable,emptyChart,emptyComparison,emptyDiagram],["図1","表1","図2","図3","図4"]);
+  assert.deepEqual(await page.locator('.report-caption').allTextContents(),["図1","表1","図2","図3","図4"]);
+  assert.deepEqual(await page.locator('.image-comparison-label').allTextContents(),["図3(b) 右のみ"]);await back();
+  const long=serializeImageBlock([{id,figureMetadata:{caption:"長い説明".repeat(150),sourceUrl:url}}],"","center","normal","long-figure");
+  await show([long],["図1"]);await page.setViewportSize({width:320,height:844});
+  assert.equal(await page.evaluate(()=>preview.scrollWidth<=preview.clientWidth+1),true);
+  await page.evaluate(()=>previewCard.scrollTop=0);
+  await page.screenshot({path:path.join(out,'long-caption-320.png'),fullPage:true});await back();
+  await page.setViewportSize({width:1280,height:900});
+  const duplicateTable=serializeTableBlock({...createTableBlock('duplicate-title'),caption:"同じ説明",note:"同じ説明"});
+  const duplicateDiagram=serializeGeometryBlock({...createGeometryBlock('duplicate-diagram'),version:2,caption:"同じ説明 [@s1]",diagram:{description:"同じ説明 [@s1]"}});
+  await show([duplicateTable,duplicateDiagram],["表1","図1"]);
+  assert.equal(await page.locator('.table-block-note, .diagram-description').count(),0,"identical descriptions appear once");
+  assert.equal(await page.locator('.report-caption .citation-link').count(),1,"moving the duplicate description keeps its common Source citation");
+  assert.equal(await page.locator('.report-sources li').count(),1);await back();
+  // Imported conflicting IDs stay unresolved and count as separate掲載 elements.
+  await show([timeline,figure,figure],["図1","図2"]);
+  assert.equal(await page.locator('.timeline-missing').count(),2);await back();
+}
+
 (async () => {
   const root = __dirname;
   const server = http.createServer((req, res) => {
@@ -188,6 +279,8 @@ const image = fs.readFileSync(path.join(__dirname, "e2e-artifacts", "chart-png-e
     assert.equal(await page.locator("#editor").inputValue(), before);
     assert.equal(await page.locator("#titleInput").inputValue(), "レポートの題名");
     assert.equal(await page.locator("#preview .figure-metadata").count(), 1);
+    await verifyReportNumbering(page);
+    await require("./report-caption-regressions.cjs").verifyReportCaptionCases(page,{out:path.join(__dirname,"e2e-artifacts/report-numbering-review/caption-regressions")});
     assert.deepEqual(errors, []);
     await page.close();
     process.stdout.write("Report Preview E2E: PASS\n");

@@ -39,7 +39,7 @@ async function state(page) {
     const tall=await page.evaluate(()=>{const c=document.createElement("canvas");c.width=240;c.height=2200;const x=c.getContext("2d");x.fillStyle="white";x.fillRect(0,0,c.width,c.height);x.fillStyle="black";for(let y=0;y<c.height;y+=100)x.fillRect(0,y,c.width,10);return c.toDataURL("image/png").split(",")[1];});
     await page.locator("#insertImageBlockBtn").click();await page.locator("#imageBlockInput").setInputFiles({name:"tall.png",mimeType:"image/png",buffer:Buffer.from(tall,"base64")});
     await page.waitForFunction(()=>currentAttachments.length===2);const tallId=await page.evaluate(()=>currentAttachments.find(a=>a.fileName==="tall.png").id);
-    const figure=serializeImageBlock([{id:ids[0],figureMetadata:{caption:"図版の内容",sourceUrl:"https://example.org/figure",note:"図版詳細の補足",citationIds:["s1"]}}],"図版開始 F1","center","normal","f1");
+    const figure=serializeImageBlock([{id:ids[0],figureMetadata:{caption:"図版の内容",sourceUrl:"https://example.org/figure",note:"図版詳細の補足",citationIds:["s1"]}}],"図版開始 F1 " + "長い図版説明も折り返し、対象物と同じページに保ちます。".repeat(20),"center","normal","f1");
     const comparison=serializeImageBlock([{id:ids[0],comparisonLabel:"変更前",figureMetadata:{citationIds:["s2"]}},{id:ids[0],comparisonLabel:"変更後",figureMetadata:{citationIds:["s1"]}}],"比較終了 C1","center","comparison","cmp");
     const table=serializeTableBlock({...createTableBlock("print-table"),caption:"表開始 T1",rows:[["項目","日本語説明","数値","URL"],...Array.from({length:55},(_,i)=>[`行${i+1}`,"日本語を折り返す検証文章",String(1000+i),"https://example.org/table/"+i])],note:"表終了 T1",citationIds:["s2"]});
     const chart=serializeChartBlock({...createChartBlock("print-chart"),title:"横長グラフ G1",unit:"件",items:Array.from({length:8},(_,i)=>({id:`i${i}`,label:`項目${i+1}`})),series:[{id:"series-a",name:"系列甲",color:"#4455cc",values:Array.from({length:8},(_,i)=>210+i)},{id:"series-b",name:"系列乙",color:"#cc5544",values:Array.from({length:8},(_,i)=>310+i)}],citationIds:["s1"]});
@@ -50,25 +50,29 @@ async function state(page) {
     await page.locator("#editor").fill(body);await page.evaluate(()=>flushSave());
     await page.waitForFunction(()=>!noteSaveFoundation.isDirty(currentId)&&saveTimer===null&&window.MemoNexusTypingDerivedUiScheduler.pendingRequestType()===null);
     await page.locator("#reportPreviewBtn").click();const before=await state(page);const title=await page.title();
+    const reportNumbers=await page.locator("#preview [data-report-number]").evaluateAll(elements=>elements.map(e=>({number:e.dataset.reportNumber,caption:e.querySelector(":scope > .report-caption").textContent})));
+    assert.deepEqual(reportNumbers.map(e=>e.number),["図1","図2","表1","図3","図4","図1","図5"]);
     const citations=await page.locator("#preview .citation-link").allTextContents();
     await page.evaluate(()=>{window.print=()=>{window.printCalls=(window.printCalls||0)+1;};});
     await page.locator("#reportPrintBtn").click();await page.waitForFunction(()=>window.printCalls===1);
     assert.deepEqual(await state(page),before);assert.match(await page.title(),/^混在レポート_検証_資料$/);
     assert.deepEqual(await page.locator("#preview .citation-link").allTextContents(),citations);
+    assert.deepEqual(await page.locator("#preview [data-report-number]").evaluateAll(elements=>elements.map(e=>({number:e.dataset.reportNumber,caption:e.querySelector(":scope > .report-caption").textContent}))),reportNumbers,"PDF uses the exact screen numbering");
     await page.emulateMedia({media:"print"});
     for(const id of ["#reportPrintBtn","#reportPreviewBackBtn","#editor","#attachmentSection","#reportPrintStatus"])
       assert.equal(await page.locator(id).isVisible(),false,id);
-    const metrics=await page.evaluate(()=>({width:preview.getBoundingClientRect().width,background:getComputedStyle(document.body).backgroundColor,
+    const metrics=await page.evaluate(()=>({timeline:[...preview.querySelectorAll(".timeline-item")].map(e=>({height:e.getBoundingClientRect().height,zoom:e.style.zoom,css:getComputedStyle(e).marginBottom,content:e.querySelector(".timeline-content").getBoundingClientRect().height})),width:preview.getBoundingClientRect().width,background:getComputedStyle(document.body).backgroundColor,
+      captionsBelow:[...preview.querySelectorAll(".image-block[data-report-number], .geometry-preview, .chart-block")].every(e=>e.querySelector(":scope > .report-caption").getBoundingClientRect().top>=e.querySelector(".image-block-media, svg").getBoundingClientRect().bottom-1),
       overflow:preview.scrollWidth>preview.clientWidth+1,big:[...preview.querySelectorAll('.image-block')].find(b=>b.textContent.includes('BIG1')).getBoundingClientRect().height,
       bigNatural:[...preview.querySelectorAll('.image-block')].find(b=>b.textContent.includes('BIG1')).querySelector('img').naturalHeight,
       bigCenter:(()=>{const r=[...preview.querySelectorAll('.image-block')].find(b=>b.textContent.includes('BIG1')).getBoundingClientRect();return (r.left+r.right)/2-preview.getBoundingClientRect().left;})(),
       fonts:[...preview.querySelectorAll('td')].map(e=>parseFloat(getComputedStyle(e).fontSize)),
       rows:[...preview.querySelectorAll('tr')].map(e=>getComputedStyle(e).breakInside)}));
-    assert.ok(Math.abs(metrics.width-170*96/25.4)<1);assert.equal(metrics.background,"rgb(255, 255, 255)");assert.equal(metrics.overflow,false);
+    assert.ok(Math.abs(metrics.width-170*96/25.4)<1);assert.equal(metrics.background,"rgb(255, 255, 255)");assert.equal(metrics.overflow,false);assert.equal(metrics.captionsBelow,true,"PDF captions must stay below their object");
     assert.ok(metrics.big<=257*96/25.4);assert.ok(metrics.fonts.every(n=>n>=12));assert.ok(metrics.rows.every(n=>n==="avoid-page"));
     assert.ok(Math.abs(metrics.bigCenter-metrics.width/2)<1,"center alignment of the whole Figure");
     await page.screenshot({path:path.join(out,"print-layout.png"),fullPage:true});
-    fs.writeFileSync(path.join(out,"metrics.json"),JSON.stringify({browser:browser.version(),metrics,citations,longUrl},null,2));
+    fs.writeFileSync(path.join(out,"metrics.json"),JSON.stringify({browser:browser.version(),metrics,citations,longUrl,reportNumbers},null,2));
     await page.pdf({path:path.join(out,"mixed-report.pdf"),preferCSSPageSize:true,displayHeaderFooter:false,printBackground:false});
     // CDP PDF invokes afterprint too; this is the same cleanup used after cancel/save.
     await page.evaluate(()=>window.dispatchEvent(new Event("afterprint")));
@@ -79,7 +83,7 @@ async function state(page) {
     await page.locator("#reportPrintBtn").click();await page.waitForFunction(()=>window.printCalls===2);
     assert.ok(Math.abs(await page.locator("#preview").evaluate(e=>e.getBoundingClientRect().width)-170*96/25.4)<1,"A4 measurement must not depend on mobile viewport");
     const mobileOut=path.join(out,"mobile");fs.mkdirSync(mobileOut,{recursive:true});
-    fs.writeFileSync(path.join(mobileOut,"metrics.json"),JSON.stringify({browser:browser.version(),metrics,citations,longUrl},null,2));
+    fs.writeFileSync(path.join(mobileOut,"metrics.json"),JSON.stringify({browser:browser.version(),metrics,citations,longUrl,reportNumbers},null,2));
     await page.emulateMedia({media:"print"});
     await page.pdf({path:path.join(mobileOut,"mixed-report.pdf"),preferCSSPageSize:true,displayHeaderFooter:false,printBackground:false});
     await page.emulateMedia({media:"screen"});
@@ -94,6 +98,7 @@ async function state(page) {
     await page.evaluate(()=>{preview.querySelector("img").src="data:image/png;base64,broken";});
     await page.locator("#reportPrintBtn").click();await page.waitForFunction(()=>document.querySelector("#reportPrintStatus").textContent.startsWith("印刷を開始できません"));
     assert.equal(await page.evaluate(()=>window.printCalls),3);assert.deepEqual(await state(page),dirty);
+    await require("./report-caption-regressions.cjs").verifyReportCaptionCases(page,{out:path.join(out,"caption-regressions"),pdf:true});
     assert.deepEqual(errors,[]);
     for(const directory of [out,mobileOut]){
       const checked=spawnSync(process.env.PYTHON||"python",[path.join(__dirname,"docs/report-preview-v1/inspect-pdf.py"),directory],{encoding:"utf8"});

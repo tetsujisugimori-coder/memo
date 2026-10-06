@@ -65,3 +65,14 @@ test("印刷CSS失敗と準備中の終了は印刷せず、再開可能な状�
   const pending=h.context.printReportPreview();h.context.restoreReportPrint();finish();await pending;
   assert.equal(h.context.printed,undefined);assert.equal(h.controls.reportPrintStyles.media,"print");
 });
+
+
+test("先頭Timeline項目は親sectionの見出し分も確保して印刷する",async()=>{
+  const h=harness();
+  h.element.classList.contains=name=>name==="timeline-item";
+  h.element.parentElement.previousElementSibling={matches:selector=>selector.includes("h2"),getBoundingClientRect:()=>({height:80})};
+  await h.context.prepareReportPrint();
+  const available=257*96/25.4-112-4;
+  assert.ok(Number(h.element.style.zoom)*2032<=available+0.01,"heading and complete Timeline media/caption/source fit together");
+  h.context.restoreReportPrint();
+});

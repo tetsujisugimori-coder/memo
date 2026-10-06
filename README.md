@@ -487,3 +487,8 @@ Comparison導入時にはFigure・Comparison・Table・Chartの共通Source接�
 本文のリンク文字列は本文として表示し、ナビゲーションUIは追加しません。Source URLは全文を折り返し、既存の安全なHTTP(S)リンクだけPDFにもリンクとして残します。未登録Source・不正マーカーの既存表示と安全性を維持し、PDF専用に引用を採番しません。
 
 対応目安はChrome／Chromium・Edge 131以降（[CSSのページ余白内番号に対応](https://developer.chrome.com/blog/print-margins?hl=ja)）です。実検証はPlaywright Chromiumで行い、ブラウザ印刷画面の保存／取消操作、Edge実機、Safari／iPhone／Firefoxは未確認です。Ctrl+Pは非同期の準備を行わないため、上のボタンを使ってください。ブラウザの改ページは絶対保証ではなく、1行だけで紙面を超える表・極端に多列の表・非常に長い図版説明・多数のChart項目は可読性や行分割に限界があります。9pt未満へ表を縮小する処理はありません。詳細と実PDF検査方法は [PDF保存の検証と制約](docs/report-preview-v1/README.md#pdf保存v1) を参照してください。内容の変更は原稿を編集して再出力します。PDF編集機能・独自PDFライブラリ・別文書モデル・保存形式変更は追加していません。
+
+
+### Report Previewの図番号・表番号
+
+Figure・Comparison・Chart・Geometry/Diagramは共通の図連番、構造化Tableは独立した表連番をReport掲載順に表示します。Comparison全体で1番号、既存の画像ラベルは図N(a)/(b)。Timeline自体、通常画像、Chart内部の値表は別採番しません。参照Figureの再掲は同じ番号です。説明が空でも対象の番号を表示し、図は下、表は上に説明を置きます。番号は表示時に再計算し、本文・ID・Source・バックアップ形式を変えません。PDFは同じ表示DOMと番号を使います。対象判定・入れ子・検証・制約は[採番仕様](docs/report-preview-v1/README.md#図表の採番とreport表示)を参照してください。

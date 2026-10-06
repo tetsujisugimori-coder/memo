@@ -94,3 +94,13 @@ body.report-preview-mode #preview .figure-metadata details > summary { display: 
 body.report-preview-mode #preview details > summary { list-style: none; color: #000; }
 body.report-preview-mode #preview .task-list-item::before { content: "☐"; color: #000; }
 body.report-preview-mode #preview .task-list-item:has(input:checked)::before { content: "☑"; }
+
+body.report-preview-mode #preview .report-caption { font-size: 9pt; }
+body.report-preview-mode #preview :is(.image-block, .chart-block, .geometry-preview) > .report-caption { break-before: avoid-page; break-after: auto; }
+body.report-preview-mode #preview .table-block > .report-caption { break-after: avoid-page; }
+body.report-preview-mode #preview .table-block-scroll { break-before: avoid-page; }
+
+body.report-preview-mode #preview :is(.content-citations, .diagram-citations, .figure-metadata, .image-comparison-label, .diagram-description, .diagram-created, .table-block-note, .report-image-source) { font-size: 9pt; }
+
+/* Include nested caption/source margins in the existing atomic-item measurement. */
+body.report-preview-mode #preview .timeline-content { display: flow-root; }
