@@ -1,6 +1,7 @@
 """Inspect Chromium's real PDF, including text geometry and image aspect ratios."""
 import json
 import pathlib
+import re
 import sys
 import pymupdf
 
@@ -90,8 +91,10 @@ if (review / "cases.json").exists():
         combined = "".join(page_texts)
         expected = "".join(case["caption"].split())
         assert any(expected in text for text in page_texts), f"Missing/split visible caption: {case['name']}"
-        spans = [span["text"].strip() for page in pdf for block in page.get_text("dict")["blocks"] if "lines" in block for line in block["lines"] for span in line["spans"]]
-        assert spans.count("図1") == 1, f"Extra/missing parent number: {case['name']}"
+        # Font fallback may split Japanese and ASCII into separate spans.
+        # Count visible parent labels in joined text, excluding (a)/(b) labels.
+        parents = re.findall(r"図\d+(?![\d(])", combined)
+        assert parents == ["図1"], f"Extra/missing parent number: {case['name']} {parents}"
         if case["kind"] == "comparison":
             together = [(page,text) for page,text in zip(pdf,page_texts) if expected in text and all(f"図1({chr(97+side)})" in text for side in case["sides"])]
             assert together, f"Comparison captions separated: {case['name']}"
