@@ -1,0 +1,251 @@
+{
+  "license": "CC0-1.0; project-authored deterministic synthetic test materials; no third-party photographs",
+  "assets": {
+    "landscape": {
+      "width": 1600,
+      "height": 900,
+      "marks": [
+        {
+          "name": "TL",
+          "x": 40,
+          "y": 23,
+          "size": 108,
+          "color": "#e82c3a"
+        },
+        {
+          "name": "TR",
+          "x": 1452,
+          "y": 23,
+          "size": 108,
+          "color": "#158050"
+        },
+        {
+          "name": "BL",
+          "x": 40,
+          "y": 770,
+          "size": 108,
+          "color": "#175cdc"
+        },
+        {
+          "name": "BR",
+          "x": 1452,
+          "y": 770,
+          "size": 108,
+          "color": "#edab16"
+        },
+        {
+          "name": "CENTER",
+          "x": 746,
+          "y": 396,
+          "size": 108,
+          "color": "#9d2dde"
+        }
+      ]
+    },
+    "portrait": {
+      "width": 900,
+      "height": 1600,
+      "marks": [
+        {
+          "name": "TL",
+          "x": 23,
+          "y": 40,
+          "size": 108,
+          "color": "#158050"
+        },
+        {
+          "name": "TR",
+          "x": 770,
+          "y": 40,
+          "size": 108,
+          "color": "#175cdc"
+        },
+        {
+          "name": "BL",
+          "x": 23,
+          "y": 1452,
+          "size": 108,
+          "color": "#edab16"
+        },
+        {
+          "name": "BR",
+          "x": 770,
+          "y": 1452,
+          "size": 108,
+          "color": "#9d2dde"
+        },
+        {
+          "name": "CENTER",
+          "x": 396,
+          "y": 746,
+          "size": 108,
+          "color": "#18a5b0"
+        }
+      ]
+    },
+    "square": {
+      "width": 1000,
+      "height": 1000,
+      "marks": [
+        {
+          "name": "TL",
+          "x": 25,
+          "y": 25,
+          "size": 120,
+          "color": "#175cdc"
+        },
+        {
+          "name": "TR",
+          "x": 855,
+          "y": 25,
+          "size": 120,
+          "color": "#edab16"
+        },
+        {
+          "name": "BL",
+          "x": 25,
+          "y": 855,
+          "size": 120,
+          "color": "#9d2dde"
+        },
+        {
+          "name": "BR",
+          "x": 855,
+          "y": 855,
+          "size": 120,
+          "color": "#18a5b0"
+        },
+        {
+          "name": "CENTER",
+          "x": 440,
+          "y": 440,
+          "size": 120,
+          "color": "#e82c3a"
+        }
+      ]
+    },
+    "boundary": {
+      "width": 800,
+      "height": 3200,
+      "marks": [
+        {
+          "name": "TL",
+          "x": 20,
+          "y": 80,
+          "size": 96,
+          "color": "#edab16"
+        },
+        {
+          "name": "TR",
+          "x": 684,
+          "y": 80,
+          "size": 96,
+          "color": "#9d2dde"
+        },
+        {
+          "name": "BL",
+          "x": 20,
+          "y": 3024,
+          "size": 96,
+          "color": "#18a5b0"
+        },
+        {
+          "name": "BR",
+          "x": 684,
+          "y": 3024,
+          "size": 96,
+          "color": "#e82c3a"
+        },
+        {
+          "name": "CENTER",
+          "x": 352,
+          "y": 1552,
+          "size": 96,
+          "color": "#158050"
+        }
+      ]
+    },
+    "photo": {
+      "width": 1400,
+      "height": 1000,
+      "marks": [
+        {
+          "name": "TL",
+          "x": 35,
+          "y": 25,
+          "size": 120,
+          "color": "#9d2dde"
+        },
+        {
+          "name": "TR",
+          "x": 1245,
+          "y": 25,
+          "size": 120,
+          "color": "#18a5b0"
+        },
+        {
+          "name": "BL",
+          "x": 35,
+          "y": 855,
+          "size": 120,
+          "color": "#e82c3a"
+        },
+        {
+          "name": "BR",
+          "x": 1245,
+          "y": 855,
+          "size": 120,
+          "color": "#158050"
+        },
+        {
+          "name": "CENTER",
+          "x": 640,
+          "y": 440,
+          "size": 120,
+          "color": "#175cdc"
+        }
+      ]
+    },
+    "transparent": {
+      "width": 1000,
+      "height": 800,
+      "marks": [
+        {
+          "name": "TL",
+          "x": 25,
+          "y": 20,
+          "size": 96,
+          "color": "#18a5b0"
+        },
+        {
+          "name": "TR",
+          "x": 879,
+          "y": 20,
+          "size": 96,
+          "color": "#e82c3a"
+        },
+        {
+          "name": "BL",
+          "x": 25,
+          "y": 684,
+          "size": 96,
+          "color": "#158050"
+        },
+        {
+          "name": "BR",
+          "x": 879,
+          "y": 684,
+          "size": 96,
+          "color": "#175cdc"
+        },
+        {
+          "name": "CENTER",
+          "x": 452,
+          "y": 352,
+          "size": 96,
+          "color": "#edab16"
+        }
+      ]
+    }
+  }
+}

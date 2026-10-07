@@ -9850,6 +9850,7 @@ function renderChartBlockContent(chartValue, blockIndex, { editable = true } = {
   const height = 260;
   const baseline = 196;
   if (chart.chartType === "line") {
+    const reportLine = document.body.classList.contains("report-preview-mode");
     const lineSeries = chartDisplaySeries(chart).map((series) => ({ series, items: chartDisplayItems(chart, series) }));
     const maximum = chartValueRange(lineSeries.flatMap(({ items: seriesItems }) => seriesItems));
     const axis = chartValueAxisLayout(maximum, { availableSpace: 154 });
@@ -9871,7 +9872,7 @@ function renderChartBlockContent(chartValue, blockIndex, { editable = true } = {
     const categoryEntries = chartCategoryLabels(lineSeries[0]?.items, { plotWidth: lineWidth - lineLayout.plotLeft - lineLayout.plotRight });
     const categoryById = new Map(categoryEntries.map((entry) => [entry.item.id, entry]));
     const lineZero = baseline - chartValueRatio(0, maximum) * (baseline - lineLayout.plotTop);
-    const valueLabelOptions = { left: lineLayout.plotLeft - 40, right: lineWidth - 4, occupied: [{ x: lineLayout.axisX, y: lineZero - 2, width: lineWidth - lineLayout.axisX, height: 4 }] };
+    const valueLabelOptions = { left: lineLayout.plotLeft - 40, right: lineWidth - 4, hideOnCollision: reportLine, bottom: reportLine ? baseline - 8 : 212, occupied: [{ x: lineLayout.axisX, y: lineZero - 2, width: lineWidth - lineLayout.axisX, height: 4 }] };
     const categoryY = maximum.minimum < 0 ? baseline + 36 : baseline + 18;
     const lines = lineSeries.map(({ series, items: seriesItems }, seriesIndex) => {
       const points = lineChartPoints(seriesItems, lineWidth, {
@@ -9883,13 +9884,15 @@ function renderChartBlockContent(chartValue, blockIndex, { editable = true } = {
       });
       return chartLineSeriesMarkup(chart, series, points, { valueLabelOptions, categoryById: seriesIndex === 0 ? categoryById : null, categoryY });
     }).join("");
+    const omittedValues = reportLine && chart.appearance.showValues && (lines.match(/class="chart-block-value"/g) || []).length < lineSeries.reduce((count, { items }) => count + items.length, 0);
+    const valueNotice = omittedValues ? '<p class="chart-block-series-notice">重なりを避けるため、一部の数値ラベルを省略しています。全項目・全系列の数値は下の一覧で確認できます。</p>' : "";
     const empty = lineSeries.some(({ items: seriesItems }) => seriesItems.length) ? "" : `<text class="chart-block-empty" x="${lineWidth / 2}" y="${height / 2}" text-anchor="middle">項目名と有限な数値を入力してください</text>`;
     const legend = chart.appearance.showLegend
       ? `<ul class="chart-block-legend" aria-label="${escapeAttr(`${title}の凡例`)}">${chartDisplaySeries(chart).map((series) => `<li><span class="chart-block-line-legend-swatch" style="color:${escapeAttr(series.color)}"></span><span>${escapeHtml(series.name)}</span></li>`).join("")}</ul>`
       : "";
     const zeroLine = chartZeroLine(maximum, { left: lineLayout.axisX, right: lineWidth - lineLayout.plotRight, top: lineLayout.plotTop, bottom: baseline });
     const numericAxis = chartVerticalTickMarkup(axis, maximum, { x: lineLayout.axisLabelX, top: lineLayout.plotTop, baseline: lineLayout.baseline });
-    return `<figure class="chart-block chart-block-line" data-chart-id="${escapeAttr(chart.id)}"><figcaption>${escapeHtml(title)}</figcaption>${controls}<div class="chart-block-line-layout"><div class="chart-block-scroll" role="region" tabindex="0" aria-label="${escapeAttr(title)}"><svg viewBox="0 0 ${lineWidth} ${height}" role="img" aria-label="${escapeAttr(`${title}${chart.unit ? `（単位: ${chart.unit}）` : ""}`)}"><line class="chart-block-axis" x1="${lineLayout.axisX}" y1="${lineLayout.axisTop}" x2="${lineLayout.axisX}" y2="${lineLayout.baseline}"/>${zeroLine}${numericAxis}${chartUnitMarkup(chart.unit, lineLayout.axisX + 6, 18, lineWidth - lineLayout.axisX - lineLayout.plotRight)}${lines}${empty}</svg></div>${legend}</div><ul class="sr-only">${accessibleItems || "<li>有効な項目はありません</li>"}</ul>${chartPngControls(blockIndex, Boolean(controls))}${renderChartDataTable(chart, blockIndex, Boolean(controls))}</figure>`;
+    return `<figure class="chart-block chart-block-line" data-chart-id="${escapeAttr(chart.id)}"><figcaption>${escapeHtml(title)}</figcaption>${controls}<div class="chart-block-line-layout"><div class="chart-block-scroll" role="region" tabindex="0" aria-label="${escapeAttr(title)}"><svg viewBox="0 0 ${lineWidth} ${height}" role="img" aria-label="${escapeAttr(`${title}${chart.unit ? `（単位: ${chart.unit}）` : ""}`)}"><line class="chart-block-axis" x1="${lineLayout.axisX}" y1="${lineLayout.axisTop}" x2="${lineLayout.axisX}" y2="${lineLayout.baseline}"/>${zeroLine}${numericAxis}${chartUnitMarkup(chart.unit, lineLayout.axisX + 6, 18, lineWidth - lineLayout.axisX - lineLayout.plotRight)}${lines}${empty}</svg></div>${legend}</div>${valueNotice}<ul class="sr-only">${accessibleItems || "<li>有効な項目はありません</li>"}</ul>${chartPngControls(blockIndex, Boolean(controls))}${renderChartDataTable(chart, blockIndex, Boolean(controls))}</figure>`;
   }
   if (!combo && chart.appearance.barOrientation === "horizontal") return renderHorizontalBarChart(chart, { title, controls, accessibleItems, blockIndex });
   const barItems = chart.items.filter((item) => item.label);

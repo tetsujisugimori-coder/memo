@@ -167,7 +167,9 @@ jobs:
       - name: Verify fixed samples
         env:
           MEMO_NEXUS_E2E_BROWSER: ${{ matrix.browser }}
-        run: npm run test:e2e:report-fixed
+        run: |
+          mkdir -p "e2e-artifacts/report-fixed/${{ matrix.browser }}"
+          npm run test:e2e:report-fixed 2>&1 | tee "e2e-artifacts/report-fixed/${{ matrix.browser }}/run.log"
       - name: Upload all results including failures
         if: always()
         uses: actions/upload-artifact@v6

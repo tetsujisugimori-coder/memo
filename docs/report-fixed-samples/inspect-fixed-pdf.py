@@ -1,6 +1,10 @@
 """Real PDF text/link/geometry checks and all-page PNGs. Visual review is separate."""
 import hashlib, json, pathlib, sys
 import pymupdf
+from importlib.util import spec_from_file_location, module_from_spec
+spec=spec_from_file_location('image_region_checks',pathlib.Path(__file__).with_name('image-region-checks.py'))
+image_checks=module_from_spec(spec);spec.loader.exec_module(image_checks)
+manifest=json.loads((pathlib.Path(__file__).parent/'assets'/'manifest.json').read_text(encoding='utf-8'))
 root=pathlib.Path(sys.argv[1])
 results=json.loads((root/'results.json').read_text(encoding='utf-8'))
 compact=lambda text: ''.join(text.split())
@@ -9,6 +13,12 @@ for case in results['cases']:
     docs=[]
     first=root/(case['id']+'-first.pdf')
     if not first.exists():
+        if results['engine']=='webkit' and case['preview']=='PASS':
+            try:
+                case['imageRegionChecks']=image_checks.inspect_images(root,case,None,manifest)
+                case['imageInspection']='PASS'
+            except Exception as error:
+                failed=True;case['imageInspection']='FAIL';case['imageFailure']=str(error)
         continue
     try:
         docs=[pymupdf.open(first),pymupdf.open(root/(case['id']+'-repeat.pdf'))]
@@ -48,6 +58,8 @@ for case in results['cases']:
             raster.save(root/f"{case['id']}-page-{index+1:02}.png")
             repeated=docs[1][index].get_pixmap(matrix=pymupdf.Matrix(1,1),alpha=False)
             assert hashlib.sha256(raster.samples).digest()==hashlib.sha256(repeated.samples).digest(), f'First/repeat rendered page differs: {index+1}'
+        if 'imageViews' in case:
+            case['imageRegionChecks']=image_checks.inspect_images(root,case,doc,manifest)
         for index,page in enumerate(doc):
             assert abs(page.rect.width-595.28)<1 and abs(page.rect.height-841.89)<1, 'Not A4 portrait'
             assert page.get_text().strip() not in ['',str(index+1)], 'Unnecessary blank page'
@@ -68,5 +80,5 @@ for case in results['cases']:
     finally:
         for doc in locals().get('docs',[]): doc.close()
 (root/'pdf-results.json').write_text(json.dumps(results,ensure_ascii=False,indent=2),encoding='utf-8')
-print(json.dumps([{k:v for k,v in c.items() if k in ['id','pdf','pages','pdfFailure']} for c in results['cases']],ensure_ascii=False,indent=2))
+print(json.dumps([{k:v for k,v in c.items() if k in ['id','pdf','pages','pdfFailure','imageInspection','imageFailure']} for c in results['cases']],ensure_ascii=False,indent=2))
 sys.exit(1 if failed else 0)

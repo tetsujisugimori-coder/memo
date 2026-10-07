@@ -5,7 +5,7 @@ const {createChartBlock,serializeChartBlock}=require('./chart-block-utils.js');
 const {createGeometryBlock,serializeGeometryBlock}=require('./geometry-block-utils.js');
 const {serializeTimelineBlock}=require('./timeline-block-utils.js');
 const {withSources}=require('./source-utils.js');
-const assets=[['landscape',1600,900],['portrait',900,1600],['square',1000,1000],['boundary',800,3200]];
+const assets=[['landscape',1600,900],['portrait',900,1600],['square',1000,1000],['boundary',800,3200],['photo',1400,1000],['transparent',1000,800]];
 // Hand-authored expectations: never calculated by the Report numbering renderer.
 const numbers={R01:[],R02:['図1','図2','図3','図4','図5'],R03:['表1','表2','図1','図2','図3'],R04:['図1','図1','図1','図2','図3'],R05:['図1','表1','図2','図3','図4','表2','図5','図1','図6'],R06:['図1','図2','図3','表1']};
 function buildSamples(ids) {
@@ -15,7 +15,7 @@ function buildSamples(ids) {
   const prose=(count,prefix)=>Array.from({length:count},(_,i)=>`${prefix}段落${String(i+1).padStart(2,'0')} ${paragraph.repeat(i%3===0?1:2)} [@s${i%3+1}]`);
   const long='画像の枠線と目盛りを使って縦横比と配置を確認し、説明と出典の対応を記録する。'.repeat(5);
   const figure=(id,key='landscape',caption=id)=>serializeImageBlock([{id:ids[key],figureMetadata:{caption:`${id}資料情報`,citationIds:['s1','s2']}}],caption,'center','normal',rid(id));
-  const comparison=(id,mixed=false)=>serializeImageBlock([{id:ids.landscape,comparisonLabel:`${id}左・受領時`,figureMetadata:{citationIds:['s2']}},{id:ids[mixed?'portrait':'landscape'],comparisonLabel:`${id}右・整理後`,figureMetadata:{citationIds:['s3','s4']}}],id+' '+long,'center','comparison',rid(id));
+  const comparison=(id,mixed=false)=>serializeImageBlock([{id:ids.landscape,comparisonLabel:`${id}左・受領時`,figureMetadata:{citationIds:['s2']}},{id:ids[mixed?'portrait':'photo'],comparisonLabel:`${id}右・整理後`,figureMetadata:{citationIds:['s3','s4']}}],id+' '+long,'center','comparison',rid(id));
   const table=(id,cols=4,rows=12,empty=false)=>serializeTableBlock({...createTableBlock(id),caption:id,rows:[Array.from({length:cols},(_,c)=>`${id}列${c+1}長い日本語の確認項目名`),...Array.from({length:rows},(_,r)=>Array.from({length:cols},(_,c)=>empty&&c===1&&r%2===0?'':`${id}R${r+1}C${c+1}`))],citationIds:['s2']});
   const chart=(id,type='bar')=>{const values=type==='bar'?[-40,0,80,20,-20]:type==='pie'?[60,25,10,4,1]:[10,12,9,18,22,15,28,31,25,34,39,42];const base=createChartBlock(id);return serializeChartBlock({...base,chartType:type,title:id,unit:'件',items:values.map((_,i)=>({id:`${id}-i${i}`,label:`${id}項目${i+1}資料分類の長い日本語名称`})),series:[{id:`${id}-s`,name:'整理件数',color:'#4455cc',values}],appearance:{...base.appearance,showLegend:true,pieSeriesId:`${id}-s`},citationIds:['s1']});};
   const diagram=(id,n=3)=>serializeGeometryBlock({...createGeometryBlock(id),version:2,caption:id,points:Array.from({length:n},(_,i)=>({id:`p${i}`,x:10,y:8+i*7})),objects:Array.from({length:n-1},(_,i)=>({id:`e${i}`,type:'segment',pointIds:[`p${i}`,`p${i+1}`]})),annotations:Array.from({length:n},(_,i)=>({id:`a${i}`,type:'vertex-label',pointId:`p${i}`,label:n===3?`工程${i+1}`:`要素${i+1}：受領資料の分類と保存確認`,offsetX:5,offsetY:0})),diagram:{description:`${id}接続順序 [@s2]`,citationIds:['s1']}});
