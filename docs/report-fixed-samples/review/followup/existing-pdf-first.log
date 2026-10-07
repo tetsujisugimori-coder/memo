@@ -1,0 +1,9 @@
+Report caption regressions PASS: 10 cases with real PDFs
+Report spacing cases PASS: 4 reports, desktop/mobile, font/theme, real PDFs
+Report pagination regressions PASS: 6 PDFs; actual media-only zoom, alignment, long/ordinary Timeline and full restoration
+Real PDF PASS: 12 A4 pages; Japanese text, page numbers, URL links, repeated Table headers, complete images
+Pagination PDFs PASS: six PDFs, identified ordinary/long items, full prose, media/Source, 9pt minimum, URL annotations
+Caption review real PDFs PASS: 10 cases; side captions/Sources, visible pie series, values and parent numbers
+Spacing real PDFs PASS: 4 reports; complete long text and Timeline, original font size, page bounds
+Real PDF PASS: 12 A4 pages; Japanese text, page numbers, URL links, repeated Table headers, complete images
+Report PDF Chromium E2E PASS

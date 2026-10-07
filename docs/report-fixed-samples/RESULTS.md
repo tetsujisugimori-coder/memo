@@ -1,90 +1,107 @@
-# 固定レポート回帰検証結果
+# 固定レポート・折れ線・画像回帰検証結果
 
-2026年10月7日、日本時間。全面的な完了・マージ可能とは判定しない。指定された横向きPDFと余白変更は現行製品に機能がなく未実施。GitHubでの実行結果はローカル検証と区別する。
+2026年10月7日、日本時間。PR #350の公開HEADは開始時点で指定どおり `33421c9472ae061e6f120d1e9cb792f65ff10707`。専用worktreeに未コミット変更はなく、元mainの未追跡 `work/` を保持した。PR base／origin/mainは `2a13b83bf56bcecf5204c75dfb0a9f03ba84b7db`。PR #347/#348は取り込み済み。
 
-検証した実装commit：`262fbe7b67a04ea11d0439dd2ced4be5f68efb98`。これ以降の成果物・結果追記commitは製品／検証コードを変更しない。開始・終了時のorigin/mainはいずれも `2a13b83bf56bcecf5204c75dfb0a9f03ba84b7db`。履歴でPR #347はこのmerge commit、PR #348は `1490063` としてmainに含まれることを確認した。GitHub CLIのPRメタデータ照会はHTTP 401だった。
+今回の製品・検証コードcommit：`c019f02e54505cb5f83864d77b27cc347228e3b1`。後続commitは結果／成果物／PR本文のみ。公開された最終HEADと対応するCI結果は [PR #350](https://github.com/tetsujisugimori-coder/memo/pull/350) の本文／Checksに追記する。前回HEAD `33421c9` の [CI](https://github.com/tetsujisugimori-coder/memo/actions/runs/37614487823) は成功しており、古い「CI未確認」を今回の結果として引き継がない。
 
-## 一覧
+## Windows結果一覧
 
-保存・再読み込みとPreviewはChromium／WebKitの両方。Preview幅は1280px／390px。PDFはChromiumのA4縦・20mm・白背景。目視は全ページPNGによるエージェントの確認で、iPhone実機や人による紙面確認ではない。
+保存・再読込とPreview1280px／390pxはChromium／WebKit両方。R01以外は正式ZIP書出し→新規プロファイルへの正式取込→再読込もPASS。R05は実キー入力による編集を含む。PDFはChromium、A4縦・20mm・白背景、初回／再出力。
 
-| ID | 保存・再読み込み | Preview | PDF縦 | PDF横 | 全ページ目視 | ページ数 |
-| --- | --- | --- | --- | --- | --- | --- |
-| R01 | PASS | PASS | PASS | 対象外：指定なし | PASS | 6 |
-| R02 | PASS | PASS | PASS | 未実施：現行A4縦固定 | PASS | 6 |
-| R03 | PASS | PASS | PASS | 未実施：現行A4縦固定 | PASS | 5 |
-| R04 | PASS | PASS | PASS | 対象外：指定なし | PASS | 9 |
-| R05 | PASS | PASS | PASS | 未実施：現行A4縦固定 | PASS | 13 |
-| R06 | PASS | PASS | PASS | 対象外：指定なし | PASS | 6 |
+| ID | 保存・再読込 | ZIP取込 | Preview両幅・両browser | PDF縦 | PDF横 | PDF目視 | ページ数 |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| R01 | PASS | 対象外：編集から直接検証 | PASS | PASS | 対象外：指定なし | PASS | 6 |
+| R02 | PASS | PASS | PASS | PASS | 未実施：現行縦固定 | PASS | 6 |
+| R03 | PASS | PASS | PASS | PASS | 未実施：現行縦固定 | PASS | 5 |
+| R04 | PASS | PASS | PASS | PASS | 対象外：指定なし | PASS | 9 |
+| R05 | PASS | PASS | PASS | PASS | 未実施：現行縦固定 | PASS | 13 |
+| R06 | PASS | PASS | PASS | PASS | 対象外：指定なし | PASS | 6 |
+| L01 | PASS | PASS | PASS | PASS | 対象外：今回指定なし | PASS | 4 |
+| L02 | PASS | PASS | PASS | PASS | 対象外：今回指定なし | PASS | 4 |
+| L03 | PASS | PASS | PASS | PASS | 対象外：今回指定なし | PASS | 7 |
+| L04 | PASS | PASS | PASS | PASS | 対象外：今回指定なし | PASS | 2 |
+| I01 | PASS | PASS | PASS | PASS | 対象外：今回指定なし | PASS | 8 |
 
-R05余白変更：未実施（製品は20mm固定）。WebKitのPDF生成：対象外（PlaywrightのPDFはChromiumのみ）。iPhone/Safari実機、ネイティブ印刷ダイアログの実保存：未実施（実機／対話的確認環境なし）。
+計70ページ。新規25ページと既存から変わった13ページ、計38ページを19枚の読み取り可能な2ページ画像でエージェントが目視した。残り32ページは前回目視済みのPNGと画素一致。[目視一覧](review/followup/visual-review.json)。自動生成JSONの目視欄は自動PASSにしない。
 
-全45ページを画像化して確認した。用紙外の切れ、文字・図表の重なり、画像の伸び／切り抜き、見出しだけの孤立、不要な空白ページは見つからなかった。図・説明・Sourceはまとまりを保ち、長表は行単位で分割されヘッダーを繰り返す。R02の6ページ目／R05の13ページ目はSource一覧の続きであり、空白ページではない。大きなFigure／Comparisonは残り領域に無理に入れず次ページへ送り、800×3200画像は縦横比を保って縮小する。
+R05余白変更、iPhone/Safari実機、ネイティブ印刷ダイアログの実保存は未実施。横向き・余白変更は新設しない。WebKit PDFは対象外（PlaywrightはChromium PDFのみ）。前回依頼の全必須条件まで全面完了・マージ可能とは判定しない。
 
-## 実際に確認した条件
+## 折れ線の再現と修正
 
-- 正式な編集→保存→再読み込みで本文、ブロック順序、添付、表、Chart設定、Sourceが保持される。R05のキー入力で追加した文も保存・PDFで保持される。
-- R02〜R06は正式なportableバックアップZIPを新規プロファイルへインポートし、元IDを含むZIP内の添付ファイル名から新旧IDを対応づけ、本文はID置換以外に変わらないことを確認。取り込み後に再読み込みし、PreviewとPDFを出力する。直接IndexedDB投入はない。
-- 手書きの図表番号期待値、Source件数、本文順序、空欄を含む全表セル、Chartの項目／系列／数値のアクセシブル表現、Previewの画像比率を自動照合する。
-- 実PDFの本文、captionの出現回数、全データセルの欠落／重複、Sourceと200文字URLのリンク注釈、A4寸法、連続ページ番号、空白ページ、本文／画像の用紙内位置、画像比率を確認。URLのネットワーク疎通は条件にしない。
-- 画像・フォントの既存準備処理を通して初回／再出力を生成し、テキスト、ページ数、全ページの描画画素が完全一致する。同じ実行環境内の再出力比較であり、別OSとの画像一致を主張しない。
-- ブラウザのpageerrorは全ケースで0件。円ラベルの実SVG文字bboxが重ならない。折れ線の印刷文字は実縮尺で最小9.419pt、すべてのSVG文字bboxがviewBox内に収まる。
+L01は50項目・1系列・全値1234567890・数値表示ON。ID／項目名は一意。修正前Previewと実Chromium PDFを正式経路で生成し、実SVG文字矩形を測定した。
 
-## origin/mainとの差と修正
+| 対象 | Preview1280重複組数 | PDF重複組数 | PDF数値文字 | 判定 |
+| --- | --- | --- | --- | --- |
+| PR base `2a13b83` | 0 | 0 | 約0.854pt | 重複なしだが極端な縮小 |
+| レビューHEAD `33421c9` | 61 | 18 | 約10.275pt | 幅540で配置不能ラベルが重複 |
+| 今回修正 | 0 | 0 | 約10.275pt | 幅540を維持し配置不能ラベルを省略 |
 
-製品変更は `app.js` の `renderChartBlockContent` のReport分岐のみ。
+[base画像](review/followup/base-before.png)／[実PDF](review/followup/base-before.pdf)、[レビューHEAD画像](review/followup/reviewed-before.png)／[実PDF](review/followup/reviewed-before.pdf)、[修正後画像](review/followup/L01-page-01.png)／[実PDF](review/followup/L01.pdf)。修正前JSONも同じ場所にある。観測モードのPDF PASSは本文・リンクなどの検査結果であり、重複／可読性成功を意味しない。
 
-1. R03円[60,25,10,4,1]の4%／1%が重なった。Reportで重なるラベルを移動し、扇形との対応を補助線で保持する。 [修正前](review/R03-before.png)／[修正後5ページ](review/R03-page-05.png)。
-2. 12時点の折れ線SVGが横長のまま縮小され、文字が約5.05〜5.51ptになった。Report幅を540に制限し、既存のラベル間引き／折り返し処理を再利用する。最後のラベルのため右余白を確保する。全文・12値はグラフ下の既存一覧にも保持する。[修正後R03](review/R03-page-04.png)／[R05](review/R05-page-09.png)。
+製品変更は `app.js` の `renderChartBlockContent` のReport折れ線のみ。既存 `hideOnCollision` で配置不能な数値を描画せず、カテゴリ領域まで数値が降りないよう既存baseline内に制限する。省略時だけ既存noticeスタイルで説明し、全項目・系列・値を下の既存一覧に残す。通常Preview・保存形式・Source・番号・用紙設定を変えていない。
 
-通常の編集／通常Preview、データ形式、図表採番、Source規則、保存基盤、用紙設定APIは変更していない。固定サンプル、E2E、Python実PDF検査、npmコマンド、専用CIジョブを追加した。CIはChromium／WebKitで実行し、失敗時にも成果物をuploadする。
+| ケース | 条件 | 期待 | Windows省略数 | 実SVG重複／枠外 | 全値対応 |
+| --- | --- | --- | --- | --- | --- |
+| L01 | 50項目1系列、同値1234567890 | 省略あり | 30 | 0／0 | 50件PASS |
+| L02 | 50項目1系列、正負・ゼロ | 省略あり | 16 | 0／0 | 50件PASS |
+| L03 | 50項目3系列、同値2系列＋負値／ゼロ | 省略あり | 130 | 0／0 | 150件PASS |
+| L04 | 12時点の既存小値系列 | 省略なし | 0 | 0／0 | 12件PASS |
 
-Diagramの初期サンプルは長いラベルを隣り合う点に配置して自ら重ねていた。既存モデルに自動配置はないため、固定座標を修正した。製品のDiagram機能を新設・変更して解決したものではない。[投入座標修正前](review/R04-input-before.png)／[修正後](review/R04-page-09.png)。
+L01の線・50点・ゼロ軸はレビューHEADの実描画座標と完全一致。点y座標と正負のゼロ軸を独立した線形式で検査。通常PreviewはReport開閉前後のSVG完全一致。1280／390／印刷でgetBBoxを測定し、PDF全SVG文字は最小約9.419pt・viewBox内。全ラベルと全線の接触まで回避する機能ではない。同値系列が同じ位置を通ることは入力どおり。長大な既存一覧／データ表とcaption／Sourceは複数ページに続く現行方針を維持する。L03最終ページにはSourceがあり白紙ではない。
 
-## 環境・コマンド・既知の失敗
+## 画像ごとの検査
 
-Windows、PowerShell、Node v24.20.0、Python 3.14.7、PyMuPDF 1.27.2、Playwright 1.62.1。Chromium 151.0.7922.34、WebKit 26.5。既定のシステムsans-serifを使用しWebフォントを選択していない。CIはUbuntu・Node 22・Noto CJKを指定するが、CI結果はpush後に別途確認が必要。
+4既存素材に四隅・中央の色付きID、方向、寸法、8px外枠を追加。写真相当photoは固定粒状模様・細線・連続階調・陰影のある合成静物で、実写ではない。transparentはalpha=0背景と半透明図形。全てプロジェクト作成の合成検証素材、CC0-1.0。生成コードとmanifestを同梱。
+
+| 素材 | 元寸法→正式添付後 | 保存／ZIPバイト一致 | 両Preview領域 | 実PDF領域・5印・枠 | 目視 |
+| --- | --- | --- | --- | --- | --- |
+| landscape | 1600×900→同寸法 | PASS | PASS | PASS | PASS |
+| portrait | 900×1600→同寸法 | PASS | PASS | PASS | PASS |
+| square | 1000×1000→同寸法 | PASS | PASS | PASS | PASS |
+| boundary | 800×3200→450×1800 | PASS | PASS | PASS | PASS：全体を1ページ内に縮小 |
+| photo | 1400×1000→同寸法 | PASS | PASS | PASS | PASS：細線・明暗・粒状模様 |
+| transparent | 1000×800→同寸法 | PASS | PASS | PASS | PASS：白背景と半透明色 |
+
+ZIP後のID変更と画像内容を分離し、変換済みバイトSHA-256は完全一致。長辺1800pxまでの縮小とPNG再圧縮を考慮して元素材とは白背景RGB内容・比率・寸法を比較する。取込で寸法メタデータが省略される仕様は実画像デコードで確認する。
+
+I01は独立した画像順序・左右番号・caption ID・Source s1の期待値を検証。各出現が完全な1矩形として1ページ内にあり分断なし。I01の短いcaptionは全て画像と同ページ。R06の長いcaptionも画像と同ページで本文を保持。I01全8ページを目視。Preview既存7px角丸は維持し、5識別印はその内側に保持される。外縁の既存角丸マスクを意図しないcover切抜きとは扱わない。390pxで極小になるID文字の全字可読性は自動保証しない。
+
+実PDFを3倍で画像化し、全体30×30サンプル、5印内部8×8の平均色、四辺の枠を別に検査。Previewは実画像領域スクリーンショットから検査。RGB誤差18／35と1px位相丸めの根拠は [README](README.md)。異素材と中央10%切抜きの負例は必ず失敗。初回／再出力の全ページ画素一致は再現性の確認として別検査。OS間PDF全体の画素一致や未確認基準更新は行わない。
+
+## 環境・コマンド・失敗記録
+
+Windows、Node24.20.0、Playwright1.62.1、Chromium151.0.7922.34／WebKit26.5、Python3.14.7、PyMuPDF1.27.2。ブラウザ既定フォントを含む同じWindows環境で比較。CIはUbuntu・Node22・Noto CJKで区別して記録する。
 
 ```powershell
-# 最終実装commit上
-node --test
-node --check app.js
-node --check report-fixed-samples.e2e.js
-git diff origin/main --check
 $env:PYTHON=(Resolve-Path ../report-pdf-v1/.pdf-venv/Scripts/python.exe).Path
 node report-fixed-samples.e2e.js
 $env:MEMO_NEXUS_E2E_BROWSER='webkit'
 node report-fixed-samples.e2e.js
+Remove-Item Env:MEMO_NEXUS_E2E_BROWSER
+node report-preview.e2e.js
+node report-pdf.e2e.js
+node chart-e2e-suite.js
+node --test chart-block-utils.test.js report-pdf.test.js
+node --test
+node --check app.js
+node --check report-fixed-samples.e2e.js
+node --check report-regression-cases.cjs
+git diff --check
 ```
 
-Pythonの上記パスは今回のローカル環境で使用した既存venv。他環境はREADMEの通常のPython設定を使う。
+Pythonパスはローカル既存venv。環境構築はREADME。実行時は `REPORT_FIXED_OUT` と必要に応じ `REPORT_CASES` を指定した。
 
-| 検証 | 実行・結果 |
-| --- | --- |
-| 最終固定サンプル | Chromium／WebKit各1回PASS、PDF45ページPASS |
-| 単体全体の最終単独実行 | 1799 PASS |
-| JS構文・diff whitespace | PASS |
-| 既存PDF E2E（同じ修正済み円renderer） | PASS、caption10条件、spacing4条件、pagination6 PDF、mixed PC/mobile |
-| main Chart E2E Chromium | 全機能を1回実行、PASS（907.3秒） |
-| main dual-axis WebKit | 1回PASS（215.9秒） |
-| branch dual-axis Chromium／WebKit | 各1回PASS（70.7／158.3秒）。これ以降の製品変更はReportの折れ線表示のみで、通常のdual-axis／ゼロ軸計算を変更しない |
+- 固定11ケース：Chromium／WebKit PASS。I01番号・caption・Source追加検査も両方PASS。
+- 既存Report Preview／PDF E2E：PASS（PDF caption10条件、spacing4、pagination6 PDF、PC/mobile）。
+- Chart Chromium全体：初回PASS、985.1秒、再実行0回。既知のゼロ軸失敗は再現せず。
+- 関連単体228 PASS。ブラウザ終了後の全単体は初回1799 PASS、Bridge接続失敗なし、再実行0回。構文・diff PASS。
+- 前回Bridge ECONNRESETを根本解消したと主張しない。前回1798 PASS／1 FAIL、該当ファイル1回・全体1回の再実行で成功した既存不安定性は [前回失敗ログ](review/complete-unit.log) と分離して保持。
+- 検査開発時はZIP省略寸法、Report終了ボタン、Comparison既存(a)/(b)番号の期待値に誤りがあり修正した。I01追加確認はChromium初回番号期待値FAIL→修正後1回PASS、WebKit初回PASS。原寸画素と縮小細線／文字を比べる誤検査も実寸の枠・印領域比較へ修正。途中JSON／初回失敗ログを残す。閾値拡大、固定待機、タイムアウト延長、テスト無効化はしていない。
 
-既知のグラフゼロ軸位置の失敗は上記main／branchの実行では再現しなかった。再実行0回。最新main `2a13b83` の [Linux CI](https://github.com/tetsujisugimori-coder/memo/actions/runs/37602937863) も成功し、Chromium／WebKit Chartジョブの成功を確認した。今回のPR CIは別に確認する。iPhone実機の結果を主張しない。
+## 成果物と公開
 
-別件：最終commitでブラウザと同時に実行した単体テストは1798 PASS／1 FAIL。未変更の `codex-bridge.test.js:120` healthテストが `fetch failed / ECONNRESET` で失敗した。該当ファイルを1回単独実行して5 PASS、続いて全体を1回単独実行して1799 PASS。単に再実行が成功したことを根本解消とは扱わない。Bridgeコードのmain差分はなく、既存の `docs/report-spacing/pdf-ci/README.md` にも同種の接続失敗の記録がある。今回のReport結果とは分離して未解決の不安定性として残す。[失敗ログ](review/complete-unit.log)／[該当ファイル単独](review/bridge-isolated.log)／[全体単独](review/unit-isolated-final.log)。
+最新は [review/followup/](review/followup/)：11実PDF、新規／変更38ページPNG、修正前base／HEADの実PDFと画像・JSON、両browser代表Preview、結果JSON、主要ログ、目視一覧。未変更32ページPNGは一つ上の `review/` の同名ファイルと一致。前回資料も履歴／同ディレクトリに区別して保持する。
 
-開発中にはサンプル／検証側のID規則、未参照Source数、Pythonのinspectモジュール名衝突、フッターの抽出順、インポートの新旧ID対応、添付非同期読込、WebKitの隠しテキストのinnerText取得に誤りがあり修正した。WebKitのpage.goto(load)タイムアウトも1回記録した。最終両ブラウザ実行は失敗なし。タイムアウト延長、固定待機、テスト無効化、期待値の許容差緩和は行っていない。途中ログはローカル成果物の `logs/` に保持する。
+ローカル `e2e-artifacts/report-fixed/` に再投入ZIP、変換後画像、初回／再出力PDF、全70ページPNG、全Previewと開発記録を保持。CIはChromium実PDFと両browser Previewを検査し、失敗時もJSON・PDF・ページ画像・画像領域PNG・run.logを `report-fixed-chromium`／`report-fixed-webkit` artifactに14日保存する。
 
-## 成果物
-
-このディレクトリの `review/` に固定6PDF、全45ページPNG、両ブラウザ代表Preview4枚、検証JSON、主要実行ログをcommitする。 [Chromium結果JSON](review/results-chromium.json)／[WebKit結果JSON](review/results-webkit.json)。Chromium JSONの目視欄だけは実際の画像確認後に記録した。テスト自動生成JSONは目視を自動PASSにしない。
-
-PDF：[R01](review/R01.pdf)、[R02](review/R02.pdf)、[R03](review/R03.pdf)、[R04](review/R04.pdf)、[R05](review/R05.pdf)、[R06](review/R06.pdf)。ページ画像は `review/R01-page-01.png` から各サンプルの最終ページまで。
-
-全生成物、初回／再出力12PDF、再投入ZIP、全Preview、途中失敗ログはworktreeの `e2e-artifacts/report-fixed/` に残す。CI artifact名は `report-fixed-chromium`／`report-fixed-webkit`、保持14日。固定素材とモデル生成器はリポジトリに残るため再実行可能。
-
-## 残る制約・引き継ぎ
-
-横出力・余白変更は既存未対応のため未実施。一般フローチャートの自動配置／ラベル自動折り返しは未対応。今回の12要素DiagramはGeometry v2点・線・頂点ラベルで検証した。50項目の極小円扇形、長い値ラベル、多系列の折れ線など、今回の固定データを超えたすべての組み合わせの可読性は保証しない。読めることと意味的なページのまとまりは目視を含み、自動テストの全面保証とは表現しない。
-
-専用ブランチ `test/report-fixed-regression` のpushと [draft PR #350](https://github.com/tetsujisugimori-coder/memo/pull/350) 作成に成功した。作成用の本文は [PR_BODY.md](PR_BODY.md)。制限環境の初回GitHub CLI照会はHTTP 401だったが、承認済み昇格実行ではPRメタデータ・CI確認・push・PR作成を実行できた。自動マージは行っていない。
+既存PR #350のブランチを更新。別PR／自動マージは行わない。最終HEAD・対応CI・Linuxページ数／目視範囲をPR本文に追記し、実際に確認できた結果だけを報告する。

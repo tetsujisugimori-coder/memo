@@ -1,0 +1,24 @@
+[
+  {
+    "id": "L01",
+    "pdf": "�����{"
+  },
+  {
+    "id": "L02",
+    "pdf": "�����{"
+  },
+  {
+    "id": "L03",
+    "pdf": "�����{"
+  },
+  {
+    "id": "L04",
+    "pdf": "�����{"
+  },
+  {
+    "id": "I01",
+    "pdf": "FAIL",
+    "pages": 8,
+    "pdfFailure": "landscape: outer border error 55.08 >35"
+  }
+]
