@@ -14,6 +14,8 @@
 
 mainのTimeline項目は全体zoom約0.870、表示高890.55px。失敗PRはzoomなし、高973.38pxで、A4本文領域約971.34pxをわずかに超えて長文用の分割へ入った。9ページ目の `[1]` は直前Diagramの出典で、TimelineのFigure出典ではない。画像・キャプション・出典の消失はなく、本文との改ページが原因だった。
 
+初回修正 `e5d3e70…` の[CI](https://github.com/tetsujisugimori-coder/memo/actions/runs/37588694669)ではPCのPDFと追加全6ケースは成功し、320pxの混在PDFで通常Timelineが10/11ページに分離した。画面用600px以下のルールが左paddingを1.3em→1emに変え、測定時の本文幅と実A4印刷時の幅が異なっていた。印刷だけpaddingを固定し、320pxのmetricsはPC値のコピーをやめて実測へ変更。両方の項目高とメディア幅/高さの一致を検査する。
+
 指定mainのPDF成果物も直接取得して照合した。main / 失敗PR / 修正出力で `reportNumbers`、`citations`、`longUrl` が一致する。Windowsでも同じ入力をmainと修正ツリーで生成した。Linuxの修正出力はpush後CIの成果物で追加検査する。古いSHAの成功を修正HEADの成功として扱わない。
 
 通常項目を保持する描画修正と、誤ったSourceの個数で判断しない検査更新の両方を行った。通常項目は固有本文・図番号/キャプション・資料情報・Figure出典・項目出典を同じ項目領域で照合する。長文項目は30段落の全文、参照Figureの2つの実画像、キャプション全文、固有URLとSourceを対応づけ、許容する分割を検査する。

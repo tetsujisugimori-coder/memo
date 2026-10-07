@@ -80,7 +80,7 @@ body.report-preview-mode #preview .chart-block > .sr-only {
   white-space: normal;
   font-size: 9pt;
 }
-body.report-preview-mode #preview .timeline-item { display: block; }
+body.report-preview-mode #preview .timeline-item { display: block; padding-left: 1.3em; }
 body.report-preview-mode #preview :is(.timeline-items, .timeline-content) { display: block; }
 body.report-preview-mode #preview table { width: 100%; table-layout: fixed; border-collapse: collapse; font-size: 9pt; }
 body.report-preview-mode #preview :is(th, td) { min-width: 0; width: auto; padding: 1.5mm; white-space: pre-wrap; overflow-wrap: anywhere; }

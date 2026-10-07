@@ -88,21 +88,21 @@
       },
       {
         "media": {
-          "left": 27.65625,
-          "right": 243.546875,
-          "width": 215.890625,
-          "height": 643.546875,
-          "center": 135.6015625
-        },
-        "image": {
-          "left": 28.34375,
-          "right": 242.859375,
+          "left": 32.0625,
+          "right": 246.578125,
           "width": 214.515625,
           "height": 643.546875,
-          "center": 135.6015625
+          "center": 139.3203125
         },
-        "scale": 0.357533,
-        "expectedLeft": 27.65625,
+        "image": {
+          "left": 32.0625,
+          "right": 246.578125,
+          "width": 214.515625,
+          "height": 643.546875,
+          "center": 139.3203125
+        },
+        "scale": 0.357859,
+        "expectedLeft": 32.0625,
         "groupZoom": "",
         "timeline": true,
         "font": 12
@@ -198,21 +198,21 @@
       },
       {
         "media": {
-          "left": 221.625,
-          "right": 437.515625,
-          "width": 215.890625,
-          "height": 643.546875,
-          "center": 329.5703125
-        },
-        "image": {
-          "left": 222.3125,
-          "right": 436.828125,
+          "left": 224.515625,
+          "right": 439.03125,
           "width": 214.515625,
           "height": 643.546875,
-          "center": 329.5703125
+          "center": 331.7734375
         },
-        "scale": 0.357533,
-        "expectedLeft": 221.640625,
+        "image": {
+          "left": 224.515625,
+          "right": 439.03125,
+          "width": 214.515625,
+          "height": 643.546875,
+          "center": 331.7734375
+        },
+        "scale": 0.357859,
+        "expectedLeft": 224.53125,
         "groupZoom": "",
         "timeline": true,
         "font": 12
@@ -308,21 +308,21 @@
       },
       {
         "media": {
-          "left": 415.609375,
+          "left": 416.984375,
           "right": 631.5,
-          "width": 215.890625,
-          "height": 643.546875,
-          "center": 523.5546875
-        },
-        "image": {
-          "left": 416.296875,
-          "right": 630.8125,
           "width": 214.515625,
           "height": 643.546875,
-          "center": 523.5546875
+          "center": 524.2421875
         },
-        "scale": 0.357533,
-        "expectedLeft": 415.625,
+        "image": {
+          "left": 416.984375,
+          "right": 631.5,
+          "width": 214.515625,
+          "height": 643.546875,
+          "center": 524.2421875
+        },
+        "scale": 0.357859,
+        "expectedLeft": 417,
         "groupZoom": "",
         "timeline": true,
         "font": 12
