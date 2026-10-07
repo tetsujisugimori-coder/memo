@@ -1,0 +1,15 @@
+[START] Chart E2E (chromium) > chart-dual-axis
+[START] Chart E2E (chromium) > chart-dual-axis > fresh browser context and editor startup
+[PASS] Chart E2E (chromium) > chart-dual-axis > fresh browser context and editor startup 0.4s
+[START] Chart E2E (chromium) > chart-dual-axis > UI operations and assertions
+[PASS] Chart E2E (chromium) > chart-dual-axis > UI operations and assertions 0.0s
+[START] Chart E2E (chromium) > chart-dual-axis > 2-axis Chart creation, editing and validation
+[PASS] Chart E2E (chromium) > chart-dual-axis > 2-axis Chart creation, editing and validation 2.2s
+[START] Chart E2E (chromium) > chart-dual-axis > 160 geometry combinations across data, theme and width
+[PASS] Chart E2E (chromium) > chart-dual-axis > 160 geometry combinations across data, theme and width 66.4s
+[START] Chart E2E (chromium) > chart-dual-axis > save/reload, legacy marker and cancel
+Dual-axis checks passed: 160 geometry combinations, UI creation, stable IDs, save/reload, type/axis switches, invalid drafts, legacy marker and cancel
+[PASS] Chart E2E (chromium) > chart-dual-axis > save/reload, legacy marker and cancel 1.7s
+[PASS] Chart E2E (chromium) > chart-dual-axis 70.7s
+[RESULT] Chart E2E (chromium) > chart-dual-axis PASS 70.7s
+[TOTAL] Chart E2E (chromium) 83.2s

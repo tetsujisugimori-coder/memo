@@ -1,0 +1,28 @@
+[
+  {
+    "id": "L01",
+    "pdf": "PASS",
+    "pages": 4
+  },
+  {
+    "id": "L02",
+    "pdf": "PASS",
+    "pages": 4
+  },
+  {
+    "id": "L03",
+    "pdf": "PASS",
+    "pages": 7
+  },
+  {
+    "id": "L04",
+    "pdf": "PASS",
+    "pages": 2
+  },
+  {
+    "id": "I01",
+    "pdf": "FAIL",
+    "pages": 8,
+    "pdfFailure": "landscape: outer border error 55.08 >35"
+  }
+]

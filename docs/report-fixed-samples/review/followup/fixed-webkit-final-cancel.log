@@ -1,0 +1,469 @@
+2026-10-07T14:20:11.1839704Z Current runner version: '2.337.0'
+2026-10-07T14:20:11.1867395Z ##[group]Runner Image Provisioner
+2026-10-07T14:20:11.1868421Z Hosted Compute Agent
+2026-10-07T14:20:11.1869036Z Version: 20260901.588
+2026-10-07T14:20:11.1869725Z Commit: f88ec8081b781fac6c440065ac7ff9e710ce3d0b
+2026-10-07T14:20:11.1870465Z Build Date: 2026-09-01T19:56:44Z
+2026-10-07T14:20:11.1871157Z Worker ID: {16d3b3de-0a4d-437c-99a4-0d712f9874f7}
+2026-10-07T14:20:11.1871945Z Azure Region: southcentralus
+2026-10-07T14:20:11.1872577Z ##[endgroup]
+2026-10-07T14:20:11.1874295Z ##[group]Operating System
+2026-10-07T14:20:11.1874972Z Ubuntu
+2026-10-07T14:20:11.1875516Z 24.04.5
+2026-10-07T14:20:11.1876097Z LTS
+2026-10-07T14:20:11.1876638Z ##[endgroup]
+2026-10-07T14:20:11.1877214Z ##[group]Runner Image
+2026-10-07T14:20:11.1877816Z Image: ubuntu-24.04
+2026-10-07T14:20:11.1878376Z Version: 20260927.320.1
+2026-10-07T14:20:11.1879689Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20260927.320/images/ubuntu/Ubuntu2404-Readme.md
+2026-10-07T14:20:11.1881329Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20260927.320
+2026-10-07T14:20:11.1882307Z ##[endgroup]
+2026-10-07T14:20:11.1883776Z ##[group]GITHUB_TOKEN Permissions
+2026-10-07T14:20:11.1885942Z Contents: read
+2026-10-07T14:20:11.1886587Z Metadata: read
+2026-10-07T14:20:11.1887223Z ##[endgroup]
+2026-10-07T14:20:11.1889251Z Secret source: Actions
+2026-10-07T14:20:11.1890369Z Cache mode: write
+2026-10-07T14:20:11.1891548Z Prepare workflow directory
+2026-10-07T14:20:11.2228940Z Prepare all required actions
+2026-10-07T14:20:11.2276346Z Getting action download info
+2026-10-07T14:20:11.5316991Z Download action repository 'actions/checkout@v7' (SHA:3d3c42e5aac5ba805825da76410c181273ba90b1)
+2026-10-07T14:20:11.6221306Z Download action repository 'actions/setup-node@v7' (SHA:820762786026740c76f36085b0efc47a31fe5020)
+2026-10-07T14:20:11.7104435Z Download action repository 'actions/upload-artifact@v6' (SHA:b7c566a772e6b6bfb58ed0dc250532a479d7789f)
+2026-10-07T14:20:11.9498281Z Complete job name: Fixed report samples (webkit)
+2026-10-07T14:20:12.0216580Z ##[group]Run actions/checkout@v7
+2026-10-07T14:20:12.0217441Z with:
+2026-10-07T14:20:12.0217890Z   persist-credentials: false
+2026-10-07T14:20:12.0218434Z   repository: tetsujisugimori-coder/memo
+2026-10-07T14:20:12.0222198Z   token: ***
+2026-10-07T14:20:12.0222628Z   ssh-strict: true
+2026-10-07T14:20:12.0223361Z   ssh-user: git
+2026-10-07T14:20:12.0223793Z   clean: true
+2026-10-07T14:20:12.0224230Z   sparse-checkout-cone-mode: true
+2026-10-07T14:20:12.0224745Z   fetch-depth: 1
+2026-10-07T14:20:12.0225170Z   fetch-tags: false
+2026-10-07T14:20:12.0225603Z   show-progress: true
+2026-10-07T14:20:12.0226050Z   lfs: false
+2026-10-07T14:20:12.0226454Z   submodules: false
+2026-10-07T14:20:12.0226899Z   set-safe-directory: true
+2026-10-07T14:20:12.0227398Z   allow-unsafe-pr-checkout: false
+2026-10-07T14:20:12.0228253Z ##[endgroup]
+2026-10-07T14:20:12.1238005Z Syncing repository: tetsujisugimori-coder/memo
+2026-10-07T14:20:12.1240565Z ##[group]Getting Git version info
+2026-10-07T14:20:12.1241639Z Working directory is '/home/runner/work/memo/memo'
+2026-10-07T14:20:12.1243487Z [command]/usr/bin/git version
+2026-10-07T14:20:12.1313049Z git version 2.55.0
+2026-10-07T14:20:12.1336726Z ##[endgroup]
+2026-10-07T14:20:12.1347496Z Temporarily overriding HOME='/home/runner/work/_temp/163d6bd6-cb74-444f-bea2-7a5eebd29037' before making global git config changes
+2026-10-07T14:20:12.1354266Z Adding repository directory to the temporary git global config as a safe directory
+2026-10-07T14:20:12.1356251Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/memo/memo
+2026-10-07T14:20:12.1413482Z Deleting the contents of '/home/runner/work/memo/memo'
+2026-10-07T14:20:12.1417132Z ##[group]Determining repository object format
+2026-10-07T14:20:12.1418625Z ##[endgroup]
+2026-10-07T14:20:12.1419356Z ##[group]Initializing the repository
+2026-10-07T14:20:12.1424247Z [command]/usr/bin/git init /home/runner/work/memo/memo
+2026-10-07T14:20:12.1549479Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-10-07T14:20:12.1551600Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-10-07T14:20:12.1558660Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-10-07T14:20:12.1560215Z hint: call:
+2026-10-07T14:20:12.1561108Z hint:
+2026-10-07T14:20:12.1562050Z hint: 	git config --global init.defaultBranch <name>
+2026-10-07T14:20:12.1563624Z hint:
+2026-10-07T14:20:12.1564799Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-10-07T14:20:12.1566545Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-10-07T14:20:12.1568007Z hint:
+2026-10-07T14:20:12.1568797Z hint: 	git branch -m <name>
+2026-10-07T14:20:12.1570208Z hint:
+2026-10-07T14:20:12.1571477Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-10-07T14:20:12.1573574Z Initialized empty Git repository in /home/runner/work/memo/memo/.git/
+2026-10-07T14:20:12.1576265Z [command]/usr/bin/git remote add origin https://github.com/tetsujisugimori-coder/memo
+2026-10-07T14:20:12.1631507Z ##[endgroup]
+2026-10-07T14:20:12.1633085Z ##[group]Disabling automatic garbage collection
+2026-10-07T14:20:12.1636574Z [command]/usr/bin/git config --local gc.auto 0
+2026-10-07T14:20:12.1670124Z ##[endgroup]
+2026-10-07T14:20:12.1671452Z ##[group]Setting up auth
+2026-10-07T14:20:12.1672523Z Removing SSH command configuration
+2026-10-07T14:20:12.1678710Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-10-07T14:20:12.1713267Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-10-07T14:20:12.2112779Z Removing HTTP extra header
+2026-10-07T14:20:12.2119417Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-10-07T14:20:12.2167713Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-10-07T14:20:12.2420673Z Removing includeIf entries pointing to credentials config files
+2026-10-07T14:20:12.2427374Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-10-07T14:20:12.2464082Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-10-07T14:20:12.2719075Z [command]/usr/bin/git config --file /home/runner/work/_temp/git-credentials-6c50baa0-9059-447c-aa72-8a0e5d220a50.config http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-10-07T14:20:12.2764559Z [command]/usr/bin/git config --local includeIf.gitdir:/home/runner/work/memo/memo/.git.path /home/runner/work/_temp/git-credentials-6c50baa0-9059-447c-aa72-8a0e5d220a50.config
+2026-10-07T14:20:12.2801150Z [command]/usr/bin/git config --local includeIf.gitdir:/home/runner/work/memo/memo/.git/worktrees/*.path /home/runner/work/_temp/git-credentials-6c50baa0-9059-447c-aa72-8a0e5d220a50.config
+2026-10-07T14:20:12.2842640Z [command]/usr/bin/git config --local includeIf.gitdir:/github/workspace/.git.path /github/runner_temp/git-credentials-6c50baa0-9059-447c-aa72-8a0e5d220a50.config
+2026-10-07T14:20:12.2877646Z [command]/usr/bin/git config --local includeIf.gitdir:/github/workspace/.git/worktrees/*.path /github/runner_temp/git-credentials-6c50baa0-9059-447c-aa72-8a0e5d220a50.config
+2026-10-07T14:20:12.2910270Z ##[endgroup]
+2026-10-07T14:20:12.2911457Z ##[group]Fetching the repository
+2026-10-07T14:20:12.2917556Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +ab8d1c17ac1e47261f54a3fc075217e09ea32a9a:refs/remotes/pull/350/merge
+2026-10-07T14:20:14.3244513Z From https://github.com/tetsujisugimori-coder/memo
+2026-10-07T14:20:14.3248096Z  * [new ref]         ab8d1c17ac1e47261f54a3fc075217e09ea32a9a -> pull/350/merge
+2026-10-07T14:20:14.3255267Z ##[endgroup]
+2026-10-07T14:20:14.3257631Z ##[group]Determining the checkout info
+2026-10-07T14:20:14.3260052Z ##[endgroup]
+2026-10-07T14:20:14.3261289Z [command]/usr/bin/git sparse-checkout disable
+2026-10-07T14:20:14.3311514Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-10-07T14:20:14.3345702Z ##[group]Checking out the ref
+2026-10-07T14:20:14.3349012Z [command]/usr/bin/git checkout --progress --force refs/remotes/pull/350/merge
+2026-10-07T14:20:14.4955959Z Note: switching to 'refs/remotes/pull/350/merge'.
+2026-10-07T14:20:14.4957220Z
+2026-10-07T14:20:14.4957987Z You are in 'detached HEAD' state. You can look around, make experimental
+2026-10-07T14:20:14.4959879Z changes and commit them, and you can discard any commits you make in this
+2026-10-07T14:20:14.4961717Z state without impacting any branches by switching back to a branch.
+2026-10-07T14:20:14.4963070Z
+2026-10-07T14:20:14.4963946Z If you want to create a new branch to retain commits you create, you may
+2026-10-07T14:20:14.4965633Z do so (now or later) by using -c with the switch command. Example:
+2026-10-07T14:20:14.4966618Z
+2026-10-07T14:20:14.4967021Z   git switch -c <new-branch-name>
+2026-10-07T14:20:14.4967766Z
+2026-10-07T14:20:14.4968502Z Or undo this operation with:
+2026-10-07T14:20:14.4969847Z
+2026-10-07T14:20:14.4970691Z   git switch -
+2026-10-07T14:20:14.4971746Z
+2026-10-07T14:20:14.4973452Z Turn off this advice by setting config variable advice.detachedHead to false
+2026-10-07T14:20:14.4975727Z
+2026-10-07T14:20:14.4978260Z HEAD is now at ab8d1c1 Merge 43b77b06c9b13bef1a044b4c1c0f08e263e43fdf into 2a13b83bf56bcecf5204c75dfb0a9f03ba84b7db
+2026-10-07T14:20:14.4986359Z ##[endgroup]
+2026-10-07T14:20:14.5030504Z [command]/usr/bin/git log -1 --format=%H
+2026-10-07T14:20:14.5060826Z ab8d1c17ac1e47261f54a3fc075217e09ea32a9a
+2026-10-07T14:20:14.5137688Z ##[group]Removing auth
+2026-10-07T14:20:14.5139825Z Removing SSH command configuration
+2026-10-07T14:20:14.5142538Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-10-07T14:20:14.5149016Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-10-07T14:20:14.5344595Z Removing HTTP extra header
+2026-10-07T14:20:14.5348069Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-10-07T14:20:14.5387899Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-10-07T14:20:14.5619227Z Removing includeIf entries pointing to credentials config files
+2026-10-07T14:20:14.5621750Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-10-07T14:20:14.5651165Z includeif.gitdir:/home/runner/work/memo/memo/.git.path
+2026-10-07T14:20:14.5653894Z includeif.gitdir:/home/runner/work/memo/memo/.git/worktrees/*.path
+2026-10-07T14:20:14.5656054Z includeif.gitdir:/github/workspace/.git.path
+2026-10-07T14:20:14.5657801Z includeif.gitdir:/github/workspace/.git/worktrees/*.path
+2026-10-07T14:20:14.5662136Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/home/runner/work/memo/memo/.git.path
+2026-10-07T14:20:14.5687060Z /home/runner/work/_temp/git-credentials-6c50baa0-9059-447c-aa72-8a0e5d220a50.config
+2026-10-07T14:20:14.5698173Z [command]/usr/bin/git config --local --unset includeif.gitdir:/home/runner/work/memo/memo/.git.path \/home\/runner\/work\/_temp\/git\-credentials\-6c50baa0\-9059\-447c\-aa72\-8a0e5d220a50\.config
+2026-10-07T14:20:14.5736975Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/home/runner/work/memo/memo/.git/worktrees/*.path
+2026-10-07T14:20:14.5764884Z /home/runner/work/_temp/git-credentials-6c50baa0-9059-447c-aa72-8a0e5d220a50.config
+2026-10-07T14:20:14.5780177Z [command]/usr/bin/git config --local --unset includeif.gitdir:/home/runner/work/memo/memo/.git/worktrees/*.path \/home\/runner\/work\/_temp\/git\-credentials\-6c50baa0\-9059\-447c\-aa72\-8a0e5d220a50\.config
+2026-10-07T14:20:14.5816053Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/github/workspace/.git.path
+2026-10-07T14:20:14.5841979Z /github/runner_temp/git-credentials-6c50baa0-9059-447c-aa72-8a0e5d220a50.config
+2026-10-07T14:20:14.5852255Z [command]/usr/bin/git config --local --unset includeif.gitdir:/github/workspace/.git.path \/github\/runner_temp\/git\-credentials\-6c50baa0\-9059\-447c\-aa72\-8a0e5d220a50\.config
+2026-10-07T14:20:14.5925026Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/github/workspace/.git/worktrees/*.path
+2026-10-07T14:20:14.5971988Z /github/runner_temp/git-credentials-6c50baa0-9059-447c-aa72-8a0e5d220a50.config
+2026-10-07T14:20:14.5986460Z [command]/usr/bin/git config --local --unset includeif.gitdir:/github/workspace/.git/worktrees/*.path \/github\/runner_temp\/git\-credentials\-6c50baa0\-9059\-447c\-aa72\-8a0e5d220a50\.config
+2026-10-07T14:20:14.6023898Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-10-07T14:20:14.6244336Z Removing credentials config '/home/runner/work/_temp/git-credentials-6c50baa0-9059-447c-aa72-8a0e5d220a50.config'
+2026-10-07T14:20:14.6252389Z ##[endgroup]
+2026-10-07T14:20:14.6613207Z ##[group]Run actions/setup-node@v7
+2026-10-07T14:20:14.6614529Z with:
+2026-10-07T14:20:14.6615420Z   node-version: 22
+2026-10-07T14:20:14.6616366Z   cache: npm
+2026-10-07T14:20:14.6617276Z   check-latest: false
+2026-10-07T14:20:14.6627017Z   token: ***
+2026-10-07T14:20:14.6627996Z   package-manager-cache: true
+2026-10-07T14:20:14.6629108Z ##[endgroup]
+2026-10-07T14:20:14.7911603Z Found in cache @ /opt/hostedtoolcache/node/22.23.3/x64
+2026-10-07T14:20:14.7915837Z ##[group]Environment details
+2026-10-07T14:20:15.2018764Z node: v22.23.3
+2026-10-07T14:20:15.2019412Z npm: 10.9.9
+2026-10-07T14:20:15.2019956Z yarn: 1.22.22
+2026-10-07T14:20:15.2021628Z ##[endgroup]
+2026-10-07T14:20:15.2038479Z [command]/opt/hostedtoolcache/node/22.23.3/x64/bin/npm config get cache
+2026-10-07T14:20:15.3788015Z /home/runner/.npm
+2026-10-07T14:20:15.5484694Z Cache hit for: node-cache-Linux-x64-npm-ffebc3246d8749edaf51beb2167ca789cf686f5de0d3bc7bd3385368bcc72766
+2026-10-07T14:20:16.1935907Z Received 3971246 of 3971246 (100.0%), 7.7 MBs/sec
+2026-10-07T14:20:16.1936939Z Cache Size: ~4 MB (3971246 B)
+2026-10-07T14:20:16.1967045Z [command]/usr/bin/tar -xf /home/runner/work/_temp/0ecc4d8f-27b8-476c-89ff-a14730939c0b/cache.tzst -P -C /home/runner/work/memo/memo --use-compress-program unzstd
+2026-10-07T14:20:16.2088966Z Cache restored successfully
+2026-10-07T14:20:16.2097303Z Cache restored from key: node-cache-Linux-x64-npm-ffebc3246d8749edaf51beb2167ca789cf686f5de0d3bc7bd3385368bcc72766
+2026-10-07T14:20:16.2249633Z ##[group]Run npm ci
+2026-10-07T14:20:16.2250006Z [36;1mnpm ci[0m
+2026-10-07T14:20:16.2521350Z shell: /usr/bin/bash -e {0}
+2026-10-07T14:20:16.2521715Z ##[endgroup]
+2026-10-07T14:20:17.8701039Z
+2026-10-07T14:20:17.8710681Z added 2 packages, and audited 3 packages in 2s
+2026-10-07T14:20:17.8711453Z
+2026-10-07T14:20:17.8711897Z found 0 vulnerabilities
+2026-10-07T14:20:17.9136154Z ##[group]Run npx playwright install --with-deps webkit
+2026-10-07T14:20:17.9136644Z [36;1mnpx playwright install --with-deps webkit[0m
+2026-10-07T14:20:17.9201694Z shell: /usr/bin/bash -e {0}
+2026-10-07T14:20:17.9201991Z ##[endgroup]
+2026-10-07T14:20:18.7369174Z Installing dependencies...
+2026-10-07T14:20:18.7443922Z Switching to root user to install dependencies...
+2026-10-07T14:20:18.8236286Z Get:1 file:/etc/apt/apt-mirrors.txt Mirrorlist [144 B]
+2026-10-07T14:20:18.8644475Z Hit:2 http://azure.archive.ubuntu.com/ubuntu noble InRelease
+2026-10-07T14:20:18.8654233Z Get:3 http://azure.archive.ubuntu.com/ubuntu noble-updates InRelease [126 kB]
+2026-10-07T14:20:18.8734290Z Get:4 http://azure.archive.ubuntu.com/ubuntu noble-backports InRelease [126 kB]
+2026-10-07T14:20:18.8791629Z Get:5 http://azure.archive.ubuntu.com/ubuntu noble-security InRelease [126 kB]
+2026-10-07T14:20:18.8927425Z Get:6 https://packages.microsoft.com/ubuntu/24.04/prod noble InRelease [3600 B]
+2026-10-07T14:20:19.0079547Z Get:7 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 Packages [1375 kB]
+2026-10-07T14:20:19.0223598Z Get:8 http://azure.archive.ubuntu.com/ubuntu noble-updates/main Translation-en [306 kB]
+2026-10-07T14:20:19.0246456Z Get:9 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 Components [181 kB]
+2026-10-07T14:20:19.0265846Z Get:10 http://azure.archive.ubuntu.com/ubuntu noble-updates/universe amd64 Packages [1702 kB]
+2026-10-07T14:20:19.0353296Z Get:11 http://azure.archive.ubuntu.com/ubuntu noble-updates/universe Translation-en [341 kB]
+2026-10-07T14:20:19.0382133Z Get:12 http://azure.archive.ubuntu.com/ubuntu noble-updates/universe amd64 Components [388 kB]
+2026-10-07T14:20:19.0414302Z Get:13 http://azure.archive.ubuntu.com/ubuntu noble-updates/restricted amd64 Packages [1730 kB]
+2026-10-07T14:20:19.0498016Z Get:14 http://azure.archive.ubuntu.com/ubuntu noble-updates/restricted Translation-en [396 kB]
+2026-10-07T14:20:19.0534441Z Get:15 http://azure.archive.ubuntu.com/ubuntu noble-updates/multiverse Translation-en [13.3 kB]
+2026-10-07T14:20:19.0545437Z Get:16 http://azure.archive.ubuntu.com/ubuntu noble-updates/multiverse amd64 Components [940 B]
+2026-10-07T14:20:19.1112261Z Get:17 http://azure.archive.ubuntu.com/ubuntu noble-backports/main amd64 Components [5752 B]
+2026-10-07T14:20:19.1163395Z Get:18 http://azure.archive.ubuntu.com/ubuntu noble-backports/universe amd64 Components [12.6 kB]
+2026-10-07T14:20:19.1184087Z Get:19 http://azure.archive.ubuntu.com/ubuntu noble-security/main amd64 Packages [1073 kB]
+2026-10-07T14:20:19.1253527Z Get:20 http://azure.archive.ubuntu.com/ubuntu noble-security/main Translation-en [223 kB]
+2026-10-07T14:20:19.1274312Z Get:21 http://azure.archive.ubuntu.com/ubuntu noble-security/main amd64 Components [46.4 kB]
+2026-10-07T14:20:19.1294052Z Get:22 http://azure.archive.ubuntu.com/ubuntu noble-security/universe amd64 Packages [1218 kB]
+2026-10-07T14:20:19.1362145Z Get:23 http://azure.archive.ubuntu.com/ubuntu noble-security/universe Translation-en [245 kB]
+2026-10-07T14:20:19.1377720Z Get:24 http://azure.archive.ubuntu.com/ubuntu noble-security/universe amd64 Components [76.3 kB]
+2026-10-07T14:20:19.1398088Z Get:25 http://azure.archive.ubuntu.com/ubuntu noble-security/restricted amd64 Packages [1566 kB]
+2026-10-07T14:20:19.1487748Z Get:26 http://azure.archive.ubuntu.com/ubuntu noble-security/restricted Translation-en [361 kB]
+2026-10-07T14:20:19.1514271Z Get:27 http://azure.archive.ubuntu.com/ubuntu noble-security/multiverse Translation-en [11.6 kB]
+2026-10-07T14:20:19.1824212Z Get:28 https://packages.microsoft.com/ubuntu/24.04/prod noble/main amd64 Packages [519 kB]
+2026-10-07T14:20:19.1944550Z Get:29 https://packages.microsoft.com/ubuntu/24.04/prod noble/main armhf Packages [12.6 kB]
+2026-10-07T14:20:19.2005615Z Get:30 https://packages.microsoft.com/ubuntu/24.04/prod noble/main arm64 Packages [463 kB]
+2026-10-07T14:20:23.3907216Z Fetched 12.6 MB in 1s (9265 kB/s)
+2026-10-07T14:20:24.2269523Z Reading package lists...
+2026-10-07T14:20:24.2507207Z Reading package lists...
+2026-10-07T14:20:24.4621986Z Building dependency tree...
+2026-10-07T14:20:24.4629456Z Reading state information...
+2026-10-07T14:20:24.6231429Z libicu74 is already the newest version (74.2-1ubuntu3.1).
+2026-10-07T14:20:24.6232336Z libatomic1 is already the newest version (14.2.0-4ubuntu2~24.04.1).
+2026-10-07T14:20:24.6233058Z libatomic1 set to manually installed.
+2026-10-07T14:20:24.6233691Z libatk-bridge2.0-0t64 is already the newest version (2.52.0-1build1).
+2026-10-07T14:20:24.6234176Z libatk-bridge2.0-0t64 set to manually installed.
+2026-10-07T14:20:24.6234634Z libatk1.0-0t64 is already the newest version (2.52.0-1build1).
+2026-10-07T14:20:24.6235045Z libatk1.0-0t64 set to manually installed.
+2026-10-07T14:20:24.6235978Z libcairo-gobject2 is already the newest version (1.18.0-3build1).
+2026-10-07T14:20:24.6236424Z libcairo-gobject2 set to manually installed.
+2026-10-07T14:20:24.6236846Z libcairo2 is already the newest version (1.18.0-3build1).
+2026-10-07T14:20:24.6237245Z libcairo2 set to manually installed.
+2026-10-07T14:20:24.6237662Z libdbus-1-3 is already the newest version (1.14.10-4ubuntu4.1).
+2026-10-07T14:20:24.6238102Z libdbus-1-3 set to manually installed.
+2026-10-07T14:20:24.6238835Z libdrm2 is already the newest version (2.4.125-1ubuntu0.1~24.04.2).
+2026-10-07T14:20:24.6239280Z libdrm2 set to manually installed.
+2026-10-07T14:20:24.6239678Z libenchant-2-2 is already the newest version (2.3.3-2build2).
+2026-10-07T14:20:24.6240083Z libenchant-2-2 set to manually installed.
+2026-10-07T14:20:24.6240762Z libepoxy0 is already the newest version (1.5.10-1build1).
+2026-10-07T14:20:24.6241190Z libepoxy0 set to manually installed.
+2026-10-07T14:20:24.6241622Z libfontconfig1 is already the newest version (2.15.0-1.1ubuntu2).
+2026-10-07T14:20:24.6242057Z libfontconfig1 set to manually installed.
+2026-10-07T14:20:24.6242552Z libgdk-pixbuf-2.0-0 is already the newest version (2.42.10+dfsg-3ubuntu3.3).
+2026-10-07T14:20:24.6243258Z libgdk-pixbuf-2.0-0 set to manually installed.
+2026-10-07T14:20:24.6243723Z libglib2.0-0t64 is already the newest version (2.80.0-6ubuntu3.9).
+2026-10-07T14:20:24.6244148Z libglib2.0-0t64 set to manually installed.
+2026-10-07T14:20:24.6244593Z libgstreamer1.0-0 is already the newest version (1.24.2-1ubuntu0.1).
+2026-10-07T14:20:24.6245027Z libgstreamer1.0-0 set to manually installed.
+2026-10-07T14:20:24.6245459Z libharfbuzz0b is already the newest version (8.3.0-2build2).
+2026-10-07T14:20:24.6245856Z libharfbuzz0b set to manually installed.
+2026-10-07T14:20:24.6246277Z libjpeg-turbo8 is already the newest version (2.1.5-2ubuntu2).
+2026-10-07T14:20:24.6246687Z libjpeg-turbo8 set to manually installed.
+2026-10-07T14:20:24.6247093Z liblcms2-2 is already the newest version (2.14-2ubuntu0.1).
+2026-10-07T14:20:24.6247488Z liblcms2-2 set to manually installed.
+2026-10-07T14:20:24.6247910Z libpango-1.0-0 is already the newest version (1.52.1+ds-1build1).
+2026-10-07T14:20:24.6248316Z libpango-1.0-0 set to manually installed.
+2026-10-07T14:20:24.6248765Z libpangocairo-1.0-0 is already the newest version (1.52.1+ds-1build1).
+2026-10-07T14:20:24.6249211Z libpangocairo-1.0-0 set to manually installed.
+2026-10-07T14:20:24.6249659Z libpng16-16t64 is already the newest version (1.6.43-5ubuntu0.6).
+2026-10-07T14:20:24.6250289Z libpng16-16t64 set to manually installed.
+2026-10-07T14:20:24.6250742Z libwayland-client0 is already the newest version (1.22.0-2.1build1).
+2026-10-07T14:20:24.6251191Z libwayland-client0 set to manually installed.
+2026-10-07T14:20:24.6251629Z libwayland-egl1 is already the newest version (1.22.0-2.1build1).
+2026-10-07T14:20:24.6252040Z libwayland-egl1 set to manually installed.
+2026-10-07T14:20:24.6252442Z libwebp7 is already the newest version (1.3.2-0.4build3).
+2026-10-07T14:20:24.6252955Z libwebp7 set to manually installed.
+2026-10-07T14:20:24.6253512Z libwebpdemux2 is already the newest version (1.3.2-0.4build3).
+2026-10-07T14:20:24.6254136Z libwebpdemux2 set to manually installed.
+2026-10-07T14:20:24.6254748Z libx11-6 is already the newest version (2:1.8.7-1build1).
+2026-10-07T14:20:24.6255149Z libx11-6 set to manually installed.
+2026-10-07T14:20:24.6255560Z libxkbcommon0 is already the newest version (1.6.0-1build1).
+2026-10-07T14:20:24.6256037Z libxkbcommon0 set to manually installed.
+2026-10-07T14:20:24.6256704Z libxml2 is already the newest version (2.9.14+dfsg-1.3ubuntu3.9).
+2026-10-07T14:20:24.6257115Z libxml2 set to manually installed.
+2026-10-07T14:20:24.6257556Z libxslt1.1 is already the newest version (1.1.39-0exp1ubuntu0.24.04.3).
+2026-10-07T14:20:24.6257996Z libxslt1.1 set to manually installed.
+2026-10-07T14:20:24.6258442Z xvfb is already the newest version (2:21.1.12-1ubuntu1.8).
+2026-10-07T14:20:24.6259357Z fonts-noto-color-emoji is already the newest version (2.047-0ubuntu0.24.04.1).
+2026-10-07T14:20:24.6260554Z fonts-liberation is already the newest version (1:2.1.5-3).
+2026-10-07T14:20:24.6261273Z fonts-liberation set to manually installed.
+2026-10-07T14:20:24.6261826Z The following additional packages will be installed:
+2026-10-07T14:20:24.6262305Z   glib-networking glib-networking-common glib-networking-services
+2026-10-07T14:20:24.6263102Z   gsettings-desktop-schemas libaa1 libabsl20220623t64 libass9 libasyncns0
+2026-10-07T14:20:24.6263886Z   libavc1394-0 libavcodec60 libavfilter9 libavformat60 libavtp0 libavutil58
+2026-10-07T14:20:24.6264882Z   libblas3 libbluray2 libbs2b0 libcaca0 libcairo-script-interpreter2
+2026-10-07T14:20:24.6265723Z   libcdparanoia0 libchromaprint1 libcjson1 libcodec2-1.2 libdav1d7
+2026-10-07T14:20:24.6266289Z   libdc1394-25 libdca0 libde265-0 libdecor-0-0 libdirectfb-1.7-7t64 libdv4t64
+2026-10-07T14:20:24.6266901Z   libdvdnav4 libdvdread8t64 libegl-mesa0 libegl1 libevent-core-2.1-7t64
+2026-10-07T14:20:24.6267484Z   libevent-pthreads-2.1-7t64 libfaad2 libflac12t64 libfluidsynth3 libfreeaptx0
+2026-10-07T14:20:24.6268076Z   libgav1-1 libgl1-mesa-dri libglx-mesa0 libgme0 libgraphene-1.0-0 libgsm1
+2026-10-07T14:20:24.6268650Z   libgssdp-1.6-0 libgstreamer-plugins-good1.0-0 libgtk-4-common libgupnp-1.6-0
+2026-10-07T14:20:24.6269332Z   libgupnp-igd-1.6-0 libhwy1t64 libiec61883-0 libimath-3-1-29t64
+2026-10-07T14:20:24.6270256Z   libinstpatch-1.0-2 libjack-jackd2-0 libjxl0.7 liblapack3 liblc3-1
+2026-10-07T14:20:24.6271290Z   libldacbt-enc2 liblilv-0-0 liblrdf0 libltc11 libmbedcrypto7t64 libmfx1
+2026-10-07T14:20:24.6272203Z   libmjpegutils-2.1-0t64 libmodplug1 libmp3lame0 libmpcdec6
+2026-10-07T14:20:24.6273310Z   libmpeg2encpp-2.1-0t64 libmpg123-0t64 libmplex2-2.1-0t64 libmysofa1
+2026-10-07T14:20:24.6274245Z   libneon27t64 libnice10 libopenal-data libopenal1 libopenexr-3-1-30
+2026-10-07T14:20:24.6275103Z   libopenh264-7 libopenmpt0t64 libopenni2-0 liborc-0.4-0t64
+2026-10-07T14:20:24.6275948Z   libpipewire-0.3-0t64 libplacebo338 libpocketsphinx3 libpostproc57
+2026-10-07T14:20:24.6276893Z   libproxy1v5 libpulse0 libqrencode4 libraptor2-0 librav1e0 libraw1394-11
+2026-10-07T14:20:24.6277864Z   librist4 librsvg2-2 librubberband2 libsamplerate0 libsbc1 libsdl2-2.0-0
+2026-10-07T14:20:24.6278969Z   libsecret-common libserd-0-0 libshine3 libshout3 libsndfile1 libsndio7.0
+2026-10-07T14:20:24.6279924Z   libsord-0-0 libsoundtouch1 libsoup-3.0-0 libsoup-3.0-common libsoxr0
+2026-10-07T14:20:24.6280907Z   libspa-0.2-modules libspandsp2t64 libspeex1 libsphinxbase3t64 libsratom-0-0
+2026-10-07T14:20:24.6281953Z   libsrt1.5-gnutls libsrtp2-1 libssh-gcrypt-4 libsvtav1enc1d1 libswresample4
+2026-10-07T14:20:24.6283160Z   libswscale7 libtag1v5 libtag1v5-vanilla libtheora0 libtwolame0 libudfread0
+2026-10-07T14:20:24.6284159Z   libunibreak5 libv4l-0t64 libv4lconvert0t64 libva-drm2 libva-x11-2 libva2
+2026-10-07T14:20:24.6285135Z   libvdpau1 libvidstab1.1 libvisual-0.4-0 libvo-aacenc0 libvo-amrwbenc0
+2026-10-07T14:20:24.6286123Z   libvorbisenc2 libvpl2 libwavpack1 libwebrtc-audio-processing1 libwildmidi2
+2026-10-07T14:20:24.6287154Z   libx265-199 libxcb-xkb1 libxkbcommon-x11-0 libxvidcore4 libyuv0 libzbar0t64
+2026-10-07T14:20:24.6288144Z   libzimg2 libzix-0-0 libzvbi-common libzvbi0t64 libzxing3 mesa-libgallium
+2026-10-07T14:20:24.6289391Z   ocl-icd-libopencl1 session-migration timgm6mb-soundfont xfonts-encodings
+2026-10-07T14:20:24.6290145Z   xfonts-utils
+2026-10-07T14:20:24.6290565Z Suggested packages:
+2026-10-07T14:20:24.6291241Z   frei0r-plugins gvfs libcuda1 libnvcuvid1 libnvidia-encode1 libbluray-bdj
+2026-10-07T14:20:24.6292223Z   libdirectfb-extra libdv-bin oss-compat libdvdcss2 libvisual-0.4-plugins
+2026-10-07T14:20:24.6293345Z   jackd2 liblrdf0-dev libportaudio2 opus-tools pipewire pulseaudio
+2026-10-07T14:20:24.6294235Z   raptor2-utils libraw1394-doc librsvg2-bin serdi sndiod sordi speex
+2026-10-07T14:20:24.6295014Z   libwildmidi-config opencl-icd fluid-soundfont-gm
+2026-10-07T14:20:24.6295598Z Recommended packages:
+2026-10-07T14:20:24.6296203Z   fonts-ipafont-mincho fonts-tlwg-loma gstreamer1.0-x libaacs0
+2026-10-07T14:20:24.6297322Z   default-libdecor-0-plugin-1 | libdecor-0-plugin-1 gstreamer1.0-gl
+2026-10-07T14:20:24.6298302Z   libgtk-4-bin librsvg2-common libgtk-4-media-gstreamer libpipewire-0.3-common
+2026-10-07T14:20:24.6299355Z   pocketsphinx-en-us va-driver-all | va-driver vdpau-driver-all | vdpau-driver
+2026-10-07T14:20:24.6300095Z   libmagickcore-6.q16-7-extra
+2026-10-07T14:20:24.6923795Z The following NEW packages will be installed:
+2026-10-07T14:20:24.6924790Z   fonts-freefont-ttf fonts-ipafont-gothic fonts-tlwg-loma-otf fonts-unifont
+2026-10-07T14:20:24.6925760Z   fonts-wqy-zenhei glib-networking glib-networking-common
+2026-10-07T14:20:24.6926722Z   glib-networking-services gsettings-desktop-schemas gstreamer1.0-libav
+2026-10-07T14:20:24.6927869Z   gstreamer1.0-plugins-bad gstreamer1.0-plugins-base gstreamer1.0-plugins-good
+2026-10-07T14:20:24.6928976Z   libaa1 libabsl20220623t64 libass9 libasyncns0 libavc1394-0 libavcodec60
+2026-10-07T14:20:24.6930005Z   libavfilter9 libavformat60 libavif16 libavtp0 libavutil58 libblas3
+2026-10-07T14:20:24.6931036Z   libbluray2 libbs2b0 libcaca0 libcairo-script-interpreter2 libcdparanoia0
+2026-10-07T14:20:24.6932077Z   libchromaprint1 libcjson1 libcodec2-1.2 libdav1d7 libdc1394-25 libdca0
+2026-10-07T14:20:24.6933245Z   libde265-0 libdecor-0-0 libdirectfb-1.7-7t64 libdv4t64 libdvdnav4
+2026-10-07T14:20:24.6934205Z   libdvdread8t64 libegl-mesa0 libegl1 libevent-2.1-7t64 libfaad2 libflac12t64
+2026-10-07T14:20:24.6935182Z   libflite1 libfluidsynth3 libfreeaptx0 libgav1-1 libgles2 libgme0
+2026-10-07T14:20:24.6936199Z   libgraphene-1.0-0 libgsm1 libgssdp-1.6-0 libgstreamer-gl1.0-0
+2026-10-07T14:20:24.6937100Z   libgstreamer-plugins-bad1.0-0 libgstreamer-plugins-base1.0-0
+2026-10-07T14:20:24.6938076Z   libgstreamer-plugins-good1.0-0 libgtk-4-1 libgtk-4-common libgupnp-1.6-0
+2026-10-07T14:20:24.6939099Z   libgupnp-igd-1.6-0 libharfbuzz-icu0 libhwy1t64 libhyphen0 libiec61883-0
+2026-10-07T14:20:24.6940138Z   libimath-3-1-29t64 libinstpatch-1.0-2 libjack-jackd2-0 libjxl0.7 liblapack3
+2026-10-07T14:20:24.6941208Z   liblc3-1 libldacbt-enc2 liblilv-0-0 liblrdf0 libltc11 libmanette-0.2-0
+2026-10-07T14:20:24.6942262Z   libmbedcrypto7t64 libmfx1 libmjpegutils-2.1-0t64 libmodplug1 libmp3lame0
+2026-10-07T14:20:24.6943511Z   libmpcdec6 libmpeg2encpp-2.1-0t64 libmpg123-0t64 libmplex2-2.1-0t64
+2026-10-07T14:20:24.6944388Z   libmysofa1 libneon27t64 libnice10 libopenal-data libopenal1
+2026-10-07T14:20:24.6945282Z   libopenexr-3-1-30 libopenh264-7 libopenmpt0t64 libopenni2-0 libopus0
+2026-10-07T14:20:24.6946269Z   liborc-0.4-0t64 libpipewire-0.3-0t64 libplacebo338 libpocketsphinx3
+2026-10-07T14:20:24.6947249Z   libpostproc57 libproxy1v5 libpulse0 libqrencode4 libraptor2-0 librav1e0
+2026-10-07T14:20:24.6948348Z   libraw1394-11 librist4 librsvg2-2 librubberband2 libsamplerate0 libsbc1
+2026-10-07T14:20:24.6949439Z   libsdl2-2.0-0 libsecret-1-0 libsecret-common libserd-0-0 libshine3 libshout3
+2026-10-07T14:20:24.6950444Z   libsndfile1 libsndio7.0 libsord-0-0 libsoundtouch1 libsoup-3.0-0
+2026-10-07T14:20:24.6951368Z   libsoup-3.0-common libsoxr0 libspa-0.2-modules libspandsp2t64 libspeex1
+2026-10-07T14:20:24.6952427Z   libsphinxbase3t64 libsratom-0-0 libsrt1.5-gnutls libsrtp2-1 libssh-gcrypt-4
+2026-10-07T14:20:24.6954085Z   libsvtav1enc1d1 libswresample4 libswscale7 libtag1v5 libtag1v5-vanilla
+2026-10-07T14:20:24.6955049Z   libtheora0 libtwolame0 libudfread0 libunibreak5 libv4l-0t64
+2026-10-07T14:20:24.6955967Z   libv4lconvert0t64 libva-drm2 libva-x11-2 libva2 libvdpau1 libvidstab1.1
+2026-10-07T14:20:24.6956948Z   libvisual-0.4-0 libvo-aacenc0 libvo-amrwbenc0 libvorbisenc2 libvpl2 libvpx9
+2026-10-07T14:20:24.6957952Z   libwavpack1 libwayland-server0 libwebrtc-audio-processing1 libwildmidi2
+2026-10-07T14:20:24.6958954Z   libwoff1 libx264-164 libx265-199 libxcb-xkb1 libxkbcommon-x11-0 libxvidcore4
+2026-10-07T14:20:24.6959961Z   libyuv0 libzbar0t64 libzimg2 libzix-0-0 libzvbi-common libzvbi0t64 libzxing3
+2026-10-07T14:20:24.6960961Z   ocl-icd-libopencl1 session-migration timgm6mb-soundfont xfonts-cyrillic
+2026-10-07T14:20:24.6961956Z   xfonts-encodings xfonts-scalable xfonts-utils
+2026-10-07T14:20:24.6962616Z The following packages will be upgraded:
+2026-10-07T14:20:24.6963545Z   libevent-core-2.1-7t64 libevent-pthreads-2.1-7t64 libfreetype6 libgbm1
+2026-10-07T14:20:24.6964342Z   libgl1-mesa-dri libglx-mesa0 mesa-libgallium
+2026-10-07T14:20:24.7169725Z 7 upgraded, 181 newly installed, 0 to remove and 22 not upgraded.
+2026-10-07T14:20:24.7170556Z Need to get 126 MB of archives.
+2026-10-07T14:20:24.7171356Z After this operation, 364 MB of additional disk space will be used.
+2026-10-07T14:20:24.7172246Z Get:1 file:/etc/apt/apt-mirrors.txt Mirrorlist [144 B]
+2026-10-07T14:20:24.9016462Z Get:2 http://azure.archive.ubuntu.com/ubuntu noble/universe amd64 fonts-ipafont-gothic all 00303-21ubuntu1 [3513 kB]
+2026-10-07T14:20:57.0460052Z Get:3 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 fonts-freefont-ttf all 20211204+svn4273-2 [5641 kB]
+2026-10-07T14:21:48.9719650Z Get:4 http://azure.archive.ubuntu.com/ubuntu noble/universe amd64 fonts-tlwg-loma-otf all 1:0.7.3-1 [107 kB]
+2026-10-07T14:21:50.1093067Z Get:5 http://azure.archive.ubuntu.com/ubuntu noble/universe amd64 fonts-unifont all 1:15.1.01-1build1 [2993 kB]
+2026-10-07T14:22:16.7375299Z Get:6 http://azure.archive.ubuntu.com/ubuntu noble/universe amd64 fonts-wqy-zenhei all 0.9.45-8 [7472 kB]
+2026-10-07T14:23:17.9334833Z Get:7 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libproxy1v5 amd64 0.5.4-4build1 [26.5 kB]
+2026-10-07T14:23:18.3012744Z Get:8 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 glib-networking-common all 2.80.0-1build1 [6702 B]
+2026-10-07T14:23:18.5239615Z Get:9 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 glib-networking-services amd64 2.80.0-1build1 [12.8 kB]
+2026-10-07T14:23:18.8165769Z Get:10 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 session-migration amd64 0.3.9build1 [9034 B]
+2026-10-07T14:23:19.1415306Z Get:11 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 gsettings-desktop-schemas all 46.1-0ubuntu1 [35.6 kB]
+2026-10-07T14:23:19.5931467Z Get:12 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 glib-networking amd64 2.80.0-1build1 [64.1 kB]
+2026-10-07T14:23:20.2319011Z Get:13 http://azure.archive.ubuntu.com/ubuntu noble-updates/universe amd64 libva2 amd64 2.20.0-2ubuntu0.2 [66.4 kB]
+2026-10-07T14:23:20.8830185Z Get:14 http://azure.archive.ubuntu.com/ubuntu noble-updates/universe amd64 libva-drm2 amd64 2.20.0-2ubuntu0.2 [7124 B]
+2026-10-07T14:23:21.1724819Z Get:15 http://azure.archive.ubuntu.com/ubuntu noble-updates/universe amd64 libva-x11-2 amd64 2.20.0-2ubuntu0.2 [12.0 kB]
+2026-10-07T14:23:21.4030861Z Get:16 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libvdpau1 amd64 1.5-2build1 [27.8 kB]
+2026-10-07T14:23:21.7799178Z Get:17 http://azure.archive.ubuntu.com/ubuntu noble/universe amd64 libvpl2 amd64 2023.3.0-1build1 [99.8 kB]
+2026-10-07T14:23:22.7413691Z Get:18 http://azure.archive.ubuntu.com/ubuntu noble/universe amd64 ocl-icd-libopencl1 amd64 2.3.2-1build1 [38.5 kB]
+2026-10-07T14:23:23.2667069Z Get:19 http://azure.archive.ubuntu.com/ubuntu noble/universe amd64 libavutil58 amd64 7:6.1.1-3ubuntu5 [401 kB]
+2026-10-07T14:23:26.5157902Z Get:20 http://azure.archive.ubuntu.com/ubuntu noble/universe amd64 libcodec2-1.2 amd64 1.2.0-2build1 [8998 kB]
+2026-10-07T14:24:36.0207116Z Get:21 http://azure.archive.ubuntu.com/ubuntu noble/universe amd64 libdav1d7 amd64 1.4.1-1build1 [604 kB]
+2026-10-07T14:24:40.7651870Z Get:22 http://azure.archive.ubuntu.com/ubuntu noble/universe amd64 libgsm1 amd64 1.0.22-1build1 [27.8 kB]
+2026-10-07T14:24:41.1889976Z Get:23 http://azure.archive.ubuntu.com/ubuntu noble/universe amd64 libhwy1t64 amd64 1.0.7-8.1build1 [584 kB]
+2026-10-07T14:24:45.8528029Z Get:24 http://azure.archive.ubuntu.com/ubuntu noble-updates/universe amd64 libjxl0.7 amd64 0.7.0-10.2ubuntu6.1 [1001 kB]
+2026-10-07T14:24:54.0067944Z Get:25 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libmp3lame0 amd64 3.100-6build1 [142 kB]
+2026-10-07T14:24:55.5360291Z Get:26 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libopus0 amd64 1.4-1build1 [208 kB]
+2026-10-07T14:24:57.5018387Z Get:27 http://azure.archive.ubuntu.com/ubuntu noble/universe amd64 librav1e0 amd64 0.7.1-2 [1022 kB]
+2026-10-07T14:25:05.9202751Z Get:28 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 librsvg2-2 amd64 2.58.0+dfsg-1ubuntu0.1 [2141 kB]
+2026-10-07T14:25:23.4980443Z Get:29 http://azure.archive.ubuntu.com/ubuntu noble/universe amd64 libshine3 amd64 3.1.1-2build1 [23.2 kB]
+2026-10-07T14:25:23.9680627Z Get:30 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 libspeex1 amd64 1.2.1-2ubuntu2.24.04.1 [59.6 kB]
+2026-10-07T14:25:24.6074690Z Get:31 http://azure.archive.ubuntu.com/ubuntu noble/universe amd64 libsvtav1enc1d1 amd64 1.7.0+dfsg-2build1 [2425 kB]
+2026-10-07T14:25:43.6878059Z Get:32 http://azure.archive.ubuntu.com/ubuntu noble/universe amd64 libsoxr0 amd64 0.1.3-4build3 [80.0 kB]
+2026-10-07T14:25:44.4409037Z Get:33 http://azure.archive.ubuntu.com/ubuntu noble/universe amd64 libswresample4 amd64 7:6.1.1-3ubuntu5 [63.8 kB]
+2026-10-07T14:25:45.0604680Z Get:34 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libtheora0 amd64 1.1.1+dfsg.1-16.1build3 [211 kB]
+2026-10-07T14:25:46.8240406Z Get:35 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libtwolame0 amd64 0.4.0-2build3 [52.3 kB]
+2026-10-07T14:25:47.3483118Z Get:36 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libvorbisenc2 amd64 1.3.7-1build3 [80.8 kB]
+2026-10-07T14:25:48.0912322Z Get:37 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 libvpx9 amd64 1.14.0-1ubuntu2.3 [1143 kB]
+2026-10-07T14:25:57.4095375Z Get:38 http://azure.archive.ubuntu.com/ubuntu noble/universe amd64 libx264-164 amd64 2:0.164.3108+git31e19f9-1 [604 kB]
+2026-10-07T14:26:02.2420083Z Get:39 http://azure.archive.ubuntu.com/ubuntu noble/universe amd64 libx265-199 amd64 3.5-2build1 [1226 kB]
+2026-10-07T14:26:13.0656744Z Get:40 http://azure.archive.ubuntu.com/ubuntu noble/universe amd64 libxvidcore4 amd64 2:1.3.7-1build1 [219 kB]
+2026-10-07T14:26:14.9645955Z Get:41 http://azure.archive.ubuntu.com/ubuntu noble/universe amd64 libzvbi-common all 0.2.42-2 [42.4 kB]
+2026-10-07T14:26:15.4749625Z Get:42 http://azure.archive.ubuntu.com/ubuntu noble/universe amd64 libzvbi0t64 amd64 0.2.42-2 [261 kB]
+2026-10-07T14:26:17.7131589Z Get:43 http://azure.archive.ubuntu.com/ubuntu noble/universe amd64 libavcodec60 amd64 7:6.1.1-3ubuntu5 [5851 kB]
+2026-10-07T14:28:05.9614549Z Get:44 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 libfreetype6 amd64 2.13.2+dfsg-1ubuntu0.2 [403 kB]
+2026-10-07T14:28:09.1321796Z Get:45 http://azure.archive.ubuntu.com/ubuntu noble/universe amd64 libunibreak5 amd64 5.1-2build1 [25.0 kB]
+2026-10-07T14:28:09.4819342Z Get:46 http://azure.archive.ubuntu.com/ubuntu noble/universe amd64 libass9 amd64 1:0.17.1-2build1 [104 kB]
+2026-10-07T14:28:10.3854480Z Get:47 http://azure.archive.ubuntu.com/ubuntu noble/universe amd64 libudfread0 amd64 1.1.2-1build1 [19.0 kB]
+2026-10-07T14:28:10.7226382Z Get:48 http://azure.archive.ubuntu.com/ubuntu noble/universe amd64 libbluray2 amd64 1:1.3.4-1build1 [159 kB]
+2026-10-07T14:28:12.0931026Z Get:49 http://azure.archive.ubuntu.com/ubuntu noble/universe amd64 libchromaprint1 amd64 1.5.1-5 [30.5 kB]
+2026-10-07T14:28:12.7138344Z Get:50 http://azure.archive.ubuntu.com/ubuntu noble/universe amd64 libgme0 amd64 0.6.3-7build1 [134 kB]
+2026-10-07T14:28:14.0145993Z Get:51 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 libmpg123-0t64 amd64 1.32.5-1ubuntu1.1 [169 kB]
+2026-10-07T14:28:15.5406770Z Get:52 http://azure.archive.ubuntu.com/ubuntu noble/universe amd64 libopenmpt0t64 amd64 0.7.3-1.1build3 [647 kB]
+2026-10-07T14:28:20.7324904Z Get:53 http://azure.archive.ubuntu.com/ubuntu noble/universe amd64 libcjson1 amd64 1.7.17-1 [24.8 kB]
+2026-10-07T14:28:21.2679143Z Get:54 http://azure.archive.ubuntu.com/ubuntu noble/universe amd64 libmbedcrypto7t64 amd64 2.28.8-1 [209 kB]
+2026-10-07T14:28:22.9676063Z Get:55 http://azure.archive.ubuntu.com/ubuntu noble/universe amd64 librist4 amd64 0.2.10+dfsg-2 [74.9 kB]
+2026-10-07T14:28:23.6436294Z Get:56 http://azure.archive.ubuntu.com/ubuntu noble/universe amd64 libsrt1.5-gnutls amd64 1.5.3-1build2 [316 kB]
+2026-10-07T14:28:26.0373097Z Get:57 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 libssh-gcrypt-4 amd64 0.10.6-2ubuntu0.5 [226 kB]
+2026-10-07T14:28:28.2311622Z Get:58 http://azure.archive.ubuntu.com/ubuntu noble/universe amd64 libavformat60 amd64 7:6.1.1-3ubuntu5 [1153 kB]
+2026-10-07T14:28:37.1635266Z Get:59 http://azure.archive.ubuntu.com/ubuntu noble/universe amd64 libbs2b0 amd64 3.1.0+dfsg-7build1 [10.6 kB]
+2026-10-07T14:28:37.4065152Z Get:60 http://azure.archive.ubuntu.com/ubuntu noble/universe amd64 libflite1 amd64 2.2-6build3 [13.6 MB]
+2026-10-07T14:30:23.7413722Z ##[error]The operation was canceled.
+2026-10-07T14:30:23.7508045Z ##[group]Run actions/upload-artifact@v6
+2026-10-07T14:30:23.7508353Z with:
+2026-10-07T14:30:23.7508562Z   name: report-fixed-webkit
+2026-10-07T14:30:23.7508852Z   path: e2e-artifacts/report-fixed/webkit/
+2026-10-07T14:30:23.7509142Z   if-no-files-found: error
+2026-10-07T14:30:23.7509376Z   retention-days: 14
+2026-10-07T14:30:23.7509593Z   compression-level: 6
+2026-10-07T14:30:23.7509813Z   overwrite: false
+2026-10-07T14:30:23.7510026Z   include-hidden-files: false
+2026-10-07T14:30:23.7510267Z ##[endgroup]
+2026-10-07T14:30:23.9146371Z ##[error]No files were found with the provided path: e2e-artifacts/report-fixed/webkit/. No artifacts will be uploaded.
+2026-10-07T14:30:23.9540697Z Post job cleanup.
+2026-10-07T14:30:24.0558000Z [command]/usr/bin/git version
+2026-10-07T14:30:24.0610268Z git version 2.55.0
+2026-10-07T14:30:24.0649498Z Temporarily overriding HOME='/home/runner/work/_temp/b4a4a95d-1321-42bc-814d-df2472cd40a0' before making global git config changes
+2026-10-07T14:30:24.0651321Z Adding repository directory to the temporary git global config as a safe directory
+2026-10-07T14:30:24.0657061Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/memo/memo
+2026-10-07T14:30:24.0694636Z Removing SSH command configuration
+2026-10-07T14:30:24.0703688Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-10-07T14:30:24.0750052Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-10-07T14:30:24.1014502Z Removing HTTP extra header
+2026-10-07T14:30:24.1020975Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-10-07T14:30:24.1077530Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-10-07T14:30:24.1316105Z Removing includeIf entries pointing to credentials config files
+2026-10-07T14:30:24.1325095Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-10-07T14:30:24.1375429Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-10-07T14:30:24.1749892Z Cleaning up orphan processes
+2026-10-07T14:30:24.1988499Z Terminate orphan process: pid (2471) (npm exec playwright install --with-deps webkit)
+2026-10-07T14:30:24.2014920Z Terminate orphan process: pid (2483) (sh)
+2026-10-07T14:30:24.2038697Z Terminate orphan process: pid (2484) (node)

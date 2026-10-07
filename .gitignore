@@ -7,3 +7,5 @@ e2e-artifacts/diagram-review/
 
 e2e-artifacts/report-source-review/
 e2e-artifacts/report-pdf-review/
+e2e-artifacts/report-fixed/
+docs/report-fixed-samples/__pycache__/

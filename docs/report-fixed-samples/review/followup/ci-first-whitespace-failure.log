@@ -1,0 +1,44 @@
+CI checks	Check whitespace errors	﻿2026-10-07T13:43:42.8260007Z ##[group]Run case "$EVENT_NAME" in
+CI checks	Check whitespace errors	2026-10-07T13:43:42.8260376Z ^[[36;1mcase "$EVENT_NAME" in^[[0m
+CI checks	Check whitespace errors	2026-10-07T13:43:42.8260644Z ^[[36;1m  pull_request)^[[0m
+CI checks	Check whitespace errors	2026-10-07T13:43:42.8260954Z ^[[36;1m    if [[ -z "$PR_BASE_SHA" || -z "$PR_HEAD_SHA" ]]; then^[[0m
+CI checks	Check whitespace errors	2026-10-07T13:43:42.8261730Z ^[[36;1m      echo "::error::Pull request SHA is missing"^[[0m
+CI checks	Check whitespace errors	2026-10-07T13:43:42.8262054Z ^[[36;1m      exit 1^[[0m
+CI checks	Check whitespace errors	2026-10-07T13:43:42.8262266Z ^[[36;1m    fi^[[0m
+CI checks	Check whitespace errors	2026-10-07T13:43:42.8262529Z ^[[36;1m    git diff --check "$PR_BASE_SHA...$PR_HEAD_SHA"^[[0m
+CI checks	Check whitespace errors	2026-10-07T13:43:42.8262851Z ^[[36;1m    ;;^[[0m
+CI checks	Check whitespace errors	2026-10-07T13:43:42.8263048Z ^[[36;1m  push)^[[0m
+CI checks	Check whitespace errors	2026-10-07T13:43:42.8263323Z ^[[36;1m    if [[ -z "$PUSH_BEFORE_SHA" || -z "$CURRENT_SHA" ]]; then^[[0m
+CI checks	Check whitespace errors	2026-10-07T13:43:42.8263700Z ^[[36;1m      echo "::error::Push SHA is missing"^[[0m
+CI checks	Check whitespace errors	2026-10-07T13:43:42.8263997Z ^[[36;1m      exit 1^[[0m
+CI checks	Check whitespace errors	2026-10-07T13:43:42.8264206Z ^[[36;1m    fi^[[0m
+CI checks	Check whitespace errors	2026-10-07T13:43:42.8264528Z ^[[36;1m    if [[ "$PUSH_BEFORE_SHA" == "0000000000000000000000000000000000000000" ]]; then^[[0m
+CI checks	Check whitespace errors	2026-10-07T13:43:42.8265027Z ^[[36;1m      git show --check --format=fuller "$CURRENT_SHA"^[[0m
+CI checks	Check whitespace errors	2026-10-07T13:43:42.8265342Z ^[[36;1m    else^[[0m
+CI checks	Check whitespace errors	2026-10-07T13:43:42.8265618Z ^[[36;1m      git diff --check "$PUSH_BEFORE_SHA...$CURRENT_SHA"^[[0m
+CI checks	Check whitespace errors	2026-10-07T13:43:42.8266143Z ^[[36;1m    fi^[[0m
+CI checks	Check whitespace errors	2026-10-07T13:43:42.8266333Z ^[[36;1m    ;;^[[0m
+CI checks	Check whitespace errors	2026-10-07T13:43:42.8266540Z ^[[36;1m  workflow_dispatch)^[[0m
+CI checks	Check whitespace errors	2026-10-07T13:43:42.8266811Z ^[[36;1m    if [[ -z "$CURRENT_SHA" ]]; then^[[0m
+CI checks	Check whitespace errors	2026-10-07T13:43:42.8267141Z ^[[36;1m      echo "::error::Current SHA is missing"^[[0m
+CI checks	Check whitespace errors	2026-10-07T13:43:42.8267452Z ^[[36;1m      exit 1^[[0m
+CI checks	Check whitespace errors	2026-10-07T13:43:42.8267654Z ^[[36;1m    fi^[[0m
+CI checks	Check whitespace errors	2026-10-07T13:43:42.8267906Z ^[[36;1m    git show --check --format=fuller "$CURRENT_SHA"^[[0m
+CI checks	Check whitespace errors	2026-10-07T13:43:42.8268214Z ^[[36;1m    ;;^[[0m
+CI checks	Check whitespace errors	2026-10-07T13:43:42.8268408Z ^[[36;1m  *)^[[0m
+CI checks	Check whitespace errors	2026-10-07T13:43:42.8269015Z ^[[36;1m    echo "::error::Unsupported event: $EVENT_NAME"^[[0m
+CI checks	Check whitespace errors	2026-10-07T13:43:42.8269343Z ^[[36;1m    exit 1^[[0m
+CI checks	Check whitespace errors	2026-10-07T13:43:42.8269547Z ^[[36;1m    ;;^[[0m
+CI checks	Check whitespace errors	2026-10-07T13:43:42.8279212Z ^[[36;1mesac^[[0m
+CI checks	Check whitespace errors	2026-10-07T13:43:42.8343982Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+CI checks	Check whitespace errors	2026-10-07T13:43:42.8344336Z env:
+CI checks	Check whitespace errors	2026-10-07T13:43:42.8344541Z   EVENT_NAME: pull_request
+CI checks	Check whitespace errors	2026-10-07T13:43:42.8344862Z   PR_BASE_SHA: 2a13b83bf56bcecf5204c75dfb0a9f03ba84b7db
+CI checks	Check whitespace errors	2026-10-07T13:43:42.8345233Z   PR_HEAD_SHA: ab0fba90b275396d2b4052977bb698fcd4737629
+CI checks	Check whitespace errors	2026-10-07T13:43:42.8345606Z   PUSH_BEFORE_SHA: 33421c9472ae061e6f120d1e9cb792f65ff10707
+CI checks	Check whitespace errors	2026-10-07T13:43:42.8345965Z   CURRENT_SHA: 8f72d0617e83c04e98a49503705682c4236250cf
+CI checks	Check whitespace errors	2026-10-07T13:43:42.8346265Z ##[endgroup]
+CI checks	Check whitespace errors	2026-10-07T13:43:42.9254298Z docs/report-fixed-samples/review/followup/i01-chromium-final.log:7: trailing whitespace.
+CI checks	Check whitespace errors	2026-10-07T13:43:42.9255063Z +
+CI checks	Check whitespace errors	2026-10-07T13:43:42.9255700Z docs/report-fixed-samples/review/followup/i01-chromium-final.log:20: new blank line at EOF.
+CI checks	Check whitespace errors	2026-10-07T13:43:42.9279020Z ##[error]Process completed with exit code 2.

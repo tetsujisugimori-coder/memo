@@ -1,0 +1,13 @@
+✔ ローカル・公開Originを許可し類似Origin・path・nullをCORSなしで拒否する (111.0117ms)
+✔ OPTIONSはrouteごとのmethod・headerとPrivate Networkだけを許可する (20.9418ms)
+✔ healthは公開情報を最小化しtokenなし・不正形式・不一致を同じ401で拒否する (55.9057ms)
+✔ chatは認証後だけthread開始・再開・turn開始とSSEへ進む (89.2361ms)
+✔ ストリーミング中のブラウザ切断でresponse参照を解放できる (54.4643ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 5
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 461.5878

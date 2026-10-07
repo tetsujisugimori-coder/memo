@@ -1,0 +1,19 @@
+node : I01 Expected values to be strictly deep-equal:
+発生場所 行:5 文字:1
++ node report-fixed-samples.e2e.js *> e2e-artifacts/report-fixed/follow ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (I01 Expected va...tly deep-equal::String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+
++ actual - expected
+
+  [
++   '図7(a) LEFT landscape',
++   '図7(b) RIGHT photo',
++   '図8(a) LEFT portrait',
++   '図8(b) RIGHT transparent'
+-   'LEFT landscape',
+-   'RIGHT photo',
+-   'LEFT portrait',
+-   'RIGHT transparent'
+  ]

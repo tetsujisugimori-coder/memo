@@ -1,0 +1,526 @@
+{
+  "sha": "33421c9472ae061e6f120d1e9cb792f65ff10707",
+  "case": "L01",
+  "geometry": [
+    {
+      "tag": "line",
+      "points": null,
+      "cx": null,
+      "cy": null,
+      "x1": "112",
+      "x2": "476",
+      "y1": "196",
+      "y2": "196"
+    },
+    {
+      "tag": "polyline",
+      "points": "156,42 162.53061224489795,42 169.0612244897959,42 175.59183673469389,42 182.12244897959184,42 188.6530612244898,42 195.18367346938777,42 201.71428571428572,42 208.24489795918367,42 214.77551020408163,42 221.30612244897958,42 227.83673469387753,42 234.3673469387755,42 240.89795918367346,42 247.42857142857144,42 253.9591836734694,42 260.48979591836735,42 267.0204081632653,42 273.55102040816325,42 280.0816326530612,42 286.61224489795916,42 293.1428571428571,42 299.67346938775506,42 306.2040816326531,42 312.734693877551,42 319.265306122449,42 325.7959183673469,42 332.32653061224494,42 338.8571428571429,42 345.38775510204084,42 351.9183673469388,42 358.44897959183675,42 364.9795918367347,42 371.51020408163265,42 378.0408163265306,42 384.57142857142856,42 391.1020408163265,42 397.63265306122446,42 404.1632653061224,42 410.6938775510204,42 417.2244897959184,42 423.7551020408163,42 430.2857142857143,42 436.81632653061223,42 443.3469387755102,42 449.8775510204082,42 456.40816326530614,42 462.9387755102041,42 469.46938775510205,42 476,42",
+      "cx": null,
+      "cy": null,
+      "x1": null,
+      "x2": null,
+      "y1": null,
+      "y2": null
+    },
+    {
+      "tag": "circle",
+      "points": null,
+      "cx": "156",
+      "cy": "42",
+      "x1": null,
+      "x2": null,
+      "y1": null,
+      "y2": null
+    },
+    {
+      "tag": "circle",
+      "points": null,
+      "cx": "162.53061224489795",
+      "cy": "42",
+      "x1": null,
+      "x2": null,
+      "y1": null,
+      "y2": null
+    },
+    {
+      "tag": "circle",
+      "points": null,
+      "cx": "169.0612244897959",
+      "cy": "42",
+      "x1": null,
+      "x2": null,
+      "y1": null,
+      "y2": null
+    },
+    {
+      "tag": "circle",
+      "points": null,
+      "cx": "175.59183673469389",
+      "cy": "42",
+      "x1": null,
+      "x2": null,
+      "y1": null,
+      "y2": null
+    },
+    {
+      "tag": "circle",
+      "points": null,
+      "cx": "182.12244897959184",
+      "cy": "42",
+      "x1": null,
+      "x2": null,
+      "y1": null,
+      "y2": null
+    },
+    {
+      "tag": "circle",
+      "points": null,
+      "cx": "188.6530612244898",
+      "cy": "42",
+      "x1": null,
+      "x2": null,
+      "y1": null,
+      "y2": null
+    },
+    {
+      "tag": "circle",
+      "points": null,
+      "cx": "195.18367346938777",
+      "cy": "42",
+      "x1": null,
+      "x2": null,
+      "y1": null,
+      "y2": null
+    },
+    {
+      "tag": "circle",
+      "points": null,
+      "cx": "201.71428571428572",
+      "cy": "42",
+      "x1": null,
+      "x2": null,
+      "y1": null,
+      "y2": null
+    },
+    {
+      "tag": "circle",
+      "points": null,
+      "cx": "208.24489795918367",
+      "cy": "42",
+      "x1": null,
+      "x2": null,
+      "y1": null,
+      "y2": null
+    },
+    {
+      "tag": "circle",
+      "points": null,
+      "cx": "214.77551020408163",
+      "cy": "42",
+      "x1": null,
+      "x2": null,
+      "y1": null,
+      "y2": null
+    },
+    {
+      "tag": "circle",
+      "points": null,
+      "cx": "221.30612244897958",
+      "cy": "42",
+      "x1": null,
+      "x2": null,
+      "y1": null,
+      "y2": null
+    },
+    {
+      "tag": "circle",
+      "points": null,
+      "cx": "227.83673469387753",
+      "cy": "42",
+      "x1": null,
+      "x2": null,
+      "y1": null,
+      "y2": null
+    },
+    {
+      "tag": "circle",
+      "points": null,
+      "cx": "234.3673469387755",
+      "cy": "42",
+      "x1": null,
+      "x2": null,
+      "y1": null,
+      "y2": null
+    },
+    {
+      "tag": "circle",
+      "points": null,
+      "cx": "240.89795918367346",
+      "cy": "42",
+      "x1": null,
+      "x2": null,
+      "y1": null,
+      "y2": null
+    },
+    {
+      "tag": "circle",
+      "points": null,
+      "cx": "247.42857142857144",
+      "cy": "42",
+      "x1": null,
+      "x2": null,
+      "y1": null,
+      "y2": null
+    },
+    {
+      "tag": "circle",
+      "points": null,
+      "cx": "253.9591836734694",
+      "cy": "42",
+      "x1": null,
+      "x2": null,
+      "y1": null,
+      "y2": null
+    },
+    {
+      "tag": "circle",
+      "points": null,
+      "cx": "260.48979591836735",
+      "cy": "42",
+      "x1": null,
+      "x2": null,
+      "y1": null,
+      "y2": null
+    },
+    {
+      "tag": "circle",
+      "points": null,
+      "cx": "267.0204081632653",
+      "cy": "42",
+      "x1": null,
+      "x2": null,
+      "y1": null,
+      "y2": null
+    },
+    {
+      "tag": "circle",
+      "points": null,
+      "cx": "273.55102040816325",
+      "cy": "42",
+      "x1": null,
+      "x2": null,
+      "y1": null,
+      "y2": null
+    },
+    {
+      "tag": "circle",
+      "points": null,
+      "cx": "280.0816326530612",
+      "cy": "42",
+      "x1": null,
+      "x2": null,
+      "y1": null,
+      "y2": null
+    },
+    {
+      "tag": "circle",
+      "points": null,
+      "cx": "286.61224489795916",
+      "cy": "42",
+      "x1": null,
+      "x2": null,
+      "y1": null,
+      "y2": null
+    },
+    {
+      "tag": "circle",
+      "points": null,
+      "cx": "293.1428571428571",
+      "cy": "42",
+      "x1": null,
+      "x2": null,
+      "y1": null,
+      "y2": null
+    },
+    {
+      "tag": "circle",
+      "points": null,
+      "cx": "299.67346938775506",
+      "cy": "42",
+      "x1": null,
+      "x2": null,
+      "y1": null,
+      "y2": null
+    },
+    {
+      "tag": "circle",
+      "points": null,
+      "cx": "306.2040816326531",
+      "cy": "42",
+      "x1": null,
+      "x2": null,
+      "y1": null,
+      "y2": null
+    },
+    {
+      "tag": "circle",
+      "points": null,
+      "cx": "312.734693877551",
+      "cy": "42",
+      "x1": null,
+      "x2": null,
+      "y1": null,
+      "y2": null
+    },
+    {
+      "tag": "circle",
+      "points": null,
+      "cx": "319.265306122449",
+      "cy": "42",
+      "x1": null,
+      "x2": null,
+      "y1": null,
+      "y2": null
+    },
+    {
+      "tag": "circle",
+      "points": null,
+      "cx": "325.7959183673469",
+      "cy": "42",
+      "x1": null,
+      "x2": null,
+      "y1": null,
+      "y2": null
+    },
+    {
+      "tag": "circle",
+      "points": null,
+      "cx": "332.32653061224494",
+      "cy": "42",
+      "x1": null,
+      "x2": null,
+      "y1": null,
+      "y2": null
+    },
+    {
+      "tag": "circle",
+      "points": null,
+      "cx": "338.8571428571429",
+      "cy": "42",
+      "x1": null,
+      "x2": null,
+      "y1": null,
+      "y2": null
+    },
+    {
+      "tag": "circle",
+      "points": null,
+      "cx": "345.38775510204084",
+      "cy": "42",
+      "x1": null,
+      "x2": null,
+      "y1": null,
+      "y2": null
+    },
+    {
+      "tag": "circle",
+      "points": null,
+      "cx": "351.9183673469388",
+      "cy": "42",
+      "x1": null,
+      "x2": null,
+      "y1": null,
+      "y2": null
+    },
+    {
+      "tag": "circle",
+      "points": null,
+      "cx": "358.44897959183675",
+      "cy": "42",
+      "x1": null,
+      "x2": null,
+      "y1": null,
+      "y2": null
+    },
+    {
+      "tag": "circle",
+      "points": null,
+      "cx": "364.9795918367347",
+      "cy": "42",
+      "x1": null,
+      "x2": null,
+      "y1": null,
+      "y2": null
+    },
+    {
+      "tag": "circle",
+      "points": null,
+      "cx": "371.51020408163265",
+      "cy": "42",
+      "x1": null,
+      "x2": null,
+      "y1": null,
+      "y2": null
+    },
+    {
+      "tag": "circle",
+      "points": null,
+      "cx": "378.0408163265306",
+      "cy": "42",
+      "x1": null,
+      "x2": null,
+      "y1": null,
+      "y2": null
+    },
+    {
+      "tag": "circle",
+      "points": null,
+      "cx": "384.57142857142856",
+      "cy": "42",
+      "x1": null,
+      "x2": null,
+      "y1": null,
+      "y2": null
+    },
+    {
+      "tag": "circle",
+      "points": null,
+      "cx": "391.1020408163265",
+      "cy": "42",
+      "x1": null,
+      "x2": null,
+      "y1": null,
+      "y2": null
+    },
+    {
+      "tag": "circle",
+      "points": null,
+      "cx": "397.63265306122446",
+      "cy": "42",
+      "x1": null,
+      "x2": null,
+      "y1": null,
+      "y2": null
+    },
+    {
+      "tag": "circle",
+      "points": null,
+      "cx": "404.1632653061224",
+      "cy": "42",
+      "x1": null,
+      "x2": null,
+      "y1": null,
+      "y2": null
+    },
+    {
+      "tag": "circle",
+      "points": null,
+      "cx": "410.6938775510204",
+      "cy": "42",
+      "x1": null,
+      "x2": null,
+      "y1": null,
+      "y2": null
+    },
+    {
+      "tag": "circle",
+      "points": null,
+      "cx": "417.2244897959184",
+      "cy": "42",
+      "x1": null,
+      "x2": null,
+      "y1": null,
+      "y2": null
+    },
+    {
+      "tag": "circle",
+      "points": null,
+      "cx": "423.7551020408163",
+      "cy": "42",
+      "x1": null,
+      "x2": null,
+      "y1": null,
+      "y2": null
+    },
+    {
+      "tag": "circle",
+      "points": null,
+      "cx": "430.2857142857143",
+      "cy": "42",
+      "x1": null,
+      "x2": null,
+      "y1": null,
+      "y2": null
+    },
+    {
+      "tag": "circle",
+      "points": null,
+      "cx": "436.81632653061223",
+      "cy": "42",
+      "x1": null,
+      "x2": null,
+      "y1": null,
+      "y2": null
+    },
+    {
+      "tag": "circle",
+      "points": null,
+      "cx": "443.3469387755102",
+      "cy": "42",
+      "x1": null,
+      "x2": null,
+      "y1": null,
+      "y2": null
+    },
+    {
+      "tag": "circle",
+      "points": null,
+      "cx": "449.8775510204082",
+      "cy": "42",
+      "x1": null,
+      "x2": null,
+      "y1": null,
+      "y2": null
+    },
+    {
+      "tag": "circle",
+      "points": null,
+      "cx": "456.40816326530614",
+      "cy": "42",
+      "x1": null,
+      "x2": null,
+      "y1": null,
+      "y2": null
+    },
+    {
+      "tag": "circle",
+      "points": null,
+      "cx": "462.9387755102041",
+      "cy": "42",
+      "x1": null,
+      "x2": null,
+      "y1": null,
+      "y2": null
+    },
+    {
+      "tag": "circle",
+      "points": null,
+      "cx": "469.46938775510205",
+      "cy": "42",
+      "x1": null,
+      "x2": null,
+      "y1": null,
+      "y2": null
+    },
+    {
+      "tag": "circle",
+      "points": null,
+      "cx": "476",
+      "cy": "42",
+      "x1": null,
+      "x2": null,
+      "y1": null,
+      "y2": null
+    }
+  ]
+}

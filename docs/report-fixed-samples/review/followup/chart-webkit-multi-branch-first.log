@@ -1,0 +1,14 @@
+[START] Chart E2E (webkit) > chart-multi-series
+[START] Chart E2E (webkit) > chart-multi-series > fresh browser context and editor startup
+[PASS] Chart E2E (webkit) > chart-multi-series > fresh browser context and editor startup 1.4s
+[START] Chart E2E (webkit) > chart-multi-series > UI operations and assertions
+[PASS] Chart E2E (webkit) > chart-multi-series > UI operations and assertions 0.0s
+[START] Chart E2E (webkit) > chart-multi-series > legacy marker and series editing
+[PASS] Chart E2E (webkit) > chart-multi-series > legacy marker and series editing 17.4s
+[START] Chart E2E (webkit) > chart-multi-series > stacked geometry and narrow layouts
+[PASS] Chart E2E (webkit) > chart-multi-series > stacked geometry and narrow layouts 14.2s
+[START] Chart E2E (webkit) > chart-multi-series > multi-series type changes, mobile layout and persistence
+[PASS] Chart E2E (webkit) > chart-multi-series > multi-series type changes, mobile layout and persistence 19.3s
+[PASS] Chart E2E (webkit) > chart-multi-series 52.3s
+[RESULT] Chart E2E (webkit) > chart-multi-series PASS 52.3s
+[TOTAL] Chart E2E (webkit) 52.5s
