@@ -195,84 +195,84 @@
         "conversion": [
           {
             "key": "landscape",
-            "meanRgbError": 0.0,
+            "meanRgbError": 0,
             "marks": [
               {
                 "name": "TL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "TR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "CENTER",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               }
             ],
-            "borderMeanRgbError": 0.0
+            "borderMeanRgbError": 0
           },
           {
             "key": "portrait",
-            "meanRgbError": 0.0,
+            "meanRgbError": 0,
             "marks": [
               {
                 "name": "TL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "TR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "CENTER",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               }
             ],
-            "borderMeanRgbError": 0.0
+            "borderMeanRgbError": 0
           },
           {
             "key": "square",
-            "meanRgbError": 0.0,
+            "meanRgbError": 0,
             "marks": [
               {
                 "name": "TL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "TR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "CENTER",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               }
             ],
-            "borderMeanRgbError": 0.0
+            "borderMeanRgbError": 0
           },
           {
             "key": "boundary",
@@ -299,61 +299,61 @@
                 "meanRgbError": 6.390625
               }
             ],
-            "borderMeanRgbError": 0.0
+            "borderMeanRgbError": 0
           },
           {
             "key": "photo",
-            "meanRgbError": 0.0,
+            "meanRgbError": 0,
             "marks": [
               {
                 "name": "TL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "TR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "CENTER",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               }
             ],
-            "borderMeanRgbError": 0.0
+            "borderMeanRgbError": 0
           },
           {
             "key": "transparent",
-            "meanRgbError": 0.0,
+            "meanRgbError": 0,
             "marks": [
               {
                 "name": "TL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "TR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "CENTER",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               }
             ],
-            "borderMeanRgbError": 0.0
+            "borderMeanRgbError": 0
           }
         ],
         "negativeControls": [
@@ -371,12 +371,12 @@
       "landscape": "未実施：現行製品はA4縦固定",
       "margins": "対象外：指定なし",
       "originalIds": {
-        "landscape": "37900dc8-ddd0-4b0e-b36e-a86d05aeb42e",
-        "portrait": "671abc5a-10e9-4c9c-a7b7-5247233b1fb1",
-        "square": "63788fb8-6deb-4948-bf6a-901815d7eb55",
-        "boundary": "96d6ec11-3600-4d4e-b11a-72ae8e9131db",
-        "photo": "f21dd363-33d9-4436-9480-e9ab02576a52",
-        "transparent": "b94c2a3e-da67-4712-8c3d-1bb534404346"
+        "landscape": "52983bc3-94d1-4ba0-94f5-a0b7b040f282",
+        "square": "0ce7cf29-76c9-4de3-bb1c-1bd5a32d0964",
+        "portrait": "393ac7ec-871f-47bb-a882-0578a70e8bcc",
+        "boundary": "71560e8c-e6c4-404c-a791-7f70cb22e8a4",
+        "transparent": "3debed85-37e3-4af5-b650-4412399cc4b9",
+        "photo": "49537026-99fc-4053-b18f-b5bd6ae0ad81"
       },
       "fixture": {
         "id": "R02",
@@ -878,13 +878,13 @@
                 "meanRgbError": 1.0989583333333333
               }
             ],
-            "borderMeanRgbError": 0.0,
+            "borderMeanRgbError": 0,
             "page": 1,
             "occurrence": 0,
             "bbox": [
               65.25,
-              150.0,
-              531.0,
+              150,
+              531,
               411.75
             ],
             "number": "図1",
@@ -919,11 +919,11 @@
                 "meanRgbError": 4.9375
               }
             ],
-            "borderMeanRgbError": 0.0,
+            "borderMeanRgbError": 0,
             "page": 2,
             "occurrence": 1,
             "bbox": [
-              138.0,
+              138,
               65.25,
               458.25,
               635.25
@@ -960,14 +960,14 @@
                 "meanRgbError": 0.19791666666666666
               }
             ],
-            "borderMeanRgbError": 0.0,
+            "borderMeanRgbError": 0,
             "page": 3,
             "occurrence": 2,
             "bbox": [
               65.25,
               65.25,
-              531.0,
-              531.0
+              531,
+              531
             ],
             "number": "図3",
             "caption": "図3 R02正方形",
@@ -1001,13 +1001,13 @@
                 "meanRgbError": 2.4791666666666665
               }
             ],
-            "borderMeanRgbError": 0.0,
+            "borderMeanRgbError": 0,
             "page": 4,
             "occurrence": 3,
             "bbox": [
               65.25,
               65.25,
-              291.0,
+              291,
               192.75
             ],
             "number": "図4",
@@ -1042,13 +1042,13 @@
                 "meanRgbError": 0.052083333333333336
               }
             ],
-            "borderMeanRgbError": 0.0,
+            "borderMeanRgbError": 0,
             "page": 4,
             "occurrence": 4,
             "bbox": [
               304.5,
               65.25,
-              531.0,
+              531,
               226.5
             ],
             "number": "図4",
@@ -1083,13 +1083,13 @@
                 "meanRgbError": 2.4791666666666665
               }
             ],
-            "borderMeanRgbError": 0.0,
+            "borderMeanRgbError": 0,
             "page": 5,
             "occurrence": 5,
             "bbox": [
               65.25,
               65.25,
-              291.0,
+              291,
               192.75
             ],
             "number": "図5",
@@ -1124,13 +1124,13 @@
                 "meanRgbError": 1.3645833333333333
               }
             ],
-            "borderMeanRgbError": 0.0,
+            "borderMeanRgbError": 0,
             "page": 5,
             "occurrence": 6,
             "bbox": [
               304.5,
               65.25,
-              531.0,
+              531,
               467.25
             ],
             "number": "図5",
@@ -1167,7 +1167,7 @@
                 "meanRgbError": 0.6510416666666666
               }
             ],
-            "borderMeanRgbError": 0.0,
+            "borderMeanRgbError": 0,
             "viewport": 390,
             "occurrence": 0
           },
@@ -1181,7 +1181,7 @@
               },
               {
                 "name": "TR",
-                "meanRgbError": 3.0
+                "meanRgbError": 3
               },
               {
                 "name": "BL",
@@ -1196,7 +1196,7 @@
                 "meanRgbError": 6.067708333333333
               }
             ],
-            "borderMeanRgbError": 0.0,
+            "borderMeanRgbError": 0,
             "viewport": 390,
             "occurrence": 1
           },
@@ -1225,7 +1225,7 @@
                 "meanRgbError": 2.9479166666666665
               }
             ],
-            "borderMeanRgbError": 0.0,
+            "borderMeanRgbError": 0,
             "viewport": 390,
             "occurrence": 2
           },
@@ -1254,7 +1254,7 @@
                 "meanRgbError": 4.223958333333333
               }
             ],
-            "borderMeanRgbError": 0.0,
+            "borderMeanRgbError": 0,
             "viewport": 390,
             "occurrence": 3
           },
@@ -1283,7 +1283,7 @@
                 "meanRgbError": 0.11979166666666667
               }
             ],
-            "borderMeanRgbError": 0.0,
+            "borderMeanRgbError": 0,
             "viewport": 390,
             "occurrence": 4
           },
@@ -1312,7 +1312,7 @@
                 "meanRgbError": 2.359375
               }
             ],
-            "borderMeanRgbError": 0.0,
+            "borderMeanRgbError": 0,
             "viewport": 390,
             "occurrence": 5
           },
@@ -1326,7 +1326,7 @@
               },
               {
                 "name": "TR",
-                "meanRgbError": 3.0
+                "meanRgbError": 3
               },
               {
                 "name": "BL",
@@ -1341,7 +1341,7 @@
                 "meanRgbError": 4.244791666666667
               }
             ],
-            "borderMeanRgbError": 0.0,
+            "borderMeanRgbError": 0,
             "viewport": 390,
             "occurrence": 6
           },
@@ -1370,7 +1370,7 @@
                 "meanRgbError": 2.6302083333333335
               }
             ],
-            "borderMeanRgbError": 0.0,
+            "borderMeanRgbError": 0,
             "viewport": 1280,
             "occurrence": 0
           },
@@ -1399,7 +1399,7 @@
                 "meanRgbError": 6.067708333333333
               }
             ],
-            "borderMeanRgbError": 0.0,
+            "borderMeanRgbError": 0,
             "viewport": 1280,
             "occurrence": 1
           },
@@ -1428,7 +1428,7 @@
                 "meanRgbError": 0.2864583333333333
               }
             ],
-            "borderMeanRgbError": 0.0,
+            "borderMeanRgbError": 0,
             "viewport": 1280,
             "occurrence": 2
           },
@@ -1454,10 +1454,10 @@
               },
               {
                 "name": "CENTER",
-                "meanRgbError": 2.0
+                "meanRgbError": 2
               }
             ],
-            "borderMeanRgbError": 0.0,
+            "borderMeanRgbError": 0,
             "viewport": 1280,
             "occurrence": 3
           },
@@ -1512,10 +1512,10 @@
               },
               {
                 "name": "CENTER",
-                "meanRgbError": 2.0
+                "meanRgbError": 2
               }
             ],
-            "borderMeanRgbError": 0.0,
+            "borderMeanRgbError": 0,
             "viewport": 1280,
             "occurrence": 5
           },
@@ -1544,7 +1544,7 @@
                 "meanRgbError": 1.96875
               }
             ],
-            "borderMeanRgbError": 0.0,
+            "borderMeanRgbError": 0,
             "viewport": 1280,
             "occurrence": 6
           }
@@ -1552,84 +1552,84 @@
         "conversion": [
           {
             "key": "landscape",
-            "meanRgbError": 0.0,
+            "meanRgbError": 0,
             "marks": [
               {
                 "name": "TL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "TR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "CENTER",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               }
             ],
-            "borderMeanRgbError": 0.0
+            "borderMeanRgbError": 0
           },
           {
             "key": "portrait",
-            "meanRgbError": 0.0,
+            "meanRgbError": 0,
             "marks": [
               {
                 "name": "TL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "TR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "CENTER",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               }
             ],
-            "borderMeanRgbError": 0.0
+            "borderMeanRgbError": 0
           },
           {
             "key": "square",
-            "meanRgbError": 0.0,
+            "meanRgbError": 0,
             "marks": [
               {
                 "name": "TL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "TR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "CENTER",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               }
             ],
-            "borderMeanRgbError": 0.0
+            "borderMeanRgbError": 0
           },
           {
             "key": "boundary",
@@ -1656,61 +1656,61 @@
                 "meanRgbError": 6.390625
               }
             ],
-            "borderMeanRgbError": 0.0
+            "borderMeanRgbError": 0
           },
           {
             "key": "photo",
-            "meanRgbError": 0.0,
+            "meanRgbError": 0,
             "marks": [
               {
                 "name": "TL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "TR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "CENTER",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               }
             ],
-            "borderMeanRgbError": 0.0
+            "borderMeanRgbError": 0
           },
           {
             "key": "transparent",
-            "meanRgbError": 0.0,
+            "meanRgbError": 0,
             "marks": [
               {
                 "name": "TL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "TR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "CENTER",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               }
             ],
-            "borderMeanRgbError": 0.0
+            "borderMeanRgbError": 0
           }
         ],
         "negativeControls": [
@@ -1728,12 +1728,12 @@
       "landscape": "未実施：現行製品はA4縦固定",
       "margins": "対象外：指定なし",
       "originalIds": {
-        "landscape": "61970e4c-2e0f-45f4-b2db-6979a21531f8",
-        "portrait": "b3aac23e-2d53-44d2-88b6-76796290993c",
-        "square": "9244002c-9824-4e54-9ee0-a003430e3b04",
-        "boundary": "f3bbd1a3-1ac5-46c8-bd19-e684c9890b46",
-        "photo": "5d543989-cc4c-423f-ae5f-b841c4792aca",
-        "transparent": "b65d9687-a501-4c37-a7fd-7fa750936f8b"
+        "photo": "cebfffea-dc82-4aef-a52e-91800981a149",
+        "landscape": "836f5fab-615b-4df8-a58e-43d227d265d0",
+        "square": "2c57cdd3-8e76-4dac-9903-a4a6687af996",
+        "portrait": "77939266-5543-4b1a-9fd8-05eba7593465",
+        "transparent": "62b1f4bf-c78a-4117-a687-e7f5be5a5d19",
+        "boundary": "97a679d2-c802-4037-9c23-23d18a3bff24"
       },
       "fixture": {
         "id": "R03",
@@ -3949,84 +3949,84 @@
         "conversion": [
           {
             "key": "landscape",
-            "meanRgbError": 0.0,
+            "meanRgbError": 0,
             "marks": [
               {
                 "name": "TL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "TR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "CENTER",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               }
             ],
-            "borderMeanRgbError": 0.0
+            "borderMeanRgbError": 0
           },
           {
             "key": "portrait",
-            "meanRgbError": 0.0,
+            "meanRgbError": 0,
             "marks": [
               {
                 "name": "TL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "TR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "CENTER",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               }
             ],
-            "borderMeanRgbError": 0.0
+            "borderMeanRgbError": 0
           },
           {
             "key": "square",
-            "meanRgbError": 0.0,
+            "meanRgbError": 0,
             "marks": [
               {
                 "name": "TL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "TR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "CENTER",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               }
             ],
-            "borderMeanRgbError": 0.0
+            "borderMeanRgbError": 0
           },
           {
             "key": "boundary",
@@ -4053,61 +4053,61 @@
                 "meanRgbError": 6.390625
               }
             ],
-            "borderMeanRgbError": 0.0
+            "borderMeanRgbError": 0
           },
           {
             "key": "photo",
-            "meanRgbError": 0.0,
+            "meanRgbError": 0,
             "marks": [
               {
                 "name": "TL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "TR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "CENTER",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               }
             ],
-            "borderMeanRgbError": 0.0
+            "borderMeanRgbError": 0
           },
           {
             "key": "transparent",
-            "meanRgbError": 0.0,
+            "meanRgbError": 0,
             "marks": [
               {
                 "name": "TL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "TR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "CENTER",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               }
             ],
-            "borderMeanRgbError": 0.0
+            "borderMeanRgbError": 0
           }
         ],
         "negativeControls": [
@@ -4125,12 +4125,12 @@
       "landscape": "対象外：指定なし",
       "margins": "対象外：指定なし",
       "originalIds": {
-        "landscape": "79035195-5dc6-494c-9f4c-5b7bf98dcd3a",
-        "portrait": "bf5afd74-9c32-435e-8cf2-11850ed2d9c6",
-        "square": "8c562666-41e1-494f-93b0-ae51866109be",
-        "boundary": "62179c2d-9f7a-4d4c-95d9-7fc802edb3f8",
-        "photo": "610a95d5-376b-49dd-a26d-700d7b676deb",
-        "transparent": "45ee274f-6806-4270-b15f-da47480c4f06"
+        "transparent": "f0a961df-e08d-43e4-8722-dc92e0baad8a",
+        "photo": "3fc279a5-5e09-40c1-b0ea-79890014f555",
+        "boundary": "fc796c8e-4cc1-4a96-9992-db8832398484",
+        "landscape": "6bb41579-7511-4e0e-aadc-1ffa972e0c2c",
+        "square": "e3b9e866-6f1a-4c0e-98a6-bf9f85f00e8c",
+        "portrait": "1cb1070e-b4de-4562-b970-f216c241a2d9"
       },
       "fixture": {
         "id": "R04",
@@ -4431,14 +4431,14 @@
                 "meanRgbError": 0.71875
               }
             ],
-            "borderMeanRgbError": 0.0,
+            "borderMeanRgbError": 0,
             "page": 1,
             "occurrence": 0,
             "bbox": [
               65.25,
-              150.0,
-              531.0,
-              615.0
+              150,
+              531,
+              615
             ],
             "number": "図1",
             "caption": "図1 R04参照",
@@ -4474,13 +4474,13 @@
                 "meanRgbError": 0.484375
               }
             ],
-            "borderMeanRgbError": 0.0,
+            "borderMeanRgbError": 0,
             "page": 2,
             "occurrence": 1,
             "bbox": [
-              81.0,
+              81,
               204.00003051757812,
-              531.0,
+              531,
               653.25
             ],
             "number": "図1",
@@ -4517,13 +4517,13 @@
                 "meanRgbError": 0.484375
               }
             ],
-            "borderMeanRgbError": 0.0,
+            "borderMeanRgbError": 0,
             "page": 4,
             "occurrence": 2,
             "bbox": [
-              81.0,
+              81,
               204.00003051757812,
-              531.0,
+              531,
               653.25
             ],
             "number": "図1",
@@ -4562,7 +4562,7 @@
                 "meanRgbError": 2.9479166666666665
               }
             ],
-            "borderMeanRgbError": 0.0,
+            "borderMeanRgbError": 0,
             "viewport": 390,
             "occurrence": 0
           },
@@ -4591,7 +4591,7 @@
                 "meanRgbError": 1.7552083333333333
               }
             ],
-            "borderMeanRgbError": 0.0,
+            "borderMeanRgbError": 0,
             "viewport": 390,
             "occurrence": 1
           },
@@ -4620,7 +4620,7 @@
                 "meanRgbError": 0.8020833333333334
               }
             ],
-            "borderMeanRgbError": 0.0,
+            "borderMeanRgbError": 0,
             "viewport": 390,
             "occurrence": 2
           },
@@ -4649,7 +4649,7 @@
                 "meanRgbError": 0.2864583333333333
               }
             ],
-            "borderMeanRgbError": 0.0,
+            "borderMeanRgbError": 0,
             "viewport": 1280,
             "occurrence": 0
           },
@@ -4678,7 +4678,7 @@
                 "meanRgbError": 6.973958333333333
               }
             ],
-            "borderMeanRgbError": 0.0,
+            "borderMeanRgbError": 0,
             "viewport": 1280,
             "occurrence": 1
           },
@@ -4707,7 +4707,7 @@
                 "meanRgbError": 10.546875
               }
             ],
-            "borderMeanRgbError": 0.0,
+            "borderMeanRgbError": 0,
             "viewport": 1280,
             "occurrence": 2
           }
@@ -4715,84 +4715,84 @@
         "conversion": [
           {
             "key": "landscape",
-            "meanRgbError": 0.0,
+            "meanRgbError": 0,
             "marks": [
               {
                 "name": "TL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "TR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "CENTER",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               }
             ],
-            "borderMeanRgbError": 0.0
+            "borderMeanRgbError": 0
           },
           {
             "key": "portrait",
-            "meanRgbError": 0.0,
+            "meanRgbError": 0,
             "marks": [
               {
                 "name": "TL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "TR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "CENTER",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               }
             ],
-            "borderMeanRgbError": 0.0
+            "borderMeanRgbError": 0
           },
           {
             "key": "square",
-            "meanRgbError": 0.0,
+            "meanRgbError": 0,
             "marks": [
               {
                 "name": "TL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "TR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "CENTER",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               }
             ],
-            "borderMeanRgbError": 0.0
+            "borderMeanRgbError": 0
           },
           {
             "key": "boundary",
@@ -4819,61 +4819,61 @@
                 "meanRgbError": 6.390625
               }
             ],
-            "borderMeanRgbError": 0.0
+            "borderMeanRgbError": 0
           },
           {
             "key": "photo",
-            "meanRgbError": 0.0,
+            "meanRgbError": 0,
             "marks": [
               {
                 "name": "TL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "TR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "CENTER",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               }
             ],
-            "borderMeanRgbError": 0.0
+            "borderMeanRgbError": 0
           },
           {
             "key": "transparent",
-            "meanRgbError": 0.0,
+            "meanRgbError": 0,
             "marks": [
               {
                 "name": "TL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "TR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "CENTER",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               }
             ],
-            "borderMeanRgbError": 0.0
+            "borderMeanRgbError": 0
           }
         ],
         "negativeControls": [
@@ -4891,12 +4891,12 @@
       "landscape": "未実施：現行製品はA4縦固定",
       "margins": "未実施：現行製品は20mm固定",
       "originalIds": {
-        "landscape": "dfdd3b73-104f-40ca-b49e-23c7e25bc9e7",
-        "portrait": "a8ee5a4f-1bcf-43f9-99f1-ce3d97b176d2",
-        "square": "5c6cc049-f722-46ff-8085-2f557155ed76",
-        "boundary": "b9a54b7c-2cd4-450d-9e6b-81c7c66ea1af",
-        "photo": "59a78d27-cb36-457a-888b-9420568f7483",
-        "transparent": "e1bed62d-57ad-43df-98c9-63b838fc6c65"
+        "photo": "3dfc7d3e-5b4e-4f97-ab0b-07bf96890372",
+        "square": "053032ca-40c9-493a-a758-aad1f2080c97",
+        "portrait": "3785272f-85d0-43c8-b3ce-8dd8a04811e6",
+        "boundary": "cc6bead8-5c08-4a62-86df-ad26e90f4195",
+        "landscape": "f3f88f3c-0dc0-4599-8a97-0bf583c128f9",
+        "transparent": "462c040e-46bf-4be3-b3c9-960e27092cdd"
       },
       "fixture": {
         "id": "R05",
@@ -7310,14 +7310,14 @@
                 "meanRgbError": 2.8697916666666665
               }
             ],
-            "borderMeanRgbError": 0.0,
+            "borderMeanRgbError": 0,
             "page": 1,
             "occurrence": 0,
             "bbox": [
               65.25,
               251.25,
-              531.0,
-              513.0
+              531,
+              513
             ],
             "number": "図1",
             "caption": "図1 R05図版1",
@@ -7352,14 +7352,14 @@
                 "meanRgbError": 2.859375
               }
             ],
-            "borderMeanRgbError": 0.0,
+            "borderMeanRgbError": 0,
             "page": 4,
             "occurrence": 1,
             "bbox": [
               125.25,
               65.25,
               470.2500305175781,
-              678.0
+              678
             ],
             "number": "図3",
             "caption": "図3 R05図版2",
@@ -7393,13 +7393,13 @@
                 "meanRgbError": 2.4791666666666665
               }
             ],
-            "borderMeanRgbError": 0.0,
+            "borderMeanRgbError": 0,
             "page": 6,
             "occurrence": 2,
             "bbox": [
               65.25,
               65.25,
-              291.0,
+              291,
               192.75
             ],
             "number": "図4",
@@ -7434,13 +7434,13 @@
                 "meanRgbError": 1.3645833333333333
               }
             ],
-            "borderMeanRgbError": 0.0,
+            "borderMeanRgbError": 0,
             "page": 6,
             "occurrence": 3,
             "bbox": [
               304.5,
               65.25,
-              531.0,
+              531,
               467.25
             ],
             "number": "図4",
@@ -7475,13 +7475,13 @@
                 "meanRgbError": 5.078125
               }
             ],
-            "borderMeanRgbError": 0.0,
+            "borderMeanRgbError": 0,
             "page": 11,
             "occurrence": 4,
             "bbox": [
-              81.0,
-              204.0,
-              531.0,
+              81,
+              204,
+              531,
               456.75
             ],
             "number": "図1",
@@ -7519,7 +7519,7 @@
                 "meanRgbError": 4.067708333333333
               }
             ],
-            "borderMeanRgbError": 0.0,
+            "borderMeanRgbError": 0,
             "viewport": 390,
             "occurrence": 0
           },
@@ -7548,7 +7548,7 @@
                 "meanRgbError": 8.119791666666666
               }
             ],
-            "borderMeanRgbError": 0.0,
+            "borderMeanRgbError": 0,
             "viewport": 390,
             "occurrence": 1
           },
@@ -7577,7 +7577,7 @@
                 "meanRgbError": 4.067708333333333
               }
             ],
-            "borderMeanRgbError": 0.0,
+            "borderMeanRgbError": 0,
             "viewport": 390,
             "occurrence": 2
           },
@@ -7606,7 +7606,7 @@
                 "meanRgbError": 8.119791666666666
               }
             ],
-            "borderMeanRgbError": 0.0,
+            "borderMeanRgbError": 0,
             "viewport": 390,
             "occurrence": 3
           },
@@ -7635,7 +7635,7 @@
                 "meanRgbError": 2.0572916666666665
               }
             ],
-            "borderMeanRgbError": 0.0,
+            "borderMeanRgbError": 0,
             "viewport": 390,
             "occurrence": 4
           },
@@ -7664,7 +7664,7 @@
                 "meanRgbError": 2.6302083333333335
               }
             ],
-            "borderMeanRgbError": 0.0,
+            "borderMeanRgbError": 0,
             "viewport": 1280,
             "occurrence": 0
           },
@@ -7693,7 +7693,7 @@
                 "meanRgbError": 8.119791666666666
               }
             ],
-            "borderMeanRgbError": 0.0,
+            "borderMeanRgbError": 0,
             "viewport": 1280,
             "occurrence": 1
           },
@@ -7722,7 +7722,7 @@
                 "meanRgbError": 3.3645833333333335
               }
             ],
-            "borderMeanRgbError": 0.0,
+            "borderMeanRgbError": 0,
             "viewport": 1280,
             "occurrence": 2
           },
@@ -7751,7 +7751,7 @@
                 "meanRgbError": 1.1458333333333333
               }
             ],
-            "borderMeanRgbError": 0.0,
+            "borderMeanRgbError": 0,
             "viewport": 1280,
             "occurrence": 3
           },
@@ -7780,7 +7780,7 @@
                 "meanRgbError": 7.40625
               }
             ],
-            "borderMeanRgbError": 0.0,
+            "borderMeanRgbError": 0,
             "viewport": 1280,
             "occurrence": 4
           }
@@ -7788,84 +7788,84 @@
         "conversion": [
           {
             "key": "landscape",
-            "meanRgbError": 0.0,
+            "meanRgbError": 0,
             "marks": [
               {
                 "name": "TL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "TR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "CENTER",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               }
             ],
-            "borderMeanRgbError": 0.0
+            "borderMeanRgbError": 0
           },
           {
             "key": "portrait",
-            "meanRgbError": 0.0,
+            "meanRgbError": 0,
             "marks": [
               {
                 "name": "TL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "TR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "CENTER",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               }
             ],
-            "borderMeanRgbError": 0.0
+            "borderMeanRgbError": 0
           },
           {
             "key": "square",
-            "meanRgbError": 0.0,
+            "meanRgbError": 0,
             "marks": [
               {
                 "name": "TL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "TR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "CENTER",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               }
             ],
-            "borderMeanRgbError": 0.0
+            "borderMeanRgbError": 0
           },
           {
             "key": "boundary",
@@ -7892,61 +7892,61 @@
                 "meanRgbError": 6.390625
               }
             ],
-            "borderMeanRgbError": 0.0
+            "borderMeanRgbError": 0
           },
           {
             "key": "photo",
-            "meanRgbError": 0.0,
+            "meanRgbError": 0,
             "marks": [
               {
                 "name": "TL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "TR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "CENTER",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               }
             ],
-            "borderMeanRgbError": 0.0
+            "borderMeanRgbError": 0
           },
           {
             "key": "transparent",
-            "meanRgbError": 0.0,
+            "meanRgbError": 0,
             "marks": [
               {
                 "name": "TL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "TR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "CENTER",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               }
             ],
-            "borderMeanRgbError": 0.0
+            "borderMeanRgbError": 0
           }
         ],
         "negativeControls": [
@@ -7964,12 +7964,12 @@
       "landscape": "対象外：指定なし",
       "margins": "対象外：指定なし",
       "originalIds": {
-        "landscape": "df5334d6-a341-42e7-8375-2053409416ca",
-        "portrait": "118ed7d2-4a3c-4685-a63b-dff7d6ae0ba0",
-        "square": "353ed58d-90bd-451c-a87d-f9ff8847baed",
-        "boundary": "7e20101e-69ec-4c0f-97fd-c40a8436e733",
-        "photo": "0f67459d-9195-4c4d-b82c-9809572bc0f6",
-        "transparent": "53d500b5-c521-432a-87a9-72a7f74b0754"
+        "photo": "a48001e5-7249-4fcd-9ae0-c0be759b7609",
+        "portrait": "5dd3a020-d7dc-49ed-8655-4562e88c81ed",
+        "square": "8f3ea311-a460-4bc1-a8c2-058d2b38e15c",
+        "transparent": "ed001e95-6b9d-454c-937b-02bc62d75bc2",
+        "boundary": "2ffa78d0-f3f2-4d26-88d0-172ebf1fe808",
+        "landscape": "c8c542f9-8408-4315-ae24-5ec17dd49337"
       },
       "fixture": {
         "id": "R06",
@@ -8322,11 +8322,11 @@
                 "meanRgbError": 10.635416666666666
               }
             ],
-            "borderMeanRgbError": 0.0,
+            "borderMeanRgbError": 0,
             "page": 4,
             "occurrence": 0,
             "bbox": [
-              234.0,
+              234,
               65.25,
               362.25,
               577.5
@@ -8402,84 +8402,84 @@
         "conversion": [
           {
             "key": "landscape",
-            "meanRgbError": 0.0,
+            "meanRgbError": 0,
             "marks": [
               {
                 "name": "TL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "TR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "CENTER",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               }
             ],
-            "borderMeanRgbError": 0.0
+            "borderMeanRgbError": 0
           },
           {
             "key": "portrait",
-            "meanRgbError": 0.0,
+            "meanRgbError": 0,
             "marks": [
               {
                 "name": "TL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "TR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "CENTER",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               }
             ],
-            "borderMeanRgbError": 0.0
+            "borderMeanRgbError": 0
           },
           {
             "key": "square",
-            "meanRgbError": 0.0,
+            "meanRgbError": 0,
             "marks": [
               {
                 "name": "TL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "TR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "CENTER",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               }
             ],
-            "borderMeanRgbError": 0.0
+            "borderMeanRgbError": 0
           },
           {
             "key": "boundary",
@@ -8506,61 +8506,61 @@
                 "meanRgbError": 6.390625
               }
             ],
-            "borderMeanRgbError": 0.0
+            "borderMeanRgbError": 0
           },
           {
             "key": "photo",
-            "meanRgbError": 0.0,
+            "meanRgbError": 0,
             "marks": [
               {
                 "name": "TL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "TR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "CENTER",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               }
             ],
-            "borderMeanRgbError": 0.0
+            "borderMeanRgbError": 0
           },
           {
             "key": "transparent",
-            "meanRgbError": 0.0,
+            "meanRgbError": 0,
             "marks": [
               {
                 "name": "TL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "TR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "CENTER",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               }
             ],
-            "borderMeanRgbError": 0.0
+            "borderMeanRgbError": 0
           }
         ],
         "negativeControls": [
@@ -8578,12 +8578,12 @@
       "landscape": "対象外：指定なし",
       "margins": "対象外：指定なし",
       "originalIds": {
-        "landscape": "feb9de70-2c2f-4881-8c73-eb92d71ba77e",
-        "portrait": "df078efb-35e3-497f-b1ee-f68480e88d7d",
-        "square": "6bf27780-c357-4cdd-b7b1-44dad65b7065",
-        "boundary": "0a452d88-a1c5-4b09-83e2-a2913533b03d",
-        "photo": "59a85859-7a0a-47d4-9363-6ca883827544",
-        "transparent": "49242139-6b8a-489a-9c93-e3d0bcc9d5bb"
+        "boundary": "2f60d0cf-4401-46f7-9e35-3ec4928678f5",
+        "transparent": "c3a4aa6c-2df0-4a99-8e05-1e71d05bc7aa",
+        "photo": "bf57b6d5-de80-4644-93cb-1937ffd79bd8",
+        "square": "dc82c23d-644c-4880-bee7-8770b6ce0a40",
+        "portrait": "02573f5c-5ed8-40fc-9af3-839b33edccb4",
+        "landscape": "d31b13db-2865-4dd1-993a-43cfa30b61dc"
       },
       "fixture": {
         "id": "L01",
@@ -12787,84 +12787,84 @@
         "conversion": [
           {
             "key": "landscape",
-            "meanRgbError": 0.0,
+            "meanRgbError": 0,
             "marks": [
               {
                 "name": "TL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "TR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "CENTER",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               }
             ],
-            "borderMeanRgbError": 0.0
+            "borderMeanRgbError": 0
           },
           {
             "key": "portrait",
-            "meanRgbError": 0.0,
+            "meanRgbError": 0,
             "marks": [
               {
                 "name": "TL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "TR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "CENTER",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               }
             ],
-            "borderMeanRgbError": 0.0
+            "borderMeanRgbError": 0
           },
           {
             "key": "square",
-            "meanRgbError": 0.0,
+            "meanRgbError": 0,
             "marks": [
               {
                 "name": "TL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "TR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "CENTER",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               }
             ],
-            "borderMeanRgbError": 0.0
+            "borderMeanRgbError": 0
           },
           {
             "key": "boundary",
@@ -12891,61 +12891,61 @@
                 "meanRgbError": 6.390625
               }
             ],
-            "borderMeanRgbError": 0.0
+            "borderMeanRgbError": 0
           },
           {
             "key": "photo",
-            "meanRgbError": 0.0,
+            "meanRgbError": 0,
             "marks": [
               {
                 "name": "TL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "TR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "CENTER",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               }
             ],
-            "borderMeanRgbError": 0.0
+            "borderMeanRgbError": 0
           },
           {
             "key": "transparent",
-            "meanRgbError": 0.0,
+            "meanRgbError": 0,
             "marks": [
               {
                 "name": "TL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "TR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "CENTER",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               }
             ],
-            "borderMeanRgbError": 0.0
+            "borderMeanRgbError": 0
           }
         ],
         "negativeControls": [
@@ -12963,12 +12963,12 @@
       "landscape": "対象外：指定なし",
       "margins": "対象外：指定なし",
       "originalIds": {
-        "landscape": "2af9fe1e-0c4a-4868-bd2c-1ebd59160679",
-        "portrait": "0d068672-02ab-456a-9014-f574116c82cb",
-        "square": "d265d552-5e97-4fc2-9ef8-487334825a6d",
-        "boundary": "fdc9d9a6-5a53-41f5-bf87-c5cca32322d1",
-        "photo": "10ec6b45-534b-48b2-b836-be0001239d19",
-        "transparent": "91ae06b1-4862-43d5-bc9f-a5a2c14e44a3"
+        "portrait": "275e52da-352e-4179-8625-08bb9497a641",
+        "photo": "e9f134c4-1490-4736-ac7e-04e717f40b8a",
+        "landscape": "a8a48874-28ef-4305-a24c-32cfc3dd2147",
+        "transparent": "00286cca-8f33-44e1-ba32-5000b8d72ff5",
+        "square": "2aad940b-e6aa-4db5-8cfb-7021143938e4",
+        "boundary": "b3d7a501-89d6-44a6-b2ae-51e0b409a806"
       },
       "fixture": {
         "id": "L02",
@@ -17942,84 +17942,84 @@
         "conversion": [
           {
             "key": "landscape",
-            "meanRgbError": 0.0,
+            "meanRgbError": 0,
             "marks": [
               {
                 "name": "TL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "TR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "CENTER",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               }
             ],
-            "borderMeanRgbError": 0.0
+            "borderMeanRgbError": 0
           },
           {
             "key": "portrait",
-            "meanRgbError": 0.0,
+            "meanRgbError": 0,
             "marks": [
               {
                 "name": "TL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "TR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "CENTER",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               }
             ],
-            "borderMeanRgbError": 0.0
+            "borderMeanRgbError": 0
           },
           {
             "key": "square",
-            "meanRgbError": 0.0,
+            "meanRgbError": 0,
             "marks": [
               {
                 "name": "TL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "TR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "CENTER",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               }
             ],
-            "borderMeanRgbError": 0.0
+            "borderMeanRgbError": 0
           },
           {
             "key": "boundary",
@@ -18046,61 +18046,61 @@
                 "meanRgbError": 6.390625
               }
             ],
-            "borderMeanRgbError": 0.0
+            "borderMeanRgbError": 0
           },
           {
             "key": "photo",
-            "meanRgbError": 0.0,
+            "meanRgbError": 0,
             "marks": [
               {
                 "name": "TL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "TR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "CENTER",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               }
             ],
-            "borderMeanRgbError": 0.0
+            "borderMeanRgbError": 0
           },
           {
             "key": "transparent",
-            "meanRgbError": 0.0,
+            "meanRgbError": 0,
             "marks": [
               {
                 "name": "TL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "TR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "CENTER",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               }
             ],
-            "borderMeanRgbError": 0.0
+            "borderMeanRgbError": 0
           }
         ],
         "negativeControls": [
@@ -18118,12 +18118,12 @@
       "landscape": "対象外：指定なし",
       "margins": "対象外：指定なし",
       "originalIds": {
-        "landscape": "d6501eb2-52d6-455a-b30a-51f8254127cf",
-        "portrait": "b9f03663-7241-453a-9bc3-25a556f68607",
-        "square": "7fe50483-66fc-4a62-87e9-b47b3f75029b",
-        "boundary": "1c0228a7-0419-4830-9dfa-070c8547623d",
-        "photo": "4ab0523f-67fb-4fb5-a573-84d7fbdf8374",
-        "transparent": "963ddc20-73de-433e-957d-af499db3f6e3"
+        "boundary": "97a772e9-3840-4a92-a4b3-a871e508b578",
+        "photo": "47e0c9c7-d8ba-4d70-bea0-84c5fa4e22d6",
+        "square": "27fd0f42-6597-4beb-a5a8-a7cbe9743e1d",
+        "transparent": "dae6a6cd-afd7-4fdb-aa05-21ef7f143416",
+        "portrait": "c7500d38-6473-4fa2-a164-2b40b86d10d7",
+        "landscape": "e20620e4-79f9-46e2-80a1-145cd2f5dfae"
       },
       "fixture": {
         "id": "L03",
@@ -27541,84 +27541,84 @@
         "conversion": [
           {
             "key": "landscape",
-            "meanRgbError": 0.0,
+            "meanRgbError": 0,
             "marks": [
               {
                 "name": "TL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "TR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "CENTER",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               }
             ],
-            "borderMeanRgbError": 0.0
+            "borderMeanRgbError": 0
           },
           {
             "key": "portrait",
-            "meanRgbError": 0.0,
+            "meanRgbError": 0,
             "marks": [
               {
                 "name": "TL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "TR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "CENTER",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               }
             ],
-            "borderMeanRgbError": 0.0
+            "borderMeanRgbError": 0
           },
           {
             "key": "square",
-            "meanRgbError": 0.0,
+            "meanRgbError": 0,
             "marks": [
               {
                 "name": "TL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "TR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "CENTER",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               }
             ],
-            "borderMeanRgbError": 0.0
+            "borderMeanRgbError": 0
           },
           {
             "key": "boundary",
@@ -27645,61 +27645,61 @@
                 "meanRgbError": 6.390625
               }
             ],
-            "borderMeanRgbError": 0.0
+            "borderMeanRgbError": 0
           },
           {
             "key": "photo",
-            "meanRgbError": 0.0,
+            "meanRgbError": 0,
             "marks": [
               {
                 "name": "TL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "TR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "CENTER",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               }
             ],
-            "borderMeanRgbError": 0.0
+            "borderMeanRgbError": 0
           },
           {
             "key": "transparent",
-            "meanRgbError": 0.0,
+            "meanRgbError": 0,
             "marks": [
               {
                 "name": "TL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "TR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "CENTER",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               }
             ],
-            "borderMeanRgbError": 0.0
+            "borderMeanRgbError": 0
           }
         ],
         "negativeControls": [
@@ -27717,12 +27717,12 @@
       "landscape": "対象外：指定なし",
       "margins": "対象外：指定なし",
       "originalIds": {
-        "landscape": "461c9ed3-65f8-49f6-844f-351af1a99569",
-        "portrait": "4c8445a1-a589-4005-aa3e-63cdb03a3177",
-        "square": "8ed7187e-9356-4f3c-89b8-5bc764fb75c3",
-        "boundary": "f21f7a88-d5b7-4acb-a89e-ac7fc161840f",
-        "photo": "5aa5cff8-4ddb-4c30-a8fc-4898fa71e0a7",
-        "transparent": "c0a9fa03-1801-4611-a681-51ea76717608"
+        "landscape": "f789f386-9f46-4129-bbb5-a67595a293a9",
+        "portrait": "10aa01c1-8fda-4bf6-8302-01e372b1d7db",
+        "photo": "d6df48c9-b443-4a88-9cd8-3f5579c404d1",
+        "square": "e4457750-d599-421d-a4cd-0f47afb5f6fa",
+        "transparent": "54e77d47-1b70-4e4a-bb17-8323ac20ce4a",
+        "boundary": "0c0c6251-64ee-4c5b-99b0-c7d10a465d9e"
       },
       "fixture": {
         "id": "L04",
@@ -29391,84 +29391,84 @@
         "conversion": [
           {
             "key": "landscape",
-            "meanRgbError": 0.0,
+            "meanRgbError": 0,
             "marks": [
               {
                 "name": "TL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "TR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "CENTER",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               }
             ],
-            "borderMeanRgbError": 0.0
+            "borderMeanRgbError": 0
           },
           {
             "key": "portrait",
-            "meanRgbError": 0.0,
+            "meanRgbError": 0,
             "marks": [
               {
                 "name": "TL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "TR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "CENTER",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               }
             ],
-            "borderMeanRgbError": 0.0
+            "borderMeanRgbError": 0
           },
           {
             "key": "square",
-            "meanRgbError": 0.0,
+            "meanRgbError": 0,
             "marks": [
               {
                 "name": "TL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "TR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "CENTER",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               }
             ],
-            "borderMeanRgbError": 0.0
+            "borderMeanRgbError": 0
           },
           {
             "key": "boundary",
@@ -29495,61 +29495,61 @@
                 "meanRgbError": 6.390625
               }
             ],
-            "borderMeanRgbError": 0.0
+            "borderMeanRgbError": 0
           },
           {
             "key": "photo",
-            "meanRgbError": 0.0,
+            "meanRgbError": 0,
             "marks": [
               {
                 "name": "TL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "TR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "CENTER",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               }
             ],
-            "borderMeanRgbError": 0.0
+            "borderMeanRgbError": 0
           },
           {
             "key": "transparent",
-            "meanRgbError": 0.0,
+            "meanRgbError": 0,
             "marks": [
               {
                 "name": "TL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "TR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "CENTER",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               }
             ],
-            "borderMeanRgbError": 0.0
+            "borderMeanRgbError": 0
           }
         ],
         "negativeControls": [
@@ -29567,12 +29567,12 @@
       "landscape": "対象外：指定なし",
       "margins": "対象外：指定なし",
       "originalIds": {
-        "landscape": "14c3656d-5900-452e-baa9-2c29414bd560",
-        "portrait": "b4c53c60-661b-45fd-a568-898b85cfe76c",
-        "square": "407d038c-762b-4972-bfb2-e73782fe5ef8",
-        "boundary": "068fc7b3-8dab-4c37-befd-4fa8f45b42c2",
-        "photo": "79563ac4-4128-4d6e-b8bd-85afaf88feee",
-        "transparent": "1e7a71fa-5e63-476f-ba9a-4a8b6562f571"
+        "boundary": "68af3195-1305-416a-9985-ff485a79573b",
+        "landscape": "6711bba6-cf8b-4b56-81e0-7460bb69e8a7",
+        "transparent": "03c4a9e3-e5ac-4322-80ec-37d155bf14fd",
+        "square": "a6076329-2385-4184-a9f6-9fe825f0652c",
+        "photo": "59c58241-0402-4bb4-99eb-f10fcdf8b6a2",
+        "portrait": "f84a0fad-8b7c-404a-94a7-a3a0087aaf07"
       },
       "fixture": {
         "id": "I01",
@@ -30286,13 +30286,13 @@
                 "meanRgbError": 1.0989583333333333
               }
             ],
-            "borderMeanRgbError": 0.0,
+            "borderMeanRgbError": 0,
             "page": 1,
             "occurrence": 0,
             "bbox": [
               65.25,
-              150.0,
-              531.0,
+              150,
+              531,
               411.75
             ],
             "number": "図1",
@@ -30327,14 +30327,14 @@
                 "meanRgbError": 2.859375
               }
             ],
-            "borderMeanRgbError": 0.0,
+            "borderMeanRgbError": 0,
             "page": 2,
             "occurrence": 1,
             "bbox": [
               125.25,
               65.25,
               470.2500305175781,
-              678.0
+              678
             ],
             "number": "図2",
             "caption": "図2 I01F2 portrait全体確認",
@@ -30368,14 +30368,14 @@
                 "meanRgbError": 0.19791666666666666
               }
             ],
-            "borderMeanRgbError": 0.0,
+            "borderMeanRgbError": 0,
             "page": 3,
             "occurrence": 2,
             "bbox": [
               65.25,
               65.25,
-              531.0,
-              531.0
+              531,
+              531
             ],
             "number": "図3",
             "caption": "図3 I01F3 square全体確認",
@@ -30409,14 +30409,14 @@
                 "meanRgbError": 7.197916666666667
               }
             ],
-            "borderMeanRgbError": 0.0,
+            "borderMeanRgbError": 0,
             "page": 4,
             "occurrence": 3,
             "bbox": [
               221.25,
               65.25,
               374.25,
-              678.0
+              678
             ],
             "number": "図4",
             "caption": "図4 I01F4 boundary全体確認",
@@ -30450,13 +30450,13 @@
                 "meanRgbError": 0.015625
               }
             ],
-            "borderMeanRgbError": 0.0,
+            "borderMeanRgbError": 0,
             "page": 5,
             "occurrence": 4,
             "bbox": [
               65.25,
               65.25,
-              531.0,
+              531,
               397.5
             ],
             "number": "図5",
@@ -30491,13 +30491,13 @@
                 "meanRgbError": 0.8645833333333334
               }
             ],
-            "borderMeanRgbError": 0.0,
+            "borderMeanRgbError": 0,
             "page": 6,
             "occurrence": 5,
             "bbox": [
               65.25,
               65.25,
-              531.0,
+              531,
               437.25
             ],
             "number": "図6",
@@ -30532,13 +30532,13 @@
                 "meanRgbError": 2.4791666666666665
               }
             ],
-            "borderMeanRgbError": 0.0,
+            "borderMeanRgbError": 0,
             "page": 7,
             "occurrence": 6,
             "bbox": [
               65.25,
               65.25,
-              291.0,
+              291,
               192.75
             ],
             "number": "図7",
@@ -30573,13 +30573,13 @@
                 "meanRgbError": 0.052083333333333336
               }
             ],
-            "borderMeanRgbError": 0.0,
+            "borderMeanRgbError": 0,
             "page": 7,
             "occurrence": 7,
             "bbox": [
               304.5,
               65.25,
-              531.0,
+              531,
               226.5
             ],
             "number": "図7",
@@ -30614,13 +30614,13 @@
                 "meanRgbError": 0.7604166666666666
               }
             ],
-            "borderMeanRgbError": 0.0,
+            "borderMeanRgbError": 0,
             "page": 8,
             "occurrence": 8,
             "bbox": [
               65.25,
               65.25,
-              291.0,
+              291,
               467.25
             ],
             "number": "図8",
@@ -30644,7 +30644,7 @@
               },
               {
                 "name": "BL",
-                "meanRgbError": 2.0
+                "meanRgbError": 2
               },
               {
                 "name": "BR",
@@ -30655,14 +30655,14 @@
                 "meanRgbError": 5.885416666666667
               }
             ],
-            "borderMeanRgbError": 0.0,
+            "borderMeanRgbError": 0,
             "page": 8,
             "occurrence": 9,
             "bbox": [
               304.5,
               65.24998474121094,
-              531.0,
-              246.0
+              531,
+              246
             ],
             "number": "図8",
             "caption": "図8 I01C2 左右対応",
@@ -30698,7 +30698,7 @@
                 "meanRgbError": 2.359375
               }
             ],
-            "borderMeanRgbError": 0.0,
+            "borderMeanRgbError": 0,
             "viewport": 390,
             "occurrence": 0
           },
@@ -30712,7 +30712,7 @@
               },
               {
                 "name": "TR",
-                "meanRgbError": 3.0
+                "meanRgbError": 3
               },
               {
                 "name": "BL",
@@ -30727,7 +30727,7 @@
                 "meanRgbError": 6.067708333333333
               }
             ],
-            "borderMeanRgbError": 0.0,
+            "borderMeanRgbError": 0,
             "viewport": 390,
             "occurrence": 1
           },
@@ -30756,7 +30756,7 @@
                 "meanRgbError": 6.427083333333333
               }
             ],
-            "borderMeanRgbError": 0.0,
+            "borderMeanRgbError": 0,
             "viewport": 390,
             "occurrence": 2
           },
@@ -30814,7 +30814,7 @@
                 "meanRgbError": 0.359375
               }
             ],
-            "borderMeanRgbError": 0.0,
+            "borderMeanRgbError": 0,
             "viewport": 390,
             "occurrence": 4
           },
@@ -30843,7 +30843,7 @@
                 "meanRgbError": 6.453125
               }
             ],
-            "borderMeanRgbError": 0.0,
+            "borderMeanRgbError": 0,
             "viewport": 390,
             "occurrence": 5
           },
@@ -30872,7 +30872,7 @@
                 "meanRgbError": 4.067708333333333
               }
             ],
-            "borderMeanRgbError": 0.0,
+            "borderMeanRgbError": 0,
             "viewport": 390,
             "occurrence": 6
           },
@@ -30901,7 +30901,7 @@
                 "meanRgbError": 1.140625
               }
             ],
-            "borderMeanRgbError": 0.0,
+            "borderMeanRgbError": 0,
             "viewport": 390,
             "occurrence": 7
           },
@@ -30915,7 +30915,7 @@
               },
               {
                 "name": "TR",
-                "meanRgbError": 3.0
+                "meanRgbError": 3
               },
               {
                 "name": "BL",
@@ -30930,7 +30930,7 @@
                 "meanRgbError": 6.067708333333333
               }
             ],
-            "borderMeanRgbError": 0.0,
+            "borderMeanRgbError": 0,
             "viewport": 390,
             "occurrence": 8
           },
@@ -30959,7 +30959,7 @@
                 "meanRgbError": 2.90625
               }
             ],
-            "borderMeanRgbError": 0.0,
+            "borderMeanRgbError": 0,
             "viewport": 390,
             "occurrence": 9
           },
@@ -30988,7 +30988,7 @@
                 "meanRgbError": 2.6302083333333335
               }
             ],
-            "borderMeanRgbError": 0.0,
+            "borderMeanRgbError": 0,
             "viewport": 1280,
             "occurrence": 0
           },
@@ -31017,7 +31017,7 @@
                 "meanRgbError": 6.067708333333333
               }
             ],
-            "borderMeanRgbError": 0.0,
+            "borderMeanRgbError": 0,
             "viewport": 1280,
             "occurrence": 1
           },
@@ -31046,7 +31046,7 @@
                 "meanRgbError": 4.192708333333333
               }
             ],
-            "borderMeanRgbError": 0.0,
+            "borderMeanRgbError": 0,
             "viewport": 1280,
             "occurrence": 2
           },
@@ -31104,7 +31104,7 @@
                 "meanRgbError": 1.0416666666666667
               }
             ],
-            "borderMeanRgbError": 0.0,
+            "borderMeanRgbError": 0,
             "viewport": 1280,
             "occurrence": 4
           },
@@ -31133,7 +31133,7 @@
                 "meanRgbError": 5.265625
               }
             ],
-            "borderMeanRgbError": 0.0,
+            "borderMeanRgbError": 0,
             "viewport": 1280,
             "occurrence": 5
           },
@@ -31159,10 +31159,10 @@
               },
               {
                 "name": "CENTER",
-                "meanRgbError": 2.0
+                "meanRgbError": 2
               }
             ],
-            "borderMeanRgbError": 0.0,
+            "borderMeanRgbError": 0,
             "viewport": 1280,
             "occurrence": 6
           },
@@ -31220,7 +31220,7 @@
                 "meanRgbError": 6.53125
               }
             ],
-            "borderMeanRgbError": 0.0,
+            "borderMeanRgbError": 0,
             "viewport": 1280,
             "occurrence": 8
           },
@@ -31249,7 +31249,7 @@
                 "meanRgbError": 6.864583333333333
               }
             ],
-            "borderMeanRgbError": 0.0,
+            "borderMeanRgbError": 0,
             "viewport": 1280,
             "occurrence": 9
           }
@@ -31257,84 +31257,84 @@
         "conversion": [
           {
             "key": "landscape",
-            "meanRgbError": 0.0,
+            "meanRgbError": 0,
             "marks": [
               {
                 "name": "TL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "TR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "CENTER",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               }
             ],
-            "borderMeanRgbError": 0.0
+            "borderMeanRgbError": 0
           },
           {
             "key": "portrait",
-            "meanRgbError": 0.0,
+            "meanRgbError": 0,
             "marks": [
               {
                 "name": "TL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "TR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "CENTER",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               }
             ],
-            "borderMeanRgbError": 0.0
+            "borderMeanRgbError": 0
           },
           {
             "key": "square",
-            "meanRgbError": 0.0,
+            "meanRgbError": 0,
             "marks": [
               {
                 "name": "TL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "TR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "CENTER",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               }
             ],
-            "borderMeanRgbError": 0.0
+            "borderMeanRgbError": 0
           },
           {
             "key": "boundary",
@@ -31361,61 +31361,61 @@
                 "meanRgbError": 6.390625
               }
             ],
-            "borderMeanRgbError": 0.0
+            "borderMeanRgbError": 0
           },
           {
             "key": "photo",
-            "meanRgbError": 0.0,
+            "meanRgbError": 0,
             "marks": [
               {
                 "name": "TL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "TR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "CENTER",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               }
             ],
-            "borderMeanRgbError": 0.0
+            "borderMeanRgbError": 0
           },
           {
             "key": "transparent",
-            "meanRgbError": 0.0,
+            "meanRgbError": 0,
             "marks": [
               {
                 "name": "TL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "TR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "CENTER",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               }
             ],
-            "borderMeanRgbError": 0.0
+            "borderMeanRgbError": 0
           }
         ],
         "negativeControls": [
@@ -31425,5 +31425,6 @@
       }
     }
   ],
-  "browser": "151.0.7922.34"
+  "browser": "151.0.7922.34",
+  "metadataRepair": "originalIds reconstructed from the retained original-ID archive filenames; old runner had retained a shared object later mutated by import. Byte/content validation was unaffected. Final runner copies IDs before import."
 }

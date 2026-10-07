@@ -179,84 +179,84 @@
         "conversion": [
           {
             "key": "landscape",
-            "meanRgbError": 0.0,
+            "meanRgbError": 0,
             "marks": [
               {
                 "name": "TL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "TR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "CENTER",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               }
             ],
-            "borderMeanRgbError": 0.0
+            "borderMeanRgbError": 0
           },
           {
             "key": "portrait",
-            "meanRgbError": 0.0,
+            "meanRgbError": 0,
             "marks": [
               {
                 "name": "TL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "TR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "CENTER",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               }
             ],
-            "borderMeanRgbError": 0.0
+            "borderMeanRgbError": 0
           },
           {
             "key": "square",
-            "meanRgbError": 0.0,
+            "meanRgbError": 0,
             "marks": [
               {
                 "name": "TL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "TR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "CENTER",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               }
             ],
-            "borderMeanRgbError": 0.0
+            "borderMeanRgbError": 0
           },
           {
             "key": "boundary",
@@ -283,34 +283,34 @@
                 "meanRgbError": 6.552083333333333
               }
             ],
-            "borderMeanRgbError": 0.0
+            "borderMeanRgbError": 0
           },
           {
             "key": "photo",
-            "meanRgbError": 0.0,
+            "meanRgbError": 0,
             "marks": [
               {
                 "name": "TL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "TR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "CENTER",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               }
             ],
-            "borderMeanRgbError": 0.0
+            "borderMeanRgbError": 0
           },
           {
             "key": "transparent",
@@ -318,26 +318,26 @@
             "marks": [
               {
                 "name": "TL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "TR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "CENTER",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               }
             ],
-            "borderMeanRgbError": 0.0
+            "borderMeanRgbError": 0
           }
         ],
         "negativeControls": [
@@ -356,12 +356,12 @@
       "landscape": "未実施：現行製品はA4縦固定",
       "margins": "対象外：指定なし",
       "originalIds": {
-        "landscape": "b069122a-9106-493b-835d-df3943d1924a",
-        "portrait": "0fc46328-0335-447d-8719-4bbb57fc6f3b",
-        "square": "139224ae-bce9-4e22-9cf8-791d323e5629",
-        "boundary": "480698d0-ba47-4be9-871d-90f3f5d22e7d",
-        "photo": "9f079e23-3fcd-4be8-82e1-7dc707fa0796",
-        "transparent": "ef80175a-56ab-4577-88b6-794764f09212"
+        "portrait": "2ae263bc-3184-4382-a55e-8e3d1541ccd9",
+        "square": "e09492ff-7513-4a75-8e60-27b99cf592ad",
+        "boundary": "f7854979-3ace-4c67-9381-9363aaa33fec",
+        "photo": "839720e3-dc02-436f-bd48-b1bc44d2f2c2",
+        "landscape": "bcc03795-1138-43fc-97ab-efbad19fd1a8",
+        "transparent": "1b6a6e64-5551-4165-a070-2724af9a9f16"
       },
       "fixture": {
         "id": "R02",
@@ -848,7 +848,7 @@
                 "meanRgbError": 6.541666666666667
               }
             ],
-            "borderMeanRgbError": 0.0,
+            "borderMeanRgbError": 0,
             "viewport": 390,
             "occurrence": 0
           },
@@ -877,7 +877,7 @@
                 "meanRgbError": 10.786458333333334
               }
             ],
-            "borderMeanRgbError": 0.0,
+            "borderMeanRgbError": 0,
             "viewport": 390,
             "occurrence": 1
           },
@@ -906,7 +906,7 @@
                 "meanRgbError": 8.234375
               }
             ],
-            "borderMeanRgbError": 0.0,
+            "borderMeanRgbError": 0,
             "viewport": 390,
             "occurrence": 2
           },
@@ -935,7 +935,7 @@
                 "meanRgbError": 2.2239583333333335
               }
             ],
-            "borderMeanRgbError": 0.0,
+            "borderMeanRgbError": 0,
             "viewport": 390,
             "occurrence": 3
           },
@@ -964,7 +964,7 @@
                 "meanRgbError": 1.5677083333333333
               }
             ],
-            "borderMeanRgbError": 0.0,
+            "borderMeanRgbError": 0,
             "viewport": 390,
             "occurrence": 4
           },
@@ -993,7 +993,7 @@
                 "meanRgbError": 2.2239583333333335
               }
             ],
-            "borderMeanRgbError": 0.0,
+            "borderMeanRgbError": 0,
             "viewport": 390,
             "occurrence": 5
           },
@@ -1022,7 +1022,7 @@
                 "meanRgbError": 10.786458333333334
               }
             ],
-            "borderMeanRgbError": 0.0,
+            "borderMeanRgbError": 0,
             "viewport": 390,
             "occurrence": 6
           },
@@ -1051,7 +1051,7 @@
                 "meanRgbError": 2.171875
               }
             ],
-            "borderMeanRgbError": 0.0,
+            "borderMeanRgbError": 0,
             "viewport": 1280,
             "occurrence": 0
           },
@@ -1080,7 +1080,7 @@
                 "meanRgbError": 10.786458333333334
               }
             ],
-            "borderMeanRgbError": 0.0,
+            "borderMeanRgbError": 0,
             "viewport": 1280,
             "occurrence": 1
           },
@@ -1109,7 +1109,7 @@
                 "meanRgbError": 3.125
               }
             ],
-            "borderMeanRgbError": 0.0,
+            "borderMeanRgbError": 0,
             "viewport": 1280,
             "occurrence": 2
           },
@@ -1138,7 +1138,7 @@
                 "meanRgbError": 4.4375
               }
             ],
-            "borderMeanRgbError": 0.0,
+            "borderMeanRgbError": 0,
             "viewport": 1280,
             "occurrence": 3
           },
@@ -1196,7 +1196,7 @@
                 "meanRgbError": 0.2604166666666667
               }
             ],
-            "borderMeanRgbError": 0.0,
+            "borderMeanRgbError": 0,
             "viewport": 1280,
             "occurrence": 5
           },
@@ -1225,7 +1225,7 @@
                 "meanRgbError": 0.5833333333333334
               }
             ],
-            "borderMeanRgbError": 0.0,
+            "borderMeanRgbError": 0,
             "viewport": 1280,
             "occurrence": 6
           }
@@ -1233,84 +1233,84 @@
         "conversion": [
           {
             "key": "landscape",
-            "meanRgbError": 0.0,
+            "meanRgbError": 0,
             "marks": [
               {
                 "name": "TL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "TR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "CENTER",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               }
             ],
-            "borderMeanRgbError": 0.0
+            "borderMeanRgbError": 0
           },
           {
             "key": "portrait",
-            "meanRgbError": 0.0,
+            "meanRgbError": 0,
             "marks": [
               {
                 "name": "TL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "TR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "CENTER",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               }
             ],
-            "borderMeanRgbError": 0.0
+            "borderMeanRgbError": 0
           },
           {
             "key": "square",
-            "meanRgbError": 0.0,
+            "meanRgbError": 0,
             "marks": [
               {
                 "name": "TL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "TR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "CENTER",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               }
             ],
-            "borderMeanRgbError": 0.0
+            "borderMeanRgbError": 0
           },
           {
             "key": "boundary",
@@ -1337,34 +1337,34 @@
                 "meanRgbError": 6.552083333333333
               }
             ],
-            "borderMeanRgbError": 0.0
+            "borderMeanRgbError": 0
           },
           {
             "key": "photo",
-            "meanRgbError": 0.0,
+            "meanRgbError": 0,
             "marks": [
               {
                 "name": "TL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "TR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "CENTER",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               }
             ],
-            "borderMeanRgbError": 0.0
+            "borderMeanRgbError": 0
           },
           {
             "key": "transparent",
@@ -1372,26 +1372,26 @@
             "marks": [
               {
                 "name": "TL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "TR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "CENTER",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               }
             ],
-            "borderMeanRgbError": 0.0
+            "borderMeanRgbError": 0
           }
         ],
         "negativeControls": [
@@ -1410,12 +1410,12 @@
       "landscape": "未実施：現行製品はA4縦固定",
       "margins": "対象外：指定なし",
       "originalIds": {
-        "landscape": "7553efb1-fced-4e0d-9cb0-7474c2a21101",
-        "portrait": "6ecb86ef-5345-4005-9f50-1f923c6a421c",
-        "square": "17222ba2-225e-4ca7-8974-958da1ca452d",
-        "boundary": "691bb884-bccc-48bf-b7de-2e58637c725b",
-        "photo": "6b94f487-0378-44e2-9444-717ae4b42f03",
-        "transparent": "a3346dce-305e-44c3-ac03-75e652de14f8"
+        "square": "3c0da664-18ae-427b-9bb6-c5d9221f6d60",
+        "boundary": "d57ac71a-9217-4cdd-a9f1-a2ca4509e19e",
+        "photo": "cbc94f8c-58ae-477e-a424-f7d3fbd5acca",
+        "portrait": "c5df3345-e64f-43e4-a15d-6d092b8600df",
+        "landscape": "6fe55855-ec7e-4e5c-8282-cea497d0455e",
+        "transparent": "d3a1cb7d-58da-48e4-b9cd-eea6458f9c38"
       },
       "fixture": {
         "id": "R03",
@@ -2971,84 +2971,84 @@
         "conversion": [
           {
             "key": "landscape",
-            "meanRgbError": 0.0,
+            "meanRgbError": 0,
             "marks": [
               {
                 "name": "TL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "TR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "CENTER",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               }
             ],
-            "borderMeanRgbError": 0.0
+            "borderMeanRgbError": 0
           },
           {
             "key": "portrait",
-            "meanRgbError": 0.0,
+            "meanRgbError": 0,
             "marks": [
               {
                 "name": "TL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "TR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "CENTER",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               }
             ],
-            "borderMeanRgbError": 0.0
+            "borderMeanRgbError": 0
           },
           {
             "key": "square",
-            "meanRgbError": 0.0,
+            "meanRgbError": 0,
             "marks": [
               {
                 "name": "TL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "TR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "CENTER",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               }
             ],
-            "borderMeanRgbError": 0.0
+            "borderMeanRgbError": 0
           },
           {
             "key": "boundary",
@@ -3075,34 +3075,34 @@
                 "meanRgbError": 6.552083333333333
               }
             ],
-            "borderMeanRgbError": 0.0
+            "borderMeanRgbError": 0
           },
           {
             "key": "photo",
-            "meanRgbError": 0.0,
+            "meanRgbError": 0,
             "marks": [
               {
                 "name": "TL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "TR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "CENTER",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               }
             ],
-            "borderMeanRgbError": 0.0
+            "borderMeanRgbError": 0
           },
           {
             "key": "transparent",
@@ -3110,26 +3110,26 @@
             "marks": [
               {
                 "name": "TL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "TR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "CENTER",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               }
             ],
-            "borderMeanRgbError": 0.0
+            "borderMeanRgbError": 0
           }
         ],
         "negativeControls": [
@@ -3148,12 +3148,12 @@
       "landscape": "対象外：指定なし",
       "margins": "対象外：指定なし",
       "originalIds": {
-        "landscape": "18e4a08d-5b79-477a-8e32-c5901dc0e988",
-        "portrait": "d4985f33-93b2-4552-8d42-57a98c3e8079",
-        "square": "c092c8da-68cb-459c-a48f-4cc05bbefaff",
-        "boundary": "5c863b35-a97f-4dc9-bd27-c82603e9bf55",
-        "photo": "c7116bbf-f12c-4a0d-b287-169d3ca14e63",
-        "transparent": "69343350-e970-4997-8d8a-5b53f2e3fa5c"
+        "landscape": "42e85dc8-6b05-4446-a6a3-0508584bf3af",
+        "boundary": "26e75228-e9a8-49fc-ada8-7f1cc189f894",
+        "transparent": "42294d2f-11a8-4c08-b0b7-e19f433691ce",
+        "square": "529b4775-f90c-438f-8303-66b429938f05",
+        "photo": "d9724403-4c14-40e2-b559-6b0c1f01a0cc",
+        "portrait": "5d0c5723-5870-4bd5-907b-04050e2b32ca"
       },
       "fixture": {
         "id": "R04",
@@ -3439,7 +3439,7 @@
                 "meanRgbError": 8.234375
               }
             ],
-            "borderMeanRgbError": 0.0,
+            "borderMeanRgbError": 0,
             "viewport": 390,
             "occurrence": 0
           },
@@ -3468,7 +3468,7 @@
                 "meanRgbError": 2.171875
               }
             ],
-            "borderMeanRgbError": 0.0,
+            "borderMeanRgbError": 0,
             "viewport": 390,
             "occurrence": 1
           },
@@ -3497,7 +3497,7 @@
                 "meanRgbError": 2.3958333333333335
               }
             ],
-            "borderMeanRgbError": 0.0,
+            "borderMeanRgbError": 0,
             "viewport": 390,
             "occurrence": 2
           },
@@ -3526,7 +3526,7 @@
                 "meanRgbError": 3.125
               }
             ],
-            "borderMeanRgbError": 0.0,
+            "borderMeanRgbError": 0,
             "viewport": 1280,
             "occurrence": 0
           },
@@ -3555,7 +3555,7 @@
                 "meanRgbError": 17.682291666666668
               }
             ],
-            "borderMeanRgbError": 0.0,
+            "borderMeanRgbError": 0,
             "viewport": 1280,
             "occurrence": 1
           },
@@ -3584,7 +3584,7 @@
                 "meanRgbError": 8.671875
               }
             ],
-            "borderMeanRgbError": 0.0,
+            "borderMeanRgbError": 0,
             "viewport": 1280,
             "occurrence": 2
           }
@@ -3592,84 +3592,84 @@
         "conversion": [
           {
             "key": "landscape",
-            "meanRgbError": 0.0,
+            "meanRgbError": 0,
             "marks": [
               {
                 "name": "TL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "TR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "CENTER",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               }
             ],
-            "borderMeanRgbError": 0.0
+            "borderMeanRgbError": 0
           },
           {
             "key": "portrait",
-            "meanRgbError": 0.0,
+            "meanRgbError": 0,
             "marks": [
               {
                 "name": "TL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "TR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "CENTER",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               }
             ],
-            "borderMeanRgbError": 0.0
+            "borderMeanRgbError": 0
           },
           {
             "key": "square",
-            "meanRgbError": 0.0,
+            "meanRgbError": 0,
             "marks": [
               {
                 "name": "TL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "TR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "CENTER",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               }
             ],
-            "borderMeanRgbError": 0.0
+            "borderMeanRgbError": 0
           },
           {
             "key": "boundary",
@@ -3696,34 +3696,34 @@
                 "meanRgbError": 6.552083333333333
               }
             ],
-            "borderMeanRgbError": 0.0
+            "borderMeanRgbError": 0
           },
           {
             "key": "photo",
-            "meanRgbError": 0.0,
+            "meanRgbError": 0,
             "marks": [
               {
                 "name": "TL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "TR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "CENTER",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               }
             ],
-            "borderMeanRgbError": 0.0
+            "borderMeanRgbError": 0
           },
           {
             "key": "transparent",
@@ -3731,26 +3731,26 @@
             "marks": [
               {
                 "name": "TL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "TR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "CENTER",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               }
             ],
-            "borderMeanRgbError": 0.0
+            "borderMeanRgbError": 0
           }
         ],
         "negativeControls": [
@@ -3769,12 +3769,12 @@
       "landscape": "未実施：現行製品はA4縦固定",
       "margins": "未実施：現行製品は20mm固定",
       "originalIds": {
-        "landscape": "8b60cb78-83b9-4907-9e2a-aaa38dfe9391",
-        "portrait": "ddea5e4a-850e-47ae-a830-e8769bba0fb6",
-        "square": "1ce90ef7-9f67-4b22-a4e0-4c1bf908a66d",
-        "boundary": "3a73c4c5-54d4-45cd-bd81-57c5ddefd952",
-        "photo": "9afc50b0-10cc-4850-bf8e-08127f33aa38",
-        "transparent": "c679ea0e-79c3-4f2b-ac5d-d9138ac27770"
+        "square": "f26e0f28-ddc7-4d09-a7bd-fd641eb6f929",
+        "boundary": "1263404c-2ef0-4811-82f9-825c261f5b8c",
+        "landscape": "97715e44-386d-42c0-8bcb-549f07a6b19a",
+        "photo": "e2578da5-f448-44e0-9670-7d6c4c53ce42",
+        "transparent": "1b3a485a-f191-4921-a134-1af890ba3e57",
+        "portrait": "09af0ec5-670c-459b-9ca9-7a8618935d8e"
       },
       "fixture": {
         "id": "R05",
@@ -5529,7 +5529,7 @@
                 "meanRgbError": 12.020833333333334
               }
             ],
-            "borderMeanRgbError": 0.0,
+            "borderMeanRgbError": 0,
             "viewport": 390,
             "occurrence": 0
           },
@@ -5558,7 +5558,7 @@
                 "meanRgbError": 10.786458333333334
               }
             ],
-            "borderMeanRgbError": 0.0,
+            "borderMeanRgbError": 0,
             "viewport": 390,
             "occurrence": 1
           },
@@ -5587,7 +5587,7 @@
                 "meanRgbError": 2.2239583333333335
               }
             ],
-            "borderMeanRgbError": 0.0,
+            "borderMeanRgbError": 0,
             "viewport": 390,
             "occurrence": 2
           },
@@ -5616,7 +5616,7 @@
                 "meanRgbError": 10.786458333333334
               }
             ],
-            "borderMeanRgbError": 0.0,
+            "borderMeanRgbError": 0,
             "viewport": 390,
             "occurrence": 3
           },
@@ -5645,7 +5645,7 @@
                 "meanRgbError": 7.59375
               }
             ],
-            "borderMeanRgbError": 0.0,
+            "borderMeanRgbError": 0,
             "viewport": 390,
             "occurrence": 4
           },
@@ -5674,7 +5674,7 @@
                 "meanRgbError": 2.171875
               }
             ],
-            "borderMeanRgbError": 0.0,
+            "borderMeanRgbError": 0,
             "viewport": 1280,
             "occurrence": 0
           },
@@ -5703,7 +5703,7 @@
                 "meanRgbError": 10.786458333333334
               }
             ],
-            "borderMeanRgbError": 0.0,
+            "borderMeanRgbError": 0,
             "viewport": 1280,
             "occurrence": 1
           },
@@ -5732,7 +5732,7 @@
                 "meanRgbError": 4.4375
               }
             ],
-            "borderMeanRgbError": 0.0,
+            "borderMeanRgbError": 0,
             "viewport": 1280,
             "occurrence": 2
           },
@@ -5761,7 +5761,7 @@
                 "meanRgbError": 0.5833333333333334
               }
             ],
-            "borderMeanRgbError": 0.0,
+            "borderMeanRgbError": 0,
             "viewport": 1280,
             "occurrence": 3
           },
@@ -5790,7 +5790,7 @@
                 "meanRgbError": 5.380208333333333
               }
             ],
-            "borderMeanRgbError": 0.0,
+            "borderMeanRgbError": 0,
             "viewport": 1280,
             "occurrence": 4
           }
@@ -5798,84 +5798,84 @@
         "conversion": [
           {
             "key": "landscape",
-            "meanRgbError": 0.0,
+            "meanRgbError": 0,
             "marks": [
               {
                 "name": "TL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "TR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "CENTER",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               }
             ],
-            "borderMeanRgbError": 0.0
+            "borderMeanRgbError": 0
           },
           {
             "key": "portrait",
-            "meanRgbError": 0.0,
+            "meanRgbError": 0,
             "marks": [
               {
                 "name": "TL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "TR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "CENTER",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               }
             ],
-            "borderMeanRgbError": 0.0
+            "borderMeanRgbError": 0
           },
           {
             "key": "square",
-            "meanRgbError": 0.0,
+            "meanRgbError": 0,
             "marks": [
               {
                 "name": "TL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "TR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "CENTER",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               }
             ],
-            "borderMeanRgbError": 0.0
+            "borderMeanRgbError": 0
           },
           {
             "key": "boundary",
@@ -5902,34 +5902,34 @@
                 "meanRgbError": 6.552083333333333
               }
             ],
-            "borderMeanRgbError": 0.0
+            "borderMeanRgbError": 0
           },
           {
             "key": "photo",
-            "meanRgbError": 0.0,
+            "meanRgbError": 0,
             "marks": [
               {
                 "name": "TL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "TR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "CENTER",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               }
             ],
-            "borderMeanRgbError": 0.0
+            "borderMeanRgbError": 0
           },
           {
             "key": "transparent",
@@ -5937,26 +5937,26 @@
             "marks": [
               {
                 "name": "TL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "TR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "CENTER",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               }
             ],
-            "borderMeanRgbError": 0.0
+            "borderMeanRgbError": 0
           }
         ],
         "negativeControls": [
@@ -5975,12 +5975,12 @@
       "landscape": "対象外：指定なし",
       "margins": "対象外：指定なし",
       "originalIds": {
-        "landscape": "7371ca18-d5cd-4678-8a7b-b2c9f7a2502c",
-        "portrait": "596c6c6d-2e93-411d-8748-d4b3274afa1e",
-        "square": "4638c530-8d0d-4c77-b1f1-aa16b1032dc4",
-        "boundary": "e9367110-5f88-496b-a877-70aacd7b2219",
-        "photo": "de4c3071-69f9-4006-a04b-6f9bdd3bc440",
-        "transparent": "59001fba-b243-4226-859c-0adcac6dd018"
+        "square": "bd24290e-6931-4f17-974a-f8c1f29aaf09",
+        "transparent": "b0a43459-112d-4cab-acfe-079fb3c5a6f6",
+        "portrait": "051b9ffe-90f0-469f-a9ac-afdf82f4dee6",
+        "landscape": "3f405a66-8cb9-445e-9e82-4942185a452d",
+        "photo": "a6569eb4-3d2b-4ccc-a59b-706100a86569",
+        "boundary": "3212e134-20f5-43da-9f8d-9cc9a46330a6"
       },
       "fixture": {
         "id": "R06",
@@ -6355,84 +6355,84 @@
         "conversion": [
           {
             "key": "landscape",
-            "meanRgbError": 0.0,
+            "meanRgbError": 0,
             "marks": [
               {
                 "name": "TL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "TR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "CENTER",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               }
             ],
-            "borderMeanRgbError": 0.0
+            "borderMeanRgbError": 0
           },
           {
             "key": "portrait",
-            "meanRgbError": 0.0,
+            "meanRgbError": 0,
             "marks": [
               {
                 "name": "TL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "TR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "CENTER",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               }
             ],
-            "borderMeanRgbError": 0.0
+            "borderMeanRgbError": 0
           },
           {
             "key": "square",
-            "meanRgbError": 0.0,
+            "meanRgbError": 0,
             "marks": [
               {
                 "name": "TL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "TR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "CENTER",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               }
             ],
-            "borderMeanRgbError": 0.0
+            "borderMeanRgbError": 0
           },
           {
             "key": "boundary",
@@ -6459,34 +6459,34 @@
                 "meanRgbError": 6.552083333333333
               }
             ],
-            "borderMeanRgbError": 0.0
+            "borderMeanRgbError": 0
           },
           {
             "key": "photo",
-            "meanRgbError": 0.0,
+            "meanRgbError": 0,
             "marks": [
               {
                 "name": "TL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "TR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "CENTER",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               }
             ],
-            "borderMeanRgbError": 0.0
+            "borderMeanRgbError": 0
           },
           {
             "key": "transparent",
@@ -6494,26 +6494,26 @@
             "marks": [
               {
                 "name": "TL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "TR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "CENTER",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               }
             ],
-            "borderMeanRgbError": 0.0
+            "borderMeanRgbError": 0
           }
         ],
         "negativeControls": [
@@ -6532,12 +6532,12 @@
       "landscape": "対象外：指定なし",
       "margins": "対象外：指定なし",
       "originalIds": {
-        "landscape": "4eafe8e4-19c2-4d35-80aa-2a6b315c0001",
-        "portrait": "85a9799d-05c5-4087-8e2f-bc06bad0820e",
-        "square": "68230259-fa63-4ce0-a10b-b10891989abe",
-        "boundary": "10b9b88c-5779-4f31-b6ea-7cadc8061db1",
-        "photo": "21236cb6-a0d9-427f-b96e-9b95484f1384",
-        "transparent": "fdd2c001-b3c5-4525-9ba4-6bf204807fc8"
+        "boundary": "8247b141-79fd-460b-8cbd-ac2a4c1504cf",
+        "photo": "ba5d5ac5-9626-4aae-a3c0-30fe2e75356e",
+        "landscape": "516c6d36-f3f9-49ec-ada2-bbebe12fdb14",
+        "square": "cf92da93-09ad-4180-a0c3-3e6d3fe75f5f",
+        "portrait": "39266f59-3599-47c3-bb8d-40b8bb4f76da",
+        "transparent": "80950977-5118-4e6b-8e90-747c2289bebe"
       },
       "fixture": {
         "id": "L01",
@@ -9116,84 +9116,84 @@
         "conversion": [
           {
             "key": "landscape",
-            "meanRgbError": 0.0,
+            "meanRgbError": 0,
             "marks": [
               {
                 "name": "TL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "TR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "CENTER",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               }
             ],
-            "borderMeanRgbError": 0.0
+            "borderMeanRgbError": 0
           },
           {
             "key": "portrait",
-            "meanRgbError": 0.0,
+            "meanRgbError": 0,
             "marks": [
               {
                 "name": "TL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "TR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "CENTER",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               }
             ],
-            "borderMeanRgbError": 0.0
+            "borderMeanRgbError": 0
           },
           {
             "key": "square",
-            "meanRgbError": 0.0,
+            "meanRgbError": 0,
             "marks": [
               {
                 "name": "TL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "TR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "CENTER",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               }
             ],
-            "borderMeanRgbError": 0.0
+            "borderMeanRgbError": 0
           },
           {
             "key": "boundary",
@@ -9220,34 +9220,34 @@
                 "meanRgbError": 6.552083333333333
               }
             ],
-            "borderMeanRgbError": 0.0
+            "borderMeanRgbError": 0
           },
           {
             "key": "photo",
-            "meanRgbError": 0.0,
+            "meanRgbError": 0,
             "marks": [
               {
                 "name": "TL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "TR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "CENTER",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               }
             ],
-            "borderMeanRgbError": 0.0
+            "borderMeanRgbError": 0
           },
           {
             "key": "transparent",
@@ -9255,26 +9255,26 @@
             "marks": [
               {
                 "name": "TL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "TR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "CENTER",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               }
             ],
-            "borderMeanRgbError": 0.0
+            "borderMeanRgbError": 0
           }
         ],
         "negativeControls": [
@@ -9293,12 +9293,12 @@
       "landscape": "対象外：指定なし",
       "margins": "対象外：指定なし",
       "originalIds": {
-        "landscape": "d6bec44a-8dff-4df5-ad34-2645ac06061a",
-        "portrait": "f531174a-0e46-4f01-a11b-5397a4470ec9",
-        "square": "7809b28c-bbcf-4ae7-97ad-4f4968ce85ee",
-        "boundary": "f64b721d-8f29-4ec8-9030-62e86febe904",
-        "photo": "1c355583-559e-436b-9140-0be9ef937587",
-        "transparent": "8d0bbc0c-2282-42b0-b8ca-2da82fb12473"
+        "photo": "e7913c10-8b10-4fb1-95e5-936d06ede472",
+        "square": "00a9bd07-caf8-4709-985b-b7656f639870",
+        "transparent": "f89f8328-a6fa-4c24-aae2-893e84c883e2",
+        "landscape": "d9067981-8365-44b6-a0da-ffb020233085",
+        "portrait": "a06bbe9f-df90-48df-9231-982c72fb6aa2",
+        "boundary": "5115280b-6d92-4367-b14c-72cc046c68fb"
       },
       "fixture": {
         "id": "L02",
@@ -12297,84 +12297,84 @@
         "conversion": [
           {
             "key": "landscape",
-            "meanRgbError": 0.0,
+            "meanRgbError": 0,
             "marks": [
               {
                 "name": "TL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "TR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "CENTER",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               }
             ],
-            "borderMeanRgbError": 0.0
+            "borderMeanRgbError": 0
           },
           {
             "key": "portrait",
-            "meanRgbError": 0.0,
+            "meanRgbError": 0,
             "marks": [
               {
                 "name": "TL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "TR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "CENTER",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               }
             ],
-            "borderMeanRgbError": 0.0
+            "borderMeanRgbError": 0
           },
           {
             "key": "square",
-            "meanRgbError": 0.0,
+            "meanRgbError": 0,
             "marks": [
               {
                 "name": "TL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "TR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "CENTER",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               }
             ],
-            "borderMeanRgbError": 0.0
+            "borderMeanRgbError": 0
           },
           {
             "key": "boundary",
@@ -12401,34 +12401,34 @@
                 "meanRgbError": 6.552083333333333
               }
             ],
-            "borderMeanRgbError": 0.0
+            "borderMeanRgbError": 0
           },
           {
             "key": "photo",
-            "meanRgbError": 0.0,
+            "meanRgbError": 0,
             "marks": [
               {
                 "name": "TL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "TR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "CENTER",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               }
             ],
-            "borderMeanRgbError": 0.0
+            "borderMeanRgbError": 0
           },
           {
             "key": "transparent",
@@ -12436,26 +12436,26 @@
             "marks": [
               {
                 "name": "TL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "TR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "CENTER",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               }
             ],
-            "borderMeanRgbError": 0.0
+            "borderMeanRgbError": 0
           }
         ],
         "negativeControls": [
@@ -12474,12 +12474,12 @@
       "landscape": "対象外：指定なし",
       "margins": "対象外：指定なし",
       "originalIds": {
-        "landscape": "72ebd7c1-c30e-4f10-87f6-392708a9c261",
-        "portrait": "64ae1c6e-ad0d-4911-94b6-96f11d770902",
-        "square": "5477d488-8af8-48bd-9a3f-60fc3d40c79d",
-        "boundary": "baff2b3d-585e-4647-b41d-c42f87cc472d",
-        "photo": "e924af51-7009-4ffd-967d-8d6a3d431d7b",
-        "transparent": "6979d0fb-0334-45b5-863f-200d1f615393"
+        "square": "5d01a944-f31f-4d80-af24-885138c23ae5",
+        "portrait": "cc5c90a3-3238-46c8-ab51-14ca90601c82",
+        "transparent": "4760945d-7d33-4fa7-859b-f088068cffa7",
+        "landscape": "93de5c05-e795-45c4-b097-8ceb5b8dce03",
+        "boundary": "6599f86a-5562-419e-8d6d-0434ce2f8098",
+        "photo": "760533e1-bc6d-48a6-9c37-fd9546b574fc"
       },
       "fixture": {
         "id": "L03",
@@ -18232,84 +18232,84 @@
         "conversion": [
           {
             "key": "landscape",
-            "meanRgbError": 0.0,
+            "meanRgbError": 0,
             "marks": [
               {
                 "name": "TL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "TR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "CENTER",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               }
             ],
-            "borderMeanRgbError": 0.0
+            "borderMeanRgbError": 0
           },
           {
             "key": "portrait",
-            "meanRgbError": 0.0,
+            "meanRgbError": 0,
             "marks": [
               {
                 "name": "TL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "TR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "CENTER",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               }
             ],
-            "borderMeanRgbError": 0.0
+            "borderMeanRgbError": 0
           },
           {
             "key": "square",
-            "meanRgbError": 0.0,
+            "meanRgbError": 0,
             "marks": [
               {
                 "name": "TL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "TR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "CENTER",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               }
             ],
-            "borderMeanRgbError": 0.0
+            "borderMeanRgbError": 0
           },
           {
             "key": "boundary",
@@ -18336,34 +18336,34 @@
                 "meanRgbError": 6.552083333333333
               }
             ],
-            "borderMeanRgbError": 0.0
+            "borderMeanRgbError": 0
           },
           {
             "key": "photo",
-            "meanRgbError": 0.0,
+            "meanRgbError": 0,
             "marks": [
               {
                 "name": "TL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "TR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "CENTER",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               }
             ],
-            "borderMeanRgbError": 0.0
+            "borderMeanRgbError": 0
           },
           {
             "key": "transparent",
@@ -18371,26 +18371,26 @@
             "marks": [
               {
                 "name": "TL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "TR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "CENTER",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               }
             ],
-            "borderMeanRgbError": 0.0
+            "borderMeanRgbError": 0
           }
         ],
         "negativeControls": [
@@ -18409,12 +18409,12 @@
       "landscape": "対象外：指定なし",
       "margins": "対象外：指定なし",
       "originalIds": {
-        "landscape": "287f945f-801a-4f25-b0c3-c7178d43cb26",
-        "portrait": "7d9a24a9-5a5b-4b3d-94dd-e87197f7371d",
-        "square": "ca08a8b2-829c-4e4a-87eb-430f60f04e4f",
-        "boundary": "4e0a6ae2-05da-4958-ac92-b56270af5403",
-        "photo": "cd01e9fd-846a-4d72-949d-adc8c30d2d5e",
-        "transparent": "269b24cb-357a-4e5f-a621-5049a2f54572"
+        "transparent": "76c77b89-a3aa-4c07-a979-1056ee1c98d5",
+        "landscape": "01779086-a87a-4d6a-94b2-a98664b0f93e",
+        "boundary": "f022abbf-b38d-4aeb-be86-cb47519e16db",
+        "portrait": "a43d66fb-bfd3-46fd-9a76-025ca89f99eb",
+        "square": "33182e74-1afa-46df-bffc-a8dec3bda1f0",
+        "photo": "9ba888a6-dae6-41f4-9ffe-67c6e6745c8e"
       },
       "fixture": {
         "id": "L04",
@@ -19423,84 +19423,84 @@
         "conversion": [
           {
             "key": "landscape",
-            "meanRgbError": 0.0,
+            "meanRgbError": 0,
             "marks": [
               {
                 "name": "TL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "TR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "CENTER",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               }
             ],
-            "borderMeanRgbError": 0.0
+            "borderMeanRgbError": 0
           },
           {
             "key": "portrait",
-            "meanRgbError": 0.0,
+            "meanRgbError": 0,
             "marks": [
               {
                 "name": "TL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "TR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "CENTER",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               }
             ],
-            "borderMeanRgbError": 0.0
+            "borderMeanRgbError": 0
           },
           {
             "key": "square",
-            "meanRgbError": 0.0,
+            "meanRgbError": 0,
             "marks": [
               {
                 "name": "TL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "TR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "CENTER",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               }
             ],
-            "borderMeanRgbError": 0.0
+            "borderMeanRgbError": 0
           },
           {
             "key": "boundary",
@@ -19527,34 +19527,34 @@
                 "meanRgbError": 6.552083333333333
               }
             ],
-            "borderMeanRgbError": 0.0
+            "borderMeanRgbError": 0
           },
           {
             "key": "photo",
-            "meanRgbError": 0.0,
+            "meanRgbError": 0,
             "marks": [
               {
                 "name": "TL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "TR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "CENTER",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               }
             ],
-            "borderMeanRgbError": 0.0
+            "borderMeanRgbError": 0
           },
           {
             "key": "transparent",
@@ -19562,26 +19562,26 @@
             "marks": [
               {
                 "name": "TL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "TR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "CENTER",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               }
             ],
-            "borderMeanRgbError": 0.0
+            "borderMeanRgbError": 0
           }
         ],
         "negativeControls": [
@@ -19600,12 +19600,12 @@
       "landscape": "対象外：指定なし",
       "margins": "対象外：指定なし",
       "originalIds": {
-        "landscape": "904e0542-8382-4a9b-b9a3-6e7a1e9265b6",
-        "portrait": "efca1d01-97bd-4341-80c6-d70d4ff5163d",
-        "square": "378bcdd5-3ee6-4978-a466-9ecc668c8dd2",
-        "boundary": "285d4953-e827-4682-af95-972059ca78d3",
-        "photo": "d9bb4616-9c39-455a-a94e-b6c7a9c49c3c",
-        "transparent": "e0483c96-d759-4086-861e-669bf73c06a4"
+        "boundary": "a0bca11c-e344-4fde-a0f8-241a26fb8ebd",
+        "square": "dc2d24b2-5565-4f60-9de0-61b99241dcf8",
+        "landscape": "35e7a3c1-1301-4c05-a6e3-7ce22afada54",
+        "photo": "b9fa5681-9a90-4e05-9e20-1ba033d169a7",
+        "transparent": "09ea1a0a-0648-45b8-8f2e-d775928e1475",
+        "portrait": "83d740b2-a7a3-4fc6-ab77-40f98601c68d"
       },
       "fixture": {
         "id": "I01",
@@ -20304,7 +20304,7 @@
                 "meanRgbError": 2.2239583333333335
               }
             ],
-            "borderMeanRgbError": 0.0,
+            "borderMeanRgbError": 0,
             "viewport": 390,
             "occurrence": 0
           },
@@ -20333,7 +20333,7 @@
                 "meanRgbError": 10.786458333333334
               }
             ],
-            "borderMeanRgbError": 0.0,
+            "borderMeanRgbError": 0,
             "viewport": 390,
             "occurrence": 1
           },
@@ -20362,7 +20362,7 @@
                 "meanRgbError": 8.234375
               }
             ],
-            "borderMeanRgbError": 0.0,
+            "borderMeanRgbError": 0,
             "viewport": 390,
             "occurrence": 2
           },
@@ -20420,7 +20420,7 @@
                 "meanRgbError": 1.5677083333333333
               }
             ],
-            "borderMeanRgbError": 0.0,
+            "borderMeanRgbError": 0,
             "viewport": 390,
             "occurrence": 4
           },
@@ -20449,7 +20449,7 @@
                 "meanRgbError": 5.84375
               }
             ],
-            "borderMeanRgbError": 0.0,
+            "borderMeanRgbError": 0,
             "viewport": 390,
             "occurrence": 5
           },
@@ -20478,7 +20478,7 @@
                 "meanRgbError": 2.2239583333333335
               }
             ],
-            "borderMeanRgbError": 0.0,
+            "borderMeanRgbError": 0,
             "viewport": 390,
             "occurrence": 6
           },
@@ -20507,7 +20507,7 @@
                 "meanRgbError": 1.5677083333333333
               }
             ],
-            "borderMeanRgbError": 0.0,
+            "borderMeanRgbError": 0,
             "viewport": 390,
             "occurrence": 7
           },
@@ -20536,7 +20536,7 @@
                 "meanRgbError": 4.036458333333333
               }
             ],
-            "borderMeanRgbError": 0.0,
+            "borderMeanRgbError": 0,
             "viewport": 390,
             "occurrence": 8
           },
@@ -20565,7 +20565,7 @@
                 "meanRgbError": 0.59375
               }
             ],
-            "borderMeanRgbError": 0.0,
+            "borderMeanRgbError": 0,
             "viewport": 390,
             "occurrence": 9
           },
@@ -20594,7 +20594,7 @@
                 "meanRgbError": 2.171875
               }
             ],
-            "borderMeanRgbError": 0.0,
+            "borderMeanRgbError": 0,
             "viewport": 1280,
             "occurrence": 0
           },
@@ -20623,7 +20623,7 @@
                 "meanRgbError": 10.786458333333334
               }
             ],
-            "borderMeanRgbError": 0.0,
+            "borderMeanRgbError": 0,
             "viewport": 1280,
             "occurrence": 1
           },
@@ -20652,7 +20652,7 @@
                 "meanRgbError": 6.432291666666667
               }
             ],
-            "borderMeanRgbError": 0.0,
+            "borderMeanRgbError": 0,
             "viewport": 1280,
             "occurrence": 2
           },
@@ -20710,7 +20710,7 @@
                 "meanRgbError": 1.375
               }
             ],
-            "borderMeanRgbError": 0.0,
+            "borderMeanRgbError": 0,
             "viewport": 1280,
             "occurrence": 4
           },
@@ -20739,7 +20739,7 @@
                 "meanRgbError": 6.0625
               }
             ],
-            "borderMeanRgbError": 0.0,
+            "borderMeanRgbError": 0,
             "viewport": 1280,
             "occurrence": 5
           },
@@ -20768,7 +20768,7 @@
                 "meanRgbError": 2.1666666666666665
               }
             ],
-            "borderMeanRgbError": 0.0,
+            "borderMeanRgbError": 0,
             "viewport": 1280,
             "occurrence": 6
           },
@@ -20826,7 +20826,7 @@
                 "meanRgbError": 11.557291666666666
               }
             ],
-            "borderMeanRgbError": 0.0,
+            "borderMeanRgbError": 0,
             "viewport": 1280,
             "occurrence": 8
           },
@@ -20855,7 +20855,7 @@
                 "meanRgbError": 11.796875
               }
             ],
-            "borderMeanRgbError": 0.0,
+            "borderMeanRgbError": 0,
             "viewport": 1280,
             "occurrence": 9
           }
@@ -20863,84 +20863,84 @@
         "conversion": [
           {
             "key": "landscape",
-            "meanRgbError": 0.0,
+            "meanRgbError": 0,
             "marks": [
               {
                 "name": "TL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "TR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "CENTER",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               }
             ],
-            "borderMeanRgbError": 0.0
+            "borderMeanRgbError": 0
           },
           {
             "key": "portrait",
-            "meanRgbError": 0.0,
+            "meanRgbError": 0,
             "marks": [
               {
                 "name": "TL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "TR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "CENTER",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               }
             ],
-            "borderMeanRgbError": 0.0
+            "borderMeanRgbError": 0
           },
           {
             "key": "square",
-            "meanRgbError": 0.0,
+            "meanRgbError": 0,
             "marks": [
               {
                 "name": "TL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "TR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "CENTER",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               }
             ],
-            "borderMeanRgbError": 0.0
+            "borderMeanRgbError": 0
           },
           {
             "key": "boundary",
@@ -20967,34 +20967,34 @@
                 "meanRgbError": 6.552083333333333
               }
             ],
-            "borderMeanRgbError": 0.0
+            "borderMeanRgbError": 0
           },
           {
             "key": "photo",
-            "meanRgbError": 0.0,
+            "meanRgbError": 0,
             "marks": [
               {
                 "name": "TL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "TR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "CENTER",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               }
             ],
-            "borderMeanRgbError": 0.0
+            "borderMeanRgbError": 0
           },
           {
             "key": "transparent",
@@ -21002,26 +21002,26 @@
             "marks": [
               {
                 "name": "TL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "TR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BL",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "BR",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               },
               {
                 "name": "CENTER",
-                "meanRgbError": 0.0
+                "meanRgbError": 0
               }
             ],
-            "borderMeanRgbError": 0.0
+            "borderMeanRgbError": 0
           }
         ],
         "negativeControls": [
@@ -21032,5 +21032,6 @@
       "imageInspection": "PASS"
     }
   ],
-  "browser": "26.5"
+  "browser": "26.5",
+  "metadataRepair": "originalIds reconstructed from the retained original-ID archive filenames; old runner had retained a shared object later mutated by import. Byte/content validation was unaffected. Final runner copies IDs before import."
 }

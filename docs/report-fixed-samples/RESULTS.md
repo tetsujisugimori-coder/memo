@@ -99,6 +99,7 @@ Pythonパスはローカル既存venv。環境構築はREADME。実行時は `RE
 - 関連単体228 PASS。ブラウザ終了後の全単体は初回1799 PASS、Bridge接続失敗なし、再実行0回。構文・diff PASS。
 - 前回Bridge ECONNRESETを根本解消したと主張しない。前回1798 PASS／1 FAIL、該当ファイル1回・全体1回の再実行で成功した既存不安定性は [前回失敗ログ](review/complete-unit.log) と分離して保持。
 - 検査開発時はZIP省略寸法、Report終了ボタン、Comparison既存(a)/(b)番号の期待値に誤りがあり修正した。I01追加確認はChromium初回番号期待値FAIL→修正後1回PASS、WebKit初回PASS。原寸画素と縮小細線／文字を比べる誤検査も実寸の枠・印領域比較へ修正。途中JSON／初回失敗ログを残す。閾値拡大、固定待機、タイムアウト延長、テスト無効化はしていない。
+- 結果JSONのoriginalIdsが取込用の共有オブジェクトを参照していた記録上の誤りも修正。runnerは取込前にコピーする。収録済みJSONは保持された元ID付きZIPファイル名から正確な元IDを復元し、metadataRepair欄で明示した。添付SHA-256／内容／本文の検査には影響しない。原記録はGit履歴に残る。
 
 ## 成果物と公開
 
