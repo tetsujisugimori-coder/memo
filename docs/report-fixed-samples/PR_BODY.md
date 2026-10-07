@@ -25,4 +25,6 @@ LinuxではR01〜R06が7/6/5/10/15/7ページ、追加ケースはWindowsと同�
 
 **全面完了・マージ可能とは判定しません。** 現行A4縦・20mm固定のためR02/R03/R05横PDFとR05余白変更は未実施。iPhone実機とネイティブ印刷保存も未実施。WebKit PDFはPlaywright未対応で対象外です。全数値と全線の接触、あらゆる長いラベル・円の極小扇形を全面保証しません。Preview既存角丸は保持し、390pxの極小ID文字の可読性は自動保証しません。自動マージは行いません。
 
+公開43b77b0のCIは全体FAILです。番号テストの失敗は、1280pxへのresize完了前にinert編集欄へfillする競合を診断し、実状態を待つ手順に修正してLinux PASSを確認しました。固定Chromium実PDF全75ページは取得済みLinux画像と一致しています。一方、既存Chart WebKitの通常Editor不正値Infinity検査がtimeoutし、main／PRのWindows比較は各1回PASSでLinux原因は未確定です。Figure／固定WebKitは依存取得遅延で既存10分上限に達し、既存PDF／固定WebKitはこのrunで未実施です。先行PASSと混同せず初回失敗ログ・JSON・画面・cancelログをRESULTSへ保存しました。待機時間延長や期待値緩和はしていません。最終公開HEADの対応CIは以下へ追記します。
+
 手順：[README](https://github.com/tetsujisugimori-coder/memo/blob/test/report-fixed-regression/docs/report-fixed-samples/README.md)。結果・制約：[RESULTS](https://github.com/tetsujisugimori-coder/memo/blob/test/report-fixed-regression/docs/report-fixed-samples/RESULTS.md)。修正前後PDF・ページ画像・Preview・ログ：[最新成果物](https://github.com/tetsujisugimori-coder/memo/tree/test/report-fixed-regression/docs/report-fixed-samples/review/followup)。前回HEADのCIも[成功を確認済み](https://github.com/tetsujisugimori-coder/memo/actions/runs/37614487823)です。公開最終HEADと対応するCIの結果は以下に記録します。

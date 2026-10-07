@@ -124,3 +124,11 @@ LinuxのR01〜R06は7/6/5/10/15/7、L01〜L04は4/4/7/2、I01は8、計75ペー�
 診断HEAD `75a0978` の [run37635079031](https://github.com/tetsujisugimori-coder/memo/actions/runs/37635079031) でも同じ番号FAILを再現した。[JSON](review/followup/numbering-ci-failure.json) と [画面](review/followup/numbering-ci-failure.png) では、保存前からtextareaが前ケースの本文のままで、代入記録も空。テストの1280px変更とアプリのresize処理の間に、compact表示のinert編集欄へfillする競合経路を特定した。独立した最小再現 [inert-fill.cjs](review/followup/inert-fill.cjs) でも、Chromiumのfillはinert時にエラーを出さず古い本文を保持し、解除後は新本文を入力した（[結果](review/followup/inert-fill-result.json)）。
 
 番号テストはwide表示とinert解除という実状態を待ってからfillし、直後の入力本文一致も検査するよう修正した。製品の番号処理は変更しない。Windowsの修正後PR側／main側は各1回PASS。Linuxの修正後確認は最終CIを参照。同一SHAの盲目的な再実行0回、診断を加えた失敗再現1回、根拠のある準備状態待ちを加えた確認1回。固定待機・タイムアウト延長・期待値緩和はない。
+
+### 公開43b77b0の確認結果と未解決事項
+
+[run37635713105](https://github.com/tetsujisugimori-coder/memo/actions/runs/37635713105) で修正後の既存Report Preview番号テストはLinuxでもPASSした。固定Chromium全11ケース・実PDF75ページ・全306数値組、Chart Chromium、CI checks、Geometry、Table両browser、Mobile両browserもPASS。PDF全75ページPNGは上記目視対象を含む取得済みLinux成果物とSHA-256一致した。結果JSON／inspection.logを `review/followup/linux/final-head-*` に保持する。
+
+一方、**CI全体はFAIL**。既存Chart WebKitの通常Editor複数系列featureが `chart-block.e2e.js:1617` の不正値Infinity入力後の並べ替え拒否確認で30秒timeout。並べ替えが実行された状態を初回ログに保持した。今回のReport折れ線分岐を通らず、該当Editor処理・テストはmainから未変更。Windowsで該当featureをmain／PR各1回確認し、ともにPASS。Linuxの原因は未確定で、既存不安定性と推定するが解消とは扱わない。ゼロ軸／Bridgeとも別の失敗である。[失敗ログ](review/followup/chart-webkit-final-ci-failure.log) と比較実行ログを保持し、期待値や待機条件は変更しない。
+
+Figureジョブは依存取得に約9分を要し、番号テストPASS後に既存10分上限でcancel。既存PDF E2Eはこのrunでは未実施（Windowsと先行Linux runではPASS）。固定WebKitもapt依存取得中に10分上限でcancelし、このrunでは未実施（Windowsと先行Linux runでは11ケースPASS）。両cancelログを保持する。タイムアウト延長は行わない。資料更新後の最終公開HEAD・CI結果はPR本文を参照し、上記初回FAIL／cancelを成功結果で上書きしない。

@@ -40,6 +40,8 @@ PowerShellのWebKit指定は `$env:MEMO_NEXUS_E2E_BROWSER='webkit'`。別のPyth
 
 CIは両ブラウザで実行し、失敗時も `report-fixed-chromium`／`report-fixed-webkit` artifactを14日間保存する。全ページ画像は自動生成するが、目視結果は自動でPASSにしない。実際の確認結果は [RESULTS.md](RESULTS.md) に記録する。
 
+追補CIではReport番号テストのinert編集欄への入力競合を診断し、表示切替完了を待つ検証手順へ修正した。公開43b77b0でLinux番号テストと固定ChromiumはPASSしたが、既存Chart WebKitの不正値入力検査FAIL、依存取得遅延によるFigure／固定WebKit cancelが残った。初回失敗・比較実行・未実施条件をRESULTSに分離し、最終HEADのCI結果はPR本文に記載する。再成功だけで不安定性の根本解消とは扱わない。
+
 ## 検証の限界
 
 現行PDFはA4縦・余白20mm固定。横向きや余白変更を製品へ新設しないため、指定されたR02/R03/R05横出力とR05余白変更は未実施になる。WebKit自動検証をiPhone実機検証とは扱わない。ネイティブ印刷ダイアログの実際の保存操作、iPhone/Safari実機は未確認。
