@@ -9804,6 +9804,8 @@ function renderChartBlockContent(chartValue, blockIndex, { editable = true } = {
     const centerY = 130;
     const radius = 92;
     const segmentsById = new Map(pie.segments.map((segment) => [segment.id, segment]));
+    const reportPieLabels = document.body.classList.contains("report-preview-mode");
+    const occupiedPieLabels = [];
     const slices = items.map((item) => {
       const segment = segmentsById.get(item.id);
       if (!segment) {
@@ -9814,9 +9816,22 @@ function renderChartBlockContent(chartValue, blockIndex, { editable = true } = {
       const label = chartPieLabel(segment, chart.unit, chart.appearance.pieLabelMode);
       const middle = (segment.startAngle + segment.endAngle) / 2;
       const labelX = centerX + Math.cos(middle) * (radius * 0.61);
-      const labelY = centerY + Math.sin(middle) * (radius * 0.61);
+      const originalLabelY = centerY + Math.sin(middle) * (radius * 0.61);
+      let labelY = originalLabelY;
+      let leader = "";
+      if (reportPieLabels && label) {
+        // Keep every value visible in a static report, including narrow slices.
+        // The connector retains the association when nearby labels are moved.
+        const halfWidth = Array.from(label).length * 4;
+        const overlaps = () => occupiedPieLabels.some(box =>
+          Math.abs(box.x - labelX) < box.halfWidth + halfWidth + 2
+          && Math.abs(box.y - labelY) < 16);
+        while (overlaps() && labelY >= 28) labelY -= 16;
+        occupiedPieLabels.push({ x: labelX, y: labelY, halfWidth });
+        if (labelY !== originalLabelY) leader = `<line class="chart-block-axis" x1="${labelX}" y1="${originalLabelY}" x2="${labelX}" y2="${labelY}"/>`;
+      }
       const description = chartDataDescription(chart, segment, pieSeries, segment.value, segment.percentage);
-      return `<g><title>${escapeHtml(description)}</title>${chartPiePath(segment, centerX, centerY, radius, chartDatumAttributes(segment, pieSeries, description))}${label ? `<text class="chart-block-pie-label" x="${labelX}" y="${labelY}" text-anchor="middle" dominant-baseline="middle">${escapeHtml(label)}</text>` : ""}</g>`;
+      return `<g><title>${escapeHtml(description)}</title>${chartPiePath(segment, centerX, centerY, radius, chartDatumAttributes(segment, pieSeries, description))}${leader}${label ? `<text class="chart-block-pie-label" x="${labelX}" y="${labelY}" text-anchor="middle" dominant-baseline="middle">${escapeHtml(label)}</text>` : ""}</g>`;
     }).join("");
     const percentages = new Map(pie.segments.map((segment) => [segment.id, segment.percentage]));
     accessibleItems = items.map((item) => `<li>${escapeHtml(chartDataDescription(chart, item, pieSeries, item.value, percentages.get(item.id) || 0))}</li>`).join("");
