@@ -9864,7 +9864,10 @@ function renderChartBlockContent(chartValue, blockIndex, { editable = true } = {
       valueOffset: 8,
       valueMinimumY: 34
     };
-    const lineWidth = Math.max(baseWidth, lineChartWidth(chart.items), lineLayout.plotLeft + lineLayout.plotRight + lineSeries[0]?.items.length * 74 + 6);
+    const naturalLineWidth = Math.max(baseWidth, lineChartWidth(chart.items), lineLayout.plotLeft + lineLayout.plotRight + lineSeries[0]?.items.length * 74 + 6);
+    // Reuse responsive label selection instead of shrinking a wide SVG's text
+    // below readable print sizes. The full item/value list remains in Report.
+    const lineWidth = document.body.classList.contains("report-preview-mode") ? Math.min(540, naturalLineWidth) : naturalLineWidth;
     const categoryEntries = chartCategoryLabels(lineSeries[0]?.items, { plotWidth: lineWidth - lineLayout.plotLeft - lineLayout.plotRight });
     const categoryById = new Map(categoryEntries.map((entry) => [entry.item.id, entry]));
     const lineZero = baseline - chartValueRatio(0, maximum) * (baseline - lineLayout.plotTop);
