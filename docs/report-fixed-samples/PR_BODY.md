@@ -28,6 +28,8 @@ Report Preview／PDFを組み合わせて再現する固定資料がなかった
 
 **全面完了・マージ可能とは判定しません。** R02/R03/R05横PDFとR05余白変更は、製品がA4縦・20mm固定のため未実施です。一般Diagram自動配置、多数の極小円ラベル、多系列折れ線全組み合わせ、実機／印刷ダイアログの実保存は保証しません。未対応機能を今回新設していません。
 
-手順・全結果：[docs/report-fixed-samples/README.md](docs/report-fixed-samples/README.md)、[RESULTS.md](docs/report-fixed-samples/RESULTS.md)。固定6PDF、全45ページPNG、代表Preview、JSONと主要ログは [review/](docs/report-fixed-samples/review/) に含めます。全生成物／再投入ZIPはローカル `e2e-artifacts/report-fixed/`、CIは失敗時にも `report-fixed-chromium`／`report-fixed-webkit` artifactを14日間保存します。CIの実行結果はローカル結果と区別して確認が必要です。
+手順・全結果：[docs/report-fixed-samples/README.md](https://github.com/tetsujisugimori-coder/memo/blob/test/report-fixed-regression/docs/report-fixed-samples/README.md)、[RESULTS.md](https://github.com/tetsujisugimori-coder/memo/blob/test/report-fixed-regression/docs/report-fixed-samples/RESULTS.md)。固定6PDF、全45ページPNG、代表Preview、JSONと主要ログは [review/](https://github.com/tetsujisugimori-coder/memo/blob/test/report-fixed-regression/docs/report-fixed-samples/review/) に含めます。全生成物／再投入ZIPはローカル `e2e-artifacts/report-fixed/`、CIは失敗時にも `report-fixed-chromium`／`report-fixed-webkit` artifactを14日間保存します。CIの実行結果はローカル結果と区別して確認が必要です。
 
 PR #347/#348が取り込まれたorigin/main `2a13b83` から専用worktree／ブランチで実施し、元の未追跡workを保持しました。自動マージは行いません。
+
+??main `2a13b83` ?Linux CI?????????[main CI](https://github.com/tetsujisugimori-coder/memo/actions/runs/37602948552)????PR CI??????????????

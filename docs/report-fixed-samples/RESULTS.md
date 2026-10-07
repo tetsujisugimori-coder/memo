@@ -69,7 +69,7 @@ Pythonの上記パスは今回のローカル環境で使用した既存venv。�
 | main dual-axis WebKit | 1回PASS（215.9秒） |
 | branch dual-axis Chromium／WebKit | 各1回PASS（70.7／158.3秒）。これ以降の製品変更はReportの折れ線表示のみで、通常のdual-axis／ゼロ軸計算を変更しない |
 
-既知のグラフゼロ軸位置の失敗は上記main／branchの実行では再現しなかった。再実行0回。Linux CIでの根本解消やiPhone実機の結果を主張しない。
+既知のグラフゼロ軸位置の失敗は上記main／branchの実行では再現しなかった。再実行0回。最新main `2a13b83` の [Linux CI](https://github.com/tetsujisugimori-coder/memo/actions/runs/37602948552) も成功し、Chromium／WebKit Chartジョブの成功を確認した。今回のPR CIは別に確認する。iPhone実機の結果を主張しない。
 
 別件：最終commitでブラウザと同時に実行した単体テストは1798 PASS／1 FAIL。未変更の `codex-bridge.test.js:120` healthテストが `fetch failed / ECONNRESET` で失敗した。該当ファイルを1回単独実行して5 PASS、続いて全体を1回単独実行して1799 PASS。単に再実行が成功したことを根本解消とは扱わない。Bridgeコードのmain差分はなく、既存の `docs/report-spacing/pdf-ci/README.md` にも同種の接続失敗の記録がある。今回のReport結果とは分離して未解決の不安定性として残す。[失敗ログ](review/complete-unit.log)／[該当ファイル単独](review/bridge-isolated.log)／[全体単独](review/unit-isolated-final.log)。
 
@@ -87,4 +87,4 @@ PDF：[R01](review/R01.pdf)、[R02](review/R02.pdf)、[R03](review/R03.pdf)、[R
 
 横出力・余白変更は既存未対応のため未実施。一般フローチャートの自動配置／ラベル自動折り返しは未対応。今回の12要素DiagramはGeometry v2点・線・頂点ラベルで検証した。50項目の極小円扇形、長い値ラベル、多系列の折れ線など、今回の固定データを超えたすべての組み合わせの可読性は保証しない。読めることと意味的なページのまとまりは目視を含み、自動テストの全面保証とは表現しない。
 
-GitHubへのpush／PR作成結果は最終報告に記載する。作成用の本文は [PR_BODY.md](PR_BODY.md)。認証が必要な場合はworktree `work/report-fixed-regression` で再認証後、専用ブランチ `test/report-fixed-regression` をpushし、本文ファイルを指定してdraft PRを作成する。自動マージはしない。
+専用ブランチ `test/report-fixed-regression` のpushと [draft PR #350](https://github.com/tetsujisugimori-coder/memo/pull/350) 作成に成功した。作成用の本文は [PR_BODY.md](PR_BODY.md)。制限環境の初回GitHub CLI照会はHTTP 401だったが、承認済み昇格実行ではPRメタデータ・CI確認・push・PR作成を実行できた。自動マージは行っていない。
