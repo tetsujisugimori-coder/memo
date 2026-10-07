@@ -4,7 +4,7 @@ node : I01 Expected values to be strictly deep-equal:
 + ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     + CategoryInfo          : NotSpecified: (I01 Expected va...tly deep-equal::String) [], RemoteException
     + FullyQualifiedErrorId : NativeCommandError
- 
+
 + actual - expected
 
   [
@@ -17,4 +17,3 @@ node : I01 Expected values to be strictly deep-equal:
 -   'LEFT portrait',
 -   'RIGHT transparent'
   ]
-
