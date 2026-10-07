@@ -79,8 +79,8 @@ async function ready(page){await page.evaluate(async()=>{await attachmentRenderP
         if(engine==='chromium'){
           await page.setViewportSize({width:1280,height:900});
           for(const suffix of ['first','repeat']){assert.equal(await page.evaluate(()=>prepareReportPrint()),true);await page.emulateMedia({media:'print'});assert.equal(await page.locator('#preview').evaluate(e=>e.scrollWidth<=e.clientWidth+1),true);
-            result.linePrintFonts=await page.locator('#preview .chart-block-line svg text').evaluateAll(es=>es.map(e=>({text:e.textContent,points:parseFloat(getComputedStyle(e).fontSize)*e.ownerSVGElement.getBoundingClientRect().width/e.ownerSVGElement.viewBox.baseVal.width*72/96})));
-            for(const font of result.linePrintFonts)assert.ok(font.points>=9,'Line chart print text below 9pt: '+JSON.stringify(font));
+            result.linePrintFonts=await page.locator('#preview .chart-block-line svg text').evaluateAll(es=>es.map(e=>{const box=e.getBBox(),view=e.ownerSVGElement.viewBox.baseVal;return {text:e.textContent,points:parseFloat(getComputedStyle(e).fontSize)*e.ownerSVGElement.getBoundingClientRect().width/view.width*72/96,inside:box.x>=0&&box.y>=0&&box.x+box.width<=view.width&&box.y+box.height<=view.height};}));
+            for(const font of result.linePrintFonts){assert.ok(font.points>=9,'Line chart print text below 9pt: '+JSON.stringify(font));assert.ok(font.inside,'Line chart label clipped: '+JSON.stringify(font));}
             await page.pdf({path:path.join(out,`${sampleId}-${suffix}.pdf`),preferCSSPageSize:true,displayHeaderFooter:false,printBackground:false});await page.evaluate(()=>window.dispatchEvent(new Event('afterprint')));await page.emulateMedia({media:'screen'});assert.deepEqual(await snapshot(page),before);}
           result.pdf='生成PASS・検査待ち';
         }else result.pdf='対象外：Playwright PDF出力はChromiumのみ';

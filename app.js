@@ -9858,7 +9858,7 @@ function renderChartBlockContent(chartValue, blockIndex, { editable = true } = {
       axisTop: 40,
       axisLabelX: axis.margin,
       plotLeft: axis.margin + 50,
-      plotRight: Math.max(18, valueSlotWidth / 2),
+      plotRight: Math.max(document.body.classList.contains("report-preview-mode") ? 64 : 18, valueSlotWidth / 2),
       plotTop: 42,
       baseline,
       valueOffset: 8,
