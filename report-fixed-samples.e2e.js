@@ -9,7 +9,7 @@ const engine=process.env.MEMO_NEXUS_E2E_BROWSER||'chromium';
 const out=path.resolve(process.env.REPORT_FIXED_OUT||path.join(__dirname,'e2e-artifacts','report-fixed',engine));
 const assetDir=path.join(__dirname,'docs','report-fixed-samples','assets');
 const idle=page=>page.waitForFunction(()=>!noteSaveFoundation.isDirty(currentId)&&saveTimer===null&&window.MemoNexusTypingDerivedUiScheduler.pendingRequestType()===null);
-async function snapshot(page){return page.evaluate(async()=>({body:editor.value,title:titleInput.value,attachments:currentAttachments.map(a=>({id:a.id,fileName:a.fileName})),stored:(await getStoredNotes()).find(n=>n.id===currentId).body}));}
+async function snapshot(page){return page.evaluate(async()=>{await attachmentRenderPromise;return {body:editor.value,title:titleInput.value,attachments:currentAttachments.map(a=>({id:a.id,fileName:a.fileName})),stored:(await getStoredNotes()).find(n=>n.id===currentId).body};});}
 async function ready(page){await page.evaluate(async()=>{await attachmentRenderPromise;await document.fonts.ready;await Promise.all([...preview.querySelectorAll('img')].map(i=>i.decode()));});}
 (async()=>{
   fs.mkdirSync(out,{recursive:true});
