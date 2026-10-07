@@ -2,7 +2,7 @@
 
 2026年10月7日、日本時間。PR #350の公開HEADは開始時点で指定どおり `33421c9472ae061e6f120d1e9cb792f65ff10707`。専用worktreeに未コミット変更はなく、元mainの未追跡 `work/` を保持した。PR base／origin/mainは `2a13b83bf56bcecf5204c75dfb0a9f03ba84b7db`。PR #347/#348は取り込み済み。
 
-今回の製品・検証コードcommit：`c019f02e54505cb5f83864d77b27cc347228e3b1`。後続commitは結果／成果物／PR本文のみ。公開された最終HEADと対応するCI結果は [PR #350](https://github.com/tetsujisugimori-coder/memo/pull/350) の本文／Checksに追記する。前回HEAD `33421c9` の [CI](https://github.com/tetsujisugimori-coder/memo/actions/runs/37614487823) は成功しており、古い「CI未確認」を今回の結果として引き継がない。
+今回の製品修正commit：`c019f02e54505cb5f83864d77b27cc347228e3b1`。Windowsの正式ブラウザ実行もこのSHA。その後はPDFの全項目・系列・値の抽出照合を検査に追加し、文書・成果物を更新した。製品コードは以後変わっていない。公開最終HEADと対応CI結果は [PR #350](https://github.com/tetsujisugimori-coder/memo/pull/350) の本文／Checksで記録する。前回HEAD `33421c9` の [CI](https://github.com/tetsujisugimori-coder/memo/actions/runs/37614487823) は成功しており、古い「CI未確認」を今回の結果として引き継がない。
 
 ## Windows結果一覧
 
@@ -48,6 +48,8 @@ L01は50項目・1系列・全値1234567890・数値表示ON。ID／項目名は
 | L04 | 12時点の既存小値系列 | 省略なし | 0 | 0／0 | 12件PASS |
 
 L01の線・50点・ゼロ軸はレビューHEADの実描画座標と完全一致。点y座標と正負のゼロ軸を独立した線形式で検査。通常PreviewはReport開閉前後のSVG完全一致。1280／390／印刷でgetBBoxを測定し、PDF全SVG文字は最小約9.419pt・viewBox内。全ラベルと全線の接触まで回避する機能ではない。同値系列が同じ位置を通ることは入力どおり。長大な既存一覧／データ表とcaption／Sourceは複数ページに続く現行方針を維持する。L03最終ページにはSourceがあり白紙ではない。
+
+Previewだけでなく、実PDFから抽出した項目名・系列名・正確な値の組を入力と照合し、欠落／重複を検査する。L01/L02/L03/L04は50/50/150/12組、全サンプルのChart合計306組がWindows・LinuxともPASS。
 
 ## 画像ごとの検査
 
@@ -105,3 +107,11 @@ Pythonパスはローカル既存venv。環境構築はREADME。実行時は `RE
 ローカル `e2e-artifacts/report-fixed/` に再投入ZIP、変換後画像、初回／再出力PDF、全70ページPNG、全Previewと開発記録を保持。CIはChromium実PDFと両browser Previewを検査し、失敗時もJSON・PDF・ページ画像・画像領域PNG・run.logを `report-fixed-chromium`／`report-fixed-webkit` artifactに14日保存する。
 
 既存PR #350のブランチを更新。別PR／自動マージは行わない。最終HEAD・対応CI・Linuxページ数／目視範囲をPR本文に追記し、実際に確認できた結果だけを報告する。
+
+## Linux CI成果物の確認
+
+[実行37630852442](https://github.com/tetsujisugimori-coder/memo/actions/runs/37630852442) の両固定サンプルジョブPASSを確認し、実成果物を取得した。Ubuntu・Node22.23.3・Noto CJK・Chromium151.0.7922.34、PyMuPDF1.27.2。CIのgit SHA `f4306217492d4143140c0b88ff2fd9aeeb663d7e` はbase `2a13b83` と公開HEAD `d2cd723` のGitHub merge commitで、親SHAも確認した。最終公開HEADのCIはPR本文で別途記録する。
+
+LinuxのR01〜R06は7/6/5/10/15/7、L01〜L04は4/4/7/2、I01は8、計75ページ。フォント差でWindows70ページと異なるが全自動検査PASS。新規25＋変更13ページをすべて目視し、I01全8ページの5印・外枠・透明合成・写真相当品質、折れ線の修正箇所を確認した。Linux残り37ページ全ての今回の目視は未実施（前回Linux成果物と画素一致し、今回は変更／新規ページを目視対象とした）。Windows目視結果と混同しない。結果JSONと目視一覧を `review/followup/linux/` に置く。
+
+最初の公開run [37630770192](https://github.com/tetsujisugimori-coder/memo/actions/runs/37630770192) は失敗ログの末尾空白でCI checksがFAILし、新HEADへのpushで残りジョブは自動cancel。`d2cd723` で空白だけを修正し、CI checks PASSを確認した。同一SHAへの再実行は0回。ゼロ軸／Bridgeの不安定性とは別原因であり、ログ内容やテスト条件を隠す変更はしていない。

@@ -1,19 +1,20 @@
+Capture encoding repaired from matching development result JSON; original damaged capture remains in local artifacts and Git history. Failure results were retained.
 [
   {
     "id": "L01",
-    "pdf": "�����{"
+    "pdf": "未実施"
   },
   {
     "id": "L02",
-    "pdf": "�����{"
+    "pdf": "未実施"
   },
   {
     "id": "L03",
-    "pdf": "�����{"
+    "pdf": "未実施"
   },
   {
     "id": "L04",
-    "pdf": "�����{"
+    "pdf": "未実施"
   },
   {
     "id": "I01",

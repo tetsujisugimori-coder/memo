@@ -135,7 +135,7 @@ async function ready(page){await page.evaluate(async()=>{await attachmentRenderP
       }catch(error){failed=true;result.failure=error.stack;result.errors=errors;await page.screenshot({path:path.join(out,sampleId+'-failure.png'),fullPage:true}).catch(()=>{});console.error(sampleId,error.message);}
       finally{persist();await context.close();for(const directory of profiles)fs.rmSync(directory,{recursive:true,force:true});}
     }
-    {const inspection=spawnSync(process.env.PYTHON||'python',[path.join(__dirname,'docs/report-fixed-samples/inspect-fixed-pdf.py'),out],{encoding:'utf8'});fs.writeFileSync(path.join(out,'inspection.log'),inspection.stdout+inspection.stderr);if(inspection.status!==0){failed=true;console.error(inspection.stdout+inspection.stderr);}}
+    {const inspection=spawnSync(process.env.PYTHON||'python',[path.join(__dirname,'docs/report-fixed-samples/inspect-fixed-pdf.py'),out],{encoding:'utf8',env:{...process.env,PYTHONIOENCODING:'utf-8'}});fs.writeFileSync(path.join(out,'inspection.log'),inspection.stdout+inspection.stderr);if(inspection.status!==0){failed=true;console.error(inspection.stdout+inspection.stderr);}}
   }finally{persist();if(browser)await browser.close();await new Promise(resolve=>server.close(resolve));}
   if(failed)process.exitCode=1;
 })().catch(e=>{console.error(e);process.exitCode=1;});

@@ -33,6 +33,14 @@ for case in results['cases']:
         assert len(docs[0])==len(docs[1]), 'First/repeat page count differs'
         doc=docs[0]; case['pages']=len(doc)
         case['pdfChecks']=[]
+        case['pdfValuePairs']=0
+        for chart in case.get('chartInputs',[]):
+            for i,item in enumerate(chart['items']):
+                for series in chart['series']:
+                    pair=f"{item['label']}、{series['name']}: {series['values'][i]}"
+                    import re
+                    assert len(re.findall(re.escape(compact(pair))+r'(?![0-9.eE+-])',compact(text[0])))==1, 'Missing/duplicate PDF item-series-value pair '+pair
+                    case['pdfValuePairs']+=1
         links=[link.get('uri','') for p in doc for link in p.get_links()]
         for expected in case['fixture']['expectedTexts']:
             assert compact(expected) in compact(text[0]), 'Missing prose '+expected[:50]

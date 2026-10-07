@@ -19,7 +19,9 @@ Windowsの11ケースは保存・再読込、ZIP取込（R01は編集から直�
 
 既存Report Preview／PDF E2E、Chart Chromium全体（初回985.1秒）、関連単体228件、全単体1799件、構文・diff検査PASS。今回のローカル初回でゼロ軸失敗とBridge health接続失敗は再現せず、再実行0回です。前回Bridge ECONNRESETは未解決の既存不安定性として別記録し、再実行成功で根本解消とは扱いません。検査開発時の省略寸法メタデータ・終了ボタン・既存(a)/(b)番号・細線サンプリングの失敗と修正もログ／JSONに保持します。
 
-コードcommit：`c019f02e54505cb5f83864d77b27cc347228e3b1`。Windows、Node24.20.0、Playwright1.62.1、Chromium151.0.7922.34／WebKit26.5、Python3.14.7、PyMuPDF1.27.2。CIはUbuntu・Node22・Noto CJKで区別し、Chromium実PDFと両browser Previewを実行します。失敗時もPDF・全ページPNG・画像領域PNG・JSON・run.logを14日保持します。
+製品修正commit：`c019f02e54505cb5f83864d77b27cc347228e3b1`。その後にPDFの全項目・系列・正確な値の組を入力と直接照合する検査を追加し、全306組がWindows／LinuxでPASSしました。Windows、Node24.20.0、Playwright1.62.1、Chromium151.0.7922.34／WebKit26.5、Python3.14.7、PyMuPDF1.27.2。CIはUbuntu・Node22・Noto CJKで区別し、Chromium実PDFと両browser Previewを実行します。失敗時もPDF・全ページPNG・画像領域PNG・JSON・run.logを14日保持します。
+
+LinuxではR01〜R06が7/6/5/10/15/7ページ、追加ケースはWindowsと同じで計75ページ。新規／変更38ページを目視し、I01全8ページも確認しました。残り37ページ全ての今回のLinux目視は未実施で、Windowsの目視と混同しません。最初の公開runは保存ログの末尾空白でCI checksが失敗し、空白だけを修正して成功を確認しています。同一SHA再実行で失敗を隠したものではありません。
 
 **全面完了・マージ可能とは判定しません。** 現行A4縦・20mm固定のためR02/R03/R05横PDFとR05余白変更は未実施。iPhone実機とネイティブ印刷保存も未実施。WebKit PDFはPlaywright未対応で対象外です。全数値と全線の接触、あらゆる長いラベル・円の極小扇形を全面保証しません。Preview既存角丸は保持し、390pxの極小ID文字の可読性は自動保証しません。自動マージは行いません。
 
