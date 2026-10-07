@@ -1,15 +1,15 @@
-[START] Chart E2E (webkit) > chart-dual-axis
-[START] Chart E2E (webkit) > chart-dual-axis > fresh browser context and editor startup
-[PASS] Chart E2E (webkit) > chart-dual-axis > fresh browser context and editor startup 1.4s
-[START] Chart E2E (webkit) > chart-dual-axis > UI operations and assertions
-[PASS] Chart E2E (webkit) > chart-dual-axis > UI operations and assertions 0.0s
-[START] Chart E2E (webkit) > chart-dual-axis > 2-axis Chart creation, editing and validation
-[PASS] Chart E2E (webkit) > chart-dual-axis > 2-axis Chart creation, editing and validation 11.7s
-[START] Chart E2E (webkit) > chart-dual-axis > 160 geometry combinations across data, theme and width
-[PASS] Chart E2E (webkit) > chart-dual-axis > 160 geometry combinations across data, theme and width 144.3s
-[START] Chart E2E (webkit) > chart-dual-axis > save/reload, legacy marker and cancel
-Dual-axis checks passed: 160 geometry combinations, UI creation, stable IDs, save/reload, type/axis switches, invalid drafts, legacy marker and cancel
-[PASS] Chart E2E (webkit) > chart-dual-axis > save/reload, legacy marker and cancel 0.9s
-[PASS] Chart E2E (webkit) > chart-dual-axis 158.3s
-[RESULT] Chart E2E (webkit) > chart-dual-axis PASS 158.3s
-[TOTAL] Chart E2E (webkit) 158.6s
+[START] Chart E2E (webkit) > chart-dual-axis
+[START] Chart E2E (webkit) > chart-dual-axis > fresh browser context and editor startup
+[PASS] Chart E2E (webkit) > chart-dual-axis > fresh browser context and editor startup 1.4s
+[START] Chart E2E (webkit) > chart-dual-axis > UI operations and assertions
+[PASS] Chart E2E (webkit) > chart-dual-axis > UI operations and assertions 0.0s
+[START] Chart E2E (webkit) > chart-dual-axis > 2-axis Chart creation, editing and validation
+[PASS] Chart E2E (webkit) > chart-dual-axis > 2-axis Chart creation, editing and validation 11.7s
+[START] Chart E2E (webkit) > chart-dual-axis > 160 geometry combinations across data, theme and width
+[PASS] Chart E2E (webkit) > chart-dual-axis > 160 geometry combinations across data, theme and width 144.3s
+[START] Chart E2E (webkit) > chart-dual-axis > save/reload, legacy marker and cancel
+Dual-axis checks passed: 160 geometry combinations, UI creation, stable IDs, save/reload, type/axis switches, invalid drafts, legacy marker and cancel
+[PASS] Chart E2E (webkit) > chart-dual-axis > save/reload, legacy marker and cancel 0.9s
+[PASS] Chart E2E (webkit) > chart-dual-axis 158.3s
+[RESULT] Chart E2E (webkit) > chart-dual-axis PASS 158.3s
+[TOTAL] Chart E2E (webkit) 158.6s

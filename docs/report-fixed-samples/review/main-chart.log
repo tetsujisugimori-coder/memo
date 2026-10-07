@@ -1,322 +1,322 @@
-[START] Chart E2E (chromium) > chart-create-edit-save
-[START] Chart E2E (chromium) > chart-create-edit-save > fresh browser context and editor startup
-[PASS] Chart E2E (chromium) > chart-create-edit-save > fresh browser context and editor startup 0.5s
-[START] Chart E2E (chromium) > chart-create-edit-save > UI operations and assertions
-[PASS] Chart E2E (chromium) > chart-create-edit-save > UI operations and assertions 0.0s
-[START] Chart E2E (chromium) > chart-create-edit-save > chart-create: insert and render
-[PASS] Chart E2E (chromium) > chart-create-edit-save > chart-create: insert and render 1.3s
-[START] Chart E2E (chromium) > chart-create-edit-save > chart-edit: validation and type changes
-[PASS] Chart E2E (chromium) > chart-create-edit-save > chart-edit: validation and type changes 5.7s
-[START] Chart E2E (chromium) > chart-create-edit-save > chart-save-reload: persist and restore
-[PASS] Chart E2E (chromium) > chart-create-edit-save > chart-save-reload: persist and restore 6.5s
-[PASS] Chart E2E (chromium) > chart-create-edit-save 14.0s
-[START] Chart E2E (chromium) > chart-multiple-blocks
-[START] Chart E2E (chromium) > chart-multiple-blocks > fresh browser context and editor startup
-[PASS] Chart E2E (chromium) > chart-multiple-blocks > fresh browser context and editor startup 0.6s
-[START] Chart E2E (chromium) > chart-multiple-blocks > UI operations and assertions
-[PASS] Chart E2E (chromium) > chart-multiple-blocks > UI operations and assertions 0.0s
-[START] Chart E2E (chromium) > chart-multiple-blocks > duplicate IDs and independent editing
-[PASS] Chart E2E (chromium) > chart-multiple-blocks > duplicate IDs and independent editing 1.5s
-[PASS] Chart E2E (chromium) > chart-multiple-blocks 2.1s
-[START] Chart E2E (chromium) > chart-multi-series
-[START] Chart E2E (chromium) > chart-multi-series > fresh browser context and editor startup
-[PASS] Chart E2E (chromium) > chart-multi-series > fresh browser context and editor startup 0.6s
-[START] Chart E2E (chromium) > chart-multi-series > UI operations and assertions
-[PASS] Chart E2E (chromium) > chart-multi-series > UI operations and assertions 0.0s
-[START] Chart E2E (chromium) > chart-multi-series > legacy marker and series editing
-[PASS] Chart E2E (chromium) > chart-multi-series > legacy marker and series editing 7.4s
-[START] Chart E2E (chromium) > chart-multi-series > stacked geometry and narrow layouts
-[PASS] Chart E2E (chromium) > chart-multi-series > stacked geometry and narrow layouts 6.1s
-[START] Chart E2E (chromium) > chart-multi-series > multi-series type changes, mobile layout and persistence
-[PASS] Chart E2E (chromium) > chart-multi-series > multi-series type changes, mobile layout and persistence 9.5s
-[PASS] Chart E2E (chromium) > chart-multi-series 23.6s
-[START] Chart E2E (chromium) > chart-signed-values
-[START] Chart E2E (chromium) > chart-signed-values > fresh browser context and editor startup
-[PASS] Chart E2E (chromium) > chart-signed-values > fresh browser context and editor startup 0.6s
-[START] Chart E2E (chromium) > chart-signed-values > UI operations and assertions
-Signed chart checks passed: 5 widths, light/dark, geometry, unsupported drafts, persistence, cancel and extremes
-[PASS] Chart E2E (chromium) > chart-signed-values > UI operations and assertions 20.0s
-[PASS] Chart E2E (chromium) > chart-signed-values 20.6s
-[START] Chart E2E (chromium) > chart-diverging-stacked
-[START] Chart E2E (chromium) > chart-diverging-stacked > fresh browser context and editor startup
-[PASS] Chart E2E (chromium) > chart-diverging-stacked > fresh browser context and editor startup 0.8s
-[START] Chart E2E (chromium) > chart-diverging-stacked > UI operations and assertions
-[PASS] Chart E2E (chromium) > chart-diverging-stacked > UI operations and assertions 0.0s
-[START] Chart E2E (chromium) > chart-diverging-stacked > Chart setup and preview geometry
-[PASS] Chart E2E (chromium) > chart-diverging-stacked > Chart setup and preview geometry 0.3s
-[START] Chart E2E (chromium) > chart-diverging-stacked > 140 geometry combinations across data, theme and width
-[PASS] Chart E2E (chromium) > chart-diverging-stacked > 140 geometry combinations across data, theme and width 48.4s
-[START] Chart E2E (chromium) > chart-diverging-stacked > save/reload, type changes and invalid drafts
-Diverging stacked checks passed: 140 geometry combinations, persistence, type switches, invalid drafts, reload and cancel
-[PASS] Chart E2E (chromium) > chart-diverging-stacked > save/reload, type changes and invalid drafts 6.3s
-[PASS] Chart E2E (chromium) > chart-diverging-stacked 55.8s
-[START] Chart E2E (chromium) > chart-diverging-percent
-[START] Chart E2E (chromium) > chart-diverging-percent > fresh browser context and editor startup
-[PASS] Chart E2E (chromium) > chart-diverging-percent > fresh browser context and editor startup 0.6s
-[START] Chart E2E (chromium) > chart-diverging-percent > UI operations and assertions
-[PASS] Chart E2E (chromium) > chart-diverging-percent > UI operations and assertions 0.0s
-[START] Chart E2E (chromium) > chart-diverging-percent > Chart setup and preview geometry
-[PASS] Chart E2E (chromium) > chart-diverging-percent > Chart setup and preview geometry 0.3s
-[START] Chart E2E (chromium) > chart-diverging-percent > 140 geometry combinations across data, theme and width
-[PASS] Chart E2E (chromium) > chart-diverging-percent > 140 geometry combinations across data, theme and width 48.7s
-[START] Chart E2E (chromium) > chart-diverging-percent > save/reload, type changes and invalid drafts
-Diverging percent-stacked checks passed: 140 geometry combinations, persistence, type switches, invalid drafts, reload and cancel
-[PASS] Chart E2E (chromium) > chart-diverging-percent > save/reload, type changes and invalid drafts 8.0s
-[PASS] Chart E2E (chromium) > chart-diverging-percent 57.5s
-[START] Chart E2E (chromium) > chart-combo
-[START] Chart E2E (chromium) > chart-combo > fresh browser context and editor startup
-[PASS] Chart E2E (chromium) > chart-combo > fresh browser context and editor startup 0.5s
-[START] Chart E2E (chromium) > chart-combo > UI operations and assertions
-[PASS] Chart E2E (chromium) > chart-combo > UI operations and assertions 0.0s
-[START] Chart E2E (chromium) > chart-combo > Chart creation, series editing and persistence
-[PASS] Chart E2E (chromium) > chart-combo > Chart creation, series editing and persistence 4.4s
-[START] Chart E2E (chromium) > chart-combo > 120 geometry combinations across data, theme and width
-[PASS] Chart E2E (chromium) > chart-combo > 120 geometry combinations across data, theme and width 51.8s
-[START] Chart E2E (chromium) > chart-combo > final save/reload and legacy fallback
-Combo checks passed: 120 geometry combinations, stable IDs, shared axis, save/reload, type switches, invalid drafts and cancel
-[PASS] Chart E2E (chromium) > chart-combo > final save/reload and legacy fallback 12.0s
-[PASS] Chart E2E (chromium) > chart-combo 68.8s
-[START] Chart E2E (chromium) > chart-dual-axis
-[START] Chart E2E (chromium) > chart-dual-axis > fresh browser context and editor startup
-[PASS] Chart E2E (chromium) > chart-dual-axis > fresh browser context and editor startup 0.5s
-[START] Chart E2E (chromium) > chart-dual-axis > UI operations and assertions
-[PASS] Chart E2E (chromium) > chart-dual-axis > UI operations and assertions 0.0s
-[START] Chart E2E (chromium) > chart-dual-axis > 2-axis Chart creation, editing and validation
-[PASS] Chart E2E (chromium) > chart-dual-axis > 2-axis Chart creation, editing and validation 3.2s
-[START] Chart E2E (chromium) > chart-dual-axis > 160 geometry combinations across data, theme and width
-[PASS] Chart E2E (chromium) > chart-dual-axis > 160 geometry combinations across data, theme and width 66.7s
-[START] Chart E2E (chromium) > chart-dual-axis > save/reload, legacy marker and cancel
-Dual-axis checks passed: 160 geometry combinations, UI creation, stable IDs, save/reload, type/axis switches, invalid drafts, legacy marker and cancel
-[PASS] Chart E2E (chromium) > chart-dual-axis > save/reload, legacy marker and cancel 1.4s
-[PASS] Chart E2E (chromium) > chart-dual-axis 71.8s
-[START] Chart E2E (chromium) > chart-axis-titles
-[START] Chart E2E (chromium) > chart-axis-titles > fresh browser context and editor startup
-[PASS] Chart E2E (chromium) > chart-axis-titles > fresh browser context and editor startup 0.6s
-[START] Chart E2E (chromium) > chart-axis-titles > UI operations and assertions
-[PASS] Chart E2E (chromium) > chart-axis-titles > UI operations and assertions 0.0s
-[START] Chart E2E (chromium) > chart-axis-titles > axis-title creation and editing
-[PASS] Chart E2E (chromium) > chart-axis-titles > axis-title creation and editing 1.4s
-[START] Chart E2E (chromium) > chart-axis-titles > save/reload and type/axis switches
-[PASS] Chart E2E (chromium) > chart-axis-titles > save/reload and type/axis switches 7.6s
-[START] Chart E2E (chromium) > chart-axis-titles > theme/width geometry and long titles
-Axis-title checks passed: 8 geometry combinations, old defaults, UI/tooltip units, save/reopen/reload, type/axis switches, cancel and empty/long titles
-[PASS] Chart E2E (chromium) > chart-axis-titles > theme/width geometry and long titles 5.5s
-[PASS] Chart E2E (chromium) > chart-axis-titles 15.1s
-[START] Chart E2E (chromium) > chart-tooltips
-[START] Chart E2E (chromium) > chart-tooltips > fresh browser context and editor startup
-[PASS] Chart E2E (chromium) > chart-tooltips > fresh browser context and editor startup 0.5s
-[START] Chart E2E (chromium) > chart-tooltips > UI operations and assertions
-[PASS] Chart E2E (chromium) > chart-tooltips > UI operations and assertions 0.0s
-[START] Chart E2E (chromium) > chart-tooltips > 12 Chart variants and keyboard/tooltip interactions
-[PASS] Chart E2E (chromium) > chart-tooltips > 12 Chart variants and keyboard/tooltip interactions 37.2s
-[START] Chart E2E (chromium) > chart-tooltips > 120 theme/width positions and long labels
-[PASS] Chart E2E (chromium) > chart-tooltips > 120 theme/width positions and long labels 95.6s
-[START] Chart E2E (chromium) > chart-tooltips > 150 targets, redraw, save/reload and note switch
-Interactive tooltip checks passed: 12 chart variants, 120 type/theme/width positions, 150 targets, lifecycle and persistence
-[PASS] Chart E2E (chromium) > chart-tooltips > 150 targets, redraw, save/reload and note switch 3.7s
-[PASS] Chart E2E (chromium) > chart-tooltips 136.9s
-[START] Chart E2E (chromium) > chart-tsv-import
-[START] Chart E2E (chromium) > chart-tsv-import > fresh browser context and editor startup
-[PASS] Chart E2E (chromium) > chart-tsv-import > fresh browser context and editor startup 0.7s
-[START] Chart E2E (chromium) > chart-tsv-import > UI operations and assertions
-[PASS] Chart E2E (chromium) > chart-tsv-import > UI operations and assertions 0.0s
-[START] Chart E2E (chromium) > chart-tsv-import > Chart creation and TSV preview
-[PASS] Chart E2E (chromium) > chart-tsv-import > Chart creation and TSV preview 1.5s
-[START] Chart E2E (chromium) > chart-tsv-import > invalid TSV, cancel and save/reload
-[PASS] Chart E2E (chromium) > chart-tsv-import > invalid TSV, cancel and save/reload 4.9s
-[START] Chart E2E (chromium) > chart-tsv-import > 10 Chart configurations and imported values
-[PASS] Chart E2E (chromium) > chart-tsv-import > 10 Chart configurations and imported values 11.0s
-[START] Chart E2E (chromium) > chart-tsv-import > theme/width layouts and tooltips
-TSV checks passed: 10 chart configurations, 10 theme/width layouts, persistence boundaries, reload, cancel, IDs/colors, validation and tooltips
-[PASS] Chart E2E (chromium) > chart-tsv-import > theme/width layouts and tooltips 7.0s
-[PASS] Chart E2E (chromium) > chart-tsv-import 25.1s
-[START] Chart E2E (chromium) > chart-data-table
-[START] Chart E2E (chromium) > chart-data-table > fresh browser context and editor startup
-[PASS] Chart E2E (chromium) > chart-data-table > fresh browser context and editor startup 0.5s
-[START] Chart E2E (chromium) > chart-data-table > UI operations and assertions
-[PASS] Chart E2E (chromium) > chart-data-table > UI operations and assertions 0.0s
-[START] Chart E2E (chromium) > chart-data-table > data-table creation and persistence
-[PASS] Chart E2E (chromium) > chart-data-table > data-table creation and persistence 4.4s
-[START] Chart E2E (chromium) > chart-data-table > 10 Chart configurations and semantic data
-[PASS] Chart E2E (chromium) > chart-data-table > 10 Chart configurations and semantic data 8.2s
-[START] Chart E2E (chromium) > chart-data-table > 10 theme/width editor and viewer layouts
-[PASS] Chart E2E (chromium) > chart-data-table > 10 theme/width editor and viewer layouts 12.2s
-[START] Chart E2E (chromium) > chart-data-table > legacy data, reload and final assertions
-Data table passed: 10 chart configurations, 10 theme/width layouts in editor and viewer, save/cancel/Undo/reload/legacy/TSV/semantic DOM/tooltips
-[PASS] Chart E2E (chromium) > chart-data-table > legacy data, reload and final assertions 0.7s
-[PASS] Chart E2E (chromium) > chart-data-table 26.1s
-[START] Chart E2E (chromium) > chart-tsv-copy
-[START] Chart E2E (chromium) > chart-tsv-copy > fresh browser context and editor startup
-[PASS] Chart E2E (chromium) > chart-tsv-copy > fresh browser context and editor startup 0.6s
-[START] Chart E2E (chromium) > chart-tsv-copy > UI operations and assertions
-[PASS] Chart E2E (chromium) > chart-tsv-copy > UI operations and assertions 0.0s
-[START] Chart E2E (chromium) > chart-tsv-copy > clipboard setup, draft and persistence
-Native copy route: execCommand
-[PASS] Chart E2E (chromium) > chart-tsv-copy > clipboard setup, draft and persistence 3.3s
-[START] Chart E2E (chromium) > chart-tsv-copy > 10 Chart configurations and TSV content
-[PASS] Chart E2E (chromium) > chart-tsv-copy > 10 Chart configurations and TSV content 6.5s
-[START] Chart E2E (chromium) > chart-tsv-copy > Clipboard API failures and fallback
-[PASS] Chart E2E (chromium) > chart-tsv-copy > Clipboard API failures and fallback 1.3s
-[START] Chart E2E (chromium) > chart-tsv-copy > 10 theme/width layouts and keyboard state
-[PASS] Chart E2E (chromium) > chart-tsv-copy > 10 theme/width layouts and keyboard state 12.5s
-[START] Chart E2E (chromium) > chart-tsv-copy > invalid data and final state checks
-TSV copy passed: API success/rejection/unavailable, fallback success/failure, draft/save/cancel/reload, all 10 chart configurations, 10 theme/width layouts, keyboard, state invariance
-[PASS] Chart E2E (chromium) > chart-tsv-copy > invalid data and final state checks 0.8s
-[PASS] Chart E2E (chromium) > chart-tsv-copy 25.1s
-[START] Chart E2E (chromium) > chart-png-export
-[START] Chart E2E (chromium) > chart-png-export > fresh browser context and editor startup
-[PASS] Chart E2E (chromium) > chart-png-export > fresh browser context and editor startup 0.7s
-[START] Chart E2E (chromium) > chart-png-export > UI operations and assertions
-[PASS] Chart E2E (chromium) > chart-png-export > UI operations and assertions 0.0s
-[START] Chart E2E (chromium) > chart-png-export > PNG setup and 49 Chart/value/display cases
-[PASS] Chart E2E (chromium) > chart-png-export > PNG setup and 49 Chart/value/display cases 82.5s
-[START] Chart E2E (chromium) > chart-png-export > long labels, themes and responsive widths
-[PASS] Chart E2E (chromium) > chart-png-export > long labels, themes and responsive widths 31.5s
-[START] Chart E2E (chromium) > chart-png-export > failure paths, selection, Undo and compatibility
-PNG export passed: 49 chart/value/display cases, 10 theme/width layouts, PNG pixels, scroll equality, keyboard, state invariance, failures and compatibility
-[PASS] Chart E2E (chromium) > chart-png-export > failure paths, selection, Undo and compatibility 27.7s
-[PASS] Chart E2E (chromium) > chart-png-export 142.4s
-[START] Chart E2E (chromium) > chart-png-copy
-[START] Chart E2E (chromium) > chart-png-copy > fresh browser context and editor startup
-[PASS] Chart E2E (chromium) > chart-png-copy > fresh browser context and editor startup 0.6s
-[START] Chart E2E (chromium) > chart-png-copy > UI operations and assertions
-[PASS] Chart E2E (chromium) > chart-png-copy > UI operations and assertions 0.0s
-[START] Chart E2E (chromium) > chart-png-copy > clipboard setup and six Chart types versus downloads
-PNG clipboard native capabilities: {"secure":true,"item":"function","write":"function","png":true} (write/getType boundary verification)
-[PASS] Chart E2E (chromium) > chart-png-copy > clipboard setup and six Chart types versus downloads 16.2s
-[START] Chart E2E (chromium) > chart-png-copy > keyboard, selection, scroll and responsive layouts
-[PASS] Chart E2E (chromium) > chart-png-copy > keyboard, selection, scroll and responsive layouts 43.9s
-[START] Chart E2E (chromium) > chart-png-copy > clipboard failures, retry, busy state and compatibility
-PNG clipboard failure case: api
-PNG clipboard failure case: write-missing
-PNG clipboard failure case: item
-PNG clipboard failure case: unsupported
-PNG clipboard failure case: insecure
-PNG clipboard failure case: constructor
-PNG clipboard failure case: write-sync
-PNG clipboard failure case: write-async
-PNG clipboard failure case: NotAllowedError
-PNG clipboard failure case: SecurityError
-PNG clipboard failure case: DataError
-PNG clipboard failure case: AbortError
-PNG clipboard failure case: fonts
-PNG clipboard failure case: load
-PNG clipboard failure case: decode
-PNG clipboard failure case: canvas
-PNG clipboard failure case: toBlob
-PNG clipboard failure case: null
-PNG clipboard failure case: empty
-PNG clipboard failure case: mime
-PNG clipboard failure case: signature
-PNG clipboard passed: native ClipboardItem Promise/getType, order, 6 chart types vs downloads, keyboard, 10 layouts, state/selection/scroll, failure/retry and card concurrency
-[PASS] Chart E2E (chromium) > chart-png-copy > clipboard failures, retry, busy state and compatibility 35.2s
-[PASS] Chart E2E (chromium) > chart-png-copy 96.0s
-[START] Chart E2E (chromium) > chart-svg-export
-[START] Chart E2E (chromium) > chart-svg-export > fresh browser context and editor startup
-[PASS] Chart E2E (chromium) > chart-svg-export > fresh browser context and editor startup 0.6s
-[START] Chart E2E (chromium) > chart-svg-export > UI operations and assertions
-[PASS] Chart E2E (chromium) > chart-svg-export > UI operations and assertions 0.0s
-[START] Chart E2E (chromium) > chart-svg-export > SVG setup and 41 Chart/value cases
-[PASS] Chart E2E (chromium) > chart-svg-export > SVG setup and 41 Chart/value cases 49.1s
-[START] Chart E2E (chromium) > chart-svg-export > long labels, themes and responsive widths
-[PASS] Chart E2E (chromium) > chart-svg-export > long labels, themes and responsive widths 12.5s
-[START] Chart E2E (chromium) > chart-svg-export > failure handling and retry
-[PASS] Chart E2E (chromium) > chart-svg-export > failure handling and retry 7.1s
-[START] Chart E2E (chromium) > chart-svg-export > concurrent SVG exports and download delivery
-[PASS] Chart E2E (chromium) > chart-svg-export > concurrent SVG exports and download delivery 2.5s
-[START] Chart E2E (chromium) > chart-svg-export > save/reload and compatibility
-SVG matrix passed: 41 chart/value cases, themes, five widths, standalone files, failures, concurrency and persistence
-[PASS] Chart E2E (chromium) > chart-svg-export > save/reload and compatibility 2.9s
-[PASS] Chart E2E (chromium) > chart-svg-export 74.7s
-[START] Chart E2E (chromium) > table-to-chart
-[START] Chart E2E (chromium) > table-to-chart > fresh browser context and editor startup
-[PASS] Chart E2E (chromium) > table-to-chart > fresh browser context and editor startup 0.3s
-[START] Chart E2E (chromium) > table-to-chart > UI operations and assertions
-[PASS] Chart E2E (chromium) > table-to-chart > UI operations and assertions 0.0s
-[START] Chart E2E (chromium) > table-to-chart > Table setup and pending Chart draft
-[PASS] Chart E2E (chromium) > table-to-chart > Table setup and pending Chart draft 0.9s
-[START] Chart E2E (chromium) > table-to-chart > Chart insertion, Undo and Redo
-[PASS] Chart E2E (chromium) > table-to-chart > Chart insertion, Undo and Redo 1.7s
-[START] Chart E2E (chromium) > table-to-chart > save/reload and source independence
-[PASS] Chart E2E (chromium) > table-to-chart > save/reload and source independence 0.7s
-[START] Chart E2E (chromium) > table-to-chart > source identity and invalid Table rejection
-[PASS] Chart E2E (chromium) > table-to-chart > source identity and invalid Table rejection 5.1s
-[START] Chart E2E (chromium) > table-to-chart > Chart types and rendered output
-[PASS] Chart E2E (chromium) > table-to-chart > Chart types and rendered output 8.4s
-[START] Chart E2E (chromium) > table-to-chart > responsive editor and preview layouts
-Table-to-chart E2E passed: snapshots, insertion, cancellation, identity, persistence, kinds, widths/themes
-[PASS] Chart E2E (chromium) > table-to-chart > responsive editor and preview layouts 3.0s
-[PASS] Chart E2E (chromium) > table-to-chart 20.0s
-[START] Chart E2E (chromium) > chart-tooltips-touch
-[START] Chart E2E (chromium) > chart-tooltips-touch > touch UI and assertions
-Touch tooltip checks passed: 12 chart variants at 390px (emulation, not iPhone hardware)
-[PASS] Chart E2E (chromium) > chart-tooltips-touch > touch UI and assertions 13.4s
-[PASS] Chart E2E (chromium) > chart-tooltips-touch 13.4s
-[START] Chart E2E (chromium) > chart-tsv-import-touch
-[START] Chart E2E (chromium) > chart-tsv-import-touch > touch UI and assertions
-TSV touch tooltip passed at 390px (emulation)
-[PASS] Chart E2E (chromium) > chart-tsv-import-touch > touch UI and assertions 1.6s
-[PASS] Chart E2E (chromium) > chart-tsv-import-touch 1.6s
-[START] Chart E2E (chromium) > chart-data-table-touch
-[START] Chart E2E (chromium) > chart-data-table-touch > touch UI and assertions
-Data table touch tooltip passed at 390px (emulation)
-[PASS] Chart E2E (chromium) > chart-data-table-touch > touch UI and assertions 2.0s
-[PASS] Chart E2E (chromium) > chart-data-table-touch 2.0s
-[START] Chart E2E (chromium) > chart-tsv-copy-touch
-[START] Chart E2E (chromium) > chart-tsv-copy-touch > touch UI and assertions
-TSV copy touch passed at 390px (emulation)
-[PASS] Chart E2E (chromium) > chart-tsv-copy-touch > touch UI and assertions 1.9s
-[PASS] Chart E2E (chromium) > chart-tsv-copy-touch 1.9s
-[START] Chart E2E (chromium) > chart-png-export-touch
-[START] Chart E2E (chromium) > chart-png-export-touch > touch UI and assertions
-PNG touch passed at 390px (emulation)
-[PASS] Chart E2E (chromium) > chart-png-export-touch > touch UI and assertions 2.0s
-[PASS] Chart E2E (chromium) > chart-png-export-touch 2.0s
-[START] Chart E2E (chromium) > chart-png-copy-touch
-[START] Chart E2E (chromium) > chart-png-copy-touch > touch UI and assertions
-PNG clipboard native capabilities: {"secure":true,"item":"function","write":"function","png":true} (write/getType boundary verification)
-PNG clipboard touch passed (390px emulation, native ClipboardItem boundary)
-[PASS] Chart E2E (chromium) > chart-png-copy-touch > touch UI and assertions 2.5s
-[PASS] Chart E2E (chromium) > chart-png-copy-touch 2.5s
-[START] Chart E2E (chromium) > chart-png-copy-native
-[START] Chart E2E (chromium) > chart-png-copy-native > touch UI and assertions
-Native Chromium clipboard write/read passed (headless test environment; not iPhone or manual app paste)
-[PASS] Chart E2E (chromium) > chart-png-copy-native > touch UI and assertions 1.8s
-[PASS] Chart E2E (chromium) > chart-png-copy-native 1.8s
-[START] Chart E2E (chromium) > chart-svg-export-touch
-[START] Chart E2E (chromium) > chart-svg-export-touch > touch UI and assertions
-SVG touch passed (390px emulation)
-[PASS] Chart E2E (chromium) > chart-svg-export-touch > touch UI and assertions 2.0s
-[PASS] Chart E2E (chromium) > chart-svg-export-touch 2.0s
-[START] Chart E2E (chromium) > table-to-chart-touch
-[START] Chart E2E (chromium) > table-to-chart-touch > touch UI and assertions
-Table-to-chart touch emulation passed
-[PASS] Chart E2E (chromium) > table-to-chart-touch > touch UI and assertions 1.9s
-[PASS] Chart E2E (chromium) > table-to-chart-touch 1.9s
-[RESULT] Chart E2E (chromium) > chart-create-edit-save PASS 14.0s
-[RESULT] Chart E2E (chromium) > chart-multiple-blocks PASS 2.1s
-[RESULT] Chart E2E (chromium) > chart-multi-series PASS 23.6s
-[RESULT] Chart E2E (chromium) > chart-signed-values PASS 20.6s
-[RESULT] Chart E2E (chromium) > chart-diverging-stacked PASS 55.8s
-[RESULT] Chart E2E (chromium) > chart-diverging-percent PASS 57.5s
-[RESULT] Chart E2E (chromium) > chart-combo PASS 68.8s
-[RESULT] Chart E2E (chromium) > chart-dual-axis PASS 71.8s
-[RESULT] Chart E2E (chromium) > chart-axis-titles PASS 15.1s
-[RESULT] Chart E2E (chromium) > chart-tooltips PASS 136.9s
-[RESULT] Chart E2E (chromium) > chart-tsv-import PASS 25.1s
-[RESULT] Chart E2E (chromium) > chart-data-table PASS 26.1s
-[RESULT] Chart E2E (chromium) > chart-tsv-copy PASS 25.1s
-[RESULT] Chart E2E (chromium) > chart-png-export PASS 142.4s
-[RESULT] Chart E2E (chromium) > chart-png-copy PASS 96.0s
-[RESULT] Chart E2E (chromium) > chart-svg-export PASS 74.7s
-[RESULT] Chart E2E (chromium) > table-to-chart PASS 20.0s
-[RESULT] Chart E2E (chromium) > chart-tooltips-touch PASS 13.4s
-[RESULT] Chart E2E (chromium) > chart-tsv-import-touch PASS 1.6s
-[RESULT] Chart E2E (chromium) > chart-data-table-touch PASS 2.0s
-[RESULT] Chart E2E (chromium) > chart-tsv-copy-touch PASS 1.9s
-[RESULT] Chart E2E (chromium) > chart-png-export-touch PASS 2.0s
-[RESULT] Chart E2E (chromium) > chart-png-copy-touch PASS 2.5s
-[RESULT] Chart E2E (chromium) > chart-png-copy-native PASS 1.8s
-[RESULT] Chart E2E (chromium) > chart-svg-export-touch PASS 2.0s
-[RESULT] Chart E2E (chromium) > table-to-chart-touch PASS 1.9s
-[TOTAL] Chart E2E (chromium) 907.3s
+[START] Chart E2E (chromium) > chart-create-edit-save
+[START] Chart E2E (chromium) > chart-create-edit-save > fresh browser context and editor startup
+[PASS] Chart E2E (chromium) > chart-create-edit-save > fresh browser context and editor startup 0.5s
+[START] Chart E2E (chromium) > chart-create-edit-save > UI operations and assertions
+[PASS] Chart E2E (chromium) > chart-create-edit-save > UI operations and assertions 0.0s
+[START] Chart E2E (chromium) > chart-create-edit-save > chart-create: insert and render
+[PASS] Chart E2E (chromium) > chart-create-edit-save > chart-create: insert and render 1.3s
+[START] Chart E2E (chromium) > chart-create-edit-save > chart-edit: validation and type changes
+[PASS] Chart E2E (chromium) > chart-create-edit-save > chart-edit: validation and type changes 5.7s
+[START] Chart E2E (chromium) > chart-create-edit-save > chart-save-reload: persist and restore
+[PASS] Chart E2E (chromium) > chart-create-edit-save > chart-save-reload: persist and restore 6.5s
+[PASS] Chart E2E (chromium) > chart-create-edit-save 14.0s
+[START] Chart E2E (chromium) > chart-multiple-blocks
+[START] Chart E2E (chromium) > chart-multiple-blocks > fresh browser context and editor startup
+[PASS] Chart E2E (chromium) > chart-multiple-blocks > fresh browser context and editor startup 0.6s
+[START] Chart E2E (chromium) > chart-multiple-blocks > UI operations and assertions
+[PASS] Chart E2E (chromium) > chart-multiple-blocks > UI operations and assertions 0.0s
+[START] Chart E2E (chromium) > chart-multiple-blocks > duplicate IDs and independent editing
+[PASS] Chart E2E (chromium) > chart-multiple-blocks > duplicate IDs and independent editing 1.5s
+[PASS] Chart E2E (chromium) > chart-multiple-blocks 2.1s
+[START] Chart E2E (chromium) > chart-multi-series
+[START] Chart E2E (chromium) > chart-multi-series > fresh browser context and editor startup
+[PASS] Chart E2E (chromium) > chart-multi-series > fresh browser context and editor startup 0.6s
+[START] Chart E2E (chromium) > chart-multi-series > UI operations and assertions
+[PASS] Chart E2E (chromium) > chart-multi-series > UI operations and assertions 0.0s
+[START] Chart E2E (chromium) > chart-multi-series > legacy marker and series editing
+[PASS] Chart E2E (chromium) > chart-multi-series > legacy marker and series editing 7.4s
+[START] Chart E2E (chromium) > chart-multi-series > stacked geometry and narrow layouts
+[PASS] Chart E2E (chromium) > chart-multi-series > stacked geometry and narrow layouts 6.1s
+[START] Chart E2E (chromium) > chart-multi-series > multi-series type changes, mobile layout and persistence
+[PASS] Chart E2E (chromium) > chart-multi-series > multi-series type changes, mobile layout and persistence 9.5s
+[PASS] Chart E2E (chromium) > chart-multi-series 23.6s
+[START] Chart E2E (chromium) > chart-signed-values
+[START] Chart E2E (chromium) > chart-signed-values > fresh browser context and editor startup
+[PASS] Chart E2E (chromium) > chart-signed-values > fresh browser context and editor startup 0.6s
+[START] Chart E2E (chromium) > chart-signed-values > UI operations and assertions
+Signed chart checks passed: 5 widths, light/dark, geometry, unsupported drafts, persistence, cancel and extremes
+[PASS] Chart E2E (chromium) > chart-signed-values > UI operations and assertions 20.0s
+[PASS] Chart E2E (chromium) > chart-signed-values 20.6s
+[START] Chart E2E (chromium) > chart-diverging-stacked
+[START] Chart E2E (chromium) > chart-diverging-stacked > fresh browser context and editor startup
+[PASS] Chart E2E (chromium) > chart-diverging-stacked > fresh browser context and editor startup 0.8s
+[START] Chart E2E (chromium) > chart-diverging-stacked > UI operations and assertions
+[PASS] Chart E2E (chromium) > chart-diverging-stacked > UI operations and assertions 0.0s
+[START] Chart E2E (chromium) > chart-diverging-stacked > Chart setup and preview geometry
+[PASS] Chart E2E (chromium) > chart-diverging-stacked > Chart setup and preview geometry 0.3s
+[START] Chart E2E (chromium) > chart-diverging-stacked > 140 geometry combinations across data, theme and width
+[PASS] Chart E2E (chromium) > chart-diverging-stacked > 140 geometry combinations across data, theme and width 48.4s
+[START] Chart E2E (chromium) > chart-diverging-stacked > save/reload, type changes and invalid drafts
+Diverging stacked checks passed: 140 geometry combinations, persistence, type switches, invalid drafts, reload and cancel
+[PASS] Chart E2E (chromium) > chart-diverging-stacked > save/reload, type changes and invalid drafts 6.3s
+[PASS] Chart E2E (chromium) > chart-diverging-stacked 55.8s
+[START] Chart E2E (chromium) > chart-diverging-percent
+[START] Chart E2E (chromium) > chart-diverging-percent > fresh browser context and editor startup
+[PASS] Chart E2E (chromium) > chart-diverging-percent > fresh browser context and editor startup 0.6s
+[START] Chart E2E (chromium) > chart-diverging-percent > UI operations and assertions
+[PASS] Chart E2E (chromium) > chart-diverging-percent > UI operations and assertions 0.0s
+[START] Chart E2E (chromium) > chart-diverging-percent > Chart setup and preview geometry
+[PASS] Chart E2E (chromium) > chart-diverging-percent > Chart setup and preview geometry 0.3s
+[START] Chart E2E (chromium) > chart-diverging-percent > 140 geometry combinations across data, theme and width
+[PASS] Chart E2E (chromium) > chart-diverging-percent > 140 geometry combinations across data, theme and width 48.7s
+[START] Chart E2E (chromium) > chart-diverging-percent > save/reload, type changes and invalid drafts
+Diverging percent-stacked checks passed: 140 geometry combinations, persistence, type switches, invalid drafts, reload and cancel
+[PASS] Chart E2E (chromium) > chart-diverging-percent > save/reload, type changes and invalid drafts 8.0s
+[PASS] Chart E2E (chromium) > chart-diverging-percent 57.5s
+[START] Chart E2E (chromium) > chart-combo
+[START] Chart E2E (chromium) > chart-combo > fresh browser context and editor startup
+[PASS] Chart E2E (chromium) > chart-combo > fresh browser context and editor startup 0.5s
+[START] Chart E2E (chromium) > chart-combo > UI operations and assertions
+[PASS] Chart E2E (chromium) > chart-combo > UI operations and assertions 0.0s
+[START] Chart E2E (chromium) > chart-combo > Chart creation, series editing and persistence
+[PASS] Chart E2E (chromium) > chart-combo > Chart creation, series editing and persistence 4.4s
+[START] Chart E2E (chromium) > chart-combo > 120 geometry combinations across data, theme and width
+[PASS] Chart E2E (chromium) > chart-combo > 120 geometry combinations across data, theme and width 51.8s
+[START] Chart E2E (chromium) > chart-combo > final save/reload and legacy fallback
+Combo checks passed: 120 geometry combinations, stable IDs, shared axis, save/reload, type switches, invalid drafts and cancel
+[PASS] Chart E2E (chromium) > chart-combo > final save/reload and legacy fallback 12.0s
+[PASS] Chart E2E (chromium) > chart-combo 68.8s
+[START] Chart E2E (chromium) > chart-dual-axis
+[START] Chart E2E (chromium) > chart-dual-axis > fresh browser context and editor startup
+[PASS] Chart E2E (chromium) > chart-dual-axis > fresh browser context and editor startup 0.5s
+[START] Chart E2E (chromium) > chart-dual-axis > UI operations and assertions
+[PASS] Chart E2E (chromium) > chart-dual-axis > UI operations and assertions 0.0s
+[START] Chart E2E (chromium) > chart-dual-axis > 2-axis Chart creation, editing and validation
+[PASS] Chart E2E (chromium) > chart-dual-axis > 2-axis Chart creation, editing and validation 3.2s
+[START] Chart E2E (chromium) > chart-dual-axis > 160 geometry combinations across data, theme and width
+[PASS] Chart E2E (chromium) > chart-dual-axis > 160 geometry combinations across data, theme and width 66.7s
+[START] Chart E2E (chromium) > chart-dual-axis > save/reload, legacy marker and cancel
+Dual-axis checks passed: 160 geometry combinations, UI creation, stable IDs, save/reload, type/axis switches, invalid drafts, legacy marker and cancel
+[PASS] Chart E2E (chromium) > chart-dual-axis > save/reload, legacy marker and cancel 1.4s
+[PASS] Chart E2E (chromium) > chart-dual-axis 71.8s
+[START] Chart E2E (chromium) > chart-axis-titles
+[START] Chart E2E (chromium) > chart-axis-titles > fresh browser context and editor startup
+[PASS] Chart E2E (chromium) > chart-axis-titles > fresh browser context and editor startup 0.6s
+[START] Chart E2E (chromium) > chart-axis-titles > UI operations and assertions
+[PASS] Chart E2E (chromium) > chart-axis-titles > UI operations and assertions 0.0s
+[START] Chart E2E (chromium) > chart-axis-titles > axis-title creation and editing
+[PASS] Chart E2E (chromium) > chart-axis-titles > axis-title creation and editing 1.4s
+[START] Chart E2E (chromium) > chart-axis-titles > save/reload and type/axis switches
+[PASS] Chart E2E (chromium) > chart-axis-titles > save/reload and type/axis switches 7.6s
+[START] Chart E2E (chromium) > chart-axis-titles > theme/width geometry and long titles
+Axis-title checks passed: 8 geometry combinations, old defaults, UI/tooltip units, save/reopen/reload, type/axis switches, cancel and empty/long titles
+[PASS] Chart E2E (chromium) > chart-axis-titles > theme/width geometry and long titles 5.5s
+[PASS] Chart E2E (chromium) > chart-axis-titles 15.1s
+[START] Chart E2E (chromium) > chart-tooltips
+[START] Chart E2E (chromium) > chart-tooltips > fresh browser context and editor startup
+[PASS] Chart E2E (chromium) > chart-tooltips > fresh browser context and editor startup 0.5s
+[START] Chart E2E (chromium) > chart-tooltips > UI operations and assertions
+[PASS] Chart E2E (chromium) > chart-tooltips > UI operations and assertions 0.0s
+[START] Chart E2E (chromium) > chart-tooltips > 12 Chart variants and keyboard/tooltip interactions
+[PASS] Chart E2E (chromium) > chart-tooltips > 12 Chart variants and keyboard/tooltip interactions 37.2s
+[START] Chart E2E (chromium) > chart-tooltips > 120 theme/width positions and long labels
+[PASS] Chart E2E (chromium) > chart-tooltips > 120 theme/width positions and long labels 95.6s
+[START] Chart E2E (chromium) > chart-tooltips > 150 targets, redraw, save/reload and note switch
+Interactive tooltip checks passed: 12 chart variants, 120 type/theme/width positions, 150 targets, lifecycle and persistence
+[PASS] Chart E2E (chromium) > chart-tooltips > 150 targets, redraw, save/reload and note switch 3.7s
+[PASS] Chart E2E (chromium) > chart-tooltips 136.9s
+[START] Chart E2E (chromium) > chart-tsv-import
+[START] Chart E2E (chromium) > chart-tsv-import > fresh browser context and editor startup
+[PASS] Chart E2E (chromium) > chart-tsv-import > fresh browser context and editor startup 0.7s
+[START] Chart E2E (chromium) > chart-tsv-import > UI operations and assertions
+[PASS] Chart E2E (chromium) > chart-tsv-import > UI operations and assertions 0.0s
+[START] Chart E2E (chromium) > chart-tsv-import > Chart creation and TSV preview
+[PASS] Chart E2E (chromium) > chart-tsv-import > Chart creation and TSV preview 1.5s
+[START] Chart E2E (chromium) > chart-tsv-import > invalid TSV, cancel and save/reload
+[PASS] Chart E2E (chromium) > chart-tsv-import > invalid TSV, cancel and save/reload 4.9s
+[START] Chart E2E (chromium) > chart-tsv-import > 10 Chart configurations and imported values
+[PASS] Chart E2E (chromium) > chart-tsv-import > 10 Chart configurations and imported values 11.0s
+[START] Chart E2E (chromium) > chart-tsv-import > theme/width layouts and tooltips
+TSV checks passed: 10 chart configurations, 10 theme/width layouts, persistence boundaries, reload, cancel, IDs/colors, validation and tooltips
+[PASS] Chart E2E (chromium) > chart-tsv-import > theme/width layouts and tooltips 7.0s
+[PASS] Chart E2E (chromium) > chart-tsv-import 25.1s
+[START] Chart E2E (chromium) > chart-data-table
+[START] Chart E2E (chromium) > chart-data-table > fresh browser context and editor startup
+[PASS] Chart E2E (chromium) > chart-data-table > fresh browser context and editor startup 0.5s
+[START] Chart E2E (chromium) > chart-data-table > UI operations and assertions
+[PASS] Chart E2E (chromium) > chart-data-table > UI operations and assertions 0.0s
+[START] Chart E2E (chromium) > chart-data-table > data-table creation and persistence
+[PASS] Chart E2E (chromium) > chart-data-table > data-table creation and persistence 4.4s
+[START] Chart E2E (chromium) > chart-data-table > 10 Chart configurations and semantic data
+[PASS] Chart E2E (chromium) > chart-data-table > 10 Chart configurations and semantic data 8.2s
+[START] Chart E2E (chromium) > chart-data-table > 10 theme/width editor and viewer layouts
+[PASS] Chart E2E (chromium) > chart-data-table > 10 theme/width editor and viewer layouts 12.2s
+[START] Chart E2E (chromium) > chart-data-table > legacy data, reload and final assertions
+Data table passed: 10 chart configurations, 10 theme/width layouts in editor and viewer, save/cancel/Undo/reload/legacy/TSV/semantic DOM/tooltips
+[PASS] Chart E2E (chromium) > chart-data-table > legacy data, reload and final assertions 0.7s
+[PASS] Chart E2E (chromium) > chart-data-table 26.1s
+[START] Chart E2E (chromium) > chart-tsv-copy
+[START] Chart E2E (chromium) > chart-tsv-copy > fresh browser context and editor startup
+[PASS] Chart E2E (chromium) > chart-tsv-copy > fresh browser context and editor startup 0.6s
+[START] Chart E2E (chromium) > chart-tsv-copy > UI operations and assertions
+[PASS] Chart E2E (chromium) > chart-tsv-copy > UI operations and assertions 0.0s
+[START] Chart E2E (chromium) > chart-tsv-copy > clipboard setup, draft and persistence
+Native copy route: execCommand
+[PASS] Chart E2E (chromium) > chart-tsv-copy > clipboard setup, draft and persistence 3.3s
+[START] Chart E2E (chromium) > chart-tsv-copy > 10 Chart configurations and TSV content
+[PASS] Chart E2E (chromium) > chart-tsv-copy > 10 Chart configurations and TSV content 6.5s
+[START] Chart E2E (chromium) > chart-tsv-copy > Clipboard API failures and fallback
+[PASS] Chart E2E (chromium) > chart-tsv-copy > Clipboard API failures and fallback 1.3s
+[START] Chart E2E (chromium) > chart-tsv-copy > 10 theme/width layouts and keyboard state
+[PASS] Chart E2E (chromium) > chart-tsv-copy > 10 theme/width layouts and keyboard state 12.5s
+[START] Chart E2E (chromium) > chart-tsv-copy > invalid data and final state checks
+TSV copy passed: API success/rejection/unavailable, fallback success/failure, draft/save/cancel/reload, all 10 chart configurations, 10 theme/width layouts, keyboard, state invariance
+[PASS] Chart E2E (chromium) > chart-tsv-copy > invalid data and final state checks 0.8s
+[PASS] Chart E2E (chromium) > chart-tsv-copy 25.1s
+[START] Chart E2E (chromium) > chart-png-export
+[START] Chart E2E (chromium) > chart-png-export > fresh browser context and editor startup
+[PASS] Chart E2E (chromium) > chart-png-export > fresh browser context and editor startup 0.7s
+[START] Chart E2E (chromium) > chart-png-export > UI operations and assertions
+[PASS] Chart E2E (chromium) > chart-png-export > UI operations and assertions 0.0s
+[START] Chart E2E (chromium) > chart-png-export > PNG setup and 49 Chart/value/display cases
+[PASS] Chart E2E (chromium) > chart-png-export > PNG setup and 49 Chart/value/display cases 82.5s
+[START] Chart E2E (chromium) > chart-png-export > long labels, themes and responsive widths
+[PASS] Chart E2E (chromium) > chart-png-export > long labels, themes and responsive widths 31.5s
+[START] Chart E2E (chromium) > chart-png-export > failure paths, selection, Undo and compatibility
+PNG export passed: 49 chart/value/display cases, 10 theme/width layouts, PNG pixels, scroll equality, keyboard, state invariance, failures and compatibility
+[PASS] Chart E2E (chromium) > chart-png-export > failure paths, selection, Undo and compatibility 27.7s
+[PASS] Chart E2E (chromium) > chart-png-export 142.4s
+[START] Chart E2E (chromium) > chart-png-copy
+[START] Chart E2E (chromium) > chart-png-copy > fresh browser context and editor startup
+[PASS] Chart E2E (chromium) > chart-png-copy > fresh browser context and editor startup 0.6s
+[START] Chart E2E (chromium) > chart-png-copy > UI operations and assertions
+[PASS] Chart E2E (chromium) > chart-png-copy > UI operations and assertions 0.0s
+[START] Chart E2E (chromium) > chart-png-copy > clipboard setup and six Chart types versus downloads
+PNG clipboard native capabilities: {"secure":true,"item":"function","write":"function","png":true} (write/getType boundary verification)
+[PASS] Chart E2E (chromium) > chart-png-copy > clipboard setup and six Chart types versus downloads 16.2s
+[START] Chart E2E (chromium) > chart-png-copy > keyboard, selection, scroll and responsive layouts
+[PASS] Chart E2E (chromium) > chart-png-copy > keyboard, selection, scroll and responsive layouts 43.9s
+[START] Chart E2E (chromium) > chart-png-copy > clipboard failures, retry, busy state and compatibility
+PNG clipboard failure case: api
+PNG clipboard failure case: write-missing
+PNG clipboard failure case: item
+PNG clipboard failure case: unsupported
+PNG clipboard failure case: insecure
+PNG clipboard failure case: constructor
+PNG clipboard failure case: write-sync
+PNG clipboard failure case: write-async
+PNG clipboard failure case: NotAllowedError
+PNG clipboard failure case: SecurityError
+PNG clipboard failure case: DataError
+PNG clipboard failure case: AbortError
+PNG clipboard failure case: fonts
+PNG clipboard failure case: load
+PNG clipboard failure case: decode
+PNG clipboard failure case: canvas
+PNG clipboard failure case: toBlob
+PNG clipboard failure case: null
+PNG clipboard failure case: empty
+PNG clipboard failure case: mime
+PNG clipboard failure case: signature
+PNG clipboard passed: native ClipboardItem Promise/getType, order, 6 chart types vs downloads, keyboard, 10 layouts, state/selection/scroll, failure/retry and card concurrency
+[PASS] Chart E2E (chromium) > chart-png-copy > clipboard failures, retry, busy state and compatibility 35.2s
+[PASS] Chart E2E (chromium) > chart-png-copy 96.0s
+[START] Chart E2E (chromium) > chart-svg-export
+[START] Chart E2E (chromium) > chart-svg-export > fresh browser context and editor startup
+[PASS] Chart E2E (chromium) > chart-svg-export > fresh browser context and editor startup 0.6s
+[START] Chart E2E (chromium) > chart-svg-export > UI operations and assertions
+[PASS] Chart E2E (chromium) > chart-svg-export > UI operations and assertions 0.0s
+[START] Chart E2E (chromium) > chart-svg-export > SVG setup and 41 Chart/value cases
+[PASS] Chart E2E (chromium) > chart-svg-export > SVG setup and 41 Chart/value cases 49.1s
+[START] Chart E2E (chromium) > chart-svg-export > long labels, themes and responsive widths
+[PASS] Chart E2E (chromium) > chart-svg-export > long labels, themes and responsive widths 12.5s
+[START] Chart E2E (chromium) > chart-svg-export > failure handling and retry
+[PASS] Chart E2E (chromium) > chart-svg-export > failure handling and retry 7.1s
+[START] Chart E2E (chromium) > chart-svg-export > concurrent SVG exports and download delivery
+[PASS] Chart E2E (chromium) > chart-svg-export > concurrent SVG exports and download delivery 2.5s
+[START] Chart E2E (chromium) > chart-svg-export > save/reload and compatibility
+SVG matrix passed: 41 chart/value cases, themes, five widths, standalone files, failures, concurrency and persistence
+[PASS] Chart E2E (chromium) > chart-svg-export > save/reload and compatibility 2.9s
+[PASS] Chart E2E (chromium) > chart-svg-export 74.7s
+[START] Chart E2E (chromium) > table-to-chart
+[START] Chart E2E (chromium) > table-to-chart > fresh browser context and editor startup
+[PASS] Chart E2E (chromium) > table-to-chart > fresh browser context and editor startup 0.3s
+[START] Chart E2E (chromium) > table-to-chart > UI operations and assertions
+[PASS] Chart E2E (chromium) > table-to-chart > UI operations and assertions 0.0s
+[START] Chart E2E (chromium) > table-to-chart > Table setup and pending Chart draft
+[PASS] Chart E2E (chromium) > table-to-chart > Table setup and pending Chart draft 0.9s
+[START] Chart E2E (chromium) > table-to-chart > Chart insertion, Undo and Redo
+[PASS] Chart E2E (chromium) > table-to-chart > Chart insertion, Undo and Redo 1.7s
+[START] Chart E2E (chromium) > table-to-chart > save/reload and source independence
+[PASS] Chart E2E (chromium) > table-to-chart > save/reload and source independence 0.7s
+[START] Chart E2E (chromium) > table-to-chart > source identity and invalid Table rejection
+[PASS] Chart E2E (chromium) > table-to-chart > source identity and invalid Table rejection 5.1s
+[START] Chart E2E (chromium) > table-to-chart > Chart types and rendered output
+[PASS] Chart E2E (chromium) > table-to-chart > Chart types and rendered output 8.4s
+[START] Chart E2E (chromium) > table-to-chart > responsive editor and preview layouts
+Table-to-chart E2E passed: snapshots, insertion, cancellation, identity, persistence, kinds, widths/themes
+[PASS] Chart E2E (chromium) > table-to-chart > responsive editor and preview layouts 3.0s
+[PASS] Chart E2E (chromium) > table-to-chart 20.0s
+[START] Chart E2E (chromium) > chart-tooltips-touch
+[START] Chart E2E (chromium) > chart-tooltips-touch > touch UI and assertions
+Touch tooltip checks passed: 12 chart variants at 390px (emulation, not iPhone hardware)
+[PASS] Chart E2E (chromium) > chart-tooltips-touch > touch UI and assertions 13.4s
+[PASS] Chart E2E (chromium) > chart-tooltips-touch 13.4s
+[START] Chart E2E (chromium) > chart-tsv-import-touch
+[START] Chart E2E (chromium) > chart-tsv-import-touch > touch UI and assertions
+TSV touch tooltip passed at 390px (emulation)
+[PASS] Chart E2E (chromium) > chart-tsv-import-touch > touch UI and assertions 1.6s
+[PASS] Chart E2E (chromium) > chart-tsv-import-touch 1.6s
+[START] Chart E2E (chromium) > chart-data-table-touch
+[START] Chart E2E (chromium) > chart-data-table-touch > touch UI and assertions
+Data table touch tooltip passed at 390px (emulation)
+[PASS] Chart E2E (chromium) > chart-data-table-touch > touch UI and assertions 2.0s
+[PASS] Chart E2E (chromium) > chart-data-table-touch 2.0s
+[START] Chart E2E (chromium) > chart-tsv-copy-touch
+[START] Chart E2E (chromium) > chart-tsv-copy-touch > touch UI and assertions
+TSV copy touch passed at 390px (emulation)
+[PASS] Chart E2E (chromium) > chart-tsv-copy-touch > touch UI and assertions 1.9s
+[PASS] Chart E2E (chromium) > chart-tsv-copy-touch 1.9s
+[START] Chart E2E (chromium) > chart-png-export-touch
+[START] Chart E2E (chromium) > chart-png-export-touch > touch UI and assertions
+PNG touch passed at 390px (emulation)
+[PASS] Chart E2E (chromium) > chart-png-export-touch > touch UI and assertions 2.0s
+[PASS] Chart E2E (chromium) > chart-png-export-touch 2.0s
+[START] Chart E2E (chromium) > chart-png-copy-touch
+[START] Chart E2E (chromium) > chart-png-copy-touch > touch UI and assertions
+PNG clipboard native capabilities: {"secure":true,"item":"function","write":"function","png":true} (write/getType boundary verification)
+PNG clipboard touch passed (390px emulation, native ClipboardItem boundary)
+[PASS] Chart E2E (chromium) > chart-png-copy-touch > touch UI and assertions 2.5s
+[PASS] Chart E2E (chromium) > chart-png-copy-touch 2.5s
+[START] Chart E2E (chromium) > chart-png-copy-native
+[START] Chart E2E (chromium) > chart-png-copy-native > touch UI and assertions
+Native Chromium clipboard write/read passed (headless test environment; not iPhone or manual app paste)
+[PASS] Chart E2E (chromium) > chart-png-copy-native > touch UI and assertions 1.8s
+[PASS] Chart E2E (chromium) > chart-png-copy-native 1.8s
+[START] Chart E2E (chromium) > chart-svg-export-touch
+[START] Chart E2E (chromium) > chart-svg-export-touch > touch UI and assertions
+SVG touch passed (390px emulation)
+[PASS] Chart E2E (chromium) > chart-svg-export-touch > touch UI and assertions 2.0s
+[PASS] Chart E2E (chromium) > chart-svg-export-touch 2.0s
+[START] Chart E2E (chromium) > table-to-chart-touch
+[START] Chart E2E (chromium) > table-to-chart-touch > touch UI and assertions
+Table-to-chart touch emulation passed
+[PASS] Chart E2E (chromium) > table-to-chart-touch > touch UI and assertions 1.9s
+[PASS] Chart E2E (chromium) > table-to-chart-touch 1.9s
+[RESULT] Chart E2E (chromium) > chart-create-edit-save PASS 14.0s
+[RESULT] Chart E2E (chromium) > chart-multiple-blocks PASS 2.1s
+[RESULT] Chart E2E (chromium) > chart-multi-series PASS 23.6s
+[RESULT] Chart E2E (chromium) > chart-signed-values PASS 20.6s
+[RESULT] Chart E2E (chromium) > chart-diverging-stacked PASS 55.8s
+[RESULT] Chart E2E (chromium) > chart-diverging-percent PASS 57.5s
+[RESULT] Chart E2E (chromium) > chart-combo PASS 68.8s
+[RESULT] Chart E2E (chromium) > chart-dual-axis PASS 71.8s
+[RESULT] Chart E2E (chromium) > chart-axis-titles PASS 15.1s
+[RESULT] Chart E2E (chromium) > chart-tooltips PASS 136.9s
+[RESULT] Chart E2E (chromium) > chart-tsv-import PASS 25.1s
+[RESULT] Chart E2E (chromium) > chart-data-table PASS 26.1s
+[RESULT] Chart E2E (chromium) > chart-tsv-copy PASS 25.1s
+[RESULT] Chart E2E (chromium) > chart-png-export PASS 142.4s
+[RESULT] Chart E2E (chromium) > chart-png-copy PASS 96.0s
+[RESULT] Chart E2E (chromium) > chart-svg-export PASS 74.7s
+[RESULT] Chart E2E (chromium) > table-to-chart PASS 20.0s
+[RESULT] Chart E2E (chromium) > chart-tooltips-touch PASS 13.4s
+[RESULT] Chart E2E (chromium) > chart-tsv-import-touch PASS 1.6s
+[RESULT] Chart E2E (chromium) > chart-data-table-touch PASS 2.0s
+[RESULT] Chart E2E (chromium) > chart-tsv-copy-touch PASS 1.9s
+[RESULT] Chart E2E (chromium) > chart-png-export-touch PASS 2.0s
+[RESULT] Chart E2E (chromium) > chart-png-copy-touch PASS 2.5s
+[RESULT] Chart E2E (chromium) > chart-png-copy-native PASS 1.8s
+[RESULT] Chart E2E (chromium) > chart-svg-export-touch PASS 2.0s
+[RESULT] Chart E2E (chromium) > table-to-chart-touch PASS 1.9s
+[TOTAL] Chart E2E (chromium) 907.3s

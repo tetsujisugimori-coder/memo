@@ -69,7 +69,7 @@ Pythonの上記パスは今回のローカル環境で使用した既存venv。�
 | main dual-axis WebKit | 1回PASS（215.9秒） |
 | branch dual-axis Chromium／WebKit | 各1回PASS（70.7／158.3秒）。これ以降の製品変更はReportの折れ線表示のみで、通常のdual-axis／ゼロ軸計算を変更しない |
 
-既知のグラフゼロ軸位置の失敗は上記main／branchの実行では再現しなかった。再実行0回。最新main `2a13b83` の [Linux CI](https://github.com/tetsujisugimori-coder/memo/actions/runs/37602948552) も成功し、Chromium／WebKit Chartジョブの成功を確認した。今回のPR CIは別に確認する。iPhone実機の結果を主張しない。
+既知のグラフゼロ軸位置の失敗は上記main／branchの実行では再現しなかった。再実行0回。最新main `2a13b83` の [Linux CI](https://github.com/tetsujisugimori-coder/memo/actions/runs/37602937863) も成功し、Chromium／WebKit Chartジョブの成功を確認した。今回のPR CIは別に確認する。iPhone実機の結果を主張しない。
 
 別件：最終commitでブラウザと同時に実行した単体テストは1798 PASS／1 FAIL。未変更の `codex-bridge.test.js:120` healthテストが `fetch failed / ECONNRESET` で失敗した。該当ファイルを1回単独実行して5 PASS、続いて全体を1回単独実行して1799 PASS。単に再実行が成功したことを根本解消とは扱わない。Bridgeコードのmain差分はなく、既存の `docs/report-spacing/pdf-ci/README.md` にも同種の接続失敗の記録がある。今回のReport結果とは分離して未解決の不安定性として残す。[失敗ログ](review/complete-unit.log)／[該当ファイル単独](review/bridge-isolated.log)／[全体単独](review/unit-isolated-final.log)。
 
