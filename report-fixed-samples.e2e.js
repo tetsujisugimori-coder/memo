@@ -49,8 +49,8 @@ async function ready(page){await page.evaluate(async()=>{await attachmentRenderP
           await page.goto(`http://127.0.0.1:${server.address().port}`);await page.locator('#appStartupGuard').waitFor({state:'hidden'});
           await page.locator('#importMarkdownZipInput').setInputFiles(path.join(out,sampleId+'.zip'));
           await page.locator('#backupPreviewDialog').waitFor({state:'visible'});await page.locator('#confirmBackupPreviewBtn').click();await page.locator('#backupPreviewStatus').getByText(/取り込みが完了しました/).waitFor();await page.locator('#cancelBackupPreviewBtn').click();await page.evaluate(id=>openNote(id),noteId);await idle(page);
-          const loaded=await snapshot(page);let expected=before.body;for(const old of before.attachments){const fresh=loaded.attachments.find(a=>a.fileName===old.fileName);assert.ok(fresh);expected=expected.replaceAll(old.id,fresh.id);}
-          assert.equal(loaded.body,expected,'Official backup import changes only attachment IDs');assert.equal(loaded.title,before.title);before=loaded;
+          const loaded=await snapshot(page);assert.equal(loaded.attachments.length,before.attachments.length);for(const old of before.attachments)assert.ok(loaded.attachments.some(a=>a.id===old.id),'Portable backup preserves attachment IDs');
+          assert.equal(loaded.body,before.body,'Official portable backup import preserves exact body');assert.equal(loaded.title,before.title);before=loaded;
           await page.reload();await page.locator('#appStartupGuard').waitFor({state:'hidden'});await idle(page);assert.deepEqual(await snapshot(page),before);result.import='PASS';
           fs.writeFileSync(path.join(out,sampleId+'-imported.md'),before.body);
         }else result.import='対象外：正式編集操作で直接検証';
