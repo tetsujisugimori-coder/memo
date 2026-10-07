@@ -66,8 +66,8 @@ async function ready(page){await page.evaluate(async()=>{await attachmentRenderP
         for(const [index,rows] of result.tableCells.entries()){const actual=await page.locator('#preview .table-block').nth(index).locator('th, td').allTextContents();assert.deepEqual(actual,rows.flat(),'All table cells including blanks');}
         result.chartInputs=splitChartBlocks(before.body).filter(b=>b.type==='chart').map(b=>b.chart);
         for(const [index,chart] of result.chartInputs.entries()){
-          const accessible=await page.locator('#preview .chart-block').nth(index).locator('.sr-only').innerText();
-          for(const [i,item] of chart.items.entries())for(const series of chart.series){assert.ok(accessible.includes(item.label)&&accessible.includes(series.name)&&accessible.includes(String(series.values[i])),'Chart input/accessible rendering mismatch');}
+          const accessible=await page.locator('#preview .chart-block').nth(index).locator('.sr-only').textContent();
+          for(const [i,item] of chart.items.entries())for(const series of chart.series){assert.ok(accessible.includes(item.label)&&accessible.includes(series.name)&&accessible.includes(String(series.values[i])),'Chart input/accessible rendering mismatch: '+JSON.stringify({item:item.label,series:series.name,value:series.values[i],accessible}));}
         }
         result.imageRatios=await page.locator('#preview img').evaluateAll(es=>es.map(e=>{const box=e.getBoundingClientRect();return {natural:e.naturalWidth/e.naturalHeight,rendered:box.width/box.height};}));
         for(const ratio of result.imageRatios)assert.ok(Math.abs(ratio.natural-ratio.rendered)<0.01,'Image aspect ratio preserved');
