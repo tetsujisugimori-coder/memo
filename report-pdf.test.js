@@ -8,23 +8,27 @@ const app = fs.readFileSync("app.js", "utf8");
 const code = app.slice(app.indexOf("function restoreReportPrint()"), app.indexOf("// Selection state stays outside", app.indexOf("function restoreReportPrint()")));
 function harness({decode = async () => {}, height = 2000} = {}) {
   const attrs = new Map();
+  const mediaAttrs = new Map();
+  const visual = {style:{},getBoundingClientRect:()=>({height,width:500}),closest:()=>null,
+    getAttribute:key=>mediaAttrs.get(key)??null,setAttribute:(key,value)=>mediaAttrs.set(key,value),removeAttribute:key=>mediaAttrs.delete(key)};
   const element = {open:false, style:{}, classList:{contains:()=>false}, naturalWidth:300, parentElement:{closest:()=>null},
     getAttribute:key=>attrs.get(key) ?? null, setAttribute:(key,value)=>attrs.set(key,value), removeAttribute:key=>attrs.delete(key),
-    decode, querySelector:()=>({getBoundingClientRect:()=>({height,width:500})}), querySelectorAll:()=>[], getBoundingClientRect:()=>({height,width:500})};
+    decode, querySelector:()=>visual, querySelectorAll:()=>[], getBoundingClientRect:()=>({height,width:500})};
   const controls = Object.fromEntries(["reportPrintBtn","reportPreviewBackBtn","reportPrintStyles","reportPrintStatus"].map(id=>[id,{disabled:false,focus(){},media:"print",sheet:{},textContent:""}]));
   const context = vm.createContext({document:{readyState:"complete",title:"Memo Nexus",body:{classList:{contains:()=>true}},fonts:{ready:Promise.resolve()}},
-    previewCard:{scrollTop:120}, preview:{querySelectorAll:selector=>selector === "details" || selector === "img" ? [element] : [element]},
+    previewCard:{scrollTop:120}, preview:{querySelectorAll:selector=>selector === ".report-image-source" ? [] : [element]},
     reportPrintState:null,mermaidRenderGeneration:1,attachmentRenderPromise:Promise.resolve(),mermaidRenderQueue:Promise.resolve(),
     titleInput:{value:'資料:比較/結果'},safeFileName:sanitizeWindowsName,$:id=>controls[id],
     getComputedStyle:()=>({marginTop:"16",marginBottom:"16"}),requestAnimationFrame:callback=>callback(),window:{print(){context.printed = true;}}});
   vm.runInContext(code,context);
-  return {context,controls,element};
+  return {context,controls,element,visual};
 }
 test("描画完了まで印刷を待ち、大きな図を縦横比を保つzoomで縮小する",async()=>{
   let resolve; const pending=new Promise(r=>{resolve=r;}); const h=harness({decode:()=>pending});
   const printing=h.context.printReportPreview();await Promise.resolve();
   assert.equal(h.context.printed,undefined);resolve();await printing;
-  assert.equal(h.context.printed,true);assert.ok(Number(h.element.style.zoom)<1);
+  assert.equal(h.context.printed,true);assert.ok(Number(h.visual.style.zoom)<1);
+  assert.equal(h.element.style.zoom,undefined,"caption text stays unscaled");
   assert.equal(h.context.document.title,sanitizeWindowsName('資料:比較/結果'));
   assert.equal(h.controls.reportPrintStyles.media,"all");
   h.context.restoreReportPrint();assert.equal(h.context.document.title,"Memo Nexus");
@@ -73,7 +77,8 @@ test("先頭Timeline項目は親sectionの見出し分も確保して印刷す�
   h.element.parentElement.previousElementSibling={matches:selector=>selector.includes("h2"),getBoundingClientRect:()=>({height:80})};
   await h.context.prepareReportPrint();
   const available=257*96/25.4-112-4;
-  assert.ok(Number(h.element.style.zoom)*2032<=available+0.01,"heading and complete Timeline media/caption/source fit together");
+  assert.ok(Number(h.visual.style.zoom)*2000+32<=available+0.01,"heading and complete Timeline media/caption/source fit together");
+  assert.equal(h.element.style.zoom,undefined,"Timeline text stays unscaled");
   h.context.restoreReportPrint();
 });
 
@@ -98,7 +103,7 @@ test("ページを超えるキャプションは画像の縮小余地をすべ�
   const h=harness({height:4000});
   const attrs=new Map();
   const visual={style:{},getBoundingClientRect:()=>({height:1600,width:500}),
-    closest:()=>({querySelector:()=>({getBoundingClientRect:()=>({height:2000})})}),
+    closest:()=>({classList:{contains:()=>false},querySelector:()=>({getBoundingClientRect:()=>({height:2000})})}),
     getAttribute:key=>attrs.get(key)??null,setAttribute:(key,value)=>attrs.set(key,value),removeAttribute:key=>attrs.delete(key)};
   h.element.querySelector=()=>visual;h.element.querySelectorAll=()=>[visual];
   await h.context.prepareReportPrint();

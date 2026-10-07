@@ -1,0 +1,128 @@
+[
+  {
+    "name": "left-1280",
+    "pages": 9,
+    "ordinaryPage": 9,
+    "longBodyPages": [
+      3,
+      5
+    ],
+    "images": [
+      1,
+      6
+    ],
+    "captionEnds": [
+      2,
+      7
+    ],
+    "figureSources": [
+      3,
+      8
+    ]
+  },
+  {
+    "name": "left-320",
+    "pages": 9,
+    "ordinaryPage": 9,
+    "longBodyPages": [
+      3,
+      5
+    ],
+    "images": [
+      1,
+      6
+    ],
+    "captionEnds": [
+      2,
+      7
+    ],
+    "figureSources": [
+      3,
+      8
+    ]
+  },
+  {
+    "name": "center-1280",
+    "pages": 9,
+    "ordinaryPage": 9,
+    "longBodyPages": [
+      3,
+      5
+    ],
+    "images": [
+      1,
+      6
+    ],
+    "captionEnds": [
+      2,
+      7
+    ],
+    "figureSources": [
+      3,
+      8
+    ]
+  },
+  {
+    "name": "center-320",
+    "pages": 9,
+    "ordinaryPage": 9,
+    "longBodyPages": [
+      3,
+      5
+    ],
+    "images": [
+      1,
+      6
+    ],
+    "captionEnds": [
+      2,
+      7
+    ],
+    "figureSources": [
+      3,
+      8
+    ]
+  },
+  {
+    "name": "right-1280",
+    "pages": 9,
+    "ordinaryPage": 9,
+    "longBodyPages": [
+      3,
+      5
+    ],
+    "images": [
+      1,
+      6
+    ],
+    "captionEnds": [
+      2,
+      7
+    ],
+    "figureSources": [
+      3,
+      8
+    ]
+  },
+  {
+    "name": "right-320",
+    "pages": 9,
+    "ordinaryPage": 9,
+    "longBodyPages": [
+      3,
+      5
+    ],
+    "images": [
+      1,
+      6
+    ],
+    "captionEnds": [
+      2,
+      7
+    ],
+    "figureSources": [
+      3,
+      8
+    ]
+  }
+]

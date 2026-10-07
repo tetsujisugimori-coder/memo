@@ -100,6 +100,7 @@ async function state(page) {
     assert.equal(await page.evaluate(()=>window.printCalls),3);assert.deepEqual(await state(page),dirty);
     await require("./report-caption-regressions.cjs").verifyReportCaptionCases(page,{out:path.join(out,"caption-regressions"),pdf:true});
     await require("./report-spacing-regressions.cjs").verifyReportSpacingCases(page,{out:path.join(out,"spacing"),baseline:process.env.REPORT_SPACING_BASELINE === "1"});
+    await require("./report-pagination-regressions.cjs").verifyReportPaginationCases(page,{out:path.join(out,"pagination")});
     assert.deepEqual(errors,[]);
     for(const directory of [out,mobileOut]){
       const checked=spawnSync(process.env.PYTHON||"python",[path.join(__dirname,"docs/report-preview-v1/inspect-pdf.py"),directory],{encoding:"utf8"});
