@@ -116,3 +116,7 @@ Pythonパスはローカル既存venv。環境構築はREADME。実行時は `RE
 LinuxのR01〜R06は7/6/5/10/15/7、L01〜L04は4/4/7/2、I01は8、計75ページ。フォント差でWindows70ページと異なるが全自動検査PASS。新規25＋変更13ページをすべて目視し、I01全8ページの5印・外枠・透明合成・写真相当品質、折れ線の修正箇所を確認した。Linux残り37ページ全ての今回の目視は未実施（前回Linux成果物と画素一致し、今回は変更／新規ページを目視対象とした）。Windows目視結果と混同しない。結果JSONと目視一覧を `review/followup/linux/` に置く。
 
 最初の公開run [37630770192](https://github.com/tetsujisugimori-coder/memo/actions/runs/37630770192) は失敗ログの末尾空白でCI checksがFAILし、新HEADへのpushで残りジョブは自動cancel。`d2cd723` で空白だけを修正し、CI checks PASSを確認した。同一SHAへの再実行は0回。ゼロ軸／Bridgeの不安定性とは別原因であり、ログ内容やテスト条件を隠す変更はしていない。
+
+公開HEAD `28eb18d` の [run37633250403](https://github.com/tetsujisugimori-coder/memo/actions/runs/37633250403) では固定サンプル両browserとChart両browserはPASSしたが、既存Report Preview番号テストが初回FAIL（期待：図1/表1/図2/図3/図4、実際：図1/図2/表1）。このケースは棒グラフで、今回変更したReport折れ線分岐を通らない。テストもmainと同一だった。原因は未確定で、解消扱いにしない。[初回ログ](review/followup/figure-ci-first-failure.log)を保持する。
+
+失敗時の入力本文・保存データ・Preview DOM・textareaへの代入元stack・画面を記録する診断を追加し、CI artifact対象をPNGだけからJSONを含むディレクトリへ変更した。期待値／待機条件は変えない。Windowsで同じ診断テストをPR側とbase/main側に各1回実行し、どちらもPASS（ログをfollowupに保持）。Linuxでの診断実行結果は最終CIと併せてPR本文に記録する。単に再成功しても初回失敗の原因解消を主張しない。

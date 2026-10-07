@@ -225,7 +225,7 @@ jobs:
         uses: actions/upload-artifact@v6
         with:
           name: report-numbering-review
-          path: e2e-artifacts/report-numbering-review/**/*.png
+          path: e2e-artifacts/report-numbering-review/
           if-no-files-found: error
           retention-days: 14
 

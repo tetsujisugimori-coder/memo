@@ -29,12 +29,26 @@ async function verifyReportNumbering(page) {
   const labels = () => page.locator(numbered).evaluateAll(elements => elements.map(e => e.dataset.reportNumber));
   const snapshot = () => page.evaluate(async () => ({body:editor.value,note:currentNote(),stored:await getStoredNotes(),dirty:noteSaveFoundation.isDirty(currentId),timer:saveTimer,undo:undoStack,redo:redoStack}));
   async function show(parts, expected) {
-    await page.locator("#editor").fill(withSources(parts.join("\n\n"),sources));
+    const expectedBody=withSources(parts.join("\n\n"),sources);
+    await page.evaluate(()=>{
+      window.reportE2eWrites=[];
+      const descriptor=Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype,'value');
+      Object.defineProperty(editor,'value',{configurable:true,get(){return descriptor.get.call(this);},set(value){window.reportE2eWrites.push({value,stack:new Error().stack,time:performance.now()});descriptor.set.call(this,value);}});
+    });
+    await page.locator("#editor").fill(expectedBody);
     await page.evaluate(() => flushSave());
     await page.waitForFunction(() => !noteSaveFoundation.isDirty(currentId) && saveTimer === null && window.MemoNexusTypingDerivedUiScheduler.pendingRequestType() === null);
     const before = await snapshot();
     await page.locator("#reportPreviewBtn").click();
-    assert.deepEqual(await labels(),expected);
+    const actual=await labels();
+    if(JSON.stringify(actual)!==JSON.stringify(expected)){
+      const out=path.join(__dirname,'e2e-artifacts','report-numbering-review');fs.mkdirSync(out,{recursive:true});
+      const state=await page.evaluate(async()=>({body:editor.value,note:currentNote(),stored:await getStoredNotes(),preview:preview.innerHTML,writes:window.reportE2eWrites,layout:document.body.dataset.layoutMode,attachments:currentAttachments.map(a=>({id:a.id,fileName:a.fileName})),dirty:noteSaveFoundation.isDirty(currentId),timer:saveTimer,pending:window.MemoNexusTypingDerivedUiScheduler.pendingRequestType()}));
+      fs.writeFileSync(path.join(out,'numbering-failure.json'),JSON.stringify({expectedBody,expected,actual,before,state},null,2));
+      await page.screenshot({path:path.join(out,'numbering-failure.png'),fullPage:true});
+    }
+    await page.evaluate(()=>{delete editor.value;});
+    assert.deepEqual(actual,expected);
     assert.deepEqual(await snapshot(),before,"Preview must not mutate canonical data or history");
     return before;
   }
@@ -100,7 +114,7 @@ async function verifyReportNumbering(page) {
 }
 
 (async () => {
-  const root = __dirname;
+  const root = path.resolve(process.env.REPORT_APP_DIR||__dirname);
   const server = http.createServer((req, res) => {
     const relative = decodeURIComponent(new URL(req.url, "http://localhost").pathname).replace(/^\/+/, "") || "index.html";
     const file = path.resolve(root, relative);
