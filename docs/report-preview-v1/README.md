@@ -120,3 +120,8 @@ PDFは採番後の同じDOMを使い、別の番号計算を持たない。既�
 
 ![右画像だけの説明とSourceを図1(b)に対応させた実PDF](numbering-review-comparison-right.png)
 ![無題の円グラフで選択中の後期系列を残した実PDF](numbering-review-pie-second.png)
+
+
+## 表示間隔とPDF整合
+
+Reportの本文・図表・Timeline・出典の間隔、長文PDFの分割方針と変更前後の検証画像は[表示間隔の検証](../report-spacing/README.md)を参照。

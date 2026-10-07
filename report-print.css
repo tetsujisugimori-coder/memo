@@ -57,7 +57,7 @@ body.report-preview-mode #preview :is(h1, h2, h3, h4, h5, h6, figcaption) { brea
 body.report-preview-mode #preview p { orphans: 3; widows: 3; }
 body.report-preview-mode #preview :is(.image-block, .chart-block, .geometry-preview, .timeline-item, .mermaid-block) { break-inside: avoid-page; }
 body.report-preview-mode #preview :is(.image-block, .chart-block, .geometry-preview) { margin-inline: 0; }
-body.report-preview-mode #preview .image-block { display: grid; }
+body.report-preview-mode #preview .image-block { display: grid; overflow: visible; }
 body.report-preview-mode #preview .image-block-item { display: block; }
 body.report-preview-mode #preview .image-block-media { display: grid; }
 body.report-preview-mode #preview .image-block.image-count-2 .image-block-media { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -80,7 +80,7 @@ body.report-preview-mode #preview .chart-block > .sr-only {
   white-space: normal;
   font-size: 9pt;
 }
-body.report-preview-mode #preview .timeline-item { display: block; }
+body.report-preview-mode #preview .timeline-item { display: block; padding-left: 1.3em; }
 body.report-preview-mode #preview :is(.timeline-items, .timeline-content) { display: block; }
 body.report-preview-mode #preview table { width: 100%; table-layout: fixed; border-collapse: collapse; font-size: 9pt; }
 body.report-preview-mode #preview :is(th, td) { min-width: 0; width: auto; padding: 1.5mm; white-space: pre-wrap; overflow-wrap: anywhere; }
@@ -91,6 +91,7 @@ body.report-preview-mode #preview :is(a, .term-wiki-link, .memo-link) { color: #
 body.report-preview-mode #preview :is(.term-wiki-link, .memo-link) { display: inline; border: 0; padding: 0; font: inherit; }
 body.report-preview-mode #preview pre { white-space: pre-wrap; overflow-wrap: anywhere; overflow: visible; }
 body.report-preview-mode #preview .figure-metadata details > summary { display: none; }
+body.report-preview-mode #preview :is(.report-image-source, .figure-metadata) { break-before: avoid-page; break-inside: avoid-page; }
 body.report-preview-mode #preview details > summary { list-style: none; color: #000; }
 body.report-preview-mode #preview .task-list-item::before { content: "☐"; color: #000; }
 body.report-preview-mode #preview .task-list-item:has(input:checked)::before { content: "☑"; }
@@ -104,3 +105,11 @@ body.report-preview-mode #preview :is(.content-citations, .diagram-citations, .f
 
 /* Include nested caption/source margins in the existing atomic-item measurement. */
 body.report-preview-mode #preview .timeline-content { display: flow-root; }
+
+/* Splittable long groups retain the same readable text size and local rhythm. */
+body.report-preview-mode #preview :is(.image-block-media, .chart-block-scroll, .geometry-preview > svg, .mermaid-diagram > svg) { break-inside: avoid-page; }
+body.report-preview-mode #preview :is(.report-image-source, .diagram-description, .content-citations, .diagram-citations, .timeline-citations, .table-block-note) { break-before: avoid-page; }
+body.report-preview-mode #preview .timeline-date { break-after: avoid-page; margin-bottom: var(--report-inner-gap); }
+body.report-preview-mode #preview .timeline-block > :is(h2, .timeline-description) { break-after: avoid-page; }
+body.report-preview-mode #preview .chart-data-table { overflow: visible; }
+body.report-preview-mode #preview .report-sources li { orphans: 3; widows: 3; }

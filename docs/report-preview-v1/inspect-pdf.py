@@ -46,6 +46,8 @@ for index, page in enumerate(doc):
         assert x0 >= 55 and x1 <= page.rect.width - 55, f"Text outside horizontal 20mm margins: {span}"
         if span not in footer:
             assert y0 >= 54 and y1 <= page.rect.height - 53, f"Text outside vertical page area: {span}"
+        if any(token in span["text"] for token in ["大図終了", "Timeline項目", "本文と参照Figure", "長い図版説明", "図版詳細の補足"]):
+            assert span["size"] >= 8.9, f"Media scaling shrank caption/Timeline prose: {span}"
     for img in page.get_images(full=True):
         for rect in page.get_image_rects(img[0]):
             ratio = img[2] / img[3]
@@ -58,14 +60,20 @@ for token, image_height in [("図1図版開始F1", None), ("図2比較終了C1",
     assert matching, f"Caption missing: {token}"
     for number in matching:
         assert any(box["page"] == number and (image_height is None or box["height"] == image_height) for box in image_boxes), f"Image/caption separated: {token}"
-for text in texts:
+for page_index, text in enumerate(texts):
     normalized = "".join(text.split())
     if "図3横長グラフG1" in normalized:
         assert all(f"項目{i+1}" in normalized for i in range(8)), "Chart/caption separated"
     if "図4DiagramD1" in normalized:
         assert "Diagram補足" in normalized, "Diagram/caption separated"
     if "TimelineL1" in normalized:
-        assert normalized.count("[1]") >= 2, "Timeline Source separated from referenced Figure"
+        # Only this item's region counts: preceding Diagram citations cannot satisfy it.
+        # Zoomed media can change PDF painting order; sort by displayed position.
+        positioned = "".join(doc[page_index].get_text(sort=True).split())
+        item = positioned.split("TimelineL1", 1)[1].split("大図直前見出し", 1)[0]
+        for token in ["2026年", "Timeline項目", "本文と参照Figure[2]", "図1図版開始F1",
+                      "図版の内容", "図版詳細の補足", "共通Source:[1][1]"]:
+            assert token in item, f"Ordinary Timeline item/Figure/caption/Source separated: {token}"
     if "表1表開始T1" in normalized:
         assert "行1" in normalized and "1000" in normalized, "Table caption orphaned before first row"
 assert any(i["height"] == metrics["metrics"]["bigNatural"] and i["rect"][3]-i["rect"][1] <= 729 for i in image_boxes), "Oversized image was not fitted"
@@ -78,6 +86,84 @@ for row in range(55):
 for index,page in enumerate(doc):
     page.get_pixmap(matrix=pymupdf.Matrix(1,1),alpha=False).save(root / f"page-{index+1:02}.png")
 print(f"Real PDF PASS: {len(doc)} A4 pages; Japanese text, page numbers, URL links, repeated Table headers, complete images")
+
+# Unique text, source URLs and image geometry identify each group rather than
+# allowing an unrelated occurrence of the same citation number to satisfy it.
+pagination = root / "pagination"
+if (pagination / "cases.json").exists():
+    cases = json.loads((pagination / "cases.json").read_text(encoding="utf-8"))
+    assert len(cases) == 6
+    results = []
+    for case in cases:
+        pdf = pymupdf.open(pagination / (case["name"] + ".pdf"))
+        page_texts = ["".join(p.get_text(clip=pymupdf.Rect(0, 0, p.rect.width, 790), sort=True).split()) for p in pdf]
+        combined = "".join(page_texts)
+        alignment = case["alignment"]
+        full_caption = "".join(case["caption"].split())
+        assert combined.count(full_caption) == 2, "Both complete Figure descriptions retained"
+        for paragraph in case["paragraphs"]:
+            assert combined.count("".join(paragraph.split())) == 1, "Complete Timeline prose retained"
+        ordinary_pages = [i for i, t in enumerate(page_texts) if "ORDINARY-CHAPTER" in t]
+        assert len(ordinary_pages) == 1
+        ordinary = page_texts[ordinary_pages[0]].split("ORDINARY-CHAPTER", 1)[1]
+        for token in ["ORDINARY-DATE", "ORDINARY-TITLE", "ORDINARY-BODY[2]", "図2ORDINARY-FIGURE-CAPTION",
+                      "https://example.org/ordinary-figure", "共通Source:[1][2]"]:
+            assert token in ordinary, f"Ordinary item orphaned/split: {token}"
+        long_start = next(i for i, t in enumerate(page_texts) if "LONG-TIMELINE-" + alignment in t)
+        long_end = next(i for i, t in enumerate(page_texts) if "BODY-END-" + alignment in t)
+        assert long_end > long_start, "Long Timeline must flow, without tiny text"
+        for token in ["LONG-DATE-" + alignment, "LONG-ITEM-" + alignment, "BODY-BEGIN-" + alignment]:
+            assert token in page_texts[long_start], "Long Timeline heading/date/title orphaned"
+        image_pages = []
+        caption_start_pages = []
+        source_pages = []
+        caption_end_pages = []
+        for index, page in enumerate(pdf):
+            text = page_texts[index]
+            if "FIGURE-BEGIN-" + alignment in text:
+                assert page.get_images(), "Figure image separated from caption beginning"
+                caption_start_pages.append(index + 1)
+            if "FIGURE-END-" + alignment in text:
+                caption_end_pages.append(index + 1)
+            if "MEDIA-" + alignment in text:
+                region = text.split("MEDIA-" + alignment, 1)[1]
+                assert "https://example.org/figure-" + alignment in region
+                assert "共通Source:[1]" in region, "Identified Figure Source panel split/lost"
+                source_pages.append(index + 1)
+            for block in page.get_text("dict")["blocks"]:
+                for line in block.get("lines", []):
+                    for span in line["spans"]:
+                        x0, y0, x1, y1 = span["bbox"]
+                        assert x0 >= 55 and x1 <= page.rect.width - 55, "Pagination text outside 20mm margins"
+                        if y0 < 790:
+                            assert y0 >= 54 and y1 <= page.rect.height - 53
+                        # Existing citation markers use .8em (9pt Source -> 7.2pt).
+                        # Keep that contract while checking prose/captions at >=9pt.
+                        minimum = 7.1 if re.fullmatch(r"(?:\[\d+\])+", span["text"].strip()) else 8.9
+                        assert span["size"] >= minimum, f"Text shrunk: {span}"
+            for img in page.get_images(full=True):
+                for rect in page.get_image_rects(img[0]):
+                    assert abs(rect.width / rect.height - img[2] / img[3]) < .02
+                    assert rect.y0 >= 55 and rect.y1 <= page.rect.height - 55, "Pagination image split/clipped"
+                    if img[2] == 600 and img[3] == 1800:
+                        image_pages.append(index + 1)
+            page.get_pixmap().save(pagination / f"{case['name']}-page-{index+1:02}.png")
+        assert len(image_pages) == 2 and len(source_pages) == 2, "Both top-level and nested media/Sources present"
+        assert len(caption_end_pages) == 2
+        for end, source in zip(caption_end_pages, source_pages):
+            assert end <= source <= end + 1, "Long description must be followed directly by its identified Source panel"
+        assert image_pages == caption_start_pages, "Identified large images stay with their own caption beginning"
+        nested_end = page_texts[source_pages[1] - 1].split("MEDIA-" + alignment, 1)[1]
+        assert "共通Source:[1][2]" in nested_end, "Long item's own Source stays with referenced Figure Source"
+        links = [link.get("uri", "") for page in pdf for link in page.get_links()]
+        for url in ["https://example.org/figure-" + alignment, "https://example.org/ordinary-figure",
+                    "https://example.org/source-figure", "https://example.org/source-item"]:
+            assert url in links, f"External URL annotation missing: {url}"
+        assert "REPORT-END" in combined
+        results.append({"name":case["name"],"pages":len(pdf),"ordinaryPage":ordinary_pages[0]+1,
+                        "longBodyPages":[long_start+1,long_end+1],"images":image_pages,"captionEnds":caption_end_pages,"figureSources":source_pages})
+    (pagination / "inspection.json").write_text(json.dumps(results, indent=2), encoding="utf-8")
+    print("Pagination PDFs PASS: six PDFs, identified ordinary/long items, full prose, media/Source, 9pt minimum, URL annotations")
 
 
 # Caption-review cases exercise actual PDFs separately from the mixed report.
@@ -119,3 +205,38 @@ if (review / "cases.json").exists():
         for index,page in enumerate(pdf):
             page.get_pixmap(matrix=pymupdf.Matrix(1,1),alpha=False).save(review / f"{case['name']}-page-{index+1}.png")
     print(f"Caption review real PDFs PASS: {len(cases)} cases; side captions/Sources, visible pie series, values and parent numbers")
+
+# Spacing stress cases: long prose/Timeline/captions must remain readable and complete.
+spacing = root / "spacing"
+if (spacing / "cases.json").exists():
+    spacing_results = []
+    for case in json.loads((spacing / "cases.json").read_text(encoding="utf-8")):
+        pdf = pymupdf.open(spacing / (case["name"] + ".pdf"))
+        compact_text = "".join("".join(page.get_text().split()) for page in pdf)
+        for token in case["tokens"]:
+            assert "".join(token.split()) in compact_text, f"Spacing PDF text missing: {case['name']} {token}"
+        if case["name"] == "groups":
+            for i in range(24):
+                if i != 1:
+                    assert f"出来事{i+1}" in compact_text, f"Timeline item missing: {i+1}"
+            assert compact_text.count("図1検証Figure") == 2, "Timeline keeps canonical figure number"
+        if case["name"] in ("prose", "long-groups"):
+            for i in range(36):
+                assert f"段落{i+1}" in compact_text, f"Long prose paragraph missing: {i+1}"
+        minimum = 100
+        for index, page in enumerate(pdf):
+            spans = [s for b in page.get_text("dict")["blocks"] if "lines" in b for line in b["lines"] for s in line["spans"]]
+            for s in spans:
+                x0, y0, x1, y1 = s["bbox"]
+                assert x0 >= 55 and x1 <= page.rect.width-55, f"Spacing text clipped horizontally: {case['name']} {s}"
+                if y0 < 790:
+                    assert y0 >= 54 and y1 <= page.rect.height-53, f"Spacing text clipped vertically: {case['name']} {s}"
+                if case["name"] == "long-groups" and ("長説明" in s["text"] or "全文を" in s["text"] or "段落" in s["text"]):
+                    minimum = min(minimum, s["size"])
+                    assert s["size"] >= 8.9, f"Long text was shrunk: {s}"
+            page.get_pixmap(matrix=pymupdf.Matrix(1,1),alpha=False).save(spacing / f"{case['name']}-page-{index+1:02}.png")
+        if case["name"] == "long-groups":
+            assert len(pdf) >= 4, "Long text must flow across pages"
+        spacing_results.append({"name":case["name"],"pages":len(pdf),"minimumLongTextPt":minimum if minimum<100 else None})
+    (spacing / "inspection.json").write_text(json.dumps(spacing_results,indent=2),encoding="utf-8")
+    print(f"Spacing real PDFs PASS: {len(spacing_results)} reports; complete long text and Timeline, original font size, page bounds")

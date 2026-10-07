@@ -1,0 +1,332 @@
+[
+  {
+    "name": "left-1280",
+    "alignment": "left",
+    "width": 1280,
+    "numbers": [
+      "図1",
+      "図1",
+      "図2",
+      "図2"
+    ],
+    "metrics": [
+      {
+        "media": {
+          "left": 11,
+          "right": 232.84375,
+          "width": 221.84375,
+          "height": 643.546875,
+          "center": 121.921875
+        },
+        "image": {
+          "left": 14.65625,
+          "right": 229.171875,
+          "width": 214.515625,
+          "height": 643.546875,
+          "center": 121.9140625
+        },
+        "scale": 0.357533,
+        "expectedLeft": 11,
+        "groupZoom": "",
+        "timeline": false,
+        "font": 12
+      },
+      {
+        "media": {
+          "left": 32.0625,
+          "right": 246.578125,
+          "width": 214.515625,
+          "height": 643.546875,
+          "center": 139.3203125
+        },
+        "image": {
+          "left": 32.0625,
+          "right": 246.578125,
+          "width": 214.515625,
+          "height": 643.546875,
+          "center": 139.3203125
+        },
+        "scale": 0.357859,
+        "expectedLeft": 32.0625,
+        "groupZoom": "",
+        "timeline": true,
+        "font": 12
+      }
+    ]
+  },
+  {
+    "name": "left-320",
+    "alignment": "left",
+    "width": 320,
+    "numbers": [
+      "図1",
+      "図1",
+      "図2",
+      "図2"
+    ],
+    "metrics": [
+      {
+        "media": {
+          "left": 11,
+          "right": 232.84375,
+          "width": 221.84375,
+          "height": 643.546875,
+          "center": 121.921875
+        },
+        "image": {
+          "left": 14.65625,
+          "right": 229.171875,
+          "width": 214.515625,
+          "height": 643.546875,
+          "center": 121.9140625
+        },
+        "scale": 0.357533,
+        "expectedLeft": 11,
+        "groupZoom": "",
+        "timeline": false,
+        "font": 12
+      },
+      {
+        "media": {
+          "left": 32.0625,
+          "right": 246.578125,
+          "width": 214.515625,
+          "height": 643.546875,
+          "center": 139.3203125
+        },
+        "image": {
+          "left": 32.0625,
+          "right": 246.578125,
+          "width": 214.515625,
+          "height": 643.546875,
+          "center": 139.3203125
+        },
+        "scale": 0.357859,
+        "expectedLeft": 32.0625,
+        "groupZoom": "",
+        "timeline": true,
+        "font": 12
+      }
+    ]
+  },
+  {
+    "name": "center-1280",
+    "alignment": "center",
+    "width": 1280,
+    "numbers": [
+      "図1",
+      "図1",
+      "図2",
+      "図2"
+    ],
+    "metrics": [
+      {
+        "media": {
+          "left": 210.328125,
+          "right": 432.171875,
+          "width": 221.84375,
+          "height": 643.546875,
+          "center": 321.25
+        },
+        "image": {
+          "left": 213.984375,
+          "right": 428.5,
+          "width": 214.515625,
+          "height": 643.546875,
+          "center": 321.2421875
+        },
+        "scale": 0.357533,
+        "expectedLeft": 210.3359375,
+        "groupZoom": "",
+        "timeline": false,
+        "font": 12
+      },
+      {
+        "media": {
+          "left": 224.515625,
+          "right": 439.03125,
+          "width": 214.515625,
+          "height": 643.546875,
+          "center": 331.7734375
+        },
+        "image": {
+          "left": 224.515625,
+          "right": 439.03125,
+          "width": 214.515625,
+          "height": 643.546875,
+          "center": 331.7734375
+        },
+        "scale": 0.357859,
+        "expectedLeft": 224.53125,
+        "groupZoom": "",
+        "timeline": true,
+        "font": 12
+      }
+    ]
+  },
+  {
+    "name": "center-320",
+    "alignment": "center",
+    "width": 320,
+    "numbers": [
+      "図1",
+      "図1",
+      "図2",
+      "図2"
+    ],
+    "metrics": [
+      {
+        "media": {
+          "left": 210.328125,
+          "right": 432.171875,
+          "width": 221.84375,
+          "height": 643.546875,
+          "center": 321.25
+        },
+        "image": {
+          "left": 213.984375,
+          "right": 428.5,
+          "width": 214.515625,
+          "height": 643.546875,
+          "center": 321.2421875
+        },
+        "scale": 0.357533,
+        "expectedLeft": 210.3359375,
+        "groupZoom": "",
+        "timeline": false,
+        "font": 12
+      },
+      {
+        "media": {
+          "left": 224.515625,
+          "right": 439.03125,
+          "width": 214.515625,
+          "height": 643.546875,
+          "center": 331.7734375
+        },
+        "image": {
+          "left": 224.515625,
+          "right": 439.03125,
+          "width": 214.515625,
+          "height": 643.546875,
+          "center": 331.7734375
+        },
+        "scale": 0.357859,
+        "expectedLeft": 224.53125,
+        "groupZoom": "",
+        "timeline": true,
+        "font": 12
+      }
+    ]
+  },
+  {
+    "name": "right-1280",
+    "alignment": "right",
+    "width": 1280,
+    "numbers": [
+      "図1",
+      "図1",
+      "図2",
+      "図2"
+    ],
+    "metrics": [
+      {
+        "media": {
+          "left": 409.65625,
+          "right": 631.5,
+          "width": 221.84375,
+          "height": 643.546875,
+          "center": 520.578125
+        },
+        "image": {
+          "left": 413.3125,
+          "right": 627.828125,
+          "width": 214.515625,
+          "height": 643.546875,
+          "center": 520.5703125
+        },
+        "scale": 0.357533,
+        "expectedLeft": 409.671875,
+        "groupZoom": "",
+        "timeline": false,
+        "font": 12
+      },
+      {
+        "media": {
+          "left": 416.984375,
+          "right": 631.5,
+          "width": 214.515625,
+          "height": 643.546875,
+          "center": 524.2421875
+        },
+        "image": {
+          "left": 416.984375,
+          "right": 631.5,
+          "width": 214.515625,
+          "height": 643.546875,
+          "center": 524.2421875
+        },
+        "scale": 0.357859,
+        "expectedLeft": 417,
+        "groupZoom": "",
+        "timeline": true,
+        "font": 12
+      }
+    ]
+  },
+  {
+    "name": "right-320",
+    "alignment": "right",
+    "width": 320,
+    "numbers": [
+      "図1",
+      "図1",
+      "図2",
+      "図2"
+    ],
+    "metrics": [
+      {
+        "media": {
+          "left": 409.65625,
+          "right": 631.5,
+          "width": 221.84375,
+          "height": 643.546875,
+          "center": 520.578125
+        },
+        "image": {
+          "left": 413.3125,
+          "right": 627.828125,
+          "width": 214.515625,
+          "height": 643.546875,
+          "center": 520.5703125
+        },
+        "scale": 0.357533,
+        "expectedLeft": 409.671875,
+        "groupZoom": "",
+        "timeline": false,
+        "font": 12
+      },
+      {
+        "media": {
+          "left": 416.984375,
+          "right": 631.5,
+          "width": 214.515625,
+          "height": 643.546875,
+          "center": 524.2421875
+        },
+        "image": {
+          "left": 416.984375,
+          "right": 631.5,
+          "width": 214.515625,
+          "height": 643.546875,
+          "center": 524.2421875
+        },
+        "scale": 0.357859,
+        "expectedLeft": 417,
+        "groupZoom": "",
+        "timeline": true,
+        "font": 12
+      }
+    ]
+  }
+]

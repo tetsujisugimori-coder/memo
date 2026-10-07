@@ -61,13 +61,14 @@ async function state(page) {
     await page.emulateMedia({media:"print"});
     for(const id of ["#reportPrintBtn","#reportPreviewBackBtn","#editor","#attachmentSection","#reportPrintStatus"])
       assert.equal(await page.locator(id).isVisible(),false,id);
-    const metrics=await page.evaluate(()=>({timeline:[...preview.querySelectorAll(".timeline-item")].map(e=>({height:e.getBoundingClientRect().height,zoom:e.style.zoom,css:getComputedStyle(e).marginBottom,content:e.querySelector(".timeline-content").getBoundingClientRect().height})),width:preview.getBoundingClientRect().width,background:getComputedStyle(document.body).backgroundColor,
+    const readPrintMetrics=()=>page.evaluate(()=>({timeline:[...preview.querySelectorAll(".timeline-item")].map(e=>({height:e.getBoundingClientRect().height,zoom:e.style.zoom,css:getComputedStyle(e).marginBottom,content:e.querySelector(".timeline-content").getBoundingClientRect().height,paddingLeft:getComputedStyle(e).paddingLeft,mediaHeight:e.querySelector(".image-block-media").getBoundingClientRect().height,mediaWidth:e.querySelector(".image-block-media").getBoundingClientRect().width})),width:preview.getBoundingClientRect().width,background:getComputedStyle(document.body).backgroundColor,
       captionsBelow:[...preview.querySelectorAll(".image-block[data-report-number], .geometry-preview, .chart-block")].every(e=>e.querySelector(":scope > .report-caption").getBoundingClientRect().top>=e.querySelector(".image-block-media, svg").getBoundingClientRect().bottom-1),
       overflow:preview.scrollWidth>preview.clientWidth+1,big:[...preview.querySelectorAll('.image-block')].find(b=>b.textContent.includes('BIG1')).getBoundingClientRect().height,
       bigNatural:[...preview.querySelectorAll('.image-block')].find(b=>b.textContent.includes('BIG1')).querySelector('img').naturalHeight,
       bigCenter:(()=>{const r=[...preview.querySelectorAll('.image-block')].find(b=>b.textContent.includes('BIG1')).getBoundingClientRect();return (r.left+r.right)/2-preview.getBoundingClientRect().left;})(),
       fonts:[...preview.querySelectorAll('td')].map(e=>parseFloat(getComputedStyle(e).fontSize)),
       rows:[...preview.querySelectorAll('tr')].map(e=>getComputedStyle(e).breakInside)}));
+    const metrics=await readPrintMetrics();
     assert.ok(Math.abs(metrics.width-170*96/25.4)<1);assert.equal(metrics.background,"rgb(255, 255, 255)");assert.equal(metrics.overflow,false);assert.equal(metrics.captionsBelow,true,"PDF captions must stay below their object");
     assert.ok(metrics.big<=257*96/25.4);assert.ok(metrics.fonts.every(n=>n>=12));assert.ok(metrics.rows.every(n=>n==="avoid-page"));
     assert.ok(Math.abs(metrics.bigCenter-metrics.width/2)<1,"center alignment of the whole Figure");
@@ -83,7 +84,12 @@ async function state(page) {
     await page.locator("#reportPrintBtn").click();await page.waitForFunction(()=>window.printCalls===2);
     assert.ok(Math.abs(await page.locator("#preview").evaluate(e=>e.getBoundingClientRect().width)-170*96/25.4)<1,"A4 measurement must not depend on mobile viewport");
     const mobileOut=path.join(out,"mobile");fs.mkdirSync(mobileOut,{recursive:true});
-    fs.writeFileSync(path.join(mobileOut,"metrics.json"),JSON.stringify({browser:browser.version(),metrics,citations,longUrl,reportNumbers},null,2));
+    const mobileMetrics=await readPrintMetrics();
+    for(let i=0;i<metrics.timeline.length;i++) {
+      assert.equal(mobileMetrics.timeline[i].paddingLeft,metrics.timeline[i].paddingLeft,"print Timeline indentation is viewport-independent");
+      for(const key of ["height","mediaHeight","mediaWidth"])assert.ok(Math.abs(mobileMetrics.timeline[i][key]-metrics.timeline[i][key])<1,"same A4 Timeline geometry: "+key);
+    }
+    fs.writeFileSync(path.join(mobileOut,"metrics.json"),JSON.stringify({browser:browser.version(),metrics:mobileMetrics,citations,longUrl,reportNumbers},null,2));
     await page.emulateMedia({media:"print"});
     await page.pdf({path:path.join(mobileOut,"mixed-report.pdf"),preferCSSPageSize:true,displayHeaderFooter:false,printBackground:false});
     await page.emulateMedia({media:"screen"});
@@ -99,6 +105,8 @@ async function state(page) {
     await page.locator("#reportPrintBtn").click();await page.waitForFunction(()=>document.querySelector("#reportPrintStatus").textContent.startsWith("印刷を開始できません"));
     assert.equal(await page.evaluate(()=>window.printCalls),3);assert.deepEqual(await state(page),dirty);
     await require("./report-caption-regressions.cjs").verifyReportCaptionCases(page,{out:path.join(out,"caption-regressions"),pdf:true});
+    await require("./report-spacing-regressions.cjs").verifyReportSpacingCases(page,{out:path.join(out,"spacing"),baseline:process.env.REPORT_SPACING_BASELINE === "1"});
+    await require("./report-pagination-regressions.cjs").verifyReportPaginationCases(page,{out:path.join(out,"pagination")});
     assert.deepEqual(errors,[]);
     for(const directory of [out,mobileOut]){
       const checked=spawnSync(process.env.PYTHON||"python",[path.join(__dirname,"docs/report-preview-v1/inspect-pdf.py"),directory],{encoding:"utf8"});

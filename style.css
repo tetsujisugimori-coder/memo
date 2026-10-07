@@ -6643,3 +6643,70 @@ body.report-preview-mode #preview .report-caption > p:first-of-type { display: i
 /* Override Image Block's editor-side caption column at every report width. */
 body.report-preview-mode #preview .image-block { grid-template-columns: minmax(0, 1fr); grid-template-areas: none; }
 body.report-preview-mode #preview .image-block > :is(.image-block-media, .report-caption, .report-image-source) { grid-area: auto; grid-column: 1; }
+
+/* Report rhythm is shared with PDF; only print overrides physical page layout. */
+body.report-preview-mode #preview {
+  --report-prose-gap: .85em;
+  --report-section-gap: 2em;
+  --report-group-gap: 1.65em;
+  --report-inner-gap: .45em;
+  --report-item-gap: 1.2em;
+  line-height: 1.8;
+  overflow-wrap: anywhere;
+}
+body.report-preview-mode #preview :is(h1, h2, h3, h4, h5, h6) {
+  margin: var(--report-section-gap) 0 var(--report-inner-gap);
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+body.report-preview-mode #preview h1 { font-size: 1.55em; }
+body.report-preview-mode #preview h2 { font-size: 1.3em; }
+body.report-preview-mode #preview h3 { font-size: 1.12em; }
+body.report-preview-mode #preview h4 { font-size: 1.06em; }
+body.report-preview-mode #preview h5 { font-size: 1.02em; }
+body.report-preview-mode #preview h6 { font-size: 1em; }
+body.report-preview-mode #preview :is(h1, h2, h3, h4, h5, h6) + :is(h1, h2, h3, h4, h5, h6) { margin-top: var(--report-prose-gap); }
+body.report-preview-mode #preview :is(p, ul, ol, blockquote, pre) { margin-block: 0 var(--report-prose-gap); }
+body.report-preview-mode #preview :is(ul, ol) { padding-inline-start: 1.6em; }
+body.report-preview-mode #preview li + li { margin-top: .3em; }
+body.report-preview-mode #preview li > :is(ul, ol) { margin-block: var(--report-inner-gap) 0; }
+body.report-preview-mode #preview :is(blockquote, .diagram-description, .timeline-body, .report-caption) > :last-child { margin-bottom: 0; }
+body.report-preview-mode #preview :is(.image-block, .table-block, .chart-block, .geometry-preview, .timeline-block) {
+  margin-block: var(--report-group-gap);
+  min-width: 0;
+}
+body.report-preview-mode #preview .image-block { row-gap: var(--report-inner-gap); overflow: visible; }
+body.report-preview-mode #preview :is(.report-caption, .content-citations, .diagram-citations, .figure-metadata, .image-comparison-label, .diagram-description, .diagram-created, .table-block-note, .report-image-source) {
+  font-size: .875em;
+  margin-block: var(--report-inner-gap) 0;
+}
+/* Grid supplies the gap once; nested Source paragraphs inherit the group font. */
+body.report-preview-mode #preview .image-block > :is(.report-caption, .report-image-source) { margin-block: 0; }
+body.report-preview-mode #preview .report-image-source > :is(.figure-metadata, .content-citations) { font-size: inherit; }
+body.report-preview-mode #preview .report-image-source > :first-child { margin-top: 0; }
+body.report-preview-mode #preview .table-block > .report-caption { margin: 0 0 var(--report-inner-gap); }
+body.report-preview-mode #preview .image-block-item { row-gap: var(--report-inner-gap); }
+body.report-preview-mode #preview .image-comparison-label { margin-top: 0; }
+body.report-preview-mode #preview .image-block-media { gap: var(--report-item-gap); }
+body.report-preview-mode #preview .chart-block-scroll { margin-top: 0; }
+body.report-preview-mode #preview .chart-block-legend { font-size: .875em; margin-block: var(--report-inner-gap); }
+body.report-preview-mode #preview .chart-block-legend li + li { margin-top: 0; }
+body.report-preview-mode #preview .chart-block-legend li { overflow-wrap: anywhere; }
+body.report-preview-mode #preview .timeline-block > h2 { margin-top: 0; }
+body.report-preview-mode #preview .timeline-items { padding-inline-start: 0; margin-block: var(--report-prose-gap) 0; }
+body.report-preview-mode #preview .timeline-item { margin: 0; padding-bottom: var(--report-item-gap); }
+body.report-preview-mode #preview .timeline-item:last-child { padding-bottom: 0; }
+body.report-preview-mode #preview .timeline-content > h3 { margin: 0 0 var(--report-inner-gap); }
+body.report-preview-mode #preview .timeline-content > .image-block { margin-block: var(--report-inner-gap) 0; }
+body.report-preview-mode #preview .timeline-citations { margin-block: var(--report-inner-gap) 0; }
+body.report-preview-mode #preview :is(.timeline-date, .timeline-body):empty { display: none; }
+body.report-preview-mode #preview .timeline-item:not(:has(> .timeline-date:not(:empty))) { grid-template-columns: minmax(0, 1fr); gap: 0; }
+body.report-preview-mode #preview .report-sources { margin-top: var(--report-section-gap); padding-top: var(--report-prose-gap); }
+body.report-preview-mode #preview .report-sources > h2 { margin: 0 0 var(--report-prose-gap); }
+body.report-preview-mode #preview .report-sources ol { padding: 0; margin: 0; }
+body.report-preview-mode #preview .report-sources li { margin: 0 0 var(--report-prose-gap); padding-left: 2.2em; text-indent: -2.2em; }
+body.report-preview-mode #preview .report-sources li:last-child { margin-bottom: 0; }
+body.report-preview-mode #preview .report-sources .source-number { display: inline-block; min-width: 2.2em; text-indent: 0; }
+/* Local resets must precede edge resets so optional fields leave no trailing gap. */
+body.report-preview-mode #preview > :first-child { margin-top: 0; }
+body.report-preview-mode #preview > :last-child { margin-bottom: 0; }

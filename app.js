@@ -8380,7 +8380,12 @@ function restoreReportPrint() {
   document.title = state.title;
   $("reportPrintStyles").media = "print";
   state.styles.forEach(([element, style]) => {
-    if (style === null) element.removeAttribute("style");
+    if (style === null) {
+      element.style.cssText = "";
+      // Flush Chromium's lazy CSSOM serialization before removing a missing attribute.
+      element.getAttribute("style");
+      element.removeAttribute("style");
+    }
     else element.setAttribute("style", style);
   });
   state.details.forEach(([element, open]) => { element.open = open; });
@@ -8426,8 +8431,28 @@ async function prepareReportPrint() {
     if (generation !== mermaidRenderGeneration) throw new Error("表示が更新されました。もう一度実行してください。");
     // A4 minus 20 mm on each edge. Leave a little space for rounding/margins.
     const pageHeight = 257 * 96 / 25.4;
+    // Chromium can split short metadata despite break-inside on nested blocks.
+    // Only page-sized Source panels become atomic; oversized notes still flow.
+    preview.querySelectorAll(".report-image-source").forEach(element => {
+      if (element.getBoundingClientRect().height + 4 <= pageHeight) {
+        state.styles.push([element, element.getAttribute("style")]);
+        element.style.display = "inline-block";
+        element.style.width = "100%";
+      }
+    });
     const atomic = ".image-block, .chart-block, .geometry-preview, .timeline-item, .mermaid-block, img";
     const blocks = [...preview.querySelectorAll(atomic)].filter(element => !element.parentElement.closest(atomic));
+    const fitMedia = (visual, scale) => {
+      const box = visual.getBoundingClientRect();
+      const owner = visual.closest("figure");
+      const alignment = owner?.classList.contains("image-align-left") ? 0
+        : owner?.classList.contains("image-align-right") ? 1 : 0.5;
+      state.styles.push([visual, visual.getAttribute("style")]);
+      visual.style.width = `${box.width}px`;
+      visual.style.maxWidth = "none";
+      visual.style.zoom = String(scale);
+      visual.style.marginLeft = `${box.width * (1 - scale) * alignment / scale}px`;
+    };
     blocks.forEach(element => {
       const rect = element.getBoundingClientRect();
       const css = getComputedStyle(element);
@@ -8447,7 +8472,51 @@ async function prepareReportPrint() {
         const style = getComputedStyle(entry);
         return total + entry.getBoundingClientRect().height + parseFloat(style.marginTop) + parseFloat(style.marginBottom);
       }, 0);
-      const scale = Math.min(1, Math.max(1, pageHeight - headingHeight - 4) / height);
+      const available = Math.max(1, pageHeight - headingHeight - 4);
+      const media = element.querySelector?.(".image-block-media, .chart-block-scroll, svg");
+      // Near-page-size groups or large media with short text can fit without shrinking prose.
+      if (media && height > available) {
+        const mediaHeight = media.getBoundingClientRect().height;
+        const textHeight = height - mediaHeight;
+        const scale = (available - textHeight) / mediaHeight;
+        if (scale > 0 && scale < 1 && (scale >= 2 / 3
+            || (mediaHeight >= available * 2 / 3 && textHeight <= available / 3))) {
+          fitMedia(media, scale);
+          return;
+        }
+      }
+      // Fit large media as before, but let long text flow at its original size.
+      // Reserve at least a third of a page for text before considering whole-group zoom.
+      if (height > available && ((media && (media.getBoundingClientRect().height < available * 2 / 3
+          || height - media.getBoundingClientRect().height > available / 3))
+          || (!media && element.classList.contains("timeline-item")))) {
+        state.styles.push([element, element.getAttribute("style")]);
+        element.style.breakInside = "auto";
+        element.style.display = "block";
+        // A long Timeline may contain a Figure; fit only its media, never its prose.
+        const visuals = [...element.querySelectorAll(".image-block-media, .chart-block-scroll, .geometry-preview > svg, .mermaid-diagram > svg")];
+        visuals.forEach(visual => {
+          const box = visual.getBoundingClientRect();
+          const owner = visual.closest("figure");
+          const caption = owner?.querySelector(":scope > .report-caption");
+          const captionHeight = caption ? caption.getBoundingClientRect().height : 0;
+          const mediaScale = Math.min(1, Math.max(1, pageHeight - Math.min(captionHeight, pageHeight / 3) - 4) / box.height);
+          if (mediaScale < 1) {
+            fitMedia(visual, mediaScale);
+          }
+        });
+        // A referenced Figure can itself exceed a page inside a long Timeline.
+        // Its grid must also fragment as blocks, retaining atomic media/short Sources.
+        element.querySelectorAll(".image-block").forEach(figure => {
+          if (figure.getBoundingClientRect().height > pageHeight) {
+            state.styles.push([figure, figure.getAttribute("style")]);
+            figure.style.breakInside = "auto";
+            figure.style.display = "block";
+          }
+        });
+        return;
+      }
+      const scale = Math.min(1, available / height);
       if (scale < 1) {
         state.styles.push([element, element.getAttribute("style")]);
         element.style.width = `${rect.width}px`;
