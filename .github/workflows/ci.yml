@@ -341,6 +341,11 @@ jobs:
             npm run test:e2e:chart:all
           fi
 
+      - name: Verify dual-axis geometry after delayed preview rendering
+        env:
+          MEMO_NEXUS_E2E_BROWSER: ${{ matrix.browser }}
+        run: node chart-axis-render-wait.e2e.js
+
       - name: Upload focused tooltip click traces
         if: always() && github.event_name == 'workflow_dispatch' && inputs.tooltip_t0_t1_trace && matrix.browser == 'webkit'
         uses: actions/upload-artifact@v6
