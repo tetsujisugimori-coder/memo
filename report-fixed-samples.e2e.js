@@ -37,7 +37,7 @@ async function ready(page){await page.evaluate(async()=>{await attachmentRenderP
           await page.locator('#insertImageBlockBtn').click();await page.locator('#imageBlockInput').setInputFiles(file);await page.waitForFunction(name=>currentAttachments.some(a=>a.fileName===name),key+'.png');await page.evaluate(()=>flushSave());await idle(page);
         }
         const ids=await page.evaluate(()=>Object.fromEntries(currentAttachments.map(a=>[a.fileName.replace('.png',''),a.id])));
-        result.originalIds=ids;
+        result.originalIds={...ids};
         const normalized=await page.evaluate(async()=>Promise.all(currentAttachments.map(async a=>({key:a.fileName.replace('.png',''),data:await new Promise(resolve=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result.split(',')[1]);reader.readAsDataURL(a.blob);})}))));
         fs.mkdirSync(path.join(out,sampleId+'-assets'),{recursive:true});for(const a of normalized)fs.writeFileSync(path.join(out,sampleId+'-assets',a.key+'.png'),Buffer.from(a.data,'base64'));
         const sample=[...buildSamples(ids),...buildRegressionCases(ids)].find(s=>s.id===sampleId);result.fixture=sample;
