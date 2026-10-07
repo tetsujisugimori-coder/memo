@@ -120,3 +120,7 @@ LinuxのR01〜R06は7/6/5/10/15/7、L01〜L04は4/4/7/2、I01は8、計75ペー�
 公開HEAD `28eb18d` の [run37633250403](https://github.com/tetsujisugimori-coder/memo/actions/runs/37633250403) では固定サンプル両browserとChart両browserはPASSしたが、既存Report Preview番号テストが初回FAIL（期待：図1/表1/図2/図3/図4、実際：図1/図2/表1）。このケースは棒グラフで、今回変更したReport折れ線分岐を通らない。テストもmainと同一だった。原因は未確定で、解消扱いにしない。[初回ログ](review/followup/figure-ci-first-failure.log)を保持する。
 
 失敗時の入力本文・保存データ・Preview DOM・textareaへの代入元stack・画面を記録する診断を追加し、CI artifact対象をPNGだけからJSONを含むディレクトリへ変更した。期待値／待機条件は変えない。Windowsで同じ診断テストをPR側とbase/main側に各1回実行し、どちらもPASS（ログをfollowupに保持）。Linuxでの診断実行結果は最終CIと併せてPR本文に記録する。単に再成功しても初回失敗の原因解消を主張しない。
+
+診断HEAD `75a0978` の [run37635079031](https://github.com/tetsujisugimori-coder/memo/actions/runs/37635079031) でも同じ番号FAILを再現した。[JSON](review/followup/numbering-ci-failure.json) と [画面](review/followup/numbering-ci-failure.png) では、保存前からtextareaが前ケースの本文のままで、代入記録も空。テストの1280px変更とアプリのresize処理の間に、compact表示のinert編集欄へfillする競合経路を特定した。独立した最小再現 [inert-fill.cjs](review/followup/inert-fill.cjs) でも、Chromiumのfillはinert時にエラーを出さず古い本文を保持し、解除後は新本文を入力した（[結果](review/followup/inert-fill-result.json)）。
+
+番号テストはwide表示とinert解除という実状態を待ってからfillし、直後の入力本文一致も検査するよう修正した。製品の番号処理は変更しない。Windowsの修正後PR側／main側は各1回PASS。Linuxの修正後確認は最終CIを参照。同一SHAの盲目的な再実行0回、診断を加えた失敗再現1回、根拠のある準備状態待ちを加えた確認1回。固定待機・タイムアウト延長・期待値緩和はない。

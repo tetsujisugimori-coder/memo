@@ -1,0 +1,213 @@
+{
+  "expectedBody": "<!-- memo-nexus:sources-v1:7b2276657273696f6e223a312c22736f7572636573223a5b7b226964223a227331222c227469746c65223a22e585b1e9809ae8b387e69699222c22617574686f72223a22222c227075626c6973686572223a22222c2264617465223a22222c2275726c223a2268747470733a2f2f6578616d706c652e6f72672f6c6f6e672d75726c2d6c6f6e672d75726c2d6c6f6e672d75726c2d6c6f6e672d75726c2d6c6f6e672d75726c2d6c6f6e672d75726c2d6c6f6e672d75726c2d6c6f6e672d75726c2d6c6f6e672d75726c2d6c6f6e672d75726c2d6c6f6e672d75726c2d6c6f6e672d75726c2d6c6f6e672d75726c2d6c6f6e672d75726c2d6c6f6e672d75726c2d6c6f6e672d75726c2d6c6f6e672d75726c2d6c6f6e672d75726c2d6c6f6e672d75726c2d6c6f6e672d75726c2d6c6f6e672d75726c2d6c6f6e672d75726c2d6c6f6e672d75726c2d6c6f6e672d75726c2d6c6f6e672d75726c2d6c6f6e672d75726c2d6c6f6e672d75726c2d6c6f6e672d75726c2d6c6f6e672d75726c2d6c6f6e672d75726c2d6c6f6e672d75726c2d6c6f6e672d75726c2d6c6f6e672d75726c2d6c6f6e672d75726c2d6c6f6e672d75726c2d6c6f6e672d75726c2d6c6f6e672d75726c2d6c6f6e672d75726c2d6c6f6e672d75726c2d6c6f6e672d75726c2d6c6f6e672d75726c2d6c6f6e672d75726c2d6c6f6e672d75726c2d6c6f6e672d75726c2d6c6f6e672d75726c2d6c6f6e672d75726c2d6c6f6e672d75726c2d6c6f6e672d75726c2d6c6f6e672d75726c2d6c6f6e672d75726c2d222c2261636365737365644174223a22222c2270616765223a22222c22736f7572636554797065223a22227d5d7d -->\n<!-- memo-nexus:image-block -->\n<!-- memo-nexus:figure-id:numbered-figure -->\n![画像](attachment://f27de048-3cd5-4b75-b6fa-5276057e17cb)\n<!-- memo-nexus:figure-metadata:7b2276657273696f6e223a322c2263617074696f6e223a22e8b387e69699e8aaace6988e222c22646174654c6162656c223a22222c22736f757263654e616d65223a22222c22736f7572636555726c223a2268747470733a2f2f6578616d706c652e6f72672f6c6f6e672d75726c2d6c6f6e672d75726c2d6c6f6e672d75726c2d6c6f6e672d75726c2d6c6f6e672d75726c2d6c6f6e672d75726c2d6c6f6e672d75726c2d6c6f6e672d75726c2d6c6f6e672d75726c2d6c6f6e672d75726c2d6c6f6e672d75726c2d6c6f6e672d75726c2d6c6f6e672d75726c2d6c6f6e672d75726c2d6c6f6e672d75726c2d6c6f6e672d75726c2d6c6f6e672d75726c2d6c6f6e672d75726c2d6c6f6e672d75726c2d6c6f6e672d75726c2d6c6f6e672d75726c2d6c6f6e672d75726c2d6c6f6e672d75726c2d6c6f6e672d75726c2d6c6f6e672d75726c2d6c6f6e672d75726c2d6c6f6e672d75726c2d6c6f6e672d75726c2d6c6f6e672d75726c2d6c6f6e672d75726c2d6c6f6e672d75726c2d6c6f6e672d75726c2d6c6f6e672d75726c2d6c6f6e672d75726c2d6c6f6e672d75726c2d6c6f6e672d75726c2d6c6f6e672d75726c2d6c6f6e672d75726c2d6c6f6e672d75726c2d6c6f6e672d75726c2d6c6f6e672d75726c2d6c6f6e672d75726c2d6c6f6e672d75726c2d6c6f6e672d75726c2d6c6f6e672d75726c2d6c6f6e672d75726c2d6c6f6e672d75726c2d6c6f6e672d75726c2d6c6f6e672d75726c2d6c6f6e672d75726c2d222c22736f7572636554797065223a22222c226c6963656e7365223a22222c226e6f7465223a22222c226369746174696f6e496473223a5b227331225d7d -->\n\n<!-- memo-nexus:image-caption -->\n資料説明\n<!-- /memo-nexus:image-block -->\n\n<!-- memo-nexus:image-block -->\n![画像](attachment://f27de048-3cd5-4b75-b6fa-5276057e17cb)\n<!-- /memo-nexus:image-block -->\n\n<!-- memo-nexus:table-block:7b2274797065223a227461626c65222c226964223a226e756d62657265642d7461626c65222c2263617074696f6e223a22e8a1a8e381aee8aaace6988e222c226e6f7465223a22222c22686173486561646572223a747275652c2276657273696f6e223a312c22726f7773223a5b5b22222c22225d2c5b22222c22225d5d2c226369746174696f6e496473223a5b227331225d7d -->\n\n<!-- memo-nexus:chart-block:7b2274797065223a226368617274222c226964223a226e756d62657265642d6368617274222c22736368656d6156657273696f6e223a312c22636861727454797065223a22626172222c227469746c65223a22e382b0e383a9e38395e8aaace6988e222c22756e6974223a22222c226974656d73223a5b7b226964223a226e756d62657265642d63686172742d6974656d2d31222c226c6162656c223a22227d5d2c22736572696573223a5b7b226964223a226e756d62657265642d63686172742d7365726965732d31222c226e616d65223a22e7b3bbe588972031222c22636f6c6f72223a2223346634366535222c2276616c756573223a5b305d7d5d2c22617070656172616e6365223a7b2273686f77446174615461626c65223a747275652c22636f6c6f72223a2223346634366535222c226261724d6f6465223a2267726f75706564222c226261724f7269656e746174696f6e223a22766572746963616c222c2273686f77537461636b546f74616c73223a66616c73652c2273686f7756616c756573223a747275652c2273686f77506f696e7473223a747275652c2273686f774c6567656e64223a66616c73652c227069654c6162656c4d6f6465223a2270657263656e74616765222c227069655365726965734964223a226e756d62657265642d63686172742d7365726965732d31227d2c226369746174696f6e496473223a5b227331225d7d -->\n\n<!-- memo-nexus:image-block -->\n<!-- memo-nexus:figure-id:numbered-comparison -->\n<!-- memo-nexus:image-mode:comparison -->\n![画像](attachment://f27de048-3cd5-4b75-b6fa-5276057e17cb)\n<!-- memo-nexus:image-label:7b2276657273696f6e223a312c226c6162656c223a22e5a489e69bb4e5898d227d -->\n![画像](attachment://f27de048-3cd5-4b75-b6fa-5276057e17cb)\n<!-- memo-nexus:image-label:7b2276657273696f6e223a312c226c6162656c223a22e5a489e69bb4e5be8c227d -->\n\n<!-- memo-nexus:image-caption -->\n比較説明\n<!-- /memo-nexus:image-block -->\n\n<!-- memo-nexus:geometry-block:7b2274797065223a2267656f6d65747279222c2276657273696f6e223a322c226469616772616d223a7b226465736372697074696f6e223a22e8a39ce8b6b3e8aaace6988e222c2263726561746564466f725265706f7274223a66616c73652c226369746174696f6e496473223a5b227331225d7d2c226964223a226e756d62657265642d6469616772616d222c2263617074696f6e223a224469616772616de8aaace6988e222c2276696577426f78223a7b2278223a302c2279223a302c227769647468223a3130302c22686569676874223a3130307d2c22706f696e7473223a5b7b226964223a227031222c2278223a31302c2279223a31302c2276697369626c65223a747275652c227374796c65223a2264656661756c74227d2c7b226964223a227032222c2278223a39302c2279223a39302c2276697369626c65223a747275652c227374796c65223a2264656661756c74227d5d2c226f626a65637473223a5b7b226964223a226c696e65222c2274797065223a227365676d656e74222c22706f696e74496473223a5b227031222c227032225d2c22726f6c65223a2265646765222c226c696e655374796c65223a22736f6c6964227d5d2c22616e6e6f746174696f6e73223a5b5d7d -->",
+  "expected": [
+    "図1",
+    "表1",
+    "図2",
+    "図3",
+    "図4"
+  ],
+  "actual": [
+    "図1",
+    "図2",
+    "表1"
+  ],
+  "before": {
+    "body": "<!-- memo-nexus:chart-block:7b2274797065223a226368617274222c226964223a2231666539656463322d363631392d343365322d616262612d383163613539643632386530222c22736368656d6156657273696f6e223a312c22636861727454797065223a22626172222c227469746c65223a22222c22756e6974223a22222c226974656d73223a5b7b226964223a2231666539656463322d363631392d343365322d616262612d3831636135396436323865302d6974656d2d31222c226c6162656c223a22227d5d2c22736572696573223a5b7b226964223a2231666539656463322d363631392d343365322d616262612d3831636135396436323865302d7365726965732d31222c226e616d65223a22e7b3bbe588972031222c22636f6c6f72223a2223346634366535222c2276616c756573223a5b305d7d5d2c22617070656172616e6365223a7b226261724d6f6465223a2267726f75706564222c226261724f7269656e746174696f6e223a22766572746963616c222c2273686f77537461636b546f74616c73223a66616c73652c2273686f7756616c756573223a747275652c2273686f77506f696e7473223a747275652c2273686f774c6567656e64223a66616c73652c227069654c6162656c4d6f6465223a2270657263656e74616765222c227069655365726965734964223a2231666539656463322d363631392d343365322d616262612d3831636135396436323865302d7365726965732d31222c22636f6c6f72223a2223346634366535222c2273686f77446174615461626c65223a66616c73657d7d -->\n<!-- memo-nexus:image-block -->\n![figure.png](attachment://f27de048-3cd5-4b75-b6fa-5276057e17cb)\n<!-- memo-nexus:figure-metadata:7b2276657273696f6e223a312c2263617074696f6e223a22e8b387e69699e382ade383a3e38397e382b7e383a7e383b3222c22646174654c6162656c223a22e6b0b8e7a6843132e5b9b4222c22736f757263654e616d65223a22e8b387e69699e5908d41222c22736f7572636555726c223a2268747470733a2f2f6578616d706c652e6f72672f736f75726365222c22736f7572636554797065223a227072696d617279222c226c6963656e7365223a22434320425920342e30222c226e6f7465223a22e8a39ce8b6b3e68385e5a0b1227d -->\n![second.png](attachment://b6ebfb08-40a7-42af-8fe2-93b911a8ed87)\n<!-- /memo-nexus:image-block -->\n# 本文の見出し\n\n本文の段落。\n\n- 項目 A\n- 項目 B\n- [ ] 未完了\n\n`code`\n<!-- memo-nexus:table-block:7b2274797065223a227461626c65222c226964223a2261323132326130372d376561612d343339332d396462312d623734363935396661363830222c2263617074696f6e223a22222c226e6f7465223a22222c22686173486561646572223a747275652c2276657273696f6e223a312c22726f7773223a5b5b22222c22225d2c5b22222c22225d5d7d --><!-- memo-nexus:explanation id=\"bd2512d3-98da-4ef3-9ec8-148edd66ae8d\" -->",
+    "note": {
+      "id": "ee939c06-525f-4a8a-b275-eca2c5814321",
+      "title": "レポートの題名",
+      "body": "<!-- memo-nexus:chart-block:7b2274797065223a226368617274222c226964223a2231666539656463322d363631392d343365322d616262612d383163613539643632386530222c22736368656d6156657273696f6e223a312c22636861727454797065223a22626172222c227469746c65223a22222c22756e6974223a22222c226974656d73223a5b7b226964223a2231666539656463322d363631392d343365322d616262612d3831636135396436323865302d6974656d2d31222c226c6162656c223a22227d5d2c22736572696573223a5b7b226964223a2231666539656463322d363631392d343365322d616262612d3831636135396436323865302d7365726965732d31222c226e616d65223a22e7b3bbe588972031222c22636f6c6f72223a2223346634366535222c2276616c756573223a5b305d7d5d2c22617070656172616e6365223a7b226261724d6f6465223a2267726f75706564222c226261724f7269656e746174696f6e223a22766572746963616c222c2273686f77537461636b546f74616c73223a66616c73652c2273686f7756616c756573223a747275652c2273686f77506f696e7473223a747275652c2273686f774c6567656e64223a66616c73652c227069654c6162656c4d6f6465223a2270657263656e74616765222c227069655365726965734964223a2231666539656463322d363631392d343365322d616262612d3831636135396436323865302d7365726965732d31222c22636f6c6f72223a2223346634366535222c2273686f77446174615461626c65223a66616c73657d7d -->\n<!-- memo-nexus:image-block -->\n![figure.png](attachment://f27de048-3cd5-4b75-b6fa-5276057e17cb)\n<!-- memo-nexus:figure-metadata:7b2276657273696f6e223a312c2263617074696f6e223a22e8b387e69699e382ade383a3e38397e382b7e383a7e383b3222c22646174654c6162656c223a22e6b0b8e7a6843132e5b9b4222c22736f757263654e616d65223a22e8b387e69699e5908d41222c22736f7572636555726c223a2268747470733a2f2f6578616d706c652e6f72672f736f75726365222c22736f7572636554797065223a227072696d617279222c226c6963656e7365223a22434320425920342e30222c226e6f7465223a22e8a39ce8b6b3e68385e5a0b1227d -->\n![second.png](attachment://b6ebfb08-40a7-42af-8fe2-93b911a8ed87)\n<!-- /memo-nexus:image-block -->\n# 本文の見出し\n\n本文の段落。\n\n- 項目 A\n- 項目 B\n- [ ] 未完了\n\n`code`\n<!-- memo-nexus:table-block:7b2274797065223a227461626c65222c226964223a2261323132326130372d376561612d343339332d396462312d623734363935396661363830222c2263617074696f6e223a22222c226e6f7465223a22222c22686173486561646572223a747275652c2276657273696f6e223a312c22726f7773223a5b5b22222c22225d2c5b22222c22225d5d7d --><!-- memo-nexus:explanation id=\"bd2512d3-98da-4ef3-9ec8-148edd66ae8d\" -->",
+      "collectionId": "system-unclassified",
+      "deletedAt": null,
+      "createdAt": 1791382553409,
+      "bodyUpdatedAt": 1791382556156,
+      "updatedAt": 1791382556299,
+      "revision": 10,
+      "isFlagged": false,
+      "tags": [],
+      "explanations": [
+        {
+          "id": "bd2512d3-98da-4ef3-9ec8-148edd66ae8d",
+          "start": 2197,
+          "end": 2270,
+          "target": "",
+          "before": "5b5b22222c22225d2c5b22222c22225d5d7d -->",
+          "after": "",
+          "cursorInsertion": true,
+          "type": "用語解説",
+          "body": "Report Previewでは開閉状態を保存しない解説です。",
+          "source": "manual",
+          "updatedAt": 1791382555582,
+          "collapsed": true
+        }
+      ]
+    },
+    "stored": [
+      {
+        "id": "751961eb-730c-4e99-8658-33ad64773d63",
+        "title": "2026-10-07 今日メモ",
+        "body": "# 2026-10-07 今日メモ\n\n",
+        "collectionId": "system-unclassified",
+        "deletedAt": null,
+        "createdAt": 1791382556302,
+        "bodyUpdatedAt": 1791382556302,
+        "updatedAt": 1791382556302,
+        "revision": 0,
+        "isFlagged": false,
+        "tags": []
+      },
+      {
+        "id": "ee939c06-525f-4a8a-b275-eca2c5814321",
+        "title": "レポートの題名",
+        "body": "<!-- memo-nexus:chart-block:7b2274797065223a226368617274222c226964223a2231666539656463322d363631392d343365322d616262612d383163613539643632386530222c22736368656d6156657273696f6e223a312c22636861727454797065223a22626172222c227469746c65223a22222c22756e6974223a22222c226974656d73223a5b7b226964223a2231666539656463322d363631392d343365322d616262612d3831636135396436323865302d6974656d2d31222c226c6162656c223a22227d5d2c22736572696573223a5b7b226964223a2231666539656463322d363631392d343365322d616262612d3831636135396436323865302d7365726965732d31222c226e616d65223a22e7b3bbe588972031222c22636f6c6f72223a2223346634366535222c2276616c756573223a5b305d7d5d2c22617070656172616e6365223a7b226261724d6f6465223a2267726f75706564222c226261724f7269656e746174696f6e223a22766572746963616c222c2273686f77537461636b546f74616c73223a66616c73652c2273686f7756616c756573223a747275652c2273686f77506f696e7473223a747275652c2273686f774c6567656e64223a66616c73652c227069654c6162656c4d6f6465223a2270657263656e74616765222c227069655365726965734964223a2231666539656463322d363631392d343365322d616262612d3831636135396436323865302d7365726965732d31222c22636f6c6f72223a2223346634366535222c2273686f77446174615461626c65223a66616c73657d7d -->\n<!-- memo-nexus:image-block -->\n![figure.png](attachment://f27de048-3cd5-4b75-b6fa-5276057e17cb)\n<!-- memo-nexus:figure-metadata:7b2276657273696f6e223a312c2263617074696f6e223a22e8b387e69699e382ade383a3e38397e382b7e383a7e383b3222c22646174654c6162656c223a22e6b0b8e7a6843132e5b9b4222c22736f757263654e616d65223a22e8b387e69699e5908d41222c22736f7572636555726c223a2268747470733a2f2f6578616d706c652e6f72672f736f75726365222c22736f7572636554797065223a227072696d617279222c226c6963656e7365223a22434320425920342e30222c226e6f7465223a22e8a39ce8b6b3e68385e5a0b1227d -->\n![second.png](attachment://b6ebfb08-40a7-42af-8fe2-93b911a8ed87)\n<!-- /memo-nexus:image-block -->\n# 本文の見出し\n\n本文の段落。\n\n- 項目 A\n- 項目 B\n- [ ] 未完了\n\n`code`\n<!-- memo-nexus:table-block:7b2274797065223a227461626c65222c226964223a2261323132326130372d376561612d343339332d396462312d623734363935396661363830222c2263617074696f6e223a22222c226e6f7465223a22222c22686173486561646572223a747275652c2276657273696f6e223a312c22726f7773223a5b5b22222c22225d2c5b22222c22225d5d7d --><!-- memo-nexus:explanation id=\"bd2512d3-98da-4ef3-9ec8-148edd66ae8d\" -->",
+        "collectionId": "system-unclassified",
+        "deletedAt": null,
+        "createdAt": 1791382553409,
+        "bodyUpdatedAt": 1791382556156,
+        "updatedAt": 1791382556299,
+        "revision": 10,
+        "isFlagged": false,
+        "tags": [],
+        "explanations": [
+          {
+            "id": "bd2512d3-98da-4ef3-9ec8-148edd66ae8d",
+            "start": 2197,
+            "end": 2270,
+            "target": "",
+            "before": "5b5b22222c22225d2c5b22222c22225d5d7d -->",
+            "after": "",
+            "cursorInsertion": true,
+            "type": "用語解説",
+            "body": "Report Previewでは開閉状態を保存しない解説です。",
+            "source": "manual",
+            "updatedAt": 1791382555582,
+            "collapsed": true
+          }
+        ]
+      },
+      {
+        "id": "7dd73e78-6f13-438a-88fa-cf96499752cb",
+        "title": "新規メモ",
+        "body": "",
+        "collectionId": "system-unclassified",
+        "deletedAt": null,
+        "createdAt": 1791382553407,
+        "bodyUpdatedAt": 1791382553407,
+        "updatedAt": 1791382553407,
+        "revision": 0,
+        "isFlagged": false,
+        "tags": []
+      }
+    ],
+    "dirty": false,
+    "timer": null,
+    "undo": [],
+    "redo": []
+  },
+  "state": {
+    "body": "<!-- memo-nexus:chart-block:7b2274797065223a226368617274222c226964223a2231666539656463322d363631392d343365322d616262612d383163613539643632386530222c22736368656d6156657273696f6e223a312c22636861727454797065223a22626172222c227469746c65223a22222c22756e6974223a22222c226974656d73223a5b7b226964223a2231666539656463322d363631392d343365322d616262612d3831636135396436323865302d6974656d2d31222c226c6162656c223a22227d5d2c22736572696573223a5b7b226964223a2231666539656463322d363631392d343365322d616262612d3831636135396436323865302d7365726965732d31222c226e616d65223a22e7b3bbe588972031222c22636f6c6f72223a2223346634366535222c2276616c756573223a5b305d7d5d2c22617070656172616e6365223a7b226261724d6f6465223a2267726f75706564222c226261724f7269656e746174696f6e223a22766572746963616c222c2273686f77537461636b546f74616c73223a66616c73652c2273686f7756616c756573223a747275652c2273686f77506f696e7473223a747275652c2273686f774c6567656e64223a66616c73652c227069654c6162656c4d6f6465223a2270657263656e74616765222c227069655365726965734964223a2231666539656463322d363631392d343365322d616262612d3831636135396436323865302d7365726965732d31222c22636f6c6f72223a2223346634366535222c2273686f77446174615461626c65223a66616c73657d7d -->\n<!-- memo-nexus:image-block -->\n![figure.png](attachment://f27de048-3cd5-4b75-b6fa-5276057e17cb)\n<!-- memo-nexus:figure-metadata:7b2276657273696f6e223a312c2263617074696f6e223a22e8b387e69699e382ade383a3e38397e382b7e383a7e383b3222c22646174654c6162656c223a22e6b0b8e7a6843132e5b9b4222c22736f757263654e616d65223a22e8b387e69699e5908d41222c22736f7572636555726c223a2268747470733a2f2f6578616d706c652e6f72672f736f75726365222c22736f7572636554797065223a227072696d617279222c226c6963656e7365223a22434320425920342e30222c226e6f7465223a22e8a39ce8b6b3e68385e5a0b1227d -->\n![second.png](attachment://b6ebfb08-40a7-42af-8fe2-93b911a8ed87)\n<!-- /memo-nexus:image-block -->\n# 本文の見出し\n\n本文の段落。\n\n- 項目 A\n- 項目 B\n- [ ] 未完了\n\n`code`\n<!-- memo-nexus:table-block:7b2274797065223a227461626c65222c226964223a2261323132326130372d376561612d343339332d396462312d623734363935396661363830222c2263617074696f6e223a22222c226e6f7465223a22222c22686173486561646572223a747275652c2276657273696f6e223a312c22726f7773223a5b5b22222c22225d2c5b22222c22225d5d7d --><!-- memo-nexus:explanation id=\"bd2512d3-98da-4ef3-9ec8-148edd66ae8d\" -->",
+    "note": {
+      "id": "ee939c06-525f-4a8a-b275-eca2c5814321",
+      "title": "レポートの題名",
+      "body": "<!-- memo-nexus:chart-block:7b2274797065223a226368617274222c226964223a2231666539656463322d363631392d343365322d616262612d383163613539643632386530222c22736368656d6156657273696f6e223a312c22636861727454797065223a22626172222c227469746c65223a22222c22756e6974223a22222c226974656d73223a5b7b226964223a2231666539656463322d363631392d343365322d616262612d3831636135396436323865302d6974656d2d31222c226c6162656c223a22227d5d2c22736572696573223a5b7b226964223a2231666539656463322d363631392d343365322d616262612d3831636135396436323865302d7365726965732d31222c226e616d65223a22e7b3bbe588972031222c22636f6c6f72223a2223346634366535222c2276616c756573223a5b305d7d5d2c22617070656172616e6365223a7b226261724d6f6465223a2267726f75706564222c226261724f7269656e746174696f6e223a22766572746963616c222c2273686f77537461636b546f74616c73223a66616c73652c2273686f7756616c756573223a747275652c2273686f77506f696e7473223a747275652c2273686f774c6567656e64223a66616c73652c227069654c6162656c4d6f6465223a2270657263656e74616765222c227069655365726965734964223a2231666539656463322d363631392d343365322d616262612d3831636135396436323865302d7365726965732d31222c22636f6c6f72223a2223346634366535222c2273686f77446174615461626c65223a66616c73657d7d -->\n<!-- memo-nexus:image-block -->\n![figure.png](attachment://f27de048-3cd5-4b75-b6fa-5276057e17cb)\n<!-- memo-nexus:figure-metadata:7b2276657273696f6e223a312c2263617074696f6e223a22e8b387e69699e382ade383a3e38397e382b7e383a7e383b3222c22646174654c6162656c223a22e6b0b8e7a6843132e5b9b4222c22736f757263654e616d65223a22e8b387e69699e5908d41222c22736f7572636555726c223a2268747470733a2f2f6578616d706c652e6f72672f736f75726365222c22736f7572636554797065223a227072696d617279222c226c6963656e7365223a22434320425920342e30222c226e6f7465223a22e8a39ce8b6b3e68385e5a0b1227d -->\n![second.png](attachment://b6ebfb08-40a7-42af-8fe2-93b911a8ed87)\n<!-- /memo-nexus:image-block -->\n# 本文の見出し\n\n本文の段落。\n\n- 項目 A\n- 項目 B\n- [ ] 未完了\n\n`code`\n<!-- memo-nexus:table-block:7b2274797065223a227461626c65222c226964223a2261323132326130372d376561612d343339332d396462312d623734363935396661363830222c2263617074696f6e223a22222c226e6f7465223a22222c22686173486561646572223a747275652c2276657273696f6e223a312c22726f7773223a5b5b22222c22225d2c5b22222c22225d5d7d --><!-- memo-nexus:explanation id=\"bd2512d3-98da-4ef3-9ec8-148edd66ae8d\" -->",
+      "collectionId": "system-unclassified",
+      "deletedAt": null,
+      "createdAt": 1791382553409,
+      "bodyUpdatedAt": 1791382556156,
+      "updatedAt": 1791382556299,
+      "revision": 10,
+      "isFlagged": false,
+      "tags": [],
+      "explanations": [
+        {
+          "id": "bd2512d3-98da-4ef3-9ec8-148edd66ae8d",
+          "start": 2197,
+          "end": 2270,
+          "target": "",
+          "before": "5b5b22222c22225d2c5b22222c22225d5d7d -->",
+          "after": "",
+          "cursorInsertion": true,
+          "type": "用語解説",
+          "body": "Report Previewでは開閉状態を保存しない解説です。",
+          "source": "manual",
+          "updatedAt": 1791382555582,
+          "collapsed": true
+        }
+      ]
+    },
+    "stored": [
+      {
+        "id": "751961eb-730c-4e99-8658-33ad64773d63",
+        "title": "2026-10-07 今日メモ",
+        "body": "# 2026-10-07 今日メモ\n\n",
+        "collectionId": "system-unclassified",
+        "deletedAt": null,
+        "createdAt": 1791382556302,
+        "bodyUpdatedAt": 1791382556302,
+        "updatedAt": 1791382556302,
+        "revision": 0,
+        "isFlagged": false,
+        "tags": []
+      },
+      {
+        "id": "ee939c06-525f-4a8a-b275-eca2c5814321",
+        "title": "レポートの題名",
+        "body": "<!-- memo-nexus:chart-block:7b2274797065223a226368617274222c226964223a2231666539656463322d363631392d343365322d616262612d383163613539643632386530222c22736368656d6156657273696f6e223a312c22636861727454797065223a22626172222c227469746c65223a22222c22756e6974223a22222c226974656d73223a5b7b226964223a2231666539656463322d363631392d343365322d616262612d3831636135396436323865302d6974656d2d31222c226c6162656c223a22227d5d2c22736572696573223a5b7b226964223a2231666539656463322d363631392d343365322d616262612d3831636135396436323865302d7365726965732d31222c226e616d65223a22e7b3bbe588972031222c22636f6c6f72223a2223346634366535222c2276616c756573223a5b305d7d5d2c22617070656172616e6365223a7b226261724d6f6465223a2267726f75706564222c226261724f7269656e746174696f6e223a22766572746963616c222c2273686f77537461636b546f74616c73223a66616c73652c2273686f7756616c756573223a747275652c2273686f77506f696e7473223a747275652c2273686f774c6567656e64223a66616c73652c227069654c6162656c4d6f6465223a2270657263656e74616765222c227069655365726965734964223a2231666539656463322d363631392d343365322d616262612d3831636135396436323865302d7365726965732d31222c22636f6c6f72223a2223346634366535222c2273686f77446174615461626c65223a66616c73657d7d -->\n<!-- memo-nexus:image-block -->\n![figure.png](attachment://f27de048-3cd5-4b75-b6fa-5276057e17cb)\n<!-- memo-nexus:figure-metadata:7b2276657273696f6e223a312c2263617074696f6e223a22e8b387e69699e382ade383a3e38397e382b7e383a7e383b3222c22646174654c6162656c223a22e6b0b8e7a6843132e5b9b4222c22736f757263654e616d65223a22e8b387e69699e5908d41222c22736f7572636555726c223a2268747470733a2f2f6578616d706c652e6f72672f736f75726365222c22736f7572636554797065223a227072696d617279222c226c6963656e7365223a22434320425920342e30222c226e6f7465223a22e8a39ce8b6b3e68385e5a0b1227d -->\n![second.png](attachment://b6ebfb08-40a7-42af-8fe2-93b911a8ed87)\n<!-- /memo-nexus:image-block -->\n# 本文の見出し\n\n本文の段落。\n\n- 項目 A\n- 項目 B\n- [ ] 未完了\n\n`code`\n<!-- memo-nexus:table-block:7b2274797065223a227461626c65222c226964223a2261323132326130372d376561612d343339332d396462312d623734363935396661363830222c2263617074696f6e223a22222c226e6f7465223a22222c22686173486561646572223a747275652c2276657273696f6e223a312c22726f7773223a5b5b22222c22225d2c5b22222c22225d5d7d --><!-- memo-nexus:explanation id=\"bd2512d3-98da-4ef3-9ec8-148edd66ae8d\" -->",
+        "collectionId": "system-unclassified",
+        "deletedAt": null,
+        "createdAt": 1791382553409,
+        "bodyUpdatedAt": 1791382556156,
+        "updatedAt": 1791382556299,
+        "revision": 10,
+        "isFlagged": false,
+        "tags": [],
+        "explanations": [
+          {
+            "id": "bd2512d3-98da-4ef3-9ec8-148edd66ae8d",
+            "start": 2197,
+            "end": 2270,
+            "target": "",
+            "before": "5b5b22222c22225d2c5b22222c22225d5d7d -->",
+            "after": "",
+            "cursorInsertion": true,
+            "type": "用語解説",
+            "body": "Report Previewでは開閉状態を保存しない解説です。",
+            "source": "manual",
+            "updatedAt": 1791382555582,
+            "collapsed": true
+          }
+        ]
+      },
+      {
+        "id": "7dd73e78-6f13-438a-88fa-cf96499752cb",
+        "title": "新規メモ",
+        "body": "",
+        "collectionId": "system-unclassified",
+        "deletedAt": null,
+        "createdAt": 1791382553407,
+        "bodyUpdatedAt": 1791382553407,
+        "updatedAt": 1791382553407,
+        "revision": 0,
+        "isFlagged": false,
+        "tags": []
+      }
+    ],
+    "preview": "<figure data-report-kind=\"figure\" data-report-key=\"chart-0\" data-report-empty-caption=\"true\" data-report-series-caption=\"\" class=\"chart-block chart-block-bar-chart\" data-chart-id=\"1fe9edc2-6619-43e2-abba-81ca59d628e0\" data-chart-bar-mode=\"grouped\" data-report-number=\"図1\"><button class=\"chart-block-edit\" type=\"button\" data-chart-id=\"1fe9edc2-6619-43e2-abba-81ca59d628e0\" data-chart-index=\"0\" aria-label=\"グラフ1を編集\" data-report-preview-disabled=\"\" disabled=\"\">編集</button><div class=\"chart-block-bar-layout\"><div class=\"chart-block-scroll\" role=\"region\" tabindex=\"0\" aria-label=\"グラフ1\"><svg viewBox=\"0 0 420 260\" role=\"img\" aria-label=\"グラフ1\"><line class=\"chart-block-axis\" x1=\"48\" y1=\"54\" x2=\"48\" y2=\"196\"></line><line class=\"chart-block-axis chart-block-zero-line\" aria-hidden=\"true\" x1=\"48\" x2=\"402\" y1=\"196\" y2=\"196\"></line><text class=\"chart-block-axis-value chart-block-axis-zero chart-block-axis-maximum\" x=\"42\" y=\"200\" text-anchor=\"end\">0</text><text class=\"chart-block-empty\" x=\"210\" y=\"130\" text-anchor=\"middle\">項目名と有限な数値を入力してください</text></svg></div></div><ul class=\"sr-only\"><li>有効な項目はありません</li></ul><div class=\"chart-png-controls\"><button type=\"button\" data-chart-png-index=\"0\" data-report-preview-disabled=\"\" disabled=\"\">PNG画像として保存</button><button type=\"button\" data-chart-png-copy-index=\"0\" data-report-preview-disabled=\"\" disabled=\"\">画像をクリップボードへコピー</button><button type=\"button\" data-chart-svg-index=\"0\" data-report-preview-disabled=\"\" disabled=\"\">SVG画像として保存</button><p class=\"chart-block-status\" role=\"status\" aria-live=\"polite\"></p></div><div class=\"chart-tsv-copy-controls\"><button type=\"button\" data-chart-copy-index=\"0\" data-report-preview-disabled=\"\" disabled=\"\">全データをTSVでコピー</button><button type=\"button\" data-chart-file-format=\"csv\" data-chart-file-index=\"0\" data-report-preview-disabled=\"\" disabled=\"\">CSVで保存</button><button type=\"button\" data-chart-file-format=\"tsv\" data-chart-file-index=\"0\" data-report-preview-disabled=\"\" disabled=\"\">TSVで保存</button><span>項目名・全系列名・元の入力値を対象にします</span><p class=\"chart-block-status\" role=\"status\"></p></div><figcaption class=\"report-caption\"><span class=\"report-number\">図1</span></figcaption></figure>\n    <figure class=\"image-block image-count-2 image-size-medium image-align-center\" data-image-block-index=\"1\" data-report-kind=\"figure\" data-report-key=\"image-1\" tabindex=\"0\" data-report-number=\"図2\">\n      <div class=\"image-block-media\">\n    <div class=\"image-block-item\">\n      <button class=\"image-block-open\" type=\"button\" data-image-id=\"f27de048-3cd5-4b75-b6fa-5276057e17cb\" aria-label=\"figure.pngを拡大表示\">\n        <span class=\"inline-attachment-image\" data-attachment-id=\"f27de048-3cd5-4b75-b6fa-5276057e17cb\" data-alt=\"figure.png\" role=\"img\" aria-label=\"figure.png\"><img src=\"blob:http://127.0.0.1:40403/f9591dbe-7333-40f4-bcde-75bbd1e1928c\" alt=\"figure.png\" loading=\"lazy\"></span>\n      </button>\n      \n      \n      \n    </div>\n  \n    <div class=\"image-block-item\">\n      <button class=\"image-block-open\" type=\"button\" data-image-id=\"b6ebfb08-40a7-42af-8fe2-93b911a8ed87\" aria-label=\"second.pngを拡大表示\">\n        <span class=\"inline-attachment-image\" data-attachment-id=\"b6ebfb08-40a7-42af-8fe2-93b911a8ed87\" data-alt=\"second.png\" role=\"img\" aria-label=\"second.png\"><img src=\"blob:http://127.0.0.1:40403/fdcf8bba-6f07-4cec-af04-3147cebfe8f1\" alt=\"second.png\" loading=\"lazy\"></span>\n      </button>\n      \n      \n      \n    </div>\n  </div><figcaption class=\"image-block-caption report-caption\"><span class=\"report-number\">図2</span> 資料キャプション</figcaption><div class=\"report-image-source\"><div class=\"figure-metadata\"><div class=\"figure-metadata-main\"><span>永禄12年</span><span>一次資料</span><span>資料名A</span></div><details><summary>資料情報の詳細</summary><dl><div><dt>資料名</dt><dd>資料名A</dd></div><div><dt>出典URL</dt><dd><a href=\"https://example.org/source\" target=\"_blank\" rel=\"noopener noreferrer\">https://example.org/source</a></dd></div><div><dt>資料種別</dt><dd>一次資料</dd></div><div><dt>権利・ライセンス</dt><dd>CC BY 4.0</dd></div><div><dt>補足</dt><dd>補足情報</dd></div></dl></details></div></div>\n      \n      <div class=\"image-block-menu-shell\">\n        <button class=\"image-block-menu-toggle\" type=\"button\" aria-label=\"画像ブロック操作メニュー\" aria-expanded=\"false\" aria-controls=\"image-block-menu-1\" data-report-preview-disabled=\"\" disabled=\"\">…</button>\n        <div id=\"image-block-menu-1\" class=\"image-block-actions\" aria-label=\"画像ブロック操作\" hidden=\"\">\n          \n          <button class=\"image-block-swap\" type=\"button\" data-report-preview-disabled=\"\" disabled=\"\">左右を入れ替える</button>\n          <button class=\"image-block-edit-comparison\" type=\"button\" data-report-preview-disabled=\"\" disabled=\"\">比較表示を設定</button>\n          <div class=\"image-block-alignment\" role=\"group\" aria-label=\"画像ブロックの配置\">\n            <button class=\"image-block-alignment-button\" type=\"button\" data-image-alignment=\"left\" title=\"左配置\" aria-label=\"画像ブロックを左配置\" aria-pressed=\"false\" data-report-preview-disabled=\"\" disabled=\"\">左</button><button class=\"image-block-alignment-button\" type=\"button\" data-image-alignment=\"center\" title=\"中央配置\" aria-label=\"画像ブロックを中央配置\" aria-pressed=\"true\" data-report-preview-disabled=\"\" disabled=\"\">中央</button><button class=\"image-block-alignment-button\" type=\"button\" data-image-alignment=\"right\" title=\"右配置\" aria-label=\"画像ブロックを右配置\" aria-pressed=\"false\" data-report-preview-disabled=\"\" disabled=\"\">右</button>\n          </div>\n          <button class=\"image-block-edit-caption\" type=\"button\" data-report-preview-disabled=\"\" disabled=\"\">説明文を追加</button>\n          <button class=\"image-block-edit-figure\" type=\"button\" data-image-index=\"0\" data-report-preview-disabled=\"\" disabled=\"\">画像1の資料情報</button><button class=\"image-block-edit-figure\" type=\"button\" data-image-index=\"1\" data-report-preview-disabled=\"\" disabled=\"\">画像2の資料情報</button>\n          <button class=\"image-block-remove\" type=\"button\" data-image-index=\"0\" data-report-preview-disabled=\"\" disabled=\"\">画像1を外す</button><button class=\"image-block-remove\" type=\"button\" data-image-index=\"1\" data-report-preview-disabled=\"\" disabled=\"\">画像2を外す</button>\n        </div>\n      </div>\n    </figure>\n  <h1>本文の見出し</h1><p>本文の段落。</p><ul><li>項目 A</li><li>項目 B</li><li class=\"task-list-item\"><input class=\"task-list-checkbox\" type=\"checkbox\" data-task-index=\"0\" aria-label=\"未完了\" data-report-preview-disabled=\"\" disabled=\"\"><span>未完了</span></li></ul><p><code class=\"inline-code\">code</code></p>\n    <figure data-report-kind=\"table\" data-report-key=\"table-0\" class=\"table-block\" data-table-id=\"a2122a07-7eaa-4393-9db1-b746959fa680\" data-report-number=\"表1\"><figcaption class=\"report-caption\"><span class=\"report-number\">表1</span></figcaption>\n      \n      <div class=\"table-block-scroll\" tabindex=\"0\" role=\"region\" aria-label=\"表ブロック1\">\n        <table aria-label=\"表ブロック1\"><thead><tr><th></th><th></th></tr></thead><tbody><tr><td></td><td></td></tr></tbody></table>\n      </div>\n      \n      \n    </figure>\n  <section class=\"explanation-cards\" aria-label=\"解説カード\"><article id=\"explanation-card-bd2512d3-98da-4ef3-9ec8-148edd66ae8d\" class=\"explanation-card explanation-orphaned\"><details><summary>解説カード1：用語解説</summary><p class=\"explanation-card-target\">対象：（対象なし）</p><p class=\"explanation-card-body\">Report Previewでは開閉状態を保存しない解説です。</p><p class=\"explanation-card-status\">対象の文章が見つかりません。</p><div class=\"explanation-card-actions\"><button type=\"button\" data-report-preview-disabled=\"\" disabled=\"\">編集</button><button type=\"button\" data-report-preview-disabled=\"\" disabled=\"\">削除</button></div></details></article></section>",
+    "writes": [],
+    "layout": "wide",
+    "attachments": [
+      {
+        "id": "f27de048-3cd5-4b75-b6fa-5276057e17cb",
+        "fileName": "figure.png"
+      },
+      {
+        "id": "b6ebfb08-40a7-42af-8fe2-93b911a8ed87",
+        "fileName": "second.png"
+      }
+    ],
+    "dirty": false,
+    "timer": null,
+    "pending": null
+  }
+}

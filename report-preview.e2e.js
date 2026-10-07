@@ -36,6 +36,7 @@ async function verifyReportNumbering(page) {
       Object.defineProperty(editor,'value',{configurable:true,get(){return descriptor.get.call(this);},set(value){window.reportE2eWrites.push({value,stack:new Error().stack,time:performance.now()});descriptor.set.call(this,value);}});
     });
     await page.locator("#editor").fill(expectedBody);
+    assert.equal(await page.locator("#editor").inputValue(),expectedBody,"Numbering fixture must reach the editor before save/Preview");
     await page.evaluate(() => flushSave());
     await page.waitForFunction(() => !noteSaveFoundation.isDirty(currentId) && saveTimer === null && window.MemoNexusTypingDerivedUiScheduler.pendingRequestType() === null);
     const before = await snapshot();
@@ -54,6 +55,9 @@ async function verifyReportNumbering(page) {
   }
   async function back() { await page.locator("#reportPreviewBackBtn").click();assert.equal(await page.locator('.report-caption').count(),0); }
   await page.setViewportSize({width:1280,height:900});
+  // Chromium fill uses native text insertion. An inert editor can pass its
+  // editable check while ignoring insertion until the resize handler runs.
+  await page.waitForFunction(()=>document.body.dataset.layoutMode==='wide' && !editor.closest('[inert]'));
   const parts = [figure,ordinary,table,chart,comparison,diagram];
   const before = await show(parts,["図1","表1","図2","図3","図4"]);
   const dom = await page.locator(numbered).evaluateAll(elements => elements.map(e => ({number:e.dataset.reportNumber,caption:e.querySelector(':scope > figcaption').textContent,top:e.getBoundingClientRect().top,captionTop:e.querySelector(':scope > figcaption').getBoundingClientRect().top})));
