@@ -326,6 +326,22 @@ async function verifyDualAxisCharts(page, { chart, waitForChartCancelCompletion,
 async function verifyDualGeometry(page, model, record = null, onAssertStart = null) {
   let started = record && performance.now();
   await page.locator('#preview .chart-block-combo-dual').waitFor({ state: 'attached' });
+  const expectedMarks = model.items.flatMap((item, index) => model.series.map(series => ({
+    item: item.id, series: series.id,
+    title: item.label + '、' + series.name + (series.id === model.appearance.comboLineSeriesId
+      ? '（折れ線・右軸）: ' + String(series.values[index]) + model.appearance.comboSecondaryUnit
+      : '（棒・左軸）: ' + String(series.values[index]) + model.unit)
+  })));
+  // Structured edits commit the model before the debounced Markdown preview.
+  // Axis titles may be unchanged, so wait for this model's actual SVG data marks.
+  await page.waitForFunction(({ id, expected }) => {
+    const figure = [...document.querySelectorAll('#preview .chart-block-combo-dual')].find(e => e.dataset.chartId === id);
+    if (!figure) return false;
+    const marks = [...figure.querySelectorAll('.chart-block-bar, .chart-block-line-item')];
+    return marks.length === expected.length && expected.every(entry => marks.some(mark =>
+      mark.dataset.chartItemId === entry.item && mark.dataset.chartSeriesId === entry.series
+      && mark.querySelector('title')?.textContent === entry.title));
+  }, { id: model.id, expected: expectedMarks });
   // Acquire and measure the current preview in one task; rendering can replace a locator's resolved node.
   const state = await page.evaluate(() => {
     const figure = document.querySelector('#preview .chart-block-combo-dual');
@@ -372,7 +388,8 @@ async function verifyDualGeometry(page, model, record = null, onAssertStart = nu
   assert.equal(state.bars.length,model.items.length*(model.series.length-1)); assert.equal(state.points.length,model.items.length);
   const all=model.series.flatMap((s)=>s.values), negative=all.some((v)=>v<0),positive=all.some((v)=>v>0);
   const ratio=negative?(positive?0.5:1):0;
-  assert.ok(Math.abs(state.zero-(state.bottom-ratio*(state.bottom-state.top)))<1e-8);
+  assert.ok(Math.abs(state.zero-(state.bottom-ratio*(state.bottom-state.top)))<1e-8,
+    JSON.stringify({ actual: state.zero, expected: state.bottom-ratio*(state.bottom-state.top), top: state.top, bottom: state.bottom, values: model.series.map(s=>s.values) }));
   for (const mark of [...state.bars,...state.points]) {
     const s=model.series.find((s)=>s.id===mark.series), i=model.items.findIndex((i)=>i.id===mark.item),value=s.values[i];
     const data=model.series.filter((entry)=>(entry.id===lineId)===(s.id===lineId)).flatMap((s)=>s.values);
