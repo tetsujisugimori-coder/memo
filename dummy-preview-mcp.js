@@ -1,25 +1,31 @@
 "use strict";
 const http = require("node:http");
-const { REQUEST_ID_PATTERN, exactKeys } = require("./dummy-preview-queue.js");
+const { REQUEST_ID_PATTERN, MAX_TEXT_INPUT_BYTES, textRequest, exactKeys } = require("./dummy-preview-queue.js");
 const { PORT, validateToken } = require("./dummy-preview-service.js");
-function submitDummy(requestId, token) {
+function submitPayload(payload, token, path) {
   validateToken(token);
   return new Promise((resolve, reject) => {
-    const body = JSON.stringify({ requestId });
-    const req = http.request({ hostname: "127.0.0.1", port: PORT, path: "/dummy", method: "POST", timeout: 3000,
+    const body = JSON.stringify(payload);
+    const req = http.request({ hostname: "127.0.0.1", port: PORT, path, method: "POST", timeout: 3000,
       headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json", "Content-Length": Buffer.byteLength(body) } }, (res) => {
       const chunks = []; let size = 0;
-      res.on("data", (chunk) => { size += chunk.length; if (size > 70000) res.destroy(new Error("response_limit")); else chunks.push(chunk); });
+      res.on("data", (chunk) => { size += chunk.length; if (size > MAX_TEXT_INPUT_BYTES + 4096) res.destroy(new Error("response_limit")); else chunks.push(chunk); });
       res.on("error", reject);
       res.on("end", () => {
-        if (res.statusCode !== 200 && res.statusCode !== 409) return reject(new Error("queue_request_failed"));
-        try { resolve(JSON.parse(Buffer.concat(chunks).toString("utf8")).request); } catch { reject(new Error("invalid_response")); }
+        try {
+          const result = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+          if (result.error) return reject(Object.assign(new Error(result.error), { code: result.error }));
+          if ((res.statusCode !== 200 && res.statusCode !== 409) || !result.request) throw new Error("invalid_response");
+          resolve(result.request);
+        } catch { reject(new Error("invalid_response")); }
       });
     });
     req.on("timeout", () => req.destroy(new Error("queue_timeout")));
     req.on("error", reject); req.end(body);
   });
 }
+function submitDummy(requestId, token) { return submitPayload({ requestId }, token, "/dummy"); }
+function submitText(input, token) { textRequest(input); return submitPayload(input, token, "/text"); }
 // MCP 2025-06-18 Request._meta: opaque metadata, with an optional string/number progressToken.
 // Key syntax follows basic/general-fields; reserved prefixes remain valid metadata.
 const META_LABEL = "[A-Za-z](?:[A-Za-z0-9-]*[A-Za-z0-9])?";
@@ -30,7 +36,7 @@ function validRequestMetadata(value) {
     && (!Object.hasOwn(value, "progressToken") || typeof value.progressToken === "string"
       || (typeof value.progressToken === "number" && Number.isFinite(value.progressToken)));
 }
-function createMcpHandler({ submit = (id) => submitDummy(id, process.env.MEMO_PREVIEW_ADAPTER_TOKEN) } = {}) {
+function createMcpHandler({ submit = (id) => submitDummy(id, process.env.MEMO_PREVIEW_ADAPTER_TOKEN), submitArbitrary = (input) => submitText(input, process.env.MEMO_PREVIEW_ADAPTER_TOKEN) } = {}) {
   let initialized = false;
   return async (message) => {
     const reply = (result) => ({ jsonrpc: "2.0", id: message.id, result });
@@ -43,19 +49,26 @@ function createMcpHandler({ submit = (id) => submitDummy(id, process.env.MEMO_PR
     if (!initialized) return error(-32000, "Initialize first");
     if (message.method === "tools/list") return reply({ tools: [{ name: "submit_dummy_preview", description: "固定ダミー1件を一時キューで受信・未保存。ブラウザ表示やメモ保存を行わない。requestIdは呼び出し側がUUID v4を生成し、再送には同じ値を使う。",
       inputSchema: { type: "object", properties: { requestId: { type: "string", pattern: REQUEST_ID_PATTERN.source } }, required: ["requestId"], additionalProperties: false },
-      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false } }] });
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false } },
+      { name: "submit_text_preview", description: "任意文章を一時キューに受信。保存はブラウザの明示的ボタン操作のみ。requestIdはUUID v4、titleは空白のみ不可・200コードポイント、bodyは空白のみ不可・65536コードポイントかつUTF-8 65536 byteまで。本文を変換しない。",
+        inputSchema: { type: "object", properties: { requestId: { type: "string", pattern: REQUEST_ID_PATTERN.source }, title: { type: "string", minLength: 1, maxLength: 200 }, body: { type: "string", minLength: 1, maxLength: 65536 } }, required: ["requestId", "title", "body"], additionalProperties: false },
+        annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false } }] });
     if (message.method !== "tools/call") return error(-32601, "Method not found");
     const hasMeta = message.params != null && Object.hasOwn(message.params, "_meta");
     if (!exactKeys(message.params, hasMeta ? ["name", "arguments", "_meta"] : ["name", "arguments"])
-      || (hasMeta && !validRequestMetadata(message.params._meta)) || message.params.name !== "submit_dummy_preview"
-      || !exactKeys(message.params.arguments, ["requestId"]) || typeof message.params.arguments.requestId !== "string"
-      || !REQUEST_ID_PATTERN.test(message.params.arguments.requestId)) return error(-32602, "Only a dummy requestId (UUID v4) is accepted");
+      || (hasMeta && !validRequestMetadata(message.params._meta))) return error(-32602, "Invalid tool parameters");
+    const arbitrary = message.params.name === "submit_text_preview";
     try {
-      const record = await submit(message.params.arguments.requestId);
-      const result = { requestId: record.requestId, title: record.title, body: record.body, state: record.state, saved: false,
-        message: record.state === "queued" ? "一時キューで受信・未保存（ブラウザ表示は未確認）" : `一時要求の状態: ${record.state}・未保存` };
+      if (arbitrary) textRequest(message.params.arguments);
+      else if (message.params.name !== "submit_dummy_preview" || !exactKeys(message.params.arguments, ["requestId"])
+        || typeof message.params.arguments.requestId !== "string" || !REQUEST_ID_PATTERN.test(message.params.arguments.requestId)) throw new Error("invalid_format");
+    } catch (invalid) { return error(-32602, invalid.code || "Invalid tool arguments"); }
+    try {
+      const record = arbitrary ? await submitArbitrary(message.params.arguments) : await submit(message.params.arguments.requestId);
+      const result = { requestId: record.requestId, title: record.title, body: record.body, state: record.state, saved: record.saved,
+        message: record.saved ? "ブラウザから保存完了の通知を受信済み（このMCP呼び出しは保存しません）" : record.state === "queued" ? "一時キューで受信・未保存（ブラウザ表示は未確認）" : `一時要求の状態: ${record.state}・保存完了は未確認` };
       return reply({ content: [{ type: "text", text: JSON.stringify(result) }], isError: record.state === "queue_full" });
-    } catch { return reply({ content: [{ type: "text", text: JSON.stringify({ requestId: message.params.arguments.requestId, state: "unconfirmed", saved: false, message: "一時キューへの受信を確認できません。未保存。同じrequestIdで再試行してください。" }) }], isError: true }); }
+    } catch (failure) { return reply({ content: [{ type: "text", text: JSON.stringify({ requestId: message.params.arguments.requestId, state: failure.code || "unconfirmed", saved: false, message: failure.code === "request_id_conflict" ? "同じrequestIdの内容が異なるため拒否しました。既存の受信内容は維持します。" : "一時キューへの受信を確認できません。未保存。同じrequestIdで再試行してください。" }) }], isError: true }); }
   };
 }
 function runStdio() {
@@ -64,7 +77,7 @@ function runStdio() {
   const write = (value) => { if (value) process.stdout.write(`${JSON.stringify(value)}\n`); };
   process.stdin.on("data", async (chunk) => {
     // Bound queued input, including oversized lines without newlines.
-    if (busy || buffer.length + chunk.length > 4096) { process.stdin.destroy(); process.exitCode = 1; return; }
+    if (busy || buffer.length + chunk.length > MAX_TEXT_INPUT_BYTES + 4096) { process.stdin.destroy(); process.exitCode = 1; return; }
     buffer = Buffer.concat([buffer, chunk]); busy = true; process.stdin.pause();
     try {
       let newline;
@@ -79,4 +92,4 @@ function runStdio() {
   });
 }
 if (require.main === module) runStdio();
-module.exports = { submitDummy, createMcpHandler };
+module.exports = { submitDummy, submitText, createMcpHandler };

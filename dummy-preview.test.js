@@ -14,7 +14,7 @@ test("strict schema and UTF-8/code point size boundaries on internal validation 
   for (const key of ["id", "noteId", "update", "delete", "tags", "collectionId", "image", "attachments", "report", "unknown"]) {
     assert.throws(() => validateRequest({ ...value, [key]: "forbidden" }), /invalid_format/);
   }
-  for (const patch of [{ formatVersion: 2 }, { dummy: false }, { requestId: "memo-id" }, { title: null }, { body: [] }]) assert.throws(() => validateRequest({ ...value, ...patch }), /invalid_format/);
+  for (const patch of [{ formatVersion: 2 }, { dummy: "false" }, { requestId: "memo-id" }, { title: null }, { body: [] }]) assert.throws(() => validateRequest({ ...value, ...patch }), /invalid_format/);
   assert.equal(validateRequest({ ...value, title: "😀".repeat(200), body: "a".repeat(MAX_BODY_BYTES) }).body.length, MAX_BODY_BYTES);
   assert.throws(() => validateRequest({ ...value, title: "😀".repeat(201) }), /size_limit/);
   assert.throws(() => validateRequest({ ...value, body: "a".repeat(MAX_BODY_BYTES + 1) }), /size_limit/);
@@ -91,12 +91,12 @@ test("HTTP auth, exact Origin/Host/routes/headers/preflight, bounded input and i
   let limited; for (let n = 0; n < 130; n++) { limited = await wire(port, { headers: browser }); if (limited.status === 429) break; }
   assert.equal(limited.status, 429);
 });
-test("MCP publishes only fixed dummy submission; requestId is caller generated and preserved", async () => {
+test("MCP retains fixed dummy submission alongside text preview; requestId is caller generated and preserved", async () => {
   const queue = createQueue(); const handler = createMcpHandler({ submit: async (requestId) => queue.submit(dummyRequest(requestId)) });
   assert.equal((await handler(null)).error.code, -32600);
   const call = (method, params) => handler({ jsonrpc: "2.0", id: 1, method, params });
   await call("initialize", { protocolVersion: "2025-06-18" }); await handler({ jsonrpc: "2.0", method: "notifications/initialized" });
-  const list = await call("tools/list"); assert.deepEqual(list.result.tools.map((tool) => tool.name), ["submit_dummy_preview"]);
+  const list = await call("tools/list"); assert.deepEqual(list.result.tools.map((tool) => tool.name), ["submit_dummy_preview", "submit_text_preview"]);
   const requestId = id(); const params = { name: "submit_dummy_preview", arguments: { requestId } };
   const response = await call("tools/call", params); const result = JSON.parse(response.result.content[0].text);
   assert.equal(result.requestId, requestId); assert.equal(result.state, "queued"); assert.equal(result.saved, false);
