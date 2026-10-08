@@ -34,7 +34,8 @@
     byId("dummyPreviewTitle").textContent = record?.title || "";
     byId("dummyPreviewBody").textContent = record?.body || "";
     byId("dummyPreviewRequestId").textContent = record?.requestId || "";
-    byId("dummyPreviewState").textContent = record ? ({ queued: "ブラウザ表示中／一時キュー受信・未保存", saving: "保存完了未確認／再試行可能", save_failed: "保存失敗・受信内容保持", saved: "保存済み（ブラウザ内）", rejected: "破棄済み（受信内容のみ）", expired: "期限切れ", queue_full: "満杯で受信拒否" })[record.state] : "";
+    byId("dummyPreviewBadge").textContent = ({ saving: "保存完了未確認", save_failed: "保存完了未確認", saved: "保存済み（ブラウザ内）", rejected: "破棄済み", expired: "期限切れ", queue_full: "受信拒否" })[record?.state] || "未保存プレビュー";
+    byId("dummyPreviewState").textContent = record ? ({ queued: "ブラウザ表示中／一時キュー受信・未保存", saving: "保存完了未確認／再試行可能", save_failed: "保存完了未確認／エラー・受信内容保持", saved: "保存済み（ブラウザ内）", rejected: "破棄済み（受信内容のみ）", expired: "期限切れ", queue_full: "満杯で受信拒否" })[record.state] : "";
     const destination = window.MemoNexusReceivedPreview?.destination(record?.savePlan?.collectionId);
     displayedDestination = destination;
     byId("dummyPreviewDestination").textContent = `${record?.savePlan ? "固定済み：" : ""}${destination?.label || "保存領域未準備"}`;

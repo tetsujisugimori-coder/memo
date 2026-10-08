@@ -1105,13 +1105,13 @@
   <script src="app.js?v=0.5.0-204"></script>
   <script src="codex-chat.js?v=0.5.0-6"></script>
   <dialog id="dummyPreviewDialog" class="dummy-preview-dialog" aria-labelledby="dummyPreviewHeading" aria-describedby="dummyPreviewHelp">
-    <h2 id="dummyPreviewHeading">文章の受信確認 <small>未保存プレビュー</small></h2>
+    <h2 id="dummyPreviewHeading">文章の受信確認 <small id="dummyPreviewBadge">未保存プレビュー</small></h2>
     <p id="dummyPreviewHelp">受信だけでは保存しません。閉じるとトークンを消去します。受信期限は10分。保存開始後は再試行用にサービス終了まで保持します。重複防止は同じサービスの稼働中・同じブラウザ保存領域内です。サービス再起動で履歴は消えます。</p>
     <label>受信サービス専用トークン<input id="dummyPreviewToken" type="password" autocomplete="off" spellcheck="false" autocapitalize="off" maxlength="128"></label>
     <p id="dummyPreviewStatus" role="status" aria-live="polite" aria-atomic="true"></p>
     <section id="dummyPreviewContent" hidden>
       <h3 id="dummyPreviewTitle"></h3>
-      <dl><dt>requestId</dt><dd id="dummyPreviewRequestId"></dd><dt>受信状態（未保存）</dt><dd id="dummyPreviewState"></dd></dl>
+      <dl><dt>requestId</dt><dd id="dummyPreviewRequestId"></dd><dt>受信・保存状態</dt><dd id="dummyPreviewState"></dd></dl>
       <pre id="dummyPreviewBody" aria-label="本文（Markdown原文）"></pre>
       <p>保存先：<strong id="dummyPreviewDestination"></strong>（ブラウザ内IndexedDB。ローカルフォルダーへの同期は既存設定に従います）</p>
       <p id="dummyPreviewStorageWarning"></p>
@@ -1120,6 +1120,6 @@
     <div class="dummy-preview-actions"><button id="dummyPreviewCheckBtn" type="button">受信を確認</button><button id="dummyPreviewSaveBtn" type="button" disabled>新規メモとして保存</button><button id="dummyPreviewRejectBtn" type="button" disabled>破棄</button><button id="dummyPreviewCloseBtn" type="button">閉じる</button></div>
   </dialog>
   <link rel="stylesheet" href="dummy-preview.css?v=0.5.0-1">
-  <script src="dummy-preview-ui.js?v=0.5.0-2"></script>
+  <script src="dummy-preview-ui.js?v=0.5.0-3"></script>
 </body>
 </html>

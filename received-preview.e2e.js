@@ -100,6 +100,7 @@ async function mcp(token, value) {
     await open(); await check();
     assert.equal(await page.locator("#dummyPreviewBody").textContent(), value.body);
     assert.equal(await page.locator("#dummyPreviewTitle").textContent(), value.title);
+    assert.match(await page.locator("#dummyPreviewBadge").textContent(), /未保存/);
     assert.match(await page.locator("#dummyPreviewDestination").textContent(), /受信検証専用/);
     assert.equal(await page.locator("#dummyPreviewBody img, #dummyPreviewBody a, #dummyPreviewBody script").count(), 0);
     assert.deepEqual(unsafe, []); assert.equal(await page.evaluate(() => window.receivedExecuted), undefined);
@@ -152,6 +153,7 @@ async function mcp(token, value) {
     await doneSave();
     assert.equal(await page.evaluate(() => window.previewPutCount), 1);
     assert.equal(queue.status(saving.requestId).saved, true);
+    assert.match(await page.locator("#dummyPreviewBadge").textContent(), /保存済み/);
     const afterSave = await snapshot(page);
     assert.equal(afterSave.notes.length, beforeRetry.notes.length + 1);
     const saved = afterSave.notes.find(([id]) => id === plan.noteId)[1];
