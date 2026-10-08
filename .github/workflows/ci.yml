@@ -582,6 +582,8 @@ jobs:
         run: npm run test:e2e:dummy-preview
       - name: Verify isolated received text and explicit save path
         run: npm run test:e2e:received-preview
+      - name: Verify received preview concurrency in one browser storage area
+        run: npm run test:e2e:received-concurrency
       - name: Preserve results including failures
         if: always()
         uses: actions/upload-artifact@v6

@@ -79,12 +79,13 @@ function createPreviewService({ browserToken, adapterToken, queue = createQueue(
     try {
       if (req.url === "/pending") return send(200, { pending: queue.peek() });
       const input = await readJson(req, inputLimit);
-      if (req.url !== "/text" && !exactKeys(input, req.url === "/begin" ? ["requestId", "collectionId"] : ["requestId"])) throw fault("invalid_format");
+      const keys = req.url === "/begin" ? ["requestId", "collectionId", "previousAttemptId"] : ["/complete", "/failed"].includes(req.url) ? ["requestId", "attemptId"] : ["requestId"];
+      if (req.url !== "/text" && !exactKeys(input, keys)) throw fault("invalid_format");
       const record = req.url === "/text" ? queue.submit(textRequest(input))
         : req.url === "/dummy" ? queue.submit(dummyRequest(input.requestId))
-        : req.url === "/begin" ? queue.begin(input.requestId, input.collectionId)
-        : req.url === "/complete" ? queue.complete(input.requestId)
-        : req.url === "/failed" ? queue.failed(input.requestId)
+        : req.url === "/begin" ? queue.begin(input.requestId, input.collectionId, input.previousAttemptId)
+        : req.url === "/complete" ? queue.complete(input.requestId, input.attemptId)
+        : req.url === "/failed" ? queue.failed(input.requestId, input.attemptId)
         : req.url === "/reject" ? queue.reject(input.requestId) : queue.status(input.requestId);
       return send(record.state === "queue_full" ? 409 : 200, { request: record });
     } catch (error) { return send(error.status || 500, { error: error.code || "internal_error" }); }

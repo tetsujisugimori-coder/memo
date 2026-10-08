@@ -11,9 +11,10 @@
   const input = byId("dummyPreviewToken");
   const status = byId("dummyPreviewStatus");
   let token = ""; let current = null; let controller = null; let session = 0; let saving = false; let displayedDestination = null;
+  let operationController = null; let needsDestinationConfirmation = false;
   function validateRecord(value) {
     const keys = ["formatVersion", "requestId", "dummy", "title", "body", "state", "receivedAt", "expiresAt", "saved"];
-    if (value?.dummy === false) keys.push("savePlan");
+    if (value?.dummy === false) keys.push("savePlan", "attemptId");
     if (!value || typeof value !== "object" || Object.keys(value).length !== keys.length || keys.some((key) => !Object.hasOwn(value, key))
       || value.formatVersion !== 1 || typeof value.dummy !== "boolean" || value.saved !== (value.state === "saved")
       || typeof value.requestId !== "string" || !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(value.requestId)
@@ -26,9 +27,12 @@
       || !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(value.savePlan.noteId)
       || typeof value.savePlan.collectionId !== "string" || !value.savePlan.collectionId)) throw new Error("invalid_response");
     if (["saving", "save_failed", "saved"].includes(value.state) && (value.dummy || !value.savePlan)) throw new Error("invalid_response");
+    if (!value.dummy && (value.attemptId !== null && (typeof value.attemptId !== "string" || !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(value.attemptId)))) throw new Error("invalid_response");
+    if (!value.dummy && Boolean(value.savePlan) !== Boolean(value.attemptId)) throw new Error("invalid_response");
     return value;
   }
   function render(record) {
+    if (record?.requestId !== current?.requestId) needsDestinationConfirmation = false;
     current = record;
     byId("dummyPreviewContent").hidden = !record;
     byId("dummyPreviewTitle").textContent = record?.title || "";
@@ -40,15 +44,28 @@
     displayedDestination = destination;
     byId("dummyPreviewDestination").textContent = `${record?.savePlan ? "固定済み：" : ""}${destination?.label || "保存領域未準備"}`;
     byId("dummyPreviewStorageWarning").textContent = destination?.warning || "";
-    rejectButton.disabled = saving || !["queued", "save_failed"].includes(record?.state);
-    saveButton.disabled = saving || !record || record.dummy || !["queued", "saving", "save_failed"].includes(record.state);
+    rejectButton.disabled = saving || Boolean(operationController) || !["queued", "save_failed"].includes(record?.state);
+    saveButton.disabled = saving || Boolean(operationController) || !record || record.dummy || (!["queued", "saving", "save_failed"].includes(record.state) && !(record.state === "saved" && needsDestinationConfirmation));
   }
   function clearConnection() {
     session++;
     controller?.abort(); controller = null;
+    operationController?.abort(); operationController = null; saving = false;
     token = ""; input.value = ""; render(null);
     checkButton.disabled = false;
+    byId("dummyPreviewCloseBtn").disabled = false;
     status.textContent = "接続情報を消去しました。トークンを再入力してください。";
+  }
+  async function withRequestLock(requestId, task) {
+    if (!navigator.locks) throw new Error("保存操作の排他制御を利用できません。");
+    const localOperation = new AbortController(); operationController = localOperation;
+    try { return await navigator.locks.request(`memo-received-request:${requestId}`, { signal: localOperation.signal }, task); }
+    finally { if (operationController === localOperation) operationController = null; }
+  }
+  function matchingRecord(value, expected) {
+    const record = validateRecord(value);
+    if (record.requestId !== expected.requestId || record.title !== expected.title || record.body !== expected.body) throw new Error("保存応答が一致しません。");
+    return record;
   }
   async function request(path, requestId, extra = {}) {
     const localController = new AbortController(); controller = localController;
@@ -73,7 +90,7 @@
     } finally { clearTimeout(timeout); }
   }
   async function perform(action) {
-    if (controller || saving) return;
+    if (controller || saving || operationController) return;
     const attempt = session;
     if (input.value) { token = input.value; input.value = ""; }
     if (!/^[A-Za-z0-9_-]{43,128}$/.test(token)) { token = ""; status.textContent = "受信サービス専用トークンを入力してください。"; input.focus(); return; }
@@ -82,11 +99,24 @@
     try {
       if (action === "reject") {
         if (!current || !["queued", "save_failed"].includes(current.state)) throw new Error("invalid_state");
-        const result = await request("/reject", current.requestId);
-        if (attempt !== session || !dialog.open) return;
-        const record = validateRecord(result.request);
-        if (record.requestId !== current.requestId || !["rejected", "expired"].includes(record.state)) throw new Error("invalid_response");
-        render(record); status.textContent = record.state === "rejected" ? record.dummy ? "拒否が完了しました。未保存。" : "受信内容を破棄しました。作成済みメモは取り消しません。" : "期限切れです。未保存。";
+        const expected = current;
+        saveButton.disabled = true;
+        status.textContent = "ほかのタブの保存操作を待ち、最新状態を確認しています…";
+        await withRequestLock(expected.requestId, async () => {
+          if (attempt !== session || !dialog.open) return;
+          const latest = matchingRecord((await request("/status", expected.requestId)).request, expected);
+          if (attempt !== session || !dialog.open) return;
+          render(latest);
+          if (latest.state === "saving" || latest.state === "saved") {
+            status.textContent = latest.state === "saved" ? "別タブから保存完了の通知を受信済みです。作成済みメモは取り消しません。"
+              : "保存完了は未確認です。破棄せず、同じ要求の保存を再試行して結果を確認してください。";
+            return;
+          }
+          const record = matchingRecord((await request("/reject", expected.requestId)).request, expected);
+          if (attempt !== session || !dialog.open) return;
+          if (!["rejected", "expired"].includes(record.state)) throw new Error("invalid_response");
+          render(record); status.textContent = record.state === "rejected" ? record.dummy ? "拒否が完了しました。未保存。" : "受信内容を破棄しました。作成済みメモは取り消しません。保存結果が不明な場合はメモ一覧を確認してください。" : "期限切れです。未保存。";
+        });
       } else {
         const previous = current;
         const result = await request("/pending");
@@ -112,39 +142,61 @@
     } catch (error) {
       if (attempt !== session || !dialog.open) return;
       status.textContent = error.message === "unauthorized" ? "認証に失敗しました。専用トークンを再入力してください。"
-        : action === "reject" ? "拒否の完了を確認できません。同じ要求で再試行してください。未保存。"
-        : "受信を確認できません。サービス起動、ブラウザのローカルネットワーク権限、CORSを確認してください。未保存。";
+        : action === "reject" ? current?.dummy ? "拒否の完了を確認できません。同じ要求で再試行してください。未保存。" : "破棄の完了を確認できません。同じ要求で再試行してください。保存結果は未確認です。"
+        : `受信を確認できません。サービス起動、ブラウザのローカルネットワーク権限、CORSを確認してください。${current?.savePlan ? "保存結果は未確認です。" : "未保存。"}`;
     } finally {
       if (attempt === session) { controller = null; checkButton.disabled = false; render(current); }
     }
   }
   async function saveReceived(event) {
-    if (!event.isTrusted || saving || controller || !current || current.dummy || !["queued", "saving", "save_failed"].includes(current.state)) return;
+    if (!event.isTrusted || saving || controller || operationController || !current || current.dummy || (!["queued", "saving", "save_failed"].includes(current.state) && !(current.state === "saved" && needsDestinationConfirmation))) return;
+    const expected = current, destination = displayedDestination, attempt = session;
     saving = true; saveButton.disabled = true; rejectButton.disabled = true; checkButton.disabled = true;
     byId("dummyPreviewCloseBtn").disabled = true;
-    status.textContent = "新規メモを保存しています…";
+    status.textContent = "ほかのタブの保存操作を待ち、保存先を確認しています…";
     try {
-      const destination = displayedDestination;
       if (!destination) throw new Error("保存先を確認できません。");
-      // The adapter token cannot access begin/complete; this is a browser button operation only.
-      const record = validateRecord((await request("/begin", current.requestId, { collectionId: destination.collectionId })).request);
-      if (record.requestId !== current.requestId || record.title !== current.title || record.body !== current.body || !["saving", "saved"].includes(record.state)) throw new Error("保存応答が一致しません。");
-      render(record);
-      try { await window.MemoNexusReceivedPreview.save(record); }
-      catch (saveError) {
-        if (record.state === "saving") {
-          try { render(validateRecord((await request("/failed", record.requestId)).request)); } catch { /* retain retry plan when disconnected */ }
+      await withRequestLock(expected.requestId, async () => {
+        if (attempt !== session || !dialog.open) return;
+        const latest = matchingRecord((await request("/status", expected.requestId)).request, expected);
+        if (attempt !== session || !dialog.open) return;
+        if (!["queued", "saving", "save_failed", "saved"].includes(latest.state)) {
+          render(latest); status.textContent = "受信要求は保存できる状態ではありません。新しいメモは作成していません。"; return;
         }
-        throw saveError;
-      }
-      const complete = validateRecord((await request("/complete", record.requestId)).request);
-      if (complete.requestId !== record.requestId || complete.state !== "saved") throw new Error("保存完了通知を確認できません。");
-      render(complete); status.textContent = "新規メモをブラウザ内に保存しました。";
+        function confirmDestination(record) {
+          if (!record.savePlan || record.savePlan.collectionId === destination.collectionId) return true;
+          render(record); needsDestinationConfirmation = true;
+          status.textContent = "別タブが先に保存先を固定しました。このクリックではDB保存を行いません。変更後の保存先を確認し、もう一度「新規メモとして保存」を押してください。";
+          return false;
+        }
+        if (!confirmDestination(latest)) return;
+        // One request lock covers destination, begin, DB transaction and completion/failure.
+        const record = matchingRecord((await request("/begin", expected.requestId, { collectionId: destination.collectionId, previousAttemptId: latest.attemptId })).request, expected);
+        if (attempt !== session || !dialog.open) return;
+        if (!["saving", "saved"].includes(record.state)) throw new Error("保存応答が一致しません。");
+        if (!confirmDestination(record)) return;
+        needsDestinationConfirmation = false; render(record);
+        status.textContent = "新規メモを保存しています…";
+        try { await window.MemoNexusReceivedPreview.save(record); }
+        catch (saveError) {
+          if (record.state === "saving" && attempt === session && dialog.open) {
+            try { render(matchingRecord((await request("/failed", record.requestId, { attemptId: record.attemptId })).request, expected)); } catch { /* keep uncertain plan for recovery */ }
+          }
+          throw saveError;
+        }
+        if (attempt !== session || !dialog.open) return;
+        const complete = matchingRecord((await request("/complete", record.requestId, { attemptId: record.attemptId })).request, expected);
+        if (attempt !== session || !dialog.open) return;
+        if (complete.state !== "saved") throw new Error("保存完了通知を確認できません。");
+        render(complete); status.textContent = "新規メモをブラウザ内に保存しました。";
+      });
     } catch (error) {
-      status.textContent = `保存完了を確認できません。受信内容を保持しています。同じ要求で再試行してください。${error.message}`;
+      if (attempt === session && dialog.open) status.textContent = `保存完了を確認できません。受信内容を保持しています。同じ要求で再試行してください。${error.message}`;
     } finally {
-      saving = false; controller = null; checkButton.disabled = false; byId("dummyPreviewCloseBtn").disabled = false;
-      render(current);
+      if (attempt === session) {
+        saving = false; controller = null; checkButton.disabled = false; byId("dummyPreviewCloseBtn").disabled = false;
+        render(current);
+      }
     }
   }
   saveButton.addEventListener("click", saveReceived);

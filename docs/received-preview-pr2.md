@@ -11,7 +11,9 @@
 
 ユーザーが「新規メモとして保存」を押したときだけ、Browser token付き `POST /begin` がサービス側で新規UUIDと保存計画を発行する。保存先は既存 `resolveNewNoteCollection()` による選択中コレクション（全体・ゴミ箱等なら未分類）を事前表示し、表示した保存先を使用する。保存開始後の再試行は最初の保存先を維持する。削除された保存先へ別の場所を自動選択しない。
 
-アプリはWeb Locksで同じ保存領域内の同ID操作を直列化し、既存 `getStoredNoteSnapshots()` でコミット済み結果を照合する。未作成なら既存 `createNote(title, body, { id, collectionId })` → `putNote()` を利用。`putNote`はIndexedDB transactionの `oncomplete` 後に成功を返す。独自保存形式・DB・永続キューは追加しない。同名タイトルは既存 `uniqueTitle()` で番号を付ける。本文は送信文字列のまま渡し、trim・HTML変換・Markdown再生成を行わない。
+UIはrequestId単位のWeb Lock `memo-received-request:<requestId>` で、最新状態・保存先照合 → begin → 既存レコード照合 → DB保存 → completeまたはfailedまでを直列化する。破棄も同じロックを取得し、その後の最新状態で判断する。アプリ側のDB保存には入れ子のWeb Lockを置かない。既存 `getStoredNoteSnapshots()` でコミット済み結果を照合し、未作成なら既存 `createNote(title, body, { id, collectionId })` → `putNote()` を利用。`putNote`はIndexedDB transactionの `oncomplete` 後に成功を返す。独自保存形式・DB・永続キューは追加しない。同名タイトルは既存 `uniqueTitle()` で番号を付ける。本文は送信文字列のまま渡し、trim・HTML変換・Markdown再生成を行わない。
+
+クリック前に表示した保存先と最新計画・begin応答の `savePlan.collectionId` が異なる場合、そのクリックではDB処理を呼ばない。別タブが先に固定したことと変更後の保存先を表示し、もう一度の明示クリックを必要とする。先行タブが既に保存済みでも、この再確認のクリックは既存結果の照合だけで新規作成しない。
 
 保存成功後の `POST /complete` で保存済みに移行する。MCP再送応答の `saved: true` はブラウザから完了通知を受けた既存結果であり、そのMCP呼び出しが保存した意味ではない。初回受信は `state: queued, saved: false` で、ブラウザ表示・保存の成功を表さない。
 
@@ -49,6 +51,12 @@
 保存開始後の `saving` / `save_failed` は再試行用にサービス終了まで保持し、元の10分TTLでは消さない。この間は他の新規要求が満杯になる。保存済み・破棄済みIDの同内容再送では未処理に戻さない。
 
 保存中はボタン連打と閉じる操作を抑止。失敗では成功表示を出さず本文と固定IDを保持する。基盤が失敗した場合はbrowser-only `POST /failed` で再試行・破棄可能にする。接続が失われて通知できない場合は `saving` のまま再接続・再試行する。
+
+各beginはサービス側生成の `attemptId` を発行する。固定 `savePlan` のメモID・保存先は変更しない。browser-only制御JSONは `/begin: { requestId, collectionId, previousAttemptId }`（初回のpreviousAttemptIdはnull、以後はロック取得後のstatus応答値）、`/complete` と `/failed: { requestId, attemptId }`。直前試行の照合が不一致ならbeginを拒否し、古いattemptIdのcomplete/failedも409 `stale_save_attempt` で拒否する。遅延通知は新しい試行・保存済み結果を変更できない。これらの項目をMCPツール引数・応答に追加しない。
+
+破棄はロック待ちの後にstatusを取得する。先行保存が完了済みなら保存完了通知を説明して作成済みメモを取り消さず、保存中・完了不明のままなら破棄しない。確定した失敗状態は破棄できるが、コミット後のエラーもあり得るため「未保存」と断定せず、既に作成されたメモは残ることを表示する。タブ終了・再読込はWeb Lockを解放する。キューに残ったsavingは、次の明示保存で新しい試行IDを取得して同じ固定ID・保存先を照合・回復する。通常の受信・再接続だけでは保存を再開しない。
+
+この制御契約の更新後はサービスを更新版で再起動し、使用する全タブを再読み込みする。古い制御JSONは拒否する。サービス再起動で履歴を失う制限は従来どおりで、更新前の保留要求は同IDの重複防止を保証しない。
 
 再試行は同じIDの保存済み内容を照合し、二重作成しない。不一致・削除済みなら上書きせず停止。transaction完了後にUI処理が失敗したケースや完了通知の応答消失も同IDの既存結果へ戻す。**破棄は受信内容のみで、既に作成されたメモを取り消さない。** 保存操作中の破棄は禁止。
 
@@ -89,4 +97,18 @@ PR-1のSecure MCP Tunnel成功はユーザーによる固定ダミーの実証�
 6. 別UUIDを送信し「破棄」でメモが増えないことを確認。確認結果を記録し、実Tunnelは通常の終了手順で停止する。マージはレビュー後にユーザーが行う。
 
 再現コマンド: `npm test`、`npm run test:e2e:dummy-preview`、`npm run test:e2e:received-preview`。
+複数タブ競合・終了/再読込回復は `npm run test:e2e:received-concurrency`。Promiseの待機ゲートとWeb Locksの待機一覧で順序を制御し、固定時間待ちに依存しない。
 Windows Edgeでは `$env:MEMO_NEXUS_E2E_CHANNEL = 'msedge'` を設定する。5500/8791が空いていることが必要。自動保存や認証制限の緩和で検証を代用しない。
+
+## 複数タブ競合のレビュー修正
+
+開始時のPR #353公開HEADはレビュー対象 `1e09ba9899b59f099203083aae88f1f978c3c52e` と一致し、mainも冒頭の基準SHAのまま。既存作業ツリー・未追跡生成物を保持して同じPRブランチを更新した。
+
+本体修正前に `node received-preview-concurrency.e2e.js --before` を隔離Chromiumの同一BrowserContext内2タブで実行し、次の2件を実IndexedDBで再現した。
+
+1. Aの保存をputNote前のPromiseゲートで止め、A/Bに別の保存先を表示。Bの最初のクリックでアプリのDB保存関数が呼ばれ、表示前のBではなくAへの保存成功が表示された。
+2. Aを同じゲートで止め、BのDB接続を利用不可にして保存。Bがfailed・破棄へ進み、キューがrejectedになった後、Aのゲートを解放するとメモが実コミットされた。completeは拒否され、DBにメモがあるのにキューはrejectedだった。
+
+修正後は同じ順序制御で、保存先不一致のクリックではDB関数呼び出し0、変更先表示と新しい確認クリックで合計1件となることを検証する。別タブの失敗/破棄は先行保存のロック解放まで待ち、保存中に破棄成功を出さず、最終DBとsaved状態が一致する。未コミット失敗後の破棄はメモ0件で遅延作成なし、コミット後エラーの破棄は既存作成済みメモを残す。ゲート中のタブ終了・再読込からは固定ID・保存先を保った新しい試行で回復し、古い通知は拒否する。隔離persistent profileで実ブラウザプロセスも終了・再起動し、同じ保存領域での回復と新規1件を確認した。全単体1811件・Chromium競合/既存受信保存/固定ダミーE2Eが成功。
+
+既存の連打・2タブ同時成功テストも固定時間待ちからPromiseゲート/Web Locks待機確認へ変更した。本文・安全表示・ダミー・通常保存・狭幅の検証は維持する。browser-only契約とキャッシュ識別子の対応確認以外の既存期待値を変更しない。修正前/後の結果JSONは `e2e-artifacts/received-preview/*-concurrency-before.json` / `*-concurrency-after.json` に保持する。実Tunnel・人による操作の未実証条件は変わらず、最終HEADのCI結果と検証件数はPR説明へ記録する。

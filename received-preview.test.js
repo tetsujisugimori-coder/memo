@@ -26,16 +26,16 @@ test("stable save plan survives failure, TTL and reload; terminal IDs never resu
   const first = queue.submit(value); assert.equal(first.saved, false);
   assert.deepEqual(queue.submit(value), first);
   assert.throws(() => queue.submit({ ...value, body: "different" }), /request_id_conflict/);
-  const plan = queue.begin(value.requestId, "system-unclassified");
+  const plan = queue.begin(value.requestId, "system-unclassified", null);
   assert.equal(plan.saved, false); assert.equal(plan.state, "saving");
   assert.throws(() => queue.reject(value.requestId), /save_in_progress/);
   now += TTL_MS * 2; assert.deepEqual(queue.peek(), plan);
-  queue.failed(value.requestId); assert.equal(queue.peek().state, "save_failed");
-  assert.deepEqual(queue.begin(value.requestId, "other").savePlan, plan.savePlan);
-  const saved = queue.complete(value.requestId); assert.equal(saved.saved, true); assert.equal(queue.peek(), null);
-  assert.deepEqual(queue.complete(value.requestId), saved); assert.deepEqual(queue.submit(value), saved);
-  assert.deepEqual(queue.begin(value.requestId, "other"), saved);
-  const discard = textRequest(input()); queue.submit(discard); queue.begin(discard.requestId, "system-unclassified"); queue.failed(discard.requestId);
+  queue.failed(value.requestId, plan.attemptId); assert.equal(queue.peek().state, "save_failed");
+  const retry = queue.begin(value.requestId, "other", plan.attemptId); assert.deepEqual(retry.savePlan, plan.savePlan);
+  const saved = queue.complete(value.requestId, retry.attemptId); assert.equal(saved.saved, true); assert.equal(queue.peek(), null);
+  assert.deepEqual(queue.complete(value.requestId, retry.attemptId), saved); assert.deepEqual(queue.submit(value), saved);
+  assert.deepEqual(queue.begin(value.requestId, "other", saved.attemptId), saved);
+  const discard = textRequest(input()); queue.submit(discard); const discardPlan = queue.begin(discard.requestId, "system-unclassified", null); queue.failed(discard.requestId, discardPlan.attemptId);
   assert.equal(queue.reject(discard.requestId).state, "rejected"); assert.equal(queue.submit(discard).state, "rejected");
   assert.equal(createQueue().peek(), null);
 });
@@ -50,10 +50,11 @@ test("arbitrary MCP receives without saving, distinguishes saved receipts and re
   assert.equal(JSON.parse((await call({ ...value, body: "changed" })).result.content[0].text).state, "request_id_conflict");
   assert.equal((await call({ ...value, noteId: "existing" })).error.code, -32602);
   assert.equal((await call({ ...value, body: "" })).error.code, -32602);
-  queue.begin(value.requestId, "system-unclassified"); queue.complete(value.requestId);
+  const plan = queue.begin(value.requestId, "system-unclassified", null); queue.complete(value.requestId, plan.attemptId);
   const receipt = JSON.parse((await call(value)).result.content[0].text);
   assert.equal(receipt.saved, true); assert.match(receipt.message, /このMCP呼び出しは保存しません/);
   assert.equal(Object.hasOwn(receipt, "savePlan"), false);
+  assert.equal(Object.hasOwn(receipt, "attemptId"), false);
 });
 
 test("HTTP text input limits and browser-only save state routes retain authentication scopes", async (t) => {
@@ -85,9 +86,35 @@ test("HTTP text input limits and browser-only save state routes retain authentic
     assert.equal((await call(path, { requestId: value.requestId, ...(path === "/begin" ? { collectionId: "system-unclassified" } : {}) }, adapter)).status, 403);
   }
   assert.equal((await call("/begin", { requestId: value.requestId, collectionId: "system-unclassified", noteId: "existing" }, browser)).status, 400);
-  assert.equal((await call("/begin", { requestId: value.requestId, collectionId: "system-unclassified" }, browser)).body.request.saved, false);
-  assert.equal((await call("/failed", { requestId: value.requestId }, browser)).body.request.state, "save_failed");
-  assert.equal((await call("/complete", { requestId: value.requestId }, browser)).status, 409);
-  await call("/begin", { requestId: value.requestId, collectionId: "system-unclassified" }, browser);
-  assert.equal((await call("/complete", { requestId: value.requestId }, browser)).body.request.saved, true);
+  const begun = (await call("/begin", { requestId: value.requestId, collectionId: "system-unclassified", previousAttemptId: null }, browser)).body.request;
+  assert.equal(begun.saved, false);
+  assert.equal((await call("/failed", { requestId: value.requestId }, browser)).status, 400);
+  assert.equal((await call("/failed", { requestId: value.requestId, attemptId: begun.attemptId }, browser)).body.request.state, "save_failed");
+  assert.equal((await call("/complete", { requestId: value.requestId, attemptId: begun.attemptId }, browser)).status, 409);
+  const retry = (await call("/begin", { requestId: value.requestId, collectionId: "system-unclassified", previousAttemptId: begun.attemptId }, browser)).body.request;
+  const snapshot = queue.status(value.requestId);
+  for (const route of ["/complete", "/failed"]) assert.equal((await call(route, { requestId: value.requestId, attemptId: begun.attemptId }, browser)).status, 409);
+  assert.deepEqual(queue.status(value.requestId), snapshot);
+  assert.equal((await call("/begin", { requestId: value.requestId, collectionId: "system-unclassified", previousAttemptId: begun.attemptId }, browser)).status, 409);
+  assert.deepEqual(queue.status(value.requestId), snapshot);
+  assert.equal((await call("/complete", { requestId: value.requestId, attemptId: retry.attemptId }, browser)).body.request.saved, true);
+});
+
+test("stale attempt notifications cannot fail or complete a later attempt or terminal receipt", () => {
+  const queue = createQueue(); const value = textRequest(input()); queue.submit(value);
+  const first = queue.begin(value.requestId, "system-unclassified", null), second = queue.begin(value.requestId, "other", first.attemptId);
+  assert.deepEqual(first.savePlan, second.savePlan); assert.notEqual(first.attemptId, second.attemptId);
+  assert.throws(() => queue.begin(value.requestId, "other", null), /stale_save_attempt/);
+  assert.deepEqual(queue.status(value.requestId), second);
+  for (const method of ["failed", "complete"]) {
+    assert.throws(() => queue[method](value.requestId, first.attemptId), /stale_save_attempt/);
+    assert.deepEqual(queue.status(value.requestId), second);
+  }
+  queue.failed(value.requestId, second.attemptId);
+  const recovered = queue.begin(value.requestId, "system-unclassified", second.attemptId);
+  assert.throws(() => queue.failed(value.requestId, second.attemptId), /stale_save_attempt/);
+  const saved = queue.complete(value.requestId, recovered.attemptId);
+  assert.throws(() => queue.failed(value.requestId, recovered.attemptId), /invalid_state/);
+  assert.throws(() => queue.complete(value.requestId, first.attemptId), /stale_save_attempt/);
+  assert.deepEqual(queue.status(value.requestId), saved);
 });

@@ -4,6 +4,7 @@
     "preview:dummy": "node dummy-preview-service.js",
     "test:e2e:dummy-preview": "node dummy-preview.e2e.js",
     "test:e2e:received-preview": "node received-preview.e2e.js",
+    "test:e2e:received-concurrency": "node received-preview-concurrency.e2e.js",
     "codex:bridge": "node codex-bridge.js",
     "codex:token": "node codex-bridge-token.js",
     "test": "node --test",

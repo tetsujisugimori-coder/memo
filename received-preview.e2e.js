@@ -146,10 +146,16 @@ async function mcp(token, value) {
     assert.match(await page.locator("#dummyPreviewDestination").textContent(), /受信検証専用/);
     const beforeRetry = await snapshot(page);
     // Hold the real transaction path, click twice and verify the second click is ignored.
-    await page.evaluate(() => { window.realPreviewPut = putNote; window.previewPutCount = 0; putNote = async (...args) => { window.previewPutCount++; await new Promise((resolve) => setTimeout(resolve, 300)); return window.realPreviewPut(...args); }; });
+    await page.evaluate(() => {
+      window.realPreviewPut = putNote; window.previewPutCount = 0;
+      window.previewWriteGate = new Promise((resolve) => { window.releasePreviewWrite = resolve; });
+      putNote = async (...args) => { window.previewPutCount++; await window.previewWriteGate; return window.realPreviewPut(...args); };
+    });
     await page.locator("#dummyPreviewSaveBtn").click();
+    await page.waitForFunction(() => window.previewPutCount === 1);
     assert.equal(await page.locator("#dummyPreviewSaveBtn").isDisabled(), true);
-    await page.locator("#dummyPreviewSaveBtn").evaluate((el) => el.click());
+    await page.locator("#dummyPreviewSaveBtn").click({ force: true });
+    await page.evaluate(() => window.releasePreviewWrite());
     await doneSave();
     assert.equal(await page.evaluate(() => window.previewPutCount), 1);
     assert.equal(queue.status(saving.requestId).saved, true);
@@ -202,10 +208,13 @@ async function mcp(token, value) {
     page = secondPage; await open(); await check(); page = firstPage;
     for (const tab of [firstPage, secondPage]) await tab.evaluate(() => {
       window.parallelRealCreate = createNote; window.parallelCreateCalls = 0;
-      createNote = async (...args) => { window.parallelCreateCalls++; await new Promise((resolve) => setTimeout(resolve, 100)); return window.parallelRealCreate(...args); };
+      window.parallelGate = new Promise((resolve) => { window.releaseParallel = resolve; });
+      createNote = async (...args) => { window.parallelCreateCalls++; await window.parallelGate; return window.parallelRealCreate(...args); };
     });
     const beforeParallel = (await snapshot(firstPage)).notes.length;
     await Promise.all([firstPage.locator("#dummyPreviewSaveBtn").click(), secondPage.locator("#dummyPreviewSaveBtn").click()]);
+    await firstPage.waitForFunction(async (requestId) => (await navigator.locks.query()).pending.some((lock) => lock.name === `memo-received-request:${requestId}`), parallel.requestId);
+    await Promise.all([firstPage.evaluate(() => window.releaseParallel()), secondPage.evaluate(() => window.releaseParallel())]);
     await Promise.all([firstPage.waitForFunction(() => !document.getElementById("dummyPreviewCheckBtn").disabled), secondPage.waitForFunction(() => !document.getElementById("dummyPreviewCheckBtn").disabled)]);
     const planParallel = queue.status(parallel.requestId).savePlan;
     assert.equal(queue.status(parallel.requestId).saved, true);
@@ -227,7 +236,7 @@ async function mcp(token, value) {
     await page.evaluate(() => { createNote = window.realCreateReceived; });
     const ordinaryBefore = (await snapshot(page)).notes.length;
     await page.locator("#newBtn").evaluate((el) => el.click()); await settled(page);
-    await page.locator("#editor").fill("通常新規保存の検証\n"); await page.waitForTimeout(400); await settled(page);
+    await page.locator("#editor").fill("通常新規保存の検証\n"); await settled(page);
     assert.equal((await snapshot(page)).notes.length, ordinaryBefore + 1);
     assert.equal(await page.evaluate(() => currentNote().body), "通常新規保存の検証\n");
     await page.setViewportSize({ width: 320, height: 640 });

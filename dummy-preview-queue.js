@@ -42,7 +42,7 @@ function createQueue({ now = Date.now } = {}) {
   }
   function publicRecord(record) {
     return { ...record.request, state: record.state, receivedAt: record.receivedAt, expiresAt: record.expiresAt, saved: record.state === "saved",
-      ...(!record.request.dummy ? { savePlan: record.savePlan || null } : {}) };
+      ...(!record.request.dummy ? { savePlan: record.savePlan || null, attemptId: record.attemptId || null } : {}) };
   }
   function submit(input) {
     const request = validateRequest(input);
@@ -76,25 +76,34 @@ function createQueue({ now = Date.now } = {}) {
     if (record.state === "saving") throw fault("save_in_progress", 409);
     return publicRecord(history.get(requestId));
   }
-  function begin(requestId, collectionId) {
+  function begin(requestId, collectionId, previousAttemptId) {
     const record = status(requestId);
+    if (previousAttemptId !== null && (typeof previousAttemptId !== "string" || !REQUEST_ID_PATTERN.test(previousAttemptId))) throw fault("invalid_save_attempt");
+    if (previousAttemptId !== record.attemptId) throw fault("stale_save_attempt", 409);
     if (!record.dummy && record.state === "saved") return record;
     if (record.dummy || !["queued", "saving", "save_failed"].includes(record.state)) throw fault("invalid_state", 409);
     if (typeof collectionId !== "string" || !collectionId || collectionId.length > 200) throw fault("invalid_collection");
     const internal = history.get(requestId);
     internal.savePlan ||= { noteId: randomUUID(), collectionId };
+    internal.attemptId = randomUUID();
     internal.state = "saving";
     return publicRecord(internal);
   }
-  function complete(requestId) {
+  function validateAttempt(record, attemptId) {
+    if (typeof attemptId !== "string" || !REQUEST_ID_PATTERN.test(attemptId)) throw fault("invalid_save_attempt");
+    if (record.attemptId !== attemptId) throw fault("stale_save_attempt", 409);
+  }
+  function complete(requestId, attemptId) {
     const record = status(requestId);
+    validateAttempt(record, attemptId);
     if (record.dummy || !["saving", "saved"].includes(record.state)) throw fault("invalid_state", 409);
     history.get(requestId).state = "saved";
     if (activeId === requestId) activeId = null;
     return publicRecord(history.get(requestId));
   }
-  function failed(requestId) {
+  function failed(requestId, attemptId) {
     const record = status(requestId);
+    validateAttempt(record, attemptId);
     if (record.dummy || !["saving", "save_failed"].includes(record.state)) throw fault("invalid_state", 409);
     history.get(requestId).state = "save_failed";
     return publicRecord(history.get(requestId));
