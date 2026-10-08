@@ -11,6 +11,8 @@ const MAX_HISTORY = 128;
 const MAX_BODY_BYTES = 64 * 1024;
 const MAX_TEXT_CHARS = 65536;
 const MAX_TEXT_INPUT_BYTES = 400 * 1024;
+const MAX_NOTES = 5;
+const MAX_NOTES_INPUT_BYTES = MAX_NOTES * MAX_TEXT_INPUT_BYTES;
 const REQUEST_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 function fault(code, status = 400) { return Object.assign(new Error(code), { code, status }); }
 function exactKeys(value, keys) {
@@ -31,21 +33,54 @@ function textRequest(value) {
   if (Buffer.byteLength(JSON.stringify(value), "utf8") > MAX_TEXT_INPUT_BYTES) throw fault("size_limit", 413);
   return validateRequest({ formatVersion: 1, dummy: false, ...value });
 }
+function notesRequest(value) {
+  if (!exactKeys(value, ["requestId", "notes"]) || typeof value.requestId !== "string" || !REQUEST_ID_PATTERN.test(value.requestId)
+    || !Array.isArray(value.notes) || value.notes.length < 1 || value.notes.length > MAX_NOTES) throw fault("invalid_format");
+  if (Buffer.byteLength(JSON.stringify(value), "utf8") > MAX_NOTES_INPUT_BYTES) throw fault("size_limit", 413);
+  const validatedNotes = value.notes.map((note) => {
+    if (!exactKeys(note, ["title", "body"])) throw fault("invalid_format");
+    const validated = textRequest({ requestId: value.requestId, ...note });
+    return { title: validated.title, body: validated.body };
+  });
+  return { formatVersion: 1, requestId: value.requestId, notes: validatedNotes };
+}
 function createQueue({ now = Date.now } = {}) {
   const history = new Map();
   let activeId = null;
+  const unresolved = (record) => ["queued", "saving", "save_failed"].includes(record.state);
+  function refresh(record) {
+    if (!record.items) return;
+    record.state = record.items.some(unresolved) ? "queued" : "completed";
+    if (activeId === record.request.requestId && !record.items.some(unresolved)) activeId = null;
+  }
   function expire() {
-    if (activeId && history.get(activeId).state === "queued" && now() >= history.get(activeId).expiresAt) {
-      history.get(activeId).state = "expired";
-      activeId = null;
-    }
+    if (!activeId) return;
+    const record = history.get(activeId);
+    if (record.items) {
+      for (const item of record.items) if (item.state === "queued" && now() >= item.expiresAt) item.state = "expired";
+      refresh(record);
+    } else if (record.state === "queued" && now() >= record.expiresAt) { record.state = "expired"; activeId = null; }
   }
   function publicRecord(record) {
+    if (record.items) return { ...record.request, notes: record.items.map(publicRecord), state: record.state,
+      receivedAt: record.receivedAt, expiresAt: record.expiresAt, saved: record.items.every((item) => item.state === "saved") };
     return { ...record.request, state: record.state, receivedAt: record.receivedAt, expiresAt: record.expiresAt, saved: record.state === "saved",
-      ...(!record.request.dummy ? { savePlan: record.savePlan || null, attemptId: record.attemptId || null } : {}) };
+      ...(!record.request.dummy ? { savePlan: record.savePlan ? { ...record.savePlan } : null, attemptId: record.attemptId || null } : {}) };
   }
+  function internalRecord(requestId, itemId) {
+    const record = history.get(requestId);
+    if (!record) throw fault("request_not_found", 404);
+    if (itemId === undefined) return record;
+    if (typeof itemId !== "string" || !REQUEST_ID_PATTERN.test(itemId)) throw fault("invalid_item_id");
+    const item = record.items?.find((item) => item.request.itemId === itemId);
+    if (!item) throw fault("item_not_found", 404);
+    return item;
+  }
+  function changed(requestId) { refresh(history.get(requestId)); }
   function submit(input) {
-    const request = validateRequest(input);
+    const multiple = Object.hasOwn(input || {}, "notes");
+    if (multiple && (!exactKeys(input, ["formatVersion", "requestId", "notes"]) || input.formatVersion !== 1)) throw fault("invalid_format");
+    const request = multiple ? notesRequest({ requestId: input.requestId, notes: input.notes }) : validateRequest(input);
     expire();
     const digest = createHash("sha256").update(JSON.stringify(request)).digest("hex");
     const known = history.get(request.requestId);
@@ -58,32 +93,36 @@ function createQueue({ now = Date.now } = {}) {
     if (history.size >= MAX_HISTORY) throw fault("history_full", 503);
     const receivedAt = now();
     const record = { request, digest, receivedAt, expiresAt: receivedAt + TTL_MS, state: activeId ? "queue_full" : "queued" };
+    if (request.notes) record.items = request.notes.map((note) => ({
+      request: { formatVersion: 1, requestId: request.requestId, itemId: randomUUID(), dummy: false, ...note },
+      receivedAt, expiresAt: record.expiresAt, state: record.state
+    }));
     history.set(request.requestId, record);
     if (!activeId) activeId = request.requestId;
     return publicRecord(record);
   }
   function peek() { expire(); return activeId ? publicRecord(history.get(activeId)) : null; }
-  function status(requestId) {
+  function status(requestId, itemId) {
     expire();
     if (typeof requestId !== "string" || !REQUEST_ID_PATTERN.test(requestId)) throw fault("invalid_request_id");
-    const record = history.get(requestId);
-    if (!record) throw fault("request_not_found", 404);
-    return publicRecord(record);
+    return publicRecord(internalRecord(requestId, itemId));
   }
-  function reject(requestId) {
-    const record = status(requestId);
-    if (["queued", "save_failed"].includes(record.state)) { history.get(requestId).state = "rejected"; activeId = null; }
+  function reject(requestId, itemId) {
+    const record = status(requestId, itemId);
+    if (record.notes) throw fault("item_id_required");
+    if (["queued", "save_failed"].includes(record.state)) { internalRecord(requestId, itemId).state = "rejected"; if (!history.get(requestId).items && activeId === requestId) activeId = null; changed(requestId); }
     if (record.state === "saving") throw fault("save_in_progress", 409);
-    return publicRecord(history.get(requestId));
+    return publicRecord(internalRecord(requestId, itemId));
   }
-  function begin(requestId, collectionId, previousAttemptId) {
-    const record = status(requestId);
+  function begin(requestId, collectionId, previousAttemptId, itemId) {
+    const record = status(requestId, itemId);
+    if (record.notes) throw fault("item_id_required");
     if (previousAttemptId !== null && (typeof previousAttemptId !== "string" || !REQUEST_ID_PATTERN.test(previousAttemptId))) throw fault("invalid_save_attempt");
     if (previousAttemptId !== record.attemptId) throw fault("stale_save_attempt", 409);
     if (!record.dummy && record.state === "saved") return record;
     if (record.dummy || !["queued", "saving", "save_failed"].includes(record.state)) throw fault("invalid_state", 409);
     if (typeof collectionId !== "string" || !collectionId || collectionId.length > 200) throw fault("invalid_collection");
-    const internal = history.get(requestId);
+    const internal = internalRecord(requestId, itemId);
     internal.savePlan ||= { noteId: randomUUID(), collectionId };
     internal.attemptId = randomUUID();
     internal.state = "saving";
@@ -93,21 +132,24 @@ function createQueue({ now = Date.now } = {}) {
     if (typeof attemptId !== "string" || !REQUEST_ID_PATTERN.test(attemptId)) throw fault("invalid_save_attempt");
     if (record.attemptId !== attemptId) throw fault("stale_save_attempt", 409);
   }
-  function complete(requestId, attemptId) {
-    const record = status(requestId);
+  function complete(requestId, attemptId, itemId) {
+    const record = status(requestId, itemId);
+    if (record.notes) throw fault("item_id_required");
     validateAttempt(record, attemptId);
     if (record.dummy || !["saving", "saved"].includes(record.state)) throw fault("invalid_state", 409);
-    history.get(requestId).state = "saved";
-    if (activeId === requestId) activeId = null;
-    return publicRecord(history.get(requestId));
+    internalRecord(requestId, itemId).state = "saved";
+    if (!history.get(requestId).items && activeId === requestId) activeId = null;
+    changed(requestId);
+    return publicRecord(internalRecord(requestId, itemId));
   }
-  function failed(requestId, attemptId) {
-    const record = status(requestId);
+  function failed(requestId, attemptId, itemId) {
+    const record = status(requestId, itemId);
+    if (record.notes) throw fault("item_id_required");
     validateAttempt(record, attemptId);
     if (record.dummy || !["saving", "save_failed"].includes(record.state)) throw fault("invalid_state", 409);
-    history.get(requestId).state = "save_failed";
-    return publicRecord(history.get(requestId));
+    internalRecord(requestId, itemId).state = "save_failed"; changed(requestId);
+    return publicRecord(internalRecord(requestId, itemId));
   }
   return { submit, peek, status, reject, begin, complete, failed };
 }
-module.exports = { FIXTURE, TTL_MS, MAX_HISTORY, MAX_BODY_BYTES, MAX_TEXT_CHARS, MAX_TEXT_INPUT_BYTES, REQUEST_ID_PATTERN, fault, exactKeys, validateRequest, dummyRequest, textRequest, createQueue };
+module.exports = { MAX_NOTES, MAX_NOTES_INPUT_BYTES, notesRequest, FIXTURE, TTL_MS, MAX_HISTORY, MAX_BODY_BYTES, MAX_TEXT_CHARS, MAX_TEXT_INPUT_BYTES, REQUEST_ID_PATTERN, fault, exactKeys, validateRequest, dummyRequest, textRequest, createQueue };

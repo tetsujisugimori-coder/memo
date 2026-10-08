@@ -27,7 +27,8 @@
     "test:e2e:timeline": "node timeline.e2e.js",
     "test:e2e:diagram": "node diagram.e2e.js",
     "test:e2e:report-sources": "node report-source.e2e.js",
-    "test:e2e:report-fixed": "node report-fixed-samples.e2e.js"
+    "test:e2e:report-fixed": "node report-fixed-samples.e2e.js",
+    "test:e2e:received-notes": "node received-notes-preview.e2e.js"
   },
   "devDependencies": {
     "playwright": "1.62.1"
