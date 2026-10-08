@@ -1,0 +1,4 @@
+PS_VERSION:5.1.26100.9444
+configure tunnel-client: log level requires 'struct-text' or 'json' log format
+LAUNCH_ERROR:Tunnel client exited unsuccessfully; keep the first error for review without exposing secrets.
+TOKEN_CLEARED:True

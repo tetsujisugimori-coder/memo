@@ -1,0 +1,49 @@
+{
+  "version": "0.0.16+5f99daabd4aa4a77049e6d81d54a0d8c18335397 (git sha: 5f99daabd4aa4a77049e6d81d54a0d8c18335397)",
+  "platform": "win32",
+  "node": "v24.20.0",
+  "controlPlane": "isolated ephemeral loopback with generated test credentials",
+  "results": [
+    {
+      "name": "original-log-error",
+      "expectedFailure": true,
+      "nodeStarted": false,
+      "initialized": false,
+      "toolsListed": false,
+      "tokenCleared": true,
+      "secretsInOutput": false
+    },
+    {
+      "name": "original-command-error",
+      "expectedFailure": true,
+      "nodeStarted": false,
+      "initialized": false,
+      "toolsListed": false,
+      "tokenCleared": true,
+      "secretsInOutput": false
+    },
+    {
+      "name": "fixed-program-files-node",
+      "expectedFailure": false,
+      "nodeStarted": true,
+      "initialized": true,
+      "toolsListed": true,
+      "tokenCleared": true,
+      "secretsInOutput": false
+    },
+    {
+      "name": "fixed-japanese-space-quote-node",
+      "expectedFailure": false,
+      "nodeStarted": true,
+      "initialized": true,
+      "toolsListed": true,
+      "tokenCleared": true,
+      "secretsInOutput": false
+    }
+  ],
+  "notVerified": [
+    "real Secure MCP Tunnel independently rerun",
+    "receiver GUI manual startup/close",
+    "public Origin/LNA/OAuth/persistence"
+  ]
+}

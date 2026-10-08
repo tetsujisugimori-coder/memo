@@ -6,7 +6,7 @@
 
 ## 実装した経路と制限
 
-外部AI → Secure MCP Tunnel → 独自stdio MCP → 専用HTTP受信サービスのメモリキュー → 明示的な「受信を確認」 → 独立ダイアログ。外部AI／Tunnelを除く、実stdioプロセスからブラウザまでをWindowsの隔離Edge・Chromeで検証した。HTTP投入やローカルMCPの成功をChatGPT経由成功とは扱わない。
+外部AI → Secure MCP Tunnel → 独自stdio MCP → 専用HTTP受信サービスのメモリキュー → 明示的な「受信を確認」 → 独立ダイアログ。担当による独立検証は実stdioプロセスからブラウザまで。2026-10-08 15:44〜15:46 JSTのChatGPT／Tunnelを含むローカル経路は、後述のユーザー実証として別に記録する。HTTP投入やローカルMCPの成功をChatGPT経由成功とは扱わない。
 
 `submit_dummy_preview`だけを公開し、引数は`requestId`だけ。呼び出し側が小文字UUID v4を生成し、再送時は同じIDを保持する。アダプターとサービスの両方で形式を検証する。メモIDの生成・受け渡しはない。タイトル・本文・formatVersion=1・dummy=trueは`dummy-preview-queue.js`の固定fixtureから組み立てる。応答は「一時キューで受信・未保存」、requestId、固定title/body、state、saved=false。ブラウザ未接続でもqueuedであり、表示確認にはならない。
 
@@ -40,22 +40,71 @@ HTTP: 120要求/分（認証失敗とOPTIONSも含む）、同時処理4、接�
 
 ## Windows：起動と終了
 
-前提: Node 22以上、Windows PowerShell 5.1またはPowerShell 7。実施環境はWindows／Node v24.20.0。
+前提: Node 22以上、Windows PowerShell 5.1またはPowerShell 7。今回の起動統合検証は**Windows PowerShell 5.1.26100.9444**／Node v24.20.0／tunnel-client v0.0.16で実施。下のコードブロックはすべて**PowerShellへ直接入力するコマンド**であり、ファイル編集用コードではない。ランチャーの引用符組み立てをコピーして手動編集する必要はない。
 
-1. PRブランチのフォルダーで`npm ci`。
-2. `./start-dummy-preview.ps1`を実行する。毎回異なる2つの256-bitトークンを生成し、受信Nodeプロセスを非表示で起動する。トークンはコンソールやファイルに出さず、ローカルウィンドウのpassword欄に保持する。「Reveal」を必要な間だけ有効にして選択・コピーする。既存ポートを使っている別プロセスを停止しない。
-3. 別ターミナルで`python -m http.server 5500 --bind 127.0.0.1`など既存のローカル配信手順を使用する。
-4. 本番とは別のブラウザプロファイルで`http://127.0.0.1:5500/`を開く。例（プロファイルは毎回新規）:
+3つのターミナルを用意し、いずれも次のPR作業フォルダーへ移動する。別のcheckoutを使用する場合は、そのフォルダーを指定する。
+
+```powershell
+Set-Location -LiteralPath 'C:\Users\tetsu\Documents\Codex\メモ帳\work\pr1-dummy-preview\work\pr1-meta-review'
+```
+
+既に自分の検証用プロセスが動いている場合は重複起動せず、どのターミナルが受信・配信・Tunnelを担当しているか確認する。他のプロセスを停止しない。
+
+### ターミナルA：プレビュー受信ウィンドウ
+
+```powershell
+npm ci
+.\start-dummy-preview.ps1
+```
+
+受信Nodeプロセスを非表示で起動し、ローカルウィンドウに2種類のtokenを保持する。**ウィンドウとターミナルAは検証中開いたままにする。** RuntimeキーやBridge tokenは流用しない。
+
+- **Browser token**：Memo-Nexusの「受信を確認」ダイアログへ入力する。Tunnel起動には使わない。
+- **Adapter token**：ターミナルCのランチャーの隠された入力へ入れる。ブラウザへは入れない。
+
+必要な間だけRevealを有効にし、貼付後にクリップボードを消去する。token、APIキーをチャット・ログ・ファイルへ貼り付けない。OSのメモリ／クリップボード履歴から完全消去する保証はない。
+
+### ターミナルB：ローカルHTTP配信
+
+同じPRフォルダーで実行する:
+
+```powershell
+python -m http.server 5500 --bind 127.0.0.1
+```
+
+**HTTPサーバーとターミナルBを検証中開いたままにする。** 本番とは別の新規ブラウザプロファイルで`http://127.0.0.1:5500/`を開く。Edgeの例:
 
 ```powershell
 $taskProfile = Join-Path $env:TEMP ('memo-pr1-edge-' + [guid]::NewGuid().ToString())
 & 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe' --user-data-dir="$taskProfile" --no-first-run 'http://127.0.0.1:5500/'
 ```
 
-Chromeは`C:/Program Files/Google/Chrome/Application/chrome.exe`を使用する。安全設定無効化フラグや許可Origin拡大は使用しない。390pxでは起動時の一覧オーバーレイを閉じ、執筆モードなら「完了」で抜け、既存アプリメニューから「受信を確認」を開く。
+Chromeは`C:/Program Files/Google/Chrome/Application/chrome.exe`を使う。安全設定無効化フラグや許可Origin拡大は使用しない。390pxでは一覧オーバーレイを閉じ、執筆モードなら「完了」で抜け、既存メニューから「受信を確認」を開く。
 
-5. Browser tokenだけを専用ダイアログに入力し「受信を確認」。何も投入していなければ保留なし。
-6. 終了時はダイアログを閉じ、トンネルをCtrl+Cで終了し、起動ウィンドウを閉じる。起動ウィンドウは自身が起動した受信プロセスだけを終了する。要求・履歴は失われる。ローカル配信もCtrl+Cで終了する。
+### ターミナルC：既存認証情報とTunnel
+
+**APIキーとTunnel IDは、Tunnelを起動するこの同じPowerShellで設定する。** ターミナルA/Bで設定してもCへは引き継がれない。既存の安全な方法で準備済みなら再設定不要。未設定なら既存Runtime APIキーをローカルの隠された入力で設定する（新規キーの発行・設定変更ではない）:
+
+```powershell
+$taskRuntimeKey = Read-Host 'Existing Runtime API key (hidden; never paste into chat)' -AsSecureString
+$taskRuntimePtr = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($taskRuntimeKey)
+try { $env:CONTROL_PLANE_API_KEY = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($taskRuntimePtr) }
+finally { [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($taskRuntimePtr); $taskRuntimeKey.Dispose() }
+$env:CONTROL_PLANE_TUNNEL_ID = Read-Host 'Existing Tunnel ID (local input)'
+$taskTunnelPath = Read-Host 'Absolute path to tunnel-client.exe'
+.\start-dummy-preview-tunnel.ps1 -TunnelClientPath $taskTunnelPath
+```
+
+Adapter tokenを求められたら、Aのウィンドウから**Adapter tokenだけ**を隠された入力へ入れる。秘密値をCLI引数へ直接書かない。**TunnelとターミナルCを検証中開いたままにする。** 同じTunnel IDの別クライアントを同時に起動しない。
+
+### ChatGPTで送信し、ブラウザで別途表示を確認
+
+1. サーバーのツールを変更した後は、ChatGPT側の接続で**「ツールの更新」**を行う。
+2. **新しい会話**で`@Memo-Nexus MCP Test`を選び、`submit_dummy_preview`が利用可能であることを確認する。更新操作はWindows担当、ツール呼び出しと応答照合はAI担当が行う。
+3. UUID v4のrequestIdを生成して固定ダミーを送る。同じ要求の再送には同IDを使う。`queued`／`saved: false`は**一時キュー受信までの成功**であり、ブラウザ表示を示さない。
+4. Windows担当がブラウザの専用ダイアログへBrowser tokenを入力し、「受信を確認」を操作する。表示のrequestId・タイトル・日本語／改行／Markdown原文をAI担当のツール応答と照合する。今回の機能は固定ダミーの**未保存プレビューまで**で、保存は行わない。
+
+終了はWindows担当がダイアログを閉じ、CのTunnelをCtrl+Cで終了し、Aの受信ウィンドウを閉じ、BのHTTPサーバーをCtrl+Cで終了する。Aは自身の受信プロセスだけを終了する。キュー・履歴は失われる。CのAdapter tokenはランチャー終了時に消去される。Runtimeキーを手動入力したCは終了後に閉じるか、`Remove-Item Env:CONTROL_PLANE_API_KEY`でそのプロセス環境から除去する。
 
 ## Secure MCP Tunnel：独自アダプター
 
@@ -69,7 +118,7 @@ Chromeは`C:/Program Files/Google/Chrome/Application/chrome.exe`を使用する�
 ./start-dummy-preview-tunnel.ps1 -TunnelClientPath 'C:/path/to/tunnel-client.exe'
 ```
 
-このランチャーはAdapter tokenだけをプロセス環境に一時設定し、絶対パスを引用したNodeアダプターを`--mcp.command`へ渡す。終了時は環境変数を除去する。Runtimeキーは受信サービスに渡さず、既存キーの発行／保存／設定を行わない。secretをCLI引数、profile YAML、シェル履歴へ直接入力しない。PowerShell TranscriptやHTTP本文デバッグを有効にしない。
+このランチャーはAdapter tokenだけをプロセス環境に一時設定し、Nodeとアダプターの絶対パスを`/`へ統一し、tunnel-client用の単一引用符（パス内の単一引用符はエスケープ）で囲んで`--mcp.command`へ渡す。PATHに複数のNodeがある場合は最初のApplicationを選ぶ。終了時は環境変数を除去する。Runtimeキーは受信サービスに渡さず、既存キーの発行／保存／設定を行わない。secretをCLI引数、profile YAML、シェル履歴へ直接入力しない。ログは`--log.format struct-text --log.level warn`を組み合わせ、`--log.http-raw-unsafe=false`を明示する。Adapter token／Runtimeキーを引数へ渡さず、raw HTTPログの環境設定があっても無効化する。PowerShell TranscriptやHTTP本文デバッグを有効にしない。
 
 ChatGPT側で承認済みの検証用Tunnel接続を使い、UUID v4のrequestIdを1つ生成して`submit_dummy_preview`を呼ぶ。同じ要求の再送では同ID。応答のrequestId・固定title/bodyを記録し、ブラウザの表示と完全一致を確認する。ブラウザ非接続時の応答は未表示のキュー受信として記録する。
 
@@ -119,13 +168,54 @@ CIは既存チェックを維持し、Chromiumで専用E2Eを追加する。`MEM
 - 保存入口呼び出し0。受信操作直後の全6 IndexedDBストアのキー・値・添付byte不変、現在本文不変、新規メモ0件。再読み込みでは受信なし対照と同じbodyUpdatedAt／updatedAt／revisionの既存更新を確認した。厳密な再読み込み後全値不変は未達のまま。
 - 今回の修正後検証に失敗・失敗後再実行はない。修正前の期待された失敗と、前回PR-1の初回失敗ログは保持。Windowsの今回の全ストアsnapshot・要約は`docs/dummy-preview-review/meta/`に保存。最終公開HEADのCI結果はPR説明の最終HEAD検証欄へ記録する。
 
+## Windowsランチャー修正とユーザー実証（2026-10-08）
+
+更新開始時の公開HEADは`a5d311b7592f72a2dbad630b20d4e13c21825325`で、前回レビュー対象から変更なし。AGENTS.md・PR差分・作業ツリーを確認した。ローカルのユーザー編集（warn削除、`node`と`/`パスの回避策、BOM・末尾空行）を読み、元バイトをignored artifactsに保持して正式修正へ取り込んだ。新規PRは作成せず既存#352を更新する。
+
+### 修正理由
+
+- ログ形式未指定のまま`--log.level warn`を渡すと、v0.0.16は`log level requires 'struct-text' or 'json' log format`で停止する。手元の削除策で解消したことを確認し、正式修正では対応形式struct-textを明示してwarnを維持した。raw HTTPログは明示的にfalseにし、秘密を引数へ渡さない。
+- PowerShell 5.1のネイティブ引数処理とtunnel-clientのshell形式解析を区別する。二重引用符と通常のWindows `\` パスを渡した元方式は`exec: "C:Program"`で失敗した。正式修正は`node`というPATH名への置換だけで済ませず、選択したNodeの絶対パスとスクリプトの絶対パスを`/`形式の単一引用符付きトークンにする。空白・日本語・パス内単一引用符に対応する。
+
+根拠: [PowerShell 5.1のネイティブ引数仕様](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_parsing?view=powershell-5.1#passing-arguments-to-native-commands)、[tunnel-client固定SHAのparseCommandArgv／ログ設定](https://github.com/openai/tunnel-client/blob/5f99daabd4aa4a77049e6d81d54a0d8c18335397/pkg/runtimeconfig/config.go)、[stdio起動のexec.Command](https://github.com/openai/tunnel-client/blob/5f99daabd4aa4a77049e6d81d54a0d8c18335397/pkg/mcpclient/stdio_command.go)。Windowsパスの文字列をなぞるテストではなく実プロセスの起動を確認した。
+
+### 担当による独立検証
+
+`dummy-preview-launcher.windows-check.js`を追加。Windows PowerShell 5.1.26100.9444、Node v24.20.0、実tunnel-client `0.0.16+5f99daabd4aa4a77049e6d81d54a0d8c18335397`で実行した。生成したテスト認証と一時loopback Control Plane／healthポートだけを使い、実キー・ユーザーのTunnel IDを取り込まない。ユーザーの5500／8791／Tunnelプロセスを停止・変更しない。`submit_dummy_preview`は呼ばず、受信キューへ投入しない。
+
+- 旧HEADのログ設定失敗と、warnだけ削除した旧引用符方式の`C:Program`失敗をそれぞれ再現。
+- 修正後は標準Program FilesのNodeと、空白・日本語・単一引用符を含む場所へコピーしたNode／MCP／tunnel-clientの両ケースで実起動成功。実行されたexe／scriptのパスを照合し、initialize、notifications/initialized、tools/listを観測、固定ダミーツールの一覧応答を模擬Control Planeまで受信した。
+- 検証終了時は検証専用MCP子プロセスを停止し、Tunnel終了とランチャーのfinallyを確認する。positiveケースのログ末尾のexited unsuccessfullyはこの意図された停止の結果で、起動失敗ではない。手動GUI／Ctrl+C操作の検証ではない。
+- ランチャー終了時のAdapter token消去を確認。テストAPIキー・Adapter tokenのプロセス出力への露出0。unsafe rawログをtrueとして継承させても、修正版のCLIで無効化した。実際の認証情報を使ったログ検証ではない。
+- 初回検証は模擬Control Planeが空の要求一覧だけを返し、Node起動は成功したが初期化を観測できず失敗。要求を返す検証へ修正した。再試行1はNodeがPATHに複数ある際のGet-Command複数結果で失敗し、最初のApplication選択で原因を修正。再試行2で全ケース成功。初回・再試行の結果は`docs/dummy-preview-review/launcher/`へ保持し、成功だけで原因解消と扱っていない。
+- 全単体1806件成功、全JavaScript構文とPowerShell Parser、diff --checkを確認。最終HEADの既存CI全ジョブはPRチェック／説明で確定結果を記録する。保存、Bridge、Clipper、Import／ZIPの実装は変更していない。
+
+再現コマンド（Windows、PRフォルダーのPowerShellへ入力）:
+
+```powershell
+$taskTunnelPath = Read-Host 'Absolute path to tunnel-client.exe (0.0.16)'
+node dummy-preview-launcher.windows-check.js $taskTunnelPath
+```
+
+生成物は`e2e-artifacts/dummy-preview/launcher/`に新規の検証フォルダーごと保持する。検証は指定バージョン以外を拒否する。UNC／ネットワーク共有・長いパス・PowerShell 7の実起動は今回の独立検証対象外。通常のローカルドライブの空白・日本語・単一引用符は実証済み。受信GUIランチャーの手動起動・閉じる操作は担当による独立検証では未実施（従来のParser検証と区別）。
+
+### ユーザーによる実Tunnel実証
+
+**ユーザー報告による確認**: 2026-10-08、日本時間15:44〜15:46頃、手元回避策を使って`ChatGPT → Secure MCP Tunnel → ローカルMCP → 一時キュー → ブラウザ表示`を確認した。担当が独立して実Tunnelへ再送した結果ではない。
+
+- requestId: `9e1c7452-2af8-4a8c-b8ae-315679d029f3`
+- ツール応答: `state: queued`、`saved: false`、title `Memo-Nexus 受信実証（固定ダミー・未保存）`
+- `http://127.0.0.1:5500/`の画面: 「固定ダミーを表示しました。未保存。」「ブラウザ表示中／一時キュー受信」。送信と同じrequestId・タイトル・日本語本文をユーザーが確認した。
+
+この報告で確認できたのはローカル表示まで。公開Origin、LNA実権限の許可／拒否、OAuth、永続保存、既存保存データの完全不変を成功扱いしない。ユーザー実証時の全IndexedDB store／添付byte比較や厳密なMarkdown全byte照合は報告されていない。全値不変の独立検証結果は前節のローカルE2Eの条件に限定する。
+
 ## 未実施条件と次操作
 
-このPRはローカル受信実証であり、完全な統合実証は未完了。OAuth、正式保存、既存メモの保存・更新・削除、任意メモの生成、create_memoは未実装。
+このPRはローカル受信実証。ChatGPTからローカル表示までのユーザー実証は上記のとおりだが、担当による実Tunnel再検証と公開Originの統合実証は未完了。OAuth、正式保存、既存メモの保存・更新・削除、任意メモの生成、create_memoは未実装。
 
-1. **まずPRブランチのローカル版で統合照合する。** Windows担当は隔離Edge／Chromeを準備し、専用サービス、ローカル5500配信、上記Tunnelランチャーを起動する。既存の承認済み検証接続を使用し、秘密値をチャットやログへ出さない。ブラウザで専用tokenを入力し、AI担当の送信後に「受信を確認」を操作して画面を確認する。AI担当はUUID v4を生成して実際のChatGPTツール`submit_dummy_preview`を呼び、返答のrequestId・固定title/body・queued／未保存を記録する。Windows担当はキュー返答と画面の同requestId・固定原文を照合する。再送は同ID。HTTPやローカルstdio試験でChatGPT成功を代用しない。終了はWindows担当がブラウザを閉じ、TunnelをCtrl+C、受信起動ウィンドウと配信を終了する。
+1. **ユーザー実証は完了。次に正式修正版でローカル経路を再確認する。** Windows担当は隔離Edge／Chromeを準備し、専用サービス、ローカル5500配信、上記Tunnelランチャーを起動する。既存の承認済み検証接続を使用し、秘密値をチャットやログへ出さない。ブラウザで専用tokenを入力し、AI担当の送信後に「受信を確認」を操作して画面を確認する。AI担当はUUID v4を生成して実際のChatGPTツール`submit_dummy_preview`を呼び、返答のrequestId・固定title/body・queued／未保存を記録する。Windows担当はキュー返答と画面の同requestId・固定原文を照合する。再送は同ID。HTTPやローカルstdio試験でChatGPT成功を代用しない。終了はWindows担当がブラウザを閉じ、TunnelをCtrl+C、受信起動ウィンドウと配信を終了する。
 2. **公開方法が決まり、今回のUIが実Originで利用可能になった後に接続確認する。** 公開・マージはこの作業では行わない。Windows担当は新規隔離プロファイルで`https://tetsujisugimori-coder.github.io/memo/`を開き、通常起動・保存待ち後に検証データと全ストア基準を準備し、専用サービスを起動する。実際のローカルネットワーク権限の許可／拒否を別プロファイルで操作し、CORS、HTTPS→loopback／混在コンテンツ、ブラウザ版・画面結果を記録する。AI担当は必要に応じて同じ固定ダミーを実Tunnelツールで送信し、Windows担当とrequestId・本文を照合する。localhost配信の成功を公開Origin成功として扱わない。
 3. PNA応答だけでLNAを保証しない。[Chrome公式説明](https://developer.chrome.com/blog/local-network-access)／[Edge公式説明](https://learn.microsoft.com/en-us/deployedge/ms-edge-local-network-access)を参照し、対象154の実挙動を確認する。今回のaccessdeniedはPlaywright通信遮断による代替で、実権限拒否ではない。ブラウザ安全設定の無効化、ポリシー追加、許可Origin拡大で試験を通さない。
-4. Windowsランチャーの手動起動・終了、スクリーンリーダーの実読み上げ、既存Clipper拡張・Bridge runtimeの実操作回帰はWindows担当の残作業。利用可能な実操作環境がなかったため、ランチャーはParserによる構文検証のみ。既存保存挙動の変更やOAuth／正式保存の追加は今回行わない。
+4. 受信GUIランチャーの手動起動・終了、スクリーンリーダーの実読み上げ、既存Clipper拡張・Bridge runtimeの実操作回帰はWindows担当の残作業。Tunnelランチャーは上記の実PS 5.1起動を確認したが、ユーザーの実Tunnelでの再送は動作中の検証と競合させないため独立再実行しなかった。既存保存挙動の変更やOAuth／正式保存の追加は今回行わない。
 
 mainのbranch protection取得は404（Branch not protected）、ruleset一覧は空。必須設定は存在せず、既存CI全jobと追加jobの結果をPRで確認する。PR作成後のGitHub CI結果はPRチェック欄を参照。公開、マージ、設定変更、自動マージは行わない。
