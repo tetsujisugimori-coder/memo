@@ -1,0 +1,13 @@
+AssertionError [ERR_ASSERTION]: {"state":{"active":"","open":false},"pageErrors":[]}
+
+false !== true
+
+    at open (C:\Users\tetsu\Documents\Codex\メモ帳\work\pr1-dummy-preview\dummy-preview.e2e.js:132:14)
+    at async C:\Users\tetsu\Documents\Codex\メモ帳\work\pr1-dummy-preview\dummy-preview.e2e.js:139:5 {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: false,
+  expected: true,
+  operator: 'strictEqual',
+  diff: 'simple'
+}

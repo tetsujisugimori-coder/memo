@@ -1,0 +1,65 @@
+entry {
+  rect: {
+    x: 144,
+    y: 468,
+    width: 222,
+    height: 40,
+    top: 468,
+    right: 366,
+    bottom: 508,
+    left: 144
+  },
+  ancestors: [
+    {
+      id: 'dummyPreviewOpenBtn',
+      cls: '',
+      display: 'block',
+      visibility: 'visible'
+    },
+    {
+      id: '',
+      cls: 'mobile-app-menu-panel',
+      display: 'grid',
+      visibility: 'visible'
+    },
+    {
+      id: 'mobileAppMenu',
+      cls: 'mobile-app-menu',
+      display: 'block',
+      visibility: 'visible'
+    },
+    { id: '', cls: 'toolbar', display: 'grid', visibility: 'visible' },
+    {
+      id: '',
+      cls: 'app-header',
+      display: 'grid',
+      visibility: 'visible'
+    },
+    {
+      id: '',
+      cls: 'workspace',
+      display: 'grid',
+      visibility: 'visible'
+    },
+    {
+      id: '',
+      cls: 'layout-overlay-open',
+      display: 'grid',
+      visibility: 'visible'
+    },
+    { id: '', cls: '', display: 'block', visibility: 'visible' }
+  ]
+}
+AssertionError [ERR_ASSERTION]: {"state":{"active":"","open":false},"pageErrors":[]}
+
+false !== true
+
+    at open (C:\Users\tetsu\Documents\Codex\メモ帳\work\pr1-dummy-preview\dummy-preview.e2e.js:134:14)
+    at async C:\Users\tetsu\Documents\Codex\メモ帳\work\pr1-dummy-preview\dummy-preview.e2e.js:141:5 {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: false,
+  expected: true,
+  operator: 'strictEqual',
+  diff: 'simple'
+}

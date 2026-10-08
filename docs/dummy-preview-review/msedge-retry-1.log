@@ -1,0 +1,38 @@
+AssertionError [ERR_ASSERTION]: no-receive reload control
++ actual - expected
+... Skipped lines
+
+  {
+    'local-config': [
+      [
+        'preview-existing-config',
+        {
+...
+          body: '# 2026-10-08 今日メモ\n\n',
++         bodyUpdatedAt: 1791427324064,
+-         bodyUpdatedAt: 1791427323848,
+          collectionId: 'system-unclassified',
+          createdAt: 1791427323784,
+          deletedAt: null,
+          id: 'a8523949-e330-48b7-a064-aa8bfc1352f1',
+          isFlagged: false,
++         revision: 2,
+-         revision: 1,
+          tags: [],
+          title: '2026-10-08 今日メモ',
++         updatedAt: 1791427324194
+-         updatedAt: 1791427323995
+        }
+      ]
+    ],
+    tags: [
+      [
+
+    at C:\Users\tetsu\Documents\Codex\メモ帳\work\pr1-dummy-preview\dummy-preview.e2e.js:109:54 {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: [Object],
+  expected: [Object],
+  operator: 'deepStrictEqual',
+  diff: 'simple'
+}

@@ -1,0 +1,56 @@
+{
+  "channel": "msedge",
+  "browserVersion": "154.0.4258.62",
+  "platform": "win32",
+  "node": "v24.20.0",
+  "origin": "http://127.0.0.1:5500",
+  "requestId": "f1e16d24-3bb3-40a2-bccc-e64fa5c049fa",
+  "controlReload": {
+    "noteId": "ff12a9f6-a209-4a79-856d-0be5141f688b",
+    "changedFields": [
+      "bodyUpdatedAt",
+      "revision",
+      "updatedAt"
+    ],
+    "before": {
+      "bodyUpdatedAt": 1791428068895,
+      "revision": 1,
+      "updatedAt": 1791428069059
+    },
+    "after": {
+      "bodyUpdatedAt": 1791428069126,
+      "revision": 2,
+      "updatedAt": 1791428069255
+    }
+  },
+  "receiveReload": {
+    "noteId": "ff12a9f6-a209-4a79-856d-0be5141f688b",
+    "changedFields": [
+      "bodyUpdatedAt",
+      "revision",
+      "updatedAt"
+    ],
+    "before": {
+      "bodyUpdatedAt": 1791428069126,
+      "revision": 2,
+      "updatedAt": 1791428069255
+    },
+    "after": {
+      "bodyUpdatedAt": 1791428075462,
+      "revision": 3,
+      "updatedAt": 1791428076330
+    }
+  },
+  "results": [
+    "no-receive reload control: existing draft restore advances only current note bodyUpdatedAt, updatedAt and revision",
+    "real stdio MCP → authenticated local queue → 390px browser: exact requestId/title/body; repeat and close/reopen; HTML stays text",
+    "rejection failure/retry, expiry, invalid auth, simulated permission denial and timeout, actual service stop; no save calls; all six stores and attachment bytes identical immediately after operations; reload has only the same three metadata changes as control; 0 new notes"
+  ],
+  "notVerified": [
+    "GitHub Pages real Origin / HTTPS → loopback LNA and mixed content",
+    "real permission prompt and denied LNA",
+    "ChatGPT → Secure MCP Tunnel",
+    "MCP OAuth",
+    "manual assistive technology readout"
+  ]
+}
