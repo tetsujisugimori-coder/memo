@@ -108,7 +108,7 @@ Adapter tokenを求められたら、Aのウィンドウから**Adapter tokenだ
 
 ## Secure MCP Tunnel：独自アダプター
 
-実際に確認したバイナリ: Downloadsの`tunnel-client-v0.0.16-windows-amd64.zip`内のexe。`--version`は`0.0.16+5f99daabd4aa4a77049e6d81d54a0d8c18335397`。`version`サブコマンドはunknown commandで失敗した。`run --help`／`help quickstart`で下記フラグを確認した。トンネルは起動していると仮定していない。Runtimeキーの読み取り、トンネル設定変更や起動は今回実施していない。
+実際に確認したバイナリ: Downloadsの`tunnel-client-v0.0.16-windows-amd64.zip`内のexe。`--version`は`0.0.16+5f99daabd4aa4a77049e6d81d54a0d8c18335397`。`version`サブコマンドはunknown commandで失敗した。`run --help`／`help quickstart`で下記フラグを確認した。初期PR-1ではhelp確認までで、実トンネル起動は行わなかった。今回のWindows修正では隔離した模擬Control Planeで実クライアント起動を検証した（後述）。ユーザーのRuntimeキーの読み取りや既存Tunnel設定変更は行っていない。
 
 独自stdioコマンドを起動する`--mcp.command`、同時要求を1にする`--mcp.max-concurrent-requests 1`、初期化通知を補う`--mcp.stdio-send-initialized-notification`を使う。内蔵echo／stubオプションと併用しない。同じTunnel IDのstdioクライアントを同時に複数起動しない。[OpenAI公式Tunnelガイド](https://developers.openai.com/api/docs/guides/secure-mcp-tunnels)、[クライアント仕様](https://github.com/openai/tunnel-client/blob/5f99daabd4aa4a77049e6d81d54a0d8c18335397/docs/configuration.md)参照。
 
@@ -159,6 +159,8 @@ CIは既存チェックを維持し、Chromiumで専用E2Eを追加する。`MEM
 一次資料は[MCP基本仕様のGeneral fields](https://modelcontextprotocol.io/specification/2025-06-18/basic#general-fields)、[Tools仕様](https://modelcontextprotocol.io/specification/2025-06-18/server/tools)、[2025-06-18 TypeScriptスキーマ](https://github.com/modelcontextprotocol/modelcontextprotocol/blob/2025-06-18/schema/2025-06-18/schema.ts)、[生成JSONスキーマ](https://github.com/modelcontextprotocol/modelcontextprotocol/blob/2025-06-18/schema/2025-06-18/schema.json)。`CallToolRequest`が継承する`Request.params._meta`はオブジェクトで、任意の`progressToken`は文字列または数値、その他のメタデータ値は未知型として定義される。基本仕様のキー構文も検証し、予約prefixの値を独自に限定しない。progress通知の送信は必須ではなく、今回追加しない。
 
 変更は`dummy-preview-mcp.js`のメタデータ検証と`createMcpHandler`、専用単体テスト、専用E2E、検証文書だけ。`params`はname／argumentsと任意_metaだけで、他の外側項目を一括許可しない。汎用スキーマではargumentsは任意だが、このツールの必須requestId契約によりargumentsは必須。ツール引数は引き続きUUID v4のrequestIdのみ。メタデータは検証後に参照せず、HTTP送信は`{ requestId }`のみ。fixture、キュー、認証、Host／Origin、期限、保存処理は変更していない。
+
+以下はメタデータ修正HEAD `a5d311b7592f72a2dbad630b20d4e13c21825325` 時点の検証履歴。Windowsランチャーの追加検証は次節に記載する。
 
 修正後のローカル検証結果:
 
