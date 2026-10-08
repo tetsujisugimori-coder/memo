@@ -2,7 +2,7 @@
 const http = require("node:http");
 const { createHash, timingSafeEqual } = require("node:crypto");
 const { TextDecoder } = require("node:util");
-const { createQueue, dummyRequest, exactKeys, fault } = require("./dummy-preview-queue.js");
+const { createQueue, dummyRequest, textRequest, MAX_TEXT_INPUT_BYTES, exactKeys, fault } = require("./dummy-preview-queue.js");
 const PORT = 8791;
 const ORIGINS = new Set(["http://127.0.0.1:5500", "https://tetsujisugimori-coder.github.io"]);
 const MAX_INPUT_BYTES = 1024;
@@ -15,12 +15,12 @@ function authorize(header, token) {
   const hash = (value) => createHash("sha256").update(value).digest();
   return timingSafeEqual(hash(header.slice(7)), hash(token));
 }
-async function readJson(req) {
+async function readJson(req, limit = MAX_INPUT_BYTES) {
   let size = 0;
   const chunks = [];
   for await (const chunk of req) {
     size += chunk.length;
-    if (size > MAX_INPUT_BYTES) throw fault("input_too_large", 413);
+    if (size > limit) throw fault("input_too_large", 413);
     chunks.push(chunk);
   }
   try { return JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(Buffer.concat(chunks))); }
@@ -50,10 +50,11 @@ function createPreviewService({ browserToken, adapterToken, queue = createQueue(
       const name = req.rawHeaders[index].toLowerCase(); counts.set(name, (counts.get(name) || 0) + 1);
       if (sensitive.has(name) && counts.get(name) > 1) return send(400, { error: "duplicate_header" });
     }
-    const routes = { "/dummy": "POST", "/pending": "GET", "/status": "POST", "/reject": "POST" };
+    const routes = { "/dummy": "POST", "/text": "POST", "/pending": "GET", "/status": "POST", "/reject": "POST", "/begin": "POST", "/complete": "POST", "/failed": "POST" };
     const method = routes[req.url];
     if (!method) return send(404, { error: "not_found" });
-    const isAdapter = req.url === "/dummy";
+    const isAdapter = req.url === "/dummy" || req.url === "/text";
+    const inputLimit = req.url === "/text" ? MAX_TEXT_INPUT_BYTES : MAX_INPUT_BYTES;
     if (isAdapter && origin !== undefined) return send(403, { error: "adapter_origin_forbidden" });
     if (!isAdapter && origin === undefined) return send(403, { error: "browser_origin_required" });
     if (origin) { res.setHeader("Access-Control-Allow-Origin", origin); res.setHeader("Vary", "Origin, Access-Control-Request-Method, Access-Control-Request-Headers"); }
@@ -71,15 +72,19 @@ function createPreviewService({ browserToken, adapterToken, queue = createQueue(
     if (req.method !== method) return send(405, { error: "invalid_method" });
     if (!authorize(req.headers.authorization, isAdapter ? adapterToken : browserToken)) return send(401, { error: "unauthorized" });
     if (req.headers["content-encoding"] !== undefined || req.headers["transfer-encoding"] !== undefined
-      || Number(req.headers["content-length"] || 0) > MAX_INPUT_BYTES) return send(413, { error: "input_too_large_or_encoded" });
+      || Number(req.headers["content-length"] || 0) > inputLimit) return send(413, { error: "input_too_large_or_encoded" });
     if (method === "GET" && Number(req.headers["content-length"] || 0) !== 0) return send(400, { error: "unexpected_body" });
     if (method === "POST" && req.headers["content-type"] !== "application/json") return send(415, { error: "json_required" });
     inflight++;
     try {
       if (req.url === "/pending") return send(200, { pending: queue.peek() });
-      const input = await readJson(req);
-      if (!exactKeys(input, ["requestId"])) throw fault("invalid_format");
-      const record = isAdapter ? queue.submit(dummyRequest(input.requestId))
+      const input = await readJson(req, inputLimit);
+      if (req.url !== "/text" && !exactKeys(input, req.url === "/begin" ? ["requestId", "collectionId"] : ["requestId"])) throw fault("invalid_format");
+      const record = req.url === "/text" ? queue.submit(textRequest(input))
+        : req.url === "/dummy" ? queue.submit(dummyRequest(input.requestId))
+        : req.url === "/begin" ? queue.begin(input.requestId, input.collectionId)
+        : req.url === "/complete" ? queue.complete(input.requestId)
+        : req.url === "/failed" ? queue.failed(input.requestId)
         : req.url === "/reject" ? queue.reject(input.requestId) : queue.status(input.requestId);
       return send(record.state === "queue_full" ? 409 : 200, { request: record });
     } catch (error) { return send(error.status || 500, { error: error.code || "internal_error" }); }

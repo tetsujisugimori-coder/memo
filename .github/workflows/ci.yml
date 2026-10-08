@@ -580,11 +580,15 @@ jobs:
       - run: npx playwright install --with-deps chromium
       - name: Verify isolated unsaved browser receive path
         run: npm run test:e2e:dummy-preview
+      - name: Verify isolated received text and explicit save path
+        run: npm run test:e2e:received-preview
       - name: Preserve results including failures
         if: always()
         uses: actions/upload-artifact@v6
         with:
           name: unsaved-dummy-preview
-          path: e2e-artifacts/dummy-preview/
+          path: |
+            e2e-artifacts/dummy-preview/
+            e2e-artifacts/received-preview/
           if-no-files-found: error
           retention-days: 14

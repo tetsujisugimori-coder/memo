@@ -4903,6 +4903,37 @@ async function createNote(title = "新規メモ", body = "", options = {}) {
   return note;
 }
 
+// 受信プレビュー専用。IDと保存先はbrowser-only begin応答の固定計画を使う。
+// 保存済みIDを再作成・上書きせず、transaction完了後の再試行も同じ結果へ戻す。
+window.MemoNexusReceivedPreview = {
+  destination(fixedCollectionId) {
+    const collectionId = fixedCollectionId || resolveNewNoteCollection();
+    return { collectionId, label: collections.find((item) => item.id === collectionId)?.name || "未分類", warning: storageWarning && !storageWarning.hidden ? storageWarning.textContent : "" };
+  },
+  async save(record) {
+    if (!db || dbConnectionClosedForUpgrade || !navigator.locks) throw new Error("保存領域を利用できません。再読み込みして再試行してください。");
+    const plan = record.savePlan;
+    if (record.dummy || !["saving", "saved"].includes(record.state) || !plan || typeof plan.noteId !== "string"
+      || typeof record.title !== "string" || typeof record.body !== "string") throw new Error("保存計画が不正です。");
+    return navigator.locks.request(`memo-received-save:${plan.noteId}`, async () => {
+      const stored = (await getStoredNoteSnapshots([plan.noteId])).get(plan.noteId);
+      if (stored) {
+        if (stored.deletedAt || stored.body !== record.body || stored.collectionId !== plan.collectionId) throw new Error("保存結果が受信内容と一致しません。上書きせず停止しました。");
+        if (!noteForSave(stored.id)) { notes.unshift(stored); registerNoteSaveState(stored); }
+        invalidateTermRelationIndex();
+        renderMemoListPanel();
+        return stored;
+      }
+      if (record.state === "saved") throw new Error("このブラウザ保存領域には保存結果がありません。保存に使ったブラウザで確認してください。");
+      // resolveNewNoteCollectionによる暗黙の保存先変更を防ぐ。
+      if (plan.collectionId !== UNCLASSIFIED_COLLECTION_ID && !collectionExists(plan.collectionId)) throw new Error("保存先がなくなりました。保存していません。");
+      const note = await createNote(record.title, record.body, { id: plan.noteId, collectionId: plan.collectionId });
+      renderMemoListPanel();
+      return note;
+    });
+  }
+};
+
 // インポートやdraft復元で既存IDを上書きする場合も、進行中の通常保存と同じキューへ接続します。
 async function persistIncomingNote(incoming) {
   const existing = noteForSave(incoming.id);
