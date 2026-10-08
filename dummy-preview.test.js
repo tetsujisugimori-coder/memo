@@ -105,6 +105,55 @@ test("MCP publishes only fixed dummy submission; requestId is caller generated a
   assert.equal((await call("tools/call", { ...params, arguments: { requestId, body: "arbitrary" } })).error.code, -32602);
   assert.equal((await call("tools/call", { ...params, name: "create_memo" })).error.code, -32602);
 });
+test("MCP standard metadata is validated independently and never passed to submission", async () => {
+  const queue = createQueue(); const submissions = [];
+  const handler = createMcpHandler({ submit: async (...args) => { submissions.push(args); return queue.submit(dummyRequest(args[0])); } });
+  await handler({ jsonrpc: "2.0", method: "notifications/initialized" });
+  const requestId = id(); const params = { name: "submit_dummy_preview", arguments: { requestId } };
+  const call = (value) => handler({ jsonrpc: "2.0", id: 1, method: "tools/call", params: value });
+  const original = await call(params); const record = queue.peek();
+  const valid = [{}, { progressToken: "test" }, { progressToken: 0 }, { progressToken: 1.5 }, { progressToken: "" },
+    { "com.example/trace_id": { nested: [true, null, "opaque"] }, "mcp.io/test": false, "": null, "example.org/": 42, body: "ignored metadata" }];
+  for (const _meta of valid) {
+    assert.deepEqual(await call({ ...params, _meta }), original);
+    assert.deepEqual(queue.peek(), record);
+  }
+  assert.deepEqual(submissions, Array.from({ length: valid.length + 1 }, () => [requestId]));
+  assert.equal(Object.hasOwn(record, "_meta"), false);
+  const count = submissions.length;
+  for (const _meta of [null, [], "test", 3, true, { progressToken: null }, { progressToken: true }, { progressToken: {} },
+    { progressToken: [] }, { progressToken: NaN }, { progressToken: Infinity }, { "bad key": 1 }, { "_name": 1 },
+    { "1example.org/name": 1 }, { "example..org/name": 1 }, { "example.org-/name": 1 }, { "example.org/name/extra": 1 }, { "name-": 1 }, { "name\n": 1 }]) {
+    assert.equal((await call({ ...params, _meta })).error.code, -32602);
+  }
+  const _meta = { progressToken: "test", "com.example/trace": "opaque" };
+  for (const key of ["body", "title", "noteId", "id", "update", "delete", "unknown", "_meta"]) {
+    assert.equal((await call({ ...params, _meta, arguments: { requestId, [key]: "forbidden" } })).error.code, -32602);
+  }
+  for (const value of [{ ...params, _meta, arguments: { requestId: "memo-id" } }, { ...params, _meta, name: "create_memo" },
+    { ...params, _meta, unknown: true }, { name: params.name, _meta }, { arguments: params.arguments, _meta }]) {
+    assert.equal((await call(value)).error.code, -32602);
+  }
+  assert.equal(submissions.length, count);
+  assert.deepEqual(queue.peek(), record);
+});
+
+test("MCP metadata retries preserve rejection, full refusal and expiry without resurrection", async () => {
+  let time = 1000; const queue = createQueue({ now: () => time });
+  const handler = createMcpHandler({ submit: async (requestId) => queue.submit(dummyRequest(requestId)) });
+  await handler({ jsonrpc: "2.0", method: "notifications/initialized" });
+  const call = async (requestId) => JSON.parse((await handler({ jsonrpc: "2.0", id: 1, method: "tools/call",
+    params: { name: "submit_dummy_preview", arguments: { requestId }, _meta: { progressToken: "test" } } })).result.content[0].text);
+  const first = id(); const second = id();
+  const queued = await call(first); assert.equal(queued.state, "queued"); assert.deepEqual(await call(first), queued);
+  const full = await call(second); assert.equal(full.state, "queue_full");
+  queue.reject(first); assert.equal((await call(first)).state, "rejected"); assert.equal(queue.peek(), null);
+  assert.deepEqual(await call(second), full); assert.equal(queue.peek(), null);
+  const third = id(); await call(third); time += TTL_MS;
+  assert.equal((await call(third)).state, "expired"); assert.equal(queue.peek(), null);
+  assert.equal((await call(third)).state, "expired"); assert.equal(queue.peek(), null);
+});
+
 test("incoming modules have no persistence, editor, Import or clipper capabilities", () => {
   for (const file of ["dummy-preview-ui.js", "dummy-preview-queue.js", "dummy-preview-service.js", "dummy-preview-mcp.js"]) {
     const source = fs.readFileSync(file, "utf8");

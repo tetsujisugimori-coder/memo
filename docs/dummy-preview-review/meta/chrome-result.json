@@ -1,0 +1,57 @@
+{
+  "channel": "chrome",
+  "browserVersion": "154.0.8037.99",
+  "platform": "win32",
+  "node": "v24.20.0",
+  "origin": "http://127.0.0.1:5500",
+  "requestId": "7987b80f-2b25-4492-9879-33150c354223",
+  "controlReload": {
+    "noteId": "d4aa40d8-7871-4935-81f6-0bdbee21a116",
+    "changedFields": [
+      "bodyUpdatedAt",
+      "revision",
+      "updatedAt"
+    ],
+    "before": {
+      "bodyUpdatedAt": 1791431089765,
+      "revision": 1,
+      "updatedAt": 1791431089884
+    },
+    "after": {
+      "bodyUpdatedAt": 1791431089956,
+      "revision": 2,
+      "updatedAt": 1791431090078
+    }
+  },
+  "receiveReload": {
+    "noteId": "d4aa40d8-7871-4935-81f6-0bdbee21a116",
+    "changedFields": [
+      "bodyUpdatedAt",
+      "revision",
+      "updatedAt"
+    ],
+    "before": {
+      "bodyUpdatedAt": 1791431089956,
+      "revision": 2,
+      "updatedAt": 1791431090078
+    },
+    "after": {
+      "bodyUpdatedAt": 1791431096365,
+      "revision": 3,
+      "updatedAt": 1791431097644
+    }
+  },
+  "results": [
+    "no-receive reload control: existing draft restore advances only current note bodyUpdatedAt, updatedAt and revision",
+    "real stdio calls both without _meta and with progressToken/custom metadata succeed; same requestId and fixture; HTTP contains only requestId; identical single queue record",
+    "real stdio MCP → authenticated local queue → 390px browser: exact requestId/title/body; repeat and close/reopen; HTML stays text",
+    "rejection failure/retry, expiry, invalid auth, simulated permission denial and timeout, actual service stop; no save calls; all six stores and attachment bytes identical immediately after operations; reload has only the same three metadata changes as control; 0 new notes"
+  ],
+  "notVerified": [
+    "GitHub Pages real Origin / HTTPS → loopback LNA and mixed content",
+    "real permission prompt and denied LNA",
+    "ChatGPT → Secure MCP Tunnel",
+    "MCP OAuth",
+    "manual assistive technology readout"
+  ]
+}

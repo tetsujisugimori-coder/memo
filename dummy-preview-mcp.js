@@ -20,6 +20,16 @@ function submitDummy(requestId, token) {
     req.on("error", reject); req.end(body);
   });
 }
+// MCP 2025-06-18 Request._meta: opaque metadata, with an optional string/number progressToken.
+// Key syntax follows basic/general-fields; reserved prefixes remain valid metadata.
+const META_LABEL = "[A-Za-z](?:[A-Za-z0-9-]*[A-Za-z0-9])?";
+const META_KEY = new RegExp(`^(?:${META_LABEL}(?:\\.${META_LABEL})*/)?(?:[A-Za-z0-9](?:[A-Za-z0-9_.-]*[A-Za-z0-9])?)?$`);
+function validRequestMetadata(value) {
+  return value !== null && typeof value === "object" && !Array.isArray(value)
+    && Object.keys(value).every((key) => META_KEY.test(key))
+    && (!Object.hasOwn(value, "progressToken") || typeof value.progressToken === "string"
+      || (typeof value.progressToken === "number" && Number.isFinite(value.progressToken)));
+}
 function createMcpHandler({ submit = (id) => submitDummy(id, process.env.MEMO_PREVIEW_ADAPTER_TOKEN) } = {}) {
   let initialized = false;
   return async (message) => {
@@ -35,7 +45,9 @@ function createMcpHandler({ submit = (id) => submitDummy(id, process.env.MEMO_PR
       inputSchema: { type: "object", properties: { requestId: { type: "string", pattern: REQUEST_ID_PATTERN.source } }, required: ["requestId"], additionalProperties: false },
       annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false } }] });
     if (message.method !== "tools/call") return error(-32601, "Method not found");
-    if (!exactKeys(message.params, ["name", "arguments"]) || message.params.name !== "submit_dummy_preview"
+    const hasMeta = message.params != null && Object.hasOwn(message.params, "_meta");
+    if (!exactKeys(message.params, hasMeta ? ["name", "arguments", "_meta"] : ["name", "arguments"])
+      || (hasMeta && !validRequestMetadata(message.params._meta)) || message.params.name !== "submit_dummy_preview"
       || !exactKeys(message.params.arguments, ["requestId"]) || typeof message.params.arguments.requestId !== "string"
       || !REQUEST_ID_PATTERN.test(message.params.arguments.requestId)) return error(-32602, "Only a dummy requestId (UUID v4) is accepted");
     try {

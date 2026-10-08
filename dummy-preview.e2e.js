@@ -62,7 +62,7 @@ async function settled(page) {
   await page.waitForFunction(() => typeof webClipReceiverReady !== "undefined" && webClipReceiverReady);
   await page.evaluate(async () => { await flushScheduledNoteSave(currentId); await Promise.all(notes.map((note) => noteSaveFoundation.whenIdle(note.id))); });
 }
-async function mcpRoundTrip(adapterToken, requestId) {
+async function mcpRoundTrip(adapterToken, requestId, metadata) {
   const child = spawn(process.execPath, [path.join(__dirname, "dummy-preview-mcp.js")], { windowsHide: true, env: { ...process.env, MEMO_PREVIEW_ADAPTER_TOKEN: adapterToken }, stdio: ["pipe", "pipe", "pipe"] });
   let buffer = ""; let resolveNext; let rejectNext;
   child.stdout.on("data", (chunk) => {
@@ -76,7 +76,8 @@ async function mcpRoundTrip(adapterToken, requestId) {
   try {
     await call({ jsonrpc: "2.0", id: 1, method: "initialize", params: { protocolVersion: "2025-06-18", capabilities: {}, clientInfo: { name: "isolated-test", version: "1" } } });
     child.stdin.write(JSON.stringify({ jsonrpc: "2.0", method: "notifications/initialized" }) + "\n");
-    const response = await call({ jsonrpc: "2.0", id: 2, method: "tools/call", params: { name: "submit_dummy_preview", arguments: { requestId } } });
+    const response = await call({ jsonrpc: "2.0", id: 2, method: "tools/call", params: { name: "submit_dummy_preview", arguments: { requestId }, ...(metadata === undefined ? {} : { _meta: metadata }) } });
+    assert.equal(response.error, undefined);
     assert.equal(response.result.isError, false);
     const result = JSON.parse(response.result.content[0].text);
     assert.equal(result.requestId, requestId); assert.equal(result.body, FIXTURE.body); assert.equal(result.title, FIXTURE.title);
@@ -88,6 +89,13 @@ async function mcpRoundTrip(adapterToken, requestId) {
   const browserToken = randomBytes(32).toString("base64url"); const adapterToken = randomBytes(32).toString("base64url");
   let time = Date.now(); const queue = createQueue({ now: () => time });
   const { server: receiver } = createPreviewService({ browserToken, adapterToken, queue });
+  const submittedBodies = [];
+  receiver.on("request", (req) => {
+    if (req.method === "POST" && req.url === "/dummy") {
+      const chunks = []; req.on("data", (chunk) => chunks.push(chunk));
+      req.on("end", () => submittedBodies.push(JSON.parse(Buffer.concat(chunks).toString("utf8"))));
+    }
+  });
   const root = __dirname;
   const staticServer = http.createServer(async (req, res) => {
     const relative = new URL(req.url, "http://127.0.0.1").pathname.slice(1) || "index.html";
@@ -132,7 +140,15 @@ async function mcpRoundTrip(adapterToken, requestId) {
       }
     });
     const requestId = randomUUID(); const toolResult = await mcpRoundTrip(adapterToken, requestId);
+    const queuedWithoutMeta = queue.peek();
+    const metadata = { progressToken: "test", "com.example/trace": { test: "stdio", body: "must not reach the queue" } };
+    assert.deepEqual(await mcpRoundTrip(adapterToken, requestId, metadata), toolResult);
+    assert.deepEqual(submittedBodies, [{ requestId }, { requestId }], "HTTP submission contains only requestId");
+    assert.deepEqual(queue.peek(), queuedWithoutMeta, "metadata retry neither changes nor duplicates the queue record");
     assert.equal(queue.peek().requestId, requestId);
+    assert.equal(queue.peek().title, FIXTURE.title); assert.equal(queue.peek().body, FIXTURE.body);
+    assert.equal(Object.hasOwn(queue.peek(), "_meta"), false);
+    results.push("real stdio calls both without _meta and with progressToken/custom metadata succeed; same requestId and fixture; HTTP contains only requestId; identical single queue record");
     const open = async () => {
       await page.keyboard.press("Escape");
       if (await page.locator("#mobileWritingDoneBtn").isVisible()) await page.locator("#mobileWritingDoneBtn").click();
