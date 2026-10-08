@@ -1,0 +1,31 @@
+ℹ tests 1804
+ℹ suites 0
+ℹ pass 1803
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 2616.2976
+
+✖ failing tests:
+
+test at version.test.js:27:1
+✖ 全ローカルCSS・JavaScriptを0.5.0のキャッシュ識別子で読み込む (1.4922ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+  64 !== 62
+
+      at TestContext.<anonymous> (C:\Users\tetsu\Documents\Codex\メモ帳\work\pr1-dummy-preview\version.test.js:30:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1397:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:969:18)
+      at Test.postRun (node:internal/test_runner/test:1537:19)
+      at Test.run (node:internal/test_runner/test:1462:12)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 64,
+    expected: 62,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

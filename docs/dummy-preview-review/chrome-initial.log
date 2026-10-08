@@ -1,0 +1,39 @@
+AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
++ actual - expected
+
++ ''
+- '# 固定ダミーメモ\n' +
+-   '\n' +
+-   '日本語の受信確認です。\n' +
+-   'この内容は保存されません。\n' +
+-   '\n' +
+-   '- 箇条書きの一つ目\n' +
+-   '- 箇条書きの二つ目\n' +
+-   '\n' +
+-   '`inline code`\n' +
+-   '\n' +
+-   '```js\n' +
+-   'const message = "未保存";\n' +
+-   '```\n' +
+-   '\n' +
+-   '<img src="https://example.invalid/preview.png" onerror="window.previewExecuted=true">\n' +
+-   '[アクセスしないURL](https://example.invalid/)\n'
+
+    at C:\Users\tetsu\Documents\Codex\メモ帳\work\pr1-dummy-preview\dummy-preview.e2e.js:149:12 {
+  generatedMessage: true,
+  code: 'ERR_ASSERTION',
+  actual: '',
+  expected: '# 固定ダミーメモ\n' +
+    '\n' +
+    '日本語の受信確認です。\n' +
+    'この内容は保存されません。\n' +
+    '\n' +
+    '- 箇条書きの一つ目\n' +
+    '- 箇条書きの二つ目\n' +
+    '\n' +
+    '`inline code`\n' +
+    '\n' +
+    '...',
+  operator: 'strictEqual',
+  diff: 'simple'
+}

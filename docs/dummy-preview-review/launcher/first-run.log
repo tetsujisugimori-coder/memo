@@ -1,0 +1,9 @@
+AssertionError [ERR_ASSERTION]: actual MCP initialization was not observed
+    at check (C:\Users\tetsu\Documents\Codex\メモ帳\work\pr1-dummy-preview\work\pr1-meta-review\dummy-preview-launcher.windows-check.js:63:45) {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: false,
+  expected: true,
+  operator: '==',
+  diff: 'simple'
+}

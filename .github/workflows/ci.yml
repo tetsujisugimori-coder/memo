@@ -563,3 +563,28 @@ jobs:
 
       - name: Run geometry E2E
         run: npm run test:e2e:geometry
+
+  dummy-preview-e2e:
+    name: Unsaved dummy preview (chromium)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Verify isolated unsaved browser receive path
+        run: npm run test:e2e:dummy-preview
+      - name: Preserve results including failures
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: unsaved-dummy-preview
+          path: e2e-artifacts/dummy-preview/
+          if-no-files-found: error
+          retention-days: 14

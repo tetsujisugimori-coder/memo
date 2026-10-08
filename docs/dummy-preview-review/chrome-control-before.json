@@ -1,0 +1,227 @@
+{
+  "attachments": [
+    [
+      "preview-existing-attachment",
+      {
+        "blob": {
+          "kind": "Blob",
+          "type": "application/octet-stream",
+          "bytes": [
+            0,
+            1,
+            127,
+            128,
+            255
+          ]
+        },
+        "createdAt": 1791428078559,
+        "id": "preview-existing-attachment",
+        "memoId": "0101cc3d-7066-4fd0-b809-fd720d6b078e",
+        "mimeType": "application/octet-stream",
+        "name": "existing.bin"
+      }
+    ]
+  ],
+  "collections": [
+    [
+      "collection-history",
+      {
+        "createdAt": "2026-10-08T02:54:38.505Z",
+        "id": "collection-history",
+        "isSystem": false,
+        "name": "歴史",
+        "parentId": null,
+        "sortOrder": 10,
+        "updatedAt": "2026-10-08T02:54:38.505Z"
+      }
+    ],
+    [
+      "collection-it",
+      {
+        "createdAt": "2026-10-08T02:54:38.505Z",
+        "id": "collection-it",
+        "isSystem": false,
+        "name": "IT技術",
+        "parentId": null,
+        "sortOrder": 30,
+        "updatedAt": "2026-10-08T02:54:38.505Z"
+      }
+    ],
+    [
+      "collection-programming",
+      {
+        "createdAt": "2026-10-08T02:54:38.505Z",
+        "id": "collection-programming",
+        "isSystem": false,
+        "name": "プログラミング",
+        "parentId": null,
+        "sortOrder": 20,
+        "updatedAt": "2026-10-08T02:54:38.505Z"
+      }
+    ],
+    [
+      "collection-technology-history",
+      {
+        "createdAt": "2026-10-08T02:54:38.505Z",
+        "id": "collection-technology-history",
+        "isSystem": false,
+        "name": "技術史",
+        "parentId": null,
+        "sortOrder": 40,
+        "updatedAt": "2026-10-08T02:54:38.505Z"
+      }
+    ],
+    [
+      "collection-trivia",
+      {
+        "createdAt": "2026-10-08T02:54:38.505Z",
+        "id": "collection-trivia",
+        "isSystem": false,
+        "name": "雑学",
+        "parentId": null,
+        "sortOrder": 50,
+        "updatedAt": "2026-10-08T02:54:38.505Z"
+      }
+    ],
+    [
+      "preview-existing-collection",
+      {
+        "id": "preview-existing-collection",
+        "isSystem": false,
+        "name": "既存コレクション",
+        "parentId": null,
+        "sortOrder": 20
+      }
+    ],
+    [
+      "system-unclassified",
+      {
+        "createdAt": "2026-10-08T02:54:38.505Z",
+        "id": "system-unclassified",
+        "isSystem": true,
+        "name": "未分類",
+        "parentId": null,
+        "sortOrder": 100000,
+        "updatedAt": "2026-10-08T02:54:38.505Z"
+      }
+    ]
+  ],
+  "local-config": [
+    [
+      "preview-existing-config",
+      {
+        "key": "preview-existing-config",
+        "value": {
+          "enabled": false,
+          "label": "既存設定"
+        }
+      }
+    ],
+    [
+      "state",
+      {
+        "key": "state",
+        "value": {
+          "directoryName": "",
+          "errorCode": "",
+          "errorMessage": "",
+          "lastAttemptAt": null,
+          "lastSuccessAt": null,
+          "pendingChanges": false,
+          "requiresUserAction": false,
+          "status": "unconfigured"
+        }
+      }
+    ]
+  ],
+  "note-tombstones": [
+    [
+      "preview-permanently-deleted",
+      {
+        "deletedAt": 1791428078559,
+        "deletionId": "preview-deletion-record",
+        "noteId": "preview-permanently-deleted"
+      }
+    ]
+  ],
+  "notes": [
+    [
+      "0101cc3d-7066-4fd0-b809-fd720d6b078e",
+      {
+        "body": "# 既存本文\n[[知識リンク]]\n",
+        "bodyUpdatedAt": 1791428078558,
+        "collectionId": "system-unclassified",
+        "createdAt": 1791428078558,
+        "deletedAt": null,
+        "id": "0101cc3d-7066-4fd0-b809-fd720d6b078e",
+        "isFlagged": false,
+        "revision": 0,
+        "tags": [
+          "preview-existing-tag"
+        ],
+        "title": "既存の検証メモ",
+        "updatedAt": 1791428078558
+      }
+    ],
+    [
+      "431cf9df-fd6c-4346-9213-83d0c3b975c4",
+      {
+        "body": "",
+        "bodyUpdatedAt": 1791428078512,
+        "collectionId": "system-unclassified",
+        "createdAt": 1791428078512,
+        "deletedAt": null,
+        "id": "431cf9df-fd6c-4346-9213-83d0c3b975c4",
+        "isFlagged": false,
+        "revision": 0,
+        "tags": [],
+        "title": "新規メモ",
+        "updatedAt": 1791428078512
+      }
+    ],
+    [
+      "54ebe22a-4c1d-4679-9254-5b3b9d197fe0",
+      {
+        "body": "既存の削除済み本文",
+        "bodyUpdatedAt": 1791428078558,
+        "collectionId": "system-unclassified",
+        "createdAt": 1791428078558,
+        "deletedAt": 1791428078558,
+        "id": "54ebe22a-4c1d-4679-9254-5b3b9d197fe0",
+        "isFlagged": false,
+        "revision": 0,
+        "tags": [],
+        "title": "削除済みの検証メモ",
+        "updatedAt": 1791428078558
+      }
+    ],
+    [
+      "7a5d4816-15fe-47ff-a7c4-ece361c41750",
+      {
+        "body": "# 2026-10-08 今日メモ\n\n",
+        "bodyUpdatedAt": 1791428078573,
+        "collectionId": "system-unclassified",
+        "createdAt": 1791428078517,
+        "deletedAt": null,
+        "id": "7a5d4816-15fe-47ff-a7c4-ece361c41750",
+        "isFlagged": false,
+        "revision": 1,
+        "tags": [],
+        "title": "2026-10-08 今日メモ",
+        "updatedAt": 1791428078759
+      }
+    ]
+  ],
+  "tags": [
+    [
+      "preview-existing-tag",
+      {
+        "color": "#5f8f57",
+        "createdAt": "2026-10-08T02:54:38.559Z",
+        "id": "preview-existing-tag",
+        "name": "既存タグ",
+        "updatedAt": "2026-10-08T02:54:38.559Z"
+      }
+    ]
+  ]
+}

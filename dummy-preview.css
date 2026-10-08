@@ -1,0 +1,7 @@
+.dummy-preview-dialog { box-sizing: border-box; width: min(640px, calc(100vw - 24px)); max-height: calc(100dvh - 24px); padding: 16px; overflow: auto; }
+.dummy-preview-dialog label { display: grid; gap: 6px; }
+.dummy-preview-dialog input { box-sizing: border-box; width: 100%; min-width: 0; }
+.dummy-preview-dialog pre { white-space: pre-wrap; overflow-wrap: anywhere; font: inherit; }
+.dummy-preview-dialog h3, .dummy-preview-dialog dd { overflow-wrap: anywhere; }
+.dummy-preview-dialog dd { margin: 0 0 12px; }
+.dummy-preview-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }

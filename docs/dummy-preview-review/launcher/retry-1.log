@@ -1,0 +1,16 @@
+AssertionError [ERR_ASSERTION]: PS_VERSION:5.1.26100.9444
+time=2026-10-08T15:58:38.460+09:00 level=ERROR msg="OnStart hook failed" client_instance_id=d26613d8187a16c2baf95a2ef1cd6082 tunnel_id=tunnel_00000000000000000000000000000000 callee=github.com/openai/tunnel-client/pkg/mcpclient.(*stdioCommandTransport).start-fm() caller=github.com/openai/tunnel-client/pkg/mcpclient.(*stdioCommandTransport).Transport error="mcpclient: start stdio command: fork/exec C:/Users/tetsu/Documents/Codex/メモ帳/work/pr1-dummy-preview/work/pr1-meta-review/e2e-artifacts/dummy-preview/launcher/空白 日本語 'quote' Quea4Q/Node 実行/node.exe C:/Program Files/nodejs/node.exe: The filename, directory name, or volume label syntax is incorrect."
+time=2026-10-08T15:58:38.479+09:00 level=ERROR msg="start failed, rolling back" client_instance_id=d26613d8187a16c2baf95a2ef1cd6082 tunnel_id=tunnel_00000000000000000000000000000000 error="mcpclient: start stdio command: fork/exec C:/Users/tetsu/Documents/Codex/メモ帳/work/pr1-dummy-preview/work/pr1-meta-review/e2e-artifacts/dummy-preview/launcher/空白 日本語 'quote' Quea4Q/Node 実行/node.exe C:/Program Files/nodejs/node.exe: The filename, directory name, or volume label syntax is incorrect."
+start tunnel-client: mcpclient: start stdio command: fork/exec C:/Users/tetsu/Documents/Codex/メモ帳/work/pr1-dummy-preview/work/pr1-meta-review/e2e-artifacts/dummy-preview/launcher/空白 日本語 'quote' Quea4Q/Node 実行/node.exe C:/Program Files/nodejs/node.exe: The filename, directory name, or volume label syntax is incorrect.
+time=2026-10-08T15:58:38.480+09:00 level=ERROR msg="start failed" client_instance_id=d26613d8187a16c2baf95a2ef1cd6082 tunnel_id=tunnel_00000000000000000000000000000000 error="mcpclient: start stdio command: fork/exec C:/Users/tetsu/Documents/Codex/メモ帳/work/pr1-dummy-preview/work/pr1-meta-review/e2e-artifacts/dummy-preview/launcher/空白 日本語 'quote' Quea4Q/Node 実行/node.exe C:/Program Files/nodejs/node.exe: The filename, directory name, or volume label syntax is incorrect."
+LAUNCH_ERROR:Tunnel client exited unsuccessfully; keep the first error for review without exposing secrets.
+TOKEN_CLEARED:True
+
+    at check (C:\Users\tetsu\Documents\Codex\メモ帳\work\pr1-dummy-preview\work\pr1-meta-review\dummy-preview-launcher.windows-check.js:76:18) {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: null,
+  expected: true,
+  operator: '==',
+  diff: 'simple'
+}

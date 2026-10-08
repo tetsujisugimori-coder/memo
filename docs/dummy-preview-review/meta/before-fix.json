@@ -1,0 +1,24 @@
+{
+  "baselineHead": "d8ba7c2f203d07ad3e9b7de72b36a87ce171e784",
+  "withoutMeta": {
+    "jsonrpc": "2.0",
+    "id": 2,
+    "result": {
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"requestId\":\"12345678-1234-4234-8234-123456789abc\",\"title\":\"Memo-Nexus 受信実証（固定ダミー・未保存）\",\"body\":\"# 固定ダミーメモ\\n\\n日本語の受信確認です。\\nこの内容は保存されません。\\n\\n- 箇条書きの一つ目\\n- 箇条書きの二つ目\\n\\n`inline code`\\n\\n```js\\nconst message = \\\"未保存\\\";\\n```\\n\\n<img src=\\\"https://example.invalid/preview.png\\\" onerror=\\\"window.previewExecuted=true\\\">\\n[アクセスしないURL](https://example.invalid/)\\n\",\"state\":\"queued\",\"saved\":false,\"message\":\"一時キューで受信・未保存（ブラウザ表示は未確認）\"}"
+        }
+      ],
+      "isError": false
+    }
+  },
+  "withMeta": {
+    "jsonrpc": "2.0",
+    "id": 3,
+    "error": {
+      "code": -32602,
+      "message": "Only a dummy requestId (UUID v4) is accepted"
+    }
+  }
+}
