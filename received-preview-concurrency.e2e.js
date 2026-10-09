@@ -5,6 +5,7 @@ const path = require("node:path");
 const http = require("node:http");
 const { randomBytes, randomUUID } = require("node:crypto");
 const { chromium } = require("playwright");
+const { attachTransport } = require("./received-e2e-transport.js");
 const { createPreviewService } = require("./dummy-preview-service.js");
 const { textRequest } = require("./dummy-preview-queue.js");
 const before = process.argv.includes("--before");
@@ -61,11 +62,12 @@ async function stored(page, id) { return page.evaluate(async (id) => (await getS
   let browser, receiverRunning = false, staticRunning = false;
   const results = [];
   try {
-    await listen(receiver, 8791); receiverRunning = true; await listen(staticServer, 5500); staticRunning = true;
+    await listen(receiver, 0); process.env.MEMO_E2E_RECEIVER_PORT = String(receiver.address().port); receiverRunning = true; await listen(staticServer, 0); staticRunning = true;
     browser = await chromium.launch({ headless: true, ...(channel === "chromium" ? {} : { channel }) });
     async function tabs(value, different = false) {
       queue.submit(textRequest(value));
       const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
+      await attachTransport(context, staticServer.address().port, receiver.address().port);
       const a = await context.newPage(); await a.goto("http://127.0.0.1:5500/"); await ready(a);
       await a.evaluate(async () => {
         const transaction = db.transaction("collections", "readwrite");
@@ -183,12 +185,14 @@ async function stored(page, id) { return page.evaluate(async (id) => (await getS
       const profile = await fs.mkdtemp(path.join(artifacts, "concurrency-profile-"));
       const options = { headless: true, viewport: { width: 390, height: 844 }, ...(channel === "chromium" ? {} : { channel }) };
       let persistent = await chromium.launchPersistentContext(profile, options);
+      await attachTransport(persistent, staticServer.address().port, receiver.address().port);
       try {
         const page = persistent.pages()[0]; await page.goto("http://127.0.0.1:5500/"); await ready(page); await open(page, browserToken);
         const originalCount = (await page.evaluate(() => getStoredNotes())).length;
         await gate(page); await page.locator("#dummyPreviewSaveBtn").click(); await page.waitForFunction(() => window.gateReached);
         const firstAttempt = queue.status(restart.requestId);
         await persistent.close(); persistent = await chromium.launchPersistentContext(profile, options);
+        await attachTransport(persistent, staticServer.address().port, receiver.address().port);
         const recoveredPage = persistent.pages()[0]; await recoveredPage.goto("http://127.0.0.1:5500/"); await ready(recoveredPage); await open(recoveredPage, browserToken);
         assert.equal(queue.status(restart.requestId).state, "saving");
         await recoveredPage.locator("#dummyPreviewSaveBtn").click(); await idle(recoveredPage);

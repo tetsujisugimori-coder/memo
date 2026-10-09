@@ -2443,15 +2443,17 @@ function getStoredNoteSnapshots(noteIds) {
 }
 
 // メモを1件保存します。idが同じなら上書き、なければ新規追加になります。
-function putNote(note, { preserveStoredCodexThread = false } = {}) {
+function putNote(note, { preserveStoredCodexThread = false, receivedReceipt = null } = {}) {
   return new Promise((resolve, reject) => {
     note = withNormalizedMemoTags(note);
     let savedNote = note;
-    const transaction = db.transaction([STORE_NAME, TOMBSTONE_STORE_NAME], "readwrite");
+    let receivedWriteError = null;
+    const transaction = db.transaction([STORE_NAME, TOMBSTONE_STORE_NAME, ...(receivedReceipt ? [LOCAL_CONFIG_STORE_NAME, COLLECTION_STORE_NAME] : [])], "readwrite");
     const store = transaction.objectStore(STORE_NAME);
-    guardNoteWrites(transaction, [note.id], () => {
+    const write = () => {
+      if (receivedReceipt) transaction.objectStore(LOCAL_CONFIG_STORE_NAME).put({ ...receivedReceipt, phase: "committed" });
       if (!preserveStoredCodexThread) {
-        store.put(savedNote);
+        if (receivedReceipt) store.add(savedNote); else store.put(savedNote);
         return;
       }
       const request = store.get(note.id);
@@ -2459,14 +2461,23 @@ function putNote(note, { preserveStoredCodexThread = false } = {}) {
         savedNote = withNormalizedMemoTags(mergeStoredCodexThread(note, request.result));
         store.put(savedNote);
       };
+    };
+    guardNoteWrites(transaction, [note.id], () => {
+      if (!receivedReceipt || note.collectionId === UNCLASSIFIED_COLLECTION_ID) return write();
+      const destination = transaction.objectStore(COLLECTION_STORE_NAME).get(note.collectionId);
+      destination.onsuccess = () => {
+        if (destination.result) return write();
+        receivedWriteError = Object.assign(new Error("保存先がなくなりました。メモと保存先を確認してください。"), { code: "recovery_blocked", userMessage: true });
+        transaction.abort();
+      };
     }, TOMBSTONE_STORE_NAME);
     transaction.oncomplete = () => {
       notifyMemoChanged(savedNote);
       markLocalWorkspacePending();
       resolve(savedNote);
     };
-    transaction.onerror = () => reject(noteTransactionError(transaction));
-    transaction.onabort = () => reject(noteTransactionError(transaction));
+    transaction.onerror = () => reject(receivedWriteError || noteTransactionError(transaction));
+    transaction.onabort = () => reject(receivedWriteError || noteTransactionError(transaction));
   });
 }
 
@@ -4895,8 +4906,11 @@ async function createNote(title = "新規メモ", body = "", options = {}) {
   if (options.localSavedAt != null) note.localSavedAt = options.localSavedAt;
   if (options.source) note.source = options.source;
 
+  if (options.receivedReceipt && note.collectionId !== options.receivedReceipt.collectionId) throw Object.assign(new Error("保存先が変更されています。メモと保存先を確認してください。"), { code: "recovery_blocked", userMessage: true });
+  if (options.receivedReceipt && noteForSave(note.id)) throw Object.assign(new Error("既存メモが競合しています。メモを確認してください。"), { code: "recovery_blocked" });
   if (noteForSave(note.id)) return persistIncomingNote(note);
-  await putNote(note);
+  if (options.receivedReceipt) await putNote(note, { receivedReceipt: options.receivedReceipt });
+  else await putNote(note);
   notes.unshift(note);
   registerNoteSaveState(note);
   invalidateTermRelationIndex();
@@ -4912,22 +4926,45 @@ window.MemoNexusReceivedPreview = {
     return { collectionId, label: collections.find((item) => item.id === collectionId)?.name || "未分類", warning: storageWarning && !storageWarning.hidden ? storageWarning.textContent : "" };
   },
   async save(record) {
-    if (!db || dbConnectionClosedForUpgrade || !navigator.locks) throw new Error("保存領域を利用できません。再読み込みして再試行してください。");
+    const previewError = (message) => Object.assign(new Error(message), { userMessage: true });
+    if (!db || dbConnectionClosedForUpgrade || !navigator.locks) throw previewError("保存領域を利用できません。再読み込みして再試行してください。");
     const plan = record.savePlan;
     if (record.dummy || !["saving", "saved"].includes(record.state) || !plan || typeof plan.noteId !== "string"
-      || typeof record.title !== "string" || typeof record.body !== "string") throw new Error("保存計画が不正です。");
+      || typeof record.title !== "string" || typeof record.body !== "string") throw previewError("保存計画が不正です。");
+    const recoveryError = (message) => Object.assign(new Error(message), { code: "recovery_blocked", userMessage: true });
+    const receiptKey = `received-preview:${record.requestId}:${record.itemId || "single"}`;
+    const readReceipt = () => new Promise((resolve, reject) => {
+      const tx = db.transaction([LOCAL_CONFIG_STORE_NAME, COLLECTION_STORE_NAME], "readonly");
+      const request = tx.objectStore(LOCAL_CONFIG_STORE_NAME).get(receiptKey);
+      const destination = plan.collectionId !== UNCLASSIFIED_COLLECTION_ID ? tx.objectStore(COLLECTION_STORE_NAME).get(plan.collectionId) : null;
+      tx.oncomplete = () => { if (destination && !destination.result) reject(recoveryError("保存先がなくなりました。メモと保存先を確認してください。")); else resolve(request.result); }; tx.onabort = tx.onerror = () => reject(new Error("保存証跡を確認できません。"));
+    });
+    const digest = [...new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(JSON.stringify([record.title, record.body]))))].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+    let receipt = await readReceipt();
+    if (receipt && (Object.keys(receipt).length !== 6 || receipt.key !== receiptKey || receipt.noteId !== plan.noteId || receipt.collectionId !== plan.collectionId || receipt.digest !== digest
+      || typeof receipt.title !== "string" || !["intent", "committed"].includes(receipt.phase))) throw recoveryError("保存証跡が一致しません。保存に使ったブラウザでメモを確認してください。");
+    if (plan.collectionId !== UNCLASSIFIED_COLLECTION_ID && !collectionExists(plan.collectionId)) throw recoveryError("保存先がなくなりました。メモと保存先を確認してください。");
     const stored = (await getStoredNoteSnapshots([plan.noteId])).get(plan.noteId);
     if (stored) {
-      if (stored.deletedAt || stored.body !== record.body || stored.collectionId !== plan.collectionId) throw new Error("保存結果が受信内容と一致しません。上書きせず停止しました。");
+      if (!receipt || receipt.phase !== "committed" || stored.deletedAt || stored.title !== receipt.title || stored.body !== record.body || stored.collectionId !== plan.collectionId) throw recoveryError("保存結果が受信内容と一致しません。メモを確認してください。");
       if (!noteForSave(stored.id)) { notes.unshift(stored); registerNoteSaveState(stored); }
-      invalidateTermRelationIndex();
-      renderMemoListPanel();
-      return stored;
+      invalidateTermRelationIndex(); renderMemoListPanel(); return stored;
     }
-    if (record.state === "saved") throw new Error("このブラウザ保存領域には保存結果がありません。保存に使ったブラウザで確認してください。");
-    // resolveNewNoteCollectionによる暗黙の保存先変更を防ぐ。
-    if (plan.collectionId !== UNCLASSIFIED_COLLECTION_ID && !collectionExists(plan.collectionId)) throw new Error("保存先がなくなりました。保存していません。");
-    const note = await createNote(record.title, record.body, { id: plan.noteId, collectionId: plan.collectionId });
+    if (record.state === "saved" || receipt?.phase === "committed" || (record.recoveryRequired && !receipt)) throw recoveryError("この保存領域では復旧情報を確認できません。保存に使ったブラウザでメモを確認してください。");
+    // The intent alone is not proof of a save; note + committed receipt are atomic.
+    if (!receipt) {
+      receipt = { key: receiptKey, noteId: plan.noteId, collectionId: plan.collectionId, digest, title: uniqueTitle(record.title), phase: "intent" };
+      await new Promise((resolve, reject) => {
+        const tx = db.transaction(LOCAL_CONFIG_STORE_NAME, "readwrite"); tx.objectStore(LOCAL_CONFIG_STORE_NAME).add(receipt);
+        tx.oncomplete = resolve; tx.onabort = tx.onerror = () => reject(new Error("保存証跡を準備できません。"));
+      });
+    }
+    let note;
+    try { note = await createNote(receipt.title, record.body, { id: plan.noteId, collectionId: plan.collectionId, avoidDuplicateTitle: false, receivedReceipt: receipt }); }
+    catch (error) {
+      if (error.code === "NOTE_PERMANENTLY_DELETED" || error.name === "ConstraintError") throw recoveryError("削除済みまたは既存メモとの競合です。メモを確認してください。");
+      throw error;
+    }
     renderMemoListPanel();
     return note;
   }

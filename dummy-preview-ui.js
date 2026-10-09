@@ -11,11 +11,14 @@
   const input = byId("dummyPreviewToken");
   const status = byId("dummyPreviewStatus");
   let batch = null;
+  let verifiedSave = null;
   let token = ""; let current = null; let controller = null; let session = 0; let saving = false; let displayedDestination = null;
   let operationController = null; let needsDestinationConfirmation = false;
   function validateRecord(value) {
     const keys = ["formatVersion", "requestId", "dummy", "title", "body", "state", "receivedAt", "expiresAt", "saved"];
     if (value && Object.hasOwn(value, "itemId")) keys.push("itemId");
+    if (value && Object.hasOwn(value, "bodyAvailable")) { keys.push("bodyAvailable"); if (value.bodyAvailable !== false) throw new Error("invalid_response"); }
+    if (value && Object.hasOwn(value, "recoveryRequired")) { keys.push("recoveryRequired"); if (value.recoveryRequired !== true) throw new Error("invalid_response"); }
     if (value?.dummy === false) keys.push("savePlan", "attemptId");
     if (!value || typeof value !== "object" || Object.keys(value).length !== keys.length || keys.some((key) => !Object.hasOwn(value, key))
       || value.formatVersion !== 1 || typeof value.dummy !== "boolean" || value.saved !== (value.state === "saved")
@@ -57,7 +60,7 @@
     for (const note of batch.notes) {
       const button = document.createElement("button"); button.type = "button";
       button.dataset.itemId = note.itemId;
-      button.textContent = note.title + " — " + ({ queued: "未保存", saving: "完了不明", save_failed: "失敗・完了未確認", saved: "保存済み", rejected: "破棄済み", expired: "期限切れ", queue_full: "受信拒否" })[note.state];
+      button.textContent = (note.bodyAvailable === false ? "再送待ち" : note.title) + " — " + ({ queued: "未保存", saving: "完了不明", save_failed: "失敗・完了未確認", saved: note.recoveryRequired ? "保存完了通知済み・未照合" : "保存済み", rejected: "破棄済み", expired: "期限切れ", queue_full: "受信拒否" })[note.state];
       button.disabled = saving || Boolean(operationController) || Boolean(controller);
       button.setAttribute("aria-pressed", String(current?.itemId === note.itemId));
       button.addEventListener("click", () => { if (!saving && !controller && !operationController) render(note); });
@@ -74,34 +77,35 @@
   function render(record) {
     if (record?.requestId !== current?.requestId || record?.itemId !== current?.itemId) needsDestinationConfirmation = false;
     current = record;
+    const verified = record && verifiedSave === `${record.requestId}:${record.itemId || "single"}:${record.attemptId}`;
     if (record?.itemId && batch?.requestId === record.requestId) {
       batch.notes = batch.notes.map((note) => note.itemId === record.itemId ? record : note);
     }
     renderList();
     byId("dummyPreviewContent").hidden = !record;
     byId("dummyPreviewTitle").textContent = record?.title || "";
-    byId("dummyPreviewBody").textContent = record?.body || "";
+    byId("dummyPreviewBody").textContent = record?.bodyAvailable === false ? "本文は保持していません。同じrequestId・同じ順序・同じ原文で再送してください。" : record?.body || "";
     byId("dummyPreviewRequestId").textContent = record?.requestId || "";
-    byId("dummyPreviewBadge").textContent = ({ saving: "保存完了未確認", save_failed: "保存完了未確認", saved: "保存済み（ブラウザ内）", rejected: "破棄済み", expired: "期限切れ", queue_full: "受信拒否" })[record?.state] || "未保存プレビュー";
-    byId("dummyPreviewState").textContent = record ? ({ queued: "ブラウザ表示中／一時キュー受信・未保存", saving: "保存完了未確認／再試行可能", save_failed: "保存完了未確認／エラー・受信内容保持", saved: "保存済み（ブラウザ内）", rejected: "破棄済み（受信内容のみ）", expired: "期限切れ", queue_full: "満杯で受信拒否" })[record.state] : "";
+    byId("dummyPreviewBadge").textContent = record?.bodyAvailable === false ? "再送待ち" : ({ saving: saving ? "保存処理中" : "保存結果不明", save_failed: "保存失敗・結果未確認", saved: !verified ? "保存完了通知済み／この保存領域は未照合" : "保存済み（ブラウザ内）", rejected: "破棄済み", expired: "期限切れ", queue_full: "受信拒否" })[record?.state] || "未保存プレビュー";
+    byId("dummyPreviewState").textContent = record?.bodyAvailable === false ? "再送待ち／保存結果を推定しません" : record ? ({ queued: "ブラウザ表示中／一時キュー受信・未保存", saving: "保存完了未確認／再試行可能", save_failed: "保存完了未確認／エラー・受信内容保持", saved: !verified ? "保存完了通知済み／この保存領域は未照合" : "保存済み（ブラウザ内）", rejected: "破棄済み（受信内容のみ）", expired: "期限切れ", queue_full: "満杯で受信拒否" })[record.state] : "";
     const destination = window.MemoNexusReceivedPreview?.destination(record?.savePlan?.collectionId);
     displayedDestination = destination;
     byId("dummyPreviewDestination").textContent = `${record?.savePlan ? "固定済み：" : ""}${destination?.label || "保存領域未準備"}`;
     byId("dummyPreviewStorageWarning").textContent = destination?.warning || "";
     rejectButton.disabled = saving || Boolean(operationController) || !["queued", "save_failed"].includes(record?.state);
-    saveButton.disabled = saving || Boolean(operationController) || !record || record.dummy || (!["queued", "saving", "save_failed"].includes(record.state) && !(record.state === "saved" && needsDestinationConfirmation));
+    saveButton.disabled = saving || Boolean(operationController) || !record || record.dummy || record.bodyAvailable === false || (!["queued", "saving", "save_failed"].includes(record.state) && !(record.state === "saved" && (needsDestinationConfirmation || record.recoveryRequired || !verified)));
   }
   function clearConnection() {
     session++;
     controller?.abort(); controller = null;
     operationController?.abort(); operationController = null; saving = false;
-    token = ""; input.value = ""; batch = null; byId("receivedRequestLookup").value = ""; render(null);
+    token = ""; input.value = ""; batch = null; verifiedSave = null; byId("receivedRequestLookup").value = ""; render(null);
     checkButton.disabled = false;
     byId("dummyPreviewCloseBtn").disabled = false;
     status.textContent = "接続情報を消去しました。トークンを再入力してください。";
   }
   async function withRequestLock(requestId, task) {
-    if (!navigator.locks) throw new Error("保存操作の排他制御を利用できません。");
+    if (!navigator.locks) throw Object.assign(new Error("保存操作の排他制御を利用できません。"), { userMessage: true });
     const localOperation = new AbortController(); operationController = localOperation;
     try { return await navigator.locks.request(`memo-received-request:${requestId}`, { signal: localOperation.signal }, task); }
     finally { if (operationController === localOperation) operationController = null; }
@@ -120,7 +124,6 @@
         headers: { Authorization: `Bearer ${token}`, ...(requestId ? { "Content-Type": "application/json" } : {}) },
         ...(requestId ? { body: JSON.stringify({ requestId, ...(!whole && current?.itemId && current.requestId === requestId ? { itemId: current.itemId } : {}), ...extra }) } : {}) });
       if (response.status === 401) { token = ""; throw new Error("unauthorized"); }
-      if (!response.ok) throw new Error("request_failed");
       const reader = response.body.getReader(); const chunks = []; let size = 0;
       while (true) {
         const { done, value } = await reader.read(); if (done) break;
@@ -130,7 +133,12 @@
       }
       const bytes = new Uint8Array(size); let offset = 0;
       for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.length; }
-      return JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes));
+      const result = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes));
+      if (!response.ok) {
+        const safe = { history_write_failed: "履歴の保存に失敗したため停止しています。サービスと履歴の状態を確認してください。", history_unavailable: "履歴を利用できません。保存結果は不明です。サービスと履歴を確認してください。", replay_required: "同じrequestId・同じ原文で再送してください。" };
+        throw Object.assign(new Error(safe[result.error] || "request_failed"), { userMessage: Boolean(safe[result.error]) });
+      }
+      return result;
     } finally { clearTimeout(timeout); }
   }
   async function perform(action) {
@@ -198,14 +206,16 @@
       if (attempt !== session || !dialog.open) return;
       status.textContent = error.message === "unauthorized" ? "認証に失敗しました。専用トークンを再入力してください。"
         : action === "reject" ? current?.dummy ? "拒否の完了を確認できません。同じ要求で再試行してください。未保存。" : "破棄の完了を確認できません。同じ要求で再試行してください。保存結果は未確認です。"
-        : `受信を確認できません。サービス起動、ブラウザのローカルネットワーク権限、CORSを確認してください。${current?.savePlan ? "保存結果は未確認です。" : "未保存。"}`;
+        : `受信を確認できません。サービス起動、ブラウザのローカルネットワーク権限、CORSを確認してください。保存結果は未確認です。`;
     } finally {
       if (attempt === session) { controller = null; checkButton.disabled = false; render(current); }
     }
   }
   async function saveReceived(event) {
-    if (!event.isTrusted || saving || controller || operationController || !current || current.dummy || (!["queued", "saving", "save_failed"].includes(current.state) && !(current.state === "saved" && needsDestinationConfirmation))) return;
+    if (!event.isTrusted || saving || controller || operationController || !current || current.dummy || (!["queued", "saving", "save_failed"].includes(current.state) && !(current.state === "saved" && (needsDestinationConfirmation || current.recoveryRequired || verifiedSave !== `${current.requestId}:${current.itemId || "single"}:${current.attemptId}`)))) return;
+    if (current.bodyAvailable === false) return;
     const expected = current, destination = displayedDestination, attempt = session;
+    let saveStage = "最新状態の確認";
     saving = true; saveButton.disabled = true; rejectButton.disabled = true; checkButton.disabled = true;
     byId("dummyPreviewCloseBtn").disabled = true;
     status.textContent = "ほかのタブの保存操作を待ち、保存先を確認しています…";
@@ -226,12 +236,14 @@
         }
         if (!confirmDestination(latest)) return;
         // One request lock covers destination, begin, DB transaction and completion/failure.
+        saveStage = "保存計画の記録";
         const record = matchingRecord((await request("/begin", expected.requestId, { collectionId: destination.collectionId, previousAttemptId: latest.attemptId })).request, expected);
         if (attempt !== session || !dialog.open) return;
         if (!["saving", "saved"].includes(record.state)) throw new Error("保存応答が一致しません。");
         if (!confirmDestination(record)) return;
         needsDestinationConfirmation = false; render(record);
         status.textContent = "新規メモを保存しています…";
+        saveStage = "ブラウザ保存と照合";
         try { await window.MemoNexusReceivedPreview.save(record); }
         catch (saveError) {
           if (record.state === "saving" && attempt === session && dialog.open) {
@@ -240,17 +252,27 @@
           throw saveError;
         }
         if (attempt !== session || !dialog.open) return;
+        saveStage = "保存完了通知の記録";
         const complete = matchingRecord((await request("/complete", record.requestId, { attemptId: record.attemptId })).request, expected);
         if (attempt !== session || !dialog.open) return;
         if (complete.state !== "saved") throw new Error("保存完了通知を確認できません。");
+        verifiedSave = `${complete.requestId}:${complete.itemId || "single"}:${complete.attemptId}`;
         render(complete); status.textContent = "新規メモをブラウザ内に保存しました。";
       });
     } catch (error) {
-      if (attempt === session && dialog.open) status.textContent = `保存完了を確認できません。受信内容を保持しています。同じ要求で再試行してください。${error.message}`;
+      if (attempt === session && dialog.open) {
+        if (error.code === "recovery_blocked") {
+          byId("dummyPreviewBadge").textContent = "復旧不能・要確認";
+          byId("dummyPreviewState").textContent = "復旧不能・要確認";
+          status.textContent = `${error.message} requestId: ${expected.requestId}${expected.itemId ? ` / itemId: ${expected.itemId}` : ""}`;
+        } else status.textContent = `保存完了を確認できません。保存結果不明／保存失敗。サービスと保存領域を確認し、同じ要求で再試行してください。確認段階：${saveStage}。${error.userMessage ? error.message : ""} requestId: ${expected.requestId}${expected.itemId ? ` / itemId: ${expected.itemId}` : ""}`;
+      }
     } finally {
       if (attempt === session) {
         saving = false; controller = null; checkButton.disabled = false; byId("dummyPreviewCloseBtn").disabled = false;
+        const blocked = byId("dummyPreviewBadge").textContent === "復旧不能・要確認";
         render(current);
+        if (blocked) { byId("dummyPreviewBadge").textContent = "復旧不能・要確認"; byId("dummyPreviewState").textContent = "復旧不能・要確認"; }
       }
     }
   }

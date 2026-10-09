@@ -44,9 +44,18 @@ function notesRequest(value) {
   });
   return { formatVersion: 1, requestId: value.requestId, notes: validatedNotes };
 }
-function createQueue({ now = Date.now } = {}) {
-  const history = new Map();
-  let activeId = null;
+function createQueue({ now = Date.now, initial = [], persist = null } = {}) {
+  const history = new Map(initial.map((record) => [record.request.requestId, record]));
+  let stopped = false;
+  const leaves = (record) => record.items || [record];
+  for (const record of history.values()) {
+    for (const item of leaves(record)) {
+      item.request = { ...item.request, title: "", body: "" };
+      item.bodyAvailable = false;
+      if (item.savePlan) item.recoveryRequired = true;
+    }
+  }
+  let activeId = [...history.values()].find((record) => leaves(record).some((item) => ["queued", "saving", "save_failed"].includes(item.state)))?.request.requestId || null;
   const unresolved = (record) => ["queued", "saving", "save_failed"].includes(record.state);
   function refresh(record) {
     if (!record.items) return;
@@ -65,6 +74,8 @@ function createQueue({ now = Date.now } = {}) {
     if (record.items) return { ...record.request, notes: record.items.map(publicRecord), state: record.state,
       receivedAt: record.receivedAt, expiresAt: record.expiresAt, saved: record.items.every((item) => item.state === "saved") };
     return { ...record.request, state: record.state, receivedAt: record.receivedAt, expiresAt: record.expiresAt, saved: record.state === "saved",
+      ...(record.bodyAvailable === false ? { bodyAvailable: false } : {}),
+      ...(record.recoveryRequired ? { recoveryRequired: true } : {}),
       ...(!record.request.dummy ? { savePlan: record.savePlan ? { ...record.savePlan } : null, attemptId: record.attemptId || null } : {}) };
   }
   function internalRecord(requestId, itemId) {
@@ -86,10 +97,16 @@ function createQueue({ now = Date.now } = {}) {
     const known = history.get(request.requestId);
     if (known) {
       if (known.digest !== digest) throw fault("request_id_conflict", 409);
+      // Verified replay restores only volatile text, never IDs, deadlines or states.
+      known.request = request;
+      if (known.items) known.items.forEach((item, index) => {
+        item.request = { ...item.request, ...request.notes[index] }; delete item.bodyAvailable;
+      });
+      else delete known.bodyAvailable;
       return publicRecord(known);
     }
     if (request.dummy && (request.title !== FIXTURE.title || request.body !== FIXTURE.body)) throw fault("fixed_dummy_only");
-    // Never evict an idempotency record: fail closed until restart at the history cap.
+    // Never evict an idempotency record, including across service restarts.
     if (history.size >= MAX_HISTORY) throw fault("history_full", 503);
     const receivedAt = now();
     const record = { request, digest, receivedAt, expiresAt: receivedAt + TTL_MS, state: activeId ? "queue_full" : "queued" };
@@ -123,6 +140,7 @@ function createQueue({ now = Date.now } = {}) {
     if (record.dummy || !["queued", "saving", "save_failed"].includes(record.state)) throw fault("invalid_state", 409);
     if (typeof collectionId !== "string" || !collectionId || collectionId.length > 200) throw fault("invalid_collection");
     const internal = internalRecord(requestId, itemId);
+    if (internal.bodyAvailable === false) throw fault("replay_required", 409);
     internal.savePlan ||= { noteId: randomUUID(), collectionId };
     internal.attemptId = randomUUID();
     internal.state = "saving";
@@ -138,6 +156,7 @@ function createQueue({ now = Date.now } = {}) {
     validateAttempt(record, attemptId);
     if (record.dummy || !["saving", "saved"].includes(record.state)) throw fault("invalid_state", 409);
     internalRecord(requestId, itemId).state = "saved";
+    delete internalRecord(requestId, itemId).recoveryRequired;
     if (!history.get(requestId).items && activeId === requestId) activeId = null;
     changed(requestId);
     return publicRecord(internalRecord(requestId, itemId));
@@ -150,6 +169,32 @@ function createQueue({ now = Date.now } = {}) {
     internalRecord(requestId, itemId).state = "save_failed"; changed(requestId);
     return publicRecord(internalRecord(requestId, itemId));
   }
-  return { submit, peek, status, reject, begin, complete, failed };
+  function snapshot() {
+    function metadata(record) {
+      return { request: { formatVersion: 1, requestId: record.request.requestId,
+        ...(record.items ? {} : { dummy: record.request.dummy, ...(record.request.itemId ? { itemId: record.request.itemId } : {}) }) },
+        ...(record.digest ? { digest: record.digest } : {}), state: record.state,
+        receivedAt: record.receivedAt, expiresAt: record.expiresAt,
+        ...(record.savePlan ? { savePlan: { ...record.savePlan }, attemptId: record.attemptId } : {}),
+        ...(record.items ? { items: record.items.map(metadata) } : {}) };
+    }
+    return [...history.values()].map(metadata);
+  }
+  let last = JSON.stringify(snapshot());
+  function durable(operation) {
+    return (...args) => {
+      if (stopped) throw fault("history_unavailable", 503);
+      let result, failure;
+      try { result = operation(...args); } catch (error) { failure = error; }
+      const next = snapshot(), encoded = JSON.stringify(next);
+      if (persist && encoded !== last) {
+        try { persist(next); last = encoded; }
+        catch { stopped = true; throw fault("history_write_failed", 503); }
+      }
+      if (failure) throw failure;
+      return result;
+    };
+  }
+  return Object.fromEntries(Object.entries({ submit, peek, status, reject, begin, complete, failed }).map(([key, operation]) => [key, durable(operation)]));
 }
 module.exports = { MAX_NOTES, MAX_NOTES_INPUT_BYTES, notesRequest, FIXTURE, TTL_MS, MAX_HISTORY, MAX_BODY_BYTES, MAX_TEXT_CHARS, MAX_TEXT_INPUT_BYTES, REQUEST_ID_PATTERN, fault, exactKeys, validateRequest, dummyRequest, textRequest, createQueue };

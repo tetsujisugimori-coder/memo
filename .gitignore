@@ -12,3 +12,8 @@ docs/report-fixed-samples/__pycache__/
 
 e2e-artifacts/dummy-preview/
 e2e-artifacts/received-preview/
+
+# Local received-request metadata (never commit runtime history)
+received-history/
+**/history.json
+**/history.next

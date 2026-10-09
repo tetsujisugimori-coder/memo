@@ -6,6 +6,7 @@ const http = require("node:http");
 const { randomBytes, randomUUID } = require("node:crypto");
 const { spawn } = require("node:child_process");
 const { chromium } = require("playwright");
+const { attachTransport, fetchReceiver } = require("./received-e2e-transport.js");
 const { createPreviewService } = require("./dummy-preview-service.js");
 const { textRequest } = require("./dummy-preview-queue.js");
 const artifacts = path.join(__dirname, "e2e-artifacts/received-preview");
@@ -38,8 +39,22 @@ async function snapshot(page) {
     return result;
   });
 }
+function removeCheckedReceipt(state, record, phase) {
+  const key = `received-preview:${record.requestId}:${record.itemId || "single"}`;
+  const entry = state["local-config"].find(([id]) => id === key);
+  assert.ok(entry, "received save must create its receipt");
+  const receipt = entry[1];
+  assert.deepEqual(Object.keys(receipt).sort(), ["key", "noteId", "collectionId", "digest", "title", "phase"].sort());
+  assert.equal(receipt.key, key); assert.equal(receipt.noteId, record.savePlan.noteId);
+  assert.equal(receipt.collectionId, record.savePlan.collectionId); assert.equal(receipt.phase, phase);
+  assert.equal(receipt.digest, require("node:crypto").createHash("sha256").update(JSON.stringify([record.title, record.body])).digest("hex"));
+  const note = state.notes.find(([id]) => id === record.savePlan.noteId)?.[1];
+  assert.equal(receipt.title, note ? note.title : record.title);
+  state["local-config"] = state["local-config"].filter(([id]) => id !== key);
+  return state;
+}
 async function mcp(token, value) {
-  const child = spawn(process.execPath, [path.join(__dirname, "dummy-preview-mcp.js")], { windowsHide: true,
+  const child = spawn(process.execPath, ["--require", path.join(__dirname, "received-e2e-mcp-port.fixture.js"), path.join(__dirname, "dummy-preview-mcp.js")], { windowsHide: true,
     env: { ...process.env, MEMO_PREVIEW_ADAPTER_TOKEN: token }, stdio: ["pipe", "pipe", "pipe"] });
   let buffer = "", next;
   child.stdout.on("data", (chunk) => { buffer += chunk.toString(); const newline = buffer.indexOf("\n"); if (newline >= 0 && next) { const resolve = next; next = null; const line = buffer.slice(0, newline); buffer = buffer.slice(newline + 1); resolve(JSON.parse(line)); } });
@@ -69,9 +84,10 @@ async function mcp(token, value) {
   let browser, page, receiverRunning = false, staticRunning = false;
   const results = [];
   try {
-    await listen(receiver, 8791); receiverRunning = true; await listen(staticServer, 5500); staticRunning = true;
+    await listen(receiver, 0); process.env.MEMO_E2E_RECEIVER_PORT = String(receiver.address().port); receiverRunning = true; await listen(staticServer, 0); staticRunning = true;
     browser = await chromium.launch({ headless: true, ...(channel === "chromium" ? {} : { channel }) });
     const context = await browser.newContext({ viewport: { width: 390, height: 844 }, timezoneId: "Asia/Tokyo" });
+    await attachTransport(context, staticServer.address().port, receiver.address().port);
     page = await context.newPage(); const unsafe = [], errors = [];
     page.on("pageerror", (error) => errors.push(error.message));
     page.on("request", (request) => { if (request.url().includes("preview-test.invalid")) unsafe.push(request.url()); });
@@ -119,7 +135,7 @@ async function mcp(token, value) {
     assert.match(await page.locator("#dummyPreviewStatus").textContent(), /保存完了を確認できません/);
     assert.equal(queue.peek().state, "save_failed"); assert.equal(queue.peek().saved, false);
     assert.equal(await page.locator("#dummyPreviewBody").textContent(), saving.body);
-    assert.deepEqual(await snapshot(page), baseline);
+    assert.deepEqual(removeCheckedReceipt(await snapshot(page), queue.status(saving.requestId), "intent"), baseline);
     const plan = queue.peek().savePlan;
     // Abort an actual IndexedDB write transaction, then retain the exact same plan.
     await page.evaluate(() => {
@@ -133,7 +149,7 @@ async function mcp(token, value) {
     });
     await page.locator("#dummyPreviewSaveBtn").click(); await doneSave();
     assert.equal(queue.peek().state, "save_failed"); assert.deepEqual(queue.peek().savePlan, plan);
-    assert.deepEqual(await snapshot(page), baseline);
+    assert.deepEqual(removeCheckedReceipt(await snapshot(page), queue.status(saving.requestId), "intent"), baseline);
     await page.locator("#dummyPreviewStatus").scrollIntoViewIfNeeded();
     await page.screenshot({ path: path.join(artifacts, `${channel}-error-visible-390.png`) });
     await page.locator("#dummyPreviewDialog").evaluate((el) => { el.scrollTop = el.scrollHeight; });
@@ -165,7 +181,9 @@ async function mcp(token, value) {
     const saved = afterSave.notes.find(([id]) => id === plan.noteId)[1];
     assert.equal(saved.body, saving.body); assert.equal(saved.collectionId, "received-test-collection");
     const normalized = structuredClone(afterSave); normalized.notes = normalized.notes.filter(([id]) => id !== plan.noteId);
-    assert.deepEqual(normalized, beforeRetry);
+    removeCheckedReceipt(normalized, queue.status(saving.requestId), "committed");
+    const checkedBefore = removeCheckedReceipt(structuredClone(beforeRetry), queue.status(saving.requestId), "intent");
+    assert.deepEqual(normalized, checkedBefore);
     assert.equal((await mcp(adapterToken, saving)).saved, true); assert.equal(queue.peek(), null);
     assert.throws(() => queue.submit(textRequest({ ...saving, body: "置換しない" })), /request_id_conflict/);
     results.push("quota failure keeps unsaved content; reload/retry uses same ID/destination; double click produces one transaction and one new memo; existing stores unchanged");
@@ -189,7 +207,7 @@ async function mcp(token, value) {
     const lostAck = { ...value, requestId: randomUUID(), title: "保存完了応答消失" }; await mcp(adapterToken, lostAck); await check();
     const beforeAck = (await snapshot(page)).notes.length;
     await page.route("http://127.0.0.1:8791/complete", async (route) => {
-      await route.fetch();
+      await fetchReceiver(route, receiver.address().port);
       await route.fulfill({ status: 503, headers: { "Access-Control-Allow-Origin": "http://127.0.0.1:5500" }, body: "{}" });
     });
     await page.locator("#dummyPreviewSaveBtn").click(); await doneSave();

@@ -26,7 +26,24 @@ async function readJson(req, limit = MAX_INPUT_BYTES) {
   try { return JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(Buffer.concat(chunks))); }
   catch { throw fault("invalid_json"); }
 }
-function createPreviewService({ browserToken, adapterToken, queue = createQueue(), now = Date.now } = {}) {
+async function createPersistentPreviewService(options = {}) {
+  validateToken(options.browserToken); validateToken(options.adapterToken);
+  if (options.browserToken === options.adapterToken) throw new Error("Preview tokens must differ");
+  const { openHistory } = require("./dummy-preview-history.js");
+  const history = await openHistory({ directory: options.directory });
+  try {
+    const service = createPreviewService({ ...options, queue: createQueue({ initial: history.records, persist: history.commit, now: options.now || Date.now }) });
+    service.server.once("close", () => { void history.close(); });
+    service.server.once("error", () => { void history.close(); });
+    return { ...service, history };
+  } catch (error) { await history.close(); throw error; }
+}
+function adapterRecord(record) {
+  const { savePlan, attemptId, recoveryRequired, ...publicValue } = record;
+  if (record.notes) publicValue.notes = record.notes.map(adapterRecord);
+  return publicValue;
+}
+function createPreviewService({ browserToken, adapterToken, queue = createQueue(), now = Date.now, beforeReply = null } = {}) {
   validateToken(browserToken); validateToken(adapterToken);
   if (browserToken === adapterToken) throw new Error("Preview tokens must differ");
   let windowStart = now(); let requests = 0; let inflight = 0;
@@ -87,7 +104,8 @@ function createPreviewService({ browserToken, adapterToken, queue = createQueue(
         : req.url === "/complete" ? queue.complete(input.requestId, input.attemptId, input.itemId)
         : req.url === "/failed" ? queue.failed(input.requestId, input.attemptId, input.itemId)
         : req.url === "/reject" ? queue.reject(input.requestId, input.itemId) : queue.status(input.requestId, input.itemId);
-      return send(record.state === "queue_full" ? 409 : 200, { request: record });
+      if (beforeReply) await beforeReply(req.url, record);
+      return send(record.state === "queue_full" ? 409 : 200, { request: isAdapter ? adapterRecord(record) : record });
     } catch (error) { return send(error.status || 500, { error: error.code || "internal_error" }); }
     finally { inflight--; }
   });
@@ -97,12 +115,20 @@ function createPreviewService({ browserToken, adapterToken, queue = createQueue(
   return { server, queue };
 }
 if (require.main === module) {
-  try {
-    const { server } = createPreviewService({ browserToken: process.env.MEMO_PREVIEW_BROWSER_TOKEN, adapterToken: process.env.MEMO_PREVIEW_ADAPTER_TOKEN });
-    server.on("error", () => { console.error("Preview service could not start"); process.exitCode = 1; });
-    server.listen(PORT, "127.0.0.1", () => console.log(`Unsaved dummy preview listening on 127.0.0.1:${PORT}`));
-    const stop = () => { server.close(); server.closeAllConnections(); };
-    process.on("SIGINT", stop); process.on("SIGTERM", stop);
-  } catch { console.error("Preview service requires two distinct dedicated random tokens"); process.exitCode = 1; }
+  (async () => {
+    try {
+      validateToken(process.env.MEMO_PREVIEW_BROWSER_TOKEN); validateToken(process.env.MEMO_PREVIEW_ADAPTER_TOKEN);
+      const { server } = await createPersistentPreviewService({ browserToken: process.env.MEMO_PREVIEW_BROWSER_TOKEN,
+        adapterToken: process.env.MEMO_PREVIEW_ADAPTER_TOKEN, directory: process.env.MEMO_PREVIEW_HISTORY_DIR });
+      server.on("error", () => { console.error("Preview service could not start (port or history lock)"); server.close(); process.exitCode = 1; });
+      server.listen(PORT, "127.0.0.1", () => console.log(`Received preview listening on 127.0.0.1:${PORT}; durable history enabled`));
+      const stop = () => { server.close(); server.closeAllConnections(); };
+      process.on("SIGINT", stop); process.on("SIGTERM", stop);
+    } catch (error) {
+      const safe = ["history_corrupt", "history_locked", "history_permissions", "history_write_failed"].includes(error.code) ? error.code : "startup_failed";
+      console.error(`Preview service stopped: ${safe}. Check dedicated tokens, history directory and permissions; do not delete history to retry.`);
+      process.exitCode = 1;
+    }
+  })();
 }
-module.exports = { PORT, ORIGINS, MAX_INPUT_BYTES, validateToken, authorize, createPreviewService };
+module.exports = { PORT, ORIGINS, MAX_INPUT_BYTES, validateToken, authorize, createPreviewService, createPersistentPreviewService };
