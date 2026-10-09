@@ -2,7 +2,7 @@
 const http = require("node:http");
 const { createHash, timingSafeEqual } = require("node:crypto");
 const { TextDecoder } = require("node:util");
-const { createQueue, dummyRequest, textRequest, MAX_TEXT_INPUT_BYTES, exactKeys, fault } = require("./dummy-preview-queue.js");
+const { createQueue, dummyRequest, textRequest, notesRequest, MAX_NOTES_INPUT_BYTES, MAX_TEXT_INPUT_BYTES, exactKeys, fault } = require("./dummy-preview-queue.js");
 const PORT = 8791;
 const ORIGINS = new Set(["http://127.0.0.1:5500", "https://tetsujisugimori-coder.github.io"]);
 const MAX_INPUT_BYTES = 1024;
@@ -50,11 +50,11 @@ function createPreviewService({ browserToken, adapterToken, queue = createQueue(
       const name = req.rawHeaders[index].toLowerCase(); counts.set(name, (counts.get(name) || 0) + 1);
       if (sensitive.has(name) && counts.get(name) > 1) return send(400, { error: "duplicate_header" });
     }
-    const routes = { "/dummy": "POST", "/text": "POST", "/pending": "GET", "/status": "POST", "/reject": "POST", "/begin": "POST", "/complete": "POST", "/failed": "POST" };
+    const routes = { "/dummy": "POST", "/text": "POST", "/notes": "POST", "/pending": "GET", "/status": "POST", "/reject": "POST", "/begin": "POST", "/complete": "POST", "/failed": "POST" };
     const method = routes[req.url];
     if (!method) return send(404, { error: "not_found" });
-    const isAdapter = req.url === "/dummy" || req.url === "/text";
-    const inputLimit = req.url === "/text" ? MAX_TEXT_INPUT_BYTES : MAX_INPUT_BYTES;
+    const isAdapter = req.url === "/dummy" || req.url === "/text" || req.url === "/notes";
+    const inputLimit = req.url === "/notes" ? MAX_NOTES_INPUT_BYTES : req.url === "/text" ? MAX_TEXT_INPUT_BYTES : MAX_INPUT_BYTES;
     if (isAdapter && origin !== undefined) return send(403, { error: "adapter_origin_forbidden" });
     if (!isAdapter && origin === undefined) return send(403, { error: "browser_origin_required" });
     if (origin) { res.setHeader("Access-Control-Allow-Origin", origin); res.setHeader("Vary", "Origin, Access-Control-Request-Method, Access-Control-Request-Headers"); }
@@ -80,13 +80,13 @@ function createPreviewService({ browserToken, adapterToken, queue = createQueue(
       if (req.url === "/pending") return send(200, { pending: queue.peek() });
       const input = await readJson(req, inputLimit);
       const keys = req.url === "/begin" ? ["requestId", "collectionId", "previousAttemptId"] : ["/complete", "/failed"].includes(req.url) ? ["requestId", "attemptId"] : ["requestId"];
-      if (req.url !== "/text" && !exactKeys(input, keys)) throw fault("invalid_format");
-      const record = req.url === "/text" ? queue.submit(textRequest(input))
+      if (!["/text", "/notes"].includes(req.url) && !exactKeys(input, input && Object.hasOwn(input, "itemId") && !isAdapter ? [...keys, "itemId"] : keys)) throw fault("invalid_format");
+      const record = req.url === "/notes" ? queue.submit(notesRequest(input)) : req.url === "/text" ? queue.submit(textRequest(input))
         : req.url === "/dummy" ? queue.submit(dummyRequest(input.requestId))
-        : req.url === "/begin" ? queue.begin(input.requestId, input.collectionId, input.previousAttemptId)
-        : req.url === "/complete" ? queue.complete(input.requestId, input.attemptId)
-        : req.url === "/failed" ? queue.failed(input.requestId, input.attemptId)
-        : req.url === "/reject" ? queue.reject(input.requestId) : queue.status(input.requestId);
+        : req.url === "/begin" ? queue.begin(input.requestId, input.collectionId, input.previousAttemptId, input.itemId)
+        : req.url === "/complete" ? queue.complete(input.requestId, input.attemptId, input.itemId)
+        : req.url === "/failed" ? queue.failed(input.requestId, input.attemptId, input.itemId)
+        : req.url === "/reject" ? queue.reject(input.requestId, input.itemId) : queue.status(input.requestId, input.itemId);
       return send(record.state === "queue_full" ? 409 : 200, { request: record });
     } catch (error) { return send(error.status || 500, { error: error.code || "internal_error" }); }
     finally { inflight--; }

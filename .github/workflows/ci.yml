@@ -584,6 +584,8 @@ jobs:
         run: npm run test:e2e:received-preview
       - name: Verify received preview concurrency in one browser storage area
         run: npm run test:e2e:received-concurrency
+      - name: Verify multiple received notes and partial processing
+        run: npm run test:e2e:received-notes
       - name: Preserve results including failures
         if: always()
         uses: actions/upload-artifact@v6

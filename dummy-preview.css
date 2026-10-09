@@ -5,3 +5,5 @@
 .dummy-preview-dialog h3, .dummy-preview-dialog dd { overflow-wrap: anywhere; }
 .dummy-preview-dialog dd { margin: 0 0 12px; }
 .dummy-preview-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+
+#receivedNotesList button { max-width: 100%; white-space: normal; overflow-wrap: anywhere; text-align: left; }

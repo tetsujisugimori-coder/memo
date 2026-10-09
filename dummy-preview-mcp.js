@@ -1,6 +1,6 @@
 "use strict";
 const http = require("node:http");
-const { REQUEST_ID_PATTERN, MAX_TEXT_INPUT_BYTES, textRequest, exactKeys } = require("./dummy-preview-queue.js");
+const { REQUEST_ID_PATTERN, MAX_TEXT_INPUT_BYTES, MAX_NOTES_INPUT_BYTES, notesRequest, textRequest, exactKeys } = require("./dummy-preview-queue.js");
 const { PORT, validateToken } = require("./dummy-preview-service.js");
 function submitPayload(payload, token, path) {
   validateToken(token);
@@ -9,7 +9,7 @@ function submitPayload(payload, token, path) {
     const req = http.request({ hostname: "127.0.0.1", port: PORT, path, method: "POST", timeout: 3000,
       headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json", "Content-Length": Buffer.byteLength(body) } }, (res) => {
       const chunks = []; let size = 0;
-      res.on("data", (chunk) => { size += chunk.length; if (size > MAX_TEXT_INPUT_BYTES + 4096) res.destroy(new Error("response_limit")); else chunks.push(chunk); });
+      res.on("data", (chunk) => { size += chunk.length; if (size > (path === "/notes" ? MAX_NOTES_INPUT_BYTES : MAX_TEXT_INPUT_BYTES) + 4096) res.destroy(new Error("response_limit")); else chunks.push(chunk); });
       res.on("error", reject);
       res.on("end", () => {
         try {
@@ -26,6 +26,7 @@ function submitPayload(payload, token, path) {
 }
 function submitDummy(requestId, token) { return submitPayload({ requestId }, token, "/dummy"); }
 function submitText(input, token) { textRequest(input); return submitPayload(input, token, "/text"); }
+function submitNotes(input, token) { notesRequest(input); return submitPayload(input, token, "/notes"); }
 // MCP 2025-06-18 Request._meta: opaque metadata, with an optional string/number progressToken.
 // Key syntax follows basic/general-fields; reserved prefixes remain valid metadata.
 const META_LABEL = "[A-Za-z](?:[A-Za-z0-9-]*[A-Za-z0-9])?";
@@ -36,7 +37,7 @@ function validRequestMetadata(value) {
     && (!Object.hasOwn(value, "progressToken") || typeof value.progressToken === "string"
       || (typeof value.progressToken === "number" && Number.isFinite(value.progressToken)));
 }
-function createMcpHandler({ submit = (id) => submitDummy(id, process.env.MEMO_PREVIEW_ADAPTER_TOKEN), submitArbitrary = (input) => submitText(input, process.env.MEMO_PREVIEW_ADAPTER_TOKEN) } = {}) {
+function createMcpHandler({ submit = (id) => submitDummy(id, process.env.MEMO_PREVIEW_ADAPTER_TOKEN), submitArbitrary = (input) => submitText(input, process.env.MEMO_PREVIEW_ADAPTER_TOKEN), submitMultiple = (input) => submitNotes(input, process.env.MEMO_PREVIEW_ADAPTER_TOKEN) } = {}) {
   let initialized = false;
   return async (message) => {
     const reply = (result) => ({ jsonrpc: "2.0", id: message.id, result });
@@ -52,23 +53,29 @@ function createMcpHandler({ submit = (id) => submitDummy(id, process.env.MEMO_PR
       annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false } },
       { name: "submit_text_preview", description: "任意文章を一時キューに受信。保存はブラウザの明示的ボタン操作のみ。requestIdはUUID v4、titleは空白のみ不可・200コードポイント、bodyは空白のみ不可・65536コードポイントかつUTF-8 65536 byteまで。本文を変換しない。",
         inputSchema: { type: "object", properties: { requestId: { type: "string", pattern: REQUEST_ID_PATTERN.source }, title: { type: "string", minLength: 1, maxLength: 200 }, body: { type: "string", minLength: 1, maxLength: 65536 } }, required: ["requestId", "title", "body"], additionalProperties: false },
+        annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false } },
+      { name: "submit_notes_preview", description: "1～5件の文章を1要求で未保存受信。各メモの保存・破棄はブラウザで個別に明示操作。requestIdは要求全体のUUID v4。同じID・順序・原文で再送する。各titleは200コードポイント、bodyは65536コードポイントかつUTF-8 65536 byte、要求JSONは2048000 byteまで。",
+        inputSchema: { type: "object", properties: { requestId: { type: "string", pattern: REQUEST_ID_PATTERN.source }, notes: { type: "array", minItems: 1, maxItems: 5,
+          items: { type: "object", properties: { title: { type: "string", minLength: 1, maxLength: 200 }, body: { type: "string", minLength: 1, maxLength: 65536 } }, required: ["title", "body"], additionalProperties: false } } }, required: ["requestId", "notes"], additionalProperties: false },
         annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false } }] });
     if (message.method !== "tools/call") return error(-32601, "Method not found");
     const hasMeta = message.params != null && Object.hasOwn(message.params, "_meta");
     if (!exactKeys(message.params, hasMeta ? ["name", "arguments", "_meta"] : ["name", "arguments"])
       || (hasMeta && !validRequestMetadata(message.params._meta))) return error(-32602, "Invalid tool parameters");
+    const multiple = message.params.name === "submit_notes_preview";
     const arbitrary = message.params.name === "submit_text_preview";
     try {
-      if (arbitrary) textRequest(message.params.arguments);
+      if (multiple) notesRequest(message.params.arguments);
+      else if (arbitrary) textRequest(message.params.arguments);
       else if (message.params.name !== "submit_dummy_preview" || !exactKeys(message.params.arguments, ["requestId"])
         || typeof message.params.arguments.requestId !== "string" || !REQUEST_ID_PATTERN.test(message.params.arguments.requestId)) throw new Error("invalid_format");
     } catch (invalid) { return error(-32602, invalid.code || "Invalid tool arguments"); }
     try {
-      const record = arbitrary ? await submitArbitrary(message.params.arguments) : await submit(message.params.arguments.requestId);
-      const result = { requestId: record.requestId, title: record.title, body: record.body, state: record.state, saved: record.saved,
-        message: record.saved ? "ブラウザから保存完了の通知を受信済み（このMCP呼び出しは保存しません）" : record.state === "queued" ? "一時キューで受信・未保存（ブラウザ表示は未確認）" : `一時要求の状態: ${record.state}・保存完了は未確認` };
+      const record = multiple ? await submitMultiple(message.params.arguments) : arbitrary ? await submitArbitrary(message.params.arguments) : await submit(message.params.arguments.requestId);
+      const result = { requestId: record.requestId, ...(multiple ? { notes: record.notes.map(({ itemId, title, body, state, saved }) => ({ itemId, title, body, state, saved })) } : { title: record.title, body: record.body }), state: record.state, saved: record.saved,
+        message: multiple ? `一時要求の状態: ${record.state}。各メモのstateとsavedを確認してください。savedはブラウザ完了通知済みの結果です。このMCP呼び出しは保存しません。` : record.saved ? "ブラウザから保存完了の通知を受信済み（このMCP呼び出しは保存しません）" : record.state === "queued" ? "一時キューで受信・未保存（ブラウザ表示は未確認）" : `一時要求の状態: ${record.state}・保存完了は未確認` };
       return reply({ content: [{ type: "text", text: JSON.stringify(result) }], isError: record.state === "queue_full" });
-    } catch (failure) { return reply({ content: [{ type: "text", text: JSON.stringify({ requestId: message.params.arguments.requestId, state: failure.code || "unconfirmed", saved: false, message: failure.code === "request_id_conflict" ? "同じrequestIdの内容が異なるため拒否しました。既存の受信内容は維持します。" : "一時キューへの受信を確認できません。未保存。同じrequestIdで再試行してください。" }) }], isError: true }); }
+    } catch (failure) { return reply({ content: [{ type: "text", text: JSON.stringify({ requestId: message.params.arguments.requestId, state: failure.code || "unconfirmed", saved: false, message: failure.code === "request_id_conflict" ? "同じrequestIdの内容が異なるため拒否しました。既存の受信内容は維持します。" : multiple ? "受信を確認できません。同じrequestId・原文で再試行してください。各メモの保存結果は未確認です。" : "一時キューへの受信を確認できません。未保存。同じrequestIdで再試行してください。" }) }], isError: true }); }
   };
 }
 function runStdio() {
@@ -77,7 +84,7 @@ function runStdio() {
   const write = (value) => { if (value) process.stdout.write(`${JSON.stringify(value)}\n`); };
   process.stdin.on("data", async (chunk) => {
     // Bound queued input, including oversized lines without newlines.
-    if (busy || buffer.length + chunk.length > MAX_TEXT_INPUT_BYTES + 4096) { process.stdin.destroy(); process.exitCode = 1; return; }
+    if (busy || buffer.length + chunk.length > MAX_NOTES_INPUT_BYTES + 4096) { process.stdin.destroy(); process.exitCode = 1; return; }
     buffer = Buffer.concat([buffer, chunk]); busy = true; process.stdin.pause();
     try {
       let newline;
@@ -92,4 +99,4 @@ function runStdio() {
   });
 }
 if (require.main === module) runStdio();
-module.exports = { submitDummy, submitText, createMcpHandler };
+module.exports = { submitNotes, submitDummy, submitText, createMcpHandler };

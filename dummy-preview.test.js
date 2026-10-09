@@ -96,7 +96,7 @@ test("MCP retains fixed dummy submission alongside text preview; requestId is ca
   assert.equal((await handler(null)).error.code, -32600);
   const call = (method, params) => handler({ jsonrpc: "2.0", id: 1, method, params });
   await call("initialize", { protocolVersion: "2025-06-18" }); await handler({ jsonrpc: "2.0", method: "notifications/initialized" });
-  const list = await call("tools/list"); assert.deepEqual(list.result.tools.map((tool) => tool.name), ["submit_dummy_preview", "submit_text_preview"]);
+  const list = await call("tools/list"); assert.deepEqual(list.result.tools.map((tool) => tool.name), ["submit_dummy_preview", "submit_text_preview", "submit_notes_preview"]);
   const requestId = id(); const params = { name: "submit_dummy_preview", arguments: { requestId } };
   const response = await call("tools/call", params); const result = JSON.parse(response.result.content[0].text);
   assert.equal(result.requestId, requestId); assert.equal(result.state, "queued"); assert.equal(result.saved, false);
@@ -157,7 +157,8 @@ test("MCP metadata retries preserve rejection, full refusal and expiry without r
 test("incoming modules have no persistence, editor, Import or clipper capabilities", () => {
   for (const file of ["dummy-preview-ui.js", "dummy-preview-queue.js", "dummy-preview-service.js", "dummy-preview-mcp.js"]) {
     const source = fs.readFileSync(file, "utf8");
-    assert.doesNotMatch(source, /\b(createNote|persistIncomingNote|putNote|notes|indexedDB|localStorage|sessionStorage|noteSaveFoundation|enqueueNoteSave|draftMirror|saveWebClip|importJson|importMarkdownZip)\b/);
+    assert.doesNotMatch(source, /\b(createNote|persistIncomingNote|putNote|indexedDB|localStorage|sessionStorage|noteSaveFoundation|enqueueNoteSave|draftMirror|saveWebClip|importJson|importMarkdownZip)\b/);
+    assert.doesNotMatch(source, /\b(?:let|const|var)\s+notes\b|(?<![.\w])notes\s*(?:\.|\[|\()|\b(?:window|globalThis)\.notes\b/);
     assert.doesNotMatch(source, /innerHTML|insertAdjacentHTML|\beval\b|WebSocket|EventSource/);
   }
 });

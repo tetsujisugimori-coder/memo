@@ -10,10 +10,12 @@
   const saveButton = byId("dummyPreviewSaveBtn");
   const input = byId("dummyPreviewToken");
   const status = byId("dummyPreviewStatus");
+  let batch = null;
   let token = ""; let current = null; let controller = null; let session = 0; let saving = false; let displayedDestination = null;
   let operationController = null; let needsDestinationConfirmation = false;
   function validateRecord(value) {
     const keys = ["formatVersion", "requestId", "dummy", "title", "body", "state", "receivedAt", "expiresAt", "saved"];
+    if (value && Object.hasOwn(value, "itemId")) keys.push("itemId");
     if (value?.dummy === false) keys.push("savePlan", "attemptId");
     if (!value || typeof value !== "object" || Object.keys(value).length !== keys.length || keys.some((key) => !Object.hasOwn(value, key))
       || value.formatVersion !== 1 || typeof value.dummy !== "boolean" || value.saved !== (value.state === "saved")
@@ -29,11 +31,53 @@
     if (["saving", "save_failed", "saved"].includes(value.state) && (value.dummy || !value.savePlan)) throw new Error("invalid_response");
     if (!value.dummy && (value.attemptId !== null && (typeof value.attemptId !== "string" || !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(value.attemptId)))) throw new Error("invalid_response");
     if (!value.dummy && Boolean(value.savePlan) !== Boolean(value.attemptId)) throw new Error("invalid_response");
+    if (value.itemId !== undefined && (typeof value.itemId !== "string" || !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(value.itemId))) throw new Error("invalid_response");
     return value;
   }
+  const pendingItem = (record) => ["queued", "saving", "save_failed"].includes(record.state);
+  function validateBatch(value) {
+    const keys = ["formatVersion", "requestId", "notes", "state", "receivedAt", "expiresAt", "saved"];
+    if (!value || Object.keys(value).length !== keys.length || keys.some((key) => !Object.hasOwn(value, key))
+      || value.formatVersion !== 1 || !Array.isArray(value.notes) || value.notes.length < 1 || value.notes.length > 5
+      || !["queued", "completed", "queue_full"].includes(value.state)) throw new Error("invalid_response");
+    const ids = new Set();
+    for (const note of value.notes) {
+      validateRecord(note);
+      if (!note.itemId || ids.has(note.itemId) || note.requestId !== value.requestId || note.receivedAt !== value.receivedAt || note.expiresAt !== value.expiresAt || note.dummy) throw new Error("invalid_response");
+      ids.add(note.itemId);
+    }
+    if (value.saved !== value.notes.every((note) => note.saved)
+      || (value.state === "queued") !== value.notes.some(pendingItem)) throw new Error("invalid_response");
+    return value;
+  }
+  function renderList() {
+    const container = byId("receivedNotesList"); container.hidden = !batch;
+    byId("receivedNotesPending").replaceChildren(); byId("receivedNotesProcessed").replaceChildren();
+    if (!batch) return;
+    for (const note of batch.notes) {
+      const button = document.createElement("button"); button.type = "button";
+      button.dataset.itemId = note.itemId;
+      button.textContent = note.title + " — " + ({ queued: "未保存", saving: "完了不明", save_failed: "失敗・完了未確認", saved: "保存済み", rejected: "破棄済み", expired: "期限切れ", queue_full: "受信拒否" })[note.state];
+      button.disabled = saving || Boolean(operationController) || Boolean(controller);
+      button.setAttribute("aria-pressed", String(current?.itemId === note.itemId));
+      button.addEventListener("click", () => { if (!saving && !controller && !operationController) render(note); });
+      const row = document.createElement("li"); row.append(button);
+      byId(pendingItem(note) ? "receivedNotesPending" : "receivedNotesProcessed").append(row);
+    }
+  }
+  function renderBatch(value) {
+    const selectedId = current?.itemId;
+    batch = validateBatch(value);
+    const selected = batch.notes.find((note) => note.itemId === selectedId) || batch.notes.find(pendingItem) || batch.notes[0];
+    render(selected);
+  }
   function render(record) {
-    if (record?.requestId !== current?.requestId) needsDestinationConfirmation = false;
+    if (record?.requestId !== current?.requestId || record?.itemId !== current?.itemId) needsDestinationConfirmation = false;
     current = record;
+    if (record?.itemId && batch?.requestId === record.requestId) {
+      batch.notes = batch.notes.map((note) => note.itemId === record.itemId ? record : note);
+    }
+    renderList();
     byId("dummyPreviewContent").hidden = !record;
     byId("dummyPreviewTitle").textContent = record?.title || "";
     byId("dummyPreviewBody").textContent = record?.body || "";
@@ -51,7 +95,7 @@
     session++;
     controller?.abort(); controller = null;
     operationController?.abort(); operationController = null; saving = false;
-    token = ""; input.value = ""; render(null);
+    token = ""; input.value = ""; batch = null; byId("receivedRequestLookup").value = ""; render(null);
     checkButton.disabled = false;
     byId("dummyPreviewCloseBtn").disabled = false;
     status.textContent = "接続情報を消去しました。トークンを再入力してください。";
@@ -64,24 +108,24 @@
   }
   function matchingRecord(value, expected) {
     const record = validateRecord(value);
-    if (record.requestId !== expected.requestId || record.title !== expected.title || record.body !== expected.body) throw new Error("保存応答が一致しません。");
+    if (record.requestId !== expected.requestId || record.itemId !== expected.itemId || record.title !== expected.title || record.body !== expected.body) throw new Error("保存応答が一致しません。");
     return record;
   }
-  async function request(path, requestId, extra = {}) {
+  async function request(path, requestId, extra = {}, whole = false) {
     const localController = new AbortController(); controller = localController;
     const signal = localController.signal;
     const timeout = setTimeout(() => localController.abort(), 5000);
     try {
       const response = await fetch(`${endpoint}${path}`, { method: requestId ? "POST" : "GET", mode: "cors", credentials: "omit", cache: "no-store", redirect: "error", referrerPolicy: "no-referrer", signal,
         headers: { Authorization: `Bearer ${token}`, ...(requestId ? { "Content-Type": "application/json" } : {}) },
-        ...(requestId ? { body: JSON.stringify({ requestId, ...extra }) } : {}) });
+        ...(requestId ? { body: JSON.stringify({ requestId, ...(!whole && current?.itemId && current.requestId === requestId ? { itemId: current.itemId } : {}), ...extra }) } : {}) });
       if (response.status === 401) { token = ""; throw new Error("unauthorized"); }
       if (!response.ok) throw new Error("request_failed");
       const reader = response.body.getReader(); const chunks = []; let size = 0;
       while (true) {
         const { done, value } = await reader.read(); if (done) break;
         size += value.length;
-        if (size > 414000) { await reader.cancel(); throw new Error("invalid_response"); }
+        if (size > 2052096) { await reader.cancel(); throw new Error("invalid_response"); }
         chunks.push(value);
       }
       const bytes = new Uint8Array(size); let offset = 0;
@@ -119,10 +163,16 @@
         });
       } else {
         const previous = current;
-        const result = await request("/pending");
+        const lookup = byId("receivedRequestLookup").value.trim();
+        const result = lookup ? { pending: (await request("/status", lookup, {}, true)).request } : await request("/pending");
         if (attempt !== session || !dialog.open) return;
         if (result.pending === null) {
           let record = null;
+          if (batch) {
+            const detail = await request("/status", batch.requestId, {}, true);
+            if (attempt !== session || !dialog.open) return;
+            renderBatch(detail.request); status.textContent = "要求内の各メモの状態を確認しました。受信・確認だけでは保存しません。"; return;
+          }
           if (previous) {
             const detail = await request("/status", previous.requestId);
             if (attempt !== session || !dialog.open) return;
@@ -134,8 +184,13 @@
             : record?.state === "rejected" && !record.dummy ? "受信内容は破棄済みです。作成済みメモは取り消しません。"
             : record?.state === "expired" ? "期限切れです。未保存。" : "保留中の受信はありません。未保存。";
         } else {
+          if (result.pending.notes) {
+            renderBatch(result.pending);
+            status.textContent = "複数メモを表示しました。各メモを選び、原文と保存先を確認して個別に保存・破棄してください。"; return;
+          }
+          batch = null;
           const record = validateRecord(result.pending);
-          if (!["queued", "saving", "save_failed"].includes(record.state)) throw new Error("invalid_response");
+          if (!lookup && !["queued", "saving", "save_failed"].includes(record.state)) throw new Error("invalid_response");
           render(record); status.textContent = record.dummy ? "固定ダミーを表示しました。未保存。" : record.state !== "queued" ? "保存完了は未確認です。同じメモIDで再試行できます。" : "受信文章を表示しました。未保存。";
         }
       }
