@@ -8,7 +8,8 @@ async function fetchReceiver(route, port) {
 async function attachTransport(context, staticPort, receiverPort) {
   await context.route("http://127.0.0.1:5500/**", async (route) => {
     const url = route.request().url().replace("http://127.0.0.1:5500", `http://127.0.0.1:${staticPort}`);
-    await route.fulfill({ response: await route.fetch({ url, headers: { ...route.request().headers(), host: `127.0.0.1:${staticPort}` } }) });
+    try { await route.fulfill({ response: await route.fetch({ url, headers: { ...route.request().headers(), host: `127.0.0.1:${staticPort}` }, maxRetries: 1 }) }); }
+    catch { await route.abort().catch(() => {}); }
   });
   await context.route("http://127.0.0.1:8791/**", async (route) => {
     try { await route.fulfill({ response: await fetchReceiver(route, typeof receiverPort === "function" ? receiverPort() : receiverPort) }); }

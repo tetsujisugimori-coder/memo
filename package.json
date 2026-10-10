@@ -2,7 +2,7 @@
   "private": true,
   "scripts": {
     "preview:dummy": "node dummy-preview-service.js",
-    "test:e2e:received-recovery": "node received-recovery.e2e.js",
+    "test:e2e:received-recovery": "node received-recovery.e2e.js && node received-recovery-ui.e2e.js",
     "test:e2e:dummy-preview": "node dummy-preview.e2e.js",
     "test:e2e:received-preview": "node received-preview.e2e.js",
     "test:e2e:received-concurrency": "node received-preview-concurrency.e2e.js",

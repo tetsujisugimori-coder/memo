@@ -184,12 +184,20 @@ function createQueue({ now = Date.now, initial = [], persist = null } = {}) {
   function durable(operation) {
     return (...args) => {
       if (stopped) throw fault("history_unavailable", 503);
+      // Capacity is rejected before any journal write. Roll back the volatile mutation.
+      const before = persist ? [...history.entries()].map(([id, record]) => [id, { ...record, ...(record.items ? { items: record.items.map((item) => ({ ...item })) } : {}) }]) : null, previousActiveId = activeId;
       let result, failure;
       try { result = operation(...args); } catch (error) { failure = error; }
       const next = snapshot(), encoded = JSON.stringify(next);
       if (persist && encoded !== last) {
         try { persist(next); last = encoded; }
-        catch { stopped = true; throw fault("history_write_failed", 503); }
+        catch (error) {
+          if (error.code === "history_capacity") {
+            history.clear(); for (const [id, record] of before) history.set(id, record); activeId = previousActiveId;
+            throw fault("history_capacity", 503);
+          }
+          stopped = true; throw fault("history_write_failed", 503);
+        }
       }
       if (failure) throw failure;
       return result;

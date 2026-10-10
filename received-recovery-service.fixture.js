@@ -1,15 +1,16 @@
 "use strict";
 // IPC-only test fixture. No HTTP test control route or production environment flag.
 const { createPersistentPreviewService } = require("./dummy-preview-service.js");
-let gate = null;
+let gate = null, clock = Date.now();
 process.on("message", (message) => {
+  if (message.type === "advance") { clock += 60000; process.send({ type: "advanced" }); }
   if (message.type === "gate") { gate = message.path; process.send({ type: "armed" }); }
 });
 (async () => {
   try {
     const { server } = await createPersistentPreviewService({
       browserToken: process.env.MEMO_PREVIEW_BROWSER_TOKEN, adapterToken: process.env.MEMO_PREVIEW_ADAPTER_TOKEN,
-      directory: process.env.MEMO_PREVIEW_HISTORY_DIR,
+      directory: process.env.MEMO_PREVIEW_HISTORY_DIR, now: () => clock,
       beforeReply: async (route, record) => {
         if (route === gate) {
           process.send({ type: "checkpoint", path: route, requestId: record.requestId, itemId: record.itemId });

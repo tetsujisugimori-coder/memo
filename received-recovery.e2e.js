@@ -162,7 +162,11 @@ async function gateDB(page, afterCommit = false) {
       }
       service = await start(directory, tokens);
       await open(page, tokens.browser, request.requestId);
-      assert.match(await page.locator("#dummyPreviewBadge").textContent(), /再送待ち/);
+      const restartState = (await api(tokens, "/status", control)).request.state;
+      const restartLabel = { queued: /未保存/, saving: /保存結果不明/, save_failed: /保存失敗・結果未確認/, saved: /保存完了通知済み.*未照合/, rejected: /破棄済み/, expired: /期限切れ/ };
+      // Multiple requests initially select the remaining queued item.
+      assert.match(await page.locator("#dummyPreviewBadge").textContent(), multiple ? /未保存/ : restartLabel[restartState]);
+      assert.match(await page.locator("#dummyPreviewState").textContent(), /原文なし/);
       assert.equal(await page.locator("#dummyPreviewSaveBtn").isDisabled(), true);
       const replay = await api(tokens, route, payload, true); assert.equal(replay.code, 200);
       assert.equal(JSON.stringify(replay).includes("collectionId"), false); assert.equal(JSON.stringify(replay).includes("noteId"), false);
@@ -218,6 +222,34 @@ async function gateDB(page, afterCommit = false) {
       results.push({ scenario, result: "passed" }); console.log(`PASS ${scenario}`);
       await context.close(); context = null; await kill(service); service = null;
     }
+    const fullDirectory = path.join(root, "history-full"); service = await start(fullDirectory, tokens);
+    let lastRequest;
+    for (let i = 0; i < 128; i++) {
+      if (i % 40 === 0) { service.child.send({ type: "advance" }); await service.wait("advanced"); }
+      lastRequest = { requestId: randomUUID(), title: "上限試験", body: "原文" };
+      assert.equal((await api(tokens, "/text", lastRequest, true)).code, 200);
+      if (i < 127) assert.equal((await api(tokens, "/reject", { requestId: lastRequest.requestId })).request.state, "rejected");
+      if (i === 126) assert.equal(JSON.parse(await fs.readFile(path.join(fullDirectory, "history.json"))).records.length, 127);
+    }
+    assert.equal(JSON.parse(await fs.readFile(path.join(fullDirectory, "history.json"))).records.length, 128);
+    const excess = { ...lastRequest, requestId: randomUUID() };
+    assert.equal((await api(tokens, "/text", excess, true)).error, "history_full");
+    assert.equal((await api(tokens, "/status", { requestId: lastRequest.requestId })).request.state, "queued");
+    assert.equal((await api(tokens, "/text", lastRequest, true)).code, 200);
+    await kill(service); service = await start(fullDirectory, tokens);
+    assert.equal((await api(tokens, "/text", excess, true)).error, "history_full");
+    context = await browser.newContext(); await attachTransport(context, staticServer.address().port, () => receiverPort);
+    page = await context.newPage(); await page.goto("http://127.0.0.1:5500/"); await settled(page);
+    await open(page, tokens.browser, lastRequest.requestId);
+    assert.equal(await page.locator("#dummyPreviewSaveBtn").isDisabled(), true);
+    assert.equal((await api(tokens, "/text", lastRequest, true)).code, 200);
+    await page.locator("#dummyPreviewCheckBtn").click(); await idle(page);
+    const beforeFullSave = await counts(page); await save(page);
+    assert.equal(await counts(page), beforeFullSave + 1);
+    assert.equal((await api(tokens, "/status", { requestId: lastRequest.requestId })).request.state, "saved");
+    assert.equal((await api(tokens, "/text", excess, true)).error, "history_full");
+    await context.close(); context = null; await kill(service); service = null;
+    results.push({ scenario: "real-service-127-128-129-restart-known-manual-save", result: "passed" });
     const failedDirectory = path.join(root, "write-failure"); service = await start(failedDirectory, tokens);
     const failedRequest = { requestId: randomUUID(), title: "書き込み失敗", body: "記録を破壊しない" };
     assert.equal((await api(tokens, "/text", failedRequest, true)).code, 200);

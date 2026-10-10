@@ -101,3 +101,33 @@ test("receiver bind failure releases the persistent-state lock", async (t) => {
   await service.history.close();
   const reopened = await openHistory({ directory }); await reopened.close();
 });
+
+
+test("capacity rejection rolls back uncommitted state and keeps known operations available", () => {
+  let journal = [], capacity = false;
+  const queue = createQueue({ persist: (records) => {
+    if (capacity && records.length > 1) throw Object.assign(new Error("private path/token"), { code: "history_capacity" });
+    journal = structuredClone(records);
+  } });
+  const known = input(); queue.submit(known); capacity = true;
+  const intact = structuredClone(journal), refused = input();
+  assert.throws(() => queue.submit(refused), { code: "history_capacity" });
+  assert.deepEqual(journal, intact); assert.throws(() => queue.status(refused.requestId), /request_not_found/);
+  assert.equal(queue.submit(known).state, "queued");
+  const plan = queue.begin(known.requestId, "system-unclassified", null);
+  queue.complete(known.requestId, plan.attemptId); assert.equal(queue.status(known.requestId).state, "saved");
+});
+
+test("MCP distinguishes capacity errors and never forwards unknown error details", async () => {
+  const { createMcpHandler } = require("./dummy-preview-mcp.js");
+  for (const code of ["history_full", "history_capacity", "PRIVATE-path-token-body"]) {
+    const handle = createMcpHandler({ submitArbitrary: async () => { throw Object.assign(new Error("PRIVATE-path-token-body"), { code }); } });
+    await handle({ jsonrpc: "2.0", method: "notifications/initialized" });
+    const reply = await handle({ jsonrpc: "2.0", id: 1, method: "tools/call", params: { name: "submit_text_preview", arguments: { requestId: randomUUID(), title: "title", body: "body" } } });
+    const result = JSON.parse(reply.result.content[0].text);
+    assert.equal(result.state, code.startsWith("history_") ? code : "unconfirmed");
+    assert.equal(JSON.stringify(reply).includes("PRIVATE-path-token-body"), false);
+    if (code.startsWith("history_")) { assert.match(result.message, /上限/); assert.match(result.message, /保全/); }
+    assert.equal(reply.result.isError, true); assert.equal(result.saved, false);
+  }
+});
