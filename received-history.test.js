@@ -104,9 +104,9 @@ test("receiver bind failure releases the persistent-state lock", async (t) => {
 
 
 test("capacity rejection rolls back uncommitted state and keeps known operations available", () => {
-  let journal = [], capacity = false;
+  let journal = [], capacity = false, blockMutation = false;
   const queue = createQueue({ persist: (records) => {
-    if (capacity && records.length > 1) throw Object.assign(new Error("private path/token"), { code: "history_capacity" });
+    if (blockMutation || (capacity && records.length > 1)) throw Object.assign(new Error("private path/token"), { code: "history_capacity" });
     journal = structuredClone(records);
   } });
   const known = input(); queue.submit(known); capacity = true;
@@ -114,6 +114,10 @@ test("capacity rejection rolls back uncommitted state and keeps known operations
   assert.throws(() => queue.submit(refused), { code: "history_capacity" });
   assert.deepEqual(journal, intact); assert.throws(() => queue.status(refused.requestId), /request_not_found/);
   assert.equal(queue.submit(known).state, "queued");
+  blockMutation = true;
+  assert.throws(() => queue.begin(known.requestId, "system-unclassified", null), { code: "history_capacity" });
+  assert.equal(queue.status(known.requestId).state, "queued"); assert.equal(queue.status(known.requestId).savePlan, null);
+  assert.deepEqual(journal, intact); blockMutation = false;
   const plan = queue.begin(known.requestId, "system-unclassified", null);
   queue.complete(known.requestId, plan.attemptId); assert.equal(queue.status(known.requestId).state, "saved");
 });

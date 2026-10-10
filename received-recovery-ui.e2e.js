@@ -78,7 +78,14 @@ const { createQueue, notesRequest } = require("./dummy-preview-queue.js");
     results.push("save diagnostics preserve uncertainty and create zero notes");
     mode = "queue"; await page.locator("#receivedRequestLookup").fill(payload.requestId); await check();
     const select = async (id) => { const el = page.locator(`[data-item-id="${id}"]`); await el.evaluate((el) => { const details = el.closest("details"); if (details) details.open = true; }); await el.click(); };
-    for (const item of batch.notes) { await select(item.itemId); await page.locator("#dummyPreviewSaveBtn").click(); await idle(); }
+    for (const item of batch.notes) {
+      await select(item.itemId); await page.locator("#dummyPreviewSaveBtn").click(); await idle();
+      if (item.itemId === batch.notes[1].itemId) {
+        await select(batch.notes[0].itemId);
+        assert.match(await page.locator("#dummyPreviewBadge").textContent(), /照合済み/);
+        assert.equal(await page.locator("#dummyPreviewSaveBtn").isDisabled(), true);
+      }
+    }
     for (const item of batch.notes) {
       await select(item.itemId); assert.match(await page.locator("#dummyPreviewBadge").textContent(), /照合済み/);
       assert.equal(await page.locator("#dummyPreviewSaveBtn").isDisabled(), true);
