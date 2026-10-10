@@ -115,6 +115,16 @@ const { createQueue, notesRequest } = require("./dummy-preview-queue.js");
     await page.locator("#dummyPreviewSaveBtn").click(); await idle(); assert.equal(await page.evaluate(() => notes.length), baseline + 3);
     await page.reload(); await page.locator("#appStartupGuard").waitFor({ state: "hidden" }); await open(payload.requestId); await select(batch.notes[0].itemId);
     assert.match(await page.locator("#dummyPreviewBadge").textContent(), /未照合/);
+    // Native close is queued: reopen and check synchronously before that event arrives.
+    await page.evaluate((id) => {
+      document.getElementById("dummyPreviewDialog").close();
+      document.getElementById("dummyPreviewOpenBtn").click();
+      document.getElementById("receivedRequestLookup").value = id;
+      document.getElementById("dummyPreviewToken").value = "T".repeat(43);
+      document.getElementById("dummyPreviewCheckBtn").click();
+    }, payload.requestId);
+    await page.waitForFunction((id) => document.getElementById("dummyPreviewRequestId").textContent === id && !document.getElementById("dummyPreviewCheckBtn").disabled, payload.requestId);
+    assert.match(await page.locator("#dummyPreviewBadge").textContent(), /未照合/);
     results.push("attempt/request/restart changes invalidate proof; close and page navigation clear session; reverify creates zero notes");
     await fs.mkdir(path.join(__dirname, "e2e-artifacts/received-preview"), { recursive: true });
     await fs.writeFile(path.join(__dirname, "e2e-artifacts/received-preview/recovery-ui.json"), JSON.stringify({ platform: process.platform, results }, null, 2));

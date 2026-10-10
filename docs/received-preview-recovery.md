@@ -169,3 +169,5 @@ received-recovery-ui.e2e.jsは実アプリを隔離BrowserContextで操作し、
 長期容量管理の設計Issue：[GitHub #359](https://github.com/tetsujisugimori-coder/memo/issues/359)。
 
 レビュー修正のローカル最終結果（Windows Node v24.20.0／Chromium）：全単体1,827件成功（スキップ0）、指定の既存4 E2E成功、実サービス停止・再起動と上限・履歴障害20シナリオ成功、追加UI E2E 5検証群成功、JavaScript構文245ファイル成功、git diff --check成功。初回の診断文言不一致は既存案内を維持して修正し、テスト用静的GET転送の接続リセットは安全な再試行・終了処理で修正した。初回ログと最終結果をignored artifactに保持する。公開最新HEADのWindows／Ubuntu CI結果はPR本文で確認する。
+
+CIで確認した再表示競合も修正：ネイティブcloseイベントは遅延するため、即時再表示後の古いclose通知で新セッションを消去しない。新規表示時の消去を維持し、閉じる→即時表示→照会のブラウザ試験は修正前に再現、修正後に成功を確認する。初回Ubuntu受信CIのH-rejected表示消失ログも保全した。中間HEAD 2c73b80のWindows復旧・Ubuntu受信は成功、WebKitチャートの既存項目並べ替え検査はタイムアウトしたため、最新HEADの結果を確認するまで全CI成功とは扱わない。

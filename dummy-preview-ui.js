@@ -311,7 +311,7 @@
   checkButton.addEventListener("click", () => perform("check"));
   rejectButton.addEventListener("click", () => perform("reject"));
   byId("dummyPreviewCloseBtn").addEventListener("click", () => dialog.close());
-  dialog.addEventListener("close", () => { clearConnection(); const menu = openButton.closest("details"); if (menu) menu.open = true; openButton.focus(); });
+  dialog.addEventListener("close", () => { if (dialog.open) return; clearConnection(); const menu = openButton.closest("details"); if (menu) menu.open = true; openButton.focus(); });
   window.addEventListener("pagehide", clearConnection);
   input.addEventListener("keydown", (event) => { if (event.key === "Enter") { event.preventDefault(); perform("check"); } });
 })();
