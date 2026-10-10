@@ -1102,11 +1102,11 @@
   <script src="draft-mirror-scheduler.js?v=0.5.0-2"></script>
   <script src="typing-performance-monitor.js?v=0.5.0-3"></script>
   <script src="layout-resize-utils.js?v=0.5.0-2"></script>
-  <script src="app.js?v=0.5.0-205"></script>
+  <script src="app.js?v=0.5.0-206"></script>
   <script src="codex-chat.js?v=0.5.0-6"></script>
   <dialog id="dummyPreviewDialog" class="dummy-preview-dialog" aria-labelledby="dummyPreviewHeading" aria-describedby="dummyPreviewHelp">
     <h2 id="dummyPreviewHeading">文章の受信確認 <small id="dummyPreviewBadge">未保存プレビュー</small></h2>
-    <p id="dummyPreviewHelp">受信だけでは保存しません。閉じるとトークンを消去します。受信期限は10分。保存開始後は再試行用にサービス終了まで保持します。重複防止は同じサービスの稼働中・同じブラウザ保存領域内です。サービス再起動で履歴は消えます。</p>
+    <p id="dummyPreviewHelp">受信・再送だけではメモを作成しません。保存・復旧は人がボタンを押して行い、画面を閉じると専用トークンを消去します。未着手要求の期限は10分です。識別履歴と固定保存計画はサービス再起動後も保持しますが、永続履歴にタイトル・本文は保存しません。再起動後は同じrequestId・同じタイトル・同じ原文で再送して本文を復元し、手動で保存結果を照合します。復旧・重複防止は同じ履歴ディレクトリ、同じOrigin・ブラウザ保存領域など所定の条件内です。別端末・別保存領域や履歴削除後まで保証しません。</p>
     <label>受信サービス専用トークン<input id="dummyPreviewToken" type="password" autocomplete="off" spellcheck="false" autocapitalize="off" maxlength="128"></label>
     <p id="dummyPreviewStatus" role="status" aria-live="polite" aria-atomic="true"></p>
     <label>要求の状態確認（任意のrequestId）<input id="receivedRequestLookup" type="text" autocomplete="off" spellcheck="false" maxlength="36" placeholder="空欄なら保留中の受信を確認"></label>
@@ -1125,6 +1125,6 @@
     <div class="dummy-preview-actions"><button id="dummyPreviewCheckBtn" type="button">受信を確認</button><button id="dummyPreviewSaveBtn" type="button" disabled>新規メモとして保存</button><button id="dummyPreviewRejectBtn" type="button" disabled>破棄</button><button id="dummyPreviewCloseBtn" type="button">閉じる</button></div>
   </dialog>
   <link rel="stylesheet" href="dummy-preview.css?v=0.5.0-2">
-  <script src="dummy-preview-ui.js?v=0.5.0-5"></script>
+  <script src="dummy-preview-ui.js?v=0.5.0-8"></script>
 </body>
 </html>

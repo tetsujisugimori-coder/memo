@@ -26,7 +26,7 @@ $taskForm = New-Object Windows.Forms.Form
 $taskForm.Text = 'Memo-Nexus fixed dummy preview (unsaved)'
 $taskForm.ClientSize = New-Object Drawing.Size(620,250)
 $taskForm.StartPosition = 'CenterScreen'
-$taskForm.Controls.Add((New-Object Windows.Forms.Label -Property @{Text='127.0.0.1:8791 only. Close this window to stop and discard the queue.'; Left=16; Top=16; Width=580; Height=24}))
+$taskForm.Controls.Add((New-Object Windows.Forms.Label -Property @{Text='127.0.0.1:8791 only. Close to stop. Metadata persists; replay identical content after restart.'; Left=16; Top=16; Width=580; Height=24}))
 $taskForm.Controls.Add((New-Object Windows.Forms.Label -Property @{Text='Browser token: enter ONLY in the preview dialog'; Left=16; Top=50; Width=580; Height=20}))
 $taskBrowserBox = New-Object Windows.Forms.TextBox -Property @{Text=$taskBrowserToken; Left=16; Top=74; Width=580; ReadOnly=$true; UseSystemPasswordChar=$true}
 $taskForm.Controls.Add($taskBrowserBox)

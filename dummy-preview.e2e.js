@@ -6,6 +6,7 @@ const http = require("node:http");
 const { randomBytes, randomUUID } = require("node:crypto");
 const { spawn } = require("node:child_process");
 const { chromium } = require("playwright");
+const { attachTransport } = require("./received-e2e-transport.js");
 const { createPreviewService } = require("./dummy-preview-service.js");
 const { createQueue, dummyRequest, FIXTURE, TTL_MS } = require("./dummy-preview-queue.js");
 const artifacts = path.join(__dirname, "e2e-artifacts/dummy-preview");
@@ -63,7 +64,7 @@ async function settled(page) {
   await page.evaluate(async () => { await flushScheduledNoteSave(currentId); await Promise.all(notes.map((note) => noteSaveFoundation.whenIdle(note.id))); });
 }
 async function mcpRoundTrip(adapterToken, requestId, metadata) {
-  const child = spawn(process.execPath, [path.join(__dirname, "dummy-preview-mcp.js")], { windowsHide: true, env: { ...process.env, MEMO_PREVIEW_ADAPTER_TOKEN: adapterToken }, stdio: ["pipe", "pipe", "pipe"] });
+  const child = spawn(process.execPath, ["--require", path.join(__dirname, "received-e2e-mcp-port.fixture.js"), path.join(__dirname, "dummy-preview-mcp.js")], { windowsHide: true, env: { ...process.env, MEMO_PREVIEW_ADAPTER_TOKEN: adapterToken }, stdio: ["pipe", "pipe", "pipe"] });
   let buffer = ""; let resolveNext; let rejectNext;
   child.stdout.on("data", (chunk) => {
     buffer += chunk.toString(); const newline = buffer.indexOf("\n");
@@ -106,9 +107,10 @@ async function mcpRoundTrip(adapterToken, requestId, metadata) {
   });
   let browser; let receiverRunning = false; let staticRunning = false; const results = [];
   try {
-    await listen(receiver, 8791); receiverRunning = true; await listen(staticServer, 5500); staticRunning = true;
+    await listen(receiver, 0); process.env.MEMO_E2E_RECEIVER_PORT = String(receiver.address().port); receiverRunning = true; await listen(staticServer, 0); staticRunning = true;
     browser = await chromium.launch({ headless: true, ...(channel === "chromium" ? {} : { channel }) });
     const context = await browser.newContext({ viewport: { width: 390, height: 844 }, timezoneId: "Asia/Tokyo" });
+    await attachTransport(context, staticServer.address().port, receiver.address().port);
     const page = await context.newPage(); const pageErrors = []; const unsafeRequests = [];
     page.on("pageerror", (error) => pageErrors.push(error.message));
     page.on("request", (req) => { if (req.url().includes("example.invalid")) unsafeRequests.push(req.url()); });

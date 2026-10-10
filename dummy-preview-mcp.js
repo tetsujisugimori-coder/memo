@@ -75,7 +75,10 @@ function createMcpHandler({ submit = (id) => submitDummy(id, process.env.MEMO_PR
       const result = { requestId: record.requestId, ...(multiple ? { notes: record.notes.map(({ itemId, title, body, state, saved }) => ({ itemId, title, body, state, saved })) } : { title: record.title, body: record.body }), state: record.state, saved: record.saved,
         message: multiple ? `一時要求の状態: ${record.state}。各メモのstateとsavedを確認してください。savedはブラウザ完了通知済みの結果です。このMCP呼び出しは保存しません。` : record.saved ? "ブラウザから保存完了の通知を受信済み（このMCP呼び出しは保存しません）" : record.state === "queued" ? "一時キューで受信・未保存（ブラウザ表示は未確認）" : `一時要求の状態: ${record.state}・保存完了は未確認` };
       return reply({ content: [{ type: "text", text: JSON.stringify(result) }], isError: record.state === "queue_full" });
-    } catch (failure) { return reply({ content: [{ type: "text", text: JSON.stringify({ requestId: message.params.arguments.requestId, state: failure.code || "unconfirmed", saved: false, message: failure.code === "request_id_conflict" ? "同じrequestIdの内容が異なるため拒否しました。既存の受信内容は維持します。" : multiple ? "受信を確認できません。同じrequestId・原文で再試行してください。各メモの保存結果は未確認です。" : "一時キューへの受信を確認できません。未保存。同じrequestIdで再試行してください。" }) }], isError: true }); }
+    } catch (failure) {
+      const capacity = { history_full: "受信履歴が128要求の上限に達したため新規受信を拒否しました。履歴を保全し、既知requestIdの再送・照会と未完了要求の処理を続けてください。履歴を削除・切替しないでください。", history_capacity: "受信履歴が容量上限に達したため操作を拒否しました。履歴を保全し、既知requestIdの状態を確認してください。履歴を削除・切替しないでください。" };
+      const code = ["history_full", "history_capacity", "history_write_failed", "history_unavailable", "request_id_conflict", "unauthorized"].includes(failure.code) ? failure.code : "unconfirmed";
+      return reply({ content: [{ type: "text", text: JSON.stringify({ requestId: message.params.arguments.requestId, state: code, saved: false, message: capacity[code] || (code === "request_id_conflict" ? "同じrequestIdの内容が異なるため拒否しました。既存の受信内容は維持します。" : multiple ? "受信を確認できません。同じrequestId・原文で再試行してください。各メモの保存結果は未確認です。" : "受信と保存結果を確認できません。同じrequestId・同じ原文で再試行してください。") }) }], isError: true }); }
   };
 }
 function runStdio() {

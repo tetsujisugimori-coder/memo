@@ -6,6 +6,7 @@ const http = require("node:http");
 const { randomBytes, randomUUID } = require("node:crypto");
 const { spawn } = require("node:child_process");
 const { chromium } = require("playwright");
+const { attachTransport, fetchReceiver } = require("./received-e2e-transport.js");
 const { createPreviewService } = require("./dummy-preview-service.js");
 const { notesRequest } = require("./dummy-preview-queue.js");
 const artifacts = path.join(__dirname, "e2e-artifacts/received-preview");
@@ -38,8 +39,22 @@ async function snapshot(page) {
     return result;
   });
 }
+function removeCheckedReceipt(state, record, phase) {
+  const key = `received-preview:${record.requestId}:${record.itemId || "single"}`;
+  const entry = state["local-config"].find(([id]) => id === key);
+  assert.ok(entry, "received save must create its receipt");
+  const receipt = entry[1];
+  assert.deepEqual(Object.keys(receipt).sort(), ["key", "noteId", "collectionId", "digest", "title", "phase"].sort());
+  assert.equal(receipt.key, key); assert.equal(receipt.noteId, record.savePlan.noteId);
+  assert.equal(receipt.collectionId, record.savePlan.collectionId); assert.equal(receipt.phase, phase);
+  assert.equal(receipt.digest, require("node:crypto").createHash("sha256").update(JSON.stringify([record.title, record.body])).digest("hex"));
+  const note = state.notes.find(([id]) => id === record.savePlan.noteId)?.[1];
+  assert.equal(receipt.title, note ? note.title : record.title);
+  state["local-config"] = state["local-config"].filter(([id]) => id !== key);
+  return state;
+}
 async function mcp(token, value) {
-  const child = spawn(process.execPath, [path.join(__dirname, "dummy-preview-mcp.js")], { windowsHide: true,
+  const child = spawn(process.execPath, ["--require", path.join(__dirname, "received-e2e-mcp-port.fixture.js"), path.join(__dirname, "dummy-preview-mcp.js")], { windowsHide: true,
     env: { ...process.env, MEMO_PREVIEW_ADAPTER_TOKEN: token }, stdio: ["pipe", "pipe", "pipe"] });
   let buffer = "", next;
   child.stdout.on("data", (chunk) => { buffer += chunk.toString(); const newline = buffer.indexOf("\n"); if (newline >= 0 && next) { const resolve = next; next = null; const line = buffer.slice(0, newline); buffer = buffer.slice(newline + 1); resolve(JSON.parse(line)); } });
@@ -91,9 +106,10 @@ async function mcp(token, value) {
   }, mode);
   const waitLock = (p, id) => p.waitForFunction(async (id) => (await navigator.locks.query()).pending.some((lock) => lock.name === `memo-received-request:${id}`), id);
   try {
-    await listen(receiver, 8791); receiverRunning = true; await listen(staticServer, 5500); staticRunning = true;
+    await listen(receiver, 0); process.env.MEMO_E2E_RECEIVER_PORT = String(receiver.address().port); receiverRunning = true; await listen(staticServer, 0); staticRunning = true;
     browser = await chromium.launch({ headless: true, ...(channel === "chromium" ? {} : { channel }) });
     const context = await browser.newContext({ viewport: { width: 390, height: 844 }, timezoneId: "Asia/Tokyo" });
+    await attachTransport(context, staticServer.address().port, receiver.address().port);
     page = await context.newPage();
     context.on("page", (p) => { p.on("pageerror", (e) => errors.push(e.message)); p.on("request", (r) => { if (r.url().includes("notes-test.invalid")) unsafe.push(r.url()); }); });
     page.on("pageerror", (e) => errors.push(e.message)); page.on("request", (r) => { if (r.url().includes("notes-test.invalid")) unsafe.push(r.url()); });
@@ -133,7 +149,9 @@ async function mcp(token, value) {
     assert.equal(await page.locator("#receivedNotesPending button").count(), 2);
     assert.equal(await page.locator("#receivedNotesProcessed button").count(), 3);
     const partial = await snapshot(page); const savedIds = queue.status(value.requestId).notes.slice(0, 2).map((item) => item.savePlan.noteId);
-    const unchanged = structuredClone(partial); unchanged.notes = unchanged.notes.filter(([id]) => !savedIds.includes(id)); assert.deepEqual(unchanged, baseline);
+    const unchanged = structuredClone(partial);
+    for (const item of queue.status(value.requestId).notes.slice(0, 2)) removeCheckedReceipt(unchanged, item, "committed");
+    unchanged.notes = unchanged.notes.filter(([id]) => !savedIds.includes(id)); assert.deepEqual(unchanged, baseline);
     for (let i = 0; i < 2; i++) assert.equal(partial.notes.find(([id]) => id === savedIds[i])[1].body, value.notes[i].body);
     assert.equal((await mcp(adapterToken, value)).notes.filter((item) => item.saved).length, 2);
     await page.reload(); await settled(page); await open(page);
@@ -146,7 +164,7 @@ async function mcp(token, value) {
     await select(page, fourth.itemId); await page.evaluate(() => { window.quotaPut = putNote; putNote = async () => { throw new DOMException("容量不足", "QuotaExceededError"); }; });
     await clickSave(page); assert.equal(queue.status(value.requestId, fourth.itemId).state, "save_failed");
     const fixed = queue.status(value.requestId, fourth.itemId).savePlan;
-    assert.deepEqual(await snapshot(page), reloaded);
+    assert.deepEqual(removeCheckedReceipt(await snapshot(page), queue.status(value.requestId, fourth.itemId), "intent"), reloaded);
     await page.evaluate(() => { putNote = window.quotaPut; });
     // Drop complete before delivery: committed note, server remains saving.
     await page.route("**:8791/complete", (r) => r.abort());
@@ -205,7 +223,7 @@ async function mcp(token, value) {
     await select(page, independentReceipt.notes[0].itemId); await select(d, independentReceipt.notes[1].itemId);
     await page.route("**:8791/complete", async (route) => {
       if (route.request().method() !== "POST") return route.continue();
-      await route.fetch(); await route.abort(); // Service accepted completion; only its response is lost.
+      await fetchReceiver(route, receiver.address().port); await route.abort(); // Service accepted completion; only its response is lost.
     });
     await gate(page); await page.locator("#dummyPreviewSaveBtn").click(); await page.waitForFunction(() => window.notesPutCalls === 1);
     await d.locator("#dummyPreviewSaveBtn").click(); await waitLock(d, independent.requestId);
