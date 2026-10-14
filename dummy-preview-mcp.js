@@ -2,11 +2,11 @@
 const http = require("node:http");
 const { REQUEST_ID_PATTERN, MAX_TEXT_INPUT_BYTES, MAX_NOTES_INPUT_BYTES, notesRequest, textRequest, exactKeys } = require("./dummy-preview-queue.js");
 const { PORT, validateToken } = require("./dummy-preview-service.js");
-function submitPayload(payload, token, path) {
+function submitPayload(payload, token, path, port = PORT) {
   validateToken(token);
   return new Promise((resolve, reject) => {
     const body = JSON.stringify(payload);
-    const req = http.request({ hostname: "127.0.0.1", port: PORT, path, method: "POST", timeout: 3000,
+    const req = http.request({ hostname: "127.0.0.1", port, path, method: "POST", timeout: 3000,
       headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json", "Content-Length": Buffer.byteLength(body) } }, (res) => {
       const chunks = []; let size = 0;
       res.on("data", (chunk) => { size += chunk.length; if (size > (path === "/notes" ? MAX_NOTES_INPUT_BYTES : MAX_TEXT_INPUT_BYTES) + 4096) res.destroy(new Error("response_limit")); else chunks.push(chunk); });
@@ -25,8 +25,8 @@ function submitPayload(payload, token, path) {
   });
 }
 function submitDummy(requestId, token) { return submitPayload({ requestId }, token, "/dummy"); }
-function submitText(input, token) { textRequest(input); return submitPayload(input, token, "/text"); }
-function submitNotes(input, token) { notesRequest(input); return submitPayload(input, token, "/notes"); }
+function submitText(input, token, port = PORT) { textRequest(input); return submitPayload(input, token, "/text", port); }
+function submitNotes(input, token, port = PORT) { notesRequest(input); return submitPayload(input, token, "/notes", port); }
 // MCP 2025-06-18 Request._meta: opaque metadata, with an optional string/number progressToken.
 // Key syntax follows basic/general-fields; reserved prefixes remain valid metadata.
 const META_LABEL = "[A-Za-z](?:[A-Za-z0-9-]*[A-Za-z0-9])?";

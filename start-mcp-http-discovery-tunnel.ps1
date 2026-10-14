@@ -1,10 +1,14 @@
 # Run manually after stopping the old client in its own terminal.
 param([Parameter(Mandatory=$true)][string]$TunnelClientPath,
-      [Parameter(Mandatory=$true)][string]$ConfigPath)
+      [Parameter(Mandatory=$true)][string]$ConfigPath,
+      [switch]$Authenticated)
 $ErrorActionPreference = 'Stop'
 $taskBinary = (Resolve-Path -LiteralPath $TunnelClientPath).Path
 try { $taskConfig = Get-Content -LiteralPath $ConfigPath -Raw -Encoding UTF8 | ConvertFrom-Json }
 catch { throw 'Unable to read discovery configuration JSON' }
+if ($Authenticated) {
+    if ($taskConfig.mode -cne 'authenticated' -or -not $taskConfig.allowedSubjects -or -not $taskConfig.audience -or -not $taskConfig.resource_metadata) { throw 'Explicit authenticated configuration required' }
+} elseif ($taskConfig.mode) { throw 'Authenticated configuration requires -Authenticated; do not silently change mode' }
 if ($taskConfig.port -isnot [int] -and $taskConfig.port -isnot [long]) { throw 'Invalid local port' }
 if ($taskConfig.port -lt 1024 -or $taskConfig.port -gt 65535 -or $taskConfig.port -in @(5500,8787,8791)) { throw 'Invalid local port' }
 if (-not $env:CONTROL_PLANE_API_KEY -or -not $env:CONTROL_PLANE_TUNNEL_ID) { throw 'Existing runtime key and tunnel ID required in process environment' }
@@ -20,7 +24,8 @@ try { $taskLocked = $taskMutex.WaitOne(0) } catch [Threading.AbandonedMutexExcep
 if (-not $taskLocked) { throw 'This Tunnel ID already has a launcher running' }
 $taskVersion = & $taskBinary --version 2>&1 | Out-String
 if ($LASTEXITCODE -ne 0 -or $taskVersion -notmatch '^0\.0\.16\+5f99daabd4aa4a77049e6d81d54a0d8c18335397\b') { throw 'This launcher requires the verified tunnel-client 0.0.16 build; review help and retest before upgrading' }
-Write-Output 'Verified tunnel-client 0.0.16; OAuth discovery only; all MCP operations disabled'
+if ($Authenticated) { Write-Output 'Verified tunnel-client 0.0.16; authenticated receive only; manual browser save required' }
+else { Write-Output 'Verified tunnel-client 0.0.16; OAuth discovery only; all MCP operations disabled' }
 $taskHelp = & $taskBinary run --help 2>&1 | Out-String
 foreach ($taskFlag in @('--mcp.server-url','--mcp.oauth-trusted-origin','--log.http-raw-unsafe')) {
     if (-not $taskHelp.Contains($taskFlag)) { throw 'Required HTTP options unavailable; do not fall back to stdio or no-auth' }
@@ -29,7 +34,7 @@ $taskUrl = 'http://127.0.0.1:' + $taskConfig.port + '/mcp'
 $taskIssuer = [Uri]($taskConfig.authorization_servers | Select-Object -First 1)
 if ($taskIssuer.Scheme -ne 'https' -or $taskIssuer.AbsolutePath -ne '/' -or $taskIssuer.Query -or $taskIssuer.Fragment -or $taskIssuer.UserInfo -or $taskIssuer.AbsoluteUri -notmatch '^https://[A-Za-z0-9.-]+(:[0-9]+)?/$') { throw 'Invalid explicit issuer' }
 $taskTrustedOrigin = $taskIssuer.GetLeftPart([UriPartial]::Authority)
-# Require a live, matching discovery-only endpoint before starting the tunnel.
+# Require matching metadata and an unauthenticated 401 before starting the tunnel.
 $taskProbe = Invoke-WebRequest -UseBasicParsing -Uri ('http://127.0.0.1:' + $taskConfig.port + '/.well-known/oauth-protected-resource/mcp') -MaximumRedirection 0
 $taskMetadata = $taskProbe.Content | ConvertFrom-Json
 if ($taskMetadata.resource -cne $taskConfig.resource -or

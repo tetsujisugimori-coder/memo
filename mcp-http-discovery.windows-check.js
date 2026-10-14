@@ -10,7 +10,7 @@ const { once } = require("node:events");
 async function check() {
   assert.equal(process.platform, "win32");
   const ps = path.join(process.env.SystemRoot, "System32/WindowsPowerShell/v1.0/powershell.exe");
-  for (const file of ["start-mcp-http-discovery.ps1", "start-mcp-http-discovery-tunnel.ps1"]) {
+  for (const file of ["start-mcp-http-discovery.ps1", "start-mcp-http-discovery-tunnel.ps1", "start-mcp-http-oauth.ps1"]) {
     execFileSync(ps, ["-NoProfile", "-NonInteractive", "-Command", "$taskTokens=$null; $taskErrors=$null; [void][System.Management.Automation.Language.Parser]::ParseFile($env:MEMO_TEST_PARSE_FILE,[ref]$taskTokens,[ref]$taskErrors); if($taskErrors.Count){exit 1}"], { windowsHide: true, env: { ...process.env, MEMO_TEST_PARSE_FILE: path.join(__dirname, file) } });
   }
   const holder = http.createServer(); holder.listen(0, "127.0.0.1"); await once(holder, "listening");
@@ -54,6 +54,18 @@ async function check() {
     await closed;
     assert.equal(child.exitCode, 1);
     assert.doesNotMatch(output, /TEST_SECRET_|PRIVATE_BODY/);
+    await assert.rejects(request("/mcp"), /ECONNREFUSED/);
+    // Authenticated launcher must reject an empty subject list before discovery/network.
+    await fs.writeFile(config, JSON.stringify({ mode: "authenticated", port, resource: "https://gateway.example.invalid/v1/mcp/tunnel_fixture",
+      audience: "https://gateway.example.invalid/v1/mcp/tunnel_fixture", resource_metadata: `http://127.0.0.1:${port}/.well-known/oauth-protected-resource/mcp`,
+      authorization_servers: ["https://tenant.invalid/"], scopes_supported: ["memo:submit"], allowedSubjects: [] }));
+    let refused;
+    try {
+      execFileSync(ps, ["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File", path.join(__dirname, "start-mcp-http-oauth.ps1"), "-ConfigPath", config], {
+        env: { ...env, MEMO_PREVIEW_ADAPTER_TOKEN: "b".repeat(43) }, windowsHide: true, timeout: 15000, stdio: "pipe" });
+    } catch (error) { refused = String(error.stdout) + String(error.stderr); }
+    assert.ok(refused?.includes("Authenticated HTTP startup refused"));
+    assert.doesNotMatch(refused, /TEST_SECRET_|PRIVATE_BODY|b{43}/);
     await assert.rejects(request("/mcp"), /ECONNREFUSED/);
     console.log("Windows PS 5.1: syntax, real launch, Unicode/spaced config path, metadata, 401, collision, fixed logs, child-PID shutdown passed");
   } finally {

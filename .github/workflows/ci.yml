@@ -588,6 +588,8 @@ jobs:
         run: npm run test:e2e:received-notes
       - name: Verify real receiver restarts and explicit recovery
         run: npm run test:e2e:received-recovery
+      - name: Verify authenticated HTTP receive and explicit browser save with fictional issuer
+        run: npm run test:e2e:mcp-http-oauth
       - name: Preserve results including failures
         if: always()
         uses: actions/upload-artifact@v6
@@ -617,6 +619,7 @@ jobs:
       - name: Verify discovery-only Windows HTTP launcher
         run: node mcp-http-discovery.windows-check.js
       - run: npm run test:e2e:received-recovery
+      - run: npm run test:e2e:mcp-http-oauth
       - name: Preserve Windows recovery results including failures
         if: always()
         uses: actions/upload-artifact@v6
