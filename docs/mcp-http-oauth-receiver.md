@@ -98,6 +98,7 @@ $taskConfigPath = Read-Host 'Absolute path to the same OAuth config'
 - ブラウザ: 架空issuerと鍵、一時履歴、新規保存領域だけを使用。OAuth HTTPから文章・複数メモが未保存表示に届き、手動保存・破棄、再送、HTTP／受信再起動後の原文復旧を確認。既存メモ保持、受信だけではIndexedDB変更0。履歴に本文・token・subを記録しない。
 - 既存回帰: stdio dummy／文章／複数メモ、保存失敗、同時操作、実プロセス再起動とブラウザ復旧E2Eが成功。既存のstdio契約と保存基盤は維持。
 - Windows: PS 5.1構文、準備用の実起動・競合・停止、認証付きランチャーの空許可リストでの起動拒否・固定診断・秘密値非出力を確認。
+- 初回Windows CIでは新規OAuth E2Eの空一時履歴が送信前に`history_locked`で起動できなかった。テスト準備のみ、初回の空ディレクトリに限り最大8候補を試す。受信後と再起動では履歴を替えず、認証・永続化失敗を再試行条件にしない。業務側の履歴ロックは変更しない。
 - 実Tunnel binary: `0.0.16+5f99daabd4aa4a77049e6d81d54a0d8c18335397`を模擬Control Planeへ接続。Bearer転送、ローカルHost、転送ヘッダーなし、initialize／一覧／文章／複数メモ、未認証401、public resource全文の保持、warnログの秘密値／本文非出力を確認。実OpenAIサービス側の書換えを実証したものではない。
 
 2026-10-14のユーザー実機報告では、Auth0 RS256 APIと`memo:submit`、DCR、ログイン、認可code交換の成功記録、ChatGPTの同じOAuthプラグイン登録と完全なresource取得を確認済み。これらはユーザー報告であり、今回の自動検証で実テナント設定を再確認したとは扱わない。

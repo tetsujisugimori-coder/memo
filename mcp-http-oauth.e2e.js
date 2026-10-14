@@ -22,7 +22,13 @@ async function snapshot(page) {
   }))));
 }
 (async () => {
-  const directory = await fs.mkdtemp(path.join(os.tmpdir(), "memo-oauth-e2e-"));
+  let directory;
+  const removeEmptyTestDirectory = async () => {
+    const resolved = path.resolve(directory);
+    assert.ok(resolved.startsWith(path.resolve(os.tmpdir()) + path.sep) && path.basename(resolved).startsWith("memo-oauth-e2e-"));
+    assert.deepEqual(await fs.readdir(resolved), [], "never replace a history directory after a request has been received");
+    await fs.rmdir(resolved);
+  };
   const browserToken = randomBytes(32).toString("base64url"), adapterToken = randomBytes(32).toString("base64url");
   let receiver, gateway, browser;
   const staticServer = http.createServer(async (req, res) => {
@@ -37,7 +43,18 @@ async function snapshot(page) {
   };
   const stopReceiver = async () => { await close(gateway.server); await close(receiver.server); await receiver.history.close(); gateway = null; receiver = null; };
   try {
-    await startReceiver(); await listen(staticServer);
+    // Windows CI can reject the path-hashed history lock port. Only initial,
+    // newly created EMPTY fixture directories may be replaced; never restart
+    // into a different history or retry any persistence/authentication failure.
+    for (let attempt = 0; attempt < 8; attempt++) {
+      directory = await fs.mkdtemp(path.join(os.tmpdir(), "memo-oauth-e2e-"));
+      try { await startReceiver(); break; }
+      catch (error) {
+        if (error.code !== "history_locked" || receiver || attempt === 7) throw error;
+        await removeEmptyTestDirectory();
+      }
+    }
+    await listen(staticServer);
     browser = await chromium.launch({ headless: true });
     const context = await browser.newContext({ timezoneId: "Asia/Tokyo" });
     await attachTransport(context, staticServer.address().port, () => receiver.server.address().port);
@@ -97,6 +114,9 @@ async function snapshot(page) {
     if (browser) await browser.close(); if (gateway) await close(gateway.server);
     if (receiver) { await close(receiver.server); await receiver.history.close(); }
     await close(staticServer);
-    const resolved = path.resolve(directory); assert.ok(resolved.startsWith(path.resolve(os.tmpdir()) + path.sep)); await fs.rm(resolved, { recursive: true, force: true });
+    if (directory) {
+      const resolved = path.resolve(directory); assert.ok(resolved.startsWith(path.resolve(os.tmpdir()) + path.sep) && path.basename(resolved).startsWith("memo-oauth-e2e-"));
+      await fs.rm(resolved, { recursive: true, force: true });
+    }
   }
 })().catch(error => { console.error(error); process.exitCode = 1; });
