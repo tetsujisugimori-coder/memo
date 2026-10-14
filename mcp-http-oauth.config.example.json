@@ -1,0 +1,10 @@
+{
+  "mode": "authenticated",
+  "port": 8792,
+  "resource": "https://gateway.example.invalid/v1/mcp/tunnel_fictional",
+  "audience": "https://gateway.example.invalid/v1/mcp/tunnel_fictional",
+  "resource_metadata": "http://127.0.0.1:8792/.well-known/oauth-protected-resource/mcp",
+  "authorization_servers": ["https://fictional-tenant.example.invalid/"],
+  "scopes_supported": ["memo:submit"],
+  "allowedSubjects": ["auth0|fictional-user-replace-me"]
+}
