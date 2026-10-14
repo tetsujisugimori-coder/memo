@@ -614,6 +614,8 @@ jobs:
       - run: npm ci
       - run: npx playwright install chromium
       - run: npm test
+      - name: Verify discovery-only Windows HTTP launcher
+        run: node mcp-http-discovery.windows-check.js
       - run: npm run test:e2e:received-recovery
       - name: Preserve Windows recovery results including failures
         if: always()
