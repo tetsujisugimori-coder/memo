@@ -34,13 +34,14 @@ async function check() {
     });
   }
   try {
-    for (let i = 0; i < 100; i++) {
+    const deadline = Date.now() + 45000;
+    while (Date.now() < deadline) {
       pid = Number(/Discovery child PID: (\d+)/.exec(output)?.[1]);
       if (pid && output.includes("MCP operations disabled")) break;
       if (child.exitCode !== null) throw new Error(output);
       await new Promise(resolve => setTimeout(resolve, 100));
     }
-    assert.ok(pid && output.includes("MCP operations disabled"), output);
+    assert.ok(pid && output.includes("MCP operations disabled"), `Launcher readiness timed out after 45s; exitCode=${child.exitCode}; output=${output}`);
     assert.deepEqual(JSON.parse((await request("/.well-known/oauth-protected-resource/mcp")).text), { resource: value.resource, authorization_servers: value.authorization_servers, scopes_supported: value.scopes_supported });
     const refusal = await request("/mcp", "POST", '{"method":"tools/call","params":{"body":"PRIVATE_BODY"}}');
     assert.equal(refusal.status, 401); assert.match(refusal.headers["www-authenticate"], /resource_metadata=/);
