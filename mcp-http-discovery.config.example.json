@@ -1,0 +1,6 @@
+{
+  "port": 8792,
+  "resource": "http://127.0.0.1:8792/mcp",
+  "authorization_servers": ["https://replace-with-your-development-tenant.auth0.com/"],
+  "scopes_supported": ["memo:submit"]
+}
