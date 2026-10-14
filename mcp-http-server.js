@@ -19,7 +19,8 @@ async function createProtocolServer(principal, adapterToken, receiverPort) {
   await handler({ jsonrpc: "2.0", method: "notifications/initialized" });
   const tools = (await handler({ jsonrpc: "2.0", id: 1, method: "tools/list" })).result.tools
     .filter(tool => ["submit_text_preview", "submit_notes_preview"].includes(tool.name))
-    .map(tool => ({ ...tool, _meta: { securitySchemes: [{ type: "oauth2", scopes: ["memo:submit"] }] } }));
+    .map(tool => ({ ...tool, securitySchemes: [{ type: "oauth2", scopes: ["memo:submit"] }],
+      _meta: { securitySchemes: [{ type: "oauth2", scopes: ["memo:submit"] }] } }));
   const server = new Server({ name: "memo-unsaved-oauth-preview", version: "1.0.0" }, { capabilities: { tools: {} } });
   server.setRequestHandler(ListToolsRequestSchema, async () => ({ tools }));
   server.setRequestHandler(CallToolRequestSchema, async request => {

@@ -107,7 +107,9 @@ test("SDK initialize, notification, ping, only two tools, text/notes, replay and
   const init = await send(initialize); assert.equal(init.status, 200); assert.equal(init.json.result.protocolVersion, "2025-11-25"); assert.equal(init.headers["mcp-session-id"], undefined);
   assert.equal((await send({ jsonrpc: "2.0", method: "notifications/initialized" })).status, 202);
   assert.deepEqual((await send(rpc("ping"))).json.result, {});
-  assert.deepEqual((await send(rpc("tools/list"))).json.result.tools.map(tool => tool.name), ["submit_text_preview", "submit_notes_preview"]);
+  const listed = (await send(rpc("tools/list"))).json.result.tools;
+  assert.deepEqual(listed.map(tool => tool.name), ["submit_text_preview", "submit_notes_preview"]);
+  for (const tool of listed) { assert.deepEqual(tool.securitySchemes, [{ type: "oauth2", scopes: ["memo:submit"] }]); assert.deepEqual(tool._meta.securitySchemes, tool.securitySchemes); }
   const input = { requestId: randomUUID(), title: "original", body: "line 1\r\n[[link]]\n" };
   const call = rpc("tools/call", { name: "submit_text_preview", arguments: input });
   const response = await send(call); assert.equal(response.status, 200); assert.equal(response.json.result.isError, false);

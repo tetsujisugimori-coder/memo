@@ -121,5 +121,6 @@ $taskConfigPath = Read-Host 'Absolute path to the same OAuth config'
 - [jose](https://github.com/panva/jose)、[Remote JWKSのキャッシュと未知kid](https://github.com/panva/jose/blob/main/docs/jwks/remote/functions/createRemoteJWKSet.md)
 - [Auth0のアクセストークン検証](https://auth0.com/docs/secure/tokens/access-tokens/validate-access-tokens)
 - [OpenAI Secure MCP Tunnel](https://developers.openai.com/api/docs/guides/secure-mcp-tunnels)、[固定buildのヘッダー転送](https://github.com/openai/tunnel-client/blob/5f99daabd4aa4a77049e6d81d54a0d8c18335397/pkg/mcpclient/internal/roundtripper.go)
+- [ChatGPTのツール別OAuth宣言](https://developers.openai.com/plugins/build/auth): 2ツールとも`securitySchemes`で`oauth2`／`memo:submit`を宣言し、互換用`_meta`にも同じ値を載せる。サーバー側のHTTP認証ゲートは常に検証する。
 
 公式SDKでMCP、joseでJWT／JWKSを扱い、アプリ側は認可境界と既存受信への接続に限定する。ローカル模擬試験、ユーザー報告、実機で未確認の項目を混同しない。
