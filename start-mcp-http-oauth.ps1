@@ -1,5 +1,5 @@
 # Authenticated HTTP receive only. No receiver or tunnel is started here.
-param([Parameter(Mandatory=$true)][string]$ConfigPath)
+param([Parameter(Mandatory=$true)][string]$ConfigPath, [switch]$Diagnostics)
 $ErrorActionPreference = 'Stop'
 $taskConfig = (Resolve-Path -LiteralPath $ConfigPath).Path
 $taskNode = (Get-Command node -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
@@ -20,6 +20,7 @@ if (-not $env:MEMO_PREVIEW_ADAPTER_TOKEN) { throw 'Existing adapter token requir
 $taskInfo.EnvironmentVariables['MEMO_PREVIEW_ADAPTER_TOKEN'] = $env:MEMO_PREVIEW_ADAPTER_TOKEN
 # Trust Windows-managed CAs without disabling TLS verification or inheriting NODE_OPTIONS.
 $taskInfo.EnvironmentVariables['NODE_USE_SYSTEM_CA'] = '1'
+if ($Diagnostics) { $taskInfo.EnvironmentVariables['MEMO_MCP_HTTP_DIAGNOSTICS'] = '1' }
 $taskChild = New-Object System.Diagnostics.Process
 $taskChild.StartInfo = $taskInfo
 $taskStarted = $false
