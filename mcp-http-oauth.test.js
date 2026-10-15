@@ -83,11 +83,11 @@ test("forwarding diagnostics use complete fixed ordered labels without leaking h
     servers.push(server); ports.push(await listen(server));
   }
   const labels = ["forwarded", "x_forwarded_for", "x_forwarded_host", "x_forwarded_proto", "x_forwarded_port",
-    "x_forwarded_client_cert", "x_forwarded_server", "x_forwarded_prefix", "x_forwarded_uri", "x_forwarded_method", "x_forwarded_other", "method_override"];
+    "x_forwarded_server", "x_forwarded_prefix", "x_forwarded_uri", "x_forwarded_method", "x_forwarded_other", "method_override"];
   const names = ["Forwarded", "X-Forwarded-For", "X-Forwarded-Host", "X-Forwarded-Proto", "X-Forwarded-Port",
-    "X-Forwarded-Client-Cert", "X-Forwarded-Server", "X-Forwarded-Prefix", "X-Forwarded-Uri", "X-Forwarded-Method", "X-Forwarded-PRIVATE_NAME", "X-HTTP-Method-Override"];
+    "X-Forwarded-Server", "X-Forwarded-Prefix", "X-Forwarded-Uri", "X-Forwarded-Method", "X-Forwarded-PRIVATE_NAME", "X-HTTP-Method-Override"];
   const values = ["for=192.0.2.123;by=PRIVATE_PROXY", "198.51.100.42", "PRIVATE_HOST", "PRIVATE_PROTO", "PRIVATE_PORT",
-    "PRIVATE_CERT", "PRIVATE_SERVER", "PRIVATE_PREFIX", "PRIVATE_URI", "PRIVATE_FORWARDED_METHOD", "PRIVATE_VALUE", "PRIVATE_METHOD"];
+    "PRIVATE_SERVER", "PRIVATE_PREFIX", "PRIVATE_URI", "PRIVATE_FORWARDED_METHOD", "PRIVATE_VALUE", "PRIVATE_METHOD"];
   const token = await f.sign(), message = rpc("PRIVATE_RPC", { body: "PRIVATE_BODY", requestId: "PRIVATE_ID" });
   const cases = [];
   for (let i = 0; i < names.length; i++) {
@@ -96,7 +96,10 @@ test("forwarding diagnostics use complete fixed ordered labels without leaking h
     cases.push([{ [names[i]]: ["PRIVATE_ONE", "PRIVATE_TWO"] }, [labels[i]]]);
     cases.push([{ [names[i]]: ["", ""] }, [labels[i]]]);
   }
-  const combined = Object.fromEntries(names.map((name, i) => [name, values[i]]));
+  // The ignored name must not appear as a rejecting label, even in mixed requests.
+  const combined = { ...Object.fromEntries(names.map((name, i) => [name, values[i]])), "X-Forwarded-Client-Cert": "PRIVATE_CERT" };
+  for (let i = 0; i < names.length; i++) cases.push([{ [names[i]]: values[i], "X-Forwarded-Client-Cert": "PRIVATE_CERT" }, [labels[i]]]);
+  cases.push([{ "X-Forwarded-Client-Cert-PRIVATE_SUFFIX": "PRIVATE_CERT" }, ["x_forwarded_other"]]);
   cases.push([combined, labels], [Object.fromEntries(Object.entries(combined).reverse()), labels],
     [{ "x-FoRwArDeD-pOrT": "PRIVATE_PORT" }, ["x_forwarded_port"]],
     [{ "X-Forwarded-Port": ["PRIVATE_PORT_ONE", "PRIVATE_PORT_TWO"] }, ["x_forwarded_port"]],
@@ -105,12 +108,12 @@ test("forwarding diagnostics use complete fixed ordered labels without leaking h
   const portAndUnknown = { "X-Forwarded-Port": "PRIVATE_PORT", "X-Forwarded-PRIVATE_ONE": "PRIVATE_ONE", "x-FoRwArDeD-PRIVATE_TWO": "PRIVATE_TWO" };
   for (const headers of [portAndUnknown, Object.fromEntries(Object.entries(portAndUnknown).reverse())])
     cases.push([headers, ["x_forwarded_port", "x_forwarded_other"]]);
-  const candidates = Object.fromEntries(names.slice(5, 10).map(name => [name, "PRIVATE_CANDIDATE"]));
+  const candidates = Object.fromEntries(names.slice(5, 9).map(name => [name, "PRIVATE_CANDIDATE"]));
   const candidatesAndUnknown = { ...candidates, "X-Forwarded-PRIVATE_ONE": "PRIVATE_ONE", "X-Forwarded-PRIVATE_TWO": "PRIVATE_TWO" };
   for (const headers of [candidatesAndUnknown, Object.fromEntries(Object.entries(candidatesAndUnknown).reverse())])
-    cases.push([headers, [...labels.slice(5, 10), "x_forwarded_other"]]);
+    cases.push([headers, [...labels.slice(5, 9), "x_forwarded_other"]]);
   // A caller can embed arbitrary data in a name; only exact candidate names get labels.
-  for (const name of names.slice(5, 10))
+  for (const name of names.slice(5, 9))
     cases.push([{ [name + "-PRIVATE_SUFFIX"]: "PRIVATE_VALUE" }, ["x_forwarded_other"]]);
   const compare = (actual, expected) => {
     assert.equal(actual.status, expected.status); assert.equal(actual.text, expected.text);
@@ -129,7 +132,7 @@ test("forwarding diagnostics use complete fixed ordered labels without leaking h
     assert.deepEqual(events.map(event => event.event), ["request_received", "headers_rejected", "response"]);
     const rejection = events[1];
     assert.deepEqual(rejection.forwardingHeaders, expected);
-    assert.equal(rejection.forwardingDiagnosticVersion, 2, "fixed marker identifies the loaded candidate classifier");
+    assert.equal(rejection.forwardingDiagnosticVersion, 3, "version 3 labels only headers that still cause rejection");
     assert.deepEqual(Object.keys(rejection).sort(), ["diagnostic", "timestamp", "sequence", "event", "stage", "classification", "forwardingDiagnosticVersion", "forwardingHeaders"].sort());
     assert.ok(events.every(event => event.diagnostic === "memo_http_oauth" && event.stage === "headers"
       && event.sequence === events[0].sequence && !Number.isNaN(Date.parse(event.timestamp))));
@@ -157,6 +160,108 @@ test("forwarding diagnostics use complete fixed ordered labels without leaking h
   const text = logs.join("\n");
   for (const secret of [token, adapterToken, ...config.allowedSubjects, ...names.slice(1), ...values, "PRIVATE_", '"Authorization"', '"Bearer"', '"Cookie"'])
     assert.ok(!text.toLowerCase().includes(secret.toLowerCase()), "no private values or raw names in diagnostics");
+});
+
+test("exact Client-Cert is ignored across authentication and diagnostics and stripped before the SDK", async t => {
+  const { WebStandardStreamableHTTPServerTransport } = require("@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js");
+  const original = WebStandardStreamableHTTPServerTransport.prototype.handleRequest, sdkRequests = [];
+  t.mock.method(WebStandardStreamableHTTPServerTransport.prototype, "handleRequest", function (request, ...args) {
+    sdkRequests.push(request);
+    return original.call(this, request, ...args);
+  });
+  const f = await issuerFixture(), adapterToken = randomBytes(32).toString("base64url"), logs = [], ports = [], servers = [];
+  t.after(async () => { for (const server of servers) await close(server); });
+  for (const mode of ["off", "on", "throw"]) {
+    const server = await createAuthenticatedServer(config, { adapterToken, receiverPort: 1, fetchImpl: f.fetchImpl,
+      diagnostics: mode !== "off", diagnosticWriter: line => {
+        if (mode === "throw") throw new Error("PRIVATE_WRITER");
+        logs.push(line);
+      } });
+    servers.push(server); ports.push(await listen(server));
+  }
+  const token = await f.sign(), subject = await f.sign({ sub: "auth0|PRIVATE_SUBJECT" }), scope = await f.sign({ scope: "openid" });
+  const badSignature = await f.sign({}, {}, f.other.privateKey);
+  const authCases = [[token, 200, null], [undefined, 401, "invalid_token"], ["PRIVATE_INVALID_TOKEN", 401, "invalid_token"],
+    [badSignature, 401, "invalid_token"], [subject, 403, "subject_forbidden"], [scope, 403, "insufficient_scope"]];
+  const variants = [{ "X-Forwarded-Client-Cert": "PRIVATE_CERT" }, { "x-forwarded-client-cert": "PRIVATE_LOWER" },
+    { "X-FoRwArDeD-ClIeNt-CeRt": "PRIVATE_MIXED" }, { "X-FORWARDED-CLIENT-CERT": "" },
+    { "X-Forwarded-Client-Cert": ["PRIVATE_ONE", "PRIVATE_TWO"] }, { "X-Forwarded-Client-Cert": ["", ""] }];
+  const compare = (actual, expected) => {
+    assert.equal(actual.status, expected.status); assert.equal(actual.text, expected.text);
+    const { date: actualDate, ...actualHeaders } = actual.headers;
+    const { date: expectedDate, ...expectedHeaders } = expected.headers;
+    assert.deepEqual(actualHeaders, expectedHeaders);
+  };
+  let expectedSdkRequests = 0;
+  for (const [bearer, status, error] of authCases) {
+    for (const message of [initialize, rpc("tools/list")]) {
+      const baseline = await wire(ports[0], bearer, message);
+      assert.equal(baseline.status, status);
+      if (error) assert.deepEqual(baseline.json, { error });
+      else {
+        expectedSdkRequests++;
+        if (message.method === "initialize") assert.equal(baseline.json.result.protocolVersion, "2025-11-25");
+        else assert.deepEqual(baseline.json.result.tools.map(tool => tool.name), ["submit_text_preview", "submit_notes_preview"]);
+      }
+      for (const headers of variants) {
+        for (let i = 0; i < ports.length; i++) {
+          const before = logs.length, beforeSdk = sdkRequests.length;
+          compare(await wire(ports[i], bearer, message, { headers }), baseline);
+          assert.equal(sdkRequests.length - beforeSdk, status === 200 ? 1 : 0);
+          if (status === 200) expectedSdkRequests++;
+          const events = logs.slice(before).map(JSON.parse);
+          if (i !== 1) assert.equal(events.length, 0);
+          else {
+            assert.ok(events.some(event => event.event === "headers_accepted"));
+            assert.ok(!events.some(event => event.event === "headers_rejected" || Object.hasOwn(event, "forwardingHeaders")));
+            assert.ok(events.some(event => event.event === "authentication" && event.status === (status === 200 ? "accepted" : "rejected")));
+          }
+        }
+      }
+    }
+  }
+  // Observe the actual Request at the SDK boundary, without adding production test hooks.
+  assert.equal(sdkRequests.length, expectedSdkRequests);
+  for (const request of sdkRequests) {
+    assert.equal(request.headers.has("x-forwarded-client-cert"), false);
+    assert.equal(request.headers.has("authorization"), false);
+    assert.equal(request.headers.get("content-type"), "application/json");
+    assert.equal(request.headers.get("mcp-protocol-version"), "2025-11-25");
+  }
+  // Duplicate checks precede Host, which precedes Origin, even with the ignored header.
+  for (const [extra, status, error] of [
+    [{ Host: "PRIVATE_HOST", Origin: "PRIVATE_ORIGIN" }, 403, "invalid_host"],
+    [{ Origin: "PRIVATE_ORIGIN" }, 403, "invalid_origin"],
+    ...["Host", "Origin", "Authorization", "Content-Type", "MCP-Session-Id", "MCP-Protocol-Version"].map(name =>
+      [{ Host: "PRIVATE_HOST", Origin: "PRIVATE_ORIGIN", [name]: ["PRIVATE_ONE", "PRIVATE_TWO"] }, 400, "duplicate_header"]),
+    [{ "Content-Length": ["0", "0"] }, 400, null]
+  ]) {
+    const replies = [];
+    for (let i = 0; i < ports.length; i++) {
+      const before = logs.length;
+      // Node's HTTP client refuses Host arrays before sending; use raw HTTP for this duplicate.
+      const reply = Array.isArray(extra.Host) ? await new Promise((resolve, reject) => {
+        const socket = require("node:net").connect(ports[i], "127.0.0.1"); let text = "";
+        socket.on("connect", () => socket.end("POST /mcp HTTP/1.0\r\nHost: PRIVATE_ONE\r\nHost: PRIVATE_TWO\r\n"
+          + "Origin: PRIVATE_ORIGIN\r\nX-Forwarded-Client-Cert: PRIVATE_CERT\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"));
+        socket.on("data", chunk => { text += chunk; }); socket.on("error", reject);
+        socket.on("end", () => {
+          const [head, body] = text.split("\r\n\r\n"), lines = head.split("\r\n");
+          resolve({ status: Number(lines[0].split(" ")[1]), text: body, json: JSON.parse(body),
+            headers: Object.fromEntries(lines.slice(1).map(line => { const colon = line.indexOf(":"); return [line.slice(0, colon).toLowerCase(), line.slice(colon + 1).trim()]; })) });
+        });
+      }) : await wire(ports[i], token, initialize, { headers: { "X-Forwarded-Client-Cert": "PRIVATE_CERT", ...extra } });
+      assert.equal(reply.status, status);
+      if (error) assert.deepEqual(reply.json, { error });
+      assert.ok(!logs.slice(before).map(JSON.parse).some(event => event.event === "headers_rejected" || event.event === "authentication"));
+      replies.push(reply);
+    }
+    compare(replies[1], replies[0]); compare(replies[2], replies[0]);
+  }
+  assert.equal(sdkRequests.length, expectedSdkRequests, "earlier rejections never enter the SDK");
+  const text = logs.join("\n");
+  for (const secret of [token, subject, scope, badSignature, adapterToken, ...config.allowedSubjects, "PRIVATE_", "client_cert", "client-cert"])
+    assert.ok(!text.toLowerCase().includes(secret.toLowerCase()), "ignored header and secrets are absent from diagnostics");
 });
 
 test("MCP internal exceptions and failed diagnostic writers keep fixed HTTP behavior", async t => {
