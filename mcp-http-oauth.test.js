@@ -68,6 +68,75 @@ test("opt-in diagnostics track authentication/discovery without changing respons
   const sequences = logs.map(line => JSON.parse(line)).filter(event => event.event === "request_received").map(event => event.sequence);
   assert.deepEqual(sequences, cases.map((_, i) => i + 1));
 });
+test("forwarding diagnostics use complete fixed ordered labels without leaking headers or changing HTTP", async t => {
+  const f = await issuerFixture(), logs = [], servers = [], ports = [];
+  const adapterToken = randomBytes(32).toString("base64url");
+  t.after(async () => { for (const server of servers) await close(server); });
+  for (const mode of ["off", "on", "throw"]) {
+    const server = await createAuthenticatedServer(config, { adapterToken, fetchImpl: f.fetchImpl,
+      diagnostics: mode !== "off", diagnosticWriter: line => {
+        if (mode === "throw") throw new Error("PRIVATE_WRITER_MESSAGE_STACK");
+        logs.push(line);
+      } });
+    servers.push(server); ports.push(await listen(server));
+  }
+  const labels = ["forwarded", "x_forwarded_for", "x_forwarded_host", "x_forwarded_proto", "x_forwarded_other", "method_override"];
+  const names = ["Forwarded", "X-Forwarded-For", "X-Forwarded-Host", "X-Forwarded-Proto", "X-Forwarded-PRIVATE_NAME", "X-HTTP-Method-Override"];
+  const values = ["for=192.0.2.123;by=PRIVATE_PROXY", "198.51.100.42", "PRIVATE_HOST", "PRIVATE_PROTO", "PRIVATE_VALUE", "PRIVATE_METHOD"];
+  const token = await f.sign(), message = rpc("PRIVATE_RPC", { body: "PRIVATE_BODY", requestId: "PRIVATE_ID" });
+  const cases = [];
+  for (let i = 0; i < names.length; i++) {
+    for (const name of [names[i], names[i].toLowerCase(), names[i].toUpperCase()]) cases.push([{ [name]: values[i] }, [labels[i]]]);
+    cases.push([{ [names[i]]: "" }, [labels[i]]]);
+  }
+  const combined = Object.fromEntries(names.map((name, i) => [name, values[i]]));
+  cases.push([combined, labels], [Object.fromEntries(Object.entries(combined).reverse()), labels],
+    [{ "X-Forwarded-PRIVATE_ONE": "PRIVATE_ONE", "x-FoRwArDeD-PRIVATE_TWO": "PRIVATE_TWO" }, ["x_forwarded_other"]]);
+  const compare = (actual, expected) => {
+    assert.equal(actual.status, expected.status); assert.equal(actual.text, expected.text);
+    const { date: actualDate, ...actualHeaders } = actual.headers;
+    const { date: expectedDate, ...expectedHeaders } = expected.headers;
+    assert.deepEqual(actualHeaders, expectedHeaders);
+  };
+  for (const [headers, expected] of cases) {
+    const options = { headers: { ...headers, Cookie: "PRIVATE_COOKIE", "X-PRIVATE-UNRELATED": "PRIVATE_UNRELATED" } };
+    const before = logs.length;
+    const off = await wire(ports[0], token, message, options);
+    assert.equal(logs.length, before);
+    assert.equal(off.status, 403); assert.deepEqual(off.json, { error: "invalid_forwarding_header" });
+    compare(await wire(ports[1], token, message, options), off);
+    const events = logs.slice(before).map(JSON.parse);
+    assert.deepEqual(events.map(event => event.event), ["request_received", "headers_rejected", "response"]);
+    const rejection = events[1];
+    assert.deepEqual(rejection.forwardingHeaders, expected);
+    assert.deepEqual(Object.keys(rejection).sort(), ["diagnostic", "timestamp", "sequence", "event", "stage", "classification", "forwardingHeaders"].sort());
+    assert.ok(events.every(event => event.diagnostic === "memo_http_oauth" && event.stage === "headers"
+      && event.sequence === events[0].sequence && !Number.isNaN(Date.parse(event.timestamp))));
+    assert.equal(rejection.classification, "invalid_forwarding_header");
+    assert.equal(events[2].classification, rejection.classification); assert.equal(events[2].status, 403);
+    const after = logs.length;
+    compare(await wire(ports[2], token, message, options), off);
+    assert.equal(logs.length, after);
+  }
+  // Earlier checks retain their existing precedence and never claim a forwarding rejection.
+  for (const [headers, status, error] of [
+    [{ ...combined, Host: "PRIVATE_BAD_HOST" }, 403, "invalid_host"],
+    [{ ...combined, Origin: "PRIVATE_ORIGIN" }, 403, "invalid_origin"],
+    [{ ...combined, Authorization: ["Bearer PRIVATE_ONE", "Bearer PRIVATE_TWO"] }, 400, "duplicate_header"]
+  ]) {
+    const before = logs.length, options = { headers };
+    const off = await wire(ports[0], token, message, options);
+    assert.equal(logs.length, before);
+    compare(await wire(ports[1], token, message, options), off);
+    assert.equal(off.status, status); assert.deepEqual(off.json, { error });
+    assert.ok(!logs.slice(before).map(JSON.parse).some(event => event.event === "headers_rejected"));
+  }
+  assert.equal(f.state.calls.length, 3, "only startup metadata fetches; rejected requests never verify tokens");
+  const text = logs.join("\n");
+  for (const secret of [token, adapterToken, ...config.allowedSubjects, ...names.slice(1), ...values, "PRIVATE_", '"Authorization"', '"Bearer"', '"Cookie"'])
+    assert.ok(!text.toLowerCase().includes(secret.toLowerCase()), "no private values or raw names in diagnostics");
+});
+
 test("MCP internal exceptions and failed diagnostic writers keep fixed HTTP behavior", async t => {
   const { Server } = require("@modelcontextprotocol/sdk/server/index.js");
   const f = await issuerFixture(), logs = [], servers = [], adapterToken = randomBytes(32).toString("base64url");
