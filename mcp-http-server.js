@@ -95,7 +95,23 @@ async function createAuthenticatedServer(input, { adapterToken, receiverPort = 8
     }
     if (!seen.has("host") || req.headers.host !== expectedHost) return send(403, { error: "invalid_host" });
     if (req.headers.origin !== undefined && req.headers.origin !== `http://${expectedHost}`) return send(403, { error: "invalid_origin" });
-    if (Object.hasOwn(req.headers, "forwarded") || Object.keys(req.headers).some(key => key.startsWith("x-forwarded-")) || Object.hasOwn(req.headers, "x-http-method-override")) return send(403, { error: "invalid_forwarding_header" });
+    if (Object.hasOwn(req.headers, "forwarded") || Object.keys(req.headers).some(key => key.startsWith("x-forwarded-")) || Object.hasOwn(req.headers, "x-http-method-override")) {
+      if (diagnostics === true) {
+        // Node normalizes names to lowercase. Emit only these fixed labels,
+        // in this order, regardless of request order; never emit names or values.
+        const forwardingHeaders = [
+          ["forwarded", Object.hasOwn(req.headers, "forwarded")],
+          ["x_forwarded_for", Object.hasOwn(req.headers, "x-forwarded-for")],
+          ["x_forwarded_host", Object.hasOwn(req.headers, "x-forwarded-host")],
+          ["x_forwarded_proto", Object.hasOwn(req.headers, "x-forwarded-proto")],
+          ["x_forwarded_other", Object.keys(req.headers).some(key => key.startsWith("x-forwarded-")
+            && !["x-forwarded-for", "x-forwarded-host", "x-forwarded-proto"].includes(key))],
+          ["method_override", Object.hasOwn(req.headers, "x-http-method-override")]
+        ].filter(([, present]) => present).map(([label]) => label);
+        diagnostic("headers_rejected", { classification: "invalid_forwarding_header", forwardingHeaders });
+      }
+      return send(403, { error: "invalid_forwarding_header" });
+    }
     diagnostic("headers_accepted"); stage = "routing";
     if (now() - windowStart >= 60000) { windowStart = now(); count = 0; }
     if (++count > 120 || inflight >= 4) return send(429, { error: "rate_limit" });

@@ -207,3 +207,47 @@ TunnelのHTTP接続で `unknown/not_observed` はsame-child証拠未取得の場
 - 成功: 模擬JWKS応答を待機させた実HTTP接続をクライアントから切断し、実ServerResponseのcloseがfinishより先に発生したこと、`response_aborted`にstatusがないこと、OFFログ0を確認。
 - 未確認: 実OSのECONNRESETコード発生そのものは再現していない（分類はコード注入で検証）。実Auth0／ChatGPT、実Tunnel配送、対話Ctrl+Cは今回未実施。以前の模擬ブラウザE2E成功記録を今回の再実行や実環境成功と扱わない。
 - CIは既存構成のまま更新HEADの結果をPRで確認する。無関係な長時間E2Eをローカル追加実行しない。
+
+## PR-5: 転送ヘッダー拒否の固定分類診断
+
+既存の転送ヘッダー拒否条件と403本文は維持する。診断ONの場合だけ、拒否時に `event=headers_rejected`、`stage=headers`、`classification=invalid_forwarding_header` と `forwardingHeaders` 配列を追加する。既存の `diagnostic=memo_http_oauth`、UTC `timestamp`、同じ要求の `sequence` で `request_received` と最終 `response` に対応づける。writer例外は既存writer内で吸収し、通信へ伝播させない。
+
+配列は次の固定順序で、該当する分類をすべて一度ずつ含む。HTTP要求内の順序やヘッダー名の大小文字には依存しない。
+
+| 固定分類 | 対応する拒否対象 |
+| --- | --- |
+| `forwarded` | Forwarded |
+| `x_forwarded_for` | X-Forwarded-For |
+| `x_forwarded_host` | X-Forwarded-Host |
+| `x_forwarded_proto` | X-Forwarded-Proto |
+| `x_forwarded_other` | 上記3種以外のX-Forwarded-*。複数の未知ヘッダーもこの1分類 |
+| `method_override` | X-HTTP-Method-Override |
+
+空値でも従来どおり拒否する。Host／Origin／重複ヘッダー検査が先に拒否した場合は、その既存分類を維持し、転送ヘッダー拒否イベントを出さない。認証・MCP処理の前で拒否し、転送情報を認可に利用しない。
+
+出力するのは固定分類だけで、任意のヘッダー名・値、IPアドレス、Authorization、Bearer token、Cookie、利用者識別子、HTTP／MCP要求本文、例外message／stack、JWTの内容・断片・ハッシュは出力しない。分類は存在の観測であり、値や追加元を示さない。新しい永続ログや生HTTPログは追加しない。
+
+### 診断ON／OFF・実機観測・復旧
+
+1. 既存8791・未保存プレビュー・履歴・ブラウザ保存領域を保持する。ユーザーが現在の8792の起動端末でCtrl+Cし、終了を確認する。作業エージェントは既存8792／Tunnelを自動停止・再起動しない。
+2. このPRの作業ツリーで、上記「切替・停止・復旧」のSecureString入力を使い、同じリポジトリ外設定・既存Adapter tokenを用意する。起動行だけを次にする。実設定・秘密値・Auth0／ChatGPT登録は変更しない。
+
+   ```powershell
+   ./start-mcp-http-oauth.ps1 -ConfigPath $taskConfigPath -Diagnostics
+   ```
+
+3. 既存Tunnelは維持する。ユーザーが操作開始・終了時刻をUTCで控え、既存 **Memo-Nexus OAuth Dev** の再接続を一度行う。必要なログイン／認可はユーザーが行う。HAR、token、生HTTPログ、Auth0秘密情報を収集しない。
+4. 当該時間帯の固定診断JSONだけを確認する。`request_received` の `path=mcp`、`method=POST`、`bearerPresent=true` と同じsequenceの `headers_rejected.forwardingHeaders`、`response.status=403` を照合する。応答完了前に切断した場合は `response_aborted` として扱う。起動プローブはBearerなしなので区別する。
+5. 診断終了はユーザーが診断8792の端末でCtrl+Cし、同じ設定・tokenで `-Diagnostics` を外して再起動する。OFFでは追加診断行が出ない。直接Node起動の場合は `MEMO_MCP_HTTP_DIAGNOSTICS=1` がON、それ以外がOFF。ランチャーは親環境のフラグを継承せずswitchで制御する。8791・Tunnel・履歴・ブラウザ保存領域を維持し、キー再発行や保存領域削除は不要。
+
+### 観測事実・推測・未解決事項
+
+ユーザー提供のPR #365診断では、2026-10-15T04:29:01.077Z、sequence=5のMCP POSTにBearer方式のヘッダーがあり、headers段階で403／invalid_forwarding_headerとなった。これはユーザー報告であり、本PRでの再観測ではない。具体的な拒否分類、tokenの有効性、initialize到達、ヘッダーを追加した機器・サービスは未確定。
+
+分類取得後は実測配列だけを報告し、追加元は証拠なしに断定しない。既存の固定Tunnel buildの転送実装・隔離fixture記録と照合する。以前の模擬Control Plane試験で転送ヘッダーがなかった記録だけでは、実経路の追加元を特定できない。実機分類は未観測のため、本PRでは追加元や互換性修正の要否を結論づけない。
+
+拒否は本PRで維持する。限定許可が必要と判明した場合は別PRとし、許可対象、信頼境界、送信元偽装等の悪用防止、回帰テストを先に設計する。
+
+基準mainは `695071ee9ded3b74706ee8469cb40635efde4744`（PR #365マージ済み）。専用worktree／branchを使用し、既存の未追跡workと実プロセスを保持。着手時に8791（PID 35152）、8792（PID 30716）、tunnel-client（PID 32636）の稼働を確認した。実Auth0／ChatGPTでの新分類取得、実Tunnel配送、対話Ctrl+Cは未実施で、ユーザーによる切替・再接続待ち。既存の実設定・履歴・保存領域には変更を加えていない。
+
+ローカル検証: 追加診断の単体試験を先に実行して成功し、続いて `node --test mcp-http-oauth.test.js mcp-http-discovery.test.js` の19件が成功。各分類・大小文字・空値・複数該当・未知名集約、秘密値／任意名非出力、OFFログ0、ON／OFFのHTTP status・本文・Date以外の全応答ヘッダー一致、writer例外、Host／Origin／重複検査の優先順位、拒否時token検証未到達を確認した。既存の正常OAuth・initialize・tools/list・tools/call・公式SDKクライアント試験も成功。差分を自己レビューし、`git diff --check` 成功。実Auth0／ChatGPT観測、実Tunnel再試験、無関係なChart／Report／Geometryの長時間E2Eは追加実行していない。既存CI構成は変更しない。
