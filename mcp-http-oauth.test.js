@@ -69,6 +69,8 @@ test("opt-in diagnostics track authentication/discovery without changing respons
   assert.deepEqual(sequences, cases.map((_, i) => i + 1));
 });
 test("forwarding diagnostics use complete fixed ordered labels without leaking headers or changing HTTP", async t => {
+  const { Server } = require("@modelcontextprotocol/sdk/server/index.js");
+  const connect = t.mock.method(Server.prototype, "connect", async () => { assert.fail("rejected requests must not reach MCP"); });
   const f = await issuerFixture(), logs = [], servers = [], ports = [];
   const adapterToken = randomBytes(32).toString("base64url");
   t.after(async () => { for (const server of servers) await close(server); });
@@ -80,9 +82,9 @@ test("forwarding diagnostics use complete fixed ordered labels without leaking h
       } });
     servers.push(server); ports.push(await listen(server));
   }
-  const labels = ["forwarded", "x_forwarded_for", "x_forwarded_host", "x_forwarded_proto", "x_forwarded_other", "method_override"];
-  const names = ["Forwarded", "X-Forwarded-For", "X-Forwarded-Host", "X-Forwarded-Proto", "X-Forwarded-PRIVATE_NAME", "X-HTTP-Method-Override"];
-  const values = ["for=192.0.2.123;by=PRIVATE_PROXY", "198.51.100.42", "PRIVATE_HOST", "PRIVATE_PROTO", "PRIVATE_VALUE", "PRIVATE_METHOD"];
+  const labels = ["forwarded", "x_forwarded_for", "x_forwarded_host", "x_forwarded_proto", "x_forwarded_port", "x_forwarded_other", "method_override"];
+  const names = ["Forwarded", "X-Forwarded-For", "X-Forwarded-Host", "X-Forwarded-Proto", "X-Forwarded-Port", "X-Forwarded-PRIVATE_NAME", "X-HTTP-Method-Override"];
+  const values = ["for=192.0.2.123;by=PRIVATE_PROXY", "198.51.100.42", "PRIVATE_HOST", "PRIVATE_PROTO", "PRIVATE_PORT", "PRIVATE_VALUE", "PRIVATE_METHOD"];
   const token = await f.sign(), message = rpc("PRIVATE_RPC", { body: "PRIVATE_BODY", requestId: "PRIVATE_ID" });
   const cases = [];
   for (let i = 0; i < names.length; i++) {
@@ -91,7 +93,13 @@ test("forwarding diagnostics use complete fixed ordered labels without leaking h
   }
   const combined = Object.fromEntries(names.map((name, i) => [name, values[i]]));
   cases.push([combined, labels], [Object.fromEntries(Object.entries(combined).reverse()), labels],
+    [{ "x-FoRwArDeD-pOrT": "PRIVATE_PORT" }, ["x_forwarded_port"]],
+    [{ "X-Forwarded-Port": ["PRIVATE_PORT_ONE", "PRIVATE_PORT_TWO"] }, ["x_forwarded_port"]],
+    [{ "X-Forwarded-Port": ["", ""] }, ["x_forwarded_port"]],
     [{ "X-Forwarded-PRIVATE_ONE": "PRIVATE_ONE", "x-FoRwArDeD-PRIVATE_TWO": "PRIVATE_TWO" }, ["x_forwarded_other"]]);
+  const portAndUnknown = { "X-Forwarded-Port": "PRIVATE_PORT", "X-Forwarded-PRIVATE_ONE": "PRIVATE_ONE", "x-FoRwArDeD-PRIVATE_TWO": "PRIVATE_TWO" };
+  for (const headers of [portAndUnknown, Object.fromEntries(Object.entries(portAndUnknown).reverse())])
+    cases.push([headers, ["x_forwarded_port", "x_forwarded_other"]]);
   const compare = (actual, expected) => {
     assert.equal(actual.status, expected.status); assert.equal(actual.text, expected.text);
     const { date: actualDate, ...actualHeaders } = actual.headers;
@@ -132,6 +140,7 @@ test("forwarding diagnostics use complete fixed ordered labels without leaking h
     assert.ok(!logs.slice(before).map(JSON.parse).some(event => event.event === "headers_rejected"));
   }
   assert.equal(f.state.calls.length, 3, "only startup metadata fetches; rejected requests never verify tokens");
+  assert.equal(connect.mock.callCount(), 0, "rejected requests never enter MCP transport");
   const text = logs.join("\n");
   for (const secret of [token, adapterToken, ...config.allowedSubjects, ...names.slice(1), ...values, "PRIVATE_", '"Authorization"', '"Bearer"', '"Cookie"'])
     assert.ok(!text.toLowerCase().includes(secret.toLowerCase()), "no private values or raw names in diagnostics");
