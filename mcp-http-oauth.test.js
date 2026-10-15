@@ -92,7 +92,7 @@ test("MCP internal exceptions and failed diagnostic writers keep fixed HTTP beha
   assert.equal((await wire(port, token, initialize)).status, 200);
 });
 test("HTTP parser failures produce only a fixed diagnostic when enabled", async t => {
-  const f = await issuerFixture(), logs = [], servers = [];
+  const f = await issuerFixture(), logs = [], servers = [], responses = [];
   t.after(async () => { for (const server of servers) await close(server); });
   for (const diagnostics of [false, true]) {
     const server = await createAuthenticatedServer(config, { adapterToken: randomBytes(32).toString("base64url"),
@@ -104,11 +104,99 @@ test("HTTP parser failures produce only a fixed diagnostic when enabled", async 
       socket.on("data", chunk => { text += chunk; }); socket.on("end", () => resolve(text)); socket.on("error", reject);
     });
     assert.match(response, /^HTTP\/1.1 400 Bad Request/);
+    responses.push(response);
     if (!diagnostics) assert.equal(logs.length, before);
   }
-  assert.equal(logs.length, 1); const event = JSON.parse(logs[0]);
+  assert.equal(responses[0], responses[1], "real HTTP parser response is identical for ON/OFF");
+  const events = logs.map(JSON.parse), event = events[0];
   assert.equal(event.event, "http_parse_failure"); assert.equal(event.classification, "http_parse_error");
-  assert.doesNotMatch(logs[0], /PRIVATE_/);
+  assert.equal(Object.hasOwn(event, "status"), false);
+  assert.deepEqual(events.map(event => event.event), ["http_parse_failure", "response_attempt", "response"]);
+  assert.equal(events[1].attemptedStatus, 400); assert.equal(Object.hasOwn(events[1], "status"), false);
+  assert.equal(events[2].status, 400);
+  assert.ok(events.every(event => event.sequence === events[0].sequence));
+  assert.doesNotMatch(logs.join("\n"), /PRIVATE_/);
+});
+test("clientError fixed codes separate parser/connection failures and attempted/completed writes", async t => {
+  const f = await issuerFixture(), servers = [], logs = [];
+  t.after(async () => { for (const server of servers) await close(server); });
+  const codes = ["HPE_INVALID_METHOD", "ECONNRESET", "EPIPE", "ETIMEDOUT", "ERR_STREAM_PREMATURE_CLOSE", "ERR_SOCKET_CLOSED", "PRIVATE_UNKNOWN_CODE", undefined];
+  const expectedReply = "HTTP/1.1 400 Bad Request\r\nConnection: close\r\n\r\n";
+  for (const diagnostics of [false, true]) {
+    const server = await createAuthenticatedServer(config, { adapterToken: randomBytes(32).toString("base64url"),
+      fetchImpl: f.fetchImpl, diagnostics, diagnosticWriter: line => logs.push(line) });
+    servers.push(server);
+    for (const code of codes) for (const outcome of ["not_writable", "aborted", "completed"]) {
+      const before = logs.length, writes = [], socket = new (require("node:events").EventEmitter)();
+      socket.writable = outcome !== "not_writable";
+      socket.end = (...args) => { writes.push(args); };
+      const error = Object.assign(new Error("PRIVATE_EXCEPTION_TOKEN"), { code, rawPacket: Buffer.from("PRIVATE_HEADER_BODY") });
+      assert.doesNotThrow(() => server.emit("clientError", error, socket));
+      assert.deepEqual(writes, socket.writable ? [[expectedReply]] : [], "same existing socket.end call for ON/OFF");
+      const pending = logs.slice(before).map(JSON.parse);
+      assert.ok(pending.every(event => !Object.hasOwn(event, "status")), "no completed status before finish");
+      if (outcome === "completed") socket.emit("finish");
+      socket.emit("close");
+      const events = logs.slice(before).map(JSON.parse);
+      if (!diagnostics) { assert.equal(events.length, 0); continue; }
+      const parser = code === "HPE_INVALID_METHOD", connection = codes.slice(1, 6).includes(code);
+      assert.equal(events[0].event, parser ? "http_parse_failure" : "client_error");
+      assert.equal(events[0].classification, parser ? "http_parse_error" : connection ? "connection_closed" : "transport_error");
+      assert.deepEqual(events.map(event => event.event), outcome === "not_writable"
+        ? [events[0].event] : [events[0].event, "response_attempt", outcome === "completed" ? "response" : "response_aborted"]);
+      if (outcome === "completed") assert.equal(events[2].status, 400);
+      else assert.ok(events.every(event => !Object.hasOwn(event, "status")));
+      assert.ok(events.every(event => event.sequence === events[0].sequence));
+    }
+  }
+  assert.doesNotMatch(logs.join("\n"), /PRIVATE_|ECONNRESET|HPE_INVALID_METHOD/);
+  const server = await createAuthenticatedServer(config, { adapterToken: randomBytes(32).toString("base64url"),
+    fetchImpl: f.fetchImpl, diagnostics: true, diagnosticWriter: () => { throw new Error("PRIVATE_WRITER"); } });
+  servers.push(server);
+  for (const completed of [false, true]) {
+    const socket = new (require("node:events").EventEmitter)(), writes = [];
+    socket.writable = true; socket.end = (...args) => writes.push(args);
+    assert.doesNotThrow(() => {
+      server.emit("clientError", Object.assign(new Error("PRIVATE_ERROR"), { code: "ECONNRESET" }), socket);
+      if (completed) socket.emit("finish");
+      socket.emit("close");
+    });
+    assert.deepEqual(writes, [[expectedReply]]);
+  }
+});
+test("real connection close before authentication response records response_aborted without status", { timeout: 10000 }, async t => {
+  const f = await issuerFixture(), token = await f.sign();
+  for (const diagnostics of [false, true]) {
+    const logs = []; let release, entered, closed, finished = false;
+    const gate = new Promise(resolve => { release = resolve; });
+    const verifying = new Promise(resolve => { entered = resolve; });
+    const responseClosed = new Promise(resolve => { closed = resolve; });
+    const server = await createAuthenticatedServer(config, { adapterToken: randomBytes(32).toString("base64url"), diagnostics,
+      diagnosticWriter: line => logs.push(line), fetchImpl: async (url, options) => {
+        if (String(url).endsWith("jwks.json")) { entered(); await gate; }
+        return f.fetchImpl(url, options);
+      } });
+    server.once("request", (_req, res) => { res.once("finish", () => { finished = true; }); res.once("close", closed); });
+    const port = await listen(server);
+    const request = require("node:http").request({ host: "127.0.0.1", port, path: "/mcp", method: "POST", agent: false,
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json", "Content-Length": 0 } });
+    request.on("error", () => {});
+    t.after(async () => { release(); request.destroy(); await close(server); });
+    request.end();
+    await verifying;
+    request.destroy();
+    await responseClosed;
+    assert.equal(finished, false, "real ServerResponse closed before finish");
+    const events = logs.map(JSON.parse);
+    if (diagnostics) {
+      const aborted = events.find(event => event.event === "response_aborted");
+      assert.ok(aborted); assert.equal(aborted.classification, "connection_closed");
+      assert.equal(Object.hasOwn(aborted, "status"), false);
+      assert.ok(!events.some(event => event.event === "response" || event.event === "http_parse_failure"));
+      assert.doesNotMatch(logs.join("\n"), /auth0\||PRIVATE_/); assert.ok(!logs.join("\n").includes(token));
+    } else assert.equal(logs.length, 0);
+    release(); await close(server);
+  }
 });
 test("authenticated mode requires explicit configuration and subjects, preserves public path/case/slash", async () => {
   assert.equal(validateConfig(config).resource, config.resource);

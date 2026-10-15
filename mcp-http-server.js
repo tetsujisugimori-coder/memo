@@ -159,10 +159,24 @@ async function createAuthenticatedServer(input, { adapterToken, receiverPort = 8
   });
   server.requestTimeout = 5000; server.headersTimeout = 5000; server.timeout = 10000;
   server.maxConnections = 8; server.maxRequestsPerSocket = 1;
-  server.on("clientError", (_error, socket) => {
+  server.on("clientError", (error, socket) => {
     if (diagnostics === true) {
-      try { diagnosticWriter(JSON.stringify({ diagnostic: "memo_http_oauth", timestamp: new Date().toISOString(),
-        sequence: ++diagnosticSequence, event: "http_parse_failure", stage: "headers", status: 400, classification: "http_parse_error" })); } catch {}
+      const sequence = ++diagnosticSequence;
+      const parseFailure = typeof error.code === "string" && /^HPE_[A-Z_]+$/.test(error.code);
+      const classification = parseFailure ? "http_parse_error"
+        : ["ECONNRESET", "EPIPE", "ETIMEDOUT", "ERR_STREAM_PREMATURE_CLOSE", "ERR_SOCKET_CLOSED"].includes(error.code)
+          ? "connection_closed" : "transport_error";
+      const diagnostic = (event, fields = {}) => {
+        try { diagnosticWriter(JSON.stringify({ diagnostic: "memo_http_oauth", timestamp: new Date().toISOString(),
+          sequence, event, stage: "headers", classification, ...fields })); } catch {}
+      };
+      diagnostic(parseFailure ? "http_parse_failure" : "client_error");
+      if (socket.writable) {
+        let completed = false;
+        socket.once("finish", () => { completed = true; diagnostic("response", { status: 400 }); });
+        socket.once("close", () => { if (!completed) diagnostic("response_aborted", { classification: "connection_closed" }); });
+        diagnostic("response_attempt", { attemptedStatus: 400 });
+      }
     }
     if (socket.writable) socket.end("HTTP/1.1 400 Bad Request\r\nConnection: close\r\n\r\n");
   });
