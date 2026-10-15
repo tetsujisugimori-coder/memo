@@ -53,7 +53,17 @@ notepad.exe $taskConfigPath
 
 ```powershell
 $taskConfigPath = Read-Host 'Absolute path to OAuth config outside the repository'
+```
+
+設定パスの入力を完了してから、次の1行だけを実行し、既存tokenを入力してEnterを押す。一括貼り付けはしない。
+
+```powershell
 $taskSecret = Read-Host 'Existing receiver Adapter token' -AsSecureString
+```
+
+token入力が完了し、PowerShellのプロンプトへ戻ってから起動コードを実行する。
+
+```powershell
 $taskPointer = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($taskSecret)
 try {
     $env:MEMO_PREVIEW_ADAPTER_TOKEN = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($taskPointer)
@@ -220,7 +230,8 @@ TunnelのHTTP接続で `unknown/not_observed` はsame-child証拠未取得の場
 | `x_forwarded_for` | X-Forwarded-For |
 | `x_forwarded_host` | X-Forwarded-Host |
 | `x_forwarded_proto` | X-Forwarded-Proto |
-| `x_forwarded_other` | 上記3種以外のX-Forwarded-*。複数の未知ヘッダーもこの1分類 |
+| `x_forwarded_port` | X-Forwarded-Port（Port診断追加後） |
+| `x_forwarded_other` | For／Host／Proto／Port以外のX-Forwarded-*。複数の未知ヘッダーもこの1分類 |
 | `method_override` | X-HTTP-Method-Override |
 
 空値でも従来どおり拒否する。Host／Origin／重複ヘッダー検査が先に拒否した場合は、その既存分類を維持し、転送ヘッダー拒否イベントを出さない。認証・MCP処理の前で拒否し、転送情報を認可に利用しない。
@@ -244,10 +255,65 @@ TunnelのHTTP接続で `unknown/not_observed` はsame-child証拠未取得の場
 
 ユーザー提供のPR #365診断では、2026-10-15T04:29:01.077Z、sequence=5のMCP POSTにBearer方式のヘッダーがあり、headers段階で403／invalid_forwarding_headerとなった。これはユーザー報告であり、本PRでの再観測ではない。具体的な拒否分類、tokenの有効性、initialize到達、ヘッダーを追加した機器・サービスは未確定。
 
-分類取得後は実測配列だけを報告し、追加元は証拠なしに断定しない。既存の固定Tunnel buildの転送実装・隔離fixture記録と照合する。以前の模擬Control Plane試験で転送ヘッダーがなかった記録だけでは、実経路の追加元を特定できない。実機分類は未観測のため、本PRでは追加元や互換性修正の要否を結論づけない。
+分類取得後は実測配列だけを報告し、追加元は証拠なしに断定しない。既存の固定Tunnel buildの転送実装・隔離fixture記録と照合する。以前の模擬Control Plane試験で転送ヘッダーがなかった記録だけでは、実経路の追加元を特定できない。PR-5作成時点では実機分類は未観測だったため、追加元や互換性修正の要否は結論づけていない（その後の旧分類での実測は下記）。
 
 拒否は本PRで維持する。限定許可が必要と判明した場合は別PRとし、許可対象、信頼境界、送信元偽装等の悪用防止、回帰テストを先に設計する。
 
 基準mainは `695071ee9ded3b74706ee8469cb40635efde4744`（PR #365マージ済み）。専用worktree／branchを使用し、既存の未追跡workと実プロセスを保持。着手時に8791（PID 35152）、8792（PID 30716）、tunnel-client（PID 32636）の稼働を確認した。実Auth0／ChatGPTでの新分類取得、実Tunnel配送、対話Ctrl+Cは未実施で、ユーザーによる切替・再接続待ち。既存の実設定・履歴・保存領域には変更を加えていない。
 
 ローカル検証: 追加診断の単体試験を先に実行して成功し、続いて `node --test mcp-http-oauth.test.js mcp-http-discovery.test.js` の19件が成功。各分類・大小文字・空値・複数該当・未知名集約、秘密値／任意名非出力、OFFログ0、ON／OFFのHTTP status・本文・Date以外の全応答ヘッダー一致、writer例外、Host／Origin／重複検査の優先順位、拒否時token検証未到達を確認した。既存の正常OAuth・initialize・tools/list・tools/call・公式SDKクライアント試験も成功。差分を自己レビューし、`git diff --check` 成功。実Auth0／ChatGPT観測、実Tunnel再試験、無関係なChart／Report／Geometryの長時間E2Eは追加実行していない。既存CI構成は変更しない。
+
+## X-Forwarded-Port診断の追加（mcp-http-forwarded-port-diagnostics）
+
+基準mainは `c4e427d78845659373b944bc4d2d3c989d59702e`（PR #367）。上の分類表はこの追加後の仕様を示す。旧実装ではPortも `x_forwarded_other` に含まれていた。現在はPortの存在を `x_forwarded_port` に一度だけ分類し、otherから除外する。空値・重複したPortも存在として扱い、引き続き403で拒否する。固定順序は `forwarded` → `x_forwarded_for` → `x_forwarded_host` → `x_forwarded_proto` → `x_forwarded_port` → `x_forwarded_other` → `method_override`。
+
+| 実測配列 | 読み方 |
+| --- | --- |
+| `["x_forwarded_port"]` | 転送ヘッダー拒否分類はPortだけ。許容・除去等の限定対応を別PRで検討できる |
+| `["x_forwarded_port", "x_forwarded_other"]` | Portと、それ以外の未知のX-Forwarded-*が存在する。未知名は未特定 |
+| `["x_forwarded_other"]` | Port以外の未知のX-Forwarded-*が存在し、Portは観測されていない |
+
+いずれもヘッダーの追加元、Bearer tokenの有効性、OAuth検証成功、initialize／tools/list成功を意味しない。接続許可・ヘッダー除去は今回行わず、既存の拒否・認証・HTTP応答を維持する。診断OFFでは追加ログを出さず、writer例外を通信へ伝播させない。
+
+### 旧分類でのユーザー提供実測（新分類での再観測ではない）
+
+2026-10-15のChatGPT再接続で、UTC 12:20:37.807Z（sequence=7）と12:20:49.869Z（sequence=9）に、`path=mcp`、`method=POST`、`bearerPresent=true` の要求が観測された。同じsequenceの `headers_rejected` は `stage=headers`、`classification=invalid_forwarding_header`、`forwardingHeaders=["x_forwarded_other"]`、最終 `response` は同分類の403だった。Metadata GETは200。起動時のBearerなしinitializeの401とは区別する。
+
+これはPortをotherに含める旧分類の記録で、具体的なヘッダー名、追加元、tokenの有効性、initialize／tools/list成功は未確認。固定Tunnel build `0.0.16+5f99daabd4aa4a77049e6d81d54a0d8c18335397` のlocalproxy除去リストにX-Forwarded-Portが見つかったという調査記録は別機能の処理であり、今回の実要求にPortが存在する証拠でも追加元の証拠でもない。
+
+### マージ後のユーザーによる切替と観測
+
+1. 新分類の実機観測は未実施。マージ後、その変更を含む作業ツリーを用意する。既存8791・同じ履歴・ブラウザ保存領域・同じ実OAuth設定・現在のAdapter tokenを維持し、設定やAuth0／ChatGPT登録は変更しない。実設定の絶対パスや内容は公開文書・PRへ貼らない。
+2. ユーザーが8792を起動した端末でCtrl+Cし、終了を確認する。PIDは固定せず、その都度確認する。作業エージェントは8792やTunnelを停止・再起動しない。既存Tunnelを維持し、重複起動しない。
+3. 新しい作業ツリーの専用PowerShellで、次の1行を実行し、同じリポジトリ外OAuth設定のパスを入力してEnterを押す。
+
+   ```powershell
+   $taskConfigPath = Read-Host 'Absolute path to the same OAuth config outside the repository'
+   ```
+
+4. 次の1行だけを独立して実行し、現在のAdapter tokenを入力してEnterを押す。起動コードと一括貼り付けしない。
+
+   ```powershell
+   $taskSecret = Read-Host 'Existing receiver Adapter token' -AsSecureString
+   ```
+
+5. token入力が完了してプロンプトへ戻った後に、次の起動コードを実行する。
+
+   ```powershell
+   $taskPointer = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($taskSecret)
+   try {
+       $env:MEMO_PREVIEW_ADAPTER_TOKEN = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($taskPointer)
+       ./start-mcp-http-oauth.ps1 -ConfigPath $taskConfigPath -Diagnostics
+   } finally {
+       [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($taskPointer)
+       Remove-Item Env:MEMO_PREVIEW_ADAPTER_TOKEN -ErrorAction SilentlyContinue
+       $taskSecret.Dispose()
+   }
+   ```
+
+6. 操作時間帯をUTCで控え、既存ChatGPT接続を一度再接続する。同じsequenceのBearerありMCP POST、`headers_rejected.forwardingHeaders`、最終403を照合する。Bearerなし起動プローブ401は別扱いとする。新分類の配列だけを上表で判断し、otherが残れば未特定ヘッダーありとして調査を続ける。HAR・生HTTP・秘密値を採取しない。
+7. 診断をOFFへ戻すときは、ユーザーが診断8792の端末でCtrl+Cし、同じ設定・tokenを使い、入力を独立して行った後、起動コードから `-Diagnostics` を外して起動する。8791・Tunnel・履歴は維持する。接続成功やOAuth成功は本診断PRの完了条件ではなく、互換性修正は実測後の別PRとする。
+
+### Port診断のローカル検証
+
+既存の転送診断テストを拡張し、直接対応する1件を先に実行して成功。その後 `node --test mcp-http-oauth.test.js mcp-http-discovery.test.js` の19件が成功し、`git diff --check` も成功した。Port単独・大小文字・空値・重複、Port＋複数未知名・未知名のみ・全分類・逆順について、固定順序・重複なし・未知名集約を確認した。全ケースでOFFログ0、ON／OFF／writer例外時のHTTP status・本文・Date以外の全応答ヘッダー一致、秘密値・任意名非出力を確認。Host／Origin／重複検査の優先順位を維持し、拒否時のJWKS取得・MCP transport接続は0件だった。模擬issuerと動的ポートの隔離fixtureだけを利用し、現在の8791／8792／Tunnelへテスト要求を送っていない。CI構成・ランチャー・実設定・保存処理は変更していない。差分を自己レビューし、未解決の問題はない。実機での新分類、実OAuth検証、initialize／tools/list成功は未確認。
