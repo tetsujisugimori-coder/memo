@@ -82,14 +82,19 @@ test("forwarding diagnostics use complete fixed ordered labels without leaking h
       } });
     servers.push(server); ports.push(await listen(server));
   }
-  const labels = ["forwarded", "x_forwarded_for", "x_forwarded_host", "x_forwarded_proto", "x_forwarded_port", "x_forwarded_other", "method_override"];
-  const names = ["Forwarded", "X-Forwarded-For", "X-Forwarded-Host", "X-Forwarded-Proto", "X-Forwarded-Port", "X-Forwarded-PRIVATE_NAME", "X-HTTP-Method-Override"];
-  const values = ["for=192.0.2.123;by=PRIVATE_PROXY", "198.51.100.42", "PRIVATE_HOST", "PRIVATE_PROTO", "PRIVATE_PORT", "PRIVATE_VALUE", "PRIVATE_METHOD"];
+  const labels = ["forwarded", "x_forwarded_for", "x_forwarded_host", "x_forwarded_proto", "x_forwarded_port",
+    "x_forwarded_client_cert", "x_forwarded_server", "x_forwarded_prefix", "x_forwarded_uri", "x_forwarded_method", "x_forwarded_other", "method_override"];
+  const names = ["Forwarded", "X-Forwarded-For", "X-Forwarded-Host", "X-Forwarded-Proto", "X-Forwarded-Port",
+    "X-Forwarded-Client-Cert", "X-Forwarded-Server", "X-Forwarded-Prefix", "X-Forwarded-Uri", "X-Forwarded-Method", "X-Forwarded-PRIVATE_NAME", "X-HTTP-Method-Override"];
+  const values = ["for=192.0.2.123;by=PRIVATE_PROXY", "198.51.100.42", "PRIVATE_HOST", "PRIVATE_PROTO", "PRIVATE_PORT",
+    "PRIVATE_CERT", "PRIVATE_SERVER", "PRIVATE_PREFIX", "PRIVATE_URI", "PRIVATE_FORWARDED_METHOD", "PRIVATE_VALUE", "PRIVATE_METHOD"];
   const token = await f.sign(), message = rpc("PRIVATE_RPC", { body: "PRIVATE_BODY", requestId: "PRIVATE_ID" });
   const cases = [];
   for (let i = 0; i < names.length; i++) {
     for (const name of [names[i], names[i].toLowerCase(), names[i].toUpperCase()]) cases.push([{ [name]: values[i] }, [labels[i]]]);
     cases.push([{ [names[i]]: "" }, [labels[i]]]);
+    cases.push([{ [names[i]]: ["PRIVATE_ONE", "PRIVATE_TWO"] }, [labels[i]]]);
+    cases.push([{ [names[i]]: ["", ""] }, [labels[i]]]);
   }
   const combined = Object.fromEntries(names.map((name, i) => [name, values[i]]));
   cases.push([combined, labels], [Object.fromEntries(Object.entries(combined).reverse()), labels],
@@ -100,6 +105,13 @@ test("forwarding diagnostics use complete fixed ordered labels without leaking h
   const portAndUnknown = { "X-Forwarded-Port": "PRIVATE_PORT", "X-Forwarded-PRIVATE_ONE": "PRIVATE_ONE", "x-FoRwArDeD-PRIVATE_TWO": "PRIVATE_TWO" };
   for (const headers of [portAndUnknown, Object.fromEntries(Object.entries(portAndUnknown).reverse())])
     cases.push([headers, ["x_forwarded_port", "x_forwarded_other"]]);
+  const candidates = Object.fromEntries(names.slice(5, 10).map(name => [name, "PRIVATE_CANDIDATE"]));
+  const candidatesAndUnknown = { ...candidates, "X-Forwarded-PRIVATE_ONE": "PRIVATE_ONE", "X-Forwarded-PRIVATE_TWO": "PRIVATE_TWO" };
+  for (const headers of [candidatesAndUnknown, Object.fromEntries(Object.entries(candidatesAndUnknown).reverse())])
+    cases.push([headers, [...labels.slice(5, 10), "x_forwarded_other"]]);
+  // A caller can embed arbitrary data in a name; only exact candidate names get labels.
+  for (const name of names.slice(5, 10))
+    cases.push([{ [name + "-PRIVATE_SUFFIX"]: "PRIVATE_VALUE" }, ["x_forwarded_other"]]);
   const compare = (actual, expected) => {
     assert.equal(actual.status, expected.status); assert.equal(actual.text, expected.text);
     const { date: actualDate, ...actualHeaders } = actual.headers;
@@ -117,7 +129,8 @@ test("forwarding diagnostics use complete fixed ordered labels without leaking h
     assert.deepEqual(events.map(event => event.event), ["request_received", "headers_rejected", "response"]);
     const rejection = events[1];
     assert.deepEqual(rejection.forwardingHeaders, expected);
-    assert.deepEqual(Object.keys(rejection).sort(), ["diagnostic", "timestamp", "sequence", "event", "stage", "classification", "forwardingHeaders"].sort());
+    assert.equal(rejection.forwardingDiagnosticVersion, 2, "fixed marker identifies the loaded candidate classifier");
+    assert.deepEqual(Object.keys(rejection).sort(), ["diagnostic", "timestamp", "sequence", "event", "stage", "classification", "forwardingDiagnosticVersion", "forwardingHeaders"].sort());
     assert.ok(events.every(event => event.diagnostic === "memo_http_oauth" && event.stage === "headers"
       && event.sequence === events[0].sequence && !Number.isNaN(Date.parse(event.timestamp))));
     assert.equal(rejection.classification, "invalid_forwarding_header");

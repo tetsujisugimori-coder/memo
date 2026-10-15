@@ -231,12 +231,17 @@ TunnelのHTTP接続で `unknown/not_observed` はsame-child証拠未取得の場
 | `x_forwarded_host` | X-Forwarded-Host |
 | `x_forwarded_proto` | X-Forwarded-Proto |
 | `x_forwarded_port` | X-Forwarded-Port（Port診断追加後） |
-| `x_forwarded_other` | For／Host／Proto／Port以外のX-Forwarded-*。複数の未知ヘッダーもこの1分類 |
+| `x_forwarded_client_cert` | X-Forwarded-Client-Cert（候補群診断追加後） |
+| `x_forwarded_server` | X-Forwarded-Server（候補群診断追加後） |
+| `x_forwarded_prefix` | X-Forwarded-Prefix（候補群診断追加後） |
+| `x_forwarded_uri` | X-Forwarded-Uri（候補群診断追加後） |
+| `x_forwarded_method` | X-Forwarded-Method（候補群診断追加後） |
+| `x_forwarded_other` | 上記の具体名以外のX-Forwarded-*。複数の未知ヘッダーもこの1分類 |
 | `method_override` | X-HTTP-Method-Override |
 
 空値でも従来どおり拒否する。Host／Origin／重複ヘッダー検査が先に拒否した場合は、その既存分類を維持し、転送ヘッダー拒否イベントを出さない。認証・MCP処理の前で拒否し、転送情報を認可に利用しない。
 
-出力するのは固定分類だけで、任意のヘッダー名・値、IPアドレス、Authorization、Bearer token、Cookie、利用者識別子、HTTP／MCP要求本文、例外message／stack、JWTの内容・断片・ハッシュは出力しない。分類は存在の観測であり、値や追加元を示さない。新しい永続ログや生HTTPログは追加しない。
+出力するのは固定分類と固定の診断バージョンだけで、任意のヘッダー名・値、IPアドレス、Authorization、Bearer token、Cookie、利用者識別子、HTTP／MCP要求本文、例外message／stack、JWTの内容・断片・ハッシュは出力しない。分類は存在の観測であり、値や追加元を示さない。新しい永続ログや生HTTPログは追加しない。
 
 ### 診断ON／OFF・実機観測・復旧
 
@@ -265,7 +270,7 @@ TunnelのHTTP接続で `unknown/not_observed` はsame-child証拠未取得の場
 
 ## X-Forwarded-Port診断の追加（mcp-http-forwarded-port-diagnostics）
 
-基準mainは `c4e427d78845659373b944bc4d2d3c989d59702e`（PR #367）。上の分類表はこの追加後の仕様を示す。旧実装ではPortも `x_forwarded_other` に含まれていた。現在はPortの存在を `x_forwarded_port` に一度だけ分類し、otherから除外する。空値・重複したPortも存在として扱い、引き続き403で拒否する。固定順序は `forwarded` → `x_forwarded_for` → `x_forwarded_host` → `x_forwarded_proto` → `x_forwarded_port` → `x_forwarded_other` → `method_override`。
+基準mainは `c4e427d78845659373b944bc4d2d3c989d59702e`（PR #367）。旧実装ではPortも `x_forwarded_other` に含まれていた。この追加でPortの存在を `x_forwarded_port` に一度だけ分類し、otherから除外する。空値・重複したPortも存在として扱い、引き続き403で拒否する。PR #369時点の固定順序は `forwarded` → `x_forwarded_for` → `x_forwarded_host` → `x_forwarded_proto` → `x_forwarded_port` → `x_forwarded_other` → `method_override`。現在の候補群を含む順序は上の分類表を参照する。
 
 | 実測配列 | 読み方 |
 | --- | --- |
@@ -317,3 +322,49 @@ TunnelのHTTP接続で `unknown/not_observed` はsame-child証拠未取得の場
 ### Port診断のローカル検証
 
 既存の転送診断テストを拡張し、直接対応する1件を先に実行して成功。その後 `node --test mcp-http-oauth.test.js mcp-http-discovery.test.js` の19件が成功し、`git diff --check` も成功した。Port単独・大小文字・空値・重複、Port＋複数未知名・未知名のみ・全分類・逆順について、固定順序・重複なし・未知名集約を確認した。全ケースでOFFログ0、ON／OFF／writer例外時のHTTP status・本文・Date以外の全応答ヘッダー一致、秘密値・任意名非出力を確認。Host／Origin／重複検査の優先順位を維持し、拒否時のJWKS取得・MCP transport接続は0件だった。模擬issuerと動的ポートの隔離fixtureだけを利用し、現在の8791／8792／Tunnelへテスト要求を送っていない。CI構成・ランチャー・実設定・保存処理は変更していない。差分を自己レビューし、未解決の問題はない。実機での新分類、実OAuth検証、initialize／tools/list成功は未確認。
+
+## 未知の転送ヘッダー候補群の診断（mcp-http-header-candidates）
+
+基準main／最新remote mainは `72146a0c865aa019c79384e2f74e057f70066d0c`（PR #369）。Port診断commit `83787647e1f781d4b454342939a2bacbb93c45aa` を含む。専用worktreeで診断・既存試験・本書だけを変更し、元のmain、未追跡work、既存作業、8791／8792／Tunnelは保持する。
+
+### 実測と稼働コードの確認限界
+
+ユーザー提供のUTC 2026-10-15T13:06:29.414Z～13:06:29.423Z、sequence=1では、BearerありのMCP POSTがheaders段階で `forwardingHeaders=["x_forwarded_other"]`、403／invalid_forwarding_headerとなった。続くsequence=2のmetadata GETはheaders_accepted、200だった。本担当の再観測ではなく、Bearerなし起動プローブ401とも区別する。
+
+読み取り専用の確認では、8792待受Nodeのスクリプト引数は元のmain直下の `mcp-http-server.js` を示し、親はPowerShellだった。ランチャーは `$PSScriptRoot` からそのJavaScriptを解決する。ファイル更新時刻はNode起動時刻より前だった。Gitの祖先関係・現在のファイル・プロセスの参照先は確認できるが、起動時のファイル内容のスナップショットや読み込み済みモジュールは取得していない。過去に読み込んだコードそのものを証明したとは扱わない。
+
+PR #369のコードならPortはotherから除外されているため、この実測はPort以外の未知名の存在を示す。具体名・追加元・tokenの有効性・OAuth検証・initialize／tools/list成功は未確認。今回の候補分類追加後の実機観測もまだ実施していない。
+
+### HTTP転送経路と候補の根拠
+
+稼働Tunnelの実行ファイルと `--version` は固定build `0.0.16+5f99daabd4aa4a77049e6d81d54a0d8c18335397` に一致し、起動引数の転送先はloopbackの8792だった。引数全文・環境変数・実設定は記録しない。
+
+固定buildの直接MCP経路では、[command_parser.go:40](https://github.com/openai/tunnel-client/blob/5f99daabd4aa4a77049e6d81d54a0d8c18335397/pkg/controlplane/internal/command_parser.go#L40) がControl Planeの `raw.Headers` を取り込み、[processor.go:566](https://github.com/openai/tunnel-client/blob/5f99daabd4aa4a77049e6d81d54a0d8c18335397/pkg/dispatcher/internal/processor.go#L566) でAcceptの既定値を補って転送する。[context.go:54](https://github.com/openai/tunnel-client/blob/5f99daabd4aa4a77049e6d81d54a0d8c18335397/pkg/mcpclient/internal/context.go#L54) は渡された名前の既存値を置き換え、全値を追加する。[roundtripper.go:40](https://github.com/openai/tunnel-client/blob/5f99daabd4aa4a77049e6d81d54a0d8c18335397/pkg/mcpclient/internal/roundtripper.go#L40) は宛先Originが一致すると適用し、異なるOriginでは持ち込んだヘッダーを除去する。静的ヘッダーの追加機能も別にあるが、今回の実プロセスで何が追加されたかの証拠にはしない。
+
+この直接転送処理には今回の候補を自動生成するコードは見つからなかった。候補が上流から届けば同じ汎用転送経路で8792へ届き得る。別機能localproxyの除去リストはこの経路の処理と混同しない。既存の模擬Control Plane fixtureは転送ヘッダーを投入せず、Bearer・ローカルHost・転送ヘッダーなしを確認しているだけなので、実経路の追加元を確定できない。
+
+以下は実要求で確認された名前ではなく、公式プロキシ資料に記載された具体的候補をまとめた観測用集合である。OpenAI／Auth0がこれらのプロキシや機能を実際に使用しているという主張ではない。認証情報を含み得る値も一切調べない。
+
+| 固定分類 | 候補名・用途 | 一次資料の該当節 |
+| --- | --- | --- |
+| `x_forwarded_client_cert` | X-Forwarded-Client-Cert：経由したクライアント／プロキシの証明書情報 | [Envoy HTTP header manipulation / x-forwarded-client-cert](https://www.envoyproxy.io/docs/envoy/v1.33.12/configuration/http/http_conn_man/headers#x-forwarded-client-cert) |
+| `x_forwarded_server` | X-Forwarded-Server：中継プロキシのホスト名 | [Apache mod_proxy / Reverse Proxy Request Headers](https://httpd.apache.org/docs/2.4/mod/mod_proxy.html#x-headers) |
+| `x_forwarded_prefix` | X-Forwarded-Prefix：除去したパス接頭辞 | [Traefik StripPrefix / General](https://doc.traefik.io/traefik/v3.3/middlewares/http/stripprefix/#general) |
+| `x_forwarded_uri` | X-Forwarded-Uri：元の要求URI | [Traefik ForwardAuth / Forward-Request Headers](https://doc.traefik.io/traefik/v3.3/middlewares/http/forwardauth/#forward-request-headers) |
+| `x_forwarded_method` | X-Forwarded-Method：元のHTTPメソッド | 同上 |
+
+### 診断の契約と次の観測
+
+候補5名を既存Port分類の後、上表の順序で追加し、otherから除外する。候補外・候補名に任意の接尾辞を付けた名前はotherへ集約する。存在だけを判定し、大小文字・空値・複数値で分類は変えず、固定順序・重複なしを維持する。既存の拒否条件と403本文、Host／Origin／重複検査の優先順位、OAuth検証、受信・手動保存、診断OFF、writer例外の吸収は変更しない。許容・除去・認可への利用は行わない。
+
+診断ONの `headers_rejected` だけに固定値 `forwardingDiagnosticVersion: 2` を追加する。このフィールドは候補群診断がその要求を処理した識別であり、Gitコミット全体の証明・秘密値・設定値ではない。フィールドのない過去ログをversion 2で得た観測と扱わない。
+
+実機切替はユーザーの操作待ち。マージ／pull後、前節「マージ後のユーザーによる切替と観測」の手順に従い、8792だけを自分の起動端末で終了・再起動する。8791・既存Tunnel・実設定・Adapter token・履歴・ブラウザ保存領域は維持する。設定パスのRead-Host、tokenのRead-Host -AsSecureString、起動コードは必ず別々に実行し、一括貼り付けしない。
+
+既存ChatGPT接続を一度再接続し、BearerありMCP POSTと同じsequenceの `headers_rejected` についてversion 2、固定分類配列、最終403だけを照合する。候補分類が出ればその具体名の存在が分かるが、追加元や値の正当性は分からない。otherも出れば候補外が残っている。version 2でotherだけなら今回の5候補も未観測であり、任意名の出力へ切り替えず、上流の担当者へ値・本文なしの具体名確認を依頼する。metadata 200やBearerなし401をOAuth成功と扱わない。接続成功は本診断の完了条件にしない。
+
+### 候補群診断のローカル検証
+
+既存の転送診断試験を拡張した。最初の直接試験はサンドボックスのloopback接続制限で実行できず、同じ隔離fixtureを制限外で再実行して1件成功。その後、候補名接尾辞の集約ケースも含めて `node --test mcp-http-oauth.test.js mcp-http-discovery.test.js` が19件成功した。具体名単独・大小文字・空値・複数値、候補群＋未知名・全分類・逆順、otherへの集約、固定バージョン、秘密値／任意名の非出力、OFFログ0、ON／OFF／writer例外時のHTTP status・本文・Date以外の全応答ヘッダー一致を確認した。Host／Origin／重複検査の優先順位を維持し、拒否時のJWKS取得とMCP transport接続は0件だった。既存のOAuth検証・initialize・tools/list・公式SDK試験も成功した。
+
+差分を自己レビューし、`git diff --check` も成功した。実8791／8792／Tunnelへテスト要求を送らず、実設定・実履歴・ブラウザ保存領域を使用していない。無関係なChart／Report／Geometry E2Eや実Tunnel再起動は行わず、CI構成を維持する。

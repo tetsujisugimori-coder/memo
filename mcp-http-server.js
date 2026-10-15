@@ -105,11 +105,17 @@ async function createAuthenticatedServer(input, { adapterToken, receiverPort = 8
           ["x_forwarded_host", Object.hasOwn(req.headers, "x-forwarded-host")],
           ["x_forwarded_proto", Object.hasOwn(req.headers, "x-forwarded-proto")],
           ["x_forwarded_port", Object.hasOwn(req.headers, "x-forwarded-port")],
+          ["x_forwarded_client_cert", Object.hasOwn(req.headers, "x-forwarded-client-cert")],
+          ["x_forwarded_server", Object.hasOwn(req.headers, "x-forwarded-server")],
+          ["x_forwarded_prefix", Object.hasOwn(req.headers, "x-forwarded-prefix")],
+          ["x_forwarded_uri", Object.hasOwn(req.headers, "x-forwarded-uri")],
+          ["x_forwarded_method", Object.hasOwn(req.headers, "x-forwarded-method")],
           ["x_forwarded_other", Object.keys(req.headers).some(key => key.startsWith("x-forwarded-")
-            && !["x-forwarded-for", "x-forwarded-host", "x-forwarded-proto", "x-forwarded-port"].includes(key))],
+            && !["x-forwarded-for", "x-forwarded-host", "x-forwarded-proto", "x-forwarded-port",
+              "x-forwarded-client-cert", "x-forwarded-server", "x-forwarded-prefix", "x-forwarded-uri", "x-forwarded-method"].includes(key))],
           ["method_override", Object.hasOwn(req.headers, "x-http-method-override")]
         ].filter(([, present]) => present).map(([label]) => label);
-        diagnostic("headers_rejected", { classification: "invalid_forwarding_header", forwardingHeaders });
+        diagnostic("headers_rejected", { classification: "invalid_forwarding_header", forwardingDiagnosticVersion: 2, forwardingHeaders });
       }
       return send(403, { error: "invalid_forwarding_header" });
     }
