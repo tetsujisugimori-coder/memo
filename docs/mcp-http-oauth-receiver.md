@@ -2,6 +2,8 @@
 
 Auth0のアクセストークンを検証し、許可した利用者の文章／複数メモ送信だけを既存受信サービスへ接続する。受信時には保存しない。未保存プレビューからユーザーが手動で保存・破棄する。既存メモの読み出し・編集・削除ツールは追加しない。既存メモの保存形式、コレクション、ブラウザUIは変更しない。
 
+現在の転送ヘッダー方針と実機確認は末尾「X-Forwarded-Client-Certの無視（診断version 3）」を参照。過去のPort／候補群診断節は当時の実装・観測記録であり、version 2の一律拒否手順を現行手順として実施しない。
+
 ## 認証・認可と保存の境界
 
 - `mcp-http-auth.js`: `jose`でRS256署名、固定issuer、API audience（文字列／配列）、exp、iat、任意nbf、subとscopeの型を検証する。時刻許容差は5秒。未来iatも拒否する。scopeは空白区切りで`memo:submit`と完全一致することが必要。
@@ -368,3 +370,40 @@ PR #369のコードならPortはotherから除外されているため、この�
 既存の転送診断試験を拡張した。最初の直接試験はサンドボックスのloopback接続制限で実行できず、同じ隔離fixtureを制限外で再実行して1件成功。その後、候補名接尾辞の集約ケースも含めて `node --test mcp-http-oauth.test.js mcp-http-discovery.test.js` が19件成功した。具体名単独・大小文字・空値・複数値、候補群＋未知名・全分類・逆順、otherへの集約、固定バージョン、秘密値／任意名の非出力、OFFログ0、ON／OFF／writer例外時のHTTP status・本文・Date以外の全応答ヘッダー一致を確認した。Host／Origin／重複検査の優先順位を維持し、拒否時のJWKS取得とMCP transport接続は0件だった。既存のOAuth検証・initialize・tools/list・公式SDK試験も成功した。
 
 差分を自己レビューし、`git diff --check` も成功した。実8791／8792／Tunnelへテスト要求を送らず、実設定・実履歴・ブラウザ保存領域を使用していない。無関係なChart／Report／Geometry E2Eや実Tunnel再起動は行わず、CI構成を維持する。
+
+## X-Forwarded-Client-Certの無視（診断version 3）
+
+### 実測と最小修正
+
+ユーザー提供の2026-10-16 01:08 JSTのログでは、sequence=1のBearerありMCP POSTが `classification=invalid_forwarding_header`、`forwardingDiagnosticVersion=2`、`forwardingHeaders=["x_forwarded_client_cert"]` で拒否され、最終403だった。sequence=2のmetadata GETは200。この記録はヘッダーの存在と拒否を示す。追加元・値・Bearerの有効性・OAuth成功は未確認であり、本担当の実機再観測ではない。
+
+Nodeが小文字へ正規化した正確な `x-forwarded-client-cert` だけを一律拒否から除外する。値は解析・検証・記録せず、認証・認可・利用者識別・接続元判定に使わない。SDK向けRequestのヘッダー構築でも、この名前を値の取得前に除外する。大小文字・空値・複数値によって認証結果は変わらない。NodeのHTTP構文・ヘッダーサイズ上限等は従来どおり適用する。
+
+`Forwarded`、残るすべての `X-Forwarded-*`、`X-HTTP-Method-Override` は拒否する。Client-Certと拒否対象の混在も403。`X-Forwarded-Client-Cert-任意の接尾辞` は例外ではなく `x_forwarded_other` として拒否する。重要ヘッダー重複→Host→Origin→転送ヘッダーという既存の優先順位、OAuth tokenの署名・issuer・audience・subject・scope検証、制限値は維持する。8791、保存処理、手動保存境界、重複防止、Tunnel／Auth0設定、ランチャー、CI構成は変更しない。
+
+### version 2との診断契約の違い
+
+| バージョン | 意味 |
+| --- | --- |
+| 2（PR #370） | Client-Certも拒否対象。固定分類 `x_forwarded_client_cert` は拒否された名前の存在を示す |
+| 3（今回） | 正確なClient-Cert名は無視。`headers_rejected.forwardingHeaders` は実際に拒否する残りの名前だけを固定順で示す。Client-Cert分類は出さず、otherにも含めない |
+
+version 3も `forwardingDiagnosticVersion` は診断ONの `headers_rejected` にだけ出す。新しい診断項目は追加しない。Client-Cert単独で他の検査を通過すれば `headers_accepted` の後、従来の認証へ進む。受け入れた要求にはversionマーカーが出ないので、成功ログだけで稼働コードのバージョンは証明できない。マージ・pullしたコードから再起動したことを別途確認する。混在時にたとえばClient-CertとForがあれば、version 3の配列は `["x_forwarded_for"]` だけになる。version 2のログをversion 3として解釈しない。
+
+診断OFFは無出力。ON／OFF／writer例外でHTTP結果を変えない。値・任意ヘッダー名・token・主体・本文・例外の詳細は出力しない。Client-Certの受領を記録する新イベントも追加しない。
+
+### マージ・pull後にユーザーが行う実機確認
+
+1. PRのマージ後、ユーザーが起動元checkoutを最新mainへpullする。作業エージェントはマージせず、稼働中の8791・8792・Tunnelを停止・再起動しない。既存8791・Tunnel・同じ実設定・Adapter token・履歴・ブラウザ保存領域を維持する。
+2. ユーザーが8792の起動端末だけでCtrl+Cし、終了を確認する。更新済みcheckoutの専用PowerShellで再起動する。前節「マージ後のユーザーによる切替と観測」の手順3～5にある設定パス入力、`Read-Host -AsSecureString` による現在のAdapter token入力、`-Diagnostics` 付き起動コードを、それぞれ独立して実行する。一括貼り付けしない。Tunnelは重複起動しない。
+3. 操作時間帯を控えて既存ChatGPT接続を一度再接続する。BearerありMCP POSTの同じsequenceで `authentication` の `status=accepted` を確認する。metadata GETの200やBearerなし起動プローブの401とは区別する。
+4. initialize要求に対応する `protocol_result` の `stage=initialize`、`status=200`、`success=true` と同じsequenceの最終応答200を確認する。
+5. tools/list要求に対応する `protocol_result` の `stage=tools_list`、`status=200`、`success=true`、`toolCount=2`、`expectedTools=true` と最終応答200を確認する。クライアントのツール一覧でも `submit_text_preview` と `submit_notes_preview` の2ツールを確認する。
+6. 拒否が残る場合、同じsequenceの固定分類と最終応答だけを照合する。version 3の転送拒否なら配列は残る拒否対象を示す。認証401／subject・scopeの403ならその既存検証を別途確認する。ヘッダー値・実token・HAR・生HTTPを採取／公開しない。設定を推測で変更しない。
+7. 受信・保存確認は上記OAuth／initialize／tools/list成功後の別工程とし、この再接続確認ではツールを呼んで送信・保存しない。診断OFFへ戻す際もユーザーが8792だけを再起動し、既存手順から `-Diagnostics` を外す。
+
+### ローカル検証と未確認事項
+
+既存issuer fixture・生成した試験token・動的ポートを使用し、initialize／tools/list成功、tokenなし・不正署名等の401、subject／scope不適合403、大小文字・空値・複数値、他の拒否ヘッダーとの混在・接尾辞拒否を検証した。実際のSDK `handleRequest` 境界でRequestを観測し、Client-CertとAuthorizationが含まれないことを直接検証した。重要ヘッダーの重複、Host／Originの優先順位、診断ON／OFF／writer例外のHTTP status・本文・Date以外の応答ヘッダー一致、秘密情報非出力も確認した。Content-Length重複は既存Node HTTP parserによる400を維持する。
+
+`node --test mcp-http-oauth.test.js mcp-http-discovery.test.js` は20件成功、失敗・skipなし。`git diff --check` も成功し、差分を自己レビューした。無関係な長時間E2Eは追加実行していない。ローカル試験成功は実機OAuth成功を意味しない。実token・実保存領域・8791／8792／Tunnelは試験に使用せず、実機の認証・initialize・tools/list成功とヘッダー追加元は未確認のまま、ユーザーのマージ・pull後の確認へ引き継ぐ。

@@ -95,7 +95,7 @@ async function createAuthenticatedServer(input, { adapterToken, receiverPort = 8
     }
     if (!seen.has("host") || req.headers.host !== expectedHost) return send(403, { error: "invalid_host" });
     if (req.headers.origin !== undefined && req.headers.origin !== `http://${expectedHost}`) return send(403, { error: "invalid_origin" });
-    if (Object.hasOwn(req.headers, "forwarded") || Object.keys(req.headers).some(key => key.startsWith("x-forwarded-")) || Object.hasOwn(req.headers, "x-http-method-override")) {
+    if (Object.hasOwn(req.headers, "forwarded") || Object.keys(req.headers).some(key => key.startsWith("x-forwarded-") && key !== "x-forwarded-client-cert") || Object.hasOwn(req.headers, "x-http-method-override")) {
       if (diagnostics === true) {
         // Node normalizes names to lowercase. Emit only these fixed labels,
         // in this order, regardless of request order; never emit names or values.
@@ -105,7 +105,6 @@ async function createAuthenticatedServer(input, { adapterToken, receiverPort = 8
           ["x_forwarded_host", Object.hasOwn(req.headers, "x-forwarded-host")],
           ["x_forwarded_proto", Object.hasOwn(req.headers, "x-forwarded-proto")],
           ["x_forwarded_port", Object.hasOwn(req.headers, "x-forwarded-port")],
-          ["x_forwarded_client_cert", Object.hasOwn(req.headers, "x-forwarded-client-cert")],
           ["x_forwarded_server", Object.hasOwn(req.headers, "x-forwarded-server")],
           ["x_forwarded_prefix", Object.hasOwn(req.headers, "x-forwarded-prefix")],
           ["x_forwarded_uri", Object.hasOwn(req.headers, "x-forwarded-uri")],
@@ -115,7 +114,7 @@ async function createAuthenticatedServer(input, { adapterToken, receiverPort = 8
               "x-forwarded-client-cert", "x-forwarded-server", "x-forwarded-prefix", "x-forwarded-uri", "x-forwarded-method"].includes(key))],
           ["method_override", Object.hasOwn(req.headers, "x-http-method-override")]
         ].filter(([, present]) => present).map(([label]) => label);
-        diagnostic("headers_rejected", { classification: "invalid_forwarding_header", forwardingDiagnosticVersion: 2, forwardingHeaders });
+        diagnostic("headers_rejected", { classification: "invalid_forwarding_header", forwardingDiagnosticVersion: 3, forwardingHeaders });
       }
       return send(403, { error: "invalid_forwarding_header" });
     }
@@ -161,7 +160,12 @@ async function createAuthenticatedServer(input, { adapterToken, receiverPort = 8
       // Use the SDK's standard Web transport directly. No SSE or Node-adapter
       // framing optimizations are needed for bounded JSON responses.
       const headers = new Headers();
-      for (const [key, value] of Object.entries(req.headers)) if (key !== "authorization" && value !== undefined) headers.set(key, String(value));
+      // Ignore the exact normalized Client-Cert name; never inspect its value or pass it to the SDK.
+      for (const key of Object.keys(req.headers)) {
+        if (key === "authorization" || key === "x-forwarded-client-cert") continue;
+        const value = req.headers[key];
+        if (value !== undefined) headers.set(key, String(value));
+      }
       const response = await transport.handleRequest(new Request(`http://${expectedHost}${MCP_PATH}`, { method: "POST", headers, body: JSON.stringify(message) }), { parsedBody: message });
       const body = Buffer.from(await response.arrayBuffer());
       if (diagnostics === true) {
