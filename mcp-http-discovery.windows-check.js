@@ -7,6 +7,44 @@ const os = require("node:os");
 const http = require("node:http");
 const { spawn, execFileSync } = require("node:child_process");
 const { once } = require("node:events");
+async function checkOAuthDiagnosticEnvironment(ps, directory, env) {
+  // Use the real launcher with an isolated child fixture; no real issuer, token,
+  // receiver or tunnel. The fixture reports only presence/booleans, never values.
+  const launcher = path.join(directory, "start-mcp-http-oauth.ps1");
+  await fs.copyFile(path.join(__dirname, "start-mcp-http-oauth.ps1"), launcher);
+  await fs.writeFile(path.join(directory, "mcp-http-server.js"), `
+    console.log('ENV_CHECK ' + JSON.stringify({
+      diagnostic: process.env.MEMO_MCP_HTTP_DIAGNOSTICS === '1',
+      diagnosticPresent: Object.hasOwn(process.env, 'MEMO_MCP_HTTP_DIAGNOSTICS'),
+      adapter: !!process.env.MEMO_PREVIEW_ADAPTER_TOKEN, ca: process.env.NODE_USE_SYSTEM_CA === '1',
+      isolated: ['CONTROL_PLANE_API_KEY','MEMO_PREVIEW_BROWSER_TOKEN','OAUTH_TOKEN','NODE_OPTIONS'].every(k => !Object.hasOwn(process.env,k))
+    })); setInterval(() => {}, 1000);
+  `);
+  for (const enabled of [false, true]) {
+    const child = spawn(ps, ["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File", launcher,
+      "-ConfigPath", path.join(directory, "config.json"), ...(enabled ? ["-Diagnostics"] : [])], {
+      windowsHide: true, env: { ...env, MEMO_MCP_HTTP_DIAGNOSTICS: "1", NODE_OPTIONS: "--trace-warnings" }
+    });
+    const closed = once(child, "close"); let output = "", pid;
+    child.stdout.on("data", x => { output += x; }); child.stderr.on("data", x => { output += x; });
+    try {
+      const deadline = Date.now() + 15000;
+      while (!output.includes("ENV_CHECK ") && Date.now() < deadline && child.exitCode === null) await new Promise(resolve => setTimeout(resolve, 100));
+      pid = Number(/Authenticated HTTP child PID: (\d+)/.exec(output)?.[1]);
+      assert.ok(pid && output.includes("ENV_CHECK "), "isolated OAuth launcher readiness");
+      assert.deepEqual(JSON.parse(/ENV_CHECK (.*)/.exec(output)[1]), {
+        diagnostic: enabled, diagnosticPresent: enabled, adapter: true, ca: true, isolated: true
+      });
+      assert.doesNotMatch(output, /TEST_SECRET_/);
+      // Only the child created by this test. Other running listeners are untouched.
+      process.kill(pid); pid = null; await closed;
+      assert.equal(child.exitCode, 1);
+    } finally {
+      if (pid) { try { process.kill(pid); } catch {} }
+      if (child.exitCode === null) { child.kill(); await closed; }
+    }
+  }
+}
 async function check() {
   assert.equal(process.platform, "win32");
   const ps = path.join(process.env.SystemRoot, "System32/WindowsPowerShell/v1.0/powershell.exe");
@@ -67,6 +105,7 @@ async function check() {
     assert.ok(refused?.includes("Authenticated HTTP startup refused"));
     assert.doesNotMatch(refused, /TEST_SECRET_|PRIVATE_BODY|b{43}/);
     await assert.rejects(request("/mcp"), /ECONNREFUSED/);
+    await checkOAuthDiagnosticEnvironment(ps, dir, env);
     console.log("Windows PS 5.1: syntax, real launch, Unicode/spaced config path, metadata, 401, collision, fixed logs, child-PID shutdown passed");
   } finally {
     if (pid) { try { process.kill(pid); } catch {} }
