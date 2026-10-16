@@ -80,7 +80,7 @@ function Assert($value,$message) { if (-not $value) { throw $message } }
 Assert ($PSVersionTable.PSVersion.Major -eq 5) 'requires PS5.1'
 $env:LOCALAPPDATA=$env:MEMO_TEST_EXTERNAL
 $settings=[pscustomobject]@{version=1; configPath=(Join-Path $env:MEMO_TEST_EXTERNAL 'OAuth 設定.json'); tunnelPath=$env:MEMO_TEST_NODE; tunnelId='tunnel_fixture'; memoUrl='http://127.0.0.1:5500/'; diagnostics=$false; keyFile=''}
-$key=New-LauncherToken
+$key='TEST_SECRET_RUNTIME_'+(New-LauncherToken)
 Save-LauncherSettings $settings $key $true
 $saved=Read-LauncherSettings
 Assert ((Read-LauncherKey $saved) -ceq $key) 'DPAPI roundtrip'
@@ -109,12 +109,29 @@ Update-LauncherObservation '{"diagnostic":"memo_http_oauth","event":"authenticat
 Assert (-not $diagnosticShared.Observation) 'diagnostics OFF'
 Write-Output 'PASS diagnostic semantics, startup 401, fixed safe text, OFF'
 $historySnapshot=''
-foreach ($scenario in @('normal','receiver_exit','receiver_timeout','oauth_exit','oauth_timeout','tunnel_exit','tunnel_timeout','unexpected_exit','health_owner_mismatch','history_corrupt','port_conflict','tunnel_conflict','history_override','binary_version','binary_options')) {
+$sessionScenarios=@('session_off','session_reopen','session_on','session_update','session_save_failed')
+function Wait-FixtureCommand($s) {
+  $deadline=[DateTime]::UtcNow.AddSeconds(45)
+  while($s.Busy -and -not $s.Done -and [DateTime]::UtcNow -lt $deadline) { Start-Sleep -Milliseconds 100 }
+  Assert (-not $s.Busy -and -not $s.Done) 'session controller command must complete'
+}
+foreach ($scenario in @($sessionScenarios)+@('normal','receiver_exit','receiver_timeout','oauth_exit','oauth_timeout','tunnel_exit','tunnel_timeout','unexpected_exit','health_owner_mismatch','history_corrupt','port_conflict','tunnel_conflict','history_override','binary_version','binary_options')) {
   [IO.File]::WriteAllText((Join-Path $PSScriptRoot 'scenario.txt'),$scenario)
   if($scenario -eq 'history_override') { $env:MEMO_PREVIEW_HISTORY_DIR=Join-Path $env:LOCALAPPDATA 'different-history' } else { Remove-Item Env:MEMO_PREVIEW_HISTORY_DIR -ErrorAction SilentlyContinue }
   $history=Join-Path $env:LOCALAPPDATA 'Memo-Nexus\\received-history'
   if ($scenario -eq 'history_corrupt') { [IO.File]::WriteAllText((Join-Path $history 'history.json'),'corrupt') }
   $shared=[hashtable]::Synchronized(@{State='停止中'; Receiver='停止中'; OAuth='停止中'; Tunnel='停止中'; Message=''; Observation=''; BrowserToken=''; Settings=$settings; Key=$key; Remember=$false; Diagnostics=$false; Busy=$true; Command='start'; Stop=$false; Exit=$false; Done=$false; TestProbe=''; TestFailure=''; TestStep=''; FixtureRoot=$PSScriptRoot; Foreign=$null; TestChildren=(New-Object Collections.ArrayList); TestStops=(New-Object Collections.ArrayList)})
+  if($scenario -in $sessionScenarios) {
+    if($scenario -ne 'session_reopen') { Save-LauncherSettings $settings $key $true }
+    $shared.Settings=Read-LauncherSettings; $shared.Key=''; $expectedKey=$key
+    $beforeSettings=[IO.File]::ReadAllText((Join-Path (Get-LauncherDirectory) 'settings.json'))
+    $oldKeyFile=$shared.Settings.keyFile
+    if($scenario -ne 'session_reopen') { Assert ([bool]$oldKeyFile -and (Read-LauncherKey $shared.Settings) -ceq $key) 'fresh session reads protected key'; $shared.Command='save' }
+    $shared.Remember=$scenario -in @('session_on','session_update','session_save_failed')
+    if($scenario -eq 'session_update') { $expectedKey='TEST_SECRET_UPDATED_'+(New-LauncherToken); $shared.Key=$expectedKey }
+  }
+  $settingsLock=$null
+  if($scenario -eq 'session_save_failed') { $settingsLock=[IO.File]::Open((Join-Path (Get-LauncherDirectory) 'settings.json'),[IO.FileMode]::Open,[IO.FileAccess]::Read,[IO.FileShare]::Read) }
   $holder=$null
   if ($scenario -eq 'port_conflict') { $holder=New-Object Net.Sockets.TcpListener([Net.IPAddress]::Loopback,${receiverPort}); $holder.Start() }
   $worker=[PowerShell]::Create()
@@ -153,7 +170,38 @@ foreach ($scenario in @('normal','receiver_exit','receiver_timeout','oauth_exit'
     $deadline=[DateTime]::UtcNow.AddSeconds(45)
     while ($shared.Busy -and -not $shared.Done -and [DateTime]::UtcNow -lt $deadline) { Start-Sleep -Milliseconds 100 }
     Assert (-not $shared.Busy) ('controller timeout '+$scenario+' state='+$shared.State+' receiver='+$shared.Receiver+' oauth='+$shared.OAuth+' tunnel='+$shared.Tunnel+' '+$shared.Message)
-    if ($scenario -in @('normal','unexpected_exit')) {
+    if($scenario -in $sessionScenarios) {
+      if($scenario -eq 'session_reopen') {
+        Assert (-not $shared.Settings.keyFile -and -not $shared.Key) 'new session must not inherit unremembered key'
+        Assert ($shared.State -eq '要対応' -and $shared.TestChildren.Count -eq 0) 'new session requires explicit key input'
+      } elseif($scenario -eq 'session_save_failed') {
+        Assert ($shared.State -eq '要対応' -and -not $shared.Key) 'failed save must not promote decrypted key or report success'
+        Assert ([IO.File]::ReadAllText((Join-Path (Get-LauncherDirectory) 'settings.json')) -ceq $beforeSettings) 'failed save keeps committed settings'
+        Assert ((Read-LauncherKey (Read-LauncherSettings)) -ceq $key) 'failed save preserves previous protected key'
+      } else {
+        Assert ($shared.State -eq '停止中') 'controller settings save succeeds'
+        Assert ($shared.Key -ceq $expectedKey) 'controller save must retain the effective session key'
+        $committed=Read-LauncherSettings
+        Assert ([bool]$committed.keyFile -eq $shared.Remember) 'disk retention preference is independent of session key'
+        if($shared.Remember) { Assert ((Read-LauncherKey $committed) -ceq $expectedKey) 'remembered key reuse/update' }
+        Assert (Test-Path -LiteralPath (Join-Path (Get-LauncherDirectory) $oldKeyFile)) 'old encrypted key is retained'
+        $cycles=$(if($scenario -eq 'session_off'){2}else{1})
+        for($cycle=0;$cycle -lt $cycles;$cycle++) {
+          $shared.Busy=$true; $shared.Command='start'; Wait-FixtureCommand $shared
+          Assert ($shared.State -eq 'ローカル準備完了') 'session key supports start/restart'
+          $tunnelChild=$shared.TestChildren[$shared.TestChildren.Count-1]
+          Assert ($tunnelChild.Process.StartInfo.EnvironmentVariables['CONTROL_PLANE_API_KEY'] -ceq $expectedKey) 'session key reaches the tunnel environment'
+          foreach($child in @($shared.TestChildren.ToArray())) { Assert (-not $child.Process.StartInfo.Arguments.Contains($expectedKey)) 'runtime key must not appear in argv or URL' }
+          $shared.Busy=$true; $shared.Stop=$true; Wait-FixtureCommand $shared
+          Assert ($shared.State -eq '停止中' -and $shared.Key -ceq $expectedKey) 'stop preserves current session key'
+        }
+        # No plaintext keys in settings, prior settings, encrypted files or fixture artifacts.
+        foreach($file in @((Get-ChildItem -LiteralPath (Get-LauncherDirectory) -File)) + @((Get-ChildItem -LiteralPath $PSScriptRoot -File))) {
+          $text=[Text.Encoding]::UTF8.GetString([IO.File]::ReadAllBytes($file.FullName))
+          Assert (-not $text.Contains($key) -and -not $text.Contains($expectedKey)) 'fixture artifacts must not contain plaintext runtime keys'
+        }
+      }
+    } elseif ($scenario -in @('normal','unexpected_exit')) {
       Assert ($shared.State -eq 'ローカル準備完了') ('readiness '+$scenario+' '+$shared.Message+' '+$shared.TestProbe+' step='+$shared.TestStep+' '+$shared.TestFailure)
       Assert ($shared.TestChildren.Count -eq 3) 'ordered start count'
       Assert (($shared.TestChildren.Role -join ',') -eq 'Receiver,OAuth,Tunnel') 'start order'
@@ -205,10 +253,12 @@ foreach ($scenario in @('normal','receiver_exit','receiver_timeout','oauth_exit'
     Write-Output ('PASS '+$scenario)
   } finally {
     $shared.Exit=$true
+    if($settingsLock) { $settingsLock.Dispose() }
     if ($holder) { $holder.Stop() }
     if ($shared.Foreign) { if(-not $shared.Foreign.Process.HasExited){$shared.Foreign.Process.Kill();[void]$shared.Foreign.Process.WaitForExit(2000)}; $shared.Foreign.Process.Dispose() }
     if ($async.AsyncWaitHandle.WaitOne(10000)) { [void]$worker.EndInvoke($async) } else { throw 'worker cleanup timeout' }
     $worker.Dispose()
+    if($scenario -in $sessionScenarios) { Assert (-not $shared.Key) 'controller exit clears session key' }
   }
 }
 Write-Output 'PASS all isolated controller checks'

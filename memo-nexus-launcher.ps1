@@ -280,7 +280,9 @@ function Invoke-LauncherController($Shared) {
                     $node=Test-LauncherSettings $settings $key
                     if ($command -eq 'save') {
                         Save-LauncherSettings $settings $key $Shared.Remember
-                        $Shared.Settings=Read-LauncherSettings; $Shared.State='停止中'; $Shared.Message='設定を検証して保存しました。登録・認証方式は変更していません。'
+                        $Shared.Settings=Read-LauncherSettings
+                        $Shared.Key=$key
+                        $Shared.State='停止中'; $Shared.Message='設定を検証して保存しました。登録・認証方式は変更していません。'
                     } elseif ($command -eq 'start') {
                         $Shared.State='起動中'; $Shared.Observation=''; $Shared.Diagnostics=[bool]$settings.diagnostics
                         if ($env:MEMO_PREVIEW_HISTORY_DIR) { throw 'history_override' }
