@@ -17,3 +17,5 @@ e2e-artifacts/received-preview/
 received-history/
 **/history.json
 **/history.next
+# Isolated Windows launcher fixtures, encrypted test keys and captured test output.
+e2e-artifacts/launcher/
