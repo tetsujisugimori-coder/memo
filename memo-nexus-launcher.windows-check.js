@@ -55,6 +55,7 @@ async function main() {
   controller += `\nfunction Get-Process { param($Name,$ErrorAction) if (([IO.File]::ReadAllText((Join-Path $PSScriptRoot 'scenario.txt'))) -eq 'tunnel_conflict') { [pscustomobject]@{Id=1} } }\n`;
   controller = controller.replace('[int]$TimeoutSeconds=25', '[int]$TimeoutSeconds=5').replace('} 35', '} 8');
   controller = controller.replace("try { if (& $Probe) { return } } catch { }", "try { if (& $Probe) { return } } catch { $Shared.TestProbe=$_.Exception.Message }");
+  controller = controller.replace('$code=$_.Exception.Message', '$code=$_.Exception.Message; $Shared.TestFailure=$_.ScriptStackTrace');
   controller = controller.replace("if ([MemoNexusTcpOwner]::LoopbackListener($healthPort) -ne $tunnel.Process.Id)", "$Shared.TestProbe='owner='+[MemoNexusTcpOwner]::LoopbackListener($healthPort)+' child='+$tunnel.Process.Id+' port='+$healthPort; if ([MemoNexusTcpOwner]::LoopbackListener($healthPort) -ne $tunnel.Process.Id)");
   await fs.writeFile(path.join(root, "memo-nexus-launcher.ps1"), bom + controller.replace(/^\uFEFF/, ""));
   const configPath = path.join(external, "OAuth 設定.json");
@@ -73,11 +74,12 @@ async function main() {
   const driver = path.join(root, "driver.ps1");
   await fs.writeFile(driver, bom + `
 $ErrorActionPreference='Stop'
+[Console]::OutputEncoding=New-Object Text.UTF8Encoding($false)
 . (Join-Path $PSScriptRoot 'memo-nexus-launcher.ps1')
 function Assert($value,$message) { if (-not $value) { throw $message } }
 Assert ($PSVersionTable.PSVersion.Major -eq 5) 'requires PS5.1'
 $env:LOCALAPPDATA=$env:MEMO_TEST_EXTERNAL
-$settings=[pscustomobject]@{version=1; configPath=(Join-Path $env:MEMO_TEST_EXTERNAL 'OAuth 設定.json'); tunnelPath=(Get-Command node -CommandType Application).Source; tunnelId='tunnel_fixture'; memoUrl='http://127.0.0.1:5500/'; diagnostics=$false; keyFile=''}
+$settings=[pscustomobject]@{version=1; configPath=(Join-Path $env:MEMO_TEST_EXTERNAL 'OAuth 設定.json'); tunnelPath=$env:MEMO_TEST_NODE; tunnelId='tunnel_fixture'; memoUrl='http://127.0.0.1:5500/'; diagnostics=$false; keyFile=''}
 $key=New-LauncherToken
 Save-LauncherSettings $settings $key $true
 $saved=Read-LauncherSettings
@@ -112,7 +114,7 @@ foreach ($scenario in @('normal','receiver_exit','receiver_timeout','oauth_exit'
   if($scenario -eq 'history_override') { $env:MEMO_PREVIEW_HISTORY_DIR=Join-Path $env:LOCALAPPDATA 'different-history' } else { Remove-Item Env:MEMO_PREVIEW_HISTORY_DIR -ErrorAction SilentlyContinue }
   $history=Join-Path $env:LOCALAPPDATA 'Memo-Nexus\\received-history'
   if ($scenario -eq 'history_corrupt') { [IO.File]::WriteAllText((Join-Path $history 'history.json'),'corrupt') }
-  $shared=[hashtable]::Synchronized(@{State='停止中'; Receiver='停止中'; OAuth='停止中'; Tunnel='停止中'; Message=''; Observation=''; BrowserToken=''; Settings=$settings; Key=$key; Remember=$false; Diagnostics=$false; Busy=$true; Command='start'; Stop=$false; Exit=$false; Done=$false; TestProbe=''; FixtureRoot=$PSScriptRoot; Foreign=$null; TestChildren=(New-Object Collections.ArrayList); TestStops=(New-Object Collections.ArrayList)})
+  $shared=[hashtable]::Synchronized(@{State='停止中'; Receiver='停止中'; OAuth='停止中'; Tunnel='停止中'; Message=''; Observation=''; BrowserToken=''; Settings=$settings; Key=$key; Remember=$false; Diagnostics=$false; Busy=$true; Command='start'; Stop=$false; Exit=$false; Done=$false; TestProbe=''; TestFailure=''; TestStep=''; FixtureRoot=$PSScriptRoot; Foreign=$null; TestChildren=(New-Object Collections.ArrayList); TestStops=(New-Object Collections.ArrayList)})
   $holder=$null
   if ($scenario -eq 'port_conflict') { $holder=New-Object Net.Sockets.TcpListener([Net.IPAddress]::Loopback,${receiverPort}); $holder.Start() }
   $worker=[PowerShell]::Create()
@@ -120,11 +122,13 @@ foreach ($scenario in @('normal','receiver_exit','receiver_timeout','oauth_exit'
     . $file
     $script:originalStart=(Get-Item function:New-LauncherProcess).ScriptBlock
     function New-LauncherProcess($Executable,$Arguments,$Environment,$Role) {
+      $s.TestStep=$Role
+      if($Role -eq 'Check') { $s.TestStep=$(if($Arguments[0] -eq '--version'){'version_check'}elseif($Arguments[0] -eq 'run'){'help_check'}else{'config_check'}) }
       if ($Role -eq 'Check' -and ($Arguments[0] -eq '--version' -or ($Arguments[0] -eq 'run' -and $Arguments[1] -eq '--help'))) {
         $Arguments=@((Join-Path $s.FixtureRoot 'fixture-client-info.js'))+$Arguments
       }
       if ($Role -eq 'Tunnel') {
-        $Executable=(Get-Command node -CommandType Application).Source
+        $Executable=$env:MEMO_TEST_NODE
         if([IO.File]::ReadAllText((Join-Path $s.FixtureRoot 'scenario.txt')) -eq 'health_owner_mismatch') {
           $s.Foreign=& $script:originalStart $Executable (@((Join-Path $s.FixtureRoot 'fixture-health.js'))+$Arguments) @{} 'Foreign'
           $Arguments=@('-e','setInterval(()=>{},1000)')
@@ -150,7 +154,7 @@ foreach ($scenario in @('normal','receiver_exit','receiver_timeout','oauth_exit'
     while ($shared.Busy -and -not $shared.Done -and [DateTime]::UtcNow -lt $deadline) { Start-Sleep -Milliseconds 100 }
     Assert (-not $shared.Busy) ('controller timeout '+$scenario+' state='+$shared.State+' receiver='+$shared.Receiver+' oauth='+$shared.OAuth+' tunnel='+$shared.Tunnel+' '+$shared.Message)
     if ($scenario -in @('normal','unexpected_exit')) {
-      Assert ($shared.State -eq 'ローカル準備完了') ('readiness '+$scenario+' '+$shared.Message+' '+$shared.TestProbe)
+      Assert ($shared.State -eq 'ローカル準備完了') ('readiness '+$scenario+' '+$shared.Message+' '+$shared.TestProbe+' step='+$shared.TestStep+' '+$shared.TestFailure)
       Assert ($shared.TestChildren.Count -eq 3) 'ordered start count'
       Assert (($shared.TestChildren.Role -join ',') -eq 'Receiver,OAuth,Tunnel') 'start order'
       if ($scenario -eq 'normal') {
@@ -211,7 +215,7 @@ Write-Output 'PASS all isolated controller checks'
 `);
   const env = {};
   for (const name of ["SystemRoot", "WINDIR", "TEMP", "TMP", "Path", "PATHEXT", "USERPROFILE", "APPDATA", "LOCALAPPDATA"]) if (process.env[name]) env[name] = process.env[name];
-  Object.assign(env, { MEMO_TEST_EXTERNAL: external, CONTROL_PLANE_API_KEY: "TEST_SECRET_INHERITED_RUNTIME",
+  Object.assign(env, { MEMO_TEST_EXTERNAL: external, MEMO_TEST_NODE: process.execPath, CONTROL_PLANE_API_KEY: "TEST_SECRET_INHERITED_RUNTIME",
     MEMO_PREVIEW_BROWSER_TOKEN: "TEST_SECRET_INHERITED_BROWSER", NODE_OPTIONS: "--trace-warnings" });
   const child = spawn(ps, ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", driver], { env, windowsHide: true });
   let output = ""; child.stdout.on("data", x => { output += x; process.stdout.write(x); }); child.stderr.on("data", x => { output += x; });
