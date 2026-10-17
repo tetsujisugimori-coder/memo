@@ -34,11 +34,27 @@ $taskComponents=New-Object Windows.Forms.Label -Property @{Left=18; Top=115; Wid
 $taskMessage=New-Object Windows.Forms.Label -Property @{Left=18; Top=205; Width=700; Height=80}
 $taskDiagnostic=New-Object Windows.Forms.Label -Property @{Left=18; Top=292; Width=700; Height=65}
 $taskTokenButton=New-Object Windows.Forms.Button -Property @{Text='Browser tokenをローカルで確認'; Left=18; Top=365; Width=320; Height=34}
-$taskSettingsStatus=New-Object Windows.Forms.Label -Property @{Left=18; Top=410; Width=700; Height=115; Anchor='Top,Left,Right'}
-$taskGuide=New-Object Windows.Forms.Label -Property @{Left=18; Top=535; Width=700; Height=115; Anchor='Top,Left,Right'}
-$taskNext=New-Object Windows.Forms.Label -Property @{Left=18; Top=660; Width=700; Height=80; Anchor='Top,Left,Right'}
+$taskSettingsStatus=New-Object Windows.Forms.Label -Property @{Left=18; Top=410; Width=700; Height=115}
+$taskGuide=New-Object Windows.Forms.Label -Property @{Left=18; Top=535; Width=700; Height=115}
+$taskNext=New-Object Windows.Forms.Label -Property @{Left=18; Top=660; Width=700; Height=80}
 $taskWarning=New-Object Windows.Forms.Label -Property @{Text='履歴：%LOCALAPPDATA%\Memo-Nexus\received-history。受信 → 未保存プレビュー → 人の確認 → 手動保存。再起動後は同じ原文の再送が必要になる場合があります。画面を閉じると配下サービスを停止します。'; Left=18; Top=750; Width=700; Height=65}
 foreach ($control in @($taskState,$taskComponents,$taskMessage,$taskDiagnostic,$taskTokenButton,$taskSettingsStatus,$taskGuide,$taskNext,$taskWarning)) { $taskForm.Controls.Add($control) }
+$script:taskLayoutBusy=$false
+function Update-LauncherLabelWidths {
+    if ($script:taskLayoutBusy) { return }
+    $script:taskLayoutBusy=$true
+    try {
+        # Reserve both margins within the actual viewport, including when Windows
+        # limits a scaled window to the desktop size. Keep the original width cap.
+        $scale=$taskTokenButton.Height/34.0
+        $width=[Math]::Max(1,[Math]::Min([int](700*$scale),$taskForm.ClientSize.Width-[int](36*$scale)))
+        foreach ($label in @($taskState,$taskComponents,$taskMessage,$taskDiagnostic,$taskSettingsStatus,$taskGuide,$taskNext,$taskWarning)) {
+            if ($label.Width -ne $width) { $label.Width=$width }
+        }
+    } finally { $script:taskLayoutBusy=$false }
+}
+$taskForm.Add_Layout({ Update-LauncherLabelWidths })
+Update-LauncherLabelWidths
 
 function Show-LauncherSettings {
     $dialog=New-Object Windows.Forms.Form -Property @{Text='Memo-Nexus 初回設定'; Width=720; Height=550; StartPosition='CenterParent'; FormBorderStyle='FixedDialog'; MaximizeBox=$false; MinimizeBox=$false}

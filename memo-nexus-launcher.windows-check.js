@@ -335,7 +335,7 @@ function Assert-Reachable($control) {
     [Windows.Forms.Application]::DoEvents()
     $rect=$taskForm.RectangleToClient($control.RectangleToScreen($control.ClientRectangle))
     Assert ($rect.Top -ge 0 -and $rect.Bottom -le $taskForm.ClientSize.Height) 'control not vertically reachable'
-    Assert ($rect.Left -ge 0 -and $rect.Right -le $taskForm.ClientSize.Width) 'control not horizontally readable'
+    Assert ($rect.Left -ge 0 -and $rect.Right -le $taskForm.ClientSize.Width) ('control not horizontally readable: scale='+$factor+' case='+$case[0]+' actual='+$taskForm.Size+' client='+$taskForm.ClientSize+' control='+$rect+' maxTrack='+[Windows.Forms.SystemInformation]::MaxWindowTrackSize)
 }
 $records=New-Object Collections.ArrayList
 $cases=@(
@@ -345,7 +345,8 @@ $cases=@(
     @('ready','ローカル準備完了','検証済み',''), @('stopping','停止処理中','検証済み',''),
     @('history','要対応','検証済み','history_override'), @('key','要対応','要確認','key_unavailable'),
     @('stop-failed','要対応','検証済み','stop_failed'))
-foreach($factor in @(1.0,1.25,1.5)) {
+foreach($condition in @(@(1.0,$false),@(1.25,$false),@(1.5,$false),@(1.5,$true))) {
+    $factor=$condition[0]; $limited=$condition[1]
 ${layout}
     try {
 ${handlers}
@@ -354,6 +355,7 @@ ${handlers}
             $taskForm.Scale((New-Object Drawing.SizeF($factor,$factor)))
             $taskForm.Font=New-Object Drawing.Font('Yu Gothic UI',(10*$factor))
         }
+        if($limited) { $taskForm.MaximumSize=New-Object Drawing.Size(1040,788) }
         $taskForm.Show(); [Windows.Forms.Application]::DoEvents()
         $graphics=$taskForm.CreateGraphics()
         try { $dpi=$graphics.DpiX } finally { $graphics.Dispose() }
@@ -380,7 +382,7 @@ ${render}
                 Assert-Reachable $taskWarning
                 $after=$taskForm.AutoScrollPosition.Y
                 if($warningBottom -gt $taskForm.ClientSize.Height) { Assert ($after -lt $before) 'scroll position must actually move' }
-                [void]$records.Add([pscustomobject]@{scale=$factor; synthetic=($factor -ne 1); deviceDpi=$dpi; logicalWidth=$size[0]; logicalHeight=$size[1]; width=$taskForm.Width; height=$taskForm.Height; case=$case[0]; scrollMaximum=$taskForm.VerticalScroll.Maximum; beforeY=$before; afterY=$after; warningReached=$true})
+                [void]$records.Add([pscustomobject]@{scale=$factor; synthetic=($factor -ne 1); limited=$limited; deviceDpi=$dpi; logicalWidth=$size[0]; logicalHeight=$size[1]; width=$taskForm.Width; height=$taskForm.Height; case=$case[0]; scrollMaximum=$taskForm.VerticalScroll.Maximum; beforeY=$before; afterY=$after; warningReached=$true})
                 $controls=@($taskStart,$taskStop,$taskOpen,$taskSettingsButton,$taskState,$taskComponents,$taskMessage,$taskDiagnostic,$taskTokenButton,$taskSettingsStatus,$taskGuide,$taskNext,$taskWarning)
                 foreach($control in $controls) {
                     Assert-Reachable $control
@@ -394,7 +396,7 @@ ${render}
                 if($case[0] -in @('unset','ready','invalid') -and $size[0] -ne 1000) {
                     Assert-Reachable $taskWarning
                     $image=New-Object Drawing.Bitmap($taskForm.Width,$taskForm.Height)
-                    try { $taskForm.DrawToBitmap($image,$taskForm.ClientRectangle); $image.Save((Join-Path $env:MEMO_TEST_ARTIFACTS ('scroll-'+$factor+'-'+$size[0]+'-'+$case[0]+'.png'))) } finally { $image.Dispose() }
+                    try { $taskForm.DrawToBitmap($image,$taskForm.ClientRectangle); $image.Save((Join-Path $env:MEMO_TEST_ARTIFACTS ('scroll-'+$factor+'-limited-'+$limited+'-'+$size[0]+'-'+$case[0]+'.png'))) } finally { $image.Dispose() }
                 }
             }
             # Actual handlers queue commands only: no worker can launch services/browser.
@@ -410,7 +412,7 @@ ${render}
             Assert-Reachable $taskSettingsButton
             Assert $taskSettingsButton.Enabled 'settings remains reachable after scroll'
         }
-        Write-Output ('PASS Forms scroll scale '+$factor)
+        Write-Output ('PASS Forms scroll scale '+$factor+' limited='+$limited)
     } finally { $taskForm.Close(); $taskForm.Dispose() }
 }
 $records | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath (Join-Path $env:MEMO_TEST_ARTIFACTS 'scroll-matrix.json') -Encoding UTF8
@@ -418,7 +420,7 @@ Write-Output ('PASS Forms scroll matrix: '+$records.Count+' cases; native DPI='+
 `);
   const scrollOutput = execFileSync(ps, ["-NoProfile", "-STA", "-ExecutionPolicy", "Bypass", "-WindowStyle", "Hidden", "-File", scrollDriver], { env, windowsHide: true, timeout: 90000, encoding: "utf8" });
   assert.doesNotMatch(scrollOutput, /TEST_SECRET/);
-  assert.match(scrollOutput, /PASS Forms scroll matrix: 132 cases/);
+  assert.match(scrollOutput, /PASS Forms scroll matrix: 176 cases/);
   await fs.writeFile(path.join(runArtifacts, "scroll.log"), scrollOutput); console.log(scrollOutput.trim());
   let gui = await fs.readFile(path.join(__dirname, "start-memo-nexus.ps1"), "utf8");
   gui = gui.replace("$ErrorActionPreference='Stop'", "$ErrorActionPreference='Stop'\n$env:LOCALAPPDATA=Join-Path $env:MEMO_TEST_EXTERNAL 'gui-isolated'");
