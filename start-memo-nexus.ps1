@@ -12,12 +12,14 @@ if (-not $taskLocked) {
 }
 $taskShared=[hashtable]::Synchronized(@{State='停止中'; Receiver='停止中'; OAuth='停止中'; Tunnel='停止中';
     Message='設定を確認して「MCPを起動」を押してください。'; Observation=''; BrowserToken='';
+    Validation='未検証'; SettingStatus=@{OAuth='未設定'; Tunnel='未設定'; Id='未設定'; Key='未確認'; Url='未設定'};
     Settings=$null; Key=''; Remember=$false; Diagnostics=$false; Busy=$false; Command=''; Stop=$false; Exit=$false; Done=$false})
 try { $taskShared.Settings=Read-LauncherSettings } catch { $taskShared.State='要対応'; $taskShared.Message=Get-LauncherMessage 'settings_invalid' }
+if ($taskShared.Settings) { $taskShared.Busy=$true; $taskShared.Command='validate' }
 $taskWorker=[PowerShell]::Create()
 [void]$taskWorker.AddScript('param($file,$shared) . $file; Invoke-LauncherController $shared').AddArgument((Join-Path $PSScriptRoot 'memo-nexus-launcher.ps1')).AddArgument($taskShared)
 $taskAsync=$taskWorker.BeginInvoke()
-$taskForm=New-Object Windows.Forms.Form -Property @{Text='Memo-Nexus MCP ランチャー'; Width=760; Height=540; StartPosition='CenterScreen'; MinimumSize=(New-Object Drawing.Size(760,540))}
+$taskForm=New-Object Windows.Forms.Form -Property @{Text='Memo-Nexus MCP ランチャー'; Width=800; Height=870; StartPosition='CenterScreen'; MinimumSize=(New-Object Drawing.Size(760,540)); AutoScroll=$true}
 $taskForm.Font=New-Object Drawing.Font('Yu Gothic UI',10)
 function Add-LauncherButton($Text,$Left,$Width) {
     $button=New-Object Windows.Forms.Button -Property @{Text=$Text; Left=$Left; Top=18; Width=$Width; Height=36}
@@ -32,8 +34,11 @@ $taskComponents=New-Object Windows.Forms.Label -Property @{Left=18; Top=115; Wid
 $taskMessage=New-Object Windows.Forms.Label -Property @{Left=18; Top=205; Width=700; Height=80}
 $taskDiagnostic=New-Object Windows.Forms.Label -Property @{Left=18; Top=292; Width=700; Height=65}
 $taskTokenButton=New-Object Windows.Forms.Button -Property @{Text='Browser tokenをローカルで確認'; Left=18; Top=365; Width=320; Height=34}
-$taskWarning=New-Object Windows.Forms.Label -Property @{Text='履歴：%LOCALAPPDATA%\Memo-Nexus\received-history。受信 → 未保存プレビュー → 人の確認 → 手動保存。再起動後は同じ原文の再送が必要になる場合があります。画面を閉じると配下サービスを停止します。'; Left=18; Top=410; Width=700; Height=65}
-foreach ($control in @($taskState,$taskComponents,$taskMessage,$taskDiagnostic,$taskTokenButton,$taskWarning)) { $taskForm.Controls.Add($control) }
+$taskSettingsStatus=New-Object Windows.Forms.Label -Property @{Left=18; Top=410; Width=700; Height=115; Anchor='Top,Left,Right'}
+$taskGuide=New-Object Windows.Forms.Label -Property @{Left=18; Top=535; Width=700; Height=115; Anchor='Top,Left,Right'}
+$taskNext=New-Object Windows.Forms.Label -Property @{Left=18; Top=660; Width=700; Height=80; Anchor='Top,Left,Right'}
+$taskWarning=New-Object Windows.Forms.Label -Property @{Text='履歴：%LOCALAPPDATA%\Memo-Nexus\received-history。受信 → 未保存プレビュー → 人の確認 → 手動保存。再起動後は同じ原文の再送が必要になる場合があります。画面を閉じると配下サービスを停止します。'; Left=18; Top=750; Width=700; Height=65}
+foreach ($control in @($taskState,$taskComponents,$taskMessage,$taskDiagnostic,$taskTokenButton,$taskSettingsStatus,$taskGuide,$taskNext,$taskWarning)) { $taskForm.Controls.Add($control) }
 
 function Show-LauncherSettings {
     $dialog=New-Object Windows.Forms.Form -Property @{Text='Memo-Nexus 初回設定'; Width=720; Height=550; StartPosition='CenterParent'; FormBorderStyle='FixedDialog'; MaximizeBox=$false; MinimizeBox=$false}
@@ -97,6 +102,11 @@ $taskForm.Add_FormClosing({
 })
 $taskTimer=New-Object Windows.Forms.Timer -Property @{Interval=200}
 $taskTimer.Add_Tick({
+    $guide=Get-LauncherGuide $taskShared
+    $taskGuide.Text=$guide.Steps
+    $taskNext.Text='次の操作：'+$guide.Next
+    $status=$taskShared.SettingStatus
+    $taskSettingsStatus.Text='保存済み設定（値は表示しません）'+"`r`nOAuth設定："+$status.OAuth+" ／ Tunnel実行ファイル："+$status.Tunnel+"`r`nTunnel ID："+$status.Id+"`r`nruntime key："+$status.Key+"`r`nMemo-Nexus URL："+$status.Url
     $taskState.Text='状態：'+$taskShared.State
     $taskComponents.Text='8791 受信サービス：'+$taskShared.Receiver+"`r`n8792 OAuth入口："+$taskShared.OAuth+"`r`nSecure MCP Tunnel："+$taskShared.Tunnel
     $taskMessage.Text=$taskShared.Message

@@ -108,6 +108,28 @@ $diagnosticShared.Diagnostics=$false; $diagnosticShared.Observation=''
 Update-LauncherObservation '{"diagnostic":"memo_http_oauth","event":"authentication","status":"accepted"}' $diagnosticChild $diagnosticShared
 Assert (-not $diagnosticShared.Observation) 'diagnostics OFF'
 Write-Output 'PASS diagnostic semantics, startup 401, fixed safe text, OFF'
+$guideShared=@{State='停止中'; Settings=$null; Validation='未検証'; Message=''; Observation=''; Key=$key; BrowserToken='TEST_SECRET_BROWSER'}
+Assert ((Get-LauncherGuide $guideShared).Next.Contains('初回設定')) 'guide initial settings'
+$guideShared.Settings=$settings
+Assert ((Get-LauncherGuide $guideShared).Next.Contains('検証が必要')) 'guide loaded settings require validation'
+$guideShared.Validation='検証中'
+Assert ((Get-LauncherGuide $guideShared).Next.Contains('検証中')) 'guide validating'
+$guideShared.Validation='要確認'
+Assert ((Get-LauncherGuide $guideShared).Next.Contains('検証失敗')) 'guide validation failure'
+$guideShared.Validation='検証済み'
+Assert ((Get-LauncherGuide $guideShared).Next.Contains('MCPを起動')) 'guide validated stopped'
+foreach($state in @('起動中','ローカル準備完了','停止処理中','要対応','停止中')) {
+  $guideShared.State=$state; $guideShared.Message=Get-LauncherMessage 'port_conflict'
+  $guideShared.Observation='TEST_SECRET_RAW_DIAGNOSTIC'
+  $guide=Get-LauncherGuide $guideShared
+  Assert ($guide.Steps.Contains('3 ChatGPT接続確認：ユーザーによる確認が必要') -and $guide.Steps.Contains('4 Memo-Nexus受信・手動保存：ユーザーによる確認が必要')) 'unobserved stages never succeed'
+  Assert (-not (($guide.Steps+$guide.Next).Contains($key)) -and -not (($guide.Steps+$guide.Next).Contains('TEST_SECRET'))) 'guide never renders settings secrets or raw observations'
+  if($state -eq 'ローカル準備完了') { Assert ($guide.Next.Contains('Browser token') -and $guide.Next.Contains('手動保存')) 'ready guide next actions' }
+  if($state -eq '要対応') { Assert ($guide.Next -ceq $guideShared.Message) 'existing error cause and action retained' }
+}
+Write-Output 'PASS guide states, manual confirmation, secrets excluded'
+$guideShared.State='要対応'; $guideShared.Settings=$null
+Assert ((Get-LauncherGuide $guideShared).Steps.Contains('1 設定確認：要対応')) 'invalid saved settings must not suggest initial setup'
 $historySnapshot=''
 $sessionScenarios=@('session_off','session_reopen','session_on','session_update','session_save_failed')
 function Wait-FixtureCommand($s) {
@@ -115,7 +137,7 @@ function Wait-FixtureCommand($s) {
   while($s.Busy -and -not $s.Done -and [DateTime]::UtcNow -lt $deadline) { Start-Sleep -Milliseconds 100 }
   Assert (-not $s.Busy -and -not $s.Done) 'session controller command must complete'
 }
-foreach ($scenario in @($sessionScenarios)+@('normal','receiver_exit','receiver_timeout','oauth_exit','oauth_timeout','tunnel_exit','tunnel_timeout','unexpected_exit','health_owner_mismatch','history_corrupt','port_conflict','tunnel_conflict','history_override','binary_version','binary_options')) {
+foreach ($scenario in @($sessionScenarios)+@('validate_saved','validate_key_failed','validate_missing_key','normal','receiver_exit','receiver_timeout','oauth_exit','oauth_timeout','tunnel_exit','tunnel_timeout','unexpected_exit','health_owner_mismatch','history_corrupt','port_conflict','tunnel_conflict','history_override','binary_version','binary_options')) {
   [IO.File]::WriteAllText((Join-Path $PSScriptRoot 'scenario.txt'),$scenario)
   if($scenario -eq 'history_override') { $env:MEMO_PREVIEW_HISTORY_DIR=Join-Path $env:LOCALAPPDATA 'different-history' } else { Remove-Item Env:MEMO_PREVIEW_HISTORY_DIR -ErrorAction SilentlyContinue }
   $history=Join-Path $env:LOCALAPPDATA 'Memo-Nexus\\received-history'
@@ -131,6 +153,12 @@ foreach ($scenario in @($sessionScenarios)+@('normal','receiver_exit','receiver_
     if($scenario -eq 'session_update') { $expectedKey='TEST_SECRET_UPDATED_'+(New-LauncherToken); $shared.Key=$expectedKey }
   }
   $settingsLock=$null
+  if($scenario -like 'validate_*') {
+    Save-LauncherSettings $settings $key ($scenario -ne 'validate_missing_key')
+    $shared.Settings=Read-LauncherSettings; $shared.Key=''; $shared.Command='validate'
+    if($scenario -eq 'validate_key_failed') { [IO.File]::WriteAllText((Join-Path (Get-LauncherDirectory) $shared.Settings.keyFile),'corrupt') }
+    $validationBefore=[IO.File]::ReadAllBytes((Join-Path (Get-LauncherDirectory) 'settings.json'))
+  }
   if($scenario -eq 'session_save_failed') { $settingsLock=[IO.File]::Open((Join-Path (Get-LauncherDirectory) 'settings.json'),[IO.FileMode]::Open,[IO.FileAccess]::Read,[IO.FileShare]::Read) }
   $holder=$null
   if ($scenario -eq 'port_conflict') { $holder=New-Object Net.Sockets.TcpListener([Net.IPAddress]::Loopback,${receiverPort}); $holder.Start() }
@@ -170,12 +198,23 @@ foreach ($scenario in @($sessionScenarios)+@('normal','receiver_exit','receiver_
     $deadline=[DateTime]::UtcNow.AddSeconds(45)
     while ($shared.Busy -and -not $shared.Done -and [DateTime]::UtcNow -lt $deadline) { Start-Sleep -Milliseconds 100 }
     Assert (-not $shared.Busy) ('controller timeout '+$scenario+' state='+$shared.State+' receiver='+$shared.Receiver+' oauth='+$shared.OAuth+' tunnel='+$shared.Tunnel+' '+$shared.Message)
-    if($scenario -in $sessionScenarios) {
+    if($scenario -like 'validate_*') {
+      Assert ($shared.TestChildren.Count -eq 0 -and -not $shared.BrowserToken -and -not $shared.Key) 'validation does not start services, generate tokens or retain decrypted key'
+      Assert ([Convert]::ToBase64String([IO.File]::ReadAllBytes((Join-Path (Get-LauncherDirectory) 'settings.json'))) -ceq [Convert]::ToBase64String($validationBefore)) 'validation never saves or resets settings'
+      if($scenario -eq 'validate_saved') {
+        Assert ($shared.Validation -eq '検証済み' -and $shared.State -eq '停止中') 'saved settings validation succeeds'
+        Assert ($shared.SettingStatus.OAuth -eq '検証済み' -and $shared.SettingStatus.Tunnel -eq '固定build検証済み' -and $shared.SettingStatus.Id -eq '形式検証済み' -and $shared.SettingStatus.Key.Contains('利用可能') -and $shared.SettingStatus.Url.Contains('未確認')) 'all five settings summaries'
+      } else {
+        Assert ($shared.Validation -eq '要確認' -and $shared.State -eq '要対応') 'validation failure visible'
+        if($scenario -eq 'validate_key_failed') { Assert ($shared.SettingStatus.Key.Contains('復号失敗')) 'decryption failure guidance' }
+      }
+    } elseif($scenario -in $sessionScenarios) {
       if($scenario -eq 'session_reopen') {
         Assert (-not $shared.Settings.keyFile -and -not $shared.Key) 'new session must not inherit unremembered key'
         Assert ($shared.State -eq '要対応' -and $shared.TestChildren.Count -eq 0) 'new session requires explicit key input'
       } elseif($scenario -eq 'session_save_failed') {
         Assert ($shared.State -eq '要対応' -and -not $shared.Key) 'failed save must not promote decrypted key or report success'
+        Assert ($shared.Validation -eq '要確認' -and -not $shared.SettingStatus.OAuth.Contains('検証済み')) 'failed commit cannot label candidate as saved settings'
         Assert ([IO.File]::ReadAllText((Join-Path (Get-LauncherDirectory) 'settings.json')) -ceq $beforeSettings) 'failed save keeps committed settings'
         Assert ((Read-LauncherKey (Read-LauncherSettings)) -ceq $key) 'failed save preserves previous protected key'
       } else {
@@ -265,7 +304,7 @@ Write-Output 'PASS all isolated controller checks'
 `);
   const env = {};
   for (const name of ["SystemRoot", "WINDIR", "TEMP", "TMP", "Path", "PATHEXT", "USERPROFILE", "APPDATA", "LOCALAPPDATA"]) if (process.env[name]) env[name] = process.env[name];
-  Object.assign(env, { MEMO_TEST_EXTERNAL: external, MEMO_TEST_NODE: process.execPath, CONTROL_PLANE_API_KEY: "TEST_SECRET_INHERITED_RUNTIME",
+  Object.assign(env, { MEMO_TEST_EXTERNAL: external, MEMO_TEST_NODE: process.execPath, MEMO_TEST_ARTIFACTS: artifacts, CONTROL_PLANE_API_KEY: "TEST_SECRET_INHERITED_RUNTIME",
     MEMO_PREVIEW_BROWSER_TOKEN: "TEST_SECRET_INHERITED_BROWSER", NODE_OPTIONS: "--trace-warnings" });
   const child = spawn(ps, ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", driver], { env, windowsHide: true });
   let output = ""; child.stdout.on("data", x => { output += x; process.stdout.write(x); }); child.stderr.on("data", x => { output += x; });
@@ -285,7 +324,25 @@ $taskUiTestTimer=New-Object Windows.Forms.Timer -Property @{Interval=250}
 $taskUiTestTimer.Add_Tick({
     if(-not (Test-Path -LiteralPath (Join-Path $PSScriptRoot 'gui-release'))) { return }
     switch($script:taskUiStage) {
-        0 { $script:taskUiStage=1; $taskSettingsButton.PerformClick() }
+        0 {
+            if(-not $taskGuide.Text) { return }
+            foreach($state in @('停止中','起動中','ローカル準備完了','停止処理中','要対応')) {
+                $sample=@{State=$state; Settings=@{}; Validation='検証済み'; Message=(Get-LauncherMessage 'history_corrupt')}
+                $sampleGuide=Get-LauncherGuide $sample
+                $taskGuide.Text=$sampleGuide.Steps; $taskNext.Text='次の操作：'+$sampleGuide.Next
+                foreach($control in @($taskGuide,$taskNext)) {
+                    $size=[Windows.Forms.TextRenderer]::MeasureText($control.Text,$control.Font,(New-Object Drawing.Size($control.Width,1000)),[Windows.Forms.TextFormatFlags]::WordBreak)
+                    if($size.Height -gt $control.Height) { throw 'state guide text exceeds label' }
+                }
+            }
+            foreach($control in @($taskSettingsStatus,$taskGuide,$taskNext,$taskWarning)) {
+                $size=[Windows.Forms.TextRenderer]::MeasureText($control.Text,$control.Font,(New-Object Drawing.Size($control.Width,1000)),[Windows.Forms.TextFormatFlags]::WordBreak)
+                if($size.Height -gt $control.Height) { throw 'guide text exceeds label' }
+            }
+            $image=New-Object Drawing.Bitmap($taskForm.Width,$taskForm.Height)
+            try { $taskForm.DrawToBitmap($image,$taskForm.ClientRectangle); $image.Save((Join-Path $env:MEMO_TEST_ARTIFACTS 'guide.png')) } finally { $image.Dispose() }
+            $script:taskUiStage=1; $taskSettingsButton.PerformClick()
+        }
         1 {
             $dialogs=@([Windows.Forms.Application]::OpenForms | Where-Object { $_.Text -eq 'Memo-Nexus 初回設定' })
             if($dialogs.Count -eq 1) { $dialogs[0].Close(); $script:taskUiStage=2 }
