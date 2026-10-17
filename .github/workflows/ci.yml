@@ -618,6 +618,8 @@ jobs:
       - run: npm test
       - name: Verify discovery-only Windows HTTP launcher
         run: node mcp-http-discovery.windows-check.js
+      - name: Verify isolated Windows Forms launcher controller and protected settings
+        run: node memo-nexus-launcher.windows-check.js
       - run: npm run test:e2e:received-recovery
       - run: npm run test:e2e:mcp-http-oauth
       - name: Preserve Windows recovery results including failures
@@ -625,6 +627,8 @@ jobs:
         uses: actions/upload-artifact@v6
         with:
           name: received-recovery-windows
-          path: e2e-artifacts/received-preview/
+          path: |
+            e2e-artifacts/received-preview/
+            e2e-artifacts/launcher/
           if-no-files-found: error
           retention-days: 14

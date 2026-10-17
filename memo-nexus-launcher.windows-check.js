@@ -1,0 +1,317 @@
+"use strict";
+// Real PS 5.1 controller and real persistent receiver; mock OAuth/Tunnel only.
+// Copied sources use private dynamic ports. Live 8791/8792/Tunnel are untouched.
+const assert = require("node:assert/strict");
+const fs = require("node:fs/promises");
+const path = require("node:path");
+const os = require("node:os");
+const net = require("node:net");
+const { execFileSync, spawn } = require("node:child_process");
+const { once } = require("node:events");
+const ps = path.join(process.env.SystemRoot || "", "System32/WindowsPowerShell/v1.0/powershell.exe");
+const bom = "\uFEFF";
+async function freePort() {
+  const server = net.createServer(); server.listen(0, "127.0.0.1"); await once(server, "listening");
+  const port = server.address().port; await new Promise(resolve => server.close(resolve)); return port;
+}
+async function main() {
+  assert.equal(process.platform, "win32");
+  const external = await fs.mkdtemp(path.join(os.tmpdir(), "memo launcher 日本語 'quote' "));
+  const artifacts = path.join(__dirname, "e2e-artifacts/launcher"); await fs.mkdir(artifacts, { recursive: true });
+  const root = path.join(external, "空白 日本語 'quote'"); await fs.mkdir(root);
+  await fs.symlink(path.join(__dirname, "node_modules"), path.join(root, "node_modules"), "junction");
+  const receiverPort = await freePort(), oauthPort = await freePort();
+  for (const file of ["memo-nexus-launcher-check.js", "mcp-http-auth.js", "dummy-preview-service.js", "dummy-preview-queue.js", "dummy-preview-history.js"]) {
+    await fs.copyFile(path.join(__dirname, file), path.join(root, file));
+  }
+  let helper = await fs.readFile(path.join(root, "memo-nexus-launcher-check.js"), "utf8");
+  helper = helper.replaceAll("8791", String(receiverPort)).replaceAll("8792", String(oauthPort));
+  helper = helper.replace('let server;', `let server;
+    const fixture = require("node:fs").readFileSync(require("node:path").join(__dirname,"scenario.txt"),"utf8");
+    if (fixture === role + "_exit") process.exit(1);
+    if (fixture === role + "_timeout") { setInterval(() => {},1000); return; }
+    if (role !== "validate") require("node:fs").writeFileSync(require("node:path").join(__dirname,role+".env.json"), JSON.stringify({
+      names: Object.keys(process.env), adapter: require("node:crypto").createHash("sha256").update(process.env.MEMO_PREVIEW_ADAPTER_TOKEN || "").digest("hex") }));`);
+  await fs.writeFile(path.join(root, "memo-nexus-launcher-check.js"), helper);
+  await fs.writeFile(path.join(root, "mcp-http-server.js"), `
+    const http = require('node:http');
+    exports.createAuthenticatedServer = async (config) => http.createServer((req,res) => {
+      if(req.url.startsWith('/.well-known/')) { res.writeHead(200,{'Content-Type':'application/json'}); res.end(JSON.stringify({resource:config.resource,authorization_servers:config.authorization_servers,scopes_supported:config.scopes_supported})); }
+      else { res.writeHead(401,{'WWW-Authenticate':'Bearer resource_metadata="'+config.resource_metadata+'"'}); res.end('{}'); }
+    });
+  `);
+  await fs.writeFile(path.join(root, "fixture-health.js"), `
+    const fs=require('node:fs'), path=require('node:path'), http=require('node:http');
+    const scenario=fs.readFileSync(path.join(__dirname,'scenario.txt'),'utf8');
+    if(scenario==='tunnel_exit') process.exit(1);
+    fs.writeFileSync(path.join(__dirname,'tunnel.env.json'),JSON.stringify(Object.keys(process.env)));
+    const endpoint=process.argv[process.argv.indexOf('--health.listen-addr')+1];
+    http.createServer((req,res)=>{res.writeHead(scenario==='tunnel_timeout'?503:200);res.end();})
+      .listen(Number(endpoint.split(':')[1]),'127.0.0.1',()=>console.log('fixture_health_ready'));
+  `);
+  let controller = await fs.readFile(path.join(__dirname, "memo-nexus-launcher.ps1"), "utf8");
+  controller = controller.replaceAll("8791", String(receiverPort)).replaceAll("8792", String(oauthPort));
+  // Test-only isolation: production always checks all tunnel-client processes.
+  controller += `\nfunction Get-Process { param($Name,$ErrorAction) if (([IO.File]::ReadAllText((Join-Path $PSScriptRoot 'scenario.txt'))) -eq 'tunnel_conflict') { [pscustomobject]@{Id=1} } }\n`;
+  controller = controller.replace('[int]$TimeoutSeconds=25', '[int]$TimeoutSeconds=5').replace('} 35', '} 8');
+  controller = controller.replace("try { if (& $Probe) { return } } catch { }", "try { if (& $Probe) { return } } catch { $Shared.TestProbe=$_.Exception.Message }");
+  controller = controller.replace('$code=$_.Exception.Message', '$code=$_.Exception.Message; $Shared.TestFailure=$_.ScriptStackTrace');
+  controller = controller.replace("if ([MemoNexusTcpOwner]::LoopbackListener($healthPort) -ne $tunnel.Process.Id)", "$Shared.TestProbe='owner='+[MemoNexusTcpOwner]::LoopbackListener($healthPort)+' child='+$tunnel.Process.Id+' port='+$healthPort; if ([MemoNexusTcpOwner]::LoopbackListener($healthPort) -ne $tunnel.Process.Id)");
+  await fs.writeFile(path.join(root, "memo-nexus-launcher.ps1"), bom + controller.replace(/^\uFEFF/, ""));
+  const configPath = path.join(external, "OAuth 設定.json");
+  const config = { mode: "authenticated", port: oauthPort, resource: "https://resource.example.invalid/mcp",
+    audience: "https://api.example.invalid/", resource_metadata: `http://127.0.0.1:${oauthPort}/.well-known/oauth-protected-resource/mcp`,
+    authorization_servers: ["https://issuer.example.invalid/"], scopes_supported: ["memo:submit"], allowedSubjects: ["auth0|fixture"] };
+  await fs.writeFile(configPath, JSON.stringify(config));
+  // No generated/copied EXE. Norton protection stays enabled; never restore or exclude a fixture.
+  await fs.writeFile(path.join(root, "fixture-client-info.js"), `
+    const fs=require('node:fs'),path=require('node:path');
+    const scenario=fs.readFileSync(path.join(__dirname,'scenario.txt'),'utf8');
+    if(process.argv[2]==='--version') console.log(scenario==='binary_version'?'unverified-build':'0.0.16+5f99daabd4aa4a77049e6d81d54a0d8c18335397');
+    else console.log(scenario==='binary_options'?'--mcp.server-url':'--mcp.server-url --mcp.oauth-trusted-origin --log.http-raw-unsafe --health.listen-addr');
+  `);
+  await fs.writeFile(path.join(root, "scenario.txt"), "normal");
+  const driver = path.join(root, "driver.ps1");
+  await fs.writeFile(driver, bom + `
+$ErrorActionPreference='Stop'
+[Console]::OutputEncoding=New-Object Text.UTF8Encoding($false)
+. (Join-Path $PSScriptRoot 'memo-nexus-launcher.ps1')
+function Assert($value,$message) { if (-not $value) { throw $message } }
+Assert ($PSVersionTable.PSVersion.Major -eq 5) 'requires PS5.1'
+$env:LOCALAPPDATA=$env:MEMO_TEST_EXTERNAL
+$settings=[pscustomobject]@{version=1; configPath=(Join-Path $env:MEMO_TEST_EXTERNAL 'OAuth 設定.json'); tunnelPath=$env:MEMO_TEST_NODE; tunnelId='tunnel_fixture'; memoUrl='http://127.0.0.1:5500/'; diagnostics=$false; keyFile=''}
+$key='TEST_SECRET_RUNTIME_'+(New-LauncherToken)
+Save-LauncherSettings $settings $key $true
+$saved=Read-LauncherSettings
+Assert ((Read-LauncherKey $saved) -ceq $key) 'DPAPI roundtrip'
+Assert (-not ([IO.File]::ReadAllText((Join-Path (Get-LauncherDirectory) 'settings.json')).Contains($key))) 'plaintext key'
+$encrypted=[IO.File]::ReadAllBytes((Join-Path (Get-LauncherDirectory) $saved.keyFile))
+Assert (-not ([Text.Encoding]::UTF8.GetString($encrypted).Contains($key))) 'encrypted file'
+[IO.File]::WriteAllText((Join-Path (Get-LauncherDirectory) $saved.keyFile),'corrupt')
+$refused=$false; try { Read-LauncherKey $saved | Out-Null } catch { $refused=$true }; Assert $refused 'corrupt DPAPI must refuse'
+Save-LauncherSettings $settings $key $true
+Save-LauncherSettings $settings $key $false
+Assert (-not (Read-LauncherSettings).keyFile) 'session only key preference'
+$savedAcl=(New-Object IO.DirectoryInfo((Get-LauncherDirectory))).GetAccessControl([Security.AccessControl.AccessControlSections]::Access)
+$mySid=[Security.Principal.WindowsIdentity]::GetCurrent().User
+foreach($rule in $savedAcl.GetAccessRules($true,$true,[Security.Principal.SecurityIdentifier])) { Assert ($rule.IdentityReference -eq $mySid) 'private directory ACL' }
+Write-Output 'PASS DPAPI current-user, separate settings, corrupt refusal'
+$diagnosticShared=@{Diagnostics=$true; Observation=''}; $diagnosticChild=@{Role='OAuth'; Bearer=@{}}
+Update-LauncherObservation '{"diagnostic":"memo_http_oauth","event":"request_received","sequence":1,"bearerPresent":false}' $diagnosticChild $diagnosticShared
+Update-LauncherObservation '{"diagnostic":"memo_http_oauth","event":"authentication","sequence":1,"status":"rejected"}' $diagnosticChild $diagnosticShared
+Assert (-not $diagnosticShared.Observation) 'startup 401 is not a connection failure'
+foreach($line in @('{"diagnostic":"memo_http_oauth","event":"tools_prepared","toolCount":2,"expectedTools":true}', '{"diagnostic":"memo_http_oauth","event":"protocol_result","stage":"tools_list","status":200,"success":false,"toolCount":2,"expectedTools":true}', '{"diagnostic":"memo_http_oauth","event":"protocol_result","stage":"tools_list","status":500,"success":true,"toolCount":2,"expectedTools":true}')) { Update-LauncherObservation $line $diagnosticChild $diagnosticShared }
+Assert (-not $diagnosticShared.Observation) 'prepared/HTTP200 are not tool detection'
+Update-LauncherObservation '{"diagnostic":"memo_http_oauth","event":"protocol_result","stage":"tools_list","status":200,"success":true,"toolCount":2,"expectedTools":true,"unsafe":"TEST_SECRET_DIAGNOSTIC"}' $diagnosticChild $diagnosticShared
+Assert ([bool]$diagnosticShared.Observation -and -not $diagnosticShared.Observation.Contains('TEST_SECRET')) 'fixed observed tools summary'
+$diagnosticShared.Diagnostics=$false; $diagnosticShared.Observation=''
+Update-LauncherObservation '{"diagnostic":"memo_http_oauth","event":"authentication","status":"accepted"}' $diagnosticChild $diagnosticShared
+Assert (-not $diagnosticShared.Observation) 'diagnostics OFF'
+Write-Output 'PASS diagnostic semantics, startup 401, fixed safe text, OFF'
+$historySnapshot=''
+$sessionScenarios=@('session_off','session_reopen','session_on','session_update','session_save_failed')
+function Wait-FixtureCommand($s) {
+  $deadline=[DateTime]::UtcNow.AddSeconds(45)
+  while($s.Busy -and -not $s.Done -and [DateTime]::UtcNow -lt $deadline) { Start-Sleep -Milliseconds 100 }
+  Assert (-not $s.Busy -and -not $s.Done) 'session controller command must complete'
+}
+foreach ($scenario in @($sessionScenarios)+@('normal','receiver_exit','receiver_timeout','oauth_exit','oauth_timeout','tunnel_exit','tunnel_timeout','unexpected_exit','health_owner_mismatch','history_corrupt','port_conflict','tunnel_conflict','history_override','binary_version','binary_options')) {
+  [IO.File]::WriteAllText((Join-Path $PSScriptRoot 'scenario.txt'),$scenario)
+  if($scenario -eq 'history_override') { $env:MEMO_PREVIEW_HISTORY_DIR=Join-Path $env:LOCALAPPDATA 'different-history' } else { Remove-Item Env:MEMO_PREVIEW_HISTORY_DIR -ErrorAction SilentlyContinue }
+  $history=Join-Path $env:LOCALAPPDATA 'Memo-Nexus\\received-history'
+  if ($scenario -eq 'history_corrupt') { [IO.File]::WriteAllText((Join-Path $history 'history.json'),'corrupt') }
+  $shared=[hashtable]::Synchronized(@{State='停止中'; Receiver='停止中'; OAuth='停止中'; Tunnel='停止中'; Message=''; Observation=''; BrowserToken=''; Settings=$settings; Key=$key; Remember=$false; Diagnostics=$false; Busy=$true; Command='start'; Stop=$false; Exit=$false; Done=$false; TestProbe=''; TestFailure=''; TestStep=''; FixtureRoot=$PSScriptRoot; Foreign=$null; TestChildren=(New-Object Collections.ArrayList); TestStops=(New-Object Collections.ArrayList)})
+  if($scenario -in $sessionScenarios) {
+    if($scenario -ne 'session_reopen') { Save-LauncherSettings $settings $key $true }
+    $shared.Settings=Read-LauncherSettings; $shared.Key=''; $expectedKey=$key
+    $beforeSettings=[IO.File]::ReadAllText((Join-Path (Get-LauncherDirectory) 'settings.json'))
+    $oldKeyFile=$shared.Settings.keyFile
+    if($scenario -ne 'session_reopen') { Assert ([bool]$oldKeyFile -and (Read-LauncherKey $shared.Settings) -ceq $key) 'fresh session reads protected key'; $shared.Command='save' }
+    $shared.Remember=$scenario -in @('session_on','session_update','session_save_failed')
+    if($scenario -eq 'session_update') { $expectedKey='TEST_SECRET_UPDATED_'+(New-LauncherToken); $shared.Key=$expectedKey }
+  }
+  $settingsLock=$null
+  if($scenario -eq 'session_save_failed') { $settingsLock=[IO.File]::Open((Join-Path (Get-LauncherDirectory) 'settings.json'),[IO.FileMode]::Open,[IO.FileAccess]::Read,[IO.FileShare]::Read) }
+  $holder=$null
+  if ($scenario -eq 'port_conflict') { $holder=New-Object Net.Sockets.TcpListener([Net.IPAddress]::Loopback,${receiverPort}); $holder.Start() }
+  $worker=[PowerShell]::Create()
+  [void]$worker.AddScript({ param($file,$s)
+    . $file
+    $script:originalStart=(Get-Item function:New-LauncherProcess).ScriptBlock
+    function New-LauncherProcess($Executable,$Arguments,$Environment,$Role) {
+      $s.TestStep=$Role
+      if($Role -eq 'Check') { $s.TestStep=$(if($Arguments[0] -eq '--version'){'version_check'}elseif($Arguments[0] -eq 'run'){'help_check'}else{'config_check'}) }
+      if ($Role -eq 'Check' -and ($Arguments[0] -eq '--version' -or ($Arguments[0] -eq 'run' -and $Arguments[1] -eq '--help'))) {
+        $Arguments=@((Join-Path $s.FixtureRoot 'fixture-client-info.js'))+$Arguments
+      }
+      if ($Role -eq 'Tunnel') {
+        $Executable=$env:MEMO_TEST_NODE
+        if([IO.File]::ReadAllText((Join-Path $s.FixtureRoot 'scenario.txt')) -eq 'health_owner_mismatch') {
+          $s.Foreign=& $script:originalStart $Executable (@((Join-Path $s.FixtureRoot 'fixture-health.js'))+$Arguments) @{} 'Foreign'
+          $Arguments=@('-e','setInterval(()=>{},1000)')
+        } else { $Arguments=@((Join-Path $s.FixtureRoot 'fixture-health.js'))+$Arguments }
+      }
+      $child=& $script:originalStart $Executable $Arguments $Environment $Role
+      if ($Role -in @('Receiver','OAuth','Tunnel')) {
+        $child.TestProcess=[Diagnostics.Process]::GetProcessById($child.Process.Id); $testHandle=$child.TestProcess.Handle
+        [void]$s.TestChildren.Add($child)
+      }
+      return $child
+    }
+    $script:originalStop=(Get-Item function:Stop-LauncherChildren).ScriptBlock
+    function Stop-LauncherChildren($Children,$Shared) {
+      for($i=$Children.Count-1; $i -ge 0; $i--) { [void]$s.TestStops.Add($Children[$i].Role) }
+      & $script:originalStop $Children $Shared
+    }
+    Invoke-LauncherController $s
+  }).AddArgument((Join-Path $PSScriptRoot 'memo-nexus-launcher.ps1')).AddArgument($shared)
+  $async=$worker.BeginInvoke()
+  try {
+    $deadline=[DateTime]::UtcNow.AddSeconds(45)
+    while ($shared.Busy -and -not $shared.Done -and [DateTime]::UtcNow -lt $deadline) { Start-Sleep -Milliseconds 100 }
+    Assert (-not $shared.Busy) ('controller timeout '+$scenario+' state='+$shared.State+' receiver='+$shared.Receiver+' oauth='+$shared.OAuth+' tunnel='+$shared.Tunnel+' '+$shared.Message)
+    if($scenario -in $sessionScenarios) {
+      if($scenario -eq 'session_reopen') {
+        Assert (-not $shared.Settings.keyFile -and -not $shared.Key) 'new session must not inherit unremembered key'
+        Assert ($shared.State -eq '要対応' -and $shared.TestChildren.Count -eq 0) 'new session requires explicit key input'
+      } elseif($scenario -eq 'session_save_failed') {
+        Assert ($shared.State -eq '要対応' -and -not $shared.Key) 'failed save must not promote decrypted key or report success'
+        Assert ([IO.File]::ReadAllText((Join-Path (Get-LauncherDirectory) 'settings.json')) -ceq $beforeSettings) 'failed save keeps committed settings'
+        Assert ((Read-LauncherKey (Read-LauncherSettings)) -ceq $key) 'failed save preserves previous protected key'
+      } else {
+        Assert ($shared.State -eq '停止中') 'controller settings save succeeds'
+        Assert ($shared.Key -ceq $expectedKey) 'controller save must retain the effective session key'
+        $committed=Read-LauncherSettings
+        Assert ([bool]$committed.keyFile -eq $shared.Remember) 'disk retention preference is independent of session key'
+        if($shared.Remember) { Assert ((Read-LauncherKey $committed) -ceq $expectedKey) 'remembered key reuse/update' }
+        Assert (Test-Path -LiteralPath (Join-Path (Get-LauncherDirectory) $oldKeyFile)) 'old encrypted key is retained'
+        $cycles=$(if($scenario -eq 'session_off'){2}else{1})
+        for($cycle=0;$cycle -lt $cycles;$cycle++) {
+          $shared.Busy=$true; $shared.Command='start'; Wait-FixtureCommand $shared
+          Assert ($shared.State -eq 'ローカル準備完了') 'session key supports start/restart'
+          $tunnelChild=$shared.TestChildren[$shared.TestChildren.Count-1]
+          Assert ($tunnelChild.Process.StartInfo.EnvironmentVariables['CONTROL_PLANE_API_KEY'] -ceq $expectedKey) 'session key reaches the tunnel environment'
+          foreach($child in @($shared.TestChildren.ToArray())) { Assert (-not $child.Process.StartInfo.Arguments.Contains($expectedKey)) 'runtime key must not appear in argv or URL' }
+          $shared.Busy=$true; $shared.Stop=$true; Wait-FixtureCommand $shared
+          Assert ($shared.State -eq '停止中' -and $shared.Key -ceq $expectedKey) 'stop preserves current session key'
+        }
+        # No plaintext keys in settings, prior settings, encrypted files or fixture artifacts.
+        foreach($file in @((Get-ChildItem -LiteralPath (Get-LauncherDirectory) -File)) + @((Get-ChildItem -LiteralPath $PSScriptRoot -File))) {
+          $text=[Text.Encoding]::UTF8.GetString([IO.File]::ReadAllBytes($file.FullName))
+          Assert (-not $text.Contains($key) -and -not $text.Contains($expectedKey)) 'fixture artifacts must not contain plaintext runtime keys'
+        }
+      }
+    } elseif ($scenario -in @('normal','unexpected_exit')) {
+      Assert ($shared.State -eq 'ローカル準備完了') ('readiness '+$scenario+' '+$shared.Message+' '+$shared.TestProbe+' step='+$shared.TestStep+' '+$shared.TestFailure)
+      Assert ($shared.TestChildren.Count -eq 3) 'ordered start count'
+      Assert (($shared.TestChildren.Role -join ',') -eq 'Receiver,OAuth,Tunnel') 'start order'
+      if ($scenario -eq 'normal') {
+        # Duplicate commands cannot replace or stop this run's children.
+        $shared.Busy=$true; $shared.Command='start'
+        $deadline=[DateTime]::UtcNow.AddSeconds(5)
+        while($shared.Busy -and [DateTime]::UtcNow -lt $deadline) { Start-Sleep -Milliseconds 100 }
+        Assert ($shared.TestChildren.Count -eq 3 -and $shared.State -eq 'ローカル準備完了') 'duplicate start must preserve current run'
+        $request=[Net.HttpWebRequest]::Create('http://127.0.0.1:${receiverPort}/dummy'); $request.Proxy=$null; $request.Method='POST'; $request.ContentType='application/json'; $request.Timeout=2000; $request.ServicePoint.Expect100Continue=$false
+        $request.Headers['Authorization']='Bearer '+$shared.TestChildren[0].Process.StartInfo.EnvironmentVariables['MEMO_PREVIEW_ADAPTER_TOKEN']
+        $payload=[Text.Encoding]::UTF8.GetBytes(('{"requestId":"'+[Guid]::NewGuid().ToString()+'"}')); $request.ContentLength=$payload.Length
+        $stream=$request.GetRequestStream(); $stream.Write($payload,0,$payload.Length); $stream.Dispose()
+        $response=$request.GetResponse(); Assert ([int]$response.StatusCode -eq 200) 'fixture receipt'; $response.Close()
+        $historySnapshot=[IO.File]::ReadAllText((Join-Path $history 'history.json'))
+      } else { Assert ([IO.File]::ReadAllText((Join-Path $history 'history.json')) -ceq $historySnapshot) 'same history after restart' }
+      $receiverEnv=Get-Content -Raw -LiteralPath (Join-Path $PSScriptRoot 'receiver.env.json') | ConvertFrom-Json
+      $oauthEnv=Get-Content -Raw -LiteralPath (Join-Path $PSScriptRoot 'oauth.env.json') | ConvertFrom-Json
+      Assert ($receiverEnv.adapter -ceq $oauthEnv.adapter) 'adapter sharing'
+      Assert ('CONTROL_PLANE_API_KEY' -notin $receiverEnv.names -and 'CONTROL_PLANE_API_KEY' -notin $oauthEnv.names) 'runtime key isolation'
+      Assert ('MEMO_PREVIEW_BROWSER_TOKEN' -notin $oauthEnv.names -and 'NODE_OPTIONS' -notin $oauthEnv.names) 'browser token isolation'
+      $tunnelEnv=Get-Content -Raw -LiteralPath (Join-Path $PSScriptRoot 'tunnel.env.json') | ConvertFrom-Json
+      Assert ('MEMO_PREVIEW_ADAPTER_TOKEN' -notin $tunnelEnv -and 'MEMO_PREVIEW_BROWSER_TOKEN' -notin $tunnelEnv -and 'CONTROL_PLANE_API_KEY' -in $tunnelEnv) 'tunnel child environment'
+      if ($scenario -eq 'unexpected_exit') {
+        $shared.TestChildren[1].Process.Kill()
+        $deadline=[DateTime]::UtcNow.AddSeconds(12)
+        while($shared.State -ne '要対応' -and [DateTime]::UtcNow -lt $deadline) { Start-Sleep -Milliseconds 100 }
+        Assert ($shared.State -eq '要対応') 'unexpected exit detection'
+      } else {
+        $shared.Stop=$true; $shared.Busy=$true
+        $deadline=[DateTime]::UtcNow.AddSeconds(12)
+        while($shared.Busy -and [DateTime]::UtcNow -lt $deadline) { Start-Sleep -Milliseconds 100 }
+        Assert ($shared.State -eq '停止中') 'normal stop'
+      }
+      Assert (($shared.TestStops -join ',') -eq 'Tunnel,OAuth,Receiver') 'reverse stop'
+      Assert (Test-Path -LiteralPath (Join-Path $history 'history.json')) 'history retained'
+      Assert ([IO.File]::ReadAllText((Join-Path $history 'history.json')) -ceq $historySnapshot) 'stop preserves durable receipt'
+    } else {
+      Assert ($shared.State -eq '要対応') ('failure state '+$scenario)
+      Assert (-not $shared.BrowserToken) 'failed startup token cleared'
+      if ($scenario -in @('port_conflict','tunnel_conflict','history_override')) { Assert ($shared.TestChildren.Count -eq 0) 'foreign service/history must not be adopted' }
+      if ($holder) { Assert $holder.Server.IsBound 'foreign listener preserved' }
+      if ($scenario -eq 'health_owner_mismatch') { Assert ($null -ne $shared.Foreign -and -not $shared.Foreign.Process.HasExited) 'foreign health process preserved'; Assert ($shared.TestChildren.Count -eq 3) 'mismatch tested after all stages started' }
+    }
+    foreach($child in @($shared.TestChildren.ToArray())) {
+      Assert ($child.TestProcess.HasExited) ('leftover child '+$child.Role)
+      $child.TestProcess.Dispose()
+    }
+    Write-Output ('PASS '+$scenario)
+  } finally {
+    $shared.Exit=$true
+    if($settingsLock) { $settingsLock.Dispose() }
+    if ($holder) { $holder.Stop() }
+    if ($shared.Foreign) { if(-not $shared.Foreign.Process.HasExited){$shared.Foreign.Process.Kill();[void]$shared.Foreign.Process.WaitForExit(2000)}; $shared.Foreign.Process.Dispose() }
+    if ($async.AsyncWaitHandle.WaitOne(10000)) { [void]$worker.EndInvoke($async) } else { throw 'worker cleanup timeout' }
+    $worker.Dispose()
+    if($scenario -in $sessionScenarios) { Assert (-not $shared.Key) 'controller exit clears session key' }
+  }
+}
+Write-Output 'PASS all isolated controller checks'
+`);
+  const env = {};
+  for (const name of ["SystemRoot", "WINDIR", "TEMP", "TMP", "Path", "PATHEXT", "USERPROFILE", "APPDATA", "LOCALAPPDATA"]) if (process.env[name]) env[name] = process.env[name];
+  Object.assign(env, { MEMO_TEST_EXTERNAL: external, MEMO_TEST_NODE: process.execPath, CONTROL_PLANE_API_KEY: "TEST_SECRET_INHERITED_RUNTIME",
+    MEMO_PREVIEW_BROWSER_TOKEN: "TEST_SECRET_INHERITED_BROWSER", NODE_OPTIONS: "--trace-warnings" });
+  const child = spawn(ps, ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", driver], { env, windowsHide: true });
+  let output = ""; child.stdout.on("data", x => { output += x; process.stdout.write(x); }); child.stderr.on("data", x => { output += x; });
+  const timer = setTimeout(() => child.kill(), 180000);
+  const [code] = await once(child, "close"); clearTimeout(timer);
+  await fs.writeFile(path.join(artifacts, "controller.log"), output);
+  assert.doesNotMatch(output, /TEST_SECRET_/);
+  assert.equal(code, 0, output);
+  assert.match(output, /PASS all isolated controller checks/);
+  let gui = await fs.readFile(path.join(__dirname, "start-memo-nexus.ps1"), "utf8");
+  gui = gui.replace("$ErrorActionPreference='Stop'", "$ErrorActionPreference='Stop'\n$env:LOCALAPPDATA=Join-Path $env:MEMO_TEST_EXTERNAL 'gui-isolated'");
+  gui = gui.replace("Local\\MemoNexusWindowsLauncher", "Local\\MemoNexusWindowsLauncherFixture-" + path.basename(external).replace(/[^a-zA-Z0-9]/g, ""));
+  gui = gui.replace("[void][Windows.Forms.MessageBox]::Show('ランチャーは既に起動しています。既存の画面を確認してください。','Memo-Nexus')", "Write-Output 'PASS GUI duplicate refused'");
+  gui = gui.replace("try { $taskTimer.Start();", `
+$script:taskUiStage=0
+$taskUiTestTimer=New-Object Windows.Forms.Timer -Property @{Interval=250}
+$taskUiTestTimer.Add_Tick({
+    if(-not (Test-Path -LiteralPath (Join-Path $PSScriptRoot 'gui-release'))) { return }
+    switch($script:taskUiStage) {
+        0 { $script:taskUiStage=1; $taskSettingsButton.PerformClick() }
+        1 {
+            $dialogs=@([Windows.Forms.Application]::OpenForms | Where-Object { $_.Text -eq 'Memo-Nexus 初回設定' })
+            if($dialogs.Count -eq 1) { $dialogs[0].Close(); $script:taskUiStage=2 }
+        }
+        2 { $script:taskUiStage=3; $taskStart.PerformClick() }
+        3 { if(-not $taskShared.Busy -and $taskShared.State -eq '要対応') { $script:taskUiStage=4; $taskStop.PerformClick() } }
+        4 { if(-not $taskShared.Busy -and $taskShared.State -eq '停止中') { $script:taskUiStage=5; $taskForm.Close() } }
+    }
+})
+$taskUiTestTimer.Start()
+Write-Output 'GUI_READY'
+try { $taskTimer.Start();`);
+  gui += `\n$taskUiTestTimer.Stop(); $taskUiTestTimer.Dispose(); if($script:taskUiStage -ne 5 -or -not $taskShared.Done) { throw 'GUI event smoke failed' }; Write-Output 'PASS real PS5.1 Forms event loop, settings, rejected start, stop, close'\n`;
+  await fs.writeFile(path.join(root, "gui.ps1"), bom + gui.replace(/^\uFEFF/, ""));
+  const guiChild = spawn(ps, ["-NoProfile", "-STA", "-ExecutionPolicy", "Bypass", "-WindowStyle", "Hidden", "-File", path.join(root, "gui.ps1")], { env, windowsHide: true });
+  let guiOutput = "", guiReady;
+  const ready = new Promise(resolve => { guiReady = resolve; });
+  guiChild.stdout.on("data", x => { guiOutput += x; if(guiOutput.includes("GUI_READY")) guiReady(); }); guiChild.stderr.on("data", x => { guiOutput += x; });
+  const guiTimeout = setTimeout(() => guiChild.kill(), 30000);
+  const guiClosed = once(guiChild, "close");
+  await Promise.race([ready, guiClosed.then(() => { throw Error(guiOutput || "GUI did not become ready"); })]);
+  const duplicate = execFileSync(ps, ["-NoProfile", "-STA", "-ExecutionPolicy", "Bypass", "-File", path.join(root, "gui.ps1")], { env, windowsHide: true, timeout: 10000, encoding: "utf8" });
+  assert.match(duplicate, /PASS GUI duplicate refused/); console.log(duplicate.trim());
+  await fs.writeFile(path.join(root, "gui-release"), "release");
+  const [guiCode] = await guiClosed; clearTimeout(guiTimeout);
+  assert.equal(guiCode, 0, guiOutput);
+  assert.match(guiOutput, /PASS real PS5.1 Forms/); console.log(guiOutput.trim());
+}
+main().catch(error => { console.error(error); process.exitCode = 1; });
