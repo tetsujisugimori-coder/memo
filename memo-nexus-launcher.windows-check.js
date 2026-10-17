@@ -18,6 +18,8 @@ async function main() {
   assert.equal(process.platform, "win32");
   const external = await fs.mkdtemp(path.join(os.tmpdir(), "memo launcher 日本語 'quote' "));
   const artifacts = path.join(__dirname, "e2e-artifacts/launcher"); await fs.mkdir(artifacts, { recursive: true });
+  const runArtifacts = path.join(artifacts, "run-" + path.basename(external).replace(/[^a-zA-Z0-9]/g, ""));
+  await fs.mkdir(runArtifacts);
   const root = path.join(external, "空白 日本語 'quote'"); await fs.mkdir(root);
   await fs.symlink(path.join(__dirname, "node_modules"), path.join(root, "node_modules"), "junction");
   const receiverPort = await freePort(), oauthPort = await freePort();
@@ -304,24 +306,130 @@ Write-Output 'PASS all isolated controller checks'
 `);
   const env = {};
   for (const name of ["SystemRoot", "WINDIR", "TEMP", "TMP", "Path", "PATHEXT", "USERPROFILE", "APPDATA", "LOCALAPPDATA"]) if (process.env[name]) env[name] = process.env[name];
-  Object.assign(env, { MEMO_TEST_EXTERNAL: external, MEMO_TEST_NODE: process.execPath, MEMO_TEST_ARTIFACTS: artifacts, CONTROL_PLANE_API_KEY: "TEST_SECRET_INHERITED_RUNTIME",
+  Object.assign(env, { MEMO_TEST_EXTERNAL: external, MEMO_TEST_NODE: process.execPath, MEMO_TEST_ARTIFACTS: runArtifacts, CONTROL_PLANE_API_KEY: "TEST_SECRET_INHERITED_RUNTIME",
     MEMO_PREVIEW_BROWSER_TOKEN: "TEST_SECRET_INHERITED_BROWSER", NODE_OPTIONS: "--trace-warnings" });
   const child = spawn(ps, ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", driver], { env, windowsHide: true });
   let output = ""; child.stdout.on("data", x => { output += x; process.stdout.write(x); }); child.stderr.on("data", x => { output += x; });
   const timer = setTimeout(() => child.kill(), 180000);
   const [code] = await once(child, "close"); clearTimeout(timer);
-  await fs.writeFile(path.join(artifacts, "controller.log"), output);
+  await fs.writeFile(path.join(runArtifacts, "controller.log"), output);
   assert.doesNotMatch(output, /TEST_SECRET_/);
   assert.equal(code, 0, output);
   assert.match(output, /PASS all isolated controller checks/);
+  // Execute the actual layout, rendering and button handlers without a controller.
+  // Scale() checks are synthetic; they do not change Windows display DPI.
+  const uiSource = await fs.readFile(path.join(__dirname, "start-memo-nexus.ps1"), "utf8");
+  const layout = uiSource.slice(uiSource.indexOf("$taskForm=New-Object"), uiSource.indexOf("function Show-LauncherSettings"));
+  const render = uiSource.slice(uiSource.indexOf("$guide=Get-LauncherGuide"), uiSource.indexOf("$taskStart.Enabled="));
+  const handlers = uiSource.slice(uiSource.indexOf("$taskStart.Add_Click({"), uiSource.indexOf("$taskTokenButton.Add_Click({"));
+  const scrollDriver = path.join(root, "scroll-layout.ps1");
+  await fs.writeFile(scrollDriver, bom + `
+$ErrorActionPreference='Stop'
+[Console]::OutputEncoding=New-Object Text.UTF8Encoding($false)
+Add-Type -AssemblyName System.Windows.Forms
+Add-Type -AssemblyName System.Drawing
+. (Join-Path $PSScriptRoot 'memo-nexus-launcher.ps1')
+function Assert($value,$message) { if(-not $value) { throw $message } }
+function Assert-Reachable($control) {
+    $taskForm.ScrollControlIntoView($control)
+    [Windows.Forms.Application]::DoEvents()
+    $rect=$taskForm.RectangleToClient($control.RectangleToScreen($control.ClientRectangle))
+    Assert ($rect.Top -ge 0 -and $rect.Bottom -le $taskForm.ClientSize.Height) 'control not vertically reachable'
+    Assert ($rect.Left -ge 0 -and $rect.Right -le $taskForm.ClientSize.Width) 'control not horizontally readable'
+}
+$records=New-Object Collections.ArrayList
+$cases=@(
+    @('unset','停止中','未検証',''), @('loaded','停止中','未検証',''),
+    @('validating','停止中','検証中',''), @('invalid','要対応','要確認','settings_invalid'),
+    @('validated','停止中','検証済み',''), @('starting','起動中','検証済み',''),
+    @('ready','ローカル準備完了','検証済み',''), @('stopping','停止処理中','検証済み',''),
+    @('history','要対応','検証済み','history_override'), @('key','要対応','要確認','key_unavailable'),
+    @('stop-failed','要対応','検証済み','stop_failed'))
+foreach($factor in @(1.0,1.25,1.5)) {
+${layout}
+    try {
+${handlers}
+        if($factor -ne 1) {
+            $taskForm.AutoScaleMode='None'
+            $taskForm.Scale((New-Object Drawing.SizeF($factor,$factor)))
+            $taskForm.Font=New-Object Drawing.Font('Yu Gothic UI',(10*$factor))
+        }
+        $taskForm.Show(); [Windows.Forms.Application]::DoEvents()
+        $graphics=$taskForm.CreateGraphics()
+        try { $dpi=$graphics.DpiX } finally { $graphics.Dispose() }
+        foreach($size in @(@(800,870),@(760,540),@(1000,900),@(760,540))) {
+            $taskForm.Size=New-Object Drawing.Size(([int]($size[0]*$factor)),([int]($size[1]*$factor)))
+            foreach($case in $cases) {
+                $taskShared=@{State=$case[1]; Validation=$case[2]; Settings=[pscustomobject]@{configPath='TEST_SECRET_SETTING'; memoUrl='TEST_SECRET_URL'};
+                    Key='TEST_SECRET_KEY'; BrowserToken='TEST_SECRET_TOKEN'; Busy=$false; Command=''; Stop=$false;
+                    Receiver='ローカル準備完了'; OAuth='ローカル準備完了'; Tunnel='ローカル準備完了';
+                    Message=$(if($case[3]) { Get-LauncherMessage $case[3] } else { '設定・Node依存・Tunnel buildを検査しています。' }); Diagnostics=$true;
+                    Observation='想定2ツールの一覧応答生成を観測。ChatGPT側の表示を確認してください';
+                    SettingStatus=@{OAuth='要確認（検証・保存未完了）'; Tunnel='要確認（検証・保存未完了）'; Id='要確認（検証・保存未完了）'; Key='復号失敗・明示再入力が必要'; Url='要確認（検証・保存未完了）'}}
+                if($case[0] -eq 'unset') { $taskShared.Settings=$null }
+                if($case[0] -in @('validated','ready')) { $taskShared.SettingStatus=@{OAuth='検証済み'; Tunnel='固定build検証済み'; Id='形式検証済み'; Key='利用可能（認証成功は未確認）'; Url='検証済み（配信・保存は未確認）'} }
+${render}
+                $taskForm.AutoScrollPosition=New-Object Drawing.Point(0,0)
+                $taskForm.PerformLayout(); [Windows.Forms.Application]::DoEvents()
+                $before=$taskForm.AutoScrollPosition.Y
+                $warningBottom=$taskWarning.Bottom
+                if($warningBottom -gt $taskForm.ClientSize.Height) {
+                    Assert $taskForm.VerticalScroll.Visible 'overflow must expose vertical scrollbar'
+                    Assert ($taskForm.VerticalScroll.Maximum -ge $warningBottom-1) 'scroll range must include warning'
+                }
+                Assert-Reachable $taskWarning
+                $after=$taskForm.AutoScrollPosition.Y
+                if($warningBottom -gt $taskForm.ClientSize.Height) { Assert ($after -lt $before) 'scroll position must actually move' }
+                [void]$records.Add([pscustomobject]@{scale=$factor; synthetic=($factor -ne 1); deviceDpi=$dpi; logicalWidth=$size[0]; logicalHeight=$size[1]; width=$taskForm.Width; height=$taskForm.Height; case=$case[0]; scrollMaximum=$taskForm.VerticalScroll.Maximum; beforeY=$before; afterY=$after; warningReached=$true})
+                $controls=@($taskStart,$taskStop,$taskOpen,$taskSettingsButton,$taskState,$taskComponents,$taskMessage,$taskDiagnostic,$taskTokenButton,$taskSettingsStatus,$taskGuide,$taskNext,$taskWarning)
+                foreach($control in $controls) {
+                    Assert-Reachable $control
+                    Assert (-not $control.Text.Contains('TEST_SECRET')) 'settings values must not reach presentation'
+                    $measure=[Windows.Forms.TextRenderer]::MeasureText($control.Text,$control.Font,(New-Object Drawing.Size($control.Width,10000)),[Windows.Forms.TextFormatFlags]::WordBreak)
+                    Assert ($measure.Height -le $control.Height) ('text clipped in '+$case[0])
+                }
+                for($i=0;$i -lt $controls.Count;$i++) {
+                    for($j=$i+1;$j -lt $controls.Count;$j++) { Assert (-not $controls[$i].Bounds.IntersectsWith($controls[$j].Bounds)) 'controls overlap' }
+                }
+                if($case[0] -in @('unset','ready','invalid') -and $size[0] -ne 1000) {
+                    Assert-Reachable $taskWarning
+                    $image=New-Object Drawing.Bitmap($taskForm.Width,$taskForm.Height)
+                    try { $taskForm.DrawToBitmap($image,$taskForm.ClientRectangle); $image.Save((Join-Path $env:MEMO_TEST_ARTIFACTS ('scroll-'+$factor+'-'+$size[0]+'-'+$case[0]+'.png'))) } finally { $image.Dispose() }
+                }
+            }
+            # Actual handlers queue commands only: no worker can launch services/browser.
+            $taskShared.State='停止中'; $taskShared.Busy=$false; $taskShared.Command=''
+            Assert-Reachable $taskStart; $taskStart.PerformClick()
+            Assert ($taskShared.Command -eq 'start' -and $taskShared.Busy) 'start after scroll'
+            $taskShared.Busy=$false; $taskShared.Stop=$false
+            Assert-Reachable $taskStop; $taskStop.PerformClick()
+            Assert ($taskShared.Stop -and $taskShared.Busy) 'stop after scroll'
+            $taskShared.Busy=$false; $taskShared.Settings=[pscustomobject]@{}; $taskShared.Command=''
+            Assert-Reachable $taskOpen; $taskOpen.PerformClick()
+            Assert ($taskShared.Command -eq 'open' -and $taskShared.Busy) 'open command after scroll'
+            Assert-Reachable $taskSettingsButton
+            Assert $taskSettingsButton.Enabled 'settings remains reachable after scroll'
+        }
+        Write-Output ('PASS Forms scroll scale '+$factor)
+    } finally { $taskForm.Close(); $taskForm.Dispose() }
+}
+$records | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath (Join-Path $env:MEMO_TEST_ARTIFACTS 'scroll-matrix.json') -Encoding UTF8
+Write-Output ('PASS Forms scroll matrix: '+$records.Count+' cases; native DPI='+$dpi+'; 125/150 percent are synthetic Scale tests')
+`);
+  const scrollOutput = execFileSync(ps, ["-NoProfile", "-STA", "-ExecutionPolicy", "Bypass", "-WindowStyle", "Hidden", "-File", scrollDriver], { env, windowsHide: true, timeout: 90000, encoding: "utf8" });
+  assert.doesNotMatch(scrollOutput, /TEST_SECRET/);
+  assert.match(scrollOutput, /PASS Forms scroll matrix: 132 cases/);
+  await fs.writeFile(path.join(runArtifacts, "scroll.log"), scrollOutput); console.log(scrollOutput.trim());
   let gui = await fs.readFile(path.join(__dirname, "start-memo-nexus.ps1"), "utf8");
   gui = gui.replace("$ErrorActionPreference='Stop'", "$ErrorActionPreference='Stop'\n$env:LOCALAPPDATA=Join-Path $env:MEMO_TEST_EXTERNAL 'gui-isolated'");
   gui = gui.replace("Local\\MemoNexusWindowsLauncher", "Local\\MemoNexusWindowsLauncherFixture-" + path.basename(external).replace(/[^a-zA-Z0-9]/g, ""));
   gui = gui.replace("[void][Windows.Forms.MessageBox]::Show('ランチャーは既に起動しています。既存の画面を確認してください。','Memo-Nexus')", "Write-Output 'PASS GUI duplicate refused'");
   gui = gui.replace("try { $taskTimer.Start();", `
 $script:taskUiStage=0
+$script:taskUiError=''
 $taskUiTestTimer=New-Object Windows.Forms.Timer -Property @{Interval=250}
 $taskUiTestTimer.Add_Tick({
+    try {
     if(-not (Test-Path -LiteralPath (Join-Path $PSScriptRoot 'gui-release'))) { return }
     switch($script:taskUiStage) {
         0 {
@@ -341,21 +449,30 @@ $taskUiTestTimer.Add_Tick({
             }
             $image=New-Object Drawing.Bitmap($taskForm.Width,$taskForm.Height)
             try { $taskForm.DrawToBitmap($image,$taskForm.ClientRectangle); $image.Save((Join-Path $env:MEMO_TEST_ARTIFACTS 'guide.png')) } finally { $image.Dispose() }
-            $script:taskUiStage=1; $taskSettingsButton.PerformClick()
+            $taskForm.Size=New-Object Drawing.Size(760,540)
+            $taskForm.ScrollControlIntoView($taskWarning)
+            if($taskForm.AutoScrollPosition.Y -ge 0) { throw 'GUI must scroll before settings click' }
+            $taskForm.ScrollControlIntoView($taskSettingsButton)
+            $script:taskUiStage=1; [Console]::WriteLine('GUI stage 1: settings after scroll'); $taskSettingsButton.PerformClick()
         }
         1 {
             $dialogs=@([Windows.Forms.Application]::OpenForms | Where-Object { $_.Text -eq 'Memo-Nexus 初回設定' })
-            if($dialogs.Count -eq 1) { $dialogs[0].Close(); $script:taskUiStage=2 }
+            if($dialogs.Count -eq 1) { $dialogs[0].Close(); $script:taskUiStage=2; [Console]::WriteLine('GUI stage 2: settings closed') }
         }
-        2 { $script:taskUiStage=3; $taskStart.PerformClick() }
+        2 { $script:taskUiStage=3; [Console]::WriteLine('GUI stage 3: start'); $taskStart.PerformClick() }
         3 { if(-not $taskShared.Busy -and $taskShared.State -eq '要対応') { $script:taskUiStage=4; $taskStop.PerformClick() } }
         4 { if(-not $taskShared.Busy -and $taskShared.State -eq '停止中') { $script:taskUiStage=5; $taskForm.Close() } }
+    }
+    } catch {
+        $script:taskUiError='GUI stage '+$script:taskUiStage+': '+$_.Exception.Message
+        [Console]::WriteLine($script:taskUiError)
+        $taskUiTestTimer.Stop(); $taskForm.Close()
     }
 })
 $taskUiTestTimer.Start()
 Write-Output 'GUI_READY'
 try { $taskTimer.Start();`);
-  gui += `\n$taskUiTestTimer.Stop(); $taskUiTestTimer.Dispose(); if($script:taskUiStage -ne 5 -or -not $taskShared.Done) { throw 'GUI event smoke failed' }; Write-Output 'PASS real PS5.1 Forms event loop, settings, rejected start, stop, close'\n`;
+  gui += `\n$taskUiTestTimer.Stop(); $taskUiTestTimer.Dispose(); if($script:taskUiError) { throw $script:taskUiError }; if($script:taskUiStage -ne 5 -or -not $taskShared.Done) { throw 'GUI event smoke failed at stage '+$script:taskUiStage }; Write-Output 'PASS real PS5.1 Forms event loop, settings, rejected start, stop, close'\n`;
   await fs.writeFile(path.join(root, "gui.ps1"), bom + gui.replace(/^\uFEFF/, ""));
   const guiChild = spawn(ps, ["-NoProfile", "-STA", "-ExecutionPolicy", "Bypass", "-WindowStyle", "Hidden", "-File", path.join(root, "gui.ps1")], { env, windowsHide: true });
   let guiOutput = "", guiReady;
