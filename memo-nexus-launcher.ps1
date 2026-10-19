@@ -229,6 +229,30 @@ function Test-LauncherSettings($Settings,[string]$Key) {
     }
     return $node
 }
+# Presentation only: never interpolate settings values or diagnostic payloads.
+function Get-LauncherGuide($Shared) {
+    $configuration='設定の検証が必要です。「設定」で検証して保存してください。'
+    if (-not $Shared.Settings) { $configuration='初回設定が必要です。「設定」を開いてください。' }
+    elseif ($Shared.Validation -eq '検証済み') { $configuration='検証済み（今回の検査結果・起動時にも再検査）' }
+    elseif ($Shared.Validation -eq '検証中') { $configuration='設定を検証中です。しばらくお待ちください。' }
+    elseif ($Shared.Validation -eq '要確認') { $configuration='検証失敗。下の原因・対処を確認してください。' }
+    if ($Shared.State -eq '要対応' -and -not $Shared.Settings) { $configuration='要対応。下の原因・対処を確認してください。' }
+    $local='未起動'; $next=$configuration
+    switch ($Shared.State) {
+        '起動中' { $local='起動・準備確認中'; $next='ローカルの準備確認が終わるまでお待ちください。' }
+        'ローカル準備完了' {
+            $local='ローカル準備完了（ChatGPT接続成功とは別）'
+            $next='必要ならBrowser tokenを受信画面へ手動入力してください。ChatGPTでツール表示を確認し、Memo-Nexusで未保存内容を確認して手動保存してください。ユーザーによる確認が必要です。'
+        }
+        '停止処理中' { $local='今回のサービスを停止処理中'; $next='停止確認が終わるまでお待ちください。' }
+        '要対応' { $local='要対応（下の原因・対処を確認）'; $next=$Shared.Message }
+        default { if ($Shared.Validation -eq '検証済み') { $next='MCPを起動してください。key保持OFFの新しいセッションでは設定から再入力してください。' } }
+    }
+    @{
+        Steps="1 設定確認：$configuration`r`n2 MCPローカル起動：$local`r`n3 ChatGPT接続確認：ユーザーによる確認が必要`r`n4 Memo-Nexus受信・手動保存：ユーザーによる確認が必要"
+        Next=$next
+    }
+}
 function Get-LauncherMessage([string]$Code) {
     switch ($Code) {
         'port_conflict' { '8791または8792が使用中です。手動起動元を確認してください。既存プロセスは停止しません。' }
@@ -245,6 +269,9 @@ function Get-LauncherMessage([string]$Code) {
     }
 }
 function Invoke-LauncherController($Shared) {
+    $Shared.Validation='未検証'
+    $initial=$(if ($Shared.Settings) { '未検証' } else { '未設定／読込未完了' })
+    $Shared.SettingStatus=@{OAuth=$initial; Tunnel=$initial; Id=$initial; Key='未確認'; Url=$initial}
     $children=New-Object Collections.ArrayList
     $tunnelMutex=$null; $locked=$false
     try {
@@ -274,7 +301,10 @@ function Invoke-LauncherController($Shared) {
                         $Shared.Message='設定済みURLを開きました。受信画面で確認後、手動で保存してください。'
                         continue
                     }
+                    $Shared.Validation='検証中'
+                    $Shared.SettingStatus=@{OAuth='未検証'; Tunnel='未検証'; Id='未検証'; Key='未確認'; Url='未検証'}
                     if (-not $key) { $key=Read-LauncherKey $settings }
+                    if (-not [string]::IsNullOrWhiteSpace($key) -and $key -notmatch '[\r\n\x00]') { $Shared.SettingStatus.Key='利用可能（認証成功は未確認）' }
                     if ($command -eq 'start') { $Shared.State='起動中' }
                     $Shared.Message='設定・Node依存・Tunnel buildを検査しています。'
                     $node=Test-LauncherSettings $settings $key
@@ -282,6 +312,11 @@ function Invoke-LauncherController($Shared) {
                         Save-LauncherSettings $settings $key $Shared.Remember
                         $Shared.Settings=Read-LauncherSettings
                         $Shared.Key=$key
+                    }
+                    $Shared.Validation='検証済み'
+                    $Shared.SettingStatus=@{OAuth='検証済み'; Tunnel='固定build検証済み'; Id='形式検証済み'; Key='利用可能（認証成功は未確認）'; Url='検証済み（配信・保存は未確認）'}
+                    if ($command -eq 'validate') { $Shared.Message='保存済み設定を検証しました。実接続・保存は未確認です。'; continue }
+                    if ($command -eq 'save') {
                         $Shared.State='停止中'; $Shared.Message='設定を検証して保存しました。登録・認証方式は変更していません。'
                     } elseif ($command -eq 'start') {
                         $Shared.State='起動中'; $Shared.Observation=''; $Shared.Diagnostics=[bool]$settings.diagnostics
@@ -337,6 +372,10 @@ function Invoke-LauncherController($Shared) {
                     }
                 } catch {
                     $code=$_.Exception.Message
+                    if ($Shared.Validation -eq '検証中' -or $command -eq 'save') {
+                        $Shared.Validation='要確認'
+                        $Shared.SettingStatus=@{OAuth='要確認（検証・保存未完了）'; Tunnel='要確認（検証・保存未完了）'; Id='要確認（検証・保存未完了）'; Key=$(if ($code -eq 'key_unavailable') { '復号失敗・明示再入力が必要' } else { '要確認（検証・保存未完了）' }); Url='要確認（検証・保存未完了）'}
+                    }
                     if ($command -eq 'start') {
                         try { Stop-LauncherChildren $children $Shared } catch { $code='stop_failed' }
                     }

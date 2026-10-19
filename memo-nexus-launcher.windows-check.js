@@ -18,6 +18,8 @@ async function main() {
   assert.equal(process.platform, "win32");
   const external = await fs.mkdtemp(path.join(os.tmpdir(), "memo launcher 日本語 'quote' "));
   const artifacts = path.join(__dirname, "e2e-artifacts/launcher"); await fs.mkdir(artifacts, { recursive: true });
+  const runArtifacts = path.join(artifacts, "run-" + path.basename(external).replace(/[^a-zA-Z0-9]/g, ""));
+  await fs.mkdir(runArtifacts);
   const root = path.join(external, "空白 日本語 'quote'"); await fs.mkdir(root);
   await fs.symlink(path.join(__dirname, "node_modules"), path.join(root, "node_modules"), "junction");
   const receiverPort = await freePort(), oauthPort = await freePort();
@@ -108,6 +110,28 @@ $diagnosticShared.Diagnostics=$false; $diagnosticShared.Observation=''
 Update-LauncherObservation '{"diagnostic":"memo_http_oauth","event":"authentication","status":"accepted"}' $diagnosticChild $diagnosticShared
 Assert (-not $diagnosticShared.Observation) 'diagnostics OFF'
 Write-Output 'PASS diagnostic semantics, startup 401, fixed safe text, OFF'
+$guideShared=@{State='停止中'; Settings=$null; Validation='未検証'; Message=''; Observation=''; Key=$key; BrowserToken='TEST_SECRET_BROWSER'}
+Assert ((Get-LauncherGuide $guideShared).Next.Contains('初回設定')) 'guide initial settings'
+$guideShared.Settings=$settings
+Assert ((Get-LauncherGuide $guideShared).Next.Contains('検証が必要')) 'guide loaded settings require validation'
+$guideShared.Validation='検証中'
+Assert ((Get-LauncherGuide $guideShared).Next.Contains('検証中')) 'guide validating'
+$guideShared.Validation='要確認'
+Assert ((Get-LauncherGuide $guideShared).Next.Contains('検証失敗')) 'guide validation failure'
+$guideShared.Validation='検証済み'
+Assert ((Get-LauncherGuide $guideShared).Next.Contains('MCPを起動')) 'guide validated stopped'
+foreach($state in @('起動中','ローカル準備完了','停止処理中','要対応','停止中')) {
+  $guideShared.State=$state; $guideShared.Message=Get-LauncherMessage 'port_conflict'
+  $guideShared.Observation='TEST_SECRET_RAW_DIAGNOSTIC'
+  $guide=Get-LauncherGuide $guideShared
+  Assert ($guide.Steps.Contains('3 ChatGPT接続確認：ユーザーによる確認が必要') -and $guide.Steps.Contains('4 Memo-Nexus受信・手動保存：ユーザーによる確認が必要')) 'unobserved stages never succeed'
+  Assert (-not (($guide.Steps+$guide.Next).Contains($key)) -and -not (($guide.Steps+$guide.Next).Contains('TEST_SECRET'))) 'guide never renders settings secrets or raw observations'
+  if($state -eq 'ローカル準備完了') { Assert ($guide.Next.Contains('Browser token') -and $guide.Next.Contains('手動保存')) 'ready guide next actions' }
+  if($state -eq '要対応') { Assert ($guide.Next -ceq $guideShared.Message) 'existing error cause and action retained' }
+}
+Write-Output 'PASS guide states, manual confirmation, secrets excluded'
+$guideShared.State='要対応'; $guideShared.Settings=$null
+Assert ((Get-LauncherGuide $guideShared).Steps.Contains('1 設定確認：要対応')) 'invalid saved settings must not suggest initial setup'
 $historySnapshot=''
 $sessionScenarios=@('session_off','session_reopen','session_on','session_update','session_save_failed')
 function Wait-FixtureCommand($s) {
@@ -115,7 +139,7 @@ function Wait-FixtureCommand($s) {
   while($s.Busy -and -not $s.Done -and [DateTime]::UtcNow -lt $deadline) { Start-Sleep -Milliseconds 100 }
   Assert (-not $s.Busy -and -not $s.Done) 'session controller command must complete'
 }
-foreach ($scenario in @($sessionScenarios)+@('normal','receiver_exit','receiver_timeout','oauth_exit','oauth_timeout','tunnel_exit','tunnel_timeout','unexpected_exit','health_owner_mismatch','history_corrupt','port_conflict','tunnel_conflict','history_override','binary_version','binary_options')) {
+foreach ($scenario in @($sessionScenarios)+@('validate_saved','validate_key_failed','validate_missing_key','normal','receiver_exit','receiver_timeout','oauth_exit','oauth_timeout','tunnel_exit','tunnel_timeout','unexpected_exit','health_owner_mismatch','history_corrupt','port_conflict','tunnel_conflict','history_override','binary_version','binary_options')) {
   [IO.File]::WriteAllText((Join-Path $PSScriptRoot 'scenario.txt'),$scenario)
   if($scenario -eq 'history_override') { $env:MEMO_PREVIEW_HISTORY_DIR=Join-Path $env:LOCALAPPDATA 'different-history' } else { Remove-Item Env:MEMO_PREVIEW_HISTORY_DIR -ErrorAction SilentlyContinue }
   $history=Join-Path $env:LOCALAPPDATA 'Memo-Nexus\\received-history'
@@ -131,6 +155,12 @@ foreach ($scenario in @($sessionScenarios)+@('normal','receiver_exit','receiver_
     if($scenario -eq 'session_update') { $expectedKey='TEST_SECRET_UPDATED_'+(New-LauncherToken); $shared.Key=$expectedKey }
   }
   $settingsLock=$null
+  if($scenario -like 'validate_*') {
+    Save-LauncherSettings $settings $key ($scenario -ne 'validate_missing_key')
+    $shared.Settings=Read-LauncherSettings; $shared.Key=''; $shared.Command='validate'
+    if($scenario -eq 'validate_key_failed') { [IO.File]::WriteAllText((Join-Path (Get-LauncherDirectory) $shared.Settings.keyFile),'corrupt') }
+    $validationBefore=[IO.File]::ReadAllBytes((Join-Path (Get-LauncherDirectory) 'settings.json'))
+  }
   if($scenario -eq 'session_save_failed') { $settingsLock=[IO.File]::Open((Join-Path (Get-LauncherDirectory) 'settings.json'),[IO.FileMode]::Open,[IO.FileAccess]::Read,[IO.FileShare]::Read) }
   $holder=$null
   if ($scenario -eq 'port_conflict') { $holder=New-Object Net.Sockets.TcpListener([Net.IPAddress]::Loopback,${receiverPort}); $holder.Start() }
@@ -170,12 +200,23 @@ foreach ($scenario in @($sessionScenarios)+@('normal','receiver_exit','receiver_
     $deadline=[DateTime]::UtcNow.AddSeconds(45)
     while ($shared.Busy -and -not $shared.Done -and [DateTime]::UtcNow -lt $deadline) { Start-Sleep -Milliseconds 100 }
     Assert (-not $shared.Busy) ('controller timeout '+$scenario+' state='+$shared.State+' receiver='+$shared.Receiver+' oauth='+$shared.OAuth+' tunnel='+$shared.Tunnel+' '+$shared.Message)
-    if($scenario -in $sessionScenarios) {
+    if($scenario -like 'validate_*') {
+      Assert ($shared.TestChildren.Count -eq 0 -and -not $shared.BrowserToken -and -not $shared.Key) 'validation does not start services, generate tokens or retain decrypted key'
+      Assert ([Convert]::ToBase64String([IO.File]::ReadAllBytes((Join-Path (Get-LauncherDirectory) 'settings.json'))) -ceq [Convert]::ToBase64String($validationBefore)) 'validation never saves or resets settings'
+      if($scenario -eq 'validate_saved') {
+        Assert ($shared.Validation -eq '検証済み' -and $shared.State -eq '停止中') 'saved settings validation succeeds'
+        Assert ($shared.SettingStatus.OAuth -eq '検証済み' -and $shared.SettingStatus.Tunnel -eq '固定build検証済み' -and $shared.SettingStatus.Id -eq '形式検証済み' -and $shared.SettingStatus.Key.Contains('利用可能') -and $shared.SettingStatus.Url.Contains('未確認')) 'all five settings summaries'
+      } else {
+        Assert ($shared.Validation -eq '要確認' -and $shared.State -eq '要対応') 'validation failure visible'
+        if($scenario -eq 'validate_key_failed') { Assert ($shared.SettingStatus.Key.Contains('復号失敗')) 'decryption failure guidance' }
+      }
+    } elseif($scenario -in $sessionScenarios) {
       if($scenario -eq 'session_reopen') {
         Assert (-not $shared.Settings.keyFile -and -not $shared.Key) 'new session must not inherit unremembered key'
         Assert ($shared.State -eq '要対応' -and $shared.TestChildren.Count -eq 0) 'new session requires explicit key input'
       } elseif($scenario -eq 'session_save_failed') {
         Assert ($shared.State -eq '要対応' -and -not $shared.Key) 'failed save must not promote decrypted key or report success'
+        Assert ($shared.Validation -eq '要確認' -and -not $shared.SettingStatus.OAuth.Contains('検証済み')) 'failed commit cannot label candidate as saved settings'
         Assert ([IO.File]::ReadAllText((Join-Path (Get-LauncherDirectory) 'settings.json')) -ceq $beforeSettings) 'failed save keeps committed settings'
         Assert ((Read-LauncherKey (Read-LauncherSettings)) -ceq $key) 'failed save preserves previous protected key'
       } else {
@@ -265,40 +306,175 @@ Write-Output 'PASS all isolated controller checks'
 `);
   const env = {};
   for (const name of ["SystemRoot", "WINDIR", "TEMP", "TMP", "Path", "PATHEXT", "USERPROFILE", "APPDATA", "LOCALAPPDATA"]) if (process.env[name]) env[name] = process.env[name];
-  Object.assign(env, { MEMO_TEST_EXTERNAL: external, MEMO_TEST_NODE: process.execPath, CONTROL_PLANE_API_KEY: "TEST_SECRET_INHERITED_RUNTIME",
+  Object.assign(env, { MEMO_TEST_EXTERNAL: external, MEMO_TEST_NODE: process.execPath, MEMO_TEST_ARTIFACTS: runArtifacts, CONTROL_PLANE_API_KEY: "TEST_SECRET_INHERITED_RUNTIME",
     MEMO_PREVIEW_BROWSER_TOKEN: "TEST_SECRET_INHERITED_BROWSER", NODE_OPTIONS: "--trace-warnings" });
   const child = spawn(ps, ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", driver], { env, windowsHide: true });
   let output = ""; child.stdout.on("data", x => { output += x; process.stdout.write(x); }); child.stderr.on("data", x => { output += x; });
   const timer = setTimeout(() => child.kill(), 180000);
   const [code] = await once(child, "close"); clearTimeout(timer);
-  await fs.writeFile(path.join(artifacts, "controller.log"), output);
+  await fs.writeFile(path.join(runArtifacts, "controller.log"), output);
   assert.doesNotMatch(output, /TEST_SECRET_/);
   assert.equal(code, 0, output);
   assert.match(output, /PASS all isolated controller checks/);
+  // Execute the actual layout, rendering and button handlers without a controller.
+  // Scale() checks are synthetic; they do not change Windows display DPI.
+  const uiSource = await fs.readFile(path.join(__dirname, "start-memo-nexus.ps1"), "utf8");
+  const layout = uiSource.slice(uiSource.indexOf("$taskForm=New-Object"), uiSource.indexOf("function Show-LauncherSettings"));
+  const render = uiSource.slice(uiSource.indexOf("$guide=Get-LauncherGuide"), uiSource.indexOf("$taskStart.Enabled="));
+  const handlers = uiSource.slice(uiSource.indexOf("$taskStart.Add_Click({"), uiSource.indexOf("$taskTokenButton.Add_Click({"));
+  const scrollDriver = path.join(root, "scroll-layout.ps1");
+  await fs.writeFile(scrollDriver, bom + `
+$ErrorActionPreference='Stop'
+[Console]::OutputEncoding=New-Object Text.UTF8Encoding($false)
+Add-Type -AssemblyName System.Windows.Forms
+Add-Type -AssemblyName System.Drawing
+. (Join-Path $PSScriptRoot 'memo-nexus-launcher.ps1')
+function Assert($value,$message) { if(-not $value) { throw $message } }
+function Assert-Reachable($control) {
+    $taskForm.ScrollControlIntoView($control)
+    [Windows.Forms.Application]::DoEvents()
+    $rect=$taskForm.RectangleToClient($control.RectangleToScreen($control.ClientRectangle))
+    Assert ($rect.Top -ge 0 -and $rect.Bottom -le $taskForm.ClientSize.Height) 'control not vertically reachable'
+    Assert ($rect.Left -ge 0 -and $rect.Right -le $taskForm.ClientSize.Width) ('control not horizontally readable: scale='+$factor+' case='+$case[0]+' actual='+$taskForm.Size+' client='+$taskForm.ClientSize+' control='+$rect+' maxTrack='+[Windows.Forms.SystemInformation]::MaxWindowTrackSize)
+}
+$records=New-Object Collections.ArrayList
+$cases=@(
+    @('unset','停止中','未検証',''), @('loaded','停止中','未検証',''),
+    @('validating','停止中','検証中',''), @('invalid','要対応','要確認','settings_invalid'),
+    @('validated','停止中','検証済み',''), @('starting','起動中','検証済み',''),
+    @('ready','ローカル準備完了','検証済み',''), @('stopping','停止処理中','検証済み',''),
+    @('history','要対応','検証済み','history_override'), @('key','要対応','要確認','key_unavailable'),
+    @('stop-failed','要対応','検証済み','stop_failed'))
+foreach($condition in @(@(1.0,$false),@(1.25,$false),@(1.5,$false),@(1.5,$true))) {
+    $factor=$condition[0]; $limited=$condition[1]
+${layout}
+    try {
+${handlers}
+        if($factor -ne 1) {
+            $taskForm.AutoScaleMode='None'
+            $taskForm.Scale((New-Object Drawing.SizeF($factor,$factor)))
+            $taskForm.Font=New-Object Drawing.Font('Yu Gothic UI',(10*$factor))
+        }
+        if($limited) { $taskForm.MaximumSize=New-Object Drawing.Size(1040,788) }
+        $taskForm.Show(); [Windows.Forms.Application]::DoEvents()
+        $graphics=$taskForm.CreateGraphics()
+        try { $dpi=$graphics.DpiX } finally { $graphics.Dispose() }
+        foreach($size in @(@(800,870),@(760,540),@(1000,900),@(760,540))) {
+            $taskForm.Size=New-Object Drawing.Size(([int]($size[0]*$factor)),([int]($size[1]*$factor)))
+            foreach($case in $cases) {
+                $taskShared=@{State=$case[1]; Validation=$case[2]; Settings=[pscustomobject]@{configPath='TEST_SECRET_SETTING'; memoUrl='TEST_SECRET_URL'};
+                    Key='TEST_SECRET_KEY'; BrowserToken='TEST_SECRET_TOKEN'; Busy=$false; Command=''; Stop=$false;
+                    Receiver='ローカル準備完了'; OAuth='ローカル準備完了'; Tunnel='ローカル準備完了';
+                    Message=$(if($case[3]) { Get-LauncherMessage $case[3] } else { '設定・Node依存・Tunnel buildを検査しています。' }); Diagnostics=$true;
+                    Observation='想定2ツールの一覧応答生成を観測。ChatGPT側の表示を確認してください';
+                    SettingStatus=@{OAuth='要確認（検証・保存未完了）'; Tunnel='要確認（検証・保存未完了）'; Id='要確認（検証・保存未完了）'; Key='復号失敗・明示再入力が必要'; Url='要確認（検証・保存未完了）'}}
+                if($case[0] -eq 'unset') { $taskShared.Settings=$null }
+                if($case[0] -in @('validated','ready')) { $taskShared.SettingStatus=@{OAuth='検証済み'; Tunnel='固定build検証済み'; Id='形式検証済み'; Key='利用可能（認証成功は未確認）'; Url='検証済み（配信・保存は未確認）'} }
+${render}
+                $taskForm.AutoScrollPosition=New-Object Drawing.Point(0,0)
+                $taskForm.PerformLayout(); [Windows.Forms.Application]::DoEvents()
+                $before=$taskForm.AutoScrollPosition.Y
+                $warningBottom=$taskWarning.Bottom
+                if($warningBottom -gt $taskForm.ClientSize.Height) {
+                    Assert $taskForm.VerticalScroll.Visible 'overflow must expose vertical scrollbar'
+                    Assert ($taskForm.VerticalScroll.Maximum -ge $warningBottom-1) 'scroll range must include warning'
+                }
+                Assert-Reachable $taskWarning
+                $after=$taskForm.AutoScrollPosition.Y
+                if($warningBottom -gt $taskForm.ClientSize.Height) { Assert ($after -lt $before) 'scroll position must actually move' }
+                [void]$records.Add([pscustomobject]@{scale=$factor; synthetic=($factor -ne 1); limited=$limited; deviceDpi=$dpi; logicalWidth=$size[0]; logicalHeight=$size[1]; width=$taskForm.Width; height=$taskForm.Height; case=$case[0]; scrollMaximum=$taskForm.VerticalScroll.Maximum; beforeY=$before; afterY=$after; warningReached=$true})
+                $controls=@($taskStart,$taskStop,$taskOpen,$taskSettingsButton,$taskState,$taskComponents,$taskMessage,$taskDiagnostic,$taskTokenButton,$taskSettingsStatus,$taskGuide,$taskNext,$taskWarning)
+                foreach($control in $controls) {
+                    Assert-Reachable $control
+                    Assert (-not $control.Text.Contains('TEST_SECRET')) 'settings values must not reach presentation'
+                    $measure=[Windows.Forms.TextRenderer]::MeasureText($control.Text,$control.Font,(New-Object Drawing.Size($control.Width,10000)),[Windows.Forms.TextFormatFlags]::WordBreak)
+                    Assert ($measure.Height -le $control.Height) ('text clipped in '+$case[0])
+                }
+                for($i=0;$i -lt $controls.Count;$i++) {
+                    for($j=$i+1;$j -lt $controls.Count;$j++) { Assert (-not $controls[$i].Bounds.IntersectsWith($controls[$j].Bounds)) 'controls overlap' }
+                }
+                if($case[0] -in @('unset','ready','invalid') -and $size[0] -ne 1000) {
+                    Assert-Reachable $taskWarning
+                    $image=New-Object Drawing.Bitmap($taskForm.Width,$taskForm.Height)
+                    try { $taskForm.DrawToBitmap($image,$taskForm.ClientRectangle); $image.Save((Join-Path $env:MEMO_TEST_ARTIFACTS ('scroll-'+$factor+'-limited-'+$limited+'-'+$size[0]+'-'+$case[0]+'.png'))) } finally { $image.Dispose() }
+                }
+            }
+            # Actual handlers queue commands only: no worker can launch services/browser.
+            $taskShared.State='停止中'; $taskShared.Busy=$false; $taskShared.Command=''
+            Assert-Reachable $taskStart; $taskStart.PerformClick()
+            Assert ($taskShared.Command -eq 'start' -and $taskShared.Busy) 'start after scroll'
+            $taskShared.Busy=$false; $taskShared.Stop=$false
+            Assert-Reachable $taskStop; $taskStop.PerformClick()
+            Assert ($taskShared.Stop -and $taskShared.Busy) 'stop after scroll'
+            $taskShared.Busy=$false; $taskShared.Settings=[pscustomobject]@{}; $taskShared.Command=''
+            Assert-Reachable $taskOpen; $taskOpen.PerformClick()
+            Assert ($taskShared.Command -eq 'open' -and $taskShared.Busy) 'open command after scroll'
+            Assert-Reachable $taskSettingsButton
+            Assert $taskSettingsButton.Enabled 'settings remains reachable after scroll'
+        }
+        Write-Output ('PASS Forms scroll scale '+$factor+' limited='+$limited)
+    } finally { $taskForm.Close(); $taskForm.Dispose() }
+}
+$records | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath (Join-Path $env:MEMO_TEST_ARTIFACTS 'scroll-matrix.json') -Encoding UTF8
+Write-Output ('PASS Forms scroll matrix: '+$records.Count+' cases; native DPI='+$dpi+'; 125/150 percent are synthetic Scale tests')
+`);
+  const scrollOutput = execFileSync(ps, ["-NoProfile", "-STA", "-ExecutionPolicy", "Bypass", "-WindowStyle", "Hidden", "-File", scrollDriver], { env, windowsHide: true, timeout: 90000, encoding: "utf8" });
+  assert.doesNotMatch(scrollOutput, /TEST_SECRET/);
+  assert.match(scrollOutput, /PASS Forms scroll matrix: 176 cases/);
+  await fs.writeFile(path.join(runArtifacts, "scroll.log"), scrollOutput); console.log(scrollOutput.trim());
   let gui = await fs.readFile(path.join(__dirname, "start-memo-nexus.ps1"), "utf8");
   gui = gui.replace("$ErrorActionPreference='Stop'", "$ErrorActionPreference='Stop'\n$env:LOCALAPPDATA=Join-Path $env:MEMO_TEST_EXTERNAL 'gui-isolated'");
   gui = gui.replace("Local\\MemoNexusWindowsLauncher", "Local\\MemoNexusWindowsLauncherFixture-" + path.basename(external).replace(/[^a-zA-Z0-9]/g, ""));
   gui = gui.replace("[void][Windows.Forms.MessageBox]::Show('ランチャーは既に起動しています。既存の画面を確認してください。','Memo-Nexus')", "Write-Output 'PASS GUI duplicate refused'");
   gui = gui.replace("try { $taskTimer.Start();", `
 $script:taskUiStage=0
+$script:taskUiError=''
 $taskUiTestTimer=New-Object Windows.Forms.Timer -Property @{Interval=250}
 $taskUiTestTimer.Add_Tick({
+    try {
     if(-not (Test-Path -LiteralPath (Join-Path $PSScriptRoot 'gui-release'))) { return }
     switch($script:taskUiStage) {
-        0 { $script:taskUiStage=1; $taskSettingsButton.PerformClick() }
+        0 {
+            if(-not $taskGuide.Text) { return }
+            foreach($state in @('停止中','起動中','ローカル準備完了','停止処理中','要対応')) {
+                $sample=@{State=$state; Settings=@{}; Validation='検証済み'; Message=(Get-LauncherMessage 'history_corrupt')}
+                $sampleGuide=Get-LauncherGuide $sample
+                $taskGuide.Text=$sampleGuide.Steps; $taskNext.Text='次の操作：'+$sampleGuide.Next
+                foreach($control in @($taskGuide,$taskNext)) {
+                    $size=[Windows.Forms.TextRenderer]::MeasureText($control.Text,$control.Font,(New-Object Drawing.Size($control.Width,1000)),[Windows.Forms.TextFormatFlags]::WordBreak)
+                    if($size.Height -gt $control.Height) { throw 'state guide text exceeds label' }
+                }
+            }
+            foreach($control in @($taskSettingsStatus,$taskGuide,$taskNext,$taskWarning)) {
+                $size=[Windows.Forms.TextRenderer]::MeasureText($control.Text,$control.Font,(New-Object Drawing.Size($control.Width,1000)),[Windows.Forms.TextFormatFlags]::WordBreak)
+                if($size.Height -gt $control.Height) { throw 'guide text exceeds label' }
+            }
+            $image=New-Object Drawing.Bitmap($taskForm.Width,$taskForm.Height)
+            try { $taskForm.DrawToBitmap($image,$taskForm.ClientRectangle); $image.Save((Join-Path $env:MEMO_TEST_ARTIFACTS 'guide.png')) } finally { $image.Dispose() }
+            $taskForm.Size=New-Object Drawing.Size(760,540)
+            $taskForm.ScrollControlIntoView($taskWarning)
+            if($taskForm.AutoScrollPosition.Y -ge 0) { throw 'GUI must scroll before settings click' }
+            $taskForm.ScrollControlIntoView($taskSettingsButton)
+            $script:taskUiStage=1; [Console]::WriteLine('GUI stage 1: settings after scroll'); $taskSettingsButton.PerformClick()
+        }
         1 {
             $dialogs=@([Windows.Forms.Application]::OpenForms | Where-Object { $_.Text -eq 'Memo-Nexus 初回設定' })
-            if($dialogs.Count -eq 1) { $dialogs[0].Close(); $script:taskUiStage=2 }
+            if($dialogs.Count -eq 1) { $dialogs[0].Close(); $script:taskUiStage=2; [Console]::WriteLine('GUI stage 2: settings closed') }
         }
-        2 { $script:taskUiStage=3; $taskStart.PerformClick() }
+        2 { $script:taskUiStage=3; [Console]::WriteLine('GUI stage 3: start'); $taskStart.PerformClick() }
         3 { if(-not $taskShared.Busy -and $taskShared.State -eq '要対応') { $script:taskUiStage=4; $taskStop.PerformClick() } }
         4 { if(-not $taskShared.Busy -and $taskShared.State -eq '停止中') { $script:taskUiStage=5; $taskForm.Close() } }
+    }
+    } catch {
+        $script:taskUiError='GUI stage '+$script:taskUiStage+': '+$_.Exception.Message
+        [Console]::WriteLine($script:taskUiError)
+        $taskUiTestTimer.Stop(); $taskForm.Close()
     }
 })
 $taskUiTestTimer.Start()
 Write-Output 'GUI_READY'
 try { $taskTimer.Start();`);
-  gui += `\n$taskUiTestTimer.Stop(); $taskUiTestTimer.Dispose(); if($script:taskUiStage -ne 5 -or -not $taskShared.Done) { throw 'GUI event smoke failed' }; Write-Output 'PASS real PS5.1 Forms event loop, settings, rejected start, stop, close'\n`;
+  gui += `\n$taskUiTestTimer.Stop(); $taskUiTestTimer.Dispose(); if($script:taskUiError) { throw $script:taskUiError }; if($script:taskUiStage -ne 5 -or -not $taskShared.Done) { throw 'GUI event smoke failed at stage '+$script:taskUiStage }; Write-Output 'PASS real PS5.1 Forms event loop, settings, rejected start, stop, close'\n`;
   await fs.writeFile(path.join(root, "gui.ps1"), bom + gui.replace(/^\uFEFF/, ""));
   const guiChild = spawn(ps, ["-NoProfile", "-STA", "-ExecutionPolicy", "Bypass", "-WindowStyle", "Hidden", "-File", path.join(root, "gui.ps1")], { env, windowsHide: true });
   let guiOutput = "", guiReady;
