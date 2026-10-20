@@ -98,4 +98,16 @@ Browser token、adapter token、コード、capabilityは秘密として扱う�
 
 差分は本人によるレビューを実施。主体とタブ・要求IDの対応付け、scope分離、readonly API、応答サイズ、予算の同時予約、取消・期限と遅延応答、秘密値のログ／永続履歴非記録を確認した。同時待機を2件に制限してbrowser通信枠を残し、ブラウザ自身が期限を検出したときも許可中表示を残さないよう修正した。キャッシュ追従以外の既存テスト期待値や認証・保存の安全条件は緩めていない。独立した第三者レビューとは区別する。
 
+### 公開CIで見つかった隔離fixtureの依存追従（追加修正）
+
+最初の公開HEAD `8e09879`の[CI run 39412425169 / attempt 1](https://github.com/tetsujisugimori-coder/memo/actions/runs/39412425169/attempts/1)は12ジョブ成功、Windows 1ジョブ失敗、任意診断1件skip。Linuxの新規検索E2Eと既存受信・OAuth回帰、Linux／Windowsの全単体1,856件は成功したが、Windowsは既存discovery試験の起動待ち45秒でtimeoutした。該当discovery試験・起動PS・本体は今回変更なしで、原因は未確定。同じ試験はローカル実PS5.1で成功した。
+
+失敗WindowsジョブIDだけを1回再実行した[attempt 2](https://github.com/tetsujisugimori-coder/memo/actions/runs/39412425169/attempts/2)は、全単体とdiscoveryが成功した後、ランチャー試験の`session key supports start/restart`で失敗した。後続のWindows受信・OAuth・検索E2Eはskipで、検索成功とは扱わない。
+
+追加した受信サービスの検索依存を、`memo-nexus-launcher.windows-check.js`の`main`内の隔離フォルダー作成でコピーしていなかった。既存5ファイルだけの小さなfixtureで`MODULE_NOT_FOUND`を再現し、`memo-search-broker.js`／`memo-search.js`の追加コピーで受信サービスを生成できることを確認した。今回の追加差分はコピー対象2ファイルの追従だけで、ランチャー本体、試験timeout、期待値、認証・保存の安全条件は変更しない。
+
+ローカルのランチャー回帰初回はworktree直下のnode_modulesが未用意で設定検証に失敗した。既存のインストール済み依存へのjunctionを専用worktreeに用意した。依存パッケージや実設定は変更せず、fixtureの外部モジュール解決を満たして検証する。
+
+追従後の`node memo-nexus-launcher.windows-check.js`は実PS5.1で成功。隔離23シナリオ、Formsの176ケース（通常／125%合成／150%合成／150%合成＋寸法制限）、別GUI二重起動拒否、スクロール後の設定ダイアログ、未設定起動拒否、停止・終了イベントを確認した。JavaScript構文・`git diff --check`も成功。検索本体は最初の公開HEADから変更せず、追加commitではこのfixtureと検証記録だけを変更する。
+
 無関係なChart／Report／PDF長時間E2Eはローカルで反復しない。実Auth0／ChatGPT接続、実Tunnel、人による操作・目視、OS再起動後の受入は未実施。自動試験成功を実接続成功とは扱わず、上記の利用者向け手順で別途確認する。自動マージは行わない。

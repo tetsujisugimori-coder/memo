@@ -23,7 +23,7 @@ async function main() {
   const root = path.join(external, "空白 日本語 'quote'"); await fs.mkdir(root);
   await fs.symlink(path.join(__dirname, "node_modules"), path.join(root, "node_modules"), "junction");
   const receiverPort = await freePort(), oauthPort = await freePort();
-  for (const file of ["memo-nexus-launcher-check.js", "mcp-http-auth.js", "dummy-preview-service.js", "dummy-preview-queue.js", "dummy-preview-history.js"]) {
+  for (const file of ["memo-nexus-launcher-check.js", "mcp-http-auth.js", "dummy-preview-service.js", "dummy-preview-queue.js", "dummy-preview-history.js", "memo-search-broker.js", "memo-search.js"]) {
     await fs.copyFile(path.join(__dirname, file), path.join(root, file));
   }
   let helper = await fs.readFile(path.join(root, "memo-nexus-launcher-check.js"), "utf8");
