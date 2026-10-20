@@ -28,7 +28,8 @@
   function search(notes, input, afterId = null) {
     const request = conditions(input), query = request.query.toLowerCase();
     const result = { results: [], hasMore: false, count: 0 };
-    // Fixed ID ordering; no live drafts, attachments, trash or descendant collections.
+    // Fixed ID ordering; all spans every collection, collection matches only the exact ID.
+    // Live drafts, attachments and trash are excluded in both scopes.
     const ordered = notes.filter(note => !note.deletedAt && typeof note.id === "string" && note.id.length > 0 && note.id.length <= 128
       && (request.scope.type === "all" || note.collectionId === request.scope.collectionId))
       .sort((a, b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0);

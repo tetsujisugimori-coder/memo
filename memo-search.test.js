@@ -8,6 +8,11 @@ const { createAuthenticatedServer } = require("./mcp-http-server.js");
 const { config, issuerFixture, listen, close, wire } = require("./mcp-http-oauth.fixture.js");
 const principal = { issuer: config.authorization_servers[0], sub: config.allowedSubjects[0] }, origin = "http://127.0.0.1:5500";
 const all = { query: "日本語", scope: { type: "all" }, limit: 2 };
+const scopeExplanations = [
+  "全メモ検索は、子・孫コレクションを含むすべてのコレクションの保存済みメモを対象にします。",
+  "コレクション指定検索は、指定先直下の保存済みメモのみを対象とし、子・孫コレクションは含みません。",
+  "未保存ドラフト、ゴミ箱、添付データは、どちらの検索でも対象外です。"
+];
 const notes = [
   { id: "a", title: "日本語タイトル", body: "title-only", collectionId: "one" },
   { id: "b", title: "本文", body: "長文".repeat(100000) + "日本語の一致", collectionId: "one" },
@@ -27,6 +32,17 @@ function complete(broker, session, input = all, source = notes) {
   broker.result({ ...session.auth, requestId: work.requestId, result: search(source, work.conditions, work.afterId) }, origin);
   return promise;
 }
+test("permission screen and specification distinguish all collections from direct collection members", () => {
+  const fs = require("node:fs"), path = require("node:path");
+  const html = fs.readFileSync(path.join(__dirname, "index.html"), "utf8");
+  const dialog = /<dialog id="memoSearchDialog"[\s\S]*?<\/dialog>/.exec(html)?.[0];
+  assert.ok(dialog);
+  const specification = fs.readFileSync(path.join(__dirname, "docs/mcp-saved-search.md"), "utf8");
+  for (const explanation of scopeExplanations) {
+    assert.ok(dialog.includes(explanation), `permission screen: ${explanation}`);
+    assert.ok(specification.includes(explanation), `specification: ${explanation}`);
+  }
+});
 test("Japanese title/body, long text, exact collection boundary, trash, deterministic pages and immutable input", () => {
   const before = structuredClone(notes);
   const first = search(notes, all); assert.deepEqual(first.results.map(n => n.id), ["a", "b"]); assert.equal(first.hasMore, true);
@@ -56,6 +72,10 @@ test("pairing is explicit, one-use, bound to subject/origin/tab; collection cann
   assert.throws(() => broker.grant({ pairingCode: session.pairingCode, scope: { type: "all" } }, origin), /pairing_invalid/);
   await assert.rejects(broker.search({ ...principal, sub: config.allowedSubjects[1] }, { sessionId: session.sessionId, conditions: all }), /subject_mismatch/);
   await assert.rejects(broker.search(principal, { sessionId: session.sessionId, conditions: all }), /scope_forbidden/);
+  for (const collectionId of ["child", "two"]) {
+    await assert.rejects(broker.search(principal, { sessionId: session.sessionId,
+      conditions: { ...all, scope: { type: "collection", collectionId } } }), /scope_forbidden/);
+  }
   assert.throws(() => broker.poll({ ...session.auth, capability: randomBytes(32).toString("base64url") }, origin), /tab_forbidden/);
   assert.throws(() => broker.poll(session.auth, "https://tetsujisugimori-coder.github.io"), /tab_forbidden/);
   const secondTab = grant(broker); assert.notEqual(session.capability, secondTab.capability);
@@ -125,6 +145,8 @@ test("OAuth search-only/submit-only and receiver HTTP boundaries use actual RS25
   assert.equal((await call("prepare_memo_search", {}, await issuer.sign({ exp: 1 }))).status, 401);
   const listed = (await wire(port, searchToken, { jsonrpc: "2.0", id: 1, method: "tools/list" })).json.result.tools;
   assert.deepEqual(listed.map(tool => tool.name), ["prepare_memo_search", "search_saved_memos"]);
+  const description = listed.find(tool => tool.name === "search_saved_memos").description;
+  for (const explanation of scopeExplanations) assert.ok(description.includes(explanation), `MCP tool: ${explanation}`);
   assert.ok(listed.every(tool => tool.securitySchemes[0].scopes[0] === "memo:search"));
   const pair = unpack(await call("prepare_memo_search"));
   assert.equal(unpack(await call("search_saved_memos", { sessionId: pair.sessionId, conditions: all })).error, "permission_required");
