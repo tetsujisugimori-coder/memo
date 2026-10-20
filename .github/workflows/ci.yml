@@ -590,6 +590,8 @@ jobs:
         run: npm run test:e2e:received-recovery
       - name: Verify authenticated HTTP receive and explicit browser save with fictional issuer
         run: npm run test:e2e:mcp-http-oauth
+      - name: Verify browser-local MCP search with fictional issuer
+        run: npm run test:e2e:memo-search
       - name: Preserve results including failures
         if: always()
         uses: actions/upload-artifact@v6
@@ -598,6 +600,7 @@ jobs:
           path: |
             e2e-artifacts/dummy-preview/
             e2e-artifacts/received-preview/
+            e2e-artifacts/memo-search/
           if-no-files-found: error
           retention-days: 14
 
@@ -622,6 +625,7 @@ jobs:
         run: node memo-nexus-launcher.windows-check.js
       - run: npm run test:e2e:received-recovery
       - run: npm run test:e2e:mcp-http-oauth
+      - run: npm run test:e2e:memo-search
       - name: Preserve Windows recovery results including failures
         if: always()
         uses: actions/upload-artifact@v6
@@ -630,5 +634,6 @@ jobs:
           path: |
             e2e-artifacts/received-preview/
             e2e-artifacts/launcher/
+            e2e-artifacts/memo-search/
           if-no-files-found: error
           retention-days: 14

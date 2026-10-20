@@ -30,7 +30,8 @@
     "test:e2e:report-sources": "node report-source.e2e.js",
     "test:e2e:report-fixed": "node report-fixed-samples.e2e.js",
     "test:e2e:received-notes": "node received-notes-preview.e2e.js",
-    "test:e2e:mcp-http-oauth": "node mcp-http-oauth.e2e.js"
+    "test:e2e:mcp-http-oauth": "node mcp-http-oauth.e2e.js",
+    "test:e2e:memo-search": "node memo-search.e2e.js"
   },
   "devDependencies": {
     "playwright": "1.62.1"

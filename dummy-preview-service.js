@@ -38,6 +38,9 @@ async function createPersistentPreviewService(options = {}) {
     return { ...service, history };
   } catch (error) { await history.close(); throw error; }
 }
+function exactSearchInput(input, route) {
+  require("./memo-search.js").exact(input, route === "prepare" ? ["principal"] : ["principal", "input"]);
+}
 function adapterRecord(record) {
   const { savePlan, attemptId, recoveryRequired, ...publicValue } = record;
   if (record.notes) publicValue.notes = record.notes.map(adapterRecord);
@@ -46,6 +49,7 @@ function adapterRecord(record) {
 function createPreviewService({ browserToken, adapterToken, queue = createQueue(), now = Date.now, beforeReply = null } = {}) {
   validateToken(browserToken); validateToken(adapterToken);
   if (browserToken === adapterToken) throw new Error("Preview tokens must differ");
+  const search = require("./memo-search-broker.js").createSearchBroker({ now });
   let windowStart = now(); let requests = 0; let inflight = 0;
   const server = http.createServer({ maxHeaderSize: 8192 }, async (req, res) => {
     const origin = req.headers.origin;
@@ -68,10 +72,11 @@ function createPreviewService({ browserToken, adapterToken, queue = createQueue(
       if (sensitive.has(name) && counts.get(name) > 1) return send(400, { error: "duplicate_header" });
     }
     const routes = { "/dummy": "POST", "/text": "POST", "/notes": "POST", "/pending": "GET", "/status": "POST", "/reject": "POST", "/begin": "POST", "/complete": "POST", "/failed": "POST" };
-    const method = routes[req.url];
+    const searchRoute = ({ "/search/prepare": "prepare", "/search/run": "search", "/search/inspect": "inspect", "/search/grant": "grant", "/search/poll": "poll", "/search/result": "result", "/search/revoke": "revoke" })[req.url];
+    const method = searchRoute ? "POST" : routes[req.url];
     if (!method) return send(404, { error: "not_found" });
-    const isAdapter = req.url === "/dummy" || req.url === "/text" || req.url === "/notes";
-    const inputLimit = req.url === "/notes" ? MAX_NOTES_INPUT_BYTES : req.url === "/text" ? MAX_TEXT_INPUT_BYTES : MAX_INPUT_BYTES;
+    const isAdapter = ["prepare", "search"].includes(searchRoute) || req.url === "/dummy" || req.url === "/text" || req.url === "/notes";
+    const inputLimit = searchRoute ? 12288 : req.url === "/notes" ? MAX_NOTES_INPUT_BYTES : req.url === "/text" ? MAX_TEXT_INPUT_BYTES : MAX_INPUT_BYTES;
     if (isAdapter && origin !== undefined) return send(403, { error: "adapter_origin_forbidden" });
     if (!isAdapter && origin === undefined) return send(403, { error: "browser_origin_required" });
     if (origin) { res.setHeader("Access-Control-Allow-Origin", origin); res.setHeader("Vary", "Origin, Access-Control-Request-Method, Access-Control-Request-Headers"); }
@@ -96,6 +101,14 @@ function createPreviewService({ browserToken, adapterToken, queue = createQueue(
     try {
       if (req.url === "/pending") return send(200, { pending: queue.peek() });
       const input = await readJson(req, inputLimit);
+      if (searchRoute) {
+        if (isAdapter) {
+          exactSearchInput(input, searchRoute);
+          req.socket.setTimeout(9000);
+          return send(200, await search[searchRoute](input.principal, input.input));
+        }
+        return send(200, search[searchRoute](input, origin));
+      }
       const keys = req.url === "/begin" ? ["requestId", "collectionId", "previousAttemptId"] : ["/complete", "/failed"].includes(req.url) ? ["requestId", "attemptId"] : ["requestId"];
       if (!["/text", "/notes"].includes(req.url) && !exactKeys(input, input && Object.hasOwn(input, "itemId") && !isAdapter ? [...keys, "itemId"] : keys)) throw fault("invalid_format");
       const record = req.url === "/notes" ? queue.submit(notesRequest(input)) : req.url === "/text" ? queue.submit(textRequest(input))
@@ -112,6 +125,7 @@ function createPreviewService({ browserToken, adapterToken, queue = createQueue(
   server.requestTimeout = 5000; server.headersTimeout = 5000; server.timeout = 5000;
   server.keepAliveTimeout = 1000; server.maxRequestsPerSocket = 120;
   server.maxConnections = 8;
+  server.once("close", () => search.close());
   return { server, queue };
 }
 if (require.main === module) {

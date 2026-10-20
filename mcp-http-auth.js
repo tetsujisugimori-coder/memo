@@ -22,7 +22,8 @@ function validateConfig(input) {
     || keys.some(key => !Object.hasOwn(input, key)) || input.mode !== "authenticated"
     || !Number.isInteger(input.port) || input.port < 1024 || input.port > 65535 || [5500, 8787, 8791].includes(input.port)
     || !Array.isArray(input.authorization_servers) || input.authorization_servers.length !== 1
-    || !Array.isArray(input.scopes_supported) || input.scopes_supported.length !== 1 || input.scopes_supported[0] !== "memo:submit"
+    || !Array.isArray(input.scopes_supported) || ![1, 2].includes(input.scopes_supported.length) || input.scopes_supported[0] !== "memo:submit"
+    || (input.scopes_supported.length === 2 && input.scopes_supported[1] !== "memo:search")
     || !Array.isArray(input.allowedSubjects) || input.allowedSubjects.length < 1 || input.allowedSubjects.length > 16
     || input.allowedSubjects.some(sub => typeof sub !== "string" || !/^[\x21-\x7e]{1,256}$/.test(sub) || sub.endsWith("@clients"))
     || new Set(input.allowedSubjects).size !== input.allowedSubjects.length) throw failure("invalid_configuration");
@@ -79,7 +80,7 @@ async function createTokenVerifier(input, { fetchImpl = fetch, now = Date.now } 
       const json = await boundedJson(await fetchImpl(url, { ...options, redirect: "error" }));
       return new Response(JSON.stringify(json), { status: 200, headers: { "Content-Type": "application/json" } });
     } });
-  return async header => {
+  return async (header, requiredScope = "memo:submit") => {
     if (typeof header !== "string" || header.length > 7000 || !/^Bearer [A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/i.test(header)) throw failure("invalid_token");
     let payload, protectedHeader;
     try {
@@ -94,8 +95,9 @@ async function createTokenVerifier(input, { fetchImpl = fetch, now = Date.now } 
         || Object.hasOwn(payload, "nonce")) throw failure("invalid_token");
     } catch { throw failure("invalid_token"); }
     if (payload.gty === "client-credentials" || payload.sub.endsWith("@clients") || !config.allowedSubjects.includes(payload.sub)) throw failure("subject_forbidden", 403);
-    if (!payload.scope.split(" ").includes("memo:submit")) throw failure("insufficient_scope", 403);
-    return Object.freeze({ issuer, sub: payload.sub });
+    const scopes = payload.scope.split(" ").filter(scope => config.scopes_supported.includes(scope));
+    if (requiredScope === null ? !scopes.length : !scopes.includes(requiredScope)) throw failure("insufficient_scope", 403);
+    return Object.freeze({ issuer, sub: payload.sub, ...(requiredScope === null ? { scopes: Object.freeze(scopes) } : {}) });
   };
 }
 function receiverRequestId(principal, requestId) {

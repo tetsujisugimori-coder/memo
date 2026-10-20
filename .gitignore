@@ -19,3 +19,4 @@ received-history/
 **/history.next
 # Isolated Windows launcher fixtures, encrypted test keys and captured test output.
 e2e-artifacts/launcher/
+e2e-artifacts/memo-search/

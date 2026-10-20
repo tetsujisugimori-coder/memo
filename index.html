@@ -162,6 +162,7 @@
             <button id="linkStatsBtn" title="語句統計">語句</button>
             <button id="graphBtn" title="グラフを開く">Graph</button>
             <button id="settingsBtn" title="設定">設定</button>
+            <button id="memoSearchOpen" type="button">MCP検索許可</button>
             <button id="dummyPreviewOpenBtn" type="button">受信を確認</button>
             <button id="deleteBtn" class="danger-button" title="メモを削除">Del</button>
           </div>
@@ -1102,7 +1103,7 @@
   <script src="draft-mirror-scheduler.js?v=0.5.0-2"></script>
   <script src="typing-performance-monitor.js?v=0.5.0-3"></script>
   <script src="layout-resize-utils.js?v=0.5.0-2"></script>
-  <script src="app.js?v=0.5.0-206"></script>
+  <script src="app.js?v=0.5.0-207"></script>
   <script src="codex-chat.js?v=0.5.0-6"></script>
   <dialog id="dummyPreviewDialog" class="dummy-preview-dialog" aria-labelledby="dummyPreviewHeading" aria-describedby="dummyPreviewHelp">
     <h2 id="dummyPreviewHeading">文章の受信確認 <small id="dummyPreviewBadge">未保存プレビュー</small></h2>
@@ -1126,5 +1127,23 @@
   </dialog>
   <link rel="stylesheet" href="dummy-preview.css?v=0.5.0-2">
   <script src="dummy-preview-ui.js?v=0.5.0-8"></script>
+  <dialog id="memoSearchDialog" aria-labelledby="memoSearchHeading">
+    <h2 id="memoSearchHeading">保存済みメモのMCP検索許可</h2>
+    <p>ChatGPTのprepare_memo_searchで発行した連携コードを入力してください。既存の送信認証だけでは検索できません。</p>
+    <p>このタブ・このブラウザ保存領域だけを10分間許可します。閉じる／再読込で停止します。別端末・プロファイルは別対象です。</p>
+    <p>対象は保存済みタイトル・Markdown本文の文字列部分一致です。ゴミ箱、添付、未保存ドラフト、子コレクションは含みません。</p>
+    <p>1回最大10件・8 KiB、許可ごと20要求・100件・64 KiB、主体ごと1時間60操作・200件・256 KiB。短い抜粋でも繰り返せば情報が露出します。上限だけで漏えいを完全には防げません。</p>
+    <label>受信サービス専用トークン <input id="memoSearchToken" type="password" autocomplete="off" maxlength="128"></label>
+    <label>連携コード <input id="memoSearchCode" type="password" autocomplete="off" maxlength="43"></label>
+    <button id="memoSearchInspect" type="button">認証主体を確認</button>
+    <p id="memoSearchPrincipal"></p>
+    <label>許可する検索対象 <select id="memoSearchScope"><option value="all">全メモ</option></select></label>
+    <p id="memoSearchStatus" role="status" aria-live="polite">未許可</p>
+    <button id="memoSearchGrant" type="button" disabled>検索を10分間許可</button>
+    <button id="memoSearchRevoke" type="button">許可取消・停止</button>
+    <button id="memoSearchClose" type="button">閉じて停止</button>
+  </dialog>
+  <script src="memo-search.js?v=0.5.0-1"></script>
+  <script src="memo-search-ui.js?v=0.5.0-1"></script>
 </body>
 </html>

@@ -4917,6 +4917,25 @@ async function createNote(title = "新規メモ", body = "", options = {}) {
   return note;
 }
 
+// MCP検索専用。ドラフトの重畳や保存・移行を呼ばず、既存readonly APIだけを使う。
+window.MemoNexusSavedSearch = {
+  async collections() {
+    if (!db || dbConnectionClosedForUpgrade) throw Object.assign(new Error("storage_unavailable"), { code: "storage_unavailable" });
+    return getAllCollections();
+  },
+  async search(input, afterId) {
+    if (!db || dbConnectionClosedForUpgrade) throw Object.assign(new Error("storage_unavailable"), { code: "storage_unavailable" });
+    try {
+      const request = window.MemoNexusSearch.conditions(input);
+      if (request.scope.type === "collection" && !(await getAllCollections()).some(c => c.id === request.scope.collectionId))
+        throw Object.assign(new Error("collection_unavailable"), { code: "collection_unavailable" });
+      return window.MemoNexusSearch.search(await getStoredNotes(), request, afterId);
+    } catch (error) {
+      throw Object.assign(new Error("search_read_failed"), { code: error.code === "collection_unavailable" ? error.code : "storage_unavailable" });
+    }
+  }
+};
+
 // 受信プレビュー専用。IDと保存先はbrowser-only begin応答の固定計画を使う。
 // 呼び出し側UIがrequestIdのロックを取得済み。ここでは入れ子のロックを取らない。
 // 保存済みIDを再作成・上書きせず、transaction完了後の再試行も同じ結果へ戻す。
