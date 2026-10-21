@@ -121,6 +121,10 @@ function Update-LauncherObservation([string]$Line,$Child,$Shared) {
             $summary='Bearer付き要求の認証拒否を観測。OAuth設定と利用者・scopeを確認してください'
         } elseif ($event.event -eq 'response' -and $event.status -eq 403 -and $event.classification -eq 'insufficient_scope') {
             $summary='scope不足による実行・認可拒否を観測。必要なOAuth追加認可を確認してください'
+        } elseif ($event.event -eq 'tool_authorization' -and $event.status -eq 'rejected' -and $event.classification -eq 'insufficient_scope') {
+            $summary='tools/callのscope不足による実行拒否を観測'
+        } elseif ($event.event -eq 'authorization_challenge' -and $event.status -eq 200 -and $event.classification -eq 'insufficient_scope') {
+            $summary='OAuth認可要求を含むMCPエラー結果の生成を観測。認可画面・実接続成功は未確認'
         } elseif ($event.event -eq 'protocol_result' -and $event.success -eq $true -and $event.status -eq 200) {
             if ($event.stage -eq 'initialize') { $summary='initializeの応答生成を観測' }
             elseif ($event.stage -eq 'tools_list') {

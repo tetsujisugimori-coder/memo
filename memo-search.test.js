@@ -141,8 +141,12 @@ test("OAuth search-only/submit-only and receiver HTTP boundaries use actual RS25
   const unpack = response => JSON.parse(response.json.result.content[0].text);
   assert.equal((await call("prepare_memo_search", {}, undefined)).status, 200);
   assert.equal((await wire(port, undefined, { jsonrpc: "2.0", id: 1, method: "tools/list" })).status, 401);
-  assert.equal((await call("prepare_memo_search", {}, submitToken)).status, 403);
-  assert.equal((await call("submit_text_preview", {}, searchToken)).status, 403);
+  for (const [name, token] of [["prepare_memo_search", submitToken], ["submit_text_preview", searchToken]]) {
+    const response = await call(name, {}, token);
+    assert.equal(response.status, 200); assert.equal(response.json.result.isError, true);
+    assert.equal(unpack(response).error, "insufficient_scope");
+    assert.ok(response.json.result._meta["mcp/www_authenticate"].length);
+  }
   assert.equal((await call("prepare_memo_search", {}, await issuer.sign({ exp: 1 }))).status, 401);
   const listed = (await wire(port, searchToken, { jsonrpc: "2.0", id: 1, method: "tools/list" })).json.result.tools;
   assert.deepEqual(listed.map(tool => tool.name), ["submit_text_preview", "submit_notes_preview", "prepare_memo_search", "search_saved_memos"]);

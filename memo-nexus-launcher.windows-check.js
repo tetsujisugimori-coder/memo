@@ -116,6 +116,10 @@ Update-LauncherObservation '{"diagnostic":"memo_http_oauth","event":"authenticat
 Assert ($diagnosticShared.Observation.Contains('認証拒否')) 'authentication refusal'
 Update-LauncherObservation '{"diagnostic":"memo_http_oauth","event":"response","sequence":2,"status":403,"classification":"insufficient_scope"}' $diagnosticChild $diagnosticShared
 Assert ($diagnosticShared.Observation.Contains('scope不足')) 'step-up refusal'
+Update-LauncherObservation '{"diagnostic":"memo_http_oauth","event":"tool_authorization","status":"rejected","classification":"insufficient_scope"}' $diagnosticChild $diagnosticShared
+Assert ($diagnosticShared.Observation.Contains('tools/callのscope不足')) 'tool-level refusal'
+Update-LauncherObservation '{"diagnostic":"memo_http_oauth","event":"authorization_challenge","status":200,"classification":"insufficient_scope","unsafe":"TEST_SECRET_CHALLENGE"}' $diagnosticChild $diagnosticShared
+Assert ($diagnosticShared.Observation.Contains('MCPエラー結果') -and $diagnosticShared.Observation.Contains('未確認') -and -not $diagnosticShared.Observation.Contains('TEST_SECRET')) 'challenge is not OAuth UI or connection success'
 $diagnosticShared.Diagnostics=$false; $diagnosticShared.Observation=''
 Update-LauncherObservation '{"diagnostic":"memo_http_oauth","event":"authentication","status":"accepted"}' $diagnosticChild $diagnosticShared
 Assert (-not $diagnosticShared.Observation) 'diagnostics OFF'

@@ -43,7 +43,11 @@ function toolCounts(tools) {
     searchToolCount: tools.filter(tool => searchTools.some(search => search.name === tool.name)).length,
     expectedTools: ["submit_text_preview", "submit_notes_preview"].every(name => tools.some(tool => tool.name === name)) };
 }
-async function createProtocolServer(principal, supportedScopes, adapterToken, receiverPort, diagnostic) {
+function toolScope(name) {
+  if (["submit_text_preview", "submit_notes_preview"].includes(name)) return "memo:submit";
+  if (searchTools.some(tool => tool.name === name)) return "memo:search";
+}
+async function createProtocolServer(principal, supportedScopes, adapterToken, receiverPort, diagnostic, scopeChallenge) {
   const forward = submit => async input => {
     const record = await submit({ ...input, requestId: receiverRequestId(principal, input.requestId) }, adapterToken, receiverPort);
     return { ...record, requestId: input.requestId };
@@ -56,13 +60,18 @@ async function createProtocolServer(principal, supportedScopes, adapterToken, re
     .filter(tool => ["submit_text_preview", "submit_notes_preview"].includes(tool.name))
     .map(tool => ({ ...tool, securitySchemes: [{ type: "oauth2", scopes: ["memo:submit"] }],
       _meta: { securitySchemes: [{ type: "oauth2", scopes: ["memo:submit"] }] } }));
-  // Discovery follows server configuration; HTTP call authorization still checks the token before forwarding.
+  // Discovery follows configuration; the tool handler checks scopes before any business processing.
   const tools = [...submitTools, ...(supportedScopes.includes("memo:search") ? searchTools : [])];
   diagnostic("tools_prepared", toolCounts(tools));
   const server = new Server({ name: "memo-unsaved-oauth-preview", version: "1.0.0" }, { capabilities: { tools: {} } });
   server.setRequestHandler(ListToolsRequestSchema, async () => ({ tools }));
   server.setRequestHandler(CallToolRequestSchema, async request => {
     if (!tools.some(tool => tool.name === request.params.name)) throw new McpError(-32602, "Unknown tool");
+    if (!principal.scopes.includes(toolScope(request.params.name))) {
+      diagnostic("tool_authorization", { status: "rejected", classification: "insufficient_scope" });
+      return { content: [{ type: "text", text: JSON.stringify({ error: "insufficient_scope" }) }], isError: true,
+        _meta: { "mcp/www_authenticate": [scopeChallenge(toolScope(request.params.name))] } };
+    }
     if (searchTools.some(tool => tool.name === request.params.name)) {
       let value;
       try {
@@ -195,12 +204,19 @@ async function createAuthenticatedServer(input, { adapterToken, receiverPort = 8
         : send(400, { jsonrpc: "2.0", id: null, error: { code: -32700, message: "Parse error" } }); }
       if (Array.isArray(message)) return send(400, { jsonrpc: "2.0", id: null, error: { code: -32600, message: "Batch not supported" } });
       if (message?.method === "tools/call") {
-        const required = searchTools.some(tool => tool.name === message.params?.name) ? "memo:search" : "memo:submit";
-        if (!principal.scopes.includes(required)) return send(403, { error: "insufficient_scope" }, { "WWW-Authenticate": challenge(required) + ', error="insufficient_scope"' });
+        const required = toolScope(message.params?.name) || "memo:submit";
+        // Only authenticated calls to enabled tools can return a tool-level step-up result.
+        // Disabled/unknown tools and the HTTP authentication boundary retain their existing rejection.
+        const enabled = !!toolScope(message.params?.name) && config.scopes_supported.includes(required);
+        if (!principal.scopes.includes(required) && !enabled) return send(403, { error: "insufficient_scope" }, { "WWW-Authenticate": challenge(required) + ', error="insufficient_scope"' });
       }
-      stage = message?.method === "initialize" ? "initialize" : message?.method === "tools/list" ? "tools_list" : "mcp_other";
+      stage = message?.method === "initialize" ? "initialize" : message?.method === "tools/list" ? "tools_list"
+        : message?.method === "tools/call" ? "tools_call" : "mcp_other";
       diagnostic("protocol_request");
-      protocol = await createProtocolServer(principal, config.scopes_supported, adapterToken, receiverPort, diagnostic);
+      // Preserve already granted relevant scopes in a step-up request, without requesting unused permissions.
+      const scopeChallenge = required => challenge(config.scopes_supported.filter(scope => scope === required || principal.scopes.includes(scope)).join(" "))
+        + ', error="insufficient_scope", error_description="Additional OAuth permission is required for this tool."';
+      protocol = await createProtocolServer(principal, config.scopes_supported, adapterToken, receiverPort, diagnostic, scopeChallenge);
       const transport = new WebStandardStreamableHTTPServerTransport({ sessionIdGenerator: undefined, enableJsonResponse: true });
       await protocol.connect(transport);
       // Use the SDK's standard Web transport directly. No SSE or Node-adapter
@@ -216,9 +232,11 @@ async function createAuthenticatedServer(input, { adapterToken, receiverPort = 8
       const body = Buffer.from(await response.arrayBuffer());
       if (diagnostics === true) {
         let reply; try { reply = JSON.parse(body.toString("utf8")); } catch { /* No raw response logging. */ }
-        classification = reply?.error ? diagnosticError(reply.error)
+        const authorizationChallenge = reply?.result?.isError === true && Array.isArray(reply.result._meta?.["mcp/www_authenticate"]);
+        classification = authorizationChallenge ? "insufficient_scope" : reply?.result?.isError ? "tool_error" : reply?.error ? diagnosticError(reply.error)
           : response.status >= 400 ? "http_rejected" : response.status === 200 && !reply?.result ? "protocol_error" : "none";
-        const fields = { status: response.status, classification, success: response.status === 200 && !!reply?.result && !reply?.error };
+        const fields = { status: response.status, classification, success: response.status === 200 && !!reply?.result && !reply?.error && !reply.result.isError };
+        if (authorizationChallenge) diagnostic("authorization_challenge", { status: response.status, classification: "insufficient_scope" });
         if (stage === "tools_list" && Array.isArray(reply?.result?.tools)) {
           Object.assign(fields, toolCounts(reply.result.tools));
         }

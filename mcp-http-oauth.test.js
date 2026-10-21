@@ -12,6 +12,22 @@ const initialize = rpc("initialize", { protocolVersion: "2025-11-25", capabiliti
 
 test("configured discovery is independent of granted scopes; step-up refuses calls before receiver access", async t => {
   const http = require("node:http"), f = await issuerFixture(), logs = [], servers = [];
+  const { CallToolResultSchema } = require("@modelcontextprotocol/sdk/types.js");
+  const { extractWWWAuthenticateParams } = require("@modelcontextprotocol/sdk/client/auth.js");
+  const checkChallenge = result => {
+    assert.equal(result.isError, true);
+    assert.deepEqual(JSON.parse(result.content[0].text), { error: "insufficient_scope" });
+    const challenges = result._meta["mcp/www_authenticate"];
+    assert.equal(challenges.length, 1);
+    const challenge = challenges[0];
+    assert.match(challenge, /^Bearer resource_metadata="/);
+    assert.match(challenge, /error_description="Additional OAuth permission is required for this tool\."/);
+    const parsed = extractWWWAuthenticateParams(new Response(null, { headers: { "WWW-Authenticate": challenge } }));
+    assert.equal(parsed.error, "insufficient_scope");
+    assert.equal(parsed.resourceMetadataUrl.href, config.resource_metadata);
+    assert.equal(parsed.scope, "memo:submit memo:search", "required scope plus the already granted relevant scope; no openid/profile escalation");
+    assert.equal(result.structuredContent, undefined, "no pairing/session/search success payload");
+  };
   const adapterToken = randomBytes(32).toString("base64url");
   let receiverCalls = 0;
   const receiver = http.createServer((req, res) => { receiverCalls++; res.writeHead(500).end("{}"); });
@@ -49,13 +65,44 @@ test("configured discovery is independent of granted scopes; step-up refuses cal
       const token = i < 2 ? tokens[1] : tokens[0];
       const before = logs.length;
       const response = await wire(port, token, rpc("tools/call", { name, arguments: { query: "PRIVATE_QUERY", sessionId: "PRIVATE_SESSION" } }));
-      assert.equal(response.status, 403); assert.deepEqual(response.json, { error: "insufficient_scope" });
-      assert.equal(response.headers["www-authenticate"], `Bearer resource_metadata="${config.resource_metadata}", scope="${required}", error="insufficient_scope"`);
-      assert.ok(!logs.slice(before).map(JSON.parse).some(event => ["tools_prepared", "protocol_request"].includes(event.event)));
+      const events = logs.slice(before).map(JSON.parse);
+      if (searchEnabled) {
+        assert.equal(response.status, 200); assert.equal(response.json.id, 1); assert.equal(response.json.error, undefined);
+        checkChallenge(CallToolResultSchema.parse(response.json.result));
+        assert.equal(response.headers["www-authenticate"], undefined, "tool-level challenge lives in the MCP result");
+        assert.ok(events.some(event => event.event === "tool_authorization" && event.status === "rejected"));
+        assert.ok(events.some(event => event.event === "authorization_challenge" && event.status === 200));
+        const result = events.find(event => event.event === "protocol_result");
+        assert.deepEqual([result.stage, result.success, result.classification], ["tools_call", false, "insufficient_scope"]);
+        assert.equal(events.find(event => event.event === "response").classification, "insufficient_scope");
+      } else {
+        assert.equal(response.status, 403); assert.deepEqual(response.json, { error: "insufficient_scope" });
+        assert.equal(response.headers["www-authenticate"], `Bearer resource_metadata="${config.resource_metadata}", scope="${required}", error="insufficient_scope"`);
+        assert.ok(!events.some(event => ["tools_prepared", "protocol_request"].includes(event.event)));
+      }
     }
     if (!searchEnabled) {
       const response = await wire(port, tokens[2], rpc("tools/call", { name: "prepare_memo_search", arguments: {} }));
       assert.equal(response.status, 403, "token cannot enable a server-disabled search scope");
+    } else {
+      // Exercise the installed SDK's client/transport/result validation, not only raw HTTP.
+      const { Client } = require("@modelcontextprotocol/sdk/client/index.js");
+      const { StreamableHTTPClientTransport } = require("@modelcontextprotocol/sdk/client/streamableHttp.js");
+      for (const [token, name] of [[tokens[0], "prepare_memo_search"], [tokens[1], "submit_notes_preview"]]) {
+        const client = new Client({ name: "step-up-fixture", version: "1" });
+        try {
+          await client.connect(new StreamableHTTPClientTransport(new URL(`http://127.0.0.1:${port}/mcp`),
+            { requestInit: { headers: { Authorization: `Bearer ${token}` } } }));
+          assert.equal((await client.listTools()).tools.length, 4);
+          checkChallenge(await client.callTool({ name, arguments: {} }));
+        } finally { await client.close(); }
+      }
+      for (const [i, token] of [...invalidTokens, await f.sign({ scope: "openid" })].entries()) {
+        const before = logs.length, response = await wire(port, token, rpc("tools/call", { name: "prepare_memo_search", arguments: {} }));
+        assert.equal(response.status, i === 3 || i === invalidTokens.length ? 403 : 401);
+        assert.equal(response.json.result, undefined, "HTTP authentication failures never become MCP step-up results");
+        assert.ok(!logs.slice(before).map(JSON.parse).some(event => event.event === "authorization_challenge"));
+      }
     }
   }
   assert.equal(receiverCalls, 0, "no rejected call reaches receiver, broker or browser storage");
