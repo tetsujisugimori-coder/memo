@@ -1,6 +1,6 @@
 "use strict";
 const { randomBytes, randomUUID, createHash } = require("node:crypto");
-const { exact, scope, conditions, validateResult, responseBytes } = require("./memo-search.js");
+const { exact, scope, conditions, validateResult, responseBytes, readConditions, validateReadResult } = require("./memo-search.js");
 const secret = () => randomBytes(32).toString("base64url");
 const fail = (code, status = 409) => { throw Object.assign(new Error(code), { code, status }); };
 const principalKey = value => {
@@ -15,7 +15,7 @@ function createSearchBroker({ now = Date.now, timeoutMs = 6000 } = {}) {
     session.pending = null;
     if (pending) {
       clearTimeout(pending.timer);
-      const rows = value.error ? 0 : value.count, size = value.error ? 0 : responseBytes(value);
+      const rows = value.error ? 0 : pending.readConditions ? 1 : value.count, size = value.error ? 0 : responseBytes(value);
       session.rows += rows - pending.conditions.limit; session.bytes += size - 8192;
       pending.budget.rows += rows - pending.conditions.limit; pending.budget.bytes += size - 8192;
       pending.resolve(value);
@@ -62,11 +62,12 @@ function createSearchBroker({ now = Date.now, timeoutMs = 6000 } = {}) {
       return { principal: session.principal, expiresAt: session.expiresAt };
     },
     grant(input, origin) {
-      exact(input, ["pairingCode", "scope"]); this.inspect({ pairingCode: input.pairingCode });
+      exact(input, ["pairingCode", "scope"], ["allowRead"]); this.inspect({ pairingCode: input.pairingCode });
+      if (input.allowRead !== undefined && typeof input.allowRead !== "boolean") fail("unsupported_conditions", 400);
       const session = [...sessions.values()].find(s => s.code === input.pairingCode);
-      session.scope = scope(input.scope); session.code = null; session.state = "active";
+      session.scope = scope(input.scope); session.allowRead = input.allowRead === true; session.code = null; session.state = "active";
       session.origin = origin; session.capability = secret(); session.expiresAt = now() + 600000; session.lastSeen = now();
-      return { sessionId: [...sessions].find(([, s]) => s === session)[0], capability: session.capability, expiresAt: session.expiresAt, scope: session.scope };
+      return { sessionId: [...sessions].find(([, s]) => s === session)[0], capability: session.capability, expiresAt: session.expiresAt, scope: session.scope, allowRead: session.allowRead };
     },
     revoke(input, origin) {
       exact(input, ["sessionId", "capability"]); const session = browser(input, origin); invalidate(session, "permission_revoked"); return { revoked: true };
@@ -75,12 +76,21 @@ function createSearchBroker({ now = Date.now, timeoutMs = 6000 } = {}) {
       exact(input, ["sessionId", "capability"]); const session = browser(input, origin); session.lastSeen = now();
       const pending = session.pending;
       return { expiresAt: session.expiresAt, scope: session.scope, remaining: { requests: Math.max(0, 20 - session.calls), rows: 100 - session.rows, bytes: 65536 - session.bytes },
-        request: pending ? { requestId: pending.id, conditions: pending.conditions, afterId: pending.afterId } : null };
+        request: pending ? { requestId: pending.id, conditions: pending.conditions, afterId: pending.afterId,
+          ...(pending.readConditions ? { operation: "read", readConditions: pending.readConditions } : {}) } : null };
     },
-    async search(principal, input) {
+    async read(principal, input) {
+      exact(input, ["sessionId", "memoId"], ["offset"]);
+      const request = readConditions({ memoId: input.memoId, ...(input.offset !== undefined ? { offset: input.offset } : {}) });
+      const session = get(input.sessionId);
+      return this.search(principal, { sessionId: input.sessionId, conditions: { query: "read", scope: session.scope || { type: "all" }, limit: 1 } }, request);
+    },
+    async search(principal, input, readRequest = null) {
       exact(input, ["sessionId", "conditions"]); const key = principalKey(principal), session = get(input.sessionId);
       if (key !== session.key) fail("subject_mismatch", 403);
-      active(session); const request = conditions(input.conditions);
+      active(session);
+      if (readRequest && !session.allowRead) fail("read_permission_required", 403);
+      const request = conditions(input.conditions);
       if (session.scope.type === "collection" && (request.scope.type !== "collection" || request.scope.collectionId !== session.scope.collectionId)) fail("scope_forbidden", 403);
       if (now() - session.lastSeen > 5000) fail("browser_disconnected", 503);
       if (session.pending) fail("search_busy");
@@ -89,7 +99,7 @@ function createSearchBroker({ now = Date.now, timeoutMs = 6000 } = {}) {
       const budget = budgetFor(key);
       if (session.calls >= 20 || session.rows + request.limit > 100 || session.bytes + 8192 > 65536
         || budget.calls >= 60 || budget.rows + request.limit > 200 || budget.bytes + 8192 > 262144) fail("search_budget_exhausted", 429);
-      const fingerprint = createHash("sha256").update(JSON.stringify([request.query, request.scope, request.limit])).digest("hex");
+      const fingerprint = createHash("sha256").update(JSON.stringify([request.query, request.scope, request.limit, request.fields, request.tagIds])).digest("hex");
       let afterId = null;
       if (request.cursor) {
         const cursor = session.cursors.get(request.cursor);
@@ -100,7 +110,7 @@ function createSearchBroker({ now = Date.now, timeoutMs = 6000 } = {}) {
       // Reserve before awaiting a browser; concurrent sessions cannot overspend the principal budget.
       session.rows += request.limit; session.bytes += 8192; budget.rows += request.limit; budget.bytes += 8192;
       return new Promise(resolve => {
-        const pending = { id: randomUUID(), conditions: request, fingerprint, afterId, resolve, budget };
+        const pending = { id: randomUUID(), conditions: request, readConditions: readRequest, fingerprint, afterId, resolve, budget };
         session.pending = pending;
         pending.timer = setTimeout(() => finish(session, { error: now() >= session.expiresAt ? "permission_expired" : now() - session.lastSeen > 5000 ? "browser_disconnected" : "search_timeout" }), timeoutMs);
       });
@@ -109,11 +119,20 @@ function createSearchBroker({ now = Date.now, timeoutMs = 6000 } = {}) {
       exact(input, ["sessionId", "capability", "requestId"], ["result", "error"]);
       const session = browser(input, origin), pending = session.pending;
       if (!pending || input.requestId !== pending.id) fail("request_mismatch");
+      if (now() - session.lastSeen > 5000) {
+        finish(session, { error: "browser_disconnected" }); fail("browser_disconnected", 503);
+      }
       if (Object.hasOwn(input, "error")) {
-        if (Object.hasOwn(input, "result") || !["storage_unavailable", "collection_unavailable", "search_failed"].includes(input.error)) fail("invalid_search_result", 400);
+        const errors = pending.readConditions ? ["storage_unavailable", "memo_unavailable", "memo_too_large", "invalid_offset", "search_failed"] : ["storage_unavailable", "collection_unavailable", "search_failed"];
+        if (Object.hasOwn(input, "result") || !errors.includes(input.error)) fail("invalid_search_result", 400);
         finish(session, { error: input.error }); return { accepted: true };
       }
+      if (pending.readConditions) {
+        const result = validateReadResult(input.result, pending.readConditions, session.scope);
+        finish(session, result); return { accepted: true };
+      }
       const result = validateResult(input.result, pending.conditions.limit);
+      if (session.scope.type === "collection" && result.results.some(item => item.collectionId !== undefined && item.collectionId !== session.scope.collectionId)) fail("invalid_search_result", 400);
       if (result.results.some(item => pending.afterId !== null && item.id <= pending.afterId)) fail("invalid_search_result", 400);
       const output = { ...result, nextCursor: null };
       if (result.hasMore) {

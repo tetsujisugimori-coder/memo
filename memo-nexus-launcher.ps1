@@ -128,7 +128,9 @@ function Update-LauncherObservation([string]$Line,$Child,$Shared) {
         } elseif ($event.event -eq 'protocol_result' -and $event.success -eq $true -and $event.status -eq 200) {
             if ($event.stage -eq 'initialize') { $summary='initializeの応答生成を観測' }
             elseif ($event.stage -eq 'tools_list') {
-                if ($event.toolCount -eq 4 -and $event.submitToolCount -eq 2 -and $event.searchToolCount -eq 2) {
+                if ($event.toolCount -eq 5 -and $event.submitToolCount -eq 2 -and $event.searchToolCount -eq 3) {
+                    $summary='全5ツール（送信用2・検索・取得用3）の一覧応答生成を観測。ChatGPT側の表示・取得成功は未確認'
+                } elseif ($event.toolCount -eq 4 -and $event.submitToolCount -eq 2 -and $event.searchToolCount -eq 2) {
                     $summary='全4ツール（送信用2・検索用2）の一覧応答生成を観測。ChatGPT側の表示・検索成功は未確認'
                 } elseif ($event.toolCount -eq 2 -and $event.submitToolCount -eq 2 -and $event.searchToolCount -eq 0) {
                     $summary='送信用2ツールの一覧応答生成を観測。ChatGPT側の表示は未確認'

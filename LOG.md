@@ -1,3 +1,26 @@
+## 2026-10-22 Memo-Nexus MCP検索強化・指定メモ全文取得
+
+### 変更と設計判断
+
+- 着手時のHEAD・origin/main・GitHub API上の公開mainは`4b7722fce07ef65863a1dc4c0b54678ca03045ab`で一致。PR #382のOAuth追加認可応答と、その後のmain変更がないことを確認。gitのschannelによるls-remoteは資格情報エラーだったため、公開mainは認証済みgh APIで確認した。
+- 既存の未追跡work/・worktree・実行中8791（PID 34152）／8792（PID 20832）を保護し、専用worktree `work/mcp-search-read`／ブランチ `feat/mcp-search-read`で作業。Tunnel・実設定・実ブラウザ保存領域を変更しない。
+- 既存タイトル・本文検索、正確なコレクションID範囲、主体・タブ・期限・取消・予算の実装を再利用。任意fields／tagIds条件、結果collectionId、ID重複排除、条件に結び付くcursorを追加。旧クライアントの省略時動作を維持。
+- read_saved_memoを追加。OAuth memo:searchだけでは全文取得不可とし、既定OFFのブラウザ側追加許可allowReadが必要。旧検索許可には自動付与しない。取得・検索は既存brokerの同時要求／回数／件数／バイト予算を共有する。
+- 本文は512コードポイントずつ、nextOffsetで継続。CRLF・絵文字・Markdown原文を保持。1 Mi UTF-16単位超の本文と8 KiBに収まらない応答は明示拒否。原文を実行／描画する処理は追加しない。
+- 指定IDを既存readonly getStoredNoteSnapshotsで読み、現在の所属範囲を検証してから本文・メタデータを生成。不在・範囲外・ゴミ箱をmemo_unavailableへ統一。結果配送時にもID・範囲・長さをbrokerで検証する。
+- 分割中の編集について版固定は保証しない。既に返した本文の回収、厳密な応答時間一定性、JWTのオンライン失効照会、通知未達時の瞬時取消は保証しない。既存heartbeatの5秒猶予とメモリ内予算リセットを含め、仕様書に制約を記録。
+- メモ保存・更新・削除・同期・コレクション変更は実装しない。保存キュー、dirty、atomic復元、ZIP、インポート／エクスポートは変更しない。ランチャー変更は5ツール診断表示だけ。
+
+### 検証
+
+- 関連単体計41件成功（memo-search.test.js 13件、mcp-http-oauth.test.js 16件、received-preview.test.js／received-notes-preview.test.js 12件）。全文許可なし・scope不足・別主体・範囲外・取消後の旧ID／再認証・再pairing・期限・サービスメモリ破棄・タイムアウト・不正入力・巨大本文・巨大メタデータ・共有予算・ログ非露出を検証。
+- 最終memo-search.e2e.js成功。隔離Chromium、架空RS256 issuer、実HTTPとIndexedDBで検索／全文取得を検証。日本語・タグID条件・CRLF・絵文字・Markdown・コードブロック・HTML文字列・長文分割・ゴミ箱・範囲外／不存在の共通エラー・取消・別タブ／プロファイル・再読込・通信断を確認。全ストア一致、読み取り中readwrite transaction 0。
+- 試験途中のタグ定義不足で、別タブ起動時に既存のタグ補完が動き、全体比較が失敗した。fixtureへ保存形式に沿ったタグ定義を追加し成功。再読込時の即時取消を仮定した試験も、固定fixture時計ではsearch_timeoutになった。既存契約どおり通知未達時の5秒heartbeat猶予を時計で進めて拒否を検証し成功。保存処理・認可条件を緩和していない。
+- 結果配送時にもheartbeatを検査し、通信断後の遅延結果を拒否。検索抜粋の開始が絵文字のサロゲートペアを分断する境界も修正し、単体で確認。
+- Windows PowerShell 5.1で構文解析とUpdate-LauncherObservationの5ツール表示を隔離検証。変更JavaScriptの構文検査、git diff --check成功。無関係なGUI網羅試験・Chart／Report／PDF長時間試験は追加しない。
+- 最終公開mainは4b7722fのまま。通常sandboxのgit TLS接続は失敗したが、通常のGit接続をsandbox外で確認するとls-remote成功。8791／8792のPIDは着手時と同じ。実サービス・実Tunnel・実設定・実メモを変更していない。
+- 実ChatGPT・Auth0の追加認可／scope保持、実Tunnelと利用者の明示許可による全文取得、実機の再起動後受入は未実施。自動試験は実接続成功と扱わず、Draft PRと仕様書の利用者手順で引き継ぐ。
+
 ## 2026-06-21 Memo Nexus 保存安定化・ZIP修正
 
 ### 変更内容

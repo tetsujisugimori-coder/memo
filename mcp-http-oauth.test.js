@@ -33,7 +33,7 @@ test("configured discovery is independent of granted scopes; step-up refuses cal
   const receiver = http.createServer((req, res) => { receiverCalls++; res.writeHead(500).end("{}"); });
   servers.push(receiver); const receiverPort = await listen(receiver);
   t.after(async () => { for (const server of servers) await close(server); });
-  const names = ["submit_text_preview", "submit_notes_preview", "prepare_memo_search", "search_saved_memos"];
+  const names = ["submit_text_preview", "submit_notes_preview", "prepare_memo_search", "search_saved_memos", "read_saved_memo"];
   const tokens = await Promise.all(["memo:submit", "memo:search", "memo:submit memo:search"].map(scope => f.sign({ scope })));
   const invalidTokens = [undefined, "PRIVATE_INVALID_TOKEN", await f.sign({ exp: 1 }),
     await f.sign({ sub: "auth0|PRIVATE_UNALLOWED" }), await f.sign({}, {}, f.other.privateKey)];
@@ -52,7 +52,7 @@ test("configured discovery is independent of granted scopes; step-up refuses cal
         assert.deepEqual(tool.securitySchemes, schemes); assert.deepEqual(tool._meta.securitySchemes, schemes);
       }
       const result = logs.slice(before).map(JSON.parse).find(event => event.event === "protocol_result");
-      assert.deepEqual([result.toolCount, result.submitToolCount, result.searchToolCount], [searchEnabled ? 4 : 2, 2, searchEnabled ? 2 : 0]);
+      assert.deepEqual([result.toolCount, result.submitToolCount, result.searchToolCount], [searchEnabled ? 5 : 2, 2, searchEnabled ? 3 : 0]);
     }
     for (const [i, token] of invalidTokens.entries()) {
       const response = await wire(port, token, rpc("tools/list"));
@@ -93,7 +93,7 @@ test("configured discovery is independent of granted scopes; step-up refuses cal
         try {
           await client.connect(new StreamableHTTPClientTransport(new URL(`http://127.0.0.1:${port}/mcp`),
             { requestInit: { headers: { Authorization: `Bearer ${token}` } } }));
-          assert.equal((await client.listTools()).tools.length, 4);
+          assert.equal((await client.listTools()).tools.length, 5);
           checkChallenge(await client.callTool({ name, arguments: {} }));
         } finally { await client.close(); }
       }
