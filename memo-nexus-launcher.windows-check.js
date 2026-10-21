@@ -104,8 +104,18 @@ Update-LauncherObservation '{"diagnostic":"memo_http_oauth","event":"authenticat
 Assert (-not $diagnosticShared.Observation) 'startup 401 is not a connection failure'
 foreach($line in @('{"diagnostic":"memo_http_oauth","event":"tools_prepared","toolCount":2,"expectedTools":true}', '{"diagnostic":"memo_http_oauth","event":"protocol_result","stage":"tools_list","status":200,"success":false,"toolCount":2,"expectedTools":true}', '{"diagnostic":"memo_http_oauth","event":"protocol_result","stage":"tools_list","status":500,"success":true,"toolCount":2,"expectedTools":true}')) { Update-LauncherObservation $line $diagnosticChild $diagnosticShared }
 Assert (-not $diagnosticShared.Observation) 'prepared/HTTP200 are not tool detection'
-Update-LauncherObservation '{"diagnostic":"memo_http_oauth","event":"protocol_result","stage":"tools_list","status":200,"success":true,"toolCount":2,"expectedTools":true,"unsafe":"TEST_SECRET_DIAGNOSTIC"}' $diagnosticChild $diagnosticShared
+Update-LauncherObservation '{"diagnostic":"memo_http_oauth","event":"protocol_result","stage":"tools_list","status":200,"success":true,"toolCount":2,"submitToolCount":2,"searchToolCount":0,"unsafe":"TEST_SECRET_DIAGNOSTIC"}' $diagnosticChild $diagnosticShared
 Assert ([bool]$diagnosticShared.Observation -and -not $diagnosticShared.Observation.Contains('TEST_SECRET')) 'fixed observed tools summary'
+Assert ($diagnosticShared.Observation.Contains('送信用2ツール')) 'submit tools summary'
+Update-LauncherObservation '{"diagnostic":"memo_http_oauth","event":"protocol_result","stage":"tools_list","status":200,"success":true,"toolCount":2,"submitToolCount":0,"searchToolCount":2}' $diagnosticChild $diagnosticShared
+Assert ($diagnosticShared.Observation.Contains('検索用2ツール')) 'search tools summary'
+Update-LauncherObservation '{"diagnostic":"memo_http_oauth","event":"protocol_result","stage":"tools_list","status":200,"success":true,"toolCount":4,"submitToolCount":2,"searchToolCount":2}' $diagnosticChild $diagnosticShared
+Assert ($diagnosticShared.Observation.Contains('全4ツール') -and $diagnosticShared.Observation.Contains('未確認')) 'all tools are not actual ChatGPT success'
+Update-LauncherObservation '{"diagnostic":"memo_http_oauth","event":"request_received","sequence":2,"bearerPresent":true}' $diagnosticChild $diagnosticShared
+Update-LauncherObservation '{"diagnostic":"memo_http_oauth","event":"authentication","sequence":2,"status":"rejected"}' $diagnosticChild $diagnosticShared
+Assert ($diagnosticShared.Observation.Contains('認証拒否')) 'authentication refusal'
+Update-LauncherObservation '{"diagnostic":"memo_http_oauth","event":"response","sequence":2,"status":403,"classification":"insufficient_scope"}' $diagnosticChild $diagnosticShared
+Assert ($diagnosticShared.Observation.Contains('scope不足')) 'step-up refusal'
 $diagnosticShared.Diagnostics=$false; $diagnosticShared.Observation=''
 Update-LauncherObservation '{"diagnostic":"memo_http_oauth","event":"authentication","status":"accepted"}' $diagnosticChild $diagnosticShared
 Assert (-not $diagnosticShared.Observation) 'diagnostics OFF'

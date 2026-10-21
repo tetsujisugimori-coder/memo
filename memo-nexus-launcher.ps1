@@ -119,10 +119,18 @@ function Update-LauncherObservation([string]$Line,$Child,$Shared) {
         if ($event.event -eq 'authentication' -and $event.status -eq 'accepted') { $summary='認証の受理を観測' }
         elseif ($event.event -eq 'authentication' -and $event.status -eq 'rejected' -and $Child.Bearer[$event.sequence]) {
             $summary='Bearer付き要求の認証拒否を観測。OAuth設定と利用者・scopeを確認してください'
+        } elseif ($event.event -eq 'response' -and $event.status -eq 403 -and $event.classification -eq 'insufficient_scope') {
+            $summary='scope不足による実行・認可拒否を観測。必要なOAuth追加認可を確認してください'
         } elseif ($event.event -eq 'protocol_result' -and $event.success -eq $true -and $event.status -eq 200) {
             if ($event.stage -eq 'initialize') { $summary='initializeの応答生成を観測' }
-            elseif ($event.stage -eq 'tools_list' -and $event.toolCount -eq 2 -and $event.expectedTools -eq $true) {
-                $summary='想定2ツールの一覧応答生成を観測。ChatGPT側の表示を確認してください'
+            elseif ($event.stage -eq 'tools_list') {
+                if ($event.toolCount -eq 4 -and $event.submitToolCount -eq 2 -and $event.searchToolCount -eq 2) {
+                    $summary='全4ツール（送信用2・検索用2）の一覧応答生成を観測。ChatGPT側の表示・検索成功は未確認'
+                } elseif ($event.toolCount -eq 2 -and $event.submitToolCount -eq 2 -and $event.searchToolCount -eq 0) {
+                    $summary='送信用2ツールの一覧応答生成を観測。ChatGPT側の表示は未確認'
+                } elseif ($event.toolCount -eq 2 -and $event.submitToolCount -eq 0 -and $event.searchToolCount -eq 2) {
+                    $summary='検索用2ツールの一覧応答生成を観測。ChatGPT側の表示・検索成功は未確認'
+                }
             }
         }
         if ($summary) { $Shared.Observation=[DateTime]::Now.ToString('HH:mm:ss') + ' ' + $summary }
