@@ -9,6 +9,59 @@ const { createAuthenticatedServer, MAX_HTTP_BYTES } = require("./mcp-http-server
 const { config, issuerFixture, httpFixture, listen, close, wire } = require("./mcp-http-oauth.fixture.js");
 const rpc = (method, params = {}) => ({ jsonrpc: "2.0", id: 1, method, params });
 const initialize = rpc("initialize", { protocolVersion: "2025-11-25", capabilities: {}, clientInfo: { name: "fixture", version: "1" } });
+
+test("configured search discovery is separate from execution scopes and challenges require only the operation scope", async t => {
+  const f = await issuerFixture(), logs = [], tokens = [];
+  const adapterToken = randomBytes(32).toString("base64url");
+  let receiverRequests = 0;
+  const receiver = require("node:http").createServer((_req, res) => { receiverRequests++; res.writeHead(500).end(); });
+  const receiverPort = await listen(receiver), servers = [];
+  t.after(async () => { for (const server of servers) await close(server); await close(receiver); });
+  const submitNames = ["submit_text_preview", "submit_notes_preview"], searchNames = ["prepare_memo_search", "search_saved_memos"];
+  const timestamp = Math.floor(Date.now() / 1000);
+  for (const enabled of [false, true]) {
+    const server = await createAuthenticatedServer({ ...config, scopes_supported: enabled ? ["memo:submit", "memo:search"] : ["memo:submit"] },
+      { adapterToken, receiverPort, fetchImpl: f.fetchImpl, diagnostics: true, diagnosticWriter: line => logs.push(line) });
+    servers.push(server); const port = await listen(server);
+    for (const scope of ["memo:submit", "memo:search", "memo:submit memo:search"]) {
+      const token = await f.sign({ scope }); tokens.push(token);
+      const before = logs.length, response = await wire(port, token, rpc("tools/list"));
+      if (!enabled && scope === "memo:search") { assert.equal(response.status, 403); continue; }
+      assert.equal(response.status, 200);
+      const tools = response.json.result.tools;
+      const submits = scope.includes("memo:submit") ? submitNames : [];
+      assert.deepEqual(tools.map(tool => tool.name), [...submits, ...(enabled ? searchNames : [])]);
+      for (const tool of tools) {
+        assert.deepEqual(tool.securitySchemes, [{ type: "oauth2", scopes: [searchNames.includes(tool.name) ? "memo:search" : "memo:submit"] }]);
+        assert.deepEqual(tool._meta.securitySchemes, tool.securitySchemes);
+      }
+      const result = logs.slice(before).map(JSON.parse).find(event => event.event === "protocol_result");
+      assert.deepEqual([result.toolCount, result.submitToolCount, result.searchToolCount], [tools.length, submits.length, enabled ? 2 : 0]);
+      const denied = scope === "memo:search" ? submitNames : !enabled || scope === "memo:submit" ? searchNames : [];
+      for (const name of denied) {
+        // Even malformed/private arguments must be refused before validation or receiver I/O.
+        const start = logs.length;
+        const rejected = await wire(port, token, rpc("tools/call", { name, arguments: { query: "PRIVATE_QUERY", sessionId: "PRIVATE_SESSION" } }));
+        const required = searchNames.includes(name) ? "memo:search" : "memo:submit";
+        assert.equal(rejected.status, 403); assert.deepEqual(rejected.json, { error: "insufficient_scope" });
+        assert.equal(rejected.headers["www-authenticate"], `Bearer resource_metadata="${config.resource_metadata}", scope="${required}", error="insufficient_scope"`);
+        assert.ok(!logs.slice(start).map(JSON.parse).some(event => ["protocol_request", "tools_prepared"].includes(event.event)));
+      }
+    }
+    for (const [token, status, error] of [[undefined, 401, "invalid_token"], ["PRIVATE_TOKEN", 401, "invalid_token"],
+      [await f.sign({ exp: timestamp - 60 }), 401, "invalid_token"], [await f.sign({}, {}, f.other.privateKey), 401, "invalid_token"],
+      [await f.sign({ sub: "auth0|PRIVATE_SUBJECT" }), 403, "subject_forbidden"]]) {
+      if (token) tokens.push(token);
+      const rejected = await wire(port, token, rpc("tools/list"));
+      assert.equal(rejected.status, status); assert.deepEqual(rejected.json, { error });
+      assert.equal(rejected.json.result, undefined);
+    }
+  }
+  assert.equal(receiverRequests, 0, "discovery and all denied calls never reach receiver, broker or storage");
+  const text = logs.join("\n");
+  assert.doesNotMatch(text, /PRIVATE_|auth0\|/);
+  for (const secret of [adapterToken, ...tokens, ...config.allowedSubjects]) assert.ok(!text.includes(secret));
+});
 test("opt-in diagnostics track authentication/discovery without changing responses or exposing inputs", async t => {
   const f = await issuerFixture(), adapterToken = randomBytes(32).toString("base64url"), logs = [];
   const servers = [];
@@ -63,7 +116,7 @@ test("opt-in diagnostics track authentication/discovery without changing respons
   }
   const text = logs.join("\n");
   for (const secret of [token, other, scope, adapterToken, ...config.allowedSubjects, "PRIVATE_", config.resource, config.authorization_servers[0]]) assert.ok(!text.includes(secret));
-  const allowedKeys = new Set(["diagnostic", "timestamp", "sequence", "event", "stage", "path", "method", "bearerPresent", "status", "httpStatus", "classification", "success", "toolCount", "expectedTools"]);
+  const allowedKeys = new Set(["diagnostic", "timestamp", "sequence", "event", "stage", "path", "method", "bearerPresent", "status", "httpStatus", "classification", "success", "toolCount", "submitToolCount", "searchToolCount", "expectedTools"]);
   assert.ok(logs.every(line => Object.keys(JSON.parse(line)).every(key => allowedKeys.has(key))));
   const sequences = logs.map(line => JSON.parse(line)).filter(event => event.event === "request_received").map(event => event.sequence);
   assert.deepEqual(sequences, cases.map((_, i) => i + 1));

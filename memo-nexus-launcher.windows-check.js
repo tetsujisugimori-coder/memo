@@ -104,8 +104,15 @@ Update-LauncherObservation '{"diagnostic":"memo_http_oauth","event":"authenticat
 Assert (-not $diagnosticShared.Observation) 'startup 401 is not a connection failure'
 foreach($line in @('{"diagnostic":"memo_http_oauth","event":"tools_prepared","toolCount":2,"expectedTools":true}', '{"diagnostic":"memo_http_oauth","event":"protocol_result","stage":"tools_list","status":200,"success":false,"toolCount":2,"expectedTools":true}', '{"diagnostic":"memo_http_oauth","event":"protocol_result","stage":"tools_list","status":500,"success":true,"toolCount":2,"expectedTools":true}')) { Update-LauncherObservation $line $diagnosticChild $diagnosticShared }
 Assert (-not $diagnosticShared.Observation) 'prepared/HTTP200 are not tool detection'
-Update-LauncherObservation '{"diagnostic":"memo_http_oauth","event":"protocol_result","stage":"tools_list","status":200,"success":true,"toolCount":2,"expectedTools":true,"unsafe":"TEST_SECRET_DIAGNOSTIC"}' $diagnosticChild $diagnosticShared
-Assert ([bool]$diagnosticShared.Observation -and -not $diagnosticShared.Observation.Contains('TEST_SECRET')) 'fixed observed tools summary'
+foreach($case in @(@(2,2,0,'送信用2ツール'), @(2,0,2,'検索用2ツール'), @(4,2,2,'全4ツール'))) {
+  $diagnosticShared.Observation=''
+  $line=@{diagnostic='memo_http_oauth'; event='protocol_result'; stage='tools_list'; status=200; success=$true; toolCount=$case[0]; submitToolCount=$case[1]; searchToolCount=$case[2]; unsafe='TEST_SECRET_DIAGNOSTIC'} | ConvertTo-Json -Compress
+  Update-LauncherObservation $line $diagnosticChild $diagnosticShared
+  Assert ($diagnosticShared.Observation.Contains($case[3]) -and $diagnosticShared.Observation.Contains('実検索は未確認') -and -not $diagnosticShared.Observation.Contains('TEST_SECRET')) 'fixed observed tools summary'
+}
+Update-LauncherObservation '{"diagnostic":"memo_http_oauth","event":"request_received","sequence":2,"bearerPresent":true}' $diagnosticChild $diagnosticShared
+Update-LauncherObservation '{"diagnostic":"memo_http_oauth","event":"authentication","sequence":2,"status":"rejected"}' $diagnosticChild $diagnosticShared
+Assert ($diagnosticShared.Observation.Contains('認証拒否')) 'authentication rejection is distinct from a tool list'
 $diagnosticShared.Diagnostics=$false; $diagnosticShared.Observation=''
 Update-LauncherObservation '{"diagnostic":"memo_http_oauth","event":"authentication","status":"accepted"}' $diagnosticChild $diagnosticShared
 Assert (-not $diagnosticShared.Observation) 'diagnostics OFF'
@@ -366,7 +373,7 @@ ${handlers}
                     Key='TEST_SECRET_KEY'; BrowserToken='TEST_SECRET_TOKEN'; Busy=$false; Command=''; Stop=$false;
                     Receiver='ローカル準備完了'; OAuth='ローカル準備完了'; Tunnel='ローカル準備完了';
                     Message=$(if($case[3]) { Get-LauncherMessage $case[3] } else { '設定・Node依存・Tunnel buildを検査しています。' }); Diagnostics=$true;
-                    Observation='想定2ツールの一覧応答生成を観測。ChatGPT側の表示を確認してください';
+                    Observation='全4ツールの一覧応答生成を観測。ChatGPT側の表示・実検索は未確認です';
                     SettingStatus=@{OAuth='要確認（検証・保存未完了）'; Tunnel='要確認（検証・保存未完了）'; Id='要確認（検証・保存未完了）'; Key='復号失敗・明示再入力が必要'; Url='要確認（検証・保存未完了）'}}
                 if($case[0] -eq 'unset') { $taskShared.Settings=$null }
                 if($case[0] -in @('validated','ready')) { $taskShared.SettingStatus=@{OAuth='検証済み'; Tunnel='固定build検証済み'; Id='形式検証済み'; Key='利用可能（認証成功は未確認）'; Url='検証済み（配信・保存は未確認）'} }

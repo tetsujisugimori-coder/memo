@@ -162,7 +162,7 @@ test("OAuth search-only/submit-only and receiver HTTP boundaries use actual RS25
   const session = (await browser("grant", { pairingCode: pair.pairingCode, scope: { type: "all" } })).json;
   const auth = { sessionId: session.sessionId, capability: session.capability };
   assert.equal(unpack(await call("search_saved_memos", { sessionId: session.sessionId, conditions: all }, await issuer.sign({ scope: "memo:search", sub: config.allowedSubjects[1] }))).error, "subject_mismatch");
-  const pending = call("search_saved_memos", { sessionId: session.sessionId, conditions: all });
+  const pending = call("search_saved_memos", { sessionId: session.sessionId, conditions: all }, await issuer.sign({ scope: "memo:submit memo:search" }));
   let work;
   for (let i = 0; i < 100 && !work; i++) { work = (await browser("poll", auth)).json.request; if (!work) await new Promise(resolve => setTimeout(resolve, 10)); }
   assert.ok(work); assert.equal((await browser("result", { ...auth, requestId: work.requestId, result: search(notes, work.conditions) })).status, 200);

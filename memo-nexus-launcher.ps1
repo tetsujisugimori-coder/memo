@@ -121,8 +121,14 @@ function Update-LauncherObservation([string]$Line,$Child,$Shared) {
             $summary='Bearer付き要求の認証拒否を観測。OAuth設定と利用者・scopeを確認してください'
         } elseif ($event.event -eq 'protocol_result' -and $event.success -eq $true -and $event.status -eq 200) {
             if ($event.stage -eq 'initialize') { $summary='initializeの応答生成を観測' }
-            elseif ($event.stage -eq 'tools_list' -and $event.toolCount -eq 2 -and $event.expectedTools -eq $true) {
-                $summary='想定2ツールの一覧応答生成を観測。ChatGPT側の表示を確認してください'
+            elseif ($event.stage -eq 'tools_list') {
+                if ($event.toolCount -eq 4 -and $event.submitToolCount -eq 2 -and $event.searchToolCount -eq 2) {
+                    $summary='全4ツールの一覧応答生成を観測。ChatGPT側の表示・実検索は未確認です'
+                } elseif ($event.toolCount -eq 2 -and $event.submitToolCount -eq 2 -and $event.searchToolCount -eq 0) {
+                    $summary='送信用2ツールの一覧応答生成を観測。ChatGPT側の表示・実検索は未確認です'
+                } elseif ($event.toolCount -eq 2 -and $event.submitToolCount -eq 0 -and $event.searchToolCount -eq 2) {
+                    $summary='検索用2ツールの一覧応答生成を観測。ChatGPT側の表示・実検索は未確認です'
+                }
             }
         }
         if ($summary) { $Shared.Observation=[DateTime]::Now.ToString('HH:mm:ss') + ' ' + $summary }

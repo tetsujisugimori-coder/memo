@@ -28,7 +28,7 @@
 1. 現行の受信・OAuthの設定を保全する。実設定・トークンはcheckout外に置き、ログやPRに貼らない。既存設定の`scopes_supported: ["memo:submit"]`では検索ツールを公開しない。
 2. OAuth設定で`scopes_supported`を`["memo:submit", "memo:search"]`にする。issuer、resource／audience、allowedSubjectsは既存の検証済み値を維持する。Auth0側の対象APIにも独立した`memo:search`権限を設定し、利用者の認可・アクセストークンに明示的に付与する。既存`memo:submit`を検索許可と読み替えない。
 3. 既存ランチャーで設定を再検証して起動する。ローカルmetadataと設定のscopesが一致することを確認する。必要ならChatGPTの接続を再認可する。ローカル起動完了を実OAuth／ChatGPT接続成功と表示しない。
-4. ChatGPTでツール一覧を確認する。検索権限を持つトークンには`prepare_memo_search`と`search_saved_memos`が現れる。送信専用トークンでは検索ツールを公開せず、直接呼び出しても403にする。検索専用トークンで既存送信はできない。
+4. ChatGPTでツール一覧を確認する。設定の`scopes_supported`が両scopeを含む場合、有効な送信専用トークンでも送信2・検索2の全4ツールを公開する。検索専用トークンでは検索2ツールを公開する。設定が`memo:submit`のみなら検索ツールは公開しない。匿名・無効なトークンにはツール一覧を返さない。発見できても実行許可にはならず、送信専用トークンで検索ツールを実行すると403、検索専用トークンで送信ツールを実行しても403になる。
 5. `prepare_memo_search`を実行し、返った`sessionId`を会話内で保持する。`pairingCode`は2分の一度限りの連携コード。Memo-Nexusの「その他」メニュー内の「MCP検索許可」を開き、既存の受信サービス専用Browser tokenとコードを手動入力する。トークンの自動注入は行わない。
 6. 「認証主体を確認」を押し、表示されるissuer／subが許可する自分のOAuthアカウント（設定のallowedSubjects）と一致することを確認する。主体が不明・不一致なら許可しない。「全メモ」は子・孫を含むすべてのコレクション、「コレクション指定」は指定先直下のみを許可することを確認して対象を選び、「検索を10分間許可」を押す。コード確認だけでは許可にならない。
 7. ChatGPTから以下の引数で`search_saved_memos`を呼び、既知の日本語タイトル・本文を照合する。結果は`id`、`title`、`snippet`、ページ内`count`、`hasMore`、`nextCursor`。全体一致件数・全文は返さない。
@@ -63,6 +63,32 @@
 - 予算・許可・cursorはサービスメモリ内だけ。サービス再起動で許可は消え、予算もリセットされる。無制限の反復取得を永続的に阻止する仕組みとは扱わない。短い抜粋・回数制限だけで情報露出を完全に防ぐことはできない。
 
 ## 認証・要求の対応付け
+
+### ツール発見と追加認可（2026-10-21）
+
+`tools/list`での公開と`tools/call`の実行許可を分離する。検索公開はサーバー設定の`scopes_supported`で判断するが、毎要求の署名・issuer・audience・exp・allowedSubjectsと、有効な設定内scopeの検証は従来どおり必須。各ツールの`securitySchemes`と`_meta.securitySchemes`は、送信には`memo:submit`、検索には`memo:search`を宣言する。
+
+scope不足の呼出しは受信サービス・検索brokerへ到達する前にHTTP 403で拒否し、次の形式のヘッダーを返す。`scope`はその操作に必要な1つだけとし、検索のために送信権限まで一律要求しない。クライアントは既存権限を必要に応じて維持して再認可する。設定で検索が無効な場合、このチャレンジだけで検索を有効化することはできない。
+
+```http
+WWW-Authenticate: Bearer resource_metadata="設定のメタデータURL", scope="memo:search", error="insufficient_scope"
+```
+
+根拠は[MCP 2025-11-25認証仕様のRuntime Insufficient Scope ErrorsとStep-Up Authorization Flow](https://modelcontextprotocol.io/specification/2025-11-25/basic/authorization#runtime-insufficient-scope-errors)。403、`insufficient_scope`、操作に必要なscope、`resource_metadata`を使用する最小scope方式に沿う。未認証時の401とmetadataによる認証サーバー発見は変更しない。ChatGPTが追加認可を自動開始することは未確認であり、必要なら利用者が接続を更新・再認可する。OAuth権限取得後も、連携コード発行、画面でのissuer/sub確認、対象選択、明示許可、10分の期限、取消の検査を省略しない。
+
+安全診断の`protocol_result`は`toolCount`、`submitToolCount`、`searchToolCount`で送信2・検索2・全4ツールの応答生成を区別する。`tools_prepared`だけでは一覧応答成功としない。Bearer付き要求の認証拒否は別表示、応答未観測は未確認のままとする。これらはChatGPT側での表示・追加認可・実検索の成功を意味しない。診断にトークン、主体、検索語・結果、連携コードを渡さない。
+
+調査基準のmain／最新origin/mainは`c32d3a42f11ba496f4ea8f4b1789fc6efcc98d6c`。修正前の隔離RS256／SDK HTTP試験では、両scope設定で送信専用tokenに送信2ツール、検索専用tokenに検索2ツール、両scope tokenに4ツールを返し、送信専用tokenの検索呼出しは403となった（仮説Aを再現）。この公開制限は追加認可の入口を妨げる要因になり得る（B）が、実ChatGPTの挙動は未実証。実tokenのscope、クライアント定義更新・キャッシュ（C）、接続先・scope要求・追加認可応答（D）は未確認であり、実接続の単一原因とは断定しない。
+
+修正後の検証結果：
+
+- 関連単体52件成功（OAuth HTTP、検索、launcher設定、discovery、受信・履歴）。設定別／token別一覧、両検索呼出しと両送信呼出しのscope拒否、拒否時の受信到達0、操作別チャレンジ、匿名・期限切れ・不正署名・allowlist外の拒否、診断非露出を確認。既存検索HTTP試験の許可後の呼出しを両scope tokenで行い、既存正常経路も確認。
+- 既存検索E2E成功。隔離Chromiumと実IndexedDB、架空issuerで許可前・範囲外・取消・期限切れの拒否、ページ送り、検索前後の全ストア一致・readwrite transaction 0を確認。
+- 既存OAuth受信E2E成功。未保存プレビュー、明示保存・破棄、複数送信、再起動・再送、既存メモ保持を確認。初回sandbox内では`history_permissions`で拒否されたため通常Windows権限の隔離fixtureで再実施。安全条件は変更していない。
+- 実PS5.1の隔離ランチャー試験成功。送信2・検索2・全4ツール、認証拒否、起動時401・応答未観測、診断OFF、秘密値非表示を確認。既存コントローラー23シナリオ、Forms 176ケースとイベント試験も成功。初回sandbox内は起動／再起動fixtureで失敗し、通常Windows権限で再実施した。実プロセスは操作していない。
+- 変更JavaScriptの構文、PowerShell構文、`git diff --check`成功。専用lint設定／npm lintスクリプトはない。無関係なChart／Report／PDF長時間E2Eはローカルで反復しない。公開CIの最終結果はPRに記録する。
+
+実Auth0・ChatGPT・Tunnelの受入は未実施。実プロセス／設定／保存済みメモ／受信履歴と既存worktreeは保持する。PRはDraftで作成し手動マージしない。利用者が更新mainを起動後、接続更新・再認可→4ツール表示→`prepare_memo_search`→画面で主体・対象を明示許可→テスト用メモ検索→範囲外拒否→取消後拒否→保存済みメモ不変を確認し、自動試験とは分けて記録する。
 
 OAuthの署名、issuer、audience、期限、allowedSubjects、ツール別scopeを毎回検証する。連携準備で得た主体はMCPサーバーから専用adapter認証で中継する。ツール引数から主体を指定させない。許可時にコードを消費し、別のランダムなタブ専用capabilityとOriginを結び付ける。capabilityは画面のメモリだけに保持し、別タブへ引き継がない。同じ主体でもセッションIDだけではブラウザのpoll・結果送信・取消はできない。
 

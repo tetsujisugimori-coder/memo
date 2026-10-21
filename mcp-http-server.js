@@ -37,7 +37,12 @@ function diagnosticError(value) {
   return new Map([[-32700, "parse_error"], [-32600, "invalid_request"], [-32601, "method_not_found"],
     [-32602, "invalid_params"], [-32603, "internal_error"]]).get(value?.code) || "protocol_error";
 }
-async function createProtocolServer(principal, adapterToken, receiverPort, diagnostic) {
+function toolDiagnosticCounts(tools) {
+  return { toolCount: tools.length,
+    submitToolCount: tools.filter(tool => ["submit_text_preview", "submit_notes_preview"].includes(tool.name)).length,
+    searchToolCount: tools.filter(tool => searchTools.some(search => search.name === tool.name)).length };
+}
+async function createProtocolServer(principal, adapterToken, receiverPort, diagnostic, searchEnabled) {
   const forward = submit => async input => {
     const record = await submit({ ...input, requestId: receiverRequestId(principal, input.requestId) }, adapterToken, receiverPort);
     return { ...record, requestId: input.requestId };
@@ -50,8 +55,9 @@ async function createProtocolServer(principal, adapterToken, receiverPort, diagn
     .filter(tool => ["submit_text_preview", "submit_notes_preview"].includes(tool.name))
     .map(tool => ({ ...tool, securitySchemes: [{ type: "oauth2", scopes: ["memo:submit"] }],
       _meta: { securitySchemes: [{ type: "oauth2", scopes: ["memo:submit"] }] } }));
-  const tools = [...(principal.scopes.includes("memo:submit") ? submitTools : []), ...(principal.scopes.includes("memo:search") ? searchTools : [])];
-  diagnostic("tools_prepared", { toolCount: tools.length,
+  // Discovery does not grant execution: the HTTP boundary checks each call's scope.
+  const tools = [...(principal.scopes.includes("memo:submit") ? submitTools : []), ...(searchEnabled ? searchTools : [])];
+  diagnostic("tools_prepared", { ...toolDiagnosticCounts(tools),
     expectedTools: ["submit_text_preview", "submit_notes_preview"].every(name => tools.some(tool => tool.name === name)) });
   const server = new Server({ name: "memo-unsaved-oauth-preview", version: "1.0.0" }, { capabilities: { tools: {} } });
   server.setRequestHandler(ListToolsRequestSchema, async () => ({ tools }));
@@ -190,11 +196,13 @@ async function createAuthenticatedServer(input, { adapterToken, receiverPort = 8
       if (Array.isArray(message)) return send(400, { jsonrpc: "2.0", id: null, error: { code: -32600, message: "Batch not supported" } });
       if (message?.method === "tools/call") {
         const required = searchTools.some(tool => tool.name === message.params?.name) ? "memo:search" : "memo:submit";
-        if (!principal.scopes.includes(required)) return send(403, { error: "insufficient_scope" }, { "WWW-Authenticate": challenge + ', error="insufficient_scope"' });
+        if (!principal.scopes.includes(required)) return send(403, { error: "insufficient_scope" }, {
+          "WWW-Authenticate": `Bearer resource_metadata="${config.resource_metadata}", scope="${required}", error="insufficient_scope"`
+        });
       }
       stage = message?.method === "initialize" ? "initialize" : message?.method === "tools/list" ? "tools_list" : "mcp_other";
       diagnostic("protocol_request");
-      protocol = await createProtocolServer(principal, adapterToken, receiverPort, diagnostic);
+      protocol = await createProtocolServer(principal, adapterToken, receiverPort, diagnostic, config.scopes_supported.includes("memo:search"));
       const transport = new WebStandardStreamableHTTPServerTransport({ sessionIdGenerator: undefined, enableJsonResponse: true });
       await protocol.connect(transport);
       // Use the SDK's standard Web transport directly. No SSE or Node-adapter
@@ -214,7 +222,7 @@ async function createAuthenticatedServer(input, { adapterToken, receiverPort = 8
           : response.status >= 400 ? "http_rejected" : response.status === 200 && !reply?.result ? "protocol_error" : "none";
         const fields = { status: response.status, classification, success: response.status === 200 && !!reply?.result && !reply?.error };
         if (stage === "tools_list" && Array.isArray(reply?.result?.tools)) {
-          fields.toolCount = reply.result.tools.length;
+          Object.assign(fields, toolDiagnosticCounts(reply.result.tools));
           fields.expectedTools = ["submit_text_preview", "submit_notes_preview"].every(name => reply.result.tools.some(tool => tool.name === name));
         }
         diagnostic("protocol_result", fields);
