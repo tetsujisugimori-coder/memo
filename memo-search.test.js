@@ -1,6 +1,6 @@
 "use strict";
 const { test } = require("node:test"), assert = require("node:assert/strict");
-const { randomBytes } = require("node:crypto");
+const { randomBytes, randomUUID } = require("node:crypto");
 const { search, conditions, responseBytes, validateResult } = require("./memo-search.js");
 const { createSearchBroker } = require("./memo-search-broker.js");
 const { createPreviewService } = require("./dummy-preview-service.js");
@@ -130,7 +130,8 @@ test("session and principal budgets include concurrent reservations and survive 
 });
 test("OAuth search-only/submit-only and receiver HTTP boundaries use actual RS256 and SDK transport", async t => {
   const adapterToken = randomBytes(32).toString("base64url"), browserToken = randomBytes(32).toString("base64url");
-  const receiver = createPreviewService({ browserToken, adapterToken }).server, receiverPort = await listen(receiver);
+  const service = createPreviewService({ browserToken, adapterToken });
+  const receiver = service.server, receiverPort = await listen(receiver);
   const issuer = await issuerFixture(), logs = [];
   const server = await createAuthenticatedServer({ ...config, scopes_supported: ["memo:submit", "memo:search"] },
     { adapterToken, receiverPort, fetchImpl: issuer.fetchImpl, diagnostics: true, diagnosticWriter: line => logs.push(line) });
@@ -140,14 +141,34 @@ test("OAuth search-only/submit-only and receiver HTTP boundaries use actual RS25
   const unpack = response => JSON.parse(response.json.result.content[0].text);
   assert.equal((await call("prepare_memo_search", {}, undefined)).status, 200);
   assert.equal((await wire(port, undefined, { jsonrpc: "2.0", id: 1, method: "tools/list" })).status, 401);
-  assert.equal((await call("prepare_memo_search", {}, submitToken)).status, 403);
-  assert.equal((await call("submit_text_preview", {}, searchToken)).status, 403);
+  for (const [name, token] of [["prepare_memo_search", submitToken], ["submit_text_preview", searchToken]]) {
+    const response = await call(name, {}, token);
+    assert.equal(response.status, 200); assert.equal(response.json.result.isError, true);
+    assert.equal(unpack(response).error, "insufficient_scope");
+    assert.ok(response.json.result._meta["mcp/www_authenticate"].length);
+  }
   assert.equal((await call("prepare_memo_search", {}, await issuer.sign({ exp: 1 }))).status, 401);
   const listed = (await wire(port, searchToken, { jsonrpc: "2.0", id: 1, method: "tools/list" })).json.result.tools;
-  assert.deepEqual(listed.map(tool => tool.name), ["prepare_memo_search", "search_saved_memos"]);
+  assert.deepEqual(listed.map(tool => tool.name), ["submit_text_preview", "submit_notes_preview", "prepare_memo_search", "search_saved_memos"]);
   const description = listed.find(tool => tool.name === "search_saved_memos").description;
   for (const explanation of scopeExplanations) assert.ok(description.includes(explanation), `MCP tool: ${explanation}`);
-  assert.ok(listed.every(tool => tool.securitySchemes[0].scopes[0] === "memo:search"));
+  assert.ok(listed.filter(tool => ["prepare_memo_search", "search_saved_memos"].includes(tool.name))
+    .every(tool => tool.securitySchemes[0].scopes[0] === "memo:search"));
+  const bothToken = await issuer.sign({ scope: "memo:submit memo:search" });
+  for (const name of ["submit_text_preview", "submit_notes_preview"]) {
+    const note = { title: "fixture", body: "fixture body" }, requestId = randomUUID();
+    const response = await call(name, { requestId, ...(name === "submit_text_preview" ? note : { notes: [note] }) }, bothToken);
+    assert.equal(response.status, 200); assert.equal(response.json.result.isError, false);
+    assert.equal(unpack(response).saved, false);
+    const queued = service.queue.peek();
+    if (name === "submit_text_preview") assert.equal(queued.savePlan, null);
+    else assert.ok(queued.notes.every(note => note.savePlan === null && note.saved === false));
+    if (queued.notes) for (const note of queued.notes) service.queue.reject(queued.requestId, note.itemId);
+    else service.queue.reject(queued.requestId);
+  }
+  const bothPair = unpack(await call("prepare_memo_search", {}, bothToken));
+  assert.ok(bothPair.sessionId);
+  assert.equal(unpack(await call("search_saved_memos", { sessionId: bothPair.sessionId, conditions: all }, bothToken)).error, "permission_required");
   const pair = unpack(await call("prepare_memo_search"));
   assert.equal(unpack(await call("search_saved_memos", { sessionId: pair.sessionId, conditions: all })).error, "permission_required");
   async function browser(route, input, token = browserToken, browserOrigin = origin) {
@@ -162,7 +183,7 @@ test("OAuth search-only/submit-only and receiver HTTP boundaries use actual RS25
   const session = (await browser("grant", { pairingCode: pair.pairingCode, scope: { type: "all" } })).json;
   const auth = { sessionId: session.sessionId, capability: session.capability };
   assert.equal(unpack(await call("search_saved_memos", { sessionId: session.sessionId, conditions: all }, await issuer.sign({ scope: "memo:search", sub: config.allowedSubjects[1] }))).error, "subject_mismatch");
-  const pending = call("search_saved_memos", { sessionId: session.sessionId, conditions: all });
+  const pending = call("search_saved_memos", { sessionId: session.sessionId, conditions: all }, bothToken);
   let work;
   for (let i = 0; i < 100 && !work; i++) { work = (await browser("poll", auth)).json.request; if (!work) await new Promise(resolve => setTimeout(resolve, 10)); }
   assert.ok(work); assert.equal((await browser("result", { ...auth, requestId: work.requestId, result: search(notes, work.conditions) })).status, 200);
@@ -171,7 +192,7 @@ test("OAuth search-only/submit-only and receiver HTTP boundaries use actual RS25
   assert.equal(unpack(await call("search_saved_memos", { sessionId: session.sessionId, conditions: all })).error, "permission_revoked");
   assert.equal(unpack(await call("search_saved_memos", { sessionId: session.sessionId, conditions: { ...all, regex: true } })).error, "unsupported_conditions");
   const log = logs.join("\n");
-  for (const secret of [searchToken, submitToken, browserToken, adapterToken, pair.pairingCode, session.capability, all.query, notes[1].body, principal.sub]) assert.ok(!log.includes(secret));
+  for (const secret of [searchToken, submitToken, bothToken, browserToken, adapterToken, pair.pairingCode, bothPair.pairingCode, session.capability, all.query, notes[1].body, principal.sub]) assert.ok(!log.includes(secret));
   await close(receiver);
   assert.equal(unpack(await call("prepare_memo_search")).error, "receiver_unavailable");
 });

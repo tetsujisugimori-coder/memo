@@ -28,8 +28,8 @@
 1. 現行の受信・OAuthの設定を保全する。実設定・トークンはcheckout外に置き、ログやPRに貼らない。既存設定の`scopes_supported: ["memo:submit"]`では検索ツールを公開しない。
 2. OAuth設定で`scopes_supported`を`["memo:submit", "memo:search"]`にする。issuer、resource／audience、allowedSubjectsは既存の検証済み値を維持する。Auth0側の対象APIにも独立した`memo:search`権限を設定し、利用者の認可・アクセストークンに明示的に付与する。既存`memo:submit`を検索許可と読み替えない。
 3. 既存ランチャーで設定を再検証して起動する。ローカルmetadataと設定のscopesが一致することを確認する。必要ならChatGPTの接続を再認可する。ローカル起動完了を実OAuth／ChatGPT接続成功と表示しない。
-4. ChatGPTでツール一覧を確認する。検索権限を持つトークンには`prepare_memo_search`と`search_saved_memos`が現れる。送信専用トークンでは検索ツールを公開せず、直接呼び出しても403にする。検索専用トークンで既存送信はできない。
-5. `prepare_memo_search`を実行し、返った`sessionId`を会話内で保持する。`pairingCode`は2分の一度限りの連携コード。Memo-Nexusの「その他」メニュー内の「MCP検索許可」を開き、既存の受信サービス専用Browser tokenとコードを手動入力する。トークンの自動注入は行わない。
+4. ChatGPTで全4ツールの一覧表示を確認する。設定が両scopeを含む場合、有効な送信専用・検索専用トークンでも全4ツールを発見できる。設定が送信のみなら検索ツールは公開しない。匿名・無効トークンには一覧を返さない。発見は実行許可ではなく、送信には`memo:submit`、連携コード発行と検索にはそれぞれ`memo:search`が必須。scope不足は受信サービスに到達する前に拒否する。
+5. `prepare_memo_search`を実行する。有効な認証済みトークンのscope不足は、公開済みツールのMCP結果を`isError: true`にし、`_meta["mcp/www_authenticate"]`でBearer challengeを返す。`error="insufficient_scope"`、固定の`error_description`、`resource_metadata`、必要scopeを含む。既に付与済みの関連scopeも保持要求するため、送信専用トークンからの検索追加認可は`scope="memo:submit memo:search"`になる。必要権限は検索が`memo:search`、送信が`memo:submit`のまま。初期401は基本送信用の`memo:submit`を案内する。ChatGPTで認可画面が開くかは利用者が確認する。実行できたら返った`sessionId`を会話内で保持する。`pairingCode`は2分の一度限りの連携コード。Memo-Nexusの「その他」メニュー内の「MCP検索許可」を開き、既存の受信サービス専用Browser tokenとコードを手動入力する。トークンの自動注入は行わない。
 6. 「認証主体を確認」を押し、表示されるissuer／subが許可する自分のOAuthアカウント（設定のallowedSubjects）と一致することを確認する。主体が不明・不一致なら許可しない。「全メモ」は子・孫を含むすべてのコレクション、「コレクション指定」は指定先直下のみを許可することを確認して対象を選び、「検索を10分間許可」を押す。コード確認だけでは許可にならない。
 7. ChatGPTから以下の引数で`search_saved_memos`を呼び、既知の日本語タイトル・本文を照合する。結果は`id`、`title`、`snippet`、ページ内`count`、`hasMore`、`nextCursor`。全体一致件数・全文は返さない。
 
@@ -86,6 +86,83 @@ Browser token、adapter token、コード、capabilityは秘密として扱う�
 | 要求・情報量の上限 | `search_budget_exhausted`、共有HTTP制限は`rate_limit` |
 
 ブラウザ切断と物理ネットワーク切断の原因を確実に区別できるとは扱わない。`browser_disconnected`はheartbeatが途絶えた状態を表す。
+
+## PR #382追加修正：ツール単位の認可要求（2026-10-21）
+
+開始時のPR／ローカルHEAD／originの対象ブランチはレビュー済み`2111c360935551e9b1b428a3ceda13ed71a41c5a`で一致。最新origin/mainは`c32d3a42f11ba496f4ea8f4b1789fc6efcc98d6c`。既存の`work/mcp-search-discovery-step-up`とブランチを使用し、実機プロセス・設定・メモ・履歴は操作していない。
+
+利用者の実機確認で全4ツールの発見とscope不足拒否は確認済み。追加認可画面は表示されず、連携コード発行・検索は未実施。次の原因候補は区別する。
+
+- A（HTTP 403が認可UIにつながらない）：隔離した修正前HTTP試験では403のみでMCP結果がなく、`protocol_request`にも到達しないことを確認。実機で画面が表示されない直接原因の全体は断定しない。
+- B（ツール結果の認証情報不足）：修正前に`_meta["mcp/www_authenticate"]`と`error_description`がないことを確認。これは下記OpenAI公式のツール単位認可UI契約を満たしていないため修正する。
+- C（要求scope／発行scope）：実Auth0の認可要求・発行トークンは未確認。challengeは必要scopeと既に付与済みの関連scopeを要求し、既存`memo:submit`の消失リスクを抑える。未付与の不要権限、openid/profile等は追加要求しない。Auth0が両scopeを発行することやChatGPTによるscope保持は未保証であり、実機で別途確認する。
+- D（接続状態・キャッシュ・Tunnel）：実機の最新状態は自動操作・確認しておらず、除外も原因確定もしていない。
+
+### 公式仕様とSDKの照合・設計判断
+
+[OpenAI公式認証文書](https://developers.openai.com/plugins/build/auth#triggering-authentication-ui)はツールの`securitySchemes`・resource metadataと、`_meta["mcp/www_authenticate"]`を含む実行時エラーの両方を要求する。challengeには`error`と`error_description`が必要。[公式Reference](https://developers.openai.com/plugins/reference#error-tool-result)では値の型は文字列または文字列配列で、`_meta.securitySchemes`は後方互換用の宣言ミラー。既存のツール別scope宣言とミラーは維持する。例の外側の引用符をchallenge文字列へ混入させず、`Bearer`で始まる単一文字列の配列を返す。
+
+[MCP認証仕様](https://modelcontextprotocol.io/specification/2025-11-25/basic/authorization#runtime-insufficient-scope-errors)はscope不足のHTTP 403をSHOULDとして推奨し、既存の関連scopeと追加scopeの併記も推奨する。今回、OpenAIのツール単位認可契約を満たすため、有効なJWT認証を通過した公開済みツールのscope不足に限り、HTTP 200で配送するMCPエラー結果へ変更する。HTTP 200は結果の配送であり、ツール実行成功ではない。`isError: true`で拒否し、引数の業務検証・送信処理・連携コード発行・検索処理より先に必ずreturnする。HTTP認証境界の匿名／無効JWTは401、許可外主体／有効な対応scopeを一つも持たないトークンは403、無効化した検索の拒否も維持する。未知ツールに新しい認可経路を与えない。
+
+使用中SDKはpackage-lock・インストール済みとも`@modelcontextprotocol/sdk` 1.32.1。ローカルの`CallToolResultSchema`は`ResultSchema`由来の`_meta`を保持し、`isError`を扱う。低水準`Server.setRequestHandler(CallToolRequestSchema, ...)`で返す契約を使用し、SDK交換や独自JSON-RPC送信には変更しない。変更前の独立したSDKシリアライズ試験、変更後の実HTTP応答のschema parse、公式`Client`／`StreamableHTTPClientTransport`でメタ情報が保持されることを確認する。
+
+### 安全診断と検証
+
+既存の一覧成功・全4ツール・HTTP認証拒否の診断に、固定イベント`tool_authorization`（scope拒否）と`authorization_challenge`（SDKから返ったMCP認可要求）を追加する。`tools_call`段階の`protocol_result.success`は`isError`時にfalse、分類は`insufficient_scope`になる。本文・challengeそのもの・トークン・主体・検索語・コードはログに出さない。ランチャーの「認可要求を含むMCPエラー結果の生成」は認可画面表示・実接続成功を意味しない。
+
+追加修正の自動検証結果：
+
+- 関連単体38件成功（OAuth HTTP、検索、ランチャー設定、単一・複数メモ受信）。既存の発見・scope分離試験を補強し、4ツールのscope拒否、challengeのerror／説明／resource metadata／保持scope、SDKのschemaと実クライアントでのメタ情報保持、受信到達0、無効・期限切れ・署名不正・許可外主体のHTTP拒否、秘密値非露出を確認。
+- 検索E2E成功。実IndexedDBの全ストア一致・readwrite transaction 0、許可範囲・許可前拒否・取消・期限切れを既存試験で確認。
+- OAuth受信E2E、受信復旧E2Eと復旧UI回帰成功。一時履歴・動的ポート・隔離Chromiumを用い、通常Windows権限で実行。既存メモ保持、未保存プレビュー、明示保存／破棄、再送・復旧の経路を確認。
+- Windowsランチャー回帰成功。実PS5.1の固定診断、診断OFF、controller、Forms 176ケースを確認。実機プロセスは操作していない。
+- JavaScript構文263ファイル、PowerShell構文、差分チェック成功。専用lintコマンド／設定はリポジトリにない。無関係なChart／Report／PDF長時間E2Eはローカルで実行していない。最終HEADの公開CIはPRに別途記録する。
+
+追加差分を自己レビューし、有効な認証済み主体のみがツールscope判定に到達すること、scope不足時に業務処理へ進む経路がないこと、固定診断に本文・主体・challengeが出ないこと、検索・保存・履歴・プロセス管理の本体差分がないことを確認した。第三者レビューや実ChatGPTの認可UI受入とは区別する。
+
+実機受入は引き続き未完了。利用者の明示操作で修正ブランチを起動後、4ツール表示、検索呼び出し時の認可画面、追加認可後も送信可能なこと、連携コード発行、ブラウザのissuer/sub・範囲確認と明示許可、テスト用メモ検索、範囲外・取消後の拒否、保存不変を確認する。画面が開かなければ、固定診断でMCP認可要求生成まで確認できたかをまず区別し、利用者管理下で公開resource metadataへの到達、認可要求のscopeと付与有無を確認する。トークン・主体・コード・検索本文を共有ログに貼らない。実機操作は自動実行しない。Draftを維持し、マージしない。
+
+## 初回のツール発見・OAuth追加認可修正記録（2026-10-21、2111c36時点）
+
+基準main／取得後origin/mainは`c32d3a42f11ba496f4ea8f4b1789fc6efcc98d6c`で一致。専用の新規ブランチで作業し、既存worktree・未追跡work/・実設定・実サービス・保存済みメモ・受信履歴は操作していない。
+
+原因の確定範囲：
+
+- A：修正前の架空RS256 issuer・空きポートで実HTTPの`tools/list`を確認。両scope設定でも送信専用トークンは送信用2、検索専用は検索用2、両scopeは全4だった。`createProtocolServer()`のトークンscopeによる登録制限を再現した。
+- B：Aが検索ツールの発見と追加認可の入口を妨げる可能性はある。実ChatGPTがこの理由で追加認可に進まなかったか、自動的に追加認可を開始するかは未実証。
+- C：両scopeトークンで全4を返す経路は修正前にも存在する。実接続のサーバー応答が4だったか、クライアント定義・キャッシュが原因かは未確定。従来の「想定2ツール」表示は総数2と送信2種の存在を示すが、実トークンのscope値自体を確認した記録ではない。
+- D：実アクセストークンのscope、接続先、Auth0への認可要求・追加認可応答は未確認。管理設定・接続設定は自動変更していない。RBACの変更も行わない。
+
+[MCP認証仕様 2025-11-25（Runtime Insufficient Scope Errors／Step-Up Authorization Flow）](https://modelcontextprotocol.io/specification/2025-11-25/basic/authorization#runtime-insufficient-scope-errors)に合わせ、実行時403のchallengeに対象操作の最小scopeと`resource_metadata`を指定する。Bearer方式・JWT署名・issuer・audience・exp・allowedSubjectsの検証は変更しない。ツールの`securitySchemes`と`_meta.securitySchemes`は従来どおり必要scopeを宣言する。
+
+安全診断には`toolCount`、`submitToolCount`、`searchToolCount`の件数を追加する。固定ラベルと既存の真偽値以外の要求内容は記録しない。ランチャーは送信用2・検索用2・全4の一覧応答生成、Bearer認証拒否、scope不足の拒否を区別する。観測のない状態は従来どおり通信・実接続未確認として扱う。応答生成はChatGPT側表示や実検索成功を意味しない。検索専用2の表示にも対応するが、新サーバーの両scope設定はトークンによらず全4を返す。
+
+ブラウザ許可の設計は変更しない。連携コード発行、Memo-Nexusでのissuer/sub照合、対象範囲選択、利用者の明示許可、10分の期限、取消・期限切れの拒否は引き続き必要。OAuth scopeだけでは検索できない。
+
+### 自動検証と自己レビュー
+
+- 関連単体38件成功：`mcp-http-oauth.test.js`、`memo-search.test.js`、`memo-nexus-launcher.test.js`、`received-preview.test.js`、`received-notes-preview.test.js`。検索HTTP試験を補強後、`memo-search.test.js`の9件も再実行して成功。設定別・トークン別の一覧、4ツールの不足scope拒否、必要scopeだけのchallenge、認証前の一覧拒否、受信到達0、両scopeでの送信2種・連携コード発行・許可後検索を確認。
+- `memo-search.e2e.js`成功：隔離Chromium・架空issuer・実HTTP／IndexedDB。既存の許可範囲、取消・期限切れ、全ストア一致、readwrite transaction 0を維持。
+- `mcp-http-oauth.e2e.js`成功：隔離永続受信、未保存プレビュー、明示保存／破棄、再起動・再送、既存メモ保持。sandbox内の初回は`history_permissions`で拒否され、通常Windows権限で再実行して成功。権限検査は変更していない。
+- `memo-nexus-launcher.windows-check.js`成功：実PS5.1の診断分類・秘密情報非表示・診断OFF、隔離controller、Forms 176ケース、二重起動拒否、イベント処理。sandbox内の初回は起動経路で失敗し、通常Windows権限で成功した。実8791／8792／Tunnelは操作していない。
+- JavaScript構文検査（追跡263ファイル）、PowerShell構文検査、`git diff --check`成功。専用lint設定・lintコマンドはリポジトリにないため、新たなlint依存は追加しない。
+- 両scope試験の追加中、テスト側が複数メモのsavePlanを親レコードで参照し、続いてitemIdなしで破棄して失敗した。既存のメモ単位契約にfixtureを合わせて修正し、9件成功を確認した。受信・保存の本体契約を変更していない。
+
+差分の自己レビューで、一覧の設定依存と実行時scope拒否の分離、scope宣言、対象操作だけのchallenge、固定診断、ブラウザ許可と保存処理の不変を確認した。検索アルゴリズム・IndexedDB・検索結果・ページ送り・上限・許可時間・履歴・Tunnel・プロセス管理の変更はない。無関係なChart／Report／PDFの長時間E2Eはローカルで実行しない。公開CIの最終HEADの結果はPRに記録する。
+
+### 実機受入（利用者実施・未完了）
+
+Draft PRの自動試験と実接続受入を分ける。実機受入が完了するまで手動マージしない。
+
+1. 利用者の管理下で修正を含むmainからMCPを起動する。
+2. ChatGPTのOAuth Dev接続を更新・再認可する。
+3. 全4ツールの一覧表示を確認する。
+4. `prepare_memo_search`を実行し、必要なら`memo:search`を追加認可する。
+5. Memo-Nexusでissuer/subと検索対象を確認し、明示許可する。
+6. テスト用の保存済みメモを検索する。
+7. 許可範囲外の検索が拒否されることを確認する。
+8. 許可取消後の検索拒否を確認する。
+9. 保存済みメモが変化していないことを確認する。
 
 ## 検証記録（2026-10-20）
 
