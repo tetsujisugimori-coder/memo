@@ -131,8 +131,7 @@ function createSearchBroker({ now = Date.now, timeoutMs = 6000 } = {}) {
         const result = validateReadResult(input.result, pending.readConditions, session.scope);
         finish(session, result); return { accepted: true };
       }
-      const result = validateResult(input.result, pending.conditions.limit);
-      if (session.scope.type === "collection" && result.results.some(item => item.collectionId !== undefined && item.collectionId !== session.scope.collectionId)) fail("invalid_search_result", 400);
+      const result = validateResult(input.result, pending.conditions.limit, pending.conditions.scope);
       if (result.results.some(item => pending.afterId !== null && item.id <= pending.afterId)) fail("invalid_search_result", 400);
       const output = { ...result, nextCursor: null };
       if (result.hasMore) {

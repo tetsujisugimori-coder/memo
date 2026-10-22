@@ -33,6 +33,43 @@ function complete(broker, session, input = all, source = notes) {
   broker.result({ ...session.auth, requestId: work.requestId, result: search(source, work.conditions, work.afterId) }, origin);
   return promise;
 }
+
+test("collection search requires valid matching collection IDs at validation and broker delivery", async t => {
+  const selected = { type: "collection", collectionId: "one" }, request = { ...all, scope: selected };
+  const valid = { id: "a", title: "日本語", snippet: "saved", collectionId: "one" };
+  const page = item => ({ results: [item], count: 1, hasMore: false });
+  assert.deepEqual(validateResult(page(valid), 2, selected), page(valid));
+  const { collectionId, ...missing } = valid;
+  const invalid = [missing, ...[null, "two", "", 7, {}, [], "x".repeat(129)].map(value => ({ ...valid, collectionId: value }))];
+  for (const item of invalid) assert.throws(() => validateResult(page(item), 2, selected));
+  const broker = createSearchBroker(); t.after(() => broker.close());
+  // Even an all-collection grant must respect a narrower collection request.
+  for (const grantedScope of [selected, { type: "all" }]) {
+    const session = grant(broker, grantedScope);
+    const pending = broker.search(principal, { sessionId: session.sessionId, conditions: request });
+    const work = broker.poll(session.auth, origin).request;
+    for (const item of invalid) assert.throws(() => broker.result({ ...session.auth, requestId: work.requestId, result: page(item) }, origin));
+    assert.equal(broker.result({ ...session.auth, requestId: work.requestId, result: page(valid) }, origin).accepted, true);
+    assert.deepEqual((await pending).results, [valid]);
+    broker.revoke(session.auth, origin);
+    await assert.rejects(broker.search(principal, { sessionId: session.sessionId, conditions: request }), /permission_revoked/);
+    assert.throws(() => broker.result({ ...session.auth, requestId: work.requestId, result: page(valid) }, origin), /permission_revoked/);
+  }
+});
+
+test("all-collection search accepts legacy omitted/null membership but rejects malformed membership", async t => {
+  const broker = createSearchBroker(); t.after(() => broker.close()); const session = grant(broker);
+  for (const item of [{ id: "a", title: "", snippet: "" }, { id: "a", title: "", snippet: "", collectionId: null }]) {
+    const result = { results: [item], count: 1, hasMore: false };
+    assert.deepEqual(validateResult(result, 2), result);
+    const pending = broker.search(principal, { sessionId: session.sessionId, conditions: all });
+    const work = broker.poll(session.auth, origin).request;
+    broker.result({ ...session.auth, requestId: work.requestId, result }, origin);
+    assert.deepEqual((await pending).results, [item]);
+  }
+  for (const collectionId of ["", false, 7, [], {}, "x".repeat(129)]) assert.throws(() => validateResult({ results: [{ id: "a", title: "", snippet: "", collectionId }], count: 1, hasMore: false }, 2));
+});
+
 function grantRead(broker, selected = { type: "collection", collectionId: "one" }) {
   const pair = broker.prepare(principal), session = broker.grant({ pairingCode: pair.pairingCode, scope: selected, allowRead: true }, origin);
   return { ...session, auth: { sessionId: session.sessionId, capability: session.capability } };

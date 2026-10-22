@@ -1,3 +1,62 @@
+## 2026-10-22 PR #384 独立レビュー修正
+
+レビュー5606612895、対象HEAD `0908cf2606a25cfed261968f5924f91e79b58642`を確認。着手時の公開PR HEADも同じで、公開main／origin/mainは`4b7722fce07ef65863a1dc4c0b54678ca03045ab`。既存PRブランチfeat/mcp-search-readとworktreeを継続使用し、追跡対象の未コミット変更がないことを確認した。既存の未追跡work/・他worktreeを保護。実8791（PID 34152）／8792（PID 20832）・Tunnel・実設定・認証情報・実メモは操作しない。
+
+### P1：既存単体18件のキャッシュ番号依存
+
+[CI 39649104604](https://github.com/tetsujisugimori-coder/memo/actions/runs/39649104604)のLinux・Windowsログを個別に照合した。18件ともindex.htmlのapp.jsが208になった一方、単体テストが207を固定参照していた。正規表現の不一致、indexOfが-1になった読み込み順の比較失敗であり、実際の読み込み順は変わっていない。該当テスト・失敗箇所は次のとおり。
+
+| テストファイル（修正前の位置） | 失敗原因 |
+| --- | --- |
+| backup-bundle-utils.test.js:30 | app.jsキャッシュ正規表現207 |
+| codex-chat-ui.test.js:16 | app.jsキャッシュ正規表現207 |
+| draft-mirror-scheduler.test.js:319 | app.jsのindexOfが-1 |
+| font-settings.test.js:300 | フォント依存モジュールとapp.jsの順序比較（2参照） |
+| local-save.test.js:639 | app.jsキャッシュ正規表現207 |
+| markdown-enhancements.test.js:771 | app.jsキャッシュ正規表現207 |
+| memo-link-app.test.js:152 | app.js位置と複数モジュールの順序正規表現 |
+| memo-list-utils.test.js:175 | app.jsキャッシュ正規表現と順序比較 |
+| mermaid-rendering.test.js:432 | app.js scriptタグの固定番号207 |
+| note-tombstone.test.js:447 | app.jsキャッシュ正規表現207 |
+| responsive-layout.test.js:33 | app.jsキャッシュ正規表現207 |
+| status-time-utils.test.js:63 | app.jsキャッシュ正規表現207 |
+| syntax-guide.test.js:476 | app.jsキャッシュ正規表現207 |
+| table-paste.test.js:172 | app.jsキャッシュ正規表現207 |
+| tags.test.js:55 | app.jsのindexOfが-1 |
+| text-stats-ui.test.js:33 | app.jsキャッシュ正規表現207 |
+| typing-performance-monitor.test.js:533 | app.js位置の検査で-1 |
+| version.test.js:44 | source-utilsとapp.jsの順序比較、および固定番号207 |
+
+これら18ファイルで、app.jsの存在／キャッシュ形式検査は数値の更新を許す正規表現へ、順序比較は安定したsrc接頭辞へ分離した。正確な現在番号208とapp.jsが1つだけ存在する検査はversion.test.jsへ集約し、番号更新時の多発故障を避ける。依存関係・script順・HTMLの実装をテストへ合わせて変更していない。テストの削除・無効化・skip・期待する実機能の緩和はしない。
+
+### P2：コレクション所属検証
+
+memo-search.jsのvalidateResultへ要求scopeを渡し、限定要求ではcollectionIdを必須化。欠落・null・不一致・空文字・不正型・128 UTF-16単位超過を拒否する。memo-search-broker.jsのresultはpending.conditions.scopeで検証し、省略を許す条件分岐を削除した。全コレクション許可から限定要求を行った場合も同じく厳格に検証する。
+
+all要求は旧ブラウザとの互換性のため省略／nullを引き続き受理するが、元の全コレクション明示許可は必須。ブラウザがIndexedDBの現在所属を読み、brokerが返却された所属と要求scopeの整合性を検査する責任分担を仕様書へ記録した。許可済みブラウザが所属を偽装する脅威を独立に検出する保証は加えない。
+
+memo-search.test.jsに正常な所属、別ID、欠落、null、空文字、不正型／長さ、all互換性、全許可からの限定要求、取消後の旧要求・旧結果の拒否を追加。既存read_saved_memoの範囲・本文・取消テストを維持。index.htmlは変更した共有memo-search.jsのキャッシュだけ3へ更新し、app.jsは208のまま。
+
+### WebKit Chartの切り分け
+
+失敗はchart-block.e2e.js:1617で、Infinity入力後のエラーメッセージとフォーカスを30秒待つ箇所。失敗時は数値エラー表示ではなく「2月を3件目へ移動しました」で、データも項目移動済みだった。Chartの試験・本体・workflowはmainとPRで差分なし。app.jsの差分は独立したMemoNexusSavedSearch.readの追加だけ。
+
+[PR #382 CI 39590818420 / attempt 1](https://github.com/tetsujisugimori-coder/memo/actions/runs/39590818420/attempts/1)（HEAD 69f6f69）にも、同じ1617行・同じ項目順／表示状態での30秒timeoutがあることを実ログで確認した。PR #384より前からの既存不安定性であり、今回の変更が導入した退行とは判定しない。入力・再描画・フォーカスのどのタイミングが根因かまでは未確定。
+
+Windowsの隔離WebKitで既存--feature chart-multi-seriesを1回ずつ比較。PR側は48.7秒で全ケース成功。別の比較用main worktreeでも問題の1617行を含む段階は15.7秒で通過したが、後段2171行のpage.reloadが30秒timeoutした（全体72.1秒）。同時に複数の重い検証を走らせた負荷もあり、この別timeoutの根因は未確定。Chartコードの変更・timeout延長・テスト削除はしない。
+
+### 検証結果
+
+- Windows通常権限のnpm.cmd test：1,864件全件成功、失敗・skip 0。元の18件と、所属検証の追加2件を含む。MCP・OAuth・取消・原文保持・予算・保存境界の回帰も成功。
+- Windowsのmcp-http-oauth.e2e.js成功：架空issuer、隔離永続受信、動的ポート、ダミーデータだけを使用。既存メモ保持・再起動／再送・明示保存／破棄・履歴への本文非保存を確認。
+- 最終memo-search.e2e.js成功：検索・全文取得、要求範囲、CRLF／絵文字／Markdown、取消・期限・切断・再読込・別タブ／プロファイルを確認。全IndexedDBストアの前後一致、readwrite transaction 0。
+- Windows PowerShell 5.1の既存ランチャー回帰成功：5ツール診断を含む診断意味論、controller全ケース、Forms176ケース、別GUI二重起動拒否、設定／開始拒否／停止／終了イベントを隔離検証。実8791／8792／Tunnelは起動元を含め変更しない。
+- 追跡JavaScript263ファイルのnode --checkとgit diff --check成功。
+- 調査用の初回sandbox内npm testは元の18件に加え、既存履歴ACL試験7件がhistory_permissionsで失敗した。通常Windows権限で試すとACL7件は成功した。npm.ps1の実行制限は変更せずnpm.cmdを使用した。
+- 複数の重い試験を同時実行した回では、HTTP単体の要求期限後409と検索E2EのECONNRESETが発生した。アプリ／テストのtimeoutを緩めず、重い試験を順番に実行し直して全単体・検索E2Eとも成功。mainのChart後段reload timeoutを含め、負荷が各失敗へ与えた正確な影響は未確定。
+- 公開CIは更新HEADで確認し、結果はPRコメントに記録する。必須CIが不成功の間は修正完了と扱わない。
+- 実ChatGPT・実Auth0・実Tunnelの手動受入は未実施。既存のJWTローカル検証、許可済みブラウザを信頼する境界、5秒heartbeat猶予、取得済み本文の回収不能、分割途中の版固定非保証、メモリ内予算リセットの制約は維持する。
+
 ## 2026-10-22 Memo-Nexus MCP検索強化・指定メモ全文取得
 
 ### 変更と設計判断

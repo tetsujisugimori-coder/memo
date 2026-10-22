@@ -62,18 +62,20 @@
     result.count = result.results.length;
     return result;
   }
-  function validateResult(value, limit) {
+  function validateResult(value, limit, allowedScope = { type: "all" }) {
+    const allowed = scope(allowedScope);
     exact(value, ["results", "hasMore", "count"]);
     if (!Array.isArray(value.results) || value.results.length > limit || value.count !== value.results.length
       || typeof value.hasMore !== "boolean" || value.hasMore && !value.count
       || responseBytes({ ...value, nextCursor: "x".repeat(43) }) > MAX_PAGE_BYTES) fail("invalid_search_result");
     const ids = new Set();
     for (const item of value.results) {
-      exact(item, ["id", "title", "snippet"], ["collectionId"]);
+      exact(item, ["id", "title", "snippet", ...(allowed.type === "collection" ? ["collectionId"] : [])], allowed.type === "collection" ? [] : ["collectionId"]);
       if (typeof item.id !== "string" || !item.id || item.id.length > 128 || ids.has(item.id)
         || typeof item.title !== "string" || Array.from(item.title).length > 200
         || typeof item.snippet !== "string" || Array.from(item.snippet).length > 160) fail("invalid_search_result");
-      if (item.collectionId !== undefined && item.collectionId !== null && (typeof item.collectionId !== "string" || item.collectionId.length > 128)) fail("invalid_search_result");
+      if (item.collectionId !== undefined && item.collectionId !== null && (typeof item.collectionId !== "string" || !item.collectionId || item.collectionId.length > 128)) fail("invalid_search_result");
+      if (allowed.type === "collection" && item.collectionId !== allowed.collectionId) fail("invalid_search_result");
       if (ids.size && item.id <= [...ids].at(-1)) fail("invalid_search_result");
       ids.add(item.id);
     }
