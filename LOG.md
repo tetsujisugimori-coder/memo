@@ -1,3 +1,31 @@
+## 2026-10-23 MCP検索の許可状態・取り消し・再接続
+
+対象はtetsujisugimori-coder/memo。origin/mainをfetchし、基準`a524e5858edb3391f8b8e30aba2900b2f1eb6a23`から専用worktree `work/mcp-search-permission-status`、ブランチ`feat/mcp-search-permission-status`を作成した。元mainの未追跡workと既存worktreeを保持した。AGENTS.md、関連PR #379／#382／#384、現行prepare/search/read・Browser pairing／grant／revokeと8791／8792の認証境界を確認した。
+
+### 差分
+
+- brokerの既存state・active・heartbeat判定を使うBrowser限定`/search/status`を追加。状態照会でheartbeatや期限を延長しない。取消は冪等化し、旧capabilityはOrigin照合のある状態照会／取消再試行に限り保持する。旧セッションのpoll/result/search/readは拒否し、期限後10分の既存掃除で確認用情報も破棄する。
+- 既存のresult受信時の検査に加え、8791からadapterへ検索／全文取得結果を送る直前に主体・失効・期限・heartbeatを再確認。取消成立前に生成して未送信だった結果も抑止する。
+- 既存ダイアログで未設定・pairing待ち・検索可能・期限・取消・確認失敗を文章表示し、コード2分と許可10分を分ける。許可時のコレクション名・ID、全コレクション許可の有無、全文取得、許可期限を表示。全許可が新規コレクションも含む既存仕様を明示する。
+- 取消中／確認済み／応答未確認を区別し、状態照会・再試行を可能にする。閉じる・Escapeは従来どおり停止し、pagehideはbest effort。古い応答・検索結果は世代とセッションの一致で破棄する。再表示・復帰は再確認し、新規連携の対象は未選択、全文取得はOFF。新しい高頻度pollや永続資格情報は追加しない。
+- ダイアログだけに折返し・幅制限と操作領域を適用し、role=status／aria-live、キーボード再確認を維持。READMEと検索仕様書に手順・効力・制約・実機受入を追記する。保存形式、ZIP、本文、コレクション構造、submit_text_previewの手動保存、OAuth設定／トークン検証／接続元制限は変更しない。
+
+### 検証経過
+
+全単体1,867件成功（失敗・skip 0）、関連45件成功、追跡JavaScript264ファイル構文・git diff --check成功。既存のreceived-preview.e2e.jsとmcp-http-oauth.e2e.jsも成功し、未保存プレビュー→明示保存／破棄、再起動・再送、既存メモ保持を確認した。通常sandboxの全単体は履歴8件、OAuth E2Eもhistory_permissionsで失敗した。既存コードが隔離一時ディレクトリのDACLを変更するため、通常権限で再実行して成功した。ACL・保存の本番処理を変更・迂回していない。PowerShell実行ポリシーでnpm.ps1が拒否されたため、同じnpmのnpm.cmdを使用した。
+
+追加単体2件で状態取得のOrigin／capabilityと冪等取消、期限延長なし、旧セッション拒否を確認。実HTTP・架空RS256 OAuthのMCP検索結果を8791送信前で保留し、取消・期限切れ成立後に解放して本文・タイトル・件数を含まないerrorだけになることを確認した。既存の全文取得失効回帰も維持する。
+
+検索E2Eの追加したvisibilitychange模擬通知で既存のドラフト退避が動作し、後から起動した第2タブが通常復元してメタデータを更新するため、全ストア一致が失敗した。fixtureのsettledを測定前だけ既存saveCurrentNote経由にする変更だけでは解消しなかった。両タブの起動・DOM保存・復元を測定開始前に揃え、操作するタブをbringToFrontで明示する。保存不変の期待値やreadwrite 0、本番保存コードは変更しない。調整途中にはinspect通信失敗と全文取得の未成功応答も各1回あり、その具体的原因は確定していない。固定の通信失敗診断と取得成功の明示assertを補い、timeoutや認可・保存の期待値は緩めていない。遅延pollのテスト用保留は失敗時のfinallyでも解放し、試験の終了待ちを残さない。
+
+最終のChromium／WebKit検索E2Eはともに成功。全IndexedDBストア前後一致・readwrite transaction 0、許可範囲と範囲外拒否、期限・旧セッション・取消中の検索、要求未到達／応答消失時の未確認表示と再試行／再照会、古いpollと限定セッションの切替を確認した。1200px・375px・390pxの長いコレクション名と操作ボタン、キーボードの再確認、模擬visibilitychange復帰を操作し、両エンジンの画面も目視確認した。最終の変更JavaScript構文と差分チェックも成功した。スクリーンショットと実行ログはダミー情報のみのgit対象外e2e-artifacts/memo-searchに保存した。
+
+### 設計判断と未検証
+
+第一希望は外部AIからの検索可否を全経路で確認できる表示。採用した方法は、このタブの許可と8791の到達を確認した範囲だけ検索可能と表示し、OAuth／8792／Tunnelの確認を外部AI側へ案内する方法。ブラウザのBrowser認証をOAuth認証や外部到達の根拠に流用できず、実サービスを操作しない境界を守るためである。通信失敗から期限切れ・取消成功を推定しない。
+
+実8791・8792・Tunnelは停止／再起動せず、実設定・実トークン・実メモに対する許可付与はしていない。実iPhone Safari、実ChatGPT／Auth0／Tunnel、実OSの凍結・復帰は未検証。WebKitの自動試験はiPhone実機確認とは区別する。利用者の最小受入手順はdocs/mcp-saved-search.md末尾に記載。既に配送した情報の回収と通信全体の巻き戻し、瞬時の切断検知は保証しない。独立した第三者レビューは行っていない。マージは行わずPRレビュー待ちとする。
+
 ## 2026-10-22 PR #384 公開CIの追加切り分け
 
 レビュー修正HEAD `077d1d272689753a5e3148e42d03ec154ec431ee`の[CI 39697342589](https://github.com/tetsujisugimori-coder/memo/actions/runs/39697342589)ではLinuxの全単体・構文・差分、Chromium／WebKit双方のChartが成功。Windowsもattempt 1で全単体、discovery、5ツール診断を含むランチャーcontroller／Forms176ケースが成功した。P1・P2・元のChart失敗は通過した一方、次の既存受信系試験が失敗し、必須CI全体は未成功だった。

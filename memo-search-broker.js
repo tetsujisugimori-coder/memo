@@ -34,11 +34,13 @@ function createSearchBroker({ now = Date.now, timeoutMs = 6000 } = {}) {
   }
   function get(id) { sweep(); const session = sessions.get(id); if (!session) fail("permission_required"); return session; }
   function active(session) { if (session.state !== "active") fail(session.state === "pairing" ? "permission_required" : session.state); }
-  function browser(input, origin) {
-    const session = get(input.sessionId); active(session);
-    if (session.origin !== origin || typeof input.capability !== "string" || input.capability !== session.capability) fail("tab_forbidden", 403);
+  function control(input, origin) {
+    const session = get(input.sessionId);
+    if (session.origin !== origin || typeof input.capability !== "string" || input.capability !== session.controlCapability) fail("tab_forbidden", 403);
     return session;
   }
+  function browser(input, origin) { const session = control(input, origin); active(session); return session; }
+  function connected(session) { if (now() - session.lastSeen > 5000) fail("browser_disconnected", 503); }
   function budgetFor(key) {
     let budget = budgets.get(key);
     if (!budget) { if (budgets.size >= 64) fail("search_capacity"); budget = { calls: 0, rows: 0, bytes: 0, until: now() + 3600000 }; budgets.set(key, budget); }
@@ -66,11 +68,27 @@ function createSearchBroker({ now = Date.now, timeoutMs = 6000 } = {}) {
       if (input.allowRead !== undefined && typeof input.allowRead !== "boolean") fail("unsupported_conditions", 400);
       const session = [...sessions.values()].find(s => s.code === input.pairingCode);
       session.scope = scope(input.scope); session.allowRead = input.allowRead === true; session.code = null; session.state = "active";
-      session.origin = origin; session.capability = secret(); session.expiresAt = now() + 600000; session.lastSeen = now();
+      session.origin = origin; session.capability = secret(); session.controlCapability = session.capability; session.expiresAt = now() + 600000; session.lastSeen = now();
       return { sessionId: [...sessions].find(([, s]) => s === session)[0], capability: session.capability, expiresAt: session.expiresAt, scope: session.scope, allowRead: session.allowRead };
     },
     revoke(input, origin) {
-      exact(input, ["sessionId", "capability"]); const session = browser(input, origin); invalidate(session, "permission_revoked"); return { revoked: true };
+      exact(input, ["sessionId", "capability"]); const session = control(input, origin);
+      if (session.state === "active") invalidate(session, "permission_revoked");
+      return { revoked: session.state === "permission_revoked", state: session.state };
+    },
+    status(input, origin) {
+      exact(input, ["sessionId", "capability"]); const session = control(input, origin);
+      // Read the same state/heartbeat boundary used by search; never renew a grant here.
+      let state = session.state;
+      if (state === "active") { active(session); try { connected(session); } catch (error) { state = error.code; } }
+      return { state, expiresAt: session.expiresAt, scope: session.scope, allowRead: session.allowRead };
+    },
+    delivery(principal, input, value) {
+      if (value.error) return value;
+      const session = get(input.sessionId);
+      if (principalKey(principal) !== session.key) fail("subject_mismatch", 403);
+      active(session); connected(session);
+      return value;
     },
     poll(input, origin) {
       exact(input, ["sessionId", "capability"]); const session = browser(input, origin); session.lastSeen = now();
@@ -92,7 +110,7 @@ function createSearchBroker({ now = Date.now, timeoutMs = 6000 } = {}) {
       if (readRequest && !session.allowRead) fail("read_permission_required", 403);
       const request = conditions(input.conditions);
       if (session.scope.type === "collection" && (request.scope.type !== "collection" || request.scope.collectionId !== session.scope.collectionId)) fail("scope_forbidden", 403);
-      if (now() - session.lastSeen > 5000) fail("browser_disconnected", 503);
+      connected(session);
       if (session.pending) fail("search_busy");
       // Leave receiver concurrency available for browser polling and cancellation.
       if ([...sessions.values()].filter(s => s.pending).length >= 2) fail("search_busy");

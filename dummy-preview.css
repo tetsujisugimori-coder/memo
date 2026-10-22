@@ -7,3 +7,9 @@
 .dummy-preview-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
 
 #receivedNotesList button { max-width: 100%; white-space: normal; overflow-wrap: anywhere; text-align: left; }
+
+#memoSearchDialog p { overflow-wrap: anywhere; }
+#memoSearchDialog select { box-sizing: border-box; width: 100%; min-width: 0; }
+#memoSearchDialog button { max-width: 100%; white-space: normal; overflow-wrap: anywhere; }
+#memoSearchDialog label:has(input[type="checkbox"]) { display: block; }
+#memoSearchDialog input[type="checkbox"] { width: auto; }

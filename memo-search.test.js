@@ -372,3 +372,76 @@ test("byte and operation budgets, global concurrency and malformed browser respo
   }
   assert.ok(denied);
 });
+
+test("status and idempotent revoke preserve capability/origin boundaries and never renew permission", async t => {
+  let now = 1000;
+  const broker = createSearchBroker({ now: () => now }); t.after(() => broker.close());
+  const session = grantRead(broker), expiresAt = session.expiresAt;
+  assert.deepEqual(broker.status(session.auth, origin), { state: "active", expiresAt, scope: session.scope, allowRead: true });
+  for (const route of ["status", "revoke"]) {
+    assert.throws(() => broker[route]({ ...session.auth, capability: "wrong" }, origin), /tab_forbidden/);
+    assert.throws(() => broker[route](session.auth, "http://localhost:5500"), /tab_forbidden/);
+  }
+  now += 5001;
+  assert.equal(broker.status(session.auth, origin).state, "browser_disconnected");
+  await assert.rejects(broker.search(principal, { sessionId: session.sessionId, conditions: { ...all, scope: session.scope } }), /browser_disconnected/);
+  broker.poll(session.auth, origin);
+  const pending = broker.search(principal, { sessionId: session.sessionId, conditions: { ...all, scope: session.scope } });
+  const work = broker.poll(session.auth, origin).request;
+  broker.revoke(session.auth, origin);
+  assert.equal((await pending).error, "permission_revoked");
+  assert.deepEqual(broker.revoke(session.auth, origin), { revoked: true, state: "permission_revoked" });
+  assert.equal(broker.status(session.auth, origin).state, "permission_revoked");
+  assert.throws(() => broker.poll(session.auth, origin), /permission_revoked/);
+  assert.throws(() => broker.result({ ...session.auth, requestId: work.requestId, result: search(notes, all) }, origin), /permission_revoked/);
+  const fresh = grant(broker, { type: "collection", collectionId: "two" });
+  assert.equal(broker.status(session.auth, origin).state, "permission_revoked");
+  assert.deepEqual(broker.status(fresh.auth, origin).scope, { type: "collection", collectionId: "two" });
+  now = fresh.expiresAt;
+  assert.equal(broker.status(fresh.auth, origin).state, "permission_expired");
+  assert.deepEqual(broker.revoke(fresh.auth, origin), { revoked: false, state: "permission_expired" });
+  await assert.rejects(broker.search(principal, { sessionId: fresh.sessionId, conditions: all }), /permission_expired/);
+});
+
+test("actual MCP delivery suppresses a completed but unsent result after revoke or expiry", async t => {
+  let now = Date.now(), release, arrived;
+  const browserToken = randomBytes(32).toString("base64url"), adapterToken = randomBytes(32).toString("base64url");
+  const receiver = createPreviewService({ browserToken, adapterToken, now: () => now, beforeReply: async (route, value) => {
+    if (route === "/search/run" && !value.error) { arrived(); await new Promise(resolve => { release = resolve; }); }
+  } }).server;
+  const receiverPort = await listen(receiver), issuer = await issuerFixture();
+  const oauth = await createAuthenticatedServer({ ...config, scopes_supported: ["memo:submit", "memo:search"] }, { adapterToken, receiverPort, fetchImpl: issuer.fetchImpl });
+  const port = await listen(oauth), token = await issuer.sign({ scope: "memo:search" });
+  t.after(async () => { release?.(); await close(oauth); await close(receiver); });
+  const call = async (name, args = {}) => {
+    const response = await wire(port, token, { jsonrpc: "2.0", id: 1, method: "tools/call", params: { name, arguments: args } });
+    assert.equal(response.status, 200); return JSON.parse(response.json.result.content[0].text);
+  };
+  async function browser(route, body, bearer = browserToken, requestOrigin = origin) {
+    const response = await fetch(`http://127.0.0.1:${receiverPort}/search/${route}`, { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${bearer}`, ...(requestOrigin ? { Origin: requestOrigin } : {}) }, body: JSON.stringify(body) });
+    return { status: response.status, body: await response.json() };
+  }
+  for (const state of ["permission_revoked", "permission_expired"]) {
+    const pair = await call("prepare_memo_search"), selected = { type: "collection", collectionId: "one" };
+    const session = (await browser("grant", { pairingCode: pair.pairingCode, scope: selected })).body;
+    const auth = { sessionId: session.sessionId, capability: session.capability };
+    assert.equal((await browser("status", auth, adapterToken)).status, 401);
+    assert.equal((await browser("status", auth, browserToken, null)).status, 403);
+    assert.equal((await browser("status", { ...auth, capability: "wrong" })).status, 403);
+    assert.equal((await browser("status", auth, browserToken, "https://evil.invalid")).status, 403);
+    assert.deepEqual((await browser("status", auth)).body.scope, selected);
+    const held = new Promise(resolve => { arrived = resolve; });
+    const pending = call("search_saved_memos", { sessionId: pair.sessionId, conditions: { ...all, scope: selected } });
+    let work;
+    for (let i = 0; i < 100 && !work; i++) { work = (await browser("poll", auth)).body.request; if (!work) await new Promise(resolve => setTimeout(resolve, 10)); }
+    assert.ok(work);
+    await browser("result", { ...auth, requestId: work.requestId, result: search(notes, work.conditions) });
+    await held;
+    if (state === "permission_revoked") assert.equal((await browser("revoke", auth)).body.revoked, true);
+    else now = session.expiresAt;
+    assert.equal((await browser("status", auth)).body.state, state);
+    release();
+    assert.deepEqual(await pending, { error: state });
+    assert.deepEqual(await call("search_saved_memos", { sessionId: pair.sessionId, conditions: { ...all, scope: selected } }), { error: state });
+  }
+});
