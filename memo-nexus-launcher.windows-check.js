@@ -111,6 +111,8 @@ Update-LauncherObservation '{"diagnostic":"memo_http_oauth","event":"protocol_re
 Assert ($diagnosticShared.Observation.Contains('検索用2ツール')) 'search tools summary'
 Update-LauncherObservation '{"diagnostic":"memo_http_oauth","event":"protocol_result","stage":"tools_list","status":200,"success":true,"toolCount":4,"submitToolCount":2,"searchToolCount":2}' $diagnosticChild $diagnosticShared
 Assert ($diagnosticShared.Observation.Contains('全4ツール') -and $diagnosticShared.Observation.Contains('未確認')) 'all tools are not actual ChatGPT success'
+Update-LauncherObservation '{"diagnostic":"memo_http_oauth","event":"protocol_result","stage":"tools_list","status":200,"success":true,"toolCount":5,"submitToolCount":2,"searchToolCount":3}' $diagnosticChild $diagnosticShared
+Assert ($diagnosticShared.Observation.Contains('全5ツール') -and $diagnosticShared.Observation.Contains('未確認')) 'read tool is observed without claiming actual client success'
 Update-LauncherObservation '{"diagnostic":"memo_http_oauth","event":"request_received","sequence":2,"bearerPresent":true}' $diagnosticChild $diagnosticShared
 Update-LauncherObservation '{"diagnostic":"memo_http_oauth","event":"authentication","sequence":2,"status":"rejected"}' $diagnosticChild $diagnosticShared
 Assert ($diagnosticShared.Observation.Contains('認証拒否')) 'authentication refusal'

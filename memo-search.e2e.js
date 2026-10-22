@@ -65,16 +65,18 @@ async function snapshot(page) {
     await page.goto("http://127.0.0.1:5500/"); await settled(page);
     console.log("Search fixture browser storage ready");
     await page.evaluate(async () => {
-      const transaction = db.transaction(["collections", "notes"], "readwrite"), store = transaction.objectStore("notes");
+      const transaction = db.transaction(["collections", "notes", "tags"], "readwrite"), store = transaction.objectStore("notes");
+      transaction.objectStore("tags").put({ id: "日本語", name: "日本語", color: "#b87333", createdAt: "2026-01-01T00:00:00Z", updatedAt: "2026-01-01T00:00:00Z" });
       transaction.objectStore("collections").put({ id: "search-one", name: "検索対象", parentId: null, sortOrder: 10, isSystem: false });
       transaction.objectStore("collections").put({ id: "search-child", name: "子コレクション", parentId: "search-one", sortOrder: 11, isSystem: false });
       for (let i = 0; i < 1000; i++) store.put({ id: `search-${String(i).padStart(4, "0")}`, title: i === 0 ? "日本語タイトル一致" : "保存本文", body: i === 0 ? "タイトルのみ" : `${"長文".repeat(i === 1 ? 100000 : 20)}日本語キーワード`, collectionId: i < 3 ? "search-one" : "search-child", tags: [], deletedAt: i === 2 ? 1 : null, createdAt: "2026-01-01T00:00:00Z", updatedAt: "2026-01-01T00:00:00Z" });
+      store.put({ id: "search-0000", title: "日本語タイトル一致", body: "タイトルのみ\r\n😀\n```js\n// 日本語\n```\n[[語句]]<script>untrusted</script>", collectionId: "search-one", tags: ["日本語"], deletedAt: null });
       await new Promise((resolve, reject) => { transaction.oncomplete = resolve; transaction.onerror = transaction.onabort = () => reject(transaction.error); });
       window.searchReadWrites = 0; const originalTransaction = db.transaction.bind(db);
       db.transaction = (stores, mode, ...rest) => { if (mode === "readwrite") window.searchReadWrites++; return originalTransaction(stores, mode, ...rest); };
     });
     const before = await snapshot(page);
-    async function allow(scope = "all", target = page) {
+    async function allow(scope = "all", target = page, allowRead = false) {
       const pair = await call("prepare_memo_search");
       await target.keyboard.press("Escape");
       await target.locator("#memoSearchOpen").evaluate(el => { el.closest("details").open = true; });
@@ -86,10 +88,13 @@ async function snapshot(page) {
       catch { throw new Error(`Search inspect failed: ${await target.locator("#memoSearchStatus").innerText()}`); }
       assert.ok((await target.locator("#memoSearchPrincipal").innerText()).includes(config.allowedSubjects[0]));
       await target.locator("#memoSearchScope").selectOption(scope);
+      await target.locator("#memoSearchAllowRead").setChecked(allowRead);
       await target.locator("#memoSearchGrant").click(); await target.waitForFunction(() => document.getElementById("memoSearchStatus").textContent.includes("検索許可中"));
       return pair;
     }
     const pair = await allow("collection:search-one");
+    const readMemo = (sessionId, memoId, offset = 0) => call("read_saved_memo", { sessionId, memoId, offset });
+    assert.equal((await readMemo(pair.sessionId, "search-0000")).error, "read_permission_required");
     assert.equal((await run(pair.sessionId, "日本語")).error, "scope_forbidden");
     const first = await run(pair.sessionId, "日本語", { type: "collection", collectionId: "search-one" });
     assert.deepEqual(first.results.map(note => note.id), ["search-0000", "search-0001"]); assert.equal(first.hasMore, false);
@@ -109,6 +114,26 @@ async function snapshot(page) {
     const firstRevoke = page.waitForResponse(response => response.url().endsWith("/search/revoke"));
     await page.locator("#memoSearchRevoke").click(); await firstRevoke;
     assert.equal((await run(pair.sessionId, "日本語", { type: "collection", collectionId: "search-one" })).error, "permission_revoked");
+    const readPair = await allow("collection:search-one", page, true);
+    const readBefore = await snapshot(page);
+    await page.evaluate(() => { window.readOriginalDraftReader = getAllNotes; getAllNotes = () => { throw new Error("draft reader must not run"); }; });
+    const markdown = await readMemo(readPair.sessionId, "search-0000");
+    assert.equal(markdown.body, "タイトルのみ\r\n😀\n```js\n// 日本語\n```\n[[語句]]<script>untrusted</script>");
+    assert.deepEqual(markdown.tags, ["日本語"]);
+    await page.evaluate(() => { getAllNotes = window.readOriginalDraftReader; });
+    const filtered = await run(readPair.sessionId, "日本語", { type: "collection", collectionId: "search-one" }, { fields: ["title"], tagIds: ["日本語"] });
+    assert.deepEqual(filtered.results.map(note => [note.id, note.collectionId]), [["search-0000", "search-one"]]);
+    const readFirst = await readMemo(readPair.sessionId, "search-0001");
+    const readNext = await readMemo(readPair.sessionId, "search-0001", readFirst.nextOffset);
+    assert.equal(readFirst.offset, 0); assert.equal(readNext.offset, 512);
+    assert.equal(readFirst.body + readNext.body, "長文".repeat(512));
+    assert.equal((await readMemo(readPair.sessionId, "search-0003")).error, "memo_unavailable");
+    assert.equal((await readMemo(readPair.sessionId, "search-0002")).error, "memo_unavailable");
+    assert.equal((await readMemo(readPair.sessionId, "missing-note")).error, "memo_unavailable");
+    assert.deepEqual(await snapshot(page), readBefore);
+    const readRevoke = page.waitForResponse(response => response.url().endsWith("/search/revoke"));
+    await page.locator("#memoSearchRevoke").click(); await readRevoke;
+    assert.equal((await readMemo(readPair.sessionId, "search-0000")).error, "permission_revoked");
     const allPair = await allow();
     const many = await run(allPair.sessionId, "日本語"); assert.equal(many.count, 2); assert.ok(many.nextCursor);
     const next = await run(allPair.sessionId, "日本語", { type: "all" }, { cursor: many.nextCursor });
@@ -143,6 +168,12 @@ async function snapshot(page) {
     await page.waitForFunction(() => document.getElementById("memoSearchStatus").textContent.includes("通信に失敗"));
     await context.unroute("**/search/poll");
     assert.deepEqual(await snapshot(page), before); assert.equal(await page.evaluate(() => window.searchReadWrites), 0);
+    const reloadPair = await allow("all", page, true);
+    await page.reload(); await settled(page);
+    assert.equal(await page.locator("#memoSearchAllowRead").isChecked(), false);
+    // Unload cancellation is best effort; advance the fixture clock past its heartbeat grace.
+    clock += 5001;
+    assert.ok(["permission_revoked", "browser_disconnected"].includes((await readMemo(reloadPair.sessionId, "search-0000")).error));
     results.push("real IndexedDB all-store equality; zero readwrite transactions; Japanese/long/1000 notes; collection/trash boundary; cursor; second tab; cancel race; expiry");
     // New browser context has a separate IndexedDB and no inherited grant.
     const separate = await browser.newContext(); await attachTransport(separate, staticPort, receiverPort);

@@ -4923,6 +4923,14 @@ window.MemoNexusSavedSearch = {
     if (!db || dbConnectionClosedForUpgrade) throw Object.assign(new Error("storage_unavailable"), { code: "storage_unavailable" });
     return getAllCollections();
   },
+  async read(input, allowedScope) {
+    if (!db || dbConnectionClosedForUpgrade) throw Object.assign(new Error("storage_unavailable"), { code: "storage_unavailable" });
+    const request = window.MemoNexusSearch.readConditions(input);
+    let note;
+    try { note = (await getStoredNoteSnapshots([request.memoId])).get(request.memoId); }
+    catch { throw Object.assign(new Error("storage_unavailable"), { code: "storage_unavailable" }); }
+    return window.MemoNexusSearch.read(note, request, allowedScope);
+  },
   async search(input, afterId) {
     if (!db || dbConnectionClosedForUpgrade) throw Object.assign(new Error("storage_unavailable"), { code: "storage_unavailable" });
     try {

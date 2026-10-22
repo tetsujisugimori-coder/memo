@@ -2,6 +2,7 @@
 const { test } = require("node:test"), assert = require("node:assert/strict");
 const { randomBytes, randomUUID } = require("node:crypto");
 const { search, conditions, responseBytes, validateResult } = require("./memo-search.js");
+const { read, readConditions } = require("./memo-search.js");
 const { createSearchBroker } = require("./memo-search-broker.js");
 const { createPreviewService } = require("./dummy-preview-service.js");
 const { createAuthenticatedServer } = require("./mcp-http-server.js");
@@ -32,6 +33,131 @@ function complete(broker, session, input = all, source = notes) {
   broker.result({ ...session.auth, requestId: work.requestId, result: search(source, work.conditions, work.afterId) }, origin);
   return promise;
 }
+
+test("collection search requires valid matching collection IDs at validation and broker delivery", async t => {
+  const selected = { type: "collection", collectionId: "one" }, request = { ...all, scope: selected };
+  const valid = { id: "a", title: "日本語", snippet: "saved", collectionId: "one" };
+  const page = item => ({ results: [item], count: 1, hasMore: false });
+  assert.deepEqual(validateResult(page(valid), 2, selected), page(valid));
+  const { collectionId, ...missing } = valid;
+  const invalid = [missing, ...[null, "two", "", 7, {}, [], "x".repeat(129)].map(value => ({ ...valid, collectionId: value }))];
+  for (const item of invalid) assert.throws(() => validateResult(page(item), 2, selected));
+  const broker = createSearchBroker(); t.after(() => broker.close());
+  // Even an all-collection grant must respect a narrower collection request.
+  for (const grantedScope of [selected, { type: "all" }]) {
+    const session = grant(broker, grantedScope);
+    const pending = broker.search(principal, { sessionId: session.sessionId, conditions: request });
+    const work = broker.poll(session.auth, origin).request;
+    for (const item of invalid) assert.throws(() => broker.result({ ...session.auth, requestId: work.requestId, result: page(item) }, origin));
+    assert.equal(broker.result({ ...session.auth, requestId: work.requestId, result: page(valid) }, origin).accepted, true);
+    assert.deepEqual((await pending).results, [valid]);
+    broker.revoke(session.auth, origin);
+    await assert.rejects(broker.search(principal, { sessionId: session.sessionId, conditions: request }), /permission_revoked/);
+    assert.throws(() => broker.result({ ...session.auth, requestId: work.requestId, result: page(valid) }, origin), /permission_revoked/);
+  }
+});
+
+test("all-collection search accepts legacy omitted/null membership but rejects malformed membership", async t => {
+  const broker = createSearchBroker(); t.after(() => broker.close()); const session = grant(broker);
+  for (const item of [{ id: "a", title: "", snippet: "" }, { id: "a", title: "", snippet: "", collectionId: null }]) {
+    const result = { results: [item], count: 1, hasMore: false };
+    assert.deepEqual(validateResult(result, 2), result);
+    const pending = broker.search(principal, { sessionId: session.sessionId, conditions: all });
+    const work = broker.poll(session.auth, origin).request;
+    broker.result({ ...session.auth, requestId: work.requestId, result }, origin);
+    assert.deepEqual((await pending).results, [item]);
+  }
+  for (const collectionId of ["", false, 7, [], {}, "x".repeat(129)]) assert.throws(() => validateResult({ results: [{ id: "a", title: "", snippet: "", collectionId }], count: 1, hasMore: false }, 2));
+});
+
+function grantRead(broker, selected = { type: "collection", collectionId: "one" }) {
+  const pair = broker.prepare(principal), session = broker.grant({ pairingCode: pair.pairingCode, scope: selected, allowRead: true }, origin);
+  return { ...session, auth: { sessionId: session.sessionId, capability: session.capability } };
+}
+async function completeRead(broker, session, note, offset = 0) {
+  const pending = broker.read(principal, { sessionId: session.sessionId, memoId: note.id, offset });
+  const work = broker.poll(session.auth, origin).request;
+  assert.equal(work.operation, "read");
+  let payload;
+  try { payload = { result: read(note, work.readConditions, session.scope) }; }
+  catch (error) { payload = { error: error.code }; }
+  broker.result({ ...session.auth, requestId: work.requestId, ...payload }, origin);
+  return pending;
+}
+
+test("field and tag filters preserve defaults, exact collection scope, stable unique IDs and cursor binding", async t => {
+  const source = [{ id: "b", title: "same", body: "query", tags: ["tag-a", "tag-b"], collectionId: "one" },
+    { id: "a", title: "query", body: "other", tags: ["tag-a"], collectionId: "one" }];
+  assert.deepEqual(search([...source, source[0]], { query: "query", scope: { type: "all" } }).results.map(n => [n.id, n.collectionId]), [["a", "one"], ["b", "one"]]);
+  assert.deepEqual(search(source, { query: "query", scope: { type: "all" }, fields: ["body"], tagIds: ["tag-a", "tag-b"] }).results.map(n => n.id), ["b"]);
+  assert.equal(search(source, { query: "query", scope: { type: "all" }, fields: ["title"], tagIds: ["tag-b"] }).count, 0);
+  for (const extra of [{ fields: [] }, { fields: ["title", "title"] }, { fields: ["tags"] }, { tagIds: ["tag-a", "tag-a"] }, { tagIds: ["x".repeat(129)] }]) assert.throws(() => conditions({ ...all, ...extra }));
+  const broker = createSearchBroker(); t.after(() => broker.close()); const session = grant(broker);
+  const first = await complete(broker, session, { query: "query", scope: { type: "all" }, limit: 1 }, source);
+  await assert.rejects(broker.search(principal, { sessionId: session.sessionId, conditions: { query: "query", scope: { type: "all" }, limit: 1, tagIds: ["tag-a"], cursor: first.nextCursor } }), /invalid_cursor/);
+});
+
+test("read preserves Markdown, Unicode and all stored metadata in bounded chunks without mutations", async t => {
+  const broker = createSearchBroker(); t.after(() => broker.close()); const session = grantRead(broker);
+  const note = { id: "a", title: "同名😀", collectionId: "one", tags: ["日本語", "tag-a"], body: "😀".repeat(511) + "\r\n```js\n// 日本語\nalert('do not execute');\n```\n[[語句]]\n<script>untrusted</script>" };
+  const before = structuredClone(note), first = await completeRead(broker, session, note);
+  assert.equal(first.nextOffset, 512); assert.equal(Array.from(first.body).length, 512);
+  const second = await completeRead(broker, session, note, first.nextOffset);
+  assert.equal(second.nextOffset, null); assert.equal(first.body + second.body, note.body);
+  assert.equal(first.title, note.title); assert.deepEqual(first.tags, note.tags); assert.equal(first.collectionId, "one");
+  assert.ok(responseBytes(first) <= 8192); assert.deepEqual(note, before);
+  assert.equal((await completeRead(broker, session, { ...note, id: "b" })).id, "b");
+  assert.equal((await completeRead(broker, session, { ...note, body: "" })).body, "");
+});
+
+test("read checks fresh consent, subject, scope, expiry, revoke, disconnect, restart and bounded inputs", async t => {
+  let time = 1000; const broker = createSearchBroker({ now: () => time, timeoutMs: 10 }); t.after(() => broker.close());
+  const old = grant(broker), session = grantRead(broker), input = { sessionId: session.sessionId, memoId: "a" };
+  await assert.rejects(broker.read(principal, { ...input, sessionId: old.sessionId }), /read_permission_required/);
+  await assert.rejects(broker.read({ ...principal, sub: "other" }, input), /subject_mismatch/);
+  const note = { id: "a", title: "秘密", body: "秘密", collectionId: "two", tags: ["秘密"] };
+  assert.equal((await completeRead(broker, session, note)).error, "memo_unavailable");
+  assert.throws(() => read(undefined, { memoId: "a" }, session.scope), /memo_unavailable/);
+  assert.equal((await completeRead(broker, session, { ...note, collectionId: "one", deletedAt: 1 })).error, "memo_unavailable");
+  assert.equal((await completeRead(broker, session, { ...note, collectionId: "one", body: "x".repeat(1048577) })).error, "memo_too_large");
+  assert.equal((await completeRead(broker, session, { ...note, collectionId: "one", title: "語".repeat(10000) })).error, "memo_too_large");
+  for (const value of [{ memoId: "" }, { memoId: "x".repeat(129) }, { memoId: [] }, { memoId: "a", offset: -1 }, { memoId: "a", offset: 1048577 }, { memoId: "a", offset: 1.5 }]) assert.throws(() => readConditions(value));
+  assert.equal((await broker.read(principal, input)).error, "search_timeout");
+  const pending = broker.read(principal, input), work = broker.poll(session.auth, origin).request;
+  // A browser response cannot change the requested ID or return a different collection.
+  for (const result of [read({ ...note, collectionId: "one" }, { memoId: "a" }, session.scope), read({ ...note, id: "b" }, { memoId: "b" }, { type: "all" })]) {
+    assert.throws(() => broker.result({ ...session.auth, requestId: work.requestId, result: { ...result, collectionId: "two" } }, origin));
+  }
+  broker.revoke(session.auth, origin); assert.equal((await pending).error, "permission_revoked");
+  assert.throws(() => broker.result({ ...session.auth, requestId: work.requestId, error: "memo_unavailable" }, origin), /permission_revoked/);
+  grantRead(broker); await assert.rejects(broker.read(principal, input), /permission_revoked/);
+  const disconnected = grantRead(broker); time += 5001;
+  await assert.rejects(broker.read(principal, { ...input, sessionId: disconnected.sessionId }), /browser_disconnected/);
+  time += 600000; await assert.rejects(broker.read(principal, { ...input, sessionId: disconnected.sessionId }), /permission_expired/);
+  broker.close(); await assert.rejects(broker.read(principal, input), /permission_required/);
+});
+
+test("read shares search budgets and rejects delivery after a lost heartbeat", async t => {
+  let time = 1000; const broker = createSearchBroker({ now: () => time }); t.after(() => broker.close());
+  const session = grantRead(broker), note = { id: "a", body: "\u0000".repeat(512), collectionId: "one" };
+  const late = broker.read(principal, { sessionId: session.sessionId, memoId: "a" });
+  const work = broker.poll(session.auth, origin).request; time += 5001;
+  assert.throws(() => broker.result({ ...session.auth, requestId: work.requestId, result: read(note, work.readConditions, session.scope) }, origin), /browser_disconnected/);
+  assert.equal((await late).error, "browser_disconnected");
+  broker.poll(session.auth, origin);
+  await complete(broker, session, { ...all, scope: session.scope });
+  let stopped = false;
+  for (let i = 0; i < 20; i++) {
+    const remaining = broker.poll(session.auth, origin).remaining;
+    if (remaining.bytes < 8192 || remaining.requests === 0) {
+      await assert.rejects(broker.read(principal, { sessionId: session.sessionId, memoId: "a" }), /search_budget_exhausted/);
+      stopped = true; break;
+    }
+    assert.ok(responseBytes(await completeRead(broker, session, note)) <= 8192);
+  }
+  assert.ok(stopped);
+  await assert.rejects(broker.search(principal, { sessionId: session.sessionId, conditions: { ...all, scope: session.scope } }), /search_budget_exhausted/);
+});
 test("permission screen and specification distinguish all collections from direct collection members", () => {
   const fs = require("node:fs"), path = require("node:path");
   const html = fs.readFileSync(path.join(__dirname, "index.html"), "utf8");
@@ -51,6 +177,7 @@ test("Japanese title/body, long text, exact collection boundary, trash, determin
   assert.deepEqual(search(notes, all, "b").results.map(n => n.id), ["c", "d"]);
   assert.equal(search(notes, { ...all, query: "存在しない" }).count, 0);
   assert.equal(search([{ id: "x", title: "ASCII", body: "" }], { ...all, query: "ascii" }).count, 1);
+  assert.ok(search([{ id: "x", body: "😀" + "x".repeat(39) + "query" }], { ...all, query: "query" }).results[0].snippet.startsWith("😀"));
   assert.deepEqual(notes, before);
 });
 test("unsupported options rejected; large result and JSON escaping stay within tool response budget", () => {
@@ -149,10 +276,10 @@ test("OAuth search-only/submit-only and receiver HTTP boundaries use actual RS25
   }
   assert.equal((await call("prepare_memo_search", {}, await issuer.sign({ exp: 1 }))).status, 401);
   const listed = (await wire(port, searchToken, { jsonrpc: "2.0", id: 1, method: "tools/list" })).json.result.tools;
-  assert.deepEqual(listed.map(tool => tool.name), ["submit_text_preview", "submit_notes_preview", "prepare_memo_search", "search_saved_memos"]);
+  assert.deepEqual(listed.map(tool => tool.name), ["submit_text_preview", "submit_notes_preview", "prepare_memo_search", "search_saved_memos", "read_saved_memo"]);
   const description = listed.find(tool => tool.name === "search_saved_memos").description;
   for (const explanation of scopeExplanations) assert.ok(description.includes(explanation), `MCP tool: ${explanation}`);
-  assert.ok(listed.filter(tool => ["prepare_memo_search", "search_saved_memos"].includes(tool.name))
+  assert.ok(listed.filter(tool => ["prepare_memo_search", "search_saved_memos", "read_saved_memo"].includes(tool.name))
     .every(tool => tool.securitySchemes[0].scopes[0] === "memo:search"));
   const bothToken = await issuer.sign({ scope: "memo:submit memo:search" });
   for (const name of ["submit_text_preview", "submit_notes_preview"]) {
@@ -180,7 +307,7 @@ test("OAuth search-only/submit-only and receiver HTTP boundaries use actual RS25
   assert.equal((await browser("inspect", { pairingCode: pair.pairingCode }, browserToken, "https://evil.invalid")).status, 403);
   assert.equal((await browser("prepare", { principal }, adapterToken)).status, 403);
   assert.deepEqual((await browser("inspect", { pairingCode: pair.pairingCode })).json.principal, principal);
-  const session = (await browser("grant", { pairingCode: pair.pairingCode, scope: { type: "all" } })).json;
+  const session = (await browser("grant", { pairingCode: pair.pairingCode, scope: { type: "all" }, allowRead: true })).json;
   const auth = { sessionId: session.sessionId, capability: session.capability };
   assert.equal(unpack(await call("search_saved_memos", { sessionId: session.sessionId, conditions: all }, await issuer.sign({ scope: "memo:search", sub: config.allowedSubjects[1] }))).error, "subject_mismatch");
   const pending = call("search_saved_memos", { sessionId: session.sessionId, conditions: all }, bothToken);
@@ -188,11 +315,22 @@ test("OAuth search-only/submit-only and receiver HTTP boundaries use actual RS25
   for (let i = 0; i < 100 && !work; i++) { work = (await browser("poll", auth)).json.request; if (!work) await new Promise(resolve => setTimeout(resolve, 10)); }
   assert.ok(work); assert.equal((await browser("result", { ...auth, requestId: work.requestId, result: search(notes, work.conditions) })).status, 200);
   assert.deepEqual(unpack(await pending).results.map(note => note.id), ["a", "b"]);
+  assert.equal((await browser("read", { principal, input: { sessionId: session.sessionId, memoId: "a" } })).status, 403);
+  assert.equal(unpack(await call("read_saved_memo", { sessionId: session.sessionId, memoId: "a" }, await issuer.sign({ scope: "memo:search", sub: config.allowedSubjects[1] }))).error, "subject_mismatch");
+  const readPending = call("read_saved_memo", { sessionId: session.sessionId, memoId: "a" });
+  work = null;
+  for (let i = 0; i < 100 && !work; i++) { work = (await browser("poll", auth)).json.request; if (!work) await new Promise(resolve => setTimeout(resolve, 10)); }
+  assert.equal(work.operation, "read");
+  const readResult = read(notes[0], work.readConditions, session.scope);
+  assert.equal((await browser("result", { ...auth, requestId: work.requestId, result: readResult })).status, 200);
+  assert.deepEqual(unpack(await readPending), readResult);
   await browser("revoke", auth);
+  assert.equal(unpack(await call("read_saved_memo", { sessionId: session.sessionId, memoId: "a" })).error, "permission_revoked");
+  assert.equal(unpack(await call("read_saved_memo", { sessionId: session.sessionId, memoId: "a" }, await issuer.sign({ scope: "memo:search" }))).error, "permission_revoked");
   assert.equal(unpack(await call("search_saved_memos", { sessionId: session.sessionId, conditions: all })).error, "permission_revoked");
   assert.equal(unpack(await call("search_saved_memos", { sessionId: session.sessionId, conditions: { ...all, regex: true } })).error, "unsupported_conditions");
   const log = logs.join("\n");
-  for (const secret of [searchToken, submitToken, bothToken, browserToken, adapterToken, pair.pairingCode, bothPair.pairingCode, session.capability, all.query, notes[1].body, principal.sub]) assert.ok(!log.includes(secret));
+  for (const secret of [searchToken, submitToken, bothToken, browserToken, adapterToken, pair.pairingCode, bothPair.pairingCode, session.capability, all.query, notes[0].body, notes[1].body, principal.sub]) assert.ok(!log.includes(secret));
   await close(receiver);
   assert.equal(unpack(await call("prepare_memo_search")).error, "receiver_unavailable");
 });

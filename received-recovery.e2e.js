@@ -8,6 +8,7 @@ const { randomBytes, randomUUID } = require("node:crypto");
 const { fork } = require("node:child_process");
 const { chromium } = require("playwright");
 const { attachTransport } = require("./received-e2e-transport.js");
+const { createHistoryDirectory } = require("./received-history.fixture.js");
 let receiverPort;
 const artifacts = path.join(__dirname, "e2e-artifacts/received-preview");
 const channel = process.env.MEMO_NEXUS_E2E_CHANNEL || "chromium";
@@ -16,8 +17,14 @@ function messages(child) {
   const backlog = [], waits = [];
   child.on("exit", () => { for (const entry of waits.splice(0)) { clearTimeout(entry.timer); entry.reject(new Error("Service exited before checkpoint")); } });
   child.on("message", (value) => {
-    const waiter = waits.find((entry) => entry.type === value.type);
-    if (waiter) { waits.splice(waits.indexOf(waiter), 1); clearTimeout(waiter.timer); waiter.resolve(value); }
+    const waiter = waits.find((entry) => entry.type === value.type || entry.type === "ready" && value.type === "failed");
+    if (waiter) {
+      waits.splice(waits.indexOf(waiter), 1); clearTimeout(waiter.timer);
+      if (waiter.type === "ready" && value.type === "failed") {
+        const code = ["history_locked", "history_corrupt", "history_permissions", "history_write_failed"].includes(value.code) ? value.code : "startup_failed";
+        waiter.reject(new Error(`Service startup failed: ${code}`));
+      } else waiter.resolve(value);
+    }
     else backlog.push(value);
   });
   return (type) => {
@@ -104,7 +111,7 @@ async function gateDB(page, afterCommit = false) {
     await new Promise((resolve, reject) => { staticServer.once("error", reject); staticServer.listen(0, "127.0.0.1", resolve); }); listening = true;
     browser = await chromium.launch({ headless: true, ...(channel === "chromium" ? {} : { channel }) });
     for (const scenario of ["A-received", "B-preview", "C-before-db", "D-after-db", "E-complete-before-response", "F-failed", "G-partial", "H-rejected", "H-expired", "I-conflict", "missing-proof", "deleted", "mismatch", "destination-missing", "two-tabs", "two-tabs-pending", "destination-race"]) {
-      const directory = path.join(root, scenario);
+      const directory = await createHistoryDirectory(`${scenario}-`, root);
       service = await start(directory, tokens);
       context = await browser.newContext({ viewport: { width: 390, height: 844 }, timezoneId: "Asia/Tokyo" });
       await attachTransport(context, staticServer.address().port, () => receiverPort);
@@ -222,7 +229,7 @@ async function gateDB(page, afterCommit = false) {
       results.push({ scenario, result: "passed" }); console.log(`PASS ${scenario}`);
       await context.close(); context = null; await kill(service); service = null;
     }
-    const fullDirectory = path.join(root, "history-full"); service = await start(fullDirectory, tokens);
+    const fullDirectory = await createHistoryDirectory("history-full-", root); service = await start(fullDirectory, tokens);
     let lastRequest;
     for (let i = 0; i < 128; i++) {
       if (i % 40 === 0) { service.child.send({ type: "advance" }); await service.wait("advanced"); }
@@ -250,7 +257,7 @@ async function gateDB(page, afterCommit = false) {
     assert.equal((await api(tokens, "/text", excess, true)).error, "history_full");
     await context.close(); context = null; await kill(service); service = null;
     results.push({ scenario: "real-service-127-128-129-restart-known-manual-save", result: "passed" });
-    const failedDirectory = path.join(root, "write-failure"); service = await start(failedDirectory, tokens);
+    const failedDirectory = await createHistoryDirectory("write-failure-", root); service = await start(failedDirectory, tokens);
     const failedRequest = { requestId: randomUUID(), title: "書き込み失敗", body: "記録を破壊しない" };
     assert.equal((await api(tokens, "/text", failedRequest, true)).code, 200);
     const file = path.join(failedDirectory, "history.json"), intact = await fs.readFile(file, "utf8");
@@ -260,7 +267,7 @@ async function gateDB(page, afterCommit = false) {
     assert.equal(await fs.readFile(file, "utf8"), intact);
     assert.equal((await api(tokens, "/status", { requestId: failedRequest.requestId })).error, "history_unavailable");
     await kill(service); service = null; results.push({ scenario: "real-service-write-failure", result: "passed" });
-    const brokenDirectory = path.join(root, "startup-corrupt"); await fs.mkdir(brokenDirectory); await fs.writeFile(path.join(brokenDirectory, "history.json"), "{broken");
+    const brokenDirectory = await createHistoryDirectory("startup-corrupt-", root); await fs.writeFile(path.join(brokenDirectory, "history.json"), "{broken");
     const broken = fork(path.join(__dirname, "received-recovery-service.fixture.js"), [], { windowsHide: true, silent: true,
       env: { ...process.env, MEMO_PREVIEW_HISTORY_DIR: brokenDirectory, MEMO_PREVIEW_BROWSER_TOKEN: tokens.browser, MEMO_PREVIEW_ADAPTER_TOKEN: tokens.adapter } });
     const brokenWait = messages(broken); assert.equal((await brokenWait("failed")).code, "history_corrupt");

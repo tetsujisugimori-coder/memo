@@ -25,7 +25,7 @@
     generation++; clearTimeout(timer); timer = null;
     const previous = session, previousToken = token;
     session = null; inspected = null; token = ""; tokenInput.value = ""; codeInput.value = "";
-    grantButton.disabled = true; inspectButton.disabled = false; selection.disabled = false; busy = false;
+    grantButton.disabled = true; inspectButton.disabled = false; selection.disabled = false; byId("memoSearchAllowRead").disabled = false; byId("memoSearchAllowRead").checked = false; busy = false;
     if (previous) {
       // Best effort on unload. Stopping heartbeats also fails closed within 5 seconds.
       fetch("http://127.0.0.1:8791/search/revoke", { method: "POST", mode: "cors", credentials: "omit", referrerPolicy: "no-referrer", keepalive: true, redirect: "error", cache: "no-store",
@@ -48,9 +48,14 @@
         try {
           const conditions = window.MemoNexusSearch.conditions(work.conditions);
           if (session.scope.type === "collection" && (conditions.scope.type !== "collection" || conditions.scope.collectionId !== session.scope.collectionId)) throw new Error();
-          const result = await window.MemoNexusSavedSearch.search(conditions, work.afterId);
+          let result;
+          if (work.operation === "read") {
+            if (!session.allowRead) throw new Error();
+            result = await window.MemoNexusSavedSearch.read(work.readConditions, session.scope);
+          } else if (work.operation === undefined) result = await window.MemoNexusSavedSearch.search(conditions, work.afterId);
+          else throw new Error();
           payload = { result };
-        } catch (error) { payload = { error: ["storage_unavailable", "collection_unavailable"].includes(error.code) ? error.code : "search_failed" }; }
+        } catch (error) { payload = { error: ["storage_unavailable", "collection_unavailable", "memo_unavailable", "memo_too_large", "invalid_offset"].includes(error.code) ? error.code : "search_failed" }; }
         if (!session || epoch !== generation) return;
         await request("result", { ...auth, requestId: work.requestId, ...payload });
       }
@@ -83,10 +88,10 @@
     if (busy || !inspected || session) return; busy = true; grantButton.disabled = true;
     const epoch = generation;
     try {
-      const granted = await request("grant", { pairingCode: inspected, scope: selectedScope() });
+      const granted = await request("grant", { pairingCode: inspected, scope: selectedScope(), allowRead: byId("memoSearchAllowRead").checked });
       if (epoch !== generation) return;
       session = granted; codeInput.value = ""; tokenInput.value = ""; inspected = null;
-      selection.disabled = true; inspectButton.disabled = true; poll(epoch);
+      selection.disabled = true; byId("memoSearchAllowRead").disabled = true; inspectButton.disabled = true; poll(epoch);
     } catch (error) { if (epoch === generation) { stop(); report(error); } }
     finally { if (epoch === generation) busy = false; }
   });

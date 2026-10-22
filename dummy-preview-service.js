@@ -72,10 +72,10 @@ function createPreviewService({ browserToken, adapterToken, queue = createQueue(
       if (sensitive.has(name) && counts.get(name) > 1) return send(400, { error: "duplicate_header" });
     }
     const routes = { "/dummy": "POST", "/text": "POST", "/notes": "POST", "/pending": "GET", "/status": "POST", "/reject": "POST", "/begin": "POST", "/complete": "POST", "/failed": "POST" };
-    const searchRoute = ({ "/search/prepare": "prepare", "/search/run": "search", "/search/inspect": "inspect", "/search/grant": "grant", "/search/poll": "poll", "/search/result": "result", "/search/revoke": "revoke" })[req.url];
+    const searchRoute = ({ "/search/prepare": "prepare", "/search/run": "search", "/search/read": "read", "/search/inspect": "inspect", "/search/grant": "grant", "/search/poll": "poll", "/search/result": "result", "/search/revoke": "revoke" })[req.url];
     const method = searchRoute ? "POST" : routes[req.url];
     if (!method) return send(404, { error: "not_found" });
-    const isAdapter = ["prepare", "search"].includes(searchRoute) || req.url === "/dummy" || req.url === "/text" || req.url === "/notes";
+    const isAdapter = ["prepare", "search", "read"].includes(searchRoute) || req.url === "/dummy" || req.url === "/text" || req.url === "/notes";
     const inputLimit = searchRoute ? 12288 : req.url === "/notes" ? MAX_NOTES_INPUT_BYTES : req.url === "/text" ? MAX_TEXT_INPUT_BYTES : MAX_INPUT_BYTES;
     if (isAdapter && origin !== undefined) return send(403, { error: "adapter_origin_forbidden" });
     if (!isAdapter && origin === undefined) return send(403, { error: "browser_origin_required" });

@@ -1,3 +1,105 @@
+## 2026-10-22 PR #384 公開CIの追加切り分け
+
+レビュー修正HEAD `077d1d272689753a5e3148e42d03ec154ec431ee`の[CI 39697342589](https://github.com/tetsujisugimori-coder/memo/actions/runs/39697342589)ではLinuxの全単体・構文・差分、Chromium／WebKit双方のChartが成功。Windowsもattempt 1で全単体、discovery、5ツール診断を含むランチャーcontroller／Forms176ケースが成功した。P1・P2・元のChart失敗は通過した一方、次の既存受信系試験が失敗し、必須CI全体は未成功だった。
+
+- attempt 1 Linux：received-recovery.e2e.js:266で破損履歴に対するhistory_corruptを期待したがhistory_locked。
+- attempt 1 Windows：destination-missing後、次の試験用サービスがready前に終了し、Service exited before checkpoint。後続のOAuth・検索E2Eはskipで、成功扱いにしない。
+- コードを変えず失敗2ジョブだけを一度再実行したattempt 2でも、Linuxのサービス起動が同様に失敗。Windowsはreceived-history.test.js:34のfixture準備でhistory_lockedとなり、後続E2Eはskip。再実行を重ねず調査へ戻った。
+
+dummy-preview-history.jsの既存ロックは、正規化した保存ディレクトリのSHA-256から20000〜49999のポートを求め、履歴を読む前にlistenする。この帯域はLinux／Windowsの既定の自動割当帯域と一部重なる。隔離一時ディレクトリの算出ポートを自分のテストサーバーで占有すると、破損履歴でもhistory_lockedとなり、解放後はhistory_corruptとなることをWindows通常権限で再現した。CIでポート取得が拒否された具体的な競合相手・OSエラーは元の固定診断からは確定できない。Windowsの一般的な子サービス終了も、元のfixtureが起動失敗IPCを待機要求へ伝えずコードを失っており、同一原因とは断定しない。
+
+### 追加修正の範囲と安全条件
+
+- received-history.fixture.js（新規）：本番と同じハッシュ規則で算出するポートが20000〜29999かつ空きになる一時ディレクトリを選ぶ。自分が新規作成した空ディレクトリだけを試験準備中に片付ける。最大64候補で準備できなければhistory_fixture_unavailableとして失敗する。
+- received-history.test.jsのfixture／一時履歴準備とreceived-recovery.e2e.jsの各シナリオ準備に適用。本番openHistoryや検証本体の再試行・skip・期待値変更はしない。実際の二重ロック拒否、破損拒否、保存・復旧の検証を維持する。
+- 算出したfixtureポートと本番の実ロックが一致すること、占有中にOSが二重listenを拒否すること、close後に取得できることを追加単体で確認する。将来本番のロック算出規則が変わった場合は、この検査が不一致を検出する。
+- received-recovery.e2e.jsのmessagesはready待機時のfailed IPCを固定された安全なエラーコードで報告する。未知のコードはstartup_failedにする。トークン、本文、保存ディレクトリ、JWT等は出力しない。
+- dummy-preview-history.js、受信・保存・認可・ロックの本番挙動、各timeout、実8791／8792／Tunnelは変更しない。新規ポートの一時的な空き確認後に他プロセスが取得する競合までは排除できず、その場合も本番の拒否をそのまま試験失敗として扱う。
+
+追加差分のWindows通常権限検証は、関連単体25件成功、全単体1,865件成功（失敗・skip 0）、received-recovery.e2e.jsの全20シナリオ成功。ロック算出の一致／実際の排他／解放、履歴破損・容量・書き込み失敗・再起動・二重タブを既存期待値のまま確認した。追加・変更3 JavaScriptの構文、git diff --checkも成功。先の全263ファイル構文確認と合わせ、今回の追跡JavaScriptは264ファイルとなる。OAuth・検索／全文取得E2E、保存データ不変・readwrite 0、ランチャーは077d1d2のローカル検証成功を維持し、最終HEADの公開CIでも再確認する。公開CIの最終HEAD・全ジョブ結果・実機未実施事項はPRコメントに記録する。
+
+## 2026-10-22 PR #384 独立レビュー修正
+
+レビュー5606612895、対象HEAD `0908cf2606a25cfed261968f5924f91e79b58642`を確認。着手時の公開PR HEADも同じで、公開main／origin/mainは`4b7722fce07ef65863a1dc4c0b54678ca03045ab`。既存PRブランチfeat/mcp-search-readとworktreeを継続使用し、追跡対象の未コミット変更がないことを確認した。既存の未追跡work/・他worktreeを保護。実8791（PID 34152）／8792（PID 20832）・Tunnel・実設定・認証情報・実メモは操作しない。
+
+### P1：既存単体18件のキャッシュ番号依存
+
+[CI 39649104604](https://github.com/tetsujisugimori-coder/memo/actions/runs/39649104604)のLinux・Windowsログを個別に照合した。18件ともindex.htmlのapp.jsが208になった一方、単体テストが207を固定参照していた。正規表現の不一致、indexOfが-1になった読み込み順の比較失敗であり、実際の読み込み順は変わっていない。該当テスト・失敗箇所は次のとおり。
+
+| テストファイル（修正前の位置） | 失敗原因 |
+| --- | --- |
+| backup-bundle-utils.test.js:30 | app.jsキャッシュ正規表現207 |
+| codex-chat-ui.test.js:16 | app.jsキャッシュ正規表現207 |
+| draft-mirror-scheduler.test.js:319 | app.jsのindexOfが-1 |
+| font-settings.test.js:300 | フォント依存モジュールとapp.jsの順序比較（2参照） |
+| local-save.test.js:639 | app.jsキャッシュ正規表現207 |
+| markdown-enhancements.test.js:771 | app.jsキャッシュ正規表現207 |
+| memo-link-app.test.js:152 | app.js位置と複数モジュールの順序正規表現 |
+| memo-list-utils.test.js:175 | app.jsキャッシュ正規表現と順序比較 |
+| mermaid-rendering.test.js:432 | app.js scriptタグの固定番号207 |
+| note-tombstone.test.js:447 | app.jsキャッシュ正規表現207 |
+| responsive-layout.test.js:33 | app.jsキャッシュ正規表現207 |
+| status-time-utils.test.js:63 | app.jsキャッシュ正規表現207 |
+| syntax-guide.test.js:476 | app.jsキャッシュ正規表現207 |
+| table-paste.test.js:172 | app.jsキャッシュ正規表現207 |
+| tags.test.js:55 | app.jsのindexOfが-1 |
+| text-stats-ui.test.js:33 | app.jsキャッシュ正規表現207 |
+| typing-performance-monitor.test.js:533 | app.js位置の検査で-1 |
+| version.test.js:44 | source-utilsとapp.jsの順序比較、および固定番号207 |
+
+これら18ファイルで、app.jsの存在／キャッシュ形式検査は数値の更新を許す正規表現へ、順序比較は安定したsrc接頭辞へ分離した。正確な現在番号208とapp.jsが1つだけ存在する検査はversion.test.jsへ集約し、番号更新時の多発故障を避ける。依存関係・script順・HTMLの実装をテストへ合わせて変更していない。テストの削除・無効化・skip・期待する実機能の緩和はしない。
+
+### P2：コレクション所属検証
+
+memo-search.jsのvalidateResultへ要求scopeを渡し、限定要求ではcollectionIdを必須化。欠落・null・不一致・空文字・不正型・128 UTF-16単位超過を拒否する。memo-search-broker.jsのresultはpending.conditions.scopeで検証し、省略を許す条件分岐を削除した。全コレクション許可から限定要求を行った場合も同じく厳格に検証する。
+
+all要求は旧ブラウザとの互換性のため省略／nullを引き続き受理するが、元の全コレクション明示許可は必須。ブラウザがIndexedDBの現在所属を読み、brokerが返却された所属と要求scopeの整合性を検査する責任分担を仕様書へ記録した。許可済みブラウザが所属を偽装する脅威を独立に検出する保証は加えない。
+
+memo-search.test.jsに正常な所属、別ID、欠落、null、空文字、不正型／長さ、all互換性、全許可からの限定要求、取消後の旧要求・旧結果の拒否を追加。既存read_saved_memoの範囲・本文・取消テストを維持。index.htmlは変更した共有memo-search.jsのキャッシュだけ3へ更新し、app.jsは208のまま。
+
+### WebKit Chartの切り分け
+
+失敗はchart-block.e2e.js:1617で、Infinity入力後のエラーメッセージとフォーカスを30秒待つ箇所。失敗時は数値エラー表示ではなく「2月を3件目へ移動しました」で、データも項目移動済みだった。Chartの試験・本体・workflowはmainとPRで差分なし。app.jsの差分は独立したMemoNexusSavedSearch.readの追加だけ。
+
+[PR #382 CI 39590818420 / attempt 1](https://github.com/tetsujisugimori-coder/memo/actions/runs/39590818420/attempts/1)（HEAD 69f6f69）にも、同じ1617行・同じ項目順／表示状態での30秒timeoutがあることを実ログで確認した。PR #384より前からの既存不安定性であり、今回の変更が導入した退行とは判定しない。入力・再描画・フォーカスのどのタイミングが根因かまでは未確定。
+
+Windowsの隔離WebKitで既存--feature chart-multi-seriesを1回ずつ比較。PR側は48.7秒で全ケース成功。別の比較用main worktreeでも問題の1617行を含む段階は15.7秒で通過したが、後段2171行のpage.reloadが30秒timeoutした（全体72.1秒）。同時に複数の重い検証を走らせた負荷もあり、この別timeoutの根因は未確定。Chartコードの変更・timeout延長・テスト削除はしない。
+
+### 検証結果
+
+- Windows通常権限のnpm.cmd test：1,864件全件成功、失敗・skip 0。元の18件と、所属検証の追加2件を含む。MCP・OAuth・取消・原文保持・予算・保存境界の回帰も成功。
+- Windowsのmcp-http-oauth.e2e.js成功：架空issuer、隔離永続受信、動的ポート、ダミーデータだけを使用。既存メモ保持・再起動／再送・明示保存／破棄・履歴への本文非保存を確認。
+- 最終memo-search.e2e.js成功：検索・全文取得、要求範囲、CRLF／絵文字／Markdown、取消・期限・切断・再読込・別タブ／プロファイルを確認。全IndexedDBストアの前後一致、readwrite transaction 0。
+- Windows PowerShell 5.1の既存ランチャー回帰成功：5ツール診断を含む診断意味論、controller全ケース、Forms176ケース、別GUI二重起動拒否、設定／開始拒否／停止／終了イベントを隔離検証。実8791／8792／Tunnelは起動元を含め変更しない。
+- 追跡JavaScript263ファイルのnode --checkとgit diff --check成功。
+- 調査用の初回sandbox内npm testは元の18件に加え、既存履歴ACL試験7件がhistory_permissionsで失敗した。通常Windows権限で試すとACL7件は成功した。npm.ps1の実行制限は変更せずnpm.cmdを使用した。
+- 複数の重い試験を同時実行した回では、HTTP単体の要求期限後409と検索E2EのECONNRESETが発生した。アプリ／テストのtimeoutを緩めず、重い試験を順番に実行し直して全単体・検索E2Eとも成功。mainのChart後段reload timeoutを含め、負荷が各失敗へ与えた正確な影響は未確定。
+- 公開CIは更新HEADで確認し、結果はPRコメントに記録する。必須CIが不成功の間は修正完了と扱わない。
+- 実ChatGPT・実Auth0・実Tunnelの手動受入は未実施。既存のJWTローカル検証、許可済みブラウザを信頼する境界、5秒heartbeat猶予、取得済み本文の回収不能、分割途中の版固定非保証、メモリ内予算リセットの制約は維持する。
+
+## 2026-10-22 Memo-Nexus MCP検索強化・指定メモ全文取得
+
+### 変更と設計判断
+
+- 着手時のHEAD・origin/main・GitHub API上の公開mainは`4b7722fce07ef65863a1dc4c0b54678ca03045ab`で一致。PR #382のOAuth追加認可応答と、その後のmain変更がないことを確認。gitのschannelによるls-remoteは資格情報エラーだったため、公開mainは認証済みgh APIで確認した。
+- 既存の未追跡work/・worktree・実行中8791（PID 34152）／8792（PID 20832）を保護し、専用worktree `work/mcp-search-read`／ブランチ `feat/mcp-search-read`で作業。Tunnel・実設定・実ブラウザ保存領域を変更しない。
+- 既存タイトル・本文検索、正確なコレクションID範囲、主体・タブ・期限・取消・予算の実装を再利用。任意fields／tagIds条件、結果collectionId、ID重複排除、条件に結び付くcursorを追加。旧クライアントの省略時動作を維持。
+- read_saved_memoを追加。OAuth memo:searchだけでは全文取得不可とし、既定OFFのブラウザ側追加許可allowReadが必要。旧検索許可には自動付与しない。取得・検索は既存brokerの同時要求／回数／件数／バイト予算を共有する。
+- 本文は512コードポイントずつ、nextOffsetで継続。CRLF・絵文字・Markdown原文を保持。1 Mi UTF-16単位超の本文と8 KiBに収まらない応答は明示拒否。原文を実行／描画する処理は追加しない。
+- 指定IDを既存readonly getStoredNoteSnapshotsで読み、現在の所属範囲を検証してから本文・メタデータを生成。不在・範囲外・ゴミ箱をmemo_unavailableへ統一。結果配送時にもID・範囲・長さをbrokerで検証する。
+- 分割中の編集について版固定は保証しない。既に返した本文の回収、厳密な応答時間一定性、JWTのオンライン失効照会、通知未達時の瞬時取消は保証しない。既存heartbeatの5秒猶予とメモリ内予算リセットを含め、仕様書に制約を記録。
+- メモ保存・更新・削除・同期・コレクション変更は実装しない。保存キュー、dirty、atomic復元、ZIP、インポート／エクスポートは変更しない。ランチャー変更は5ツール診断表示だけ。
+
+### 検証
+
+- 関連単体計41件成功（memo-search.test.js 13件、mcp-http-oauth.test.js 16件、received-preview.test.js／received-notes-preview.test.js 12件）。全文許可なし・scope不足・別主体・範囲外・取消後の旧ID／再認証・再pairing・期限・サービスメモリ破棄・タイムアウト・不正入力・巨大本文・巨大メタデータ・共有予算・ログ非露出を検証。
+- 最終memo-search.e2e.js成功。隔離Chromium、架空RS256 issuer、実HTTPとIndexedDBで検索／全文取得を検証。日本語・タグID条件・CRLF・絵文字・Markdown・コードブロック・HTML文字列・長文分割・ゴミ箱・範囲外／不存在の共通エラー・取消・別タブ／プロファイル・再読込・通信断を確認。全ストア一致、読み取り中readwrite transaction 0。
+- 試験途中のタグ定義不足で、別タブ起動時に既存のタグ補完が動き、全体比較が失敗した。fixtureへ保存形式に沿ったタグ定義を追加し成功。再読込時の即時取消を仮定した試験も、固定fixture時計ではsearch_timeoutになった。既存契約どおり通知未達時の5秒heartbeat猶予を時計で進めて拒否を検証し成功。保存処理・認可条件を緩和していない。
+- 結果配送時にもheartbeatを検査し、通信断後の遅延結果を拒否。検索抜粋の開始が絵文字のサロゲートペアを分断する境界も修正し、単体で確認。
+- Windows PowerShell 5.1で構文解析とUpdate-LauncherObservationの5ツール表示を隔離検証。変更JavaScriptの構文検査、git diff --check成功。無関係なGUI網羅試験・Chart／Report／PDF長時間試験は追加しない。
+- 最終公開mainは4b7722fのまま。通常sandboxのgit TLS接続は失敗したが、通常のGit接続をsandbox外で確認するとls-remote成功。8791／8792のPIDは着手時と同じ。実サービス・実Tunnel・実設定・実メモを変更していない。
+- 実ChatGPT・Auth0の追加認可／scope保持、実Tunnelと利用者の明示許可による全文取得、実機の再起動後受入は未実施。自動試験は実接続成功と扱わず、Draft PRと仕様書の利用者手順で引き継ぐ。
+
 ## 2026-06-21 Memo Nexus 保存安定化・ZIP修正
 
 ### 変更内容

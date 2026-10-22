@@ -1103,7 +1103,7 @@
   <script src="draft-mirror-scheduler.js?v=0.5.0-2"></script>
   <script src="typing-performance-monitor.js?v=0.5.0-3"></script>
   <script src="layout-resize-utils.js?v=0.5.0-2"></script>
-  <script src="app.js?v=0.5.0-207"></script>
+  <script src="app.js?v=0.5.0-208"></script>
   <script src="codex-chat.js?v=0.5.0-6"></script>
   <dialog id="dummyPreviewDialog" class="dummy-preview-dialog" aria-labelledby="dummyPreviewHeading" aria-describedby="dummyPreviewHelp">
     <h2 id="dummyPreviewHeading">文章の受信確認 <small id="dummyPreviewBadge">未保存プレビュー</small></h2>
@@ -1138,12 +1138,14 @@
     <button id="memoSearchInspect" type="button">認証主体を確認</button>
     <p id="memoSearchPrincipal"></p>
     <label>許可する検索対象 <select id="memoSearchScope"><option value="all">全メモ</option></select></label>
+    <label><input id="memoSearchAllowRead" type="checkbox">同じ対象範囲のメモ全文取得も許可する（512文字ずつ・検索と取得予算を共有）</label>
+    <p>全文取得を許可すると、保存済みのタイトル・Markdown本文・所属コレクションID・タグIDを取得できます。検索はタグIDでの絞り込みにも対応します。</p>
     <p id="memoSearchStatus" role="status" aria-live="polite">未許可</p>
     <button id="memoSearchGrant" type="button" disabled>検索を10分間許可</button>
     <button id="memoSearchRevoke" type="button">許可取消・停止</button>
     <button id="memoSearchClose" type="button">閉じて停止</button>
   </dialog>
-  <script src="memo-search.js?v=0.5.0-1"></script>
-  <script src="memo-search-ui.js?v=0.5.0-1"></script>
+  <script src="memo-search.js?v=0.5.0-3"></script>
+  <script src="memo-search-ui.js?v=0.5.0-2"></script>
 </body>
 </html>
