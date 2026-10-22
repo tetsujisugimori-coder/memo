@@ -1125,9 +1125,9 @@
     </section>
     <div class="dummy-preview-actions"><button id="dummyPreviewCheckBtn" type="button">受信を確認</button><button id="dummyPreviewSaveBtn" type="button" disabled>新規メモとして保存</button><button id="dummyPreviewRejectBtn" type="button" disabled>破棄</button><button id="dummyPreviewCloseBtn" type="button">閉じる</button></div>
   </dialog>
-  <link rel="stylesheet" href="dummy-preview.css?v=0.5.0-2">
+  <link rel="stylesheet" href="dummy-preview.css?v=0.5.0-3">
   <script src="dummy-preview-ui.js?v=0.5.0-8"></script>
-  <dialog id="memoSearchDialog" aria-labelledby="memoSearchHeading">
+  <dialog id="memoSearchDialog" class="dummy-preview-dialog" aria-labelledby="memoSearchHeading">
     <h2 id="memoSearchHeading">保存済みメモのMCP検索許可</h2>
     <p>ChatGPTのprepare_memo_searchで発行した連携コードを入力してください。既存の送信認証だけでは検索できません。</p>
     <p>このタブ・このブラウザ保存領域だけを10分間許可します。閉じる／再読込で停止します。別端末・プロファイルは別対象です。</p>
@@ -1137,15 +1137,20 @@
     <label>連携コード <input id="memoSearchCode" type="password" autocomplete="off" maxlength="43"></label>
     <button id="memoSearchInspect" type="button">認証主体を確認</button>
     <p id="memoSearchPrincipal"></p>
-    <label>許可する検索対象 <select id="memoSearchScope"><option value="all">全メモ</option></select></label>
+    <label>今回新しく許可する検索対象 <select id="memoSearchScope"><option value="">許可する対象を選択してください</option></select></label>
     <label><input id="memoSearchAllowRead" type="checkbox">同じ対象範囲のメモ全文取得も許可する（512文字ずつ・検索と取得予算を共有）</label>
     <p>全文取得を許可すると、保存済みのタイトル・Markdown本文・所属コレクションID・タグIDを取得できます。検索はタグIDでの絞り込みにも対応します。</p>
-    <p id="memoSearchStatus" role="status" aria-live="polite">未許可</p>
-    <button id="memoSearchGrant" type="button" disabled>検索を10分間許可</button>
-    <button id="memoSearchRevoke" type="button">許可取消・停止</button>
-    <button id="memoSearchClose" type="button">閉じて停止</button>
+    <p id="memoSearchStatus" role="status" aria-live="polite" aria-atomic="true">未設定：このタブで有効な検索許可を確認していません。</p>
+    <p id="memoSearchGrantedScope" aria-label="最後に確認した検索許可範囲">確認済みの許可範囲はありません。現在選択中のコレクションとは別の許可です。</p>
+    <p>取り消すのはこのタブのMCP検索・全文取得許可です。OAuth接続の解除ではありません。既に外部AIへ渡った情報は回収・削除できません。</p>
+    <div class="dummy-preview-actions">
+      <button id="memoSearchGrant" type="button" disabled>検索を10分間許可</button>
+      <button id="memoSearchRefresh" type="button" disabled>状態を再確認</button>
+      <button id="memoSearchRevoke" type="button" disabled>検索許可を取り消す</button>
+      <button id="memoSearchClose" type="button">閉じて停止</button>
+    </div>
   </dialog>
   <script src="memo-search.js?v=0.5.0-3"></script>
-  <script src="memo-search-ui.js?v=0.5.0-2"></script>
+  <script src="memo-search-ui.js?v=0.5.0-3"></script>
 </body>
 </html>
