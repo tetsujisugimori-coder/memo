@@ -2,15 +2,15 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
-const os = require("node:os");
 const { execFileSync } = require("node:child_process");
 const path = require("node:path");
 const { randomUUID, createHash } = require("node:crypto");
 const { openHistory, validateHistory } = require("./dummy-preview-history.js");
+const { createHistoryDirectory, historyLockPort } = require("./received-history.fixture.js");
 const { createQueue, textRequest, notesRequest, TTL_MS, MAX_HISTORY } = require("./dummy-preview-queue.js");
 const input = () => textRequest({ requestId: randomUUID(), title: "PRIVATE TITLE", body: "PRIVATE BODY bearerSECRET" });
 async function fixture(t, io) {
-  const directory = fs.mkdtempSync(path.join(os.tmpdir(), "memo-history-"));
+  const directory = await createHistoryDirectory();
   // Keep failed-test data inside this isolated directory for inspection; no user state.
   const store = await openHistory({ directory, ...(io ? { io } : {}) });
   t.after(() => store.close()); return { store, directory, queue: createQueue({ initial: store.records, persist: store.commit }) };
@@ -48,7 +48,7 @@ test("exclusive OS lock releases on close; corrupted journal never opens fresh",
   const { directory } = await fixture(t);
   await assert.rejects(openHistory({ directory }), /history_locked/);
   // Direct journal damage cannot be papered over by a new queue.
-  const broken = fs.mkdtempSync(path.join(os.tmpdir(), "memo-corrupt-")); fs.writeFileSync(path.join(broken, "history.json"), "{truncated");
+  const broken = await createHistoryDirectory("memo-corrupt-"); fs.writeFileSync(path.join(broken, "history.json"), "{truncated");
   await assert.rejects(openHistory({ directory: broken }), /history_corrupt/);
   const value = { version: 1, records: [{ invalid: true }], checksum: "wrong" };
   fs.writeFileSync(path.join(broken, "history.json"), JSON.stringify(value)); await assert.rejects(openHistory({ directory: broken }), /history_corrupt/);
@@ -83,7 +83,7 @@ test("dedicated directory permissions exclude other users and oversized journals
     assert.equal(fs.statSync(directory).mode & 0o777, 0o700);
     assert.equal(fs.statSync(path.join(directory, "history.json")).mode & 0o777, 0o600);
   }
-  const oversized = fs.mkdtempSync(path.join(os.tmpdir(), "memo-oversized-"));
+  const oversized = await createHistoryDirectory("memo-oversized-");
   fs.writeFileSync(path.join(oversized, "history.json"), "x".repeat(1024 * 1024 + 1));
   await assert.rejects(openHistory({ directory: oversized }), /history_corrupt/);
 });
@@ -92,7 +92,7 @@ test("receiver bind failure releases the persistent-state lock", async (t) => {
   const net = require("node:net");
   const { randomBytes } = require("node:crypto");
   const { createPersistentPreviewService } = require("./dummy-preview-service.js");
-  const directory = fs.mkdtempSync(path.join(os.tmpdir(), "memo-bind-failure-"));
+  const directory = await createHistoryDirectory("memo-bind-failure-");
   const occupied = net.createServer();
   await new Promise((resolve) => occupied.listen(0, "127.0.0.1", resolve));
   t.after(() => new Promise((resolve) => occupied.close(resolve)));
@@ -102,6 +102,19 @@ test("receiver bind failure releases the persistent-state lock", async (t) => {
   const reopened = await openHistory({ directory }); await reopened.close();
 });
 
+
+test("isolated directory selection matches the real OS lock and preserves exclusion and release", async t => {
+  const net = require("node:net"), { store, directory } = await fixture(t), port = historyLockPort(directory);
+  assert.ok(port >= 20000 && port < 30000);
+  const probe = net.createServer();
+  await assert.rejects(new Promise((resolve, reject) => {
+    probe.once("error", reject); probe.listen({ port, host: "127.0.0.1", exclusive: true }, resolve);
+  }), { code: "EADDRINUSE" });
+  await store.close();
+  const released = net.createServer();
+  await new Promise((resolve, reject) => { released.once("error", reject); released.listen({ port, host: "127.0.0.1", exclusive: true }, resolve); });
+  await new Promise(resolve => released.close(resolve));
+});
 
 test("capacity rejection rolls back uncommitted state and keeps known operations available", () => {
   let journal = [], capacity = false, blockMutation = false;

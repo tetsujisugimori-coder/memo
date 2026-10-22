@@ -1,3 +1,23 @@
+## 2026-10-22 PR #384 公開CIの追加切り分け
+
+レビュー修正HEAD `077d1d272689753a5e3148e42d03ec154ec431ee`の[CI 39697342589](https://github.com/tetsujisugimori-coder/memo/actions/runs/39697342589)ではLinuxの全単体・構文・差分、Chromium／WebKit双方のChartが成功。Windowsもattempt 1で全単体、discovery、5ツール診断を含むランチャーcontroller／Forms176ケースが成功した。P1・P2・元のChart失敗は通過した一方、次の既存受信系試験が失敗し、必須CI全体は未成功だった。
+
+- attempt 1 Linux：received-recovery.e2e.js:266で破損履歴に対するhistory_corruptを期待したがhistory_locked。
+- attempt 1 Windows：destination-missing後、次の試験用サービスがready前に終了し、Service exited before checkpoint。後続のOAuth・検索E2Eはskipで、成功扱いにしない。
+- コードを変えず失敗2ジョブだけを一度再実行したattempt 2でも、Linuxのサービス起動が同様に失敗。Windowsはreceived-history.test.js:34のfixture準備でhistory_lockedとなり、後続E2Eはskip。再実行を重ねず調査へ戻った。
+
+dummy-preview-history.jsの既存ロックは、正規化した保存ディレクトリのSHA-256から20000〜49999のポートを求め、履歴を読む前にlistenする。この帯域はLinux／Windowsの既定の自動割当帯域と一部重なる。隔離一時ディレクトリの算出ポートを自分のテストサーバーで占有すると、破損履歴でもhistory_lockedとなり、解放後はhistory_corruptとなることをWindows通常権限で再現した。CIでポート取得が拒否された具体的な競合相手・OSエラーは元の固定診断からは確定できない。Windowsの一般的な子サービス終了も、元のfixtureが起動失敗IPCを待機要求へ伝えずコードを失っており、同一原因とは断定しない。
+
+### 追加修正の範囲と安全条件
+
+- received-history.fixture.js（新規）：本番と同じハッシュ規則で算出するポートが20000〜29999かつ空きになる一時ディレクトリを選ぶ。自分が新規作成した空ディレクトリだけを試験準備中に片付ける。最大64候補で準備できなければhistory_fixture_unavailableとして失敗する。
+- received-history.test.jsのfixture／一時履歴準備とreceived-recovery.e2e.jsの各シナリオ準備に適用。本番openHistoryや検証本体の再試行・skip・期待値変更はしない。実際の二重ロック拒否、破損拒否、保存・復旧の検証を維持する。
+- 算出したfixtureポートと本番の実ロックが一致すること、占有中にOSが二重listenを拒否すること、close後に取得できることを追加単体で確認する。将来本番のロック算出規則が変わった場合は、この検査が不一致を検出する。
+- received-recovery.e2e.jsのmessagesはready待機時のfailed IPCを固定された安全なエラーコードで報告する。未知のコードはstartup_failedにする。トークン、本文、保存ディレクトリ、JWT等は出力しない。
+- dummy-preview-history.js、受信・保存・認可・ロックの本番挙動、各timeout、実8791／8792／Tunnelは変更しない。新規ポートの一時的な空き確認後に他プロセスが取得する競合までは排除できず、その場合も本番の拒否をそのまま試験失敗として扱う。
+
+追加差分のWindows通常権限検証は、関連単体25件成功、全単体1,865件成功（失敗・skip 0）、received-recovery.e2e.jsの全20シナリオ成功。ロック算出の一致／実際の排他／解放、履歴破損・容量・書き込み失敗・再起動・二重タブを既存期待値のまま確認した。追加・変更3 JavaScriptの構文、git diff --checkも成功。先の全263ファイル構文確認と合わせ、今回の追跡JavaScriptは264ファイルとなる。OAuth・検索／全文取得E2E、保存データ不変・readwrite 0、ランチャーは077d1d2のローカル検証成功を維持し、最終HEADの公開CIでも再確認する。公開CIの最終HEAD・全ジョブ結果・実機未実施事項はPRコメントに記録する。
+
 ## 2026-10-22 PR #384 独立レビュー修正
 
 レビュー5606612895、対象HEAD `0908cf2606a25cfed261968f5924f91e79b58642`を確認。着手時の公開PR HEADも同じで、公開main／origin/mainは`4b7722fce07ef65863a1dc4c0b54678ca03045ab`。既存PRブランチfeat/mcp-search-readとworktreeを継続使用し、追跡対象の未コミット変更がないことを確認した。既存の未追跡work/・他worktreeを保護。実8791（PID 34152）／8792（PID 20832）・Tunnel・実設定・認証情報・実メモは操作しない。
