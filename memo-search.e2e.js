@@ -127,6 +127,11 @@ async function snapshot(page) {
       document.dispatchEvent(new Event("visibilitychange"));
     });
     assert.ok(!(await page.locator("#memoSearchStatus").innerText()).includes("検索可能"));
+    // Keep a valid grant usable after a stale status boundary while the tab is hidden.
+    // Visibility is simulated; actual background timer throttling requires a separate real-browser check.
+    clock += 5001;
+    const whileHidden = await run(pair.sessionId, "日本語", { type: "collection", collectionId: "search-one" });
+    assert.deepEqual(whileHidden.results.map(note => note.id), ["search-0000", "search-0001"]);
     await page.evaluate(() => {
       delete document.visibilityState;
       document.dispatchEvent(new Event("visibilitychange"));
@@ -253,8 +258,8 @@ async function snapshot(page) {
     assert.equal(await page.locator("#memoSearchAllowRead").isChecked(), false);
     // Unload cancellation is best effort; advance the fixture clock past its heartbeat grace.
     clock += 5001;
-    assert.ok(["permission_revoked", "browser_disconnected"].includes((await readMemo(reloadPair.sessionId, "search-0000")).error));
-    results.push("real IndexedDB all-store equality; zero readwrite transactions; Japanese/long/1000 notes; collection/trash boundary; cursor; second tab; cancel race; expiry");
+    assert.ok(["permission_revoked", "search_timeout"].includes((await readMemo(reloadPair.sessionId, "search-0000")).error));
+    results.push("real IndexedDB all-store equality; zero readwrite transactions; Japanese/long/1000 notes; collection/trash boundary; cursor; second tab; hidden-tab polling; cancel race; expiry");
     // New browser context has a separate IndexedDB and no inherited grant.
     const separate = await browser.newContext(); await attachTransport(separate, staticPort, receiverPort);
     const separatePage = await separate.newPage(); await separatePage.goto("http://127.0.0.1:5500/"); await settled(separatePage);
@@ -262,7 +267,7 @@ async function snapshot(page) {
     await separate.close();
     const disconnected = await allow();
     await context.route("**/search/revoke", route => route.abort()); await page.close(); clock += 5001;
-    assert.equal((await run(disconnected.sessionId, "日本語")).error, "browser_disconnected");
+    assert.equal((await run(disconnected.sessionId, "日本語")).error, "search_timeout");
     assert.deepEqual(errors, []); results.push("separate profile isolation; closed browser without revoke is disconnected; no page errors");
     await fs.writeFile(path.join(artifacts, `result-${engine.name()}.json`), JSON.stringify({ mode: `fictional issuer and automated ${engine.name()}, not actual ChatGPT`, passed: results }, null, 2));
     console.log("PASS memo search browser/IndexedDB/OAuth integration (fictional issuer, not actual ChatGPT)");
