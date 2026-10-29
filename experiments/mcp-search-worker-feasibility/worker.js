@@ -20,9 +20,11 @@ onmessage = async ({ data }) => {
     db.onclose = () => send("db_close_event");
     const transaction = db.transaction("notes", "readonly");
     send("transaction", { transactionMode: transaction.mode, dbVersion: db.version });
-    transaction.oncomplete = () => send("transaction_complete");
-    transaction.onabort = () => send("transaction_abort");
-    transaction.onerror = () => send("transaction_error");
+    const transactionDone = new Promise(resolve => {
+      transaction.oncomplete = () => { send("transaction_complete"); resolve("complete"); };
+      transaction.onabort = () => { send("transaction_abort"); resolve("abort"); };
+      transaction.onerror = () => send("transaction_error");
+    });
     const request = transaction.objectStore("notes").getAll();
     if (mode === "transaction_wait") {
       send("transaction_wait");
@@ -38,7 +40,11 @@ onmessage = async ({ data }) => {
     });
     if (mode === "unresolved") { send("unresolved"); await new Promise(() => {}); }
     if (mode === "gate") { send("gate_wait"); await new Promise(resolve => { releaseGate = resolve; }); send("gate_released"); }
-    if (mode === "close") { try { db.close(); send("db_close_called", { outcome: "returned" }); } catch (error) { send("db_close_called", { outcome: "threw", code: error.name }); } send("closed_ready"); return; }
+    if (mode === "close") {
+      if (await transactionDone !== "complete") throw new Error("fixture_transaction_failed");
+      try { db.close(); send("db_close_called", { outcome: "returned" }); } catch (error) { send("db_close_called", { outcome: "threw", code: error.name }); }
+      send("closed_ready"); return;
+    }
     const result = [];
     for (const row of rows) {
       if (mode === "generating") { send("generating"); while (true) {} }

@@ -2,6 +2,7 @@
 
 - PR #390の独立レビュー後、T6をBの結果生成前ゲートとA停止後のB新規配送に変更し、異なる架空session・requestId・配送先とworkerId／generation／requestIdの個別不一致を検査した。実認可は未実装。T1〜T12のstage、T7 iterationとupgrade、T8 snapshot・比較を識別し、13のstage注入プローブと実T6例外注入を追加した。
 - open／transaction／接続／Workerの観測イベントとmain受信時刻・Worker発生時刻を分離して保存。通常closeと未解決terminateの対照は各1回、別の架空DBを使う。Windows Chromium／WebKitのローカル対照ではupgrade成功だが接続終了とtransaction終端はUNKNOWN。計測messageは順序に影響し得る。最終HEADのCI結果はPRに記録し、失敗したrunを成功で相殺しない。
+- 計測HEAD `bb91413` のLinux WebKit CI #40851321011ではT7の1〜9回がupgrade成功し、10回目のreadonly request成功→未解決同期点→terminate呼出し戻り→version 10→11 open開始後、8秒以内にblocked／upgradeneeded／success／errorを観測しなかった。transaction終端と接続終了はUNKNOWN。対照Aではclose呼出し後にblockedを観測したが、当初の対照Aはtransaction完了を待たずterminateしており通常終了の比較として不十分だった。この失敗を保持し、Aだけtransaction完了後にcloseするよう修正。期限延長や成功するまでの再試行は行わない。
 
 - 親Issue #387／Draft PR #388の未解決Promise問題を、最新main `0fb770a` 基点の分離PoCで調査。実アプリ・実認証・実メモ・8791／8792／Tunnelは操作しない。
 - Windows Chromium 151とPlaywright WebKit 26.5で、架空DBの検索・全文、未解決Promiseを残したWorker終了、別Workerでの再読取、旧世代の結果拒否、12回の生成・停止、DB upgrade、全2ストアの内容不変、検索Workerのreadwrite 0を観測した。fixture作成のみreadwrite。メモリ・OSスレッドの解放時刻、実認可・配送、実ロック競合は未測定。

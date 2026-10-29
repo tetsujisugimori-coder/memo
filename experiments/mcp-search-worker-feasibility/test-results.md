@@ -8,6 +8,10 @@ T1〜T12のstageとsnapshot／比較／T7 iteration・upgradeの境界を更新�
 
 対照A・Bは各1回、独立した架空DBで実行する。AはWorkerの明示close後、Bは未解決同期点でterminate後にversion 1→2のopenを要求する。ローカルWindowsの2エンジンでは両条件ともupgrade成功だったが、Worker接続の実際の終了とtransaction終端の確認はUNKNOWNだった。ログ記録でタイミングが変化し得る。非計測条件との比較は行っていない。旧中間HEADのLinux WebKit失敗の原因は引き続きUNKNOWN。
 
+計測HEAD `bb914138330a51be179464ecdf3bb41269dda5ae` の[Linux WebKit失敗run #40851321011](https://github.com/tetsujisugimori-coder/memo/actions/runs/40851321011)、job 123371223054、artifact 12887605745では、T7の1〜9回のupgrade成功後、10回目のreadonly request成功・未解決同期点・terminate戻り・version 10→11 open開始を観測。その後8秒間、blocked／upgradeneeded／success／errorは未観測でtimeoutした。transaction終端と接続終了はUNKNOWN。T8〜T12はNOT_RUN。T6のゲートとstage注入は成功した。
+
+同runの対照AはWorkerのclose呼出し後にblockedと8秒timeout、対照Bはupgrade成功だった。ただしこの時のAはtransaction完了を待たずにterminateしており、通常終了と比較する対照として不十分だった。Aだけをtransaction complete後にcloseするよう修正した。期限は8秒のまま、各条件1回で再検証する。この差は原因確定や前回失敗の無効化を意味しない。
+
 同一時系列にはmain受信順の連番とmain時刻、Worker発生時刻を別々に記録する。要求version・旧version、openイベント、transaction・接続・Workerメッセージ、terminate呼出しを記録するが、観測されなかった内部イベントや実際の資源解放を推測しない。各出力は一意名で、失敗した実行を成功した実行で上書きしない。
 
 判定は **PARTIAL**。実測はWindows上のPlaywright Chromium 151.0.7922.34、Playwright WebKit 26.5、架空データ、独立した一時IndexedDB、動的HTTPポート。実アプリ・実認可・実メモ・8791／8792／Tunnelは使っていない。`results-chromium.json` と `results-webkit.json` にソース4ファイルのSHA-256を保存し、対象ソースを特定できる。数値は各1回の局所実行で統計的な性能評価ではない。
