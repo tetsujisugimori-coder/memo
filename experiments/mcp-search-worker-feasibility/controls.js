@@ -1,11 +1,12 @@
 "use strict";
 
 // 各条件は一度だけ、別の架空DBで実行する。成功するまで再試行しない。
-window.runWorkerControls = async () => {
+window.runWorkerControls = async (selected = ["control-A", "control-B"]) => {
   const timeline = [], results = {};
   const log = (testId, event, details = {}) => timeline.push({ seq: timeline.length + 1, source: details.source || "main", mainMs: performance.now(), workerMs: details.workerMs ?? null, testId, iteration: 1, workerId: details.workerId || null, session: details.session || null, requestId: details.requestId || null, dbVersion: details.dbVersion ?? null, event, outcome: details.outcome ?? null, ...details });
   const deadline = (promise, label) => Promise.race([promise, new Promise((_, reject) => setTimeout(() => reject(new Error(label)), 8000))]);
   for (const [testId, mode] of [["control-A", "close"], ["control-B", "unresolved"]]) {
+    if (!selected.includes(testId)) continue;
     const dbName = `worker-poc-control-${crypto.randomUUID()}`;
     let worker, expired = false, blocked = false, versionChanged = false, terminal = "UNKNOWN", closed = "UNKNOWN";
     const entry = { workerId: `${testId}-worker`, requestId: `${testId}-request`, session: `${testId}-session` };
@@ -59,6 +60,8 @@ window.runWorkerControls = async () => {
       const cleanup = await window.WorkerPocCleanup.deleteDatabaseObserved({ factory: indexedDB, dbName,
         record: (event, details) => log(testId, event, { ...details, phase: "control_cleanup" }) });
       results[testId].cleanup = cleanup;
+      results[testId].dbId = dbName;
+      results[testId].fixtureId = "fictional-one-note-v1";
     }
   }
   return { results, timeline, roundsPerCondition: 1, deadlineMs: 8000, measurementEffects: "ログのmessageとイベント処理はタイミングを変化させ得る。Worker時計とmain時計は別基準。" };

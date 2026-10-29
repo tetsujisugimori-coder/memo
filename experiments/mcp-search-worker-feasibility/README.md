@@ -1,5 +1,9 @@
 # Worker停止耐性の限定診断
 
+P3-04では標準実行を独立browser context経路へ変更した。primary・従来対照A/B・追加A/B/C×詳細/最小はそれぞれ別context・別架空DBで実行する。同一browserでありprocess分離ではない。条件・固定件数・有限上限・比較の限界は [independent-diagnostic.md](independent-diagnostic.md) を参照。旧同一context経路は `WORKER_POC_CONTEXT_MODE=shared` で保持する。以下の従来同一context実行順序とソース6件の説明は旧経路に対応する。標準経路のJSONは実checkout・treeとソース11件のhashを持つ。
+
+新しい単体試験を含む実行：`node --test experiments/mcp-search-worker-feasibility/cleanup.test.cjs experiments/mcp-search-worker-feasibility/evidence.test.cjs experiments/mcp-search-worker-feasibility/diagnostic.test.cjs`。追加診断の成功で既存T7 FAILを相殺せず、本番採用HOLD・T7原因UNKNOWN・PR #388未解決を維持する。
+
 架空fixture専用のPoC。実アプリ、実DB、認証、外部配送、8791／8792／Tunnelは使用しない。
 
 `node experiments/mcp-search-worker-feasibility/run.cjs` を実行する。WebKitは `WORKER_POC_BROWSER=webkit` を設定する。各実行は元のT1〜T12を1回、独立DBの対照A（transaction完了後に明示close）・B（未解決でterminate）を各1回、stage注入の検証を実施する。8秒の期限を変えず、成功するまで再試行しない。

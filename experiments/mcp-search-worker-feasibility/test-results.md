@@ -1,5 +1,13 @@
 # 検証結果
 
+## P3-04の今回版と開始基準版
+
+標準経路を独立browser contextへ変更し、追加A/B/C×詳細/最小を各1回の固定計画で分離した。[計画・証拠範囲](independent-diagnostic.md)を参照。単体21件成功。Windows開発実行各1回では追加6条件の成立・upgrade・削除successを両エンジンで観測した。実行時HEADは34f9d01＋未コミットソースであり、最終版Linux CIの代用ではない。最終run・artifact・checkout・hashはPR #390／Issue #389の今回報告へ記録する。旧JSON・索引は変更しない。
+
+開始基準34f9d01の[Linux CI #40866596832](https://github.com/tetsujisugimori-coder/memo/actions/runs/40866596832)は同一context経路の別版証拠である。ChromiumはT1〜T6 PASS、T7 PARTIAL、T8 PASS、T9 PARTIAL、T10 PASS、T11 PARTIAL、T12 HOLD。WebKitはT1〜T6 PASS、T7 iteration 1（version 1→2）8秒timeoutでFAIL、T8〜T12 NOT_RUN、primary削除は2秒でUNKNOWN。対照A/Bのupgrade・削除は成功したがWebKit primaryの失敗を取り消さない。実checkout `855e07f49bdbd67651e8f98005db52e9300abe0e`、tree `bf9e9596f85fb856f0ccb30a358c5bf33b55e497`、Node v22.23.4、Chromium 151.0.7922.34、WebKit 26.5。artifactはChromium 12894456034／WebKit 12894311489。
+
+以下の「今回」はP2-02/P3-02/P3-03当時の履歴を表す。新しい独立診断とT1〜T12を混同しない。T7根本原因UNKNOWN、本番採用HOLD、PR #388のP2未解決を維持する。
+
 ## 今回の修正と結果の読み方
 
 P2-02では削除専用の2,000ms期限を追加した。deleteのsuccessのみをPASS、error／同期例外をFAIL、期限までsuccess未観測ならUNKNOWNとする。blocked単独では完了ではない。primaryの削除待機後に対照A、Aの削除待機後にBを開始し、全削除結果をJSONに保存する。T7の8,000ms期限は変更しない。削除待機の追加は後続実験や計測の順序・負荷を変える可能性があり、timeoutの消失も根本原因確定にはならない。

@@ -3,17 +3,20 @@ const http = require("node:http"), fs = require("node:fs/promises"), path = requ
 const { chromium, webkit } = require("playwright");
 const root = __dirname, engineName = process.env.WORKER_POC_BROWSER || "chromium";
 if (!["chromium", "webkit"].includes(engineName)) throw new Error("unsupported browser");
+if (process.env.WORKER_POC_CONTEXT_MODE !== "shared") {
+  require("./isolated-run.cjs")({ engineName, engines: { chromium, webkit } }).catch(error => { console.error(error.stack || error); process.exitCode = 1; });
+} else {
 (async () => {
   const server = http.createServer(async (req, res) => {
     const name = new URL(req.url, "http://127.0.0.1").pathname === "/" ? "index.html" : new URL(req.url, "http://127.0.0.1").pathname.slice(1);
-    if (!["index.html", "worker.js", "suite.js", "controls.js", "cleanup.js"].includes(name)) return res.writeHead(404).end();
+    if (!["index.html", "worker.js", "suite.js", "controls.js", "cleanup.js", "diagnostic-plan.js", "diagnostic.js"].includes(name)) return res.writeHead(404).end();
     try { const data = await fs.readFile(path.join(root, name)); res.writeHead(200, { "Content-Type": name.endsWith(".html") ? "text/html; charset=utf-8" : "text/javascript; charset=utf-8", "Cache-Control": "no-store" }); res.end(data); }
     catch { res.writeHead(404).end(); }
   });
   await new Promise(resolve => server.listen(0, "127.0.0.1", resolve));
   let browser, output;
   const sourceHashes = {};
-  for (const name of ["worker.js", "suite.js", "index.html", "run.cjs", "controls.js", "cleanup.js"]) sourceHashes[name] = crypto.createHash("sha256").update(await fs.readFile(path.join(root, name))).digest("hex");
+  for (const name of ["worker.js", "suite.js", "index.html", "run.cjs", "controls.js", "cleanup.js", "diagnostic-plan.js", "diagnostic.js"]) sourceHashes[name] = crypto.createHash("sha256").update(await fs.readFile(path.join(root, name))).digest("hex");
   let gitHead = "UNKNOWN";
   try { gitHead = cp.execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" }).trim(); } catch {}
   output = { engine: engineName, platform: process.platform, nodeVersion: process.version, gitHead, githubRunId: process.env.GITHUB_RUN_ID || null, githubRunAttempt: process.env.GITHUB_RUN_ATTEMPT || null, sourceHashes };
@@ -42,3 +45,4 @@ if (!["chromium", "webkit"].includes(engineName)) throw new Error("unsupported b
     if (browser) await browser.close(); await new Promise(resolve => server.close(resolve));
   }
 })().catch(error => { console.error(error.stack || error); process.exitCode = 1; });
+}

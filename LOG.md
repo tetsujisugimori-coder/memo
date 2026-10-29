@@ -1,5 +1,10 @@
 ## 2026-10-29 MCP検索Worker停止耐性PoC（Issue #389）
 
+- P3-04：primary・従来対照A/B・回帰注入・追加6条件を最大10個の別browser contextで実行する経路を追加。旧同一context経路と過去証拠は保持。同じbrowser processであり共有内部資源の完全独立・解放を保証しない。cleanup UNKNOWNを保存して後続へ進み、context closeにも有限待機とUNKNOWN記録を設けた。
+- 追加診断はA（complete後close）、B（request成功コールバックのテストゲート保持中terminate）、C（complete後closeせずterminate）×詳細／message最小の各1回。8秒open・2秒削除を維持。実行順・上限・成立条件をindependent-diagnostic.mdに事前固定。Bの人工ゲートは元T7の未解決Promiseと同等とは扱わない。最小計測もローカル記録を残すため完全無計測ではない。
+- 単体21件成功。Windows開発確認各1回では両エンジンの追加6条件で成立・upgrade・削除successを観測し、T6・13 stageプローブ・T6実注入も通過。新規JSONは排他一意名で保存し、旧証拠は無変更。最終HEADのLinux CI結果・失敗・artifact・checkout/hash照合はPR #390とIssue #389へ記録する。未コミット開発実行を最終HEADの証拠として流用しない。
+- 本番コードは不変更。T7原因UNKNOWN、本番採用HOLD、PR #388のP2未解決。terminate／close戻りを実資源解放としない。iPhone Safari・実サービス・実OS背景制限は未検証。
+
 - P2-02対応：primaryと各対照のdeleteDatabaseをsuccess／error／blockedで観測し、独立2秒の期限で待機する。success未観測はUNKNOWN、errorはFAIL。削除待機完了後に後続対照を開始する。削除7件・証拠保全6件の単体試験は成功。T7の8秒期限は変更しない。
 - P3-02対応：既存のWindows結果JSONは変更せず過去証拠と明記し、d2c4ad1のCI #40852560234をartifactから保存してhash・tree・checkout・環境・試験状態を索引化した。WebKitはT7の9回目でFAIL、T8〜T12はNOT_RUN。旧成功結果と最新検証を区別する。
 - P3-03対応：共通受信経路で個別識別子不一致、旧結果の新配送先混入、受信済み実messageの停止後処理、二重配送を検査する。terminate後の物理的遅着は未再現でPARTIAL。ローカル初回T5は編集時のfixture文字化けによりFAIL、修正後の各ブラウザ1回は完走した。失敗JSONを保持。削除待機による順序・負荷変化があるため、完走をT7原因確定とは扱わない。
