@@ -110,7 +110,7 @@ test("read preserves Markdown, Unicode and all stored metadata in bounded chunks
   assert.equal((await completeRead(broker, session, { ...note, body: "" })).body, "");
 });
 
-test("read checks fresh consent, subject, scope, expiry, revoke, disconnect, restart and bounded inputs", async t => {
+test("read checks fresh consent, subject, scope, expiry, revoke, reconnect, restart and bounded inputs", async t => {
   let time = 1000; const broker = createSearchBroker({ now: () => time, timeoutMs: 10 }); t.after(() => broker.close());
   const old = grant(broker), session = grantRead(broker), input = { sessionId: session.sessionId, memoId: "a" };
   await assert.rejects(broker.read(principal, { ...input, sessionId: old.sessionId }), /read_permission_required/);
@@ -132,18 +132,25 @@ test("read checks fresh consent, subject, scope, expiry, revoke, disconnect, res
   assert.throws(() => broker.result({ ...session.auth, requestId: work.requestId, error: "memo_unavailable" }, origin), /permission_revoked/);
   grantRead(broker); await assert.rejects(broker.read(principal, input), /permission_revoked/);
   const disconnected = grantRead(broker); time += 5001;
-  await assert.rejects(broker.read(principal, { ...input, sessionId: disconnected.sessionId }), /browser_disconnected/);
+  assert.equal(broker.status(disconnected.auth, origin).state, "browser_disconnected");
+  const resumed = broker.read(principal, { ...input, sessionId: disconnected.sessionId });
+  const resumedWork = broker.poll(disconnected.auth, origin).request;
+  assert.equal(broker.status(disconnected.auth, origin).state, "active");
+  broker.result({ ...disconnected.auth, requestId: resumedWork.requestId, result:
+    read({ ...note, collectionId: "one", body: "再接続成功" }, resumedWork.readConditions, disconnected.scope) }, origin);
+  assert.equal((await resumed).body, "再接続成功");
   time += 600000; await assert.rejects(broker.read(principal, { ...input, sessionId: disconnected.sessionId }), /permission_expired/);
   broker.close(); await assert.rejects(broker.read(principal, input), /permission_required/);
 });
 
-test("read shares search budgets and rejects delivery after a lost heartbeat", async t => {
+test("read shares search budgets and accepts a valid result after a stale heartbeat", async t => {
   let time = 1000; const broker = createSearchBroker({ now: () => time }); t.after(() => broker.close());
   const session = grantRead(broker), note = { id: "a", body: "\u0000".repeat(512), collectionId: "one" };
   const late = broker.read(principal, { sessionId: session.sessionId, memoId: "a" });
   const work = broker.poll(session.auth, origin).request; time += 5001;
-  assert.throws(() => broker.result({ ...session.auth, requestId: work.requestId, result: read(note, work.readConditions, session.scope) }, origin), /browser_disconnected/);
-  assert.equal((await late).error, "browser_disconnected");
+  assert.equal(broker.status(session.auth, origin).state, "browser_disconnected");
+  assert.equal(broker.result({ ...session.auth, requestId: work.requestId, result: read(note, work.readConditions, session.scope) }, origin).accepted, true);
+  assert.equal((await late).body, note.body);
   broker.poll(session.auth, origin);
   await complete(broker, session, { ...all, scope: session.scope });
   let stopped = false;
@@ -223,12 +230,13 @@ test("request correlation, cursor consumption/binding and cancellation erase pen
   assert.throws(() => broker.result({ ...session.auth, requestId: work.requestId, result: search(notes, all) }, origin), /permission_revoked/);
   await assert.rejects(broker.search(principal, { sessionId: session.sessionId, conditions: all }), /permission_revoked/);
 });
-test("expiry, disconnected browser, responsive browser timeout and storage failure remain distinct", async t => {
+test("expiry, stale connection status, responsive browser timeout and storage failure remain distinct", async t => {
   let time = 1000; const broker = createSearchBroker({ now: () => time, timeoutMs: 10 }); t.after(() => broker.close());
   const pair = broker.prepare(principal); time += 120001;
   assert.throws(() => broker.inspect({ pairingCode: pair.pairingCode }), /pairing_invalid_or_expired/);
   const session = grant(broker); time += 5001;
-  await assert.rejects(broker.search(principal, { sessionId: session.sessionId, conditions: all }), /browser_disconnected/);
+  assert.equal(broker.status(session.auth, origin).state, "browser_disconnected");
+  assert.deepEqual(await broker.search(principal, { sessionId: session.sessionId, conditions: all }), { error: "search_timeout" });
   broker.poll(session.auth, origin);
   assert.deepEqual(await broker.search(principal, { sessionId: session.sessionId, conditions: all }), { error: "search_timeout" });
   const pending = broker.search(principal, { sessionId: session.sessionId, conditions: all }), work = broker.poll(session.auth, origin).request;
@@ -384,8 +392,7 @@ test("status and idempotent revoke preserve capability/origin boundaries and nev
   }
   now += 5001;
   assert.equal(broker.status(session.auth, origin).state, "browser_disconnected");
-  await assert.rejects(broker.search(principal, { sessionId: session.sessionId, conditions: { ...all, scope: session.scope } }), /browser_disconnected/);
-  broker.poll(session.auth, origin);
+  assert.equal(broker.status(session.auth, origin).expiresAt, expiresAt);
   const pending = broker.search(principal, { sessionId: session.sessionId, conditions: { ...all, scope: session.scope } });
   const work = broker.poll(session.auth, origin).request;
   broker.revoke(session.auth, origin);
