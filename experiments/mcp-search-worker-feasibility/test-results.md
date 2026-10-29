@@ -1,5 +1,15 @@
 # 検証結果
 
+## 2026-10-29 P2／P3修正と限定診断
+
+T6はBのテスト用ゲートを結果生成前に停止し、B結果・配送がないことを確認後、Aのterminate呼出しを記録し、Bを解放する。Aは架空session A・期待n1・配送先A、Bはsession B・n2・配送先Bで、workerIdとrequestIdも異なる。新規B結果と配送先、旧A結果の拒否を検査する。実OAuthや実認可の検証ではない。現行entryのworkerId・generation・requestIdの単独不一致と別sessionを個別に拒否する。
+
+T1〜T12のstageとsnapshot／比較／T7 iteration・upgradeの境界を更新し、失敗時の `FAIL` と未到達の `NOT_RUN` を記録する。ローカルWindowsのChromium・WebKitで13のstage注入プローブとT6実行中の例外注入が期待する試験番号を返し、T7以降を未実施と記録した。これはローカル検証時のソースであり、最終HEADの結果はCI artifactとSHA-256で照合する。
+
+対照A・Bは各1回、独立した架空DBで実行する。AはWorkerの明示close後、Bは未解決同期点でterminate後にversion 1→2のopenを要求する。ローカルWindowsの2エンジンでは両条件ともupgrade成功だったが、Worker接続の実際の終了とtransaction終端の確認はUNKNOWNだった。ログ記録でタイミングが変化し得る。非計測条件との比較は行っていない。旧中間HEADのLinux WebKit失敗の原因は引き続きUNKNOWN。
+
+同一時系列にはmain受信順の連番とmain時刻、Worker発生時刻を別々に記録する。要求version・旧version、openイベント、transaction・接続・Workerメッセージ、terminate呼出しを記録するが、観測されなかった内部イベントや実際の資源解放を推測しない。各出力は一意名で、失敗した実行を成功した実行で上書きしない。
+
 判定は **PARTIAL**。実測はWindows上のPlaywright Chromium 151.0.7922.34、Playwright WebKit 26.5、架空データ、独立した一時IndexedDB、動的HTTPポート。実アプリ・実認可・実メモ・8791／8792／Tunnelは使っていない。`results-chromium.json` と `results-webkit.json` にソース4ファイルのSHA-256を保存し、対象ソースを特定できる。数値は各1回の局所実行で統計的な性能評価ではない。
 
 実行： `node experiments/mcp-search-worker-feasibility/run.cjs`。WebKitは環境変数 `WORKER_POC_BROWSER=webkit` を指定する。DBは毎回ランダム名で作り、fixture作成だけreadwrite、その後のWorker検索はreadonly。fixtureの2ストア全内容を前後比較する。
