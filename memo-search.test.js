@@ -110,7 +110,7 @@ test("read preserves Markdown, Unicode and all stored metadata in bounded chunks
   assert.equal((await completeRead(broker, session, { ...note, body: "" })).body, "");
 });
 
-test("read checks fresh consent, subject, scope, expiry, revoke, disconnect, restart and bounded inputs", async t => {
+test("read checks fresh consent, subject, scope, expiry, revoke, reconnect, restart and bounded inputs", async t => {
   let time = 1000; const broker = createSearchBroker({ now: () => time, timeoutMs: 10 }); t.after(() => broker.close());
   const old = grant(broker), session = grantRead(broker), input = { sessionId: session.sessionId, memoId: "a" };
   await assert.rejects(broker.read(principal, { ...input, sessionId: old.sessionId }), /read_permission_required/);
@@ -132,18 +132,25 @@ test("read checks fresh consent, subject, scope, expiry, revoke, disconnect, res
   assert.throws(() => broker.result({ ...session.auth, requestId: work.requestId, error: "memo_unavailable" }, origin), /permission_revoked/);
   grantRead(broker); await assert.rejects(broker.read(principal, input), /permission_revoked/);
   const disconnected = grantRead(broker); time += 5001;
-  await assert.rejects(broker.read(principal, { ...input, sessionId: disconnected.sessionId }), /browser_disconnected/);
+  assert.equal(broker.status(disconnected.auth, origin).state, "browser_disconnected");
+  const resumed = broker.read(principal, { ...input, sessionId: disconnected.sessionId });
+  const resumedWork = broker.poll(disconnected.auth, origin).request;
+  assert.equal(broker.status(disconnected.auth, origin).state, "active");
+  broker.result({ ...disconnected.auth, requestId: resumedWork.requestId, result:
+    read({ ...note, collectionId: "one", body: "再接続成功" }, resumedWork.readConditions, disconnected.scope) }, origin);
+  assert.equal((await resumed).body, "再接続成功");
   time += 600000; await assert.rejects(broker.read(principal, { ...input, sessionId: disconnected.sessionId }), /permission_expired/);
   broker.close(); await assert.rejects(broker.read(principal, input), /permission_required/);
 });
 
-test("read shares search budgets and rejects delivery after a lost heartbeat", async t => {
+test("read shares search budgets and accepts a valid result after a stale heartbeat", async t => {
   let time = 1000; const broker = createSearchBroker({ now: () => time }); t.after(() => broker.close());
   const session = grantRead(broker), note = { id: "a", body: "\u0000".repeat(512), collectionId: "one" };
   const late = broker.read(principal, { sessionId: session.sessionId, memoId: "a" });
   const work = broker.poll(session.auth, origin).request; time += 5001;
-  assert.throws(() => broker.result({ ...session.auth, requestId: work.requestId, result: read(note, work.readConditions, session.scope) }, origin), /browser_disconnected/);
-  assert.equal((await late).error, "browser_disconnected");
+  assert.equal(broker.status(session.auth, origin).state, "browser_disconnected");
+  assert.equal(broker.result({ ...session.auth, requestId: work.requestId, result: read(note, work.readConditions, session.scope) }, origin).accepted, true);
+  assert.equal((await late).body, note.body);
   broker.poll(session.auth, origin);
   await complete(broker, session, { ...all, scope: session.scope });
   let stopped = false;
@@ -223,12 +230,13 @@ test("request correlation, cursor consumption/binding and cancellation erase pen
   assert.throws(() => broker.result({ ...session.auth, requestId: work.requestId, result: search(notes, all) }, origin), /permission_revoked/);
   await assert.rejects(broker.search(principal, { sessionId: session.sessionId, conditions: all }), /permission_revoked/);
 });
-test("expiry, disconnected browser, responsive browser timeout and storage failure remain distinct", async t => {
+test("expiry, stale connection status, responsive browser timeout and storage failure remain distinct", async t => {
   let time = 1000; const broker = createSearchBroker({ now: () => time, timeoutMs: 10 }); t.after(() => broker.close());
   const pair = broker.prepare(principal); time += 120001;
   assert.throws(() => broker.inspect({ pairingCode: pair.pairingCode }), /pairing_invalid_or_expired/);
   const session = grant(broker); time += 5001;
-  await assert.rejects(broker.search(principal, { sessionId: session.sessionId, conditions: all }), /browser_disconnected/);
+  assert.equal(broker.status(session.auth, origin).state, "browser_disconnected");
+  assert.deepEqual(await broker.search(principal, { sessionId: session.sessionId, conditions: all }), { error: "search_timeout" });
   broker.poll(session.auth, origin);
   assert.deepEqual(await broker.search(principal, { sessionId: session.sessionId, conditions: all }), { error: "search_timeout" });
   const pending = broker.search(principal, { sessionId: session.sessionId, conditions: all }), work = broker.poll(session.auth, origin).request;
@@ -382,10 +390,10 @@ test("status and idempotent revoke preserve capability/origin boundaries and nev
     assert.throws(() => broker[route]({ ...session.auth, capability: "wrong" }, origin), /tab_forbidden/);
     assert.throws(() => broker[route](session.auth, "http://localhost:5500"), /tab_forbidden/);
   }
-  now += 5001;
-  assert.equal(broker.status(session.auth, origin).state, "browser_disconnected");
-  await assert.rejects(broker.search(principal, { sessionId: session.sessionId, conditions: { ...all, scope: session.scope } }), /browser_disconnected/);
-  broker.poll(session.auth, origin);
+  for (const [elapsed, state] of [[4900, "active"], [5000, "active"], [5001, "browser_disconnected"]]) {
+    now = 1000 + elapsed;
+    assert.deepEqual(broker.status(session.auth, origin), { state, expiresAt, scope: session.scope, allowRead: true });
+  }
   const pending = broker.search(principal, { sessionId: session.sessionId, conditions: { ...all, scope: session.scope } });
   const work = broker.poll(session.auth, origin).request;
   broker.revoke(session.auth, origin);
@@ -403,11 +411,27 @@ test("status and idempotent revoke preserve capability/origin boundaries and nev
   await assert.rejects(broker.search(principal, { sessionId: fresh.sessionId, conditions: all }), /permission_expired/);
 });
 
+test("timed-out search and read results stay rejected without disabling the grant", async t => {
+  const broker = createSearchBroker({ timeoutMs: 30 }); t.after(() => broker.close());
+  const session = grantRead(broker);
+  for (const operation of ["search", "read"]) {
+    const pending = operation === "search" ? broker.search(principal, { sessionId: session.sessionId, conditions: { ...all, scope: session.scope } }) : broker.read(principal, { sessionId: session.sessionId, memoId: "a" });
+    const work = broker.poll(session.auth, origin).request;
+    assert.equal((await pending).error, "search_timeout");
+    const result = operation === "search" ? search(notes, work.conditions) : read(notes[0], work.readConditions, session.scope);
+    assert.throws(() => broker.result({ ...session.auth, requestId: work.requestId, result }, origin), /request_timed_out/);
+    assert.throws(() => broker.result({ ...session.auth, requestId: "unknown", result }, origin), /request_mismatch/);
+    assert.throws(() => broker.result({ ...session.auth, capability: "wrong", requestId: work.requestId, result }, origin), /tab_forbidden/);
+    assert.equal((await complete(broker, session, { ...all, scope: session.scope })).count, 2);
+  }
+  broker.revoke(session.auth, origin);
+});
+
 test("actual MCP delivery suppresses a completed but unsent result after revoke or expiry", async t => {
   let now = Date.now(), release, arrived;
   const browserToken = randomBytes(32).toString("base64url"), adapterToken = randomBytes(32).toString("base64url");
   const receiver = createPreviewService({ browserToken, adapterToken, now: () => now, beforeReply: async (route, value) => {
-    if (route === "/search/run" && !value.error) { arrived(); await new Promise(resolve => { release = resolve; }); }
+    if (["/search/run", "/search/read"].includes(route) && !value.error) { arrived(); await new Promise(resolve => { release = resolve; }); }
   } }).server;
   const receiverPort = await listen(receiver), issuer = await issuerFixture();
   const oauth = await createAuthenticatedServer({ ...config, scopes_supported: ["memo:submit", "memo:search"] }, { adapterToken, receiverPort, fetchImpl: issuer.fetchImpl });
@@ -421,9 +445,9 @@ test("actual MCP delivery suppresses a completed but unsent result after revoke 
     const response = await fetch(`http://127.0.0.1:${receiverPort}/search/${route}`, { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${bearer}`, ...(requestOrigin ? { Origin: requestOrigin } : {}) }, body: JSON.stringify(body) });
     return { status: response.status, body: await response.json() };
   }
-  for (const state of ["permission_revoked", "permission_expired"]) {
+  for (const operation of ["search", "read"]) for (const state of ["permission_revoked", "permission_expired"]) {
     const pair = await call("prepare_memo_search"), selected = { type: "collection", collectionId: "one" };
-    const session = (await browser("grant", { pairingCode: pair.pairingCode, scope: selected })).body;
+    const session = (await browser("grant", { pairingCode: pair.pairingCode, scope: selected, allowRead: true })).body;
     const auth = { sessionId: session.sessionId, capability: session.capability };
     assert.equal((await browser("status", auth, adapterToken)).status, 401);
     assert.equal((await browser("status", auth, browserToken, null)).status, 403);
@@ -431,11 +455,11 @@ test("actual MCP delivery suppresses a completed but unsent result after revoke 
     assert.equal((await browser("status", auth, browserToken, "https://evil.invalid")).status, 403);
     assert.deepEqual((await browser("status", auth)).body.scope, selected);
     const held = new Promise(resolve => { arrived = resolve; });
-    const pending = call("search_saved_memos", { sessionId: pair.sessionId, conditions: { ...all, scope: selected } });
+    const pending = operation === "read" ? call("read_saved_memo", { sessionId: pair.sessionId, memoId: "a" }) : call("search_saved_memos", { sessionId: pair.sessionId, conditions: { ...all, scope: selected } });
     let work;
     for (let i = 0; i < 100 && !work; i++) { work = (await browser("poll", auth)).body.request; if (!work) await new Promise(resolve => setTimeout(resolve, 10)); }
     assert.ok(work);
-    await browser("result", { ...auth, requestId: work.requestId, result: search(notes, work.conditions) });
+    await browser("result", { ...auth, requestId: work.requestId, result: operation === "read" ? read(notes[0], work.readConditions, selected) : search(notes, work.conditions) });
     await held;
     if (state === "permission_revoked") assert.equal((await browser("revoke", auth)).body.revoked, true);
     else now = session.expiresAt;

@@ -1,3 +1,21 @@
+## 2026-10-29 MCP検索の5秒heartbeatを接続状態確認専用にする（Issue #387 / Draft PR #388）
+
+### 背景・判断
+実ChatGPTのMCP検索では、連携コードの2分と許可の10分は別の期限であり、連携許可後にも検索・全文取得が失敗する事象があった。GitHub main `0fb770aa529a95b5f7cab7cefccbfea538bc424e` を静的点検したところ、5秒heartbeatが検索／取得要求受付・result受理・adapter配送・6秒待機の結果判定にまで使われ、さらにブラウザはタブ非表示でpollを自発停止していた。許可期限とは独立した短い接続監視が、通常のタブ切替運用に適合していないと判断した。
+
+### 実装範囲
+- `memo-search-broker.js`: 5秒判定は`status`だけに残し、検索／全文取得・結果受理・結果配送・6秒待機の判定から除外した。ブラウザ応答が届かなければ引き続き`search_timeout`、許可期限切れなら`permission_expired`。`poll`時の生存時刻更新は維持。
+- `memo-search-ui.js`: 非表示タブでpollタイマーを止めず、復帰時の`browser_disconnected`を許可終了と見なさず、同じcapabilityとsessionIdでpoll再開。ネットワーク失敗後は明示再確認で再開可能、取消応答未確認のままでは再開しない。
+- `memo-search.test.js`と`memo-search.e2e.js`: stale状態での検索・全文取得、結果配送、非表示中の検索、期限／取消／応答なしを確認する回帰。非表示のE2EはvisibilityStateの模擬通知であり、実OSのタイマー凍結は別の受入項目。
+- `docs/mcp-saved-search.md`: 当時の仕様記録を残し、現在の5秒状態診断専用ルールを追記。
+
+OAuth issuer/sub/scope、Browser専用token、Origin/capability、検索対象と全文取得の明示許可、10分期限、明示取消、6秒待機、20要求などの予算、IndexedDB readonly／保存不変は変更しない。
+
+### 検証記録・残条件
+初回PR HEAD `eb42a33447f46584d43b252500d81eadd0a0cf24` のGitHub CI `40821196363` は、全単体1,867件中1,866件成功・1件失敗。失敗は6秒待機タイマー内に残った5秒切断分類（期待`search_timeout`／実際`browser_disconnected`）で、原因箇所を確認しコミット`94b3e313db8b91599bc2533ba3d4d1f97527276a`で修正した。これを成功として扱わない。
+
+GitHub経由の差分とJavaScript構文は確認済み。修正後のCI／Chromium・WebKit検索E2Eは未確定のため、結果を確認するまではPARTIAL・Draft・未マージとする。実Windowsの8791・8792・Secure MCP Tunnel、Auth0設定、実ブラウザ保存領域は操作していない。非表示タブの実タイマー制限、ChatGPTの実ツール到達は別途実機検証が必要。
+
 ## 2026-10-23 MCP検索の許可状態・取り消し・再接続
 
 対象はtetsujisugimori-coder/memo。origin/mainをfetchし、基準`a524e5858edb3391f8b8e30aba2900b2f1eb6a23`から専用worktree `work/mcp-search-permission-status`、ブランチ`feat/mcp-search-permission-status`を作成した。元mainの未追跡workと既存worktreeを保持した。AGENTS.md、関連PR #379／#382／#384、現行prepare/search/read・Browser pairing／grant／revokeと8791／8792の認証境界を確認した。
@@ -3961,3 +3979,25 @@ Windows 11 Home 10.0.26200、Playwright 1.62.1 のローカル WebKit で、既�
 - PC／320pxの通常・Reportのレビュー画像4枚を `docs/comparison-v1/` へ保存し、目視確認。撮影時だけ高さを増やして比較ブロック全体が収まることを検証し、通常の320×844も別に確認。図とURLは検証用。実在資料の調査結果ではない。
 - Comparison実操作はChromiumで確認。WebKit／Safari／iPhone実機のComparison操作、本番配信後のキャッシュ更新は未確認。app、attachment、backup、local-sync、CSSの配信識別子と対応する既存テストを同期。既存Figure CI jobにComparisonを1回追加し、レビュー画像artifactを保存する。GitHub Actions結果はPR作成後に確認し、PR本文へ反映する。
 - Figure・Comparison・Table・Chartから共通Sourceへの `sourceId` 接続は後続課題。FigureのsourceName／sourceUrlを維持し、自動移行、重複Sourceモデル、Source UI拡張は行っていない。
+## 2026-10-29 Issue #387／PR #388 独立レビューP2対応
+
+- 原因：取消要求が未達となった後、状態確認の通信失敗が通常切断用の再接続フラグを再設定し、復旧後に旧許可のpollが再開し得た。
+- 取消意思を通常の通信断と独立して保持し、状態確認失敗やactive応答では解除しない。取消未確認の表示と明示再試行を維持し、新規の明示許可で状態を初期化する。遅延応答は既存の世代検査で排除する。
+- 固定時計の4,900／5,000／5,001msと10分期限、取消後の遅延応答、検索および全文の生成後の取消・期限切れによる配送抑止を確認。取消未達、状態確認連続失敗、復旧後の検索・全文読取・配送停止と取消再試行、および通常切断から同じ許可での復帰をE2Eで検証する。
+- Node全体テスト1,867件、検索・OAuth・discovery回帰38件は成功。分離された架空の認証主体による検索E2EはChromium／WebKitともに成功。最終HEADのCIはPR上で確認する。iPhone Safari実機は未試験。
+- 最終HEADの独立レビューは実装者の検証と別途依頼する。8791／8792／Tunnelの稼働環境と実メモには触れていない。
+- 中間HEAD `7b90db9` のLinux WebKit CIでは、意図的な通信中断がアクセス制御のページエラーとして報告され、ページエラー0件の検査で失敗した。期待値は緩めず、ブラウザのfetchを拒否する障害注入に変更して再検証する。中間HEADの失敗は成功に含めない。
+
+## 2026-10-29 Issue #387／PR #388 遅延resultのP2対応
+
+- 原因：6秒タイムアウトでpendingが消えた後のresultは未知IDと同じ `request_mismatch` で拒否され、UIは有効な許可まで再接続不能にしていた。result送信中の表示復帰は新旧pollが同じ要求を取得し得た。
+- brokerはタイムアウト済みIDのみ識別し、結果を拒否する。UIはその結果に限り、同じセッションと世代、取消意思、状態・期限・範囲・全文権限を確認して再開する。未知ID・認可エラー・取消・失効は自動復旧しない。同一セッションのpoll処理を直列化し、表示復帰の世代を更新する。10分／6秒／5秒と認可・予算の境界は変更しない。
+- Node全体1,868件、検索・OAuth・discovery回帰39件が成功。隔離された架空issuerとテスト用IndexedDBによるChromium／WebKit検索E2Eで、検索と全文の実際の6秒超の遅延結果拒否後の同一許可での成功、result送信中の表示復帰、取消未確認、通常切断復帰、保存不変を確認した。既存の取消・期限・認可・配送抑止・heartbeat境界試験も維持。最終HEADのCIはPRで確認する。
+- iPhone Safari実機、実ChatGPT／Auth0／Tunnel、実OSの背景動作は未検証。稼働中のサービスや実メモは操作していない。最終HEADの独立再レビューを別途依頼する。
+
+## 2026-10-29 Issue #387／PR #388 未解決Promiseの停止耐性
+
+- 対象 `9766052` で、ブラウザ内検索を未解決にした制御試験を実施。状態確認後も新pollが旧Promiseを待ち続け、brokerの6秒タイムアウトはそのPromiseを終了しないことを再現した。
+- 結果無効化と画面全体での実処理2件上限を試作したが、中断不能の旧処理が上限を占有すると新セッションも影響を受け、依頼されたセッション間非干渉に反する。セッションごとに上限を分けるだけでは新規許可の繰り返しによる実処理の蓄積を防げない。試作は採用せず、製品コードは変更しなかった。結果無効化は実処理の中断ではなく、処理を停止できる隔離・中断機構の設計と検証が必要。
+- 試作時のNode全体1,868件と検索・OAuth・discovery回帰39件は成功したが、採用済みの修正の検証結果ではない。ブラウザE2Eは試作の時計調整中に失敗し、最終実行は試作の不採用に伴い中止した。修正後のChromium／WebKit E2Eは存在せず、P2は未解決、判定はPARTIAL。
+- iPhone Safari実機、実ChatGPT／Auth0／Tunnel、実OSの背景制限は未検証。実サービスと実メモは操作していない。独立再レビューに停止耐性の残件を引き継ぐ。

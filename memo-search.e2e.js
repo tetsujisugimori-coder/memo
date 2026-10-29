@@ -68,6 +68,20 @@ async function snapshot(page) {
       }
     });
     await page.goto("http://127.0.0.1:5500/"); await settled(page);
+    await page.evaluate(() => {
+      window.searchFailures = {};
+      const originalFetch = window.fetch;
+      window.fetch = async (...args) => {
+        const route = String(args[0]).split("/search/")[1];
+        const failure = window.searchFailures[route];
+        if (failure && failure.count > 0) {
+          failure.count--;
+          if (failure.after) await originalFetch(...args);
+          throw new TypeError("injected network failure");
+        }
+        return originalFetch(...args);
+      };
+    });
     // Both startups (including normal draft-mirror restoration) precede the immutable search boundary.
     const otherTab = await context.newPage(); await otherTab.goto("http://127.0.0.1:5500/"); await settled(otherTab);
     await page.bringToFront();
@@ -127,6 +141,11 @@ async function snapshot(page) {
       document.dispatchEvent(new Event("visibilitychange"));
     });
     assert.ok(!(await page.locator("#memoSearchStatus").innerText()).includes("検索可能"));
+    // Keep a valid grant usable after a stale status boundary while the tab is hidden.
+    // Visibility is simulated; actual background timer throttling requires a separate real-browser check.
+    clock += 5001;
+    const whileHidden = await run(pair.sessionId, "日本語", { type: "collection", collectionId: "search-one" });
+    assert.deepEqual(whileHidden.results.map(note => note.id), ["search-0000", "search-0001"]);
     await page.evaluate(() => {
       delete document.visibilityState;
       document.dispatchEvent(new Event("visibilitychange"));
@@ -152,6 +171,58 @@ async function snapshot(page) {
     const firstRevoke = page.waitForResponse(response => response.url().endsWith("/search/revoke"));
     await page.locator("#memoSearchRevoke").click(); await firstRevoke;
     assert.equal((await run(pair.sessionId, "日本語", { type: "collection", collectionId: "search-one" })).error, "permission_revoked");
+    // Hold browser computation until the actual six-second broker timeout, then release the stale result.
+    const delayedPair = await allow("collection:search-one", page, true);
+    const grantedScope = await page.locator("#memoSearchGrantedScope").innerText();
+    for (const operation of ["search", "read"]) {
+      await page.evaluate(operation => {
+        window.delayedOriginal = window.MemoNexusSavedSearch[operation];
+        window.MemoNexusSavedSearch[operation] = async (...args) => {
+          const value = await window.delayedOriginal(...args);
+          await new Promise(resolve => { window.releaseDelayedResult = resolve; });
+          return value;
+        };
+      }, operation);
+      const pending = operation === "search" ? run(delayedPair.sessionId, "query", { type: "collection", collectionId: "search-one" }) : readMemo(delayedPair.sessionId, "search-0000");
+      await page.waitForFunction(() => typeof window.releaseDelayedResult === "function");
+      assert.equal((await pending).error, "search_timeout");
+      const stale = page.waitForResponse(response => response.url().endsWith("/search/result"));
+      await page.evaluate(operation => { window.MemoNexusSavedSearch[operation] = window.delayedOriginal; window.releaseDelayedResult(); delete window.releaseDelayedResult; }, operation);
+      assert.equal((await (await stale).json()).error, "request_timed_out");
+      await page.waitForFunction(() => document.getElementById("memoSearchStatus").textContent.includes("検索許可中"));
+      assert.equal(await page.locator("#memoSearchGrantedScope").innerText(), grantedScope);
+      const next = operation === "search" ? await run(delayedPair.sessionId, "query", { type: "collection", collectionId: "search-one" }) : await readMemo(delayedPair.sessionId, "search-0000");
+      assert.equal(next.error, undefined);
+    }
+    // Keep a committed result response in flight while visibility changes; the next poll must wait.
+    let releaseResult, resultArrived;
+    const resultHeld = new Promise(resolve => { resultArrived = resolve; });
+    await page.route("**/search/result", async route => {
+      const response = await fetchReceiver(route, receiverPort);
+      resultArrived(); await new Promise(resolve => { releaseResult = resolve; });
+      await route.fulfill({ response });
+    }, { times: 1 });
+    const visibilityResult = run(delayedPair.sessionId, "query", { type: "collection", collectionId: "search-one" });
+    await resultHeld;
+    let pollsDuringResult = 0, resultsDuringResult = 0;
+    const countDuringResult = request => { if (request.url().endsWith("/search/poll")) pollsDuringResult++; if (request.url().endsWith("/search/result")) resultsDuringResult++; };
+    page.on("request", countDuringResult);
+    const statusResponse = page.waitForResponse(response => response.url().endsWith("/search/status"));
+    await page.evaluate(() => {
+      Object.defineProperty(document, "visibilityState", { configurable: true, get: () => "hidden" });
+      document.dispatchEvent(new Event("visibilitychange"));
+      delete document.visibilityState;
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+    await statusResponse;
+    assert.equal(pollsDuringResult, 0); assert.equal(resultsDuringResult, 0);
+    releaseResult();
+    assert.equal((await visibilityResult).error, undefined);
+    await page.waitForFunction(() => document.getElementById("memoSearchStatus").textContent.includes("検索許可中"));
+    page.off("request", countDuringResult);
+    assert.equal((await readMemo(delayedPair.sessionId, "search-0000")).error, undefined);
+    await page.locator("#memoSearchRevoke").click();
+    await page.waitForFunction(() => !document.getElementById("memoSearchInspect").disabled);
     const readPair = await allow("collection:search-one", page, true);
     const readBefore = await snapshot(page);
     await page.evaluate(() => { window.readOriginalDraftReader = getAllNotes; getAllNotes = () => { throw new Error("draft reader must not run"); }; });
@@ -206,10 +277,8 @@ async function snapshot(page) {
       await route.fulfill({ response }).catch(() => {});
     }, { times: 1 });
     await page.locator("#memoSearchRefresh").click(); await oldPollReady;
-    await page.route("**/search/revoke", async route => {
-      await fetchReceiver(route, receiverPort); // Server committed, but browser cannot confirm it.
-      await route.abort();
-    }, { times: 1 });
+    // Server commits, but the browser does not receive the acknowledgement.
+    await page.evaluate(() => { window.searchFailures.revoke = { count: 1, after: true }; });
     await page.locator("#memoSearchRevoke").click();
     await page.waitForFunction(() => document.getElementById("memoSearchStatus").textContent.includes("取り消し結果は未確認"));
     assert.ok(!(await page.locator("#memoSearchStatus").innerText()).includes("検索可能"));
@@ -224,14 +293,52 @@ async function snapshot(page) {
     assert.equal((await run(narrower.sessionId, "日本語")).error, "scope_forbidden");
     await page.locator("#memoSearchRevoke").click();
     await page.waitForFunction(() => !document.getElementById("memoSearchInspect").disabled);
+    // A normal outage remains reconnectable without extending or broadening the grant.
+    const outagePair = await allow("collection:search-one", page, true);
+    const originalScope = await page.locator("#memoSearchGrantedScope").innerText();
+    await page.evaluate(() => { window.searchFailures.poll = { count: 1 }; });
+    await page.locator("#memoSearchRefresh").click();
+    await page.waitForFunction(() => document.getElementById("memoSearchStatus").textContent.includes("通信に失敗"));
+    clock += 5001;
+    await page.locator("#memoSearchRefresh").click();
+    await page.waitForFunction(() => document.getElementById("memoSearchStatus").textContent.includes("検索許可中"));
+    assert.equal(await page.locator("#memoSearchGrantedScope").innerText(), originalScope);
+    assert.equal((await readMemo(outagePair.sessionId, "search-0000")).error, undefined);
+    assert.equal((await run(outagePair.sessionId, "query")).error, "scope_forbidden");
+    await page.locator("#memoSearchRevoke").click();
+    await page.waitForFunction(() => !document.getElementById("memoSearchInspect").disabled);
     // A request that never reaches the receiver must not display revoke success either.
-    const failedRevokePair = await allow("collection:search-one");
-    await page.route("**/search/revoke", route => route.abort(), { times: 1 });
+    const failedRevokePair = await allow("collection:search-one", page, true);
+    await page.evaluate(() => {
+      window.searchObserved = { search: 0, read: 0 };
+      for (const name of ["search", "read"]) {
+        const original = window.MemoNexusSavedSearch[name];
+        window.MemoNexusSavedSearch[name] = (...args) => { window.searchObserved[name]++; return original(...args); };
+      }
+    });
+    await page.evaluate(() => { window.searchFailures.revoke = { count: 1 }; });
     await page.locator("#memoSearchRevoke").click();
     await page.waitForFunction(() => document.getElementById("memoSearchStatus").textContent.includes("取り消し結果は未確認"));
+    await page.evaluate(() => { window.searchFailures.status = { count: 2 }; });
+    for (let i = 0; i < 2; i++) {
+      await page.locator("#memoSearchRefresh").click();
+      await page.waitForFunction(() => document.getElementById("memoSearchStatus").textContent.includes("通信に失敗"));
+    }
+    let polls = 0, deliveries = 0;
+    const observed = request => { if (request.url().endsWith("/search/poll")) polls++; if (request.url().endsWith("/search/result")) deliveries++; };
+    page.on("request", observed);
     await page.locator("#memoSearchRefresh").click();
     await page.waitForFunction(() => document.getElementById("memoSearchStatus").textContent.includes("取り消しは未確認"));
+    const blockedSearch = run(failedRevokePair.sessionId, "query", { type: "collection", collectionId: "search-one" });
+    assert.equal((await blockedSearch).error, "search_timeout");
+    const blockedRead = readMemo(failedRevokePair.sessionId, "search-0000");
+    await page.waitForTimeout(2500);
+    assert.deepEqual(await page.evaluate(() => window.searchObserved), { search: 0, read: 0 });
+    assert.equal(polls, 0); assert.equal(deliveries, 0);
+    assert.equal(await page.locator("#memoSearchRevoke").isEnabled(), true);
+    page.off("request", observed);
     await page.locator("#memoSearchRevoke").click();
+    assert.equal((await blockedRead).error, "permission_revoked");
     await page.waitForFunction(() => document.getElementById("memoSearchStatus").textContent.includes("取り消されています"));
     assert.equal((await run(failedRevokePair.sessionId, "日本語")).error, "permission_revoked");
     results.push("desktop/375/390 long-name layout and keyboard refresh; lost/failed revoke acknowledgement; stale poll after narrower reconnect rejected");
@@ -244,17 +351,16 @@ async function snapshot(page) {
     assert.equal((await run(expired.sessionId, "日本語")).error, "permission_expired");
     await page.waitForFunction(() => document.getElementById("memoSearchStatus").textContent.includes("期限"));
     await allow();
-    await context.route("**/search/poll", route => route.abort());
+    await page.evaluate(() => { window.searchFailures.poll = { count: 1 }; });
     await page.waitForFunction(() => document.getElementById("memoSearchStatus").textContent.includes("通信に失敗"));
-    await context.unroute("**/search/poll");
     assert.deepEqual(await snapshot(page), before); assert.equal(await page.evaluate(() => window.searchReadWrites), 0);
     const reloadPair = await allow("all", page, true);
     await page.reload(); await settled(page);
     assert.equal(await page.locator("#memoSearchAllowRead").isChecked(), false);
     // Unload cancellation is best effort; advance the fixture clock past its heartbeat grace.
     clock += 5001;
-    assert.ok(["permission_revoked", "browser_disconnected"].includes((await readMemo(reloadPair.sessionId, "search-0000")).error));
-    results.push("real IndexedDB all-store equality; zero readwrite transactions; Japanese/long/1000 notes; collection/trash boundary; cursor; second tab; cancel race; expiry");
+    assert.ok(["permission_revoked", "search_timeout"].includes((await readMemo(reloadPair.sessionId, "search-0000")).error));
+    results.push("real IndexedDB all-store equality; zero readwrite transactions; Japanese/long/1000 notes; collection/trash boundary; cursor; second tab; hidden-tab polling; cancel race; expiry");
     // New browser context has a separate IndexedDB and no inherited grant.
     const separate = await browser.newContext(); await attachTransport(separate, staticPort, receiverPort);
     const separatePage = await separate.newPage(); await separatePage.goto("http://127.0.0.1:5500/"); await settled(separatePage);
@@ -262,7 +368,7 @@ async function snapshot(page) {
     await separate.close();
     const disconnected = await allow();
     await context.route("**/search/revoke", route => route.abort()); await page.close(); clock += 5001;
-    assert.equal((await run(disconnected.sessionId, "日本語")).error, "browser_disconnected");
+    assert.equal((await run(disconnected.sessionId, "日本語")).error, "search_timeout");
     assert.deepEqual(errors, []); results.push("separate profile isolation; closed browser without revoke is disconnected; no page errors");
     await fs.writeFile(path.join(artifacts, `result-${engine.name()}.json`), JSON.stringify({ mode: `fictional issuer and automated ${engine.name()}, not actual ChatGPT`, passed: results }, null, 2));
     console.log("PASS memo search browser/IndexedDB/OAuth integration (fictional issuer, not actual ChatGPT)");

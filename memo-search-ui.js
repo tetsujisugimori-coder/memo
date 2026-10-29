@@ -6,7 +6,7 @@
   const selection = byId("memoSearchScope"), inspectButton = byId("memoSearchInspect"), grantButton = byId("memoSearchGrant");
   const revokeButton = byId("memoSearchRevoke"), refreshButton = byId("memoSearchRefresh"), readInput = byId("memoSearchAllowRead");
   const reconnect = "外部AIに「prepare_memo_searchを実行して新しい連携コードを発行してください」と依頼し、この画面でコード・認証主体・対象範囲を確認して改めて許可してください。";
-  let token = "", inspected = null, session = null, stopped = true, timer = null, generation = 0, busy = false;
+  let token = "", inspected = null, session = null, stopped = true, timer = null, generation = 0, busy = false, reconnectable = false, revokeRequested = false, inFlightPoll = null;
   const messages = {
     unauthorized: "受信サービスの認証に失敗しました。受信サービス専用トークンを確認し、Memo-Nexusを再読み込みして新しいコードで連携してください。OAuthの状態はこの画面では確認できません。",
     permission_expired: "検索許可の期限が切れました。" + reconnect,
@@ -63,23 +63,29 @@
     try {
       const reply = await request("status", credentials(current)); validateState(reply);
       if (epoch !== generation || current !== session) return;
-      if (reply.state === "active" && !stopped) { showScope(current); await poll(epoch); return; }
+      if (reply.expiresAt !== current.expiresAt || reply.allowRead !== current.allowRead
+        || JSON.stringify(reply.scope) !== JSON.stringify(current.scope)) throw { code: "invalid_response" };
+      // A stale heartbeat never cancels the server grant; poll re-establishes liveness.
+      if (["active", "browser_disconnected"].includes(reply.state) && !revokeRequested && (!stopped || reconnectable)) {
+        stopped = false; reconnectable = false; controls(); showScope(current); await poll(epoch); return;
+      }
       if (["permission_revoked", "permission_expired"].includes(reply.state)) {
-        halt(); session = null; token = ""; resetInputs(); controls();
+        halt(); reconnectable = false; session = null; token = ""; resetInputs(); controls();
         report({ code: reply.state });
       } else if (stopped) {
         status.textContent = "このタブの検索処理は停止中ですが、サーバーでの検索許可取り消しは未確認です。「検索許可を取り消す」で再試行してください。";
       } else { halt(); report({ code: reply.state }); }
     } catch (error) {
       if (epoch === generation && current === session) {
-        halt();
-        if (error.code === "permission_required") { session = null; token = ""; resetInputs(); controls(); }
+        halt(); reconnectable = !revokeRequested && error.code === "network_failed";
+        if (error.code === "permission_required") { reconnectable = false; session = null; token = ""; resetInputs(); controls(); }
         report(error);
+        if (revokeRequested && session) status.textContent += " このタブの検索処理は停止済みですが、取り消し結果は未確認です。取り消しを再試行できます。";
       }
     }
   }
   async function revoke(keepalive = false) {
-    halt(); resetInputs();
+    revokeRequested = true; reconnectable = false; halt(); resetInputs();
     if (!session) { token = ""; controls(); return; }
     const current = session, epoch = generation;
     busy = true; controls(); status.textContent = "検索許可を取り消し中です。サーバーの応答を確認しています。";
@@ -96,8 +102,16 @@
     } finally { if (epoch === generation) { busy = false; controls(); } }
   }
   async function poll(epoch) {
+    while (inFlightPoll && inFlightPoll.session === session) await inFlightPoll.operation;
+    if (!session || stopped || epoch !== generation || revokeRequested) return;
+    const activePoll = { session, operation: pollOnce(epoch) };
+    inFlightPoll = activePoll;
+    try { await activePoll.operation; } finally { if (inFlightPoll === activePoll) inFlightPoll = null; }
+  }
+  async function pollOnce(epoch) {
     if (!session || stopped || epoch !== generation) return;
     const current = session;
+    let sendingResult = false;
     try {
       // Local time can stop delivery early, but only a server response establishes expiry.
       if (Date.now() >= current.expiresAt) {
@@ -126,13 +140,17 @@
           payload = { result };
         } catch (error) { payload = { error: ["storage_unavailable", "collection_unavailable", "memo_unavailable", "memo_too_large", "invalid_offset"].includes(error.code) ? error.code : "search_failed" }; }
         if (current !== session || stopped || epoch !== generation) return;
+        sendingResult = true;
         await request("result", { ...auth, requestId: work.requestId, ...payload });
+        sendingResult = false;
       }
       if (current === session && !stopped && epoch === generation) timer = setTimeout(() => poll(epoch), 2000);
     } catch (error) {
       if (epoch === generation && current === session) {
-        halt();
-        if (["permission_expired", "permission_revoked", "permission_required"].includes(error.code)) { session = null; token = ""; resetInputs(); controls(); }
+        const timedOutResult = sendingResult && error.code === "request_timed_out";
+        halt(); reconnectable = !revokeRequested && (error.code === "network_failed" || timedOutResult);
+        if (timedOutResult && reconnectable) { void confirm(); return; }
+        if (["permission_expired", "permission_revoked", "permission_required"].includes(error.code)) { reconnectable = false; session = null; token = ""; resetInputs(); controls(); }
         report(error);
       }
     }
@@ -172,7 +190,7 @@
       const granted = await request("grant", { pairingCode: inspected.code, scope: selection.value === "all" ? { type: "all" } : { type: "collection", collectionId: selection.value.slice(11) }, allowRead: readInput.checked }, bearer);
       if (epoch !== generation) { await request("revoke", credentials(granted), bearer, true); return; }
       validateState({ ...granted, state: "active" });
-      session = { ...granted, collectionName }; stopped = false; resetInputs(); controls(); await poll(epoch);
+      session = { ...granted, collectionName }; stopped = false; reconnectable = false; revokeRequested = false; resetInputs(); controls(); await poll(epoch);
     } catch (error) { if (epoch === generation) { halt(); report(error); } }
     finally { if (epoch === generation) { busy = false; controls(); } }
   });
@@ -184,12 +202,19 @@
   byId("memoSearchClose").addEventListener("click", () => dialog.close());
   dialog.addEventListener("close", () => revoke());
   window.addEventListener("pagehide", () => revoke(true));
-  window.addEventListener("pageshow", event => { if (event.persisted && session) confirm(); });
+  window.addEventListener("pageshow", event => {
+    if (event.persisted && session) { generation++; clearTimeout(timer); timer = null; confirm(); }
+  });
   document.addEventListener("visibilitychange", () => {
     if (!session || stopped || busy) return;
+    if (document.visibilityState !== "visible") {
+      // Tab switching must not intentionally stop request delivery; the browser may still throttle timers.
+      status.textContent = "バックグラウンドです。検索状態は復帰時に再確認します。";
+      return;
+    }
     generation++; clearTimeout(timer); timer = null;
     status.textContent = "検索状態は未確認です。復帰時に再確認します。";
-    if (document.visibilityState === "visible") confirm();
+    confirm();
   });
   controls();
 })();

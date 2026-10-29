@@ -604,6 +604,32 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
+  memo-search-webkit:
+    name: Memo search E2E (webkit)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps webkit
+      - name: Verify browser-local MCP search with fictional issuer
+        run: npm run test:e2e:memo-search
+        env:
+          MEMO_SEARCH_BROWSER: webkit
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: memo-search-webkit
+          path: e2e-artifacts/memo-search/
+          if-no-files-found: warn
+          retention-days: 14
+
   received-recovery-windows:
     name: Received recovery (Windows chromium)
     runs-on: windows-latest

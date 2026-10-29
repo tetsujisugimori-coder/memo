@@ -14,6 +14,7 @@ function createSearchBroker({ now = Date.now, timeoutMs = 6000 } = {}) {
     const pending = session.pending;
     session.pending = null;
     if (pending) {
+      if (value.error === "search_timeout") session.timedOut.add(pending.id);
       clearTimeout(pending.timer);
       const rows = value.error ? 0 : pending.readConditions ? 1 : value.count, size = value.error ? 0 : responseBytes(value);
       session.rows += rows - pending.conditions.limit; session.bytes += size - 8192;
@@ -40,6 +41,7 @@ function createSearchBroker({ now = Date.now, timeoutMs = 6000 } = {}) {
     return session;
   }
   function browser(input, origin) { const session = control(input, origin); active(session); return session; }
+  // Stale heartbeat is a connection-status signal, not grant expiration or revocation.
   function connected(session) { if (now() - session.lastSeen > 5000) fail("browser_disconnected", 503); }
   function budgetFor(key) {
     let budget = budgets.get(key);
@@ -54,7 +56,7 @@ function createSearchBroker({ now = Date.now, timeoutMs = 6000 } = {}) {
       if (sessions.size >= 32 || [...sessions.values()].filter(s => s.key === key && ["pairing", "active"].includes(s.state)).length >= 4) fail("search_capacity");
       const sessionId = randomUUID(), pairingCode = secret();
       sessions.set(sessionId, { key, principal: { ...principal }, code: pairingCode, state: "pairing", expiresAt: now() + 120000,
-        capability: null, pending: null, cursors: new Map(), calls: 0, rows: 0, bytes: 0 });
+        capability: null, pending: null, cursors: new Map(), timedOut: new Set(), calls: 0, rows: 0, bytes: 0 });
       return { sessionId, pairingCode, expiresAt: now() + 120000, instruction: "Memo-NexusのMCP検索許可画面でコードを入力し、主体と範囲を確認して許可してください。" };
     },
     inspect(input) {
@@ -87,7 +89,7 @@ function createSearchBroker({ now = Date.now, timeoutMs = 6000 } = {}) {
       if (value.error) return value;
       const session = get(input.sessionId);
       if (principalKey(principal) !== session.key) fail("subject_mismatch", 403);
-      active(session); connected(session);
+      active(session);
       return value;
     },
     poll(input, origin) {
@@ -110,7 +112,7 @@ function createSearchBroker({ now = Date.now, timeoutMs = 6000 } = {}) {
       if (readRequest && !session.allowRead) fail("read_permission_required", 403);
       const request = conditions(input.conditions);
       if (session.scope.type === "collection" && (request.scope.type !== "collection" || request.scope.collectionId !== session.scope.collectionId)) fail("scope_forbidden", 403);
-      connected(session);
+      // No live-heartbeat prerequisite: a valid request may wait for the browser to resume polling.
       if (session.pending) fail("search_busy");
       // Leave receiver concurrency available for browser polling and cancellation.
       if ([...sessions.values()].filter(s => s.pending).length >= 2) fail("search_busy");
@@ -130,15 +132,15 @@ function createSearchBroker({ now = Date.now, timeoutMs = 6000 } = {}) {
       return new Promise(resolve => {
         const pending = { id: randomUUID(), conditions: request, readConditions: readRequest, fingerprint, afterId, resolve, budget };
         session.pending = pending;
-        pending.timer = setTimeout(() => finish(session, { error: now() >= session.expiresAt ? "permission_expired" : now() - session.lastSeen > 5000 ? "browser_disconnected" : "search_timeout" }), timeoutMs);
+        pending.timer = setTimeout(() => finish(session, { error: now() >= session.expiresAt ? "permission_expired" : "search_timeout" }), timeoutMs);
       });
     },
     result(input, origin) {
       exact(input, ["sessionId", "capability", "requestId"], ["result", "error"]);
       const session = browser(input, origin), pending = session.pending;
-      if (!pending || input.requestId !== pending.id) fail("request_mismatch");
-      if (now() - session.lastSeen > 5000) {
-        finish(session, { error: "browser_disconnected" }); fail("browser_disconnected", 503);
+      if (!pending || input.requestId !== pending.id) {
+        if (session.timedOut.has(input.requestId)) fail("request_timed_out");
+        fail("request_mismatch");
       }
       if (Object.hasOwn(input, "error")) {
         const errors = pending.readConditions ? ["storage_unavailable", "memo_unavailable", "memo_too_large", "invalid_offset", "search_failed"] : ["storage_unavailable", "collection_unavailable", "search_failed"];
