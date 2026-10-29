@@ -411,6 +411,22 @@ test("status and idempotent revoke preserve capability/origin boundaries and nev
   await assert.rejects(broker.search(principal, { sessionId: fresh.sessionId, conditions: all }), /permission_expired/);
 });
 
+test("timed-out search and read results stay rejected without disabling the grant", async t => {
+  const broker = createSearchBroker({ timeoutMs: 30 }); t.after(() => broker.close());
+  const session = grantRead(broker);
+  for (const operation of ["search", "read"]) {
+    const pending = operation === "search" ? broker.search(principal, { sessionId: session.sessionId, conditions: { ...all, scope: session.scope } }) : broker.read(principal, { sessionId: session.sessionId, memoId: "a" });
+    const work = broker.poll(session.auth, origin).request;
+    assert.equal((await pending).error, "search_timeout");
+    const result = operation === "search" ? search(notes, work.conditions) : read(notes[0], work.readConditions, session.scope);
+    assert.throws(() => broker.result({ ...session.auth, requestId: work.requestId, result }, origin), /request_timed_out/);
+    assert.throws(() => broker.result({ ...session.auth, requestId: "unknown", result }, origin), /request_mismatch/);
+    assert.throws(() => broker.result({ ...session.auth, capability: "wrong", requestId: work.requestId, result }, origin), /tab_forbidden/);
+    assert.equal((await complete(broker, session, { ...all, scope: session.scope })).count, 2);
+  }
+  broker.revoke(session.auth, origin);
+});
+
 test("actual MCP delivery suppresses a completed but unsent result after revoke or expiry", async t => {
   let now = Date.now(), release, arrived;
   const browserToken = randomBytes(32).toString("base64url"), adapterToken = randomBytes(32).toString("base64url");

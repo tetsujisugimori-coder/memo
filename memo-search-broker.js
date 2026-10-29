@@ -14,6 +14,7 @@ function createSearchBroker({ now = Date.now, timeoutMs = 6000 } = {}) {
     const pending = session.pending;
     session.pending = null;
     if (pending) {
+      if (value.error === "search_timeout") session.timedOut.add(pending.id);
       clearTimeout(pending.timer);
       const rows = value.error ? 0 : pending.readConditions ? 1 : value.count, size = value.error ? 0 : responseBytes(value);
       session.rows += rows - pending.conditions.limit; session.bytes += size - 8192;
@@ -55,7 +56,7 @@ function createSearchBroker({ now = Date.now, timeoutMs = 6000 } = {}) {
       if (sessions.size >= 32 || [...sessions.values()].filter(s => s.key === key && ["pairing", "active"].includes(s.state)).length >= 4) fail("search_capacity");
       const sessionId = randomUUID(), pairingCode = secret();
       sessions.set(sessionId, { key, principal: { ...principal }, code: pairingCode, state: "pairing", expiresAt: now() + 120000,
-        capability: null, pending: null, cursors: new Map(), calls: 0, rows: 0, bytes: 0 });
+        capability: null, pending: null, cursors: new Map(), timedOut: new Set(), calls: 0, rows: 0, bytes: 0 });
       return { sessionId, pairingCode, expiresAt: now() + 120000, instruction: "Memo-NexusのMCP検索許可画面でコードを入力し、主体と範囲を確認して許可してください。" };
     },
     inspect(input) {
@@ -137,7 +138,10 @@ function createSearchBroker({ now = Date.now, timeoutMs = 6000 } = {}) {
     result(input, origin) {
       exact(input, ["sessionId", "capability", "requestId"], ["result", "error"]);
       const session = browser(input, origin), pending = session.pending;
-      if (!pending || input.requestId !== pending.id) fail("request_mismatch");
+      if (!pending || input.requestId !== pending.id) {
+        if (session.timedOut.has(input.requestId)) fail("request_timed_out");
+        fail("request_mismatch");
+      }
       if (Object.hasOwn(input, "error")) {
         const errors = pending.readConditions ? ["storage_unavailable", "memo_unavailable", "memo_too_large", "invalid_offset", "search_failed"] : ["storage_unavailable", "collection_unavailable", "search_failed"];
         if (Object.hasOwn(input, "result") || !errors.includes(input.error)) fail("invalid_search_result", 400);

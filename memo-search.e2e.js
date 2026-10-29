@@ -171,6 +171,58 @@ async function snapshot(page) {
     const firstRevoke = page.waitForResponse(response => response.url().endsWith("/search/revoke"));
     await page.locator("#memoSearchRevoke").click(); await firstRevoke;
     assert.equal((await run(pair.sessionId, "日本語", { type: "collection", collectionId: "search-one" })).error, "permission_revoked");
+    // Hold browser computation until the actual six-second broker timeout, then release the stale result.
+    const delayedPair = await allow("collection:search-one", page, true);
+    const grantedScope = await page.locator("#memoSearchGrantedScope").innerText();
+    for (const operation of ["search", "read"]) {
+      await page.evaluate(operation => {
+        window.delayedOriginal = window.MemoNexusSavedSearch[operation];
+        window.MemoNexusSavedSearch[operation] = async (...args) => {
+          const value = await window.delayedOriginal(...args);
+          await new Promise(resolve => { window.releaseDelayedResult = resolve; });
+          return value;
+        };
+      }, operation);
+      const pending = operation === "search" ? run(delayedPair.sessionId, "query", { type: "collection", collectionId: "search-one" }) : readMemo(delayedPair.sessionId, "search-0000");
+      await page.waitForFunction(() => typeof window.releaseDelayedResult === "function");
+      assert.equal((await pending).error, "search_timeout");
+      const stale = page.waitForResponse(response => response.url().endsWith("/search/result"));
+      await page.evaluate(operation => { window.MemoNexusSavedSearch[operation] = window.delayedOriginal; window.releaseDelayedResult(); delete window.releaseDelayedResult; }, operation);
+      assert.equal((await (await stale).json()).error, "request_timed_out");
+      await page.waitForFunction(() => document.getElementById("memoSearchStatus").textContent.includes("検索許可中"));
+      assert.equal(await page.locator("#memoSearchGrantedScope").innerText(), grantedScope);
+      const next = operation === "search" ? await run(delayedPair.sessionId, "query", { type: "collection", collectionId: "search-one" }) : await readMemo(delayedPair.sessionId, "search-0000");
+      assert.equal(next.error, undefined);
+    }
+    // Keep a committed result response in flight while visibility changes; the next poll must wait.
+    let releaseResult, resultArrived;
+    const resultHeld = new Promise(resolve => { resultArrived = resolve; });
+    await page.route("**/search/result", async route => {
+      const response = await fetchReceiver(route, receiverPort);
+      resultArrived(); await new Promise(resolve => { releaseResult = resolve; });
+      await route.fulfill({ response });
+    }, { times: 1 });
+    const visibilityResult = run(delayedPair.sessionId, "query", { type: "collection", collectionId: "search-one" });
+    await resultHeld;
+    let pollsDuringResult = 0, resultsDuringResult = 0;
+    const countDuringResult = request => { if (request.url().endsWith("/search/poll")) pollsDuringResult++; if (request.url().endsWith("/search/result")) resultsDuringResult++; };
+    page.on("request", countDuringResult);
+    const statusResponse = page.waitForResponse(response => response.url().endsWith("/search/status"));
+    await page.evaluate(() => {
+      Object.defineProperty(document, "visibilityState", { configurable: true, get: () => "hidden" });
+      document.dispatchEvent(new Event("visibilitychange"));
+      delete document.visibilityState;
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+    await statusResponse;
+    assert.equal(pollsDuringResult, 0); assert.equal(resultsDuringResult, 0);
+    releaseResult();
+    assert.equal((await visibilityResult).error, undefined);
+    await page.waitForFunction(() => document.getElementById("memoSearchStatus").textContent.includes("検索許可中"));
+    page.off("request", countDuringResult);
+    assert.equal((await readMemo(delayedPair.sessionId, "search-0000")).error, undefined);
+    await page.locator("#memoSearchRevoke").click();
+    await page.waitForFunction(() => !document.getElementById("memoSearchInspect").disabled);
     const readPair = await allow("collection:search-one", page, true);
     const readBefore = await snapshot(page);
     await page.evaluate(() => { window.readOriginalDraftReader = getAllNotes; getAllNotes = () => { throw new Error("draft reader must not run"); }; });
