@@ -4,9 +4,9 @@
   "platform": "win32",
   "sourceHashes": {
     "worker.js": "e10a4def8eef4a6f5c6fccf57197b38aad73e77bf6c95a8ef67d57f4604fc1c8",
-    "suite.js": "9b7d30e849c17138cc0520a69dbf38aa67dfa2272017dbca41eb2fa33a4c577b",
+    "suite.js": "f11bb855a4980bca8bf3ba97187078d2b8fe9397c7e4419f9f302d6bc5947357",
     "index.html": "13444528cf833cf67b25462e7c3d02f1d649531ff50b8430fde27a7e6a507afb",
-    "run.cjs": "9fa1b135e6f4daac0cef260a4d72bc449dbdffbce60847737acd21344be43b70"
+    "run.cjs": "412311be6a8cdd477ecfdcd438cc9d0dc5c4d015b24bbe89f4a0378cc5e3105f"
   },
   "checks": {
     "T1": "PASS（検索・全文のPoC）",
@@ -22,7 +22,7 @@
     "T8": "PASS（全2ストア内容一致、Workerのreadwrite 0件。fixture生成時の初期書込は別）"
   },
   "observations": {
-    "searchStartupToResultMs": 8.199999995529652,
+    "searchStartupToResultMs": 21.30000000447035,
     "terminateCallMs": 0,
     "repetitions": 12,
     "created": 20,

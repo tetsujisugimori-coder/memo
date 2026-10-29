@@ -24,5 +24,6 @@ if (!["chromium", "webkit"].includes(engineName)) throw new Error("unsupported b
     const output = { engine: engineName, browserVersion: browser.version(), platform: process.platform, sourceHashes, ...result };
     await fs.writeFile(path.join(root, `results-${engineName}.json`), JSON.stringify(output, null, 2) + "\n");
     console.log(JSON.stringify(output, null, 2));
+    if (result.failure) process.exitCode = 1;
   } finally { if (browser) await browser.close(); await new Promise(resolve => server.close(resolve)); }
 })().catch(error => { console.error(error.stack || error); process.exitCode = 1; });

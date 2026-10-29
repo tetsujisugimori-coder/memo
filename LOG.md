@@ -4,6 +4,7 @@
 - Windows Chromium 151とPlaywright WebKit 26.5で、架空DBの検索・全文、未解決Promiseを残したWorker終了、別Workerでの再読取、旧世代の結果拒否、12回の生成・停止、DB upgrade、全2ストアの内容不変、検索Workerのreadwrite 0を観測した。fixture作成のみreadwrite。メモリ・OSスレッドの解放時刻、実認可・配送、実ロック競合は未測定。
 - 初回の並列WebKit実行は `IndexedDB open blocked` で失敗し、原因は未確定。後の単独実行は成功。終了失敗の注入では対象枠をHOLDしたが実際の解放不能は未再現。方式の本番採用はPARTIAL／保留。結果と限定は `experiments/mcp-search-worker-feasibility/` に記録し、ソースのSHA-256を結果JSONに保持する。
 - main基点のNode全体テスト1,867件は成功。独立したPoC専用CIでChromiumとWebKitを実行し、成功・失敗と最終HEADの結果は調査PRに記録する。
+- 中間HEAD `2a608f9` のLinux WebKit CIは2回とも8秒のDB open待ちで失敗（T7／T9）。診断不足を補うため、失敗時の部分結果とblockedイベント有無を出力する。失敗を成功に含めない。
 - PoCは現行 `app.js` の保存読取・正規化を移植していない。iPhone Safari実機、実ChatGPT／Auth0、実OSの背景制限は未検証。PR #388のP2を解決済みとは扱わない。
 
 ## 2026-10-23 MCP検索の許可状態・取り消し・再接続

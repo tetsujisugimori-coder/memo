@@ -4,9 +4,11 @@ window.runWorkerStudy = async () => {
   const checks = {}, observations = {}, dbName = `worker-poc-${crypto.randomUUID()}`;
   const assert = (condition, label) => { if (!condition) throw new Error(label); };
   const deadline = (promise, label, ms = 8000) => Promise.race([promise, new Promise((_, reject) => setTimeout(() => reject(new Error(label)), ms))]);
-  function open(version, initialize = false) {
-    return deadline(new Promise((resolve, reject) => {
+  async function open(version, initialize = false) {
+    let blocked = false, expired = false;
+    try { return await deadline(new Promise((resolve, reject) => {
       const request = version ? indexedDB.open(dbName, version) : indexedDB.open(dbName);
+      request.onblocked = () => { blocked = true; };
       request.onupgradeneeded = () => {
         if (initialize) {
           request.result.createObjectStore("notes", { keyPath: "id" });
@@ -14,8 +16,9 @@ window.runWorkerStudy = async () => {
         }
       };
       request.onerror = () => reject(request.error);
-      request.onsuccess = () => resolve(request.result);
-    }), "IndexedDB open blocked");
+      request.onsuccess = () => { if (expired) request.result.close(); else resolve(request.result); };
+    }), "IndexedDB open timeout"); }
+    catch (error) { expired = true; throw new Error(`${error.message}; blocked event: ${blocked}`); }
   }
   async function snapshot() {
     const db = await open();
@@ -120,7 +123,10 @@ window.runWorkerStudy = async () => {
     observations.finalActive = active.size; observations.finalCreated = created; observations.finalTerminated = terminated;
     observations.deliveryCount = deliveries.length; observations.finalVersion = version;
     return { checks, observations, limitations: ["実メモ・実認可・実配送は使わない", "メモリ・OSスレッド・ブラウザ内部の実資源解放時刻は未測定", "terminateは完了通知を返さない", "fixture生成だけはreadwrite"] };
-  } catch (error) { throw new Error(`${stage}: ${error.message}`); }
+  } catch (error) {
+    return { checks, observations: { ...observations, activeAtFailure: active.size, createdAtFailure: created, terminatedAtFailure: terminated },
+      failure: `${stage}: ${error.message}`, limitations: ["未完了の試験は未実証", "内部資源の解放時刻は未測定"] };
+  }
   finally {
     for (const item of active.values()) { try { item.worker.terminate(); } catch {} }
     indexedDB.deleteDatabase(dbName);
