@@ -131,7 +131,7 @@ function createSearchBroker({ now = Date.now, timeoutMs = 6000 } = {}) {
       return new Promise(resolve => {
         const pending = { id: randomUUID(), conditions: request, readConditions: readRequest, fingerprint, afterId, resolve, budget };
         session.pending = pending;
-        pending.timer = setTimeout(() => finish(session, { error: now() >= session.expiresAt ? "permission_expired" : now() - session.lastSeen > 5000 ? "browser_disconnected" : "search_timeout" }), timeoutMs);
+        pending.timer = setTimeout(() => finish(session, { error: now() >= session.expiresAt ? "permission_expired" : "search_timeout" }), timeoutMs);
       });
     },
     result(input, origin) {
