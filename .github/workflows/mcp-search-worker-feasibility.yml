@@ -1,0 +1,46 @@
+name: MCP検索Worker PoC
+on:
+  pull_request:
+    paths:
+      - 'experiments/mcp-search-worker-feasibility/**'
+      - '.github/workflows/mcp-search-worker-feasibility.yml'
+  push:
+    branches:
+      - 'investigate/mcp-search-worker-feasibility'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  worker-poc:
+    name: Worker PoC (${{ matrix.browser }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chromium, webkit]
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps ${{ matrix.browser }}
+      - name: 分離されたWorker PoCを実行
+        run: |
+          rm -f "experiments/mcp-search-worker-feasibility/results-${WORKER_POC_BROWSER}.json"
+          node experiments/mcp-search-worker-feasibility/run.cjs
+        env:
+          WORKER_POC_BROWSER: ${{ matrix.browser }}
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: worker-poc-${{ matrix.browser }}
+          path: experiments/mcp-search-worker-feasibility/results-${{ matrix.browser }}.json
+          if-no-files-found: warn
+          retention-days: 14

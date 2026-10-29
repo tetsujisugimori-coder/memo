@@ -1,3 +1,11 @@
+## 2026-10-29 MCP検索Worker停止耐性PoC（Issue #389）
+
+- 親Issue #387／Draft PR #388の未解決Promise問題を、最新main `0fb770a` 基点の分離PoCで調査。実アプリ・実認証・実メモ・8791／8792／Tunnelは操作しない。
+- Windows Chromium 151とPlaywright WebKit 26.5で、架空DBの検索・全文、未解決Promiseを残したWorker終了、別Workerでの再読取、旧世代の結果拒否、12回の生成・停止、DB upgrade、全2ストアの内容不変、検索Workerのreadwrite 0を観測した。fixture作成のみreadwrite。メモリ・OSスレッドの解放時刻、実認可・配送、実ロック競合は未測定。
+- 初回の並列WebKit実行は `IndexedDB open blocked` で失敗し、原因は未確定。後の単独実行は成功。終了失敗の注入では対象枠をHOLDしたが実際の解放不能は未再現。方式の本番採用はPARTIAL／保留。結果と限定は `experiments/mcp-search-worker-feasibility/` に記録し、ソースのSHA-256を結果JSONに保持する。
+- main基点のNode全体テスト1,867件は成功。独立したPoC専用CIでChromiumとWebKitを実行し、成功・失敗と最終HEADの結果は調査PRに記録する。
+- PoCは現行 `app.js` の保存読取・正規化を移植していない。iPhone Safari実機、実ChatGPT／Auth0、実OSの背景制限は未検証。PR #388のP2を解決済みとは扱わない。
+
 ## 2026-10-23 MCP検索の許可状態・取り消し・再接続
 
 対象はtetsujisugimori-coder/memo。origin/mainをfetchし、基準`a524e5858edb3391f8b8e30aba2900b2f1eb6a23`から専用worktree `work/mcp-search-permission-status`、ブランチ`feat/mcp-search-permission-status`を作成した。元mainの未追跡workと既存worktreeを保持した。AGENTS.md、関連PR #379／#382／#384、現行prepare/search/read・Browser pairing／grant／revokeと8791／8792の認証境界を確認した。
