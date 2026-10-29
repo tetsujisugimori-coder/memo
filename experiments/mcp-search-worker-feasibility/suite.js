@@ -136,6 +136,7 @@ window.runWorkerStudy = async (options = {}) => {
     begin("T5.stale");
     a = start("A", "ready"); const ready = await phase(a, "ready"); stop(a);
     next = start("A"); assert(!accept("A", a, { ...ready, phase: "result" }), "T5 stale");
+    record("old_message_rejected", { session: a.session, workerId: a.workerId, requestId: a.requestId, outcome: "T5 identity check" });
     await phase(next, "result"); stop(next); checks.T5 = "PASS";
     begin("T6.gate"); a = start("A", "unresolved", "search", "架空", "destination-A");
     const b = start("B", "gate", "search", "別", "destination-B"); await phase(a, "unresolved"); await phase(b, "gate_wait");
@@ -153,6 +154,7 @@ window.runWorkerStudy = async (options = {}) => {
     assert(afterStop.result.length === 1 && afterStop.result[0].id === "n2", "T6 fresh B result");
     assert(deliveries.some(item => item.workerId === b.workerId && item.session === "B" && item.destination === "destination-B" && item.result[0].id === "n2"), "T6 destination");
     assert(!deliveries.some(item => item.workerId === a.workerId) && !accept("A", a, { workerId: a.workerId, generation: a.generation, requestId: a.requestId }), "T6 no A delivery");
+    record("old_message_rejected", { session: a.session, workerId: a.workerId, requestId: a.requestId, outcome: "T6 identity check" });
     observations.T6 = { aSession: a.session, bSession: b.session, aWorkerId: a.workerId, bWorkerId: b.workerId,
       aRequestId: a.requestId, bRequestId: b.requestId, aDestination: a.destination, bDestination: b.destination,
       aExpectedResultId: "n1", bResultId: afterStop.result[0].id, aStopRequestedBeforeGateRelease: true, bResultBeforeStop: false };
@@ -171,6 +173,7 @@ window.runWorkerStudy = async (options = {}) => {
     begin("T10.race"); a = start("A", "race"); const queued = await phase(a, "result");
     const deliveredBefore = deliveries.length; stop(a); next = start("A");
     assert(!accept("A", a, { ...queued, phase: "result" }), "T10 stale envelope");
+    record("old_message_rejected", { session: a.session, workerId: a.workerId, requestId: a.requestId, outcome: "T10 identity check" });
     await phase(next, "result"); assert(deliveries.length === deliveredBefore + 1, "T10 delivery"); stop(next); checks.T10 = "PASS（実メッセージの採用保留後に停止・再照合）";
     begin("T12.failure-injection"); const failing = start("A", "unresolved"); await phase(failing, "unresolved");
     assert(!stop(failing, true) && active.has("A") && !failing.enabled, "T12 hold");

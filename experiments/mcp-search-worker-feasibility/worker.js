@@ -6,6 +6,7 @@ onmessage = async ({ data }) => {
   if (data.control === "release") { if (releaseGate) releaseGate(); return; }
   const { workerId, generation, requestId, dbName, mode, session, testId, iteration } = data;
   const send = (phase, extra = {}) => postMessage({ workerId, generation, requestId, session, testId, iteration, workerMs: performance.now(), phase, ...extra });
+  send("worker_ready");
   let db;
   try {
     db = await new Promise((resolve, reject) => {

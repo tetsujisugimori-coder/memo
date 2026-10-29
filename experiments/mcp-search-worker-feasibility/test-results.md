@@ -12,6 +12,8 @@ T1〜T12のstageとsnapshot／比較／T7 iteration・upgradeの境界を更新�
 
 同runの対照AはWorkerのclose呼出し後にblockedと8秒timeout、対照Bはupgrade成功だった。ただしこの時のAはtransaction完了を待たずにterminateしており、通常終了と比較する対照として不十分だった。Aだけをtransaction complete後にcloseするよう修正した。期限は8秒のまま、各条件1回で再検証する。この差は原因確定や前回失敗の無効化を意味しない。
 
+修正HEAD `79d5b76727fe99d5dff137ef89a55cd7f6e72cb6` の[CI #40851676069](https://github.com/tetsujisugimori-coder/memo/actions/runs/40851676069)では、Chromium成功、WebKit job 123372417886はT7の3回目でversion 3→4 open開始後に8秒timeoutし、blocked／upgradeneeded／success／errorは未観測。1・2回目は成功。修正後の対照A・Bは両ブラウザで各1回upgrade成功、Aはtransaction completeを観測、BはUNKNOWN、両方のWorker接続終了はUNKNOWN。T6と13件のstage注入・実T6注入は成功。WebKitのT8〜T12はNOT_RUN。[WebKit失敗artifact](https://github.com/tetsujisugimori-coder/memo/actions/runs/40851676069/artifacts/12888020339)を保持する。明示的なWorker ready・旧識別子拒否の観測を追加し、最終HEAD結果はPR・CI artifactに記録する。
+
 同一時系列にはmain受信順の連番とmain時刻、Worker発生時刻を別々に記録する。要求version・旧version、openイベント、transaction・接続・Workerメッセージ、terminate呼出しを記録するが、観測されなかった内部イベントや実際の資源解放を推測しない。各出力は一意名で、失敗した実行を成功した実行で上書きしない。
 
 判定は **PARTIAL**。実測はWindows上のPlaywright Chromium 151.0.7922.34、Playwright WebKit 26.5、架空データ、独立した一時IndexedDB、動的HTTPポート。実アプリ・実認可・実メモ・8791／8792／Tunnelは使っていない。`results-chromium.json` と `results-webkit.json` にソース4ファイルのSHA-256を保存し、対象ソースを特定できる。数値は各1回の局所実行で統計的な性能評価ではない。
