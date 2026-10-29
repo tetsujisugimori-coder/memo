@@ -1,0 +1,45 @@
+{
+  "engine": "webkit",
+  "browserVersion": "26.5",
+  "platform": "win32",
+  "sourceHashes": {
+    "worker.js": "e10a4def8eef4a6f5c6fccf57197b38aad73e77bf6c95a8ef67d57f4604fc1c8",
+    "suite.js": "f11bb855a4980bca8bf3ba97187078d2b8fe9397c7e4419f9f302d6bc5947357",
+    "index.html": "13444528cf833cf67b25462e7c3d02f1d649531ff50b8430fde27a7e6a507afb",
+    "run.cjs": "412311be6a8cdd477ecfdcd438cc9d0dc5c4d015b24bbe89f4a0378cc5e3105f"
+  },
+  "checks": {
+    "T1": "PASS（検索・全文のPoC）",
+    "T2": "PASS",
+    "T3": "PASS",
+    "T4": "PASS",
+    "T5": "PASS",
+    "T6": "PARTIAL（PoCのセッション結果分離のみ、実認可状態は未実装）",
+    "T7": "PARTIAL（12回の管理参照・DB upgrade観測のみ。実メモリとOS資源は未測定）",
+    "T9": "PARTIAL（読取コールバック・要求待機・生成中の停止後に読取・upgradeを観測。実際のロック競合待機は未試験）",
+    "T10": "PASS（実メッセージの採用保留後に停止・再照合）",
+    "T12": "HOLD（終了失敗を注入すると枠を保持し配送・再利用を拒否。実際の失敗と解放の確認は未実証）",
+    "T8": "PASS（全2ストア内容一致、Workerのreadwrite 0件。fixture生成時の初期書込は別）"
+  },
+  "observations": {
+    "searchStartupToResultMs": 18,
+    "terminateCallMs": 0,
+    "repetitions": 12,
+    "created": 20,
+    "terminated": 20,
+    "maxManagedWorkers": 2,
+    "workerTransactions": 29,
+    "workerReadwrite": 0,
+    "finalActive": 0,
+    "finalCreated": 29,
+    "finalTerminated": 29,
+    "deliveryCount": 9,
+    "finalVersion": 17
+  },
+  "limitations": [
+    "実メモ・実認可・実配送は使わない",
+    "メモリ・OSスレッド・ブラウザ内部の実資源解放時刻は未測定",
+    "terminateは完了通知を返さない",
+    "fixture生成だけはreadwrite"
+  ]
+}

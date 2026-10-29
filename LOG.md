@@ -1,3 +1,26 @@
+## 2026-10-29 MCP検索Worker停止耐性PoC（Issue #389）
+
+- P3-04：primary・従来対照A/B・回帰注入・追加6条件を最大10個の別browser contextで実行する経路を追加。旧同一context経路と過去証拠は保持。同じbrowser processであり共有内部資源の完全独立・解放を保証しない。cleanup UNKNOWNを保存して後続へ進み、context closeにも有限待機とUNKNOWN記録を設けた。
+- 追加診断はA（complete後close）、B（request成功コールバックのテストゲート保持中terminate）、C（complete後closeせずterminate）×詳細／message最小の各1回。8秒open・2秒削除を維持。実行順・上限・成立条件をindependent-diagnostic.mdに事前固定。Bの人工ゲートは元T7の未解決Promiseと同等とは扱わない。最小計測もローカル記録を残すため完全無計測ではない。
+- 単体21件成功。Windows開発確認各1回では両エンジンの追加6条件で成立・upgrade・削除successを観測し、T6・13 stageプローブ・T6実注入も通過。新規JSONは排他一意名で保存し、旧証拠は無変更。最終HEADのLinux CI結果・失敗・artifact・checkout/hash照合はPR #390とIssue #389へ記録する。未コミット開発実行を最終HEADの証拠として流用しない。
+- 本番コードは不変更。T7原因UNKNOWN、本番採用HOLD、PR #388のP2未解決。terminate／close戻りを実資源解放としない。iPhone Safari・実サービス・実OS背景制限は未検証。
+
+- P2-02対応：primaryと各対照のdeleteDatabaseをsuccess／error／blockedで観測し、独立2秒の期限で待機する。success未観測はUNKNOWN、errorはFAIL。削除待機完了後に後続対照を開始する。削除7件・証拠保全6件の単体試験は成功。T7の8秒期限は変更しない。
+- P3-02対応：既存のWindows結果JSONは変更せず過去証拠と明記し、d2c4ad1のCI #40852560234をartifactから保存してhash・tree・checkout・環境・試験状態を索引化した。WebKitはT7の9回目でFAIL、T8〜T12はNOT_RUN。旧成功結果と最新検証を区別する。
+- P3-03対応：共通受信経路で個別識別子不一致、旧結果の新配送先混入、受信済み実messageの停止後処理、二重配送を検査する。terminate後の物理的遅着は未再現でPARTIAL。ローカル初回T5は編集時のfixture文字化けによりFAIL、修正後の各ブラウザ1回は完走した。失敗JSONを保持。削除待機による順序・負荷変化があるため、完走をT7原因確定とは扱わない。
+
+- PR #390の独立レビュー後、T6をBの結果生成前ゲートとA停止後のB新規配送に変更し、異なる架空session・requestId・配送先とworkerId／generation／requestIdの個別不一致を検査した。実認可は未実装。T1〜T12のstage、T7 iterationとupgrade、T8 snapshot・比較を識別し、13のstage注入プローブと実T6例外注入を追加した。
+- open／transaction／接続／Workerの観測イベントとmain受信時刻・Worker発生時刻を分離して保存。通常closeと未解決terminateの対照は各1回、別の架空DBを使う。Windows Chromium／WebKitのローカル対照ではupgrade成功だが接続終了とtransaction終端はUNKNOWN。計測messageは順序に影響し得る。最終HEADのCI結果はPRに記録し、失敗したrunを成功で相殺しない。
+- 計測HEAD `bb91413` のLinux WebKit CI #40851321011ではT7の1〜9回がupgrade成功し、10回目のreadonly request成功→未解決同期点→terminate呼出し戻り→version 10→11 open開始後、8秒以内にblocked／upgradeneeded／success／errorを観測しなかった。transaction終端と接続終了はUNKNOWN。対照Aではclose呼出し後にblockedを観測したが、当初の対照Aはtransaction完了を待たずterminateしており通常終了の比較として不十分だった。この失敗を保持し、Aだけtransaction完了後にcloseするよう修正。期限延長や成功するまでの再試行は行わない。
+- 次のHEAD `79d5b76` のLinux WebKit CI #40851676069はT7の3回目でversion 3→4 open開始後8秒でtimeout。前の2回は成功し、blocked／upgradeneeded／success／errorは未観測。修正した対照A・Bは各1回のupgradeに成功したが接続終了はUNKNOWN。T6とstage注入は両ブラウザで成功。Worker readyと旧識別子の拒否を明示する記録を追加し、計測条件を変更した最終HEADを各ブラウザ1回で確認する。
+
+- 親Issue #387／Draft PR #388の未解決Promise問題を、最新main `0fb770a` 基点の分離PoCで調査。実アプリ・実認証・実メモ・8791／8792／Tunnelは操作しない。
+- Windows Chromium 151とPlaywright WebKit 26.5で、架空DBの検索・全文、未解決Promiseを残したWorker終了、別Workerでの再読取、旧世代の結果拒否、12回の生成・停止、DB upgrade、全2ストアの内容不変、検索Workerのreadwrite 0を観測した。fixture作成のみreadwrite。メモリ・OSスレッドの解放時刻、実認可・配送、実ロック競合は未測定。
+- 初回の並列WebKit実行は `IndexedDB open blocked` で失敗し、原因は未確定。後の単独実行は成功。終了失敗の注入では対象枠をHOLDしたが実際の解放不能は未再現。方式の本番採用はPARTIAL／保留。結果と限定は `experiments/mcp-search-worker-feasibility/` に記録し、ソースのSHA-256を結果JSONに保持する。
+- main基点のNode全体テスト1,867件は成功。独立したPoC専用CIでChromiumとWebKitを実行し、成功・失敗と最終HEADの結果は調査PRに記録する。
+- 中間HEAD `2a608f9` のLinux WebKit CIは2回とも8秒のDB open待ちで失敗（T7／T9）。診断不足を補うため、失敗時の部分結果とblockedイベント有無を出力する。失敗を成功に含めない。
+- PoCは現行 `app.js` の保存読取・正規化を移植していない。iPhone Safari実機、実ChatGPT／Auth0、実OSの背景制限は未検証。PR #388のP2を解決済みとは扱わない。
+
 ## 2026-10-23 MCP検索の許可状態・取り消し・再接続
 
 対象はtetsujisugimori-coder/memo。origin/mainをfetchし、基準`a524e5858edb3391f8b8e30aba2900b2f1eb6a23`から専用worktree `work/mcp-search-permission-status`、ブランチ`feat/mcp-search-permission-status`を作成した。元mainの未追跡workと既存worktreeを保持した。AGENTS.md、関連PR #379／#382／#384、現行prepare/search/read・Browser pairing／grant／revokeと8791／8792の認証境界を確認した。

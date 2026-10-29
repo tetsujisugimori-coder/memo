@@ -1,0 +1,44 @@
+name: MCP検索Worker PoC
+on:
+  pull_request:
+    paths:
+      - 'experiments/mcp-search-worker-feasibility/**'
+      - '.github/workflows/mcp-search-worker-feasibility.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  worker-poc:
+    name: Worker PoC (${{ matrix.browser }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chromium, webkit]
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: 削除観測・過去証拠・context分離の単体試験
+        run: node --test experiments/mcp-search-worker-feasibility/cleanup.test.cjs experiments/mcp-search-worker-feasibility/evidence.test.cjs experiments/mcp-search-worker-feasibility/diagnostic.test.cjs
+      - run: npx playwright install --with-deps ${{ matrix.browser }}
+      - name: 分離されたWorker PoCを実行
+        run: node experiments/mcp-search-worker-feasibility/run.cjs
+        env:
+          WORKER_POC_BROWSER: ${{ matrix.browser }}
+          WORKER_POC_CONTEXT_MODE: isolated
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: worker-poc-${{ matrix.browser }}
+          path: e2e-artifacts/mcp-worker-diagnostics/results-${{ matrix.browser }}-*.json
+          if-no-files-found: warn
+          retention-days: 14
