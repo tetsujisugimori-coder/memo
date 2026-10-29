@@ -68,6 +68,20 @@ async function snapshot(page) {
       }
     });
     await page.goto("http://127.0.0.1:5500/"); await settled(page);
+    await page.evaluate(() => {
+      window.searchFailures = {};
+      const originalFetch = window.fetch;
+      window.fetch = async (...args) => {
+        const route = String(args[0]).split("/search/")[1];
+        const failure = window.searchFailures[route];
+        if (failure && failure.count > 0) {
+          failure.count--;
+          if (failure.after) await originalFetch(...args);
+          throw new TypeError("injected network failure");
+        }
+        return originalFetch(...args);
+      };
+    });
     // Both startups (including normal draft-mirror restoration) precede the immutable search boundary.
     const otherTab = await context.newPage(); await otherTab.goto("http://127.0.0.1:5500/"); await settled(otherTab);
     await page.bringToFront();
@@ -211,10 +225,8 @@ async function snapshot(page) {
       await route.fulfill({ response }).catch(() => {});
     }, { times: 1 });
     await page.locator("#memoSearchRefresh").click(); await oldPollReady;
-    await page.route("**/search/revoke", async route => {
-      await fetchReceiver(route, receiverPort); // Server committed, but browser cannot confirm it.
-      await route.abort();
-    }, { times: 1 });
+    // Server commits, but the browser does not receive the acknowledgement.
+    await page.evaluate(() => { window.searchFailures.revoke = { count: 1, after: true }; });
     await page.locator("#memoSearchRevoke").click();
     await page.waitForFunction(() => document.getElementById("memoSearchStatus").textContent.includes("取り消し結果は未確認"));
     assert.ok(!(await page.locator("#memoSearchStatus").innerText()).includes("検索可能"));
@@ -232,7 +244,7 @@ async function snapshot(page) {
     // A normal outage remains reconnectable without extending or broadening the grant.
     const outagePair = await allow("collection:search-one", page, true);
     const originalScope = await page.locator("#memoSearchGrantedScope").innerText();
-    await page.route("**/search/poll", route => route.abort(), { times: 1 });
+    await page.evaluate(() => { window.searchFailures.poll = { count: 1 }; });
     await page.locator("#memoSearchRefresh").click();
     await page.waitForFunction(() => document.getElementById("memoSearchStatus").textContent.includes("通信に失敗"));
     clock += 5001;
@@ -252,10 +264,10 @@ async function snapshot(page) {
         window.MemoNexusSavedSearch[name] = (...args) => { window.searchObserved[name]++; return original(...args); };
       }
     });
-    await page.route("**/search/revoke", route => route.abort(), { times: 1 });
+    await page.evaluate(() => { window.searchFailures.revoke = { count: 1 }; });
     await page.locator("#memoSearchRevoke").click();
     await page.waitForFunction(() => document.getElementById("memoSearchStatus").textContent.includes("取り消し結果は未確認"));
-    await page.route("**/search/status", route => route.abort(), { times: 2 });
+    await page.evaluate(() => { window.searchFailures.status = { count: 2 }; });
     for (let i = 0; i < 2; i++) {
       await page.locator("#memoSearchRefresh").click();
       await page.waitForFunction(() => document.getElementById("memoSearchStatus").textContent.includes("通信に失敗"));
@@ -287,9 +299,8 @@ async function snapshot(page) {
     assert.equal((await run(expired.sessionId, "日本語")).error, "permission_expired");
     await page.waitForFunction(() => document.getElementById("memoSearchStatus").textContent.includes("期限"));
     await allow();
-    await context.route("**/search/poll", route => route.abort());
+    await page.evaluate(() => { window.searchFailures.poll = { count: 1 }; });
     await page.waitForFunction(() => document.getElementById("memoSearchStatus").textContent.includes("通信に失敗"));
-    await context.unroute("**/search/poll");
     assert.deepEqual(await snapshot(page), before); assert.equal(await page.evaluate(() => window.searchReadWrites), 0);
     const reloadPair = await allow("all", page, true);
     await page.reload(); await settled(page);
