@@ -40,6 +40,7 @@ function createSearchBroker({ now = Date.now, timeoutMs = 6000 } = {}) {
     return session;
   }
   function browser(input, origin) { const session = control(input, origin); active(session); return session; }
+  // Stale heartbeat is a connection-status signal, not grant expiration or revocation.
   function connected(session) { if (now() - session.lastSeen > 5000) fail("browser_disconnected", 503); }
   function budgetFor(key) {
     let budget = budgets.get(key);
@@ -87,7 +88,7 @@ function createSearchBroker({ now = Date.now, timeoutMs = 6000 } = {}) {
       if (value.error) return value;
       const session = get(input.sessionId);
       if (principalKey(principal) !== session.key) fail("subject_mismatch", 403);
-      active(session); connected(session);
+      active(session);
       return value;
     },
     poll(input, origin) {
@@ -110,7 +111,7 @@ function createSearchBroker({ now = Date.now, timeoutMs = 6000 } = {}) {
       if (readRequest && !session.allowRead) fail("read_permission_required", 403);
       const request = conditions(input.conditions);
       if (session.scope.type === "collection" && (request.scope.type !== "collection" || request.scope.collectionId !== session.scope.collectionId)) fail("scope_forbidden", 403);
-      connected(session);
+      // No live-heartbeat prerequisite: a valid request may wait for the browser to resume polling.
       if (session.pending) fail("search_busy");
       // Leave receiver concurrency available for browser polling and cancellation.
       if ([...sessions.values()].filter(s => s.pending).length >= 2) fail("search_busy");
@@ -137,9 +138,6 @@ function createSearchBroker({ now = Date.now, timeoutMs = 6000 } = {}) {
       exact(input, ["sessionId", "capability", "requestId"], ["result", "error"]);
       const session = browser(input, origin), pending = session.pending;
       if (!pending || input.requestId !== pending.id) fail("request_mismatch");
-      if (now() - session.lastSeen > 5000) {
-        finish(session, { error: "browser_disconnected" }); fail("browser_disconnected", 503);
-      }
       if (Object.hasOwn(input, "error")) {
         const errors = pending.readConditions ? ["storage_unavailable", "memo_unavailable", "memo_too_large", "invalid_offset", "search_failed"] : ["storage_unavailable", "collection_unavailable", "search_failed"];
         if (Object.hasOwn(input, "result") || !errors.includes(input.error)) fail("invalid_search_result", 400);
