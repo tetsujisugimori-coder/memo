@@ -1,0 +1,106 @@
+{
+  "entries": [
+    {
+      "file": "evidence/d2c4ad1-ci/results-chromium.json",
+      "sha256": "732f159bf0a3579eafeaf31c00f99532f542e8a22cb6cb146012cebd369d55f2",
+      "kind": "historical-ci",
+      "prHead": "d2c4ad154583173bbfe37d9223c31950de7adda7",
+      "checkout": "ac21059de9589bbc3a62cbd94be5bce15394b50c",
+      "tree": "6d7bbb5ecdcc53035b836cf1d9af807119ffe114",
+      "runId": 40852560234,
+      "artifactId": 12888250719,
+      "node": "v22.23.4",
+      "browserVersion": "151.0.7922.34",
+      "states": {
+        "T1": "PASS",
+        "T2": "PASS",
+        "T3": "PASS",
+        "T4": "PASS",
+        "T5": "PASS",
+        "T6": "PASS",
+        "T7": "PARTIAL",
+        "T8": "PASS",
+        "T9": "PARTIAL",
+        "T10": "PASS",
+        "T11": "PARTIAL",
+        "T12": "HOLD"
+      },
+      "sourceHashes": {
+        "worker.js": "53b853238f8bb53412aeeb012df3f0598fd48b726ead76d3601bc43a904aa2fc",
+        "suite.js": "7ce8bb4b96f68bde92e7bfa3ef6ddbcfebd343bba6d01c0f3e2c9b5e16d4a3f2",
+        "index.html": "ad61df5ea6bf7f9a38f51e2431628672328bf1838bc1b573a6377b82776eb5e5",
+        "run.cjs": "2b71e816b7d4a5eaf803bc28427260ec9b262e4ebb33fc39b5070fa95945f033",
+        "controls.js": "7547a97aedac270c77be9e5e1c9125c608be5527791cd3b3a11d00a6f7cd30f4"
+      },
+      "failure": null
+    },
+    {
+      "file": "evidence/d2c4ad1-ci/results-webkit.json",
+      "sha256": "cd24f871d5cdeda94a5084a88f84fa0b70badef7500f2a87068c076222da81e1",
+      "kind": "historical-ci",
+      "prHead": "d2c4ad154583173bbfe37d9223c31950de7adda7",
+      "checkout": "ac21059de9589bbc3a62cbd94be5bce15394b50c",
+      "tree": "6d7bbb5ecdcc53035b836cf1d9af807119ffe114",
+      "runId": 40852560234,
+      "artifactId": 12887263146,
+      "node": "v22.23.4",
+      "browserVersion": "26.5",
+      "states": {
+        "T1": "PASS",
+        "T2": "PASS",
+        "T3": "PASS",
+        "T4": "PASS",
+        "T5": "PASS",
+        "T6": "PASS",
+        "T7": "FAIL",
+        "T8": "NOT_RUN",
+        "T9": "NOT_RUN",
+        "T10": "NOT_RUN",
+        "T11": "NOT_RUN",
+        "T12": "NOT_RUN"
+      },
+      "sourceHashes": {
+        "worker.js": "53b853238f8bb53412aeeb012df3f0598fd48b726ead76d3601bc43a904aa2fc",
+        "suite.js": "7ce8bb4b96f68bde92e7bfa3ef6ddbcfebd343bba6d01c0f3e2c9b5e16d4a3f2",
+        "index.html": "ad61df5ea6bf7f9a38f51e2431628672328bf1838bc1b573a6377b82776eb5e5",
+        "run.cjs": "2b71e816b7d4a5eaf803bc28427260ec9b262e4ebb33fc39b5070fa95945f033",
+        "controls.js": "7547a97aedac270c77be9e5e1c9125c608be5527791cd3b3a11d00a6f7cd30f4"
+      },
+      "failure": "T7 iteration 9.upgrade: IndexedDB open timeout; blocked event: false"
+    },
+    {
+      "file": "results-chromium.json",
+      "sha256": "2acac827acc17036b7aca97ffed04809d49b77ae8b6564ac1f9dd7b81da8ad97",
+      "kind": "historical-windows",
+      "prHead": "ffe10a46c42d4abb3d99a05e4537832441c8aabf",
+      "checkout": "UNKNOWN",
+      "tree": "UNKNOWN",
+      "runId": null,
+      "sourceHashes": {
+        "worker.js": "e10a4def8eef4a6f5c6fccf57197b38aad73e77bf6c95a8ef67d57f4604fc1c8",
+        "suite.js": "f11bb855a4980bca8bf3ba97187078d2b8fe9397c7e4419f9f302d6bc5947357",
+        "index.html": "13444528cf833cf67b25462e7c3d02f1d649531ff50b8430fde27a7e6a507afb",
+        "run.cjs": "412311be6a8cdd477ecfdcd438cc9d0dc5c4d015b24bbe89f4a0378cc5e3105f"
+      },
+      "note": "Past source evidence, not d2c4ad1 or current HEAD results"
+    },
+    {
+      "file": "results-webkit.json",
+      "sha256": "7bd56e671f387b695833eaee56875ee5ddff40a5e98b66727ae419367296bf5b",
+      "kind": "historical-windows",
+      "prHead": "ffe10a46c42d4abb3d99a05e4537832441c8aabf",
+      "checkout": "UNKNOWN",
+      "tree": "UNKNOWN",
+      "runId": null,
+      "sourceHashes": {
+        "worker.js": "e10a4def8eef4a6f5c6fccf57197b38aad73e77bf6c95a8ef67d57f4604fc1c8",
+        "suite.js": "f11bb855a4980bca8bf3ba97187078d2b8fe9397c7e4419f9f302d6bc5947357",
+        "index.html": "13444528cf833cf67b25462e7c3d02f1d649531ff50b8430fde27a7e6a507afb",
+        "run.cjs": "412311be6a8cdd477ecfdcd438cc9d0dc5c4d015b24bbe89f4a0378cc5e3105f"
+      },
+      "note": "Past source evidence, not d2c4ad1 or current HEAD results"
+    }
+  ],
+  "evidenceFileHashEncoding": "SHA-256 of UTF-8 text with LF line endings",
+  "latestRuntimeEvidence": "CI artifacts identify their checkout HEAD and sourceHashes; historical files below are immutable"
+}

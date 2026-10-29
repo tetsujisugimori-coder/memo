@@ -65,24 +65,33 @@ window.runWorkerStudy = async (options = {}) => {
   const active = new Map(), generations = new Map(), deliveries = [];
   const transactionModes = [];
   function accept(session, entry, message) {
-    return active.get(session) === entry && entry.enabled && message.workerId === entry.workerId
+    return active.get(session) === entry && entry.session === session && message.session === session && entry.enabled && message.workerId === entry.workerId
       && message.generation === entry.generation && message.requestId === entry.requestId;
+  }
+  function receive(session, entry, data, transport = "worker") {
+    const { workerId, requestId, generation, destination } = entry;
+      record("worker_message", { source: transport === "worker" ? "worker" : "controlled-main", transport, workerTimestampOrigin: transport === "worker" ? "received-event" : "captured-message", workerMs: data.workerMs, testId: data.testId, iteration: data.iteration, session, workerId, requestId, generation, dbVersion: data.dbVersion ?? version, workerEvent: data.phase, mode: data.transactionMode || null, outcome: data.outcome || null });
+      if (!accept(session, entry, data)) { record("old_message_rejected", { session, workerId, requestId, generation, transport }); return false; }
+      if (data.phase === "transaction") { transactionModes.push(data.transactionMode); if (data.transactionMode === "readwrite") readwrite++; }
+      if (data.phase === "result" && !(entry.deferResult && transport === "worker")) {
+        if (entry.delivered) { record("duplicate_result_rejected", { session, workerId, requestId, generation, transport }); return false; }
+        if (!Array.isArray(data.result) || data.result.some(item => typeof item.id !== "string")) { record("invalid_result_rejected", { session, workerId, requestId, transport }); return false; }
+        entry.delivered = true;
+        deliveries.push({ session, destination, workerId, generation, requestId, result: data.result });
+        record("result_delivered", { session, workerId, requestId, generation, destination, transport });
+      }
+      entry.events.push(data);
+      for (const waiter of [...entry.waiters]) if (waiter.phase === data.phase) { entry.waiters.splice(entry.waiters.indexOf(waiter), 1); waiter.resolve(data); }
+      return true;
   }
   function start(session, mode = "normal", operation = "search", query = "架空", destination = `destination-${session}`) {
     if (active.has(session) || active.size >= 2) throw new Error("capacity");
     const generation = (generations.get(session) || 0) + 1; generations.set(session, generation);
     const workerId = `worker-${++sequence}`, requestId = `request-${sequence}`, worker = new Worker("worker.js");
-    const entry = { session, generation, workerId, requestId, worker, destination, enabled: true, deferResult: mode === "race", events: [], waiters: [] };
+    const entry = { session, generation, workerId, requestId, worker, destination, enabled: true, delivered: false, deferResult: mode === "race", events: [], waiters: [] };
     active.set(session, entry); created++; maxActive = Math.max(maxActive, active.size);
     record("worker_created", { session, workerId, requestId, generation, dbVersion: version });
-    worker.onmessage = ({ data }) => {
-      record("worker_message", { source: "worker", workerMs: data.workerMs, testId: data.testId, iteration: data.iteration, session, workerId, requestId, generation, dbVersion: data.dbVersion ?? version, workerEvent: data.phase, mode: data.transactionMode || null, outcome: data.outcome || null });
-      if (!accept(session, entry, data)) { record("old_message_rejected", { session, workerId, requestId, generation }); return; }
-      if (data.phase === "transaction") { transactionModes.push(data.transactionMode); if (data.transactionMode === "readwrite") readwrite++; }
-      if (data.phase === "result" && !entry.deferResult) { deliveries.push({ session, destination, workerId, generation, requestId, result: data.result }); record("result_delivered", { session, workerId, requestId, generation, destination }); }
-      entry.events.push(data);
-      for (const waiter of [...entry.waiters]) if (waiter.phase === data.phase) { entry.waiters.splice(entry.waiters.indexOf(waiter), 1); waiter.resolve(data); }
-    };
+    worker.onmessage = ({ data }) => receive(session, entry, data, "worker");
     worker.onerror = event => { record("worker_error", { session, workerId, requestId, outcome: event.message }); for (const waiter of entry.waiters.splice(0)) waiter.reject(new Error(event.message)); };
     worker.postMessage({ workerId, generation, requestId, dbName, mode, operation, query, session, testId: stage.match(/^(T\d+)/)?.[1] || null, iteration: Number(stage.match(/iteration (\d+)/)?.[1]) || null });
     return entry;
@@ -108,6 +117,7 @@ window.runWorkerStudy = async (options = {}) => {
     } catch { record("terminate_failure", { session: entry.session, workerId: entry.workerId, requestId: entry.requestId }); return false; } // 終了未確認の枠は再利用しない。
   }
   async function upgrade() { const db = await open(++version); db.close(); record("upgrade_close_called", { dbVersion: version, outcome: "returned", connectionClosed: "UNKNOWN" }); }
+  let report;
   try {
   begin("fixture.open"); const db = await open(version, true);
   await new Promise((resolve, reject) => {
@@ -134,18 +144,31 @@ window.runWorkerStudy = async (options = {}) => {
     observations.terminateCallMs = performance.now() - stopStart; checks.T3 = "PASS";
     begin("T4.recovery"); let next = start("A"); assert((await phase(next, "result")).result[0].id === "n1", "T4 recovery"); stop(next); checks.T4 = "PASS";
     begin("T5.stale");
-    a = start("A", "ready"); const ready = await phase(a, "ready"); stop(a);
-    next = start("A"); assert(!accept("A", a, { ...ready, phase: "result" }), "T5 stale");
-    record("old_message_rejected", { session: a.session, workerId: a.workerId, requestId: a.requestId, outcome: "T5 identity check" });
-    await phase(next, "result"); stop(next); checks.T5 = "PASS";
+    a = start("A", "race", "search", "架空", "destination-old"); const ready = await phase(a, "result");
+    assert(ready.result.length === 1 && ready.result[0].id === "n1", "T5 fixture expectation");
+    const beforeInvalid = deliveries.length;
+    for (const [field, value] of [["session", "other-session"], ["workerId", "other-worker"], ["generation", a.generation + 1], ["requestId", "other-request"]]) {
+      assert(!receive("A", a, { ...ready, [field]: value }, "controlled-injection"), `T5 ${field} rejected`);
+    }
+    assert(deliveries.length === beforeInvalid, "T5 invalid messages never delivered");
+    assert(receive("A", a, ready, "buffered-worker-message"), "T5 first delivery");
+    assert(!receive("A", a, ready, "controlled-duplicate"), "T5 duplicate rejected");
+    assert(deliveries.length === beforeInvalid + 1, "T5 exactly one delivery");
+    stop(a); next = start("A", "normal", "search", "別", "destination-new");
+    assert(!receive("A", a, ready, "post-stop-buffered-message"), "T5 stopped entry rejected");
+    assert(!receive("A", next, ready, "controlled-old-envelope"), "T5 old envelope rejected by new entry");
+    const newer = await phase(next, "result"); assert(newer.result.length === 1 && newer.result[0].id === "n2", "T5 new fixture expectation");
+    assert(!deliveries.some(item => item.destination === "destination-new" && item.result.some(row => row.id === "n1")), "T5 no old result in new destination");
+    stop(next); checks.T5 = "PASS（実Worker結果の保留後処理・制御注入。terminate後の実到着は未再現）";
+    observations.messageCoverage = { individualMismatches: ["session", "workerId", "generation", "requestId"], duplicateDelivered: false, physicalPostTerminateArrival: "NOT_REPRODUCED", transport: "shared receive handler" };
     begin("T6.gate"); a = start("A", "unresolved", "search", "架空", "destination-A");
     const b = start("B", "gate", "search", "別", "destination-B"); await phase(a, "unresolved"); await phase(b, "gate_wait");
     assert(a.workerId !== b.workerId && a.requestId !== b.requestId && a.session !== b.session && a.destination !== b.destination, "T6 distinct identities");
     assert(!b.events.some(event => event.phase === "result") && !deliveries.some(item => item.workerId === b.workerId), "T6 premature B result");
     for (const [field, value] of [["workerId", "wrong-worker"], ["generation", b.generation + 1], ["requestId", "wrong-request"]]) {
-      assert(!accept("B", b, { workerId: b.workerId, generation: b.generation, requestId: b.requestId, [field]: value }), `T6 ${field}`);
+      assert(!accept("B", b, { session: "B", workerId: b.workerId, generation: b.generation, requestId: b.requestId, [field]: value }), `T6 ${field}`);
     }
-    assert(!accept("A", b, { workerId: b.workerId, generation: b.generation, requestId: b.requestId }), "T6 wrong session");
+    assert(!accept("A", b, { session: "B", workerId: b.workerId, generation: b.generation, requestId: b.requestId }), "T6 wrong session");
     begin("T6.stop-A"); assert(stop(a), "T6 A stop request");
     assert(!b.events.some(event => event.phase === "result") && !deliveries.some(item => item.workerId === b.workerId), "T6 result before gate release");
     record("gate_release", { session: b.session, workerId: b.workerId, requestId: b.requestId, destination: b.destination });
@@ -153,7 +176,7 @@ window.runWorkerStudy = async (options = {}) => {
     const afterStop = await phase(b, "result");
     assert(afterStop.result.length === 1 && afterStop.result[0].id === "n2", "T6 fresh B result");
     assert(deliveries.some(item => item.workerId === b.workerId && item.session === "B" && item.destination === "destination-B" && item.result[0].id === "n2"), "T6 destination");
-    assert(!deliveries.some(item => item.workerId === a.workerId) && !accept("A", a, { workerId: a.workerId, generation: a.generation, requestId: a.requestId }), "T6 no A delivery");
+    assert(!deliveries.some(item => item.workerId === a.workerId) && !accept("A", a, { session: "A", workerId: a.workerId, generation: a.generation, requestId: a.requestId }), "T6 no A delivery");
     record("old_message_rejected", { session: a.session, workerId: a.workerId, requestId: a.requestId, outcome: "T6 identity check" });
     observations.T6 = { aSession: a.session, bSession: b.session, aWorkerId: a.workerId, bWorkerId: b.workerId,
       aRequestId: a.requestId, bRequestId: b.requestId, aDestination: a.destination, bDestination: b.destination,
@@ -172,7 +195,8 @@ window.runWorkerStudy = async (options = {}) => {
     checks.T9 = "PARTIAL（読取コールバック・要求待機・生成中の停止後に読取・upgradeを観測。実際のロック競合待機は未試験）";
     begin("T10.race"); a = start("A", "race"); const queued = await phase(a, "result");
     const deliveredBefore = deliveries.length; stop(a); next = start("A");
-    assert(!accept("A", a, { ...queued, phase: "result" }), "T10 stale envelope");
+    assert(!receive("A", a, queued, "post-stop-buffered-message"), "T10 stale envelope");
+    assert(!receive("A", next, queued, "controlled-old-envelope"), "T10 old envelope at current entry");
     record("old_message_rejected", { session: a.session, workerId: a.workerId, requestId: a.requestId, outcome: "T10 identity check" });
     await phase(next, "result"); assert(deliveries.length === deliveredBefore + 1, "T10 delivery"); stop(next); checks.T10 = "PASS（実メッセージの採用保留後に停止・再照合）";
     begin("T12.failure-injection"); const failing = start("A", "unresolved"); await phase(failing, "unresolved");
@@ -187,15 +211,18 @@ window.runWorkerStudy = async (options = {}) => {
     observations.finalActive = active.size; observations.finalCreated = created; observations.finalTerminated = terminated;
     observations.deliveryCount = deliveries.length; observations.finalVersion = version;
     begin("T11.summary"); checks.T11 = "PARTIAL（エンジン間比較と実機は別途）"; states.T11 = "PARTIAL";
-    return { checks, states, timeline, observations, limitations: ["実メモ・実認可・実配送は使わない", "メモリ・OSスレッド・ブラウザ内部の実資源解放時刻は未測定", "terminateは完了通知を返さない", "fixture生成だけはreadwrite"] };
+    report = { checks, states, timeline, observations, limitations: ["実メモ・実認可・実配送は使わない", "メモリ・OSスレッド・ブラウザ内部の実資源解放時刻は未測定", "terminateは完了通知を返さない", "fixture生成だけはreadwrite"] };
   } catch (error) {
     const failed = stage.match(/^(T\d+)/)?.[1]; if (failed) states[failed] = "FAIL";
     record("stage_failure", { outcome: error.message });
-    return { checks, states, timeline, observations: { ...observations, activeAtFailure: active.size, createdAtFailure: created, terminatedAtFailure: terminated },
+    report = { checks, states, timeline, observations: { ...observations, activeAtFailure: active.size, createdAtFailure: created, terminatedAtFailure: terminated },
       failure: `${stage}: ${error.message}`, limitations: ["未完了の試験は未実証", "内部資源の解放時刻は未測定"] };
   }
   finally {
     for (const item of active.values()) { try { item.worker.terminate(); } catch {} }
-    indexedDB.deleteDatabase(dbName);
+    const cleanup = await window.WorkerPocCleanup.deleteDatabaseObserved({ factory: indexedDB, dbName,
+      record: (event, details) => record(event, { ...details, phase: "primary_cleanup" }) });
+    if (report) report.cleanup = cleanup;
   }
+  return report;
 };

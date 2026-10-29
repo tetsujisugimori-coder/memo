@@ -1,6 +1,32 @@
 # 検証結果
 
-## 2026-10-29 P2／P3修正と限定診断
+## 今回の修正と結果の読み方
+
+P2-02では削除専用の2,000ms期限を追加した。deleteのsuccessのみをPASS、error／同期例外をFAIL、期限までsuccess未観測ならUNKNOWNとする。blocked単独では完了ではない。primaryの削除待機後に対照A、Aの削除待機後にBを開始し、全削除結果をJSONに保存する。T7の8,000ms期限は変更しない。削除待機の追加は後続実験や計測の順序・負荷を変える可能性があり、timeoutの消失も根本原因確定にはならない。
+
+P3-03では実Workerから受け取った保留結果を、停止後に共通受信処理で再処理して拒否する。別session／workerId／generation／requestIdは各1項目ずつ制御注入し、同一要求の二重配送も拒否する。異なる架空結果n1/n2と配送先を独立した期待値で確認する。これは実受信済みmessageの遅延処理と制御注入であり、terminate後にWorkerから実messageが新たに到着することは未再現。物理的な遅着についてPASSとは判定しない。
+
+新規単体試験13件（削除7、証拠6）は成功。ローカルのT5初回は編集時のfixture文字化けでFAILとなり、修正後の各エンジン1回ではT6・stage回帰を含むPoCが完走した。WebKitではprimary削除のblocked→successを観測。失敗JSONも保持し、過去のLinux失敗を相殺しない。最終コミットの結果はPoC CIの実checkout・hash・artifactとPR #390の最新報告を参照する。
+
+判定語を統一する：PASS＝指定した限定条件のassertを通過、FAIL＝assert／期限失敗、PARTIAL＝実施したが保証範囲不足、HOLD＝安全な継続・採用判断を保留、NOT_RUN＝未到達、UNKNOWN＝観測できず事実を確定できない。UNKNOWNを成功や未実施と混同しない。
+
+## 参照HEAD d2c4ad1の確定済みCI結果（現在の修正ソースとは別）
+
+[CI #40852560234](https://github.com/tetsujisugimori-coder/memo/actions/runs/40852560234)の実checkoutは `ac21059de9589bbc3a62cbd94be5bce15394b50c`。PR HEAD `d2c4ad154583173bbfe37d9223c31950de7adda7` とtree `6d7bbb5ecdcc53035b836cf1d9af807119ffe114` が一致し、保存JSONの実行ソース5件のSHA-256もそのHEADのblobと一致した。Node v22.23.4、Chromium 151.0.7922.34、WebKit 26.5、Linux。
+
+| 試験 | d2c4ad1 Chromium | d2c4ad1 WebKit |
+|---|---|---|
+| T1〜T6 | PASS | PASS |
+| T7 | PARTIAL | FAIL：9回目、version 9→10、8秒timeout |
+| T8 | PASS | NOT_RUN |
+| T9 | PARTIAL | NOT_RUN |
+| T10 | PASS | NOT_RUN |
+| T11 | PARTIAL | NOT_RUN |
+| T12 | HOLD | NOT_RUN |
+
+このCIのJSONは `evidence/d2c4ad1-ci/` にartifactから無変更で保存し、`evidence-index.json` にrun、artifact、checkout、tree、環境、hashを対応付けた。[Chromium artifact 12888250719](https://github.com/tetsujisugimori-coder/memo/actions/runs/40852560234/artifacts/12888250719)、[WebKit artifact 12887263146](https://github.com/tetsujisugimori-coder/memo/actions/runs/40852560234/artifacts/12887263146)。以下の過去Windows結果とは区別する。
+
+## 過去のP2／P3修正と限定診断（bb91413／79d5b76）
 
 T6はBのテスト用ゲートを結果生成前に停止し、B結果・配送がないことを確認後、Aのterminate呼出しを記録し、Bを解放する。Aは架空session A・期待n1・配送先A、Bはsession B・n2・配送先Bで、workerIdとrequestIdも異なる。新規B結果と配送先、旧A結果の拒否を検査する。実OAuthや実認可の検証ではない。現行entryのworkerId・generation・requestIdの単独不一致と別sessionを個別に拒否する。
 
@@ -16,7 +42,9 @@ T1〜T12のstageとsnapshot／比較／T7 iteration・upgradeの境界を更新�
 
 同一時系列にはmain受信順の連番とmain時刻、Worker発生時刻を別々に記録する。要求version・旧version、openイベント、transaction・接続・Workerメッセージ、terminate呼出しを記録するが、観測されなかった内部イベントや実際の資源解放を推測しない。各出力は一意名で、失敗した実行を成功した実行で上書きしない。
 
-判定は **PARTIAL**。実測はWindows上のPlaywright Chromium 151.0.7922.34、Playwright WebKit 26.5、架空データ、独立した一時IndexedDB、動的HTTPポート。実アプリ・実認可・実メモ・8791／8792／Tunnelは使っていない。`results-chromium.json` と `results-webkit.json` にソース4ファイルのSHA-256を保存し、対象ソースを特定できる。数値は各1回の局所実行で統計的な性能評価ではない。
+## 過去のWindows成功結果（ffe10a4版、最新結果ではない）
+
+以下は **PARTIAL** と判定した過去実行。Windows上のPlaywright Chromium 151.0.7922.34、Playwright WebKit 26.5、架空データ、独立した一時IndexedDB、動的HTTPポート。実アプリ・実認可・実メモ・8791／8792／Tunnelは使っていない。`results-chromium.json` と `results-webkit.json` は過去ソース4件のhashを含む保存証拠で、今回変更していない。実checkoutは当時のJSONにないためUNKNOWN。d2c4ad1や現在の修正版の成功証拠ではない。数値は各1回の局所実行で統計的な性能評価ではない。
 
 実行： `node experiments/mcp-search-worker-feasibility/run.cjs`。WebKitは環境変数 `WORKER_POC_BROWSER=webkit` を指定する。DBは毎回ランダム名で作り、fixture作成だけreadwrite、その後のWorker検索はreadonly。fixtureの2ストア全内容を前後比較する。
 
@@ -35,7 +63,7 @@ T1〜T12のstageとsnapshot／比較／T7 iteration・upgradeの境界を更新�
 | T11 | PARTIAL | 両エンジンで上記を実行。WebKit自動試験はiPhone Safari実機ではない。 |
 | T12 | HOLD / HOLD | terminate失敗を注入した場合は受理権限無効化と同セッション枠の再利用拒否を確認。実ブラウザの終了失敗・実資源解放不能は未再現。 |
 
-各最終実行の管理対象Workerは29生成・29回終了API呼出し、最大2、終了時の管理Map 0。これは実スレッドやメモリ解放の計測ではない。単発の生成から結果までChromium約21.3ms、WebKit約18ms、`terminate()`呼出しは計時分解能上0ms。これは終了完了時刻や接続解放の所要時間を示さない。
+各過去実行の管理対象Workerは29生成・29回終了API呼出し、最大2、終了時の管理Map 0。これは実スレッドやメモリ解放の計測ではない。単発の生成から結果までChromium約21.3ms、WebKit約18ms、`terminate()`呼出しは計時分解能上0ms。これは終了完了時刻や接続解放の所要時間を示さない。
 
 途中の初回並列実行ではWindows WebKitで `IndexedDB open blocked` が8秒で失敗し、失敗位置の詳細は取得できなかった。診断追加後の単独実行と最終ソースの実行では通過したが、初回失敗を成功に含めず、原因は未確定とする。OS負荷や接続解放が原因だったとは断定できない。失敗時に未採用・HOLDとする本番設計が必要。
 

@@ -54,7 +54,12 @@ window.runWorkerControls = async () => {
         results[testId] = { outcome: "FAIL", mode, reason: error.message, blockedObserved: blocked, transactionTerminal: terminal, workerConnectionClosed: closed, versionchangeObserved: versionChanged };
       }
     } catch (error) { log(testId, "control_error", { outcome: error.message }); results[testId] = { outcome: "FAIL", mode, reason: error.message, transactionTerminal: terminal, workerConnectionClosed: closed }; }
-    finally { try { worker?.terminate(); } catch {} indexedDB.deleteDatabase(dbName); }
+    finally {
+      try { worker?.terminate(); } catch {}
+      const cleanup = await window.WorkerPocCleanup.deleteDatabaseObserved({ factory: indexedDB, dbName,
+        record: (event, details) => log(testId, event, { ...details, phase: "control_cleanup" }) });
+      results[testId].cleanup = cleanup;
+    }
   }
   return { results, timeline, roundsPerCondition: 1, deadlineMs: 8000, measurementEffects: "ログのmessageとイベント処理はタイミングを変化させ得る。Worker時計とmain時計は別基準。" };
 };

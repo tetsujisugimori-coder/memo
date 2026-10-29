@@ -1,5 +1,9 @@
 ## 2026-10-29 MCP検索Worker停止耐性PoC（Issue #389）
 
+- P2-02対応：primaryと各対照のdeleteDatabaseをsuccess／error／blockedで観測し、独立2秒の期限で待機する。success未観測はUNKNOWN、errorはFAIL。削除待機完了後に後続対照を開始する。削除7件・証拠保全6件の単体試験は成功。T7の8秒期限は変更しない。
+- P3-02対応：既存のWindows結果JSONは変更せず過去証拠と明記し、d2c4ad1のCI #40852560234をartifactから保存してhash・tree・checkout・環境・試験状態を索引化した。WebKitはT7の9回目でFAIL、T8〜T12はNOT_RUN。旧成功結果と最新検証を区別する。
+- P3-03対応：共通受信経路で個別識別子不一致、旧結果の新配送先混入、受信済み実messageの停止後処理、二重配送を検査する。terminate後の物理的遅着は未再現でPARTIAL。ローカル初回T5は編集時のfixture文字化けによりFAIL、修正後の各ブラウザ1回は完走した。失敗JSONを保持。削除待機による順序・負荷変化があるため、完走をT7原因確定とは扱わない。
+
 - PR #390の独立レビュー後、T6をBの結果生成前ゲートとA停止後のB新規配送に変更し、異なる架空session・requestId・配送先とworkerId／generation／requestIdの個別不一致を検査した。実認可は未実装。T1〜T12のstage、T7 iterationとupgrade、T8 snapshot・比較を識別し、13のstage注入プローブと実T6例外注入を追加した。
 - open／transaction／接続／Workerの観測イベントとmain受信時刻・Worker発生時刻を分離して保存。通常closeと未解決terminateの対照は各1回、別の架空DBを使う。Windows Chromium／WebKitのローカル対照ではupgrade成功だが接続終了とtransaction終端はUNKNOWN。計測messageは順序に影響し得る。最終HEADのCI結果はPRに記録し、失敗したrunを成功で相殺しない。
 - 計測HEAD `bb91413` のLinux WebKit CI #40851321011ではT7の1〜9回がupgrade成功し、10回目のreadonly request成功→未解決同期点→terminate呼出し戻り→version 10→11 open開始後、8秒以内にblocked／upgradeneeded／success／errorを観測しなかった。transaction終端と接続終了はUNKNOWN。対照Aではclose呼出し後にblockedを観測したが、当初の対照Aはtransaction完了を待たずterminateしており通常終了の比較として不十分だった。この失敗を保持し、Aだけtransaction完了後にcloseするよう修正。期限延長や成功するまでの再試行は行わない。

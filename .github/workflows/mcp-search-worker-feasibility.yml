@@ -27,6 +27,8 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - name: 削除観測・過去証拠の単体試験
+        run: node --test experiments/mcp-search-worker-feasibility/cleanup.test.cjs experiments/mcp-search-worker-feasibility/evidence.test.cjs
       - run: npx playwright install --with-deps ${{ matrix.browser }}
       - name: 分離されたWorker PoCを実行
         run: node experiments/mcp-search-worker-feasibility/run.cjs
