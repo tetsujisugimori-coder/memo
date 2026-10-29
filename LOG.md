@@ -1,3 +1,21 @@
+## 2026-10-29 MCP検索の5秒heartbeatを接続状態確認専用にする（Issue #387 / Draft PR #388）
+
+### 背景・判断
+実ChatGPTのMCP検索では、連携コードの2分と許可の10分は別の期限であり、連携許可後にも検索・全文取得が失敗する事象があった。GitHub main `0fb770aa529a95b5f7cab7cefccbfea538bc424e` を静的点検したところ、5秒heartbeatが検索／取得要求受付・result受理・adapter配送・6秒待機の結果判定にまで使われ、さらにブラウザはタブ非表示でpollを自発停止していた。許可期限とは独立した短い接続監視が、通常のタブ切替運用に適合していないと判断した。
+
+### 実装範囲
+- `memo-search-broker.js`: 5秒判定は`status`だけに残し、検索／全文取得・結果受理・結果配送・6秒待機の判定から除外した。ブラウザ応答が届かなければ引き続き`search_timeout`、許可期限切れなら`permission_expired`。`poll`時の生存時刻更新は維持。
+- `memo-search-ui.js`: 非表示タブでpollタイマーを止めず、復帰時の`browser_disconnected`を許可終了と見なさず、同じcapabilityとsessionIdでpoll再開。ネットワーク失敗後は明示再確認で再開可能、取消応答未確認のままでは再開しない。
+- `memo-search.test.js`と`memo-search.e2e.js`: stale状態での検索・全文取得、結果配送、非表示中の検索、期限／取消／応答なしを確認する回帰。非表示のE2EはvisibilityStateの模擬通知であり、実OSのタイマー凍結は別の受入項目。
+- `docs/mcp-saved-search.md`: 当時の仕様記録を残し、現在の5秒状態診断専用ルールを追記。
+
+OAuth issuer/sub/scope、Browser専用token、Origin/capability、検索対象と全文取得の明示許可、10分期限、明示取消、6秒待機、20要求などの予算、IndexedDB readonly／保存不変は変更しない。
+
+### 検証記録・残条件
+初回PR HEAD `eb42a33447f46584d43b252500d81eadd0a0cf24` のGitHub CI `40821196363` は、全単体1,867件中1,866件成功・1件失敗。失敗は6秒待機タイマー内に残った5秒切断分類（期待`search_timeout`／実際`browser_disconnected`）で、原因箇所を確認しコミット`94b3e313db8b91599bc2533ba3d4d1f97527276a`で修正した。これを成功として扱わない。
+
+GitHub経由の差分とJavaScript構文は確認済み。修正後のCI／Chromium・WebKit検索E2Eは未確定のため、結果を確認するまではPARTIAL・Draft・未マージとする。実Windowsの8791・8792・Secure MCP Tunnel、Auth0設定、実ブラウザ保存領域は操作していない。非表示タブの実タイマー制限、ChatGPTの実ツール到達は別途実機検証が必要。
+
 ## 2026-10-23 MCP検索の許可状態・取り消し・再接続
 
 対象はtetsujisugimori-coder/memo。origin/mainをfetchし、基準`a524e5858edb3391f8b8e30aba2900b2f1eb6a23`から専用worktree `work/mcp-search-permission-status`、ブランチ`feat/mcp-search-permission-status`を作成した。元mainの未追跡workと既存worktreeを保持した。AGENTS.md、関連PR #379／#382／#384、現行prepare/search/read・Browser pairing／grant／revokeと8791／8792の認証境界を確認した。
