@@ -3979,3 +3979,10 @@ Windows 11 Home 10.0.26200、Playwright 1.62.1 のローカル WebKit で、既�
 - PC／320pxの通常・Reportのレビュー画像4枚を `docs/comparison-v1/` へ保存し、目視確認。撮影時だけ高さを増やして比較ブロック全体が収まることを検証し、通常の320×844も別に確認。図とURLは検証用。実在資料の調査結果ではない。
 - Comparison実操作はChromiumで確認。WebKit／Safari／iPhone実機のComparison操作、本番配信後のキャッシュ更新は未確認。app、attachment、backup、local-sync、CSSの配信識別子と対応する既存テストを同期。既存Figure CI jobにComparisonを1回追加し、レビュー画像artifactを保存する。GitHub Actions結果はPR作成後に確認し、PR本文へ反映する。
 - Figure・Comparison・Table・Chartから共通Sourceへの `sourceId` 接続は後続課題。FigureのsourceName／sourceUrlを維持し、自動移行、重複Sourceモデル、Source UI拡張は行っていない。
+## 2026-10-29 Issue #387／PR #388 独立レビューP2対応
+
+- 原因：取消要求が未達となった後、状態確認の通信失敗が通常切断用の再接続フラグを再設定し、復旧後に旧許可のpollが再開し得た。
+- 取消意思を通常の通信断と独立して保持し、状態確認失敗やactive応答では解除しない。取消未確認の表示と明示再試行を維持し、新規の明示許可で状態を初期化する。遅延応答は既存の世代検査で排除する。
+- 固定時計の4,900／5,000／5,001msと10分期限、取消後の遅延応答、検索および全文の生成後の取消・期限切れによる配送抑止を確認。取消未達、状態確認連続失敗、復旧後の検索・全文読取・配送停止と取消再試行、および通常切断から同じ許可での復帰をE2Eで検証する。
+- Node全体テスト1,867件、検索・OAuth・discovery回帰38件は成功。分離された架空の認証主体による検索E2EはChromium／WebKitともに成功。最終HEADのCIはPR上で確認する。iPhone Safari実機は未試験。
+- 最終HEADの独立レビューは実装者の検証と別途依頼する。8791／8792／Tunnelの稼働環境と実メモには触れていない。

@@ -229,14 +229,52 @@ async function snapshot(page) {
     assert.equal((await run(narrower.sessionId, "日本語")).error, "scope_forbidden");
     await page.locator("#memoSearchRevoke").click();
     await page.waitForFunction(() => !document.getElementById("memoSearchInspect").disabled);
+    // A normal outage remains reconnectable without extending or broadening the grant.
+    const outagePair = await allow("collection:search-one", page, true);
+    const originalScope = await page.locator("#memoSearchGrantedScope").innerText();
+    await page.route("**/search/poll", route => route.abort(), { times: 1 });
+    await page.locator("#memoSearchRefresh").click();
+    await page.waitForFunction(() => document.getElementById("memoSearchStatus").textContent.includes("通信に失敗"));
+    clock += 5001;
+    await page.locator("#memoSearchRefresh").click();
+    await page.waitForFunction(() => document.getElementById("memoSearchStatus").textContent.includes("検索許可中"));
+    assert.equal(await page.locator("#memoSearchGrantedScope").innerText(), originalScope);
+    assert.equal((await readMemo(outagePair.sessionId, "search-0000")).error, undefined);
+    assert.equal((await run(outagePair.sessionId, "query")).error, "scope_forbidden");
+    await page.locator("#memoSearchRevoke").click();
+    await page.waitForFunction(() => !document.getElementById("memoSearchInspect").disabled);
     // A request that never reaches the receiver must not display revoke success either.
-    const failedRevokePair = await allow("collection:search-one");
+    const failedRevokePair = await allow("collection:search-one", page, true);
+    await page.evaluate(() => {
+      window.searchObserved = { search: 0, read: 0 };
+      for (const name of ["search", "read"]) {
+        const original = window.MemoNexusSavedSearch[name];
+        window.MemoNexusSavedSearch[name] = (...args) => { window.searchObserved[name]++; return original(...args); };
+      }
+    });
     await page.route("**/search/revoke", route => route.abort(), { times: 1 });
     await page.locator("#memoSearchRevoke").click();
     await page.waitForFunction(() => document.getElementById("memoSearchStatus").textContent.includes("取り消し結果は未確認"));
+    await page.route("**/search/status", route => route.abort(), { times: 2 });
+    for (let i = 0; i < 2; i++) {
+      await page.locator("#memoSearchRefresh").click();
+      await page.waitForFunction(() => document.getElementById("memoSearchStatus").textContent.includes("通信に失敗"));
+    }
+    let polls = 0, deliveries = 0;
+    const observed = request => { if (request.url().endsWith("/search/poll")) polls++; if (request.url().endsWith("/search/result")) deliveries++; };
+    page.on("request", observed);
     await page.locator("#memoSearchRefresh").click();
     await page.waitForFunction(() => document.getElementById("memoSearchStatus").textContent.includes("取り消しは未確認"));
+    const blockedSearch = run(failedRevokePair.sessionId, "query", { type: "collection", collectionId: "search-one" });
+    assert.equal((await blockedSearch).error, "search_timeout");
+    const blockedRead = readMemo(failedRevokePair.sessionId, "search-0000");
+    await page.waitForTimeout(2500);
+    assert.deepEqual(await page.evaluate(() => window.searchObserved), { search: 0, read: 0 });
+    assert.equal(polls, 0); assert.equal(deliveries, 0);
+    assert.equal(await page.locator("#memoSearchRevoke").isEnabled(), true);
+    page.off("request", observed);
     await page.locator("#memoSearchRevoke").click();
+    assert.equal((await blockedRead).error, "permission_revoked");
     await page.waitForFunction(() => document.getElementById("memoSearchStatus").textContent.includes("取り消されています"));
     assert.equal((await run(failedRevokePair.sessionId, "日本語")).error, "permission_revoked");
     results.push("desktop/375/390 long-name layout and keyboard refresh; lost/failed revoke acknowledgement; stale poll after narrower reconnect rejected");

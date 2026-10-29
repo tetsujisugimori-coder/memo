@@ -390,9 +390,10 @@ test("status and idempotent revoke preserve capability/origin boundaries and nev
     assert.throws(() => broker[route]({ ...session.auth, capability: "wrong" }, origin), /tab_forbidden/);
     assert.throws(() => broker[route](session.auth, "http://localhost:5500"), /tab_forbidden/);
   }
-  now += 5001;
-  assert.equal(broker.status(session.auth, origin).state, "browser_disconnected");
-  assert.equal(broker.status(session.auth, origin).expiresAt, expiresAt);
+  for (const [elapsed, state] of [[4900, "active"], [5000, "active"], [5001, "browser_disconnected"]]) {
+    now = 1000 + elapsed;
+    assert.deepEqual(broker.status(session.auth, origin), { state, expiresAt, scope: session.scope, allowRead: true });
+  }
   const pending = broker.search(principal, { sessionId: session.sessionId, conditions: { ...all, scope: session.scope } });
   const work = broker.poll(session.auth, origin).request;
   broker.revoke(session.auth, origin);
@@ -414,7 +415,7 @@ test("actual MCP delivery suppresses a completed but unsent result after revoke 
   let now = Date.now(), release, arrived;
   const browserToken = randomBytes(32).toString("base64url"), adapterToken = randomBytes(32).toString("base64url");
   const receiver = createPreviewService({ browserToken, adapterToken, now: () => now, beforeReply: async (route, value) => {
-    if (route === "/search/run" && !value.error) { arrived(); await new Promise(resolve => { release = resolve; }); }
+    if (["/search/run", "/search/read"].includes(route) && !value.error) { arrived(); await new Promise(resolve => { release = resolve; }); }
   } }).server;
   const receiverPort = await listen(receiver), issuer = await issuerFixture();
   const oauth = await createAuthenticatedServer({ ...config, scopes_supported: ["memo:submit", "memo:search"] }, { adapterToken, receiverPort, fetchImpl: issuer.fetchImpl });
@@ -428,9 +429,9 @@ test("actual MCP delivery suppresses a completed but unsent result after revoke 
     const response = await fetch(`http://127.0.0.1:${receiverPort}/search/${route}`, { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${bearer}`, ...(requestOrigin ? { Origin: requestOrigin } : {}) }, body: JSON.stringify(body) });
     return { status: response.status, body: await response.json() };
   }
-  for (const state of ["permission_revoked", "permission_expired"]) {
+  for (const operation of ["search", "read"]) for (const state of ["permission_revoked", "permission_expired"]) {
     const pair = await call("prepare_memo_search"), selected = { type: "collection", collectionId: "one" };
-    const session = (await browser("grant", { pairingCode: pair.pairingCode, scope: selected })).body;
+    const session = (await browser("grant", { pairingCode: pair.pairingCode, scope: selected, allowRead: true })).body;
     const auth = { sessionId: session.sessionId, capability: session.capability };
     assert.equal((await browser("status", auth, adapterToken)).status, 401);
     assert.equal((await browser("status", auth, browserToken, null)).status, 403);
@@ -438,11 +439,11 @@ test("actual MCP delivery suppresses a completed but unsent result after revoke 
     assert.equal((await browser("status", auth, browserToken, "https://evil.invalid")).status, 403);
     assert.deepEqual((await browser("status", auth)).body.scope, selected);
     const held = new Promise(resolve => { arrived = resolve; });
-    const pending = call("search_saved_memos", { sessionId: pair.sessionId, conditions: { ...all, scope: selected } });
+    const pending = operation === "read" ? call("read_saved_memo", { sessionId: pair.sessionId, memoId: "a" }) : call("search_saved_memos", { sessionId: pair.sessionId, conditions: { ...all, scope: selected } });
     let work;
     for (let i = 0; i < 100 && !work; i++) { work = (await browser("poll", auth)).body.request; if (!work) await new Promise(resolve => setTimeout(resolve, 10)); }
     assert.ok(work);
-    await browser("result", { ...auth, requestId: work.requestId, result: search(notes, work.conditions) });
+    await browser("result", { ...auth, requestId: work.requestId, result: operation === "read" ? read(notes[0], work.readConditions, selected) : search(notes, work.conditions) });
     await held;
     if (state === "permission_revoked") assert.equal((await browser("revoke", auth)).body.revoked, true);
     else now = session.expiresAt;
