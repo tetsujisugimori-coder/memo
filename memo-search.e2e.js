@@ -35,6 +35,8 @@ async function snapshot(page) {
   const browserToken = randomBytes(32).toString("base64url"), adapterToken = randomBytes(32).toString("base64url");
   let clock = Date.now(), browser, receiver, oauth, staticServer, releaseOldPoll;
   const errors = [], results = [], artifacts = path.join(__dirname, "e2e-artifacts/memo-search");
+  const timeline = [], tracked = new Map(); let sequence = 0, phase = "setup";
+  const record = (event, detail = {}) => timeline.push({ ms: performance.now(), phase, event, ...detail });
   await fs.mkdir(artifacts, { recursive: true });
   try {
     receiver = createPreviewService({ browserToken, adapterToken, now: () => clock }).server; const receiverPort = await listen(receiver);
@@ -57,7 +59,19 @@ async function snapshot(page) {
     browser = await engine.launch({ headless: true, timeout: 30000 });
     const context = await browser.newContext({ viewport: { width: 1200, height: 900 }, timezoneId: "Asia/Tokyo" });
     await attachTransport(context, staticPort, receiverPort);
-    const page = await context.newPage(); page.on("pageerror", error => errors.push(error.message));
+    const page = await context.newPage();
+    context.on("request", request => {
+      const endpoint = new URL(request.url()).pathname;
+      if (!["/search/poll", "/search/revoke"].includes(endpoint)) return;
+      const id = ++sequence; tracked.set(request, id); record("request", { id, endpoint });
+    });
+    context.on("response", response => { if (tracked.has(response.request())) record("response", { id: tracked.get(response.request()), status: response.status() }); });
+    context.on("requestfinished", request => { if (tracked.has(request)) record("requestfinished", { id: tracked.get(request) }); });
+    context.on("requestfailed", request => { if (tracked.has(request)) record("requestfailed", { id: tracked.get(request), error: request.failure()?.errorText }); });
+    page.on("pageerror", error => { errors.push(error.message); record("pageerror", { category: /search\/poll due to access control checks/.test(error.message) ? "poll_access_control" : "other" }); });
+    page.on("close", () => record("page_closed"));
+    context.on("close", () => record("context_closed"));
+    phase = "test";
     page.on("requestfailed", request => {
       if (request.url().endsWith("/search/inspect")) console.log("Search inspect transport failed", request.failure()?.errorText);
     });
@@ -197,17 +211,23 @@ async function snapshot(page) {
     await page.evaluate(() => { releaseSearchResult(); window.MemoNexusSavedSearch.search = window.searchRealReader; });
     // Lost revoke acknowledgement + old poll arriving after a new, narrower session.
     clock += 60001; // Reset the fixture rate window without changing permission duration.
+    phase = "lost_revoke_ack_held_poll";
     const lostAckPair = await allow();
     let pollArrived;
     const oldPollReady = new Promise(resolve => { pollArrived = resolve; });
     await page.route("**/search/poll", async route => {
+      record("held_route_fetch_start", { id: tracked.get(route.request()) });
       const response = await fetchReceiver(route, receiverPort);
+      record("held_route_fetch_return", { id: tracked.get(route.request()), status: response.status() });
       pollArrived(); await new Promise(resolve => { releaseOldPoll = resolve; });
-      await route.fulfill({ response }).catch(() => {});
+      record("held_route_fulfill_start", { id: tracked.get(route.request()) });
+      await route.fulfill({ response }).then(() => record("held_route_fulfill_return", { id: tracked.get(route.request()) }), () => record("held_route_fulfill_failed", { id: tracked.get(route.request()) }));
     }, { times: 1 });
     await page.locator("#memoSearchRefresh").click(); await oldPollReady;
     await page.route("**/search/revoke", async route => {
+      record("revoke_fixture_fetch_start", { id: tracked.get(route.request()) });
       await fetchReceiver(route, receiverPort); // Server committed, but browser cannot confirm it.
+      record("revoke_fixture_abort", { id: tracked.get(route.request()) });
       await route.abort();
     }, { times: 1 });
     await page.locator("#memoSearchRevoke").click();
@@ -217,13 +237,14 @@ async function snapshot(page) {
     await page.locator("#memoSearchRefresh").click();
     await page.waitForFunction(() => document.getElementById("memoSearchStatus").textContent.includes("取り消されています"));
     const narrower = await allow("collection:search-one");
-    releaseOldPoll();
+    record("held_poll_release"); releaseOldPoll();
     await page.locator("#memoSearchRefresh").click();
     await page.waitForFunction(() => document.getElementById("memoSearchStatus").textContent.includes("検索可能"));
     assert.ok((await page.locator("#memoSearchGrantedScope").innerText()).includes("全コレクション許可：なし"));
     assert.equal((await run(narrower.sessionId, "日本語")).error, "scope_forbidden");
     await page.locator("#memoSearchRevoke").click();
     await page.waitForFunction(() => !document.getElementById("memoSearchInspect").disabled);
+    phase = "test";
     // A request that never reaches the receiver must not display revoke success either.
     const failedRevokePair = await allow("collection:search-one");
     await page.route("**/search/revoke", route => route.abort(), { times: 1 });
@@ -244,9 +265,10 @@ async function snapshot(page) {
     assert.equal((await run(expired.sessionId, "日本語")).error, "permission_expired");
     await page.waitForFunction(() => document.getElementById("memoSearchStatus").textContent.includes("期限"));
     await allow();
+    phase = "injected_poll_abort";
     await context.route("**/search/poll", route => route.abort());
     await page.waitForFunction(() => document.getElementById("memoSearchStatus").textContent.includes("通信に失敗"));
-    await context.unroute("**/search/poll");
+    await context.unroute("**/search/poll"); phase = "test";
     assert.deepEqual(await snapshot(page), before); assert.equal(await page.evaluate(() => window.searchReadWrites), 0);
     const reloadPair = await allow("all", page, true);
     await page.reload(); await settled(page);
@@ -261,14 +283,17 @@ async function snapshot(page) {
     assert.equal(await separatePage.evaluate(async () => (await window.MemoNexusSavedSearch.search({ query: "日本語", scope: { type: "all" } }, null)).count), 0);
     await separate.close();
     const disconnected = await allow();
-    await context.route("**/search/revoke", route => route.abort()); await page.close(); clock += 5001;
+    phase = "injected_revoke_abort_and_page_close";
+    await context.route("**/search/revoke", route => route.abort()); record("page_close_start"); await page.close(); record("page_close_return"); clock += 5001;
     assert.equal((await run(disconnected.sessionId, "日本語")).error, "browser_disconnected");
     assert.deepEqual(errors, []); results.push("separate profile isolation; closed browser without revoke is disconnected; no page errors");
     await fs.writeFile(path.join(artifacts, `result-${engine.name()}.json`), JSON.stringify({ mode: `fictional issuer and automated ${engine.name()}, not actual ChatGPT`, passed: results }, null, 2));
     console.log("PASS memo search browser/IndexedDB/OAuth integration (fictional issuer, not actual ChatGPT)");
   } finally {
+    phase = "cleanup"; record("cleanup_start");
     releaseOldPoll?.();
-    if (browser) await browser.close();
-    for (const server of [oauth, receiver, staticServer]) if (server?.listening) await close(server);
+    if (browser) { record("browser_close_start"); await browser.close(); record("browser_close_return"); }
+    for (const [name, server] of [["oauth", oauth], ["receiver", receiver], ["static", staticServer]]) if (server?.listening) { record("server_close_start", { name }); await close(server); record("server_close_return", { name }); }
+    await fs.writeFile(path.join(artifacts, `timeline-${process.env.MEMO_SEARCH_BROWSER || "chromium"}-${Date.now()}-${randomBytes(4).toString("hex")}.json`), JSON.stringify({ test: "memo-search-e2e-route-diagnostic", baseline: "597c1d4985724e3dd77660a3562020d7004b6d86", recordedAt: new Date().toISOString(), engine: process.env.MEMO_SEARCH_BROWSER || "chromium", timeline }, null, 2), { flag: "wx" });
   }
 })().catch(error => { console.error(error); process.exitCode = 1; });
