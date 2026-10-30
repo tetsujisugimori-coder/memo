@@ -74,6 +74,8 @@ if (!["chromium", "webkit"].includes(engine)) throw new Error("unsupported brows
     const owner = winner === a ? "a" : "b", id = (winner === a ? ra : rb).id;
     await loser.reload(); await loser.addScriptTag({ content: source });
     assert.deepEqual(await attempt(loser, "reload"), { status: "capacity_unknown", id: undefined, created: 0 });
+    await winner.reload(); await winner.addScriptTag({ content: source });
+    assert.deepEqual(await attempt(winner, "owner-reload"), { status: "capacity_unknown", id: undefined, created: 0 });
     await winner.close(); // owner disappeared: physical termination/release remains UNKNOWN.
     const afterClose = await loser.evaluate(db => SharedWorkerLedger.inspect(db, 1), db);
     assert.equal(afterClose.slots.length, 1); assert.equal(afterClose.slots[0].state, "running");
@@ -97,6 +99,21 @@ if (!["chromium", "webkit"].includes(engine)) throw new Error("unsupported brows
       catch (e) { return { status: e.message, created }; }
     });
     assert.deepEqual(corrupt, { status: "ledger_invalid", created: 0 });
+    const injected = await c.evaluate(async () => {
+      const name = "injected-" + crypto.randomUUID(), L = SharedWorkerLedger;
+      await L.createFixture(name, 1); const originalGet = IDBObjectStore.prototype.get, originalPut = IDBObjectStore.prototype.put;
+      async function attemptFailure(method) {
+        let created = 0, failed = false;
+        IDBObjectStore.prototype[method] = function () { throw new Error("injected_idb_failure"); };
+        try { await L.start(name, 1, method, () => { created++; return new Worker("missing.js"); }); }
+        catch { failed = true; }
+        finally { IDBObjectStore.prototype.get = originalGet; IDBObjectStore.prototype.put = originalPut; }
+        return { failed, created };
+      }
+      const read = await attemptFailure("get"), write = await attemptFailure("put"), after = await L.inspect(name, 1);
+      return { read, write, slots: after.slots.length };
+    });
+    assert.deepEqual(injected, { read: { failed: true, created: 0 }, write: { failed: true, created: 0 }, slots: 0 });
     const stages = await c.evaluate(async ({db, owner, id}) => {
       const out = [];
       for (const state of ["invalidated", "stop_requested", "unknown"]) out.push((await SharedWorkerLedger.transition(db, 1, owner, id, state)).status);
@@ -105,7 +122,10 @@ if (!["chromium", "webkit"].includes(engine)) throw new Error("unsupported brows
     assert.deepEqual(stages, ["invalidated", "stop_requested", "unknown"]);
     assert.deepEqual(await attempt(c, "after-unknown"), { status: "capacity_unknown", id: undefined, created: 0 });
     assert.equal(await snapshot(c), before);
-    console.log(JSON.stringify({ engine, browserVersion: browser.version(), preflight, failure, concurrent: [ra.status, rb.status], workersCreated: ra.created + rb.created, reload: "capacity_unknown", ownerClosed: "capacity_unknown", stages, missing, corrupt, fixtureUnchanged: true, physicalResourceRelease: "UNKNOWN" }));
+    await loser.close(); await c.close();
+    const reopened = await context.newPage(); await setup(reopened);
+    assert.deepEqual(await attempt(reopened, "after-all-tabs"), { status: "capacity_unknown", id: undefined, created: 0 });
+    console.log(JSON.stringify({ engine, browserVersion: browser.version(), preflight, failure, concurrent: [ra.status, rb.status], workersCreated: ra.created + rb.created, reload: "capacity_unknown", ownerReload: "capacity_unknown", ownerClosed: "capacity_unknown", allTabsClosedSameContext: "capacity_unknown", stages, missing, corrupt, injected, fixtureUnchanged: true, physicalResourceRelease: "UNKNOWN" }));
   } finally {
     if (context) await bounded(context.close(), 5000, "context close timeout");
     await bounded(browser.close(), 5000, "browser close timeout");
