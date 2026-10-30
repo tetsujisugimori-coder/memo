@@ -1,0 +1,46 @@
+name: MCP Worker recovery research
+on:
+  pull_request:
+    paths:
+      - 'experiments/mcp-search-worker-recovery/**'
+      - '.github/workflows/mcp-search-worker-recovery.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  recovery:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chromium, webkit]
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: node --test experiments/mcp-search-worker-recovery/supervisor.test.cjs
+      - run: npx playwright install --with-deps ${{ matrix.browser }}
+      - name: Synthetic stop/recovery acceptance
+        run: node experiments/mcp-search-worker-recovery/run.cjs
+        env:
+          WORKER_RECOVERY_BROWSER: ${{ matrix.browser }}
+      - name: Finite T7 diagnosis (independent of recovery result)
+        if: always()
+        run: node experiments/mcp-search-worker-recovery/t7-run.cjs
+        env:
+          WORKER_POC_BROWSER: ${{ matrix.browser }}
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: worker-recovery-${{ matrix.browser }}
+          path: |
+            e2e-artifacts/worker-recovery/*.json
+            e2e-artifacts/mcp-worker-recovery/*.json
+          if-no-files-found: error
+          retention-days: 14
