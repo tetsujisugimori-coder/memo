@@ -31,10 +31,12 @@ jobs:
       - run: node experiments/mcp-search-worker-feasibility/poll-compare.cjs
       - name: An unexpected route exception must fail the runner
         run: |
-          if POLL_INJECT_UNEXPECTED=1 node experiments/mcp-search-worker-feasibility/poll-compare.cjs; then
+          if POLL_INJECT_UNEXPECTED=1 node experiments/mcp-search-worker-feasibility/poll-compare.cjs > failure-check.log 2>&1; then
             echo 'Unexpected success after injected route exception'
             exit 1
           fi
+          cat failure-check.log
+          grep -q EXPECTED_ROUTE_ASSERTION failure-check.log
       - run: node experiments/mcp-search-worker-feasibility/shared-ledger-browser.cjs
       - run: node experiments/mcp-search-worker-feasibility/ledger-restart-browser.cjs
       - run: node experiments/mcp-search-worker-feasibility/shutdown-browser.cjs

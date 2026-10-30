@@ -67,4 +67,7 @@ function classify(error) {
     }
     console.log(JSON.stringify({ test: "poll-controlled-compare", engine, version: browser.version(), at: new Date().toISOString(), parent: "df9a713b3ef9188b4a6bc8ae500f92d20b9124ea", results: all }));
   } finally { await browser.close(); await new Promise(resolve => server.close(resolve)); }
-})().catch(e => { console.error("diagnostic failed:", classify(e)); process.exitCode = 1; });
+})().catch(e => {
+  if (process.env.POLL_INJECT_UNEXPECTED === "1" && String(e?.message || "").includes("immediate: unexpected route exception")) console.error("EXPECTED_ROUTE_ASSERTION");
+  console.error("diagnostic failed:", classify(e)); process.exitCode = 1;
+});
