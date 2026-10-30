@@ -1,3 +1,9 @@
+## 2026-10-30 MCP検索Worker停止・復旧（Issue #391）
+
+- main 714b1c6から独立研究。要求ID/Worker/世代/session照合、期限/取消/二重配送拒否、正常Worker再利用、未解放債務を返却しない生涯2生成上限を実装。枯渇時は安全停止。terminate戻りを資源解放とは扱わない。
+- 架空DB専用Workerと単体・Chromium/WebKit用局所E2E・専用CIを追加。実認可と製品検索は変更せず、本番HOLD、#388 P2は未解決。試験の実測・未実施・CI HEADはPRに記録する。
+- #390の旧証拠と既存suiteを保持し、有限T7対照を追加する。iPhone Safariと物理資源は未検証。
+
 ## 2026-10-29 MCP検索Worker停止耐性PoC（Issue #389）
 
 - P3-04：primary・従来対照A/B・回帰注入・追加6条件を最大10個の別browser contextで実行する経路を追加。旧同一context経路と過去証拠は保持。同じbrowser processであり共有内部資源の完全独立・解放を保証しない。cleanup UNKNOWNを保存して後続へ進み、context closeにも有限待機とUNKNOWN記録を設けた。
