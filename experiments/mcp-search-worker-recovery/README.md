@@ -23,3 +23,13 @@
 ## #388との統合順序
 
 本PRはmainから研究のみ。#388へのcherry-pickや上書きなし。#388のheartbeat・遅延result分類を独立レビュー後に統合し、その上で実検索のWorker移植、tab全体owner、実認可/取消/期限/collection/転送量との結合試験が成立した別PRで初めて製品統合を判断する。#388のP2は未解決のまま。製品保存・認証・受信プレビューは差分なし。
+
+## 2026-10-30 初回CIと局所修正
+
+run [41066494950](https://github.com/tetsujisugimori-coder/memo/actions/runs/41066494950)、PR HEAD5187514、実checkout61a0f8aで両engineの新受入はFAIL：default clearTimeoutをsupervisorのmethodとして呼び、Window receiver違反となった。製品不変更だが新PoCの実装不具合。global timerをarrow wrapper経由で呼ぶ局所修正と12件目の回帰を追加した。修正後の実ブラウザ結果はPRコメントへ記録する。
+
+有限T7診断は同runで予定の各engine2条件を完了：Chromium original-primary PARTIAL（T7 PARTIAL、T12 HOLD）、T7-only PASS。WebKit original-primaryはT7 iteration1の8秒upgrade timeout、delete2秒UNKNOWN、T8〜T12 NOT_RUN。別browser起動T7-onlyはupgradeとdelete success。両engineのbrowser.closeはRETURNEDだが物理解放はUNKNOWN。先行T1〜T6の有無・試行数の差があり、根本原因は確定しない。
+
+artifact: Chromium12982139030、WebKit12981779289（保存期限2026-11-13）。取得JSONのt7-runソースSHA256 `648dd85dd4370790158e26bdeb76a97e2726bc341e707c04bbcc7b765eeb941c` は現行不変更ソースと一致。旧失敗と元suiteを保持する。ローカルにも未加工JSONを一意保存した。
+
+診断は修正pushごとに反復しない。専用workflowの通常PR実行は新受入を再検証し、追加T7診断は明示workflow_dispatch入力のみ。診断の再実行対象外を「T7成功」にしない。最終HEADでも旧T7 FAILと本番HOLDを維持する。

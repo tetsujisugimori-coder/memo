@@ -61,3 +61,16 @@ test('wall clock rollback cannot extend relative deadline when timer is throttle
   worker.onmessage({ data: { ...worker.sent, phase: 'complete', transaction: 'complete', closeRequested: true, result: [] } });
   await rejected; assert.equal(m.status().quarantined, 1);
 });
+
+test('default timer wrappers retain global receiver required by browser timers', async () => {
+  const originalSet = globalThis.setTimeout, originalClear = globalThis.clearTimeout;
+  let callback, worker;
+  globalThis.setTimeout = function (fn) { assert.equal(this, globalThis); callback = fn; return 1; };
+  globalThis.clearTimeout = function () { assert.equal(this, globalThis); };
+  try {
+    const m = new RecoverySupervisor({ createWorker: () => worker = { postMessage(d) { this.sent = d; }, terminate() {} } });
+    m.authorize({ id: 'A', expiresAt: Date.now() + 10000 }); const result = m.execute({ operation: 'search' });
+    worker.onmessage({ data: { ...worker.sent, phase: 'complete', transaction: 'complete', closeRequested: true, result: [] } });
+    assert.deepEqual(await result, []); assert.equal(typeof callback, 'function');
+  } finally { globalThis.setTimeout = originalSet; globalThis.clearTimeout = originalClear; }
+});

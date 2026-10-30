@@ -2,7 +2,7 @@
 (function (root) {
   'use strict';
   class RecoverySupervisor {
-    constructor({ createWorker, now = () => Date.now(), monotonicNow = () => performance.now(), setTimer = setTimeout, clearTimer = clearTimeout }) {
+    constructor({ createWorker, now = () => Date.now(), monotonicNow = () => performance.now(), setTimer = (fn, ms) => setTimeout(fn, ms), clearTimer = id => clearTimeout(id) }) {
       this.createWorker = createWorker; this.now = now; this.monotonicNow = monotonicNow; this.setTimer = setTimer; this.clearTimer = clearTimer;
       this.created = 0; this.quarantined = 0; this.sequence = 0; this.session = null;
       this.worker = null; this.pending = null; this.generation = 0; this.closed = false;

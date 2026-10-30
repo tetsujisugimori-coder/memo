@@ -5,6 +5,11 @@ on:
       - 'experiments/mcp-search-worker-recovery/**'
       - '.github/workflows/mcp-search-worker-recovery.yml'
   workflow_dispatch:
+    inputs:
+      finite_diagnosis:
+        description: Explicitly authorize a new finite T7 diagnostic run
+        type: boolean
+        default: false
 permissions:
   contents: read
 jobs:
@@ -30,8 +35,9 @@ jobs:
         run: node experiments/mcp-search-worker-recovery/run.cjs
         env:
           WORKER_RECOVERY_BROWSER: ${{ matrix.browser }}
-      - name: Finite T7 diagnosis (independent of recovery result)
-        if: always()
+      # Initial finite diagnostic is preserved in run 41066494950; do not repeat on repair pushes.
+      - name: Explicit finite T7 diagnosis (not recovery acceptance)
+        if: always() && github.event_name == 'workflow_dispatch' && inputs.finite_diagnosis
         run: node experiments/mcp-search-worker-recovery/t7-run.cjs
         env:
           WORKER_POC_BROWSER: ${{ matrix.browser }}
