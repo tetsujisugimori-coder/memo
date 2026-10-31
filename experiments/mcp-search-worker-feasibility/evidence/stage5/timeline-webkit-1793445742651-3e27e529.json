@@ -1,0 +1,1209 @@
+{
+  "test": "memo-search-e2e-route-diagnostic",
+  "baselineCommit": "06796f70f1a42b829ba6c4a2b7e962409aca20e6",
+  "testedCommit": "06796f70f1a42b829ba6c4a2b7e962409aca20e6",
+  "testedTree": "b4e75a686963813edf3ca87dd20e589890f6a63c",
+  "dirty": true,
+  "recordedAtJST": "2026-10-31T20:22:22.651+09:00",
+  "platform": "win32",
+  "node": "v24.20.0",
+  "sourceHashes": {
+    "memo-search.e2e.js": "fdf08f21b7d20565773c4e36b076688ebb7ca9c1fb4f49f5760c52abc19e2d9e",
+    "received-e2e-transport.js": "d56fcef9386ee67ea71115ba6022065033e22fb2eea8d3caa6e294ce970f9868",
+    "memo-search-ui.js": "89de2a98ab139abc7d272098597e8a8d77b9ed5944f8c652de5ce0b3cb97d948",
+    "memo-search-broker.js": "2cb05e8c00f12e87448623784f5fecad2f32144f99adaf1eddbff0b746e3ea81",
+    "experiments/mcp-search-worker-feasibility/stage5-evidence.cjs": "f7ab93a805c5a4bb0451e205fa1ab00cfebe3b7aa61ebab5579278dacb0e66bf"
+  },
+  "engine": "webkit",
+  "timeline": [
+    {
+      "ms": 16581.3357,
+      "phase": "test",
+      "event": "snapshot_before",
+      "sha256": "4bdcf1ad2935d61574b23d8b37b9a1784f0a45e1ec91a1b608a24942ac35996d"
+    },
+    {
+      "ms": 18609.1119,
+      "phase": "test",
+      "event": "request",
+      "id": 1,
+      "endpoint": "/search/poll",
+      "method": "POST",
+      "resourceType": "fetch"
+    },
+    {
+      "ms": 18644.6631,
+      "phase": "test",
+      "event": "response",
+      "id": 1,
+      "status": 200
+    },
+    {
+      "ms": 18647.7113,
+      "phase": "test",
+      "event": "requestfinished",
+      "id": 1
+    },
+    {
+      "ms": 20662.9294,
+      "phase": "test",
+      "event": "request",
+      "id": 2,
+      "endpoint": "/search/poll",
+      "method": "POST",
+      "resourceType": "fetch"
+    },
+    {
+      "ms": 20708.83,
+      "phase": "test",
+      "event": "response",
+      "id": 2,
+      "status": 200
+    },
+    {
+      "ms": 20709.2824,
+      "phase": "test",
+      "event": "requestfinished",
+      "id": 2
+    },
+    {
+      "ms": 21431.0848,
+      "phase": "test",
+      "event": "request",
+      "id": 3,
+      "endpoint": "/search/poll",
+      "method": "POST",
+      "resourceType": "fetch"
+    },
+    {
+      "ms": 21486.3743,
+      "phase": "test",
+      "event": "response",
+      "id": 3,
+      "status": 200
+    },
+    {
+      "ms": 21487.3221,
+      "phase": "test",
+      "event": "requestfinished",
+      "id": 3
+    },
+    {
+      "ms": 21660.1156,
+      "phase": "test",
+      "event": "request",
+      "id": 4,
+      "endpoint": "/search/poll",
+      "method": "POST",
+      "resourceType": "fetch"
+    },
+    {
+      "ms": 21692.7513,
+      "phase": "test",
+      "event": "response",
+      "id": 4,
+      "status": 200
+    },
+    {
+      "ms": 21694.2299,
+      "phase": "test",
+      "event": "requestfinished",
+      "id": 4
+    },
+    {
+      "ms": 23701.9357,
+      "phase": "test",
+      "event": "request",
+      "id": 5,
+      "endpoint": "/search/poll",
+      "method": "POST",
+      "resourceType": "fetch"
+    },
+    {
+      "ms": 23746.9372,
+      "phase": "test",
+      "event": "response",
+      "id": 5,
+      "status": 200
+    },
+    {
+      "ms": 23753.3157,
+      "phase": "test",
+      "event": "requestfinished",
+      "id": 5
+    },
+    {
+      "ms": 25871.9938,
+      "phase": "test",
+      "event": "request",
+      "id": 6,
+      "endpoint": "/search/poll",
+      "method": "POST",
+      "resourceType": "fetch"
+    },
+    {
+      "ms": 25908.8281,
+      "phase": "test",
+      "event": "response",
+      "id": 6,
+      "status": 200
+    },
+    {
+      "ms": 25909.6058,
+      "phase": "test",
+      "event": "requestfinished",
+      "id": 6
+    },
+    {
+      "ms": 26610.543,
+      "phase": "test",
+      "event": "request",
+      "id": 7,
+      "endpoint": "/search/poll",
+      "method": "POST",
+      "resourceType": "fetch"
+    },
+    {
+      "ms": 26653.2465,
+      "phase": "test",
+      "event": "response",
+      "id": 7,
+      "status": 200
+    },
+    {
+      "ms": 26654.5187,
+      "phase": "test",
+      "event": "requestfinished",
+      "id": 7
+    },
+    {
+      "ms": 27936.3693,
+      "phase": "test",
+      "event": "request",
+      "id": 8,
+      "endpoint": "/search/poll",
+      "method": "POST",
+      "resourceType": "fetch"
+    },
+    {
+      "ms": 27971.8686,
+      "phase": "test",
+      "event": "response",
+      "id": 8,
+      "status": 200
+    },
+    {
+      "ms": 27974.4391,
+      "phase": "test",
+      "event": "requestfinished",
+      "id": 8
+    },
+    {
+      "ms": 28661.4674,
+      "phase": "test",
+      "event": "request",
+      "id": 9,
+      "endpoint": "/search/poll",
+      "method": "POST",
+      "resourceType": "fetch"
+    },
+    {
+      "ms": 28701.6565,
+      "phase": "test",
+      "event": "response",
+      "id": 9,
+      "status": 200
+    },
+    {
+      "ms": 28702.2249,
+      "phase": "test",
+      "event": "requestfinished",
+      "id": 9
+    },
+    {
+      "ms": 29951.974,
+      "phase": "test",
+      "event": "request",
+      "id": 10,
+      "endpoint": "/search/revoke",
+      "method": "POST",
+      "resourceType": "fetch"
+    },
+    {
+      "ms": 30015.1748,
+      "phase": "test",
+      "event": "response",
+      "id": 10,
+      "status": 200
+    },
+    {
+      "ms": 30018.742,
+      "phase": "test",
+      "event": "requestfinished",
+      "id": 10
+    },
+    {
+      "ms": 30087.5511,
+      "phase": "test",
+      "event": "request",
+      "id": 11,
+      "endpoint": "/search/poll",
+      "method": "POST",
+      "resourceType": "fetch"
+    },
+    {
+      "ms": 30130.6527,
+      "phase": "test",
+      "event": "response",
+      "id": 11,
+      "status": 200
+    },
+    {
+      "ms": 30134.1245,
+      "phase": "test",
+      "event": "requestfinished",
+      "id": 11
+    },
+    {
+      "ms": 30851.3038,
+      "phase": "test",
+      "event": "request",
+      "id": 12,
+      "endpoint": "/search/revoke",
+      "method": "POST",
+      "resourceType": "fetch"
+    },
+    {
+      "ms": 30899.0912,
+      "phase": "test",
+      "event": "response",
+      "id": 12,
+      "status": 200
+    },
+    {
+      "ms": 30904.626,
+      "phase": "test",
+      "event": "requestfinished",
+      "id": 12
+    },
+    {
+      "ms": 33038.2167,
+      "phase": "test",
+      "event": "request",
+      "id": 13,
+      "endpoint": "/search/poll",
+      "method": "POST",
+      "resourceType": "fetch"
+    },
+    {
+      "ms": 33070.9363,
+      "phase": "test",
+      "event": "response",
+      "id": 13,
+      "status": 200
+    },
+    {
+      "ms": 33072.9079,
+      "phase": "test",
+      "event": "requestfinished",
+      "id": 13
+    },
+    {
+      "ms": 35085.8169,
+      "phase": "test",
+      "event": "request",
+      "id": 14,
+      "endpoint": "/search/poll",
+      "method": "POST",
+      "resourceType": "fetch"
+    },
+    {
+      "ms": 35129.2184,
+      "phase": "test",
+      "event": "response",
+      "id": 14,
+      "status": 200
+    },
+    {
+      "ms": 35130.8121,
+      "phase": "test",
+      "event": "requestfinished",
+      "id": 14
+    },
+    {
+      "ms": 37218.8087,
+      "phase": "test",
+      "event": "request",
+      "id": 15,
+      "endpoint": "/search/poll",
+      "method": "POST",
+      "resourceType": "fetch"
+    },
+    {
+      "ms": 37256.0958,
+      "phase": "test",
+      "event": "response",
+      "id": 15,
+      "status": 200
+    },
+    {
+      "ms": 37257.7737,
+      "phase": "test",
+      "event": "requestfinished",
+      "id": 15
+    },
+    {
+      "ms": 39384.7159,
+      "phase": "test",
+      "event": "request",
+      "id": 16,
+      "endpoint": "/search/poll",
+      "method": "POST",
+      "resourceType": "fetch"
+    },
+    {
+      "ms": 39421.8164,
+      "phase": "test",
+      "event": "response",
+      "id": 16,
+      "status": 200
+    },
+    {
+      "ms": 39423.1049,
+      "phase": "test",
+      "event": "requestfinished",
+      "id": 16
+    },
+    {
+      "ms": 41547.893,
+      "phase": "test",
+      "event": "request",
+      "id": 17,
+      "endpoint": "/search/poll",
+      "method": "POST",
+      "resourceType": "fetch"
+    },
+    {
+      "ms": 41582.0855,
+      "phase": "test",
+      "event": "response",
+      "id": 17,
+      "status": 200
+    },
+    {
+      "ms": 41584.1295,
+      "phase": "test",
+      "event": "requestfinished",
+      "id": 17
+    },
+    {
+      "ms": 43702.5178,
+      "phase": "test",
+      "event": "request",
+      "id": 18,
+      "endpoint": "/search/poll",
+      "method": "POST",
+      "resourceType": "fetch"
+    },
+    {
+      "ms": 43737.4947,
+      "phase": "test",
+      "event": "response",
+      "id": 18,
+      "status": 200
+    },
+    {
+      "ms": 43738.6864,
+      "phase": "test",
+      "event": "requestfinished",
+      "id": 18
+    },
+    {
+      "ms": 45886.1402,
+      "phase": "test",
+      "event": "request",
+      "id": 19,
+      "endpoint": "/search/poll",
+      "method": "POST",
+      "resourceType": "fetch"
+    },
+    {
+      "ms": 45967.1472,
+      "phase": "test",
+      "event": "response",
+      "id": 19,
+      "status": 200
+    },
+    {
+      "ms": 45967.225,
+      "phase": "test",
+      "event": "requestfinished",
+      "id": 19
+    },
+    {
+      "ms": 48050.3921,
+      "phase": "test",
+      "event": "request",
+      "id": 20,
+      "endpoint": "/search/poll",
+      "method": "POST",
+      "resourceType": "fetch"
+    },
+    {
+      "ms": 48095.3392,
+      "phase": "test",
+      "event": "response",
+      "id": 20,
+      "status": 200
+    },
+    {
+      "ms": 48096.6755,
+      "phase": "test",
+      "event": "requestfinished",
+      "id": 20
+    },
+    {
+      "ms": 49387.4617,
+      "phase": "test",
+      "event": "request",
+      "id": 21,
+      "endpoint": "/search/revoke",
+      "method": "POST",
+      "resourceType": "fetch"
+    },
+    {
+      "ms": 49434.6975,
+      "phase": "test",
+      "event": "response",
+      "id": 21,
+      "status": 200
+    },
+    {
+      "ms": 49439.3666,
+      "phase": "test",
+      "event": "requestfinished",
+      "id": 21
+    },
+    {
+      "ms": 51248.8739,
+      "phase": "test",
+      "event": "request",
+      "id": 22,
+      "endpoint": "/search/poll",
+      "method": "POST",
+      "resourceType": "fetch"
+    },
+    {
+      "ms": 51283.5139,
+      "phase": "test",
+      "event": "response",
+      "id": 22,
+      "status": 200
+    },
+    {
+      "ms": 51285.5232,
+      "phase": "test",
+      "event": "requestfinished",
+      "id": 22
+    },
+    {
+      "ms": 53297.3589,
+      "phase": "test",
+      "event": "request",
+      "id": 23,
+      "endpoint": "/search/poll",
+      "method": "POST",
+      "resourceType": "fetch"
+    },
+    {
+      "ms": 53332.4561,
+      "phase": "test",
+      "event": "response",
+      "id": 23,
+      "status": 200
+    },
+    {
+      "ms": 53334.7806,
+      "phase": "test",
+      "event": "requestfinished",
+      "id": 23
+    },
+    {
+      "ms": 55449.131,
+      "phase": "test",
+      "event": "request",
+      "id": 24,
+      "endpoint": "/search/poll",
+      "method": "POST",
+      "resourceType": "fetch"
+    },
+    {
+      "ms": 55481.1578,
+      "phase": "test",
+      "event": "response",
+      "id": 24,
+      "status": 200
+    },
+    {
+      "ms": 55483.2994,
+      "phase": "test",
+      "event": "requestfinished",
+      "id": 24
+    },
+    {
+      "ms": 57594.0241,
+      "phase": "test",
+      "event": "request",
+      "id": 25,
+      "endpoint": "/search/poll",
+      "method": "POST",
+      "resourceType": "fetch"
+    },
+    {
+      "ms": 57638.1519,
+      "phase": "test",
+      "event": "response",
+      "id": 25,
+      "status": 200
+    },
+    {
+      "ms": 57639.8644,
+      "phase": "test",
+      "event": "requestfinished",
+      "id": 25
+    },
+    {
+      "ms": 59721.7032,
+      "phase": "test",
+      "event": "request",
+      "id": 26,
+      "endpoint": "/search/poll",
+      "method": "POST",
+      "resourceType": "fetch"
+    },
+    {
+      "ms": 59754.5334,
+      "phase": "test",
+      "event": "response",
+      "id": 26,
+      "status": 200
+    },
+    {
+      "ms": 59756.1795,
+      "phase": "test",
+      "event": "requestfinished",
+      "id": 26
+    },
+    {
+      "ms": 61799.8763,
+      "phase": "test",
+      "event": "request",
+      "id": 27,
+      "endpoint": "/search/poll",
+      "method": "POST",
+      "resourceType": "fetch"
+    },
+    {
+      "ms": 61835.499,
+      "phase": "test",
+      "event": "response",
+      "id": 27,
+      "status": 200
+    },
+    {
+      "ms": 61836.9519,
+      "phase": "test",
+      "event": "requestfinished",
+      "id": 27
+    },
+    {
+      "ms": 63915.5673,
+      "phase": "test",
+      "event": "request",
+      "id": 28,
+      "endpoint": "/search/poll",
+      "method": "POST",
+      "resourceType": "fetch"
+    },
+    {
+      "ms": 63954.002,
+      "phase": "test",
+      "event": "response",
+      "id": 28,
+      "status": 200
+    },
+    {
+      "ms": 63955.795,
+      "phase": "test",
+      "event": "requestfinished",
+      "id": 28
+    },
+    {
+      "ms": 66042.8111,
+      "phase": "test",
+      "event": "request",
+      "id": 29,
+      "endpoint": "/search/poll",
+      "method": "POST",
+      "resourceType": "fetch"
+    },
+    {
+      "ms": 66085.5626,
+      "phase": "test",
+      "event": "response",
+      "id": 29,
+      "status": 200
+    },
+    {
+      "ms": 66086.915,
+      "phase": "test",
+      "event": "requestfinished",
+      "id": 29
+    },
+    {
+      "ms": 66533.2227,
+      "phase": "test",
+      "event": "request",
+      "id": 30,
+      "endpoint": "/search/revoke",
+      "method": "POST",
+      "resourceType": "fetch"
+    },
+    {
+      "ms": 66578.1851,
+      "phase": "test",
+      "event": "response",
+      "id": 30,
+      "status": 200
+    },
+    {
+      "ms": 66581.076,
+      "phase": "test",
+      "event": "requestfinished",
+      "id": 30
+    },
+    {
+      "ms": 68046.6332,
+      "phase": "lost_revoke_ack_held_poll",
+      "event": "request",
+      "id": 31,
+      "endpoint": "/search/poll",
+      "method": "POST",
+      "resourceType": "fetch"
+    },
+    {
+      "ms": 68086.5516,
+      "phase": "lost_revoke_ack_held_poll",
+      "event": "response",
+      "id": 31,
+      "status": 200
+    },
+    {
+      "ms": 68088.0066,
+      "phase": "lost_revoke_ack_held_poll",
+      "event": "requestfinished",
+      "id": 31
+    },
+    {
+      "ms": 68581.0403,
+      "phase": "lost_revoke_ack_held_poll",
+      "event": "request",
+      "id": 32,
+      "endpoint": "/search/poll",
+      "method": "POST",
+      "resourceType": "fetch"
+    },
+    {
+      "ms": 68582.5262,
+      "phase": "lost_revoke_ack_held_poll",
+      "event": "held_route_fetch_start",
+      "id": 32,
+      "method": "POST",
+      "pageClosed": false
+    },
+    {
+      "ms": 68610.0417,
+      "phase": "lost_revoke_ack_held_poll",
+      "event": "held_route_fetch_return",
+      "id": 32,
+      "status": 200
+    },
+    {
+      "ms": 69029.9164,
+      "phase": "lost_revoke_ack_held_poll",
+      "event": "request",
+      "id": 33,
+      "endpoint": "/search/revoke",
+      "method": "POST",
+      "resourceType": "fetch"
+    },
+    {
+      "ms": 69030.4876,
+      "phase": "lost_revoke_ack_held_poll",
+      "event": "revoke_fixture_fetch_start",
+      "id": 33
+    },
+    {
+      "ms": 69061.6751,
+      "phase": "lost_revoke_ack_held_poll",
+      "event": "revoke_fixture_abort",
+      "id": 33
+    },
+    {
+      "ms": 69073.1874,
+      "phase": "lost_revoke_ack_held_poll",
+      "event": "requestfailed",
+      "id": 33,
+      "reason": "blocked"
+    },
+    {
+      "ms": 71137.1666,
+      "phase": "lost_revoke_ack_held_poll",
+      "event": "request",
+      "id": 34,
+      "endpoint": "/search/poll",
+      "method": "POST",
+      "resourceType": "fetch"
+    },
+    {
+      "ms": 71167.2887,
+      "phase": "lost_revoke_ack_held_poll",
+      "event": "response",
+      "id": 34,
+      "status": 200
+    },
+    {
+      "ms": 71169.3977,
+      "phase": "lost_revoke_ack_held_poll",
+      "event": "requestfinished",
+      "id": 34
+    },
+    {
+      "ms": 71223.9182,
+      "phase": "lost_revoke_ack_held_poll",
+      "event": "held_poll_release"
+    },
+    {
+      "ms": 71224,
+      "phase": "lost_revoke_ack_held_poll",
+      "event": "held_route_fulfill_start",
+      "id": 32,
+      "pageClosed": false
+    },
+    {
+      "ms": 71232.1147,
+      "phase": "lost_revoke_ack_held_poll",
+      "event": "response",
+      "id": 32,
+      "status": 200
+    },
+    {
+      "ms": 71233.6163,
+      "phase": "lost_revoke_ack_held_poll",
+      "event": "requestfinished",
+      "id": 32
+    },
+    {
+      "ms": 71233.7009,
+      "phase": "lost_revoke_ack_held_poll",
+      "event": "held_route_fulfill_return",
+      "id": 32
+    },
+    {
+      "ms": 71647.1084,
+      "phase": "lost_revoke_ack_held_poll",
+      "event": "request",
+      "id": 35,
+      "endpoint": "/search/poll",
+      "method": "POST",
+      "resourceType": "fetch"
+    },
+    {
+      "ms": 71681.0591,
+      "phase": "lost_revoke_ack_held_poll",
+      "event": "response",
+      "id": 35,
+      "status": 200
+    },
+    {
+      "ms": 71682.709,
+      "phase": "lost_revoke_ack_held_poll",
+      "event": "requestfinished",
+      "id": 35
+    },
+    {
+      "ms": 72162.1096,
+      "phase": "lost_revoke_ack_held_poll",
+      "event": "request",
+      "id": 36,
+      "endpoint": "/search/revoke",
+      "method": "POST",
+      "resourceType": "fetch"
+    },
+    {
+      "ms": 72199.036,
+      "phase": "lost_revoke_ack_held_poll",
+      "event": "response",
+      "id": 36,
+      "status": 200
+    },
+    {
+      "ms": 72200.2446,
+      "phase": "lost_revoke_ack_held_poll",
+      "event": "requestfinished",
+      "id": 36
+    },
+    {
+      "ms": 73659.307,
+      "phase": "test",
+      "event": "request",
+      "id": 37,
+      "endpoint": "/search/poll",
+      "method": "POST",
+      "resourceType": "fetch"
+    },
+    {
+      "ms": 73705.8555,
+      "phase": "test",
+      "event": "response",
+      "id": 37,
+      "status": 200
+    },
+    {
+      "ms": 73707.3038,
+      "phase": "test",
+      "event": "requestfinished",
+      "id": 37
+    },
+    {
+      "ms": 74103.0967,
+      "phase": "test",
+      "event": "request",
+      "id": 38,
+      "endpoint": "/search/revoke",
+      "method": "POST",
+      "resourceType": "fetch"
+    },
+    {
+      "ms": 74115.1032,
+      "phase": "test",
+      "event": "requestfailed",
+      "id": 38,
+      "reason": "blocked"
+    },
+    {
+      "ms": 74952.2441,
+      "phase": "test",
+      "event": "request",
+      "id": 39,
+      "endpoint": "/search/revoke",
+      "method": "POST",
+      "resourceType": "fetch"
+    },
+    {
+      "ms": 74990.3339,
+      "phase": "test",
+      "event": "response",
+      "id": 39,
+      "status": 200
+    },
+    {
+      "ms": 74991.7074,
+      "phase": "test",
+      "event": "requestfinished",
+      "id": 39
+    },
+    {
+      "ms": 76480.8353,
+      "phase": "test",
+      "event": "request",
+      "id": 40,
+      "endpoint": "/search/poll",
+      "method": "POST",
+      "resourceType": "fetch"
+    },
+    {
+      "ms": 76515.0634,
+      "phase": "test",
+      "event": "response",
+      "id": 40,
+      "status": 200
+    },
+    {
+      "ms": 76516.4067,
+      "phase": "test",
+      "event": "requestfinished",
+      "id": 40
+    },
+    {
+      "ms": 78544.4591,
+      "phase": "test",
+      "event": "request",
+      "id": 41,
+      "endpoint": "/search/revoke",
+      "method": "POST",
+      "resourceType": "fetch"
+    },
+    {
+      "ms": 78583.7703,
+      "phase": "test",
+      "event": "response",
+      "id": 41,
+      "status": 200
+    },
+    {
+      "ms": 78585.4984,
+      "phase": "test",
+      "event": "requestfinished",
+      "id": 41
+    },
+    {
+      "ms": 80114.035,
+      "phase": "test",
+      "event": "request",
+      "id": 42,
+      "endpoint": "/search/poll",
+      "method": "POST",
+      "resourceType": "fetch"
+    },
+    {
+      "ms": 80155.7448,
+      "phase": "test",
+      "event": "response",
+      "id": 42,
+      "status": 200
+    },
+    {
+      "ms": 80157.1982,
+      "phase": "test",
+      "event": "requestfinished",
+      "id": 42
+    },
+    {
+      "ms": 82164.1161,
+      "phase": "test",
+      "event": "request",
+      "id": 43,
+      "endpoint": "/search/poll",
+      "method": "POST",
+      "resourceType": "fetch"
+    },
+    {
+      "ms": 82207.9928,
+      "phase": "test",
+      "event": "response",
+      "id": 43,
+      "status": 409
+    },
+    {
+      "ms": 82209.7436,
+      "phase": "test",
+      "event": "requestfinished",
+      "id": 43
+    },
+    {
+      "ms": 83730.1986,
+      "phase": "test",
+      "event": "request",
+      "id": 44,
+      "endpoint": "/search/poll",
+      "method": "POST",
+      "resourceType": "fetch"
+    },
+    {
+      "ms": 83756.7959,
+      "phase": "test",
+      "event": "response",
+      "id": 44,
+      "status": 200
+    },
+    {
+      "ms": 83758.154,
+      "phase": "test",
+      "event": "requestfinished",
+      "id": 44
+    },
+    {
+      "ms": 85765.2816,
+      "phase": "injected_poll_abort",
+      "event": "request",
+      "id": 45,
+      "endpoint": "/search/poll",
+      "method": "POST",
+      "resourceType": "fetch"
+    },
+    {
+      "ms": 85774.2259,
+      "phase": "injected_poll_abort",
+      "event": "requestfailed",
+      "id": 45,
+      "reason": "blocked"
+    },
+    {
+      "ms": 86463.6191,
+      "phase": "test",
+      "event": "snapshot_after",
+      "sha256": "4bdcf1ad2935d61574b23d8b37b9a1784f0a45e1ec91a1b608a24942ac35996d",
+      "readwriteCount": 0
+    },
+    {
+      "ms": 86569.0154,
+      "phase": "test",
+      "event": "request",
+      "id": 46,
+      "endpoint": "/search/revoke",
+      "method": "POST",
+      "resourceType": "fetch"
+    },
+    {
+      "ms": 86616.3504,
+      "phase": "test",
+      "event": "response",
+      "id": 46,
+      "status": 200
+    },
+    {
+      "ms": 86617.7808,
+      "phase": "test",
+      "event": "requestfinished",
+      "id": 46
+    },
+    {
+      "ms": 88185.3367,
+      "phase": "test",
+      "event": "request",
+      "id": 47,
+      "endpoint": "/search/poll",
+      "method": "POST",
+      "resourceType": "fetch"
+    },
+    {
+      "ms": 88240.6059,
+      "phase": "test",
+      "event": "response",
+      "id": 47,
+      "status": 200
+    },
+    {
+      "ms": 88242.1414,
+      "phase": "test",
+      "event": "requestfinished",
+      "id": 47
+    },
+    {
+      "ms": 88365.9158,
+      "phase": "test",
+      "event": "request",
+      "id": 48,
+      "endpoint": "/search/revoke",
+      "method": "POST",
+      "resourceType": "fetch"
+    },
+    {
+      "ms": 88534.1603,
+      "phase": "test",
+      "event": "response",
+      "id": 48,
+      "status": 200
+    },
+    {
+      "ms": 88534.2175,
+      "phase": "test",
+      "event": "requestfinished",
+      "id": 48
+    },
+    {
+      "ms": 94049.3587,
+      "phase": "test",
+      "event": "request",
+      "id": 49,
+      "endpoint": "/search/poll",
+      "method": "POST",
+      "resourceType": "fetch"
+    },
+    {
+      "ms": 94090.7153,
+      "phase": "test",
+      "event": "response",
+      "id": 49,
+      "status": 200
+    },
+    {
+      "ms": 94092.0025,
+      "phase": "test",
+      "event": "requestfinished",
+      "id": 49
+    },
+    {
+      "ms": 94148.9797,
+      "phase": "injected_revoke_abort_and_page_close",
+      "event": "page_close_start"
+    },
+    {
+      "ms": 94157.1343,
+      "phase": "injected_revoke_abort_and_page_close",
+      "event": "page_closed"
+    },
+    {
+      "ms": 94159.8934,
+      "phase": "injected_revoke_abort_and_page_close",
+      "event": "page_close_return"
+    },
+    {
+      "ms": 94227.1332,
+      "phase": "cleanup",
+      "event": "cleanup_start"
+    },
+    {
+      "ms": 94227.1595,
+      "phase": "cleanup",
+      "event": "browser_close_start"
+    },
+    {
+      "ms": 94277.9475,
+      "phase": "cleanup",
+      "event": "context_closed"
+    },
+    {
+      "ms": 94280.5905,
+      "phase": "cleanup",
+      "event": "browser_close_return"
+    },
+    {
+      "ms": 94280.6678,
+      "phase": "cleanup",
+      "event": "server_close_start",
+      "name": "oauth"
+    },
+    {
+      "ms": 94282.6926,
+      "phase": "cleanup",
+      "event": "server_close_return",
+      "name": "oauth"
+    },
+    {
+      "ms": 94282.7096,
+      "phase": "cleanup",
+      "event": "server_close_start",
+      "name": "receiver"
+    },
+    {
+      "ms": 94284.2168,
+      "phase": "cleanup",
+      "event": "server_close_return",
+      "name": "receiver"
+    },
+    {
+      "ms": 94284.2361,
+      "phase": "cleanup",
+      "event": "server_close_start",
+      "name": "static"
+    },
+    {
+      "ms": 94313.3883,
+      "phase": "cleanup",
+      "event": "server_close_return",
+      "name": "static"
+    }
+  ]
+}
