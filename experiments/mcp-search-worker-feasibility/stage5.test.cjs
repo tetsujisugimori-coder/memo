@@ -80,6 +80,8 @@ test("Stage5 permission expiring during final ledger commit cannot be delivered"
     createWorker: () => ({ postMessage(m) { this.onmessage({ data: { ...m, value: "expired" } }); }, terminate() {} }) });
   model.setSession("a", 200);
   assert.equal((await model.start("read", 1000)).status, "session_expired");
+  assert.equal(model.state().history[0].coreResolved, true);
+  assert.equal(model.state().history[0].delivered, false);
 });
 test("Stage5 reservation wait consumes the request deadline without creating a Worker", async () => {
   let elapsed = 0, released = 0, created = 0;

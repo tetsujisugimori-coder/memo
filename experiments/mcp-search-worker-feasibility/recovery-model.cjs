@@ -99,6 +99,7 @@ function createRecoveryModel({ createWorker, maxWorkers, now = Date.now, monoton
 // Same-origin/same-partition, cooperative participants only. No production imports.
 function createSharedRecoveryModel({ ledger, name, owner, createWorker, maxWorkers = 2, ...options }) {
   let pending = false, epoch = 0, failed = false, reservedForFactory = false;
+  const delivered = new Set();
   const clock = options.monotonic || (() => performance.now());
   const core = createRecoveryModel({ ...options, maxWorkers, createWorker: () => {
     if (!reservedForFactory) throw new Error("reservation_required");
@@ -107,7 +108,8 @@ function createSharedRecoveryModel({ ledger, name, owner, createWorker, maxWorke
   return {
     setSession(id, expiresAt) { epoch++; core.setSession(id, expiresAt); },
     cancel() { epoch++; core.cancel(); }, stats: core.stats,
-    state: () => ({ ...core.state(), ...(failed ? { admission: "FAILED_CLOSED" } : {}) }),
+    state: () => { const state = core.state(); return { ...state, ...(failed ? { admission: "FAILED_CLOSED" } : {}),
+      history: state.history.map(entry => ({ ...entry, coreResolved: entry.delivered, delivered: delivered.has(entry.requestId) })) }; },
     async start(payload, timeoutMs, requestId) {
       if (failed) return { status: "failed_closed" };
       if (pending) return { status: "busy" };
@@ -136,6 +138,7 @@ function createSharedRecoveryModel({ ledger, name, owner, createWorker, maxWorke
       if (failed) return { status: "failed_closed" };
       // Ledger commit is asynchronous: recheck AFTER the last await before caller delivery.
       const rejected = result.status === "result" ? core.deliveryStatus() || (clock() >= deadline ? "timeout" : null) : null;
+      if (!rejected && result.status === "result") delivered.add(core.state().history.at(-1).requestId);
       return rejected ? { status: rejected } : result;
     }
   };

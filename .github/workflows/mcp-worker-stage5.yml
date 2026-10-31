@@ -31,11 +31,16 @@ jobs:
       - run: node --test experiments/mcp-search-worker-feasibility/stage5.test.cjs experiments/mcp-search-worker-feasibility/recovery-model.test.cjs experiments/mcp-search-worker-feasibility/shutdown-protocol.test.cjs memo-search.test.js
       - run: node experiments/mcp-search-worker-feasibility/stage5-browser.cjs
       - run: node experiments/mcp-search-worker-feasibility/ledger-restart-browser.cjs
+      - run: node memo-search.e2e.js
+        env:
+          MEMO_SEARCH_BROWSER: ${{ matrix.browser }}
       - uses: actions/upload-artifact@v6
         if: always()
         with:
           name: stage5-boundary-${{ matrix.browser }}
-          path: e2e-artifacts/stage5/
+          path: |
+            e2e-artifacts/stage5/
+            e2e-artifacts/memo-search/timeline-*.json
           retention-days: 14
   t7:
     runs-on: ubuntu-latest

@@ -4,7 +4,7 @@ const { chromium, webkit } = require("playwright"), { bounded } = require("./con
 const { metadata, save, hash } = require("./stage5-evidence.cjs");
 const engine = process.env.WORKER_POC_BROWSER || "chromium";
 if (!["chromium", "webkit"].includes(engine)) throw new Error("unsupported engine");
-const names = ["shared-ledger.js", "recovery-model.cjs", "stage5-browser.cjs", "stage5-evidence.cjs"];
+const names = ["shared-ledger.js", "recovery-model.cjs", "stage5-browser.cjs", "stage5-evidence.cjs", "context-harness.cjs"];
 (async () => {
   const report = { ...await metadata(names.map(f => `experiments/mcp-search-worker-feasibility/${f}`)), engine, cases: [], physicalRelease: "UNKNOWN", outcome: "FAIL" };
   const ledger = await fs.readFile(path.join(__dirname, names[0]), "utf8"), model = await fs.readFile(path.join(__dirname, names[1]), "utf8");
