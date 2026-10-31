@@ -29,4 +29,35 @@ transaction競合、接続残留、close後の資源解放、通知遅延、OS�
 
 ## 結果
 
-Linux専用CIの1回の結果を取得後に追記する。計測の自己検証を独立レビューとは扱わない。Draft維持、マージしない。
+**総合判定 PASS（失敗した診断T7のDB識別子取得）**。T7そのものとCIはFAIL、cleanupはUNKNOWN。過去の原版失敗DB識別子は未観測のまま。
+
+- [専用CI 41244959121](https://github.com/tetsujisugimori-coder/memo/actions/runs/41244959121)、job 124666359277、[artifact 13058663151](https://github.com/tetsujisugimori-coder/memo/actions/runs/41244959121/artifacts/13058663151)。実行1回、追加実行0回。
+- 計測commit / 実行HEAD `7b30786ea9f2473e5e2423ccb4a279475ff18646`、tree `1525aa5e6c3ce8c1302fae8ffafe8a323c66b660`、clean。Linux WebKit 26.5、Node v22.23.4。コマンド `node experiments/t7-db-identity/run.cjs`。
+- 実行識別子 `0d4bd770-fdb2-431c-8444-73c3e55693c3`。DB識別子 **`worker-poc-b61a85f0-8a98-44b4-93a6-9b6040827d20`**。生成直後・初回open前、iteration 0、初回要求version 1、mainMs34、2026-10-31T21:46:19.116Z（2026-11-01 06:46:19.116 JST）に一度記録。
+
+以下の全行は上記runId・同一DBに対応する。DB名は反復出力せず、JSONのidentityRefで結合する。cleanup欄は各反復の個別削除ではなく、試行終了時の共通cleanup結果。
+
+| iteration | 要求version | open→結果seq | upgrade観測時間 | 結果 | timeout | cleanup |
+|---|---|---|---|---|---|---|
+| 1 | 2 | 30→32 | 1ms | success | 無 | UNKNOWN |
+| 2 | 3 | 47→49 | 0ms（時計分解能内） | success | 無 | UNKNOWN |
+| 3 | 4 | 64→66 | 1ms | success | 無 | UNKNOWN |
+| 4 | 5 | 81→83 | 1ms | success | 無 | UNKNOWN |
+| **5** | **6** | **98→99** | **8000ms** | **IndexedDB open timeout** | **有** | **UNKNOWN** |
+| 6〜12 | — | — | — | NOT_RUN | 未実行 | 共通cleanupのみ |
+
+失敗は `T7 iteration 5.upgrade: IndexedDB open timeout; blocked event: false`。version 5→6。cleanupはterminal timeout、2000ms、blocked未観測、UNKNOWN。context.closeとbrowser.closeはRETURNEDだが、物理解放の証明にはしない。T1〜T6/T8〜T12はNOT_RUN。失敗iterationのopen→timeoutにblocked/upgradeneeded/success/errorを受信していないことと、イベント自体が内部で発生しなかったことは区別する。
+
+原始JSON、配信suite差分、診断job log、意図せず自動起動したCIのキャンセル状態を `evidence/` にgzipで保存。`diagnostic-index.json` に実行版、raw/gzip hash、8配信ソースの実commitとのhash照合、runner hash、初回open前の順序照合を記録した。job logはGitHubのテキストをPowerShell UTF8で保存したもので、BOM/改行を含む保存後hashである。原始JSONはartifactの内容をそのまま圧縮した。
+
+push時のPR累積差分により既存CI 41244962234、Stage3 41244962152、PoC 41244962262、旧T7単独41244962316も自動起動したためキャンセルした。すべてcancelledで、旧T7単独は両engineともT7/recovery-browserがskipped（準備中にmodel単体試験のみ自動実行）。PoC/Stage3もブラウザ診断は実行されていない。証拠追記commitには `[skip ci]` を付け、広範囲CIの再起動を避ける。専用診断の反復はしない。
+
+差分要約：新規診断runner・専用workflow・報告・証拠のみ。原版suite/worker/cleanup、製品コード、既存未コミット作業と既存証拠は不変更。
+
+## 次工程と残件
+
+今回の成功条件は満たしたため追加観測0回で終了。次の最小作業は実行HEAD・identity生成時点・iteration/version結合・FAIL/UNKNOWN保持の独立レビュー。DB取得自体の追加観測は不要。接続残留・transaction競合・WebKit内部動作・物理解放の調査は次工程へ分離する。原版iteration8の過去DB値、内部待機理由、通知遅延との区別、計測影響はUNKNOWN。
+
+計測の自己検証を独立レビューとは扱わない。本番Worker採用HOLD、マージ推奨NO、Draft維持、マージしない。
+
+記録日時：2026-11-01 06:48 JST。
