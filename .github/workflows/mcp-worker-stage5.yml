@@ -28,7 +28,8 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npx playwright install --with-deps ${{ matrix.browser }}
-      - run: node --test experiments/mcp-search-worker-feasibility/stage5.test.cjs experiments/mcp-search-worker-feasibility/recovery-model.test.cjs experiments/mcp-search-worker-feasibility/shutdown-protocol.test.cjs memo-search.test.js
+      - run: node --test experiments/mcp-search-worker-feasibility/stage5-deadline.test.cjs experiments/mcp-search-worker-feasibility/stage5.test.cjs experiments/mcp-search-worker-feasibility/recovery-model.test.cjs experiments/mcp-search-worker-feasibility/shutdown-protocol.test.cjs memo-search.test.js
+      - run: node experiments/mcp-search-worker-feasibility/stage5-deadline-browser.cjs
       - run: node experiments/mcp-search-worker-feasibility/stage5-browser.cjs
       - run: node experiments/mcp-search-worker-feasibility/ledger-restart-browser.cjs
       - run: node memo-search.e2e.js

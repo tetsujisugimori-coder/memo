@@ -57,11 +57,15 @@ test("Stage5 terminate exception latches failure even when a second slot exists"
 });
 test("Stage5 cancelled asynchronous reservation cannot create a Worker", async () => {
   let reserve, creates = 0, released = 0;
-  const ledger = { reserve: () => new Promise(r => { reserve = r; }), releaseReserved: async () => { released++; }, transition: async () => { throw new Error("must_not_transition"); } };
+  const ledger = { reserve: () => new Promise(r => { reserve = r; }), releaseReserved: async () => { released++; return { status: "released_before_creation" }; }, transition: async () => { throw new Error("must_not_transition"); } };
   const model = createSharedRecoveryModel({ ledger, name: "fixture", owner: "owner", maxWorkers: 2, createWorker: () => { creates++; } });
   model.setSession("a", Date.now() + 10000); const pending = model.start("search", 1000);
   model.cancel(); reserve({ status: "reserved", id: "r" });
-  assert.equal((await pending).status, "session_changed"); assert.equal(creates, 0); assert.equal(released, 1);
+  assert.equal((await pending).status, "session_changed"); assert.equal(creates, 0);
+  // Caller cancellation can precede ledger cleanup; drain observation has its own finite bound.
+  const until = performance.now() + 300;
+  while (model.state().workPending && performance.now() < until) await new Promise(r => setTimeout(r, 1));
+  assert.equal(model.state().workPending, false); assert.equal(released, 1);
 });
 test("Stage5 ledger failure is sticky and creates nothing", async () => {
   let attempts = 0, creates = 0;
@@ -75,7 +79,7 @@ test("Stage5 ledger failure is sticky and creates nothing", async () => {
 test("Stage5 permission expiring during final ledger commit cannot be delivered", async () => {
   let wall = 100;
   const ledger = { reserve: async () => ({ status: "reserved", id: "r" }),
-    transition: async (_n, _c, _o, _i, next) => { if (next === "unknown") wall = 200; } };
+    transition: async (_n, _c, _o, _i, next) => { if (next === "unknown") wall = 200; return { status: next }; } };
   const model = createSharedRecoveryModel({ ledger, name: "fixture", owner: "owner", now: () => wall,
     createWorker: () => ({ postMessage(m) { this.onmessage({ data: { ...m, value: "expired" } }); }, terminate() {} }) });
   model.setSession("a", 200);
@@ -86,8 +90,72 @@ test("Stage5 permission expiring during final ledger commit cannot be delivered"
 test("Stage5 reservation wait consumes the request deadline without creating a Worker", async () => {
   let elapsed = 0, released = 0, created = 0;
   const ledger = { reserve: async () => { elapsed = 10; return { status: "reserved", id: "r" }; },
-    releaseReserved: async () => { released++; }, transition: async () => { throw new Error("must_not_start"); } };
+    releaseReserved: async () => { released++; return { status: "released_before_creation" }; }, transition: async () => { throw new Error("must_not_start"); } };
   const model = createSharedRecoveryModel({ ledger, name: "fixture", owner: "owner", monotonic: () => elapsed,
     createWorker: () => { created++; } }); model.setSession("a", Date.now() + 10000);
   assert.equal((await model.start("read", 10)).status, "timeout"); assert.equal(released, 1); assert.equal(created, 0);
+});
+
+test("Stage5 a cancelled pre-generation request stays retired after its reservation drains", async () => {
+  let reserve, released = 0, creates = 0;
+  const model = createSharedRecoveryModel({ name: "fixture", owner: "owner", createWorker: () => { creates++; },
+    ledger: { reserve: () => new Promise(r => { reserve = r; }), releaseReserved: async () => { released++; return { status: "released_before_creation" }; } } });
+  model.setSession("a", Date.now() + 10000);
+  const caller = model.start("read", 1000, "cancelled-id"); model.cancel();
+  assert.equal((await caller).status, "session_changed");
+  assert.equal((await model.start("read", 1000)).status, "failed_closed");
+  reserve({ status: "reserved", id: "r" });
+  const until = performance.now() + 300;
+  while (model.state().workPending && performance.now() < until) await new Promise(r => setTimeout(r, 1));
+  assert.equal(model.state().workPending, false); assert.equal(model.state().failureCause, null);
+  model.setSession("b", Date.now() + 10000);
+  assert.equal((await model.start("read", 1000, "cancelled-id")).status, "duplicate_request");
+  assert.equal(released, 1); assert.equal(creates, 0);
+});
+
+test("Stage5 old core result cannot cross a session change during final commit", async () => {
+  let commit, entered, creates = 0;
+  const reached = new Promise(r => { entered = r; });
+  const model = createSharedRecoveryModel({ name: "fixture", owner: "owner",
+    ledger: { reserve: async () => ({ status: "reserved", id: "r" }),
+      transition: async (_n, _c, _o, _i, next) => {
+        if (next === "unknown") { entered(); await new Promise(r => { commit = r; }); }
+        return { status: next };
+      }, releaseReserved: () => { throw new Error("running_must_not_release"); } },
+    createWorker: () => { creates++; return { postMessage(m) { this.onmessage({ data: { ...m, value: "old" } }); }, terminate() {} }; } });
+  model.setSession("old", Date.now() + 10000); const caller = model.start("read", 1000, "old-request");
+  await reached; model.setSession("new", Date.now() + 10000);
+  assert.equal((await caller).status, "session_changed");
+  assert.equal((await model.start("read", 1000)).status, "failed_closed");
+  commit(); const until = performance.now() + 300;
+  while (model.state().workPending && performance.now() < until) await new Promise(r => setTimeout(r, 1));
+  assert.equal(model.state().workPending, false); assert.equal(model.state().failureCause, null);
+  assert.equal(model.state().history[0].coreResolved, true); assert.equal(model.state().history[0].delivered, false);
+  assert.equal(creates, 1);
+});
+
+for (const order of ["core-first", "wrapper-first"]) test(`Stage5 ${order} timeout does not poison a completed cleanup`, async t => {
+  let elapsed = 0, creates = 0, release, entered, created;
+  const timers = [], unknownStarted = new Promise(r => { entered = r; }), workerStarted = new Promise(r => { created = r; });
+  const model = createSharedRecoveryModel({ name: "fixture", owner: "owner", now: () => elapsed, monotonic: () => elapsed,
+    schedule: fn => { timers.push(fn); return fn; }, unschedule: () => {},
+    ledger: { reserve: async () => ({ status: "reserved", id: `r-${creates}` }),
+      transition: async (_n, _c, _o, _i, next) => {
+        if (next === "unknown" && creates === 1) { entered(); await new Promise(r => { release = r; }); }
+        return { status: next };
+      }, releaseReserved: () => { throw new Error("running_must_not_release"); } },
+    createWorker: () => { creates++; created(); return { postMessage(m) { if (m.payload !== "hang") this.onmessage({ data: { ...m, value: "second" } }); }, terminate() {} }; } });
+  model.setSession("first", 10000); const caller = model.start("hang", 60); await workerStarted;
+  elapsed = 60;
+  if (order === "core-first") { timers[1](); await unknownStarted; timers[0](); }
+  else { timers[0](); await unknownStarted; timers[1](); }
+  assert.equal((await caller).status, "timeout");
+  assert.equal((await model.start("read", 60)).status, "failed_closed");
+  release(); const until = performance.now() + 300;
+  while (model.state().workPending && performance.now() < until) await new Promise(r => setTimeout(r, 1));
+  assert.equal(model.state().workPending, false);
+  model.setSession("second", 10000); const second = await model.start("read", 60);
+  t.diagnostic(JSON.stringify({ second, state: model.state(), creates }));
+  assert.equal(second.status, "result"); assert.equal(model.state().failureCause, null);
+  assert.equal(creates, 2); assert.equal((await model.start("read", 60)).status, "capacity_unknown");
 });

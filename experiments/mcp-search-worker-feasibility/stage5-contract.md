@@ -24,6 +24,28 @@
 
 ## 上限と復旧条件
 
+### PR #395 独立レビュー後の期限・非同期所有権の補足
+
+レビュー対象 `7e77de239e4a6ee581bb11f60c7a54423b3f201d` は台帳await中のcaller有限終了を満たさなかった。以下はその修正契約であり、過去の「予約待ちも要求期限に含める」という記述だけでは保証できなかった境界を補う。結果・生証拠は [stage5-review-fixes.md](stage5-review-fixes.md) を参照。
+
+|要求／台帳の状態|caller・受付|所有権と許される後続処理|
+|---|---|---|
+|reserve/running/unknown/release待ち、期限内|caller待機。別要求はbusy|単一のowned taskが台帳操作を所有。stateに操作名・PENDING/SETTLED/REJECTED・owner・台帳名・要求ID・epochを表示|
+|台帳操作待ちで期限到来|callerはtimeoutまたはsession_expiredで終了。FAILED_CLOSED|taskは保持。ledger操作期限を初因として保持し、新規要求を拒否。操作が後に完了しても同モデルは自動復帰しない|
+|取消／session変更、台帳処理未完了|callerを終了。未完了中はFAILED_CLOSED|旧taskのepochは失効。要求期限の監視は継続。期限前に安全にdrainし、障害がなければ新しいgrantで受付可|
+|期限後／取消後にreserve成功|旧callerへ結果配送しない|runningを一度も試していない場合に限り、同じID・owner・reservedを実台帳transactionで照合して1回返却する。返却待ちも所有し、例外／不明応答はfail closed|
+|running遷移の要求後（応答不明を含む）|期限・取消なら生成しない|commitが既に成立している可能性があるので返却禁止。running応答確認後はunknown遷移のみ許す。生成0でも枠を保持|
+|Worker要求の通常timeout、unknown書込み中|caller終了。書込み未完了中はFAILED_CLOSED|書込みが完了して初因がなければ第二予約可。第一枠はunknownのまま。完了しなければ受付拒否を維持|
+|永久未解決の台帳Promise|caller終了、workPending=true、操作PENDING、FAILED_CLOSED|期限応答を物理解放や台帳処理の取消とみなさない。未完了Promiseを捨てるraceは使わない|
+
+`state().request`の`callerSettled`、`responseStatus`、`deadlineExpired`、`cancelRequested`、`ledgerOperation`、`runningAttempted`、`workPending`は別情報。Worker停止要求／terminate結果／物理解放UNKNOWNは既存historyに残す。`coreResolved=true`でも最終検査前なら`delivered=false`。生成前予約の返却はWorker物理解放ではない。
+
+要求期限は開始前からの単調時計。許可期限は設定時に壁時計から単調時計の上限を固定し、両方で判定する。壁時計逆行で延長しない。JavaScriptイベントループが実行可能であることを前提とし、プロセス停止・同期無限ループ・OS suspension中の実時間応答は保証しない。タイマーが遅延しても最後のawait後の期限／epoch検査で結果を拒否する。
+
+既存coreのfailureを容量・許可期限より優先し、`failureCause`に最初の原因を残す。生成／terminate例外と満枠が重なる後続要求は`failed_closed`へ変更（従来は`capacity_unknown`）。障害のない通常満枠は引き続き`capacity_unknown`。取消済みの生成前要求IDも同モデルで再使用禁止。共有wrapperは明示要求IDを最大64件保持し、超過はfail closed。履歴やIDを捨てて再受付しない。
+
+caller応答後、所有taskのdrain確認なしに次を開始しない。通常の第二予約は、台帳処理完了・sticky failureなし・未失効grant・期限内・重複しない要求ID・未消費枠の予約成功が条件。取消／session変更後は別grant IDが必要。上限2は不変更。新モデル作成、別owner、ストレージ消去でこの拒否を回避する製品設計は依然HOLD。
+
 研究モデルの上限は2。`createSharedRecoveryModel`は既存モデルの前に共有台帳予約を置く。予約中も同インスタンスで開始を直列化し、取消／session変更／期限をcommitの前後で再検査する。予約待ちも要求期限に含める。runningに入った後はfactory未実行でも安全側に保持する。結果を得てもunknownへの台帳commitを待ち、その後でsession・generation・取消・許可期限・要求期限を再確認してcallerへ返す。
 
 最初の未解決要求で1枠を消費した場合、別の予約済み枠による1回の合成検索は可能。これは古いWorkerの再利用でも停止証明でもない。論理的に旧結果を拒否できること、生成上限を守れることだけを示す。2枠後は停止。terminate例外は残枠があっても同モデルでFAILED_CLOSEDとなる。モデル再作成を許す製品owner設計は未実装であり、本番でこのモデルだけを使って復旧してはならない。

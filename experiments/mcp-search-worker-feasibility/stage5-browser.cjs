@@ -37,12 +37,16 @@ const names = ["shared-ledger.js", "recovery-model.cjs", "stage5-browser.cjs", "
       const oldPoll = new Promise(() => {}).finally(() => { pollSettled = true; });
       const broker = await Promise.race([oldPoll, new Promise(r => setTimeout(() => r("timeout"), 20))]);
       const first = await model.start("hang", 1000);
+      const drainDeadline = performance.now() + 3500;
+      while (model.state().workPending && performance.now() < drainDeadline) await new Promise(r => setTimeout(r, 5));
+      if (model.state().workPending) throw new Error("ledger_cleanup_not_settled");
       model.setSession("new", Date.now() + 20000);
       const second = await model.start("read", 3000), third = await model.start("read", 3000);
       const slots = await SharedWorkerLedger.inspect("stage5-sequential", 2);
       const returns = await Promise.all(slots.slots.map(s => SharedWorkerLedger.releaseReserved("stage5-sequential", 2, s.owner, s.id)));
       return { broker, pollSettled, first, second, third, slots, returns, created, entered, state: model.state() };
     }), 12000, "sequential deadline");
+    report.sequentialObservation = sequential; // Preserve the actual rejection/state even when a later assertion fails.
     assert.equal(sequential.broker, "timeout"); assert.equal(sequential.pollSettled, false);
     assert.equal(sequential.first.status, "timeout"); assert.equal(sequential.entered, 1);
     assert.equal(sequential.second.value, "fictional markdown"); assert.equal(sequential.third.status, "capacity_unknown");
@@ -78,7 +82,9 @@ const names = ["shared-ledger.js", "recovery-model.cjs", "stage5-browser.cjs", "
       const snapshot = () => new Promise((resolve, reject) => { const names = [...db.objectStoreNames].sort(), tx = db.transaction(names, "readonly");
         const all = names.map(n => [n, tx.objectStore(n).getAllKeys(), tx.objectStore(n).getAll()]);
         tx.oncomplete = () => resolve(JSON.stringify(all.map(([n, k, v]) => [n, k.result, v.result]))); tx.onabort = tx.onerror = () => reject(tx.error); });
-      const before = await snapshot(), outcomes = [];
+      const before = await snapshot(), outcomes = []; let readwrite = 0;
+      const transaction = db.transaction.bind(db);
+      db.transaction = (...args) => { if (args[1] === "readwrite") readwrite++; return transaction(...args); };
       const records = [null, { version: 0, capacity: 2, slots: [] }, { version: 1, capacity: 200, slots: [] },
         { version: 1, capacity: 2, slots: [{ id: "", owner: "a", state: "reserved" }] },
         { version: 1, capacity: 2, slots: [{ id: "x", owner: "a", state: "released" }] },
@@ -89,9 +95,9 @@ const names = ["shared-ledger.js", "recovery-model.cjs", "stage5-browser.cjs", "
           tx.objectStore("ledger").put(records[i], "state"); tx.oncomplete = () => { d.close(); resolve(); }; tx.onabort = () => reject(tx.error); }; });
         const m = makeModel(name, "invalid"); m.setSession(`bad-${i}`, Date.now() + 10000); outcomes.push((await m.start("read", 1000)).status);
       }
-      const after = await snapshot(); db.close(); return { before, after, outcomes, created };
+      const after = await snapshot(); db.close(); return { before, after, outcomes, created, readwrite };
     });
-    assert.equal(integrity.before, integrity.after); assert.equal(integrity.created, 0);
+    assert.equal(integrity.before, integrity.after); assert.equal(integrity.created, 0); assert.equal(integrity.readwrite, 0);
     assert.deepEqual(integrity.outcomes, Array(6).fill("failed_closed"));
     report.cases.push({ name: "invalid-or-old-ledger-and-fixture-integrity", outcome: "PASS", ...integrity, beforeHash: hash(integrity.before), afterHash: hash(integrity.after) });
     await context.close(); report.outcome = "PASS";

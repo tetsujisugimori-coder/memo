@@ -1,0 +1,1581 @@
+{
+  "baselineCommit": "7e77de239e4a6ee581bb11f60c7a54423b3f201d",
+  "baselineTree": "27490bed14069ddbc063970f2a217c18f2b947fc",
+  "recordedAt": "2026-10-31T12:17:01.895Z",
+  "testedWorkingTreeDirty": true,
+  "finalSourceHashes": {
+    "experiments/mcp-search-worker-feasibility/recovery-model.cjs": "93990cef3904bf0445d27e7cd0496e977be940fa0b171b4df0a3f0b5fd04eaf7",
+    "experiments/mcp-search-worker-feasibility/recovery-model.test.cjs": "f4b1580627f20ac18370df83479fc37a6f0c6b52c47eb304668f6d72e4008dc0",
+    "experiments/mcp-search-worker-feasibility/stage5.test.cjs": "3c50909f6b103a94d2acc14eeece4e8c5112ca45aa6d71f9b4ba6c38756a2807",
+    "experiments/mcp-search-worker-feasibility/stage5-deadline-cases.cjs": "fb1f7affa9f3af494e4ad040a81aef70cfa7482c20da6e1e2a5cf2b9f7777dd0",
+    "experiments/mcp-search-worker-feasibility/stage5-deadline.test.cjs": "e16f42bfde4e271ca313f06a04196eb2dfd54784245c58e673433b144b4aef8a",
+    "experiments/mcp-search-worker-feasibility/stage5-deadline-browser.cjs": "c7a93863de29473a639270439d1d2ab17f62114b45f8df1659591966b7011189",
+    "experiments/mcp-search-worker-feasibility/stage5-browser.cjs": "4dd98f69a2bf2d4699e39f6512029969012f0e8df1a66fd977af868330eb9323",
+    "experiments/mcp-search-worker-feasibility/shared-ledger-browser.cjs": "b6b839b5f4c260a006e30d8f52c582b2544f796bccd4d561c98e969e5343ad71"
+  },
+  "finalDeadline": {
+    "node": {
+      "artifact": "deadline-node-green-38a05044-6914-49a3-909b-ba36e1be77bc.json.gz",
+      "outcome": "PASS",
+      "cases": [
+        {
+          "name": "reserve-delayed",
+          "violations": [],
+          "caller": {
+            "response": {
+              "status": "timeout"
+            },
+            "responseMs": 60.20590000000001
+          },
+          "creates": 0,
+          "released": 1,
+          "releaseCalls": 1,
+          "admission": "FAILED_CLOSED",
+          "failureCause": "ledger_reserve_deadline",
+          "workPending": false
+        },
+        {
+          "name": "reserve-late-duplicate-completion",
+          "violations": [],
+          "caller": {
+            "response": {
+              "status": "timeout"
+            },
+            "responseMs": 65.0392
+          },
+          "creates": 0,
+          "released": 1,
+          "releaseCalls": 1,
+          "admission": "FAILED_CLOSED",
+          "failureCause": "ledger_reserve_deadline",
+          "workPending": false
+        },
+        {
+          "name": "reserve-never",
+          "violations": [],
+          "caller": {
+            "response": {
+              "status": "timeout"
+            },
+            "responseMs": 62.65020000000004
+          },
+          "creates": 0,
+          "released": 0,
+          "releaseCalls": 0,
+          "admission": "FAILED_CLOSED",
+          "failureCause": "ledger_reserve_deadline",
+          "workPending": true
+        },
+        {
+          "name": "running-late",
+          "violations": [],
+          "caller": {
+            "response": {
+              "status": "timeout"
+            },
+            "responseMs": 65.6203999999999
+          },
+          "creates": 0,
+          "released": 0,
+          "releaseCalls": 0,
+          "admission": "FAILED_CLOSED",
+          "failureCause": "ledger_running_deadline",
+          "workPending": false
+        },
+        {
+          "name": "running-never",
+          "violations": [],
+          "caller": {
+            "response": {
+              "status": "timeout"
+            },
+            "responseMs": 63.76330000000007
+          },
+          "creates": 0,
+          "released": 0,
+          "releaseCalls": 0,
+          "admission": "FAILED_CLOSED",
+          "failureCause": "ledger_running_deadline",
+          "workPending": true
+        },
+        {
+          "name": "unknown-late",
+          "violations": [],
+          "caller": {
+            "response": {
+              "status": "timeout"
+            },
+            "responseMs": 61.8621999999998
+          },
+          "creates": 1,
+          "released": 0,
+          "releaseCalls": 0,
+          "admission": "FAILED_CLOSED",
+          "failureCause": "ledger_unknown_deadline",
+          "workPending": false
+        },
+        {
+          "name": "unknown-never",
+          "violations": [],
+          "caller": {
+            "response": {
+              "status": "timeout"
+            },
+            "responseMs": 61.87389999999982
+          },
+          "creates": 1,
+          "released": 0,
+          "releaseCalls": 0,
+          "admission": "FAILED_CLOSED",
+          "failureCause": "ledger_unknown_deadline",
+          "workPending": true
+        },
+        {
+          "name": "release-late",
+          "violations": [],
+          "caller": {
+            "response": {
+              "status": "session_changed"
+            },
+            "responseMs": 29.861599999999953
+          },
+          "creates": 0,
+          "released": 1,
+          "releaseCalls": 1,
+          "admission": "FAILED_CLOSED",
+          "failureCause": "ledger_release_deadline",
+          "workPending": false
+        },
+        {
+          "name": "release-never",
+          "violations": [],
+          "caller": {
+            "response": {
+              "status": "session_changed"
+            },
+            "responseMs": 29.988399999999956
+          },
+          "creates": 0,
+          "released": 0,
+          "releaseCalls": 1,
+          "admission": "FAILED_CLOSED",
+          "failureCause": "ledger_release_deadline",
+          "workPending": true
+        },
+        {
+          "name": "cancel-before-deadline",
+          "violations": [],
+          "caller": {
+            "response": {
+              "status": "session_changed"
+            },
+            "responseMs": 30.78720000000021
+          },
+          "creates": 0,
+          "released": 1,
+          "releaseCalls": 1,
+          "admission": "FAILED_CLOSED",
+          "failureCause": "ledger_reserve_deadline",
+          "workPending": false
+        },
+        {
+          "name": "cancel-after-deadline",
+          "violations": [],
+          "caller": {
+            "response": {
+              "status": "timeout"
+            },
+            "responseMs": 60.7186999999999
+          },
+          "creates": 0,
+          "released": 1,
+          "releaseCalls": 1,
+          "admission": "FAILED_CLOSED",
+          "failureCause": "ledger_reserve_deadline",
+          "workPending": false
+        },
+        {
+          "name": "session-change-late-reserve",
+          "violations": [],
+          "caller": {
+            "response": {
+              "status": "session_changed"
+            },
+            "responseMs": 30.782300000000305
+          },
+          "creates": 0,
+          "released": 1,
+          "releaseCalls": 1,
+          "admission": "FAILED_CLOSED",
+          "failureCause": "ledger_reserve_deadline",
+          "workPending": false
+        },
+        {
+          "name": "ledger-error-after-deadline",
+          "violations": [],
+          "caller": {
+            "response": {
+              "status": "timeout"
+            },
+            "responseMs": 61.0940999999998
+          },
+          "creates": 0,
+          "released": 0,
+          "releaseCalls": 0,
+          "admission": "FAILED_CLOSED",
+          "failureCause": "ledger_reserve_deadline",
+          "workPending": false
+        },
+        {
+          "name": "ledger-error-before-deadline-with-capacity",
+          "violations": [],
+          "caller": {
+            "response": {
+              "status": "failed_closed"
+            },
+            "responseMs": 30.588000000000193
+          },
+          "creates": 0,
+          "released": 0,
+          "releaseCalls": 0,
+          "admission": "FAILED_CLOSED",
+          "failureCause": "ledger_reserve_failed",
+          "workPending": false
+        },
+        {
+          "name": "permission-expiry-with-wall-rollback",
+          "violations": [],
+          "caller": {
+            "response": {
+              "status": "session_expired"
+            },
+            "responseMs": 62.07380000000012
+          },
+          "creates": 0,
+          "released": 0,
+          "releaseCalls": 0,
+          "admission": "FAILED_CLOSED",
+          "failureCause": "ledger_reserve_deadline",
+          "workPending": true
+        },
+        {
+          "name": "capacity-full",
+          "violations": [],
+          "caller": {
+            "response": {
+              "status": "capacity_unknown"
+            },
+            "responseMs": 0.2952999999997701
+          },
+          "creates": 0,
+          "released": 0,
+          "releaseCalls": 0,
+          "admission": "FAILED_CLOSED",
+          "failureCause": "capacity_unknown",
+          "workPending": false
+        },
+        {
+          "name": "normal-second-reservation",
+          "violations": [],
+          "caller": {
+            "response": {
+              "status": "timeout"
+            },
+            "responseMs": 60.97200000000021
+          },
+          "creates": 2,
+          "released": 0,
+          "releaseCalls": 0,
+          "admission": "FAILED_CLOSED",
+          "failureCause": null,
+          "workPending": false
+        },
+        {
+          "name": "terminate-failure-with-capacity",
+          "violations": [],
+          "creates": 2,
+          "released": 0,
+          "releaseCalls": 0,
+          "admission": "FAILED_CLOSED",
+          "failureCause": "worker_stop_unknown"
+        },
+        {
+          "name": "terminate-failure-with-session-expiry",
+          "violations": [],
+          "creates": 2,
+          "released": 0,
+          "releaseCalls": 0,
+          "admission": "FAILED_CLOSED",
+          "failureCause": "worker_stop_unknown"
+        }
+      ]
+    },
+    "chromium": {
+      "artifact": "deadline-chromium-green-d4499e32-2d75-47eb-837f-ab6ca382061b.json.gz",
+      "outcome": "PASS",
+      "cases": [
+        {
+          "name": "reserve-delayed",
+          "violations": [],
+          "caller": {
+            "response": {
+              "status": "timeout"
+            },
+            "responseMs": 60.399999998509884
+          },
+          "creates": 0,
+          "released": 1,
+          "releaseCalls": 1,
+          "admission": "FAILED_CLOSED",
+          "failureCause": "ledger_reserve_deadline",
+          "workPending": false
+        },
+        {
+          "name": "reserve-late-duplicate-completion",
+          "violations": [],
+          "caller": {
+            "response": {
+              "status": "timeout"
+            },
+            "responseMs": 75.20000000298023
+          },
+          "creates": 0,
+          "released": 1,
+          "releaseCalls": 1,
+          "admission": "FAILED_CLOSED",
+          "failureCause": "ledger_reserve_deadline",
+          "workPending": false
+        },
+        {
+          "name": "reserve-never",
+          "violations": [],
+          "caller": {
+            "response": {
+              "status": "timeout"
+            },
+            "responseMs": 70.20000000298023
+          },
+          "creates": 0,
+          "released": 0,
+          "releaseCalls": 0,
+          "admission": "FAILED_CLOSED",
+          "failureCause": "ledger_reserve_deadline",
+          "workPending": true
+        },
+        {
+          "name": "running-late",
+          "violations": [],
+          "caller": {
+            "response": {
+              "status": "timeout"
+            },
+            "responseMs": 67.5
+          },
+          "creates": 0,
+          "released": 0,
+          "releaseCalls": 0,
+          "admission": "FAILED_CLOSED",
+          "failureCause": "ledger_running_deadline",
+          "workPending": false
+        },
+        {
+          "name": "running-never",
+          "violations": [],
+          "caller": {
+            "response": {
+              "status": "timeout"
+            },
+            "responseMs": 69.20000000298023
+          },
+          "creates": 0,
+          "released": 0,
+          "releaseCalls": 0,
+          "admission": "FAILED_CLOSED",
+          "failureCause": "ledger_running_deadline",
+          "workPending": true
+        },
+        {
+          "name": "unknown-late",
+          "violations": [],
+          "caller": {
+            "response": {
+              "status": "timeout"
+            },
+            "responseMs": 60.29999999701977
+          },
+          "creates": 1,
+          "released": 0,
+          "releaseCalls": 0,
+          "admission": "FAILED_CLOSED",
+          "failureCause": "ledger_unknown_deadline",
+          "workPending": false
+        },
+        {
+          "name": "unknown-never",
+          "violations": [],
+          "caller": {
+            "response": {
+              "status": "timeout"
+            },
+            "responseMs": 69.20000000298023
+          },
+          "creates": 1,
+          "released": 0,
+          "releaseCalls": 0,
+          "admission": "FAILED_CLOSED",
+          "failureCause": "ledger_unknown_deadline",
+          "workPending": true
+        },
+        {
+          "name": "release-late",
+          "violations": [],
+          "caller": {
+            "response": {
+              "status": "session_changed"
+            },
+            "responseMs": 21.5
+          },
+          "creates": 0,
+          "released": 1,
+          "releaseCalls": 1,
+          "admission": "FAILED_CLOSED",
+          "failureCause": "ledger_release_deadline",
+          "workPending": false
+        },
+        {
+          "name": "release-never",
+          "violations": [],
+          "caller": {
+            "response": {
+              "status": "session_changed"
+            },
+            "responseMs": 20.799999997019768
+          },
+          "creates": 0,
+          "released": 0,
+          "releaseCalls": 1,
+          "admission": "FAILED_CLOSED",
+          "failureCause": "ledger_release_deadline",
+          "workPending": true
+        },
+        {
+          "name": "cancel-before-deadline",
+          "violations": [],
+          "caller": {
+            "response": {
+              "status": "session_changed"
+            },
+            "responseMs": 20.299999997019768
+          },
+          "creates": 0,
+          "released": 1,
+          "releaseCalls": 1,
+          "admission": "FAILED_CLOSED",
+          "failureCause": "ledger_reserve_deadline",
+          "workPending": false
+        },
+        {
+          "name": "cancel-after-deadline",
+          "violations": [],
+          "caller": {
+            "response": {
+              "status": "timeout"
+            },
+            "responseMs": 69.60000000149012
+          },
+          "creates": 0,
+          "released": 1,
+          "releaseCalls": 1,
+          "admission": "FAILED_CLOSED",
+          "failureCause": "ledger_reserve_deadline",
+          "workPending": false
+        },
+        {
+          "name": "session-change-late-reserve",
+          "violations": [],
+          "caller": {
+            "response": {
+              "status": "session_changed"
+            },
+            "responseMs": 20.399999998509884
+          },
+          "creates": 0,
+          "released": 1,
+          "releaseCalls": 1,
+          "admission": "FAILED_CLOSED",
+          "failureCause": "ledger_reserve_deadline",
+          "workPending": false
+        },
+        {
+          "name": "ledger-error-after-deadline",
+          "violations": [],
+          "caller": {
+            "response": {
+              "status": "timeout"
+            },
+            "responseMs": 69.30000000447035
+          },
+          "creates": 0,
+          "released": 0,
+          "releaseCalls": 0,
+          "admission": "FAILED_CLOSED",
+          "failureCause": "ledger_reserve_deadline",
+          "workPending": false
+        },
+        {
+          "name": "ledger-error-before-deadline-with-capacity",
+          "violations": [],
+          "caller": {
+            "response": {
+              "status": "failed_closed"
+            },
+            "responseMs": 20.69999999552965
+          },
+          "creates": 0,
+          "released": 0,
+          "releaseCalls": 0,
+          "admission": "FAILED_CLOSED",
+          "failureCause": "ledger_reserve_failed",
+          "workPending": false
+        },
+        {
+          "name": "permission-expiry-with-wall-rollback",
+          "violations": [],
+          "caller": {
+            "response": {
+              "status": "session_expired"
+            },
+            "responseMs": 55.399999998509884
+          },
+          "creates": 0,
+          "released": 0,
+          "releaseCalls": 0,
+          "admission": "FAILED_CLOSED",
+          "failureCause": "ledger_reserve_deadline",
+          "workPending": true
+        },
+        {
+          "name": "capacity-full",
+          "violations": [],
+          "caller": {
+            "response": {
+              "status": "capacity_unknown"
+            },
+            "responseMs": 0
+          },
+          "creates": 0,
+          "released": 0,
+          "releaseCalls": 0,
+          "admission": "FAILED_CLOSED",
+          "failureCause": "capacity_unknown",
+          "workPending": false
+        },
+        {
+          "name": "normal-second-reservation",
+          "violations": [],
+          "caller": {
+            "response": {
+              "status": "timeout"
+            },
+            "responseMs": 61.70000000298023
+          },
+          "creates": 2,
+          "released": 0,
+          "releaseCalls": 0,
+          "admission": "FAILED_CLOSED",
+          "failureCause": null,
+          "workPending": false
+        },
+        {
+          "name": "terminate-failure-with-capacity",
+          "violations": [],
+          "creates": 2,
+          "released": 0,
+          "releaseCalls": 0,
+          "admission": "FAILED_CLOSED",
+          "failureCause": "worker_stop_unknown"
+        },
+        {
+          "name": "terminate-failure-with-session-expiry",
+          "violations": [],
+          "creates": 2,
+          "released": 0,
+          "releaseCalls": 0,
+          "admission": "FAILED_CLOSED",
+          "failureCause": "worker_stop_unknown"
+        }
+      ]
+    },
+    "webkit": {
+      "artifact": "deadline-webkit-green-a87a7872-6720-4e61-b4ff-02914e7cbd01.json.gz",
+      "outcome": "FAIL",
+      "cases": [
+        {
+          "name": "reserve-delayed",
+          "violations": [],
+          "caller": {
+            "response": {
+              "status": "timeout"
+            },
+            "responseMs": 70
+          },
+          "creates": 0,
+          "released": 1,
+          "releaseCalls": 1,
+          "admission": "FAILED_CLOSED",
+          "failureCause": "ledger_reserve_deadline",
+          "workPending": false
+        },
+        {
+          "name": "reserve-late-duplicate-completion",
+          "violations": [
+            "caller did not finish within finite response observation window"
+          ],
+          "caller": {
+            "response": {
+              "status": "timeout"
+            },
+            "responseMs": 202
+          },
+          "creates": 0,
+          "released": 1,
+          "releaseCalls": 1,
+          "admission": "FAILED_CLOSED",
+          "failureCause": "ledger_reserve_deadline",
+          "workPending": false
+        },
+        {
+          "name": "reserve-never",
+          "violations": [],
+          "caller": {
+            "response": {
+              "status": "timeout"
+            },
+            "responseMs": 61
+          },
+          "creates": 0,
+          "released": 0,
+          "releaseCalls": 0,
+          "admission": "FAILED_CLOSED",
+          "failureCause": "ledger_reserve_deadline",
+          "workPending": true
+        },
+        {
+          "name": "running-late",
+          "violations": [],
+          "caller": {
+            "response": {
+              "status": "timeout"
+            },
+            "responseMs": 73
+          },
+          "creates": 0,
+          "released": 0,
+          "releaseCalls": 0,
+          "admission": "FAILED_CLOSED",
+          "failureCause": "ledger_running_deadline",
+          "workPending": false
+        },
+        {
+          "name": "running-never",
+          "violations": [],
+          "caller": {
+            "response": {
+              "status": "timeout"
+            },
+            "responseMs": 75
+          },
+          "creates": 0,
+          "released": 0,
+          "releaseCalls": 0,
+          "admission": "FAILED_CLOSED",
+          "failureCause": "ledger_running_deadline",
+          "workPending": true
+        },
+        {
+          "name": "unknown-late",
+          "violations": [],
+          "caller": {
+            "response": {
+              "status": "timeout"
+            },
+            "responseMs": 75
+          },
+          "creates": 1,
+          "released": 0,
+          "releaseCalls": 0,
+          "admission": "FAILED_CLOSED",
+          "failureCause": "ledger_unknown_deadline",
+          "workPending": false
+        },
+        {
+          "name": "unknown-never",
+          "violations": [],
+          "caller": {
+            "response": {
+              "status": "timeout"
+            },
+            "responseMs": 60
+          },
+          "creates": 1,
+          "released": 0,
+          "releaseCalls": 0,
+          "admission": "FAILED_CLOSED",
+          "failureCause": "ledger_unknown_deadline",
+          "workPending": true
+        },
+        {
+          "name": "release-late",
+          "violations": [],
+          "caller": {
+            "response": {
+              "status": "session_changed"
+            },
+            "responseMs": 28
+          },
+          "creates": 0,
+          "released": 1,
+          "releaseCalls": 1,
+          "admission": "FAILED_CLOSED",
+          "failureCause": "ledger_release_deadline",
+          "workPending": false
+        },
+        {
+          "name": "release-never",
+          "violations": [],
+          "caller": {
+            "response": {
+              "status": "session_changed"
+            },
+            "responseMs": 29
+          },
+          "creates": 0,
+          "released": 0,
+          "releaseCalls": 1,
+          "admission": "FAILED_CLOSED",
+          "failureCause": "ledger_release_deadline",
+          "workPending": true
+        },
+        {
+          "name": "cancel-before-deadline",
+          "violations": [],
+          "caller": {
+            "response": {
+              "status": "session_changed"
+            },
+            "responseMs": 28
+          },
+          "creates": 0,
+          "released": 1,
+          "releaseCalls": 1,
+          "admission": "FAILED_CLOSED",
+          "failureCause": "ledger_reserve_deadline",
+          "workPending": false
+        },
+        {
+          "name": "cancel-after-deadline",
+          "violations": [],
+          "caller": {
+            "response": {
+              "status": "timeout"
+            },
+            "responseMs": 72
+          },
+          "creates": 0,
+          "released": 1,
+          "releaseCalls": 1,
+          "admission": "FAILED_CLOSED",
+          "failureCause": "ledger_reserve_deadline",
+          "workPending": false
+        },
+        {
+          "name": "session-change-late-reserve",
+          "violations": [],
+          "caller": {
+            "response": {
+              "status": "session_changed"
+            },
+            "responseMs": 29
+          },
+          "creates": 0,
+          "released": 1,
+          "releaseCalls": 1,
+          "admission": "FAILED_CLOSED",
+          "failureCause": "ledger_reserve_deadline",
+          "workPending": false
+        },
+        {
+          "name": "ledger-error-after-deadline",
+          "violations": [],
+          "caller": {
+            "response": {
+              "status": "timeout"
+            },
+            "responseMs": 75
+          },
+          "creates": 0,
+          "released": 0,
+          "releaseCalls": 0,
+          "admission": "FAILED_CLOSED",
+          "failureCause": "ledger_reserve_deadline",
+          "workPending": false
+        },
+        {
+          "name": "ledger-error-before-deadline-with-capacity",
+          "violations": [],
+          "caller": {
+            "response": {
+              "status": "failed_closed"
+            },
+            "responseMs": 27
+          },
+          "creates": 0,
+          "released": 0,
+          "releaseCalls": 0,
+          "admission": "FAILED_CLOSED",
+          "failureCause": "ledger_reserve_failed",
+          "workPending": false
+        },
+        {
+          "name": "permission-expiry-with-wall-rollback",
+          "violations": [],
+          "caller": {
+            "response": {
+              "status": "session_expired"
+            },
+            "responseMs": 60
+          },
+          "creates": 0,
+          "released": 0,
+          "releaseCalls": 0,
+          "admission": "FAILED_CLOSED",
+          "failureCause": "ledger_reserve_deadline",
+          "workPending": true
+        },
+        {
+          "name": "capacity-full",
+          "violations": [],
+          "caller": {
+            "response": {
+              "status": "capacity_unknown"
+            },
+            "responseMs": 0
+          },
+          "creates": 0,
+          "released": 0,
+          "releaseCalls": 0,
+          "admission": "FAILED_CLOSED",
+          "failureCause": "capacity_unknown",
+          "workPending": false
+        },
+        {
+          "name": "normal-second-reservation",
+          "violations": [],
+          "caller": {
+            "response": {
+              "status": "timeout"
+            },
+            "responseMs": 73
+          },
+          "creates": 2,
+          "released": 0,
+          "releaseCalls": 0,
+          "admission": "FAILED_CLOSED",
+          "failureCause": null,
+          "workPending": false
+        },
+        {
+          "name": "terminate-failure-with-capacity",
+          "violations": [],
+          "creates": 2,
+          "released": 0,
+          "releaseCalls": 0,
+          "admission": "FAILED_CLOSED",
+          "failureCause": "worker_stop_unknown"
+        },
+        {
+          "name": "terminate-failure-with-session-expiry",
+          "violations": [],
+          "creates": 2,
+          "released": 0,
+          "releaseCalls": 0,
+          "admission": "FAILED_CLOSED",
+          "failureCause": "worker_stop_unknown"
+        }
+      ]
+    }
+  },
+  "artifacts": [
+    {
+      "file": "browser-chromium-7533d271-6b0a-43b1-9c37-2b5c0010571a.json.gz",
+      "rawSha256": "bb8b1c019a7dfbe6ef8d7dc55e5fa92caeccfbf4120fb765935ca5fd45031afe",
+      "gzipSha256": "d7c61c217af299ab7f82412fba247f2aedbaf1249cc80a51d92149556046bcb8",
+      "recordedAtJST": "2026-10-31T21:13:01.926+09:00",
+      "outcome": "FAIL",
+      "testedCommit": "7e77de239e4a6ee581bb11f60c7a54423b3f201d",
+      "testedTree": "27490bed14069ddbc063970f2a217c18f2b947fc",
+      "dirty": true,
+      "modelSha256": "67920b3ca61d88bd9f21634f0c686a0efe39d2908ae813967d1652a038a99e92",
+      "cases": 0
+    },
+    {
+      "file": "browser-chromium-84db9e14-650a-4d61-b4db-3851509b910c.json.gz",
+      "rawSha256": "9c812de8416604a26ccce74086ab7670b11f8ce98f9497393445bb1d738d9e27",
+      "gzipSha256": "b7dc90652a40d1a0f1b5d9b58481d060b1d579f54382917915372bc35645d257",
+      "recordedAtJST": "2026-10-31T21:06:49.952+09:00",
+      "outcome": "PASS",
+      "testedCommit": "7e77de239e4a6ee581bb11f60c7a54423b3f201d",
+      "testedTree": "27490bed14069ddbc063970f2a217c18f2b947fc",
+      "dirty": true,
+      "modelSha256": "af8f3187fb9e6d45469a557999135084ba4f5383bbf1b5d287ad29e870e8d1aa",
+      "cases": 3
+    },
+    {
+      "file": "browser-chromium-b6d8b203-e332-4eae-8540-43037a8f74f3.json.gz",
+      "rawSha256": "9a3bfbaa42e239f7ea5946f19de73e1558b5851fe62f3d3ad5606ce19733370f",
+      "gzipSha256": "acf51a7fe33238046c148fd2bd588d81c8359a06a2b1f1367ed21984f029f995",
+      "recordedAtJST": "2026-10-31T21:14:55.581+09:00",
+      "outcome": "PASS",
+      "testedCommit": "7e77de239e4a6ee581bb11f60c7a54423b3f201d",
+      "testedTree": "27490bed14069ddbc063970f2a217c18f2b947fc",
+      "dirty": true,
+      "modelSha256": "93990cef3904bf0445d27e7cd0496e977be940fa0b171b4df0a3f0b5fd04eaf7",
+      "cases": 3
+    },
+    {
+      "file": "browser-webkit-d7e7f8ac-32e8-4e3e-9a97-a5ef9752caba.json.gz",
+      "rawSha256": "9ed04c2551654a499bb921d6bf6fb2078d24311f0eb77439dd88cc47614a8a52",
+      "gzipSha256": "2dfb70b608e0183240e753b928875702c446baaa67a74ad07d4612438f55cbb0",
+      "recordedAtJST": "2026-10-31T21:06:49.006+09:00",
+      "outcome": "PASS",
+      "testedCommit": "7e77de239e4a6ee581bb11f60c7a54423b3f201d",
+      "testedTree": "27490bed14069ddbc063970f2a217c18f2b947fc",
+      "dirty": true,
+      "modelSha256": "af8f3187fb9e6d45469a557999135084ba4f5383bbf1b5d287ad29e870e8d1aa",
+      "cases": 3
+    },
+    {
+      "file": "browser-webkit-d9df1caa-d77c-456b-826d-8b7962339d7b.json.gz",
+      "rawSha256": "65149585dfa08be65f63135ebf51842bfd75385c8fd14afc2abb2822e4afea7d",
+      "gzipSha256": "d5eecea101259343047788f455e530409b3a87fc2df0984d99d2524a57ae22ec",
+      "recordedAtJST": "2026-10-31T21:13:01.014+09:00",
+      "outcome": "PASS",
+      "testedCommit": "7e77de239e4a6ee581bb11f60c7a54423b3f201d",
+      "testedTree": "27490bed14069ddbc063970f2a217c18f2b947fc",
+      "dirty": true,
+      "modelSha256": "67920b3ca61d88bd9f21634f0c686a0efe39d2908ae813967d1652a038a99e92",
+      "cases": 3
+    },
+    {
+      "file": "browser-webkit-dad92f08-5310-4894-9e5e-cc25966ab430.json.gz",
+      "rawSha256": "49474bcb1731cf4f4499daa146b67918e58133e3ae11169b5620bd09ac790def",
+      "gzipSha256": "12bf93cbaf88ae9bfa1bc3c1d7901fecfdc53d03848e1885c0fe205760deba7f",
+      "recordedAtJST": "2026-10-31T21:16:01.817+09:00",
+      "outcome": "PASS",
+      "testedCommit": "7e77de239e4a6ee581bb11f60c7a54423b3f201d",
+      "testedTree": "27490bed14069ddbc063970f2a217c18f2b947fc",
+      "dirty": true,
+      "modelSha256": "93990cef3904bf0445d27e7cd0496e977be940fa0b171b4df0a3f0b5fd04eaf7",
+      "cases": 3
+    },
+    {
+      "file": "cleanup-order-red.log.gz",
+      "rawSha256": "a3ffbe14958cf68853fde818106bc7f32b31ca60553d97f1da9c4737431f17c3",
+      "gzipSha256": "e5a415e884b2f45a19a603a616119ed6b386e611c53ab5c4c414d1e60c81b36c"
+    },
+    {
+      "file": "deadline-chromium-green-0298fcfd-068a-4445-990b-ad87ae7d7042.json.gz",
+      "rawSha256": "85691e27ff345d16174b5e165a1748e647c0e869ceb65e59498bfd9eb3106752",
+      "gzipSha256": "63f6b9193888e1aa93cc8f3011eed502593e48d59c6588dc0098439eea8a4957",
+      "recordedAtJST": "2026-10-31T21:12:56.090+09:00",
+      "outcome": "PASS",
+      "testedCommit": "7e77de239e4a6ee581bb11f60c7a54423b3f201d",
+      "testedTree": "27490bed14069ddbc063970f2a217c18f2b947fc",
+      "dirty": true,
+      "modelSha256": "67920b3ca61d88bd9f21634f0c686a0efe39d2908ae813967d1652a038a99e92",
+      "cases": 19,
+      "failed": 0
+    },
+    {
+      "file": "deadline-chromium-green-27b5bc8a-bac0-433d-b265-9cab71b0e600.json.gz",
+      "rawSha256": "f7c476c3a5b29565000056588b7b2bedcb3601bc342ebfae947924fbc7d080bb",
+      "gzipSha256": "735a234ba7a7c72fe7c32e7e1ae0ab45f30d2190fb76cf60afe1b4fd8b497190",
+      "recordedAtJST": "2026-10-31T21:08:37.582+09:00",
+      "outcome": "PASS",
+      "testedCommit": "7e77de239e4a6ee581bb11f60c7a54423b3f201d",
+      "testedTree": "27490bed14069ddbc063970f2a217c18f2b947fc",
+      "dirty": true,
+      "modelSha256": "e4b79e831b9ad4d15892efe1e2f257b09326e69d71da24be07da7fe42c5d9a26",
+      "cases": 19,
+      "failed": 0
+    },
+    {
+      "file": "deadline-chromium-green-345dfaff-1594-4a04-8747-bc5c41f6e48c.json.gz",
+      "rawSha256": "64e6f6f1e2202573f47836abd0be0202c19fe2ab6f4ef1be627ca5fb74e3be92",
+      "gzipSha256": "ebe7bea8c2663fc9ea66e1bdfeb752219f43305515575ae1bb44dac470263ced",
+      "recordedAtJST": "2026-10-31T21:06:43.898+09:00",
+      "outcome": "PASS",
+      "testedCommit": "7e77de239e4a6ee581bb11f60c7a54423b3f201d",
+      "testedTree": "27490bed14069ddbc063970f2a217c18f2b947fc",
+      "dirty": true,
+      "modelSha256": "af8f3187fb9e6d45469a557999135084ba4f5383bbf1b5d287ad29e870e8d1aa",
+      "cases": 19,
+      "failed": 0
+    },
+    {
+      "file": "deadline-chromium-green-d4499e32-2d75-47eb-837f-ab6ca382061b.json.gz",
+      "rawSha256": "085ac4c94a8f37a7dd8c5667bfa62257580b1e2ca405d8e6897e63563a592d47",
+      "gzipSha256": "10b1e11c659be94fbc832ac6ddb53a361543e65303afe831bc809adcc62c27bd",
+      "recordedAtJST": "2026-10-31T21:14:49.706+09:00",
+      "outcome": "PASS",
+      "testedCommit": "7e77de239e4a6ee581bb11f60c7a54423b3f201d",
+      "testedTree": "27490bed14069ddbc063970f2a217c18f2b947fc",
+      "dirty": true,
+      "modelSha256": "93990cef3904bf0445d27e7cd0496e977be940fa0b171b4df0a3f0b5fd04eaf7",
+      "cases": 19,
+      "failed": 0
+    },
+    {
+      "file": "deadline-chromium-red-a67c7817-9b5a-4f9c-932f-e1f91843cbd5.json.gz",
+      "rawSha256": "f8e31f80bd33a9823b4a0cf5a77336fdc93501c5436e2e3a7b711aa57bb045f6",
+      "gzipSha256": "9db5f170de7d6b09eb805780407191eaeae1bf688c51a161f79bb353189ca37b",
+      "recordedAtJST": "2026-10-31T21:02:58.047+09:00",
+      "outcome": "FAIL",
+      "testedCommit": "7e77de239e4a6ee581bb11f60c7a54423b3f201d",
+      "testedTree": "27490bed14069ddbc063970f2a217c18f2b947fc",
+      "dirty": false,
+      "modelSha256": "9daa6226e7e3fa8256b7844877b3ac8388d2c6f68b272119c4ecd080891d132c",
+      "cases": 19,
+      "failed": 17
+    },
+    {
+      "file": "deadline-green-initial.log.gz",
+      "rawSha256": "1bfda8c066529831c482dd8d293100af7fde6eeadb3579cde4f4cb02f1a8a6bb",
+      "gzipSha256": "d4950ab6bf6b040098ca8f9c2136a16c309c6ade79c4840334e9e739f2f7149c"
+    },
+    {
+      "file": "deadline-node-green-16552b5a-f0aa-4081-a525-dcd7e9f3d233.json.gz",
+      "rawSha256": "3dac81842a8ffc8982817d41708100b538048fd7685073da586a85481435a684",
+      "gzipSha256": "7e2b88b8afb4ee00e7da2ecdbd20bca5c54ce9511a190633386800967a8c8277",
+      "recordedAtJST": "2026-10-31T21:08:40.860+09:00",
+      "outcome": "PASS",
+      "testedCommit": "7e77de239e4a6ee581bb11f60c7a54423b3f201d",
+      "testedTree": "27490bed14069ddbc063970f2a217c18f2b947fc",
+      "dirty": true,
+      "modelSha256": "e4b79e831b9ad4d15892efe1e2f257b09326e69d71da24be07da7fe42c5d9a26",
+      "cases": 19,
+      "failed": 0
+    },
+    {
+      "file": "deadline-node-green-38a05044-6914-49a3-909b-ba36e1be77bc.json.gz",
+      "rawSha256": "fae89416ee245e3c0a7e8c1733a575e51a320c660c73268ad7da8484cc2513cb",
+      "gzipSha256": "47156ab611d884ab81aa7af5ca824b1b3d7f6f7d7ac3956f69751a0c3614b113",
+      "recordedAtJST": "2026-10-31T21:14:53.053+09:00",
+      "outcome": "PASS",
+      "testedCommit": "7e77de239e4a6ee581bb11f60c7a54423b3f201d",
+      "testedTree": "27490bed14069ddbc063970f2a217c18f2b947fc",
+      "dirty": true,
+      "modelSha256": "93990cef3904bf0445d27e7cd0496e977be940fa0b171b4df0a3f0b5fd04eaf7",
+      "cases": 19,
+      "failed": 0
+    },
+    {
+      "file": "deadline-node-green-55e1d1a4-cc37-47c8-aafa-953ba99d9872.json.gz",
+      "rawSha256": "4ae03fe23e941551c36ef2cf1ab46fbae75e70ed39d77047a7a5cf02f50c972b",
+      "gzipSha256": "1c6e988e1e581c1b5a7d7a700b21b016e7c1ee3b2c562c4b02dda5dc10b9946a",
+      "recordedAtJST": "2026-10-31T21:12:59.493+09:00",
+      "outcome": "PASS",
+      "testedCommit": "7e77de239e4a6ee581bb11f60c7a54423b3f201d",
+      "testedTree": "27490bed14069ddbc063970f2a217c18f2b947fc",
+      "dirty": true,
+      "modelSha256": "67920b3ca61d88bd9f21634f0c686a0efe39d2908ae813967d1652a038a99e92",
+      "cases": 19,
+      "failed": 0
+    },
+    {
+      "file": "deadline-node-green-8fe0d671-bbf3-4ff0-951f-d66365cee561.json.gz",
+      "rawSha256": "75f105a3652306ce7c8a5c8596cde689e06632810784bfb6aff3ae05d7927630",
+      "gzipSha256": "98368c2aba6e2a0677dda1cf0b9b8716fa9e4dc7ec680cab2cd17a35006946e2",
+      "recordedAtJST": "2026-10-31T21:04:51.054+09:00",
+      "outcome": "PASS",
+      "testedCommit": "7e77de239e4a6ee581bb11f60c7a54423b3f201d",
+      "testedTree": "27490bed14069ddbc063970f2a217c18f2b947fc",
+      "dirty": true,
+      "modelSha256": "3405238538a17a6d0f1838b25ef5279b449e7597df3efb5b23c6fb02b5a52934",
+      "cases": 19,
+      "failed": 0
+    },
+    {
+      "file": "deadline-node-green-ff725aea-44ba-40ee-9500-ac5cbf75f818.json.gz",
+      "rawSha256": "0fcb7383c4f7a9187ad6d5edaa755d4582638e25b0c5b3d6b37b5b968ede2a06",
+      "gzipSha256": "14c05e04cf214f19722337300dc81aa08f27b2a4174836a3f035f88ebb337a00",
+      "recordedAtJST": "2026-10-31T21:06:15.734+09:00",
+      "outcome": "PASS",
+      "testedCommit": "7e77de239e4a6ee581bb11f60c7a54423b3f201d",
+      "testedTree": "27490bed14069ddbc063970f2a217c18f2b947fc",
+      "dirty": true,
+      "modelSha256": "af8f3187fb9e6d45469a557999135084ba4f5383bbf1b5d287ad29e870e8d1aa",
+      "cases": 19,
+      "failed": 0
+    },
+    {
+      "file": "deadline-node-red-28ae1d27-16ea-47a1-ada8-ed22f5345bbf.json.gz",
+      "rawSha256": "13e316912108193370f9b7990b8d6329201ab65d0bad4d6357a65d8a754920cd",
+      "gzipSha256": "ebb0ff05484d5e21143de05849cefb0a0debc68073fcf40d3efbabdafe457f15",
+      "recordedAtJST": "2026-10-31T20:59:04.699+09:00",
+      "outcome": "FAIL",
+      "testedCommit": "7e77de239e4a6ee581bb11f60c7a54423b3f201d",
+      "testedTree": "27490bed14069ddbc063970f2a217c18f2b947fc",
+      "dirty": false,
+      "modelSha256": "9daa6226e7e3fa8256b7844877b3ac8388d2c6f68b272119c4ecd080891d132c",
+      "cases": 19,
+      "failed": 17
+    },
+    {
+      "file": "deadline-red-node.log.gz",
+      "rawSha256": "39375bf3deb5eebd1964a4c49d3546450f30ac8a9f945f94d93e8eceab720db0",
+      "gzipSha256": "4e9cdf9827bb9abb9a1e30b619f0bf9889dac54813e2f34623c481dc1cb9b6dc"
+    },
+    {
+      "file": "deadline-webkit-green-1f81baa5-dc2b-46b1-b485-3e713f6a3ff1.json.gz",
+      "rawSha256": "d7d31cbd0703c9d187b2928f2d083e94a17c871046e2294e4fccca09a2793282",
+      "gzipSha256": "5ea23cd5cbe3ab41dd3d704b599ecd11e6086eff1c49012b7f8099661db14e49",
+      "recordedAtJST": "2026-10-31T21:12:56.063+09:00",
+      "outcome": "PASS",
+      "testedCommit": "7e77de239e4a6ee581bb11f60c7a54423b3f201d",
+      "testedTree": "27490bed14069ddbc063970f2a217c18f2b947fc",
+      "dirty": true,
+      "modelSha256": "67920b3ca61d88bd9f21634f0c686a0efe39d2908ae813967d1652a038a99e92",
+      "cases": 19,
+      "failed": 0
+    },
+    {
+      "file": "deadline-webkit-green-a87a7872-6720-4e61-b4ff-02914e7cbd01.json.gz",
+      "rawSha256": "77b5efb15674deaeb07e8cb0d0fcd019534b8373ae00f0b946acc437512c058d",
+      "gzipSha256": "e514641c575a7cb493e8ea22c11b1989a5c5041878f23ceb5492419ed59eaa1c",
+      "recordedAtJST": "2026-10-31T21:14:49.892+09:00",
+      "outcome": "FAIL",
+      "testedCommit": "7e77de239e4a6ee581bb11f60c7a54423b3f201d",
+      "testedTree": "27490bed14069ddbc063970f2a217c18f2b947fc",
+      "dirty": true,
+      "modelSha256": "93990cef3904bf0445d27e7cd0496e977be940fa0b171b4df0a3f0b5fd04eaf7",
+      "cases": 19,
+      "failed": 1
+    },
+    {
+      "file": "deadline-webkit-green-b386ed91-8884-48dd-bec6-15ee71ce7f39.json.gz",
+      "rawSha256": "b27d70104e41b80271adc25235f6bc833d37427a46914d105bb2127e0e72d95e",
+      "gzipSha256": "aff13de533e854950925cffb6935cd176728ca6fe0f2eef5cb6b07145e382c77",
+      "recordedAtJST": "2026-10-31T21:06:43.926+09:00",
+      "outcome": "PASS",
+      "testedCommit": "7e77de239e4a6ee581bb11f60c7a54423b3f201d",
+      "testedTree": "27490bed14069ddbc063970f2a217c18f2b947fc",
+      "dirty": true,
+      "modelSha256": "af8f3187fb9e6d45469a557999135084ba4f5383bbf1b5d287ad29e870e8d1aa",
+      "cases": 19,
+      "failed": 0
+    },
+    {
+      "file": "deadline-webkit-green-f5e899e1-a841-4e31-af0e-3953f22f1a86.json.gz",
+      "rawSha256": "5c49ae62d85a46c7899a8c786319c8ee200f08b63fde1d72e3a10220cfe46ba8",
+      "gzipSha256": "98bf3be1c341b95bab976ca2c50fdab6c1099836c9c208485e0407342a025f1f",
+      "recordedAtJST": "2026-10-31T21:08:38.446+09:00",
+      "outcome": "PASS",
+      "testedCommit": "7e77de239e4a6ee581bb11f60c7a54423b3f201d",
+      "testedTree": "27490bed14069ddbc063970f2a217c18f2b947fc",
+      "dirty": true,
+      "modelSha256": "e4b79e831b9ad4d15892efe1e2f257b09326e69d71da24be07da7fe42c5d9a26",
+      "cases": 19,
+      "failed": 0
+    },
+    {
+      "file": "deadline-webkit-red-dbb5bc8b-06dd-4670-b71e-0ea0f7e73f90.json.gz",
+      "rawSha256": "95918c0112e145f042beaf87b046fc16521573b97bb05f912011d39991ed6728",
+      "gzipSha256": "8a1cbae7c94a62ee2650217847ef4da99eced6a90c1a408e45c0490dd5284fd2",
+      "recordedAtJST": "2026-10-31T21:03:03.922+09:00",
+      "outcome": "FAIL",
+      "testedCommit": "7e77de239e4a6ee581bb11f60c7a54423b3f201d",
+      "testedTree": "27490bed14069ddbc063970f2a217c18f2b947fc",
+      "dirty": false,
+      "modelSha256": "9daa6226e7e3fa8256b7844877b3ac8388d2c6f68b272119c4ecd080891d132c",
+      "cases": 19,
+      "failed": 17
+    },
+    {
+      "file": "review-acceptance-58-node.log.gz",
+      "rawSha256": "9a6add63669462d245892bb2bdbd70d5bfa766e297dedc362699e9313e06fd32",
+      "gzipSha256": "46f18d0ad0320c5bcc8da43ee019cab126e7b48c3745542e77dcd5a132f1cab8"
+    },
+    {
+      "file": "review-acceptance-node.log.gz",
+      "rawSha256": "fdc9048309866a59e370a8677f67d2840b047fc796ad4a1e5ffd371a163fe3e1",
+      "gzipSha256": "46e47e18f992a2db5d24052939b167aed8d2df57f471b05047a6613e5dcdd3ce"
+    },
+    {
+      "file": "review-node-final-56.log.gz",
+      "rawSha256": "1aae6cf8272fce5b7c0c39c218cd647ae5fd0b5dc49fd3e97151cc8bb37fc2d1",
+      "gzipSha256": "794bf828b517ddb0946aef6fa5797c940150f6c212af8374932f9a833fe54231"
+    },
+    {
+      "file": "review-node-final.log.gz",
+      "rawSha256": "6561d8d6dd888f6b02baabe52e8ac9f994922b8f9f5759ad3c7a16828c708bd7",
+      "gzipSha256": "8ad881e00ffcaf71e4a444c010d4008e3d6710cd077152253fae87f3f39ffd18"
+    },
+    {
+      "file": "review-shared-ledger-chromium.log.gz",
+      "rawSha256": "1e4c5d786942cdbf8deb4ee818c96e8ae6cddbed1f87f6a2b7e6cde8bac15ee4",
+      "gzipSha256": "e370ad84217eee10854303fdaf22326f0ab301d2722afd56f0ebe8bb3193e9ee"
+    },
+    {
+      "file": "review-shared-ledger-webkit.log.gz",
+      "rawSha256": "6920a68486110e5249baac2dd4712bc220ba911c5085ccfc4a501c5c3ea340e3",
+      "gzipSha256": "6eac7e9e4c3b5fa3d1166ce6bd110e5f26abd1d0f543ec33e6927d9cc5470cbb"
+    }
+  ],
+  "protectedSourceInvariants": [
+    {
+      "file": "app.js",
+      "baselineNormalizedSha256": "78c09a8f7197055d116a832e55e1bf8305e7c4b034c53f4aa25cd5188f63b6a8",
+      "currentNormalizedSha256": "78c09a8f7197055d116a832e55e1bf8305e7c4b034c53f4aa25cd5188f63b6a8",
+      "equal": true
+    },
+    {
+      "file": "index.html",
+      "baselineNormalizedSha256": "e0f8e3c2d75569cb11b037df1efdc53ac73190d01a00c4abcc64074db197f92f",
+      "currentNormalizedSha256": "e0f8e3c2d75569cb11b037df1efdc53ac73190d01a00c4abcc64074db197f92f",
+      "equal": true
+    },
+    {
+      "file": "memo-search.js",
+      "baselineNormalizedSha256": "f24527e9bedcb3d24d842aafe82db52a9f2189f30e62cce607cb92bf9ef81a99",
+      "currentNormalizedSha256": "f24527e9bedcb3d24d842aafe82db52a9f2189f30e62cce607cb92bf9ef81a99",
+      "equal": true
+    },
+    {
+      "file": "memo-search-ui.js",
+      "baselineNormalizedSha256": "d38d0e3fbdf1fa2ecdc80994e07d82e991f805a7d4a7e132ddaa89defffdcc67",
+      "currentNormalizedSha256": "d38d0e3fbdf1fa2ecdc80994e07d82e991f805a7d4a7e132ddaa89defffdcc67",
+      "equal": true
+    },
+    {
+      "file": "memo-search-broker.js",
+      "baselineNormalizedSha256": "739a94ec6c00b064d6107cf8d0b5171117b8657b8db43cc32d0154d243cbbfae",
+      "currentNormalizedSha256": "739a94ec6c00b064d6107cf8d0b5171117b8657b8db43cc32d0154d243cbbfae",
+      "equal": true
+    },
+    {
+      "file": "dummy-preview-service.js",
+      "baselineNormalizedSha256": "7b9f92eb330d1e449c686bd14872e65b5efc456785dc1060fee0596f3a2929ff",
+      "currentNormalizedSha256": "7b9f92eb330d1e449c686bd14872e65b5efc456785dc1060fee0596f3a2929ff",
+      "equal": true
+    },
+    {
+      "file": "mcp-http-auth.js",
+      "baselineNormalizedSha256": "c96cbbbf98a93f09748c587dc69d7bc327e20fe4709a72a53322faf35b051125",
+      "currentNormalizedSha256": "c96cbbbf98a93f09748c587dc69d7bc327e20fe4709a72a53322faf35b051125",
+      "equal": true
+    },
+    {
+      "file": "mcp-http-server.js",
+      "baselineNormalizedSha256": "57d2b7dff70bc77a921f161b63c1ea04097a6fb6c4f698e665f481d241ec404b",
+      "currentNormalizedSha256": "57d2b7dff70bc77a921f161b63c1ea04097a6fb6c4f698e665f481d241ec404b",
+      "equal": true
+    },
+    {
+      "file": "memo-search.e2e.js",
+      "baselineNormalizedSha256": "49cc63081d29c9c2a369149979e0043fd86b9930dac2bed8ebd6a425ca0070da",
+      "currentNormalizedSha256": "49cc63081d29c9c2a369149979e0043fd86b9930dac2bed8ebd6a425ca0070da",
+      "equal": true
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/shared-ledger.js",
+      "baselineNormalizedSha256": "f742824c194687d91a9c469f12756a1fb4dbdff9f6f0c56321e8952915cb0764",
+      "currentNormalizedSha256": "f742824c194687d91a9c469f12756a1fb4dbdff9f6f0c56321e8952915cb0764",
+      "equal": true
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/suite.js",
+      "baselineNormalizedSha256": "21150cc64ee1e56c1ad0c27fc93c045c8254eee8e8fba3636fee634acf4739c2",
+      "currentNormalizedSha256": "21150cc64ee1e56c1ad0c27fc93c045c8254eee8e8fba3636fee634acf4739c2",
+      "equal": true
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/worker.js",
+      "baselineNormalizedSha256": "53b853238f8bb53412aeeb012df3f0598fd48b726ead76d3601bc43a904aa2fc",
+      "currentNormalizedSha256": "53b853238f8bb53412aeeb012df3f0598fd48b726ead76d3601bc43a904aa2fc",
+      "equal": true
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/stage5-t7.cjs",
+      "baselineNormalizedSha256": "bbd8976bc9b9006b78b3bdd0c85bb9096d6648c5e897b2d35392ce0e1ffc6699",
+      "currentNormalizedSha256": "bbd8976bc9b9006b78b3bdd0c85bb9096d6648c5e897b2d35392ce0e1ffc6699",
+      "equal": true
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/cleanup.js",
+      "baselineNormalizedSha256": "930e4d234a2169b113e67084165c694d95be2a6e2d10e61999baca2c11ce0b22",
+      "currentNormalizedSha256": "930e4d234a2169b113e67084165c694d95be2a6e2d10e61999baca2c11ce0b22",
+      "equal": true
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/controls.js",
+      "baselineNormalizedSha256": "cf05e8aabebf2d715dae2c32a943e72750d34dfa5f8619175a002943a5614b76",
+      "currentNormalizedSha256": "cf05e8aabebf2d715dae2c32a943e72750d34dfa5f8619175a002943a5614b76",
+      "equal": true
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/diagnostic.js",
+      "baselineNormalizedSha256": "7863d0ca24c3ec6fe729cfbea003ea83ee983bfe582bc20ab6fd26fc8cceb41c",
+      "currentNormalizedSha256": "7863d0ca24c3ec6fe729cfbea003ea83ee983bfe582bc20ab6fd26fc8cceb41c",
+      "equal": true
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/diagnostic-plan.js",
+      "baselineNormalizedSha256": "e10ebf99805b70cc366a3410bdd74f384c02c19db01b2be030a4b1ccaa472333",
+      "currentNormalizedSha256": "e10ebf99805b70cc366a3410bdd74f384c02c19db01b2be030a4b1ccaa472333",
+      "equal": true
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/diagnostic-worker.js",
+      "baselineNormalizedSha256": "59bf84b27ad6911a1e8ef1293dda73927b4929b715b169ad0ba77d7af7d95d27",
+      "currentNormalizedSha256": "59bf84b27ad6911a1e8ef1293dda73927b4929b715b169ad0ba77d7af7d95d27",
+      "equal": true
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/context-harness.cjs",
+      "baselineNormalizedSha256": "76dc5bb9670f4ebfe79760e483a1db7c64b0a0191810a000cb5e26f762fc7fe8",
+      "currentNormalizedSha256": "76dc5bb9670f4ebfe79760e483a1db7c64b0a0191810a000cb5e26f762fc7fe8",
+      "equal": true
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/poll-compare.cjs",
+      "baselineNormalizedSha256": "8d43470f06d9e858a205ba62dc7bd21fa535f3526d6be553b3171953247bd3c7",
+      "currentNormalizedSha256": "8d43470f06d9e858a205ba62dc7bd21fa535f3526d6be553b3171953247bd3c7",
+      "equal": true
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/poll-outcomes.cjs",
+      "baselineNormalizedSha256": "51b26a12c642b5dd3a77ef5d13a04fba504b9d1d789b3e0a279a8c5763c25281",
+      "currentNormalizedSha256": "51b26a12c642b5dd3a77ef5d13a04fba504b9d1d789b3e0a279a8c5763c25281",
+      "equal": true
+    }
+  ],
+  "previousEvidenceUnchanged": [
+    {
+      "file": "experiments/mcp-search-worker-feasibility/evidence/d2c4ad1-ci/results-chromium.json",
+      "baselineBlob": "dc8aa3796b7fb890850a1bc73a24351b553f3a47",
+      "currentBlob": "dc8aa3796b7fb890850a1bc73a24351b553f3a47"
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/evidence/d2c4ad1-ci/results-webkit.json",
+      "baselineBlob": "0792af9b4f3542acddcc0a48e8447983830f9cb1",
+      "currentBlob": "0792af9b4f3542acddcc0a48e8447983830f9cb1"
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/evidence/stage3-poll-windows-chromium-final.json",
+      "baselineBlob": "486e2b7b681a89c88b62f67bad357f11eb28af9b",
+      "currentBlob": "486e2b7b681a89c88b62f67bad357f11eb28af9b"
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/evidence/stage3-poll-windows-chromium.json",
+      "baselineBlob": "e197905ac64360e82ad7d47955462bb810ec6bae",
+      "currentBlob": "e197905ac64360e82ad7d47955462bb810ec6bae"
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/evidence/stage3-poll-windows-webkit-final.json",
+      "baselineBlob": "7b271814e951207b4d915981a299b2063d116c1c",
+      "currentBlob": "7b271814e951207b4d915981a299b2063d116c1c"
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/evidence/stage3-poll-windows-webkit.json",
+      "baselineBlob": "d9093e8d21a74e41310d930d854b6afd0c7ba380",
+      "currentBlob": "d9093e8d21a74e41310d930d854b6afd0c7ba380"
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/evidence/stage4-poll-chromium.json",
+      "baselineBlob": "7a5cdb53faa35f7298c1f7a6edb80eac7109d54e",
+      "currentBlob": "7a5cdb53faa35f7298c1f7a6edb80eac7109d54e"
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/evidence/stage4-poll-webkit.json",
+      "baselineBlob": "c5283ef2ff6c4b0928821f06818ba8c63e18db82",
+      "currentBlob": "c5283ef2ff6c4b0928821f06818ba8c63e18db82"
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/evidence/stage4-search-webkit.json",
+      "baselineBlob": "fa33986b747e1655b324187cbbda7e63fdb16092",
+      "currentBlob": "fa33986b747e1655b324187cbbda7e63fdb16092"
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/evidence/stage5/browser-chromium-1233df22-3b11-48ca-9cec-8e44be9cec13.json",
+      "baselineBlob": "f83d2e7a6f2262e49ef050aca744788c68123e02",
+      "currentBlob": "f83d2e7a6f2262e49ef050aca744788c68123e02"
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/evidence/stage5/browser-chromium-513e7c8f-a296-49e0-936b-eb1d7f5b3da0.json",
+      "baselineBlob": "e93a20c73932c60fd0f552e1def2d376e0c78592",
+      "currentBlob": "e93a20c73932c60fd0f552e1def2d376e0c78592"
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/evidence/stage5/browser-chromium-eb1f66e0-f356-47c3-9060-1a8fda155e09.json",
+      "baselineBlob": "4f02dac451514f7e8253dfe5224e732b8e862860",
+      "currentBlob": "4f02dac451514f7e8253dfe5224e732b8e862860"
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/evidence/stage5/browser-webkit-3a426361-e210-4b92-b394-705ab3b78243.json",
+      "baselineBlob": "8c80ed68410882a8984b8f3bb46b550e38bad46b",
+      "currentBlob": "8c80ed68410882a8984b8f3bb46b550e38bad46b"
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/evidence/stage5/browser-webkit-44112734-4b87-44c9-90b1-c3eb58d9aa68.json",
+      "baselineBlob": "8497bd2396ab4ed6d3a18c676c9af5a93133848b",
+      "currentBlob": "8497bd2396ab4ed6d3a18c676c9af5a93133848b"
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/evidence/stage5/browser-webkit-f1471f07-6ebb-4589-8135-2623086f45b9.json",
+      "baselineBlob": "2cc18b6123b5ce6a9311065bd4893bb0a9ff2f3c",
+      "currentBlob": "2cc18b6123b5ce6a9311065bd4893bb0a9ff2f3c"
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/evidence/stage5/linux-5b756ea-index.json",
+      "baselineBlob": "8561ff88054f2ce0867e7cab06787ba5ba76bff2",
+      "currentBlob": "8561ff88054f2ce0867e7cab06787ba5ba76bff2"
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/evidence/stage5/linux-browser-chromium-21a5f55d-2512-4661-9e20-c442e6d74c10.json",
+      "baselineBlob": "bfe9c0758fbe78af4d1e513c61856a429652385a",
+      "currentBlob": "bfe9c0758fbe78af4d1e513c61856a429652385a"
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/evidence/stage5/linux-browser-webkit-481e7ef5-e02d-4efc-8351-5b1d56d2b72c.json",
+      "baselineBlob": "b68f7d788e92c97d9fdc95c1a8203fc879cf7085",
+      "currentBlob": "b68f7d788e92c97d9fdc95c1a8203fc879cf7085"
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/evidence/stage5/linux-t7-chromium-357d27d1-c34a-4716-94c9-3ef9d5b357e3.json.gz",
+      "baselineBlob": "dc4f8b24b73523a11a63957db7deb5873aaeb52f",
+      "currentBlob": "dc4f8b24b73523a11a63957db7deb5873aaeb52f"
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/evidence/stage5/linux-t7-only-webkit-1a30179a-0d91-4b72-8270-d3b42d30c351.json.gz",
+      "baselineBlob": "2648f4db1946d4bc972305c20371b5878365d956",
+      "currentBlob": "2648f4db1946d4bc972305c20371b5878365d956"
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/evidence/stage5/linux-t7-webkit-a613804e-a718-43f5-a33c-0dd194d7d9c1.json.gz",
+      "baselineBlob": "e146b7bf2f27511f35bf04bac96732e85bd49a26",
+      "currentBlob": "e146b7bf2f27511f35bf04bac96732e85bd49a26"
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/evidence/stage5/model-green.txt",
+      "baselineBlob": "682793cc36885e1dcdbf005906deb82d8711be5f",
+      "currentBlob": "682793cc36885e1dcdbf005906deb82d8711be5f"
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/evidence/stage5/model-red-bounded.txt",
+      "baselineBlob": "9ec207e06be3b469023c643fa5cdb993303c8042",
+      "currentBlob": "9ec207e06be3b469023c643fa5cdb993303c8042"
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/evidence/stage5/model-red.txt",
+      "baselineBlob": "b8a6de7db56e807a9506431496ed07ef67a4dda1",
+      "currentBlob": "b8a6de7db56e807a9506431496ed07ef67a4dda1"
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/evidence/stage5/node-final-delivery-state.txt",
+      "baselineBlob": "6e0bcf86c05b644f36af8ee360fb2f0ac58f2880",
+      "currentBlob": "6e0bcf86c05b644f36af8ee360fb2f0ac58f2880"
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/evidence/stage5/node-final.txt",
+      "baselineBlob": "30381711c1800f667100eec24145c37540e9e2e7",
+      "currentBlob": "30381711c1800f667100eec24145c37540e9e2e7"
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/evidence/stage5/search-chromium-final.txt",
+      "baselineBlob": "76eaf89e39a733e5700d69973f91cf7a9bb0ec7d",
+      "currentBlob": "76eaf89e39a733e5700d69973f91cf7a9bb0ec7d"
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/evidence/stage5/search-webkit-diagnostic.txt",
+      "baselineBlob": "40c90dcadafd2a5d54603abd7338d1926574fa77",
+      "currentBlob": "40c90dcadafd2a5d54603abd7338d1926574fa77"
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/evidence/stage5/search-webkit-final.txt",
+      "baselineBlob": "ab71bb0ce0e921ff6d3899ed8ab3be40c0f07fac",
+      "currentBlob": "ab71bb0ce0e921ff6d3899ed8ab3be40c0f07fac"
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/evidence/stage5/search-webkit-route-lifetime.txt",
+      "baselineBlob": "ab71bb0ce0e921ff6d3899ed8ab3be40c0f07fac",
+      "currentBlob": "ab71bb0ce0e921ff6d3899ed8ab3be40c0f07fac"
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/evidence/stage5/t7-chromium-ce5e768a-3f52-4327-95b6-64defc4f7fd8.json.gz",
+      "baselineBlob": "a3eed8c5562cf9ba6d99113cd73d5d2af98ee5fc",
+      "currentBlob": "a3eed8c5562cf9ba6d99113cd73d5d2af98ee5fc"
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/evidence/stage5/t7-webkit-888e825f-9204-4a5f-8646-d0cf66f193eb.json.gz",
+      "baselineBlob": "0b5abba62f2e715c935e6dde95bc9e464b676fad",
+      "currentBlob": "0b5abba62f2e715c935e6dde95bc9e464b676fad"
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/evidence/stage5/timeline-chromium-1793445851054-175a75a6.json",
+      "baselineBlob": "4588a918f1a70cbde5f38e5b71f2cdcea4af38fc",
+      "currentBlob": "4588a918f1a70cbde5f38e5b71f2cdcea4af38fc"
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/evidence/stage5/timeline-webkit-1793445479117-7cac4881.json",
+      "baselineBlob": "56d59d8499a20522f36565b2e3eb1b3eed416aca",
+      "currentBlob": "56d59d8499a20522f36565b2e3eb1b3eed416aca"
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/evidence/stage5/timeline-webkit-1793445742651-3e27e529.json",
+      "baselineBlob": "a90af4352411260f003720af4d5c37aaddfb1fc0",
+      "currentBlob": "a90af4352411260f003720af4d5c37aaddfb1fc0"
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/evidence/stage5/timeline-webkit-1793445878397-a79a3991.json",
+      "baselineBlob": "2f62bb332b3f38bc1805d3e8fbe9771a8172dece",
+      "currentBlob": "2f62bb332b3f38bc1805d3e8fbe9771a8172dece"
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/evidence/stage5/windows-index.json",
+      "baselineBlob": "c37e3ee927fea0c60994dead840d704ca392e71b",
+      "currentBlob": "c37e3ee927fea0c60994dead840d704ca392e71b"
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/evidence/t7-only-windows-chromium.json",
+      "baselineBlob": "a52e8d345010d1c15342390b529f87e4964616db",
+      "currentBlob": "a52e8d345010d1c15342390b529f87e4964616db"
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/evidence/t7-only-windows-webkit.json",
+      "baselineBlob": "e961a15d332fc4c8fffb63c9ff4a001b181d64a2",
+      "currentBlob": "e961a15d332fc4c8fffb63c9ff4a001b181d64a2"
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/evidence/webkit-poll-route-diagnostic-20261031.json",
+      "baselineBlob": "433ef2b3e35d3365d6ac3d6f875a06c36b96dabb",
+      "currentBlob": "433ef2b3e35d3365d6ac3d6f875a06c36b96dabb"
+    }
+  ],
+  "counts": {
+    "node": 58,
+    "nodePass": 58,
+    "nodeFail": 0,
+    "browserDeadline": 38,
+    "browserDeadlinePass": 37,
+    "browserDeadlineFail": 1,
+    "realLedgerScenarios": 6,
+    "sharedLedgerScripts": 2
+  },
+  "limitations": [
+    "Windows final WebKit deadline response 202ms exceeds 160ms; retain FAIL, cause UNKNOWN",
+    "Local tests use baseline HEAD with dirty working sources identified by hashes; final CI HEAD/tree recorded in PR comment",
+    "Physical resource release UNKNOWN; production integration HOLD"
+  ],
+  "cleanupOrderRedModelSha256": "67920b3ca61d88bd9f21634f0c686a0efe39d2908ae813967d1652a038a99e92"
+}

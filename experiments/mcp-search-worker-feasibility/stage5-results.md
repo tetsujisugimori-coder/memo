@@ -1,5 +1,7 @@
 # Stage 5 検証記録
 
+**PR #395 独立レビュー対応の追記**: 基準 `7e77de2` の台帳await中のcaller有限終了は未成立だった。P2/P3の修正・同一19ケースのRED→GREEN・更新した拒否契約は [stage5-review-fixes.md](stage5-review-fixes.md) と [stage5-contract.md](stage5-contract.md) を参照。以下は前段階の観測記録として保持し、今回の新しい証拠と混同しない。最新CIと実行HEADはPRコメントに追記する。
+
 総合 **PARTIAL**、本番Worker **HOLD**、マージ推奨 **NO**。状態遷移・再利用禁止・統合条件は [stage5-contract.md](stage5-contract.md)。実装担当者の試験であり独立レビュー完了ではない。
 
 ## 開始時確認
