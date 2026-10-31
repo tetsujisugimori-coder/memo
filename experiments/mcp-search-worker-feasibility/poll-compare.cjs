@@ -3,15 +3,14 @@
 const http = require("node:http"), assert = require("node:assert/strict");
 const { chromium, webkit } = require("playwright");
 const { bounded } = require("./context-harness.cjs");
+const { classifyException: classify, validateOutcome } = require("./poll-outcomes.cjs");
+const { execFileSync } = require("node:child_process"), os = require("node:os"), crypto = require("node:crypto"), fs = require("node:fs");
 const engine = process.env.WORKER_POC_BROWSER || "chromium";
 if (!["chromium", "webkit"].includes(engine)) throw new Error("unsupported browser");
-function classify(error) {
-  const message = String(error?.message || "");
-  const reason = /already handled/i.test(message) ? "already_handled" : /target.*closed|page.*closed|context.*closed/i.test(message) ? "target_closed" : /intercept|route|request/i.test(message) ? "route_or_request" : "other_redacted";
-  return { name: String(error?.name || "Error").replace(/[^A-Za-z]/g, "").slice(0, 40), reason,
-    safeMessage: reason === "already_handled" ? "Route is already handled" : "redacted" };
-}
+function git(...args) { try { return execFileSync("git", args, { cwd: __dirname, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim(); } catch { return "UNKNOWN"; } }
+function jst() { return new Date(Date.now() + 9 * 3600000).toISOString().replace("Z", "+09:00"); }
 (async () => {
+  const started = jst();
   const server = http.createServer((req, res) => { res.writeHead(200, { "access-control-allow-origin": "*", "content-type": "application/json" }); res.end('{"ok":true}'); });
   await new Promise(resolve => server.listen(0, "127.0.0.1", resolve));
   const browser = await ({ chromium, webkit })[engine].launch({ headless: true });
@@ -55,17 +54,26 @@ function classify(error) {
       await bounded(routeDone, 5000, "route remained unfinished");
       let outcome = "page_closed";
       if (!page.isClosed()) { await page.waitForFunction(() => window.outcome !== "pending", null, { timeout: 5000 }); outcome = await page.evaluate(() => window.outcome); }
-      if (["immediate", "held", "session_switch"].includes(scenario)) {
-        assert.equal(routeError, null, `${scenario}: unexpected route exception`); assert.equal(fulfilled, true);
-        assert.equal(outcome, scenario === "session_switch" ? "discarded_old_session" : "delivered:200");
-      } else if (scenario === "duplicate_fulfill") {
-        assert.equal(fulfilled, true); assert.ok(routeError, "expected second fulfill exception must be observed");
-      } else if (!routeError && !fulfilled) throw new Error(`${scenario}: route outcome unobserved`);
+      let check = { fulfilled, routeError, outcome, events };
+      const injections = {
+        unexpected_abort: ["abort", x => ({ ...x, routeError: { reason: "other_redacted" } })],
+        bad_duplicate: ["duplicate_fulfill", x => ({ ...x, routeError: { reason: "other_redacted" } })],
+        bad_abort: ["abort", x => ({ ...x, outcome: "delivered:200" })],
+        bad_session: ["session_switch", x => ({ ...x, outcome: "delivered:200" })],
+        missing_page: ["page_closed", x => ({ ...x, events: x.events.filter(e => e.event !== "page_closed") })],
+        missing_context: ["context_closed", x => ({ ...x, events: x.events.filter(e => e.event !== "context_closed") })]
+      };
+      const injected = process.env.POLL_INJECT_CASE, injection = injections[injected];
+      if (injection?.[0] === scenario) check = injection[1](check);
+      try { validateOutcome(scenario, check); }
+      catch (error) { if (injection?.[0] === scenario) console.error(`EXPECTED_POLL_VALIDATION_CASE:${injected}`); throw error; }
       if (scenario !== "context_closed") { log("context_close_start"); await context.close(); }
       assert.equal(events.filter(e => e.event === "pageerror").length, 0, `${scenario}: unexpected pageerror`);
-      all.push({ scenario, fulfilled, routeError, outcome, events });
+      all.push({ scenario, result: "PASS", exceptionCategory: routeError?.reason || "none", fulfilled, routeError, outcome, events });
     }
-    console.log(JSON.stringify({ test: "poll-controlled-compare", engine, version: browser.version(), at: new Date().toISOString(), parent: "df9a713b3ef9188b4a6bc8ae500f92d20b9124ea", results: all }));
+    const dirty = git("status", "--porcelain");
+    const hash = name => crypto.createHash("sha256").update(fs.readFileSync(name)).digest("hex");
+    console.log(JSON.stringify({ test: "poll-controlled-compare", baselineCommit: "ddee81fd50d23e6b49d105e2e57167ce1db61b1f", testedCommit: git("rev-parse", "HEAD"), testedTree: git("rev-parse", "HEAD^{tree}"), workingTreeDirty: dirty === "UNKNOWN" ? "UNKNOWN" : dirty !== "", scriptSha256: hash(__filename), validatorSha256: hash(require.resolve("./poll-outcomes.cjs")), browserEngine: engine, browserVersion: browser.version(), platform: `${os.platform()}-${os.arch()}`, testStartedAt: started, results: all }));
   } finally { await browser.close(); await new Promise(resolve => server.close(resolve)); }
 })().catch(e => {
   if (process.env.POLL_INJECT_UNEXPECTED === "1" && String(e?.message || "").includes("immediate: unexpected route exception")) console.error("EXPECTED_ROUTE_ASSERTION");

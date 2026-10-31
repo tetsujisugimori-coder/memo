@@ -4,6 +4,7 @@ const assert = require("node:assert/strict"), fs = require("node:fs/promises"), 
 const { randomBytes } = require("node:crypto"), { chromium, webkit } = require("playwright");
 const { createPreviewService } = require("./dummy-preview-service.js"), { createAuthenticatedServer } = require("./mcp-http-server.js");
 const { config, issuerFixture, listen, close, wire } = require("./mcp-http-oauth.fixture.js"), { attachTransport, fetchReceiver } = require("./received-e2e-transport.js");
+const { classifyException } = require("./experiments/mcp-search-worker-feasibility/poll-outcomes.cjs");
 async function settled(page) {
   await page.locator("#appStartupGuard").waitFor({ state: "hidden" });
   await page.waitForFunction(() => typeof webClipReceiverReady !== "undefined" && webClipReceiverReady);
@@ -67,7 +68,7 @@ async function snapshot(page) {
     });
     context.on("response", response => { if (tracked.has(response.request())) record("response", { id: tracked.get(response.request()), status: response.status() }); });
     context.on("requestfinished", request => { if (tracked.has(request)) record("requestfinished", { id: tracked.get(request) }); });
-    context.on("requestfailed", request => { if (tracked.has(request)) record("requestfailed", { id: tracked.get(request), error: request.failure()?.errorText }); });
+    context.on("requestfailed", request => { if (tracked.has(request)) { const error = request.failure()?.errorText || ""; record("requestfailed", { id: tracked.get(request), reason: /cancel|abort/i.test(error) ? "cancelled" : /block/i.test(error) ? "blocked" : /connect/i.test(error) ? "connection" : "other_redacted" }); } });
     page.on("pageerror", error => { errors.push(error.message); record("pageerror", { category: /search\/poll due to access control checks/.test(error.message) ? "poll_access_control" : "other" }); });
     page.on("close", () => record("page_closed"));
     context.on("close", () => record("context_closed"));
@@ -221,7 +222,7 @@ async function snapshot(page) {
       record("held_route_fetch_return", { id: tracked.get(route.request()), status: response.status() });
       pollArrived(); await new Promise(resolve => { releaseOldPoll = resolve; });
       record("held_route_fulfill_start", { id: tracked.get(route.request()) });
-      await route.fulfill({ response }).then(() => record("held_route_fulfill_return", { id: tracked.get(route.request()) }), () => record("held_route_fulfill_failed", { id: tracked.get(route.request()) }));
+      await route.fulfill({ response }).then(() => record("held_route_fulfill_return", { id: tracked.get(route.request()) }), error => record("held_route_fulfill_failed", { id: tracked.get(route.request()), ...classifyException(error) }));
     }, { times: 1 });
     await page.locator("#memoSearchRefresh").click(); await oldPollReady;
     await page.route("**/search/revoke", async route => {
@@ -294,6 +295,7 @@ async function snapshot(page) {
     releaseOldPoll?.();
     if (browser) { record("browser_close_start"); await browser.close(); record("browser_close_return"); }
     for (const [name, server] of [["oauth", oauth], ["receiver", receiver], ["static", staticServer]]) if (server?.listening) { record("server_close_start", { name }); await close(server); record("server_close_return", { name }); }
-    await fs.writeFile(path.join(artifacts, `timeline-${process.env.MEMO_SEARCH_BROWSER || "chromium"}-${Date.now()}-${randomBytes(4).toString("hex")}.json`), JSON.stringify({ test: "memo-search-e2e-route-diagnostic", baseline: "597c1d4985724e3dd77660a3562020d7004b6d86", recordedAt: new Date().toISOString(), engine: process.env.MEMO_SEARCH_BROWSER || "chromium", timeline }, null, 2), { flag: "wx" });
+    const recordedAtJST = new Date(Date.now() + 9 * 3600000).toISOString().replace("Z", "+09:00");
+    await fs.writeFile(path.join(artifacts, `timeline-${process.env.MEMO_SEARCH_BROWSER || "chromium"}-${Date.now()}-${randomBytes(4).toString("hex")}.json`), JSON.stringify({ test: "memo-search-e2e-route-diagnostic", baseline: "597c1d4985724e3dd77660a3562020d7004b6d86", recordedAtJST, engine: process.env.MEMO_SEARCH_BROWSER || "chromium", timeline }, null, 2), { flag: "wx" });
   }
 })().catch(error => { console.error(error); process.exitCode = 1; });

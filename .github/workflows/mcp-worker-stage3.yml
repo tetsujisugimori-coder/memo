@@ -27,7 +27,7 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npx playwright install --with-deps ${{ matrix.browser }}
-      - run: node --test experiments/mcp-search-worker-feasibility/shutdown-protocol.test.cjs
+      - run: node --test experiments/mcp-search-worker-feasibility/shutdown-protocol.test.cjs experiments/mcp-search-worker-feasibility/poll-outcomes.test.cjs
       - run: node experiments/mcp-search-worker-feasibility/poll-compare.cjs
       - name: An unexpected route exception must fail the runner
         run: |
@@ -37,6 +37,25 @@ jobs:
           fi
           cat failure-check.log
           grep -q EXPECTED_ROUTE_ASSERTION failure-check.log
+      - name: Invalid scenario outcomes must fail for the expected reason
+        run: |
+          for case in unexpected_abort bad_duplicate bad_abort bad_session missing_page missing_context; do
+            if POLL_INJECT_CASE="$case" node experiments/mcp-search-worker-feasibility/poll-compare.cjs > failure-check.log 2>&1; then
+              echo "Unexpected success for $case"
+              exit 1
+            fi
+            cat failure-check.log
+            grep -q "EXPECTED_POLL_VALIDATION_CASE:$case" failure-check.log
+          done
       - run: node experiments/mcp-search-worker-feasibility/shared-ledger-browser.cjs
       - run: node experiments/mcp-search-worker-feasibility/ledger-restart-browser.cjs
+      - name: Failed profile fixture is cleaned and failure remains visible
+        run: |
+          if WORKER_POC_INJECT_PROFILE_FAILURE=1 node experiments/mcp-search-worker-feasibility/ledger-restart-browser.cjs > profile-check.log 2>&1; then
+            echo 'Unexpected success after injected profile failure'
+            exit 1
+          fi
+          cat profile-check.log
+          grep -q injected_profile_failure profile-check.log
+          grep -q profile_removed profile-check.log
       - run: node experiments/mcp-search-worker-feasibility/shutdown-browser.cjs
