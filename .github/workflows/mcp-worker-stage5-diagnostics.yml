@@ -1,12 +1,12 @@
 name: MCP Worker Stage 5 limited diagnostics
 on:
-  pull_request:
+  push:
+    branches: ['investigate/mcp-worker-stage5']
     paths:
       - 'experiments/mcp-search-worker-feasibility/stage5-diagnostic-source.cjs'
       - 'experiments/mcp-search-worker-feasibility/stage5-latency-diagnostic.cjs'
       - 'experiments/mcp-search-worker-feasibility/stage5-idb-observer.js'
       - 'experiments/mcp-search-worker-feasibility/stage5-t7-diagnostic.cjs'
-      - '.github/workflows/mcp-worker-stage5-diagnostics.yml'
 permissions:
   contents: read
 jobs:
