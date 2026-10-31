@@ -1,0 +1,65 @@
+name: MCP Worker Stage 5 boundaries
+on:
+  pull_request:
+    paths:
+      - 'experiments/mcp-search-worker-feasibility/**'
+      - 'memo-search.e2e.js'
+      - '.github/workflows/mcp-worker-stage5.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  boundary:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chromium, webkit]
+    env:
+      WORKER_POC_BROWSER: ${{ matrix.browser }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps ${{ matrix.browser }}
+      - run: node --test experiments/mcp-search-worker-feasibility/stage5.test.cjs experiments/mcp-search-worker-feasibility/recovery-model.test.cjs experiments/mcp-search-worker-feasibility/shutdown-protocol.test.cjs memo-search.test.js
+      - run: node experiments/mcp-search-worker-feasibility/stage5-browser.cjs
+      - run: node experiments/mcp-search-worker-feasibility/ledger-restart-browser.cjs
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: stage5-boundary-${{ matrix.browser }}
+          path: e2e-artifacts/stage5/
+          retention-days: 14
+  t7:
+    runs-on: ubuntu-latest
+    timeout-minutes: 22
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chromium, webkit]
+    env:
+      WORKER_POC_BROWSER: ${{ matrix.browser }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps ${{ matrix.browser }}
+      - run: node experiments/mcp-search-worker-feasibility/stage5-t7.cjs
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: stage5-t7-${{ matrix.browser }}
+          path: e2e-artifacts/stage5/
+          retention-days: 14

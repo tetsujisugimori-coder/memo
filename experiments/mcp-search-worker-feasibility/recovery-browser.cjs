@@ -10,7 +10,7 @@ if (!["chromium", "webkit"].includes(engine)) throw new Error("unsupported brows
     const page = await browser.newPage();
     await page.addScriptTag({ content: `{ const module = { exports: {} }; ${source}\n window.createRecoveryModel = module.exports.createRecoveryModel; }` });
     const result = await bounded(page.evaluate(async () => {
-      const url = URL.createObjectURL(new Blob([`onmessage = ({data}) => { if (data.payload !== "hang") postMessage({requestId:data.requestId, sessionId:data.sessionId, value:"fixture"}); }`], { type: "text/javascript" }));
+      const url = URL.createObjectURL(new Blob([`onmessage = async ({data}) => { if (data.payload === "hang") await new Promise(() => {}); else postMessage({...data, value:"fixture"}); }`], { type: "text/javascript" }));
       const model = window.createRecoveryModel({ createWorker: () => new Worker(url), maxWorkers: 2 });
       try {
         model.setSession("old", Date.now() + 10000);
