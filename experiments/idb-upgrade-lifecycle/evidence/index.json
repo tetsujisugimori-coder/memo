@@ -163,8 +163,8 @@
   },
   "derivedHashes": {
     "analysis.json": "8f87110845bb43d651e959513c9fed06f1e3104393a34224a1aab1b08122458a",
-    "connections.md": "aa0dd619259995d3af3c9a297af8899d282ca12537c27596ef016854714b6f56",
-    "stages.md": "d2160d3835725342d57934cc7136fb969611f5930ac75c9239557c1e4781ae06",
+    "connections.md": "a45a598907d62c1603507ab4779020e7b9de22c0333fcc52a9fbead6a5659ba2",
+    "stages.md": "5dc83312de14bd8dd637b14734fe408e23e5720be1cbfcd0a6218e163840dbbc",
     "expanded-open-inventory.txt": "fcf5b3b8bc2b29c3cf238253f314b8b54bcdd9e2915dbb8c7bc297adaa8813f7"
   },
   "logCapture": "job.log.gz and ci.json.gz are GitHub text captured as PowerShell UTF8 BOM/host newline, hashed after capture",

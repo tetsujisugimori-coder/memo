@@ -115,4 +115,3 @@ runId f5aa38f8-7bf9-4bae-b48c-3917c827efaf / DB idb-lifecycle-8a35223f-f119-42cf
 |---|---|---|---|---|---|
 |main/c1 / v1|23.80000000000291|25.30000000000291/close_returned|25.30000000000291|25.30000000000291|main/tx1:transaction_complete@24.39999999999418|
 |main/c2 / v2|25.59999999999127|26/close_returned|26|26|main/tx2:transaction_complete@26|
-

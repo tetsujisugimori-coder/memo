@@ -80,4 +80,3 @@ runId f5aa38f8-7bf9-4bae-b48c-3917c827efaf / DB idb-lifecycle-8a35223f-f119-42cf
 |iteration/request/version|A open|B versionchange|C close??|D blocked|E upgradeneeded|F tx??|G open??|timeout ms|
 |---|---|---|---|---|---|---|---|---|
 |1/main/r2/v2|OBSERVED|OBSERVED|1/1|OBSERVED|OBSERVED|OBSERVED|OBSERVED|?|
-

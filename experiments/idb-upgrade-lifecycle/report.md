@@ -101,4 +101,4 @@ Cはmain realmでread/closeするためDからWorker終了だけを数学的に1
 
 差分要約：新規研究folder（observer/source/controls/runner、局所検証、計画/報告/静的検索表/証拠）と専用workflowのみ。既存suite/Worker/cleanup、製品の検索/認可/保存、過去証拠と他worktreeの作業は不変更。
 
-記録日時：2026-11-01 20:02 JST。
+記録日時：2026-11-01 20:05 JST。
