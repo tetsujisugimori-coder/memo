@@ -1,0 +1,1398 @@
+{
+  "runId": "61b757bd-6b5f-4fdf-aab8-574c511aea93",
+  "dbName": "worker-poc-877ab5bc-0794-4ccf-97da-5c6664645508",
+  "testedCommit": "6b25f7ecf1d3b290958556708fee9899f188c5f2",
+  "tree": "af4e504157e334bdc62d0082f614e7489b3a8435",
+  "dirty": false,
+  "browser": "26.5",
+  "node": "v22.23.4",
+  "platform": "linux",
+  "condition": "F",
+  "recordedAtJST": "2026-11-01 20:45:10 JST",
+  "ci": 41303212794,
+  "connections": [
+    {
+      "connectionId": "main/c1",
+      "owner": "main",
+      "iteration": 0,
+      "version": 1,
+      "requestId": "main/r1",
+      "generated": {
+        "receiveSeq": 2,
+        "sourceSeq": 2,
+        "sourceMs": 53,
+        "clockDomain": "61b757bd-6b5f-4fdf-aab8-574c511aea93/main",
+        "event": "connection_observed"
+      },
+      "lastObservedEvent": {
+        "receiveSeq": 10,
+        "sourceSeq": 10,
+        "sourceMs": 54,
+        "clockDomain": "61b757bd-6b5f-4fdf-aab8-574c511aea93/main",
+        "event": "close_returned"
+      },
+      "closeCalled": {
+        "receiveSeq": 9,
+        "sourceSeq": 9,
+        "sourceMs": 54,
+        "clockDomain": "61b757bd-6b5f-4fdf-aab8-574c511aea93/main",
+        "event": "close_called"
+      },
+      "closeReturned": {
+        "receiveSeq": 10,
+        "sourceSeq": 10,
+        "sourceMs": 54,
+        "clockDomain": "61b757bd-6b5f-4fdf-aab8-574c511aea93/main",
+        "event": "close_returned"
+      },
+      "transactions": [
+        {
+          "transactionId": "main/tx1",
+          "mode": "versionchange",
+          "kind": "upgrade",
+          "start": {
+            "receiveSeq": 3,
+            "sourceSeq": 3,
+            "sourceMs": 53,
+            "clockDomain": "61b757bd-6b5f-4fdf-aab8-574c511aea93/main",
+            "event": "transaction_start"
+          },
+          "terminal": {
+            "receiveSeq": 5,
+            "sourceSeq": 5,
+            "sourceMs": 53,
+            "clockDomain": "61b757bd-6b5f-4fdf-aab8-574c511aea93/main",
+            "event": "transaction_complete"
+          }
+        },
+        {
+          "transactionId": "main/tx2",
+          "mode": "readwrite",
+          "kind": "explicit",
+          "start": {
+            "receiveSeq": 7,
+            "sourceSeq": 7,
+            "sourceMs": 53,
+            "clockDomain": "61b757bd-6b5f-4fdf-aab8-574c511aea93/main",
+            "event": "transaction_start"
+          },
+          "terminal": {
+            "receiveSeq": 8,
+            "sourceSeq": 8,
+            "sourceMs": 54,
+            "clockDomain": "61b757bd-6b5f-4fdf-aab8-574c511aea93/main",
+            "event": "transaction_complete"
+          }
+        }
+      ],
+      "normalConnectionClosed": "UNKNOWN",
+      "physicalRelease": "UNKNOWN"
+    },
+    {
+      "connectionId": "main/c2",
+      "owner": "main",
+      "iteration": 0,
+      "version": 1,
+      "requestId": "main/r2",
+      "generated": {
+        "receiveSeq": 12,
+        "sourceSeq": 12,
+        "sourceMs": 54,
+        "clockDomain": "61b757bd-6b5f-4fdf-aab8-574c511aea93/main",
+        "event": "connection_observed"
+      },
+      "lastObservedEvent": {
+        "receiveSeq": 17,
+        "sourceSeq": 17,
+        "sourceMs": 56,
+        "clockDomain": "61b757bd-6b5f-4fdf-aab8-574c511aea93/main",
+        "event": "transaction_complete"
+      },
+      "closeCalled": {
+        "receiveSeq": 15,
+        "sourceSeq": 15,
+        "sourceMs": 55,
+        "clockDomain": "61b757bd-6b5f-4fdf-aab8-574c511aea93/main",
+        "event": "close_called"
+      },
+      "closeReturned": {
+        "receiveSeq": 16,
+        "sourceSeq": 16,
+        "sourceMs": 55,
+        "clockDomain": "61b757bd-6b5f-4fdf-aab8-574c511aea93/main",
+        "event": "close_returned"
+      },
+      "transactions": [
+        {
+          "transactionId": "main/tx3",
+          "mode": "readonly",
+          "kind": "explicit",
+          "start": {
+            "receiveSeq": 14,
+            "sourceSeq": 14,
+            "sourceMs": 55,
+            "clockDomain": "61b757bd-6b5f-4fdf-aab8-574c511aea93/main",
+            "event": "transaction_start"
+          },
+          "terminal": {
+            "receiveSeq": 17,
+            "sourceSeq": 17,
+            "sourceMs": 56,
+            "clockDomain": "61b757bd-6b5f-4fdf-aab8-574c511aea93/main",
+            "event": "transaction_complete"
+          }
+        }
+      ],
+      "normalConnectionClosed": "UNKNOWN",
+      "physicalRelease": "UNKNOWN"
+    },
+    {
+      "connectionId": "worker-1/c1",
+      "owner": "worker-1",
+      "iteration": 1,
+      "version": 1,
+      "requestId": "worker-1/r1",
+      "generated": {
+        "receiveSeq": 21,
+        "sourceSeq": 2,
+        "sourceMs": 6,
+        "clockDomain": "61b757bd-6b5f-4fdf-aab8-574c511aea93/worker-1",
+        "event": "connection_observed"
+      },
+      "lastObservedEvent": {
+        "receiveSeq": 32,
+        "sourceSeq": 9,
+        "sourceMs": 8,
+        "clockDomain": "61b757bd-6b5f-4fdf-aab8-574c511aea93/worker-1",
+        "event": "unresolved_send"
+      },
+      "closeCalled": "NOT_OBSERVED",
+      "closeReturned": "NOT_OBSERVED",
+      "transactions": [
+        {
+          "transactionId": "worker-1/tx1",
+          "mode": "readonly",
+          "kind": "explicit",
+          "start": {
+            "receiveSeq": 24,
+            "sourceSeq": 4,
+            "sourceMs": 7,
+            "clockDomain": "61b757bd-6b5f-4fdf-aab8-574c511aea93/worker-1",
+            "event": "transaction_start"
+          },
+          "terminal": {
+            "receiveSeq": 29,
+            "sourceSeq": 7,
+            "sourceMs": 7,
+            "clockDomain": "61b757bd-6b5f-4fdf-aab8-574c511aea93/worker-1",
+            "event": "transaction_complete"
+          }
+        }
+      ],
+      "normalConnectionClosed": "UNKNOWN",
+      "physicalRelease": "UNKNOWN"
+    },
+    {
+      "connectionId": "main/c3",
+      "owner": "main",
+      "iteration": 1,
+      "version": 2,
+      "requestId": "main/r3",
+      "generated": {
+        "receiveSeq": 38,
+        "sourceSeq": 29,
+        "sourceMs": 65,
+        "clockDomain": "61b757bd-6b5f-4fdf-aab8-574c511aea93/main",
+        "event": "connection_observed"
+      },
+      "lastObservedEvent": {
+        "receiveSeq": 44,
+        "sourceSeq": 35,
+        "sourceMs": 65,
+        "clockDomain": "61b757bd-6b5f-4fdf-aab8-574c511aea93/main",
+        "event": "close_returned"
+      },
+      "closeCalled": {
+        "receiveSeq": 43,
+        "sourceSeq": 34,
+        "sourceMs": 65,
+        "clockDomain": "61b757bd-6b5f-4fdf-aab8-574c511aea93/main",
+        "event": "close_called"
+      },
+      "closeReturned": {
+        "receiveSeq": 44,
+        "sourceSeq": 35,
+        "sourceMs": 65,
+        "clockDomain": "61b757bd-6b5f-4fdf-aab8-574c511aea93/main",
+        "event": "close_returned"
+      },
+      "transactions": [
+        {
+          "transactionId": "main/tx4",
+          "mode": "versionchange",
+          "kind": "upgrade",
+          "start": {
+            "receiveSeq": 39,
+            "sourceSeq": 30,
+            "sourceMs": 65,
+            "clockDomain": "61b757bd-6b5f-4fdf-aab8-574c511aea93/main",
+            "event": "transaction_start"
+          },
+          "terminal": {
+            "receiveSeq": 41,
+            "sourceSeq": 32,
+            "sourceMs": 65,
+            "clockDomain": "61b757bd-6b5f-4fdf-aab8-574c511aea93/main",
+            "event": "transaction_complete"
+          }
+        }
+      ],
+      "normalConnectionClosed": "UNKNOWN",
+      "physicalRelease": "UNKNOWN"
+    },
+    {
+      "connectionId": "worker-2/c1",
+      "owner": "worker-2",
+      "iteration": 2,
+      "version": 2,
+      "requestId": "worker-2/r1",
+      "generated": {
+        "receiveSeq": 48,
+        "sourceSeq": 2,
+        "sourceMs": 4,
+        "clockDomain": "61b757bd-6b5f-4fdf-aab8-574c511aea93/worker-2",
+        "event": "connection_observed"
+      },
+      "lastObservedEvent": {
+        "receiveSeq": 59,
+        "sourceSeq": 9,
+        "sourceMs": 5,
+        "clockDomain": "61b757bd-6b5f-4fdf-aab8-574c511aea93/worker-2",
+        "event": "unresolved_send"
+      },
+      "closeCalled": "NOT_OBSERVED",
+      "closeReturned": "NOT_OBSERVED",
+      "transactions": [
+        {
+          "transactionId": "worker-2/tx1",
+          "mode": "readonly",
+          "kind": "explicit",
+          "start": {
+            "receiveSeq": 51,
+            "sourceSeq": 4,
+            "sourceMs": 4,
+            "clockDomain": "61b757bd-6b5f-4fdf-aab8-574c511aea93/worker-2",
+            "event": "transaction_start"
+          },
+          "terminal": {
+            "receiveSeq": 56,
+            "sourceSeq": 7,
+            "sourceMs": 5,
+            "clockDomain": "61b757bd-6b5f-4fdf-aab8-574c511aea93/worker-2",
+            "event": "transaction_complete"
+          }
+        }
+      ],
+      "normalConnectionClosed": "UNKNOWN",
+      "physicalRelease": "UNKNOWN"
+    },
+    {
+      "connectionId": "main/c4",
+      "owner": "main",
+      "iteration": 2,
+      "version": 3,
+      "requestId": "main/r4",
+      "generated": {
+        "receiveSeq": 65,
+        "sourceSeq": 47,
+        "sourceMs": 71,
+        "clockDomain": "61b757bd-6b5f-4fdf-aab8-574c511aea93/main",
+        "event": "connection_observed"
+      },
+      "lastObservedEvent": {
+        "receiveSeq": 71,
+        "sourceSeq": 53,
+        "sourceMs": 72,
+        "clockDomain": "61b757bd-6b5f-4fdf-aab8-574c511aea93/main",
+        "event": "close_returned"
+      },
+      "closeCalled": {
+        "receiveSeq": 70,
+        "sourceSeq": 52,
+        "sourceMs": 72,
+        "clockDomain": "61b757bd-6b5f-4fdf-aab8-574c511aea93/main",
+        "event": "close_called"
+      },
+      "closeReturned": {
+        "receiveSeq": 71,
+        "sourceSeq": 53,
+        "sourceMs": 72,
+        "clockDomain": "61b757bd-6b5f-4fdf-aab8-574c511aea93/main",
+        "event": "close_returned"
+      },
+      "transactions": [
+        {
+          "transactionId": "main/tx5",
+          "mode": "versionchange",
+          "kind": "upgrade",
+          "start": {
+            "receiveSeq": 66,
+            "sourceSeq": 48,
+            "sourceMs": 71,
+            "clockDomain": "61b757bd-6b5f-4fdf-aab8-574c511aea93/main",
+            "event": "transaction_start"
+          },
+          "terminal": {
+            "receiveSeq": 68,
+            "sourceSeq": 50,
+            "sourceMs": 72,
+            "clockDomain": "61b757bd-6b5f-4fdf-aab8-574c511aea93/main",
+            "event": "transaction_complete"
+          }
+        }
+      ],
+      "normalConnectionClosed": "UNKNOWN",
+      "physicalRelease": "UNKNOWN"
+    },
+    {
+      "connectionId": "worker-3/c1",
+      "owner": "worker-3",
+      "iteration": 3,
+      "version": 3,
+      "requestId": "worker-3/r1",
+      "generated": {
+        "receiveSeq": 75,
+        "sourceSeq": 2,
+        "sourceMs": 4,
+        "clockDomain": "61b757bd-6b5f-4fdf-aab8-574c511aea93/worker-3",
+        "event": "connection_observed"
+      },
+      "lastObservedEvent": {
+        "receiveSeq": 86,
+        "sourceSeq": 9,
+        "sourceMs": 5,
+        "clockDomain": "61b757bd-6b5f-4fdf-aab8-574c511aea93/worker-3",
+        "event": "unresolved_send"
+      },
+      "closeCalled": "NOT_OBSERVED",
+      "closeReturned": "NOT_OBSERVED",
+      "transactions": [
+        {
+          "transactionId": "worker-3/tx1",
+          "mode": "readonly",
+          "kind": "explicit",
+          "start": {
+            "receiveSeq": 78,
+            "sourceSeq": 4,
+            "sourceMs": 4,
+            "clockDomain": "61b757bd-6b5f-4fdf-aab8-574c511aea93/worker-3",
+            "event": "transaction_start"
+          },
+          "terminal": {
+            "receiveSeq": 83,
+            "sourceSeq": 7,
+            "sourceMs": 5,
+            "clockDomain": "61b757bd-6b5f-4fdf-aab8-574c511aea93/worker-3",
+            "event": "transaction_complete"
+          }
+        }
+      ],
+      "normalConnectionClosed": "UNKNOWN",
+      "physicalRelease": "UNKNOWN"
+    },
+    {
+      "connectionId": "main/c5",
+      "owner": "main",
+      "iteration": 3,
+      "version": 4,
+      "requestId": "main/r5",
+      "generated": {
+        "receiveSeq": 92,
+        "sourceSeq": 65,
+        "sourceMs": 77,
+        "clockDomain": "61b757bd-6b5f-4fdf-aab8-574c511aea93/main",
+        "event": "connection_observed"
+      },
+      "lastObservedEvent": {
+        "receiveSeq": 98,
+        "sourceSeq": 71,
+        "sourceMs": 77,
+        "clockDomain": "61b757bd-6b5f-4fdf-aab8-574c511aea93/main",
+        "event": "close_returned"
+      },
+      "closeCalled": {
+        "receiveSeq": 97,
+        "sourceSeq": 70,
+        "sourceMs": 77,
+        "clockDomain": "61b757bd-6b5f-4fdf-aab8-574c511aea93/main",
+        "event": "close_called"
+      },
+      "closeReturned": {
+        "receiveSeq": 98,
+        "sourceSeq": 71,
+        "sourceMs": 77,
+        "clockDomain": "61b757bd-6b5f-4fdf-aab8-574c511aea93/main",
+        "event": "close_returned"
+      },
+      "transactions": [
+        {
+          "transactionId": "main/tx6",
+          "mode": "versionchange",
+          "kind": "upgrade",
+          "start": {
+            "receiveSeq": 93,
+            "sourceSeq": 66,
+            "sourceMs": 77,
+            "clockDomain": "61b757bd-6b5f-4fdf-aab8-574c511aea93/main",
+            "event": "transaction_start"
+          },
+          "terminal": {
+            "receiveSeq": 95,
+            "sourceSeq": 68,
+            "sourceMs": 77,
+            "clockDomain": "61b757bd-6b5f-4fdf-aab8-574c511aea93/main",
+            "event": "transaction_complete"
+          }
+        }
+      ],
+      "normalConnectionClosed": "UNKNOWN",
+      "physicalRelease": "UNKNOWN"
+    },
+    {
+      "connectionId": "worker-4/c1",
+      "owner": "worker-4",
+      "iteration": 4,
+      "version": 4,
+      "requestId": "worker-4/r1",
+      "generated": {
+        "receiveSeq": 102,
+        "sourceSeq": 2,
+        "sourceMs": 3,
+        "clockDomain": "61b757bd-6b5f-4fdf-aab8-574c511aea93/worker-4",
+        "event": "connection_observed"
+      },
+      "lastObservedEvent": {
+        "receiveSeq": 113,
+        "sourceSeq": 9,
+        "sourceMs": 4,
+        "clockDomain": "61b757bd-6b5f-4fdf-aab8-574c511aea93/worker-4",
+        "event": "unresolved_send"
+      },
+      "closeCalled": "NOT_OBSERVED",
+      "closeReturned": "NOT_OBSERVED",
+      "transactions": [
+        {
+          "transactionId": "worker-4/tx1",
+          "mode": "readonly",
+          "kind": "explicit",
+          "start": {
+            "receiveSeq": 105,
+            "sourceSeq": 4,
+            "sourceMs": 4,
+            "clockDomain": "61b757bd-6b5f-4fdf-aab8-574c511aea93/worker-4",
+            "event": "transaction_start"
+          },
+          "terminal": {
+            "receiveSeq": 110,
+            "sourceSeq": 7,
+            "sourceMs": 4,
+            "clockDomain": "61b757bd-6b5f-4fdf-aab8-574c511aea93/worker-4",
+            "event": "transaction_complete"
+          }
+        }
+      ],
+      "normalConnectionClosed": "UNKNOWN",
+      "physicalRelease": "UNKNOWN"
+    },
+    {
+      "connectionId": "main/c6",
+      "owner": "main",
+      "iteration": 4,
+      "version": 5,
+      "requestId": "main/r6",
+      "generated": {
+        "receiveSeq": 119,
+        "sourceSeq": 83,
+        "sourceMs": 83,
+        "clockDomain": "61b757bd-6b5f-4fdf-aab8-574c511aea93/main",
+        "event": "connection_observed"
+      },
+      "lastObservedEvent": {
+        "receiveSeq": 125,
+        "sourceSeq": 89,
+        "sourceMs": 83,
+        "clockDomain": "61b757bd-6b5f-4fdf-aab8-574c511aea93/main",
+        "event": "close_returned"
+      },
+      "closeCalled": {
+        "receiveSeq": 124,
+        "sourceSeq": 88,
+        "sourceMs": 83,
+        "clockDomain": "61b757bd-6b5f-4fdf-aab8-574c511aea93/main",
+        "event": "close_called"
+      },
+      "closeReturned": {
+        "receiveSeq": 125,
+        "sourceSeq": 89,
+        "sourceMs": 83,
+        "clockDomain": "61b757bd-6b5f-4fdf-aab8-574c511aea93/main",
+        "event": "close_returned"
+      },
+      "transactions": [
+        {
+          "transactionId": "main/tx7",
+          "mode": "versionchange",
+          "kind": "upgrade",
+          "start": {
+            "receiveSeq": 120,
+            "sourceSeq": 84,
+            "sourceMs": 83,
+            "clockDomain": "61b757bd-6b5f-4fdf-aab8-574c511aea93/main",
+            "event": "transaction_start"
+          },
+          "terminal": {
+            "receiveSeq": 122,
+            "sourceSeq": 86,
+            "sourceMs": 83,
+            "clockDomain": "61b757bd-6b5f-4fdf-aab8-574c511aea93/main",
+            "event": "transaction_complete"
+          }
+        }
+      ],
+      "normalConnectionClosed": "UNKNOWN",
+      "physicalRelease": "UNKNOWN"
+    },
+    {
+      "connectionId": "worker-5/c1",
+      "owner": "worker-5",
+      "iteration": 5,
+      "version": 5,
+      "requestId": "worker-5/r1",
+      "generated": {
+        "receiveSeq": 129,
+        "sourceSeq": 2,
+        "sourceMs": 3,
+        "clockDomain": "61b757bd-6b5f-4fdf-aab8-574c511aea93/worker-5",
+        "event": "connection_observed"
+      },
+      "lastObservedEvent": {
+        "receiveSeq": 140,
+        "sourceSeq": 9,
+        "sourceMs": 5,
+        "clockDomain": "61b757bd-6b5f-4fdf-aab8-574c511aea93/worker-5",
+        "event": "unresolved_send"
+      },
+      "closeCalled": "NOT_OBSERVED",
+      "closeReturned": "NOT_OBSERVED",
+      "transactions": [
+        {
+          "transactionId": "worker-5/tx1",
+          "mode": "readonly",
+          "kind": "explicit",
+          "start": {
+            "receiveSeq": 132,
+            "sourceSeq": 4,
+            "sourceMs": 4,
+            "clockDomain": "61b757bd-6b5f-4fdf-aab8-574c511aea93/worker-5",
+            "event": "transaction_start"
+          },
+          "terminal": {
+            "receiveSeq": 137,
+            "sourceSeq": 7,
+            "sourceMs": 4,
+            "clockDomain": "61b757bd-6b5f-4fdf-aab8-574c511aea93/worker-5",
+            "event": "transaction_complete"
+          }
+        }
+      ],
+      "normalConnectionClosed": "UNKNOWN",
+      "physicalRelease": "UNKNOWN"
+    },
+    {
+      "connectionId": "main/c7",
+      "owner": "main",
+      "iteration": 5,
+      "version": 6,
+      "requestId": "main/r7",
+      "generated": {
+        "receiveSeq": 146,
+        "sourceSeq": 101,
+        "sourceMs": 88,
+        "clockDomain": "61b757bd-6b5f-4fdf-aab8-574c511aea93/main",
+        "event": "connection_observed"
+      },
+      "lastObservedEvent": {
+        "receiveSeq": 152,
+        "sourceSeq": 107,
+        "sourceMs": 89,
+        "clockDomain": "61b757bd-6b5f-4fdf-aab8-574c511aea93/main",
+        "event": "close_returned"
+      },
+      "closeCalled": {
+        "receiveSeq": 151,
+        "sourceSeq": 106,
+        "sourceMs": 89,
+        "clockDomain": "61b757bd-6b5f-4fdf-aab8-574c511aea93/main",
+        "event": "close_called"
+      },
+      "closeReturned": {
+        "receiveSeq": 152,
+        "sourceSeq": 107,
+        "sourceMs": 89,
+        "clockDomain": "61b757bd-6b5f-4fdf-aab8-574c511aea93/main",
+        "event": "close_returned"
+      },
+      "transactions": [
+        {
+          "transactionId": "main/tx8",
+          "mode": "versionchange",
+          "kind": "upgrade",
+          "start": {
+            "receiveSeq": 147,
+            "sourceSeq": 102,
+            "sourceMs": 88,
+            "clockDomain": "61b757bd-6b5f-4fdf-aab8-574c511aea93/main",
+            "event": "transaction_start"
+          },
+          "terminal": {
+            "receiveSeq": 149,
+            "sourceSeq": 104,
+            "sourceMs": 89,
+            "clockDomain": "61b757bd-6b5f-4fdf-aab8-574c511aea93/main",
+            "event": "transaction_complete"
+          }
+        }
+      ],
+      "normalConnectionClosed": "UNKNOWN",
+      "physicalRelease": "UNKNOWN"
+    },
+    {
+      "connectionId": "worker-6/c1",
+      "owner": "worker-6",
+      "iteration": 6,
+      "version": 6,
+      "requestId": "worker-6/r1",
+      "generated": {
+        "receiveSeq": 156,
+        "sourceSeq": 2,
+        "sourceMs": 4,
+        "clockDomain": "61b757bd-6b5f-4fdf-aab8-574c511aea93/worker-6",
+        "event": "connection_observed"
+      },
+      "lastObservedEvent": {
+        "receiveSeq": 167,
+        "sourceSeq": 9,
+        "sourceMs": 5,
+        "clockDomain": "61b757bd-6b5f-4fdf-aab8-574c511aea93/worker-6",
+        "event": "unresolved_send"
+      },
+      "closeCalled": "NOT_OBSERVED",
+      "closeReturned": "NOT_OBSERVED",
+      "transactions": [
+        {
+          "transactionId": "worker-6/tx1",
+          "mode": "readonly",
+          "kind": "explicit",
+          "start": {
+            "receiveSeq": 159,
+            "sourceSeq": 4,
+            "sourceMs": 4,
+            "clockDomain": "61b757bd-6b5f-4fdf-aab8-574c511aea93/worker-6",
+            "event": "transaction_start"
+          },
+          "terminal": {
+            "receiveSeq": 164,
+            "sourceSeq": 7,
+            "sourceMs": 4,
+            "clockDomain": "61b757bd-6b5f-4fdf-aab8-574c511aea93/worker-6",
+            "event": "transaction_complete"
+          }
+        }
+      ],
+      "normalConnectionClosed": "UNKNOWN",
+      "physicalRelease": "UNKNOWN"
+    },
+    {
+      "connectionId": "main/c8",
+      "owner": "main",
+      "iteration": 6,
+      "version": 7,
+      "requestId": "main/r8",
+      "generated": {
+        "receiveSeq": 173,
+        "sourceSeq": 119,
+        "sourceMs": 94,
+        "clockDomain": "61b757bd-6b5f-4fdf-aab8-574c511aea93/main",
+        "event": "connection_observed"
+      },
+      "lastObservedEvent": {
+        "receiveSeq": 179,
+        "sourceSeq": 125,
+        "sourceMs": 94,
+        "clockDomain": "61b757bd-6b5f-4fdf-aab8-574c511aea93/main",
+        "event": "close_returned"
+      },
+      "closeCalled": {
+        "receiveSeq": 178,
+        "sourceSeq": 124,
+        "sourceMs": 94,
+        "clockDomain": "61b757bd-6b5f-4fdf-aab8-574c511aea93/main",
+        "event": "close_called"
+      },
+      "closeReturned": {
+        "receiveSeq": 179,
+        "sourceSeq": 125,
+        "sourceMs": 94,
+        "clockDomain": "61b757bd-6b5f-4fdf-aab8-574c511aea93/main",
+        "event": "close_returned"
+      },
+      "transactions": [
+        {
+          "transactionId": "main/tx9",
+          "mode": "versionchange",
+          "kind": "upgrade",
+          "start": {
+            "receiveSeq": 174,
+            "sourceSeq": 120,
+            "sourceMs": 94,
+            "clockDomain": "61b757bd-6b5f-4fdf-aab8-574c511aea93/main",
+            "event": "transaction_start"
+          },
+          "terminal": {
+            "receiveSeq": 176,
+            "sourceSeq": 122,
+            "sourceMs": 94,
+            "clockDomain": "61b757bd-6b5f-4fdf-aab8-574c511aea93/main",
+            "event": "transaction_complete"
+          }
+        }
+      ],
+      "normalConnectionClosed": "UNKNOWN",
+      "physicalRelease": "UNKNOWN"
+    },
+    {
+      "connectionId": "worker-7/c1",
+      "owner": "worker-7",
+      "iteration": 7,
+      "version": 7,
+      "requestId": "worker-7/r1",
+      "generated": {
+        "receiveSeq": 183,
+        "sourceSeq": 2,
+        "sourceMs": 4,
+        "clockDomain": "61b757bd-6b5f-4fdf-aab8-574c511aea93/worker-7",
+        "event": "connection_observed"
+      },
+      "lastObservedEvent": {
+        "receiveSeq": 194,
+        "sourceSeq": 9,
+        "sourceMs": 6,
+        "clockDomain": "61b757bd-6b5f-4fdf-aab8-574c511aea93/worker-7",
+        "event": "unresolved_send"
+      },
+      "closeCalled": "NOT_OBSERVED",
+      "closeReturned": "NOT_OBSERVED",
+      "transactions": [
+        {
+          "transactionId": "worker-7/tx1",
+          "mode": "readonly",
+          "kind": "explicit",
+          "start": {
+            "receiveSeq": 186,
+            "sourceSeq": 4,
+            "sourceMs": 4,
+            "clockDomain": "61b757bd-6b5f-4fdf-aab8-574c511aea93/worker-7",
+            "event": "transaction_start"
+          },
+          "terminal": {
+            "receiveSeq": 191,
+            "sourceSeq": 7,
+            "sourceMs": 5,
+            "clockDomain": "61b757bd-6b5f-4fdf-aab8-574c511aea93/worker-7",
+            "event": "transaction_complete"
+          }
+        }
+      ],
+      "normalConnectionClosed": "UNKNOWN",
+      "physicalRelease": "UNKNOWN"
+    },
+    {
+      "connectionId": "main/c9",
+      "owner": "main",
+      "iteration": 7,
+      "version": 8,
+      "requestId": "main/r9",
+      "generated": {
+        "receiveSeq": 200,
+        "sourceSeq": 137,
+        "sourceMs": 101,
+        "clockDomain": "61b757bd-6b5f-4fdf-aab8-574c511aea93/main",
+        "event": "connection_observed"
+      },
+      "lastObservedEvent": {
+        "receiveSeq": 206,
+        "sourceSeq": 143,
+        "sourceMs": 101,
+        "clockDomain": "61b757bd-6b5f-4fdf-aab8-574c511aea93/main",
+        "event": "close_returned"
+      },
+      "closeCalled": {
+        "receiveSeq": 205,
+        "sourceSeq": 142,
+        "sourceMs": 101,
+        "clockDomain": "61b757bd-6b5f-4fdf-aab8-574c511aea93/main",
+        "event": "close_called"
+      },
+      "closeReturned": {
+        "receiveSeq": 206,
+        "sourceSeq": 143,
+        "sourceMs": 101,
+        "clockDomain": "61b757bd-6b5f-4fdf-aab8-574c511aea93/main",
+        "event": "close_returned"
+      },
+      "transactions": [
+        {
+          "transactionId": "main/tx10",
+          "mode": "versionchange",
+          "kind": "upgrade",
+          "start": {
+            "receiveSeq": 201,
+            "sourceSeq": 138,
+            "sourceMs": 101,
+            "clockDomain": "61b757bd-6b5f-4fdf-aab8-574c511aea93/main",
+            "event": "transaction_start"
+          },
+          "terminal": {
+            "receiveSeq": 203,
+            "sourceSeq": 140,
+            "sourceMs": 101,
+            "clockDomain": "61b757bd-6b5f-4fdf-aab8-574c511aea93/main",
+            "event": "transaction_complete"
+          }
+        }
+      ],
+      "normalConnectionClosed": "UNKNOWN",
+      "physicalRelease": "UNKNOWN"
+    },
+    {
+      "connectionId": "worker-8/c1",
+      "owner": "worker-8",
+      "iteration": 8,
+      "version": 8,
+      "requestId": "worker-8/r1",
+      "generated": {
+        "receiveSeq": 210,
+        "sourceSeq": 2,
+        "sourceMs": 3,
+        "clockDomain": "61b757bd-6b5f-4fdf-aab8-574c511aea93/worker-8",
+        "event": "connection_observed"
+      },
+      "lastObservedEvent": {
+        "receiveSeq": 221,
+        "sourceSeq": 9,
+        "sourceMs": 4,
+        "clockDomain": "61b757bd-6b5f-4fdf-aab8-574c511aea93/worker-8",
+        "event": "unresolved_send"
+      },
+      "closeCalled": "NOT_OBSERVED",
+      "closeReturned": "NOT_OBSERVED",
+      "transactions": [
+        {
+          "transactionId": "worker-8/tx1",
+          "mode": "readonly",
+          "kind": "explicit",
+          "start": {
+            "receiveSeq": 213,
+            "sourceSeq": 4,
+            "sourceMs": 4,
+            "clockDomain": "61b757bd-6b5f-4fdf-aab8-574c511aea93/worker-8",
+            "event": "transaction_start"
+          },
+          "terminal": {
+            "receiveSeq": 218,
+            "sourceSeq": 7,
+            "sourceMs": 4,
+            "clockDomain": "61b757bd-6b5f-4fdf-aab8-574c511aea93/worker-8",
+            "event": "transaction_complete"
+          }
+        }
+      ],
+      "normalConnectionClosed": "UNKNOWN",
+      "physicalRelease": "UNKNOWN"
+    },
+    {
+      "connectionId": "main/c10",
+      "owner": "main",
+      "iteration": 8,
+      "version": 9,
+      "requestId": "main/r10",
+      "generated": {
+        "receiveSeq": 227,
+        "sourceSeq": 155,
+        "sourceMs": 106,
+        "clockDomain": "61b757bd-6b5f-4fdf-aab8-574c511aea93/main",
+        "event": "connection_observed"
+      },
+      "lastObservedEvent": {
+        "receiveSeq": 234,
+        "sourceSeq": 162,
+        "sourceMs": 107,
+        "clockDomain": "61b757bd-6b5f-4fdf-aab8-574c511aea93/main",
+        "event": "close_returned"
+      },
+      "closeCalled": {
+        "receiveSeq": 233,
+        "sourceSeq": 161,
+        "sourceMs": 107,
+        "clockDomain": "61b757bd-6b5f-4fdf-aab8-574c511aea93/main",
+        "event": "close_called"
+      },
+      "closeReturned": {
+        "receiveSeq": 234,
+        "sourceSeq": 162,
+        "sourceMs": 107,
+        "clockDomain": "61b757bd-6b5f-4fdf-aab8-574c511aea93/main",
+        "event": "close_returned"
+      },
+      "transactions": [
+        {
+          "transactionId": "main/tx11",
+          "mode": "versionchange",
+          "kind": "upgrade",
+          "start": {
+            "receiveSeq": 228,
+            "sourceSeq": 156,
+            "sourceMs": 106,
+            "clockDomain": "61b757bd-6b5f-4fdf-aab8-574c511aea93/main",
+            "event": "transaction_start"
+          },
+          "terminal": {
+            "receiveSeq": 231,
+            "sourceSeq": 159,
+            "sourceMs": 107,
+            "clockDomain": "61b757bd-6b5f-4fdf-aab8-574c511aea93/main",
+            "event": "transaction_complete"
+          }
+        }
+      ],
+      "normalConnectionClosed": "UNKNOWN",
+      "physicalRelease": "UNKNOWN"
+    },
+    {
+      "connectionId": "worker-9/c1",
+      "owner": "worker-9",
+      "iteration": 9,
+      "version": 9,
+      "requestId": "worker-9/r1",
+      "generated": {
+        "receiveSeq": 238,
+        "sourceSeq": 2,
+        "sourceMs": 3,
+        "clockDomain": "61b757bd-6b5f-4fdf-aab8-574c511aea93/worker-9",
+        "event": "connection_observed"
+      },
+      "lastObservedEvent": {
+        "receiveSeq": 249,
+        "sourceSeq": 9,
+        "sourceMs": 5,
+        "clockDomain": "61b757bd-6b5f-4fdf-aab8-574c511aea93/worker-9",
+        "event": "unresolved_send"
+      },
+      "closeCalled": "NOT_OBSERVED",
+      "closeReturned": "NOT_OBSERVED",
+      "transactions": [
+        {
+          "transactionId": "worker-9/tx1",
+          "mode": "readonly",
+          "kind": "explicit",
+          "start": {
+            "receiveSeq": 241,
+            "sourceSeq": 4,
+            "sourceMs": 4,
+            "clockDomain": "61b757bd-6b5f-4fdf-aab8-574c511aea93/worker-9",
+            "event": "transaction_start"
+          },
+          "terminal": {
+            "receiveSeq": 246,
+            "sourceSeq": 7,
+            "sourceMs": 4,
+            "clockDomain": "61b757bd-6b5f-4fdf-aab8-574c511aea93/worker-9",
+            "event": "transaction_complete"
+          }
+        }
+      ],
+      "normalConnectionClosed": "UNKNOWN",
+      "physicalRelease": "UNKNOWN"
+    },
+    {
+      "connectionId": "main/c11",
+      "owner": "main",
+      "iteration": 9,
+      "version": 10,
+      "requestId": "main/r11",
+      "generated": {
+        "receiveSeq": 255,
+        "sourceSeq": 174,
+        "sourceMs": 112,
+        "clockDomain": "61b757bd-6b5f-4fdf-aab8-574c511aea93/main",
+        "event": "connection_observed"
+      },
+      "lastObservedEvent": {
+        "receiveSeq": 261,
+        "sourceSeq": 180,
+        "sourceMs": 113,
+        "clockDomain": "61b757bd-6b5f-4fdf-aab8-574c511aea93/main",
+        "event": "close_returned"
+      },
+      "closeCalled": {
+        "receiveSeq": 260,
+        "sourceSeq": 179,
+        "sourceMs": 113,
+        "clockDomain": "61b757bd-6b5f-4fdf-aab8-574c511aea93/main",
+        "event": "close_called"
+      },
+      "closeReturned": {
+        "receiveSeq": 261,
+        "sourceSeq": 180,
+        "sourceMs": 113,
+        "clockDomain": "61b757bd-6b5f-4fdf-aab8-574c511aea93/main",
+        "event": "close_returned"
+      },
+      "transactions": [
+        {
+          "transactionId": "main/tx12",
+          "mode": "versionchange",
+          "kind": "upgrade",
+          "start": {
+            "receiveSeq": 256,
+            "sourceSeq": 175,
+            "sourceMs": 112,
+            "clockDomain": "61b757bd-6b5f-4fdf-aab8-574c511aea93/main",
+            "event": "transaction_start"
+          },
+          "terminal": {
+            "receiveSeq": 258,
+            "sourceSeq": 177,
+            "sourceMs": 113,
+            "clockDomain": "61b757bd-6b5f-4fdf-aab8-574c511aea93/main",
+            "event": "transaction_complete"
+          }
+        }
+      ],
+      "normalConnectionClosed": "UNKNOWN",
+      "physicalRelease": "UNKNOWN"
+    },
+    {
+      "connectionId": "worker-10/c1",
+      "owner": "worker-10",
+      "iteration": 10,
+      "version": 10,
+      "requestId": "worker-10/r1",
+      "generated": {
+        "receiveSeq": 265,
+        "sourceSeq": 2,
+        "sourceMs": 4,
+        "clockDomain": "61b757bd-6b5f-4fdf-aab8-574c511aea93/worker-10",
+        "event": "connection_observed"
+      },
+      "lastObservedEvent": {
+        "receiveSeq": 276,
+        "sourceSeq": 9,
+        "sourceMs": 5,
+        "clockDomain": "61b757bd-6b5f-4fdf-aab8-574c511aea93/worker-10",
+        "event": "unresolved_send"
+      },
+      "closeCalled": "NOT_OBSERVED",
+      "closeReturned": "NOT_OBSERVED",
+      "transactions": [
+        {
+          "transactionId": "worker-10/tx1",
+          "mode": "readonly",
+          "kind": "explicit",
+          "start": {
+            "receiveSeq": 268,
+            "sourceSeq": 4,
+            "sourceMs": 4,
+            "clockDomain": "61b757bd-6b5f-4fdf-aab8-574c511aea93/worker-10",
+            "event": "transaction_start"
+          },
+          "terminal": {
+            "receiveSeq": 273,
+            "sourceSeq": 7,
+            "sourceMs": 5,
+            "clockDomain": "61b757bd-6b5f-4fdf-aab8-574c511aea93/worker-10",
+            "event": "transaction_complete"
+          }
+        }
+      ],
+      "normalConnectionClosed": "UNKNOWN",
+      "physicalRelease": "UNKNOWN"
+    },
+    {
+      "connectionId": "main/c12",
+      "owner": "main",
+      "iteration": 10,
+      "version": 11,
+      "requestId": "main/r12",
+      "generated": {
+        "receiveSeq": 282,
+        "sourceSeq": 192,
+        "sourceMs": 119,
+        "clockDomain": "61b757bd-6b5f-4fdf-aab8-574c511aea93/main",
+        "event": "connection_observed"
+      },
+      "lastObservedEvent": {
+        "receiveSeq": 288,
+        "sourceSeq": 198,
+        "sourceMs": 119,
+        "clockDomain": "61b757bd-6b5f-4fdf-aab8-574c511aea93/main",
+        "event": "close_returned"
+      },
+      "closeCalled": {
+        "receiveSeq": 287,
+        "sourceSeq": 197,
+        "sourceMs": 119,
+        "clockDomain": "61b757bd-6b5f-4fdf-aab8-574c511aea93/main",
+        "event": "close_called"
+      },
+      "closeReturned": {
+        "receiveSeq": 288,
+        "sourceSeq": 198,
+        "sourceMs": 119,
+        "clockDomain": "61b757bd-6b5f-4fdf-aab8-574c511aea93/main",
+        "event": "close_returned"
+      },
+      "transactions": [
+        {
+          "transactionId": "main/tx13",
+          "mode": "versionchange",
+          "kind": "upgrade",
+          "start": {
+            "receiveSeq": 283,
+            "sourceSeq": 193,
+            "sourceMs": 119,
+            "clockDomain": "61b757bd-6b5f-4fdf-aab8-574c511aea93/main",
+            "event": "transaction_start"
+          },
+          "terminal": {
+            "receiveSeq": 285,
+            "sourceSeq": 195,
+            "sourceMs": 119,
+            "clockDomain": "61b757bd-6b5f-4fdf-aab8-574c511aea93/main",
+            "event": "transaction_complete"
+          }
+        }
+      ],
+      "normalConnectionClosed": "UNKNOWN",
+      "physicalRelease": "UNKNOWN"
+    },
+    {
+      "connectionId": "worker-11/c1",
+      "owner": "worker-11",
+      "iteration": 11,
+      "version": 11,
+      "requestId": "worker-11/r1",
+      "generated": {
+        "receiveSeq": 292,
+        "sourceSeq": 2,
+        "sourceMs": 4,
+        "clockDomain": "61b757bd-6b5f-4fdf-aab8-574c511aea93/worker-11",
+        "event": "connection_observed"
+      },
+      "lastObservedEvent": {
+        "receiveSeq": 303,
+        "sourceSeq": 9,
+        "sourceMs": 5,
+        "clockDomain": "61b757bd-6b5f-4fdf-aab8-574c511aea93/worker-11",
+        "event": "unresolved_send"
+      },
+      "closeCalled": "NOT_OBSERVED",
+      "closeReturned": "NOT_OBSERVED",
+      "transactions": [
+        {
+          "transactionId": "worker-11/tx1",
+          "mode": "readonly",
+          "kind": "explicit",
+          "start": {
+            "receiveSeq": 295,
+            "sourceSeq": 4,
+            "sourceMs": 4,
+            "clockDomain": "61b757bd-6b5f-4fdf-aab8-574c511aea93/worker-11",
+            "event": "transaction_start"
+          },
+          "terminal": {
+            "receiveSeq": 300,
+            "sourceSeq": 7,
+            "sourceMs": 5,
+            "clockDomain": "61b757bd-6b5f-4fdf-aab8-574c511aea93/worker-11",
+            "event": "transaction_complete"
+          }
+        }
+      ],
+      "normalConnectionClosed": "UNKNOWN",
+      "physicalRelease": "UNKNOWN"
+    },
+    {
+      "connectionId": "main/c13",
+      "owner": "main",
+      "iteration": 11,
+      "version": 12,
+      "requestId": "main/r13",
+      "generated": {
+        "receiveSeq": 309,
+        "sourceSeq": 210,
+        "sourceMs": 125,
+        "clockDomain": "61b757bd-6b5f-4fdf-aab8-574c511aea93/main",
+        "event": "connection_observed"
+      },
+      "lastObservedEvent": {
+        "receiveSeq": 315,
+        "sourceSeq": 216,
+        "sourceMs": 125,
+        "clockDomain": "61b757bd-6b5f-4fdf-aab8-574c511aea93/main",
+        "event": "close_returned"
+      },
+      "closeCalled": {
+        "receiveSeq": 314,
+        "sourceSeq": 215,
+        "sourceMs": 125,
+        "clockDomain": "61b757bd-6b5f-4fdf-aab8-574c511aea93/main",
+        "event": "close_called"
+      },
+      "closeReturned": {
+        "receiveSeq": 315,
+        "sourceSeq": 216,
+        "sourceMs": 125,
+        "clockDomain": "61b757bd-6b5f-4fdf-aab8-574c511aea93/main",
+        "event": "close_returned"
+      },
+      "transactions": [
+        {
+          "transactionId": "main/tx14",
+          "mode": "versionchange",
+          "kind": "upgrade",
+          "start": {
+            "receiveSeq": 310,
+            "sourceSeq": 211,
+            "sourceMs": 125,
+            "clockDomain": "61b757bd-6b5f-4fdf-aab8-574c511aea93/main",
+            "event": "transaction_start"
+          },
+          "terminal": {
+            "receiveSeq": 312,
+            "sourceSeq": 213,
+            "sourceMs": 125,
+            "clockDomain": "61b757bd-6b5f-4fdf-aab8-574c511aea93/main",
+            "event": "transaction_complete"
+          }
+        }
+      ],
+      "normalConnectionClosed": "UNKNOWN",
+      "physicalRelease": "UNKNOWN"
+    },
+    {
+      "connectionId": "worker-12/c1",
+      "owner": "worker-12",
+      "iteration": 12,
+      "version": 12,
+      "requestId": "worker-12/r1",
+      "generated": {
+        "receiveSeq": 319,
+        "sourceSeq": 2,
+        "sourceMs": 4,
+        "clockDomain": "61b757bd-6b5f-4fdf-aab8-574c511aea93/worker-12",
+        "event": "connection_observed"
+      },
+      "lastObservedEvent": {
+        "receiveSeq": 330,
+        "sourceSeq": 9,
+        "sourceMs": 5,
+        "clockDomain": "61b757bd-6b5f-4fdf-aab8-574c511aea93/worker-12",
+        "event": "unresolved_send"
+      },
+      "closeCalled": "NOT_OBSERVED",
+      "closeReturned": "NOT_OBSERVED",
+      "transactions": [
+        {
+          "transactionId": "worker-12/tx1",
+          "mode": "readonly",
+          "kind": "explicit",
+          "start": {
+            "receiveSeq": 322,
+            "sourceSeq": 4,
+            "sourceMs": 4,
+            "clockDomain": "61b757bd-6b5f-4fdf-aab8-574c511aea93/worker-12",
+            "event": "transaction_start"
+          },
+          "terminal": {
+            "receiveSeq": 327,
+            "sourceSeq": 7,
+            "sourceMs": 5,
+            "clockDomain": "61b757bd-6b5f-4fdf-aab8-574c511aea93/worker-12",
+            "event": "transaction_complete"
+          }
+        }
+      ],
+      "normalConnectionClosed": "UNKNOWN",
+      "physicalRelease": "UNKNOWN"
+    },
+    {
+      "connectionId": "main/c14",
+      "owner": "main",
+      "iteration": 12,
+      "version": 13,
+      "requestId": "main/r14",
+      "generated": {
+        "receiveSeq": 336,
+        "sourceSeq": 228,
+        "sourceMs": 131,
+        "clockDomain": "61b757bd-6b5f-4fdf-aab8-574c511aea93/main",
+        "event": "connection_observed"
+      },
+      "lastObservedEvent": {
+        "receiveSeq": 342,
+        "sourceSeq": 234,
+        "sourceMs": 131,
+        "clockDomain": "61b757bd-6b5f-4fdf-aab8-574c511aea93/main",
+        "event": "close_returned"
+      },
+      "closeCalled": {
+        "receiveSeq": 341,
+        "sourceSeq": 233,
+        "sourceMs": 131,
+        "clockDomain": "61b757bd-6b5f-4fdf-aab8-574c511aea93/main",
+        "event": "close_called"
+      },
+      "closeReturned": {
+        "receiveSeq": 342,
+        "sourceSeq": 234,
+        "sourceMs": 131,
+        "clockDomain": "61b757bd-6b5f-4fdf-aab8-574c511aea93/main",
+        "event": "close_returned"
+      },
+      "transactions": [
+        {
+          "transactionId": "main/tx15",
+          "mode": "versionchange",
+          "kind": "upgrade",
+          "start": {
+            "receiveSeq": 337,
+            "sourceSeq": 229,
+            "sourceMs": 131,
+            "clockDomain": "61b757bd-6b5f-4fdf-aab8-574c511aea93/main",
+            "event": "transaction_start"
+          },
+          "terminal": {
+            "receiveSeq": 339,
+            "sourceSeq": 231,
+            "sourceMs": 131,
+            "clockDomain": "61b757bd-6b5f-4fdf-aab8-574c511aea93/main",
+            "event": "transaction_complete"
+          }
+        }
+      ],
+      "normalConnectionClosed": "UNKNOWN",
+      "physicalRelease": "UNKNOWN"
+    }
+  ]
+}
