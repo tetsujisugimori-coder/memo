@@ -1,0 +1,33 @@
+name: IndexedDB F transaction complete only
+on:
+  push:
+    branches: [investigate/idb-transaction-complete-only]
+    paths:
+      - 'experiments/idb-transaction-complete-only/*.cjs'
+      - '.github/workflows/idb-transaction-complete-only.yml'
+permissions:
+  contents: read
+jobs:
+  single-f:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: node --test experiments/idb-transaction-complete-only/source.test.cjs
+      - run: npx playwright install --with-deps webkit
+      - name: Execute F once (prior seven trials are never run)
+        run: node experiments/idb-transaction-complete-only/run.cjs
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: idb-transaction-complete-only
+          path: e2e-artifacts/idb-transaction-complete-only/
+          if-no-files-found: error
+          retention-days: 30
