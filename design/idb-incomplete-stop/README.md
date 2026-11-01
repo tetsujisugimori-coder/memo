@@ -14,7 +14,7 @@
 - `judge.cjs` / `judge.test.cjs`：純粋な疑似イベント判定のみ。ブラウザ・Worker・IndexedDB・Atomicsを起動しない。実行コマンドは `node --test design/idb-incomplete-stop/judge.test.cjs`。
 - `records/inspection.json` とgzip記録：確認時点のGitHub記録と旧証拠hash検査。旧証拠は上書きしない。
 
-管理Issue: [#400](https://github.com/tetsujisugimori-coder/memo/issues/400)。親研究: [#396](https://github.com/tetsujisugimori-coder/memo/issues/396)。今回は静的設計だけを提出する。
+管理Issue: [#400](https://github.com/tetsujisugimori-coder/memo/issues/400)。設計Draft PR: [#401](https://github.com/tetsujisugimori-coder/memo/pull/401)。親研究: [#396](https://github.com/tetsujisugimori-coder/memo/issues/396)。今回は静的設計だけを提出する。
 
 ## 成果の範囲
 

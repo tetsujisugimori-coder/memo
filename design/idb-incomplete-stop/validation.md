@@ -32,3 +32,9 @@ workflowは変更しない。commitには追加防御として `[skip ci]` を�
 `records/SHA256SUMS` はGit blobのLF表現を基準に、本設計ディレクトリの各成果物（manifest自身を除く）のSHA-256を記録する。Windows checkoutのCRLFとの差に注意する。`git show <提出HEAD>:design/idb-incomplete-stop/<path>` のbyteから再計算できる。GitHubの元JSONはgzip展開後のhashもinspection.jsonに記録している。ローカル検証ログのSHAはmanifestから検証できる。
 
 CIを起動していないため今回のCI判定はNOT_RUN。既存D/E/F/GのCI結果・原始証拠は継承して参照するだけで再実行しない。H1/H2/H3 UNKNOWN、H4 PARTIAL、本番Worker HOLD、マージ推奨NO、Draft維持。
+
+## GitHub提出の読戻し
+
+設計・試験版commit `d6a54cd1a37086c33b209b1b9239a09286506bf8` / tree `084132eb0c27538357605902460df73465871894`。この後の提出記録commitはREADMEのPR参照、本節、submission.jsonとSHA manifestだけを追記し、判定器と試験は変更しない。
+
+[Issue #400](https://github.com/tetsujisugimori-coder/memo/issues/400)と[Draft PR #401](https://github.com/tetsujisugimori-coder/memo/pull/401)の本文、#400/#396/#393/#397/#398/#399への参照コメント6件を投稿後に読戻し、UTF-8本文を一致確認した。URL・本文SHA・確認日時・Draft/auto-merge状態・Actions実行履歴0件を `records/submission.json` に保存。既存本文は上書きしていない。記録内HEADはこの読戻し時点の設計・試験版であり、提出記録commit自身のHEADではない。
