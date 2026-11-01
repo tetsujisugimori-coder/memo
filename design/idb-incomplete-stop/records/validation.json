@@ -1,0 +1,12 @@
+{
+  "recordedAtJST": "2026-11-02T05:20:43.891873+09:00",
+  "node": "v24.20.0",
+  "command": "node --test design/idb-incomplete-stop/judge.test.cjs",
+  "exitCode": 0,
+  "tests": 22,
+  "passed": 22,
+  "browserExperiments": 0,
+  "oldExperimentsRerun": 0,
+  "productChanges": 0,
+  "ci": "NOT_RUN"
+}

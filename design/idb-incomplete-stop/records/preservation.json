@@ -1,0 +1,109 @@
+{
+  "recordedAtJST": "2026-11-02T05:21:36.163753+09:00",
+  "priorEvidence": {
+    "idb-upgrade-lifecycle": {
+      "files": 19,
+      "unchanged": true
+    },
+    "idb-transaction-complete-only": {
+      "files": 20,
+      "unchanged": true
+    },
+    "idb-time-delay-only": {
+      "files": 25,
+      "unchanged": true
+    }
+  },
+  "worktrees": {
+    "mcp-worker-recovery": {
+      "unchanged": true,
+      "head": "597c1d4985724e3dd77660a3562020d7004b6d86",
+      "status": " M memo-search.e2e.js\n?? .github/workflows/mcp-worker-shared-ledger.yml\n?? e2e-artifacts/linux-primary-webkit/\n?? e2e-artifacts/linux-t7-chromium/\n?? e2e-artifacts/linux-t7-webkit/\n?? e2e-artifacts/mcp-worker-diagnostics/\n?? experiments/mcp-search-worker-feasibility/shared-ledger-browser.cjs\n?? experiments/mcp-search-worker-feasibility/shared-ledger.js\n"
+    },
+    "idb-upgrade-lifecycle": {
+      "unchanged": true,
+      "head": "3734f82d117e09355cc721077ead626fa368e451",
+      "status": "?? e2e-artifacts/lifecycle-41299732744/\n?? e2e-artifacts/lifecycle-analysis/\n"
+    },
+    "idb-transaction-complete-only": {
+      "unchanged": true,
+      "head": "105d80a467e96aa7038052f501c4a1776a6e69bb",
+      "status": "?? e2e-artifacts/derive-f-evidence.cjs\n?? e2e-artifacts/f-41303212794/\n?? e2e-artifacts/f-pr-body.md\n?? e2e-artifacts/f-result-comment.md\n"
+    },
+    "idb-time-delay-only": {
+      "unchanged": true,
+      "head": "9872ee7aee773b017915364669bc31b98cc22e83",
+      "status": "?? e2e-artifacts/g-41316288566/\n?? e2e-artifacts/g-independent-check/\n?? e2e-artifacts/g-recomputed/\n?? e2e-artifacts/g-records/\n"
+    }
+  },
+  "workflows": {
+    "ci.yml": {
+      "sha256GitBlob": "5862710788bc8f24c5930fb4610085fcea77531bd103c03ee6271d4b8d08b40d",
+      "unchanged": true
+    },
+    "idb-time-delay-only.yml": {
+      "sha256GitBlob": "370862f8070c6004aebbc3f20da1d05efb1208b8a73e0f917a9b36a4d00d8282",
+      "unchanged": true
+    },
+    "idb-transaction-complete-only.yml": {
+      "sha256GitBlob": "76cd7b8e0cbb87dc2e4e9c29542d35b452b404fd65f9aab3ee3c951e9e125f96",
+      "unchanged": true
+    },
+    "idb-upgrade-lifecycle.yml": {
+      "sha256GitBlob": "0e319abe9b7db583ba29f9b093718ace68778553595a69f66bfd677c8f8c43b6",
+      "unchanged": true
+    },
+    "mcp-search-worker-feasibility.yml": {
+      "sha256GitBlob": "1de6dd2479d09d733f201b0e12025ce846e4642d24328122534fdf48a69bb520",
+      "unchanged": true
+    },
+    "mcp-t7-db-identity.yml": {
+      "sha256GitBlob": "d01e6f2784fba7bcc7f6cbe11f657e07ff8f461aeeac3f33b4217c6e11766ddf",
+      "unchanged": true
+    },
+    "mcp-worker-stage3.yml": {
+      "sha256GitBlob": "f1b38424650a14422bfc210ac1f073568b6e1f9b6365a95c3f435a2b7b7eb88a",
+      "unchanged": true
+    },
+    "mcp-worker-t7-only.yml": {
+      "sha256GitBlob": "691097b504157bdb78248e7e8375b74774dfdc01ac9a3727459ef5d3ab3bb924",
+      "unchanged": true
+    }
+  },
+  "mainLocal": {
+    "head": "438cf201abe83a53e8cb8e7ed160c4d6dbe147ba",
+    "status": ""
+  },
+  "mainRemote": "438cf201abe83a53e8cb8e7ed160c4d6dbe147ba",
+  "prs": {
+    "393": {
+      "baseRefName": "main",
+      "headRefOid": "f2168f194b326b0ce9ffb722e81aa47e42ce0d03",
+      "isDraft": true,
+      "state": "OPEN"
+    },
+    "397": {
+      "baseRefName": "investigate/mcp-worker-recovery",
+      "headRefOid": "3734f82d117e09355cc721077ead626fa368e451",
+      "isDraft": true,
+      "state": "OPEN"
+    },
+    "398": {
+      "baseRefName": "investigate/idb-upgrade-lifecycle",
+      "headRefOid": "105d80a467e96aa7038052f501c4a1776a6e69bb",
+      "isDraft": true,
+      "state": "OPEN"
+    },
+    "399": {
+      "baseRefName": "investigate/idb-transaction-complete-only",
+      "headRefOid": "9872ee7aee773b017915364669bc31b98cc22e83",
+      "isDraft": true,
+      "state": "OPEN"
+    }
+  },
+  "issueReadback": {
+    "url": "https://github.com/tetsujisugimori-coder/memo/issues/400",
+    "bodyMatches": true,
+    "bodySha256": "170c5444a0b37084bf49f663d59b6e32e3ebe3183f0e34887130960a4f960d75"
+  }
+}

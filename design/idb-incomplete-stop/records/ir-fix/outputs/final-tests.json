@@ -1,0 +1,23 @@
+{
+  "recordedAtJST": "2026-11-02T05:49:56.917972+09:00",
+  "command": [
+    "node",
+    "--test",
+    "--test-reporter=tap",
+    "design\\idb-incomplete-stop\\judge.test.cjs",
+    "design\\idb-incomplete-stop\\conditions.test.cjs",
+    "design\\idb-incomplete-stop\\merge-order.test.cjs"
+  ],
+  "node": "v24.20.0",
+  "exitCode": 0,
+  "tests": 36,
+  "pass": 36,
+  "fail": 0,
+  "reasonForFinalRun": "Final source snapshot after comment wording correction; earlier outputs retained",
+  "sourceHashes": {
+    "judge.cjs": "964eb1cbe746657e1d41efaf3c52422bdd19991369fd67a8cbbabb2eaf5fe74f",
+    "judge.test.cjs": "d37d1cea72d046377f701d1618b7d7285d2756b2fd2a4c7905a6b6453c0a7010",
+    "conditions.test.cjs": "17589451483d83af1a23ddce2d39b0b3adc7e9ebea163c3e741c9f7458a99389",
+    "merge-order.test.cjs": "0f4c3b27b9b419428f103a2409f903dc7cdde110616918e6d9339d28cb9f44e0"
+  }
+}

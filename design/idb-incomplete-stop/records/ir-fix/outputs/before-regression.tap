@@ -1,0 +1,142 @@
+TAP version 13
+# Subtest: missing complete and request readyState never establish unfinished
+ok 1 - missing complete and request readyState never establish unfinished
+  ---
+  duration_ms: 1.419
+  type: 'test'
+  ...
+# Subtest: positive Worker API observation does not survive send/stop race by assumption
+ok 2 - positive Worker API observation does not survive send/stop race by assumption
+  ---
+  duration_ms: 0.1616
+  type: 'test'
+  ...
+# Subtest: complete after send but observed before main stop invalidates condition
+ok 3 - complete after send but observed before main stop invalidates condition
+  ---
+  duration_ms: 0.1199
+  type: 'test'
+  ...
+# Subtest: foreign runId is never adopted
+ok 4 - foreign runId is never adopted
+  ---
+  duration_ms: 0.0765
+  type: 'test'
+  ...
+# Subtest: foreign transactionId is never adopted
+ok 5 - foreign transactionId is never adopted
+  ---
+  duration_ms: 0.0998
+  type: 'test'
+  ...
+# Subtest: foreign workerId is never adopted
+ok 6 - foreign workerId is never adopted
+  ---
+  duration_ms: 0.0652
+  type: 'test'
+  ...
+# Subtest: foreign connectionId is never adopted
+ok 7 - foreign connectionId is never adopted
+  ---
+  duration_ms: 0.0654
+  type: 'test'
+  ...
+# Subtest: foreign dbName is never adopted
+ok 8 - foreign dbName is never adopted
+  ---
+  duration_ms: 0.0661
+  type: 'test'
+  ...
+# Subtest: foreign iteration is never adopted
+ok 9 - foreign iteration is never adopted
+  ---
+  duration_ms: 0.069
+  type: 'test'
+  ...
+# Subtest: transaction_abort is abnormal rather than normal unfinished
+ok 10 - transaction_abort is abnormal rather than normal unfinished
+  ---
+  duration_ms: 0.1462
+  type: 'test'
+  ...
+# Subtest: transaction_error is abnormal rather than normal unfinished
+ok 11 - transaction_error is abnormal rather than normal unfinished
+  ---
+  duration_ms: 0.0942
+  type: 'test'
+  ...
+# Subtest: terminate/close/upgrade/cleanup returns never prove closure or physical release
+ok 12 - terminate/close/upgrade/cleanup returns never prove closure or physical release
+  ---
+  duration_ms: 0.1173
+  type: 'test'
+  ...
+# Subtest: shared callback hold is not a backend unfinished certificate
+ok 13 - shared callback hold is not a backend unfinished certificate
+  ---
+  duration_ms: 0.0916
+  type: 'test'
+  ...
+# Subtest: expired gate and stale epoch cannot establish callback hold
+ok 14 - expired gate and stale epoch cannot establish callback hold
+  ---
+  duration_ms: 0.2317
+  type: 'test'
+  ...
+# Subtest: late complete and arbitrary cross-domain clock values remain UNKNOWN
+ok 15 - late complete and arbitrary cross-domain clock values remain UNKNOWN
+  ---
+  duration_ms: 0.1264
+  type: 'test'
+  ...
+# Subtest: synthetic proven condition and upgrade timeout are independent results
+ok 16 - synthetic proven condition and upgrade timeout are independent results
+  ---
+  duration_ms: 0.1003
+  type: 'test'
+  ...
+# Subtest: oracle cannot be injected into public profile or refer to another stop
+ok 17 - oracle cannot be injected into public profile or refer to another stop
+  ---
+  duration_ms: 0.0782
+  type: 'test'
+  ...
+# Subtest: late success never erases upgrade timeout
+ok 18 - late success never erases upgrade timeout
+  ---
+  duration_ms: 0.087
+  type: 'test'
+  ...
+# Subtest: unmatched send, duplicate event and reordered source fail closed
+ok 19 - unmatched send, duplicate event and reordered source fail closed
+  ---
+  duration_ms: 0.1085
+  type: 'test'
+  ...
+# Subtest: delete before evidence and repeated cleanup are forbidden; timeout stays unknown
+ok 20 - delete before evidence and repeated cleanup are forbidden; timeout stays unknown
+  ---
+  duration_ms: 0.099
+  type: 'test'
+  ...
+# Subtest: log overflow and additional upgrade are rejected
+ok 21 - log overflow and additional upgrade are rejected
+  ---
+  duration_ms: 0.092
+  type: 'test'
+  ...
+# Subtest: cleanup completion cannot precede or exist without its start
+ok 22 - cleanup completion cannot precede or exist without its start
+  ---
+  duration_ms: 0.0662
+  type: 'test'
+  ...
+1..22
+# tests 22
+# suites 0
+# pass 22
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 104.6091

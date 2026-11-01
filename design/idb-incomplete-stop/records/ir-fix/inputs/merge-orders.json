@@ -1,0 +1,139 @@
+{
+  "identity": {
+    "runId": "ir1-run",
+    "dbName": "synthetic-only-ir1",
+    "workerId": "w1",
+    "connectionId": "c1",
+    "transactionId": "tx1",
+    "iteration": 1
+  },
+  "events": [
+    {
+      "runId": "ir1-run",
+      "dbName": "synthetic-only-ir1",
+      "workerId": "w1",
+      "connectionId": "c1",
+      "transactionId": "tx1",
+      "iteration": 1,
+      "eventId": "w1",
+      "type": "request_accepted",
+      "source": "worker",
+      "sourceSeq": 1,
+      "requestId": "q2",
+      "mode": "readonly",
+      "result": "accepted"
+    },
+    {
+      "runId": "ir1-run",
+      "dbName": "synthetic-only-ir1",
+      "workerId": "w1",
+      "connectionId": "c1",
+      "transactionId": "tx1",
+      "iteration": 1,
+      "eventId": "w2",
+      "type": "send",
+      "source": "worker",
+      "sourceSeq": 2
+    },
+    {
+      "runId": "ir1-run",
+      "dbName": "synthetic-only-ir1",
+      "workerId": "w1",
+      "connectionId": "c1",
+      "transactionId": "tx1",
+      "iteration": 1,
+      "eventId": "w3",
+      "type": "transaction_complete",
+      "source": "worker",
+      "sourceSeq": 3
+    },
+    {
+      "runId": "ir1-run",
+      "dbName": "synthetic-only-ir1",
+      "workerId": "w1",
+      "connectionId": "c1",
+      "transactionId": "tx1",
+      "iteration": 1,
+      "eventId": "m1",
+      "type": "receive",
+      "source": "main",
+      "sourceSeq": 1,
+      "sendId": "w2"
+    },
+    {
+      "runId": "ir1-run",
+      "dbName": "synthetic-only-ir1",
+      "workerId": "w1",
+      "connectionId": "c1",
+      "transactionId": "tx1",
+      "iteration": 1,
+      "eventId": "m2",
+      "type": "stop_requested",
+      "source": "main",
+      "sourceSeq": 2
+    },
+    {
+      "runId": "ir1-run",
+      "dbName": "synthetic-only-ir1",
+      "workerId": "w1",
+      "connectionId": "c1",
+      "transactionId": "tx1",
+      "iteration": 1,
+      "eventId": "m3",
+      "type": "terminate_called",
+      "source": "main",
+      "sourceSeq": 3
+    },
+    {
+      "runId": "ir1-run",
+      "dbName": "synthetic-only-ir1",
+      "workerId": "w1",
+      "connectionId": "c1",
+      "transactionId": "tx1",
+      "iteration": 1,
+      "eventId": "m4",
+      "type": "terminate_returned",
+      "source": "main",
+      "sourceSeq": 4,
+      "result": "returned"
+    }
+  ],
+  "orders": [
+    [
+      "w1",
+      "w2",
+      "w3",
+      "m1",
+      "m2",
+      "m3",
+      "m4"
+    ],
+    [
+      "w1",
+      "w2",
+      "m1",
+      "w3",
+      "m2",
+      "m3",
+      "m4"
+    ],
+    [
+      "w1",
+      "w2",
+      "m1",
+      "m2",
+      "m3",
+      "w3",
+      "m4"
+    ],
+    [
+      "w1",
+      "w2",
+      "m1",
+      "m2",
+      "m3",
+      "m4",
+      "w3"
+    ]
+  ]
+}

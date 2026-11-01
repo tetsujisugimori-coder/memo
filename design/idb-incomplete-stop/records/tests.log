@@ -1,0 +1,30 @@
+✔ missing complete and request readyState never establish unfinished (1.6244ms)
+✔ positive Worker API observation does not survive send/stop race by assumption (0.2177ms)
+✔ complete after send but observed before main stop invalidates condition (0.1332ms)
+✔ foreign runId is never adopted (0.093ms)
+✔ foreign transactionId is never adopted (0.0981ms)
+✔ foreign workerId is never adopted (0.0666ms)
+✔ foreign connectionId is never adopted (0.0567ms)
+✔ foreign dbName is never adopted (0.0614ms)
+✔ foreign iteration is never adopted (0.0759ms)
+✔ transaction_abort is abnormal rather than normal unfinished (0.1805ms)
+✔ transaction_error is abnormal rather than normal unfinished (0.1104ms)
+✔ terminate/close/upgrade/cleanup returns never prove closure or physical release (0.1281ms)
+✔ shared callback hold is not a backend unfinished certificate (0.0996ms)
+✔ expired gate and stale epoch cannot establish callback hold (0.2086ms)
+✔ late complete and arbitrary cross-domain clock values remain UNKNOWN (0.5979ms)
+✔ synthetic proven condition and upgrade timeout are independent results (0.1366ms)
+✔ oracle cannot be injected into public profile or refer to another stop (0.0722ms)
+✔ late success never erases upgrade timeout (0.0784ms)
+✔ unmatched send, duplicate event and reordered source fail closed (0.1073ms)
+✔ delete before evidence and repeated cleanup are forbidden; timeout stays unknown (0.1404ms)
+✔ log overflow and additional upgrade are rejected (0.0878ms)
+✔ cleanup completion cannot precede or exist without its start (0.0718ms)
+ℹ tests 22
+ℹ suites 0
+ℹ pass 22
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 95.0777
