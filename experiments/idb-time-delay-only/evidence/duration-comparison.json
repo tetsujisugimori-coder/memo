@@ -1,0 +1,49 @@
+{
+  "FgetAllToSendMs": [
+    1,
+    0,
+    1,
+    0,
+    1,
+    1,
+    1,
+    0,
+    1,
+    1,
+    1,
+    1
+  ],
+  "GgetAllToSendMs": [
+    2,
+    2,
+    1,
+    1,
+    2,
+    1,
+    1,
+    2,
+    1,
+    1,
+    1,
+    2
+  ],
+  "GtimerMs": [
+    1,
+    1,
+    1,
+    1,
+    2,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1
+  ],
+  "FmedianMs": 1,
+  "GmedianMs": 1,
+  "GtimerMedianMs": 1,
+  "differenceOfDurationMediansMs": 0,
+  "interpretation": "Separate-run quantized duration measurements, not identical conditions or precise sub-ms times."
+}
