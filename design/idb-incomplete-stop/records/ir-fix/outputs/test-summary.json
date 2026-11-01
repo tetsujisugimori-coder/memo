@@ -1,0 +1,24 @@
+{
+  "recordedAtJST": "2026-11-02T05:45:41.843582+09:00",
+  "node": "v24.20.0",
+  "suites": [
+    {
+      "suite": "green-merge-order",
+      "file": "merge-order.test.cjs",
+      "expectedTests": 1,
+      "exitCode": 0
+    },
+    {
+      "suite": "regression",
+      "file": "judge.test.cjs",
+      "expectedTests": 22,
+      "exitCode": 0
+    },
+    {
+      "suite": "conditions",
+      "file": "conditions.test.cjs",
+      "expectedTests": 13,
+      "exitCode": 0
+    }
+  ]
+}

@@ -9,7 +9,20 @@
 - R：同じ2要求と有限共有ゲートを作り、mainが明示release、Worker completeを受信して停止。追加db.closeなし。
 - U：同じ2要求・ゲートでclaim後に停止境界を記録する案。独立の未終端証明が確立していなければUはNOT_RUN。callback保持の狭い問いへ変更する場合も別の計画改訂・承認が必要。
 
-Rが不成立/失敗/cleanupUNKNOWN/終了UNKNOWNならUはNOT_RUN。Uの条件不成立・UNKNOWN・異常・timeoutで終了し、繰り返さない。D/E/F/G・1ms調整・成功までの再試行は禁止。1反復に縮小する理由は、再現率調査の前に証明境界の可否を検証するため。旧12反復を引き継がない。
+### 条件別の判定とupgrade観測前提
+
+|項目|R：完了通知受信後の停止|U：正常未終端の停止|
+|---|---|---|
+|記録の妥当性|validTrace PASSを要求。FAILなら記録不正、R/UはUNKNOWN|同左|
+|観測条件の成立名|conditionR。対象complete→complete_sent→complete_receivedの参照、同一main連番の受信→stop→terminate呼出/戻り、対象要求・send/receive対応、異常なし|conditionU。正常未終端を停止境界まで裏付ける独立witnessと完全な対応、異常なし。stopConditionはこのUだけの互換alias|
+|完了後停止の同じ証拠|conditionR PASS|conditionU FAIL・COMPLETED_BEFORE_STOP。Rの失敗とは扱わない|
+|Worker completeだけ／対応受信なし|UNKNOWN|UNKNOWN。未完了の証明にしない|
+|対応受信が停止要求後|conditionR FAIL・RECEIVED_AFTER_STOP|UNKNOWN。内部完了の発生時点を遡って確定しない|
+|将来upgradeを観測する必要条件|別途の実行承認、全体前提、同一2要求/ゲートrelease等のR操作契約、validTrace PASS、conditionR PASS。U判定は参照しない|別途の実行承認、全体前提、U操作契約、validTrace PASS、conditionU PASS。公開記録では独立証明不足のためNOT_RUN|
+
+この表のconditionRは「完了後停止という観測」の述語であり、fixture・ゲート・環境・予算・保存経路を含む試行全体の安全性証明ではない。これら全体前提も実装レビューで確認する必要がある。純粋判定器は実行承認やupgrade起動を行わない。Rが成立しても本計画の開始条件BLOCKED・将来実験未承認は解除されない。
+
+RのconditionRが不成立/UNKNOWN、Rのupgrade失敗、cleanupUNKNOWN、終了UNKNOWNならUはNOT_RUN。RのconditionU FAILは予定どおりであり、この中止条件には含めない。UのconditionU不成立・UNKNOWN・異常・timeoutで終了し、繰り返さない。D/E/F/G・1ms調整・成功までの再試行は禁止。1反復に縮小する理由は、再現率調査の前に証明境界の可否を検証するため。旧12反復を引き継がない。
 
 ## 上限（実装前に固定）
 
@@ -35,7 +48,7 @@ CPU監視やタイマーまで停止した場合、専用診断子プロセス�
 
 1. 実行前に計画ID/条件/試行予算、環境・source hash・判定版をGitHubへ登録。新規browser/context/DB以外を使わない。
 2. 対象ゲート前のID/fixture情報、Worker/mainの有界ログを収集。main stop直前にファイルI/Oを挟まない（新たな競合を増やさない）。stop/call/return/post-call共有snapshotは同期でローカルringへ記録。
-3. 条件不成立/異常なら後続upgradeをNOT_RUN、追加request禁止。条件成立を独立に確定できた時だけ予定した1回のupgrade。timeoutを研究結果FAILとして保持し回復操作しない。
+3. 記録不正/異常、または**選択した条件**の不成立/UNKNOWNなら後続upgradeをNOT_RUN、追加request禁止。RではconditionR PASS、UではconditionU PASSに加え、上表の実行承認・全体前提・操作契約を満たす場合だけ予定した1回のupgradeを観測する案。RのconditionU FAILを中止理由にしない。Uの独立witness不足ならU NOT_RUN。timeoutを研究結果FAILとして保持し回復操作しない。今回は両条件とも未承認・NOT_RUN。
 4. 一切のcleanup前に、失敗を含む原始ログ・ID・状態・source SHAをNodeへコピーして排他的新規ファイルへ保存しhash照合。保存失敗ならdeleteを呼ばない。可能な部分証拠と保存エラーを外側へ残す。
 5. 保存成功後だけ既存cleanup契約のdelete1回。期限後は取消・再delete・追加openを試さずUNKNOWNのまま。元のlate-open close処理がある場合は別記録し変更しない。
 6. context/browserを有限終了。安全なcleanupへ進めない異常ではcleanup NOT_RUN/UNKNOWN、部分証拠を保持してteardown。内部停止確認なしのslot再利用なし。後続条件はNOT_RUN。

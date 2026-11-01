@@ -5,7 +5,8 @@ function trace(types, profile="public-observation-v1") {
   const seq = {}; const events = types.map(([type,source,extra={}],i) => ({ ...identity, type, source, eventId:`e${i+1}`, sourceSeq:seq[source]=(seq[source]||0)+1, ...extra }));
   const send=events.find(e=>e.type==="send"),stop=events.find(e=>e.type==="stop_requested");
   for(const e of events)if(e.type==="receive")e.sendId=send?.eventId;
-  for(const e of events)if(e.type==="oracle_unfinished_end"){e.stopId=stop?.eventId;e.sendId=send?.eventId;}
+  for(const e of events)if(e.type==="oracle_unfinished_begin")e.beforeSendId=send?.eventId;
+  for(const e of events)if(e.type==="oracle_unfinished_end"){e.stopId=stop?.eventId;e.sendId=send?.eventId;e.afterReturnId=events.find(x=>x.type==="terminate_returned")?.eventId;}
   return {identity,events,profile};
 }
 const accepted=["request_accepted","worker",{requestId:"q2",mode:"readonly",result:"accepted"}];
@@ -18,8 +19,8 @@ test("missing complete and request readyState never establish unfinished",()=>{
 test("positive Worker API observation does not survive send/stop race by assumption",()=>{
  const r=judgeTrace(trace([...chain,...upgrade]));assert.equal(r.workerObservation,"PASS");assert.equal(r.stopCondition,"UNKNOWN");
 });
-test("complete after send but observed before main stop invalidates condition",()=>{
- const r=judgeTrace(trace([...chain.slice(0,3),["transaction_complete","worker"],...chain.slice(3),...upgrade]));assert.equal(r.stopCondition,"FAIL");assert.equal(r.upgrade,"PASS");
+test("IR1 corrected: Worker complete without a main receipt has unknown stop order",()=>{
+ const r=judgeTrace(trace([...chain.slice(0,3),["transaction_complete","worker"],...chain.slice(3),...upgrade]));assert.equal(r.stopCondition,"UNKNOWN");assert.equal(r.upgrade,"PASS");
 });
 for(const key of ["runId","transactionId","workerId","connectionId","dbName","iteration"])test(`foreign ${key} is never adopted`,()=>{
  const t=trace(chain);t.events[1][key]=key==="iteration"?2:"stale";assert.equal(judgeTrace(t).validTrace,"FAIL");

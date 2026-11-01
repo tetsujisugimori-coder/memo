@@ -1,5 +1,10 @@
 # 独立レビュー用チェック
 
+- [ ] P2-IR1補訂：complete発生→complete_sent→main complete_receivedをIDで結び、同一main連番でのみ停止前受信を確定する。Worker単独completeの有限4結合順は全出力・理由とも同一UNKNOWN。
+- [ ] 参照/identity/sourceSeq不正のvalidTrace FAILと、正常記録でのconditionU FAIL（停止前完了）を区別する。記録不正時R/UはUNKNOWN。
+- [ ] P3-IR2補訂：conditionR PASS / conditionU FAILが共存する。将来Rのupgrade条件へUのFAILを流用しない。開始条件BLOCKED、実行未承認を保持。
+- [ ] 旧22試験の期待値変更1件と追加14件、RED入力とGREEN入力の同一性、旧ログ保全、SHA manifestを再確認する。自己検証を独立レビュー済みと読み替えない。
+
 - [ ] 最新main、各PR HEAD、正式レビューの対象commit、本文・関連Issueと実行/証拠版を混同していない。#397/#399正式レビュー0を尊重する。
 - [ ] D/E/F/GのFAIL・UNKNOWN・INCONCLUSIVEとH1/H2/H3 UNKNOWN、H4 PARTIALを維持している。
 - [ ] S1〜S5の保証、upstream参考コードからの推論、対象26.5の未検証事項が区別されている。
