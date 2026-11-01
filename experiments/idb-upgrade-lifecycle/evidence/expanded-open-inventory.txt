@@ -1,0 +1,46 @@
+web-clipper.e2e.js:683:      const request = indexedDB.open("memo-nexus");
+web-clipper.e2e.js:698:      const request = indexedDB.open("memo-nexus");
+web-clipper.e2e.js:723:      const request = indexedDB.open("memo-nexus");
+web-clipper.e2e.js:757:      const request = indexedDB.open("memo-nexus");
+web-clipper.e2e.js:794:      const request = indexedDB.open("memo-nexus");
+web-clipper.e2e.js:803:      const request = indexedDB.open("memo-nexus"); request.onerror = () => reject(request.error);
+web-clipper.e2e.js:851:      const request = indexedDB.open("memo-nexus"); request.onerror = () => reject(request.error);
+dummy-preview.e2e.js:32:    const database = await new Promise((resolve, reject) => { const req = indexedDB.open("memo-nexus"); req.onsuccess = () => resolve(req.result); req.onerror = () => reject(req.error); });
+indexeddb-lifecycle.js:13:      if (!indexedDB || typeof indexedDB.open !== "function") {
+indexeddb-lifecycle.js:20:        request = indexedDB.open(name, version);
+experiments\idb-upgrade-lifecycle\controls.js:17:    const first = indexedDB.open(dbName, 1); first.addEventListener("upgradeneeded", () => first.result.createObjectStore("notes"));
+experiments\idb-upgrade-lifecycle\controls.js:21:    const upgrade = indexedDB.open(dbName, 2), completion = finishOpen(upgrade);
+experiments\idb-upgrade-lifecycle\source.test.cjs:22:  const scope = { IDBFactory: Factory, IDBDatabase: Database, performance, initial: { runId: "r", owner: "main" }, emit: e => records.push(e) };
+experiments\mcp-search-worker-feasibility\diagnostic-worker.js:15:      const req = indexedDB.open(dbName);
+experiments\mcp-search-worker-feasibility\diagnostic.js:18:      const req = indexedDB.open(dbName, version);
+experiments\mcp-search-worker-feasibility\controls.js:16:        const req = indexedDB.open(dbName, 1);
+experiments\mcp-search-worker-feasibility\controls.js:45:          const req = indexedDB.open(dbName, 2);
+experiments\mcp-search-worker-feasibility\worker.js:14:      const request = indexedDB.open(dbName);
+experiments\mcp-search-worker-feasibility\shared-ledger.js:15:      const request = indexedDB.open(name, 1);
+experiments\mcp-search-worker-feasibility\shared-ledger.js:28:      const request = indexedDB.open(name);
+experiments\idb-upgrade-lifecycle\open-inventory.txt:1:experiments\idb-upgrade-lifecycle\controls.js:17:    const first = indexedDB.open(dbName, 1); first.addEventListener("upgradeneeded", () => first.result.createObjectStore("notes"));
+experiments\idb-upgrade-lifecycle\open-inventory.txt:2:experiments\idb-upgrade-lifecycle\controls.js:21:    const upgrade = indexedDB.open(dbName, 2), completion = finishOpen(upgrade);
+experiments\idb-upgrade-lifecycle\open-inventory.txt:3:experiments\idb-upgrade-lifecycle\source.test.cjs:22:  const scope = { IDBFactory: Factory, IDBDatabase: Database, performance, initial: { runId: "r", owner: "main" }, emit: e => records.push(e) };
+experiments\idb-upgrade-lifecycle\open-inventory.txt:4:experiments\idb-upgrade-lifecycle\observer.js:35:    const native = IDBFactory.prototype[op];
+experiments\idb-upgrade-lifecycle\open-inventory.txt:5:experiments\idb-upgrade-lifecycle\observer.js:36:    IDBFactory.prototype[op] = function (...args) {
+experiments\idb-upgrade-lifecycle\open-inventory.txt:6:experiments\mcp-search-worker-feasibility\controls.js:16:        const req = indexedDB.open(dbName, 1);
+experiments\idb-upgrade-lifecycle\open-inventory.txt:7:experiments\mcp-search-worker-feasibility\controls.js:45:          const req = indexedDB.open(dbName, 2);
+experiments\idb-upgrade-lifecycle\open-inventory.txt:8:experiments\mcp-search-worker-feasibility\diagnostic-worker.js:15:      const req = indexedDB.open(dbName);
+experiments\idb-upgrade-lifecycle\open-inventory.txt:9:experiments\mcp-search-worker-feasibility\diagnostic.js:18:      const req = indexedDB.open(dbName, version);
+experiments\idb-upgrade-lifecycle\open-inventory.txt:10:experiments\mcp-search-worker-feasibility\shared-ledger.js:15:      const request = indexedDB.open(name, 1);
+experiments\idb-upgrade-lifecycle\open-inventory.txt:11:experiments\mcp-search-worker-feasibility\shared-ledger.js:28:      const request = indexedDB.open(name);
+experiments\idb-upgrade-lifecycle\open-inventory.txt:12:experiments\mcp-search-worker-feasibility\shutdown-browser.cjs:21:      await new Promise((resolve, reject) => { const r = indexedDB.open(fixture, 1); r.onupgradeneeded = () => r.result.createObjectStore("items").put("dummy", "key"); r.onsuccess = () => { r.result.close(); resolve(); }; r.onerror = () => reject(r.error); });
+experiments\idb-upgrade-lifecycle\open-inventory.txt:13:experiments\mcp-search-worker-feasibility\shutdown-browser.cjs:22:      const source = `onmessage = ({data}) => { try { const r = indexedDB.open(data.fixture); r.onerror = () => postMessage({type:'diagnostic', stage:'open_error'}); r.onblocked = () => postMessage({type:'diagnostic', stage:'open_blocked'}); r.onsuccess = () => { const db = r.result, tx = db.transaction('items', 'readonly'); tx.onerror = () => postMessage({type:'diagnostic', stage:'tx_error'}); tx.objectStore('items').get('key'); tx.oncomplete = () => { db.close(); const m = { type: 'shutdown_ack', id: data.id, generation: data.generation, idbClosed: true }; postMessage({...m, generation: data.generation - 1}); postMessage(m); postMessage(m); }; }; } catch(e) { postMessage({type:'diagnostic', stage:'exception', name:e.name}); } };`;
+experiments\idb-upgrade-lifecycle\open-inventory.txt:14:experiments\mcp-search-worker-feasibility\shared-ledger-browser.cjs:19:      await new Promise((resolve, reject) => { const r = indexedDB.open(fixture, 1);
+experiments\idb-upgrade-lifecycle\open-inventory.txt:15:experiments\mcp-search-worker-feasibility\shared-ledger-browser.cjs:56:      const r = indexedDB.open(fixture); r.onsuccess = () => { const db = r.result, tx = db.transaction("notes", "readonly");
+experiments\idb-upgrade-lifecycle\open-inventory.txt:16:experiments\mcp-search-worker-feasibility\shared-ledger-browser.cjs:93:        const r = indexedDB.open(name); r.onsuccess = () => { const d = r.result, tx = d.transaction("ledger", "readwrite");
+experiments\idb-upgrade-lifecycle\open-inventory.txt:17:experiments\mcp-search-worker-feasibility\suite.js:34:      const request = version ? indexedDB.open(dbName, version) : indexedDB.open(dbName);
+experiments\idb-upgrade-lifecycle\open-inventory.txt:18:experiments\mcp-search-worker-feasibility\worker.js:14:      const request = indexedDB.open(dbName);
+experiments\mcp-search-worker-feasibility\shutdown-browser.cjs:21:      await new Promise((resolve, reject) => { const r = indexedDB.open(fixture, 1); r.onupgradeneeded = () => r.result.createObjectStore("items").put("dummy", "key"); r.onsuccess = () => { r.result.close(); resolve(); }; r.onerror = () => reject(r.error); });
+experiments\mcp-search-worker-feasibility\shutdown-browser.cjs:22:      const source = `onmessage = ({data}) => { try { const r = indexedDB.open(data.fixture); r.onerror = () => postMessage({type:'diagnostic', stage:'open_error'}); r.onblocked = () => postMessage({type:'diagnostic', stage:'open_blocked'}); r.onsuccess = () => { const db = r.result, tx = db.transaction('items', 'readonly'); tx.onerror = () => postMessage({type:'diagnostic', stage:'tx_error'}); tx.objectStore('items').get('key'); tx.oncomplete = () => { db.close(); const m = { type: 'shutdown_ack', id: data.id, generation: data.generation, idbClosed: true }; postMessage({...m, generation: data.generation - 1}); postMessage(m); postMessage(m); }; }; } catch(e) { postMessage({type:'diagnostic', stage:'exception', name:e.name}); } };`;
+experiments\mcp-search-worker-feasibility\suite.js:34:      const request = version ? indexedDB.open(dbName, version) : indexedDB.open(dbName);
+experiments\mcp-search-worker-feasibility\shared-ledger-browser.cjs:19:      await new Promise((resolve, reject) => { const r = indexedDB.open(fixture, 1);
+experiments\mcp-search-worker-feasibility\shared-ledger-browser.cjs:56:      const r = indexedDB.open(fixture); r.onsuccess = () => { const db = r.result, tx = db.transaction("notes", "readonly");
+experiments\mcp-search-worker-feasibility\shared-ledger-browser.cjs:93:        const r = indexedDB.open(name); r.onsuccess = () => { const d = r.result, tx = d.transaction("ledger", "readwrite");
+experiments\idb-upgrade-lifecycle\observer.js:35:    const native = IDBFactory.prototype[op];
+experiments\idb-upgrade-lifecycle\observer.js:36:    IDBFactory.prototype[op] = function (...args) {
