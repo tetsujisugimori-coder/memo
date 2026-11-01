@@ -1,0 +1,39 @@
+name: IndexedDB G time delay only
+on:
+  push:
+    branches: [investigate/idb-time-delay-only]
+    paths:
+      - 'experiments/idb-time-delay-only/*.cjs'
+      - '.github/workflows/idb-time-delay-only.yml'
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: idb-g-preregistered-8308413
+  cancel-in-progress: false
+jobs:
+  single-g:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: node --test experiments/idb-time-delay-only/source.test.cjs
+      - run: npx playwright install --with-deps webkit
+      - name: Execute preregistered G once after global history check
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node experiments/idb-time-delay-only/run.cjs
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: idb-time-delay-only
+          path: e2e-artifacts/idb-time-delay-only/
+          if-no-files-found: error
+          retention-days: 30

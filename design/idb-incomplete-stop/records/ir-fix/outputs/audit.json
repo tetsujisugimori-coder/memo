@@ -1,0 +1,79 @@
+{
+  "recordedAtJST": "2026-11-02T05:51:24.307561+09:00",
+  "reviewedHead": "8f7733753537e1a336de5998348bc38c2941c4a3",
+  "preservedWorktrees": {
+    "idb-time-delay-only": true,
+    "idb-transaction-complete-only": true,
+    "idb-upgrade-lifecycle": true,
+    "mcp-worker-recovery": true
+  },
+  "priorEvidence": {
+    "idb-upgrade-lifecycle": 19,
+    "idb-transaction-complete-only": 20,
+    "idb-time-delay-only": 25
+  },
+  "browserExperiments": 0,
+  "oldExperimentsRerun": 0,
+  "productChanges": 0,
+  "ci": "NOT_RUN",
+  "preservedExistingUntrackedFiles": 11,
+  "oldRecordFilesUnchanged": 15,
+  "sourceHashes": {
+    "judge.cjs": "964eb1cbe746657e1d41efaf3c52422bdd19991369fd67a8cbbabb2eaf5fe74f",
+    "judge.test.cjs": "d37d1cea72d046377f701d1618b7d7285d2756b2fd2a4c7905a6b6453c0a7010",
+    "conditions.test.cjs": "17589451483d83af1a23ddce2d39b0b3adc7e9ebea163c3e741c9f7458a99389",
+    "merge-order.test.cjs": "0f4c3b27b9b419428f103a2409f903dc7cdde110616918e6d9339d28cb9f44e0"
+  },
+  "inputHashes": {
+    "before-judge.cjs": "022fe5cb93233fae5abfe84a96f48d3801930b2e602fcd395c61e68b940799f0",
+    "before-judge.test.cjs.txt": "d4b0337cc8393726f494cc521c263742297ffe2783e4c43b675ea226dede5574",
+    "issue400.json.gz": "3f00f90675f4213adcc0fb436426f192171bf5e34af91163b777a785fde0b12d",
+    "merge-orders.json": "d910d58be6c668926ebb38b9c7a0d07351409b7d8c15c113c8612b504082a4dc",
+    "pr401.json.gz": "1000a24c204530e1e8c8600ef2a42cfd5e735ce32da36b93226290291fd9d375",
+    "review.json.gz": "b5b2e79c0e16f70567061f0c0a5d2fed932096783b68cd87c50e15b2cf11e703",
+    "SHA256SUMS-before.txt": "44136adf04b7d32b3476b609189c26534e31326bdd8e515049c497728e9a1b62",
+    "start-state.json": "49ea6a0e22393531bd0acbfe7b836805a85355505c4b74090c599201a5a5ee58"
+  },
+  "sameInputRedGreen": {
+    "fixtureSha256": "d910d58be6c668926ebb38b9c7a0d07351409b7d8c15c113c8612b504082a4dc",
+    "before": [
+      "FAIL",
+      "FAIL",
+      "UNKNOWN",
+      "UNKNOWN"
+    ],
+    "after": [
+      "UNKNOWN",
+      "UNKNOWN",
+      "UNKNOWN",
+      "UNKNOWN"
+    ],
+    "allAfterResultsAndReasonsEqual": true
+  },
+  "testBreakdown": {
+    "beforeRegression": {
+      "tests": 22,
+      "pass": 22,
+      "exit": 0
+    },
+    "red": {
+      "tests": 1,
+      "fail": 1,
+      "exit": 1
+    },
+    "after": {
+      "tests": 36,
+      "pass": 36,
+      "fail": 0,
+      "existingUnchangedExpectations": 21,
+      "existingCorrectedExpectations": 1,
+      "additionalTests": 14,
+      "suiteExits": [
+        0,
+        0,
+        0
+      ]
+    }
+  },
+  "workflowUnchanged": true
+}

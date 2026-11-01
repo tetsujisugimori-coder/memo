@@ -1,0 +1,25 @@
+diff --git a/generated-D-worker.js b/generated-G-worker.js
+index 500b4d0..bfaa7c0 100644
+--- a/generated-D-worker.js
++++ b/generated-G-worker.js
+@@ -0,0 +1,10 @@
++async function fixedDelay(ms, life) {
++  const details = { ...life.state.transactions.at(-1), requestedDelayMs: ms };
++  life.log("delay_start", details);
++  await new Promise(resolve => setTimeout(resolve, ms));
++  life.log("delay_end", { ...details, outcome: "timer_returned" });
++}
++function observedTerminal(state, errors) {
++  if (errors.has(state?.transactionId)) return "error";
++  return ["complete", "abort"].includes(state?.terminal) ? state.terminal : "UNKNOWN";
++}
+@@ -77 +87,2 @@ if (typeof module !== "undefined") module.exports = { installLifecycleObserver }
+-const __workerLife = installLifecycleObserver(event => postMessage({__lifecycle:event}), {runId:"UNKNOWN",owner:"unassigned"});
++const __gErrors = new Set();
++const __workerLife = installLifecycleObserver(event => { if(event.event === "transaction_error") __gErrors.add(event.transactionId); postMessage({__lifecycle:event}); }, {runId:"UNKNOWN",owner:"unassigned"});
+@@ -86 +97 @@ onmessage = async ({ data }) => {
+-  const send = (phase, extra = {}) => postMessage({ workerId, generation, requestId, session, testId, iteration, workerMs: performance.now(), phase, ...extra });
++  const send = (phase, extra = {}) => { if (phase === "request_success" || phase === "unresolved") { const state = __workerLife.state.transactions.at(-1); __workerLife.log(phase === "request_success" ? "getAll_success" : "unresolved_send", { ...state, logicalRequestId: requestId, observedTerminal: observedTerminal(state, __gErrors) }); } postMessage({ workerId, generation, requestId, session, testId, iteration, workerMs: performance.now(), phase, ...extra }); };
+@@ -120 +131 @@ onmessage = async ({ data }) => {
+-    if (mode === "unresolved") { send("unresolved"); await new Promise(() => {}); }
++    if (mode === "unresolved") { if (testId === "T7") await fixedDelay(1, __workerLife); send("unresolved"); await new Promise(() => {}); }

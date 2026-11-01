@@ -1,0 +1,8 @@
+{
+  "exitCode": 1,
+  "tests": 1,
+  "pass": 0,
+  "fail": 1,
+  "baseline": "8f7733753537e1a336de5998348bc38c2941c4a3",
+  "fixture": "../inputs/merge-orders.json"
+}

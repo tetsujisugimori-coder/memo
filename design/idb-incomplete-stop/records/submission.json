@@ -1,0 +1,64 @@
+{
+  "recordedAtJST": "2026-11-02T05:23:47.366950+09:00",
+  "designCommit": "d6a54cd1a37086c33b209b1b9239a09286506bf8",
+  "designTree": "084132eb0c27538357605902460df73465871894",
+  "comments": [
+    {
+      "target": 400,
+      "url": "https://github.com/tetsujisugimori-coder/memo/issues/400#issuecomment-6563400588",
+      "id": 6563400588,
+      "bodyMatches": true,
+      "bodySha256": "813dd5f78bb97ce5ece493ddbabd3e8f1f2c6c7e18e496993cea556f15dc1a8d"
+    },
+    {
+      "target": 396,
+      "url": "https://github.com/tetsujisugimori-coder/memo/issues/396#issuecomment-6563400919",
+      "id": 6563400919,
+      "bodyMatches": true,
+      "bodySha256": "813dd5f78bb97ce5ece493ddbabd3e8f1f2c6c7e18e496993cea556f15dc1a8d"
+    },
+    {
+      "target": 393,
+      "url": "https://github.com/tetsujisugimori-coder/memo/pull/393#issuecomment-6563401244",
+      "id": 6563401244,
+      "bodyMatches": true,
+      "bodySha256": "813dd5f78bb97ce5ece493ddbabd3e8f1f2c6c7e18e496993cea556f15dc1a8d"
+    },
+    {
+      "target": 397,
+      "url": "https://github.com/tetsujisugimori-coder/memo/pull/397#issuecomment-6563401608",
+      "id": 6563401608,
+      "bodyMatches": true,
+      "bodySha256": "813dd5f78bb97ce5ece493ddbabd3e8f1f2c6c7e18e496993cea556f15dc1a8d"
+    },
+    {
+      "target": 398,
+      "url": "https://github.com/tetsujisugimori-coder/memo/pull/398#issuecomment-6563402007",
+      "id": 6563402007,
+      "bodyMatches": true,
+      "bodySha256": "813dd5f78bb97ce5ece493ddbabd3e8f1f2c6c7e18e496993cea556f15dc1a8d"
+    },
+    {
+      "target": 399,
+      "url": "https://github.com/tetsujisugimori-coder/memo/pull/399#issuecomment-6563402399",
+      "id": 6563402399,
+      "bodyMatches": true,
+      "bodySha256": "813dd5f78bb97ce5ece493ddbabd3e8f1f2c6c7e18e496993cea556f15dc1a8d"
+    }
+  ],
+  "prReadback": {
+    "autoMergeRequest": null,
+    "baseRefName": "investigate/idb-time-delay-only",
+    "headRefOid": "d6a54cd1a37086c33b209b1b9239a09286506bf8",
+    "isDraft": true,
+    "state": "OPEN",
+    "url": "https://github.com/tetsujisugimori-coder/memo/pull/401",
+    "bodySha256": "f66f040fdaf4cbb074d37ddfe122ae2ac09c41f5ba8d9e54a1dd1732cbd51329",
+    "bodyMatches": true
+  },
+  "issueReadback": {
+    "url": "https://github.com/tetsujisugimori-coder/memo/issues/400",
+    "bodyMatches": true
+  },
+  "actionsRuns": []
+}

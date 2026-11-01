@@ -1,0 +1,88 @@
+TAP version 13
+# Subtest: IR2: linked complete received before stop establishes R and disqualifies U across merges
+ok 1 - IR2: linked complete received before stop establishes R and disqualifies U across merges
+  ---
+  duration_ms: 1.9685
+  type: 'test'
+  ...
+# Subtest: late receipt disqualifies receive-before-stop R but leaves U UNKNOWN across merges
+ok 2 - late receipt disqualifies receive-before-stop R but leaves U UNKNOWN across merges
+  ---
+  duration_ms: 0.2113
+  type: 'test'
+  ...
+# Subtest: record failure is distinct from a valid U condition failure
+ok 3 - record failure is distinct from a valid U condition failure
+  ---
+  duration_ms: 0.1965
+  type: 'test'
+  ...
+# Subtest: complete receipts from another run or transaction are rejected
+ok 4 - complete receipts from another run or transaction are rejected
+  ---
+  duration_ms: 0.1248
+  type: 'test'
+  ...
+# Subtest: wrong or missing complete event/send references are rejected
+ok 5 - wrong or missing complete event/send references are rejected
+  ---
+  duration_ms: 0.2695
+  type: 'test'
+  ...
+# Subtest: missing, noninteger, duplicate or reversed sourceSeq is record-invalid
+ok 6 - missing, noninteger, duplicate or reversed sourceSeq is record-invalid
+  ---
+  duration_ms: 0.3246
+  type: 'test'
+  ...
+# Subtest: complete occurrence and receipt must have the specified owners
+ok 7 - complete occurrence and receipt must have the specified owners
+  ---
+  duration_ms: 0.504
+  type: 'test'
+  ...
+# Subtest: a sent complete without its main receipt never establishes before-stop completion
+ok 8 - a sent complete without its main receipt never establishes before-stop completion
+  ---
+  duration_ms: 0.1432
+  type: 'test'
+  ...
+# Subtest: abort/error prevents normal R or U even with a complete receipt
+ok 9 - abort/error prevents normal R or U even with a complete receipt
+  ---
+  duration_ms: 0.1803
+  type: 'test'
+  ...
+# Subtest: missing terminate return cannot establish R even if before-stop completion excludes U
+ok 10 - missing terminate return cannot establish R even if before-stop completion excludes U
+  ---
+  duration_ms: 0.159
+  type: 'test'
+  ...
+# Subtest: collection error invalidates records rather than proving condition failure
+ok 11 - collection error invalidates records rather than proving condition failure
+  ---
+  duration_ms: 0.1014
+  type: 'test'
+  ...
+# Subtest: R establishment and upgrade timeout remain separate, without execution authorization
+ok 12 - R establishment and upgrade timeout remain separate, without execution authorization
+  ---
+  duration_ms: 0.1711
+  type: 'test'
+  ...
+# Subtest: synthetic oracle edges are explicit references, independent of cross-source array order
+ok 13 - synthetic oracle edges are explicit references, independent of cross-source array order
+  ---
+  duration_ms: 0.2398
+  type: 'test'
+  ...
+1..13
+# tests 13
+# suites 0
+# pass 13
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 120.183
