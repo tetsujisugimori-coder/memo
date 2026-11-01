@@ -1,0 +1,16 @@
+{
+  "node": "v24.20.0",
+  "tests": 15,
+  "pass": 15,
+  "fail": 0,
+  "skip": 0,
+  "exitCode": 0,
+  "assessmentExitCode": 1,
+  "assessmentStatus": "INCOMPLETE",
+  "browserExperiments": 0,
+  "oldExperimentReruns": 0,
+  "builds": 0,
+  "CI": "NOT_RUN",
+  "independentReview": "PENDING",
+  "reproductionPathFailure": "Saved exit2 JSON_INPUT when author-generated absolute path arguments were incorrectly decoded by cp932. Replaced argument data with portable relative ASCII paths, then exit1 INCOMPLETE. Checker source unchanged."
+}

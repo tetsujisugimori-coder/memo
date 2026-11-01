@@ -1,0 +1,168 @@
+{
+  "issue387-comments.json.gz": 4,
+  "issue387.json.gz": {
+    "number": 387,
+    "state": "open",
+    "head": null,
+    "base": null,
+    "merged": null,
+    "draft": null
+  },
+  "issue389-comments.json.gz": 8,
+  "issue389.json.gz": {
+    "number": 389,
+    "state": "open",
+    "head": null,
+    "base": null,
+    "merged": null,
+    "draft": null
+  },
+  "issue391-comments.json.gz": 0,
+  "issue391.json.gz": {
+    "number": 391,
+    "state": "open",
+    "head": null,
+    "base": null,
+    "merged": null,
+    "draft": null
+  },
+  "issue392-comments.json.gz": 6,
+  "issue392.json.gz": {
+    "number": 392,
+    "state": "open",
+    "head": null,
+    "base": null,
+    "merged": null,
+    "draft": null
+  },
+  "issue396-comments.json.gz": 6,
+  "issue396.json.gz": {
+    "number": 396,
+    "state": "open",
+    "head": null,
+    "base": null,
+    "merged": null,
+    "draft": null
+  },
+  "issue400-comments.json.gz": 2,
+  "issue400.json.gz": {
+    "number": 400,
+    "state": "open",
+    "head": null,
+    "base": null,
+    "merged": null,
+    "draft": null
+  },
+  "playwright-tag.json.gz": {
+    "number": null,
+    "state": null,
+    "head": null,
+    "base": null,
+    "merged": null,
+    "draft": null
+  },
+  "pr388-comments.json.gz": 6,
+  "pr388-inline.json.gz": 0,
+  "pr388-reviews.json.gz": 2,
+  "pr388.json.gz": {
+    "number": 388,
+    "state": "open",
+    "head": "4fe3ea824b476d2ad6ef3c37fc14b6617be249ee",
+    "base": "main",
+    "merged": false,
+    "draft": true
+  },
+  "pr390-comments.json.gz": 8,
+  "pr390-inline.json.gz": 0,
+  "pr390-reviews.json.gz": 1,
+  "pr390.json.gz": {
+    "number": 390,
+    "state": "closed",
+    "head": "50f7e301e736fd02093e6ffc46b073c4fe52bf9d",
+    "base": "main",
+    "merged": true,
+    "draft": false
+  },
+  "pr393-comments.json.gz": 9,
+  "pr393-inline.json.gz": 0,
+  "pr393-reviews.json.gz": 1,
+  "pr393.json.gz": {
+    "number": 393,
+    "state": "open",
+    "head": "f2168f194b326b0ce9ffb722e81aa47e42ce0d03",
+    "base": "main",
+    "merged": false,
+    "draft": true
+  },
+  "pr395-comments.json.gz": 3,
+  "pr395-inline.json.gz": 0,
+  "pr395-reviews.json.gz": 3,
+  "pr395.json.gz": {
+    "number": 395,
+    "state": "open",
+    "head": "a40dfa457122173bdbe21e9147fe8ac4cdd2d04c",
+    "base": "investigate/mcp-worker-recovery",
+    "merged": false,
+    "draft": true
+  },
+  "pr397-comments.json.gz": 2,
+  "pr397-inline.json.gz": 0,
+  "pr397-reviews.json.gz": 0,
+  "pr397.json.gz": {
+    "number": 397,
+    "state": "open",
+    "head": "3734f82d117e09355cc721077ead626fa368e451",
+    "base": "investigate/mcp-worker-recovery",
+    "merged": false,
+    "draft": true
+  },
+  "pr398-comments.json.gz": 1,
+  "pr398-inline.json.gz": 0,
+  "pr398-reviews.json.gz": 1,
+  "pr398.json.gz": {
+    "number": 398,
+    "state": "open",
+    "head": "105d80a467e96aa7038052f501c4a1776a6e69bb",
+    "base": "investigate/idb-upgrade-lifecycle",
+    "merged": false,
+    "draft": true
+  },
+  "pr399-comments.json.gz": 1,
+  "pr399-inline.json.gz": 0,
+  "pr399-reviews.json.gz": 0,
+  "pr399.json.gz": {
+    "number": 399,
+    "state": "open",
+    "head": "a72e0657d07632926d2ace9bcd7836cfbc41ac13",
+    "base": "investigate/idb-transaction-complete-only",
+    "merged": false,
+    "draft": true
+  },
+  "pr401-comments.json.gz": 3,
+  "pr401-inline.json.gz": 0,
+  "pr401-reviews.json.gz": 1,
+  "pr401.json.gz": {
+    "number": 401,
+    "state": "closed",
+    "head": "852c88330c25f44b5bd9243d836262c659e60640",
+    "base": "investigate/idb-time-delay-only",
+    "merged": true,
+    "draft": false
+  },
+  "remote-base.json.gz": {
+    "number": null,
+    "state": null,
+    "head": null,
+    "base": null,
+    "merged": null,
+    "draft": null
+  },
+  "remote-main.json.gz": {
+    "number": null,
+    "state": null,
+    "head": null,
+    "base": null,
+    "merged": null,
+    "draft": null
+  }
+}

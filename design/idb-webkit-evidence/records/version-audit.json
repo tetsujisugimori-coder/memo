@@ -1,0 +1,15 @@
+{
+  "baseLockBlob": "9f898d3149c2fe18d6f4c8020cddcb81f28aff9a",
+  "executedCommitLocks": {
+    "53445474028601131136e2bc540ee48aee83cd7a": "9f898d3149c2fe18d6f4c8020cddcb81f28aff9a",
+    "6b25f7ecf1d3b290958556708fee9899f188c5f2": "9f898d3149c2fe18d6f4c8020cddcb81f28aff9a",
+    "b08c0f8b73ec4184478669fb4ac5907be83dbb52": "9f898d3149c2fe18d6f4c8020cddcb81f28aff9a"
+  },
+  "allLockBlobsEqual": true,
+  "capturedSources": 25,
+  "patchChangedPaths": 353,
+  "directlyPatchedCapturedPaths": [],
+  "patchExpandedSha256": "1945532bbf1af8c91fafd580b0b5c0f33b14f4060f3891141f8fbc4805ab866a",
+  "sourceHashesVerified": true,
+  "limits": "path intersection only; no patch application, build or binary equivalence proof"
+}

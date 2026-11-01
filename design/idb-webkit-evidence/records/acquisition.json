@@ -1,0 +1,19 @@
+{
+  "checkedAtJST": "2026-11-02T06:34:34.565002+09:00",
+  "base": "a72e0657d07632926d2ace9bcd7836cfbc41ac13",
+  "playwrightCommit": "26a9e470a7b3c7822084b09fb7f13902c5f37b51",
+  "upstreamCommit": "343e13bf22dca9d0ec227801419aab0f9001a32f",
+  "method": "gh api contents at fixed ref; base64 decoded without newline conversion; no browser/build/install",
+  "failedLookups": [
+    "Playwright browser_patches/webkit/README.md 404",
+    "Playwright browser_patches/webkit/BUILD_NUMBER 404",
+    "Playwright browser_patches/README.md 404",
+    "Playwright browser_patches/prepare_checkout.sh 404",
+    "WebKit indexeddb/IDBTransactionInfo.cpp and IDBResourceIdentifier.h 404, resolved within same commit under shared/"
+  ],
+  "limits": [
+    "No binary download, source replacement or dependency update",
+    "No authenticated build attestation or executed binary hash",
+    "No full IPC/embedder audit"
+  ]
+}

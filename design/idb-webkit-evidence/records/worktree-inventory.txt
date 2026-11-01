@@ -1,0 +1,243 @@
+worktree C:/Users/tetsu/Documents/Codex/メモ帳
+HEAD 438cf201abe83a53e8cb8e7ed160c4d6dbe147ba
+branch refs/heads/main
+
+worktree C:/Users/tetsu/Documents/Codex/memo-chart-data-table
+HEAD 1861fe30dcdf6b2bce9de3e2c04bd583382b18d4
+branch refs/heads/feature/chart-data-table
+
+worktree C:/Users/tetsu/Documents/Codex/memo-diverging-100-percent
+HEAD 0ce5e90bc182b7374fdd60eddc7a69cc3873d8bb
+branch refs/heads/feature/chart-diverging-100-percent-stacked
+
+worktree C:/Users/tetsu/Documents/Codex/memo-horizontal-bar
+HEAD 8b1ef0ac6ad819d7bb8767a173bbab14217e00a0
+branch refs/heads/feature/chart-horizontal-bar
+
+worktree C:/Users/tetsu/Documents/Codex/memo-negative-phase1
+HEAD f06de491a2c5e6409e49f4b3dbd6edcdeafa072a
+branch refs/heads/feature/chart-negative-values-phase1
+
+worktree C:/Users/tetsu/Documents/Codex/memo-paste-format-choice
+HEAD 5d371b7b40e5e579d42895343b989867b4745d10
+branch refs/heads/feature/clipboard-paste-format-choice
+
+worktree C:/Users/tetsu/Documents/Codex/メモ帳/work/chart-axis-render-wait
+HEAD 590d8563426cd7add77da3d6e154bebb2cf50ec1
+branch refs/heads/fix/chart-axis-render-wait
+
+worktree C:/Users/tetsu/Documents/Codex/メモ帳/work/chart-card-click-observation
+HEAD 1da61ea6a5e14d22c0ecf9a213fb171c4b7f2f11
+branch refs/heads/ci/chart-card-click-observation
+
+worktree C:/Users/tetsu/Documents/Codex/メモ帳/work/chart-dual-axis-e2e
+HEAD a015ab66d79872cec6f192b0e8f735982bad5703
+branch refs/heads/perf/chart-dual-axis-e2e
+
+worktree C:/Users/tetsu/Documents/Codex/メモ帳/work/chart-e2e-observability
+HEAD 5a4eea4430166107cadca4b72053d6c0555fbce6
+branch refs/heads/test/chart-e2e-observability
+
+worktree C:/Users/tetsu/Documents/Codex/メモ帳/work/chart-mobile-card-profile
+HEAD d04fd31c0b292326ed3c86be71e7a3e7f3c9c80d
+branch refs/heads/ci/chart-mobile-card-profile
+
+worktree C:/Users/tetsu/Documents/Codex/メモ帳/work/chart-tooltip-click-diagnostic
+HEAD 8bb90f86a14b3cb162c87902b0aac70b2749d090
+branch refs/heads/ci/tooltip-click-diagnostic
+
+worktree C:/Users/tetsu/Documents/Codex/メモ帳/work/chart-tooltip-e2e
+HEAD d8433444332969dd87a79300f646ab17c26acce9
+branch refs/heads/perf/chart-tooltip-e2e
+
+worktree C:/Users/tetsu/Documents/Codex/メモ帳/work/chart-tsv-copy
+HEAD 9543f479dd6ad034f17cbbf913103cceef4bbe1f
+branch refs/heads/feature/chart-tsv-copy
+
+worktree C:/Users/tetsu/Documents/Codex/メモ帳/work/chart-tsv-copy-baseline
+HEAD e692cfffa1ee9bdbf3f00c87e39074efd1dbf7fb
+detached
+
+worktree C:/Users/tetsu/Documents/Codex/メモ帳/work/citation-source-v1
+HEAD bbb4a43dee14b127e3dc5eaff28698412dbb84e4
+branch refs/heads/feat/citation-source-v1
+
+worktree C:/Users/tetsu/Documents/Codex/メモ帳/work/comparison-v1
+HEAD ef3a8988a10e71f6a0308f12a5bb53f6c889b9e9
+branch refs/heads/feat/comparison-v1
+
+worktree C:/Users/tetsu/Documents/Codex/メモ帳/work/diagram-v1
+HEAD efa3faf1fe8efb1fc0f2e19e29026d802a5f8b80
+branch refs/heads/feat/diagram-v1
+
+worktree C:/Users/tetsu/Documents/Codex/メモ帳/work/figure-metadata-v1
+HEAD 20ac2d600b05fb887841827ce064249e737bce9f
+branch refs/heads/feat/figure-metadata-v1
+
+worktree C:/Users/tetsu/Documents/Codex/メモ帳/work/idb-incomplete-stop-design
+HEAD e08c065161ba147e7dbba175a2038ef27bf968a0
+branch refs/heads/design/idb-incomplete-stop
+
+worktree C:/Users/tetsu/Documents/Codex/メモ帳/work/idb-time-delay-only
+HEAD 9872ee7aee773b017915364669bc31b98cc22e83
+branch refs/heads/investigate/idb-time-delay-only
+
+worktree C:/Users/tetsu/Documents/Codex/メモ帳/work/idb-transaction-complete-only
+HEAD 105d80a467e96aa7038052f501c4a1776a6e69bb
+branch refs/heads/investigate/idb-transaction-complete-only
+
+worktree C:/Users/tetsu/Documents/Codex/メモ帳/work/idb-upgrade-lifecycle
+HEAD 3734f82d117e09355cc721077ead626fa368e451
+branch refs/heads/investigate/idb-upgrade-lifecycle
+
+worktree C:/Users/tetsu/Documents/Codex/メモ帳/work/idb-webkit-evidence
+HEAD a72e0657d07632926d2ace9bcd7836cfbc41ac13
+branch refs/heads/investigate/idb-webkit-evidence
+
+worktree C:/Users/tetsu/Documents/Codex/メモ帳/work/mcp-http-client-cert-ignore
+HEAD ae036630e93e0fdb5fbee163bbb0f0f9ca4a30fd
+branch refs/heads/fix/mcp-http-client-cert-ignore
+
+worktree C:/Users/tetsu/Documents/Codex/メモ帳/work/mcp-http-forwarded-port-diagnostics
+HEAD 83787647e1f781d4b454342939a2bacbb93c45aa
+branch refs/heads/feat/mcp-http-forwarded-port-diagnostics
+
+worktree C:/Users/tetsu/Documents/Codex/メモ帳/work/mcp-http-forwarding-diagnostics
+HEAD 0636fd833a5c98a1ff4784423167af066515c982
+branch refs/heads/feat/mcp-http-forwarding-diagnostics
+
+worktree C:/Users/tetsu/Documents/Codex/メモ帳/work/mcp-http-header-candidates
+HEAD e64b3fd9323acc6483db28848c139ae3110a588a
+branch refs/heads/feat/mcp-http-header-candidates
+
+worktree C:/Users/tetsu/Documents/Codex/メモ帳/work/mcp-http-oauth-diagnostics
+HEAD 3e4654f042cbdad85ce156bcb7a81159b3ffddcb
+branch refs/heads/feat/mcp-http-oauth-diagnostics
+
+worktree C:/Users/tetsu/Documents/Codex/メモ帳/work/mcp-http-oauth-discovery
+HEAD 439d07ab3049586e9cc40aad7f88765e4c082887
+branch refs/heads/feat/mcp-http-oauth-discovery
+
+worktree C:/Users/tetsu/Documents/Codex/メモ帳/work/mcp-http-oauth-receiver
+HEAD 55acf7a45215955beef06923877a9873d222e371
+branch refs/heads/feat/mcp-http-oauth-receiver
+
+worktree C:/Users/tetsu/Documents/Codex/メモ帳/work/mcp-launcher-connection-guide
+HEAD a1114f20ab5650f0f1ce55992488fc8a86b0f10b
+branch refs/heads/feat/mcp-launcher-connection-guide
+
+worktree C:/Users/tetsu/Documents/Codex/メモ帳/work/mcp-restart-recovery
+HEAD 6c759f01939ac5443a1311531191bcded277d5f3
+branch refs/heads/feat/mcp-restart-recovery
+
+worktree C:/Users/tetsu/Documents/Codex/メモ帳/work/mcp-saved-search
+HEAD 5a035db971ca2c61c93731984b12e9ba4a3e2283
+branch refs/heads/feat/mcp-saved-search
+
+worktree C:/Users/tetsu/Documents/Codex/メモ帳/work/mcp-search-discovery-oauth
+HEAD a2bb7a4e2057e7b319fcc4f84e2b984bb2099d5c
+branch refs/heads/fix/mcp-search-discovery-oauth
+
+worktree C:/Users/tetsu/Documents/Codex/メモ帳/work/mcp-search-discovery-step-up
+HEAD 69f6f69f62c0dd2923b62f71292daea9dec3361a
+branch refs/heads/fix/mcp-search-discovery-step-up
+
+worktree C:/Users/tetsu/Documents/Codex/メモ帳/work/mcp-search-heartbeat-status
+HEAD 4fe3ea824b476d2ad6ef3c37fc14b6617be249ee
+branch refs/heads/fix/mcp-search-heartbeat-status-only
+
+worktree C:/Users/tetsu/Documents/Codex/メモ帳/work/mcp-search-permission-status
+HEAD e5735a074deedc4205cf4f7e5d0b46566acc2fff
+branch refs/heads/feat/mcp-search-permission-status
+
+worktree C:/Users/tetsu/Documents/Codex/メモ帳/work/mcp-search-read
+HEAD 94b7818a3e5735b1192a1ce64b52873b42b8d06c
+branch refs/heads/feat/mcp-search-read
+
+worktree C:/Users/tetsu/Documents/Codex/メモ帳/work/mcp-search-read-main-review
+HEAD 4b7722fce07ef65863a1dc4c0b54678ca03045ab
+detached
+
+worktree C:/Users/tetsu/Documents/Codex/メモ帳/work/mcp-search-scope-review
+HEAD 5f15e07747a22fb3a1e7957a355cec6b87daf6c7
+branch refs/heads/fix/mcp-search-scope-wording
+
+worktree C:/Users/tetsu/Documents/Codex/メモ帳/work/mcp-search-worker-feasibility
+HEAD 50f7e301e736fd02093e6ffc46b073c4fe52bf9d
+branch refs/heads/investigate/mcp-search-worker-feasibility
+
+worktree C:/Users/tetsu/Documents/Codex/メモ帳/work/mcp-t7-db-identity
+HEAD f2168f194b326b0ce9ffb722e81aa47e42ce0d03
+detached
+
+worktree C:/Users/tetsu/Documents/Codex/メモ帳/work/mcp-windows-launcher
+HEAD 75e041b52ad86e98c5500c8bdb0f0caefa82700c
+branch refs/heads/feat/mcp-windows-launcher
+
+worktree C:/Users/tetsu/Documents/Codex/メモ帳/work/mcp-worker-recovery
+HEAD 597c1d4985724e3dd77660a3562020d7004b6d86
+branch refs/heads/investigate/mcp-worker-recovery
+
+worktree C:/Users/tetsu/Documents/Codex/メモ帳/work/mcp-worker-stage5
+HEAD a40dfa457122173bdbe21e9147fe8ac4cdd2d04c
+branch refs/heads/investigate/mcp-worker-stage5
+
+worktree C:/Users/tetsu/Documents/Codex/メモ帳/work/pr1-dummy-preview
+HEAD d8ba7c2f203d07ad3e9b7de72b36a87ce171e784
+branch refs/heads/feat/unsaved-dummy-browser-preview
+
+worktree C:/Users/tetsu/Documents/Codex/メモ帳/work/pr1-dummy-preview/work/pr1-meta-review
+HEAD 81508a017d483b0781e4b35b327a2846c7e82f76
+branch refs/heads/fix/dummy-preview-standard-meta
+
+worktree C:/Users/tetsu/Documents/Codex/メモ帳/work/pr2-received-save
+HEAD beba3ad855f6879b106b09b62ad78bc1c77e6c29
+branch refs/heads/feat/received-preview-save
+
+worktree C:/Users/tetsu/Documents/Codex/メモ帳/work/pr3-notes-preview
+HEAD 2bab1e59924b10b42cb4cdbdd83cfb0516e3f1de
+branch refs/heads/feat/received-notes-preview
+
+worktree C:/Users/tetsu/Documents/Codex/メモ帳/work/report-fixed-regression
+HEAD a24b177dd59e7124b21a9955f49ae295fdf25af3
+branch refs/heads/test/report-fixed-regression
+
+worktree C:/Users/tetsu/Documents/Codex/メモ帳/work/report-numbering
+HEAD f6e10b5d57cbf387a314f97390da6b3c0f693d62
+detached
+
+worktree C:/Users/tetsu/Documents/Codex/メモ帳/work/report-numbering-review-fixes
+HEAD a578ae5b9ba11476e3dbffc327fb60f01ccc9bca
+branch refs/heads/feature/report-numbering
+
+worktree C:/Users/tetsu/Documents/Codex/メモ帳/work/report-pdf-v1
+HEAD faf30176d34d57c2d792b9ca030b6d67b2503d54
+branch refs/heads/feature/report-pdf-v1
+
+worktree C:/Users/tetsu/Documents/Codex/メモ帳/work/report-preview-v0
+HEAD 822fb0cae22093b5a6a4b17c53c740b837639c06
+branch refs/heads/feat/report-preview-v0
+
+worktree C:/Users/tetsu/Documents/Codex/メモ帳/work/report-preview-v1-sources
+HEAD 35e93f5e97a00fe6d9c6ff18f4585e540f63487d
+branch refs/heads/feature/report-preview-v1-sources
+
+worktree C:/Users/tetsu/Documents/Codex/メモ帳/work/report-spacing-before
+HEAD da19f1b7e58f259cb5ed5e269cfb9f276f9b2ed1
+detached
+
+worktree C:/Users/tetsu/Documents/Codex/メモ帳/work/report-spacing-ci-main
+HEAD da19f1b7e58f259cb5ed5e269cfb9f276f9b2ed1
+detached
+
+worktree C:/Users/tetsu/Documents/Codex/メモ帳/work/report-spacing-fix
+HEAD 89a04c2920e16309f5f5c50a5354c7f94b0a518e
+branch refs/heads/fix/report-spacing-pdf-ci
+
+worktree C:/Users/tetsu/Documents/Codex/メモ帳/work/report-spacing-pdf
+HEAD dce3606de7df7a323dadf91d59f3c91f6d37ab36
+branch refs/heads/feature/report-spacing-pdf
+
+worktree C:/Users/tetsu/Documents/Codex/メモ帳/work/timeline-v1
+HEAD 206460b85b7f66d719d130ec4f9aca8d4a87e803
+branch refs/heads/feat/timeline-v1
