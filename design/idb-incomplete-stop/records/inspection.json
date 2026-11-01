@@ -1,0 +1,463 @@
+{
+  "checkedAtJST": "2026-11-02T05:11:46.603644+09:00",
+  "github": {
+    "pr393.json": {
+      "sha256": "925f875ada9b87de3c2308227c84870d658a016c7b7eb2d2e04c758976f9606e",
+      "head": "f2168f194b326b0ce9ffb722e81aa47e42ce0d03",
+      "base": "main",
+      "reviewCount": 1,
+      "commentCount": 8
+    },
+    "pr393-inline.json": {
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "pr397.json": {
+      "sha256": "af8d494f6442c5a9025bf7f40d0a271976dd0dc85c5f68be292022cb827717d8",
+      "head": "3734f82d117e09355cc721077ead626fa368e451",
+      "base": "investigate/mcp-worker-recovery",
+      "reviewCount": 0,
+      "commentCount": 1
+    },
+    "pr397-inline.json": {
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "pr398.json": {
+      "sha256": "64dcea687b9b21a3d14a9da2cafdda7aa2a3ec6a1a992b62db2eed43c390b90c",
+      "head": "105d80a467e96aa7038052f501c4a1776a6e69bb",
+      "base": "investigate/idb-upgrade-lifecycle",
+      "reviewCount": 1,
+      "commentCount": 0
+    },
+    "pr398-inline.json": {
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "pr399.json": {
+      "sha256": "8a61b3b4eac6b5f1a1ff984cf66140a4e066b7db1f80febc558432d31bceaf24",
+      "head": "9872ee7aee773b017915364669bc31b98cc22e83",
+      "base": "investigate/idb-transaction-complete-only",
+      "reviewCount": 0,
+      "commentCount": 0
+    },
+    "pr399-inline.json": {
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "issue392.json": {
+      "sha256": "a9e809bbcf7963cf9e7bbd703e13df6268ffc15af5416dca5e8732f87809398e"
+    },
+    "issue396.json": {
+      "sha256": "2caab0661363f21b70e41a6813737b2e40f5219435406ff864c54458ed994ff4"
+    }
+  },
+  "sources": {
+    "w3c/IndexedDB": {
+      "sha": "f9f83f196f8501429282ff1747ebcbe35d41381a",
+      "date": "2026-10-30T16:57:15Z",
+      "url": "https://github.com/w3c/IndexedDB/commit/f9f83f196f8501429282ff1747ebcbe35d41381a"
+    },
+    "whatwg/html": {
+      "sha": "404b3eb14a7a936dddefb2d78e224dbeb01d2358",
+      "date": "2026-10-30T06:15:45Z",
+      "url": "https://github.com/whatwg/html/commit/404b3eb14a7a936dddefb2d78e224dbeb01d2358"
+    },
+    "tc39/ecma262": {
+      "sha": "4d8fed0daae61bad78b5f27ae0c57bc4b3e6e99b",
+      "date": "2026-10-31T19:41:44Z",
+      "url": "https://github.com/tc39/ecma262/commit/4d8fed0daae61bad78b5f27ae0c57bc4b3e6e99b"
+    },
+    "WebKit/WebKit": {
+      "sha": "dddaa9bb93f1061268dc42f5f5bdd01dcc34e065",
+      "date": "2026-11-01T19:58:10Z",
+      "url": "https://github.com/WebKit/WebKit/commit/dddaa9bb93f1061268dc42f5f5bdd01dcc34e065"
+    },
+    "IDBTransaction.cpp": {
+      "capturedSha256": "fa15917d3ed7eff95f32f0f618b3bcb991f7909ce8e9b5a612dade7e4494dc7b",
+      "capture": "GitHub contents raw API / PowerShell UTF8 BOM+host newlines",
+      "upstreamCommit": "dddaa9bb93f1061268dc42f5f5bdd01dcc34e065"
+    },
+    "IDBRequest.cpp": {
+      "capturedSha256": "52650f4b2548173f97d03f5f628aa3f16c4bece7d9d5fad9cee13ec032a3feec",
+      "capture": "GitHub contents raw API / PowerShell UTF8 BOM+host newlines",
+      "upstreamCommit": "dddaa9bb93f1061268dc42f5f5bdd01dcc34e065"
+    }
+  },
+  "priorEvidence": {
+    "idb-upgrade-lifecycle": [
+      {
+        "file": "3bd31398-ab83-40f7-9d1a-eb04f78fd899-precleanup.json.gz",
+        "sha256": "45f15e90ff1fa9fd6e9942fe9c479d7ab0c5f2b3029747440acd1122c596c549"
+      },
+      {
+        "file": "931b521f-c38c-4999-ac06-6018ec702f16-precleanup.json.gz",
+        "sha256": "5b719a6df478e8deb816017c4dbaa8d5ec22a23255867474b8dccfa927709daf"
+      },
+      {
+        "file": "c93acf92-b955-428f-99e6-cd6cf5671dd2-precleanup.json.gz",
+        "sha256": "a92b2a8db5d2f0ff3c9537551134405fb3ce9e47cb4764ffe35e9a99b086290c"
+      },
+      {
+        "file": "changes-C.json.gz",
+        "sha256": "6d748989eb5580bafcc27f82850ffdb24779d6da6d9464805b6e5062f239bb1b"
+      },
+      {
+        "file": "changes-D.json.gz",
+        "sha256": "043eaad02186b9ad17faaf6588345fe94d1a83a686cc42ff79bec349b50bd214"
+      },
+      {
+        "file": "changes-E.json.gz",
+        "sha256": "c2648fa3293ef9c2df995e40b4ddabf51c708378434d874dce6efcdcd2edfd6c"
+      },
+      {
+        "file": "ci.json.gz",
+        "sha256": "650c50af35bf350924f7d0aa8036831100a6db339101bfc062660d360053b579"
+      },
+      {
+        "file": "df55a748-0e2a-43a3-ac40-0a939ad07a29-precleanup.json.gz",
+        "sha256": "90a08dc713a274199bd66334b5f78e03b3edc06a614243df730c1be8cd21b5f2"
+      },
+      {
+        "file": "e22b6648-7957-44f7-bb08-a902f835d763-precleanup.json.gz",
+        "sha256": "26f48da6f98ef0f300418e05b8e8c724ba3c50e3d097269d8b3e0b3134e07a96"
+      },
+      {
+        "file": "eec76e89-5f10-45d0-8830-8dcb3ddf2110-precleanup.json.gz",
+        "sha256": "27ac782b47daff665fe9e467c8c81dd0051ba15458241a8226dce231c110c417"
+      },
+      {
+        "file": "f5aa38f8-7bf9-4bae-b48c-3917c827efaf-precleanup.json.gz",
+        "sha256": "c846c93c48cb7292998bc95574e3e098ee9f10cc73654f64f5b3ce3d4ebfa0bf"
+      },
+      {
+        "file": "generated-C-suite.js.gz",
+        "sha256": "c35bb57b6a57f311238180a5dc4812b75b8e3b1d8571f9f45d9c958e31140861"
+      },
+      {
+        "file": "generated-C-worker.js.gz",
+        "sha256": "4f00f7eb4a1239bf82b94454527e30baea7d7cab1196c6c0d3450d11747b9ad4"
+      },
+      {
+        "file": "generated-D-suite.js.gz",
+        "sha256": "f96e2f20905deb459cc9d236955f4a320b4e445ce3793770e4a588b6cbc45eca"
+      },
+      {
+        "file": "generated-D-worker.js.gz",
+        "sha256": "4f00f7eb4a1239bf82b94454527e30baea7d7cab1196c6c0d3450d11747b9ad4"
+      },
+      {
+        "file": "generated-E-suite.js.gz",
+        "sha256": "f96e2f20905deb459cc9d236955f4a320b4e445ce3793770e4a588b6cbc45eca"
+      },
+      {
+        "file": "generated-E-worker.js.gz",
+        "sha256": "ea3c897ed344301e53480ee300ecba47e61fff6d078d08952a457cf63d13c0f2"
+      },
+      {
+        "file": "job.log.gz",
+        "sha256": "555a7271d849ff81b8eb7a0dbbedaa1fac3784a6324d8b3a7ed8a3fa12982d9d"
+      },
+      {
+        "file": "results.json.gz",
+        "sha256": "105c3c614fc7df1889975bd9e3d1d97eccde5e28c3b4e969862c620468b3c2c1"
+      }
+    ],
+    "idb-upgrade-lifecycle-summary": {
+      "testedCommit": "53445474028601131136e2bc540ee48aee83cd7a",
+      "tree": "0a9f3bf1d88c035a33ed46efbda4e79207aa378e",
+      "trials": [
+        {
+          "condition": "D",
+          "runId": "eec76e89-5f10-45d0-8830-8dcb3ddf2110",
+          "dbName": "worker-poc-d12d5caa-4a7d-4223-81c0-0a6cd77a1f74",
+          "browser": "26.5",
+          "failure": "T7 iteration 2.upgrade: IndexedDB open timeout; blocked event: false",
+          "cleanup": {
+            "status": "UNKNOWN",
+            "terminal": "timeout",
+            "error": null,
+            "blockedObserved": false,
+            "elapsedMs": 2001,
+            "events": [
+              "delete_start",
+              "delete_timeout"
+            ]
+          }
+        },
+        {
+          "condition": "E",
+          "runId": "e22b6648-7957-44f7-bb08-a902f835d763",
+          "dbName": "worker-poc-8de8fd09-68f4-436d-8c65-0297dd6436cf",
+          "browser": "26.5",
+          "failure": null,
+          "cleanup": {
+            "status": "PASS",
+            "terminal": "success",
+            "error": null,
+            "blockedObserved": false,
+            "elapsedMs": 0,
+            "events": [
+              "delete_start",
+              "delete_success"
+            ]
+          }
+        }
+      ]
+    },
+    "idb-transaction-complete-only": [
+      {
+        "file": "61b757bd-6b5f-4fdf-aab8-574c511aea93-precleanup.json.gz",
+        "sha256": "74b92b8a825385a44e71a5eff81c3d2493552384b148e43cfe5c4fb32ab2a52d"
+      },
+      {
+        "file": "artifact-metadata.json.gz",
+        "sha256": "052c2104fc2c32bb27af5c8512e21e7496253c92ddd25815cfb9ea26245f19c7"
+      },
+      {
+        "file": "changes-F.json.gz",
+        "sha256": "244e22d98d7bf6e9c1a7299275284f52c79230f79ef46ad387bf9a4d80f1092f"
+      },
+      {
+        "file": "ci.json.gz",
+        "sha256": "2eac0bfa8d15aaa75d6ba4d7e83bb2bd614e803f3382ce98298bfb3ae90510ed"
+      },
+      {
+        "file": "generated-D-suite.js.gz",
+        "sha256": "f96e2f20905deb459cc9d236955f4a320b4e445ce3793770e4a588b6cbc45eca"
+      },
+      {
+        "file": "generated-D-worker.js.gz",
+        "sha256": "4f00f7eb4a1239bf82b94454527e30baea7d7cab1196c6c0d3450d11747b9ad4"
+      },
+      {
+        "file": "generated-F-suite.js.gz",
+        "sha256": "f96e2f20905deb459cc9d236955f4a320b4e445ce3793770e4a588b6cbc45eca"
+      },
+      {
+        "file": "generated-F-worker.js.gz",
+        "sha256": "ce4a058cc9bcb14591b560e80b7937898b8bae28fbbde20dc6cb6c5cac2f5c7b"
+      },
+      {
+        "file": "job.log.gz",
+        "sha256": "1cc4468b075e884f53d1c47523c4adc92c746d46211061e50efd05240d8e1ca5"
+      },
+      {
+        "file": "results.json.gz",
+        "sha256": "bbb9906c255a102f89f2bbd199c3397e3c2661b350a30e5e1109e45546865504"
+      },
+      {
+        "file": "trial-reservation.json.gz",
+        "sha256": "fa9d30ed839fc6a29bc5ac83e95ceaf5157d3d75cda4ab70fe5210db9ea4a534"
+      },
+      {
+        "file": "D-to-F-worker.diff",
+        "sha256": "a4b59305a439702ec87877419418cbbab2fca46da8e29879b05d5d4af879f07c"
+      },
+      {
+        "file": "analysis.json",
+        "sha256": "7963d9e4a56d5aca92bcaa41640e2a86f52d703497d42118915f88086713e98f"
+      },
+      {
+        "file": "worker-events.json.gz",
+        "sha256": "2df01b26a40a4fe5ca8e941b93df1b73daece5be13304162cee6b5830df03f5e"
+      },
+      {
+        "file": "main-events.json.gz",
+        "sha256": "054695d2ae02d2e0ff40f926369d647c8f168d945321446305b0269c9dbbbfd3"
+      },
+      {
+        "file": "connections.json",
+        "sha256": "dc6b907336b5fc40b78f0e5447a5ef1251bedf1bb32475d98ce80f4436e8805c"
+      },
+      {
+        "file": "transactions.md",
+        "sha256": "c0607d303617cef3e0e5f7b533bd604a5354b6556ccca43e641b701da93d7a52"
+      },
+      {
+        "file": "upgrades.md",
+        "sha256": "d7c834f0cce8ef811779ee699d94081b614958e471c215a541eca89b06b4b437"
+      },
+      {
+        "file": "connections.md",
+        "sha256": "0464f266c9b01c11c3cf240fb88fd5a478b8d14a71cf2b8a03125c6f274d91b6"
+      },
+      {
+        "file": "D-E-F-comparison.json",
+        "sha256": "4b0ef989b1675db3860b7b1c68756b523d2ad0f301458f35127780e892edabcf"
+      }
+    ],
+    "idb-transaction-complete-only-summary": {
+      "testedCommit": "6b25f7ecf1d3b290958556708fee9899f188c5f2",
+      "tree": "af4e504157e334bdc62d0082f614e7489b3a8435",
+      "trials": [
+        {
+          "condition": "F",
+          "runId": "61b757bd-6b5f-4fdf-aab8-574c511aea93",
+          "dbName": "worker-poc-877ab5bc-0794-4ccf-97da-5c6664645508",
+          "browser": "26.5",
+          "failure": null,
+          "cleanup": {
+            "status": "PASS",
+            "terminal": "success",
+            "error": null,
+            "blockedObserved": false,
+            "elapsedMs": 1,
+            "events": [
+              "delete_start",
+              "delete_success"
+            ]
+          }
+        }
+      ]
+    },
+    "idb-time-delay-only": [
+      {
+        "file": "16060bc8-4b98-435c-a534-f276b70ae612-precleanup.json.gz",
+        "sha256": "5805c05613457bdfde7951155c6dac489edfacfca0976cac797c9965132d1aff"
+      },
+      {
+        "file": "D-F-G-comparison.json",
+        "sha256": "6da65b42fc3bc8bbea8ed308bff6c54706ab90117b00efa0874ffee447ce8e66"
+      },
+      {
+        "file": "D-to-G-worker.diff",
+        "sha256": "e55db30cfee68965645706a4806819c907fa5b293b1f18e02f42f6a3321de429"
+      },
+      {
+        "file": "analysis.json",
+        "sha256": "0e91beeea0de6ba40b95321c6c08b278b749c9ce66c720d0899e8c963170e1cf"
+      },
+      {
+        "file": "artifact-metadata.json.gz",
+        "sha256": "2c9546ba9aad4c5bd595d344092a2b8aa28a08d93c011ca40484a47591bef86c"
+      },
+      {
+        "file": "changes-G.json.gz",
+        "sha256": "88e1be9e6c1f70c5585bb747c697828cd02052f37d8c362ea1ccb074fe91b0fb"
+      },
+      {
+        "file": "ci.json.gz",
+        "sha256": "d8e3094055d0e99b57814467f255d2cab094e640c5394b9a629d141436de31ff"
+      },
+      {
+        "file": "comparison.md",
+        "sha256": "0c866c1364df2b6eda90f0b039d34fce86684a12960ea9adc30a3504eb07e0b1"
+      },
+      {
+        "file": "connections.json",
+        "sha256": "7578d2d9cb448787c986991adf97a7809105a7d282a9c992a711539e3d490d9c"
+      },
+      {
+        "file": "duration-comparison.json",
+        "sha256": "aee6146c43ea9fea1b07148d1dd151c988b95b0d24d9ec26d98232b931d99060"
+      },
+      {
+        "file": "generated-D-suite.js.gz",
+        "sha256": "f96e2f20905deb459cc9d236955f4a320b4e445ce3793770e4a588b6cbc45eca"
+      },
+      {
+        "file": "generated-D-worker.js.gz",
+        "sha256": "4f00f7eb4a1239bf82b94454527e30baea7d7cab1196c6c0d3450d11747b9ad4"
+      },
+      {
+        "file": "generated-G-suite.js.gz",
+        "sha256": "f96e2f20905deb459cc9d236955f4a320b4e445ce3793770e4a588b6cbc45eca"
+      },
+      {
+        "file": "generated-G-worker.js.gz",
+        "sha256": "5c0a31a535dbeb7904ee2ba054c3eaa45e7dd15cc0a19a8c46c0e1d8158c331a"
+      },
+      {
+        "file": "github-history.json.gz",
+        "sha256": "e543e0581a826840490583962d67f19245c618857eb292685088a98b6928a38f"
+      },
+      {
+        "file": "job.log.gz",
+        "sha256": "89e12cafc9133d6dc84b8b6ccf3c34092a18037aa01e76c75dc88e48fae428ca"
+      },
+      {
+        "file": "main-events.json.gz",
+        "sha256": "ae061ef730642466e9148284e0bda3f50daf361b6aae58f53963fe1225525c8f"
+      },
+      {
+        "file": "pr398-reviews.json.gz",
+        "sha256": "f3f1f32dc975e48462be96698a7cad76b485fddf672f889eeb09a5c27c5f62ca"
+      },
+      {
+        "file": "preregistration-comment.json.gz",
+        "sha256": "9d5c2b11614af4a6e486e487ff1414f36c3c0ec1fa6366e66d97269789695805"
+      },
+      {
+        "file": "recompute.mjs",
+        "sha256": "cc8613d2f16327f9c6871f4bf07809da1f5c3df96f645858db61ca6073201424"
+      },
+      {
+        "file": "results.json.gz",
+        "sha256": "38063d7ae6ea84463961c476f0a1077d747b3a522a24d56f3ab4475618688504"
+      },
+      {
+        "file": "transactions.md",
+        "sha256": "d95a8965033cb761a7de8c9b0373087ed23648d8fb84745eb3dadef23b753ecf"
+      },
+      {
+        "file": "trial-reservation.json.gz",
+        "sha256": "be566d6bbb3d5b531f0c1e5398bda32f44541a387913024da3172da7f258ac52"
+      },
+      {
+        "file": "upgrades.md",
+        "sha256": "8e9dd57be5abe0879da7bde273ba23c5dfd07201d1d28dff6eeae5ef7aa42e53"
+      },
+      {
+        "file": "worker-events.json.gz",
+        "sha256": "1561948a43a89aef5af2e193bb5ab569d04693eda875adb5b79b76016c1acf08"
+      }
+    ],
+    "idb-time-delay-only-summary": {
+      "testedCommit": "b08c0f8b73ec4184478669fb4ac5907be83dbb52",
+      "tree": "7ce3d9c7b33847cccad747ef3376890518b4e1b6",
+      "trials": [
+        {
+          "condition": "G",
+          "runId": "16060bc8-4b98-435c-a534-f276b70ae612",
+          "dbName": "worker-poc-d941090b-4231-4752-9a72-20b40592915f",
+          "browser": "26.5",
+          "failure": null,
+          "cleanup": {
+            "status": "PASS",
+            "terminal": "success",
+            "error": null,
+            "blockedObserved": false,
+            "elapsedMs": 0,
+            "events": [
+              "delete_start",
+              "delete_success"
+            ]
+          }
+        }
+      ]
+    }
+  },
+  "worktrees": {
+    "mcp-worker-recovery": {
+      "head": "597c1d4985724e3dd77660a3562020d7004b6d86",
+      "status": " M memo-search.e2e.js\n?? .github/workflows/mcp-worker-shared-ledger.yml\n?? e2e-artifacts/linux-primary-webkit/\n?? e2e-artifacts/linux-t7-chromium/\n?? e2e-artifacts/linux-t7-webkit/\n?? e2e-artifacts/mcp-worker-diagnostics/\n?? experiments/mcp-search-worker-feasibility/shared-ledger-browser.cjs\n?? experiments/mcp-search-worker-feasibility/shared-ledger.js\n"
+    },
+    "idb-upgrade-lifecycle": {
+      "head": "3734f82d117e09355cc721077ead626fa368e451",
+      "status": "?? e2e-artifacts/lifecycle-41299732744/\n?? e2e-artifacts/lifecycle-analysis/\n"
+    },
+    "idb-transaction-complete-only": {
+      "head": "105d80a467e96aa7038052f501c4a1776a6e69bb",
+      "status": "?? e2e-artifacts/derive-f-evidence.cjs\n?? e2e-artifacts/f-41303212794/\n?? e2e-artifacts/f-pr-body.md\n?? e2e-artifacts/f-result-comment.md\n"
+    },
+    "idb-time-delay-only": {
+      "head": "9872ee7aee773b017915364669bc31b98cc22e83",
+      "status": "?? e2e-artifacts/g-41316288566/\n?? e2e-artifacts/g-independent-check/\n?? e2e-artifacts/g-recomputed/\n?? e2e-artifacts/g-records/\n"
+    }
+  },
+  "base": {
+    "commit": "9872ee7aee773b017915364669bc31b98cc22e83",
+    "tree": "fc77cecb5c5b51add1eb062eedc9aff49979a55c"
+  },
+  "main": {
+    "commit": "438cf201abe83a53e8cb8e7ed160c4d6dbe147ba",
+    "tree": "9109b893ce208155c2d7a12e1ab55ecc810ab06d"
+  }
+}
