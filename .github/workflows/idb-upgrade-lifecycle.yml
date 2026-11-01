@@ -1,0 +1,34 @@
+name: IndexedDB lifecycle finite research
+on:
+  push:
+    branches: [investigate/idb-upgrade-lifecycle]
+    paths:
+      - 'experiments/idb-upgrade-lifecycle/*.js'
+      - 'experiments/idb-upgrade-lifecycle/*.cjs'
+      - '.github/workflows/idb-upgrade-lifecycle.yml'
+permissions:
+  contents: read
+jobs:
+  research:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: node --test experiments/idb-upgrade-lifecycle/source.test.cjs
+      - run: npx playwright install --with-deps webkit chromium
+      - name: Execute the seven preregistered trials once
+        run: node experiments/idb-upgrade-lifecycle/run.cjs
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: idb-upgrade-lifecycle
+          path: e2e-artifacts/idb-upgrade-lifecycle/
+          if-no-files-found: error
+          retention-days: 30
