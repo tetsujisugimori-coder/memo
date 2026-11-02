@@ -104,6 +104,17 @@ commit後tree比較でも、既存変更がcollect.cjsだけでmode不変であ�
 各入力/出力/期待値/検証器・schema・ソースのhashも別保存する。
 原始TAPの空白と超過入力bytesを保持する専用属性は新directory内だけに追加した。
 
+Git保存後の照合で、既存の親contract.mdとjudge.cjsは作業コピーがCRLF、Git blobがLFと確認した。
+両方とも旧HEADから不変更である。初回manifestの413項目は初回作業コピーのraw bytesに一致し、
+この既存2項目を除く411項目はGit blob bytesにも直接一致した。
+`source-hashes.json` のfixedSha256はローカルGit archive展開bytesのhashであり、親contract.mdと
+judge.cjsのGit blob hashとは区別する。旧版試験は通常checkout同様のCRLF展開judgeを用いた。
+固定CLI/両schemaはGit blobともbytes一致し、judgeの論理ソースも旧blobから変更していない。
+[Git照合記録](records/git-storage.json)にraw/Git両hashと1,082既存blob/mode不変を記録する。
+初回 `records/SHA256SUMS` はcommit 572b1bdの保存記録として変更しない。
+現在の全成果物用manifestは `records/final-SHA256SUMS`。自身以外の本directory全fileと
+親Collector/両schemaを対象にし、改行変換される親契約/judgeのhashはGit照合記録で別管理する。
+
 実ブラウザ、実Worker、実IndexedDB、実メモ、OAuth/MCP実接続、8791/8792/Tunnel、1ms実験、
 WebKit内部hook、build、dispatch、実験承認変更、本番統合は0。
 CIは指定最終HEADで確認してPRに記録し、未実行を成功と扱わない。
