@@ -1,0 +1,39 @@
+{
+  "collectorSchemaVersion": 1,
+  "scope": "OFFLINE_SYNTHETIC_ONLY",
+  "evidenceStatus": "INVALID_SCHEMA",
+  "exitCode": 2,
+  "input": {
+    "materialId": "duplicate-json-key",
+    "actualSha256": "950d251e6335eef09862c2347a88367fcc4a55e0651cd7865ea7d5a2760efa4c",
+    "expectedSha256": "950d251e6335eef09862c2347a88367fcc4a55e0651cd7865ea7d5a2760efa4c",
+    "semanticSha256": null
+  },
+  "relations": [],
+  "orderRelations": [],
+  "missingEvidence": [],
+  "contradictions": [],
+  "validationErrors": [
+    {
+      "code": "JSON",
+      "subject": "",
+      "detail": "duplicate JSON key"
+    }
+  ],
+  "reasons": [
+    "JSON"
+  ],
+  "unknownReasons": [],
+  "transactions": [],
+  "realExperiment": "NOT_RUN",
+  "executionAuthorization": "NOT_GRANTED",
+  "startCondition": "BLOCKED",
+  "conditionU": "NOT_RUN",
+  "productionWorker": "HOLD",
+  "hypotheses": {
+    "H1": "UNKNOWN",
+    "H2": "UNKNOWN",
+    "H3": "UNKNOWN",
+    "H4": "PARTIAL"
+  }
+}

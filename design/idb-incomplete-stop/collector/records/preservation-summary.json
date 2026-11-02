@@ -1,0 +1,15 @@
+{
+  "startAt": "2026-11-02T12:18:39.789932+00:00",
+  "checkedAt": "2026-11-02T12:29:16.407804+00:00",
+  "originalWorktrees": 61,
+  "worktreeFileHashes": 2850,
+  "failures": [],
+  "baseBlobs": 963,
+  "baseBlobMismatches": [],
+  "fixtureCategories": {
+    "normal": 5,
+    "unknown": 9,
+    "fault": 26
+  },
+  "scope": "all original worktree HEAD/status; all changed/untracked nonignored bytes; tracked experiments/design/reviews in selected worktrees; no ignored-cache-wide claim"
+}

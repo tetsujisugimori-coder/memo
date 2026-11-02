@@ -1,0 +1,157 @@
+{
+  "collectorSchemaVersion": 1,
+  "scope": "OFFLINE_SYNTHETIC_ONLY",
+  "evidenceStatus": "INCOMPLETE",
+  "exitCode": 1,
+  "input": {
+    "materialId": "source-sequence-gap",
+    "actualSha256": "01853fdd6e99d97087237257b27db78bf1400aaf27d0eaaf85b18ad94bcee901",
+    "expectedSha256": "01853fdd6e99d97087237257b27db78bf1400aaf27d0eaaf85b18ad94bcee901",
+    "semanticSha256": "2e4b5e23dbd516b4409ddcbbb3fa77044e2811241d27f0f99d6658fa3e91b0cc"
+  },
+  "relations": [
+    {
+      "from": "w3",
+      "to": "m1",
+      "kind": "send-receive"
+    },
+    {
+      "from": "w5",
+      "to": "w6",
+      "kind": "complete-send"
+    },
+    {
+      "from": "w6",
+      "to": "m2",
+      "kind": "send-receive"
+    }
+  ],
+  "orderRelations": [
+    {
+      "before": "w3",
+      "after": "m1",
+      "basis": "explicit-message"
+    },
+    {
+      "before": "w6",
+      "after": "m2",
+      "basis": "explicit-message"
+    },
+    {
+      "before": "m1",
+      "after": "m2",
+      "basis": "source-sequence"
+    },
+    {
+      "before": "m2",
+      "after": "m3",
+      "basis": "source-sequence"
+    },
+    {
+      "before": "m3",
+      "after": "m4",
+      "basis": "source-sequence"
+    },
+    {
+      "before": "m4",
+      "after": "m5",
+      "basis": "source-sequence"
+    },
+    {
+      "before": "w1",
+      "after": "w2",
+      "basis": "source-sequence"
+    },
+    {
+      "before": "w2",
+      "after": "w3",
+      "basis": "source-sequence"
+    },
+    {
+      "before": "w3",
+      "after": "w5",
+      "basis": "source-sequence"
+    },
+    {
+      "before": "w5",
+      "after": "w6",
+      "basis": "complete-reference"
+    },
+    {
+      "before": "w5",
+      "after": "w6",
+      "basis": "source-sequence"
+    }
+  ],
+  "missingEvidence": [
+    {
+      "code": "ACTUAL_STOP_BOUNDARY_MISSING",
+      "subject": "{\"connectionId\":\"c1\",\"dbName\":\"synthetic-only\",\"iteration\":1,\"runId\":\"session-1\",\"transactionId\":\"t1\",\"workerId\":\"w1\"}",
+      "detail": "terminate return is not actual stop",
+      "scope": "FUTURE_WITNESS"
+    },
+    {
+      "code": "INTERNAL_TERMINAL_UNKNOWN",
+      "subject": "{\"connectionId\":\"c1\",\"dbName\":\"synthetic-only\",\"iteration\":1,\"runId\":\"session-1\",\"transactionId\":\"t1\",\"workerId\":\"w1\"}",
+      "detail": "no logical-IDB commit/abort result; listener delivery is a different boundary",
+      "scope": "FUTURE_WITNESS"
+    },
+    {
+      "code": "NORMAL_UNTERMINATED_WITNESS_MISSING",
+      "subject": "{\"connectionId\":\"c1\",\"dbName\":\"synthetic-only\",\"iteration\":1,\"runId\":\"session-1\",\"transactionId\":\"t1\",\"workerId\":\"w1\"}",
+      "detail": "independent normal interval and internal ID/build binding unavailable",
+      "scope": "FUTURE_WITNESS"
+    },
+    {
+      "code": "SOURCE_SEQUENCE_GAP",
+      "subject": "worker:w1",
+      "detail": "1 gap ranges: 4-4",
+      "scope": "PUBLIC_CHAIN"
+    }
+  ],
+  "contradictions": [],
+  "validationErrors": [],
+  "reasons": [
+    "SOURCE_SEQUENCE_GAP"
+  ],
+  "unknownReasons": [
+    "ACTUAL_STOP_BOUNDARY_MISSING",
+    "INTERNAL_TERMINAL_UNKNOWN",
+    "NORMAL_UNTERMINATED_WITNESS_MISSING",
+    "t1:R:INVALID_TRACE",
+    "t1:U:INVALID_TRACE"
+  ],
+  "transactions": [
+    {
+      "identity": {
+        "runId": "session-1",
+        "dbName": "synthetic-only",
+        "workerId": "w1",
+        "connectionId": "c1",
+        "transactionId": "t1",
+        "iteration": 1
+      },
+      "assessment": {
+        "validTrace": "FAIL",
+        "conditionR": "UNKNOWN",
+        "conditionU": "UNKNOWN",
+        "conditionReasonR": "INVALID_TRACE",
+        "conditionReasonU": "INVALID_TRACE",
+        "workerObservation": "PASS",
+        "connectionClosed": "UNKNOWN",
+        "physicalRelease": "UNKNOWN"
+      }
+    }
+  ],
+  "realExperiment": "NOT_RUN",
+  "executionAuthorization": "NOT_GRANTED",
+  "startCondition": "BLOCKED",
+  "conditionU": "NOT_RUN",
+  "productionWorker": "HOLD",
+  "hypotheses": {
+    "H1": "UNKNOWN",
+    "H2": "UNKNOWN",
+    "H3": "UNKNOWN",
+    "H4": "PARTIAL"
+  }
+}

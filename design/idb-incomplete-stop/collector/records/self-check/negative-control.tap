@@ -1,0 +1,35 @@
+TAP version 13
+# {"orders":[["w1","w2","w3","m1","m2","m3","m4"],["w1","w2","m1","w3","m2","m3","m4"],["w1","w2","m1","m2","m3","w3","m4"],["w1","w2","m1","m2","m3","m4","w3"]],"results":[{"syntheticOnly":true,"realExperiment":"NOT_RUN","validTrace":"PASS","workerObservation":"PASS","callbackHold":"UNKNOWN","stopCondition":"FAIL","upgrade":"NOT_RUN","cleanup":"NOT_RUN","connectionClosed":"UNKNOWN","physicalRelease":"UNKNOWN","reasons":["complete_observed_before_stop"]},{"syntheticOnly":true,"realExperiment":"NOT_RUN","validTrace":"PASS","workerObservation":"PASS","callbackHold":"UNKNOWN","stopCondition":"FAIL","upgrade":"NOT_RUN","cleanup":"NOT_RUN","connectionClosed":"UNKNOWN","physicalRelease":"UNKNOWN","reasons":["complete_observed_before_stop"]},{"syntheticOnly":true,"realExperiment":"NOT_RUN","validTrace":"PASS","workerObservation":"PASS","callbackHold":"UNKNOWN","stopCondition":"UNKNOWN","upgrade":"NOT_RUN","cleanup":"NOT_RUN","connectionClosed":"UNKNOWN","physicalRelease":"UNKNOWN","reasons":["late_terminal_has_no_cross_clock_order_proof","no_independent_unfinished_stop_witness"]},{"syntheticOnly":true,"realExperiment":"NOT_RUN","validTrace":"PASS","workerObservation":"PASS","callbackHold":"UNKNOWN","stopCondition":"UNKNOWN","upgrade":"NOT_RUN","cleanup":"NOT_RUN","connectionClosed":"UNKNOWN","physicalRelease":"UNKNOWN","reasons":["late_terminal_has_no_cross_clock_order_proof","no_independent_unfinished_stop_witness"]}]}
+# Subtest: IR1: four merges of the same partial order have identical UNKNOWN semantics
+not ok 1 - IR1: four merges of the same partial order have identical UNKNOWN semantics
+  ---
+  duration_ms: 1.6417
+  type: 'test'
+  location: 'C:\\Users\\tetsu\\Documents\\Codex\\メモ帳\\work\\idb-evidence-collector-u1\\design\\idb-incomplete-stop\\merge-order.test.cjs:7:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    
+    'FAIL' !== 'UNKNOWN'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 'UNKNOWN'
+  actual: 'FAIL'
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (C:\Users\tetsu\Documents\Codex\メモ帳\work\idb-evidence-collector-u1\design\idb-incomplete-stop\merge-order.test.cjs:13:12)
+    Test.runInAsyncScope (node:async_hooks:227:14)
+    Test.run (node:internal/test_runner/test:1397:25)
+    Test.start (node:internal/test_runner/test:1257:17)
+    startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17)
+  ...
+1..1
+# tests 1
+# suites 0
+# pass 0
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 97.3771

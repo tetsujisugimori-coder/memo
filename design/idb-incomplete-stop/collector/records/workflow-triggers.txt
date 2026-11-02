@@ -1,0 +1,79 @@
+.github/workflows\mcp-worker-t7-only.yml:2:on:
+.github/workflows\mcp-worker-t7-only.yml-3-  pull_request:
+.github/workflows\mcp-worker-t7-only.yml-4-    paths:
+.github/workflows\mcp-worker-t7-only.yml-5-      - 'experiments/mcp-search-worker-feasibility/**'
+.github/workflows\mcp-worker-t7-only.yml-6-      - '.github/workflows/mcp-worker-t7-only.yml'
+.github/workflows\mcp-worker-t7-only.yml-7-  workflow_dispatch:
+.github/workflows\mcp-worker-t7-only.yml-8-permissions:
+.github/workflows\mcp-worker-t7-only.yml-9-  contents: read
+.github/workflows\mcp-worker-t7-only.yml-10-jobs:
+--
+.github/workflows\idb-upgrade-lifecycle.yml:2:on:
+.github/workflows\idb-upgrade-lifecycle.yml-3-  push:
+.github/workflows\idb-upgrade-lifecycle.yml-4-    branches: [investigate/idb-upgrade-lifecycle]
+.github/workflows\idb-upgrade-lifecycle.yml-5-    paths:
+.github/workflows\idb-upgrade-lifecycle.yml-6-      - 'experiments/idb-upgrade-lifecycle/*.js'
+.github/workflows\idb-upgrade-lifecycle.yml-7-      - 'experiments/idb-upgrade-lifecycle/*.cjs'
+.github/workflows\idb-upgrade-lifecycle.yml-8-      - '.github/workflows/idb-upgrade-lifecycle.yml'
+.github/workflows\idb-upgrade-lifecycle.yml-9-permissions:
+.github/workflows\idb-upgrade-lifecycle.yml-10-  contents: read
+--
+.github/workflows\ci.yml:3:on:
+.github/workflows\ci.yml-4-  pull_request:
+.github/workflows\ci.yml-5-    branches:
+.github/workflows\ci.yml-6-      - main
+.github/workflows\ci.yml-7-  push:
+.github/workflows\ci.yml-8-    branches:
+.github/workflows\ci.yml-9-      - main
+.github/workflows\ci.yml-10-  workflow_dispatch:
+.github/workflows\ci.yml-11-    inputs:
+--
+.github/workflows\idb-time-delay-only.yml:2:on:
+.github/workflows\idb-time-delay-only.yml-3-  push:
+.github/workflows\idb-time-delay-only.yml-4-    branches: [investigate/idb-time-delay-only]
+.github/workflows\idb-time-delay-only.yml-5-    paths:
+.github/workflows\idb-time-delay-only.yml-6-      - 'experiments/idb-time-delay-only/*.cjs'
+.github/workflows\idb-time-delay-only.yml-7-      - '.github/workflows/idb-time-delay-only.yml'
+.github/workflows\idb-time-delay-only.yml-8-permissions:
+.github/workflows\idb-time-delay-only.yml-9-  contents: read
+.github/workflows\idb-time-delay-only.yml-10-  actions: read
+--
+.github/workflows\mcp-worker-stage3.yml:2:on:
+.github/workflows\mcp-worker-stage3.yml-3-  pull_request:
+.github/workflows\mcp-worker-stage3.yml-4-    paths:
+.github/workflows\mcp-worker-stage3.yml-5-      - 'experiments/mcp-search-worker-feasibility/**'
+.github/workflows\mcp-worker-stage3.yml-6-      - '.github/workflows/mcp-worker-stage3.yml'
+.github/workflows\mcp-worker-stage3.yml-7-  workflow_dispatch:
+.github/workflows\mcp-worker-stage3.yml-8-permissions:
+.github/workflows\mcp-worker-stage3.yml-9-  contents: read
+.github/workflows\mcp-worker-stage3.yml-10-jobs:
+--
+.github/workflows\idb-transaction-complete-only.yml:2:on:
+.github/workflows\idb-transaction-complete-only.yml-3-  push:
+.github/workflows\idb-transaction-complete-only.yml-4-    branches: [investigate/idb-transaction-complete-only]
+.github/workflows\idb-transaction-complete-only.yml-5-    paths:
+.github/workflows\idb-transaction-complete-only.yml-6-      - 'experiments/idb-transaction-complete-only/*.cjs'
+.github/workflows\idb-transaction-complete-only.yml-7-      - '.github/workflows/idb-transaction-complete-only.yml'
+.github/workflows\idb-transaction-complete-only.yml-8-permissions:
+.github/workflows\idb-transaction-complete-only.yml-9-  contents: read
+.github/workflows\idb-transaction-complete-only.yml-10-jobs:
+--
+.github/workflows\mcp-search-worker-feasibility.yml:2:on:
+.github/workflows\mcp-search-worker-feasibility.yml-3-  pull_request:
+.github/workflows\mcp-search-worker-feasibility.yml-4-    paths:
+.github/workflows\mcp-search-worker-feasibility.yml-5-      - 'experiments/mcp-search-worker-feasibility/**'
+.github/workflows\mcp-search-worker-feasibility.yml-6-      - '.github/workflows/mcp-search-worker-feasibility.yml'
+.github/workflows\mcp-search-worker-feasibility.yml-7-  workflow_dispatch:
+.github/workflows\mcp-search-worker-feasibility.yml-8-
+.github/workflows\mcp-search-worker-feasibility.yml-9-permissions:
+.github/workflows\mcp-search-worker-feasibility.yml-10-  contents: read
+--
+.github/workflows\mcp-t7-db-identity.yml:2:on:
+.github/workflows\mcp-t7-db-identity.yml-3-  push:
+.github/workflows\mcp-t7-db-identity.yml-4-    branches: [investigate/mcp-worker-recovery]
+.github/workflows\mcp-t7-db-identity.yml-5-    paths:
+.github/workflows\mcp-t7-db-identity.yml-6-      - 'experiments/t7-db-identity/run.cjs'
+.github/workflows\mcp-t7-db-identity.yml-7-      - '.github/workflows/mcp-t7-db-identity.yml'
+.github/workflows\mcp-t7-db-identity.yml-8-permissions:
+.github/workflows\mcp-t7-db-identity.yml-9-  contents: read
+.github/workflows\mcp-t7-db-identity.yml-10-jobs:
