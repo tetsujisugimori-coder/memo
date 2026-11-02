@@ -1,0 +1,2 @@
+BASE_REVISION="aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+OTHER="literal" # not supported

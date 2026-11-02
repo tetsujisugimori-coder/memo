@@ -1,0 +1,2 @@
+BASE_REVISION="aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+export BASE_REVISION="cccccccccccccccccccccccccccccccccccccccc"

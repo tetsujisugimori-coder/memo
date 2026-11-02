@@ -1,0 +1,29 @@
+{
+  "id": "bare-cr",
+  "expectedStatus": "INCOMPLETE",
+  "expectedExit": 1,
+  "expectedCode": "UPSTREAM_CONFIG_UNSUPPORTED_SYNTAX",
+  "args": [
+    "--schema",
+    "design/idb-webkit-evidence/schema.json",
+    "--plan",
+    "design/idb-webkit-evidence/records/p2-fix/inputs/cases/bare-cr/plan.json",
+    "--source",
+    "lock",
+    "design/idb-webkit-evidence/records/p2-fix/inputs/lock.txt",
+    "--source",
+    "browsers",
+    "design/idb-webkit-evidence/records/p2-fix/inputs/browsers.txt",
+    "--source",
+    "config",
+    "design/idb-webkit-evidence/records/p2-fix/inputs/cases/bare-cr/config.txt",
+    "--source",
+    "log",
+    "design/idb-webkit-evidence/records/p2-fix/inputs/log.txt",
+    "--source",
+    "reference",
+    "design/idb-webkit-evidence/records/p2-fix/inputs/reference.txt"
+  ],
+  "configSha256": "4e71d54bf52ba191765dbce90ff43051f571e3acd6be0357230f0ec4ca921d98",
+  "planSha256": "1a36d0278388be647b3afe1842909dfe0123b7f57c716c80c2232c67b3af6f98"
+}

@@ -62,3 +62,37 @@ CONSISTENTでも、全出力で次を固定する：
 conditionRは出力しない。このCLIはtrace判定器ではなく、#401のR/Uや
 complete発生→送信→main受信契約を変更しない。自己申告proofなど未知キーは拒否する。
 既知キー内の自己申告も意味検証されず、実験開始可能へ昇格する経路はない。
+
+## UPSTREAM_CONFIGの対応構文（P2補訂）
+
+固定一次資料 `26a9e470a7b3c7822084b09fb7f13902c5f37b51` の設定は
+REMOTE_URL/BASE_BRANCH/BASE_REVISION各1行の二重引用符付き単純代入である。
+これはシェルparserではなく、以下のデータ形式だけを扱う。**ファイル全体**を検査し、
+解釈できない行を読み飛ばさない。設定をsource/eval/シェル実行せず、展開・コマンド置換もしない。
+
+- UTF-8（既存decoderによる先頭BOM許容）、改行LF/CRLF。空行、ASCII space/tabのみの行を許容。
+- 最初の非space/tabが `#` の行全体コメントは無視する。コメント内のBASE_REVISIONや
+  シェル風の文字列は代入ではない。行末コメントは対応外として拒否する。
+- 代入は `[space/tab]*NAME="LITERAL"[space/tab]*` だけ。NAMEは
+  `[A-Za-z_][A-Za-z0-9_]*`、LITERALの文字はASCII英数字と `_ . / : @ + -` のみ（空文字可）。
+  `=` の前後に空白は置かない。空白は引用符の内側には置けない。
+- BASE_REVISION以外の単純代入も同じ文法で検査する。OTHER_BASE_REVISIONや
+  BASE_REVISION_SUFFIXは別変数であり、必須代入の代用にも重複数にも含めない。
+- BASE_REVISIONは**ちょうど1代入**、値は小文字hex40桁が必須。同値・異値とも複数は拒否。
+  最初・最後いずれの値も選ばず、代入順を反転しても拒否する。
+- 単一引用符、無引用、escape/行継続、export/declare/readonly、`+=`、条件文、
+  関数、配列、間接代入、パラメータ展開、コマンド置換、source/dot/eval、他の命令、
+  複数命令行・heredoc等はすべて許容文法外。意味を推測して受理しない。
+
+|拒否・不足|reason code / level|documentStatus / 終了|
+|---|---|---|
+|複数の対応構文によるBASE_REVISION代入|UPSTREAM_CONFIG_MULTIPLE_REVISION / conflict|INCONSISTENT / 1|
+|対応構文の値がhex40桁でない|UPSTREAM_CONFIG_INVALID_REVISION / conflict|INCONSISTENT / 1|
+|対応外の行（行番号付き）|UPSTREAM_CONFIG_UNSUPPORTED_SYNTAX / missing|INCOMPLETE / 1（他の矛盾があればINCONSISTENT）|
+|必須代入なし|METADATA_FIELD_MISSING / missing|INCOMPLETE / 1|
+|有効な単一値と対象revisionが異なる|既存METADATA_MISMATCH / conflict|INCONSISTENT / 1|
+
+設定sourceの問題であり、外側JSON schema不正の終了2とはしない。対応外形式は
+実際の設定値を静的に確定できないため資料不足、複数代入・値形式違反はデータ契約との矛盾。
+各理由は併記し、いずれかがあれば値の比較に進まない。hash一致だけでこれらを免除しない。
+この局所補訂でschemaVersionや研究上のR/U・実行承認契約は変更しない。

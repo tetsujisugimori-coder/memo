@@ -1,0 +1,100 @@
+TAP version 13
+# Subtest: consistent synthetic documents return 0 without validating their self-reported meaning; R also stays blocked
+ok 1 - consistent synthetic documents return 0 without validating their self-reported meaning; R also stays blocked
+  ---
+  duration_ms: 3.7353
+  type: 'test'
+  ...
+# Subtest: schema rejects missing keys, wrong type, version and unchecked proof at both levels
+ok 2 - schema rejects missing keys, wrong type, version and unchecked proof at both levels
+  ---
+  duration_ms: 1.0124
+  type: 'test'
+  ...
+# Subtest: a relaxed external schema cannot bypass the supported contract
+ok 3 - a relaxed external schema cannot bypass the supported contract
+  ---
+  duration_ms: 0.5018
+  type: 'test'
+  ...
+# Subtest: empty required documents are incomplete, not malformed or consistent
+ok 4 - empty required documents are incomplete, not malformed or consistent
+  ---
+  duration_ms: 6.859
+  type: 'test'
+  ...
+# Subtest: broken IDs, reversed and out-of-range references are inconsistent
+ok 5 - broken IDs, reversed and out-of-range references are inconsistent
+  ---
+  duration_ms: 1.0338
+  type: 'test'
+  ...
+# Subtest: target, upstream and another application transaction cannot be mixed into a candidate
+ok 6 - target, upstream and another application transaction cannot be mixed into a candidate
+  ---
+  duration_ms: 0.5736
+  type: 'test'
+  ...
+# Subtest: a source at another revision is rejected even if its bytes match
+ok 7 - a source at another revision is rejected even if its bytes match
+  ---
+  duration_ms: 0.2961
+  type: 'test'
+  ...
+# Subtest: fixed adapters detect different Playwright, browser revision, upstream or platform records
+ok 8 - fixed adapters detect different Playwright, browser revision, upstream or platform records
+  ---
+  duration_ms: 1.0895
+  type: 'test'
+  ...
+# Subtest: download URL revision cannot contradict the log message
+ok 9 - download URL revision cannot contradict the log message
+  ---
+  duration_ms: 0.3268
+  type: 'test'
+  ...
+# Subtest: hash tampering, duplicate source and candidate IDs are inconsistent
+ok 10 - hash tampering, duplicate source and candidate IDs are inconsistent
+  ---
+  duration_ms: 0.6698
+  type: 'test'
+  ...
+# Subtest: contradictory exclusive stop states retain conflicts alongside UNKNOWN
+ok 11 - contradictory exclusive stop states retain conflicts alongside UNKNOWN
+  ---
+  duration_ms: 0.3074
+  type: 'test'
+  ...
+# Subtest: separately well-formed candidates cannot bind different engine transactions or contradict each other
+ok 12 - separately well-formed candidates cannot bind different engine transactions or contradict each other
+  ---
+  duration_ms: 0.3009
+  type: 'test'
+  ...
+# Subtest: UNKNOWN, unavailable boundary and missing abnormal distinction retain all insufficiency reasons
+ok 13 - UNKNOWN, unavailable boundary and missing abnormal distinction retain all insufficiency reasons
+  ---
+  duration_ms: 0.3019
+  type: 'test'
+  ...
+# Subtest: unavailable primary source ends with insufficiency and does not infer a replacement
+ok 14 - unavailable primary source ends with insufficiency and does not infer a replacement
+  ---
+  duration_ms: 0.2292
+  type: 'test'
+  ...
+# Subtest: CLI JSON, actual process exit codes, malformed input, missing file and byte preservation
+ok 15 - CLI JSON, actual process exit codes, malformed input, missing file and byte preservation
+  ---
+  duration_ms: 422.9713
+  type: 'test'
+  ...
+1..15
+# tests 15
+# suites 0
+# pass 15
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 561.6318

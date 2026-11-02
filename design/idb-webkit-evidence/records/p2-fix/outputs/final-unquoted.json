@@ -1,0 +1,81 @@
+{
+  "documentStatus": "INCOMPLETE",
+  "exitCode": 1,
+  "scope": "SUBMITTED_DOCUMENTS_ONLY",
+  "executionAuthorization": "NOT_GRANTED",
+  "startCondition": "BLOCKED",
+  "realExperiment": "NOT_RUN",
+  "conditionU": "NOT_RUN",
+  "productionWorker": "HOLD",
+  "hypotheses": {
+    "H1": "UNKNOWN",
+    "H2": "UNKNOWN",
+    "H3": "UNKNOWN",
+    "H4": "PARTIAL"
+  },
+  "normalized": {
+    "schemaVersion": 1,
+    "plan": {
+      "id": "synthetic-document-only",
+      "condition": "U"
+    },
+    "target": {
+      "id": "target",
+      "playwrightVersion": "1.62.1",
+      "browserVersion": "26.5",
+      "browserRevision": "2336",
+      "platform": "ubuntu24.04-x64",
+      "upstreamRevision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    "transactionId": "app-tx",
+    "versionMappingStatus": "VERIFIED_METADATA",
+    "candidates": [
+      {
+        "id": "hypothetical",
+        "status": "CANDIDATE",
+        "access": "CUSTOM_BUILD",
+        "statesAtBoundary": [
+          "NORMAL_UNTERMINATED"
+        ]
+      }
+    ]
+  },
+  "reasons": [
+    {
+      "level": "missing",
+      "code": "UPSTREAM_CONFIG_UNSUPPORTED_SYNTAX",
+      "path": "/sources/config/line/2",
+      "detail": "line outside supported literal-assignment/comment grammar; not interpreted"
+    }
+  ],
+  "files": [
+    {
+      "id": "browsers",
+      "sha256": "ca2d2fe4f1adec97095918a37d5aca68cbfbba56c7bf76ec077b594bc64b43dd"
+    },
+    {
+      "id": "config",
+      "sha256": "abd6f06bcb0ffb3711a482f3542e397e32eb24063fc1cb1a666b0709cddbbeb5"
+    },
+    {
+      "id": "lock",
+      "sha256": "1d3f2984abc1d1d97e2b631c47aaab0afd903c6042aae1bb3992db076491bff3"
+    },
+    {
+      "id": "log",
+      "sha256": "fd6211128fb4cff66d7f154e7700c4214d8bbc984225b6bc26e421e46522dd9b"
+    },
+    {
+      "id": "plan",
+      "sha256": "53c0154088c0cb03c5548c2f815fb5c6806ba4a04e4209361de78f522f3dab12"
+    },
+    {
+      "id": "reference",
+      "sha256": "fe83cc03c5f154b87564ad4b94602033b5713d707f38f3391046492b60bcfd91"
+    },
+    {
+      "id": "schema",
+      "sha256": "5aa01f2c251c05f96d5de916aed2f475edf14baf1522bc3afc550af08398526f"
+    }
+  ]
+}

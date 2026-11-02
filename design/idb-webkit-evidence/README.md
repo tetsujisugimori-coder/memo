@@ -1,9 +1,14 @@
 # WebKit版照合・内部未終端証拠・資料整合性チェック
 
 Issue [#402](https://github.com/tetsujisugimori-coder/memo/issues/402)。
-**総合PARTIAL。版対応PARTIAL、公開方式のU証拠不足、内部計測候補は未成立、CLIの局所自己検証はPASS。**
+**総合PARTIAL。P2の局所修正自己検証PASS、独立再レビュー待ち、マージ推奨NO。**
+版対応PARTIAL、公開方式のU証拠不足、内部計測候補は未成立という研究結論を維持する。
 実行未承認／開始BLOCKED／実験NOT_RUN／U NOT_RUN／本番Worker HOLD。
-H1〜H3 UNKNOWN、H4 PARTIALを維持する。独立レビュー完了ではない。
+H1〜H3 UNKNOWN、H4 PARTIALを維持する。修正後の独立受入は未実施。
+
+[提出版の独立レビュー](https://github.com/tetsujisugimori-coder/memo/pull/403#issuecomment-6575852600)で
+BASE_REVISIONの後続上書きを見逃すP2が確認された。[局所補訂報告](p2-fix.md)に
+旧固定HEADの誤受理、同一入力での修正前後比較、対応構文、41純粋試験と保全範囲を記録する。
 
 - [版対応表](version-map.md)：固定metadataと実行記録、事実・推論・UNKNOWN。
 - [取得可能性](feasibility.md)：内部ID・停止・commit/abort・DB処理・通知経路とA/B/C。
@@ -36,7 +41,7 @@ R/Uとcomplete因果契約・旧D失敗/cleanup UNKNOWN・G INCONCLUSIVEを維�
 ## 再計算（repository rootから、依存install不要）
 
 ```powershell
-node --test --test-reporter=tap design/idb-webkit-evidence/check.test.cjs
+node --test --test-reporter=tap design/idb-webkit-evidence/check.test.cjs design/idb-webkit-evidence/upstream-config.test.cjs
 $checkerArgs = Get-Content -Raw -Encoding UTF8 design/idb-webkit-evidence/records/check-arguments.json | ConvertFrom-Json
 node design/idb-webkit-evidence/check.cjs @checkerArgs
 # 保存入力では終了1 / INCOMPLETE。CONSISTENTの終了0も実行許可ではない。
@@ -47,7 +52,9 @@ node design/idb-webkit-evidence/check.cjs @checkerArgs
 R/Uは資料の対象ラベルとして保持し、イベントtraceからの成立判定は行わない。
 新規schemaVersionは証拠の実装版ではない。
 
-`records/SHA256SUMS` はmanifest自身を除く新提出fileのSHA-256。
+現在の `records/p2-fix/SHA256SUMS` は自身を除くこのdirectory全fileのSHA-256。
+旧 `records/SHA256SUMS` は旧HEAD `636e279…` の106 file用として不変更保存したもので、
+現在のparser・文書に対するmanifestではない。
 `inputs/source-index.json` はWebKit取得bytesのGit blob/SHA-256も保持する。
 gzipは原始UTF-8応答またはsource bytesをmtime=0で保存。展開前hashと展開後hashは区別する。
 このdirectory内だけの `.gitattributes` でtext改行変換を無効にし、Git保存bytesを保つ。
@@ -59,7 +66,7 @@ gzipは原始UTF-8応答またはsource bytesをmtime=0で保存。展開前hash
 from pathlib import Path
 import hashlib
 root = Path('design/idb-webkit-evidence')
-for line in (root / 'records/SHA256SUMS').read_text(encoding='utf-8').splitlines():
+for line in (root / 'records/p2-fix/SHA256SUMS').read_text(encoding='utf-8').splitlines():
     expected, name = line.split('  ', 1)
     assert hashlib.sha256((root / name).read_bytes()).hexdigest() == expected, name
 ```

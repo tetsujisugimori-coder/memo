@@ -1,0 +1,59 @@
+{
+  "node": "v24.20.0",
+  "beforeExistingTests": {
+    "pass": 15,
+    "fail": 0,
+    "exitCode": 0
+  },
+  "redNewOracle": {
+    "pass": 3,
+    "fail": 22,
+    "skip": 0,
+    "exitCode": 1,
+    "meaning": "25 original cases, old checker under new expectations; includes unsupported syntax and newly documented whitespace policy"
+  },
+  "firstGreen": {
+    "pass": 25,
+    "fail": 0,
+    "exitCode": 0,
+    "source": "inputs/first-fix-check.cjs"
+  },
+  "final": {
+    "existingPass": 15,
+    "newPass": 26,
+    "totalPass": 41,
+    "fail": 0,
+    "skip": 0,
+    "cancelled": 0,
+    "todo": 0,
+    "exitCode": 0
+  },
+  "actualAssessment": {
+    "exitCode": 1,
+    "status": "INCOMPLETE",
+    "reasonCount": 11,
+    "reasonCodes": [
+      "BOUNDARY_UNKNOWN",
+      "BOUNDARY_UNKNOWN",
+      "BOUNDARY_UNKNOWN",
+      "BOUNDARY_UNKNOWN",
+      "DECLARED_UNKNOWN",
+      "DECLARED_UNKNOWN",
+      "DECLARED_UNKNOWN",
+      "ENGINE_ID_UNKNOWN",
+      "STATE_NOT_DISTINGUISHED",
+      "STOP_STATE_UNKNOWN",
+      "VERSION_MAPPING_PARTIAL"
+    ]
+  },
+  "actualInputOutputUnchanged": true,
+  "checkerSha256": "9b91e1a744e75a0243b587a14f795aa374c964d7e7d092e18ece079ba616db7f",
+  "priorCheckerSha256": "73d09e6baf0cc3136fe8647488771b7b2b55dd857300c908ab7d5aa3f86d5033",
+  "currentTestsSha256": "2bee545828ee5c6e125e0f7b54935550e55ca8a14f8163d8a00892a78913998a",
+  "browsers": 0,
+  "builds": 0,
+  "oldExperimentReruns": 0,
+  "CI": "NOT_RUN",
+  "independentReview": "PENDING",
+  "mergeRecommendation": "NO"
+}

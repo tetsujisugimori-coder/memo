@@ -23,6 +23,27 @@ function result(reasons, normalized = null, files = []) {
   return { documentStatus, exitCode: documentStatus === 'INVALID_SCHEMA' ? 2 : documentStatus === 'CONSISTENT' ? 0 : 1,
     scope: 'SUBMITTED_DOCUMENTS_ONLY', ...guards(), normalized, reasons, files };
 }
+// A complete, deliberately narrow data grammar, never a shell interpreter.
+function parseUpstreamConfig(text) {
+  const assignments = [], issues = [];
+  text.split(/\r?\n/).forEach((line, index) => {
+    const ignored = /^[ \t]*(?:#[^\r\n]*)?$/.exec(line);
+    if (ignored && ignored[0] === line) return;
+    const match = /^[ \t]*([A-Za-z_][A-Za-z0-9_]*)="([A-Za-z0-9_./:@+-]*)"[ \t]*$/.exec(line);
+    // JavaScript $ can match before a final CR; require full physical-line consumption.
+    if (!match || match[0] !== line) {
+      issues.push({ level: 'missing', code: 'UPSTREAM_CONFIG_UNSUPPORTED_SYNTAX', suffix: `/line/${index + 1}`, detail: 'line outside supported literal-assignment/comment grammar; not interpreted' });
+      return;
+    }
+    if (match[1] === 'BASE_REVISION') assignments.push({ value: match[2], line: index + 1 });
+  });
+  if (!assignments.length) issues.push({ level: 'missing', code: 'METADATA_FIELD_MISSING', suffix: '/upstreamRevision', detail: 'one supported BASE_REVISION assignment is required' });
+  if (assignments.length > 1) issues.push({ level: 'conflict', code: 'UPSTREAM_CONFIG_MULTIPLE_REVISION', suffix: '/upstreamRevision', detail: `multiple BASE_REVISION assignments at lines ${assignments.map(a => a.line).join(', ')}; no value selected` });
+  for (const assignment of assignments) {
+    if (!/^[0-9a-f]{40}$/.test(assignment.value)) issues.push({ level: 'conflict', code: 'UPSTREAM_CONFIG_INVALID_REVISION', suffix: `/line/${assignment.line}`, detail: 'BASE_REVISION must be one lowercase 40-hex literal' });
+  }
+  return { revision: issues.length ? undefined : assignments[0].value, issues };
+}
 function validateSchema(value, schema) {
   const errors = [];
   const fail = (path, detail) => errors.push({ level: 'schema', code: 'SCHEMA', path, detail });
@@ -100,7 +121,9 @@ function checkDocuments(plan, schema, provided = new Map()) {
         compare(browser?.browserVersion, plan.target.browserVersion, path + '/browserVersion');
         compare(browser?.revisionOverrides?.[plan.target.platform] ?? browser?.revision, plan.target.browserRevision, path + '/revision');
       } else if (role === 'UPSTREAM_CONFIG') {
-        compare(text.match(/^BASE_REVISION="([0-9a-f]{40})"$/m)?.[1], plan.target.upstreamRevision, path + '/upstreamRevision');
+        const config = parseUpstreamConfig(text);
+        for (const issue of config.issues) add(issue.level, issue.code, path + issue.suffix, issue.detail);
+        if (!config.issues.length) compare(config.revision, plan.target.upstreamRevision, path + '/upstreamRevision');
       } else {
         const downloads = [...text.matchAll(/Downloading WebKit ([^ ]+) \(playwright webkit v([0-9]+)\) from (https:\/\/[^\s]+)/g)];
         if (!downloads.length) add('missing', 'DOWNLOAD_RECORD_MISSING', path, 'no saved WebKit download record');

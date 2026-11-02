@@ -1,0 +1,3 @@
+BASE_REVISION="aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+BASE_REVISION=\
+"cccccccccccccccccccccccccccccccccccccccc"
