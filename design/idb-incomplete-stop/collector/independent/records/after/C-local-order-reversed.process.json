@@ -1,0 +1,15 @@
+{
+  "status": 1,
+  "signal": null,
+  "error": null,
+  "inputSha256": "20fd76b78e1e49983e5f23dbb92154481fd3d78c9cf8c48290d15974b4363988",
+  "expected": {
+    "status": "INCONSISTENT",
+    "exit": 1,
+    "r": "UNKNOWN",
+    "u": "UNKNOWN",
+    "codes": [
+      "SOURCE_ORDER_REVERSED"
+    ]
+  }
+}

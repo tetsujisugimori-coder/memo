@@ -1,0 +1,16 @@
+{
+  "status": 1,
+  "signal": null,
+  "error": null,
+  "inputSha256": "08eb4b95d0a0ffe586fc2610f238a16de4fc4abc9ef07c44a6c74424b37d1b9f",
+  "expected": {
+    "status": "INCONSISTENT",
+    "exit": 1,
+    "r": "UNKNOWN",
+    "u": "UNKNOWN",
+    "codes": [
+      "SOURCE_SEQUENCE_GAP",
+      "FOREIGN_IDENTITY"
+    ]
+  }
+}

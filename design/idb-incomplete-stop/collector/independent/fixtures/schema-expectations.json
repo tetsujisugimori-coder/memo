@@ -1,0 +1,3607 @@
+[
+  {
+    "id": "E-input-normal",
+    "schema": "input",
+    "expected": true,
+    "value": {
+      "schemaVersion": 1,
+      "fixtureKind": "SYNTHETIC",
+      "materialId": "independent-u1",
+      "planId": "independent-negative-controls",
+      "runId": "negative-session",
+      "identities": [
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1
+        }
+      ],
+      "streams": [
+        {
+          "source": "worker",
+          "workerId": "alpha",
+          "firstSeq": 1,
+          "lastSeq": 5
+        },
+        {
+          "source": "main",
+          "firstSeq": 1,
+          "lastSeq": 5
+        }
+      ],
+      "events": [
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "transaction_identified",
+          "source": "worker",
+          "sourceSeq": 1,
+          "eventId": "a-identified"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "request_accepted",
+          "source": "worker",
+          "sourceSeq": 2,
+          "eventId": "a-accepted",
+          "requestId": "request",
+          "mode": "readonly",
+          "result": "accepted"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "send",
+          "source": "worker",
+          "sourceSeq": 3,
+          "eventId": "a-send"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "transaction_complete",
+          "source": "worker",
+          "sourceSeq": 4,
+          "eventId": "a-complete"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "complete_sent",
+          "source": "worker",
+          "sourceSeq": 5,
+          "eventId": "a-complete-send",
+          "completeId": "a-complete"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "receive",
+          "source": "main",
+          "sourceSeq": 1,
+          "eventId": "a-receive",
+          "sendId": "a-send"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "complete_received",
+          "source": "main",
+          "sourceSeq": 2,
+          "eventId": "a-complete-receive",
+          "sendId": "a-complete-send"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "stop_requested",
+          "source": "main",
+          "sourceSeq": 3,
+          "eventId": "a-stop"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "terminate_called",
+          "source": "main",
+          "sourceSeq": 4,
+          "eventId": "a-call"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "terminate_returned",
+          "source": "main",
+          "sourceSeq": 5,
+          "eventId": "a-return",
+          "result": "returned"
+        }
+      ]
+    }
+  },
+  {
+    "id": "E-input-wrong-type",
+    "schema": "input",
+    "expected": false,
+    "value": {
+      "schemaVersion": "1",
+      "fixtureKind": "SYNTHETIC",
+      "materialId": "independent-u1",
+      "planId": "independent-negative-controls",
+      "runId": "negative-session",
+      "identities": [
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1
+        }
+      ],
+      "streams": [
+        {
+          "source": "worker",
+          "workerId": "alpha",
+          "firstSeq": 1,
+          "lastSeq": 5
+        },
+        {
+          "source": "main",
+          "firstSeq": 1,
+          "lastSeq": 5
+        }
+      ],
+      "events": [
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "transaction_identified",
+          "source": "worker",
+          "sourceSeq": 1,
+          "eventId": "a-identified"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "request_accepted",
+          "source": "worker",
+          "sourceSeq": 2,
+          "eventId": "a-accepted",
+          "requestId": "request",
+          "mode": "readonly",
+          "result": "accepted"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "send",
+          "source": "worker",
+          "sourceSeq": 3,
+          "eventId": "a-send"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "transaction_complete",
+          "source": "worker",
+          "sourceSeq": 4,
+          "eventId": "a-complete"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "complete_sent",
+          "source": "worker",
+          "sourceSeq": 5,
+          "eventId": "a-complete-send",
+          "completeId": "a-complete"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "receive",
+          "source": "main",
+          "sourceSeq": 1,
+          "eventId": "a-receive",
+          "sendId": "a-send"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "complete_received",
+          "source": "main",
+          "sourceSeq": 2,
+          "eventId": "a-complete-receive",
+          "sendId": "a-complete-send"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "stop_requested",
+          "source": "main",
+          "sourceSeq": 3,
+          "eventId": "a-stop"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "terminate_called",
+          "source": "main",
+          "sourceSeq": 4,
+          "eventId": "a-call"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "terminate_returned",
+          "source": "main",
+          "sourceSeq": 5,
+          "eventId": "a-return",
+          "result": "returned"
+        }
+      ]
+    }
+  },
+  {
+    "id": "E-input-unknown-field",
+    "schema": "input",
+    "expected": false,
+    "value": {
+      "schemaVersion": 1,
+      "fixtureKind": "SYNTHETIC",
+      "materialId": "independent-u1",
+      "planId": "independent-negative-controls",
+      "runId": "negative-session",
+      "identities": [
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1
+        }
+      ],
+      "streams": [
+        {
+          "source": "worker",
+          "workerId": "alpha",
+          "firstSeq": 1,
+          "lastSeq": 5
+        },
+        {
+          "source": "main",
+          "firstSeq": 1,
+          "lastSeq": 5
+        }
+      ],
+      "events": [
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "transaction_identified",
+          "source": "worker",
+          "sourceSeq": 1,
+          "eventId": "a-identified"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "request_accepted",
+          "source": "worker",
+          "sourceSeq": 2,
+          "eventId": "a-accepted",
+          "requestId": "request",
+          "mode": "readonly",
+          "result": "accepted"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "send",
+          "source": "worker",
+          "sourceSeq": 3,
+          "eventId": "a-send"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "transaction_complete",
+          "source": "worker",
+          "sourceSeq": 4,
+          "eventId": "a-complete"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "complete_sent",
+          "source": "worker",
+          "sourceSeq": 5,
+          "eventId": "a-complete-send",
+          "completeId": "a-complete"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "receive",
+          "source": "main",
+          "sourceSeq": 1,
+          "eventId": "a-receive",
+          "sendId": "a-send"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "complete_received",
+          "source": "main",
+          "sourceSeq": 2,
+          "eventId": "a-complete-receive",
+          "sendId": "a-complete-send"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "stop_requested",
+          "source": "main",
+          "sourceSeq": 3,
+          "eventId": "a-stop"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "terminate_called",
+          "source": "main",
+          "sourceSeq": 4,
+          "eventId": "a-call"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "terminate_returned",
+          "source": "main",
+          "sourceSeq": 5,
+          "eventId": "a-return",
+          "result": "returned"
+        }
+      ],
+      "extra": true
+    }
+  },
+  {
+    "id": "E-input-oneOf-worker-without-owner",
+    "schema": "input",
+    "expected": false,
+    "value": {
+      "schemaVersion": 1,
+      "fixtureKind": "SYNTHETIC",
+      "materialId": "independent-u1",
+      "planId": "independent-negative-controls",
+      "runId": "negative-session",
+      "identities": [
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1
+        }
+      ],
+      "streams": [
+        {
+          "source": "worker",
+          "firstSeq": 1,
+          "lastSeq": 5
+        },
+        {
+          "source": "main",
+          "firstSeq": 1,
+          "lastSeq": 5
+        }
+      ],
+      "events": [
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "transaction_identified",
+          "source": "worker",
+          "sourceSeq": 1,
+          "eventId": "a-identified"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "request_accepted",
+          "source": "worker",
+          "sourceSeq": 2,
+          "eventId": "a-accepted",
+          "requestId": "request",
+          "mode": "readonly",
+          "result": "accepted"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "send",
+          "source": "worker",
+          "sourceSeq": 3,
+          "eventId": "a-send"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "transaction_complete",
+          "source": "worker",
+          "sourceSeq": 4,
+          "eventId": "a-complete"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "complete_sent",
+          "source": "worker",
+          "sourceSeq": 5,
+          "eventId": "a-complete-send",
+          "completeId": "a-complete"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "receive",
+          "source": "main",
+          "sourceSeq": 1,
+          "eventId": "a-receive",
+          "sendId": "a-send"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "complete_received",
+          "source": "main",
+          "sourceSeq": 2,
+          "eventId": "a-complete-receive",
+          "sendId": "a-complete-send"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "stop_requested",
+          "source": "main",
+          "sourceSeq": 3,
+          "eventId": "a-stop"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "terminate_called",
+          "source": "main",
+          "sourceSeq": 4,
+          "eventId": "a-call"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "terminate_returned",
+          "source": "main",
+          "sourceSeq": 5,
+          "eventId": "a-return",
+          "result": "returned"
+        }
+      ]
+    }
+  },
+  {
+    "id": "E-input-oneOf-main-with-worker-owner",
+    "schema": "input",
+    "expected": false,
+    "value": {
+      "schemaVersion": 1,
+      "fixtureKind": "SYNTHETIC",
+      "materialId": "independent-u1",
+      "planId": "independent-negative-controls",
+      "runId": "negative-session",
+      "identities": [
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1
+        }
+      ],
+      "streams": [
+        {
+          "source": "worker",
+          "workerId": "alpha",
+          "firstSeq": 1,
+          "lastSeq": 5
+        },
+        {
+          "source": "main",
+          "firstSeq": 1,
+          "lastSeq": 5,
+          "workerId": "alpha"
+        }
+      ],
+      "events": [
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "transaction_identified",
+          "source": "worker",
+          "sourceSeq": 1,
+          "eventId": "a-identified"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "request_accepted",
+          "source": "worker",
+          "sourceSeq": 2,
+          "eventId": "a-accepted",
+          "requestId": "request",
+          "mode": "readonly",
+          "result": "accepted"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "send",
+          "source": "worker",
+          "sourceSeq": 3,
+          "eventId": "a-send"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "transaction_complete",
+          "source": "worker",
+          "sourceSeq": 4,
+          "eventId": "a-complete"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "complete_sent",
+          "source": "worker",
+          "sourceSeq": 5,
+          "eventId": "a-complete-send",
+          "completeId": "a-complete"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "receive",
+          "source": "main",
+          "sourceSeq": 1,
+          "eventId": "a-receive",
+          "sendId": "a-send"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "complete_received",
+          "source": "main",
+          "sourceSeq": 2,
+          "eventId": "a-complete-receive",
+          "sendId": "a-complete-send"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "stop_requested",
+          "source": "main",
+          "sourceSeq": 3,
+          "eventId": "a-stop"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "terminate_called",
+          "source": "main",
+          "sourceSeq": 4,
+          "eventId": "a-call"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "terminate_returned",
+          "source": "main",
+          "sourceSeq": 5,
+          "eventId": "a-return",
+          "result": "returned"
+        }
+      ]
+    }
+  },
+  {
+    "id": "E-input-oneOf-source-mismatch",
+    "schema": "input",
+    "expected": false,
+    "value": {
+      "schemaVersion": 1,
+      "fixtureKind": "SYNTHETIC",
+      "materialId": "independent-u1",
+      "planId": "independent-negative-controls",
+      "runId": "negative-session",
+      "identities": [
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1
+        }
+      ],
+      "streams": [
+        {
+          "source": "worker",
+          "workerId": "alpha",
+          "firstSeq": 1,
+          "lastSeq": 5
+        },
+        {
+          "source": "main",
+          "firstSeq": 1,
+          "lastSeq": 5
+        }
+      ],
+      "events": [
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "transaction_identified",
+          "source": "main",
+          "sourceSeq": 1,
+          "eventId": "a-identified"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "request_accepted",
+          "source": "worker",
+          "sourceSeq": 2,
+          "eventId": "a-accepted",
+          "requestId": "request",
+          "mode": "readonly",
+          "result": "accepted"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "send",
+          "source": "worker",
+          "sourceSeq": 3,
+          "eventId": "a-send"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "transaction_complete",
+          "source": "worker",
+          "sourceSeq": 4,
+          "eventId": "a-complete"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "complete_sent",
+          "source": "worker",
+          "sourceSeq": 5,
+          "eventId": "a-complete-send",
+          "completeId": "a-complete"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "receive",
+          "source": "main",
+          "sourceSeq": 1,
+          "eventId": "a-receive",
+          "sendId": "a-send"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "complete_received",
+          "source": "main",
+          "sourceSeq": 2,
+          "eventId": "a-complete-receive",
+          "sendId": "a-complete-send"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "stop_requested",
+          "source": "main",
+          "sourceSeq": 3,
+          "eventId": "a-stop"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "terminate_called",
+          "source": "main",
+          "sourceSeq": 4,
+          "eventId": "a-call"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "terminate_returned",
+          "source": "main",
+          "sourceSeq": 5,
+          "eventId": "a-return",
+          "result": "returned"
+        }
+      ]
+    }
+  },
+  {
+    "id": "E-input-oneOf-valid-error-worker",
+    "schema": "input",
+    "expected": true,
+    "value": {
+      "schemaVersion": 1,
+      "fixtureKind": "SYNTHETIC",
+      "materialId": "independent-u1",
+      "planId": "independent-negative-controls",
+      "runId": "negative-session",
+      "identities": [
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1
+        }
+      ],
+      "streams": [
+        {
+          "source": "worker",
+          "workerId": "alpha",
+          "firstSeq": 1,
+          "lastSeq": 5
+        },
+        {
+          "source": "main",
+          "firstSeq": 1,
+          "lastSeq": 5
+        }
+      ],
+      "events": [
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "collection_error",
+          "source": "worker",
+          "sourceSeq": 1,
+          "eventId": "a-identified"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "request_accepted",
+          "source": "worker",
+          "sourceSeq": 2,
+          "eventId": "a-accepted",
+          "requestId": "request",
+          "mode": "readonly",
+          "result": "accepted"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "send",
+          "source": "worker",
+          "sourceSeq": 3,
+          "eventId": "a-send"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "transaction_complete",
+          "source": "worker",
+          "sourceSeq": 4,
+          "eventId": "a-complete"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "complete_sent",
+          "source": "worker",
+          "sourceSeq": 5,
+          "eventId": "a-complete-send",
+          "completeId": "a-complete"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "receive",
+          "source": "main",
+          "sourceSeq": 1,
+          "eventId": "a-receive",
+          "sendId": "a-send"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "complete_received",
+          "source": "main",
+          "sourceSeq": 2,
+          "eventId": "a-complete-receive",
+          "sendId": "a-complete-send"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "stop_requested",
+          "source": "main",
+          "sourceSeq": 3,
+          "eventId": "a-stop"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "terminate_called",
+          "source": "main",
+          "sourceSeq": 4,
+          "eventId": "a-call"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "terminate_returned",
+          "source": "main",
+          "sourceSeq": 5,
+          "eventId": "a-return",
+          "result": "returned"
+        }
+      ]
+    }
+  },
+  {
+    "id": "E-input-oneOf-valid-error-main",
+    "schema": "input",
+    "expected": true,
+    "value": {
+      "schemaVersion": 1,
+      "fixtureKind": "SYNTHETIC",
+      "materialId": "independent-u1",
+      "planId": "independent-negative-controls",
+      "runId": "negative-session",
+      "identities": [
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1
+        }
+      ],
+      "streams": [
+        {
+          "source": "worker",
+          "workerId": "alpha",
+          "firstSeq": 1,
+          "lastSeq": 5
+        },
+        {
+          "source": "main",
+          "firstSeq": 1,
+          "lastSeq": 5
+        }
+      ],
+      "events": [
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "collection_error",
+          "source": "main",
+          "sourceSeq": 1,
+          "eventId": "a-identified"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "request_accepted",
+          "source": "worker",
+          "sourceSeq": 2,
+          "eventId": "a-accepted",
+          "requestId": "request",
+          "mode": "readonly",
+          "result": "accepted"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "send",
+          "source": "worker",
+          "sourceSeq": 3,
+          "eventId": "a-send"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "transaction_complete",
+          "source": "worker",
+          "sourceSeq": 4,
+          "eventId": "a-complete"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "complete_sent",
+          "source": "worker",
+          "sourceSeq": 5,
+          "eventId": "a-complete-send",
+          "completeId": "a-complete"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "receive",
+          "source": "main",
+          "sourceSeq": 1,
+          "eventId": "a-receive",
+          "sendId": "a-send"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "complete_received",
+          "source": "main",
+          "sourceSeq": 2,
+          "eventId": "a-complete-receive",
+          "sendId": "a-complete-send"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "stop_requested",
+          "source": "main",
+          "sourceSeq": 3,
+          "eventId": "a-stop"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "terminate_called",
+          "source": "main",
+          "sourceSeq": 4,
+          "eventId": "a-call"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "terminate_returned",
+          "source": "main",
+          "sourceSeq": 5,
+          "eventId": "a-return",
+          "result": "returned"
+        }
+      ]
+    }
+  },
+  {
+    "id": "E-input-invalid-enum",
+    "schema": "input",
+    "expected": false,
+    "value": {
+      "schemaVersion": 1,
+      "fixtureKind": "REAL",
+      "materialId": "independent-u1",
+      "planId": "independent-negative-controls",
+      "runId": "negative-session",
+      "identities": [
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1
+        }
+      ],
+      "streams": [
+        {
+          "source": "worker",
+          "workerId": "alpha",
+          "firstSeq": 1,
+          "lastSeq": 5
+        },
+        {
+          "source": "main",
+          "firstSeq": 1,
+          "lastSeq": 5
+        }
+      ],
+      "events": [
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "transaction_identified",
+          "source": "worker",
+          "sourceSeq": 1,
+          "eventId": "a-identified"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "request_accepted",
+          "source": "worker",
+          "sourceSeq": 2,
+          "eventId": "a-accepted",
+          "requestId": "request",
+          "mode": "readonly",
+          "result": "accepted"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "send",
+          "source": "worker",
+          "sourceSeq": 3,
+          "eventId": "a-send"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "transaction_complete",
+          "source": "worker",
+          "sourceSeq": 4,
+          "eventId": "a-complete"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "complete_sent",
+          "source": "worker",
+          "sourceSeq": 5,
+          "eventId": "a-complete-send",
+          "completeId": "a-complete"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "receive",
+          "source": "main",
+          "sourceSeq": 1,
+          "eventId": "a-receive",
+          "sendId": "a-send"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "complete_received",
+          "source": "main",
+          "sourceSeq": 2,
+          "eventId": "a-complete-receive",
+          "sendId": "a-complete-send"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "stop_requested",
+          "source": "main",
+          "sourceSeq": 3,
+          "eventId": "a-stop"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "terminate_called",
+          "source": "main",
+          "sourceSeq": 4,
+          "eventId": "a-call"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "terminate_returned",
+          "source": "main",
+          "sourceSeq": 5,
+          "eventId": "a-return",
+          "result": "returned"
+        }
+      ]
+    }
+  },
+  {
+    "id": "E-input-integer-low",
+    "schema": "input",
+    "expected": false,
+    "value": {
+      "schemaVersion": 1,
+      "fixtureKind": "SYNTHETIC",
+      "materialId": "independent-u1",
+      "planId": "independent-negative-controls",
+      "runId": "negative-session",
+      "identities": [
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1
+        }
+      ],
+      "streams": [
+        {
+          "source": "worker",
+          "workerId": "alpha",
+          "firstSeq": 1,
+          "lastSeq": 5
+        },
+        {
+          "source": "main",
+          "firstSeq": 1,
+          "lastSeq": 5
+        }
+      ],
+      "events": [
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "transaction_identified",
+          "source": "worker",
+          "sourceSeq": 0,
+          "eventId": "a-identified"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "request_accepted",
+          "source": "worker",
+          "sourceSeq": 2,
+          "eventId": "a-accepted",
+          "requestId": "request",
+          "mode": "readonly",
+          "result": "accepted"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "send",
+          "source": "worker",
+          "sourceSeq": 3,
+          "eventId": "a-send"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "transaction_complete",
+          "source": "worker",
+          "sourceSeq": 4,
+          "eventId": "a-complete"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "complete_sent",
+          "source": "worker",
+          "sourceSeq": 5,
+          "eventId": "a-complete-send",
+          "completeId": "a-complete"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "receive",
+          "source": "main",
+          "sourceSeq": 1,
+          "eventId": "a-receive",
+          "sendId": "a-send"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "complete_received",
+          "source": "main",
+          "sourceSeq": 2,
+          "eventId": "a-complete-receive",
+          "sendId": "a-complete-send"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "stop_requested",
+          "source": "main",
+          "sourceSeq": 3,
+          "eventId": "a-stop"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "terminate_called",
+          "source": "main",
+          "sourceSeq": 4,
+          "eventId": "a-call"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "terminate_returned",
+          "source": "main",
+          "sourceSeq": 5,
+          "eventId": "a-return",
+          "result": "returned"
+        }
+      ]
+    }
+  },
+  {
+    "id": "E-input-integer-high",
+    "schema": "input",
+    "expected": false,
+    "value": {
+      "schemaVersion": 1,
+      "fixtureKind": "SYNTHETIC",
+      "materialId": "independent-u1",
+      "planId": "independent-negative-controls",
+      "runId": "negative-session",
+      "identities": [
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1
+        }
+      ],
+      "streams": [
+        {
+          "source": "worker",
+          "workerId": "alpha",
+          "firstSeq": 1,
+          "lastSeq": 5
+        },
+        {
+          "source": "main",
+          "firstSeq": 1,
+          "lastSeq": 5
+        }
+      ],
+      "events": [
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "transaction_identified",
+          "source": "worker",
+          "sourceSeq": 8193,
+          "eventId": "a-identified"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "request_accepted",
+          "source": "worker",
+          "sourceSeq": 2,
+          "eventId": "a-accepted",
+          "requestId": "request",
+          "mode": "readonly",
+          "result": "accepted"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "send",
+          "source": "worker",
+          "sourceSeq": 3,
+          "eventId": "a-send"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "transaction_complete",
+          "source": "worker",
+          "sourceSeq": 4,
+          "eventId": "a-complete"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "complete_sent",
+          "source": "worker",
+          "sourceSeq": 5,
+          "eventId": "a-complete-send",
+          "completeId": "a-complete"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "receive",
+          "source": "main",
+          "sourceSeq": 1,
+          "eventId": "a-receive",
+          "sendId": "a-send"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "complete_received",
+          "source": "main",
+          "sourceSeq": 2,
+          "eventId": "a-complete-receive",
+          "sendId": "a-complete-send"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "stop_requested",
+          "source": "main",
+          "sourceSeq": 3,
+          "eventId": "a-stop"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "terminate_called",
+          "source": "main",
+          "sourceSeq": 4,
+          "eventId": "a-call"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "terminate_returned",
+          "source": "main",
+          "sourceSeq": 5,
+          "eventId": "a-return",
+          "result": "returned"
+        }
+      ]
+    }
+  },
+  {
+    "id": "E-input-integer-fraction",
+    "schema": "input",
+    "expected": false,
+    "value": {
+      "schemaVersion": 1,
+      "fixtureKind": "SYNTHETIC",
+      "materialId": "independent-u1",
+      "planId": "independent-negative-controls",
+      "runId": "negative-session",
+      "identities": [
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1
+        }
+      ],
+      "streams": [
+        {
+          "source": "worker",
+          "workerId": "alpha",
+          "firstSeq": 1,
+          "lastSeq": 5
+        },
+        {
+          "source": "main",
+          "firstSeq": 1,
+          "lastSeq": 5
+        }
+      ],
+      "events": [
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "transaction_identified",
+          "source": "worker",
+          "sourceSeq": 1.5,
+          "eventId": "a-identified"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "request_accepted",
+          "source": "worker",
+          "sourceSeq": 2,
+          "eventId": "a-accepted",
+          "requestId": "request",
+          "mode": "readonly",
+          "result": "accepted"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "send",
+          "source": "worker",
+          "sourceSeq": 3,
+          "eventId": "a-send"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "transaction_complete",
+          "source": "worker",
+          "sourceSeq": 4,
+          "eventId": "a-complete"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "complete_sent",
+          "source": "worker",
+          "sourceSeq": 5,
+          "eventId": "a-complete-send",
+          "completeId": "a-complete"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "receive",
+          "source": "main",
+          "sourceSeq": 1,
+          "eventId": "a-receive",
+          "sendId": "a-send"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "complete_received",
+          "source": "main",
+          "sourceSeq": 2,
+          "eventId": "a-complete-receive",
+          "sendId": "a-complete-send"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "stop_requested",
+          "source": "main",
+          "sourceSeq": 3,
+          "eventId": "a-stop"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "terminate_called",
+          "source": "main",
+          "sourceSeq": 4,
+          "eventId": "a-call"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "terminate_returned",
+          "source": "main",
+          "sourceSeq": 5,
+          "eventId": "a-return",
+          "result": "returned"
+        }
+      ]
+    }
+  },
+  {
+    "id": "E-input-empty-id",
+    "schema": "input",
+    "expected": false,
+    "value": {
+      "schemaVersion": 1,
+      "fixtureKind": "SYNTHETIC",
+      "materialId": "independent-u1",
+      "planId": "independent-negative-controls",
+      "runId": "negative-session",
+      "identities": [
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1
+        }
+      ],
+      "streams": [
+        {
+          "source": "worker",
+          "workerId": "alpha",
+          "firstSeq": 1,
+          "lastSeq": 5
+        },
+        {
+          "source": "main",
+          "firstSeq": 1,
+          "lastSeq": 5
+        }
+      ],
+      "events": [
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "transaction_identified",
+          "source": "worker",
+          "sourceSeq": 1,
+          "eventId": ""
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "request_accepted",
+          "source": "worker",
+          "sourceSeq": 2,
+          "eventId": "a-accepted",
+          "requestId": "request",
+          "mode": "readonly",
+          "result": "accepted"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "send",
+          "source": "worker",
+          "sourceSeq": 3,
+          "eventId": "a-send"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "transaction_complete",
+          "source": "worker",
+          "sourceSeq": 4,
+          "eventId": "a-complete"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "complete_sent",
+          "source": "worker",
+          "sourceSeq": 5,
+          "eventId": "a-complete-send",
+          "completeId": "a-complete"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "receive",
+          "source": "main",
+          "sourceSeq": 1,
+          "eventId": "a-receive",
+          "sendId": "a-send"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "complete_received",
+          "source": "main",
+          "sourceSeq": 2,
+          "eventId": "a-complete-receive",
+          "sendId": "a-complete-send"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "stop_requested",
+          "source": "main",
+          "sourceSeq": 3,
+          "eventId": "a-stop"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "terminate_called",
+          "source": "main",
+          "sourceSeq": 4,
+          "eventId": "a-call"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "terminate_returned",
+          "source": "main",
+          "sourceSeq": 5,
+          "eventId": "a-return",
+          "result": "returned"
+        }
+      ]
+    }
+  },
+  {
+    "id": "E-input-id-max",
+    "schema": "input",
+    "expected": true,
+    "value": {
+      "schemaVersion": 1,
+      "fixtureKind": "SYNTHETIC",
+      "materialId": "independent-u1",
+      "planId": "independent-negative-controls",
+      "runId": "negative-session",
+      "identities": [
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1
+        }
+      ],
+      "streams": [
+        {
+          "source": "worker",
+          "workerId": "alpha",
+          "firstSeq": 1,
+          "lastSeq": 5
+        },
+        {
+          "source": "main",
+          "firstSeq": 1,
+          "lastSeq": 5
+        }
+      ],
+      "events": [
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "transaction_identified",
+          "source": "worker",
+          "sourceSeq": 1,
+          "eventId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "request_accepted",
+          "source": "worker",
+          "sourceSeq": 2,
+          "eventId": "a-accepted",
+          "requestId": "request",
+          "mode": "readonly",
+          "result": "accepted"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "send",
+          "source": "worker",
+          "sourceSeq": 3,
+          "eventId": "a-send"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "transaction_complete",
+          "source": "worker",
+          "sourceSeq": 4,
+          "eventId": "a-complete"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "complete_sent",
+          "source": "worker",
+          "sourceSeq": 5,
+          "eventId": "a-complete-send",
+          "completeId": "a-complete"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "receive",
+          "source": "main",
+          "sourceSeq": 1,
+          "eventId": "a-receive",
+          "sendId": "a-send"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "complete_received",
+          "source": "main",
+          "sourceSeq": 2,
+          "eventId": "a-complete-receive",
+          "sendId": "a-complete-send"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "stop_requested",
+          "source": "main",
+          "sourceSeq": 3,
+          "eventId": "a-stop"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "terminate_called",
+          "source": "main",
+          "sourceSeq": 4,
+          "eventId": "a-call"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "terminate_returned",
+          "source": "main",
+          "sourceSeq": 5,
+          "eventId": "a-return",
+          "result": "returned"
+        }
+      ]
+    }
+  },
+  {
+    "id": "E-input-id-too-long",
+    "schema": "input",
+    "expected": false,
+    "value": {
+      "schemaVersion": 1,
+      "fixtureKind": "SYNTHETIC",
+      "materialId": "independent-u1",
+      "planId": "independent-negative-controls",
+      "runId": "negative-session",
+      "identities": [
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1
+        }
+      ],
+      "streams": [
+        {
+          "source": "worker",
+          "workerId": "alpha",
+          "firstSeq": 1,
+          "lastSeq": 5
+        },
+        {
+          "source": "main",
+          "firstSeq": 1,
+          "lastSeq": 5
+        }
+      ],
+      "events": [
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "transaction_identified",
+          "source": "worker",
+          "sourceSeq": 1,
+          "eventId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "request_accepted",
+          "source": "worker",
+          "sourceSeq": 2,
+          "eventId": "a-accepted",
+          "requestId": "request",
+          "mode": "readonly",
+          "result": "accepted"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "send",
+          "source": "worker",
+          "sourceSeq": 3,
+          "eventId": "a-send"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "transaction_complete",
+          "source": "worker",
+          "sourceSeq": 4,
+          "eventId": "a-complete"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "complete_sent",
+          "source": "worker",
+          "sourceSeq": 5,
+          "eventId": "a-complete-send",
+          "completeId": "a-complete"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "receive",
+          "source": "main",
+          "sourceSeq": 1,
+          "eventId": "a-receive",
+          "sendId": "a-send"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "complete_received",
+          "source": "main",
+          "sourceSeq": 2,
+          "eventId": "a-complete-receive",
+          "sendId": "a-complete-send"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "stop_requested",
+          "source": "main",
+          "sourceSeq": 3,
+          "eventId": "a-stop"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "terminate_called",
+          "source": "main",
+          "sourceSeq": 4,
+          "eventId": "a-call"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "terminate_returned",
+          "source": "main",
+          "sourceSeq": 5,
+          "eventId": "a-return",
+          "result": "returned"
+        }
+      ]
+    }
+  },
+  {
+    "id": "E-input-id-final-newline",
+    "schema": "input",
+    "expected": false,
+    "value": {
+      "schemaVersion": 1,
+      "fixtureKind": "SYNTHETIC",
+      "materialId": "independent-u1",
+      "planId": "independent-negative-controls",
+      "runId": "negative-session",
+      "identities": [
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1
+        }
+      ],
+      "streams": [
+        {
+          "source": "worker",
+          "workerId": "alpha",
+          "firstSeq": 1,
+          "lastSeq": 5
+        },
+        {
+          "source": "main",
+          "firstSeq": 1,
+          "lastSeq": 5
+        }
+      ],
+      "events": [
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "transaction_identified",
+          "source": "worker",
+          "sourceSeq": 1,
+          "eventId": "a-identified\n"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "request_accepted",
+          "source": "worker",
+          "sourceSeq": 2,
+          "eventId": "a-accepted",
+          "requestId": "request",
+          "mode": "readonly",
+          "result": "accepted"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "send",
+          "source": "worker",
+          "sourceSeq": 3,
+          "eventId": "a-send"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "transaction_complete",
+          "source": "worker",
+          "sourceSeq": 4,
+          "eventId": "a-complete"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "complete_sent",
+          "source": "worker",
+          "sourceSeq": 5,
+          "eventId": "a-complete-send",
+          "completeId": "a-complete"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "receive",
+          "source": "main",
+          "sourceSeq": 1,
+          "eventId": "a-receive",
+          "sendId": "a-send"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "complete_received",
+          "source": "main",
+          "sourceSeq": 2,
+          "eventId": "a-complete-receive",
+          "sendId": "a-complete-send"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "stop_requested",
+          "source": "main",
+          "sourceSeq": 3,
+          "eventId": "a-stop"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "terminate_called",
+          "source": "main",
+          "sourceSeq": 4,
+          "eventId": "a-call"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "terminate_returned",
+          "source": "main",
+          "sourceSeq": 5,
+          "eventId": "a-return",
+          "result": "returned"
+        }
+      ]
+    }
+  },
+  {
+    "id": "E-input-numeric-clock",
+    "schema": "input",
+    "expected": true,
+    "value": {
+      "schemaVersion": 1,
+      "fixtureKind": "SYNTHETIC",
+      "materialId": "independent-u1",
+      "planId": "independent-negative-controls",
+      "runId": "negative-session",
+      "identities": [
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1
+        }
+      ],
+      "streams": [
+        {
+          "source": "worker",
+          "workerId": "alpha",
+          "firstSeq": 1,
+          "lastSeq": 5
+        },
+        {
+          "source": "main",
+          "firstSeq": 1,
+          "lastSeq": 5
+        }
+      ],
+      "events": [
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "transaction_identified",
+          "source": "worker",
+          "sourceSeq": 1,
+          "eventId": "a-identified",
+          "sourceMs": -0.25
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "request_accepted",
+          "source": "worker",
+          "sourceSeq": 2,
+          "eventId": "a-accepted",
+          "requestId": "request",
+          "mode": "readonly",
+          "result": "accepted"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "send",
+          "source": "worker",
+          "sourceSeq": 3,
+          "eventId": "a-send"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "transaction_complete",
+          "source": "worker",
+          "sourceSeq": 4,
+          "eventId": "a-complete"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "complete_sent",
+          "source": "worker",
+          "sourceSeq": 5,
+          "eventId": "a-complete-send",
+          "completeId": "a-complete"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "receive",
+          "source": "main",
+          "sourceSeq": 1,
+          "eventId": "a-receive",
+          "sendId": "a-send"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "complete_received",
+          "source": "main",
+          "sourceSeq": 2,
+          "eventId": "a-complete-receive",
+          "sendId": "a-complete-send"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "stop_requested",
+          "source": "main",
+          "sourceSeq": 3,
+          "eventId": "a-stop"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "terminate_called",
+          "source": "main",
+          "sourceSeq": 4,
+          "eventId": "a-call"
+        },
+        {
+          "runId": "negative-session",
+          "dbName": "negative-synthetic-db",
+          "workerId": "alpha",
+          "connectionId": "alpha-connection",
+          "transactionId": "transaction",
+          "iteration": 1,
+          "type": "terminate_returned",
+          "source": "main",
+          "sourceSeq": 5,
+          "eventId": "a-return",
+          "result": "returned"
+        }
+      ]
+    }
+  },
+  {
+    "id": "E-output-normal",
+    "schema": "output",
+    "expected": true,
+    "value": {
+      "collectorSchemaVersion": 1,
+      "scope": "OFFLINE_SYNTHETIC_ONLY",
+      "evidenceStatus": "CONSISTENT",
+      "exitCode": 0,
+      "input": {
+        "materialId": "independent-u1",
+        "actualSha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "expectedSha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "semanticSha256": null
+      },
+      "relations": [],
+      "orderRelations": [],
+      "missingEvidence": [],
+      "contradictions": [],
+      "validationErrors": [],
+      "reasons": [],
+      "unknownReasons": [],
+      "transactions": [
+        {
+          "identity": {
+            "runId": "negative-session",
+            "dbName": "negative-synthetic-db",
+            "workerId": "alpha",
+            "connectionId": "alpha-connection",
+            "transactionId": "transaction",
+            "iteration": 1
+          },
+          "assessment": {
+            "validTrace": "PASS",
+            "conditionR": "PASS",
+            "conditionU": "FAIL",
+            "conditionReasonR": "COMPLETED_BEFORE_STOP",
+            "conditionReasonU": "COMPLETED_BEFORE_STOP",
+            "workerObservation": "PASS",
+            "connectionClosed": "UNKNOWN",
+            "physicalRelease": "UNKNOWN"
+          }
+        }
+      ],
+      "realExperiment": "NOT_RUN",
+      "executionAuthorization": "NOT_GRANTED",
+      "startCondition": "BLOCKED",
+      "conditionU": "NOT_RUN",
+      "productionWorker": "HOLD",
+      "hypotheses": {
+        "H1": "UNKNOWN",
+        "H2": "UNKNOWN",
+        "H3": "UNKNOWN",
+        "H4": "PARTIAL"
+      }
+    }
+  },
+  {
+    "id": "E-output-wrong-type",
+    "schema": "output",
+    "expected": false,
+    "value": {
+      "collectorSchemaVersion": 1,
+      "scope": "OFFLINE_SYNTHETIC_ONLY",
+      "evidenceStatus": "CONSISTENT",
+      "exitCode": "0",
+      "input": {
+        "materialId": "independent-u1",
+        "actualSha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "expectedSha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "semanticSha256": null
+      },
+      "relations": [],
+      "orderRelations": [],
+      "missingEvidence": [],
+      "contradictions": [],
+      "validationErrors": [],
+      "reasons": [],
+      "unknownReasons": [],
+      "transactions": [
+        {
+          "identity": {
+            "runId": "negative-session",
+            "dbName": "negative-synthetic-db",
+            "workerId": "alpha",
+            "connectionId": "alpha-connection",
+            "transactionId": "transaction",
+            "iteration": 1
+          },
+          "assessment": {
+            "validTrace": "PASS",
+            "conditionR": "PASS",
+            "conditionU": "FAIL",
+            "conditionReasonR": "COMPLETED_BEFORE_STOP",
+            "conditionReasonU": "COMPLETED_BEFORE_STOP",
+            "workerObservation": "PASS",
+            "connectionClosed": "UNKNOWN",
+            "physicalRelease": "UNKNOWN"
+          }
+        }
+      ],
+      "realExperiment": "NOT_RUN",
+      "executionAuthorization": "NOT_GRANTED",
+      "startCondition": "BLOCKED",
+      "conditionU": "NOT_RUN",
+      "productionWorker": "HOLD",
+      "hypotheses": {
+        "H1": "UNKNOWN",
+        "H2": "UNKNOWN",
+        "H3": "UNKNOWN",
+        "H4": "PARTIAL"
+      }
+    }
+  },
+  {
+    "id": "E-output-unknown-field",
+    "schema": "output",
+    "expected": false,
+    "value": {
+      "collectorSchemaVersion": 1,
+      "scope": "OFFLINE_SYNTHETIC_ONLY",
+      "evidenceStatus": "CONSISTENT",
+      "exitCode": 0,
+      "input": {
+        "materialId": "independent-u1",
+        "actualSha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "expectedSha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "semanticSha256": null
+      },
+      "relations": [],
+      "orderRelations": [],
+      "missingEvidence": [],
+      "contradictions": [],
+      "validationErrors": [],
+      "reasons": [],
+      "unknownReasons": [],
+      "transactions": [
+        {
+          "identity": {
+            "runId": "negative-session",
+            "dbName": "negative-synthetic-db",
+            "workerId": "alpha",
+            "connectionId": "alpha-connection",
+            "transactionId": "transaction",
+            "iteration": 1
+          },
+          "assessment": {
+            "validTrace": "PASS",
+            "conditionR": "PASS",
+            "conditionU": "FAIL",
+            "conditionReasonR": "COMPLETED_BEFORE_STOP",
+            "conditionReasonU": "COMPLETED_BEFORE_STOP",
+            "workerObservation": "PASS",
+            "connectionClosed": "UNKNOWN",
+            "physicalRelease": "UNKNOWN"
+          }
+        }
+      ],
+      "realExperiment": "NOT_RUN",
+      "executionAuthorization": "NOT_GRANTED",
+      "startCondition": "BLOCKED",
+      "conditionU": "NOT_RUN",
+      "productionWorker": "HOLD",
+      "hypotheses": {
+        "H1": "UNKNOWN",
+        "H2": "UNKNOWN",
+        "H3": "UNKNOWN",
+        "H4": "PARTIAL"
+      },
+      "granted": true
+    }
+  },
+  {
+    "id": "E-output-invalid-enum",
+    "schema": "output",
+    "expected": false,
+    "value": {
+      "collectorSchemaVersion": 1,
+      "scope": "OFFLINE_SYNTHETIC_ONLY",
+      "evidenceStatus": "CONSISTENT",
+      "exitCode": 0,
+      "input": {
+        "materialId": "independent-u1",
+        "actualSha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "expectedSha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "semanticSha256": null
+      },
+      "relations": [],
+      "orderRelations": [],
+      "missingEvidence": [],
+      "contradictions": [],
+      "validationErrors": [],
+      "reasons": [],
+      "unknownReasons": [],
+      "transactions": [
+        {
+          "identity": {
+            "runId": "negative-session",
+            "dbName": "negative-synthetic-db",
+            "workerId": "alpha",
+            "connectionId": "alpha-connection",
+            "transactionId": "transaction",
+            "iteration": 1
+          },
+          "assessment": {
+            "validTrace": "PASS",
+            "conditionR": "PASS",
+            "conditionU": "FAIL",
+            "conditionReasonR": "COMPLETED_BEFORE_STOP",
+            "conditionReasonU": "COMPLETED_BEFORE_STOP",
+            "workerObservation": "PASS",
+            "connectionClosed": "UNKNOWN",
+            "physicalRelease": "UNKNOWN"
+          }
+        }
+      ],
+      "realExperiment": "NOT_RUN",
+      "executionAuthorization": "NOT_GRANTED",
+      "startCondition": "BLOCKED",
+      "conditionU": "PASS",
+      "productionWorker": "HOLD",
+      "hypotheses": {
+        "H1": "UNKNOWN",
+        "H2": "UNKNOWN",
+        "H3": "UNKNOWN",
+        "H4": "PARTIAL"
+      }
+    }
+  },
+  {
+    "id": "E-output-invalid-assessment-enum",
+    "schema": "output",
+    "expected": false,
+    "value": {
+      "collectorSchemaVersion": 1,
+      "scope": "OFFLINE_SYNTHETIC_ONLY",
+      "evidenceStatus": "CONSISTENT",
+      "exitCode": 0,
+      "input": {
+        "materialId": "independent-u1",
+        "actualSha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "expectedSha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "semanticSha256": null
+      },
+      "relations": [],
+      "orderRelations": [],
+      "missingEvidence": [],
+      "contradictions": [],
+      "validationErrors": [],
+      "reasons": [],
+      "unknownReasons": [],
+      "transactions": [
+        {
+          "identity": {
+            "runId": "negative-session",
+            "dbName": "negative-synthetic-db",
+            "workerId": "alpha",
+            "connectionId": "alpha-connection",
+            "transactionId": "transaction",
+            "iteration": 1
+          },
+          "assessment": {
+            "validTrace": "PASS",
+            "conditionR": "PASS",
+            "conditionU": "PASS",
+            "conditionReasonR": "COMPLETED_BEFORE_STOP",
+            "conditionReasonU": "COMPLETED_BEFORE_STOP",
+            "workerObservation": "PASS",
+            "connectionClosed": "UNKNOWN",
+            "physicalRelease": "UNKNOWN"
+          }
+        }
+      ],
+      "realExperiment": "NOT_RUN",
+      "executionAuthorization": "NOT_GRANTED",
+      "startCondition": "BLOCKED",
+      "conditionU": "NOT_RUN",
+      "productionWorker": "HOLD",
+      "hypotheses": {
+        "H1": "UNKNOWN",
+        "H2": "UNKNOWN",
+        "H3": "UNKNOWN",
+        "H4": "PARTIAL"
+      }
+    }
+  },
+  {
+    "id": "E-output-integer-enum-high",
+    "schema": "output",
+    "expected": false,
+    "value": {
+      "collectorSchemaVersion": 1,
+      "scope": "OFFLINE_SYNTHETIC_ONLY",
+      "evidenceStatus": "CONSISTENT",
+      "exitCode": 3,
+      "input": {
+        "materialId": "independent-u1",
+        "actualSha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "expectedSha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "semanticSha256": null
+      },
+      "relations": [],
+      "orderRelations": [],
+      "missingEvidence": [],
+      "contradictions": [],
+      "validationErrors": [],
+      "reasons": [],
+      "unknownReasons": [],
+      "transactions": [
+        {
+          "identity": {
+            "runId": "negative-session",
+            "dbName": "negative-synthetic-db",
+            "workerId": "alpha",
+            "connectionId": "alpha-connection",
+            "transactionId": "transaction",
+            "iteration": 1
+          },
+          "assessment": {
+            "validTrace": "PASS",
+            "conditionR": "PASS",
+            "conditionU": "FAIL",
+            "conditionReasonR": "COMPLETED_BEFORE_STOP",
+            "conditionReasonU": "COMPLETED_BEFORE_STOP",
+            "workerObservation": "PASS",
+            "connectionClosed": "UNKNOWN",
+            "physicalRelease": "UNKNOWN"
+          }
+        }
+      ],
+      "realExperiment": "NOT_RUN",
+      "executionAuthorization": "NOT_GRANTED",
+      "startCondition": "BLOCKED",
+      "conditionU": "NOT_RUN",
+      "productionWorker": "HOLD",
+      "hypotheses": {
+        "H1": "UNKNOWN",
+        "H2": "UNKNOWN",
+        "H3": "UNKNOWN",
+        "H4": "PARTIAL"
+      }
+    }
+  },
+  {
+    "id": "E-output-integer-fraction",
+    "schema": "output",
+    "expected": false,
+    "value": {
+      "collectorSchemaVersion": 1,
+      "scope": "OFFLINE_SYNTHETIC_ONLY",
+      "evidenceStatus": "CONSISTENT",
+      "exitCode": 0.5,
+      "input": {
+        "materialId": "independent-u1",
+        "actualSha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "expectedSha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "semanticSha256": null
+      },
+      "relations": [],
+      "orderRelations": [],
+      "missingEvidence": [],
+      "contradictions": [],
+      "validationErrors": [],
+      "reasons": [],
+      "unknownReasons": [],
+      "transactions": [
+        {
+          "identity": {
+            "runId": "negative-session",
+            "dbName": "negative-synthetic-db",
+            "workerId": "alpha",
+            "connectionId": "alpha-connection",
+            "transactionId": "transaction",
+            "iteration": 1
+          },
+          "assessment": {
+            "validTrace": "PASS",
+            "conditionR": "PASS",
+            "conditionU": "FAIL",
+            "conditionReasonR": "COMPLETED_BEFORE_STOP",
+            "conditionReasonU": "COMPLETED_BEFORE_STOP",
+            "workerObservation": "PASS",
+            "connectionClosed": "UNKNOWN",
+            "physicalRelease": "UNKNOWN"
+          }
+        }
+      ],
+      "realExperiment": "NOT_RUN",
+      "executionAuthorization": "NOT_GRANTED",
+      "startCondition": "BLOCKED",
+      "conditionU": "NOT_RUN",
+      "productionWorker": "HOLD",
+      "hypotheses": {
+        "H1": "UNKNOWN",
+        "H2": "UNKNOWN",
+        "H3": "UNKNOWN",
+        "H4": "PARTIAL"
+      }
+    }
+  },
+  {
+    "id": "E-output-string-too-long",
+    "schema": "output",
+    "expected": false,
+    "value": {
+      "collectorSchemaVersion": 1,
+      "scope": "OFFLINE_SYNTHETIC_ONLY",
+      "evidenceStatus": "CONSISTENT",
+      "exitCode": 0,
+      "input": {
+        "materialId": "independent-u1",
+        "actualSha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "expectedSha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "semanticSha256": null
+      },
+      "relations": [],
+      "orderRelations": [],
+      "missingEvidence": [],
+      "contradictions": [],
+      "validationErrors": [],
+      "reasons": [
+        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      ],
+      "unknownReasons": [],
+      "transactions": [
+        {
+          "identity": {
+            "runId": "negative-session",
+            "dbName": "negative-synthetic-db",
+            "workerId": "alpha",
+            "connectionId": "alpha-connection",
+            "transactionId": "transaction",
+            "iteration": 1
+          },
+          "assessment": {
+            "validTrace": "PASS",
+            "conditionR": "PASS",
+            "conditionU": "FAIL",
+            "conditionReasonR": "COMPLETED_BEFORE_STOP",
+            "conditionReasonU": "COMPLETED_BEFORE_STOP",
+            "workerObservation": "PASS",
+            "connectionClosed": "UNKNOWN",
+            "physicalRelease": "UNKNOWN"
+          }
+        }
+      ],
+      "realExperiment": "NOT_RUN",
+      "executionAuthorization": "NOT_GRANTED",
+      "startCondition": "BLOCKED",
+      "conditionU": "NOT_RUN",
+      "productionWorker": "HOLD",
+      "hypotheses": {
+        "H1": "UNKNOWN",
+        "H2": "UNKNOWN",
+        "H3": "UNKNOWN",
+        "H4": "PARTIAL"
+      }
+    }
+  },
+  {
+    "id": "E-output-string-max",
+    "schema": "output",
+    "expected": true,
+    "value": {
+      "collectorSchemaVersion": 1,
+      "scope": "OFFLINE_SYNTHETIC_ONLY",
+      "evidenceStatus": "CONSISTENT",
+      "exitCode": 0,
+      "input": {
+        "materialId": "independent-u1",
+        "actualSha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "expectedSha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "semanticSha256": null
+      },
+      "relations": [],
+      "orderRelations": [],
+      "missingEvidence": [],
+      "contradictions": [],
+      "validationErrors": [],
+      "reasons": [
+        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      ],
+      "unknownReasons": [],
+      "transactions": [
+        {
+          "identity": {
+            "runId": "negative-session",
+            "dbName": "negative-synthetic-db",
+            "workerId": "alpha",
+            "connectionId": "alpha-connection",
+            "transactionId": "transaction",
+            "iteration": 1
+          },
+          "assessment": {
+            "validTrace": "PASS",
+            "conditionR": "PASS",
+            "conditionU": "FAIL",
+            "conditionReasonR": "COMPLETED_BEFORE_STOP",
+            "conditionReasonU": "COMPLETED_BEFORE_STOP",
+            "workerObservation": "PASS",
+            "connectionClosed": "UNKNOWN",
+            "physicalRelease": "UNKNOWN"
+          }
+        }
+      ],
+      "realExperiment": "NOT_RUN",
+      "executionAuthorization": "NOT_GRANTED",
+      "startCondition": "BLOCKED",
+      "conditionU": "NOT_RUN",
+      "productionWorker": "HOLD",
+      "hypotheses": {
+        "H1": "UNKNOWN",
+        "H2": "UNKNOWN",
+        "H3": "UNKNOWN",
+        "H4": "PARTIAL"
+      }
+    }
+  },
+  {
+    "id": "E-output-unicode-length-valid",
+    "schema": "output",
+    "expected": true,
+    "value": {
+      "collectorSchemaVersion": 1,
+      "scope": "OFFLINE_SYNTHETIC_ONLY",
+      "evidenceStatus": "CONSISTENT",
+      "exitCode": 0,
+      "input": {
+        "materialId": "independent-u1",
+        "actualSha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "expectedSha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "semanticSha256": null
+      },
+      "relations": [],
+      "orderRelations": [],
+      "missingEvidence": [],
+      "contradictions": [],
+      "validationErrors": [
+        {
+          "code": "CLI_INPUT",
+          "subject": "",
+          "detail": "🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂"
+        }
+      ],
+      "reasons": [],
+      "unknownReasons": [],
+      "transactions": [
+        {
+          "identity": {
+            "runId": "negative-session",
+            "dbName": "negative-synthetic-db",
+            "workerId": "alpha",
+            "connectionId": "alpha-connection",
+            "transactionId": "transaction",
+            "iteration": 1
+          },
+          "assessment": {
+            "validTrace": "PASS",
+            "conditionR": "PASS",
+            "conditionU": "FAIL",
+            "conditionReasonR": "COMPLETED_BEFORE_STOP",
+            "conditionReasonU": "COMPLETED_BEFORE_STOP",
+            "workerObservation": "PASS",
+            "connectionClosed": "UNKNOWN",
+            "physicalRelease": "UNKNOWN"
+          }
+        }
+      ],
+      "realExperiment": "NOT_RUN",
+      "executionAuthorization": "NOT_GRANTED",
+      "startCondition": "BLOCKED",
+      "conditionU": "NOT_RUN",
+      "productionWorker": "HOLD",
+      "hypotheses": {
+        "H1": "UNKNOWN",
+        "H2": "UNKNOWN",
+        "H3": "UNKNOWN",
+        "H4": "PARTIAL"
+      }
+    }
+  },
+  {
+    "id": "E-output-unicode-length-invalid",
+    "schema": "output",
+    "expected": false,
+    "value": {
+      "collectorSchemaVersion": 1,
+      "scope": "OFFLINE_SYNTHETIC_ONLY",
+      "evidenceStatus": "CONSISTENT",
+      "exitCode": 0,
+      "input": {
+        "materialId": "independent-u1",
+        "actualSha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "expectedSha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "semanticSha256": null
+      },
+      "relations": [],
+      "orderRelations": [],
+      "missingEvidence": [],
+      "contradictions": [],
+      "validationErrors": [
+        {
+          "code": "CLI_INPUT",
+          "subject": "",
+          "detail": "🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂"
+        }
+      ],
+      "reasons": [],
+      "unknownReasons": [],
+      "transactions": [
+        {
+          "identity": {
+            "runId": "negative-session",
+            "dbName": "negative-synthetic-db",
+            "workerId": "alpha",
+            "connectionId": "alpha-connection",
+            "transactionId": "transaction",
+            "iteration": 1
+          },
+          "assessment": {
+            "validTrace": "PASS",
+            "conditionR": "PASS",
+            "conditionU": "FAIL",
+            "conditionReasonR": "COMPLETED_BEFORE_STOP",
+            "conditionReasonU": "COMPLETED_BEFORE_STOP",
+            "workerObservation": "PASS",
+            "connectionClosed": "UNKNOWN",
+            "physicalRelease": "UNKNOWN"
+          }
+        }
+      ],
+      "realExperiment": "NOT_RUN",
+      "executionAuthorization": "NOT_GRANTED",
+      "startCondition": "BLOCKED",
+      "conditionU": "NOT_RUN",
+      "productionWorker": "HOLD",
+      "hypotheses": {
+        "H1": "UNKNOWN",
+        "H2": "UNKNOWN",
+        "H3": "UNKNOWN",
+        "H4": "PARTIAL"
+      }
+    }
+  },
+  {
+    "id": "E-output-hash-final-newline",
+    "schema": "output",
+    "expected": false,
+    "value": {
+      "collectorSchemaVersion": 1,
+      "scope": "OFFLINE_SYNTHETIC_ONLY",
+      "evidenceStatus": "CONSISTENT",
+      "exitCode": 0,
+      "input": {
+        "materialId": "independent-u1",
+        "actualSha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n",
+        "expectedSha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "semanticSha256": null
+      },
+      "relations": [],
+      "orderRelations": [],
+      "missingEvidence": [],
+      "contradictions": [],
+      "validationErrors": [],
+      "reasons": [],
+      "unknownReasons": [],
+      "transactions": [
+        {
+          "identity": {
+            "runId": "negative-session",
+            "dbName": "negative-synthetic-db",
+            "workerId": "alpha",
+            "connectionId": "alpha-connection",
+            "transactionId": "transaction",
+            "iteration": 1
+          },
+          "assessment": {
+            "validTrace": "PASS",
+            "conditionR": "PASS",
+            "conditionU": "FAIL",
+            "conditionReasonR": "COMPLETED_BEFORE_STOP",
+            "conditionReasonU": "COMPLETED_BEFORE_STOP",
+            "workerObservation": "PASS",
+            "connectionClosed": "UNKNOWN",
+            "physicalRelease": "UNKNOWN"
+          }
+        }
+      ],
+      "realExperiment": "NOT_RUN",
+      "executionAuthorization": "NOT_GRANTED",
+      "startCondition": "BLOCKED",
+      "conditionU": "NOT_RUN",
+      "productionWorker": "HOLD",
+      "hypotheses": {
+        "H1": "UNKNOWN",
+        "H2": "UNKNOWN",
+        "H3": "UNKNOWN",
+        "H4": "PARTIAL"
+      }
+    }
+  },
+  {
+    "id": "E-output-transaction-id-final-newline",
+    "schema": "output",
+    "expected": false,
+    "value": {
+      "collectorSchemaVersion": 1,
+      "scope": "OFFLINE_SYNTHETIC_ONLY",
+      "evidenceStatus": "CONSISTENT",
+      "exitCode": 0,
+      "input": {
+        "materialId": "independent-u1",
+        "actualSha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "expectedSha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "semanticSha256": null
+      },
+      "relations": [],
+      "orderRelations": [],
+      "missingEvidence": [],
+      "contradictions": [],
+      "validationErrors": [],
+      "reasons": [],
+      "unknownReasons": [],
+      "transactions": [
+        {
+          "identity": {
+            "runId": "negative-session",
+            "dbName": "negative-synthetic-db",
+            "workerId": "alpha",
+            "connectionId": "alpha-connection",
+            "transactionId": "transaction\n",
+            "iteration": 1
+          },
+          "assessment": {
+            "validTrace": "PASS",
+            "conditionR": "PASS",
+            "conditionU": "FAIL",
+            "conditionReasonR": "COMPLETED_BEFORE_STOP",
+            "conditionReasonU": "COMPLETED_BEFORE_STOP",
+            "workerObservation": "PASS",
+            "connectionClosed": "UNKNOWN",
+            "physicalRelease": "UNKNOWN"
+          }
+        }
+      ],
+      "realExperiment": "NOT_RUN",
+      "executionAuthorization": "NOT_GRANTED",
+      "startCondition": "BLOCKED",
+      "conditionU": "NOT_RUN",
+      "productionWorker": "HOLD",
+      "hypotheses": {
+        "H1": "UNKNOWN",
+        "H2": "UNKNOWN",
+        "H3": "UNKNOWN",
+        "H4": "PARTIAL"
+      }
+    }
+  },
+  {
+    "id": "E-output-nullable-hash",
+    "schema": "output",
+    "expected": true,
+    "value": {
+      "collectorSchemaVersion": 1,
+      "scope": "OFFLINE_SYNTHETIC_ONLY",
+      "evidenceStatus": "CONSISTENT",
+      "exitCode": 0,
+      "input": {
+        "materialId": "independent-u1",
+        "actualSha256": null,
+        "expectedSha256": null,
+        "semanticSha256": null
+      },
+      "relations": [],
+      "orderRelations": [],
+      "missingEvidence": [],
+      "contradictions": [],
+      "validationErrors": [],
+      "reasons": [],
+      "unknownReasons": [],
+      "transactions": [
+        {
+          "identity": {
+            "runId": "negative-session",
+            "dbName": "negative-synthetic-db",
+            "workerId": "alpha",
+            "connectionId": "alpha-connection",
+            "transactionId": "transaction",
+            "iteration": 1
+          },
+          "assessment": {
+            "validTrace": "PASS",
+            "conditionR": "PASS",
+            "conditionU": "FAIL",
+            "conditionReasonR": "COMPLETED_BEFORE_STOP",
+            "conditionReasonU": "COMPLETED_BEFORE_STOP",
+            "workerObservation": "PASS",
+            "connectionClosed": "UNKNOWN",
+            "physicalRelease": "UNKNOWN"
+          }
+        }
+      ],
+      "realExperiment": "NOT_RUN",
+      "executionAuthorization": "NOT_GRANTED",
+      "startCondition": "BLOCKED",
+      "conditionU": "NOT_RUN",
+      "productionWorker": "HOLD",
+      "hypotheses": {
+        "H1": "UNKNOWN",
+        "H2": "UNKNOWN",
+        "H3": "UNKNOWN",
+        "H4": "PARTIAL"
+      }
+    }
+  }
+]

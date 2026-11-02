@@ -1,0 +1,144 @@
+{
+  "collectorSchemaVersion": 1,
+  "scope": "OFFLINE_SYNTHETIC_ONLY",
+  "evidenceStatus": "INCOMPLETE",
+  "exitCode": 1,
+  "input": {
+    "materialId": "event-deleted",
+    "actualSha256": "d692c633a21d2057b4546053839b775250eb6d6aed1bf44fc147d698fde886bd",
+    "expectedSha256": "d692c633a21d2057b4546053839b775250eb6d6aed1bf44fc147d698fde886bd",
+    "semanticSha256": "363c8b802b8c1e6c6eddb9b4bdd3eda1c38f19e6f68dc4195b0de01f77a194cb"
+  },
+  "relations": [
+    {
+      "from": "w3",
+      "to": "m1",
+      "kind": "send-receive"
+    }
+  ],
+  "orderRelations": [
+    {
+      "before": "w3",
+      "after": "m1",
+      "basis": "explicit-message"
+    },
+    {
+      "before": "m1",
+      "after": "m2",
+      "basis": "source-sequence"
+    },
+    {
+      "before": "m2",
+      "after": "m3",
+      "basis": "source-sequence"
+    },
+    {
+      "before": "m3",
+      "after": "m4",
+      "basis": "source-sequence"
+    },
+    {
+      "before": "m4",
+      "after": "m5",
+      "basis": "source-sequence"
+    },
+    {
+      "before": "w1",
+      "after": "w2",
+      "basis": "source-sequence"
+    },
+    {
+      "before": "w2",
+      "after": "w3",
+      "basis": "source-sequence"
+    },
+    {
+      "before": "w3",
+      "after": "w4",
+      "basis": "source-sequence"
+    },
+    {
+      "before": "w4",
+      "after": "w5",
+      "basis": "source-sequence"
+    }
+  ],
+  "missingEvidence": [
+    {
+      "code": "ACTUAL_STOP_BOUNDARY_MISSING",
+      "subject": "{\"connectionId\":\"c1\",\"dbName\":\"synthetic-only\",\"iteration\":1,\"runId\":\"session-1\",\"transactionId\":\"t1\",\"workerId\":\"w1\"}",
+      "detail": "terminate return is not actual stop",
+      "scope": "FUTURE_WITNESS"
+    },
+    {
+      "code": "COMPLETE_SEND_MISSING",
+      "subject": "{\"connectionId\":\"c1\",\"dbName\":\"synthetic-only\",\"iteration\":1,\"runId\":\"session-1\",\"transactionId\":\"t1\",\"workerId\":\"w1\"}",
+      "detail": "Worker completion alone has no main causal edge",
+      "scope": "PUBLIC_CHAIN"
+    },
+    {
+      "code": "NORMAL_UNTERMINATED_WITNESS_MISSING",
+      "subject": "{\"connectionId\":\"c1\",\"dbName\":\"synthetic-only\",\"iteration\":1,\"runId\":\"session-1\",\"transactionId\":\"t1\",\"workerId\":\"w1\"}",
+      "detail": "independent normal interval and internal ID/build binding unavailable",
+      "scope": "FUTURE_WITNESS"
+    },
+    {
+      "code": "REFERENCE_MISSING",
+      "subject": "m2",
+      "detail": "sendId:w6",
+      "scope": "PUBLIC_CHAIN"
+    },
+    {
+      "code": "SOURCE_SEQUENCE_GAP",
+      "subject": "worker:w1",
+      "detail": "1 gap ranges: 6-6",
+      "scope": "PUBLIC_CHAIN"
+    }
+  ],
+  "contradictions": [],
+  "validationErrors": [],
+  "reasons": [
+    "COMPLETE_SEND_MISSING",
+    "REFERENCE_MISSING",
+    "SOURCE_SEQUENCE_GAP"
+  ],
+  "unknownReasons": [
+    "ACTUAL_STOP_BOUNDARY_MISSING",
+    "NORMAL_UNTERMINATED_WITNESS_MISSING",
+    "t1:R:INVALID_TRACE",
+    "t1:U:INVALID_TRACE"
+  ],
+  "transactions": [
+    {
+      "identity": {
+        "runId": "session-1",
+        "dbName": "synthetic-only",
+        "workerId": "w1",
+        "connectionId": "c1",
+        "transactionId": "t1",
+        "iteration": 1
+      },
+      "assessment": {
+        "validTrace": "FAIL",
+        "conditionR": "UNKNOWN",
+        "conditionU": "UNKNOWN",
+        "conditionReasonR": "INVALID_TRACE",
+        "conditionReasonU": "INVALID_TRACE",
+        "workerObservation": "UNKNOWN",
+        "connectionClosed": "UNKNOWN",
+        "physicalRelease": "UNKNOWN"
+      }
+    }
+  ],
+  "realExperiment": "NOT_RUN",
+  "executionAuthorization": "NOT_GRANTED",
+  "startCondition": "BLOCKED",
+  "conditionU": "NOT_RUN",
+  "productionWorker": "HOLD",
+  "hypotheses": {
+    "H1": "UNKNOWN",
+    "H2": "UNKNOWN",
+    "H3": "UNKNOWN",
+    "H4": "PARTIAL"
+  }
+}

@@ -1,0 +1,281 @@
+[
+  {
+    "id": "E-input-normal",
+    "expected": true,
+    "beforeBuiltin": true,
+    "beforeIndependent": true,
+    "afterBuiltin": true,
+    "afterIndependent": true,
+    "schemaSha256": "a8787f13de071a6c02ffab1276778be713237f6d1dca8787ea873d2cc1ae6972"
+  },
+  {
+    "id": "E-input-wrong-type",
+    "expected": false,
+    "beforeBuiltin": false,
+    "beforeIndependent": false,
+    "afterBuiltin": false,
+    "afterIndependent": false,
+    "schemaSha256": "a8787f13de071a6c02ffab1276778be713237f6d1dca8787ea873d2cc1ae6972"
+  },
+  {
+    "id": "E-input-unknown-field",
+    "expected": false,
+    "beforeBuiltin": false,
+    "beforeIndependent": false,
+    "afterBuiltin": false,
+    "afterIndependent": false,
+    "schemaSha256": "a8787f13de071a6c02ffab1276778be713237f6d1dca8787ea873d2cc1ae6972"
+  },
+  {
+    "id": "E-input-oneOf-worker-without-owner",
+    "expected": false,
+    "beforeBuiltin": false,
+    "beforeIndependent": false,
+    "afterBuiltin": false,
+    "afterIndependent": false,
+    "schemaSha256": "a8787f13de071a6c02ffab1276778be713237f6d1dca8787ea873d2cc1ae6972"
+  },
+  {
+    "id": "E-input-oneOf-main-with-worker-owner",
+    "expected": false,
+    "beforeBuiltin": false,
+    "beforeIndependent": false,
+    "afterBuiltin": false,
+    "afterIndependent": false,
+    "schemaSha256": "a8787f13de071a6c02ffab1276778be713237f6d1dca8787ea873d2cc1ae6972"
+  },
+  {
+    "id": "E-input-oneOf-source-mismatch",
+    "expected": false,
+    "beforeBuiltin": false,
+    "beforeIndependent": false,
+    "afterBuiltin": false,
+    "afterIndependent": false,
+    "schemaSha256": "a8787f13de071a6c02ffab1276778be713237f6d1dca8787ea873d2cc1ae6972"
+  },
+  {
+    "id": "E-input-oneOf-valid-error-worker",
+    "expected": true,
+    "beforeBuiltin": true,
+    "beforeIndependent": true,
+    "afterBuiltin": true,
+    "afterIndependent": true,
+    "schemaSha256": "a8787f13de071a6c02ffab1276778be713237f6d1dca8787ea873d2cc1ae6972"
+  },
+  {
+    "id": "E-input-oneOf-valid-error-main",
+    "expected": true,
+    "beforeBuiltin": true,
+    "beforeIndependent": true,
+    "afterBuiltin": true,
+    "afterIndependent": true,
+    "schemaSha256": "a8787f13de071a6c02ffab1276778be713237f6d1dca8787ea873d2cc1ae6972"
+  },
+  {
+    "id": "E-input-invalid-enum",
+    "expected": false,
+    "beforeBuiltin": false,
+    "beforeIndependent": false,
+    "afterBuiltin": false,
+    "afterIndependent": false,
+    "schemaSha256": "a8787f13de071a6c02ffab1276778be713237f6d1dca8787ea873d2cc1ae6972"
+  },
+  {
+    "id": "E-input-integer-low",
+    "expected": false,
+    "beforeBuiltin": false,
+    "beforeIndependent": false,
+    "afterBuiltin": false,
+    "afterIndependent": false,
+    "schemaSha256": "a8787f13de071a6c02ffab1276778be713237f6d1dca8787ea873d2cc1ae6972"
+  },
+  {
+    "id": "E-input-integer-high",
+    "expected": false,
+    "beforeBuiltin": false,
+    "beforeIndependent": false,
+    "afterBuiltin": false,
+    "afterIndependent": false,
+    "schemaSha256": "a8787f13de071a6c02ffab1276778be713237f6d1dca8787ea873d2cc1ae6972"
+  },
+  {
+    "id": "E-input-integer-fraction",
+    "expected": false,
+    "beforeBuiltin": false,
+    "beforeIndependent": false,
+    "afterBuiltin": false,
+    "afterIndependent": false,
+    "schemaSha256": "a8787f13de071a6c02ffab1276778be713237f6d1dca8787ea873d2cc1ae6972"
+  },
+  {
+    "id": "E-input-empty-id",
+    "expected": false,
+    "beforeBuiltin": false,
+    "beforeIndependent": false,
+    "afterBuiltin": false,
+    "afterIndependent": false,
+    "schemaSha256": "a8787f13de071a6c02ffab1276778be713237f6d1dca8787ea873d2cc1ae6972"
+  },
+  {
+    "id": "E-input-id-max",
+    "expected": true,
+    "beforeBuiltin": true,
+    "beforeIndependent": true,
+    "afterBuiltin": true,
+    "afterIndependent": true,
+    "schemaSha256": "a8787f13de071a6c02ffab1276778be713237f6d1dca8787ea873d2cc1ae6972"
+  },
+  {
+    "id": "E-input-id-too-long",
+    "expected": false,
+    "beforeBuiltin": false,
+    "beforeIndependent": false,
+    "afterBuiltin": false,
+    "afterIndependent": false,
+    "schemaSha256": "a8787f13de071a6c02ffab1276778be713237f6d1dca8787ea873d2cc1ae6972"
+  },
+  {
+    "id": "E-input-id-final-newline",
+    "expected": false,
+    "beforeBuiltin": false,
+    "beforeIndependent": false,
+    "afterBuiltin": false,
+    "afterIndependent": false,
+    "schemaSha256": "a8787f13de071a6c02ffab1276778be713237f6d1dca8787ea873d2cc1ae6972"
+  },
+  {
+    "id": "E-input-numeric-clock",
+    "expected": true,
+    "beforeBuiltin": true,
+    "beforeIndependent": true,
+    "afterBuiltin": true,
+    "afterIndependent": true,
+    "schemaSha256": "a8787f13de071a6c02ffab1276778be713237f6d1dca8787ea873d2cc1ae6972"
+  },
+  {
+    "id": "E-output-normal",
+    "expected": true,
+    "beforeBuiltin": true,
+    "beforeIndependent": true,
+    "afterBuiltin": true,
+    "afterIndependent": true,
+    "schemaSha256": "6547cd1f00a03e7d510d0e3c9e7de6d1839ea68da71c6e0290b275c405ffa9ca"
+  },
+  {
+    "id": "E-output-wrong-type",
+    "expected": false,
+    "beforeBuiltin": false,
+    "beforeIndependent": false,
+    "afterBuiltin": false,
+    "afterIndependent": false,
+    "schemaSha256": "6547cd1f00a03e7d510d0e3c9e7de6d1839ea68da71c6e0290b275c405ffa9ca"
+  },
+  {
+    "id": "E-output-unknown-field",
+    "expected": false,
+    "beforeBuiltin": false,
+    "beforeIndependent": false,
+    "afterBuiltin": false,
+    "afterIndependent": false,
+    "schemaSha256": "6547cd1f00a03e7d510d0e3c9e7de6d1839ea68da71c6e0290b275c405ffa9ca"
+  },
+  {
+    "id": "E-output-invalid-enum",
+    "expected": false,
+    "beforeBuiltin": false,
+    "beforeIndependent": false,
+    "afterBuiltin": false,
+    "afterIndependent": false,
+    "schemaSha256": "6547cd1f00a03e7d510d0e3c9e7de6d1839ea68da71c6e0290b275c405ffa9ca"
+  },
+  {
+    "id": "E-output-invalid-assessment-enum",
+    "expected": false,
+    "beforeBuiltin": false,
+    "beforeIndependent": false,
+    "afterBuiltin": false,
+    "afterIndependent": false,
+    "schemaSha256": "6547cd1f00a03e7d510d0e3c9e7de6d1839ea68da71c6e0290b275c405ffa9ca"
+  },
+  {
+    "id": "E-output-integer-enum-high",
+    "expected": false,
+    "beforeBuiltin": false,
+    "beforeIndependent": false,
+    "afterBuiltin": false,
+    "afterIndependent": false,
+    "schemaSha256": "6547cd1f00a03e7d510d0e3c9e7de6d1839ea68da71c6e0290b275c405ffa9ca"
+  },
+  {
+    "id": "E-output-integer-fraction",
+    "expected": false,
+    "beforeBuiltin": false,
+    "beforeIndependent": false,
+    "afterBuiltin": false,
+    "afterIndependent": false,
+    "schemaSha256": "6547cd1f00a03e7d510d0e3c9e7de6d1839ea68da71c6e0290b275c405ffa9ca"
+  },
+  {
+    "id": "E-output-string-too-long",
+    "expected": false,
+    "beforeBuiltin": false,
+    "beforeIndependent": false,
+    "afterBuiltin": false,
+    "afterIndependent": false,
+    "schemaSha256": "6547cd1f00a03e7d510d0e3c9e7de6d1839ea68da71c6e0290b275c405ffa9ca"
+  },
+  {
+    "id": "E-output-string-max",
+    "expected": true,
+    "beforeBuiltin": true,
+    "beforeIndependent": true,
+    "afterBuiltin": true,
+    "afterIndependent": true,
+    "schemaSha256": "6547cd1f00a03e7d510d0e3c9e7de6d1839ea68da71c6e0290b275c405ffa9ca"
+  },
+  {
+    "id": "E-output-unicode-length-valid",
+    "expected": true,
+    "beforeBuiltin": false,
+    "beforeIndependent": true,
+    "afterBuiltin": true,
+    "afterIndependent": true,
+    "schemaSha256": "6547cd1f00a03e7d510d0e3c9e7de6d1839ea68da71c6e0290b275c405ffa9ca"
+  },
+  {
+    "id": "E-output-unicode-length-invalid",
+    "expected": false,
+    "beforeBuiltin": false,
+    "beforeIndependent": false,
+    "afterBuiltin": false,
+    "afterIndependent": false,
+    "schemaSha256": "6547cd1f00a03e7d510d0e3c9e7de6d1839ea68da71c6e0290b275c405ffa9ca"
+  },
+  {
+    "id": "E-output-hash-final-newline",
+    "expected": false,
+    "beforeBuiltin": false,
+    "beforeIndependent": false,
+    "afterBuiltin": false,
+    "afterIndependent": false,
+    "schemaSha256": "6547cd1f00a03e7d510d0e3c9e7de6d1839ea68da71c6e0290b275c405ffa9ca"
+  },
+  {
+    "id": "E-output-transaction-id-final-newline",
+    "expected": false,
+    "beforeBuiltin": false,
+    "beforeIndependent": false,
+    "afterBuiltin": false,
+    "afterIndependent": false,
+    "schemaSha256": "6547cd1f00a03e7d510d0e3c9e7de6d1839ea68da71c6e0290b275c405ffa9ca"
+  },
+  {
+    "id": "E-output-nullable-hash",
+    "expected": true,
+    "beforeBuiltin": true,
+    "beforeIndependent": true,
+    "afterBuiltin": true,
+    "afterIndependent": true,
+    "schemaSha256": "6547cd1f00a03e7d510d0e3c9e7de6d1839ea68da71c6e0290b275c405ffa9ca"
+  }
+]

@@ -37,7 +37,8 @@ function validate(value, schema, root = schema, path = '', depth = 0) {
   let errors = [];
   if (schema.enum && !schema.enum.includes(value)) errors.push(...fail('unsupported value'));
   if (typeof value === 'string') {
-    if (value.length < (schema.minLength ?? 0) || value.length > (schema.maxLength ?? Infinity)) errors.push(...fail('invalid length'));
+    const length = [...value].length; // JSON Schema counts Unicode code points, not UTF-16 code units.
+    if (length < (schema.minLength ?? 0) || length > (schema.maxLength ?? Infinity)) errors.push(...fail('invalid length'));
     if (schema.pattern && !new RegExp(schema.pattern).test(value)) errors.push(...fail('invalid identifier/hash'));
   }
   if (typeof value === 'number' && (!Number.isFinite(value) || (type === 'integer' && !Number.isSafeInteger(value)) || value < (schema.minimum ?? -Infinity) || value > (schema.maximum ?? Infinity))) errors.push(...fail('invalid numeric range'));

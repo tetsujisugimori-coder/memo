@@ -1,0 +1,13 @@
+{
+  "status": 0,
+  "signal": null,
+  "error": null,
+  "inputSha256": "ac02602943ccf943277c8ed647a23d9dda83147390e0484a315c6378e43f9de4",
+  "expected": {
+    "status": "CONSISTENT",
+    "exit": 0,
+    "r": "PASS",
+    "u": "FAIL",
+    "codes": []
+  }
+}

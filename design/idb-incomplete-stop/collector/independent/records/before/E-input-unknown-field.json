@@ -1,0 +1,24 @@
+{
+  "expected": false,
+  "independentValid": false,
+  "builtinValid": false,
+  "independentErrors": [
+    {
+      "instancePath": "",
+      "schemaPath": "#/additionalProperties",
+      "keyword": "additionalProperties",
+      "params": {
+        "additionalProperty": "extra"
+      },
+      "message": "must NOT have additional properties"
+    }
+  ],
+  "builtinErrors": [
+    {
+      "code": "SCHEMA",
+      "subject": "/extra",
+      "detail": "unexpected field"
+    }
+  ],
+  "schemaSha256": "a8787f13de071a6c02ffab1276778be713237f6d1dca8787ea873d2cc1ae6972"
+}

@@ -1,0 +1,14 @@
+{
+  "originalWorktrees": 62,
+  "originalHashesChecked": 3181,
+  "allowedChanges": [
+    [
+      "C:/Users/tetsu/Documents/Codex/メモ帳/work/idb-evidence-collector-u1",
+      "design/idb-incomplete-stop/collector/collect.cjs",
+      "58149b6448a2a2255c553b1b238a41cd17a22738573b7edbb5a9c21e9938628e",
+      "5b86738d9337face37ab75bb7e4b31a4a3a0a39866e3ca33023a0f40f85016a7"
+    ]
+  ],
+  "unexpectedChanges": [],
+  "scope": "all original HEADs, other worktree statuses, every previously hashed file; target status intentionally contains the collector fix and new independent evidence"
+}

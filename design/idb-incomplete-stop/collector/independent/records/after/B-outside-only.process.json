@@ -1,0 +1,15 @@
+{
+  "status": 1,
+  "signal": null,
+  "error": null,
+  "inputSha256": "8320d059d62796e499c2e4f832db2e21b244fefe64149b252001f91fc50ed323",
+  "expected": {
+    "status": "INCONSISTENT",
+    "exit": 1,
+    "r": "UNKNOWN",
+    "u": "UNKNOWN",
+    "codes": [
+      "SEQUENCE_OUTSIDE_COVERAGE"
+    ]
+  }
+}

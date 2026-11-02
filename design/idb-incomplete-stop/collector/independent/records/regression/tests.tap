@@ -1,0 +1,587 @@
+TAP version 13
+# Subtest: contract fixture: single (normal)
+ok 1 - contract fixture: single (normal)
+  ---
+  duration_ms: 132.9087
+  type: 'test'
+  ...
+# Subtest: contract fixture: multiple (normal)
+ok 2 - contract fixture: multiple (normal)
+  ---
+  duration_ms: 65.1057
+  type: 'test'
+  ...
+# Subtest: contract fixture: worker-complete-only (unknown)
+ok 3 - contract fixture: worker-complete-only (unknown)
+  ---
+  duration_ms: 56.7261
+  type: 'test'
+  ...
+# Subtest: contract fixture: sent-without-receipt (unknown)
+ok 4 - contract fixture: sent-without-receipt (unknown)
+  ---
+  duration_ms: 59.4124
+  type: 'test'
+  ...
+# Subtest: contract fixture: duplicate-complete-id (fault)
+ok 5 - contract fixture: duplicate-complete-id (fault)
+  ---
+  duration_ms: 124.1548
+  type: 'test'
+  ...
+# Subtest: contract fixture: wrong-send-type (fault)
+ok 6 - contract fixture: wrong-send-type (fault)
+  ---
+  duration_ms: 61.2218
+  type: 'test'
+  ...
+# Subtest: contract fixture: foreign-transaction (fault)
+ok 7 - contract fixture: foreign-transaction (fault)
+  ---
+  duration_ms: 64.6856
+  type: 'test'
+  ...
+# Subtest: contract fixture: source-order-reversed (fault)
+ok 8 - contract fixture: source-order-reversed (fault)
+  ---
+  duration_ms: 62.5
+  type: 'test'
+  ...
+# Subtest: contract fixture: source-sequence-gap (unknown)
+ok 9 - contract fixture: source-sequence-gap (unknown)
+  ---
+  duration_ms: 61.7262
+  type: 'test'
+  ...
+# Subtest: contract fixture: missing-stop-request (unknown)
+ok 10 - contract fixture: missing-stop-request (unknown)
+  ---
+  duration_ms: 61.5758
+  type: 'test'
+  ...
+# Subtest: contract fixture: commit-abort-conflict (fault)
+ok 11 - contract fixture: commit-abort-conflict (fault)
+  ---
+  duration_ms: 63.6063
+  type: 'test'
+  ...
+# Subtest: contract fixture: reversed-array (normal)
+ok 12 - contract fixture: reversed-array (normal)
+  ---
+  duration_ms: 61.766
+  type: 'test'
+  ...
+# Subtest: contract fixture: required-field-deleted (fault)
+ok 13 - contract fixture: required-field-deleted (fault)
+  ---
+  duration_ms: 61.0649
+  type: 'test'
+  ...
+# Subtest: contract fixture: content-reference-tampered (fault)
+ok 14 - contract fixture: content-reference-tampered (fault)
+  ---
+  duration_ms: 58.7352
+  type: 'test'
+  ...
+# Subtest: contract fixture: hash-mismatch (fault)
+ok 15 - contract fixture: hash-mismatch (fault)
+  ---
+  duration_ms: 60.4932
+  type: 'test'
+  ...
+# Subtest: contract fixture: event-deleted (unknown)
+ok 16 - contract fixture: event-deleted (unknown)
+  ---
+  duration_ms: 58.873
+  type: 'test'
+  ...
+# Subtest: contract fixture: duplicate-injection (fault)
+ok 17 - contract fixture: duplicate-injection (fault)
+  ---
+  duration_ms: 60.0313
+  type: 'test'
+  ...
+# Subtest: contract fixture: foreign-session (fault)
+ok 18 - contract fixture: foreign-session (fault)
+  ---
+  duration_ms: 62.359
+  type: 'test'
+  ...
+# Subtest: contract fixture: unsupported-version (fault)
+ok 19 - contract fixture: unsupported-version (fault)
+  ---
+  duration_ms: 61.9794
+  type: 'test'
+  ...
+# Subtest: contract fixture: extra-field (fault)
+ok 20 - contract fixture: extra-field (fault)
+  ---
+  duration_ms: 60.8843
+  type: 'test'
+  ...
+# Subtest: contract fixture: unknown-event (fault)
+ok 21 - contract fixture: unknown-event (fault)
+  ---
+  duration_ms: 63.8844
+  type: 'test'
+  ...
+# Subtest: contract fixture: bad-id (fault)
+ok 22 - contract fixture: bad-id (fault)
+  ---
+  duration_ms: 62.5948
+  type: 'test'
+  ...
+# Subtest: contract fixture: bad-sequence (fault)
+ok 23 - contract fixture: bad-sequence (fault)
+  ---
+  duration_ms: 58.2737
+  type: 'test'
+  ...
+# Subtest: contract fixture: bad-source (fault)
+ok 24 - contract fixture: bad-source (fault)
+  ---
+  duration_ms: 57.5051
+  type: 'test'
+  ...
+# Subtest: contract fixture: unsafe-sequence (fault)
+ok 25 - contract fixture: unsafe-sequence (fault)
+  ---
+  duration_ms: 53.9305
+  type: 'test'
+  ...
+# Subtest: contract fixture: extra-event-field (fault)
+ok 26 - contract fixture: extra-event-field (fault)
+  ---
+  duration_ms: 56.9507
+  type: 'test'
+  ...
+# Subtest: contract fixture: duplicate-json-key (fault)
+ok 27 - contract fixture: duplicate-json-key (fault)
+  ---
+  duration_ms: 53.504
+  type: 'test'
+  ...
+# Subtest: contract fixture: duplicate-escaped-key (fault)
+ok 28 - contract fixture: duplicate-escaped-key (fault)
+  ---
+  duration_ms: 53.663
+  type: 'test'
+  ...
+# Subtest: contract fixture: malformed-json (fault)
+ok 29 - contract fixture: malformed-json (fault)
+  ---
+  duration_ms: 56.6205
+  type: 'test'
+  ...
+# Subtest: contract fixture: received-after-stop (unknown)
+ok 30 - contract fixture: received-after-stop (unknown)
+  ---
+  duration_ms: 56.7679
+  type: 'test'
+  ...
+# Subtest: contract fixture: observed-abort (normal)
+ok 31 - contract fixture: observed-abort (normal)
+  ---
+  duration_ms: 59.2313
+  type: 'test'
+  ...
+# Subtest: contract fixture: internal-terminal-unknown (unknown)
+ok 32 - contract fixture: internal-terminal-unknown (unknown)
+  ---
+  duration_ms: 56.5537
+  type: 'test'
+  ...
+# Subtest: contract fixture: observed-error (normal)
+ok 33 - contract fixture: observed-error (normal)
+  ---
+  duration_ms: 60.3197
+  type: 'test'
+  ...
+# Subtest: contract fixture: collection-error (fault)
+ok 34 - contract fixture: collection-error (fault)
+  ---
+  duration_ms: 62.4032
+  type: 'test'
+  ...
+# Subtest: contract fixture: duplicate-receipt (fault)
+ok 35 - contract fixture: duplicate-receipt (fault)
+  ---
+  duration_ms: 60.0614
+  type: 'test'
+  ...
+# Subtest: contract fixture: duplicate-complete-reference (fault)
+ok 36 - contract fixture: duplicate-complete-reference (fault)
+  ---
+  duration_ms: 58.7138
+  type: 'test'
+  ...
+# Subtest: contract fixture: cross-transaction-link (fault)
+ok 37 - contract fixture: cross-transaction-link (fault)
+  ---
+  duration_ms: 60.5561
+  type: 'test'
+  ...
+# Subtest: contract fixture: sequence-collision (fault)
+ok 38 - contract fixture: sequence-collision (fault)
+  ---
+  duration_ms: 61.4682
+  type: 'test'
+  ...
+# Subtest: contract fixture: dangling-send (unknown)
+ok 39 - contract fixture: dangling-send (unknown)
+  ---
+  duration_ms: 58.8987
+  type: 'test'
+  ...
+# Subtest: contract fixture: all-events-deleted (unknown)
+ok 40 - contract fixture: all-events-deleted (unknown)
+  ---
+  duration_ms: 58.9345
+  type: 'test'
+  ...
+# Subtest: arbitrary array permutations preserve all semantics, relations and reasons
+ok 41 - arbitrary array permutations preserve all semantics, relations and reasons
+  ---
+  duration_ms: 311.7076
+  type: 'test'
+  ...
+# Subtest: clock values never create causal edges
+ok 42 - clock values never create causal edges
+  ---
+  duration_ms: 2.4556
+  type: 'test'
+  ...
+# Subtest: deleting any single event never supplies a new unfinished proof
+ok 43 - deleting any single event never supplies a new unfinished proof
+  ---
+  duration_ms: 10.7423
+  type: 'test'
+  ...
+# Subtest: all required event fields and foreign extra fields are enforced by the schema
+ok 44 - all required event fields and foreign extra fields are enforced by the schema
+  ---
+  duration_ms: 60.3517
+  type: 'test'
+  ...
+# Subtest: bounded input, invalid UTF-8, unsafe number, unsupported schema version and invalid descriptor
+ok 45 - bounded input, invalid UTF-8, unsafe number, unsupported schema version and invalid descriptor
+  ---
+  duration_ms: 3.1032
+  type: 'test'
+  ...
+# Subtest: missing file and wrong CLI arity return JSON and matching exit code 2
+ok 46 - missing file and wrong CLI arity return JSON and matching exit code 2
+  ---
+  duration_ms: 123.8504
+  type: 'test'
+  ...
+# Subtest: semantically permitted edits with a recomputed hash are not authenticated
+ok 47 - semantically permitted edits with a recomputed hash are not authenticated
+  ---
+  duration_ms: 6.1717
+  type: 'test'
+  ...
+# Subtest: partial known source edges survive gaps but do not make a valid trace
+ok 48 - partial known source edges survive gaps but do not make a valid trace
+  ---
+  duration_ms: 7.1802
+  type: 'test'
+  ...
+# Subtest: independent old negative control and new positive control use the same causal counterexample
+ok 49 - independent old negative control and new positive control use the same causal counterexample
+  ---
+  duration_ms: 24.4669
+  type: 'test'
+  ...
+# Subtest: input/result schemas cannot confuse arbitrary proof booleans with supported evidence
+ok 50 - input/result schemas cannot confuse arbitrary proof booleans with supported evidence
+  ---
+  duration_ms: 10.0995
+  type: 'test'
+  ...
+# Subtest: multiple worker streams share a single main sequence without cross-worker sorting
+ok 51 - multiple worker streams share a single main sequence without cross-worker sorting
+  ---
+  duration_ms: 14.0486
+  type: 'test'
+  ...
+# Subtest: coverage tail loss
+ok 52 - coverage tail loss
+  ---
+  duration_ms: 7.7963
+  type: 'test'
+  ...
+# Subtest: coverage outside range
+ok 53 - coverage outside range
+  ---
+  duration_ms: 7.0525
+  type: 'test'
+  ...
+# Subtest: missing worker coverage
+ok 54 - missing worker coverage
+  ---
+  duration_ms: 9.0543
+  type: 'test'
+  ...
+# Subtest: duplicate inventory
+ok 55 - duplicate inventory
+  ---
+  duration_ms: 7.9027
+  type: 'test'
+  ...
+# Subtest: duplicate coverage
+ok 56 - duplicate coverage
+  ---
+  duration_ms: 7.2615
+  type: 'test'
+  ...
+# Subtest: terminal before identification
+ok 57 - terminal before identification
+  ---
+  duration_ms: 6.7623
+  type: 'test'
+  ...
+# Subtest: terminal before request acceptance
+ok 58 - terminal before request acceptance
+  ---
+  duration_ms: 7.8089
+  type: 'test'
+  ...
+# Subtest: maximum declared sequence has bounded gap diagnostics matching result schema
+ok 59 - maximum declared sequence has bounded gap diagnostics matching result schema
+  ---
+  duration_ms: 9.2908
+  type: 'test'
+  ...
+# Subtest: IDs and external hashes with trailing line terminators are rejected
+ok 60 - IDs and external hashes with trailing line terminators are rejected
+  ---
+  duration_ms: 18.3902
+  type: 'test'
+  ...
+# Subtest: IR2: linked complete received before stop establishes R and disqualifies U across merges
+ok 61 - IR2: linked complete received before stop establishes R and disqualifies U across merges
+  ---
+  duration_ms: 2.2983
+  type: 'test'
+  ...
+# Subtest: late receipt disqualifies receive-before-stop R but leaves U UNKNOWN across merges
+ok 62 - late receipt disqualifies receive-before-stop R but leaves U UNKNOWN across merges
+  ---
+  duration_ms: 0.2754
+  type: 'test'
+  ...
+# Subtest: record failure is distinct from a valid U condition failure
+ok 63 - record failure is distinct from a valid U condition failure
+  ---
+  duration_ms: 0.27
+  type: 'test'
+  ...
+# Subtest: complete receipts from another run or transaction are rejected
+ok 64 - complete receipts from another run or transaction are rejected
+  ---
+  duration_ms: 0.1498
+  type: 'test'
+  ...
+# Subtest: wrong or missing complete event/send references are rejected
+ok 65 - wrong or missing complete event/send references are rejected
+  ---
+  duration_ms: 0.6504
+  type: 'test'
+  ...
+# Subtest: missing, noninteger, duplicate or reversed sourceSeq is record-invalid
+ok 66 - missing, noninteger, duplicate or reversed sourceSeq is record-invalid
+  ---
+  duration_ms: 0.3826
+  type: 'test'
+  ...
+# Subtest: complete occurrence and receipt must have the specified owners
+ok 67 - complete occurrence and receipt must have the specified owners
+  ---
+  duration_ms: 0.6294
+  type: 'test'
+  ...
+# Subtest: a sent complete without its main receipt never establishes before-stop completion
+ok 68 - a sent complete without its main receipt never establishes before-stop completion
+  ---
+  duration_ms: 0.1518
+  type: 'test'
+  ...
+# Subtest: abort/error prevents normal R or U even with a complete receipt
+ok 69 - abort/error prevents normal R or U even with a complete receipt
+  ---
+  duration_ms: 0.1812
+  type: 'test'
+  ...
+# Subtest: missing terminate return cannot establish R even if before-stop completion excludes U
+ok 70 - missing terminate return cannot establish R even if before-stop completion excludes U
+  ---
+  duration_ms: 0.1938
+  type: 'test'
+  ...
+# Subtest: collection error invalidates records rather than proving condition failure
+ok 71 - collection error invalidates records rather than proving condition failure
+  ---
+  duration_ms: 0.1007
+  type: 'test'
+  ...
+# Subtest: R establishment and upgrade timeout remain separate, without execution authorization
+ok 72 - R establishment and upgrade timeout remain separate, without execution authorization
+  ---
+  duration_ms: 0.1527
+  type: 'test'
+  ...
+# Subtest: synthetic oracle edges are explicit references, independent of cross-source array order
+ok 73 - synthetic oracle edges are explicit references, independent of cross-source array order
+  ---
+  duration_ms: 0.2336
+  type: 'test'
+  ...
+# Subtest: missing complete and request readyState never establish unfinished
+ok 74 - missing complete and request readyState never establish unfinished
+  ---
+  duration_ms: 1.6228
+  type: 'test'
+  ...
+# Subtest: positive Worker API observation does not survive send/stop race by assumption
+ok 75 - positive Worker API observation does not survive send/stop race by assumption
+  ---
+  duration_ms: 0.1734
+  type: 'test'
+  ...
+# Subtest: IR1 corrected: Worker complete without a main receipt has unknown stop order
+ok 76 - IR1 corrected: Worker complete without a main receipt has unknown stop order
+  ---
+  duration_ms: 0.1351
+  type: 'test'
+  ...
+# Subtest: foreign runId is never adopted
+ok 77 - foreign runId is never adopted
+  ---
+  duration_ms: 0.1085
+  type: 'test'
+  ...
+# Subtest: foreign transactionId is never adopted
+ok 78 - foreign transactionId is never adopted
+  ---
+  duration_ms: 0.083
+  type: 'test'
+  ...
+# Subtest: foreign workerId is never adopted
+ok 79 - foreign workerId is never adopted
+  ---
+  duration_ms: 0.0644
+  type: 'test'
+  ...
+# Subtest: foreign connectionId is never adopted
+ok 80 - foreign connectionId is never adopted
+  ---
+  duration_ms: 0.0578
+  type: 'test'
+  ...
+# Subtest: foreign dbName is never adopted
+ok 81 - foreign dbName is never adopted
+  ---
+  duration_ms: 0.0572
+  type: 'test'
+  ...
+# Subtest: foreign iteration is never adopted
+ok 82 - foreign iteration is never adopted
+  ---
+  duration_ms: 0.0953
+  type: 'test'
+  ...
+# Subtest: transaction_abort is abnormal rather than normal unfinished
+ok 83 - transaction_abort is abnormal rather than normal unfinished
+  ---
+  duration_ms: 0.1807
+  type: 'test'
+  ...
+# Subtest: transaction_error is abnormal rather than normal unfinished
+ok 84 - transaction_error is abnormal rather than normal unfinished
+  ---
+  duration_ms: 0.1166
+  type: 'test'
+  ...
+# Subtest: terminate/close/upgrade/cleanup returns never prove closure or physical release
+ok 85 - terminate/close/upgrade/cleanup returns never prove closure or physical release
+  ---
+  duration_ms: 0.1213
+  type: 'test'
+  ...
+# Subtest: shared callback hold is not a backend unfinished certificate
+ok 86 - shared callback hold is not a backend unfinished certificate
+  ---
+  duration_ms: 0.1157
+  type: 'test'
+  ...
+# Subtest: expired gate and stale epoch cannot establish callback hold
+ok 87 - expired gate and stale epoch cannot establish callback hold
+  ---
+  duration_ms: 1.0054
+  type: 'test'
+  ...
+# Subtest: late complete and arbitrary cross-domain clock values remain UNKNOWN
+ok 88 - late complete and arbitrary cross-domain clock values remain UNKNOWN
+  ---
+  duration_ms: 0.1789
+  type: 'test'
+  ...
+# Subtest: synthetic proven condition and upgrade timeout are independent results
+ok 89 - synthetic proven condition and upgrade timeout are independent results
+  ---
+  duration_ms: 0.1717
+  type: 'test'
+  ...
+# Subtest: oracle cannot be injected into public profile or refer to another stop
+ok 90 - oracle cannot be injected into public profile or refer to another stop
+  ---
+  duration_ms: 0.0802
+  type: 'test'
+  ...
+# Subtest: late success never erases upgrade timeout
+ok 91 - late success never erases upgrade timeout
+  ---
+  duration_ms: 0.0858
+  type: 'test'
+  ...
+# Subtest: unmatched send, duplicate event and reordered source fail closed
+ok 92 - unmatched send, duplicate event and reordered source fail closed
+  ---
+  duration_ms: 0.1278
+  type: 'test'
+  ...
+# Subtest: delete before evidence and repeated cleanup are forbidden; timeout stays unknown
+ok 93 - delete before evidence and repeated cleanup are forbidden; timeout stays unknown
+  ---
+  duration_ms: 0.1021
+  type: 'test'
+  ...
+# Subtest: log overflow and additional upgrade are rejected
+ok 94 - log overflow and additional upgrade are rejected
+  ---
+  duration_ms: 0.0803
+  type: 'test'
+  ...
+# Subtest: cleanup completion cannot precede or exist without its start
+ok 95 - cleanup completion cannot precede or exist without its start
+  ---
+  duration_ms: 0.0879
+  type: 'test'
+  ...
+# {"orders":[["w1","w2","w3","m1","m2","m3","m4"],["w1","w2","m1","w3","m2","m3","m4"],["w1","w2","m1","m2","m3","w3","m4"],["w1","w2","m1","m2","m3","m4","w3"]],"results":[{"syntheticOnly":true,"realExperiment":"NOT_RUN","executionAuthorization":"NOT_GRANTED","startCondition":"BLOCKED","validTrace":"PASS","recordError":null,"workerObservation":"PASS","callbackHold":"UNKNOWN","conditionR":"UNKNOWN","conditionU":"UNKNOWN","conditionReasonR":"INSUFFICIENT_EVIDENCE","conditionReasonU":"INSUFFICIENT_EVIDENCE","stopCondition":"UNKNOWN","upgrade":"NOT_RUN","cleanup":"NOT_RUN","connectionClosed":"UNKNOWN","physicalRelease":"UNKNOWN","reasons":["terminal_order_to_stop_unknown","no_independent_unfinished_stop_witness"]},{"syntheticOnly":true,"realExperiment":"NOT_RUN","executionAuthorization":"NOT_GRANTED","startCondition":"BLOCKED","validTrace":"PASS","recordError":null,"workerObservation":"PASS","callbackHold":"UNKNOWN","conditionR":"UNKNOWN","conditionU":"UNKNOWN","conditionReasonR":"INSUFFICIENT_EVIDENCE","conditionReasonU":"INSUFFICIENT_EVIDENCE","stopCondition":"UNKNOWN","upgrade":"NOT_RUN","cleanup":"NOT_RUN","connectionClosed":"UNKNOWN","physicalRelease":"UNKNOWN","reasons":["terminal_order_to_stop_unknown","no_independent_unfinished_stop_witness"]},{"syntheticOnly":true,"realExperiment":"NOT_RUN","executionAuthorization":"NOT_GRANTED","startCondition":"BLOCKED","validTrace":"PASS","recordError":null,"workerObservation":"PASS","callbackHold":"UNKNOWN","conditionR":"UNKNOWN","conditionU":"UNKNOWN","conditionReasonR":"INSUFFICIENT_EVIDENCE","conditionReasonU":"INSUFFICIENT_EVIDENCE","stopCondition":"UNKNOWN","upgrade":"NOT_RUN","cleanup":"NOT_RUN","connectionClosed":"UNKNOWN","physicalRelease":"UNKNOWN","reasons":["terminal_order_to_stop_unknown","no_independent_unfinished_stop_witness"]},{"syntheticOnly":true,"realExperiment":"NOT_RUN","executionAuthorization":"NOT_GRANTED","startCondition":"BLOCKED","validTrace":"PASS","recordError":null,"workerObservation":"PASS","callbackHold":"UNKNOWN","conditionR":"UNKNOWN","conditionU":"UNKNOWN","conditionReasonR":"INSUFFICIENT_EVIDENCE","conditionReasonU":"INSUFFICIENT_EVIDENCE","stopCondition":"UNKNOWN","upgrade":"NOT_RUN","cleanup":"NOT_RUN","connectionClosed":"UNKNOWN","physicalRelease":"UNKNOWN","reasons":["terminal_order_to_stop_unknown","no_independent_unfinished_stop_witness"]}]}
+# Subtest: IR1: four merges of the same partial order have identical UNKNOWN semantics
+ok 96 - IR1: four merges of the same partial order have identical UNKNOWN semantics
+  ---
+  duration_ms: 1.9856
+  type: 'test'
+  ...
+1..96
+# tests 96
+# suites 0
+# pass 96
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 3398.7317

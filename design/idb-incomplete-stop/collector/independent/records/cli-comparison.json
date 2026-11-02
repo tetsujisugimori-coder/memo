@@ -1,0 +1,669 @@
+[
+  {
+    "id": "A-arity",
+    "expected": {
+      "status": "INVALID_SCHEMA",
+      "exit": 2,
+      "r": null,
+      "u": null,
+      "codes": [
+        "CLI_INPUT"
+      ],
+      "rawHash": "null"
+    },
+    "inputSha256": "ac02602943ccf943277c8ed647a23d9dda83147390e0484a315c6378e43f9de4",
+    "beforeExit": 2,
+    "afterExit": 2,
+    "beforeAfterJSONIdentical": true,
+    "beforeOutputSha256": "5980e2e0fc635368bcaa260c9d65b1271ddcdf98139f633f8fd802041fa914ba",
+    "afterOutputSha256": "5980e2e0fc635368bcaa260c9d65b1271ddcdf98139f633f8fd802041fa914ba"
+  },
+  {
+    "id": "A-missing",
+    "expected": {
+      "status": "INVALID_SCHEMA",
+      "exit": 2,
+      "r": null,
+      "u": null,
+      "codes": [
+        "CLI_INPUT"
+      ],
+      "rawHash": "null"
+    },
+    "inputSha256": "ac02602943ccf943277c8ed647a23d9dda83147390e0484a315c6378e43f9de4",
+    "beforeExit": 2,
+    "afterExit": 2,
+    "beforeAfterJSONIdentical": true,
+    "beforeOutputSha256": "3035e3a156cc57d7784c38c57529b84192d5d86b21c8f42288ee273df6258a24",
+    "afterOutputSha256": "3035e3a156cc57d7784c38c57529b84192d5d86b21c8f42288ee273df6258a24"
+  },
+  {
+    "id": "A-denied",
+    "expected": {
+      "status": "INVALID_SCHEMA",
+      "exit": 2,
+      "r": null,
+      "u": null,
+      "codes": [
+        "CLI_INPUT"
+      ],
+      "rawHash": "null"
+    },
+    "inputSha256": "ac02602943ccf943277c8ed647a23d9dda83147390e0484a315c6378e43f9de4",
+    "beforeExit": 2,
+    "afterExit": 2,
+    "beforeAfterJSONIdentical": true,
+    "beforeOutputSha256": "776deb3e511594cf5ae959fc65efecc69713f1343d88973a803a6d71a56caba9",
+    "afterOutputSha256": "776deb3e511594cf5ae959fc65efecc69713f1343d88973a803a6d71a56caba9"
+  },
+  {
+    "id": "A-oversize",
+    "expected": {
+      "status": "INVALID_SCHEMA",
+      "exit": 2,
+      "r": null,
+      "u": null,
+      "codes": [
+        "JSON"
+      ],
+      "rawHash": "null"
+    },
+    "inputSha256": "e7d99e4db1392275f200e288c860f9780a935c945e2d55f98c1b68a1f9f3fb5c",
+    "beforeExit": 2,
+    "afterExit": 2,
+    "beforeAfterJSONIdentical": true,
+    "beforeOutputSha256": "3d4c8064a67bc9d70a23c479647597716ab13616445a08d40cc3b5945816d103",
+    "afterOutputSha256": "3d4c8064a67bc9d70a23c479647597716ab13616445a08d40cc3b5945816d103"
+  },
+  {
+    "id": "A-utf8",
+    "expected": {
+      "status": "INVALID_SCHEMA",
+      "exit": 2,
+      "r": null,
+      "u": null,
+      "codes": [
+        "JSON"
+      ],
+      "rawHash": "full"
+    },
+    "inputSha256": "5b3430ee8e5c7490d0e154755cdae0c9a7791be87e77b1f91a52f77676bed0c7",
+    "beforeExit": 2,
+    "afterExit": 2,
+    "beforeAfterJSONIdentical": true,
+    "beforeOutputSha256": "c596b98d34d0f85245004f0b878c4533219fa69f415fde86d5313a62def36e9c",
+    "afterOutputSha256": "c596b98d34d0f85245004f0b878c4533219fa69f415fde86d5313a62def36e9c"
+  },
+  {
+    "id": "A-json",
+    "expected": {
+      "status": "INVALID_SCHEMA",
+      "exit": 2,
+      "r": null,
+      "u": null,
+      "codes": [
+        "JSON"
+      ],
+      "rawHash": "full"
+    },
+    "inputSha256": "cbdf3b1f91ae32fe1ea292ac6cccf19222f97929f531523f0d15d885052c00c4",
+    "beforeExit": 2,
+    "afterExit": 2,
+    "beforeAfterJSONIdentical": true,
+    "beforeOutputSha256": "21a55eec1a996a0fb778603a6dc8c86ef80b65d0240486875102e8f5d7cf5e95",
+    "afterOutputSha256": "21a55eec1a996a0fb778603a6dc8c86ef80b65d0240486875102e8f5d7cf5e95"
+  },
+  {
+    "id": "A-hash",
+    "expected": {
+      "status": "INCONSISTENT",
+      "exit": 1,
+      "r": "UNKNOWN",
+      "u": "UNKNOWN",
+      "codes": [
+        "HASH_MISMATCH"
+      ],
+      "rawHash": "full"
+    },
+    "inputSha256": "ac02602943ccf943277c8ed647a23d9dda83147390e0484a315c6378e43f9de4",
+    "beforeExit": 1,
+    "afterExit": 1,
+    "beforeAfterJSONIdentical": true,
+    "beforeOutputSha256": "9a39055ca5854d5342cb26c9744b258280e73f45b96fbc49f5f35d1c26b9e98a",
+    "afterOutputSha256": "9a39055ca5854d5342cb26c9744b258280e73f45b96fbc49f5f35d1c26b9e98a"
+  },
+  {
+    "id": "A-material",
+    "expected": {
+      "status": "INVALID_SCHEMA",
+      "exit": 2,
+      "r": null,
+      "u": null,
+      "codes": [
+        "INPUT_DESCRIPTOR"
+      ],
+      "rawHash": "full"
+    },
+    "inputSha256": "ac02602943ccf943277c8ed647a23d9dda83147390e0484a315c6378e43f9de4",
+    "beforeExit": 2,
+    "afterExit": 2,
+    "beforeAfterJSONIdentical": true,
+    "beforeOutputSha256": "6787e19bda70ff0872a304b6451bb98ee1e913eb0f4ca6cc85ae36cf33945db3",
+    "afterOutputSha256": "6787e19bda70ff0872a304b6451bb98ee1e913eb0f4ca6cc85ae36cf33945db3"
+  },
+  {
+    "id": "B-gap-only",
+    "expected": {
+      "status": "INCOMPLETE",
+      "exit": 1,
+      "r": "UNKNOWN",
+      "u": "UNKNOWN",
+      "codes": [
+        "SOURCE_SEQUENCE_GAP"
+      ]
+    },
+    "inputSha256": "b4e39e68c18784434d35edd2b9ecab6582a218a891478a0e4d0627245cb2878c",
+    "beforeExit": 1,
+    "afterExit": 1,
+    "beforeAfterJSONIdentical": true,
+    "beforeOutputSha256": "654b045938aa4905eea04233a806ae5ca2ccc98ddf172a65410b876895bf525e",
+    "afterOutputSha256": "654b045938aa4905eea04233a806ae5ca2ccc98ddf172a65410b876895bf525e"
+  },
+  {
+    "id": "B-duplicate-only",
+    "expected": {
+      "status": "INCONSISTENT",
+      "exit": 1,
+      "r": "UNKNOWN",
+      "u": "UNKNOWN",
+      "codes": [
+        "SEQUENCE_COLLISION"
+      ]
+    },
+    "inputSha256": "3fc94f4e6e1319a01704e391a8864c578fbbf227f1b0a912ddbea587d4e11f70",
+    "beforeExit": 1,
+    "afterExit": 1,
+    "beforeAfterJSONIdentical": true,
+    "beforeOutputSha256": "680880e9a9e94f3fb204a06f2e95cf1ed76ae2b7e9dad508ed52d0efdb19c823",
+    "afterOutputSha256": "680880e9a9e94f3fb204a06f2e95cf1ed76ae2b7e9dad508ed52d0efdb19c823"
+  },
+  {
+    "id": "B-outside-only",
+    "expected": {
+      "status": "INCONSISTENT",
+      "exit": 1,
+      "r": "UNKNOWN",
+      "u": "UNKNOWN",
+      "codes": [
+        "SEQUENCE_OUTSIDE_COVERAGE"
+      ]
+    },
+    "inputSha256": "8320d059d62796e499c2e4f832db2e21b244fefe64149b252001f91fc50ed323",
+    "beforeExit": 1,
+    "afterExit": 1,
+    "beforeAfterJSONIdentical": true,
+    "beforeOutputSha256": "f4ffd58a07240198e2f89706f8fb604a22300d6f842d7ea1b0b64d19785d310b",
+    "afterOutputSha256": "f4ffd58a07240198e2f89706f8fb604a22300d6f842d7ea1b0b64d19785d310b"
+  },
+  {
+    "id": "B-reference-missing",
+    "expected": {
+      "status": "INCOMPLETE",
+      "exit": 1,
+      "r": "UNKNOWN",
+      "u": "UNKNOWN",
+      "codes": [
+        "REFERENCE_MISSING"
+      ]
+    },
+    "inputSha256": "62807c0f440b9a2044d78423070ad9c5e26d931a9c765de0992ff1ce3951a228",
+    "beforeExit": 1,
+    "afterExit": 1,
+    "beforeAfterJSONIdentical": true,
+    "beforeOutputSha256": "6c0af3470e122102b1ea03af2d13d41e9d9f40b0d616afa630e3ffb4662e1aec",
+    "afterOutputSha256": "6c0af3470e122102b1ea03af2d13d41e9d9f40b0d616afa630e3ffb4662e1aec"
+  },
+  {
+    "id": "B-gap-and-duplicate",
+    "expected": {
+      "status": "INCONSISTENT",
+      "exit": 1,
+      "r": "UNKNOWN",
+      "u": "UNKNOWN",
+      "codes": [
+        "SOURCE_SEQUENCE_GAP",
+        "SEQUENCE_COLLISION"
+      ]
+    },
+    "inputSha256": "5cd50f007a171a39e44757fd1206350386930373c093d0307fd655e636fd45cd",
+    "beforeExit": 1,
+    "afterExit": 1,
+    "beforeAfterJSONIdentical": true,
+    "beforeOutputSha256": "1856597451a305fde079883e3757bb7ba6328f5498eebcbe9b734c7b7ab017ff",
+    "afterOutputSha256": "1856597451a305fde079883e3757bb7ba6328f5498eebcbe9b734c7b7ab017ff"
+  },
+  {
+    "id": "B-gap-and-wrong-type",
+    "expected": {
+      "status": "INCONSISTENT",
+      "exit": 1,
+      "r": "UNKNOWN",
+      "u": "UNKNOWN",
+      "codes": [
+        "SOURCE_SEQUENCE_GAP",
+        "REFERENCE_MISMATCH"
+      ]
+    },
+    "inputSha256": "02f9a684862574d57078fd3e74c0fd8167f99bc59cb732a71e0b0b04f2be145a",
+    "beforeExit": 1,
+    "afterExit": 1,
+    "beforeAfterJSONIdentical": true,
+    "beforeOutputSha256": "6ce04e8bb143d0f79afcb34af788a0d1d9859756b546a325dc0e371d7fb241f8",
+    "afterOutputSha256": "6ce04e8bb143d0f79afcb34af788a0d1d9859756b546a325dc0e371d7fb241f8"
+  },
+  {
+    "id": "B-gap-and-foreign-transaction",
+    "expected": {
+      "status": "INCONSISTENT",
+      "exit": 1,
+      "r": "UNKNOWN",
+      "u": "UNKNOWN",
+      "codes": [
+        "SOURCE_SEQUENCE_GAP",
+        "FOREIGN_IDENTITY"
+      ]
+    },
+    "inputSha256": "08eb4b95d0a0ffe586fc2610f238a16de4fc4abc9ef07c44a6c74424b37d1b9f",
+    "beforeExit": 1,
+    "afterExit": 1,
+    "beforeAfterJSONIdentical": true,
+    "beforeOutputSha256": "4faaa394b9762dc4b5426e20299ca3afd6a2c311258e38939dc39ed4e8285cf0",
+    "afterOutputSha256": "4faaa394b9762dc4b5426e20299ca3afd6a2c311258e38939dc39ed4e8285cf0"
+  },
+  {
+    "id": "B-loss-and-terminal-conflict",
+    "expected": {
+      "status": "INCONSISTENT",
+      "exit": 1,
+      "r": "UNKNOWN",
+      "u": "UNKNOWN",
+      "codes": [
+        "SOURCE_SEQUENCE_GAP",
+        "COLLECTION_ERROR",
+        "TERMINAL_CONFLICT"
+      ]
+    },
+    "inputSha256": "64d248464c3fd52ac280b447f28a405290ccb35f08a858e542fda3be946ab503",
+    "beforeExit": 1,
+    "afterExit": 1,
+    "beforeAfterJSONIdentical": true,
+    "beforeOutputSha256": "09e5f5fbc4b72a748b7b21494cb66ce784f95b127e6a0504a1aa129c38d8131d",
+    "afterOutputSha256": "09e5f5fbc4b72a748b7b21494cb66ce784f95b127e6a0504a1aa129c38d8131d"
+  },
+  {
+    "id": "C-worker-complete-only",
+    "expected": {
+      "status": "INCOMPLETE",
+      "exit": 1,
+      "r": "UNKNOWN",
+      "u": "UNKNOWN",
+      "codes": [
+        "COMPLETE_SEND_MISSING"
+      ]
+    },
+    "inputSha256": "8e19f658986e20cbae8733351fdee684be688764322e4eb1a36d94871f823216",
+    "beforeExit": 1,
+    "afterExit": 1,
+    "beforeAfterJSONIdentical": true,
+    "beforeOutputSha256": "03471117ee89fbb4116407de87a84bee92eae818835277f7e73ccbfa294d021e",
+    "afterOutputSha256": "03471117ee89fbb4116407de87a84bee92eae818835277f7e73ccbfa294d021e"
+  },
+  {
+    "id": "C-sent-only",
+    "expected": {
+      "status": "INCOMPLETE",
+      "exit": 1,
+      "r": "UNKNOWN",
+      "u": "UNKNOWN",
+      "codes": [
+        "COMPLETE_RECEIVE_MISSING"
+      ]
+    },
+    "inputSha256": "2066ef7e89e57a0accd19c28e8fe5e87f57c2c6dc9b9761c4e7c578a286b58ba",
+    "beforeExit": 1,
+    "afterExit": 1,
+    "beforeAfterJSONIdentical": true,
+    "beforeOutputSha256": "47cf1fbdb2ad89cba46c1e6de26c34907ab3d54a0568ca91e078f420608a2c23",
+    "afterOutputSha256": "47cf1fbdb2ad89cba46c1e6de26c34907ab3d54a0568ca91e078f420608a2c23"
+  },
+  {
+    "id": "C-received-before-stop",
+    "expected": {
+      "status": "CONSISTENT",
+      "exit": 0,
+      "r": "PASS",
+      "u": "FAIL",
+      "codes": []
+    },
+    "inputSha256": "ac02602943ccf943277c8ed647a23d9dda83147390e0484a315c6378e43f9de4",
+    "beforeExit": 0,
+    "afterExit": 0,
+    "beforeAfterJSONIdentical": true,
+    "beforeOutputSha256": "6e7646d0f2b7af10d551d840d5013e950b642f7feec74340e67858959d1349e2",
+    "afterOutputSha256": "6e7646d0f2b7af10d551d840d5013e950b642f7feec74340e67858959d1349e2"
+  },
+  {
+    "id": "C-received-after-stop",
+    "expected": {
+      "status": "CONSISTENT",
+      "exit": 0,
+      "r": "FAIL",
+      "u": "UNKNOWN",
+      "codes": []
+    },
+    "inputSha256": "09045cb75e1e0d6b04ac137fb54f8a73c5d195f1f6cf0546669fb7ed8ec68d90",
+    "beforeExit": 0,
+    "afterExit": 0,
+    "beforeAfterJSONIdentical": true,
+    "beforeOutputSha256": "29a64a26f4cbb1187fd1b139ef7d0ffb93d3801b6ba6556c5590aadcdb5a0cf4",
+    "afterOutputSha256": "29a64a26f4cbb1187fd1b139ef7d0ffb93d3801b6ba6556c5590aadcdb5a0cf4"
+  },
+  {
+    "id": "C-complete-other-transaction",
+    "expected": {
+      "status": "INCONSISTENT",
+      "exit": 1,
+      "r": "UNKNOWN",
+      "u": "UNKNOWN",
+      "codes": [
+        "REFERENCE_MISMATCH"
+      ]
+    },
+    "inputSha256": "aef04cbc0628def19e231e618fcfa9645dda703101e7fff329955f0788bec6f8",
+    "beforeExit": 1,
+    "afterExit": 1,
+    "beforeAfterJSONIdentical": true,
+    "beforeOutputSha256": "ad13fbcace0dd73a41ea686c373095ca98d11c5723ad92ef89b1cc7ec5a72317",
+    "afterOutputSha256": "ad13fbcace0dd73a41ea686c373095ca98d11c5723ad92ef89b1cc7ec5a72317"
+  },
+  {
+    "id": "C-send-other-worker",
+    "expected": {
+      "status": "INCONSISTENT",
+      "exit": 1,
+      "r": "UNKNOWN",
+      "u": "UNKNOWN",
+      "codes": [
+        "REFERENCE_MISMATCH"
+      ]
+    },
+    "inputSha256": "809138718f83c16d1ceec829e6c29528a5e700aaf3216d438e325755cd29b337",
+    "beforeExit": 1,
+    "afterExit": 1,
+    "beforeAfterJSONIdentical": true,
+    "beforeOutputSha256": "dc7c7deae7ae35725de4fc7eb8c5bb8da157448b9605bec91e29fbeca15c681b",
+    "afterOutputSha256": "dc7c7deae7ae35725de4fc7eb8c5bb8da157448b9605bec91e29fbeca15c681b"
+  },
+  {
+    "id": "C-incomparable-sources",
+    "expected": {
+      "status": "INCOMPLETE",
+      "exit": 1,
+      "r": "UNKNOWN",
+      "u": "UNKNOWN",
+      "codes": [
+        "COMPLETE_SEND_MISSING"
+      ]
+    },
+    "inputSha256": "f4726f8dbeea99125de8fdb5c517594a3f62c509738747f512a61cdb91976900",
+    "beforeExit": 1,
+    "afterExit": 1,
+    "beforeAfterJSONIdentical": true,
+    "beforeOutputSha256": "36b9dd221725acbc91a6a7c5a32d39e473167385c7bc22c404b22c997d9be680",
+    "afterOutputSha256": "36b9dd221725acbc91a6a7c5a32d39e473167385c7bc22c404b22c997d9be680"
+  },
+  {
+    "id": "C-local-order-reversed",
+    "expected": {
+      "status": "INCONSISTENT",
+      "exit": 1,
+      "r": "UNKNOWN",
+      "u": "UNKNOWN",
+      "codes": [
+        "SOURCE_ORDER_REVERSED"
+      ]
+    },
+    "inputSha256": "20fd76b78e1e49983e5f23dbb92154481fd3d78c9cf8c48290d15974b4363988",
+    "beforeExit": 1,
+    "afterExit": 1,
+    "beforeAfterJSONIdentical": true,
+    "beforeOutputSha256": "02051c32e8f7b66c184ea6cdd8feb25b627ee3c08181bae3224a6a0068d63fcc",
+    "afterOutputSha256": "02051c32e8f7b66c184ea6cdd8feb25b627ee3c08181bae3224a6a0068d63fcc"
+  },
+  {
+    "id": "C-array-reversed",
+    "expected": {
+      "status": "CONSISTENT",
+      "exit": 0,
+      "r": "PASS",
+      "u": "FAIL",
+      "codes": []
+    },
+    "inputSha256": "c7f5be6ab3be3953f0f96f84e23e4255456f56f127bd3118c0cc1a0f12f44da8",
+    "beforeExit": 0,
+    "afterExit": 0,
+    "beforeAfterJSONIdentical": true,
+    "beforeOutputSha256": "56b93e1860f2a369904bbb5f134d50a40d12e2530b200e3588af794c902ec603",
+    "afterOutputSha256": "56b93e1860f2a369904bbb5f134d50a40d12e2530b200e3588af794c902ec603"
+  },
+  {
+    "id": "C-clocks-exchanged",
+    "expected": {
+      "status": "CONSISTENT",
+      "exit": 0,
+      "r": "PASS",
+      "u": "FAIL",
+      "codes": []
+    },
+    "inputSha256": "f4fff98577bc8e2244c3a89454b979c9d46fdb126fd981b1142b2ebae0084f22",
+    "beforeExit": 0,
+    "afterExit": 0,
+    "beforeAfterJSONIdentical": true,
+    "beforeOutputSha256": "7b98b998c79d33a7c2c97ee4168910adae178238b7db048457bea7d96beec2b5",
+    "afterOutputSha256": "7b98b998c79d33a7c2c97ee4168910adae178238b7db048457bea7d96beec2b5"
+  },
+  {
+    "id": "C-stop-prerequisite-missing",
+    "expected": {
+      "status": "INCOMPLETE",
+      "exit": 1,
+      "r": "UNKNOWN",
+      "u": "UNKNOWN",
+      "codes": [
+        "EVENT_MISSING"
+      ]
+    },
+    "inputSha256": "437f3c652472c865d9de26dab04a7d45b7600c1b086de7f78de2b29bf5fe7df2",
+    "beforeExit": 1,
+    "afterExit": 1,
+    "beforeAfterJSONIdentical": true,
+    "beforeOutputSha256": "501bfc2d451301c83aa4bba6e1fd289e75bbf30eb6d59a45120f06b0ee4aec64",
+    "afterOutputSha256": "501bfc2d451301c83aa4bba6e1fd289e75bbf30eb6d59a45120f06b0ee4aec64"
+  },
+  {
+    "id": "C-worker-event-in-main-source",
+    "expected": {
+      "status": "INVALID_SCHEMA",
+      "exit": 2,
+      "r": null,
+      "u": null,
+      "codes": [
+        "SCHEMA"
+      ]
+    },
+    "inputSha256": "f11a6a790099f072af07b98b2f45f15dde6f644ba6c944d4075d00651e753cf0",
+    "beforeExit": 2,
+    "afterExit": 2,
+    "beforeAfterJSONIdentical": true,
+    "beforeOutputSha256": "f0924ec9b806027842c2324743b378db3daa82ecf7138853fb8857c217706afe",
+    "afterOutputSha256": "f0924ec9b806027842c2324743b378db3daa82ecf7138853fb8857c217706afe"
+  },
+  {
+    "id": "C-main-event-in-worker-source",
+    "expected": {
+      "status": "INVALID_SCHEMA",
+      "exit": 2,
+      "r": null,
+      "u": null,
+      "codes": [
+        "SCHEMA"
+      ]
+    },
+    "inputSha256": "5ab6b27bb822fa51a568cd2bd946092a0304ead624221534655445d22447364f",
+    "beforeExit": 2,
+    "afterExit": 2,
+    "beforeAfterJSONIdentical": true,
+    "beforeOutputSha256": "845866065f3e33b6ab81e575c66fd72498ce9164aa4160485f7375a203759908",
+    "afterOutputSha256": "845866065f3e33b6ab81e575c66fd72498ce9164aa4160485f7375a203759908"
+  },
+  {
+    "id": "D-same-worker-two-transactions",
+    "expected": {
+      "status": "CONSISTENT",
+      "exit": 0,
+      "r": "PASS",
+      "u": "FAIL",
+      "codes": []
+    },
+    "inputSha256": "79b4e9f081095605b93f00747d6bbcb0a68777f4de1b183133f2846d229fa657",
+    "beforeExit": 0,
+    "afterExit": 0,
+    "beforeAfterJSONIdentical": true,
+    "beforeOutputSha256": "e7a14ffe1190ae83fc19ce56851857236b5ef766da051ea4356a026a3295c969",
+    "afterOutputSha256": "e7a14ffe1190ae83fc19ce56851857236b5ef766da051ea4356a026a3295c969"
+  },
+  {
+    "id": "D-two-workers-shared-main",
+    "expected": {
+      "status": "CONSISTENT",
+      "exit": 0,
+      "r": "PASS",
+      "u": "FAIL",
+      "codes": []
+    },
+    "inputSha256": "41a29745bdeceb36145972f6a1620f3012d9510d906f088af7c84c42aa34fffe",
+    "beforeExit": 0,
+    "afterExit": 0,
+    "beforeAfterJSONIdentical": true,
+    "beforeOutputSha256": "59c5be320be2ac5ac414dbad8e21c03097625a8f9f8c9bc20a2446287853e9cd",
+    "afterOutputSha256": "59c5be320be2ac5ac414dbad8e21c03097625a8f9f8c9bc20a2446287853e9cd"
+  },
+  {
+    "id": "D-event-id-reused",
+    "expected": {
+      "status": "INCONSISTENT",
+      "exit": 1,
+      "r": "UNKNOWN",
+      "u": "UNKNOWN",
+      "codes": [
+        "DUPLICATE_EVENT_ID"
+      ]
+    },
+    "inputSha256": "8fcd5a1eb47037cdc95d7855650ef8fd0b37897f825769236a213180b044fe52",
+    "beforeExit": 1,
+    "afterExit": 1,
+    "beforeAfterJSONIdentical": true,
+    "beforeOutputSha256": "c8c4c88c048a4c936342908d1101a2501ce6931b5f86c3b29e897d6e45ac3855",
+    "afterOutputSha256": "c8c4c88c048a4c936342908d1101a2501ce6931b5f86c3b29e897d6e45ac3855"
+  },
+  {
+    "id": "D-complete-double-reference",
+    "expected": {
+      "status": "INCONSISTENT",
+      "exit": 1,
+      "r": "UNKNOWN",
+      "u": "UNKNOWN",
+      "codes": [
+        "DUPLICATE_REFERENCE"
+      ]
+    },
+    "inputSha256": "80986ac0f18e05690f3e3b85376b1d3bfbe00cec1add8d1dc2e6f66c52b8e6f4",
+    "beforeExit": 1,
+    "afterExit": 1,
+    "beforeAfterJSONIdentical": true,
+    "beforeOutputSha256": "da9aadcfcd95863285459d1ee2e371fc4b1ca89ca16d9244c8849fde9a277245",
+    "afterOutputSha256": "da9aadcfcd95863285459d1ee2e371fc4b1ca89ca16d9244c8849fde9a277245"
+  },
+  {
+    "id": "D-send-double-receipt",
+    "expected": {
+      "status": "INCONSISTENT",
+      "exit": 1,
+      "r": "UNKNOWN",
+      "u": "UNKNOWN",
+      "codes": [
+        "DUPLICATE_REFERENCE"
+      ]
+    },
+    "inputSha256": "c701f1d2e15e149db5265a1246b3ba7bf4bf2b230490de5582fdfb1f4106238d",
+    "beforeExit": 1,
+    "afterExit": 1,
+    "beforeAfterJSONIdentical": true,
+    "beforeOutputSha256": "96b240558ade061b6959f53a1e6cbbeaec2f4d7e8cbbbb1aa2a528d25646dd3b",
+    "afterOutputSha256": "96b240558ade061b6959f53a1e6cbbeaec2f4d7e8cbbbb1aa2a528d25646dd3b"
+  },
+  {
+    "id": "D-foreign-workerId",
+    "expected": {
+      "status": "INCONSISTENT",
+      "exit": 1,
+      "r": "UNKNOWN",
+      "u": "UNKNOWN",
+      "codes": [
+        "FOREIGN_IDENTITY"
+      ]
+    },
+    "inputSha256": "325a2f5a7c15b436350f424684c2d9f34d7ad9e4a280a5d25e8a3c9f05716298",
+    "beforeExit": 1,
+    "afterExit": 1,
+    "beforeAfterJSONIdentical": true,
+    "beforeOutputSha256": "1369efeb0888ae1a42a99bebdc9ed43c5c847880d4ea36a706b77b0199409060",
+    "afterOutputSha256": "1369efeb0888ae1a42a99bebdc9ed43c5c847880d4ea36a706b77b0199409060"
+  },
+  {
+    "id": "D-foreign-connectionId",
+    "expected": {
+      "status": "INCONSISTENT",
+      "exit": 1,
+      "r": "UNKNOWN",
+      "u": "UNKNOWN",
+      "codes": [
+        "FOREIGN_IDENTITY"
+      ]
+    },
+    "inputSha256": "902e296c8c0bd96e3ff2622c6f79da42301770278d10975b270ffc5f876fff42",
+    "beforeExit": 1,
+    "afterExit": 1,
+    "beforeAfterJSONIdentical": true,
+    "beforeOutputSha256": "7fd64c5aa2172a12e8e0202278c0162226bd10e8d93fcd093b0071eb82e22fe8",
+    "afterOutputSha256": "7fd64c5aa2172a12e8e0202278c0162226bd10e8d93fcd093b0071eb82e22fe8"
+  },
+  {
+    "id": "D-foreign-iteration",
+    "expected": {
+      "status": "INCONSISTENT",
+      "exit": 1,
+      "r": "UNKNOWN",
+      "u": "UNKNOWN",
+      "codes": [
+        "FOREIGN_IDENTITY"
+      ]
+    },
+    "inputSha256": "8c54498e332cfe6ea76914a22f67b3abcbf36ec6a3a83c83f9d738c4e83878c0",
+    "beforeExit": 1,
+    "afterExit": 1,
+    "beforeAfterJSONIdentical": true,
+    "beforeOutputSha256": "097a9e82c0a7e5cd76c44a25209bbbdfb32132753d0ec793c98f243f16b80f2d",
+    "afterOutputSha256": "097a9e82c0a7e5cd76c44a25209bbbdfb32132753d0ec793c98f243f16b80f2d"
+  }
+]

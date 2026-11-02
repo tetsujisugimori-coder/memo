@@ -1,0 +1,24 @@
+{
+  "expected": false,
+  "independentValid": false,
+  "builtinValid": false,
+  "independentErrors": [
+    {
+      "instancePath": "/input/actualSha256",
+      "schemaPath": "#/properties/input/properties/actualSha256/pattern",
+      "keyword": "pattern",
+      "params": {
+        "pattern": "^[0-9a-f]{64}(?![\\s\\S])"
+      },
+      "message": "must match pattern \"^[0-9a-f]{64}(?![\\s\\S])\""
+    }
+  ],
+  "builtinErrors": [
+    {
+      "code": "SCHEMA",
+      "subject": "/input/actualSha256",
+      "detail": "invalid identifier/hash"
+    }
+  ],
+  "schemaSha256": "6547cd1f00a03e7d510d0e3c9e7de6d1839ea68da71c6e0290b275c405ffa9ca"
+}

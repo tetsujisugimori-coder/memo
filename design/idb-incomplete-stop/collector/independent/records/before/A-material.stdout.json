@@ -1,0 +1,39 @@
+{
+  "collectorSchemaVersion": 1,
+  "scope": "OFFLINE_SYNTHETIC_ONLY",
+  "evidenceStatus": "INVALID_SCHEMA",
+  "exitCode": 2,
+  "input": {
+    "materialId": "invalid material",
+    "actualSha256": "ac02602943ccf943277c8ed647a23d9dda83147390e0484a315c6378e43f9de4",
+    "expectedSha256": "ac02602943ccf943277c8ed647a23d9dda83147390e0484a315c6378e43f9de4",
+    "semanticSha256": null
+  },
+  "relations": [],
+  "orderRelations": [],
+  "missingEvidence": [],
+  "contradictions": [],
+  "validationErrors": [
+    {
+      "code": "INPUT_DESCRIPTOR",
+      "subject": "/input",
+      "detail": "material ID and external lowercase SHA-256 are required"
+    }
+  ],
+  "reasons": [
+    "INPUT_DESCRIPTOR"
+  ],
+  "unknownReasons": [],
+  "transactions": [],
+  "realExperiment": "NOT_RUN",
+  "executionAuthorization": "NOT_GRANTED",
+  "startCondition": "BLOCKED",
+  "conditionU": "NOT_RUN",
+  "productionWorker": "HOLD",
+  "hypotheses": {
+    "H1": "UNKNOWN",
+    "H2": "UNKNOWN",
+    "H3": "UNKNOWN",
+    "H4": "PARTIAL"
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "status": 1,
+  "signal": null,
+  "error": null,
+  "inputSha256": "809138718f83c16d1ceec829e6c29528a5e700aaf3216d438e325755cd29b337",
+  "expected": {
+    "status": "INCONSISTENT",
+    "exit": 1,
+    "r": "UNKNOWN",
+    "u": "UNKNOWN",
+    "codes": [
+      "REFERENCE_MISMATCH"
+    ]
+  }
+}
