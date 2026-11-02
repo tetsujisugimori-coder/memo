@@ -1,0 +1,35 @@
+{
+  "mode": "none",
+  "file": "C:\\Users\\tetsu\\Documents\\Codex\\メモ帳\\work\\idb-evidence-collector-u1\\design\\idb-incomplete-stop\\collector\\diagnostic-fix\\cli-error\\records\\before\\inputs\\oversize.json",
+  "model": "JS fs API fault injection; not real OS EIO; hash is not mocked",
+  "events": [
+    {
+      "type": "open.call"
+    },
+    {
+      "type": "open.return",
+      "fd": 3
+    },
+    {
+      "type": "read.call",
+      "index": 0,
+      "offset": 0,
+      "requestedLength": 2097153
+    },
+    {
+      "type": "read.return",
+      "index": 0,
+      "bytes": 2097153
+    },
+    {
+      "type": "close.call"
+    },
+    {
+      "type": "close.real-completed"
+    },
+    {
+      "type": "close.return"
+    }
+  ],
+  "processExitCode": 2
+}

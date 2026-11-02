@@ -1,0 +1,17 @@
+{
+  "mode": "none",
+  "file": "C:\\Users\\tetsu\\Documents\\Codex\\メモ帳\\work\\idb-evidence-collector-u1\\design\\idb-incomplete-stop\\collector\\diagnostic-fix\\cli-error\\fixtures\\intentionally-absent.json",
+  "model": "JS fs API fault injection; not real OS EIO; hash is not mocked",
+  "events": [
+    {
+      "type": "open.call"
+    },
+    {
+      "type": "open.throw",
+      "injected": false,
+      "code": "ENOENT",
+      "messagePrefix": "ENOENT: no such file or directory, open 'C:\\Users\\tetsu\\Documents\\Codex\\メモ帳\\work"
+    }
+  ],
+  "processExitCode": 2
+}

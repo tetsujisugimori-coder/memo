@@ -1,0 +1,37 @@
+{
+  "expected": {
+    "status": "INVALID_SCHEMA",
+    "exitCode": 2,
+    "ioFailure": true,
+    "code": "CLI_INPUT",
+    "errorPrefixes": [
+      "EIO injected close failure"
+    ],
+    "cliDiagnosticCount": 1,
+    "truncation": false,
+    "rawHash": null,
+    "conditionR": null,
+    "conditionU": null
+  },
+  "faultMode": "close",
+  "fixtureSha256": "0ac1843651c9b0ed2d2e142ccb1ae382a13b976a21adeba27126bbef73ac49aa",
+  "fixtureBytes": 2962,
+  "externalSha256": "0ac1843651c9b0ed2d2e142ccb1ae382a13b976a21adeba27126bbef73ac49aa",
+  "status": 0,
+  "signal": null,
+  "processError": null,
+  "parseError": null,
+  "independentSchemaValid": true,
+  "schemaErrors": null,
+  "stdoutSha256": "d0bc770b2ac8ca6ab2c350ad11d916b597dff1f7a66dc3f0ff83162360d6d035",
+  "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "actualStatus": "CONSISTENT",
+  "actualExitCode": 0,
+  "actualSha256": null,
+  "semanticSha256": "b178af6745d35edff3e8605be0f54bbe4f3692dcc47f53aa1207aef5da1d0e10",
+  "transactionCount": 1,
+  "observedR": "PASS",
+  "observedU": "FAIL",
+  "readBytes": 2962,
+  "traceExitCode": 0
+}

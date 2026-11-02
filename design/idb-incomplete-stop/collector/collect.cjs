@@ -286,22 +286,33 @@ function collectEvidence(bytes, options = {}) {
 
 function runCli(args) {
   const fs = require('node:fs');
-  let bytes = Buffer.alloc(0), failure = null;
+  let bytes = Buffer.alloc(0);
+  const diagnostics = diagnosticCollector();
   try {
     if (args.length !== 3) throw new Error('usage: node collect.cjs INPUT.json MATERIAL_ID EXPECTED_SHA256');
     const fd = fs.openSync(args[0], 'r');
     try { const buffer = Buffer.alloc(MAX_BYTES + 1); let length = 0, n;
       while (length < buffer.length && (n = fs.readSync(fd, buffer, length, buffer.length - length, null))) length += n;
       bytes = buffer.subarray(0, length);
-    } finally { fs.closeSync(fd); }
-  } catch (e) { failure = e.message; }
-  const result = collectEvidence(bytes, { materialId: args[1], expectedSha256: args[2] });
-  if (failure) {
-    result.input.actualSha256 = null;
-    const diagnostics = diagnosticCollector(); diagnostics.add('CLI_INPUT', '', failure);
-    result.validationErrors = diagnostics.finish();
-    result.reasons = [...diagnostics.codes].sort();
-  }
+    } catch (e) { diagnostics.add('CLI_INPUT', '', e.message); }
+    finally {
+      try { fs.closeSync(fd); } catch (e) { diagnostics.add('CLI_INPUT', '', e.message); }
+    }
+  } catch (e) { diagnostics.add('CLI_INPUT', '', e.message); }
+  let result;
+  if (diagnostics.invalid) {
+    // Failed CLI acquisition cannot supply adopted bytes, hashes, links or R/U assessments.
+    const validationErrors = diagnostics.finish();
+    result = {
+      collectorSchemaVersion: 1, scope: 'OFFLINE_SYNTHETIC_ONLY', evidenceStatus: 'INVALID_SCHEMA', exitCode: 2,
+      input: { materialId: typeof args[1] === 'string' ? args[1].slice(0, 128) : '', actualSha256: null,
+        expectedSha256: validHash(args[2]) ? args[2] : null, semanticSha256: null },
+      relations: [], orderRelations: [], missingEvidence: [], contradictions: [], validationErrors,
+      reasons: [...diagnostics.codes].sort(), unknownReasons: [], transactions: [],
+      realExperiment: 'NOT_RUN', executionAuthorization: 'NOT_GRANTED', startCondition: 'BLOCKED', conditionU: 'NOT_RUN', productionWorker: 'HOLD',
+      hypotheses: { H1: 'UNKNOWN', H2: 'UNKNOWN', H3: 'UNKNOWN', H4: 'PARTIAL' }
+    };
+  } else result = collectEvidence(bytes, { materialId: args[1], expectedSha256: args[2] });
   if (bytes.length > MAX_BYTES) result.input.actualSha256 = null; // A prefix is not the hash of the whole file.
   process.stdout.write(JSON.stringify(result, null, 2) + '\n');
   process.exitCode = result.exitCode;

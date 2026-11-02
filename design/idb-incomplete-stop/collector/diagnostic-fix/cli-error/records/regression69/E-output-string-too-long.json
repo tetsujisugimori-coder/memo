@@ -1,0 +1,24 @@
+{
+  "expected": false,
+  "independentValid": false,
+  "builtinValid": false,
+  "independentErrors": [
+    {
+      "instancePath": "/reasons/0",
+      "schemaPath": "#/properties/reasons/items/maxLength",
+      "keyword": "maxLength",
+      "params": {
+        "limit": 8192
+      },
+      "message": "must NOT have more than 8192 characters"
+    }
+  ],
+  "builtinErrors": [
+    {
+      "code": "SCHEMA",
+      "subject": "/reasons/0",
+      "detail": "invalid length"
+    }
+  ],
+  "schemaSha256": "6547cd1f00a03e7d510d0e3c9e7de6d1839ea68da71c6e0290b275c405ffa9ca"
+}

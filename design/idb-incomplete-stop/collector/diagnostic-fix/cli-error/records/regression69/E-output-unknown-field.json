@@ -1,0 +1,24 @@
+{
+  "expected": false,
+  "independentValid": false,
+  "builtinValid": false,
+  "independentErrors": [
+    {
+      "instancePath": "",
+      "schemaPath": "#/additionalProperties",
+      "keyword": "additionalProperties",
+      "params": {
+        "additionalProperty": "granted"
+      },
+      "message": "must NOT have additional properties"
+    }
+  ],
+  "builtinErrors": [
+    {
+      "code": "SCHEMA",
+      "subject": "/granted",
+      "detail": "unexpected field"
+    }
+  ],
+  "schemaSha256": "6547cd1f00a03e7d510d0e3c9e7de6d1839ea68da71c6e0290b275c405ffa9ca"
+}

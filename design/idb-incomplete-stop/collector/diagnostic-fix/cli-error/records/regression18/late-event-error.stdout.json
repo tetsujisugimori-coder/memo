@@ -1,0 +1,1315 @@
+{
+  "collectorSchemaVersion": 1,
+  "scope": "OFFLINE_SYNTHETIC_ONLY",
+  "evidenceStatus": "INVALID_SCHEMA",
+  "exitCode": 2,
+  "input": {
+    "materialId": "m",
+    "actualSha256": "10389823a435f76690021cc9f8f9d5e3f6ea49b54af10a24863e80839cd5c5fb",
+    "expectedSha256": "10389823a435f76690021cc9f8f9d5e3f6ea49b54af10a24863e80839cd5c5fb",
+    "semanticSha256": null
+  },
+  "relations": [],
+  "orderRelations": [],
+  "missingEvidence": [],
+  "contradictions": [],
+  "validationErrors": [
+    {
+      "code": "DIAGNOSTICS_TRUNCATED",
+      "subject": "",
+      "detail": "diagnostics omitted=246; fields shortened=0; reason codes=SCHEMA"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra0",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra1",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra10",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra100",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra101",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra102",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra103",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra104",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra105",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra106",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra107",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra108",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra109",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra11",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra110",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra111",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra112",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra113",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra114",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra115",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra116",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra117",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra118",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra119",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra12",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra120",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra121",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra122",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra123",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra124",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra125",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra126",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra127",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra128",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra129",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra13",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra130",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra131",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra132",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra133",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra134",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra135",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra136",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra137",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra138",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra139",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra14",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra140",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra141",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra142",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra143",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra144",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra145",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra146",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra147",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra148",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra149",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra15",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra150",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra151",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra152",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra153",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra154",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra155",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra156",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra157",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra158",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra159",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra16",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra160",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra161",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra162",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra163",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra164",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra165",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra166",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra167",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra168",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra169",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra17",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra170",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra171",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra172",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra173",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra174",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra175",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra176",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra177",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra178",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra179",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra18",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra180",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra181",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra182",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra183",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra184",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra185",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra186",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra187",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra188",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra189",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra19",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra190",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra191",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra192",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra193",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra194",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra195",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra196",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra197",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra198",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra199",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra2",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra20",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra200",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra201",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra202",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra203",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra204",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra205",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra206",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra207",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra208",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra209",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra21",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra210",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra211",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra212",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra213",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra214",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra215",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra216",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra217",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra218",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra219",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra22",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra220",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra221",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra222",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra223",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra224",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra225",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra226",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra227",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra228",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra229",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra23",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra230",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra231",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra232",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra233",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra234",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra235",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra236",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra237",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra238",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra239",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra24",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra240",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra241",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra242",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra243",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra244",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra245",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra246",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra247",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra248",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra249",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra25",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra250",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra251",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra252",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra253",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra254",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra26",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra27",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra28",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra29",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra3",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra30",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra31",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra32",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra33",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra34",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra35",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra36",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra37",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra38",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra39",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra4",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra40",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra41",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra42",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra43",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra44",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra45",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra46",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra47",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra48",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra49",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra5",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra50",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra51",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra52",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra53",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra54",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra55",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra56",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra57",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra58",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra59",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra6",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra60",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra61",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra62",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra63",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra64",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra65",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra66",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra67",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra68",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra69",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra7",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra70",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra71",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra72",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra73",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra74",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra75",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra76",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra77",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra78",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra79",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra8",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra80",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra81",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra82",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra83",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra84",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra85",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra86",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra87",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra88",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra89",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra9",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra90",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra91",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra92",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra93",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra94",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra95",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra96",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra97",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra98",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/events/0/extra99",
+      "detail": "unexpected field"
+    }
+  ],
+  "reasons": [
+    "DIAGNOSTICS_TRUNCATED",
+    "SCHEMA"
+  ],
+  "unknownReasons": [],
+  "transactions": [],
+  "realExperiment": "NOT_RUN",
+  "executionAuthorization": "NOT_GRANTED",
+  "startCondition": "BLOCKED",
+  "conditionU": "NOT_RUN",
+  "productionWorker": "HOLD",
+  "hypotheses": {
+    "H1": "UNKNOWN",
+    "H2": "UNKNOWN",
+    "H3": "UNKNOWN",
+    "H4": "PARTIAL"
+  }
+}

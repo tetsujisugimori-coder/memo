@@ -1,0 +1,41 @@
+{
+  "mode": "read-long-close",
+  "file": "C:\\Users\\tetsu\\Documents\\Codex\\メモ帳\\work\\idb-evidence-collector-u1\\design\\idb-incomplete-stop\\collector\\diagnostic-fix\\cli-error\\fixtures\\normal.json",
+  "model": "JS fs API fault injection; not real OS EIO; hash is not mocked",
+  "events": [
+    {
+      "type": "open.call"
+    },
+    {
+      "type": "open.return",
+      "fd": 3
+    },
+    {
+      "type": "read.call",
+      "index": 0,
+      "offset": 0,
+      "requestedLength": 2097153
+    },
+    {
+      "type": "read.throw",
+      "code": "EIO",
+      "messagePrefix": "EIO injected read failure",
+      "messageCodePoints": 25,
+      "injected": true
+    },
+    {
+      "type": "close.call"
+    },
+    {
+      "type": "close.real-completed"
+    },
+    {
+      "type": "close.throw",
+      "code": "EIO",
+      "messagePrefix": "EIO injected close failure 🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂\ud83d",
+      "messageCodePoints": 9027,
+      "injected": true
+    }
+  ],
+  "processExitCode": 2
+}

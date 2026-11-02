@@ -1,0 +1,279 @@
+{
+  "collectorSchemaVersion": 1,
+  "scope": "OFFLINE_SYNTHETIC_ONLY",
+  "evidenceStatus": "INCONSISTENT",
+  "exitCode": 1,
+  "input": {
+    "materialId": "independent-u1",
+    "actualSha256": "5cd50f007a171a39e44757fd1206350386930373c093d0307fd655e636fd45cd",
+    "expectedSha256": "5cd50f007a171a39e44757fd1206350386930373c093d0307fd655e636fd45cd",
+    "semanticSha256": "ac4d3398e9230de912e4a33ec16d27a865832344d0e717118246e6e7c8254c4a"
+  },
+  "relations": [
+    {
+      "from": "a-complete",
+      "to": "a-complete-send",
+      "kind": "complete-send"
+    },
+    {
+      "from": "a-complete-send",
+      "to": "a-complete-receive",
+      "kind": "send-receive"
+    },
+    {
+      "from": "a-send",
+      "to": "a-receive",
+      "kind": "send-receive"
+    },
+    {
+      "from": "b-complete",
+      "to": "b-complete-send",
+      "kind": "complete-send"
+    },
+    {
+      "from": "b-complete-send",
+      "to": "b-complete-receive",
+      "kind": "send-receive"
+    },
+    {
+      "from": "b-send",
+      "to": "b-receive",
+      "kind": "send-receive"
+    }
+  ],
+  "orderRelations": [
+    {
+      "before": "a-identified",
+      "after": "a-accepted",
+      "basis": "source-sequence"
+    },
+    {
+      "before": "a-stop",
+      "after": "a-call",
+      "basis": "source-sequence"
+    },
+    {
+      "before": "a-send",
+      "after": "a-complete",
+      "basis": "source-sequence"
+    },
+    {
+      "before": "a-complete-send",
+      "after": "a-complete-receive",
+      "basis": "explicit-message"
+    },
+    {
+      "before": "a-receive",
+      "after": "a-complete-receive",
+      "basis": "source-sequence"
+    },
+    {
+      "before": "a-complete",
+      "after": "a-complete-send",
+      "basis": "complete-reference"
+    },
+    {
+      "before": "a-complete",
+      "after": "a-complete-send",
+      "basis": "source-sequence"
+    },
+    {
+      "before": "a-send",
+      "after": "a-receive",
+      "basis": "explicit-message"
+    },
+    {
+      "before": "a-call",
+      "after": "a-return",
+      "basis": "source-sequence"
+    },
+    {
+      "before": "a-accepted",
+      "after": "a-send",
+      "basis": "source-sequence"
+    },
+    {
+      "before": "a-complete-receive",
+      "after": "a-stop",
+      "basis": "source-sequence"
+    },
+    {
+      "before": "b-identified",
+      "after": "b-accepted",
+      "basis": "source-sequence"
+    },
+    {
+      "before": "b-stop",
+      "after": "b-call",
+      "basis": "source-sequence"
+    },
+    {
+      "before": "b-send",
+      "after": "b-complete",
+      "basis": "source-sequence"
+    },
+    {
+      "before": "b-complete-send",
+      "after": "b-complete-receive",
+      "basis": "explicit-message"
+    },
+    {
+      "before": "b-receive",
+      "after": "b-complete-receive",
+      "basis": "source-sequence"
+    },
+    {
+      "before": "b-complete",
+      "after": "b-complete-send",
+      "basis": "complete-reference"
+    },
+    {
+      "before": "b-complete",
+      "after": "b-complete-send",
+      "basis": "source-sequence"
+    },
+    {
+      "before": "b-send",
+      "after": "b-receive",
+      "basis": "explicit-message"
+    },
+    {
+      "before": "a-return",
+      "after": "b-receive",
+      "basis": "source-sequence"
+    },
+    {
+      "before": "b-call",
+      "after": "b-return",
+      "basis": "source-sequence"
+    },
+    {
+      "before": "b-accepted",
+      "after": "b-send",
+      "basis": "source-sequence"
+    },
+    {
+      "before": "b-complete-receive",
+      "after": "b-stop",
+      "basis": "source-sequence"
+    }
+  ],
+  "missingEvidence": [
+    {
+      "code": "ACTUAL_STOP_BOUNDARY_MISSING",
+      "subject": "{\"connectionId\":\"alpha-connection\",\"dbName\":\"negative-synthetic-db\",\"iteration\":1,\"runId\":\"negative-session\",\"transactionId\":\"transaction\",\"workerId\":\"alpha\"}",
+      "detail": "terminate return is not actual stop",
+      "scope": "FUTURE_WITNESS"
+    },
+    {
+      "code": "ACTUAL_STOP_BOUNDARY_MISSING",
+      "subject": "{\"connectionId\":\"alpha-connection\",\"dbName\":\"negative-synthetic-db\",\"iteration\":2,\"runId\":\"negative-session\",\"transactionId\":\"second-transaction\",\"workerId\":\"alpha\"}",
+      "detail": "terminate return is not actual stop",
+      "scope": "FUTURE_WITNESS"
+    },
+    {
+      "code": "INTERNAL_TERMINAL_UNKNOWN",
+      "subject": "{\"connectionId\":\"alpha-connection\",\"dbName\":\"negative-synthetic-db\",\"iteration\":1,\"runId\":\"negative-session\",\"transactionId\":\"transaction\",\"workerId\":\"alpha\"}",
+      "detail": "no logical-IDB commit/abort result; listener delivery is a different boundary",
+      "scope": "FUTURE_WITNESS"
+    },
+    {
+      "code": "INTERNAL_TERMINAL_UNKNOWN",
+      "subject": "{\"connectionId\":\"alpha-connection\",\"dbName\":\"negative-synthetic-db\",\"iteration\":2,\"runId\":\"negative-session\",\"transactionId\":\"second-transaction\",\"workerId\":\"alpha\"}",
+      "detail": "no logical-IDB commit/abort result; listener delivery is a different boundary",
+      "scope": "FUTURE_WITNESS"
+    },
+    {
+      "code": "NORMAL_UNTERMINATED_WITNESS_MISSING",
+      "subject": "{\"connectionId\":\"alpha-connection\",\"dbName\":\"negative-synthetic-db\",\"iteration\":1,\"runId\":\"negative-session\",\"transactionId\":\"transaction\",\"workerId\":\"alpha\"}",
+      "detail": "independent normal interval and internal ID/build binding unavailable",
+      "scope": "FUTURE_WITNESS"
+    },
+    {
+      "code": "NORMAL_UNTERMINATED_WITNESS_MISSING",
+      "subject": "{\"connectionId\":\"alpha-connection\",\"dbName\":\"negative-synthetic-db\",\"iteration\":2,\"runId\":\"negative-session\",\"transactionId\":\"second-transaction\",\"workerId\":\"alpha\"}",
+      "detail": "independent normal interval and internal ID/build binding unavailable",
+      "scope": "FUTURE_WITNESS"
+    },
+    {
+      "code": "SOURCE_SEQUENCE_GAP",
+      "subject": "worker:alpha",
+      "detail": "1 gap ranges: 10-10",
+      "scope": "PUBLIC_CHAIN"
+    }
+  ],
+  "contradictions": [
+    {
+      "code": "SEQUENCE_COLLISION",
+      "subject": "b-identified",
+      "detail": "same source sequence reused"
+    }
+  ],
+  "validationErrors": [],
+  "reasons": [
+    "SEQUENCE_COLLISION",
+    "SOURCE_SEQUENCE_GAP"
+  ],
+  "unknownReasons": [
+    "ACTUAL_STOP_BOUNDARY_MISSING",
+    "INTERNAL_TERMINAL_UNKNOWN",
+    "NORMAL_UNTERMINATED_WITNESS_MISSING",
+    "second-transaction:R:INVALID_TRACE",
+    "second-transaction:U:INVALID_TRACE",
+    "transaction:R:INVALID_TRACE",
+    "transaction:U:INVALID_TRACE"
+  ],
+  "transactions": [
+    {
+      "identity": {
+        "runId": "negative-session",
+        "dbName": "negative-synthetic-db",
+        "workerId": "alpha",
+        "connectionId": "alpha-connection",
+        "transactionId": "transaction",
+        "iteration": 1
+      },
+      "assessment": {
+        "validTrace": "FAIL",
+        "conditionR": "UNKNOWN",
+        "conditionU": "UNKNOWN",
+        "conditionReasonR": "INVALID_TRACE",
+        "conditionReasonU": "INVALID_TRACE",
+        "workerObservation": "PASS",
+        "connectionClosed": "UNKNOWN",
+        "physicalRelease": "UNKNOWN"
+      }
+    },
+    {
+      "identity": {
+        "runId": "negative-session",
+        "dbName": "negative-synthetic-db",
+        "workerId": "alpha",
+        "connectionId": "alpha-connection",
+        "transactionId": "second-transaction",
+        "iteration": 2
+      },
+      "assessment": {
+        "validTrace": "FAIL",
+        "conditionR": "UNKNOWN",
+        "conditionU": "UNKNOWN",
+        "conditionReasonR": "INVALID_TRACE",
+        "conditionReasonU": "INVALID_TRACE",
+        "workerObservation": "PASS",
+        "connectionClosed": "UNKNOWN",
+        "physicalRelease": "UNKNOWN"
+      }
+    }
+  ],
+  "realExperiment": "NOT_RUN",
+  "executionAuthorization": "NOT_GRANTED",
+  "startCondition": "BLOCKED",
+  "conditionU": "NOT_RUN",
+  "productionWorker": "HOLD",
+  "hypotheses": {
+    "H1": "UNKNOWN",
+    "H2": "UNKNOWN",
+    "H3": "UNKNOWN",
+    "H4": "PARTIAL"
+  }
+}

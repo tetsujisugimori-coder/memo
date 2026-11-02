@@ -1,0 +1,1316 @@
+{
+  "collectorSchemaVersion": 1,
+  "scope": "OFFLINE_SYNTHETIC_ONLY",
+  "evidenceStatus": "INVALID_SCHEMA",
+  "exitCode": 2,
+  "input": {
+    "materialId": "invalid material",
+    "actualSha256": "b6d4ad19444396e9c0a2f63786b4ec90edaaa52078675bf1fa7be8bf75854254",
+    "expectedSha256": "b6d4ad19444396e9c0a2f63786b4ec90edaaa52078675bf1fa7be8bf75854254",
+    "semanticSha256": null
+  },
+  "relations": [],
+  "orderRelations": [],
+  "missingEvidence": [],
+  "contradictions": [],
+  "validationErrors": [
+    {
+      "code": "DIAGNOSTICS_TRUNCATED",
+      "subject": "",
+      "detail": "diagnostics omitted=2; fields shortened=0; reason codes=INPUT_DESCRIPTOR,SCHEMA"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k0",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k1",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k10",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k100",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k101",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k102",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k103",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k104",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k105",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k106",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k107",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k108",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k109",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k11",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k110",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k111",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k112",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k113",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k114",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k115",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k116",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k117",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k118",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k119",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k12",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k120",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k121",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k122",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k123",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k124",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k125",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k126",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k127",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k128",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k129",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k13",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k130",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k131",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k132",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k133",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k134",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k135",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k136",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k137",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k138",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k139",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k14",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k140",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k141",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k142",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k143",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k144",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k145",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k146",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k147",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k148",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k149",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k15",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k150",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k151",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k152",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k153",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k154",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k155",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k156",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k157",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k158",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k159",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k16",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k160",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k161",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k162",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k163",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k164",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k165",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k166",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k167",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k168",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k169",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k17",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k170",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k171",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k172",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k173",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k174",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k175",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k176",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k177",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k178",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k179",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k18",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k180",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k181",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k182",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k183",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k184",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k185",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k186",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k187",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k188",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k189",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k19",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k190",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k191",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k192",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k193",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k194",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k195",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k196",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k197",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k198",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k199",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k2",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k20",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k200",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k201",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k202",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k203",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k204",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k205",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k206",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k207",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k208",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k209",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k21",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k210",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k211",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k212",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k213",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k214",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k215",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k216",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k217",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k218",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k219",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k22",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k220",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k221",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k222",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k223",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k224",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k225",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k226",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k227",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k228",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k229",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k23",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k230",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k231",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k232",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k233",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k234",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k235",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k236",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k237",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k238",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k239",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k24",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k240",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k241",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k242",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k243",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k244",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k245",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k246",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k247",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k248",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k249",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k25",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k250",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k251",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k252",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k253",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k254",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k26",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k27",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k28",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k29",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k3",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k30",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k31",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k32",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k33",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k34",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k35",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k36",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k37",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k38",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k39",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k4",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k40",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k41",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k42",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k43",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k44",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k45",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k46",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k47",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k48",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k49",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k5",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k50",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k51",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k52",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k53",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k54",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k55",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k56",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k57",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k58",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k59",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k6",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k60",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k61",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k62",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k63",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k64",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k65",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k66",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k67",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k68",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k69",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k7",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k70",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k71",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k72",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k73",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k74",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k75",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k76",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k77",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k78",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k79",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k8",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k80",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k81",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k82",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k83",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k84",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k85",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k86",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k87",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k88",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k89",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k9",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k90",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k91",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k92",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k93",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k94",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k95",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k96",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k97",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k98",
+      "detail": "unexpected field"
+    },
+    {
+      "code": "SCHEMA",
+      "subject": "/k99",
+      "detail": "unexpected field"
+    }
+  ],
+  "reasons": [
+    "DIAGNOSTICS_TRUNCATED",
+    "INPUT_DESCRIPTOR",
+    "SCHEMA"
+  ],
+  "unknownReasons": [],
+  "transactions": [],
+  "realExperiment": "NOT_RUN",
+  "executionAuthorization": "NOT_GRANTED",
+  "startCondition": "BLOCKED",
+  "conditionU": "NOT_RUN",
+  "productionWorker": "HOLD",
+  "hypotheses": {
+    "H1": "UNKNOWN",
+    "H2": "UNKNOWN",
+    "H3": "UNKNOWN",
+    "H4": "PARTIAL"
+  }
+}

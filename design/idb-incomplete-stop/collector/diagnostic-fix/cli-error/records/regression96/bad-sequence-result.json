@@ -1,0 +1,39 @@
+{
+  "collectorSchemaVersion": 1,
+  "scope": "OFFLINE_SYNTHETIC_ONLY",
+  "evidenceStatus": "INVALID_SCHEMA",
+  "exitCode": 2,
+  "input": {
+    "materialId": "bad-sequence",
+    "actualSha256": "db23f3ea06cee414514d6d8c200f565f55fd343757d877df9dfffa09c510f9e3",
+    "expectedSha256": "db23f3ea06cee414514d6d8c200f565f55fd343757d877df9dfffa09c510f9e3",
+    "semanticSha256": null
+  },
+  "relations": [],
+  "orderRelations": [],
+  "missingEvidence": [],
+  "contradictions": [],
+  "validationErrors": [
+    {
+      "code": "SCHEMA",
+      "subject": "/events/4/sourceSeq",
+      "detail": "invalid numeric range"
+    }
+  ],
+  "reasons": [
+    "SCHEMA"
+  ],
+  "unknownReasons": [],
+  "transactions": [],
+  "realExperiment": "NOT_RUN",
+  "executionAuthorization": "NOT_GRANTED",
+  "startCondition": "BLOCKED",
+  "conditionU": "NOT_RUN",
+  "productionWorker": "HOLD",
+  "hypotheses": {
+    "H1": "UNKNOWN",
+    "H2": "UNKNOWN",
+    "H3": "UNKNOWN",
+    "H4": "PARTIAL"
+  }
+}
