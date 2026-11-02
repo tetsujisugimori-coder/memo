@@ -4,9 +4,9 @@
 globalThis.SharedWorkerLedger = (() => {
   const STATES = new Set(["reserved", "running", "invalidated", "stop_requested", "unknown"]);
   function validate(record, capacity) {
-    if (!record || record.version !== 1 || record.capacity !== capacity || !Array.isArray(record.slots) ||
+    if (!Number.isSafeInteger(capacity) || capacity < 1 || !record || record.version !== 1 || record.capacity !== capacity || !Array.isArray(record.slots) ||
         record.slots.length > capacity || record.slots.some(s => !s || typeof s.id !== "string" ||
-        typeof s.owner !== "string" || !STATES.has(s.state)) ||
+        !s.id || typeof s.owner !== "string" || !s.owner || !STATES.has(s.state)) ||
         new Set(record.slots.map(s => s.id)).size !== record.slots.length) throw new Error("ledger_invalid");
   }
   async function createFixture(name, capacity) {

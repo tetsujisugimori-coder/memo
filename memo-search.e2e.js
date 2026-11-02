@@ -5,6 +5,8 @@ const { randomBytes } = require("node:crypto"), { chromium, webkit } = require("
 const { createPreviewService } = require("./dummy-preview-service.js"), { createAuthenticatedServer } = require("./mcp-http-server.js");
 const { config, issuerFixture, listen, close, wire } = require("./mcp-http-oauth.fixture.js"), { attachTransport, fetchReceiver } = require("./received-e2e-transport.js");
 const { classifyException } = require("./experiments/mcp-search-worker-feasibility/poll-outcomes.cjs");
+const { metadata, hash } = require("./experiments/mcp-search-worker-feasibility/stage5-evidence.cjs");
+const { bounded } = require("./experiments/mcp-search-worker-feasibility/context-harness.cjs");
 async function settled(page) {
   await page.locator("#appStartupGuard").waitFor({ state: "hidden" });
   await page.waitForFunction(() => typeof webClipReceiverReady !== "undefined" && webClipReceiverReady);
@@ -64,7 +66,7 @@ async function snapshot(page) {
     context.on("request", request => {
       const endpoint = new URL(request.url()).pathname;
       if (!["/search/poll", "/search/revoke"].includes(endpoint)) return;
-      const id = ++sequence; tracked.set(request, id); record("request", { id, endpoint });
+      const id = ++sequence; tracked.set(request, id); record("request", { id, endpoint, method: request.method(), resourceType: request.resourceType() });
     });
     context.on("response", response => { if (tracked.has(response.request())) record("response", { id: tracked.get(response.request()), status: response.status() }); });
     context.on("requestfinished", request => { if (tracked.has(request)) record("requestfinished", { id: tracked.get(request) }); });
@@ -99,6 +101,7 @@ async function snapshot(page) {
       db.transaction = (stores, mode, ...rest) => { if (mode === "readwrite") window.searchReadWrites++; return originalTransaction(stores, mode, ...rest); };
     });
     const before = await snapshot(page);
+    record("snapshot_before", { sha256: hash(JSON.stringify(before)) });
     async function allow(scope = "all", target = page, allowRead = false) {
       await target.bringToFront();
       const pair = await call("prepare_memo_search");
@@ -216,15 +219,25 @@ async function snapshot(page) {
     const lostAckPair = await allow();
     let pollArrived;
     const oldPollReady = new Promise(resolve => { pollArrived = resolve; });
-    await page.route("**/search/poll", async route => {
-      record("held_route_fetch_start", { id: tracked.get(route.request()) });
+    let claimed = false, finishHeldPoll, heldError;
+    const heldPollDone = new Promise(resolve => { finishHeldPoll = resolve; });
+    // Keep the route registered until its held response is handled. A times:1
+    // route removes itself while the callback is still awaiting the release.
+    const holdOldPoll = async route => {
+      if (claimed) return route.fallback();
+      claimed = true;
+      try {
+      record("held_route_fetch_start", { id: tracked.get(route.request()), method: route.request().method(), pageClosed: page.isClosed() });
       const response = await fetchReceiver(route, receiverPort);
       record("held_route_fetch_return", { id: tracked.get(route.request()), status: response.status() });
       pollArrived(); await new Promise(resolve => { releaseOldPoll = resolve; });
-      record("held_route_fulfill_start", { id: tracked.get(route.request()) });
-      await route.fulfill({ response }).then(() => record("held_route_fulfill_return", { id: tracked.get(route.request()) }), error => record("held_route_fulfill_failed", { id: tracked.get(route.request()), ...classifyException(error) }));
-    }, { times: 1 });
-    await page.locator("#memoSearchRefresh").click(); await oldPollReady;
+      record("held_route_fulfill_start", { id: tracked.get(route.request()), pageClosed: page.isClosed() });
+      await route.fulfill({ response }); record("held_route_fulfill_return", { id: tracked.get(route.request()) });
+      } catch (error) { heldError = classifyException(error); record("held_route_fulfill_failed", { id: tracked.get(route.request()), ...heldError }); }
+      finally { finishHeldPoll(); }
+    };
+    await page.route("**/search/poll", holdOldPoll);
+    await page.locator("#memoSearchRefresh").click(); await bounded(oldPollReady, 12000, "held poll did not arrive");
     await page.route("**/search/revoke", async route => {
       record("revoke_fixture_fetch_start", { id: tracked.get(route.request()) });
       await fetchReceiver(route, receiverPort); // Server committed, but browser cannot confirm it.
@@ -239,6 +252,9 @@ async function snapshot(page) {
     await page.waitForFunction(() => document.getElementById("memoSearchStatus").textContent.includes("取り消されています"));
     const narrower = await allow("collection:search-one");
     record("held_poll_release"); releaseOldPoll();
+    await bounded(heldPollDone, 10000, "held route did not finish");
+    assert.equal(heldError, undefined, "held poll must finish without route errors");
+    await page.unroute("**/search/poll", holdOldPoll);
     await page.locator("#memoSearchRefresh").click();
     await page.waitForFunction(() => document.getElementById("memoSearchStatus").textContent.includes("検索可能"));
     assert.ok((await page.locator("#memoSearchGrantedScope").innerText()).includes("全コレクション許可：なし"));
@@ -270,7 +286,9 @@ async function snapshot(page) {
     await context.route("**/search/poll", route => route.abort());
     await page.waitForFunction(() => document.getElementById("memoSearchStatus").textContent.includes("通信に失敗"));
     await context.unroute("**/search/poll"); phase = "test";
-    assert.deepEqual(await snapshot(page), before); assert.equal(await page.evaluate(() => window.searchReadWrites), 0);
+    const after = await snapshot(page);
+    record("snapshot_after", { sha256: hash(JSON.stringify(after)), readwriteCount: await page.evaluate(() => window.searchReadWrites) });
+    assert.deepEqual(after, before); assert.equal(await page.evaluate(() => window.searchReadWrites), 0);
     const reloadPair = await allow("all", page, true);
     await page.reload(); await settled(page);
     assert.equal(await page.locator("#memoSearchAllowRead").isChecked(), false);
@@ -296,6 +314,6 @@ async function snapshot(page) {
     if (browser) { record("browser_close_start"); await browser.close(); record("browser_close_return"); }
     for (const [name, server] of [["oauth", oauth], ["receiver", receiver], ["static", staticServer]]) if (server?.listening) { record("server_close_start", { name }); await close(server); record("server_close_return", { name }); }
     const recordedAtJST = new Date(Date.now() + 9 * 3600000).toISOString().replace("Z", "+09:00");
-    await fs.writeFile(path.join(artifacts, `timeline-${process.env.MEMO_SEARCH_BROWSER || "chromium"}-${Date.now()}-${randomBytes(4).toString("hex")}.json`), JSON.stringify({ test: "memo-search-e2e-route-diagnostic", baseline: "597c1d4985724e3dd77660a3562020d7004b6d86", recordedAtJST, engine: process.env.MEMO_SEARCH_BROWSER || "chromium", timeline }, null, 2), { flag: "wx" });
+    await fs.writeFile(path.join(artifacts, `timeline-${process.env.MEMO_SEARCH_BROWSER || "chromium"}-${Date.now()}-${randomBytes(4).toString("hex")}.json`), JSON.stringify({ test: "memo-search-e2e-route-diagnostic", ...await metadata(["memo-search.e2e.js", "received-e2e-transport.js", "memo-search-ui.js", "memo-search-broker.js", "experiments/mcp-search-worker-feasibility/stage5-evidence.cjs"]), recordedAtJST, engine: process.env.MEMO_SEARCH_BROWSER || "chromium", timeline }, null, 2), { flag: "wx" });
   }
 })().catch(error => { console.error(error); process.exitCode = 1; });

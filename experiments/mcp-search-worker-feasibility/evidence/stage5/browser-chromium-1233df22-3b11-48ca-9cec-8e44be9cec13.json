@@ -1,0 +1,147 @@
+{
+  "baselineCommit": "06796f70f1a42b829ba6c4a2b7e962409aca20e6",
+  "testedCommit": "06796f70f1a42b829ba6c4a2b7e962409aca20e6",
+  "testedTree": "b4e75a686963813edf3ca87dd20e589890f6a63c",
+  "dirty": true,
+  "recordedAtJST": "2026-10-31T20:13:52.811+09:00",
+  "platform": "win32",
+  "node": "v24.20.0",
+  "sourceHashes": {
+    "experiments/mcp-search-worker-feasibility/shared-ledger.js": "1ad620d2ac75b4f2e55bcca9ad02eab7c13364622568bf381ecc1a4e3f09449e",
+    "experiments/mcp-search-worker-feasibility/recovery-model.cjs": "24179f47133104eb888f898efd030b7e18a05146cf45f84498155451536e6307",
+    "experiments/mcp-search-worker-feasibility/stage5-browser.cjs": "2e46dc0e1bb187c4d10b77c25b06292c4f2be0d872dd57e36d8a4bd47a86fc61",
+    "experiments/mcp-search-worker-feasibility/stage5-evidence.cjs": "f7ab93a805c5a4bb0451e205fa1ab00cfebe3b7aa61ebab5579278dacb0e66bf"
+  },
+  "engine": "chromium",
+  "cases": [
+    {
+      "name": "unresolved-broker-old-poll-second-slot-and-reload",
+      "outcome": "PASS",
+      "sequential": {
+        "broker": "timeout",
+        "pollSettled": false,
+        "first": {
+          "status": "timeout"
+        },
+        "second": {
+          "status": "result",
+          "value": "fictional markdown"
+        },
+        "third": {
+          "status": "capacity_unknown"
+        },
+        "slots": {
+          "slots": [
+            {
+              "id": "2da7497e-98e0-44ac-88c0-216338679ddf",
+              "owner": "a",
+              "state": "unknown"
+            },
+            {
+              "id": "d915acfe-44d8-4fe1-a345-278b86539da0",
+              "owner": "a",
+              "state": "unknown"
+            }
+          ],
+          "capacity": 2
+        },
+        "returns": [
+          {
+            "status": "release_unconfirmed"
+          },
+          {
+            "status": "release_unconfirmed"
+          }
+        ],
+        "created": 2,
+        "entered": 1,
+        "state": {
+          "admission": "FAILED_CLOSED",
+          "history": [
+            {
+              "requestId": 1,
+              "sessionId": "old",
+              "generation": 1,
+              "states": [
+                "RUNNING",
+                "TIMED_OUT",
+                "TERMINATE_REQUESTED",
+                "RELEASE_UNKNOWN"
+              ],
+              "terminate": "RETURNED",
+              "delivered": false,
+              "physicalRelease": "UNKNOWN"
+            },
+            {
+              "requestId": 2,
+              "sessionId": "new",
+              "generation": 2,
+              "states": [
+                "RUNNING",
+                "TERMINATE_REQUESTED",
+                "RELEASE_UNKNOWN"
+              ],
+              "terminate": "RETURNED",
+              "delivered": true,
+              "physicalRelease": "UNKNOWN"
+            }
+          ]
+        }
+      },
+      "reload": {
+        "result": {
+          "status": "capacity_unknown"
+        },
+        "created": 0
+      },
+      "visibility": "synthetic notifications only"
+    },
+    {
+      "name": "three-tabs-capacity-two",
+      "outcome": "PASS",
+      "attempts": [
+        {
+          "result": {
+            "status": "timeout"
+          },
+          "created": 1,
+          "entered": 1
+        },
+        {
+          "result": {
+            "status": "timeout"
+          },
+          "created": 1,
+          "entered": 1
+        },
+        {
+          "result": {
+            "status": "capacity_unknown"
+          },
+          "created": 0,
+          "entered": 0
+        }
+      ]
+    },
+    {
+      "name": "invalid-or-old-ledger-and-fixture-integrity",
+      "outcome": "PASS",
+      "before": "[[\"metadata\",[\"m\"],[\"fixture\"]],[\"notes\",[\"n\"],[{\"body\":\"fictional\",\"links\":\"[[語句]]\"}]]]",
+      "after": "[[\"metadata\",[\"m\"],[\"fixture\"]],[\"notes\",[\"n\"],[{\"body\":\"fictional\",\"links\":\"[[語句]]\"}]]]",
+      "outcomes": [
+        "failed_closed",
+        "failed_closed",
+        "failed_closed",
+        "failed_closed",
+        "failed_closed",
+        "failed_closed"
+      ],
+      "created": 0,
+      "beforeHash": "31d3211801b89a49e67313b03c695e3d54b379246acd4a515c7b663f37a68fb6",
+      "afterHash": "31d3211801b89a49e67313b03c695e3d54b379246acd4a515c7b663f37a68fb6"
+    }
+  ],
+  "physicalRelease": "UNKNOWN",
+  "outcome": "PASS",
+  "version": "151.0.7922.34"
+}

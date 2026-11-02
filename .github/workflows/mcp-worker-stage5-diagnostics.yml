@@ -1,0 +1,38 @@
+name: MCP Worker Stage 5 limited diagnostics
+on:
+  push:
+    branches: ['investigate/mcp-worker-stage5']
+    paths:
+      - 'experiments/mcp-search-worker-feasibility/stage5-diagnostic-source.cjs'
+      - 'experiments/mcp-search-worker-feasibility/stage5-latency-diagnostic.cjs'
+      - 'experiments/mcp-search-worker-feasibility/stage5-idb-observer.js'
+      - 'experiments/mcp-search-worker-feasibility/stage5-t7-diagnostic.cjs'
+permissions:
+  contents: read
+jobs:
+  t7-diagnostic:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chromium, webkit]
+    env:
+      WORKER_POC_BROWSER: ${{ matrix.browser }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps ${{ matrix.browser }}
+      - run: node experiments/mcp-search-worker-feasibility/stage5-t7-diagnostic.cjs
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: limited-diagnostic-${{ matrix.browser }}
+          path: experiments/mcp-search-worker-feasibility/evidence/stage5-diagnostics/raw/
+          retention-days: 14

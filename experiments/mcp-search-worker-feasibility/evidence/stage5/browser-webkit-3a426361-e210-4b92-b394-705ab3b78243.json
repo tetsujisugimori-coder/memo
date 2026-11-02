@@ -1,0 +1,150 @@
+{
+  "baselineCommit": "06796f70f1a42b829ba6c4a2b7e962409aca20e6",
+  "testedCommit": "5b756ea580e041252cc6d967dc9793acb32fd67a",
+  "testedTree": "1600ced6c621f8ea2eb73d8c6d8c068920d7863a",
+  "dirty": true,
+  "recordedAtJST": "2026-10-31T20:29:10.775+09:00",
+  "platform": "win32",
+  "node": "v24.20.0",
+  "sourceHashes": {
+    "experiments/mcp-search-worker-feasibility/shared-ledger.js": "1ad620d2ac75b4f2e55bcca9ad02eab7c13364622568bf381ecc1a4e3f09449e",
+    "experiments/mcp-search-worker-feasibility/recovery-model.cjs": "9daa6226e7e3fa8256b7844877b3ac8388d2c6f68b272119c4ecd080891d132c",
+    "experiments/mcp-search-worker-feasibility/stage5-browser.cjs": "40d5c9f3a43e4c89b1853b08745450946fd2ad627258325e5c723fcb5dd20b14",
+    "experiments/mcp-search-worker-feasibility/stage5-evidence.cjs": "f7ab93a805c5a4bb0451e205fa1ab00cfebe3b7aa61ebab5579278dacb0e66bf",
+    "experiments/mcp-search-worker-feasibility/context-harness.cjs": "ce48fdff2780bbe5e66c8acd813d13675eb761cb7807f9c6e0058b6884711afe"
+  },
+  "engine": "webkit",
+  "cases": [
+    {
+      "name": "unresolved-broker-old-poll-second-slot-and-reload",
+      "outcome": "PASS",
+      "sequential": {
+        "broker": "timeout",
+        "pollSettled": false,
+        "first": {
+          "status": "timeout"
+        },
+        "second": {
+          "status": "result",
+          "value": "fictional markdown"
+        },
+        "third": {
+          "status": "capacity_unknown"
+        },
+        "slots": {
+          "slots": [
+            {
+              "id": "4a192fb4-1568-454f-bf51-81484342c7cd",
+              "owner": "a",
+              "state": "unknown"
+            },
+            {
+              "id": "73813c4e-7832-4beb-a07f-70c17a4f100a",
+              "owner": "a",
+              "state": "unknown"
+            }
+          ],
+          "capacity": 2
+        },
+        "returns": [
+          {
+            "status": "release_unconfirmed"
+          },
+          {
+            "status": "release_unconfirmed"
+          }
+        ],
+        "created": 2,
+        "entered": 1,
+        "state": {
+          "admission": "FAILED_CLOSED",
+          "history": [
+            {
+              "requestId": 1,
+              "sessionId": "old",
+              "generation": 1,
+              "states": [
+                "RUNNING",
+                "TIMED_OUT",
+                "TERMINATE_REQUESTED",
+                "RELEASE_UNKNOWN"
+              ],
+              "terminate": "RETURNED",
+              "delivered": false,
+              "physicalRelease": "UNKNOWN",
+              "coreResolved": false
+            },
+            {
+              "requestId": 2,
+              "sessionId": "new",
+              "generation": 2,
+              "states": [
+                "RUNNING",
+                "TERMINATE_REQUESTED",
+                "RELEASE_UNKNOWN"
+              ],
+              "terminate": "RETURNED",
+              "delivered": true,
+              "physicalRelease": "UNKNOWN",
+              "coreResolved": true
+            }
+          ]
+        }
+      },
+      "reload": {
+        "result": {
+          "status": "capacity_unknown"
+        },
+        "created": 0
+      },
+      "visibility": "synthetic notifications only"
+    },
+    {
+      "name": "three-tabs-capacity-two",
+      "outcome": "PASS",
+      "attempts": [
+        {
+          "result": {
+            "status": "capacity_unknown"
+          },
+          "created": 0,
+          "entered": 0
+        },
+        {
+          "result": {
+            "status": "timeout"
+          },
+          "created": 1,
+          "entered": 1
+        },
+        {
+          "result": {
+            "status": "timeout"
+          },
+          "created": 1,
+          "entered": 1
+        }
+      ]
+    },
+    {
+      "name": "invalid-or-old-ledger-and-fixture-integrity",
+      "outcome": "PASS",
+      "before": "[[\"metadata\",[\"m\"],[\"fixture\"]],[\"notes\",[\"n\"],[{\"body\":\"fictional\",\"links\":\"[[語句]]\"}]]]",
+      "after": "[[\"metadata\",[\"m\"],[\"fixture\"]],[\"notes\",[\"n\"],[{\"body\":\"fictional\",\"links\":\"[[語句]]\"}]]]",
+      "outcomes": [
+        "failed_closed",
+        "failed_closed",
+        "failed_closed",
+        "failed_closed",
+        "failed_closed",
+        "failed_closed"
+      ],
+      "created": 0,
+      "beforeHash": "31d3211801b89a49e67313b03c695e3d54b379246acd4a515c7b663f37a68fb6",
+      "afterHash": "31d3211801b89a49e67313b03c695e3d54b379246acd4a515c7b663f37a68fb6"
+    }
+  ],
+  "physicalRelease": "UNKNOWN",
+  "outcome": "PASS",
+  "version": "26.5"
+}

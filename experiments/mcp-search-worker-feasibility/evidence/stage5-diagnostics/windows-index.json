@@ -1,0 +1,827 @@
+{
+  "baselineCommit": "62a9287870375900066ba24b917ccf26561540e1",
+  "baselineTree": "584bbfe881b4728d950ae4f45dbc2f55deafd7c7",
+  "recordedAt": "2026-10-31T15:27:59.928Z",
+  "localSourceOverlay": "The original tracked sources were clean at baseline. New diagnostic files were untracked; sourceHashes identify them. metadata.dirty excludes untracked files and is not a claim that diagnostic code existed in baseline commit.",
+  "artifacts": [
+    {
+      "file": "latency-chromium-ff45d57f-4160-48ff-92b1-a4a1be8d25ef.json.gz",
+      "rawSha256": "eed464699798c6ba71c151fb50b1f10966ebbbe7a281fb526a2c55f541fbd3cf",
+      "gzipSha256": "cde092ddcc5845c146168f8f2599614b5711fc988d217823df93ddf31261da79",
+      "engine": "chromium",
+      "testedCommit": "62a9287870375900066ba24b917ccf26561540e1",
+      "testedTree": "584bbfe881b4728d950ae4f45dbc2f55deafd7c7",
+      "sourceHashes": {
+        "experiments/mcp-search-worker-feasibility/recovery-model.cjs": "93990cef3904bf0445d27e7cd0496e977be940fa0b171b4df0a3f0b5fd04eaf7",
+        "experiments/mcp-search-worker-feasibility/stage5-deadline-cases.cjs": "fb1f7affa9f3af494e4ad040a81aef70cfa7482c20da6e1e2a5cf2b9f7777dd0",
+        "experiments/mcp-search-worker-feasibility/stage5-latency-diagnostic.cjs": "f07514d72e38077a4bf9037e0b24be4077fc24cda92e95fdb2db13b25dc9b973",
+        "experiments/mcp-search-worker-feasibility/stage5-diagnostic-source.cjs": "11fc43ee3cc1283ba0b4898b1a38b6e6ef16e904b8804ad1c8ed38b867ec9b2b",
+        "experiments/mcp-search-worker-feasibility/context-harness.cjs": "ce48fdff2780bbe5e66c8acd813d13675eb761cb7807f9c6e0058b6884711afe",
+        "experiments/mcp-search-worker-feasibility/stage5-evidence.cjs": "f7ab93a805c5a4bb0451e205fa1ab00cfebe3b7aa61ebab5579278dacb0e66bf"
+      },
+      "diagnostic": "PASS",
+      "outcome": "PASS",
+      "trials": [
+        {
+          "order": 1,
+          "mode": "original",
+          "outcome": "PASS",
+          "callerMs": 64.89999999850988,
+          "creates": 0,
+          "released": 1,
+          "intervals": {
+            "classification": "NOT_TESTED",
+            "reason": "original_uninstrumented_control"
+          }
+        },
+        {
+          "order": 2,
+          "mode": "instrumented",
+          "outcome": "PASS",
+          "callerMs": 67.5,
+          "creates": 0,
+          "released": 1,
+          "intervals": {
+            "classification": "INTERVALS_OBSERVED",
+            "timerDispatchLateMs": 7.4000000059604645,
+            "deadlineToCallbackMs": 7.4000000059604645,
+            "callbackToSettleMs": 0,
+            "callbackToResolveMs": 0,
+            "resolveToReactionMs": 0,
+            "resolveToTestObservationMs": 0,
+            "limitation": "Same-realm intervals only. These locate delay, not its browser/OS cause; resolver invocation is not direct observation of Promise internal state."
+          }
+        },
+        {
+          "order": 3,
+          "mode": "instrumented",
+          "outcome": "PASS",
+          "callerMs": 74.29999999701977,
+          "creates": 0,
+          "released": 1,
+          "intervals": {
+            "classification": "INTERVALS_OBSERVED",
+            "timerDispatchLateMs": 14.299999997019768,
+            "deadlineToCallbackMs": 14.299999997019768,
+            "callbackToSettleMs": 0,
+            "callbackToResolveMs": 0,
+            "resolveToReactionMs": 0,
+            "resolveToTestObservationMs": 0,
+            "limitation": "Same-realm intervals only. These locate delay, not its browser/OS cause; resolver invocation is not direct observation of Promise internal state."
+          }
+        },
+        {
+          "order": 4,
+          "mode": "original",
+          "outcome": "PASS",
+          "callerMs": 62.899999998509884,
+          "creates": 0,
+          "released": 1,
+          "intervals": {
+            "classification": "NOT_TESTED",
+            "reason": "original_uninstrumented_control"
+          }
+        }
+      ]
+    },
+    {
+      "file": "latency-node-ebe9786d-ddd3-4cf1-8677-d7b7db866e3b.json.gz",
+      "rawSha256": "8fea068b2beacd68cf19aaa793173c613157480a9ce09d4286be0cad833da2ed",
+      "gzipSha256": "db703eee54f0a9cf6d6038b188993f15bb467514ffdb37fd106bb7696bca14ed",
+      "engine": "node",
+      "testedCommit": "62a9287870375900066ba24b917ccf26561540e1",
+      "testedTree": "584bbfe881b4728d950ae4f45dbc2f55deafd7c7",
+      "sourceHashes": {
+        "experiments/mcp-search-worker-feasibility/recovery-model.cjs": "93990cef3904bf0445d27e7cd0496e977be940fa0b171b4df0a3f0b5fd04eaf7",
+        "experiments/mcp-search-worker-feasibility/stage5-deadline-cases.cjs": "fb1f7affa9f3af494e4ad040a81aef70cfa7482c20da6e1e2a5cf2b9f7777dd0",
+        "experiments/mcp-search-worker-feasibility/stage5-latency-diagnostic.cjs": "f07514d72e38077a4bf9037e0b24be4077fc24cda92e95fdb2db13b25dc9b973",
+        "experiments/mcp-search-worker-feasibility/stage5-diagnostic-source.cjs": "11fc43ee3cc1283ba0b4898b1a38b6e6ef16e904b8804ad1c8ed38b867ec9b2b",
+        "experiments/mcp-search-worker-feasibility/context-harness.cjs": "ce48fdff2780bbe5e66c8acd813d13675eb761cb7807f9c6e0058b6884711afe",
+        "experiments/mcp-search-worker-feasibility/stage5-evidence.cjs": "f7ab93a805c5a4bb0451e205fa1ab00cfebe3b7aa61ebab5579278dacb0e66bf"
+      },
+      "diagnostic": "PASS",
+      "outcome": "PASS",
+      "trials": [
+        {
+          "order": 1,
+          "mode": "original",
+          "outcome": "PASS",
+          "callerMs": 61.79819999999995,
+          "creates": 0,
+          "released": 1,
+          "intervals": {
+            "classification": "NOT_TESTED",
+            "reason": "original_uninstrumented_control"
+          }
+        },
+        {
+          "order": 2,
+          "mode": "instrumented",
+          "outcome": "PASS",
+          "callerMs": 62.24790000000007,
+          "creates": 0,
+          "released": 1,
+          "intervals": {
+            "classification": "INTERVALS_OBSERVED",
+            "timerDispatchLateMs": 2.1228000000000975,
+            "deadlineToCallbackMs": 2.125500000000102,
+            "callbackToSettleMs": 0.03449999999997999,
+            "callbackToResolveMs": 0.055499999999938154,
+            "resolveToReactionMs": 0.032000000000152795,
+            "resolveToTestObservationMs": 0.05899999999996908,
+            "limitation": "Same-realm intervals only. These locate delay, not its browser/OS cause; resolver invocation is not direct observation of Promise internal state."
+          }
+        },
+        {
+          "order": 3,
+          "mode": "instrumented",
+          "outcome": "PASS",
+          "callerMs": 62.977300000000014,
+          "creates": 0,
+          "released": 1,
+          "intervals": {
+            "classification": "INTERVALS_OBSERVED",
+            "timerDispatchLateMs": 2.8061000000002423,
+            "deadlineToCallbackMs": 2.8120000000001255,
+            "callbackToSettleMs": 0.06849999999985812,
+            "callbackToResolveMs": 0.07309999999984029,
+            "resolveToReactionMs": 0.04629999999997381,
+            "resolveToTestObservationMs": 0.07270000000016807,
+            "limitation": "Same-realm intervals only. These locate delay, not its browser/OS cause; resolver invocation is not direct observation of Promise internal state."
+          }
+        },
+        {
+          "order": 4,
+          "mode": "original",
+          "outcome": "PASS",
+          "callerMs": 62.18510000000015,
+          "creates": 0,
+          "released": 1,
+          "intervals": {
+            "classification": "NOT_TESTED",
+            "reason": "original_uninstrumented_control"
+          }
+        }
+      ]
+    },
+    {
+      "file": "latency-webkit-75238dcf-4727-4ab9-8c2e-468c675be69d.json.gz",
+      "rawSha256": "8c8e104e55feeb5530572cb44aff98d4cd325fd0c4dbd7a2c83a54db587c9eb4",
+      "gzipSha256": "2f27090792ae1190180cb670c55f198b8c5d4715e06ba84e9ddee52e2697d310",
+      "engine": "webkit",
+      "testedCommit": "62a9287870375900066ba24b917ccf26561540e1",
+      "testedTree": "584bbfe881b4728d950ae4f45dbc2f55deafd7c7",
+      "sourceHashes": {
+        "experiments/mcp-search-worker-feasibility/recovery-model.cjs": "93990cef3904bf0445d27e7cd0496e977be940fa0b171b4df0a3f0b5fd04eaf7",
+        "experiments/mcp-search-worker-feasibility/stage5-deadline-cases.cjs": "fb1f7affa9f3af494e4ad040a81aef70cfa7482c20da6e1e2a5cf2b9f7777dd0",
+        "experiments/mcp-search-worker-feasibility/stage5-latency-diagnostic.cjs": "f07514d72e38077a4bf9037e0b24be4077fc24cda92e95fdb2db13b25dc9b973",
+        "experiments/mcp-search-worker-feasibility/stage5-diagnostic-source.cjs": "11fc43ee3cc1283ba0b4898b1a38b6e6ef16e904b8804ad1c8ed38b867ec9b2b",
+        "experiments/mcp-search-worker-feasibility/context-harness.cjs": "ce48fdff2780bbe5e66c8acd813d13675eb761cb7807f9c6e0058b6884711afe",
+        "experiments/mcp-search-worker-feasibility/stage5-evidence.cjs": "f7ab93a805c5a4bb0451e205fa1ab00cfebe3b7aa61ebab5579278dacb0e66bf"
+      },
+      "diagnostic": "PASS",
+      "outcome": "PASS",
+      "trials": [
+        {
+          "order": 1,
+          "mode": "original",
+          "outcome": "PASS",
+          "callerMs": 62,
+          "creates": 0,
+          "released": 1,
+          "intervals": {
+            "classification": "NOT_TESTED",
+            "reason": "original_uninstrumented_control"
+          }
+        },
+        {
+          "order": 2,
+          "mode": "instrumented",
+          "outcome": "PASS",
+          "callerMs": 61,
+          "creates": 0,
+          "released": 1,
+          "intervals": {
+            "classification": "INTERVALS_OBSERVED",
+            "timerDispatchLateMs": 1,
+            "deadlineToCallbackMs": 1,
+            "callbackToSettleMs": 0,
+            "callbackToResolveMs": 0,
+            "resolveToReactionMs": 0,
+            "resolveToTestObservationMs": 0,
+            "limitation": "Same-realm intervals only. These locate delay, not its browser/OS cause; resolver invocation is not direct observation of Promise internal state."
+          }
+        },
+        {
+          "order": 3,
+          "mode": "instrumented",
+          "outcome": "PASS",
+          "callerMs": 61,
+          "creates": 0,
+          "released": 1,
+          "intervals": {
+            "classification": "INTERVALS_OBSERVED",
+            "timerDispatchLateMs": 1,
+            "deadlineToCallbackMs": 1,
+            "callbackToSettleMs": 0,
+            "callbackToResolveMs": 0,
+            "resolveToReactionMs": 0,
+            "resolveToTestObservationMs": 0,
+            "limitation": "Same-realm intervals only. These locate delay, not its browser/OS cause; resolver invocation is not direct observation of Promise internal state."
+          }
+        },
+        {
+          "order": 4,
+          "mode": "original",
+          "outcome": "PASS",
+          "callerMs": 62,
+          "creates": 0,
+          "released": 1,
+          "intervals": {
+            "classification": "NOT_TESTED",
+            "reason": "original_uninstrumented_control"
+          }
+        }
+      ]
+    },
+    {
+      "file": "t7-diagnostic-chromium-6135bed3-360c-41cf-8476-2ef03e86cc7b.json.gz",
+      "rawSha256": "09e1e7438e74cc0a43ad9c0b5c0b56e18fa4ea653c37d9ec7bce42c50cdf9dec",
+      "gzipSha256": "91497c0e71cbe75cfd0b832d32e403293446d4d6598c8077a17763bfc08eadb7",
+      "engine": "chromium",
+      "testedCommit": "62a9287870375900066ba24b917ccf26561540e1",
+      "testedTree": "584bbfe881b4728d950ae4f45dbc2f55deafd7c7",
+      "sourceHashes": {
+        "experiments/mcp-search-worker-feasibility/index.html": "8cc53849d1fb3d612fd2b3485fa5d6a69d51168be6220bb7cb00d411ca7b7af4",
+        "experiments/mcp-search-worker-feasibility/suite.js": "c0771f1953f68f6b84ce6367065397ba9da52a2bf601b740806f65f1b9df60c8",
+        "experiments/mcp-search-worker-feasibility/worker.js": "aa8b49591e6d49095ae7cb170e2b274065a12cb9543673c528a9cb091cd230a8",
+        "experiments/mcp-search-worker-feasibility/cleanup.js": "4cee06acd1be913aa15ebc379b1d74aa6d93e59e484bf6070eec8e168a13ab81",
+        "experiments/mcp-search-worker-feasibility/controls.js": "2a9a23d26d68d62b5c895178c4b6cdc8cc55343685a327572215c848567e99be",
+        "experiments/mcp-search-worker-feasibility/diagnostic.js": "04b80b0ccd9d850862ba2243befc9e32afcf49853699a88c9b4a1044c1fc033c",
+        "experiments/mcp-search-worker-feasibility/diagnostic-plan.js": "69156bb656815ce24e58351d16c9ee569f31590d1679b0e0d3f52d45c084c28e",
+        "experiments/mcp-search-worker-feasibility/diagnostic-worker.js": "55e550f0883bb909605cc9fbb32fc9e31294f6aca2d9c6aed99ff343f8cebec4",
+        "experiments/mcp-search-worker-feasibility/stage5-t7-diagnostic.cjs": "ee889865a19ff1646f7da64422f364a6798cab64b2f1cb83fbf9c0afc78c81d5",
+        "experiments/mcp-search-worker-feasibility/stage5-idb-observer.js": "8e2b23aa4865e3a7e56246ed99ba1b30775a18b2b72d812adb3b3d6a1c682ce6",
+        "experiments/mcp-search-worker-feasibility/stage5-diagnostic-source.cjs": "11fc43ee3cc1283ba0b4898b1a38b6e6ef16e904b8804ad1c8ed38b867ec9b2b",
+        "experiments/mcp-search-worker-feasibility/context-harness.cjs": "ce48fdff2780bbe5e66c8acd813d13675eb761cb7807f9c6e0058b6884711afe"
+      },
+      "diagnostic": "PASS",
+      "outcome": "PARTIAL",
+      "trials": [
+        {
+          "order": 1,
+          "variant": "observed-primary",
+          "outcome": "PARTIAL",
+          "idbEventCount": 351,
+          "dbNames": [
+            "worker-poc-077ad9c2-b7e0-4bb3-a07f-d51c963a35ff"
+          ],
+          "cleanup": "PASS"
+        }
+      ]
+    },
+    {
+      "file": "t7-diagnostic-webkit-000729fb-73cd-4542-9fde-de5a387f322f.json.gz",
+      "rawSha256": "ecdd5b51c2196460909df82a4591f0819e7e756a843f6fa0b476a9b216f53776",
+      "gzipSha256": "f32904754a9a594bfe973881d0ac2f171e40effb252f1e53e7a6b4bc3f0a1ea0",
+      "engine": "webkit",
+      "testedCommit": "62a9287870375900066ba24b917ccf26561540e1",
+      "testedTree": "584bbfe881b4728d950ae4f45dbc2f55deafd7c7",
+      "sourceHashes": {
+        "experiments/mcp-search-worker-feasibility/index.html": "8cc53849d1fb3d612fd2b3485fa5d6a69d51168be6220bb7cb00d411ca7b7af4",
+        "experiments/mcp-search-worker-feasibility/suite.js": "c0771f1953f68f6b84ce6367065397ba9da52a2bf601b740806f65f1b9df60c8",
+        "experiments/mcp-search-worker-feasibility/worker.js": "aa8b49591e6d49095ae7cb170e2b274065a12cb9543673c528a9cb091cd230a8",
+        "experiments/mcp-search-worker-feasibility/cleanup.js": "4cee06acd1be913aa15ebc379b1d74aa6d93e59e484bf6070eec8e168a13ab81",
+        "experiments/mcp-search-worker-feasibility/controls.js": "2a9a23d26d68d62b5c895178c4b6cdc8cc55343685a327572215c848567e99be",
+        "experiments/mcp-search-worker-feasibility/diagnostic.js": "04b80b0ccd9d850862ba2243befc9e32afcf49853699a88c9b4a1044c1fc033c",
+        "experiments/mcp-search-worker-feasibility/diagnostic-plan.js": "69156bb656815ce24e58351d16c9ee569f31590d1679b0e0d3f52d45c084c28e",
+        "experiments/mcp-search-worker-feasibility/diagnostic-worker.js": "55e550f0883bb909605cc9fbb32fc9e31294f6aca2d9c6aed99ff343f8cebec4",
+        "experiments/mcp-search-worker-feasibility/stage5-t7-diagnostic.cjs": "ee889865a19ff1646f7da64422f364a6798cab64b2f1cb83fbf9c0afc78c81d5",
+        "experiments/mcp-search-worker-feasibility/stage5-idb-observer.js": "8e2b23aa4865e3a7e56246ed99ba1b30775a18b2b72d812adb3b3d6a1c682ce6",
+        "experiments/mcp-search-worker-feasibility/stage5-diagnostic-source.cjs": "11fc43ee3cc1283ba0b4898b1a38b6e6ef16e904b8804ad1c8ed38b867ec9b2b",
+        "experiments/mcp-search-worker-feasibility/context-harness.cjs": "ce48fdff2780bbe5e66c8acd813d13675eb761cb7807f9c6e0058b6884711afe"
+      },
+      "diagnostic": "PASS",
+      "outcome": "PARTIAL",
+      "trials": [
+        {
+          "order": 1,
+          "variant": "observed-primary",
+          "outcome": "PARTIAL",
+          "idbEventCount": 351,
+          "dbNames": [
+            "worker-poc-04dc36cd-3f55-4752-8d8d-9ee510c383e1"
+          ],
+          "cleanup": "PASS"
+        }
+      ]
+    }
+  ],
+  "invariants": [
+    {
+      "file": "app.js",
+      "before": "78c09a8f7197055d116a832e55e1bf8305e7c4b034c53f4aa25cd5188f63b6a8",
+      "after": "78c09a8f7197055d116a832e55e1bf8305e7c4b034c53f4aa25cd5188f63b6a8",
+      "equal": true
+    },
+    {
+      "file": "index.html",
+      "before": "e0f8e3c2d75569cb11b037df1efdc53ac73190d01a00c4abcc64074db197f92f",
+      "after": "e0f8e3c2d75569cb11b037df1efdc53ac73190d01a00c4abcc64074db197f92f",
+      "equal": true
+    },
+    {
+      "file": "memo-search.js",
+      "before": "f24527e9bedcb3d24d842aafe82db52a9f2189f30e62cce607cb92bf9ef81a99",
+      "after": "f24527e9bedcb3d24d842aafe82db52a9f2189f30e62cce607cb92bf9ef81a99",
+      "equal": true
+    },
+    {
+      "file": "memo-search-ui.js",
+      "before": "d38d0e3fbdf1fa2ecdc80994e07d82e991f805a7d4a7e132ddaa89defffdcc67",
+      "after": "d38d0e3fbdf1fa2ecdc80994e07d82e991f805a7d4a7e132ddaa89defffdcc67",
+      "equal": true
+    },
+    {
+      "file": "memo-search-broker.js",
+      "before": "739a94ec6c00b064d6107cf8d0b5171117b8657b8db43cc32d0154d243cbbfae",
+      "after": "739a94ec6c00b064d6107cf8d0b5171117b8657b8db43cc32d0154d243cbbfae",
+      "equal": true
+    },
+    {
+      "file": "dummy-preview-service.js",
+      "before": "7b9f92eb330d1e449c686bd14872e65b5efc456785dc1060fee0596f3a2929ff",
+      "after": "7b9f92eb330d1e449c686bd14872e65b5efc456785dc1060fee0596f3a2929ff",
+      "equal": true
+    },
+    {
+      "file": "mcp-http-auth.js",
+      "before": "c96cbbbf98a93f09748c587dc69d7bc327e20fe4709a72a53322faf35b051125",
+      "after": "c96cbbbf98a93f09748c587dc69d7bc327e20fe4709a72a53322faf35b051125",
+      "equal": true
+    },
+    {
+      "file": "mcp-http-server.js",
+      "before": "57d2b7dff70bc77a921f161b63c1ea04097a6fb6c4f698e665f481d241ec404b",
+      "after": "57d2b7dff70bc77a921f161b63c1ea04097a6fb6c4f698e665f481d241ec404b",
+      "equal": true
+    },
+    {
+      "file": "memo-search.e2e.js",
+      "before": "49cc63081d29c9c2a369149979e0043fd86b9930dac2bed8ebd6a425ca0070da",
+      "after": "49cc63081d29c9c2a369149979e0043fd86b9930dac2bed8ebd6a425ca0070da",
+      "equal": true
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/recovery-model.cjs",
+      "before": "93990cef3904bf0445d27e7cd0496e977be940fa0b171b4df0a3f0b5fd04eaf7",
+      "after": "93990cef3904bf0445d27e7cd0496e977be940fa0b171b4df0a3f0b5fd04eaf7",
+      "equal": true
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/recovery-model.test.cjs",
+      "before": "90fb41d775142894cfac9af098ebba25448d88677c5833cd8a535d2d3e9f18d3",
+      "after": "90fb41d775142894cfac9af098ebba25448d88677c5833cd8a535d2d3e9f18d3",
+      "equal": true
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/stage5.test.cjs",
+      "before": "3c50909f6b103a94d2acc14eeece4e8c5112ca45aa6d71f9b4ba6c38756a2807",
+      "after": "3c50909f6b103a94d2acc14eeece4e8c5112ca45aa6d71f9b4ba6c38756a2807",
+      "equal": true
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/stage5-deadline-cases.cjs",
+      "before": "fb1f7affa9f3af494e4ad040a81aef70cfa7482c20da6e1e2a5cf2b9f7777dd0",
+      "after": "fb1f7affa9f3af494e4ad040a81aef70cfa7482c20da6e1e2a5cf2b9f7777dd0",
+      "equal": true
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/stage5-deadline.test.cjs",
+      "before": "e16f42bfde4e271ca313f06a04196eb2dfd54784245c58e673433b144b4aef8a",
+      "after": "e16f42bfde4e271ca313f06a04196eb2dfd54784245c58e673433b144b4aef8a",
+      "equal": true
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/stage5-deadline-browser.cjs",
+      "before": "c7a93863de29473a639270439d1d2ab17f62114b45f8df1659591966b7011189",
+      "after": "c7a93863de29473a639270439d1d2ab17f62114b45f8df1659591966b7011189",
+      "equal": true
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/stage5-browser.cjs",
+      "before": "4dd98f69a2bf2d4699e39f6512029969012f0e8df1a66fd977af868330eb9323",
+      "after": "4dd98f69a2bf2d4699e39f6512029969012f0e8df1a66fd977af868330eb9323",
+      "equal": true
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/shared-ledger.js",
+      "before": "f742824c194687d91a9c469f12756a1fb4dbdff9f6f0c56321e8952915cb0764",
+      "after": "f742824c194687d91a9c469f12756a1fb4dbdff9f6f0c56321e8952915cb0764",
+      "equal": true
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/suite.js",
+      "before": "21150cc64ee1e56c1ad0c27fc93c045c8254eee8e8fba3636fee634acf4739c2",
+      "after": "21150cc64ee1e56c1ad0c27fc93c045c8254eee8e8fba3636fee634acf4739c2",
+      "equal": true
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/worker.js",
+      "before": "53b853238f8bb53412aeeb012df3f0598fd48b726ead76d3601bc43a904aa2fc",
+      "after": "53b853238f8bb53412aeeb012df3f0598fd48b726ead76d3601bc43a904aa2fc",
+      "equal": true
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/cleanup.js",
+      "before": "930e4d234a2169b113e67084165c694d95be2a6e2d10e61999baca2c11ce0b22",
+      "after": "930e4d234a2169b113e67084165c694d95be2a6e2d10e61999baca2c11ce0b22",
+      "equal": true
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/stage5-t7.cjs",
+      "before": "bbd8976bc9b9006b78b3bdd0c85bb9096d6648c5e897b2d35392ce0e1ffc6699",
+      "after": "bbd8976bc9b9006b78b3bdd0c85bb9096d6648c5e897b2d35392ce0e1ffc6699",
+      "equal": true
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/poll-compare.cjs",
+      "before": "8d43470f06d9e858a205ba62dc7bd21fa535f3526d6be553b3171953247bd3c7",
+      "after": "8d43470f06d9e858a205ba62dc7bd21fa535f3526d6be553b3171953247bd3c7",
+      "equal": true
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/poll-outcomes.cjs",
+      "before": "51b26a12c642b5dd3a77ef5d13a04fba504b9d1d789b3e0a279a8c5763c25281",
+      "after": "51b26a12c642b5dd3a77ef5d13a04fba504b9d1d789b3e0a279a8c5763c25281",
+      "equal": true
+    }
+  ],
+  "previousEvidence": [
+    {
+      "file": "experiments/mcp-search-worker-feasibility/evidence/d2c4ad1-ci/results-chromium.json",
+      "baselineBlob": "dc8aa3796b7fb890850a1bc73a24351b553f3a47",
+      "currentBlob": "dc8aa3796b7fb890850a1bc73a24351b553f3a47"
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/evidence/d2c4ad1-ci/results-webkit.json",
+      "baselineBlob": "0792af9b4f3542acddcc0a48e8447983830f9cb1",
+      "currentBlob": "0792af9b4f3542acddcc0a48e8447983830f9cb1"
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/evidence/stage3-poll-windows-chromium-final.json",
+      "baselineBlob": "486e2b7b681a89c88b62f67bad357f11eb28af9b",
+      "currentBlob": "486e2b7b681a89c88b62f67bad357f11eb28af9b"
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/evidence/stage3-poll-windows-chromium.json",
+      "baselineBlob": "e197905ac64360e82ad7d47955462bb810ec6bae",
+      "currentBlob": "e197905ac64360e82ad7d47955462bb810ec6bae"
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/evidence/stage3-poll-windows-webkit-final.json",
+      "baselineBlob": "7b271814e951207b4d915981a299b2063d116c1c",
+      "currentBlob": "7b271814e951207b4d915981a299b2063d116c1c"
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/evidence/stage3-poll-windows-webkit.json",
+      "baselineBlob": "d9093e8d21a74e41310d930d854b6afd0c7ba380",
+      "currentBlob": "d9093e8d21a74e41310d930d854b6afd0c7ba380"
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/evidence/stage4-poll-chromium.json",
+      "baselineBlob": "7a5cdb53faa35f7298c1f7a6edb80eac7109d54e",
+      "currentBlob": "7a5cdb53faa35f7298c1f7a6edb80eac7109d54e"
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/evidence/stage4-poll-webkit.json",
+      "baselineBlob": "c5283ef2ff6c4b0928821f06818ba8c63e18db82",
+      "currentBlob": "c5283ef2ff6c4b0928821f06818ba8c63e18db82"
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/evidence/stage4-search-webkit.json",
+      "baselineBlob": "fa33986b747e1655b324187cbbda7e63fdb16092",
+      "currentBlob": "fa33986b747e1655b324187cbbda7e63fdb16092"
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/evidence/stage5-review/browser-chromium-7533d271-6b0a-43b1-9c37-2b5c0010571a.json.gz",
+      "baselineBlob": "ace8ea7e23c3173fd8de29b9a83222508ce8934d",
+      "currentBlob": "ace8ea7e23c3173fd8de29b9a83222508ce8934d"
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/evidence/stage5-review/browser-chromium-84db9e14-650a-4d61-b4db-3851509b910c.json.gz",
+      "baselineBlob": "4aa23ca8a37f5302dd70b596463d843a3d51b573",
+      "currentBlob": "4aa23ca8a37f5302dd70b596463d843a3d51b573"
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/evidence/stage5-review/browser-chromium-b6d8b203-e332-4eae-8540-43037a8f74f3.json.gz",
+      "baselineBlob": "04c4dfa4e17e7fed8fbf9a38d66931e3a89b0e54",
+      "currentBlob": "04c4dfa4e17e7fed8fbf9a38d66931e3a89b0e54"
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/evidence/stage5-review/browser-webkit-d7e7f8ac-32e8-4e3e-9a97-a5ef9752caba.json.gz",
+      "baselineBlob": "77f72175e228cbd659ce947450aa08bc31c0a3e1",
+      "currentBlob": "77f72175e228cbd659ce947450aa08bc31c0a3e1"
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/evidence/stage5-review/browser-webkit-d9df1caa-d77c-456b-826d-8b7962339d7b.json.gz",
+      "baselineBlob": "bf4ca8231e6b4922e371124a4d38cf09ac048c38",
+      "currentBlob": "bf4ca8231e6b4922e371124a4d38cf09ac048c38"
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/evidence/stage5-review/browser-webkit-dad92f08-5310-4894-9e5e-cc25966ab430.json.gz",
+      "baselineBlob": "603c86d075e01f5bb961445a91e0f36936c87538",
+      "currentBlob": "603c86d075e01f5bb961445a91e0f36936c87538"
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/evidence/stage5-review/cleanup-order-red.log.gz",
+      "baselineBlob": "5ba4e3d39e7c44be600ed49172193830947f524d",
+      "currentBlob": "5ba4e3d39e7c44be600ed49172193830947f524d"
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/evidence/stage5-review/deadline-chromium-green-0298fcfd-068a-4445-990b-ad87ae7d7042.json.gz",
+      "baselineBlob": "cedc0cb614f25b75c710380eaa3611e5a39302dd",
+      "currentBlob": "cedc0cb614f25b75c710380eaa3611e5a39302dd"
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/evidence/stage5-review/deadline-chromium-green-27b5bc8a-bac0-433d-b265-9cab71b0e600.json.gz",
+      "baselineBlob": "78f38fb73401b1d1f94f2a2283fceefc0f273a5d",
+      "currentBlob": "78f38fb73401b1d1f94f2a2283fceefc0f273a5d"
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/evidence/stage5-review/deadline-chromium-green-345dfaff-1594-4a04-8747-bc5c41f6e48c.json.gz",
+      "baselineBlob": "b288d780f0d8b1f2e24a6f047943a4107f91203d",
+      "currentBlob": "b288d780f0d8b1f2e24a6f047943a4107f91203d"
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/evidence/stage5-review/deadline-chromium-green-d4499e32-2d75-47eb-837f-ab6ca382061b.json.gz",
+      "baselineBlob": "442b892db2a432bb8372f4e74b0d52796e8d5c30",
+      "currentBlob": "442b892db2a432bb8372f4e74b0d52796e8d5c30"
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/evidence/stage5-review/deadline-chromium-red-a67c7817-9b5a-4f9c-932f-e1f91843cbd5.json.gz",
+      "baselineBlob": "33c0a2a7a86cd25495664e2a632d82ab7de272a0",
+      "currentBlob": "33c0a2a7a86cd25495664e2a632d82ab7de272a0"
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/evidence/stage5-review/deadline-green-initial.log.gz",
+      "baselineBlob": "562ddf085849ee193b8f6523c50b9219b158601d",
+      "currentBlob": "562ddf085849ee193b8f6523c50b9219b158601d"
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/evidence/stage5-review/deadline-node-green-16552b5a-f0aa-4081-a525-dcd7e9f3d233.json.gz",
+      "baselineBlob": "8f04d90c166029c450a689f218fa8b9cbf728b33",
+      "currentBlob": "8f04d90c166029c450a689f218fa8b9cbf728b33"
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/evidence/stage5-review/deadline-node-green-38a05044-6914-49a3-909b-ba36e1be77bc.json.gz",
+      "baselineBlob": "a8f167f55b1ebe86ce0c42fc86992d80307a8657",
+      "currentBlob": "a8f167f55b1ebe86ce0c42fc86992d80307a8657"
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/evidence/stage5-review/deadline-node-green-55e1d1a4-cc37-47c8-aafa-953ba99d9872.json.gz",
+      "baselineBlob": "7b222df54ff08528620da7c05fd7e9e1b98d3af7",
+      "currentBlob": "7b222df54ff08528620da7c05fd7e9e1b98d3af7"
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/evidence/stage5-review/deadline-node-green-8fe0d671-bbf3-4ff0-951f-d66365cee561.json.gz",
+      "baselineBlob": "32849519c97fbf35dd9548f0e44434e2727126dc",
+      "currentBlob": "32849519c97fbf35dd9548f0e44434e2727126dc"
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/evidence/stage5-review/deadline-node-green-ff725aea-44ba-40ee-9500-ac5cbf75f818.json.gz",
+      "baselineBlob": "00bdd358d86683513333712f048bfb6096d3750d",
+      "currentBlob": "00bdd358d86683513333712f048bfb6096d3750d"
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/evidence/stage5-review/deadline-node-red-28ae1d27-16ea-47a1-ada8-ed22f5345bbf.json.gz",
+      "baselineBlob": "52473a1156db04f6a883fade2d37ff7d665600c9",
+      "currentBlob": "52473a1156db04f6a883fade2d37ff7d665600c9"
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/evidence/stage5-review/deadline-red-node.log.gz",
+      "baselineBlob": "438822bf03997724d8c86b256d10e6138dabebdb",
+      "currentBlob": "438822bf03997724d8c86b256d10e6138dabebdb"
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/evidence/stage5-review/deadline-webkit-green-1f81baa5-dc2b-46b1-b485-3e713f6a3ff1.json.gz",
+      "baselineBlob": "2e0b10ba65fe5405184ed1441dcf1e3cf65850ae",
+      "currentBlob": "2e0b10ba65fe5405184ed1441dcf1e3cf65850ae"
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/evidence/stage5-review/deadline-webkit-green-a87a7872-6720-4e61-b4ff-02914e7cbd01.json.gz",
+      "baselineBlob": "466bb73589a58cb0bb2a0f834a09f5a8483837f7",
+      "currentBlob": "466bb73589a58cb0bb2a0f834a09f5a8483837f7"
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/evidence/stage5-review/deadline-webkit-green-b386ed91-8884-48dd-bec6-15ee71ce7f39.json.gz",
+      "baselineBlob": "9db8eeb5fe70c96ea46b14e929d4d14be8c044e2",
+      "currentBlob": "9db8eeb5fe70c96ea46b14e929d4d14be8c044e2"
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/evidence/stage5-review/deadline-webkit-green-f5e899e1-a841-4e31-af0e-3953f22f1a86.json.gz",
+      "baselineBlob": "8b46a8a34c1f9877f7685c8a90475a0e0b93ff10",
+      "currentBlob": "8b46a8a34c1f9877f7685c8a90475a0e0b93ff10"
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/evidence/stage5-review/deadline-webkit-red-dbb5bc8b-06dd-4670-b71e-0ea0f7e73f90.json.gz",
+      "baselineBlob": "af4454be21ae38fa3d747411bee3c40b7afd95d3",
+      "currentBlob": "af4454be21ae38fa3d747411bee3c40b7afd95d3"
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/evidence/stage5-review/index.json",
+      "baselineBlob": "3408b4309922e779f0ad71c2d93db7606978dc2c",
+      "currentBlob": "3408b4309922e779f0ad71c2d93db7606978dc2c"
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/evidence/stage5-review/review-acceptance-58-node.log.gz",
+      "baselineBlob": "44fdc2951e3a8f84773e5ecf2cecdb251e3ee3e4",
+      "currentBlob": "44fdc2951e3a8f84773e5ecf2cecdb251e3ee3e4"
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/evidence/stage5-review/review-acceptance-node.log.gz",
+      "baselineBlob": "5bc0c8de532a07decfe4dd11b4cfc3dd9cce7dac",
+      "currentBlob": "5bc0c8de532a07decfe4dd11b4cfc3dd9cce7dac"
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/evidence/stage5-review/review-node-final-56.log.gz",
+      "baselineBlob": "f9c46b3c86bee5ca1b837ec195dbae2196444881",
+      "currentBlob": "f9c46b3c86bee5ca1b837ec195dbae2196444881"
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/evidence/stage5-review/review-node-final.log.gz",
+      "baselineBlob": "47ca58f585d0177dc3696f32ab6f756c7565ba1a",
+      "currentBlob": "47ca58f585d0177dc3696f32ab6f756c7565ba1a"
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/evidence/stage5-review/review-shared-ledger-chromium.log.gz",
+      "baselineBlob": "358901f991c3045ba013b47cb2ef60dff33c9219",
+      "currentBlob": "358901f991c3045ba013b47cb2ef60dff33c9219"
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/evidence/stage5-review/review-shared-ledger-webkit.log.gz",
+      "baselineBlob": "88c770e6a9bcbf7dfffada9945a4d6899c905979",
+      "currentBlob": "88c770e6a9bcbf7dfffada9945a4d6899c905979"
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/evidence/stage5/browser-chromium-1233df22-3b11-48ca-9cec-8e44be9cec13.json",
+      "baselineBlob": "f83d2e7a6f2262e49ef050aca744788c68123e02",
+      "currentBlob": "f83d2e7a6f2262e49ef050aca744788c68123e02"
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/evidence/stage5/browser-chromium-513e7c8f-a296-49e0-936b-eb1d7f5b3da0.json",
+      "baselineBlob": "e93a20c73932c60fd0f552e1def2d376e0c78592",
+      "currentBlob": "e93a20c73932c60fd0f552e1def2d376e0c78592"
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/evidence/stage5/browser-chromium-eb1f66e0-f356-47c3-9060-1a8fda155e09.json",
+      "baselineBlob": "4f02dac451514f7e8253dfe5224e732b8e862860",
+      "currentBlob": "4f02dac451514f7e8253dfe5224e732b8e862860"
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/evidence/stage5/browser-webkit-3a426361-e210-4b92-b394-705ab3b78243.json",
+      "baselineBlob": "8c80ed68410882a8984b8f3bb46b550e38bad46b",
+      "currentBlob": "8c80ed68410882a8984b8f3bb46b550e38bad46b"
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/evidence/stage5/browser-webkit-44112734-4b87-44c9-90b1-c3eb58d9aa68.json",
+      "baselineBlob": "8497bd2396ab4ed6d3a18c676c9af5a93133848b",
+      "currentBlob": "8497bd2396ab4ed6d3a18c676c9af5a93133848b"
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/evidence/stage5/browser-webkit-f1471f07-6ebb-4589-8135-2623086f45b9.json",
+      "baselineBlob": "2cc18b6123b5ce6a9311065bd4893bb0a9ff2f3c",
+      "currentBlob": "2cc18b6123b5ce6a9311065bd4893bb0a9ff2f3c"
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/evidence/stage5/linux-5b756ea-index.json",
+      "baselineBlob": "8561ff88054f2ce0867e7cab06787ba5ba76bff2",
+      "currentBlob": "8561ff88054f2ce0867e7cab06787ba5ba76bff2"
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/evidence/stage5/linux-browser-chromium-21a5f55d-2512-4661-9e20-c442e6d74c10.json",
+      "baselineBlob": "bfe9c0758fbe78af4d1e513c61856a429652385a",
+      "currentBlob": "bfe9c0758fbe78af4d1e513c61856a429652385a"
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/evidence/stage5/linux-browser-webkit-481e7ef5-e02d-4efc-8351-5b1d56d2b72c.json",
+      "baselineBlob": "b68f7d788e92c97d9fdc95c1a8203fc879cf7085",
+      "currentBlob": "b68f7d788e92c97d9fdc95c1a8203fc879cf7085"
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/evidence/stage5/linux-t7-chromium-357d27d1-c34a-4716-94c9-3ef9d5b357e3.json.gz",
+      "baselineBlob": "dc4f8b24b73523a11a63957db7deb5873aaeb52f",
+      "currentBlob": "dc4f8b24b73523a11a63957db7deb5873aaeb52f"
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/evidence/stage5/linux-t7-only-webkit-1a30179a-0d91-4b72-8270-d3b42d30c351.json.gz",
+      "baselineBlob": "2648f4db1946d4bc972305c20371b5878365d956",
+      "currentBlob": "2648f4db1946d4bc972305c20371b5878365d956"
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/evidence/stage5/linux-t7-webkit-a613804e-a718-43f5-a33c-0dd194d7d9c1.json.gz",
+      "baselineBlob": "e146b7bf2f27511f35bf04bac96732e85bd49a26",
+      "currentBlob": "e146b7bf2f27511f35bf04bac96732e85bd49a26"
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/evidence/stage5/model-green.txt",
+      "baselineBlob": "682793cc36885e1dcdbf005906deb82d8711be5f",
+      "currentBlob": "682793cc36885e1dcdbf005906deb82d8711be5f"
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/evidence/stage5/model-red-bounded.txt",
+      "baselineBlob": "9ec207e06be3b469023c643fa5cdb993303c8042",
+      "currentBlob": "9ec207e06be3b469023c643fa5cdb993303c8042"
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/evidence/stage5/model-red.txt",
+      "baselineBlob": "b8a6de7db56e807a9506431496ed07ef67a4dda1",
+      "currentBlob": "b8a6de7db56e807a9506431496ed07ef67a4dda1"
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/evidence/stage5/node-final-delivery-state.txt",
+      "baselineBlob": "6e0bcf86c05b644f36af8ee360fb2f0ac58f2880",
+      "currentBlob": "6e0bcf86c05b644f36af8ee360fb2f0ac58f2880"
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/evidence/stage5/node-final.txt",
+      "baselineBlob": "30381711c1800f667100eec24145c37540e9e2e7",
+      "currentBlob": "30381711c1800f667100eec24145c37540e9e2e7"
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/evidence/stage5/search-chromium-final.txt",
+      "baselineBlob": "76eaf89e39a733e5700d69973f91cf7a9bb0ec7d",
+      "currentBlob": "76eaf89e39a733e5700d69973f91cf7a9bb0ec7d"
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/evidence/stage5/search-webkit-diagnostic.txt",
+      "baselineBlob": "40c90dcadafd2a5d54603abd7338d1926574fa77",
+      "currentBlob": "40c90dcadafd2a5d54603abd7338d1926574fa77"
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/evidence/stage5/search-webkit-final.txt",
+      "baselineBlob": "ab71bb0ce0e921ff6d3899ed8ab3be40c0f07fac",
+      "currentBlob": "ab71bb0ce0e921ff6d3899ed8ab3be40c0f07fac"
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/evidence/stage5/search-webkit-route-lifetime.txt",
+      "baselineBlob": "ab71bb0ce0e921ff6d3899ed8ab3be40c0f07fac",
+      "currentBlob": "ab71bb0ce0e921ff6d3899ed8ab3be40c0f07fac"
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/evidence/stage5/t7-chromium-ce5e768a-3f52-4327-95b6-64defc4f7fd8.json.gz",
+      "baselineBlob": "a3eed8c5562cf9ba6d99113cd73d5d2af98ee5fc",
+      "currentBlob": "a3eed8c5562cf9ba6d99113cd73d5d2af98ee5fc"
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/evidence/stage5/t7-webkit-888e825f-9204-4a5f-8646-d0cf66f193eb.json.gz",
+      "baselineBlob": "0b5abba62f2e715c935e6dde95bc9e464b676fad",
+      "currentBlob": "0b5abba62f2e715c935e6dde95bc9e464b676fad"
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/evidence/stage5/timeline-chromium-1793445851054-175a75a6.json",
+      "baselineBlob": "4588a918f1a70cbde5f38e5b71f2cdcea4af38fc",
+      "currentBlob": "4588a918f1a70cbde5f38e5b71f2cdcea4af38fc"
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/evidence/stage5/timeline-webkit-1793445479117-7cac4881.json",
+      "baselineBlob": "56d59d8499a20522f36565b2e3eb1b3eed416aca",
+      "currentBlob": "56d59d8499a20522f36565b2e3eb1b3eed416aca"
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/evidence/stage5/timeline-webkit-1793445742651-3e27e529.json",
+      "baselineBlob": "a90af4352411260f003720af4d5c37aaddfb1fc0",
+      "currentBlob": "a90af4352411260f003720af4d5c37aaddfb1fc0"
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/evidence/stage5/timeline-webkit-1793445878397-a79a3991.json",
+      "baselineBlob": "2f62bb332b3f38bc1805d3e8fbe9771a8172dece",
+      "currentBlob": "2f62bb332b3f38bc1805d3e8fbe9771a8172dece"
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/evidence/stage5/windows-index.json",
+      "baselineBlob": "c37e3ee927fea0c60994dead840d704ca392e71b",
+      "currentBlob": "c37e3ee927fea0c60994dead840d704ca392e71b"
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/evidence/t7-only-windows-chromium.json",
+      "baselineBlob": "a52e8d345010d1c15342390b529f87e4964616db",
+      "currentBlob": "a52e8d345010d1c15342390b529f87e4964616db"
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/evidence/t7-only-windows-webkit.json",
+      "baselineBlob": "e961a15d332fc4c8fffb63c9ff4a001b181d64a2",
+      "currentBlob": "e961a15d332fc4c8fffb63c9ff4a001b181d64a2"
+    },
+    {
+      "file": "experiments/mcp-search-worker-feasibility/evidence/webkit-poll-route-diagnostic-20261031.json",
+      "baselineBlob": "433ef2b3e35d3365d6ac3d6f875a06c36b96dabb",
+      "currentBlob": "433ef2b3e35d3365d6ac3d6f875a06c36b96dabb"
+    }
+  ],
+  "unknowns": [
+    "202ms not reproduced in fixed Windows runs",
+    "Physical release UNKNOWN",
+    "Linux comparisons pending"
+  ]
+}

@@ -1,0 +1,649 @@
+{
+  "workflowRun": 41196807578,
+  "head": "5b756ea580e041252cc6d967dc9793acb32fd67a",
+  "entries": [
+    {
+      "file": "linux-browser-chromium-21a5f55d-2512-4661-9e20-c442e6d74c10.json",
+      "rawSha256": "0077329e145d71b919bf79d78b4d29e9867d35f2e30c97636f977b0edf837a7f",
+      "testedCommit": "a5997916fa36de10e53d547707fff1b8bf33c25a",
+      "testedTree": "1600ced6c621f8ea2eb73d8c6d8c068920d7863a",
+      "dirty": false,
+      "outcome": "PASS"
+    },
+    {
+      "file": "linux-browser-webkit-481e7ef5-e02d-4efc-8351-5b1d56d2b72c.json",
+      "rawSha256": "81c20eda27084fe369ad4f1f03c65e048ca7ffaf97f3e0b0301df193c3751033",
+      "testedCommit": "a5997916fa36de10e53d547707fff1b8bf33c25a",
+      "testedTree": "1600ced6c621f8ea2eb73d8c6d8c068920d7863a",
+      "dirty": false,
+      "outcome": "PASS"
+    },
+    {
+      "file": "linux-t7-chromium-357d27d1-c34a-4716-94c9-3ef9d5b357e3.json.gz",
+      "rawSha256": "35f3c9c74494753cddf636fa78cb784b524a1a87dda6ce268642632184322187",
+      "testedCommit": "a5997916fa36de10e53d547707fff1b8bf33c25a",
+      "testedTree": "1600ced6c621f8ea2eb73d8c6d8c068920d7863a",
+      "dirty": false,
+      "outcome": "PARTIAL",
+      "trials": [
+        {
+          "variant": "primary",
+          "outcome": "PARTIAL",
+          "states": {
+            "T1": "PASS",
+            "T2": "PASS",
+            "T3": "PASS",
+            "T4": "PASS",
+            "T5": "PASS",
+            "T6": "PASS",
+            "T7": "PARTIAL",
+            "T8": "PASS",
+            "T9": "PARTIAL",
+            "T10": "PASS",
+            "T11": "PARTIAL",
+            "T12": "HOLD"
+          },
+          "cleanup": {
+            "status": "PASS",
+            "terminal": "success",
+            "error": null,
+            "blockedObserved": false,
+            "elapsedMs": 0.5,
+            "events": [
+              "delete_start",
+              "delete_success"
+            ]
+          },
+          "same": {
+            "open": "PASS",
+            "cleanup": {
+              "status": "PASS",
+              "terminal": "success",
+              "error": null,
+              "blockedObserved": false,
+              "elapsedMs": 0.2999999999956344,
+              "events": [
+                "delete_start",
+                "delete_success"
+              ]
+            }
+          },
+          "separate": {
+            "open": "PASS",
+            "cleanup": {
+              "status": "PASS",
+              "terminal": "success",
+              "error": null,
+              "blockedObserved": false,
+              "elapsedMs": 0.2999999999956344,
+              "events": [
+                "delete_start",
+                "delete_success"
+              ]
+            }
+          }
+        },
+        {
+          "variant": "minimal",
+          "outcome": "PARTIAL",
+          "states": {
+            "T1": "PASS",
+            "T2": "PASS",
+            "T3": "PASS",
+            "T4": "PASS",
+            "T5": "PASS",
+            "T6": "PASS",
+            "T7": "PARTIAL",
+            "T8": "PASS",
+            "T9": "PARTIAL",
+            "T10": "PASS",
+            "T11": "PARTIAL",
+            "T12": "HOLD"
+          },
+          "cleanup": {
+            "status": "PASS",
+            "terminal": "success",
+            "error": null,
+            "blockedObserved": false,
+            "elapsedMs": 0.5999999999985448,
+            "events": [
+              "delete_start",
+              "delete_success"
+            ]
+          },
+          "same": {
+            "open": "PASS",
+            "cleanup": {
+              "status": "PASS",
+              "terminal": "success",
+              "error": null,
+              "blockedObserved": false,
+              "elapsedMs": 0.2999999999956344,
+              "events": [
+                "delete_start",
+                "delete_success"
+              ]
+            }
+          },
+          "separate": {
+            "open": "PASS",
+            "cleanup": {
+              "status": "PASS",
+              "terminal": "success",
+              "error": null,
+              "blockedObserved": false,
+              "elapsedMs": 0.4000000000014552,
+              "events": [
+                "delete_start",
+                "delete_success"
+              ]
+            }
+          }
+        },
+        {
+          "variant": "complete-no-close",
+          "outcome": "PARTIAL",
+          "states": {
+            "T1": "PASS",
+            "T2": "PASS",
+            "T3": "PASS",
+            "T4": "PASS",
+            "T5": "PASS",
+            "T6": "PASS",
+            "T7": "PARTIAL",
+            "T8": "PASS",
+            "T9": "PARTIAL",
+            "T10": "PASS",
+            "T11": "PARTIAL",
+            "T12": "HOLD"
+          },
+          "cleanup": {
+            "status": "PASS",
+            "terminal": "success",
+            "error": null,
+            "blockedObserved": false,
+            "elapsedMs": 0.6999999999970896,
+            "events": [
+              "delete_start",
+              "delete_success"
+            ]
+          },
+          "same": {
+            "open": "PASS",
+            "cleanup": {
+              "status": "PASS",
+              "terminal": "success",
+              "error": null,
+              "blockedObserved": false,
+              "elapsedMs": 0.3000000000029104,
+              "events": [
+                "delete_start",
+                "delete_success"
+              ]
+            }
+          },
+          "separate": {
+            "open": "PASS",
+            "cleanup": {
+              "status": "PASS",
+              "terminal": "success",
+              "error": null,
+              "blockedObserved": false,
+              "elapsedMs": 0.39999999999417923,
+              "events": [
+                "delete_start",
+                "delete_success"
+              ]
+            }
+          }
+        },
+        {
+          "variant": "complete-close",
+          "outcome": "PARTIAL",
+          "states": {
+            "T1": "PASS",
+            "T2": "PASS",
+            "T3": "PASS",
+            "T4": "PASS",
+            "T5": "PASS",
+            "T6": "PASS",
+            "T7": "PARTIAL",
+            "T8": "PASS",
+            "T9": "PARTIAL",
+            "T10": "PASS",
+            "T11": "PARTIAL",
+            "T12": "HOLD"
+          },
+          "cleanup": {
+            "status": "PASS",
+            "terminal": "success",
+            "error": null,
+            "blockedObserved": false,
+            "elapsedMs": 0.6000000000058208,
+            "events": [
+              "delete_start",
+              "delete_success"
+            ]
+          },
+          "same": {
+            "open": "PASS",
+            "cleanup": {
+              "status": "PASS",
+              "terminal": "success",
+              "error": null,
+              "blockedObserved": false,
+              "elapsedMs": 0.20000000001164153,
+              "events": [
+                "delete_start",
+                "delete_success"
+              ]
+            }
+          },
+          "separate": {
+            "open": "PASS",
+            "cleanup": {
+              "status": "PASS",
+              "terminal": "success",
+              "error": null,
+              "blockedObserved": false,
+              "elapsedMs": 0.5,
+              "events": [
+                "delete_start",
+                "delete_success"
+              ]
+            }
+          }
+        },
+        {
+          "variant": "before-complete-gate",
+          "outcome": "PARTIAL",
+          "states": {
+            "T1": "PASS",
+            "T2": "PASS",
+            "T3": "PASS",
+            "T4": "PASS",
+            "T5": "PASS",
+            "T6": "PASS",
+            "T7": "PARTIAL",
+            "T8": "PASS",
+            "T9": "PARTIAL",
+            "T10": "PASS",
+            "T11": "PARTIAL",
+            "T12": "HOLD"
+          },
+          "cleanup": {
+            "status": "PASS",
+            "terminal": "success",
+            "error": null,
+            "blockedObserved": false,
+            "elapsedMs": 0.39999999999417923,
+            "events": [
+              "delete_start",
+              "delete_success"
+            ]
+          },
+          "same": {
+            "open": "PASS",
+            "cleanup": {
+              "status": "PASS",
+              "terminal": "success",
+              "error": null,
+              "blockedObserved": false,
+              "elapsedMs": 0.3000000000029104,
+              "events": [
+                "delete_start",
+                "delete_success"
+              ]
+            }
+          },
+          "separate": {
+            "open": "PASS",
+            "cleanup": {
+              "status": "PASS",
+              "terminal": "success",
+              "error": null,
+              "blockedObserved": false,
+              "elapsedMs": 0.39999999999417923,
+              "events": [
+                "delete_start",
+                "delete_success"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "file": "linux-t7-webkit-a613804e-a718-43f5-a33c-0dd194d7d9c1.json.gz",
+      "rawSha256": "96c5daa72902d2498379771b9d7c11aa7f22afff7a6b1a1b8ce01419a01a0dad",
+      "testedCommit": "a5997916fa36de10e53d547707fff1b8bf33c25a",
+      "testedTree": "1600ced6c621f8ea2eb73d8c6d8c068920d7863a",
+      "dirty": false,
+      "outcome": "FAIL",
+      "trials": [
+        {
+          "variant": "primary",
+          "outcome": "FAIL",
+          "states": {
+            "T1": "PASS",
+            "T2": "PASS",
+            "T3": "PASS",
+            "T4": "PASS",
+            "T5": "PASS",
+            "T6": "PASS",
+            "T7": "FAIL",
+            "T8": "NOT_RUN",
+            "T9": "NOT_RUN",
+            "T10": "NOT_RUN",
+            "T11": "NOT_RUN",
+            "T12": "NOT_RUN"
+          },
+          "failure": "T7 iteration 1.upgrade: IndexedDB open timeout; blocked event: false",
+          "cleanup": {
+            "status": "UNKNOWN",
+            "terminal": "timeout",
+            "error": null,
+            "blockedObserved": false,
+            "elapsedMs": 2000,
+            "events": [
+              "delete_start",
+              "delete_timeout"
+            ]
+          },
+          "same": {
+            "open": "PASS",
+            "cleanup": {
+              "status": "PASS",
+              "terminal": "success",
+              "error": null,
+              "blockedObserved": false,
+              "elapsedMs": 0,
+              "events": [
+                "delete_start",
+                "delete_success"
+              ]
+            }
+          },
+          "separate": {
+            "open": "PASS",
+            "cleanup": {
+              "status": "PASS",
+              "terminal": "success",
+              "error": null,
+              "blockedObserved": false,
+              "elapsedMs": 1,
+              "events": [
+                "delete_start",
+                "delete_success"
+              ]
+            }
+          }
+        },
+        {
+          "variant": "minimal",
+          "outcome": "PARTIAL",
+          "states": {
+            "T1": "PASS",
+            "T2": "PASS",
+            "T3": "PASS",
+            "T4": "PASS",
+            "T5": "PASS",
+            "T6": "PASS",
+            "T7": "PARTIAL",
+            "T8": "PASS",
+            "T9": "PARTIAL",
+            "T10": "PASS",
+            "T11": "PARTIAL",
+            "T12": "HOLD"
+          },
+          "cleanup": {
+            "status": "PASS",
+            "terminal": "success",
+            "error": null,
+            "blockedObserved": true,
+            "elapsedMs": 0,
+            "events": [
+              "delete_start",
+              "delete_blocked",
+              "delete_success"
+            ]
+          },
+          "same": {
+            "open": "PASS",
+            "cleanup": {
+              "status": "PASS",
+              "terminal": "success",
+              "error": null,
+              "blockedObserved": false,
+              "elapsedMs": 0,
+              "events": [
+                "delete_start",
+                "delete_success"
+              ]
+            }
+          },
+          "separate": {
+            "open": "PASS",
+            "cleanup": {
+              "status": "PASS",
+              "terminal": "success",
+              "error": null,
+              "blockedObserved": false,
+              "elapsedMs": 0,
+              "events": [
+                "delete_start",
+                "delete_success"
+              ]
+            }
+          }
+        },
+        {
+          "variant": "complete-no-close",
+          "outcome": "PARTIAL",
+          "states": {
+            "T1": "PASS",
+            "T2": "PASS",
+            "T3": "PASS",
+            "T4": "PASS",
+            "T5": "PASS",
+            "T6": "PASS",
+            "T7": "PARTIAL",
+            "T8": "PASS",
+            "T9": "PARTIAL",
+            "T10": "PASS",
+            "T11": "PARTIAL",
+            "T12": "HOLD"
+          },
+          "cleanup": {
+            "status": "PASS",
+            "terminal": "success",
+            "error": null,
+            "blockedObserved": true,
+            "elapsedMs": 0,
+            "events": [
+              "delete_start",
+              "delete_blocked",
+              "delete_success"
+            ]
+          },
+          "same": {
+            "open": "PASS",
+            "cleanup": {
+              "status": "PASS",
+              "terminal": "success",
+              "error": null,
+              "blockedObserved": false,
+              "elapsedMs": 0,
+              "events": [
+                "delete_start",
+                "delete_success"
+              ]
+            }
+          },
+          "separate": {
+            "open": "PASS",
+            "cleanup": {
+              "status": "PASS",
+              "terminal": "success",
+              "error": null,
+              "blockedObserved": false,
+              "elapsedMs": 1,
+              "events": [
+                "delete_start",
+                "delete_success"
+              ]
+            }
+          }
+        },
+        {
+          "variant": "complete-close",
+          "outcome": "PARTIAL",
+          "states": {
+            "T1": "PASS",
+            "T2": "PASS",
+            "T3": "PASS",
+            "T4": "PASS",
+            "T5": "PASS",
+            "T6": "PASS",
+            "T7": "PARTIAL",
+            "T8": "PASS",
+            "T9": "PARTIAL",
+            "T10": "PASS",
+            "T11": "PARTIAL",
+            "T12": "HOLD"
+          },
+          "cleanup": {
+            "status": "PASS",
+            "terminal": "success",
+            "error": null,
+            "blockedObserved": true,
+            "elapsedMs": 1,
+            "events": [
+              "delete_start",
+              "delete_blocked",
+              "delete_success"
+            ]
+          },
+          "same": {
+            "open": "PASS",
+            "cleanup": {
+              "status": "PASS",
+              "terminal": "success",
+              "error": null,
+              "blockedObserved": false,
+              "elapsedMs": 0,
+              "events": [
+                "delete_start",
+                "delete_success"
+              ]
+            }
+          },
+          "separate": {
+            "open": "PASS",
+            "cleanup": {
+              "status": "PASS",
+              "terminal": "success",
+              "error": null,
+              "blockedObserved": false,
+              "elapsedMs": 0,
+              "events": [
+                "delete_start",
+                "delete_success"
+              ]
+            }
+          }
+        },
+        {
+          "variant": "before-complete-gate",
+          "outcome": "PARTIAL",
+          "states": {
+            "T1": "PASS",
+            "T2": "PASS",
+            "T3": "PASS",
+            "T4": "PASS",
+            "T5": "PASS",
+            "T6": "PASS",
+            "T7": "PARTIAL",
+            "T8": "PASS",
+            "T9": "PARTIAL",
+            "T10": "PASS",
+            "T11": "PARTIAL",
+            "T12": "HOLD"
+          },
+          "cleanup": {
+            "status": "PASS",
+            "terminal": "success",
+            "error": null,
+            "blockedObserved": true,
+            "elapsedMs": 0,
+            "events": [
+              "delete_start",
+              "delete_blocked",
+              "delete_success"
+            ]
+          },
+          "same": {
+            "open": "PASS",
+            "cleanup": {
+              "status": "PASS",
+              "terminal": "success",
+              "error": null,
+              "blockedObserved": false,
+              "elapsedMs": 0,
+              "events": [
+                "delete_start",
+                "delete_success"
+              ]
+            }
+          },
+          "separate": {
+            "open": "PASS",
+            "cleanup": {
+              "status": "PASS",
+              "terminal": "success",
+              "error": null,
+              "blockedObserved": false,
+              "elapsedMs": 0,
+              "events": [
+                "delete_start",
+                "delete_success"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "file": "linux-t7-only-webkit-1a30179a-0d91-4b72-8270-d3b42d30c351.json.gz",
+      "rawSha256": "446db34f1a67a502d73d40327891371fdd201c7c82549c6bd0167daa3ce09b59",
+      "standalone": {
+        "states": {
+          "T1": "NOT_RUN",
+          "T2": "NOT_RUN",
+          "T3": "NOT_RUN",
+          "T4": "NOT_RUN",
+          "T5": "NOT_RUN",
+          "T6": "NOT_RUN",
+          "T7": "FAIL",
+          "T8": "NOT_RUN",
+          "T9": "NOT_RUN",
+          "T10": "NOT_RUN",
+          "T11": "NOT_RUN",
+          "T12": "NOT_RUN"
+        },
+        "failure": "T7 iteration 12.upgrade: IndexedDB open timeout; blocked event: false",
+        "cleanup": {
+          "status": "UNKNOWN",
+          "terminal": "timeout",
+          "error": null,
+          "blockedObserved": false,
+          "elapsedMs": 2001,
+          "events": [
+            "delete_start",
+            "delete_timeout"
+          ]
+        }
+      }
+    }
+  ]
+}

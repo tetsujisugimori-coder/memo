@@ -41,7 +41,8 @@ test("cancellation, expiry and creation failure retain fail-closed boundaries", 
   const failed = createRecoveryModel({ createWorker: () => { throw new Error("unknown"); }, maxWorkers: 1, now: () => 0 });
   failed.setSession("x", 100);
   assert.equal((await failed.start(null, 1)).status, "worker_create_unknown");
-  assert.equal((await failed.start(null, 1)).status, "capacity_unknown");
+  assert.equal((await failed.start(null, 1)).status, "failed_closed");
+  assert.equal(failed.state().failureCause, "worker_create_unknown");
 });
 test("a delayed timer cannot admit a result after the deadline", async () => {
   const f = fixture(); f.model.setSession("a", 1000);
@@ -74,5 +75,6 @@ test("termination failure discards the result and keeps the uncertain slot", asy
   const pending = model.start("read", 100);
   worker.onmessage({ data: { ...worker.message, value: "secret" } });
   assert.deepEqual(await pending, { status: "worker_stop_unknown" });
-  assert.equal((await model.start("read", 100)).status, "capacity_unknown");
+  assert.equal((await model.start("read", 100)).status, "failed_closed");
+  assert.equal(model.state().failureCause, "worker_stop_unknown");
 });
