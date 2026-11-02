@@ -1,0 +1,26 @@
+{
+  "expected": {
+    "status": "INVALID_SCHEMA",
+    "exitCode": 2,
+    "codes": [
+      "SCHEMA"
+    ],
+    "shortened": false,
+    "diagnostics": 1
+  },
+  "inputBytes": 35731,
+  "inputSha256": "64d3bdeb47554308e9d8007df3016515e714b003aff64b0b1f1f5a2cb24b4f92",
+  "status": 2,
+  "signal": null,
+  "processError": null,
+  "stdoutBytes": 33697,
+  "stdoutSha256": "0b74851afdbbec620138e4a69dd567a1cc73914f7477e10758e877e09dbd3b92",
+  "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "parseError": null,
+  "independentSchemaValid": true,
+  "schemaErrors": null,
+  "actualStatus": "INVALID_SCHEMA",
+  "actualExitCode": 2,
+  "diagnosticCount": 1,
+  "marker": null
+}

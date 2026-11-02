@@ -18,41 +18,90 @@ const identityOf = e => Object.fromEntries(identityKeys.map(k => [k, e[k]]));
 const txKey = e => canonical(identityOf(e));
 const streamKey = e => e.source === 'main' ? 'main' : `worker:${e.workerId}`;
 
+// Display budgets do not stop validation or discard undisplayed reason codes.
+const MAX_DIAGNOSTICS = 256, MAX_DIAGNOSTIC_TEXT = 8192;
+function diagnosticCollector() {
+  const records = [], codes = new Set();
+  let total = 0, shortened = 0;
+  function text(value) {
+    const prefix = []; let length = 0;
+    for (const character of value) {
+      if (length++ === MAX_DIAGNOSTIC_TEXT) {
+        shortened++;
+        return prefix.slice(0, MAX_DIAGNOSTIC_TEXT - '...[truncated]'.length).join('') + '...[truncated]';
+      }
+      prefix.push(character);
+    }
+    return value;
+  }
+  return {
+    codes,
+    get invalid() { return total !== 0; },
+    add(code, subject, detail) {
+      total++; codes.add(code);
+      if (records.length < MAX_DIAGNOSTICS) records.push({ code, subject: text(subject), detail: text(detail) });
+    },
+    finish() {
+      const result = records.slice();
+      if (total > records.length || shortened) {
+        if (result.length === MAX_DIAGNOSTICS) result.pop();
+        const reasonCodes = [...codes].filter(code => code !== 'DIAGNOSTICS_TRUNCATED').sort().join(',');
+        result.push({ code: 'DIAGNOSTICS_TRUNCATED', subject: '', detail: `diagnostics omitted=${total - result.length}; fields shortened=${shortened}; reason codes=${reasonCodes}` });
+        codes.add('DIAGNOSTICS_TRUNCATED');
+      }
+      return result;
+    }
+  };
+}
+
 // A bounded validator for the fixed schemas shipped beside this module.
 // Not a general JSON Schema implementation; no input-supplied schema is executed.
 function validate(value, schema, root = schema, path = '', depth = 0) {
-  const fail = detail => [{ code: 'SCHEMA', subject: path, detail }];
+  const diagnostics = diagnosticCollector();
+  validateInto(value, schema, root, path, depth, diagnostics);
+  return diagnostics.finish();
+}
+function validateInto(value, schema, root, path, depth, diagnostics) {
+  const fail = (detail, subject = path) => { diagnostics?.add('SCHEMA', subject, detail); return false; };
   if (depth > 32) return fail('maximum nesting depth exceeded');
-  if (schema.$ref) return validate(value, root.$defs[schema.$ref.slice(8)], root, path, depth + 1);
+  if (schema.$ref) return validateInto(value, root.$defs[schema.$ref.slice(8)], root, path, depth + 1, diagnostics);
   if (schema.oneOf) {
-    const results = schema.oneOf.map(s => validate(value, s, root, path, depth + 1));
-    if (results.filter(r => !r.length).length === 1) return [];
+    // Validity-only probes allocate no diagnostics. Only the selected failure is recorded.
+    const matches = schema.oneOf.filter(s => validateInto(value, s, root, path, depth + 1, null));
+    if (matches.length === 1) return true;
     // Show precise field errors when a known event discriminant exists.
     const variant = schema.oneOf.find(s => s.properties?.type?.enum?.includes(value?.type));
-    return variant ? validate(value, variant, root, path, depth + 1) : fail('no unique supported variant');
+    return variant ? validateInto(value, variant, root, path, depth + 1, diagnostics) : fail('no unique supported variant');
   }
   const type = value === null ? 'null' : Array.isArray(value) ? 'array' : typeof value === 'number' && Number.isInteger(value) ? 'integer' : typeof value;
   const types = Array.isArray(schema.type) ? schema.type : [schema.type];
   if (!types.includes(type) && !(type === 'integer' && types.includes('number'))) return fail('invalid type');
-  let errors = [];
-  if (schema.enum && !schema.enum.includes(value)) errors.push(...fail('unsupported value'));
+  let valid = true;
+  if (schema.enum && !schema.enum.includes(value)) valid = fail('unsupported value');
   if (typeof value === 'string') {
     const length = [...value].length; // JSON Schema counts Unicode code points, not UTF-16 code units.
-    if (length < (schema.minLength ?? 0) || length > (schema.maxLength ?? Infinity)) errors.push(...fail('invalid length'));
-    if (schema.pattern && !new RegExp(schema.pattern).test(value)) errors.push(...fail('invalid identifier/hash'));
+    if (length < (schema.minLength ?? 0) || length > (schema.maxLength ?? Infinity)) valid = fail('invalid length');
+    if (schema.pattern && !new RegExp(schema.pattern).test(value)) valid = fail('invalid identifier/hash');
   }
-  if (typeof value === 'number' && (!Number.isFinite(value) || (type === 'integer' && !Number.isSafeInteger(value)) || value < (schema.minimum ?? -Infinity) || value > (schema.maximum ?? Infinity))) errors.push(...fail('invalid numeric range'));
+  if (typeof value === 'number' && (!Number.isFinite(value) || (type === 'integer' && !Number.isSafeInteger(value)) || value < (schema.minimum ?? -Infinity) || value > (schema.maximum ?? Infinity))) valid = fail('invalid numeric range');
   if (Array.isArray(value)) {
     if (value.length < (schema.minItems ?? 0) || value.length > (schema.maxItems ?? Infinity)) return fail('invalid item count');
-    value.forEach((v, i) => errors.push(...validate(v, schema.items, root, `${path}/${i}`, depth + 1)));
+    for (let i = 0; i < value.length; i++) {
+      valid = validateInto(value[i], schema.items, root, `${path}/${i}`, depth + 1, diagnostics) && valid;
+      if (!valid && !diagnostics) return false;
+    }
   } else if (type === 'object') {
-    for (const k of schema.required || []) if (!Object.hasOwn(value, k)) errors.push({ code: 'SCHEMA', subject: `${path}/${k}`, detail: 'required field missing' });
+    for (const k of schema.required || []) if (!Object.hasOwn(value, k)) {
+      valid = fail('required field missing', `${path}/${k}`);
+      if (!diagnostics) return false;
+    }
     for (const k of Object.keys(value)) {
-      if (!Object.hasOwn(schema.properties, k)) errors.push({ code: 'SCHEMA', subject: `${path}/${k}`, detail: 'unexpected field' });
-      else errors.push(...validate(value[k], schema.properties[k], root, `${path}/${k}`, depth + 1));
+      if (!Object.hasOwn(schema.properties, k)) valid = fail('unexpected field', `${path}/${k}`);
+      else valid = validateInto(value[k], schema.properties[k], root, `${path}/${k}`, depth + 1, diagnostics) && valid;
+      if (!valid && !diagnostics) return false;
     }
   }
-  return errors;
+  return valid;
 }
 
 function parseData(bytes) {
@@ -107,28 +156,30 @@ function collectEvidence(bytes, options = {}) {
     realExperiment: 'NOT_RUN', executionAuthorization: 'NOT_GRANTED', startCondition: 'BLOCKED', conditionU: 'NOT_RUN', productionWorker: 'HOLD',
     hypotheses: { H1: 'UNKNOWN', H2: 'UNKNOWN', H3: 'UNKNOWN', H4: 'PARTIAL' }
   };
+  const validation = diagnosticCollector();
   let recordInvalid = false;
   const conflict = (code, subject, detail) => { recordInvalid = true; out.contradictions.push({ code, subject, detail }); };
   const missing = (code, subject, detail, invalid = false, scope = 'PUBLIC_CHAIN') => {
     recordInvalid ||= invalid; out.missingEvidence.push({ code, subject, detail, scope });
   };
   function finish() {
+    out.validationErrors = validation.finish();
     for (const k of ['relations', 'orderRelations', 'missingEvidence', 'contradictions', 'validationErrors']) {
       out[k].sort((a, b) => compare(canonical(a), canonical(b)));
     }
     out.evidenceStatus = out.validationErrors.length ? 'INVALID_SCHEMA' : out.contradictions.length ? 'INCONSISTENT'
       : out.missingEvidence.some(e => e.scope === 'PUBLIC_CHAIN') ? 'INCOMPLETE' : 'CONSISTENT';
     out.exitCode = out.evidenceStatus === 'INVALID_SCHEMA' ? 2 : out.evidenceStatus === 'CONSISTENT' ? 0 : 1;
-    out.reasons = [...new Set([...out.validationErrors, ...out.contradictions, ...out.missingEvidence.filter(e => e.scope === 'PUBLIC_CHAIN')].map(e => e.code))].sort();
+    out.reasons = [...new Set([...validation.codes, ...out.contradictions.map(e => e.code), ...out.missingEvidence.filter(e => e.scope === 'PUBLIC_CHAIN').map(e => e.code)])].sort();
     out.unknownReasons = [...new Set([...out.missingEvidence.filter(e => e.scope === 'FUTURE_WITNESS').map(e => e.code),
       ...out.transactions.flatMap(t => ['R', 'U'].filter(axis => t.assessment[`condition${axis}`] === 'UNKNOWN').map(axis => `${t.identity.transactionId}:${axis}:${t.assessment[`conditionReason${axis}`]}`))])].sort();
     return out;
   }
   let data;
-  try { data = parseData(bytes); } catch (e) { out.validationErrors.push({ code: 'JSON', subject: '', detail: e.message }); return finish(); }
-  out.validationErrors.push(...validate(data, inputSchema));
-  if (!out.input.expectedSha256 || !validId(options.materialId)) out.validationErrors.push({ code: 'INPUT_DESCRIPTOR', subject: '/input', detail: 'material ID and external lowercase SHA-256 are required' });
-  if (out.validationErrors.length) return finish();
+  try { data = parseData(bytes); } catch (e) { validation.add('JSON', '', e.message); return finish(); }
+  validateInto(data, inputSchema, inputSchema, '', 0, validation);
+  if (!out.input.expectedSha256 || !validId(options.materialId)) validation.add('INPUT_DESCRIPTOR', '/input', 'material ID and external lowercase SHA-256 are required');
+  if (validation.invalid) return finish();
   const sorted = a => [...a].sort((x, y) => compare(canonical(x), canonical(y)));
   out.input.semanticSha256 = sha256(canonical({ ...data, identities: sorted(data.identities), streams: sorted(data.streams), events: sorted(data.events) }));
   if (out.input.actualSha256 !== out.input.expectedSha256) conflict('HASH_MISMATCH', data.materialId, 'input bytes differ from the external expected hash');
@@ -247,8 +298,9 @@ function runCli(args) {
   const result = collectEvidence(bytes, { materialId: args[1], expectedSha256: args[2] });
   if (failure) {
     result.input.actualSha256 = null;
-    result.validationErrors = [{ code: 'CLI_INPUT', subject: '', detail: failure }];
-    result.reasons = ['CLI_INPUT'];
+    const diagnostics = diagnosticCollector(); diagnostics.add('CLI_INPUT', '', failure);
+    result.validationErrors = diagnostics.finish();
+    result.reasons = [...diagnostics.codes].sort();
   }
   if (bytes.length > MAX_BYTES) result.input.actualSha256 = null; // A prefix is not the hash of the whole file.
   process.stdout.write(JSON.stringify(result, null, 2) + '\n');

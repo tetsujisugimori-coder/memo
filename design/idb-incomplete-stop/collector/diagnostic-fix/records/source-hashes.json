@@ -1,0 +1,65 @@
+{
+  "fixedHead": "189b184781e78e474879dab0c89a8dfca9db4254",
+  "files": [
+    {
+      "path": "design/idb-incomplete-stop/judge.cjs",
+      "fixedGitSha256": "964eb1cbe746657e1d41efaf3c52422bdd19991369fd67a8cbbabb2eaf5fe74f",
+      "workingTreeSha256": "9a2a7148a5b5af3f06f80a47bbfe1e3b244fd7ba9b463732a0d72b583ff46268",
+      "note": "Parent judge/contract may have existing CRLF checkout conversion; Git blob/mode equality is recorded separately"
+    },
+    {
+      "path": "design/idb-incomplete-stop/contract.md",
+      "fixedGitSha256": "3ddc855807f8c5765678f4c4cb2ae371de8137c5f97d5cce5ce150255de7b19f",
+      "workingTreeSha256": "8fd76e7be5de1a96dd7debbdddc82a18a756f5e1d699bc8d80e6b6b7afaa5829",
+      "note": "Parent judge/contract may have existing CRLF checkout conversion; Git blob/mode equality is recorded separately"
+    },
+    {
+      "path": "design/idb-incomplete-stop/collector/collect.cjs",
+      "fixedGitSha256": "5b86738d9337face37ab75bb7e4b31a4a3a0a39866e3ca33023a0f40f85016a7",
+      "workingTreeSha256": "4b32dd261e83559a5d090d860b58e3c833ee5b04f570b28748007f06aaef35f9",
+      "note": "Parent judge/contract may have existing CRLF checkout conversion; Git blob/mode equality is recorded separately"
+    },
+    {
+      "path": "design/idb-incomplete-stop/collector/input.schema.json",
+      "fixedGitSha256": "a8787f13de071a6c02ffab1276778be713237f6d1dca8787ea873d2cc1ae6972",
+      "workingTreeSha256": "a8787f13de071a6c02ffab1276778be713237f6d1dca8787ea873d2cc1ae6972",
+      "note": "Parent judge/contract may have existing CRLF checkout conversion; Git blob/mode equality is recorded separately"
+    },
+    {
+      "path": "design/idb-incomplete-stop/collector/result.schema.json",
+      "fixedGitSha256": "6547cd1f00a03e7d510d0e3c9e7de6d1839ea68da71c6e0290b275c405ffa9ca",
+      "workingTreeSha256": "6547cd1f00a03e7d510d0e3c9e7de6d1839ea68da71c6e0290b275c405ffa9ca",
+      "note": "Parent judge/contract may have existing CRLF checkout conversion; Git blob/mode equality is recorded separately"
+    },
+    {
+      "path": "design/idb-incomplete-stop/collector/contract.md",
+      "fixedGitSha256": "ddf6beaf88710803ab03c46b5d77bc47d675880f67c85324c18b9dfe2731d46c",
+      "workingTreeSha256": "ddf6beaf88710803ab03c46b5d77bc47d675880f67c85324c18b9dfe2731d46c",
+      "note": "Parent judge/contract may have existing CRLF checkout conversion; Git blob/mode equality is recorded separately"
+    },
+    {
+      "path": "design/idb-incomplete-stop/collector/collect.test.cjs",
+      "fixedGitSha256": "4a7244878ef1e2fb7cc7c9504713b5d8078a2a3460530ccf2fcfad957ac1155a",
+      "workingTreeSha256": "4a7244878ef1e2fb7cc7c9504713b5d8078a2a3460530ccf2fcfad957ac1155a",
+      "note": "Parent judge/contract may have existing CRLF checkout conversion; Git blob/mode equality is recorded separately"
+    },
+    {
+      "path": "design/idb-incomplete-stop/collector/fixtures/cases.json",
+      "fixedGitSha256": "a1be439085cf3ae1183b0b5bd872ac943d6cf6389c13a759f726c9395aec6006",
+      "workingTreeSha256": "a1be439085cf3ae1183b0b5bd872ac943d6cf6389c13a759f726c9395aec6006",
+      "note": "Parent judge/contract may have existing CRLF checkout conversion; Git blob/mode equality is recorded separately"
+    },
+    {
+      "path": "design/idb-incomplete-stop/collector/independent/negative.test.cjs",
+      "fixedGitSha256": "a178bd2fb9750df142c85a708d39989f6acbafd18fe078cdcac3c299981645c9",
+      "workingTreeSha256": "a178bd2fb9750df142c85a708d39989f6acbafd18fe078cdcac3c299981645c9",
+      "note": "Parent judge/contract may have existing CRLF checkout conversion; Git blob/mode equality is recorded separately"
+    },
+    {
+      "path": "design/idb-incomplete-stop/collector/independent/fixtures/expectations.json",
+      "fixedGitSha256": "9b39164f20c46b926bc809a92944232f743927f39e8220603b117df2d6212f46",
+      "workingTreeSha256": "9b39164f20c46b926bc809a92944232f743927f39e8220603b117df2d6212f46",
+      "note": "Parent judge/contract may have existing CRLF checkout conversion; Git blob/mode equality is recorded separately"
+    }
+  ]
+}

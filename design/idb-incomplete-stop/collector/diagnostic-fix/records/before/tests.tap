@@ -1,0 +1,316 @@
+TAP version 13
+# Subtest: A-many-130000
+not ok 1 - A-many-130000
+  ---
+  duration_ms: 302.4192
+  type: 'test'
+  location: 'C:\\Users\\tetsu\\Documents\\Codex\\メモ帳\\work\\idb-evidence-collector-u1\\design\\idb-incomplete-stop\\collector\\diagnostic-fix\\diagnostics.test.cjs:22:24'
+  failureType: 'testCodeFailure'
+  error: |-
+    real process exit
+    
+    1 !== 2
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 2
+  actual: 1
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (C:\Users\tetsu\Documents\Codex\メモ帳\work\idb-evidence-collector-u1\design\idb-incomplete-stop\collector\diagnostic-fix\diagnostics.test.cjs:35:73)
+    Test.runInAsyncScope (node:async_hooks:227:14)
+    Test.run (node:internal/test_runner/test:1397:25)
+    Test.start (node:internal/test_runner/test:1257:17)
+    startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17)
+  ...
+# Subtest: B-key-8192
+not ok 2 - B-key-8192
+  ---
+  duration_ms: 65.771
+  type: 'test'
+  location: 'C:\\Users\\tetsu\\Documents\\Codex\\メモ帳\\work\\idb-evidence-collector-u1\\design\\idb-incomplete-stop\\collector\\diagnostic-fix\\diagnostics.test.cjs:22:24'
+  failureType: 'testCodeFailure'
+  error: |-
+    [{"instancePath":"/validationErrors/0/subject","schemaPath":"#/properties/validationErrors/items/properties/subject/maxLength","keyword":"maxLength","params":{"limit":8192},"message":"must NOT have more than 8192 characters"}]
+    
+    false !== true
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (C:\Users\tetsu\Documents\Codex\メモ帳\work\idb-evidence-collector-u1\design\idb-incomplete-stop\collector\diagnostic-fix\diagnostics.test.cjs:38:23)
+    Test.runInAsyncScope (node:async_hooks:227:14)
+    Test.run (node:internal/test_runner/test:1397:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:969:18)
+    Test.postRun (node:internal/test_runner/test:1537:19)
+    Test.run (node:internal/test_runner/test:1462:12)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+  ...
+# Subtest: C-errors-8193
+not ok 3 - C-errors-8193
+  ---
+  duration_ms: 98.2954
+  type: 'test'
+  location: 'C:\\Users\\tetsu\\Documents\\Codex\\メモ帳\\work\\idb-evidence-collector-u1\\design\\idb-incomplete-stop\\collector\\diagnostic-fix\\diagnostics.test.cjs:22:24'
+  failureType: 'testCodeFailure'
+  error: |-
+    [{"instancePath":"/validationErrors","schemaPath":"#/properties/validationErrors/maxItems","keyword":"maxItems","params":{"limit":8192},"message":"must NOT have more than 8192 items"}]
+    
+    false !== true
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (C:\Users\tetsu\Documents\Codex\メモ帳\work\idb-evidence-collector-u1\design\idb-incomplete-stop\collector\diagnostic-fix\diagnostics.test.cjs:38:23)
+    Test.runInAsyncScope (node:async_hooks:227:14)
+    Test.run (node:internal/test_runner/test:1397:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:969:18)
+    Test.postRun (node:internal/test_runner/test:1537:19)
+    Test.run (node:internal/test_runner/test:1462:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:969:7)
+  ...
+# Subtest: count-255
+ok 4 - count-255
+  ---
+  duration_ms: 71.6188
+  type: 'test'
+  ...
+# Subtest: count-256
+ok 5 - count-256
+  ---
+  duration_ms: 59.624
+  type: 'test'
+  ...
+# Subtest: count-257
+not ok 6 - count-257
+  ---
+  duration_ms: 61.9619
+  type: 'test'
+  location: 'C:\\Users\\tetsu\\Documents\\Codex\\メモ帳\\work\\idb-evidence-collector-u1\\design\\idb-incomplete-stop\\collector\\diagnostic-fix\\diagnostics.test.cjs:22:24'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    
+    257 !== 256
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 256
+  actual: 257
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (C:\Users\tetsu\Documents\Codex\メモ帳\work\idb-evidence-collector-u1\design\idb-incomplete-stop\collector\diagnostic-fix\diagnostics.test.cjs:40:10)
+    Test.runInAsyncScope (node:async_hooks:227:14)
+    Test.run (node:internal/test_runner/test:1397:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:969:18)
+    Test.postRun (node:internal/test_runner/test:1537:19)
+    Test.run (node:internal/test_runner/test:1462:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:969:7)
+  ...
+# Subtest: ascii-key-8190
+ok 7 - ascii-key-8190
+  ---
+  duration_ms: 58.1004
+  type: 'test'
+  ...
+# Subtest: ascii-key-8191
+ok 8 - ascii-key-8191
+  ---
+  duration_ms: 57.7189
+  type: 'test'
+  ...
+# Subtest: unicode-key-8191
+ok 9 - unicode-key-8191
+  ---
+  duration_ms: 62.0889
+  type: 'test'
+  ...
+# Subtest: unicode-key-8192
+not ok 10 - unicode-key-8192
+  ---
+  duration_ms: 59.826
+  type: 'test'
+  location: 'C:\\Users\\tetsu\\Documents\\Codex\\メモ帳\\work\\idb-evidence-collector-u1\\design\\idb-incomplete-stop\\collector\\diagnostic-fix\\diagnostics.test.cjs:22:24'
+  failureType: 'testCodeFailure'
+  error: |-
+    [{"instancePath":"/validationErrors/0/subject","schemaPath":"#/properties/validationErrors/items/properties/subject/maxLength","keyword":"maxLength","params":{"limit":8192},"message":"must NOT have more than 8192 characters"}]
+    
+    false !== true
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (C:\Users\tetsu\Documents\Codex\メモ帳\work\idb-evidence-collector-u1\design\idb-incomplete-stop\collector\diagnostic-fix\diagnostics.test.cjs:38:23)
+    Test.runInAsyncScope (node:async_hooks:227:14)
+    Test.run (node:internal/test_runner/test:1397:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:969:18)
+    Test.postRun (node:internal/test_runner/test:1537:19)
+    Test.run (node:internal/test_runner/test:1462:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:969:7)
+  ...
+# Subtest: combining-key-8192
+not ok 11 - combining-key-8192
+  ---
+  duration_ms: 58.5194
+  type: 'test'
+  location: 'C:\\Users\\tetsu\\Documents\\Codex\\メモ帳\\work\\idb-evidence-collector-u1\\design\\idb-incomplete-stop\\collector\\diagnostic-fix\\diagnostics.test.cjs:22:24'
+  failureType: 'testCodeFailure'
+  error: |-
+    [{"instancePath":"/validationErrors/0/subject","schemaPath":"#/properties/validationErrors/items/properties/subject/maxLength","keyword":"maxLength","params":{"limit":8192},"message":"must NOT have more than 8192 characters"}]
+    
+    false !== true
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (C:\Users\tetsu\Documents\Codex\メモ帳\work\idb-evidence-collector-u1\design\idb-incomplete-stop\collector\diagnostic-fix\diagnostics.test.cjs:38:23)
+    Test.runInAsyncScope (node:async_hooks:227:14)
+    Test.run (node:internal/test_runner/test:1397:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:969:18)
+    Test.postRun (node:internal/test_runner/test:1537:19)
+    Test.run (node:internal/test_runner/test:1462:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:969:7)
+  ...
+# Subtest: late-input-descriptor
+not ok 12 - late-input-descriptor
+  ---
+  duration_ms: 79.9205
+  type: 'test'
+  location: 'C:\\Users\\tetsu\\Documents\\Codex\\メモ帳\\work\\idb-evidence-collector-u1\\design\\idb-incomplete-stop\\collector\\diagnostic-fix\\diagnostics.test.cjs:22:24'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    
+    257 !== 256
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 256
+  actual: 257
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (C:\Users\tetsu\Documents\Codex\メモ帳\work\idb-evidence-collector-u1\design\idb-incomplete-stop\collector\diagnostic-fix\diagnostics.test.cjs:40:10)
+    Test.runInAsyncScope (node:async_hooks:227:14)
+    Test.run (node:internal/test_runner/test:1397:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:969:18)
+    Test.postRun (node:internal/test_runner/test:1537:19)
+    Test.run (node:internal/test_runner/test:1462:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:969:7)
+  ...
+# Subtest: mixed-structural-errors
+not ok 13 - mixed-structural-errors
+  ---
+  duration_ms: 96.0648
+  type: 'test'
+  location: 'C:\\Users\\tetsu\\Documents\\Codex\\メモ帳\\work\\idb-evidence-collector-u1\\design\\idb-incomplete-stop\\collector\\diagnostic-fix\\diagnostics.test.cjs:22:24'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    
+    258 !== 256
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 256
+  actual: 258
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (C:\Users\tetsu\Documents\Codex\メモ帳\work\idb-evidence-collector-u1\design\idb-incomplete-stop\collector\diagnostic-fix\diagnostics.test.cjs:40:10)
+    Test.runInAsyncScope (node:async_hooks:227:14)
+    Test.run (node:internal/test_runner/test:1397:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:969:18)
+    Test.postRun (node:internal/test_runner/test:1537:19)
+    Test.run (node:internal/test_runner/test:1462:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:969:7)
+  ...
+# Subtest: late-event-error
+not ok 14 - late-event-error
+  ---
+  duration_ms: 67.8572
+  type: 'test'
+  location: 'C:\\Users\\tetsu\\Documents\\Codex\\メモ帳\\work\\idb-evidence-collector-u1\\design\\idb-incomplete-stop\\collector\\diagnostic-fix\\diagnostics.test.cjs:22:24'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    
+    501 !== 256
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 256
+  actual: 501
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (C:\Users\tetsu\Documents\Codex\メモ帳\work\idb-evidence-collector-u1\design\idb-incomplete-stop\collector\diagnostic-fix\diagnostics.test.cjs:40:10)
+    Test.runInAsyncScope (node:async_hooks:227:14)
+    Test.run (node:internal/test_runner/test:1397:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:969:18)
+    Test.postRun (node:internal/test_runner/test:1537:19)
+    Test.run (node:internal/test_runner/test:1462:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:969:7)
+  ...
+# Subtest: long-cli-error
+not ok 15 - long-cli-error
+  ---
+  duration_ms: 59.5126
+  type: 'test'
+  location: 'C:\\Users\\tetsu\\Documents\\Codex\\メモ帳\\work\\idb-evidence-collector-u1\\design\\idb-incomplete-stop\\collector\\diagnostic-fix\\diagnostics.test.cjs:22:24'
+  failureType: 'testCodeFailure'
+  error: |-
+    [{"instancePath":"/validationErrors/0/detail","schemaPath":"#/properties/validationErrors/items/properties/detail/maxLength","keyword":"maxLength","params":{"limit":8192},"message":"must NOT have more than 8192 characters"}]
+    
+    false !== true
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (C:\Users\tetsu\Documents\Codex\メモ帳\work\idb-evidence-collector-u1\design\idb-incomplete-stop\collector\diagnostic-fix\diagnostics.test.cjs:38:23)
+    Test.runInAsyncScope (node:async_hooks:227:14)
+    Test.run (node:internal/test_runner/test:1397:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:969:18)
+    Test.postRun (node:internal/test_runner/test:1537:19)
+    Test.run (node:internal/test_runner/test:1462:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:969:7)
+  ...
+# Subtest: normal
+ok 16 - normal
+  ---
+  duration_ms: 59.2065
+  type: 'test'
+  ...
+# Subtest: missing-plus-conflict
+ok 17 - missing-plus-conflict
+  ---
+  duration_ms: 62.4838
+  type: 'test'
+  ...
+# Subtest: R2-out-of-scope-sentinel
+ok 18 - R2-out-of-scope-sentinel
+  ---
+  duration_ms: 59.6629
+  type: 'test'
+  ...
+1..18
+# tests 18
+# suites 0
+# pass 8
+# fail 10
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1724.0548

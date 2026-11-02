@@ -1,0 +1,202 @@
+[
+  {
+    "fixture": "single.json",
+    "sha256": "6d35f6cab38539976aa36817626aba22e76c23ad3af2b993d5c847fd1004caf6",
+    "byteIdentical": true
+  },
+  {
+    "fixture": "multiple.json",
+    "sha256": "04e33be2a4f824103eca780a926b5acc0bf534a23294c7356365ee7e3da8439b",
+    "byteIdentical": true
+  },
+  {
+    "fixture": "worker-complete-only.json",
+    "sha256": "496461eb75f577d0be8a3d45de2e248683a2dbe412a8642203882e509e8e1711",
+    "byteIdentical": true
+  },
+  {
+    "fixture": "sent-without-receipt.json",
+    "sha256": "9059deda25cd1a124044963f6d8870a769dc91becc31fdef67990870192329af",
+    "byteIdentical": true
+  },
+  {
+    "fixture": "duplicate-complete-id.json",
+    "sha256": "783bb48807a1fdb3a32f6843637bcabd92cc444d73b2cee69882c3fab8ac4ff5",
+    "byteIdentical": true
+  },
+  {
+    "fixture": "wrong-send-type.json",
+    "sha256": "06efdb27ca9597e4d2df365df63b77fe2c66c2e4479159d950369c55148581e1",
+    "byteIdentical": true
+  },
+  {
+    "fixture": "foreign-transaction.json",
+    "sha256": "f8571c3c1e2107872b07e24fdd00892d8ecb5c3098139074d92106fe908944ed",
+    "byteIdentical": true
+  },
+  {
+    "fixture": "source-order-reversed.json",
+    "sha256": "013fb98c070fc34b02e6aad3b69f90a6fa30a8577f58772518c322697a964e00",
+    "byteIdentical": true
+  },
+  {
+    "fixture": "source-sequence-gap.json",
+    "sha256": "115d4e30fbc337f4fa84ca51f1f99b1b09b9b976a0c38a181e41161d07581252",
+    "byteIdentical": true
+  },
+  {
+    "fixture": "missing-stop-request.json",
+    "sha256": "fe96344877a763d3ce1df68bf92479cad4abb121400d8aecac1b5938829bea19",
+    "byteIdentical": true
+  },
+  {
+    "fixture": "commit-abort-conflict.json",
+    "sha256": "79644a7d1f3f09a2490f3edd7b82bc3a9dac1ff63a1a54993b093c8c29c20e64",
+    "byteIdentical": true
+  },
+  {
+    "fixture": "reversed-array.json",
+    "sha256": "9ab5597f1e6b890dc2605fbb24702511edad82c4e48f52b422cde6b21021161a",
+    "byteIdentical": true
+  },
+  {
+    "fixture": "required-field-deleted.json",
+    "sha256": "6e03ae0ed43299dcb4f6d0433af52127438831d718f840cab25520289a6d25cf",
+    "byteIdentical": true
+  },
+  {
+    "fixture": "content-reference-tampered.json",
+    "sha256": "dda8869315b88aac8e99aa6587f7ec7cb1c7dd8c1c28c0bf65066726647651e4",
+    "byteIdentical": true
+  },
+  {
+    "fixture": "hash-mismatch.json",
+    "sha256": "332a2d412b7f52748162acadeff933996131ea860cb7f0344f8da12f8c0658a2",
+    "byteIdentical": true
+  },
+  {
+    "fixture": "event-deleted.json",
+    "sha256": "bd953573eb6d2452c0f8e7a3ba31dee85438c769689d7c0ff46c8ab30dd077c6",
+    "byteIdentical": true
+  },
+  {
+    "fixture": "duplicate-injection.json",
+    "sha256": "3960f26ee811d21593d96c61707a2e0196e40156d233e4b97d3f25a6476e085c",
+    "byteIdentical": true
+  },
+  {
+    "fixture": "foreign-session.json",
+    "sha256": "654106df8a619ea00505fb42fe912f1f49be16a7d6aa61a84c1f76238a339ccb",
+    "byteIdentical": true
+  },
+  {
+    "fixture": "unsupported-version.json",
+    "sha256": "422097592a70e3841bf63ec1f7bb7f6441dc944837857a671b76d6f4a1fb8cae",
+    "byteIdentical": true
+  },
+  {
+    "fixture": "extra-field.json",
+    "sha256": "4949e09f75b9955a6236936e0150fc7b182b5323a50d12c932259fb5c8911858",
+    "byteIdentical": true
+  },
+  {
+    "fixture": "unknown-event.json",
+    "sha256": "0f945615d9d03a4869dfbe47ba257ae705d85d27b8665e5ff5417b0b05a2a04b",
+    "byteIdentical": true
+  },
+  {
+    "fixture": "bad-id.json",
+    "sha256": "859a4ab6e67ec02ee7fba7f57808694292f3348e61eeace226f58562bc0f8f5c",
+    "byteIdentical": true
+  },
+  {
+    "fixture": "bad-sequence.json",
+    "sha256": "7de44a93681b773dbf4411f8959bd6e37db36fdcc2ddb488781da244f4d9f419",
+    "byteIdentical": true
+  },
+  {
+    "fixture": "bad-source.json",
+    "sha256": "5308c087dc900b773888fd0623a9a4921a837f8fb0ca1265862a7addef489f8d",
+    "byteIdentical": true
+  },
+  {
+    "fixture": "unsafe-sequence.json",
+    "sha256": "ba9c46af683c5f5585ec52224db5db586ce32d289b2ecc55096d0d897aa0db04",
+    "byteIdentical": true
+  },
+  {
+    "fixture": "extra-event-field.json",
+    "sha256": "2f74330645b80775fcacf4e18cfa208fb43d652fd311b18ab480a8c6090c4164",
+    "byteIdentical": true
+  },
+  {
+    "fixture": "duplicate-json-key.json",
+    "sha256": "fa822d816da8f273a078f8864b5e3bf9b05bd927cbaf500e765da15de4c948be",
+    "byteIdentical": true
+  },
+  {
+    "fixture": "duplicate-escaped-key.json",
+    "sha256": "50055aebf0bfe343dc2f67cecb16f64faf9d6adbd5f01472d91034ef91824a07",
+    "byteIdentical": true
+  },
+  {
+    "fixture": "malformed-json.json",
+    "sha256": "8c25551d9894ba399de211e5ddb20ee3cb40e8264935422388bda14d6d913223",
+    "byteIdentical": true
+  },
+  {
+    "fixture": "received-after-stop.json",
+    "sha256": "b550e948cfad91d3ff63a4678b3ce3969c453f8db02bfb09dbfd235f45cd71bf",
+    "byteIdentical": true
+  },
+  {
+    "fixture": "observed-abort.json",
+    "sha256": "4ae41578fb44eb0e39685e050c7edb4b42e9ec3252a72dcb4c98b00d19c2e642",
+    "byteIdentical": true
+  },
+  {
+    "fixture": "internal-terminal-unknown.json",
+    "sha256": "5937105eaea6eda655f03e8f3a227c499c5bfa017f233dcd7e99e19d12e0660a",
+    "byteIdentical": true
+  },
+  {
+    "fixture": "observed-error.json",
+    "sha256": "ff59970bf8608f4a14ba5a4ce49f5deacdd9d8f59463fceb98e82d85b3d83c31",
+    "byteIdentical": true
+  },
+  {
+    "fixture": "collection-error.json",
+    "sha256": "989edaf97197bb165f997f8c6b1618ee16ef1fd3b834ddbcfbb6af874132ff0d",
+    "byteIdentical": true
+  },
+  {
+    "fixture": "duplicate-receipt.json",
+    "sha256": "94c555c393c8ee2ab90a41227b898ed27bbc0d0e7549c3e06aae682221efc1bd",
+    "byteIdentical": true
+  },
+  {
+    "fixture": "duplicate-complete-reference.json",
+    "sha256": "d59cc7d0b2777bca206c0681d92283d3c601ca034f47f40338d43f8e3c4d6cd5",
+    "byteIdentical": true
+  },
+  {
+    "fixture": "cross-transaction-link.json",
+    "sha256": "bb5cc6ea433a19a413d283409e6e7a0a782c2e83f27753a955c0e4fd18c6c518",
+    "byteIdentical": true
+  },
+  {
+    "fixture": "sequence-collision.json",
+    "sha256": "4093d7355d5e46936bc4247baa1587cb2b22770297baccb4011259a19f8a5899",
+    "byteIdentical": true
+  },
+  {
+    "fixture": "dangling-send.json",
+    "sha256": "dca40f23308cc5be796174af36a196d0feeae0d4e2959919bd070e969e0d68b3",
+    "byteIdentical": true
+  },
+  {
+    "fixture": "all-events-deleted.json",
+    "sha256": "f0db97a876590ec0ae875ab841a40c3ce96782bcc1087bcfc8253f1f349f4c1f",
+    "byteIdentical": true
+  }
+]

@@ -1,0 +1,27 @@
+{
+  "expected": {
+    "status": "INCONSISTENT",
+    "exitCode": 1,
+    "codes": [
+      "SOURCE_SEQUENCE_GAP",
+      "REFERENCE_MISMATCH"
+    ],
+    "shortened": false,
+    "diagnostics": 0
+  },
+  "inputBytes": 2953,
+  "inputSha256": "8094bcbdb40036707b5f963dd553b8aac143da0ae46afbf0da408f03df4ec346",
+  "status": 1,
+  "signal": null,
+  "processError": null,
+  "stdoutBytes": 4386,
+  "stdoutSha256": "0d17edb96f93890d6de46909510b2cbfe8b08851824eb1411ff87a48b0e68f2a",
+  "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "parseError": null,
+  "independentSchemaValid": true,
+  "schemaErrors": null,
+  "actualStatus": "INCONSISTENT",
+  "actualExitCode": 1,
+  "diagnosticCount": 0,
+  "marker": null
+}

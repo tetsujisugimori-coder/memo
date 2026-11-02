@@ -1,0 +1,4 @@
+# Retain raw TAP assertion spacing and large reconstructed JSON bytes.
+records/**/*.tap -whitespace
+records/**/inputs/*.json -diff
+records/**/A-oversize-expanded.json -diff -whitespace

@@ -1,0 +1,26 @@
+[
+  {
+    "name": "identity-and-RU",
+    "beforeSha256": "3bc8e56743e874795ad5654b737e9ebbfb1739eec0d5aac8fa4f567d7f482e84",
+    "afterSha256": "3bc8e56743e874795ad5654b737e9ebbfb1739eec0d5aac8fa4f567d7f482e84",
+    "unchanged": true
+  },
+  {
+    "name": "parser",
+    "beforeSha256": "c1cce9a5d691db52842ad0754987698ad51b11ae92410d938a4e1465b817a449",
+    "afterSha256": "c1cce9a5d691db52842ad0754987698ad51b11ae92410d938a4e1465b817a449",
+    "unchanged": true
+  },
+  {
+    "name": "numeric-R2-unchanged",
+    "beforeSha256": "6c9d7d6eea8331ae5940325981b390036f6e03352de064d98751b7b4e4b35a9c",
+    "afterSha256": "6c9d7d6eea8331ae5940325981b390036f6e03352de064d98751b7b4e4b35a9c",
+    "unchanged": true
+  },
+  {
+    "name": "Unicode-count-unchanged",
+    "beforeSha256": "b9ba91defd27323a9080fece1abff2c2e84709a9c6e5a2a97f902ec317125bdd",
+    "afterSha256": "b9ba91defd27323a9080fece1abff2c2e84709a9c6e5a2a97f902ec317125bdd",
+    "unchanged": true
+  }
+]

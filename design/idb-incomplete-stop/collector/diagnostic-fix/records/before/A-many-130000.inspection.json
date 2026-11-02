@@ -1,0 +1,27 @@
+{
+  "expected": {
+    "status": "INVALID_SCHEMA",
+    "exitCode": 2,
+    "codes": [
+      "SCHEMA"
+    ],
+    "shortened": true,
+    "diagnostics": 256,
+    "omitted": 129745
+  },
+  "inputBytes": 1451852,
+  "inputSha256": "e6fe086276f4d28af908f75fbe7487e931be01306a6f6fca8672f0bba3be95ef",
+  "status": 1,
+  "signal": null,
+  "processError": null,
+  "stdoutBytes": 0,
+  "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "stderrSha256": "d6239c1cd4536bafe9ad85a7894707ac57558421e30d4f4d6195b1dfccbe2bdf",
+  "parseError": "Unexpected end of JSON input",
+  "independentSchemaValid": null,
+  "schemaErrors": null,
+  "actualStatus": null,
+  "actualExitCode": null,
+  "diagnosticCount": null,
+  "marker": null
+}
