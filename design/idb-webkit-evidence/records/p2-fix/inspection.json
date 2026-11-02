@@ -1,0 +1,14 @@
+{
+  "checkedAtJST": "2026-11-02T20:28:28.147451+09:00",
+  "reviewedHead": "636e2796ef9fce16d69340601ed6c05dfefa80fd",
+  "currentHead": "636e2796ef9fce16d69340601ed6c05dfefa80fd",
+  "primarySourceCommit": "26a9e470a7b3c7822084b09fb7f13902c5f37b51",
+  "primarySourceBlob": "949eaeae6398ad5daaec26271f606f178cc0225a",
+  "primarySourceSha256": "3554c5b666ed87032fb22e78956f8a2fffe1faede63ae8dcae60a26961f6419c",
+  "primarySourceMatchesSavedBytes": true,
+  "probeProvenance": "Reconstructed from public review description and existing fixture at reviewed HEAD; original review probe not attached to the comment.",
+  "originalStatus": "target worktree clean; same HEAD as independent review",
+  "base": "investigate/idb-time-delay-only",
+  "preservedOtherWorktrees": 6,
+  "preexistingOtherChangedFiles": 100
+}

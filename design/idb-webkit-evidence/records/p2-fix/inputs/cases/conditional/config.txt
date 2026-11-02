@@ -1,0 +1,2 @@
+BASE_REVISION="aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+if true; then BASE_REVISION="cccccccccccccccccccccccccccccccccccccccc"; fi

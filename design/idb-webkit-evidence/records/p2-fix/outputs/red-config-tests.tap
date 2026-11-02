@@ -1,0 +1,641 @@
+TAP version 13
+# Subtest: single
+ok 1 - single
+  ---
+  duration_ms: 127.2144
+  type: 'test'
+  ...
+# Subtest: later-different
+not ok 2 - later-different
+  ---
+  duration_ms: 56.5172
+  type: 'test'
+  location: 'C:\\Users\\tetsu\\Documents\\Codex\\メモ帳\\work\\idb-webkit-evidence\\design\\idb-webkit-evidence\\upstream-config.test.cjs:13:27'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    + actual - expected
+    
+    + 'CONSISTENT'
+    - 'INCONSISTENT'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 'INCONSISTENT'
+  actual: 'CONSISTENT'
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (C:\Users\tetsu\Documents\Codex\メモ帳\work\idb-webkit-evidence\design\idb-webkit-evidence\upstream-config.test.cjs:31:10)
+    Test.runInAsyncScope (node:async_hooks:227:14)
+    Test.run (node:internal/test_runner/test:1397:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:969:18)
+    Test.postRun (node:internal/test_runner/test:1537:19)
+    Test.run (node:internal/test_runner/test:1462:12)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+  ...
+# Subtest: duplicate-same
+not ok 3 - duplicate-same
+  ---
+  duration_ms: 56.9217
+  type: 'test'
+  location: 'C:\\Users\\tetsu\\Documents\\Codex\\メモ帳\\work\\idb-webkit-evidence\\design\\idb-webkit-evidence\\upstream-config.test.cjs:13:27'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    + actual - expected
+    
+    + 'CONSISTENT'
+    - 'INCONSISTENT'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 'INCONSISTENT'
+  actual: 'CONSISTENT'
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (C:\Users\tetsu\Documents\Codex\メモ帳\work\idb-webkit-evidence\design\idb-webkit-evidence\upstream-config.test.cjs:31:10)
+    Test.runInAsyncScope (node:async_hooks:227:14)
+    Test.run (node:internal/test_runner/test:1397:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:969:18)
+    Test.postRun (node:internal/test_runner/test:1537:19)
+    Test.run (node:internal/test_runner/test:1462:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:969:7)
+  ...
+# Subtest: reverse-target-c
+not ok 4 - reverse-target-c
+  ---
+  duration_ms: 54.7658
+  type: 'test'
+  location: 'C:\\Users\\tetsu\\Documents\\Codex\\メモ帳\\work\\idb-webkit-evidence\\design\\idb-webkit-evidence\\upstream-config.test.cjs:13:27'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    + actual - expected
+    
+    + 'CONSISTENT'
+    - 'INCONSISTENT'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 'INCONSISTENT'
+  actual: 'CONSISTENT'
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (C:\Users\tetsu\Documents\Codex\メモ帳\work\idb-webkit-evidence\design\idb-webkit-evidence\upstream-config.test.cjs:31:10)
+    Test.runInAsyncScope (node:async_hooks:227:14)
+    Test.run (node:internal/test_runner/test:1397:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:969:18)
+    Test.postRun (node:internal/test_runner/test:1537:19)
+    Test.run (node:internal/test_runner/test:1462:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:969:7)
+  ...
+# Subtest: reverse-target-a
+not ok 5 - reverse-target-a
+  ---
+  duration_ms: 58.704
+  type: 'test'
+  location: 'C:\\Users\\tetsu\\Documents\\Codex\\メモ帳\\work\\idb-webkit-evidence\\design\\idb-webkit-evidence\\upstream-config.test.cjs:13:27'
+  failureType: 'testCodeFailure'
+  error: 'UPSTREAM_CONFIG_MULTIPLE_REVISION'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: '=='
+  stack: |-
+    TestContext.<anonymous> (C:\Users\tetsu\Documents\Codex\メモ帳\work\idb-webkit-evidence\design\idb-webkit-evidence\upstream-config.test.cjs:33:33)
+    Test.runInAsyncScope (node:async_hooks:227:14)
+    Test.run (node:internal/test_runner/test:1397:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:969:18)
+    Test.postRun (node:internal/test_runner/test:1537:19)
+    Test.run (node:internal/test_runner/test:1462:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:969:7)
+  ...
+# Subtest: missing
+ok 6 - missing
+  ---
+  duration_ms: 51.9701
+  type: 'test'
+  ...
+# Subtest: short
+not ok 7 - short
+  ---
+  duration_ms: 50.5599
+  type: 'test'
+  location: 'C:\\Users\\tetsu\\Documents\\Codex\\メモ帳\\work\\idb-webkit-evidence\\design\\idb-webkit-evidence\\upstream-config.test.cjs:13:27'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    + actual - expected
+    
+    + 'INCOMPLETE'
+    - 'INCONSISTENT'
+           ^
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 'INCONSISTENT'
+  actual: 'INCOMPLETE'
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (C:\Users\tetsu\Documents\Codex\メモ帳\work\idb-webkit-evidence\design\idb-webkit-evidence\upstream-config.test.cjs:31:10)
+    Test.runInAsyncScope (node:async_hooks:227:14)
+    Test.run (node:internal/test_runner/test:1397:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:969:18)
+    Test.postRun (node:internal/test_runner/test:1537:19)
+    Test.run (node:internal/test_runner/test:1462:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:969:7)
+  ...
+# Subtest: uppercase
+not ok 8 - uppercase
+  ---
+  duration_ms: 49.5013
+  type: 'test'
+  location: 'C:\\Users\\tetsu\\Documents\\Codex\\メモ帳\\work\\idb-webkit-evidence\\design\\idb-webkit-evidence\\upstream-config.test.cjs:13:27'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    + actual - expected
+    
+    + 'INCOMPLETE'
+    - 'INCONSISTENT'
+           ^
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 'INCONSISTENT'
+  actual: 'INCOMPLETE'
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (C:\Users\tetsu\Documents\Codex\メモ帳\work\idb-webkit-evidence\design\idb-webkit-evidence\upstream-config.test.cjs:31:10)
+    Test.runInAsyncScope (node:async_hooks:227:14)
+    Test.run (node:internal/test_runner/test:1397:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:969:18)
+    Test.postRun (node:internal/test_runner/test:1537:19)
+    Test.run (node:internal/test_runner/test:1462:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:969:7)
+  ...
+# Subtest: empty
+not ok 9 - empty
+  ---
+  duration_ms: 50.924
+  type: 'test'
+  location: 'C:\\Users\\tetsu\\Documents\\Codex\\メモ帳\\work\\idb-webkit-evidence\\design\\idb-webkit-evidence\\upstream-config.test.cjs:13:27'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    + actual - expected
+    
+    + 'INCOMPLETE'
+    - 'INCONSISTENT'
+           ^
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 'INCONSISTENT'
+  actual: 'INCOMPLETE'
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (C:\Users\tetsu\Documents\Codex\メモ帳\work\idb-webkit-evidence\design\idb-webkit-evidence\upstream-config.test.cjs:31:10)
+    Test.runInAsyncScope (node:async_hooks:227:14)
+    Test.run (node:internal/test_runner/test:1397:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:969:18)
+    Test.postRun (node:internal/test_runner/test:1537:19)
+    Test.run (node:internal/test_runner/test:1462:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:969:7)
+  ...
+# Subtest: export-overwrite
+not ok 10 - export-overwrite
+  ---
+  duration_ms: 57.5486
+  type: 'test'
+  location: 'C:\\Users\\tetsu\\Documents\\Codex\\メモ帳\\work\\idb-webkit-evidence\\design\\idb-webkit-evidence\\upstream-config.test.cjs:13:27'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    + actual - expected
+    
+    + 'CONSISTENT'
+    - 'INCOMPLETE'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 'INCOMPLETE'
+  actual: 'CONSISTENT'
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (C:\Users\tetsu\Documents\Codex\メモ帳\work\idb-webkit-evidence\design\idb-webkit-evidence\upstream-config.test.cjs:31:10)
+    Test.runInAsyncScope (node:async_hooks:227:14)
+    Test.run (node:internal/test_runner/test:1397:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:969:18)
+    Test.postRun (node:internal/test_runner/test:1537:19)
+    Test.run (node:internal/test_runner/test:1462:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:969:7)
+  ...
+# Subtest: append
+not ok 11 - append
+  ---
+  duration_ms: 49.371
+  type: 'test'
+  location: 'C:\\Users\\tetsu\\Documents\\Codex\\メモ帳\\work\\idb-webkit-evidence\\design\\idb-webkit-evidence\\upstream-config.test.cjs:13:27'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    + actual - expected
+    
+    + 'CONSISTENT'
+    - 'INCOMPLETE'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 'INCOMPLETE'
+  actual: 'CONSISTENT'
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (C:\Users\tetsu\Documents\Codex\メモ帳\work\idb-webkit-evidence\design\idb-webkit-evidence\upstream-config.test.cjs:31:10)
+    Test.runInAsyncScope (node:async_hooks:227:14)
+    Test.run (node:internal/test_runner/test:1397:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:969:18)
+    Test.postRun (node:internal/test_runner/test:1537:19)
+    Test.run (node:internal/test_runner/test:1462:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:969:7)
+  ...
+# Subtest: parameter-expansion
+not ok 12 - parameter-expansion
+  ---
+  duration_ms: 55.6143
+  type: 'test'
+  location: 'C:\\Users\\tetsu\\Documents\\Codex\\メモ帳\\work\\idb-webkit-evidence\\design\\idb-webkit-evidence\\upstream-config.test.cjs:13:27'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    + actual - expected
+    
+    + 'CONSISTENT'
+    - 'INCOMPLETE'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 'INCOMPLETE'
+  actual: 'CONSISTENT'
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (C:\Users\tetsu\Documents\Codex\メモ帳\work\idb-webkit-evidence\design\idb-webkit-evidence\upstream-config.test.cjs:31:10)
+    Test.runInAsyncScope (node:async_hooks:227:14)
+    Test.run (node:internal/test_runner/test:1397:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:969:18)
+    Test.postRun (node:internal/test_runner/test:1537:19)
+    Test.run (node:internal/test_runner/test:1462:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:969:7)
+  ...
+# Subtest: command-substitution
+not ok 13 - command-substitution
+  ---
+  duration_ms: 50.1507
+  type: 'test'
+  location: 'C:\\Users\\tetsu\\Documents\\Codex\\メモ帳\\work\\idb-webkit-evidence\\design\\idb-webkit-evidence\\upstream-config.test.cjs:13:27'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    + actual - expected
+    
+    + 'CONSISTENT'
+    - 'INCOMPLETE'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 'INCOMPLETE'
+  actual: 'CONSISTENT'
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (C:\Users\tetsu\Documents\Codex\メモ帳\work\idb-webkit-evidence\design\idb-webkit-evidence\upstream-config.test.cjs:31:10)
+    Test.runInAsyncScope (node:async_hooks:227:14)
+    Test.run (node:internal/test_runner/test:1397:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:969:18)
+    Test.postRun (node:internal/test_runner/test:1537:19)
+    Test.run (node:internal/test_runner/test:1462:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:969:7)
+  ...
+# Subtest: backticks
+not ok 14 - backticks
+  ---
+  duration_ms: 51.3091
+  type: 'test'
+  location: 'C:\\Users\\tetsu\\Documents\\Codex\\メモ帳\\work\\idb-webkit-evidence\\design\\idb-webkit-evidence\\upstream-config.test.cjs:13:27'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    + actual - expected
+    
+    + 'CONSISTENT'
+    - 'INCOMPLETE'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 'INCOMPLETE'
+  actual: 'CONSISTENT'
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (C:\Users\tetsu\Documents\Codex\メモ帳\work\idb-webkit-evidence\design\idb-webkit-evidence\upstream-config.test.cjs:31:10)
+    Test.runInAsyncScope (node:async_hooks:227:14)
+    Test.run (node:internal/test_runner/test:1397:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:969:18)
+    Test.postRun (node:internal/test_runner/test:1537:19)
+    Test.run (node:internal/test_runner/test:1462:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:969:7)
+  ...
+# Subtest: source
+not ok 15 - source
+  ---
+  duration_ms: 53.269
+  type: 'test'
+  location: 'C:\\Users\\tetsu\\Documents\\Codex\\メモ帳\\work\\idb-webkit-evidence\\design\\idb-webkit-evidence\\upstream-config.test.cjs:13:27'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    + actual - expected
+    
+    + 'CONSISTENT'
+    - 'INCOMPLETE'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 'INCOMPLETE'
+  actual: 'CONSISTENT'
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (C:\Users\tetsu\Documents\Codex\メモ帳\work\idb-webkit-evidence\design\idb-webkit-evidence\upstream-config.test.cjs:31:10)
+    Test.runInAsyncScope (node:async_hooks:227:14)
+    Test.run (node:internal/test_runner/test:1397:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:969:18)
+    Test.postRun (node:internal/test_runner/test:1537:19)
+    Test.run (node:internal/test_runner/test:1462:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:969:7)
+  ...
+# Subtest: indirect
+not ok 16 - indirect
+  ---
+  duration_ms: 54.4965
+  type: 'test'
+  location: 'C:\\Users\\tetsu\\Documents\\Codex\\メモ帳\\work\\idb-webkit-evidence\\design\\idb-webkit-evidence\\upstream-config.test.cjs:13:27'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    + actual - expected
+    
+    + 'CONSISTENT'
+    - 'INCOMPLETE'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 'INCOMPLETE'
+  actual: 'CONSISTENT'
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (C:\Users\tetsu\Documents\Codex\メモ帳\work\idb-webkit-evidence\design\idb-webkit-evidence\upstream-config.test.cjs:31:10)
+    Test.runInAsyncScope (node:async_hooks:227:14)
+    Test.run (node:internal/test_runner/test:1397:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:969:18)
+    Test.postRun (node:internal/test_runner/test:1537:19)
+    Test.run (node:internal/test_runner/test:1462:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:969:7)
+  ...
+# Subtest: conditional
+not ok 17 - conditional
+  ---
+  duration_ms: 51.7385
+  type: 'test'
+  location: 'C:\\Users\\tetsu\\Documents\\Codex\\メモ帳\\work\\idb-webkit-evidence\\design\\idb-webkit-evidence\\upstream-config.test.cjs:13:27'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    + actual - expected
+    
+    + 'CONSISTENT'
+    - 'INCOMPLETE'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 'INCOMPLETE'
+  actual: 'CONSISTENT'
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (C:\Users\tetsu\Documents\Codex\メモ帳\work\idb-webkit-evidence\design\idb-webkit-evidence\upstream-config.test.cjs:31:10)
+    Test.runInAsyncScope (node:async_hooks:227:14)
+    Test.run (node:internal/test_runner/test:1397:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:969:18)
+    Test.postRun (node:internal/test_runner/test:1537:19)
+    Test.run (node:internal/test_runner/test:1462:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:969:7)
+  ...
+# Subtest: continuation
+not ok 18 - continuation
+  ---
+  duration_ms: 49.661
+  type: 'test'
+  location: 'C:\\Users\\tetsu\\Documents\\Codex\\メモ帳\\work\\idb-webkit-evidence\\design\\idb-webkit-evidence\\upstream-config.test.cjs:13:27'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    + actual - expected
+    
+    + 'CONSISTENT'
+    - 'INCOMPLETE'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 'INCOMPLETE'
+  actual: 'CONSISTENT'
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (C:\Users\tetsu\Documents\Codex\メモ帳\work\idb-webkit-evidence\design\idb-webkit-evidence\upstream-config.test.cjs:31:10)
+    Test.runInAsyncScope (node:async_hooks:227:14)
+    Test.run (node:internal/test_runner/test:1397:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:969:18)
+    Test.postRun (node:internal/test_runner/test:1537:19)
+    Test.run (node:internal/test_runner/test:1462:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:969:7)
+  ...
+# Subtest: single-quotes
+not ok 19 - single-quotes
+  ---
+  duration_ms: 50.18
+  type: 'test'
+  location: 'C:\\Users\\tetsu\\Documents\\Codex\\メモ帳\\work\\idb-webkit-evidence\\design\\idb-webkit-evidence\\upstream-config.test.cjs:13:27'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    + actual - expected
+    
+    + 'CONSISTENT'
+    - 'INCOMPLETE'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 'INCOMPLETE'
+  actual: 'CONSISTENT'
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (C:\Users\tetsu\Documents\Codex\メモ帳\work\idb-webkit-evidence\design\idb-webkit-evidence\upstream-config.test.cjs:31:10)
+    Test.runInAsyncScope (node:async_hooks:227:14)
+    Test.run (node:internal/test_runner/test:1397:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:969:18)
+    Test.postRun (node:internal/test_runner/test:1537:19)
+    Test.run (node:internal/test_runner/test:1462:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:969:7)
+  ...
+# Subtest: unquoted
+not ok 20 - unquoted
+  ---
+  duration_ms: 52.6812
+  type: 'test'
+  location: 'C:\\Users\\tetsu\\Documents\\Codex\\メモ帳\\work\\idb-webkit-evidence\\design\\idb-webkit-evidence\\upstream-config.test.cjs:13:27'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    + actual - expected
+    
+    + 'CONSISTENT'
+    - 'INCOMPLETE'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 'INCOMPLETE'
+  actual: 'CONSISTENT'
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (C:\Users\tetsu\Documents\Codex\メモ帳\work\idb-webkit-evidence\design\idb-webkit-evidence\upstream-config.test.cjs:31:10)
+    Test.runInAsyncScope (node:async_hooks:227:14)
+    Test.run (node:internal/test_runner/test:1397:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:969:18)
+    Test.postRun (node:internal/test_runner/test:1537:19)
+    Test.run (node:internal/test_runner/test:1462:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:969:7)
+  ...
+# Subtest: inline-comment
+not ok 21 - inline-comment
+  ---
+  duration_ms: 48.3669
+  type: 'test'
+  location: 'C:\\Users\\tetsu\\Documents\\Codex\\メモ帳\\work\\idb-webkit-evidence\\design\\idb-webkit-evidence\\upstream-config.test.cjs:13:27'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    + actual - expected
+    
+    + 'CONSISTENT'
+    - 'INCOMPLETE'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 'INCOMPLETE'
+  actual: 'CONSISTENT'
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (C:\Users\tetsu\Documents\Codex\メモ帳\work\idb-webkit-evidence\design\idb-webkit-evidence\upstream-config.test.cjs:31:10)
+    Test.runInAsyncScope (node:async_hooks:227:14)
+    Test.run (node:internal/test_runner/test:1397:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:969:18)
+    Test.postRun (node:internal/test_runner/test:1537:19)
+    Test.run (node:internal/test_runner/test:1462:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:969:7)
+  ...
+# Subtest: comments-and-unrelated
+ok 22 - comments-and-unrelated
+  ---
+  duration_ms: 52.0718
+  type: 'test'
+  ...
+# Subtest: horizontal-space-crlf
+not ok 23 - horizontal-space-crlf
+  ---
+  duration_ms: 50.8646
+  type: 'test'
+  location: 'C:\\Users\\tetsu\\Documents\\Codex\\メモ帳\\work\\idb-webkit-evidence\\design\\idb-webkit-evidence\\upstream-config.test.cjs:13:27'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    + actual - expected
+    
+    + 'INCOMPLETE'
+    - 'CONSISTENT'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 'CONSISTENT'
+  actual: 'INCOMPLETE'
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (C:\Users\tetsu\Documents\Codex\メモ帳\work\idb-webkit-evidence\design\idb-webkit-evidence\upstream-config.test.cjs:31:10)
+    Test.runInAsyncScope (node:async_hooks:227:14)
+    Test.run (node:internal/test_runner/test:1397:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:969:18)
+    Test.postRun (node:internal/test_runner/test:1537:19)
+    Test.run (node:internal/test_runner/test:1462:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:969:7)
+  ...
+# Subtest: spaces-around-equals
+not ok 24 - spaces-around-equals
+  ---
+  duration_ms: 50.8157
+  type: 'test'
+  location: 'C:\\Users\\tetsu\\Documents\\Codex\\メモ帳\\work\\idb-webkit-evidence\\design\\idb-webkit-evidence\\upstream-config.test.cjs:13:27'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    + actual - expected
+    
+    + 'CONSISTENT'
+    - 'INCOMPLETE'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 'INCOMPLETE'
+  actual: 'CONSISTENT'
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (C:\Users\tetsu\Documents\Codex\メモ帳\work\idb-webkit-evidence\design\idb-webkit-evidence\upstream-config.test.cjs:31:10)
+    Test.runInAsyncScope (node:async_hooks:227:14)
+    Test.run (node:internal/test_runner/test:1397:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:969:18)
+    Test.postRun (node:internal/test_runner/test:1537:19)
+    Test.run (node:internal/test_runner/test:1462:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:969:7)
+  ...
+# Subtest: eval
+not ok 25 - eval
+  ---
+  duration_ms: 52.2289
+  type: 'test'
+  location: 'C:\\Users\\tetsu\\Documents\\Codex\\メモ帳\\work\\idb-webkit-evidence\\design\\idb-webkit-evidence\\upstream-config.test.cjs:13:27'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    + actual - expected
+    
+    + 'CONSISTENT'
+    - 'INCOMPLETE'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 'INCOMPLETE'
+  actual: 'CONSISTENT'
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (C:\Users\tetsu\Documents\Codex\メモ帳\work\idb-webkit-evidence\design\idb-webkit-evidence\upstream-config.test.cjs:31:10)
+    Test.runInAsyncScope (node:async_hooks:227:14)
+    Test.run (node:internal/test_runner/test:1397:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:969:18)
+    Test.postRun (node:internal/test_runner/test:1537:19)
+    Test.run (node:internal/test_runner/test:1462:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:969:7)
+  ...
+1..25
+# tests 25
+# suites 0
+# pass 3
+# fail 22
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1528.7107

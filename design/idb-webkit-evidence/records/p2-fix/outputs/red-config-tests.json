@@ -1,0 +1,1 @@
+{"actualExitCode": 1, "expectation": "nonzero: old checker must fail new rejection oracle", "stderr": ""}

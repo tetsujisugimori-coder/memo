@@ -1,0 +1,9 @@
+{
+  "preservationMatch": true,
+  "worktreeCount": 6,
+  "preexistingChangedOrUntrackedFiles": 100,
+  "baseTrackedBlobCount": 963,
+  "inheritedEvidenceFilesHashed": 122,
+  "scope": "6 relevant worktrees: HEAD, porcelain status, every tracked-modified/untracked nonignored file byte hash; full inventory read only. Ignored caches and unrelated worktrees not byte-hashed. Fresh checkout inherited evidence bytes hashed; Git tree comparison after commit verifies all base paths/modes/blob IDs.",
+  "base": "a72e0657d07632926d2ace9bcd7836cfbc41ac13"
+}

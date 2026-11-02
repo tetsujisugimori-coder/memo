@@ -1,0 +1,256 @@
+TAP version 13
+# Subtest: consistent synthetic documents return 0 without validating their self-reported meaning; R also stays blocked
+ok 1 - consistent synthetic documents return 0 without validating their self-reported meaning; R also stays blocked
+  ---
+  duration_ms: 4.0256
+  type: 'test'
+  ...
+# Subtest: schema rejects missing keys, wrong type, version and unchecked proof at both levels
+ok 2 - schema rejects missing keys, wrong type, version and unchecked proof at both levels
+  ---
+  duration_ms: 1.0322
+  type: 'test'
+  ...
+# Subtest: a relaxed external schema cannot bypass the supported contract
+ok 3 - a relaxed external schema cannot bypass the supported contract
+  ---
+  duration_ms: 0.3669
+  type: 'test'
+  ...
+# Subtest: empty required documents are incomplete, not malformed or consistent
+ok 4 - empty required documents are incomplete, not malformed or consistent
+  ---
+  duration_ms: 6.337
+  type: 'test'
+  ...
+# Subtest: broken IDs, reversed and out-of-range references are inconsistent
+ok 5 - broken IDs, reversed and out-of-range references are inconsistent
+  ---
+  duration_ms: 1.127
+  type: 'test'
+  ...
+# Subtest: target, upstream and another application transaction cannot be mixed into a candidate
+ok 6 - target, upstream and another application transaction cannot be mixed into a candidate
+  ---
+  duration_ms: 0.6263
+  type: 'test'
+  ...
+# Subtest: a source at another revision is rejected even if its bytes match
+ok 7 - a source at another revision is rejected even if its bytes match
+  ---
+  duration_ms: 0.2671
+  type: 'test'
+  ...
+# Subtest: fixed adapters detect different Playwright, browser revision, upstream or platform records
+ok 8 - fixed adapters detect different Playwright, browser revision, upstream or platform records
+  ---
+  duration_ms: 1.0586
+  type: 'test'
+  ...
+# Subtest: download URL revision cannot contradict the log message
+ok 9 - download URL revision cannot contradict the log message
+  ---
+  duration_ms: 0.3357
+  type: 'test'
+  ...
+# Subtest: hash tampering, duplicate source and candidate IDs are inconsistent
+ok 10 - hash tampering, duplicate source and candidate IDs are inconsistent
+  ---
+  duration_ms: 0.5626
+  type: 'test'
+  ...
+# Subtest: contradictory exclusive stop states retain conflicts alongside UNKNOWN
+ok 11 - contradictory exclusive stop states retain conflicts alongside UNKNOWN
+  ---
+  duration_ms: 0.2621
+  type: 'test'
+  ...
+# Subtest: separately well-formed candidates cannot bind different engine transactions or contradict each other
+ok 12 - separately well-formed candidates cannot bind different engine transactions or contradict each other
+  ---
+  duration_ms: 0.2772
+  type: 'test'
+  ...
+# Subtest: UNKNOWN, unavailable boundary and missing abnormal distinction retain all insufficiency reasons
+ok 13 - UNKNOWN, unavailable boundary and missing abnormal distinction retain all insufficiency reasons
+  ---
+  duration_ms: 0.2961
+  type: 'test'
+  ...
+# Subtest: unavailable primary source ends with insufficiency and does not infer a replacement
+ok 14 - unavailable primary source ends with insufficiency and does not infer a replacement
+  ---
+  duration_ms: 0.2102
+  type: 'test'
+  ...
+# Subtest: CLI JSON, actual process exit codes, malformed input, missing file and byte preservation
+ok 15 - CLI JSON, actual process exit codes, malformed input, missing file and byte preservation
+  ---
+  duration_ms: 498.427
+  type: 'test'
+  ...
+# Subtest: single
+ok 16 - single
+  ---
+  duration_ms: 202.0414
+  type: 'test'
+  ...
+# Subtest: later-different
+ok 17 - later-different
+  ---
+  duration_ms: 54.0604
+  type: 'test'
+  ...
+# Subtest: duplicate-same
+ok 18 - duplicate-same
+  ---
+  duration_ms: 58.0164
+  type: 'test'
+  ...
+# Subtest: reverse-target-c
+ok 19 - reverse-target-c
+  ---
+  duration_ms: 54.4628
+  type: 'test'
+  ...
+# Subtest: reverse-target-a
+ok 20 - reverse-target-a
+  ---
+  duration_ms: 57.3285
+  type: 'test'
+  ...
+# Subtest: missing
+ok 21 - missing
+  ---
+  duration_ms: 55.8396
+  type: 'test'
+  ...
+# Subtest: short
+ok 22 - short
+  ---
+  duration_ms: 57.9017
+  type: 'test'
+  ...
+# Subtest: uppercase
+ok 23 - uppercase
+  ---
+  duration_ms: 59.9005
+  type: 'test'
+  ...
+# Subtest: empty
+ok 24 - empty
+  ---
+  duration_ms: 59.2662
+  type: 'test'
+  ...
+# Subtest: export-overwrite
+ok 25 - export-overwrite
+  ---
+  duration_ms: 55.3615
+  type: 'test'
+  ...
+# Subtest: append
+ok 26 - append
+  ---
+  duration_ms: 53.3948
+  type: 'test'
+  ...
+# Subtest: parameter-expansion
+ok 27 - parameter-expansion
+  ---
+  duration_ms: 52.6172
+  type: 'test'
+  ...
+# Subtest: command-substitution
+ok 28 - command-substitution
+  ---
+  duration_ms: 50.7788
+  type: 'test'
+  ...
+# Subtest: backticks
+ok 29 - backticks
+  ---
+  duration_ms: 51.1579
+  type: 'test'
+  ...
+# Subtest: source
+ok 30 - source
+  ---
+  duration_ms: 55.3805
+  type: 'test'
+  ...
+# Subtest: indirect
+ok 31 - indirect
+  ---
+  duration_ms: 55.3902
+  type: 'test'
+  ...
+# Subtest: conditional
+ok 32 - conditional
+  ---
+  duration_ms: 52.9214
+  type: 'test'
+  ...
+# Subtest: continuation
+ok 33 - continuation
+  ---
+  duration_ms: 50.7562
+  type: 'test'
+  ...
+# Subtest: single-quotes
+ok 34 - single-quotes
+  ---
+  duration_ms: 65.232
+  type: 'test'
+  ...
+# Subtest: unquoted
+ok 35 - unquoted
+  ---
+  duration_ms: 57.6257
+  type: 'test'
+  ...
+# Subtest: inline-comment
+ok 36 - inline-comment
+  ---
+  duration_ms: 63.0703
+  type: 'test'
+  ...
+# Subtest: comments-and-unrelated
+ok 37 - comments-and-unrelated
+  ---
+  duration_ms: 56.6374
+  type: 'test'
+  ...
+# Subtest: horizontal-space-crlf
+ok 38 - horizontal-space-crlf
+  ---
+  duration_ms: 56.7123
+  type: 'test'
+  ...
+# Subtest: spaces-around-equals
+ok 39 - spaces-around-equals
+  ---
+  duration_ms: 73.7541
+  type: 'test'
+  ...
+# Subtest: eval
+ok 40 - eval
+  ---
+  duration_ms: 55.5612
+  type: 'test'
+  ...
+# Subtest: bare-cr
+ok 41 - bare-cr
+  ---
+  duration_ms: 54.16
+  type: 'test'
+  ...
+1..41
+# tests 41
+# suites 0
+# pass 41
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1766.8323

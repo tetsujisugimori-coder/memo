@@ -1,0 +1,169 @@
+{
+  "documentStatus": "INCOMPLETE",
+  "exitCode": 1,
+  "scope": "SUBMITTED_DOCUMENTS_ONLY",
+  "executionAuthorization": "NOT_GRANTED",
+  "startCondition": "BLOCKED",
+  "realExperiment": "NOT_RUN",
+  "conditionU": "NOT_RUN",
+  "productionWorker": "HOLD",
+  "hypotheses": {
+    "H1": "UNKNOWN",
+    "H2": "UNKNOWN",
+    "H3": "UNKNOWN",
+    "H4": "PARTIAL"
+  },
+  "normalized": {
+    "schemaVersion": 1,
+    "plan": {
+      "id": "IDS-U1-STATIC-402",
+      "condition": "U"
+    },
+    "target": {
+      "id": "saved-linux-wk2336",
+      "playwrightVersion": "1.62.1",
+      "browserVersion": "26.5",
+      "browserRevision": "2336",
+      "platform": "ubuntu24.04-x64",
+      "upstreamRevision": "343e13bf22dca9d0ec227801419aab0f9001a32f"
+    },
+    "transactionId": "future-plan-transaction-not-observed",
+    "versionMappingStatus": "PARTIAL",
+    "candidates": [
+      {
+        "id": "internal-trace-proposal",
+        "status": "CANDIDATE",
+        "access": "CUSTOM_BUILD",
+        "statesAtBoundary": [
+          "UNKNOWN"
+        ]
+      }
+    ]
+  },
+  "reasons": [
+    {
+      "level": "missing",
+      "code": "BOUNDARY_UNKNOWN",
+      "path": "/candidates/0/boundaries/abnormal",
+      "detail": "Need server loss, suspension, destruction and missing-record distinctions; coverage not complete."
+    },
+    {
+      "level": "missing",
+      "code": "BOUNDARY_UNKNOWN",
+      "path": "/candidates/0/boundaries/actualWorkerStop",
+      "detail": "Stop request schedules termination/cleanup, no persisted cross-domain stop-state witness."
+    },
+    {
+      "level": "missing",
+      "code": "BOUNDARY_UNKNOWN",
+      "path": "/candidates/0/boundaries/normalUnterminated",
+      "detail": "Need positive live-normal interval including backing-store state and all abnormal transitions."
+    },
+    {
+      "level": "missing",
+      "code": "BOUNDARY_UNKNOWN",
+      "path": "/candidates/0/identityMapping",
+      "detail": "Engine ID flows through client/server, but no application-ID binding was recorded."
+    },
+    {
+      "level": "missing",
+      "code": "DECLARED_UNKNOWN",
+      "path": "/unknowns/0",
+      "detail": "Transport/embedder patch and build configuration path not fully audited."
+    },
+    {
+      "level": "missing",
+      "code": "DECLARED_UNKNOWN",
+      "path": "/unknowns/1",
+      "detail": "Independent normal-unterminal interval at actual stop remains unavailable."
+    },
+    {
+      "level": "missing",
+      "code": "DECLARED_UNKNOWN",
+      "path": "/versionMapping/unknowns/0",
+      "detail": "No saved executable hash, complete patched build identity or runtime equivalence."
+    },
+    {
+      "level": "missing",
+      "code": "ENGINE_ID_UNKNOWN",
+      "path": "/candidates/0/engineTransactionId",
+      "detail": "application to engine ID mapping unobserved"
+    },
+    {
+      "level": "missing",
+      "code": "STATE_NOT_DISTINGUISHED",
+      "path": "/candidates/0/statesDistinguished",
+      "detail": "ABNORMAL"
+    },
+    {
+      "level": "missing",
+      "code": "STOP_STATE_UNKNOWN",
+      "path": "/candidates/0/statesAtBoundary",
+      "detail": "actual stop state unobserved"
+    },
+    {
+      "level": "missing",
+      "code": "VERSION_MAPPING_PARTIAL",
+      "path": "/versionMapping/status",
+      "detail": "binary equivalence is not established by metadata"
+    }
+  ],
+  "files": [
+    {
+      "id": "browsers",
+      "sha256": "f306eed529599b1eaf2f8a85db9de2b23e1a3fe36c2b66434b7c9434fb627a99"
+    },
+    {
+      "id": "config",
+      "sha256": "3554c5b666ed87032fb22e78956f8a2fffe1faede63ae8dcae60a26961f6419c"
+    },
+    {
+      "id": "IDBConnectionProxy.cpp",
+      "sha256": "0280478c5adcd583d5e238d135e577d0d65351439e6fff3505bf5d7e22d2e551"
+    },
+    {
+      "id": "IDBResourceIdentifier.cpp",
+      "sha256": "76d3e2430051dc8f2dadcb8f8506eaee6b8937ca254f2532b3215f33b334f23b"
+    },
+    {
+      "id": "IDBTransaction.cpp",
+      "sha256": "751070740cc8004c61e6634e8216a19368533105529d9ab85f30817b1b009ec1"
+    },
+    {
+      "id": "IDBTransaction.idl",
+      "sha256": "2e89e5b2b10ac35f2fc6da752fbf82ea5cf01b2e4789c40c7f49d3e80492478b"
+    },
+    {
+      "id": "IDBTransactionInfo.cpp",
+      "sha256": "1a5abd6d7c88478ebf794fcd3092d3f1f084b202caa9cde49ea25364986e96d2"
+    },
+    {
+      "id": "lock",
+      "sha256": "284777a48f5a357a603bd6916f5d86c2fa1e7cd43537442c0fcb62f478b85edb"
+    },
+    {
+      "id": "log",
+      "sha256": "9ae777f1ed887f8ad8063a8fe47f33eef58996410e563c1f2dba030e9b03ea11"
+    },
+    {
+      "id": "plan",
+      "sha256": "d72d939ca1709adfcf11b4629d259d2ad9611b3e24b4f07c8d649aff0325a9df"
+    },
+    {
+      "id": "schema",
+      "sha256": "5aa01f2c251c05f96d5de916aed2f475edf14baf1522bc3afc550af08398526f"
+    },
+    {
+      "id": "SQLiteIDBTransaction.cpp",
+      "sha256": "6476b154f03114d39e28137e5cc7bc17b2027caf41c97ef8d449545af1782a5b"
+    },
+    {
+      "id": "UniqueIDBDatabase.cpp",
+      "sha256": "889c5809b258e6b9fdb6388b6fd5c85a3c970b2233ee5bf131006eb59dbf872f"
+    },
+    {
+      "id": "WorkerOrWorkletThread.cpp",
+      "sha256": "88bc28e994f508f57e47f0635620d3b3f7eaa7ff1a7fdc27def1ebc8d402769a"
+    }
+  ]
+}

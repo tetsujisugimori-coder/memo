@@ -1,0 +1,74 @@
+{
+  "documentStatus": "CONSISTENT",
+  "exitCode": 0,
+  "scope": "SUBMITTED_DOCUMENTS_ONLY",
+  "executionAuthorization": "NOT_GRANTED",
+  "startCondition": "BLOCKED",
+  "realExperiment": "NOT_RUN",
+  "conditionU": "NOT_RUN",
+  "productionWorker": "HOLD",
+  "hypotheses": {
+    "H1": "UNKNOWN",
+    "H2": "UNKNOWN",
+    "H3": "UNKNOWN",
+    "H4": "PARTIAL"
+  },
+  "normalized": {
+    "schemaVersion": 1,
+    "plan": {
+      "id": "synthetic-document-only",
+      "condition": "U"
+    },
+    "target": {
+      "id": "target",
+      "playwrightVersion": "1.62.1",
+      "browserVersion": "26.5",
+      "browserRevision": "2336",
+      "platform": "ubuntu24.04-x64",
+      "upstreamRevision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    "transactionId": "app-tx",
+    "versionMappingStatus": "VERIFIED_METADATA",
+    "candidates": [
+      {
+        "id": "hypothetical",
+        "status": "CANDIDATE",
+        "access": "CUSTOM_BUILD",
+        "statesAtBoundary": [
+          "NORMAL_UNTERMINATED"
+        ]
+      }
+    ]
+  },
+  "reasons": [],
+  "files": [
+    {
+      "id": "browsers",
+      "sha256": "ca2d2fe4f1adec97095918a37d5aca68cbfbba56c7bf76ec077b594bc64b43dd"
+    },
+    {
+      "id": "config",
+      "sha256": "1032fd3169601cad2a696aa3406e6ada0fc74e5b6bc87562aa55a858e4dc1a29"
+    },
+    {
+      "id": "lock",
+      "sha256": "1d3f2984abc1d1d97e2b631c47aaab0afd903c6042aae1bb3992db076491bff3"
+    },
+    {
+      "id": "log",
+      "sha256": "fd6211128fb4cff66d7f154e7700c4214d8bbc984225b6bc26e421e46522dd9b"
+    },
+    {
+      "id": "plan",
+      "sha256": "64617d2582a931441edc7bd1417560fec876935a5bfbc6a12b8fe7493ee7600e"
+    },
+    {
+      "id": "reference",
+      "sha256": "fe83cc03c5f154b87564ad4b94602033b5713d707f38f3391046492b60bcfd91"
+    },
+    {
+      "id": "schema",
+      "sha256": "5aa01f2c251c05f96d5de916aed2f475edf14baf1522bc3afc550af08398526f"
+    }
+  ]
+}

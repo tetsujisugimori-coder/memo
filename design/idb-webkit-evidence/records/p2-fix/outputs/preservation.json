@@ -1,0 +1,51 @@
+{
+  "existingTargetFileCount": 107,
+  "changedExistingFiles": [
+    "design/idb-webkit-evidence/check.cjs",
+    "design/idb-webkit-evidence/contract.md",
+    "design/idb-webkit-evidence/README.md",
+    "design/idb-webkit-evidence/validation.md"
+  ],
+  "unchangedExistingFileCount": 103,
+  "originalInputsRecordsAndFailuresUnchanged": true,
+  "oldTestsAndSchemaUnchanged": true,
+  "inheritedEvidenceFilesMatched": 122,
+  "worktrees": {
+    "C:\\Users\\tetsu\\Documents\\Codex\\メモ帳": {
+      "matches": true,
+      "head": "438cf201abe83a53e8cb8e7ed160c4d6dbe147ba",
+      "fileCount": 0
+    },
+    "C:\\Users\\tetsu\\Documents\\Codex\\メモ帳\\work\\mcp-worker-recovery": {
+      "matches": true,
+      "head": "597c1d4985724e3dd77660a3562020d7004b6d86",
+      "fileCount": 11
+    },
+    "C:\\Users\\tetsu\\Documents\\Codex\\メモ帳\\work\\idb-upgrade-lifecycle": {
+      "matches": true,
+      "head": "3734f82d117e09355cc721077ead626fa368e451",
+      "fileCount": 22
+    },
+    "C:\\Users\\tetsu\\Documents\\Codex\\メモ帳\\work\\idb-transaction-complete-only": {
+      "matches": true,
+      "head": "105d80a467e96aa7038052f501c4a1776a6e69bb",
+      "fileCount": 14
+    },
+    "C:\\Users\\tetsu\\Documents\\Codex\\メモ帳\\work\\idb-time-delay-only": {
+      "matches": true,
+      "head": "9872ee7aee773b017915364669bc31b98cc22e83",
+      "fileCount": 34
+    },
+    "C:\\Users\\tetsu\\Documents\\Codex\\メモ帳\\work\\idb-incomplete-stop-design": {
+      "matches": true,
+      "head": "e08c065161ba147e7dbba175a2038ef27bf968a0",
+      "fileCount": 19
+    },
+    "C:\\Users\\tetsu\\Documents\\Codex\\メモ帳\\work\\idb-webkit-evidence": {
+      "expectedOwnDirectoryChanges": true,
+      "head": "636e2796ef9fce16d69340601ed6c05dfefa80fd"
+    }
+  },
+  "otherPreexistingChangedOrUntrackedFilesMatched": 100,
+  "scope": "7 relevant worktrees; own directory changes allowed only; all prior target files compared; ignored caches and unrelated worktree bytes not enumerated"
+}

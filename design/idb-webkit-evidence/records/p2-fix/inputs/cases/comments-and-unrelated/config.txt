@@ -1,0 +1,8 @@
+# BASE_REVISION="cccccccccccccccccccccccccccccccccccccccc"
+ 	# source eval $(not-run)
+REMOTE_URL="https://github.com/WebKit/WebKit.git"
+BASE_BRANCH="main"
+OTHER_BASE_REVISION="cccccccccccccccccccccccccccccccccccccccc"
+BASE_REVISION_SUFFIX="cccccccccccccccccccccccccccccccccccccccc"
+BASE_REVISION="aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+	 

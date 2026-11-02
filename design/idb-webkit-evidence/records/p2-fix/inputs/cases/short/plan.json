@@ -1,0 +1,163 @@
+{
+  "schemaVersion": 1,
+  "plan": {
+    "id": "synthetic-document-only",
+    "condition": "U"
+  },
+  "target": {
+    "id": "target",
+    "playwrightVersion": "1.62.1",
+    "browserVersion": "26.5",
+    "browserRevision": "2336",
+    "platform": "ubuntu24.04-x64",
+    "upstreamRevision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "sources": [
+    {
+      "id": "lock",
+      "role": "LOCK",
+      "revision": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "sha256": "1d3f2984abc1d1d97e2b631c47aaab0afd903c6042aae1bb3992db076491bff3",
+      "url": "https://example.invalid/lock"
+    },
+    {
+      "id": "browsers",
+      "role": "BROWSERS",
+      "revision": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "sha256": "ca2d2fe4f1adec97095918a37d5aca68cbfbba56c7bf76ec077b594bc64b43dd",
+      "url": "https://example.invalid/browsers"
+    },
+    {
+      "id": "config",
+      "role": "UPSTREAM_CONFIG",
+      "revision": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "sha256": "02ad1f548c51805c730bef6400a136cc1ef7ae79624534b3b19ca23681b54cba",
+      "url": "https://example.invalid/config"
+    },
+    {
+      "id": "log",
+      "role": "SAVED_LOG",
+      "revision": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "sha256": "fd6211128fb4cff66d7f154e7700c4214d8bbc984225b6bc26e421e46522dd9b",
+      "url": "https://example.invalid/log"
+    },
+    {
+      "id": "reference",
+      "role": "REFERENCE",
+      "revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "sha256": "fe83cc03c5f154b87564ad4b94602033b5713d707f38f3391046492b60bcfd91",
+      "url": "https://example.invalid/reference"
+    }
+  ],
+  "versionMapping": {
+    "status": "VERIFIED_METADATA",
+    "refs": [
+      {
+        "sourceId": "reference",
+        "startLine": 1,
+        "endLine": 1
+      }
+    ],
+    "facts": [
+      "Synthetic metadata matches."
+    ],
+    "inferences": [],
+    "unknowns": []
+  },
+  "transactionId": "app-tx",
+  "candidates": [
+    {
+      "id": "hypothetical",
+      "targetId": "target",
+      "sourceRevision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "transactionId": "app-tx",
+      "engineTransactionId": "hypothetical-engine-id",
+      "access": "CUSTOM_BUILD",
+      "status": "CANDIDATE",
+      "identityMapping": {
+        "status": "DOCUMENTED",
+        "description": "Hypothetical documented candidate, not an observation.",
+        "refs": [
+          {
+            "sourceId": "reference",
+            "startLine": 1,
+            "endLine": 1
+          }
+        ]
+      },
+      "boundaries": {
+        "normalUnterminated": {
+          "status": "DOCUMENTED",
+          "description": "Hypothetical documented candidate, not an observation.",
+          "refs": [
+            {
+              "sourceId": "reference",
+              "startLine": 1,
+              "endLine": 1
+            }
+          ]
+        },
+        "actualWorkerStop": {
+          "status": "DOCUMENTED",
+          "description": "Hypothetical documented candidate, not an observation.",
+          "refs": [
+            {
+              "sourceId": "reference",
+              "startLine": 1,
+              "endLine": 1
+            }
+          ]
+        },
+        "commit": {
+          "status": "DOCUMENTED",
+          "description": "Hypothetical documented candidate, not an observation.",
+          "refs": [
+            {
+              "sourceId": "reference",
+              "startLine": 1,
+              "endLine": 1
+            }
+          ]
+        },
+        "abort": {
+          "status": "DOCUMENTED",
+          "description": "Hypothetical documented candidate, not an observation.",
+          "refs": [
+            {
+              "sourceId": "reference",
+              "startLine": 1,
+              "endLine": 1
+            }
+          ]
+        },
+        "abnormal": {
+          "status": "DOCUMENTED",
+          "description": "Hypothetical documented candidate, not an observation.",
+          "refs": [
+            {
+              "sourceId": "reference",
+              "startLine": 1,
+              "endLine": 1
+            }
+          ]
+        }
+      },
+      "statesDistinguished": [
+        "NORMAL_UNTERMINATED",
+        "COMMIT",
+        "ABORT",
+        "ABNORMAL"
+      ],
+      "statesAtBoundary": [
+        "NORMAL_UNTERMINATED"
+      ],
+      "requiredChanges": [
+        "Hypothetical native recorder."
+      ],
+      "limitations": [
+        "Assertions are not verified."
+      ]
+    }
+  ],
+  "unknowns": []
+}

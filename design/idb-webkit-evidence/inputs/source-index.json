@@ -1,0 +1,237 @@
+[
+  {
+    "path": "Source/WebCore/Modules/indexeddb/IDBTransaction.cpp",
+    "file": "wk-IDBTransaction.cpp.txt",
+    "commit": "343e13bf22dca9d0ec227801419aab0f9001a32f",
+    "url": "https://github.com/WebKit/WebKit/blob/343e13bf22dca9d0ec227801419aab0f9001a32f/Source/WebCore/Modules/indexeddb/IDBTransaction.cpp",
+    "blob": "c242991f3914b844643b228b11a4d24c84ff0a4d",
+    "sha256": "751070740cc8004c61e6634e8216a19368533105529d9ab85f30817b1b009ec1",
+    "status": "CAPTURED"
+  },
+  {
+    "path": "Source/WebCore/Modules/indexeddb/IDBDatabase.cpp",
+    "file": "wk-IDBDatabase.cpp.txt",
+    "commit": "343e13bf22dca9d0ec227801419aab0f9001a32f",
+    "url": "https://github.com/WebKit/WebKit/blob/343e13bf22dca9d0ec227801419aab0f9001a32f/Source/WebCore/Modules/indexeddb/IDBDatabase.cpp",
+    "blob": "07a389ee5fab42c3d3b70ae468e3b9186860019f",
+    "sha256": "324da64bc35e9b0f0b48284dd1aaf8b7b5738d3cdbe7716a91bae850a132af04",
+    "status": "CAPTURED"
+  },
+  {
+    "path": "Source/WebCore/Modules/indexeddb/IDBRequest.cpp",
+    "file": "wk-IDBRequest.cpp.txt",
+    "commit": "343e13bf22dca9d0ec227801419aab0f9001a32f",
+    "url": "https://github.com/WebKit/WebKit/blob/343e13bf22dca9d0ec227801419aab0f9001a32f/Source/WebCore/Modules/indexeddb/IDBRequest.cpp",
+    "blob": "d43fdbb6bcd236c4d07b9bdec3cf5710fcc0be92",
+    "sha256": "207411f335ba3221e0093579d4cb4167c7371dd55c2990c6d721b1316cad473b",
+    "status": "CAPTURED"
+  },
+  {
+    "path": "Source/WebCore/Modules/indexeddb/IDBTransactionInfo.cpp",
+    "status": "UNKNOWN",
+    "error": "gh: Not Found (HTTP 404)\n"
+  },
+  {
+    "path": "Source/WebCore/Modules/indexeddb/IDBResourceIdentifier.h",
+    "status": "UNKNOWN",
+    "error": "gh: Not Found (HTTP 404)\n"
+  },
+  {
+    "path": "Source/WebCore/Modules/indexeddb/client/IDBConnectionProxy.cpp",
+    "file": "wk-IDBConnectionProxy.cpp.txt",
+    "commit": "343e13bf22dca9d0ec227801419aab0f9001a32f",
+    "url": "https://github.com/WebKit/WebKit/blob/343e13bf22dca9d0ec227801419aab0f9001a32f/Source/WebCore/Modules/indexeddb/client/IDBConnectionProxy.cpp",
+    "blob": "e6033c8d9e19e63790e66dac2586f6c62da3fa00",
+    "sha256": "0280478c5adcd583d5e238d135e577d0d65351439e6fff3505bf5d7e22d2e551",
+    "status": "CAPTURED"
+  },
+  {
+    "path": "Source/WebCore/Modules/indexeddb/client/IDBConnectionToServer.cpp",
+    "file": "wk-IDBConnectionToServer.cpp.txt",
+    "commit": "343e13bf22dca9d0ec227801419aab0f9001a32f",
+    "url": "https://github.com/WebKit/WebKit/blob/343e13bf22dca9d0ec227801419aab0f9001a32f/Source/WebCore/Modules/indexeddb/client/IDBConnectionToServer.cpp",
+    "blob": "ff8937a8ec8ff396ecc1fa5a5333ccd1f01b298d",
+    "sha256": "f108c5c1c50b08d255f0d85877eef2ae7080415b69c545adcb8cb6a01d719dfa",
+    "status": "CAPTURED"
+  },
+  {
+    "path": "Source/WebCore/Modules/indexeddb/server/IDBServer.cpp",
+    "file": "wk-IDBServer.cpp.txt",
+    "commit": "343e13bf22dca9d0ec227801419aab0f9001a32f",
+    "url": "https://github.com/WebKit/WebKit/blob/343e13bf22dca9d0ec227801419aab0f9001a32f/Source/WebCore/Modules/indexeddb/server/IDBServer.cpp",
+    "blob": "0cd2a9680556a937954b69ca491e0190ee1897dc",
+    "sha256": "5514db0116e55abbf252a8263653f9c7f73cc8fa8141d0dae21046a54cbee095",
+    "status": "CAPTURED"
+  },
+  {
+    "path": "Source/WebCore/Modules/indexeddb/server/UniqueIDBDatabase.cpp",
+    "file": "wk-UniqueIDBDatabase.cpp.txt",
+    "commit": "343e13bf22dca9d0ec227801419aab0f9001a32f",
+    "url": "https://github.com/WebKit/WebKit/blob/343e13bf22dca9d0ec227801419aab0f9001a32f/Source/WebCore/Modules/indexeddb/server/UniqueIDBDatabase.cpp",
+    "blob": "d9f96867ddc51df3acfc42a97ebbcfb2866de2eb",
+    "sha256": "889c5809b258e6b9fdb6388b6fd5c85a3c970b2233ee5bf131006eb59dbf872f",
+    "status": "CAPTURED"
+  },
+  {
+    "path": "Source/WebCore/Modules/indexeddb/server/UniqueIDBDatabaseTransaction.cpp",
+    "file": "wk-UniqueIDBDatabaseTransaction.cpp.txt",
+    "commit": "343e13bf22dca9d0ec227801419aab0f9001a32f",
+    "url": "https://github.com/WebKit/WebKit/blob/343e13bf22dca9d0ec227801419aab0f9001a32f/Source/WebCore/Modules/indexeddb/server/UniqueIDBDatabaseTransaction.cpp",
+    "blob": "f0a7e795031983ce7a52b081664895acc896db1d",
+    "sha256": "feb6126ff49c971c6f4e9f4be4345bb45efde374c1e1a72ec0f67a1d9263c7a6",
+    "status": "CAPTURED"
+  },
+  {
+    "path": "Source/WebCore/workers/Worker.cpp",
+    "file": "wk-Worker.cpp.txt",
+    "commit": "343e13bf22dca9d0ec227801419aab0f9001a32f",
+    "url": "https://github.com/WebKit/WebKit/blob/343e13bf22dca9d0ec227801419aab0f9001a32f/Source/WebCore/workers/Worker.cpp",
+    "blob": "ffb72f9bbc92ac17ec0dae0014424d95dca99b0f",
+    "sha256": "164095d180ff49a0f09e59b0d61203d66af89e680056d2a378c27eb2ee89bad4",
+    "status": "CAPTURED"
+  },
+  {
+    "path": "Source/WebCore/workers/WorkerThread.cpp",
+    "file": "wk-WorkerThread.cpp.txt",
+    "commit": "343e13bf22dca9d0ec227801419aab0f9001a32f",
+    "url": "https://github.com/WebKit/WebKit/blob/343e13bf22dca9d0ec227801419aab0f9001a32f/Source/WebCore/workers/WorkerThread.cpp",
+    "blob": "e05499958dc2350a283e36df865746bbe0e0caf2",
+    "sha256": "670738c9fc0bd6086b920f0cbaa97720aa7ffbb5f94bcc42ada58b27a603a7df",
+    "status": "CAPTURED"
+  },
+  {
+    "path": "Source/WebCore/workers/WorkerRunLoop.cpp",
+    "file": "wk-WorkerRunLoop.cpp.txt",
+    "commit": "343e13bf22dca9d0ec227801419aab0f9001a32f",
+    "url": "https://github.com/WebKit/WebKit/blob/343e13bf22dca9d0ec227801419aab0f9001a32f/Source/WebCore/workers/WorkerRunLoop.cpp",
+    "blob": "d26e82a341fbe39fa9b0c425d0277bb9ded8ea0f",
+    "sha256": "180157649366d680a177dbfc34334b9bb2df53eef4b998a08e4521f8b7a45633",
+    "status": "CAPTURED"
+  },
+  {
+    "path": "Source/WebCore/workers/WorkerGlobalScope.cpp",
+    "file": "wk-WorkerGlobalScope.cpp.txt",
+    "commit": "343e13bf22dca9d0ec227801419aab0f9001a32f",
+    "url": "https://github.com/WebKit/WebKit/blob/343e13bf22dca9d0ec227801419aab0f9001a32f/Source/WebCore/workers/WorkerGlobalScope.cpp",
+    "blob": "bd5b5caed529d419002c9a8ebdd28efa1e060455",
+    "sha256": "db852f8cd85a3ac7faa4ca3b7a46fdaf48b0fbde57b466418200e97bbec69413",
+    "status": "CAPTURED"
+  },
+  {
+    "path": "Source/WebCore/workers/WorkerOrWorkletScriptController.cpp",
+    "file": "wk-WorkerOrWorkletScriptController.cpp.txt",
+    "commit": "343e13bf22dca9d0ec227801419aab0f9001a32f",
+    "url": "https://github.com/WebKit/WebKit/blob/343e13bf22dca9d0ec227801419aab0f9001a32f/Source/WebCore/workers/WorkerOrWorkletScriptController.cpp",
+    "blob": "f6b85c26ad85301ed3446e11ee0ed57354a7fa70",
+    "sha256": "db4c21ba5c39f17260804bd9d9e2f2d859403d26cb0176aacbd72b24d532f185",
+    "status": "CAPTURED"
+  },
+  {
+    "path": "Source/WebCore/Modules/indexeddb/shared/IDBTransactionInfo.cpp",
+    "file": "wk-IDBTransactionInfo.cpp.txt",
+    "commit": "343e13bf22dca9d0ec227801419aab0f9001a32f",
+    "url": "https://github.com/WebKit/WebKit/blob/343e13bf22dca9d0ec227801419aab0f9001a32f/Source/WebCore/Modules/indexeddb/shared/IDBTransactionInfo.cpp",
+    "blob": "a95ae35b02789a962a35bbfda287c0ab801c1c62",
+    "sha256": "1a5abd6d7c88478ebf794fcd3092d3f1f084b202caa9cde49ea25364986e96d2",
+    "status": "CAPTURED"
+  },
+  {
+    "path": "Source/WebCore/Modules/indexeddb/shared/IDBResourceIdentifier.h",
+    "file": "wk-IDBResourceIdentifier.h.txt",
+    "commit": "343e13bf22dca9d0ec227801419aab0f9001a32f",
+    "url": "https://github.com/WebKit/WebKit/blob/343e13bf22dca9d0ec227801419aab0f9001a32f/Source/WebCore/Modules/indexeddb/shared/IDBResourceIdentifier.h",
+    "blob": "2de0bc2dcc28cc9ce9bdf17336a534a96bdd5179",
+    "sha256": "fd1290fe0d1fd08bbfa87d1d05718b82eb59fb9dadcfb598d4ed8c8633d7c520",
+    "status": "CAPTURED"
+  },
+  {
+    "path": "Source/WebCore/Modules/indexeddb/shared/IDBResourceIdentifier.cpp",
+    "file": "wk-IDBResourceIdentifier.cpp.txt",
+    "commit": "343e13bf22dca9d0ec227801419aab0f9001a32f",
+    "url": "https://github.com/WebKit/WebKit/blob/343e13bf22dca9d0ec227801419aab0f9001a32f/Source/WebCore/Modules/indexeddb/shared/IDBResourceIdentifier.cpp",
+    "blob": "2e697e2a7fc40486de818de1a7dbe602e7bc7dac",
+    "sha256": "76d3e2430051dc8f2dadcb8f8506eaee6b8937ca254f2532b3215f33b334f23b",
+    "status": "CAPTURED"
+  },
+  {
+    "path": "Source/WebCore/workers/WorkerOrWorkletThread.cpp",
+    "file": "wk-WorkerOrWorkletThread.cpp.txt",
+    "commit": "343e13bf22dca9d0ec227801419aab0f9001a32f",
+    "url": "https://github.com/WebKit/WebKit/blob/343e13bf22dca9d0ec227801419aab0f9001a32f/Source/WebCore/workers/WorkerOrWorkletThread.cpp",
+    "blob": "e59b7654e98fce97b0f2cdc3a4263af2aaad3723",
+    "sha256": "88bc28e994f508f57e47f0635620d3b3f7eaa7ff1a7fdc27def1ebc8d402769a",
+    "status": "CAPTURED"
+  },
+  {
+    "path": "Source/WebCore/workers/WorkerMessagingProxy.cpp",
+    "file": "wk-WorkerMessagingProxy.cpp.txt",
+    "commit": "343e13bf22dca9d0ec227801419aab0f9001a32f",
+    "url": "https://github.com/WebKit/WebKit/blob/343e13bf22dca9d0ec227801419aab0f9001a32f/Source/WebCore/workers/WorkerMessagingProxy.cpp",
+    "blob": "63c328fcdc50e0e9464f270e9dd8fa604f8a8baa",
+    "sha256": "95eb1ae59354d18e9bd558932a5230d5052fafec327b71c4fc46719b8943df06",
+    "status": "CAPTURED"
+  },
+  {
+    "path": "Source/WebCore/Modules/indexeddb/server/SQLiteIDBBackingStore.cpp",
+    "file": "wk-SQLiteIDBBackingStore.cpp.txt",
+    "commit": "343e13bf22dca9d0ec227801419aab0f9001a32f",
+    "url": "https://github.com/WebKit/WebKit/blob/343e13bf22dca9d0ec227801419aab0f9001a32f/Source/WebCore/Modules/indexeddb/server/SQLiteIDBBackingStore.cpp",
+    "blob": "45460fc38ea43f8c74e7b0831bc007c4b9cf6ef3",
+    "sha256": "abca295118c417221904423c6d4a773227f894e05988d96fafcdb0bfff49e129",
+    "status": "CAPTURED"
+  },
+  {
+    "path": "Source/WebCore/Modules/indexeddb/server/SQLiteIDBTransaction.cpp",
+    "file": "wk-SQLiteIDBTransaction.cpp.txt",
+    "commit": "343e13bf22dca9d0ec227801419aab0f9001a32f",
+    "url": "https://github.com/WebKit/WebKit/blob/343e13bf22dca9d0ec227801419aab0f9001a32f/Source/WebCore/Modules/indexeddb/server/SQLiteIDBTransaction.cpp",
+    "blob": "d3ef47f9bb5e2556e2efd3b6e891ee0604d011da",
+    "sha256": "6476b154f03114d39e28137e5cc7bc17b2027caf41c97ef8d449545af1782a5b",
+    "status": "CAPTURED"
+  },
+  {
+    "path": "Source/WebCore/Modules/indexeddb/server/UniqueIDBDatabaseConnection.cpp",
+    "file": "wk-UniqueIDBDatabaseConnection.cpp.txt",
+    "commit": "343e13bf22dca9d0ec227801419aab0f9001a32f",
+    "url": "https://github.com/WebKit/WebKit/blob/343e13bf22dca9d0ec227801419aab0f9001a32f/Source/WebCore/Modules/indexeddb/server/UniqueIDBDatabaseConnection.cpp",
+    "blob": "a4c3f55262a4ce293b881b9d267bf55f31de0353",
+    "sha256": "093f210465a17c2f11944deb190955865dbb8bbd902cd5646001e6ae09fb63fa",
+    "status": "CAPTURED"
+  },
+  {
+    "path": "Source/WebCore/Modules/indexeddb/IDBTransaction.idl",
+    "file": "wk-IDBTransaction.idl.txt",
+    "commit": "343e13bf22dca9d0ec227801419aab0f9001a32f",
+    "url": "https://github.com/WebKit/WebKit/blob/343e13bf22dca9d0ec227801419aab0f9001a32f/Source/WebCore/Modules/indexeddb/IDBTransaction.idl",
+    "blob": "86500584b29d82011fd5aa643f903a7e9e01cb2d",
+    "sha256": "2e89e5b2b10ac35f2fc6da752fbf82ea5cf01b2e4789c40c7f49d3e80492478b",
+    "status": "CAPTURED"
+  },
+  {
+    "path": "Source/WebCore/Modules/indexeddb/client/IDBConnectionProxy.h",
+    "file": "wk-IDBConnectionProxy.h.txt",
+    "commit": "343e13bf22dca9d0ec227801419aab0f9001a32f",
+    "url": "https://github.com/WebKit/WebKit/blob/343e13bf22dca9d0ec227801419aab0f9001a32f/Source/WebCore/Modules/indexeddb/client/IDBConnectionProxy.h",
+    "blob": "72dd47934736d9eb545df2723a350108aa50229b",
+    "sha256": "4b29de541a0b9ea39b1c0ea6a30515dc11b7cbd51d7f6ff18ef1b4bee6bffdf4",
+    "status": "CAPTURED"
+  },
+  {
+    "path": "Source/WebCore/workers/WorkerOrWorkletGlobalScope.cpp",
+    "file": "wk-WorkerOrWorkletGlobalScope.cpp.txt",
+    "commit": "343e13bf22dca9d0ec227801419aab0f9001a32f",
+    "url": "https://github.com/WebKit/WebKit/blob/343e13bf22dca9d0ec227801419aab0f9001a32f/Source/WebCore/workers/WorkerOrWorkletGlobalScope.cpp",
+    "blob": "34fca722076b507b774617280a52f0df524d1c85",
+    "sha256": "3baa3b1bdb20b6c21777b63ef0946899ce342f08876666c24a6837b7dd88e191",
+    "status": "CAPTURED"
+  },
+  {
+    "path": "Source/WebCore/dom/ScriptExecutionContext.cpp",
+    "file": "wk-ScriptExecutionContext.cpp.txt",
+    "commit": "343e13bf22dca9d0ec227801419aab0f9001a32f",
+    "url": "https://github.com/WebKit/WebKit/blob/343e13bf22dca9d0ec227801419aab0f9001a32f/Source/WebCore/dom/ScriptExecutionContext.cpp",
+    "blob": "f9c2bcc2286fd53862b9c23e2e8a97e62984a0ad",
+    "sha256": "3b2fb2d5fe5721ce376d5e9b4ef3633d65fb6c2ef468b6ab5563d7e99099d7b3",
+    "status": "CAPTURED"
+  }
+]

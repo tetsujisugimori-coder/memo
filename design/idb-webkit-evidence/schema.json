@@ -1,0 +1,419 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:memo-nexus:idb-webkit-documents:1",
+  "type": "object",
+  "properties": {
+    "schemaVersion": {
+      "type": "integer",
+      "enum": [
+        1
+      ]
+    },
+    "plan": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        },
+        "condition": {
+          "type": "string",
+          "enum": [
+            "R",
+            "U"
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "condition"
+      ],
+      "additionalProperties": false
+    },
+    "target": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        },
+        "playwrightVersion": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        },
+        "browserVersion": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        },
+        "browserRevision": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        },
+        "platform": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        },
+        "upstreamRevision": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[0-9a-f]{40}$"
+        }
+      },
+      "required": [
+        "id",
+        "playwrightVersion",
+        "browserVersion",
+        "browserRevision",
+        "platform",
+        "upstreamRevision"
+      ],
+      "additionalProperties": false
+    },
+    "sources": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/source"
+      },
+      "maxItems": 128
+    },
+    "versionMapping": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": [
+            "VERIFIED_METADATA",
+            "PARTIAL",
+            "UNKNOWN",
+            "UNMAPPED"
+          ]
+        },
+        "refs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/reference"
+          },
+          "maxItems": 128
+        },
+        "facts": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          },
+          "maxItems": 128
+        },
+        "inferences": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          },
+          "maxItems": 128
+        },
+        "unknowns": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          },
+          "maxItems": 128
+        }
+      },
+      "required": [
+        "status",
+        "refs",
+        "facts",
+        "inferences",
+        "unknowns"
+      ],
+      "additionalProperties": false
+    },
+    "transactionId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 4096
+    },
+    "candidates": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/candidate"
+      },
+      "maxItems": 128
+    },
+    "unknowns": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 4096
+      },
+      "maxItems": 128
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "plan",
+    "target",
+    "sources",
+    "versionMapping",
+    "transactionId",
+    "candidates",
+    "unknowns"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "reference": {
+      "type": "object",
+      "properties": {
+        "sourceId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        },
+        "startLine": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "endLine": {
+          "type": "integer",
+          "minimum": 1
+        }
+      },
+      "required": [
+        "sourceId",
+        "startLine",
+        "endLine"
+      ],
+      "additionalProperties": false
+    },
+    "source": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        },
+        "revision": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096,
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "sha256": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096,
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "url": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096,
+          "pattern": "^https://"
+        },
+        "role": {
+          "type": "string",
+          "enum": [
+            "LOCK",
+            "BROWSERS",
+            "UPSTREAM_CONFIG",
+            "SAVED_LOG",
+            "REFERENCE"
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "revision",
+        "sha256",
+        "url",
+        "role"
+      ],
+      "additionalProperties": false
+    },
+    "boundary": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": [
+            "DOCUMENTED",
+            "UNAVAILABLE",
+            "UNKNOWN"
+          ]
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        },
+        "refs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/reference"
+          },
+          "maxItems": 128
+        }
+      },
+      "required": [
+        "status",
+        "description",
+        "refs"
+      ],
+      "additionalProperties": false
+    },
+    "candidate": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        },
+        "targetId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        },
+        "sourceRevision": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096,
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "transactionId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        },
+        "engineTransactionId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        },
+        "access": {
+          "type": "string",
+          "enum": [
+            "PUBLIC_API",
+            "EXISTING_DIAGNOSTIC",
+            "CUSTOM_BUILD",
+            "UNKNOWN"
+          ]
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "CANDIDATE",
+            "INSUFFICIENT",
+            "UNKNOWN"
+          ]
+        },
+        "identityMapping": {
+          "$ref": "#/$defs/boundary"
+        },
+        "boundaries": {
+          "type": "object",
+          "properties": {
+            "normalUnterminated": {
+              "$ref": "#/$defs/boundary"
+            },
+            "actualWorkerStop": {
+              "$ref": "#/$defs/boundary"
+            },
+            "commit": {
+              "$ref": "#/$defs/boundary"
+            },
+            "abort": {
+              "$ref": "#/$defs/boundary"
+            },
+            "abnormal": {
+              "$ref": "#/$defs/boundary"
+            }
+          },
+          "required": [
+            "normalUnterminated",
+            "actualWorkerStop",
+            "commit",
+            "abort",
+            "abnormal"
+          ],
+          "additionalProperties": false
+        },
+        "statesDistinguished": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "NORMAL_UNTERMINATED",
+              "COMMIT",
+              "ABORT",
+              "ABNORMAL"
+            ]
+          },
+          "maxItems": 128
+        },
+        "statesAtBoundary": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "NORMAL_UNTERMINATED",
+              "COMMITTED",
+              "ABORTED",
+              "ABNORMAL",
+              "UNKNOWN"
+            ]
+          },
+          "maxItems": 128
+        },
+        "requiredChanges": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          },
+          "maxItems": 128
+        },
+        "limitations": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          },
+          "maxItems": 128
+        }
+      },
+      "required": [
+        "id",
+        "targetId",
+        "sourceRevision",
+        "transactionId",
+        "engineTransactionId",
+        "access",
+        "status",
+        "identityMapping",
+        "boundaries",
+        "statesDistinguished",
+        "statesAtBoundary",
+        "requiredChanges",
+        "limitations"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

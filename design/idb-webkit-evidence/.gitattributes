@@ -1,0 +1,5 @@
+# Preserve captured and hashed bytes independently of checkout autocrlf settings.
+* -text whitespace=cr-at-eol
+# Captures retain upstream whitespace; only authored code/docs use whitespace checks.
+inputs/** -whitespace
+records/** -whitespace
