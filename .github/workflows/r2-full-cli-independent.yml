@@ -1,0 +1,43 @@
+name: Independent R2 Collector full-CLI acceptance
+
+on:
+  push:
+    branches:
+      - review/r2-full-cli-20261103
+  pull_request:
+    branches:
+      - implement/idb-evidence-collector-u1
+
+permissions:
+  contents: read
+
+jobs:
+  full-cli:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout fixed branch and full Git history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Use Node 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Use Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install independent JSON Schema validator
+        run: python -m pip install jsonschema==4.26.0
+      - name: Exercise old and new real Node Collector CLI
+        run: node design/idb-incomplete-stop/collector/r2-cli-review/accept.cjs
+      - name: Independently validate every result JSON and input schema
+        run: python design/idb-incomplete-stop/collector/r2-cli-review/verify.py
+      - name: Preserve independent CLI records
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: r2-cli-full-independent-records
+          path: r2-cli-review-output/
+          if-no-files-found: warn
