@@ -4,33 +4,33 @@
 
 ## 用語と出力の区別
 - 「J/W/Tの肯定的な観測」は、その個別イベントを確定的な発生源で観測できることだけを意味する。**文書に登場するだけの状態やプロセスの戻り値は観測とは呼ばない**。
-- \`UNKNOWN\`：必要な独立証拠が足りず判断できない。
-- \`NOT_APPLICABLE\`：研究命題の対象外。条件が不成立と分かっている場合の\`FAIL\`と区別する。
-- \`FAIL\`：十分な証拠で条件不成立が確定。単なるログ欠落はFAILでなくUNKNOWN。
-- \`INCOMPLETE\`：期待される記録に欠測がある資料状態。整合性\`CONSISTENT\`も実証\`PASS\`ではない。
-- \`U-C\`の研究用観測分類は、既存Collectorの\`conditionU\`とは別フィールドの**未実装構想**。現在は一律\`UNKNOWN/NOT_RUN\`。下表の「期待」は将来の実装に対する判断基準であり、新しい出力schemaを宣言しない。
+- `UNKNOWN`：必要な独立証拠が足りず判断できない。
+- `NOT_APPLICABLE`：研究命題の対象外。条件が不成立と分かっている場合の`FAIL`と区別する。
+- `FAIL`：十分な証拠で条件不成立が確定。単なるログ欠落はFAILでなくUNKNOWN。
+- `INCOMPLETE`：期待される記録に欠測がある資料状態。整合性`CONSISTENT`も実証`PASS`ではない。
+- `U-C`の研究用観測分類は、既存Collectorの`conditionU`とは別フィールドの**未実装構想**。現在は一律`UNKNOWN/NOT_RUN`。下表の「期待」は将来の実装に対する判断基準であり、新しい出力schemaを宣言しない。
 
 ## J/W/T/U-Cの静的負の対照
 
 |ID|仮定する入力・観測|許容される結論（将来の判定器用の期待値）|拒否する誤推論|
 |---|---|---|---|
-|A01|main \`terminate_called/returned\`のみ|J2 UNKNOWN、W2/W3 UNKNOWN、T3/T4 UNKNOWN、U-C UNKNOWN|terminate戻り＝JS実停止／Worker終了|
-|A02|\`scheduleExecutionTermination()\`呼出しを観測|J1のみ。J2 UNKNOWN|終了要求を実行停止ackに昇格|
+|A01|main `terminate_called/returned`のみ|J2 UNKNOWN、W2/W3 UNKNOWN、T3/T4 UNKNOWN、U-C UNKNOWN|terminate戻り＝JS実停止／Worker終了|
+|A02|`scheduleExecutionTermination()`呼出しを観測|J1のみ。J2 UNKNOWN|終了要求を実行停止ackに昇格|
 |A03|Worker runloop queue killだけ観測|W2/W3 UNKNOWN、J2 UNKNOWN|queue killをthread退出に昇格|
-|A04|\`prepareForDestruction()\`開始|W1観測候補。W2/W3 UNKNOWN。対象Tは別|cleanup開始＝context破棄／正常tx維持|
+|A04|`prepareForDestruction()`開始|W1観測候補。W2/W3 UNKNOWN。対象Tは別|cleanup開始＝context破棄／正常tx維持|
 |A05|対象WorkerGlobalScopeの実破棄をnative観測|W2のみ。W3 UNKNOWN、T3/T4 UNKNOWN|context破棄＝OS thread退出／DB解放|
 |A06|対象incarnationのthread exitをnative観測|W3のみ。T3/T4 UNKNOWN、physicalRelease UNKNOWN|thread退出＝DB transaction Finished／物理解放|
-|A07|同一Client WebCore txが\`Active\`、cleanupで\`IDBTransaction::stop()\`|対象TはAbortingへ移行するコード経路。正常未終端の後段観測は**禁止**|server map在籍で「正常未終端」PASS|
-|A08|同一Client WebCore txが\`Inactive\`、cleanupで\`IDBTransaction::stop()\`|A07と同様（先行Finishingがなければabort経路）|InactiveをFinishedと誤読／abort開始を無視|
-|A09|Client T1=\`Committing\`のみ見える|Client Committing観測候補。backend result / U-CはUNKNOWN|client Committing＝backend commit未完了|
-|A10|Client Committing、同native txのbackend \`COMMIT_RESULT\`がcutより前に確定|backend pending at cutは**FAIL**。U-C全体成立禁止|遅延通知をbackend未完了と誤認|
-|A11|Client Committing、同native txのbackend \`COMMIT_INTENT\`だけがある|backend結果UNKNOWN、U-C UNKNOWN|commit intent＋result欠落でpending確定|
+|A07|同一Client WebCore txが`Active`、cleanupで`IDBTransaction::stop()`|対象TはAbortingへ移行するコード経路。正常未終端の後段観測は**禁止**|server map在籍で「正常未終端」PASS|
+|A08|同一Client WebCore txが`Inactive`、cleanupで`IDBTransaction::stop()`|A07と同様（先行Finishingがなければabort経路）|InactiveをFinishedと誤読／abort開始を無視|
+|A09|Client T1=`Committing`のみ見える|Client Committing観測候補。backend result / U-CはUNKNOWN|client Committing＝backend commit未完了|
+|A10|Client Committing、同native txのbackend `COMMIT_RESULT`がcutより前に確定|backend pending at cutは**FAIL**。U-C全体成立禁止|遅延通知をbackend未完了と誤認|
+|A11|Client Committing、同native txのbackend `COMMIT_INTENT`だけがある|backend結果UNKNOWN、U-C UNKNOWN|commit intent＋result欠落でpending確定|
 |A12|Client Committing、backend結果の記録元が停止/flush失敗|backend結果UNKNOWN、資料INCOMPLETE|結果未受信＝commit未発生|
-|A13|Client \`Aborting\`、またはstop cutより前のabort intent/server lossが確定|正常なU-C候補には採用不可。異常/abort理由を保持|「Finishedでない」ので正常とする|
-|A14|Client \`Finished\`が正しいnative IDで独立観測|T3観測。ただしT4、JS complete dispatch、W3はUNKNOWN|Client Finishedから成功commit/通知配送を推定|
+|A13|Client `Aborting`、またはstop cutより前のabort intent/server lossが確定|正常なU-C候補には採用不可。異常/abort理由を保持|「Finishedでない」ので正常とする|
+|A14|Client `Finished`が正しいnative IDで独立観測|T3観測。ただしT4、JS complete dispatch、W3はUNKNOWN|Client Finishedから成功commit/通知配送を推定|
 |A15|backend commit resultが確定、Client T3未観測|T4観測。T3 / complete event deliveryはUNKNOWN|server終端からclientイベントを推定|
-|A16|readonly SQLite \`inProgress=false\`、client/native論理IDB状態不明|論理IDB tx状態 UNKNOWN|SQL transaction状態をT3/T4として採用|
-|A17|DB\`m_inProgressTransactions\`内に同IDが残るが、clientが\`Aborting\`|map在籍だけで正常U/UCとすることは禁止|map在籍＝正常未終端|
+|A16|readonly SQLite `inProgress=false`、client/native論理IDB状態不明|論理IDB tx状態 UNKNOWN|SQL transaction状態をT3/T4として採用|
+|A17|DB`m_inProgressTransactions`内に同IDが残るが、clientが`Aborting`|map在籍だけで正常U/UCとすることは禁止|map在籍＝正常未終端|
 |A18|DB mapからIDが消えたがbacking-store commit結果はまだ未観測|T4 UNKNOWN|map不在＝正常commit完了|
 |A19|完全一致のeventIdでも別run/worker/connection/native process incarnation|資料INCONSISTENTまたはidentity未結合として棄却、U-C UNKNOWN|ラベル一致・数値一致だけで結合|
 |A20|同じ確定edgeを保ったまま配列順とsourceMsを逆転|R/U/UCの意味上の分類不変|異source時計・配列順でstop前後を確定|
