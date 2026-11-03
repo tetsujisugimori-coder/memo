@@ -1,0 +1,12 @@
+{
+  "name": "regression96",
+  "command": [
+    "C:\\Program Files\\nodejs\\node.exe",
+    "C:\\Users\\tetsu\\Documents\\Codex\\メモ帳\\work\\u1-a405-accept-20261103\\new\\design\\idb-incomplete-stop\\collector\\verify.cjs",
+    "C:\\Users\\tetsu\\Documents\\Codex\\メモ帳\\work\\u1-a405-accept-20261103\\regression\\regression96"
+  ],
+  "cwd": "C:\\Users\\tetsu\\Documents\\Codex\\メモ帳\\work\\u1-a405-accept-20261103\\new",
+  "actualExitCode": 0,
+  "signal": null,
+  "processError": null
+}

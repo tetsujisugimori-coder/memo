@@ -1,0 +1,141 @@
+{
+  "normal": [
+    "none",
+    "normal",
+    "CONSISTENT",
+    0,
+    []
+  ],
+  "short-read-success": [
+    "short-success",
+    "normal",
+    "CONSISTENT",
+    0,
+    []
+  ],
+  "open": [
+    "open",
+    "normal",
+    "INVALID_SCHEMA",
+    2,
+    [
+      "EIO injected open failure"
+    ]
+  ],
+  "read": [
+    "read",
+    "normal",
+    "INVALID_SCHEMA",
+    2,
+    [
+      "EIO injected read failure"
+    ]
+  ],
+  "partial-read": [
+    "partial-read",
+    "normal",
+    "INVALID_SCHEMA",
+    2,
+    [
+      "EIO injected read failure"
+    ]
+  ],
+  "close": [
+    "close",
+    "normal",
+    "INVALID_SCHEMA",
+    2,
+    [
+      "EIO injected close failure"
+    ]
+  ],
+  "read-close": [
+    "read-close",
+    "normal",
+    "INVALID_SCHEMA",
+    2,
+    [
+      "EIO injected read failure",
+      "EIO injected close failure"
+    ]
+  ],
+  "partial-read-close": [
+    "partial-read-close",
+    "normal",
+    "INVALID_SCHEMA",
+    2,
+    [
+      "EIO injected read failure",
+      "EIO injected close failure"
+    ]
+  ],
+  "close-wrong-hash": [
+    "close",
+    "normal",
+    "INVALID_SCHEMA",
+    2,
+    [
+      "EIO injected close failure"
+    ]
+  ],
+  "close-invalid-json": [
+    "close",
+    "invalid",
+    "INVALID_SCHEMA",
+    2,
+    [
+      "EIO injected close failure"
+    ]
+  ],
+  "arity": [
+    "none",
+    "normal",
+    "INVALID_SCHEMA",
+    2,
+    [
+      "usage: node collect.cjs"
+    ]
+  ],
+  "missing": [
+    "none",
+    "normal",
+    "INVALID_SCHEMA",
+    2,
+    [
+      "ENOENT"
+    ]
+  ],
+  "oversize": [
+    "none",
+    "oversize",
+    "INVALID_SCHEMA",
+    2,
+    []
+  ],
+  "long-open-error": [
+    "open-long",
+    "normal",
+    "INVALID_SCHEMA",
+    2,
+    [
+      "EIO injected open failure"
+    ]
+  ],
+  "read-long-close": [
+    "read-long-close",
+    "normal",
+    "INVALID_SCHEMA",
+    2,
+    [
+      "EIO injected read failure",
+      "EIO injected close failure"
+    ]
+  ],
+  "invalid-json": [
+    "none",
+    "invalid",
+    "INVALID_SCHEMA",
+    2,
+    []
+  ]
+}

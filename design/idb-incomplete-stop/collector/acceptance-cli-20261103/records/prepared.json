@@ -1,0 +1,1047 @@
+{
+  "old": "5d16dd0cc4d18186ec59947c2073c409b2f8c34b",
+  "new": "e4a5d414689f23e1b33660bce3e006c46fb4e37f",
+  "base": "a72e0657d07632926d2ace9bcd7836cfbc41ac13",
+  "files": [
+    {
+      "root": "old",
+      "ref": "5d16dd0cc4d18186ec59947c2073c409b2f8c34b",
+      "path": "design/idb-incomplete-stop/collector/collect.cjs",
+      "blob": "5d31a06af0c575f2bb368db407e5af3695e30730",
+      "mode": "100644",
+      "sha256": "4b32dd261e83559a5d090d860b58e3c833ee5b04f570b28748007f06aaef35f9"
+    },
+    {
+      "root": "old",
+      "ref": "5d16dd0cc4d18186ec59947c2073c409b2f8c34b",
+      "path": "design/idb-incomplete-stop/collector/input.schema.json",
+      "blob": "ce20529b24f7685443bc495a5274d124ba864e32",
+      "mode": "100644",
+      "sha256": "a8787f13de071a6c02ffab1276778be713237f6d1dca8787ea873d2cc1ae6972"
+    },
+    {
+      "root": "old",
+      "ref": "5d16dd0cc4d18186ec59947c2073c409b2f8c34b",
+      "path": "design/idb-incomplete-stop/collector/result.schema.json",
+      "blob": "d98686b824ec6fc8b5b00eb0d7f67ecdcd74f261",
+      "mode": "100644",
+      "sha256": "6547cd1f00a03e7d510d0e3c9e7de6d1839ea68da71c6e0290b275c405ffa9ca"
+    },
+    {
+      "root": "old",
+      "ref": "5d16dd0cc4d18186ec59947c2073c409b2f8c34b",
+      "path": "design/idb-incomplete-stop/judge.cjs",
+      "blob": "7310781971cf08c876d85d2f4798146ca0d22372",
+      "mode": "100644",
+      "sha256": "964eb1cbe746657e1d41efaf3c52422bdd19991369fd67a8cbbabb2eaf5fe74f"
+    },
+    {
+      "root": "new",
+      "ref": "e4a5d414689f23e1b33660bce3e006c46fb4e37f",
+      "path": "design/idb-incomplete-stop/collector/collect.cjs",
+      "blob": "20fc4c9694b05bd936b063940b0f28af28b2e678",
+      "mode": "100644",
+      "sha256": "1405cc547269b3cbfbd59c584f263c48999b6ec85b6280dba55fea0af1b1d2e1"
+    },
+    {
+      "root": "new",
+      "ref": "e4a5d414689f23e1b33660bce3e006c46fb4e37f",
+      "path": "design/idb-incomplete-stop/collector/collect.test.cjs",
+      "blob": "45e2c5a8c71521e55d500baefbe97dc83c00bc24",
+      "mode": "100644",
+      "sha256": "4a7244878ef1e2fb7cc7c9504713b5d8078a2a3460530ccf2fcfad957ac1155a"
+    },
+    {
+      "root": "new",
+      "ref": "e4a5d414689f23e1b33660bce3e006c46fb4e37f",
+      "path": "design/idb-incomplete-stop/collector/diagnostic-fix/cli-error/cli-error.test.cjs",
+      "blob": "ca8d9886e16068eb0f3a957f9d60cf78b1e0e8ff",
+      "mode": "100644",
+      "sha256": "149a93a8bf54e3064195d5f3959ba6b306121a0ecdcb39a714ae98157d5ea983"
+    },
+    {
+      "root": "new",
+      "ref": "e4a5d414689f23e1b33660bce3e006c46fb4e37f",
+      "path": "design/idb-incomplete-stop/collector/diagnostic-fix/cli-error/fault-preload.cjs",
+      "blob": "9222e8d2df568566873c00146c4aad91fe15788f",
+      "mode": "100644",
+      "sha256": "e3d7b29db0a74345714497aff088a3fc9517dc6b1a862cece9fb58442480fa1c"
+    },
+    {
+      "root": "new",
+      "ref": "e4a5d414689f23e1b33660bce3e006c46fb4e37f",
+      "path": "design/idb-incomplete-stop/collector/diagnostic-fix/cli-error/fixtures.cjs",
+      "blob": "79d68d1b884a1ac2bce4c4842c0685effab50c35",
+      "mode": "100644",
+      "sha256": "82fb37ac49e5e5bc46c0bbf0f8a5cae9b8442b8dfba849288cc744b4e14160bf"
+    },
+    {
+      "root": "new",
+      "ref": "e4a5d414689f23e1b33660bce3e006c46fb4e37f",
+      "path": "design/idb-incomplete-stop/collector/diagnostic-fix/cli-error/fixtures/expectations.json",
+      "blob": "1de94fd0f9df6fb81b8d0c5ae11ee25fb8a6fa9d",
+      "mode": "100644",
+      "sha256": "3095913f32287c9493b6f862b34d5f7e7a2514349c189ef4650807a094fa7919"
+    },
+    {
+      "root": "new",
+      "ref": "e4a5d414689f23e1b33660bce3e006c46fb4e37f",
+      "path": "design/idb-incomplete-stop/collector/diagnostic-fix/cli-error/fixtures/invalid.json",
+      "blob": "edb1a247d93491ae1dd8759878679b6880590efe",
+      "mode": "100644",
+      "sha256": "40b5cafe045b9c9e31a1c3fdcfbc89f934906ff06a6276b55c2a0e517be21655"
+    },
+    {
+      "root": "new",
+      "ref": "e4a5d414689f23e1b33660bce3e006c46fb4e37f",
+      "path": "design/idb-incomplete-stop/collector/diagnostic-fix/cli-error/fixtures/normal.json",
+      "blob": "f1287f148fdd925dd49cd9a398126592146a00f7",
+      "mode": "100644",
+      "sha256": "0ac1843651c9b0ed2d2e142ccb1ae382a13b976a21adeba27126bbef73ac49aa"
+    },
+    {
+      "root": "new",
+      "ref": "e4a5d414689f23e1b33660bce3e006c46fb4e37f",
+      "path": "design/idb-incomplete-stop/collector/diagnostic-fix/cli-error/fixtures/oversize.json.gz",
+      "blob": "15f15d4bd25e86f0384c63e847707142c9d07244",
+      "mode": "100644",
+      "sha256": "bca90505cb153a3d546d43cc21a37a414caa05f06a731dd10b4b8ae7d079f679"
+    },
+    {
+      "root": "new",
+      "ref": "e4a5d414689f23e1b33660bce3e006c46fb4e37f",
+      "path": "design/idb-incomplete-stop/collector/diagnostic-fix/cli-error/run.cjs",
+      "blob": "b90e19fe696e42191558a31b8f72f76aa057aeb9",
+      "mode": "100644",
+      "sha256": "0c1473f5faad6b1725eaa8ee39b10489cd1052a9a2161e69877b03919ba4fe13"
+    },
+    {
+      "root": "new",
+      "ref": "e4a5d414689f23e1b33660bce3e006c46fb4e37f",
+      "path": "design/idb-incomplete-stop/collector/diagnostic-fix/cli-error/same-argv.cjs",
+      "blob": "a13bf1ff6c5966542c2de0cc6eae98f94d610f7e",
+      "mode": "100644",
+      "sha256": "0e96e425bc24c71cf4c13934abc3b3cde78cf858e183c0eca1b9261a285b6d63"
+    },
+    {
+      "root": "new",
+      "ref": "e4a5d414689f23e1b33660bce3e006c46fb4e37f",
+      "path": "design/idb-incomplete-stop/collector/diagnostic-fix/diagnostics.test.cjs",
+      "blob": "588df10f7008cc464b9295cb5b93a7d50d34e460",
+      "mode": "100644",
+      "sha256": "2c4edaa48ae6c5f46e6599f400ae8b42a597856930ee58c3dcf0a0d08a64e626"
+    },
+    {
+      "root": "new",
+      "ref": "e4a5d414689f23e1b33660bce3e006c46fb4e37f",
+      "path": "design/idb-incomplete-stop/collector/diagnostic-fix/fixtures.cjs",
+      "blob": "bf155431b1feec8ccf188db2acc48572943a2760",
+      "mode": "100644",
+      "sha256": "30d9e4c1257fa49f8ac4f9d7220249c9194055b98b524aa0159ced472b7e939b"
+    },
+    {
+      "root": "new",
+      "ref": "e4a5d414689f23e1b33660bce3e006c46fb4e37f",
+      "path": "design/idb-incomplete-stop/collector/diagnostic-fix/fixtures/A-many-130000.json.gz",
+      "blob": "83f90c6c7af1c153dae523d128d80c3e86a50a88",
+      "mode": "100644",
+      "sha256": "0b082a364211e602cfb4b5bd611bf14312ba961694e8d11ce61a3a180fa558ab"
+    },
+    {
+      "root": "new",
+      "ref": "e4a5d414689f23e1b33660bce3e006c46fb4e37f",
+      "path": "design/idb-incomplete-stop/collector/diagnostic-fix/fixtures/B-key-8192.json.gz",
+      "blob": "3ff920d12a01362dc6d8c73a640f1cefe1c293c7",
+      "mode": "100644",
+      "sha256": "cb6cb08955b1a44be8ddb1bd0583887b8a919fdccc7c329a8dd3c98112ff0a38"
+    },
+    {
+      "root": "new",
+      "ref": "e4a5d414689f23e1b33660bce3e006c46fb4e37f",
+      "path": "design/idb-incomplete-stop/collector/diagnostic-fix/fixtures/C-errors-8193.json.gz",
+      "blob": "5dadfbf1f3a3a1eaabf3871684461fa21d84a5fd",
+      "mode": "100644",
+      "sha256": "af65c8435e1ebde3a7e8d6fdc4be295a042849bef060d7bd3a1d612ca063ba5e"
+    },
+    {
+      "root": "new",
+      "ref": "e4a5d414689f23e1b33660bce3e006c46fb4e37f",
+      "path": "design/idb-incomplete-stop/collector/diagnostic-fix/fixtures/R2-out-of-scope-sentinel.json.gz",
+      "blob": "a83a921c5f8a38ed54de1d0fb59b1126fd8e8fb8",
+      "mode": "100644",
+      "sha256": "b5748c55bd032c2163570cdbc2088f5125cb994fff28c4e25267718c87bcfefd"
+    },
+    {
+      "root": "new",
+      "ref": "e4a5d414689f23e1b33660bce3e006c46fb4e37f",
+      "path": "design/idb-incomplete-stop/collector/diagnostic-fix/fixtures/ascii-key-8190.json.gz",
+      "blob": "6a472a7c238a389d30479018bfded0780a15926d",
+      "mode": "100644",
+      "sha256": "51bb10a6f4db80f1db8882fc45b6b531d43c07a659888a1ac27ab0736539a90b"
+    },
+    {
+      "root": "new",
+      "ref": "e4a5d414689f23e1b33660bce3e006c46fb4e37f",
+      "path": "design/idb-incomplete-stop/collector/diagnostic-fix/fixtures/ascii-key-8191.json.gz",
+      "blob": "6ef11c91cb21da338b9127090f4c907f92015c3a",
+      "mode": "100644",
+      "sha256": "19816fed1d8d8b9ed2826c0ddf4c083c36195337443e937950e23a32f224c295"
+    },
+    {
+      "root": "new",
+      "ref": "e4a5d414689f23e1b33660bce3e006c46fb4e37f",
+      "path": "design/idb-incomplete-stop/collector/diagnostic-fix/fixtures/combining-key-8192.json.gz",
+      "blob": "c9e6be031e4cd77c53cdbf46dab3603a17f4f8d8",
+      "mode": "100644",
+      "sha256": "8f53dc1b9bc4f4777d7711c40dd015f3eb823dd5e71928c2fb07b7a7c5fcb342"
+    },
+    {
+      "root": "new",
+      "ref": "e4a5d414689f23e1b33660bce3e006c46fb4e37f",
+      "path": "design/idb-incomplete-stop/collector/diagnostic-fix/fixtures/count-255.json.gz",
+      "blob": "d568f118ad62a2d61d78a4997844250ada10e420",
+      "mode": "100644",
+      "sha256": "7d1b2c4e55421aa4d2925ae21b6b2939b0d6fe5765bd61eccbb27b5dc306e339"
+    },
+    {
+      "root": "new",
+      "ref": "e4a5d414689f23e1b33660bce3e006c46fb4e37f",
+      "path": "design/idb-incomplete-stop/collector/diagnostic-fix/fixtures/count-256.json.gz",
+      "blob": "a0c419c3068abe3321cf84f56cd0f107e4351a89",
+      "mode": "100644",
+      "sha256": "b851f3d8ec123f20e9fd9769fa160272fc69248bdcae93dc5fafe3657b99d62a"
+    },
+    {
+      "root": "new",
+      "ref": "e4a5d414689f23e1b33660bce3e006c46fb4e37f",
+      "path": "design/idb-incomplete-stop/collector/diagnostic-fix/fixtures/count-257.json.gz",
+      "blob": "60360534fe726db659c5ba07f4ebae539c0dbe1f",
+      "mode": "100644",
+      "sha256": "a3bdfdccb0a780f4b186a34f12119098c6fba61386c649ae823ad8a4b403ae17"
+    },
+    {
+      "root": "new",
+      "ref": "e4a5d414689f23e1b33660bce3e006c46fb4e37f",
+      "path": "design/idb-incomplete-stop/collector/diagnostic-fix/fixtures/expectations.json",
+      "blob": "a94e6e68ddeefba7318d7cd30b196b7adb3d2b42",
+      "mode": "100644",
+      "sha256": "bc1b10320f3630c17eb1da3ea332e73d16826be9311c3ee8f8cb03e3a269eb5a"
+    },
+    {
+      "root": "new",
+      "ref": "e4a5d414689f23e1b33660bce3e006c46fb4e37f",
+      "path": "design/idb-incomplete-stop/collector/diagnostic-fix/fixtures/late-event-error.json.gz",
+      "blob": "852f80f01d9cc1a4cab0a483eec4c0d691a19398",
+      "mode": "100644",
+      "sha256": "703a6dc5b504d3d8880bc3e5174c6a968c06338d334bb2b91cb4de4d7ef38f4e"
+    },
+    {
+      "root": "new",
+      "ref": "e4a5d414689f23e1b33660bce3e006c46fb4e37f",
+      "path": "design/idb-incomplete-stop/collector/diagnostic-fix/fixtures/late-input-descriptor.json.gz",
+      "blob": "a0c419c3068abe3321cf84f56cd0f107e4351a89",
+      "mode": "100644",
+      "sha256": "b851f3d8ec123f20e9fd9769fa160272fc69248bdcae93dc5fafe3657b99d62a"
+    },
+    {
+      "root": "new",
+      "ref": "e4a5d414689f23e1b33660bce3e006c46fb4e37f",
+      "path": "design/idb-incomplete-stop/collector/diagnostic-fix/fixtures/long-cli-error.json.gz",
+      "blob": "be92b9146481cb87dab7b8d259f2c9dad130afcb",
+      "mode": "100644",
+      "sha256": "4ffe8b0c8824ff43a453100f2aa796b1871bf3ea03cb6c1bdb7ae83a838ad328"
+    },
+    {
+      "root": "new",
+      "ref": "e4a5d414689f23e1b33660bce3e006c46fb4e37f",
+      "path": "design/idb-incomplete-stop/collector/diagnostic-fix/fixtures/missing-plus-conflict.json.gz",
+      "blob": "d757f328c652b0cb8ec6de417eee1f85efb33224",
+      "mode": "100644",
+      "sha256": "46fb5e371c2a085e251ef3db22c4b8ae46b067dda12e4f88b7a577a676391233"
+    },
+    {
+      "root": "new",
+      "ref": "e4a5d414689f23e1b33660bce3e006c46fb4e37f",
+      "path": "design/idb-incomplete-stop/collector/diagnostic-fix/fixtures/mixed-structural-errors.json.gz",
+      "blob": "99587973457d4d6d18e572d92eb33292cb4cb587",
+      "mode": "100644",
+      "sha256": "fdb6d76c8bd10b543f364b60c4cb56fd690e0c95d84076f89360f2ac462b0583"
+    },
+    {
+      "root": "new",
+      "ref": "e4a5d414689f23e1b33660bce3e006c46fb4e37f",
+      "path": "design/idb-incomplete-stop/collector/diagnostic-fix/fixtures/normal.json.gz",
+      "blob": "be92b9146481cb87dab7b8d259f2c9dad130afcb",
+      "mode": "100644",
+      "sha256": "4ffe8b0c8824ff43a453100f2aa796b1871bf3ea03cb6c1bdb7ae83a838ad328"
+    },
+    {
+      "root": "new",
+      "ref": "e4a5d414689f23e1b33660bce3e006c46fb4e37f",
+      "path": "design/idb-incomplete-stop/collector/diagnostic-fix/fixtures/unicode-key-8191.json.gz",
+      "blob": "9c4eaacebfd28b087f60a82c4f6d45876687f6b2",
+      "mode": "100644",
+      "sha256": "64b4772f937a474cf0fc560b6ab6917d1cf0f0668f16ba44cde218a5e6d457ff"
+    },
+    {
+      "root": "new",
+      "ref": "e4a5d414689f23e1b33660bce3e006c46fb4e37f",
+      "path": "design/idb-incomplete-stop/collector/diagnostic-fix/fixtures/unicode-key-8192.json.gz",
+      "blob": "c7bbfb1d72d47c985569b7cbdad3894bd8b1e211",
+      "mode": "100644",
+      "sha256": "e370dbd5ed6f76547cd9767031cf598436bb7993ca4f7465a0573acdc6ab28e0"
+    },
+    {
+      "root": "new",
+      "ref": "e4a5d414689f23e1b33660bce3e006c46fb4e37f",
+      "path": "design/idb-incomplete-stop/collector/diagnostic-fix/run.cjs",
+      "blob": "1918cba5a93e519073804a6ca4cb47bdeed81405",
+      "mode": "100644",
+      "sha256": "9dd7c0a52b15f17485a1016f2b18dfa0ea70ee4bea5863df50db410db13fbe3b"
+    },
+    {
+      "root": "new",
+      "ref": "e4a5d414689f23e1b33660bce3e006c46fb4e37f",
+      "path": "design/idb-incomplete-stop/collector/fixtures/all-events-deleted.json",
+      "blob": "45e647b636cd59edc1cd20d4c599e3826f3786b1",
+      "mode": "100644",
+      "sha256": "129475039ef5951477d1451364c5eaa50d20268f4117824a5f25bc8486f5360d"
+    },
+    {
+      "root": "new",
+      "ref": "e4a5d414689f23e1b33660bce3e006c46fb4e37f",
+      "path": "design/idb-incomplete-stop/collector/fixtures/bad-id.json",
+      "blob": "be06998946cdedcc8773b07db55a8cac54c6d6f1",
+      "mode": "100644",
+      "sha256": "494455f211272412cfe2a77150c4e642676f913efa9092ab5b3e5145966c19cb"
+    },
+    {
+      "root": "new",
+      "ref": "e4a5d414689f23e1b33660bce3e006c46fb4e37f",
+      "path": "design/idb-incomplete-stop/collector/fixtures/bad-sequence.json",
+      "blob": "ca1fe8b25ff68a5fe4a4c0c54faad868d3847fb6",
+      "mode": "100644",
+      "sha256": "db23f3ea06cee414514d6d8c200f565f55fd343757d877df9dfffa09c510f9e3"
+    },
+    {
+      "root": "new",
+      "ref": "e4a5d414689f23e1b33660bce3e006c46fb4e37f",
+      "path": "design/idb-incomplete-stop/collector/fixtures/bad-source.json",
+      "blob": "fc2b59c64d85f3ace59f564fcf22bf5a2fc83e3c",
+      "mode": "100644",
+      "sha256": "c374c6f4a008bd480739f9dcdd0b7168399e214c3935a4b8253acc3918afcdef"
+    },
+    {
+      "root": "new",
+      "ref": "e4a5d414689f23e1b33660bce3e006c46fb4e37f",
+      "path": "design/idb-incomplete-stop/collector/fixtures/cases.json",
+      "blob": "ce62c28b81de208ba291a4de803a8b432572b9bb",
+      "mode": "100644",
+      "sha256": "a1be439085cf3ae1183b0b5bd872ac943d6cf6389c13a759f726c9395aec6006"
+    },
+    {
+      "root": "new",
+      "ref": "e4a5d414689f23e1b33660bce3e006c46fb4e37f",
+      "path": "design/idb-incomplete-stop/collector/fixtures/collection-error.json",
+      "blob": "0eea7592f68b1463c59017d11980e92dbc59cb4a",
+      "mode": "100644",
+      "sha256": "932eff21971ee24b89b0ef0011d52c3e56d4e13132473eaee672657e7fad77c7"
+    },
+    {
+      "root": "new",
+      "ref": "e4a5d414689f23e1b33660bce3e006c46fb4e37f",
+      "path": "design/idb-incomplete-stop/collector/fixtures/commit-abort-conflict.json",
+      "blob": "32d5c4e0a63d2bc07a2456b2c456cae610080d49",
+      "mode": "100644",
+      "sha256": "72b52d317a57c5e8fd8333334b336005d6e630ed67f9c1e589a36db5dc81967e"
+    },
+    {
+      "root": "new",
+      "ref": "e4a5d414689f23e1b33660bce3e006c46fb4e37f",
+      "path": "design/idb-incomplete-stop/collector/fixtures/content-reference-tampered.json",
+      "blob": "f2a2957ddaeb35d86b55c5365235f156456b17e7",
+      "mode": "100644",
+      "sha256": "9ff44743498dadc9278480eae6e58c285b30d208d7d2d3a06e2a4ecd0d487cf7"
+    },
+    {
+      "root": "new",
+      "ref": "e4a5d414689f23e1b33660bce3e006c46fb4e37f",
+      "path": "design/idb-incomplete-stop/collector/fixtures/cross-transaction-link.json",
+      "blob": "64a39875d9995757efbbc7672a1199d9d40ec93d",
+      "mode": "100644",
+      "sha256": "e5ba5f8066c81cb7dd15ba3526820f1082447655fd8c51094945768287948f9f"
+    },
+    {
+      "root": "new",
+      "ref": "e4a5d414689f23e1b33660bce3e006c46fb4e37f",
+      "path": "design/idb-incomplete-stop/collector/fixtures/dangling-send.json",
+      "blob": "23771fbc36d8bedc44833e3e55c4169d45a135b7",
+      "mode": "100644",
+      "sha256": "068b780200aea13a4e0491fba968f9d0f22845e840009bf7a15329a792d29927"
+    },
+    {
+      "root": "new",
+      "ref": "e4a5d414689f23e1b33660bce3e006c46fb4e37f",
+      "path": "design/idb-incomplete-stop/collector/fixtures/duplicate-complete-id.json",
+      "blob": "a7e613b5c7ec75436f4d2141f4e6cdf30a926251",
+      "mode": "100644",
+      "sha256": "2f5147f89394819d161c9cbe8280d6961b55ee351987bd9ba9bea55056a2c92d"
+    },
+    {
+      "root": "new",
+      "ref": "e4a5d414689f23e1b33660bce3e006c46fb4e37f",
+      "path": "design/idb-incomplete-stop/collector/fixtures/duplicate-complete-reference.json",
+      "blob": "f1fcbaecb83be0db3a4c6826cc702a6e15d9a655",
+      "mode": "100644",
+      "sha256": "da3faaa1f52a7a92109ef32bdb86848e8029b03bad0577016f7c902580372fda"
+    },
+    {
+      "root": "new",
+      "ref": "e4a5d414689f23e1b33660bce3e006c46fb4e37f",
+      "path": "design/idb-incomplete-stop/collector/fixtures/duplicate-escaped-key.json",
+      "blob": "c3bcbcaddbd31ce1b708eac42a202b05bdbde2ce",
+      "mode": "100644",
+      "sha256": "9b76ab5d01163a68899e361838ef85cf791c1a4aee792d8c714db00237a32647"
+    },
+    {
+      "root": "new",
+      "ref": "e4a5d414689f23e1b33660bce3e006c46fb4e37f",
+      "path": "design/idb-incomplete-stop/collector/fixtures/duplicate-injection.json",
+      "blob": "0cdcdd9ebecc8a300fa14502a4f7c3fec08ab4b1",
+      "mode": "100644",
+      "sha256": "ddcf38fd33af5e09203dc5f08917b105e7950885b02608b8eef7fba263f086f8"
+    },
+    {
+      "root": "new",
+      "ref": "e4a5d414689f23e1b33660bce3e006c46fb4e37f",
+      "path": "design/idb-incomplete-stop/collector/fixtures/duplicate-json-key.json",
+      "blob": "f6eb3202f362dde1bd13adf489607130871cd0fe",
+      "mode": "100644",
+      "sha256": "950d251e6335eef09862c2347a88367fcc4a55e0651cd7865ea7d5a2760efa4c"
+    },
+    {
+      "root": "new",
+      "ref": "e4a5d414689f23e1b33660bce3e006c46fb4e37f",
+      "path": "design/idb-incomplete-stop/collector/fixtures/duplicate-receipt.json",
+      "blob": "bf993a2d26078f32330956359862aebaa166a74a",
+      "mode": "100644",
+      "sha256": "30ae143f1f5023a89383ccd9a586203f05c1330b01dd3de3ad5553e2cbe7a4d6"
+    },
+    {
+      "root": "new",
+      "ref": "e4a5d414689f23e1b33660bce3e006c46fb4e37f",
+      "path": "design/idb-incomplete-stop/collector/fixtures/event-deleted.json",
+      "blob": "8b517d191e7646bf4401f2ee63f6b0eea7bdd95f",
+      "mode": "100644",
+      "sha256": "d692c633a21d2057b4546053839b775250eb6d6aed1bf44fc147d698fde886bd"
+    },
+    {
+      "root": "new",
+      "ref": "e4a5d414689f23e1b33660bce3e006c46fb4e37f",
+      "path": "design/idb-incomplete-stop/collector/fixtures/extra-event-field.json",
+      "blob": "34cc127bffb1f69433ea71edb90107583ec8cefe",
+      "mode": "100644",
+      "sha256": "3b40f7d9f46ac465e0d9037cd839647c637b47e2bf4c84928a0e20ac3ddfb43d"
+    },
+    {
+      "root": "new",
+      "ref": "e4a5d414689f23e1b33660bce3e006c46fb4e37f",
+      "path": "design/idb-incomplete-stop/collector/fixtures/extra-field.json",
+      "blob": "f820aea0264b9f2ca0ec46603990affa7dcb1f76",
+      "mode": "100644",
+      "sha256": "8e0b084aec2f36181c7a510d701aef7783037640ebeeaa6f1391ed7224f14c77"
+    },
+    {
+      "root": "new",
+      "ref": "e4a5d414689f23e1b33660bce3e006c46fb4e37f",
+      "path": "design/idb-incomplete-stop/collector/fixtures/foreign-session.json",
+      "blob": "34116c5937de6ed521d06d5c6d1a8ee53b83da34",
+      "mode": "100644",
+      "sha256": "32ee6099aa4fc30c4a0118fe5da0b6a0b4757a59f756675bae4ee536c03bcc73"
+    },
+    {
+      "root": "new",
+      "ref": "e4a5d414689f23e1b33660bce3e006c46fb4e37f",
+      "path": "design/idb-incomplete-stop/collector/fixtures/foreign-transaction.json",
+      "blob": "23a7ba30ce6ea60f179c6175b11291ead56fc752",
+      "mode": "100644",
+      "sha256": "504c9cfdba00b442b595c12cb6bd2fc107a9415a985c5514d3af457a629de9fe"
+    },
+    {
+      "root": "new",
+      "ref": "e4a5d414689f23e1b33660bce3e006c46fb4e37f",
+      "path": "design/idb-incomplete-stop/collector/fixtures/hash-mismatch.json",
+      "blob": "6d546ca818b9b306a6ff5808abdf892a31735da3",
+      "mode": "100644",
+      "sha256": "5d3479689035e2ce4e1f23018ef6b4c43a83c6904946e0f5f2d5e8d67d7678df"
+    },
+    {
+      "root": "new",
+      "ref": "e4a5d414689f23e1b33660bce3e006c46fb4e37f",
+      "path": "design/idb-incomplete-stop/collector/fixtures/internal-terminal-unknown.json",
+      "blob": "30aebc0f64c3053e483bacba3106fda563f2766e",
+      "mode": "100644",
+      "sha256": "1baf34d882415759344c7d8fa31b50012a28a9b17c36f7ca205b3cf63a4985d0"
+    },
+    {
+      "root": "new",
+      "ref": "e4a5d414689f23e1b33660bce3e006c46fb4e37f",
+      "path": "design/idb-incomplete-stop/collector/fixtures/malformed-json.json",
+      "blob": "edb1a247d93491ae1dd8759878679b6880590efe",
+      "mode": "100644",
+      "sha256": "40b5cafe045b9c9e31a1c3fdcfbc89f934906ff06a6276b55c2a0e517be21655"
+    },
+    {
+      "root": "new",
+      "ref": "e4a5d414689f23e1b33660bce3e006c46fb4e37f",
+      "path": "design/idb-incomplete-stop/collector/fixtures/missing-stop-request.json",
+      "blob": "a0045ece01acb198b3f65aec9e8e93866c138dde",
+      "mode": "100644",
+      "sha256": "bfd227a487d63968e052339229ba13f48d8afa3eec08d11110d98ca915321bcd"
+    },
+    {
+      "root": "new",
+      "ref": "e4a5d414689f23e1b33660bce3e006c46fb4e37f",
+      "path": "design/idb-incomplete-stop/collector/fixtures/multiple.json",
+      "blob": "145d242b6f87e2077d05c4ac900cd190d03db11e",
+      "mode": "100644",
+      "sha256": "9a63eb88d94a83a33978559cc98144760cefa9867db4a3f0473bf457d2b72fa0"
+    },
+    {
+      "root": "new",
+      "ref": "e4a5d414689f23e1b33660bce3e006c46fb4e37f",
+      "path": "design/idb-incomplete-stop/collector/fixtures/observed-abort.json",
+      "blob": "fb28a34b2f0c595422775c795f63d06321d368c6",
+      "mode": "100644",
+      "sha256": "57342fb7197491b0ff30081c511128cedc7433bedd49117efeb815350ddd5541"
+    },
+    {
+      "root": "new",
+      "ref": "e4a5d414689f23e1b33660bce3e006c46fb4e37f",
+      "path": "design/idb-incomplete-stop/collector/fixtures/observed-error.json",
+      "blob": "ba688a1bc2be4de0068628a9606719a16020a7cf",
+      "mode": "100644",
+      "sha256": "8ba826102a18627a4012a35b487f41905c647b4cacee8448d36f28bf17a4f3e6"
+    },
+    {
+      "root": "new",
+      "ref": "e4a5d414689f23e1b33660bce3e006c46fb4e37f",
+      "path": "design/idb-incomplete-stop/collector/fixtures/received-after-stop.json",
+      "blob": "e30b1e517f54ddfffcd9580e53ac462c25bf0d90",
+      "mode": "100644",
+      "sha256": "1a827dcf4665dd69be2283b10100ee4f71e1e4a89be0cb6952bcb4a1d9708886"
+    },
+    {
+      "root": "new",
+      "ref": "e4a5d414689f23e1b33660bce3e006c46fb4e37f",
+      "path": "design/idb-incomplete-stop/collector/fixtures/required-field-deleted.json",
+      "blob": "d538c60e2343ef5cdf3498e6a6675fbac3f18dd6",
+      "mode": "100644",
+      "sha256": "9cf6196b46ade5c6fc9fc34e67e97ae725fc29a87bf703c3be0fa156e73f8f55"
+    },
+    {
+      "root": "new",
+      "ref": "e4a5d414689f23e1b33660bce3e006c46fb4e37f",
+      "path": "design/idb-incomplete-stop/collector/fixtures/reversed-array.json",
+      "blob": "aa76729686c201a7c36f636e7aefa24d4eda44f6",
+      "mode": "100644",
+      "sha256": "a58f7d6b8d748ae64cebbdd7732f8c1d3571e3bf6ff10c215c5ac1a4fa3390bd"
+    },
+    {
+      "root": "new",
+      "ref": "e4a5d414689f23e1b33660bce3e006c46fb4e37f",
+      "path": "design/idb-incomplete-stop/collector/fixtures/sent-without-receipt.json",
+      "blob": "c3ab9181ebce25df0d32a83c4a5cfa8e22ea0dd8",
+      "mode": "100644",
+      "sha256": "4c5c8c60b16136575a909ce3050789f7ad9deba722412b6d5e78c58744005542"
+    },
+    {
+      "root": "new",
+      "ref": "e4a5d414689f23e1b33660bce3e006c46fb4e37f",
+      "path": "design/idb-incomplete-stop/collector/fixtures/sequence-collision.json",
+      "blob": "8690dbea72e3868bf702f9b5990cb414b0d8c32b",
+      "mode": "100644",
+      "sha256": "ebec5112155e7484b7474200e015b41816fb8f9827e4d702f706129f07d9cf54"
+    },
+    {
+      "root": "new",
+      "ref": "e4a5d414689f23e1b33660bce3e006c46fb4e37f",
+      "path": "design/idb-incomplete-stop/collector/fixtures/single.json",
+      "blob": "bb40172a4ba43b0e104eb51af46df817b52e6224",
+      "mode": "100644",
+      "sha256": "cb7ccf4eceb3e15210c06d75ed2e65d2ba48a631ea08d925cb8b10daa7cf36bb"
+    },
+    {
+      "root": "new",
+      "ref": "e4a5d414689f23e1b33660bce3e006c46fb4e37f",
+      "path": "design/idb-incomplete-stop/collector/fixtures/source-order-reversed.json",
+      "blob": "63c8b55818f7848665cfea9e6359629f734ba8bc",
+      "mode": "100644",
+      "sha256": "23c480aedc315f746519e57f567e157894fcf25dc782875ed9ef2fff43a90c47"
+    },
+    {
+      "root": "new",
+      "ref": "e4a5d414689f23e1b33660bce3e006c46fb4e37f",
+      "path": "design/idb-incomplete-stop/collector/fixtures/source-sequence-gap.json",
+      "blob": "6662b326bcea6154c16ba5c493d562b5edd19509",
+      "mode": "100644",
+      "sha256": "01853fdd6e99d97087237257b27db78bf1400aaf27d0eaaf85b18ad94bcee901"
+    },
+    {
+      "root": "new",
+      "ref": "e4a5d414689f23e1b33660bce3e006c46fb4e37f",
+      "path": "design/idb-incomplete-stop/collector/fixtures/unknown-event.json",
+      "blob": "1d4deba5a2e1b8d38f1a7c2b167f321f08e5f524",
+      "mode": "100644",
+      "sha256": "394a6be25ede7fc0c3d89823da95686566869941bfaafdaff93612d8bde46382"
+    },
+    {
+      "root": "new",
+      "ref": "e4a5d414689f23e1b33660bce3e006c46fb4e37f",
+      "path": "design/idb-incomplete-stop/collector/fixtures/unsafe-sequence.json",
+      "blob": "de9f8aeec3c6c8e89a6d1d4edb0592fa6c1a18e9",
+      "mode": "100644",
+      "sha256": "25b77c3dc59f23bd04503b53bf73368c684227d1c0e9d0b295cbb730b8842fe3"
+    },
+    {
+      "root": "new",
+      "ref": "e4a5d414689f23e1b33660bce3e006c46fb4e37f",
+      "path": "design/idb-incomplete-stop/collector/fixtures/unsupported-version.json",
+      "blob": "bfe4fa66bf0d76e38b84fdbfcd4a79db1a15b325",
+      "mode": "100644",
+      "sha256": "a2b154a76a1373a2648af91e65d10ca272fbb1dfc5d94546a7f76fb1d7abc065"
+    },
+    {
+      "root": "new",
+      "ref": "e4a5d414689f23e1b33660bce3e006c46fb4e37f",
+      "path": "design/idb-incomplete-stop/collector/fixtures/worker-complete-only.json",
+      "blob": "31f1cd082cdaa4603466c50b9384c8f617dae22b",
+      "mode": "100644",
+      "sha256": "f0636562bc383d9dd6869970c779d7ee5472ea4f031d4a10d789b23a9caba784"
+    },
+    {
+      "root": "new",
+      "ref": "e4a5d414689f23e1b33660bce3e006c46fb4e37f",
+      "path": "design/idb-incomplete-stop/collector/fixtures/wrong-send-type.json",
+      "blob": "40785ef6dff09776864ff6251062be10e835354e",
+      "mode": "100644",
+      "sha256": "b80d5065e8e85bf6b7d2f53dba5dc86eb3db8241c1c6fbfc7d372cc2080e431d"
+    },
+    {
+      "root": "new",
+      "ref": "e4a5d414689f23e1b33660bce3e006c46fb4e37f",
+      "path": "design/idb-incomplete-stop/collector/independent/fixtures.cjs",
+      "blob": "5af4aeb55fa831e314b54002fd41598691933863",
+      "mode": "100644",
+      "sha256": "9230978b62ec428e4c94b56c537ee3bb911c49bfbf9f514f239cbffcdcb2906f"
+    },
+    {
+      "root": "new",
+      "ref": "e4a5d414689f23e1b33660bce3e006c46fb4e37f",
+      "path": "design/idb-incomplete-stop/collector/independent/fixtures/A-arity.json",
+      "blob": "65ef47ba640ecbb4f01b2e2e71dff63c52046ef2",
+      "mode": "100644",
+      "sha256": "ac02602943ccf943277c8ed647a23d9dda83147390e0484a315c6378e43f9de4"
+    },
+    {
+      "root": "new",
+      "ref": "e4a5d414689f23e1b33660bce3e006c46fb4e37f",
+      "path": "design/idb-incomplete-stop/collector/independent/fixtures/A-denied.json",
+      "blob": "65ef47ba640ecbb4f01b2e2e71dff63c52046ef2",
+      "mode": "100644",
+      "sha256": "ac02602943ccf943277c8ed647a23d9dda83147390e0484a315c6378e43f9de4"
+    },
+    {
+      "root": "new",
+      "ref": "e4a5d414689f23e1b33660bce3e006c46fb4e37f",
+      "path": "design/idb-incomplete-stop/collector/independent/fixtures/A-hash.json",
+      "blob": "65ef47ba640ecbb4f01b2e2e71dff63c52046ef2",
+      "mode": "100644",
+      "sha256": "ac02602943ccf943277c8ed647a23d9dda83147390e0484a315c6378e43f9de4"
+    },
+    {
+      "root": "new",
+      "ref": "e4a5d414689f23e1b33660bce3e006c46fb4e37f",
+      "path": "design/idb-incomplete-stop/collector/independent/fixtures/A-json.json",
+      "blob": "927c5839a0a4256bc7b820f6d412bdfbc3d876e0",
+      "mode": "100644",
+      "sha256": "cbdf3b1f91ae32fe1ea292ac6cccf19222f97929f531523f0d15d885052c00c4"
+    },
+    {
+      "root": "new",
+      "ref": "e4a5d414689f23e1b33660bce3e006c46fb4e37f",
+      "path": "design/idb-incomplete-stop/collector/independent/fixtures/A-material.json",
+      "blob": "65ef47ba640ecbb4f01b2e2e71dff63c52046ef2",
+      "mode": "100644",
+      "sha256": "ac02602943ccf943277c8ed647a23d9dda83147390e0484a315c6378e43f9de4"
+    },
+    {
+      "root": "new",
+      "ref": "e4a5d414689f23e1b33660bce3e006c46fb4e37f",
+      "path": "design/idb-incomplete-stop/collector/independent/fixtures/A-missing.json",
+      "blob": "65ef47ba640ecbb4f01b2e2e71dff63c52046ef2",
+      "mode": "100644",
+      "sha256": "ac02602943ccf943277c8ed647a23d9dda83147390e0484a315c6378e43f9de4"
+    },
+    {
+      "root": "new",
+      "ref": "e4a5d414689f23e1b33660bce3e006c46fb4e37f",
+      "path": "design/idb-incomplete-stop/collector/independent/fixtures/A-oversize.json.gz",
+      "blob": "15f15d4bd25e86f0384c63e847707142c9d07244",
+      "mode": "100644",
+      "sha256": "bca90505cb153a3d546d43cc21a37a414caa05f06a731dd10b4b8ae7d079f679"
+    },
+    {
+      "root": "new",
+      "ref": "e4a5d414689f23e1b33660bce3e006c46fb4e37f",
+      "path": "design/idb-incomplete-stop/collector/independent/fixtures/A-utf8.json",
+      "blob": "f6d586414dfb3aabc0b7018c54ca50171d95950e",
+      "mode": "100644",
+      "sha256": "5b3430ee8e5c7490d0e154755cdae0c9a7791be87e77b1f91a52f77676bed0c7"
+    },
+    {
+      "root": "new",
+      "ref": "e4a5d414689f23e1b33660bce3e006c46fb4e37f",
+      "path": "design/idb-incomplete-stop/collector/independent/fixtures/B-duplicate-only.json",
+      "blob": "c790decdfb873370ba90304f1a8ada09ed0fd166",
+      "mode": "100644",
+      "sha256": "3fc94f4e6e1319a01704e391a8864c578fbbf227f1b0a912ddbea587d4e11f70"
+    },
+    {
+      "root": "new",
+      "ref": "e4a5d414689f23e1b33660bce3e006c46fb4e37f",
+      "path": "design/idb-incomplete-stop/collector/independent/fixtures/B-gap-and-duplicate.json",
+      "blob": "03321edb531008feba2d1d0c90a3f3d05f723ef7",
+      "mode": "100644",
+      "sha256": "5cd50f007a171a39e44757fd1206350386930373c093d0307fd655e636fd45cd"
+    },
+    {
+      "root": "new",
+      "ref": "e4a5d414689f23e1b33660bce3e006c46fb4e37f",
+      "path": "design/idb-incomplete-stop/collector/independent/fixtures/B-gap-and-foreign-transaction.json",
+      "blob": "99078e33e967f93ebb9047db91b497ce4215ae62",
+      "mode": "100644",
+      "sha256": "08eb4b95d0a0ffe586fc2610f238a16de4fc4abc9ef07c44a6c74424b37d1b9f"
+    },
+    {
+      "root": "new",
+      "ref": "e4a5d414689f23e1b33660bce3e006c46fb4e37f",
+      "path": "design/idb-incomplete-stop/collector/independent/fixtures/B-gap-and-wrong-type.json",
+      "blob": "e32559ba22fcd74e725e0e6c31b3ee16f7d89ffa",
+      "mode": "100644",
+      "sha256": "02f9a684862574d57078fd3e74c0fd8167f99bc59cb732a71e0b0b04f2be145a"
+    },
+    {
+      "root": "new",
+      "ref": "e4a5d414689f23e1b33660bce3e006c46fb4e37f",
+      "path": "design/idb-incomplete-stop/collector/independent/fixtures/B-gap-only.json",
+      "blob": "5e7f635c5f900b94f6c1746255b818d3414f65db",
+      "mode": "100644",
+      "sha256": "b4e39e68c18784434d35edd2b9ecab6582a218a891478a0e4d0627245cb2878c"
+    },
+    {
+      "root": "new",
+      "ref": "e4a5d414689f23e1b33660bce3e006c46fb4e37f",
+      "path": "design/idb-incomplete-stop/collector/independent/fixtures/B-loss-and-terminal-conflict.json",
+      "blob": "e34b803e8d818502f6e139e2b89825458fc9772e",
+      "mode": "100644",
+      "sha256": "64d248464c3fd52ac280b447f28a405290ccb35f08a858e542fda3be946ab503"
+    },
+    {
+      "root": "new",
+      "ref": "e4a5d414689f23e1b33660bce3e006c46fb4e37f",
+      "path": "design/idb-incomplete-stop/collector/independent/fixtures/B-outside-only.json",
+      "blob": "c4d9b393e9c15d07c5db73dbec06b38a9c578cc0",
+      "mode": "100644",
+      "sha256": "8320d059d62796e499c2e4f832db2e21b244fefe64149b252001f91fc50ed323"
+    },
+    {
+      "root": "new",
+      "ref": "e4a5d414689f23e1b33660bce3e006c46fb4e37f",
+      "path": "design/idb-incomplete-stop/collector/independent/fixtures/B-reference-missing.json",
+      "blob": "af08fbead6dc2edc72a5bebd938620a41032d0ca",
+      "mode": "100644",
+      "sha256": "62807c0f440b9a2044d78423070ad9c5e26d931a9c765de0992ff1ce3951a228"
+    },
+    {
+      "root": "new",
+      "ref": "e4a5d414689f23e1b33660bce3e006c46fb4e37f",
+      "path": "design/idb-incomplete-stop/collector/independent/fixtures/C-array-reversed.json",
+      "blob": "939c95380e5a8acb061bc6454beb3d197d82e64e",
+      "mode": "100644",
+      "sha256": "c7f5be6ab3be3953f0f96f84e23e4255456f56f127bd3118c0cc1a0f12f44da8"
+    },
+    {
+      "root": "new",
+      "ref": "e4a5d414689f23e1b33660bce3e006c46fb4e37f",
+      "path": "design/idb-incomplete-stop/collector/independent/fixtures/C-clocks-exchanged.json",
+      "blob": "95d7e4645f5ac3ade19e9e01fe6aa1b664127c47",
+      "mode": "100644",
+      "sha256": "f4fff98577bc8e2244c3a89454b979c9d46fdb126fd981b1142b2ebae0084f22"
+    },
+    {
+      "root": "new",
+      "ref": "e4a5d414689f23e1b33660bce3e006c46fb4e37f",
+      "path": "design/idb-incomplete-stop/collector/independent/fixtures/C-complete-other-transaction.json",
+      "blob": "843621d9d6b22cf46f4ef1fbfdd9f05347831ad1",
+      "mode": "100644",
+      "sha256": "aef04cbc0628def19e231e618fcfa9645dda703101e7fff329955f0788bec6f8"
+    },
+    {
+      "root": "new",
+      "ref": "e4a5d414689f23e1b33660bce3e006c46fb4e37f",
+      "path": "design/idb-incomplete-stop/collector/independent/fixtures/C-incomparable-sources.json",
+      "blob": "f9fdfbf88a89866d64fc4ead4ccf8d36cff01d90",
+      "mode": "100644",
+      "sha256": "f4726f8dbeea99125de8fdb5c517594a3f62c509738747f512a61cdb91976900"
+    },
+    {
+      "root": "new",
+      "ref": "e4a5d414689f23e1b33660bce3e006c46fb4e37f",
+      "path": "design/idb-incomplete-stop/collector/independent/fixtures/C-local-order-reversed.json",
+      "blob": "853e044f6543a16dec065dcd0fdc7320962ab2d3",
+      "mode": "100644",
+      "sha256": "20fd76b78e1e49983e5f23dbb92154481fd3d78c9cf8c48290d15974b4363988"
+    },
+    {
+      "root": "new",
+      "ref": "e4a5d414689f23e1b33660bce3e006c46fb4e37f",
+      "path": "design/idb-incomplete-stop/collector/independent/fixtures/C-main-event-in-worker-source.json",
+      "blob": "4ef0f4dff267a516fa17eaf45f246c05b6508ce6",
+      "mode": "100644",
+      "sha256": "5ab6b27bb822fa51a568cd2bd946092a0304ead624221534655445d22447364f"
+    },
+    {
+      "root": "new",
+      "ref": "e4a5d414689f23e1b33660bce3e006c46fb4e37f",
+      "path": "design/idb-incomplete-stop/collector/independent/fixtures/C-received-after-stop.json",
+      "blob": "7877a15ac2379596b31dde921f172893202317a3",
+      "mode": "100644",
+      "sha256": "09045cb75e1e0d6b04ac137fb54f8a73c5d195f1f6cf0546669fb7ed8ec68d90"
+    },
+    {
+      "root": "new",
+      "ref": "e4a5d414689f23e1b33660bce3e006c46fb4e37f",
+      "path": "design/idb-incomplete-stop/collector/independent/fixtures/C-received-before-stop.json",
+      "blob": "65ef47ba640ecbb4f01b2e2e71dff63c52046ef2",
+      "mode": "100644",
+      "sha256": "ac02602943ccf943277c8ed647a23d9dda83147390e0484a315c6378e43f9de4"
+    },
+    {
+      "root": "new",
+      "ref": "e4a5d414689f23e1b33660bce3e006c46fb4e37f",
+      "path": "design/idb-incomplete-stop/collector/independent/fixtures/C-send-other-worker.json",
+      "blob": "b521f0e6e9670ecba34a075a1dacf64adcf7d705",
+      "mode": "100644",
+      "sha256": "809138718f83c16d1ceec829e6c29528a5e700aaf3216d438e325755cd29b337"
+    },
+    {
+      "root": "new",
+      "ref": "e4a5d414689f23e1b33660bce3e006c46fb4e37f",
+      "path": "design/idb-incomplete-stop/collector/independent/fixtures/C-sent-only.json",
+      "blob": "96dde30b40b5f4cf317ffa98fb2e6e0fc72444d4",
+      "mode": "100644",
+      "sha256": "2066ef7e89e57a0accd19c28e8fe5e87f57c2c6dc9b9761c4e7c578a286b58ba"
+    },
+    {
+      "root": "new",
+      "ref": "e4a5d414689f23e1b33660bce3e006c46fb4e37f",
+      "path": "design/idb-incomplete-stop/collector/independent/fixtures/C-stop-prerequisite-missing.json",
+      "blob": "5431b9f92f0ce67badb11b13d8961b31e8aca3ae",
+      "mode": "100644",
+      "sha256": "437f3c652472c865d9de26dab04a7d45b7600c1b086de7f78de2b29bf5fe7df2"
+    },
+    {
+      "root": "new",
+      "ref": "e4a5d414689f23e1b33660bce3e006c46fb4e37f",
+      "path": "design/idb-incomplete-stop/collector/independent/fixtures/C-worker-complete-only.json",
+      "blob": "b1b4cea11bdaa4603774ad4d92531fd71fad8e5f",
+      "mode": "100644",
+      "sha256": "8e19f658986e20cbae8733351fdee684be688764322e4eb1a36d94871f823216"
+    },
+    {
+      "root": "new",
+      "ref": "e4a5d414689f23e1b33660bce3e006c46fb4e37f",
+      "path": "design/idb-incomplete-stop/collector/independent/fixtures/C-worker-event-in-main-source.json",
+      "blob": "d44868a6aece2c15b08ce064235bbab5892fc04f",
+      "mode": "100644",
+      "sha256": "f11a6a790099f072af07b98b2f45f15dde6f644ba6c944d4075d00651e753cf0"
+    },
+    {
+      "root": "new",
+      "ref": "e4a5d414689f23e1b33660bce3e006c46fb4e37f",
+      "path": "design/idb-incomplete-stop/collector/independent/fixtures/D-complete-double-reference.json",
+      "blob": "ed089fdc0f15ddd19ff86e4c43c3197f69a73e51",
+      "mode": "100644",
+      "sha256": "80986ac0f18e05690f3e3b85376b1d3bfbe00cec1add8d1dc2e6f66c52b8e6f4"
+    },
+    {
+      "root": "new",
+      "ref": "e4a5d414689f23e1b33660bce3e006c46fb4e37f",
+      "path": "design/idb-incomplete-stop/collector/independent/fixtures/D-event-id-reused.json",
+      "blob": "760c9a6cd897f6f677072284c91091b92b6a9d76",
+      "mode": "100644",
+      "sha256": "8fcd5a1eb47037cdc95d7855650ef8fd0b37897f825769236a213180b044fe52"
+    },
+    {
+      "root": "new",
+      "ref": "e4a5d414689f23e1b33660bce3e006c46fb4e37f",
+      "path": "design/idb-incomplete-stop/collector/independent/fixtures/D-foreign-connectionId.json",
+      "blob": "44ec044110333fc3884c4e3d2cc4729ba450542a",
+      "mode": "100644",
+      "sha256": "902e296c8c0bd96e3ff2622c6f79da42301770278d10975b270ffc5f876fff42"
+    },
+    {
+      "root": "new",
+      "ref": "e4a5d414689f23e1b33660bce3e006c46fb4e37f",
+      "path": "design/idb-incomplete-stop/collector/independent/fixtures/D-foreign-iteration.json",
+      "blob": "e5683156a385c564fd3fb19cc9a6c452a288a1e7",
+      "mode": "100644",
+      "sha256": "8c54498e332cfe6ea76914a22f67b3abcbf36ec6a3a83c83f9d738c4e83878c0"
+    },
+    {
+      "root": "new",
+      "ref": "e4a5d414689f23e1b33660bce3e006c46fb4e37f",
+      "path": "design/idb-incomplete-stop/collector/independent/fixtures/D-foreign-workerId.json",
+      "blob": "62218a7bc896009c250de0c4767caf1a8fb64121",
+      "mode": "100644",
+      "sha256": "325a2f5a7c15b436350f424684c2d9f34d7ad9e4a280a5d25e8a3c9f05716298"
+    },
+    {
+      "root": "new",
+      "ref": "e4a5d414689f23e1b33660bce3e006c46fb4e37f",
+      "path": "design/idb-incomplete-stop/collector/independent/fixtures/D-same-worker-two-transactions.json",
+      "blob": "8790743946032ca655a4e7429d906b12f2ade450",
+      "mode": "100644",
+      "sha256": "79b4e9f081095605b93f00747d6bbcb0a68777f4de1b183133f2846d229fa657"
+    },
+    {
+      "root": "new",
+      "ref": "e4a5d414689f23e1b33660bce3e006c46fb4e37f",
+      "path": "design/idb-incomplete-stop/collector/independent/fixtures/D-send-double-receipt.json",
+      "blob": "5b4e79f47aed874926b71793913f3572d8f3b5c0",
+      "mode": "100644",
+      "sha256": "c701f1d2e15e149db5265a1246b3ba7bf4bf2b230490de5582fdfb1f4106238d"
+    },
+    {
+      "root": "new",
+      "ref": "e4a5d414689f23e1b33660bce3e006c46fb4e37f",
+      "path": "design/idb-incomplete-stop/collector/independent/fixtures/D-two-workers-shared-main.json",
+      "blob": "6f2fd252f719e963ce8fc20ffb1d87bbf2c6d3cb",
+      "mode": "100644",
+      "sha256": "41a29745bdeceb36145972f6a1620f3012d9510d906f088af7c84c42aa34fffe"
+    },
+    {
+      "root": "new",
+      "ref": "e4a5d414689f23e1b33660bce3e006c46fb4e37f",
+      "path": "design/idb-incomplete-stop/collector/independent/fixtures/expectations.json",
+      "blob": "2afeeef5a9620b9a4d9e10c6991f05b68073af27",
+      "mode": "100644",
+      "sha256": "9b39164f20c46b926bc809a92944232f743927f39e8220603b117df2d6212f46"
+    },
+    {
+      "root": "new",
+      "ref": "e4a5d414689f23e1b33660bce3e006c46fb4e37f",
+      "path": "design/idb-incomplete-stop/collector/independent/fixtures/schema-expectations.json",
+      "blob": "63dd279cc60335769982a1793bbecb6fdd98b4c7",
+      "mode": "100644",
+      "sha256": "5d12b8c8c0ec9130e0c6ddbf4d20c6ac2c37fd98c2b5647e36b19c8f7716e1c9"
+    },
+    {
+      "root": "new",
+      "ref": "e4a5d414689f23e1b33660bce3e006c46fb4e37f",
+      "path": "design/idb-incomplete-stop/collector/independent/negative.test.cjs",
+      "blob": "052389a31028daceeb898d4b8ca697a5c2fd1fb0",
+      "mode": "100644",
+      "sha256": "a178bd2fb9750df142c85a708d39989f6acbafd18fe078cdcac3c299981645c9"
+    },
+    {
+      "root": "new",
+      "ref": "e4a5d414689f23e1b33660bce3e006c46fb4e37f",
+      "path": "design/idb-incomplete-stop/collector/independent/run.cjs",
+      "blob": "23771754099b280b8e27f9a542f82a8917e5f709",
+      "mode": "100644",
+      "sha256": "f763558d321da337035293d11c45c974c312669f732bdfcac80ea13e24ac6882"
+    },
+    {
+      "root": "new",
+      "ref": "e4a5d414689f23e1b33660bce3e006c46fb4e37f",
+      "path": "design/idb-incomplete-stop/collector/independent/schema-fixtures.cjs",
+      "blob": "ee8b2cb1f59357e614f9c9a343d63274ebcb6cfd",
+      "mode": "100644",
+      "sha256": "6d10913e1747864cc654e8a743893aaa2b14d57380c7dbe510b07dfcf0726223"
+    },
+    {
+      "root": "new",
+      "ref": "e4a5d414689f23e1b33660bce3e006c46fb4e37f",
+      "path": "design/idb-incomplete-stop/collector/input.schema.json",
+      "blob": "ce20529b24f7685443bc495a5274d124ba864e32",
+      "mode": "100644",
+      "sha256": "a8787f13de071a6c02ffab1276778be713237f6d1dca8787ea873d2cc1ae6972"
+    },
+    {
+      "root": "new",
+      "ref": "e4a5d414689f23e1b33660bce3e006c46fb4e37f",
+      "path": "design/idb-incomplete-stop/collector/result.schema.json",
+      "blob": "d98686b824ec6fc8b5b00eb0d7f67ecdcd74f261",
+      "mode": "100644",
+      "sha256": "6547cd1f00a03e7d510d0e3c9e7de6d1839ea68da71c6e0290b275c405ffa9ca"
+    },
+    {
+      "root": "new",
+      "ref": "e4a5d414689f23e1b33660bce3e006c46fb4e37f",
+      "path": "design/idb-incomplete-stop/collector/verify.cjs",
+      "blob": "6a9dc6002ab0520b377b573965b14224c398721a",
+      "mode": "100644",
+      "sha256": "078473b210434bce45e917ad0264ca2c9c83eeb34dc9d4def5cf02355c0d83a9"
+    },
+    {
+      "root": "new",
+      "ref": "e4a5d414689f23e1b33660bce3e006c46fb4e37f",
+      "path": "design/idb-incomplete-stop/conditions.test.cjs",
+      "blob": "cfcf993e027f6285c7cc192e5f579c93b95706f5",
+      "mode": "100644",
+      "sha256": "17589451483d83af1a23ddce2d39b0b3adc7e9ebea163c3e741c9f7458a99389"
+    },
+    {
+      "root": "new",
+      "ref": "e4a5d414689f23e1b33660bce3e006c46fb4e37f",
+      "path": "design/idb-incomplete-stop/judge.cjs",
+      "blob": "7310781971cf08c876d85d2f4798146ca0d22372",
+      "mode": "100644",
+      "sha256": "964eb1cbe746657e1d41efaf3c52422bdd19991369fd67a8cbbabb2eaf5fe74f"
+    },
+    {
+      "root": "new",
+      "ref": "e4a5d414689f23e1b33660bce3e006c46fb4e37f",
+      "path": "design/idb-incomplete-stop/judge.test.cjs",
+      "blob": "e5de89c110e9263481c1e7ac22353037c485fe62",
+      "mode": "100644",
+      "sha256": "d37d1cea72d046377f701d1618b7d7285d2756b2fd2a4c7905a6b6453c0a7010"
+    },
+    {
+      "root": "new",
+      "ref": "e4a5d414689f23e1b33660bce3e006c46fb4e37f",
+      "path": "design/idb-incomplete-stop/merge-order.test.cjs",
+      "blob": "43a380511ea24d52e00a8ac6b5ad4c60b0f6ab4d",
+      "mode": "100644",
+      "sha256": "0f4c3b27b9b419428f103a2409f903dc7cdde110616918e6d9339d28cb9f44e0"
+    },
+    {
+      "root": "new",
+      "ref": "e4a5d414689f23e1b33660bce3e006c46fb4e37f",
+      "path": "design/idb-incomplete-stop/records/ir-fix/inputs/before-judge.cjs",
+      "blob": "d807339f6168dcbe9041c2102b668c21f905ee37",
+      "mode": "100644",
+      "sha256": "022fe5cb93233fae5abfe84a96f48d3801930b2e602fcd395c61e68b940799f0"
+    },
+    {
+      "root": "new",
+      "ref": "e4a5d414689f23e1b33660bce3e006c46fb4e37f",
+      "path": "design/idb-incomplete-stop/records/ir-fix/inputs/merge-orders.json",
+      "blob": "9da29df5115a881fab4af07adf6129dd6aef1a5f",
+      "mode": "100644",
+      "sha256": "d910d58be6c668926ebb38b9c7a0d07351409b7d8c15c113c8612b504082a4dc"
+    }
+  ]
+}
