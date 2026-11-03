@@ -1,0 +1,31 @@
+{
+  "fixedHead": "8873b351b17e2a0e2a7a6367718ef37baadb8c99",
+  "expectedRedCases": [
+    "sourceMs-finite-4",
+    "sourceMs-finite-5",
+    "sourceMs-finite-6",
+    "sourceMs-finite-7",
+    "sourceMs-finite-8",
+    "sourceMs-finite-9",
+    "sourceMs-finite-11",
+    "sourceMs-mixed-clocks-reversed-array",
+    "numeric-keywords-integer-unbounded-large",
+    "numeric-keywords-nullable-integer-large"
+  ],
+  "actualRedCases": [
+    "sourceMs-finite-4",
+    "sourceMs-finite-5",
+    "sourceMs-finite-6",
+    "sourceMs-finite-7",
+    "sourceMs-finite-8",
+    "sourceMs-finite-9",
+    "sourceMs-finite-11",
+    "sourceMs-mixed-clocks-reversed-array",
+    "numeric-keywords-integer-unbounded-large",
+    "numeric-keywords-nullable-integer-large"
+  ],
+  "testCodeSha256": "4e3915828f86dcc3c906f3d8af15aaf12cb7117bcbd78263cbb41c37a8c76065",
+  "generatorSha256": "04b99923e7844a80c10ae76f92a22e9578aeb0cd8392f8f971801b6793bd63fc",
+  "expectationsSha256": "d88f848ec04e0dd9141ff70d90803133347399d0e2fa2d9baa3e9999134bb641",
+  "oldCollectorSha256": "1405cc547269b3cbfbd59c584f263c48999b6ec85b6280dba55fea0af1b1d2e1"
+}

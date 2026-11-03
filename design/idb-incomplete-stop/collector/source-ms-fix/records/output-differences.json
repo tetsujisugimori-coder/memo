@@ -1,0 +1,1116 @@
+[
+  {
+    "group": "regression96",
+    "id": "single-result.json",
+    "classification": "BYTE_IDENTICAL",
+    "beforeSha256": "6d35f6cab38539976aa36817626aba22e76c23ad3af2b993d5c847fd1004caf6",
+    "afterSha256": "6d35f6cab38539976aa36817626aba22e76c23ad3af2b993d5c847fd1004caf6",
+    "changes": []
+  },
+  {
+    "group": "regression96",
+    "id": "multiple-result.json",
+    "classification": "BYTE_IDENTICAL",
+    "beforeSha256": "04e33be2a4f824103eca780a926b5acc0bf534a23294c7356365ee7e3da8439b",
+    "afterSha256": "04e33be2a4f824103eca780a926b5acc0bf534a23294c7356365ee7e3da8439b",
+    "changes": []
+  },
+  {
+    "group": "regression96",
+    "id": "worker-complete-only-result.json",
+    "classification": "BYTE_IDENTICAL",
+    "beforeSha256": "496461eb75f577d0be8a3d45de2e248683a2dbe412a8642203882e509e8e1711",
+    "afterSha256": "496461eb75f577d0be8a3d45de2e248683a2dbe412a8642203882e509e8e1711",
+    "changes": []
+  },
+  {
+    "group": "regression96",
+    "id": "sent-without-receipt-result.json",
+    "classification": "BYTE_IDENTICAL",
+    "beforeSha256": "9059deda25cd1a124044963f6d8870a769dc91becc31fdef67990870192329af",
+    "afterSha256": "9059deda25cd1a124044963f6d8870a769dc91becc31fdef67990870192329af",
+    "changes": []
+  },
+  {
+    "group": "regression96",
+    "id": "duplicate-complete-id-result.json",
+    "classification": "BYTE_IDENTICAL",
+    "beforeSha256": "783bb48807a1fdb3a32f6843637bcabd92cc444d73b2cee69882c3fab8ac4ff5",
+    "afterSha256": "783bb48807a1fdb3a32f6843637bcabd92cc444d73b2cee69882c3fab8ac4ff5",
+    "changes": []
+  },
+  {
+    "group": "regression96",
+    "id": "wrong-send-type-result.json",
+    "classification": "BYTE_IDENTICAL",
+    "beforeSha256": "06efdb27ca9597e4d2df365df63b77fe2c66c2e4479159d950369c55148581e1",
+    "afterSha256": "06efdb27ca9597e4d2df365df63b77fe2c66c2e4479159d950369c55148581e1",
+    "changes": []
+  },
+  {
+    "group": "regression96",
+    "id": "foreign-transaction-result.json",
+    "classification": "BYTE_IDENTICAL",
+    "beforeSha256": "f8571c3c1e2107872b07e24fdd00892d8ecb5c3098139074d92106fe908944ed",
+    "afterSha256": "f8571c3c1e2107872b07e24fdd00892d8ecb5c3098139074d92106fe908944ed",
+    "changes": []
+  },
+  {
+    "group": "regression96",
+    "id": "source-order-reversed-result.json",
+    "classification": "BYTE_IDENTICAL",
+    "beforeSha256": "013fb98c070fc34b02e6aad3b69f90a6fa30a8577f58772518c322697a964e00",
+    "afterSha256": "013fb98c070fc34b02e6aad3b69f90a6fa30a8577f58772518c322697a964e00",
+    "changes": []
+  },
+  {
+    "group": "regression96",
+    "id": "source-sequence-gap-result.json",
+    "classification": "BYTE_IDENTICAL",
+    "beforeSha256": "115d4e30fbc337f4fa84ca51f1f99b1b09b9b976a0c38a181e41161d07581252",
+    "afterSha256": "115d4e30fbc337f4fa84ca51f1f99b1b09b9b976a0c38a181e41161d07581252",
+    "changes": []
+  },
+  {
+    "group": "regression96",
+    "id": "missing-stop-request-result.json",
+    "classification": "BYTE_IDENTICAL",
+    "beforeSha256": "fe96344877a763d3ce1df68bf92479cad4abb121400d8aecac1b5938829bea19",
+    "afterSha256": "fe96344877a763d3ce1df68bf92479cad4abb121400d8aecac1b5938829bea19",
+    "changes": []
+  },
+  {
+    "group": "regression96",
+    "id": "commit-abort-conflict-result.json",
+    "classification": "BYTE_IDENTICAL",
+    "beforeSha256": "79644a7d1f3f09a2490f3edd7b82bc3a9dac1ff63a1a54993b093c8c29c20e64",
+    "afterSha256": "79644a7d1f3f09a2490f3edd7b82bc3a9dac1ff63a1a54993b093c8c29c20e64",
+    "changes": []
+  },
+  {
+    "group": "regression96",
+    "id": "reversed-array-result.json",
+    "classification": "BYTE_IDENTICAL",
+    "beforeSha256": "9ab5597f1e6b890dc2605fbb24702511edad82c4e48f52b422cde6b21021161a",
+    "afterSha256": "9ab5597f1e6b890dc2605fbb24702511edad82c4e48f52b422cde6b21021161a",
+    "changes": []
+  },
+  {
+    "group": "regression96",
+    "id": "required-field-deleted-result.json",
+    "classification": "BYTE_IDENTICAL",
+    "beforeSha256": "6e03ae0ed43299dcb4f6d0433af52127438831d718f840cab25520289a6d25cf",
+    "afterSha256": "6e03ae0ed43299dcb4f6d0433af52127438831d718f840cab25520289a6d25cf",
+    "changes": []
+  },
+  {
+    "group": "regression96",
+    "id": "content-reference-tampered-result.json",
+    "classification": "BYTE_IDENTICAL",
+    "beforeSha256": "dda8869315b88aac8e99aa6587f7ec7cb1c7dd8c1c28c0bf65066726647651e4",
+    "afterSha256": "dda8869315b88aac8e99aa6587f7ec7cb1c7dd8c1c28c0bf65066726647651e4",
+    "changes": []
+  },
+  {
+    "group": "regression96",
+    "id": "hash-mismatch-result.json",
+    "classification": "BYTE_IDENTICAL",
+    "beforeSha256": "332a2d412b7f52748162acadeff933996131ea860cb7f0344f8da12f8c0658a2",
+    "afterSha256": "332a2d412b7f52748162acadeff933996131ea860cb7f0344f8da12f8c0658a2",
+    "changes": []
+  },
+  {
+    "group": "regression96",
+    "id": "event-deleted-result.json",
+    "classification": "BYTE_IDENTICAL",
+    "beforeSha256": "bd953573eb6d2452c0f8e7a3ba31dee85438c769689d7c0ff46c8ab30dd077c6",
+    "afterSha256": "bd953573eb6d2452c0f8e7a3ba31dee85438c769689d7c0ff46c8ab30dd077c6",
+    "changes": []
+  },
+  {
+    "group": "regression96",
+    "id": "duplicate-injection-result.json",
+    "classification": "BYTE_IDENTICAL",
+    "beforeSha256": "3960f26ee811d21593d96c61707a2e0196e40156d233e4b97d3f25a6476e085c",
+    "afterSha256": "3960f26ee811d21593d96c61707a2e0196e40156d233e4b97d3f25a6476e085c",
+    "changes": []
+  },
+  {
+    "group": "regression96",
+    "id": "foreign-session-result.json",
+    "classification": "BYTE_IDENTICAL",
+    "beforeSha256": "654106df8a619ea00505fb42fe912f1f49be16a7d6aa61a84c1f76238a339ccb",
+    "afterSha256": "654106df8a619ea00505fb42fe912f1f49be16a7d6aa61a84c1f76238a339ccb",
+    "changes": []
+  },
+  {
+    "group": "regression96",
+    "id": "unsupported-version-result.json",
+    "classification": "BYTE_IDENTICAL",
+    "beforeSha256": "422097592a70e3841bf63ec1f7bb7f6441dc944837857a671b76d6f4a1fb8cae",
+    "afterSha256": "422097592a70e3841bf63ec1f7bb7f6441dc944837857a671b76d6f4a1fb8cae",
+    "changes": []
+  },
+  {
+    "group": "regression96",
+    "id": "extra-field-result.json",
+    "classification": "BYTE_IDENTICAL",
+    "beforeSha256": "4949e09f75b9955a6236936e0150fc7b182b5323a50d12c932259fb5c8911858",
+    "afterSha256": "4949e09f75b9955a6236936e0150fc7b182b5323a50d12c932259fb5c8911858",
+    "changes": []
+  },
+  {
+    "group": "regression96",
+    "id": "unknown-event-result.json",
+    "classification": "BYTE_IDENTICAL",
+    "beforeSha256": "0f945615d9d03a4869dfbe47ba257ae705d85d27b8665e5ff5417b0b05a2a04b",
+    "afterSha256": "0f945615d9d03a4869dfbe47ba257ae705d85d27b8665e5ff5417b0b05a2a04b",
+    "changes": []
+  },
+  {
+    "group": "regression96",
+    "id": "bad-id-result.json",
+    "classification": "BYTE_IDENTICAL",
+    "beforeSha256": "859a4ab6e67ec02ee7fba7f57808694292f3348e61eeace226f58562bc0f8f5c",
+    "afterSha256": "859a4ab6e67ec02ee7fba7f57808694292f3348e61eeace226f58562bc0f8f5c",
+    "changes": []
+  },
+  {
+    "group": "regression96",
+    "id": "bad-sequence-result.json",
+    "classification": "BYTE_IDENTICAL",
+    "beforeSha256": "7de44a93681b773dbf4411f8959bd6e37db36fdcc2ddb488781da244f4d9f419",
+    "afterSha256": "7de44a93681b773dbf4411f8959bd6e37db36fdcc2ddb488781da244f4d9f419",
+    "changes": []
+  },
+  {
+    "group": "regression96",
+    "id": "bad-source-result.json",
+    "classification": "BYTE_IDENTICAL",
+    "beforeSha256": "5308c087dc900b773888fd0623a9a4921a837f8fb0ca1265862a7addef489f8d",
+    "afterSha256": "5308c087dc900b773888fd0623a9a4921a837f8fb0ca1265862a7addef489f8d",
+    "changes": []
+  },
+  {
+    "group": "regression96",
+    "id": "unsafe-sequence-result.json",
+    "classification": "BYTE_IDENTICAL",
+    "beforeSha256": "ba9c46af683c5f5585ec52224db5db586ce32d289b2ecc55096d0d897aa0db04",
+    "afterSha256": "ba9c46af683c5f5585ec52224db5db586ce32d289b2ecc55096d0d897aa0db04",
+    "changes": []
+  },
+  {
+    "group": "regression96",
+    "id": "extra-event-field-result.json",
+    "classification": "BYTE_IDENTICAL",
+    "beforeSha256": "2f74330645b80775fcacf4e18cfa208fb43d652fd311b18ab480a8c6090c4164",
+    "afterSha256": "2f74330645b80775fcacf4e18cfa208fb43d652fd311b18ab480a8c6090c4164",
+    "changes": []
+  },
+  {
+    "group": "regression96",
+    "id": "duplicate-json-key-result.json",
+    "classification": "BYTE_IDENTICAL",
+    "beforeSha256": "fa822d816da8f273a078f8864b5e3bf9b05bd927cbaf500e765da15de4c948be",
+    "afterSha256": "fa822d816da8f273a078f8864b5e3bf9b05bd927cbaf500e765da15de4c948be",
+    "changes": []
+  },
+  {
+    "group": "regression96",
+    "id": "duplicate-escaped-key-result.json",
+    "classification": "BYTE_IDENTICAL",
+    "beforeSha256": "50055aebf0bfe343dc2f67cecb16f64faf9d6adbd5f01472d91034ef91824a07",
+    "afterSha256": "50055aebf0bfe343dc2f67cecb16f64faf9d6adbd5f01472d91034ef91824a07",
+    "changes": []
+  },
+  {
+    "group": "regression96",
+    "id": "malformed-json-result.json",
+    "classification": "BYTE_IDENTICAL",
+    "beforeSha256": "8c25551d9894ba399de211e5ddb20ee3cb40e8264935422388bda14d6d913223",
+    "afterSha256": "8c25551d9894ba399de211e5ddb20ee3cb40e8264935422388bda14d6d913223",
+    "changes": []
+  },
+  {
+    "group": "regression96",
+    "id": "received-after-stop-result.json",
+    "classification": "BYTE_IDENTICAL",
+    "beforeSha256": "b550e948cfad91d3ff63a4678b3ce3969c453f8db02bfb09dbfd235f45cd71bf",
+    "afterSha256": "b550e948cfad91d3ff63a4678b3ce3969c453f8db02bfb09dbfd235f45cd71bf",
+    "changes": []
+  },
+  {
+    "group": "regression96",
+    "id": "observed-abort-result.json",
+    "classification": "BYTE_IDENTICAL",
+    "beforeSha256": "4ae41578fb44eb0e39685e050c7edb4b42e9ec3252a72dcb4c98b00d19c2e642",
+    "afterSha256": "4ae41578fb44eb0e39685e050c7edb4b42e9ec3252a72dcb4c98b00d19c2e642",
+    "changes": []
+  },
+  {
+    "group": "regression96",
+    "id": "internal-terminal-unknown-result.json",
+    "classification": "BYTE_IDENTICAL",
+    "beforeSha256": "5937105eaea6eda655f03e8f3a227c499c5bfa017f233dcd7e99e19d12e0660a",
+    "afterSha256": "5937105eaea6eda655f03e8f3a227c499c5bfa017f233dcd7e99e19d12e0660a",
+    "changes": []
+  },
+  {
+    "group": "regression96",
+    "id": "observed-error-result.json",
+    "classification": "BYTE_IDENTICAL",
+    "beforeSha256": "ff59970bf8608f4a14ba5a4ce49f5deacdd9d8f59463fceb98e82d85b3d83c31",
+    "afterSha256": "ff59970bf8608f4a14ba5a4ce49f5deacdd9d8f59463fceb98e82d85b3d83c31",
+    "changes": []
+  },
+  {
+    "group": "regression96",
+    "id": "collection-error-result.json",
+    "classification": "BYTE_IDENTICAL",
+    "beforeSha256": "989edaf97197bb165f997f8c6b1618ee16ef1fd3b834ddbcfbb6af874132ff0d",
+    "afterSha256": "989edaf97197bb165f997f8c6b1618ee16ef1fd3b834ddbcfbb6af874132ff0d",
+    "changes": []
+  },
+  {
+    "group": "regression96",
+    "id": "duplicate-receipt-result.json",
+    "classification": "BYTE_IDENTICAL",
+    "beforeSha256": "94c555c393c8ee2ab90a41227b898ed27bbc0d0e7549c3e06aae682221efc1bd",
+    "afterSha256": "94c555c393c8ee2ab90a41227b898ed27bbc0d0e7549c3e06aae682221efc1bd",
+    "changes": []
+  },
+  {
+    "group": "regression96",
+    "id": "duplicate-complete-reference-result.json",
+    "classification": "BYTE_IDENTICAL",
+    "beforeSha256": "d59cc7d0b2777bca206c0681d92283d3c601ca034f47f40338d43f8e3c4d6cd5",
+    "afterSha256": "d59cc7d0b2777bca206c0681d92283d3c601ca034f47f40338d43f8e3c4d6cd5",
+    "changes": []
+  },
+  {
+    "group": "regression96",
+    "id": "cross-transaction-link-result.json",
+    "classification": "BYTE_IDENTICAL",
+    "beforeSha256": "bb5cc6ea433a19a413d283409e6e7a0a782c2e83f27753a955c0e4fd18c6c518",
+    "afterSha256": "bb5cc6ea433a19a413d283409e6e7a0a782c2e83f27753a955c0e4fd18c6c518",
+    "changes": []
+  },
+  {
+    "group": "regression96",
+    "id": "sequence-collision-result.json",
+    "classification": "BYTE_IDENTICAL",
+    "beforeSha256": "4093d7355d5e46936bc4247baa1587cb2b22770297baccb4011259a19f8a5899",
+    "afterSha256": "4093d7355d5e46936bc4247baa1587cb2b22770297baccb4011259a19f8a5899",
+    "changes": []
+  },
+  {
+    "group": "regression96",
+    "id": "dangling-send-result.json",
+    "classification": "BYTE_IDENTICAL",
+    "beforeSha256": "dca40f23308cc5be796174af36a196d0feeae0d4e2959919bd070e969e0d68b3",
+    "afterSha256": "dca40f23308cc5be796174af36a196d0feeae0d4e2959919bd070e969e0d68b3",
+    "changes": []
+  },
+  {
+    "group": "regression96",
+    "id": "all-events-deleted-result.json",
+    "classification": "BYTE_IDENTICAL",
+    "beforeSha256": "f0db97a876590ec0ae875ab841a40c3ce96782bcc1087bcfc8253f1f349f4c1f",
+    "afterSha256": "f0db97a876590ec0ae875ab841a40c3ce96782bcc1087bcfc8253f1f349f4c1f",
+    "changes": []
+  },
+  {
+    "group": "regression69",
+    "id": "A-arity",
+    "classification": "BYTE_IDENTICAL",
+    "beforeSha256": "5980e2e0fc635368bcaa260c9d65b1271ddcdf98139f633f8fd802041fa914ba",
+    "afterSha256": "5980e2e0fc635368bcaa260c9d65b1271ddcdf98139f633f8fd802041fa914ba",
+    "changes": []
+  },
+  {
+    "group": "regression69",
+    "id": "A-missing",
+    "classification": "ENVIRONMENT_PATH_ONLY",
+    "beforeSha256": "d3a25fb2de3bdb88d070e0951f0a1829b63e88d4b0c76e2f45fce090c33be282",
+    "afterSha256": "093b8c6216ebaf93b56a8d1264085f44f4eb31287645dceddd00760039f61323",
+    "changes": [
+      {
+        "field": "/validationErrors/0/detail",
+        "before": "ENOENT: no such file or directory, open 'C:\\Users\\tetsu\\Documents\\Codex\\メモ帳\\work\\u1-r2-20261103\\old\\design\\idb-incomplete-stop\\collector\\independent\\fixtures\\intentionally-absent.json'",
+        "after": "ENOENT: no such file or directory, open 'C:\\Users\\tetsu\\Documents\\Codex\\メモ帳\\work\\u1-r2-20261103\\new\\design\\idb-incomplete-stop\\collector\\independent\\fixtures\\intentionally-absent.json'"
+      }
+    ]
+  },
+  {
+    "group": "regression69",
+    "id": "A-denied",
+    "classification": "ENVIRONMENT_PATH_ONLY",
+    "beforeSha256": "7a1378abba8fe168418f42b5dbc5e5a03b9ba01a5a462c69a45439fc6be495a3",
+    "afterSha256": "a48e695007a1011049b2d9942946161bd47d7634125db52f2fee3046fc7f54d9",
+    "changes": [
+      {
+        "field": "/validationErrors/0/detail",
+        "before": "EBUSY: resource busy or locked, open 'C:\\Users\\tetsu\\Documents\\Codex\\メモ帳\\work\\u1-r2-20261103\\old\\design\\idb-incomplete-stop\\collector\\independent\\fixtures\\A-denied.json'",
+        "after": "EBUSY: resource busy or locked, open 'C:\\Users\\tetsu\\Documents\\Codex\\メモ帳\\work\\u1-r2-20261103\\new\\design\\idb-incomplete-stop\\collector\\independent\\fixtures\\A-denied.json'"
+      }
+    ]
+  },
+  {
+    "group": "regression69",
+    "id": "A-oversize",
+    "classification": "BYTE_IDENTICAL",
+    "beforeSha256": "3d4c8064a67bc9d70a23c479647597716ab13616445a08d40cc3b5945816d103",
+    "afterSha256": "3d4c8064a67bc9d70a23c479647597716ab13616445a08d40cc3b5945816d103",
+    "changes": []
+  },
+  {
+    "group": "regression69",
+    "id": "A-utf8",
+    "classification": "BYTE_IDENTICAL",
+    "beforeSha256": "c596b98d34d0f85245004f0b878c4533219fa69f415fde86d5313a62def36e9c",
+    "afterSha256": "c596b98d34d0f85245004f0b878c4533219fa69f415fde86d5313a62def36e9c",
+    "changes": []
+  },
+  {
+    "group": "regression69",
+    "id": "A-json",
+    "classification": "BYTE_IDENTICAL",
+    "beforeSha256": "21a55eec1a996a0fb778603a6dc8c86ef80b65d0240486875102e8f5d7cf5e95",
+    "afterSha256": "21a55eec1a996a0fb778603a6dc8c86ef80b65d0240486875102e8f5d7cf5e95",
+    "changes": []
+  },
+  {
+    "group": "regression69",
+    "id": "A-hash",
+    "classification": "BYTE_IDENTICAL",
+    "beforeSha256": "9a39055ca5854d5342cb26c9744b258280e73f45b96fbc49f5f35d1c26b9e98a",
+    "afterSha256": "9a39055ca5854d5342cb26c9744b258280e73f45b96fbc49f5f35d1c26b9e98a",
+    "changes": []
+  },
+  {
+    "group": "regression69",
+    "id": "A-material",
+    "classification": "BYTE_IDENTICAL",
+    "beforeSha256": "6787e19bda70ff0872a304b6451bb98ee1e913eb0f4ca6cc85ae36cf33945db3",
+    "afterSha256": "6787e19bda70ff0872a304b6451bb98ee1e913eb0f4ca6cc85ae36cf33945db3",
+    "changes": []
+  },
+  {
+    "group": "regression69",
+    "id": "B-gap-only",
+    "classification": "BYTE_IDENTICAL",
+    "beforeSha256": "654b045938aa4905eea04233a806ae5ca2ccc98ddf172a65410b876895bf525e",
+    "afterSha256": "654b045938aa4905eea04233a806ae5ca2ccc98ddf172a65410b876895bf525e",
+    "changes": []
+  },
+  {
+    "group": "regression69",
+    "id": "B-duplicate-only",
+    "classification": "BYTE_IDENTICAL",
+    "beforeSha256": "680880e9a9e94f3fb204a06f2e95cf1ed76ae2b7e9dad508ed52d0efdb19c823",
+    "afterSha256": "680880e9a9e94f3fb204a06f2e95cf1ed76ae2b7e9dad508ed52d0efdb19c823",
+    "changes": []
+  },
+  {
+    "group": "regression69",
+    "id": "B-outside-only",
+    "classification": "BYTE_IDENTICAL",
+    "beforeSha256": "f4ffd58a07240198e2f89706f8fb604a22300d6f842d7ea1b0b64d19785d310b",
+    "afterSha256": "f4ffd58a07240198e2f89706f8fb604a22300d6f842d7ea1b0b64d19785d310b",
+    "changes": []
+  },
+  {
+    "group": "regression69",
+    "id": "B-reference-missing",
+    "classification": "BYTE_IDENTICAL",
+    "beforeSha256": "6c0af3470e122102b1ea03af2d13d41e9d9f40b0d616afa630e3ffb4662e1aec",
+    "afterSha256": "6c0af3470e122102b1ea03af2d13d41e9d9f40b0d616afa630e3ffb4662e1aec",
+    "changes": []
+  },
+  {
+    "group": "regression69",
+    "id": "B-gap-and-duplicate",
+    "classification": "BYTE_IDENTICAL",
+    "beforeSha256": "1856597451a305fde079883e3757bb7ba6328f5498eebcbe9b734c7b7ab017ff",
+    "afterSha256": "1856597451a305fde079883e3757bb7ba6328f5498eebcbe9b734c7b7ab017ff",
+    "changes": []
+  },
+  {
+    "group": "regression69",
+    "id": "B-gap-and-wrong-type",
+    "classification": "BYTE_IDENTICAL",
+    "beforeSha256": "6ce04e8bb143d0f79afcb34af788a0d1d9859756b546a325dc0e371d7fb241f8",
+    "afterSha256": "6ce04e8bb143d0f79afcb34af788a0d1d9859756b546a325dc0e371d7fb241f8",
+    "changes": []
+  },
+  {
+    "group": "regression69",
+    "id": "B-gap-and-foreign-transaction",
+    "classification": "BYTE_IDENTICAL",
+    "beforeSha256": "4faaa394b9762dc4b5426e20299ca3afd6a2c311258e38939dc39ed4e8285cf0",
+    "afterSha256": "4faaa394b9762dc4b5426e20299ca3afd6a2c311258e38939dc39ed4e8285cf0",
+    "changes": []
+  },
+  {
+    "group": "regression69",
+    "id": "B-loss-and-terminal-conflict",
+    "classification": "BYTE_IDENTICAL",
+    "beforeSha256": "09e5f5fbc4b72a748b7b21494cb66ce784f95b127e6a0504a1aa129c38d8131d",
+    "afterSha256": "09e5f5fbc4b72a748b7b21494cb66ce784f95b127e6a0504a1aa129c38d8131d",
+    "changes": []
+  },
+  {
+    "group": "regression69",
+    "id": "C-worker-complete-only",
+    "classification": "BYTE_IDENTICAL",
+    "beforeSha256": "03471117ee89fbb4116407de87a84bee92eae818835277f7e73ccbfa294d021e",
+    "afterSha256": "03471117ee89fbb4116407de87a84bee92eae818835277f7e73ccbfa294d021e",
+    "changes": []
+  },
+  {
+    "group": "regression69",
+    "id": "C-sent-only",
+    "classification": "BYTE_IDENTICAL",
+    "beforeSha256": "47cf1fbdb2ad89cba46c1e6de26c34907ab3d54a0568ca91e078f420608a2c23",
+    "afterSha256": "47cf1fbdb2ad89cba46c1e6de26c34907ab3d54a0568ca91e078f420608a2c23",
+    "changes": []
+  },
+  {
+    "group": "regression69",
+    "id": "C-received-before-stop",
+    "classification": "BYTE_IDENTICAL",
+    "beforeSha256": "6e7646d0f2b7af10d551d840d5013e950b642f7feec74340e67858959d1349e2",
+    "afterSha256": "6e7646d0f2b7af10d551d840d5013e950b642f7feec74340e67858959d1349e2",
+    "changes": []
+  },
+  {
+    "group": "regression69",
+    "id": "C-received-after-stop",
+    "classification": "BYTE_IDENTICAL",
+    "beforeSha256": "29a64a26f4cbb1187fd1b139ef7d0ffb93d3801b6ba6556c5590aadcdb5a0cf4",
+    "afterSha256": "29a64a26f4cbb1187fd1b139ef7d0ffb93d3801b6ba6556c5590aadcdb5a0cf4",
+    "changes": []
+  },
+  {
+    "group": "regression69",
+    "id": "C-complete-other-transaction",
+    "classification": "BYTE_IDENTICAL",
+    "beforeSha256": "ad13fbcace0dd73a41ea686c373095ca98d11c5723ad92ef89b1cc7ec5a72317",
+    "afterSha256": "ad13fbcace0dd73a41ea686c373095ca98d11c5723ad92ef89b1cc7ec5a72317",
+    "changes": []
+  },
+  {
+    "group": "regression69",
+    "id": "C-send-other-worker",
+    "classification": "BYTE_IDENTICAL",
+    "beforeSha256": "dc7c7deae7ae35725de4fc7eb8c5bb8da157448b9605bec91e29fbeca15c681b",
+    "afterSha256": "dc7c7deae7ae35725de4fc7eb8c5bb8da157448b9605bec91e29fbeca15c681b",
+    "changes": []
+  },
+  {
+    "group": "regression69",
+    "id": "C-incomparable-sources",
+    "classification": "BYTE_IDENTICAL",
+    "beforeSha256": "36b9dd221725acbc91a6a7c5a32d39e473167385c7bc22c404b22c997d9be680",
+    "afterSha256": "36b9dd221725acbc91a6a7c5a32d39e473167385c7bc22c404b22c997d9be680",
+    "changes": []
+  },
+  {
+    "group": "regression69",
+    "id": "C-local-order-reversed",
+    "classification": "BYTE_IDENTICAL",
+    "beforeSha256": "02051c32e8f7b66c184ea6cdd8feb25b627ee3c08181bae3224a6a0068d63fcc",
+    "afterSha256": "02051c32e8f7b66c184ea6cdd8feb25b627ee3c08181bae3224a6a0068d63fcc",
+    "changes": []
+  },
+  {
+    "group": "regression69",
+    "id": "C-array-reversed",
+    "classification": "BYTE_IDENTICAL",
+    "beforeSha256": "56b93e1860f2a369904bbb5f134d50a40d12e2530b200e3588af794c902ec603",
+    "afterSha256": "56b93e1860f2a369904bbb5f134d50a40d12e2530b200e3588af794c902ec603",
+    "changes": []
+  },
+  {
+    "group": "regression69",
+    "id": "C-clocks-exchanged",
+    "classification": "BYTE_IDENTICAL",
+    "beforeSha256": "7b98b998c79d33a7c2c97ee4168910adae178238b7db048457bea7d96beec2b5",
+    "afterSha256": "7b98b998c79d33a7c2c97ee4168910adae178238b7db048457bea7d96beec2b5",
+    "changes": []
+  },
+  {
+    "group": "regression69",
+    "id": "C-stop-prerequisite-missing",
+    "classification": "BYTE_IDENTICAL",
+    "beforeSha256": "501bfc2d451301c83aa4bba6e1fd289e75bbf30eb6d59a45120f06b0ee4aec64",
+    "afterSha256": "501bfc2d451301c83aa4bba6e1fd289e75bbf30eb6d59a45120f06b0ee4aec64",
+    "changes": []
+  },
+  {
+    "group": "regression69",
+    "id": "C-worker-event-in-main-source",
+    "classification": "BYTE_IDENTICAL",
+    "beforeSha256": "f0924ec9b806027842c2324743b378db3daa82ecf7138853fb8857c217706afe",
+    "afterSha256": "f0924ec9b806027842c2324743b378db3daa82ecf7138853fb8857c217706afe",
+    "changes": []
+  },
+  {
+    "group": "regression69",
+    "id": "C-main-event-in-worker-source",
+    "classification": "BYTE_IDENTICAL",
+    "beforeSha256": "845866065f3e33b6ab81e575c66fd72498ce9164aa4160485f7375a203759908",
+    "afterSha256": "845866065f3e33b6ab81e575c66fd72498ce9164aa4160485f7375a203759908",
+    "changes": []
+  },
+  {
+    "group": "regression69",
+    "id": "D-same-worker-two-transactions",
+    "classification": "BYTE_IDENTICAL",
+    "beforeSha256": "e7a14ffe1190ae83fc19ce56851857236b5ef766da051ea4356a026a3295c969",
+    "afterSha256": "e7a14ffe1190ae83fc19ce56851857236b5ef766da051ea4356a026a3295c969",
+    "changes": []
+  },
+  {
+    "group": "regression69",
+    "id": "D-two-workers-shared-main",
+    "classification": "BYTE_IDENTICAL",
+    "beforeSha256": "59c5be320be2ac5ac414dbad8e21c03097625a8f9f8c9bc20a2446287853e9cd",
+    "afterSha256": "59c5be320be2ac5ac414dbad8e21c03097625a8f9f8c9bc20a2446287853e9cd",
+    "changes": []
+  },
+  {
+    "group": "regression69",
+    "id": "D-event-id-reused",
+    "classification": "BYTE_IDENTICAL",
+    "beforeSha256": "c8c4c88c048a4c936342908d1101a2501ce6931b5f86c3b29e897d6e45ac3855",
+    "afterSha256": "c8c4c88c048a4c936342908d1101a2501ce6931b5f86c3b29e897d6e45ac3855",
+    "changes": []
+  },
+  {
+    "group": "regression69",
+    "id": "D-complete-double-reference",
+    "classification": "BYTE_IDENTICAL",
+    "beforeSha256": "da9aadcfcd95863285459d1ee2e371fc4b1ca89ca16d9244c8849fde9a277245",
+    "afterSha256": "da9aadcfcd95863285459d1ee2e371fc4b1ca89ca16d9244c8849fde9a277245",
+    "changes": []
+  },
+  {
+    "group": "regression69",
+    "id": "D-send-double-receipt",
+    "classification": "BYTE_IDENTICAL",
+    "beforeSha256": "96b240558ade061b6959f53a1e6cbbeaec2f4d7e8cbbbb1aa2a528d25646dd3b",
+    "afterSha256": "96b240558ade061b6959f53a1e6cbbeaec2f4d7e8cbbbb1aa2a528d25646dd3b",
+    "changes": []
+  },
+  {
+    "group": "regression69",
+    "id": "D-foreign-workerId",
+    "classification": "BYTE_IDENTICAL",
+    "beforeSha256": "1369efeb0888ae1a42a99bebdc9ed43c5c847880d4ea36a706b77b0199409060",
+    "afterSha256": "1369efeb0888ae1a42a99bebdc9ed43c5c847880d4ea36a706b77b0199409060",
+    "changes": []
+  },
+  {
+    "group": "regression69",
+    "id": "D-foreign-connectionId",
+    "classification": "BYTE_IDENTICAL",
+    "beforeSha256": "7fd64c5aa2172a12e8e0202278c0162226bd10e8d93fcd093b0071eb82e22fe8",
+    "afterSha256": "7fd64c5aa2172a12e8e0202278c0162226bd10e8d93fcd093b0071eb82e22fe8",
+    "changes": []
+  },
+  {
+    "group": "regression69",
+    "id": "D-foreign-iteration",
+    "classification": "BYTE_IDENTICAL",
+    "beforeSha256": "097a9e82c0a7e5cd76c44a25209bbbdfb32132753d0ec793c98f243f16b80f2d",
+    "afterSha256": "097a9e82c0a7e5cd76c44a25209bbbdfb32132753d0ec793c98f243f16b80f2d",
+    "changes": []
+  },
+  {
+    "group": "regression18",
+    "id": "A-many-130000",
+    "classification": "BYTE_IDENTICAL",
+    "beforeSha256": "5957a3314c114ff71c2413819c5332b901356f95e0e7b9de8e48a8c8f54799ba",
+    "afterSha256": "5957a3314c114ff71c2413819c5332b901356f95e0e7b9de8e48a8c8f54799ba",
+    "changes": []
+  },
+  {
+    "group": "regression18",
+    "id": "B-key-8192",
+    "classification": "BYTE_IDENTICAL",
+    "beforeSha256": "2db366865119e81e5ef15a20b4eb2503a7040c1e31eafe359a5202ef19dc292e",
+    "afterSha256": "2db366865119e81e5ef15a20b4eb2503a7040c1e31eafe359a5202ef19dc292e",
+    "changes": []
+  },
+  {
+    "group": "regression18",
+    "id": "C-errors-8193",
+    "classification": "BYTE_IDENTICAL",
+    "beforeSha256": "c14ede83799315ac45cfd48302555a75eec0eb89c98226d0c7c9523080aa6d3f",
+    "afterSha256": "c14ede83799315ac45cfd48302555a75eec0eb89c98226d0c7c9523080aa6d3f",
+    "changes": []
+  },
+  {
+    "group": "regression18",
+    "id": "count-255",
+    "classification": "BYTE_IDENTICAL",
+    "beforeSha256": "fc13764c335ae456f4d6b60b0142ed48ee7702c165634172b195eb0b68545556",
+    "afterSha256": "fc13764c335ae456f4d6b60b0142ed48ee7702c165634172b195eb0b68545556",
+    "changes": []
+  },
+  {
+    "group": "regression18",
+    "id": "count-256",
+    "classification": "BYTE_IDENTICAL",
+    "beforeSha256": "7a3c597f5a4bc17186fe1745839928aef7e686f767f30d462df1bf6e8eb1f817",
+    "afterSha256": "7a3c597f5a4bc17186fe1745839928aef7e686f767f30d462df1bf6e8eb1f817",
+    "changes": []
+  },
+  {
+    "group": "regression18",
+    "id": "count-257",
+    "classification": "BYTE_IDENTICAL",
+    "beforeSha256": "790fd73c7f1f9fd1b00c4fc921f3ce7f316c03cdeb7744b054034e8b7150ae53",
+    "afterSha256": "790fd73c7f1f9fd1b00c4fc921f3ce7f316c03cdeb7744b054034e8b7150ae53",
+    "changes": []
+  },
+  {
+    "group": "regression18",
+    "id": "ascii-key-8190",
+    "classification": "BYTE_IDENTICAL",
+    "beforeSha256": "644d516c55527620211209c1ddcdb21221db3a0fe41d82cc01cf89c3724d421a",
+    "afterSha256": "644d516c55527620211209c1ddcdb21221db3a0fe41d82cc01cf89c3724d421a",
+    "changes": []
+  },
+  {
+    "group": "regression18",
+    "id": "ascii-key-8191",
+    "classification": "BYTE_IDENTICAL",
+    "beforeSha256": "ffe65e2dd5629f46c12b349c74a4b2b31471f29dc43231f61634b9d697bd9fca",
+    "afterSha256": "ffe65e2dd5629f46c12b349c74a4b2b31471f29dc43231f61634b9d697bd9fca",
+    "changes": []
+  },
+  {
+    "group": "regression18",
+    "id": "unicode-key-8191",
+    "classification": "BYTE_IDENTICAL",
+    "beforeSha256": "0b74851afdbbec620138e4a69dd567a1cc73914f7477e10758e877e09dbd3b92",
+    "afterSha256": "0b74851afdbbec620138e4a69dd567a1cc73914f7477e10758e877e09dbd3b92",
+    "changes": []
+  },
+  {
+    "group": "regression18",
+    "id": "unicode-key-8192",
+    "classification": "BYTE_IDENTICAL",
+    "beforeSha256": "37cb098b429795bbe31dcc12a14d8f72d358df8765e2eb2214e19fdc7f71e43b",
+    "afterSha256": "37cb098b429795bbe31dcc12a14d8f72d358df8765e2eb2214e19fdc7f71e43b",
+    "changes": []
+  },
+  {
+    "group": "regression18",
+    "id": "combining-key-8192",
+    "classification": "BYTE_IDENTICAL",
+    "beforeSha256": "52f8bebbb5967f5b0034da57ae79182f9595ab4d0d145022d1a71273ae0aaa26",
+    "afterSha256": "52f8bebbb5967f5b0034da57ae79182f9595ab4d0d145022d1a71273ae0aaa26",
+    "changes": []
+  },
+  {
+    "group": "regression18",
+    "id": "late-input-descriptor",
+    "classification": "BYTE_IDENTICAL",
+    "beforeSha256": "835c8ba15c7048d98230cb965c1b76e3112ac80bd29034624a6024d9035e269c",
+    "afterSha256": "835c8ba15c7048d98230cb965c1b76e3112ac80bd29034624a6024d9035e269c",
+    "changes": []
+  },
+  {
+    "group": "regression18",
+    "id": "mixed-structural-errors",
+    "classification": "BYTE_IDENTICAL",
+    "beforeSha256": "8028f86ba10e1dadf9c3278b0d874d21840232efc0b61d9aec922bd22615ced8",
+    "afterSha256": "8028f86ba10e1dadf9c3278b0d874d21840232efc0b61d9aec922bd22615ced8",
+    "changes": []
+  },
+  {
+    "group": "regression18",
+    "id": "late-event-error",
+    "classification": "BYTE_IDENTICAL",
+    "beforeSha256": "f4f96a3022e7ec57e645a310c7dab1b3ee968e80d60f112342e1b389559da5f4",
+    "afterSha256": "f4f96a3022e7ec57e645a310c7dab1b3ee968e80d60f112342e1b389559da5f4",
+    "changes": []
+  },
+  {
+    "group": "regression18",
+    "id": "long-cli-error",
+    "classification": "ENVIRONMENT_PATH_ONLY",
+    "beforeSha256": "b7ea8a60cc0cd865edd1f5718541d30178574dc6d94cae766543b0df069808fc",
+    "afterSha256": "64f9671f63dc15a2fe0ad21226b33c5c109e2502d4df074f72e594f26b443ff7",
+    "changes": [
+      {
+        "field": "/validationErrors/0/detail",
+        "before": "ENOENT: no such file or directory, open 'C:\\Users\\tetsu\\Documents\\Codex\\メモ帳\\work\\u1-r2-20261103\\regression\\old\\regression18\\nonexistent-zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz...[truncated]",
+        "after": "ENOENT: no such file or directory, open 'C:\\Users\\tetsu\\Documents\\Codex\\メモ帳\\work\\u1-r2-20261103\\regression\\new\\regression18\\nonexistent-zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz...[truncated]"
+      }
+    ]
+  },
+  {
+    "group": "regression18",
+    "id": "normal",
+    "classification": "BYTE_IDENTICAL",
+    "beforeSha256": "056fae9b8f4f2eecf5de38814f57dccf63202649b3774d597f8fea07c8dbb047",
+    "afterSha256": "056fae9b8f4f2eecf5de38814f57dccf63202649b3774d597f8fea07c8dbb047",
+    "changes": []
+  },
+  {
+    "group": "regression18",
+    "id": "missing-plus-conflict",
+    "classification": "BYTE_IDENTICAL",
+    "beforeSha256": "0d17edb96f93890d6de46909510b2cbfe8b08851824eb1411ff87a48b0e68f2a",
+    "afterSha256": "0d17edb96f93890d6de46909510b2cbfe8b08851824eb1411ff87a48b0e68f2a",
+    "changes": []
+  },
+  {
+    "group": "regression18",
+    "id": "R2-out-of-scope-sentinel",
+    "classification": "INTENDED_R2_CORRECTION",
+    "beforeSha256": "b10d32ac9d4e2d64a414c139af7588c7f1f2e74b86e81e80b54b578db5705363",
+    "afterSha256": "6f5603eb7c7fd1767d4c1c521bf1606724de162169cc29db55f3e26e75a8b7bf",
+    "changes": [
+      {
+        "field": "/evidenceStatus",
+        "before": "INVALID_SCHEMA",
+        "after": "CONSISTENT"
+      },
+      {
+        "field": "/exitCode",
+        "before": 2,
+        "after": 0
+      },
+      {
+        "field": "/input/semanticSha256",
+        "before": null,
+        "after": "7b1e60f952f755a13e2c0305c040090465cc6d70ca3d231ab283bb73b4198709"
+      },
+      {
+        "field": "/relations/0",
+        "after": {
+          "from": "a-complete",
+          "to": "a-complete-send",
+          "kind": "complete-send"
+        }
+      },
+      {
+        "field": "/relations/1",
+        "after": {
+          "from": "a-complete-send",
+          "to": "a-complete-receive",
+          "kind": "send-receive"
+        }
+      },
+      {
+        "field": "/relations/2",
+        "after": {
+          "from": "a-send",
+          "to": "a-receive",
+          "kind": "send-receive"
+        }
+      },
+      {
+        "field": "/orderRelations/0",
+        "after": {
+          "before": "a-identified",
+          "after": "a-accepted",
+          "basis": "source-sequence"
+        }
+      },
+      {
+        "field": "/orderRelations/1",
+        "after": {
+          "before": "a-stop",
+          "after": "a-call",
+          "basis": "source-sequence"
+        }
+      },
+      {
+        "field": "/orderRelations/2",
+        "after": {
+          "before": "a-send",
+          "after": "a-complete",
+          "basis": "source-sequence"
+        }
+      },
+      {
+        "field": "/orderRelations/3",
+        "after": {
+          "before": "a-complete-send",
+          "after": "a-complete-receive",
+          "basis": "explicit-message"
+        }
+      },
+      {
+        "field": "/orderRelations/4",
+        "after": {
+          "before": "a-receive",
+          "after": "a-complete-receive",
+          "basis": "source-sequence"
+        }
+      },
+      {
+        "field": "/orderRelations/5",
+        "after": {
+          "before": "a-complete",
+          "after": "a-complete-send",
+          "basis": "complete-reference"
+        }
+      },
+      {
+        "field": "/orderRelations/6",
+        "after": {
+          "before": "a-complete",
+          "after": "a-complete-send",
+          "basis": "source-sequence"
+        }
+      },
+      {
+        "field": "/orderRelations/7",
+        "after": {
+          "before": "a-send",
+          "after": "a-receive",
+          "basis": "explicit-message"
+        }
+      },
+      {
+        "field": "/orderRelations/8",
+        "after": {
+          "before": "a-call",
+          "after": "a-return",
+          "basis": "source-sequence"
+        }
+      },
+      {
+        "field": "/orderRelations/9",
+        "after": {
+          "before": "a-accepted",
+          "after": "a-send",
+          "basis": "source-sequence"
+        }
+      },
+      {
+        "field": "/orderRelations/10",
+        "after": {
+          "before": "a-complete-receive",
+          "after": "a-stop",
+          "basis": "source-sequence"
+        }
+      },
+      {
+        "field": "/missingEvidence/0",
+        "after": {
+          "code": "ACTUAL_STOP_BOUNDARY_MISSING",
+          "subject": "{\"connectionId\":\"alpha-connection\",\"dbName\":\"negative-synthetic-db\",\"iteration\":1,\"runId\":\"negative-session\",\"transactionId\":\"transaction\",\"workerId\":\"alpha\"}",
+          "detail": "terminate return is not actual stop",
+          "scope": "FUTURE_WITNESS"
+        }
+      },
+      {
+        "field": "/missingEvidence/1",
+        "after": {
+          "code": "INTERNAL_TERMINAL_UNKNOWN",
+          "subject": "{\"connectionId\":\"alpha-connection\",\"dbName\":\"negative-synthetic-db\",\"iteration\":1,\"runId\":\"negative-session\",\"transactionId\":\"transaction\",\"workerId\":\"alpha\"}",
+          "detail": "no logical-IDB commit/abort result; listener delivery is a different boundary",
+          "scope": "FUTURE_WITNESS"
+        }
+      },
+      {
+        "field": "/missingEvidence/2",
+        "after": {
+          "code": "NORMAL_UNTERMINATED_WITNESS_MISSING",
+          "subject": "{\"connectionId\":\"alpha-connection\",\"dbName\":\"negative-synthetic-db\",\"iteration\":1,\"runId\":\"negative-session\",\"transactionId\":\"transaction\",\"workerId\":\"alpha\"}",
+          "detail": "independent normal interval and internal ID/build binding unavailable",
+          "scope": "FUTURE_WITNESS"
+        }
+      },
+      {
+        "field": "/validationErrors/0",
+        "before": {
+          "code": "SCHEMA",
+          "subject": "/events/0/sourceMs",
+          "detail": "invalid numeric range"
+        }
+      },
+      {
+        "field": "/reasons/0",
+        "before": "SCHEMA"
+      },
+      {
+        "field": "/unknownReasons/0",
+        "after": "ACTUAL_STOP_BOUNDARY_MISSING"
+      },
+      {
+        "field": "/unknownReasons/1",
+        "after": "INTERNAL_TERMINAL_UNKNOWN"
+      },
+      {
+        "field": "/unknownReasons/2",
+        "after": "NORMAL_UNTERMINATED_WITNESS_MISSING"
+      },
+      {
+        "field": "/transactions/0",
+        "after": {
+          "identity": {
+            "runId": "negative-session",
+            "dbName": "negative-synthetic-db",
+            "workerId": "alpha",
+            "connectionId": "alpha-connection",
+            "transactionId": "transaction",
+            "iteration": 1
+          },
+          "assessment": {
+            "validTrace": "PASS",
+            "conditionR": "PASS",
+            "conditionU": "FAIL",
+            "conditionReasonR": "COMPLETED_BEFORE_STOP",
+            "conditionReasonU": "COMPLETED_BEFORE_STOP",
+            "workerObservation": "PASS",
+            "connectionClosed": "UNKNOWN",
+            "physicalRelease": "UNKNOWN"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "group": "cli16",
+    "id": "normal",
+    "classification": "BYTE_IDENTICAL",
+    "beforeSha256": "056fae9b8f4f2eecf5de38814f57dccf63202649b3774d597f8fea07c8dbb047",
+    "afterSha256": "056fae9b8f4f2eecf5de38814f57dccf63202649b3774d597f8fea07c8dbb047",
+    "changes": []
+  },
+  {
+    "group": "cli16",
+    "id": "short-read-success",
+    "classification": "BYTE_IDENTICAL",
+    "beforeSha256": "056fae9b8f4f2eecf5de38814f57dccf63202649b3774d597f8fea07c8dbb047",
+    "afterSha256": "056fae9b8f4f2eecf5de38814f57dccf63202649b3774d597f8fea07c8dbb047",
+    "changes": []
+  },
+  {
+    "group": "cli16",
+    "id": "open",
+    "classification": "BYTE_IDENTICAL",
+    "beforeSha256": "762e8a87b917c09a3a76e59c700572ed1b3f63b2b2df6599d28621eeadba52b7",
+    "afterSha256": "762e8a87b917c09a3a76e59c700572ed1b3f63b2b2df6599d28621eeadba52b7",
+    "changes": []
+  },
+  {
+    "group": "cli16",
+    "id": "read",
+    "classification": "BYTE_IDENTICAL",
+    "beforeSha256": "6955dc30de9d66f61c1ea1ee009db7d62e958a666739b05a945c596a84439779",
+    "afterSha256": "6955dc30de9d66f61c1ea1ee009db7d62e958a666739b05a945c596a84439779",
+    "changes": []
+  },
+  {
+    "group": "cli16",
+    "id": "partial-read",
+    "classification": "BYTE_IDENTICAL",
+    "beforeSha256": "6955dc30de9d66f61c1ea1ee009db7d62e958a666739b05a945c596a84439779",
+    "afterSha256": "6955dc30de9d66f61c1ea1ee009db7d62e958a666739b05a945c596a84439779",
+    "changes": []
+  },
+  {
+    "group": "cli16",
+    "id": "close",
+    "classification": "BYTE_IDENTICAL",
+    "beforeSha256": "53e55389e361917980f71919ece7b592eb1e9266996bc33bf3d5c4232505b573",
+    "afterSha256": "53e55389e361917980f71919ece7b592eb1e9266996bc33bf3d5c4232505b573",
+    "changes": []
+  },
+  {
+    "group": "cli16",
+    "id": "read-close",
+    "classification": "BYTE_IDENTICAL",
+    "beforeSha256": "84a17c83640ad9800753f29f21cec6bd80f45970a432ddbba87fcc83121b03e5",
+    "afterSha256": "84a17c83640ad9800753f29f21cec6bd80f45970a432ddbba87fcc83121b03e5",
+    "changes": []
+  },
+  {
+    "group": "cli16",
+    "id": "partial-read-close",
+    "classification": "BYTE_IDENTICAL",
+    "beforeSha256": "84a17c83640ad9800753f29f21cec6bd80f45970a432ddbba87fcc83121b03e5",
+    "afterSha256": "84a17c83640ad9800753f29f21cec6bd80f45970a432ddbba87fcc83121b03e5",
+    "changes": []
+  },
+  {
+    "group": "cli16",
+    "id": "close-wrong-hash",
+    "classification": "BYTE_IDENTICAL",
+    "beforeSha256": "a9ed9ecf06ae6ff5fb11ebbeaab26e45390ae0e1aac67713ea5e9acfd92848d1",
+    "afterSha256": "a9ed9ecf06ae6ff5fb11ebbeaab26e45390ae0e1aac67713ea5e9acfd92848d1",
+    "changes": []
+  },
+  {
+    "group": "cli16",
+    "id": "close-invalid-json",
+    "classification": "BYTE_IDENTICAL",
+    "beforeSha256": "02ac5064dd567c18d26444bdd4554bdc350880f22b6c5bb13042136bb6aa6fe4",
+    "afterSha256": "02ac5064dd567c18d26444bdd4554bdc350880f22b6c5bb13042136bb6aa6fe4",
+    "changes": []
+  },
+  {
+    "group": "cli16",
+    "id": "arity",
+    "classification": "BYTE_IDENTICAL",
+    "beforeSha256": "5980e2e0fc635368bcaa260c9d65b1271ddcdf98139f633f8fd802041fa914ba",
+    "afterSha256": "5980e2e0fc635368bcaa260c9d65b1271ddcdf98139f633f8fd802041fa914ba",
+    "changes": []
+  },
+  {
+    "group": "cli16",
+    "id": "missing",
+    "classification": "ENVIRONMENT_PATH_ONLY",
+    "beforeSha256": "3d892d77945f4fc40bc23956771a18f764478e68f11658d1bbe255b47e4fb755",
+    "afterSha256": "6cb76b2e1668c2bd4d2ca4f74b61d38eb1ae36dae33e2928e1a42354bae8d5b2",
+    "changes": [
+      {
+        "field": "/validationErrors/0/detail",
+        "before": "ENOENT: no such file or directory, open 'C:\\Users\\tetsu\\Documents\\Codex\\メモ帳\\work\\u1-r2-20261103\\old\\design\\idb-incomplete-stop\\collector\\diagnostic-fix\\cli-error\\fixtures\\intentionally-absent.json'",
+        "after": "ENOENT: no such file or directory, open 'C:\\Users\\tetsu\\Documents\\Codex\\メモ帳\\work\\u1-r2-20261103\\new\\design\\idb-incomplete-stop\\collector\\diagnostic-fix\\cli-error\\fixtures\\intentionally-absent.json'"
+      }
+    ]
+  },
+  {
+    "group": "cli16",
+    "id": "oversize",
+    "classification": "BYTE_IDENTICAL",
+    "beforeSha256": "556b02396f9ee58ad2552a9addacfa03e99601761a1a4021ccb653ce33fb43a8",
+    "afterSha256": "556b02396f9ee58ad2552a9addacfa03e99601761a1a4021ccb653ce33fb43a8",
+    "changes": []
+  },
+  {
+    "group": "cli16",
+    "id": "long-open-error",
+    "classification": "BYTE_IDENTICAL",
+    "beforeSha256": "040191820066a11669018017e6423bdbd12ded44dcdde3fbbf4492e4933d03bd",
+    "afterSha256": "040191820066a11669018017e6423bdbd12ded44dcdde3fbbf4492e4933d03bd",
+    "changes": []
+  },
+  {
+    "group": "cli16",
+    "id": "read-long-close",
+    "classification": "BYTE_IDENTICAL",
+    "beforeSha256": "bdb8bd6d76331118013b3a01316c0afb3c6c4adcb6c6028c3a1304537537c263",
+    "afterSha256": "bdb8bd6d76331118013b3a01316c0afb3c6c4adcb6c6028c3a1304537537c263",
+    "changes": []
+  },
+  {
+    "group": "cli16",
+    "id": "invalid-json",
+    "classification": "BYTE_IDENTICAL",
+    "beforeSha256": "89dd3cd297b6f8d5f8fc39fcd6d73ff7e4b0110f21703e56f18d92b88b5b9e14",
+    "afterSha256": "89dd3cd297b6f8d5f8fc39fcd6d73ff7e4b0110f21703e56f18d92b88b5b9e14",
+    "changes": []
+  }
+]

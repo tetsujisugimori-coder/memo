@@ -1,0 +1,14 @@
+{
+  "worktrees": 62,
+  "originalFilesChecked": 4477,
+  "onlyExpectedChange": [
+    {
+      "path": "design/idb-incomplete-stop/collector/collect.cjs",
+      "before": "1405cc547269b3cbfbd59c584f263c48999b6ec85b6280dba55fea0af1b1d2e1",
+      "after": "d549f6fd4f60979bc3049d261539066a8db7fc84ae2449504de5ea7e2dbb561f"
+    }
+  ],
+  "unchangedOriginalFiles": 4476,
+  "other61WorktreeHeadsAndStatusesUnchanged": true,
+  "existingUntrackedFilesPreserved": true
+}

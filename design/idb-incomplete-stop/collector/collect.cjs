@@ -73,9 +73,10 @@ function validateInto(value, schema, root, path, depth, diagnostics) {
     const variant = schema.oneOf.find(s => s.properties?.type?.enum?.includes(value?.type));
     return variant ? validateInto(value, variant, root, path, depth + 1, diagnostics) : fail('no unique supported variant');
   }
-  const type = value === null ? 'null' : Array.isArray(value) ? 'array' : typeof value === 'number' && Number.isInteger(value) ? 'integer' : typeof value;
+  const type = value === null ? 'null' : Array.isArray(value) ? 'array' : typeof value;
   const types = Array.isArray(schema.type) ? schema.type : [schema.type];
-  if (!types.includes(type) && !(type === 'integer' && types.includes('number'))) return fail('invalid type');
+  // Integer is a schema constraint on numbers, not a reason to impose safe-integer limits on all numbers.
+  if (!types.some(t => t === type || (t === 'integer' && type === 'number' && Number.isInteger(value)))) return fail('invalid type');
   let valid = true;
   if (schema.enum && !schema.enum.includes(value)) valid = fail('unsupported value');
   if (typeof value === 'string') {
@@ -83,7 +84,7 @@ function validateInto(value, schema, root, path, depth, diagnostics) {
     if (length < (schema.minLength ?? 0) || length > (schema.maxLength ?? Infinity)) valid = fail('invalid length');
     if (schema.pattern && !new RegExp(schema.pattern).test(value)) valid = fail('invalid identifier/hash');
   }
-  if (typeof value === 'number' && (!Number.isFinite(value) || (type === 'integer' && !Number.isSafeInteger(value)) || value < (schema.minimum ?? -Infinity) || value > (schema.maximum ?? Infinity))) valid = fail('invalid numeric range');
+  if (typeof value === 'number' && (!Number.isFinite(value) || value < (schema.minimum ?? -Infinity) || value > (schema.maximum ?? Infinity))) valid = fail('invalid numeric range');
   if (Array.isArray(value)) {
     if (value.length < (schema.minItems ?? 0) || value.length > (schema.maxItems ?? Infinity)) return fail('invalid item count');
     for (let i = 0; i < value.length; i++) {

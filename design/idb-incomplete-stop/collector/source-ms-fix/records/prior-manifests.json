@@ -1,0 +1,16 @@
+[
+  {
+    "fixed": "8873b351b17e2a0e2a7a6367718ef37baadb8c99",
+    "path": "design/idb-incomplete-stop/collector/diagnostic-fix/cli-error/records/SHA256SUMS",
+    "manifestSha256": "70d5c3b09d90054e79e875302080d72f58de8efe0d7b70643008d0a1bb7c9abe",
+    "entries": 449,
+    "gitBlobsMatch": true
+  },
+  {
+    "fixed": "8873b351b17e2a0e2a7a6367718ef37baadb8c99",
+    "path": "design/idb-incomplete-stop/collector/acceptance-cli-20261103/records/SHA256SUMS",
+    "manifestSha256": "5c37f3cf28988f6c7dabe7f9d58fef1376141c757e1ccb73ec8f63e8173fcdb7",
+    "entries": 44,
+    "gitBlobsMatch": true
+  }
+]

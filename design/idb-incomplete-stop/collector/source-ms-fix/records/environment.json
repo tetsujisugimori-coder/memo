@@ -1,0 +1,25 @@
+{
+  "os": "Windows-11-10.0.26300-SP0",
+  "python": "3.14.7",
+  "capturedAt": "2026-11-03T12:54:00.434499+00:00",
+  "fixedHead": "8873b351b17e2a0e2a7a6367718ef37baadb8c99",
+  "candidateCollectorSha256": "d549f6fd4f60979bc3049d261539066a8db7fc84ae2449504de5ea7e2dbb561f",
+  "implementationChange": "validateInto only; 4 added / 3 removed lines",
+  "inputAndResultSchemasChanged": false,
+  "originalTestsChanged": false,
+  "selfVerification": "PASS",
+  "wholePR": "PARTIAL",
+  "independentR2Review": "PENDING",
+  "mergeRecommendation": "NO",
+  "conditionU": "NOT_RUN",
+  "realExperiment": "NOT_RUN",
+  "executionAuthorization": "NOT_GRANTED",
+  "startCondition": "BLOCKED",
+  "productionWorker": "HOLD",
+  "hypotheses": {
+    "H1": "UNKNOWN",
+    "H2": "UNKNOWN",
+    "H3": "UNKNOWN",
+    "H4": "PARTIAL"
+  }
+}
