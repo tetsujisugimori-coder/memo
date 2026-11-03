@@ -1,0 +1,118 @@
+TAP version 13
+# Subtest: A-many-130000
+ok 1 - A-many-130000
+  ---
+  duration_ms: 290.0377
+  type: 'test'
+  ...
+# Subtest: B-key-8192
+ok 2 - B-key-8192
+  ---
+  duration_ms: 62.5323
+  type: 'test'
+  ...
+# Subtest: C-errors-8193
+ok 3 - C-errors-8193
+  ---
+  duration_ms: 73.789
+  type: 'test'
+  ...
+# Subtest: count-255
+ok 4 - count-255
+  ---
+  duration_ms: 64.8907
+  type: 'test'
+  ...
+# Subtest: count-256
+ok 5 - count-256
+  ---
+  duration_ms: 59.8218
+  type: 'test'
+  ...
+# Subtest: count-257
+ok 6 - count-257
+  ---
+  duration_ms: 59.956
+  type: 'test'
+  ...
+# Subtest: ascii-key-8190
+ok 7 - ascii-key-8190
+  ---
+  duration_ms: 59.1246
+  type: 'test'
+  ...
+# Subtest: ascii-key-8191
+ok 8 - ascii-key-8191
+  ---
+  duration_ms: 58.1117
+  type: 'test'
+  ...
+# Subtest: unicode-key-8191
+ok 9 - unicode-key-8191
+  ---
+  duration_ms: 61.4902
+  type: 'test'
+  ...
+# Subtest: unicode-key-8192
+ok 10 - unicode-key-8192
+  ---
+  duration_ms: 63.4377
+  type: 'test'
+  ...
+# Subtest: combining-key-8192
+ok 11 - combining-key-8192
+  ---
+  duration_ms: 59.7505
+  type: 'test'
+  ...
+# Subtest: late-input-descriptor
+ok 12 - late-input-descriptor
+  ---
+  duration_ms: 65.9756
+  type: 'test'
+  ...
+# Subtest: mixed-structural-errors
+ok 13 - mixed-structural-errors
+  ---
+  duration_ms: 56.9825
+  type: 'test'
+  ...
+# Subtest: late-event-error
+ok 14 - late-event-error
+  ---
+  duration_ms: 58.2132
+  type: 'test'
+  ...
+# Subtest: long-cli-error
+ok 15 - long-cli-error
+  ---
+  duration_ms: 55.2672
+  type: 'test'
+  ...
+# Subtest: normal
+ok 16 - normal
+  ---
+  duration_ms: 57.3768
+  type: 'test'
+  ...
+# Subtest: missing-plus-conflict
+ok 17 - missing-plus-conflict
+  ---
+  duration_ms: 56.8324
+  type: 'test'
+  ...
+# Subtest: R2-out-of-scope-sentinel
+ok 18 - R2-out-of-scope-sentinel
+  ---
+  duration_ms: 55.9511
+  type: 'test'
+  ...
+1..18
+# tests 18
+# suites 0
+# pass 18
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1506.1294

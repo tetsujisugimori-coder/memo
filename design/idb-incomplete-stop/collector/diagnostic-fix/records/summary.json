@@ -1,0 +1,96 @@
+{
+  "fixedHead": "189b184781e78e474879dab0c89a8dfca9db4254",
+  "provenance": "RECONSTRUCTED_NOT_ORIGINAL",
+  "before": {
+    "tests": 18,
+    "pass": 8,
+    "fail": 10,
+    "skipped": 0,
+    "cancelled": 0,
+    "todo": 0,
+    "actualExitCode": 1,
+    "signal": null
+  },
+  "after": {
+    "tests": 18,
+    "pass": 18,
+    "fail": 0,
+    "skipped": 0,
+    "cancelled": 0,
+    "todo": 0,
+    "actualExitCode": 0,
+    "signal": null
+  },
+  "primaryRedToGreen": 3,
+  "expectationsSha256": "bc1b10320f3630c17eb1da3ea332e73d16826be9311c3ee8f8cb03e3a269eb5a",
+  "sameInputsAndExpectations": true,
+  "resultSchemaUnchanged": true,
+  "independentValidator": {
+    "name": "ajv",
+    "version": "8.20.0",
+    "dialect": "Draft 2020-12"
+  },
+  "regression96": {
+    "scope": "OFFLINE_SYNTHETIC_ONLY",
+    "node": "v24.20.0",
+    "commands": {
+      "tests": [
+        "C:\\Program Files\\nodejs\\node.exe",
+        "--test",
+        "--test-reporter=tap",
+        "design/idb-incomplete-stop/judge.test.cjs",
+        "design/idb-incomplete-stop/conditions.test.cjs",
+        "design/idb-incomplete-stop/merge-order.test.cjs",
+        "design/idb-incomplete-stop/collector/collect.test.cjs"
+      ],
+      "negativeControl": "STATIC_JUDGE_BASELINE=1 node --test --test-reporter=tap design/idb-incomplete-stop/merge-order.test.cjs"
+    },
+    "tests": 96,
+    "pass": 96,
+    "fail": 0,
+    "exitCode": 0,
+    "negativeControl": {
+      "expectedExitCode": 1,
+      "actualExitCode": 1
+    },
+    "fixtureCLI": {
+      "count": 40,
+      "pass": 40,
+      "fail": 0
+    },
+    "realExperiment": "NOT_RUN",
+    "executionAuthorization": "NOT_GRANTED",
+    "startCondition": "BLOCKED",
+    "conditionU": "NOT_RUN",
+    "productionWorker": "HOLD",
+    "hypotheses": {
+      "H1": "UNKNOWN",
+      "H2": "UNKNOWN",
+      "H3": "UNKNOWN",
+      "H4": "PARTIAL"
+    }
+  },
+  "regression69": {
+    "tests": 69,
+    "pass": 69,
+    "fail": 0,
+    "skipped": 0,
+    "status": 0,
+    "signal": null
+  },
+  "old40OutputsByteIdentical": true,
+  "old37OutputsByteIdentical": true,
+  "R2P3": "UNRESOLVED_UNCHANGED",
+  "unexpectedPreservationChanges": 0,
+  "realExperiment": "NOT_RUN",
+  "executionAuthorization": "NOT_GRANTED",
+  "startCondition": "BLOCKED",
+  "conditionU": "NOT_RUN",
+  "productionWorker": "HOLD",
+  "hypotheses": {
+    "H1": "UNKNOWN",
+    "H2": "UNKNOWN",
+    "H3": "UNKNOWN",
+    "H4": "PARTIAL"
+  }
+}

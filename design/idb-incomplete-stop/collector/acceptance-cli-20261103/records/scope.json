@@ -1,0 +1,24 @@
+{
+  "P2DynamicAcceptance": "PASS",
+  "P2Closure": "YES",
+  "implementationChanged": false,
+  "fixedOld": "5d16dd0cc4d18186ec59947c2073c409b2f8c34b",
+  "fixedNew": "e4a5d414689f23e1b33660bce3e006c46fb4e37f",
+  "base": "a72e0657d07632926d2ace9bcd7836cfbc41ac13",
+  "PRWhole": "PARTIAL",
+  "mergeRecommendation": "NO",
+  "draft": true,
+  "hypotheses": {
+    "H1": "UNKNOWN",
+    "H2": "UNKNOWN",
+    "H3": "UNKNOWN",
+    "H4": "PARTIAL"
+  },
+  "conditionU": "NOT_RUN",
+  "realExperiment": "NOT_RUN",
+  "executionAuthorization": "NOT_GRANTED",
+  "startCondition": "BLOCKED",
+  "productionWorker": "HOLD",
+  "realOSCloseEIO": "NOT_TESTED",
+  "R2P3": "UNRESOLVED_UNCHANGED"
+}

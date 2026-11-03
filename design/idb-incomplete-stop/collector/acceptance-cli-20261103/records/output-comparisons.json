@@ -1,0 +1,875 @@
+[
+  {
+    "group": "40",
+    "id": "single.json",
+    "byteIdentical": true,
+    "oldSha256": "6d35f6cab38539976aa36817626aba22e76c23ad3af2b993d5c847fd1004caf6",
+    "newSha256": "6d35f6cab38539976aa36817626aba22e76c23ad3af2b993d5c847fd1004caf6",
+    "differences": [],
+    "interpretation": "IDENTICAL"
+  },
+  {
+    "group": "40",
+    "id": "multiple.json",
+    "byteIdentical": true,
+    "oldSha256": "04e33be2a4f824103eca780a926b5acc0bf534a23294c7356365ee7e3da8439b",
+    "newSha256": "04e33be2a4f824103eca780a926b5acc0bf534a23294c7356365ee7e3da8439b",
+    "differences": [],
+    "interpretation": "IDENTICAL"
+  },
+  {
+    "group": "40",
+    "id": "worker-complete-only.json",
+    "byteIdentical": true,
+    "oldSha256": "496461eb75f577d0be8a3d45de2e248683a2dbe412a8642203882e509e8e1711",
+    "newSha256": "496461eb75f577d0be8a3d45de2e248683a2dbe412a8642203882e509e8e1711",
+    "differences": [],
+    "interpretation": "IDENTICAL"
+  },
+  {
+    "group": "40",
+    "id": "sent-without-receipt.json",
+    "byteIdentical": true,
+    "oldSha256": "9059deda25cd1a124044963f6d8870a769dc91becc31fdef67990870192329af",
+    "newSha256": "9059deda25cd1a124044963f6d8870a769dc91becc31fdef67990870192329af",
+    "differences": [],
+    "interpretation": "IDENTICAL"
+  },
+  {
+    "group": "40",
+    "id": "duplicate-complete-id.json",
+    "byteIdentical": true,
+    "oldSha256": "783bb48807a1fdb3a32f6843637bcabd92cc444d73b2cee69882c3fab8ac4ff5",
+    "newSha256": "783bb48807a1fdb3a32f6843637bcabd92cc444d73b2cee69882c3fab8ac4ff5",
+    "differences": [],
+    "interpretation": "IDENTICAL"
+  },
+  {
+    "group": "40",
+    "id": "wrong-send-type.json",
+    "byteIdentical": true,
+    "oldSha256": "06efdb27ca9597e4d2df365df63b77fe2c66c2e4479159d950369c55148581e1",
+    "newSha256": "06efdb27ca9597e4d2df365df63b77fe2c66c2e4479159d950369c55148581e1",
+    "differences": [],
+    "interpretation": "IDENTICAL"
+  },
+  {
+    "group": "40",
+    "id": "foreign-transaction.json",
+    "byteIdentical": true,
+    "oldSha256": "f8571c3c1e2107872b07e24fdd00892d8ecb5c3098139074d92106fe908944ed",
+    "newSha256": "f8571c3c1e2107872b07e24fdd00892d8ecb5c3098139074d92106fe908944ed",
+    "differences": [],
+    "interpretation": "IDENTICAL"
+  },
+  {
+    "group": "40",
+    "id": "source-order-reversed.json",
+    "byteIdentical": true,
+    "oldSha256": "013fb98c070fc34b02e6aad3b69f90a6fa30a8577f58772518c322697a964e00",
+    "newSha256": "013fb98c070fc34b02e6aad3b69f90a6fa30a8577f58772518c322697a964e00",
+    "differences": [],
+    "interpretation": "IDENTICAL"
+  },
+  {
+    "group": "40",
+    "id": "source-sequence-gap.json",
+    "byteIdentical": true,
+    "oldSha256": "115d4e30fbc337f4fa84ca51f1f99b1b09b9b976a0c38a181e41161d07581252",
+    "newSha256": "115d4e30fbc337f4fa84ca51f1f99b1b09b9b976a0c38a181e41161d07581252",
+    "differences": [],
+    "interpretation": "IDENTICAL"
+  },
+  {
+    "group": "40",
+    "id": "missing-stop-request.json",
+    "byteIdentical": true,
+    "oldSha256": "fe96344877a763d3ce1df68bf92479cad4abb121400d8aecac1b5938829bea19",
+    "newSha256": "fe96344877a763d3ce1df68bf92479cad4abb121400d8aecac1b5938829bea19",
+    "differences": [],
+    "interpretation": "IDENTICAL"
+  },
+  {
+    "group": "40",
+    "id": "commit-abort-conflict.json",
+    "byteIdentical": true,
+    "oldSha256": "79644a7d1f3f09a2490f3edd7b82bc3a9dac1ff63a1a54993b093c8c29c20e64",
+    "newSha256": "79644a7d1f3f09a2490f3edd7b82bc3a9dac1ff63a1a54993b093c8c29c20e64",
+    "differences": [],
+    "interpretation": "IDENTICAL"
+  },
+  {
+    "group": "40",
+    "id": "reversed-array.json",
+    "byteIdentical": true,
+    "oldSha256": "9ab5597f1e6b890dc2605fbb24702511edad82c4e48f52b422cde6b21021161a",
+    "newSha256": "9ab5597f1e6b890dc2605fbb24702511edad82c4e48f52b422cde6b21021161a",
+    "differences": [],
+    "interpretation": "IDENTICAL"
+  },
+  {
+    "group": "40",
+    "id": "required-field-deleted.json",
+    "byteIdentical": true,
+    "oldSha256": "6e03ae0ed43299dcb4f6d0433af52127438831d718f840cab25520289a6d25cf",
+    "newSha256": "6e03ae0ed43299dcb4f6d0433af52127438831d718f840cab25520289a6d25cf",
+    "differences": [],
+    "interpretation": "IDENTICAL"
+  },
+  {
+    "group": "40",
+    "id": "content-reference-tampered.json",
+    "byteIdentical": true,
+    "oldSha256": "dda8869315b88aac8e99aa6587f7ec7cb1c7dd8c1c28c0bf65066726647651e4",
+    "newSha256": "dda8869315b88aac8e99aa6587f7ec7cb1c7dd8c1c28c0bf65066726647651e4",
+    "differences": [],
+    "interpretation": "IDENTICAL"
+  },
+  {
+    "group": "40",
+    "id": "hash-mismatch.json",
+    "byteIdentical": true,
+    "oldSha256": "332a2d412b7f52748162acadeff933996131ea860cb7f0344f8da12f8c0658a2",
+    "newSha256": "332a2d412b7f52748162acadeff933996131ea860cb7f0344f8da12f8c0658a2",
+    "differences": [],
+    "interpretation": "IDENTICAL"
+  },
+  {
+    "group": "40",
+    "id": "event-deleted.json",
+    "byteIdentical": true,
+    "oldSha256": "bd953573eb6d2452c0f8e7a3ba31dee85438c769689d7c0ff46c8ab30dd077c6",
+    "newSha256": "bd953573eb6d2452c0f8e7a3ba31dee85438c769689d7c0ff46c8ab30dd077c6",
+    "differences": [],
+    "interpretation": "IDENTICAL"
+  },
+  {
+    "group": "40",
+    "id": "duplicate-injection.json",
+    "byteIdentical": true,
+    "oldSha256": "3960f26ee811d21593d96c61707a2e0196e40156d233e4b97d3f25a6476e085c",
+    "newSha256": "3960f26ee811d21593d96c61707a2e0196e40156d233e4b97d3f25a6476e085c",
+    "differences": [],
+    "interpretation": "IDENTICAL"
+  },
+  {
+    "group": "40",
+    "id": "foreign-session.json",
+    "byteIdentical": true,
+    "oldSha256": "654106df8a619ea00505fb42fe912f1f49be16a7d6aa61a84c1f76238a339ccb",
+    "newSha256": "654106df8a619ea00505fb42fe912f1f49be16a7d6aa61a84c1f76238a339ccb",
+    "differences": [],
+    "interpretation": "IDENTICAL"
+  },
+  {
+    "group": "40",
+    "id": "unsupported-version.json",
+    "byteIdentical": true,
+    "oldSha256": "422097592a70e3841bf63ec1f7bb7f6441dc944837857a671b76d6f4a1fb8cae",
+    "newSha256": "422097592a70e3841bf63ec1f7bb7f6441dc944837857a671b76d6f4a1fb8cae",
+    "differences": [],
+    "interpretation": "IDENTICAL"
+  },
+  {
+    "group": "40",
+    "id": "extra-field.json",
+    "byteIdentical": true,
+    "oldSha256": "4949e09f75b9955a6236936e0150fc7b182b5323a50d12c932259fb5c8911858",
+    "newSha256": "4949e09f75b9955a6236936e0150fc7b182b5323a50d12c932259fb5c8911858",
+    "differences": [],
+    "interpretation": "IDENTICAL"
+  },
+  {
+    "group": "40",
+    "id": "unknown-event.json",
+    "byteIdentical": true,
+    "oldSha256": "0f945615d9d03a4869dfbe47ba257ae705d85d27b8665e5ff5417b0b05a2a04b",
+    "newSha256": "0f945615d9d03a4869dfbe47ba257ae705d85d27b8665e5ff5417b0b05a2a04b",
+    "differences": [],
+    "interpretation": "IDENTICAL"
+  },
+  {
+    "group": "40",
+    "id": "bad-id.json",
+    "byteIdentical": true,
+    "oldSha256": "859a4ab6e67ec02ee7fba7f57808694292f3348e61eeace226f58562bc0f8f5c",
+    "newSha256": "859a4ab6e67ec02ee7fba7f57808694292f3348e61eeace226f58562bc0f8f5c",
+    "differences": [],
+    "interpretation": "IDENTICAL"
+  },
+  {
+    "group": "40",
+    "id": "bad-sequence.json",
+    "byteIdentical": true,
+    "oldSha256": "7de44a93681b773dbf4411f8959bd6e37db36fdcc2ddb488781da244f4d9f419",
+    "newSha256": "7de44a93681b773dbf4411f8959bd6e37db36fdcc2ddb488781da244f4d9f419",
+    "differences": [],
+    "interpretation": "IDENTICAL"
+  },
+  {
+    "group": "40",
+    "id": "bad-source.json",
+    "byteIdentical": true,
+    "oldSha256": "5308c087dc900b773888fd0623a9a4921a837f8fb0ca1265862a7addef489f8d",
+    "newSha256": "5308c087dc900b773888fd0623a9a4921a837f8fb0ca1265862a7addef489f8d",
+    "differences": [],
+    "interpretation": "IDENTICAL"
+  },
+  {
+    "group": "40",
+    "id": "unsafe-sequence.json",
+    "byteIdentical": true,
+    "oldSha256": "ba9c46af683c5f5585ec52224db5db586ce32d289b2ecc55096d0d897aa0db04",
+    "newSha256": "ba9c46af683c5f5585ec52224db5db586ce32d289b2ecc55096d0d897aa0db04",
+    "differences": [],
+    "interpretation": "IDENTICAL"
+  },
+  {
+    "group": "40",
+    "id": "extra-event-field.json",
+    "byteIdentical": true,
+    "oldSha256": "2f74330645b80775fcacf4e18cfa208fb43d652fd311b18ab480a8c6090c4164",
+    "newSha256": "2f74330645b80775fcacf4e18cfa208fb43d652fd311b18ab480a8c6090c4164",
+    "differences": [],
+    "interpretation": "IDENTICAL"
+  },
+  {
+    "group": "40",
+    "id": "duplicate-json-key.json",
+    "byteIdentical": true,
+    "oldSha256": "fa822d816da8f273a078f8864b5e3bf9b05bd927cbaf500e765da15de4c948be",
+    "newSha256": "fa822d816da8f273a078f8864b5e3bf9b05bd927cbaf500e765da15de4c948be",
+    "differences": [],
+    "interpretation": "IDENTICAL"
+  },
+  {
+    "group": "40",
+    "id": "duplicate-escaped-key.json",
+    "byteIdentical": true,
+    "oldSha256": "50055aebf0bfe343dc2f67cecb16f64faf9d6adbd5f01472d91034ef91824a07",
+    "newSha256": "50055aebf0bfe343dc2f67cecb16f64faf9d6adbd5f01472d91034ef91824a07",
+    "differences": [],
+    "interpretation": "IDENTICAL"
+  },
+  {
+    "group": "40",
+    "id": "malformed-json.json",
+    "byteIdentical": true,
+    "oldSha256": "8c25551d9894ba399de211e5ddb20ee3cb40e8264935422388bda14d6d913223",
+    "newSha256": "8c25551d9894ba399de211e5ddb20ee3cb40e8264935422388bda14d6d913223",
+    "differences": [],
+    "interpretation": "IDENTICAL"
+  },
+  {
+    "group": "40",
+    "id": "received-after-stop.json",
+    "byteIdentical": true,
+    "oldSha256": "b550e948cfad91d3ff63a4678b3ce3969c453f8db02bfb09dbfd235f45cd71bf",
+    "newSha256": "b550e948cfad91d3ff63a4678b3ce3969c453f8db02bfb09dbfd235f45cd71bf",
+    "differences": [],
+    "interpretation": "IDENTICAL"
+  },
+  {
+    "group": "40",
+    "id": "observed-abort.json",
+    "byteIdentical": true,
+    "oldSha256": "4ae41578fb44eb0e39685e050c7edb4b42e9ec3252a72dcb4c98b00d19c2e642",
+    "newSha256": "4ae41578fb44eb0e39685e050c7edb4b42e9ec3252a72dcb4c98b00d19c2e642",
+    "differences": [],
+    "interpretation": "IDENTICAL"
+  },
+  {
+    "group": "40",
+    "id": "internal-terminal-unknown.json",
+    "byteIdentical": true,
+    "oldSha256": "5937105eaea6eda655f03e8f3a227c499c5bfa017f233dcd7e99e19d12e0660a",
+    "newSha256": "5937105eaea6eda655f03e8f3a227c499c5bfa017f233dcd7e99e19d12e0660a",
+    "differences": [],
+    "interpretation": "IDENTICAL"
+  },
+  {
+    "group": "40",
+    "id": "observed-error.json",
+    "byteIdentical": true,
+    "oldSha256": "ff59970bf8608f4a14ba5a4ce49f5deacdd9d8f59463fceb98e82d85b3d83c31",
+    "newSha256": "ff59970bf8608f4a14ba5a4ce49f5deacdd9d8f59463fceb98e82d85b3d83c31",
+    "differences": [],
+    "interpretation": "IDENTICAL"
+  },
+  {
+    "group": "40",
+    "id": "collection-error.json",
+    "byteIdentical": true,
+    "oldSha256": "989edaf97197bb165f997f8c6b1618ee16ef1fd3b834ddbcfbb6af874132ff0d",
+    "newSha256": "989edaf97197bb165f997f8c6b1618ee16ef1fd3b834ddbcfbb6af874132ff0d",
+    "differences": [],
+    "interpretation": "IDENTICAL"
+  },
+  {
+    "group": "40",
+    "id": "duplicate-receipt.json",
+    "byteIdentical": true,
+    "oldSha256": "94c555c393c8ee2ab90a41227b898ed27bbc0d0e7549c3e06aae682221efc1bd",
+    "newSha256": "94c555c393c8ee2ab90a41227b898ed27bbc0d0e7549c3e06aae682221efc1bd",
+    "differences": [],
+    "interpretation": "IDENTICAL"
+  },
+  {
+    "group": "40",
+    "id": "duplicate-complete-reference.json",
+    "byteIdentical": true,
+    "oldSha256": "d59cc7d0b2777bca206c0681d92283d3c601ca034f47f40338d43f8e3c4d6cd5",
+    "newSha256": "d59cc7d0b2777bca206c0681d92283d3c601ca034f47f40338d43f8e3c4d6cd5",
+    "differences": [],
+    "interpretation": "IDENTICAL"
+  },
+  {
+    "group": "40",
+    "id": "cross-transaction-link.json",
+    "byteIdentical": true,
+    "oldSha256": "bb5cc6ea433a19a413d283409e6e7a0a782c2e83f27753a955c0e4fd18c6c518",
+    "newSha256": "bb5cc6ea433a19a413d283409e6e7a0a782c2e83f27753a955c0e4fd18c6c518",
+    "differences": [],
+    "interpretation": "IDENTICAL"
+  },
+  {
+    "group": "40",
+    "id": "sequence-collision.json",
+    "byteIdentical": true,
+    "oldSha256": "4093d7355d5e46936bc4247baa1587cb2b22770297baccb4011259a19f8a5899",
+    "newSha256": "4093d7355d5e46936bc4247baa1587cb2b22770297baccb4011259a19f8a5899",
+    "differences": [],
+    "interpretation": "IDENTICAL"
+  },
+  {
+    "group": "40",
+    "id": "dangling-send.json",
+    "byteIdentical": true,
+    "oldSha256": "dca40f23308cc5be796174af36a196d0feeae0d4e2959919bd070e969e0d68b3",
+    "newSha256": "dca40f23308cc5be796174af36a196d0feeae0d4e2959919bd070e969e0d68b3",
+    "differences": [],
+    "interpretation": "IDENTICAL"
+  },
+  {
+    "group": "40",
+    "id": "all-events-deleted.json",
+    "byteIdentical": true,
+    "oldSha256": "f0db97a876590ec0ae875ab841a40c3ce96782bcc1087bcfc8253f1f349f4c1f",
+    "newSha256": "f0db97a876590ec0ae875ab841a40c3ce96782bcc1087bcfc8253f1f349f4c1f",
+    "differences": [],
+    "interpretation": "IDENTICAL"
+  },
+  {
+    "group": "37",
+    "id": "A-arity",
+    "byteIdentical": true,
+    "oldSha256": "5980e2e0fc635368bcaa260c9d65b1271ddcdf98139f633f8fd802041fa914ba",
+    "newSha256": "5980e2e0fc635368bcaa260c9d65b1271ddcdf98139f633f8fd802041fa914ba",
+    "differences": [],
+    "interpretation": "IDENTICAL"
+  },
+  {
+    "group": "37",
+    "id": "A-missing",
+    "byteIdentical": false,
+    "oldSha256": "3035e3a156cc57d7784c38c57529b84192d5d86b21c8f42288ee273df6258a24",
+    "newSha256": "bc0009f5f2816e92d408361b8aa4881afe994230e5d575a25976cd73c4d75fdc",
+    "differences": [
+      {
+        "field": "/validationErrors/0/detail",
+        "before": "ENOENT: no such file or directory, open 'C:\\Users\\tetsu\\Documents\\Codex\\メモ帳\\work\\idb-evidence-collector-u1\\design\\idb-incomplete-stop\\collector\\independent\\fixtures\\intentionally-absent.json'",
+        "after": "ENOENT: no such file or directory, open 'C:\\Users\\tetsu\\Documents\\Codex\\メモ帳\\work\\u1-a405-accept-20261103\\new\\design\\idb-incomplete-stop\\collector\\independent\\fixtures\\intentionally-absent.json'"
+      }
+    ],
+    "interpretation": "ENVIRONMENT_PATH_ONLY"
+  },
+  {
+    "group": "37",
+    "id": "A-denied",
+    "byteIdentical": false,
+    "oldSha256": "776deb3e511594cf5ae959fc65efecc69713f1343d88973a803a6d71a56caba9",
+    "newSha256": "33fa78511a2cd81c8fd55b06f8baefccf7a5351ffee177bdbe69076c44dfa89b",
+    "differences": [
+      {
+        "field": "/validationErrors/0/detail",
+        "before": "EBUSY: resource busy or locked, open 'C:\\Users\\tetsu\\Documents\\Codex\\メモ帳\\work\\idb-evidence-collector-u1\\design\\idb-incomplete-stop\\collector\\independent\\fixtures\\A-denied.json'",
+        "after": "EBUSY: resource busy or locked, open 'C:\\Users\\tetsu\\Documents\\Codex\\メモ帳\\work\\u1-a405-accept-20261103\\new\\design\\idb-incomplete-stop\\collector\\independent\\fixtures\\A-denied.json'"
+      }
+    ],
+    "interpretation": "ENVIRONMENT_PATH_ONLY"
+  },
+  {
+    "group": "37",
+    "id": "A-oversize",
+    "byteIdentical": true,
+    "oldSha256": "3d4c8064a67bc9d70a23c479647597716ab13616445a08d40cc3b5945816d103",
+    "newSha256": "3d4c8064a67bc9d70a23c479647597716ab13616445a08d40cc3b5945816d103",
+    "differences": [],
+    "interpretation": "IDENTICAL"
+  },
+  {
+    "group": "37",
+    "id": "A-utf8",
+    "byteIdentical": true,
+    "oldSha256": "c596b98d34d0f85245004f0b878c4533219fa69f415fde86d5313a62def36e9c",
+    "newSha256": "c596b98d34d0f85245004f0b878c4533219fa69f415fde86d5313a62def36e9c",
+    "differences": [],
+    "interpretation": "IDENTICAL"
+  },
+  {
+    "group": "37",
+    "id": "A-json",
+    "byteIdentical": true,
+    "oldSha256": "21a55eec1a996a0fb778603a6dc8c86ef80b65d0240486875102e8f5d7cf5e95",
+    "newSha256": "21a55eec1a996a0fb778603a6dc8c86ef80b65d0240486875102e8f5d7cf5e95",
+    "differences": [],
+    "interpretation": "IDENTICAL"
+  },
+  {
+    "group": "37",
+    "id": "A-hash",
+    "byteIdentical": true,
+    "oldSha256": "9a39055ca5854d5342cb26c9744b258280e73f45b96fbc49f5f35d1c26b9e98a",
+    "newSha256": "9a39055ca5854d5342cb26c9744b258280e73f45b96fbc49f5f35d1c26b9e98a",
+    "differences": [],
+    "interpretation": "IDENTICAL"
+  },
+  {
+    "group": "37",
+    "id": "A-material",
+    "byteIdentical": true,
+    "oldSha256": "6787e19bda70ff0872a304b6451bb98ee1e913eb0f4ca6cc85ae36cf33945db3",
+    "newSha256": "6787e19bda70ff0872a304b6451bb98ee1e913eb0f4ca6cc85ae36cf33945db3",
+    "differences": [],
+    "interpretation": "IDENTICAL"
+  },
+  {
+    "group": "37",
+    "id": "B-gap-only",
+    "byteIdentical": true,
+    "oldSha256": "654b045938aa4905eea04233a806ae5ca2ccc98ddf172a65410b876895bf525e",
+    "newSha256": "654b045938aa4905eea04233a806ae5ca2ccc98ddf172a65410b876895bf525e",
+    "differences": [],
+    "interpretation": "IDENTICAL"
+  },
+  {
+    "group": "37",
+    "id": "B-duplicate-only",
+    "byteIdentical": true,
+    "oldSha256": "680880e9a9e94f3fb204a06f2e95cf1ed76ae2b7e9dad508ed52d0efdb19c823",
+    "newSha256": "680880e9a9e94f3fb204a06f2e95cf1ed76ae2b7e9dad508ed52d0efdb19c823",
+    "differences": [],
+    "interpretation": "IDENTICAL"
+  },
+  {
+    "group": "37",
+    "id": "B-outside-only",
+    "byteIdentical": true,
+    "oldSha256": "f4ffd58a07240198e2f89706f8fb604a22300d6f842d7ea1b0b64d19785d310b",
+    "newSha256": "f4ffd58a07240198e2f89706f8fb604a22300d6f842d7ea1b0b64d19785d310b",
+    "differences": [],
+    "interpretation": "IDENTICAL"
+  },
+  {
+    "group": "37",
+    "id": "B-reference-missing",
+    "byteIdentical": true,
+    "oldSha256": "6c0af3470e122102b1ea03af2d13d41e9d9f40b0d616afa630e3ffb4662e1aec",
+    "newSha256": "6c0af3470e122102b1ea03af2d13d41e9d9f40b0d616afa630e3ffb4662e1aec",
+    "differences": [],
+    "interpretation": "IDENTICAL"
+  },
+  {
+    "group": "37",
+    "id": "B-gap-and-duplicate",
+    "byteIdentical": true,
+    "oldSha256": "1856597451a305fde079883e3757bb7ba6328f5498eebcbe9b734c7b7ab017ff",
+    "newSha256": "1856597451a305fde079883e3757bb7ba6328f5498eebcbe9b734c7b7ab017ff",
+    "differences": [],
+    "interpretation": "IDENTICAL"
+  },
+  {
+    "group": "37",
+    "id": "B-gap-and-wrong-type",
+    "byteIdentical": true,
+    "oldSha256": "6ce04e8bb143d0f79afcb34af788a0d1d9859756b546a325dc0e371d7fb241f8",
+    "newSha256": "6ce04e8bb143d0f79afcb34af788a0d1d9859756b546a325dc0e371d7fb241f8",
+    "differences": [],
+    "interpretation": "IDENTICAL"
+  },
+  {
+    "group": "37",
+    "id": "B-gap-and-foreign-transaction",
+    "byteIdentical": true,
+    "oldSha256": "4faaa394b9762dc4b5426e20299ca3afd6a2c311258e38939dc39ed4e8285cf0",
+    "newSha256": "4faaa394b9762dc4b5426e20299ca3afd6a2c311258e38939dc39ed4e8285cf0",
+    "differences": [],
+    "interpretation": "IDENTICAL"
+  },
+  {
+    "group": "37",
+    "id": "B-loss-and-terminal-conflict",
+    "byteIdentical": true,
+    "oldSha256": "09e5f5fbc4b72a748b7b21494cb66ce784f95b127e6a0504a1aa129c38d8131d",
+    "newSha256": "09e5f5fbc4b72a748b7b21494cb66ce784f95b127e6a0504a1aa129c38d8131d",
+    "differences": [],
+    "interpretation": "IDENTICAL"
+  },
+  {
+    "group": "37",
+    "id": "C-worker-complete-only",
+    "byteIdentical": true,
+    "oldSha256": "03471117ee89fbb4116407de87a84bee92eae818835277f7e73ccbfa294d021e",
+    "newSha256": "03471117ee89fbb4116407de87a84bee92eae818835277f7e73ccbfa294d021e",
+    "differences": [],
+    "interpretation": "IDENTICAL"
+  },
+  {
+    "group": "37",
+    "id": "C-sent-only",
+    "byteIdentical": true,
+    "oldSha256": "47cf1fbdb2ad89cba46c1e6de26c34907ab3d54a0568ca91e078f420608a2c23",
+    "newSha256": "47cf1fbdb2ad89cba46c1e6de26c34907ab3d54a0568ca91e078f420608a2c23",
+    "differences": [],
+    "interpretation": "IDENTICAL"
+  },
+  {
+    "group": "37",
+    "id": "C-received-before-stop",
+    "byteIdentical": true,
+    "oldSha256": "6e7646d0f2b7af10d551d840d5013e950b642f7feec74340e67858959d1349e2",
+    "newSha256": "6e7646d0f2b7af10d551d840d5013e950b642f7feec74340e67858959d1349e2",
+    "differences": [],
+    "interpretation": "IDENTICAL"
+  },
+  {
+    "group": "37",
+    "id": "C-received-after-stop",
+    "byteIdentical": true,
+    "oldSha256": "29a64a26f4cbb1187fd1b139ef7d0ffb93d3801b6ba6556c5590aadcdb5a0cf4",
+    "newSha256": "29a64a26f4cbb1187fd1b139ef7d0ffb93d3801b6ba6556c5590aadcdb5a0cf4",
+    "differences": [],
+    "interpretation": "IDENTICAL"
+  },
+  {
+    "group": "37",
+    "id": "C-complete-other-transaction",
+    "byteIdentical": true,
+    "oldSha256": "ad13fbcace0dd73a41ea686c373095ca98d11c5723ad92ef89b1cc7ec5a72317",
+    "newSha256": "ad13fbcace0dd73a41ea686c373095ca98d11c5723ad92ef89b1cc7ec5a72317",
+    "differences": [],
+    "interpretation": "IDENTICAL"
+  },
+  {
+    "group": "37",
+    "id": "C-send-other-worker",
+    "byteIdentical": true,
+    "oldSha256": "dc7c7deae7ae35725de4fc7eb8c5bb8da157448b9605bec91e29fbeca15c681b",
+    "newSha256": "dc7c7deae7ae35725de4fc7eb8c5bb8da157448b9605bec91e29fbeca15c681b",
+    "differences": [],
+    "interpretation": "IDENTICAL"
+  },
+  {
+    "group": "37",
+    "id": "C-incomparable-sources",
+    "byteIdentical": true,
+    "oldSha256": "36b9dd221725acbc91a6a7c5a32d39e473167385c7bc22c404b22c997d9be680",
+    "newSha256": "36b9dd221725acbc91a6a7c5a32d39e473167385c7bc22c404b22c997d9be680",
+    "differences": [],
+    "interpretation": "IDENTICAL"
+  },
+  {
+    "group": "37",
+    "id": "C-local-order-reversed",
+    "byteIdentical": true,
+    "oldSha256": "02051c32e8f7b66c184ea6cdd8feb25b627ee3c08181bae3224a6a0068d63fcc",
+    "newSha256": "02051c32e8f7b66c184ea6cdd8feb25b627ee3c08181bae3224a6a0068d63fcc",
+    "differences": [],
+    "interpretation": "IDENTICAL"
+  },
+  {
+    "group": "37",
+    "id": "C-array-reversed",
+    "byteIdentical": true,
+    "oldSha256": "56b93e1860f2a369904bbb5f134d50a40d12e2530b200e3588af794c902ec603",
+    "newSha256": "56b93e1860f2a369904bbb5f134d50a40d12e2530b200e3588af794c902ec603",
+    "differences": [],
+    "interpretation": "IDENTICAL"
+  },
+  {
+    "group": "37",
+    "id": "C-clocks-exchanged",
+    "byteIdentical": true,
+    "oldSha256": "7b98b998c79d33a7c2c97ee4168910adae178238b7db048457bea7d96beec2b5",
+    "newSha256": "7b98b998c79d33a7c2c97ee4168910adae178238b7db048457bea7d96beec2b5",
+    "differences": [],
+    "interpretation": "IDENTICAL"
+  },
+  {
+    "group": "37",
+    "id": "C-stop-prerequisite-missing",
+    "byteIdentical": true,
+    "oldSha256": "501bfc2d451301c83aa4bba6e1fd289e75bbf30eb6d59a45120f06b0ee4aec64",
+    "newSha256": "501bfc2d451301c83aa4bba6e1fd289e75bbf30eb6d59a45120f06b0ee4aec64",
+    "differences": [],
+    "interpretation": "IDENTICAL"
+  },
+  {
+    "group": "37",
+    "id": "C-worker-event-in-main-source",
+    "byteIdentical": true,
+    "oldSha256": "f0924ec9b806027842c2324743b378db3daa82ecf7138853fb8857c217706afe",
+    "newSha256": "f0924ec9b806027842c2324743b378db3daa82ecf7138853fb8857c217706afe",
+    "differences": [],
+    "interpretation": "IDENTICAL"
+  },
+  {
+    "group": "37",
+    "id": "C-main-event-in-worker-source",
+    "byteIdentical": true,
+    "oldSha256": "845866065f3e33b6ab81e575c66fd72498ce9164aa4160485f7375a203759908",
+    "newSha256": "845866065f3e33b6ab81e575c66fd72498ce9164aa4160485f7375a203759908",
+    "differences": [],
+    "interpretation": "IDENTICAL"
+  },
+  {
+    "group": "37",
+    "id": "D-same-worker-two-transactions",
+    "byteIdentical": true,
+    "oldSha256": "e7a14ffe1190ae83fc19ce56851857236b5ef766da051ea4356a026a3295c969",
+    "newSha256": "e7a14ffe1190ae83fc19ce56851857236b5ef766da051ea4356a026a3295c969",
+    "differences": [],
+    "interpretation": "IDENTICAL"
+  },
+  {
+    "group": "37",
+    "id": "D-two-workers-shared-main",
+    "byteIdentical": true,
+    "oldSha256": "59c5be320be2ac5ac414dbad8e21c03097625a8f9f8c9bc20a2446287853e9cd",
+    "newSha256": "59c5be320be2ac5ac414dbad8e21c03097625a8f9f8c9bc20a2446287853e9cd",
+    "differences": [],
+    "interpretation": "IDENTICAL"
+  },
+  {
+    "group": "37",
+    "id": "D-event-id-reused",
+    "byteIdentical": true,
+    "oldSha256": "c8c4c88c048a4c936342908d1101a2501ce6931b5f86c3b29e897d6e45ac3855",
+    "newSha256": "c8c4c88c048a4c936342908d1101a2501ce6931b5f86c3b29e897d6e45ac3855",
+    "differences": [],
+    "interpretation": "IDENTICAL"
+  },
+  {
+    "group": "37",
+    "id": "D-complete-double-reference",
+    "byteIdentical": true,
+    "oldSha256": "da9aadcfcd95863285459d1ee2e371fc4b1ca89ca16d9244c8849fde9a277245",
+    "newSha256": "da9aadcfcd95863285459d1ee2e371fc4b1ca89ca16d9244c8849fde9a277245",
+    "differences": [],
+    "interpretation": "IDENTICAL"
+  },
+  {
+    "group": "37",
+    "id": "D-send-double-receipt",
+    "byteIdentical": true,
+    "oldSha256": "96b240558ade061b6959f53a1e6cbbeaec2f4d7e8cbbbb1aa2a528d25646dd3b",
+    "newSha256": "96b240558ade061b6959f53a1e6cbbeaec2f4d7e8cbbbb1aa2a528d25646dd3b",
+    "differences": [],
+    "interpretation": "IDENTICAL"
+  },
+  {
+    "group": "37",
+    "id": "D-foreign-workerId",
+    "byteIdentical": true,
+    "oldSha256": "1369efeb0888ae1a42a99bebdc9ed43c5c847880d4ea36a706b77b0199409060",
+    "newSha256": "1369efeb0888ae1a42a99bebdc9ed43c5c847880d4ea36a706b77b0199409060",
+    "differences": [],
+    "interpretation": "IDENTICAL"
+  },
+  {
+    "group": "37",
+    "id": "D-foreign-connectionId",
+    "byteIdentical": true,
+    "oldSha256": "7fd64c5aa2172a12e8e0202278c0162226bd10e8d93fcd093b0071eb82e22fe8",
+    "newSha256": "7fd64c5aa2172a12e8e0202278c0162226bd10e8d93fcd093b0071eb82e22fe8",
+    "differences": [],
+    "interpretation": "IDENTICAL"
+  },
+  {
+    "group": "37",
+    "id": "D-foreign-iteration",
+    "byteIdentical": true,
+    "oldSha256": "097a9e82c0a7e5cd76c44a25209bbbdfb32132753d0ec793c98f243f16b80f2d",
+    "newSha256": "097a9e82c0a7e5cd76c44a25209bbbdfb32132753d0ec793c98f243f16b80f2d",
+    "differences": [],
+    "interpretation": "IDENTICAL"
+  },
+  {
+    "group": "18",
+    "id": "A-many-130000",
+    "byteIdentical": true,
+    "oldSha256": "5957a3314c114ff71c2413819c5332b901356f95e0e7b9de8e48a8c8f54799ba",
+    "newSha256": "5957a3314c114ff71c2413819c5332b901356f95e0e7b9de8e48a8c8f54799ba",
+    "differences": [],
+    "interpretation": "IDENTICAL"
+  },
+  {
+    "group": "18",
+    "id": "B-key-8192",
+    "byteIdentical": true,
+    "oldSha256": "2db366865119e81e5ef15a20b4eb2503a7040c1e31eafe359a5202ef19dc292e",
+    "newSha256": "2db366865119e81e5ef15a20b4eb2503a7040c1e31eafe359a5202ef19dc292e",
+    "differences": [],
+    "interpretation": "IDENTICAL"
+  },
+  {
+    "group": "18",
+    "id": "C-errors-8193",
+    "byteIdentical": true,
+    "oldSha256": "c14ede83799315ac45cfd48302555a75eec0eb89c98226d0c7c9523080aa6d3f",
+    "newSha256": "c14ede83799315ac45cfd48302555a75eec0eb89c98226d0c7c9523080aa6d3f",
+    "differences": [],
+    "interpretation": "IDENTICAL"
+  },
+  {
+    "group": "18",
+    "id": "count-255",
+    "byteIdentical": true,
+    "oldSha256": "fc13764c335ae456f4d6b60b0142ed48ee7702c165634172b195eb0b68545556",
+    "newSha256": "fc13764c335ae456f4d6b60b0142ed48ee7702c165634172b195eb0b68545556",
+    "differences": [],
+    "interpretation": "IDENTICAL"
+  },
+  {
+    "group": "18",
+    "id": "count-256",
+    "byteIdentical": true,
+    "oldSha256": "7a3c597f5a4bc17186fe1745839928aef7e686f767f30d462df1bf6e8eb1f817",
+    "newSha256": "7a3c597f5a4bc17186fe1745839928aef7e686f767f30d462df1bf6e8eb1f817",
+    "differences": [],
+    "interpretation": "IDENTICAL"
+  },
+  {
+    "group": "18",
+    "id": "count-257",
+    "byteIdentical": true,
+    "oldSha256": "790fd73c7f1f9fd1b00c4fc921f3ce7f316c03cdeb7744b054034e8b7150ae53",
+    "newSha256": "790fd73c7f1f9fd1b00c4fc921f3ce7f316c03cdeb7744b054034e8b7150ae53",
+    "differences": [],
+    "interpretation": "IDENTICAL"
+  },
+  {
+    "group": "18",
+    "id": "ascii-key-8190",
+    "byteIdentical": true,
+    "oldSha256": "644d516c55527620211209c1ddcdb21221db3a0fe41d82cc01cf89c3724d421a",
+    "newSha256": "644d516c55527620211209c1ddcdb21221db3a0fe41d82cc01cf89c3724d421a",
+    "differences": [],
+    "interpretation": "IDENTICAL"
+  },
+  {
+    "group": "18",
+    "id": "ascii-key-8191",
+    "byteIdentical": true,
+    "oldSha256": "ffe65e2dd5629f46c12b349c74a4b2b31471f29dc43231f61634b9d697bd9fca",
+    "newSha256": "ffe65e2dd5629f46c12b349c74a4b2b31471f29dc43231f61634b9d697bd9fca",
+    "differences": [],
+    "interpretation": "IDENTICAL"
+  },
+  {
+    "group": "18",
+    "id": "unicode-key-8191",
+    "byteIdentical": true,
+    "oldSha256": "0b74851afdbbec620138e4a69dd567a1cc73914f7477e10758e877e09dbd3b92",
+    "newSha256": "0b74851afdbbec620138e4a69dd567a1cc73914f7477e10758e877e09dbd3b92",
+    "differences": [],
+    "interpretation": "IDENTICAL"
+  },
+  {
+    "group": "18",
+    "id": "unicode-key-8192",
+    "byteIdentical": true,
+    "oldSha256": "37cb098b429795bbe31dcc12a14d8f72d358df8765e2eb2214e19fdc7f71e43b",
+    "newSha256": "37cb098b429795bbe31dcc12a14d8f72d358df8765e2eb2214e19fdc7f71e43b",
+    "differences": [],
+    "interpretation": "IDENTICAL"
+  },
+  {
+    "group": "18",
+    "id": "combining-key-8192",
+    "byteIdentical": true,
+    "oldSha256": "52f8bebbb5967f5b0034da57ae79182f9595ab4d0d145022d1a71273ae0aaa26",
+    "newSha256": "52f8bebbb5967f5b0034da57ae79182f9595ab4d0d145022d1a71273ae0aaa26",
+    "differences": [],
+    "interpretation": "IDENTICAL"
+  },
+  {
+    "group": "18",
+    "id": "late-input-descriptor",
+    "byteIdentical": true,
+    "oldSha256": "835c8ba15c7048d98230cb965c1b76e3112ac80bd29034624a6024d9035e269c",
+    "newSha256": "835c8ba15c7048d98230cb965c1b76e3112ac80bd29034624a6024d9035e269c",
+    "differences": [],
+    "interpretation": "IDENTICAL"
+  },
+  {
+    "group": "18",
+    "id": "mixed-structural-errors",
+    "byteIdentical": true,
+    "oldSha256": "8028f86ba10e1dadf9c3278b0d874d21840232efc0b61d9aec922bd22615ced8",
+    "newSha256": "8028f86ba10e1dadf9c3278b0d874d21840232efc0b61d9aec922bd22615ced8",
+    "differences": [],
+    "interpretation": "IDENTICAL"
+  },
+  {
+    "group": "18",
+    "id": "late-event-error",
+    "byteIdentical": true,
+    "oldSha256": "f4f96a3022e7ec57e645a310c7dab1b3ee968e80d60f112342e1b389559da5f4",
+    "newSha256": "f4f96a3022e7ec57e645a310c7dab1b3ee968e80d60f112342e1b389559da5f4",
+    "differences": [],
+    "interpretation": "IDENTICAL"
+  },
+  {
+    "group": "18",
+    "id": "long-cli-error",
+    "byteIdentical": false,
+    "oldSha256": "b333468267515a7c14395f07b0f8d4a572891b6bb358f35000eb26e3a7b5b420",
+    "newSha256": "eab539d617ed06c1b7c1801f5e6a0d811670ffc75f6f89b61c9c0dc06b76d2c1",
+    "differences": [
+      {
+        "field": "/validationErrors/0/detail",
+        "before": "ENOENT: no such file or directory, open 'C:\\Users\\tetsu\\Documents\\Codex\\メモ帳\\work\\idb-evidence-collector-u1\\design\\idb-incomplete-stop\\collector\\diagnostic-fix\\records\\after\\nonexistent-zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz...[truncated]",
+        "after": "ENOENT: no such file or directory, open 'C:\\Users\\tetsu\\Documents\\Codex\\メモ帳\\work\\u1-a405-accept-20261103\\regression\\regression18\\nonexistent-zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz...[truncated]"
+      }
+    ],
+    "interpretation": "ENVIRONMENT_PATH_ONLY"
+  },
+  {
+    "group": "18",
+    "id": "normal",
+    "byteIdentical": true,
+    "oldSha256": "056fae9b8f4f2eecf5de38814f57dccf63202649b3774d597f8fea07c8dbb047",
+    "newSha256": "056fae9b8f4f2eecf5de38814f57dccf63202649b3774d597f8fea07c8dbb047",
+    "differences": [],
+    "interpretation": "IDENTICAL"
+  },
+  {
+    "group": "18",
+    "id": "missing-plus-conflict",
+    "byteIdentical": true,
+    "oldSha256": "0d17edb96f93890d6de46909510b2cbfe8b08851824eb1411ff87a48b0e68f2a",
+    "newSha256": "0d17edb96f93890d6de46909510b2cbfe8b08851824eb1411ff87a48b0e68f2a",
+    "differences": [],
+    "interpretation": "IDENTICAL"
+  },
+  {
+    "group": "18",
+    "id": "R2-out-of-scope-sentinel",
+    "byteIdentical": true,
+    "oldSha256": "b10d32ac9d4e2d64a414c139af7588c7f1f2e74b86e81e80b54b578db5705363",
+    "newSha256": "b10d32ac9d4e2d64a414c139af7588c7f1f2e74b86e81e80b54b578db5705363",
+    "differences": [],
+    "interpretation": "IDENTICAL"
+  }
+]

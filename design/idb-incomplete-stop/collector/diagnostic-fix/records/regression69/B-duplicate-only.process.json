@@ -1,0 +1,15 @@
+{
+  "status": 1,
+  "signal": null,
+  "error": null,
+  "inputSha256": "3fc94f4e6e1319a01704e391a8864c578fbbf227f1b0a912ddbea587d4e11f70",
+  "expected": {
+    "status": "INCONSISTENT",
+    "exit": 1,
+    "r": "UNKNOWN",
+    "u": "UNKNOWN",
+    "codes": [
+      "SEQUENCE_COLLISION"
+    ]
+  }
+}

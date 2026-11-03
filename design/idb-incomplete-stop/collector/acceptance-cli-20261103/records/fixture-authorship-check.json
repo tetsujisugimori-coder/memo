@@ -1,0 +1,22 @@
+[
+  {
+    "file": "expectations.json",
+    "sha256": "3095913f32287c9493b6f862b34d5f7e7a2514349c189ef4650807a094fa7919",
+    "fixedFixtureBytesEqual": true
+  },
+  {
+    "file": "invalid.json",
+    "sha256": "40b5cafe045b9c9e31a1c3fdcfbc89f934906ff06a6276b55c2a0e517be21655",
+    "fixedFixtureBytesEqual": true
+  },
+  {
+    "file": "normal.json",
+    "sha256": "0ac1843651c9b0ed2d2e142ccb1ae382a13b976a21adeba27126bbef73ac49aa",
+    "fixedFixtureBytesEqual": true
+  },
+  {
+    "file": "oversize.json.gz",
+    "sha256": "bca90505cb153a3d546d43cc21a37a414caa05f06a731dd10b4b8ae7d079f679",
+    "fixedFixtureBytesEqual": true
+  }
+]

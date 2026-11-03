@@ -1,0 +1,145 @@
+{
+  "collectorSchemaVersion": 1,
+  "scope": "OFFLINE_SYNTHETIC_ONLY",
+  "evidenceStatus": "CONSISTENT",
+  "exitCode": 0,
+  "input": {
+    "materialId": "reversed-array",
+    "actualSha256": "a58f7d6b8d748ae64cebbdd7732f8c1d3571e3bf6ff10c215c5ac1a4fa3390bd",
+    "expectedSha256": "a58f7d6b8d748ae64cebbdd7732f8c1d3571e3bf6ff10c215c5ac1a4fa3390bd",
+    "semanticSha256": "16875faae00a1cc61eb481d22be129fa82c6a29f37d596c69dec3ed1fc7a524f"
+  },
+  "relations": [
+    {
+      "from": "w3",
+      "to": "m1",
+      "kind": "send-receive"
+    },
+    {
+      "from": "w5",
+      "to": "w6",
+      "kind": "complete-send"
+    },
+    {
+      "from": "w6",
+      "to": "m2",
+      "kind": "send-receive"
+    }
+  ],
+  "orderRelations": [
+    {
+      "before": "w3",
+      "after": "m1",
+      "basis": "explicit-message"
+    },
+    {
+      "before": "w6",
+      "after": "m2",
+      "basis": "explicit-message"
+    },
+    {
+      "before": "m1",
+      "after": "m2",
+      "basis": "source-sequence"
+    },
+    {
+      "before": "m2",
+      "after": "m3",
+      "basis": "source-sequence"
+    },
+    {
+      "before": "m3",
+      "after": "m4",
+      "basis": "source-sequence"
+    },
+    {
+      "before": "m4",
+      "after": "m5",
+      "basis": "source-sequence"
+    },
+    {
+      "before": "w1",
+      "after": "w2",
+      "basis": "source-sequence"
+    },
+    {
+      "before": "w2",
+      "after": "w3",
+      "basis": "source-sequence"
+    },
+    {
+      "before": "w3",
+      "after": "w4",
+      "basis": "source-sequence"
+    },
+    {
+      "before": "w4",
+      "after": "w5",
+      "basis": "source-sequence"
+    },
+    {
+      "before": "w5",
+      "after": "w6",
+      "basis": "complete-reference"
+    },
+    {
+      "before": "w5",
+      "after": "w6",
+      "basis": "source-sequence"
+    }
+  ],
+  "missingEvidence": [
+    {
+      "code": "ACTUAL_STOP_BOUNDARY_MISSING",
+      "subject": "{\"connectionId\":\"c1\",\"dbName\":\"synthetic-only\",\"iteration\":1,\"runId\":\"session-1\",\"transactionId\":\"t1\",\"workerId\":\"w1\"}",
+      "detail": "terminate return is not actual stop",
+      "scope": "FUTURE_WITNESS"
+    },
+    {
+      "code": "NORMAL_UNTERMINATED_WITNESS_MISSING",
+      "subject": "{\"connectionId\":\"c1\",\"dbName\":\"synthetic-only\",\"iteration\":1,\"runId\":\"session-1\",\"transactionId\":\"t1\",\"workerId\":\"w1\"}",
+      "detail": "independent normal interval and internal ID/build binding unavailable",
+      "scope": "FUTURE_WITNESS"
+    }
+  ],
+  "contradictions": [],
+  "validationErrors": [],
+  "reasons": [],
+  "unknownReasons": [
+    "ACTUAL_STOP_BOUNDARY_MISSING",
+    "NORMAL_UNTERMINATED_WITNESS_MISSING"
+  ],
+  "transactions": [
+    {
+      "identity": {
+        "runId": "session-1",
+        "dbName": "synthetic-only",
+        "workerId": "w1",
+        "connectionId": "c1",
+        "transactionId": "t1",
+        "iteration": 1
+      },
+      "assessment": {
+        "validTrace": "PASS",
+        "conditionR": "PASS",
+        "conditionU": "FAIL",
+        "conditionReasonR": "COMPLETED_BEFORE_STOP",
+        "conditionReasonU": "COMPLETED_BEFORE_STOP",
+        "workerObservation": "PASS",
+        "connectionClosed": "UNKNOWN",
+        "physicalRelease": "UNKNOWN"
+      }
+    }
+  ],
+  "realExperiment": "NOT_RUN",
+  "executionAuthorization": "NOT_GRANTED",
+  "startCondition": "BLOCKED",
+  "conditionU": "NOT_RUN",
+  "productionWorker": "HOLD",
+  "hypotheses": {
+    "H1": "UNKNOWN",
+    "H2": "UNKNOWN",
+    "H3": "UNKNOWN",
+    "H4": "PARTIAL"
+  }
+}

@@ -1,0 +1,1431 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:memo-nexus:offline-collector-input:1",
+  "type": "object",
+  "properties": {
+    "schemaVersion": {
+      "type": "integer",
+      "enum": [
+        1
+      ]
+    },
+    "fixtureKind": {
+      "type": "string",
+      "enum": [
+        "SYNTHETIC"
+      ]
+    },
+    "materialId": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,127}(?![\\s\\S])",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "planId": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,127}(?![\\s\\S])",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "runId": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,127}(?![\\s\\S])",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "identities": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "runId": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,127}(?![\\s\\S])",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "dbName": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,127}(?![\\s\\S])",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "workerId": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,127}(?![\\s\\S])",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "connectionId": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,127}(?![\\s\\S])",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "transactionId": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,127}(?![\\s\\S])",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "iteration": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 8192
+          }
+        },
+        "required": [
+          "runId",
+          "dbName",
+          "workerId",
+          "connectionId",
+          "transactionId",
+          "iteration"
+        ],
+        "additionalProperties": false
+      },
+      "maxItems": 32,
+      "minItems": 1
+    },
+    "streams": {
+      "type": "array",
+      "items": {
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "source": {
+                "type": "string",
+                "enum": [
+                  "main"
+                ]
+              },
+              "firstSeq": {
+                "type": "integer",
+                "enum": [
+                  1
+                ]
+              },
+              "lastSeq": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 8192
+              }
+            },
+            "required": [
+              "source",
+              "firstSeq",
+              "lastSeq"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "source": {
+                "type": "string",
+                "enum": [
+                  "worker"
+                ]
+              },
+              "workerId": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,127}(?![\\s\\S])",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "firstSeq": {
+                "type": "integer",
+                "enum": [
+                  1
+                ]
+              },
+              "lastSeq": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 8192
+              }
+            },
+            "required": [
+              "source",
+              "workerId",
+              "firstSeq",
+              "lastSeq"
+            ],
+            "additionalProperties": false
+          }
+        ]
+      },
+      "maxItems": 33,
+      "minItems": 1
+    },
+    "events": {
+      "type": "array",
+      "items": {
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "runId": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,127}(?![\\s\\S])",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "dbName": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,127}(?![\\s\\S])",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "workerId": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,127}(?![\\s\\S])",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "connectionId": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,127}(?![\\s\\S])",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "transactionId": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,127}(?![\\s\\S])",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "iteration": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 8192
+              },
+              "eventId": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,127}(?![\\s\\S])",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "sourceSeq": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 8192
+              },
+              "sourceMs": {
+                "type": "number"
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "transaction_identified"
+                ]
+              },
+              "source": {
+                "type": "string",
+                "enum": [
+                  "worker"
+                ]
+              }
+            },
+            "required": [
+              "runId",
+              "dbName",
+              "workerId",
+              "connectionId",
+              "transactionId",
+              "iteration",
+              "eventId",
+              "sourceSeq",
+              "type",
+              "source"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "runId": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,127}(?![\\s\\S])",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "dbName": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,127}(?![\\s\\S])",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "workerId": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,127}(?![\\s\\S])",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "connectionId": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,127}(?![\\s\\S])",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "transactionId": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,127}(?![\\s\\S])",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "iteration": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 8192
+              },
+              "eventId": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,127}(?![\\s\\S])",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "sourceSeq": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 8192
+              },
+              "sourceMs": {
+                "type": "number"
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "request_accepted"
+                ]
+              },
+              "source": {
+                "type": "string",
+                "enum": [
+                  "worker"
+                ]
+              },
+              "requestId": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,127}(?![\\s\\S])",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "mode": {
+                "type": "string",
+                "enum": [
+                  "readonly"
+                ]
+              },
+              "result": {
+                "type": "string",
+                "enum": [
+                  "accepted"
+                ]
+              }
+            },
+            "required": [
+              "runId",
+              "dbName",
+              "workerId",
+              "connectionId",
+              "transactionId",
+              "iteration",
+              "eventId",
+              "sourceSeq",
+              "type",
+              "source",
+              "requestId",
+              "mode",
+              "result"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "runId": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,127}(?![\\s\\S])",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "dbName": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,127}(?![\\s\\S])",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "workerId": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,127}(?![\\s\\S])",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "connectionId": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,127}(?![\\s\\S])",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "transactionId": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,127}(?![\\s\\S])",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "iteration": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 8192
+              },
+              "eventId": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,127}(?![\\s\\S])",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "sourceSeq": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 8192
+              },
+              "sourceMs": {
+                "type": "number"
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "send"
+                ]
+              },
+              "source": {
+                "type": "string",
+                "enum": [
+                  "worker"
+                ]
+              }
+            },
+            "required": [
+              "runId",
+              "dbName",
+              "workerId",
+              "connectionId",
+              "transactionId",
+              "iteration",
+              "eventId",
+              "sourceSeq",
+              "type",
+              "source"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "runId": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,127}(?![\\s\\S])",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "dbName": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,127}(?![\\s\\S])",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "workerId": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,127}(?![\\s\\S])",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "connectionId": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,127}(?![\\s\\S])",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "transactionId": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,127}(?![\\s\\S])",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "iteration": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 8192
+              },
+              "eventId": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,127}(?![\\s\\S])",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "sourceSeq": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 8192
+              },
+              "sourceMs": {
+                "type": "number"
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "transaction_complete"
+                ]
+              },
+              "source": {
+                "type": "string",
+                "enum": [
+                  "worker"
+                ]
+              }
+            },
+            "required": [
+              "runId",
+              "dbName",
+              "workerId",
+              "connectionId",
+              "transactionId",
+              "iteration",
+              "eventId",
+              "sourceSeq",
+              "type",
+              "source"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "runId": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,127}(?![\\s\\S])",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "dbName": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,127}(?![\\s\\S])",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "workerId": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,127}(?![\\s\\S])",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "connectionId": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,127}(?![\\s\\S])",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "transactionId": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,127}(?![\\s\\S])",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "iteration": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 8192
+              },
+              "eventId": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,127}(?![\\s\\S])",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "sourceSeq": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 8192
+              },
+              "sourceMs": {
+                "type": "number"
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "complete_sent"
+                ]
+              },
+              "source": {
+                "type": "string",
+                "enum": [
+                  "worker"
+                ]
+              },
+              "completeId": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,127}(?![\\s\\S])",
+                "minLength": 1,
+                "maxLength": 128
+              }
+            },
+            "required": [
+              "runId",
+              "dbName",
+              "workerId",
+              "connectionId",
+              "transactionId",
+              "iteration",
+              "eventId",
+              "sourceSeq",
+              "type",
+              "source",
+              "completeId"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "runId": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,127}(?![\\s\\S])",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "dbName": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,127}(?![\\s\\S])",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "workerId": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,127}(?![\\s\\S])",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "connectionId": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,127}(?![\\s\\S])",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "transactionId": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,127}(?![\\s\\S])",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "iteration": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 8192
+              },
+              "eventId": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,127}(?![\\s\\S])",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "sourceSeq": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 8192
+              },
+              "sourceMs": {
+                "type": "number"
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "transaction_abort"
+                ]
+              },
+              "source": {
+                "type": "string",
+                "enum": [
+                  "worker"
+                ]
+              }
+            },
+            "required": [
+              "runId",
+              "dbName",
+              "workerId",
+              "connectionId",
+              "transactionId",
+              "iteration",
+              "eventId",
+              "sourceSeq",
+              "type",
+              "source"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "runId": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,127}(?![\\s\\S])",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "dbName": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,127}(?![\\s\\S])",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "workerId": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,127}(?![\\s\\S])",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "connectionId": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,127}(?![\\s\\S])",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "transactionId": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,127}(?![\\s\\S])",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "iteration": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 8192
+              },
+              "eventId": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,127}(?![\\s\\S])",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "sourceSeq": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 8192
+              },
+              "sourceMs": {
+                "type": "number"
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "transaction_error"
+                ]
+              },
+              "source": {
+                "type": "string",
+                "enum": [
+                  "worker"
+                ]
+              }
+            },
+            "required": [
+              "runId",
+              "dbName",
+              "workerId",
+              "connectionId",
+              "transactionId",
+              "iteration",
+              "eventId",
+              "sourceSeq",
+              "type",
+              "source"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "runId": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,127}(?![\\s\\S])",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "dbName": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,127}(?![\\s\\S])",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "workerId": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,127}(?![\\s\\S])",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "connectionId": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,127}(?![\\s\\S])",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "transactionId": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,127}(?![\\s\\S])",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "iteration": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 8192
+              },
+              "eventId": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,127}(?![\\s\\S])",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "sourceSeq": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 8192
+              },
+              "sourceMs": {
+                "type": "number"
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "commit_observed"
+                ]
+              },
+              "source": {
+                "type": "string",
+                "enum": [
+                  "worker"
+                ]
+              },
+              "layer": {
+                "type": "string",
+                "enum": [
+                  "LOGICAL_IDB"
+                ]
+              }
+            },
+            "required": [
+              "runId",
+              "dbName",
+              "workerId",
+              "connectionId",
+              "transactionId",
+              "iteration",
+              "eventId",
+              "sourceSeq",
+              "type",
+              "source",
+              "layer"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "runId": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,127}(?![\\s\\S])",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "dbName": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,127}(?![\\s\\S])",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "workerId": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,127}(?![\\s\\S])",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "connectionId": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,127}(?![\\s\\S])",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "transactionId": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,127}(?![\\s\\S])",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "iteration": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 8192
+              },
+              "eventId": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,127}(?![\\s\\S])",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "sourceSeq": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 8192
+              },
+              "sourceMs": {
+                "type": "number"
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "abort_observed"
+                ]
+              },
+              "source": {
+                "type": "string",
+                "enum": [
+                  "worker"
+                ]
+              },
+              "layer": {
+                "type": "string",
+                "enum": [
+                  "LOGICAL_IDB"
+                ]
+              }
+            },
+            "required": [
+              "runId",
+              "dbName",
+              "workerId",
+              "connectionId",
+              "transactionId",
+              "iteration",
+              "eventId",
+              "sourceSeq",
+              "type",
+              "source",
+              "layer"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "runId": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,127}(?![\\s\\S])",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "dbName": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,127}(?![\\s\\S])",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "workerId": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,127}(?![\\s\\S])",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "connectionId": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,127}(?![\\s\\S])",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "transactionId": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,127}(?![\\s\\S])",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "iteration": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 8192
+              },
+              "eventId": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,127}(?![\\s\\S])",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "sourceSeq": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 8192
+              },
+              "sourceMs": {
+                "type": "number"
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "receive"
+                ]
+              },
+              "source": {
+                "type": "string",
+                "enum": [
+                  "main"
+                ]
+              },
+              "sendId": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,127}(?![\\s\\S])",
+                "minLength": 1,
+                "maxLength": 128
+              }
+            },
+            "required": [
+              "runId",
+              "dbName",
+              "workerId",
+              "connectionId",
+              "transactionId",
+              "iteration",
+              "eventId",
+              "sourceSeq",
+              "type",
+              "source",
+              "sendId"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "runId": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,127}(?![\\s\\S])",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "dbName": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,127}(?![\\s\\S])",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "workerId": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,127}(?![\\s\\S])",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "connectionId": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,127}(?![\\s\\S])",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "transactionId": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,127}(?![\\s\\S])",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "iteration": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 8192
+              },
+              "eventId": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,127}(?![\\s\\S])",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "sourceSeq": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 8192
+              },
+              "sourceMs": {
+                "type": "number"
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "complete_received"
+                ]
+              },
+              "source": {
+                "type": "string",
+                "enum": [
+                  "main"
+                ]
+              },
+              "sendId": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,127}(?![\\s\\S])",
+                "minLength": 1,
+                "maxLength": 128
+              }
+            },
+            "required": [
+              "runId",
+              "dbName",
+              "workerId",
+              "connectionId",
+              "transactionId",
+              "iteration",
+              "eventId",
+              "sourceSeq",
+              "type",
+              "source",
+              "sendId"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "runId": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,127}(?![\\s\\S])",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "dbName": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,127}(?![\\s\\S])",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "workerId": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,127}(?![\\s\\S])",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "connectionId": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,127}(?![\\s\\S])",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "transactionId": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,127}(?![\\s\\S])",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "iteration": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 8192
+              },
+              "eventId": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,127}(?![\\s\\S])",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "sourceSeq": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 8192
+              },
+              "sourceMs": {
+                "type": "number"
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "stop_requested"
+                ]
+              },
+              "source": {
+                "type": "string",
+                "enum": [
+                  "main"
+                ]
+              }
+            },
+            "required": [
+              "runId",
+              "dbName",
+              "workerId",
+              "connectionId",
+              "transactionId",
+              "iteration",
+              "eventId",
+              "sourceSeq",
+              "type",
+              "source"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "runId": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,127}(?![\\s\\S])",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "dbName": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,127}(?![\\s\\S])",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "workerId": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,127}(?![\\s\\S])",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "connectionId": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,127}(?![\\s\\S])",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "transactionId": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,127}(?![\\s\\S])",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "iteration": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 8192
+              },
+              "eventId": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,127}(?![\\s\\S])",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "sourceSeq": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 8192
+              },
+              "sourceMs": {
+                "type": "number"
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "terminate_called"
+                ]
+              },
+              "source": {
+                "type": "string",
+                "enum": [
+                  "main"
+                ]
+              }
+            },
+            "required": [
+              "runId",
+              "dbName",
+              "workerId",
+              "connectionId",
+              "transactionId",
+              "iteration",
+              "eventId",
+              "sourceSeq",
+              "type",
+              "source"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "runId": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,127}(?![\\s\\S])",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "dbName": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,127}(?![\\s\\S])",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "workerId": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,127}(?![\\s\\S])",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "connectionId": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,127}(?![\\s\\S])",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "transactionId": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,127}(?![\\s\\S])",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "iteration": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 8192
+              },
+              "eventId": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,127}(?![\\s\\S])",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "sourceSeq": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 8192
+              },
+              "sourceMs": {
+                "type": "number"
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "terminate_returned"
+                ]
+              },
+              "source": {
+                "type": "string",
+                "enum": [
+                  "main"
+                ]
+              },
+              "result": {
+                "type": "string",
+                "enum": [
+                  "returned"
+                ]
+              }
+            },
+            "required": [
+              "runId",
+              "dbName",
+              "workerId",
+              "connectionId",
+              "transactionId",
+              "iteration",
+              "eventId",
+              "sourceSeq",
+              "type",
+              "source",
+              "result"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "runId": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,127}(?![\\s\\S])",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "dbName": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,127}(?![\\s\\S])",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "workerId": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,127}(?![\\s\\S])",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "connectionId": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,127}(?![\\s\\S])",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "transactionId": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,127}(?![\\s\\S])",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "iteration": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 8192
+              },
+              "eventId": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,127}(?![\\s\\S])",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "sourceSeq": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 8192
+              },
+              "sourceMs": {
+                "type": "number"
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "collection_error"
+                ]
+              },
+              "source": {
+                "type": "string",
+                "enum": [
+                  "worker",
+                  "main"
+                ]
+              }
+            },
+            "required": [
+              "runId",
+              "dbName",
+              "workerId",
+              "connectionId",
+              "transactionId",
+              "iteration",
+              "eventId",
+              "sourceSeq",
+              "type",
+              "source"
+            ],
+            "additionalProperties": false
+          }
+        ]
+      },
+      "maxItems": 512
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "fixtureKind",
+    "materialId",
+    "planId",
+    "runId",
+    "identities",
+    "streams",
+    "events"
+  ],
+  "additionalProperties": false
+}

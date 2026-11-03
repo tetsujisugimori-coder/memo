@@ -1,0 +1,117 @@
+{
+  "collectorSchemaVersion": 1,
+  "scope": "OFFLINE_SYNTHETIC_ONLY",
+  "evidenceStatus": "CONSISTENT",
+  "exitCode": 0,
+  "input": {
+    "materialId": "observed-abort",
+    "actualSha256": "57342fb7197491b0ff30081c511128cedc7433bedd49117efeb815350ddd5541",
+    "expectedSha256": "57342fb7197491b0ff30081c511128cedc7433bedd49117efeb815350ddd5541",
+    "semanticSha256": "5c242f956d347eb9b6e05196f3bb2f51dac19c23bb210395679fc4cd76d215b4"
+  },
+  "relations": [
+    {
+      "from": "w3",
+      "to": "m1",
+      "kind": "send-receive"
+    }
+  ],
+  "orderRelations": [
+    {
+      "before": "w3",
+      "after": "aborted",
+      "basis": "source-sequence"
+    },
+    {
+      "before": "w3",
+      "after": "m1",
+      "basis": "explicit-message"
+    },
+    {
+      "before": "m1",
+      "after": "m3",
+      "basis": "source-sequence"
+    },
+    {
+      "before": "m3",
+      "after": "m4",
+      "basis": "source-sequence"
+    },
+    {
+      "before": "m4",
+      "after": "m5",
+      "basis": "source-sequence"
+    },
+    {
+      "before": "w1",
+      "after": "w2",
+      "basis": "source-sequence"
+    },
+    {
+      "before": "w2",
+      "after": "w3",
+      "basis": "source-sequence"
+    }
+  ],
+  "missingEvidence": [
+    {
+      "code": "ACTUAL_STOP_BOUNDARY_MISSING",
+      "subject": "{\"connectionId\":\"c1\",\"dbName\":\"synthetic-only\",\"iteration\":1,\"runId\":\"session-1\",\"transactionId\":\"t1\",\"workerId\":\"w1\"}",
+      "detail": "terminate return is not actual stop",
+      "scope": "FUTURE_WITNESS"
+    },
+    {
+      "code": "INTERNAL_TERMINAL_UNKNOWN",
+      "subject": "{\"connectionId\":\"c1\",\"dbName\":\"synthetic-only\",\"iteration\":1,\"runId\":\"session-1\",\"transactionId\":\"t1\",\"workerId\":\"w1\"}",
+      "detail": "no logical-IDB commit/abort result; listener delivery is a different boundary",
+      "scope": "FUTURE_WITNESS"
+    },
+    {
+      "code": "NORMAL_UNTERMINATED_WITNESS_MISSING",
+      "subject": "{\"connectionId\":\"c1\",\"dbName\":\"synthetic-only\",\"iteration\":1,\"runId\":\"session-1\",\"transactionId\":\"t1\",\"workerId\":\"w1\"}",
+      "detail": "independent normal interval and internal ID/build binding unavailable",
+      "scope": "FUTURE_WITNESS"
+    }
+  ],
+  "contradictions": [],
+  "validationErrors": [],
+  "reasons": [],
+  "unknownReasons": [
+    "ACTUAL_STOP_BOUNDARY_MISSING",
+    "INTERNAL_TERMINAL_UNKNOWN",
+    "NORMAL_UNTERMINATED_WITNESS_MISSING"
+  ],
+  "transactions": [
+    {
+      "identity": {
+        "runId": "session-1",
+        "dbName": "synthetic-only",
+        "workerId": "w1",
+        "connectionId": "c1",
+        "transactionId": "t1",
+        "iteration": 1
+      },
+      "assessment": {
+        "validTrace": "PASS",
+        "conditionR": "FAIL",
+        "conditionU": "FAIL",
+        "conditionReasonR": "ABNORMAL",
+        "conditionReasonU": "ABNORMAL",
+        "workerObservation": "PASS",
+        "connectionClosed": "UNKNOWN",
+        "physicalRelease": "UNKNOWN"
+      }
+    }
+  ],
+  "realExperiment": "NOT_RUN",
+  "executionAuthorization": "NOT_GRANTED",
+  "startCondition": "BLOCKED",
+  "conditionU": "NOT_RUN",
+  "productionWorker": "HOLD",
+  "hypotheses": {
+    "H1": "UNKNOWN",
+    "H2": "UNKNOWN",
+    "H3": "UNKNOWN",
+    "H4": "PARTIAL"
+  }
+}

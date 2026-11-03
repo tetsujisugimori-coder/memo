@@ -1,0 +1,39 @@
+{
+  "collectorSchemaVersion": 1,
+  "scope": "OFFLINE_SYNTHETIC_ONLY",
+  "evidenceStatus": "INVALID_SCHEMA",
+  "exitCode": 2,
+  "input": {
+    "materialId": "required-field-deleted",
+    "actualSha256": "9cf6196b46ade5c6fc9fc34e67e97ae725fc29a87bf703c3be0fa156e73f8f55",
+    "expectedSha256": "9cf6196b46ade5c6fc9fc34e67e97ae725fc29a87bf703c3be0fa156e73f8f55",
+    "semanticSha256": null
+  },
+  "relations": [],
+  "orderRelations": [],
+  "missingEvidence": [],
+  "contradictions": [],
+  "validationErrors": [
+    {
+      "code": "SCHEMA",
+      "subject": "/events/4/eventId",
+      "detail": "required field missing"
+    }
+  ],
+  "reasons": [
+    "SCHEMA"
+  ],
+  "unknownReasons": [],
+  "transactions": [],
+  "realExperiment": "NOT_RUN",
+  "executionAuthorization": "NOT_GRANTED",
+  "startCondition": "BLOCKED",
+  "conditionU": "NOT_RUN",
+  "productionWorker": "HOLD",
+  "hypotheses": {
+    "H1": "UNKNOWN",
+    "H2": "UNKNOWN",
+    "H3": "UNKNOWN",
+    "H4": "PARTIAL"
+  }
+}

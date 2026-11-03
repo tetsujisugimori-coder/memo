@@ -1,0 +1,9 @@
+{
+  "fixedHead": "5d16dd0cc4d18186ec59947c2073c409b2f8c34b",
+  "onlyFunctionChanged": "runCli",
+  "allPreRunCliSourceByteIdentical": true,
+  "preRunCliSha256": "3b615708948c0e4074dee358699b34c77e601e5f270e88f4261bd0cfe562506c",
+  "exportsByteIdentical": true,
+  "oldCollectorSha256": "4b32dd261e83559a5d090d860b58e3c833ee5b04f570b28748007f06aaef35f9",
+  "newCollectorSha256": "1405cc547269b3cbfbd59c584f263c48999b6ec85b6280dba55fea0af1b1d2e1"
+}

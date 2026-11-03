@@ -1,0 +1,24 @@
+{
+  "expected": {
+    "status": "CONSISTENT",
+    "exitCode": 0,
+    "codes": [],
+    "shortened": false,
+    "diagnostics": 0
+  },
+  "inputBytes": 2962,
+  "inputSha256": "0ac1843651c9b0ed2d2e142ccb1ae382a13b976a21adeba27126bbef73ac49aa",
+  "status": 0,
+  "signal": null,
+  "processError": null,
+  "stdoutBytes": 4190,
+  "stdoutSha256": "056fae9b8f4f2eecf5de38814f57dccf63202649b3774d597f8fea07c8dbb047",
+  "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "parseError": null,
+  "independentSchemaValid": true,
+  "schemaErrors": null,
+  "actualStatus": "CONSISTENT",
+  "actualExitCode": 0,
+  "diagnosticCount": 0,
+  "marker": null
+}

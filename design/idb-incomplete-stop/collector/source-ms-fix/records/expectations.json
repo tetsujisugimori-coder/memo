@@ -1,0 +1,629 @@
+[
+  {
+    "id": "normal",
+    "expected": {
+      "schemaValid": true,
+      "status": "CONSISTENT",
+      "exitCode": 0,
+      "code": null
+    },
+    "file": "normal.json",
+    "bytes": 2962,
+    "sha256": "0ac1843651c9b0ed2d2e142ccb1ae382a13b976a21adeba27126bbef73ac49aa",
+    "materialId": "m"
+  },
+  {
+    "id": "sourceMs-finite-0",
+    "expected": {
+      "schemaValid": true,
+      "status": "CONSISTENT",
+      "exitCode": 0,
+      "code": null,
+      "sameCausality": true,
+      "numberText": "0"
+    },
+    "file": "sourceMs-finite-0.json",
+    "bytes": 3093,
+    "sha256": "e2ed68e285148b9b8b226cab64798a13d81ec8e5717db8f515697208b9b6eb11",
+    "materialId": "m"
+  },
+  {
+    "id": "sourceMs-finite-1",
+    "expected": {
+      "schemaValid": true,
+      "status": "CONSISTENT",
+      "exitCode": 0,
+      "code": null,
+      "sameCausality": true,
+      "numberText": "1.5"
+    },
+    "file": "sourceMs-finite-1.json",
+    "bytes": 3113,
+    "sha256": "a602d5e9efb371d87f4e3bbe07924aa32866d72143ec0ff6d4ec0a37cb57e994",
+    "materialId": "m"
+  },
+  {
+    "id": "sourceMs-finite-2",
+    "expected": {
+      "schemaValid": true,
+      "status": "CONSISTENT",
+      "exitCode": 0,
+      "code": null,
+      "sameCausality": true,
+      "numberText": "-0.5"
+    },
+    "file": "sourceMs-finite-2.json",
+    "bytes": 3123,
+    "sha256": "cd2e3daa854805cd6609507425a35f87cd15c095e551f9d417a7803d480c3198",
+    "materialId": "m"
+  },
+  {
+    "id": "sourceMs-finite-3",
+    "expected": {
+      "schemaValid": true,
+      "status": "CONSISTENT",
+      "exitCode": 0,
+      "code": null,
+      "sameCausality": true,
+      "numberText": "0.000001"
+    },
+    "file": "sourceMs-finite-3.json",
+    "bytes": 3163,
+    "sha256": "aa454c07feb6e051e670856cc45d7f6ae31271f2bef0cc0b0d047f9b8bb08d8d",
+    "materialId": "m"
+  },
+  {
+    "id": "sourceMs-finite-4",
+    "expected": {
+      "schemaValid": true,
+      "status": "CONSISTENT",
+      "exitCode": 0,
+      "code": null,
+      "sameCausality": true,
+      "numberText": "9007199254740992"
+    },
+    "file": "sourceMs-finite-4.json",
+    "bytes": 3243,
+    "sha256": "82785c3359c9a134d6cd100f3e422e9ab8cfd974dee52d3c0cab31bfd4a698fd",
+    "materialId": "m"
+  },
+  {
+    "id": "sourceMs-finite-5",
+    "expected": {
+      "schemaValid": true,
+      "status": "CONSISTENT",
+      "exitCode": 0,
+      "code": null,
+      "sameCausality": true,
+      "numberText": "-9007199254740992"
+    },
+    "file": "sourceMs-finite-5.json",
+    "bytes": 3253,
+    "sha256": "d3098beed2a39b571a368eb7c0d3af34f1b3951d0b15dc954a28e8cfce6d64c3",
+    "materialId": "m"
+  },
+  {
+    "id": "sourceMs-finite-6",
+    "expected": {
+      "schemaValid": true,
+      "status": "CONSISTENT",
+      "exitCode": 0,
+      "code": null,
+      "sameCausality": true,
+      "numberText": "100000000000000000000"
+    },
+    "file": "sourceMs-finite-6.json",
+    "bytes": 3293,
+    "sha256": "b77cb97c4f09feb966c1e856d40808b4f4c1a87074a4c367c4c5d54025aa7c36",
+    "materialId": "m"
+  },
+  {
+    "id": "sourceMs-finite-7",
+    "expected": {
+      "schemaValid": true,
+      "status": "CONSISTENT",
+      "exitCode": 0,
+      "code": null,
+      "sameCausality": true,
+      "numberText": "-100000000000000000000"
+    },
+    "file": "sourceMs-finite-7.json",
+    "bytes": 3303,
+    "sha256": "2cb2bc50d13622432bf335fcf97156db3daa843aa2bd41c50d1fb6dd9d520d10",
+    "materialId": "m"
+  },
+  {
+    "id": "sourceMs-finite-8",
+    "expected": {
+      "schemaValid": true,
+      "status": "CONSISTENT",
+      "exitCode": 0,
+      "code": null,
+      "sameCausality": true,
+      "numberText": "1e+308"
+    },
+    "file": "sourceMs-finite-8.json",
+    "bytes": 3143,
+    "sha256": "5798de3f8a5f12efe5ba1d3b6b9ad2f509439dc7f35d1b7cafb48d1678f44c1e",
+    "materialId": "m"
+  },
+  {
+    "id": "sourceMs-finite-9",
+    "expected": {
+      "schemaValid": true,
+      "status": "CONSISTENT",
+      "exitCode": 0,
+      "code": null,
+      "sameCausality": true,
+      "numberText": "-1e+308"
+    },
+    "file": "sourceMs-finite-9.json",
+    "bytes": 3153,
+    "sha256": "917773d337d594b92d23a08e9fc0e45b14ffc1f25a3fadc2b6a7ffbdb58c0662",
+    "materialId": "m"
+  },
+  {
+    "id": "sourceMs-finite-10",
+    "expected": {
+      "schemaValid": true,
+      "status": "CONSISTENT",
+      "exitCode": 0,
+      "code": null,
+      "sameCausality": true,
+      "numberText": "9007199254740991"
+    },
+    "file": "sourceMs-finite-10.json",
+    "bytes": 3243,
+    "sha256": "2a6693e10957c3d07e811dd2894df061248b421243273b80e88d7be41610835b",
+    "materialId": "m"
+  },
+  {
+    "id": "sourceMs-finite-11",
+    "expected": {
+      "schemaValid": true,
+      "status": "CONSISTENT",
+      "exitCode": 0,
+      "code": null,
+      "sameCausality": true,
+      "numberText": "1.7976931348623157e+308"
+    },
+    "file": "sourceMs-finite-11.json",
+    "bytes": 3313,
+    "sha256": "4d216265630fd426dc9408d9c3820a38160b490e711b11ee1478321355e2cc94",
+    "materialId": "m"
+  },
+  {
+    "id": "sourceMs-mixed-clocks-reversed-array",
+    "expected": {
+      "schemaValid": true,
+      "status": "CONSISTENT",
+      "exitCode": 0,
+      "code": null,
+      "sameCausality": true
+    },
+    "file": "sourceMs-mixed-clocks-reversed-array.json",
+    "bytes": 3148,
+    "sha256": "ace3f7c49842b9006e3015b765285f33bbcdef173dbcea9677fa99388f120e8a",
+    "materialId": "m"
+  },
+  {
+    "id": "sourceMs-invalid-string",
+    "expected": {
+      "schemaValid": false,
+      "status": "INVALID_SCHEMA",
+      "exitCode": 2,
+      "code": "SCHEMA"
+    },
+    "file": "sourceMs-invalid-string.json",
+    "bytes": 2981,
+    "sha256": "189467979cacdbb6d32c4c899c4d5a427ad71f1b7874d339348f186fef4222ba",
+    "materialId": "m"
+  },
+  {
+    "id": "sourceMs-invalid-true",
+    "expected": {
+      "schemaValid": false,
+      "status": "INVALID_SCHEMA",
+      "exitCode": 2,
+      "code": "SCHEMA"
+    },
+    "file": "sourceMs-invalid-true.json",
+    "bytes": 2979,
+    "sha256": "1609e061486bacb2807819c79024f62aca388313f8f334bc4ab95e45a6c4422c",
+    "materialId": "m"
+  },
+  {
+    "id": "sourceMs-invalid-false",
+    "expected": {
+      "schemaValid": false,
+      "status": "INVALID_SCHEMA",
+      "exitCode": 2,
+      "code": "SCHEMA"
+    },
+    "file": "sourceMs-invalid-false.json",
+    "bytes": 2980,
+    "sha256": "450ba8ddc02727c92e9090185ef939c42321cd68cf4db2dc645c93038bd2728e",
+    "materialId": "m"
+  },
+  {
+    "id": "sourceMs-invalid-null",
+    "expected": {
+      "schemaValid": false,
+      "status": "INVALID_SCHEMA",
+      "exitCode": 2,
+      "code": "SCHEMA"
+    },
+    "file": "sourceMs-invalid-null.json",
+    "bytes": 2979,
+    "sha256": "cc4e07b7d5cc479efd8f8752482c59361505f7cb39934b23fedbe00fe12e64d8",
+    "materialId": "m"
+  },
+  {
+    "id": "sourceMs-invalid-array",
+    "expected": {
+      "schemaValid": false,
+      "status": "INVALID_SCHEMA",
+      "exitCode": 2,
+      "code": "SCHEMA"
+    },
+    "file": "sourceMs-invalid-array.json",
+    "bytes": 2977,
+    "sha256": "889a04d9da4c3d297447ddf61627a6df9d1cdc35dfa03817249a8b589eb80767",
+    "materialId": "m"
+  },
+  {
+    "id": "sourceMs-invalid-object",
+    "expected": {
+      "schemaValid": false,
+      "status": "INVALID_SCHEMA",
+      "exitCode": 2,
+      "code": "SCHEMA"
+    },
+    "file": "sourceMs-invalid-object.json",
+    "bytes": 2977,
+    "sha256": "cdc67a69f0937134159b34ba7e4aec78140c336fc21f5b7442dbe890a9936c20",
+    "materialId": "m"
+  },
+  {
+    "id": "sourceMs-positive-overflow",
+    "expected": {
+      "schemaValid": false,
+      "status": "INVALID_SCHEMA",
+      "exitCode": 2,
+      "code": "SCHEMA",
+      "parseable": true
+    },
+    "file": "sourceMs-positive-overflow.json",
+    "bytes": 2980,
+    "sha256": "f2664b2686104d50bb0b5d82a1bc3aa10dfe95df6a205a200eea454da490550c",
+    "materialId": "m"
+  },
+  {
+    "id": "sourceMs-negative-overflow",
+    "expected": {
+      "schemaValid": false,
+      "status": "INVALID_SCHEMA",
+      "exitCode": 2,
+      "code": "SCHEMA",
+      "parseable": true
+    },
+    "file": "sourceMs-negative-overflow.json",
+    "bytes": 2981,
+    "sha256": "8b48163db92328bc1e0385031bce4b386673c06b256b444d4255ded476cf0fbd",
+    "materialId": "m"
+  },
+  {
+    "id": "sourceMs-nan-token",
+    "expected": {
+      "schemaValid": false,
+      "status": "INVALID_SCHEMA",
+      "exitCode": 2,
+      "code": "JSON",
+      "parseable": false
+    },
+    "file": "sourceMs-nan-token.json",
+    "bytes": 2978,
+    "sha256": "fd9454ec77aa7876c96e5e6f0e840ada09fe6f03d89a8190ee5316a5722f5c5b",
+    "materialId": "m"
+  },
+  {
+    "id": "sourceMs-infinity-token",
+    "expected": {
+      "schemaValid": false,
+      "status": "INVALID_SCHEMA",
+      "exitCode": 2,
+      "code": "JSON",
+      "parseable": false
+    },
+    "file": "sourceMs-infinity-token.json",
+    "bytes": 2983,
+    "sha256": "625a2c220c41dc2b60919c46973ce0cc1309a46d4180ca3d66560753fe6326e7",
+    "materialId": "m"
+  },
+  {
+    "id": "iteration-valid-1",
+    "expected": {
+      "schemaValid": true,
+      "status": "CONSISTENT",
+      "exitCode": 0,
+      "code": null
+    },
+    "file": "iteration-valid-1.json",
+    "bytes": 2963,
+    "sha256": "371c71d20b2fdcbb37f803f4b395b2b9a43b06d48f4acdfb30572d10275f338f",
+    "materialId": "m"
+  },
+  {
+    "id": "iteration-valid-8192",
+    "expected": {
+      "schemaValid": true,
+      "status": "CONSISTENT",
+      "exitCode": 0,
+      "code": null
+    },
+    "file": "iteration-valid-8192.json",
+    "bytes": 2996,
+    "sha256": "ac0fa2588de406a364ce40501f40c281823f893f0c865a481dd603c682b2da04",
+    "materialId": "m"
+  },
+  {
+    "id": "sourceSeq-valid-1",
+    "expected": {
+      "schemaValid": true,
+      "status": "CONSISTENT",
+      "exitCode": 0,
+      "code": null
+    },
+    "file": "sourceSeq-valid-1.json",
+    "bytes": 2963,
+    "sha256": "371c71d20b2fdcbb37f803f4b395b2b9a43b06d48f4acdfb30572d10275f338f",
+    "materialId": "m"
+  },
+  {
+    "id": "sourceSeq-valid-8192-with-coverage-gap",
+    "expected": {
+      "schemaValid": true,
+      "status": "INCOMPLETE",
+      "exitCode": 1,
+      "code": "SOURCE_SEQUENCE_GAP"
+    },
+    "file": "sourceSeq-valid-8192-with-coverage-gap.json",
+    "bytes": 2969,
+    "sha256": "b7d7b919acade7574170ea1d5391d8f7ed001c1f4a7be1e69aea67f988fe4efb",
+    "materialId": "m"
+  },
+  {
+    "id": "sourceSeq-invalid-zero",
+    "expected": {
+      "schemaValid": false,
+      "status": "INVALID_SCHEMA",
+      "exitCode": 2,
+      "code": "SCHEMA"
+    },
+    "file": "sourceSeq-invalid-zero.json",
+    "bytes": 2963,
+    "sha256": "782ae8dda20674049465b79bec5027b96de9ae53f99e8769b78d3a4b6125e81f",
+    "materialId": "m"
+  },
+  {
+    "id": "sourceSeq-invalid-above-max",
+    "expected": {
+      "schemaValid": false,
+      "status": "INVALID_SCHEMA",
+      "exitCode": 2,
+      "code": "SCHEMA"
+    },
+    "file": "sourceSeq-invalid-above-max.json",
+    "bytes": 2966,
+    "sha256": "1c7d705ee41a4de94b9f7688f8e01fad5f8498b7d39ee71e0463fa7c36b8b955",
+    "materialId": "m"
+  },
+  {
+    "id": "sourceSeq-invalid-fraction",
+    "expected": {
+      "schemaValid": false,
+      "status": "INVALID_SCHEMA",
+      "exitCode": 2,
+      "code": "SCHEMA"
+    },
+    "file": "sourceSeq-invalid-fraction.json",
+    "bytes": 2965,
+    "sha256": "6311f184315f9e655b3586f3e6b3dfcc6796ccd1f294e6ec7b04cf229ba9b991",
+    "materialId": "m"
+  },
+  {
+    "id": "sourceSeq-invalid-negative-fraction",
+    "expected": {
+      "schemaValid": false,
+      "status": "INVALID_SCHEMA",
+      "exitCode": 2,
+      "code": "SCHEMA"
+    },
+    "file": "sourceSeq-invalid-negative-fraction.json",
+    "bytes": 2966,
+    "sha256": "ff916eb2e43ed5629555704b95ce50dc49dc90c448ffc0e0de878996291407e5",
+    "materialId": "m"
+  },
+  {
+    "id": "sourceSeq-invalid-unsafe-integer",
+    "expected": {
+      "schemaValid": false,
+      "status": "INVALID_SCHEMA",
+      "exitCode": 2,
+      "code": "SCHEMA"
+    },
+    "file": "sourceSeq-invalid-unsafe-integer.json",
+    "bytes": 2978,
+    "sha256": "9f995eb7b8b3bfd38034e71cce6525ff5127ffbe7f6197cce167e0321e7f6d6d",
+    "materialId": "m"
+  },
+  {
+    "id": "sourceSeq-invalid-huge",
+    "expected": {
+      "schemaValid": false,
+      "status": "INVALID_SCHEMA",
+      "exitCode": 2,
+      "code": "SCHEMA"
+    },
+    "file": "sourceSeq-invalid-huge.json",
+    "bytes": 2983,
+    "sha256": "d288c3e3260e0b63da1ce5a00024bd2f27fe102925c649d19bf8338f255425a8",
+    "materialId": "m"
+  },
+  {
+    "id": "sourceSeq-invalid-extreme",
+    "expected": {
+      "schemaValid": false,
+      "status": "INVALID_SCHEMA",
+      "exitCode": 2,
+      "code": "SCHEMA"
+    },
+    "file": "sourceSeq-invalid-extreme.json",
+    "bytes": 2968,
+    "sha256": "31d2cc348bc4b03b389a6b97045faef752ae2252e9f761408ffbba7d0f151aa1",
+    "materialId": "m"
+  },
+  {
+    "id": "sourceSeq-invalid-string",
+    "expected": {
+      "schemaValid": false,
+      "status": "INVALID_SCHEMA",
+      "exitCode": 2,
+      "code": "SCHEMA"
+    },
+    "file": "sourceSeq-invalid-string.json",
+    "bytes": 2965,
+    "sha256": "66546a49ce49d8f4e3bebcb09992ef0026484421713a934f33cf6081e51387c8",
+    "materialId": "m"
+  },
+  {
+    "id": "sourceSeq-invalid-null",
+    "expected": {
+      "schemaValid": false,
+      "status": "INVALID_SCHEMA",
+      "exitCode": 2,
+      "code": "SCHEMA"
+    },
+    "file": "sourceSeq-invalid-null.json",
+    "bytes": 2966,
+    "sha256": "3ff94a4b66b3677eddcabd9726d966a7561df52f239e6ac9623616cd4e66df19",
+    "materialId": "m"
+  },
+  {
+    "id": "iteration-invalid-zero",
+    "expected": {
+      "schemaValid": false,
+      "status": "INVALID_SCHEMA",
+      "exitCode": 2,
+      "code": "SCHEMA"
+    },
+    "file": "iteration-invalid-zero.json",
+    "bytes": 2963,
+    "sha256": "350b4ba7e2c1ac7ca00cb866360bc7f959464db92216ba2af8cff12d83c08700",
+    "materialId": "m"
+  },
+  {
+    "id": "iteration-invalid-above-max",
+    "expected": {
+      "schemaValid": false,
+      "status": "INVALID_SCHEMA",
+      "exitCode": 2,
+      "code": "SCHEMA"
+    },
+    "file": "iteration-invalid-above-max.json",
+    "bytes": 2969,
+    "sha256": "23ea0467c33d428ad4b9095b729e390f0caf70f7117d062533bfee98e442ddc4",
+    "materialId": "m"
+  },
+  {
+    "id": "iteration-invalid-fraction",
+    "expected": {
+      "schemaValid": false,
+      "status": "INVALID_SCHEMA",
+      "exitCode": 2,
+      "code": "SCHEMA"
+    },
+    "file": "iteration-invalid-fraction.json",
+    "bytes": 2967,
+    "sha256": "eb838a63e07f7e227c1afddbe8e33ba1df10215fdf9b1dc1a32a1fcb411b094e",
+    "materialId": "m"
+  },
+  {
+    "id": "iteration-invalid-negative-fraction",
+    "expected": {
+      "schemaValid": false,
+      "status": "INVALID_SCHEMA",
+      "exitCode": 2,
+      "code": "SCHEMA"
+    },
+    "file": "iteration-invalid-negative-fraction.json",
+    "bytes": 2969,
+    "sha256": "5bee5e4fdbda2adc30ac21f1967a717cb9eec216b1664f1e5b383acfb920c72f",
+    "materialId": "m"
+  },
+  {
+    "id": "iteration-invalid-unsafe-integer",
+    "expected": {
+      "schemaValid": false,
+      "status": "INVALID_SCHEMA",
+      "exitCode": 2,
+      "code": "SCHEMA"
+    },
+    "file": "iteration-invalid-unsafe-integer.json",
+    "bytes": 2993,
+    "sha256": "e13adcb3bccec380e19b98a1797ddacf50a8107c3dd4619877854425238748af",
+    "materialId": "m"
+  },
+  {
+    "id": "iteration-invalid-huge",
+    "expected": {
+      "schemaValid": false,
+      "status": "INVALID_SCHEMA",
+      "exitCode": 2,
+      "code": "SCHEMA"
+    },
+    "file": "iteration-invalid-huge.json",
+    "bytes": 3003,
+    "sha256": "c3d5bbc42f47d661f150c334b346ddebf23238f0a905e8c5ec86eaf6f4228035",
+    "materialId": "m"
+  },
+  {
+    "id": "iteration-invalid-extreme",
+    "expected": {
+      "schemaValid": false,
+      "status": "INVALID_SCHEMA",
+      "exitCode": 2,
+      "code": "SCHEMA"
+    },
+    "file": "iteration-invalid-extreme.json",
+    "bytes": 2973,
+    "sha256": "b8623e2c0b4ce660dbb8b66bf1b7f53d35f1b2841bb8ba51e3fa6c586fc816fc",
+    "materialId": "m"
+  },
+  {
+    "id": "iteration-invalid-string",
+    "expected": {
+      "schemaValid": false,
+      "status": "INVALID_SCHEMA",
+      "exitCode": 2,
+      "code": "SCHEMA"
+    },
+    "file": "iteration-invalid-string.json",
+    "bytes": 2967,
+    "sha256": "65d9847201196f89bd6ceb31447878c3528cf351c712f241470107887d2bcd1e",
+    "materialId": "m"
+  },
+  {
+    "id": "iteration-invalid-null",
+    "expected": {
+      "schemaValid": false,
+      "status": "INVALID_SCHEMA",
+      "exitCode": 2,
+      "code": "SCHEMA"
+    },
+    "file": "iteration-invalid-null.json",
+    "bytes": 2969,
+    "sha256": "b055cb70fa022ba26955ce122dcba47a5fbb2fa35844e8990a5eb21aeb91333d",
+    "materialId": "m"
+  }
+]

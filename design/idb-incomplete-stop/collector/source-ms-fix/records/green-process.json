@@ -1,0 +1,18 @@
+{
+  "tests": 60,
+  "pass": 60,
+  "fail": 0,
+  "skipped": 0,
+  "command": [
+    "C:\\Program Files\\nodejs\\node.exe",
+    "--test",
+    "--test-reporter=tap",
+    "C:\\Users\\tetsu\\Documents\\Codex\\メモ帳\\work\\idb-evidence-collector-u1\\design\\idb-incomplete-stop\\collector\\source-ms-fix\\numeric.test.cjs"
+  ],
+  "target": "C:\\Users\\tetsu\\Documents\\Codex\\メモ帳\\work\\u1-r2-20261103\\new\\design\\idb-incomplete-stop\\collector\\collect.cjs",
+  "fixtures": "C:\\Users\\tetsu\\Documents\\Codex\\メモ帳\\work\\u1-r2-20261103\\fixtures",
+  "output": "C:\\Users\\tetsu\\Documents\\Codex\\メモ帳\\work\\u1-r2-20261103\\green",
+  "actualExitCode": 0,
+  "signal": null,
+  "processError": null
+}

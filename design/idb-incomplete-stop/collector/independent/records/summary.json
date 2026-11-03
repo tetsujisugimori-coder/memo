@@ -1,0 +1,42 @@
+{
+  "fixedHead": "9deca60bc329acc124e4909e4954bf2dc3e27049",
+  "before": {
+    "tests": 69,
+    "passCount": 68,
+    "failCount": 1,
+    "exitCode": 1
+  },
+  "after": {
+    "tests": 69,
+    "passCount": 69,
+    "failCount": 0,
+    "exitCode": 0
+  },
+  "oldPassedUnchanged": 68,
+  "redToGreen": 1,
+  "unresolvedReproducedDefects": 0,
+  "newCLIComparisons": 37,
+  "schemaComparisons": 31,
+  "existingRegression": {
+    "tests": 96,
+    "passCount": 96,
+    "failCount": 0,
+    "exitCode": 0,
+    "previousCLIOutputsByteIdentical": 40
+  },
+  "expectationsIdentical": true,
+  "fixtureExpectationsSha256": "9b39164f20c46b926bc809a92944232f743927f39e8220603b117df2d6212f46",
+  "schemaExpectationsSha256": "5d12b8c8c0ec9130e0c6ddbf4d20c6ac2c37fd98c2b5647e36b19c8f7716e1c9",
+  "unexpectedPreservationChanges": 0,
+  "realExperiment": "NOT_RUN",
+  "executionAuthorization": "NOT_GRANTED",
+  "startCondition": "BLOCKED",
+  "conditionU": "NOT_RUN",
+  "productionWorker": "HOLD",
+  "hypotheses": {
+    "H1": "UNKNOWN",
+    "H2": "UNKNOWN",
+    "H3": "UNKNOWN",
+    "H4": "PARTIAL"
+  }
+}

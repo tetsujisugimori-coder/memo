@@ -1,0 +1,677 @@
+{
+  "numeric": [
+    {
+      "phase": "red",
+      "tests": 60,
+      "pass": 50,
+      "fail": 10,
+      "skip": 0,
+      "actualExitCode": 1
+    },
+    {
+      "phase": "green",
+      "tests": 60,
+      "pass": 60,
+      "fail": 0,
+      "skip": 0,
+      "actualExitCode": 0
+    }
+  ],
+  "sourceMsInputAgreement": [
+    {
+      "id": "normal",
+      "inputSha256": "0ac1843651c9b0ed2d2e142ccb1ae382a13b976a21adeba27126bbef73ac49aa",
+      "ajv": true,
+      "beforeEmbedded": true,
+      "afterEmbedded": true
+    },
+    {
+      "id": "sourceMs-finite-0",
+      "inputSha256": "e2ed68e285148b9b8b226cab64798a13d81ec8e5717db8f515697208b9b6eb11",
+      "ajv": true,
+      "beforeEmbedded": true,
+      "afterEmbedded": true
+    },
+    {
+      "id": "sourceMs-finite-1",
+      "inputSha256": "a602d5e9efb371d87f4e3bbe07924aa32866d72143ec0ff6d4ec0a37cb57e994",
+      "ajv": true,
+      "beforeEmbedded": true,
+      "afterEmbedded": true
+    },
+    {
+      "id": "sourceMs-finite-2",
+      "inputSha256": "cd2e3daa854805cd6609507425a35f87cd15c095e551f9d417a7803d480c3198",
+      "ajv": true,
+      "beforeEmbedded": true,
+      "afterEmbedded": true
+    },
+    {
+      "id": "sourceMs-finite-3",
+      "inputSha256": "aa454c07feb6e051e670856cc45d7f6ae31271f2bef0cc0b0d047f9b8bb08d8d",
+      "ajv": true,
+      "beforeEmbedded": true,
+      "afterEmbedded": true
+    },
+    {
+      "id": "sourceMs-finite-4",
+      "inputSha256": "82785c3359c9a134d6cd100f3e422e9ab8cfd974dee52d3c0cab31bfd4a698fd",
+      "ajv": true,
+      "beforeEmbedded": false,
+      "afterEmbedded": true
+    },
+    {
+      "id": "sourceMs-finite-5",
+      "inputSha256": "d3098beed2a39b571a368eb7c0d3af34f1b3951d0b15dc954a28e8cfce6d64c3",
+      "ajv": true,
+      "beforeEmbedded": false,
+      "afterEmbedded": true
+    },
+    {
+      "id": "sourceMs-finite-6",
+      "inputSha256": "b77cb97c4f09feb966c1e856d40808b4f4c1a87074a4c367c4c5d54025aa7c36",
+      "ajv": true,
+      "beforeEmbedded": false,
+      "afterEmbedded": true
+    },
+    {
+      "id": "sourceMs-finite-7",
+      "inputSha256": "2cb2bc50d13622432bf335fcf97156db3daa843aa2bd41c50d1fb6dd9d520d10",
+      "ajv": true,
+      "beforeEmbedded": false,
+      "afterEmbedded": true
+    },
+    {
+      "id": "sourceMs-finite-8",
+      "inputSha256": "5798de3f8a5f12efe5ba1d3b6b9ad2f509439dc7f35d1b7cafb48d1678f44c1e",
+      "ajv": true,
+      "beforeEmbedded": false,
+      "afterEmbedded": true
+    },
+    {
+      "id": "sourceMs-finite-9",
+      "inputSha256": "917773d337d594b92d23a08e9fc0e45b14ffc1f25a3fadc2b6a7ffbdb58c0662",
+      "ajv": true,
+      "beforeEmbedded": false,
+      "afterEmbedded": true
+    },
+    {
+      "id": "sourceMs-finite-10",
+      "inputSha256": "2a6693e10957c3d07e811dd2894df061248b421243273b80e88d7be41610835b",
+      "ajv": true,
+      "beforeEmbedded": true,
+      "afterEmbedded": true
+    },
+    {
+      "id": "sourceMs-finite-11",
+      "inputSha256": "4d216265630fd426dc9408d9c3820a38160b490e711b11ee1478321355e2cc94",
+      "ajv": true,
+      "beforeEmbedded": false,
+      "afterEmbedded": true
+    },
+    {
+      "id": "sourceMs-mixed-clocks-reversed-array",
+      "inputSha256": "ace3f7c49842b9006e3015b765285f33bbcdef173dbcea9677fa99388f120e8a",
+      "ajv": true,
+      "beforeEmbedded": false,
+      "afterEmbedded": true
+    },
+    {
+      "id": "sourceMs-invalid-string",
+      "inputSha256": "189467979cacdbb6d32c4c899c4d5a427ad71f1b7874d339348f186fef4222ba",
+      "ajv": false,
+      "beforeEmbedded": false,
+      "afterEmbedded": false
+    },
+    {
+      "id": "sourceMs-invalid-true",
+      "inputSha256": "1609e061486bacb2807819c79024f62aca388313f8f334bc4ab95e45a6c4422c",
+      "ajv": false,
+      "beforeEmbedded": false,
+      "afterEmbedded": false
+    },
+    {
+      "id": "sourceMs-invalid-false",
+      "inputSha256": "450ba8ddc02727c92e9090185ef939c42321cd68cf4db2dc645c93038bd2728e",
+      "ajv": false,
+      "beforeEmbedded": false,
+      "afterEmbedded": false
+    },
+    {
+      "id": "sourceMs-invalid-null",
+      "inputSha256": "cc4e07b7d5cc479efd8f8752482c59361505f7cb39934b23fedbe00fe12e64d8",
+      "ajv": false,
+      "beforeEmbedded": false,
+      "afterEmbedded": false
+    },
+    {
+      "id": "sourceMs-invalid-array",
+      "inputSha256": "889a04d9da4c3d297447ddf61627a6df9d1cdc35dfa03817249a8b589eb80767",
+      "ajv": false,
+      "beforeEmbedded": false,
+      "afterEmbedded": false
+    },
+    {
+      "id": "sourceMs-invalid-object",
+      "inputSha256": "cdc67a69f0937134159b34ba7e4aec78140c336fc21f5b7442dbe890a9936c20",
+      "ajv": false,
+      "beforeEmbedded": false,
+      "afterEmbedded": false
+    },
+    {
+      "id": "sourceMs-positive-overflow",
+      "inputSha256": "f2664b2686104d50bb0b5d82a1bc3aa10dfe95df6a205a200eea454da490550c",
+      "ajv": false,
+      "beforeEmbedded": false,
+      "afterEmbedded": false
+    },
+    {
+      "id": "sourceMs-negative-overflow",
+      "inputSha256": "8b48163db92328bc1e0385031bce4b386673c06b256b444d4255ded476cf0fbd",
+      "ajv": false,
+      "beforeEmbedded": false,
+      "afterEmbedded": false
+    },
+    {
+      "id": "sourceMs-nan-token",
+      "inputSha256": "fd9454ec77aa7876c96e5e6f0e840ada09fe6f03d89a8190ee5316a5722f5c5b",
+      "ajv": false,
+      "beforeEmbedded": false,
+      "afterEmbedded": false
+    },
+    {
+      "id": "sourceMs-infinity-token",
+      "inputSha256": "625a2c220c41dc2b60919c46973ce0cc1309a46d4180ca3d66560753fe6326e7",
+      "ajv": false,
+      "beforeEmbedded": false,
+      "afterEmbedded": false
+    },
+    {
+      "id": "iteration-valid-1",
+      "inputSha256": "371c71d20b2fdcbb37f803f4b395b2b9a43b06d48f4acdfb30572d10275f338f",
+      "ajv": true,
+      "beforeEmbedded": true,
+      "afterEmbedded": true
+    },
+    {
+      "id": "iteration-valid-8192",
+      "inputSha256": "ac0fa2588de406a364ce40501f40c281823f893f0c865a481dd603c682b2da04",
+      "ajv": true,
+      "beforeEmbedded": true,
+      "afterEmbedded": true
+    },
+    {
+      "id": "sourceSeq-valid-1",
+      "inputSha256": "371c71d20b2fdcbb37f803f4b395b2b9a43b06d48f4acdfb30572d10275f338f",
+      "ajv": true,
+      "beforeEmbedded": true,
+      "afterEmbedded": true
+    },
+    {
+      "id": "sourceSeq-valid-8192-with-coverage-gap",
+      "inputSha256": "b7d7b919acade7574170ea1d5391d8f7ed001c1f4a7be1e69aea67f988fe4efb",
+      "ajv": true,
+      "beforeEmbedded": true,
+      "afterEmbedded": true
+    },
+    {
+      "id": "sourceSeq-invalid-zero",
+      "inputSha256": "782ae8dda20674049465b79bec5027b96de9ae53f99e8769b78d3a4b6125e81f",
+      "ajv": false,
+      "beforeEmbedded": false,
+      "afterEmbedded": false
+    },
+    {
+      "id": "sourceSeq-invalid-above-max",
+      "inputSha256": "1c7d705ee41a4de94b9f7688f8e01fad5f8498b7d39ee71e0463fa7c36b8b955",
+      "ajv": false,
+      "beforeEmbedded": false,
+      "afterEmbedded": false
+    },
+    {
+      "id": "sourceSeq-invalid-fraction",
+      "inputSha256": "6311f184315f9e655b3586f3e6b3dfcc6796ccd1f294e6ec7b04cf229ba9b991",
+      "ajv": false,
+      "beforeEmbedded": false,
+      "afterEmbedded": false
+    },
+    {
+      "id": "sourceSeq-invalid-negative-fraction",
+      "inputSha256": "ff916eb2e43ed5629555704b95ce50dc49dc90c448ffc0e0de878996291407e5",
+      "ajv": false,
+      "beforeEmbedded": false,
+      "afterEmbedded": false
+    },
+    {
+      "id": "sourceSeq-invalid-unsafe-integer",
+      "inputSha256": "9f995eb7b8b3bfd38034e71cce6525ff5127ffbe7f6197cce167e0321e7f6d6d",
+      "ajv": false,
+      "beforeEmbedded": false,
+      "afterEmbedded": false
+    },
+    {
+      "id": "sourceSeq-invalid-huge",
+      "inputSha256": "d288c3e3260e0b63da1ce5a00024bd2f27fe102925c649d19bf8338f255425a8",
+      "ajv": false,
+      "beforeEmbedded": false,
+      "afterEmbedded": false
+    },
+    {
+      "id": "sourceSeq-invalid-extreme",
+      "inputSha256": "31d2cc348bc4b03b389a6b97045faef752ae2252e9f761408ffbba7d0f151aa1",
+      "ajv": false,
+      "beforeEmbedded": false,
+      "afterEmbedded": false
+    },
+    {
+      "id": "sourceSeq-invalid-string",
+      "inputSha256": "66546a49ce49d8f4e3bebcb09992ef0026484421713a934f33cf6081e51387c8",
+      "ajv": false,
+      "beforeEmbedded": false,
+      "afterEmbedded": false
+    },
+    {
+      "id": "sourceSeq-invalid-null",
+      "inputSha256": "3ff94a4b66b3677eddcabd9726d966a7561df52f239e6ac9623616cd4e66df19",
+      "ajv": false,
+      "beforeEmbedded": false,
+      "afterEmbedded": false
+    },
+    {
+      "id": "iteration-invalid-zero",
+      "inputSha256": "350b4ba7e2c1ac7ca00cb866360bc7f959464db92216ba2af8cff12d83c08700",
+      "ajv": false,
+      "beforeEmbedded": false,
+      "afterEmbedded": false
+    },
+    {
+      "id": "iteration-invalid-above-max",
+      "inputSha256": "23ea0467c33d428ad4b9095b729e390f0caf70f7117d062533bfee98e442ddc4",
+      "ajv": false,
+      "beforeEmbedded": false,
+      "afterEmbedded": false
+    },
+    {
+      "id": "iteration-invalid-fraction",
+      "inputSha256": "eb838a63e07f7e227c1afddbe8e33ba1df10215fdf9b1dc1a32a1fcb411b094e",
+      "ajv": false,
+      "beforeEmbedded": false,
+      "afterEmbedded": false
+    },
+    {
+      "id": "iteration-invalid-negative-fraction",
+      "inputSha256": "5bee5e4fdbda2adc30ac21f1967a717cb9eec216b1664f1e5b383acfb920c72f",
+      "ajv": false,
+      "beforeEmbedded": false,
+      "afterEmbedded": false
+    },
+    {
+      "id": "iteration-invalid-unsafe-integer",
+      "inputSha256": "e13adcb3bccec380e19b98a1797ddacf50a8107c3dd4619877854425238748af",
+      "ajv": false,
+      "beforeEmbedded": false,
+      "afterEmbedded": false
+    },
+    {
+      "id": "iteration-invalid-huge",
+      "inputSha256": "c3d5bbc42f47d661f150c334b346ddebf23238f0a905e8c5ec86eaf6f4228035",
+      "ajv": false,
+      "beforeEmbedded": false,
+      "afterEmbedded": false
+    },
+    {
+      "id": "iteration-invalid-extreme",
+      "inputSha256": "b8623e2c0b4ce660dbb8b66bf1b7f53d35f1b2841bb8ba51e3fa6c586fc816fc",
+      "ajv": false,
+      "beforeEmbedded": false,
+      "afterEmbedded": false
+    },
+    {
+      "id": "iteration-invalid-string",
+      "inputSha256": "65d9847201196f89bd6ceb31447878c3528cf351c712f241470107887d2bcd1e",
+      "ajv": false,
+      "beforeEmbedded": false,
+      "afterEmbedded": false
+    },
+    {
+      "id": "iteration-invalid-null",
+      "inputSha256": "b055cb70fa022ba26955ce122dcba47a5fbb2fa35844e8990a5eb21aeb91333d",
+      "ajv": false,
+      "beforeEmbedded": false,
+      "afterEmbedded": false
+    }
+  ],
+  "outputSchemaChecks": 314,
+  "comparisons": {
+    "regression96": {
+      "BYTE_IDENTICAL": 40,
+      "ENVIRONMENT_PATH_ONLY": 0,
+      "INTENDED_R2_CORRECTION": 0
+    },
+    "regression69": {
+      "BYTE_IDENTICAL": 35,
+      "ENVIRONMENT_PATH_ONLY": 2,
+      "INTENDED_R2_CORRECTION": 0
+    },
+    "regression18": {
+      "BYTE_IDENTICAL": 16,
+      "ENVIRONMENT_PATH_ONLY": 1,
+      "INTENDED_R2_CORRECTION": 1
+    },
+    "cli16": {
+      "BYTE_IDENTICAL": 15,
+      "ENVIRONMENT_PATH_ONLY": 1,
+      "INTENDED_R2_CORRECTION": 0
+    }
+  },
+  "originalR1SentinelFailure": "EXPECTED_HISTORICAL_BUG_SENTINEL_NOT_CHANGED",
+  "numericSchemaInventory": [
+    {
+      "path": "input/properties/schemaVersion",
+      "type": "integer",
+      "enum": [
+        1
+      ]
+    },
+    {
+      "path": "input/properties/identities/items/properties/iteration",
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 8192
+    },
+    {
+      "path": "input/properties/streams/items/oneOf/0/properties/firstSeq",
+      "type": "integer",
+      "enum": [
+        1
+      ]
+    },
+    {
+      "path": "input/properties/streams/items/oneOf/0/properties/lastSeq",
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 8192
+    },
+    {
+      "path": "input/properties/streams/items/oneOf/1/properties/firstSeq",
+      "type": "integer",
+      "enum": [
+        1
+      ]
+    },
+    {
+      "path": "input/properties/streams/items/oneOf/1/properties/lastSeq",
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 8192
+    },
+    {
+      "path": "input/properties/events/items/oneOf/0/properties/iteration",
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 8192
+    },
+    {
+      "path": "input/properties/events/items/oneOf/0/properties/sourceSeq",
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 8192
+    },
+    {
+      "path": "input/properties/events/items/oneOf/0/properties/sourceMs",
+      "type": "number"
+    },
+    {
+      "path": "input/properties/events/items/oneOf/1/properties/iteration",
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 8192
+    },
+    {
+      "path": "input/properties/events/items/oneOf/1/properties/sourceSeq",
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 8192
+    },
+    {
+      "path": "input/properties/events/items/oneOf/1/properties/sourceMs",
+      "type": "number"
+    },
+    {
+      "path": "input/properties/events/items/oneOf/2/properties/iteration",
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 8192
+    },
+    {
+      "path": "input/properties/events/items/oneOf/2/properties/sourceSeq",
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 8192
+    },
+    {
+      "path": "input/properties/events/items/oneOf/2/properties/sourceMs",
+      "type": "number"
+    },
+    {
+      "path": "input/properties/events/items/oneOf/3/properties/iteration",
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 8192
+    },
+    {
+      "path": "input/properties/events/items/oneOf/3/properties/sourceSeq",
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 8192
+    },
+    {
+      "path": "input/properties/events/items/oneOf/3/properties/sourceMs",
+      "type": "number"
+    },
+    {
+      "path": "input/properties/events/items/oneOf/4/properties/iteration",
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 8192
+    },
+    {
+      "path": "input/properties/events/items/oneOf/4/properties/sourceSeq",
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 8192
+    },
+    {
+      "path": "input/properties/events/items/oneOf/4/properties/sourceMs",
+      "type": "number"
+    },
+    {
+      "path": "input/properties/events/items/oneOf/5/properties/iteration",
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 8192
+    },
+    {
+      "path": "input/properties/events/items/oneOf/5/properties/sourceSeq",
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 8192
+    },
+    {
+      "path": "input/properties/events/items/oneOf/5/properties/sourceMs",
+      "type": "number"
+    },
+    {
+      "path": "input/properties/events/items/oneOf/6/properties/iteration",
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 8192
+    },
+    {
+      "path": "input/properties/events/items/oneOf/6/properties/sourceSeq",
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 8192
+    },
+    {
+      "path": "input/properties/events/items/oneOf/6/properties/sourceMs",
+      "type": "number"
+    },
+    {
+      "path": "input/properties/events/items/oneOf/7/properties/iteration",
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 8192
+    },
+    {
+      "path": "input/properties/events/items/oneOf/7/properties/sourceSeq",
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 8192
+    },
+    {
+      "path": "input/properties/events/items/oneOf/7/properties/sourceMs",
+      "type": "number"
+    },
+    {
+      "path": "input/properties/events/items/oneOf/8/properties/iteration",
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 8192
+    },
+    {
+      "path": "input/properties/events/items/oneOf/8/properties/sourceSeq",
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 8192
+    },
+    {
+      "path": "input/properties/events/items/oneOf/8/properties/sourceMs",
+      "type": "number"
+    },
+    {
+      "path": "input/properties/events/items/oneOf/9/properties/iteration",
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 8192
+    },
+    {
+      "path": "input/properties/events/items/oneOf/9/properties/sourceSeq",
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 8192
+    },
+    {
+      "path": "input/properties/events/items/oneOf/9/properties/sourceMs",
+      "type": "number"
+    },
+    {
+      "path": "input/properties/events/items/oneOf/10/properties/iteration",
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 8192
+    },
+    {
+      "path": "input/properties/events/items/oneOf/10/properties/sourceSeq",
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 8192
+    },
+    {
+      "path": "input/properties/events/items/oneOf/10/properties/sourceMs",
+      "type": "number"
+    },
+    {
+      "path": "input/properties/events/items/oneOf/11/properties/iteration",
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 8192
+    },
+    {
+      "path": "input/properties/events/items/oneOf/11/properties/sourceSeq",
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 8192
+    },
+    {
+      "path": "input/properties/events/items/oneOf/11/properties/sourceMs",
+      "type": "number"
+    },
+    {
+      "path": "input/properties/events/items/oneOf/12/properties/iteration",
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 8192
+    },
+    {
+      "path": "input/properties/events/items/oneOf/12/properties/sourceSeq",
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 8192
+    },
+    {
+      "path": "input/properties/events/items/oneOf/12/properties/sourceMs",
+      "type": "number"
+    },
+    {
+      "path": "input/properties/events/items/oneOf/13/properties/iteration",
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 8192
+    },
+    {
+      "path": "input/properties/events/items/oneOf/13/properties/sourceSeq",
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 8192
+    },
+    {
+      "path": "input/properties/events/items/oneOf/13/properties/sourceMs",
+      "type": "number"
+    },
+    {
+      "path": "input/properties/events/items/oneOf/14/properties/iteration",
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 8192
+    },
+    {
+      "path": "input/properties/events/items/oneOf/14/properties/sourceSeq",
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 8192
+    },
+    {
+      "path": "input/properties/events/items/oneOf/14/properties/sourceMs",
+      "type": "number"
+    },
+    {
+      "path": "result/properties/collectorSchemaVersion",
+      "type": "integer",
+      "enum": [
+        1
+      ]
+    },
+    {
+      "path": "result/properties/exitCode",
+      "type": "integer",
+      "enum": [
+        0,
+        1,
+        2
+      ]
+    },
+    {
+      "path": "result/properties/transactions/items/properties/identity/properties/iteration",
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 8192
+    }
+  ],
+  "parserJudgeLogicCliAndDiagnosticsUnchanged": true,
+  "candidateCollectorSha256": "d549f6fd4f60979bc3049d261539066a8db7fc84ae2449504de5ea7e2dbb561f",
+  "fixedSourcesUnchanged": true,
+  "selfVerification": "PASS",
+  "wholePR": "PARTIAL",
+  "mergeRecommendation": "NO"
+}

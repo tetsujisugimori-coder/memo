@@ -1,0 +1,184 @@
+{
+  "schemaVersion": 1,
+  "fixtureKind": "SYNTHETIC",
+  "materialId": "observed-error",
+  "planId": "U1-offline",
+  "runId": "session-1",
+  "identities": [
+    {
+      "runId": "session-1",
+      "dbName": "synthetic-only",
+      "workerId": "w1",
+      "connectionId": "c1",
+      "transactionId": "t1",
+      "iteration": 1
+    }
+  ],
+  "streams": [
+    {
+      "source": "worker",
+      "workerId": "w1",
+      "firstSeq": 1,
+      "lastSeq": 7
+    },
+    {
+      "source": "main",
+      "firstSeq": 1,
+      "lastSeq": 5
+    }
+  ],
+  "events": [
+    {
+      "runId": "session-1",
+      "dbName": "synthetic-only",
+      "workerId": "w1",
+      "connectionId": "c1",
+      "transactionId": "t1",
+      "iteration": 1,
+      "eventId": "w1",
+      "type": "transaction_identified",
+      "source": "worker",
+      "sourceSeq": 1
+    },
+    {
+      "runId": "session-1",
+      "dbName": "synthetic-only",
+      "workerId": "w1",
+      "connectionId": "c1",
+      "transactionId": "t1",
+      "iteration": 1,
+      "eventId": "w2",
+      "type": "request_accepted",
+      "source": "worker",
+      "sourceSeq": 2,
+      "requestId": "q1",
+      "mode": "readonly",
+      "result": "accepted"
+    },
+    {
+      "runId": "session-1",
+      "dbName": "synthetic-only",
+      "workerId": "w1",
+      "connectionId": "c1",
+      "transactionId": "t1",
+      "iteration": 1,
+      "eventId": "w3",
+      "type": "send",
+      "source": "worker",
+      "sourceSeq": 3
+    },
+    {
+      "runId": "session-1",
+      "dbName": "synthetic-only",
+      "workerId": "w1",
+      "connectionId": "c1",
+      "transactionId": "t1",
+      "iteration": 1,
+      "eventId": "w4",
+      "type": "commit_observed",
+      "source": "worker",
+      "sourceSeq": 4,
+      "layer": "LOGICAL_IDB"
+    },
+    {
+      "runId": "session-1",
+      "dbName": "synthetic-only",
+      "workerId": "w1",
+      "connectionId": "c1",
+      "transactionId": "t1",
+      "iteration": 1,
+      "eventId": "w5",
+      "type": "transaction_complete",
+      "source": "worker",
+      "sourceSeq": 5
+    },
+    {
+      "runId": "session-1",
+      "dbName": "synthetic-only",
+      "workerId": "w1",
+      "connectionId": "c1",
+      "transactionId": "t1",
+      "iteration": 1,
+      "eventId": "w6",
+      "type": "complete_sent",
+      "source": "worker",
+      "sourceSeq": 6,
+      "completeId": "w5"
+    },
+    {
+      "runId": "session-1",
+      "dbName": "synthetic-only",
+      "workerId": "w1",
+      "connectionId": "c1",
+      "transactionId": "t1",
+      "iteration": 1,
+      "eventId": "m1",
+      "type": "receive",
+      "source": "main",
+      "sourceSeq": 1,
+      "sendId": "w3"
+    },
+    {
+      "runId": "session-1",
+      "dbName": "synthetic-only",
+      "workerId": "w1",
+      "connectionId": "c1",
+      "transactionId": "t1",
+      "iteration": 1,
+      "eventId": "m2",
+      "type": "complete_received",
+      "source": "main",
+      "sourceSeq": 2,
+      "sendId": "w6"
+    },
+    {
+      "runId": "session-1",
+      "dbName": "synthetic-only",
+      "workerId": "w1",
+      "connectionId": "c1",
+      "transactionId": "t1",
+      "iteration": 1,
+      "eventId": "m3",
+      "type": "stop_requested",
+      "source": "main",
+      "sourceSeq": 3
+    },
+    {
+      "runId": "session-1",
+      "dbName": "synthetic-only",
+      "workerId": "w1",
+      "connectionId": "c1",
+      "transactionId": "t1",
+      "iteration": 1,
+      "eventId": "m4",
+      "type": "terminate_called",
+      "source": "main",
+      "sourceSeq": 4
+    },
+    {
+      "runId": "session-1",
+      "dbName": "synthetic-only",
+      "workerId": "w1",
+      "connectionId": "c1",
+      "transactionId": "t1",
+      "iteration": 1,
+      "eventId": "m5",
+      "type": "terminate_returned",
+      "source": "main",
+      "sourceSeq": 5,
+      "result": "returned"
+    },
+    {
+      "runId": "session-1",
+      "dbName": "synthetic-only",
+      "workerId": "w1",
+      "connectionId": "c1",
+      "transactionId": "t1",
+      "iteration": 1,
+      "type": "transaction_error",
+      "eventId": "err",
+      "source": "worker",
+      "sourceSeq": 7
+    }
+  ]
+}

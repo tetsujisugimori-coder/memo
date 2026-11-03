@@ -1,0 +1,31 @@
+{
+  "expected": {
+    "status": "INVALID_SCHEMA",
+    "exitCode": 2,
+    "codes": [
+      "SCHEMA"
+    ],
+    "shortened": true,
+    "diagnostics": 2,
+    "fieldsShortened": 1
+  },
+  "inputBytes": 35735,
+  "inputSha256": "d24b115241188ae13a0a59fd6c1856f11df632a99607085bfd691a5ae2d886fa",
+  "status": 2,
+  "signal": null,
+  "processError": null,
+  "stdoutBytes": 33838,
+  "stdoutSha256": "37cb098b429795bbe31dcc12a14d8f72d358df8765e2eb2214e19fdc7f71e43b",
+  "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "parseError": null,
+  "independentSchemaValid": true,
+  "schemaErrors": null,
+  "actualStatus": "INVALID_SCHEMA",
+  "actualExitCode": 2,
+  "diagnosticCount": 2,
+  "marker": {
+    "code": "DIAGNOSTICS_TRUNCATED",
+    "subject": "",
+    "detail": "diagnostics omitted=0; fields shortened=1; reason codes=SCHEMA"
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "status": 2,
+  "signal": null,
+  "error": null,
+  "inputSha256": "5ab6b27bb822fa51a568cd2bd946092a0304ead624221534655445d22447364f",
+  "expected": {
+    "status": "INVALID_SCHEMA",
+    "exit": 2,
+    "r": null,
+    "u": null,
+    "codes": [
+      "SCHEMA"
+    ]
+  }
+}

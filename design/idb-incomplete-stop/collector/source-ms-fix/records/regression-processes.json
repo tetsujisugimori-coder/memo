@@ -1,0 +1,130 @@
+[
+  {
+    "phase": "old",
+    "group": "regression96",
+    "command": [
+      "C:\\Program Files\\nodejs\\node.exe",
+      "C:\\Users\\tetsu\\Documents\\Codex\\メモ帳\\work\\u1-r2-20261103\\old\\design\\idb-incomplete-stop\\collector\\verify.cjs",
+      "C:\\Users\\tetsu\\Documents\\Codex\\メモ帳\\work\\u1-r2-20261103\\regression\\old\\regression96"
+    ],
+    "tests": 96,
+    "pass": 96,
+    "fail": 0,
+    "skipped": 0,
+    "actualExitCode": 0,
+    "signal": null,
+    "processError": null
+  },
+  {
+    "phase": "old",
+    "group": "regression69",
+    "command": [
+      "C:\\Program Files\\nodejs\\node.exe",
+      "C:\\Users\\tetsu\\Documents\\Codex\\メモ帳\\work\\u1-r2-20261103\\old\\design\\idb-incomplete-stop\\collector\\independent\\run.cjs",
+      "C:\\Users\\tetsu\\Documents\\Codex\\メモ帳\\work\\u1-r2-20261103\\regression\\old\\regression69"
+    ],
+    "tests": 69,
+    "pass": 69,
+    "fail": 0,
+    "skipped": 0,
+    "actualExitCode": 0,
+    "signal": null,
+    "processError": null
+  },
+  {
+    "phase": "old",
+    "group": "regression18",
+    "command": [
+      "C:\\Program Files\\nodejs\\node.exe",
+      "C:\\Users\\tetsu\\Documents\\Codex\\メモ帳\\work\\u1-r2-20261103\\old\\design\\idb-incomplete-stop\\collector\\diagnostic-fix\\run.cjs",
+      "C:\\Users\\tetsu\\Documents\\Codex\\メモ帳\\work\\u1-r2-20261103\\regression\\old\\regression18"
+    ],
+    "tests": 18,
+    "pass": 18,
+    "fail": 0,
+    "skipped": 0,
+    "actualExitCode": 0,
+    "signal": null,
+    "processError": null
+  },
+  {
+    "phase": "old",
+    "group": "cli16",
+    "command": [
+      "C:\\Program Files\\nodejs\\node.exe",
+      "C:\\Users\\tetsu\\Documents\\Codex\\メモ帳\\work\\u1-r2-20261103\\old\\design\\idb-incomplete-stop\\collector\\diagnostic-fix\\cli-error\\run.cjs",
+      "C:\\Users\\tetsu\\Documents\\Codex\\メモ帳\\work\\u1-r2-20261103\\regression\\old\\cli16"
+    ],
+    "tests": 16,
+    "pass": 16,
+    "fail": 0,
+    "skipped": 0,
+    "actualExitCode": 0,
+    "signal": null,
+    "processError": null
+  },
+  {
+    "phase": "new",
+    "group": "regression96",
+    "command": [
+      "C:\\Program Files\\nodejs\\node.exe",
+      "C:\\Users\\tetsu\\Documents\\Codex\\メモ帳\\work\\u1-r2-20261103\\new\\design\\idb-incomplete-stop\\collector\\verify.cjs",
+      "C:\\Users\\tetsu\\Documents\\Codex\\メモ帳\\work\\u1-r2-20261103\\regression\\new\\regression96"
+    ],
+    "tests": 96,
+    "pass": 96,
+    "fail": 0,
+    "skipped": 0,
+    "actualExitCode": 0,
+    "signal": null,
+    "processError": null
+  },
+  {
+    "phase": "new",
+    "group": "regression69",
+    "command": [
+      "C:\\Program Files\\nodejs\\node.exe",
+      "C:\\Users\\tetsu\\Documents\\Codex\\メモ帳\\work\\u1-r2-20261103\\new\\design\\idb-incomplete-stop\\collector\\independent\\run.cjs",
+      "C:\\Users\\tetsu\\Documents\\Codex\\メモ帳\\work\\u1-r2-20261103\\regression\\new\\regression69"
+    ],
+    "tests": 69,
+    "pass": 69,
+    "fail": 0,
+    "skipped": 0,
+    "actualExitCode": 0,
+    "signal": null,
+    "processError": null
+  },
+  {
+    "phase": "new",
+    "group": "regression18",
+    "command": [
+      "C:\\Program Files\\nodejs\\node.exe",
+      "C:\\Users\\tetsu\\Documents\\Codex\\メモ帳\\work\\u1-r2-20261103\\new\\design\\idb-incomplete-stop\\collector\\diagnostic-fix\\run.cjs",
+      "C:\\Users\\tetsu\\Documents\\Codex\\メモ帳\\work\\u1-r2-20261103\\regression\\new\\regression18"
+    ],
+    "tests": 18,
+    "pass": 17,
+    "fail": 1,
+    "skipped": 0,
+    "actualExitCode": 1,
+    "signal": null,
+    "processError": null
+  },
+  {
+    "phase": "new",
+    "group": "cli16",
+    "command": [
+      "C:\\Program Files\\nodejs\\node.exe",
+      "C:\\Users\\tetsu\\Documents\\Codex\\メモ帳\\work\\u1-r2-20261103\\new\\design\\idb-incomplete-stop\\collector\\diagnostic-fix\\cli-error\\run.cjs",
+      "C:\\Users\\tetsu\\Documents\\Codex\\メモ帳\\work\\u1-r2-20261103\\regression\\new\\cli16"
+    ],
+    "tests": 16,
+    "pass": 16,
+    "fail": 0,
+    "skipped": 0,
+    "actualExitCode": 0,
+    "signal": null,
+    "processError": null
+  }
+]

@@ -1,0 +1,17 @@
+{
+  "status": 1,
+  "signal": null,
+  "error": null,
+  "inputSha256": "64d248464c3fd52ac280b447f28a405290ccb35f08a858e542fda3be946ab503",
+  "expected": {
+    "status": "INCONSISTENT",
+    "exit": 1,
+    "r": "UNKNOWN",
+    "u": "UNKNOWN",
+    "codes": [
+      "SOURCE_SEQUENCE_GAP",
+      "COLLECTION_ERROR",
+      "TERMINAL_CONFLICT"
+    ]
+  }
+}

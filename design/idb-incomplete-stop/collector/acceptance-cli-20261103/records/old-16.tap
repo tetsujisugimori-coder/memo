@@ -1,0 +1,21 @@
+TAP version 13
+ok 1 - normal
+ok 2 - short-read-success
+ok 3 - open
+ok 4 - read
+ok 5 - partial-read
+not ok 6 - close
+not ok 7 - read-close
+not ok 8 - partial-read-close
+not ok 9 - close-wrong-hash
+ok 10 - close-invalid-json
+ok 11 - arity
+ok 12 - missing
+ok 13 - oversize
+ok 14 - long-open-error
+not ok 15 - read-long-close
+ok 16 - invalid-json
+1..16
+# tests 16
+# pass 11
+# fail 5

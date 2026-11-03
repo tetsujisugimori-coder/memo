@@ -1,0 +1,15 @@
+{
+  "revision": "9deca60bc329acc124e4909e4954bf2dc3e27049",
+  "node": "v24.20.0",
+  "platform": "win32",
+  "collectorSha256": "58149b6448a2a2255c553b1b238a41cd17a22738573b7edbb5a9c21e9938628e",
+  "fixtureExpectationsSha256": "9b39164f20c46b926bc809a92944232f743927f39e8220603b117df2d6212f46",
+  "schemaExpectationsSha256": "5d12b8c8c0ec9130e0c6ddbf4d20c6ac2c37fd98c2b5647e36b19c8f7716e1c9",
+  "independentValidator": {
+    "status": "AVAILABLE",
+    "package": "ajv",
+    "version": "8.20.0",
+    "dialect": "Draft 2020-12",
+    "entryPoint": "C:\\Users\\tetsu\\Documents\\Codex\\メモ帳\\node_modules\\ajv\\dist\\2020.js"
+  }
+}

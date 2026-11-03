@@ -1,0 +1,106 @@
+TAP version 13
+# Subtest: normal
+ok 1 - normal
+  ---
+  duration_ms: 131.7936
+  type: 'test'
+  ...
+# Subtest: short-read-success
+ok 2 - short-read-success
+  ---
+  duration_ms: 57.8609
+  type: 'test'
+  ...
+# Subtest: open
+ok 3 - open
+  ---
+  duration_ms: 57.8986
+  type: 'test'
+  ...
+# Subtest: read
+ok 4 - read
+  ---
+  duration_ms: 50.9545
+  type: 'test'
+  ...
+# Subtest: partial-read
+ok 5 - partial-read
+  ---
+  duration_ms: 53.846
+  type: 'test'
+  ...
+# Subtest: close
+ok 6 - close
+  ---
+  duration_ms: 51.5019
+  type: 'test'
+  ...
+# Subtest: read-close
+ok 7 - read-close
+  ---
+  duration_ms: 52.3125
+  type: 'test'
+  ...
+# Subtest: partial-read-close
+ok 8 - partial-read-close
+  ---
+  duration_ms: 52.9997
+  type: 'test'
+  ...
+# Subtest: close-wrong-hash
+ok 9 - close-wrong-hash
+  ---
+  duration_ms: 54.7116
+  type: 'test'
+  ...
+# Subtest: close-invalid-json
+ok 10 - close-invalid-json
+  ---
+  duration_ms: 52.5612
+  type: 'test'
+  ...
+# Subtest: arity
+ok 11 - arity
+  ---
+  duration_ms: 52.3723
+  type: 'test'
+  ...
+# Subtest: missing
+ok 12 - missing
+  ---
+  duration_ms: 51.5242
+  type: 'test'
+  ...
+# Subtest: oversize
+ok 13 - oversize
+  ---
+  duration_ms: 63.6203
+  type: 'test'
+  ...
+# Subtest: long-open-error
+ok 14 - long-open-error
+  ---
+  duration_ms: 54.452
+  type: 'test'
+  ...
+# Subtest: read-long-close
+ok 15 - read-long-close
+  ---
+  duration_ms: 58.308
+  type: 'test'
+  ...
+# Subtest: invalid-json
+ok 16 - invalid-json
+  ---
+  duration_ms: 57.4552
+  type: 'test'
+  ...
+1..16
+# tests 16
+# suites 0
+# pass 16
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1119.7017

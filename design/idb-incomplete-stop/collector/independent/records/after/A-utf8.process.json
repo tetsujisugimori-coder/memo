@@ -1,0 +1,16 @@
+{
+  "status": 2,
+  "signal": null,
+  "error": null,
+  "inputSha256": "5b3430ee8e5c7490d0e154755cdae0c9a7791be87e77b1f91a52f77676bed0c7",
+  "expected": {
+    "status": "INVALID_SCHEMA",
+    "exit": 2,
+    "r": null,
+    "u": null,
+    "codes": [
+      "JSON"
+    ],
+    "rawHash": "full"
+  }
+}

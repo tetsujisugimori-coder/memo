@@ -1,0 +1,37 @@
+{
+  "expected": {
+    "status": "INVALID_SCHEMA",
+    "exitCode": 2,
+    "codes": [
+      "SCHEMA"
+    ],
+    "shortened": true,
+    "diagnostics": 2,
+    "fieldsShortened": 1
+  },
+  "inputBytes": 15255,
+  "inputSha256": "8633613cc19faaaf028a6261fdc64331b6c23cf10ee1872cde1366db18e26ec8",
+  "status": 2,
+  "signal": null,
+  "processError": null,
+  "stdoutBytes": 13221,
+  "stdoutSha256": "98e1ff933dc2de894e31297801ea253704f5a30dc2c3c8b5de22cbf6e7c0782d",
+  "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "parseError": null,
+  "independentSchemaValid": false,
+  "schemaErrors": [
+    {
+      "instancePath": "/validationErrors/0/subject",
+      "schemaPath": "#/properties/validationErrors/items/properties/subject/maxLength",
+      "keyword": "maxLength",
+      "params": {
+        "limit": 8192
+      },
+      "message": "must NOT have more than 8192 characters"
+    }
+  ],
+  "actualStatus": "INVALID_SCHEMA",
+  "actualExitCode": 2,
+  "diagnosticCount": 1,
+  "marker": null
+}

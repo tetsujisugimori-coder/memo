@@ -1,0 +1,4 @@
+# Preserve raw evidence bytes; CRLF is an intentional line ending.
+* -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+# Node's raw failed-assertion TAP contains indented blank lines; preserve them.
+records/self-check/negative-control.tap -whitespace

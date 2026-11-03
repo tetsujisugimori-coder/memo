@@ -1,0 +1,562 @@
+[
+  {
+    "name": "single",
+    "file": "single.json",
+    "category": "normal",
+    "expectedSha256": "cb7ccf4eceb3e15210c06d75ed2e65d2ba48a631ea08d925cb8b10daa7cf36bb",
+    "expected": {
+      "status": "CONSISTENT",
+      "exitCode": 0,
+      "conditionR": "PASS",
+      "conditionU": "FAIL",
+      "validTrace": "PASS",
+      "code": null
+    }
+  },
+  {
+    "name": "multiple",
+    "file": "multiple.json",
+    "category": "normal",
+    "expectedSha256": "9a63eb88d94a83a33978559cc98144760cefa9867db4a3f0473bf457d2b72fa0",
+    "expected": {
+      "status": "CONSISTENT",
+      "exitCode": 0,
+      "conditionR": "PASS",
+      "conditionU": "FAIL",
+      "validTrace": "PASS",
+      "code": null
+    }
+  },
+  {
+    "name": "worker-complete-only",
+    "file": "worker-complete-only.json",
+    "category": "unknown",
+    "expectedSha256": "f0636562bc383d9dd6869970c779d7ee5472ea4f031d4a10d789b23a9caba784",
+    "expected": {
+      "status": "INCOMPLETE",
+      "exitCode": 1,
+      "conditionR": "UNKNOWN",
+      "conditionU": "UNKNOWN",
+      "validTrace": "PASS",
+      "code": "COMPLETE_SEND_MISSING"
+    }
+  },
+  {
+    "name": "sent-without-receipt",
+    "file": "sent-without-receipt.json",
+    "category": "unknown",
+    "expectedSha256": "4c5c8c60b16136575a909ce3050789f7ad9deba722412b6d5e78c58744005542",
+    "expected": {
+      "status": "INCOMPLETE",
+      "exitCode": 1,
+      "conditionR": "UNKNOWN",
+      "conditionU": "UNKNOWN",
+      "validTrace": "PASS",
+      "code": "COMPLETE_RECEIVE_MISSING"
+    }
+  },
+  {
+    "name": "duplicate-complete-id",
+    "file": "duplicate-complete-id.json",
+    "category": "fault",
+    "expectedSha256": "2f5147f89394819d161c9cbe8280d6961b55ee351987bd9ba9bea55056a2c92d",
+    "expected": {
+      "status": "INCONSISTENT",
+      "exitCode": 1,
+      "conditionR": "UNKNOWN",
+      "conditionU": "UNKNOWN",
+      "validTrace": "FAIL",
+      "code": "DUPLICATE_EVENT_ID"
+    }
+  },
+  {
+    "name": "wrong-send-type",
+    "file": "wrong-send-type.json",
+    "category": "fault",
+    "expectedSha256": "b80d5065e8e85bf6b7d2f53dba5dc86eb3db8241c1c6fbfc7d372cc2080e431d",
+    "expected": {
+      "status": "INCONSISTENT",
+      "exitCode": 1,
+      "conditionR": "UNKNOWN",
+      "conditionU": "UNKNOWN",
+      "validTrace": "FAIL",
+      "code": "REFERENCE_MISMATCH"
+    }
+  },
+  {
+    "name": "foreign-transaction",
+    "file": "foreign-transaction.json",
+    "category": "fault",
+    "expectedSha256": "504c9cfdba00b442b595c12cb6bd2fc107a9415a985c5514d3af457a629de9fe",
+    "expected": {
+      "status": "INCONSISTENT",
+      "exitCode": 1,
+      "conditionR": "UNKNOWN",
+      "conditionU": "UNKNOWN",
+      "validTrace": "FAIL",
+      "code": "FOREIGN_IDENTITY"
+    }
+  },
+  {
+    "name": "source-order-reversed",
+    "file": "source-order-reversed.json",
+    "category": "fault",
+    "expectedSha256": "23c480aedc315f746519e57f567e157894fcf25dc782875ed9ef2fff43a90c47",
+    "expected": {
+      "status": "INCONSISTENT",
+      "exitCode": 1,
+      "conditionR": "UNKNOWN",
+      "conditionU": "UNKNOWN",
+      "validTrace": "FAIL",
+      "code": "SOURCE_ORDER_REVERSED"
+    }
+  },
+  {
+    "name": "source-sequence-gap",
+    "file": "source-sequence-gap.json",
+    "category": "unknown",
+    "expectedSha256": "01853fdd6e99d97087237257b27db78bf1400aaf27d0eaaf85b18ad94bcee901",
+    "expected": {
+      "status": "INCOMPLETE",
+      "exitCode": 1,
+      "conditionR": "UNKNOWN",
+      "conditionU": "UNKNOWN",
+      "validTrace": "FAIL",
+      "code": "SOURCE_SEQUENCE_GAP"
+    }
+  },
+  {
+    "name": "missing-stop-request",
+    "file": "missing-stop-request.json",
+    "category": "unknown",
+    "expectedSha256": "bfd227a487d63968e052339229ba13f48d8afa3eec08d11110d98ca915321bcd",
+    "expected": {
+      "status": "INCOMPLETE",
+      "exitCode": 1,
+      "conditionR": "UNKNOWN",
+      "conditionU": "UNKNOWN",
+      "validTrace": "PASS",
+      "code": "EVENT_MISSING"
+    }
+  },
+  {
+    "name": "commit-abort-conflict",
+    "file": "commit-abort-conflict.json",
+    "category": "fault",
+    "expectedSha256": "72b52d317a57c5e8fd8333334b336005d6e630ed67f9c1e589a36db5dc81967e",
+    "expected": {
+      "status": "INCONSISTENT",
+      "exitCode": 1,
+      "conditionR": "UNKNOWN",
+      "conditionU": "UNKNOWN",
+      "validTrace": "FAIL",
+      "code": "TERMINAL_CONFLICT"
+    }
+  },
+  {
+    "name": "reversed-array",
+    "file": "reversed-array.json",
+    "category": "normal",
+    "expectedSha256": "a58f7d6b8d748ae64cebbdd7732f8c1d3571e3bf6ff10c215c5ac1a4fa3390bd",
+    "expected": {
+      "status": "CONSISTENT",
+      "exitCode": 0,
+      "conditionR": "PASS",
+      "conditionU": "FAIL",
+      "validTrace": "PASS",
+      "code": null
+    }
+  },
+  {
+    "name": "required-field-deleted",
+    "file": "required-field-deleted.json",
+    "category": "fault",
+    "expectedSha256": "9cf6196b46ade5c6fc9fc34e67e97ae725fc29a87bf703c3be0fa156e73f8f55",
+    "expected": {
+      "status": "INVALID_SCHEMA",
+      "exitCode": 2,
+      "conditionR": null,
+      "conditionU": null,
+      "validTrace": null,
+      "code": "SCHEMA"
+    }
+  },
+  {
+    "name": "content-reference-tampered",
+    "file": "content-reference-tampered.json",
+    "category": "fault",
+    "expectedSha256": "9ff44743498dadc9278480eae6e58c285b30d208d7d2d3a06e2a4ecd0d487cf7",
+    "expected": {
+      "status": "INCONSISTENT",
+      "exitCode": 1,
+      "conditionR": "UNKNOWN",
+      "conditionU": "UNKNOWN",
+      "validTrace": "FAIL",
+      "code": "REFERENCE_MISMATCH"
+    }
+  },
+  {
+    "name": "hash-mismatch",
+    "file": "hash-mismatch.json",
+    "category": "fault",
+    "expectedSha256": "0000000000000000000000000000000000000000000000000000000000000000",
+    "expected": {
+      "status": "INCONSISTENT",
+      "exitCode": 1,
+      "conditionR": "UNKNOWN",
+      "conditionU": "UNKNOWN",
+      "validTrace": "FAIL",
+      "code": "HASH_MISMATCH"
+    }
+  },
+  {
+    "name": "event-deleted",
+    "file": "event-deleted.json",
+    "category": "unknown",
+    "expectedSha256": "d692c633a21d2057b4546053839b775250eb6d6aed1bf44fc147d698fde886bd",
+    "expected": {
+      "status": "INCOMPLETE",
+      "exitCode": 1,
+      "conditionR": "UNKNOWN",
+      "conditionU": "UNKNOWN",
+      "validTrace": "FAIL",
+      "code": "REFERENCE_MISSING"
+    }
+  },
+  {
+    "name": "duplicate-injection",
+    "file": "duplicate-injection.json",
+    "category": "fault",
+    "expectedSha256": "ddcf38fd33af5e09203dc5f08917b105e7950885b02608b8eef7fba263f086f8",
+    "expected": {
+      "status": "INCONSISTENT",
+      "exitCode": 1,
+      "conditionR": "UNKNOWN",
+      "conditionU": "UNKNOWN",
+      "validTrace": "FAIL",
+      "code": "DUPLICATE_EVENT_ID"
+    }
+  },
+  {
+    "name": "foreign-session",
+    "file": "foreign-session.json",
+    "category": "fault",
+    "expectedSha256": "32ee6099aa4fc30c4a0118fe5da0b6a0b4757a59f756675bae4ee536c03bcc73",
+    "expected": {
+      "status": "INCONSISTENT",
+      "exitCode": 1,
+      "conditionR": "UNKNOWN",
+      "conditionU": "UNKNOWN",
+      "validTrace": "FAIL",
+      "code": "FOREIGN_SESSION"
+    }
+  },
+  {
+    "name": "unsupported-version",
+    "file": "unsupported-version.json",
+    "category": "fault",
+    "expectedSha256": "a2b154a76a1373a2648af91e65d10ca272fbb1dfc5d94546a7f76fb1d7abc065",
+    "expected": {
+      "status": "INVALID_SCHEMA",
+      "exitCode": 2,
+      "conditionR": null,
+      "conditionU": null,
+      "validTrace": null,
+      "code": "SCHEMA"
+    }
+  },
+  {
+    "name": "extra-field",
+    "file": "extra-field.json",
+    "category": "fault",
+    "expectedSha256": "8e0b084aec2f36181c7a510d701aef7783037640ebeeaa6f1391ed7224f14c77",
+    "expected": {
+      "status": "INVALID_SCHEMA",
+      "exitCode": 2,
+      "conditionR": null,
+      "conditionU": null,
+      "validTrace": null,
+      "code": "SCHEMA"
+    }
+  },
+  {
+    "name": "unknown-event",
+    "file": "unknown-event.json",
+    "category": "fault",
+    "expectedSha256": "394a6be25ede7fc0c3d89823da95686566869941bfaafdaff93612d8bde46382",
+    "expected": {
+      "status": "INVALID_SCHEMA",
+      "exitCode": 2,
+      "conditionR": null,
+      "conditionU": null,
+      "validTrace": null,
+      "code": "SCHEMA"
+    }
+  },
+  {
+    "name": "bad-id",
+    "file": "bad-id.json",
+    "category": "fault",
+    "expectedSha256": "494455f211272412cfe2a77150c4e642676f913efa9092ab5b3e5145966c19cb",
+    "expected": {
+      "status": "INVALID_SCHEMA",
+      "exitCode": 2,
+      "conditionR": null,
+      "conditionU": null,
+      "validTrace": null,
+      "code": "SCHEMA"
+    }
+  },
+  {
+    "name": "bad-sequence",
+    "file": "bad-sequence.json",
+    "category": "fault",
+    "expectedSha256": "db23f3ea06cee414514d6d8c200f565f55fd343757d877df9dfffa09c510f9e3",
+    "expected": {
+      "status": "INVALID_SCHEMA",
+      "exitCode": 2,
+      "conditionR": null,
+      "conditionU": null,
+      "validTrace": null,
+      "code": "SCHEMA"
+    }
+  },
+  {
+    "name": "bad-source",
+    "file": "bad-source.json",
+    "category": "fault",
+    "expectedSha256": "c374c6f4a008bd480739f9dcdd0b7168399e214c3935a4b8253acc3918afcdef",
+    "expected": {
+      "status": "INVALID_SCHEMA",
+      "exitCode": 2,
+      "conditionR": null,
+      "conditionU": null,
+      "validTrace": null,
+      "code": "SCHEMA"
+    }
+  },
+  {
+    "name": "unsafe-sequence",
+    "file": "unsafe-sequence.json",
+    "category": "fault",
+    "expectedSha256": "25b77c3dc59f23bd04503b53bf73368c684227d1c0e9d0b295cbb730b8842fe3",
+    "expected": {
+      "status": "INVALID_SCHEMA",
+      "exitCode": 2,
+      "conditionR": null,
+      "conditionU": null,
+      "validTrace": null,
+      "code": "SCHEMA"
+    }
+  },
+  {
+    "name": "extra-event-field",
+    "file": "extra-event-field.json",
+    "category": "fault",
+    "expectedSha256": "3b40f7d9f46ac465e0d9037cd839647c637b47e2bf4c84928a0e20ac3ddfb43d",
+    "expected": {
+      "status": "INVALID_SCHEMA",
+      "exitCode": 2,
+      "conditionR": null,
+      "conditionU": null,
+      "validTrace": null,
+      "code": "SCHEMA"
+    }
+  },
+  {
+    "name": "duplicate-json-key",
+    "file": "duplicate-json-key.json",
+    "category": "fault",
+    "expectedSha256": "950d251e6335eef09862c2347a88367fcc4a55e0651cd7865ea7d5a2760efa4c",
+    "expected": {
+      "status": "INVALID_SCHEMA",
+      "exitCode": 2,
+      "conditionR": null,
+      "conditionU": null,
+      "validTrace": null,
+      "code": "JSON"
+    }
+  },
+  {
+    "name": "duplicate-escaped-key",
+    "file": "duplicate-escaped-key.json",
+    "category": "fault",
+    "expectedSha256": "9b76ab5d01163a68899e361838ef85cf791c1a4aee792d8c714db00237a32647",
+    "expected": {
+      "status": "INVALID_SCHEMA",
+      "exitCode": 2,
+      "conditionR": null,
+      "conditionU": null,
+      "validTrace": null,
+      "code": "JSON"
+    }
+  },
+  {
+    "name": "malformed-json",
+    "file": "malformed-json.json",
+    "category": "fault",
+    "expectedSha256": "40b5cafe045b9c9e31a1c3fdcfbc89f934906ff06a6276b55c2a0e517be21655",
+    "expected": {
+      "status": "INVALID_SCHEMA",
+      "exitCode": 2,
+      "conditionR": null,
+      "conditionU": null,
+      "validTrace": null,
+      "code": "JSON"
+    }
+  },
+  {
+    "name": "received-after-stop",
+    "file": "received-after-stop.json",
+    "category": "unknown",
+    "expectedSha256": "1a827dcf4665dd69be2283b10100ee4f71e1e4a89be0cb6952bcb4a1d9708886",
+    "expected": {
+      "status": "CONSISTENT",
+      "exitCode": 0,
+      "conditionR": "FAIL",
+      "conditionU": "UNKNOWN",
+      "validTrace": "PASS",
+      "code": null
+    }
+  },
+  {
+    "name": "observed-abort",
+    "file": "observed-abort.json",
+    "category": "normal",
+    "expectedSha256": "57342fb7197491b0ff30081c511128cedc7433bedd49117efeb815350ddd5541",
+    "expected": {
+      "status": "CONSISTENT",
+      "exitCode": 0,
+      "conditionR": "FAIL",
+      "conditionU": "FAIL",
+      "validTrace": "PASS",
+      "code": null
+    }
+  },
+  {
+    "name": "internal-terminal-unknown",
+    "file": "internal-terminal-unknown.json",
+    "category": "unknown",
+    "expectedSha256": "1baf34d882415759344c7d8fa31b50012a28a9b17c36f7ca205b3cf63a4985d0",
+    "expected": {
+      "status": "CONSISTENT",
+      "exitCode": 0,
+      "conditionR": "PASS",
+      "conditionU": "FAIL",
+      "validTrace": "PASS",
+      "code": null
+    }
+  },
+  {
+    "name": "observed-error",
+    "file": "observed-error.json",
+    "category": "normal",
+    "expectedSha256": "8ba826102a18627a4012a35b487f41905c647b4cacee8448d36f28bf17a4f3e6",
+    "expected": {
+      "status": "CONSISTENT",
+      "exitCode": 0,
+      "conditionR": "FAIL",
+      "conditionU": "FAIL",
+      "validTrace": "PASS",
+      "code": null
+    }
+  },
+  {
+    "name": "collection-error",
+    "file": "collection-error.json",
+    "category": "fault",
+    "expectedSha256": "932eff21971ee24b89b0ef0011d52c3e56d4e13132473eaee672657e7fad77c7",
+    "expected": {
+      "status": "INCONSISTENT",
+      "exitCode": 1,
+      "conditionR": "UNKNOWN",
+      "conditionU": "UNKNOWN",
+      "validTrace": "FAIL",
+      "code": "COLLECTION_ERROR"
+    }
+  },
+  {
+    "name": "duplicate-receipt",
+    "file": "duplicate-receipt.json",
+    "category": "fault",
+    "expectedSha256": "30ae143f1f5023a89383ccd9a586203f05c1330b01dd3de3ad5553e2cbe7a4d6",
+    "expected": {
+      "status": "INCONSISTENT",
+      "exitCode": 1,
+      "conditionR": "UNKNOWN",
+      "conditionU": "UNKNOWN",
+      "validTrace": "FAIL",
+      "code": "DUPLICATE_REFERENCE"
+    }
+  },
+  {
+    "name": "duplicate-complete-reference",
+    "file": "duplicate-complete-reference.json",
+    "category": "fault",
+    "expectedSha256": "da3faaa1f52a7a92109ef32bdb86848e8029b03bad0577016f7c902580372fda",
+    "expected": {
+      "status": "INCONSISTENT",
+      "exitCode": 1,
+      "conditionR": "UNKNOWN",
+      "conditionU": "UNKNOWN",
+      "validTrace": "FAIL",
+      "code": "DUPLICATE_REFERENCE"
+    }
+  },
+  {
+    "name": "cross-transaction-link",
+    "file": "cross-transaction-link.json",
+    "category": "fault",
+    "expectedSha256": "e5ba5f8066c81cb7dd15ba3526820f1082447655fd8c51094945768287948f9f",
+    "expected": {
+      "status": "INCONSISTENT",
+      "exitCode": 1,
+      "conditionR": "UNKNOWN",
+      "conditionU": "UNKNOWN",
+      "validTrace": "FAIL",
+      "code": "REFERENCE_MISMATCH"
+    }
+  },
+  {
+    "name": "sequence-collision",
+    "file": "sequence-collision.json",
+    "category": "fault",
+    "expectedSha256": "ebec5112155e7484b7474200e015b41816fb8f9827e4d702f706129f07d9cf54",
+    "expected": {
+      "status": "INCONSISTENT",
+      "exitCode": 1,
+      "conditionR": "UNKNOWN",
+      "conditionU": "UNKNOWN",
+      "validTrace": "FAIL",
+      "code": "SEQUENCE_COLLISION"
+    }
+  },
+  {
+    "name": "dangling-send",
+    "file": "dangling-send.json",
+    "category": "unknown",
+    "expectedSha256": "068b780200aea13a4e0491fba968f9d0f22845e840009bf7a15329a792d29927",
+    "expected": {
+      "status": "INCOMPLETE",
+      "exitCode": 1,
+      "conditionR": "UNKNOWN",
+      "conditionU": "UNKNOWN",
+      "validTrace": "FAIL",
+      "code": "REFERENCE_MISSING"
+    }
+  },
+  {
+    "name": "all-events-deleted",
+    "file": "all-events-deleted.json",
+    "category": "unknown",
+    "expectedSha256": "129475039ef5951477d1451364c5eaa50d20268f4117824a5f25bc8486f5360d",
+    "expected": {
+      "status": "INCOMPLETE",
+      "exitCode": 1,
+      "conditionR": "UNKNOWN",
+      "conditionU": "UNKNOWN",
+      "validTrace": "FAIL",
+      "code": "SOURCE_SEQUENCE_GAP"
+    }
+  }
+]

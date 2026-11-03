@@ -1,0 +1,8 @@
+{
+  "expected": true,
+  "independentValid": true,
+  "builtinValid": true,
+  "independentErrors": null,
+  "builtinErrors": [],
+  "schemaSha256": "a8787f13de071a6c02ffab1276778be713237f6d1dca8787ea873d2cc1ae6972"
+}

@@ -1,0 +1,370 @@
+TAP version 13
+# Subtest: normal
+ok 1 - normal
+  ---
+  duration_ms: 158.2124
+  type: 'test'
+  ...
+# Subtest: sourceMs-finite-0
+ok 2 - sourceMs-finite-0
+  ---
+  duration_ms: 63.3406
+  type: 'test'
+  ...
+# Subtest: sourceMs-finite-1
+ok 3 - sourceMs-finite-1
+  ---
+  duration_ms: 60.3218
+  type: 'test'
+  ...
+# Subtest: sourceMs-finite-2
+ok 4 - sourceMs-finite-2
+  ---
+  duration_ms: 61.5067
+  type: 'test'
+  ...
+# Subtest: sourceMs-finite-3
+ok 5 - sourceMs-finite-3
+  ---
+  duration_ms: 60.2397
+  type: 'test'
+  ...
+# Subtest: sourceMs-finite-4
+ok 6 - sourceMs-finite-4
+  ---
+  duration_ms: 59.11
+  type: 'test'
+  ...
+# Subtest: sourceMs-finite-5
+ok 7 - sourceMs-finite-5
+  ---
+  duration_ms: 57.846
+  type: 'test'
+  ...
+# Subtest: sourceMs-finite-6
+ok 8 - sourceMs-finite-6
+  ---
+  duration_ms: 58.5544
+  type: 'test'
+  ...
+# Subtest: sourceMs-finite-7
+ok 9 - sourceMs-finite-7
+  ---
+  duration_ms: 58.2736
+  type: 'test'
+  ...
+# Subtest: sourceMs-finite-8
+ok 10 - sourceMs-finite-8
+  ---
+  duration_ms: 61.6453
+  type: 'test'
+  ...
+# Subtest: sourceMs-finite-9
+ok 11 - sourceMs-finite-9
+  ---
+  duration_ms: 63.8313
+  type: 'test'
+  ...
+# Subtest: sourceMs-finite-10
+ok 12 - sourceMs-finite-10
+  ---
+  duration_ms: 58.7901
+  type: 'test'
+  ...
+# Subtest: sourceMs-finite-11
+ok 13 - sourceMs-finite-11
+  ---
+  duration_ms: 57.1258
+  type: 'test'
+  ...
+# Subtest: sourceMs-mixed-clocks-reversed-array
+ok 14 - sourceMs-mixed-clocks-reversed-array
+  ---
+  duration_ms: 58.3856
+  type: 'test'
+  ...
+# Subtest: sourceMs-invalid-string
+ok 15 - sourceMs-invalid-string
+  ---
+  duration_ms: 55.2022
+  type: 'test'
+  ...
+# Subtest: sourceMs-invalid-true
+ok 16 - sourceMs-invalid-true
+  ---
+  duration_ms: 54.8723
+  type: 'test'
+  ...
+# Subtest: sourceMs-invalid-false
+ok 17 - sourceMs-invalid-false
+  ---
+  duration_ms: 58.4763
+  type: 'test'
+  ...
+# Subtest: sourceMs-invalid-null
+ok 18 - sourceMs-invalid-null
+  ---
+  duration_ms: 54.1033
+  type: 'test'
+  ...
+# Subtest: sourceMs-invalid-array
+ok 19 - sourceMs-invalid-array
+  ---
+  duration_ms: 62.0812
+  type: 'test'
+  ...
+# Subtest: sourceMs-invalid-object
+ok 20 - sourceMs-invalid-object
+  ---
+  duration_ms: 55.5959
+  type: 'test'
+  ...
+# Subtest: sourceMs-positive-overflow
+ok 21 - sourceMs-positive-overflow
+  ---
+  duration_ms: 58.2106
+  type: 'test'
+  ...
+# Subtest: sourceMs-negative-overflow
+ok 22 - sourceMs-negative-overflow
+  ---
+  duration_ms: 60.4034
+  type: 'test'
+  ...
+# Subtest: sourceMs-nan-token
+ok 23 - sourceMs-nan-token
+  ---
+  duration_ms: 54.2916
+  type: 'test'
+  ...
+# Subtest: sourceMs-infinity-token
+ok 24 - sourceMs-infinity-token
+  ---
+  duration_ms: 55.0956
+  type: 'test'
+  ...
+# Subtest: iteration-valid-1
+ok 25 - iteration-valid-1
+  ---
+  duration_ms: 57.5598
+  type: 'test'
+  ...
+# Subtest: iteration-valid-8192
+ok 26 - iteration-valid-8192
+  ---
+  duration_ms: 59.9422
+  type: 'test'
+  ...
+# Subtest: sourceSeq-valid-1
+ok 27 - sourceSeq-valid-1
+  ---
+  duration_ms: 56.2302
+  type: 'test'
+  ...
+# Subtest: sourceSeq-valid-8192-with-coverage-gap
+ok 28 - sourceSeq-valid-8192-with-coverage-gap
+  ---
+  duration_ms: 57.5628
+  type: 'test'
+  ...
+# Subtest: sourceSeq-invalid-zero
+ok 29 - sourceSeq-invalid-zero
+  ---
+  duration_ms: 57.8175
+  type: 'test'
+  ...
+# Subtest: sourceSeq-invalid-above-max
+ok 30 - sourceSeq-invalid-above-max
+  ---
+  duration_ms: 55.3779
+  type: 'test'
+  ...
+# Subtest: sourceSeq-invalid-fraction
+ok 31 - sourceSeq-invalid-fraction
+  ---
+  duration_ms: 59.8218
+  type: 'test'
+  ...
+# Subtest: sourceSeq-invalid-negative-fraction
+ok 32 - sourceSeq-invalid-negative-fraction
+  ---
+  duration_ms: 63.0209
+  type: 'test'
+  ...
+# Subtest: sourceSeq-invalid-unsafe-integer
+ok 33 - sourceSeq-invalid-unsafe-integer
+  ---
+  duration_ms: 53.9816
+  type: 'test'
+  ...
+# Subtest: sourceSeq-invalid-huge
+ok 34 - sourceSeq-invalid-huge
+  ---
+  duration_ms: 56.4316
+  type: 'test'
+  ...
+# Subtest: sourceSeq-invalid-extreme
+ok 35 - sourceSeq-invalid-extreme
+  ---
+  duration_ms: 58.6058
+  type: 'test'
+  ...
+# Subtest: sourceSeq-invalid-string
+ok 36 - sourceSeq-invalid-string
+  ---
+  duration_ms: 56.7787
+  type: 'test'
+  ...
+# Subtest: sourceSeq-invalid-null
+ok 37 - sourceSeq-invalid-null
+  ---
+  duration_ms: 57.8326
+  type: 'test'
+  ...
+# Subtest: iteration-invalid-zero
+ok 38 - iteration-invalid-zero
+  ---
+  duration_ms: 55.9638
+  type: 'test'
+  ...
+# Subtest: iteration-invalid-above-max
+ok 39 - iteration-invalid-above-max
+  ---
+  duration_ms: 53.899
+  type: 'test'
+  ...
+# Subtest: iteration-invalid-fraction
+ok 40 - iteration-invalid-fraction
+  ---
+  duration_ms: 60.3481
+  type: 'test'
+  ...
+# Subtest: iteration-invalid-negative-fraction
+ok 41 - iteration-invalid-negative-fraction
+  ---
+  duration_ms: 55.4155
+  type: 'test'
+  ...
+# Subtest: iteration-invalid-unsafe-integer
+ok 42 - iteration-invalid-unsafe-integer
+  ---
+  duration_ms: 53.2498
+  type: 'test'
+  ...
+# Subtest: iteration-invalid-huge
+ok 43 - iteration-invalid-huge
+  ---
+  duration_ms: 59.6125
+  type: 'test'
+  ...
+# Subtest: iteration-invalid-extreme
+ok 44 - iteration-invalid-extreme
+  ---
+  duration_ms: 58.2198
+  type: 'test'
+  ...
+# Subtest: iteration-invalid-string
+ok 45 - iteration-invalid-string
+  ---
+  duration_ms: 55.5109
+  type: 'test'
+  ...
+# Subtest: iteration-invalid-null
+ok 46 - iteration-invalid-null
+  ---
+  duration_ms: 58.7198
+  type: 'test'
+  ...
+# Subtest: API-number-NaN
+ok 47 - API-number-NaN
+  ---
+  duration_ms: 1.0573
+  type: 'test'
+  ...
+# Subtest: API-integer-NaN
+ok 48 - API-integer-NaN
+  ---
+  duration_ms: 0.6965
+  type: 'test'
+  ...
+# Subtest: API-number-Infinity
+ok 49 - API-number-Infinity
+  ---
+  duration_ms: 0.5714
+  type: 'test'
+  ...
+# Subtest: API-integer-Infinity
+ok 50 - API-integer-Infinity
+  ---
+  duration_ms: 0.66
+  type: 'test'
+  ...
+# Subtest: API-number--Infinity
+ok 51 - API-number--Infinity
+  ---
+  duration_ms: 0.5829
+  type: 'test'
+  ...
+# Subtest: API-integer--Infinity
+ok 52 - API-integer--Infinity
+  ---
+  duration_ms: 0.8036
+  type: 'test'
+  ...
+# Subtest: numeric-keywords-integer-min
+ok 53 - numeric-keywords-integer-min
+  ---
+  duration_ms: 0.7205
+  type: 'test'
+  ...
+# Subtest: numeric-keywords-integer-max
+ok 54 - numeric-keywords-integer-max
+  ---
+  duration_ms: 0.6068
+  type: 'test'
+  ...
+# Subtest: numeric-keywords-integer-fraction
+ok 55 - numeric-keywords-integer-fraction
+  ---
+  duration_ms: 1.0623
+  type: 'test'
+  ...
+# Subtest: numeric-keywords-integer-unbounded-large
+ok 56 - numeric-keywords-integer-unbounded-large
+  ---
+  duration_ms: 0.5711
+  type: 'test'
+  ...
+# Subtest: numeric-keywords-number-bounded-above
+ok 57 - numeric-keywords-number-bounded-above
+  ---
+  duration_ms: 0.6857
+  type: 'test'
+  ...
+# Subtest: numeric-keywords-number-bounded-min
+ok 58 - numeric-keywords-number-bounded-min
+  ---
+  duration_ms: 0.5867
+  type: 'test'
+  ...
+# Subtest: numeric-keywords-nullable-integer-large
+ok 59 - numeric-keywords-nullable-integer-large
+  ---
+  duration_ms: 0.7501
+  type: 'test'
+  ...
+# Subtest: numeric-keywords-nullable-integer-null
+ok 60 - numeric-keywords-nullable-integer-null
+  ---
+  duration_ms: 0.569
+  type: 'test'
+  ...
+1..60
+# tests 60
+# suites 0
+# pass 60
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 3130.9567

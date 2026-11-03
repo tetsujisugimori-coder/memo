@@ -1,0 +1,5 @@
+{
+  "method": "Windows FileShare.None, real OS read-open refusal; no ACL changes or mocked fs",
+  "stdout": "LOCKED\r\n",
+  "stderr": ""
+}

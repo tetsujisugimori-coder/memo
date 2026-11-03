@@ -1,0 +1,455 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:memo-nexus:offline-collector-result:1",
+  "type": "object",
+  "properties": {
+    "collectorSchemaVersion": {
+      "type": "integer",
+      "enum": [
+        1
+      ]
+    },
+    "scope": {
+      "type": "string",
+      "enum": [
+        "OFFLINE_SYNTHETIC_ONLY"
+      ]
+    },
+    "evidenceStatus": {
+      "type": "string",
+      "enum": [
+        "INVALID_SCHEMA",
+        "INCONSISTENT",
+        "INCOMPLETE",
+        "CONSISTENT"
+      ]
+    },
+    "exitCode": {
+      "type": "integer",
+      "enum": [
+        0,
+        1,
+        2
+      ]
+    },
+    "input": {
+      "type": "object",
+      "properties": {
+        "materialId": {
+          "type": "string",
+          "maxLength": 8192
+        },
+        "actualSha256": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[0-9a-f]{64}(?![\\s\\S])"
+        },
+        "expectedSha256": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[0-9a-f]{64}(?![\\s\\S])"
+        },
+        "semanticSha256": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[0-9a-f]{64}(?![\\s\\S])"
+        }
+      },
+      "required": [
+        "materialId",
+        "actualSha256",
+        "expectedSha256",
+        "semanticSha256"
+      ],
+      "additionalProperties": false
+    },
+    "relations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "from": {
+            "type": "string",
+            "maxLength": 8192
+          },
+          "to": {
+            "type": "string",
+            "maxLength": 8192
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "complete-send",
+              "send-receive"
+            ]
+          }
+        },
+        "required": [
+          "from",
+          "to",
+          "kind"
+        ],
+        "additionalProperties": false
+      },
+      "maxItems": 1024
+    },
+    "orderRelations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "before": {
+            "type": "string",
+            "maxLength": 8192
+          },
+          "after": {
+            "type": "string",
+            "maxLength": 8192
+          },
+          "basis": {
+            "type": "string",
+            "enum": [
+              "source-sequence",
+              "explicit-message",
+              "complete-reference"
+            ]
+          }
+        },
+        "required": [
+          "before",
+          "after",
+          "basis"
+        ],
+        "additionalProperties": false
+      },
+      "maxItems": 2048
+    },
+    "missingEvidence": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "maxLength": 8192
+          },
+          "subject": {
+            "type": "string",
+            "maxLength": 8192
+          },
+          "detail": {
+            "type": "string",
+            "maxLength": 8192
+          },
+          "scope": {
+            "type": "string",
+            "enum": [
+              "PUBLIC_CHAIN",
+              "FUTURE_WITNESS"
+            ]
+          }
+        },
+        "required": [
+          "code",
+          "subject",
+          "detail",
+          "scope"
+        ],
+        "additionalProperties": false
+      },
+      "maxItems": 32768
+    },
+    "contradictions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "maxLength": 8192
+          },
+          "subject": {
+            "type": "string",
+            "maxLength": 8192
+          },
+          "detail": {
+            "type": "string",
+            "maxLength": 8192
+          }
+        },
+        "required": [
+          "code",
+          "subject",
+          "detail"
+        ],
+        "additionalProperties": false
+      },
+      "maxItems": 8192
+    },
+    "validationErrors": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "maxLength": 8192
+          },
+          "subject": {
+            "type": "string",
+            "maxLength": 8192
+          },
+          "detail": {
+            "type": "string",
+            "maxLength": 8192
+          }
+        },
+        "required": [
+          "code",
+          "subject",
+          "detail"
+        ],
+        "additionalProperties": false
+      },
+      "maxItems": 8192
+    },
+    "reasons": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "maxLength": 8192
+      },
+      "maxItems": 8192
+    },
+    "unknownReasons": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "maxLength": 8192
+      },
+      "maxItems": 8192
+    },
+    "transactions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "identity": {
+            "type": "object",
+            "properties": {
+              "runId": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,127}(?![\\s\\S])",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "dbName": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,127}(?![\\s\\S])",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "workerId": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,127}(?![\\s\\S])",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "connectionId": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,127}(?![\\s\\S])",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "transactionId": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,127}(?![\\s\\S])",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "iteration": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 8192
+              }
+            },
+            "required": [
+              "runId",
+              "dbName",
+              "workerId",
+              "connectionId",
+              "transactionId",
+              "iteration"
+            ],
+            "additionalProperties": false
+          },
+          "assessment": {
+            "type": "object",
+            "properties": {
+              "validTrace": {
+                "type": "string",
+                "enum": [
+                  "PASS",
+                  "FAIL"
+                ]
+              },
+              "conditionR": {
+                "type": "string",
+                "enum": [
+                  "PASS",
+                  "FAIL",
+                  "UNKNOWN"
+                ]
+              },
+              "conditionU": {
+                "type": "string",
+                "enum": [
+                  "FAIL",
+                  "UNKNOWN"
+                ]
+              },
+              "conditionReasonR": {
+                "type": "string",
+                "maxLength": 8192
+              },
+              "conditionReasonU": {
+                "type": "string",
+                "maxLength": 8192
+              },
+              "workerObservation": {
+                "type": "string",
+                "enum": [
+                  "PASS",
+                  "UNKNOWN"
+                ]
+              },
+              "connectionClosed": {
+                "type": "string",
+                "enum": [
+                  "UNKNOWN"
+                ]
+              },
+              "physicalRelease": {
+                "type": "string",
+                "enum": [
+                  "UNKNOWN"
+                ]
+              }
+            },
+            "required": [
+              "validTrace",
+              "conditionR",
+              "conditionU",
+              "conditionReasonR",
+              "conditionReasonU",
+              "workerObservation",
+              "connectionClosed",
+              "physicalRelease"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "identity",
+          "assessment"
+        ],
+        "additionalProperties": false
+      },
+      "maxItems": 32
+    },
+    "realExperiment": {
+      "type": "string",
+      "enum": [
+        "NOT_RUN"
+      ]
+    },
+    "executionAuthorization": {
+      "type": "string",
+      "enum": [
+        "NOT_GRANTED"
+      ]
+    },
+    "startCondition": {
+      "type": "string",
+      "enum": [
+        "BLOCKED"
+      ]
+    },
+    "conditionU": {
+      "type": "string",
+      "enum": [
+        "NOT_RUN"
+      ]
+    },
+    "productionWorker": {
+      "type": "string",
+      "enum": [
+        "HOLD"
+      ]
+    },
+    "hypotheses": {
+      "type": "object",
+      "properties": {
+        "H1": {
+          "type": "string",
+          "enum": [
+            "UNKNOWN"
+          ]
+        },
+        "H2": {
+          "type": "string",
+          "enum": [
+            "UNKNOWN"
+          ]
+        },
+        "H3": {
+          "type": "string",
+          "enum": [
+            "UNKNOWN"
+          ]
+        },
+        "H4": {
+          "type": "string",
+          "enum": [
+            "PARTIAL"
+          ]
+        }
+      },
+      "required": [
+        "H1",
+        "H2",
+        "H3",
+        "H4"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "collectorSchemaVersion",
+    "scope",
+    "evidenceStatus",
+    "exitCode",
+    "input",
+    "relations",
+    "orderRelations",
+    "missingEvidence",
+    "contradictions",
+    "validationErrors",
+    "reasons",
+    "unknownReasons",
+    "transactions",
+    "realExperiment",
+    "executionAuthorization",
+    "startCondition",
+    "conditionU",
+    "productionWorker",
+    "hypotheses"
+  ],
+  "additionalProperties": false
+}

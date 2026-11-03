@@ -1,0 +1,27 @@
+{
+  "old": {
+    "executed": 16,
+    "pass": 11,
+    "fail": 5,
+    "failedCases": [
+      "close",
+      "close-wrong-hash",
+      "partial-read-close",
+      "read-close",
+      "read-long-close"
+    ]
+  },
+  "new": {
+    "executed": 16,
+    "pass": 16,
+    "fail": 0,
+    "failedCases": []
+  },
+  "unchanged11OutputBytes": true,
+  "fixedSourcesUnchanged": true,
+  "schemaOld": 16,
+  "schemaNew": 16,
+  "P2DynamicAcceptance": "PASS",
+  "scope": "fixed CLI JS fault model; not real OS close/EIO",
+  "actualRunnerExit": 0
+}

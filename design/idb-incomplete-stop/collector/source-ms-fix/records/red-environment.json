@@ -1,0 +1,15 @@
+{
+  "target": "C:\\Users\\tetsu\\Documents\\Codex\\メモ帳\\work\\u1-r2-20261103\\old\\design\\idb-incomplete-stop\\collector\\collect.cjs",
+  "collectorSha256": "1405cc547269b3cbfbd59c584f263c48999b6ec85b6280dba55fea0af1b1d2e1",
+  "inputSchemaSha256": "a8787f13de071a6c02ffab1276778be713237f6d1dca8787ea873d2cc1ae6972",
+  "resultSchemaSha256": "6547cd1f00a03e7d510d0e3c9e7de6d1839ea68da71c6e0290b275c405ffa9ca",
+  "node": "v24.20.0",
+  "platform": "win32",
+  "validator": {
+    "name": "ajv",
+    "version": "8.20.0",
+    "dialect": "Draft 2020-12",
+    "strictNumbers": true
+  },
+  "expectationsSha256": "d88f848ec04e0dd9141ff70d90803133347399d0e2fa2d9baa3e9999134bb641"
+}

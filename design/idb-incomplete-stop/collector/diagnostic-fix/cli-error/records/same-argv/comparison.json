@@ -1,0 +1,20 @@
+{
+  "scope": "native open refusal from same overlong nonexistent filename; not an OS close-error experiment",
+  "fixtureSha256": "0ac1843651c9b0ed2d2e142ccb1ae382a13b976a21adeba27126bbef73ac49aa",
+  "sameArgv": true,
+  "byteIdentical": true,
+  "results": [
+    {
+      "label": "before",
+      "collectorSha256": "4b32dd261e83559a5d090d860b58e3c833ee5b04f570b28748007f06aaef35f9",
+      "exitCode": 2,
+      "stdoutSha256": "4a4f7c6ec64260b518b8744a5afe3654ffbe9cb361cf988663f13a59e88b2d1e"
+    },
+    {
+      "label": "after",
+      "collectorSha256": "1405cc547269b3cbfbd59c584f263c48999b6ec85b6280dba55fea0af1b1d2e1",
+      "exitCode": 2,
+      "stdoutSha256": "4a4f7c6ec64260b518b8744a5afe3654ffbe9cb361cf988663f13a59e88b2d1e"
+    }
+  ]
+}

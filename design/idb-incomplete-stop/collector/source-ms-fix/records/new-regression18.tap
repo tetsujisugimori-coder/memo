@@ -1,0 +1,138 @@
+TAP version 13
+# Subtest: A-many-130000
+ok 1 - A-many-130000
+  ---
+  duration_ms: 257.4191
+  type: 'test'
+  ...
+# Subtest: B-key-8192
+ok 2 - B-key-8192
+  ---
+  duration_ms: 58.9081
+  type: 'test'
+  ...
+# Subtest: C-errors-8193
+ok 3 - C-errors-8193
+  ---
+  duration_ms: 75.1027
+  type: 'test'
+  ...
+# Subtest: count-255
+ok 4 - count-255
+  ---
+  duration_ms: 56.3642
+  type: 'test'
+  ...
+# Subtest: count-256
+ok 5 - count-256
+  ---
+  duration_ms: 56.6926
+  type: 'test'
+  ...
+# Subtest: count-257
+ok 6 - count-257
+  ---
+  duration_ms: 57.998
+  type: 'test'
+  ...
+# Subtest: ascii-key-8190
+ok 7 - ascii-key-8190
+  ---
+  duration_ms: 57.9435
+  type: 'test'
+  ...
+# Subtest: ascii-key-8191
+ok 8 - ascii-key-8191
+  ---
+  duration_ms: 53.288
+  type: 'test'
+  ...
+# Subtest: unicode-key-8191
+ok 9 - unicode-key-8191
+  ---
+  duration_ms: 58.1277
+  type: 'test'
+  ...
+# Subtest: unicode-key-8192
+ok 10 - unicode-key-8192
+  ---
+  duration_ms: 56.5863
+  type: 'test'
+  ...
+# Subtest: combining-key-8192
+ok 11 - combining-key-8192
+  ---
+  duration_ms: 57.4914
+  type: 'test'
+  ...
+# Subtest: late-input-descriptor
+ok 12 - late-input-descriptor
+  ---
+  duration_ms: 57.9894
+  type: 'test'
+  ...
+# Subtest: mixed-structural-errors
+ok 13 - mixed-structural-errors
+  ---
+  duration_ms: 56.6642
+  type: 'test'
+  ...
+# Subtest: late-event-error
+ok 14 - late-event-error
+  ---
+  duration_ms: 62.9347
+  type: 'test'
+  ...
+# Subtest: long-cli-error
+ok 15 - long-cli-error
+  ---
+  duration_ms: 56.8218
+  type: 'test'
+  ...
+# Subtest: normal
+ok 16 - normal
+  ---
+  duration_ms: 61.0271
+  type: 'test'
+  ...
+# Subtest: missing-plus-conflict
+ok 17 - missing-plus-conflict
+  ---
+  duration_ms: 58.1382
+  type: 'test'
+  ...
+# Subtest: R2-out-of-scope-sentinel
+not ok 18 - R2-out-of-scope-sentinel
+  ---
+  duration_ms: 56.0854
+  type: 'test'
+  location: 'C:\\Users\\tetsu\\Documents\\Codex\\メモ帳\\work\\u1-r2-20261103\\new\\design\\idb-incomplete-stop\\collector\\diagnostic-fix\\diagnostics.test.cjs:22:24'
+  failureType: 'testCodeFailure'
+  error: |-
+    real process exit
+    
+    0 !== 2
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 2
+  actual: 0
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (C:\Users\tetsu\Documents\Codex\メモ帳\work\u1-r2-20261103\new\design\idb-incomplete-stop\collector\diagnostic-fix\diagnostics.test.cjs:35:73)
+    Test.runInAsyncScope (node:async_hooks:227:14)
+    Test.run (node:internal/test_runner/test:1397:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:969:18)
+    Test.postRun (node:internal/test_runner/test:1537:19)
+    Test.run (node:internal/test_runner/test:1462:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:969:7)
+  ...
+1..18
+# tests 18
+# suites 0
+# pass 17
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1439.1741

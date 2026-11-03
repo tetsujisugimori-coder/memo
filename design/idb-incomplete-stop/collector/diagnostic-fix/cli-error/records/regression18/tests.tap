@@ -1,0 +1,118 @@
+TAP version 13
+# Subtest: A-many-130000
+ok 1 - A-many-130000
+  ---
+  duration_ms: 372.4546
+  type: 'test'
+  ...
+# Subtest: B-key-8192
+ok 2 - B-key-8192
+  ---
+  duration_ms: 69.5275
+  type: 'test'
+  ...
+# Subtest: C-errors-8193
+ok 3 - C-errors-8193
+  ---
+  duration_ms: 75.1369
+  type: 'test'
+  ...
+# Subtest: count-255
+ok 4 - count-255
+  ---
+  duration_ms: 68.8109
+  type: 'test'
+  ...
+# Subtest: count-256
+ok 5 - count-256
+  ---
+  duration_ms: 72.2047
+  type: 'test'
+  ...
+# Subtest: count-257
+ok 6 - count-257
+  ---
+  duration_ms: 67.3671
+  type: 'test'
+  ...
+# Subtest: ascii-key-8190
+ok 7 - ascii-key-8190
+  ---
+  duration_ms: 61.5704
+  type: 'test'
+  ...
+# Subtest: ascii-key-8191
+ok 8 - ascii-key-8191
+  ---
+  duration_ms: 63.493
+  type: 'test'
+  ...
+# Subtest: unicode-key-8191
+ok 9 - unicode-key-8191
+  ---
+  duration_ms: 64.927
+  type: 'test'
+  ...
+# Subtest: unicode-key-8192
+ok 10 - unicode-key-8192
+  ---
+  duration_ms: 63.6682
+  type: 'test'
+  ...
+# Subtest: combining-key-8192
+ok 11 - combining-key-8192
+  ---
+  duration_ms: 63.4565
+  type: 'test'
+  ...
+# Subtest: late-input-descriptor
+ok 12 - late-input-descriptor
+  ---
+  duration_ms: 63.0776
+  type: 'test'
+  ...
+# Subtest: mixed-structural-errors
+ok 13 - mixed-structural-errors
+  ---
+  duration_ms: 64.753
+  type: 'test'
+  ...
+# Subtest: late-event-error
+ok 14 - late-event-error
+  ---
+  duration_ms: 76.5847
+  type: 'test'
+  ...
+# Subtest: long-cli-error
+ok 15 - long-cli-error
+  ---
+  duration_ms: 63.5293
+  type: 'test'
+  ...
+# Subtest: normal
+ok 16 - normal
+  ---
+  duration_ms: 66.0907
+  type: 'test'
+  ...
+# Subtest: missing-plus-conflict
+ok 17 - missing-plus-conflict
+  ---
+  duration_ms: 62.5919
+  type: 'test'
+  ...
+# Subtest: R2-out-of-scope-sentinel
+ok 18 - R2-out-of-scope-sentinel
+  ---
+  duration_ms: 61.8832
+  type: 'test'
+  ...
+1..18
+# tests 18
+# suites 0
+# pass 18
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1781.575

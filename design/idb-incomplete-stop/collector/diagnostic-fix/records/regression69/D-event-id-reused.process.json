@@ -1,0 +1,15 @@
+{
+  "status": 1,
+  "signal": null,
+  "error": null,
+  "inputSha256": "8fcd5a1eb47037cdc95d7855650ef8fd0b37897f825769236a213180b044fe52",
+  "expected": {
+    "status": "INCONSISTENT",
+    "exit": 1,
+    "r": "UNKNOWN",
+    "u": "UNKNOWN",
+    "codes": [
+      "DUPLICATE_EVENT_ID"
+    ]
+  }
+}

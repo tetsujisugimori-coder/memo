@@ -1,0 +1,15 @@
+{
+  "status": 1,
+  "signal": null,
+  "error": null,
+  "inputSha256": "62807c0f440b9a2044d78423070ad9c5e26d931a9c765de0992ff1ce3951a228",
+  "expected": {
+    "status": "INCOMPLETE",
+    "exit": 1,
+    "r": "UNKNOWN",
+    "u": "UNKNOWN",
+    "codes": [
+      "REFERENCE_MISSING"
+    ]
+  }
+}

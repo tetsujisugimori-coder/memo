@@ -1,0 +1,382 @@
+[
+  {
+    "id": "normal",
+    "mode": "none",
+    "fixture": "normal",
+    "fixtureFile": "normal.json",
+    "fixtureEncoding": "raw",
+    "fixtureBytes": 2962,
+    "fixtureSha256": "0ac1843651c9b0ed2d2e142ccb1ae382a13b976a21adeba27126bbef73ac49aa",
+    "externalSha256": "0ac1843651c9b0ed2d2e142ccb1ae382a13b976a21adeba27126bbef73ac49aa",
+    "expected": {
+      "status": "CONSISTENT",
+      "exitCode": 0,
+      "ioFailure": false,
+      "code": null,
+      "errorPrefixes": [],
+      "cliDiagnosticCount": 0,
+      "truncation": false,
+      "rawHash": "0ac1843651c9b0ed2d2e142ccb1ae382a13b976a21adeba27126bbef73ac49aa",
+      "conditionR": "PASS",
+      "conditionU": "FAIL"
+    }
+  },
+  {
+    "id": "short-read-success",
+    "mode": "short-success",
+    "fixture": "normal",
+    "fixtureFile": "normal.json",
+    "fixtureEncoding": "raw",
+    "fixtureBytes": 2962,
+    "fixtureSha256": "0ac1843651c9b0ed2d2e142ccb1ae382a13b976a21adeba27126bbef73ac49aa",
+    "externalSha256": "0ac1843651c9b0ed2d2e142ccb1ae382a13b976a21adeba27126bbef73ac49aa",
+    "expected": {
+      "status": "CONSISTENT",
+      "exitCode": 0,
+      "ioFailure": false,
+      "code": null,
+      "errorPrefixes": [],
+      "cliDiagnosticCount": 0,
+      "truncation": false,
+      "rawHash": "0ac1843651c9b0ed2d2e142ccb1ae382a13b976a21adeba27126bbef73ac49aa",
+      "conditionR": "PASS",
+      "conditionU": "FAIL"
+    }
+  },
+  {
+    "id": "open",
+    "mode": "open",
+    "fixture": "normal",
+    "fixtureFile": "normal.json",
+    "fixtureEncoding": "raw",
+    "fixtureBytes": 2962,
+    "fixtureSha256": "0ac1843651c9b0ed2d2e142ccb1ae382a13b976a21adeba27126bbef73ac49aa",
+    "externalSha256": "0ac1843651c9b0ed2d2e142ccb1ae382a13b976a21adeba27126bbef73ac49aa",
+    "expected": {
+      "status": "INVALID_SCHEMA",
+      "exitCode": 2,
+      "ioFailure": true,
+      "code": "CLI_INPUT",
+      "errorPrefixes": [
+        "EIO injected open failure"
+      ],
+      "cliDiagnosticCount": 1,
+      "truncation": false,
+      "rawHash": null,
+      "conditionR": null,
+      "conditionU": null
+    }
+  },
+  {
+    "id": "read",
+    "mode": "read",
+    "fixture": "normal",
+    "fixtureFile": "normal.json",
+    "fixtureEncoding": "raw",
+    "fixtureBytes": 2962,
+    "fixtureSha256": "0ac1843651c9b0ed2d2e142ccb1ae382a13b976a21adeba27126bbef73ac49aa",
+    "externalSha256": "0ac1843651c9b0ed2d2e142ccb1ae382a13b976a21adeba27126bbef73ac49aa",
+    "expected": {
+      "status": "INVALID_SCHEMA",
+      "exitCode": 2,
+      "ioFailure": true,
+      "code": "CLI_INPUT",
+      "errorPrefixes": [
+        "EIO injected read failure"
+      ],
+      "cliDiagnosticCount": 1,
+      "truncation": false,
+      "rawHash": null,
+      "conditionR": null,
+      "conditionU": null
+    }
+  },
+  {
+    "id": "partial-read",
+    "mode": "partial-read",
+    "fixture": "normal",
+    "fixtureFile": "normal.json",
+    "fixtureEncoding": "raw",
+    "fixtureBytes": 2962,
+    "fixtureSha256": "0ac1843651c9b0ed2d2e142ccb1ae382a13b976a21adeba27126bbef73ac49aa",
+    "externalSha256": "0ac1843651c9b0ed2d2e142ccb1ae382a13b976a21adeba27126bbef73ac49aa",
+    "expected": {
+      "status": "INVALID_SCHEMA",
+      "exitCode": 2,
+      "ioFailure": true,
+      "code": "CLI_INPUT",
+      "errorPrefixes": [
+        "EIO injected read failure"
+      ],
+      "cliDiagnosticCount": 1,
+      "truncation": false,
+      "rawHash": null,
+      "conditionR": null,
+      "conditionU": null
+    }
+  },
+  {
+    "id": "close",
+    "mode": "close",
+    "fixture": "normal",
+    "fixtureFile": "normal.json",
+    "fixtureEncoding": "raw",
+    "fixtureBytes": 2962,
+    "fixtureSha256": "0ac1843651c9b0ed2d2e142ccb1ae382a13b976a21adeba27126bbef73ac49aa",
+    "externalSha256": "0ac1843651c9b0ed2d2e142ccb1ae382a13b976a21adeba27126bbef73ac49aa",
+    "expected": {
+      "status": "INVALID_SCHEMA",
+      "exitCode": 2,
+      "ioFailure": true,
+      "code": "CLI_INPUT",
+      "errorPrefixes": [
+        "EIO injected close failure"
+      ],
+      "cliDiagnosticCount": 1,
+      "truncation": false,
+      "rawHash": null,
+      "conditionR": null,
+      "conditionU": null
+    }
+  },
+  {
+    "id": "read-close",
+    "mode": "read-close",
+    "fixture": "normal",
+    "fixtureFile": "normal.json",
+    "fixtureEncoding": "raw",
+    "fixtureBytes": 2962,
+    "fixtureSha256": "0ac1843651c9b0ed2d2e142ccb1ae382a13b976a21adeba27126bbef73ac49aa",
+    "externalSha256": "0ac1843651c9b0ed2d2e142ccb1ae382a13b976a21adeba27126bbef73ac49aa",
+    "expected": {
+      "status": "INVALID_SCHEMA",
+      "exitCode": 2,
+      "ioFailure": true,
+      "code": "CLI_INPUT",
+      "errorPrefixes": [
+        "EIO injected read failure",
+        "EIO injected close failure"
+      ],
+      "cliDiagnosticCount": 2,
+      "truncation": false,
+      "rawHash": null,
+      "conditionR": null,
+      "conditionU": null
+    }
+  },
+  {
+    "id": "partial-read-close",
+    "mode": "partial-read-close",
+    "fixture": "normal",
+    "fixtureFile": "normal.json",
+    "fixtureEncoding": "raw",
+    "fixtureBytes": 2962,
+    "fixtureSha256": "0ac1843651c9b0ed2d2e142ccb1ae382a13b976a21adeba27126bbef73ac49aa",
+    "externalSha256": "0ac1843651c9b0ed2d2e142ccb1ae382a13b976a21adeba27126bbef73ac49aa",
+    "expected": {
+      "status": "INVALID_SCHEMA",
+      "exitCode": 2,
+      "ioFailure": true,
+      "code": "CLI_INPUT",
+      "errorPrefixes": [
+        "EIO injected read failure",
+        "EIO injected close failure"
+      ],
+      "cliDiagnosticCount": 2,
+      "truncation": false,
+      "rawHash": null,
+      "conditionR": null,
+      "conditionU": null
+    }
+  },
+  {
+    "id": "close-wrong-hash",
+    "mode": "close",
+    "fixture": "normal",
+    "fixtureFile": "normal.json",
+    "fixtureEncoding": "raw",
+    "fixtureBytes": 2962,
+    "fixtureSha256": "0ac1843651c9b0ed2d2e142ccb1ae382a13b976a21adeba27126bbef73ac49aa",
+    "externalSha256": "0000000000000000000000000000000000000000000000000000000000000000",
+    "expected": {
+      "status": "INVALID_SCHEMA",
+      "exitCode": 2,
+      "ioFailure": true,
+      "code": "CLI_INPUT",
+      "errorPrefixes": [
+        "EIO injected close failure"
+      ],
+      "cliDiagnosticCount": 1,
+      "truncation": false,
+      "rawHash": null,
+      "conditionR": null,
+      "conditionU": null
+    },
+    "wrongHash": true
+  },
+  {
+    "id": "close-invalid-json",
+    "mode": "close",
+    "fixture": "invalid",
+    "fixtureFile": "invalid.json",
+    "fixtureEncoding": "raw",
+    "fixtureBytes": 8,
+    "fixtureSha256": "40b5cafe045b9c9e31a1c3fdcfbc89f934906ff06a6276b55c2a0e517be21655",
+    "externalSha256": "40b5cafe045b9c9e31a1c3fdcfbc89f934906ff06a6276b55c2a0e517be21655",
+    "expected": {
+      "status": "INVALID_SCHEMA",
+      "exitCode": 2,
+      "ioFailure": true,
+      "code": "CLI_INPUT",
+      "errorPrefixes": [
+        "EIO injected close failure"
+      ],
+      "cliDiagnosticCount": 1,
+      "truncation": false,
+      "rawHash": null,
+      "conditionR": null,
+      "conditionU": null
+    }
+  },
+  {
+    "id": "arity",
+    "mode": "none",
+    "fixture": "normal",
+    "fixtureFile": "normal.json",
+    "fixtureEncoding": "raw",
+    "fixtureBytes": 2962,
+    "fixtureSha256": "0ac1843651c9b0ed2d2e142ccb1ae382a13b976a21adeba27126bbef73ac49aa",
+    "externalSha256": "0ac1843651c9b0ed2d2e142ccb1ae382a13b976a21adeba27126bbef73ac49aa",
+    "expected": {
+      "status": "INVALID_SCHEMA",
+      "exitCode": 2,
+      "ioFailure": true,
+      "code": "CLI_INPUT",
+      "errorPrefixes": [
+        "usage: node collect.cjs"
+      ],
+      "cliDiagnosticCount": 1,
+      "truncation": false,
+      "rawHash": null,
+      "conditionR": null,
+      "conditionU": null
+    }
+  },
+  {
+    "id": "missing",
+    "mode": "none",
+    "fixture": "normal",
+    "fixtureFile": "normal.json",
+    "fixtureEncoding": "raw",
+    "fixtureBytes": 2962,
+    "fixtureSha256": "0ac1843651c9b0ed2d2e142ccb1ae382a13b976a21adeba27126bbef73ac49aa",
+    "externalSha256": "0ac1843651c9b0ed2d2e142ccb1ae382a13b976a21adeba27126bbef73ac49aa",
+    "expected": {
+      "status": "INVALID_SCHEMA",
+      "exitCode": 2,
+      "ioFailure": true,
+      "code": "CLI_INPUT",
+      "errorPrefixes": [
+        "ENOENT"
+      ],
+      "cliDiagnosticCount": 1,
+      "truncation": false,
+      "rawHash": null,
+      "conditionR": null,
+      "conditionU": null
+    }
+  },
+  {
+    "id": "oversize",
+    "mode": "none",
+    "fixture": "oversize",
+    "fixtureFile": "oversize.json.gz",
+    "fixtureEncoding": "gzip",
+    "fixtureBytes": 2097153,
+    "fixtureSha256": "e7d99e4db1392275f200e288c860f9780a935c945e2d55f98c1b68a1f9f3fb5c",
+    "externalSha256": "e7d99e4db1392275f200e288c860f9780a935c945e2d55f98c1b68a1f9f3fb5c",
+    "expected": {
+      "status": "INVALID_SCHEMA",
+      "exitCode": 2,
+      "ioFailure": false,
+      "code": "JSON",
+      "errorPrefixes": [],
+      "cliDiagnosticCount": 0,
+      "truncation": false,
+      "rawHash": null,
+      "conditionR": null,
+      "conditionU": null
+    }
+  },
+  {
+    "id": "long-open-error",
+    "mode": "open-long",
+    "fixture": "normal",
+    "fixtureFile": "normal.json",
+    "fixtureEncoding": "raw",
+    "fixtureBytes": 2962,
+    "fixtureSha256": "0ac1843651c9b0ed2d2e142ccb1ae382a13b976a21adeba27126bbef73ac49aa",
+    "externalSha256": "0ac1843651c9b0ed2d2e142ccb1ae382a13b976a21adeba27126bbef73ac49aa",
+    "expected": {
+      "status": "INVALID_SCHEMA",
+      "exitCode": 2,
+      "ioFailure": true,
+      "code": "CLI_INPUT",
+      "errorPrefixes": [
+        "EIO injected open failure"
+      ],
+      "cliDiagnosticCount": 1,
+      "truncation": true,
+      "rawHash": null,
+      "conditionR": null,
+      "conditionU": null
+    }
+  },
+  {
+    "id": "read-long-close",
+    "mode": "read-long-close",
+    "fixture": "normal",
+    "fixtureFile": "normal.json",
+    "fixtureEncoding": "raw",
+    "fixtureBytes": 2962,
+    "fixtureSha256": "0ac1843651c9b0ed2d2e142ccb1ae382a13b976a21adeba27126bbef73ac49aa",
+    "externalSha256": "0ac1843651c9b0ed2d2e142ccb1ae382a13b976a21adeba27126bbef73ac49aa",
+    "expected": {
+      "status": "INVALID_SCHEMA",
+      "exitCode": 2,
+      "ioFailure": true,
+      "code": "CLI_INPUT",
+      "errorPrefixes": [
+        "EIO injected read failure",
+        "EIO injected close failure"
+      ],
+      "cliDiagnosticCount": 2,
+      "truncation": true,
+      "rawHash": null,
+      "conditionR": null,
+      "conditionU": null
+    }
+  },
+  {
+    "id": "invalid-json",
+    "mode": "none",
+    "fixture": "invalid",
+    "fixtureFile": "invalid.json",
+    "fixtureEncoding": "raw",
+    "fixtureBytes": 8,
+    "fixtureSha256": "40b5cafe045b9c9e31a1c3fdcfbc89f934906ff06a6276b55c2a0e517be21655",
+    "externalSha256": "40b5cafe045b9c9e31a1c3fdcfbc89f934906ff06a6276b55c2a0e517be21655",
+    "expected": {
+      "status": "INVALID_SCHEMA",
+      "exitCode": 2,
+      "ioFailure": false,
+      "code": "JSON",
+      "errorPrefixes": [],
+      "cliDiagnosticCount": 0,
+      "truncation": false,
+      "rawHash": "40b5cafe045b9c9e31a1c3fdcfbc89f934906ff06a6276b55c2a0e517be21655",
+      "conditionR": null,
+      "conditionU": null
+    }
+  }
+]

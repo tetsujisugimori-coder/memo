@@ -1,0 +1,14 @@
+{
+  "worktrees": 62,
+  "hashesChecked": 3985,
+  "allowedChanges": [
+    {
+      "worktree": "C:/Users/tetsu/Documents/Codex/メモ帳/work/idb-evidence-collector-u1",
+      "path": "design/idb-incomplete-stop/collector/collect.cjs",
+      "before": "4b32dd261e83559a5d090d860b58e3c833ee5b04f570b28748007f06aaef35f9",
+      "after": "1405cc547269b3cbfbd59c584f263c48999b6ec85b6280dba55fea0af1b1d2e1"
+    }
+  ],
+  "unexpectedChanges": [],
+  "scope": "initial clean target/root; all original HEADs, other worktree statuses, existing changed/untracked nonignored bytes and tracked research files; ignored caches not globally audited"
+}

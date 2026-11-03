@@ -1,0 +1,68 @@
+{
+  "fixedTarget": "e4a5d414689f23e1b33660bce3e006c46fb4e37f",
+  "freshRegression": [
+    {
+      "name": "regression96",
+      "tests": 96,
+      "pass": 96,
+      "fail": 0,
+      "skipped": 0,
+      "actualExitCode": 0,
+      "command": [
+        "C:\\Program Files\\nodejs\\node.exe",
+        "C:\\Users\\tetsu\\Documents\\Codex\\メモ帳\\work\\u1-a405-accept-20261103\\new\\design\\idb-incomplete-stop\\collector\\verify.cjs",
+        "C:\\Users\\tetsu\\Documents\\Codex\\メモ帳\\work\\u1-a405-accept-20261103\\regression\\regression96"
+      ],
+      "tapSha256": "d218805d3d07c8350dbd9f20727504691da76d8db69e5a9276b11edb36d67cf0"
+    },
+    {
+      "name": "regression69",
+      "tests": 69,
+      "pass": 69,
+      "fail": 0,
+      "skipped": 0,
+      "actualExitCode": 0,
+      "command": [
+        "C:\\Program Files\\nodejs\\node.exe",
+        "C:\\Users\\tetsu\\Documents\\Codex\\メモ帳\\work\\u1-a405-accept-20261103\\new\\design\\idb-incomplete-stop\\collector\\independent\\run.cjs",
+        "C:\\Users\\tetsu\\Documents\\Codex\\メモ帳\\work\\u1-a405-accept-20261103\\regression\\regression69"
+      ],
+      "tapSha256": "1edf914f4231f877012508aa12f08f9195c6b5ce9b91fd4d7f27989e38b25345"
+    },
+    {
+      "name": "regression18",
+      "tests": 18,
+      "pass": 18,
+      "fail": 0,
+      "skipped": 0,
+      "actualExitCode": 0,
+      "command": [
+        "C:\\Program Files\\nodejs\\node.exe",
+        "C:\\Users\\tetsu\\Documents\\Codex\\メモ帳\\work\\u1-a405-accept-20261103\\new\\design\\idb-incomplete-stop\\collector\\diagnostic-fix\\run.cjs",
+        "C:\\Users\\tetsu\\Documents\\Codex\\メモ帳\\work\\u1-a405-accept-20261103\\regression\\regression18"
+      ],
+      "tapSha256": "0f501c1393995e287b5b6173b1f02a516a5296f8e37f7036da893ba319d4bd0b"
+    }
+  ],
+  "comparisons": {
+    "18": {
+      "count": 18,
+      "byteIdentical": 17,
+      "pathOnly": 1
+    },
+    "37": {
+      "count": 37,
+      "byteIdentical": 35,
+      "pathOnly": 2
+    },
+    "40": {
+      "count": 40,
+      "byteIdentical": 40,
+      "pathOnly": 0
+    }
+  },
+  "allFixedSourcesUnchanged": true,
+  "preRunCliBytesIdentical": true,
+  "rootCause": "new CLI failure branch constructs an unadopted error result; collectEvidence is only called in the no-error else branch",
+  "R2P3": "UNRESOLVED_UNCHANGED"
+}

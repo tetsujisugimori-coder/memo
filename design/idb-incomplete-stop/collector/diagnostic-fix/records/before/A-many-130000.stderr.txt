@@ -1,0 +1,17 @@
+C:\Users\tetsu\Documents\Codex\メモ帳\work\idb-u1-diagnostics-audit\fixed\collector\collect.cjs:129
+  out.validationErrors.push(...validate(data, inputSchema));
+                       ^
+
+RangeError: Maximum call stack size exceeded
+    at collectEvidence (C:\Users\tetsu\Documents\Codex\メモ帳\work\idb-u1-diagnostics-audit\fixed\collector\collect.cjs:129:24)
+    at runCli (C:\Users\tetsu\Documents\Codex\メモ帳\work\idb-u1-diagnostics-audit\fixed\collector\collect.cjs:247:18)
+    at Object.<anonymous> (C:\Users\tetsu\Documents\Codex\メモ帳\work\idb-u1-diagnostics-audit\fixed\collector\collect.cjs:257:30)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:261:19)
+    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)
+    at node:internal/main/run_main_module:33:47
+
+Node.js v24.20.0

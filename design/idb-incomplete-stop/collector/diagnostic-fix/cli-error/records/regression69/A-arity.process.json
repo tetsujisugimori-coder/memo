@@ -1,0 +1,16 @@
+{
+  "status": 2,
+  "signal": null,
+  "error": null,
+  "inputSha256": "ac02602943ccf943277c8ed647a23d9dda83147390e0484a315c6378e43f9de4",
+  "expected": {
+    "status": "INVALID_SCHEMA",
+    "exit": 2,
+    "r": null,
+    "u": null,
+    "codes": [
+      "CLI_INPUT"
+    ],
+    "rawHash": "null"
+  }
+}

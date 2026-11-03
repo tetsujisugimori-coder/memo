@@ -1,0 +1,15 @@
+{
+  "status": 1,
+  "signal": null,
+  "error": null,
+  "inputSha256": "f4726f8dbeea99125de8fdb5c517594a3f62c509738747f512a61cdb91976900",
+  "expected": {
+    "status": "INCOMPLETE",
+    "exit": 1,
+    "r": "UNKNOWN",
+    "u": "UNKNOWN",
+    "codes": [
+      "COMPLETE_SEND_MISSING"
+    ]
+  }
+}

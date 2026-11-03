@@ -1,0 +1,15 @@
+{
+  "status": 1,
+  "signal": null,
+  "error": null,
+  "inputSha256": "b4e39e68c18784434d35edd2b9ecab6582a218a891478a0e4d0627245cb2878c",
+  "expected": {
+    "status": "INCOMPLETE",
+    "exit": 1,
+    "r": "UNKNOWN",
+    "u": "UNKNOWN",
+    "codes": [
+      "SOURCE_SEQUENCE_GAP"
+    ]
+  }
+}

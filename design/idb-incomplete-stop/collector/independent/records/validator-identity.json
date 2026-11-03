@@ -1,0 +1,10 @@
+{
+  "name": "ajv",
+  "version": "8.20.0",
+  "dialect": "Draft 2020-12",
+  "existingLocalDependency": true,
+  "installPerformed": false,
+  "entryPoint": "C:\\Users\\tetsu\\Documents\\Codex\\メモ帳\\node_modules\\ajv\\dist\\2020.js",
+  "entryPointSha256": "908e9670b478b2ba126802a221b7e47006f50cf467e2c5dd7935d3dbef10a20a",
+  "packageJsonSha256": "1f9033ee5a6515e7d76938b7072941862d1ed228a6879cc7fe10cdeb75107989"
+}

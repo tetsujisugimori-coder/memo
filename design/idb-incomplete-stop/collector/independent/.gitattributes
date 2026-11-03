@@ -1,0 +1,3 @@
+# Keep generated evidence byte-for-byte, including Node assertion indentation.
+records/**/*.tap -whitespace
+records/**/A-oversize-expanded.json -diff -whitespace

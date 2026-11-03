@@ -1,0 +1,424 @@
+TAP version 13
+# Subtest: A-arity
+ok 1 - A-arity
+  ---
+  duration_ms: 173.7912
+  type: 'test'
+  ...
+# Subtest: A-missing
+ok 2 - A-missing
+  ---
+  duration_ms: 72.7898
+  type: 'test'
+  ...
+# Subtest: A-denied
+ok 3 - A-denied
+  ---
+  duration_ms: 284.7507
+  type: 'test'
+  ...
+# Subtest: A-oversize
+ok 4 - A-oversize
+  ---
+  duration_ms: 73.8281
+  type: 'test'
+  ...
+# Subtest: A-utf8
+ok 5 - A-utf8
+  ---
+  duration_ms: 67.5682
+  type: 'test'
+  ...
+# Subtest: A-json
+ok 6 - A-json
+  ---
+  duration_ms: 64.8984
+  type: 'test'
+  ...
+# Subtest: A-hash
+ok 7 - A-hash
+  ---
+  duration_ms: 65.2664
+  type: 'test'
+  ...
+# Subtest: A-material
+ok 8 - A-material
+  ---
+  duration_ms: 59.507
+  type: 'test'
+  ...
+# Subtest: B-gap-only
+ok 9 - B-gap-only
+  ---
+  duration_ms: 59.2287
+  type: 'test'
+  ...
+# Subtest: B-duplicate-only
+ok 10 - B-duplicate-only
+  ---
+  duration_ms: 64.7212
+  type: 'test'
+  ...
+# Subtest: B-outside-only
+ok 11 - B-outside-only
+  ---
+  duration_ms: 61.1653
+  type: 'test'
+  ...
+# Subtest: B-reference-missing
+ok 12 - B-reference-missing
+  ---
+  duration_ms: 61.6394
+  type: 'test'
+  ...
+# Subtest: B-gap-and-duplicate
+ok 13 - B-gap-and-duplicate
+  ---
+  duration_ms: 63.4268
+  type: 'test'
+  ...
+# Subtest: B-gap-and-wrong-type
+ok 14 - B-gap-and-wrong-type
+  ---
+  duration_ms: 62.9621
+  type: 'test'
+  ...
+# Subtest: B-gap-and-foreign-transaction
+ok 15 - B-gap-and-foreign-transaction
+  ---
+  duration_ms: 76.1277
+  type: 'test'
+  ...
+# Subtest: B-loss-and-terminal-conflict
+ok 16 - B-loss-and-terminal-conflict
+  ---
+  duration_ms: 65.3442
+  type: 'test'
+  ...
+# Subtest: C-worker-complete-only
+ok 17 - C-worker-complete-only
+  ---
+  duration_ms: 61.789
+  type: 'test'
+  ...
+# Subtest: C-sent-only
+ok 18 - C-sent-only
+  ---
+  duration_ms: 60.7129
+  type: 'test'
+  ...
+# Subtest: C-received-before-stop
+ok 19 - C-received-before-stop
+  ---
+  duration_ms: 60.218
+  type: 'test'
+  ...
+# Subtest: C-received-after-stop
+ok 20 - C-received-after-stop
+  ---
+  duration_ms: 62.7896
+  type: 'test'
+  ...
+# Subtest: C-complete-other-transaction
+ok 21 - C-complete-other-transaction
+  ---
+  duration_ms: 60.3523
+  type: 'test'
+  ...
+# Subtest: C-send-other-worker
+ok 22 - C-send-other-worker
+  ---
+  duration_ms: 58.6318
+  type: 'test'
+  ...
+# Subtest: C-incomparable-sources
+ok 23 - C-incomparable-sources
+  ---
+  duration_ms: 57.1567
+  type: 'test'
+  ...
+# Subtest: C-local-order-reversed
+ok 24 - C-local-order-reversed
+  ---
+  duration_ms: 58.439
+  type: 'test'
+  ...
+# Subtest: C-array-reversed
+ok 25 - C-array-reversed
+  ---
+  duration_ms: 57.7835
+  type: 'test'
+  ...
+# Subtest: C-clocks-exchanged
+ok 26 - C-clocks-exchanged
+  ---
+  duration_ms: 60.1535
+  type: 'test'
+  ...
+# Subtest: C-stop-prerequisite-missing
+ok 27 - C-stop-prerequisite-missing
+  ---
+  duration_ms: 62.9856
+  type: 'test'
+  ...
+# Subtest: C-worker-event-in-main-source
+ok 28 - C-worker-event-in-main-source
+  ---
+  duration_ms: 56.9399
+  type: 'test'
+  ...
+# Subtest: C-main-event-in-worker-source
+ok 29 - C-main-event-in-worker-source
+  ---
+  duration_ms: 62.1833
+  type: 'test'
+  ...
+# Subtest: D-same-worker-two-transactions
+ok 30 - D-same-worker-two-transactions
+  ---
+  duration_ms: 61.7744
+  type: 'test'
+  ...
+# Subtest: D-two-workers-shared-main
+ok 31 - D-two-workers-shared-main
+  ---
+  duration_ms: 62.0596
+  type: 'test'
+  ...
+# Subtest: D-event-id-reused
+ok 32 - D-event-id-reused
+  ---
+  duration_ms: 57.9321
+  type: 'test'
+  ...
+# Subtest: D-complete-double-reference
+ok 33 - D-complete-double-reference
+  ---
+  duration_ms: 57.2177
+  type: 'test'
+  ...
+# Subtest: D-send-double-receipt
+ok 34 - D-send-double-receipt
+  ---
+  duration_ms: 59.3963
+  type: 'test'
+  ...
+# Subtest: D-foreign-workerId
+ok 35 - D-foreign-workerId
+  ---
+  duration_ms: 59.3479
+  type: 'test'
+  ...
+# Subtest: D-foreign-connectionId
+ok 36 - D-foreign-connectionId
+  ---
+  duration_ms: 70.2794
+  type: 'test'
+  ...
+# Subtest: D-foreign-iteration
+ok 37 - D-foreign-iteration
+  ---
+  duration_ms: 58.6354
+  type: 'test'
+  ...
+# Subtest: C-permutation-and-clock-semantic-equivalence
+ok 38 - C-permutation-and-clock-semantic-equivalence
+  ---
+  duration_ms: 0.3402
+  type: 'test'
+  ...
+# Subtest: E-input-normal
+ok 39 - E-input-normal
+  ---
+  duration_ms: 9.0971
+  type: 'test'
+  ...
+# Subtest: E-input-wrong-type
+ok 40 - E-input-wrong-type
+  ---
+  duration_ms: 2.9665
+  type: 'test'
+  ...
+# Subtest: E-input-unknown-field
+ok 41 - E-input-unknown-field
+  ---
+  duration_ms: 1.3151
+  type: 'test'
+  ...
+# Subtest: E-input-oneOf-worker-without-owner
+ok 42 - E-input-oneOf-worker-without-owner
+  ---
+  duration_ms: 1.7879
+  type: 'test'
+  ...
+# Subtest: E-input-oneOf-main-with-worker-owner
+ok 43 - E-input-oneOf-main-with-worker-owner
+  ---
+  duration_ms: 1.8184
+  type: 'test'
+  ...
+# Subtest: E-input-oneOf-source-mismatch
+ok 44 - E-input-oneOf-source-mismatch
+  ---
+  duration_ms: 1.5729
+  type: 'test'
+  ...
+# Subtest: E-input-oneOf-valid-error-worker
+ok 45 - E-input-oneOf-valid-error-worker
+  ---
+  duration_ms: 1.0878
+  type: 'test'
+  ...
+# Subtest: E-input-oneOf-valid-error-main
+ok 46 - E-input-oneOf-valid-error-main
+  ---
+  duration_ms: 1.0939
+  type: 'test'
+  ...
+# Subtest: E-input-invalid-enum
+ok 47 - E-input-invalid-enum
+  ---
+  duration_ms: 1.0759
+  type: 'test'
+  ...
+# Subtest: E-input-integer-low
+ok 48 - E-input-integer-low
+  ---
+  duration_ms: 1.3627
+  type: 'test'
+  ...
+# Subtest: E-input-integer-high
+ok 49 - E-input-integer-high
+  ---
+  duration_ms: 1.2797
+  type: 'test'
+  ...
+# Subtest: E-input-integer-fraction
+ok 50 - E-input-integer-fraction
+  ---
+  duration_ms: 1.2123
+  type: 'test'
+  ...
+# Subtest: E-input-empty-id
+ok 51 - E-input-empty-id
+  ---
+  duration_ms: 1.467
+  type: 'test'
+  ...
+# Subtest: E-input-id-max
+ok 52 - E-input-id-max
+  ---
+  duration_ms: 1.331
+  type: 'test'
+  ...
+# Subtest: E-input-id-too-long
+ok 53 - E-input-id-too-long
+  ---
+  duration_ms: 1.8464
+  type: 'test'
+  ...
+# Subtest: E-input-id-final-newline
+ok 54 - E-input-id-final-newline
+  ---
+  duration_ms: 1.0542
+  type: 'test'
+  ...
+# Subtest: E-input-numeric-clock
+ok 55 - E-input-numeric-clock
+  ---
+  duration_ms: 1.3685
+  type: 'test'
+  ...
+# Subtest: E-output-normal
+ok 56 - E-output-normal
+  ---
+  duration_ms: 0.5796
+  type: 'test'
+  ...
+# Subtest: E-output-wrong-type
+ok 57 - E-output-wrong-type
+  ---
+  duration_ms: 0.5791
+  type: 'test'
+  ...
+# Subtest: E-output-unknown-field
+ok 58 - E-output-unknown-field
+  ---
+  duration_ms: 0.5096
+  type: 'test'
+  ...
+# Subtest: E-output-invalid-enum
+ok 59 - E-output-invalid-enum
+  ---
+  duration_ms: 0.4753
+  type: 'test'
+  ...
+# Subtest: E-output-invalid-assessment-enum
+ok 60 - E-output-invalid-assessment-enum
+  ---
+  duration_ms: 0.5371
+  type: 'test'
+  ...
+# Subtest: E-output-integer-enum-high
+ok 61 - E-output-integer-enum-high
+  ---
+  duration_ms: 0.5122
+  type: 'test'
+  ...
+# Subtest: E-output-integer-fraction
+ok 62 - E-output-integer-fraction
+  ---
+  duration_ms: 0.5051
+  type: 'test'
+  ...
+# Subtest: E-output-string-too-long
+ok 63 - E-output-string-too-long
+  ---
+  duration_ms: 0.5622
+  type: 'test'
+  ...
+# Subtest: E-output-string-max
+ok 64 - E-output-string-max
+  ---
+  duration_ms: 0.6954
+  type: 'test'
+  ...
+# Subtest: E-output-unicode-length-valid
+ok 65 - E-output-unicode-length-valid
+  ---
+  duration_ms: 0.8898
+  type: 'test'
+  ...
+# Subtest: E-output-unicode-length-invalid
+ok 66 - E-output-unicode-length-invalid
+  ---
+  duration_ms: 0.6257
+  type: 'test'
+  ...
+# Subtest: E-output-hash-final-newline
+ok 67 - E-output-hash-final-newline
+  ---
+  duration_ms: 0.5449
+  type: 'test'
+  ...
+# Subtest: E-output-transaction-id-final-newline
+ok 68 - E-output-transaction-id-final-newline
+  ---
+  duration_ms: 0.4666
+  type: 'test'
+  ...
+# Subtest: E-output-nullable-hash
+ok 69 - E-output-nullable-hash
+  ---
+  duration_ms: 0.4768
+  type: 'test'
+  ...
+1..69
+# tests 69
+# suites 0
+# pass 69
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 2999.5322

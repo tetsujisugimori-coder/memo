@@ -1,0 +1,37 @@
+{
+  "expected": {
+    "status": "INVALID_SCHEMA",
+    "exitCode": 2,
+    "codes": [
+      "SCHEMA"
+    ],
+    "shortened": true,
+    "diagnostics": 256,
+    "omitted": 7938
+  },
+  "inputBytes": 83782,
+  "inputSha256": "5c418f8f776ccde97d5ca701802ecd1f17370dedd9c4bb7bcf1ff95f50cde855",
+  "status": 2,
+  "signal": null,
+  "processError": null,
+  "stdoutBytes": 810836,
+  "stdoutSha256": "2cc07baf1f6f1d4d135e75a997c642ce30bbb254cf39975a8193efad772252c5",
+  "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "parseError": null,
+  "independentSchemaValid": false,
+  "schemaErrors": [
+    {
+      "instancePath": "/validationErrors",
+      "schemaPath": "#/properties/validationErrors/maxItems",
+      "keyword": "maxItems",
+      "params": {
+        "limit": 8192
+      },
+      "message": "must NOT have more than 8192 items"
+    }
+  ],
+  "actualStatus": "INVALID_SCHEMA",
+  "actualExitCode": 2,
+  "diagnosticCount": 8193,
+  "marker": null
+}

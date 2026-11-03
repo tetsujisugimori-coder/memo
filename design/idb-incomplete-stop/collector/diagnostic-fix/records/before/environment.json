@@ -1,0 +1,15 @@
+{
+  "target": "C:\\Users\\tetsu\\Documents\\Codex\\メモ帳\\work\\idb-u1-diagnostics-audit\\fixed\\collector\\collect.cjs",
+  "revision": "189b184781e78e474879dab0c89a8dfca9db4254",
+  "node": "v24.20.0",
+  "collectorSha256": "5b86738d9337face37ab75bb7e4b31a4a3a0a39866e3ca33023a0f40f85016a7",
+  "expectationsSha256": "bc1b10320f3630c17eb1da3ea332e73d16826be9311c3ee8f8cb03e3a269eb5a",
+  "resultSchemaSha256": "6547cd1f00a03e7d510d0e3c9e7de6d1839ea68da71c6e0290b275c405ffa9ca",
+  "independentValidator": {
+    "name": "ajv",
+    "version": "8.20.0",
+    "dialect": "Draft 2020-12"
+  },
+  "provenance": "RECONSTRUCTED_NOT_ORIGINAL",
+  "originalArchive": "memo405-independent-review-20261103.zip unavailable via Library; no original-hash claim"
+}

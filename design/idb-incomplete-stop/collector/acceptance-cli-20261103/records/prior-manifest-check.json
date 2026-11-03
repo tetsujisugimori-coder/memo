@@ -1,0 +1,7 @@
+{
+  "fixed": "e4a5d414689f23e1b33660bce3e006c46fb4e37f",
+  "manifest": "design/idb-incomplete-stop/collector/diagnostic-fix/cli-error/records/SHA256SUMS",
+  "manifestSha256": "70d5c3b09d90054e79e875302080d72f58de8efe0d7b70643008d0a1bb7c9abe",
+  "entriesChecked": 449,
+  "allGitBlobHashesMatch": true
+}

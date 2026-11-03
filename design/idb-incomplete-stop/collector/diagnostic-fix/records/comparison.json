@@ -1,0 +1,1358 @@
+[
+  {
+    "id": "A-many-130000",
+    "primary": true,
+    "provenance": "RECONSTRUCTED_NOT_ORIGINAL",
+    "inputBytes": 1451852,
+    "inputSha256": "e6fe086276f4d28af908f75fbe7487e931be01306a6f6fca8672f0bba3be95ef",
+    "expected": {
+      "status": "INVALID_SCHEMA",
+      "exitCode": 2,
+      "codes": [
+        "SCHEMA"
+      ],
+      "shortened": true,
+      "diagnostics": 256,
+      "omitted": 129745
+    },
+    "before": {
+      "expected": {
+        "status": "INVALID_SCHEMA",
+        "exitCode": 2,
+        "codes": [
+          "SCHEMA"
+        ],
+        "shortened": true,
+        "diagnostics": 256,
+        "omitted": 129745
+      },
+      "inputBytes": 1451852,
+      "inputSha256": "e6fe086276f4d28af908f75fbe7487e931be01306a6f6fca8672f0bba3be95ef",
+      "status": 1,
+      "signal": null,
+      "processError": null,
+      "stdoutBytes": 0,
+      "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderrSha256": "d6239c1cd4536bafe9ad85a7894707ac57558421e30d4f4d6195b1dfccbe2bdf",
+      "parseError": "Unexpected end of JSON input",
+      "independentSchemaValid": null,
+      "schemaErrors": null,
+      "actualStatus": null,
+      "actualExitCode": null,
+      "diagnosticCount": null,
+      "marker": null
+    },
+    "after": {
+      "expected": {
+        "status": "INVALID_SCHEMA",
+        "exitCode": 2,
+        "codes": [
+          "SCHEMA"
+        ],
+        "shortened": true,
+        "diagnostics": 256,
+        "omitted": 129745
+      },
+      "inputBytes": 1451852,
+      "inputSha256": "e6fe086276f4d28af908f75fbe7487e931be01306a6f6fca8672f0bba3be95ef",
+      "status": 2,
+      "signal": null,
+      "processError": null,
+      "stdoutBytes": 25907,
+      "stdoutSha256": "5957a3314c114ff71c2413819c5332b901356f95e0e7b9de8e48a8c8f54799ba",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "parseError": null,
+      "independentSchemaValid": true,
+      "schemaErrors": null,
+      "actualStatus": "INVALID_SCHEMA",
+      "actualExitCode": 2,
+      "diagnosticCount": 256,
+      "marker": {
+        "code": "DIAGNOSTICS_TRUNCATED",
+        "subject": "",
+        "detail": "diagnostics omitted=129745; fields shortened=0; reason codes=SCHEMA"
+      }
+    }
+  },
+  {
+    "id": "B-key-8192",
+    "primary": true,
+    "provenance": "RECONSTRUCTED_NOT_ORIGINAL",
+    "inputBytes": 11159,
+    "inputSha256": "530f91d89c4ee97c70872464fbcf15e04c5be63da6b1f89d29c81bf4d65c073b",
+    "expected": {
+      "status": "INVALID_SCHEMA",
+      "exitCode": 2,
+      "codes": [
+        "SCHEMA"
+      ],
+      "shortened": true,
+      "diagnostics": 2,
+      "omitted": 0,
+      "fieldsShortened": 1
+    },
+    "before": {
+      "expected": {
+        "status": "INVALID_SCHEMA",
+        "exitCode": 2,
+        "codes": [
+          "SCHEMA"
+        ],
+        "shortened": true,
+        "diagnostics": 2,
+        "omitted": 0,
+        "fieldsShortened": 1
+      },
+      "inputBytes": 11159,
+      "inputSha256": "530f91d89c4ee97c70872464fbcf15e04c5be63da6b1f89d29c81bf4d65c073b",
+      "status": 2,
+      "signal": null,
+      "processError": null,
+      "stdoutBytes": 9125,
+      "stdoutSha256": "3b73897670e71aa5bc8b270d22e051e7cb19514c3d5bd3883d9f360342562302",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "parseError": null,
+      "independentSchemaValid": false,
+      "schemaErrors": [
+        {
+          "instancePath": "/validationErrors/0/subject",
+          "schemaPath": "#/properties/validationErrors/items/properties/subject/maxLength",
+          "keyword": "maxLength",
+          "params": {
+            "limit": 8192
+          },
+          "message": "must NOT have more than 8192 characters"
+        }
+      ],
+      "actualStatus": "INVALID_SCHEMA",
+      "actualExitCode": 2,
+      "diagnosticCount": 1,
+      "marker": null
+    },
+    "after": {
+      "expected": {
+        "status": "INVALID_SCHEMA",
+        "exitCode": 2,
+        "codes": [
+          "SCHEMA"
+        ],
+        "shortened": true,
+        "diagnostics": 2,
+        "omitted": 0,
+        "fieldsShortened": 1
+      },
+      "inputBytes": 11159,
+      "inputSha256": "530f91d89c4ee97c70872464fbcf15e04c5be63da6b1f89d29c81bf4d65c073b",
+      "status": 2,
+      "signal": null,
+      "processError": null,
+      "stdoutBytes": 9307,
+      "stdoutSha256": "2db366865119e81e5ef15a20b4eb2503a7040c1e31eafe359a5202ef19dc292e",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "parseError": null,
+      "independentSchemaValid": true,
+      "schemaErrors": null,
+      "actualStatus": "INVALID_SCHEMA",
+      "actualExitCode": 2,
+      "diagnosticCount": 2,
+      "marker": {
+        "code": "DIAGNOSTICS_TRUNCATED",
+        "subject": "",
+        "detail": "diagnostics omitted=0; fields shortened=1; reason codes=SCHEMA"
+      }
+    }
+  },
+  {
+    "id": "C-errors-8193",
+    "primary": true,
+    "provenance": "RECONSTRUCTED_NOT_ORIGINAL",
+    "inputBytes": 83782,
+    "inputSha256": "5c418f8f776ccde97d5ca701802ecd1f17370dedd9c4bb7bcf1ff95f50cde855",
+    "expected": {
+      "status": "INVALID_SCHEMA",
+      "exitCode": 2,
+      "codes": [
+        "SCHEMA"
+      ],
+      "shortened": true,
+      "diagnostics": 256,
+      "omitted": 7938
+    },
+    "before": {
+      "expected": {
+        "status": "INVALID_SCHEMA",
+        "exitCode": 2,
+        "codes": [
+          "SCHEMA"
+        ],
+        "shortened": true,
+        "diagnostics": 256,
+        "omitted": 7938
+      },
+      "inputBytes": 83782,
+      "inputSha256": "5c418f8f776ccde97d5ca701802ecd1f17370dedd9c4bb7bcf1ff95f50cde855",
+      "status": 2,
+      "signal": null,
+      "processError": null,
+      "stdoutBytes": 810836,
+      "stdoutSha256": "2cc07baf1f6f1d4d135e75a997c642ce30bbb254cf39975a8193efad772252c5",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "parseError": null,
+      "independentSchemaValid": false,
+      "schemaErrors": [
+        {
+          "instancePath": "/validationErrors",
+          "schemaPath": "#/properties/validationErrors/maxItems",
+          "keyword": "maxItems",
+          "params": {
+            "limit": 8192
+          },
+          "message": "must NOT have more than 8192 items"
+        }
+      ],
+      "actualStatus": "INVALID_SCHEMA",
+      "actualExitCode": 2,
+      "diagnosticCount": 8193,
+      "marker": null
+    },
+    "after": {
+      "expected": {
+        "status": "INVALID_SCHEMA",
+        "exitCode": 2,
+        "codes": [
+          "SCHEMA"
+        ],
+        "shortened": true,
+        "diagnostics": 256,
+        "omitted": 7938
+      },
+      "inputBytes": 83782,
+      "inputSha256": "5c418f8f776ccde97d5ca701802ecd1f17370dedd9c4bb7bcf1ff95f50cde855",
+      "status": 2,
+      "signal": null,
+      "processError": null,
+      "stdoutBytes": 25905,
+      "stdoutSha256": "c14ede83799315ac45cfd48302555a75eec0eb89c98226d0c7c9523080aa6d3f",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "parseError": null,
+      "independentSchemaValid": true,
+      "schemaErrors": null,
+      "actualStatus": "INVALID_SCHEMA",
+      "actualExitCode": 2,
+      "diagnosticCount": 256,
+      "marker": {
+        "code": "DIAGNOSTICS_TRUNCATED",
+        "subject": "",
+        "detail": "diagnostics omitted=7938; fields shortened=0; reason codes=SCHEMA"
+      }
+    }
+  },
+  {
+    "id": "count-255",
+    "primary": false,
+    "provenance": "RECONSTRUCTED_NOT_ORIGINAL",
+    "inputBytes": 5147,
+    "inputSha256": "584edb6a8c96fb757c3f88f3ffc6a7e67cb9e9cc5491ee209d54d75be97d9468",
+    "expected": {
+      "status": "INVALID_SCHEMA",
+      "exitCode": 2,
+      "codes": [
+        "SCHEMA"
+      ],
+      "shortened": false,
+      "diagnostics": 255,
+      "omitted": 0
+    },
+    "before": {
+      "expected": {
+        "status": "INVALID_SCHEMA",
+        "exitCode": 2,
+        "codes": [
+          "SCHEMA"
+        ],
+        "shortened": false,
+        "diagnostics": 255,
+        "omitted": 0
+      },
+      "inputBytes": 5147,
+      "inputSha256": "584edb6a8c96fb757c3f88f3ffc6a7e67cb9e9cc5491ee209d54d75be97d9468",
+      "status": 2,
+      "signal": null,
+      "processError": null,
+      "stdoutBytes": 25719,
+      "stdoutSha256": "fc13764c335ae456f4d6b60b0142ed48ee7702c165634172b195eb0b68545556",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "parseError": null,
+      "independentSchemaValid": true,
+      "schemaErrors": null,
+      "actualStatus": "INVALID_SCHEMA",
+      "actualExitCode": 2,
+      "diagnosticCount": 255,
+      "marker": null
+    },
+    "after": {
+      "expected": {
+        "status": "INVALID_SCHEMA",
+        "exitCode": 2,
+        "codes": [
+          "SCHEMA"
+        ],
+        "shortened": false,
+        "diagnostics": 255,
+        "omitted": 0
+      },
+      "inputBytes": 5147,
+      "inputSha256": "584edb6a8c96fb757c3f88f3ffc6a7e67cb9e9cc5491ee209d54d75be97d9468",
+      "status": 2,
+      "signal": null,
+      "processError": null,
+      "stdoutBytes": 25719,
+      "stdoutSha256": "fc13764c335ae456f4d6b60b0142ed48ee7702c165634172b195eb0b68545556",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "parseError": null,
+      "independentSchemaValid": true,
+      "schemaErrors": null,
+      "actualStatus": "INVALID_SCHEMA",
+      "actualExitCode": 2,
+      "diagnosticCount": 255,
+      "marker": null
+    }
+  },
+  {
+    "id": "count-256",
+    "primary": false,
+    "provenance": "RECONSTRUCTED_NOT_ORIGINAL",
+    "inputBytes": 5156,
+    "inputSha256": "b6d4ad19444396e9c0a2f63786b4ec90edaaa52078675bf1fa7be8bf75854254",
+    "expected": {
+      "status": "INVALID_SCHEMA",
+      "exitCode": 2,
+      "codes": [
+        "SCHEMA"
+      ],
+      "shortened": false,
+      "diagnostics": 256,
+      "omitted": 0
+    },
+    "before": {
+      "expected": {
+        "status": "INVALID_SCHEMA",
+        "exitCode": 2,
+        "codes": [
+          "SCHEMA"
+        ],
+        "shortened": false,
+        "diagnostics": 256,
+        "omitted": 0
+      },
+      "inputBytes": 5156,
+      "inputSha256": "b6d4ad19444396e9c0a2f63786b4ec90edaaa52078675bf1fa7be8bf75854254",
+      "status": 2,
+      "signal": null,
+      "processError": null,
+      "stdoutBytes": 25817,
+      "stdoutSha256": "7a3c597f5a4bc17186fe1745839928aef7e686f767f30d462df1bf6e8eb1f817",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "parseError": null,
+      "independentSchemaValid": true,
+      "schemaErrors": null,
+      "actualStatus": "INVALID_SCHEMA",
+      "actualExitCode": 2,
+      "diagnosticCount": 256,
+      "marker": null
+    },
+    "after": {
+      "expected": {
+        "status": "INVALID_SCHEMA",
+        "exitCode": 2,
+        "codes": [
+          "SCHEMA"
+        ],
+        "shortened": false,
+        "diagnostics": 256,
+        "omitted": 0
+      },
+      "inputBytes": 5156,
+      "inputSha256": "b6d4ad19444396e9c0a2f63786b4ec90edaaa52078675bf1fa7be8bf75854254",
+      "status": 2,
+      "signal": null,
+      "processError": null,
+      "stdoutBytes": 25817,
+      "stdoutSha256": "7a3c597f5a4bc17186fe1745839928aef7e686f767f30d462df1bf6e8eb1f817",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "parseError": null,
+      "independentSchemaValid": true,
+      "schemaErrors": null,
+      "actualStatus": "INVALID_SCHEMA",
+      "actualExitCode": 2,
+      "diagnosticCount": 256,
+      "marker": null
+    }
+  },
+  {
+    "id": "count-257",
+    "primary": false,
+    "provenance": "RECONSTRUCTED_NOT_ORIGINAL",
+    "inputBytes": 5165,
+    "inputSha256": "7383bfe9b7dea02dcdafff950d80ab6d367fd36171e096700395f4c5f63ed6c9",
+    "expected": {
+      "status": "INVALID_SCHEMA",
+      "exitCode": 2,
+      "codes": [
+        "SCHEMA"
+      ],
+      "shortened": true,
+      "diagnostics": 256,
+      "omitted": 2
+    },
+    "before": {
+      "expected": {
+        "status": "INVALID_SCHEMA",
+        "exitCode": 2,
+        "codes": [
+          "SCHEMA"
+        ],
+        "shortened": true,
+        "diagnostics": 256,
+        "omitted": 2
+      },
+      "inputBytes": 5165,
+      "inputSha256": "7383bfe9b7dea02dcdafff950d80ab6d367fd36171e096700395f4c5f63ed6c9",
+      "status": 2,
+      "signal": null,
+      "processError": null,
+      "stdoutBytes": 25915,
+      "stdoutSha256": "2c281aff9662a7df527b50111137343c0ec67782cffdb1c2d72cb563509017ba",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "parseError": null,
+      "independentSchemaValid": true,
+      "schemaErrors": null,
+      "actualStatus": "INVALID_SCHEMA",
+      "actualExitCode": 2,
+      "diagnosticCount": 257,
+      "marker": null
+    },
+    "after": {
+      "expected": {
+        "status": "INVALID_SCHEMA",
+        "exitCode": 2,
+        "codes": [
+          "SCHEMA"
+        ],
+        "shortened": true,
+        "diagnostics": 256,
+        "omitted": 2
+      },
+      "inputBytes": 5165,
+      "inputSha256": "7383bfe9b7dea02dcdafff950d80ab6d367fd36171e096700395f4c5f63ed6c9",
+      "status": 2,
+      "signal": null,
+      "processError": null,
+      "stdoutBytes": 25902,
+      "stdoutSha256": "790fd73c7f1f9fd1b00c4fc921f3ce7f316c03cdeb7744b054034e8b7150ae53",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "parseError": null,
+      "independentSchemaValid": true,
+      "schemaErrors": null,
+      "actualStatus": "INVALID_SCHEMA",
+      "actualExitCode": 2,
+      "diagnosticCount": 256,
+      "marker": {
+        "code": "DIAGNOSTICS_TRUNCATED",
+        "subject": "",
+        "detail": "diagnostics omitted=2; fields shortened=0; reason codes=SCHEMA"
+      }
+    }
+  },
+  {
+    "id": "ascii-key-8190",
+    "primary": false,
+    "provenance": "RECONSTRUCTED_NOT_ORIGINAL",
+    "inputBytes": 11157,
+    "inputSha256": "8390fdbb2affc664dd4267a26094c26ddce4c4a8f19f743471da8a1d1171484c",
+    "expected": {
+      "status": "INVALID_SCHEMA",
+      "exitCode": 2,
+      "codes": [
+        "SCHEMA"
+      ],
+      "shortened": false,
+      "diagnostics": 1
+    },
+    "before": {
+      "expected": {
+        "status": "INVALID_SCHEMA",
+        "exitCode": 2,
+        "codes": [
+          "SCHEMA"
+        ],
+        "shortened": false,
+        "diagnostics": 1
+      },
+      "inputBytes": 11157,
+      "inputSha256": "8390fdbb2affc664dd4267a26094c26ddce4c4a8f19f743471da8a1d1171484c",
+      "status": 2,
+      "signal": null,
+      "processError": null,
+      "stdoutBytes": 9123,
+      "stdoutSha256": "644d516c55527620211209c1ddcdb21221db3a0fe41d82cc01cf89c3724d421a",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "parseError": null,
+      "independentSchemaValid": true,
+      "schemaErrors": null,
+      "actualStatus": "INVALID_SCHEMA",
+      "actualExitCode": 2,
+      "diagnosticCount": 1,
+      "marker": null
+    },
+    "after": {
+      "expected": {
+        "status": "INVALID_SCHEMA",
+        "exitCode": 2,
+        "codes": [
+          "SCHEMA"
+        ],
+        "shortened": false,
+        "diagnostics": 1
+      },
+      "inputBytes": 11157,
+      "inputSha256": "8390fdbb2affc664dd4267a26094c26ddce4c4a8f19f743471da8a1d1171484c",
+      "status": 2,
+      "signal": null,
+      "processError": null,
+      "stdoutBytes": 9123,
+      "stdoutSha256": "644d516c55527620211209c1ddcdb21221db3a0fe41d82cc01cf89c3724d421a",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "parseError": null,
+      "independentSchemaValid": true,
+      "schemaErrors": null,
+      "actualStatus": "INVALID_SCHEMA",
+      "actualExitCode": 2,
+      "diagnosticCount": 1,
+      "marker": null
+    }
+  },
+  {
+    "id": "ascii-key-8191",
+    "primary": false,
+    "provenance": "RECONSTRUCTED_NOT_ORIGINAL",
+    "inputBytes": 11158,
+    "inputSha256": "4c806ef46e3bbf8881fe85d15ac93cd8ea3d461ec21d9c6262801be0b9e87b8e",
+    "expected": {
+      "status": "INVALID_SCHEMA",
+      "exitCode": 2,
+      "codes": [
+        "SCHEMA"
+      ],
+      "shortened": false,
+      "diagnostics": 1
+    },
+    "before": {
+      "expected": {
+        "status": "INVALID_SCHEMA",
+        "exitCode": 2,
+        "codes": [
+          "SCHEMA"
+        ],
+        "shortened": false,
+        "diagnostics": 1
+      },
+      "inputBytes": 11158,
+      "inputSha256": "4c806ef46e3bbf8881fe85d15ac93cd8ea3d461ec21d9c6262801be0b9e87b8e",
+      "status": 2,
+      "signal": null,
+      "processError": null,
+      "stdoutBytes": 9124,
+      "stdoutSha256": "ffe65e2dd5629f46c12b349c74a4b2b31471f29dc43231f61634b9d697bd9fca",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "parseError": null,
+      "independentSchemaValid": true,
+      "schemaErrors": null,
+      "actualStatus": "INVALID_SCHEMA",
+      "actualExitCode": 2,
+      "diagnosticCount": 1,
+      "marker": null
+    },
+    "after": {
+      "expected": {
+        "status": "INVALID_SCHEMA",
+        "exitCode": 2,
+        "codes": [
+          "SCHEMA"
+        ],
+        "shortened": false,
+        "diagnostics": 1
+      },
+      "inputBytes": 11158,
+      "inputSha256": "4c806ef46e3bbf8881fe85d15ac93cd8ea3d461ec21d9c6262801be0b9e87b8e",
+      "status": 2,
+      "signal": null,
+      "processError": null,
+      "stdoutBytes": 9124,
+      "stdoutSha256": "ffe65e2dd5629f46c12b349c74a4b2b31471f29dc43231f61634b9d697bd9fca",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "parseError": null,
+      "independentSchemaValid": true,
+      "schemaErrors": null,
+      "actualStatus": "INVALID_SCHEMA",
+      "actualExitCode": 2,
+      "diagnosticCount": 1,
+      "marker": null
+    }
+  },
+  {
+    "id": "unicode-key-8191",
+    "primary": false,
+    "provenance": "RECONSTRUCTED_NOT_ORIGINAL",
+    "inputBytes": 35731,
+    "inputSha256": "64d3bdeb47554308e9d8007df3016515e714b003aff64b0b1f1f5a2cb24b4f92",
+    "expected": {
+      "status": "INVALID_SCHEMA",
+      "exitCode": 2,
+      "codes": [
+        "SCHEMA"
+      ],
+      "shortened": false,
+      "diagnostics": 1
+    },
+    "before": {
+      "expected": {
+        "status": "INVALID_SCHEMA",
+        "exitCode": 2,
+        "codes": [
+          "SCHEMA"
+        ],
+        "shortened": false,
+        "diagnostics": 1
+      },
+      "inputBytes": 35731,
+      "inputSha256": "64d3bdeb47554308e9d8007df3016515e714b003aff64b0b1f1f5a2cb24b4f92",
+      "status": 2,
+      "signal": null,
+      "processError": null,
+      "stdoutBytes": 33697,
+      "stdoutSha256": "0b74851afdbbec620138e4a69dd567a1cc73914f7477e10758e877e09dbd3b92",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "parseError": null,
+      "independentSchemaValid": true,
+      "schemaErrors": null,
+      "actualStatus": "INVALID_SCHEMA",
+      "actualExitCode": 2,
+      "diagnosticCount": 1,
+      "marker": null
+    },
+    "after": {
+      "expected": {
+        "status": "INVALID_SCHEMA",
+        "exitCode": 2,
+        "codes": [
+          "SCHEMA"
+        ],
+        "shortened": false,
+        "diagnostics": 1
+      },
+      "inputBytes": 35731,
+      "inputSha256": "64d3bdeb47554308e9d8007df3016515e714b003aff64b0b1f1f5a2cb24b4f92",
+      "status": 2,
+      "signal": null,
+      "processError": null,
+      "stdoutBytes": 33697,
+      "stdoutSha256": "0b74851afdbbec620138e4a69dd567a1cc73914f7477e10758e877e09dbd3b92",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "parseError": null,
+      "independentSchemaValid": true,
+      "schemaErrors": null,
+      "actualStatus": "INVALID_SCHEMA",
+      "actualExitCode": 2,
+      "diagnosticCount": 1,
+      "marker": null
+    }
+  },
+  {
+    "id": "unicode-key-8192",
+    "primary": false,
+    "provenance": "RECONSTRUCTED_NOT_ORIGINAL",
+    "inputBytes": 35735,
+    "inputSha256": "d24b115241188ae13a0a59fd6c1856f11df632a99607085bfd691a5ae2d886fa",
+    "expected": {
+      "status": "INVALID_SCHEMA",
+      "exitCode": 2,
+      "codes": [
+        "SCHEMA"
+      ],
+      "shortened": true,
+      "diagnostics": 2,
+      "fieldsShortened": 1
+    },
+    "before": {
+      "expected": {
+        "status": "INVALID_SCHEMA",
+        "exitCode": 2,
+        "codes": [
+          "SCHEMA"
+        ],
+        "shortened": true,
+        "diagnostics": 2,
+        "fieldsShortened": 1
+      },
+      "inputBytes": 35735,
+      "inputSha256": "d24b115241188ae13a0a59fd6c1856f11df632a99607085bfd691a5ae2d886fa",
+      "status": 2,
+      "signal": null,
+      "processError": null,
+      "stdoutBytes": 33701,
+      "stdoutSha256": "9281351a5871f11133e255c681450089f7d9c8635a29dfba39238e5db2896683",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "parseError": null,
+      "independentSchemaValid": false,
+      "schemaErrors": [
+        {
+          "instancePath": "/validationErrors/0/subject",
+          "schemaPath": "#/properties/validationErrors/items/properties/subject/maxLength",
+          "keyword": "maxLength",
+          "params": {
+            "limit": 8192
+          },
+          "message": "must NOT have more than 8192 characters"
+        }
+      ],
+      "actualStatus": "INVALID_SCHEMA",
+      "actualExitCode": 2,
+      "diagnosticCount": 1,
+      "marker": null
+    },
+    "after": {
+      "expected": {
+        "status": "INVALID_SCHEMA",
+        "exitCode": 2,
+        "codes": [
+          "SCHEMA"
+        ],
+        "shortened": true,
+        "diagnostics": 2,
+        "fieldsShortened": 1
+      },
+      "inputBytes": 35735,
+      "inputSha256": "d24b115241188ae13a0a59fd6c1856f11df632a99607085bfd691a5ae2d886fa",
+      "status": 2,
+      "signal": null,
+      "processError": null,
+      "stdoutBytes": 33838,
+      "stdoutSha256": "37cb098b429795bbe31dcc12a14d8f72d358df8765e2eb2214e19fdc7f71e43b",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "parseError": null,
+      "independentSchemaValid": true,
+      "schemaErrors": null,
+      "actualStatus": "INVALID_SCHEMA",
+      "actualExitCode": 2,
+      "diagnosticCount": 2,
+      "marker": {
+        "code": "DIAGNOSTICS_TRUNCATED",
+        "subject": "",
+        "detail": "diagnostics omitted=0; fields shortened=1; reason codes=SCHEMA"
+      }
+    }
+  },
+  {
+    "id": "combining-key-8192",
+    "primary": false,
+    "provenance": "RECONSTRUCTED_NOT_ORIGINAL",
+    "inputBytes": 15255,
+    "inputSha256": "8633613cc19faaaf028a6261fdc64331b6c23cf10ee1872cde1366db18e26ec8",
+    "expected": {
+      "status": "INVALID_SCHEMA",
+      "exitCode": 2,
+      "codes": [
+        "SCHEMA"
+      ],
+      "shortened": true,
+      "diagnostics": 2,
+      "fieldsShortened": 1
+    },
+    "before": {
+      "expected": {
+        "status": "INVALID_SCHEMA",
+        "exitCode": 2,
+        "codes": [
+          "SCHEMA"
+        ],
+        "shortened": true,
+        "diagnostics": 2,
+        "fieldsShortened": 1
+      },
+      "inputBytes": 15255,
+      "inputSha256": "8633613cc19faaaf028a6261fdc64331b6c23cf10ee1872cde1366db18e26ec8",
+      "status": 2,
+      "signal": null,
+      "processError": null,
+      "stdoutBytes": 13221,
+      "stdoutSha256": "98e1ff933dc2de894e31297801ea253704f5a30dc2c3c8b5de22cbf6e7c0782d",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "parseError": null,
+      "independentSchemaValid": false,
+      "schemaErrors": [
+        {
+          "instancePath": "/validationErrors/0/subject",
+          "schemaPath": "#/properties/validationErrors/items/properties/subject/maxLength",
+          "keyword": "maxLength",
+          "params": {
+            "limit": 8192
+          },
+          "message": "must NOT have more than 8192 characters"
+        }
+      ],
+      "actualStatus": "INVALID_SCHEMA",
+      "actualExitCode": 2,
+      "diagnosticCount": 1,
+      "marker": null
+    },
+    "after": {
+      "expected": {
+        "status": "INVALID_SCHEMA",
+        "exitCode": 2,
+        "codes": [
+          "SCHEMA"
+        ],
+        "shortened": true,
+        "diagnostics": 2,
+        "fieldsShortened": 1
+      },
+      "inputBytes": 15255,
+      "inputSha256": "8633613cc19faaaf028a6261fdc64331b6c23cf10ee1872cde1366db18e26ec8",
+      "status": 2,
+      "signal": null,
+      "processError": null,
+      "stdoutBytes": 13395,
+      "stdoutSha256": "52f8bebbb5967f5b0034da57ae79182f9595ab4d0d145022d1a71273ae0aaa26",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "parseError": null,
+      "independentSchemaValid": true,
+      "schemaErrors": null,
+      "actualStatus": "INVALID_SCHEMA",
+      "actualExitCode": 2,
+      "diagnosticCount": 2,
+      "marker": {
+        "code": "DIAGNOSTICS_TRUNCATED",
+        "subject": "",
+        "detail": "diagnostics omitted=0; fields shortened=1; reason codes=SCHEMA"
+      }
+    }
+  },
+  {
+    "id": "late-input-descriptor",
+    "primary": false,
+    "provenance": "RECONSTRUCTED_NOT_ORIGINAL",
+    "inputBytes": 5156,
+    "inputSha256": "b6d4ad19444396e9c0a2f63786b4ec90edaaa52078675bf1fa7be8bf75854254",
+    "expected": {
+      "status": "INVALID_SCHEMA",
+      "exitCode": 2,
+      "codes": [
+        "SCHEMA",
+        "INPUT_DESCRIPTOR"
+      ],
+      "shortened": true,
+      "diagnostics": 256,
+      "omitted": 2
+    },
+    "before": {
+      "expected": {
+        "status": "INVALID_SCHEMA",
+        "exitCode": 2,
+        "codes": [
+          "SCHEMA",
+          "INPUT_DESCRIPTOR"
+        ],
+        "shortened": true,
+        "diagnostics": 256,
+        "omitted": 2
+      },
+      "inputBytes": 5156,
+      "inputSha256": "b6d4ad19444396e9c0a2f63786b4ec90edaaa52078675bf1fa7be8bf75854254",
+      "status": 2,
+      "signal": null,
+      "processError": null,
+      "stdoutBytes": 26004,
+      "stdoutSha256": "0ccb64ba4f13a38bfdadbc1f23330bffdcbd45a144bb1cc10c6e4a37ceabc4ab",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "parseError": null,
+      "independentSchemaValid": true,
+      "schemaErrors": null,
+      "actualStatus": "INVALID_SCHEMA",
+      "actualExitCode": 2,
+      "diagnosticCount": 257,
+      "marker": null
+    },
+    "after": {
+      "expected": {
+        "status": "INVALID_SCHEMA",
+        "exitCode": 2,
+        "codes": [
+          "SCHEMA",
+          "INPUT_DESCRIPTOR"
+        ],
+        "shortened": true,
+        "diagnostics": 256,
+        "omitted": 2
+      },
+      "inputBytes": 5156,
+      "inputSha256": "b6d4ad19444396e9c0a2f63786b4ec90edaaa52078675bf1fa7be8bf75854254",
+      "status": 2,
+      "signal": null,
+      "processError": null,
+      "stdoutBytes": 25958,
+      "stdoutSha256": "835c8ba15c7048d98230cb965c1b76e3112ac80bd29034624a6024d9035e269c",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "parseError": null,
+      "independentSchemaValid": true,
+      "schemaErrors": null,
+      "actualStatus": "INVALID_SCHEMA",
+      "actualExitCode": 2,
+      "diagnosticCount": 256,
+      "marker": {
+        "code": "DIAGNOSTICS_TRUNCATED",
+        "subject": "",
+        "detail": "diagnostics omitted=2; fields shortened=0; reason codes=INPUT_DESCRIPTOR,SCHEMA"
+      }
+    }
+  },
+  {
+    "id": "mixed-structural-errors",
+    "primary": false,
+    "provenance": "RECONSTRUCTED_NOT_ORIGINAL",
+    "inputBytes": 5173,
+    "inputSha256": "e1f17034290a50c4873270705a505907d4340d5242c8d2c0af53617d47e0a2e0",
+    "expected": {
+      "status": "INVALID_SCHEMA",
+      "exitCode": 2,
+      "codes": [
+        "SCHEMA"
+      ],
+      "shortened": true,
+      "diagnostics": 256,
+      "omitted": 3
+    },
+    "before": {
+      "expected": {
+        "status": "INVALID_SCHEMA",
+        "exitCode": 2,
+        "codes": [
+          "SCHEMA"
+        ],
+        "shortened": true,
+        "diagnostics": 256,
+        "omitted": 3
+      },
+      "inputBytes": 5173,
+      "inputSha256": "e1f17034290a50c4873270705a505907d4340d5242c8d2c0af53617d47e0a2e0",
+      "status": 2,
+      "signal": null,
+      "processError": null,
+      "stdoutBytes": 26023,
+      "stdoutSha256": "81689939d9e43b86c99905903b55617168ae0c4236e0b3e279ef837da7b9757c",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "parseError": null,
+      "independentSchemaValid": true,
+      "schemaErrors": null,
+      "actualStatus": "INVALID_SCHEMA",
+      "actualExitCode": 2,
+      "diagnosticCount": 258,
+      "marker": null
+    },
+    "after": {
+      "expected": {
+        "status": "INVALID_SCHEMA",
+        "exitCode": 2,
+        "codes": [
+          "SCHEMA"
+        ],
+        "shortened": true,
+        "diagnostics": 256,
+        "omitted": 3
+      },
+      "inputBytes": 5173,
+      "inputSha256": "e1f17034290a50c4873270705a505907d4340d5242c8d2c0af53617d47e0a2e0",
+      "status": 2,
+      "signal": null,
+      "processError": null,
+      "stdoutBytes": 25912,
+      "stdoutSha256": "8028f86ba10e1dadf9c3278b0d874d21840232efc0b61d9aec922bd22615ced8",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "parseError": null,
+      "independentSchemaValid": true,
+      "schemaErrors": null,
+      "actualStatus": "INVALID_SCHEMA",
+      "actualExitCode": 2,
+      "diagnosticCount": 256,
+      "marker": {
+        "code": "DIAGNOSTICS_TRUNCATED",
+        "subject": "",
+        "detail": "diagnostics omitted=3; fields shortened=0; reason codes=SCHEMA"
+      }
+    }
+  },
+  {
+    "id": "late-event-error",
+    "primary": false,
+    "provenance": "RECONSTRUCTED_NOT_ORIGINAL",
+    "inputBytes": 9351,
+    "inputSha256": "10389823a435f76690021cc9f8f9d5e3f6ea49b54af10a24863e80839cd5c5fb",
+    "expected": {
+      "status": "INVALID_SCHEMA",
+      "exitCode": 2,
+      "codes": [
+        "SCHEMA"
+      ],
+      "shortened": true,
+      "diagnostics": 256,
+      "omitted": 246
+    },
+    "before": {
+      "expected": {
+        "status": "INVALID_SCHEMA",
+        "exitCode": 2,
+        "codes": [
+          "SCHEMA"
+        ],
+        "shortened": true,
+        "diagnostics": 256,
+        "omitted": 246
+      },
+      "inputBytes": 9351,
+      "inputSha256": "10389823a435f76690021cc9f8f9d5e3f6ea49b54af10a24863e80839cd5c5fb",
+      "status": 2,
+      "signal": null,
+      "processError": null,
+      "stdoutBytes": 56339,
+      "stdoutSha256": "0ee5dbb43c93198a03ec7c840cbef6c2ef0e9b10e36e581f476c291796dd5a66",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "parseError": null,
+      "independentSchemaValid": true,
+      "schemaErrors": null,
+      "actualStatus": "INVALID_SCHEMA",
+      "actualExitCode": 2,
+      "diagnosticCount": 501,
+      "marker": null
+    },
+    "after": {
+      "expected": {
+        "status": "INVALID_SCHEMA",
+        "exitCode": 2,
+        "codes": [
+          "SCHEMA"
+        ],
+        "shortened": true,
+        "diagnostics": 256,
+        "omitted": 246
+      },
+      "inputBytes": 9351,
+      "inputSha256": "10389823a435f76690021cc9f8f9d5e3f6ea49b54af10a24863e80839cd5c5fb",
+      "status": 2,
+      "signal": null,
+      "processError": null,
+      "stdoutBytes": 29219,
+      "stdoutSha256": "f4f96a3022e7ec57e645a310c7dab1b3ee968e80d60f112342e1b389559da5f4",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "parseError": null,
+      "independentSchemaValid": true,
+      "schemaErrors": null,
+      "actualStatus": "INVALID_SCHEMA",
+      "actualExitCode": 2,
+      "diagnosticCount": 256,
+      "marker": {
+        "code": "DIAGNOSTICS_TRUNCATED",
+        "subject": "",
+        "detail": "diagnostics omitted=246; fields shortened=0; reason codes=SCHEMA"
+      }
+    }
+  },
+  {
+    "id": "long-cli-error",
+    "primary": false,
+    "provenance": "RECONSTRUCTED_NOT_ORIGINAL",
+    "inputBytes": 2962,
+    "inputSha256": "0ac1843651c9b0ed2d2e142ccb1ae382a13b976a21adeba27126bbef73ac49aa",
+    "expected": {
+      "status": "INVALID_SCHEMA",
+      "exitCode": 2,
+      "codes": [
+        "CLI_INPUT"
+      ],
+      "shortened": true,
+      "diagnostics": 2,
+      "fieldsShortened": 1,
+      "rawHash": null
+    },
+    "before": {
+      "expected": {
+        "status": "INVALID_SCHEMA",
+        "exitCode": 2,
+        "codes": [
+          "CLI_INPUT"
+        ],
+        "shortened": true,
+        "diagnostics": 2,
+        "fieldsShortened": 1,
+        "rawHash": null
+      },
+      "inputBytes": 2962,
+      "inputSha256": "0ac1843651c9b0ed2d2e142ccb1ae382a13b976a21adeba27126bbef73ac49aa",
+      "status": 2,
+      "signal": null,
+      "processError": null,
+      "stdoutBytes": 10067,
+      "stdoutSha256": "a0593fcbe16e1ad152c2ac0416072a639bfc1e30d6554cb1399d77b84c8ba81d",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "parseError": null,
+      "independentSchemaValid": false,
+      "schemaErrors": [
+        {
+          "instancePath": "/validationErrors/0/detail",
+          "schemaPath": "#/properties/validationErrors/items/properties/detail/maxLength",
+          "keyword": "maxLength",
+          "params": {
+            "limit": 8192
+          },
+          "message": "must NOT have more than 8192 characters"
+        }
+      ],
+      "actualStatus": "INVALID_SCHEMA",
+      "actualExitCode": 2,
+      "diagnosticCount": 1,
+      "marker": null
+    },
+    "after": {
+      "expected": {
+        "status": "INVALID_SCHEMA",
+        "exitCode": 2,
+        "codes": [
+          "CLI_INPUT"
+        ],
+        "shortened": true,
+        "diagnostics": 2,
+        "fieldsShortened": 1,
+        "rawHash": null
+      },
+      "inputBytes": 2962,
+      "inputSha256": "0ac1843651c9b0ed2d2e142ccb1ae382a13b976a21adeba27126bbef73ac49aa",
+      "status": 2,
+      "signal": null,
+      "processError": null,
+      "stdoutBytes": 9258,
+      "stdoutSha256": "b333468267515a7c14395f07b0f8d4a572891b6bb358f35000eb26e3a7b5b420",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "parseError": null,
+      "independentSchemaValid": true,
+      "schemaErrors": null,
+      "actualStatus": "INVALID_SCHEMA",
+      "actualExitCode": 2,
+      "diagnosticCount": 2,
+      "marker": {
+        "code": "DIAGNOSTICS_TRUNCATED",
+        "subject": "",
+        "detail": "diagnostics omitted=0; fields shortened=1; reason codes=CLI_INPUT"
+      }
+    }
+  },
+  {
+    "id": "normal",
+    "primary": false,
+    "provenance": "RECONSTRUCTED_NOT_ORIGINAL",
+    "inputBytes": 2962,
+    "inputSha256": "0ac1843651c9b0ed2d2e142ccb1ae382a13b976a21adeba27126bbef73ac49aa",
+    "expected": {
+      "status": "CONSISTENT",
+      "exitCode": 0,
+      "codes": [],
+      "shortened": false,
+      "diagnostics": 0
+    },
+    "before": {
+      "expected": {
+        "status": "CONSISTENT",
+        "exitCode": 0,
+        "codes": [],
+        "shortened": false,
+        "diagnostics": 0
+      },
+      "inputBytes": 2962,
+      "inputSha256": "0ac1843651c9b0ed2d2e142ccb1ae382a13b976a21adeba27126bbef73ac49aa",
+      "status": 0,
+      "signal": null,
+      "processError": null,
+      "stdoutBytes": 4190,
+      "stdoutSha256": "056fae9b8f4f2eecf5de38814f57dccf63202649b3774d597f8fea07c8dbb047",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "parseError": null,
+      "independentSchemaValid": true,
+      "schemaErrors": null,
+      "actualStatus": "CONSISTENT",
+      "actualExitCode": 0,
+      "diagnosticCount": 0,
+      "marker": null
+    },
+    "after": {
+      "expected": {
+        "status": "CONSISTENT",
+        "exitCode": 0,
+        "codes": [],
+        "shortened": false,
+        "diagnostics": 0
+      },
+      "inputBytes": 2962,
+      "inputSha256": "0ac1843651c9b0ed2d2e142ccb1ae382a13b976a21adeba27126bbef73ac49aa",
+      "status": 0,
+      "signal": null,
+      "processError": null,
+      "stdoutBytes": 4190,
+      "stdoutSha256": "056fae9b8f4f2eecf5de38814f57dccf63202649b3774d597f8fea07c8dbb047",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "parseError": null,
+      "independentSchemaValid": true,
+      "schemaErrors": null,
+      "actualStatus": "CONSISTENT",
+      "actualExitCode": 0,
+      "diagnosticCount": 0,
+      "marker": null
+    }
+  },
+  {
+    "id": "missing-plus-conflict",
+    "primary": false,
+    "provenance": "RECONSTRUCTED_NOT_ORIGINAL",
+    "inputBytes": 2953,
+    "inputSha256": "8094bcbdb40036707b5f963dd553b8aac143da0ae46afbf0da408f03df4ec346",
+    "expected": {
+      "status": "INCONSISTENT",
+      "exitCode": 1,
+      "codes": [
+        "SOURCE_SEQUENCE_GAP",
+        "REFERENCE_MISMATCH"
+      ],
+      "shortened": false,
+      "diagnostics": 0
+    },
+    "before": {
+      "expected": {
+        "status": "INCONSISTENT",
+        "exitCode": 1,
+        "codes": [
+          "SOURCE_SEQUENCE_GAP",
+          "REFERENCE_MISMATCH"
+        ],
+        "shortened": false,
+        "diagnostics": 0
+      },
+      "inputBytes": 2953,
+      "inputSha256": "8094bcbdb40036707b5f963dd553b8aac143da0ae46afbf0da408f03df4ec346",
+      "status": 1,
+      "signal": null,
+      "processError": null,
+      "stdoutBytes": 4386,
+      "stdoutSha256": "0d17edb96f93890d6de46909510b2cbfe8b08851824eb1411ff87a48b0e68f2a",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "parseError": null,
+      "independentSchemaValid": true,
+      "schemaErrors": null,
+      "actualStatus": "INCONSISTENT",
+      "actualExitCode": 1,
+      "diagnosticCount": 0,
+      "marker": null
+    },
+    "after": {
+      "expected": {
+        "status": "INCONSISTENT",
+        "exitCode": 1,
+        "codes": [
+          "SOURCE_SEQUENCE_GAP",
+          "REFERENCE_MISMATCH"
+        ],
+        "shortened": false,
+        "diagnostics": 0
+      },
+      "inputBytes": 2953,
+      "inputSha256": "8094bcbdb40036707b5f963dd553b8aac143da0ae46afbf0da408f03df4ec346",
+      "status": 1,
+      "signal": null,
+      "processError": null,
+      "stdoutBytes": 4386,
+      "stdoutSha256": "0d17edb96f93890d6de46909510b2cbfe8b08851824eb1411ff87a48b0e68f2a",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "parseError": null,
+      "independentSchemaValid": true,
+      "schemaErrors": null,
+      "actualStatus": "INCONSISTENT",
+      "actualExitCode": 1,
+      "diagnosticCount": 0,
+      "marker": null
+    }
+  },
+  {
+    "id": "R2-out-of-scope-sentinel",
+    "primary": false,
+    "provenance": "RECONSTRUCTED_NOT_ORIGINAL",
+    "inputBytes": 2990,
+    "inputSha256": "e3ec4fbec37e5e1399550d6b44316648ddc4c6e9fbc5e76b2da810eabadc320d",
+    "expected": {
+      "status": "INVALID_SCHEMA",
+      "exitCode": 2,
+      "codes": [
+        "SCHEMA"
+      ],
+      "shortened": false,
+      "diagnostics": 1
+    },
+    "before": {
+      "expected": {
+        "status": "INVALID_SCHEMA",
+        "exitCode": 2,
+        "codes": [
+          "SCHEMA"
+        ],
+        "shortened": false,
+        "diagnostics": 1
+      },
+      "inputBytes": 2990,
+      "inputSha256": "e3ec4fbec37e5e1399550d6b44316648ddc4c6e9fbc5e76b2da810eabadc320d",
+      "status": 2,
+      "signal": null,
+      "processError": null,
+      "stdoutBytes": 955,
+      "stdoutSha256": "b10d32ac9d4e2d64a414c139af7588c7f1f2e74b86e81e80b54b578db5705363",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "parseError": null,
+      "independentSchemaValid": true,
+      "schemaErrors": null,
+      "actualStatus": "INVALID_SCHEMA",
+      "actualExitCode": 2,
+      "diagnosticCount": 1,
+      "marker": null
+    },
+    "after": {
+      "expected": {
+        "status": "INVALID_SCHEMA",
+        "exitCode": 2,
+        "codes": [
+          "SCHEMA"
+        ],
+        "shortened": false,
+        "diagnostics": 1
+      },
+      "inputBytes": 2990,
+      "inputSha256": "e3ec4fbec37e5e1399550d6b44316648ddc4c6e9fbc5e76b2da810eabadc320d",
+      "status": 2,
+      "signal": null,
+      "processError": null,
+      "stdoutBytes": 955,
+      "stdoutSha256": "b10d32ac9d4e2d64a414c139af7588c7f1f2e74b86e81e80b54b578db5705363",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "parseError": null,
+      "independentSchemaValid": true,
+      "schemaErrors": null,
+      "actualStatus": "INVALID_SCHEMA",
+      "actualExitCode": 2,
+      "diagnosticCount": 1,
+      "marker": null
+    }
+  }
+]

@@ -1,0 +1,15 @@
+{
+  "target": "C:\\Users\\tetsu\\Documents\\Codex\\メモ帳\\work\\idb-evidence-collector-u1\\design\\idb-incomplete-stop\\collector\\collect.cjs",
+  "revision": "5d16dd0+cli-input-error-fix",
+  "node": "v24.20.0",
+  "collectorSha256": "1405cc547269b3cbfbd59c584f263c48999b6ec85b6280dba55fea0af1b1d2e1",
+  "expectationsSha256": "bc1b10320f3630c17eb1da3ea332e73d16826be9311c3ee8f8cb03e3a269eb5a",
+  "resultSchemaSha256": "6547cd1f00a03e7d510d0e3c9e7de6d1839ea68da71c6e0290b275c405ffa9ca",
+  "independentValidator": {
+    "name": "ajv",
+    "version": "8.20.0",
+    "dialect": "Draft 2020-12"
+  },
+  "provenance": "RECONSTRUCTED_NOT_ORIGINAL",
+  "originalArchive": "memo405-independent-review-20261103.zip unavailable via Library; no original-hash claim"
+}

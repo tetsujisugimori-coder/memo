@@ -1,0 +1,15 @@
+{
+  "status": 1,
+  "signal": null,
+  "error": null,
+  "inputSha256": "902e296c8c0bd96e3ff2622c6f79da42301770278d10975b270ffc5f876fff42",
+  "expected": {
+    "status": "INCONSISTENT",
+    "exit": 1,
+    "r": "UNKNOWN",
+    "u": "UNKNOWN",
+    "codes": [
+      "FOREIGN_IDENTITY"
+    ]
+  }
+}

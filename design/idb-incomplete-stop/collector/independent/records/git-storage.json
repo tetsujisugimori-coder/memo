@@ -1,0 +1,30 @@
+{
+  "fixedHead": "9deca60bc329acc124e4909e4954bf2dc3e27049",
+  "checkedHead": "572b1bd395881d584fde389db44c4b1f44bcb118",
+  "base": "a72e0657d07632926d2ace9bcd7836cfbc41ac13",
+  "fixedBlobs": 1083,
+  "unchangedBlobs": 1082,
+  "changed": [
+    "design/idb-incomplete-stop/collector/collect.cjs"
+  ],
+  "changedModeUnchanged": true,
+  "addedFiles": 409,
+  "manifestEntriesChecked": 413,
+  "manifestEntriesDirectlyMatchingGit": 411,
+  "expectedLineEndingConversions": [
+    {
+      "path": "design/idb-incomplete-stop/contract.md",
+      "worktreeSha256": "8fd76e7be5de1a96dd7debbdddc82a18a756f5e1d699bc8d80e6b6b7afaa5829",
+      "gitBlobSha256": "3ddc855807f8c5765678f4c4cb2ae371de8137c5f97d5cce5ce150255de7b19f",
+      "reason": "existing CRLF working-tree vs LF Git blob; blob/mode unchanged from fixed HEAD"
+    },
+    {
+      "path": "design/idb-incomplete-stop/judge.cjs",
+      "worktreeSha256": "9a2a7148a5b5af3f06f80a47bbfe1e3b244fd7ba9b463732a0d72b583ff46268",
+      "gitBlobSha256": "964eb1cbe746657e1d41efaf3c52422bdd19991369fd67a8cbbabb2eaf5fe74f",
+      "reason": "existing CRLF working-tree vs LF Git blob; blob/mode unchanged from fixed HEAD"
+    }
+  ],
+  "manifestSha256": "e8729c5dffdd41bd880c6dd1b1e754618d2b0d1f121cf80820c78cec99111262",
+  "scope": "checks initial manifest against checked commit; subsequent documentation-only followup verified by final-SHA256SUMS"
+}

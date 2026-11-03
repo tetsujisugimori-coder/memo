@@ -1,0 +1,10 @@
+{
+  "tests": 16,
+  "pass": 11,
+  "fail": 5,
+  "skipped": 0,
+  "cancelled": 0,
+  "todo": 0,
+  "actualExitCode": 1,
+  "signal": null
+}

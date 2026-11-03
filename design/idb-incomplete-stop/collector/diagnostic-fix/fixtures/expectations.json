@@ -1,0 +1,327 @@
+[
+  {
+    "id": "A-many-130000",
+    "expected": {
+      "status": "INVALID_SCHEMA",
+      "exitCode": 2,
+      "codes": [
+        "SCHEMA"
+      ],
+      "shortened": true,
+      "diagnostics": 256,
+      "omitted": 129745
+    },
+    "primary": true,
+    "file": "A-many-130000.json.gz",
+    "materialId": "m",
+    "inputBytes": 1451852,
+    "sha256": "e6fe086276f4d28af908f75fbe7487e931be01306a6f6fca8672f0bba3be95ef",
+    "provenance": "RECONSTRUCTED_NOT_ORIGINAL"
+  },
+  {
+    "id": "B-key-8192",
+    "expected": {
+      "status": "INVALID_SCHEMA",
+      "exitCode": 2,
+      "codes": [
+        "SCHEMA"
+      ],
+      "shortened": true,
+      "diagnostics": 2,
+      "omitted": 0,
+      "fieldsShortened": 1
+    },
+    "primary": true,
+    "file": "B-key-8192.json.gz",
+    "materialId": "m",
+    "inputBytes": 11159,
+    "sha256": "530f91d89c4ee97c70872464fbcf15e04c5be63da6b1f89d29c81bf4d65c073b",
+    "provenance": "RECONSTRUCTED_NOT_ORIGINAL"
+  },
+  {
+    "id": "C-errors-8193",
+    "expected": {
+      "status": "INVALID_SCHEMA",
+      "exitCode": 2,
+      "codes": [
+        "SCHEMA"
+      ],
+      "shortened": true,
+      "diagnostics": 256,
+      "omitted": 7938
+    },
+    "primary": true,
+    "file": "C-errors-8193.json.gz",
+    "materialId": "m",
+    "inputBytes": 83782,
+    "sha256": "5c418f8f776ccde97d5ca701802ecd1f17370dedd9c4bb7bcf1ff95f50cde855",
+    "provenance": "RECONSTRUCTED_NOT_ORIGINAL"
+  },
+  {
+    "id": "count-255",
+    "expected": {
+      "status": "INVALID_SCHEMA",
+      "exitCode": 2,
+      "codes": [
+        "SCHEMA"
+      ],
+      "shortened": false,
+      "diagnostics": 255,
+      "omitted": 0
+    },
+    "file": "count-255.json.gz",
+    "materialId": "m",
+    "inputBytes": 5147,
+    "sha256": "584edb6a8c96fb757c3f88f3ffc6a7e67cb9e9cc5491ee209d54d75be97d9468",
+    "provenance": "RECONSTRUCTED_NOT_ORIGINAL"
+  },
+  {
+    "id": "count-256",
+    "expected": {
+      "status": "INVALID_SCHEMA",
+      "exitCode": 2,
+      "codes": [
+        "SCHEMA"
+      ],
+      "shortened": false,
+      "diagnostics": 256,
+      "omitted": 0
+    },
+    "file": "count-256.json.gz",
+    "materialId": "m",
+    "inputBytes": 5156,
+    "sha256": "b6d4ad19444396e9c0a2f63786b4ec90edaaa52078675bf1fa7be8bf75854254",
+    "provenance": "RECONSTRUCTED_NOT_ORIGINAL"
+  },
+  {
+    "id": "count-257",
+    "expected": {
+      "status": "INVALID_SCHEMA",
+      "exitCode": 2,
+      "codes": [
+        "SCHEMA"
+      ],
+      "shortened": true,
+      "diagnostics": 256,
+      "omitted": 2
+    },
+    "file": "count-257.json.gz",
+    "materialId": "m",
+    "inputBytes": 5165,
+    "sha256": "7383bfe9b7dea02dcdafff950d80ab6d367fd36171e096700395f4c5f63ed6c9",
+    "provenance": "RECONSTRUCTED_NOT_ORIGINAL"
+  },
+  {
+    "id": "ascii-key-8190",
+    "expected": {
+      "status": "INVALID_SCHEMA",
+      "exitCode": 2,
+      "codes": [
+        "SCHEMA"
+      ],
+      "shortened": false,
+      "diagnostics": 1
+    },
+    "file": "ascii-key-8190.json.gz",
+    "materialId": "m",
+    "inputBytes": 11157,
+    "sha256": "8390fdbb2affc664dd4267a26094c26ddce4c4a8f19f743471da8a1d1171484c",
+    "provenance": "RECONSTRUCTED_NOT_ORIGINAL"
+  },
+  {
+    "id": "ascii-key-8191",
+    "expected": {
+      "status": "INVALID_SCHEMA",
+      "exitCode": 2,
+      "codes": [
+        "SCHEMA"
+      ],
+      "shortened": false,
+      "diagnostics": 1
+    },
+    "file": "ascii-key-8191.json.gz",
+    "materialId": "m",
+    "inputBytes": 11158,
+    "sha256": "4c806ef46e3bbf8881fe85d15ac93cd8ea3d461ec21d9c6262801be0b9e87b8e",
+    "provenance": "RECONSTRUCTED_NOT_ORIGINAL"
+  },
+  {
+    "id": "unicode-key-8191",
+    "expected": {
+      "status": "INVALID_SCHEMA",
+      "exitCode": 2,
+      "codes": [
+        "SCHEMA"
+      ],
+      "shortened": false,
+      "diagnostics": 1
+    },
+    "file": "unicode-key-8191.json.gz",
+    "materialId": "m",
+    "inputBytes": 35731,
+    "sha256": "64d3bdeb47554308e9d8007df3016515e714b003aff64b0b1f1f5a2cb24b4f92",
+    "provenance": "RECONSTRUCTED_NOT_ORIGINAL"
+  },
+  {
+    "id": "unicode-key-8192",
+    "expected": {
+      "status": "INVALID_SCHEMA",
+      "exitCode": 2,
+      "codes": [
+        "SCHEMA"
+      ],
+      "shortened": true,
+      "diagnostics": 2,
+      "fieldsShortened": 1
+    },
+    "file": "unicode-key-8192.json.gz",
+    "materialId": "m",
+    "inputBytes": 35735,
+    "sha256": "d24b115241188ae13a0a59fd6c1856f11df632a99607085bfd691a5ae2d886fa",
+    "provenance": "RECONSTRUCTED_NOT_ORIGINAL"
+  },
+  {
+    "id": "combining-key-8192",
+    "expected": {
+      "status": "INVALID_SCHEMA",
+      "exitCode": 2,
+      "codes": [
+        "SCHEMA"
+      ],
+      "shortened": true,
+      "diagnostics": 2,
+      "fieldsShortened": 1
+    },
+    "file": "combining-key-8192.json.gz",
+    "materialId": "m",
+    "inputBytes": 15255,
+    "sha256": "8633613cc19faaaf028a6261fdc64331b6c23cf10ee1872cde1366db18e26ec8",
+    "provenance": "RECONSTRUCTED_NOT_ORIGINAL"
+  },
+  {
+    "id": "late-input-descriptor",
+    "expected": {
+      "status": "INVALID_SCHEMA",
+      "exitCode": 2,
+      "codes": [
+        "SCHEMA",
+        "INPUT_DESCRIPTOR"
+      ],
+      "shortened": true,
+      "diagnostics": 256,
+      "omitted": 2
+    },
+    "materialId": "invalid material",
+    "file": "late-input-descriptor.json.gz",
+    "inputBytes": 5156,
+    "sha256": "b6d4ad19444396e9c0a2f63786b4ec90edaaa52078675bf1fa7be8bf75854254",
+    "provenance": "RECONSTRUCTED_NOT_ORIGINAL"
+  },
+  {
+    "id": "mixed-structural-errors",
+    "expected": {
+      "status": "INVALID_SCHEMA",
+      "exitCode": 2,
+      "codes": [
+        "SCHEMA"
+      ],
+      "shortened": true,
+      "diagnostics": 256,
+      "omitted": 3
+    },
+    "file": "mixed-structural-errors.json.gz",
+    "materialId": "m",
+    "inputBytes": 5173,
+    "sha256": "e1f17034290a50c4873270705a505907d4340d5242c8d2c0af53617d47e0a2e0",
+    "provenance": "RECONSTRUCTED_NOT_ORIGINAL"
+  },
+  {
+    "id": "late-event-error",
+    "expected": {
+      "status": "INVALID_SCHEMA",
+      "exitCode": 2,
+      "codes": [
+        "SCHEMA"
+      ],
+      "shortened": true,
+      "diagnostics": 256,
+      "omitted": 246
+    },
+    "file": "late-event-error.json.gz",
+    "materialId": "m",
+    "inputBytes": 9351,
+    "sha256": "10389823a435f76690021cc9f8f9d5e3f6ea49b54af10a24863e80839cd5c5fb",
+    "provenance": "RECONSTRUCTED_NOT_ORIGINAL"
+  },
+  {
+    "id": "long-cli-error",
+    "expected": {
+      "status": "INVALID_SCHEMA",
+      "exitCode": 2,
+      "codes": [
+        "CLI_INPUT"
+      ],
+      "shortened": true,
+      "diagnostics": 2,
+      "fieldsShortened": 1,
+      "rawHash": null
+    },
+    "mode": "long-path",
+    "file": "long-cli-error.json.gz",
+    "materialId": "m",
+    "inputBytes": 2962,
+    "sha256": "0ac1843651c9b0ed2d2e142ccb1ae382a13b976a21adeba27126bbef73ac49aa",
+    "provenance": "RECONSTRUCTED_NOT_ORIGINAL"
+  },
+  {
+    "id": "normal",
+    "expected": {
+      "status": "CONSISTENT",
+      "exitCode": 0,
+      "codes": [],
+      "shortened": false,
+      "diagnostics": 0
+    },
+    "file": "normal.json.gz",
+    "materialId": "m",
+    "inputBytes": 2962,
+    "sha256": "0ac1843651c9b0ed2d2e142ccb1ae382a13b976a21adeba27126bbef73ac49aa",
+    "provenance": "RECONSTRUCTED_NOT_ORIGINAL"
+  },
+  {
+    "id": "missing-plus-conflict",
+    "expected": {
+      "status": "INCONSISTENT",
+      "exitCode": 1,
+      "codes": [
+        "SOURCE_SEQUENCE_GAP",
+        "REFERENCE_MISMATCH"
+      ],
+      "shortened": false,
+      "diagnostics": 0
+    },
+    "file": "missing-plus-conflict.json.gz",
+    "materialId": "m",
+    "inputBytes": 2953,
+    "sha256": "8094bcbdb40036707b5f963dd553b8aac143da0ae46afbf0da408f03df4ec346",
+    "provenance": "RECONSTRUCTED_NOT_ORIGINAL"
+  },
+  {
+    "id": "R2-out-of-scope-sentinel",
+    "expected": {
+      "status": "INVALID_SCHEMA",
+      "exitCode": 2,
+      "codes": [
+        "SCHEMA"
+      ],
+      "shortened": false,
+      "diagnostics": 1
+    },
+    "disposition": "Known R2/P3 remains unchanged; not a normative number-schema oracle",
+    "file": "R2-out-of-scope-sentinel.json.gz",
+    "materialId": "m",
+    "inputBytes": 2990,
+    "sha256": "e3ec4fbec37e5e1399550d6b44316648ddc4c6e9fbc5e76b2da810eabadc320d",
+    "provenance": "RECONSTRUCTED_NOT_ORIGINAL"
+  }
+]

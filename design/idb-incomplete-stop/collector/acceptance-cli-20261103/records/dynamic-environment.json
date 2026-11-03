@@ -1,0 +1,26 @@
+{
+  "old": "5d16dd0cc4d18186ec59947c2073c409b2f8c34b",
+  "new": "e4a5d414689f23e1b33660bce3e006c46fb4e37f",
+  "node": "v24.20.0",
+  "executable": "C:\\Program Files\\nodejs\\node.exe",
+  "platform": "win32",
+  "osRelease": "10.0.26300",
+  "architecture": "x64",
+  "command": [
+    "C:\\Program Files\\nodejs\\node.exe",
+    "C:\\Users\\tetsu\\Documents\\Codex\\メモ帳\\work\\idb-evidence-collector-u1\\design\\idb-incomplete-stop\\collector\\acceptance-cli-20261103\\accept.cjs",
+    "C:\\Users\\tetsu\\Documents\\Codex\\メモ帳\\work\\u1-a405-accept-20261103",
+    "C:\\Users\\tetsu\\Documents\\Codex\\メモ帳\\work\\u1-a405-accept-20261103\\dynamic-final"
+  ],
+  "acceptanceCodeSha256": "e52ae951453fbeed2e51c5a8355831472e7da388107a99384ae5636d6fdef97b",
+  "validator": {
+    "name": "ajv",
+    "version": "8.20.0",
+    "dialect": "Draft 2020-12",
+    "entrySha256": "908e9670b478b2ba126802a221b7e47006f50cf467e2c5dd7935d3dbef10a20a"
+  },
+  "expectationsSha256": "3095913f32287c9493b6f862b34d5f7e7a2514349c189ef4650807a094fa7919",
+  "injectionSha256": "e3d7b29db0a74345714497aff088a3fc9517dc6b1a862cece9fb58442480fa1c",
+  "resultSchemaSha256": "6547cd1f00a03e7d510d0e3c9e7de6d1839ea68da71c6e0290b275c405ffa9ca",
+  "scope": "fresh real Node children with fixed JS fs fault injection; real crypto; not real OS close/EIO"
+}

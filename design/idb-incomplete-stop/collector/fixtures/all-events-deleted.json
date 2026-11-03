@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "fixtureKind": "SYNTHETIC",
+  "materialId": "all-events-deleted",
+  "planId": "U1-offline",
+  "runId": "session-1",
+  "identities": [
+    {
+      "runId": "session-1",
+      "dbName": "synthetic-only",
+      "workerId": "w1",
+      "connectionId": "c1",
+      "transactionId": "t1",
+      "iteration": 1
+    }
+  ],
+  "streams": [
+    {
+      "source": "worker",
+      "workerId": "w1",
+      "firstSeq": 1,
+      "lastSeq": 6
+    },
+    {
+      "source": "main",
+      "firstSeq": 1,
+      "lastSeq": 5
+    }
+  ],
+  "events": []
+}

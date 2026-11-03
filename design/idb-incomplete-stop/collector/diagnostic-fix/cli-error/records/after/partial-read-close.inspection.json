@@ -1,0 +1,38 @@
+{
+  "expected": {
+    "status": "INVALID_SCHEMA",
+    "exitCode": 2,
+    "ioFailure": true,
+    "code": "CLI_INPUT",
+    "errorPrefixes": [
+      "EIO injected read failure",
+      "EIO injected close failure"
+    ],
+    "cliDiagnosticCount": 2,
+    "truncation": false,
+    "rawHash": null,
+    "conditionR": null,
+    "conditionU": null
+  },
+  "faultMode": "partial-read-close",
+  "fixtureSha256": "0ac1843651c9b0ed2d2e142ccb1ae382a13b976a21adeba27126bbef73ac49aa",
+  "fixtureBytes": 2962,
+  "externalSha256": "0ac1843651c9b0ed2d2e142ccb1ae382a13b976a21adeba27126bbef73ac49aa",
+  "status": 2,
+  "signal": null,
+  "processError": null,
+  "parseError": null,
+  "independentSchemaValid": true,
+  "schemaErrors": null,
+  "stdoutSha256": "84a17c83640ad9800753f29f21cec6bd80f45970a432ddbba87fcc83121b03e5",
+  "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "actualStatus": "INVALID_SCHEMA",
+  "actualExitCode": 2,
+  "actualSha256": null,
+  "semanticSha256": null,
+  "transactionCount": 0,
+  "observedR": null,
+  "observedU": null,
+  "readBytes": 17,
+  "traceExitCode": 2
+}

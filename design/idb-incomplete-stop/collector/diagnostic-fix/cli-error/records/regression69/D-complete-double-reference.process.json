@@ -1,0 +1,15 @@
+{
+  "status": 1,
+  "signal": null,
+  "error": null,
+  "inputSha256": "80986ac0f18e05690f3e3b85376b1d3bfbe00cec1add8d1dc2e6f66c52b8e6f4",
+  "expected": {
+    "status": "INCONSISTENT",
+    "exit": 1,
+    "r": "UNKNOWN",
+    "u": "UNKNOWN",
+    "codes": [
+      "DUPLICATE_REFERENCE"
+    ]
+  }
+}

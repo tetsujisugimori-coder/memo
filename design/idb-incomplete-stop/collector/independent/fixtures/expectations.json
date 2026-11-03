@@ -1,0 +1,706 @@
+[
+  {
+    "id": "A-arity",
+    "group": "A",
+    "mode": "arity",
+    "file": "A-arity.json",
+    "encoding": "raw",
+    "materialId": "independent-u1",
+    "expectedSha256": "ac02602943ccf943277c8ed647a23d9dda83147390e0484a315c6378e43f9de4",
+    "actualFixtureSha256": "ac02602943ccf943277c8ed647a23d9dda83147390e0484a315c6378e43f9de4",
+    "expected": {
+      "status": "INVALID_SCHEMA",
+      "exit": 2,
+      "r": null,
+      "u": null,
+      "codes": [
+        "CLI_INPUT"
+      ],
+      "rawHash": "null"
+    }
+  },
+  {
+    "id": "A-missing",
+    "group": "A",
+    "mode": "missing",
+    "file": "A-missing.json",
+    "encoding": "raw",
+    "materialId": "independent-u1",
+    "expectedSha256": "ac02602943ccf943277c8ed647a23d9dda83147390e0484a315c6378e43f9de4",
+    "actualFixtureSha256": "ac02602943ccf943277c8ed647a23d9dda83147390e0484a315c6378e43f9de4",
+    "expected": {
+      "status": "INVALID_SCHEMA",
+      "exit": 2,
+      "r": null,
+      "u": null,
+      "codes": [
+        "CLI_INPUT"
+      ],
+      "rawHash": "null"
+    }
+  },
+  {
+    "id": "A-denied",
+    "group": "A",
+    "mode": "denied",
+    "file": "A-denied.json",
+    "encoding": "raw",
+    "materialId": "independent-u1",
+    "expectedSha256": "ac02602943ccf943277c8ed647a23d9dda83147390e0484a315c6378e43f9de4",
+    "actualFixtureSha256": "ac02602943ccf943277c8ed647a23d9dda83147390e0484a315c6378e43f9de4",
+    "expected": {
+      "status": "INVALID_SCHEMA",
+      "exit": 2,
+      "r": null,
+      "u": null,
+      "codes": [
+        "CLI_INPUT"
+      ],
+      "rawHash": "null"
+    }
+  },
+  {
+    "id": "A-oversize",
+    "group": "A",
+    "mode": "oversize",
+    "file": "A-oversize.json.gz",
+    "encoding": "gzip",
+    "materialId": "independent-u1",
+    "expectedSha256": "e7d99e4db1392275f200e288c860f9780a935c945e2d55f98c1b68a1f9f3fb5c",
+    "actualFixtureSha256": "e7d99e4db1392275f200e288c860f9780a935c945e2d55f98c1b68a1f9f3fb5c",
+    "expected": {
+      "status": "INVALID_SCHEMA",
+      "exit": 2,
+      "r": null,
+      "u": null,
+      "codes": [
+        "JSON"
+      ],
+      "rawHash": "null"
+    }
+  },
+  {
+    "id": "A-utf8",
+    "group": "A",
+    "mode": "utf8",
+    "file": "A-utf8.json",
+    "encoding": "raw",
+    "materialId": "independent-u1",
+    "expectedSha256": "5b3430ee8e5c7490d0e154755cdae0c9a7791be87e77b1f91a52f77676bed0c7",
+    "actualFixtureSha256": "5b3430ee8e5c7490d0e154755cdae0c9a7791be87e77b1f91a52f77676bed0c7",
+    "expected": {
+      "status": "INVALID_SCHEMA",
+      "exit": 2,
+      "r": null,
+      "u": null,
+      "codes": [
+        "JSON"
+      ],
+      "rawHash": "full"
+    }
+  },
+  {
+    "id": "A-json",
+    "group": "A",
+    "mode": "json",
+    "file": "A-json.json",
+    "encoding": "raw",
+    "materialId": "independent-u1",
+    "expectedSha256": "cbdf3b1f91ae32fe1ea292ac6cccf19222f97929f531523f0d15d885052c00c4",
+    "actualFixtureSha256": "cbdf3b1f91ae32fe1ea292ac6cccf19222f97929f531523f0d15d885052c00c4",
+    "expected": {
+      "status": "INVALID_SCHEMA",
+      "exit": 2,
+      "r": null,
+      "u": null,
+      "codes": [
+        "JSON"
+      ],
+      "rawHash": "full"
+    }
+  },
+  {
+    "id": "A-hash",
+    "group": "A",
+    "mode": "hash",
+    "file": "A-hash.json",
+    "encoding": "raw",
+    "materialId": "independent-u1",
+    "expectedSha256": "0000000000000000000000000000000000000000000000000000000000000000",
+    "actualFixtureSha256": "ac02602943ccf943277c8ed647a23d9dda83147390e0484a315c6378e43f9de4",
+    "expected": {
+      "status": "INCONSISTENT",
+      "exit": 1,
+      "r": "UNKNOWN",
+      "u": "UNKNOWN",
+      "codes": [
+        "HASH_MISMATCH"
+      ],
+      "rawHash": "full"
+    }
+  },
+  {
+    "id": "A-material",
+    "group": "A",
+    "mode": "material",
+    "file": "A-material.json",
+    "encoding": "raw",
+    "materialId": "independent-u1",
+    "expectedSha256": "ac02602943ccf943277c8ed647a23d9dda83147390e0484a315c6378e43f9de4",
+    "actualFixtureSha256": "ac02602943ccf943277c8ed647a23d9dda83147390e0484a315c6378e43f9de4",
+    "expected": {
+      "status": "INVALID_SCHEMA",
+      "exit": 2,
+      "r": null,
+      "u": null,
+      "codes": [
+        "INPUT_DESCRIPTOR"
+      ],
+      "rawHash": "full"
+    }
+  },
+  {
+    "id": "B-gap-only",
+    "group": "B",
+    "mode": "file",
+    "file": "B-gap-only.json",
+    "encoding": "raw",
+    "materialId": "independent-u1",
+    "expectedSha256": "b4e39e68c18784434d35edd2b9ecab6582a218a891478a0e4d0627245cb2878c",
+    "actualFixtureSha256": "b4e39e68c18784434d35edd2b9ecab6582a218a891478a0e4d0627245cb2878c",
+    "expected": {
+      "status": "INCOMPLETE",
+      "exit": 1,
+      "r": "UNKNOWN",
+      "u": "UNKNOWN",
+      "codes": [
+        "SOURCE_SEQUENCE_GAP"
+      ]
+    }
+  },
+  {
+    "id": "B-duplicate-only",
+    "group": "B",
+    "mode": "file",
+    "file": "B-duplicate-only.json",
+    "encoding": "raw",
+    "materialId": "independent-u1",
+    "expectedSha256": "3fc94f4e6e1319a01704e391a8864c578fbbf227f1b0a912ddbea587d4e11f70",
+    "actualFixtureSha256": "3fc94f4e6e1319a01704e391a8864c578fbbf227f1b0a912ddbea587d4e11f70",
+    "expected": {
+      "status": "INCONSISTENT",
+      "exit": 1,
+      "r": "UNKNOWN",
+      "u": "UNKNOWN",
+      "codes": [
+        "SEQUENCE_COLLISION"
+      ]
+    }
+  },
+  {
+    "id": "B-outside-only",
+    "group": "B",
+    "mode": "file",
+    "file": "B-outside-only.json",
+    "encoding": "raw",
+    "materialId": "independent-u1",
+    "expectedSha256": "8320d059d62796e499c2e4f832db2e21b244fefe64149b252001f91fc50ed323",
+    "actualFixtureSha256": "8320d059d62796e499c2e4f832db2e21b244fefe64149b252001f91fc50ed323",
+    "expected": {
+      "status": "INCONSISTENT",
+      "exit": 1,
+      "r": "UNKNOWN",
+      "u": "UNKNOWN",
+      "codes": [
+        "SEQUENCE_OUTSIDE_COVERAGE"
+      ]
+    }
+  },
+  {
+    "id": "B-reference-missing",
+    "group": "B",
+    "mode": "file",
+    "file": "B-reference-missing.json",
+    "encoding": "raw",
+    "materialId": "independent-u1",
+    "expectedSha256": "62807c0f440b9a2044d78423070ad9c5e26d931a9c765de0992ff1ce3951a228",
+    "actualFixtureSha256": "62807c0f440b9a2044d78423070ad9c5e26d931a9c765de0992ff1ce3951a228",
+    "expected": {
+      "status": "INCOMPLETE",
+      "exit": 1,
+      "r": "UNKNOWN",
+      "u": "UNKNOWN",
+      "codes": [
+        "REFERENCE_MISSING"
+      ]
+    }
+  },
+  {
+    "id": "B-gap-and-duplicate",
+    "group": "B",
+    "mode": "file",
+    "file": "B-gap-and-duplicate.json",
+    "encoding": "raw",
+    "materialId": "independent-u1",
+    "expectedSha256": "5cd50f007a171a39e44757fd1206350386930373c093d0307fd655e636fd45cd",
+    "actualFixtureSha256": "5cd50f007a171a39e44757fd1206350386930373c093d0307fd655e636fd45cd",
+    "expected": {
+      "status": "INCONSISTENT",
+      "exit": 1,
+      "r": "UNKNOWN",
+      "u": "UNKNOWN",
+      "codes": [
+        "SOURCE_SEQUENCE_GAP",
+        "SEQUENCE_COLLISION"
+      ]
+    }
+  },
+  {
+    "id": "B-gap-and-wrong-type",
+    "group": "B",
+    "mode": "file",
+    "file": "B-gap-and-wrong-type.json",
+    "encoding": "raw",
+    "materialId": "independent-u1",
+    "expectedSha256": "02f9a684862574d57078fd3e74c0fd8167f99bc59cb732a71e0b0b04f2be145a",
+    "actualFixtureSha256": "02f9a684862574d57078fd3e74c0fd8167f99bc59cb732a71e0b0b04f2be145a",
+    "expected": {
+      "status": "INCONSISTENT",
+      "exit": 1,
+      "r": "UNKNOWN",
+      "u": "UNKNOWN",
+      "codes": [
+        "SOURCE_SEQUENCE_GAP",
+        "REFERENCE_MISMATCH"
+      ]
+    }
+  },
+  {
+    "id": "B-gap-and-foreign-transaction",
+    "group": "B",
+    "mode": "file",
+    "file": "B-gap-and-foreign-transaction.json",
+    "encoding": "raw",
+    "materialId": "independent-u1",
+    "expectedSha256": "08eb4b95d0a0ffe586fc2610f238a16de4fc4abc9ef07c44a6c74424b37d1b9f",
+    "actualFixtureSha256": "08eb4b95d0a0ffe586fc2610f238a16de4fc4abc9ef07c44a6c74424b37d1b9f",
+    "expected": {
+      "status": "INCONSISTENT",
+      "exit": 1,
+      "r": "UNKNOWN",
+      "u": "UNKNOWN",
+      "codes": [
+        "SOURCE_SEQUENCE_GAP",
+        "FOREIGN_IDENTITY"
+      ]
+    }
+  },
+  {
+    "id": "B-loss-and-terminal-conflict",
+    "group": "B",
+    "mode": "file",
+    "file": "B-loss-and-terminal-conflict.json",
+    "encoding": "raw",
+    "materialId": "independent-u1",
+    "expectedSha256": "64d248464c3fd52ac280b447f28a405290ccb35f08a858e542fda3be946ab503",
+    "actualFixtureSha256": "64d248464c3fd52ac280b447f28a405290ccb35f08a858e542fda3be946ab503",
+    "expected": {
+      "status": "INCONSISTENT",
+      "exit": 1,
+      "r": "UNKNOWN",
+      "u": "UNKNOWN",
+      "codes": [
+        "SOURCE_SEQUENCE_GAP",
+        "COLLECTION_ERROR",
+        "TERMINAL_CONFLICT"
+      ]
+    }
+  },
+  {
+    "id": "C-worker-complete-only",
+    "group": "C",
+    "mode": "file",
+    "file": "C-worker-complete-only.json",
+    "encoding": "raw",
+    "materialId": "independent-u1",
+    "expectedSha256": "8e19f658986e20cbae8733351fdee684be688764322e4eb1a36d94871f823216",
+    "actualFixtureSha256": "8e19f658986e20cbae8733351fdee684be688764322e4eb1a36d94871f823216",
+    "expected": {
+      "status": "INCOMPLETE",
+      "exit": 1,
+      "r": "UNKNOWN",
+      "u": "UNKNOWN",
+      "codes": [
+        "COMPLETE_SEND_MISSING"
+      ]
+    }
+  },
+  {
+    "id": "C-sent-only",
+    "group": "C",
+    "mode": "file",
+    "file": "C-sent-only.json",
+    "encoding": "raw",
+    "materialId": "independent-u1",
+    "expectedSha256": "2066ef7e89e57a0accd19c28e8fe5e87f57c2c6dc9b9761c4e7c578a286b58ba",
+    "actualFixtureSha256": "2066ef7e89e57a0accd19c28e8fe5e87f57c2c6dc9b9761c4e7c578a286b58ba",
+    "expected": {
+      "status": "INCOMPLETE",
+      "exit": 1,
+      "r": "UNKNOWN",
+      "u": "UNKNOWN",
+      "codes": [
+        "COMPLETE_RECEIVE_MISSING"
+      ]
+    }
+  },
+  {
+    "id": "C-received-before-stop",
+    "group": "C",
+    "mode": "file",
+    "file": "C-received-before-stop.json",
+    "encoding": "raw",
+    "materialId": "independent-u1",
+    "expectedSha256": "ac02602943ccf943277c8ed647a23d9dda83147390e0484a315c6378e43f9de4",
+    "actualFixtureSha256": "ac02602943ccf943277c8ed647a23d9dda83147390e0484a315c6378e43f9de4",
+    "expected": {
+      "status": "CONSISTENT",
+      "exit": 0,
+      "r": "PASS",
+      "u": "FAIL",
+      "codes": []
+    }
+  },
+  {
+    "id": "C-received-after-stop",
+    "group": "C",
+    "mode": "file",
+    "file": "C-received-after-stop.json",
+    "encoding": "raw",
+    "materialId": "independent-u1",
+    "expectedSha256": "09045cb75e1e0d6b04ac137fb54f8a73c5d195f1f6cf0546669fb7ed8ec68d90",
+    "actualFixtureSha256": "09045cb75e1e0d6b04ac137fb54f8a73c5d195f1f6cf0546669fb7ed8ec68d90",
+    "expected": {
+      "status": "CONSISTENT",
+      "exit": 0,
+      "r": "FAIL",
+      "u": "UNKNOWN",
+      "codes": []
+    }
+  },
+  {
+    "id": "C-complete-other-transaction",
+    "group": "C",
+    "mode": "file",
+    "file": "C-complete-other-transaction.json",
+    "encoding": "raw",
+    "materialId": "independent-u1",
+    "expectedSha256": "aef04cbc0628def19e231e618fcfa9645dda703101e7fff329955f0788bec6f8",
+    "actualFixtureSha256": "aef04cbc0628def19e231e618fcfa9645dda703101e7fff329955f0788bec6f8",
+    "expected": {
+      "status": "INCONSISTENT",
+      "exit": 1,
+      "r": "UNKNOWN",
+      "u": "UNKNOWN",
+      "codes": [
+        "REFERENCE_MISMATCH"
+      ]
+    }
+  },
+  {
+    "id": "C-send-other-worker",
+    "group": "C",
+    "mode": "file",
+    "file": "C-send-other-worker.json",
+    "encoding": "raw",
+    "materialId": "independent-u1",
+    "expectedSha256": "809138718f83c16d1ceec829e6c29528a5e700aaf3216d438e325755cd29b337",
+    "actualFixtureSha256": "809138718f83c16d1ceec829e6c29528a5e700aaf3216d438e325755cd29b337",
+    "expected": {
+      "status": "INCONSISTENT",
+      "exit": 1,
+      "r": "UNKNOWN",
+      "u": "UNKNOWN",
+      "codes": [
+        "REFERENCE_MISMATCH"
+      ]
+    }
+  },
+  {
+    "id": "C-incomparable-sources",
+    "group": "C",
+    "mode": "file",
+    "file": "C-incomparable-sources.json",
+    "encoding": "raw",
+    "materialId": "independent-u1",
+    "expectedSha256": "f4726f8dbeea99125de8fdb5c517594a3f62c509738747f512a61cdb91976900",
+    "actualFixtureSha256": "f4726f8dbeea99125de8fdb5c517594a3f62c509738747f512a61cdb91976900",
+    "expected": {
+      "status": "INCOMPLETE",
+      "exit": 1,
+      "r": "UNKNOWN",
+      "u": "UNKNOWN",
+      "codes": [
+        "COMPLETE_SEND_MISSING"
+      ]
+    }
+  },
+  {
+    "id": "C-local-order-reversed",
+    "group": "C",
+    "mode": "file",
+    "file": "C-local-order-reversed.json",
+    "encoding": "raw",
+    "materialId": "independent-u1",
+    "expectedSha256": "20fd76b78e1e49983e5f23dbb92154481fd3d78c9cf8c48290d15974b4363988",
+    "actualFixtureSha256": "20fd76b78e1e49983e5f23dbb92154481fd3d78c9cf8c48290d15974b4363988",
+    "expected": {
+      "status": "INCONSISTENT",
+      "exit": 1,
+      "r": "UNKNOWN",
+      "u": "UNKNOWN",
+      "codes": [
+        "SOURCE_ORDER_REVERSED"
+      ]
+    }
+  },
+  {
+    "id": "C-array-reversed",
+    "group": "C",
+    "mode": "file",
+    "file": "C-array-reversed.json",
+    "encoding": "raw",
+    "materialId": "independent-u1",
+    "expectedSha256": "c7f5be6ab3be3953f0f96f84e23e4255456f56f127bd3118c0cc1a0f12f44da8",
+    "actualFixtureSha256": "c7f5be6ab3be3953f0f96f84e23e4255456f56f127bd3118c0cc1a0f12f44da8",
+    "expected": {
+      "status": "CONSISTENT",
+      "exit": 0,
+      "r": "PASS",
+      "u": "FAIL",
+      "codes": []
+    }
+  },
+  {
+    "id": "C-clocks-exchanged",
+    "group": "C",
+    "mode": "file",
+    "file": "C-clocks-exchanged.json",
+    "encoding": "raw",
+    "materialId": "independent-u1",
+    "expectedSha256": "f4fff98577bc8e2244c3a89454b979c9d46fdb126fd981b1142b2ebae0084f22",
+    "actualFixtureSha256": "f4fff98577bc8e2244c3a89454b979c9d46fdb126fd981b1142b2ebae0084f22",
+    "expected": {
+      "status": "CONSISTENT",
+      "exit": 0,
+      "r": "PASS",
+      "u": "FAIL",
+      "codes": []
+    }
+  },
+  {
+    "id": "C-stop-prerequisite-missing",
+    "group": "C",
+    "mode": "file",
+    "file": "C-stop-prerequisite-missing.json",
+    "encoding": "raw",
+    "materialId": "independent-u1",
+    "expectedSha256": "437f3c652472c865d9de26dab04a7d45b7600c1b086de7f78de2b29bf5fe7df2",
+    "actualFixtureSha256": "437f3c652472c865d9de26dab04a7d45b7600c1b086de7f78de2b29bf5fe7df2",
+    "expected": {
+      "status": "INCOMPLETE",
+      "exit": 1,
+      "r": "UNKNOWN",
+      "u": "UNKNOWN",
+      "codes": [
+        "EVENT_MISSING"
+      ]
+    }
+  },
+  {
+    "id": "C-worker-event-in-main-source",
+    "group": "C",
+    "mode": "file",
+    "file": "C-worker-event-in-main-source.json",
+    "encoding": "raw",
+    "materialId": "independent-u1",
+    "expectedSha256": "f11a6a790099f072af07b98b2f45f15dde6f644ba6c944d4075d00651e753cf0",
+    "actualFixtureSha256": "f11a6a790099f072af07b98b2f45f15dde6f644ba6c944d4075d00651e753cf0",
+    "expected": {
+      "status": "INVALID_SCHEMA",
+      "exit": 2,
+      "r": null,
+      "u": null,
+      "codes": [
+        "SCHEMA"
+      ]
+    }
+  },
+  {
+    "id": "C-main-event-in-worker-source",
+    "group": "C",
+    "mode": "file",
+    "file": "C-main-event-in-worker-source.json",
+    "encoding": "raw",
+    "materialId": "independent-u1",
+    "expectedSha256": "5ab6b27bb822fa51a568cd2bd946092a0304ead624221534655445d22447364f",
+    "actualFixtureSha256": "5ab6b27bb822fa51a568cd2bd946092a0304ead624221534655445d22447364f",
+    "expected": {
+      "status": "INVALID_SCHEMA",
+      "exit": 2,
+      "r": null,
+      "u": null,
+      "codes": [
+        "SCHEMA"
+      ]
+    }
+  },
+  {
+    "id": "D-same-worker-two-transactions",
+    "group": "D",
+    "mode": "file",
+    "file": "D-same-worker-two-transactions.json",
+    "encoding": "raw",
+    "materialId": "independent-u1",
+    "expectedSha256": "79b4e9f081095605b93f00747d6bbcb0a68777f4de1b183133f2846d229fa657",
+    "actualFixtureSha256": "79b4e9f081095605b93f00747d6bbcb0a68777f4de1b183133f2846d229fa657",
+    "expected": {
+      "status": "CONSISTENT",
+      "exit": 0,
+      "r": "PASS",
+      "u": "FAIL",
+      "codes": []
+    }
+  },
+  {
+    "id": "D-two-workers-shared-main",
+    "group": "D",
+    "mode": "file",
+    "file": "D-two-workers-shared-main.json",
+    "encoding": "raw",
+    "materialId": "independent-u1",
+    "expectedSha256": "41a29745bdeceb36145972f6a1620f3012d9510d906f088af7c84c42aa34fffe",
+    "actualFixtureSha256": "41a29745bdeceb36145972f6a1620f3012d9510d906f088af7c84c42aa34fffe",
+    "expected": {
+      "status": "CONSISTENT",
+      "exit": 0,
+      "r": "PASS",
+      "u": "FAIL",
+      "codes": []
+    }
+  },
+  {
+    "id": "D-event-id-reused",
+    "group": "D",
+    "mode": "file",
+    "file": "D-event-id-reused.json",
+    "encoding": "raw",
+    "materialId": "independent-u1",
+    "expectedSha256": "8fcd5a1eb47037cdc95d7855650ef8fd0b37897f825769236a213180b044fe52",
+    "actualFixtureSha256": "8fcd5a1eb47037cdc95d7855650ef8fd0b37897f825769236a213180b044fe52",
+    "expected": {
+      "status": "INCONSISTENT",
+      "exit": 1,
+      "r": "UNKNOWN",
+      "u": "UNKNOWN",
+      "codes": [
+        "DUPLICATE_EVENT_ID"
+      ]
+    }
+  },
+  {
+    "id": "D-complete-double-reference",
+    "group": "D",
+    "mode": "file",
+    "file": "D-complete-double-reference.json",
+    "encoding": "raw",
+    "materialId": "independent-u1",
+    "expectedSha256": "80986ac0f18e05690f3e3b85376b1d3bfbe00cec1add8d1dc2e6f66c52b8e6f4",
+    "actualFixtureSha256": "80986ac0f18e05690f3e3b85376b1d3bfbe00cec1add8d1dc2e6f66c52b8e6f4",
+    "expected": {
+      "status": "INCONSISTENT",
+      "exit": 1,
+      "r": "UNKNOWN",
+      "u": "UNKNOWN",
+      "codes": [
+        "DUPLICATE_REFERENCE"
+      ]
+    }
+  },
+  {
+    "id": "D-send-double-receipt",
+    "group": "D",
+    "mode": "file",
+    "file": "D-send-double-receipt.json",
+    "encoding": "raw",
+    "materialId": "independent-u1",
+    "expectedSha256": "c701f1d2e15e149db5265a1246b3ba7bf4bf2b230490de5582fdfb1f4106238d",
+    "actualFixtureSha256": "c701f1d2e15e149db5265a1246b3ba7bf4bf2b230490de5582fdfb1f4106238d",
+    "expected": {
+      "status": "INCONSISTENT",
+      "exit": 1,
+      "r": "UNKNOWN",
+      "u": "UNKNOWN",
+      "codes": [
+        "DUPLICATE_REFERENCE"
+      ]
+    }
+  },
+  {
+    "id": "D-foreign-workerId",
+    "group": "D",
+    "mode": "file",
+    "file": "D-foreign-workerId.json",
+    "encoding": "raw",
+    "materialId": "independent-u1",
+    "expectedSha256": "325a2f5a7c15b436350f424684c2d9f34d7ad9e4a280a5d25e8a3c9f05716298",
+    "actualFixtureSha256": "325a2f5a7c15b436350f424684c2d9f34d7ad9e4a280a5d25e8a3c9f05716298",
+    "expected": {
+      "status": "INCONSISTENT",
+      "exit": 1,
+      "r": "UNKNOWN",
+      "u": "UNKNOWN",
+      "codes": [
+        "FOREIGN_IDENTITY"
+      ]
+    }
+  },
+  {
+    "id": "D-foreign-connectionId",
+    "group": "D",
+    "mode": "file",
+    "file": "D-foreign-connectionId.json",
+    "encoding": "raw",
+    "materialId": "independent-u1",
+    "expectedSha256": "902e296c8c0bd96e3ff2622c6f79da42301770278d10975b270ffc5f876fff42",
+    "actualFixtureSha256": "902e296c8c0bd96e3ff2622c6f79da42301770278d10975b270ffc5f876fff42",
+    "expected": {
+      "status": "INCONSISTENT",
+      "exit": 1,
+      "r": "UNKNOWN",
+      "u": "UNKNOWN",
+      "codes": [
+        "FOREIGN_IDENTITY"
+      ]
+    }
+  },
+  {
+    "id": "D-foreign-iteration",
+    "group": "D",
+    "mode": "file",
+    "file": "D-foreign-iteration.json",
+    "encoding": "raw",
+    "materialId": "independent-u1",
+    "expectedSha256": "8c54498e332cfe6ea76914a22f67b3abcbf36ec6a3a83c83f9d738c4e83878c0",
+    "actualFixtureSha256": "8c54498e332cfe6ea76914a22f67b3abcbf36ec6a3a83c83f9d738c4e83878c0",
+    "expected": {
+      "status": "INCONSISTENT",
+      "exit": 1,
+      "r": "UNKNOWN",
+      "u": "UNKNOWN",
+      "codes": [
+        "FOREIGN_IDENTITY"
+      ]
+    }
+  }
+]

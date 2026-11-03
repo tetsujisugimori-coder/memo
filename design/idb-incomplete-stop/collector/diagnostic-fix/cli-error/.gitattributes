@@ -1,0 +1,4 @@
+# Preserve raw fault logs, TAP assertion spacing and oversized synthetic input bytes.
+records/**/*.tap -whitespace
+records/**/inputs/*.json -diff -whitespace
+records/**/A-oversize-expanded.json -diff -whitespace

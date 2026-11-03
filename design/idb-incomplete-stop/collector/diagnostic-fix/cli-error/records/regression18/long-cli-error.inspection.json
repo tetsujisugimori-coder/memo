@@ -1,0 +1,32 @@
+{
+  "expected": {
+    "status": "INVALID_SCHEMA",
+    "exitCode": 2,
+    "codes": [
+      "CLI_INPUT"
+    ],
+    "shortened": true,
+    "diagnostics": 2,
+    "fieldsShortened": 1,
+    "rawHash": null
+  },
+  "inputBytes": 2962,
+  "inputSha256": "0ac1843651c9b0ed2d2e142ccb1ae382a13b976a21adeba27126bbef73ac49aa",
+  "status": 2,
+  "signal": null,
+  "processError": null,
+  "stdoutBytes": 9259,
+  "stdoutSha256": "fb1824bc6ef09481944110e486ead6daa78a4abc4125080adb17224dfbf3d40d",
+  "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "parseError": null,
+  "independentSchemaValid": true,
+  "schemaErrors": null,
+  "actualStatus": "INVALID_SCHEMA",
+  "actualExitCode": 2,
+  "diagnosticCount": 2,
+  "marker": {
+    "code": "DIAGNOSTICS_TRUNCATED",
+    "subject": "",
+    "detail": "diagnostics omitted=0; fields shortened=1; reason codes=CLI_INPUT"
+  }
+}

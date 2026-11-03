@@ -1,0 +1,24 @@
+{
+  "expected": false,
+  "independentValid": false,
+  "builtinValid": false,
+  "independentErrors": [
+    {
+      "instancePath": "/transactions/0/identity/transactionId",
+      "schemaPath": "#/properties/transactions/items/properties/identity/properties/transactionId/pattern",
+      "keyword": "pattern",
+      "params": {
+        "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,127}(?![\\s\\S])"
+      },
+      "message": "must match pattern \"^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,127}(?![\\s\\S])\""
+    }
+  ],
+  "builtinErrors": [
+    {
+      "code": "SCHEMA",
+      "subject": "/transactions/0/identity/transactionId",
+      "detail": "invalid identifier/hash"
+    }
+  ],
+  "schemaSha256": "6547cd1f00a03e7d510d0e3c9e7de6d1839ea68da71c6e0290b275c405ffa9ca"
+}

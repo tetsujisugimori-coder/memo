@@ -1,0 +1,16 @@
+{
+  "revision": "5d16dd0cc4d18186ec59947c2073c409b2f8c34b",
+  "node": "v24.20.0",
+  "platform": "win32",
+  "target": "C:\\Users\\tetsu\\Documents\\Codex\\メモ帳\\work\\idb-u1-cli-error-audit\\fixed\\collector\\collect.cjs",
+  "collectorSha256": "4b32dd261e83559a5d090d860b58e3c833ee5b04f570b28748007f06aaef35f9",
+  "expectationsSha256": "3095913f32287c9493b6f862b34d5f7e7a2514349c189ef4650807a094fa7919",
+  "faultShimSha256": "e3d7b29db0a74345714497aff088a3fc9517dc6b1a862cece9fb58442480fa1c",
+  "resultSchemaSha256": "6547cd1f00a03e7d510d0e3c9e7de6d1839ea68da71c6e0290b275c405ffa9ca",
+  "independentValidator": {
+    "name": "ajv",
+    "version": "8.20.0",
+    "dialect": "Draft 2020-12"
+  },
+  "provenance": "RECONSTRUCTED_JS_FS_INJECTION_REAL_NODE_AND_REAL_HASH_NOT_OS_EIO"
+}
