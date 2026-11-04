@@ -114,10 +114,20 @@ W1は共通契約のCLEANUP_ENTEREDのまま。今回のC0は**当該shutdown dr
 |C0のClient値|意味・限界|
 |---|---|
 |Active / Inactive|同一の生存中Client txのその時点の値に限る。request callbackのunwindやmicrotask checkpointでactivate/deactivate/autoCommitされる（tx.cpp:107–109,1445–1462）。以前のcallback内状態を延長しない。先行異常不在・backend未終端は別|
-|Committing|Client T1候補に限る。tx.cpp:561–581は**didCommitが既に呼ばれても**未完了requestがあれば`m_commitResult`に結果を保存してreturn。backend完了だけでなくClient内に結果到着済みでもCommittingが残り得る|
+|Committing|Client T1候補に限る。tx.cpp:568–570は`m_lastTransactionOperationBeforeCommit`があり、そのoperationが`m_transactionOperationMap`に残る場合、`m_commitResult = error`でreturnする。真正backend結果でもClient側生成errorでもCommittingが残り得る。保存・通知名だけではbackend結果確定を証明しない。出自別の判定は直後の規則による|
 |Aborting|正常未終端として受理しない。m_isStopped falseでも別原因abortはあり得る|
 |Finished|Client T3のみ。成功commit・backend結果・complete配信・物理解放は自動確定しない|
 |不在／破棄／ID未結合|そのcutのClient状態UNKNOWN。作成前停止で対象txがなかったと確定できる場合だけNOT_APPLICABLE。過去snapshotを補間・延長しない|
+
+**結果の出自と判定（静的規則・未実装）**：固定[IDBConnectionToServer.cpp:357–377](https://github.com/WebKit/WebKit/blob/343e13bf22dca9d0ec227801419aab0f9001a32f/Source/WebCore/Modules/indexeddb/client/IDBConnectionToServer.cpp#L357-L377)では、`m_serverConnectionIsValid`がtrueならdelegateへcommitを委譲し、falseならClient側で`serverConnectionLostError`を生成してmain thread上の`didCommitTransaction`へ渡す。[proxy.cpp:399–410](https://github.com/WebKit/WebKit/blob/343e13bf22dca9d0ec227801419aab0f9001a32f/Source/WebCore/Modules/indexeddb/client/IDBConnectionProxy.cpp#L399-L410)は同resource IDをcommitting mapからtakeし、対象がなければreturn、あればorigin threadの`IDBTransaction::didCommit`へ配送する。[tx.cpp:561–581](https://github.com/WebKit/WebKit/blob/343e13bf22dca9d0ec227801419aab0f9001a32f/Source/WebCore/Modules/indexeddb/IDBTransaction.cpp#L561-L581)の上記条件が揃えば、このClient生成errorも保存してreturnし得る。接続有効という分岐や委譲だけでも真正backend結果の証明にはならない。これは固定ソース上の可能な経路で、動的に観測した事実ではない。
+
+用語は先行P2研究の固定HEAD `3d1ceb6ace08be09989208dee4ba797c8d9642b3`の[生成元分類・判定規則](https://github.com/tetsujisugimori-coder/memo/blob/3d1ceb6ace08be09989208dee4ba797c8d9642b3/design/idb-incomplete-stop/u2c-p2/backend-result-cut-deep-dive.md)、[BACK-N07/N13等](https://github.com/tetsujisugimori-coder/memo/blob/3d1ceb6ace08be09989208dee4ba797c8d9642b3/design/idb-incomplete-stop/u2c-p2/backend-cut-negatives.md)に合わせる。C1＝CONNECTION_FALLBACK_ERROR（Client接続喪失）、C2＝SERVER_PRECONDITION_ERROR（server事前条件error/abort）、C3＝BACKING_STORE_COMMIT_RESULT（実backing-store論理commit処理のresult/error）。研究用出自ラベルであり、本書の境界C0や親static-traceの段階番号とは別定義。C2やbacking-store内の実commitを呼ばない早期error returnも真正C3へ昇格しない。先行文書は変更しない。
+
+- **A：真正backend結果**。対象層（SERVER_LOGICAL_IDB／BACKING_STOREを区別）と生成元producer・関数・分岐・result/errorを確認し、完全JS identity（§5.2）とnative transaction/resource・native connection・backend process incarnation、Worker/VM/object/接続世代を同一transaction・同一試行へ明示joinする。同producer内source/call順やID付きsend→receive/call→ack等で**真正結果≺選択cut（ここではC0）**が確定し、資料に矛盾がない場合に限り、`backendPending=FAIL`（先行P2の`backendPendingAtCut=FAIL`）。Client Committingの残存や結果配送の欠落でも変えない。結果errorもこの条件を満たせばFAILだが、成功commit・正常性・物理SQL commitは別判定。BACK-N07/N13と同じ十分条件である。
+- **B：Client側生成errorのみ**。C1の受信・保存だけで真正backend結果が未確認なら、**受信・保存≺cutが明示されても`backendPending=UNKNOWN`**。正常U-C候補に採用せず、connection-loss等の異常理由を保持する。C2のみも真正C3の証拠とせずUNKNOWNとし、precondition/abort理由を保持する。異常の存在だけでpendingをFAIL/PASSにせず、異常のcut前後も別に記録する。
+- **C：証拠不足・矛盾**。出自、対象層、identity/incarnation、世代または結果とcutの明示因果が不足・不一致ならUNKNOWN。資料INCOMPLETE／INCONSISTENTと不足・矛盾理由を保持し、部分的な結果だけを採用してFAIL/PASSへ確定しない。真正結果がcut後という証拠だけでも、cut時の正常pendingのPASSにはならない。
+
+A〜Cは[静的対照](precleanup-static-negatives.md)のC0-N11と同じ条件である。実join・実cut・生成元記録の取得はしておらず、現在のbackendPending/U-C実証はUNKNOWNのまま。
 
 ### 5.2 ID結合表と生存期間
 
@@ -149,7 +159,7 @@ W1は共通契約のCLEANUP_ENTEREDのまま。今回のC0は**当該shutdown dr
 - [設計] EとC0にはVM generation、W1とstopにはcontext/Worker generation、stopとabortには同tx resource ID＋object generation、同producer epochのsourceSeqとparent call recordを付す。stopが既にm_isStoppedならその先行stop記録へ結ぶ。Fの設定記録も同VMから参照し、C0の値と混ぜない。関数の文字上の並びだけで実発生ログを作らない。
 - [推論] 同thread上で実際にこのcall chainが記録されれば、**このcleanupが誘発するClient abort**よりC0が前だと言える。C0前の別原因abort（明示abort、request例外、server loss、suspension、以前のstop）は排除しない。tx.cpp:1465–1470などの別経路も異常coverageに含める。m_stateやm_isStoppedだけで過去の正常性を保証しない。
 - [事実] [UniqueIDBDatabase.cpp:1211–1317](https://github.com/WebKit/WebKit/blob/343e13bf22dca9d0ec227801419aab0f9001a32f/Source/WebCore/Modules/indexeddb/server/UniqueIDBDatabase.cpp#L1211-L1317)はmap take→backing store commit/abort→callback。suspensionによる既存abort結果を返す経路もある。server map状態は結果の代用にならない。
-- [未確認] C0と別processのbackend commit/abortは、ID一致だけでは先後不明。source clock、異source配列、recorder到着順は禁止。backend結果がC0前と確定すればbackend pendingは不成立。C0後に結果通知が到着しただけではbackend処理がC0後だったとは言えない。
+- [未確認] C0と別processのbackend commit/abortは、ID一致だけでは先後不明。source clock、異source配列、recorder到着順は禁止。§5.1 Aの対象層・真正生成元・完全identity/incarnation・同一tx/試行・結果≺C0・矛盾なしが揃えばbackendPendingはFAIL。Client生成errorのみは、受信がC0前でも同BのUNKNOWNを維持する。不足・矛盾は同Cとして保持する。C0後に結果通知が到着しただけではbackend処理がC0後だったとは言えない。
 
 P1側で具体化できたのは「C0におけるE/F＋生存Client tx現在値」とcleanup由来Client停止の局所系列の**設計**まで。P2/U-C側では同native IDのSERVER_LOGICAL_IDB/BACKING_STORE結果、異常経路、C0を跨ぐ因果cutと完全性を独立に必要とする。Client CommittingだけならbackendPendingもU-CもUNKNOWN。これらが将来揃っても**既存Uに自動昇格しない**。
 
@@ -169,11 +179,11 @@ P1側で具体化できたのは「C0におけるE/F＋生存Client tx現在値�
 2. **whenIdleの早さ**：entryScope解除→PopListeners→termination request処理等という順を分離し、idle通知そのものを最終退出にしない。内側待機終了と外側C0も分離した。
 3. **肯定しない具体的経路**：idle停止・module fetch待ち停止にはFを必ず設定する出口がなく、非enteredでも同時条件を満たさない可能性を具体化した。条件成立のためのforbid追加は行わない。
 4. **Client snapshot取得の実装上の穴**：5状態はprivateで公開predicateでは識別不能。origin thread配送、弱いActiveDOMObject集合、database/proxy mapの寿命とtakeを区別し、C0に生存対象がなければ過去値を延長しない設計を明示した。
-5. **Committing反例の強化**：tx.cpp:568–570でbackend結果がClientへ既着でもCommittingが続き得る。単なる通知遅延だけに限らないことを追加した。
+5. **Committing反例の出自条件**：tx.cpp:568–570の保存は真正backend結果にもClient生成errorにも起こり得る。保存事実から結果生成元を推定せず、§5.1 A〜Cでcut前真正結果のFAILとClient生成errorのみのUNKNOWNを分ける。
 
 次工程の実装前に必要な最小証拠は、(a)配布build一致、(b)対象dedicated Worker/VMの所有権・全入口/全writerとC0→W1の再入禁止監査、(c)副作用を追加せず現在txの正確なenumを安全に読める設計、(d)JS wrapper/native作成返却・process/connection/transaction世代の明示join、(e)E/F/C0/W1/Client stopを覆う同producer因果、(f)backendとの独立cut、(g)drop・末尾喪失・coverageと計測摂動の証拠。**現在はこれらを揃えた実装案の受入には至らない。追加静的レビューを要し、実験開始はBLOCKED。**
 
-[静的負の対照](precleanup-static-negatives.md)は期待判定であって動的試験ではない。独立レビュー重点はC0≺W1の限定、idle/module経路、scopeなしと全実行不在の違い、弱locatorの寿命、同一packetの非再入条件、backendの独立性。独立レビュー結果は未取得。
+[静的負の対照](precleanup-static-negatives.md)は期待判定であって動的試験ではない。独立レビュー重点はC0≺W1の限定、idle/module経路、scopeなしと全実行不在の違い、弱locatorの寿命、同一packetの非再入条件、backendの独立性。指定HEADへの独立レビュー5775450172のP2-01を今回局所修正し、修正後の独立再レビューは未取得。
 
 ## 9. 固定する判定と未実施
 
@@ -239,6 +249,8 @@ P1側で具体化できたのは「C0におけるE/F＋生存Client tx現在値�
 
 ## 11. 今回の局所検査と再確認方法
 
-新規Markdown2件について、C0-N01–N26の26行に欠番・重複なし、リンク75件（固定WebKitリンク63件）のpathと固定版行範囲、相対リンクの実在を確認。共通契約v1 blob `1a4b59272c13fb6b821a0c3853eed89e58a93967`と契約ディレクトリ無差分を照合。`git diff --cached --check`は終了0、staged差分はこの2件の追加だけ。これはローカルの文書整合検査であり、WebKit・J2・IDBの動的試験成功ではない。提出HEAD・tree・GitHub読戻し結果はDraft PR本文の提出記録を参照する。
+初回提出時は、新規Markdown2件について、C0-N01–N26の26行に欠番・重複なし、リンク75件（固定WebKitリンク63件）のpathと固定版行範囲、相対リンクの実在を確認。共通契約v1 blob `1a4b59272c13fb6b821a0c3853eed89e58a93967`と契約ディレクトリ無差分を照合。`git diff --cached --check`は終了0、staged差分はこの2件の追加だけ。これはローカルの文書整合検査であり、WebKit・J2・IDBの動的試験成功ではない。提出HEAD・tree・GitHub読戻し結果はDraft PR本文の提出記録を参照する。
+
+P2-01局所修正（2026-11-05 JST）：開始HEADは指定の`fb83d589b05625978291796002add21f7bf2b895`、baseは上記固定SHAと一致し、追加の先行差分はなかった。C0-N01–N26の26行に欠番・重複なし、N11以外の25行は不変。出自別対照4行は別表で、動的PASSに算入しない。修正後のリンク81件（固定WebKitリンク66件、blob参照先54組）の固定path・行範囲と相対リンクを再照合し、上流索引の全blob・行数も一致。契約blobは同値で、指定HEAD以後の差分は本2文書のみ。`git diff --check`／`git diff --cached --check`は終了0。これは自己静的検証であり、独立再レビュー・CI・実験の実施を意味しない。修正commit・push・GitHub読戻しの最終固定値はPRのP2-01修正報告コメントを参照する。
 
 再確認では、まずPR #415の固定HEADをbaseとして`git diff --name-status d5334839e07224981ea21c9ecc51b7f14d28db83...<提出HEAD>`と`git diff --check`を確認する。共通契約は`git rev-parse <提出HEAD>:design/idb-incomplete-stop/u2-witness/common-observation-contract-v1.md`でblobを照合する。固定上流raw bytesは索引のGit blob（`blob <byte数> NUL <bytes>`のSHA-1）に一致するか確認し、C0・exit service・idle/module停止・tx結果保留分岐を該当行で再読する。実験やrunnerを実行する手順ではない。
