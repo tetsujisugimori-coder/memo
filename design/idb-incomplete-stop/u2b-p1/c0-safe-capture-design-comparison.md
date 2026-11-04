@@ -7,7 +7,7 @@
 
 memo調査base＝#417固定HEAD `b39c861d3ec8f60298cad0d0525b1a92b9c53435`、先行PR base `d5334839e07224981ea21c9ecc51b7f14d28db83`。開始時GitHub値は一致。WebKit固定commit `343e13bf22dca9d0ec227801419aab0f9001a32f`。[共通契約v1](../u2-witness/common-observation-contract-v1.md)のblob `1a4b59272c13fb6b821a0c3853eed89e58a93967`を変更しない。
 
-本書のS番号・path/関数/行範囲・blobの正本は[監査文書§8](c0-entry-writer-ownership-audit.md#8-固定ソース索引)。[入口22群・writer20群・所有権](c0-entry-writer-ownership-audit.md)と[今回25反例](c0-safe-capture-static-negatives.md)を同時に読む。既存26反例や先行研究の代替ではない。[事実]は直接コード、[推論]は明示前提つき、[設計]は未実装、[未確認]は証拠未取得を指す。
+本書のS番号・path/関数/行範囲・blobの正本は[監査文書§8](c0-entry-writer-ownership-audit.md#8-固定ソース索引)。[入口22群・writer20群・所有権](c0-entry-writer-ownership-audit.md)と[今回26反例](c0-safe-capture-static-negatives.md)を同時に読む。既存26反例や先行研究の代替ではない。[事実]は直接コード、[推論]は明示前提つき、[設計]は未実装、[未確認]は証拠未取得を指す。
 
 C0＝通常dedicated Workerの外側[WorkerRunLoop.cpp `run()` L244/245間](https://github.com/WebKit/WebKit/blob/343e13bf22dca9d0ec227801419aab0f9001a32f/Source/WebCore/workers/WorkerRunLoop.cpp#L215-L246)。Eは最後の最外実行区間/exit service復帰、Fは当該VMでの禁止＋入口coverage、Tは生存Client txの正確なenum、Iは同一incarnation、Wは指定W1前、Sは解決→取得→解放の非再入/寿命を要求する。単なるisEntered=false、停止要求、T1、後段cleanup観測は代用でない。
 
@@ -41,7 +41,9 @@ C0＝通常dedicated Workerの外側[WorkerRunLoop.cpp `run()` L244/245間](http
 
 [事実] [JSLock.cpp `lock()` L88–114](https://github.com/WebKit/WebKit/blob/343e13bf22dca9d0ec227801419aab0f9001a32f/Source/JavaScriptCore/runtime/JSLock.cpp#L88-L114)は同threadならlockCountを増やして再帰取得を許す。[`willReleaseLock()` L297–328](https://github.com/WebKit/WebKit/blob/343e13bf22dca9d0ec227801419aab0f9001a32f/Source/JavaScriptCore/runtime/JSLock.cpp#L297-L328)はlock drop depth等の条件でdrainMicrotasksし、delayed released objectsを解放する。
 
-[推論] lock自体は同thread再入禁止ではなく、取得/解放で元のVM・heap規律を変え得る。F=trueならcheckpointのF gateは働くが、これだけで全native delayed release/destructorが無作用とはしない。F=falseでpending checkpoint taskがある場合は、Tのdeactivate/autoCommitを引き起こし得る（S11/S12/S32）。**実observerで発生済みという主張ではない。**
+[事実] ここで呼ぶ`VM::drainMicrotasks()`はS66 VM.cpp L1435–1464の**VM default queue**を対象とする。一方、通常WorkerはS04 controller L661–666→S34 context L383–397で別のWebCore EventLoop queueをglobalに設定する。txのdeactivateはS32 L107–109→S13 EventLoop L592–599でそのWebCore checkpoint taskに登録され、S12 L88–103で実行される。**pending WebCore checkpoint taskがあるだけでは、JSLock解放→T変更という直接edgeはない。** 独立レビューP2-01により初稿のこの推論を撤回した。
+
+[推論] lockは同thread再入禁止ではなく、default queueの条件付きdrainやdelayed releaseという副作用は残る。ただし、具体的な対象Tへの影響はcaller/queue/deref経路を結ぶまでUNKNOWN（CAP-N21）。observerがWebCore EventLoop checkpointを**明示的に呼ぶ**別入力なら、F=false、非再帰、group有効、対応task残存等の条件下でdeactivate/autoCommitを起こし得る（CAP-N26）。この入力をlock解放だけの効果に読み替えない。**どちらも実observerで発生済みという報告ではない。**
 
 [事実] weak候補走査に使う`ScriptExecutionContext::forEachActiveDOMObject()`のScriptDisallowedScopeは、[ScriptDisallowedScope.h L37–57](https://github.com/WebKit/WebKit/blob/343e13bf22dca9d0ec227801419aab0f9001a32f/Source/WebCore/dom/ScriptDisallowedScope.h#L37-L57)では非main threadで何も設定しない。Worker上の再入禁止をこのscopeから導く方式B/Cの仮定はFAIL。ただし走査内のActiveDOMObject追加禁止と一時Refによる局所生存は別に評価し、この事実から実JS再入が起きたとは断定しない（CAP-N25）。
 
@@ -83,7 +85,7 @@ PASSは対象命題への肯定的証拠がある場合のみ。PARTIALは監査
 1. 対象build/port/feature/IDL生成物・JIT/LLInt/Wasm入口とsetter参照の有限な母集団を固定し、未監査のENT-09/12/13/15–21のcaller/callee閉包を作る。局所gate不在を迂回の証明にしない。
 2. T/locatorについて「生成時登録→失効→origin-thread解決→既存owner下のborrow→primitive copy→解放」の具体的call graphを静的に一案だけ書く。新たなRefを選ぶ場合は自然寿命との差と最終deref経路を添える。製品実装はまだしない。
 3. 全writerがその区間に入れない根拠、過去cleanupなし、C0→W1間の全CleanupTask producerを監査する。条件を満たせなければ当該案をFAILとして破棄する。
-4. 独立レビュワーが25反例に加え別反例を使って反証する。P1/P2があればHOLD、局所修正しても固定修正HEADの再レビューまで閉鎖しない。
+4. 独立レビュワーが26反例に加え別反例を使って反証する。P1/P2があればHOLD、局所修正しても固定修正HEADの再レビューまで閉鎖しない。
 
 backendPendingは本書のE/F/T取得成功と独立。P2の真正C3出自・完全identity・明示C3≺C0・無矛盾ならFAIL、Client C1/C2保存のみならUNKNOWNを維持する。recorder/陰性証明不足からPASSにしない。
 
