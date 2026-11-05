@@ -1,0 +1,1333 @@
+{
+  "archive": "current-webkit-2336-ubuntu24.04-x64.zip",
+  "size": 106966125,
+  "sha256": "357cd5d52f0770f01a86c1e0e2e193b5cfdb760452fc766e26eb5c8ee3951345",
+  "entries": [
+    {
+      "name": "minibrowser-gtk/",
+      "size": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "minibrowser-gtk/install-dependencies.sh",
+      "size": 3765,
+      "sha256": "b22577b4a4584b800832d1f577eeb75faa4e484ec611fc6c11c5c7902337bb6d"
+    },
+    {
+      "name": "minibrowser-gtk/sys/",
+      "size": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "minibrowser-gtk/sys/lib/",
+      "size": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "minibrowser-gtk/sys/lib/libsoup-3.0.so.0",
+      "size": 20,
+      "sha256": "6e592c5d58313dba670f1a16de2d735f2661235609df2e78e966c9d2f7001fbd",
+      "symlinkTarget": "libsoup-3.0.so.0.7.4"
+    },
+    {
+      "name": "minibrowser-gtk/sys/lib/libbrotlidec.so.1.0.7",
+      "size": 51256,
+      "sha256": "4aa63d1f6180e50f40897b9a49191ac9e2cb79df9d354eddbfe5277b7381105f",
+      "elf": {
+        "status": "PRESENT_PARTIAL",
+        "buildIds": [
+          "c364e2e3ba324e402ab4b0674e38ddd21be0a704"
+        ],
+        "needed": [
+          "libm.so.6",
+          "libbrotlicommon.so.1",
+          "libc.so.6"
+        ],
+        "rpath": [],
+        "runpath": [],
+        "interpreter": null,
+        "limitation": "DT_NEEDED names are not resolved or loaded modules"
+      }
+    },
+    {
+      "name": "minibrowser-gtk/sys/lib/libbrotlienc.so.1",
+      "size": 21,
+      "sha256": "f816fce17a8601fe594147fe09faf98f48e21d40300444e8a1ead0e8e3f81568",
+      "symlinkTarget": "libbrotlienc.so.1.0.7"
+    },
+    {
+      "name": "minibrowser-gtk/sys/lib/libbrotlicommon.so.1.0.7",
+      "size": 137376,
+      "sha256": "e1f7fa439b6fea52e0ac61d1f9d4343913d76df5e9a4330515942353ef16ce20",
+      "elf": {
+        "status": "PRESENT_PARTIAL",
+        "buildIds": [
+          "2496b99d221299248bbe132d68d178694b07cf5b"
+        ],
+        "needed": [
+          "libm.so.6",
+          "libc.so.6"
+        ],
+        "rpath": [],
+        "runpath": [],
+        "interpreter": null,
+        "limitation": "DT_NEEDED names are not resolved or loaded modules"
+      }
+    },
+    {
+      "name": "minibrowser-gtk/sys/lib/libsoup-3.0.so.0.7.4",
+      "size": 590896,
+      "sha256": "0f02328d13684e0eadca97f1477eca3b244b8b446727dec628587a66c451a39d",
+      "elf": {
+        "status": "PRESENT_PARTIAL",
+        "buildIds": [
+          "b95b786742e20f2403a035f634d68a9fb8829bb6"
+        ],
+        "needed": [
+          "libglib-2.0.so.0",
+          "libgmodule-2.0.so.0",
+          "libgobject-2.0.so.0",
+          "libgio-2.0.so.0",
+          "libsqlite3.so.0",
+          "libpsl.so.5",
+          "libbrotlidec.so.1",
+          "libz.so.1",
+          "libnghttp2.so.14",
+          "libc.so.6"
+        ],
+        "rpath": [],
+        "runpath": [],
+        "interpreter": null,
+        "limitation": "DT_NEEDED names are not resolved or loaded modules"
+      }
+    },
+    {
+      "name": "minibrowser-gtk/sys/lib/libbrotlienc.so.1.0.7",
+      "size": 641096,
+      "sha256": "d4d6a50eadd40eb49b750f4f92ecaa3ac393cf5e6d5bddf3a0778fb32e51705b",
+      "elf": {
+        "status": "PRESENT_PARTIAL",
+        "buildIds": [
+          "63325e2c4e3b201ff76baccef3cd770530b5bb63"
+        ],
+        "needed": [
+          "libm.so.6",
+          "libbrotlicommon.so.1",
+          "libc.so.6"
+        ],
+        "rpath": [],
+        "runpath": [],
+        "interpreter": null,
+        "limitation": "DT_NEEDED names are not resolved or loaded modules"
+      }
+    },
+    {
+      "name": "minibrowser-gtk/sys/lib/libbacktrace.so.0.0.0",
+      "size": 100664,
+      "sha256": "d77741426a17b96bf484c4fc1a5995a107cd8e971e194c9d1b0d319454b24346",
+      "elf": {
+        "status": "PRESENT_PARTIAL",
+        "buildIds": [
+          "1211bab9f4075ac95524e5229a0a7c5f5023ca10"
+        ],
+        "needed": [
+          "libgcc_s.so.1",
+          "libc.so.6"
+        ],
+        "rpath": [],
+        "runpath": [],
+        "interpreter": null,
+        "limitation": "DT_NEEDED names are not resolved or loaded modules"
+      }
+    },
+    {
+      "name": "minibrowser-gtk/sys/lib/libbacktrace.so.0",
+      "size": 21,
+      "sha256": "73c1c0a35e95177b687687fe80a5e7bc997781f397154794645ff3e05125056f",
+      "symlinkTarget": "libbacktrace.so.0.0.0"
+    },
+    {
+      "name": "minibrowser-gtk/sys/lib/libbrotlidec.so.1",
+      "size": 21,
+      "sha256": "c41d943a3e33b7a9810c26012480c9495b37f1d6ebd9b04c065f6b85b762971c",
+      "symlinkTarget": "libbrotlidec.so.1.0.7"
+    },
+    {
+      "name": "minibrowser-gtk/sys/lib/libbrotlicommon.so.1",
+      "size": 24,
+      "sha256": "92cef0792e4ef5ce12066989114d0356452a25d4becfbd8e2b1933352bd86256",
+      "symlinkTarget": "libbrotlicommon.so.1.0.7"
+    },
+    {
+      "name": "minibrowser-gtk/sys/lib/libjxl.so.0.8",
+      "size": 15,
+      "sha256": "2bc181c642b51f854e4c1a75c16584fead19a8ba52acabb2f6c16437f9283711",
+      "symlinkTarget": "libjxl.so.0.8.2"
+    },
+    {
+      "name": "minibrowser-gtk/sys/lib/libjxl.so.0.8.2",
+      "size": 4897864,
+      "sha256": "1179ac1992731023cb08c891d0abbfc51e7669ba5f5d3d3c1d0cf1612ff50636",
+      "elf": {
+        "status": "PRESENT_PARTIAL",
+        "buildIds": [
+          "27f5c98da3ef377b87ddde34f976380e3ff9aacc"
+        ],
+        "needed": [
+          "libbrotlidec.so.1",
+          "libbrotlienc.so.1",
+          "libbrotlicommon.so.1",
+          "libm.so.6",
+          "libstdc++.so.6",
+          "libgcc_s.so.1",
+          "libc.so.6"
+        ],
+        "rpath": [],
+        "runpath": [],
+        "interpreter": null,
+        "limitation": "DT_NEEDED names are not resolved or loaded modules"
+      }
+    },
+    {
+      "name": "minibrowser-gtk/MiniBrowser",
+      "size": 228,
+      "sha256": "98384046ffbca250cfb254be6849210749f6455b0a5f18ebae022daf6bd39382"
+    },
+    {
+      "name": "minibrowser-gtk/README.txt",
+      "size": 922,
+      "sha256": "3749c81f22f5e6665de86fed86a999534405bcc360183dffad4c712bcc9a44f2"
+    },
+    {
+      "name": "minibrowser-gtk/bin/",
+      "size": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "minibrowser-gtk/bin/WebKitWebProcess",
+      "size": 14488,
+      "sha256": "fbaca06f06a46a3ce20ec46128426300e3827b90cae51f75b6be666e832355c3",
+      "elf": {
+        "status": "PRESENT_PARTIAL",
+        "buildIds": [
+          "4808049131604eb0da07be226dbab5fc9d3d53b3"
+        ],
+        "needed": [
+          "libwebkitgtk-6.0.so.4",
+          "libevent-2.1.so.7",
+          "libopus.so.0",
+          "libfreetype.so.6",
+          "libfontconfig.so.1",
+          "libepoxy.so.0",
+          "libwebpmux.so.3",
+          "libwebp.so.7",
+          "libexpat.so.1",
+          "libharfbuzz.so.0",
+          "libjpeg.so.8",
+          "libpng16.so.16",
+          "libgio-2.0.so.0",
+          "libgmodule-2.0.so.0",
+          "libgtk-4.so.1",
+          "libpangocairo-1.0.so.0",
+          "libpango-1.0.so.0",
+          "libgdk_pixbuf-2.0.so.0",
+          "libcairo-gobject.so.2",
+          "libcairo.so.2",
+          "libvulkan.so.1",
+          "libgraphene-1.0.so.0",
+          "libgobject-2.0.so.0",
+          "libglib-2.0.so.0",
+          "libjavascriptcoregtk-6.0.so.1",
+          "libicudata.so.74",
+          "libicui18n.so.74",
+          "libicuuc.so.74",
+          "libatomic.so.1",
+          "libz.so.1",
+          "libsystemd.so.0",
+          "libbacktrace.so.0",
+          "libstdc++.so.6",
+          "libm.so.6",
+          "libgcc_s.so.1",
+          "libc.so.6"
+        ],
+        "rpath": [],
+        "runpath": [],
+        "interpreter": "/lib64/ld-linux-x86-64.so.2",
+        "limitation": "DT_NEEDED names are not resolved or loaded modules"
+      }
+    },
+    {
+      "name": "minibrowser-gtk/bin/WebKitGPUProcess",
+      "size": 14488,
+      "sha256": "f2e0ebe83a6bc7fb227a7be009bf4829d0fb80c83ccfc11c142f75c19019bbbc",
+      "elf": {
+        "status": "PRESENT_PARTIAL",
+        "buildIds": [
+          "f2ba033da8cdfe5efa6ad3f2e501d9907ff08ef4"
+        ],
+        "needed": [
+          "libwebkitgtk-6.0.so.4",
+          "libevent-2.1.so.7",
+          "libopus.so.0",
+          "libfreetype.so.6",
+          "libfontconfig.so.1",
+          "libepoxy.so.0",
+          "libwebpmux.so.3",
+          "libwebp.so.7",
+          "libexpat.so.1",
+          "libharfbuzz.so.0",
+          "libjpeg.so.8",
+          "libpng16.so.16",
+          "libgio-2.0.so.0",
+          "libgmodule-2.0.so.0",
+          "libgtk-4.so.1",
+          "libpangocairo-1.0.so.0",
+          "libpango-1.0.so.0",
+          "libgdk_pixbuf-2.0.so.0",
+          "libcairo-gobject.so.2",
+          "libcairo.so.2",
+          "libvulkan.so.1",
+          "libgraphene-1.0.so.0",
+          "libgobject-2.0.so.0",
+          "libglib-2.0.so.0",
+          "libjavascriptcoregtk-6.0.so.1",
+          "libicudata.so.74",
+          "libicui18n.so.74",
+          "libicuuc.so.74",
+          "libatomic.so.1",
+          "libz.so.1",
+          "libsystemd.so.0",
+          "libbacktrace.so.0",
+          "libstdc++.so.6",
+          "libm.so.6",
+          "libgcc_s.so.1",
+          "libc.so.6"
+        ],
+        "rpath": [],
+        "runpath": [],
+        "interpreter": "/lib64/ld-linux-x86-64.so.2",
+        "limitation": "DT_NEEDED names are not resolved or loaded modules"
+      }
+    },
+    {
+      "name": "minibrowser-gtk/bin/MiniBrowser",
+      "size": 150400,
+      "sha256": "08c862489c02f251f1a3e5b760ddbff16e4b474cce62886d2deb6909d86d51af",
+      "elf": {
+        "status": "PRESENT_PARTIAL",
+        "buildIds": [
+          "699805a39cec8d5444cec2eeb1227e176011f6c9"
+        ],
+        "needed": [
+          "libgstreamer-1.0.so.0",
+          "libwebkitgtk-6.0.so.4",
+          "libgmodule-2.0.so.0",
+          "libgtk-4.so.1",
+          "libpangocairo-1.0.so.0",
+          "libpango-1.0.so.0",
+          "libharfbuzz.so.0",
+          "libgdk_pixbuf-2.0.so.0",
+          "libcairo-gobject.so.2",
+          "libcairo.so.2",
+          "libvulkan.so.1",
+          "libgraphene-1.0.so.0",
+          "libgio-2.0.so.0",
+          "libgobject-2.0.so.0",
+          "libglib-2.0.so.0",
+          "libjavascriptcoregtk-6.0.so.1",
+          "libicudata.so.74",
+          "libicui18n.so.74",
+          "libatomic.so.1",
+          "libsystemd.so.0",
+          "libbacktrace.so.0",
+          "libicuuc.so.74",
+          "libxml2.so.2",
+          "libsqlite3.so.0",
+          "libxslt.so.1",
+          "liblcms2.so.2",
+          "libevent-2.1.so.7",
+          "libopus.so.0",
+          "libgcrypt.so.20",
+          "libgpg-error.so.0",
+          "libgstallocators-1.0.so.0",
+          "libgstapp-1.0.so.0",
+          "libgstbase-1.0.so.0",
+          "libgstpbutils-1.0.so.0",
+          "libgstaudio-1.0.so.0",
+          "libgsttag-1.0.so.0",
+          "libgstvideo-1.0.so.0",
+          "libgstgl-1.0.so.0",
+          "libgstcodecparsers-1.0.so.0",
+          "libgstfft-1.0.so.0",
+          "libflite.so.1",
+          "libflite_usenglish.so.1",
+          "libflite_cmu_grapheme_lang.so.1",
+          "libflite_cmu_grapheme_lex.so.1",
+          "libflite_cmu_indic_lang.so.1",
+          "libflite_cmu_indic_lex.so.1",
+          "libflite_cmulex.so.1",
+          "libflite_cmu_time_awb.so.1",
+          "libflite_cmu_us_awb.so.1",
+          "libflite_cmu_us_kal16.so.1",
+          "libflite_cmu_us_kal.so.1",
+          "libflite_cmu_us_rms.so.1",
+          "libflite_cmu_us_slt.so.1",
+          "libwebpdemux.so.2",
+          "libjxl.so.0.8",
+          "libavif.so.16",
+          "libharfbuzz-icu.so.0",
+          "libepoxy.so.0",
+          "libjpeg.so.8",
+          "libpng16.so.16",
+          "libz.so.1",
+          "libfreetype.so.6",
+          "libfontconfig.so.1",
+          "libwebpmux.so.3",
+          "libwebp.so.7",
+          "libexpat.so.1",
+          "libsoup-3.0.so.0",
+          "libX11.so.6",
+          "libwayland-server.so.0",
+          "libwayland-egl.so.1",
+          "libwayland-client.so.0",
+          "libmanette-0.2.so.0",
+          "libenchant-2.so.2",
+          "libgbm.so.1",
+          "libdrm.so.2",
+          "libstdc++.so.6",
+          "libm.so.6",
+          "libgcc_s.so.1",
+          "libc.so.6"
+        ],
+        "rpath": [],
+        "runpath": [],
+        "interpreter": "/lib64/ld-linux-x86-64.so.2",
+        "limitation": "DT_NEEDED names are not resolved or loaded modules"
+      }
+    },
+    {
+      "name": "minibrowser-gtk/bin/WebKitNetworkProcess",
+      "size": 14488,
+      "sha256": "c18e725fe949661b2e4c75eea40c82db3f18162e352430a0208d14cafcab08ba",
+      "elf": {
+        "status": "PRESENT_PARTIAL",
+        "buildIds": [
+          "c3e065c6577e9be15b969945a84fe783295261be"
+        ],
+        "needed": [
+          "libwebkitgtk-6.0.so.4",
+          "libevent-2.1.so.7",
+          "libopus.so.0",
+          "libfreetype.so.6",
+          "libfontconfig.so.1",
+          "libepoxy.so.0",
+          "libwebpmux.so.3",
+          "libwebp.so.7",
+          "libexpat.so.1",
+          "libharfbuzz.so.0",
+          "libjpeg.so.8",
+          "libpng16.so.16",
+          "libgio-2.0.so.0",
+          "libgmodule-2.0.so.0",
+          "libgtk-4.so.1",
+          "libpangocairo-1.0.so.0",
+          "libpango-1.0.so.0",
+          "libgdk_pixbuf-2.0.so.0",
+          "libcairo-gobject.so.2",
+          "libcairo.so.2",
+          "libvulkan.so.1",
+          "libgraphene-1.0.so.0",
+          "libgobject-2.0.so.0",
+          "libglib-2.0.so.0",
+          "libjavascriptcoregtk-6.0.so.1",
+          "libicudata.so.74",
+          "libicui18n.so.74",
+          "libicuuc.so.74",
+          "libatomic.so.1",
+          "libz.so.1",
+          "libsystemd.so.0",
+          "libbacktrace.so.0",
+          "libstdc++.so.6",
+          "libm.so.6",
+          "libgcc_s.so.1",
+          "libc.so.6"
+        ],
+        "rpath": [],
+        "runpath": [],
+        "interpreter": "/lib64/ld-linux-x86-64.so.2",
+        "limitation": "DT_NEEDED names are not resolved or loaded modules"
+      }
+    },
+    {
+      "name": "minibrowser-gtk/lib/",
+      "size": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "minibrowser-gtk/lib/libwebkitgtk-6.0.so.4",
+      "size": 26,
+      "sha256": "0deb80305e84b47d1d9e91aa2635a3ce64719e46d21cf1ac82f9fbba570ab0de",
+      "symlinkTarget": "libwebkitgtk-6.0.so.4.18.0"
+    },
+    {
+      "name": "minibrowser-gtk/lib/libwebkitgtkinjectedbundle.so",
+      "size": 14344,
+      "sha256": "a840ff4fe4919d3bbae9ac6649231462226a21dae47a4d683eeb1c75ba591cbc",
+      "elf": {
+        "status": "PRESENT_PARTIAL",
+        "buildIds": [
+          "8f75a1ade16e4d48f0412461d31b1361c7a080b9"
+        ],
+        "needed": [
+          "libwebkitgtk-6.0.so.4",
+          "libevent-2.1.so.7",
+          "libopus.so.0",
+          "libfreetype.so.6",
+          "libfontconfig.so.1",
+          "libepoxy.so.0",
+          "libwebpmux.so.3",
+          "libwebp.so.7",
+          "libexpat.so.1",
+          "libharfbuzz.so.0",
+          "libjpeg.so.8",
+          "libpng16.so.16",
+          "libgio-2.0.so.0",
+          "libgmodule-2.0.so.0",
+          "libgtk-4.so.1",
+          "libpangocairo-1.0.so.0",
+          "libpango-1.0.so.0",
+          "libgdk_pixbuf-2.0.so.0",
+          "libcairo-gobject.so.2",
+          "libcairo.so.2",
+          "libvulkan.so.1",
+          "libgraphene-1.0.so.0",
+          "libgobject-2.0.so.0",
+          "libglib-2.0.so.0",
+          "libjavascriptcoregtk-6.0.so.1",
+          "libicudata.so.74",
+          "libicui18n.so.74",
+          "libicuuc.so.74",
+          "libatomic.so.1",
+          "libz.so.1",
+          "libsystemd.so.0",
+          "libbacktrace.so.0",
+          "libstdc++.so.6",
+          "libm.so.6",
+          "libgcc_s.so.1",
+          "libc.so.6"
+        ],
+        "rpath": [],
+        "runpath": [],
+        "interpreter": null,
+        "limitation": "DT_NEEDED names are not resolved or loaded modules"
+      }
+    },
+    {
+      "name": "minibrowser-gtk/lib/libjavascriptcoregtk-6.0.so.1",
+      "size": 33,
+      "sha256": "8a4871df75efe3e10b1b91853ab1faad11b4d2cff26e9c5af8e591d44fe9e310",
+      "symlinkTarget": "libjavascriptcoregtk-6.0.so.1.8.3"
+    },
+    {
+      "name": "minibrowser-gtk/lib/libwebkitgtk-6.0.so.4.18.0",
+      "size": 105958112,
+      "sha256": "e338d4b81fa52149c0f03cf54fdafb71b2c8cbbe9ec84bdcec25db6741c691aa",
+      "elf": {
+        "status": "PRESENT_PARTIAL",
+        "buildIds": [
+          "94611f5a357f20eefa44cd8a79533bf28e8d63e6"
+        ],
+        "needed": [
+          "libgio-2.0.so.0",
+          "libgmodule-2.0.so.0",
+          "libepoxy.so.0",
+          "libatomic.so.1",
+          "libgtk-4.so.1",
+          "libpangocairo-1.0.so.0",
+          "libpango-1.0.so.0",
+          "libharfbuzz.so.0",
+          "libgdk_pixbuf-2.0.so.0",
+          "libcairo-gobject.so.2",
+          "libcairo.so.2",
+          "libvulkan.so.1",
+          "libgraphene-1.0.so.0",
+          "libevent-2.1.so.7",
+          "libopus.so.0",
+          "libfreetype.so.6",
+          "libfontconfig.so.1",
+          "libwebpmux.so.3",
+          "libexpat.so.1",
+          "libgobject-2.0.so.0",
+          "libjavascriptcoregtk-6.0.so.1",
+          "libicudata.so.74",
+          "libicui18n.so.74",
+          "libsystemd.so.0",
+          "libbacktrace.so.0",
+          "libjpeg.so.8",
+          "libpng16.so.16",
+          "libglib-2.0.so.0",
+          "libicuuc.so.74",
+          "libxml2.so.2",
+          "libsqlite3.so.0",
+          "libxslt.so.1",
+          "liblcms2.so.2",
+          "libgcrypt.so.20",
+          "libgpg-error.so.0",
+          "libgstallocators-1.0.so.0",
+          "libgstapp-1.0.so.0",
+          "libgstbase-1.0.so.0",
+          "libgstreamer-1.0.so.0",
+          "libgstpbutils-1.0.so.0",
+          "libgstaudio-1.0.so.0",
+          "libgsttag-1.0.so.0",
+          "libgstvideo-1.0.so.0",
+          "libgstgl-1.0.so.0",
+          "libgstcodecparsers-1.0.so.0",
+          "libgstfft-1.0.so.0",
+          "libflite.so.1",
+          "libflite_usenglish.so.1",
+          "libflite_cmu_grapheme_lang.so.1",
+          "libflite_cmu_grapheme_lex.so.1",
+          "libflite_cmu_indic_lang.so.1",
+          "libflite_cmu_indic_lex.so.1",
+          "libflite_cmulex.so.1",
+          "libflite_cmu_time_awb.so.1",
+          "libflite_cmu_us_awb.so.1",
+          "libflite_cmu_us_kal16.so.1",
+          "libflite_cmu_us_kal.so.1",
+          "libflite_cmu_us_rms.so.1",
+          "libflite_cmu_us_slt.so.1",
+          "libwebpdemux.so.2",
+          "libwebp.so.7",
+          "libjxl.so.0.8",
+          "libavif.so.16",
+          "libharfbuzz-icu.so.0",
+          "libsoup-3.0.so.0",
+          "libX11.so.6",
+          "libwayland-server.so.0",
+          "libwayland-egl.so.1",
+          "libwayland-client.so.0",
+          "libmanette-0.2.so.0",
+          "libenchant-2.so.2",
+          "libgbm.so.1",
+          "libdrm.so.2",
+          "libz.so.1",
+          "libtasn1.so.6",
+          "libhyphen.so.0",
+          "libsecret-1.so.0",
+          "libstdc++.so.6",
+          "libm.so.6",
+          "libgcc_s.so.1",
+          "libc.so.6",
+          "ld-linux-x86-64.so.2"
+        ],
+        "rpath": [],
+        "runpath": [],
+        "interpreter": null,
+        "limitation": "DT_NEEDED names are not resolved or loaded modules"
+      }
+    },
+    {
+      "name": "minibrowser-gtk/lib/libjavascriptcoregtk-6.0.so.1.8.3",
+      "size": 34756896,
+      "sha256": "2140a3250fbfa8648bf06f9aacc17b2b0c837aa2d7f33092abbf5f4506515d04",
+      "elf": {
+        "status": "PRESENT_PARTIAL",
+        "buildIds": [
+          "0f8a6419753d3069d9ea48bcc371f93bd409b94e"
+        ],
+        "needed": [
+          "libatomic.so.1",
+          "libicudata.so.74",
+          "libicui18n.so.74",
+          "libicuuc.so.74",
+          "libgio-2.0.so.0",
+          "libgobject-2.0.so.0",
+          "libglib-2.0.so.0",
+          "libz.so.1",
+          "libsystemd.so.0",
+          "libbacktrace.so.0",
+          "libstdc++.so.6",
+          "libm.so.6",
+          "libgcc_s.so.1",
+          "libc.so.6",
+          "ld-linux-x86-64.so.2"
+        ],
+        "rpath": [],
+        "runpath": [],
+        "interpreter": null,
+        "limitation": "DT_NEEDED names are not resolved or loaded modules"
+      }
+    },
+    {
+      "name": "protocol.json",
+      "size": 257615,
+      "sha256": "448bdfe4851c841182a686d85cf3080672adbebf5dfc54d516eb3e3cd967e5fe"
+    },
+    {
+      "name": "pw_run.sh",
+      "size": 3049,
+      "sha256": "a85baad3d8c07173ac387a59b41500c382b21ed692afe0964d29aac247ccc63b"
+    },
+    {
+      "name": "minibrowser-wpe/",
+      "size": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "minibrowser-wpe/install-dependencies.sh",
+      "size": 3271,
+      "sha256": "b01f1e6d6bdc46823856e316c464a3ee1f6f4efb0c6db64de67f320e955224a6"
+    },
+    {
+      "name": "minibrowser-wpe/sys/",
+      "size": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "minibrowser-wpe/sys/lib/",
+      "size": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "minibrowser-wpe/sys/lib/libsoup-3.0.so.0",
+      "size": 20,
+      "sha256": "6e592c5d58313dba670f1a16de2d735f2661235609df2e78e966c9d2f7001fbd",
+      "symlinkTarget": "libsoup-3.0.so.0.7.4"
+    },
+    {
+      "name": "minibrowser-wpe/sys/lib/libbrotlidec.so.1.0.7",
+      "size": 137544,
+      "sha256": "3d28fe45bc14f0da976ceafdc32bc3c54c5564876f846f26f3d12e902e3dcfa4",
+      "elf": {
+        "status": "PRESENT_PARTIAL",
+        "buildIds": [
+          "6ef55af9ec682e3201f05ef330f542625284cb5a"
+        ],
+        "needed": [
+          "libm.so.6",
+          "libbrotlicommon.so.1",
+          "libc.so.6"
+        ],
+        "rpath": [],
+        "runpath": [],
+        "interpreter": null,
+        "limitation": "DT_NEEDED names are not resolved or loaded modules"
+      }
+    },
+    {
+      "name": "minibrowser-wpe/sys/lib/libbrotlienc.so.1",
+      "size": 21,
+      "sha256": "f816fce17a8601fe594147fe09faf98f48e21d40300444e8a1ead0e8e3f81568",
+      "symlinkTarget": "libbrotlienc.so.1.0.7"
+    },
+    {
+      "name": "minibrowser-wpe/sys/lib/libbrotlicommon.so.1.0.7",
+      "size": 137376,
+      "sha256": "bb869ce26a032dede35b28acaff805527e3347bcd39a9e3ea0e7bdb8ab684f41",
+      "elf": {
+        "status": "PRESENT_PARTIAL",
+        "buildIds": [
+          "8808b40e0f4e0c045c62a01185cde234eb2f05bd"
+        ],
+        "needed": [
+          "libm.so.6",
+          "libc.so.6"
+        ],
+        "rpath": [],
+        "runpath": [],
+        "interpreter": null,
+        "limitation": "DT_NEEDED names are not resolved or loaded modules"
+      }
+    },
+    {
+      "name": "minibrowser-wpe/sys/lib/libsoup-3.0.so.0.7.4",
+      "size": 590896,
+      "sha256": "03d635a54478e3aefd5fb202e53c8897431a6c9aaaad0408698c4b2c3a1275a3",
+      "elf": {
+        "status": "PRESENT_PARTIAL",
+        "buildIds": [
+          "3a6c20914577737b6000e496404ed58513844d45"
+        ],
+        "needed": [
+          "libglib-2.0.so.0",
+          "libgmodule-2.0.so.0",
+          "libgobject-2.0.so.0",
+          "libgio-2.0.so.0",
+          "libsqlite3.so.0",
+          "libpsl.so.5",
+          "libbrotlidec.so.1",
+          "libz.so.1",
+          "libnghttp2.so.14",
+          "libc.so.6"
+        ],
+        "rpath": [],
+        "runpath": [],
+        "interpreter": null,
+        "limitation": "DT_NEEDED names are not resolved or loaded modules"
+      }
+    },
+    {
+      "name": "minibrowser-wpe/sys/lib/libbrotlienc.so.1.0.7",
+      "size": 1014968,
+      "sha256": "f647bd34aa24d64931b5ac6b1b30479ff2a700bde576e302f9711521affe8bb0",
+      "elf": {
+        "status": "PRESENT_PARTIAL",
+        "buildIds": [
+          "46b4a9b4e7789e2eb746deb3885df33cbaddad34"
+        ],
+        "needed": [
+          "libm.so.6",
+          "libbrotlicommon.so.1",
+          "libc.so.6"
+        ],
+        "rpath": [],
+        "runpath": [],
+        "interpreter": null,
+        "limitation": "DT_NEEDED names are not resolved or loaded modules"
+      }
+    },
+    {
+      "name": "minibrowser-wpe/sys/lib/libbacktrace.so.0.0.0",
+      "size": 100664,
+      "sha256": "cb46517aef9662932fb72f8c78c3788c5ade02f0d42228ed0e28172b28c5ea05",
+      "elf": {
+        "status": "PRESENT_PARTIAL",
+        "buildIds": [
+          "e46b2a23c345838a8cd68d54a5c9082c82cd7de6"
+        ],
+        "needed": [
+          "libgcc_s.so.1",
+          "libc.so.6"
+        ],
+        "rpath": [],
+        "runpath": [],
+        "interpreter": null,
+        "limitation": "DT_NEEDED names are not resolved or loaded modules"
+      }
+    },
+    {
+      "name": "minibrowser-wpe/sys/lib/libbacktrace.so.0",
+      "size": 21,
+      "sha256": "73c1c0a35e95177b687687fe80a5e7bc997781f397154794645ff3e05125056f",
+      "symlinkTarget": "libbacktrace.so.0.0.0"
+    },
+    {
+      "name": "minibrowser-wpe/sys/lib/libbrotlidec.so.1",
+      "size": 21,
+      "sha256": "c41d943a3e33b7a9810c26012480c9495b37f1d6ebd9b04c065f6b85b762971c",
+      "symlinkTarget": "libbrotlidec.so.1.0.7"
+    },
+    {
+      "name": "minibrowser-wpe/sys/lib/libbrotlicommon.so.1",
+      "size": 24,
+      "sha256": "92cef0792e4ef5ce12066989114d0356452a25d4becfbd8e2b1933352bd86256",
+      "symlinkTarget": "libbrotlicommon.so.1.0.7"
+    },
+    {
+      "name": "minibrowser-wpe/sys/lib/libjxl.so.0.8",
+      "size": 15,
+      "sha256": "2bc181c642b51f854e4c1a75c16584fead19a8ba52acabb2f6c16437f9283711",
+      "symlinkTarget": "libjxl.so.0.8.2"
+    },
+    {
+      "name": "minibrowser-wpe/sys/lib/libjxl.so.0.8.2",
+      "size": 16088696,
+      "sha256": "a579dd60a08063bf433cb00552b3835e567ccd595703877832da0284955a2acf",
+      "elf": {
+        "status": "PRESENT_PARTIAL",
+        "buildIds": [
+          "bc13d116c17e7bf7a85381ecc5fa18eeb0352c60"
+        ],
+        "needed": [
+          "libbrotlidec.so.1",
+          "libbrotlienc.so.1",
+          "libbrotlicommon.so.1",
+          "libm.so.6",
+          "libstdc++.so.6",
+          "libgcc_s.so.1",
+          "libc.so.6"
+        ],
+        "rpath": [],
+        "runpath": [],
+        "interpreter": null,
+        "limitation": "DT_NEEDED names are not resolved or loaded modules"
+      }
+    },
+    {
+      "name": "minibrowser-wpe/share/",
+      "size": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "minibrowser-wpe/share/inspector.gresource",
+      "size": 1392581,
+      "sha256": "2142999afc5baa17a58e7c049520fefdb150488623407a220d7c0931f984f9ca"
+    },
+    {
+      "name": "minibrowser-wpe/MiniBrowser",
+      "size": 284,
+      "sha256": "990aafd77eb05fb166c0ab5ae9765d1e6ea728e1643f3d61773cb19be869e277"
+    },
+    {
+      "name": "minibrowser-wpe/README.txt",
+      "size": 922,
+      "sha256": "b36132c6d967c9b129e05f92da0951c0702979864ad7e908d9129afef0544479"
+    },
+    {
+      "name": "minibrowser-wpe/bin/",
+      "size": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "minibrowser-wpe/bin/WPEGPUProcess",
+      "size": 14488,
+      "sha256": "ea8fd18445d13d946bdf084c3b4eea516d8022882b5fbc955ed6fd1cb6fb8378",
+      "elf": {
+        "status": "PRESENT_PARTIAL",
+        "buildIds": [
+          "ffdf2edc9021b9747980b028b244d2635e8b6ad7"
+        ],
+        "needed": [
+          "libWPEWebKit-2.0.so.1",
+          "libevent-2.1.so.7",
+          "libopus.so.0",
+          "libfreetype.so.6",
+          "libfontconfig.so.1",
+          "libepoxy.so.0",
+          "libwebpmux.so.3",
+          "libwebp.so.7",
+          "libexpat.so.1",
+          "libharfbuzz.so.0",
+          "libjpeg.so.8",
+          "libpng16.so.16",
+          "libz.so.1",
+          "libgio-2.0.so.0",
+          "libgobject-2.0.so.0",
+          "libgmodule-2.0.so.0",
+          "libglib-2.0.so.0",
+          "libsoup-3.0.so.0",
+          "libwpe-1.0.so.1",
+          "libgstreamer-1.0.so.0",
+          "libstdc++.so.6",
+          "libm.so.6",
+          "libgcc_s.so.1",
+          "libc.so.6"
+        ],
+        "rpath": [],
+        "runpath": [],
+        "interpreter": "/lib64/ld-linux-x86-64.so.2",
+        "limitation": "DT_NEEDED names are not resolved or loaded modules"
+      }
+    },
+    {
+      "name": "minibrowser-wpe/bin/MiniBrowser",
+      "size": 2271936,
+      "sha256": "beba1f80ba86e4e06d7b6df0041b1034614b5b94a3e7235103cdc8a78118cef7",
+      "elf": {
+        "status": "PRESENT_PARTIAL",
+        "buildIds": [
+          "d80d504d1314a3a6f3e5ab4ad681fa79f5aba063"
+        ],
+        "needed": [
+          "libatk-1.0.so.0",
+          "libgstreamer-1.0.so.0",
+          "libWPEWebKit-2.0.so.1",
+          "libicudata.so.74",
+          "libicui18n.so.74",
+          "libicuuc.so.74",
+          "libsystemd.so.0",
+          "libbacktrace.so.0",
+          "libxml2.so.2",
+          "libsqlite3.so.0",
+          "libxslt.so.1",
+          "liblcms2.so.2",
+          "libevent-2.1.so.7",
+          "libopus.so.0",
+          "libgcrypt.so.20",
+          "libgpg-error.so.0",
+          "libgio-2.0.so.0",
+          "libatomic.so.1",
+          "libgstallocators-1.0.so.0",
+          "libgstapp-1.0.so.0",
+          "libgstbase-1.0.so.0",
+          "libgstpbutils-1.0.so.0",
+          "libgstaudio-1.0.so.0",
+          "libgsttag-1.0.so.0",
+          "libgstvideo-1.0.so.0",
+          "libgstgl-1.0.so.0",
+          "libgstcodecparsers-1.0.so.0",
+          "libgstfft-1.0.so.0",
+          "libflite.so.1",
+          "libflite_usenglish.so.1",
+          "libflite_cmu_grapheme_lang.so.1",
+          "libflite_cmu_grapheme_lex.so.1",
+          "libflite_cmu_indic_lang.so.1",
+          "libflite_cmu_indic_lex.so.1",
+          "libflite_cmulex.so.1",
+          "libflite_cmu_time_awb.so.1",
+          "libflite_cmu_us_awb.so.1",
+          "libflite_cmu_us_kal16.so.1",
+          "libflite_cmu_us_kal.so.1",
+          "libflite_cmu_us_rms.so.1",
+          "libflite_cmu_us_slt.so.1",
+          "libwebpdemux.so.2",
+          "libjxl.so.0.8",
+          "libavif.so.16",
+          "libharfbuzz-icu.so.0",
+          "libsoup-3.0.so.0",
+          "libgmodule-2.0.so.0",
+          "libenchant-2.so.2",
+          "libgbm.so.1",
+          "libdrm.so.2",
+          "libepoxy.so.0",
+          "libjpeg.so.8",
+          "libpng16.so.16",
+          "libz.so.1",
+          "libharfbuzz.so.0",
+          "libfreetype.so.6",
+          "libfontconfig.so.1",
+          "libwebpmux.so.3",
+          "libwebp.so.7",
+          "libexpat.so.1",
+          "libwpe-1.0.so.1",
+          "libgobject-2.0.so.0",
+          "libglib-2.0.so.0",
+          "libWPEBackend-fdo-1.0.so.1",
+          "libxkbcommon.so.0",
+          "libwayland-server.so.0",
+          "libwayland-egl.so.1",
+          "libwayland-client.so.0",
+          "libatk-bridge-2.0.so.0",
+          "libstdc++.so.6",
+          "libm.so.6",
+          "libgcc_s.so.1",
+          "libc.so.6",
+          "ld-linux-x86-64.so.2"
+        ],
+        "rpath": [],
+        "runpath": [],
+        "interpreter": "/lib64/ld-linux-x86-64.so.2",
+        "limitation": "DT_NEEDED names are not resolved or loaded modules"
+      }
+    },
+    {
+      "name": "minibrowser-wpe/bin/WPEWebProcess",
+      "size": 14488,
+      "sha256": "cae96ae2b8f2668d9afab2bce22ac23d9a54f25e846909ddbc86fbcebfb2e925",
+      "elf": {
+        "status": "PRESENT_PARTIAL",
+        "buildIds": [
+          "283a448ea54c3d7dfa3ee61e4d60e4bf44fc3fcc"
+        ],
+        "needed": [
+          "libWPEWebKit-2.0.so.1",
+          "libevent-2.1.so.7",
+          "libopus.so.0",
+          "libfreetype.so.6",
+          "libfontconfig.so.1",
+          "libepoxy.so.0",
+          "libwebpmux.so.3",
+          "libwebp.so.7",
+          "libexpat.so.1",
+          "libharfbuzz.so.0",
+          "libjpeg.so.8",
+          "libpng16.so.16",
+          "libz.so.1",
+          "libgio-2.0.so.0",
+          "libgobject-2.0.so.0",
+          "libgmodule-2.0.so.0",
+          "libglib-2.0.so.0",
+          "libsoup-3.0.so.0",
+          "libwpe-1.0.so.1",
+          "libgstreamer-1.0.so.0",
+          "libstdc++.so.6",
+          "libm.so.6",
+          "libgcc_s.so.1",
+          "libc.so.6"
+        ],
+        "rpath": [],
+        "runpath": [],
+        "interpreter": "/lib64/ld-linux-x86-64.so.2",
+        "limitation": "DT_NEEDED names are not resolved or loaded modules"
+      }
+    },
+    {
+      "name": "minibrowser-wpe/bin/WPENetworkProcess",
+      "size": 14488,
+      "sha256": "23e0ff07b9c4802b64159b01ced5cae7dbec5fe196be4e5c620a99d361e55597",
+      "elf": {
+        "status": "PRESENT_PARTIAL",
+        "buildIds": [
+          "4f6734f5680f5af22c11e5208e5a44b72a44b85f"
+        ],
+        "needed": [
+          "libWPEWebKit-2.0.so.1",
+          "libevent-2.1.so.7",
+          "libopus.so.0",
+          "libfreetype.so.6",
+          "libfontconfig.so.1",
+          "libepoxy.so.0",
+          "libwebpmux.so.3",
+          "libwebp.so.7",
+          "libexpat.so.1",
+          "libharfbuzz.so.0",
+          "libjpeg.so.8",
+          "libpng16.so.16",
+          "libz.so.1",
+          "libgio-2.0.so.0",
+          "libgobject-2.0.so.0",
+          "libgmodule-2.0.so.0",
+          "libglib-2.0.so.0",
+          "libsoup-3.0.so.0",
+          "libwpe-1.0.so.1",
+          "libgstreamer-1.0.so.0",
+          "libstdc++.so.6",
+          "libm.so.6",
+          "libgcc_s.so.1",
+          "libc.so.6"
+        ],
+        "rpath": [],
+        "runpath": [],
+        "interpreter": "/lib64/ld-linux-x86-64.so.2",
+        "limitation": "DT_NEEDED names are not resolved or loaded modules"
+      }
+    },
+    {
+      "name": "minibrowser-wpe/lib/",
+      "size": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "minibrowser-wpe/lib/libwpe-1.0.so.1.9.3",
+      "size": 68632,
+      "sha256": "bafd1c36168c1ab8912571e9dfcbcaf676e1ad20ba5a85713a6316987e041bf1",
+      "elf": {
+        "status": "PRESENT_PARTIAL",
+        "buildIds": [
+          "bffff5d937f2b6c33b5446927847fe0c00412b52"
+        ],
+        "needed": [
+          "libxkbcommon.so.0",
+          "libstdc++.so.6",
+          "libm.so.6",
+          "libgcc_s.so.1",
+          "libc.so.6"
+        ],
+        "rpath": [],
+        "runpath": [],
+        "interpreter": null,
+        "limitation": "DT_NEEDED names are not resolved or loaded modules"
+      }
+    },
+    {
+      "name": "minibrowser-wpe/lib/libWPEBackend-fdo-1.0.so.1",
+      "size": 30,
+      "sha256": "9a66c5fa4647235e63bf0a5fc63b1a85e610a75dcc397cc4a8b924f183aa29b3",
+      "symlinkTarget": "libWPEBackend-fdo-1.0.so.1.9.5"
+    },
+    {
+      "name": "minibrowser-wpe/lib/libWPEBackend-fdo-1.0.so.1.9.5",
+      "size": 94208,
+      "sha256": "7e50fdde8841ddb790a01dc9e07c753504d0fb6482bf947b550df62a7c0d42a8",
+      "elf": {
+        "status": "PRESENT_PARTIAL",
+        "buildIds": [
+          "aedcaf11bf8e6f02b3a6f9d1662074373e78acdd"
+        ],
+        "needed": [
+          "libepoxy.so.0",
+          "libgio-2.0.so.0",
+          "libgobject-2.0.so.0",
+          "libglib-2.0.so.0",
+          "libwayland-client.so.0",
+          "libwayland-server.so.0",
+          "libwpe-1.0.so.1",
+          "libwayland-egl.so.1",
+          "libstdc++.so.6",
+          "libc.so.6"
+        ],
+        "rpath": [],
+        "runpath": [],
+        "interpreter": null,
+        "limitation": "DT_NEEDED names are not resolved or loaded modules"
+      }
+    },
+    {
+      "name": "minibrowser-wpe/lib/libwpe-1.0.so.1",
+      "size": 19,
+      "sha256": "d121f546b5aee5c65e7662c0e264fb7e408a616e283b64ff98732e83da11ddcc",
+      "symlinkTarget": "libwpe-1.0.so.1.9.3"
+    },
+    {
+      "name": "minibrowser-wpe/lib/libWPEBackend-fdo-1.0.so",
+      "size": 26,
+      "sha256": "a810d25986bd5a2ac6798e2e860b485a0ab9971bd09729d5ab4d01023c81cc9c",
+      "symlinkTarget": "libWPEBackend-fdo-1.0.so.1"
+    },
+    {
+      "name": "minibrowser-wpe/lib/libWPEWebKit-2.0.so.1",
+      "size": 26,
+      "sha256": "6d2e0f8a65412871b0f5c68760df0914304fb6e091ecb367c44531686b49835b",
+      "symlinkTarget": "libWPEWebKit-2.0.so.1.10.2"
+    },
+    {
+      "name": "minibrowser-wpe/lib/libWPEWebKit-2.0.so.1.10.2",
+      "size": 136833528,
+      "sha256": "bceb94802c12e30220735ffcc5ce14977b9f333fb03913ee196d1619e6c56703",
+      "elf": {
+        "status": "PRESENT_PARTIAL",
+        "buildIds": [
+          "775f8be98a373450400132b921d85a4c62795f60"
+        ],
+        "needed": [
+          "libgio-2.0.so.0",
+          "libgmodule-2.0.so.0",
+          "libsoup-3.0.so.0",
+          "libwpe-1.0.so.1",
+          "libgstreamer-1.0.so.0",
+          "libepoxy.so.0",
+          "libatomic.so.1",
+          "libatk-1.0.so.0",
+          "libatk-bridge-2.0.so.0",
+          "libevent-2.1.so.7",
+          "libopus.so.0",
+          "libfreetype.so.6",
+          "libfontconfig.so.1",
+          "libwebpmux.so.3",
+          "libexpat.so.1",
+          "libgobject-2.0.so.0",
+          "libglib-2.0.so.0",
+          "libicudata.so.74",
+          "libicui18n.so.74",
+          "libsystemd.so.0",
+          "libbacktrace.so.0",
+          "libharfbuzz.so.0",
+          "libjpeg.so.8",
+          "libpng16.so.16",
+          "libicuuc.so.74",
+          "libxml2.so.2",
+          "libsqlite3.so.0",
+          "libxslt.so.1",
+          "liblcms2.so.2",
+          "libgcrypt.so.20",
+          "libgpg-error.so.0",
+          "libgstallocators-1.0.so.0",
+          "libgstapp-1.0.so.0",
+          "libgstbase-1.0.so.0",
+          "libgstpbutils-1.0.so.0",
+          "libgstaudio-1.0.so.0",
+          "libgsttag-1.0.so.0",
+          "libgstvideo-1.0.so.0",
+          "libgstgl-1.0.so.0",
+          "libgstcodecparsers-1.0.so.0",
+          "libgstfft-1.0.so.0",
+          "libflite.so.1",
+          "libflite_usenglish.so.1",
+          "libflite_cmu_grapheme_lang.so.1",
+          "libflite_cmu_grapheme_lex.so.1",
+          "libflite_cmu_indic_lang.so.1",
+          "libflite_cmu_indic_lex.so.1",
+          "libflite_cmulex.so.1",
+          "libflite_cmu_time_awb.so.1",
+          "libflite_cmu_us_awb.so.1",
+          "libflite_cmu_us_kal16.so.1",
+          "libflite_cmu_us_kal.so.1",
+          "libflite_cmu_us_rms.so.1",
+          "libflite_cmu_us_slt.so.1",
+          "libwebpdemux.so.2",
+          "libwebp.so.7",
+          "libjxl.so.0.8",
+          "libavif.so.16",
+          "libharfbuzz-icu.so.0",
+          "libenchant-2.so.2",
+          "libgbm.so.1",
+          "libdrm.so.2",
+          "libz.so.1",
+          "libtasn1.so.6",
+          "libhyphen.so.0",
+          "libstdc++.so.6",
+          "libm.so.6",
+          "libgcc_s.so.1",
+          "libc.so.6",
+          "ld-linux-x86-64.so.2"
+        ],
+        "rpath": [],
+        "runpath": [],
+        "interpreter": null,
+        "limitation": "DT_NEEDED names are not resolved or loaded modules"
+      }
+    },
+    {
+      "name": "minibrowser-wpe/lib/libWPEInjectedBundle.so",
+      "size": 14344,
+      "sha256": "7123e78fb7073eba4c4e4eca10fef039d29fdb5df13e269598e1bbe32f06a8bc",
+      "elf": {
+        "status": "PRESENT_PARTIAL",
+        "buildIds": [
+          "7f3e3a102b84c630645299baffa3f666634be659"
+        ],
+        "needed": [
+          "libWPEWebKit-2.0.so.1",
+          "libevent-2.1.so.7",
+          "libopus.so.0",
+          "libfreetype.so.6",
+          "libfontconfig.so.1",
+          "libepoxy.so.0",
+          "libwebpmux.so.3",
+          "libwebp.so.7",
+          "libexpat.so.1",
+          "libharfbuzz.so.0",
+          "libjpeg.so.8",
+          "libpng16.so.16",
+          "libz.so.1",
+          "libgio-2.0.so.0",
+          "libgobject-2.0.so.0",
+          "libgmodule-2.0.so.0",
+          "libglib-2.0.so.0",
+          "libsoup-3.0.so.0",
+          "libwpe-1.0.so.1",
+          "libgstreamer-1.0.so.0",
+          "libstdc++.so.6",
+          "libm.so.6",
+          "libgcc_s.so.1",
+          "libc.so.6"
+        ],
+        "rpath": [],
+        "runpath": [],
+        "interpreter": null,
+        "limitation": "DT_NEEDED names are not resolved or loaded modules"
+      }
+    }
+  ],
+  "bundleSelfDescriptions": [
+    {
+      "member": "minibrowser-gtk/README.txt",
+      "selfReportedFields": {
+        "WebKit Platform": "GTK",
+        "Configuration": "Release",
+        "Bundle type": "MiniBrowser",
+        "Builder date": "2026-07-20T19:22:48.103091",
+        "Builder OS": "Ubuntu 24.04.4 LTS"
+      },
+      "referencedBundleScript": "Tools/Scripts/generate-bundle",
+      "classification": "PRESENT_PARTIAL",
+      "limitation": "self-description inside current archive only; not authenticated builder run, script version, compile timestamp, CMake flags, or historical exec binding"
+    },
+    {
+      "member": "minibrowser-wpe/README.txt",
+      "selfReportedFields": {
+        "WebKit Platform": "WPE",
+        "Configuration": "Release",
+        "Bundle type": "MiniBrowser",
+        "Builder date": "2026-07-20T19:23:22.231583",
+        "Builder OS": "Ubuntu 24.04.4 LTS"
+      },
+      "referencedBundleScript": "Tools/Scripts/generate-bundle",
+      "classification": "PRESENT_PARTIAL",
+      "limitation": "self-description inside current archive only; not authenticated builder run, script version, compile timestamp, CMake flags, or historical exec binding"
+    }
+  ],
+  "BUILD_BINDING": "UNKNOWN",
+  "execution": "NOT_RUN"
+}

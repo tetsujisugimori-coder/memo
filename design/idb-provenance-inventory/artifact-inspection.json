@@ -1,0 +1,878 @@
+{
+  "artifacts": [
+    {
+      "file": "artifact-12887263146.zip",
+      "entries": {
+        "results-webkit-40852560234-1-71f78a45-fa2f-423b-bfa7-30a15492d880.json": "cd24f871d5cdeda94a5084a88f84fa0b70badef7500f2a87068c076222da81e1"
+      }
+    },
+    {
+      "file": "artifact-12887605745.zip",
+      "entries": {
+        "results-webkit-40851321011-1-a0bdb3c0-d7eb-4106-bd66-09a9cec45292.json": "2ceae8b5bc163771700aa36c70161ea7407e6b2ceb448747a9b37b08ac098205"
+      }
+    },
+    {
+      "file": "artifact-12888020339.zip",
+      "entries": {
+        "results-webkit-40851676069-1-3c12f85a-629e-48a6-b390-968107890acf.json": "f2037b95d57d267ad4c43843e48b2ae34f327934124c70e3a86e24fa9e4191b2"
+      }
+    },
+    {
+      "file": "artifact-12894311489.zip",
+      "entries": {
+        "results-webkit-40866596832-1-544d4c3e-d003-4e67-b037-9f875710ad30.json": "f7142e4b2476cef885e9c01ef0407d84a1ab90e5fdf98afb5ff6385bf75729eb"
+      }
+    },
+    {
+      "file": "artifact-13058663151.zip",
+      "entries": {
+        "suite-identity.patch": "8525d8f220687a534fad890e451c04a178e8763bf171b0eee8598dfe8b11bcbb",
+        "t7-db-identity-0d4bd770-fdb2-431c-8444-73c3e55693c3.json": "a7c249655d7e14af4bc7bd5fbaa5187e45644579a9b049f4594a9e318e09e4f1"
+      }
+    },
+    {
+      "file": "artifact-13081135264.zip",
+      "entries": {
+        "3bd31398-ab83-40f7-9d1a-eb04f78fd899-precleanup.json": "1ed70a078d91e1be11d538b74da9d6440a06ea576ec64bd071f2f25761173ff8",
+        "931b521f-c38c-4999-ac06-6018ec702f16-precleanup.json": "86d0750cc52448592911691b8975af399672a5ff6aa17bd5e7b127c9e58b85a1",
+        "c93acf92-b955-428f-99e6-cd6cf5671dd2-precleanup.json": "781b75956ffdbab45d244629ca6d3760820b7921a10f22e86b7308b5f4420949",
+        "changes-C.json": "9475c1a76a4d4992bd751a2eabe5b03f13b7078a3ac88ba2d2681fcc43027cf9",
+        "changes-D.json": "1fa61b7c16aac9775fb32d9ff9f11f6e58988850934b7ed94a3f224a35e42e41",
+        "changes-E.json": "4fb23c0c7bc821588a34d03d61b5703c7789a6a91ad8b52b0416243eda95dbad",
+        "df55a748-0e2a-43a3-ac40-0a939ad07a29-precleanup.json": "f0226a950c2f6ebeee1725bd4005e46e6a48759c5bd234f251d81c8bfb5b37ee",
+        "e22b6648-7957-44f7-bb08-a902f835d763-precleanup.json": "474f095b944f1319160b59d12797791bf9a0d1bcd21655816b70a64309a75f67",
+        "eec76e89-5f10-45d0-8830-8dcb3ddf2110-precleanup.json": "de27956862613364ec4540d0e182e3e32a265c0101377f3ee52f2652829bba4c",
+        "f5aa38f8-7bf9-4bae-b48c-3917c827efaf-precleanup.json": "d75f15ed98e6392446c7afce6d560c8098cd12eccbf5741f81efc65e42b4cb5f",
+        "generated-C-suite.js": "5a03ec8a32c205a687ffe8eb00b28d2963a5bb1f16fe5c3058b84600155a2df5",
+        "generated-C-worker.js": "c062ac9992ab41c7557d211a06388ef9508ea63294d006c7c31b355524def8e7",
+        "generated-D-suite.js": "b3f43e4a0a01c16fc78b6057f6d4ec32600d10e5226c0ec7c5b9fc961e9ebfdc",
+        "generated-D-worker.js": "c062ac9992ab41c7557d211a06388ef9508ea63294d006c7c31b355524def8e7",
+        "generated-E-suite.js": "b3f43e4a0a01c16fc78b6057f6d4ec32600d10e5226c0ec7c5b9fc961e9ebfdc",
+        "generated-E-worker.js": "9a3ac6d37cac2653cf611d95be4960dc172554d5f96433bc23f475ff4cc31b44",
+        "results.json": "a442cb1df0a92ea872538a646c9ba9965e7423a4b5e64f0bd2425d3914b79c33"
+      }
+    },
+    {
+      "file": "artifact-13081834516.zip",
+      "entries": {
+        "61b757bd-6b5f-4fdf-aab8-574c511aea93-precleanup.json": "00b0bf824c4f9f5aa9c3de383f09fab9a67280a46cf5f8a1b3bf41b26478512c",
+        "changes-F.json": "e20bdb770c792dcccbac782d92132e2eff4b882c2def8e43864282acacdf5346",
+        "generated-D-suite.js": "b3f43e4a0a01c16fc78b6057f6d4ec32600d10e5226c0ec7c5b9fc961e9ebfdc",
+        "generated-D-worker.js": "c062ac9992ab41c7557d211a06388ef9508ea63294d006c7c31b355524def8e7",
+        "generated-F-suite.js": "b3f43e4a0a01c16fc78b6057f6d4ec32600d10e5226c0ec7c5b9fc961e9ebfdc",
+        "generated-F-worker.js": "8dcb0be7837c661e88d833b8394e8fe16d736f4795548bc60554abdb3139b8f3",
+        "results.json": "c1e047594104aa4f8c5b5de04251b3f7186e6387e108d1bee8ca1f67339c297c",
+        "trial-reservation.json": "1c2e302ea03be646704ff1e52dee9332ed532c3e2f9f7154df043b9b50e3b74c"
+      }
+    },
+    {
+      "file": "artifact-13087243261.zip",
+      "entries": {
+        "changes-G.json": "b2424422d246c40b24913299f186dd33bfd1ee6675dd55fa2445003760ca3e59",
+        "generated-D-suite.js": "b3f43e4a0a01c16fc78b6057f6d4ec32600d10e5226c0ec7c5b9fc961e9ebfdc",
+        "16060bc8-4b98-435c-a534-f276b70ae612-precleanup.json": "3384b5b7619f5ad1e26ae67fb98048826e0aec1777b3716f8209b9c80ee0955d",
+        "generated-D-worker.js": "c062ac9992ab41c7557d211a06388ef9508ea63294d006c7c31b355524def8e7",
+        "generated-G-suite.js": "b3f43e4a0a01c16fc78b6057f6d4ec32600d10e5226c0ec7c5b9fc961e9ebfdc",
+        "generated-G-worker.js": "fcbbff8cb0cd203643fc5987d009507fd4b095ae8208d463323428916e85e2d0",
+        "github-history.json": "3d75e7295d6cb690ccf4f38c908b2bfc7958e21c51ceecd30836b776396b3de0",
+        "results.json": "d62e24e2715efff534e80ffba604a665b7ef1263729874d4dab005e19d6d0ab6",
+        "trial-reservation.json": "bc558904d5304cd13687a81483bcb2ab29d538d219ef661a7fabbbe73842379a"
+      }
+    }
+  ],
+  "savedIndices": [
+    {
+      "group": "idb-upgrade-lifecycle",
+      "checks": [
+        {
+          "file": "3bd31398-ab83-40f7-9d1a-eb04f78fd899-precleanup.json.gz",
+          "status": "MATCH"
+        },
+        {
+          "file": "931b521f-c38c-4999-ac06-6018ec702f16-precleanup.json.gz",
+          "status": "MATCH"
+        },
+        {
+          "file": "c93acf92-b955-428f-99e6-cd6cf5671dd2-precleanup.json.gz",
+          "status": "MATCH"
+        },
+        {
+          "file": "changes-C.json.gz",
+          "status": "MATCH"
+        },
+        {
+          "file": "changes-D.json.gz",
+          "status": "MATCH"
+        },
+        {
+          "file": "changes-E.json.gz",
+          "status": "MATCH"
+        },
+        {
+          "file": "ci.json.gz",
+          "status": "MATCH"
+        },
+        {
+          "file": "df55a748-0e2a-43a3-ac40-0a939ad07a29-precleanup.json.gz",
+          "status": "MATCH"
+        },
+        {
+          "file": "e22b6648-7957-44f7-bb08-a902f835d763-precleanup.json.gz",
+          "status": "MATCH"
+        },
+        {
+          "file": "eec76e89-5f10-45d0-8830-8dcb3ddf2110-precleanup.json.gz",
+          "status": "MATCH"
+        },
+        {
+          "file": "f5aa38f8-7bf9-4bae-b48c-3917c827efaf-precleanup.json.gz",
+          "status": "MATCH"
+        },
+        {
+          "file": "generated-C-suite.js.gz",
+          "status": "MATCH"
+        },
+        {
+          "file": "generated-C-worker.js.gz",
+          "status": "MATCH"
+        },
+        {
+          "file": "generated-D-suite.js.gz",
+          "status": "MATCH"
+        },
+        {
+          "file": "generated-D-worker.js.gz",
+          "status": "MATCH"
+        },
+        {
+          "file": "generated-E-suite.js.gz",
+          "status": "MATCH"
+        },
+        {
+          "file": "generated-E-worker.js.gz",
+          "status": "MATCH"
+        },
+        {
+          "file": "job.log.gz",
+          "status": "MATCH"
+        },
+        {
+          "file": "results.json.gz",
+          "status": "MATCH"
+        }
+      ]
+    },
+    {
+      "group": "idb-transaction-complete-only",
+      "checks": [
+        {
+          "file": "61b757bd-6b5f-4fdf-aab8-574c511aea93-precleanup.json.gz",
+          "status": "MATCH"
+        },
+        {
+          "file": "artifact-metadata.json.gz",
+          "status": "MATCH"
+        },
+        {
+          "file": "changes-F.json.gz",
+          "status": "MATCH"
+        },
+        {
+          "file": "ci.json.gz",
+          "status": "MATCH"
+        },
+        {
+          "file": "generated-D-suite.js.gz",
+          "status": "MATCH"
+        },
+        {
+          "file": "generated-D-worker.js.gz",
+          "status": "MATCH"
+        },
+        {
+          "file": "generated-F-suite.js.gz",
+          "status": "MATCH"
+        },
+        {
+          "file": "generated-F-worker.js.gz",
+          "status": "MATCH"
+        },
+        {
+          "file": "job.log.gz",
+          "status": "MATCH"
+        },
+        {
+          "file": "results.json.gz",
+          "status": "MATCH"
+        },
+        {
+          "file": "trial-reservation.json.gz",
+          "status": "MATCH"
+        },
+        {
+          "file": "D-to-F-worker.diff",
+          "status": "MATCH"
+        },
+        {
+          "file": "analysis.json",
+          "status": "MATCH"
+        },
+        {
+          "file": "worker-events.json.gz",
+          "status": "MATCH"
+        },
+        {
+          "file": "main-events.json.gz",
+          "status": "MATCH"
+        },
+        {
+          "file": "connections.json",
+          "status": "MATCH"
+        },
+        {
+          "file": "transactions.md",
+          "status": "MATCH"
+        },
+        {
+          "file": "upgrades.md",
+          "status": "MATCH"
+        },
+        {
+          "file": "connections.md",
+          "status": "MATCH"
+        },
+        {
+          "file": "D-E-F-comparison.json",
+          "status": "MATCH"
+        }
+      ]
+    },
+    {
+      "group": "idb-time-delay-only",
+      "checks": [
+        {
+          "file": "16060bc8-4b98-435c-a534-f276b70ae612-precleanup.json.gz",
+          "status": "MATCH"
+        },
+        {
+          "file": "D-F-G-comparison.json",
+          "status": "MATCH"
+        },
+        {
+          "file": "D-to-G-worker.diff",
+          "status": "MATCH"
+        },
+        {
+          "file": "analysis.json",
+          "status": "MATCH"
+        },
+        {
+          "file": "artifact-metadata.json.gz",
+          "status": "MATCH"
+        },
+        {
+          "file": "changes-G.json.gz",
+          "status": "MATCH"
+        },
+        {
+          "file": "ci.json.gz",
+          "status": "MATCH"
+        },
+        {
+          "file": "comparison.md",
+          "status": "MATCH"
+        },
+        {
+          "file": "connections.json",
+          "status": "MATCH"
+        },
+        {
+          "file": "duration-comparison.json",
+          "status": "MATCH"
+        },
+        {
+          "file": "generated-D-suite.js.gz",
+          "status": "MATCH"
+        },
+        {
+          "file": "generated-D-worker.js.gz",
+          "status": "MATCH"
+        },
+        {
+          "file": "generated-G-suite.js.gz",
+          "status": "MATCH"
+        },
+        {
+          "file": "generated-G-worker.js.gz",
+          "status": "MATCH"
+        },
+        {
+          "file": "github-history.json.gz",
+          "status": "MATCH"
+        },
+        {
+          "file": "job.log.gz",
+          "status": "MATCH"
+        },
+        {
+          "file": "main-events.json.gz",
+          "status": "MATCH"
+        },
+        {
+          "file": "pr398-reviews.json.gz",
+          "status": "MATCH"
+        },
+        {
+          "file": "preregistration-comment.json.gz",
+          "status": "MATCH"
+        },
+        {
+          "file": "recompute.mjs",
+          "status": "MATCH"
+        },
+        {
+          "file": "results.json.gz",
+          "status": "MATCH"
+        },
+        {
+          "file": "transactions.md",
+          "status": "MATCH"
+        },
+        {
+          "file": "trial-reservation.json.gz",
+          "status": "MATCH"
+        },
+        {
+          "file": "upgrades.md",
+          "status": "MATCH"
+        },
+        {
+          "file": "worker-events.json.gz",
+          "status": "MATCH"
+        }
+      ]
+    }
+  ],
+  "sourceIndex": [
+    {
+      "path": "Source/WebCore/Modules/indexeddb/IDBTransaction.cpp",
+      "sha256Matches": true,
+      "gitBlobMatches": true
+    },
+    {
+      "path": "Source/WebCore/Modules/indexeddb/IDBDatabase.cpp",
+      "sha256Matches": true,
+      "gitBlobMatches": true
+    },
+    {
+      "path": "Source/WebCore/Modules/indexeddb/IDBRequest.cpp",
+      "sha256Matches": true,
+      "gitBlobMatches": true
+    },
+    {
+      "path": "Source/WebCore/Modules/indexeddb/client/IDBConnectionProxy.cpp",
+      "sha256Matches": true,
+      "gitBlobMatches": true
+    },
+    {
+      "path": "Source/WebCore/Modules/indexeddb/client/IDBConnectionToServer.cpp",
+      "sha256Matches": true,
+      "gitBlobMatches": true
+    },
+    {
+      "path": "Source/WebCore/Modules/indexeddb/server/IDBServer.cpp",
+      "sha256Matches": true,
+      "gitBlobMatches": true
+    },
+    {
+      "path": "Source/WebCore/Modules/indexeddb/server/UniqueIDBDatabase.cpp",
+      "sha256Matches": true,
+      "gitBlobMatches": true
+    },
+    {
+      "path": "Source/WebCore/Modules/indexeddb/server/UniqueIDBDatabaseTransaction.cpp",
+      "sha256Matches": true,
+      "gitBlobMatches": true
+    },
+    {
+      "path": "Source/WebCore/workers/Worker.cpp",
+      "sha256Matches": true,
+      "gitBlobMatches": true
+    },
+    {
+      "path": "Source/WebCore/workers/WorkerThread.cpp",
+      "sha256Matches": true,
+      "gitBlobMatches": true
+    },
+    {
+      "path": "Source/WebCore/workers/WorkerRunLoop.cpp",
+      "sha256Matches": true,
+      "gitBlobMatches": true
+    },
+    {
+      "path": "Source/WebCore/workers/WorkerGlobalScope.cpp",
+      "sha256Matches": true,
+      "gitBlobMatches": true
+    },
+    {
+      "path": "Source/WebCore/workers/WorkerOrWorkletScriptController.cpp",
+      "sha256Matches": true,
+      "gitBlobMatches": true
+    },
+    {
+      "path": "Source/WebCore/Modules/indexeddb/shared/IDBTransactionInfo.cpp",
+      "sha256Matches": true,
+      "gitBlobMatches": true
+    },
+    {
+      "path": "Source/WebCore/Modules/indexeddb/shared/IDBResourceIdentifier.h",
+      "sha256Matches": true,
+      "gitBlobMatches": true
+    },
+    {
+      "path": "Source/WebCore/Modules/indexeddb/shared/IDBResourceIdentifier.cpp",
+      "sha256Matches": true,
+      "gitBlobMatches": true
+    },
+    {
+      "path": "Source/WebCore/workers/WorkerOrWorkletThread.cpp",
+      "sha256Matches": true,
+      "gitBlobMatches": true
+    },
+    {
+      "path": "Source/WebCore/workers/WorkerMessagingProxy.cpp",
+      "sha256Matches": true,
+      "gitBlobMatches": true
+    },
+    {
+      "path": "Source/WebCore/Modules/indexeddb/server/SQLiteIDBBackingStore.cpp",
+      "sha256Matches": true,
+      "gitBlobMatches": true
+    },
+    {
+      "path": "Source/WebCore/Modules/indexeddb/server/SQLiteIDBTransaction.cpp",
+      "sha256Matches": true,
+      "gitBlobMatches": true
+    },
+    {
+      "path": "Source/WebCore/Modules/indexeddb/server/UniqueIDBDatabaseConnection.cpp",
+      "sha256Matches": true,
+      "gitBlobMatches": true
+    },
+    {
+      "path": "Source/WebCore/Modules/indexeddb/IDBTransaction.idl",
+      "sha256Matches": true,
+      "gitBlobMatches": true
+    },
+    {
+      "path": "Source/WebCore/Modules/indexeddb/client/IDBConnectionProxy.h",
+      "sha256Matches": true,
+      "gitBlobMatches": true
+    },
+    {
+      "path": "Source/WebCore/workers/WorkerOrWorkletGlobalScope.cpp",
+      "sha256Matches": true,
+      "gitBlobMatches": true
+    },
+    {
+      "path": "Source/WebCore/dom/ScriptExecutionContext.cpp",
+      "sha256Matches": true,
+      "gitBlobMatches": true
+    }
+  ],
+  "sourceReferences": [
+    {
+      "artifact": "artifact-12887263146.zip",
+      "member": "results-webkit-40852560234-1-71f78a45-fa2f-423b-bfa7-30a15492d880.json",
+      "sourceRef": "ac21059de9589bbc3a62cbd94be5bce15394b50c",
+      "checks": [
+        {
+          "path": "experiments/mcp-search-worker-feasibility/worker.js",
+          "status": "MATCH"
+        },
+        {
+          "path": "experiments/mcp-search-worker-feasibility/suite.js",
+          "status": "MATCH"
+        },
+        {
+          "path": "experiments/mcp-search-worker-feasibility/index.html",
+          "status": "MATCH"
+        },
+        {
+          "path": "experiments/mcp-search-worker-feasibility/run.cjs",
+          "status": "MATCH"
+        },
+        {
+          "path": "experiments/mcp-search-worker-feasibility/controls.js",
+          "status": "MATCH"
+        }
+      ]
+    },
+    {
+      "artifact": "artifact-12887605745.zip",
+      "member": "results-webkit-40851321011-1-a0bdb3c0-d7eb-4106-bd66-09a9cec45292.json",
+      "sourceRef": "36c74355c72f64bf2c3547aeaa37c9c7b61db92c",
+      "checks": [
+        {
+          "path": "experiments/mcp-search-worker-feasibility/worker.js",
+          "status": "MATCH"
+        },
+        {
+          "path": "experiments/mcp-search-worker-feasibility/suite.js",
+          "status": "MATCH"
+        },
+        {
+          "path": "experiments/mcp-search-worker-feasibility/index.html",
+          "status": "MATCH"
+        },
+        {
+          "path": "experiments/mcp-search-worker-feasibility/run.cjs",
+          "status": "MATCH"
+        },
+        {
+          "path": "experiments/mcp-search-worker-feasibility/controls.js",
+          "status": "MATCH"
+        }
+      ]
+    },
+    {
+      "artifact": "artifact-12888020339.zip",
+      "member": "results-webkit-40851676069-1-3c12f85a-629e-48a6-b390-968107890acf.json",
+      "sourceRef": "4f966fcd558e0163138c321de8229bb452ee9889",
+      "checks": [
+        {
+          "path": "experiments/mcp-search-worker-feasibility/worker.js",
+          "status": "MATCH"
+        },
+        {
+          "path": "experiments/mcp-search-worker-feasibility/suite.js",
+          "status": "MATCH"
+        },
+        {
+          "path": "experiments/mcp-search-worker-feasibility/index.html",
+          "status": "MATCH"
+        },
+        {
+          "path": "experiments/mcp-search-worker-feasibility/run.cjs",
+          "status": "MATCH"
+        },
+        {
+          "path": "experiments/mcp-search-worker-feasibility/controls.js",
+          "status": "MATCH"
+        }
+      ]
+    },
+    {
+      "artifact": "artifact-12894311489.zip",
+      "member": "results-webkit-40866596832-1-544d4c3e-d003-4e67-b037-9f875710ad30.json",
+      "sourceRef": "855e07f49bdbd67651e8f98005db52e9300abe0e",
+      "checks": [
+        {
+          "path": "experiments/mcp-search-worker-feasibility/worker.js",
+          "status": "MATCH"
+        },
+        {
+          "path": "experiments/mcp-search-worker-feasibility/suite.js",
+          "status": "MATCH"
+        },
+        {
+          "path": "experiments/mcp-search-worker-feasibility/index.html",
+          "status": "MATCH"
+        },
+        {
+          "path": "experiments/mcp-search-worker-feasibility/run.cjs",
+          "status": "MATCH"
+        },
+        {
+          "path": "experiments/mcp-search-worker-feasibility/controls.js",
+          "status": "MATCH"
+        },
+        {
+          "path": "experiments/mcp-search-worker-feasibility/cleanup.js",
+          "status": "MATCH"
+        }
+      ]
+    },
+    {
+      "artifact": "artifact-13081135264.zip",
+      "member": "results.json",
+      "sourceRef": "53445474028601131136e2bc540ee48aee83cd7a",
+      "checks": [
+        {
+          "path": "experiments/mcp-search-worker-feasibility/index.html",
+          "status": "MATCH"
+        },
+        {
+          "path": "experiments/mcp-search-worker-feasibility/suite.js",
+          "status": "MATCH"
+        },
+        {
+          "path": "experiments/mcp-search-worker-feasibility/worker.js",
+          "status": "MATCH"
+        },
+        {
+          "path": "experiments/mcp-search-worker-feasibility/cleanup.js",
+          "status": "MATCH"
+        },
+        {
+          "path": "experiments/mcp-search-worker-feasibility/controls.js",
+          "status": "MATCH"
+        },
+        {
+          "path": "experiments/mcp-search-worker-feasibility/diagnostic-plan.js",
+          "status": "MATCH"
+        },
+        {
+          "path": "experiments/mcp-search-worker-feasibility/diagnostic.js",
+          "status": "MATCH"
+        },
+        {
+          "path": "experiments/mcp-search-worker-feasibility/diagnostic-worker.js",
+          "status": "MATCH"
+        },
+        {
+          "path": "experiments/idb-upgrade-lifecycle/observer.js",
+          "status": "MATCH"
+        },
+        {
+          "path": "experiments/idb-upgrade-lifecycle/controls.js",
+          "status": "MATCH"
+        },
+        {
+          "path": "experiments/idb-upgrade-lifecycle/source.cjs",
+          "status": "MATCH"
+        },
+        {
+          "path": "experiments/idb-upgrade-lifecycle/run.cjs",
+          "status": "MATCH"
+        }
+      ]
+    },
+    {
+      "artifact": "artifact-13081834516.zip",
+      "member": "results.json",
+      "sourceRef": "6b25f7ecf1d3b290958556708fee9899f188c5f2",
+      "checks": [
+        {
+          "path": "experiments/mcp-search-worker-feasibility/index.html",
+          "status": "MATCH"
+        },
+        {
+          "path": "experiments/mcp-search-worker-feasibility/suite.js",
+          "status": "MATCH"
+        },
+        {
+          "path": "experiments/mcp-search-worker-feasibility/worker.js",
+          "status": "MATCH"
+        },
+        {
+          "path": "experiments/mcp-search-worker-feasibility/cleanup.js",
+          "status": "MATCH"
+        },
+        {
+          "path": "experiments/mcp-search-worker-feasibility/controls.js",
+          "status": "MATCH"
+        },
+        {
+          "path": "experiments/mcp-search-worker-feasibility/diagnostic-plan.js",
+          "status": "MATCH"
+        },
+        {
+          "path": "experiments/mcp-search-worker-feasibility/diagnostic.js",
+          "status": "MATCH"
+        },
+        {
+          "path": "experiments/mcp-search-worker-feasibility/diagnostic-worker.js",
+          "status": "MATCH"
+        },
+        {
+          "path": "experiments/mcp-search-worker-feasibility/context-harness.cjs",
+          "status": "MATCH"
+        },
+        {
+          "path": "experiments/idb-upgrade-lifecycle/observer.js",
+          "status": "MATCH"
+        },
+        {
+          "path": "experiments/idb-upgrade-lifecycle/source.cjs",
+          "status": "MATCH"
+        },
+        {
+          "path": "experiments/idb-transaction-complete-only/wait.cjs",
+          "status": "MATCH"
+        },
+        {
+          "path": "experiments/idb-transaction-complete-only/source.cjs",
+          "status": "MATCH"
+        },
+        {
+          "path": "experiments/idb-transaction-complete-only/analyze.cjs",
+          "status": "MATCH"
+        },
+        {
+          "path": "experiments/idb-transaction-complete-only/run.cjs",
+          "status": "MATCH"
+        }
+      ]
+    },
+    {
+      "artifact": "artifact-13087243261.zip",
+      "member": "results.json",
+      "sourceRef": "b08c0f8b73ec4184478669fb4ac5907be83dbb52",
+      "checks": [
+        {
+          "path": "experiments/mcp-search-worker-feasibility/index.html",
+          "status": "MATCH"
+        },
+        {
+          "path": "experiments/mcp-search-worker-feasibility/suite.js",
+          "status": "MATCH"
+        },
+        {
+          "path": "experiments/mcp-search-worker-feasibility/worker.js",
+          "status": "MATCH"
+        },
+        {
+          "path": "experiments/mcp-search-worker-feasibility/cleanup.js",
+          "status": "MATCH"
+        },
+        {
+          "path": "experiments/mcp-search-worker-feasibility/controls.js",
+          "status": "MATCH"
+        },
+        {
+          "path": "experiments/mcp-search-worker-feasibility/diagnostic-plan.js",
+          "status": "MATCH"
+        },
+        {
+          "path": "experiments/mcp-search-worker-feasibility/diagnostic.js",
+          "status": "MATCH"
+        },
+        {
+          "path": "experiments/mcp-search-worker-feasibility/diagnostic-worker.js",
+          "status": "MATCH"
+        },
+        {
+          "path": "experiments/mcp-search-worker-feasibility/context-harness.cjs",
+          "status": "MATCH"
+        },
+        {
+          "path": "experiments/idb-upgrade-lifecycle/observer.js",
+          "status": "MATCH"
+        },
+        {
+          "path": "experiments/idb-upgrade-lifecycle/source.cjs",
+          "status": "MATCH"
+        },
+        {
+          "path": "experiments/idb-time-delay-only/delay.cjs",
+          "status": "MATCH"
+        },
+        {
+          "path": "experiments/idb-time-delay-only/history-guard.cjs",
+          "status": "MATCH"
+        },
+        {
+          "path": "experiments/idb-time-delay-only/derive-delay.cjs",
+          "status": "MATCH"
+        },
+        {
+          "path": "experiments/idb-time-delay-only/delay-decision.json",
+          "status": "MATCH"
+        },
+        {
+          "path": "experiments/idb-time-delay-only/source.cjs",
+          "status": "MATCH"
+        },
+        {
+          "path": "experiments/idb-time-delay-only/analyze.cjs",
+          "status": "MATCH"
+        },
+        {
+          "path": "experiments/idb-time-delay-only/run.cjs",
+          "status": "MATCH"
+        }
+      ]
+    }
+  ],
+  "resultZipMatchesSavedRaw": {
+    "D/E": true,
+    "F": true,
+    "G": true
+  },
+  "metadataScope": {
+    "artifactPages": 5,
+    "artifactCount": 426,
+    "artifactNameSearch": [
+      "native",
+      "cmake",
+      "derived",
+      "build-manifest",
+      "sbom",
+      "webkit-ubuntu"
+    ],
+    "matchingNativeNames": 0,
+    "cacheCount": 2,
+    "releaseCount": 0,
+    "allArtifactContentsInspected": false
+  },
+  "apiDigestChecks": [
+    {
+      "artifact": 12887263146,
+      "run": 40852560234,
+      "apiHead": "d2c4ad154583173bbfe37d9223c31950de7adda7",
+      "zipDigestMatchesApi": true,
+      "expiresAt": "2026-11-12T09:49:48Z"
+    },
+    {
+      "artifact": 12887605745,
+      "run": 40851321011,
+      "apiHead": "bb914138330a51be179464ecdf3bb41269dda5ae",
+      "zipDigestMatchesApi": true,
+      "expiresAt": "2026-11-12T09:40:24Z"
+    },
+    {
+      "artifact": 12888020339,
+      "run": 40851676069,
+      "apiHead": "79d5b76727fe99d5dff137ef89a55cd7f6e72cb6",
+      "zipDigestMatchesApi": true,
+      "expiresAt": "2026-11-12T09:42:59Z"
+    },
+    {
+      "artifact": 12894311489,
+      "run": 40866596832,
+      "apiHead": "34f9d01bb8c591b80d6e2a640c2d6ae9c3f86b37",
+      "zipDigestMatchesApi": true,
+      "expiresAt": "2026-11-12T11:37:02Z"
+    },
+    {
+      "artifact": 13058663151,
+      "run": 41244959121,
+      "apiHead": "7b30786ea9f2473e5e2423ccb4a279475ff18646",
+      "zipDigestMatchesApi": true,
+      "expiresAt": "2026-11-14T21:46:29Z"
+    },
+    {
+      "artifact": 13081135264,
+      "run": 41299732744,
+      "apiHead": "53445474028601131136e2bc540ee48aee83cd7a",
+      "zipDigestMatchesApi": true,
+      "expiresAt": "2026-12-01T10:59:06Z"
+    },
+    {
+      "artifact": 13081834516,
+      "run": 41303212794,
+      "apiHead": "6b25f7ecf1d3b290958556708fee9899f188c5f2",
+      "zipDigestMatchesApi": true,
+      "expiresAt": "2026-12-01T11:45:14Z"
+    },
+    {
+      "artifact": 13087243261,
+      "run": 41316288566,
+      "apiHead": "b08c0f8b73ec4184478669fb4ac5907be83dbb52",
+      "zipDigestMatchesApi": true,
+      "expiresAt": "2026-12-01T14:28:31Z"
+    }
+  ]
+}

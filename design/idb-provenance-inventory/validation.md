@@ -1,0 +1,583 @@
+# 静的チェッカー3件の局所修正契約
+
+修正基準HEAD: `544aebbbe57b3a4380e8611af0a5cfbf4ce98328`。以下の契約を実装修正より先に記録する。旧証拠・取得台帳・解析結果の内容を変更せず、MATCHの証明範囲を拡大しない。
+
+## 判定・終了コード（今回の契約）
+
+|入口・条件|判定と理由|終了コード|
+|---|---|---|
+|saved-index: 必須files欠落 / 空list|UNKNOWN / index-files-missing または index-files-empty|2（不完全）|
+|saved-index: decoded indexがobjectでない、filesがlistでない、recordの型・値の形式不正|FAIL / index-shape、index-files-shape、index-record-shape等|1|
+|saved-index: recordのfile/digest等の必須情報欠落、実file欠落、独立profile未指定・必須集合の一部欠落|UNKNOWN / index-record-incomplete、unavailable-bytes、index-profile-required、missing-index-file等|2|
+|saved-index: 独立profileと矛盾、重複、不正path、実bytes/hash矛盾|FAIL / pinned-index-*、duplicate-or-outside-root、invalid-path、digest-or-size等|1（UNKNOWNが併存してもFAIL優先）|
+|saved-index: 独立profileの必須集合と各digestが一致し、全file/raw照合成立|各record MATCH|0（限定された静的照合のみ）|
+|receipts: 取得失敗、保存bytesのhash/size一致|UNKNOWN。acquisition=FAILED、contentIntegrity=MATCH|従来どおりbatch終了0。取得対象の真正性MATCHではない|
+|receipts: 取得失敗でも保存bytesに明示矛盾|FAIL。acquisition=FAILED、contentIntegrity=FAIL|1|
+|receipts: 保存bytes取得不能|UNKNOWN / unavailable-bytes等|従来どおりbatch終了0。欠落を肯定しない|
+|receipts: 同一の解決済みpathの別表記 / pinned identity不一致 / root外path|FAIL|1|
+|controls: literal期待値との不一致|ok=false|1。全期待一致は0（負対照を実験PASSにしない）|
+|外部fileの読取り・JSON構文解析不能|UNKNOWN、errorを出力|既存の2を維持。decoded schema違反のFAILとは分離|
+
+saved-indexの最小schemaは非空`files` listと、その各objectの非空相対`file`、小文字hex64桁の`sha256`または`gzipSha256`。`rawSha256`がある場合はgzipを展開せずメモリで復号してhash照合し、`rawBytes`がある場合は非負整数かつrawSha256必須。複数のcompressed digest主張がある場合は一致必須。未記載の必須情報はUNKNOWN、存在するが型・形式不正の値はFAILとする。
+
+独立profileは`expectations.json`へ固定Git版`592ccb63478d0a23312237d1f736a419c096f5f8`のD/E・F・G indexの必須file集合・digestを保存する。出自のGit blob・index SHA-256も記録する。照合中の入力indexの件数や自己申告だけでは完全性を証明しない。既存配置では親の実験directory名からprofileを選び、移設時はCLIの`--profile`で明示する。未知profileの非空indexはfile単体を照合しても全体UNKNOWNとする。
+
+receiptと期待値は同じpath解決を使い、解決済み絶対pathをhostのcase規則で正規化して重複・pin・必須receipt欠落を照合する。root内symlink aliasも同じキーとし、root外への解決は読取り前に拒否する。portableに解釈を固定するためbackslash、drive/UNC/絶対path、`..`、Windowsのdevice/ADS・末尾dot/spaceを拒否する。`./`と内側の重複slashは同じ相対fileとして扱う。静止したfilesystemを対象とし、同時にsymlinkを変更する攻撃への保証は追加しない。
+
+今回の検証は原資料を再取得しない。原本が失われていればNOT_TESTED。新規tracked fileは追加せず、合成入力・CLI stdout/exit code・hashは別の今回用一時directoryへ保存し、既存一時証拠を上書きしない。
+
+## 修正前の既存記録（歴史的結果、今回の再実測と分離）
+
+自己照合の記録。独立レビューはPR本文の固定HEAD記録と分離する。製品・既存judge/schema/Collector/runner・旧検査器・旧recompute scriptは実行していない。
+
+|対象|結果|限界|
+|---|---|---|
+|receipt250件|MATCH247、UNKNOWN3、FAIL0、CLI終了0|UNKNOWNはbuilder候補と固定版2pathの404。終了0は全証拠取得成功ではない|
+|G独立pin|#423由来のhash/size/run/artifactと一致|他receiptの自己記載hash一致は独立origin認証でない|
+|fixture9件|全literal期待値と一致、CLI終了0|合成反例、実Worker実験の成功件数でない|
+|不正JSON manifest|UNKNOWN、CLI終了2|解析不能な外部資料を肯定しない|
+|保存index|D/E19、F20、G25のfile/gzip/raw hash全一致、各CLI終了0|recorder全観測の完全性とは別|
+|元結果ZIPとGit保存raw|D/E・F・Gのresults.jsonがbyte一致|派生analysisをnative直接観測にしない|
+|結果source参照|T7四結果+DE/F/Gの7JSON、66参照が記録checkout固定Git objectと一致|PR HEADと実merge checkoutを区別。native binaryへのjoinでない|
+|source索引|#403 CAPTURED25件のSHA-256/blob一致|build全体ではない|
+|local source manifest|372件+11件のblob/行数不一致0|source-only。new-source-manifestの404を成功件数にしない|
+|現在archive|65memberのCRC/hash/ELF静的解析、出力とarchive-inspection一致|現在bytes。依存名は実ロードlibrary実体でない|
+|pw_run.sh|現在ZIPと固定Playwright source byte一致|当時cache/条件の一致は未証明|
+|観測prefix|D152/E334/F346/G346。内部欠番/重複0、overflow=false|flush/high-waterなし、未受信tailなしとは言えない|
+|local有限探索|指定6root対象884fileをhash、ELF/native候補名0|全worktree/外部storage/ZIP内部の全探索ではない|
+
+## 意図的に壊した資料と独立期待値
+
+subjectはfixtures/subjects.json、期待値はexpectations.jsonの別file。3bytesのabc、literal SHA-256 ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad、synthetic-run-Aを使う。subjectから期待値を再生成しない。
+
+|対照|入力|期待|
+|---|---|---|
+|valid|正しいpayload/size/hash/run|MATCH|
+|missing-file|存在しないfile参照|UNKNOWN、必須receipt欠落もUNKNOWN|
+|wrong-run|hash一致のままsynthetic-run-Bへ変更|FAIL（独立identity pin不一致）|
+|wrong-digest|digestを0へ変更|FAIL|
+|duplicate|同receiptを二重登録|MATCH、FAIL|
+|invalid-manifest|receiptsを文字列へ破壊|FAIL（shape）|
+|external-unavailable|取得exitCode=1|UNKNOWN|
+|outside-root|../outside.txt参照|FAIL、必須receipt欠落UNKNOWN。root外を読まない|
+|missing-receipt|空list|UNKNOWN|
+
+## 静的な偽肯定の反例
+
+- 同URLでも旧digest receiptがなければ「現在archive=旧archive」はUNKNOWN。
+- bundled/checkout条件不成立で汎用MiniBrowserのみある机上入力では、WPE探索設定だけから実WPEを認定できない。
+- 372 sourceが一致しても生成物/config/link/ELFが欠ければB3〜B7はUNKNOWN。
+- 親ELF digestがあってもchild/module/Worker/VM世代joinがなければB8はUNKNOWN。
+- 1..N連番prefixでも最終high-waterがN+Kか不明ならtailはUNKNOWN。
+- terminate戻りだけでnative thread退出/VM entry終端がなければJ2はUNKNOWN。
+- 別process/Worker世代でowner/tx1を再利用する入力ではsame-native joinはUNKNOWN。別世代が明示されればその同一性主張はFAIL。
+
+これらは今回実証拠の不一致を観測したという意味ではない。局所MATCHや文書整合をJ2/U-C/条件U/実行承認のPASSへ移送しない。
+
+実CLI stdoutは一時rootのcheck-*.json、checks-all.jsonに保存。再現コマンドはREADMEのF節。[temporary-inventory.json](temporary-inventory.json)に取得・一時fileのsize/hash・削除方針を記録する。checkerは入力を書かず取得fileを実行しない。
+
+J2=UNKNOWN / U-C=UNKNOWN / conditionU=NOT_RUN / realExperiment=NOT_RUN / executionAuthorization=NOT_GRANTED / startCondition=BLOCKED / productionWorker=HOLD。
+
+2026年11月5日 JST
+
+## 今回の実測：RED→GREENと回帰（実装HEAD固定）
+
+実装基準HEADは`544aebbbe57b3a4380e8611af0a5cfbf4ce98328`、修正後の実CLI対象HEADは`c6c92e27ec9a5b46b65eece265bcb250a324fc74`。以下の記録を追加する文書commitの親が修正後実装HEADとなり、checker/fixture/期待値のbytesは変えない。最終提出HEADはPRコメントへ記録する。実装成功と、後から行う子エージェントの独立レビュー成功は別に扱う。
+
+親のdriverが固定Git objectからbefore.py / after.pyを別名で保存して実CLIを起動した。checker自身はsubprocessを起動しない。同じ入力fileとpayload bytesを両版へ渡し、stdout・実終了コードを保存した。P3反例のsubjects.jsonは基準HEADの既存fixtureを今回用rootへ無変換copyしたもので、入力を修正結果に合わせて変えていない。
+
+|反例|修正前の実結果・終了|修正後の実結果・終了|期待との一致|
+|---|---|---|---|
+|P2-01 `{}`|`[]`、0（RED）|UNKNOWN / index-files-missing、2|GREEN|
+|P2-01 `files: []`|`[]`、0（RED）|UNKNOWN / index-files-empty、2|GREEN|
+|P2-02 同fileの`./` alias|MATCH / MATCH、0（RED）|MATCH / FAIL、1|GREEN|
+|P3-01 exitCode=1かつ保存bytesのdigest/size矛盾|MATCH / UNKNOWN、0（RED）|MATCH / FAIL、1。acquisition=FAILED、contentIntegrity=FAIL|GREEN|
+
+実測の入力・両HEAD・JSON結果・終了コード・stdout hash・期待値・実行環境:
+
+```json
+{
+  "measuredBeforeHead": "544aebbbe57b3a4380e8611af0a5cfbf4ce98328",
+  "measuredAfterHead": "c6c92e27ec9a5b46b65eece265bcb250a324fc74",
+  "environment": {
+    "python": "3.14.7 (tags/v3.14.7:823f032, Aug  5 2026, 10:51:32) [MSC v.1944 64 bit (AMD64)]",
+    "platform": "Windows-11-10.0.26300-SP0",
+    "linux": "NOT_TESTED: WSL not installed, no tools installed"
+  },
+  "afterScriptSha256": "5dc49634eceef03488abbe54ce7eaef0dbde3574b489349a88ebe274affb5ea5",
+  "cases": [
+    {
+      "id": "P2-01-empty-object",
+      "input": {},
+      "inputSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "beforeHead": "544aebbbe57b3a4380e8611af0a5cfbf4ce98328",
+      "beforeExit": 0,
+      "beforeResult": [],
+      "beforeStdoutSha256": "a5338d955b09046ec0b16f3a9625b7955c763aae07dc722e474e6078745f932f",
+      "beforeMatchesExpected": false,
+      "afterHead": "c6c92e27ec9a5b46b65eece265bcb250a324fc74",
+      "afterExit": 2,
+      "afterResult": [
+        {
+          "status": "UNKNOWN",
+          "reason": "index-files-missing"
+        }
+      ],
+      "afterStdoutSha256": "41ef74a3553c36c934b9319bad1bc6979da33835773df1ca574a8e0a7583a604",
+      "expectedStatuses": [
+        "UNKNOWN"
+      ],
+      "expectedExit": 2,
+      "sameInput": true,
+      "afterMatchesExpected": true
+    },
+    {
+      "id": "P2-01-empty-list",
+      "input": {
+        "files": []
+      },
+      "inputSha256": "ccfe9165bef60ef933645186059b1ea0dc25f1f549d4689e062ba1c2ffefc127",
+      "beforeHead": "544aebbbe57b3a4380e8611af0a5cfbf4ce98328",
+      "beforeExit": 0,
+      "beforeResult": [],
+      "beforeStdoutSha256": "a5338d955b09046ec0b16f3a9625b7955c763aae07dc722e474e6078745f932f",
+      "beforeMatchesExpected": false,
+      "afterHead": "c6c92e27ec9a5b46b65eece265bcb250a324fc74",
+      "afterExit": 2,
+      "afterResult": [
+        {
+          "status": "UNKNOWN",
+          "reason": "index-files-empty"
+        }
+      ],
+      "afterStdoutSha256": "422e2b431291bfbf83dee6e6948b08ad1f159ddb1cb4db6ae34fdd6a65b7eb16",
+      "expectedStatuses": [
+        "UNKNOWN"
+      ],
+      "expectedExit": 2,
+      "sameInput": true,
+      "afterMatchesExpected": true
+    },
+    {
+      "id": "P2-02-alias",
+      "input": {
+        "receipts": [
+          {
+            "file": "payload.txt",
+            "size": 3,
+            "sha256": "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+            "runId": "synthetic-run-A"
+          },
+          {
+            "file": "./payload.txt",
+            "size": 3,
+            "sha256": "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+            "runId": "synthetic-run-A"
+          }
+        ]
+      },
+      "inputSha256": "b88e7c5b19cc9c39884d665a2e90f884113415f266ab32031a4427edd40a5888",
+      "beforeHead": "544aebbbe57b3a4380e8611af0a5cfbf4ce98328",
+      "beforeExit": 0,
+      "beforeResult": [
+        {
+          "file": "payload.txt",
+          "status": "MATCH",
+          "reasons": []
+        },
+        {
+          "file": "./payload.txt",
+          "status": "MATCH",
+          "reasons": []
+        }
+      ],
+      "beforeStdoutSha256": "f083be619083a04a3a580c87d271c4e3c30ca1c5aa6365b53e48e0e400b93639",
+      "beforeMatchesExpected": false,
+      "afterHead": "c6c92e27ec9a5b46b65eece265bcb250a324fc74",
+      "afterExit": 1,
+      "afterResult": [
+        {
+          "file": "payload.txt",
+          "status": "MATCH",
+          "reasons": [],
+          "acquisition": "SUCCEEDED",
+          "contentIntegrity": "MATCH"
+        },
+        {
+          "file": "./payload.txt",
+          "status": "FAIL",
+          "reasons": [
+            "duplicate-or-outside-root"
+          ],
+          "acquisition": "SUCCEEDED",
+          "contentIntegrity": "NOT_CHECKED"
+        }
+      ],
+      "afterStdoutSha256": "630abdfabdf3ff3869da4a603f769f137e4407b85b996f443ceee69610089951",
+      "expectedStatuses": [
+        "MATCH",
+        "FAIL"
+      ],
+      "expectedExit": 1,
+      "sameInput": true,
+      "afterMatchesExpected": true
+    },
+    {
+      "id": "P3-01-failed-corrupt",
+      "input": {
+        "receipts": [
+          {
+            "file": "payload.txt",
+            "size": 3,
+            "sha256": "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+            "runId": "synthetic-run-A"
+          },
+          {
+            "file": "subjects.json",
+            "size": 0,
+            "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+            "exitCode": 1
+          }
+        ]
+      },
+      "inputSha256": "7d21b1005d3ae85a541b19787fdea62ad5c8d444ed178745218a848c941fb3ca",
+      "beforeHead": "544aebbbe57b3a4380e8611af0a5cfbf4ce98328",
+      "beforeExit": 0,
+      "beforeResult": [
+        {
+          "file": "payload.txt",
+          "status": "MATCH",
+          "reasons": []
+        },
+        {
+          "file": "subjects.json",
+          "status": "UNKNOWN",
+          "reasons": [
+            "unavailable-bytes"
+          ]
+        }
+      ],
+      "beforeStdoutSha256": "ca71f1c17af6c173c81912f2257df3a059db33a7086a4115a9bad3cd5b5c31aa",
+      "beforeMatchesExpected": false,
+      "afterHead": "c6c92e27ec9a5b46b65eece265bcb250a324fc74",
+      "afterExit": 1,
+      "afterResult": [
+        {
+          "file": "payload.txt",
+          "status": "MATCH",
+          "reasons": [],
+          "acquisition": "SUCCEEDED",
+          "contentIntegrity": "MATCH"
+        },
+        {
+          "file": "subjects.json",
+          "status": "FAIL",
+          "reasons": [
+            "digest-or-size"
+          ],
+          "acquisition": "FAILED",
+          "contentIntegrity": "FAIL"
+        }
+      ],
+      "afterStdoutSha256": "f5468e5d8c7d1e126867fdc6c31d06c708b239ed47f098000f92b243ea14b1bc",
+      "expectedStatuses": [
+        "MATCH",
+        "FAIL"
+      ],
+      "expectedExit": 1,
+      "sameInput": true,
+      "afterMatchesExpected": true
+    }
+  ]
+}
+```
+
+### 回帰・境界
+
+- 既存9対照の入力object・期待値は基準HEADと等価で、前後とも9/9期待一致。旧9対照の期待値を変更したものは0件。追加20対照を含め29/29期待一致。
+- 元250 receiptをfile順に全件比較し、247 MATCH / 3 UNKNOWN / 0 FAIL、前後で判定が変わった行は0件。UNKNOWN3件はbuilder-candidate.json、pw-build-path.json、pw-prepare-path.json。保存された404応答本文はcontentIntegrity=MATCHだが、acquisition=FAILED、全体UNKNOWNを維持する。旧reason unavailable-bytesからacquisition-failedへの変更は、取得失敗とbytes取得不能の区別であり、判定昇格ではない。
+- 各行の前後比較全文は`C:\Users\tetsu\AppData\Local\Temp\memo-pr425-fix-g0jx0d5n\receipt-status-comparison-250.json`（SHA-256 `281afd417997328619e784dc66b141b42863670a2e771a2f9128373fc828fa59`）。元250fileのsize/hashも別保存し、検証後も変更0件。原資料再取得0、証拠置換0。
+- 保存indexの実CLI結果はD/E19、F20、G25すべてMATCH・終了0。固定profileは入力indexでなく指定Git版の19/20/25 file集合・digestから作った。profile出自はexpectations.jsonのsource.commit/path/gitBlob/indexSha256。各indexから1recordだけ除いた独立のメモリ入力は18/19/24 MATCH + missing-index-file UNKNOWNで、不完全な集合を全体MATCHとしない。
+- Windows junctionではroot内alias重複、root外junction拒否、case alias重複、junction aliasによるpin不一致検出を実測。root外の合成payload bytesをcheckerが読んでいないことをauditで確認した。
+- 通常file symlink作成はWinError1314のためNOT_TESTED。LinuxはWSL未導入・Docker不在のためNOT_TESTED。インストールや昇格による回避は行わない。junction実測を通常symlink/Linuxの実測に算入しない。
+- checker ASTのimportはargparse/gzip/hashlib/json/os/pathlib/re/struct/zipfile/zlibのみ。receipts250・controls29・zip・saved-index3系列の計6 CLI経路をPython audit hook下で呼び、network/subprocess/shell/write/mutationの禁止eventは0件。入力読取りとメモリ上のZIP/gzip解析のみ。親driverのCLI起動とchecker内部の操作を区別する。
+
+### 再現コマンドと保存
+
+```powershell
+$fixEvidence = 'C:\Users\tetsu\AppData\Local\Temp\memo-pr425-fix-g0jx0d5n'
+python -B "$fixEvidence/before.py" saved-index "$fixEvidence/fixtures/P2-01-empty-object.json"
+python -B "$fixEvidence/after.py" saved-index "$fixEvidence/fixtures/P2-01-empty-object.json"
+python -B "$fixEvidence/after.py" receipts "$fixEvidence/fixtures/P2-02-alias.json" "$fixEvidence/fixtures" "$fixEvidence/control-pins.json"
+python -B "$fixEvidence/after.py" receipts "$fixEvidence/fixtures/P3-01-failed-corrupt.json" "$fixEvidence/fixtures" "$fixEvidence/control-pins.json"
+python -B design/idb-provenance-inventory/static-check.py controls design/idb-provenance-inventory/fixtures/subjects.json design/idb-provenance-inventory/expectations.json
+```
+
+今回用rootは`C:\Users\tetsu\AppData\Local\Temp\memo-pr425-fix-g0jx0d5n`。before-results.json、fixed-head-results.json、before-/fixed-*.stdout.json、receipt-status-comparison-250.json、safety-junction-results.jsonに保存。取得原本は先行rootに残し、新規tracked fileなし。今回一時fileのsize/hash・削除方針は同rootのfix-temporary-inventory.json（SHA-256 `7d254cf5459ed4b7f5c19b8a7233e85d90717300a72955d6860823f9232c8c04`）に記録した。独立レビュー用に保持し、自動削除しない。受入後、junctionを辿らず今回用directoryの絶対pathを確認して削除する方針。
+
+### サブエージェント機能の事前確認
+
+実行環境にはcollaboration.spawn_agent/list_agents/send_message/wait_agentが公開され、list_agentsの実呼出しで応答を確認。local config.tomlのfeatures.multi_agentとagents.max_threadsはNOT_SETであり、その値から利用可否を推定しない。公式の[Subagents資料](https://learn.chatgpt.com/docs/agent-configuration/subagents)は一般の委任説明の参照であり、現在環境での利用成功の証拠は実際の起動・別主体の応答とする。実装後の新規子起動と固定HEADレビュー結果はPRコメント・最終報告へ記録する。
+
+現時点の親実装・Windows静的検証は成立。今回の独立レビューは未実施で、成功とはまだ記録しない。Linuxと通常symlinkの実測を含む総合評価はPARTIAL。
+
+BUILD_BINDING=UNKNOWN / J2=UNKNOWN / U-C=UNKNOWN / conditionU=NOT_RUN / realExperiment=NOT_RUN / executionAuthorization=NOT_GRANTED / startCondition=BLOCKED / productionWorker=HOLD。
+
+2026年11月05日 19:37 JST
+
+## 初回独立レビューのFAILと追加補訂
+
+実装未参加の新規子エージェント`/root/checker_fix_independent_review`をforkなしの別contextで実際に起動し、読み取り専用でレビューを実行した。対象HEADは`1ce6e51cb4118a27265ef8cb6d99279337a6d3d8`、treeは`d8e0d99406b12c7155ed01a3ade62114b5e1ad3d`。子は既存14blobを全bytes/全文で読み、共通契約と先行build計画も確認した。書込み・Git変更・外部投稿0。
+
+**初回の独立総合判定はFAIL、新規P2が1件、マージ推奨NO。** 主3反例、旧9対照と29対照、250 receipt、保存index19/20/25は独立実測で成立したが、schema契約の追加残件があった。親の自己検証を独立PASSへ書き換えない。
+
+残件の根本原因は`verify_saved_index`内の欠落によるearly continue。`file`やcompressed digest/rawSha256が欠けると、同じrecord内の存在する型違反・digest間矛盾・独立pinとの矛盾までUNKNOWNに隠れた。子の具体的反例はfile欠落＋sha256数値、file欠落＋rawBytes=false、rawSha256欠落＋compressed digest間矛盾、原D/E indexでcompressed digest欠落＋誤rawSha256。子は実mainの終了2も確認した。
+
+補訂は欠落判定の前に、存在する値の形式、解決できるpath/重複、digest間の明示矛盾、判定できる独立pin矛盾を検査することに限定する。既存29入力・期待は保持し、混合欠落/矛盾のliteral負対照4件を追加した（合計33）。親でも同系統の5入力を旧固定codeでUNKNOWN/終了2として再現し、補訂後の実測HEADと再レビューは後続記録へ分離する。
+
+子は全64通りの1record除去、junction/case/pin/root外、主要6経路のaudit、旧631一時fileのhashも独自確認した。Linuxと通常file symlinkはNOT_TESTEDであり、子の初回評価でも実測に算入していない。今回の新規P1/P3は初回に検出されていない。P2の局所閉鎖は修正後の独立再レビューまで未成立とする。
+
+## 追加P2補訂後の固定HEAD実測
+
+補訂実装HEAD `8a1bbdb43058729b7951e881083550c9e82cb8a3`。以下の追記を行う文書commitではchecker/fixture/期待値を変更しない。初回独立FAILは前節の記録を維持し、補訂後の独立判定は新しい固定HEADの再レビューが終わるまで未確定とする。
+
+親の実CLI比較では追加P2の5入力すべてが旧UNKNOWN/終了2（RED）からFAIL/終了1（GREEN）となった。入力fileのhashは前後同一。元々の主3反例＋空配列variantも再測定し、UNKNOWN/2、UNKNOWN/2、MATCH+FAIL/1、MATCH+FAIL/1を維持。形式不正を隠す欠落、digest間矛盾を隠すraw情報欠落、独立pin矛盾を隠すcompressed digest欠落を分離している。
+
+```json
+[
+  {
+    "id": "review-missing-file-invalid-digest",
+    "input": {
+      "files": [
+        {
+          "sha256": 123
+        }
+      ]
+    },
+    "inputSha256": "e0e2c6b90429ee0488009f73f06dfac1cec3a7771c2667cbf402012120b10b87",
+    "beforeHead": "1ce6e51cb4118a27265ef8cb6d99279337a6d3d8",
+    "beforeExit": 2,
+    "beforeResult": {
+      "first": {
+        "status": "UNKNOWN",
+        "reason": "index-record-incomplete"
+      },
+      "statusCounts": {
+        "MATCH": 0,
+        "UNKNOWN": 2,
+        "FAIL": 0
+      }
+    },
+    "afterHead": "8a1bbdb43058729b7951e881083550c9e82cb8a3",
+    "afterExit": 1,
+    "afterResult": {
+      "first": {
+        "status": "FAIL",
+        "reason": "index-digest-format"
+      },
+      "statusCounts": {
+        "MATCH": 0,
+        "UNKNOWN": 1,
+        "FAIL": 1
+      }
+    },
+    "expected": "FAIL / exit 1 (explicit contradiction before incompleteness)",
+    "sameInput": true,
+    "green": true,
+    "beforeStdoutSha256": "dfa6d3ac6701f41fa9abeac91d45885041c5634f4481c6e9c26fdfc8a32f8553",
+    "afterStdoutSha256": "1433b8ac79576e2201c25c4353d195389c9ca304728135382fbd01cfb5dc4710"
+  },
+  {
+    "id": "review-missing-file-invalid-size",
+    "input": {
+      "files": [
+        {
+          "rawBytes": false
+        }
+      ]
+    },
+    "inputSha256": "e026025e87857954491e1155e328118513ddf93d50eee74db3b32d71060a379f",
+    "beforeHead": "1ce6e51cb4118a27265ef8cb6d99279337a6d3d8",
+    "beforeExit": 2,
+    "beforeResult": {
+      "first": {
+        "status": "UNKNOWN",
+        "reason": "index-record-incomplete"
+      },
+      "statusCounts": {
+        "MATCH": 0,
+        "UNKNOWN": 2,
+        "FAIL": 0
+      }
+    },
+    "afterHead": "8a1bbdb43058729b7951e881083550c9e82cb8a3",
+    "afterExit": 1,
+    "afterResult": {
+      "first": {
+        "status": "FAIL",
+        "reason": "index-size-format"
+      },
+      "statusCounts": {
+        "MATCH": 0,
+        "UNKNOWN": 1,
+        "FAIL": 1
+      }
+    },
+    "expected": "FAIL / exit 1 (explicit contradiction before incompleteness)",
+    "sameInput": true,
+    "green": true,
+    "beforeStdoutSha256": "dfa6d3ac6701f41fa9abeac91d45885041c5634f4481c6e9c26fdfc8a32f8553",
+    "afterStdoutSha256": "b9940816653a5eab8837f1aa5c39c012c3ce36f721d45cd282674cbe63f2d730"
+  },
+  {
+    "id": "review-missing-file-digest-conflict",
+    "input": {
+      "files": [
+        {
+          "sha256": "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+          "gzipSha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    },
+    "inputSha256": "f4b3e4175221c6d8bfe1c4b8007c66aaa29743355062ee1132050aa965d087f5",
+    "beforeHead": "1ce6e51cb4118a27265ef8cb6d99279337a6d3d8",
+    "beforeExit": 2,
+    "beforeResult": {
+      "first": {
+        "status": "UNKNOWN",
+        "reason": "index-record-incomplete"
+      },
+      "statusCounts": {
+        "MATCH": 0,
+        "UNKNOWN": 2,
+        "FAIL": 0
+      }
+    },
+    "afterHead": "8a1bbdb43058729b7951e881083550c9e82cb8a3",
+    "afterExit": 1,
+    "afterResult": {
+      "first": {
+        "status": "FAIL",
+        "reason": "index-digest-conflict"
+      },
+      "statusCounts": {
+        "MATCH": 0,
+        "UNKNOWN": 1,
+        "FAIL": 1
+      }
+    },
+    "expected": "FAIL / exit 1 (explicit contradiction before incompleteness)",
+    "sameInput": true,
+    "green": true,
+    "beforeStdoutSha256": "dfa6d3ac6701f41fa9abeac91d45885041c5634f4481c6e9c26fdfc8a32f8553",
+    "afterStdoutSha256": "02d57d3b77075fb3ab3ab9deba721d8a0f857a098c81f0d7e073e1efbfb2a238"
+  },
+  {
+    "id": "review-missing-compressed-pinned-conflict",
+    "input": {
+      "files": [
+        {
+          "rawSha256": "0000000000000000000000000000000000000000000000000000000000000000",
+          "rawBytes": 418846,
+          "file": "61b757bd-6b5f-4fdf-aab8-574c511aea93-precleanup.json.gz"
+        }
+      ]
+    },
+    "inputSha256": "9d4e080f145d275a81a210a960e639e2261ba758d3428150e4837ec5c7b121fd",
+    "beforeHead": "1ce6e51cb4118a27265ef8cb6d99279337a6d3d8",
+    "beforeExit": 2,
+    "beforeResult": {
+      "first": {
+        "status": "UNKNOWN",
+        "file": "61b757bd-6b5f-4fdf-aab8-574c511aea93-precleanup.json.gz",
+        "reason": "index-record-incomplete"
+      },
+      "statusCounts": {
+        "MATCH": 0,
+        "UNKNOWN": 20,
+        "FAIL": 0
+      }
+    },
+    "afterHead": "8a1bbdb43058729b7951e881083550c9e82cb8a3",
+    "afterExit": 1,
+    "afterResult": {
+      "first": {
+        "status": "FAIL",
+        "file": "61b757bd-6b5f-4fdf-aab8-574c511aea93-precleanup.json.gz",
+        "reason": "pinned-index-rawSha256"
+      },
+      "statusCounts": {
+        "MATCH": 0,
+        "UNKNOWN": 19,
+        "FAIL": 1
+      }
+    },
+    "expected": "FAIL / exit 1 (explicit contradiction before incompleteness)",
+    "sameInput": true,
+    "green": true,
+    "beforeStdoutSha256": "bd66e651ae2e2d71406c5159f8e80d6033ba963bf17548e44b118cff0d68540c",
+    "afterStdoutSha256": "f82b47837ff8a250d938904f2d3dfa8d06f16c8a6e34d4e568be5df0f3789f1c"
+  },
+  {
+    "id": "review-missing-raw-digest-conflict",
+    "input": {
+      "files": [
+        {
+          "file": "payload.txt",
+          "sha256": "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+          "gzipSha256": "0000000000000000000000000000000000000000000000000000000000000000",
+          "rawBytes": 0
+        }
+      ]
+    },
+    "inputSha256": "58849ac16917b8725626f487e6121cea9d1108fe6b2007c32e47e5de0ff4871a",
+    "beforeHead": "1ce6e51cb4118a27265ef8cb6d99279337a6d3d8",
+    "beforeExit": 2,
+    "beforeResult": {
+      "first": {
+        "status": "UNKNOWN",
+        "file": "payload.txt",
+        "reason": "index-record-incomplete"
+      },
+      "statusCounts": {
+        "MATCH": 0,
+        "UNKNOWN": 1,
+        "FAIL": 0
+      }
+    },
+    "afterHead": "8a1bbdb43058729b7951e881083550c9e82cb8a3",
+    "afterExit": 1,
+    "afterResult": {
+      "first": {
+        "status": "FAIL",
+        "file": "payload.txt",
+        "reason": "index-digest-conflict"
+      },
+      "statusCounts": {
+        "MATCH": 0,
+        "UNKNOWN": 0,
+        "FAIL": 1
+      }
+    },
+    "expected": "FAIL / exit 1 (explicit contradiction before incompleteness)",
+    "sameInput": true,
+    "green": true,
+    "beforeStdoutSha256": "d11f54b85a9b6f0b1001aa9b78b46a92ca4db9bf9c34a859f33e20171ac73a9a",
+    "afterStdoutSha256": "752292aa0b5edafed1eba7941f3a561017eddd3958e251a2278696205d58f357"
+  }
+]
+```
+
+前後結果全文は今回用rootのindependent-finding-red-v2.json / final-p2-fixed-head-results.jsonと各stdout fileに保存した。上のJSONは多数のmissing-index-file行をstatus件数へ圧縮した表示であり、原CLI結果を作り替えたものではない。Windows/Python環境は前節と同じ。
+
+- 旧9対照・既存29対照の入力/期待値を変更せず、追加4を含む33/33期待一致。期待値を実装結果へ合わせた変更は0件。
+- 元250receiptを再び行別比較し247 MATCH / 3 UNKNOWN / 0 FAIL、判定変化0件。404由来3件のUNKNOWNを維持し、原250fileのhash変更0件。
+- D/E19、F20、G25は固定実装からの実CLIで全MATCH/終了0。全64通りの1record除去はUNKNOWNを検出。rawSha256を持つ全48recordについて、compressed digest欠落＋誤rawSha256を与える混合反例は全てFAILを検出した。これは48件の実Worker実験ではなく、静的recordの反例検査である。
+- 主要6経路のauditを補訂版でも再実行し、checker内部network/subprocess/shell/write/mutationは禁止event0。Windows junction/case/root外の実測は前節どおりで、path関数は初回修正から不変。
+- Linuxと通常file symlinkはNOT_TESTEDのまま。今回の全環境評価はPARTIAL、実験開始許可は発生しない。
+
+実CLIに用いたafter-p2.py / expectations-p2.jsonはこの固定Git HEADから直接保存したbytes。最終提出HEADと再レビュー結果はPRコメントに記録する。再現は前節のafter.pyをafter-p2.pyに置き換え、saved-indexには--expectations expectations-p2.jsonを明示する。コード/期待値のSHA-256と追加行列の各対象名はfinal-p2-fixed-head-results.jsonに保存している。
+
+BUILD_BINDING=UNKNOWN / J2=UNKNOWN / U-C=UNKNOWN / conditionU=NOT_RUN / realExperiment=NOT_RUN / executionAuthorization=NOT_GRANTED / startCondition=BLOCKED / productionWorker=HOLD。
+
+2026年11月05日 19:51 JST
