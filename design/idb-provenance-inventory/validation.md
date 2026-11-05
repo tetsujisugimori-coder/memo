@@ -336,3 +336,248 @@ BUILD_BINDING=UNKNOWN / J2=UNKNOWN / U-C=UNKNOWN / conditionU=NOT_RUN / realExpe
 補訂は欠落判定の前に、存在する値の形式、解決できるpath/重複、digest間の明示矛盾、判定できる独立pin矛盾を検査することに限定する。既存29入力・期待は保持し、混合欠落/矛盾のliteral負対照4件を追加した（合計33）。親でも同系統の5入力を旧固定codeでUNKNOWN/終了2として再現し、補訂後の実測HEADと再レビューは後続記録へ分離する。
 
 子は全64通りの1record除去、junction/case/pin/root外、主要6経路のaudit、旧631一時fileのhashも独自確認した。Linuxと通常file symlinkはNOT_TESTEDであり、子の初回評価でも実測に算入していない。今回の新規P1/P3は初回に検出されていない。P2の局所閉鎖は修正後の独立再レビューまで未成立とする。
+
+## 追加P2補訂後の固定HEAD実測
+
+補訂実装HEAD `8a1bbdb43058729b7951e881083550c9e82cb8a3`。以下の追記を行う文書commitではchecker/fixture/期待値を変更しない。初回独立FAILは前節の記録を維持し、補訂後の独立判定は新しい固定HEADの再レビューが終わるまで未確定とする。
+
+親の実CLI比較では追加P2の5入力すべてが旧UNKNOWN/終了2（RED）からFAIL/終了1（GREEN）となった。入力fileのhashは前後同一。元々の主3反例＋空配列variantも再測定し、UNKNOWN/2、UNKNOWN/2、MATCH+FAIL/1、MATCH+FAIL/1を維持。形式不正を隠す欠落、digest間矛盾を隠すraw情報欠落、独立pin矛盾を隠すcompressed digest欠落を分離している。
+
+```json
+[
+  {
+    "id": "review-missing-file-invalid-digest",
+    "input": {
+      "files": [
+        {
+          "sha256": 123
+        }
+      ]
+    },
+    "inputSha256": "e0e2c6b90429ee0488009f73f06dfac1cec3a7771c2667cbf402012120b10b87",
+    "beforeHead": "1ce6e51cb4118a27265ef8cb6d99279337a6d3d8",
+    "beforeExit": 2,
+    "beforeResult": {
+      "first": {
+        "status": "UNKNOWN",
+        "reason": "index-record-incomplete"
+      },
+      "statusCounts": {
+        "MATCH": 0,
+        "UNKNOWN": 2,
+        "FAIL": 0
+      }
+    },
+    "afterHead": "8a1bbdb43058729b7951e881083550c9e82cb8a3",
+    "afterExit": 1,
+    "afterResult": {
+      "first": {
+        "status": "FAIL",
+        "reason": "index-digest-format"
+      },
+      "statusCounts": {
+        "MATCH": 0,
+        "UNKNOWN": 1,
+        "FAIL": 1
+      }
+    },
+    "expected": "FAIL / exit 1 (explicit contradiction before incompleteness)",
+    "sameInput": true,
+    "green": true,
+    "beforeStdoutSha256": "dfa6d3ac6701f41fa9abeac91d45885041c5634f4481c6e9c26fdfc8a32f8553",
+    "afterStdoutSha256": "1433b8ac79576e2201c25c4353d195389c9ca304728135382fbd01cfb5dc4710"
+  },
+  {
+    "id": "review-missing-file-invalid-size",
+    "input": {
+      "files": [
+        {
+          "rawBytes": false
+        }
+      ]
+    },
+    "inputSha256": "e026025e87857954491e1155e328118513ddf93d50eee74db3b32d71060a379f",
+    "beforeHead": "1ce6e51cb4118a27265ef8cb6d99279337a6d3d8",
+    "beforeExit": 2,
+    "beforeResult": {
+      "first": {
+        "status": "UNKNOWN",
+        "reason": "index-record-incomplete"
+      },
+      "statusCounts": {
+        "MATCH": 0,
+        "UNKNOWN": 2,
+        "FAIL": 0
+      }
+    },
+    "afterHead": "8a1bbdb43058729b7951e881083550c9e82cb8a3",
+    "afterExit": 1,
+    "afterResult": {
+      "first": {
+        "status": "FAIL",
+        "reason": "index-size-format"
+      },
+      "statusCounts": {
+        "MATCH": 0,
+        "UNKNOWN": 1,
+        "FAIL": 1
+      }
+    },
+    "expected": "FAIL / exit 1 (explicit contradiction before incompleteness)",
+    "sameInput": true,
+    "green": true,
+    "beforeStdoutSha256": "dfa6d3ac6701f41fa9abeac91d45885041c5634f4481c6e9c26fdfc8a32f8553",
+    "afterStdoutSha256": "b9940816653a5eab8837f1aa5c39c012c3ce36f721d45cd282674cbe63f2d730"
+  },
+  {
+    "id": "review-missing-file-digest-conflict",
+    "input": {
+      "files": [
+        {
+          "sha256": "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+          "gzipSha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    },
+    "inputSha256": "f4b3e4175221c6d8bfe1c4b8007c66aaa29743355062ee1132050aa965d087f5",
+    "beforeHead": "1ce6e51cb4118a27265ef8cb6d99279337a6d3d8",
+    "beforeExit": 2,
+    "beforeResult": {
+      "first": {
+        "status": "UNKNOWN",
+        "reason": "index-record-incomplete"
+      },
+      "statusCounts": {
+        "MATCH": 0,
+        "UNKNOWN": 2,
+        "FAIL": 0
+      }
+    },
+    "afterHead": "8a1bbdb43058729b7951e881083550c9e82cb8a3",
+    "afterExit": 1,
+    "afterResult": {
+      "first": {
+        "status": "FAIL",
+        "reason": "index-digest-conflict"
+      },
+      "statusCounts": {
+        "MATCH": 0,
+        "UNKNOWN": 1,
+        "FAIL": 1
+      }
+    },
+    "expected": "FAIL / exit 1 (explicit contradiction before incompleteness)",
+    "sameInput": true,
+    "green": true,
+    "beforeStdoutSha256": "dfa6d3ac6701f41fa9abeac91d45885041c5634f4481c6e9c26fdfc8a32f8553",
+    "afterStdoutSha256": "02d57d3b77075fb3ab3ab9deba721d8a0f857a098c81f0d7e073e1efbfb2a238"
+  },
+  {
+    "id": "review-missing-compressed-pinned-conflict",
+    "input": {
+      "files": [
+        {
+          "rawSha256": "0000000000000000000000000000000000000000000000000000000000000000",
+          "rawBytes": 418846,
+          "file": "61b757bd-6b5f-4fdf-aab8-574c511aea93-precleanup.json.gz"
+        }
+      ]
+    },
+    "inputSha256": "9d4e080f145d275a81a210a960e639e2261ba758d3428150e4837ec5c7b121fd",
+    "beforeHead": "1ce6e51cb4118a27265ef8cb6d99279337a6d3d8",
+    "beforeExit": 2,
+    "beforeResult": {
+      "first": {
+        "status": "UNKNOWN",
+        "file": "61b757bd-6b5f-4fdf-aab8-574c511aea93-precleanup.json.gz",
+        "reason": "index-record-incomplete"
+      },
+      "statusCounts": {
+        "MATCH": 0,
+        "UNKNOWN": 20,
+        "FAIL": 0
+      }
+    },
+    "afterHead": "8a1bbdb43058729b7951e881083550c9e82cb8a3",
+    "afterExit": 1,
+    "afterResult": {
+      "first": {
+        "status": "FAIL",
+        "file": "61b757bd-6b5f-4fdf-aab8-574c511aea93-precleanup.json.gz",
+        "reason": "pinned-index-rawSha256"
+      },
+      "statusCounts": {
+        "MATCH": 0,
+        "UNKNOWN": 19,
+        "FAIL": 1
+      }
+    },
+    "expected": "FAIL / exit 1 (explicit contradiction before incompleteness)",
+    "sameInput": true,
+    "green": true,
+    "beforeStdoutSha256": "bd66e651ae2e2d71406c5159f8e80d6033ba963bf17548e44b118cff0d68540c",
+    "afterStdoutSha256": "f82b47837ff8a250d938904f2d3dfa8d06f16c8a6e34d4e568be5df0f3789f1c"
+  },
+  {
+    "id": "review-missing-raw-digest-conflict",
+    "input": {
+      "files": [
+        {
+          "file": "payload.txt",
+          "sha256": "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+          "gzipSha256": "0000000000000000000000000000000000000000000000000000000000000000",
+          "rawBytes": 0
+        }
+      ]
+    },
+    "inputSha256": "58849ac16917b8725626f487e6121cea9d1108fe6b2007c32e47e5de0ff4871a",
+    "beforeHead": "1ce6e51cb4118a27265ef8cb6d99279337a6d3d8",
+    "beforeExit": 2,
+    "beforeResult": {
+      "first": {
+        "status": "UNKNOWN",
+        "file": "payload.txt",
+        "reason": "index-record-incomplete"
+      },
+      "statusCounts": {
+        "MATCH": 0,
+        "UNKNOWN": 1,
+        "FAIL": 0
+      }
+    },
+    "afterHead": "8a1bbdb43058729b7951e881083550c9e82cb8a3",
+    "afterExit": 1,
+    "afterResult": {
+      "first": {
+        "status": "FAIL",
+        "file": "payload.txt",
+        "reason": "index-digest-conflict"
+      },
+      "statusCounts": {
+        "MATCH": 0,
+        "UNKNOWN": 0,
+        "FAIL": 1
+      }
+    },
+    "expected": "FAIL / exit 1 (explicit contradiction before incompleteness)",
+    "sameInput": true,
+    "green": true,
+    "beforeStdoutSha256": "d11f54b85a9b6f0b1001aa9b78b46a92ca4db9bf9c34a859f33e20171ac73a9a",
+    "afterStdoutSha256": "752292aa0b5edafed1eba7941f3a561017eddd3958e251a2278696205d58f357"
+  }
+]
+```
+
+前後結果全文は今回用rootのindependent-finding-red-v2.json / final-p2-fixed-head-results.jsonと各stdout fileに保存した。上のJSONは多数のmissing-index-file行をstatus件数へ圧縮した表示であり、原CLI結果を作り替えたものではない。Windows/Python環境は前節と同じ。
+
+- 旧9対照・既存29対照の入力/期待値を変更せず、追加4を含む33/33期待一致。期待値を実装結果へ合わせた変更は0件。
+- 元250receiptを再び行別比較し247 MATCH / 3 UNKNOWN / 0 FAIL、判定変化0件。404由来3件のUNKNOWNを維持し、原250fileのhash変更0件。
+- D/E19、F20、G25は固定実装からの実CLIで全MATCH/終了0。全64通りの1record除去はUNKNOWNを検出。rawSha256を持つ全48recordについて、compressed digest欠落＋誤rawSha256を与える混合反例は全てFAILを検出した。これは48件の実Worker実験ではなく、静的recordの反例検査である。
+- 主要6経路のauditを補訂版でも再実行し、checker内部network/subprocess/shell/write/mutationは禁止event0。Windows junction/case/root外の実測は前節どおりで、path関数は初回修正から不変。
+- Linuxと通常file symlinkはNOT_TESTEDのまま。今回の全環境評価はPARTIAL、実験開始許可は発生しない。
+
+実CLIに用いたafter-p2.py / expectations-p2.jsonはこの固定Git HEADから直接保存したbytes。最終提出HEADと再レビュー結果はPRコメントに記録する。再現は前節のafter.pyをafter-p2.pyに置き換え、saved-indexには--expectations expectations-p2.jsonを明示する。コード/期待値のSHA-256と追加行列の各対象名はfinal-p2-fixed-head-results.jsonに保存している。
+
+BUILD_BINDING=UNKNOWN / J2=UNKNOWN / U-C=UNKNOWN / conditionU=NOT_RUN / realExperiment=NOT_RUN / executionAuthorization=NOT_GRANTED / startCondition=BLOCKED / productionWorker=HOLD。
+
+2026年11月05日 19:51 JST
