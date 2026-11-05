@@ -1,0 +1,112 @@
+[
+  {
+    "id": "valid",
+    "subject": {
+      "receipts": [
+        {
+          "file": "payload.txt",
+          "size": 3,
+          "sha256": "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+          "runId": "synthetic-run-A"
+        }
+      ]
+    }
+  },
+  {
+    "id": "missing-file",
+    "subject": {
+      "receipts": [
+        {
+          "file": "absent.txt",
+          "size": 3,
+          "sha256": "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+          "runId": "synthetic-run-A"
+        }
+      ]
+    }
+  },
+  {
+    "id": "wrong-run",
+    "subject": {
+      "receipts": [
+        {
+          "file": "payload.txt",
+          "size": 3,
+          "sha256": "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+          "runId": "synthetic-run-B"
+        }
+      ]
+    }
+  },
+  {
+    "id": "wrong-digest",
+    "subject": {
+      "receipts": [
+        {
+          "file": "payload.txt",
+          "size": 3,
+          "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+          "runId": "synthetic-run-A"
+        }
+      ]
+    }
+  },
+  {
+    "id": "duplicate",
+    "subject": {
+      "receipts": [
+        {
+          "file": "payload.txt",
+          "size": 3,
+          "sha256": "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+          "runId": "synthetic-run-A"
+        },
+        {
+          "file": "payload.txt",
+          "size": 3,
+          "sha256": "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+          "runId": "synthetic-run-A"
+        }
+      ]
+    }
+  },
+  {
+    "id": "invalid-manifest",
+    "subject": {
+      "receipts": "broken"
+    }
+  },
+  {
+    "id": "external-unavailable",
+    "subject": {
+      "receipts": [
+        {
+          "file": "payload.txt",
+          "size": 3,
+          "sha256": "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+          "runId": "synthetic-run-A",
+          "exitCode": 1
+        }
+      ]
+    }
+  },
+  {
+    "id": "outside-root",
+    "subject": {
+      "receipts": [
+        {
+          "file": "../outside.txt",
+          "size": 3,
+          "sha256": "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+          "runId": "synthetic-run-A"
+        }
+      ]
+    }
+  },
+  {
+    "id": "missing-receipt",
+    "subject": {
+      "receipts": []
+    }
+  }
+]

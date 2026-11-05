@@ -1,0 +1,52 @@
+{
+  "files": {
+    "artifact-13087243261.zip": {
+      "sha256": "844d959103f22742dfd32140ff99a4bfdb3821cf0ec50d6db22c5ce5eb43157b",
+      "size": 58297,
+      "runId": 41316288566,
+      "artifactId": 13087243261
+    }
+  },
+  "expectationSource": "PR #423 fixed HEAD 592ccb63478d0a23312237d1f736a419c096f5f8, not generated from acquired subject bytes",
+  "controlPins": {
+    "files": {
+      "payload.txt": {
+        "size": 3,
+        "sha256": "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+        "runId": "synthetic-run-A"
+      }
+    }
+  },
+  "controls": {
+    "valid": [
+      "MATCH"
+    ],
+    "missing-file": [
+      "UNKNOWN",
+      "UNKNOWN"
+    ],
+    "wrong-run": [
+      "FAIL"
+    ],
+    "wrong-digest": [
+      "FAIL"
+    ],
+    "duplicate": [
+      "MATCH",
+      "FAIL"
+    ],
+    "invalid-manifest": [
+      "FAIL"
+    ],
+    "external-unavailable": [
+      "UNKNOWN"
+    ],
+    "outside-root": [
+      "FAIL",
+      "UNKNOWN"
+    ],
+    "missing-receipt": [
+      "UNKNOWN"
+    ]
+  }
+}

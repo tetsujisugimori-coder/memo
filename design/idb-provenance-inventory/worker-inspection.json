@@ -1,0 +1,421 @@
+[
+  {
+    "condition": "D",
+    "runId": "eec76e89-5f10-45d0-8830-8dcb3ddf2110",
+    "dbName": "worker-poc-d12d5caa-4a7d-4223-81c0-0a6cd77a1f74",
+    "eventCount": 152,
+    "overflow": false,
+    "sequences": {
+      "main": {
+        "count": 144,
+        "min": 1,
+        "max": 144,
+        "duplicates": 0,
+        "internalGaps": []
+      },
+      "worker-1": {
+        "count": 4,
+        "min": 1,
+        "max": 4,
+        "duplicates": 0,
+        "internalGaps": []
+      },
+      "worker-2": {
+        "count": 4,
+        "min": 1,
+        "max": 4,
+        "duplicates": 0,
+        "internalGaps": []
+      }
+    },
+    "eventNames": [
+      "cleanup_end",
+      "cleanup_start",
+      "close_called",
+      "close_returned",
+      "connection_observed",
+      "main_heartbeat",
+      "open_start",
+      "open_success",
+      "open_upgradeneeded",
+      "transaction_complete",
+      "transaction_start",
+      "upgrade_timeout",
+      "worker_message_received",
+      "worker_stop_requested",
+      "worker_terminate_called",
+      "worker_terminate_returned"
+    ],
+    "nativeIdentity": "NOT_FOUND_IN_SCOPE",
+    "finalHighWaterFlushAck": "NOT_FOUND_IN_SCOPE"
+  },
+  {
+    "condition": "E",
+    "runId": "e22b6648-7957-44f7-bb08-a902f835d763",
+    "dbName": "worker-poc-8de8fd09-68f4-436d-8c65-0297dd6436cf",
+    "eventCount": 334,
+    "overflow": false,
+    "sequences": {
+      "main": {
+        "count": 238,
+        "min": 1,
+        "max": 238,
+        "duplicates": 0,
+        "internalGaps": []
+      },
+      "worker-1": {
+        "count": 8,
+        "min": 1,
+        "max": 8,
+        "duplicates": 0,
+        "internalGaps": []
+      },
+      "worker-2": {
+        "count": 8,
+        "min": 1,
+        "max": 8,
+        "duplicates": 0,
+        "internalGaps": []
+      },
+      "worker-3": {
+        "count": 8,
+        "min": 1,
+        "max": 8,
+        "duplicates": 0,
+        "internalGaps": []
+      },
+      "worker-4": {
+        "count": 8,
+        "min": 1,
+        "max": 8,
+        "duplicates": 0,
+        "internalGaps": []
+      },
+      "worker-5": {
+        "count": 8,
+        "min": 1,
+        "max": 8,
+        "duplicates": 0,
+        "internalGaps": []
+      },
+      "worker-6": {
+        "count": 8,
+        "min": 1,
+        "max": 8,
+        "duplicates": 0,
+        "internalGaps": []
+      },
+      "worker-7": {
+        "count": 8,
+        "min": 1,
+        "max": 8,
+        "duplicates": 0,
+        "internalGaps": []
+      },
+      "worker-8": {
+        "count": 8,
+        "min": 1,
+        "max": 8,
+        "duplicates": 0,
+        "internalGaps": []
+      },
+      "worker-9": {
+        "count": 8,
+        "min": 1,
+        "max": 8,
+        "duplicates": 0,
+        "internalGaps": []
+      },
+      "worker-10": {
+        "count": 8,
+        "min": 1,
+        "max": 8,
+        "duplicates": 0,
+        "internalGaps": []
+      },
+      "worker-11": {
+        "count": 8,
+        "min": 1,
+        "max": 8,
+        "duplicates": 0,
+        "internalGaps": []
+      },
+      "worker-12": {
+        "count": 8,
+        "min": 1,
+        "max": 8,
+        "duplicates": 0,
+        "internalGaps": []
+      }
+    },
+    "eventNames": [
+      "cleanup_end",
+      "cleanup_start",
+      "cleanup_success",
+      "close_called",
+      "close_returned",
+      "connection_observed",
+      "cooperative_ack",
+      "main_heartbeat",
+      "open_start",
+      "open_success",
+      "open_upgradeneeded",
+      "transaction_complete",
+      "transaction_start",
+      "worker_message_received",
+      "worker_stop_requested",
+      "worker_terminate_called",
+      "worker_terminate_returned"
+    ],
+    "nativeIdentity": "NOT_FOUND_IN_SCOPE",
+    "finalHighWaterFlushAck": "NOT_FOUND_IN_SCOPE"
+  },
+  {
+    "condition": "F",
+    "runId": "61b757bd-6b5f-4fdf-aab8-574c511aea93",
+    "dbName": "worker-poc-877ab5bc-0794-4ccf-97da-5c6664645508",
+    "eventCount": 346,
+    "overflow": false,
+    "sequences": {
+      "main": {
+        "count": 238,
+        "min": 1,
+        "max": 238,
+        "duplicates": 0,
+        "internalGaps": []
+      },
+      "worker-1": {
+        "count": 9,
+        "min": 1,
+        "max": 9,
+        "duplicates": 0,
+        "internalGaps": []
+      },
+      "worker-2": {
+        "count": 9,
+        "min": 1,
+        "max": 9,
+        "duplicates": 0,
+        "internalGaps": []
+      },
+      "worker-3": {
+        "count": 9,
+        "min": 1,
+        "max": 9,
+        "duplicates": 0,
+        "internalGaps": []
+      },
+      "worker-4": {
+        "count": 9,
+        "min": 1,
+        "max": 9,
+        "duplicates": 0,
+        "internalGaps": []
+      },
+      "worker-5": {
+        "count": 9,
+        "min": 1,
+        "max": 9,
+        "duplicates": 0,
+        "internalGaps": []
+      },
+      "worker-6": {
+        "count": 9,
+        "min": 1,
+        "max": 9,
+        "duplicates": 0,
+        "internalGaps": []
+      },
+      "worker-7": {
+        "count": 9,
+        "min": 1,
+        "max": 9,
+        "duplicates": 0,
+        "internalGaps": []
+      },
+      "worker-8": {
+        "count": 9,
+        "min": 1,
+        "max": 9,
+        "duplicates": 0,
+        "internalGaps": []
+      },
+      "worker-9": {
+        "count": 9,
+        "min": 1,
+        "max": 9,
+        "duplicates": 0,
+        "internalGaps": []
+      },
+      "worker-10": {
+        "count": 9,
+        "min": 1,
+        "max": 9,
+        "duplicates": 0,
+        "internalGaps": []
+      },
+      "worker-11": {
+        "count": 9,
+        "min": 1,
+        "max": 9,
+        "duplicates": 0,
+        "internalGaps": []
+      },
+      "worker-12": {
+        "count": 9,
+        "min": 1,
+        "max": 9,
+        "duplicates": 0,
+        "internalGaps": []
+      }
+    },
+    "eventNames": [
+      "cleanup_end",
+      "cleanup_start",
+      "cleanup_success",
+      "close_called",
+      "close_returned",
+      "connection_observed",
+      "getAll_success",
+      "main_heartbeat",
+      "open_start",
+      "open_success",
+      "open_upgradeneeded",
+      "transaction_complete",
+      "transaction_start",
+      "transaction_wait_end",
+      "transaction_wait_start",
+      "unresolved_send",
+      "worker_message_received",
+      "worker_stop_requested",
+      "worker_terminate_called",
+      "worker_terminate_returned"
+    ],
+    "nativeIdentity": "NOT_FOUND_IN_SCOPE",
+    "finalHighWaterFlushAck": "NOT_FOUND_IN_SCOPE"
+  },
+  {
+    "condition": "G",
+    "runId": "16060bc8-4b98-435c-a534-f276b70ae612",
+    "dbName": "worker-poc-d941090b-4231-4752-9a72-20b40592915f",
+    "eventCount": 346,
+    "overflow": false,
+    "sequences": {
+      "main": {
+        "count": 238,
+        "min": 1,
+        "max": 238,
+        "duplicates": 0,
+        "internalGaps": []
+      },
+      "worker-1": {
+        "count": 9,
+        "min": 1,
+        "max": 9,
+        "duplicates": 0,
+        "internalGaps": []
+      },
+      "worker-2": {
+        "count": 9,
+        "min": 1,
+        "max": 9,
+        "duplicates": 0,
+        "internalGaps": []
+      },
+      "worker-3": {
+        "count": 9,
+        "min": 1,
+        "max": 9,
+        "duplicates": 0,
+        "internalGaps": []
+      },
+      "worker-4": {
+        "count": 9,
+        "min": 1,
+        "max": 9,
+        "duplicates": 0,
+        "internalGaps": []
+      },
+      "worker-5": {
+        "count": 9,
+        "min": 1,
+        "max": 9,
+        "duplicates": 0,
+        "internalGaps": []
+      },
+      "worker-6": {
+        "count": 9,
+        "min": 1,
+        "max": 9,
+        "duplicates": 0,
+        "internalGaps": []
+      },
+      "worker-7": {
+        "count": 9,
+        "min": 1,
+        "max": 9,
+        "duplicates": 0,
+        "internalGaps": []
+      },
+      "worker-8": {
+        "count": 9,
+        "min": 1,
+        "max": 9,
+        "duplicates": 0,
+        "internalGaps": []
+      },
+      "worker-9": {
+        "count": 9,
+        "min": 1,
+        "max": 9,
+        "duplicates": 0,
+        "internalGaps": []
+      },
+      "worker-10": {
+        "count": 9,
+        "min": 1,
+        "max": 9,
+        "duplicates": 0,
+        "internalGaps": []
+      },
+      "worker-11": {
+        "count": 9,
+        "min": 1,
+        "max": 9,
+        "duplicates": 0,
+        "internalGaps": []
+      },
+      "worker-12": {
+        "count": 9,
+        "min": 1,
+        "max": 9,
+        "duplicates": 0,
+        "internalGaps": []
+      }
+    },
+    "eventNames": [
+      "cleanup_end",
+      "cleanup_start",
+      "cleanup_success",
+      "close_called",
+      "close_returned",
+      "connection_observed",
+      "delay_end",
+      "delay_start",
+      "getAll_success",
+      "main_heartbeat",
+      "open_start",
+      "open_success",
+      "open_upgradeneeded",
+      "transaction_complete",
+      "transaction_start",
+      "unresolved_send",
+      "worker_message_received",
+      "worker_stop_requested",
+      "worker_terminate_called",
+      "worker_terminate_returned"
+    ],
+    "nativeIdentity": "NOT_FOUND_IN_SCOPE",
+    "finalHighWaterFlushAck": "NOT_FOUND_IN_SCOPE"
+  }
+]
