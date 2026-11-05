@@ -1,0 +1,99 @@
+{
+  "run": 41244959121,
+  "artifactId": 13058663151,
+  "jobId": 124666359277,
+  "testedCommit": "7b30786ea9f2473e5e2423ccb4a279475ff18646",
+  "testedTree": "1525aa5e6c3ce8c1302fae8ffafe8a323c66b660",
+  "dirty": false,
+  "runs": 1,
+  "goal": "PASS",
+  "t7Outcome": "FAIL",
+  "runId": "0d4bd770-fdb2-431c-8444-73c3e55693c3",
+  "identityRef": "t7-db-identity-0d4bd770-fdb2-431c-8444-73c3e55693c3.json.gz#identity",
+  "failedIteration": 5,
+  "cleanup": "UNKNOWN",
+  "files": [
+    {
+      "file": "suite-identity.patch.gz",
+      "rawSha256": "8525d8f220687a534fad890e451c04a178e8763bf171b0eee8598dfe8b11bcbb",
+      "gzipSha256": "4c37b3b08354f4c542e1ce94c4c612be8c9756b45ae7a3eae91934f43930c94b"
+    },
+    {
+      "file": "t7-db-identity-0d4bd770-fdb2-431c-8444-73c3e55693c3.json.gz",
+      "rawSha256": "a7c249655d7e14af4bc7bd5fbaa5187e45644579a9b049f4594a9e318e09e4f1",
+      "gzipSha256": "766d5107992066e04dc68ac43df728dbd2c2111f06659ae03dbceb7bb9050373"
+    },
+    {
+      "file": "diagnostic-webkit-job.log.gz",
+      "rawSha256": "870624d9c1ca92c1d16c0f44562bac32a204124a5b1a9dac10ae58b888a31254",
+      "gzipSha256": "f6334dc6b58275f58b0806aa633b3f8cb871feb59df91b0b544c363e5c00b780"
+    },
+    {
+      "file": "cancelled-ci.json.gz",
+      "rawSha256": "60cae683d1ff428e88aa22526e9b7c6d825584e3672c022ae243556b6bbf09f5",
+      "gzipSha256": "11f8616dca1e184750ccb863a82c33ecf33bb2186fbbaabc646adfc0fdc23172"
+    },
+    {
+      "file": "cancelled-poc.json.gz",
+      "rawSha256": "a24e3f2e355e83dde429d1c8442feb5a3863fd8c51dfe4cbc199a568f158862b",
+      "gzipSha256": "73b456ebc944eafcf61711a798b510f6b37c3ecca0c25b4eedd6b2d925907c86"
+    },
+    {
+      "file": "cancelled-stage3.json.gz",
+      "rawSha256": "f95ce82e1f79c9300368cf606ebee675a59f72efa39c14d160d35c30b00e2715",
+      "gzipSha256": "c86390ec560cf46458c3fa57e70bbae2f9cf82f024e41c87745b8b580bf2ed29"
+    },
+    {
+      "file": "cancelled-standalone.json.gz",
+      "rawSha256": "421ce7c1698924c1181d075a00ccedb5fafcb357ff15ce505600336297adc4bc",
+      "gzipSha256": "c58df5d4e15c809b84d22de751ce5162b2044f3dacd7bb0db0b6da6ad9a6bbf8"
+    }
+  ],
+  "sourceVerification": {
+    "index.html": {
+      "expected": "e1e6cb61c590a0b125aa640e0fc709ff02d373ec4ff1d4b4b960f5b57bfbf430",
+      "gitBlobSha256": "e1e6cb61c590a0b125aa640e0fc709ff02d373ec4ff1d4b4b960f5b57bfbf430",
+      "equal": true
+    },
+    "suite.js": {
+      "expected": "21150cc64ee1e56c1ad0c27fc93c045c8254eee8e8fba3636fee634acf4739c2",
+      "gitBlobSha256": "21150cc64ee1e56c1ad0c27fc93c045c8254eee8e8fba3636fee634acf4739c2",
+      "equal": true
+    },
+    "worker.js": {
+      "expected": "53b853238f8bb53412aeeb012df3f0598fd48b726ead76d3601bc43a904aa2fc",
+      "gitBlobSha256": "53b853238f8bb53412aeeb012df3f0598fd48b726ead76d3601bc43a904aa2fc",
+      "equal": true
+    },
+    "cleanup.js": {
+      "expected": "930e4d234a2169b113e67084165c694d95be2a6e2d10e61999baca2c11ce0b22",
+      "gitBlobSha256": "930e4d234a2169b113e67084165c694d95be2a6e2d10e61999baca2c11ce0b22",
+      "equal": true
+    },
+    "controls.js": {
+      "expected": "cf05e8aabebf2d715dae2c32a943e72750d34dfa5f8619175a002943a5614b76",
+      "gitBlobSha256": "cf05e8aabebf2d715dae2c32a943e72750d34dfa5f8619175a002943a5614b76",
+      "equal": true
+    },
+    "diagnostic-plan.js": {
+      "expected": "e10ebf99805b70cc366a3410bdd74f384c02c19db01b2be030a4b1ccaa472333",
+      "gitBlobSha256": "e10ebf99805b70cc366a3410bdd74f384c02c19db01b2be030a4b1ccaa472333",
+      "equal": true
+    },
+    "diagnostic.js": {
+      "expected": "7863d0ca24c3ec6fe729cfbea003ea83ee983bfe582bc20ab6fd26fc8cceb41c",
+      "gitBlobSha256": "7863d0ca24c3ec6fe729cfbea003ea83ee983bfe582bc20ab6fd26fc8cceb41c",
+      "equal": true
+    },
+    "diagnostic-worker.js": {
+      "expected": "59bf84b27ad6911a1e8ef1293dda73927b4929b715b169ad0ba77d7af7d95d27",
+      "gitBlobSha256": "59bf84b27ad6911a1e8ef1293dda73927b4929b715b169ad0ba77d7af7d95d27",
+      "equal": true
+    }
+  },
+  "runnerHash": "900d15fc7130ffcbe115b531a222fdc856d8904a6dfefb3d84763e1f7aa1f9d6",
+  "servedSuiteHash": "5ee838404eea58552a9f98f0a5d7f267c12139b38593ba476b1a981574da4d87",
+  "identityBeforeFirstOpen": true,
+  "clockRule": "Only compare mainMs values within this run; do not subtract clocks from other processes",
+  "capturedLogs": "GitHub job text captured by PowerShell Out-File UTF8 (BOM and host newlines); not a byte-identical HTTP archive"
+}
