@@ -108,5 +108,271 @@
     "subject": {
       "receipts": []
     }
+  },
+  {
+    "id": "P2-01-empty-object",
+    "subject": {},
+    "kind": "saved-index",
+    "profile": "synthetic"
+  },
+  {
+    "id": "P2-01-empty-list",
+    "subject": {
+      "files": []
+    },
+    "kind": "saved-index",
+    "profile": "synthetic"
+  },
+  {
+    "id": "P2-02-alias",
+    "subject": {
+      "receipts": [
+        {
+          "file": "payload.txt",
+          "size": 3,
+          "sha256": "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+          "runId": "synthetic-run-A"
+        },
+        {
+          "file": "./payload.txt",
+          "size": 3,
+          "sha256": "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+          "runId": "synthetic-run-A"
+        }
+      ]
+    }
+  },
+  {
+    "id": "P3-01-failed-corrupt",
+    "subject": {
+      "receipts": [
+        {
+          "file": "payload.txt",
+          "size": 3,
+          "sha256": "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+          "runId": "synthetic-run-A"
+        },
+        {
+          "file": "subjects.json",
+          "size": 0,
+          "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+          "exitCode": 1
+        }
+      ]
+    }
+  },
+  {
+    "id": "index-valid",
+    "subject": {
+      "files": [
+        {
+          "file": "payload.txt",
+          "sha256": "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
+        }
+      ]
+    },
+    "kind": "saved-index",
+    "profile": "synthetic"
+  },
+  {
+    "id": "index-files-wrong-type",
+    "subject": {
+      "files": "broken"
+    },
+    "kind": "saved-index",
+    "profile": "synthetic"
+  },
+  {
+    "id": "index-record-wrong-type",
+    "subject": {
+      "files": [
+        "broken"
+      ]
+    },
+    "kind": "saved-index",
+    "profile": "synthetic"
+  },
+  {
+    "id": "index-record-missing-file",
+    "subject": {
+      "files": [
+        {
+          "sha256": "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
+        }
+      ]
+    },
+    "kind": "saved-index",
+    "profile": "synthetic"
+  },
+  {
+    "id": "index-record-missing-digest",
+    "subject": {
+      "files": [
+        {
+          "file": "payload.txt"
+        }
+      ]
+    },
+    "kind": "saved-index",
+    "profile": "synthetic"
+  },
+  {
+    "id": "index-invalid-digest",
+    "subject": {
+      "files": [
+        {
+          "file": "payload.txt",
+          "sha256": "bad"
+        }
+      ]
+    },
+    "kind": "saved-index",
+    "profile": "synthetic"
+  },
+  {
+    "id": "index-alias-duplicate",
+    "subject": {
+      "files": [
+        {
+          "file": "payload.txt",
+          "sha256": "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
+        },
+        {
+          "file": "./payload.txt",
+          "sha256": "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
+        }
+      ]
+    },
+    "kind": "saved-index",
+    "profile": "synthetic"
+  },
+  {
+    "id": "alias-wrong-run",
+    "subject": {
+      "receipts": [
+        {
+          "file": "./payload.txt",
+          "size": 3,
+          "sha256": "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+          "runId": "synthetic-run-B"
+        }
+      ]
+    }
+  },
+  {
+    "id": "alias-double-slash",
+    "subject": {
+      "receipts": [
+        {
+          "file": "payload.txt",
+          "size": 3,
+          "sha256": "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+          "runId": "synthetic-run-A"
+        },
+        {
+          "file": ".//payload.txt",
+          "size": 3,
+          "sha256": "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+          "runId": "synthetic-run-A"
+        }
+      ]
+    }
+  },
+  {
+    "id": "portable-backslash",
+    "subject": {
+      "receipts": [
+        {
+          "file": ".\\payload.txt",
+          "size": 3,
+          "sha256": "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+          "runId": "synthetic-run-A"
+        }
+      ]
+    }
+  },
+  {
+    "id": "portable-drive",
+    "subject": {
+      "receipts": [
+        {
+          "file": "C:/payload.txt",
+          "size": 3,
+          "sha256": "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+          "runId": "synthetic-run-A"
+        }
+      ]
+    }
+  },
+  {
+    "id": "portable-ads",
+    "subject": {
+      "receipts": [
+        {
+          "file": "payload.txt:stream",
+          "size": 3,
+          "sha256": "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+          "runId": "synthetic-run-A"
+        }
+      ]
+    }
+  },
+  {
+    "id": "portable-trailing-dot",
+    "subject": {
+      "receipts": [
+        {
+          "file": "payload.txt.",
+          "size": 3,
+          "sha256": "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+          "runId": "synthetic-run-A"
+        }
+      ]
+    }
+  },
+  {
+    "id": "portable-parent",
+    "subject": {
+      "receipts": [
+        {
+          "file": "sub/../payload.txt",
+          "size": 3,
+          "sha256": "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+          "runId": "synthetic-run-A"
+        }
+      ]
+    }
+  },
+  {
+    "id": "failed-absent",
+    "subject": {
+      "receipts": [
+        {
+          "file": "payload.txt",
+          "size": 3,
+          "sha256": "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+          "runId": "synthetic-run-A"
+        },
+        {
+          "file": "absent.txt",
+          "size": 3,
+          "sha256": "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+          "exitCode": 1
+        }
+      ]
+    }
+  },
+  {
+    "id": "index-missing-required",
+    "kind": "saved-index",
+    "profile": "synthetic-required",
+    "subject": {
+      "files": [
+        {
+          "file": "payload.txt",
+          "sha256": "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
+        }
+      ]
+    }
   }
 ]

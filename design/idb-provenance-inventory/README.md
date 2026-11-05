@@ -103,6 +103,8 @@ GitHub側ではartifact5ページ426件、cache2件、memo release0件、固定P
 
 [static-check.py](static-check.py)は標準libraryのみ。network/subprocess/ZIP展開/取得file実行はしない。`receipts`は入力台帳と別fileの期待値を受け、Gの既知hash/run/artifactを#423から固定した[expectations.json](expectations.json)と照合する。他receiptの自己記載hash一致は独立したorigin認証ではない。
 
+PR #425の局所修正では、`saved-index`の非空schemaと独立した必須集合を追加した。既存配置のD/E・F・Gはdirectory名から固定Git版由来profileを選び、移設時は`--expectations`と`--profile`で明示する。必須集合は入力indexの件数から作らない。空・欠落・不完全なindexはUNKNOWN/終了2、schema不正・矛盾はFAIL/終了1、全必須照合成立はMATCH/終了0。receiptは解決済みpathで重複とpinを判定し、取得成否と保存bytesの整合性を別fieldで保持する。取得失敗でもbytes矛盾はFAIL、エラー応答本文のhashが一致しただけならUNKNOWNを維持する。契約・RED→GREEN・今回の実測は[validation.md](validation.md)で先行の歴史的検査記録と分離した。
+
 ```powershell
 $taskEvidence = Join-Path $env:TEMP 'memo-provenance-20261105'
 python -B design/idb-provenance-inventory/static-check.py receipts design/idb-provenance-inventory/acquisition-ledger.json $taskEvidence design/idb-provenance-inventory/expectations.json
@@ -111,7 +113,7 @@ python -B design/idb-provenance-inventory/static-check.py zip (Join-Path $taskEv
 python -B design/idb-provenance-inventory/static-check.py saved-index (Join-Path $taskEvidence 'snapshots/592ccb63478d0a23312237d1f736a419c096f5f8/experiments/idb-time-delay-only/evidence/index.json')
 ```
 
-期待値はfixture subjectから生成しない。`fixtures/payload.txt`の`abc`、固定のliteral SHA-256とsynthetic-run-Aを独立期待値にし、正常、file欠落、別run、digest矛盾、重複、壊したmanifest shape、取得不能、root外参照、receipt欠落の9対照を検査する。欠落/取得不能はUNKNOWN、明示矛盾はFAIL、正常はMATCH（実行証明PASSではない）。詳細と自己照合結果は[validation.md](validation.md)。
+期待値はfixture subjectから生成しない。`fixtures/payload.txt`の`abc`、固定のliteral SHA-256とsynthetic-run-Aを独立期待値にする。先行9対照の入力・期待値は保持し、空index・path alias・取得失敗時の矛盾とschema/必須集合/portable pathの境界20対照を追加した（合計29）。欠落/取得不能はUNKNOWN、明示矛盾はFAIL、正常はMATCH（実行証明PASSではない）。詳細と自己照合結果は[validation.md](validation.md)。
 
 一時原bytesは`acquisition-ledger.json`のtemporaryRoot配下。取得fileのサイズ/hashを記録し、独立レビュー・追跡のため保持する。自動削除せず、受入後にこのtask directoryの絶対pathを確認して削除する方針。OS tempの保持保証はなく、Gitには研究資料とhashのみを保存する。旧work/証拠は上書き・削除しない。
 

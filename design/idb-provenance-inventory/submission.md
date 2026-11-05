@@ -17,3 +17,13 @@ base: main、開始時commit 438cf201abe83a53e8cb8e7ed160c4d6dbe147ba。
 BUILD_BINDING=UNKNOWN; J2=UNKNOWN; U-C=UNKNOWN; conditionU=NOT_RUN; realExperiment=NOT_RUN; executionAuthorization=NOT_GRANTED; startCondition=BLOCKED; productionWorker=HOLD。
 
 2026年11月5日 JST
+
+## PR #425の局所修正
+
+今回の基準HEADは`544aebbbe57b3a4380e8611af0a5cfbf4ce98328`。同branch・同PR・同baseを使い、既存14file内のchecker/独立期待値/合成fixture/検証・提出文書だけを修正する。既存証拠台帳・解析JSON・payloadは変更しない。
+
+親が修正前の実CLI RED、局所実装、修正後GREENと各receipt単位の回帰、commit/pushを担当する。実装未参加の新しい子エージェントを実装完了後に起動し、固定HEADの14fileと原資料を読み取り専用でレビューさせる。起動成功を観測するまでは今回の独立レビュー済みと主張しない。利用不可/失敗はSUBAGENT_NOT_AVAILABLE/SUBAGENT_FAILEDとして区別する。
+
+Windows実測とLinux NOT_TESTEDを分離する。通常file symlinkはWinError1314でNOT_TESTED。Windows junction・case alias・root外参照は合成fixtureで別途実測し、通常symlinkやLinux実測の代用としない。VS Code固有の一般的な対応状況を、このセッションでの委任ツールの実在と混同しない。
+
+修正後の実測HEAD、最終提出HEAD、子の実行主体・検査範囲・判定、マージ推奨の対象範囲はvalidationとPRコメントへ記録する。初回研究レビューとは別の今回レビューとして扱う。

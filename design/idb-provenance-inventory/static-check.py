@@ -7,9 +7,12 @@ import argparse
 import gzip
 import hashlib
 import json
-from pathlib import Path
+import os
+from pathlib import Path, PureWindowsPath
+import re
 import struct
 import zipfile
+import zlib
 
 
 def sha256(data):
@@ -106,63 +109,178 @@ def inspect_zip(path):
             "BUILD_BINDING": "UNKNOWN", "execution": "NOT_RUN"}
 
 
+def resolve_evidence_path(root, name):
+    """Use portable relative spelling, then resolve aliases before any byte read."""
+    if (not isinstance(name, str) or not name or "\\" in name or ":" in name
+            or PureWindowsPath(name).drive or PureWindowsPath(name).root):
+        raise ValueError("invalid-path")
+    parts = [part for part in name.split("/") if part not in ("", ".")]
+    if not parts or any(part == ".." or part.endswith((".", " ")) or
+                        re.fullmatch(r"(?i)(CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])(?:\..*)?", part)
+                        for part in parts):
+        raise ValueError("invalid-path")
+    try:
+        path = (root / Path(*parts)).resolve()
+    except (OSError, RuntimeError) as error:
+        raise ValueError("invalid-path") from error
+    if not path.is_relative_to(root):
+        raise ValueError("duplicate-or-outside-root")
+    return path, os.path.normcase(str(path))
+
+
 def verify_receipts(manifest, root, expectations):
     """Separate pinned expectations from the subject receipts and external bytes."""
     rows, seen = [], set()
     root = Path(root).resolve()
     if not isinstance(manifest, dict) or not isinstance(manifest.get("receipts"), list):
         return [{"status": "FAIL", "reason": "manifest-shape"}]
+    pins = {}
+    for name, values in expectations.get("files", {}).items():
+        try:
+            _, key = resolve_evidence_path(root, name)
+        except ValueError as error:
+            return [{"status": "FAIL", "reason": "expectation-" + str(error)}]
+        if key in pins:
+            return [{"status": "FAIL", "reason": "expectation-path-alias"}]
+        pins[key] = (name, values)
     for receipt in manifest["receipts"]:
         if not isinstance(receipt, dict) or not isinstance(receipt.get("file"), str):
             rows.append({"status": "FAIL", "reason": "receipt-shape"})
             continue
         name = receipt["file"]
-        row = {"file": name, "status": "MATCH", "reasons": []}
+        row = {"file": name, "status": "MATCH", "reasons": [],
+               "acquisition": "FAILED" if receipt.get("exitCode", 0) != 0 else "SUCCEEDED",
+               "contentIntegrity": "NOT_CHECKED"}
         rows.append(row)
-        path = (root / name).resolve()
-        if name in seen or not path.is_relative_to(root):
+        try:
+            path, key = resolve_evidence_path(root, name)
+        except ValueError as error:
+            row.update(status="FAIL", reasons=[str(error)])
+            continue
+        if key in seen:
             row.update(status="FAIL", reasons=["duplicate-or-outside-root"])
             continue
-        seen.add(name)
-        pinned = expectations.get("files", {}).get(name, {})
+        seen.add(key)
+        pinned = pins.get(key, (name, {}))[1]
         contradictions = [key for key, value in pinned.items()
                           if receipt.get(key) != value]
         if contradictions:
             row.update(status="FAIL", reasons=["pinned-" + key for key in contradictions])
             continue
-        if receipt.get("exitCode", 0) != 0 or not path.is_file():
-            row.update(status="UNKNOWN", reasons=["unavailable-bytes"])
+        try:
+            data = path.read_bytes() if path.is_file() else None
+        except OSError:
+            data = None
+        if data is None:
+            row.update(status="UNKNOWN", reasons=["unavailable-bytes"],
+                       contentIntegrity="UNAVAILABLE")
             continue
-        data = path.read_bytes()
         if receipt.get("sha256") != sha256(data) or receipt.get("size") != len(data):
-            row.update(status="FAIL", reasons=["digest-or-size"])
-    for missing in expectations.get("files", {}).keys() - seen:
-        rows.append({"file": missing, "status": "UNKNOWN", "reason": "missing-receipt"})
+            row.update(status="FAIL", reasons=["digest-or-size"], contentIntegrity="FAIL")
+        else:
+            row["contentIntegrity"] = "MATCH"
+            if receipt.get("exitCode", 0) != 0:
+                row.update(status="UNKNOWN", reasons=["acquisition-failed"])
+    for missing in pins.keys() - seen:
+        rows.append({"file": pins[missing][0], "status": "UNKNOWN", "reason": "missing-receipt"})
     return rows
 
 
-def verify_saved_index(path):
-    """Check original saved gzip/raw digest claims without regenerating outputs."""
+def verify_saved_index(path, expectations=None, profile=None, *, index_override=...):
+    """Check schema, an independently pinned file set, and stored gzip/raw bytes."""
     path = Path(path)
-    index = load(path)
+    index = load(path) if index_override is ... else index_override
+    if not isinstance(index, dict):
+        return [{"status": "FAIL", "reason": "index-shape"}]
+    if "files" not in index:
+        return [{"status": "UNKNOWN", "reason": "index-files-missing"}]
+    if not isinstance(index["files"], list):
+        return [{"status": "FAIL", "reason": "index-files-shape"}]
+    if not index["files"]:
+        return [{"status": "UNKNOWN", "reason": "index-files-empty"}]
+    expectations = expectations if expectations is not None else load(
+        Path(__file__).with_name("expectations.json"))
+    profile = profile or path.parent.parent.name
+    pin = expectations.get("savedIndices", {}).get(profile, {}).get("files", {})
+    root = path.parent.resolve()
+    pins, seen = {}, set()
+    for name, values in pin.items():
+        _, key = resolve_evidence_path(root, name)
+        if key in pins:
+            return [{"status": "FAIL", "reason": "expectation-path-alias"}]
+        pins[key] = (name, values)
     rows = []
-    for record in index.get("files", []):
-        target = (path.parent / record["file"]).resolve()
-        if not target.is_relative_to(path.parent.resolve()):
-            rows.append({"file": record["file"], "status": "FAIL", "reason": "outside-root"})
+    if not pins:
+        rows.append({"status": "UNKNOWN", "reason": "index-profile-required"})
+    for record in index["files"]:
+        row = {"status": "MATCH"}
+        rows.append(row)
+        if not isinstance(record, dict):
+            row.update(status="FAIL", reason="index-record-shape")
             continue
-        if not target.is_file():
-            rows.append({"file": record["file"], "status": "UNKNOWN"})
+        if "file" not in record:
+            row.update(status="UNKNOWN", reason="index-record-incomplete")
             continue
-        data = target.read_bytes()
+        row["file"] = record["file"]
+        try:
+            target, key = resolve_evidence_path(root, record["file"])
+        except ValueError as error:
+            row.update(status="FAIL", reason=str(error))
+            continue
+        if key in seen:
+            row.update(status="FAIL", reason="duplicate-or-outside-root")
+            continue
+        seen.add(key)
+        digest_fields = [field for field in ("sha256", "gzipSha256", "rawSha256")
+                         if field in record]
+        if any(not isinstance(record[field], str) or
+               not re.fullmatch(r"[0-9a-f]{64}", record[field]) for field in digest_fields):
+            row.update(status="FAIL", reason="index-digest-format")
+            continue
+        if "rawBytes" in record and (type(record["rawBytes"]) is not int or record["rawBytes"] < 0):
+            row.update(status="FAIL", reason="index-size-format")
+            continue
+        if not any(field in record for field in ("sha256", "gzipSha256")) or (
+                "rawBytes" in record and "rawSha256" not in record):
+            row.update(status="UNKNOWN", reason="index-record-incomplete")
+            continue
+        if "sha256" in record and "gzipSha256" in record and record["sha256"] != record["gzipSha256"]:
+            row.update(status="FAIL", reason="index-digest-conflict")
+            continue
+        if pins and key not in pins:
+            row.update(status="FAIL", reason="unexpected-index-file")
+            continue
+        pinned = pins.get(key, (None, {}))[1]
+        missing = [field for field in pinned if field not in record]
+        conflicts = [field for field in pinned if field in record and record[field] != pinned[field]]
+        if conflicts:
+            row.update(status="FAIL", reason="pinned-index-" + conflicts[0])
+            continue
+        if missing:
+            row.update(status="UNKNOWN", reason="index-record-incomplete")
+            continue
+        try:
+            data = target.read_bytes() if target.is_file() else None
+        except OSError:
+            data = None
+        if data is None:
+            row.update(status="UNKNOWN", reason="unavailable-bytes")
+            continue
         expected = record.get("gzipSha256", record.get("sha256"))
-        ok = expected is not None and sha256(data) == expected
+        ok = sha256(data) == expected
         if "rawSha256" in record:
-            raw = gzip.decompress(data)
+            try:
+                raw = gzip.decompress(data)
+            except (OSError, EOFError, zlib.error):
+                row.update(status="FAIL", reason="raw-decode")
+                continue
             ok = ok and sha256(raw) == record["rawSha256"]
             if "rawBytes" in record:
                 ok = ok and len(raw) == record["rawBytes"]
-        rows.append({"file": record["file"], "status": "MATCH" if ok else "FAIL"})
+        if not ok:
+            row.update(status="FAIL", reason="digest-or-size")
+    for missing in pins.keys() - seen:
+        rows.append({"file": pins[missing][0], "status": "UNKNOWN", "reason": "missing-index-file"})
     return rows
 
 
@@ -170,8 +288,12 @@ def check_controls(fixtures, expectations):
     """Fixture subjects and literal expected outcomes are stored separately."""
     rows = []
     for case in load(fixtures):
-        actual = verify_receipts(case["subject"], Path(fixtures).parent,
-                                 expectations["controlPins"])
+        if case.get("kind", "receipts") == "saved-index":
+            actual = verify_saved_index(fixtures, expectations, case.get("profile"),
+                                        index_override=case["subject"])
+        else:
+            actual = verify_receipts(case["subject"], Path(fixtures).parent,
+                                     expectations["controlPins"])
         statuses = [row["status"] for row in actual]
         rows.append({"id": case["id"], "actual": statuses,
                      "expected": expectations["controls"][case["id"]],
@@ -186,6 +308,8 @@ def main():
     inspect.add_argument("path")
     saved = sub.add_parser("saved-index")
     saved.add_argument("path")
+    saved.add_argument("--expectations")
+    saved.add_argument("--profile")
     verify = sub.add_parser("receipts")
     verify.add_argument("manifest")
     verify.add_argument("root")
@@ -198,7 +322,8 @@ def main():
         if args.command == "zip":
             result = inspect_zip(args.path)
         elif args.command == "saved-index":
-            result = verify_saved_index(args.path)
+            result = verify_saved_index(args.path, load(args.expectations) if args.expectations else None,
+                                        args.profile)
         elif args.command == "receipts":
             result = verify_receipts(load(args.manifest), args.root, load(args.expectations))
         else:
@@ -207,6 +332,8 @@ def main():
         if isinstance(result, list) and any(row.get("status") == "FAIL" or
                                            row.get("ok") is False for row in result):
             return 1
+        if args.command == "saved-index" and any(row.get("status") == "UNKNOWN" for row in result):
+            return 2
     except (OSError, ValueError, KeyError, TypeError, IndexError, AttributeError,
             struct.error, zipfile.BadZipFile) as error:
         print(json.dumps({"status": "UNKNOWN", "error": str(error)}))
