@@ -1300,6 +1300,34 @@
       }
     }
   ],
+  "bundleSelfDescriptions": [
+    {
+      "member": "minibrowser-gtk/README.txt",
+      "selfReportedFields": {
+        "WebKit Platform": "GTK",
+        "Configuration": "Release",
+        "Bundle type": "MiniBrowser",
+        "Builder date": "2026-07-20T19:22:48.103091",
+        "Builder OS": "Ubuntu 24.04.4 LTS"
+      },
+      "referencedBundleScript": "Tools/Scripts/generate-bundle",
+      "classification": "PRESENT_PARTIAL",
+      "limitation": "self-description inside current archive only; not authenticated builder run, script version, compile timestamp, CMake flags, or historical exec binding"
+    },
+    {
+      "member": "minibrowser-wpe/README.txt",
+      "selfReportedFields": {
+        "WebKit Platform": "WPE",
+        "Configuration": "Release",
+        "Bundle type": "MiniBrowser",
+        "Builder date": "2026-07-20T19:23:22.231583",
+        "Builder OS": "Ubuntu 24.04.4 LTS"
+      },
+      "referencedBundleScript": "Tools/Scripts/generate-bundle",
+      "classification": "PRESENT_PARTIAL",
+      "limitation": "self-description inside current archive only; not authenticated builder run, script version, compile timestamp, CMake flags, or historical exec binding"
+    }
+  ],
   "BUILD_BINDING": "UNKNOWN",
   "execution": "NOT_RUN"
 }

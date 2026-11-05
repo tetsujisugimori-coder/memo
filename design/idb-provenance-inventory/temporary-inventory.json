@@ -1,9 +1,9 @@
 {
-  "snapshotAt": "2026-11-05T06:12:38.925059+00:00",
+  "snapshotAt": "2026-11-05T06:19:46.461740+00:00",
   "temporaryRoot": "C:\\Users\\tetsu\\AppData\\Local\\Temp\\memo-provenance-20261105",
-  "fileCount": 616,
-  "totalBytes": 116282482,
-  "policy": "Retain for independent review; no downloaded file executed. Delete only resolved task-specific directory after acceptance; no automatic deletion. Later submission metadata is outside this snapshot.",
+  "fileCount": 631,
+  "totalBytes": 116668012,
+  "policy": "Retain for independent review; no downloaded file executed. Delete only resolved task-specific directory after acceptance; no automatic deletion. This is a snapshot; later submission metadata is outside it.",
   "files": [
     {
       "file": "all-artifacts.json",
@@ -166,9 +166,19 @@
       "sha256": "67f6d0ce5d562bb0a5bf2e793ed3ec9df84c1b3e9f52a0fb5b2b593a5d9c95c3"
     },
     {
+      "file": "check-archive-p3.json",
+      "size": 42719,
+      "sha256": "4f88a48d34f9e202284a0ee7d4e0e192ea65a8c3f9350016908eace3a3a6331c"
+    },
+    {
       "file": "check-archive.json",
       "size": 41487,
       "sha256": "b779c245c82d7b7090a29942d0a3c3f7e9799b74e18b2453c8325ecaa930808b"
+    },
+    {
+      "file": "check-controls-p3.json",
+      "size": 1337,
+      "sha256": "1c833cbcd27748a145d6f35c622f6da3e4314198424d0fbb3ed90afe8d9d3d15"
     },
     {
       "file": "check-controls.json",
@@ -196,6 +206,11 @@
       "sha256": "78456f183ee31a88c25604aba58199d17927cff4b4d1c1cb372331f17096f47c"
     },
     {
+      "file": "check-receipts-p3.json",
+      "size": 38527,
+      "sha256": "9d3d0a7f7d3aa3905af3fe8f30e4332da52c3c9d8fc5949f9e9ece7ba1986ebc"
+    },
+    {
       "file": "check-receipts.json",
       "size": 38527,
       "sha256": "9d3d0a7f7d3aa3905af3fe8f30e4332da52c3c9d8fc5949f9e9ece7ba1986ebc"
@@ -209,6 +224,11 @@
       "file": "checks-all.json",
       "size": 99213,
       "sha256": "13d3a25bd831d59ca976ced7dbbbfba6229deccf1ef2d7eca3c3a0f9dc417771"
+    },
+    {
+      "file": "checks425.json",
+      "size": 33,
+      "sha256": "e83cfac35507982a40cfeb776ce85aa0367e7646f81fe857df4a6c841ea8a170"
     },
     {
       "file": "comments-403.json",
@@ -561,6 +581,11 @@
       "sha256": "1ba6e18cc142c51b7e1fb4ba4d79f6df2aac0dbb747d6572606391643a454c04"
     },
     {
+      "file": "main-final.json",
+      "size": 5511,
+      "sha256": "62f95fc152ddf76c8e01794ff01796925454523dae59b893c280d2278ace2a07"
+    },
+    {
       "file": "main.json",
       "size": 5511,
       "sha256": "62f95fc152ddf76c8e01794ff01796925454523dae59b893c280d2278ace2a07"
@@ -629,6 +654,46 @@
       "file": "pr-423.receipt.json",
       "size": 299,
       "sha256": "8c485c6045dc226d0ede1934d066169f2b7374e9c4323e7843f0befb5607a3c7"
+    },
+    {
+      "file": "pr-body.md",
+      "size": 3895,
+      "sha256": "10b7209e0566eb4289fa6eaa24296d5a1901376d5b32f65d5bd6119c94efce90"
+    },
+    {
+      "file": "pr403-final.json",
+      "size": 24054,
+      "sha256": "afe4f85d3fd0faba99951c3bb50c1e8e7398e880d1c4d02e023361e130f57b59"
+    },
+    {
+      "file": "pr417-final.json",
+      "size": 21218,
+      "sha256": "b071e22ea1f5c977727f6fe7e507ba3e59c83d27564f6479a209beadddf33a26"
+    },
+    {
+      "file": "pr419-final.json",
+      "size": 23649,
+      "sha256": "3f0b79d60fecba0b035b4803cec1db0d64d030d0614830798732886e571f6d5d"
+    },
+    {
+      "file": "pr421-final.json",
+      "size": 23948,
+      "sha256": "1be9bfc9d181d83526ca7209106fb3fcb3a1a63d5a346bc84401533d3ea3e433"
+    },
+    {
+      "file": "pr423-final.json",
+      "size": 24128,
+      "sha256": "2a85e0274fadc5be3113cfa4f031e8c0ab7d18ce75e05f8d9af063eda601e4ac"
+    },
+    {
+      "file": "pr425-files.json",
+      "size": 150642,
+      "sha256": "bb2a77c1f82a40f5b284b70c1d659aa92a72b781e917d7773b1b18c5ae29218e"
+    },
+    {
+      "file": "pr425.json",
+      "size": 20917,
+      "sha256": "d613c99b80c4224a6cb12b732e57f645f75c7ea78cfb23906ad789707ce5f9c8"
     },
     {
       "file": "pw-browser_patches_roll_from_upstream.sh",
@@ -809,6 +874,11 @@
       "file": "reviews-423.json.receipt.json",
       "size": 414,
       "sha256": "72f6b89dd6dcf546bf9dc7e491e06281a1a8cf47c7605dafc05cb1d4e836d3a2"
+    },
+    {
+      "file": "runs425.json",
+      "size": 36,
+      "sha256": "a2790a384d7d281e7395679000c35d27768d89dbd7052f725b8f4688beb59915"
     },
     {
       "file": "snapshots/592ccb63478d0a23312237d1f736a419c096f5f8/design/idb-incomplete-stop/candidates.md",
@@ -3004,6 +3074,11 @@
       "file": "static-observations.json",
       "size": 27310,
       "sha256": "687b9f61a6757b8dbd77ede16b26a03366f0cb9c893a1941d49c83e5f63e0ecc"
+    },
+    {
+      "file": "status425.json",
+      "size": 4916,
+      "sha256": "95f67b35b863b1c1f7deb23a2bbec88f4da09e5acce9b293fa158dad303bab8f"
     },
     {
       "file": "t7-40851321011-artifacts.json",

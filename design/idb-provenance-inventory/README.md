@@ -26,6 +26,8 @@ WebKit上流は`343e13bf22dca9d0ec227801419aab0f9001a32f`、Playwright metadata�
 
 ZIPを展開・実行せず、全memberを読んでhashし、ELF64のNOTE/INTERP/DYNAMICを解析した。[archive-inspection.json](archive-inspection.json)にGTK/WPE両方のpath、digest、GNU Build ID、DT_NEEDED、symlink targetを保存した。これは今回取得したarchive内の実在性に限る。実行時にロードされたsystem libraryのbytes・loader選択・旧cache改変有無はUNKNOWN。
 
+同archiveの`minibrowser-wpe/README.txt`には、Platform=WPE、Configuration=Release、Builder OS=Ubuntu 24.04.4 LTS、Builder date=`2026-07-20T19:23:22.231583`、使用script名=`Tools/Scripts/generate-bundle`という**自己記載の部分メタデータ**がある。GTK側はPlatform=GTK、Builder date=`2026-07-20T19:22:48.103091`で、他の上記欄は同じ。この日付をcompile時刻やbuilder run IDとは認定しない。script名の参照はあるが、実際に使用したscript bytes/commit、CMake flags、適用tree、署名付きprovenance、旧実行への対応は未確認。生成条件が全く記録されていないという意味にはしない。
+
 現在archiveについてのWPE候補経路は次のとおり。
 
 1. 固定[registry/index.ts](https://github.com/microsoft/playwright/blob/26a9e470a7b3c7822084b09fb7f13902c5f37b51/packages/playwright-core/src/server/registry/index.ts)はLinuxのexecutable候補を`pw_run.sh`にする。Ubuntu24.04-x64は2336のarchiveへ対応する。
@@ -82,7 +84,7 @@ JS console/Actions logはrunnerの出力、結果JSONはJS observerとrunnerの�
 |B1 dependency→archive|UNKNOWN|metadata CONFIRMED、現在archive実在/hash CONFIRMED|当時installed package・platform/override・archive digest receipt|
 |B2 wrapper→最終実行物|UNKNOWN|現在ZIPではbundled WPE wrapper→ELFの静的経路CONDITIONAL（当該構造/引数を前提）|旧実argv/env/FS/exec receipt、fallback排除|
 |B3 upstream→patched tree|UNKNOWN|固定上流と公開patch bytes/roll元記述CONFIRMED|builder入力commit、全patch順・適用後tree/改変、runとのattestation|
-|B4 config/toolchain|UNKNOWN|今回ZIP/旧結果にconfig材料未発見|CMakeCache/resolved headers、compile_commands、link inputs、toolchain/sysroot|
+|B4 config/toolchain|UNKNOWN|現在ZIPのREADMEにRelease・builder OS/日時・bundle script名の自己記載あり（PRESENT_PARTIAL）。CMake/解決済み設定・compile/link材料は調査範囲で未発見|自己記載とbuilder runの認証結合、CMakeCache/resolved headers、compile_commands、link inputs、toolchain/sysroot|
 |B5 generated code|UNKNOWN|生成JSは存在するがWebIDL/IPC/JIT生成物とは別|同build DerivedSources、generator版/command/input/output manifest|
 |B6 libraries/link closure|UNKNOWN|現在ELFのDT_NEEDED・symlink・Build ID CONFIRMED|object→link closure、旧loader/system libs/loaded module digests|
 |B7 digests/provenance|UNKNOWN|現在archive全65 member、旧結果8 ZIPのdigest CONFIRMED|旧archive/展開treeのreceiptと元builderへの認証結合|

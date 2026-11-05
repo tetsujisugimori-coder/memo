@@ -68,6 +68,7 @@ def inspect_elf(data):
 
 def inspect_zip(path):
     entries = []
+    descriptions = []
     with zipfile.ZipFile(path) as archive:
         names = archive.namelist()
         if len(names) != len(set(names)):
@@ -82,8 +83,26 @@ def inspect_zip(path):
             if elf:
                 row["elf"] = elf
             entries.append(row)
+            if info.filename in ("minibrowser-wpe/README.txt", "minibrowser-gtk/README.txt"):
+                text = data.decode("utf-8")
+                fields = {}
+                for line in text.splitlines():
+                    if line.startswith("  - ") and ": " in line:
+                        key, value = line[4:].split(": ", 1)
+                        if key in ("WebKit Platform", "Configuration", "Bundle type",
+                                   "Builder date", "Builder OS"):
+                            fields[key] = value
+                descriptions.append({
+                    "member": info.filename, "selfReportedFields": fields,
+                    "referencedBundleScript": ("Tools/Scripts/generate-bundle"
+                                               if "Tools/Scripts/generate-bundle" in text else None),
+                    "classification": "PRESENT_PARTIAL",
+                    "limitation": "self-description inside current archive only; not authenticated "
+                                  "builder run, script version, compile timestamp, CMake flags, "
+                                  "or historical exec binding"})
     return {"archive": Path(path).name, "size": Path(path).stat().st_size,
             "sha256": sha256(Path(path).read_bytes()), "entries": entries,
+            "bundleSelfDescriptions": descriptions,
             "BUILD_BINDING": "UNKNOWN", "execution": "NOT_RUN"}
 
 
