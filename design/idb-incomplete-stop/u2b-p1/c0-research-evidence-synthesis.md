@@ -11,7 +11,7 @@ Issue [#422](https://github.com/tetsujisugimori-coder/memo/issues/422)、先行I
 |#421の直接積み上げ元|`a0470360efe8285a6bca1dfd7197d050e78ef6e2`。修正後3文書を全文確認した|
 |開始時#419|OPEN / Draft、HEAD `47041b189831a8819827adcf149a325b96ebccc0`、base `b39c861d3ec8f60298cad0d0525b1a92b9c53435`|
 |開始時#421|MERGED / 非Draft。merge commitは上記`47041b1…`、merge時刻2026-11-05 03:15:23 UTC。HEADは指定値、baseは`64861de…`|
-|新規PRのbase|現存する#421 branch `research/u2b-p1-c0-wpe-borrow-closure-20261105`、`a047036…`。#419の最新merge commitへ基準を差し替えない|
+|新規PRのbase|起票時は#421 branch `research/u2b-p1-c0-wpe-borrow-closure-20261105`、`a047036…`。統合経路修正後は#419 branch `research/u2b-p1-c0-safe-capture-20261105`（変更時HEAD `47041b1…`）へ向けた。研究の固定基準 #419 `64861de…` / #421 `a047036…` は変更しない|
 |一次ソース|WebKit `343e13bf22dca9d0ec227801419aab0f9001a32f` / Playwright `26a9e470a7b3c7822084b09fb7f13902c5f37b51`|
 |不変契約|[共通観測契約v1](../u2-witness/common-observation-contract-v1.md)、blob `1a4b59272c13fb6b821a0c3853eed89e58a93967`|
 
