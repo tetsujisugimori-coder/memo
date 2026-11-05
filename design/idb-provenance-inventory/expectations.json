@@ -120,6 +120,21 @@
     "index-missing-required": [
       "MATCH",
       "UNKNOWN"
+    ],
+    "review-missing-file-invalid-digest": [
+      "FAIL",
+      "UNKNOWN"
+    ],
+    "review-missing-file-invalid-size": [
+      "FAIL",
+      "UNKNOWN"
+    ],
+    "review-missing-file-digest-conflict": [
+      "FAIL",
+      "UNKNOWN"
+    ],
+    "review-missing-raw-digest-conflict": [
+      "FAIL"
     ]
   },
   "savedIndices": {

@@ -374,5 +374,57 @@
         }
       ]
     }
+  },
+  {
+    "id": "review-missing-file-invalid-digest",
+    "kind": "saved-index",
+    "profile": "synthetic",
+    "subject": {
+      "files": [
+        {
+          "sha256": 123
+        }
+      ]
+    }
+  },
+  {
+    "id": "review-missing-file-invalid-size",
+    "kind": "saved-index",
+    "profile": "synthetic",
+    "subject": {
+      "files": [
+        {
+          "rawBytes": false
+        }
+      ]
+    }
+  },
+  {
+    "id": "review-missing-file-digest-conflict",
+    "kind": "saved-index",
+    "profile": "synthetic",
+    "subject": {
+      "files": [
+        {
+          "sha256": "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+          "gzipSha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    }
+  },
+  {
+    "id": "review-missing-raw-digest-conflict",
+    "kind": "saved-index",
+    "profile": "synthetic",
+    "subject": {
+      "files": [
+        {
+          "file": "payload.txt",
+          "sha256": "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+          "gzipSha256": "0000000000000000000000000000000000000000000000000000000000000000",
+          "rawBytes": 0
+        }
+      ]
+    }
   }
 ]

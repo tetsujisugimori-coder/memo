@@ -218,19 +218,22 @@ def verify_saved_index(path, expectations=None, profile=None, *, index_override=
         if not isinstance(record, dict):
             row.update(status="FAIL", reason="index-record-shape")
             continue
-        if "file" not in record:
-            row.update(status="UNKNOWN", reason="index-record-incomplete")
-            continue
-        row["file"] = record["file"]
-        try:
-            target, key = resolve_evidence_path(root, record["file"])
-        except ValueError as error:
-            row.update(status="FAIL", reason=str(error))
-            continue
-        if key in seen:
-            row.update(status="FAIL", reason="duplicate-or-outside-root")
-            continue
-        seen.add(key)
+        pinned = {}
+        if "file" in record:
+            row["file"] = record["file"]
+            try:
+                target, key = resolve_evidence_path(root, record["file"])
+            except ValueError as error:
+                row.update(status="FAIL", reason=str(error))
+                continue
+            if key in seen:
+                row.update(status="FAIL", reason="duplicate-or-outside-root")
+                continue
+            seen.add(key)
+            if pins and key not in pins:
+                row.update(status="FAIL", reason="unexpected-index-file")
+                continue
+            pinned = pins.get(key, (None, {}))[1]
         digest_fields = [field for field in ("sha256", "gzipSha256", "rawSha256")
                          if field in record]
         if any(not isinstance(record[field], str) or
@@ -240,23 +243,17 @@ def verify_saved_index(path, expectations=None, profile=None, *, index_override=
         if "rawBytes" in record and (type(record["rawBytes"]) is not int or record["rawBytes"] < 0):
             row.update(status="FAIL", reason="index-size-format")
             continue
-        if not any(field in record for field in ("sha256", "gzipSha256")) or (
-                "rawBytes" in record and "rawSha256" not in record):
-            row.update(status="UNKNOWN", reason="index-record-incomplete")
-            continue
         if "sha256" in record and "gzipSha256" in record and record["sha256"] != record["gzipSha256"]:
             row.update(status="FAIL", reason="index-digest-conflict")
             continue
-        if pins and key not in pins:
-            row.update(status="FAIL", reason="unexpected-index-file")
-            continue
-        pinned = pins.get(key, (None, {}))[1]
         missing = [field for field in pinned if field not in record]
         conflicts = [field for field in pinned if field in record and record[field] != pinned[field]]
         if conflicts:
             row.update(status="FAIL", reason="pinned-index-" + conflicts[0])
             continue
-        if missing:
+        if ("file" not in record or missing or
+                not any(field in record for field in ("sha256", "gzipSha256")) or
+                ("rawBytes" in record and "rawSha256" not in record)):
             row.update(status="UNKNOWN", reason="index-record-incomplete")
             continue
         try:

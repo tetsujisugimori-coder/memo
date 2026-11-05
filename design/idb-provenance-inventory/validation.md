@@ -324,3 +324,15 @@ python -B design/idb-provenance-inventory/static-check.py controls design/idb-pr
 BUILD_BINDING=UNKNOWN / J2=UNKNOWN / U-C=UNKNOWN / conditionU=NOT_RUN / realExperiment=NOT_RUN / executionAuthorization=NOT_GRANTED / startCondition=BLOCKED / productionWorker=HOLD。
 
 2026年11月05日 19:37 JST
+
+## 初回独立レビューのFAILと追加補訂
+
+実装未参加の新規子エージェント`/root/checker_fix_independent_review`をforkなしの別contextで実際に起動し、読み取り専用でレビューを実行した。対象HEADは`1ce6e51cb4118a27265ef8cb6d99279337a6d3d8`、treeは`d8e0d99406b12c7155ed01a3ade62114b5e1ad3d`。子は既存14blobを全bytes/全文で読み、共通契約と先行build計画も確認した。書込み・Git変更・外部投稿0。
+
+**初回の独立総合判定はFAIL、新規P2が1件、マージ推奨NO。** 主3反例、旧9対照と29対照、250 receipt、保存index19/20/25は独立実測で成立したが、schema契約の追加残件があった。親の自己検証を独立PASSへ書き換えない。
+
+残件の根本原因は`verify_saved_index`内の欠落によるearly continue。`file`やcompressed digest/rawSha256が欠けると、同じrecord内の存在する型違反・digest間矛盾・独立pinとの矛盾までUNKNOWNに隠れた。子の具体的反例はfile欠落＋sha256数値、file欠落＋rawBytes=false、rawSha256欠落＋compressed digest間矛盾、原D/E indexでcompressed digest欠落＋誤rawSha256。子は実mainの終了2も確認した。
+
+補訂は欠落判定の前に、存在する値の形式、解決できるpath/重複、digest間の明示矛盾、判定できる独立pin矛盾を検査することに限定する。既存29入力・期待は保持し、混合欠落/矛盾のliteral負対照4件を追加した（合計33）。親でも同系統の5入力を旧固定codeでUNKNOWN/終了2として再現し、補訂後の実測HEADと再レビューは後続記録へ分離する。
+
+子は全64通りの1record除去、junction/case/pin/root外、主要6経路のaudit、旧631一時fileのhashも独自確認した。Linuxと通常file symlinkはNOT_TESTEDであり、子の初回評価でも実測に算入していない。今回の新規P1/P3は初回に検出されていない。P2の局所閉鎖は修正後の独立再レビューまで未成立とする。
