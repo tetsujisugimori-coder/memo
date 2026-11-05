@@ -5,7 +5,7 @@ Issue [#422](https://github.com/tetsujisugimori-coder/memo/issues/422)。[#421�
 
 ## 単一案の区間と証明対象
 
-生成 → JS/native完全identity登録 → 論理失効/世代失効 → origin-thread weak解決 → borrow開始 → E/F/T/ID copy → 最終raw利用 → borrow終了 → record/locator解放、という**設計上の順序**を使う。REG/INV/COPYは未実装。論理失効はmap離脱・Finished・destructionを別理由で記録し、失効後のlocatorは再利用しない。実際の最終deref/destructionの時点はこの設計順に仮定せず、証明すべき対象である。
+生成 → JS/native完全identity登録 → origin-threadで世代の有効性照合・weak解決 → borrow開始 → E/F/T/ID copy → 最終raw利用 → borrow終了 → record/locator解放、という**成功captureの設計上の順序**を使う。論理失効/世代失効はlifecycleの別分岐であり、解決時に有効generationを要求し、失効済みlocatorは拒否する。REG/INV/COPYは未実装。失効理由はmap離脱・Finished・destructionを区別し、失効後のlocatorは再利用しない。実際の最終deref/destructionの時点はこの設計順に仮定せず、証明すべき対象である。
 
 区間は「weakからrawを得て初めて利用する時点」より遅く開始してはならない。最後のfield readだけでなく、ID比較、log組立て、callback capture、scope guard/destructor等による最後の対象利用までを含む。borrow終了後の対象再利用は不可。weak解決・owner照合が生存性を必要とする場合はそれ以前から既存保護を要求し、確認処理自体で安全性を循環論証しない。
 
