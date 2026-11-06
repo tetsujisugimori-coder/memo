@@ -142,8 +142,8 @@ async function appCase(browser, origin, browserName, width) {
       return note?.title === "隔離試験426" && note.body === "保存ガイド回帰試験・架空のメモのみ";
     }, id);
     if (width === 390) {
-      await page.locator("#mobileWritingDoneBtn").click();
-      await page.locator("#mobileAppMenu > summary").click();
+      if (await page.locator("#mobileWritingDoneBtn").isVisible()) await page.locator("#mobileWritingDoneBtn").click();
+      if (await page.locator("#mobileAppMenu").getAttribute("open") === null) await page.locator("#mobileAppMenu > summary").click();
     }
     await page.locator("#settingsBtn").click();
     const entry = page.locator("#settingsDialog a[href='storage-guide.html']");
