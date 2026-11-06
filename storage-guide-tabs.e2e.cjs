@@ -7,9 +7,12 @@ const path = require("node:path");
 const { execFileSync } = require("node:child_process");
 const playwright = require("playwright");
 const { observe, assertClean, snapshot, createServer, waitForSavedNote } = require("./storage-guide.e2e.cjs");
+const { captureState, capturePair, waitForOutcome, exerciseRecovery } = require("./storage-guide-tabs-observer.cjs");
+const { evaluateSafety, evaluateTabReport, uiConsistency } = require("./storage-guide-tabs-contract.cjs");
+const tabNames = new WeakMap();
 const output = path.join(process.env.STORAGE_GUIDE_ARTIFACTS || os.tmpdir(), "multiple-tabs");
 const report = { testedHead: execFileSync("git", ["rev-parse", "HEAD"], { cwd: __dirname, encoding: "utf8" }).trim(), startedAt: new Date().toISOString(), platform: process.platform, browsers: [], limitations: ["Only the recorded natural autosave schedules are observed; all schedules and real Safari/PWA remain UNKNOWN", "No real profiles, real data, direct save calls, storage reset, modified timers or blocked BroadcastChannel"] };
-const expectations = ["Two tabs share one ephemeral context and origin", "Both tabs display the same note", "Single UI writer autosaves", "Clean reader reflects stored content", "Both nonoverlapping edits survive", "Saved UI agrees with storage", "Missing edits are not silently reported saved", "Reload preserves edits", "Guide leaves storage unchanged", "Fallback uses the same tab"];
+const expectations = ["Two tabs share one ephemeral context and origin", "Both tabs display the same note", "Single UI writer autosaves", "Clean reader reflects stored content", "Complete method A or B preserves both edits", "Saved UI agrees with storage or explicitly separates conflict drafts", "No warning-only acceptance: rejection, preservation and recovery are proven", "Reload and close/reopen retain the merge or recoverable conflict draft", "Guide leaves storage unchanged", "Fallback uses the same tab"];
 
 async function fixtureContext(browser, origin) {
   const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
@@ -23,19 +26,7 @@ async function fixtureContext(browser, origin) {
 }
 
 async function state(page, id) {
-  return page.evaluate(async (noteId) => ({
-    at: Date.now(),
-    currentId,
-    title: document.querySelector("#titleInput").value,
-    editor: document.querySelector("#editor").value,
-    stored: (await getStoredNotes()).find((note) => note.id === noteId),
-    save: noteSaveFoundation.getState(noteId),
-    badge: document.querySelector("#browserSaveStatusBtn").textContent,
-    badgeState: document.querySelector("#browserSaveStatusBtn").dataset.state,
-    pending: pendingMemoSync,
-    notice: saveStatusNotice,
-    messages: window.__observedMessages || [],
-  }), id);
+  return captureState(page, id, tabNames.get(page));
 }
 
 async function saved(page, id, body) {
@@ -43,13 +34,15 @@ async function saved(page, id, body) {
 }
 
 function check(result, number, expected, actual, passed) {
-  result.checks.push({ number, expected, actual, status: passed ? "PASS" : "FAIL" });
+  result.checks.push({ number, expected, actual, status: typeof passed === "string" ? passed : passed ? "PASS" : "FAIL" });
 }
 
 async function runBrowser(browser, name, origin) {
   const { context, external } = await fixtureContext(browser, origin);
   const result = { browser: name, checks: [], observations: {}, logs: [] };
-  const first = await context.newPage();
+  let first = await context.newPage();
+  let second;
+  tabNames.set(first, "A");
   first.setDefaultTimeout(10000);
   result.logs.push(observe(first));
   try {
@@ -59,7 +52,8 @@ async function runBrowser(browser, name, origin) {
     await first.locator("#titleInput").fill("複数タブ隔離試験428");
     await first.locator("#editor").fill("lineA=base\nlineB=base");
     await saved(first, id, "lineA=base\nlineB=base");
-    const second = await context.newPage();
+    second = await context.newPage();
+    tabNames.set(second, "B");
     second.setDefaultTimeout(10000);
     result.logs.push(observe(second));
     await second.goto(`${origin}/index.html`, { waitUntil: "domcontentloaded" });
@@ -110,26 +104,45 @@ async function runBrowser(browser, name, origin) {
     await second.locator("#editor").fill("lineA=single\nlineB=overlap-B");
     result.observations.overlapDirty = [await state(first, id), await state(second, id)];
     assert.ok(result.observations.overlapDirty.every((item) => item.save.dirty), "collision precondition: both UI drafts dirty before autosave");
-    await Promise.all([first, second].map((page) => page.waitForFunction((noteId) => !noteSaveFoundation.isDirty(noteId), id)));
-    // Observation window for already-completed saves/queued notifications, not a save delay.
-    await first.waitForTimeout(500);
-    result.observations.overlapSaved = [await state(first, id), await state(second, id)];
-    const bothEdits = (body) => body.includes("lineA=overlap-A") && body.includes("lineB=overlap-B");
-    const merged = result.observations.overlapSaved.every((item) => bothEdits(item.stored.body));
-    check(result, 5, "Both independent line edits survive in storage after staggered overlapping drafts", { baseline, before: result.observations.overlapDirty, after: result.observations.overlapSaved }, merged);
-    const consistent = result.observations.overlapSaved.every((item) => item.editor === item.stored.body);
-    check(result, 6, "Saved UI content agrees with the stored record in both tabs", result.observations.overlapSaved.map(({ editor, stored, badge, pending }) => ({ editor, stored, badge, pending })), consistent);
-    // A silent pending flag is not a visible warning, nor does it prevent a stale write.
-    const warnedOrBlocked = result.observations.overlapSaved.some((item) => /競合|別の.*(?:更新|変更)/.test(item.notice) || item.badgeState === "error");
-    check(result, 7, "Missing edits are not silently reported saved without warning or a blocked save", { bothEditsPreserved: merged, warnedOrBlocked, notices: result.observations.overlapSaved.map((item) => item.notice), pending: result.observations.overlapSaved.map((item) => item.pending), dirty: result.observations.overlapSaved.map((item) => item.save.dirty) }, merged || warnedOrBlocked);
+    result.evidence = { spec: { noteId: id, baselineBody: baseline, baselineRevision: result.observations.sequential[0].stored.revision,
+      drafts: { A: "lineA=overlap-A\nlineB=sequential", B: "lineA=single\nlineB=overlap-B" } },
+      execution: { completed: false, errors: [] }, observations: { before: result.observations.overlapDirty } };
+    const outcome = await waitForOutcome([first, second], id);
+    result.evidence.wait = outcome;
+    result.observations.overlapSaved = outcome.states;
+    result.evidence.observations.terminal = outcome.states;
+    if (!["saved", "conflict-stopped"].includes(outcome.kind)) throw new Error(`${outcome.kind}: ${outcome.reason}`);
+    check(result, 6, expectations[5], outcome.states, uiConsistency(outcome.states));
     await first.screenshot({ path: path.join(output, `${name}-overlap-first.png`), fullPage: true });
     await second.screenshot({ path: path.join(output, `${name}-overlap-second.png`), fullPage: true });
     await first.reload({ waitUntil: "domcontentloaded" });
     await first.locator("#appStartupGuard").waitFor({ state: "hidden" });
     await second.reload({ waitUntil: "domcontentloaded" });
     await second.locator("#appStartupGuard").waitFor({ state: "hidden" });
-    result.observations.reloaded = [await state(first, id), await state(second, id)];
-    check(result, 8, "Reload keeps both edits and displays the persisted record", result.observations.reloaded, result.observations.reloaded.every((item) => bothEdits(item.stored.body) && item.editor === item.stored.body));
+    const reloadOutcome = await waitForOutcome([first, second], id);
+    result.observations.reloadOutcome = reloadOutcome;
+    result.observations.reloaded = await capturePair([first, second], id);
+    result.evidence.observations.reloaded = result.observations.reloaded;
+    if (!["saved", "conflict-stopped"].includes(reloadOutcome.kind)) throw new Error(`reload ${reloadOutcome.kind}: ${reloadOutcome.reason}`);
+    // A session-only or in-memory draft cannot survive this part of the probe.
+    await first.close();
+    await second.close();
+    const reopened = [];
+    for (const tab of ["A", "B"]) {
+      const page = await context.newPage();
+      tabNames.set(page, tab);
+      page.setDefaultTimeout(10000);
+      result.logs.push(observe(page));
+      await page.goto(`${origin}/index.html`, { waitUntil: "domcontentloaded" });
+      await page.locator("#appStartupGuard").waitFor({ state: "hidden" });
+      reopened.push(page);
+    }
+    [first, second] = reopened;
+    const reopenOutcome = await waitForOutcome(reopened, id);
+    result.observations.reopenOutcome = reopenOutcome;
+    result.evidence.observations.reopened = await capturePair(reopened, id);
+    if (!["saved", "conflict-stopped"].includes(reopenOutcome.kind)) throw new Error(`close/reopen ${reopenOutcome.kind}: ${reopenOutcome.reason}`);
+    result.evidence.recovery = await exerciseRecovery(reopened, id, output);
 
     const direct = await fixtureContext(browser, origin);
     try {
@@ -145,12 +158,16 @@ async function runBrowser(browser, name, origin) {
     result.logs.forEach(assertClean);
     assert.ok(external.every((url) => new URL(url).hostname === "cdn.jsdelivr.net"), "no real external/MCP/OAuth request");
     result.externalFixtures = external;
+    result.evidence.execution.completed = true;
+    result.acceptance = evaluateSafety(result.evidence);
+    for (const number of [5, 7, 8]) check(result, number, expectations[number - 1], result.acceptance, result.acceptance.status);
     result.checks.sort((a, b) => a.number - b.number);
     assert.equal(result.checks.length, 10);
     result.status = result.checks.every((entry) => entry.status === "PASS") ? "PASS" : "FAIL";
   } catch (error) {
     result.status = "FAIL";
     result.error = error.stack;
+    if (result.evidence) result.evidence.execution.errors.push(error.stack);
     expectations.forEach((expected, index) => {
       if (!result.checks.some((entry) => entry.number === index + 1)) result.checks.push({ number: index + 1, expected, actual: "Not reached because execution stopped", status: "UNKNOWN" });
     });
@@ -171,14 +188,17 @@ async function runBrowser(browser, name, origin) {
       try {
         browser = await playwright[name].launch();
         report.browsers.push(await runBrowser(browser, name, origin));
-      } catch (error) { report.browsers.push({ browser: name, status: "FAIL", error: error.stack }); }
+      } catch (error) { report.browsers.push({ browser: name, status: "FAIL", executionStatus: "NOT_TESTED", error: error.stack,
+        checks: expectations.map((expected, i) => ({ number: i + 1, expected, status: "UNKNOWN", actual: "Browser execution did not complete" })) }); }
       finally { await browser?.close(); }
     }
   } catch (error) { report.error = error.stack; }
   finally {
     server.close();
-    report.status = !report.error && report.browsers.length === 2 && report.browsers.every((item) => item.status === "PASS") ? "PASS" : "FAIL";
     report.finishedAt = new Date().toISOString();
+    report.judgement = evaluateTabReport(report);
+    report.status = report.judgement.status;
+    report.productSafety = report.judgement.productSafety;
     await fs.writeFile(path.join(output, "results.json"), JSON.stringify(report, null, 2) + "\n");
     console.log(JSON.stringify({ testedHead: report.testedHead, status: report.status, browsers: report.browsers.map(({ browser, status, error, checks }) => ({ browser, status, error, checks: checks?.map(({ number, status }) => ({ number, status })) })) }, null, 2));
     if (report.status !== "PASS") process.exitCode = 1;
