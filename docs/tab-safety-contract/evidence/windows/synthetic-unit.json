@@ -1,0 +1,10 @@
+{
+  "evidenceKind": "SYNTHETIC_UNIT_ONLY",
+  "testedHead": "58e3cb8e09a5c0e8d24071f173054209de72b6b6",
+  "exit": 0,
+  "tests": 40,
+  "pass": 40,
+  "fail": 0,
+  "normalA": true,
+  "normalB": true
+}
