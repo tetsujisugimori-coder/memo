@@ -8,6 +8,7 @@
   <style>html,body{background:#f6f7f4;color:#222522;color-scheme:light}html[data-initial-theme="dark"],html[data-initial-theme="dark"] body{background:#111513;color:#e7ece7;color-scheme:dark}</style>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css">
   <link rel="stylesheet" href="style.css?v=0.5.0-119">
+  <style>.storage-guide-link:focus-visible { outline: 3px solid currentColor; outline-offset: 4px; }</style>
   <link id="reportPrintStyles" rel="stylesheet" href="report-print.css?v=0.5.0-3" media="print">
 </head>
 <body class="app-starting">
@@ -487,6 +488,7 @@
       </section>
       <section class="settings-section">
         <h2>バックアップ</h2>
+        <p class="settings-note"><a class="storage-guide-link" href="storage-guide.html" tabindex="0" target="_blank" rel="noopener noreferrer">データ保存・バックアップの使い方（別タブ）</a></p>
         <div class="settings-actions">
           <button id="settingsBackupBtn" type="button">完全バックアップZIPを書き出す</button>
           <p id="backupImportStatus" class="settings-note" role="status" aria-live="polite"></p>
