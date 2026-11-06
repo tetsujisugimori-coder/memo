@@ -71,7 +71,7 @@ async function pollOutcome(readPair, { timeout = 10000, interval = 50, stableMs 
     if (next && next === signature && performance.now() - stableSince >= stableMs) return { kind, elapsedMs: elapsed(), samples, states };
     if (next !== signature) { signature = next; stableSince = performance.now(); }
     if (states.some((s) => s.save?.status === "error" && !s.conflictUi.visible)) return { kind: "execution-error", reason: "Save error without an observable conflict-stop UI", elapsedMs: elapsed(), samples, states };
-    await new Promise((resolve) => setTimeout(resolve, interval));
+    await new Promise((resolve) => setTimeout(resolve, Math.max(1, Math.min(interval, timeout - elapsed()))));
   } while (elapsed() < timeout);
   return { kind: "timeout", reason: "No stable committed or conflict-stopped observation before the finite deadline", elapsedMs: elapsed(), samples, states: samples.at(-1)?.states };
 }
@@ -84,9 +84,7 @@ async function exerciseRecovery(pages, noteId, output) {
     const before = await captureState(page, noteId, tab);
     if (!before.conflictUi.visible || !before.conflictUi.exportEnabled) continue;
     try {
-      const downloaded = page.waitForEvent("download", { timeout: 10000 });
-      await page.locator(`${PANEL} ${EXPORT}`).click();
-      const download = await downloaded;
+      const [download] = await Promise.all([page.waitForEvent("download", { timeout: 10000 }), page.locator(`${PANEL} ${EXPORT}`).click()]);
       const file = await download.path();
       if (!file) throw new Error("Recovery download did not provide a readable file");
       const text = await fs.readFile(file, "utf8");

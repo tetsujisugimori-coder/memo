@@ -39,7 +39,7 @@ function check(result, number, expected, actual, passed) {
 
 async function runBrowser(browser, name, origin) {
   const { context, external } = await fixtureContext(browser, origin);
-  const result = { browser: name, checks: [], observations: {}, logs: [] };
+  const result = { browser: name, executionStatus: "RUNNING", checks: [], observations: {}, logs: [] };
   let first = await context.newPage();
   let second;
   tabNames.set(first, "A");
@@ -135,6 +135,13 @@ async function runBrowser(browser, name, origin) {
       result.logs.push(observe(page));
       await page.goto(`${origin}/index.html`, { waitUntil: "domcontentloaded" });
       await page.locator("#appStartupGuard").waitFor({ state: "hidden" });
+      // Startup may select a new Today memo after the original was renamed.
+      // Select the same fixture through the real UI; never call openNote/save.
+      if (await page.evaluate(() => currentId) !== id) {
+        if (!await page.locator("#memoList").isVisible()) await page.locator("#memoPaneBtn").click();
+        await page.locator("#memoList .memo-title").filter({ hasText: "複数タブ隔離試験428" }).click();
+        await page.waitForFunction((noteId) => currentId === noteId, id);
+      }
       reopened.push(page);
     }
     [first, second] = reopened;
@@ -159,6 +166,7 @@ async function runBrowser(browser, name, origin) {
     assert.ok(external.every((url) => new URL(url).hostname === "cdn.jsdelivr.net"), "no real external/MCP/OAuth request");
     result.externalFixtures = external;
     result.evidence.execution.completed = true;
+    result.executionStatus = "COMPLETED";
     result.acceptance = evaluateSafety(result.evidence);
     for (const number of [5, 7, 8]) check(result, number, expectations[number - 1], result.acceptance, result.acceptance.status);
     result.checks.sort((a, b) => a.number - b.number);
@@ -166,6 +174,7 @@ async function runBrowser(browser, name, origin) {
     result.status = result.checks.every((entry) => entry.status === "PASS") ? "PASS" : "FAIL";
   } catch (error) {
     result.status = "FAIL";
+    result.executionStatus = "FAILED";
     result.error = error.stack;
     if (result.evidence) result.evidence.execution.errors.push(error.stack);
     expectations.forEach((expected, index) => {

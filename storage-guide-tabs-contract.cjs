@@ -119,7 +119,7 @@ function evaluateSafety(evidence) {
       && recovery.selector === "[data-memo-conflict-export]" && recovery.before.conflictUi.exportEnabled === true
       && typeof recovery.download?.fileName === "string" && recovery.download.fileName.length > 0
       && recovery.download.text === spec.drafts[blockedTab]
-      && exactState(recovery.after, spec.noteId, committed.body) && preserved(recovery.after) === PASS ? PASS : FAIL;
+      && exactState(recovery.after, spec.noteId, committed.body) && preserved(recovery.after) === PASS && conflictUi(recovery.after) ? PASS : FAIL;
   }
   b.push(requirement("B6-exercised-recovery-after-reopen", recoveryStatus, "A real UI-triggered download is read back; manual-copy assumptions/configuration flags do not qualify"));
   b.push(requirement("B7-finite-stopped-outcome", evidence.wait?.kind === "conflict-stopped" ? PASS : evidence.wait?.kind === "saved" ? FAIL : UNKNOWN, "Dirty may remain true; queue/timer must be idle, and full preservation/recovery proof is still required"));
@@ -137,7 +137,8 @@ function evaluateSafety(evidence) {
     && expected.edits.some((edit) => terminal.every((s) => !containsEdit(s.stored.body, edit) && !containsEdit(s.editor, edit)));
   result.silentOverwrite = silentOverwrite;
   const brokenPreservation = receipt && complete && held.every(knownStorage) && b.some((item) => item.id === "B3-durable-draft" && item.status === FAIL);
-  const hardFailure = loss || silentOverwrite || brokenPreservation || recoveryStatus === FAIL || PHASES.some((phase) => pair(obs[phase], spec.noteId) && obs[phase].some((s) => s.badgeState === "saved" && !savedUi(s)));
+  const uiStates = [...PHASES.flatMap((phase) => obs[phase] || []), ...[recovery?.before, recovery?.after].filter(Boolean)];
+  const hardFailure = loss || silentOverwrite || brokenPreservation || recoveryStatus === FAIL || uiStates.some((s) => s.badgeState === "saved" && !savedUi(s));
   if (executionReady && !hardFailure && [a, b].some((items) => all(items) === PASS)) {
     result.status = PASS;
     result.acceptedMethod = all(a) === PASS ? "A" : "B";
@@ -155,12 +156,15 @@ function evaluateTabReport(input) {
     const checks = browser.checks;
     if (browser.error || checks?.length !== 10 || !Array.from({ length: 10 }, (_, i) => i + 1).every((n) => checks.filter((c) => c.number === n).length === 1)) return { status: UNKNOWN, integrity: FAIL, reason: "Missing, duplicate or unreached conditions" };
     const decision = evaluateSafety(browser.evidence);
-    const matches = [5, 7, 8].every((n) => checks.find((c) => c.number === n).status === decision.status);
+    const conditionsPass = checks.every((c) => c.status === PASS);
+    const matches = [5, 7, 8].every((n) => checks.find((c) => c.number === n).status === decision.status)
+      && browser.executionStatus === "COMPLETED" && browser.status === (conditionsPass && decision.status === PASS ? PASS : FAIL);
     const logsComplete = Array.isArray(browser.logs) && browser.logs.length >= 2 && browser.logs.every((log) => ["exceptions", "consoleErrors", "failedResponses", "failedRequests"].every((key) => Array.isArray(log[key]) && log[key].length === 0));
-    return { ...decision, integrity: matches && logsComplete ? PASS : FAIL, conditionsPass: checks.every((c) => c.status === PASS) };
+    return { ...decision, integrity: matches && logsComplete ? PASS : FAIL, conditionsPass };
   });
   return { status: decisions.every((d) => d.status === PASS && d.integrity === PASS && d.conditionsPass) ? PASS : FAIL,
-    productSafety: decisions.some((d) => d.status === FAIL) ? FAIL : decisions.every((d) => d.status === PASS) ? PASS : UNKNOWN, decisions };
+    productSafety: decisions.some((d) => d.integrity === PASS && d.status === FAIL) ? FAIL
+      : decisions.every((d) => d.integrity === PASS && d.conditionsPass && d.status === PASS) ? PASS : UNKNOWN, decisions };
 }
 
 module.exports = { evaluateSafety, evaluateTabReport, uiConsistency, bodies };

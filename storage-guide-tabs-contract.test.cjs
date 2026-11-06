@@ -60,7 +60,7 @@ function suite(evidence) {
   const decision = evaluateSafety(evidence);
   const log = { exceptions: [], consoleErrors: [], failedResponses: [], failedRequests: [] };
   return { testedHead: "1".repeat(40), startedAt: "synthetic-start", finishedAt: "synthetic-finish",
-    browsers: ["chromium", "webkit"].map((browser) => ({ browser, evidence: copy(evidence), logs: [copy(log), copy(log)],
+    browsers: ["chromium", "webkit"].map((browser) => ({ browser, status: decision.status === "PASS" ? "PASS" : "FAIL", executionStatus: "COMPLETED", evidence: copy(evidence), logs: [copy(log), copy(log)],
       checks: Array.from({ length: 10 }, (_, index) => ({ number: index + 1, status: [5, 7, 8].includes(index + 1) ? decision.status : "PASS" })) })) };
 }
 
@@ -208,4 +208,22 @@ test("non-finite wait configuration is rejected", async () => {
 test("a summary field cannot substitute for a contradictory raw DB record", () => {
   const e = automatic(); e.observations.terminal[0].storage.stores.notes[0].body = spec.baselineBody;
   assert.notEqual(evaluateSafety(e).status, "PASS");
+});
+test("independent P2 regression: recovery-after cannot label an unsaved draft saved", () => {
+  const e = stopped(); e.recovery.after.badgeState = "saved";
+  e.recovery.after.save = { status: "saved", dirty: false, activeRevision: null, pendingRevision: null };
+  assert.equal(evaluateSafety(e).status, "FAIL");
+});
+test("independent P2 regression: explicit failed/not-tested execution cannot become product PASS", () => {
+  const r = suite(automatic()); r.browsers[0].status = "FAIL"; r.browsers[0].executionStatus = "NOT_TESTED";
+  assert.equal(evaluateTabReport(r).status, "FAIL"); assert.notEqual(evaluateTabReport(r).productSafety, "PASS");
+});
+test("missing logs cannot be reported as product safety PASS", () => {
+  const r = suite(automatic()); delete r.browsers[0].logs;
+  assert.equal(evaluateTabReport(r).status, "FAIL"); assert.equal(evaluateTabReport(r).productSafety, "UNKNOWN");
+});
+test("poll sleep is clamped to the remaining finite deadline", async () => {
+  const pair = before(), start = performance.now();
+  const result = await pollOutcome(async () => copy(pair), { timeout: 30, interval: 1000, stableMs: 4 });
+  assert.equal(result.kind, "timeout"); assert.ok(performance.now() - start < 500);
 });
