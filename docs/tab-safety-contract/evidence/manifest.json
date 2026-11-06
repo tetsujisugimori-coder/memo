@@ -111,7 +111,7 @@
     "path": "independent-windows/guide-run.log",
     "bytes": 6190,
     "sha256": "251bc2379401965389e6d97de6f7630c798888fba64f8ac750a1c0918a2e8295",
-    "repositoryLfSha256": "ec0e1fcdf5cf9c01fc14f7638a0562f035ea10eb0ccd3c6bd71182d81767d7c4"
+    "repositoryLfSha256": "251bc2379401965389e6d97de6f7630c798888fba64f8ac750a1c0918a2e8295"
   },
   {
     "path": "independent-windows/multiple-tabs/chromium-overlap-first.png",
