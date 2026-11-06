@@ -122,9 +122,9 @@ async function runBrowser(browser, name, origin) {
     check(result, 7, "Both edits survive; otherwise existing protection must visibly warn or block overwrite", { bothEditsPreserved: merged, notices: result.observations.overlapSaved.map((item) => item.notice), pending: result.observations.overlapSaved.map((item) => item.pending), dirty: result.observations.overlapSaved.map((item) => item.save.dirty) }, merged);
     await first.screenshot({ path: path.join(output, `${name}-overlap-first.png`), fullPage: true });
     await second.screenshot({ path: path.join(output, `${name}-overlap-second.png`), fullPage: true });
-    await first.reload();
+    await first.reload({ waitUntil: "domcontentloaded" });
     await first.locator("#appStartupGuard").waitFor({ state: "hidden" });
-    await second.reload();
+    await second.reload({ waitUntil: "domcontentloaded" });
     await second.locator("#appStartupGuard").waitFor({ state: "hidden" });
     result.observations.reloaded = [await state(first, id), await state(second, id)];
     check(result, 8, "Reload keeps both edits and displays the persisted record", result.observations.reloaded, result.observations.reloaded.every((item) => bothEdits(item.stored.body) && item.editor === item.stored.body));
