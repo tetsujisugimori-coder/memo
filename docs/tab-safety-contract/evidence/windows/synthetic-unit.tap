@@ -1,0 +1,250 @@
+TAP version 13
+# Subtest: SYNTHETIC method A: exact integrated DB + UI + reload + close/reopen passes
+ok 1 - SYNTHETIC method A: exact integrated DB + UI + reload + close/reopen passes
+  ---
+  duration_ms: 1.9444
+  type: 'test'
+  ...
+# Subtest: SYNTHETIC method B: dirty remains true, measured rejection/durable draft/export passes
+ok 2 - SYNTHETIC method B: dirty remains true, measured rejection/durable draft/export passes
+  ---
+  duration_ms: 0.9192
+  type: 'test'
+  ...
+# Subtest: warning plus disappeared draft is FAIL
+ok 3 - warning plus disappeared draft is FAIL
+  ---
+  duration_ms: 0.5563
+  type: 'test'
+  ...
+# Subtest: existing both-saved/no-warning/reload-loss counterexample stays FAIL
+ok 4 - existing both-saved/no-warning/reload-loss counterexample stays FAIL
+  ---
+  duration_ms: 0.4219
+  type: 'test'
+  ...
+# Subtest: stopped but exercised recovery failed is FAIL
+ok 5 - stopped but exercised recovery failed is FAIL
+  ---
+  duration_ms: 0.6343
+  type: 'test'
+  ...
+# Subtest: dirty=false and old DB is FAIL
+ok 6 - dirty=false and old DB is FAIL
+  ---
+  duration_ms: 0.3649
+  type: 'test'
+  ...
+# Subtest: unobserved preservation store is UNKNOWN, never PASS
+ok 7 - unobserved preservation store is UNKNOWN, never PASS
+  ---
+  duration_ms: 0.4826
+  type: 'test'
+  ...
+# Subtest: draft absent after reload is FAIL despite a surviving rejection receipt
+ok 8 - draft absent after reload is FAIL despite a surviving rejection receipt
+  ---
+  duration_ms: 0.5701
+  type: 'test'
+  ...
+# Subtest: draft absent after close/reopen is FAIL
+ok 9 - draft absent after close/reopen is FAIL
+  ---
+  duration_ms: 0.8941
+  type: 'test'
+  ...
+# Subtest: session-only draft cannot qualify as durable preservation
+ok 10 - session-only draft cannot qualify as durable preservation
+  ---
+  duration_ms: 0.7891
+  type: 'test'
+  ...
+# Subtest: warning/dirty flags without concrete version-bound receipt never pass
+ok 11 - warning/dirty flags without concrete version-bound receipt never pass
+  ---
+  duration_ms: 0.5981
+  type: 'test'
+  ...
+# Subtest: wrong expected revision never passes
+ok 12 - wrong expected revision never passes
+  ---
+  duration_ms: 0.5639
+  type: 'test'
+  ...
+# Subtest: blocked edit labelled saved is FAIL
+ok 13 - blocked edit labelled saved is FAIL
+  ---
+  duration_ms: 0.5389
+  type: 'test'
+  ...
+# Subtest: a recovery configuration declaration without a read-back download never passes
+ok 14 - a recovery configuration declaration without a read-back download never passes
+  ---
+  duration_ms: 0.5723
+  type: 'test'
+  ...
+# Subtest: wrong recovery bytes are FAIL
+ok 15 - wrong recovery bytes are FAIL
+  ---
+  duration_ms: 0.4674
+  type: 'test'
+  ...
+# Subtest: recovery must not roll back committed content
+ok 16 - recovery must not roll back committed content
+  ---
+  duration_ms: 0.5892
+  type: 'test'
+  ...
+# Subtest: a rejection receipt cannot hide an observed stale overwrite
+ok 17 - a rejection receipt cannot hide an observed stale overwrite
+  ---
+  duration_ms: 0.6253
+  type: 'test'
+  ...
+# Subtest: in-flight save is not a terminal success
+ok 18 - in-flight save is not a terminal success
+  ---
+  duration_ms: 0.2219
+  type: 'test'
+  ...
+# Subtest: timeout never passes, even with convincing saved labels
+ok 19 - timeout never passes, even with convincing saved labels
+  ---
+  duration_ms: 0.1959
+  type: 'test'
+  ...
+# Subtest: mid-execution exception never passes
+ok 20 - mid-execution exception never passes
+  ---
+  duration_ms: 0.4954
+  type: 'test'
+  ...
+# Subtest: unreached restart phase is UNKNOWN
+ok 21 - unreached restart phase is UNKNOWN
+  ---
+  duration_ms: 0.1796
+  type: 'test'
+  ...
+# Subtest: declared edits without measured dirty preconditions never pass
+ok 22 - declared edits without measured dirty preconditions never pass
+  ---
+  duration_ms: 0.2239
+  type: 'test'
+  ...
+# Subtest: JSON missing or invalid is rejected
+ok 23 - JSON missing or invalid is rejected
+  ---
+  duration_ms: 0.2542
+  type: 'test'
+  ...
+# Subtest: report cannot pass with a missing or duplicate condition
+ok 24 - report cannot pass with a missing or duplicate condition
+  ---
+  duration_ms: 1.4835
+  type: 'test'
+  ...
+# Subtest: UNKNOWN, skipped or false PASS check cannot make the report pass
+ok 25 - UNKNOWN, skipped or false PASS check cannot make the report pass
+  ---
+  duration_ms: 1.3145
+  type: 'test'
+  ...
+# Subtest: report requires measured error logs and source HEAD
+ok 26 - report requires measured error logs and source HEAD
+  ---
+  duration_ms: 0.8748
+  type: 'test'
+  ...
+# Subtest: browser launch failure with ten placeholders is not product PASS
+ok 27 - browser launch failure with ten placeholders is not product PASS
+  ---
+  duration_ms: 0.5508
+  type: 'test'
+  ...
+# Subtest: SYNTHETIC complete A/B suite reports pass; existing product counterexample reports FAIL
+ok 28 - SYNTHETIC complete A/B suite reports pass; existing product counterexample reports FAIL
+  ---
+  duration_ms: 2.0985
+  type: 'test'
+  ...
+# Subtest: SYNTHETIC finite poll explicitly awaits async reads and records read order
+ok 29 - SYNTHETIC finite poll explicitly awaits async reads and records read order
+  ---
+  duration_ms: 12.1992
+  type: 'test'
+  ...
+# Subtest: SYNTHETIC finite poll accepts stopped candidate while dirty remains true
+ok 30 - SYNTHETIC finite poll accepts stopped candidate while dirty remains true
+  ---
+  duration_ms: 19.4075
+  type: 'test'
+  ...
+# Subtest: finite poll times out on pending saves and never equates dirty=false with settled DB
+ok 31 - finite poll times out on pending saves and never equates dirty=false with settled DB
+  ---
+  duration_ms: 81.174
+  type: 'test'
+  ...
+# Subtest: a read that never resolves has a finite deadline
+ok 32 - a read that never resolves has a finite deadline
+  ---
+  duration_ms: 30.8556
+  type: 'test'
+  ...
+# Subtest: read exception is execution-error, not saved
+ok 33 - read exception is execution-error, not saved
+  ---
+  duration_ms: 0.3702
+  type: 'test'
+  ...
+# Subtest: non-finite wait configuration is rejected
+ok 34 - non-finite wait configuration is rejected
+  ---
+  duration_ms: 0.3542
+  type: 'test'
+  ...
+# Subtest: a summary field cannot substitute for a contradictory raw DB record
+ok 35 - a summary field cannot substitute for a contradictory raw DB record
+  ---
+  duration_ms: 0.2281
+  type: 'test'
+  ...
+# Subtest: independent P2 regression: recovery-after cannot label an unsaved draft saved
+ok 36 - independent P2 regression: recovery-after cannot label an unsaved draft saved
+  ---
+  duration_ms: 0.4792
+  type: 'test'
+  ...
+# Subtest: independent P2 regression: explicit failed/not-tested execution cannot become product PASS
+ok 37 - independent P2 regression: explicit failed/not-tested execution cannot become product PASS
+  ---
+  duration_ms: 0.5827
+  type: 'test'
+  ...
+# Subtest: missing logs cannot be reported as product safety PASS
+ok 38 - missing logs cannot be reported as product safety PASS
+  ---
+  duration_ms: 0.5262
+  type: 'test'
+  ...
+# Subtest: poll sleep is clamped to the remaining finite deadline
+ok 39 - poll sleep is clamped to the remaining finite deadline
+  ---
+  duration_ms: 44.2268
+  type: 'test'
+  ...
+# Subtest: SYNTHETIC B may return to correctly saved committed content after verified export
+ok 40 - SYNTHETIC B may return to correctly saved committed content after verified export
+  ---
+  duration_ms: 0.7899
+  type: 'test'
+  ...
+1..40
+# tests 40
+# suites 0
+# pass 40
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 743.7936

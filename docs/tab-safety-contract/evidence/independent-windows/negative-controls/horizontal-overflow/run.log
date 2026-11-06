@@ -1,0 +1,16 @@
+{
+  "status": "FAIL",
+  "head": "58e3cb8e09a5c0e8d24071f173054209de72b6b6",
+  "cases": [
+    {
+      "browser": "chromium",
+      "status": "FAIL",
+      "error": "AssertionError [ERR_ASSERTION]: guide horizontal overflow\n    at guideCase (C:\\Users\\tetsu\\Documents\\Codex\\メモ帳\\work\\tab-safety-contract-20261106\\storage-guide.e2e.cjs:119:12)\n    at async runGuideSuite (C:\\Users\\tetsu\\Documents\\Codex\\メモ帳\\work\\tab-safety-contract-20261106\\storage-guide.e2e.cjs:254:63)"
+    },
+    {
+      "browser": "webkit",
+      "status": "FAIL",
+      "error": "AssertionError [ERR_ASSERTION]: guide horizontal overflow\n    at guideCase (C:\\Users\\tetsu\\Documents\\Codex\\メモ帳\\work\\tab-safety-contract-20261106\\storage-guide.e2e.cjs:119:12)\n    at async runGuideSuite (C:\\Users\\tetsu\\Documents\\Codex\\メモ帳\\work\\tab-safety-contract-20261106\\storage-guide.e2e.cjs:254:63)"
+    }
+  ]
+}
