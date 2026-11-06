@@ -33,12 +33,13 @@ async function saved(page, id, body) {
   await waitForSavedNote(page, id, { body });
 }
 
-async function reloadApp(page) {
-  await page.reload({ waitUntil: "commit" });
+async function appReady(page) {
   await page.locator("#appStartupGuard").waitFor({ state: "attached" });
   await page.locator("#appStartupGuard").waitFor({ state: "hidden" });
   await page.locator("#editor").waitFor({ state: "visible" });
 }
+async function reloadApp(page) { await page.reload({ waitUntil: "commit" }); await appReady(page); }
+async function openApp(page, url) { await page.goto(url, { waitUntil: "commit" }); await appReady(page); }
 
 function check(result, number, expected, actual, passed) {
   result.checks.push({ number, expected, actual, status: typeof passed === "string" ? passed : passed ? "PASS" : "FAIL" });
@@ -53,8 +54,7 @@ async function runBrowser(browser, name, origin) {
   first.setDefaultTimeout(10000);
   result.logs.push(observe(first));
   try {
-    await first.goto(`${origin}/index.html`, { waitUntil: "domcontentloaded" });
-    await first.locator("#appStartupGuard").waitFor({ state: "hidden" });
+    await openApp(first, `${origin}/index.html`);
     const id = await first.evaluate(() => currentId);
     await first.locator("#titleInput").fill("複数タブ隔離試験428");
     await first.locator("#editor").fill("lineA=base\nlineB=base");
@@ -63,8 +63,7 @@ async function runBrowser(browser, name, origin) {
     tabNames.set(second, "B");
     second.setDefaultTimeout(10000);
     result.logs.push(observe(second));
-    await second.goto(`${origin}/index.html`, { waitUntil: "domcontentloaded" });
-    await second.locator("#appStartupGuard").waitFor({ state: "hidden" });
+    await openApp(second, `${origin}/index.html`);
     check(result, 1, "Two tabs share one ephemeral context and origin", { pages: context.pages().length, origins: [new URL(first.url()).origin, new URL(second.url()).origin] }, context.pages().length === 2);
     const secondId = await second.evaluate(() => currentId);
     check(result, 2, "Both UI tabs display the same synthetic note", { firstId: id, secondId, body: await second.locator("#editor").inputValue() }, secondId === id && await second.locator("#editor").inputValue() === "lineA=base\nlineB=base");
@@ -138,8 +137,7 @@ async function runBrowser(browser, name, origin) {
       tabNames.set(page, tab);
       page.setDefaultTimeout(10000);
       result.logs.push(observe(page));
-      await page.goto(`${origin}/index.html`, { waitUntil: "domcontentloaded" });
-      await page.locator("#appStartupGuard").waitFor({ state: "hidden" });
+      await openApp(page, `${origin}/index.html`);
       // Startup may select a new Today memo after the original was renamed.
       // Select the same fixture through the real UI; never call openNote/save.
       if (await page.evaluate(() => currentId) !== id) {
@@ -163,8 +161,8 @@ async function runBrowser(browser, name, origin) {
       result.logs.push(observe(page));
       await page.goto(`${origin}/storage-guide.html`);
       await page.locator("footer summary").click();
-      await Promise.all([page.waitForURL(`${origin}/index.html`, { waitUntil: "domcontentloaded" }), page.getByRole("link", { name: "このタブでアプリを開く", exact: true }).click()]);
-      await page.locator("#appStartupGuard").waitFor({ state: "hidden" });
+      await Promise.all([page.waitForURL(`${origin}/index.html`, { waitUntil: "commit" }), page.getByRole("link", { name: "このタブでアプリを開く", exact: true }).click()]);
+      await appReady(page);
       check(result, 10, "Direct visitor can navigate in the same tab; closing guide leaves original app tabs", { directPages: direct.context.pages().length, originalPages: context.pages().length }, direct.context.pages().length === 1 && context.pages().length === 2);
       assert.ok(direct.external.every((url) => new URL(url).hostname === "cdn.jsdelivr.net"));
     } finally { await direct.context.close(); }
