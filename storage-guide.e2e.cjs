@@ -165,7 +165,7 @@ async function appCase(browser, origin, browserName, width) {
   page.setDefaultTimeout(10000);
   const log = observe(page);
   try {
-    await page.goto(`${origin}/index.html`);
+    await page.goto(`${origin}/index.html`, { waitUntil: "domcontentloaded" });
     await page.locator("#appStartupGuard").waitFor({ state: "hidden" });
     if (width === 390 && await page.locator("#contextPanel").getAttribute("aria-hidden") === "false") {
       await page.locator("#closeContextPanelBtn").click();
@@ -203,7 +203,7 @@ async function appCase(browser, origin, browserName, width) {
     await guide.locator("footer summary").click();
     const appEntry = guide.getByRole("link", { name: "このタブでアプリを開く", exact: true });
     assert.equal(await appEntry.getAttribute("target"), null);
-    await Promise.all([guide.waitForURL(`${origin}/index.html`), appEntry.click()]);
+    await Promise.all([guide.waitForURL(`${origin}/index.html`, { waitUntil: "domcontentloaded" }), appEntry.click()]);
     await guide.locator("#appStartupGuard").waitFor({ state: "hidden" });
     assert.equal(context.pages().length, pageCount, "direct-entry fallback navigates within guide tab");
     await guide.close();
@@ -211,7 +211,7 @@ async function appCase(browser, origin, browserName, width) {
     await page.locator("#closeSettingsBtn").click();
     await page.locator("#editor").fill("ガイドを開いた後も保存できる・架空データ426");
     await waitForSavedNote(page, id, { body: "ガイドを開いた後も保存できる・架空データ426" });
-    await page.reload();
+    await page.reload({ waitUntil: "domcontentloaded" });
     await page.locator("#appStartupGuard").waitFor({ state: "hidden" });
     assert.equal(await page.locator("#editor").inputValue(), "ガイドを開いた後も保存できる・架空データ426");
     assert.equal(await page.locator("#titleInput").inputValue(), "隔離試験426");

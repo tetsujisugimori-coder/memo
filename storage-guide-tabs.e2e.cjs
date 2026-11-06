@@ -9,6 +9,7 @@ const playwright = require("playwright");
 const { observe, assertClean, snapshot, createServer, waitForSavedNote } = require("./storage-guide.e2e.cjs");
 const output = path.join(process.env.STORAGE_GUIDE_ARTIFACTS || os.tmpdir(), "multiple-tabs");
 const report = { testedHead: execFileSync("git", ["rev-parse", "HEAD"], { cwd: __dirname, encoding: "utf8" }).trim(), startedAt: new Date().toISOString(), platform: process.platform, browsers: [], limitations: ["Only the recorded natural autosave schedules are observed; all schedules and real Safari/PWA remain UNKNOWN", "No real profiles, real data, direct save calls, storage reset, modified timers or blocked BroadcastChannel"] };
+const expectations = ["Two tabs share one ephemeral context and origin", "Both tabs display the same note", "Single UI writer autosaves", "Clean reader reflects stored content", "Both nonoverlapping edits survive", "Saved UI agrees with storage", "Missing edits are not silently reported saved", "Reload preserves edits", "Guide leaves storage unchanged", "Fallback uses the same tab"];
 
 async function fixtureContext(browser, origin) {
   const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
@@ -52,7 +53,7 @@ async function runBrowser(browser, name, origin) {
   first.setDefaultTimeout(10000);
   result.logs.push(observe(first));
   try {
-    await first.goto(`${origin}/index.html`);
+    await first.goto(`${origin}/index.html`, { waitUntil: "domcontentloaded" });
     await first.locator("#appStartupGuard").waitFor({ state: "hidden" });
     const id = await first.evaluate(() => currentId);
     await first.locator("#titleInput").fill("複数タブ隔離試験428");
@@ -61,7 +62,7 @@ async function runBrowser(browser, name, origin) {
     const second = await context.newPage();
     second.setDefaultTimeout(10000);
     result.logs.push(observe(second));
-    await second.goto(`${origin}/index.html`);
+    await second.goto(`${origin}/index.html`, { waitUntil: "domcontentloaded" });
     await second.locator("#appStartupGuard").waitFor({ state: "hidden" });
     check(result, 1, "Two tabs share one ephemeral context and origin", { pages: context.pages().length, origins: [new URL(first.url()).origin, new URL(second.url()).origin] }, context.pages().length === 2);
     const secondId = await second.evaluate(() => currentId);
@@ -115,11 +116,12 @@ async function runBrowser(browser, name, origin) {
     result.observations.overlapSaved = [await state(first, id), await state(second, id)];
     const bothEdits = (body) => body.includes("lineA=overlap-A") && body.includes("lineB=overlap-B");
     const merged = result.observations.overlapSaved.every((item) => bothEdits(item.stored.body));
-    check(result, 5, "Staggered overlapping drafts preserve both independent edits or stop with a visible conflict", { baseline, before: result.observations.overlapDirty, after: result.observations.overlapSaved }, merged);
+    check(result, 5, "Both independent line edits survive in storage after staggered overlapping drafts", { baseline, before: result.observations.overlapDirty, after: result.observations.overlapSaved }, merged);
     const consistent = result.observations.overlapSaved.every((item) => item.editor === item.stored.body);
     check(result, 6, "Saved UI content agrees with the stored record in both tabs", result.observations.overlapSaved.map(({ editor, stored, badge, pending }) => ({ editor, stored, badge, pending })), consistent);
     // A silent pending flag is not a visible warning, nor does it prevent a stale write.
-    check(result, 7, "Both edits survive; otherwise existing protection must visibly warn or block overwrite", { bothEditsPreserved: merged, notices: result.observations.overlapSaved.map((item) => item.notice), pending: result.observations.overlapSaved.map((item) => item.pending), dirty: result.observations.overlapSaved.map((item) => item.save.dirty) }, merged);
+    const warnedOrBlocked = result.observations.overlapSaved.some((item) => /競合|別の.*(?:更新|変更)/.test(item.notice) || item.badgeState === "error");
+    check(result, 7, "Missing edits are not silently reported saved without warning or a blocked save", { bothEditsPreserved: merged, warnedOrBlocked, notices: result.observations.overlapSaved.map((item) => item.notice), pending: result.observations.overlapSaved.map((item) => item.pending), dirty: result.observations.overlapSaved.map((item) => item.save.dirty) }, merged || warnedOrBlocked);
     await first.screenshot({ path: path.join(output, `${name}-overlap-first.png`), fullPage: true });
     await second.screenshot({ path: path.join(output, `${name}-overlap-second.png`), fullPage: true });
     await first.reload({ waitUntil: "domcontentloaded" });
@@ -135,7 +137,7 @@ async function runBrowser(browser, name, origin) {
       result.logs.push(observe(page));
       await page.goto(`${origin}/storage-guide.html`);
       await page.locator("footer summary").click();
-      await Promise.all([page.waitForURL(`${origin}/index.html`), page.getByRole("link", { name: "このタブでアプリを開く", exact: true }).click()]);
+      await Promise.all([page.waitForURL(`${origin}/index.html`, { waitUntil: "domcontentloaded" }), page.getByRole("link", { name: "このタブでアプリを開く", exact: true }).click()]);
       await page.locator("#appStartupGuard").waitFor({ state: "hidden" });
       check(result, 10, "Direct visitor can navigate in the same tab; closing guide leaves original app tabs", { directPages: direct.context.pages().length, originalPages: context.pages().length }, direct.context.pages().length === 1 && context.pages().length === 2);
       assert.ok(direct.external.every((url) => new URL(url).hostname === "cdn.jsdelivr.net"));
@@ -149,6 +151,10 @@ async function runBrowser(browser, name, origin) {
   } catch (error) {
     result.status = "FAIL";
     result.error = error.stack;
+    expectations.forEach((expected, index) => {
+      if (!result.checks.some((entry) => entry.number === index + 1)) result.checks.push({ number: index + 1, expected, actual: "Not reached because execution stopped", status: "UNKNOWN" });
+    });
+    result.checks.sort((a, b) => a.number - b.number);
     await first.screenshot({ path: path.join(output, `${name}-unexpected-failure.png`), fullPage: true }).catch(() => {});
   } finally { await context.close(); }
   return result;
