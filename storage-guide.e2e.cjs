@@ -5,12 +5,13 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs/promises");
 const path = require("node:path");
 const http = require("node:http");
+const os = require("node:os");
 const { execFileSync } = require("node:child_process");
 const playwright = require("playwright");
 const root = __dirname;
 const output = process.env.STORAGE_GUIDE_ARTIFACTS
   ? path.resolve(process.env.STORAGE_GUIDE_ARTIFACTS)
-  : path.join(root, "docs/ui-storage-guide/browser");
+  : path.join(os.tmpdir(), `memo-storage-guide-${Date.now()}`);
 const summary = {
   testedHead: execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" }).trim(),
   startedAt: new Date().toISOString(),
@@ -21,11 +22,12 @@ const summary = {
 };
 
 function observe(page) {
-  const log = { exceptions: [], consoleErrors: [], failedResponses: [], requests: [] };
+  const log = { exceptions: [], consoleErrors: [], failedResponses: [], failedRequests: [], requests: [] };
   page.on("pageerror", (error) => log.exceptions.push(error.message));
   page.on("console", (message) => { if (message.type() === "error") log.consoleErrors.push(message.text()); });
   page.on("response", (response) => { if (response.status() >= 400) log.failedResponses.push(`${response.status()} ${response.url()}`); });
   page.on("request", (request) => log.requests.push(request.url()));
+  page.on("requestfailed", (request) => log.failedRequests.push({ url: request.url(), error: request.failure()?.errorText }));
   return log;
 }
 
@@ -33,6 +35,14 @@ function assertClean(log) {
   assert.deepEqual(log.exceptions, []);
   assert.deepEqual(log.consoleErrors, []);
   assert.deepEqual(log.failedResponses, []);
+  assert.deepEqual(log.failedRequests, []);
+}
+
+async function saveFailure(page, name, error, log) {
+  await Promise.allSettled([
+    page.screenshot({ path: path.join(output, `${name}-failure.png`), fullPage: true }),
+    fs.writeFile(path.join(output, `${name}-failure.json`), JSON.stringify({ error: error.stack, url: page.url(), log }, null, 2) + "\n"),
+  ]);
 }
 
 async function inspectLayout(page) {
@@ -84,6 +94,11 @@ async function guideCase(browser, origin, browserName, width, theme, reducedMoti
   try {
     await page.goto(`${origin}/storage-guide.html`);
     assert.equal(await page.locator("script, iframe, form, input, button").count(), 0);
+    for (const id of ["storage", "backup", "restore", "check"]) {
+      assert.equal(await page.locator(`nav a[href='#${id}']`).count(), 1, `guide anchor #${id} missing`);
+    }
+    assert.match(await page.locator("#return-guidance").textContent(), /タブを閉じて元のアプリタブへ戻って/);
+    assert.equal(await page.locator("a[target='_blank']").count(), 0, "guide must not spawn another app tab");
     const layout = await inspectLayout(page);
     assert.ok(layout.scrollWidth <= width, "guide horizontal overflow");
     assert.equal(layout.reducedMotion, reducedMotion === "reduce");
@@ -108,13 +123,16 @@ async function guideCase(browser, origin, browserName, width, theme, reducedMoti
       const y = await page.locator(`#${id}`).evaluate((el) => el.getBoundingClientRect().top);
       assert.ok(y >= -1 && y < 900, `anchor ${id} visible`);
     }
-    await page.locator("footer a").click();
+    await page.locator("footer a[href='#main']").click();
     assert.equal(new URL(page.url()).hash, "#main");
     await page.screenshot({ path: path.join(output, `${browserName}-${width}-${theme}-${reducedMotion}.png`), fullPage: true });
     assert.deepEqual(await page.evaluate(() => window.__guideCalls), []);
-    assert.ok(log.requests.every((url) => ["/storage-guide.html", "/storage-guide.css"].includes(new URL(url).pathname)), "guide requests only HTML/CSS");
+    assert.ok(log.requests.every((url) => new URL(url).origin === origin && ["/storage-guide.html", "/storage-guide.css"].includes(new URL(url).pathname)), "guide requests only local HTML/CSS");
     assertClean(log);
     summary.cases.push({ browser: browserName, width, theme, reducedMotion, status: "PASS", layout, focus, storageOrConnectionCalls: [], log });
+  } catch (error) {
+    await saveFailure(page, `${browserName}-${width}-${theme}-${reducedMotion}`, error, log);
+    throw error;
   } finally { await context.close(); }
 }
 
@@ -167,14 +185,16 @@ async function appCase(browser, origin, browserName, width) {
     assert.equal(await guide.evaluate(() => window.opener), null);
     await guide.locator("nav a[href='#backup']").click();
     assert.deepEqual(await snapshot(page), before, "all IDB stores and browser settings unchanged while reading guide");
-    const returnPromise = guide.waitForEvent("popup");
-    await guide.getByRole("link", { name: /アプリを開く/ }).click();
-    const returned = await returnPromise;
-    await returned.waitForLoadState("load");
-    assert.equal(new URL(returned.url()).pathname, "/index.html");
-    await returned.locator("#appStartupGuard").waitFor({ state: "hidden" });
-    await returned.close();
+    const pageCount = context.pages().length;
+    assert.equal(pageCount, 2, "only original app and guide are open");
+    await guide.locator("footer summary").click();
+    const appEntry = guide.getByRole("link", { name: "このタブでアプリを開く", exact: true });
+    assert.equal(await appEntry.getAttribute("target"), null);
+    await Promise.all([guide.waitForURL(`${origin}/index.html`), appEntry.click()]);
+    await guide.locator("#appStartupGuard").waitFor({ state: "hidden" });
+    assert.equal(context.pages().length, pageCount, "direct-entry fallback navigates within guide tab");
     await guide.close();
+    assert.equal(context.pages().length, 1, "closing guide leaves original app tab");
     await page.locator("#closeSettingsBtn").click();
     await page.locator("#editor").fill("ガイドを開いた後も保存できる・架空データ426");
     await page.waitForFunction(async (noteId) => (await getStoredNotes()).find((n) => n.id === noteId)?.body === "ガイドを開いた後も保存できる・架空データ426", id);
@@ -185,23 +205,31 @@ async function appCase(browser, origin, browserName, width) {
     assertClean(log);
     assertClean(guideLog);
     assert.ok(externalFixtures.every((url) => new URL(url).hostname === "cdn.jsdelivr.net"), "no MCP/OAuth or unexpected external request");
-    summary.cases.push({ browser: browserName, width, type: "app-save-regression", status: "PASS", unchangedGuideSnapshot: true, saveBeforeAndAfter: true, persistedAfterReload: true, externalFixtures, log, guideLog });
+    summary.cases.push({ browser: browserName, width, type: "app-save-regression", status: "PASS", unchangedGuideSnapshot: true, saveBeforeAndAfter: true, persistedAfterReload: true, sameTabFallback: true, appTabsAddedByFallback: 0, externalFixtures, log, guideLog });
+  } catch (error) {
+    await saveFailure(page, `${browserName}-${width}-app`, error, log);
+    throw error;
   } finally { await context.close(); }
 }
 
-(async () => {
-  await fs.mkdir(output, { recursive: true });
-  const server = http.createServer(async (request, response) => {
+function createServer(servedRoot = root) {
+  return http.createServer(async (request, response) => {
     const relative = decodeURIComponent(new URL(request.url, "http://127.0.0.1").pathname).replace(/^\/+/, "") || "index.html";
-    const file = path.resolve(root, relative);
-    if (!file.startsWith(root + path.sep)) { response.writeHead(403).end(); return; }
+    const file = path.resolve(servedRoot, relative);
+    if (!file.startsWith(servedRoot + path.sep)) { response.writeHead(403).end(); return; }
     try {
       const data = await fs.readFile(file);
       const mime = { ".html": "text/html; charset=utf-8", ".css": "text/css", ".js": "application/javascript", ".svg": "image/svg+xml", ".png": "image/png", ".json": "application/json" }[path.extname(file)] || "application/octet-stream";
       response.writeHead(200, { "Content-Type": mime }); response.end(data);
     } catch { response.writeHead(404).end(); }
   });
-  await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+}
+
+async function runGuideSuite() {
+  await fs.mkdir(output, { recursive: true });
+  // Negative controls use a disposable static root; the runner itself stays fixed.
+  const server = createServer(process.env.STORAGE_GUIDE_FIXTURE_ROOT || root);
+  await new Promise((resolve, reject) => { server.once("error", reject); server.listen(0, "127.0.0.1", resolve); });
   const origin = `http://127.0.0.1:${server.address().port}`;
   try {
     for (const name of ["chromium", "webkit"]) {
@@ -219,11 +247,19 @@ async function appCase(browser, origin, browserName, width) {
         process.exitCode = 1;
       } finally { await browser?.close(); }
     }
+  } catch (error) {
+    summary.cases.push({ type: "suite", status: "FAIL", error: error.stack });
+    process.exitCode = 1;
   } finally {
     server.close();
     summary.finishedAt = new Date().toISOString();
-    summary.status = process.exitCode ? "FAIL" : "PASS";
+    summary.expectedCases = 20;
+    summary.status = !process.exitCode && summary.cases.length === 20 && summary.cases.every((entry) => entry.status === "PASS") ? "PASS" : "FAIL";
+    if (summary.status !== "PASS") process.exitCode = 1;
     await fs.writeFile(path.join(output, "results.json"), JSON.stringify(summary, null, 2) + "\n");
     console.log(JSON.stringify({ status: summary.status, head: summary.testedHead, cases: summary.cases.map(({ browser, width, theme, reducedMotion, type, status, error }) => ({ browser, width, theme, reducedMotion, type, status, error })) }, null, 2));
   }
-})().catch((error) => { console.error(error); process.exitCode = 1; });
+}
+
+module.exports = { observe, assertClean, snapshot, createServer };
+if (require.main === module) runGuideSuite().catch((error) => { console.error(error); process.exitCode = 1; });

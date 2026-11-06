@@ -62,6 +62,49 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  storage-guide-e2e:
+    name: Storage guide E2E (chromium + webkit)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      STORAGE_GUIDE_ARTIFACTS: e2e-artifacts/storage-guide
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Install both Playwright browsers
+        run: npx playwright install --with-deps chromium webkit
+      - name: Run all 20 storage guide cases
+        shell: bash
+        run: |
+          mkdir -p "$STORAGE_GUIDE_ARTIFACTS"
+          set -o pipefail
+          npm run test:e2e:storage-guide 2>&1 | tee "$STORAGE_GUIDE_ARTIFACTS/run.log"
+      - name: Verify disposable negative controls
+        shell: bash
+        run: |
+          set -o pipefail
+          npm run test:e2e:storage-guide:negative 2>&1 | tee "$STORAGE_GUIDE_ARTIFACTS/negative.log"
+      - name: Verify synthetic multiple-tab editing and guide navigation
+        shell: bash
+        run: |
+          set -o pipefail
+          npm run test:e2e:storage-guide:tabs 2>&1 | tee "$STORAGE_GUIDE_ARTIFACTS/tabs.log"
+      - name: Preserve storage guide results including failures
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: storage-guide-e2e
+          path: e2e-artifacts/storage-guide/
+          if-no-files-found: error
+          retention-days: 14
+
   checks:
     name: CI checks
     runs-on: ubuntu-latest
