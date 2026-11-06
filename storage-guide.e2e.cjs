@@ -133,6 +133,10 @@ async function appCase(browser, origin, browserName, width) {
   try {
     await page.goto(`${origin}/index.html`);
     await page.locator("#appStartupGuard").waitFor({ state: "hidden" });
+    if (width === 390 && await page.locator("#contextPanel").getAttribute("aria-hidden") === "false") {
+      await page.locator("#closeContextPanelBtn").click();
+      await page.locator("#contextPanel").waitFor({ state: "hidden" });
+    }
     const id = await page.evaluate(() => currentId);
     await page.locator("#titleInput").fill("隔離試験426");
     await page.locator("#editor").fill("保存ガイド回帰試験・架空のメモのみ");
