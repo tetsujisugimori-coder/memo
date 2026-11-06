@@ -1,0 +1,31 @@
+{
+  "testedHead": "e2f434e5c5c9d799158509fbea0294b7b4c47fcb",
+  "startedAt": "2026-11-06T12:16:45.323Z",
+  "cases": [
+    {
+      "fault": "missing-link",
+      "status": "PASS",
+      "expectedChildExit": 1,
+      "actualChildExit": 1,
+      "detectedBy": [
+        "chromium",
+        "webkit"
+      ],
+      "error": "guide anchor #backup missing"
+    },
+    {
+      "fault": "horizontal-overflow",
+      "status": "PASS",
+      "expectedChildExit": 1,
+      "actualChildExit": 1,
+      "detectedBy": [
+        "chromium",
+        "webkit"
+      ],
+      "error": "guide horizontal overflow"
+    }
+  ],
+  "productFilesUnchanged": true,
+  "status": "PASS",
+  "finishedAt": "2026-11-06T12:16:51.236Z"
+}
