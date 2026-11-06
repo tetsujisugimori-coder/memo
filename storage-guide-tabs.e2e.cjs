@@ -33,6 +33,13 @@ async function saved(page, id, body) {
   await waitForSavedNote(page, id, { body });
 }
 
+async function reloadApp(page) {
+  await page.reload({ waitUntil: "commit" });
+  await page.locator("#appStartupGuard").waitFor({ state: "attached" });
+  await page.locator("#appStartupGuard").waitFor({ state: "hidden" });
+  await page.locator("#editor").waitFor({ state: "visible" });
+}
+
 function check(result, number, expected, actual, passed) {
   result.checks.push({ number, expected, actual, status: typeof passed === "string" ? passed : passed ? "PASS" : "FAIL" });
 }
@@ -115,10 +122,8 @@ async function runBrowser(browser, name, origin) {
     check(result, 6, expectations[5], outcome.states, uiConsistency(outcome.states));
     await first.screenshot({ path: path.join(output, `${name}-overlap-first.png`), fullPage: true });
     await second.screenshot({ path: path.join(output, `${name}-overlap-second.png`), fullPage: true });
-    await first.reload({ waitUntil: "domcontentloaded" });
-    await first.locator("#appStartupGuard").waitFor({ state: "hidden" });
-    await second.reload({ waitUntil: "domcontentloaded" });
-    await second.locator("#appStartupGuard").waitFor({ state: "hidden" });
+    await reloadApp(first);
+    await reloadApp(second);
     const reloadOutcome = await waitForOutcome([first, second], id);
     result.observations.reloadOutcome = reloadOutcome;
     result.observations.reloaded = await capturePair([first, second], id);
@@ -138,7 +143,8 @@ async function runBrowser(browser, name, origin) {
       // Startup may select a new Today memo after the original was renamed.
       // Select the same fixture through the real UI; never call openNote/save.
       if (await page.evaluate(() => currentId) !== id) {
-        if (!await page.locator("#memoList").isVisible()) await page.locator("#memoPaneBtn").click();
+        if (!await page.locator("#contextMemoListTab").isVisible()) await page.locator("#collectionsBtn").click();
+        await page.locator("#contextMemoListTab").click();
         await page.locator("#memoList .memo-title").filter({ hasText: "複数タブ隔離試験428" }).click();
         await page.waitForFunction((noteId) => currentId === noteId, id);
       }
@@ -181,7 +187,7 @@ async function runBrowser(browser, name, origin) {
       if (!result.checks.some((entry) => entry.number === index + 1)) result.checks.push({ number: index + 1, expected, actual: "Not reached because execution stopped", status: "UNKNOWN" });
     });
     result.checks.sort((a, b) => a.number - b.number);
-    await first.screenshot({ path: path.join(output, `${name}-unexpected-failure.png`), fullPage: true }).catch(() => {});
+    await Promise.allSettled(context.pages().map((page, index) => page.screenshot({ path: path.join(output, `${name}-unexpected-failure-${index}.png`), fullPage: true })));
   } finally { await context.close(); }
   return result;
 }

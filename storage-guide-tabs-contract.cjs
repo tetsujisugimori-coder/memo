@@ -119,7 +119,8 @@ function evaluateSafety(evidence) {
       && recovery.selector === "[data-memo-conflict-export]" && recovery.before.conflictUi.exportEnabled === true
       && typeof recovery.download?.fileName === "string" && recovery.download.fileName.length > 0
       && recovery.download.text === spec.drafts[blockedTab]
-      && exactState(recovery.after, spec.noteId, committed.body) && preserved(recovery.after) === PASS && conflictUi(recovery.after) ? PASS : FAIL;
+      && exactState(recovery.after, spec.noteId, committed.body) && preserved(recovery.after) === PASS
+      && (conflictUi(recovery.after) || savedUi(recovery.after)) ? PASS : FAIL;
   }
   b.push(requirement("B6-exercised-recovery-after-reopen", recoveryStatus, "A real UI-triggered download is read back; manual-copy assumptions/configuration flags do not qualify"));
   b.push(requirement("B7-finite-stopped-outcome", evidence.wait?.kind === "conflict-stopped" ? PASS : evidence.wait?.kind === "saved" ? FAIL : UNKNOWN, "Dirty may remain true; queue/timer must be idle, and full preservation/recovery proof is still required"));

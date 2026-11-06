@@ -227,3 +227,10 @@ test("poll sleep is clamped to the remaining finite deadline", async () => {
   const result = await pollOutcome(async () => copy(pair), { timeout: 30, interval: 1000, stableMs: 4 });
   assert.equal(result.kind, "timeout"); assert.ok(performance.now() - start < 500);
 });
+test("SYNTHETIC B may return to correctly saved committed content after verified export", () => {
+  const e = stopped(); const after = e.recovery.after;
+  after.editor = spec.drafts.A; after.badgeState = "saved";
+  after.save = { status: "saved", dirty: false, activeRevision: null, pendingRevision: null };
+  after.conflictUi.visible = false;
+  assert.equal(evaluateSafety(e).status, "PASS"); assert.equal(evaluateSafety(e).acceptedMethod, "B");
+});
