@@ -6,7 +6,7 @@ const os = require("node:os");
 const path = require("node:path");
 const { execFileSync } = require("node:child_process");
 const playwright = require("playwright");
-const { observe, assertClean, snapshot, createServer } = require("./storage-guide.e2e.cjs");
+const { observe, assertClean, snapshot, createServer, waitForSavedNote } = require("./storage-guide.e2e.cjs");
 const output = path.join(process.env.STORAGE_GUIDE_ARTIFACTS || os.tmpdir(), "multiple-tabs");
 const report = { testedHead: execFileSync("git", ["rev-parse", "HEAD"], { cwd: __dirname, encoding: "utf8" }).trim(), startedAt: new Date().toISOString(), platform: process.platform, browsers: [], limitations: ["Only the recorded natural autosave schedules are observed; all schedules and real Safari/PWA remain UNKNOWN", "No real profiles, real data, direct save calls, storage reset, modified timers or blocked BroadcastChannel"] };
 
@@ -38,10 +38,7 @@ async function state(page, id) {
 }
 
 async function saved(page, id, body) {
-  await page.waitForFunction(async ({ noteId, expected }) => {
-    const note = (await getStoredNotes()).find((item) => item.id === noteId);
-    return note?.body === expected && !noteSaveFoundation.isDirty(noteId) && document.querySelector("#browserSaveStatusBtn").dataset.state === "saved";
-  }, { noteId: id, expected: body }, { timeout: 10000 });
+  await waitForSavedNote(page, id, { body });
 }
 
 function check(result, number, expected, actual, passed) {
@@ -177,7 +174,7 @@ async function runBrowser(browser, name, origin) {
     report.status = !report.error && report.browsers.length === 2 && report.browsers.every((item) => item.status === "PASS") ? "PASS" : "FAIL";
     report.finishedAt = new Date().toISOString();
     await fs.writeFile(path.join(output, "results.json"), JSON.stringify(report, null, 2) + "\n");
-    console.log(JSON.stringify(report, null, 2));
+    console.log(JSON.stringify({ testedHead: report.testedHead, status: report.status, browsers: report.browsers.map(({ browser, status, error, checks }) => ({ browser, status, error, checks: checks?.map(({ number, status }) => ({ number, status })) })) }, null, 2));
     if (report.status !== "PASS") process.exitCode = 1;
   }
 })().catch((error) => { console.error(error); process.exitCode = 1; });

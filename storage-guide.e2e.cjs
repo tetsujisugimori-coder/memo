@@ -71,6 +71,22 @@ async function snapshot(page) {
   });
 }
 
+async function waitForSavedNote(page, noteId, expected, timeout = 10000) {
+  const deadline = Date.now() + timeout;
+  let observed;
+  do {
+    observed = await page.evaluate(async (id) => ({
+      note: (await getStoredNotes()).find((item) => item.id === id),
+      dirty: noteSaveFoundation.isDirty(id),
+      badge: document.querySelector("#browserSaveStatusBtn").dataset.state,
+    }), noteId);
+    if (observed.note && !observed.dirty && observed.badge === "saved"
+      && Object.entries(expected).every(([key, value]) => observed.note[key] === value)) return observed;
+    await new Promise((resolve) => setTimeout(resolve, 50));
+  } while (Date.now() < deadline);
+  throw new Error(`Saved note did not match within ${timeout}ms: ${JSON.stringify({ expected, observed })}`);
+}
+
 async function guideCase(browser, origin, browserName, width, theme, reducedMotion) {
   const context = await browser.newContext({ viewport: { width, height: 900 }, colorScheme: theme, reducedMotion });
   const page = await context.newPage();
@@ -159,10 +175,7 @@ async function appCase(browser, origin, browserName, width) {
     await page.locator("#titleInput").fill("隔離試験426");
     await page.locator("#editor").fill("保存ガイド回帰試験・架空のメモのみ");
     // Wait for the real UI autosave path; never force saveCurrentNote().
-    await page.waitForFunction(async (noteId) => {
-      const note = (await getStoredNotes()).find((n) => n.id === noteId);
-      return note?.title === "隔離試験426" && note.body === "保存ガイド回帰試験・架空のメモのみ";
-    }, id);
+    await waitForSavedNote(page, id, { title: "隔離試験426", body: "保存ガイド回帰試験・架空のメモのみ" });
     if (width === 390) {
       if (await page.locator("#mobileWritingDoneBtn").isVisible()) await page.locator("#mobileWritingDoneBtn").click();
       if (await page.locator("#mobileAppMenu").getAttribute("open") === null) await page.locator("#mobileAppMenu > summary").click();
@@ -197,7 +210,7 @@ async function appCase(browser, origin, browserName, width) {
     assert.equal(context.pages().length, 1, "closing guide leaves original app tab");
     await page.locator("#closeSettingsBtn").click();
     await page.locator("#editor").fill("ガイドを開いた後も保存できる・架空データ426");
-    await page.waitForFunction(async (noteId) => (await getStoredNotes()).find((n) => n.id === noteId)?.body === "ガイドを開いた後も保存できる・架空データ426", id);
+    await waitForSavedNote(page, id, { body: "ガイドを開いた後も保存できる・架空データ426" });
     await page.reload();
     await page.locator("#appStartupGuard").waitFor({ state: "hidden" });
     assert.equal(await page.locator("#editor").inputValue(), "ガイドを開いた後も保存できる・架空データ426");
@@ -261,5 +274,5 @@ async function runGuideSuite() {
   }
 }
 
-module.exports = { observe, assertClean, snapshot, createServer };
+module.exports = { observe, assertClean, snapshot, createServer, waitForSavedNote };
 if (require.main === module) runGuideSuite().catch((error) => { console.error(error); process.exitCode = 1; });
