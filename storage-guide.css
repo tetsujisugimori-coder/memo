@@ -33,7 +33,7 @@ body {
 }
 a { color: var(--accent); text-underline-offset: .22em; }
 a:hover { text-decoration-thickness: 2px; }
-a:focus-visible, main:focus-visible {
+a:focus-visible, summary:focus-visible, main:focus-visible {
   outline: 3px solid var(--accent);
   outline-offset: 4px;
   border-radius: 3px;
@@ -60,7 +60,7 @@ a:focus-visible, main:focus-visible {
 }
 .brand { font-weight: 700; }
 .brand span { color: var(--muted); font-size: .8rem; margin-left: 12px; }
-.page-header a { font-size: .9rem; padding-block: 8px; }
+summary { cursor: pointer; padding-block: 10px; }
 main { max-width: 840px; margin: auto; padding: 60px 32px 32px; }
 .eyebrow, .section-number { color: var(--accent); font-size: .8rem; font-weight: 700; letter-spacing: .09em; }
 h1 { margin: 12px 0 24px; font-size: clamp(1.85rem, 4.5vw, 2.9rem); line-height: 1.45; letter-spacing: .02em; }

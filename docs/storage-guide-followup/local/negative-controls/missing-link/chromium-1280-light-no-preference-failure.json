@@ -1,0 +1,14 @@
+{
+  "error": "AssertionError [ERR_ASSERTION]: guide anchor #backup missing\n\n0 !== 1\n\n    at guideCase (C:\\Users\\tetsu\\Documents\\Codex\\メモ帳\\work\\storage-guide-ci-tab-followup-20261106\\storage-guide.e2e.cjs:114:14)\n    at async runGuideSuite (C:\\Users\\tetsu\\Documents\\Codex\\メモ帳\\work\\storage-guide-ci-tab-followup-20261106\\storage-guide.e2e.cjs:254:63)",
+  "url": "http://127.0.0.1:58200/storage-guide.html",
+  "log": {
+    "exceptions": [],
+    "consoleErrors": [],
+    "failedResponses": [],
+    "failedRequests": [],
+    "requests": [
+      "http://127.0.0.1:58200/storage-guide.html",
+      "http://127.0.0.1:58200/storage-guide.css"
+    ]
+  }
+}
