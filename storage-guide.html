@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="light dark">
+  <title>データ保存・バックアップの使い方 | Memo Nexus</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="storage-guide.css">
+</head>
+<body>
+  <a class="skip-link" href="#main" tabindex="0">本文へ移動</a>
+  <header class="page-header">
+    <span class="brand">Memo Nexus <span>使い方ガイド</span></span>
+    <a href="index.html" tabindex="0" target="_blank" rel="noopener noreferrer">アプリを開く（別タブ） <span aria-hidden="true">↗</span></a>
+  </header>
+  <main id="main" tabindex="-1">
+    <div class="intro">
+      <p class="eyebrow">データを手元に残す</p>
+      <h1>データ保存・<br>バックアップの使い方</h1>
+      <p class="lead">普段の保存先を知り、ZIPで控えを残す。<br>大切なメモを持ち運ぶための基本ガイドです。</p>
+      <p class="guide-note">このページは説明専用です。バックアップや取り込みの操作は、アプリの設定画面で行います。</p>
+    </div>
+    <nav aria-label="ガイドの目次">
+      <a href="#storage" tabindex="0">01 保存先を知る</a>
+      <a href="#backup" tabindex="0">02 ZIPに書き出す</a>
+      <a href="#restore" tabindex="0">03 バックアップを取り込む</a>
+      <a href="#check" tabindex="0">04 困ったときに確認する</a>
+    </nav>
+    <section id="storage" aria-labelledby="storage-heading">
+      <p class="section-number" aria-hidden="true">01 / STORAGE</p>
+      <h2 id="storage-heading">メモはブラウザ内に保存されます</h2>
+      <p>メモとコレクションは、使っているブラウザの保存領域（IndexedDB）に保存されます。コレクションは整理用の分類で、端末上の実フォルダではありません。</p>
+      <p>編集後は、メモタイトル付近の「保存済み」と時刻を確認してください。「編集中...」「保存中...」「保存エラー」は、保存完了の表示とは異なります。</p>
+      <aside class="notice" aria-labelledby="storage-notice">
+        <h3 id="storage-notice">別の端末へ自動では移りません</h3>
+        <p>端末・ブラウザ・開くURLが違うと、保存領域も異なる場合があります。別端末へのクラウド自動同期はありません。端末を移る前やブラウザのサイトデータを削除する前に、完全バックアップZIPを手元へ残してください。</p>
+      </aside>
+    </section>
+    <section id="backup" aria-labelledby="backup-heading">
+      <p class="section-number" aria-hidden="true">02 / BACKUP</p>
+      <h2 id="backup-heading">完全バックアップZIPを残す</h2>
+      <ol>
+        <li>アプリ上部の「設定」を開きます。</li>
+        <li>「バックアップ」の「完全バックアップZIPを書き出す」を押します。</li>
+        <li>ブラウザのダウンロード先でZIPファイルを確認し、必要に応じて別の安全な場所にも保管します。</li>
+      </ol>
+      <div class="detail-card">
+        <h3>ZIPに含まれるもの</h3>
+        <p>通常メモ・ゴミ箱のメモ・コレクション・タグ定義・画像やPDFの添付を含みます。Markdown本文に加え、復元に使う情報をまとめて出力します。</p>
+        <p>全体のフォント設定など、端末のブラウザに保存する設定は含まれません。メモ個別のフォント設定は含まれます。</p>
+      </div>
+      <p>一部だけ書き出したい場合は、メモやコレクションの「…」メニューからエクスポートできます。全体の控えには、設定画面の完全バックアップZIPを使ってください。</p>
+      <p class="small-note">対応ブラウザではローカルフォルダへの保存も利用できます。利用可否や保存先の操作はブラウザによって異なります。</p>
+    </section>
+    <section id="restore" aria-labelledby="restore-heading">
+      <p class="section-number" aria-hidden="true">03 / RESTORE</p>
+      <h2 id="restore-heading">内容を確認してから取り込む</h2>
+      <ol>
+        <li>アプリの「設定」→「取り込み」→「バックアップ／Markdown ZIP取り込み」を押し、ZIPファイルを選びます。</li>
+        <li>完全バックアップでは、追加・更新・既存維持・スキップのメモ一覧や、添付などの変更、注意事項を確認します。</li>
+        <li>確認後に「この内容で取り込む」を押し、完了表示を待ちます。取り込まない場合は「キャンセル」を選びます。</li>
+      </ol>
+      <aside class="notice" aria-labelledby="restore-notice">
+        <h3 id="restore-notice">バックアップ時点への巻き戻しではありません</h3>
+        <p>復元は、現在のデータへの追加・更新です。バックアップにない既存メモは削除しません。同じIDのメモとコレクションは、バックアップ側の更新日時が厳密に新しい場合だけ採用し、同日時では既存を維持します。</p>
+      </aside>
+      <p>通常のMarkdown ZIPも取り込めます。完全バックアップとは扱いが異なります。確認中に保存データが変わった場合は、最新の内容を再確認してから確定してください。</p>
+    </section>
+    <section id="check" aria-labelledby="check-heading">
+      <p class="section-number" aria-hidden="true">04 / CHECK</p>
+      <h2 id="check-heading">保存や表示に迷ったら</h2>
+      <ul>
+        <li>「設定」の「保存状態」で状況を確認します。保存エラーがある場合は、保存済みと判断せず表示内容を確認してください。</li>
+        <li>メモが見当たらないときは、以前と同じ端末・ブラウザ・URLで開いているか確認します。Safariとホーム画面追加版、プライベートブラウズでは保存領域や制限が異なる場合があります。</li>
+        <li>復旧を試す前に、ブラウザのサイトデータを消さないでください。保存済みのデータが残っている可能性があります。</li>
+        <li>ZIPのダウンロードだけで安心せず、ファイルが手元にあることと保管先を確認してください。</li>
+      </ul>
+    </section>
+    <footer>
+      <p>このガイドの配色は、OS・ブラウザのライト／ダーク設定に従います。</p>
+      <a href="#main" tabindex="0">ガイドの先頭へ戻る ↑</a>
+    </footer>
+  </main>
+</body>
+</html>
