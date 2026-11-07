@@ -366,6 +366,7 @@ function createHarness({
     let registeredTags = ["tag-a", "tag-b"];
     const noteLiveDrafts = new Map();
     const noteSaveBases = new Map();
+    const noteStoredSnapshots = new WeakMap();
     const noteConflictStates = new Map();
     const noteConflictAttempts = new Map();
     const noteConflictResolutions = new Map();

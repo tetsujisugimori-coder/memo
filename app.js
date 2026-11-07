@@ -1095,6 +1095,7 @@ let localDirtyMemoId = null;
 const noteLiveDrafts = new Map();
 // Persisted CAS baseline is separate from the foundation's local edit counter.
 const noteSaveBases = new Map();
+const noteStoredSnapshots = new WeakMap();
 const noteConflictStates = new Map();
 const noteConflictAttempts = new Map();
 const noteConflictResolutions = new Map();
@@ -1435,6 +1436,7 @@ async function init() {
   collections = await getAllCollections();
   await ensureInitialCollections();
   notes = await getAllNotes();
+  notes.forEach((note) => registerNoteSaveState(note));
   await migrateLegacyNotesToUnclassified();
   notes = await getAllNotes();
   console.log("IndexedDB notes count:", notes.length);
@@ -2437,13 +2439,13 @@ function getStoredNotes() {
   return new Promise((resolve, reject) => {
     const request = tx().getAll();
     request.onsuccess = () => {
-      request.result.forEach((note) => {
-        const state = noteSaveFoundation.getState(note.id);
-        if (!state?.dirty && state?.activeRevision == null && state?.pendingRevision == null && !noteConflictStates.has(note.id)) {
-          noteSaveBases.set(note.id, cloneNoteSnapshot(note));
-        }
+      const storedNotes = request.result.map((raw) => {
+        const note = withNormalizedMemoTags(withNormalizedFlag(raw));
+        noteStoredSnapshots.set(note, { id: raw.id, title: raw.title, body: raw.body,
+          ...(Object.hasOwn(raw, "revision") ? { revision: raw.revision } : {}) });
+        return note;
       });
-      resolve(request.result.map(withNormalizedFlag).map(withNormalizedMemoTags).sort((a, b) => compareDateTimes(a.updatedAt, b.updatedAt, "desc") || String(a.id).localeCompare(String(b.id))));
+      resolve(storedNotes.sort((a, b) => compareDateTimes(a.updatedAt, b.updatedAt, "desc") || String(a.id).localeCompare(String(b.id))));
     };
     request.onerror = () => reject(request.error);
   });
@@ -3951,10 +3953,13 @@ async function restoreCurrentDraftMirror() {
   }
 
   const existingNote = notes.find((note) => note.id === draft.id);
-  if (existingNote && draft.body !== existingNote.body) {
+  if (existingNote) {
+    const mirrorFields = ["body", "title", "collectionId", "deletedAt", "isFlagged", "tags"];
+    const sameMirror = (candidate) => mirrorFields.every((field) => JSON.stringify(candidate?.[field]) === JSON.stringify(draft[field]));
+    if (sameMirror(existingNote)) return null;
     // A shared mirror cannot be silently rebased onto the just-read database.
     const existingRecovery = await noteConflictStore.readDrafts(db, draft.id);
-    if (existingRecovery.some((row) => row.body === draft.body)) return null;
+    if (existingRecovery.some((row) => row.body === draft.body && row.title === draft.title && sameMirror(row.snapshot))) return null;
     const base = Object.hasOwn(draft, "conflictBase") ? draft.conflictBase : undefined;
     const { conflictBase, conflictRequestId, draftSavedAt: mirrorSavedAt, ...incomingDraft } = draft;
     const attempted = { ...existingNote, ...incomingDraft, revision: Math.max(normalizeNoteRevision(existingNote.revision) + 1, normalizeNoteRevision(draft.revision)) };
@@ -6669,7 +6674,7 @@ function openNote(id) {
     const index = notes.findIndex((item) => item.id === id);
     if (index === -1) notes.unshift(draft); else notes[index] = draft;
   }
-  const saveState = registerNoteSaveState(note);
+  const saveState = registerNoteSaveState(note, { adoptStoredBase: true });
 
   // 関連ドロワーは広い画面では本文と並べて使えるため維持します。
   // 狭幅では本文を見やすくするため、メモ選択後だけ一時的に閉じます。
@@ -6726,6 +6731,7 @@ async function initPopout() {
   db = await openDb();
   collections = await getAllCollections();
   notes = await getAllNotes();
+  notes.forEach((note) => registerNoteSaveState(note));
   registeredTags = await getAllTagDefinitions();
   await ensureRegisteredTagsForNotes();
   await initializeLocalFolderSaving();
@@ -6736,7 +6742,7 @@ async function initPopout() {
   }
 
   currentId = note.id;
-  const saveState = registerNoteSaveState(note);
+  const saveState = registerNoteSaveState(note, { adoptStoredBase: true });
   titleInput.value = note.title;
   editor.value = note.body;
   renderNoteFlagButton(note);
@@ -6803,8 +6809,14 @@ async function retryCodexThreadSave(threadId) {
   return result ? applyCodexThreadSaveResult(result) : null;
 }
 
-function registerNoteSaveState(note) {
+function registerNoteSaveState(note, { adoptStoredBase = false } = {}) {
   if (!note) return null;
+  const stored = noteStoredSnapshots.get(note);
+  const state = noteSaveFoundation.getState(note.id);
+  if (stored && (!noteSaveBases.has(note.id) || adoptStoredBase)
+    && !state?.dirty && state?.activeRevision == null && state?.pendingRevision == null && !noteConflictStates.has(note.id)) {
+    noteSaveBases.set(note.id, cloneNoteSnapshot(stored));
+  }
   note.revision = normalizeNoteRevision(note.revision);
   return noteSaveFoundation.registerNote(note.id, note.revision);
 }
@@ -7748,6 +7760,8 @@ function syncCleanMemoLinkRenameSnapshot(noteId, savedNote) {
   const index = notes.findIndex((note) => note.id === noteId);
   if (index === -1) notes.unshift(snapshot); else notes[index] = snapshot;
   noteLiveDrafts.delete(noteId);
+  noteStoredSnapshots.set(snapshot, cloneNoteSnapshot(savedNote));
+  noteSaveBases.set(noteId, cloneNoteSnapshot(savedNote));
   noteSaveFoundation.registerNote(noteId, snapshot.revision);
   if (pendingMemoSync?.memoId === noteId) {
     pendingMemoSync = null;
@@ -7907,7 +7921,7 @@ async function refreshMemoFromOtherWindow(message) {
 
 function applyMemoSync(note) {
   noteLiveDrafts.delete(note.id);
-  registerNoteSaveState(note);
+  registerNoteSaveState(note, { adoptStoredBase: true });
   titleInput.value = note.title;
   editor.value = note.body;
   renderNoteFlagButton(note);

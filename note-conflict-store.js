@@ -45,14 +45,35 @@
         try {
           if (!existing.result) { recovery.add(record); return; }
           const previous = existing.result;
-          if (previous.noteId !== record.noteId || previous.kind !== record.kind
-            || (previous.body ?? previous.attemptedBody) !== (record.body ?? record.attemptedBody)) {
+          const fields = slot === "draft"
+            ? ["id", "schemaVersion", "kind", "noteId", "requestId", "body", "title", "baseBody", "baseRevision", "parentRequestId"]
+            : ["id", "schemaVersion", "kind", "noteId", "requestId", "expectedRevision", "attemptedBody"];
+          if (!fields.every((field) => previous[field] === record[field])
+            || (slot === "draft" ? !["id", "body", "title", "revision"].every((field) => previous.snapshot?.[field] === record.snapshot?.[field])
+              : !validReceipt(previous))) {
             throw new Error("回復原稿の識別子が競合しました。原稿を書き出してください。");
           }
           records[slot] = previous;
         } catch (error) { abort(error); }
       };
     }
+  }
+
+  function validReceipt(receipt) {
+    const committed = receipt?.committedSnapshot;
+    return Boolean(receipt && receipt.kind === "memo-conflict-rejection" && receipt.schemaVersion === 1
+      && receipt.id === `rejection:${receipt.requestId}` && typeof receipt.attemptedBody === "string"
+      && (committed ? committed.id === receipt.noteId && committed.body === receipt.committedBody
+        && (revisionOf(committed) ?? null) === receipt.committedRevision
+        : receipt.committedRevision === null && receipt.committedBody === ""));
+  }
+
+  function validRecovery({ draft, receipt } = {}, requestId) {
+    return Boolean(draft && validReceipt(receipt) && draft.kind === "memo-conflict-draft" && draft.schemaVersion === 1
+      && draft.id === `draft:${requestId}` && draft.noteId === receipt.noteId
+      && draft.requestId === requestId && receipt.requestId === requestId
+      && typeof draft.body === "string" && draft.body === receipt.attemptedBody && draft.baseRevision === receipt.expectedRevision
+      && draft.snapshot?.id === draft.noteId && draft.snapshot.body === draft.body && draft.snapshot.title === draft.title);
   }
 
   function matches(base, committed, noteId) {
@@ -143,9 +164,7 @@
       const draft = store.get(`draft:${requestId}`), receipt = store.get(`rejection:${requestId}`);
       transaction.oncomplete = () => {
         const held = draft.result, rejected = receipt.result;
-        if (!held || !rejected || held.noteId !== rejected.noteId || held.requestId !== requestId || rejected.requestId !== requestId
-          || held.kind !== "memo-conflict-draft" || rejected.kind !== "memo-conflict-rejection"
-          || typeof held.body !== "string" || held.body !== rejected.attemptedBody || held.baseRevision !== rejected.expectedRevision) {
+        if (!validRecovery({ draft: held, receipt: rejected }, requestId)) {
           return reject(new Error("保全原稿と競合記録を確認できません。原稿の整合性は未確認です。"));
         }
         resolve({ draft: draft.result, receipt: receipt.result });
@@ -154,7 +173,7 @@
     });
   }
 
-  const api = { STORE, revisionOf, matches, installStore, conflictRecords, conflictError, stageRecovery, writeNote, readDrafts, readRecovery };
+  const api = { STORE, revisionOf, matches, installStore, conflictRecords, conflictError, stageRecovery, validRecovery, writeNote, readDrafts, readRecovery };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   if (globalScope) globalScope.MemoNexusNoteConflictStore = api;
 })(typeof window !== "undefined" ? window : globalThis);

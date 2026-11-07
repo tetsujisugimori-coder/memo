@@ -6,7 +6,7 @@ base: `8f35ca25001ffa031abfd304dd2a5e9a3d9197dd`。mainから独立したbranch 
 
 旧putNoteは同IDへ無条件putし、別タブで確定した本文を比較しない。foundationのrevisionはタブ内の入力世代で、lockTail/entriesもタブ内Map。BroadcastChannelはdirty原稿を上書きせずpendingにするが、通常保存を拒否しない。単一localStorage mirrorは別タブの原稿保全を保証しない。
 
-通常保存はnoteSaveBasesにraw DBから読んだ基準版を保持する。dirty重畳後のgetAllNotes結果を基準として採用しない。自タブの保存が成功したtransactionのcomplete後だけ基準版を進める。foundationの入力/キューrevisionとは分離する。
+通常保存はnoteSaveBasesにraw DB由来の基準版を保持する。読取結果にはWeakMapで元snapshotを対応させるが、getStoredNotes/getAllNotesの単なる読取りでは基準を進めない。初期ロード/初回登録、明示openNote/applyMemoSyncで画面へ採用する時と、自タブの成功transaction.complete後にだけ基準を反映する。dirty重畳後の原稿を保存基準として採用せず、foundationの入力/キューrevisionとも分離する。
 
 変更対象はapp.jsの通常writer・基準管理・mirror復元・保存状態UI接続、専用store/UIモジュール、index/CSS、専用試験、必要な既存試験のschema/VM環境、通常CIの独立ジョブ。foundation本体、ZIP形式/復元writer、MCP/OAuth/Worker、研究collector/judge/schema/workflowは変更しない。
 
@@ -44,7 +44,7 @@ DB version 7は独立したnote-conflicts store（keyPath=id、noteId index）�
 
 ## mirrorとその他の保存経路
 
-mirrorには保存基準を持たせる。古い/基準不明のmirrorを、起動時に読んだ最新DBへ黙って付け替えて再保存しない。既に同じ本文を保全している場合は重複復元しない。旧形式mirrorは比較不能なら保全側へ送る。mirror自体をIndexedDB永続回復の証拠にはしない。
+mirrorには保存基準を持たせる。古い/基準不明のmirrorを、起動時に読んだ最新DBへ黙って付け替えて再保存しない。既存IDでは本文だけでなくタイトル/collection/削除/flag/tagsを比較し、差分があればmirror固有の基準で検証する。既に同じ本文・タイトル・対象metadataの原稿を保全している場合は重複復元しない。旧形式mirrorは比較不能なら保全側へ送る。mirror自体をIndexedDB永続回復の証拠にはしない。
 
 ZIP全体置換等の明示インポート、Codex thread専用writer、添付writerは既存経路を維持する。Codex thread保存は既存stored-thread mergeで通常本文を変更しない。通常保存と明示インポートの全interleavingまで今回一括保証しない。回復storeは既存ZIP形式へ自動追加しないため、未解決原稿は専用書出しを使う。ZIPへの回復原稿包含、異常終了/長期保管、実quota枯渇は未実測範囲を分けて報告する。
 

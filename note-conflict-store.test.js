@@ -1,7 +1,7 @@
 "use strict";
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { revisionOf, conflictRecords, installStore, writeNote } = require("./note-conflict-store.js");
+const { revisionOf, conflictRecords, installStore, writeNote, validRecovery } = require("./note-conflict-store.js");
 const { createNoteSaveFoundation, createSaveRequest } = require("./note-save-foundation.js");
 
 // Fault-model tests only; actual browser schedules are tested separately without
@@ -176,4 +176,26 @@ test("a repeated conflict retains both generations and explicit resolution marks
   assert.equal(saved.body, editB.body);
   assert.equal(db.data.get("note-conflicts").size, 4);
   assert.ok([...db.data.get("note-conflicts").values()].every((record) => record.resolvedAt && record.resolvedRevision === 11));
+});
+test("same body with another title or broken snapshot cannot be falsely called an idempotent preserved attempt", async () => {
+  for (const corrupt of [
+    (record) => { record.title = "different title"; },
+    (record) => { record.snapshot.body = "different snapshot"; },
+    (record) => { record.baseRevision = 6; }
+  ]) {
+    const db = database([editA]); await write(db, editB).catch(() => {});
+    corrupt(db.data.get("note-conflicts").get("draft:attempt"));
+    await assert.rejects(write(db, editB), { code: "NOTE_CONFLICT_PRESERVATION_FAILED" });
+  }
+});
+test("recovery read validation binds draft content, title and baseline to an actual committed receipt", () => {
+  const records = conflictRecords(editB, baseline, editA, "bound", "tab");
+  assert.equal(validRecovery(records, "bound"), true);
+  for (const corrupt of [
+    (data) => { data.draft.snapshot.title = "mismatch"; },
+    (data) => { data.receipt.committedSnapshot.body = "mismatch"; },
+    (data) => { data.receipt.committedRevision += 1; },
+    (data) => { data.draft.requestId = "another"; },
+    (data) => { data.draft.baseRevision += 1; }
+  ]) { const data = structuredClone(records); corrupt(data); assert.equal(validRecovery(data, "bound"), false); }
 });
