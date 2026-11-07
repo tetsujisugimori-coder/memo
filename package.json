@@ -9,7 +9,7 @@
     "codex:bridge": "node codex-bridge.js",
     "codex:token": "node codex-bridge-token.js",
     "test": "node --test",
-    "test:e2e:save-conflict": "node --test note-conflict-store.test.js note-conflict-acceptance.test.cjs note-conflict-app-regressions.test.js && node note-conflict.e2e.cjs",
+    "test:e2e:save-conflict": "node --test note-conflict-store.test.js note-conflict-ui.test.js note-conflict-acceptance.test.cjs note-conflict-app-regressions.test.js && node note-conflict.e2e.cjs",
     "test:e2e:save-conflict:red": "node note-conflict-red-control.cjs",
     "test:e2e": "npm run test:e2e:figure && npm run test:e2e:comparison && npm run test:e2e:report-preview && npm run test:e2e:citation-source && npm run test:e2e:timeline && npm run test:e2e:diagram && npm run test:e2e:report-sources",
     "test:e2e:mobile:layout": "node mobile-layout.e2e.js",

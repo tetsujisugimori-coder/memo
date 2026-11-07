@@ -4,7 +4,7 @@ const fs = require("node:fs/promises"), path = require("node:path"), os = requir
 const { execFileSync } = require("node:child_process");
 const playwright = require("playwright");
 const { createServer, observe, assertClean, snapshot, openApp, appReady, saved } = require("./note-conflict-test-support.cjs");
-const { capturePair, waitForOutcome, exerciseRecovery } = require("./note-conflict-observer.cjs");
+const { captureState, capturePair, waitForOutcome, exerciseRecovery } = require("./note-conflict-observer.cjs");
 const { evaluateSafety } = require("./note-conflict-acceptance.cjs");
 const output = path.resolve(process.env.MEMO_SAVE_ARTIFACTS || path.join(os.tmpdir(), "memo-issue429/browser"));
 const baselineBody = "lineA=single\nlineB=sequential";
@@ -38,8 +38,15 @@ async function collision(browser, browserName, origin, { width = 1280, order = "
     pages = [first, second];
     const stored = (await snapshot(first)).stores.notes.find((note) => note.id === id);
     await pages[order === "AB" ? 0 : 1].bringToFront();
-    for (const tab of order) await pages[tab === "A" ? 0 : 1].locator("#editor").fill(drafts[tab]);
-    const before = await capturePair(pages, id);
+    const startedInput = performance.now();
+    result.inputStartedAt = new Date().toISOString();
+    await Promise.all([...order].map((tab) => pages[tab === "A" ? 0 : 1].locator("#editor").fill(drafts[tab])));
+    result.inputDurationMs = performance.now() - startedInput;
+    const startedRead = performance.now();
+    const before = await Promise.all(pages.map((page, index) => captureState(page, id, index === 0 ? "A" : "B")));
+    result.preconditionReadDurationMs = performance.now() - startedRead;
+    result.observedPrecondition = before;
+    result.preconditionReadStrategy = "Concurrent readonly observations after both real UI input actions completed";
     assert.ok(before.every((state) => state.save.dirty && state.stored.body === baselineBody), "both drafts dirty before unmodified natural 280ms autosave");
     const evidence = result.evidence = { spec: { noteId: id, baselineBody, baselineRevision: stored.revision, drafts },
       execution: { completed: false, errors: [] }, observations: { before } };

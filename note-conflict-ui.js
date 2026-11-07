@@ -70,8 +70,13 @@
         resume.disabled = !state.preserved;
         resume.onclick = () => run(() => onResume(draft));
         const hint = document.createElement("p");
-        hint.textContent = "再編集は最新の保存内容を基準に開始します。自動統合は行いません。内容を確認して保存してください。再び更新があれば保存を停止します。保全した原稿は自動削除しません。";
+        hint.textContent = state.preserved
+          ? "再編集は最新の保存内容を基準に開始します。自動統合は行いません。内容を確認して保存してください。再び更新があれば保存を停止します。保全した原稿は自動削除しません。"
+          : "保全が完了していません。このタブを閉じると原稿を失うおそれがあります。先に原稿全文を書き出してください。";
         actions.append(exportButton, resume); section.append(actions, hint);
+        const backupNotice = document.createElement("p");
+        backupNotice.textContent = "保全原稿は通常のバックアップZIPには含まれません。ブラウザの初期化や端末の移動前に、この画面から原稿を書き出してください。";
+        section.append(backupNotice);
       }
       if (drafts.length) {
         const list = document.createElement("details"), summary = document.createElement("summary");

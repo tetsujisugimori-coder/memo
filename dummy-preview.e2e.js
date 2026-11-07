@@ -49,13 +49,8 @@ function compareNormalReload(before, after, currentId) {
   const oldNote = before.notes.find(([key]) => key === currentId)[1];
   const newNote = after.notes.find(([key]) => key === currentId)[1];
   const changed = Object.keys(oldNote).filter((key) => JSON.stringify(oldNote[key]) !== JSON.stringify(newNote[key])).sort();
-  assert.deepEqual(changed, ["bodyUpdatedAt", "revision", "updatedAt"]);
-  assert.equal(newNote.revision, oldNote.revision + 1);
-  assert.ok(newNote.bodyUpdatedAt >= oldNote.bodyUpdatedAt && newNote.updatedAt >= oldNote.updatedAt);
-  const normalized = structuredClone(after);
-  const note = normalized.notes.find(([key]) => key === currentId)[1];
-  for (const key of changed) note[key] = oldNote[key];
-  assert.deepEqual(normalized, before, "only exact existing normal-reload metadata changes are permitted");
+  assert.deepEqual(changed, [], "already committed mirror must not create a new save generation");
+  assert.deepEqual(after, before, "normal no-edit reload must preserve every store, including recovery records, exactly");
   return { noteId: currentId, changedFields: changed, before: Object.fromEntries(changed.map((key) => [key, oldNote[key]])), after: Object.fromEntries(changed.map((key) => [key, newNote[key]])) };
 }
 async function settled(page) {
@@ -132,7 +127,7 @@ async function mcpRoundTrip(adapterToken, requestId, metadata) {
     const currentNoteId = await page.evaluate(() => currentId);
     await page.reload(); await settled(page); const baseline = await snapshot(page);
     const controlReload = compareNormalReload(controlBefore, baseline, currentNoteId);
-    results.push("no-receive reload control: existing draft restore advances only current note bodyUpdatedAt, updatedAt and revision");
+    results.push("no-receive reload control: an already committed mirror changes no field in any store");
     const editorBefore = await page.locator("#editor").inputValue();
     // Assert no save capabilities are called after ordinary startup; throw if any path is reached.
     await page.evaluate(() => {
