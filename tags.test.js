@@ -225,7 +225,7 @@ test("選択式UIは未登録入力を案内し登録済み候補だけを追加
 
 test("DB v6のtagsストアを維持し既存タグ色を冪等移行する", () => {
   assert.match(app, /const TAG_STORE_NAME = "tags"/);
-  assert.match(app, /const DB_VERSION = 6/);
+  assert.match(app, /const DB_VERSION = 7/);
   assert.match(app, /objectStoreNames\.contains\(TAG_STORE_NAME\)[\s\S]*createObjectStore\(TAG_STORE_NAME, \{ keyPath: "id" \}\)/);
   const source = readFunctionSource("synchronizeRegisteredTagsForNotes");
   assert.match(source, /getRawTagDefinitions\(\)/);

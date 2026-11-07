@@ -1,0 +1,14 @@
+.note-conflict-panel { margin: 12px 0; padding: 12px; border: 2px solid #a35b00; border-radius: 8px; background: var(--bg, #fff); color: inherit; overflow-wrap: anywhere; }
+.note-conflict-panel[hidden] { display: none; }
+.note-conflict-panel h2 { font-size: 1.05rem; margin: 0 0 8px; }
+.note-conflict-panel h3 { font-size: .95rem; }
+.note-conflict-panel p { line-height: 1.6; }
+.note-conflict-comparison { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.note-conflict-comparison > div { min-width: 0; }
+.note-conflict-comparison pre { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 35vh; overflow: auto; padding: 10px; border: 1px solid currentColor; font: inherit; }
+.note-conflict-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.note-conflict-panel button { min-height: 44px; max-width: 100%; white-space: normal; margin: 4px 0; }
+.note-conflict-panel :focus-visible { outline: 3px solid #047aa2; outline-offset: 3px; }
+.note-conflict-panel details button { display: block; }
+@media (max-width: 600px) { .note-conflict-comparison { grid-template-columns: minmax(0, 1fr); } }
+@media (prefers-color-scheme: dark) { .note-conflict-panel { border-color: #e4ad61; } }
