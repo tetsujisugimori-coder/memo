@@ -3,6 +3,7 @@ const fs = require("node:fs/promises"), path = require("node:path"), os = requir
 const { execFileSync, spawnSync } = require("node:child_process");
 const assert = require("node:assert/strict");
 const crypto = require("node:crypto");
+const { evaluateSafety } = require("./note-conflict-acceptance.cjs");
 const legacy = "8f35ca25001ffa031abfd304dd2a5e9a3d9197dd";
 (async () => {
   const output = path.resolve(process.env.MEMO_SAVE_ARTIFACTS || path.join(os.tmpdir(), "memo-issue429/browser")), target = path.join(output, "legacy-control");
@@ -36,9 +37,20 @@ const legacy = "8f35ca25001ffa031abfd304dd2a5e9a3d9197dd";
     for (const name of ["chromium", "webkit"]) {
       const result = report.cases.find((row) => row.browser === name);
       assert.ok(result && !result.error && result.evidence.execution.completed);
-      assert.equal(result.acceptance.status, "FAIL");
-      assert.equal(result.acceptance.lossDemonstrated, true);
-      assert.equal(result.acceptance.silentOverwrite, true);
+      const judged = evaluateSafety(result.evidence);
+      assert.equal(judged.status, "FAIL");
+      assert.equal(judged.lossDemonstrated, true, "actual irreversible edit loss remains mandatory");
+      assert.equal(result.inputMode, "sequential", "same desktop reproduction schedule as the fixed product cases");
+      const reopened = result.evidence.observations.reopened;
+      assert.equal(reopened.length, 2);
+      for (const state of reopened) {
+        assert.equal(state.badgeState, "saved"); assert.equal(state.save.dirty, false);
+        assert.equal(state.conflictUi.visible, false);
+        assert.doesNotMatch(state.notice || "", /競合|未保存|保存失敗/);
+        assert.equal(state.editor, state.stored.body);
+        assert.ok(Object.values(result.evidence.spec.drafts).includes(state.stored.body));
+      }
+      assert.equal(reopened[0].stored.body, reopened[1].stored.body);
     }
     assert.deepEqual(await hashes(), before, "negative control must not mutate product source");
     summary.productUnchanged = true; summary.status = "PASS";

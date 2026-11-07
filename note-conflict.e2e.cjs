@@ -37,10 +37,16 @@ async function collision(browser, browserName, origin, { width = 1280, order = "
     await first.waitForFunction((body) => document.querySelector("#editor").value === body, baselineBody);
     pages = [first, second];
     const stored = (await snapshot(first)).stores.notes.find((note) => note.id === id);
+    await Promise.all(pages.map((page) => page.locator("#editor").scrollIntoViewIfNeeded()));
     await pages[order === "AB" ? 0 : 1].bringToFront();
+    result.inputMode = width >= 1000 ? "sequential" : "concurrent";
     const startedInput = performance.now();
     result.inputStartedAt = new Date().toISOString();
-    await Promise.all([...order].map((tab) => pages[tab === "A" ? 0 : 1].locator("#editor").fill(drafts[tab])));
+    if (result.inputMode === "sequential") {
+      for (const tab of order) await pages[tab === "A" ? 0 : 1].locator("#editor").fill(drafts[tab]);
+    } else {
+      await Promise.all([...order].map((tab) => pages[tab === "A" ? 0 : 1].locator("#editor").fill(drafts[tab])));
+    }
     result.inputDurationMs = performance.now() - startedInput;
     const startedRead = performance.now();
     const before = await Promise.all(pages.map((page, index) => captureState(page, id, index === 0 ? "A" : "B")));

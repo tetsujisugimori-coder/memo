@@ -87,10 +87,20 @@ jobs:
           set -o pipefail
           npm run test:e2e:save-conflict:red 2>&1 | tee "$MEMO_SAVE_ARTIFACTS/legacy-control.log"
       - name: Verify revision guard, preservation and recovery
+        if: ${{ !cancelled() }}
         shell: bash
         run: |
           set -o pipefail
           npm run test:e2e:save-conflict 2>&1 | tee "$MEMO_SAVE_ARTIFACTS/run.log"
+      - name: Verify all 20 existing storage guide conditions
+        if: ${{ !cancelled() }}
+        shell: bash
+        env:
+          STORAGE_GUIDE_ARTIFACTS: e2e-artifacts/save-conflict/original-guide
+        run: |
+          mkdir -p "$MEMO_SAVE_ARTIFACTS"
+          set -o pipefail
+          node storage-guide.e2e.cjs 2>&1 | tee "$MEMO_SAVE_ARTIFACTS/original-guide.log"
       - name: Preserve save conflict evidence including failures
         if: always()
         uses: actions/upload-artifact@v6
