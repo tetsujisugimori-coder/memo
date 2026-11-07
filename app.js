@@ -7,7 +7,7 @@ const ATTACHMENT_STORE_NAME = "attachments";
 const LOCAL_CONFIG_STORE_NAME = "local-config";
 const TAG_STORE_NAME = "tags";
 const TOMBSTONE_STORE_NAME = "note-tombstones";
-const DB_VERSION = 6;
+const DB_VERSION = 7;
 const APP_VERSION = "0.5.0";
 const APP_LABEL = "Bridge Update";
 const APP_BUILD = "2026-08-19";
@@ -1093,6 +1093,22 @@ let localDirtyMemoId = null;
 // 未保存の編集中状態はnotes配列と同じオブジェクトを共有し、入力時の全体cloneを避けます。
 // IndexedDBへ渡す固定snapshotはenqueueNoteSave()またはbatch開始時にだけ作成します。
 const noteLiveDrafts = new Map();
+// Persisted CAS baseline is separate from the foundation's local edit counter.
+const noteSaveBases = new Map();
+const noteConflictStates = new Map();
+const noteConflictAttempts = new Map();
+const noteConflictResolutions = new Map();
+const noteConflictStore = window.MemoNexusNoteConflictStore;
+const noteConflictOwnerId = (() => {
+  try {
+    const state = history.state && typeof history.state === "object" ? history.state : {};
+    const id = typeof state.memoConflictOwner === "string" ? state.memoConflictOwner : crypto.randomUUID();
+    history.replaceState({ ...state, memoConflictOwner: id }, "");
+    return id;
+  } catch { return crypto.randomUUID(); }
+})();
+let noteConflictUi = null;
+let noteConflictRenderSequence = 0;
 // 入力時は解析せず変更前本文の参照だけを保持し、リンク増加判定は保存成功側で行います。
 const noteSaveBeforeBodies = new Map();
 const noteSaveUiChanges = new Map();
@@ -1130,7 +1146,8 @@ const noteSaveFoundation = createNoteSaveFoundation({
         return result;
       })
       : Promise.resolve(snapshot))
-    : putNote(snapshot, { preserveStoredCodexThread: true }),
+    : putNote(snapshot, { preserveStoredCodexThread: true, expectedBase: noteSaveBases.get(snapshot.id),
+      conflictRequestId: noteConflictAttemptId(snapshot), resolveRequestId: noteConflictResolutions.get(snapshot.id) }),
   onStateChange: handleNoteSaveStateChange,
   onSaveSuccess: (request, state, context) => isCodexThreadSaveRequest(request)
     ? handleCodexThreadSaveSuccess(request, state)
@@ -2400,6 +2417,7 @@ function openDb() {
         database.createObjectStore(TAG_STORE_NAME, { keyPath: "id" });
       }
       installTombstoneStore(database, TOMBSTONE_STORE_NAME);
+      noteConflictStore.installStore(database);
     }
   });
 }
@@ -2418,7 +2436,15 @@ function withNormalizedMemoTags(note) {
 function getStoredNotes() {
   return new Promise((resolve, reject) => {
     const request = tx().getAll();
-    request.onsuccess = () => resolve(request.result.map(withNormalizedFlag).map(withNormalizedMemoTags).sort((a, b) => compareDateTimes(a.updatedAt, b.updatedAt, "desc") || String(a.id).localeCompare(String(b.id))));
+    request.onsuccess = () => {
+      request.result.forEach((note) => {
+        const state = noteSaveFoundation.getState(note.id);
+        if (!state?.dirty && state?.activeRevision == null && state?.pendingRevision == null && !noteConflictStates.has(note.id)) {
+          noteSaveBases.set(note.id, cloneNoteSnapshot(note));
+        }
+      });
+      resolve(request.result.map(withNormalizedFlag).map(withNormalizedMemoTags).sort((a, b) => compareDateTimes(a.updatedAt, b.updatedAt, "desc") || String(a.id).localeCompare(String(b.id))));
+    };
     request.onerror = () => reject(request.error);
   });
 }
@@ -2442,8 +2468,113 @@ function getStoredNoteSnapshots(noteIds) {
   });
 }
 
-// メモを1件保存します。idが同じなら上書き、なければ新規追加になります。
-function putNote(note, { preserveStoredCodexThread = false, receivedReceipt = null } = {}) {
+function noteConflictAttemptId(note) {
+  const previous = noteConflictAttempts.get(note.id);
+  if (previous?.revision === note.revision && previous.body === note.body && previous.title === note.title) return previous.id;
+  const attempt = { id: crypto.randomUUID(), revision: note.revision, body: note.body, title: note.title };
+  noteConflictAttempts.set(note.id, attempt);
+  return attempt.id;
+}
+
+function noteConflictUiError(error) {
+  setSaveStatusNotice(error?.message || "回復操作に失敗しました。原稿を保持して再試行してください。");
+}
+
+async function chooseConflictDraft(draft) {
+  if (draft.noteId !== currentId) return;
+  if (noteSaveFoundation.isDirty(draft.noteId) && !noteConflictStates.has(draft.noteId)) {
+    throw new Error("現在の未保存原稿があります。先に保存または書出しで保全してください。");
+  }
+  const recovery = await noteConflictStore.readRecovery(db, draft.requestId);
+  if (draft.noteId !== currentId) return;
+  noteConflictStates.set(draft.noteId, { recovery, preserved: true });
+  await renderNoteConflictUi();
+}
+
+async function resumeConflictDraft(draft) {
+  if (draft.noteId !== currentId) return;
+  await noteSaveFoundation.whenIdle(draft.noteId);
+  if (draft.noteId !== currentId) return;
+  const live = noteForSave(draft.noteId);
+  if (live && noteSaveFoundation.isDirty(draft.noteId) && (live.body !== draft.body || live.title !== draft.title)) {
+    try { await enqueueNoteSaveSnapshot(draft.noteId); }
+    catch (error) { if (!error?.preserved) throw error; }
+    await noteSaveFoundation.whenIdle(draft.noteId);
+    if (draft.noteId !== currentId) return;
+  }
+  clearScheduledNoteSave(draft.noteId);
+  const stored = (await getStoredNoteSnapshots([draft.noteId])).get(draft.noteId);
+  if (draft.noteId !== currentId) return;
+  if (!stored || stored.deletedAt || noteConflictStore.revisionOf(stored) === undefined) {
+    throw new Error("現在の保存内容を確認できません。原稿を書き出して保全してください。");
+  }
+  // Explicit user choice rebases this draft, but does not write immediately.
+  noteSaveBases.set(draft.noteId, cloneNoteSnapshot(stored));
+  noteConflictStates.delete(draft.noteId);
+  noteConflictResolutions.set(draft.noteId, draft.requestId);
+  const note = { ...stored, id: draft.noteId,
+    body: draft.body, title: draft.title,
+    revision: Math.max(stored.revision, noteSaveFoundation.getState(draft.noteId)?.currentRevision || 0) };
+  rememberNoteDraft(note);
+  markLocalMemoDirty(note);
+  titleInput.value = note.title;
+  editor.value = note.body;
+  editor.readOnly = false;
+  titleInput.readOnly = false;
+  setSaveStatus("editing");
+  await renderNoteConflictUi();
+  editor.focus();
+}
+
+function ensureNoteConflictUi() {
+  const host = document.getElementById("noteConflictHost");
+  if (!host) return null;
+  if (!noteConflictUi) noteConflictUi = window.MemoNexusNoteConflictUi.create({ host,
+    onChoose: chooseConflictDraft, onResume: resumeConflictDraft, onError: noteConflictUiError,
+    onSave: (noteId) => flushScheduledNoteSave(noteId) });
+  return noteConflictUi;
+}
+
+async function renderNoteConflictUi() {
+  const sequence = ++noteConflictRenderSequence, noteId = currentId;
+  if (!db || !noteId || !ensureNoteConflictUi()) return;
+  const drafts = await noteConflictStore.readDrafts(db, noteId);
+  const committed = (await getStoredNoteSnapshots([noteId])).get(noteId);
+  if (sequence !== noteConflictRenderSequence || noteId !== currentId) return;
+  if (!noteConflictStates.has(noteId) && !noteConflictResolutions.has(noteId)) {
+    const owned = drafts.find((draft) => draft.ownerId === noteConflictOwnerId);
+    if (owned) noteConflictStates.set(noteId, { recovery: await noteConflictStore.readRecovery(db, owned.requestId), preserved: true });
+  }
+  if (sequence !== noteConflictRenderSequence || noteId !== currentId) return;
+  const state = noteConflictStates.get(noteId);
+  editor.readOnly = Boolean(state);
+  titleInput.readOnly = Boolean(state);
+  if (state) setSaveStatus(state.preserved ? "conflict" : "preservation-error");
+  noteConflictUi.render({ noteId, state, drafts, committed, editing: noteConflictResolutions.has(noteId) });
+}
+
+function refreshNoteConflictUi() {
+  void renderNoteConflictUi().catch(noteConflictUiError);
+}
+
+// メモを1件保存します。通常編集は同一transactionで基準revisionを比較します。
+function putNote(note, { preserveStoredCodexThread = false, receivedReceipt = null, expectedBase, conflictRequestId, resolveRequestId } = {}) {
+  if (!receivedReceipt && !conflictRequestId) {
+    conflictRequestId = noteConflictAttemptId(note);
+    expectedBase = noteSaveBases.has(note.id) ? noteSaveBases.get(note.id) : null;
+  }
+  if (conflictRequestId) {
+    return noteConflictStore.writeNote({ database: db, note: withNormalizedMemoTags(note), base: expectedBase,
+      requestId: conflictRequestId, ownerId: noteConflictOwnerId, guard: guardNoteWrites,
+      transactionError: noteTransactionError, resolveRequestId,
+      merge: (incoming, stored) => withNormalizedMemoTags(mergeStoredCodexThread(incoming, stored))
+    }).then((savedNote) => {
+      noteSaveBases.set(note.id, cloneNoteSnapshot(savedNote));
+      notifyMemoChanged(savedNote);
+      markLocalWorkspacePending();
+      return savedNote;
+    });
+  }
   return new Promise((resolve, reject) => {
     note = withNormalizedMemoTags(note);
     let savedNote = note;
@@ -2472,6 +2603,7 @@ function putNote(note, { preserveStoredCodexThread = false, receivedReceipt = nu
       };
     }, TOMBSTONE_STORE_NAME);
     transaction.oncomplete = () => {
+      noteSaveBases.set(note.id, cloneNoteSnapshot(savedNote));
       notifyMemoChanged(savedNote);
       markLocalWorkspacePending();
       resolve(savedNote);
@@ -3648,15 +3780,41 @@ function updateNotesTransaction(items, { markLocalPending = true, preserveStored
   return new Promise((resolve, reject) => {
     let savedItems = items;
     let validationError = null;
-    const transaction = db.transaction([STORE_NAME, TOMBSTONE_STORE_NAME], "readwrite");
+    const recoveries = new Map(), observed = new Map();
+    let conflictDetected = false;
+    let firstConflict = null;
+    const transaction = db.transaction([STORE_NAME, TOMBSTONE_STORE_NAME, noteConflictStore.STORE], "readwrite");
     const store = transaction.objectStore(STORE_NAME);
     guardNoteWrites(transaction, items.map((note) => note.id), () => {
       const abortWithValidationError = (error) => {
         validationError = error;
         try { transaction.abort(); } catch (_) {}
       };
-      prepareNoteSnapshotsInTransaction(store, items, { preserveStoredCodexThread, prepareStoredNote }, (preparedItems) => {
+      const prepareChecked = (note, stored) => {
+        observed.set(note.id, stored);
+        if (!noteConflictStore.matches(noteSaveBases.get(note.id), stored, note.id) || noteConflictStates.has(note.id)) {
+          conflictDetected = true;
+          firstConflict ||= note;
+          return note;
+        }
+        const prepared = prepareStoredNote ? prepareStoredNote(note, stored)
+          : preserveStoredCodexThread ? mergeStoredCodexThread(note, stored) : { ...stored, ...note };
+        const revision = noteConflictStore.revisionOf(stored);
+        if (revision !== undefined && (revision == null || revision < Number.MAX_SAFE_INTEGER)) {
+          prepared.revision = Math.max(normalizeNoteRevision(note.revision), revision == null ? 0 : revision + 1);
+        } else { conflictDetected = true; firstConflict ||= note; }
+        return prepared;
+      };
+      prepareNoteSnapshotsInTransaction(store, items, { preserveStoredCodexThread, prepareStoredNote: prepareChecked }, (preparedItems) => {
         try {
+          if (conflictDetected) {
+            for (const note of items) {
+              const records = noteConflictStore.conflictRecords(note, noteSaveBases.get(note.id), observed.get(note.id), noteConflictAttemptId(note), noteConflictOwnerId);
+              recoveries.set(note.id, records);
+              noteConflictStore.stageRecovery(transaction, records, abortWithValidationError);
+            }
+            return;
+          }
           if (validateBeforePut) validateBeforePut();
           savedItems = preparedItems;
           savedItems.forEach((note) => store.put(note));
@@ -3666,12 +3824,25 @@ function updateNotesTransaction(items, { markLocalPending = true, preserveStored
       }, abortWithValidationError);
     }, TOMBSTONE_STORE_NAME);
     transaction.oncomplete = () => {
+      if (conflictDetected) {
+        const error = noteConflictStore.conflictError(firstConflict, recoveries.get(firstConflict.id), true);
+        error.recoveries = recoveries;
+        reject(error);
+        return;
+      }
+      savedItems.forEach((note) => noteSaveBases.set(note.id, cloneNoteSnapshot(note)));
       savedItems.forEach((note) => notifyMemoChanged(note));
       if (markLocalPending) markLocalWorkspacePending();
       resolve(savedItems);
     };
-    transaction.onerror = () => reject(validationError || noteTransactionError(transaction));
-    transaction.onabort = () => reject(validationError || noteTransactionError(transaction));
+    transaction.onerror = () => { validationError ||= noteTransactionError(transaction); };
+    transaction.onabort = () => {
+      const cause = validationError || noteTransactionError(transaction);
+      if (!conflictDetected) { reject(cause); return; }
+      const error = noteConflictStore.conflictError(firstConflict, recoveries.get(firstConflict.id), false, cause);
+      error.recoveries = recoveries;
+      reject(error);
+    };
   });
 }
 
@@ -3715,6 +3886,8 @@ function saveCurrentDraftMirror(noteId = currentId) {
     updatedAt: now,
     isFlagged: Boolean(note.isFlagged),
     tags: normalizeTagIds(note.tags),
+    conflictBase: noteSaveBases.get(note.id),
+    conflictRequestId: noteConflictAttemptId(note),
     draftSavedAt: now
   };
 
@@ -3778,6 +3951,23 @@ async function restoreCurrentDraftMirror() {
   }
 
   const existingNote = notes.find((note) => note.id === draft.id);
+  if (existingNote && draft.body !== existingNote.body) {
+    // A shared mirror cannot be silently rebased onto the just-read database.
+    const existingRecovery = await noteConflictStore.readDrafts(db, draft.id);
+    if (existingRecovery.some((row) => row.body === draft.body)) return null;
+    const base = Object.hasOwn(draft, "conflictBase") ? draft.conflictBase : undefined;
+    const { conflictBase, conflictRequestId, draftSavedAt: mirrorSavedAt, ...incomingDraft } = draft;
+    const attempted = { ...existingNote, ...incomingDraft, revision: Math.max(normalizeNoteRevision(existingNote.revision) + 1, normalizeNoteRevision(draft.revision)) };
+    try {
+      await putNote(attempted, { preserveStoredCodexThread: true, expectedBase: base,
+        conflictRequestId: draft.conflictRequestId || crypto.randomUUID() });
+    } catch (error) {
+      if (!error?.conflictDetected) throw error;
+      noteConflictStates.set(draft.id, { recovery: error.recovery, preserved: error.preserved });
+      return draft.id;
+    }
+    return draft.id;
+  }
   if (existingNote && (!Number.isFinite(draftSavedAt) || draftSavedAt <= (timestampValue(existingNote.updatedAt) ?? 0))) {
     return null;
   }
@@ -6562,6 +6752,7 @@ async function initPopout() {
   globalThis.renderGeometryBlockEditors?.();
   applyEffectiveFontSettings();
   document.title = `${note.title} — Memo Nexus`;
+  refreshNoteConflictUi();
   requestAnimationFrame(() => editor.focus());
 }
 
@@ -7175,6 +7366,8 @@ function flushScheduledNoteSave(noteId) {
 function handleNoteSaveStateChange(noteId, state) {
   if (noteId !== currentId) return;
   syncLegacyDirtyState(noteId);
+  const conflict = noteConflictStates.get(noteId);
+  if (conflict) { setSaveStatus(conflict.preserved ? "conflict" : "preservation-error"); return; }
   if (state.status === "saving") setSaveStatus("saving");
   else if (state.status === "error") setSaveStatus("error");
   else if (state.dirty) setSaveStatus("editing");
@@ -7211,10 +7404,15 @@ function handleNoteSaveSuccess(request, state, context = {}) {
   if (context.batch) return;
   console.log("Memo saved", { id: request.noteId, revision: request.revision, saveRequestId: request.saveRequestId });
   const savedCurrentRevision = state.currentRevision === request.revision;
+  if (savedCurrentRevision && noteConflictResolutions.has(request.noteId)) {
+    noteConflictResolutions.delete(request.noteId);
+    noteConflictStates.delete(request.noteId);
+    refreshNoteConflictUi();
+  }
   const uiChanges = savedCurrentRevision ? noteSaveUiChanges.get(request.noteId) : null;
   const titleChanged = Boolean(uiChanges && request.snapshot.title !== uiChanges.titleBefore);
   if (savedCurrentRevision) {
-    const savedNote = cloneNoteSnapshot(mergeStoredCodexThread(request.snapshot, noteForSave(request.noteId)));
+    const savedNote = cloneNoteSnapshot(mergeStoredCodexThread(noteSaveBases.get(request.noteId) || request.snapshot, noteForSave(request.noteId)));
     const index = notes.findIndex((note) => note.id === request.noteId);
     if (index === -1) notes.unshift(savedNote); else notes[index] = savedNote;
     const liveDraft = noteLiveDrafts.get(request.noteId);
@@ -7300,6 +7498,29 @@ function handleNoteBatchSaveSuccess(results, { invalidateTermRelations = true, r
 }
 
 function handleNoteSaveError(request, error) {
+  if (error?.recoveries?.has(request.noteId)) error = { ...error, recovery: error.recoveries.get(request.noteId) };
+  if (error?.conflictDetected && error.recovery) {
+    const previous = noteConflictStates.get(request.noteId);
+    const previousRevision = previous?.recovery.draft.snapshot.revision ?? -1;
+    if (request.revision >= previousRevision) noteConflictStates.set(request.noteId, { recovery: error.recovery, preserved: error.preserved });
+    if (request.noteId === currentId) {
+      applyCurrentEditorDraft(currentNote());
+      editor.readOnly = true;
+      titleInput.readOnly = true;
+      const conflict = noteConflictStates.get(request.noteId);
+      setSaveStatus(conflict.preserved ? "conflict" : "preservation-error");
+      // The error contains committed transaction evidence. Show it immediately;
+      // a fresh readonly query may update the comparison afterwards.
+      ensureNoteConflictUi()?.render({ noteId: request.noteId, state: conflict,
+        drafts: conflict.preserved ? [conflict.recovery.draft] : [],
+        committed: conflict.recovery.receipt.committedSnapshot });
+      refreshNoteConflictUi();
+    }
+    // Preserve edits made while the rejected request was in flight as well.
+    const live = noteForSave(request.noteId);
+    if (live && live.revision > request.revision) void enqueueNoteSaveSnapshot(request.noteId).catch(() => {});
+    return;
+  }
   if (error?.code === "NOTE_PERMANENTLY_DELETED") {
     void cleanupPermanentlyDeletedMemos([error.noteId || request.noteId], error.tombstone)
       .catch((cleanupError) => console.warn("Permanently deleted memo cleanup failed", cleanupError));
@@ -7838,6 +8059,7 @@ async function handleMemoSyncMessage(message) {
 
 function renderMemoSyncNotice() {
   // 同期の保留状態は従来どおり維持し、タイトル上の補足表示は行わない。
+  refreshNoteConflictUi();
 }
 
 function loadPendingMemoSync() {
@@ -7868,7 +8090,7 @@ function scheduleSave({ render = true, typingPerformanceMeasurement: performance
     saveTimer = setTimeout(() => {
       saveTimer = null;
       scheduledSaveNoteId = null;
-      enqueueNoteSave(noteId).catch((error) => console.error("Scheduled save failed", error));
+      enqueueNoteSave(noteId).catch((error) => { if (!error?.conflictDetected) console.error("Scheduled save failed", error); });
     }, 280);
   });
   measureTypingPerformanceOperation(performanceDurations, "scheduleDerivedUi", () => {
@@ -15195,8 +15417,8 @@ function setSaveStatusNotice(message) {
 }
 
 function browserSaveStatusModel() {
-  const labels = { editing: "編集あり", saving: "保存中", error: "保存失敗", saved: "保存済み" };
-  const state = ["editing", "saving", "error", "saved"].includes(saveStatusState) ? saveStatusState : "saved";
+  const labels = { editing: "編集あり", saving: "保存中", error: "保存失敗", saved: "保存済み", conflict: "競合・原稿保全済み", "preservation-error": "競合・保全失敗" };
+  const state = Object.hasOwn(labels, saveStatusState) ? saveStatusState : "error";
   return { state, label: labels[state], savedAt: saveStatusTime, notice: saveStatusNotice };
 }
 

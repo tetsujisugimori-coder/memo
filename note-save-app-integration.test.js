@@ -8,6 +8,7 @@ const { removeDuplicateFigureIds, serializeImageBlock, splitImageBlocks, replace
 const { serializeTimelineBlock, splitTimelineBlocks } = require("./timeline-block-utils.js");
 const { createDraftMirrorScheduler } = require("./draft-mirror-scheduler.js");
 const { createNoteSaveFoundation, createSaveRequest, normalizeRevision } = require("./note-save-foundation.js");
+const noteConflictStore = require("./note-conflict-store.js");
 const { createCodexThreadSaveCoordinator, isCodexThreadSaveRequest, mergeStoredCodexThread } = require("./codex-chat-utils.js");
 const { buildPortableBackupFiles } = require("./backup-bundle-utils.js");
 const { applyLocalSaveSuccess, classifyLocalSaveFailure, createLocalSaveState, transitionLocalSaveState } = require("./local-save-state.js");
@@ -63,6 +64,7 @@ function deferred() {
 
 function createProductionBatchWriterHarness(initialNotes) {
   const stored = new Map(initialNotes.map((note) => [note.id, structuredClone(note)]));
+  const recovery = new Map();
   const notifications = [];
   let transactionCount = 0;
   const db = {
@@ -72,9 +74,10 @@ function createProductionBatchWriterHarness(initialNotes) {
       let completionQueued = false;
       let aborted = false;
       const stagedWrites = new Map();
+      const stagedRecovery = new Map();
       const transaction = {
         error: null,
-        objectStore() { return store; },
+        objectStore(name) { return name === "note-conflicts" ? recoveryStore : store; },
         abort() {
           if (aborted) return;
           aborted = true;
@@ -90,6 +93,7 @@ function createProductionBatchWriterHarness(initialNotes) {
         queueMicrotask(() => {
           if (aborted) return;
           stagedWrites.forEach((note, id) => stored.set(id, structuredClone(note)));
+          stagedRecovery.forEach((record, id) => recovery.set(id, structuredClone(record)));
           transaction.oncomplete?.();
         });
       };
@@ -107,12 +111,31 @@ function createProductionBatchWriterHarness(initialNotes) {
         },
         put(note) { stagedWrites.set(note.id, structuredClone(note)); }
       };
+      const recoveryStore = {
+        get(id) {
+          pendingReads += 1;
+          const request = { result: undefined, onsuccess: null };
+          queueMicrotask(() => {
+            request.result = recovery.has(id) ? structuredClone(recovery.get(id)) : undefined;
+            request.onsuccess?.(); pendingReads -= 1; finishIfReady();
+          });
+          return request;
+        },
+        add(record) { stagedRecovery.set(record.id, structuredClone(record)); }
+      };
       queueMicrotask(finishIfReady);
       return transaction;
     }
   };
   const context = vm.createContext({
     db,
+    noteConflictStore,
+    noteSaveBases: new Map(initialNotes.map((note) => [note.id, structuredClone(note)])),
+    noteConflictStates: new Map(),
+    noteConflictAttemptId: (note) => `batch-${note.id}-${note.revision}`,
+    noteConflictOwnerId: "isolated-batch-test",
+    normalizeNoteRevision: normalizeRevision,
+    cloneNoteSnapshot: structuredClone,
     mergeStoredCodexThread,
     notifyMemoChanged: (note) => notifications.push(structuredClone(note)),
     markLocalWorkspacePending() {},
@@ -125,6 +148,7 @@ function createProductionBatchWriterHarness(initialNotes) {
   return {
     notifications,
     stored,
+    recovery,
     transactionCount: () => transactionCount,
     updateNotesTransaction: context.updateNotesTransactionForHarness
   };
@@ -341,6 +365,12 @@ function createHarness({
     const measureTypingPerformanceOperation = (_durations, _name, operation) => operation();
     let registeredTags = ["tag-a", "tag-b"];
     const noteLiveDrafts = new Map();
+    const noteSaveBases = new Map();
+    const noteConflictStates = new Map();
+    const noteConflictAttempts = new Map();
+    const noteConflictResolutions = new Map();
+    const refreshNoteConflictUi = () => {};
+    ${sourceBetween("function noteConflictAttemptId", "function noteConflictUiError")}
     const noteSaveBeforeBodies = new Map();
     const noteSaveUiChanges = new Map();
     const memoLinkRenameSaveTasks = new Map();
@@ -1032,7 +1062,7 @@ test("通常note更新経路は共通mutationまたは排他入口へ接続さ�
   assert.match(sourceBetween("async function enqueueCodexThreadSave", "function applyCodexThreadSaveResult"), /codexThreadSaveCoordinator\.enqueue/);
   assert.match(noteSaveFoundationSource, /runExclusive\(\[snapshot\.noteId\]/);
   assert.match(noteSaveFoundationSource, /putCodexThreadSnapshot\(snapshot\)/);
-  assert.match(noteSaveFoundationSource, /writeSnapshot\s*:\s*\(\s*snapshot\s*,\s*request\s*\)\s*=>\s*isCodexThreadSaveRequest\s*\(\s*request\s*\)\s*\?[\s\S]*?noteSaveFoundation\.runExclusive\s*\([\s\S]*?\)\s*:\s*putNote\s*\(\s*snapshot\s*,\s*\{\s*preserveStoredCodexThread\s*:\s*true\s*\}\s*\)\s*,/);
+  assert.match(noteSaveFoundationSource, /writeSnapshot\s*:\s*\(\s*snapshot\s*,\s*request\s*\)\s*=>\s*isCodexThreadSaveRequest\s*\(\s*request\s*\)\s*\?[\s\S]*?noteSaveFoundation\.runExclusive\s*\([\s\S]*?\)\s*:\s*putNote\s*\(\s*snapshot\s*,\s*\{\s*preserveStoredCodexThread\s*:\s*true, expectedBase: noteSaveBases\.get\(snapshot\.id\),[\s\S]*?conflictRequestId: noteConflictAttemptId\(snapshot\)/);
 });
 
 test("本文保存中のCodex更新とタグ更新は同一メモで直列化され、各フィールドを維持する", async () => {
@@ -2519,7 +2549,7 @@ test("本番updateNotesTransactionは同一transaction内で全件の確定Codex
   assert.equal(production.notifications[0].codexChat.threadId, "thread-b");
 });
 
-test("本番transactionは基準取得後の同revision外部更新をput前に検出して全件abortする", async () => {
+test("本番transactionは同revision外部更新で本文全件を停止し原稿を同一transactionで保全する", async () => {
   const initial = [
     { id: "A", title: "メモB", body: "対象", revision: 0, updatedAt: 1 },
     { id: "B", title: "参照元", body: "旧本文 [[* メモB]]", revision: 0, updatedAt: 1 },
@@ -2542,12 +2572,14 @@ test("本番transactionは基準取得後の同revision外部更新をput前に�
       }
       return { ...stored, title: proposed.title, body: proposed.body, revision: proposed.revision, updatedAt: proposed.updatedAt };
     }
-  }), (error) => error.code === "MEMO_LINK_RENAME_STORED_CONFLICT" && error.noteId === "B");
+  }), (error) => error.code === "NOTE_SAVE_CONFLICT" && error.noteId === "B" && error.preserved === true);
 
   assert.equal(production.stored.get("A").title, "メモB");
   assert.equal(production.stored.get("B").body, "外部保存本文 [[* メモB]]");
   assert.equal(production.stored.get("C").body, "旧本文2 [[* メモB]]");
   assert.deepEqual(production.notifications, []);
+  assert.equal(production.recovery.size, 6);
+  for (const note of snapshots) assert.equal(production.recovery.get(`draft:batch-${note.id}-${note.revision}`).body, note.body);
 });
 
 test("通常custom writerだけがCodex保護helperを明示し、バックアップ全体置換は従来writerを維持する", () => {

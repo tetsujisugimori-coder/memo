@@ -8,6 +8,7 @@
   <style>html,body{background:#f6f7f4;color:#222522;color-scheme:light}html[data-initial-theme="dark"],html[data-initial-theme="dark"] body{background:#111513;color:#e7ece7;color-scheme:dark}</style>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css">
   <link rel="stylesheet" href="style.css?v=0.5.0-119">
+  <link rel="stylesheet" href="note-conflict.css?v=0.5.0-1">
   <style>.storage-guide-link:focus-visible { outline: 3px solid currentColor; outline-offset: 4px; }</style>
   <link id="reportPrintStyles" rel="stylesheet" href="report-print.css?v=0.5.0-3" media="print">
 </head>
@@ -172,6 +173,7 @@
     </header>
     <div id="storageWarning" class="storage-warning" role="status" hidden></div>
     <section class="editor-card">
+      <div id="noteConflictHost"></div>
       <div class="title-row">
         <div class="title-side">
           <div class="title-side-head">
@@ -1094,6 +1096,8 @@
   <script src="local-save-queue.js?v=0.5.0-3"></script>
   <script src="note-tombstone.js?v=0.5.0-2"></script>
   <script src="note-save-foundation.js?v=0.5.0-8"></script>
+  <script src="note-conflict-store.js?v=0.5.0-1"></script>
+  <script src="note-conflict-ui.js?v=0.5.0-1"></script>
   <script src="local-markdown.js?v=0.5.0-4"></script>
   <script src="local-sync-utils.js?v=0.5.0-14"></script>
   <script src="backup-bundle-utils.js?v=0.5.0-10"></script>
@@ -1105,7 +1109,7 @@
   <script src="draft-mirror-scheduler.js?v=0.5.0-2"></script>
   <script src="typing-performance-monitor.js?v=0.5.0-3"></script>
   <script src="layout-resize-utils.js?v=0.5.0-2"></script>
-  <script src="app.js?v=0.5.0-208"></script>
+  <script src="app.js?v=0.5.0-209"></script>
   <script src="codex-chat.js?v=0.5.0-6"></script>
   <dialog id="dummyPreviewDialog" class="dummy-preview-dialog" aria-labelledby="dummyPreviewHeading" aria-describedby="dummyPreviewHelp">
     <h2 id="dummyPreviewHeading">文章の受信確認 <small id="dummyPreviewBadge">未保存プレビュー</small></h2>

@@ -62,6 +62,44 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  save-conflict-e2e:
+    name: Save conflict safety (chromium + webkit)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    env:
+      MEMO_SAVE_ARTIFACTS: e2e-artifacts/save-conflict
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium webkit
+      - name: Verify unchanged legacy RED counterexample
+        shell: bash
+        run: |
+          mkdir -p "$MEMO_SAVE_ARTIFACTS"
+          set -o pipefail
+          npm run test:e2e:save-conflict:red 2>&1 | tee "$MEMO_SAVE_ARTIFACTS/legacy-control.log"
+      - name: Verify revision guard, preservation and recovery
+        shell: bash
+        run: |
+          set -o pipefail
+          npm run test:e2e:save-conflict 2>&1 | tee "$MEMO_SAVE_ARTIFACTS/run.log"
+      - name: Preserve save conflict evidence including failures
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: save-conflict-e2e
+          path: e2e-artifacts/save-conflict/
+          if-no-files-found: error
+          retention-days: 14
+
   checks:
     name: CI checks
     runs-on: ubuntu-latest
