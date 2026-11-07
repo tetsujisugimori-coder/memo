@@ -27,8 +27,8 @@ async function restore(mirror, held = []) {
     noteSaveFoundation: { finishPermanentDeletion() {} }, removeDraftMirrorForNote() {}
   });
   vm.runInContext(`${between("async function restoreCurrentDraftMirror", "// 削除したメモが次回起動時")}\nglobalThis.restore = restoreCurrentDraftMirror;`, context);
-  await context.restore();
-  return { calls, states };
+  const id = await context.restore();
+  return { calls, states, id };
 }
 test("title-only stale mirror keeps its own baseline instead of silently rebasing to the latest DB", async () => {
   const mirror = { ...oldBase, title: "LOCAL TITLE", draftSavedAt: 3000, conflictBase: oldBase, conflictRequestId: "original" };
@@ -44,6 +44,11 @@ test("metadata-only stale mirror also retains its own baseline", async () => {
   const { calls } = await restore(mirror);
   assert.equal(calls.length, 1); assert.equal(calls[0].route, "guarded");
   assert.equal(calls[0].options.expectedBase.revision, 7); assert.equal(calls[0].note.isFlagged, true);
+});
+test("already committed mirror restores the selected memo without writing or rebasing", async () => {
+  const mirror = { ...remote, conflictBase: oldBase, draftSavedAt: 3000 };
+  const { calls, id } = await restore(mirror);
+  assert.equal(id, "memo"); assert.equal(calls.length, 0);
 });
 test("same-body other-title recovery is not incorrectly accepted as the mirror's preserved draft", async () => {
   const mirror = { ...oldBase, title: "LOCAL TITLE", draftSavedAt: 3000, conflictBase: oldBase };

@@ -3956,10 +3956,10 @@ async function restoreCurrentDraftMirror() {
   if (existingNote) {
     const mirrorFields = ["body", "title", "collectionId", "deletedAt", "isFlagged", "tags"];
     const sameMirror = (candidate) => mirrorFields.every((field) => JSON.stringify(candidate?.[field]) === JSON.stringify(draft[field]));
-    if (sameMirror(existingNote)) return null;
+    if (sameMirror(existingNote)) return draft.id;
     // A shared mirror cannot be silently rebased onto the just-read database.
     const existingRecovery = await noteConflictStore.readDrafts(db, draft.id);
-    if (existingRecovery.some((row) => row.body === draft.body && row.title === draft.title && sameMirror(row.snapshot))) return null;
+    if (existingRecovery.some((row) => row.body === draft.body && row.title === draft.title && sameMirror(row.snapshot))) return draft.id;
     const base = Object.hasOwn(draft, "conflictBase") ? draft.conflictBase : undefined;
     const { conflictBase, conflictRequestId, draftSavedAt: mirrorSavedAt, ...incomingDraft } = draft;
     const attempted = { ...existingNote, ...incomingDraft, revision: Math.max(normalizeNoteRevision(existingNote.revision) + 1, normalizeNoteRevision(draft.revision)) };

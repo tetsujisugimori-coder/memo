@@ -11,7 +11,8 @@ const baselineBody = "lineA=single\nlineB=sequential";
 const drafts = { A: "lineA=overlap-A\nlineB=sequential", B: "lineA=single\nlineB=overlap-B" };
 
 async function collision(browser, browserName, origin, { width = 1280, order = "AB", theme = "light" } = {}) {
-  const context = await browser.newContext({ viewport: { width, height: 900 }, colorScheme: theme, reducedMotion: "reduce" });
+  const context = await browser.newContext({ viewport: { width, height: 900 }, colorScheme: theme, reducedMotion: "reduce",
+    storageState: { cookies: [], origins: [{ origin, localStorage: [{ name: "memo-nexus-theme", value: theme }] }] } });
   let timedOut = false;
   const watchdog = setTimeout(() => { timedOut = true; void context.close(); }, 90000);
   const logs = [], external = [], result = { browser: browserName, width, order, theme, checks: [], logs, external };
@@ -24,6 +25,7 @@ async function collision(browser, browserName, origin, { width = 1280, order = "
   let pages = [];
   try {
     const first = await newPage(`${origin}/index.html`);
+    assert.equal(await first.evaluate(() => document.body.classList.contains("dark")), theme === "dark", "actual app theme follows the isolated preference fixture");
     const id = await first.evaluate(() => currentId);
     // Keep the Today title so that fresh tabs naturally select this exact memo.
     await first.locator("#editor").fill("lineA=single\nlineB=base");
@@ -48,6 +50,20 @@ async function collision(browser, browserName, origin, { width = 1280, order = "
     const blockedTab = committed.body === drafts.A ? "B" : committed.body === drafts.B ? "A" : null;
     const blockedIndex = blockedTab === "A" ? 0 : 1;
     result.blockedTab = blockedTab;
+    result.winner = blockedTab === "A" ? "B" : blockedTab === "B" ? "A" : null;
+    if (blockedTab && evidence.wait.kind === "conflict-stopped") {
+      const blocked = pages[blockedIndex], button = blocked.locator("[data-memo-conflict-export]");
+      await button.focus();
+      await blocked.keyboard.press("Shift+Tab");
+      await blocked.keyboard.press("Tab");
+      const focus = await button.evaluate((element) => ({ active: document.activeElement === element,
+        width: getComputedStyle(element).outlineWidth, style: getComputedStyle(element).outlineStyle }));
+      assert.ok(focus.active && parseFloat(focus.width) >= 2 && focus.style !== "none", "keyboard focus must be visible");
+      const downloadWait = blocked.waitForEvent("download");
+      await blocked.keyboard.press("Enter");
+      assert.equal(await fs.readFile(await (await downloadWait).path(), "utf8"), drafts[blockedTab]);
+      result.keyboardExport = { status: "PASS", focus };
+    }
     for (const [index, page] of pages.entries()) await page.screenshot({ path: path.join(output, `${browserName}-${width}-${order}-${index}-terminal.png`), fullPage: true });
     for (const page of pages) { await page.reload({ waitUntil: "commit" }); await appReady(page); }
     evidence.observations.reloaded = await capturePair(pages, id);
@@ -233,7 +249,11 @@ async function regressions(browser, name, origin) {
     }
   } finally {
     server.close(); report.finishedAt = new Date().toISOString();
-    report.status = report.cases.length === report.expectedCases && report.cases.every((item) => item.status === "PASS") ? "PASS" : "FAIL";
+    report.commitOrderCoverage = Object.fromEntries((process.env.MEMO_SAVE_BROWSERS || "chromium,webkit").split(",").map((name) => [name,
+      [...new Set(report.cases.filter((item) => item.browser === name && item.winner).map((item) => item.winner))]]));
+    const coverageComplete = report.mode === "SMOKE" || Object.values(report.commitOrderCoverage).every((winners) => winners.includes("A") && winners.includes("B"));
+    report.status = report.cases.length === report.expectedCases && coverageComplete && report.cases.every((item) => item.status === "PASS") ? "PASS" : "FAIL";
+    if (!coverageComplete) report.coverageError = "Both actual commit orders were not observed: untested reverse order cannot pass";
     await fs.writeFile(path.join(output, "results.json"), JSON.stringify(report, null, 2) + "\n");
     console.log(JSON.stringify({ head: report.testedHead, status: report.status, cases: report.cases.map(({ browser, width, order, status, error, acceptance }) => ({ browser, width, order, status, error, acceptance: acceptance?.acceptedMethod })) }, null, 2));
     if (report.status !== "PASS") process.exitCode = 1;
