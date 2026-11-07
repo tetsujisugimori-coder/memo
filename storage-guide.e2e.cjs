@@ -75,12 +75,16 @@ async function waitForSavedNote(page, noteId, expected, timeout = 10000) {
           transaction.oncomplete = () => resolve(request.result);
           transaction.onabort = () => reject(transaction.error);
         });
-        return { note, state: noteSaveFoundation.getState(id), badge: document.querySelector("#browserSaveStatusBtn").dataset.state };
+        return { note, state: noteSaveFoundation.getState(id), badge: document.querySelector("#browserSaveStatusBtn").dataset.state,
+          currentId, editor: document.querySelector("#editor").value,
+          saveTimerPending: scheduledSaveNoteId === id && saveTimer !== null };
       }, noteId), new Promise((_, reject) => {
         timer = setTimeout(() => reject(new Error("Saved-note readonly observation timed out")), Math.max(1, timeout - (performance.now() - start)));
       })]);
     } finally { clearTimeout(timer); }
-    if (observed.note && observed.state?.status === "saved" && !observed.state.dirty && observed.badge === "saved"
+    if (observed.note && observed.currentId === noteId && observed.state?.status === "saved" && !observed.state.dirty && observed.badge === "saved"
+      && observed.state.activeRevision == null && observed.state.pendingRevision == null && !observed.saveTimerPending
+      && observed.editor === observed.note.body
       && Object.entries(expected).every(([key, value]) => observed.note[key] === value)) return observed;
     await new Promise((resolve) => setTimeout(resolve, 40));
   }
