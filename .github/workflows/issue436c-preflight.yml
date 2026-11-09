@@ -1,0 +1,52 @@
+name: Issue436-C Windows local-runner safety preflight
+on:
+  push:
+    branches:
+      - codex/issue-436c-local-windows-isolation-20261110
+    paths:
+      - 'tools/issue436c-*.ps1'
+      - '.github/workflows/issue436c-preflight.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  safety-preflight-only:
+    runs-on: windows-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Validate Windows runner preflight / invalid SHA without browser launch
+        shell: pwsh
+        run: ./tools/issue436c-preflight.test.ps1
+  hosted-kit-integration:
+    # This validates the launcher mechanics on GitHub-hosted Windows, NOT on the user's Windows PC.
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Execute pinned launcher with synthetic data on a hosted Windows runner only
+        shell: pwsh
+        run: |
+          $root = Join-Path $env:RUNNER_TEMP "issue436c-hosted"
+          & ./tools/issue436c-local-windows.ps1 -Execute -ExpectedKitHead $env:GITHUB_SHA -OutputRoot $root
+          if ($LASTEXITCODE -ne 0) { throw "Hosted kit integration was BLOCKED or incomplete" }
+          $summary = Get-Content -LiteralPath (Join-Path $root "evidence/summary.json") -Raw | ConvertFrom-Json
+          if ($summary.diagnosticStatus -ne "COMPLETE" -or -not $summary.allProductPASS) { throw "Hosted synthetic diagnostic did not complete" }
+          if ($summary.cases.Count -ne 4) { throw "Expected 4 bounded tests" }
+          Write-Output "HOSTED_INTEGRATION_ONLY: 4 synthetic WebKit trials complete. Local user's PC is NOT_TESTED."
+      - name: Preserve hosted-tool-test evidence only
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: issue436c-hosted-launcher-only
+          path: |
+            ${{ runner.temp }}/issue436c-hosted/preflight.json
+            ${{ runner.temp }}/issue436c-hosted/outcome.json
+            ${{ runner.temp }}/issue436c-hosted/archive-sha256.json
+            ${{ runner.temp }}/issue436c-hosted/issue436c-evidence.zip
+          if-no-files-found: warn
+          retention-days: 14
