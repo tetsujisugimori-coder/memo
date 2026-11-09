@@ -52,7 +52,7 @@ for (const option of branchModes) {
   summary.cases.push(row);
   fs.writeFileSync(path.join(root, "summary.json"), JSON.stringify(summary, null, 2) + "\n");
   console.log(JSON.stringify({ mode: row.name, exit: row.originalExit, product: row.originalProductAcceptance,
-    evidence: row.evidence, trace: row.telemetryStatus, error: row.readError || row.supervisionError }));
+    evidence: row.evidence, trace: row.telemetryStatus, timings: row.traceSummary || null, error: row.readError || row.supervisionError }));
 }
 summary.finished = new Date().toISOString();
 summary.diagnosticStatus = summary.cases.length === branchModes.length &&

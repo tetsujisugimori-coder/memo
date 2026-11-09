@@ -31,3 +31,17 @@ test("path normalization removes query and fragment from diagnostic evidence", (
   assert.equal(safePath("http://127.0.0.1:8901/index.html?draft=private#x"), "/index.html");
   assert.equal(safePath("/foo.js?token=ignore"), "/foo.js");
 });
+
+test("summary surfaces browser and optional Windows counters without assigning cause", () => {
+  const s = summarize([
+    { event: "browser:snapshot", info: { navigation: { domContentLoadedEndMs: 120 },
+      resources: [{ durationMs: 68 }, { durationMs: 95 }] } },
+    { event: "host:sample", nodeEventLoopLagMaxMs: 22 },
+    { event: "win:counters", pagesPerSec: 7, availableMBytes: 440 },
+  ]);
+  assert.equal(s.browser.maxResourceDurationMs, 95);
+  assert.equal(s.browser.maxNavigationDclMs, 120);
+  assert.equal(s.host.maxNodeEventLoopLagMs, 22);
+  assert.equal(s.host.maxWindowsPagesPerSec, 7);
+  assert.equal(s.rootCause, "UNKNOWN");
+});

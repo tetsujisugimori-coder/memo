@@ -20,11 +20,33 @@ function describeDurations(events, begin, end) {
     p95Ms: durations.length ? durations[Math.ceil(durations.length * 0.95) - 1] : null };
 }
 function summarize(events) {
+  const snapshots = events.filter(x => x.event === "browser:snapshot");
+  const resources = snapshots.flatMap(x => x.info?.resources || []);
+  const hostSamples = events.filter(x => x.event === "host:sample");
+  const windowsCounters = events.filter(x => x.event === "win:counters");
+  const max = (items, value) => {
+    const values = items.map(value).filter(x => Number.isFinite(x));
+    return values.length ? Math.max(...values) : null;
+  };
+  const min = (items, value) => {
+    const values = items.map(value).filter(x => Number.isFinite(x));
+    return values.length ? Math.min(...values) : null;
+  };
   return {
     http: describeDurations(events, "http:received", "http:finish"),
     route: describeDurations(events, "route:start", "route:end"),
-    browser: { snapshots: events.filter(x => x.event === "browser:snapshot").length },
-    host: { samples: events.filter(x => x.event === "host:sample").length, windowsCounters: events.filter(x => x.event === "win:counters").length },
+    browser: {
+      snapshots: snapshots.length, resourceEntries: resources.length,
+      maxResourceDurationMs: max(resources, x => x.durationMs),
+      maxNavigationDclMs: max(snapshots, x => x.info?.navigation?.domContentLoadedEndMs),
+    },
+    host: {
+      samples: hostSamples.length, windowsCounters: windowsCounters.length,
+      maxNodeEventLoopLagMs: max(hostSamples, x => x.nodeEventLoopLagMaxMs),
+      maxWindowsPagesPerSec: max(windowsCounters, x => Number(x.pagesPerSec)),
+      minWindowsAvailableMBytes: min(windowsCounters, x => Number(x.availableMBytes)),
+      windowsCounterFailures: events.filter(x => x.event === "win:counters-unavailable").length,
+    },
     rootCause: "UNKNOWN", productAcceptance: "SEE_UNCHANGED_RESULTS_JSON",
   };
 }
