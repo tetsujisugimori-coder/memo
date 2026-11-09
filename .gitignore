@@ -23,3 +23,6 @@ e2e-artifacts/memo-search/
 
 # Issue #436 isolated diagnostic outputs (archived evidence lives in docs).
 e2e-artifacts/issue436/
+
+# Stage 436-B temporary bounded interval diagnostics.
+e2e-artifacts/issue436b/
