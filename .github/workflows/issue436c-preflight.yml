@@ -1,0 +1,22 @@
+name: Issue436-C Windows local-runner safety preflight
+on:
+  push:
+    branches:
+      - codex/issue-436c-local-windows-isolation-20261110
+    paths:
+      - 'tools/issue436c-*.ps1'
+      - '.github/workflows/issue436c-preflight.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  safety-preflight-only:
+    runs-on: windows-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Validate Windows runner preflight / invalid SHA without browser launch
+        shell: pwsh
+        run: ./tools/issue436c-preflight.test.ps1
