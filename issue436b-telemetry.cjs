@@ -24,7 +24,7 @@ function summarize(events) {
     http: describeDurations(events, "http:received", "http:finish"),
     route: describeDurations(events, "route:start", "route:end"),
     browser: { snapshots: events.filter(x => x.event === "browser:snapshot").length },
-    host: { samples: events.filter(x => x.event === "host:sample").length },
+    host: { samples: events.filter(x => x.event === "host:sample").length, windowsCounters: events.filter(x => x.event === "win:counters").length },
     rootCause: "UNKNOWN", productAcceptance: "SEE_UNCHANGED_RESULTS_JSON",
   };
 }
@@ -57,8 +57,41 @@ function install({ support, playwright, dir }) {
     lag.reset();
   }, 500);
   tick.unref();
+  // Windows-native counters are best-effort, asynchronous and deliberately opt-in.
+  // Each PowerShell sample is bounded; failure never implies paging was absent.
+  let counterTimer;
+  if (process.platform === "win32" && include("host")) {
+    const { execFile } = require("node:child_process");
+    let active = false;
+    const command = [
+      "$ErrorActionPreference='Stop'",
+      "$m=Get-CimInstance Win32_PerfFormattedData_PerfOS_Memory",
+      "$p=Get-CimInstance Win32_PerfFormattedData_PerfOS_Processor -Filter \"Name='_Total'\"",
+      "$d=$null",
+      "try { $d=Get-CimInstance Win32_PerfFormattedData_PerfDisk_PhysicalDisk -Filter \"Name='_Total'\" } catch {}",
+      "[pscustomobject]@{pagesPerSec=$m.PagesPersec;pageReadsPerSec=$m.PageReadsPersec;availableMBytes=$m.AvailableMBytes;processorPct=$p.PercentProcessorTime;diskAvgSec=$d.AvgDisksecPerTransfer}|ConvertTo-Json -Compress",
+    ].join("; ");
+    const poll = () => {
+      if (active) return;
+      active = true;
+      execFile("powershell.exe", ["-NoProfile", "-NonInteractive", "-Command", command],
+        { timeout: 5500, maxBuffer: 16384, windowsHide: true }, (error, stdout) => {
+          active = false;
+          if (error) return mark("win:counters-unavailable", { reason: error.code || error.message });
+          try {
+            const payload = JSON.parse(stdout.trim().split(/\r?\n/).at(-1));
+            mark("win:counters", { ...payload });
+          } catch (parseError) { mark("win:counters-unavailable", { reason: parseError.message }); }
+        });
+    };
+    counterTimer = setInterval(poll, 8000);
+    counterTimer.unref();
+    const first = setTimeout(poll, 2000);
+    first.unref();
+  }
   process.once("exit", () => {
     clearInterval(tick);
+    clearInterval(counterTimer);
     lag.disable();
     const output = {
       schema: "issue436b-telemetry-v1", started, finished: new Date().toISOString(),
@@ -68,7 +101,7 @@ function install({ support, playwright, dir }) {
         node: "monoMs=Node performance.now(); epochMs=Date.now(); durations ONLY within this clock",
         browser: "ResourceTiming offsets refer to browser timeOrigin, never subtract from Node monoMs",
         snapshot: "asynchronous after ready/error; cannot assert timeout-instant state",
-        windowsPaging: "NOT_MEASURED: Node host samples are not Windows paging or disk counters"
+        windowsPaging: process.platform === "win32" ? "BEST_EFFORT_ASYNC_CIM; failures/missing samples mean UNKNOWN" : "NOT_MEASURED_ON_NON_WINDOWS_HOST"
       },
       summary: summarize(events), events
     };
