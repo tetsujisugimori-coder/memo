@@ -1,0 +1,45 @@
+name: Issue 436 bounded startup comparison
+on:
+  push:
+    branches: [codex/issue-436-startup-investigation-20261108]
+    paths: ['issue436-*.cjs', '.github/workflows/issue436-startup.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  compare:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium webkit
+      - name: Verify diagnostic and independent synthetic boundary
+        run: node --test issue436-diagnostic.test.cjs issue436-legacy-boundary.test.cjs
+      - name: Compare fixed and legacy bytes, retain original assertions and exits
+        run: node issue436-comparison.cjs
+      - name: Synthetic transport probe (no product acceptance)
+        if: ${{ !cancelled() }}
+        run: node issue436-transport-probe.cjs webkit
+      - name: Preserve original JSON, events, logs, exits and screenshots
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: issue436-${{ matrix.os }}
+          path: |
+            e2e-artifacts/issue436/
+            !e2e-artifacts/issue436/**/source/
+            !e2e-artifacts/issue436/**/source.tar
+          if-no-files-found: error
+          retention-days: 14
