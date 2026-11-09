@@ -733,8 +733,8 @@
     },
     {
       "path": "startup-intervals.json",
-      "bytes": 1013509,
-      "sha256": "75601273f293871b8ad395b67babff5b346de7b40535ca4edce42fbc9b0800db"
+      "bytes": 981051,
+      "sha256": "ec938eeaec1d372cdf0c125f7702f27a2cd1b571e26563bacc1bccca4a7511bc"
     }
   ],
   "diagnosticImplementations": {
@@ -750,5 +750,6 @@
     "executionAuthorization": "NOT_GRANTED",
     "startCondition": "BLOCKED",
     "productionWorker": "HOLD"
-  }
+  },
+  "textSerialization": "Derived repository JSON uses LF; raw evidence ZIP bytes and their hashes are unchanged."
 }
