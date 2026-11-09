@@ -1,0 +1,47 @@
+name: Issue 436-B interval isolation (diagnostic only)
+on:
+  push:
+    branches: [codex/issue-436b-interval-isolation-20261110]
+    paths:
+      - 'issue436b-*.cjs'
+      - 'issue436-startup-diagnostic.cjs'
+      - '.github/workflows/issue436b-intervals.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  interval-probe:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps webkit
+      - name: Check isolated diagnostic syntax
+        run: |
+          node --check issue436b-telemetry.cjs
+          node --check issue436b-comparison.cjs
+          node --check issue436-startup-diagnostic.cjs
+      - name: Verify clock and evidence identity contracts
+        run: node --test issue436b-telemetry.test.cjs issue436-diagnostic.test.cjs
+      - name: Run fixed-source WebKit ABBA interval comparison
+        run: node issue436b-comparison.cjs webkit
+      - name: Save raw exits, browser results, timing observations and counter availability
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: issue436b-${{ matrix.os }}
+          path: e2e-artifacts/issue436b/
+          if-no-files-found: error
+          retention-days: 14
