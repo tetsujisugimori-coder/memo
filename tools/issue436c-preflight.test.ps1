@@ -25,3 +25,4 @@ if ($blocked.state -ne "BLOCKED" -or $blocked.rootCause -ne "UNKNOWN") {
 }
 if (Test-Path -LiteralPath (Join-Path $blockedRoot "isolated-repository")) { throw "Blocked execution cloned repository." }
 Write-Output "PASS: invalid revision blocked before any checkout or browser execution."
+exit 0
