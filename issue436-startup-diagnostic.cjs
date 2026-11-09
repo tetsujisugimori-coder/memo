@@ -120,6 +120,10 @@ async function preload() {
     };
   }
   const playwright = require("playwright");
+  // Stage #436-B is strictly opt-in; the original runner and acceptance remain unchanged.
+  if (process.env.I436B_TELEMETRY === "1") {
+    require("./issue436b-telemetry.cjs").install({ support, playwright, dir });
+  }
   for (const engine of ["chromium", "webkit"]) {
     const launch = playwright[engine].launch.bind(playwright[engine]);
     playwright[engine].launch = async (...args) => {
