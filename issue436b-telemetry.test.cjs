@@ -45,3 +45,10 @@ test("summary surfaces browser and optional Windows counters without assigning c
   assert.equal(s.host.maxWindowsPagesPerSec, 7);
   assert.equal(s.rootCause, "UNKNOWN");
 });
+
+test("missing Windows counters remain unknown instead of numeric zero", () => {
+  const s = summarize([{ event: "win:counters", pagesPerSec: null, availableMBytes: null }]);
+  assert.equal(s.host.maxWindowsPagesPerSec, null);
+  assert.equal(s.host.minWindowsAvailableMBytes, null);
+  assert.equal(s.rootCause, "UNKNOWN");
+});

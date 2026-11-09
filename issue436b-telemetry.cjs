@@ -24,6 +24,7 @@ function summarize(events) {
   const resources = snapshots.flatMap(x => x.info?.resources || []);
   const hostSamples = events.filter(x => x.event === "host:sample");
   const windowsCounters = events.filter(x => x.event === "win:counters");
+  const numeric = x => x === null || x === undefined || x === "" ? NaN : Number(x);
   const max = (items, value) => {
     const values = items.map(value).filter(x => Number.isFinite(x));
     return values.length ? Math.max(...values) : null;
@@ -43,8 +44,8 @@ function summarize(events) {
     host: {
       samples: hostSamples.length, windowsCounters: windowsCounters.length,
       maxNodeEventLoopLagMs: max(hostSamples, x => x.nodeEventLoopLagMaxMs),
-      maxWindowsPagesPerSec: max(windowsCounters, x => Number(x.pagesPerSec)),
-      minWindowsAvailableMBytes: min(windowsCounters, x => Number(x.availableMBytes)),
+      maxWindowsPagesPerSec: max(windowsCounters, x => numeric(x.pagesPerSec)),
+      minWindowsAvailableMBytes: min(windowsCounters, x => numeric(x.availableMBytes)),
       windowsCounterFailures: events.filter(x => x.event === "win:counters-unavailable").length,
     },
     rootCause: "UNKNOWN", productAcceptance: "SEE_UNCHANGED_RESULTS_JSON",
