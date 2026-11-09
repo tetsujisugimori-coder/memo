@@ -20,3 +20,6 @@ received-history/
 # Isolated Windows launcher fixtures, encrypted test keys and captured test output.
 e2e-artifacts/launcher/
 e2e-artifacts/memo-search/
+
+# Issue #436 isolated diagnostic outputs (archived evidence lives in docs).
+e2e-artifacts/issue436/

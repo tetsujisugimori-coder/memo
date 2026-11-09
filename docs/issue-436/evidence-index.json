@@ -1,0 +1,755 @@
+{
+  "createdAt": "2026-11-09T12:16:35.732405+00:00",
+  "sourceFixed": "478d8b3ea59b242e4ddd5cc82e12b44169223047",
+  "sourceLegacy": "8f35ca25001ffa031abfd304dd2a5e9a3d9197dd",
+  "ciRunnerHead": "9c344ede39696b0ad0b9696005c6d1c82ca902a4",
+  "ciRun": 42614097846,
+  "archives": [
+    {
+      "path": "windows-local-evidence.zip",
+      "bytes": 2038830,
+      "sha256": "288d68cf77b97b4acd1c93f38b1122afbca902b1c28ab4ee12ea8dbdd01e497c",
+      "files": [
+        {
+          "path": "ci-artifacts-api.json",
+          "bytes": 1528,
+          "sha256": "a7bbd927aaed30aa93a4a0c47190892ead8759ed0070f2d7e4d795b963b763c4"
+        },
+        {
+          "path": "ci-linux-job.log",
+          "bytes": 263274,
+          "sha256": "2f51029c2e9375a4cfb7a7389cf2711b89c07d382fd2d06ab7b4c25fc6a61926"
+        },
+        {
+          "path": "ci-windows-job.log",
+          "bytes": 64137,
+          "sha256": "ab14c72c3224b726cf077130db83bb8c39e2fdf23d5695d173a7c140136cbb9e"
+        },
+        {
+          "path": "diagnostic-3c3c4e0.cjs",
+          "bytes": 15372,
+          "sha256": "3c3c4e0dec8cf5b846ef37d9c50ecfbf90495fd926e64991e15a2be0812192e0"
+        },
+        {
+          "path": "diagnostic-a8995f1.cjs",
+          "bytes": 15411,
+          "sha256": "a8995f1a26b219fff8c1587648c28e3178641c4631ca703a25a551a7e685a9b4"
+        },
+        {
+          "path": "diagnostic-unit.exit.txt",
+          "bytes": 3,
+          "sha256": "13bf7b3039c63bf5a50491fa3cfd8eb4e699d1ba1436315aef9cbe5711530354"
+        },
+        {
+          "path": "diagnostic-unit.log",
+          "bytes": 1796,
+          "sha256": "ae757f99982d76d8f048db57c787e20aeec12a5818f9f03268d2d8bf157da476"
+        },
+        {
+          "path": "historical/independent-results.json",
+          "bytes": 2645283,
+          "sha256": "188e15d827f3698b352f82edc6b44b6212870ad976e88cdb5a12087b1ba11f68"
+        },
+        {
+          "path": "historical/independent-runs.json",
+          "bytes": 743,
+          "sha256": "17badbd3faa919df14f46a0062a1f2accd9866cb874f117d6d6706a8341025af"
+        },
+        {
+          "path": "historical/parent-results.json",
+          "bytes": 2593764,
+          "sha256": "96bb77432ad6b1b9909c9c7c65bd80308885abec8826c45c9cdd546add34e126"
+        },
+        {
+          "path": "independent-review.md",
+          "bytes": 18936,
+          "sha256": "70a223376a3bcf1a11d72d9d00766f15b1561c0d175c7583a7a3d188950d81d2"
+        },
+        {
+          "path": "local-summary.json",
+          "bytes": 506856,
+          "sha256": "69ca31ba8d9ff44409fc9b3fd35e35018950b586af232e5a0326886183edaab6"
+        },
+        {
+          "path": "original-webkit/B-recovered-draft.txt",
+          "bytes": 28,
+          "sha256": "a864a1640f3bfdda75a676499c4aaa020f28db13787a48577a2b5e3aec7f8033"
+        },
+        {
+          "path": "original-webkit/exit.txt",
+          "bytes": 6,
+          "sha256": "9585fbece5c402088f2d6a2def7e60d1c7ffecc24b16d32d5823a064b008935b"
+        },
+        {
+          "path": "original-webkit/results.json",
+          "bytes": 316390,
+          "sha256": "3764e68e2305f7cc420e80ba7c0428c66b3a04c77153885d4bc3b7ab7180798b"
+        },
+        {
+          "path": "original-webkit/run.log",
+          "bytes": 476,
+          "sha256": "b9c030320e0e297e9151f1599b38f4adcce87bbf52f080a5a4c57ff7f2cde211"
+        },
+        {
+          "path": "original-webkit/webkit-1280-AB-0-terminal.png",
+          "bytes": 99385,
+          "sha256": "adcd4635e645940cb3b6a4a94f9c12096bbc5830dfed52cd0aeebda3b661d616"
+        },
+        {
+          "path": "original-webkit/webkit-1280-AB-1-terminal.png",
+          "bytes": 136086,
+          "sha256": "2ad40a7d8a4852ac156d05e6be98d5b37686941b2e9d5a3a8697022683206cec"
+        },
+        {
+          "path": "package-evidence.py",
+          "bytes": 6232,
+          "sha256": "0ce28248187386962dd9531bac4932acdf46ecb95d6a1c0e8abf86ea3d92ab24"
+        },
+        {
+          "path": "protected-refs-audit.json",
+          "bytes": 4474,
+          "sha256": "84c2b4594a4a08bd00711828925b0ad38de2c755312545259aa5535b18359e0f"
+        },
+        {
+          "path": "report.md",
+          "bytes": 13536,
+          "sha256": "7b2f90398c298a07a0aea315fa405009919f5c4d89e61e7908b60d4b58650ad3"
+        },
+        {
+          "path": "summarize.py",
+          "bytes": 2353,
+          "sha256": "daa6c4bfeb0ece52a2781c743424aef51331c6118e0ef998171d5a1ed19a5dc9"
+        },
+        {
+          "path": "transport-webkit.exit.txt",
+          "bytes": 3,
+          "sha256": "13bf7b3039c63bf5a50491fa3cfd8eb4e699d1ba1436315aef9cbe5711530354"
+        },
+        {
+          "path": "transport-webkit.log",
+          "bytes": 3012,
+          "sha256": "7db97e41b43d006ed170ff9d593b3b369dd41a5179efdbb4f521af58c526b7b9"
+        },
+        {
+          "path": "win32-fixed-chromium-deep/B-recovered-draft.txt",
+          "bytes": 28,
+          "sha256": "a864a1640f3bfdda75a676499c4aaa020f28db13787a48577a2b5e3aec7f8033"
+        },
+        {
+          "path": "win32-fixed-chromium-deep/chromium-1280-AB-0-terminal.png",
+          "bytes": 122035,
+          "sha256": "7d9b2d61ccaf1b574c432b0c48bf13b9ce81028abf049c4bbd50ebdb47c8ddef"
+        },
+        {
+          "path": "win32-fixed-chromium-deep/chromium-1280-AB-1-terminal.png",
+          "bytes": 176140,
+          "sha256": "57b6f7ada5cc5a12cc7da7fb8140d4b6b3a46840aa38c03de7c7be67387b255b"
+        },
+        {
+          "path": "win32-fixed-chromium-deep/manifest.json",
+          "bytes": 33979,
+          "sha256": "bdc15404fc32098f143efe996e85aa692f10ba07738a41324d33abc7c1a330ef"
+        },
+        {
+          "path": "win32-fixed-chromium-deep/results.json",
+          "bytes": 347307,
+          "sha256": "ef03ea47a3ba99d82ddfe94515f84517ddc8c455ba5e21a7c3b57fe462dbfb7d"
+        },
+        {
+          "path": "win32-fixed-chromium-deep/run.log",
+          "bytes": 226,
+          "sha256": "0a8af52d5b0dcd8d4a46b47f5f93ffbbfe77bd7fbd702d783f4d799b9d91cc0c"
+        },
+        {
+          "path": "win32-fixed-chromium-deep/timeline.jsonl",
+          "bytes": 325875,
+          "sha256": "74d0269b7379052c2be93edba31c69bbadc7a212170c6d1ab90e34d07e95d6d0"
+        },
+        {
+          "path": "win32-fixed-webkit-deep/manifest.json",
+          "bytes": 33977,
+          "sha256": "d4ccb4a2c10eca7a306633f495c5e68dc885cc332720b4c015c89a24217a6fe0"
+        },
+        {
+          "path": "win32-fixed-webkit-deep/results.json",
+          "bytes": 229388,
+          "sha256": "acbdfe4ad35acec50227153e3abcd993eb2c9f26a321ae2b263cb029ba8fec71"
+        },
+        {
+          "path": "win32-fixed-webkit-deep/run.log",
+          "bytes": 1242,
+          "sha256": "fa51a21031de57c251f929bcf7e6f0b63961b69eed9f467cb0231104cdb42efa"
+        },
+        {
+          "path": "win32-fixed-webkit-deep/timeline.jsonl",
+          "bytes": 199360,
+          "sha256": "aded2cd1e3a9eca2924a2a7075f78b429caea89fd945e288d9e942d6aeb17044"
+        },
+        {
+          "path": "win32-fixed-webkit-deep/timeout-3.png",
+          "bytes": 18390,
+          "sha256": "85e3473d37f9dbee4ceacbe48938a41aaba958500deda4411991494840def156"
+        },
+        {
+          "path": "win32-fixed-webkit-deep/webkit-1280-AB-0-failure.png",
+          "bytes": 18390,
+          "sha256": "85e3473d37f9dbee4ceacbe48938a41aaba958500deda4411991494840def156"
+        },
+        {
+          "path": "win32-fixed-webkit-deep/webkit-1280-AB-0-terminal.png",
+          "bytes": 99306,
+          "sha256": "5e70b75272257179704b6f559ce3735e9865270053bff27f3887834055fed1a5"
+        },
+        {
+          "path": "win32-fixed-webkit-deep/webkit-1280-AB-1-terminal.png",
+          "bytes": 136008,
+          "sha256": "d3f55f1b7864308c09c23ac295cb2ee82349fb2a798686394fb15a30a9a3b4e0"
+        },
+        {
+          "path": "win32-fixed-webkit-passive/B-recovered-draft.txt",
+          "bytes": 28,
+          "sha256": "a864a1640f3bfdda75a676499c4aaa020f28db13787a48577a2b5e3aec7f8033"
+        },
+        {
+          "path": "win32-fixed-webkit-passive/manifest.json",
+          "bytes": 33976,
+          "sha256": "ec6182a3b0043e1347b50d94a68329fbbca5f51fefb10a21c4785423022bd340"
+        },
+        {
+          "path": "win32-fixed-webkit-passive/results.json",
+          "bytes": 311998,
+          "sha256": "7f1d83fc8a0339b4966584fe399701e9350b04d17eef266c15ae1e1538c220e6"
+        },
+        {
+          "path": "win32-fixed-webkit-passive/run.log",
+          "bytes": 224,
+          "sha256": "80dc4a64fbafc5962b673e4a2c95e00c48fcbadd6e763f7254391533d8af3bda"
+        },
+        {
+          "path": "win32-fixed-webkit-passive/timeline.jsonl",
+          "bytes": 265374,
+          "sha256": "870a57c5c643e34a6e2cffad5fdca294a3a48a18d9e7f02539baa1ddb5d2dec2"
+        },
+        {
+          "path": "win32-fixed-webkit-passive/webkit-1280-AB-0-terminal.png",
+          "bytes": 99371,
+          "sha256": "ce69a89ef5962564dcd6ee43fa1a31d8c1ce097a6ce22ce7c5473621672bdd60"
+        },
+        {
+          "path": "win32-fixed-webkit-passive/webkit-1280-AB-1-terminal.png",
+          "bytes": 136063,
+          "sha256": "5f11b164eb568d5951acb46e2466b9ea6dddbd57d893e75317ac3cbd97274afb"
+        },
+        {
+          "path": "win32-old-chromium-deep/chromium-1280-AB-0-terminal.png",
+          "bytes": 120969,
+          "sha256": "3ba58b3f16a375fe2e370791af8904cb0a0adfecc7c69dfcd50d91b126e8d91d"
+        },
+        {
+          "path": "win32-old-chromium-deep/chromium-1280-AB-1-terminal.png",
+          "bytes": 108036,
+          "sha256": "bb799c4a65abfd25bc20a39ea98fc75ad5827d0dc59d59008084ab9194219304"
+        },
+        {
+          "path": "win32-old-chromium-deep/manifest.json",
+          "bytes": 32602,
+          "sha256": "8eb98367162b5b246b79c0c89e667507a898e2ef6a4b18b614aee8a43f3d5e73"
+        },
+        {
+          "path": "win32-old-chromium-deep/run.log",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "win32-old-chromium-deep/timeline.jsonl",
+          "bytes": 144307,
+          "sha256": "c9efd737ac01960007b3fe7e873711735e184c1a6e7b6b9745d3d8789037ea8b"
+        },
+        {
+          "path": "win32-old-chromium-deep-resumed/chromium-1280-AB-0-terminal.png",
+          "bytes": 120942,
+          "sha256": "fa9b3d4a057fb2f42f51b1656b78e0cff5be566833902269594f6f934952aee6"
+        },
+        {
+          "path": "win32-old-chromium-deep-resumed/chromium-1280-AB-1-terminal.png",
+          "bytes": 108008,
+          "sha256": "6b0df33c402e2b893584118ea4b38a15ec190e3697564aed596d6bcc7027265e"
+        },
+        {
+          "path": "win32-old-chromium-deep-resumed/manifest.json",
+          "bytes": 32751,
+          "sha256": "790e18510ceb39ba4f74a2c2ea3ce734790d12ad7f822b02214d5fe6e5bffa72"
+        },
+        {
+          "path": "win32-old-chromium-deep-resumed/results.json",
+          "bytes": 240738,
+          "sha256": "ad4e5391b8de75ea75f0d6c6a8d742824374f5c804fcbee56c992b910464771e"
+        },
+        {
+          "path": "win32-old-chromium-deep-resumed/run.log",
+          "bytes": 227,
+          "sha256": "63916b66cbc67e41ba78e038a2f8f4d2fc3e948fdbb0d0fa850d26a6d72873e7"
+        },
+        {
+          "path": "win32-old-chromium-deep-resumed/timeline.jsonl",
+          "bytes": 237173,
+          "sha256": "ac93457d99a0840ef046b8a06720fb90348e2b38051bb18380b552815b4e38e3"
+        },
+        {
+          "path": "win32-old-webkit-deep/manifest.json",
+          "bytes": 32750,
+          "sha256": "9869554547b96fcfc0d992a70fca669891aef6457d0be77068371b27fc4e1c91"
+        },
+        {
+          "path": "win32-old-webkit-deep/results.json",
+          "bytes": 198744,
+          "sha256": "b0e75ebb65e9221548c70cc0a3e43d0ca6d9db39ea90d3834d975721f27e1cda"
+        },
+        {
+          "path": "win32-old-webkit-deep/run.log",
+          "bytes": 225,
+          "sha256": "75e4685bec1f629ed4956d74321e7baef678b9dec97fff30966e405e44e1fee7"
+        },
+        {
+          "path": "win32-old-webkit-deep/timeline.jsonl",
+          "bytes": 237253,
+          "sha256": "c64d26fdae9b3892f5c91edf3947e2b643be451f6aac155dc102af9e82e47c50"
+        },
+        {
+          "path": "win32-old-webkit-deep/webkit-1280-AB-0-terminal.png",
+          "bytes": 99169,
+          "sha256": "e7dded0143cf5e8cf0fe5fb8ecd590d1fc7d8121f3f9872771eb00df97175fd9"
+        },
+        {
+          "path": "win32-old-webkit-deep/webkit-1280-AB-1-terminal.png",
+          "bytes": 89398,
+          "sha256": "5a7c5706b84c0092a8598a236454c4af824a16ec3aa48eaeef3899e6c0d0ba94"
+        },
+        {
+          "path": "win32-transport-webkit/results.json",
+          "bytes": 836296,
+          "sha256": "85d98f450ffffceb0d984e5330d6d1a17e7607fc13180015785adde9b852a69b"
+        }
+      ],
+      "retention": "Repository copy: no automatic expiration; retained until repository content is removed. Local temporary directories have no guaranteed retention."
+    },
+    {
+      "path": "ci-linux-evidence.zip",
+      "bytes": 1658691,
+      "sha256": "142e638cd0ac6362b4876ba007f1206ac475ed3f519b479b95c5a7fc580461d8",
+      "files": [
+        {
+          "path": "comparison.json",
+          "bytes": 1101,
+          "sha256": "13716af11d6cdd326497271be71abbb5ff3e017f70921cb9d66d3929da16f4a0"
+        },
+        {
+          "path": "fixed-webkit-supervisor.log",
+          "bytes": 351,
+          "sha256": "1efa4b71a06e629531e738cfd126383f61fab71b2a8720ad218f82baa3745a9b"
+        },
+        {
+          "path": "fixed-chromium-supervisor.log",
+          "bytes": 355,
+          "sha256": "6861dbda8c7ef7fe0f75df17e8939391b9fcced045903ff99aefde699b380c23"
+        },
+        {
+          "path": "linux-fixed-chromium-deep/B-recovered-draft.txt",
+          "bytes": 28,
+          "sha256": "a864a1640f3bfdda75a676499c4aaa020f28db13787a48577a2b5e3aec7f8033"
+        },
+        {
+          "path": "linux-fixed-chromium-deep/chromium-1280-AB-0-terminal.png",
+          "bytes": 146409,
+          "sha256": "371a7bb3b4c421dea312d2839e8f7294ec1ff95a9c7a1fb422b2b5a1e2d99f6d"
+        },
+        {
+          "path": "linux-fixed-chromium-deep/chromium-1280-AB-1-terminal.png",
+          "bytes": 220936,
+          "sha256": "15cd47fb171339ae99c01cd6b56855742209f5080ee69883d67246f41233429c"
+        },
+        {
+          "path": "linux-fixed-chromium-deep/manifest.json",
+          "bytes": 33987,
+          "sha256": "2dcc5294ae18d4a8515b47e0a6485f20409de0ebff1e97cf889543ff42a3940c"
+        },
+        {
+          "path": "linux-fixed-chromium-deep/results.json",
+          "bytes": 402318,
+          "sha256": "33691e361cc4b495c334a98d2ac82ead9469a30f30d4a92ebff345ff6de2260c"
+        },
+        {
+          "path": "linux-fixed-chromium-deep/run.log",
+          "bytes": 226,
+          "sha256": "0a8af52d5b0dcd8d4a46b47f5f93ffbbfe77bd7fbd702d783f4d799b9d91cc0c"
+        },
+        {
+          "path": "linux-fixed-chromium-deep/timeline.jsonl",
+          "bytes": 326694,
+          "sha256": "7552c01b40d786c494edc1e2564af736bdb83332792f11877296bcb4d8d9df47"
+        },
+        {
+          "path": "linux-fixed-webkit-deep/B-recovered-draft.txt",
+          "bytes": 28,
+          "sha256": "a864a1640f3bfdda75a676499c4aaa020f28db13787a48577a2b5e3aec7f8033"
+        },
+        {
+          "path": "linux-fixed-webkit-deep/manifest.json",
+          "bytes": 33985,
+          "sha256": "7e3bcab71e5915d92ce903f0f22ca09ec68a52905245a2173af891b2866bb348"
+        },
+        {
+          "path": "linux-fixed-webkit-deep/results.json",
+          "bytes": 388572,
+          "sha256": "1a57919b9abc3bb8c26e38305f57f260f33dbf8628378d356125506ed6a33512"
+        },
+        {
+          "path": "linux-fixed-webkit-deep/run.log",
+          "bytes": 224,
+          "sha256": "80dc4a64fbafc5962b673e4a2c95e00c48fcbadd6e763f7254391533d8af3bda"
+        },
+        {
+          "path": "linux-fixed-webkit-deep/timeline.jsonl",
+          "bytes": 322643,
+          "sha256": "446d33eff306dbd8cfa62bfb397217c69d0d72662e71ccce839bf104f18973bf"
+        },
+        {
+          "path": "linux-fixed-webkit-deep/webkit-1280-AB-0-terminal.png",
+          "bytes": 167486,
+          "sha256": "c3925e3b13e8e6d0d56a776531066c723991cbd97db6cc8ed7965d0cf169a2a2"
+        },
+        {
+          "path": "linux-fixed-webkit-deep/webkit-1280-AB-1-terminal.png",
+          "bytes": 261361,
+          "sha256": "b791f63185e7084ab74995b4dfc5c5d973fcf21ff61235cb6d9bb75b57571bc0"
+        },
+        {
+          "path": "linux-old-chromium-deep/chromium-1280-AB-0-terminal.png",
+          "bytes": 145464,
+          "sha256": "ccfb7966186e169c93ff7df621514a8c9e87f2abfcb218362c7e1a55cb8a2b1b"
+        },
+        {
+          "path": "linux-old-chromium-deep/chromium-1280-AB-1-terminal.png",
+          "bytes": 127295,
+          "sha256": "56cde68180f1a9d999719faed21c15ead0f445e3c19687f92c1a706914848b69"
+        },
+        {
+          "path": "linux-old-chromium-deep/results.json",
+          "bytes": 270974,
+          "sha256": "31ebbeac65120eb7ca55c08e30bed3f27ab3d5907213359bb5e786cab8894343"
+        },
+        {
+          "path": "linux-old-chromium-deep/manifest.json",
+          "bytes": 32760,
+          "sha256": "13865bcb50e9de0e48add941586a12aefdd8fe2d512f913f54a8a6837f648cb0"
+        },
+        {
+          "path": "linux-old-chromium-deep/run.log",
+          "bytes": 227,
+          "sha256": "63916b66cbc67e41ba78e038a2f8f4d2fc3e948fdbb0d0fa850d26a6d72873e7"
+        },
+        {
+          "path": "linux-old-chromium-deep/timeline.jsonl",
+          "bytes": 239325,
+          "sha256": "e05242d599578d7607855776b08d67eeeff964db47f2a0cc1067cc756caa48f8"
+        },
+        {
+          "path": "linux-old-webkit-deep/manifest.json",
+          "bytes": 32758,
+          "sha256": "4ea89f0a4f318249f8882424b508e9d7d0791f47ba910fbeb920193c200298ad"
+        },
+        {
+          "path": "linux-old-webkit-deep/results.json",
+          "bytes": 275890,
+          "sha256": "82cd30e96fd4d43d6bee8e23a7a95fcf6e14896a9bd1715eadee15e8bc3519a1"
+        },
+        {
+          "path": "linux-old-webkit-deep/run.log",
+          "bytes": 225,
+          "sha256": "75e4685bec1f629ed4956d74321e7baef678b9dec97fff30966e405e44e1fee7"
+        },
+        {
+          "path": "linux-old-webkit-deep/timeline.jsonl",
+          "bytes": 237793,
+          "sha256": "96ac36baa91279b4b7418a0c95deda1bda66f44ac2e536a5f77157642fdca338"
+        },
+        {
+          "path": "linux-old-webkit-deep/webkit-1280-AB-0-terminal.png",
+          "bytes": 166576,
+          "sha256": "4375b63815dbf94676ca220aed129ed7ebf209e15fa10a472597c4e8fadac2af"
+        },
+        {
+          "path": "linux-old-webkit-deep/webkit-1280-AB-1-terminal.png",
+          "bytes": 145440,
+          "sha256": "954f826977741a4822803b0aaa019929eaff99b9160b0590b6985d63e8639c6c"
+        },
+        {
+          "path": "linux-transport-webkit/results.json",
+          "bytes": 846657,
+          "sha256": "bc2c526701733a80253708dae1d991e148ac7deb2700b4a112e0a76c91a28524"
+        },
+        {
+          "path": "old-chromium-supervisor.log",
+          "bytes": 354,
+          "sha256": "d998de22231b4f2f11a5df77f8017f4866b462719682c9f39ec12b471ed958cd"
+        },
+        {
+          "path": "old-webkit-supervisor.log",
+          "bytes": 350,
+          "sha256": "3d7fda46c0d27a6dbc05c876d8483591ef09bccc48d4e76f44dd5ca3d8980388"
+        }
+      ],
+      "githubArtifact": {
+        "id": 13671523018,
+        "node_id": "MDg6QXJ0aWZhY3QxMzY3MTUyMzAxOA==",
+        "name": "issue436-ubuntu-24.04",
+        "size_in_bytes": 1658691,
+        "url": "https://api.github.com/repos/tetsujisugimori-coder/memo/actions/artifacts/13671523018",
+        "archive_download_url": "https://api.github.com/repos/tetsujisugimori-coder/memo/actions/artifacts/13671523018/zip",
+        "expired": false,
+        "digest": "sha256:142e638cd0ac6362b4876ba007f1206ac475ed3f519b479b95c5a7fc580461d8",
+        "created_at": "2026-11-09T12:07:13Z",
+        "updated_at": "2026-11-09T12:07:13Z",
+        "expires_at": "2026-11-23T12:07:11Z",
+        "workflow_run": {
+          "id": 42614097846,
+          "repository_id": 1244018547,
+          "head_repository_id": 1244018547,
+          "head_branch": "codex/issue-436-startup-investigation-20261108",
+          "head_sha": "9c344ede39696b0ad0b9696005c6d1c82ca902a4"
+        }
+      },
+      "retention": "Original GitHub artifact expires as stated; repository copy has no automatic expiration."
+    },
+    {
+      "path": "ci-windows-evidence.zip",
+      "bytes": 1225061,
+      "sha256": "2894bf34593063ffbdf7148faa1a7cb3b46fc23ccb075b1681a03b86191bd596",
+      "files": [
+        {
+          "path": "comparison.json",
+          "bytes": 1101,
+          "sha256": "d3678feaaca778ac5a17e55afe50830e58d602a9f9e60448aaf15438bab0646f"
+        },
+        {
+          "path": "fixed-chromium-supervisor.log",
+          "bytes": 348,
+          "sha256": "6408a9afe11525bbe83d40164ab062ee4fbdc67766d2ef77334e1f0abf74ddcd"
+        },
+        {
+          "path": "fixed-webkit-supervisor.log",
+          "bytes": 344,
+          "sha256": "bcafb54f82501f0ee2211aa3e33a00649d7a7a4d21a2c775a41282c52b387f7a"
+        },
+        {
+          "path": "old-chromium-supervisor.log",
+          "bytes": 347,
+          "sha256": "fb9a38cbb5d5b56c932820031507de2762ad4e49df8d7695039edccb62356047"
+        },
+        {
+          "path": "old-webkit-supervisor.log",
+          "bytes": 343,
+          "sha256": "80783249968e4cf78b0068bfa8f38a16f995eed67841fdebfc884050bdeaa14c"
+        },
+        {
+          "path": "win32-fixed-chromium-deep/B-recovered-draft.txt",
+          "bytes": 28,
+          "sha256": "a864a1640f3bfdda75a676499c4aaa020f28db13787a48577a2b5e3aec7f8033"
+        },
+        {
+          "path": "win32-fixed-chromium-deep/chromium-1280-AB-0-terminal.png",
+          "bytes": 121568,
+          "sha256": "66a0986c94abc8698375f9486774b7cb464e351e77297aa23502c1dd60930663"
+        },
+        {
+          "path": "win32-fixed-chromium-deep/chromium-1280-AB-1-terminal.png",
+          "bytes": 175716,
+          "sha256": "92f7231eda1531951384872dd038f863c484369b21df0889097fbe4f1f404972"
+        },
+        {
+          "path": "win32-fixed-chromium-deep/manifest.json",
+          "bytes": 33981,
+          "sha256": "fff0ed8d8aba53cf2e7d23bfb47785bae7e903ed8310cdc2370cd77920f0f6bf"
+        },
+        {
+          "path": "win32-fixed-chromium-deep/results.json",
+          "bytes": 402520,
+          "sha256": "63a48481157781700c2327eae4a379a1cc4d6f5605feff8b5a91a67d9365785e"
+        },
+        {
+          "path": "win32-fixed-chromium-deep/run.log",
+          "bytes": 226,
+          "sha256": "0a8af52d5b0dcd8d4a46b47f5f93ffbbfe77bd7fbd702d783f4d799b9d91cc0c"
+        },
+        {
+          "path": "win32-fixed-chromium-deep/timeline.jsonl",
+          "bytes": 325046,
+          "sha256": "81de8d65d4272c5cb4444692bad4f7aac1392a34ad4024fa9c63cca5202e648e"
+        },
+        {
+          "path": "win32-fixed-webkit-deep/B-recovered-draft.txt",
+          "bytes": 28,
+          "sha256": "a864a1640f3bfdda75a676499c4aaa020f28db13787a48577a2b5e3aec7f8033"
+        },
+        {
+          "path": "win32-fixed-webkit-deep/manifest.json",
+          "bytes": 33979,
+          "sha256": "d1d60aa2cabe43eb96bf822c492d276a9b47750a54215479d8d9cecdc0d85edf"
+        },
+        {
+          "path": "win32-fixed-webkit-deep/results.json",
+          "bytes": 348654,
+          "sha256": "090ac440f96f5f546360662cdb67978474f307b3ec40eead4987916e6d6b4789"
+        },
+        {
+          "path": "win32-fixed-webkit-deep/run.log",
+          "bytes": 224,
+          "sha256": "80dc4a64fbafc5962b673e4a2c95e00c48fcbadd6e763f7254391533d8af3bda"
+        },
+        {
+          "path": "win32-fixed-webkit-deep/timeline.jsonl",
+          "bytes": 322578,
+          "sha256": "f067e757555466bec1c30948bbd3b82c86133403ad8d471c85ddd448ae2a38f1"
+        },
+        {
+          "path": "win32-fixed-webkit-deep/webkit-1280-AB-0-terminal.png",
+          "bytes": 99454,
+          "sha256": "945dc840ba2e2da17767e1180f608c81299a5f8e4942352d308741cca84ed948"
+        },
+        {
+          "path": "win32-fixed-webkit-deep/webkit-1280-AB-1-terminal.png",
+          "bytes": 136216,
+          "sha256": "229aa91f6293d9cfd249403b0cfdfbb1d147dd8b1da34bc08d1da57511437d5d"
+        },
+        {
+          "path": "win32-old-chromium-deep/chromium-1280-AB-0-terminal.png",
+          "bytes": 120590,
+          "sha256": "a4d7d474cb82da7394c7793aab9e5724722992c5e645cbd9806584226ca02682"
+        },
+        {
+          "path": "win32-old-chromium-deep/chromium-1280-AB-1-terminal.png",
+          "bytes": 107688,
+          "sha256": "aed6effe2a2abd4a68f03bb07b1c1d3fb3bf7f507724bea22feafc31aa52fc41"
+        },
+        {
+          "path": "win32-old-chromium-deep/manifest.json",
+          "bytes": 32754,
+          "sha256": "37565f7b8bf6e8164bc1897b368db87790c69f8a0de854eaa483293ce1880d51"
+        },
+        {
+          "path": "win32-old-chromium-deep/results.json",
+          "bytes": 255848,
+          "sha256": "3997b66960fb7d447671df5cdb0ab18a6e05bd549f62c5dc79a0aed39502178b"
+        },
+        {
+          "path": "win32-old-chromium-deep/run.log",
+          "bytes": 227,
+          "sha256": "63916b66cbc67e41ba78e038a2f8f4d2fc3e948fdbb0d0fa850d26a6d72873e7"
+        },
+        {
+          "path": "win32-old-chromium-deep/timeline.jsonl",
+          "bytes": 240062,
+          "sha256": "c6682779dccb76dc7a3012cd30b0a9cdefdbde5cf60bd1011f134906c1a19897"
+        },
+        {
+          "path": "win32-old-webkit-deep/manifest.json",
+          "bytes": 32752,
+          "sha256": "38ab03eb8d55a22c0cb8deec99e8024905f929970c8ab3ef75df57b4af2b22bc"
+        },
+        {
+          "path": "win32-old-webkit-deep/results.json",
+          "bytes": 229610,
+          "sha256": "b19b0afbaf7617868b7fe6f3b96183a010e98784dd779f197c21f82aa6f760ad"
+        },
+        {
+          "path": "win32-old-webkit-deep/run.log",
+          "bytes": 225,
+          "sha256": "75e4685bec1f629ed4956d74321e7baef678b9dec97fff30966e405e44e1fee7"
+        },
+        {
+          "path": "win32-old-webkit-deep/timeline.jsonl",
+          "bytes": 235044,
+          "sha256": "4c318812f64be8154def4ee52ffee2b7687ff51a0922796915799b7b800f46d1"
+        },
+        {
+          "path": "win32-old-webkit-deep/webkit-1280-AB-0-terminal.png",
+          "bytes": 99239,
+          "sha256": "76fbc429c293615091188e64b3e152703ddb915c229f991ef47d35d317bc8a18"
+        },
+        {
+          "path": "win32-old-webkit-deep/webkit-1280-AB-1-terminal.png",
+          "bytes": 89461,
+          "sha256": "1cbca9dff4c08795580a09f0872be86293508f90ca60bbbe16dad49f97cee52d"
+        },
+        {
+          "path": "win32-transport-webkit/results.json",
+          "bytes": 835968,
+          "sha256": "785441d6def8f8f641884270e179352d2ddbe839dbe8c2548baa674001a8682b"
+        }
+      ],
+      "githubArtifact": {
+        "id": 13671273677,
+        "node_id": "MDg6QXJ0aWZhY3QxMzY3MTI3MzY3Nw==",
+        "name": "issue436-windows-latest",
+        "size_in_bytes": 1225061,
+        "url": "https://api.github.com/repos/tetsujisugimori-coder/memo/actions/artifacts/13671273677",
+        "archive_download_url": "https://api.github.com/repos/tetsujisugimori-coder/memo/actions/artifacts/13671273677/zip",
+        "expired": false,
+        "digest": "sha256:2894bf34593063ffbdf7148faa1a7cb3b46fc23ccb075b1681a03b86191bd596",
+        "created_at": "2026-11-09T12:10:39Z",
+        "updated_at": "2026-11-09T12:10:39Z",
+        "expires_at": "2026-11-23T12:10:38Z",
+        "workflow_run": {
+          "id": 42614097846,
+          "repository_id": 1244018547,
+          "head_repository_id": 1244018547,
+          "head_branch": "codex/issue-436-startup-investigation-20261108",
+          "head_sha": "9c344ede39696b0ad0b9696005c6d1c82ca902a4"
+        }
+      },
+      "retention": "Original GitHub artifact expires as stated; repository copy has no automatic expiration."
+    }
+  ],
+  "documents": [
+    {
+      "path": "report.md",
+      "bytes": 13536,
+      "sha256": "7b2f90398c298a07a0aea315fa405009919f5c4d89e61e7908b60d4b58650ad3"
+    },
+    {
+      "path": "protocol.md",
+      "bytes": 4488,
+      "sha256": "8833e011a1d59499acab712ee3885d16a7b940d49eca0574942742bf5fe5f466"
+    },
+    {
+      "path": "independent-review.md",
+      "bytes": 18936,
+      "sha256": "70a223376a3bcf1a11d72d9d00766f15b1561c0d175c7583a7a3d188950d81d2"
+    },
+    {
+      "path": "protected-refs-audit.json",
+      "bytes": 4474,
+      "sha256": "84c2b4594a4a08bd00711828925b0ad38de2c755312545259aa5535b18359e0f"
+    },
+    {
+      "path": "startup-intervals.json",
+      "bytes": 981051,
+      "sha256": "ec938eeaec1d372cdf0c125f7702f27a2cd1b571e26563bacc1bccca4a7511bc"
+    }
+  ],
+  "diagnosticImplementations": {
+    "initialLocalLF": "3c3c4e0dec8cf5b846ef37d9c50ecfbf90495fd926e64991e15a2be0812192e0",
+    "currentLocalAndLinuxLF": "a8995f1a26b219fff8c1587648c28e3178641c4631ca703a25a551a7e685a9b4",
+    "currentWindowsCICRLF": "631f63813a8461c970736e3220b27364506cc719c9783ebd06f480bd9242ba0d",
+    "difference": "Windows CI checkout CRLF conversion independently reproduced; all source archives retain verified git blob bytes."
+  },
+  "localDirectory": "C:\\Users\\tetsu\\Documents\\Codex\\メモ帳\\work\\issue-436-startup-investigation-20261108\\e2e-artifacts\\issue436",
+  "safety": {
+    "J2/U-C": "UNKNOWN",
+    "conditionU": "NOT_RUN",
+    "executionAuthorization": "NOT_GRANTED",
+    "startCondition": "BLOCKED",
+    "productionWorker": "HOLD"
+  },
+  "textSerialization": "Derived repository JSON uses LF; raw evidence ZIP bytes and their hashes are unchanged."
+}
