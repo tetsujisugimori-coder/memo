@@ -46,8 +46,8 @@ $runStarted = [DateTime]::UtcNow.ToString("o")
 function Check-Tool([string]$Name) {
     return [bool](Get-Command -Name $Name -ErrorAction SilentlyContinue)
 }
-function Invoke-Required([string]$Command, [string[]]$Args) {
-    & $Command @Args
+function Invoke-Required([string]$Command, [string[]]$Arguments) {
+    & $Command @Arguments
     if ($LASTEXITCODE -ne 0) {
         throw ("Command failed with exit {0}: {1}" -f $LASTEXITCODE, $Command)
     }
