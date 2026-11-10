@@ -17,7 +17,7 @@ await blocked.locator('[data-memo-conflict-resume]').waitFor({state:'visible'});
 if(!await blocked.locator('#featurePalette').isVisible())await openFeaturePalette(blocked);
 await blocked.locator('#insertTableBtn').click();assert.equal(await blocked.locator('#editor').inputValue(),before,'locked draft cannot change through palette');
 assert.deepEqual((await snapshot(blocked)).stores,storeBefore.stores,'blocked command must not write');
-await blocked.keyboard.press('Escape');await blocked.locator('[data-memo-conflict-resume]').click();assert.equal(await blocked.locator('#editor').getAttribute('readonly'),null);
+await blocked.keyboard.press('Escape');await blocked.locator('[data-memo-conflict-resume]').click();await blocked.waitForFunction(()=>!document.querySelector('#editor').readOnly);assert.equal(await blocked.locator('#editor').getAttribute('readonly'),null);
 await openFeaturePalette(blocked);await blocked.locator('#insertTableBtn').click();assert.notEqual(await blocked.locator('#editor').inputValue(),before,'table works after explicit recovery');
 await blocked.keyboard.press('Escape');const body=await blocked.locator('#editor').inputValue();await saved(blocked,id,body);
 assert.ok(await blocked.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));await blocked.screenshot({path:path.join(out,`${key}.png`),fullPage:true});row.status='PASS';row.snapshot=await snapshot(blocked);
