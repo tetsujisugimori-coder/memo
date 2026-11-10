@@ -1,0 +1,32 @@
+[
+  {
+    "case": "baseline",
+    "exit_code": 0,
+    "expected_reject": false
+  },
+  {
+    "case": "wrong-head",
+    "exit_code": 1,
+    "expected_reject": true
+  },
+  {
+    "case": "import-fail",
+    "exit_code": 1,
+    "expected_reject": true
+  },
+  {
+    "case": "pdf-duplicate",
+    "exit_code": 1,
+    "expected_reject": true
+  },
+  {
+    "case": "invalid-png",
+    "exit_code": 1,
+    "expected_reject": true
+  },
+  {
+    "case": "empty-zip",
+    "exit_code": 1,
+    "expected_reject": true
+  }
+]

@@ -17,3 +17,13 @@
 最終CI/独立レビュー待ち。旧失敗ログをevidence/に保持。無関係な一般CIの失敗は隠さず記録する。PR442自体の再受入・更新・マージは対象外。
 
 J2/U-C UNKNOWN、conditionU NOT_RUN、executionAuthorization NOT_GRANTED、startCondition BLOCKED、productionWorker HOLD維持。実ユーザーデータ・MCP/OAuth・本番Worker操作なし。
+
+## Independent counterexamples
+
+Review found evidence-checker false acceptance (P2) and trace stop cleanup failure (P3).
+The corrected checker rejects wrong HEAD, failed import, duplicate PDF ID, invalid PNG,
+and empty trace ZIP, while an explicitly synthetic valid control passes. These controls
+are validator checks, not browser evidence. Review scripts and outcomes are in `review/`.
+Trace stop failure now calls the real context close once and retains the error.
+A further trace-start failure path now closes the context before rethrowing the original
+error; its same injected error control also verifies exactly one close.

@@ -12,7 +12,7 @@ for(const name of ['chromium','webkit']){
  engine.launchPersistentContext=async(...args)=>{
   const id=++serial;event('context-start',{engine:name,id});
   let context;try{context=await persistent(...args);}catch(e){event('context-failed',{engine:name,id,error:e.message});throw e;}event('context-ready',{engine:name,id});
-  await context.tracing.start({screenshots:true,snapshots:true,sources:true});
+  try{await context.tracing.start({screenshots:true,snapshots:true,sources:true});}catch(error){event('trace-start-failed',{id,error:error.message});try{await context.close();}catch(closeError){event('context-close-failed',{id,error:closeError.message});}throw error;}
   const close=context.close.bind(context);let closed=false;
   context.close=async()=>{if(closed)return;closed=true;try{await context.tracing.stop({path:path.join(out,`context-${id}.zip`)});}finally{event('context-close',{id});await close();}};
   return context;
