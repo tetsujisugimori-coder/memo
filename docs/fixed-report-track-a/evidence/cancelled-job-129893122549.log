@@ -1,0 +1,546 @@
+﻿2026-11-10T14:29:10.1129071Z Current runner version: '2.338.2'
+2026-11-10T14:29:10.1156195Z ##[group]Runner Image Provisioner
+2026-11-10T14:29:10.1157083Z Hosted Compute Agent
+2026-11-10T14:29:10.1157713Z Version: 20261028.624
+2026-11-10T14:29:10.1158494Z Commit: 54898b74c23fde5556c9b3c3a2290865feef0dfe
+2026-11-10T14:29:10.1159222Z Build Date: 2026-10-28T21:51:42Z
+2026-11-10T14:29:10.1160365Z Worker ID: {fb524463-52aa-45cf-8d32-3613a1ac765b}
+2026-11-10T14:29:10.1161169Z Region: eastus
+2026-11-10T14:29:10.1161757Z Cloud: Azure
+2026-11-10T14:29:10.1162401Z ##[endgroup]
+2026-11-10T14:29:10.1163986Z ##[group]Operating System
+2026-11-10T14:29:10.1164722Z Ubuntu
+2026-11-10T14:29:10.1165278Z 26.04.1
+2026-11-10T14:29:10.1165837Z LTS
+2026-11-10T14:29:10.1166410Z ##[endgroup]
+2026-11-10T14:29:10.1167001Z ##[group]Runner Image
+2026-11-10T14:29:10.1167635Z Image: ubuntu-26.04
+2026-11-10T14:29:10.1168222Z Version: 20261101.186.1
+2026-11-10T14:29:10.1170021Z Included Software: https://github.com/actions/runner-images/blob/ubuntu26/20261101.186/images/ubuntu/Ubuntu2604-Readme.md
+2026-11-10T14:29:10.1171652Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu26%2F20261101.186
+2026-11-10T14:29:10.1172665Z ##[endgroup]
+2026-11-10T14:29:10.1173808Z ##[group]GITHUB_TOKEN Permissions
+2026-11-10T14:29:10.1176497Z Contents: read
+2026-11-10T14:29:10.1177154Z Metadata: read
+2026-11-10T14:29:10.1177761Z ##[endgroup]
+2026-11-10T14:29:10.1180858Z Secret source: Actions
+2026-11-10T14:29:10.1182391Z Cache mode: write
+2026-11-10T14:29:10.1183833Z Prepare workflow directory
+2026-11-10T14:29:10.1516834Z Prepare all required actions
+2026-11-10T14:29:10.1566087Z Getting action download info
+2026-11-10T14:29:10.3552665Z Download action repository 'actions/checkout@v7' (SHA:3d3c42e5aac5ba805825da76410c181273ba90b1)
+2026-11-10T14:29:10.4772793Z Download action repository 'actions/setup-node@v7' (SHA:949feb2413d6458794dcd2491c4babbbce0c15c1)
+2026-11-10T14:29:10.5434239Z Download action repository 'actions/upload-artifact@v6' (SHA:b7c566a772e6b6bfb58ed0dc250532a479d7789f)
+2026-11-10T14:29:10.7366502Z Complete job name: Fixed report samples (webkit)
+2026-11-10T14:29:10.8226959Z ##[group]Run actions/checkout@v7
+2026-11-10T14:29:10.8227858Z with:
+2026-11-10T14:29:10.8228330Z   persist-credentials: false
+2026-11-10T14:29:10.8228908Z   repository: tetsujisugimori-coder/memo
+2026-11-10T14:29:10.8232932Z   token: ***
+2026-11-10T14:29:10.8233401Z   ssh-strict: true
+2026-11-10T14:29:10.8233856Z   ssh-user: git
+2026-11-10T14:29:10.8234294Z   clean: true
+2026-11-10T14:29:10.8234757Z   sparse-checkout-cone-mode: true
+2026-11-10T14:29:10.8235300Z   fetch-depth: 1
+2026-11-10T14:29:10.8235848Z   fetch-tags: false
+2026-11-10T14:29:10.8236310Z   show-progress: true
+2026-11-10T14:29:10.8236769Z   lfs: false
+2026-11-10T14:29:10.8237186Z   submodules: false
+2026-11-10T14:29:10.8237653Z   set-safe-directory: true
+2026-11-10T14:29:10.8238184Z   allow-unsafe-pr-checkout: false
+2026-11-10T14:29:10.8239054Z ##[endgroup]
+2026-11-10T14:29:11.1696386Z Syncing repository: tetsujisugimori-coder/memo
+2026-11-10T14:29:11.1699307Z ##[group]Getting Git version info
+2026-11-10T14:29:11.1700403Z Working directory is '/home/runner/work/memo/memo'
+2026-11-10T14:29:11.1702158Z [command]/usr/bin/git version
+2026-11-10T14:29:11.1740898Z git version 2.56.0
+2026-11-10T14:29:11.1814735Z ##[endgroup]
+2026-11-10T14:29:11.1829629Z Temporarily overriding HOME='/home/runner/work/_temp/af1416bd-411c-42d7-99bc-f132e5bb2d99' before making global git config changes
+2026-11-10T14:29:11.1833273Z Adding repository directory to the temporary git global config as a safe directory
+2026-11-10T14:29:11.1835838Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/memo/memo
+2026-11-10T14:29:11.1889082Z Deleting the contents of '/home/runner/work/memo/memo'
+2026-11-10T14:29:11.1891214Z ##[group]Determining repository object format
+2026-11-10T14:29:11.1892287Z ##[endgroup]
+2026-11-10T14:29:11.1893140Z ##[group]Initializing the repository
+2026-11-10T14:29:11.1893940Z [command]/usr/bin/git init /home/runner/work/memo/memo
+2026-11-10T14:29:11.2021579Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-11-10T14:29:11.2023302Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-11-10T14:29:11.2024687Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-11-10T14:29:11.2025691Z hint: call:
+2026-11-10T14:29:11.2026295Z hint:
+2026-11-10T14:29:11.2027047Z hint: 	git config --global init.defaultBranch <name>
+2026-11-10T14:29:11.2027765Z hint:
+2026-11-10T14:29:11.2028579Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-11-10T14:29:11.2029972Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-11-10T14:29:11.2030867Z hint:
+2026-11-10T14:29:11.2031352Z hint: 	git branch -m <name>
+2026-11-10T14:29:11.2032073Z hint:
+2026-11-10T14:29:11.2032781Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-11-10T14:29:11.2120945Z Initialized empty Git repository in /home/runner/work/memo/memo/.git/
+2026-11-10T14:29:11.2142474Z [command]/usr/bin/git remote add origin https://github.com/tetsujisugimori-coder/memo
+2026-11-10T14:29:11.2198094Z ##[endgroup]
+2026-11-10T14:29:11.2200045Z ##[group]Disabling automatic garbage collection
+2026-11-10T14:29:11.2201594Z [command]/usr/bin/git config --local gc.auto 0
+2026-11-10T14:29:11.2242388Z ##[endgroup]
+2026-11-10T14:29:11.2244436Z ##[group]Setting up auth
+2026-11-10T14:29:11.2246637Z Removing SSH command configuration
+2026-11-10T14:29:11.2248604Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-10T14:29:11.2310622Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-10T14:29:11.2835749Z Removing HTTP extra header
+2026-11-10T14:29:11.2842106Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-10T14:29:11.2880402Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-10T14:29:11.3154960Z Removing includeIf entries pointing to credentials config files
+2026-11-10T14:29:11.3160880Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-10T14:29:11.3196003Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-10T14:29:11.3472361Z [command]/usr/bin/git config --file /home/runner/work/_temp/git-credentials-4105e69d-b2c5-47e5-9cf3-e931225ad605.config http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-11-10T14:29:11.3511544Z [command]/usr/bin/git config --local includeIf.gitdir:/home/runner/work/memo/memo/.git.path /home/runner/work/_temp/git-credentials-4105e69d-b2c5-47e5-9cf3-e931225ad605.config
+2026-11-10T14:29:11.3543110Z [command]/usr/bin/git config --local includeIf.gitdir:/home/runner/work/memo/memo/.git/worktrees/*.path /home/runner/work/_temp/git-credentials-4105e69d-b2c5-47e5-9cf3-e931225ad605.config
+2026-11-10T14:29:11.3578303Z [command]/usr/bin/git config --local includeIf.gitdir:/github/workspace/.git.path /github/runner_temp/git-credentials-4105e69d-b2c5-47e5-9cf3-e931225ad605.config
+2026-11-10T14:29:11.3610751Z [command]/usr/bin/git config --local includeIf.gitdir:/github/workspace/.git/worktrees/*.path /github/runner_temp/git-credentials-4105e69d-b2c5-47e5-9cf3-e931225ad605.config
+2026-11-10T14:29:11.3641183Z ##[endgroup]
+2026-11-10T14:29:11.3642083Z ##[group]Fetching the repository
+2026-11-10T14:29:11.3648364Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +9bb0828b99f5cd479744b0b6adb13df60b739784:refs/remotes/pull/442/merge
+2026-11-10T14:29:12.5697636Z From https://github.com/tetsujisugimori-coder/memo
+2026-11-10T14:29:12.5701954Z  * [new ref]         9bb0828b99f5cd479744b0b6adb13df60b739784 -> pull/442/merge
+2026-11-10T14:29:12.5708071Z ##[endgroup]
+2026-11-10T14:29:12.5710524Z ##[group]Determining the checkout info
+2026-11-10T14:29:12.5712810Z ##[endgroup]
+2026-11-10T14:29:12.5714156Z [command]/usr/bin/git sparse-checkout disable
+2026-11-10T14:29:12.5766454Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-11-10T14:29:12.5798998Z ##[group]Checking out the ref
+2026-11-10T14:29:12.5805311Z [command]/usr/bin/git checkout --progress --force refs/remotes/pull/442/merge
+2026-11-10T14:29:12.7933543Z Note: switching to 'refs/remotes/pull/442/merge'.
+2026-11-10T14:29:12.7934129Z 
+2026-11-10T14:29:12.7934551Z You are in 'detached HEAD' state. You can look around, make experimental
+2026-11-10T14:29:12.7935262Z changes and commit them, and you can discard any commits you make in this
+2026-11-10T14:29:12.7935908Z state without impacting any branches by switching back to a branch.
+2026-11-10T14:29:12.7936325Z 
+2026-11-10T14:29:12.7936650Z If you want to create a new branch to retain commits you create, you may
+2026-11-10T14:29:12.7937219Z do so (now or later) by using -c with the switch command. Example:
+2026-11-10T14:29:12.7937512Z 
+2026-11-10T14:29:12.7937721Z   git switch -c <new-branch-name>
+2026-11-10T14:29:12.7937923Z 
+2026-11-10T14:29:12.7938179Z Or undo this operation with:
+2026-11-10T14:29:12.8033058Z 
+2026-11-10T14:29:12.8033506Z   git switch -
+2026-11-10T14:29:12.8033881Z 
+2026-11-10T14:29:12.8034382Z Turn off this advice by setting config variable advice.detachedHead to false
+2026-11-10T14:29:12.8035090Z 
+2026-11-10T14:29:12.8035868Z HEAD is now at 9bb0828 Merge e41d72d00ea5e799acc70aaef4d78defa402e796 into 69e5d648dddff4749a4f7b3faf2d214edfcff529
+2026-11-10T14:29:12.8039538Z ##[endgroup]
+2026-11-10T14:29:12.8041804Z [command]/usr/bin/git log -1 --format=%H
+2026-11-10T14:29:12.8064321Z 9bb0828b99f5cd479744b0b6adb13df60b739784
+2026-11-10T14:29:12.8074414Z ##[group]Removing auth
+2026-11-10T14:29:12.8078458Z Removing SSH command configuration
+2026-11-10T14:29:12.8079273Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-10T14:29:12.8112711Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-10T14:29:12.8391711Z Removing HTTP extra header
+2026-11-10T14:29:12.8396474Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-10T14:29:12.8431807Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-10T14:29:12.8705003Z Removing includeIf entries pointing to credentials config files
+2026-11-10T14:29:12.8708577Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-10T14:29:12.8734012Z includeif.gitdir:/home/runner/work/memo/memo/.git.path
+2026-11-10T14:29:12.8734990Z includeif.gitdir:/home/runner/work/memo/memo/.git/worktrees/*.path
+2026-11-10T14:29:12.8735530Z includeif.gitdir:/github/workspace/.git.path
+2026-11-10T14:29:12.8736001Z includeif.gitdir:/github/workspace/.git/worktrees/*.path
+2026-11-10T14:29:12.8742980Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/home/runner/work/memo/memo/.git.path
+2026-11-10T14:29:12.8766483Z /home/runner/work/_temp/git-credentials-4105e69d-b2c5-47e5-9cf3-e931225ad605.config
+2026-11-10T14:29:12.8779012Z [command]/usr/bin/git config --local --unset includeif.gitdir:/home/runner/work/memo/memo/.git.path \/home\/runner\/work\/_temp\/git\-credentials\-4105e69d\-b2c5\-47e5\-9cf3\-e931225ad605\.config
+2026-11-10T14:29:12.8816886Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/home/runner/work/memo/memo/.git/worktrees/*.path
+2026-11-10T14:29:12.8840600Z /home/runner/work/_temp/git-credentials-4105e69d-b2c5-47e5-9cf3-e931225ad605.config
+2026-11-10T14:29:12.8856571Z [command]/usr/bin/git config --local --unset includeif.gitdir:/home/runner/work/memo/memo/.git/worktrees/*.path \/home\/runner\/work\/_temp\/git\-credentials\-4105e69d\-b2c5\-47e5\-9cf3\-e931225ad605\.config
+2026-11-10T14:29:12.8891701Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/github/workspace/.git.path
+2026-11-10T14:29:12.8915003Z /github/runner_temp/git-credentials-4105e69d-b2c5-47e5-9cf3-e931225ad605.config
+2026-11-10T14:29:12.8923006Z [command]/usr/bin/git config --local --unset includeif.gitdir:/github/workspace/.git.path \/github\/runner_temp\/git\-credentials\-4105e69d\-b2c5\-47e5\-9cf3\-e931225ad605\.config
+2026-11-10T14:29:12.8960828Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/github/workspace/.git/worktrees/*.path
+2026-11-10T14:29:12.8986197Z /github/runner_temp/git-credentials-4105e69d-b2c5-47e5-9cf3-e931225ad605.config
+2026-11-10T14:29:12.8994872Z [command]/usr/bin/git config --local --unset includeif.gitdir:/github/workspace/.git/worktrees/*.path \/github\/runner_temp\/git\-credentials\-4105e69d\-b2c5\-47e5\-9cf3\-e931225ad605\.config
+2026-11-10T14:29:12.9028917Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-10T14:29:12.9298838Z Removing credentials config '/home/runner/work/_temp/git-credentials-4105e69d-b2c5-47e5-9cf3-e931225ad605.config'
+2026-11-10T14:29:12.9308016Z ##[endgroup]
+2026-11-10T14:29:12.9578348Z ##[group]Run actions/setup-node@v7
+2026-11-10T14:29:12.9578708Z with:
+2026-11-10T14:29:12.9578957Z   node-version: 22
+2026-11-10T14:29:12.9579212Z   cache: npm
+2026-11-10T14:29:12.9579460Z   check-latest: false
+2026-11-10T14:29:12.9582159Z   token: ***
+2026-11-10T14:29:12.9582444Z   package-manager-cache: true
+2026-11-10T14:29:12.9582752Z ##[endgroup]
+2026-11-10T14:29:13.0914220Z Found in cache @ /opt/hostedtoolcache/node/22.23.4/x64
+2026-11-10T14:29:13.1912214Z ##[group]Environment details
+2026-11-10T14:29:13.5392597Z node: v22.23.4
+2026-11-10T14:29:13.5392989Z npm: 10.9.9
+2026-11-10T14:29:13.5393206Z yarn: 1.22.22
+2026-11-10T14:29:13.5393778Z ##[endgroup]
+2026-11-10T14:29:13.5411535Z [command]/opt/hostedtoolcache/node/22.23.4/x64/bin/npm config get cache
+2026-11-10T14:29:13.6523825Z /home/runner/.npm
+2026-11-10T14:29:13.7698410Z Cache hit for: node-cache-Linux-x64-npm-383faa028ceea966c2feff90d9085d91a61cc407a7ad81956891a336256178dd
+2026-11-10T14:29:14.0156825Z Received 7397955 of 7397955 (100.0%), 40.3 MBs/sec
+2026-11-10T14:29:14.0157473Z Cache Size: ~7 MB (7397955 B)
+2026-11-10T14:29:14.0189446Z [command]/usr/bin/tar -xf /home/runner/work/_temp/304229db-4457-4bd4-a6c3-bde01f3e9bd1/cache.tzst -P -C /home/runner/work/memo/memo --use-compress-program unzstd
+2026-11-10T14:29:14.0537967Z Cache restored successfully
+2026-11-10T14:29:14.0546621Z Cache restored from key: node-cache-Linux-x64-npm-383faa028ceea966c2feff90d9085d91a61cc407a7ad81956891a336256178dd
+2026-11-10T14:29:14.0727967Z ##[group]Run npm ci
+2026-11-10T14:29:14.0728293Z [36;1mnpm ci[0m
+2026-11-10T14:29:14.0792172Z shell: /usr/bin/bash -e {0}
+2026-11-10T14:29:14.0792467Z ##[endgroup]
+2026-11-10T14:29:16.1610176Z 
+2026-11-10T14:29:16.1618211Z added 97 packages, and audited 98 packages in 2s
+2026-11-10T14:29:16.1618537Z 
+2026-11-10T14:29:16.1618740Z 34 packages are looking for funding
+2026-11-10T14:29:16.1619082Z   run `npm fund` for details
+2026-11-10T14:29:16.1643355Z 
+2026-11-10T14:29:16.1643721Z 3 vulnerabilities (2 moderate, 1 high)
+2026-11-10T14:29:16.1644068Z 
+2026-11-10T14:29:16.1644303Z To address all issues, run:
+2026-11-10T14:29:16.1644658Z   npm audit fix
+2026-11-10T14:29:16.1644805Z 
+2026-11-10T14:29:16.1644945Z Run `npm audit` for details.
+2026-11-10T14:29:16.2152194Z ##[group]Run npx playwright install --with-deps webkit
+2026-11-10T14:29:16.2152661Z [36;1mnpx playwright install --with-deps webkit[0m
+2026-11-10T14:29:16.2205379Z shell: /usr/bin/bash -e {0}
+2026-11-10T14:29:16.2205667Z ##[endgroup]
+2026-11-10T14:29:16.9975093Z Installing dependencies...
+2026-11-10T14:29:17.0057307Z Switching to root user to install dependencies...
+2026-11-10T14:29:17.1188494Z Get:1 file:/etc/apt/apt-mirrors.txt Mirrorlist [144 B]
+2026-11-10T14:29:17.1301742Z Get:6 https://packages.microsoft.com/ubuntu/26.04/prod resolute InRelease [3964 B]
+2026-11-10T14:29:17.1463676Z Hit:2 http://azure.archive.ubuntu.com/ubuntu resolute InRelease
+2026-11-10T14:29:17.1504396Z Get:3 http://azure.archive.ubuntu.com/ubuntu resolute-updates InRelease [137 kB]
+2026-11-10T14:29:17.1571217Z Get:4 http://azure.archive.ubuntu.com/ubuntu resolute-backports InRelease [137 kB]
+2026-11-10T14:29:17.1586620Z Get:5 http://azure.archive.ubuntu.com/ubuntu resolute-security InRelease [137 kB]
+2026-11-10T14:29:17.1723488Z Get:7 https://packages.microsoft.com/ubuntu/26.04/prod resolute/main arm64 Packages [138 kB]
+2026-11-10T14:29:17.2042367Z Get:8 https://packages.microsoft.com/ubuntu/26.04/prod resolute/main amd64 Packages [152 kB]
+2026-11-10T14:29:17.2161713Z Get:9 http://azure.archive.ubuntu.com/ubuntu resolute-updates/main amd64v3 Packages [869 kB]
+2026-11-10T14:29:17.2341148Z Get:10 http://azure.archive.ubuntu.com/ubuntu resolute-updates/main Translation-en [195 kB]
+2026-11-10T14:29:17.2342983Z Get:11 http://azure.archive.ubuntu.com/ubuntu resolute-updates/universe amd64v3 Packages [390 kB]
+2026-11-10T14:29:17.2401067Z Get:12 http://azure.archive.ubuntu.com/ubuntu resolute-updates/universe Translation-en [122 kB]
+2026-11-10T14:29:17.2431092Z Get:13 http://azure.archive.ubuntu.com/ubuntu resolute-updates/restricted amd64v3 Packages [603 kB]
+2026-11-10T14:29:17.2478457Z Get:14 http://azure.archive.ubuntu.com/ubuntu resolute-updates/restricted Translation-en [125 kB]
+2026-11-10T14:29:17.2494605Z Get:15 http://azure.archive.ubuntu.com/ubuntu resolute-security/main amd64v3 Packages [717 kB]
+2026-11-10T14:29:17.2548982Z Get:16 http://azure.archive.ubuntu.com/ubuntu resolute-security/main Translation-en [157 kB]
+2026-11-10T14:29:17.2584370Z Get:17 http://azure.archive.ubuntu.com/ubuntu resolute-security/universe amd64v3 Packages [212 kB]
+2026-11-10T14:29:17.2595802Z Get:18 http://azure.archive.ubuntu.com/ubuntu resolute-security/universe Translation-en [70.7 kB]
+2026-11-10T14:29:17.3030144Z Get:19 http://azure.archive.ubuntu.com/ubuntu resolute-security/restricted amd64v3 Packages [586 kB]
+2026-11-10T14:29:17.3068422Z Get:20 http://azure.archive.ubuntu.com/ubuntu resolute-security/restricted Translation-en [121 kB]
+2026-11-10T14:29:19.5590676Z Fetched 4871 kB in 0s (11.0 MB/s)
+2026-11-10T14:29:20.2275865Z Reading package lists...
+2026-11-10T14:29:20.2546486Z Reading package lists...
+2026-11-10T14:29:20.4144489Z Building dependency tree...
+2026-11-10T14:29:20.4152971Z Reading state information...
+2026-11-10T14:29:20.4477972Z libicu78 is already the newest version (78.2-2ubuntu1).
+2026-11-10T14:29:20.4478746Z libatomic1 is already the newest version (16-20260322-1ubuntu1).
+2026-11-10T14:29:20.4479445Z libatomic1 set to manually installed.
+2026-11-10T14:29:20.4480325Z libatk-bridge2.0-0t64 is already the newest version (2.60.4-0ubuntu0.1).
+2026-11-10T14:29:20.4481062Z libatk-bridge2.0-0t64 set to manually installed.
+2026-11-10T14:29:20.4481769Z libatk1.0-0t64 is already the newest version (2.60.4-0ubuntu0.1).
+2026-11-10T14:29:20.4482413Z libatk1.0-0t64 set to manually installed.
+2026-11-10T14:29:20.4483075Z libcairo-gobject2 is already the newest version (1.18.4-3).
+2026-11-10T14:29:20.4483672Z libcairo-gobject2 set to manually installed.
+2026-11-10T14:29:20.4484235Z libcairo2 is already the newest version (1.18.4-3).
+2026-11-10T14:29:20.4484759Z libcairo2 set to manually installed.
+2026-11-10T14:29:20.4485345Z libdbus-1-3 is already the newest version (1.16.2-2ubuntu4).
+2026-11-10T14:29:20.4486475Z libdbus-1-3 set to manually installed.
+2026-11-10T14:29:20.4487037Z libdrm2 is already the newest version (2.4.131-1).
+2026-11-10T14:29:20.4487559Z libdrm2 set to manually installed.
+2026-11-10T14:29:20.4488204Z libenchant-2-2 is already the newest version (2.8.2+dfsg1-3build1).
+2026-11-10T14:29:20.4489145Z libenchant-2-2 set to manually installed.
+2026-11-10T14:29:20.4489912Z libepoxy0 is already the newest version (1.5.10-2build1).
+2026-11-10T14:29:20.4490476Z libepoxy0 set to manually installed.
+2026-11-10T14:29:20.4491084Z libfontconfig1 is already the newest version (2.17.1-3ubuntu1).
+2026-11-10T14:29:20.4491740Z libfontconfig1 set to manually installed.
+2026-11-10T14:29:20.4492400Z libfreetype6 is already the newest version (2.14.2+dfsg-1ubuntu0.2).
+2026-11-10T14:29:20.4493179Z libfreetype6 set to manually installed.
+2026-11-10T14:29:20.4493766Z libgbm1 is already the newest version (26.0.8-1ubuntu0.3).
+2026-11-10T14:29:20.4494306Z libgbm1 set to manually installed.
+2026-11-10T14:29:20.4494962Z libgdk-pixbuf-2.0-0 is already the newest version (2.44.5+dfsg-4ubuntu1).
+2026-11-10T14:29:20.4495634Z libgdk-pixbuf-2.0-0 set to manually installed.
+2026-11-10T14:29:20.4496293Z libglib2.0-0t64 is already the newest version (2.88.0-1ubuntu0.1).
+2026-11-10T14:29:20.4496901Z libglib2.0-0t64 set to manually installed.
+2026-11-10T14:29:20.4497504Z libgstreamer1.0-0 is already the newest version (1.28.2-1).
+2026-11-10T14:29:20.4498102Z libgstreamer1.0-0 set to manually installed.
+2026-11-10T14:29:20.4498684Z libharfbuzz0b is already the newest version (12.3.2-2).
+2026-11-10T14:29:20.4499232Z libharfbuzz0b set to manually installed.
+2026-11-10T14:29:20.4500060Z libjpeg-turbo8 is already the newest version (2.1.5-4ubuntu4).
+2026-11-10T14:29:20.4500672Z libjpeg-turbo8 set to manually installed.
+2026-11-10T14:29:20.4501272Z liblcms2-2 is already the newest version (2.17-1ubuntu0.2).
+2026-11-10T14:29:20.4501833Z liblcms2-2 set to manually installed.
+2026-11-10T14:29:20.4502388Z libpango-1.0-0 is already the newest version (1.57.0-1).
+2026-11-10T14:29:20.4502953Z libpango-1.0-0 set to manually installed.
+2026-11-10T14:29:20.4503563Z libpangocairo-1.0-0 is already the newest version (1.57.0-1).
+2026-11-10T14:29:20.4504172Z libpangocairo-1.0-0 set to manually installed.
+2026-11-10T14:29:20.4504871Z libpng16-16t64 is already the newest version (1.6.57-1ubuntu0.1).
+2026-11-10T14:29:20.4505567Z libpng16-16t64 set to manually installed.
+2026-11-10T14:29:20.4506171Z libwayland-client0 is already the newest version (1.24.0-2).
+2026-11-10T14:29:20.4506780Z libwayland-client0 set to manually installed.
+2026-11-10T14:29:20.4507382Z libwayland-egl1 is already the newest version (1.24.0-2).
+2026-11-10T14:29:20.4507965Z libwayland-egl1 set to manually installed.
+2026-11-10T14:29:20.4508544Z libwebp7 is already the newest version (1.5.0-0.1build1).
+2026-11-10T14:29:20.4509088Z libwebp7 set to manually installed.
+2026-11-10T14:29:20.4509683Z libwebpdemux2 is already the newest version (1.5.0-0.1build1).
+2026-11-10T14:29:20.4510471Z libwebpdemux2 set to manually installed.
+2026-11-10T14:29:20.4511083Z libx11-6 is already the newest version (2:1.8.13-1ubuntu0.1).
+2026-11-10T14:29:20.4511651Z libx11-6 set to manually installed.
+2026-11-10T14:29:20.4512195Z libxkbcommon0 is already the newest version (1.13.1-1).
+2026-11-10T14:29:20.4512749Z libxkbcommon0 set to manually installed.
+2026-11-10T14:29:20.4513390Z libxml2-16 is already the newest version (2.15.2+dfsg-0.1ubuntu0.3).
+2026-11-10T14:29:20.4513999Z libxml2-16 set to manually installed.
+2026-11-10T14:29:20.4514531Z libxslt1.1 is already the newest version (1.1.45-0.1).
+2026-11-10T14:29:20.4515062Z libxslt1.1 set to manually installed.
+2026-11-10T14:29:20.4515626Z xvfb is already the newest version (2:21.1.22-1ubuntu1.3).
+2026-11-10T14:29:20.4516346Z fonts-noto-color-emoji is already the newest version (2.051-1build1).
+2026-11-10T14:29:20.4517125Z fonts-liberation is already the newest version (1:2.1.5-3build1).
+2026-11-10T14:29:20.4517748Z fonts-liberation set to manually installed.
+2026-11-10T14:29:20.5095517Z Solving dependencies...
+2026-11-10T14:29:20.5912974Z The following additional packages will be installed:
+2026-11-10T14:29:20.5913901Z   glib-networking glib-networking-common glib-networking-services
+2026-11-10T14:29:20.5914967Z   gsettings-desktop-schemas gstreamer1.0-plugins-extra libaa1 libabsl20260107
+2026-11-10T14:29:20.5916661Z   libass9 libasyncns0 libavc1394-0 libavcodec62 libavfilter11 libavformat62
+2026-11-10T14:29:20.5917541Z   libavtp0 libavutil60 libbluray3 libbs2b0 libcaca0
+2026-11-10T14:29:20.5918433Z   libcairo-script-interpreter2 libcdparanoia0 libchromaprint1 libcjson1
+2026-11-10T14:29:20.5919409Z   libcodec2-1.2 libcpuinfo0 libdav1d7 libdc1394-25 libdca0 libde265-0
+2026-11-10T14:29:20.5920609Z   libdecor-0-0 libdnnl3.6 libdv4t64 libdvdnav4 libdvdread8t64 libegl-mesa0
+2026-11-10T14:29:20.5921698Z   libegl1 libfaad2 libfarmhash0 libfftw3-single3 libflac14 libfluidsynth3
+2026-11-10T14:29:20.5922638Z   libfreeaptx0 libgav1-2 libgme0 libgraphene-1.0-0 libgsm1 libgssdp-1.6-0
+2026-11-10T14:29:20.5923532Z   libgstreamer-plugins-extra1.0-0 libgtk-4-common libgupnp-1.6-0
+2026-11-10T14:29:20.5924397Z   libgupnp-igd-1.6-0 libharfbuzz-subset0 libhidapi-hidraw0 libiec61883-0
+2026-11-10T14:29:20.5925324Z   libinstpatch-1.0-2 libjack-jackd2-0 liblc3-1 libldacbt-enc2 liblilv-0-0
+2026-11-10T14:29:20.5926190Z   liblrdf0 libltc11 libmbedcrypto16 libmjpegutils-2.2-0 libmodplug1
+2026-11-10T14:29:20.5927332Z   libmp3lame0 libmpcdec6 libmpeg2encpp-2.2-0 libmpg123-0t64 libmplex2-2.2-0
+2026-11-10T14:29:20.5928336Z   libmysofa1 libneon27t64 libnice10 libonnx1t64 libonnxruntime-providers
+2026-11-10T14:29:20.5929269Z   libonnxruntime1.23 libopenal-data libopenal1 libopenexr-3-1-30 libopenh264-8
+2026-11-10T14:29:20.5930379Z   libopenmpt0t64 libopenni2-0 liborc-0.4-0t64 libpipewire-0.3-0t64
+2026-11-10T14:29:20.5931232Z   libplacebo360 libprotobuf32t64 libproxy1v5 libpthreadpool0 libpulse0
+2026-11-10T14:29:20.5932122Z   libqrencode4 libraptor2-0 librav1e0.8 libraw1394-11 libre2-11 librist4
+2026-11-10T14:29:20.5933051Z   librubberband3 libsamplerate0 libsbc1 libsdl3-0 libsecret-common libserd-0-0
+2026-11-10T14:29:20.5934038Z   libshine3 libshout3 libsndfile1 libsord-0-0 libsoundtouch1 libsoup-3.0-0
+2026-11-10T14:29:20.5935000Z   libsoup-3.0-common libsoxr0 libspa-0.2-modules libspandsp2t64 libspeex1
+2026-11-10T14:29:20.5935826Z   libsratom-0-0 libsrt1.5-gnutls libsrtp2-1 libssh-4 libsvtav1enc2
+2026-11-10T14:29:20.5936475Z   libswresample6 libswscale9 libtag2 libtensorflow-lite2.14.1 libtheora1
+2026-11-10T14:29:20.5937051Z   libtheoradec2 libtheoraenc2 libtwolame0 libudfread3 libunibreak6 libv4l-0t64
+2026-11-10T14:29:20.5937604Z   libv4lconvert0t64 libva-drm2 libva-x11-2 libva2 libvdpau1 libvidstab1.1
+2026-11-10T14:29:20.5938403Z   libvisual-0.4-0 libvo-aacenc0 libvo-amrwbenc0 libvorbisenc2 libvpl2
+2026-11-10T14:29:20.5938961Z   libwavpack1 libwebrtc-audio-processing-1-3 libwildmidi2 libx265-215
+2026-11-10T14:29:20.5939502Z   libxcb-xkb1 libxkbcommon-x11-0 libxnnpack0.20241108 libxvidcore4 libyuv0
+2026-11-10T14:29:20.5940426Z   libzbar0t64 libzimg2 libzix-0-0 libzvbi-common libzvbi0t64 libzxing3
+2026-11-10T14:29:20.5941047Z   ocl-icd-libopencl1 timgm6mb-soundfont user-session-migration
+2026-11-10T14:29:20.5941437Z   xfonts-encodings xfonts-utils
+2026-11-10T14:29:20.5941729Z Suggested packages:
+2026-11-10T14:29:20.5942136Z   frei0r-plugins gvfs libcuda1 libnvcuvid1 libnvidia-encode1 libbluray-bdj
+2026-11-10T14:29:20.5942955Z   libglu1-mesa | libglu1 libglut3.12 libdv-bin oss-compat libdvdcss2
+2026-11-10T14:29:20.5943795Z   libfftw3-bin libfftw3-dev libvisual-0.4-plugins jackd2 liblrdf0-dev
+2026-11-10T14:29:20.5944739Z   libportaudio2 opus-tools pipewire pulseaudio raptor2-utils libraw1394-doc
+2026-11-10T14:29:20.5945624Z   libayatana-appindicator3-1 | libappindicator3-1 libgles1 libopengl0
+2026-11-10T14:29:20.5946142Z   libsndio7.0 serdi sordi speex libwildmidi-config opencl-icd
+2026-11-10T14:29:20.5946501Z   fluid-soundfont-gm
+2026-11-10T14:29:20.5946754Z Recommended packages:
+2026-11-10T14:29:20.5947290Z   fonts-ipafont-mincho fonts-tlwg-loma gstreamer1.0-x libaacs0
+2026-11-10T14:29:20.5948091Z   default-libdecor-0-plugin-1 | libdecor-0-plugin-1 gstreamer1.0-gl
+2026-11-10T14:29:20.5948984Z   libgtk-4-bin ibus-gtk4 librsvg2-common libpipewire-0.3-common
+2026-11-10T14:29:20.5949676Z   libmagickcore-7.q16-10-extra
+2026-11-10T14:29:20.6591024Z The following NEW packages will be installed:
+2026-11-10T14:29:20.6592226Z   fonts-freefont-ttf fonts-ipafont-gothic fonts-tlwg-loma-otf fonts-unifont
+2026-11-10T14:29:20.6593424Z   fonts-wqy-zenhei glib-networking glib-networking-common
+2026-11-10T14:29:20.6594547Z   glib-networking-services gsettings-desktop-schemas gstreamer1.0-libav
+2026-11-10T14:29:20.6595262Z   gstreamer1.0-plugins-bad gstreamer1.0-plugins-base
+2026-11-10T14:29:20.6596007Z   gstreamer1.0-plugins-extra gstreamer1.0-plugins-good libaa1 libabsl20260107
+2026-11-10T14:29:20.6597305Z   libass9 libasyncns0 libavc1394-0 libavcodec62 libavfilter11 libavformat62
+2026-11-10T14:29:20.6598510Z   libavif16 libavtp0 libavutil60 libbluray3 libbs2b0 libcaca0
+2026-11-10T14:29:20.6599245Z   libcairo-script-interpreter2 libcdparanoia0 libchromaprint1 libcjson1
+2026-11-10T14:29:20.6600200Z   libcodec2-1.2 libcpuinfo0 libdav1d7 libdc1394-25 libdca0 libde265-0
+2026-11-10T14:29:20.6600946Z   libdecor-0-0 libdnnl3.6 libdv4t64 libdvdnav4 libdvdread8t64 libegl-mesa0
+2026-11-10T14:29:20.6601945Z   libegl1 libevent-2.1-7t64 libfaad2 libfarmhash0 libfftw3-single3 libflac14
+2026-11-10T14:29:20.6603158Z   libflite1 libfluidsynth3 libfreeaptx0 libgav1-2 libgles2 libgme0
+2026-11-10T14:29:20.6603856Z   libgraphene-1.0-0 libgsm1 libgssdp-1.6-0 libgstreamer-gl1.0-0
+2026-11-10T14:29:20.6604560Z   libgstreamer-plugins-bad1.0-0 libgstreamer-plugins-base1.0-0
+2026-11-10T14:29:20.6605333Z   libgstreamer-plugins-extra1.0-0 libgtk-4-1 libgtk-4-common libgupnp-1.6-0
+2026-11-10T14:29:20.6606143Z   libgupnp-igd-1.6-0 libharfbuzz-icu0 libharfbuzz-subset0 libhidapi-hidraw0
+2026-11-10T14:29:20.6606923Z   libhyphen0 libiec61883-0 libinstpatch-1.0-2 libjack-jackd2-0 liblc3-1
+2026-11-10T14:29:20.6607495Z   libldacbt-enc2 liblilv-0-0 liblrdf0 libltc11 libmanette-0.2-0
+2026-11-10T14:29:20.6608029Z   libmbedcrypto16 libmjpegutils-2.2-0 libmodplug1 libmp3lame0 libmpcdec6
+2026-11-10T14:29:20.6608597Z   libmpeg2encpp-2.2-0 libmpg123-0t64 libmplex2-2.2-0 libmysofa1 libneon27t64
+2026-11-10T14:29:20.6609142Z   libnice10 libonnx1t64 libonnxruntime-providers libonnxruntime1.23
+2026-11-10T14:29:20.6609675Z   libopenal-data libopenal1 libopenexr-3-1-30 libopenh264-8 libopenmpt0t64
+2026-11-10T14:29:20.6610473Z   libopenni2-0 libopus0 liborc-0.4-0t64 libpipewire-0.3-0t64 libplacebo360
+2026-11-10T14:29:20.6611011Z   libprotobuf32t64 libproxy1v5 libpthreadpool0 libpulse0 libqrencode4
+2026-11-10T14:29:20.6611542Z   libraptor2-0 librav1e0.8 libraw1394-11 libre2-11 librist4 librubberband3
+2026-11-10T14:29:20.6612104Z   libsamplerate0 libsbc1 libsdl3-0 libsecret-1-0 libsecret-common libserd-0-0
+2026-11-10T14:29:20.6612677Z   libshine3 libshout3 libsndfile1 libsord-0-0 libsoundtouch1 libsoup-3.0-0
+2026-11-10T14:29:20.6613229Z   libsoup-3.0-common libsoxr0 libspa-0.2-modules libspandsp2t64 libspeex1
+2026-11-10T14:29:20.6613739Z   libsratom-0-0 libsrt1.5-gnutls libsrtp2-1 libssh-4 libsvtav1enc2
+2026-11-10T14:29:20.6614248Z   libswresample6 libswscale9 libtag2 libtensorflow-lite2.14.1 libtheora1
+2026-11-10T14:29:20.6614822Z   libtheoradec2 libtheoraenc2 libtwolame0 libudfread3 libunibreak6 libv4l-0t64
+2026-11-10T14:29:20.6615379Z   libv4lconvert0t64 libva-drm2 libva-x11-2 libva2 libvdpau1 libvidstab1.1
+2026-11-10T14:29:20.6615930Z   libvisual-0.4-0 libvo-aacenc0 libvo-amrwbenc0 libvorbisenc2 libvpl2 libvpx12
+2026-11-10T14:29:20.6616508Z   libwavpack1 libwayland-server0 libwebrtc-audio-processing-1-3 libwildmidi2
+2026-11-10T14:29:20.6617037Z   libwoff1 libx264-165 libx265-215 libxcb-xkb1 libxkbcommon-x11-0
+2026-11-10T14:29:20.6617548Z   libxnnpack0.20241108 libxvidcore4 libyuv0 libzbar0t64 libzimg2 libzix-0-0
+2026-11-10T14:29:20.6618108Z   libzvbi-common libzvbi0t64 libzxing3 ocl-icd-libopencl1 timgm6mb-soundfont
+2026-11-10T14:29:20.6619108Z   user-session-migration xfonts-cyrillic xfonts-encodings xfonts-scalable
+2026-11-10T14:29:20.6619536Z   xfonts-utils
+2026-11-10T14:29:20.6865030Z 0 upgraded, 185 newly installed, 0 to remove and 52 not upgraded.
+2026-11-10T14:29:20.6865779Z Need to get 139 MB of archives.
+2026-11-10T14:29:20.6866817Z After this operation, 436 MB of additional disk space will be used.
+2026-11-10T14:29:20.6867665Z Get:1 file:/etc/apt/apt-mirrors.txt Mirrorlist [144 B]
+2026-11-10T14:29:20.7655572Z Get:2 http://azure.archive.ubuntu.com/ubuntu resolute/universe amd64v3 fonts-ipafont-gothic all 00303-23ubuntu1 [3703 kB]
+2026-11-10T14:29:50.4490548Z Get:3 http://azure.archive.ubuntu.com/ubuntu resolute/main amd64v3 fonts-freefont-ttf all 20211204+svn4273-4build1 [5656 kB]
+2026-11-10T14:30:34.3936197Z Get:4 http://azure.archive.ubuntu.com/ubuntu resolute/universe amd64v3 fonts-tlwg-loma-otf all 1:0.7.3-1build1 [106 kB]
+2026-11-10T14:30:35.6054782Z Get:5 http://azure.archive.ubuntu.com/ubuntu resolute/universe amd64v3 fonts-unifont all 1:16.0.04-1build1 [3169 kB]
+2026-11-10T14:31:07.7614332Z Get:6 http://azure.archive.ubuntu.com/ubuntu resolute/universe amd64v3 fonts-wqy-zenhei all 0.9.45-8build1 [7863 kB]
+2026-11-10T14:32:18.0070944Z Get:7 http://azure.archive.ubuntu.com/ubuntu resolute/main amd64v3 libproxy1v5 amd64 0.5.12-1 [28.3 kB]
+2026-11-10T14:32:18.2484676Z Get:8 http://azure.archive.ubuntu.com/ubuntu resolute/main amd64v3 glib-networking-common all 2.80.1-1build2 [6834 B]
+2026-11-10T14:32:18.3837061Z Get:9 http://azure.archive.ubuntu.com/ubuntu resolute/main amd64v3 glib-networking-services amd64 2.80.1-1build2 [13.1 kB]
+2026-11-10T14:32:18.5401487Z Get:10 http://azure.archive.ubuntu.com/ubuntu resolute/main amd64v3 user-session-migration amd64 0.5.1 [10.7 kB]
+2026-11-10T14:32:18.7390763Z Get:11 http://azure.archive.ubuntu.com/ubuntu resolute/main amd64v3 gsettings-desktop-schemas all 50.0-1ubuntu2 [37.8 kB]
+2026-11-10T14:32:19.1866801Z Get:12 http://azure.archive.ubuntu.com/ubuntu resolute/main amd64v3 glib-networking amd64 2.80.1-1build2 [65.1 kB]
+2026-11-10T14:32:19.7739537Z Get:13 http://azure.archive.ubuntu.com/ubuntu resolute/main amd64v3 libva2 amd64 2.23.0-1ubuntu1 [77.0 kB]
+2026-11-10T14:32:20.4092425Z Get:14 http://azure.archive.ubuntu.com/ubuntu resolute/main amd64v3 libva-drm2 amd64 2.23.0-1ubuntu1 [7126 B]
+2026-11-10T14:32:20.5432579Z Get:15 http://azure.archive.ubuntu.com/ubuntu resolute/universe amd64v3 libva-x11-2 amd64 2.23.0-1ubuntu1 [12.2 kB]
+2026-11-10T14:32:20.6986215Z Get:16 http://azure.archive.ubuntu.com/ubuntu resolute/main amd64v3 libvdpau1 amd64 1.5-4 [27.7 kB]
+2026-11-10T14:32:20.9559075Z Get:17 http://azure.archive.ubuntu.com/ubuntu resolute/universe amd64v3 libvpl2 amd64 1:2.16.0-1 [135 kB]
+2026-11-10T14:32:21.9162738Z Get:18 http://azure.archive.ubuntu.com/ubuntu resolute/main amd64v3 ocl-icd-libopencl1 amd64 2.3.4-1 [41.0 kB]
+2026-11-10T14:32:22.2515558Z Get:19 http://azure.archive.ubuntu.com/ubuntu resolute/universe amd64v3 libavutil60 amd64 7:8.0.1-3ubuntu2 [485 kB]
+2026-11-10T14:32:26.4732274Z Get:20 http://azure.archive.ubuntu.com/ubuntu resolute/universe amd64v3 libcodec2-1.2 amd64 1.2.0-4 [9016 kB]
+2026-11-10T14:33:38.7127060Z Get:21 http://azure.archive.ubuntu.com/ubuntu resolute/universe amd64v3 libdav1d7 amd64 1.5.3-1 [561 kB]
+2026-11-10T14:33:45.0336955Z Get:22 http://azure.archive.ubuntu.com/ubuntu resolute/universe amd64v3 libgsm1 amd64 1.0.23-2 [30.2 kB]
+2026-11-10T14:33:45.3346729Z Get:23 http://azure.archive.ubuntu.com/ubuntu resolute/main amd64v3 libmpg123-0t64 amd64 1.33.3-2 [180 kB]
+2026-11-10T14:33:46.3032939Z Get:24 http://azure.archive.ubuntu.com/ubuntu resolute-updates/main amd64v3 libmp3lame0 amd64 3.101~svn6525+dfsg-2ubuntu0.1 [123 kB]
+2026-11-10T14:33:47.3090947Z Get:25 http://azure.archive.ubuntu.com/ubuntu resolute/main amd64v3 libopus0 amd64 1.6.1-1 [3557 kB]
+2026-11-10T14:34:25.3625348Z Get:26 http://azure.archive.ubuntu.com/ubuntu resolute/universe amd64v3 librav1e0.8 amd64 0.8.1-7 [1062 kB]
+2026-11-10T14:34:36.6413095Z Get:27 http://azure.archive.ubuntu.com/ubuntu resolute/universe amd64v3 libshine3 amd64 3.1.1-3build1 [24.9 kB]
+2026-11-10T14:34:36.8120955Z Get:28 http://azure.archive.ubuntu.com/ubuntu resolute/main amd64v3 libspeex1 amd64 1.2.1-3build1 [65.0 kB]
+2026-11-10T14:34:37.3634847Z Get:29 http://azure.archive.ubuntu.com/ubuntu resolute/universe amd64v3 libsvtav1enc2 amd64 2.3.0+dfsg-1build1 [2782 kB]
+2026-11-10T14:35:01.8548377Z Get:30 http://azure.archive.ubuntu.com/ubuntu resolute/universe amd64v3 libsoxr0 amd64 0.1.3-4.1 [82.0 kB]
+2026-11-10T14:35:02.8482323Z Get:31 http://azure.archive.ubuntu.com/ubuntu resolute/universe amd64v3 libswresample6 amd64 7:8.0.1-3ubuntu2 [80.9 kB]
+2026-11-10T14:35:04.1056802Z Get:32 http://azure.archive.ubuntu.com/ubuntu resolute/main amd64v3 libtheoradec2 amd64 1.2.0+dfsg-6 [56.5 kB]
+2026-11-10T14:35:04.6263424Z Get:33 http://azure.archive.ubuntu.com/ubuntu resolute/main amd64v3 libtheoraenc2 amd64 1.2.0+dfsg-6 [108 kB]
+2026-11-10T14:35:05.2857650Z Get:34 http://azure.archive.ubuntu.com/ubuntu resolute/main amd64v3 libtwolame0 amd64 0.4.0-2build4 [53.3 kB]
+2026-11-10T14:35:05.9433746Z Get:35 http://azure.archive.ubuntu.com/ubuntu resolute/main amd64v3 libvorbisenc2 amd64 1.3.7-3build2 [79.9 kB]
+2026-11-10T14:35:06.4124247Z Get:36 http://azure.archive.ubuntu.com/ubuntu resolute/main amd64v3 libvpx12 amd64 1.16.0-3 [1257 kB]
+2026-11-10T14:35:06.4438518Z Get:37 http://azure.archive.ubuntu.com/ubuntu resolute/universe amd64v3 libx264-165 amd64 2:0.165.3222+gitb35605ac-3build1 [610 kB]
+2026-11-10T14:35:06.4623389Z Get:38 http://azure.archive.ubuntu.com/ubuntu resolute/universe amd64v3 libx265-215 amd64 4.1-4 [1321 kB]
+2026-11-10T14:35:06.5277649Z Get:39 http://azure.archive.ubuntu.com/ubuntu resolute/universe amd64v3 libxvidcore4 amd64 2:1.3.7-3 [221 kB]
+2026-11-10T14:35:06.5433097Z Get:40 http://azure.archive.ubuntu.com/ubuntu resolute/universe amd64v3 libzvbi-common all 0.2.44-1ubuntu2 [43.0 kB]
+2026-11-10T14:35:06.5595515Z Get:41 http://azure.archive.ubuntu.com/ubuntu resolute/universe amd64v3 libzvbi0t64 amd64 0.2.44-1ubuntu2 [266 kB]
+2026-11-10T14:35:06.5778851Z Get:42 http://azure.archive.ubuntu.com/ubuntu resolute/universe amd64v3 libavcodec62 amd64 7:8.0.1-3ubuntu2 [10.2 MB]
+2026-11-10T14:35:06.6868374Z Get:43 http://azure.archive.ubuntu.com/ubuntu resolute/universe amd64v3 libunibreak6 amd64 6.1-3build1 [25.0 kB]
+2026-11-10T14:35:06.7170187Z Get:44 http://azure.archive.ubuntu.com/ubuntu resolute/universe amd64v3 libass9 amd64 1:0.17.4-2 [117 kB]
+2026-11-10T14:35:06.7322266Z Get:45 http://azure.archive.ubuntu.com/ubuntu resolute/universe amd64v3 libudfread3 amd64 1.2.0-2 [17.2 kB]
+2026-11-10T14:35:06.7467637Z Get:46 http://azure.archive.ubuntu.com/ubuntu resolute/universe amd64v3 libbluray3 amd64 1:1.4.1-1 [133 kB]
+2026-11-10T14:35:06.7619554Z Get:47 http://azure.archive.ubuntu.com/ubuntu resolute/universe amd64v3 libchromaprint1 amd64 1.6.0-2build1 [34.0 kB]
+2026-11-10T14:35:06.7764618Z Get:48 http://azure.archive.ubuntu.com/ubuntu resolute/universe amd64v3 libdvdread8t64 amd64 7.0.1-1 [63.8 kB]
+2026-11-10T14:35:06.7914839Z Get:49 http://azure.archive.ubuntu.com/ubuntu resolute/universe amd64v3 libdvdnav4 amd64 7.0.0-2 [40.0 kB]
+2026-11-10T14:35:06.8064789Z Get:50 http://azure.archive.ubuntu.com/ubuntu resolute/universe amd64v3 libgme0 amd64 0.6.4-1 [145 kB]
+2026-11-10T14:35:06.8221346Z Get:51 http://azure.archive.ubuntu.com/ubuntu resolute/universe amd64v3 libopenmpt0t64 amd64 0.8.4-1 [749 kB]
+2026-11-10T14:35:06.8434167Z Get:52 http://azure.archive.ubuntu.com/ubuntu resolute/universe amd64v3 libcjson1 amd64 1.7.19-2 [22.9 kB]
+2026-11-10T14:35:06.8581223Z Get:53 http://azure.archive.ubuntu.com/ubuntu resolute/universe amd64v3 libmbedcrypto16 amd64 3.6.5-0.1ubuntu2 [262 kB]
+2026-11-10T14:35:06.8740971Z Get:54 http://azure.archive.ubuntu.com/ubuntu resolute/universe amd64v3 librist4 amd64 0.2.11+dfsg-1build1 [76.9 kB]
+2026-11-10T14:35:06.8894177Z Get:55 http://azure.archive.ubuntu.com/ubuntu resolute/universe amd64v3 libsrt1.5-gnutls amd64 1.5.4-3 [342 kB]
+2026-11-10T14:35:06.9055859Z Get:56 http://azure.archive.ubuntu.com/ubuntu resolute-updates/main amd64v3 libssh-4 amd64 0.11.3-1ubuntu2.1 [209 kB]
+2026-11-10T14:35:06.9211178Z Get:57 http://azure.archive.ubuntu.com/ubuntu resolute/universe amd64v3 libavformat62 amd64 7:8.0.1-3ubuntu2 [1330 kB]
+2026-11-10T14:35:06.9884343Z Get:58 http://azure.archive.ubuntu.com/ubuntu resolute/universe amd64v3 libbs2b0 amd64 3.1.0+dfsg-8build1 [11.5 kB]
+2026-11-10T14:35:07.0027035Z Get:59 http://azure.archive.ubuntu.com/ubuntu resolute/universe amd64v3 libflite1 amd64 2.2-7build1 [13.5 MB]
+2026-11-10T14:35:07.0950873Z Get:60 http://azure.archive.ubuntu.com/ubuntu resolute/universe amd64v3 libserd-0-0 amd64 0.32.6-1 [44.5 kB]
+2026-11-10T14:35:07.1105247Z Get:61 http://azure.archive.ubuntu.com/ubuntu resolute/universe amd64v3 libzix-0-0 amd64 0.8.0-1 [25.2 kB]
+2026-11-10T14:35:07.1253104Z Get:62 http://azure.archive.ubuntu.com/ubuntu resolute/universe amd64v3 libsord-0-0 amd64 0.16.20-1 [16.2 kB]
+2026-11-10T14:35:07.1396596Z Get:63 http://azure.archive.ubuntu.com/ubuntu resolute/universe amd64v3 libsratom-0-0 amd64 0.6.20-1 [17.9 kB]
+2026-11-10T14:35:07.1541594Z Get:64 http://azure.archive.ubuntu.com/ubuntu resolute/universe amd64v3 liblilv-0-0 amd64 0.26.2-1 [44.4 kB]
+2026-11-10T14:35:07.1690145Z Get:65 http://azure.archive.ubuntu.com/ubuntu resolute/universe amd64v3 libmysofa1 amd64 1.3.3+dfsg-1ubuntu2 [1159 kB]
+2026-11-10T14:35:07.1898525Z Get:66 http://azure.archive.ubuntu.com/ubuntu resolute/universe amd64v3 libplacebo360 amd64 7.360.0-3 [2985 kB]
+2026-11-10T14:35:07.2234419Z Get:67 http://azure.archive.ubuntu.com/ubuntu resolute/main amd64v3 libsamplerate0 amd64 0.2.2-4build2 [1342 kB]
+2026-11-10T14:35:22.2630314Z Get:68 http://azure.archive.ubuntu.com/ubuntu resolute/universe amd64v3 librubberband3 amd64 4.0.0+dfsg-2ubuntu1 [154 kB]
+2026-11-10T14:35:24.2539110Z Get:69 http://azure.archive.ubuntu.com/ubuntu resolute/universe amd64v3 libswscale9 amd64 7:8.0.1-3ubuntu2 [544 kB]
+2026-11-10T14:35:26.5126798Z Get:70 http://azure.archive.ubuntu.com/ubuntu resolute/universe amd64v3 libvidstab1.1 amd64 1.1.0-2.1 [40.2 kB]
+2026-11-10T14:35:26.7077273Z Get:71 http://azure.archive.ubuntu.com/ubuntu resolute/universe amd64v3 libzimg2 amd64 3.0.6+ds1-1 [196 kB]
+2026-11-10T14:35:28.4804277Z Get:72 http://azure.archive.ubuntu.com/ubuntu resolute/universe amd64v3 libavfilter11 amd64 7:8.0.1-3ubuntu2 [5073 kB]
+2026-11-10T14:35:45.2259479Z Get:73 http://azure.archive.ubuntu.com/ubuntu resolute/main amd64v3 liborc-0.4-0t64 amd64 1:0.4.42-2 [285 kB]
+2026-11-10T14:36:04.8355077Z Get:74 http://azure.archive.ubuntu.com/ubuntu resolute-updates/main amd64v3 libgstreamer-plugins-base1.0-0 amd64 1.28.2-1ubuntu0.1 [924 kB]
+2026-11-10T14:36:14.8382620Z Get:75 http://azure.archive.ubuntu.com/ubuntu resolute/universe amd64v3 gstreamer1.0-libav amd64 1.28.2-1 [106 kB]
+2026-11-10T14:36:15.4052366Z Get:76 http://azure.archive.ubuntu.com/ubuntu resolute/main amd64v3 libcdparanoia0 amd64 3.10.2+debian-14ubuntu2 [48.7 kB]
+2026-11-10T14:36:15.6124455Z Get:77 http://azure.archive.ubuntu.com/ubuntu resolute/main amd64v3 libvisual-0.4-0 amd64 0.4.2-4 [118 kB]
+2026-11-10T14:36:16.8400334Z Get:78 http://azure.archive.ubuntu.com/ubuntu resolute-updates/main amd64v3 gstreamer1.0-plugins-base amd64 1.28.2-1ubuntu0.1 [754 kB]
+2026-11-10T14:36:31.8821063Z Get:79 http://azure.archive.ubuntu.com/ubuntu resolute/main amd64v3 libaa1 amd64 1.4p5-51.1build1 [50.7 kB]
+2026-11-10T14:36:31.8978894Z Get:80 http://azure.archive.ubuntu.com/ubuntu resolute/main amd64v3 libraw1394-11 amd64 2.1.2-2build4 [26.3 kB]
+2026-11-10T14:36:31.9124678Z Get:81 http://azure.archive.ubuntu.com/ubuntu resolute/main amd64v3 libavc1394-0 amd64 0.5.4-5build4 [15.9 kB]
+2026-11-10T14:36:31.9268652Z Get:82 http://azure.archive.ubuntu.com/ubuntu resolute-updates/main amd64v3 libcaca0 amd64 0.99.beta20-6ubuntu2.1 [205 kB]
+2026-11-10T14:36:31.9425839Z Get:83 http://azure.archive.ubuntu.com/ubuntu resolute/main amd64v3 libdv4t64 amd64 1.0.0-17.1build2 [64.5 kB]
+2026-11-10T14:36:31.9576959Z Get:84 http://azure.archive.ubuntu.com/ubuntu resolute/main amd64v3 libflac14 amd64 1.5.0+ds-5 [172 kB]
+2026-11-10T14:36:31.9730847Z Get:85 http://azure.archive.ubuntu.com/ubuntu resolute/main amd64v3 libiec61883-0 amd64 1.2.0-8 [26.0 kB]
+2026-11-10T14:36:31.9875327Z Get:86 http://azure.archive.ubuntu.com/ubuntu resolute/main amd64v3 libasyncns0 amd64 0.8-7 [12.5 kB]
+2026-11-10T14:36:32.0022443Z Get:87 http://azure.archive.ubuntu.com/ubuntu resolute/main amd64v3 libsndfile1 amd64 1.2.2-4 [229 kB]
+2026-11-10T14:36:32.0180902Z Get:88 http://azure.archive.ubuntu.com/ubuntu resolute/main amd64v3 libpulse0 amd64 1:17.0+dfsg1-2ubuntu4 [295 kB]
+2026-11-10T14:36:32.0781787Z Get:89 http://azure.archive.ubuntu.com/ubuntu resolute/main amd64v3 libtheora1 amd64 1.2.0+dfsg-6 [142 kB]
+2026-11-10T14:36:33.2834688Z Get:90 http://azure.archive.ubuntu.com/ubuntu resolute/main amd64v3 libshout3 amd64 2.4.6-1build3 [51.2 kB]
+2026-11-10T14:36:33.6012689Z Get:91 http://azure.archive.ubuntu.com/ubuntu resolute/main amd64v3 libtag2 amd64 2.2.1-3 [427 kB]
+2026-11-10T14:36:34.8970714Z Get:92 http://azure.archive.ubuntu.com/ubuntu resolute/main amd64v3 libv4lconvert0t64 amd64 1.32.0-2ubuntu1 [90.8 kB]
+2026-11-10T14:36:35.0987626Z Get:93 http://azure.archive.ubuntu.com/ubuntu resolute/main amd64v3 libv4l-0t64 amd64 1.32.0-2ubuntu1 [159 kB]
+2026-11-10T14:36:36.2115135Z Get:94 http://azure.archive.ubuntu.com/ubuntu resolute/main amd64v3 libwavpack1 amd64 5.9.0-1 [94.2 kB]
+2026-11-10T14:36:36.4627833Z Get:95 http://azure.archive.ubuntu.com/ubuntu resolute-updates/main amd64v3 libsoup-3.0-common all 3.6.6-1ubuntu0.3 [9690 B]
+2026-11-10T14:36:36.5465421Z Get:96 http://azure.archive.ubuntu.com/ubuntu resolute-updates/main amd64v3 libsoup-3.0-0 amd64 3.6.6-1ubuntu0.3 [295 kB]
+2026-11-10T14:36:37.7444187Z Get:97 http://azure.archive.ubuntu.com/ubuntu resolute-updates/main amd64v3 gstreamer1.0-plugins-good amd64 1.28.2-2ubuntu0.4 [2321 kB]
+2026-11-10T14:36:44.8726525Z Get:98 http://azure.archive.ubuntu.com/ubuntu resolute-updates/main amd64v3 libgstreamer-plugins-extra1.0-0 amd64 1.28.2-1ubuntu1.2 [513 kB]
+2026-11-10T14:36:45.9835338Z Get:99 http://azure.archive.ubuntu.com/ubuntu resolute-updates/main amd64v3 gstreamer1.0-plugins-extra amd64 1.28.2-1ubuntu1.2 [270 kB]
+2026-11-10T14:36:46.3733502Z Get:100 http://azure.archive.ubuntu.com/ubuntu resolute/main amd64v3 libabsl20260107 amd64 20260107.0-4 [591 kB]
+2026-11-10T14:36:48.5384869Z Get:101 http://azure.archive.ubuntu.com/ubuntu resolute/universe amd64v3 libgav1-2 amd64 0.20.0-2build1 [408 kB]
+2026-11-10T14:36:49.4666536Z Get:102 http://azure.archive.ubuntu.com/ubuntu resolute/main amd64v3 libyuv0 amd64 0.0.1922.20260106-1 [185 kB]
+2026-11-10T14:36:49.4820811Z Get:103 http://azure.archive.ubuntu.com/ubuntu resolute/universe amd64v3 libavif16 amd64 1.3.0-1ubuntu4 [119 kB]
+2026-11-10T14:36:49.4968310Z Get:104 http://azure.archive.ubuntu.com/ubuntu resolute/universe amd64v3 libavtp0 amd64 0.2.0-2build1 [6596 B]
+2026-11-10T14:36:49.5112414Z Get:105 http://azure.archive.ubuntu.com/ubuntu resolute/main amd64v3 libcairo-script-interpreter2 amd64 1.18.4-3 [61.4 kB]
+2026-11-10T14:36:49.5256287Z Get:106 http://azure.archive.ubuntu.com/ubuntu resolute/universe amd64v3 libcpuinfo0 amd64 0.0~git20250905.877328f-1 [23.8 kB]
+2026-11-10T14:36:49.5398833Z Get:107 http://azure.archive.ubuntu.com/ubuntu resolute/universe amd64v3 libdc1394-25 amd64 2.2.6-6 [101 kB]
+2026-11-10T14:36:49.5552139Z Get:108 http://azure.archive.ubuntu.com/ubuntu resolute/universe amd64v3 libde265-0 amd64 1.0.16-1build1 [177 kB]
+2026-11-10T14:36:49.5706591Z Get:109 http://azure.archive.ubuntu.com/ubuntu resolute/main amd64v3 libdecor-0-0 amd64 0.2.5-1 [16.5 kB]
+2026-11-10T14:36:49.5848288Z Get:110 http://azure.archive.ubuntu.com/ubuntu resolute/universe amd64v3 libdnnl3.6 amd64 3.9.1+ds-2 [8760 kB]
+2026-11-10T14:36:49.6462534Z Get:111 http://azure.archive.ubuntu.com/ubuntu resolute-updates/main amd64v3 libegl-mesa0 amd64 26.0.8-1ubuntu0.3 [134 kB]
+2026-11-10T14:36:49.6615983Z Get:112 http://azure.archive.ubuntu.com/ubuntu resolute-updates/main amd64v3 libevent-2.1-7t64 amd64 2.1.12-stable-10ubuntu0.2 [146 kB]
+2026-11-10T14:36:49.6767669Z Get:113 http://azure.archive.ubuntu.com/ubuntu resolute/universe amd64v3 libfaad2 amd64 2.11.2-1build1 [215 kB]
+2026-11-10T14:36:49.6918407Z Get:114 http://azure.archive.ubuntu.com/ubuntu resolute/universe amd64v3 libfarmhash0 amd64 0~git20190513.0d859a8-4 [13.2 kB]
+2026-11-10T14:36:49.7060542Z Get:115 http://azure.archive.ubuntu.com/ubuntu resolute/main amd64v3 libfftw3-single3 amd64 3.3.10-2fakesync1build3 [865 kB]
+2026-11-10T14:36:49.7810231Z Get:116 http://azure.archive.ubuntu.com/ubuntu resolute/universe amd64v3 libinstpatch-1.0-2 amd64 1.1.7-1.1 [253 kB]
+2026-11-10T14:36:52.0064510Z Get:117 http://azure.archive.ubuntu.com/ubuntu resolute/main amd64v3 libjack-jackd2-0 amd64 1.9.22~dfsg-5build1 [294 kB]
+2026-11-10T14:36:55.5024712Z Get:118 http://azure.archive.ubuntu.com/ubuntu resolute/main amd64v3 libwebrtc-audio-processing-1-3 amd64 1.3-3build2 [416 kB]
+2026-11-10T14:37:00.4516029Z Get:119 http://azure.archive.ubuntu.com/ubuntu resolute-updates/main amd64v3 libspa-0.2-modules amd64 1.6.2-1ubuntu1.2 [1163 kB]
+2026-11-10T14:37:12.8242329Z Get:120 http://azure.archive.ubuntu.com/ubuntu resolute-updates/main amd64v3 libpipewire-0.3-0t64 amd64 1.6.2-1ubuntu1.2 [302 kB]
+2026-11-10T14:37:16.3874258Z Get:121 http://azure.archive.ubuntu.com/ubuntu resolute/universe amd64v3 libsdl3-0 amd64 3.4.2+ds-1ubuntu1 [1155 kB]
+2026-11-10T14:37:27.6172756Z Get:122 http://azure.archive.ubuntu.com/ubuntu resolute/universe amd64v3 timgm6mb-soundfont all 1.3-5build1 [5577 kB]
+2026-11-10T14:38:29.6492202Z Get:123 http://azure.archive.ubuntu.com/ubuntu resolute/universe amd64v3 libfluidsynth3 amd64 2.4.8+dfsg-1 [273 kB]
+2026-11-10T14:38:32.0154210Z Get:124 http://azure.archive.ubuntu.com/ubuntu resolute/main amd64v3 libfreeaptx0 amd64 0.2.2-1build1 [13.8 kB]
+2026-11-10T14:38:32.0585235Z Get:125 http://azure.archive.ubuntu.com/ubuntu resolute/main amd64v3 libgraphene-1.0-0 amd64 1.10.8-5build1 [45.7 kB]
+2026-11-10T14:38:32.1504713Z Get:126 http://azure.archive.ubuntu.com/ubuntu resolute/main amd64v3 libgssdp-1.6-0 amd64 1.6.4-5 [41.5 kB]
+2026-11-10T14:38:32.2179557Z Get:127 http://azure.archive.ubuntu.com/ubuntu resolute/main amd64v3 libegl1 amd64 1.7.0-3 [29.8 kB]
+2026-11-10T14:38:32.2673650Z Get:128 http://azure.archive.ubuntu.com/ubuntu resolute-updates/main amd64v3 libgstreamer-gl1.0-0 amd64 1.28.2-1ubuntu0.1 [231 kB]
+2026-11-10T14:38:35.1235271Z Get:129 http://azure.archive.ubuntu.com/ubuntu resolute/main amd64v3 libharfbuzz-subset0 amd64 12.3.2-2 [497 kB]
+2026-11-10T14:38:40.7830628Z Get:130 http://azure.archive.ubuntu.com/ubuntu resolute/main amd64v3 libgles2 amd64 1.7.0-3 [17.5 kB]
+2026-11-10T14:38:40.9869419Z Get:131 http://azure.archive.ubuntu.com/ubuntu resolute-updates/main amd64v3 libgtk-4-common all 4.22.4+ds-0ubuntu0.1 [1546 kB]
+2026-11-10T14:39:17.4552661Z Get:132 http://azure.archive.ubuntu.com/ubuntu resolute-updates/main amd64v3 libgtk-4-1 amd64 4.22.4+ds-0ubuntu0.1 [3555 kB]
+2026-11-10T14:39:22.3230390Z ##[error]The operation was canceled.
+2026-11-10T14:39:22.3324130Z ##[group]Run actions/upload-artifact@v6
+2026-11-10T14:39:22.3324442Z with:
+2026-11-10T14:39:22.3324655Z   name: report-fixed-webkit
+2026-11-10T14:39:22.3324925Z   path: e2e-artifacts/report-fixed/webkit/
+2026-11-10T14:39:22.3325209Z   if-no-files-found: error
+2026-11-10T14:39:22.3325458Z   retention-days: 14
+2026-11-10T14:39:22.3325676Z   compression-level: 6
+2026-11-10T14:39:22.3325907Z   overwrite: false
+2026-11-10T14:39:22.3326118Z   include-hidden-files: false
+2026-11-10T14:39:22.3326356Z ##[endgroup]
+2026-11-10T14:39:22.5004467Z ##[error]No files were found with the provided path: e2e-artifacts/report-fixed/webkit/. No artifacts will be uploaded.
+2026-11-10T14:39:22.5192497Z Post job cleanup.
+2026-11-10T14:39:22.6276734Z [command]/usr/bin/git version
+2026-11-10T14:39:22.6277395Z git version 2.56.0
+2026-11-10T14:39:22.6321174Z Temporarily overriding HOME='/home/runner/work/_temp/fc4a2c51-74e2-4669-8f16-0939655b0c29' before making global git config changes
+2026-11-10T14:39:22.6323063Z Adding repository directory to the temporary git global config as a safe directory
+2026-11-10T14:39:22.6327559Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/memo/memo
+2026-11-10T14:39:22.6367582Z Removing SSH command configuration
+2026-11-10T14:39:22.6374285Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-10T14:39:22.6415682Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-10T14:39:22.7469701Z Removing HTTP extra header
+2026-11-10T14:39:22.7471660Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-10T14:39:22.7474148Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-10T14:39:22.7476258Z Removing includeIf entries pointing to credentials config files
+2026-11-10T14:39:22.7477170Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-10T14:39:22.7479145Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-10T14:39:22.7606126Z Cleaning up orphan processes
+2026-11-10T14:39:22.7880370Z Terminate orphan process: pid (2539) (npm exec playwright install --with-deps webkit)
+2026-11-10T14:39:22.7905894Z Terminate orphan process: pid (2551) (sh)
+2026-11-10T14:39:22.7931626Z Terminate orphan process: pid (2552) (node)
+
