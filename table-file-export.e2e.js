@@ -1,4 +1,5 @@
 "use strict";
+const { clickPaletteControl } = require("./feature-palette.e2e-support.js");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const http = require("node:http");
@@ -40,7 +41,7 @@ async function waitForApp(page) {
     await waitForApp(page);
     await page.locator("#titleInput").fill("売上:集計.csv");
     const chooser = page.waitForEvent("filechooser");
-    await page.getByRole("button", { name: "CSVまたはTSVファイルを表として読み込む", exact: true }).click();
+    await clickPaletteControl(page, "importTableFileBtn");
     await (await chooser).setFiles({
       name: "export-source.csv",
       mimeType: "text/csv",

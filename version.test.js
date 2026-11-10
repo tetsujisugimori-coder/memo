@@ -27,7 +27,7 @@ test("現在のアプリ版とリリース名を0.5.0 Bridge Updateへ統一す�
 test("全ローカルCSS・JavaScriptを0.5.0のキャッシュ識別子で読み込む", () => {
   const assetVersions = [...html.matchAll(/(?:href|src)="(?!https?:)([^"?]+)\?v=([^"]+)"/g)]
     .map((match) => ({ path: match[1], version: match[2] }));
-  assert.equal(assetVersions.length, 69);
+  assert.equal(assetVersions.length, 70);
   assetVersions.forEach(({ path, version }) => {
     assert.match(version, /^0\.5\.0-\d+$/, `${path}のキャッシュ識別子`);
   });
@@ -39,7 +39,7 @@ test("全ローカルCSS・JavaScriptを0.5.0のキャッシュ識別子で読�
   assert.match(html, /draft-mirror-scheduler\.js\?v=0\.5\.0-2/);
   assert.match(html, /term-link-utils\.js\?v=0\.5\.0-6/);
   assert.match(html, /memo-link-utils\.js\?v=0\.5\.0-3/);
-  assert.match(html, /style\.css\?v=0\.5\.0-119/);
+  assert.match(html, /style\.css\?v=0\.5\.0-120/);
   assert.match(html, /<script src="source-utils\.js\?v=0\.5\.0-8"><\/script>/);
   assert.ok(html.indexOf('src="source-utils.js?v=0.5.0-8"') < html.indexOf('src="app.js?v='));
   assert.match(html, /chart-png-export\.js\?v=0\.5\.0-4/);
@@ -57,10 +57,11 @@ test("全ローカルCSS・JavaScriptを0.5.0のキャッシュ識別子で読�
   assert.match(html, /extensions\/web-clipper\/transfer-lifecycle\.js\?v=0\.5\.0-2/);
   assert.match(html, /web-clipper-config\.js\?v=0\.5\.0-4/);
   assert.match(html, /table-file-export-utils\.js\?v=0\.5\.0-4/);
-  assert.deepEqual(assetVersions.filter(asset => asset.path === "app.js").map(asset => asset.version), ["0.5.0-209"]);
+  assert.deepEqual(assetVersions.filter(asset => asset.path === "app.js").map(asset => asset.version), ["0.5.0-210"]);
   for (const asset of ["note-conflict-store.js", "note-conflict-ui.js", "note-conflict.css"]) {
     assert.deepEqual(assetVersions.filter(item => item.path === asset).map(item => item.version), ["0.5.0-1"]);
   }
+  assert.match(html, /feature-palette\.js\?v=0\.5\.0-2/);
   assert.match(html, /report-print\.css\?v=0\.5\.0-3/);
 });
 

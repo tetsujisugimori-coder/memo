@@ -1,4 +1,5 @@
 "use strict";
+const { clickPaletteControl, openFeaturePalette } = require("./feature-palette.e2e-support.js");
 
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
@@ -89,7 +90,8 @@ async function assertNonMobileEditorInput(page, layoutMode, marker, { toolbarVis
   const value = await editorInputFromDirectClick(page, marker, message);
   assert.equal(await page.locator("body").evaluate((element) => element.classList.contains("mobile-writing-mode")), false, `${message}: モバイル執筆モードへ入らない`);
   if (toolbarVisible) {
-    assert.notEqual(await page.locator(".editor-tools").evaluate((element) => getComputedStyle(element).display), "none", `${message}: 通常ツールバーを表示したまま`);
+    assert.equal(await page.locator("#featurePalette").isVisible(), false, `${message}: 閉じたパレットが本文を圧迫しない`);
+    assert.equal(await page.locator("#featurePaletteToggle").isVisible(), true);
   }
   return value;
 }
@@ -98,7 +100,7 @@ async function mobileMetrics(page, width, height = 760) {
   await page.setViewportSize({ width, height });
   await page.waitForFunction(() => document.body.dataset.layoutMode === "mobile");
   const normalEditorHeight = await page.locator("#editor").evaluate((element) => element.getBoundingClientRect().height);
-  const normalEditorToolsHidden = await page.locator(".editor-tools").evaluate((element) => getComputedStyle(element).display === "none");
+  const normalEditorToolsHidden = await page.locator("#featurePalette").evaluate((element) => element.hidden);
   assert.equal(normalEditorToolsHidden, true, `${width}pxでフォーカス前から既存ツール欄を非表示`);
   const normalUi = await page.evaluate(() => ({
     headerDisplay: getComputedStyle(document.querySelector(".app-header")).display,
@@ -144,7 +146,7 @@ async function mobileMetrics(page, width, height = 760) {
   });
   assert.equal(metrics.bodyOverflow, 0, `${width}pxで画面全体に横スクロールがない`);
   assert.equal(metrics.toolbarRows, 1, `${width}pxでツールバーが1段`);
-  assert.deepEqual(metrics.labels, ["追加", "画像", "AI", "記法ガイド", "完了"]);
+  assert.deepEqual(metrics.labels, ["▦ 機能", "完了"]);
   assert.ok(metrics.minControlHeight >= 40, `${width}pxでタップ領域を確保`);
   assert.ok(metrics.editorHeight > normalEditorHeight, `${width}pxで本文領域が拡大`);
   assert.ok(metrics.editorHeight >= 700, `${width}pxで旧48pxヘッダー分を本文へ割り当て`);
@@ -152,8 +154,8 @@ async function mobileMetrics(page, width, height = 760) {
   assert.ok(metrics.headerAbsent && metrics.desktopHeaderHidden && metrics.metaHidden && metrics.relatedHidden && metrics.robotHidden && metrics.contextHidden);
   if (width === 390) await page.screenshot({ path: SCREENSHOT_PATH });
 
-  await page.locator("summary", { hasText: "追加" }).click();
-  const panel = await page.locator(".mobile-writing-menu[open] .mobile-writing-menu-panel").evaluate((element) => {
+  await openFeaturePalette(page);
+  const panel = await page.locator("#featurePalette").evaluate((element) => {
     const rect = element.getBoundingClientRect();
     return { left: rect.left, right: rect.right, top: rect.top, bottom: rect.bottom, viewportWidth: innerWidth, viewportHeight: innerHeight };
   });
@@ -220,7 +222,7 @@ async function mobileMetrics(page, width, height = 760) {
       element.setSelectionRange(120, 140);
       return { start: element.selectionStart, end: element.selectionEnd, scrollTop: element.scrollTop };
     });
-    await page.locator("[data-mobile-editor-tool='syntaxGuideBtn']").click();
+    await clickPaletteControl(page, "syntaxGuideBtn");
     assert.ok(await page.locator("#syntaxGuideDialog").evaluate((element) => element.open));
     const restoredContext = await page.locator("#editor").evaluate((element) => ({
       start: element.selectionStart,
@@ -231,21 +233,22 @@ async function mobileMetrics(page, width, height = 760) {
     await page.locator("#closeSyntaxGuideBtn").click();
     assert.ok(await page.locator("body").evaluate((element) => element.classList.contains("mobile-writing-mode")), "記法ガイドを閉じても執筆モードを維持");
 
+    await page.locator("[data-palette-close]").click();
     await page.locator("#editor").click();
     await page.locator("#editor").evaluate((element) => element.setSelectionRange(2, 4));
-    await page.locator("summary", { hasText: "追加" }).click();
-    await page.getByRole("menuitem", { name: "注意書きを挿入" }).click();
+    await openFeaturePalette(page);
+    await clickPaletteControl(page, "insertCalloutBtn");
     assert.match(await page.locator("#editor").inputValue(), /\[!NOTE\]/);
     assert.ok(await page.locator("body").evaluate((element) => element.classList.contains("mobile-writing-mode")), "ツール操作後も執筆モードを維持");
 
-    await page.locator("summary", { hasText: "AI" }).click();
-    await page.getByRole("menuitem", { name: "選択範囲をAIに送る" }).click();
+    await openFeaturePalette(page);
+    await clickPaletteControl(page, "aiSendSelectionBtn");
     assert.ok(await page.locator("body").evaluate((element) => element.classList.contains("mobile-writing-mode")), "AI操作後も執筆モードを維持");
     await page.locator("#closeAiPanelBtn").click();
     assert.equal(await page.locator("#editor").evaluate((element) => document.activeElement === element), true, "AIを閉じると本文へ戻る");
 
     const fileChooserPromise = page.waitForEvent("filechooser");
-    await page.locator("[data-mobile-editor-tool='insertImageBlockBtn']").click();
+    await clickPaletteControl(page, "insertImageBlockBtn");
     await fileChooserPromise;
     assert.ok(await page.locator("body").evaluate((element) => element.classList.contains("mobile-writing-mode")), "画像追加操作でも執筆モードを維持");
 

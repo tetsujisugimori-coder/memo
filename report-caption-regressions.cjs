@@ -1,4 +1,5 @@
 "use strict";
+const { clickPaletteControl } = require("./feature-palette.e2e-support.js");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
@@ -59,7 +60,7 @@ async function verifyReportCaptionCases(page,{out,pdf=false,only=process.env.MEM
   const leftId=await page.evaluate(()=>currentAttachments[0].id);
   // Distinct IDs and pixels make a left/right association error observable.
   const rightPng=await page.evaluate(()=>{const canvas=document.createElement("canvas");canvas.width=240;canvas.height=160;const ctx=canvas.getContext("2d");ctx.fillStyle="#fff";ctx.fillRect(0,0,240,160);ctx.fillStyle="#236c73";ctx.fillRect(25,25,190,110);ctx.fillStyle="#fff";ctx.font="28px sans-serif";ctx.fillText("RIGHT",70,90);return canvas.toDataURL("image/png").split(",")[1];});
-  await page.locator("#insertImageBlockBtn").click();
+  await clickPaletteControl(page, "insertImageBlockBtn");
   await page.locator("#imageBlockInput").setInputFiles({name:"caption-review-right.png",mimeType:"image/png",buffer:Buffer.from(rightPng,"base64")});
   await page.waitForFunction(()=>currentAttachments.some(a=>a.fileName==="caption-review-right.png"));
   const rightId=await page.evaluate(()=>currentAttachments.find(a=>a.fileName==="caption-review-right.png").id);

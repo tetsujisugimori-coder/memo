@@ -1,4 +1,5 @@
 "use strict";
+const { clickPaletteControl } = require("./feature-palette.e2e-support.js");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const http = require("node:http");
@@ -129,7 +130,7 @@ async function layout(page) {
     await idle(page);
     // Use the existing Source UI; the labels explicitly distinguish test data.
     for(const name of ["検証データA（実在資料ではありません）","検証データB（実在資料ではありません）"]){
-      await page.locator("#manageSourcesBtn").click();
+      await clickPaletteControl(page, "manageSourcesBtn");
       await page.locator('#sourceForm [name="title"]').fill(name);
       await page.locator('#sourceForm [name="url"]').fill("https://example.org/diagram-test/"+"long".repeat(35));
       await page.locator('#sourceForm button[type="submit"]').first().click();
@@ -138,14 +139,14 @@ async function layout(page) {
     let sourceLabels;
     for (const [field, value] of [["author", "検証著者（タイトル空）"],
       ["url", "https://example.org/source-label-test"], ["publisher", "検証出版社（表示はIDへfallback）"]]) {
-      await page.locator("#manageSourcesBtn").click();
+      await clickPaletteControl(page, "manageSourcesBtn");
       await page.locator('#sourceForm [name="' + field + '"]').fill(value);
       await page.locator('#sourceForm button[type="submit"]').first().click();
       sourceLabels = await page.locator(".source-list-item > span").allInnerTexts();
       await page.locator("#closeSourceDialogBtn").click();
       await idle(page);
     }
-    await page.locator("#manageSourcesBtn").click();
+    await clickPaletteControl(page, "manageSourcesBtn");
     await page.locator('#sourceForm [name="title"]').fill("  　 ");
     await page.locator('#sourceForm [name="author"]').fill("検証著者（タイトルは空白のみ）");
     await page.locator('#sourceForm button[type="submit"]').first().click();
@@ -154,7 +155,7 @@ async function layout(page) {
     await page.locator("#closeSourceDialogBtn").click();
     await idle(page);
     await page.locator("#editor").press("End");
-    await page.locator("#insertGeometryBtn").click();
+    await clickPaletteControl(page, "insertGeometryBtn");
     const drawing=page.locator(".geometry-block-editor");
     const svg=drawing.locator("svg");
     await drawing.locator('[data-geometry-mode="point"]').click();
@@ -266,7 +267,7 @@ async function layout(page) {
     state=await saved(page);assert.deepEqual(state.geometries,[afterReload.geometries[0],afterReload.geometries[2]]);
     await page.locator("#editor").fill(described.body);await saved(page);
     // A Diagram-only reference must independently protect a Source from deletion.
-    await page.locator("#manageSourcesBtn").click();
+    await clickPaletteControl(page, "manageSourcesBtn");
     await page.locator(".source-list-item").first().getByRole("button",{name:"削除",exact:true}).click();
     await page.locator("#sourceStatus").getByText(/参照されています/).waitFor();
     await page.locator(".source-list-item").first().getByRole("button",{name:"編集",exact:true}).click();
@@ -316,7 +317,7 @@ async function layout(page) {
     const localMarkdown=await download(page,async()=>{await page.locator("#noteExportBtn").click();await page.locator("#downloadExportBtn").click();});
     assert.deepEqual(await page.evaluate(text=>splitGeometryBlocks(parseLocalNote(text).body).filter(e=>e.type==="geometry").map(e=>e.geometry),localMarkdown.toString("utf8")),state.geometries);
     // An attachment selects the existing Markdown ZIP path; do not change export architecture.
-    await page.locator("#insertImageBlockBtn").click();
+    await clickPaletteControl(page, "insertImageBlockBtn");
     await page.locator("#imageBlockInput").setInputFiles({name:"zip-test.png",mimeType:"image/png",buffer:fs.readFileSync(path.join(root,"e2e-artifacts/chart-png-example-light-390.png"))});
     await page.locator(".image-block img").waitFor();state=await saved(page);
     const noteId=await page.evaluate(()=>currentId);

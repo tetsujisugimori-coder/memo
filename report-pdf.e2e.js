@@ -1,4 +1,5 @@
 "use strict";
+const { clickPaletteControl } = require("./feature-palette.e2e-support.js");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const http = require("node:http");
@@ -31,13 +32,13 @@ async function state(page) {
     page.on("pageerror",error=>errors.push(error.message));await page.goto(`http://127.0.0.1:${server.address().port}`);
     await page.locator("#appStartupGuard").waitFor({state:"hidden"});
     await page.locator("#titleInput").fill('混在レポート:検証/資料');
-    await page.locator("#insertImageBlockBtn").click();
+    await clickPaletteControl(page, "insertImageBlockBtn");
     const image=fs.readFileSync(path.join(__dirname,"e2e-artifacts","chart-png-example-light-390.png"));
     await page.locator("#imageBlockInput").setInputFiles({name:"figure.png",mimeType:"image/png",buffer:image});
     await page.locator("#preview img").first().waitFor();await page.evaluate(()=>flushSave());
     const ids=await page.evaluate(()=>currentAttachments.map(a=>a.id));
     const tall=await page.evaluate(()=>{const c=document.createElement("canvas");c.width=240;c.height=2200;const x=c.getContext("2d");x.fillStyle="white";x.fillRect(0,0,c.width,c.height);x.fillStyle="black";for(let y=0;y<c.height;y+=100)x.fillRect(0,y,c.width,10);return c.toDataURL("image/png").split(",")[1];});
-    await page.locator("#insertImageBlockBtn").click();await page.locator("#imageBlockInput").setInputFiles({name:"tall.png",mimeType:"image/png",buffer:Buffer.from(tall,"base64")});
+    await clickPaletteControl(page, "insertImageBlockBtn");await page.locator("#imageBlockInput").setInputFiles({name:"tall.png",mimeType:"image/png",buffer:Buffer.from(tall,"base64")});
     await page.waitForFunction(()=>currentAttachments.length===2);const tallId=await page.evaluate(()=>currentAttachments.find(a=>a.fileName==="tall.png").id);
     const figure=serializeImageBlock([{id:ids[0],figureMetadata:{caption:"図版の内容",sourceUrl:"https://example.org/figure",note:"図版詳細の補足",citationIds:["s1"]}}],"図版開始 F1 " + "長い図版説明も折り返し、対象物と同じページに保ちます。".repeat(20),"center","normal","f1");
     const comparison=serializeImageBlock([{id:ids[0],comparisonLabel:"変更前",figureMetadata:{citationIds:["s2"]}},{id:ids[0],comparisonLabel:"変更後",figureMetadata:{citationIds:["s1"]}}],"比較終了 C1","center","comparison","cmp");

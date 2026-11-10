@@ -1,4 +1,5 @@
 "use strict";
+const { clickPaletteControl, closeFeaturePalette } = require("./feature-palette.e2e-support.js");
 
 const assert = require("node:assert/strict");
 const os = require("node:os");
@@ -12,8 +13,9 @@ async function verifyAxisTitles(page, { chart, waitForChartCancelCompletion, ste
   const noteTitle = "軸タイトル保存E2E";
   await page.locator("#titleInput").fill(noteTitle);
   await page.locator("#editor").fill("左右の軸タイトル");
-  await page.locator("#insertChartBtn").click();
+  await clickPaletteControl(page, "insertChartBtn", { keepOpen: true });
   await page.waitForFunction(() => document.activeElement?.getAttribute("aria-label") === "グラフ1のタイトル");
+  await closeFeaturePalette(page);
   const panel = page.locator(".chart-block-editor");
   const field = (name) => panel.locator('[data-chart-field="' + name + '"]');
   const action = (name) => panel.locator('[data-chart-action="' + name + '"]');

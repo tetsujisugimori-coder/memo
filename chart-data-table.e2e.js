@@ -1,4 +1,5 @@
 "use strict";
+const { clickPaletteControl, closeFeaturePalette } = require("./feature-palette.e2e-support.js");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
@@ -43,8 +44,9 @@ async function setup(page) {
   const previousId = await page.evaluate(() => currentId);
   await page.locator("#newBtn").click();
   await page.waitForFunction(id => currentId !== id && editor.value === "", previousId);
-  await page.locator("#insertChartBtn").click();
+  await clickPaletteControl(page, "insertChartBtn", { keepOpen: true });
   await page.waitForFunction(() => document.activeElement?.getAttribute("aria-label") === "グラフ1のタイトル");
+  await closeFeaturePalette(page);
   await paste(page); await confirm(page);
 }
 async function cells(page) {

@@ -212,7 +212,7 @@ test("ハイライト記法は通常文と日本語を黄色表示し、コー�
 
 test("蛍光ペンは既存の選択範囲編集とモバイル追加メニューを再利用する", () => {
   assert.match(html, /id="toggleHighlightBtn"[^>]*title="選択範囲を黄色でハイライト／解除"[^>]*aria-label="選択範囲を黄色でハイライトまたは解除"/);
-  assert.match(html, /data-mobile-editor-tool="toggleHighlightBtn">蛍光ペン<\/button>/);
+  assert.ok(require("./feature-palette.js").commands.some((command) => command.controlId === "toggleHighlightBtn"));
   assert.match(app, /editor\.setRangeText\(result\.value, result\.start, result\.end, "select"\)/);
   assert.match(app, /captureUndoSnapshot\(\{ inputType: "insertText" \}\)/);
   assert.match(app, /scheduleSave\(\);/);

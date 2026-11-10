@@ -2173,7 +2173,7 @@ function closeMobileWritingMenus(except = null) {
 }
 
 function canStartMobileWritingMode(note = currentNote()) {
-  return Boolean(layoutMode === "mobile" && !isPopoutWindow && note && !note.deletedAt);
+  return Boolean(layoutMode === "mobile" && !isPopoutWindow && note && !note.deletedAt && !editor.readOnly);
 }
 
 function setMobileWritingMode(open) {
@@ -2182,6 +2182,7 @@ function setMobileWritingMode(open) {
   const shouldOpen = Boolean(open && canStartMobileWritingMode(note));
   if (open && !shouldOpen) return false;
   if (!open && !wasOpen) return false;
+  if (!shouldOpen) featurePalette?.close();
   mobileWritingModeNoteId = shouldOpen ? note.id : null;
   document.body.classList.toggle("mobile-writing-mode", shouldOpen);
   if (shouldOpen) {
@@ -2201,6 +2202,7 @@ function setMobileWritingMode(open) {
     mobileWritingDoneBtn?.blur();
     if (restoreContextPanel) setContextPanelOpen(true, { restoreFocus: false, explicit: false });
   }
+  if (typeof featurePalette !== "undefined") featurePalette?.reposition();
   return shouldOpen;
 }
 
@@ -2478,6 +2480,17 @@ function noteConflictAttemptId(note) {
   return attempt.id;
 }
 
+// UI mutation boundary; does not grant a new CAS baseline or touch storage.
+function noteConflictEditingBlocked(noteId = currentId) {
+  return Boolean(noteId && noteConflictStates.has(noteId));
+}
+
+function rejectConflictEditing(noteId = currentId) {
+  if (!noteConflictEditingBlocked(noteId)) return false;
+  setSaveStatusNotice("競合原稿を保全しています。比較画面の「再編集」を選んでから変更してください。");
+  return true;
+}
+
 function noteConflictUiError(error) {
   setSaveStatusNotice(error?.message || "回復操作に失敗しました。原稿を保持して再試行してください。");
 }
@@ -2551,7 +2564,11 @@ async function renderNoteConflictUi() {
   const state = noteConflictStates.get(noteId);
   editor.readOnly = Boolean(state);
   titleInput.readOnly = Boolean(state);
-  if (state) setSaveStatus(state.preserved ? "conflict" : "preservation-error");
+  if (state) {
+    featurePalette?.close({ restoreFocus: false });
+    if (isMobileWritingMode()) setMobileWritingMode(false);
+    setSaveStatus(state.preserved ? "conflict" : "preservation-error");
+  }
   noteConflictUi.render({ noteId, state, drafts, committed, editing: noteConflictResolutions.has(noteId) });
 }
 
@@ -6648,6 +6665,7 @@ function snippet(body) {
 
 // 指定したidのメモをエディタに読み込みます。
 function openNote(id) {
+  if (typeof featurePalette !== "undefined") featurePalette?.close();
   if (noteSaveFoundation.isTerminal(id)) return;
   const previousId = currentId;
   if (typeof setMobileWritingMode === "function"
@@ -8271,6 +8289,7 @@ function pushUndoSnapshot(snapshot) {
 }
 
 function undoLastEdit() {
+  if (editor.readOnly) return false;
   if (!currentId) return;
 
   const index = undoStack.map((snapshot) => snapshot.noteId).lastIndexOf(currentId);
@@ -8294,6 +8313,7 @@ function undoLastEdit() {
 }
 
 function redoLastEdit() {
+  if (editor.readOnly) return false;
   if (!currentId) return;
   const index = redoStack.map((snapshot) => snapshot.noteId).lastIndexOf(currentId);
   if (index === -1) return;
@@ -8491,6 +8511,7 @@ function renderPreview() {
 }
 
 function commitSourceBody(nextBody) {
+  if (editor.readOnly) return false;
   if (!currentNote() || nextBody === editor.value) return;
   pushUndoSnapshot({ noteId: currentId, title: titleInput.value, body: editor.value, savedAt: Date.now() });
   redoStack = [];
@@ -8585,6 +8606,7 @@ function openSourceDialog() {
 
 function saveSourceFromForm(event) {
   event.preventDefault();
+  if (rejectConflictEditing()) return;
   if (sourceDialog.dataset.noteId !== currentId) return;
   if (sourceStorageEditingBlocked()) return;
   const sources = parseSourceDocument(editor.value).sources;
@@ -8933,6 +8955,7 @@ function openContentSourceEditor(kind, block, snapshotKey = null) {
   $("contentSourceDialog").showModal();
 }
 function saveContentSourceEditor() {
+  if (rejectConflictEditing()) return;
   const state = contentSourceEditState;
   if (!state || state.noteId !== currentId || state.originalBody !== editor.value || currentNote()?.deletedAt
     || (state.kind === "chart" && JSON.stringify(currentChartBlock(state.block.index, state.block.chart.id, state.snapshotKey)?.chart) !== state.signature)) {
@@ -8995,6 +9018,7 @@ function renderGeometryBlockEditors() {
 }
 
 function commitGeometryBlockChange(blockIndex, geometryId, nextGeometry) {
+  if (editor.readOnly) return false;
   const block = currentGeometryBlock(blockIndex, geometryId);
   if (!block) {
     renderGeometryBlockEditors();
@@ -9013,6 +9037,7 @@ function commitGeometryBlockChange(blockIndex, geometryId, nextGeometry) {
 }
 
 function removeGeometryBlock(blockIndex, geometryId) {
+  if (editor.readOnly) return false;
   const block = currentGeometryBlock(blockIndex, geometryId);
   if (!block) return;
   captureUndoSnapshot({ inputType: "deleteContentForward" });
@@ -9291,6 +9316,7 @@ function commitTableBlockChange(blockIndex, tableId, nextTable, {
   rerenderEditors = false,
   typingPerformanceMeasurement: performanceMeasurement = null
 } = {}) {
+  if (editor.readOnly) return false;
   const block = currentTableBlock(blockIndex, tableId);
   if (!block) return false;
   try {
@@ -9320,6 +9346,7 @@ function focusTableCell(tableId, rowIndex, columnIndex) {
 }
 
 function insertTableAtSelection() {
+  if (rejectConflictEditing()) return;
   if (!currentNote() || currentNote().deletedAt) return;
   const table = createTableBlock(crypto.randomUUID());
   const result = insertTableBlock(editor.value, editor.selectionStart, editor.selectionEnd, table);
@@ -9545,6 +9572,7 @@ function handleTableEditorAction(event) {
       next = normalizeTableBlock({ ...next, hasHeader: !next.hasHeader }, tableId);
       break;
     case "delete-table":
+      if (editor.readOnly) return;
       if (!confirm("この表ブロックを削除しますか？")) return;
       captureUndoSnapshot({ inputType: "deleteContentForward" });
       editor.value = replaceTableBlock(editor.value, block, null);
@@ -9617,6 +9645,7 @@ function cancelTableChartDraft() {
 }
 
 function insertPendingTableChart(chart, snapshotKey) {
+  if (editor.readOnly) return false;
   const pending = pendingTableChart;
   const matches = splitTableBlocks(editor.value).filter((entry) => entry.type === "table" && entry.table.id === pending?.tableId);
   if (!pending || pending.key !== snapshotKey || currentNote()?.id !== pending.noteId || currentNote()?.deletedAt
@@ -10960,6 +10989,7 @@ function renderChartBlockEditors() {
 globalThis.renderChartBlockEditors = renderChartBlockEditors;
 
 function commitChartBlockChange(blockIndex, chartId, nextChart, { rerenderEditors = false, snapshotKey = null, restoreRaw = null, confirmDraft = false } = {}) {
+  if (editor.readOnly) return false;
   const block = currentChartBlock(blockIndex, chartId, snapshotKey);
   if (!block) return false;
   const snapshot = chartEditorOriginalCharts.get(snapshotKey);
@@ -11300,6 +11330,7 @@ function handleChartEditorAction(event) {
       return;
     }
     case "delete-chart":
+      if (editor.readOnly) return;
       if (!confirm("このグラフブロックを削除しますか？")) return;
       captureUndoSnapshot({ inputType: "deleteContentForward" });
       editor.value = replaceChartBlock(editor.value, block, null);
@@ -11583,6 +11614,10 @@ function currentImageBlock(element) {
 }
 
 function commitImageBlockChange(block, images, caption, { alignment = block && block.alignment, displayMode = block && block.displayMode, throwOnError = false, undoBoundary = false } = {}) {
+  if (editor.readOnly) {
+    if (throwOnError) throw new Error("競合中のため画像変更を中止しました。");
+    return false;
+  }
   if (!block) return false;
   try {
     const nextBody = replaceImageBlock(editor.value, block, images, caption, alignment, displayMode);
@@ -11887,6 +11922,7 @@ function findPendingImageBlock(target) {
 }
 
 function validatePendingImageBlock(target) {
+  if (noteConflictEditingBlocked(target?.memoId)) throw new Error("競合中のため画像の挿入を中止しました。再編集後にやり直してください。");
   const block = findPendingImageBlock(target);
   if (!block || block.images.length >= 2) {
     throw new Error("画像ブロックが変更されたため2枚目を追加できませんでした");
@@ -12200,6 +12236,7 @@ async function addAttachmentFilesForNote(note, files, options) {
 }
 
 async function insertStoredImageReferences(attachments, options, noteId) {
+  if (noteConflictEditingBlocked(noteId)) throw new Error("競合中のため画像の挿入を中止しました。再編集後にやり直してください。");
   assertAttachmentNoteActive(noteId);
   if (currentId !== noteId) return;
   const result = insertAttachmentReferences(
@@ -12406,6 +12443,7 @@ function tableFileImportContextIsCurrent(context) {
   return Boolean(context)
     && context.requestId === tableFileImportRequestId
     && currentId === context.noteId
+    && !noteConflictEditingBlocked(context.noteId)
     && editor.value === context.editorValue
     && editor.selectionStart === context.selectionStart
     && editor.selectionEnd === context.selectionEnd
@@ -12600,6 +12638,7 @@ function pendingTablePasteIsCurrent(pending) {
   return Boolean(pending)
     && (!pending.fileImport || pending.fileImport.requestId === tableFileImportRequestId)
     && currentId === pending.noteId
+    && !noteConflictEditingBlocked(pending.noteId)
     && editor.value === pending.editorValue
     && editor.selectionStart === pending.selectionStart
     && editor.selectionEnd === pending.selectionEnd
@@ -12962,6 +13001,7 @@ function renderTimelineItemEditors() {
 }
 
 function saveTimelineEditor(remove = false) {
+  if (rejectConflictEditing()) return;
   const state = timelineEditState;
   if (!state || state.noteId !== currentId || state.originalBody !== editor.value) {
     $("timelineStatus").textContent = "メモが更新されました。キャンセルしてTimelineを開き直してください。";
@@ -17313,6 +17353,7 @@ function openCalculatorMemoFromSelection() {
 }
 
 function toggleHighlightAtSelection() {
+  if (rejectConflictEditing()) return;
   const result = toggleHighlightMarkdown(editor.value, editor.selectionStart, editor.selectionEnd);
   if (!result) return;
   captureUndoSnapshot({ inputType: "insertText" });
@@ -17323,6 +17364,7 @@ function toggleHighlightAtSelection() {
 }
 
 function insertCalloutAtSelection() {
+  if (rejectConflictEditing()) return;
   const type = calloutTypeSelect?.value || "NOTE";
   const start = editor.selectionStart;
   const end = editor.selectionEnd;
@@ -17392,6 +17434,7 @@ function openExplanationDialog(existing = null, selectionRange = null) {
 
 function saveExplanationFromDialog(event) {
   event.preventDefault();
+  if (rejectConflictEditing()) return;
   const note = currentNote();
   if (!note || !pendingExplanation || !explanationBodyInput.value.trim()) return;
   const explanations = normalizeExplanations(note);
@@ -17429,6 +17472,7 @@ function saveExplanationFromDialog(event) {
 }
 
 function deleteExplanation(id) {
+  if (editor.readOnly) return false;
   const note = currentNote();
   if (!note || !confirm("この解説カードを削除しますか？")) return;
   note.explanations = normalizeExplanations(note).filter((item) => item.id !== id);
@@ -17637,6 +17681,22 @@ if (attachmentDropZone) {
 }
 if (closeImagePreviewBtn) closeImagePreviewBtn.addEventListener("click", () => imagePreviewDialog.close());
 if (imagePreviewDialog) imagePreviewDialog.addEventListener("close", () => imagePreview.removeAttribute("src"));
+const featurePalette = globalThis.MemoNexusFeaturePalette?.create({
+  panel: $("featurePalette"),
+  triggers: [$("featurePaletteToggle"), $("mobileFeaturePaletteToggle")].filter(Boolean),
+  editor,
+  getNoteId: () => currentId,
+  beforeCommand: (controlId) => {
+    if (!["syntaxGuideBtn", "calculatorLinkBtn"].includes(controlId) && rejectConflictEditing()) return false;
+    if (isMobileWritingMode()) captureMobileEditorContext();
+    if (controlId === "focusNoteTagBtn") {
+      featurePalette.close();
+      setMobileWritingMode(false);
+    } else if (controlId === "aiSummarizeNoteBtn" || controlId === "aiSendSelectionBtn") {
+      featurePalette.close();
+    }
+  }
+});
 if (syntaxGuideBtn && syntaxGuideDialog) syntaxGuideBtn.addEventListener("click", openSyntaxGuide);
 focusNoteTagBtn?.addEventListener("click", focusNoteTagInput);
 if (insertTableBtn) insertTableBtn.addEventListener("click", insertTableAtSelection);

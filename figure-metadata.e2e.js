@@ -1,4 +1,5 @@
 "use strict";
+const { clickPaletteControl } = require("./feature-palette.e2e-support.js");
 
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
@@ -49,7 +50,7 @@ async function openFigureEditor(page) {
     const origin = `http://127.0.0.1:${server.address().port}`;
     const first = await openApp(browser, origin);
     const { page } = first;
-    await page.locator("#insertImageBlockBtn").click();
+    await clickPaletteControl(page, "insertImageBlockBtn");
     await page.locator("#imageBlockInput").setInputFiles({ name: "figure.png", mimeType: "image/png", buffer: image });
     await page.locator(".image-block").waitFor({ timeout: 8000 }).catch(async (error) => {
       console.error(await page.evaluate(() => ({ currentId, body: editor.value, attachmentStatus: document.querySelector("#attachmentStatus")?.textContent, pendingImageInsertTarget, errors: window.onerror })));

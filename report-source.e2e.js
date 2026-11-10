@@ -1,4 +1,5 @@
 "use strict";
+const { clickPaletteControl, closeFeaturePalette } = require("./feature-palette.e2e-support.js");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const http = require("node:http");
@@ -30,6 +31,7 @@ async function selectFigure(page,index=0,imageIndex=0) {
   await image.locator('.image-block-edit-figure').nth(imageIndex).click();return image.locator('.figure-metadata-editor');
 }
 async function selectBlock(page,kind,index=0) {
+  await closeFeaturePalette(page);
   await idle(page);const block=page.locator('.'+kind+'-block-editor').nth(index);
   if(kind==='table' && await block.locator('details').getAttribute('open')===null) await block.locator('summary').click();
   await block.getByRole('button',{name:'共通Sourceを選択',exact:true}).click();
@@ -55,7 +57,7 @@ async function verifyFenceSources(page,open) {
     const content='本文 [@s1]\n'+fence+'js\n未完成のコード';
     await fillBody(page,await page.evaluate(({content,known})=>withSources(content,known),{content,known}));
     assert.deepEqual((await state(page)).sources.map(s=>s.id),['s1'],'unclosed fence keeps registered Source');
-    await page.locator('#manageSourcesBtn').click();await page.locator('.source-list-item').first().getByRole('button',{name:'編集',exact:true}).click();
+    await clickPaletteControl(page, "manageSourcesBtn");await page.locator('.source-list-item').first().getByRole('button',{name:'編集',exact:true}).click();
     await page.locator('#sourceForm [name="title"]').fill('更新資料');const before=await state(page);
     await page.locator('#sourceForm button[type="submit"]').first().click();const edited=await saved(page);
     assert.equal(edited.sources[0].author,known[0].author);assert.equal(edited.sources[0].title,'更新資料');assert.equal(edited.undo,before.undo+1);
@@ -73,19 +75,19 @@ async function verifyFenceSources(page,open) {
       await fillBody(page,await page.evaluate(({content,known})=>withSources(content,known),{content,known}));
       assert.equal(await page.locator('#preview .citation-link').count(),outside?1:0,'only actual code-outside citation is visible');
       assert.deepEqual(await page.evaluate(()=>extractCitations(editor.value)),outside?['s1']:[]);
-      await page.locator('#manageSourcesBtn').click();await page.locator('.source-list-item').first().getByRole('button',{name:'削除',exact:true}).click();await saved(page);
+      await clickPaletteControl(page, "manageSourcesBtn");await page.locator('.source-list-item').first().getByRole('button',{name:'削除',exact:true}).click();await saved(page);
       if(outside){assert.equal(await page.locator('.source-list-item').count(),1);assert.match(await page.locator('#sourceStatus').innerText(),/参照されています/);}
       else assert.equal(await page.locator('.source-list-item').count(),0,'code-only reference allows deletion');
       await page.locator('#closeSourceDialogBtn').click();
     }
   }
   const ambiguous=await page.evaluate(known=>'本文 [@s1]\n~~~js\n未完\n'+window.MemoNexusSourceUtils.serializeSources(known),known);
-  await fillBody(page,ambiguous);const original=await state(page);await page.locator('#manageSourcesBtn').click();
+  await fillBody(page,ambiguous);const original=await state(page);await clickPaletteControl(page, "manageSourcesBtn");
   await page.locator('#sourceForm [name="title"]').fill('上書きしない資料');await page.locator('#sourceForm button[type="submit"]').first().click();
   assert.match(await page.locator('#sourceStatus').innerText(),/判別できません/);await page.locator('#closeSourceDialogBtn').click();assert.deepEqual(await state(page),original);
   const markerExample=await page.evaluate(known=>'~~~text\n'+window.MemoNexusSourceUtils.serializeSources(known)+'\n~~~',known);
-  await fillBody(page,markerExample);assert.equal((await state(page)).sources.length,0);await page.locator('#manageSourcesBtn').click();assert.equal(await page.locator('.source-list-item').count(),0);await page.locator('#closeSourceDialogBtn').click();
-  await page.locator('#insertImageBlockBtn').click();
+  await fillBody(page,markerExample);assert.equal((await state(page)).sources.length,0);await clickPaletteControl(page, "manageSourcesBtn");assert.equal(await page.locator('.source-list-item').count(),0);await page.locator('#closeSourceDialogBtn').click();
+  await clickPaletteControl(page, "insertImageBlockBtn");
   await page.locator('#imageBlockInput').setInputFiles({name:'fence-fixture.png',mimeType:'image/png',buffer:fs.readFileSync(path.join(__dirname,'e2e-artifacts/chart-png-example-light-390.png'))});
   await page.waitForFunction(()=>currentAttachments.length===1 && document.querySelector('#attachmentStatus')?.textContent.includes('追加しました'));await saved(page);
   const content=await page.evaluate(()=>serializeImageBlock([{id:currentAttachments[0].id,figureMetadata:{citationIds:['s1']}}])+'\n'+window.MemoNexusTableBlockUtils.serializeTableBlock({...createTableBlock('fence-refs'),citationIds:['s1','missing']})+'\n本文 [@s1]\n~~~js\n未完成のコード');
@@ -129,7 +131,7 @@ async function verifyFenceSources(page,open) {
     await page.locator('#titleInput').fill('Report Preview v1 検証用混在レポート');
     await page.locator('#editor').fill('以下は実在資料を示さない検証データです。');await saved(page);
     // Empty choices give a concrete path to the existing Source management dialog.
-    await page.locator('#insertTableBtn').click();await saved(page);
+    await clickPaletteControl(page, "insertTableBtn");await saved(page);
     let panel=await selectBlock(page,'table');
     assert.match(await panel.innerText(),/選択できるSourceがありません/);
     await panel.getByRole('button',{name:'編集を取消して出典を管理'}).click();
@@ -140,7 +142,7 @@ async function verifyFenceSources(page,open) {
       await page.locator('#sourceForm button[type="submit"]').first().click();await saved(page);
     }
     await page.locator('#closeSourceDialogBtn').click();
-    await page.locator('#insertImageBlockBtn').click();
+    await clickPaletteControl(page, "insertImageBlockBtn");
     const png=fs.readFileSync(path.join(root,'e2e-artifacts/chart-png-example-light-390.png'));
     await page.locator('#imageBlockInput').setInputFiles({name:'検証画像A.png',mimeType:'image/png',buffer:png});
     await page.locator(canonical+' img').first().waitFor().catch(async error=>{console.error(await page.evaluate(()=>({body:editor.value,status:document.querySelector('#attachmentStatus')?.textContent,attachments:currentAttachments.map(a=>({id:a.id,kind:a.kind})),pending:pendingImageInsertTarget})));console.error(errors);throw error;});await saved(page);
@@ -209,11 +211,11 @@ async function verifyFenceSources(page,open) {
         return withSources(block.raw,sources);
       },[kind,index]);
       await fillBody(page,isolated);const before=await state(page);
-      await page.locator('#manageSourcesBtn').click();await page.locator('.source-list-item').first().getByRole('button',{name:'削除',exact:true}).click();
+      await clickPaletteControl(page, "manageSourcesBtn");await page.locator('.source-list-item').first().getByRole('button',{name:'削除',exact:true}).click();
       await page.locator('#sourceStatus').getByText(/参照されています/).waitFor();await page.locator('#closeSourceDialogBtn').click();assert.deepEqual(await state(page),before);
       await fillBody(page,mixedBody);
     }
-    await page.locator('#manageSourcesBtn').click();await page.locator('.source-list-item').first().getByRole('button',{name:'編集',exact:true}).click();
+    await clickPaletteControl(page, "manageSourcesBtn");await page.locator('.source-list-item').first().getByRole('button',{name:'編集',exact:true}).click();
     await page.locator('#sourceForm [name="title"]').fill('更新済みの検証Source A（架空のテスト用）'+'長い資料名'.repeat(12));
     await page.locator('#sourceForm button[type="submit"]').first().click();await page.locator('#closeSourceDialogBtn').click();await saved(page);
     assert.match(await page.locator('.report-sources').innerText(),/更新済み/);
@@ -322,7 +324,7 @@ async function verifyFenceSources(page,open) {
     }
     // Direct body removal releases references and cannot reconnect to the remaining metadata.
     await fillBody(page,await page.evaluate(()=>withSources('全ブロックを削除した検証',parseSourceDocument(editor.value).sources)));
-    await page.locator('#manageSourcesBtn').click();await page.locator('.source-list-item').first().getByRole('button',{name:'削除',exact:true}).click();await saved(page);
+    await clickPaletteControl(page, "manageSourcesBtn");await page.locator('.source-list-item').first().getByRole('button',{name:'削除',exact:true}).click();await saved(page);
     assert.equal(await page.locator('.source-list-item').count(),2);assert.deepEqual(errors,[]);
     console.log('Report Source E2E passed ('+engine+'): selectors, cancel, history, live sources, duplicates, conversion, mixed rendering, PC/320, real ZIP restore');
     await page.context().close();

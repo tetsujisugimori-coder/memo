@@ -1,4 +1,5 @@
 "use strict";
+const { clickPaletteControl } = require("./feature-palette.e2e-support.js");
 const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),http=require('node:http'),os=require('node:os');
 const {spawnSync}=require('node:child_process');
 const playwright=require('playwright');
@@ -34,7 +35,7 @@ async function ready(page){await page.evaluate(async()=>{await attachmentRenderP
         await page.goto(`http://127.0.0.1:${server.address().port}`);await page.locator('#appStartupGuard').waitFor({state:'hidden'});
         // Fixed repository assets; missing inputs fail rather than regenerating a baseline.
         for(const [key] of assets){const file=path.join(assetDir,key+'.png');assert.ok(fs.existsSync(file),'Missing fixed asset '+file);
-          await page.locator('#insertImageBlockBtn').click();await page.locator('#imageBlockInput').setInputFiles(file);await page.waitForFunction(name=>currentAttachments.some(a=>a.fileName===name),key+'.png');await page.evaluate(()=>flushSave());await idle(page);
+          await clickPaletteControl(page, "insertImageBlockBtn");await page.locator('#imageBlockInput').setInputFiles(file);await page.waitForFunction(name=>currentAttachments.some(a=>a.fileName===name),key+'.png');await page.evaluate(()=>flushSave());await idle(page);
         }
         const ids=await page.evaluate(()=>Object.fromEntries(currentAttachments.map(a=>[a.fileName.replace('.png',''),a.id])));
         result.originalIds={...ids};
