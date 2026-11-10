@@ -1,0 +1,26 @@
+{
+  "testedHead": "e2f434e5c5c9d799158509fbea0294b7b4c47fcb",
+  "startedAt": "2026-11-06T12:16:49.112Z",
+  "playwright": "1.62.1",
+  "platform": "win32",
+  "cases": [
+    {
+      "browser": "chromium",
+      "status": "FAIL",
+      "error": "AssertionError [ERR_ASSERTION]: guide horizontal overflow\n    at guideCase (C:\\Users\\tetsu\\Documents\\Codex\\メモ帳\\work\\storage-guide-ci-tab-followup-20261106\\storage-guide.e2e.cjs:119:12)\n    at async runGuideSuite (C:\\Users\\tetsu\\Documents\\Codex\\メモ帳\\work\\storage-guide-ci-tab-followup-20261106\\storage-guide.e2e.cjs:254:63)"
+    },
+    {
+      "browser": "webkit",
+      "status": "FAIL",
+      "error": "AssertionError [ERR_ASSERTION]: guide horizontal overflow\n    at guideCase (C:\\Users\\tetsu\\Documents\\Codex\\メモ帳\\work\\storage-guide-ci-tab-followup-20261106\\storage-guide.e2e.cjs:119:12)\n    at async runGuideSuite (C:\\Users\\tetsu\\Documents\\Codex\\メモ帳\\work\\storage-guide-ci-tab-followup-20261106\\storage-guide.e2e.cjs:254:63)"
+    }
+  ],
+  "limitations": [
+    "Real iPhone/Safari/PWA: NOT_TESTED",
+    "Real user data, MCP, OAuth, Worker stop, IDB stop: NOT_TESTED (prohibited)",
+    "External CDN behavior: NOT_TESTED (fulfilled locally in app regression)"
+  ],
+  "finishedAt": "2026-11-06T12:16:51.131Z",
+  "expectedCases": 20,
+  "status": "FAIL"
+}

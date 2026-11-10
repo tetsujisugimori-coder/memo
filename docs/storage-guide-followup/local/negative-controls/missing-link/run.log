@@ -1,0 +1,16 @@
+{
+  "status": "FAIL",
+  "head": "e2f434e5c5c9d799158509fbea0294b7b4c47fcb",
+  "cases": [
+    {
+      "browser": "chromium",
+      "status": "FAIL",
+      "error": "AssertionError [ERR_ASSERTION]: guide anchor #backup missing\n\n0 !== 1\n\n    at guideCase (C:\\Users\\tetsu\\Documents\\Codex\\メモ帳\\work\\storage-guide-ci-tab-followup-20261106\\storage-guide.e2e.cjs:114:14)\n    at async runGuideSuite (C:\\Users\\tetsu\\Documents\\Codex\\メモ帳\\work\\storage-guide-ci-tab-followup-20261106\\storage-guide.e2e.cjs:254:63)"
+    },
+    {
+      "browser": "webkit",
+      "status": "FAIL",
+      "error": "AssertionError [ERR_ASSERTION]: guide anchor #backup missing\n\n0 !== 1\n\n    at guideCase (C:\\Users\\tetsu\\Documents\\Codex\\メモ帳\\work\\storage-guide-ci-tab-followup-20261106\\storage-guide.e2e.cjs:114:14)\n    at async runGuideSuite (C:\\Users\\tetsu\\Documents\\Codex\\メモ帳\\work\\storage-guide-ci-tab-followup-20261106\\storage-guide.e2e.cjs:254:63)"
+    }
+  ]
+}

@@ -1,0 +1,2635 @@
+{
+  "testedHead": "e2f434e5c5c9d799158509fbea0294b7b4c47fcb",
+  "startedAt": "2026-11-06T12:16:52.743Z",
+  "platform": "win32",
+  "browsers": [
+    {
+      "browser": "chromium",
+      "checks": [
+        {
+          "number": 1,
+          "expected": "Two tabs share one ephemeral context and origin",
+          "actual": {
+            "pages": 2,
+            "origins": [
+              "http://127.0.0.1:54369",
+              "http://127.0.0.1:54369"
+            ]
+          },
+          "status": "PASS"
+        },
+        {
+          "number": 2,
+          "expected": "Both UI tabs display the same synthetic note",
+          "actual": {
+            "firstId": "a14ad24b-dd06-4084-973b-3b60aa3023db",
+            "secondId": "a14ad24b-dd06-4084-973b-3b60aa3023db",
+            "body": "lineA=base\nlineB=base"
+          },
+          "status": "PASS"
+        },
+        {
+          "number": 3,
+          "expected": "Single writer saves through normal UI autosave",
+          "actual": {
+            "at": 1793967414746,
+            "currentId": "a14ad24b-dd06-4084-973b-3b60aa3023db",
+            "title": "複数タブ隔離試験428",
+            "editor": "lineA=single\nlineB=base",
+            "stored": {
+              "id": "a14ad24b-dd06-4084-973b-3b60aa3023db",
+              "title": "複数タブ隔離試験428",
+              "body": "lineA=single\nlineB=base",
+              "collectionId": "system-unclassified",
+              "deletedAt": null,
+              "createdAt": 1793967413770,
+              "bodyUpdatedAt": 1793967414442,
+              "updatedAt": 1793967414442,
+              "revision": 4,
+              "isFlagged": false,
+              "tags": [],
+              "explanations": []
+            },
+            "save": {
+              "noteId": "a14ad24b-dd06-4084-973b-3b60aa3023db",
+              "currentRevision": 4,
+              "lastSavedRevision": 4,
+              "dirty": false,
+              "status": "saved",
+              "activeRevision": null,
+              "pendingRevision": null,
+              "lastError": null
+            },
+            "badge": "◉ ブラウザ 保存済み",
+            "badgeState": "saved",
+            "pending": null,
+            "notice": "",
+            "messages": []
+          },
+          "status": "PASS"
+        },
+        {
+          "number": 4,
+          "expected": "Clean second tab reflects stored content and saved state",
+          "actual": {
+            "at": 1793967414756,
+            "currentId": "a14ad24b-dd06-4084-973b-3b60aa3023db",
+            "title": "複数タブ隔離試験428",
+            "editor": "lineA=single\nlineB=base",
+            "stored": {
+              "id": "a14ad24b-dd06-4084-973b-3b60aa3023db",
+              "title": "複数タブ隔離試験428",
+              "body": "lineA=single\nlineB=base",
+              "collectionId": "system-unclassified",
+              "deletedAt": null,
+              "createdAt": 1793967413770,
+              "bodyUpdatedAt": 1793967414442,
+              "updatedAt": 1793967414442,
+              "revision": 4,
+              "isFlagged": false,
+              "tags": [],
+              "explanations": []
+            },
+            "save": {
+              "noteId": "a14ad24b-dd06-4084-973b-3b60aa3023db",
+              "currentRevision": 4,
+              "lastSavedRevision": 4,
+              "dirty": false,
+              "status": "saved",
+              "activeRevision": null,
+              "pendingRevision": null,
+              "lastError": null
+            },
+            "badge": "◉ ブラウザ 保存済み",
+            "badgeState": "saved",
+            "pending": null,
+            "notice": "",
+            "messages": [
+              {
+                "at": 1793967414731,
+                "message": {
+                  "type": "memo-changed",
+                  "memoId": "a14ad24b-dd06-4084-973b-3b60aa3023db",
+                  "updatedAt": 1793967414442,
+                  "deletedAt": null
+                }
+              }
+            ]
+          },
+          "status": "PASS"
+        },
+        {
+          "number": 5,
+          "expected": "Both independent line edits survive in storage after staggered overlapping drafts",
+          "actual": {
+            "baseline": "lineA=single\nlineB=sequential",
+            "before": [
+              {
+                "at": 1793967415442,
+                "currentId": "a14ad24b-dd06-4084-973b-3b60aa3023db",
+                "title": "複数タブ隔離試験428",
+                "editor": "lineA=overlap-A\nlineB=sequential",
+                "stored": {
+                  "id": "a14ad24b-dd06-4084-973b-3b60aa3023db",
+                  "title": "複数タブ隔離試験428",
+                  "body": "lineA=single\nlineB=sequential",
+                  "collectionId": "system-unclassified",
+                  "deletedAt": null,
+                  "createdAt": 1793967413770,
+                  "bodyUpdatedAt": 1793967414762,
+                  "updatedAt": 1793967414762,
+                  "revision": 5,
+                  "isFlagged": false,
+                  "tags": [],
+                  "explanations": []
+                },
+                "save": {
+                  "noteId": "a14ad24b-dd06-4084-973b-3b60aa3023db",
+                  "currentRevision": 6,
+                  "lastSavedRevision": 5,
+                  "dirty": true,
+                  "status": "dirty",
+                  "activeRevision": null,
+                  "pendingRevision": null,
+                  "lastError": null
+                },
+                "badge": "◉ ブラウザ 編集あり",
+                "badgeState": "editing",
+                "pending": null,
+                "notice": "",
+                "messages": [
+                  {
+                    "at": 1793967415057,
+                    "message": {
+                      "type": "memo-changed",
+                      "memoId": "a14ad24b-dd06-4084-973b-3b60aa3023db",
+                      "updatedAt": 1793967414762,
+                      "deletedAt": null
+                    }
+                  }
+                ]
+              },
+              {
+                "at": 1793967415446,
+                "currentId": "a14ad24b-dd06-4084-973b-3b60aa3023db",
+                "title": "複数タブ隔離試験428",
+                "editor": "lineA=single\nlineB=overlap-B",
+                "stored": {
+                  "id": "a14ad24b-dd06-4084-973b-3b60aa3023db",
+                  "title": "複数タブ隔離試験428",
+                  "body": "lineA=single\nlineB=sequential",
+                  "collectionId": "system-unclassified",
+                  "deletedAt": null,
+                  "createdAt": 1793967413770,
+                  "bodyUpdatedAt": 1793967414762,
+                  "updatedAt": 1793967414762,
+                  "revision": 5,
+                  "isFlagged": false,
+                  "tags": [],
+                  "explanations": []
+                },
+                "save": {
+                  "noteId": "a14ad24b-dd06-4084-973b-3b60aa3023db",
+                  "currentRevision": 6,
+                  "lastSavedRevision": 5,
+                  "dirty": true,
+                  "status": "dirty",
+                  "activeRevision": null,
+                  "pendingRevision": null,
+                  "lastError": null
+                },
+                "badge": "◉ ブラウザ 編集あり",
+                "badgeState": "editing",
+                "pending": null,
+                "notice": "",
+                "messages": [
+                  {
+                    "at": 1793967414731,
+                    "message": {
+                      "type": "memo-changed",
+                      "memoId": "a14ad24b-dd06-4084-973b-3b60aa3023db",
+                      "updatedAt": 1793967414442,
+                      "deletedAt": null
+                    }
+                  }
+                ]
+              }
+            ],
+            "after": [
+              {
+                "at": 1793967416257,
+                "currentId": "a14ad24b-dd06-4084-973b-3b60aa3023db",
+                "title": "複数タブ隔離試験428",
+                "editor": "lineA=single\nlineB=overlap-B",
+                "stored": {
+                  "id": "a14ad24b-dd06-4084-973b-3b60aa3023db",
+                  "title": "複数タブ隔離試験428",
+                  "body": "lineA=single\nlineB=overlap-B",
+                  "collectionId": "system-unclassified",
+                  "deletedAt": null,
+                  "createdAt": 1793967413770,
+                  "bodyUpdatedAt": 1793967415440,
+                  "updatedAt": 1793967415440,
+                  "revision": 6,
+                  "isFlagged": false,
+                  "tags": [],
+                  "explanations": []
+                },
+                "save": {
+                  "noteId": "a14ad24b-dd06-4084-973b-3b60aa3023db",
+                  "currentRevision": 6,
+                  "lastSavedRevision": 6,
+                  "dirty": false,
+                  "status": "saved",
+                  "activeRevision": null,
+                  "pendingRevision": null,
+                  "lastError": null
+                },
+                "badge": "◉ ブラウザ 保存済み",
+                "badgeState": "saved",
+                "pending": null,
+                "notice": "",
+                "messages": [
+                  {
+                    "at": 1793967415057,
+                    "message": {
+                      "type": "memo-changed",
+                      "memoId": "a14ad24b-dd06-4084-973b-3b60aa3023db",
+                      "updatedAt": 1793967414762,
+                      "deletedAt": null
+                    }
+                  },
+                  {
+                    "at": 1793967415725,
+                    "message": {
+                      "type": "memo-changed",
+                      "memoId": "a14ad24b-dd06-4084-973b-3b60aa3023db",
+                      "updatedAt": 1793967415440,
+                      "deletedAt": null
+                    }
+                  }
+                ]
+              },
+              {
+                "at": 1793967416261,
+                "currentId": "a14ad24b-dd06-4084-973b-3b60aa3023db",
+                "title": "複数タブ隔離試験428",
+                "editor": "lineA=single\nlineB=overlap-B",
+                "stored": {
+                  "id": "a14ad24b-dd06-4084-973b-3b60aa3023db",
+                  "title": "複数タブ隔離試験428",
+                  "body": "lineA=single\nlineB=overlap-B",
+                  "collectionId": "system-unclassified",
+                  "deletedAt": null,
+                  "createdAt": 1793967413770,
+                  "bodyUpdatedAt": 1793967415440,
+                  "updatedAt": 1793967415440,
+                  "revision": 6,
+                  "isFlagged": false,
+                  "tags": [],
+                  "explanations": []
+                },
+                "save": {
+                  "noteId": "a14ad24b-dd06-4084-973b-3b60aa3023db",
+                  "currentRevision": 6,
+                  "lastSavedRevision": 6,
+                  "dirty": false,
+                  "status": "saved",
+                  "activeRevision": null,
+                  "pendingRevision": null,
+                  "lastError": null
+                },
+                "badge": "◉ ブラウザ 保存済み",
+                "badgeState": "saved",
+                "pending": null,
+                "notice": "",
+                "messages": [
+                  {
+                    "at": 1793967414731,
+                    "message": {
+                      "type": "memo-changed",
+                      "memoId": "a14ad24b-dd06-4084-973b-3b60aa3023db",
+                      "updatedAt": 1793967414442,
+                      "deletedAt": null
+                    }
+                  },
+                  {
+                    "at": 1793967415724,
+                    "message": {
+                      "type": "memo-changed",
+                      "memoId": "a14ad24b-dd06-4084-973b-3b60aa3023db",
+                      "updatedAt": 1793967415435,
+                      "deletedAt": null
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          "status": "FAIL"
+        },
+        {
+          "number": 6,
+          "expected": "Saved UI content agrees with the stored record in both tabs",
+          "actual": [
+            {
+              "editor": "lineA=single\nlineB=overlap-B",
+              "stored": {
+                "id": "a14ad24b-dd06-4084-973b-3b60aa3023db",
+                "title": "複数タブ隔離試験428",
+                "body": "lineA=single\nlineB=overlap-B",
+                "collectionId": "system-unclassified",
+                "deletedAt": null,
+                "createdAt": 1793967413770,
+                "bodyUpdatedAt": 1793967415440,
+                "updatedAt": 1793967415440,
+                "revision": 6,
+                "isFlagged": false,
+                "tags": [],
+                "explanations": []
+              },
+              "badge": "◉ ブラウザ 保存済み",
+              "pending": null
+            },
+            {
+              "editor": "lineA=single\nlineB=overlap-B",
+              "stored": {
+                "id": "a14ad24b-dd06-4084-973b-3b60aa3023db",
+                "title": "複数タブ隔離試験428",
+                "body": "lineA=single\nlineB=overlap-B",
+                "collectionId": "system-unclassified",
+                "deletedAt": null,
+                "createdAt": 1793967413770,
+                "bodyUpdatedAt": 1793967415440,
+                "updatedAt": 1793967415440,
+                "revision": 6,
+                "isFlagged": false,
+                "tags": [],
+                "explanations": []
+              },
+              "badge": "◉ ブラウザ 保存済み",
+              "pending": null
+            }
+          ],
+          "status": "PASS"
+        },
+        {
+          "number": 7,
+          "expected": "Missing edits are not silently reported saved without warning or a blocked save",
+          "actual": {
+            "bothEditsPreserved": false,
+            "warnedOrBlocked": false,
+            "notices": [
+              "",
+              ""
+            ],
+            "pending": [
+              null,
+              null
+            ],
+            "dirty": [
+              false,
+              false
+            ]
+          },
+          "status": "FAIL"
+        },
+        {
+          "number": 8,
+          "expected": "Reload keeps both edits and displays the persisted record",
+          "actual": [
+            {
+              "at": 1793967418231,
+              "currentId": "a14ad24b-dd06-4084-973b-3b60aa3023db",
+              "title": "複数タブ隔離試験428",
+              "editor": "lineA=single\nlineB=overlap-B",
+              "stored": {
+                "id": "a14ad24b-dd06-4084-973b-3b60aa3023db",
+                "title": "複数タブ隔離試験428",
+                "body": "lineA=single\nlineB=overlap-B",
+                "collectionId": "system-unclassified",
+                "deletedAt": null,
+                "createdAt": 1793967413770,
+                "bodyUpdatedAt": 1793967417428,
+                "updatedAt": 1793967418109,
+                "revision": 8,
+                "isFlagged": false,
+                "tags": [],
+                "explanations": []
+              },
+              "save": {
+                "noteId": "a14ad24b-dd06-4084-973b-3b60aa3023db",
+                "currentRevision": 8,
+                "lastSavedRevision": 8,
+                "dirty": false,
+                "status": "saved",
+                "activeRevision": null,
+                "pendingRevision": null,
+                "lastError": null
+              },
+              "badge": "◉ ブラウザ 保存済み",
+              "badgeState": "saved",
+              "pending": null,
+              "notice": "",
+              "messages": []
+            },
+            {
+              "at": 1793967418242,
+              "currentId": "a14ad24b-dd06-4084-973b-3b60aa3023db",
+              "title": "複数タブ隔離試験428",
+              "editor": "lineA=single\nlineB=overlap-B",
+              "stored": {
+                "id": "a14ad24b-dd06-4084-973b-3b60aa3023db",
+                "title": "複数タブ隔離試験428",
+                "body": "lineA=single\nlineB=overlap-B",
+                "collectionId": "system-unclassified",
+                "deletedAt": null,
+                "createdAt": 1793967413770,
+                "bodyUpdatedAt": 1793967417428,
+                "updatedAt": 1793967418109,
+                "revision": 8,
+                "isFlagged": false,
+                "tags": [],
+                "explanations": []
+              },
+              "save": {
+                "noteId": "a14ad24b-dd06-4084-973b-3b60aa3023db",
+                "currentRevision": 8,
+                "lastSavedRevision": 8,
+                "dirty": false,
+                "status": "saved",
+                "activeRevision": null,
+                "pendingRevision": null,
+                "lastError": null
+              },
+              "badge": "◉ ブラウザ 保存済み",
+              "badgeState": "saved",
+              "pending": null,
+              "notice": "前回の編集中メモを復元しました",
+              "messages": []
+            }
+          ],
+          "status": "FAIL"
+        },
+        {
+          "number": 9,
+          "expected": "Reading guide changes no IDB store/localStorage/sessionStorage in either app tab",
+          "actual": {
+            "unchanged": true,
+            "appTabs": 2
+          },
+          "status": "PASS"
+        },
+        {
+          "number": 10,
+          "expected": "Direct visitor can navigate in the same tab; closing guide leaves original app tabs",
+          "actual": {
+            "directPages": 1,
+            "originalPages": 2
+          },
+          "status": "PASS"
+        }
+      ],
+      "observations": {
+        "singleWriter": {
+          "at": 1793967414746,
+          "currentId": "a14ad24b-dd06-4084-973b-3b60aa3023db",
+          "title": "複数タブ隔離試験428",
+          "editor": "lineA=single\nlineB=base",
+          "stored": {
+            "id": "a14ad24b-dd06-4084-973b-3b60aa3023db",
+            "title": "複数タブ隔離試験428",
+            "body": "lineA=single\nlineB=base",
+            "collectionId": "system-unclassified",
+            "deletedAt": null,
+            "createdAt": 1793967413770,
+            "bodyUpdatedAt": 1793967414442,
+            "updatedAt": 1793967414442,
+            "revision": 4,
+            "isFlagged": false,
+            "tags": [],
+            "explanations": []
+          },
+          "save": {
+            "noteId": "a14ad24b-dd06-4084-973b-3b60aa3023db",
+            "currentRevision": 4,
+            "lastSavedRevision": 4,
+            "dirty": false,
+            "status": "saved",
+            "activeRevision": null,
+            "pendingRevision": null,
+            "lastError": null
+          },
+          "badge": "◉ ブラウザ 保存済み",
+          "badgeState": "saved",
+          "pending": null,
+          "notice": "",
+          "messages": []
+        },
+        "sequential": [
+          {
+            "at": 1793967415068,
+            "currentId": "a14ad24b-dd06-4084-973b-3b60aa3023db",
+            "title": "複数タブ隔離試験428",
+            "editor": "lineA=single\nlineB=sequential",
+            "stored": {
+              "id": "a14ad24b-dd06-4084-973b-3b60aa3023db",
+              "title": "複数タブ隔離試験428",
+              "body": "lineA=single\nlineB=sequential",
+              "collectionId": "system-unclassified",
+              "deletedAt": null,
+              "createdAt": 1793967413770,
+              "bodyUpdatedAt": 1793967414762,
+              "updatedAt": 1793967414762,
+              "revision": 5,
+              "isFlagged": false,
+              "tags": [],
+              "explanations": []
+            },
+            "save": {
+              "noteId": "a14ad24b-dd06-4084-973b-3b60aa3023db",
+              "currentRevision": 5,
+              "lastSavedRevision": 5,
+              "dirty": false,
+              "status": "saved",
+              "activeRevision": null,
+              "pendingRevision": null,
+              "lastError": null
+            },
+            "badge": "◉ ブラウザ 保存済み",
+            "badgeState": "saved",
+            "pending": null,
+            "notice": "",
+            "messages": [
+              {
+                "at": 1793967415057,
+                "message": {
+                  "type": "memo-changed",
+                  "memoId": "a14ad24b-dd06-4084-973b-3b60aa3023db",
+                  "updatedAt": 1793967414762,
+                  "deletedAt": null
+                }
+              }
+            ]
+          },
+          {
+            "at": 1793967415069,
+            "currentId": "a14ad24b-dd06-4084-973b-3b60aa3023db",
+            "title": "複数タブ隔離試験428",
+            "editor": "lineA=single\nlineB=sequential",
+            "stored": {
+              "id": "a14ad24b-dd06-4084-973b-3b60aa3023db",
+              "title": "複数タブ隔離試験428",
+              "body": "lineA=single\nlineB=sequential",
+              "collectionId": "system-unclassified",
+              "deletedAt": null,
+              "createdAt": 1793967413770,
+              "bodyUpdatedAt": 1793967414762,
+              "updatedAt": 1793967414762,
+              "revision": 5,
+              "isFlagged": false,
+              "tags": [],
+              "explanations": []
+            },
+            "save": {
+              "noteId": "a14ad24b-dd06-4084-973b-3b60aa3023db",
+              "currentRevision": 5,
+              "lastSavedRevision": 5,
+              "dirty": false,
+              "status": "saved",
+              "activeRevision": null,
+              "pendingRevision": null,
+              "lastError": null
+            },
+            "badge": "◉ ブラウザ 保存済み",
+            "badgeState": "saved",
+            "pending": null,
+            "notice": "",
+            "messages": [
+              {
+                "at": 1793967414731,
+                "message": {
+                  "type": "memo-changed",
+                  "memoId": "a14ad24b-dd06-4084-973b-3b60aa3023db",
+                  "updatedAt": 1793967414442,
+                  "deletedAt": null
+                }
+              }
+            ]
+          }
+        ],
+        "overlapDirty": [
+          {
+            "at": 1793967415442,
+            "currentId": "a14ad24b-dd06-4084-973b-3b60aa3023db",
+            "title": "複数タブ隔離試験428",
+            "editor": "lineA=overlap-A\nlineB=sequential",
+            "stored": {
+              "id": "a14ad24b-dd06-4084-973b-3b60aa3023db",
+              "title": "複数タブ隔離試験428",
+              "body": "lineA=single\nlineB=sequential",
+              "collectionId": "system-unclassified",
+              "deletedAt": null,
+              "createdAt": 1793967413770,
+              "bodyUpdatedAt": 1793967414762,
+              "updatedAt": 1793967414762,
+              "revision": 5,
+              "isFlagged": false,
+              "tags": [],
+              "explanations": []
+            },
+            "save": {
+              "noteId": "a14ad24b-dd06-4084-973b-3b60aa3023db",
+              "currentRevision": 6,
+              "lastSavedRevision": 5,
+              "dirty": true,
+              "status": "dirty",
+              "activeRevision": null,
+              "pendingRevision": null,
+              "lastError": null
+            },
+            "badge": "◉ ブラウザ 編集あり",
+            "badgeState": "editing",
+            "pending": null,
+            "notice": "",
+            "messages": [
+              {
+                "at": 1793967415057,
+                "message": {
+                  "type": "memo-changed",
+                  "memoId": "a14ad24b-dd06-4084-973b-3b60aa3023db",
+                  "updatedAt": 1793967414762,
+                  "deletedAt": null
+                }
+              }
+            ]
+          },
+          {
+            "at": 1793967415446,
+            "currentId": "a14ad24b-dd06-4084-973b-3b60aa3023db",
+            "title": "複数タブ隔離試験428",
+            "editor": "lineA=single\nlineB=overlap-B",
+            "stored": {
+              "id": "a14ad24b-dd06-4084-973b-3b60aa3023db",
+              "title": "複数タブ隔離試験428",
+              "body": "lineA=single\nlineB=sequential",
+              "collectionId": "system-unclassified",
+              "deletedAt": null,
+              "createdAt": 1793967413770,
+              "bodyUpdatedAt": 1793967414762,
+              "updatedAt": 1793967414762,
+              "revision": 5,
+              "isFlagged": false,
+              "tags": [],
+              "explanations": []
+            },
+            "save": {
+              "noteId": "a14ad24b-dd06-4084-973b-3b60aa3023db",
+              "currentRevision": 6,
+              "lastSavedRevision": 5,
+              "dirty": true,
+              "status": "dirty",
+              "activeRevision": null,
+              "pendingRevision": null,
+              "lastError": null
+            },
+            "badge": "◉ ブラウザ 編集あり",
+            "badgeState": "editing",
+            "pending": null,
+            "notice": "",
+            "messages": [
+              {
+                "at": 1793967414731,
+                "message": {
+                  "type": "memo-changed",
+                  "memoId": "a14ad24b-dd06-4084-973b-3b60aa3023db",
+                  "updatedAt": 1793967414442,
+                  "deletedAt": null
+                }
+              }
+            ]
+          }
+        ],
+        "overlapSaved": [
+          {
+            "at": 1793967416257,
+            "currentId": "a14ad24b-dd06-4084-973b-3b60aa3023db",
+            "title": "複数タブ隔離試験428",
+            "editor": "lineA=single\nlineB=overlap-B",
+            "stored": {
+              "id": "a14ad24b-dd06-4084-973b-3b60aa3023db",
+              "title": "複数タブ隔離試験428",
+              "body": "lineA=single\nlineB=overlap-B",
+              "collectionId": "system-unclassified",
+              "deletedAt": null,
+              "createdAt": 1793967413770,
+              "bodyUpdatedAt": 1793967415440,
+              "updatedAt": 1793967415440,
+              "revision": 6,
+              "isFlagged": false,
+              "tags": [],
+              "explanations": []
+            },
+            "save": {
+              "noteId": "a14ad24b-dd06-4084-973b-3b60aa3023db",
+              "currentRevision": 6,
+              "lastSavedRevision": 6,
+              "dirty": false,
+              "status": "saved",
+              "activeRevision": null,
+              "pendingRevision": null,
+              "lastError": null
+            },
+            "badge": "◉ ブラウザ 保存済み",
+            "badgeState": "saved",
+            "pending": null,
+            "notice": "",
+            "messages": [
+              {
+                "at": 1793967415057,
+                "message": {
+                  "type": "memo-changed",
+                  "memoId": "a14ad24b-dd06-4084-973b-3b60aa3023db",
+                  "updatedAt": 1793967414762,
+                  "deletedAt": null
+                }
+              },
+              {
+                "at": 1793967415725,
+                "message": {
+                  "type": "memo-changed",
+                  "memoId": "a14ad24b-dd06-4084-973b-3b60aa3023db",
+                  "updatedAt": 1793967415440,
+                  "deletedAt": null
+                }
+              }
+            ]
+          },
+          {
+            "at": 1793967416261,
+            "currentId": "a14ad24b-dd06-4084-973b-3b60aa3023db",
+            "title": "複数タブ隔離試験428",
+            "editor": "lineA=single\nlineB=overlap-B",
+            "stored": {
+              "id": "a14ad24b-dd06-4084-973b-3b60aa3023db",
+              "title": "複数タブ隔離試験428",
+              "body": "lineA=single\nlineB=overlap-B",
+              "collectionId": "system-unclassified",
+              "deletedAt": null,
+              "createdAt": 1793967413770,
+              "bodyUpdatedAt": 1793967415440,
+              "updatedAt": 1793967415440,
+              "revision": 6,
+              "isFlagged": false,
+              "tags": [],
+              "explanations": []
+            },
+            "save": {
+              "noteId": "a14ad24b-dd06-4084-973b-3b60aa3023db",
+              "currentRevision": 6,
+              "lastSavedRevision": 6,
+              "dirty": false,
+              "status": "saved",
+              "activeRevision": null,
+              "pendingRevision": null,
+              "lastError": null
+            },
+            "badge": "◉ ブラウザ 保存済み",
+            "badgeState": "saved",
+            "pending": null,
+            "notice": "",
+            "messages": [
+              {
+                "at": 1793967414731,
+                "message": {
+                  "type": "memo-changed",
+                  "memoId": "a14ad24b-dd06-4084-973b-3b60aa3023db",
+                  "updatedAt": 1793967414442,
+                  "deletedAt": null
+                }
+              },
+              {
+                "at": 1793967415724,
+                "message": {
+                  "type": "memo-changed",
+                  "memoId": "a14ad24b-dd06-4084-973b-3b60aa3023db",
+                  "updatedAt": 1793967415435,
+                  "deletedAt": null
+                }
+              }
+            ]
+          }
+        ],
+        "reloaded": [
+          {
+            "at": 1793967418231,
+            "currentId": "a14ad24b-dd06-4084-973b-3b60aa3023db",
+            "title": "複数タブ隔離試験428",
+            "editor": "lineA=single\nlineB=overlap-B",
+            "stored": {
+              "id": "a14ad24b-dd06-4084-973b-3b60aa3023db",
+              "title": "複数タブ隔離試験428",
+              "body": "lineA=single\nlineB=overlap-B",
+              "collectionId": "system-unclassified",
+              "deletedAt": null,
+              "createdAt": 1793967413770,
+              "bodyUpdatedAt": 1793967417428,
+              "updatedAt": 1793967418109,
+              "revision": 8,
+              "isFlagged": false,
+              "tags": [],
+              "explanations": []
+            },
+            "save": {
+              "noteId": "a14ad24b-dd06-4084-973b-3b60aa3023db",
+              "currentRevision": 8,
+              "lastSavedRevision": 8,
+              "dirty": false,
+              "status": "saved",
+              "activeRevision": null,
+              "pendingRevision": null,
+              "lastError": null
+            },
+            "badge": "◉ ブラウザ 保存済み",
+            "badgeState": "saved",
+            "pending": null,
+            "notice": "",
+            "messages": []
+          },
+          {
+            "at": 1793967418242,
+            "currentId": "a14ad24b-dd06-4084-973b-3b60aa3023db",
+            "title": "複数タブ隔離試験428",
+            "editor": "lineA=single\nlineB=overlap-B",
+            "stored": {
+              "id": "a14ad24b-dd06-4084-973b-3b60aa3023db",
+              "title": "複数タブ隔離試験428",
+              "body": "lineA=single\nlineB=overlap-B",
+              "collectionId": "system-unclassified",
+              "deletedAt": null,
+              "createdAt": 1793967413770,
+              "bodyUpdatedAt": 1793967417428,
+              "updatedAt": 1793967418109,
+              "revision": 8,
+              "isFlagged": false,
+              "tags": [],
+              "explanations": []
+            },
+            "save": {
+              "noteId": "a14ad24b-dd06-4084-973b-3b60aa3023db",
+              "currentRevision": 8,
+              "lastSavedRevision": 8,
+              "dirty": false,
+              "status": "saved",
+              "activeRevision": null,
+              "pendingRevision": null,
+              "lastError": null
+            },
+            "badge": "◉ ブラウザ 保存済み",
+            "badgeState": "saved",
+            "pending": null,
+            "notice": "前回の編集中メモを復元しました",
+            "messages": []
+          }
+        ]
+      },
+      "logs": [
+        {
+          "exceptions": [],
+          "consoleErrors": [],
+          "failedResponses": [],
+          "failedRequests": [],
+          "requests": [
+            "http://127.0.0.1:54369/index.html",
+            "https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css",
+            "http://127.0.0.1:54369/style.css?v=0.5.0-119",
+            "https://cdn.jsdelivr.net/npm/@highlightjs/cdn-assets@11.11.1/highlight.min.js",
+            "https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js",
+            "https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.js",
+            "https://cdn.jsdelivr.net/npm/mathjs@15.2.0/lib/browser/math.js",
+            "http://127.0.0.1:54369/export-utils.js?v=0.5.0-8",
+            "http://127.0.0.1:54369/extensions/web-clipper/clip-result.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/extensions/web-clipper/transfer-lifecycle.js?v=0.5.0-2",
+            "http://127.0.0.1:54369/web-clip-utils.js?v=0.5.0-7",
+            "http://127.0.0.1:54369/web-clipper-config.js?v=0.5.0-4",
+            "http://127.0.0.1:54369/markdown-fence-utils.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/figure-metadata-utils.js?v=0.5.0-2",
+            "http://127.0.0.1:54369/timeline-block-utils.js?v=0.5.0-2",
+            "http://127.0.0.1:54369/source-utils.js?v=0.5.0-8",
+            "http://127.0.0.1:54369/attachment-utils.js?v=0.5.0-18",
+            "http://127.0.0.1:54369/table-block-utils.js?v=0.5.0-10",
+            "http://127.0.0.1:54369/table-file-export-utils.js?v=0.5.0-4",
+            "http://127.0.0.1:54369/chart-block-utils.js?v=0.5.0-31",
+            "http://127.0.0.1:54369/chart-png-export.js?v=0.5.0-4",
+            "http://127.0.0.1:54369/geometry-block-utils.js?v=0.5.0-18",
+            "http://127.0.0.1:54369/geometry-editor-utils.js?v=0.5.0-15",
+            "http://127.0.0.1:54369/geometry-svg-renderer.js?v=0.5.0-16",
+            "http://127.0.0.1:54369/geometry-block-editor.js?v=0.5.0-20",
+            "http://127.0.0.1:54369/tags.js?v=0.5.0-4",
+            "http://127.0.0.1:54369/memo-list-utils.js?v=0.5.0-5",
+            "http://127.0.0.1:54369/term-link-utils.js?v=0.5.0-6",
+            "http://127.0.0.1:54369/memo-link-utils.js?v=0.5.0-3",
+            "http://127.0.0.1:54369/json-import-router.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/json-import-adapters.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/logo-animation-utils.js?v=0.5.0-8",
+            "http://127.0.0.1:54369/editor-caret-animation-utils.js?v=0.5.0-2",
+            "http://127.0.0.1:54369/calculation-engine.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/calculator-link.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/font-settings.js?v=0.5.0-5",
+            "http://127.0.0.1:54369/font-recommendation.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/web-font-loader.js?v=0.5.0-2",
+            "http://127.0.0.1:54369/markdown-enhancements-utils.js?v=0.5.0-4",
+            "http://127.0.0.1:54369/ai-provider.js?v=0.5.0-3",
+            "http://127.0.0.1:54369/ollama-adapter.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/gemini-adapter.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/ai-context.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/ai-reference-selection.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/ai-prompts.js?v=0.5.0-2",
+            "http://127.0.0.1:54369/status-time-utils.js?v=0.5.0-2",
+            "http://127.0.0.1:54369/memo-popout-utils.js?v=0.5.0-4",
+            "http://127.0.0.1:54369/note-flag-utils.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/text-stats-utils.js?v=0.5.0-2",
+            "http://127.0.0.1:54369/markdown-bundle-utils.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/local-save-state.js?v=0.5.0-5",
+            "http://127.0.0.1:54369/local-save-queue.js?v=0.5.0-3",
+            "http://127.0.0.1:54369/note-tombstone.js?v=0.5.0-2",
+            "http://127.0.0.1:54369/note-save-foundation.js?v=0.5.0-8",
+            "http://127.0.0.1:54369/local-markdown.js?v=0.5.0-4",
+            "http://127.0.0.1:54369/local-sync-utils.js?v=0.5.0-14",
+            "http://127.0.0.1:54369/backup-bundle-utils.js?v=0.5.0-10",
+            "http://127.0.0.1:54369/local-fs-adapter.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/indexeddb-lifecycle.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/manual-local-save.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/codex-chat-utils.js?v=0.5.0-6",
+            "http://127.0.0.1:54369/typing-derived-ui-scheduler.js?v=0.5.0-4",
+            "http://127.0.0.1:54369/draft-mirror-scheduler.js?v=0.5.0-2",
+            "http://127.0.0.1:54369/typing-performance-monitor.js?v=0.5.0-3",
+            "http://127.0.0.1:54369/layout-resize-utils.js?v=0.5.0-2",
+            "http://127.0.0.1:54369/app.js?v=0.5.0-208",
+            "http://127.0.0.1:54369/codex-chat.js?v=0.5.0-6",
+            "http://127.0.0.1:54369/dummy-preview.css?v=0.5.0-3",
+            "http://127.0.0.1:54369/dummy-preview-ui.js?v=0.5.0-8",
+            "http://127.0.0.1:54369/memo-search.js?v=0.5.0-3",
+            "http://127.0.0.1:54369/memo-search-ui.js?v=0.5.0-3",
+            "http://127.0.0.1:54369/report-print.css?v=0.5.0-3",
+            "http://127.0.0.1:54369/index.html",
+            "https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css",
+            "http://127.0.0.1:54369/style.css?v=0.5.0-119",
+            "https://cdn.jsdelivr.net/npm/@highlightjs/cdn-assets@11.11.1/highlight.min.js",
+            "https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js",
+            "https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.js",
+            "https://cdn.jsdelivr.net/npm/mathjs@15.2.0/lib/browser/math.js",
+            "http://127.0.0.1:54369/export-utils.js?v=0.5.0-8",
+            "http://127.0.0.1:54369/extensions/web-clipper/clip-result.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/extensions/web-clipper/transfer-lifecycle.js?v=0.5.0-2",
+            "http://127.0.0.1:54369/web-clip-utils.js?v=0.5.0-7",
+            "http://127.0.0.1:54369/web-clipper-config.js?v=0.5.0-4",
+            "http://127.0.0.1:54369/markdown-fence-utils.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/figure-metadata-utils.js?v=0.5.0-2",
+            "http://127.0.0.1:54369/timeline-block-utils.js?v=0.5.0-2",
+            "http://127.0.0.1:54369/source-utils.js?v=0.5.0-8",
+            "http://127.0.0.1:54369/attachment-utils.js?v=0.5.0-18",
+            "http://127.0.0.1:54369/table-block-utils.js?v=0.5.0-10",
+            "http://127.0.0.1:54369/table-file-export-utils.js?v=0.5.0-4",
+            "http://127.0.0.1:54369/chart-block-utils.js?v=0.5.0-31",
+            "http://127.0.0.1:54369/chart-png-export.js?v=0.5.0-4",
+            "http://127.0.0.1:54369/geometry-block-utils.js?v=0.5.0-18",
+            "http://127.0.0.1:54369/geometry-editor-utils.js?v=0.5.0-15",
+            "http://127.0.0.1:54369/geometry-svg-renderer.js?v=0.5.0-16",
+            "http://127.0.0.1:54369/geometry-block-editor.js?v=0.5.0-20",
+            "http://127.0.0.1:54369/tags.js?v=0.5.0-4",
+            "http://127.0.0.1:54369/memo-list-utils.js?v=0.5.0-5",
+            "http://127.0.0.1:54369/term-link-utils.js?v=0.5.0-6",
+            "http://127.0.0.1:54369/memo-link-utils.js?v=0.5.0-3",
+            "http://127.0.0.1:54369/json-import-router.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/json-import-adapters.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/logo-animation-utils.js?v=0.5.0-8",
+            "http://127.0.0.1:54369/editor-caret-animation-utils.js?v=0.5.0-2",
+            "http://127.0.0.1:54369/calculation-engine.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/calculator-link.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/font-settings.js?v=0.5.0-5",
+            "http://127.0.0.1:54369/font-recommendation.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/web-font-loader.js?v=0.5.0-2",
+            "http://127.0.0.1:54369/markdown-enhancements-utils.js?v=0.5.0-4",
+            "http://127.0.0.1:54369/ai-provider.js?v=0.5.0-3",
+            "http://127.0.0.1:54369/ollama-adapter.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/gemini-adapter.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/ai-context.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/ai-reference-selection.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/ai-prompts.js?v=0.5.0-2",
+            "http://127.0.0.1:54369/status-time-utils.js?v=0.5.0-2",
+            "http://127.0.0.1:54369/memo-popout-utils.js?v=0.5.0-4",
+            "http://127.0.0.1:54369/note-flag-utils.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/text-stats-utils.js?v=0.5.0-2",
+            "http://127.0.0.1:54369/markdown-bundle-utils.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/local-save-state.js?v=0.5.0-5",
+            "http://127.0.0.1:54369/local-save-queue.js?v=0.5.0-3",
+            "http://127.0.0.1:54369/note-tombstone.js?v=0.5.0-2",
+            "http://127.0.0.1:54369/note-save-foundation.js?v=0.5.0-8",
+            "http://127.0.0.1:54369/local-markdown.js?v=0.5.0-4",
+            "http://127.0.0.1:54369/local-sync-utils.js?v=0.5.0-14",
+            "http://127.0.0.1:54369/backup-bundle-utils.js?v=0.5.0-10",
+            "http://127.0.0.1:54369/local-fs-adapter.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/indexeddb-lifecycle.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/manual-local-save.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/codex-chat-utils.js?v=0.5.0-6",
+            "http://127.0.0.1:54369/typing-derived-ui-scheduler.js?v=0.5.0-4",
+            "http://127.0.0.1:54369/draft-mirror-scheduler.js?v=0.5.0-2",
+            "http://127.0.0.1:54369/typing-performance-monitor.js?v=0.5.0-3",
+            "http://127.0.0.1:54369/layout-resize-utils.js?v=0.5.0-2",
+            "http://127.0.0.1:54369/app.js?v=0.5.0-208",
+            "http://127.0.0.1:54369/codex-chat.js?v=0.5.0-6",
+            "http://127.0.0.1:54369/dummy-preview.css?v=0.5.0-3",
+            "http://127.0.0.1:54369/dummy-preview-ui.js?v=0.5.0-8",
+            "http://127.0.0.1:54369/memo-search.js?v=0.5.0-3",
+            "http://127.0.0.1:54369/memo-search-ui.js?v=0.5.0-3",
+            "http://127.0.0.1:54369/report-print.css?v=0.5.0-3"
+          ]
+        },
+        {
+          "exceptions": [],
+          "consoleErrors": [],
+          "failedResponses": [],
+          "failedRequests": [],
+          "requests": [
+            "http://127.0.0.1:54369/index.html",
+            "https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css",
+            "http://127.0.0.1:54369/style.css?v=0.5.0-119",
+            "https://cdn.jsdelivr.net/npm/@highlightjs/cdn-assets@11.11.1/highlight.min.js",
+            "https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js",
+            "https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.js",
+            "https://cdn.jsdelivr.net/npm/mathjs@15.2.0/lib/browser/math.js",
+            "http://127.0.0.1:54369/export-utils.js?v=0.5.0-8",
+            "http://127.0.0.1:54369/extensions/web-clipper/clip-result.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/extensions/web-clipper/transfer-lifecycle.js?v=0.5.0-2",
+            "http://127.0.0.1:54369/web-clip-utils.js?v=0.5.0-7",
+            "http://127.0.0.1:54369/web-clipper-config.js?v=0.5.0-4",
+            "http://127.0.0.1:54369/markdown-fence-utils.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/figure-metadata-utils.js?v=0.5.0-2",
+            "http://127.0.0.1:54369/timeline-block-utils.js?v=0.5.0-2",
+            "http://127.0.0.1:54369/source-utils.js?v=0.5.0-8",
+            "http://127.0.0.1:54369/attachment-utils.js?v=0.5.0-18",
+            "http://127.0.0.1:54369/table-block-utils.js?v=0.5.0-10",
+            "http://127.0.0.1:54369/table-file-export-utils.js?v=0.5.0-4",
+            "http://127.0.0.1:54369/chart-block-utils.js?v=0.5.0-31",
+            "http://127.0.0.1:54369/chart-png-export.js?v=0.5.0-4",
+            "http://127.0.0.1:54369/geometry-block-utils.js?v=0.5.0-18",
+            "http://127.0.0.1:54369/geometry-editor-utils.js?v=0.5.0-15",
+            "http://127.0.0.1:54369/geometry-svg-renderer.js?v=0.5.0-16",
+            "http://127.0.0.1:54369/geometry-block-editor.js?v=0.5.0-20",
+            "http://127.0.0.1:54369/tags.js?v=0.5.0-4",
+            "http://127.0.0.1:54369/memo-list-utils.js?v=0.5.0-5",
+            "http://127.0.0.1:54369/term-link-utils.js?v=0.5.0-6",
+            "http://127.0.0.1:54369/memo-link-utils.js?v=0.5.0-3",
+            "http://127.0.0.1:54369/json-import-router.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/json-import-adapters.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/logo-animation-utils.js?v=0.5.0-8",
+            "http://127.0.0.1:54369/editor-caret-animation-utils.js?v=0.5.0-2",
+            "http://127.0.0.1:54369/calculation-engine.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/calculator-link.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/font-settings.js?v=0.5.0-5",
+            "http://127.0.0.1:54369/font-recommendation.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/web-font-loader.js?v=0.5.0-2",
+            "http://127.0.0.1:54369/markdown-enhancements-utils.js?v=0.5.0-4",
+            "http://127.0.0.1:54369/ai-provider.js?v=0.5.0-3",
+            "http://127.0.0.1:54369/ollama-adapter.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/gemini-adapter.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/ai-context.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/ai-reference-selection.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/ai-prompts.js?v=0.5.0-2",
+            "http://127.0.0.1:54369/status-time-utils.js?v=0.5.0-2",
+            "http://127.0.0.1:54369/memo-popout-utils.js?v=0.5.0-4",
+            "http://127.0.0.1:54369/note-flag-utils.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/text-stats-utils.js?v=0.5.0-2",
+            "http://127.0.0.1:54369/markdown-bundle-utils.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/local-save-state.js?v=0.5.0-5",
+            "http://127.0.0.1:54369/local-save-queue.js?v=0.5.0-3",
+            "http://127.0.0.1:54369/note-tombstone.js?v=0.5.0-2",
+            "http://127.0.0.1:54369/note-save-foundation.js?v=0.5.0-8",
+            "http://127.0.0.1:54369/local-markdown.js?v=0.5.0-4",
+            "http://127.0.0.1:54369/local-sync-utils.js?v=0.5.0-14",
+            "http://127.0.0.1:54369/backup-bundle-utils.js?v=0.5.0-10",
+            "http://127.0.0.1:54369/local-fs-adapter.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/indexeddb-lifecycle.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/manual-local-save.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/codex-chat-utils.js?v=0.5.0-6",
+            "http://127.0.0.1:54369/typing-derived-ui-scheduler.js?v=0.5.0-4",
+            "http://127.0.0.1:54369/draft-mirror-scheduler.js?v=0.5.0-2",
+            "http://127.0.0.1:54369/typing-performance-monitor.js?v=0.5.0-3",
+            "http://127.0.0.1:54369/layout-resize-utils.js?v=0.5.0-2",
+            "http://127.0.0.1:54369/app.js?v=0.5.0-208",
+            "http://127.0.0.1:54369/codex-chat.js?v=0.5.0-6",
+            "http://127.0.0.1:54369/dummy-preview.css?v=0.5.0-3",
+            "http://127.0.0.1:54369/dummy-preview-ui.js?v=0.5.0-8",
+            "http://127.0.0.1:54369/memo-search.js?v=0.5.0-3",
+            "http://127.0.0.1:54369/memo-search-ui.js?v=0.5.0-3",
+            "http://127.0.0.1:54369/report-print.css?v=0.5.0-3",
+            "http://127.0.0.1:54369/index.html",
+            "https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css",
+            "http://127.0.0.1:54369/style.css?v=0.5.0-119",
+            "https://cdn.jsdelivr.net/npm/@highlightjs/cdn-assets@11.11.1/highlight.min.js",
+            "https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js",
+            "https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.js",
+            "https://cdn.jsdelivr.net/npm/mathjs@15.2.0/lib/browser/math.js",
+            "http://127.0.0.1:54369/export-utils.js?v=0.5.0-8",
+            "http://127.0.0.1:54369/extensions/web-clipper/clip-result.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/extensions/web-clipper/transfer-lifecycle.js?v=0.5.0-2",
+            "http://127.0.0.1:54369/web-clip-utils.js?v=0.5.0-7",
+            "http://127.0.0.1:54369/web-clipper-config.js?v=0.5.0-4",
+            "http://127.0.0.1:54369/markdown-fence-utils.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/figure-metadata-utils.js?v=0.5.0-2",
+            "http://127.0.0.1:54369/timeline-block-utils.js?v=0.5.0-2",
+            "http://127.0.0.1:54369/source-utils.js?v=0.5.0-8",
+            "http://127.0.0.1:54369/attachment-utils.js?v=0.5.0-18",
+            "http://127.0.0.1:54369/table-block-utils.js?v=0.5.0-10",
+            "http://127.0.0.1:54369/table-file-export-utils.js?v=0.5.0-4",
+            "http://127.0.0.1:54369/chart-block-utils.js?v=0.5.0-31",
+            "http://127.0.0.1:54369/chart-png-export.js?v=0.5.0-4",
+            "http://127.0.0.1:54369/geometry-block-utils.js?v=0.5.0-18",
+            "http://127.0.0.1:54369/geometry-editor-utils.js?v=0.5.0-15",
+            "http://127.0.0.1:54369/geometry-svg-renderer.js?v=0.5.0-16",
+            "http://127.0.0.1:54369/geometry-block-editor.js?v=0.5.0-20",
+            "http://127.0.0.1:54369/tags.js?v=0.5.0-4",
+            "http://127.0.0.1:54369/memo-list-utils.js?v=0.5.0-5",
+            "http://127.0.0.1:54369/term-link-utils.js?v=0.5.0-6",
+            "http://127.0.0.1:54369/memo-link-utils.js?v=0.5.0-3",
+            "http://127.0.0.1:54369/json-import-router.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/json-import-adapters.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/logo-animation-utils.js?v=0.5.0-8",
+            "http://127.0.0.1:54369/editor-caret-animation-utils.js?v=0.5.0-2",
+            "http://127.0.0.1:54369/calculation-engine.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/calculator-link.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/font-settings.js?v=0.5.0-5",
+            "http://127.0.0.1:54369/font-recommendation.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/web-font-loader.js?v=0.5.0-2",
+            "http://127.0.0.1:54369/markdown-enhancements-utils.js?v=0.5.0-4",
+            "http://127.0.0.1:54369/ai-provider.js?v=0.5.0-3",
+            "http://127.0.0.1:54369/ollama-adapter.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/gemini-adapter.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/ai-context.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/ai-reference-selection.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/ai-prompts.js?v=0.5.0-2",
+            "http://127.0.0.1:54369/status-time-utils.js?v=0.5.0-2",
+            "http://127.0.0.1:54369/memo-popout-utils.js?v=0.5.0-4",
+            "http://127.0.0.1:54369/note-flag-utils.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/text-stats-utils.js?v=0.5.0-2",
+            "http://127.0.0.1:54369/markdown-bundle-utils.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/local-save-state.js?v=0.5.0-5",
+            "http://127.0.0.1:54369/local-save-queue.js?v=0.5.0-3",
+            "http://127.0.0.1:54369/note-tombstone.js?v=0.5.0-2",
+            "http://127.0.0.1:54369/note-save-foundation.js?v=0.5.0-8",
+            "http://127.0.0.1:54369/local-markdown.js?v=0.5.0-4",
+            "http://127.0.0.1:54369/local-sync-utils.js?v=0.5.0-14",
+            "http://127.0.0.1:54369/backup-bundle-utils.js?v=0.5.0-10",
+            "http://127.0.0.1:54369/local-fs-adapter.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/indexeddb-lifecycle.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/manual-local-save.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/codex-chat-utils.js?v=0.5.0-6",
+            "http://127.0.0.1:54369/typing-derived-ui-scheduler.js?v=0.5.0-4",
+            "http://127.0.0.1:54369/draft-mirror-scheduler.js?v=0.5.0-2",
+            "http://127.0.0.1:54369/typing-performance-monitor.js?v=0.5.0-3",
+            "http://127.0.0.1:54369/layout-resize-utils.js?v=0.5.0-2",
+            "http://127.0.0.1:54369/app.js?v=0.5.0-208",
+            "http://127.0.0.1:54369/codex-chat.js?v=0.5.0-6",
+            "http://127.0.0.1:54369/dummy-preview.css?v=0.5.0-3",
+            "http://127.0.0.1:54369/dummy-preview-ui.js?v=0.5.0-8",
+            "http://127.0.0.1:54369/memo-search.js?v=0.5.0-3",
+            "http://127.0.0.1:54369/memo-search-ui.js?v=0.5.0-3",
+            "http://127.0.0.1:54369/report-print.css?v=0.5.0-3"
+          ]
+        },
+        {
+          "exceptions": [],
+          "consoleErrors": [],
+          "failedResponses": [],
+          "failedRequests": [],
+          "requests": [
+            "http://127.0.0.1:54369/storage-guide.css"
+          ]
+        },
+        {
+          "exceptions": [],
+          "consoleErrors": [],
+          "failedResponses": [],
+          "failedRequests": [],
+          "requests": [
+            "http://127.0.0.1:54369/storage-guide.html",
+            "http://127.0.0.1:54369/storage-guide.css",
+            "http://127.0.0.1:54369/index.html",
+            "https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css",
+            "http://127.0.0.1:54369/style.css?v=0.5.0-119",
+            "https://cdn.jsdelivr.net/npm/@highlightjs/cdn-assets@11.11.1/highlight.min.js",
+            "https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js",
+            "https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.js",
+            "https://cdn.jsdelivr.net/npm/mathjs@15.2.0/lib/browser/math.js",
+            "http://127.0.0.1:54369/export-utils.js?v=0.5.0-8",
+            "http://127.0.0.1:54369/extensions/web-clipper/clip-result.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/extensions/web-clipper/transfer-lifecycle.js?v=0.5.0-2",
+            "http://127.0.0.1:54369/web-clip-utils.js?v=0.5.0-7",
+            "http://127.0.0.1:54369/web-clipper-config.js?v=0.5.0-4",
+            "http://127.0.0.1:54369/markdown-fence-utils.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/figure-metadata-utils.js?v=0.5.0-2",
+            "http://127.0.0.1:54369/timeline-block-utils.js?v=0.5.0-2",
+            "http://127.0.0.1:54369/source-utils.js?v=0.5.0-8",
+            "http://127.0.0.1:54369/attachment-utils.js?v=0.5.0-18",
+            "http://127.0.0.1:54369/table-block-utils.js?v=0.5.0-10",
+            "http://127.0.0.1:54369/table-file-export-utils.js?v=0.5.0-4",
+            "http://127.0.0.1:54369/chart-block-utils.js?v=0.5.0-31",
+            "http://127.0.0.1:54369/chart-png-export.js?v=0.5.0-4",
+            "http://127.0.0.1:54369/geometry-block-utils.js?v=0.5.0-18",
+            "http://127.0.0.1:54369/geometry-editor-utils.js?v=0.5.0-15",
+            "http://127.0.0.1:54369/geometry-svg-renderer.js?v=0.5.0-16",
+            "http://127.0.0.1:54369/geometry-block-editor.js?v=0.5.0-20",
+            "http://127.0.0.1:54369/tags.js?v=0.5.0-4",
+            "http://127.0.0.1:54369/memo-list-utils.js?v=0.5.0-5",
+            "http://127.0.0.1:54369/term-link-utils.js?v=0.5.0-6",
+            "http://127.0.0.1:54369/memo-link-utils.js?v=0.5.0-3",
+            "http://127.0.0.1:54369/json-import-router.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/json-import-adapters.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/logo-animation-utils.js?v=0.5.0-8",
+            "http://127.0.0.1:54369/editor-caret-animation-utils.js?v=0.5.0-2",
+            "http://127.0.0.1:54369/calculation-engine.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/calculator-link.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/font-settings.js?v=0.5.0-5",
+            "http://127.0.0.1:54369/font-recommendation.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/web-font-loader.js?v=0.5.0-2",
+            "http://127.0.0.1:54369/markdown-enhancements-utils.js?v=0.5.0-4",
+            "http://127.0.0.1:54369/ai-provider.js?v=0.5.0-3",
+            "http://127.0.0.1:54369/ollama-adapter.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/gemini-adapter.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/ai-context.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/ai-reference-selection.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/ai-prompts.js?v=0.5.0-2",
+            "http://127.0.0.1:54369/status-time-utils.js?v=0.5.0-2",
+            "http://127.0.0.1:54369/memo-popout-utils.js?v=0.5.0-4",
+            "http://127.0.0.1:54369/note-flag-utils.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/text-stats-utils.js?v=0.5.0-2",
+            "http://127.0.0.1:54369/markdown-bundle-utils.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/local-save-state.js?v=0.5.0-5",
+            "http://127.0.0.1:54369/local-save-queue.js?v=0.5.0-3",
+            "http://127.0.0.1:54369/note-tombstone.js?v=0.5.0-2",
+            "http://127.0.0.1:54369/note-save-foundation.js?v=0.5.0-8",
+            "http://127.0.0.1:54369/local-markdown.js?v=0.5.0-4",
+            "http://127.0.0.1:54369/local-sync-utils.js?v=0.5.0-14",
+            "http://127.0.0.1:54369/backup-bundle-utils.js?v=0.5.0-10",
+            "http://127.0.0.1:54369/local-fs-adapter.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/indexeddb-lifecycle.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/manual-local-save.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/codex-chat-utils.js?v=0.5.0-6",
+            "http://127.0.0.1:54369/typing-derived-ui-scheduler.js?v=0.5.0-4",
+            "http://127.0.0.1:54369/draft-mirror-scheduler.js?v=0.5.0-2",
+            "http://127.0.0.1:54369/typing-performance-monitor.js?v=0.5.0-3",
+            "http://127.0.0.1:54369/layout-resize-utils.js?v=0.5.0-2",
+            "http://127.0.0.1:54369/app.js?v=0.5.0-208",
+            "http://127.0.0.1:54369/codex-chat.js?v=0.5.0-6",
+            "http://127.0.0.1:54369/dummy-preview.css?v=0.5.0-3",
+            "http://127.0.0.1:54369/dummy-preview-ui.js?v=0.5.0-8",
+            "http://127.0.0.1:54369/memo-search.js?v=0.5.0-3",
+            "http://127.0.0.1:54369/memo-search-ui.js?v=0.5.0-3",
+            "http://127.0.0.1:54369/report-print.css?v=0.5.0-3"
+          ]
+        }
+      ],
+      "externalFixtures": [
+        "https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css",
+        "https://cdn.jsdelivr.net/npm/@highlightjs/cdn-assets@11.11.1/highlight.min.js",
+        "https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js",
+        "https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.js",
+        "https://cdn.jsdelivr.net/npm/mathjs@15.2.0/lib/browser/math.js",
+        "https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css",
+        "https://cdn.jsdelivr.net/npm/@highlightjs/cdn-assets@11.11.1/highlight.min.js",
+        "https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js",
+        "https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.js",
+        "https://cdn.jsdelivr.net/npm/mathjs@15.2.0/lib/browser/math.js",
+        "https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css",
+        "https://cdn.jsdelivr.net/npm/@highlightjs/cdn-assets@11.11.1/highlight.min.js",
+        "https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js",
+        "https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.js",
+        "https://cdn.jsdelivr.net/npm/mathjs@15.2.0/lib/browser/math.js",
+        "https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css",
+        "https://cdn.jsdelivr.net/npm/@highlightjs/cdn-assets@11.11.1/highlight.min.js",
+        "https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js",
+        "https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.js",
+        "https://cdn.jsdelivr.net/npm/mathjs@15.2.0/lib/browser/math.js"
+      ],
+      "status": "FAIL"
+    },
+    {
+      "browser": "webkit",
+      "checks": [
+        {
+          "number": 1,
+          "expected": "Two tabs share one ephemeral context and origin",
+          "actual": {
+            "pages": 2,
+            "origins": [
+              "http://127.0.0.1:54369",
+              "http://127.0.0.1:54369"
+            ]
+          },
+          "status": "PASS"
+        },
+        {
+          "number": 2,
+          "expected": "Both UI tabs display the same synthetic note",
+          "actual": {
+            "firstId": "8efaafdb-4fc6-4f00-9b92-5b6eab82e759",
+            "secondId": "8efaafdb-4fc6-4f00-9b92-5b6eab82e759",
+            "body": "lineA=base\nlineB=base"
+          },
+          "status": "PASS"
+        },
+        {
+          "number": 3,
+          "expected": "Single writer saves through normal UI autosave",
+          "actual": {
+            "at": 1793967423759,
+            "currentId": "8efaafdb-4fc6-4f00-9b92-5b6eab82e759",
+            "title": "複数タブ隔離試験428",
+            "editor": "lineA=single\nlineB=base",
+            "stored": {
+              "id": "8efaafdb-4fc6-4f00-9b92-5b6eab82e759",
+              "title": "複数タブ隔離試験428",
+              "body": "lineA=single\nlineB=base",
+              "collectionId": "system-unclassified",
+              "deletedAt": null,
+              "createdAt": 1793967421431,
+              "bodyUpdatedAt": 1793967423383,
+              "updatedAt": 1793967423384,
+              "revision": 4,
+              "isFlagged": false,
+              "tags": [],
+              "explanations": []
+            },
+            "save": {
+              "noteId": "8efaafdb-4fc6-4f00-9b92-5b6eab82e759",
+              "currentRevision": 4,
+              "lastSavedRevision": 4,
+              "dirty": false,
+              "status": "saved",
+              "activeRevision": null,
+              "pendingRevision": null,
+              "lastError": null
+            },
+            "badge": "◉ ブラウザ 保存済み",
+            "badgeState": "saved",
+            "pending": null,
+            "notice": "",
+            "messages": []
+          },
+          "status": "PASS"
+        },
+        {
+          "number": 4,
+          "expected": "Clean second tab reflects stored content and saved state",
+          "actual": {
+            "at": 1793967423822,
+            "currentId": "8efaafdb-4fc6-4f00-9b92-5b6eab82e759",
+            "title": "複数タブ隔離試験428",
+            "editor": "lineA=single\nlineB=base",
+            "stored": {
+              "id": "8efaafdb-4fc6-4f00-9b92-5b6eab82e759",
+              "title": "複数タブ隔離試験428",
+              "body": "lineA=single\nlineB=base",
+              "collectionId": "system-unclassified",
+              "deletedAt": null,
+              "createdAt": 1793967421431,
+              "bodyUpdatedAt": 1793967423383,
+              "updatedAt": 1793967423384,
+              "revision": 4,
+              "isFlagged": false,
+              "tags": [],
+              "explanations": []
+            },
+            "save": {
+              "noteId": "8efaafdb-4fc6-4f00-9b92-5b6eab82e759",
+              "currentRevision": 4,
+              "lastSavedRevision": 4,
+              "dirty": false,
+              "status": "saved",
+              "activeRevision": null,
+              "pendingRevision": null,
+              "lastError": null
+            },
+            "badge": "◉ ブラウザ 保存済み",
+            "badgeState": "saved",
+            "pending": null,
+            "notice": "",
+            "messages": [
+              {
+                "at": 1793967423738,
+                "message": {
+                  "type": "memo-changed",
+                  "memoId": "8efaafdb-4fc6-4f00-9b92-5b6eab82e759",
+                  "updatedAt": 1793967423384,
+                  "deletedAt": null
+                }
+              }
+            ]
+          },
+          "status": "PASS"
+        },
+        {
+          "number": 5,
+          "expected": "Both independent line edits survive in storage after staggered overlapping drafts",
+          "actual": {
+            "baseline": "lineA=single\nlineB=sequential",
+            "before": [
+              {
+                "at": 1793967427829,
+                "currentId": "8efaafdb-4fc6-4f00-9b92-5b6eab82e759",
+                "title": "複数タブ隔離試験428",
+                "editor": "lineA=overlap-A\nlineB=sequential",
+                "stored": {
+                  "id": "8efaafdb-4fc6-4f00-9b92-5b6eab82e759",
+                  "title": "複数タブ隔離試験428",
+                  "body": "lineA=single\nlineB=sequential",
+                  "collectionId": "system-unclassified",
+                  "deletedAt": null,
+                  "createdAt": 1793967421431,
+                  "bodyUpdatedAt": 1793967423865,
+                  "updatedAt": 1793967423865,
+                  "revision": 5,
+                  "isFlagged": false,
+                  "tags": [],
+                  "explanations": []
+                },
+                "save": {
+                  "noteId": "8efaafdb-4fc6-4f00-9b92-5b6eab82e759",
+                  "currentRevision": 6,
+                  "lastSavedRevision": 5,
+                  "dirty": true,
+                  "status": "dirty",
+                  "activeRevision": null,
+                  "pendingRevision": null,
+                  "lastError": null
+                },
+                "badge": "◉ ブラウザ 編集あり",
+                "badgeState": "editing",
+                "pending": null,
+                "notice": "",
+                "messages": [
+                  {
+                    "at": 1793967424206,
+                    "message": {
+                      "type": "memo-changed",
+                      "memoId": "8efaafdb-4fc6-4f00-9b92-5b6eab82e759",
+                      "updatedAt": 1793967423865,
+                      "deletedAt": null
+                    }
+                  }
+                ]
+              },
+              {
+                "at": 1793967427859,
+                "currentId": "8efaafdb-4fc6-4f00-9b92-5b6eab82e759",
+                "title": "複数タブ隔離試験428",
+                "editor": "lineA=single\nlineB=overlap-B",
+                "stored": {
+                  "id": "8efaafdb-4fc6-4f00-9b92-5b6eab82e759",
+                  "title": "複数タブ隔離試験428",
+                  "body": "lineA=single\nlineB=sequential",
+                  "collectionId": "system-unclassified",
+                  "deletedAt": null,
+                  "createdAt": 1793967421431,
+                  "bodyUpdatedAt": 1793967423865,
+                  "updatedAt": 1793967423865,
+                  "revision": 5,
+                  "isFlagged": false,
+                  "tags": [],
+                  "explanations": []
+                },
+                "save": {
+                  "noteId": "8efaafdb-4fc6-4f00-9b92-5b6eab82e759",
+                  "currentRevision": 6,
+                  "lastSavedRevision": 5,
+                  "dirty": true,
+                  "status": "dirty",
+                  "activeRevision": null,
+                  "pendingRevision": null,
+                  "lastError": null
+                },
+                "badge": "◉ ブラウザ 編集あり",
+                "badgeState": "editing",
+                "pending": null,
+                "notice": "",
+                "messages": [
+                  {
+                    "at": 1793967423738,
+                    "message": {
+                      "type": "memo-changed",
+                      "memoId": "8efaafdb-4fc6-4f00-9b92-5b6eab82e759",
+                      "updatedAt": 1793967423384,
+                      "deletedAt": null
+                    }
+                  }
+                ]
+              }
+            ],
+            "after": [
+              {
+                "at": 1793967428681,
+                "currentId": "8efaafdb-4fc6-4f00-9b92-5b6eab82e759",
+                "title": "複数タブ隔離試験428",
+                "editor": "lineA=single\nlineB=overlap-B",
+                "stored": {
+                  "id": "8efaafdb-4fc6-4f00-9b92-5b6eab82e759",
+                  "title": "複数タブ隔離試験428",
+                  "body": "lineA=single\nlineB=overlap-B",
+                  "collectionId": "system-unclassified",
+                  "deletedAt": null,
+                  "createdAt": 1793967421431,
+                  "bodyUpdatedAt": 1793967427810,
+                  "updatedAt": 1793967427811,
+                  "revision": 6,
+                  "isFlagged": false,
+                  "tags": [],
+                  "explanations": []
+                },
+                "save": {
+                  "noteId": "8efaafdb-4fc6-4f00-9b92-5b6eab82e759",
+                  "currentRevision": 6,
+                  "lastSavedRevision": 6,
+                  "dirty": false,
+                  "status": "saved",
+                  "activeRevision": null,
+                  "pendingRevision": null,
+                  "lastError": null
+                },
+                "badge": "◉ ブラウザ 保存済み",
+                "badgeState": "saved",
+                "pending": null,
+                "notice": "",
+                "messages": [
+                  {
+                    "at": 1793967424206,
+                    "message": {
+                      "type": "memo-changed",
+                      "memoId": "8efaafdb-4fc6-4f00-9b92-5b6eab82e759",
+                      "updatedAt": 1793967423865,
+                      "deletedAt": null
+                    }
+                  },
+                  {
+                    "at": 1793967428145,
+                    "message": {
+                      "type": "memo-changed",
+                      "memoId": "8efaafdb-4fc6-4f00-9b92-5b6eab82e759",
+                      "updatedAt": 1793967427811,
+                      "deletedAt": null
+                    }
+                  }
+                ]
+              },
+              {
+                "at": 1793967428718,
+                "currentId": "8efaafdb-4fc6-4f00-9b92-5b6eab82e759",
+                "title": "複数タブ隔離試験428",
+                "editor": "lineA=single\nlineB=overlap-B",
+                "stored": {
+                  "id": "8efaafdb-4fc6-4f00-9b92-5b6eab82e759",
+                  "title": "複数タブ隔離試験428",
+                  "body": "lineA=single\nlineB=overlap-B",
+                  "collectionId": "system-unclassified",
+                  "deletedAt": null,
+                  "createdAt": 1793967421431,
+                  "bodyUpdatedAt": 1793967427810,
+                  "updatedAt": 1793967427811,
+                  "revision": 6,
+                  "isFlagged": false,
+                  "tags": [],
+                  "explanations": []
+                },
+                "save": {
+                  "noteId": "8efaafdb-4fc6-4f00-9b92-5b6eab82e759",
+                  "currentRevision": 6,
+                  "lastSavedRevision": 6,
+                  "dirty": false,
+                  "status": "saved",
+                  "activeRevision": null,
+                  "pendingRevision": null,
+                  "lastError": null
+                },
+                "badge": "◉ ブラウザ 保存済み",
+                "badgeState": "saved",
+                "pending": null,
+                "notice": "",
+                "messages": [
+                  {
+                    "at": 1793967423738,
+                    "message": {
+                      "type": "memo-changed",
+                      "memoId": "8efaafdb-4fc6-4f00-9b92-5b6eab82e759",
+                      "updatedAt": 1793967423384,
+                      "deletedAt": null
+                    }
+                  },
+                  {
+                    "at": 1793967428102,
+                    "message": {
+                      "type": "memo-changed",
+                      "memoId": "8efaafdb-4fc6-4f00-9b92-5b6eab82e759",
+                      "updatedAt": 1793967427757,
+                      "deletedAt": null
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          "status": "FAIL"
+        },
+        {
+          "number": 6,
+          "expected": "Saved UI content agrees with the stored record in both tabs",
+          "actual": [
+            {
+              "editor": "lineA=single\nlineB=overlap-B",
+              "stored": {
+                "id": "8efaafdb-4fc6-4f00-9b92-5b6eab82e759",
+                "title": "複数タブ隔離試験428",
+                "body": "lineA=single\nlineB=overlap-B",
+                "collectionId": "system-unclassified",
+                "deletedAt": null,
+                "createdAt": 1793967421431,
+                "bodyUpdatedAt": 1793967427810,
+                "updatedAt": 1793967427811,
+                "revision": 6,
+                "isFlagged": false,
+                "tags": [],
+                "explanations": []
+              },
+              "badge": "◉ ブラウザ 保存済み",
+              "pending": null
+            },
+            {
+              "editor": "lineA=single\nlineB=overlap-B",
+              "stored": {
+                "id": "8efaafdb-4fc6-4f00-9b92-5b6eab82e759",
+                "title": "複数タブ隔離試験428",
+                "body": "lineA=single\nlineB=overlap-B",
+                "collectionId": "system-unclassified",
+                "deletedAt": null,
+                "createdAt": 1793967421431,
+                "bodyUpdatedAt": 1793967427810,
+                "updatedAt": 1793967427811,
+                "revision": 6,
+                "isFlagged": false,
+                "tags": [],
+                "explanations": []
+              },
+              "badge": "◉ ブラウザ 保存済み",
+              "pending": null
+            }
+          ],
+          "status": "PASS"
+        },
+        {
+          "number": 7,
+          "expected": "Missing edits are not silently reported saved without warning or a blocked save",
+          "actual": {
+            "bothEditsPreserved": false,
+            "warnedOrBlocked": false,
+            "notices": [
+              "",
+              ""
+            ],
+            "pending": [
+              null,
+              null
+            ],
+            "dirty": [
+              false,
+              false
+            ]
+          },
+          "status": "FAIL"
+        },
+        {
+          "number": 8,
+          "expected": "Reload keeps both edits and displays the persisted record",
+          "actual": [
+            {
+              "at": 1793967432026,
+              "currentId": "8efaafdb-4fc6-4f00-9b92-5b6eab82e759",
+              "title": "複数タブ隔離試験428",
+              "editor": "lineA=single\nlineB=overlap-B",
+              "stored": {
+                "id": "8efaafdb-4fc6-4f00-9b92-5b6eab82e759",
+                "title": "複数タブ隔離試験428",
+                "body": "lineA=single\nlineB=overlap-B",
+                "collectionId": "system-unclassified",
+                "deletedAt": null,
+                "createdAt": 1793967421431,
+                "bodyUpdatedAt": 1793967430650,
+                "updatedAt": 1793967431737,
+                "revision": 8,
+                "isFlagged": false,
+                "tags": [],
+                "explanations": []
+              },
+              "save": {
+                "noteId": "8efaafdb-4fc6-4f00-9b92-5b6eab82e759",
+                "currentRevision": 8,
+                "lastSavedRevision": 8,
+                "dirty": false,
+                "status": "saved",
+                "activeRevision": null,
+                "pendingRevision": null,
+                "lastError": null
+              },
+              "badge": "◉ ブラウザ 保存済み",
+              "badgeState": "saved",
+              "pending": null,
+              "notice": "",
+              "messages": []
+            },
+            {
+              "at": 1793967432062,
+              "currentId": "8efaafdb-4fc6-4f00-9b92-5b6eab82e759",
+              "title": "複数タブ隔離試験428",
+              "editor": "lineA=single\nlineB=overlap-B",
+              "stored": {
+                "id": "8efaafdb-4fc6-4f00-9b92-5b6eab82e759",
+                "title": "複数タブ隔離試験428",
+                "body": "lineA=single\nlineB=overlap-B",
+                "collectionId": "system-unclassified",
+                "deletedAt": null,
+                "createdAt": 1793967421431,
+                "bodyUpdatedAt": 1793967430650,
+                "updatedAt": 1793967431737,
+                "revision": 8,
+                "isFlagged": false,
+                "tags": [],
+                "explanations": []
+              },
+              "save": {
+                "noteId": "8efaafdb-4fc6-4f00-9b92-5b6eab82e759",
+                "currentRevision": 8,
+                "lastSavedRevision": 8,
+                "dirty": false,
+                "status": "saved",
+                "activeRevision": null,
+                "pendingRevision": null,
+                "lastError": null
+              },
+              "badge": "◉ ブラウザ 保存済み",
+              "badgeState": "saved",
+              "pending": null,
+              "notice": "前回の編集中メモを復元しました",
+              "messages": []
+            }
+          ],
+          "status": "FAIL"
+        },
+        {
+          "number": 9,
+          "expected": "Reading guide changes no IDB store/localStorage/sessionStorage in either app tab",
+          "actual": {
+            "unchanged": true,
+            "appTabs": 2
+          },
+          "status": "PASS"
+        },
+        {
+          "number": 10,
+          "expected": "Direct visitor can navigate in the same tab; closing guide leaves original app tabs",
+          "actual": {
+            "directPages": 1,
+            "originalPages": 2
+          },
+          "status": "PASS"
+        }
+      ],
+      "observations": {
+        "singleWriter": {
+          "at": 1793967423759,
+          "currentId": "8efaafdb-4fc6-4f00-9b92-5b6eab82e759",
+          "title": "複数タブ隔離試験428",
+          "editor": "lineA=single\nlineB=base",
+          "stored": {
+            "id": "8efaafdb-4fc6-4f00-9b92-5b6eab82e759",
+            "title": "複数タブ隔離試験428",
+            "body": "lineA=single\nlineB=base",
+            "collectionId": "system-unclassified",
+            "deletedAt": null,
+            "createdAt": 1793967421431,
+            "bodyUpdatedAt": 1793967423383,
+            "updatedAt": 1793967423384,
+            "revision": 4,
+            "isFlagged": false,
+            "tags": [],
+            "explanations": []
+          },
+          "save": {
+            "noteId": "8efaafdb-4fc6-4f00-9b92-5b6eab82e759",
+            "currentRevision": 4,
+            "lastSavedRevision": 4,
+            "dirty": false,
+            "status": "saved",
+            "activeRevision": null,
+            "pendingRevision": null,
+            "lastError": null
+          },
+          "badge": "◉ ブラウザ 保存済み",
+          "badgeState": "saved",
+          "pending": null,
+          "notice": "",
+          "messages": []
+        },
+        "sequential": [
+          {
+            "at": 1793967424330,
+            "currentId": "8efaafdb-4fc6-4f00-9b92-5b6eab82e759",
+            "title": "複数タブ隔離試験428",
+            "editor": "lineA=single\nlineB=sequential",
+            "stored": {
+              "id": "8efaafdb-4fc6-4f00-9b92-5b6eab82e759",
+              "title": "複数タブ隔離試験428",
+              "body": "lineA=single\nlineB=sequential",
+              "collectionId": "system-unclassified",
+              "deletedAt": null,
+              "createdAt": 1793967421431,
+              "bodyUpdatedAt": 1793967423865,
+              "updatedAt": 1793967423865,
+              "revision": 5,
+              "isFlagged": false,
+              "tags": [],
+              "explanations": []
+            },
+            "save": {
+              "noteId": "8efaafdb-4fc6-4f00-9b92-5b6eab82e759",
+              "currentRevision": 5,
+              "lastSavedRevision": 5,
+              "dirty": false,
+              "status": "saved",
+              "activeRevision": null,
+              "pendingRevision": null,
+              "lastError": null
+            },
+            "badge": "◉ ブラウザ 保存済み",
+            "badgeState": "saved",
+            "pending": null,
+            "notice": "",
+            "messages": [
+              {
+                "at": 1793967424206,
+                "message": {
+                  "type": "memo-changed",
+                  "memoId": "8efaafdb-4fc6-4f00-9b92-5b6eab82e759",
+                  "updatedAt": 1793967423865,
+                  "deletedAt": null
+                }
+              }
+            ]
+          },
+          {
+            "at": 1793967424356,
+            "currentId": "8efaafdb-4fc6-4f00-9b92-5b6eab82e759",
+            "title": "複数タブ隔離試験428",
+            "editor": "lineA=single\nlineB=sequential",
+            "stored": {
+              "id": "8efaafdb-4fc6-4f00-9b92-5b6eab82e759",
+              "title": "複数タブ隔離試験428",
+              "body": "lineA=single\nlineB=sequential",
+              "collectionId": "system-unclassified",
+              "deletedAt": null,
+              "createdAt": 1793967421431,
+              "bodyUpdatedAt": 1793967423865,
+              "updatedAt": 1793967423865,
+              "revision": 5,
+              "isFlagged": false,
+              "tags": [],
+              "explanations": []
+            },
+            "save": {
+              "noteId": "8efaafdb-4fc6-4f00-9b92-5b6eab82e759",
+              "currentRevision": 5,
+              "lastSavedRevision": 5,
+              "dirty": false,
+              "status": "saved",
+              "activeRevision": null,
+              "pendingRevision": null,
+              "lastError": null
+            },
+            "badge": "◉ ブラウザ 保存済み",
+            "badgeState": "saved",
+            "pending": null,
+            "notice": "",
+            "messages": [
+              {
+                "at": 1793967423738,
+                "message": {
+                  "type": "memo-changed",
+                  "memoId": "8efaafdb-4fc6-4f00-9b92-5b6eab82e759",
+                  "updatedAt": 1793967423384,
+                  "deletedAt": null
+                }
+              }
+            ]
+          }
+        ],
+        "overlapDirty": [
+          {
+            "at": 1793967427829,
+            "currentId": "8efaafdb-4fc6-4f00-9b92-5b6eab82e759",
+            "title": "複数タブ隔離試験428",
+            "editor": "lineA=overlap-A\nlineB=sequential",
+            "stored": {
+              "id": "8efaafdb-4fc6-4f00-9b92-5b6eab82e759",
+              "title": "複数タブ隔離試験428",
+              "body": "lineA=single\nlineB=sequential",
+              "collectionId": "system-unclassified",
+              "deletedAt": null,
+              "createdAt": 1793967421431,
+              "bodyUpdatedAt": 1793967423865,
+              "updatedAt": 1793967423865,
+              "revision": 5,
+              "isFlagged": false,
+              "tags": [],
+              "explanations": []
+            },
+            "save": {
+              "noteId": "8efaafdb-4fc6-4f00-9b92-5b6eab82e759",
+              "currentRevision": 6,
+              "lastSavedRevision": 5,
+              "dirty": true,
+              "status": "dirty",
+              "activeRevision": null,
+              "pendingRevision": null,
+              "lastError": null
+            },
+            "badge": "◉ ブラウザ 編集あり",
+            "badgeState": "editing",
+            "pending": null,
+            "notice": "",
+            "messages": [
+              {
+                "at": 1793967424206,
+                "message": {
+                  "type": "memo-changed",
+                  "memoId": "8efaafdb-4fc6-4f00-9b92-5b6eab82e759",
+                  "updatedAt": 1793967423865,
+                  "deletedAt": null
+                }
+              }
+            ]
+          },
+          {
+            "at": 1793967427859,
+            "currentId": "8efaafdb-4fc6-4f00-9b92-5b6eab82e759",
+            "title": "複数タブ隔離試験428",
+            "editor": "lineA=single\nlineB=overlap-B",
+            "stored": {
+              "id": "8efaafdb-4fc6-4f00-9b92-5b6eab82e759",
+              "title": "複数タブ隔離試験428",
+              "body": "lineA=single\nlineB=sequential",
+              "collectionId": "system-unclassified",
+              "deletedAt": null,
+              "createdAt": 1793967421431,
+              "bodyUpdatedAt": 1793967423865,
+              "updatedAt": 1793967423865,
+              "revision": 5,
+              "isFlagged": false,
+              "tags": [],
+              "explanations": []
+            },
+            "save": {
+              "noteId": "8efaafdb-4fc6-4f00-9b92-5b6eab82e759",
+              "currentRevision": 6,
+              "lastSavedRevision": 5,
+              "dirty": true,
+              "status": "dirty",
+              "activeRevision": null,
+              "pendingRevision": null,
+              "lastError": null
+            },
+            "badge": "◉ ブラウザ 編集あり",
+            "badgeState": "editing",
+            "pending": null,
+            "notice": "",
+            "messages": [
+              {
+                "at": 1793967423738,
+                "message": {
+                  "type": "memo-changed",
+                  "memoId": "8efaafdb-4fc6-4f00-9b92-5b6eab82e759",
+                  "updatedAt": 1793967423384,
+                  "deletedAt": null
+                }
+              }
+            ]
+          }
+        ],
+        "overlapSaved": [
+          {
+            "at": 1793967428681,
+            "currentId": "8efaafdb-4fc6-4f00-9b92-5b6eab82e759",
+            "title": "複数タブ隔離試験428",
+            "editor": "lineA=single\nlineB=overlap-B",
+            "stored": {
+              "id": "8efaafdb-4fc6-4f00-9b92-5b6eab82e759",
+              "title": "複数タブ隔離試験428",
+              "body": "lineA=single\nlineB=overlap-B",
+              "collectionId": "system-unclassified",
+              "deletedAt": null,
+              "createdAt": 1793967421431,
+              "bodyUpdatedAt": 1793967427810,
+              "updatedAt": 1793967427811,
+              "revision": 6,
+              "isFlagged": false,
+              "tags": [],
+              "explanations": []
+            },
+            "save": {
+              "noteId": "8efaafdb-4fc6-4f00-9b92-5b6eab82e759",
+              "currentRevision": 6,
+              "lastSavedRevision": 6,
+              "dirty": false,
+              "status": "saved",
+              "activeRevision": null,
+              "pendingRevision": null,
+              "lastError": null
+            },
+            "badge": "◉ ブラウザ 保存済み",
+            "badgeState": "saved",
+            "pending": null,
+            "notice": "",
+            "messages": [
+              {
+                "at": 1793967424206,
+                "message": {
+                  "type": "memo-changed",
+                  "memoId": "8efaafdb-4fc6-4f00-9b92-5b6eab82e759",
+                  "updatedAt": 1793967423865,
+                  "deletedAt": null
+                }
+              },
+              {
+                "at": 1793967428145,
+                "message": {
+                  "type": "memo-changed",
+                  "memoId": "8efaafdb-4fc6-4f00-9b92-5b6eab82e759",
+                  "updatedAt": 1793967427811,
+                  "deletedAt": null
+                }
+              }
+            ]
+          },
+          {
+            "at": 1793967428718,
+            "currentId": "8efaafdb-4fc6-4f00-9b92-5b6eab82e759",
+            "title": "複数タブ隔離試験428",
+            "editor": "lineA=single\nlineB=overlap-B",
+            "stored": {
+              "id": "8efaafdb-4fc6-4f00-9b92-5b6eab82e759",
+              "title": "複数タブ隔離試験428",
+              "body": "lineA=single\nlineB=overlap-B",
+              "collectionId": "system-unclassified",
+              "deletedAt": null,
+              "createdAt": 1793967421431,
+              "bodyUpdatedAt": 1793967427810,
+              "updatedAt": 1793967427811,
+              "revision": 6,
+              "isFlagged": false,
+              "tags": [],
+              "explanations": []
+            },
+            "save": {
+              "noteId": "8efaafdb-4fc6-4f00-9b92-5b6eab82e759",
+              "currentRevision": 6,
+              "lastSavedRevision": 6,
+              "dirty": false,
+              "status": "saved",
+              "activeRevision": null,
+              "pendingRevision": null,
+              "lastError": null
+            },
+            "badge": "◉ ブラウザ 保存済み",
+            "badgeState": "saved",
+            "pending": null,
+            "notice": "",
+            "messages": [
+              {
+                "at": 1793967423738,
+                "message": {
+                  "type": "memo-changed",
+                  "memoId": "8efaafdb-4fc6-4f00-9b92-5b6eab82e759",
+                  "updatedAt": 1793967423384,
+                  "deletedAt": null
+                }
+              },
+              {
+                "at": 1793967428102,
+                "message": {
+                  "type": "memo-changed",
+                  "memoId": "8efaafdb-4fc6-4f00-9b92-5b6eab82e759",
+                  "updatedAt": 1793967427757,
+                  "deletedAt": null
+                }
+              }
+            ]
+          }
+        ],
+        "reloaded": [
+          {
+            "at": 1793967432026,
+            "currentId": "8efaafdb-4fc6-4f00-9b92-5b6eab82e759",
+            "title": "複数タブ隔離試験428",
+            "editor": "lineA=single\nlineB=overlap-B",
+            "stored": {
+              "id": "8efaafdb-4fc6-4f00-9b92-5b6eab82e759",
+              "title": "複数タブ隔離試験428",
+              "body": "lineA=single\nlineB=overlap-B",
+              "collectionId": "system-unclassified",
+              "deletedAt": null,
+              "createdAt": 1793967421431,
+              "bodyUpdatedAt": 1793967430650,
+              "updatedAt": 1793967431737,
+              "revision": 8,
+              "isFlagged": false,
+              "tags": [],
+              "explanations": []
+            },
+            "save": {
+              "noteId": "8efaafdb-4fc6-4f00-9b92-5b6eab82e759",
+              "currentRevision": 8,
+              "lastSavedRevision": 8,
+              "dirty": false,
+              "status": "saved",
+              "activeRevision": null,
+              "pendingRevision": null,
+              "lastError": null
+            },
+            "badge": "◉ ブラウザ 保存済み",
+            "badgeState": "saved",
+            "pending": null,
+            "notice": "",
+            "messages": []
+          },
+          {
+            "at": 1793967432062,
+            "currentId": "8efaafdb-4fc6-4f00-9b92-5b6eab82e759",
+            "title": "複数タブ隔離試験428",
+            "editor": "lineA=single\nlineB=overlap-B",
+            "stored": {
+              "id": "8efaafdb-4fc6-4f00-9b92-5b6eab82e759",
+              "title": "複数タブ隔離試験428",
+              "body": "lineA=single\nlineB=overlap-B",
+              "collectionId": "system-unclassified",
+              "deletedAt": null,
+              "createdAt": 1793967421431,
+              "bodyUpdatedAt": 1793967430650,
+              "updatedAt": 1793967431737,
+              "revision": 8,
+              "isFlagged": false,
+              "tags": [],
+              "explanations": []
+            },
+            "save": {
+              "noteId": "8efaafdb-4fc6-4f00-9b92-5b6eab82e759",
+              "currentRevision": 8,
+              "lastSavedRevision": 8,
+              "dirty": false,
+              "status": "saved",
+              "activeRevision": null,
+              "pendingRevision": null,
+              "lastError": null
+            },
+            "badge": "◉ ブラウザ 保存済み",
+            "badgeState": "saved",
+            "pending": null,
+            "notice": "前回の編集中メモを復元しました",
+            "messages": []
+          }
+        ]
+      },
+      "logs": [
+        {
+          "exceptions": [],
+          "consoleErrors": [],
+          "failedResponses": [],
+          "failedRequests": [],
+          "requests": [
+            "http://127.0.0.1:54369/index.html",
+            "https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css",
+            "http://127.0.0.1:54369/style.css?v=0.5.0-119",
+            "http://127.0.0.1:54369/report-print.css?v=0.5.0-3",
+            "https://cdn.jsdelivr.net/npm/@highlightjs/cdn-assets@11.11.1/highlight.min.js",
+            "https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js",
+            "https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.js",
+            "https://cdn.jsdelivr.net/npm/mathjs@15.2.0/lib/browser/math.js",
+            "http://127.0.0.1:54369/export-utils.js?v=0.5.0-8",
+            "http://127.0.0.1:54369/extensions/web-clipper/clip-result.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/extensions/web-clipper/transfer-lifecycle.js?v=0.5.0-2",
+            "http://127.0.0.1:54369/web-clip-utils.js?v=0.5.0-7",
+            "http://127.0.0.1:54369/web-clipper-config.js?v=0.5.0-4",
+            "http://127.0.0.1:54369/markdown-fence-utils.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/figure-metadata-utils.js?v=0.5.0-2",
+            "http://127.0.0.1:54369/timeline-block-utils.js?v=0.5.0-2",
+            "http://127.0.0.1:54369/source-utils.js?v=0.5.0-8",
+            "http://127.0.0.1:54369/attachment-utils.js?v=0.5.0-18",
+            "http://127.0.0.1:54369/table-block-utils.js?v=0.5.0-10",
+            "http://127.0.0.1:54369/table-file-export-utils.js?v=0.5.0-4",
+            "http://127.0.0.1:54369/chart-block-utils.js?v=0.5.0-31",
+            "http://127.0.0.1:54369/chart-png-export.js?v=0.5.0-4",
+            "http://127.0.0.1:54369/geometry-block-utils.js?v=0.5.0-18",
+            "http://127.0.0.1:54369/geometry-editor-utils.js?v=0.5.0-15",
+            "http://127.0.0.1:54369/geometry-svg-renderer.js?v=0.5.0-16",
+            "http://127.0.0.1:54369/geometry-block-editor.js?v=0.5.0-20",
+            "http://127.0.0.1:54369/tags.js?v=0.5.0-4",
+            "http://127.0.0.1:54369/memo-list-utils.js?v=0.5.0-5",
+            "http://127.0.0.1:54369/term-link-utils.js?v=0.5.0-6",
+            "http://127.0.0.1:54369/memo-link-utils.js?v=0.5.0-3",
+            "http://127.0.0.1:54369/json-import-router.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/json-import-adapters.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/logo-animation-utils.js?v=0.5.0-8",
+            "http://127.0.0.1:54369/editor-caret-animation-utils.js?v=0.5.0-2",
+            "http://127.0.0.1:54369/calculation-engine.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/calculator-link.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/font-settings.js?v=0.5.0-5",
+            "http://127.0.0.1:54369/font-recommendation.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/web-font-loader.js?v=0.5.0-2",
+            "http://127.0.0.1:54369/markdown-enhancements-utils.js?v=0.5.0-4",
+            "http://127.0.0.1:54369/ai-provider.js?v=0.5.0-3",
+            "http://127.0.0.1:54369/ollama-adapter.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/gemini-adapter.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/ai-context.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/ai-reference-selection.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/ai-prompts.js?v=0.5.0-2",
+            "http://127.0.0.1:54369/status-time-utils.js?v=0.5.0-2",
+            "http://127.0.0.1:54369/memo-popout-utils.js?v=0.5.0-4",
+            "http://127.0.0.1:54369/note-flag-utils.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/text-stats-utils.js?v=0.5.0-2",
+            "http://127.0.0.1:54369/markdown-bundle-utils.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/local-save-state.js?v=0.5.0-5",
+            "http://127.0.0.1:54369/local-save-queue.js?v=0.5.0-3",
+            "http://127.0.0.1:54369/note-tombstone.js?v=0.5.0-2",
+            "http://127.0.0.1:54369/note-save-foundation.js?v=0.5.0-8",
+            "http://127.0.0.1:54369/local-markdown.js?v=0.5.0-4",
+            "http://127.0.0.1:54369/local-sync-utils.js?v=0.5.0-14",
+            "http://127.0.0.1:54369/backup-bundle-utils.js?v=0.5.0-10",
+            "http://127.0.0.1:54369/local-fs-adapter.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/indexeddb-lifecycle.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/manual-local-save.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/codex-chat-utils.js?v=0.5.0-6",
+            "http://127.0.0.1:54369/typing-derived-ui-scheduler.js?v=0.5.0-4",
+            "http://127.0.0.1:54369/draft-mirror-scheduler.js?v=0.5.0-2",
+            "http://127.0.0.1:54369/typing-performance-monitor.js?v=0.5.0-3",
+            "http://127.0.0.1:54369/layout-resize-utils.js?v=0.5.0-2",
+            "http://127.0.0.1:54369/app.js?v=0.5.0-208",
+            "http://127.0.0.1:54369/codex-chat.js?v=0.5.0-6",
+            "http://127.0.0.1:54369/dummy-preview.css?v=0.5.0-3",
+            "http://127.0.0.1:54369/dummy-preview-ui.js?v=0.5.0-8",
+            "http://127.0.0.1:54369/memo-search.js?v=0.5.0-3",
+            "http://127.0.0.1:54369/memo-search-ui.js?v=0.5.0-3",
+            "http://127.0.0.1:54369/index.html",
+            "https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css",
+            "http://127.0.0.1:54369/style.css?v=0.5.0-119",
+            "http://127.0.0.1:54369/report-print.css?v=0.5.0-3",
+            "https://cdn.jsdelivr.net/npm/@highlightjs/cdn-assets@11.11.1/highlight.min.js",
+            "https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js",
+            "https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.js",
+            "https://cdn.jsdelivr.net/npm/mathjs@15.2.0/lib/browser/math.js",
+            "http://127.0.0.1:54369/export-utils.js?v=0.5.0-8",
+            "http://127.0.0.1:54369/extensions/web-clipper/clip-result.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/extensions/web-clipper/transfer-lifecycle.js?v=0.5.0-2",
+            "http://127.0.0.1:54369/web-clip-utils.js?v=0.5.0-7",
+            "http://127.0.0.1:54369/web-clipper-config.js?v=0.5.0-4",
+            "http://127.0.0.1:54369/markdown-fence-utils.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/figure-metadata-utils.js?v=0.5.0-2",
+            "http://127.0.0.1:54369/timeline-block-utils.js?v=0.5.0-2",
+            "http://127.0.0.1:54369/source-utils.js?v=0.5.0-8",
+            "http://127.0.0.1:54369/attachment-utils.js?v=0.5.0-18",
+            "http://127.0.0.1:54369/table-block-utils.js?v=0.5.0-10",
+            "http://127.0.0.1:54369/table-file-export-utils.js?v=0.5.0-4",
+            "http://127.0.0.1:54369/chart-block-utils.js?v=0.5.0-31",
+            "http://127.0.0.1:54369/chart-png-export.js?v=0.5.0-4",
+            "http://127.0.0.1:54369/geometry-block-utils.js?v=0.5.0-18",
+            "http://127.0.0.1:54369/geometry-editor-utils.js?v=0.5.0-15",
+            "http://127.0.0.1:54369/geometry-svg-renderer.js?v=0.5.0-16",
+            "http://127.0.0.1:54369/geometry-block-editor.js?v=0.5.0-20",
+            "http://127.0.0.1:54369/tags.js?v=0.5.0-4",
+            "http://127.0.0.1:54369/memo-list-utils.js?v=0.5.0-5",
+            "http://127.0.0.1:54369/term-link-utils.js?v=0.5.0-6",
+            "http://127.0.0.1:54369/memo-link-utils.js?v=0.5.0-3",
+            "http://127.0.0.1:54369/json-import-router.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/json-import-adapters.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/logo-animation-utils.js?v=0.5.0-8",
+            "http://127.0.0.1:54369/editor-caret-animation-utils.js?v=0.5.0-2",
+            "http://127.0.0.1:54369/calculation-engine.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/calculator-link.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/font-settings.js?v=0.5.0-5",
+            "http://127.0.0.1:54369/font-recommendation.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/web-font-loader.js?v=0.5.0-2",
+            "http://127.0.0.1:54369/markdown-enhancements-utils.js?v=0.5.0-4",
+            "http://127.0.0.1:54369/ai-provider.js?v=0.5.0-3",
+            "http://127.0.0.1:54369/ollama-adapter.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/gemini-adapter.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/ai-context.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/ai-reference-selection.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/ai-prompts.js?v=0.5.0-2",
+            "http://127.0.0.1:54369/status-time-utils.js?v=0.5.0-2",
+            "http://127.0.0.1:54369/memo-popout-utils.js?v=0.5.0-4",
+            "http://127.0.0.1:54369/note-flag-utils.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/text-stats-utils.js?v=0.5.0-2",
+            "http://127.0.0.1:54369/markdown-bundle-utils.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/local-save-state.js?v=0.5.0-5",
+            "http://127.0.0.1:54369/local-save-queue.js?v=0.5.0-3",
+            "http://127.0.0.1:54369/note-tombstone.js?v=0.5.0-2",
+            "http://127.0.0.1:54369/note-save-foundation.js?v=0.5.0-8",
+            "http://127.0.0.1:54369/local-markdown.js?v=0.5.0-4",
+            "http://127.0.0.1:54369/local-sync-utils.js?v=0.5.0-14",
+            "http://127.0.0.1:54369/backup-bundle-utils.js?v=0.5.0-10",
+            "http://127.0.0.1:54369/local-fs-adapter.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/indexeddb-lifecycle.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/manual-local-save.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/codex-chat-utils.js?v=0.5.0-6",
+            "http://127.0.0.1:54369/typing-derived-ui-scheduler.js?v=0.5.0-4",
+            "http://127.0.0.1:54369/draft-mirror-scheduler.js?v=0.5.0-2",
+            "http://127.0.0.1:54369/typing-performance-monitor.js?v=0.5.0-3",
+            "http://127.0.0.1:54369/layout-resize-utils.js?v=0.5.0-2",
+            "http://127.0.0.1:54369/app.js?v=0.5.0-208",
+            "http://127.0.0.1:54369/codex-chat.js?v=0.5.0-6",
+            "http://127.0.0.1:54369/dummy-preview.css?v=0.5.0-3",
+            "http://127.0.0.1:54369/dummy-preview-ui.js?v=0.5.0-8",
+            "http://127.0.0.1:54369/memo-search.js?v=0.5.0-3",
+            "http://127.0.0.1:54369/memo-search-ui.js?v=0.5.0-3"
+          ]
+        },
+        {
+          "exceptions": [],
+          "consoleErrors": [],
+          "failedResponses": [],
+          "failedRequests": [],
+          "requests": [
+            "http://127.0.0.1:54369/index.html",
+            "https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css",
+            "http://127.0.0.1:54369/style.css?v=0.5.0-119",
+            "http://127.0.0.1:54369/report-print.css?v=0.5.0-3",
+            "https://cdn.jsdelivr.net/npm/@highlightjs/cdn-assets@11.11.1/highlight.min.js",
+            "https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js",
+            "https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.js",
+            "https://cdn.jsdelivr.net/npm/mathjs@15.2.0/lib/browser/math.js",
+            "http://127.0.0.1:54369/export-utils.js?v=0.5.0-8",
+            "http://127.0.0.1:54369/extensions/web-clipper/clip-result.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/extensions/web-clipper/transfer-lifecycle.js?v=0.5.0-2",
+            "http://127.0.0.1:54369/web-clip-utils.js?v=0.5.0-7",
+            "http://127.0.0.1:54369/web-clipper-config.js?v=0.5.0-4",
+            "http://127.0.0.1:54369/markdown-fence-utils.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/figure-metadata-utils.js?v=0.5.0-2",
+            "http://127.0.0.1:54369/timeline-block-utils.js?v=0.5.0-2",
+            "http://127.0.0.1:54369/source-utils.js?v=0.5.0-8",
+            "http://127.0.0.1:54369/attachment-utils.js?v=0.5.0-18",
+            "http://127.0.0.1:54369/table-block-utils.js?v=0.5.0-10",
+            "http://127.0.0.1:54369/table-file-export-utils.js?v=0.5.0-4",
+            "http://127.0.0.1:54369/chart-block-utils.js?v=0.5.0-31",
+            "http://127.0.0.1:54369/chart-png-export.js?v=0.5.0-4",
+            "http://127.0.0.1:54369/geometry-block-utils.js?v=0.5.0-18",
+            "http://127.0.0.1:54369/geometry-editor-utils.js?v=0.5.0-15",
+            "http://127.0.0.1:54369/geometry-svg-renderer.js?v=0.5.0-16",
+            "http://127.0.0.1:54369/geometry-block-editor.js?v=0.5.0-20",
+            "http://127.0.0.1:54369/tags.js?v=0.5.0-4",
+            "http://127.0.0.1:54369/memo-list-utils.js?v=0.5.0-5",
+            "http://127.0.0.1:54369/term-link-utils.js?v=0.5.0-6",
+            "http://127.0.0.1:54369/memo-link-utils.js?v=0.5.0-3",
+            "http://127.0.0.1:54369/json-import-router.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/json-import-adapters.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/logo-animation-utils.js?v=0.5.0-8",
+            "http://127.0.0.1:54369/editor-caret-animation-utils.js?v=0.5.0-2",
+            "http://127.0.0.1:54369/calculation-engine.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/calculator-link.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/font-settings.js?v=0.5.0-5",
+            "http://127.0.0.1:54369/font-recommendation.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/web-font-loader.js?v=0.5.0-2",
+            "http://127.0.0.1:54369/markdown-enhancements-utils.js?v=0.5.0-4",
+            "http://127.0.0.1:54369/ai-provider.js?v=0.5.0-3",
+            "http://127.0.0.1:54369/ollama-adapter.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/gemini-adapter.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/ai-context.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/ai-reference-selection.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/ai-prompts.js?v=0.5.0-2",
+            "http://127.0.0.1:54369/status-time-utils.js?v=0.5.0-2",
+            "http://127.0.0.1:54369/memo-popout-utils.js?v=0.5.0-4",
+            "http://127.0.0.1:54369/note-flag-utils.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/text-stats-utils.js?v=0.5.0-2",
+            "http://127.0.0.1:54369/markdown-bundle-utils.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/local-save-state.js?v=0.5.0-5",
+            "http://127.0.0.1:54369/local-save-queue.js?v=0.5.0-3",
+            "http://127.0.0.1:54369/note-tombstone.js?v=0.5.0-2",
+            "http://127.0.0.1:54369/note-save-foundation.js?v=0.5.0-8",
+            "http://127.0.0.1:54369/local-markdown.js?v=0.5.0-4",
+            "http://127.0.0.1:54369/local-sync-utils.js?v=0.5.0-14",
+            "http://127.0.0.1:54369/backup-bundle-utils.js?v=0.5.0-10",
+            "http://127.0.0.1:54369/local-fs-adapter.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/indexeddb-lifecycle.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/manual-local-save.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/codex-chat-utils.js?v=0.5.0-6",
+            "http://127.0.0.1:54369/typing-derived-ui-scheduler.js?v=0.5.0-4",
+            "http://127.0.0.1:54369/draft-mirror-scheduler.js?v=0.5.0-2",
+            "http://127.0.0.1:54369/typing-performance-monitor.js?v=0.5.0-3",
+            "http://127.0.0.1:54369/layout-resize-utils.js?v=0.5.0-2",
+            "http://127.0.0.1:54369/app.js?v=0.5.0-208",
+            "http://127.0.0.1:54369/codex-chat.js?v=0.5.0-6",
+            "http://127.0.0.1:54369/dummy-preview.css?v=0.5.0-3",
+            "http://127.0.0.1:54369/dummy-preview-ui.js?v=0.5.0-8",
+            "http://127.0.0.1:54369/memo-search.js?v=0.5.0-3",
+            "http://127.0.0.1:54369/memo-search-ui.js?v=0.5.0-3",
+            "http://127.0.0.1:54369/index.html",
+            "https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css",
+            "http://127.0.0.1:54369/style.css?v=0.5.0-119",
+            "http://127.0.0.1:54369/report-print.css?v=0.5.0-3",
+            "https://cdn.jsdelivr.net/npm/@highlightjs/cdn-assets@11.11.1/highlight.min.js",
+            "https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js",
+            "https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.js",
+            "https://cdn.jsdelivr.net/npm/mathjs@15.2.0/lib/browser/math.js",
+            "http://127.0.0.1:54369/export-utils.js?v=0.5.0-8",
+            "http://127.0.0.1:54369/extensions/web-clipper/clip-result.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/extensions/web-clipper/transfer-lifecycle.js?v=0.5.0-2",
+            "http://127.0.0.1:54369/web-clip-utils.js?v=0.5.0-7",
+            "http://127.0.0.1:54369/web-clipper-config.js?v=0.5.0-4",
+            "http://127.0.0.1:54369/markdown-fence-utils.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/figure-metadata-utils.js?v=0.5.0-2",
+            "http://127.0.0.1:54369/timeline-block-utils.js?v=0.5.0-2",
+            "http://127.0.0.1:54369/source-utils.js?v=0.5.0-8",
+            "http://127.0.0.1:54369/attachment-utils.js?v=0.5.0-18",
+            "http://127.0.0.1:54369/table-block-utils.js?v=0.5.0-10",
+            "http://127.0.0.1:54369/table-file-export-utils.js?v=0.5.0-4",
+            "http://127.0.0.1:54369/chart-block-utils.js?v=0.5.0-31",
+            "http://127.0.0.1:54369/chart-png-export.js?v=0.5.0-4",
+            "http://127.0.0.1:54369/geometry-block-utils.js?v=0.5.0-18",
+            "http://127.0.0.1:54369/geometry-editor-utils.js?v=0.5.0-15",
+            "http://127.0.0.1:54369/geometry-svg-renderer.js?v=0.5.0-16",
+            "http://127.0.0.1:54369/geometry-block-editor.js?v=0.5.0-20",
+            "http://127.0.0.1:54369/tags.js?v=0.5.0-4",
+            "http://127.0.0.1:54369/memo-list-utils.js?v=0.5.0-5",
+            "http://127.0.0.1:54369/term-link-utils.js?v=0.5.0-6",
+            "http://127.0.0.1:54369/memo-link-utils.js?v=0.5.0-3",
+            "http://127.0.0.1:54369/json-import-router.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/json-import-adapters.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/logo-animation-utils.js?v=0.5.0-8",
+            "http://127.0.0.1:54369/editor-caret-animation-utils.js?v=0.5.0-2",
+            "http://127.0.0.1:54369/calculation-engine.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/calculator-link.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/font-settings.js?v=0.5.0-5",
+            "http://127.0.0.1:54369/font-recommendation.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/web-font-loader.js?v=0.5.0-2",
+            "http://127.0.0.1:54369/markdown-enhancements-utils.js?v=0.5.0-4",
+            "http://127.0.0.1:54369/ai-provider.js?v=0.5.0-3",
+            "http://127.0.0.1:54369/ollama-adapter.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/gemini-adapter.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/ai-context.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/ai-reference-selection.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/ai-prompts.js?v=0.5.0-2",
+            "http://127.0.0.1:54369/status-time-utils.js?v=0.5.0-2",
+            "http://127.0.0.1:54369/memo-popout-utils.js?v=0.5.0-4",
+            "http://127.0.0.1:54369/note-flag-utils.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/text-stats-utils.js?v=0.5.0-2",
+            "http://127.0.0.1:54369/markdown-bundle-utils.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/local-save-state.js?v=0.5.0-5",
+            "http://127.0.0.1:54369/local-save-queue.js?v=0.5.0-3",
+            "http://127.0.0.1:54369/note-tombstone.js?v=0.5.0-2",
+            "http://127.0.0.1:54369/note-save-foundation.js?v=0.5.0-8",
+            "http://127.0.0.1:54369/local-markdown.js?v=0.5.0-4",
+            "http://127.0.0.1:54369/local-sync-utils.js?v=0.5.0-14",
+            "http://127.0.0.1:54369/backup-bundle-utils.js?v=0.5.0-10",
+            "http://127.0.0.1:54369/local-fs-adapter.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/indexeddb-lifecycle.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/manual-local-save.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/codex-chat-utils.js?v=0.5.0-6",
+            "http://127.0.0.1:54369/typing-derived-ui-scheduler.js?v=0.5.0-4",
+            "http://127.0.0.1:54369/draft-mirror-scheduler.js?v=0.5.0-2",
+            "http://127.0.0.1:54369/typing-performance-monitor.js?v=0.5.0-3",
+            "http://127.0.0.1:54369/layout-resize-utils.js?v=0.5.0-2",
+            "http://127.0.0.1:54369/app.js?v=0.5.0-208",
+            "http://127.0.0.1:54369/codex-chat.js?v=0.5.0-6",
+            "http://127.0.0.1:54369/dummy-preview.css?v=0.5.0-3",
+            "http://127.0.0.1:54369/dummy-preview-ui.js?v=0.5.0-8",
+            "http://127.0.0.1:54369/memo-search.js?v=0.5.0-3",
+            "http://127.0.0.1:54369/memo-search-ui.js?v=0.5.0-3"
+          ]
+        },
+        {
+          "exceptions": [],
+          "consoleErrors": [],
+          "failedResponses": [],
+          "failedRequests": [],
+          "requests": [
+            "http://127.0.0.1:54369/storage-guide.css"
+          ]
+        },
+        {
+          "exceptions": [],
+          "consoleErrors": [],
+          "failedResponses": [],
+          "failedRequests": [],
+          "requests": [
+            "http://127.0.0.1:54369/storage-guide.html",
+            "http://127.0.0.1:54369/storage-guide.css",
+            "http://127.0.0.1:54369/index.html",
+            "https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css",
+            "http://127.0.0.1:54369/style.css?v=0.5.0-119",
+            "http://127.0.0.1:54369/report-print.css?v=0.5.0-3",
+            "https://cdn.jsdelivr.net/npm/@highlightjs/cdn-assets@11.11.1/highlight.min.js",
+            "https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js",
+            "https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.js",
+            "https://cdn.jsdelivr.net/npm/mathjs@15.2.0/lib/browser/math.js",
+            "http://127.0.0.1:54369/export-utils.js?v=0.5.0-8",
+            "http://127.0.0.1:54369/extensions/web-clipper/clip-result.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/extensions/web-clipper/transfer-lifecycle.js?v=0.5.0-2",
+            "http://127.0.0.1:54369/web-clip-utils.js?v=0.5.0-7",
+            "http://127.0.0.1:54369/web-clipper-config.js?v=0.5.0-4",
+            "http://127.0.0.1:54369/markdown-fence-utils.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/figure-metadata-utils.js?v=0.5.0-2",
+            "http://127.0.0.1:54369/timeline-block-utils.js?v=0.5.0-2",
+            "http://127.0.0.1:54369/source-utils.js?v=0.5.0-8",
+            "http://127.0.0.1:54369/attachment-utils.js?v=0.5.0-18",
+            "http://127.0.0.1:54369/table-block-utils.js?v=0.5.0-10",
+            "http://127.0.0.1:54369/table-file-export-utils.js?v=0.5.0-4",
+            "http://127.0.0.1:54369/chart-block-utils.js?v=0.5.0-31",
+            "http://127.0.0.1:54369/chart-png-export.js?v=0.5.0-4",
+            "http://127.0.0.1:54369/geometry-block-utils.js?v=0.5.0-18",
+            "http://127.0.0.1:54369/geometry-editor-utils.js?v=0.5.0-15",
+            "http://127.0.0.1:54369/geometry-svg-renderer.js?v=0.5.0-16",
+            "http://127.0.0.1:54369/geometry-block-editor.js?v=0.5.0-20",
+            "http://127.0.0.1:54369/tags.js?v=0.5.0-4",
+            "http://127.0.0.1:54369/memo-list-utils.js?v=0.5.0-5",
+            "http://127.0.0.1:54369/term-link-utils.js?v=0.5.0-6",
+            "http://127.0.0.1:54369/memo-link-utils.js?v=0.5.0-3",
+            "http://127.0.0.1:54369/json-import-router.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/json-import-adapters.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/logo-animation-utils.js?v=0.5.0-8",
+            "http://127.0.0.1:54369/editor-caret-animation-utils.js?v=0.5.0-2",
+            "http://127.0.0.1:54369/calculation-engine.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/calculator-link.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/font-settings.js?v=0.5.0-5",
+            "http://127.0.0.1:54369/font-recommendation.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/web-font-loader.js?v=0.5.0-2",
+            "http://127.0.0.1:54369/markdown-enhancements-utils.js?v=0.5.0-4",
+            "http://127.0.0.1:54369/ai-provider.js?v=0.5.0-3",
+            "http://127.0.0.1:54369/ollama-adapter.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/gemini-adapter.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/ai-context.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/ai-reference-selection.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/ai-prompts.js?v=0.5.0-2",
+            "http://127.0.0.1:54369/status-time-utils.js?v=0.5.0-2",
+            "http://127.0.0.1:54369/memo-popout-utils.js?v=0.5.0-4",
+            "http://127.0.0.1:54369/note-flag-utils.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/text-stats-utils.js?v=0.5.0-2",
+            "http://127.0.0.1:54369/markdown-bundle-utils.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/local-save-state.js?v=0.5.0-5",
+            "http://127.0.0.1:54369/local-save-queue.js?v=0.5.0-3",
+            "http://127.0.0.1:54369/note-tombstone.js?v=0.5.0-2",
+            "http://127.0.0.1:54369/note-save-foundation.js?v=0.5.0-8",
+            "http://127.0.0.1:54369/local-markdown.js?v=0.5.0-4",
+            "http://127.0.0.1:54369/local-sync-utils.js?v=0.5.0-14",
+            "http://127.0.0.1:54369/backup-bundle-utils.js?v=0.5.0-10",
+            "http://127.0.0.1:54369/local-fs-adapter.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/indexeddb-lifecycle.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/manual-local-save.js?v=0.5.0-1",
+            "http://127.0.0.1:54369/codex-chat-utils.js?v=0.5.0-6",
+            "http://127.0.0.1:54369/typing-derived-ui-scheduler.js?v=0.5.0-4",
+            "http://127.0.0.1:54369/draft-mirror-scheduler.js?v=0.5.0-2",
+            "http://127.0.0.1:54369/typing-performance-monitor.js?v=0.5.0-3",
+            "http://127.0.0.1:54369/layout-resize-utils.js?v=0.5.0-2",
+            "http://127.0.0.1:54369/app.js?v=0.5.0-208",
+            "http://127.0.0.1:54369/codex-chat.js?v=0.5.0-6",
+            "http://127.0.0.1:54369/dummy-preview.css?v=0.5.0-3",
+            "http://127.0.0.1:54369/dummy-preview-ui.js?v=0.5.0-8",
+            "http://127.0.0.1:54369/memo-search.js?v=0.5.0-3",
+            "http://127.0.0.1:54369/memo-search-ui.js?v=0.5.0-3"
+          ]
+        }
+      ],
+      "externalFixtures": [
+        "https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css",
+        "https://cdn.jsdelivr.net/npm/@highlightjs/cdn-assets@11.11.1/highlight.min.js",
+        "https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js",
+        "https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.js",
+        "https://cdn.jsdelivr.net/npm/mathjs@15.2.0/lib/browser/math.js",
+        "https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css",
+        "https://cdn.jsdelivr.net/npm/@highlightjs/cdn-assets@11.11.1/highlight.min.js",
+        "https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js",
+        "https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.js",
+        "https://cdn.jsdelivr.net/npm/mathjs@15.2.0/lib/browser/math.js",
+        "https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css",
+        "https://cdn.jsdelivr.net/npm/@highlightjs/cdn-assets@11.11.1/highlight.min.js",
+        "https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js",
+        "https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.js",
+        "https://cdn.jsdelivr.net/npm/mathjs@15.2.0/lib/browser/math.js",
+        "https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css",
+        "https://cdn.jsdelivr.net/npm/@highlightjs/cdn-assets@11.11.1/highlight.min.js",
+        "https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js",
+        "https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.js",
+        "https://cdn.jsdelivr.net/npm/mathjs@15.2.0/lib/browser/math.js"
+      ],
+      "status": "FAIL"
+    }
+  ],
+  "limitations": [
+    "Only the recorded natural autosave schedules are observed; all schedules and real Safari/PWA remain UNKNOWN",
+    "No real profiles, real data, direct save calls, storage reset, modified timers or blocked BroadcastChannel"
+  ],
+  "status": "FAIL",
+  "finishedAt": "2026-11-06T12:17:14.495Z"
+}
