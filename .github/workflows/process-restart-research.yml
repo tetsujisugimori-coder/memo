@@ -1,0 +1,39 @@
+name: Persistent profile restart research (synthetic)
+on:
+  pull_request:
+    branches: [integrate/save-conflict-palette-20261110]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  restart-research:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium webkit
+      - name: Verify saved note and stopped conflict through persistent process relaunch
+        run: node note-conflict-process-restart.e2e.cjs
+        env:
+          MEMO_RESTART_OUTPUT: e2e-artifacts/process-restart
+      - name: Preserve both PASS and FAIL evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: restart-research-${{ matrix.os }}
+          path: e2e-artifacts/process-restart
+          if-no-files-found: error
+          retention-days: 14
