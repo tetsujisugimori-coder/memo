@@ -1,0 +1,46 @@
+name: Track B fixed-source conflict verification
+on:
+  push:
+    branches: [investigate/windows-conflict-track-b-20261111]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium webkit
+      - run: node --test issue436-diagnostic.test.cjs issue436b-telemetry.test.cjs
+      - name: Original ten cases without diagnostic preload
+        run: node note-conflict.e2e.cjs
+        env:
+          MEMO_SAVE_ARTIFACTS: e2e-artifacts/track-b/full
+      - name: Fixed integration source with passive observation
+        run: node issue436-startup-diagnostic.cjs webkit integration
+        env:
+          I436_OUTPUT: e2e-artifacts/track-b/passive
+      - name: Preserve raw evidence even after failure
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: track-b-${{ matrix.os }}
+          path: |
+            e2e-artifacts/track-b/
+            !e2e-artifacts/track-b/**/source/
+            !e2e-artifacts/track-b/**/source.tar
+          if-no-files-found: error
+          retention-days: 30
