@@ -1,0 +1,359 @@
+{
+  "files": [
+    {
+      "path": "integration-unmodified.log",
+      "sha256": "3a1b37af4cc5a45939f101a27c41e7980fd7a37a668a83e43c12ed71ab38d5b5",
+      "bytes": 1336
+    },
+    {
+      "path": "npm-ci.log",
+      "sha256": "068574195a4f428d5e538cf0df0c38df5275f1911035f1e890433f2ba12067dc",
+      "bytes": 96
+    },
+    {
+      "path": "red.log",
+      "sha256": "0a1e5ae2b860a5637e0b9661a9433288cad59723e08ede5ef9fe7c3c9f5a5161",
+      "bytes": 508
+    },
+    {
+      "path": "fixed-deep/B-recovered-draft.txt",
+      "sha256": "a864a1640f3bfdda75a676499c4aaa020f28db13787a48577a2b5e3aec7f8033",
+      "bytes": 28
+    },
+    {
+      "path": "fixed-deep/manifest.json",
+      "sha256": "5850efc4b0fa279e6d8dc220ec862fc57387b334f4a0f60a0a8e83b9cc5dde15",
+      "bytes": 34002
+    },
+    {
+      "path": "fixed-deep/results.json",
+      "sha256": "ca6384428fa601b17c9aedf66143950cb59fd574404c4d28a0350745f65a3f3c",
+      "bytes": 332425
+    },
+    {
+      "path": "fixed-deep/run.log",
+      "sha256": "80dc4a64fbafc5962b673e4a2c95e00c48fcbadd6e763f7254391533d8af3bda",
+      "bytes": 224
+    },
+    {
+      "path": "fixed-deep/timeline.jsonl",
+      "sha256": "41ec0f0cf751af02e6319692cfa5a4b184a94492bd93dfbe870b400307635933",
+      "bytes": 321958
+    },
+    {
+      "path": "fixed-deep/webkit-1280-AB-0-terminal.png",
+      "sha256": "07e116804116fcc306ef16720aa45f051ad93086320f9b2e4a842d59233eeb52",
+      "bytes": 98564
+    },
+    {
+      "path": "fixed-deep/webkit-1280-AB-1-terminal.png",
+      "sha256": "9a375472acc8c403ae6bc5396694f5eb4a03f513bbbe896b791a683c801dd49f",
+      "bytes": 134989
+    },
+    {
+      "path": "fixed-none/B-recovered-draft.txt",
+      "sha256": "a864a1640f3bfdda75a676499c4aaa020f28db13787a48577a2b5e3aec7f8033",
+      "bytes": 28
+    },
+    {
+      "path": "fixed-none/manifest.json",
+      "sha256": "3a449dd23959e7d22623918bb3b13a63cd34b19be7a6aeb81a6bcb185df6c9a6",
+      "bytes": 34003
+    },
+    {
+      "path": "fixed-none/results.json",
+      "sha256": "9bae4a3ae8b0fda963a20c97a3da644e001448c4a03cc2061edc83f5e013b67e",
+      "bytes": 332425
+    },
+    {
+      "path": "fixed-none/run.log",
+      "sha256": "80dc4a64fbafc5962b673e4a2c95e00c48fcbadd6e763f7254391533d8af3bda",
+      "bytes": 224
+    },
+    {
+      "path": "fixed-none/webkit-1280-AB-0-terminal.png",
+      "sha256": "643a2c551a7e8a1a964228afff577fdca3b678aaebc887a63d843c4fdcfe4071",
+      "bytes": 98671
+    },
+    {
+      "path": "fixed-none/webkit-1280-AB-1-terminal.png",
+      "sha256": "29405b6bde1b2996f4aae8464f78812c43aeb27eda5969fea8bb9897e93b2eaf",
+      "bytes": 135097
+    },
+    {
+      "path": "fixed-passive/A-recovered-draft.txt",
+      "sha256": "981d159a00f939702bd61f7bcf849a566c13e61848d537ea5e735b58b3c20809",
+      "bytes": 32
+    },
+    {
+      "path": "fixed-passive/manifest.json",
+      "sha256": "d2cd945ee54597e6b068e4de502a2f4db524ed04bc178963102b7aec8c021d50",
+      "bytes": 34006
+    },
+    {
+      "path": "fixed-passive/results.json",
+      "sha256": "063ce7f9213cac19951df008e8a9e4aeff7f7730df89fa7aff4ce31710a4859d",
+      "bytes": 309980
+    },
+    {
+      "path": "fixed-passive/run.log",
+      "sha256": "80dc4a64fbafc5962b673e4a2c95e00c48fcbadd6e763f7254391533d8af3bda",
+      "bytes": 224
+    },
+    {
+      "path": "fixed-passive/timeline.jsonl",
+      "sha256": "520ec9b3c7f73c8bea61c5528f882e5a29d489a6aa9260e26a518a4d63ca1591",
+      "bytes": 264533
+    },
+    {
+      "path": "fixed-passive/webkit-1280-AB-0-terminal.png",
+      "sha256": "c3284636c9d301a31f3d8e60af1941d1b22a6a3e6c2c067927016ccf871567bd",
+      "bytes": 145927
+    },
+    {
+      "path": "fixed-passive/webkit-1280-AB-1-terminal.png",
+      "sha256": "937bf52dffd40055eb0ce2fcda5fd438db0429b20c5e27e595434c7b457caab3",
+      "bytes": 88478
+    },
+    {
+      "path": "integration-deep/A-recovered-draft.txt",
+      "sha256": "981d159a00f939702bd61f7bcf849a566c13e61848d537ea5e735b58b3c20809",
+      "bytes": 32
+    },
+    {
+      "path": "integration-deep/manifest.json",
+      "sha256": "595ed61546a1790fbbe09c1d4f52dd83775514049c64092c62c3829b2d1e8bd9",
+      "bytes": 34845
+    },
+    {
+      "path": "integration-deep/results.json",
+      "sha256": "e3cb8ef8b269cd661201d1524ddbbc7016a4033f4304998feedc705feeb3322b",
+      "bytes": 313053
+    },
+    {
+      "path": "integration-deep/run.log",
+      "sha256": "03892da8a8161892cf6dce2f0e8ece65bddc3f9b74779f8ba682ac286453f79f",
+      "bytes": 224
+    },
+    {
+      "path": "integration-deep/timeline.jsonl",
+      "sha256": "659c647badb13935d8f6e85bde8f8a21823ce119347ba0a8989004a5232e47cf",
+      "bytes": 324446
+    },
+    {
+      "path": "integration-deep/webkit-1280-AB-0-terminal.png",
+      "sha256": "da03cbbf84566b9ed465ff097fa211d4d0efa27bda9a41b841ee97bac4790bdf",
+      "bytes": 128272
+    },
+    {
+      "path": "integration-deep/webkit-1280-AB-1-terminal.png",
+      "sha256": "1e413c4df10267fe6160c351c22442d3aacd932e773aaa5d329cb1e2b09b0ecd",
+      "bytes": 83496
+    },
+    {
+      "path": "integration-passive/A-recovered-draft.txt",
+      "sha256": "981d159a00f939702bd61f7bcf849a566c13e61848d537ea5e735b58b3c20809",
+      "bytes": 32
+    },
+    {
+      "path": "integration-passive/manifest.json",
+      "sha256": "c762dc0bc45821bca005e4dcf092f3d10b73ac0944569edf43d1863e453c308d",
+      "bytes": 34849
+    },
+    {
+      "path": "integration-passive/results.json",
+      "sha256": "e440d187c36eed5b334aac5528cfeca81b48c37b6e8e7a3488c3a9f395b31bf4",
+      "bytes": 313063
+    },
+    {
+      "path": "integration-passive/run.log",
+      "sha256": "03892da8a8161892cf6dce2f0e8ece65bddc3f9b74779f8ba682ac286453f79f",
+      "bytes": 224
+    },
+    {
+      "path": "integration-passive/timeline.jsonl",
+      "sha256": "3a1e5820c3960b6bc6bab0fbd98c9ad9c6facea9ee628a09920f19aa4559a612",
+      "bytes": 267064
+    },
+    {
+      "path": "integration-passive/webkit-1280-AB-0-terminal.png",
+      "sha256": "e8bc4ec2b60460045deb99a80a507c8095a5c2fc6996aa358b10ffb1e1c12a3f",
+      "bytes": 128275
+    },
+    {
+      "path": "integration-passive/webkit-1280-AB-1-terminal.png",
+      "sha256": "4788fafde170d4c31283a1a1792d32f1c91dc9b4b19358be470e94321c84a548",
+      "bytes": 83497
+    },
+    {
+      "path": "integration-unmodified/A-recovered-draft.txt",
+      "sha256": "981d159a00f939702bd61f7bcf849a566c13e61848d537ea5e735b58b3c20809",
+      "bytes": 32
+    },
+    {
+      "path": "integration-unmodified/B-recovered-draft.txt",
+      "sha256": "a864a1640f3bfdda75a676499c4aaa020f28db13787a48577a2b5e3aec7f8033",
+      "bytes": 28
+    },
+    {
+      "path": "integration-unmodified/chromium-1280-AB-0-terminal.png",
+      "sha256": "29163d820e1403b90cdcfdafb8046299b22bc65b7882a50291d36ccef225ae24",
+      "bytes": 114536
+    },
+    {
+      "path": "integration-unmodified/chromium-1280-AB-1-terminal.png",
+      "sha256": "3122c6d4bac88f02a56ace77cb522dedef6d094bbd6a884b2dd91065abd6f7e5",
+      "bytes": 149543
+    },
+    {
+      "path": "integration-unmodified/chromium-1280-BA-0-terminal.png",
+      "sha256": "701212c234290fef1a68fc5e8aaa1f128699b4eaf14391a4a008f01f07cbb239",
+      "bytes": 165267
+    },
+    {
+      "path": "integration-unmodified/chromium-1280-BA-1-terminal.png",
+      "sha256": "da212d9c919e3cad36898224bbfd87df1f4f2ce3717403ad3cc87ec5e1c204b9",
+      "bytes": 100685
+    },
+    {
+      "path": "integration-unmodified/chromium-375-AB-0-terminal.png",
+      "sha256": "9ec66419c8458b091200dbabe5c617cd44a1946832a1f254526d6cd4725f8232",
+      "bytes": 9838
+    },
+    {
+      "path": "integration-unmodified/chromium-375-AB-1-terminal.png",
+      "sha256": "687719f8a6b1b1a38f422e4eb9199d331aba50a9138cbdb0ad9d3f15107ae391",
+      "bytes": 71060
+    },
+    {
+      "path": "integration-unmodified/chromium-390-BA-0-terminal.png",
+      "sha256": "8b173bf8db725de004f2da67596ba1f0e7ab23fe5e118e6d8c41e0a4e32ecbba",
+      "bytes": 87620
+    },
+    {
+      "path": "integration-unmodified/chromium-390-BA-1-terminal.png",
+      "sha256": "58521ac47a7ba2763a16f746c2a7e7bb7f617bd94b0b91bb7b8df04d8f82d1a6",
+      "bytes": 10051
+    },
+    {
+      "path": "integration-unmodified/results.json",
+      "sha256": "31aab7eb2cec1d1d7372826c3ee5868a10fe3f256e778e8e56de2509b5bb30d3",
+      "bytes": 2784703
+    },
+    {
+      "path": "integration-unmodified/webkit-1280-AB-0-terminal.png",
+      "sha256": "7282e019d03e9047032e31c47ad99285ce48402c3225ad39ba379ab307295c94",
+      "bytes": 93323
+    },
+    {
+      "path": "integration-unmodified/webkit-1280-AB-1-terminal.png",
+      "sha256": "6251650db8e4cec002f4a9d24ff721dd472f0462328bbeeb3f77239e4fc73be3",
+      "bytes": 118577
+    },
+    {
+      "path": "integration-unmodified/webkit-1280-BA-0-terminal.png",
+      "sha256": "4870313dfaea075939acb4f4b649ce1dc4539c5b098103e249a223c9616a2479",
+      "bytes": 127806
+    },
+    {
+      "path": "integration-unmodified/webkit-1280-BA-1-terminal.png",
+      "sha256": "f2e6835398aa776989e3ec68c89ed18c65619d3d432ba32e5008bc0bb472527c",
+      "bytes": 81997
+    },
+    {
+      "path": "integration-unmodified/webkit-375-AB-0-terminal.png",
+      "sha256": "f22be9eaebc21451107b88cb18cc25ef90fb6372ec843655412f83cbdb757dee",
+      "bytes": 9261
+    },
+    {
+      "path": "integration-unmodified/webkit-375-AB-1-terminal.png",
+      "sha256": "03bbb25f14b197edee6d9064cb351fb6239640609e1073e33607d2fd85577292",
+      "bytes": 56256
+    },
+    {
+      "path": "integration-unmodified/webkit-390-BA-0-terminal.png",
+      "sha256": "3328aa77e6c84a25a154ef09797be412936c5eb2b8914cad2aca573ccebe3197",
+      "bytes": 9259
+    },
+    {
+      "path": "integration-unmodified/webkit-390-BA-1-terminal.png",
+      "sha256": "74bf3e64ba4894607e4e6ddd09a3a892234bebf77a8305fddef8746055bf8d57",
+      "bytes": 56966
+    },
+    {
+      "path": "old-deep/manifest.json",
+      "sha256": "99bd99e7796b0f47c1d5985eb476de6f50027ffb9bf872ab5f672b722fb52aa7",
+      "bytes": 32775
+    },
+    {
+      "path": "old-deep/results.json",
+      "sha256": "43524a5810c41e6b0bc8e99304f0a07ac6187c1bfd0b7f5877310aa84e191435",
+      "bytes": 214178
+    },
+    {
+      "path": "old-deep/run.log",
+      "sha256": "75e4685bec1f629ed4956d74321e7baef678b9dec97fff30966e405e44e1fee7",
+      "bytes": 225
+    },
+    {
+      "path": "old-deep/timeline.jsonl",
+      "sha256": "4d41ffab1db8ee777f37f1b608dd487cc5afbaae2532dfadd4aae4d0399edcb0",
+      "bytes": 236276
+    },
+    {
+      "path": "old-deep/webkit-1280-AB-0-terminal.png",
+      "sha256": "e4ff5eec41a8f3a404dad9af71e6989f63bad286762b114aecc9c1d8193e8d35",
+      "bytes": 98225
+    },
+    {
+      "path": "old-deep/webkit-1280-AB-1-terminal.png",
+      "sha256": "552dfad9d029c81bea1ba53dca269f1989d90c6cc152583087eb0d96a80d79e9",
+      "bytes": 88557
+    },
+    {
+      "path": "red/legacy-control-summary.json",
+      "sha256": "6607e6d1d9c696284c9e62282f376af3dc3e1f25056be59c024da8ae328c21a0",
+      "bytes": 498
+    },
+    {
+      "path": "red/legacy-control/chromium-1280-AB-0-terminal.png",
+      "sha256": "c379ddc989fab8881fd09059cb761ee2f8e83d77044a67a7fdf17f13bc2dccc6",
+      "bytes": 119681
+    },
+    {
+      "path": "red/legacy-control/chromium-1280-AB-1-terminal.png",
+      "sha256": "c46f1fcdbfc069025da845ca7893eed372ff4768921dd28442bb3f6d28066bfe",
+      "bytes": 106697
+    },
+    {
+      "path": "red/legacy-control/results.json",
+      "sha256": "0a0152138c69eb4f1a0315f9dfa8bb0d6223c36e866ef2bfcb8a5d2b2cb02647",
+      "bytes": 391663
+    },
+    {
+      "path": "red/legacy-control/run.log",
+      "sha256": "e0680a2deebb1c508a1440db8fcf6cb93191082eb373f2447347d4984f7b19f0",
+      "bytes": 947
+    },
+    {
+      "path": "red/legacy-control/webkit-1280-AB-0-failure.png",
+      "sha256": "85e3473d37f9dbee4ceacbe48938a41aaba958500deda4411991494840def156",
+      "bytes": 18390
+    },
+    {
+      "path": "red/legacy-control/webkit-1280-AB-0-terminal.png",
+      "sha256": "000c149d70c3289888b8e488ddfd579393cec8905f07faf0bb1752e1a6fcfca4",
+      "bytes": 98192
+    },
+    {
+      "path": "red/legacy-control/webkit-1280-AB-1-failure.png",
+      "sha256": "94706c53b836a602dd185d9ee376f09b60c1e6ec55d844e93c6fd387f105e325",
+      "bytes": 88524
+    },
+    {
+      "path": "red/legacy-control/webkit-1280-AB-1-terminal.png",
+      "sha256": "94706c53b836a602dd185d9ee376f09b60c1e6ec55d844e93c6fd387f105e325",
+      "bytes": 88524
+    }
+  ]
+}
