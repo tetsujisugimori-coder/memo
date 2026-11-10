@@ -1655,7 +1655,7 @@ test("ローカル保存・復元はtags.jsonを扱い旧フォルダの欠落�
 });
 
 test("DB v5は既存ストアを保持してtagsストアを追加する", () => {
-  assert.match(app, /const DB_VERSION = 6/);
+  assert.match(app, /const DB_VERSION = 7/);
   assert.match(app, /objectStoreNames\.contains\(LOCAL_CONFIG_STORE_NAME\)[\s\S]*createObjectStore\(LOCAL_CONFIG_STORE_NAME/);
   assert.match(app, /objectStoreNames\.contains\(TAG_STORE_NAME\)[\s\S]*createObjectStore\(TAG_STORE_NAME, \{ keyPath: "id" \}\)/);
   assert.doesNotMatch(app, /deleteObjectStore/);

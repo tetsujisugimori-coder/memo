@@ -436,8 +436,9 @@ test("DB migrationは新規・旧DBへstoreを作成し、作成失敗を握り�
     objectStoreNames: { contains: () => false },
     createObjectStore() { throw new Error("upgrade aborted"); }
   }), /upgrade aborted/);
-  assert.match(app, /const DB_VERSION = 6;/);
+  assert.match(app, /const DB_VERSION = 7;/);
   assert.match(app, /installTombstoneStore\(database, TOMBSTONE_STORE_NAME\)/);
+  assert.match(app, /noteConflictStore\.installStore\(database\)/);
 });
 
 test("変更したブラウザ配信JavaScriptのcache識別子を更新している", () => {

@@ -178,7 +178,7 @@ function pasteHarness(detected, failId = false) {
   const editor = { value: "前XX後", selectionStart: 1, selectionEnd: 3, setSelectionRange(a,b){this.selectionStart=a;this.selectionEnd=b;},focus(){} };
   const pending = { noteId:"note",editorValue:editor.value,selectionStart:1,selectionEnd:3,detected,size:utilities.validateMixedTablePaste(detected) };
   const calls = {undo:0,save:0,render:0};
-  const context = { ...utilities, editor,pendingTablePaste:pending, currentId:"note",currentNote:()=>({id:"note"}),
+  const context = { ...utilities, noteConflictStates: new Map(), editor,pendingTablePaste:pending, currentId:"note",currentNote:()=>({id:"note"}),
     crypto:{randomUUID:()=>{if(failId)throw Error("injected");return "new-"+(++context.ids);}},ids:0,
     tablePasteTables:{querySelectorAll:()=>[{checked:true},{checked:false}]},tablePasteHeaderCheckbox:{checked:true},
     tablePasteWarning:{textContent:"",hidden:true},confirmTablePasteBtn:{hidden:false},pasteTableAsTextBtn:{focus(){}},
@@ -186,7 +186,7 @@ function pasteHarness(detected, failId = false) {
     renderTableBlockEditors:()=>calls.render++,closeTablePasteDialog:()=>{},focusTableCell:()=>{},alert:()=>{}
   };
   vm.createContext(context);
-  vm.runInContext(functionSource("pendingTablePasteIsCurrent","insertPastedPlainText")+functionSource("insertPastedTable","editorSelectionIsInsideCodeFence"),context);
+  vm.runInContext(functionSource("noteConflictEditingBlocked","rejectConflictEditing")+functionSource("pendingTablePasteIsCurrent","insertPastedPlainText")+functionSource("insertPastedTable","editorSelectionIsInsideCodeFence"),context);
   return {context,calls,editor,pending};
 }
 test("混在確定は全変換の後にUndo・保存予約・再描画を各一回だけ行う",()=>{

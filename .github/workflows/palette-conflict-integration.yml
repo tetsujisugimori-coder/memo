@@ -1,0 +1,48 @@
+name: Palette conflict integration
+on:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  integration:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chromium, webkit]
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps ${{ matrix.browser }}
+      - run: node --test palette-conflict-integration.test.cjs
+      - name: Reject pre-fix source with identical assertions
+        shell: bash
+        run: |
+          git show 478d8b3ea59b242e4ddd5cc82e12b44169223047:app.js > "$RUNNER_TEMP/palette-conflict-before.js"
+          set +e
+          MEMO_INTEGRATION_APP_SOURCE="$RUNNER_TEMP/palette-conflict-before.js" node --test --test-name-pattern="ContextIsCurrent|PasteIsCurrent|reenter|source commit locks|preview checklist" palette-conflict-integration.test.cjs > negative-control.log 2>&1
+          result=$?
+          set -e
+          test "$result" = 1
+      - run: node palette-conflict-integration.e2e.cjs
+        env:
+          MEMO_INTEGRATION_ENGINES: ${{ matrix.browser }}
+          MEMO_INTEGRATION_OUTPUT: e2e-artifacts/integration-435
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: integration-435-${{ matrix.browser }}
+          path: |
+            e2e-artifacts/integration-435
+            negative-control.log
+          if-no-files-found: error

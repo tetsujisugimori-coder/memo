@@ -133,7 +133,11 @@
       if (type === "pointerdown") remember();
       else restore();
       if (type === "click") {
-        beforeCommand(button.id);
+        if (beforeCommand(button.id) === false) {
+          event.preventDefault();
+          event.stopImmediatePropagation();
+          return;
+        }
         queueMicrotask(remember);
       }
     }, true));

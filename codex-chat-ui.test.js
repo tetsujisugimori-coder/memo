@@ -56,7 +56,7 @@ test("Codexスレッド保存は共通基盤へ接続し、クライアントか
   assert.match(clientUtils, /isCurrentRequest/);
   assert.match(clientUtils, /markPersisted/);
   assert.match(app, /noteSaveFoundation\.runExclusive\(\[snapshot\.noteId\][\s\S]*codexThreadSaveCoordinator\.isCurrentRequest\(request\)[\s\S]*putCodexThreadSnapshot\(snapshot\)/);
-  assert.match(app, /: putNote\(snapshot, \{ preserveStoredCodexThread: true \}\)/, "通常メモwriterは従来の保存先で確定済みCodex値を維持する");
+  assert.match(app, /: putNote\(snapshot, \{ preserveStoredCodexThread: true, expectedBase: noteSaveBases\.get\(snapshot\.id\)/, "通常メモwriterは確定済みCodex値を維持し独立したCAS基準を渡す");
   assert.match(app, /mergeStoredCodexThread\(note, request\.result\)/);
   const enqueueSource = app.slice(app.indexOf("async function enqueueCodexThreadSave"), app.indexOf("function applyCodexThreadSaveResult"));
   assert.match(enqueueSource, /await codexThreadSaveCoordinator\.enqueue/);

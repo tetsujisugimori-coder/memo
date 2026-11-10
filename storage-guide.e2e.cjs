@@ -61,6 +61,36 @@ async function snapshot(page) {
   });
 }
 
+// Await the actual DB transaction and UI state in Node. An async browser
+// predicate must not be mistaken for a truthy, already-completed wait.
+async function waitForSavedNote(page, noteId, expected, timeout = 10000) {
+  const start = performance.now();
+  let observed;
+  while (performance.now() - start < timeout) {
+    let timer;
+    try {
+      observed = await Promise.race([page.evaluate(async (id) => {
+        const transaction = db.transaction("notes", "readonly"), request = transaction.objectStore("notes").get(id);
+        const note = await new Promise((resolve, reject) => {
+          transaction.oncomplete = () => resolve(request.result);
+          transaction.onabort = () => reject(transaction.error);
+        });
+        return { note, state: noteSaveFoundation.getState(id), badge: document.querySelector("#browserSaveStatusBtn").dataset.state,
+          currentId, editor: document.querySelector("#editor").value,
+          saveTimerPending: scheduledSaveNoteId === id && saveTimer !== null };
+      }, noteId), new Promise((_, reject) => {
+        timer = setTimeout(() => reject(new Error("Saved-note readonly observation timed out")), Math.max(1, timeout - (performance.now() - start)));
+      })]);
+    } finally { clearTimeout(timer); }
+    if (observed.note && observed.currentId === noteId && observed.state?.status === "saved" && !observed.state.dirty && observed.badge === "saved"
+      && observed.state.activeRevision == null && observed.state.pendingRevision == null && !observed.saveTimerPending
+      && observed.editor === observed.note.body
+      && Object.entries(expected).every(([key, value]) => observed.note[key] === value)) return observed;
+    await new Promise((resolve) => setTimeout(resolve, 40));
+  }
+  throw new Error(`Normal UI autosave did not commit the expected record: ${JSON.stringify(observed)}`);
+}
+
 async function guideCase(browser, origin, browserName, width, theme, reducedMotion) {
   const context = await browser.newContext({ viewport: { width, height: 900 }, colorScheme: theme, reducedMotion });
   const page = await context.newPage();
@@ -141,10 +171,7 @@ async function appCase(browser, origin, browserName, width) {
     await page.locator("#titleInput").fill("隔離試験426");
     await page.locator("#editor").fill("保存ガイド回帰試験・架空のメモのみ");
     // Wait for the real UI autosave path; never force saveCurrentNote().
-    await page.waitForFunction(async (noteId) => {
-      const note = (await getStoredNotes()).find((n) => n.id === noteId);
-      return note?.title === "隔離試験426" && note.body === "保存ガイド回帰試験・架空のメモのみ";
-    }, id);
+    await waitForSavedNote(page, id, { title: "隔離試験426", body: "保存ガイド回帰試験・架空のメモのみ" });
     if (width === 390) {
       if (await page.locator("#mobileWritingDoneBtn").isVisible()) await page.locator("#mobileWritingDoneBtn").click();
       if (await page.locator("#mobileAppMenu").getAttribute("open") === null) await page.locator("#mobileAppMenu > summary").click();
@@ -177,7 +204,7 @@ async function appCase(browser, origin, browserName, width) {
     await guide.close();
     await page.locator("#closeSettingsBtn").click();
     await page.locator("#editor").fill("ガイドを開いた後も保存できる・架空データ426");
-    await page.waitForFunction(async (noteId) => (await getStoredNotes()).find((n) => n.id === noteId)?.body === "ガイドを開いた後も保存できる・架空データ426", id);
+    await waitForSavedNote(page, id, { body: "ガイドを開いた後も保存できる・架空データ426" });
     await page.reload();
     await page.locator("#appStartupGuard").waitFor({ state: "hidden" });
     assert.equal(await page.locator("#editor").inputValue(), "ガイドを開いた後も保存できる・架空データ426");
@@ -222,7 +249,9 @@ async function appCase(browser, origin, browserName, width) {
   } finally {
     server.close();
     summary.finishedAt = new Date().toISOString();
-    summary.status = process.exitCode ? "FAIL" : "PASS";
+    summary.expectedCases = 20;
+    summary.status = !process.exitCode && summary.cases.length === 20 && summary.cases.every((item) => item.status === "PASS") ? "PASS" : "FAIL";
+    if (summary.status !== "PASS") process.exitCode = 1;
     await fs.writeFile(path.join(output, "results.json"), JSON.stringify(summary, null, 2) + "\n");
     console.log(JSON.stringify({ status: summary.status, head: summary.testedHead, cases: summary.cases.map(({ browser, width, theme, reducedMotion, type, status, error }) => ({ browser, width, theme, reducedMotion, type, status, error })) }, null, 2));
   }
