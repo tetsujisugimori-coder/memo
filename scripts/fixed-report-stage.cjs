@@ -1,0 +1,12 @@
+'use strict';
+const fs=require('node:fs'),path=require('node:path'),{spawn}=require('node:child_process');
+const [stage,command,...args]=process.argv.slice(2);
+if(!stage||!command||!/^[a-z-]+$/.test(stage))throw Error('stage and command required');
+const out=path.resolve(process.env.TRACK_A_OUT||'e2e-artifacts/fixed-report-track-a');fs.mkdirSync(out,{recursive:true});
+const started=Date.now(),record={stage,command,args,started_at:new Date(started).toISOString(),ended_at:null,elapsed_ms:null,exit_code:null,signal:null,status:'RUNNING'};
+const file=path.join(out,stage+'.json'),save=()=>fs.writeFileSync(file,JSON.stringify(record,null,2));save();
+const log=fs.createWriteStream(path.join(out,stage+'.log'));
+const child=spawn(command,args,{stdio:['ignore','pipe','pipe'],env:process.env});
+for(const [stream,target] of [[child.stdout,process.stdout],[child.stderr,process.stderr]])stream.on('data',b=>{log.write(b);target.write(b);});
+child.on('error',e=>{record.error=e.message;save();});
+child.on('close',(code,signal)=>{Object.assign(record,{ended_at:new Date().toISOString(),elapsed_ms:Date.now()-started,exit_code:code,signal,status:code===0?'PASS':'FAIL'});save();log.end();process.exitCode=code===0?0:1;});

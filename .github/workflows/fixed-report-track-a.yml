@@ -1,0 +1,64 @@
+name: Fixed report Track A evidence
+on:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  fixed-report:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        trace: ['off', 'on']
+    env:
+      TRACK_A_OUT: e2e-artifacts/fixed-report-track-a/${{ matrix.trace }}
+      REPORT_FIXED_OUT: e2e-artifacts/fixed-report-track-a/${{ matrix.trace }}/results
+      TRACK_A_TRACE: ${{ matrix.trace }}
+      MEMO_NEXUS_E2E_BROWSER: webkit
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - name: Record environment and fixed source identity
+        shell: bash
+        run: |
+          mkdir -p "$TRACK_A_OUT"
+          { date -u; git rev-parse HEAD 'HEAD^{tree}'; node -v; npm -v; cat /etc/os-release; df -h; free -m; } > "$TRACK_A_OUT/environment.log"
+          git diff --exit-code e41d72d00ea5e799acc70aaef4d78defa402e796 -- app.js package.json package-lock.json report-fixed-samples.e2e.js report-fixed-samples.cjs report-regression-cases.cjs docs/report-fixed-samples/inspect-fixed-pdf.py docs/report-fixed-samples/image-region-checks.py
+      - name: Install npm dependencies
+        run: node scripts/fixed-report-stage.cjs npm-ci npm ci
+      - name: Install OS dependencies
+        run: node scripts/fixed-report-stage.cjs os-dependencies npx playwright install-deps webkit
+      - name: Install fixed browser
+        run: node scripts/fixed-report-stage.cjs browser-install npx playwright install webkit
+      - name: Prepare identical PDF inspection and fonts
+        run: |
+          node scripts/fixed-report-stage.cjs python-dependencies python -m pip install pymupdf==1.27.2
+          node scripts/fixed-report-stage.cjs apt-update sudo apt-get update
+          node scripts/fixed-report-stage.cjs fonts sudo apt-get install -y fonts-noto-cjk
+      - name: Verify all unchanged fixed samples
+        shell: bash
+        run: |
+          if [ "$TRACK_A_TRACE" = on ]; then
+            node scripts/fixed-report-stage.cjs fixed-samples node --require ./scripts/fixed-report-observe.cjs report-fixed-samples.e2e.js
+          else
+            node scripts/fixed-report-stage.cjs fixed-samples npm run test:e2e:report-fixed
+          fi
+      - name: Verify completeness and retain hashes
+        run: node scripts/fixed-report-evidence.cjs
+      - name: Preserve all stages including failures
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: fixed-report-track-a-${{ matrix.trace }}
+          path: e2e-artifacts/fixed-report-track-a/${{ matrix.trace }}/
+          if-no-files-found: error
+          retention-days: 14
