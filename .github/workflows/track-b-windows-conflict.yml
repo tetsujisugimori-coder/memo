@@ -1,7 +1,7 @@
 name: Track B fixed-source conflict verification
 on:
   push:
-    branches: [investigate/windows-conflict-track-b-20261111]
+    branches: [investigate/windows-conflict-track-b-20261111, integrate/save-conflict-palette-20261110]
   workflow_dispatch:
 permissions:
   contents: read
