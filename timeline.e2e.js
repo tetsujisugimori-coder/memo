@@ -1,4 +1,5 @@
 "use strict";
+const { clickPaletteControl } = require("./feature-palette.e2e-support.js");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const http = require("node:http");
@@ -205,13 +206,13 @@ async function duplicateReferences(page, baseline) {
     await page.locator("#titleInput").fill("Timeline v1 検証");
     await page.locator("#editor").fill("前文");
     await idle(page);
-    await page.locator("#manageSourcesBtn").click();
+    await clickPaletteControl(page, "manageSourcesBtn");
     await page.locator('#sourceForm [name="title"]').fill("歴史資料");
     await page.locator('#sourceForm [name="url"]').fill("https://example.org/" + "long".repeat(60));
     await page.locator('#sourceForm button[type="submit"]').first().click();
     await page.locator("#closeSourceDialogBtn").click();
     await idle(page);
-    await page.locator("#insertImageBlockBtn").click();
+    await clickPaletteControl(page, "insertImageBlockBtn");
     await page.locator("#imageBlockInput").setInputFiles({ name: "timeline.png", mimeType: "image/png", buffer: fs.readFileSync(path.join(root, "e2e-artifacts/chart-png-example-light-390.png")) });
     await page.locator("#preview .image-block").waitFor();
     await idle(page);
@@ -224,7 +225,7 @@ async function duplicateReferences(page, baseline) {
     await idle(page);
     const old = await saved(page);
     assert.equal(old.figures[0].figureId, undefined);
-    await page.locator("#insertTimelineBtn").click();
+    await clickPaletteControl(page, "insertTimelineBtn");
     await page.locator("#timelineTitleInput").fill("戦後の出来事 <script>");
     await page.locator("#timelineDescriptionInput").fill("時系列の説明\n二行目");
     for (const [index, date, title, body] of [[0, "1945–1952", "出来事A", "本文A **強調**\n- [ ] 出来事のタスク"], [1, "1951年9月", "出来事B", "本文B"], [2, "初期開発期", "出来事C", "本文C"]]) {
@@ -262,7 +263,7 @@ async function duplicateReferences(page, baseline) {
     assert.equal((await saved(page)).body, expected.body);
     await duplicateReferences(page, expected);
     // Source removal must see Timeline citations even though its payload is encoded.
-    await page.locator("#manageSourcesBtn").click();
+    await clickPaletteControl(page, "manageSourcesBtn");
     await page.locator(".source-list-item").first().getByRole("button", { name: "削除", exact: true }).click();
     await page.locator("#sourceStatus").getByText(/参照されています/).waitFor();
     await page.locator("#closeSourceDialogBtn").click();
@@ -277,7 +278,7 @@ async function duplicateReferences(page, baseline) {
     await page.waitForFunction(() => [...document.querySelectorAll(".timeline-block .figure-metadata-main")].every((item) => item.textContent.includes("更新した共通Figure")));
     // Two distinct Timeline blocks and repeated Figure references produce no duplicate DOM IDs.
     await idle(page);
-    await page.locator("#insertTimelineBtn").click();
+    await clickPaletteControl(page, "insertTimelineBtn");
     await page.locator("#timelineTitleInput").fill("第2Timeline");
     await page.locator("#addTimelineItemBtn").click();
     await (await itemEditor(page, 0)).getByLabel("日付・期間").fill("2026 Q3");

@@ -20,3 +20,6 @@ received-history/
 # Isolated Windows launcher fixtures, encrypted test keys and captured test output.
 e2e-artifacts/launcher/
 e2e-artifacts/memo-search/
+
+e2e-artifacts/feature-palette/
+memo-nexus-mobile-writing-390.png

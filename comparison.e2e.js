@@ -1,4 +1,5 @@
 "use strict";
+const { clickPaletteControl } = require("./feature-palette.e2e-support.js");
 
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
@@ -139,7 +140,7 @@ async function screenshotBlock(page, file) {
     const page = await open();
     await page.locator("#titleInput").fill("画像比較の調査レポート（検証用）");
     await page.locator("#editor").fill("# 画像比較\n\n調査資料の形状と配置を比較する。\n\n根拠: ");
-    await page.locator("#manageSourcesBtn").click();
+    await clickPaletteControl(page, "manageSourcesBtn");
     await page.locator('#sourceForm [name="title"]').fill("検証用の共通出典");
     await page.locator('#sourceForm [name="url"]').fill("https://example.org/reference");
     await page.locator('#sourceForm button[type="submit"]').first().click();
@@ -160,7 +161,7 @@ async function screenshotBlock(page, file) {
     }));
     const imageA = { name: "図A.png", mimeType: "image/png", buffer: Buffer.from(payloads[0], "base64") };
     const imageB = { name: "図B.png", mimeType: "image/png", buffer: Buffer.from(payloads[1], "base64") };
-    await page.locator("#insertImageBlockBtn").click();
+    await clickPaletteControl(page, "insertImageBlockBtn");
     await page.locator("#imageBlockInput").setInputFiles(imageA);
     await page.locator(".image-block").waitFor();
     const legacy = await saved(page);

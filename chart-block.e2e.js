@@ -1,4 +1,5 @@
 "use strict";
+const { clickPaletteControl, closeFeaturePalette } = require("./feature-palette.e2e-support.js");
 
 if (process.env.MEMO_NEXUS_E2E_ACTIONABILITY_PHASES === "1") require("./chart-actionability-phase-preload.e2e.js");
 
@@ -423,9 +424,10 @@ async function verifyComboCharts(page, step = () => {}) {
   await page.setViewportSize({ width: 1100, height: 820 });
   await page.waitForFunction(() => document.body.dataset.layoutMode === "wide");
   await page.locator("#editor").fill("複合の新規作成");
-  await page.locator("#insertChartBtn").click();
+  await clickPaletteControl(page, "insertChartBtn", { keepOpen: true });
   const panel = page.locator(".chart-block-editor");
   await page.waitForFunction(() => document.activeElement?.getAttribute("aria-label") === "グラフ1のタイトル");
+  await closeFeaturePalette(page);
   const type = panel.locator('[data-chart-field="chartType"]');
   const select = panel.locator('[data-chart-field="comboLineSeriesId"]');
   const confirm = panel.locator('[data-chart-action="confirm"]');
@@ -959,12 +961,13 @@ async function verifySignedCharts(page) {
     await runPageFeature("chart-create-edit-save", async (page, step) => {
       step("chart-create: insert and render");
     await page.locator("#editor").fill("グラフの前\nグラフの後");
-    await page.locator("#insertChartBtn").click();
+    await clickPaletteControl(page, "insertChartBtn", { keepOpen: true });
     const editor = page.locator(".chart-block-editor");
     await editor.waitFor({ state: "visible" });
     // Insertion focuses the title on the next animation frame. Finish that
     // focus handoff before fill() can move to another field.
     await page.waitForFunction(() => document.activeElement?.getAttribute("aria-label") === "グラフ1のタイトル");
+    await closeFeaturePalette(page);
     assert.equal(await editor.locator('button[data-chart-action="move-item-up"]').isDisabled(), true, "1項目だけでは上へを無効化する");
     assert.equal(await editor.locator('button[data-chart-action="move-item-down"]').isDisabled(), true, "1項目だけでは下へを無効化する");
     assert.equal(await editor.locator('button[data-chart-action="move-item-up"]').getAttribute("aria-label"), "1件目の項目を上へ移動", "空の項目名は項目番号で移動操作を識別する");

@@ -1,4 +1,5 @@
 "use strict";
+const { clickPaletteControl } = require("./feature-palette.e2e-support.js");
 
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
@@ -140,11 +141,11 @@ async function verifyReportNumbering(page) {
     await page.locator("#appStartupGuard").waitFor({ state: "hidden" });
     await page.locator("#titleInput").fill("レポートの題名");
     await page.locator("#editor").fill("# 本文の見出し\n\n本文の段落。\n\n- 項目 A\n- 項目 B\n- [ ] 未完了\n\n`code`");
-    await page.locator("#insertTableBtn").click();
+    await clickPaletteControl(page, "insertTableBtn");
     await page.locator("#preview .table-block").waitFor();
-    await page.locator("#insertChartBtn").click();
+    await clickPaletteControl(page, "insertChartBtn");
     await page.locator("#preview .chart-block").waitFor();
-    await page.locator("#insertImageBlockBtn").click();
+    await clickPaletteControl(page, "insertImageBlockBtn");
     await page.locator("#imageBlockInput").setInputFiles({ name: "figure.png", mimeType: "image/png", buffer: image });
     await page.locator("#preview .image-block").waitFor();
     await page.locator(".image-block").hover();
@@ -165,7 +166,7 @@ async function verifyReportNumbering(page) {
     await page.locator(".image-block-add").click();
     await page.locator("#imageBlockInput").setInputFiles({ name: "second.png", mimeType: "image/png", buffer: image });
     await page.locator(".image-block-open").nth(1).waitFor();
-    await page.locator("#addExplanationBtn").click();
+    await clickPaletteControl(page, "addExplanationBtn");
     await page.locator("#explanationBodyInput").fill("Report Previewでは開閉状態を保存しない解説です。");
     await page.locator("#saveExplanationBtn").click();
     await page.locator(".explanation-card details summary").waitFor();

@@ -17,26 +17,25 @@ test("執筆モード専用の上部ヘッダーと独自保存表示を持た�
   assert.doesNotMatch(app, /function updateMobileWritingHeader\(/);
 });
 
-test("執筆モードの常設ツールは追加・画像・AI・記法ガイド・完了の5項目", () => {
-  const toolbar = html.match(/<div id="mobileWritingTools"[\s\S]*?<\/div>\s*<div class="note-meta-bar"/)?.[0] || "";
-  assert.match(toolbar, />追加<\/summary>[\s\S]*data-mobile-editor-tool="insertImageBlockBtn"[^>]*>画像<\/button>[\s\S]*>AI<\/summary>[\s\S]*data-mobile-editor-tool="syntaxGuideBtn"[^>]*>記法ガイド<\/button>[\s\S]*id="mobileWritingDoneBtn"[^>]*>完了<\/button>/);
-  assert.match(css, /body\.mobile-writing-mode \.mobile-writing-tools\s*\{[^}]*grid-template-columns:\s*repeat\(5, minmax\(0, 1fr\)\)/s);
-  assert.match(css, /\.mobile-writing-tools button,[\s\S]*white-space:\s*nowrap;[\s\S]*word-break:\s*keep-all;/s);
+test("執筆モードは共通パレットと完了だけを常設し操作を複製しない", () => {
+  const toolbar = html.match(/<div id="mobileWritingTools"[\s\S]*?<\/div>/)?.[0] || "";
+  assert.match(toolbar, /id="mobileFeaturePaletteToggle"[^>]*aria-controls="featurePalette"/);
+  assert.match(toolbar, /id="mobileWritingDoneBtn"/);
+  assert.equal((toolbar.match(/<button /g) || []).length, 2);
+  assert.doesNotMatch(toolbar, /data-mobile-editor-tool|<details/);
+  assert.match(css, /body\.mobile-writing-mode \.mobile-writing-tools \{ grid-template-columns: minmax\(0, 1fr\) auto;/);
 });
 
-test("720px未満ではフォーカス前から既存ツール欄を非表示にする", () => {
-  assert.match(css, /\.editor-tools\s*\{[^}]*display:\s*flex;/s);
-  assert.match(css, /@media \(max-width: 719\.98px\)\s*\{[\s\S]*?\.editor-tools\s*\{\s*display:\s*none;/s);
-});
-
-test("追加・AI・画像・記法ガイドは既存ボタンの処理へ委譲する", () => {
-  [
-    "insertTableBtn", "insertCalloutBtn", "addExplanationBtn", "calculatorLinkBtn",
-    "insertImageBlockBtn", "aiSummarizeNoteBtn", "aiSendSelectionBtn", "syntaxGuideBtn"
-  ].forEach((id) => assert.match(html, new RegExp(`data-mobile-editor-tool="${id}"`)));
-  assert.match(app, /function runMobileEditorTool\(targetId\)[\s\S]*target\.click\(\);/);
-  assert.match(app, /mobileCalloutTypeSelect\.value = calloutTypeSelect\.value/);
-  assert.match(app, /calloutTypeSelect\.value = mobileCalloutTypeSelect\.value/);
+test("全幅で初期パレットは非表示、モバイルも同一の既存操作を使う", () => {
+  assert.match(html, /id="featurePalette"[^>]*hidden/);
+  assert.match(css, /\.feature-palette\[hidden\] \{ display: none !important;/);
+  assert.match(css, /\.feature-palette \.editor-tools \{[\s\S]*?display: grid;/);
+  const { commands } = require("./feature-palette.js");
+  ["insertTableBtn", "importTableFileBtn", "insertCalloutBtn", "toggleHighlightBtn", "addExplanationBtn", "calculatorLinkBtn", "insertImageBlockBtn", "aiSummarizeNoteBtn", "aiSendSelectionBtn", "syntaxGuideBtn"]
+    .forEach((id) => {
+      assert.equal(commands.filter((command) => command.controlId === id).length, 1);
+      assert.equal((html.match(new RegExp(`id="${id}"`, "g")) || []).length, 1);
+    });
 });
 
 test("本文フォーカスで入り完了で戻り、blurでは終了しない", () => {
