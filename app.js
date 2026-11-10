@@ -13498,6 +13498,7 @@ function hydrateExplanationCards(note, body) {
 function bindChecklistControls(note) {
   const entries = checklistEntries(editor.value);
   preview.querySelectorAll(".task-list-checkbox").forEach((checkbox) => checkbox.addEventListener("change", () => {
+    if (editor.readOnly) { renderPreview(); return; }
     const targetIndex = Number(checkbox.dataset.taskIndex);
     const entry = entries[targetIndex];
     if (!entry) return;

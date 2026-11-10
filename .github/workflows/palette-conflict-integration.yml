@@ -30,7 +30,7 @@ jobs:
         run: |
           git show 478d8b3ea59b242e4ddd5cc82e12b44169223047:app.js > "$RUNNER_TEMP/palette-conflict-before.js"
           set +e
-          MEMO_INTEGRATION_APP_SOURCE="$RUNNER_TEMP/palette-conflict-before.js" node --test palette-conflict-integration.test.cjs > negative-control.log 2>&1
+          MEMO_INTEGRATION_APP_SOURCE="$RUNNER_TEMP/palette-conflict-before.js" node --test --test-name-pattern="ContextIsCurrent|PasteIsCurrent|reenter|source commit locks|preview checklist" palette-conflict-integration.test.cjs > negative-control.log 2>&1
           result=$?
           set -e
           test "$result" = 1

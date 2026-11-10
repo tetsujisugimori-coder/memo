@@ -138,6 +138,11 @@ function loadAppFunction(name, deps = {}) {
     const explanationTypeSelect = deps.explanationTypeSelect;
     const explanationDialog = deps.explanationDialog;
     const editor = deps.editor;
+    const currentId = deps.currentNote?.()?.id;
+    const noteConflictStates = deps.noteConflictStates || new Map();
+    const setSaveStatusNotice = deps.setSaveStatusNotice || (() => {});
+    ${sourceOf("noteConflictEditingBlocked")}
+    ${sourceOf("rejectConflictEditing")}
     const crypto = deps.crypto;
     ${source}
     return ${name};
