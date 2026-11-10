@@ -51,11 +51,13 @@
 ## 検証記録と限界
 
 - 新規palette単体3件、関連UI63件、保存統合73件はPASS。全単体は1902件中1901 PASS/1 FAIL/skip0。残りは `memo-nexus-launcher.test.js` の既存fixtureで、環境が`/tmp/.git`を持つため「checkout内に認可configを置かない」検査が拒否する。同じ基準mainでも再現。認可の検査/製品処理を緩めていない。
-- パレットE2EはChromiumでPASS。画像実挿入回帰を追加する前はWebKitもPASS。初期検証範囲は、初期閉、全15操作の到達/名前、開閉/Tab/Enter/Space/Escape、無変更・無dirty・日時不変、選択/強調/注意書き、Undo/Redo、表/グラフ/図形挿入、CSV選択/取消、画像選択、解説/記法/出典/Timeline dialog、AI選択範囲の既存導線、タグ、保存/メモ切替/再読込、両テーマ、popout、4幅のtouch/低高/横向きを検証。AIプロバイダへの実データ送信はしない。
-- 通常モバイルの操作から執筆モードに移る際のパレット再配置を検査。追加した「出典追加後、閉じずにキーボードで画像を入れてマーカーを保つ」回帰はChromium PASS / 代替WebKit FAIL。独立に基準mainの通常添付でも同じ `UnknownError: Error preparing Blob/File data to be stored in object store` を再現した。パレット経由/選択保持ではなく、このWebKit環境でのIndexedDB Blob保存が障害箇所。保存実装やassertは変更しない。
+- パレットE2EはChromium/WebKitでPASS（WebKit添付は下記の通常プロファイル対照後に再検証）。検証範囲は、初期閉、全15操作の到達/名前、開閉/Tab/Enter/Space/Escape、無変更・無dirty・日時不変、選択/強調/注意書き、Undo/Redo、表/グラフ/図形挿入、CSV選択/取消、画像選択、解説/記法/出典/Timeline dialog、AI選択範囲の既存導線、タグ、保存/メモ切替/再読込、両テーマ、popout、4幅のtouch/低高/横向きを検証。AIプロバイダへの実データ送信はしない。
+- 通常モバイルの操作から執筆モードに移る際のパレット再配置を検査。「出典追加後、閉じずにキーボードで画像を入れてマーカーを保つ」回帰の初回WebKit実行は、ローカル/固定版CIとも一時contextのIDB Blob保存で失敗した。基準mainの独立対照でも一時contextはFAIL、通常の永続contextはPASS。既存 `report-source.e2e.js` と同じ新規通常プロファイルへテスト構成を揃え、全assertを維持したままローカル全項目PASSを確認。プロファイルは終了時に削除し、製品/保存実装は変更しない。
+- `feature-palette-baseline-storage.cjs` は同じrunner・固定WebKit上でmainの出典追加→キーボード画像挿入を両contextで実行する対照診断。一時contextは成否を記録し、通常プロファイルの画像実保存・出典保持・再読込を必須assertにする。候補版の画像保存assertは従来どおり必須。
 - Calculatorへの選択式付き導線は外部通信をfixtureへ遮断して確認。AI要約/選択の設定導線を確認するが、生成/送信はしない。
 - 既存執筆モードE2EはChromium/WebKitでPASS。Figure、Comparison、Report Preview（caption10条件を含む）、Timeline、Diagram、Citation Source、Report SourceはローカルChromiumでPASS。
 - 既存mobile-layout/tableのローカル検査は外部CDNの `ERR_EMPTY_RESPONSE` をconsoleエラーとして検出してFAIL。assertは削除せず、固定版・通常ネットワークのCI結果を別途確認する。
+- 初回固定版CIのHEAD `c1a987f2` は専用Chromium成功、WebKitは上記context失敗。既存CIは12 jobs成功、Fixed report samples(WebKit)はブラウザー導入中にcancelled、任意診断1 jobは従来設定どおりskipped。単体・Geometry・Table・固定PDF Chromiumは固定版CIで成功。追補後の最終HEAD結果はPR本文に記録する。
 - テストの新しい入口/明示閉鎖への変更は、収納されたボタンを利用者と同じ方法で操作するため。旧来の本文・保存・焦点・Undo・復元のassertは維持した。時間待ちの追加は行わず、viewport更新/保存/メモ切替の状態を待つ。
 - 実機iPhone Safari、実ソフトウェアキーボード、物理safe-area、実スクリーンリーダー読み上げは未確認。WebKit/viewport縮小は代替検証であり、実機成功を意味しない。
 

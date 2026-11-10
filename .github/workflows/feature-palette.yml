@@ -45,6 +45,9 @@ jobs:
           git worktree add --detach "$RUNNER_TEMP/palette-before" "$BASE_SHA"
           node feature-palette-measure.cjs "$RUNNER_TEMP/palette-before" before
           node feature-palette-measure.cjs . after
+      - name: Compare baseline WebKit attachment profiles
+        if: matrix.browser == 'webkit'
+        run: node feature-palette-baseline-storage.cjs "$RUNNER_TEMP/palette-before"
       - name: Palette operations and mobile writing regression
         run: |
           node feature-palette.e2e.js

@@ -2,6 +2,7 @@
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
+const os = require("node:os");
 const http = require("node:http");
 const playwright = require("playwright");
 const { commands } = require("./feature-palette.js");
@@ -53,9 +54,18 @@ async function setText(page, value, start = 0, end = start) {
 (async () => {
   const server = await serve();
   const browser = await playwright[engine].launch({ headless: true });
-  const failures = [], results = [];
+  const failures = [], results = [], profiles = [];
+  let desktopContext;
   try {
-    const context = await browser.newContext({ viewport: {width:1280,height:800}, reducedMotion: "reduce" });
+    const options = { viewport: {width:1280,height:800}, reducedMotion: "reduce" };
+    if (engine === "webkit") {
+      // Match report-source.e2e.js: WebKit ephemeral contexts cannot store IDB Blobs.
+      // A fresh ordinary profile exercises the real attachment path without storage mocks.
+      const profile = fs.mkdtempSync(path.join(os.tmpdir(), "memo-palette-webkit-"));
+      profiles.push(profile);
+      desktopContext = await playwright.webkit.launchPersistentContext(profile, { ...options, headless: true });
+    } else desktopContext = await browser.newContext(options);
+    const context = desktopContext;
     const page = await context.newPage();
     page.on("pageerror", e => failures.push(e.message));
     const url = `http://127.0.0.1:${server.address().port}/`;
@@ -216,7 +226,7 @@ async function setText(page, value, start = 0, end = start) {
     assert.equal(await popup.locator("#aiSummarizeNoteBtn").isVisible(),false);
     assert.equal(await popup.locator("#aiSendSelectionBtn").isVisible(),false);
     assert.equal(await popup.locator("#insertTableBtn").isVisible(),true);
-    await popup.close();await context.close();
+    await popup.close();await context.close();desktopContext = null;
     for (const width of [320,375,390,430]) {
       const mobile=await browser.newContext({viewport:{width,height:800},isMobile:true,hasTouch:true,reducedMotion:"reduce"});
       const p=await mobile.newPage();p.on("pageerror",e=>failures.push(e.message));await prepare(p,url);
@@ -257,5 +267,10 @@ async function setText(page, value, start = 0, end = start) {
     assert.deepEqual(failures,[]);
     fs.writeFileSync(path.join(output,"result.json"),JSON.stringify({engine,results,pageErrors:failures,realSafari:"NOT_TESTED",realSoftwareKeyboard:"NOT_TESTED"},null,2));
     console.log(JSON.stringify({engine,status:"PASS",mobile:results}));
-  } finally {await browser.close();await new Promise(r=>server.close(r));}
+  } finally {
+    await desktopContext?.close();
+    await browser.close();
+    for (const profile of profiles) fs.rmSync(profile, { recursive: true, force: true });
+    await new Promise(r=>server.close(r));
+  }
 })().catch(error=>{console.error(error);process.exitCode=1;});
