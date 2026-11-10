@@ -354,6 +354,41 @@
       "path": "red/legacy-control/webkit-1280-AB-1-terminal.png",
       "sha256": "94706c53b836a602dd185d9ee376f09b60c1e6ec55d844e93c6fd387f105e325",
       "bytes": 88524
+    },
+    {
+      "path": "old-telemetry/manifest.json",
+      "sha256": "39881f5e39544c5ce874c1c96ef639889668bd1e5eb593d61f9d3200a5e8aa8e",
+      "bytes": 32779
+    },
+    {
+      "path": "old-telemetry/results.json",
+      "sha256": "dc020b1fed298a0ceb0577ea403bbb9b8c66e76be8eb6736bae95a032dbd9383",
+      "bytes": 198851
+    },
+    {
+      "path": "old-telemetry/run.log",
+      "sha256": "75e4685bec1f629ed4956d74321e7baef678b9dec97fff30966e405e44e1fee7",
+      "bytes": 225
+    },
+    {
+      "path": "old-telemetry/stage436b-telemetry.json",
+      "sha256": "1c40b517baacb77ee519b5299ad82fdd38625886bd1fcebaa81c1a3f7c06bc27",
+      "bytes": 433146
+    },
+    {
+      "path": "old-telemetry/timeline.jsonl",
+      "sha256": "8aa64c726ab27caf2166ead19eae59a999a8ef86b0897f66a30fc3f158a787cb",
+      "bytes": 192528
+    },
+    {
+      "path": "old-telemetry/webkit-1280-AB-0-terminal.png",
+      "sha256": "9b88438d23aeeb69043285701fb40bd6adf07331f7da0eedd4aeaffd7e5d12e0",
+      "bytes": 98579
+    },
+    {
+      "path": "old-telemetry/webkit-1280-AB-1-terminal.png",
+      "sha256": "377576c70aea7228c27e0d36524719db574717b6a163c12ec4817c92b70b818b",
+      "bytes": 88479
     }
   ]
 }
