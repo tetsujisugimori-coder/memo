@@ -40,10 +40,13 @@ jobs:
         run: node --test feature-palette.test.js mobile-writing-mode.test.js note-save-app-integration.test.js
       - name: Compare base and final editor geometry
         env:
-          BASE_SHA: ${{ github.event.pull_request.base.sha || '8f35ca25001ffa031abfd304dd2a5e9a3d9197dd' }}
+          BASE_SHA: 8f35ca25001ffa031abfd304dd2a5e9a3d9197dd
+          PALETTE_MAIN_SHA: 69e5d648dddff4749a4f7b3faf2d214edfcff529
         run: |
           git worktree add --detach "$RUNNER_TEMP/palette-before" "$BASE_SHA"
           node feature-palette-measure.cjs "$RUNNER_TEMP/palette-before" before
+          git worktree add --detach "$RUNNER_TEMP/palette-main" "$PALETTE_MAIN_SHA"
+          node feature-palette-measure.cjs "$RUNNER_TEMP/palette-main" integrated-main
           node feature-palette-measure.cjs . after
       - name: Compare baseline WebKit attachment profiles
         if: matrix.browser == 'webkit'

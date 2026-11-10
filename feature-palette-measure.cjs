@@ -74,6 +74,15 @@ fs.mkdirSync(output, {recursive:true});
         assert.equal(closed.tools.height,0,"no invisible toolbar row");
       }
     }
+    if (phase === "after" && fs.existsSync(path.join(output, "integrated-main.json"))) {
+      const main = JSON.parse(fs.readFileSync(path.join(output, "integrated-main.json"))).results;
+      for (const baseline of main) {
+        const candidate = results.find(row => row.width === baseline.width && row.state === baseline.state);
+        assert.ok(candidate, "matching main geometry case");
+        assert.deepEqual(candidate.editor, baseline.editor, `${baseline.width}px ${baseline.state} main editor geometry preserved`);
+        assert.equal(candidate.overflow, baseline.overflow);
+      }
+    }
     console.log(JSON.stringify({phase,engine,results}));
   } finally {await browser.close();await new Promise(r=>server.close(r));}
 })().catch(error=>{console.error(error);process.exitCode=1;});
