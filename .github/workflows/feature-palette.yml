@@ -1,0 +1,58 @@
+name: Feature palette Stage 1
+on:
+  pull_request:
+    paths:
+      - 'app.js'
+      - 'index.html'
+      - 'style.css'
+      - 'feature-palette*'
+      - 'mobile-writing-mode*'
+      - '.github/workflows/feature-palette.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: feature-palette-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  palette:
+    name: Palette (${{ matrix.browser }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chromium, webkit]
+    env:
+      MEMO_NEXUS_E2E_BROWSER: ${{ matrix.browser }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps ${{ matrix.browser }}
+      - name: Unit and save integration contracts
+        run: node --test feature-palette.test.js mobile-writing-mode.test.js note-save-app-integration.test.js
+      - name: Compare base and final editor geometry
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || '8f35ca25001ffa031abfd304dd2a5e9a3d9197dd' }}
+        run: |
+          git worktree add --detach "$RUNNER_TEMP/palette-before" "$BASE_SHA"
+          node feature-palette-measure.cjs "$RUNNER_TEMP/palette-before" before
+          node feature-palette-measure.cjs . after
+      - name: Palette operations and mobile writing regression
+        run: |
+          node feature-palette.e2e.js
+          node mobile-writing-mode.e2e.js
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: feature-palette-${{ matrix.browser }}
+          path: e2e-artifacts/feature-palette/${{ matrix.browser }}/
+          if-no-files-found: error
+          retention-days: 14

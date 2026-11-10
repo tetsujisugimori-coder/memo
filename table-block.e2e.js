@@ -1,4 +1,5 @@
 "use strict";
+const { clickPaletteControl, openFeaturePalette, closeFeaturePalette } = require("./feature-palette.e2e-support.js");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const http = require("node:http");
@@ -41,7 +42,7 @@ async function cancel(page,method="button") {
 async function models(page) {return page.evaluate(()=>MemoNexusTableBlockUtils.splitTableBlocks(editor.value).filter(x=>x.type==="table").map(x=>x.table));}
 async function chooseTableFile(page, file) {
  const chooserPromise=page.waitForEvent("filechooser");
- await page.getByRole("button",{name:"CSVまたはTSVファイルを表として読み込む",exact:true}).click();
+ await clickPaletteControl(page, "importTableFileBtn");
  await (await chooserPromise).setFiles(file);
 }
 
@@ -69,11 +70,13 @@ async function waitForCellFocus(block, row, column) {
   }, { id, row, column });
 }
 async function tableAction(block, action) {
+  await closeFeaturePalette(block.page());
   const menu = block.locator('details');
   if (!await menu.evaluate(element => element.open)) await menu.locator('summary').click();
   await menu.locator('[data-table-action="' + action + '"]').click();
 }
 async function editCell(block, row, column, value) {
+  await closeFeaturePalette(block.page());
   const input = block.locator('[data-row-index="' + row + '"][data-column-index="' + column + '"]');
   await input.fill(value);
   assert.equal(await input.inputValue(), value);
@@ -97,7 +100,7 @@ async function verifyTableLifecycle(page) {
   await page.locator('#titleInput').fill(title);
   await page.locator('#editor').fill('ライフサイクル本文');
   await idle(page);
-  await page.getByRole('button', { name: '表ブロックを挿入', exact: true }).click();
+  await clickPaletteControl(page, "insertTableBtn");
   const block = tableEditor(page);
   await waitForCellFocus(block, 0, 0);
   assert.equal(await page.locator('#tableBlockEditors > article[data-table-id]').count(), 1);
@@ -398,7 +401,7 @@ async function verifyTableFileExport(page) {
   assert.deepEqual(parse(new TextDecoder("utf-8").decode(bytes)).rows,editedNewlineRows,"edited newline cell must use its latest value");
   assert.equal(await download.failure(),null);
  }
- await load(page);await page.getByRole("button",{name:"表ブロックを挿入",exact:true}).click();
+ await load(page);await clickPaletteControl(page, "insertTableBtn");
  const empty=tableEditor(page);await empty.locator("details").evaluate(menu=>{menu.open=true;});
  let downloads=0;const count=()=>downloads++;page.on("download",count);
  await empty.locator('[data-table-action="save-csv"]').evaluate(button=>button.click());
@@ -407,7 +410,7 @@ async function verifyTableFileExport(page) {
  console.log("Table file export: CSV/TSV download, BOM, untouched LF round-trip, latest displayed cells and no-data failure passed");
 }
 async function verifyTableFileExportLayouts(page) {
- await load(page);await page.getByRole("button",{name:"表ブロックを挿入",exact:true}).click();
+ await load(page);await clickPaletteControl(page, "insertTableBtn");
  const block=tableEditor(page);
  assert.equal(await block.locator('[data-table-action="save-csv"]').count(),1);
  assert.equal(await block.locator('[data-table-action="save-tsv"]').count(),1);
@@ -473,8 +476,8 @@ async function layouts(page) {
   await verifyTableLifecycle(page);await verify(page);await verifyTableFileImport(page);await verifyTableFileExport(page);await verifyTableFileExportLayouts(page);await layouts(page);
   await page.setViewportSize({width:390,height:844});await page.waitForFunction(()=>document.body.dataset.layoutMode==="mobile");if(await page.locator("#contextPanel").getAttribute("aria-hidden")==="false")await page.locator("#closeContextPanelBtn").click();await load(page);await paste(page);
   await page.locator("#confirmTablePasteBtn").tap();await idle(page);assert.equal((await models(page)).length,2);
-  await page.evaluate(()=>setMobileWritingMode(true));await page.locator('#mobileWritingTools summary[aria-label="追加メニューを開く"]').tap();
-  const mobileChooser=page.waitForEvent("filechooser");await page.locator('[data-mobile-editor-tool="importTableFileBtn"]').tap();
+  await page.evaluate(()=>setMobileWritingMode(true));await openFeaturePalette(page);
+  const mobileChooser=page.waitForEvent("filechooser");await page.locator("#importTableFileBtn").tap();
   await (await mobileChooser).setFiles({name:"mobile.tsv",mimeType:"text/tab-separated-values",buffer:Buffer.from("項目\t値\nモバイル\t1")});
   await page.locator("#tablePasteDialog").waitFor({state:"visible"});assert.match(await page.locator("#tablePasteFormat").textContent(),/TSV/);await page.locator("#cancelTablePasteBtn").tap();await page.locator("#tablePasteDialog").waitFor({state:"hidden"});
   assert.deepEqual(external,[],"clipboard HTML must not request external resources");

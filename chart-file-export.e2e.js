@@ -1,4 +1,5 @@
 "use strict";
+const { clickPaletteControl } = require("./feature-palette.e2e-support.js");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const http = require("node:http");
@@ -50,7 +51,7 @@ async function setup(page) {
   await page.locator("#newBtn").click();
   await page.waitForFunction((id) => currentId !== id && editor.value === "", oldId);
   await page.locator("#titleInput").fill("売上:集計.csv");
-  await page.locator("#insertChartBtn").click();
+  await clickPaletteControl(page, "insertChartBtn");
   await paste(page, 0, sourceTsv);
   await confirm(page, 0);
   await paste(page, 0, sourceTsv);
@@ -299,7 +300,7 @@ async function expectInputError(page, events, target, value, pattern) {
     assert.equal(await editorButton(page, 0, "tsv").evaluate((button) => button === document.activeElement), true,
       "keyboard export returns focus to its button");
     beginStep("parallel downloads and cleanup");
-    await page.locator("#insertChartBtn").click();
+    await clickPaletteControl(page, "insertChartBtn");
     await page.waitForFunction(() => document.querySelectorAll(".chart-block-editor").length === 2);
     await paste(page, 1, "項目\t人数\n東京\t42\n大阪\t17");
     await confirm(page, 1);

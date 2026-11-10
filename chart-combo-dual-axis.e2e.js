@@ -1,4 +1,5 @@
 "use strict";
+const { clickPaletteControl, closeFeaturePalette } = require("./feature-palette.e2e-support.js");
 
 const assert = require("node:assert/strict");
 const os = require("node:os");
@@ -84,9 +85,10 @@ async function verifyDualAxisCharts(page, { chart, waitForChartCancelCompletion,
   await page.setViewportSize({ width: 1100, height: 820 });
   await page.waitForFunction(() => document.body.dataset.layoutMode === "wide");
   await page.locator("#editor").fill("左右2軸の新規作成");
-  await page.locator("#insertChartBtn").click();
+  await clickPaletteControl(page, "insertChartBtn", { keepOpen: true });
   const panel = page.locator(".chart-block-editor");
   await page.waitForFunction(() => document.activeElement?.getAttribute("aria-label") === "グラフ1のタイトル");
+  await closeFeaturePalette(page);
   const field = (name) => panel.locator('[data-chart-field="' + name + '"]');
   const action = (name) => panel.locator('[data-chart-action="' + name + '"]');
   const input = (item, series) => panel.locator('[data-chart-item-index="' + item + '"] input[data-chart-series-index="' + series + '"]');

@@ -1,4 +1,5 @@
 "use strict";
+const { clickPaletteControl } = require("./feature-palette.e2e-support.js");
 const assert=require("node:assert/strict"),fs=require("node:fs"),path=require("node:path");
 const {serializeImageBlock}=require("./attachment-utils.js");
 const {serializeTimelineBlock}=require("./timeline-block-utils.js");
@@ -11,7 +12,7 @@ async function verifyReportPaginationCases(page,{out}) {
   const normalId=await page.evaluate(()=>currentAttachments[0].id);
   const png=await page.evaluate(()=>{const c=document.createElement("canvas");c.width=600;c.height=1800;const x=c.getContext("2d");x.fillStyle="white";x.fillRect(0,0,600,1800);for(let y=0;y<1800;y+=100){x.fillStyle=y%200?"#7799cc":"#223355";x.fillRect(0,y,600,50);}return c.toDataURL().split(",")[1];});
   const count=await page.evaluate(()=>currentAttachments.length);
-  await page.locator("#insertImageBlockBtn").click();await page.locator("#imageBlockInput").setInputFiles({name:"pagination-big.png",mimeType:"image/png",buffer:Buffer.from(png,"base64")});
+  await clickPaletteControl(page, "insertImageBlockBtn");await page.locator("#imageBlockInput").setInputFiles({name:"pagination-big.png",mimeType:"image/png",buffer:Buffer.from(png,"base64")});
   await page.waitForFunction(n=>currentAttachments.length===n+1,count);
   const bigId=await page.evaluate(()=>currentAttachments.find(a=>a.fileName==="pagination-big.png").id);
   fs.mkdirSync(out,{recursive:true});const cases=[];

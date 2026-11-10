@@ -58,7 +58,7 @@ test("ファイル選択は既存表ダイアログをファイルモードで�
   assert.match(html, /id="importTableFileBtn"[^>]*>CSV\/TSV</);
   assert.match(html, /id="tableFileImportInput"[^>]*type="file"[^>]*accept="\.csv,\.tsv"/);
   assert.doesNotMatch(html, /id="tableFileImportInput"[^>]*multiple/);
-  assert.match(html, /data-mobile-editor-tool="importTableFileBtn">CSV\/TSVを読み込む/);
+  assert.ok(require("./feature-palette.js").commands.some((command) => command.controlId === "importTableFileBtn"));
   assert.match(html, /id="tableFileImportStatus"[^>]*role="status"[^>]*aria-live="polite"/);
   assert.match(app, /new TextDecoder\("utf-8", \{ fatal: true \}\)/);
   assert.match(app, /file\.arrayBuffer\(\)/);

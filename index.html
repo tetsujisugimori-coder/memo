@@ -7,7 +7,7 @@
   <script>try { document.documentElement.dataset.initialTheme = localStorage.getItem("memo-nexus-theme") === "dark" ? "dark" : "light"; } catch (_) { document.documentElement.dataset.initialTheme = "light"; }</script>
   <style>html,body{background:#f6f7f4;color:#222522;color-scheme:light}html[data-initial-theme="dark"],html[data-initial-theme="dark"] body{background:#111513;color:#e7ece7;color-scheme:dark}</style>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css">
-  <link rel="stylesheet" href="style.css?v=0.5.0-119">
+  <link rel="stylesheet" href="style.css?v=0.5.0-120">
   <style>.storage-guide-link:focus-visible { outline: 3px solid currentColor; outline-offset: 4px; }</style>
   <link id="reportPrintStyles" rel="stylesheet" href="report-print.css?v=0.5.0-3" media="print">
 </head>
@@ -185,7 +185,7 @@
         </div>
         <div class="title-content">
           <div class="title-main">
-            <div class="title-input-wrap"><input id="titleInput" class="title-input" placeholder="無題メモ" autocomplete="off"></div>
+            <div class="title-input-wrap"><input id="titleInput" class="title-input" placeholder="無題メモ" autocomplete="off"><button id="featurePaletteToggle" class="feature-palette-toggle" type="button" aria-label="機能パレットを開く" aria-expanded="false" aria-controls="featurePalette" aria-haspopup="dialog" title="機能パレットを開く"><span aria-hidden="true">▦</span></button></div>
             <div id="noteTagEditor" class="note-tag-editor" aria-label="メモのタグ">
               <div id="noteTagList" class="note-tag-list"></div>
               <form id="noteTagForm" class="note-tag-form">
@@ -203,6 +203,12 @@
           </div>
         </div>
       </div>
+      <div id="featurePalette" class="feature-palette" role="dialog" aria-modal="false" aria-labelledby="featurePaletteTitle" hidden>
+        <div class="feature-palette-head">
+          <button type="button" data-palette-drag aria-label="機能パレットを移動。矢印キーで移動、Homeで初期位置"><span id="featurePaletteTitle">機能パレット</span><span aria-hidden="true"> ⠿</span></button>
+          <button type="button" data-palette-close aria-label="機能パレットを閉じる">×</button>
+        </div>
+        <p class="feature-palette-hint">本文への挿入・書式・整理・AI</p>
       <div class="editor-tools" aria-label="エディタ操作">
         <button id="focusNoteTagBtn" type="button" title="タグを追加" aria-label="タグを追加" class="editor-tool-btn"># タグ</button>
         <button id="insertTableBtn" type="button" title="カーソル位置へ表ブロックを挿入" aria-label="表ブロックを挿入" class="editor-tool-btn">表</button>
@@ -230,39 +236,14 @@
         <button id="aiSendSelectionBtn" type="button">選択範囲をAIに送る</button>
         <p id="tableFileImportStatus" class="table-file-import-status" role="status" aria-live="polite"></p>
       </div>
+      </div>
       <input id="tableFileImportInput" type="file" accept=".csv,.tsv" hidden>
       <textarea id="editor" placeholder="すぐ書けます。[[語句]] で語句を登録し、[[* メモ名]] で既存メモを参照できます。"></textarea>
       <div id="tableBlockEditors" class="table-block-editors" role="region" aria-label="表ブロック編集" hidden></div>
       <div id="geometryBlockEditors" class="geometry-block-editors" role="region" aria-label="図形ブロック編集" hidden></div>
       <div id="chartBlockEditors" class="chart-block-editors" role="region" aria-label="グラフブロック編集" hidden></div>
       <div id="mobileWritingTools" class="mobile-writing-tools" aria-label="執筆モードのエディタ操作">
-        <details class="mobile-writing-menu">
-          <summary aria-label="追加メニューを開く">追加</summary>
-          <div class="mobile-writing-menu-panel" role="menu">
-            <button type="button" role="menuitem" data-mobile-editor-tool="insertTableBtn">表を挿入</button>
-            <button type="button" role="menuitem" data-mobile-editor-tool="importTableFileBtn">CSV/TSVを読み込む</button>
-            <button type="button" role="menuitem" data-mobile-editor-tool="insertGeometryBtn">図形を挿入</button>
-            <button type="button" role="menuitem" data-mobile-editor-tool="insertChartBtn">グラフを挿入</button>
-            <button type="button" role="menuitem" data-mobile-editor-tool="insertTimelineBtn">Timelineを追加</button>
-            <button type="button" role="menuitem" data-mobile-editor-tool="manageSourcesBtn">出典を管理</button>
-            <label class="mobile-callout-option">注意書き
-              <select id="mobileCalloutTypeSelect" aria-label="注意書きの種類"><option value="NOTE">NOTE</option><option value="TIP">TIP</option><option value="IMPORTANT">IMPORTANT</option><option value="WARNING">WARNING</option></select>
-            </label>
-            <button type="button" role="menuitem" data-mobile-editor-tool="insertCalloutBtn">注意書きを挿入</button>
-            <button type="button" role="menuitem" data-mobile-editor-tool="toggleHighlightBtn">蛍光ペン</button>
-            <button type="button" role="menuitem" data-mobile-editor-tool="addExplanationBtn">解説ブロック</button>
-            <button type="button" role="menuitem" data-mobile-editor-tool="calculatorLinkBtn">計算</button>
-          </div>
-        </details>
-        <button type="button" aria-label="画像を追加" title="画像を追加" data-mobile-editor-tool="insertImageBlockBtn">画像</button>
-        <details class="mobile-writing-menu">
-          <summary aria-label="AIメニューを開く">AI</summary>
-          <div class="mobile-writing-menu-panel mobile-writing-menu-panel-end" role="menu">
-            <button type="button" role="menuitem" data-mobile-editor-tool="aiSummarizeNoteBtn">このメモを要約</button>
-            <button type="button" role="menuitem" data-mobile-editor-tool="aiSendSelectionBtn">選択範囲をAIに送る</button>
-          </div>
-        </details>
-        <button type="button" aria-label="記法ガイドを開く" title="Markdown・語句リンク・メモリンクなどの記法ガイド" data-mobile-editor-tool="syntaxGuideBtn">記法ガイド</button>
+        <button id="mobileFeaturePaletteToggle" class="feature-palette-toggle" type="button" aria-label="機能パレットを開く" aria-expanded="false" aria-controls="featurePalette" aria-haspopup="dialog"><span aria-hidden="true">▦</span> 機能</button>
         <button id="mobileWritingDoneBtn" type="button">完了</button>
       </div>
       <div class="note-meta-bar" aria-label="文書と保存の状態">
@@ -1105,7 +1086,8 @@
   <script src="draft-mirror-scheduler.js?v=0.5.0-2"></script>
   <script src="typing-performance-monitor.js?v=0.5.0-3"></script>
   <script src="layout-resize-utils.js?v=0.5.0-2"></script>
-  <script src="app.js?v=0.5.0-208"></script>
+  <script src="feature-palette.js?v=0.5.0-1"></script>
+  <script src="app.js?v=0.5.0-209"></script>
   <script src="codex-chat.js?v=0.5.0-6"></script>
   <dialog id="dummyPreviewDialog" class="dummy-preview-dialog" aria-labelledby="dummyPreviewHeading" aria-describedby="dummyPreviewHelp">
     <h2 id="dummyPreviewHeading">文章の受信確認 <small id="dummyPreviewBadge">未保存プレビュー</small></h2>

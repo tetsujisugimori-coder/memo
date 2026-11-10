@@ -1,4 +1,5 @@
 "use strict";
+const { clickPaletteControl, closeFeaturePalette } = require("./feature-palette.e2e-support.js");
 const assert = require("node:assert/strict");
 
 const tsv = "項目\t売上\t利益\t費用\r\n1月\t100\t20\t10\r\n2月\t120\t25\t15\r\n3月\t90\t18\t8\r\n";
@@ -47,8 +48,9 @@ async function newChart(page) {
   await page.setViewportSize({ width:1100, height:820 });
   await page.waitForFunction(() => document.body.dataset.layoutMode === "wide");
   await page.locator('#newBtn').click();
-  await page.locator('#insertChartBtn').click();
+  await clickPaletteControl(page, "insertChartBtn", { keepOpen: true });
   await page.waitForFunction(() => document.activeElement?.getAttribute('aria-label') === 'グラフ1のタイトル');
+  await closeFeaturePalette(page);
   await confirm(page);
 }
 async function verifyChartTsv(page, step = () => {}) {

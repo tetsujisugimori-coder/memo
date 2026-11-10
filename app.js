@@ -2163,6 +2163,7 @@ function setMobileWritingMode(open) {
   const shouldOpen = Boolean(open && canStartMobileWritingMode(note));
   if (open && !shouldOpen) return false;
   if (!open && !wasOpen) return false;
+  if (!shouldOpen) featurePalette?.close();
   mobileWritingModeNoteId = shouldOpen ? note.id : null;
   document.body.classList.toggle("mobile-writing-mode", shouldOpen);
   if (shouldOpen) {
@@ -2182,6 +2183,7 @@ function setMobileWritingMode(open) {
     mobileWritingDoneBtn?.blur();
     if (restoreContextPanel) setContextPanelOpen(true, { restoreFocus: false, explicit: false });
   }
+  if (typeof featurePalette !== "undefined") featurePalette?.reposition();
   return shouldOpen;
 }
 
@@ -6453,6 +6455,7 @@ function snippet(body) {
 
 // 指定したidのメモをエディタに読み込みます。
 function openNote(id) {
+  if (typeof featurePalette !== "undefined") featurePalette?.close();
   if (noteSaveFoundation.isTerminal(id)) return;
   const previousId = currentId;
   if (typeof setMobileWritingMode === "function"
@@ -17401,6 +17404,21 @@ if (attachmentDropZone) {
 }
 if (closeImagePreviewBtn) closeImagePreviewBtn.addEventListener("click", () => imagePreviewDialog.close());
 if (imagePreviewDialog) imagePreviewDialog.addEventListener("close", () => imagePreview.removeAttribute("src"));
+const featurePalette = globalThis.MemoNexusFeaturePalette?.create({
+  panel: $("featurePalette"),
+  triggers: [$("featurePaletteToggle"), $("mobileFeaturePaletteToggle")].filter(Boolean),
+  editor,
+  getNoteId: () => currentId,
+  beforeCommand: (controlId) => {
+    if (isMobileWritingMode()) captureMobileEditorContext();
+    if (controlId === "focusNoteTagBtn") {
+      featurePalette.close();
+      setMobileWritingMode(false);
+    } else if (controlId === "aiSummarizeNoteBtn" || controlId === "aiSendSelectionBtn") {
+      featurePalette.close();
+    }
+  }
+});
 if (syntaxGuideBtn && syntaxGuideDialog) syntaxGuideBtn.addEventListener("click", openSyntaxGuide);
 focusNoteTagBtn?.addEventListener("click", focusNoteTagInput);
 if (insertTableBtn) insertTableBtn.addEventListener("click", insertTableAtSelection);

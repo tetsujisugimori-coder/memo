@@ -1,4 +1,5 @@
 "use strict";
+const { clickPaletteControl, openFeaturePalette } = require("./feature-palette.e2e-support.js");
 
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
@@ -313,7 +314,7 @@ async function runRightAngleEditorScenario(browser, url) {
     await waitForApp(page, url);
     await page.locator("#editor").fill("直角注釈のUI編集");
     await page.locator("#editor").press("End");
-    await page.locator("#insertGeometryBtn").click();
+    await clickPaletteControl(page, "insertGeometryBtn");
     const editor = page.locator(".geometry-block-editor");
     await editor.waitFor();
     const svg = editor.locator("svg");
@@ -555,7 +556,7 @@ async function runAngleEditorScenario(browser, url) {
     await waitForApp(page, url);
     await page.locator("#editor").fill("一般角注釈のUI編集");
     await page.locator("#editor").press("End");
-    await page.locator("#insertGeometryBtn").click();
+    await clickPaletteControl(page, "insertGeometryBtn");
     const editor = page.locator(".geometry-block-editor");
     await editor.waitFor();
     const svg = editor.locator("svg");
@@ -664,7 +665,7 @@ async function runAngleMoveValidationScenario(browser, url) {
     await waitForApp(page, url);
     await page.locator("#editor").fill("一般角の退化移動");
     await page.locator("#editor").press("End");
-    await page.locator("#insertGeometryBtn").click();
+    await clickPaletteControl(page, "insertGeometryBtn");
     await page.locator(".geometry-block-editor").waitFor();
     const setup = await page.evaluate(() => {
       const blocks = window.MemoNexusGeometryBlockUtils;
@@ -820,7 +821,7 @@ async function runCircleInteriorSelectionScenario(browser, url) {
     await waitForApp(page, url);
     await page.locator("#editor").fill("円内部の線分選択");
     await page.locator("#editor").press("End");
-    await page.locator("#insertGeometryBtn").click();
+    await clickPaletteControl(page, "insertGeometryBtn");
     const editor = page.locator(".geometry-block-editor");
     await editor.waitFor();
     const svg = editor.locator("svg");
@@ -976,9 +977,9 @@ async function runEqualLengthEditorScenario(browser, url, width, markType = "equ
     await closeMobilePanel();
     if (width <= 720) {
       await page.locator("#editor").click();
-      await page.getByLabel("追加メニューを開く", { exact: true }).click();
-      await page.locator('[data-mobile-editor-tool="insertGeometryBtn"]').click();
-    } else await page.locator("#insertGeometryBtn").click();
+      await openFeaturePalette(page);
+      await clickPaletteControl(page, "insertGeometryBtn");
+    } else await clickPaletteControl(page, "insertGeometryBtn");
     const editor = page.locator(".geometry-block-editor");
     const svg = editor.locator("svg");
     const mode = async (name) => {
@@ -1160,9 +1161,9 @@ async function runFillRegionEditorScenario(browser, url, width) {
     }
     if (width <= 720) {
       await page.locator("#editor").click();
-      await page.getByLabel("追加メニューを開く", { exact: true }).click();
-      await page.locator('[data-mobile-editor-tool="insertGeometryBtn"]').click();
-    } else await page.locator("#insertGeometryBtn").click();
+      await openFeaturePalette(page);
+      await clickPaletteControl(page, "insertGeometryBtn");
+    } else await clickPaletteControl(page, "insertGeometryBtn");
     const editor = page.locator(".geometry-block-editor");
     const svg = editor.locator("svg");
     await editor.locator('[data-geometry-mode="point"]').click();
@@ -1341,7 +1342,7 @@ async function runFillRegionEditorScenario(browser, url, width) {
     page.on("pageerror", (error) => pageErrors.push(error.message));
     await page.locator("#editor").fill("前\n後");
     await page.locator("#editor").press("End");
-    await page.locator("#insertGeometryBtn").click();
+    await clickPaletteControl(page, "insertGeometryBtn");
     const editor = page.locator(".geometry-block-editor");
     await editor.waitFor();
     const svg = editor.locator("svg");
