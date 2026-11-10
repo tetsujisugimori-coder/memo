@@ -1,7 +1,7 @@
 name: Persistent profile restart research (synthetic)
 on:
-  push:
-    branches: [verify/persistent-profile-restart-20261111]
+  pull_request:
+    branches: [integrate/save-conflict-palette-20261110]
   workflow_dispatch:
 permissions:
   contents: read
@@ -16,6 +16,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
           fetch-depth: 0
       - uses: actions/setup-node@v7
