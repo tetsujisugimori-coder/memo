@@ -1,0 +1,172 @@
+{
+  "kind": "derived-manifest-not-original",
+  "reason": "raw outcome contains local user profile paths; raw remains quarantined in user workspace",
+  "rawRelativeLocation": "work/chart-stage3-step1-windows-451-final/",
+  "rawArchiveSha256": "375a0c91c1f3e95053adc491e37de204c7d690ca0818cbf72f121e3d754af4e1",
+  "startUtc": "2026-11-11T10:40:18.540Z",
+  "endUtc": "2026-11-11T10:40:27.279Z",
+  "baseCommit": "c558cf693f3ddcbb19f59e63c744e43a816c5447",
+  "platform": "win32",
+  "osRelease": "10.0.26300",
+  "node": "v24.20.0",
+  "playwright": "1.62.1",
+  "status": 0,
+  "signal": null,
+  "sourceBefore": [
+    {
+      "name": "browser-failure-check.cjs",
+      "sha256": "0b53da2132ff76c61ccfffd50df591009d12ba8ad2649e2eaa7611dcb10b24ef"
+    },
+    {
+      "name": "descendant-check.cjs",
+      "sha256": "a06b511dd002f36eb70da8681c650e547bdb5547c81282f44cf218397e572756"
+    },
+    {
+      "name": "environment.cjs",
+      "sha256": "ed4c4a550c0c70ca83d068600089b35ccee1477a101150ae8cebc78d89356a7d"
+    },
+    {
+      "name": "fixture-one.cjs",
+      "sha256": "9e20f5817121ffa7f48a378049e75a953d6d147b1e6f1e07ff4aaedbeb3543eb"
+    },
+    {
+      "name": "flush-audit.cjs",
+      "sha256": "84ef87734475c6002db60d36c52bbc3ccc777aea3a13eb580d4505178950c970"
+    },
+    {
+      "name": "ledger-check.cjs",
+      "sha256": "6137de0f7d37f56f07c05826d94c9ac0e10b311a7df80c4ad4c317999f41a635"
+    },
+    {
+      "name": "ledger.cjs",
+      "sha256": "627e37efe6b20b569725e4cd8276519a0792983145d41c50bf7d475712017b97"
+    },
+    {
+      "name": "local-checks.cjs",
+      "sha256": "83c208f3d3bb017d31f5cb31b52740ea3da530b61206e7268db2ae984af77680"
+    },
+    {
+      "name": "preload-check.cjs",
+      "sha256": "88f52b61e61b7fb7ec3c8958f7dcc0808c1c01cdd9d115ba2a818f7b2e4c2673"
+    },
+    {
+      "name": "preload.cjs",
+      "sha256": "5aa63a1960716983e100b4354326601ff8c19a03de13169c3cb91a03306aa5eb"
+    },
+    {
+      "name": "recorder-check.cjs",
+      "sha256": "d1ff7855bf630d8fd8210ff08463373d3fc36cd10f2014c820e14e95591264a4"
+    },
+    {
+      "name": "recorder.cjs",
+      "sha256": "c536462a4aa32897aa21d65054dbc032b055eb991c900012c36e55f5c3e2a250"
+    },
+    {
+      "name": "resource.cjs",
+      "sha256": "0ace3ef5d6bed1786b5c2c1eaf2bd7623c8a9580b67895df0496a2ec7c060c02"
+    },
+    {
+      "name": "seal-synthetic.cjs",
+      "sha256": "6beb3282ff8091c31b4fae8f11cb79364c010d72f6523439c2aed9eb9bb65b07"
+    },
+    {
+      "name": "synthetic-analyze-check.cjs",
+      "sha256": "52477c672ced1b991caf6782195e3c464ea234c819f466835d43f04d148d287a"
+    },
+    {
+      "name": "synthetic-analyze.cjs",
+      "sha256": "216f67c49e1761f52415ef5e1fc20acf51db85c109c9ec92893d09490daac7c4"
+    },
+    {
+      "name": "synthetic-run.cjs",
+      "sha256": "d2df5666dfc0a2932f8c73ef6a9be30f6ae4c122fdb9526b6056642885951e95"
+    },
+    {
+      "name": "termination-check.cjs",
+      "sha256": "0fbcb5a31b7dd4dffb8e9fcbe8f37d8c0d0c9c425631b617ab870e0a8b29c60e"
+    },
+    {
+      "name": "termination-fixture.cjs",
+      "sha256": "50591d1241f33e022cf448534c85fffd47bdc7bc0c630e337ab77da1e29ceed5"
+    }
+  ],
+  "sourceAfter": [
+    {
+      "name": "browser-failure-check.cjs",
+      "sha256": "0b53da2132ff76c61ccfffd50df591009d12ba8ad2649e2eaa7611dcb10b24ef"
+    },
+    {
+      "name": "descendant-check.cjs",
+      "sha256": "a06b511dd002f36eb70da8681c650e547bdb5547c81282f44cf218397e572756"
+    },
+    {
+      "name": "environment.cjs",
+      "sha256": "ed4c4a550c0c70ca83d068600089b35ccee1477a101150ae8cebc78d89356a7d"
+    },
+    {
+      "name": "fixture-one.cjs",
+      "sha256": "9e20f5817121ffa7f48a378049e75a953d6d147b1e6f1e07ff4aaedbeb3543eb"
+    },
+    {
+      "name": "flush-audit.cjs",
+      "sha256": "84ef87734475c6002db60d36c52bbc3ccc777aea3a13eb580d4505178950c970"
+    },
+    {
+      "name": "ledger-check.cjs",
+      "sha256": "6137de0f7d37f56f07c05826d94c9ac0e10b311a7df80c4ad4c317999f41a635"
+    },
+    {
+      "name": "ledger.cjs",
+      "sha256": "627e37efe6b20b569725e4cd8276519a0792983145d41c50bf7d475712017b97"
+    },
+    {
+      "name": "local-checks.cjs",
+      "sha256": "83c208f3d3bb017d31f5cb31b52740ea3da530b61206e7268db2ae984af77680"
+    },
+    {
+      "name": "preload-check.cjs",
+      "sha256": "88f52b61e61b7fb7ec3c8958f7dcc0808c1c01cdd9d115ba2a818f7b2e4c2673"
+    },
+    {
+      "name": "preload.cjs",
+      "sha256": "5aa63a1960716983e100b4354326601ff8c19a03de13169c3cb91a03306aa5eb"
+    },
+    {
+      "name": "recorder-check.cjs",
+      "sha256": "d1ff7855bf630d8fd8210ff08463373d3fc36cd10f2014c820e14e95591264a4"
+    },
+    {
+      "name": "recorder.cjs",
+      "sha256": "c536462a4aa32897aa21d65054dbc032b055eb991c900012c36e55f5c3e2a250"
+    },
+    {
+      "name": "resource.cjs",
+      "sha256": "0ace3ef5d6bed1786b5c2c1eaf2bd7623c8a9580b67895df0496a2ec7c060c02"
+    },
+    {
+      "name": "seal-synthetic.cjs",
+      "sha256": "6beb3282ff8091c31b4fae8f11cb79364c010d72f6523439c2aed9eb9bb65b07"
+    },
+    {
+      "name": "synthetic-analyze-check.cjs",
+      "sha256": "52477c672ced1b991caf6782195e3c464ea234c819f466835d43f04d148d287a"
+    },
+    {
+      "name": "synthetic-analyze.cjs",
+      "sha256": "216f67c49e1761f52415ef5e1fc20acf51db85c109c9ec92893d09490daac7c4"
+    },
+    {
+      "name": "synthetic-run.cjs",
+      "sha256": "d2df5666dfc0a2932f8c73ef6a9be30f6ae4c122fdb9526b6056642885951e95"
+    },
+    {
+      "name": "termination-check.cjs",
+      "sha256": "0fbcb5a31b7dd4dffb8e9fcbe8f37d8c0d0c9c425631b617ab870e0a8b29c60e"
+    },
+    {
+      "name": "termination-fixture.cjs",
+      "sha256": "50591d1241f33e022cf448534c85fffd47bdc7bc0c630e337ab77da1e29ceed5"
+    }
+  ],
+  "sourceUnchanged": true
+}
