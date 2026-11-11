@@ -1,0 +1,67 @@
+name: Chart WebKit stage 3 live lifecycle gate
+on:
+  pull_request:
+    types: [synchronize]
+    branches: [investigate/chart-webkit-infinity-20261111]
+permissions:
+  contents: read
+jobs:
+  lifecycle:
+    if: github.head_ref == 'investigate/chart-webkit-stage3-issue451'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - id: gate
+        shell: bash
+        run: |
+          if git log -1 --format=%s | grep -Fq '[stage3-lifecycle]'; then echo 'run=true' >> "$GITHUB_OUTPUT"; else echo 'run=false' >> "$GITHUB_OUTPUT"; fi
+      - uses: actions/setup-node@v7
+        if: steps.gate.outputs.run == 'true'
+        with:
+          node-version: 22
+          cache: npm
+      - if: steps.gate.outputs.run == 'true'
+        run: npm ci
+      - if: steps.gate.outputs.run == 'true'
+        run: npx playwright install --with-deps webkit
+      - name: Require capacity and record source
+        if: steps.gate.outputs.run == 'true'
+        run: |
+          node -e "const f=require('fs').statfsSync(process.env.RUNNER_TEMP);if(f.bavail*f.bsize<2*1024**3)throw Error('less than 2 GiB available')"
+          mkdir "$RUNNER_TEMP/chart-stage3-lifecycle"
+          mkdir "$RUNNER_TEMP/chart-stage3-lifecycle/check-raw"
+          node tools/chart-webkit-stage3/environment.cjs "$RUNNER_TEMP/chart-stage3-lifecycle/environment-before.json"
+      - name: Synthetic live-browser lifecycle cases
+        if: steps.gate.outputs.run == 'true'
+        timeout-minutes: 10
+        shell: bash
+        env:
+          CHART_STAGE3_EVIDENCE: ${{ runner.temp }}/chart-stage3-lifecycle/check-raw
+        run: |
+          set -o pipefail
+          node --test tools/chart-webkit-stage3/preload-signal-check.cjs tools/chart-webkit-stage3/preload-check.cjs 2>&1 | tee "$RUNNER_TEMP/chart-stage3-lifecycle/checks.log"
+      - name: Record source state after checks
+        if: always() && steps.gate.outputs.run == 'true'
+        shell: bash
+        run: |
+          if [ -d "$RUNNER_TEMP/chart-stage3-lifecycle" ]; then node tools/chart-webkit-stage3/environment.cjs "$RUNNER_TEMP/chart-stage3-lifecycle/environment-after.json"; fi
+      - name: Screen and hash synthetic evidence
+        id: seal
+        if: always() && steps.gate.outputs.run == 'true'
+        shell: bash
+        run: |
+          if [ -d "$RUNNER_TEMP/chart-stage3-lifecycle" ]; then
+            if node tools/chart-webkit-stage3/seal-synthetic.cjs "$RUNNER_TEMP/chart-stage3-lifecycle"; then echo 'safe=true' >> "$GITHUB_OUTPUT"; else echo 'safe=false' >> "$GITHUB_OUTPUT"; exit 1; fi
+          fi
+      - name: Preserve screened synthetic text
+        if: always() && steps.seal.outputs.safe == 'true'
+        uses: actions/upload-artifact@v6
+        with:
+          name: chart-stage3-lifecycle-${{ github.run_id }}
+          path: ${{ runner.temp }}/chart-stage3-lifecycle
+          if-no-files-found: error
+          retention-days: 14

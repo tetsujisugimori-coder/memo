@@ -8,3 +8,9 @@ test('full-suite entry preloader records normal process and browser boundaries',
   const exit=JSON.parse(fs.readFileSync(path.join(root,name,'exit.json'),'utf8'));assert.equal(exit.code,0);assert.equal(exit.finishResult?.reason,'normal');assert.equal(exit.ledger.failed,0);assert.equal(exit.ledger.rejected,0);
   const records=fs.readFileSync(path.join(root,name,'events.jsonl'),'utf8').trim().split('\n').map(JSON.parse);assert.ok(records.some(r=>r.type==='boundary-snapshot'&&r.reason==='browser.close'));assert.ok(records.some(r=>r.type==='browser-close-native-returned'));
 });
+test('beforeExit normal does not make a nonzero process successful',{timeout:15000},()=>{
+  const scriptRoot=fs.mkdtempSync(path.join(os.tmpdir(),'stage3-exit-script-')),root=fs.mkdtempSync(path.join(process.env.CHART_STAGE3_EVIDENCE||os.tmpdir(),'stage3-exit-output-')),script=path.join(scriptRoot,'chart-block.e2e.js');fs.writeFileSync(script,'process.exitCode=7;');
+  const child=spawnSync(process.execPath,['--require',path.join(__dirname,'preload.cjs'),script],{cwd:process.cwd(),encoding:'utf8',timeout:10000,env:{...process.env,CHART_STAGE3_MODE:'detailed',CHART_STAGE3_OUTPUT:root,NODE_PATH:path.dirname(path.dirname(require.resolve('playwright')))}});
+  const name=fs.readdirSync(root).find(x=>x.startsWith('process-'));const exit=name?JSON.parse(fs.readFileSync(path.join(root,name,'exit.json'),'utf8')):null;fs.writeFileSync(path.join(root,'outcome.json'),JSON.stringify({utc:new Date().toISOString(),status:child.status,signal:child.signal,exit},null,2)+'\n',{flag:'wx'});
+  assert.equal(child.status,7);assert.equal(exit?.code,7);assert.equal(exit?.finishResult?.reason,'normal');
+});
