@@ -147,6 +147,25 @@
     });
   }
 
+  // Tombstones forbid notes-store writes, but must not destroy an unsaved manuscript.
+  // This independent transaction resolves only at its durable completion boundary.
+  function preserveDeletedDraft({ database, note, base, requestId, ownerId }) {
+    const records = conflictRecords(note, base, null, requestId, ownerId);
+    return new Promise((resolve, reject) => {
+      let transaction, failure;
+      const abort = (error) => { failure = error; try { transaction.abort(); } catch {} };
+      try {
+        transaction = database.transaction(STORE, "readwrite");
+        transaction.oncomplete = () => resolve(records);
+        transaction.onabort = () => reject(conflictError(note, records, false, failure || transaction.error));
+        transaction.onerror = () => { failure ||= transaction.error; };
+        stageRecovery(transaction, records, abort);
+      } catch (error) {
+        if (transaction) abort(error); else reject(conflictError(note, records, false, error));
+      }
+    });
+  }
+
   function readDrafts(database, noteId = null) {
     return new Promise((resolve, reject) => {
       const transaction = database.transaction(STORE, "readonly");
@@ -173,7 +192,7 @@
     });
   }
 
-  const api = { STORE, revisionOf, matches, installStore, conflictRecords, conflictError, stageRecovery, validRecovery, writeNote, readDrafts, readRecovery };
+  const api = { STORE, revisionOf, matches, installStore, conflictRecords, conflictError, stageRecovery, validRecovery, writeNote, preserveDeletedDraft, readDrafts, readRecovery };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   if (globalScope) globalScope.MemoNexusNoteConflictStore = api;
 })(typeof window !== "undefined" ? window : globalThis);

@@ -1180,7 +1180,7 @@ test("本番ローカル保存は固定snapshotとrevision境界を使い、失�
   assert.match(liveIndexSource, /noteLiveDrafts\.forEach/);
   assert.match(boundarySource, /liveNotesById\.get\(plan\.note\.id\)/);
   assert.doesNotMatch(boundarySource, /noteForSave/);
-  assert.match(app, /function updateNotesTransaction\(items, \{ markLocalPending = true, preserveStoredCodexThread = false, prepareStoredNote = null, validateBeforePut = null \} = \{\}\)[\s\S]*if \(markLocalPending\) markLocalWorkspacePending\(\)/);
+  assert.match(app, /function updateNotesTransaction\(items, \{ markLocalPending = true, preserveStoredCodexThread = false, prepareStoredNote = null, validateBeforePut = null, additionalStores = \[\], stageSideEffects = null \} = \{\}\)[\s\S]*if \(markLocalPending\) markLocalWorkspacePending\(\)/);
   assert.match(metadataSource, /preserveStoredCodexThread: true/);
   assert.doesNotMatch(source, /suppressLocalSaveQueue = true/);
 });

@@ -7,7 +7,7 @@
     section.setAttribute("aria-label", "保存競合と回復原稿");
     host.append(section);
     const run = (operation) => { Promise.resolve().then(operation).catch(onError); };
-    function render({ noteId, state, drafts = [], committed, editing = false }) {
+    function render({ noteId, state, drafts = [], committed, missing = false, editing = false }) {
       section.replaceChildren();
       section.hidden = !state && !drafts.length;
       section.removeAttribute("data-memo-conflict");
@@ -33,7 +33,9 @@
         section.dataset.requestId = draft.requestId;
         const notice = document.createElement("p");
         notice.setAttribute("role", "alert");
-        notice.textContent = state.preserved
+        notice.textContent = state.preserved && missing
+          ? "このメモは完全削除されています。原稿はブラウザ内に保全済みです。原稿全文を書き出して回復してください。"
+          : state.preserved
           ? "別のタブでこのメモが更新されました。通常保存を停止しました。原稿はブラウザ内に保全済みです。再読込後もここから回復できます。"
           : "保存競合：原稿の保全に失敗しました。原稿はこのタブだけにあります。タブを閉じずに書き出してください。";
         section.append(notice);
@@ -67,10 +69,12 @@
         resume.type = "button";
         resume.setAttribute("data-memo-conflict-resume", "");
         resume.textContent = "この原稿を再編集する";
-        resume.disabled = !state.preserved;
+        resume.disabled = !state.preserved || missing;
         resume.onclick = () => run(() => onResume(draft));
         const hint = document.createElement("p");
-        hint.textContent = state.preserved
+        hint.textContent = state.preserved && missing
+          ? "削除済みメモは復活させません。原稿全文を書き出してください。保全した原稿は自動削除しません。"
+          : state.preserved
           ? "再編集は最新の保存内容を基準に開始します。自動統合は行いません。内容を確認して保存してください。再び更新があれば保存を停止します。保全した原稿は自動削除しません。"
           : "保全が完了していません。このタブを閉じると原稿を失うおそれがあります。先に原稿全文を書き出してください。";
         actions.append(exportButton, resume); section.append(actions, hint);
