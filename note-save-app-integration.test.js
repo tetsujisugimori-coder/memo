@@ -2590,8 +2590,10 @@ test("通常custom writerだけがCodex保護helperを明示し、バックア�
   const backupWriter = sourceBetween("async function applyPortableBackupImport", "async function importPastedItNewsJson");
 
   assert.match(localMetadataWriter, /preserveStoredCodexThread: true/);
-  assert.match(webClipWriter, /prepareNoteSnapshotsInTransaction[\s\S]*preserveStoredCodexThread: true/);
-  assert.match(collectionDeletionWriter, /prepareNoteSnapshotsInTransaction[\s\S]*preserveStoredCodexThread: true/);
+  assert.match(webClipWriter, /updateNotesTransaction[\s\S]*preserveStoredCodexThread: true/);
+  assert.match(webClipWriter, /additionalStores: \[ATTACHMENT_STORE_NAME\]/);
+  assert.match(collectionDeletionWriter, /updateNotesTransaction[\s\S]*preserveStoredCodexThread: true/);
+  assert.match(collectionDeletionWriter, /additionalStores: \[COLLECTION_STORE_NAME\]/);
   assert.doesNotMatch(backupWriter, /preserveStoredCodexThread: true/);
 });
 

@@ -1110,6 +1110,8 @@ const noteConflictOwnerId = (() => {
 })();
 let noteConflictUi = null;
 let noteConflictRenderSequence = 0;
+let orphanConflictSelection = null;
+const failedDeletedDraftRecoveries = new Map();
 // 入力時は解析せず変更前本文の参照だけを保持し、リンク増加判定は保存成功側で行います。
 const noteSaveBeforeBodies = new Map();
 const noteSaveUiChanges = new Map();
@@ -2496,7 +2498,22 @@ function noteConflictUiError(error) {
 }
 
 async function chooseConflictDraft(draft) {
-  if (draft.noteId !== currentId) return;
+  const failed = failedDeletedDraftRecoveries.get(draft.requestId);
+  if (failed) {
+    orphanConflictSelection = failed;
+    if (draft.noteId === currentId) noteConflictStates.set(draft.noteId, failed);
+    await renderNoteConflictUi();
+    return;
+  }
+  if (draft.noteId !== currentId) {
+    const recovery = await noteConflictStore.readRecovery(db, draft.requestId);
+    const stored = (await getStoredNoteSnapshots([draft.noteId])).get(draft.noteId);
+    if (stored) return;
+    orphanConflictSelection = { recovery, preserved: true };
+    await renderNoteConflictUi();
+    return;
+  }
+  orphanConflictSelection = null;
   if (noteSaveFoundation.isDirty(draft.noteId) && !noteConflictStates.has(draft.noteId)) {
     throw new Error("現在の未保存原稿があります。先に保存または書出しで保全してください。");
   }
@@ -2552,12 +2569,33 @@ function ensureNoteConflictUi() {
 
 async function renderNoteConflictUi() {
   const sequence = ++noteConflictRenderSequence, noteId = currentId;
-  if (!db || !noteId || !ensureNoteConflictUi()) return;
-  const drafts = await noteConflictStore.readDrafts(db, noteId);
-  const committed = (await getStoredNoteSnapshots([noteId])).get(noteId);
+  if (!db || !ensureNoteConflictUi()) return;
+  let durableDrafts, stored;
+  try {
+    durableDrafts = await noteConflictStore.readDrafts(db, null);
+    stored = await getStoredNoteSnapshots([...new Set([noteId, ...durableDrafts.map((draft) => draft.noteId)].filter(Boolean))]);
+  } catch (error) {
+    // Failed deletion recoveries are known to belong to deleted notes. Their
+    // export picker must not depend on the unavailable database that failed them.
+    const failed = [...failedDeletedDraftRecoveries.values()];
+    if (!failed.length) throw error;
+    if (sequence !== noteConflictRenderSequence || noteId !== currentId) return;
+    const currentBlocked = noteConflictStates.has(noteId) || noteSaveFoundation.isTerminal(noteId);
+    editor.readOnly = currentBlocked;
+    titleInput.readOnly = currentBlocked;
+    const state = orphanConflictSelection?.preserved === false ? orphanConflictSelection : failed[0];
+    noteConflictUi.render({ noteId: state.recovery.draft.noteId, state,
+      drafts: failed.map((item) => item.recovery.draft), committed: null, missing: true });
+    setSaveStatus("preservation-error");
+    return;
+  }
+  const allDrafts = [...durableDrafts, ...[...failedDeletedDraftRecoveries.values()].map((state) => state.recovery.draft)
+    .filter((draft) => !durableDrafts.some((row) => row.requestId === draft.requestId))];
+  const drafts = allDrafts.filter((draft) => draft.noteId === noteId || !stored.has(draft.noteId));
+  const committed = stored.get(noteId);
   if (sequence !== noteConflictRenderSequence || noteId !== currentId) return;
   if (!noteConflictStates.has(noteId) && !noteConflictResolutions.has(noteId)) {
-    const owned = drafts.find((draft) => draft.ownerId === noteConflictOwnerId);
+    const owned = drafts.find((draft) => draft.noteId === noteId && draft.ownerId === noteConflictOwnerId);
     if (owned) noteConflictStates.set(noteId, { recovery: await noteConflictStore.readRecovery(db, owned.requestId), preserved: true });
   }
   if (sequence !== noteConflictRenderSequence || noteId !== currentId) return;
@@ -2569,7 +2607,11 @@ async function renderNoteConflictUi() {
     if (isMobileWritingMode()) setMobileWritingMode(false);
     setSaveStatus(state.preserved ? "conflict" : "preservation-error");
   }
-  noteConflictUi.render({ noteId, state, drafts, committed, editing: noteConflictResolutions.has(noteId) });
+  const orphan = orphanConflictSelection;
+  const displayState = orphan && !stored.has(orphan.recovery.draft.noteId) ? orphan : state;
+  const displayId = displayState?.recovery.draft.noteId || noteId;
+  noteConflictUi.render({ noteId: displayId, state: displayState, drafts, committed: stored.get(displayId),
+    missing: !stored.has(displayId), editing: noteConflictResolutions.has(noteId) });
 }
 
 function refreshNoteConflictUi() {
@@ -3795,14 +3837,14 @@ function prepareNoteSnapshotsInTransaction(store, items, { preserveStoredCodexTh
   });
 }
 
-function updateNotesTransaction(items, { markLocalPending = true, preserveStoredCodexThread = false, prepareStoredNote = null, validateBeforePut = null } = {}) {
+function updateNotesTransaction(items, { markLocalPending = true, preserveStoredCodexThread = false, prepareStoredNote = null, validateBeforePut = null, additionalStores = [], stageSideEffects = null } = {}) {
   return new Promise((resolve, reject) => {
     let savedItems = items;
     let validationError = null;
     const recoveries = new Map(), observed = new Map();
     let conflictDetected = false;
     let firstConflict = null;
-    const transaction = db.transaction([STORE_NAME, TOMBSTONE_STORE_NAME, noteConflictStore.STORE], "readwrite");
+    const transaction = db.transaction([...new Set([STORE_NAME, TOMBSTONE_STORE_NAME, noteConflictStore.STORE, ...additionalStores])], "readwrite");
     const store = transaction.objectStore(STORE_NAME);
     guardNoteWrites(transaction, items.map((note) => note.id), () => {
       const abortWithValidationError = (error) => {
@@ -3837,6 +3879,8 @@ function updateNotesTransaction(items, { markLocalPending = true, preserveStored
           if (validateBeforePut) validateBeforePut();
           savedItems = preparedItems;
           savedItems.forEach((note) => store.put(note));
+          // Synchronous staging only: all related writes share the checked transaction.
+          if (stageSideEffects) stageSideEffects(transaction);
         } catch (error) {
           abortWithValidationError(error);
         }
@@ -3936,7 +3980,7 @@ function forceFlushDraftMirror(noteId = currentId) {
 }
 
 // IndexedDBより新しいドラフトだけを復元し、古すぎるものは削除します。
-async function restoreCurrentDraftMirror() {
+async function restoreCurrentDraftMirror(onlyNoteId = null, { preserveOnly = false } = {}) {
   let rawDraft;
   try {
     rawDraft = localStorage.getItem(DRAFT_STORAGE_KEY);
@@ -3955,7 +3999,12 @@ async function restoreCurrentDraftMirror() {
     return null;
   }
 
-  if (!draft || typeof draft !== "object" || !draft.id) return null;
+  if (!draft || typeof draft !== "object" || !draft.id || (onlyNoteId && draft.id !== onlyNoteId)) return null;
+  if (preserveOnly) {
+    const preserved = await preservePermanentlyDeletedDraft(draft, draft.conflictBase, draft.conflictRequestId);
+    if (preserved) removeDraftMirrorForNote(draft.id);
+    return null;
+  }
 
   const now = Date.now();
   const draftSavedAt = Number(draft.draftSavedAt);
@@ -4019,8 +4068,9 @@ async function restoreCurrentDraftMirror() {
     await persistIncomingNote(restoredNote);
   } catch (error) {
     if (error?.code !== "NOTE_PERMANENTLY_DELETED") throw error;
+    const preserved = await preservePermanentlyDeletedDraft(restoredNote, draft.conflictBase, draft.conflictRequestId);
     noteSaveFoundation.finishPermanentDeletion([error.noteId || restoredNote.id], error.tombstone);
-    removeDraftMirrorForNote(restoredNote.id);
+    if (preserved) removeDraftMirrorForNote(restoredNote.id);
     notes = notes.filter((note) => note.id !== restoredNote.id);
     return null;
   }
@@ -5775,26 +5825,14 @@ async function createWebClipNoteWithImages(title, clip, source, collectionId, ex
 
   try {
     if (existingNote) {
-      const writeWebClipTransaction = ([note]) => new Promise((resolve, reject) => {
-        let savedNote = note;
-        const transaction = db.transaction([STORE_NAME, ATTACHMENT_STORE_NAME, TOMBSTONE_STORE_NAME], "readwrite");
-        const noteStore = transaction.objectStore(STORE_NAME);
-        const attachmentStore = transaction.objectStore(ATTACHMENT_STORE_NAME);
-        guardNoteWrites(transaction, [note.id], () => {
-          prepareNoteSnapshotsInTransaction(noteStore, [note], { preserveStoredCodexThread: true }, ([preparedNote]) => {
-            savedNote = preparedNote;
-            prepared.forEach((attachment) => attachmentStore.put(attachment));
-            previousWebClipAttachments.forEach((attachment) => attachmentStore.delete(attachment.id));
-            noteStore.put(savedNote);
-          });
-        }, TOMBSTONE_STORE_NAME);
-        transaction.oncomplete = () => {
-          notifyMemoChanged(savedNote);
-          markLocalWorkspacePending();
-          resolve([savedNote]);
-        };
-        transaction.onerror = () => reject(noteTransactionError(transaction));
-        transaction.onabort = () => reject(noteTransactionError(transaction));
+      const writeWebClipTransaction = (noteSnapshots) => updateNotesTransaction(noteSnapshots, {
+        preserveStoredCodexThread: true,
+        additionalStores: [ATTACHMENT_STORE_NAME],
+        stageSideEffects: (transaction) => {
+          const attachmentStore = transaction.objectStore(ATTACHMENT_STORE_NAME);
+          prepared.forEach((attachment) => attachmentStore.put(attachment));
+          previousWebClipAttachments.forEach((attachment) => attachmentStore.delete(attachment.id));
+        }
       });
       await mutateNotesAtomically([memoId], (note) => {
         note.title = title;
@@ -5807,7 +5845,7 @@ async function createWebClipNoteWithImages(title, clip, source, collectionId, ex
     }
     return await createNote(title, body, { id: memoId, collectionId, createdAt: clip.capturedAt, source: { ...source, webClipVersion: 3, images: sourceImages } });
   } catch (error) {
-    if (prepared.length) await deleteAttachmentRecords(prepared.map((attachment) => attachment.id)).catch(() => {});
+    if (prepared.length && !existingNote) await deleteAttachmentRecords(prepared.map((attachment) => attachment.id)).catch(() => {});
     throw error;
   }
 }
@@ -6755,7 +6793,17 @@ async function initPopout() {
   await initializeLocalFolderSaving();
   const note = notes.find((item) => item.id === popoutMemoId && !item.deletedAt);
   if (!note) {
-    showPopoutUnavailable();
+    currentId = popoutMemoId;
+    editor.readOnly = true;
+    titleInput.readOnly = true;
+    // A missing popout target must not be recreated by mirror restoration.
+    await restoreCurrentDraftMirror(popoutMemoId, { preserveOnly: true });
+    await renderNoteConflictUi();
+    editor.readOnly = true;
+    titleInput.readOnly = true;
+    // Keep the existing recovery host accessible even with no live note.
+    editorCard.hidden = false;
+    popoutUnavailable.hidden = false;
     return;
   }
 
@@ -8026,6 +8074,28 @@ function cleanupPermanentlyDeletedMemos(memoIds, tombstone = {}, options = {}) {
   return task;
 }
 
+async function preservePermanentlyDeletedDraft(note, base = noteSaveBases.get(note.id), requestId = null) {
+  try {
+    const recovery = await noteConflictStore.preserveDeletedDraft({ database: db, note: cloneNoteSnapshot(note), base,
+      requestId: requestId || noteConflictAttemptId(note), ownerId: noteConflictOwnerId });
+    const state = { recovery, preserved: true };
+    failedDeletedDraftRecoveries.delete(recovery.draft.requestId);
+    if (noteConflictStates.get(note.id)?.preserved !== false) noteConflictStates.set(note.id, state);
+    if (orphanConflictSelection?.preserved !== false) orphanConflictSelection = state;
+    return true;
+  } catch (error) {
+    const state = { recovery: error.recovery, preserved: false };
+    failedDeletedDraftRecoveries.set(state.recovery.draft.requestId, state);
+    noteConflictStates.set(note.id, state);
+    orphanConflictSelection = state;
+    setSaveStatus("preservation-error");
+    setSaveStatusNotice("完全削除されたメモの原稿を保全できませんでした。このタブを閉じず、原稿全文を書き出してください。");
+    ensureNoteConflictUi()?.render({ noteId: note.id, state,
+      drafts: [...failedDeletedDraftRecoveries.values()].map((item) => item.recovery.draft), committed: null, missing: true });
+    return false;
+  }
+}
+
 async function performPermanentDeletionCleanup(memoIds, tombstone = {}, { showNotice = true } = {}) {
   const ids = [...new Set(memoIds || [])].filter(Boolean);
   if (!ids.length) return;
@@ -8033,6 +8103,33 @@ async function performPermanentDeletionCleanup(memoIds, tombstone = {}, { showNo
     globalThis.MemoNexusTypingDerivedUiScheduler?.cancelNote(noteId);
     if (typingPerformanceEnabled) typingPerformance.discardNote(noteId);
   });
+  // Block all further same-ID saves before asynchronous preservation, but retain
+  // live drafts and mirrors until the separate recovery transaction completes.
+  noteSaveFoundation.beginExternalTerminalDelete(ids, tombstone);
+  if (ids.includes(currentId)) { editor.readOnly = true; titleInput.readOnly = true; }
+  let preservationFailed = false;
+  for (const noteId of ids) {
+    clearScheduledNoteSave(noteId);
+    let live = noteForSave(noteId);
+    // A delete-started notification blocks scheduling, but the textarea may
+    // already contain further input. Capture those visible bytes as well.
+    const editorChanged = live && noteId === currentId && (live.body !== editor.value || live.title !== titleInput.value);
+    if (editorChanged) live = { ...live, body: editor.value, title: titleInput.value };
+    let mirror = null;
+    try {
+      const candidate = JSON.parse(localStorage.getItem(DRAFT_STORAGE_KEY) || "null");
+      if (candidate?.id === noteId) mirror = candidate;
+    } catch { /* The live manuscript remains available even if mirror reads fail. */ }
+    const candidates = [live && (editorChanged || noteLiveDrafts.has(noteId) || noteSaveFoundation.isDirty(noteId)) ? live : null, mirror].filter(Boolean);
+    const seen = new Set();
+    for (const draft of candidates) {
+      const content = JSON.stringify([draft.body, draft.title]);
+      if (seen.has(content)) continue;
+      seen.add(content);
+      if (!await preservePermanentlyDeletedDraft(draft, draft.conflictBase ?? noteSaveBases.get(noteId), draft.conflictRequestId)) preservationFailed = true;
+    }
+  }
+  if (preservationFailed) return;
   noteSaveFoundation.finishPermanentDeletion(ids, tombstone);
   ids.forEach((noteId) => {
     clearScheduledNoteSave(noteId);
@@ -8047,7 +8144,8 @@ async function performPermanentDeletionCleanup(memoIds, tombstone = {}, { showNo
   invalidateTermRelationIndex();
   if (ids.includes(currentId)) {
     if (isPopoutWindow) {
-      showPopoutUnavailable();
+      if (orphanConflictSelection) refreshNoteConflictUi();
+      else showPopoutUnavailable();
     } else {
       let next = activeNotes()[0];
       if (!next) {
@@ -16650,25 +16748,13 @@ async function deleteCollectionSafely(id) {
   const subtreeIds = [id, ...descendantCollectionIds(id)];
   const affected = activeNotes().filter((note) => subtreeIds.includes(normalizedCollectionId(note)));
   if (!confirm(`「${collection.name}」と子コレクションを削除しますか？\n配下のメモ ${affected.length}件は未分類へ移動します。メモ本体は削除されません。`)) return;
-  const writeDeletionTransaction = (noteSnapshots) => new Promise((resolve, reject) => {
-    let savedSnapshots = noteSnapshots;
-    const transaction = db.transaction([STORE_NAME, COLLECTION_STORE_NAME, TOMBSTONE_STORE_NAME], "readwrite");
-    const noteStore = transaction.objectStore(STORE_NAME);
-    const collectionStore = transaction.objectStore(COLLECTION_STORE_NAME);
-    guardNoteWrites(transaction, noteSnapshots.map((note) => note.id), () => {
-      prepareNoteSnapshotsInTransaction(noteStore, noteSnapshots, { preserveStoredCodexThread: true }, (preparedNotes) => {
-        savedSnapshots = preparedNotes;
-        savedSnapshots.forEach((note) => noteStore.put(note));
-        subtreeIds.forEach((collectionId) => collectionStore.delete(collectionId));
-      });
-    }, TOMBSTONE_STORE_NAME);
-    transaction.oncomplete = () => {
-      savedSnapshots.forEach((note) => notifyMemoChanged(note));
-      markLocalWorkspacePending();
-      resolve(savedSnapshots);
-    };
-    transaction.onerror = () => reject(noteTransactionError(transaction));
-    transaction.onabort = () => reject(noteTransactionError(transaction));
+  const writeDeletionTransaction = (noteSnapshots) => updateNotesTransaction(noteSnapshots, {
+    preserveStoredCodexThread: true,
+    additionalStores: [COLLECTION_STORE_NAME],
+    stageSideEffects: (transaction) => {
+      const collectionStore = transaction.objectStore(COLLECTION_STORE_NAME);
+      subtreeIds.forEach((collectionId) => collectionStore.delete(collectionId));
+    }
   });
   if (affected.length) {
     await mutateNotesAtomically(affected.map((note) => note.id), (note) => {
