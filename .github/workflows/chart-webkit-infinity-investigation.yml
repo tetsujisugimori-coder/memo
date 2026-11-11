@@ -2,6 +2,7 @@ name: Chart Infinity investigation
 
 on:
   pull_request:
+    types: [opened]
     branches: [main]
     paths:
       - 'tools/chart-webkit-investigation/**'

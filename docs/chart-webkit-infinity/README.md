@@ -1,6 +1,6 @@
 # Chart WebKit Infinity investigation (Issue #449)
 
-Status: investigation in progress; no root-cause or repair claim.
+Status: PARTIAL / root cause UNKNOWN. See [日本語最終報告](REPORT.ja.md). Fixed comparison completed: local WebKit12, CI WebKit12 and Chromium2 passed; no product/test repair justified.
 
 ## Fixed subjects and original failure
 
@@ -8,7 +8,7 @@ Status: investigation in progress; no root-cause or repair claim.
 - PR #448: `a581cb66cb0dc4889ff8ce3434c1edad88546431`, tree `51298dab411abe16f02f52d0c021ec506d1e5216`.
 - [Original run](https://github.com/tetsujisugimori-coder/memo/actions/runs/42947740643/job/130284500412): Playwright1.62.1, WebKit26.5/build2336, Ubuntu26.04.1, Node22.
 - Original `chart-block.e2e.js:1620` requires both invalid-input focus and finite-number error. At timeout, chart order was January/March/February and all three series followed that order. Status reported successful February move. Error text predicate was false. Actual focus, input DOM value, input event ordering and exact wait-start were not captured by that original job.
-- Original chart failure log is preserved verbatim in `raw/job-130284500412.log`; it includes the complete model snapshot and stack. No chart screenshot/trace artifact was listed for this failed job. The logged state is sampled after timeout, not the state immediately before timeout.
+- Original chart failure log is preserved verbatim in `raw/job-130284500412.log.gz` (lossless gzip; decompressed SHA in `raw/DECODED_SHA256SUMS`); it includes the complete model snapshot and stack. No chart screenshot/trace artifact was listed for this failed job. The logged state is sampled after timeout, not the state immediately before timeout.
 
 ## Hypotheses and finite plan
 
@@ -27,3 +27,7 @@ Every formal diagnostic trial uses the unchanged full `chart-multi-series` featu
 Local comparison uses Debian13, not original Ubuntu26.04.1; official CI comparison is separate. The pinned WebKit2336 downloaded successfully from Playwright's official fallback mirror. Local Chromium downloads returned invalid ZIP responses and are recorded as environment setup failures, not product test failures. The existing shared `/tmp` was nearly full and was not cleaned or moved. No real user data, real MCP/OAuth, Worker stop/recovery or production adoption.
 
 No product changes yet. PR448 branch untouched. CAS, IndexedDB safety, conflict preservation/recovery, tombstones,280ms autosave and research HOLD unchanged. No merge or public deployment. This evidence PR does not authorize merging PR448.
+
+## Evidence packaging note
+
+Initial PR CI unit1991/1991 passed, but whitespace check correctly rejected trailing spaces in the verbatim CI log. Raw bytes have therefore been retained in deterministic gzip, verified byte-for-byte after decompression, rather than trimming the log or relaxing any CI check. Initial failure log remains preserved and visible in earlier commit history.
