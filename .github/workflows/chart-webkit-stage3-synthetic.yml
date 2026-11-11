@@ -1,0 +1,79 @@
+name: Chart WebKit stage 3 synthetic gate
+on:
+  pull_request:
+    types: [opened, synchronize]
+    branches: [investigate/chart-webkit-infinity-20261111]
+permissions:
+  contents: read
+jobs:
+  synthetic:
+    if: github.head_ref == 'investigate/chart-webkit-stage3-issue451'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - id: gate
+        shell: bash
+        run: |
+          if git log -1 --format=%s | grep -Fq '[stage3-synthetic]'; then echo 'run=true' >> "$GITHUB_OUTPUT"; else echo 'run=false' >> "$GITHUB_OUTPUT"; fi
+      - uses: actions/setup-node@v7
+        if: steps.gate.outputs.run == 'true'
+        with:
+          node-version: 22
+          cache: npm
+      - if: steps.gate.outputs.run == 'true'
+        run: npm ci
+      - if: steps.gate.outputs.run == 'true'
+        run: npx playwright install --with-deps webkit
+      - name: Require synthetic evidence capacity
+        if: steps.gate.outputs.run == 'true'
+        shell: bash
+        run: |
+          node -e "const f=require('fs').statfsSync(process.env.RUNNER_TEMP);if(f.bavail*f.bsize<2*1024**3)throw Error('less than 2 GiB available');console.log('capacity check passed')"
+          mkdir "$RUNNER_TEMP/chart-stage3-451"
+          mkdir "$RUNNER_TEMP/chart-stage3-451/check-raw"
+          node tools/chart-webkit-stage3/environment.cjs "$RUNNER_TEMP/chart-stage3-451/environment-before.json"
+      - name: Step 1 synthetic termination and recovery checks
+        if: steps.gate.outputs.run == 'true'
+        timeout-minutes: 10
+        shell: bash
+        env:
+          CHART_STAGE3_EVIDENCE: ${{ runner.temp }}/chart-stage3-451/check-raw
+        run: |
+          set -o pipefail
+          node --test tools/chart-webkit-stage3/ledger-check.cjs tools/chart-webkit-stage3/recorder-check.cjs tools/chart-webkit-stage3/termination-check.cjs tools/chart-webkit-stage3/browser-failure-check.cjs tools/chart-webkit-stage3/preload-check.cjs tools/chart-webkit-stage3/synthetic-analyze-check.cjs tools/chart-webkit-stage3/descendant-check.cjs 2>&1 | tee "$RUNNER_TEMP/chart-stage3-451/checks.log"
+      - name: Screen Step 1 evidence before Step 2
+        if: steps.gate.outputs.run == 'true'
+        run: node tools/chart-webkit-stage3/seal-synthetic.cjs "$RUNNER_TEMP/chart-stage3-451/check-raw"
+      - name: Step 2 finite synthetic A B C comparison
+        if: steps.gate.outputs.run == 'true'
+        timeout-minutes: 10
+        run: node tools/chart-webkit-stage3/synthetic-run.cjs "$RUNNER_TEMP/chart-stage3-451/trials"
+      - name: Analyze synthetic evidence
+        if: steps.gate.outputs.run == 'true'
+        shell: bash
+        run: node tools/chart-webkit-stage3/synthetic-analyze.cjs "$RUNNER_TEMP/chart-stage3-451/trials" > "$RUNNER_TEMP/chart-stage3-451/analysis.json"
+      - name: Record source state after checks
+        if: always() && steps.gate.outputs.run == 'true'
+        shell: bash
+        run: |
+          if [ -d "$RUNNER_TEMP/chart-stage3-451" ]; then node tools/chart-webkit-stage3/environment.cjs "$RUNNER_TEMP/chart-stage3-451/environment-after.json"; fi
+      - name: Screen and hash synthetic evidence
+        id: seal
+        if: always() && steps.gate.outputs.run == 'true'
+        shell: bash
+        run: |
+          if [ -d "$RUNNER_TEMP/chart-stage3-451" ]; then
+            if node tools/chart-webkit-stage3/seal-synthetic.cjs "$RUNNER_TEMP/chart-stage3-451"; then echo 'safe=true' >> "$GITHUB_OUTPUT"; else echo 'safe=false' >> "$GITHUB_OUTPUT"; exit 1; fi
+          fi
+      - name: Preserve screened synthetic text
+        if: always() && steps.seal.outputs.safe == 'true'
+        uses: actions/upload-artifact@v6
+        with:
+          name: chart-stage3-synthetic-${{ github.run_id }}
+          path: ${{ runner.temp }}/chart-stage3-451
+          if-no-files-found: error
+          retention-days: 14

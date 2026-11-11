@@ -1,0 +1,22 @@
+'use strict';
+const {test}=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),os=require('node:os'),path=require('node:path');
+const {webkit}=require('playwright'),{createLedger}=require('./ledger.cjs'),{attachBrowser}=require('./recorder.cjs');
+for(const mode of ['light','detailed'])for(const ending of ['page','context','browser'])test(`${mode}: ${ending} boundary captures live document`,{timeout:15000},async()=>{
+  const dir=fs.mkdtempSync(path.join(process.env.CHART_STAGE3_EVIDENCE||os.tmpdir(),'stage3-boundary-')),file=path.join(dir,'events.jsonl');const ledger=createLedger(file),browser=await webkit.launch({headless:true});attachBrowser(browser,ledger,{mode,boundaryMs:300});
+  const context=await browser.newContext(),page=await context.newPage();await page.goto('data:text/html;charset=utf-8,'+encodeURIComponent('<div class="chart-block-editor"><input aria-label="synthetic" value="140"></div>'));
+  await page.locator('input').fill('Infinity');if(ending==='page')await page.close();else if(ending==='context')await context.close();else await browser.close();if(ending!=='browser')await browser.close();
+  const close=await ledger.close(1000);assert.equal(close.ok,true);const records=fs.readFileSync(file,'utf8').trim().split('\n').map(JSON.parse);const boundary=records.find(x=>x.type==='boundary-snapshot'&&x.reason===`${ending}.close`);
+  assert.ok(boundary,`missing ${ending} boundary`);assert.ok(boundary.payload.events.some(x=>x.kind==='input'&&x.target.value==='Infinity'));assert.ok(boundary.payload.documentId);assert.ok(records.some(x=>x.type==='flush-result'&&x.requestId===boundary.requestId));
+});
+test('blocked writer does not make checkpoint wait forever', {timeout:15000},async()=>{
+  const ledger=createLedger('unused',{injectedWrite:()=>{}}),browser=await webkit.launch({headless:true});attachBrowser(browser,ledger,{mode:'light',boundaryMs:100});const page=await browser.newPage();await page.goto('data:text/html,<div class="chart-block-editor"><input></div>');await page.locator('input').fill('x');const start=Date.now();await page.close();const elapsedMs=Date.now()-start;assert.ok(elapsedMs<2000);await browser.close();const flush=await ledger.flush(50);if(process.env.CHART_STAGE3_EVIDENCE)fs.writeFileSync(path.join(process.env.CHART_STAGE3_EVIDENCE,'blocked-writer-injection.json'),JSON.stringify({utc:new Date().toISOString(),elapsedMs,flush,state:ledger.state},null,2)+'\n',{flag:'wx'});assert.equal(flush.reason,'timeout');
+});
+test('a close following a wait checkpoint records its own boundary or an explicit skip', {timeout:15000},async()=>{
+  const dir=fs.mkdtempSync(path.join(process.env.CHART_STAGE3_EVIDENCE||os.tmpdir(),'stage3-race-')),file=path.join(dir,'events.jsonl');const ledger=createLedger(file),browser=await webkit.launch({headless:true});attachBrowser(browser,ledger,{mode:'detailed',boundaryMs:300});const page=await browser.newPage();await page.goto('data:text/html,<div class="chart-block-editor"><input></div>');
+  await page.waitForFunction(()=>document.querySelector('input')&&'2件目の売上の数値');await page.close();await browser.close();assert.equal((await ledger.close(1000)).ok,true);
+  const records=fs.readFileSync(file,'utf8').trim().split('\n').map(JSON.parse);assert.ok(records.some(r=>(r.type==='boundary-snapshot'||r.type==='boundary-skipped')&&r.reason==='page.close'));
+});
+test('reload creates a new document identity and preserves the prior boundary', {timeout:15000},async()=>{
+  const dir=fs.mkdtempSync(path.join(process.env.CHART_STAGE3_EVIDENCE||os.tmpdir(),'stage3-reload-')),file=path.join(dir,'events.jsonl');const ledger=createLedger(file),browser=await webkit.launch({headless:true});attachBrowser(browser,ledger,{mode:'light',boundaryMs:300});const page=await browser.newPage();await page.goto('data:text/html,<div class="chart-block-editor"><input></div>');await page.locator('input').fill('x');await page.reload();await page.locator('input').fill('y');await page.close();await browser.close();await ledger.close(1000);
+  const records=fs.readFileSync(file,'utf8').trim().split('\n').map(JSON.parse),a=records.find(x=>x.type==='boundary-snapshot'&&x.reason==='page.reload'),b=records.find(x=>x.type==='boundary-snapshot'&&x.reason==='page.close');assert.ok(a&&b);assert.notEqual(a.payload.documentId,b.payload.documentId);
+});
