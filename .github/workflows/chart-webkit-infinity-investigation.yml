@@ -1,0 +1,70 @@
+name: Chart Infinity investigation
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'tools/chart-webkit-investigation/**'
+      - 'docs/chart-webkit-infinity/**'
+      - '.github/workflows/chart-webkit-infinity-investigation.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  compare:
+    if: startsWith(github.head_ref, 'investigate/chart-webkit-infinity-')
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [webkit, chromium]
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          path: investigation
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/checkout@v7
+        with:
+          ref: 08572bb0f888c5e8b6f57f3c1aefe98fbf5d2e4d
+          path: subjects/main
+          persist-credentials: false
+      - uses: actions/checkout@v7
+        with:
+          ref: a581cb66cb0dc4889ff8ce3434c1edad88546431
+          path: subjects/pr
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: investigation/package-lock.json
+      - run: npm ci
+        working-directory: investigation
+      - run: npx playwright install --with-deps ${{ matrix.browser }}
+        working-directory: investigation
+      - name: Finite comparison (unchanged original test)
+        shell: bash
+        run: |
+          MODES=none; REPEATS=1
+          if [ '${{ matrix.browser }}' = webkit ]; then MODES=none,light,detailed; REPEATS=2; fi
+          node investigation/tools/chart-webkit-investigation/run.cjs \
+            --source main="$GITHUB_WORKSPACE/subjects/main" \
+            --source pr="$GITHUB_WORKSPACE/subjects/pr" \
+            --revision main=08572bb0f888c5e8b6f57f3c1aefe98fbf5d2e4d \
+            --revision pr=a581cb66cb0dc4889ff8ce3434c1edad88546431 \
+            --git-repo "$GITHUB_WORKSPACE/investigation" \
+            --output "$RUNNER_TEMP/chart-infinity-${{ matrix.browser }}" \
+            --node-modules "$GITHUB_WORKSPACE/investigation/node_modules" \
+            --browser '${{ matrix.browser }}' --modes "$MODES" --repeats "$REPEATS" --timeout 180
+      - name: Preserve every comparison result
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: chart-infinity-${{ matrix.browser }}
+          path: ${{ runner.temp }}/chart-infinity-${{ matrix.browser }}
+          if-no-files-found: warn
+          retention-days: 14
