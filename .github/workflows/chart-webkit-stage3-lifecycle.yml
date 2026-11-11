@@ -18,7 +18,10 @@ jobs:
       - id: gate
         shell: bash
         run: |
-          if git log -1 --format=%s | grep -Fq '[stage3-lifecycle]'; then echo 'run=true' >> "$GITHUB_OUTPUT"; else echo 'run=false' >> "$GITHUB_OUTPUT"; fi
+          subject=$(git log -1 --format=%s)
+          if [[ "$subject" == *'[stage3-lifecycle-recheck]'* ]]; then echo 'run=true' >> "$GITHUB_OUTPUT"; echo 'mode=recheck' >> "$GITHUB_OUTPUT";
+          elif [[ "$subject" == *'[stage3-lifecycle]'* ]]; then echo 'run=true' >> "$GITHUB_OUTPUT"; echo 'mode=initial' >> "$GITHUB_OUTPUT";
+          else echo 'run=false' >> "$GITHUB_OUTPUT"; fi
       - uses: actions/setup-node@v7
         if: steps.gate.outputs.run == 'true'
         with:
@@ -43,7 +46,11 @@ jobs:
           CHART_STAGE3_EVIDENCE: ${{ runner.temp }}/chart-stage3-lifecycle/check-raw
         run: |
           set -o pipefail
-          node --test tools/chart-webkit-stage3/preload-signal-check.cjs tools/chart-webkit-stage3/preload-check.cjs 2>&1 | tee "$RUNNER_TEMP/chart-stage3-lifecycle/checks.log"
+          if [ '${{ steps.gate.outputs.mode }}' = 'recheck' ]; then
+            node --test --test-name-pattern=controlled_sigterm tools/chart-webkit-stage3/preload-signal-check.cjs 2>&1 | tee "$RUNNER_TEMP/chart-stage3-lifecycle/checks.log"
+          else
+            node --test tools/chart-webkit-stage3/preload-signal-check.cjs tools/chart-webkit-stage3/preload-check.cjs 2>&1 | tee "$RUNNER_TEMP/chart-stage3-lifecycle/checks.log"
+          fi
       - name: Record source state after checks
         if: always() && steps.gate.outputs.run == 'true'
         shell: bash

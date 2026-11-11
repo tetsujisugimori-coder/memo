@@ -18,4 +18,6 @@ CPU/RSS は200 ms間隔の controller と観測できた子孫の標本で、短
 
 原 [synthetic artifact](https://github.com/tetsujisugimori-coder/memo/actions/runs/43006004348/artifacts/13849080679) の期限付き保管に加え、原 ZIP を `ubuntu-synthetic-43006004348.zip` に保存。SHA-256 `2945660128a3d41d1da5846428a2ef674c0d96eaa0d7f50af06ec88ad7fdc4cb`。manifest記載85ファイルの hash 一致・未列挙なし。全 entry は合成 fixture 由来の UTF-8 JSON/JSONL/log、画像・その他 binary はなし。限定 token・メール・Windows profile path の走査は検出0。独立担当も hash と限定 token 走査を確認したが、完全な機密不存在を保証するものではない。
 
-Step 3 は、追加 lifecycle 合成試験と独立レビュー、65分の workflow 制限、十分な runner 空き容量、実 suite の全原票を安全に検査・保全できる経路の確認まで **BLOCKED**。第2工程の B を今回の同時対照として使わない。
+追加 [lifecycle run 43007579380](https://github.com/tetsujisugimori-coder/memo/actions/runs/43007579380) は **4 PASS / controlled SIGTERM 1 FAIL**。親は Infinity 入力を確認後 SIGTERM を送ったが、`process.SIGTERM` の capture は error、最後に保存された batch は140で、Infinity と終了境界は未保存。しかも `pages.ok=true` と誤記録していた。これは診断器の誤分類であり、原 Chart 失敗の再現ではない。Playwright の signal 処理との競合は候補だが原票だけでは原因 UNKNOWN。元の反例は `ubuntu-lifecycle-failure-43007579380.zip`、SHA-256 `d31daa05ae72ccdc35d31efa82f483357fe5b84dafe36639b80c5d29647951eb` として保存する。manifest 16ファイル hash 一致、合成 text の限定走査で検出0。
+
+Step 3 は、上記診断器の局所修正と同じ反例の再確認・独立レビュー、65分の workflow 制限、十分な runner 空き容量、実 suite の全原票を安全に検査・保全できる経路の確認まで **BLOCKED**。局所修正は `recorder.cjs` を変更するため、上記9回は修正後コードの再評価ではない。第2工程の B を今回の同時対照として使わない。

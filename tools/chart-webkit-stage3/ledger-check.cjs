@@ -1,6 +1,6 @@
 'use strict';
 const {test}=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),os=require('node:os'),path=require('node:path');
-const {createLedger,audit,auditPayloads,classify}=require('./ledger.cjs');
+const {createLedger,audit,auditPayloads,classify,bounded}=require('./ledger.cjs');
 const {receiptTracker}=require('./recorder.cjs');
 function evidence(name,value){if(process.env.CHART_STAGE3_EVIDENCE)fs.writeFileSync(path.join(process.env.CHART_STAGE3_EVIDENCE,name+'.json'),JSON.stringify({utc:new Date().toISOString(),...value},null,2)+'\n',{flag:'wx'});}
 test('normal close records callback completion without claiming durability',async()=>{
@@ -28,4 +28,7 @@ test('intentional snapshot overlap is separate from duplication and conflicting 
 test('receipt does not imply write callback completion',()=>{
   const t=receiptTracker(),events=[{seq:2},{seq:4}];t.receive('doc',events);t.complete('doc',events,false);
   assert.equal(t.received.get('doc'),4);assert.equal(t.completed.has('doc'),false);t.complete('doc',events,true);assert.equal(t.completed.get('doc'),4);
+});
+test('bounded rejection preserves error instead of claiming success',async()=>{
+  const x=await bounded(Promise.reject(new Error('synthetic rejection')),50);assert.equal(x.ok,false);assert.equal(x.reason,'error');assert.match(x.error,/synthetic rejection/);
 });

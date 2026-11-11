@@ -6,6 +6,8 @@ Step 1 は合成プロセス・合成 browser fixture のみを使い、正常�
 
 追加の受入前計画：ledger 単体の signal 試験と区別し、実際の stage3 preloader と稼働中の合成 WebKit browser に対して、Linux の controlled SIGTERM・SIGKILL・外側 timeout を各1回だけ実行する。送信前後の親観測、子 exit、回収・書込み・子孫を保存し、SIGKILL の exit.json 不在や未送信末尾を成功と扱わない。preloader の beforeExit reason `normal` と exit code 非0を分ける合成反例も1回実行する。対象は合成 process のみ。各20秒、全体10分、原票100 MiBの既存上限内。これらの独立照合までは Step 3 を開始しない。
 
+追加反例の結果、controlled SIGTERM の回収が失敗したのに pages.ok=true と記録する診断器の誤分類を確認。結果伝播と例外保存を局所修正後、同じ controlled SIGTERM の合成反例のみ **1回**再確認する。回収境界の期待値は緩めない。SIGKILL・外側 timeout・9回比較は再実行しない。再確認のケース上限20秒、job上限15分、原票100 MiB停止基準。回収失敗が残れば Step 3 は BLOCKED のまま。
+
 Step 2 は同一の合成fixtureを A → B → C の順で各3回、計9回まで。A は全群共通の合成fixture内 event listener のみ、B は第3工程 recorder の light、C は同 recorder の detailed。第2工程の B とは別方式であり、異なる時点の結果を同一対照としない。各回30秒、全体10分、原票100 MiB停止基準。node・focus・値・順序の整合、所要時間、CPU・メモリ、write/flushと欠落を記録する。少数回の比較は統計的同等性を示さない。重大干渉または証拠欠落があれば Step 3 は BLOCKED。
 
 Step 3 は Step 1/2 の受入と独立レビュー、Linux runner の空き容量と秘密情報検査・永続保管先を確認した後のみ。固定2 HEADの A→A→C→C 各1回、計4回上限、各 suite 900秒、workflow全体65分、出力1 GiB停止基準、自動再試行なし。容量は一定間隔で監視するため厳密な上限ではない。失敗時は残りを開始せず追加実験は別計画。65分予算に収まる保証はなく、超過時は timeout と未回収範囲を明記する。

@@ -2,7 +2,7 @@
 // Completion of a write callback is neither fsync nor proof of persistent storage.
 const fs = require('node:fs');
 const {performance} = require('node:perf_hooks');
-const bounded = (promise, ms) => new Promise(resolve=>{const timer=setTimeout(()=>resolve({ok:false,reason:'timeout'}),ms);Promise.resolve(promise).then(value=>{clearTimeout(timer);resolve(value);},()=>{clearTimeout(timer);resolve({ok:false,reason:'error'});});});
+const bounded = (promise, ms) => new Promise(resolve=>{const timer=setTimeout(()=>resolve({ok:false,reason:'timeout'}),ms);Promise.resolve(promise).then(value=>{clearTimeout(timer);resolve(value);},error=>{clearTimeout(timer);resolve({ok:false,reason:'error',error:String(error)});});});
 function createLedger(file, {maxBytes=1024*1024, injectedWrite}={}) {
   const stream = injectedWrite ? null : fs.createWriteStream(file,{flags:'wx'});
   const state={accepted:0,completed:0,failed:0,rejected:0,pending:0,lastCompletionUtc:null};

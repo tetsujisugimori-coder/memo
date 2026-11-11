@@ -14,7 +14,8 @@ if(['chart-block.e2e.js','chart-file-export.e2e.js'].includes(entry)){
   for(const name of ['webkit','chromium']){const type=pw[name],launch=type.launch;type.launch=async function(...args){void emit({type:'browser-launch-start',name,options:args[0]||{}});try{const browser=await Reflect.apply(launch,this,args);recorders.push(attachBrowser(browser,ledger,{mode,boundaryMs:500}));void emit({type:'browser-launch-complete',name,version:browser.version()});return browser;}catch(e){void emit({type:'browser-launch-error',name,error:String(e)});throw e;}};}
   async function finish(reason){
     if(finishStarted)return;finishStarted=true;void emit({type:'process-flush-request',reason});
-    const pages=await bounded(Promise.all(recorders.map(r=>r.flushAll(`process.${reason}`))).then(()=>({ok:true})),1500);
+    const livePages=recorders.map(r=>r.livePageCount());
+    const pages=await bounded(Promise.all(recorders.map(r=>r.flushAll(`process.${reason}`))).then(groups=>({ok:groups.flat().every(x=>x?.ok===true)&&(reason!=='SIGTERM'||livePages.some(n=>n>0)),livePages,results:groups.flat()})),1500);
     const close=await ledger.close(1500);finishResult={reason,pages,close,state:{...ledger.state},unconfirmedTail:'UNKNOWN',storageDurability:'NOT_CONFIRMED'};
   }
   process.once('beforeExit',()=>{void finish('normal');});

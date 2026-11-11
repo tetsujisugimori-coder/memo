@@ -35,16 +35,16 @@ function attachBrowser(browser,ledger,{mode='detailed',boundaryMs=500}={}){
   async function checkpoint(page,reason){
     const deadline=performance.now()+boundaryMs*4;
     while(inFlight.has(page)){
-      const remaining=deadline-performance.now();if(remaining<=0){void emit({type:'boundary-skipped',pageId:page.__stage3Id,reason,why:'prior_checkpoint_timeout',unconfirmedTail:'UNKNOWN'});return;}
+      const remaining=deadline-performance.now();if(remaining<=0){void emit({type:'boundary-skipped',pageId:page.__stage3Id,reason,why:'prior_checkpoint_timeout',unconfirmedTail:'UNKNOWN'});return {ok:false,reason:'prior_checkpoint_timeout'};}
       const previous=await bounded(inFlight.get(page).then(()=>({ok:true})),remaining);
-      if(!previous.ok){void emit({type:'boundary-skipped',pageId:page.__stage3Id,reason,why:'prior_checkpoint_timeout',unconfirmedTail:'UNKNOWN'});return;}
+      if(!previous.ok){void emit({type:'boundary-skipped',pageId:page.__stage3Id,reason,why:'prior_checkpoint_timeout',unconfirmedTail:'UNKNOWN'});return {ok:false,reason:'prior_checkpoint_timeout'};}
     }
     const task=(async()=>{
-      const requestId=++request;await emitBounded({type:'flush-request',requestId,pageId:page.__stage3Id,reason});
+      const requestId=++request,requestWrite=await emitBounded({type:'flush-request',requestId,pageId:page.__stage3Id,reason});
       const capture=await bounded(page.evaluate(()=>window.__chartStage3?.snapshot()||null).then(payload=>({ok:true,payload})),boundaryMs);
-      if(capture.ok&&capture.payload){const p=capture.payload;tracker.receive(p.documentId,p.events);let timedOut=false;const write=emit({type:'boundary-snapshot',requestId,pageId:page.__stage3Id,reason,payload:p,maxReceived:tracker.received.get(p.documentId)});write.then(ok=>{tracker.complete(p.documentId,p.events,ok);if(timedOut)void emit({type:'late-write-callback',requestId,ok});});const written=await bounded(write.then(ok=>({ok})),boundaryMs);timedOut=written.reason==='timeout';await emitBounded({type:'flush-result',requestId,pageId:page.__stage3Id,reason,result:written.ok?'callback_completed':written.reason||'write_failed',lastObserved:p.lastObserved,maxReceived:tracker.received.get(p.documentId),maxCallbackCompleted:tracker.completed.get(p.documentId)||null,inFlightAtCapture:p.pending,unconfirmedTail:'UNKNOWN'});}
-      else await emitBounded({type:'flush-result',requestId,pageId:page.__stage3Id,reason,result:capture.reason||'no_document',lateEvaluation:'UNKNOWN',unconfirmedTail:'UNKNOWN'});
-    })().catch(e=>{void emit({type:'recorder-error',pageId:page.__stage3Id,reason,error:String(e),unconfirmedTail:'UNKNOWN'});});
+      if(capture.ok&&capture.payload){const p=capture.payload;tracker.receive(p.documentId,p.events);let timedOut=false;const write=emit({type:'boundary-snapshot',requestId,pageId:page.__stage3Id,reason,payload:p,maxReceived:tracker.received.get(p.documentId)});write.then(ok=>{tracker.complete(p.documentId,p.events,ok);if(timedOut)void emit({type:'late-write-callback',requestId,ok});});const written=await bounded(write.then(ok=>({ok})),boundaryMs);timedOut=written.reason==='timeout';const status=written.ok?'callback_completed':written.reason||'write_failed';const resultWrite=await emitBounded({type:'flush-result',requestId,pageId:page.__stage3Id,reason,result:status,requestRecord:requestWrite.ok?'callback_completed':'UNKNOWN',lastObserved:p.lastObserved,maxReceived:tracker.received.get(p.documentId),maxCallbackCompleted:tracker.completed.get(p.documentId)||null,inFlightAtCapture:p.pending,unconfirmedTail:'UNKNOWN'});return {ok:!!requestWrite.ok&&!!written.ok&&!!resultWrite.ok,reason:status,requestRecord:requestWrite.ok?'callback_completed':'UNKNOWN',resultRecord:resultWrite.ok?'callback_completed':'UNKNOWN'};}
+      const failure={ok:false,reason:capture.reason||'no_document',error:capture.error||null};await emitBounded({type:'flush-result',requestId,pageId:page.__stage3Id,reason,result:failure.reason,error:failure.error,lateEvaluation:'UNKNOWN',unconfirmedTail:'UNKNOWN'});return failure;
+    })().catch(e=>{void emit({type:'recorder-error',pageId:page.__stage3Id,reason,error:String(e),unconfirmedTail:'UNKNOWN'});return {ok:false,reason:'recorder_error',error:String(e)};});
     inFlight.set(page,task);try{return await task;}finally{if(inFlight.get(page)===task)inFlight.delete(page);}
   }
   async function pageHook(page){
@@ -63,6 +63,6 @@ function attachBrowser(browser,ledger,{mode='detailed',boundaryMs=500}={}){
   const newContext=browser.newContext;browser.newContext=async function(...args){return contextHook(await Reflect.apply(newContext,this,args));};
   const close=browser.close;let closePhase='not_requested';browser.close=async function(...args){closePhase='checkpoint';void emit({type:'browser-close-requested'});await Promise.all([...pages].map(p=>checkpoint(p,'browser.close')));closePhase='native_call';void emit({type:'browser-close-native-call'});try{const result=await Reflect.apply(close,this,args);closePhase='native_returned';void emit({type:'browser-close-native-returned'});return result;}catch(e){closePhase='native_error';void emit({type:'browser-close-error',error:String(e)});throw e;}};
   browser.on('disconnected',()=>void emit({type:'browser-disconnected',closePhase,cause:'UNKNOWN',unconfirmedTail:'UNKNOWN'}));
-  return {checkpoint,processId,tracker,flushAll:async reason=>Promise.all([...pages].map(p=>checkpoint(p,reason)))};
+  return {checkpoint,processId,tracker,livePageCount:()=>pages.size,flushAll:async reason=>Promise.all([...pages].map(p=>checkpoint(p,reason)))};
 }
 module.exports={attachBrowser,pageRecorder,receiptTracker};
