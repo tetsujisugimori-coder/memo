@@ -7,6 +7,7 @@ const fs=require('node:fs'), path=require('node:path'), {fork}=require('node:chi
 const {performance}=require('node:perf_hooks');
 const {descendants,stat}=require('../chart-webkit-stage2/process-tree.cjs');
 const {createState}=require('./safety.cjs');
+const {createPreflush}=require('./preflush.cjs');
 const group=process.argv[2],root=process.argv[3];
 if(process.platform!=='linux'||!['A','B'].includes(group)||!root||fs.existsSync(root))throw Error('Linux, A/B and a new output directory required');
 const priorBytes=Number(process.env.CHART_STAGE4_PRIOR_BYTES||0);
@@ -25,14 +26,16 @@ rootIdentity=stat(child.pid);if(rootIdentity)known.set(`${rootIdentity.pid}:${ro
 log('child-start',{childPid:child.pid,group});
 for(const stream of ['stdout','stderr']){const out=fs.createWriteStream(path.join(root,`${stream}.log`),{flags:'wx'});child[stream].pipe(out);}
 function sigterm(){capture();safety.signalRequested();log('sigterm-request',{childPid:child.pid});let accepted=false;const now=stat(child.pid);if(rootIdentity&&now&&now.start===rootIdentity.start)try{accepted=child.kill('SIGTERM');}catch(e){log('sigterm-error',{error:String(e)});}else log('identity-unconfirmed');safety.signalResult(accepted);log('sigterm-result',{accepted});stage=accepted?'sigterm':'failed';}
+const preflush=createPreflush({state:safety,send:(m,cb)=>{log('ipc-send',{message:m});child.send(m,cb);},stop:()=>{stage='failed';capture();cleanup();},proceed:()=>sigterm()});
+let preflushTimer;
 child.on('message',m=>{
   log('ipc-receive',{message:m});
   if(m.type==='ready'&&stage==='starting'){stage='input';log('ipc-send',{message:{type:'stage4-last',requestId:'input-1'}});child.send({type:'stage4-last',requestId:'input-1'});}
   else if(m.type==='last-input'&&stage==='input'){
     if(m.value!=='Infinity'){log('input-failed');stage='failed';cleanup();return;}
-    if(group==='A')sigterm();else{stage='preflush';log('ipc-send',{message:{type:'stage4-preflush',requestId:'flush-1'}});child.send({type:'stage4-preflush',requestId:'flush-1'});}
-  }else if(m.type==='stage4-preflush-result'&&stage==='preflush'&&m.requestId==='flush-1'){
-    if(m.ok===true)sigterm();else{log('preflush-failed');stage='failed';capture();cleanup();}
+    if(group==='A')sigterm();else{stage='preflush';preflushTimer=setTimeout(()=>preflush.timeout(),5000);preflush.request('flush-1');}
+  }else if(m.type==='stage4-preflush-result'&&group==='B'){
+    clearTimeout(preflushTimer);preflush.receive(m);
   }
 });
 child.on('error',e=>log('child-error',{error:String(e)}));

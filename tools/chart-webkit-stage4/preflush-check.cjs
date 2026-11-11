@@ -1,0 +1,10 @@
+'use strict';
+const {test}=require('node:test'),assert=require('node:assert/strict');
+const {createPreflush}=require('./preflush.cjs');
+const {createState}=require('./safety.cjs');
+function fixture(){const state=createState('B');let stopped=0,continued=0;const p=createPreflush({state,send:()=>{},stop:()=>stopped++,proceed:()=>continued++});return {state,p,counts:()=>[stopped,continued]};}
+test('matching response continues once and is recorded',()=>{const f=fixture();f.p.request('f1');f.p.receive({requestId:'f1',ok:true});assert.deepEqual(f.counts(),[0,1]);assert.equal(f.state.result().preflush,true);});
+for(const [name,messages] of [['wrong id',[{requestId:'other',ok:true}]],['failure',[{requestId:'f1',ok:false}]],['duplicate',[{requestId:'f1',ok:true},{requestId:'f1',ok:true}]]])test(`${name} latches failure`,()=>{const f=fixture();f.p.request('f1');for(const m of messages)f.p.receive(m);f.state.signalRequested();f.state.signalResult(true);f.state.childExit(143,null);assert.equal(f.state.result().procedure,'FAIL');assert.ok(f.counts()[0]>0);});
+test('missing and late response remains failed',()=>{const f=fixture();f.p.request('f1');f.p.timeout();f.p.receive({requestId:'f1',ok:true});f.state.signalRequested();f.state.signalResult(true);f.state.childExit(143,null);assert.equal(f.state.result().procedure,'FAIL');assert.deepEqual(f.counts(),[2,0]);});
+test('IPC send failure stops',()=>{const state=createState('B');let stopped=0;const p=createPreflush({state,send:()=>{throw Error('injected');},stop:()=>stopped++,proceed:()=>{}});p.request('f1');assert.equal(state.result().procedure,'FAIL');assert.equal(stopped,1);});
+test('response after deadline fails even if timeout callback was delayed',()=>{let now=0,stopped=0,continued=0;const state=createState('B');const p=createPreflush({state,send:()=>{},stop:()=>stopped++,proceed:()=>continued++,now:()=>now,deadlineMs:5});p.request('f1');now=6;p.receive({requestId:'f1',ok:true});assert.equal(state.result().procedure,'FAIL');assert.deepEqual([stopped,continued],[1,0]);});

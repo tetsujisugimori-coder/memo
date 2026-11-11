@@ -1,5 +1,13 @@
 # 第4工程 安全機構の局所修正（未完了）
 
+## 独立再レビュー 5863893673 後の部分対応（2026-11-12）
+
+- P2-01 PARTIAL：B の preflush 要求と応答を分離した状態機械経由で既存 safety に接続。ID 不一致、重複、送信失敗、欠測と期限超過を失敗にする。5秒の timer に加え、応答時に単調時計の期限を照合する。これは実 process の停止や Infinity 保存の証明ではない。
+- RED→GREEN：期限切れ後、timer callback が遅れた状態で応答を受ける合成反例は修正前 `UNKNOWN`（期待 `FAIL`）で失敗、修正後 PASS。初回のモジュール未作成による RED は旧挙動の証拠に数えない。
+- P1-01/P1-02 BLOCKED：child error、ログ、stream、capture、stat、cleanup 等の全異常経路の安全な接続と実停止は未完成。状態機械単体の PASS を supervisor 全体の PASS としない。識別不能・再親化子孫の扱いも未実証。
+- P2-02 BLOCKED：manifest 整合性と公開許可の契約は未修正。実原票分析器と永続試行台帳も未実装。合成 AES-GCM は実隔離や保管の証拠ではない。
+- Windows Node v24.20.0 で非ブラウザ合成試験。Linux は WSL ディストリビューション未導入で故障注入 NOT_TESTED。実 WebKit A/B NOT_TESTED、experiment workflow 無効、controller hard guard 維持。保管・転送 BLOCKED、マージ NO。
+
 対象レビュー #454 review `5860591208`、基点 `fcd2e0a3a5aecc5a315b04270c2811a02d092c79`。A/B 実 WebKit は **NOT_TESTED**、workflow は無効、controller は起動直後に無条件 BLOCKED。解除は別の判断が必要。
 
 ## 修正前反例と現在
