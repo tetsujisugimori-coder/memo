@@ -52,7 +52,7 @@ jobs:
       - name: Test diagnostic and detached process termination
         if: steps.gate.outputs.run == 'true'
         working-directory: investigation
-        run: node --test tools/chart-webkit-stage2/diagnostic.test.cjs tools/chart-webkit-stage2/process-tree.test.cjs tools/chart-webkit-stage2/seal.test.cjs
+        run: node --test tools/chart-webkit-stage2/diagnostic-check.cjs tools/chart-webkit-stage2/process-tree-check.cjs tools/chart-webkit-stage2/seal-check.cjs
       - name: Create isolated source checkouts
         if: steps.gate.outputs.run == 'true'
         run: |
