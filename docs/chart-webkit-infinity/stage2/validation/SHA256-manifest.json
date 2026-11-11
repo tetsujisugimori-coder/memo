@@ -1,0 +1,25 @@
+{
+  "createdUtc": "2026-11-11T07:48:12.645Z",
+  "unsafe": 0,
+  "unscanned": 0,
+  "files": [
+    {
+      "path": "charset-failure-detailed.jsonl",
+      "bytes": 8762,
+      "sha256": "d56df726502c5675377e58c1bba4d81ba5ad8acae093b8e429120f6ca98d8304",
+      "scan": "checked"
+    },
+    {
+      "path": "charset-failure-light.jsonl",
+      "bytes": 4255,
+      "sha256": "94e0d8437cdc8e7d31cf706aad9b587c9aad712bab152206b29e9f5873aab30d",
+      "scan": "checked"
+    },
+    {
+      "path": "README.md",
+      "bytes": 1251,
+      "sha256": "7798d3156e2753574a949e217141b3b43bdce862b94c3a987dbc6730699c99c7",
+      "scan": "not-text"
+    }
+  ]
+}

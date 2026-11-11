@@ -1,0 +1,88 @@
+name: Chart WebKit stage 2 finite investigation
+on:
+  pull_request:
+    types: [synchronize]
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  finite:
+    if: github.head_ref == 'investigate/chart-webkit-infinity-20261111'
+    runs-on: ubuntu-latest
+    timeout-minutes: 100
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          path: investigation
+          persist-credentials: false
+      - id: gate
+        working-directory: investigation
+        shell: bash
+        run: |
+          if git log -1 --format=%s | grep -Fq '[chart-stage2-run]'; then
+            echo 'run=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'run=false' >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/checkout@v7
+        if: steps.gate.outputs.run == 'true'
+        with:
+          ref: 08572bb0f888c5e8b6f57f3c1aefe98fbf5d2e4d
+          path: subjects/main
+          persist-credentials: false
+      - uses: actions/checkout@v7
+        if: steps.gate.outputs.run == 'true'
+        with:
+          ref: a581cb66cb0dc4889ff8ce3434c1edad88546431
+          path: subjects/pr
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        if: steps.gate.outputs.run == 'true'
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: investigation/package-lock.json
+      - if: steps.gate.outputs.run == 'true'
+        working-directory: investigation
+        run: npm ci
+      - if: steps.gate.outputs.run == 'true'
+        working-directory: investigation
+        run: npx playwright install --with-deps webkit
+      - name: Test diagnostic and detached process termination
+        if: steps.gate.outputs.run == 'true'
+        working-directory: investigation
+        run: node --test tools/chart-webkit-stage2/diagnostic.test.cjs tools/chart-webkit-stage2/process-tree.test.cjs tools/chart-webkit-stage2/seal.test.cjs
+      - name: Create isolated source checkouts
+        if: steps.gate.outputs.run == 'true'
+        run: |
+          cp -a subjects/main subjects/main-light
+          cp -a subjects/pr subjects/pr-light
+      - name: Run the four-trial plan once
+        if: steps.gate.outputs.run == 'true'
+        run: |
+          node investigation/tools/chart-webkit-stage2/run.cjs \
+            "$GITHUB_WORKSPACE/subjects/main" "$GITHUB_WORKSPACE/subjects/pr" \
+            "$GITHUB_WORKSPACE/subjects/main-light" "$GITHUB_WORKSPACE/subjects/pr-light" \
+            "$RUNNER_TEMP/chart-webkit-stage2" "$GITHUB_WORKSPACE/investigation/node_modules"
+      - name: Seal and screen collected evidence
+        id: seal
+        if: always() && steps.gate.outputs.run == 'true'
+        shell: bash
+        run: |
+          if [ -d "$RUNNER_TEMP/chart-webkit-stage2" ]; then
+            if node investigation/tools/chart-webkit-stage2/seal.cjs "$RUNNER_TEMP/chart-webkit-stage2"; then
+              echo 'safe=true' >> "$GITHUB_OUTPUT"
+            else
+              echo 'safe=false' >> "$GITHUB_OUTPUT"
+              exit 1
+            fi
+          fi
+      - name: Preserve screened raw evidence
+        if: always() && steps.seal.outputs.safe == 'true'
+        uses: actions/upload-artifact@v6
+        with:
+          name: chart-webkit-stage2-${{ github.run_id }}
+          path: ${{ runner.temp }}/chart-webkit-stage2
+          if-no-files-found: error
+          retention-days: 14
