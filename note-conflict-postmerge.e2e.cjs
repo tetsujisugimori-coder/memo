@@ -5,7 +5,7 @@ const assert = require("node:assert/strict"), fs = require("node:fs/promises"), 
 const { createHash } = require("node:crypto"), { execFileSync } = require("node:child_process");
 const playwright = require("playwright");
 const { createServer, openApp, saved, snapshot, observe, assertClean } = require("./note-conflict-test-support.cjs");
-const { captureState, capturePair, waitForOutcome } = require("./note-conflict-observer.cjs");
+const { captureState, waitForOutcome } = require("./note-conflict-observer.cjs");
 const output = path.resolve(process.env.MEMO_SAVE_ARTIFACTS || path.join(os.tmpdir(), "memo-issue429/browser"), "postmerge");
 const collectionId = "fictional-postmerge-collection", unrelatedId = "fictional-unrelated-collection";
 const drafts = { A: "A_NEW\n架空メモ α", B: "B_DRAFT\n架空メモ β" };
@@ -41,11 +41,19 @@ async function invoke(page, kind, fixture) {
 }
 function attachmentIds(storage) { return storage.stores.attachments.map(row => row.id).sort(); }
 async function runCase(browser, browserName, origin, kind, conflict) {
-  const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+  // The tested WebKit private contexts reject IndexedDB Blob writes before CAS is reached.
+  // A unique disposable persistent profile exercises the same real attachment path.
+  const profile = browserName === "webkit" ? await fs.mkdtemp(path.join(output, "webkit-profile-")) : null;
+  const contextOptions = { viewport: { width: 1280, height: 900 } };
+  const context = profile
+    ? await playwright.webkit.launchPersistentContext(profile, { ...contextOptions, headless: true })
+    : await browser.newContext(contextOptions);
   const result = { browser: browserName, kind, scenario: conflict ? "conflict" : "success-next-autosave", status: "FAIL", logs: [] };
+  result.contextMode = profile ? "isolated-persistent-profile" : "isolated-private-context";
+  result.browserVersion = context.browser()?.version() || browser?.version() || null;
   let timedOut = false;
   const watchdog = setTimeout(() => { timedOut = true; void context.close(); }, 90000);
-  await context.route("**/*", route => new URL(route.request().url()).origin === origin ? route.continue() : route.fulfill({ status: 200, body: "" }));
+  await context.route("**/*", route => new URL(route.request().url()).origin === origin ? route.continue() : route.fulfill({ status: 200, contentType: route.request().resourceType() === "stylesheet" ? "text/css" : "application/javascript", body: "" }));
   const open = async () => { const page = await context.newPage(); page.setDefaultTimeout(10000); result.logs.push(observe(page));
     page.on("dialog", dialog => dialog.accept()); await openApp(page, `${origin}/index.html`); return page; };
   let target;
@@ -55,7 +63,16 @@ async function runCase(browser, browserName, origin, kind, conflict) {
     if (conflict) {
       const b = await open(); assert.equal(await b.evaluate(() => currentId), fixture.id);
       await a.locator("#editor").fill(drafts.A); await b.locator("#editor").fill(drafts.B);
-      result.beforeAutosave = await capturePair([a, b], fixture.id);
+      // Read only this note concurrently: full attachment-store snapshots can outlast
+      // the natural autosave window. These observations are not cross-tab atomic.
+      result.beforeAutosave = await Promise.all([a, b].map((page, index) => page.evaluate(async ({ id, tab }) => {
+        const transaction = db.transaction("notes", "readonly"), request = transaction.objectStore("notes").get(id);
+        const stored = await new Promise((resolve, reject) => {
+          transaction.oncomplete = () => resolve(request.result);
+          transaction.onabort = () => reject(transaction.error);
+        });
+        return { tab, at: Date.now(), stored, save: noteSaveFoundation.getState(id) };
+      }, { id: fixture.id, tab: index ? "B" : "A" })));
       assert.ok(result.beforeAutosave.every(row => row.save.dirty && row.stored.body === "BASE"), "both actual UI drafts dirty before unmodified autosave");
       result.collision = await waitForOutcome([a, b], fixture.id);
       assert.equal(result.collision.kind, "conflict-stopped");
@@ -116,9 +133,9 @@ async function runCase(browser, browserName, origin, kind, conflict) {
   try {
     for (const name of engines) {
       let browser;
-      try { browser = await playwright[name].launch();
+      try { if (name !== "webkit") browser = await playwright[name].launch();
         for (const kind of ["collection", "webclip"]) for (const conflict of [true, false]) {
-          const result = await runCase(browser, name, origin, kind, conflict); result.browserVersion = browser.version(); report.cases.push(result);
+          const result = await runCase(browser, name, origin, kind, conflict); report.cases.push(result);
         }
       } catch (error) { report.cases.push({ browser: name, status: "NOT_TESTED", error: error.stack }); }
       finally { await browser?.close(); }
