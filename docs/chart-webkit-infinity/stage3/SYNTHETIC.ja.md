@@ -20,4 +20,6 @@ CPU/RSS は200 ms間隔の controller と観測できた子孫の標本で、短
 
 追加 [lifecycle run 43007579380](https://github.com/tetsujisugimori-coder/memo/actions/runs/43007579380) は **4 PASS / controlled SIGTERM 1 FAIL**。親は Infinity 入力を確認後 SIGTERM を送ったが、`process.SIGTERM` の capture は error、最後に保存された batch は140で、Infinity と終了境界は未保存。しかも `pages.ok=true` と誤記録していた。これは診断器の誤分類であり、原 Chart 失敗の再現ではない。Playwright の signal 処理との競合は候補だが原票だけでは原因 UNKNOWN。元の反例は `ubuntu-lifecycle-failure-43007579380.zip`、SHA-256 `d31daa05ae72ccdc35d31efa82f483357fe5b84dafe36639b80c5d29647951eb` として保存する。manifest 16ファイル hash 一致、合成 text の限定走査で検出0。
 
+誤分類を局所修正後、同じ SIGTERM 反例だけを1回再確認した [run 43008647620](https://github.com/tetsujisugimori-coder/memo/actions/runs/43008647620) も **0 PASS / 1 FAIL**。他の signal case と9回比較は再実行していない。`pages.ok=false` と `page.evaluate: Target page, context or browser has been closed` が記録され誤成功は解消したが、終了境界と Infinity は依然未保存。どの component が先に閉じたかは UNKNOWN。再確認原票 `ubuntu-sigterm-recheck-43008647620.zip` の SHA-256 `5f3f3f09f6b6963f77e29a98883760931222edc55f3249aebeaac740ccaa3f23`、manifest 6ファイル hash 一致。合成 text の限定走査で検出0。
+
 Step 3 は、上記診断器の局所修正と同じ反例の再確認・独立レビュー、65分の workflow 制限、十分な runner 空き容量、実 suite の全原票を安全に検査・保全できる経路の確認まで **BLOCKED**。局所修正は `recorder.cjs` を変更するため、上記9回は修正後コードの再評価ではない。第2工程の B を今回の同時対照として使わない。
