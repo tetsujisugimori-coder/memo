@@ -1,5 +1,16 @@
 # 第4工程 安全機構の局所修正（未完了）
 
+## レビュー 5865455311 後の部分対応（2026-11-12）
+
+対象 HEAD は `1657bb481184d29e52f5bb41addaed0a0888b3ef`。第1段階は **BLOCKED**。実験可否の判断ではない。
+
+- controller の child error、stream、IPC callback、ログ失敗などを部分的にラッチへ接続。ログ失敗時の cleanup 再帰を抑止する。ただしガード下の実配線としての試験は未実施。fork 同期例外、容量不足、証拠回収、全例外と有界停止の接続・実証は未完成。
+- PID と開始時刻を signal 直前に再照合する既存方針を維持。`stat` は読み取れない場合と終了を区別できず、tree 捕捉と signal の間に終了・PID 再利用が起こり得る。捕捉前に再親化した子孫も UNKNOWN。無関係 process に作用しないことを Linux 実機で立証していない。
+- preflush は応答と送信 callback の両方を待つ。期限、重複、送信エラーはラッチする。応答後のエラー反例は旧実装で proceed が先行して RED、修正後 GREEN。preflush と callback は原票保存・fsync の証拠ではない。
+- manifest の戻り値から汎用 `ok` を除き、`integrity`、`screen`、`publicUpload`、`privateStorage`、`durableStorage` を分離。限定走査 PASS でも公開 DENY。機密ダミーの hash 一致時に integrity PASS / screen FAIL / publicUpload DENY を確認。旧 API の曖昧な `ok` 契約を要求する既存 `seal-check.cjs` の assertion は変更禁止のため残しており、該当1件は FAIL（`undefined !== true`）。この互換性問題は未解決であり全試験 PASS とはしない。
+- Windows Node v24.20.0：`node --test tools/chart-webkit-stage4/review-5865455311-check.cjs tools/chart-webkit-stage4/preflush-check.cjs tools/chart-webkit-stage4/safety-check.cjs tools/chart-webkit-stage4/regression-check.cjs tools/chart-webkit-stage4/trace-check.cjs` は合成37 PASS。`node --test tools/chart-webkit-stage4/seal-check.cjs` は8 PASS / 1 FAIL。試験は実WebKitや実process supervisorの安全性の証明ではない。
+- Linux：WSL ディストリビューション未導入。ダミーprocess故障注入は NOT_TESTED、専用ハーネスも未完成。Actions 権限設定は有効だが、予算・安全なダミー専用実行経路は未確認でジョブを起動しない。実 WebKit A/B NOT_TESTED。guard、experiment job の無効条件、公開artifact無効は維持。
+
 ## 独立再レビュー 5863893673 後の部分対応（2026-11-12）
 
 - P2-01 PARTIAL：B の preflush 要求と応答を分離した状態機械経由で既存 safety に接続。ID 不一致、重複、送信失敗、欠測と期限超過を失敗にする。5秒の timer に加え、応答時に単調時計の期限を照合する。これは実 process の停止や Infinity 保存の証明ではない。

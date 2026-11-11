@@ -27,11 +27,13 @@ function scan(root){
   return {files:rows,problems,hashing:problems.some(p=>['invalid_root','unreadable_directory','changed_during_read','invalid_or_unreadable','size_limit','symlink','not_regular'].includes(p.reason))?'UNKNOWN':'PASS',screen:problems.length?'FAIL':'PASS',scope:'limited text screen; not proof of secrecy'};
 }
 function verifyManifest(root,manifest){
-  if(!manifest||!Array.isArray(manifest.files)||!manifest.files.length)return {ok:false,reason:'manifest_invalid'};
-  const current=scan(root);if(current.hashing!=='PASS')return {ok:false,reason:'hashing_incomplete'};
-  const expected=new Map();for(const row of manifest.files){if(!row||typeof row.path!=='string'||!/^([a-f0-9]{64})$/.test(row.sha256||'')||expected.has(row.path))return {ok:false,reason:'manifest_invalid'};expected.set(row.path,row.sha256);}
-  if(expected.size!==current.files.length||current.files.some(x=>expected.get(x.path)!==x.sha256))return {ok:false,reason:'hash_or_file_mismatch'};
-  return {ok:true,screen:current.screen};
+  const current=scan(root);
+  const result={integrity:'FAIL',screen:current.screen,publicUpload:'DENY',privateStorage:'BLOCKED',durableStorage:'BLOCKED'};
+  if(!manifest||!Array.isArray(manifest.files)||!manifest.files.length)return {...result,reason:'manifest_invalid'};
+  if(current.hashing!=='PASS')return {...result,integrity:'UNKNOWN',reason:'hashing_incomplete'};
+  const expected=new Map();for(const row of manifest.files){if(!row||typeof row.path!=='string'||!Number.isSafeInteger(row.bytes)||row.bytes<0||!/^([a-f0-9]{64})$/.test(row.sha256||'')||expected.has(row.path))return {...result,reason:'manifest_invalid'};expected.set(row.path,row);}
+  if(expected.size!==current.files.length||current.files.some(x=>!expected.has(x.path)||expected.get(x.path).sha256!==x.sha256||expected.get(x.path).bytes!==x.bytes))return {...result,reason:'hash_or_file_mismatch'};
+  return {...result,integrity:'PASS'};
 }
 if(require.main===module){if(!process.argv[2])throw Error('directory required');const result=scan(path.resolve(process.argv[2]));console.log(JSON.stringify({files:result.files.length,problems:result.problems.length,screen:result.screen}));if(result.screen!=='PASS'||result.hashing!=='PASS')process.exitCode=1;}
 module.exports={scan,verifyManifest};
