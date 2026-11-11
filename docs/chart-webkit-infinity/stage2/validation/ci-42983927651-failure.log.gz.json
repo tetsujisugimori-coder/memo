@@ -1,0 +1,8 @@
+{
+  "run": 42983927651,
+  "acquiredUtc": "2026-11-11T08:12:58.562Z",
+  "rawBytes": 24514,
+  "rawSha256": "34f1bd524064d98f139968353f462a5639d90f5d0b60469f36deea6f48bea050",
+  "gzipSha256": "19577a8173172de66e7e4c5b63b162ee8957188b98d3974e79f2470c9ea90d7a",
+  "scanner": "limited token-pattern scan; not a guarantee"
+}

@@ -1,0 +1,6 @@
+'use strict';
+// Enumerate raw files, hash bytes, and gate upload on a bounded text secret scan.
+const fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypto');
+const root=path.resolve(process.argv[2]); const files=[]; let unsafe=0,unscanned=0;
+function visit(dir) {for(const e of fs.readdirSync(dir,{withFileTypes:true}).sort((a,b)=>a.name.localeCompare(b.name))) {const p=path.join(dir,e.name);if(e.isDirectory())visit(p);else if(e.isFile()) {const rel=path.relative(root,p).replaceAll('\\','/');if(rel==='SHA256-manifest.json')continue;const data=fs.readFileSync(p);const text=/\.(jsonl?|log|txt)$/i.test(rel);let scan='not-text';if(text) {if(data.length>32*1024*1024){scan='too-large';unscanned++;}else {const s=data.toString('utf8');scan=/(?:gh[pousr]_[A-Za-z0-9_]{30,}|github_pat_[A-Za-z0-9_]{40,}|-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----|sk-proj-[A-Za-z0-9_-]{30,})/.test(s)?'possible-secret':'checked';if(scan==='possible-secret')unsafe++;}}files.push({path:rel,bytes:data.length,sha256:crypto.createHash('sha256').update(data).digest('hex'),scan});}}}
+visit(root);fs.writeFileSync(path.join(root,'SHA256-manifest.json'),JSON.stringify({createdUtc:new Date().toISOString(),unsafe,unscanned,files},null,2)+'\n',{flag:'wx'});console.log(JSON.stringify({files:files.length,unsafe,unscanned}));if(unsafe||unscanned)process.exitCode=1;
