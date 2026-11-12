@@ -4,14 +4,17 @@ function sameIdentity(a,b){return !!(a&&b&&Number.isSafeInteger(a.pid)&&a.pid>0&
 function progressGate(result){return result&&result.procedure==='PASS'&&result.evidence==='PASS'&&result.rawSaved==='PASS'&&result.durableStorage==='PASS'&&result.uncapturedDescendants==='PASS'?'PASS':'BLOCKED';}
 function createState(group){
   if(!['A','B'].includes(group))throw Error('invalid group');
-  const failures=new Set();let requested=false,accepted=null,exit=null,preflush=null,preflushId=null;
+  const failures=new Set(),listeners=new Set();
+  function fail(reason){if(failures.has(reason))return false;failures.add(reason);for(const listener of listeners)listener(reason);return true;}
+  let requested=false,accepted=null,exit=null,preflush=null,preflushId=null;
   return {
-    fail:reason=>failures.add(reason),
+    fail,
+    onFailure(listener){listeners.add(listener);return ()=>listeners.delete(listener);},
     signalRequested(){requested=true;},
-    signalResult(ok){accepted=ok===true;if(!accepted)failures.add('signal_send_failed');},
-    preflushRequested(id){if(preflushId!==null)failures.add('ipc_duplicate');else preflushId=id;},
-    preflushResult(m){if(preflush!==null||!m||typeof m!=='object'||m.requestId!==preflushId||preflushId===null||typeof m.ok!=='boolean'){failures.add('ipc_invalid');return;}preflush=m.ok;if(!m.ok)failures.add('preflush_failed');},
-    childExit(code,signal){exit={code,signal};if(!requested||!accepted)failures.add('child_early_exit');if(signal==='SIGKILL')failures.add('sigkill');if(code!==143||signal!==null)failures.add('child_abnormal_exit');},
+    signalResult(ok){accepted=ok===true;if(!accepted)fail('signal_send_failed');},
+    preflushRequested(id){if(preflushId!==null)fail('ipc_duplicate');else preflushId=id;},
+    preflushResult(m){if(preflush!==null||!m||typeof m!=='object'||m.requestId!==preflushId||preflushId===null||typeof m.ok!=='boolean'){fail('ipc_invalid');return;}preflush=m.ok;if(!m.ok)fail('preflush_failed');},
+    childExit(code,signal){exit={code,signal};if(!requested||!accepted)fail('child_early_exit');if(signal==='SIGKILL')fail('sigkill');if(code!==143||signal!==null)fail('child_abnormal_exit');},
     result(){return {procedure:failures.size?'FAIL':exit&&requested&&accepted&&(group!=='B'||preflush===true)?'PASS':'UNKNOWN',failures:[...failures],signalRequested:requested,signalAccepted:accepted,exit,preflush,signalReceived:'UNKNOWN',evidence:'UNKNOWN',rawSaved:'UNKNOWN',durableStorage:'UNKNOWN',uncapturedDescendants:'UNKNOWN'};}
   };
 }

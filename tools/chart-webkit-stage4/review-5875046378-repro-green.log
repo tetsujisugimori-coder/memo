@@ -1,0 +1,5 @@
+{"type":"test:pass","name":"late internal failures append once and aggregate permanently"}
+{"type":"test:pass","name":"amendment failure disables destination without recursive retries"}
+{"type":"test:pass","name":"absolute deadline rejects late observations even before timer runs"}
+{"type":"test:summary","counts":{"tests":3,"failed":0,"passed":3,"cancelled":0,"skipped":0,"todo":0,"topLevel":3,"suites":0}}
+{"type":"test:summary","counts":{"tests":3,"failed":0,"passed":3,"cancelled":0,"skipped":0,"todo":0,"topLevel":3,"suites":0}}

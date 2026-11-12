@@ -1,5 +1,11 @@
 # 第4工程 安全機構の局所修正（未完了）
 
+## レビュー 5875046378 後の局所修正（2026-11-13）
+
+総合PARTIAL、実験BLOCKED、マージNO。共通絶対期限、全失敗登録からの追記、実controllerのidentity接続を局所修正した。基準HEAD/treeは8de93c0da94903b9f998aafcc600e8810fffddd3 / c158fec5b08db25f66fb8eebc7848d6bad44dabd。Windows Node v24.20.0の合成63 PASS、同一3反例は旧モジュール3 FAIL→修正版3 PASS。既存preflush/sealは16 PASS / 2 FAILでassertion未変更。旧コードのロード失敗を不具合REDには含めない。
+
+Linux環境不在でダミー故障注入NOT_TESTED。実controllerはガードを外して実行しておらず、配線の静的確認と共有部品の合成試験のみ。同期停止時の有界性、PID照合とsignalの競合、未捕捉/再親化子孫、非干渉、実原票の保管・転送・再読込み、永続試行台帳、原票分析器は未完了。BLOCKEDガード、workflow抑止、公開artifact無効を維持。証拠と保証範囲は[今回の検証記録](REVIEW-5875046378.ja.md)を参照。
+
 ## レビュー 5867381923 後の部分対応
 
 - 基点 HEAD `a805dcb929ddc8b2ae48697b3b605b2d8ba33d2f`、tree `4e05e5bce1390961948471c206602524eb8270c1`。停止要求を新規 `stop-controller.cjs` にまとめ、cleanup と最終確定の再入を抑止し、失敗理由は追加保持する。同期処理が完了したことは cleanup 成功の証明ではない。実 process や証拠回収の故障注入は未実施。
