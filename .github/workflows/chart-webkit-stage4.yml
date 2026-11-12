@@ -1,0 +1,54 @@
+name: Chart WebKit stage 4 bounded signal experiment
+on:
+  pull_request:
+    types: [synchronize]
+    branches: [investigate/chart-webkit-stage3-issue451]
+permissions:
+  contents: read
+jobs:
+  experiment:
+    if: github.head_ref == 'investigate/chart-webkit-stage4-sigterm-order' && github.run_attempt == 1 && contains(github.event.pull_request.head.sha, 'never-trigger-by-sha')
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: npx playwright install --with-deps webkit
+      - name: Check environment and execute each group at most once
+        shell: bash
+        run: |
+          set -u
+          root="$RUNNER_TEMP/chart-stage4-${GITHUB_RUN_ID}"
+          mkdir "$root"
+          export STAGE4_ROOT="$root"
+          node -e 'const fs=require("fs"),cp=require("child_process"),p=process.env.STAGE4_ROOT;const f=fs.statfsSync(p);if(f.bavail*f.bsize<2*1024**3)throw Error("less than 2 GiB free");fs.writeFileSync(p+"/environment.json",JSON.stringify({utc:new Date().toISOString(),head:cp.execFileSync("git",["rev-parse","HEAD"],{encoding:"utf8"}).trim(),tree:cp.execFileSync("git",["rev-parse","HEAD^{tree}"],{encoding:"utf8"}).trim(),status:cp.execFileSync("git",["status","--porcelain"],{encoding:"utf8"}).trim(),node:process.version,playwright:require("playwright/package.json").version,os:cp.execFileSync("uname",["-a"],{encoding:"utf8"}).trim(),freeBytes:f.bavail*f.bsize,commands:["node tools/chart-webkit-stage4/controller.cjs A <output>","node tools/chart-webkit-stage4/controller.cjs B <output>"]},null,2))'
+          timeout -k 1s 20s node tools/chart-webkit-stage4/controller.cjs A "$root/A"
+          a=$?
+          bytes=$(du -sb "$root" | cut -f1)
+          b=125
+          if [ "$a" -eq 0 ] && [ "$bytes" -lt 104857600 ]; then
+            CHART_STAGE4_PRIOR_BYTES="$bytes" timeout -k 1s 20s node tools/chart-webkit-stage4/controller.cjs B "$root/B"
+            b=$?
+          fi
+          printf '{"A":%s,"B":%s}\n' "$a" "$b" > "$root/controller-status.json"
+          [ "$a" -eq 0 ] && [ "$b" -eq 0 ]
+      - name: Screen and hash evidence
+        id: seal
+        if: always()
+        shell: bash
+        run: |
+          root="$RUNNER_TEMP/chart-stage4-${GITHUB_RUN_ID}"
+          if [ -d "$root" ] && node tools/chart-webkit-stage4/seal.cjs "$root"; then echo 'safe=true' >> "$GITHUB_OUTPUT"; else echo 'safe=false' >> "$GITHUB_OUTPUT"; exit 1; fi
+      - uses: actions/upload-artifact@v6
+        if: ${{ false }} # No public upload until an independently accepted private evidence route exists.
+        with:
+          name: chart-stage4-${{ github.run_id }}
+          path: ${{ runner.temp }}/chart-stage4-${{ github.run_id }}
+          retention-days: 14
+          if-no-files-found: error

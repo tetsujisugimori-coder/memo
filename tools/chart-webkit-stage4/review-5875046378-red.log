@@ -1,0 +1,5 @@
+{"type":"test:fail","name":"late internal failures append once and aggregate permanently","code":"ERR_TEST_FAILURE","actual":1,"expected":6}
+{"type":"test:fail","name":"amendment failure disables destination without recursive retries","code":"ERR_TEST_FAILURE","actual":3,"expected":2}
+{"type":"test:fail","name":"absolute deadline rejects late observations even before timer runs","code":"ERR_TEST_FAILURE","actual":false,"expected":true}
+{"type":"test:summary","counts":{"tests":3,"failed":3,"passed":0,"cancelled":0,"skipped":0,"todo":0,"topLevel":3,"suites":0}}
+{"type":"test:summary","counts":{"tests":3,"failed":3,"passed":0,"cancelled":0,"skipped":0,"todo":0,"topLevel":3,"suites":0}}

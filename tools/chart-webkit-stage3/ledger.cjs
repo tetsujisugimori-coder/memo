@@ -2,6 +2,7 @@
 // Completion of a write callback is neither fsync nor proof of persistent storage.
 const fs = require('node:fs');
 const {performance} = require('node:perf_hooks');
+const {trace} = require('./stage4-trace.cjs');
 const bounded = (promise, ms) => new Promise(resolve=>{const timer=setTimeout(()=>resolve({ok:false,reason:'timeout'}),ms);Promise.resolve(promise).then(value=>{clearTimeout(timer);resolve(value);},error=>{clearTimeout(timer);resolve({ok:false,reason:'error',error:String(error)});});});
 function createLedger(file, {maxBytes=1024*1024, injectedWrite}={}) {
   const stream = injectedWrite ? null : fs.createWriteStream(file,{flags:'wx'});
@@ -14,7 +15,7 @@ function createLedger(file, {maxBytes=1024*1024, injectedWrite}={}) {
     state.accepted++;state.pending++;
     const promise=new Promise(resolve=>{
       let settled=false;
-      const done=error=>{if(settled)return;settled=true;state.pending--;if(error)state.failed++;else{state.completed++;state.lastCompletionUtc=new Date().toISOString();}resolve(!error);};
+      const done=error=>{if(settled)return;settled=true;state.pending--;if(error)state.failed++;else{state.completed++;state.lastCompletionUtc=new Date().toISOString();}trace('ledger-write-callback',{recordType:record.type,requestId:record.requestId,ok:!error});resolve(!error);};
       try {if(injectedWrite)injectedWrite(payload,done);else stream.write(payload,done);}catch(e){done(e);}
     });
     pending.add(promise);promise.finally(()=>pending.delete(promise));return promise;

@@ -2,3 +2,4 @@
 # Preserve original Actions job logs byte-for-byte; trailing spaces are evidence, not source style.
 docs/fixed-report-track-a/evidence/cancelled-job-129881263401.log -whitespace
 docs/fixed-report-track-a/evidence/cancelled-job-129893122549.log -whitespace
+tools/chart-webkit-stage4/review-5875046378-*.log -text -whitespace
