@@ -1,0 +1,195 @@
+Environment: Windows; Node v24.20.0; baseline 175a9e9bfb03da5bd010b19fc86f56b9abde7fd1
+
+COMMAND: node tools/chart-webkit-stage4/reentry-repro.cjs ./baseline-stop.tmp.cjs
+{"recorded":["fault"],"actual":["fault","cleanup_failed"]}
+
+EXIT: 1
+
+COMMAND: node tools/chart-webkit-stage4/reentry-repro.cjs ./stop-controller.cjs
+{"recorded":["fault","cleanup_failed"],"actual":["fault","cleanup_failed"]}
+
+EXIT: 0
+
+COMMAND: node --test tools/chart-webkit-stage4/collection-check.cjs tools/chart-webkit-stage4/stop-controller-check.cjs tools/chart-webkit-stage4/stop-once-check.cjs tools/chart-webkit-stage4/safety-check.cjs tools/chart-webkit-stage4/review-5865455311-check.cjs tools/chart-webkit-stage4/regression-check.cjs tools/chart-webkit-stage4/trace-check.cjs
+✔ reentrant finalization sees cleanup exception (0.7182ms)
+✔ thenable cleanup fails closed (0.1112ms)
+✔ delayed callback and stream failure precede collection; late errors append (1.3374ms)
+✔ deadline reports missing observations (25.5782ms)
+✔ initial and subsequent write failure are detected (0.482ms)
+✔ identity distinguishes absent, read failure and parse failure (0.2888ms)
+✔ shared imports do not launch processes or send signals (0.8183ms)
+✔ timeout path must not retain the legacy success predicate (2.2881ms)
+✔ controller refuses execution before spawning any child (306.2869ms)
+✔ malformed JSON evidence must fail closed without deleting the original (345.5104ms)
+✔ preflush must wait for asynchronous send completion before proceeding (1.2059ms)
+✔ successful callback and response may arrive in either order (0.1749ms)
+✔ async failure and responses during stopping cannot proceed (0.1314ms)
+✔ response during stopping is rejected (0.1133ms)
+✔ limited screen pass still denies publication (3.0512ms)
+✔ matching hash and secret screen failure must deny public upload (4.1188ms)
+✔ missing, malformed, changed, or missing files do not pass integrity (2.4839ms)
+✔ outer_timeout remains failed after a later normal child exit (2.108ms)
+✔ sigkill remains failed after a later normal child exit (0.1174ms)
+✔ cleanup_failed remains failed after a later normal child exit (0.0777ms)
+✔ identity_unknown remains failed after a later normal child exit (0.0633ms)
+✔ ipc_error remains failed after a later normal child exit (0.0721ms)
+✔ preflush_timeout remains failed after a later normal child exit (0.075ms)
+✔ preflush_failed remains failed after a later normal child exit (0.0659ms)
+✔ size_limit remains failed after a later normal child exit (0.0505ms)
+✔ log_failed remains failed after a later normal child exit (0.0798ms)
+✔ child_start_failed remains failed after a later normal child exit (0.1105ms)
+✔ child_early_exit remains failed after a later normal child exit (0.0563ms)
+✔ capture_failed remains failed after a later normal child exit (0.0771ms)
+✔ stat_failed remains failed after a later normal child exit (0.0541ms)
+✔ evidence_failed remains failed after a later normal child exit (0.0366ms)
+✔ successful exit alone cannot claim evidence or durable storage (0.1236ms)
+✔ normal abstract procedure is distinct from evidence and storage (0.2023ms)
+✔ PID and start identity required for a signal (0.1032ms)
+✔ preflush response must be unique, matching, and successful (0.0986ms)
+✔ callback or preflush success cannot prove Infinity stored (0.1155ms)
+✔ multiple faults and reentrant cleanup preserve errors and perform one cleanup and finalization (1.126ms)
+✔ scheduled cleanup can finish before finalization without running twice (0.1302ms)
+✔ schedule failure falls back without losing either fault (0.0926ms)
+✔ synthetic latch: stream_read_failed + child_early_exit (0.6667ms)
+✔ synthetic latch: ipc_error + ipc_callback_duplicate (0.075ms)
+✔ synthetic latch: size_limit + outer_timeout (0.0559ms)
+✔ synthetic latch: identity_changed + remaining_unknown (0.0547ms)
+✔ synthetic latch: child_early_exit + child_abnormal_exit (0.0548ms)
+✔ synthetic latch: evidence_failed + finalize_failed (0.0798ms)
+✔ timeout, late response and callback errors request stop once and retain all failures (1.1423ms)
+✔ reentrant response during stop cannot request stop twice (0.1125ms)
+✔ synchronous send throw followed by callback and response retains failures without another stop (0.1167ms)
+✔ procedure pass and unknown evidence do not permit progress (0.5667ms)
+✔ trace records ordered process-local events and successful and failed write callbacks (4.8011ms)
+ℹ tests 50
+ℹ suites 0
+ℹ pass 50
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1562.8636
+
+EXIT: 0
+
+COMMAND: node --test tools/chart-webkit-stage4/preflush-check.cjs tools/chart-webkit-stage4/seal-check.cjs
+✔ matching response continues once and is recorded (1.5187ms)
+✔ wrong id latches failure (0.6506ms)
+✔ failure latches failure (0.082ms)
+✔ duplicate latches failure (0.0962ms)
+✖ missing and late response remains failed (0.7158ms)
+✔ IPC send failure stops (0.1065ms)
+✔ response after deadline fails even if timeout callback was delayed (0.1152ms)
+✔ synchronous response and callback followed by send throw never proceeds (0.0982ms)
+✔ send failure remains latched after later callback and response (0.1157ms)
+✔ valid JSON is hashed and screen passed without mutating raw (2.8905ms)
+✔ secret is rejected and kept (3.037ms)
+✔ binary is rejected and kept (1.2305ms)
+✔ malformed is rejected and kept (1.1217ms)
+✔ format is rejected and kept (1.5575ms)
+✔ empty and missing evidence fails closed (0.6208ms)
+✖ manifest missing, corrupted, hash mismatch, and missing file fail (2.0189ms)
+✔ oversized input is rejected without removing it (1.2237ms)
+✔ synthetic quarantine verifies hash without claiming private or durable storage (0.9466ms)
+ℹ tests 18
+ℹ suites 0
+ℹ pass 16
+ℹ fail 2
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 562.9477
+
+✖ failing tests:
+
+test at tools\chart-webkit-stage4\preflush-check.cjs:8:1
+✖ missing and late response remains failed (0.7158ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+
+    [
+  +   1,
+  -   2,
+      0
+    ]
+
+      at TestContext.<anonymous> (C:\Users\tetsu\.codex\worktrees\d86c\メモ帳\tools\chart-webkit-stage4\preflush-check.cjs:8:278)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1397:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:969:18)
+      at Test.postRun (node:internal/test_runner/test:1537:19)
+      at Test.run (node:internal/test_runner/test:1462:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: [ 1, 0 ],
+    expected: [ 2, 0 ],
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at tools\chart-webkit-stage4\seal-check.cjs:8:1
+✖ manifest missing, corrupted, hash mismatch, and missing file fail (2.0189ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+
+  + undefined
+  - true
+
+      at C:\Users\tetsu\.codex\worktrees\d86c\メモ帳\tools\chart-webkit-stage4\seal-check.cjs:8:173
+      at withDir (C:\Users\tetsu\.codex\worktrees\d86c\メモ帳\tools\chart-webkit-stage4\seal-check.cjs:4:104)
+      at TestContext.<anonymous> (C:\Users\tetsu\.codex\worktrees\d86c\メモ帳\tools\chart-webkit-stage4\seal-check.cjs:8:78)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1397:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:969:18)
+      at Test.postRun (node:internal/test_runner/test:1537:19)
+      at Test.run (node:internal/test_runner/test:1462:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: true,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+EXIT: 1
+
+COMMAND: node tools/chart-webkit-stage4/dummy-linux-check.cjs
+node.exe : NOT_TESTED: Linux required
+At C:\Users\tetsu\.codex\worktrees\d86c\メモ帳\stage4-run.tmp.ps1:20 char:1
++ & node tools/chart-webkit-stage4/dummy-linux-check.cjs 2>&1 | Out-Str ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (NOT_TESTED: Linux required:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+
+
+EXIT: 2 (Linux unavailable; NOT_TESTED)
+
+COMMAND after final context fix: node --test tools/chart-webkit-stage4/collection-check.cjs tools/chart-webkit-stage4/stop-controller-check.cjs
+✔ reentrant finalization sees cleanup exception (0.7259ms)
+✔ thenable cleanup fails closed (0.1099ms)
+✔ delayed callback and stream failure precede collection; late errors append (1.2852ms)
+✔ deadline reports missing observations (25.6705ms)
+✔ initial and subsequent write failure are detected (0.3766ms)
+✔ identity distinguishes absent, read failure and parse failure (0.237ms)
+✔ shared imports do not launch processes or send signals (0.6597ms)
+✔ multiple faults and reentrant cleanup preserve errors and perform one cleanup and finalization (1.2091ms)
+✔ scheduled cleanup can finish before finalization without running twice (0.1201ms)
+✔ schedule failure falls back without losing either fault (0.0993ms)
+✔ synthetic latch: stream_read_failed + child_early_exit (0.6912ms)
+✔ synthetic latch: ipc_error + ipc_callback_duplicate (0.0871ms)
+✔ synthetic latch: size_limit + outer_timeout (0.0608ms)
+✔ synthetic latch: identity_changed + remaining_unknown (0.0642ms)
+✔ synthetic latch: child_early_exit + child_abnormal_exit (0.0573ms)
+✔ synthetic latch: evidence_failed + finalize_failed (0.0717ms)
+ℹ tests 16
+ℹ suites 0
+ℹ pass 16
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 611.2306
+
+EXIT: 0
