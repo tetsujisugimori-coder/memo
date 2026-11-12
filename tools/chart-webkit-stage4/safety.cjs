@@ -1,5 +1,7 @@
 'use strict';
 function sameIdentity(a,b){return !!(a&&b&&Number.isSafeInteger(a.pid)&&a.pid>0&&a.pid===b.pid&&typeof a.start==='string'&&a.start.length>0&&a.start===b.start);}
+// A procedure result alone never establishes evidence collection or storage.
+function progressGate(result){return result&&result.procedure==='PASS'&&result.evidence==='PASS'&&result.rawSaved==='PASS'&&result.durableStorage==='PASS'&&result.uncapturedDescendants==='PASS'?'PASS':'BLOCKED';}
 function createState(group){
   if(!['A','B'].includes(group))throw Error('invalid group');
   const failures=new Set();let requested=false,accepted=null,exit=null,preflush=null,preflushId=null;
@@ -17,4 +19,4 @@ function assessEvidence(x={}){
   const evidence={parentInfinity:x.parentInfinity===true?'PASS':'UNKNOWN',childInput:x.childInput===true?'PASS':'UNKNOWN',signalSent:x.signalSent===true?'PASS':'UNKNOWN',signalReceived:x.signalReceived===true?'PASS':'UNKNOWN',finish:x.finish===true?'PASS':'UNKNOWN',flushStart:x.flushStart===true?'PASS':'UNKNOWN',flushEnd:x.flushEnd===true?'PASS':'UNKNOWN',evaluate:x.evaluate===true?'PASS':'UNKNOWN',callback:x.callback===true?'PASS':'UNKNOWN',boundary:x.boundary===true?'PASS':'UNKNOWN',infinityStored:x.infinityStored===true?'PASS':'UNKNOWN',lastSeq:Number.isSafeInteger(x.lastSeq)?x.lastSeq:'UNKNOWN',exit:x.exit===true?'PASS':'UNKNOWN',hashMatch:x.hashMatch===true?'PASS':'UNKNOWN',unconfirmedTail:'UNKNOWN',durableStorage:'UNKNOWN'};
   return evidence;
 }
-module.exports={sameIdentity,createState,assessEvidence};
+module.exports={sameIdentity,createState,assessEvidence,progressGate};

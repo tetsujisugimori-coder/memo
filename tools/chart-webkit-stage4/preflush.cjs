@@ -1,12 +1,13 @@
 'use strict';
 // This state machine only governs the IPC handshake; it does not prove storage.
 function createPreflush({state,send,stop,proceed,now=()=>performance.now(),deadlineMs=5000}){
-  let phase='idle',deadline=0,sendDone=false,response=null,callbackSeen=false,sendReturned=false;
-  function fail(reason){state.fail(reason);phase='failed';stop();}
+  let phase='idle',deadline=0,sendDone=false,response=null,callbackSeen=false,sendReturned=false,stopRequested=false;
+  function requestStop(){phase='failed';if(!stopRequested){stopRequested=true;stop();}}
+  function fail(reason){state.fail(reason);requestStop();}
   function advance(){
     if(phase!=='waiting'||!sendReturned||!sendDone||!response)return;
     if(now()>=deadline){fail('preflush_timeout');return;}
-    if(state.result().failures.length){phase='failed';stop();return;}
+    if(state.result().failures.length){requestStop();return;}
     phase='complete';proceed();
   }
   return {
@@ -20,7 +21,7 @@ function createPreflush({state,send,stop,proceed,now=()=>performance.now(),deadl
       if(phase!=='waiting'||response){fail('ipc_duplicate_or_late');return;}
       if(now()>=deadline){fail('preflush_timeout');return;}
       state.preflushResult(message);
-      if(state.result().failures.length){phase='failed';stop();return;}
+      if(state.result().failures.length){requestStop();return;}
       response=message;advance();
     },
     timeout(){if(phase==='waiting')fail('preflush_timeout');}

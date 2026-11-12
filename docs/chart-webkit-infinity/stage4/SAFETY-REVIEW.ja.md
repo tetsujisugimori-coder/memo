@@ -1,5 +1,12 @@
 # 第4工程 安全機構の局所修正（未完了）
 
+## レビュー 5866973537 後の局所修正
+
+- preflush の停止要求は一回のみとし、timeout 後の遅延応答、送信 callback の失敗・重複など、後から発生した失敗理由もラッチに残す。停止中の同期再入でも再度 stop を呼ばない。修正前の実装では timeout、遅延応答、送信エラーで stop が3回呼ばれた（RED）。修正後の同じ組合せは1回（GREEN）。この検査は実 supervisor の cleanup 一回性を証明しない。
+- procedure PASS と実験の進行許可を分離。実際の証拠回収・原票保存・耐久保管・未捕捉子孫が UNKNOWN の現在、進行ゲートは BLOCKED。controller 冒頭の無条件 BLOCKED と workflow の無効化は維持。callback や preflush を fsync の証拠としない。
+- 既存 `preflush-check.cjs` の1件は旧挙動の停止2回を要求し FAIL。安全要件上は停止1回に契約を移行すべきだが、既存 assertion は変更せず残した。`seal-check.cjs` の旧 `ok:true` 要求も1件 FAIL。移行先は `integrity`、`screen`、`publicUpload`、`privateStorage`、`durableStorage` の個別判定であり、汎用 `ok` の復活は公開許可と混同するため採用しない。限定走査 PASS でも公開 DENY。
+- P1 supervisor の fork・IPC・stream・容量・証拠回収の全経路、実 cleanup 一回性と有界性は未完成。Linux ダミー故障注入は NOT_TESTED。`stat` は読取失敗と終了を区別できず、識別不能・未捕捉・再親化や PID 照合と signal 間の競合は UNKNOWN。識別不能対象を推測して signal しない。実験、原票転送、非公開／永続保管は BLOCKED、マージ NO。
+
 ## レビュー 5865455311 後の部分対応（2026-11-12）
 
 対象 HEAD は `1657bb481184d29e52f5bb41addaed0a0888b3ef`。第1段階は **BLOCKED**。実験可否の判断ではない。
