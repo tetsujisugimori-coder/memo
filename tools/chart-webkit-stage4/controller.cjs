@@ -8,34 +8,38 @@ const {performance}=require('node:perf_hooks');
 const {descendants,stat}=require('../chart-webkit-stage2/process-tree.cjs');
 const {createState,progressGate}=require('./safety.cjs');
 const {createPreflush}=require('./preflush.cjs');
+const {createStopController}=require('./stop-controller.cjs');
 const group=process.argv[2],root=process.argv[3];
 if(process.platform!=='linux'||!['A','B'].includes(group)||!root||fs.existsSync(root))throw Error('Linux, A/B and a new output directory required');
 const priorBytes=Number(process.env.CHART_STAGE4_PRIOR_BYTES||0);
 if(!Number.isSafeInteger(priorBytes)||priorBytes<0||priorBytes>=100*1024*1024)throw Error('invalid prior evidence size');
 fs.mkdirSync(root,{recursive:false});
 const events=path.join(root,'controller.jsonl'),childTrace=path.join(root,'child.jsonl');
-let seq=0,known=new Map(),done=false,stage='starting',overflow=false,rootIdentity=null,cleanupScheduled=false,cleanupStarted=false;
+let seq=0,known=new Map(),done=false,stage='starting',overflow=false,rootIdentity=null;
 const safety=createState(group);
-function fail(reason){safety.fail(reason);if(!cleanupScheduled&&!cleanupStarted){cleanupScheduled=true;setImmediate(()=>{cleanupStarted=true;cleanupScheduled=false;try{cleanup();}catch(_){safety.fail('cleanup_failed');}});}}
+const stopping=createStopController({state:safety,cleanup});
+function fail(reason){stopping.request(reason);}
 function log(type,extra={}){try{fs.appendFileSync(events,JSON.stringify({id:`${process.pid}:${++seq}`,pid:process.pid,origin:'controller',monoMs:performance.now(),utc:new Date().toISOString(),type,...extra})+'\n');}catch(_){fail('log_failed');}}
 function size(dir){let n=0;for(const d of fs.readdirSync(dir,{withFileTypes:true})){const p=path.join(dir,d.name);if(d.isDirectory())n+=size(p);else n+=fs.statSync(p).size;}return n;}
 function capture(){try{const current=stat(child.pid);if(!rootIdentity||!current||current.start!==rootIdentity.start){if(!done)fail('identity_unknown');return;}for(const p of descendants(child.pid))known.set(`${p.pid}:${p.start}`,p);}catch(_){fail('capture_failed');}}
-function remaining(){try{return [...known.values()].map(old=>({old,now:stat(old.pid)})).filter(x=>x.now&&x.now.start===x.old.start&&x.now.state!=='Z');}catch(_){fail('remaining_failed');return [];}}
+function remaining(){try{return [...known.values()].map(old=>{const now=stat(old.pid);if(!now)fail('remaining_unknown');else if(now.start!==old.start)fail('identity_changed');return {old,now};}).filter(x=>x.now&&x.now.start===x.old.start&&x.now.state!=='Z');}catch(_){fail('remaining_failed');return [];}}
 function cleanup(){safety.fail('forced_cleanup');try{for(const {old} of remaining().reverse()){const now=stat(old.pid);if(now&&now.pid===old.pid&&now.start===old.start&&now.state!=='Z'){try{process.kill(old.pid,'SIGKILL');safety.fail('sigkill');log('cleanup-signal',{pid:old.pid,start:old.start,signal:'SIGKILL'});}catch(e){safety.fail('cleanup_failed');log('cleanup-error',{pid:old.pid,error:String(e)});}}}}catch(_){safety.fail('cleanup_failed');}}
-const child=fork(path.join(__dirname,'chart-block.e2e.js'),[],{cwd:process.cwd(),execArgv:['--require',path.resolve(__dirname,'../chart-webkit-stage3/preload.cjs')],stdio:['ignore','pipe','pipe','ipc'],env:{...process.env,CHART_STAGE3_MODE:'detailed',CHART_STAGE3_OUTPUT:root,CHART_STAGE4_GROUP:group,CHART_STAGE4_TRACE:childTrace}});
-rootIdentity=stat(child.pid);if(rootIdentity)known.set(`${rootIdentity.pid}:${rootIdentity.start}`,rootIdentity);else fail('identity_unknown');
+function launchChild(){const child=fork(path.join(__dirname,'chart-block.e2e.js'),[],{cwd:process.cwd(),execArgv:['--require',path.resolve(__dirname,'../chart-webkit-stage3/preload.cjs')],stdio:['ignore','pipe','pipe','ipc'],env:{...process.env,CHART_STAGE3_MODE:'detailed',CHART_STAGE3_OUTPUT:root,CHART_STAGE4_GROUP:group,CHART_STAGE4_TRACE:childTrace}});return child;}
+let child;
+try{child=launchChild();}catch(e){fail('child_start_failed');log('child-start-error',{error:String(e)});stopping.finalize(()=>{});process.exitCode=1;return;}
+try{rootIdentity=stat(child.pid);if(rootIdentity)known.set(`${rootIdentity.pid}:${rootIdentity.start}`,rootIdentity);else fail('identity_unknown');}catch(_){fail('stat_failed');}
 log('child-start',{childPid:child.pid,group});
 for(const stream of ['stdout','stderr']){try{const out=fs.createWriteStream(path.join(root,`${stream}.log`),{flags:'wx'});out.on('error',()=>fail('stream_write_failed'));child[stream].on('error',()=>fail('stream_read_failed'));child[stream].pipe(out);}catch(_){fail('stream_setup_failed');}}
 function sigterm(){capture();if(safety.result().failures.length){fail('signal_precondition_failed');return;}safety.signalRequested();log('sigterm-request',{childPid:child.pid});let accepted=false;try{const now=stat(child.pid);if(!safety.result().failures.length&&rootIdentity&&now&&now.pid===rootIdentity.pid&&now.start===rootIdentity.start)accepted=child.kill('SIGTERM');else fail('identity_unknown');}catch(_){fail('signal_failed');}safety.signalResult(accepted);log('sigterm-result',{accepted});stage=accepted?'sigterm':'failed';}
 let preflushTimer;
-const preflush=createPreflush({state:safety,send:(m,cb)=>{log('ipc-send',{message:m});if(safety.result().failures.length)throw Error('log_failed');child.send(m,cb);},stop:()=>{clearTimeout(preflushTimer);stage='failed';capture();cleanup();},proceed:()=>{clearTimeout(preflushTimer);sigterm();}});
+const preflush=createPreflush({state:safety,send:(m,cb)=>{log('ipc-send',{message:m});if(safety.result().failures.length)throw Error('log_failed');child.send(m,cb);},stop:()=>{clearTimeout(preflushTimer);stage='failed';capture();fail('preflush_stop');},proceed:()=>{clearTimeout(preflushTimer);sigterm();}});
 child.on('message',m=>{
   log('ipc-receive',{message:m});
   if(!m||typeof m!=='object'){fail('ipc_invalid');return;}
   if(safety.result().failures.length)return;
   if(m.type==='ready'&&stage==='starting'){stage='input';log('ipc-send',{message:{type:'stage4-last',requestId:'input-1'}});if(safety.result().failures.length)return;try{child.send({type:'stage4-last',requestId:'input-1'},err=>{if(err)fail('ipc_error');});}catch(_){fail('ipc_error');}}
   else if(m.type==='last-input'&&stage==='input'){
-    if(m.value!=='Infinity'){log('input-failed');stage='failed';cleanup();return;}
+    if(m.value!=='Infinity'){log('input-failed');stage='failed';fail('input_failed');return;}
     if(group==='A')sigterm();else{stage='preflush';preflushTimer=setTimeout(()=>preflush.timeout(),5000);preflush.request('flush-1');}
   }else if(m.type==='stage4-preflush-result'&&group==='B'){
     preflush.receive(m);
@@ -43,7 +47,14 @@ child.on('message',m=>{
 });
 child.on('error',e=>{fail('child_error');log('child-error',{error:String(e)});});
 child.on('exit',(code,signal)=>{safety.childExit(code,signal);done=true;if(safety.result().failures.length)fail('child_exit_failed');log('child-exit',{code,signal});});
-const monitor=setInterval(()=>{try{if(!done)capture();const bytes=priorBytes+size(root);if(bytes>=100*1024*1024&&!overflow){overflow=true;log('size-limit',{bytes,priorBytes});capture();cleanup();}}catch(e){log('monitor-error',{error:String(e)});capture();cleanup();}},100);
-const guard=setTimeout(()=>{safety.fail('outer_timeout');log('outer-timeout',{stage});capture();cleanup();},18000);
-const final=setTimeout(()=>{clearInterval(monitor);clearTimeout(guard);capture();const before=remaining();if(before.length)cleanup();const after=remaining();if(overflow)safety.fail('size_limit');if(after.length)safety.fail('descendants_remaining');log('controller-finish',{childExitObserved:done,stage,overflow,known:[...known.values()],remainingBefore:before,remainingAfter:after,uncapturedDescendants:'UNKNOWN',assessment:safety.result()});process.exitCode=progressGate(safety.result())==='PASS'?0:1;},19500);
-child.on('close',()=>{if(done){setTimeout(()=>{clearTimeout(final);clearTimeout(guard);clearInterval(monitor);const before=remaining();if(before.length)cleanup();setTimeout(()=>{const after=remaining();if(overflow)safety.fail('size_limit');if(after.length)safety.fail('descendants_remaining');log('controller-finish',{childExitObserved:done,stage,overflow,known:[...known.values()],remainingBefore:before,remainingAfter:after,uncapturedDescendants:'UNKNOWN',assessment:safety.result()});process.exitCode=progressGate(safety.result())==='PASS'?0:1;},200);},300);}});
+const monitor=setInterval(()=>{try{if(!done)capture();const bytes=priorBytes+size(root);if(bytes>=100*1024*1024&&!overflow){overflow=true;fail('size_limit');log('size-limit',{bytes,priorBytes});capture();}}catch(e){fail('monitor_failed');log('monitor-error',{error:String(e)});capture();}},100);
+const guard=setTimeout(()=>{fail('outer_timeout');log('outer-timeout',{stage});capture();},18000);
+function finish(){
+  if(stopping.snapshot().finalized)return;
+  clearInterval(monitor);clearTimeout(guard);clearTimeout(final);capture();
+  const before=remaining();if(before.length)fail('descendants_remaining');
+  stopping.finalize(()=>{const after=remaining();if(after.length)safety.fail('descendants_remaining');log('controller-finish',{childExitObserved:done,stage,overflow,known:[...known.values()],remainingBefore:before,remainingAfter:after,uncapturedDescendants:'UNKNOWN',assessment:safety.result(),cleanup:stopping.snapshot()});});
+  process.exitCode=progressGate(safety.result())==='PASS'?0:1;
+}
+const final=setTimeout(finish,19500);
+child.on('close',()=>{if(done)setTimeout(finish,500);});

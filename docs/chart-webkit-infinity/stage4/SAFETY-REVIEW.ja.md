@@ -1,5 +1,15 @@
 # 第4工程 安全機構の局所修正（未完了）
 
+## レビュー 5867381923 後の部分対応
+
+- 基点 HEAD `a805dcb929ddc8b2ae48697b3b605b2d8ba33d2f`、tree `4e05e5bce1390961948471c206602524eb8270c1`。停止要求を新規 `stop-controller.cjs` にまとめ、cleanup と最終確定の再入を抑止し、失敗理由は追加保持する。同期処理が完了したことは cleanup 成功の証明ではない。実 process や証拠回収の故障注入は未実施。
+- 修正前の controller ソースには直接 `cleanup()` 呼出しが8か所あり、直接呼出しを1以下とする静的反例が RED、修正後は0で GREEN。これは実行時の再入を実証した RED ではない。新規 coordinator の初回試験は新機能の合成試験であり、旧実装の RED に数えない。timeout＋遅延応答＋callback error の実コード RED→GREEN は前回の変更で記録済み。
+- Windows Node 24.20.0 の合成試験は停止要求の重複、cleanup 中の同期再入・例外、スケジューラ例外、失敗後の正常 exit、および各異常名の組合せを検査。異常名の合成注入は controller の fork、stream、stat、実証拠回収の実配線故障注入ではない。後者は NOT_TESTED。同期 filesystem 操作や多数の process 走査がハングした場合の時間上限は保証されていない。
+- Windows の実行コマンドは `node --test tools/chart-webkit-stage4/stop-controller-check.cjs tools/chart-webkit-stage4/stop-once-check.cjs tools/chart-webkit-stage4/review-5865455311-check.cjs tools/chart-webkit-stage4/safety-check.cjs tools/chart-webkit-stage4/regression-check.cjs tools/chart-webkit-stage4/trace-check.cjs` で43 PASS。`node --test tools/chart-webkit-stage4/preflush-check.cjs tools/chart-webkit-stage4/seal-check.cjs` は16 PASS / 2 FAIL。合成証拠は試験コードとこの記録であり、実行ログ原票は保存していない。試験コード `stop-controller-check.cjs` の SHA-256 は `2c343cddbcf3d8c4c8062b00f3111cb61700aa50ee216981f15eb7586d17aef0`（Windows での読み出し bytes）。
+- Linux 専用ダミーは WebKit を使わず、単一 child を自動終了させる IPC の最小検査のみ。Linux 実行、SIGTERM/SIGKILL、PID 世代不一致、再親化、無関係 process の負対照、残存確認は NOT_TESTED。ハーネスは実 process の完全な故障注入をまだ実装していない。取得不能の stat は終了扱いせず `remaining_unknown` を記録するが、実際の終了との区別は未解決。PID の最終照合と signal 間の競合、未捕捉子孫と再親化は UNKNOWN。
+- 契約移行案：preflush の旧「停止2回」assertion は独立レビュー後に停止1回へ移行し、遅延応答・重複 callback・停止中再入・失敗理由保持を負対照とする。seal の旧 `ok:true` は `integrity` と `screen` 等の個別検査へ移行し、hash 一致かつ screen FAIL / publicUpload DENY と、screen PASS でも DENY を負対照とする。汎用 `ok` を復活させない。旧呼出元は戻り値の契約更新が必要で、旧 assertion 2件は未変更・FAIL のまま。非公開と永続保管は BLOCKED。
+- 原票分析器、欠測評価、readback hash、実原票の非公開転送・永続保管、試行台帳は未成立。進行ゲートと controller 無条件 BLOCKED、実験 workflow と公開 artifact の無効化は維持。実 WebKit A/B、全 Chart suite、Actions は実行しない。マージ NO。
+
 ## レビュー 5866973537 後の局所修正
 
 - preflush の停止要求は一回のみとし、timeout 後の遅延応答、送信 callback の失敗・重複など、後から発生した失敗理由もラッチに残す。停止中の同期再入でも再度 stop を呼ばない。修正前の実装では timeout、遅延応答、送信エラーで stop が3回呼ばれた（RED）。修正後の同じ組合せは1回（GREEN）。この検査は実 supervisor の cleanup 一回性を証明しない。
