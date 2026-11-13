@@ -1,0 +1,68 @@
+name: AI Stage 1 synthetic browser audit
+on:
+  pull_request:
+    paths:
+      - 'ai-*'
+      - 'ollama-adapter.js'
+      - 'app.js'
+      - 'index.html'
+      - 'style.css'
+      - 'scripts/ai-stage1-*'
+      - '.github/workflows/ai-stage1-browser.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: ai-stage1-browser-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  browser:
+    name: AI browser (${{ matrix.os }}, ${{ matrix.browser }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            browser: chromium
+          - os: ubuntu-latest
+            browser: webkit
+          - os: windows-latest
+            browser: chromium
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    env:
+      MEMO_NEXUS_E2E_BROWSER: ${{ matrix.browser }}
+      MEMO_AI_STAGE1_OUTPUT: ${{ runner.temp }}/memo-ai-stage1
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Mock, import and existing AI tests
+        run: node --test ai-stage1-validation.test.cjs ai-stage1-audit.test.cjs ai-diagnostics.test.js ai-context.test.js ai-prompts.test.js ai-provider.test.js ai-reference-selection.test.js ai-ui.test.js ollama-adapter.test.js gemini-adapter.test.js version.test.js
+      - name: Windows PowerShell 7 wrapper plan (no network or inference)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $plan = ./scripts/ai-stage1-validation.ps1 -Mode plan | ConvertFrom-Json
+          if ($plan.requests -ne 28 -or -not $plan.executeRequired) { throw 'Plan contract failed' }
+          $probe = ./scripts/ai-stage1-validation.ps1 -Mode probe | ConvertFrom-Json
+          if ($probe.platform -ne 'win32' -or $probe.windowsExecution -ne 'PROBE_ONLY') { throw 'Windows probe contract failed' }
+          New-Item -ItemType Directory -Force $env:MEMO_AI_STAGE1_OUTPUT | Out-Null
+          $probe | ConvertTo-Json -Depth 5 | Set-Content -Encoding utf8 (Join-Path $env:MEMO_AI_STAGE1_OUTPUT 'windows-probe.json')
+          node -e "const r=require('node:child_process').spawnSync('pwsh',['-NoProfile','-File','scripts/ai-stage1-validation.ps1','-Mode','run'],{encoding:'utf8',timeout:10000});if(r.error||r.status===0||!r.stderr.includes('Explicit -Execute'))process.exit(1)"
+      - run: npx playwright install --with-deps ${{ matrix.browser }}
+      - name: Real app browser with synthetic local HTTP service
+        run: node ai-stage1-browser.e2e.cjs
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: ai-stage1-${{ matrix.os }}-${{ matrix.browser }}
+          path: ${{ runner.temp }}/memo-ai-stage1/
+          if-no-files-found: error
+          retention-days: 14

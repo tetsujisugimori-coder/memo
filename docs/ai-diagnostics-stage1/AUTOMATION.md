@@ -1,5 +1,7 @@
 # Windows comparison automation (Stage 1, diagnostic-only)
 
+Subsequent application/diagnostic-import work is documented separately in [BROWSER-AUDIT.md](BROWSER-AUDIT.md). The limitations below describe the original direct/adapter harness; the new synthetic HTTP browser path does not establish real-Ollama acceptance.
+
 Scope: explicit-launch, synthetic-only **direct Ollama vs production adapter** comparison. This is NOT automatic application/DOM/real-screen acceptance. Production scripts, prompts, model settings and Track A guards are unchanged. Root cause remains UNKNOWN and merge recommendation NO.
 
 ## Before execution
