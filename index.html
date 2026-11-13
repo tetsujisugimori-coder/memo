@@ -426,6 +426,14 @@
         <button id="aiStopBtn" type="button" disabled>停止</button>
       </div>
       <p id="aiGenerationStatus" class="ai-generation-status" role="status" aria-live="polite">設定でAI機能を有効にしてください。</p>
+      <details id="aiDiagnosticsPanel">
+        <summary>AI診断（本文を記録しません）</summary>
+        <label><input id="aiDiagnosticsEnabled" type="checkbox" checked>診断を有効にする</label>
+        <button id="aiDiagnosticsCopy" type="button">診断情報をコピー</button>
+        <button id="aiDiagnosticsClear" type="button">診断情報を消去</button>
+        <p>このタブのメモリ内のみ。最大20件・30分・64KiB。オフで消去。</p>
+        <pre id="aiDiagnosticsSummary" style="white-space:pre-wrap;overflow-wrap:anywhere"></pre>
+      </details>
       <section class="ai-answer-section" aria-labelledby="aiAnswerHeading">
         <h3 id="aiAnswerHeading">AI回答</h3>
         <pre id="aiAnswer" tabindex="0">回答はここに表示されます。</pre>
@@ -1062,9 +1070,10 @@
   <script src="font-recommendation.js?v=0.5.0-1"></script>
   <script src="web-font-loader.js?v=0.5.0-2"></script>
   <script src="markdown-enhancements-utils.js?v=0.5.0-4"></script>
-  <script src="ai-provider.js?v=0.5.0-3"></script>
-  <script src="ollama-adapter.js?v=0.5.0-1"></script>
-  <script src="gemini-adapter.js?v=0.5.0-1"></script>
+  <script src="ai-diagnostics.js?v=0.5.0-1"></script>
+  <script src="ai-provider.js?v=0.5.0-4"></script>
+  <script src="ollama-adapter.js?v=0.5.0-2"></script>
+  <script src="gemini-adapter.js?v=0.5.0-2"></script>
   <script src="ai-context.js?v=0.5.0-1"></script>
   <script src="ai-reference-selection.js?v=0.5.0-1"></script>
   <script src="ai-prompts.js?v=0.5.0-2"></script>
@@ -1091,7 +1100,7 @@
   <script src="typing-performance-monitor.js?v=0.5.0-3"></script>
   <script src="layout-resize-utils.js?v=0.5.0-2"></script>
   <script src="feature-palette.js?v=0.5.0-2"></script>
-  <script src="app.js?v=0.5.0-210"></script>
+  <script src="app.js?v=0.5.0-211"></script>
   <script src="codex-chat.js?v=0.5.0-6"></script>
   <dialog id="dummyPreviewDialog" class="dummy-preview-dialog" aria-labelledby="dummyPreviewHeading" aria-describedby="dummyPreviewHelp">
     <h2 id="dummyPreviewHeading">文章の受信確認 <small id="dummyPreviewBadge">未保存プレビュー</small></h2>

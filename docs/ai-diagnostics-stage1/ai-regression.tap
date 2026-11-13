@@ -1,0 +1,718 @@
+TAP version 13
+# Subtest: none reference contains no memo data and creates no provider message
+ok 1 - none reference contains no memo data and creates no provider message
+  ---
+  duration_ms: 0.9562
+  type: 'test'
+  ...
+# Subtest: current and specified note contexts keep exactly one selected note
+ok 2 - current and specified note contexts keep exactly one selected note
+  ---
+  duration_ms: 0.1335
+  type: 'test'
+  ...
+# Subtest: selected text is snapshotted independently from the editor
+ok 3 - selected text is snapshotted independently from the editor
+  ---
+  duration_ms: 0.1101
+  type: 'test'
+  ...
+# Subtest: empty selected text falls back to no reference
+ok 4 - empty selected text falls back to no reference
+  ---
+  duration_ms: 0.5152
+  type: 'test'
+  ...
+# Subtest: all-notes context keeps active notes, counts, and structured boundaries
+ok 5 - all-notes context keeps active notes, counts, and structured boundaries
+  ---
+  duration_ms: 9.6971
+  type: 'test'
+  ...
+# Subtest: collection context preserves collection label and metadata without duplicate body in snapshot
+ok 6 - collection context preserves collection label and metadata without duplicate body in snapshot
+  ---
+  duration_ms: 0.2286
+  type: 'test'
+  ...
+# Subtest: empty multi-note context remains selectable but has no provider message
+ok 7 - empty multi-note context remains selectable but has no provider message
+  ---
+  duration_ms: 0.0867
+  type: 'test'
+  ...
+# Subtest: reference max is centralized and positive
+ok 8 - reference max is centralized and positive
+  ---
+  duration_ms: 0.0677
+  type: 'test'
+  ...
+# Subtest: multi-note references are accepted within the limit and rejected above it
+ok 9 - multi-note references are accepted within the limit and rejected above it
+  ---
+  duration_ms: 0.1311
+  type: 'test'
+  ...
+# Subtest: Ollama diagnostic: normal text
+ok 10 - Ollama diagnostic: normal text
+  ---
+  duration_ms: 5.3777
+  type: 'test'
+  ...
+# Subtest: Ollama diagnostic: empty done
+ok 11 - Ollama diagnostic: empty done
+  ---
+  duration_ms: 0.3841
+  type: 'test'
+  ...
+# Subtest: Ollama diagnostic: thinking only
+ok 12 - Ollama diagnostic: thinking only
+  ---
+  duration_ms: 0.2621
+  type: 'test'
+  ...
+# Subtest: Ollama diagnostic: thinking and content
+ok 13 - Ollama diagnostic: thinking and content
+  ---
+  duration_ms: 0.2807
+  type: 'test'
+  ...
+# Subtest: Ollama diagnostic: no done
+ok 14 - Ollama diagnostic: no done
+  ---
+  duration_ms: 0.2834
+  type: 'test'
+  ...
+# Subtest: Ollama diagnostic: incomplete tail
+ok 15 - Ollama diagnostic: incomplete tail
+  ---
+  duration_ms: 0.6258
+  type: 'test'
+  ...
+# Subtest: Ollama diagnostic: multiple events and duplicate done
+ok 16 - Ollama diagnostic: multiple events and duplicate done
+  ---
+  duration_ms: 0.3986
+  type: 'test'
+  ...
+# Subtest: Ollama diagnostic: empty receive chunks
+ok 17 - Ollama diagnostic: empty receive chunks
+  ---
+  duration_ms: 0.2946
+  type: 'test'
+  ...
+# Subtest: Ollama diagnostic: no newline at EOF
+ok 18 - Ollama diagnostic: no newline at EOF
+  ---
+  duration_ms: 0.2542
+  type: 'test'
+  ...
+# Subtest: byte-split UTF-8 and NDJSON are reconstructed without duplicate text
+ok 19 - byte-split UTF-8 and NDJSON are reconstructed without duplicate text
+  ---
+  duration_ms: 1.1121
+  type: 'test'
+  ...
+# Subtest: malformed thinking cannot change legacy content generation, including EOF tail
+ok 20 - malformed thinking cannot change legacy content generation, including EOF tail
+  ---
+  duration_ms: 0.5882
+  type: 'test'
+  ...
+# Subtest: disconnect preserves partial text and has no normal stream end
+ok 21 - disconnect preserves partial text and has no normal stream end
+  ---
+  duration_ms: 0.2803
+  type: 'test'
+  ...
+# Subtest: AbortController stop is INTERRUPTED
+ok 22 - AbortController stop is INTERRUPTED
+  ---
+  duration_ms: 0.3707
+  type: 'test'
+  ...
+# Subtest: inactivity timeout is TIMEOUT
+ok 23 - inactivity timeout is TIMEOUT
+  ---
+  duration_ms: 16.8687
+  type: 'test'
+  ...
+# Subtest: diagnostics ON/OFF and a throwing observer preserve the exact output
+ok 24 - diagnostics ON/OFF and a throwing observer preserve the exact output
+  ---
+  duration_ms: 0.5835
+  type: 'test'
+  ...
+# Subtest: metadata whitelist prevents secrets in copied diagnostics and unknown errors
+ok 25 - metadata whitelist prevents secrets in copied diagnostics and unknown errors
+  ---
+  duration_ms: 0.2071
+  type: 'test'
+  ...
+# Subtest: count, serialized byte and age bounds; clear and OFF invalidate old handles
+ok 26 - count, serialized byte and age bounds; clear and OFF invalidate old handles
+  ---
+  duration_ms: 0.8018
+  type: 'test'
+  ...
+# Subtest: age expiry removes retained records without reads
+ok 27 - age expiry removes retained records without reads
+  ---
+  duration_ms: 25.373
+  type: 'test'
+  ...
+# Subtest: final records are immutable to late callbacks and returned snapshots are copies
+ok 28 - final records are immutable to late callbacks and returned snapshots are copies
+  ---
+  duration_ms: 0.4593
+  type: 'test'
+  ...
+# Subtest: actual app: 2 consecutive generations preserve UI and request isolation
+ok 29 - actual app: 2 consecutive generations preserve UI and request isolation
+  ---
+  duration_ms: 3.0478
+  type: 'test'
+  ...
+# Subtest: actual app: 5 consecutive generations preserve UI and request isolation
+ok 30 - actual app: 5 consecutive generations preserve UI and request isolation
+  ---
+  duration_ms: 4.0733
+  type: 'test'
+  ...
+# Subtest: actual app: empty done keeps legacy completed UI but diagnoses empty
+ok 31 - actual app: empty done keeps legacy completed UI but diagnoses empty
+  ---
+  duration_ms: 1.5194
+  type: 'test'
+  ...
+# Subtest: actual app: delayed old response after conversation reset never enters new request/UI
+ok 32 - actual app: delayed old response after conversation reset never enters new request/UI
+  ---
+  duration_ms: 1.768
+  type: 'test'
+  ...
+# Subtest: actual app: panel close/resume preserves diagnostics; fresh open resets the conversation
+ok 33 - actual app: panel close/resume preserves diagnostics; fresh open resets the conversation
+  ---
+  duration_ms: 1.8243
+  type: 'test'
+  ...
+# Subtest: actual app: model change uses new model metadata without deleting existing history
+ok 34 - actual app: model change uses new model metadata without deleting existing history
+  ---
+  duration_ms: 1.7652
+  type: 'test'
+  ...
+# Subtest: actual app: translation/question, history and language changes record the sent messages
+ok 35 - actual app: translation/question, history and language changes record the sent messages
+  ---
+  duration_ms: 4.7517
+  type: 'test'
+  ...
+# Subtest: Gemini provider finishReason and thinking-only are observed independently of its synthetic done
+ok 36 - Gemini provider finishReason and thinking-only are observed independently of its synthetic done
+  ---
+  duration_ms: 1.3916
+  type: 'test'
+  ...
+# Subtest: actual startup order initializes diagnostics before synchronous init renders AI UI
+ok 37 - actual startup order initializes diagnostics before synchronous init renders AI UI
+  ---
+  duration_ms: 1.8995
+  type: 'test'
+  ...
+# Subtest: all four AI purposes have versioned prompt metadata
+ok 38 - all four AI purposes have versioned prompt metadata
+  ---
+  duration_ms: 0.8347
+  type: 'test'
+  ...
+# Subtest: free chat sends no memo title or body when reference is none
+ok 39 - free chat sends no memo title or body when reference is none
+  ---
+  duration_ms: 0.2919
+  type: 'test'
+  ...
+# Subtest: system instruction, reference, history, and question remain distinct messages
+ok 40 - system instruction, reference, history, and question remain distinct messages
+  ---
+  duration_ms: 0.5723
+  type: 'test'
+  ...
+# Subtest: memo tasks require a reference and keep task separate from reference
+ok 41 - memo tasks require a reference and keep task separate from reference
+  ---
+  duration_ms: 0.3052
+  type: 'test'
+  ...
+# Subtest: free questions require input while memo tasks allow optional additional instructions
+ok 42 - free questions require input while memo tasks allow optional additional instructions
+  ---
+  duration_ms: 0.2252
+  type: 'test'
+  ...
+# Subtest: every purpose can be combined with a selected reference mode
+ok 43 - every purpose can be combined with a selected reference mode
+  ---
+  duration_ms: 0.188
+  type: 'test'
+  ...
+# Subtest: free question with input remains sendable without a reference
+ok 44 - free question with input remains sendable without a reference
+  ---
+  duration_ms: 0.0713
+  type: 'test'
+  ...
+# Subtest: multiple memo reference stays in one separate system message
+ok 45 - multiple memo reference stays in one separate system message
+  ---
+  duration_ms: 9.8958
+  type: 'test'
+  ...
+# Subtest: AI result helpers create append body and a bounded title
+ok 46 - AI result helpers create append body and a bounded title
+  ---
+  duration_ms: 0.2142
+  type: 'test'
+  ...
+# Subtest: AI settings default to disabled local Ollama
+ok 47 - AI settings default to disabled local Ollama
+  ---
+  duration_ms: 0.7675
+  type: 'test'
+  ...
+# Subtest: legacy AI settings migrate into the Ollama provider settings
+ok 48 - legacy AI settings migrate into the Ollama provider settings
+  ---
+  duration_ms: 0.5415
+  type: 'test'
+  ...
+# Subtest: provider-specific settings survive switching between Ollama and Gemini
+ok 49 - provider-specific settings survive switching between Ollama and Gemini
+  ---
+  duration_ms: 0.2403
+  type: 'test'
+  ...
+# Subtest: clearing an invalid provider model does not restore the previous selection
+ok 50 - clearing an invalid provider model does not restore the previous selection
+  ---
+  duration_ms: 0.1093
+  type: 'test'
+  ...
+# Subtest: saved AI state preserves a verified endpoint, models, and selected model
+ok 51 - saved AI state preserves a verified endpoint, models, and selected model
+  ---
+  duration_ms: 6.1395
+  type: 'test'
+  ...
+# Subtest: verified connection without a selected model remains connected but requires a model
+ok 52 - verified connection without a selected model remains connected but requires a model
+  ---
+  duration_ms: 0.1281
+  type: 'test'
+  ...
+# Subtest: unverified or changed endpoint discards connection results
+ok 53 - unverified or changed endpoint discards connection results
+  ---
+  duration_ms: 0.1363
+  type: 'test'
+  ...
+# Subtest: invalid selected model never becomes generation-ready
+ok 54 - invalid selected model never becomes generation-ready
+  ---
+  duration_ms: 0.1235
+  type: 'test'
+  ...
+# Subtest: disabled AI always resolves to disabled without preserving models
+ok 55 - disabled AI always resolves to disabled without preserving models
+  ---
+  duration_ms: 0.139
+  type: 'test'
+  ...
+# Subtest: a verified Gemini endpoint preserves Gemini models
+ok 56 - a verified Gemini endpoint preserves Gemini models
+  ---
+  duration_ms: 0.1676
+  type: 'test'
+  ...
+# Subtest: verified model families are detected case-insensitively
+ok 57 - verified model families are detected case-insensitively
+  ---
+  duration_ms: 0.0824
+  type: 'test'
+  ...
+# Subtest: models are normalized, deduplicated, and grouped
+ok 58 - models are normalized, deduplicated, and grouped
+  ---
+  duration_ms: 0.129
+  type: 'test'
+  ...
+# Subtest: NDJSON parser preserves split multibyte-independent chunks
+ok 59 - NDJSON parser preserves split multibyte-independent chunks
+  ---
+  duration_ms: 0.2012
+  type: 'test'
+  ...
+# Subtest: NDJSON parser rejects malformed responses
+ok 60 - NDJSON parser rejects malformed responses
+  ---
+  duration_ms: 0.4425
+  type: 'test'
+  ...
+# Subtest: all reference notes include active unclassified notes but exclude deleted and trash notes
+ok 61 - all reference notes include active unclassified notes but exclude deleted and trash notes
+  ---
+  duration_ms: 0.7725
+  type: 'test'
+  ...
+# Subtest: collection selection includes descendants recursively and excludes other collections
+ok 62 - collection selection includes descendants recursively and excludes other collections
+  ---
+  duration_ms: 0.1679
+  type: 'test'
+  ...
+# Subtest: empty collection selection returns no notes
+ok 63 - empty collection selection returns no notes
+  ---
+  duration_ms: 0.0744
+  type: 'test'
+  ...
+# Subtest: AI provider scripts and disabled-by-default settings are connected
+ok 64 - AI provider scripts and disabled-by-default settings are connected
+  ---
+  duration_ms: 0.7923
+  type: 'test'
+  ...
+# Subtest: AI settings select an independent provider and keep Gemini credentials private
+ok 65 - AI settings select an independent provider and keep Gemini credentials private
+  ---
+  duration_ms: 1.5088
+  type: 'test'
+  ...
+# Subtest: Gemini API key changes discard prior connection and model verification
+ok 66 - Gemini API key changes discard prior connection and model verification
+  ---
+  duration_ms: 0.5798
+  type: 'test'
+  ...
+# Subtest: robot is an accessible button and controls the single AI panel
+ok 67 - robot is an accessible button and controls the single AI panel
+  ---
+  duration_ms: 0.5281
+  type: 'test'
+  ...
+# Subtest: AI panel provides required purposes, controls, and explicit result actions
+ok 68 - AI panel provides required purposes, controls, and explicit result actions
+  ---
+  duration_ms: 1.2609
+  type: 'test'
+  ...
+# Subtest: purpose selection is visible and translation destination is purpose-specific
+ok 69 - purpose selection is visible and translation destination is purpose-specific
+  ---
+  duration_ms: 0.5199
+  type: 'test'
+  ...
+# Subtest: purpose and reference remain independently selectable, including shortcut contracts
+ok 70 - purpose and reference remain independently selectable, including shortcut contracts
+  ---
+  duration_ms: 0.7136
+  type: 'test'
+  ...
+# Subtest: normal robot launch starts a fresh free chat while shortcuts preserve launch parameters
+ok 71 - normal robot launch starts a fresh free chat while shortcuts preserve launch parameters
+  ---
+  duration_ms: 0.7995
+  type: 'test'
+  ...
+# Subtest: 右パネルを閉じてもAIタブの会話を再開でき、AI状態だけを同期する
+ok 72 - 右パネルを閉じてもAIタブの会話を再開でき、AI状態だけを同期する
+  ---
+  duration_ms: 1.5796
+  type: 'test'
+  ...
+# Subtest: right context panel contains one active view for collection, tags, AI, and memo list
+ok 73 - right context panel contains one active view for collection, tags, AI, and memo list
+  ---
+  duration_ms: 0.9947
+  type: 'test'
+  ...
+# Subtest: AI起動は狭幅の右コンテキストパネルを閉じない
+ok 74 - AI起動は狭幅の右コンテキストパネルを閉じない
+  ---
+  duration_ms: 0.6441
+  type: 'test'
+  ...
+# Subtest: memo list is moved rather than duplicated and keeps search and selection behavior
+ok 75 - memo list is moved rather than duplicated and keeps search and selection behavior
+  ---
+  duration_ms: 0.9135
+  type: 'test'
+  ...
+# Subtest: closing collection context actually closes the panel
+ok 76 - closing collection context actually closes the panel
+  ---
+  duration_ms: 0.5038
+  type: 'test'
+  ...
+# Subtest: memo selection only auto-closes the narrow drawer and wide selection keeps context open
+ok 77 - memo selection only auto-closes the narrow drawer and wide selection keeps context open
+  ---
+  duration_ms: 0.2907
+  type: 'test'
+  ...
+# Subtest: single chat panel supports explicit reference modes and normal launch resets to none
+ok 78 - single chat panel supports explicit reference modes and normal launch resets to none
+  ---
+  duration_ms: 0.8395
+  type: 'test'
+  ...
+# Subtest: chat history stores the send-time reference snapshot
+ok 79 - chat history stores the send-time reference snapshot
+  ---
+  duration_ms: 0.7873
+  type: 'test'
+  ...
+# Subtest: multiple reference labels and structured memo fields are part of the UI contract
+ok 80 - multiple reference labels and structured memo fields are part of the UI contract
+  ---
+  duration_ms: 0.3926
+  type: 'test'
+  ...
+# Subtest: existing memo list is placed at the furthest right without duplication
+ok 81 - existing memo list is placed at the furthest right without duplication
+  ---
+  duration_ms: 0.214
+  type: 'test'
+  ...
+# Subtest: AI panel is responsive, dark-theme compatible, and reduced-motion safe
+ok 82 - AI panel is responsive, dark-theme compatible, and reduced-motion safe
+  ---
+  duration_ms: 0.239
+  type: 'test'
+  ...
+# Subtest: closing the panel does not stop generation while page exit does
+ok 83 - closing the panel does not stop generation while page exit does
+  ---
+  duration_ms: 0.9748
+  type: 'test'
+  ...
+# Subtest: AI settings keep an unsaved draft separate from runtime settings
+ok 84 - AI settings keep an unsaved draft separate from runtime settings
+  ---
+  duration_ms: 0.7809
+  type: 'test'
+  ...
+# Subtest: connection checks are latest-request-wins and invalid draft models do not overwrite saved selection
+ok 85 - connection checks are latest-request-wins and invalid draft models do not overwrite saved selection
+  ---
+  duration_ms: 0.8758
+  type: 'test'
+  ...
+# Subtest: saving resolves verified draft state before clearing model results
+ok 86 - saving resolves verified draft state before clearing model results
+  ---
+  duration_ms: 0.4036
+  type: 'test'
+  ...
+# Subtest: Gemini model check sends the API key as a header and normalizes models
+ok 87 - Gemini model check sends the API key as a header and normalizes models
+  ---
+  duration_ms: 2.1113
+  type: 'test'
+  ...
+# Subtest: Gemini models keep only explicit text-generation models and use display names without models prefix
+ok 88 - Gemini models keep only explicit text-generation models and use display names without models prefix
+  ---
+  duration_ms: 0.2107
+  type: 'test'
+  ...
+# Subtest: Gemini connection checks the selected model with a bounded non-streaming generation
+ok 89 - Gemini connection checks the selected model with a bounded non-streaming generation
+  ---
+  duration_ms: 0.543
+  type: 'test'
+  ...
+# Subtest: Gemini request keeps system instructions separate and maps assistant role
+ok 90 - Gemini request keeps system instructions separate and maps assistant role
+  ---
+  duration_ms: 0.1037
+  type: 'test'
+  ...
+# Subtest: Gemini streaming emits text from fragmented SSE events
+ok 91 - Gemini streaming emits text from fragmented SSE events
+  ---
+  duration_ms: 0.7586
+  type: 'test'
+  ...
+# Subtest: Gemini cumulative stream chunks are not duplicated
+ok 92 - Gemini cumulative stream chunks are not duplicated
+  ---
+  duration_ms: 0.2681
+  type: 'test'
+  ...
+# Subtest: Gemini response text and safety blocks are classified
+ok 93 - Gemini response text and safety blocks are classified
+  ---
+  duration_ms: 0.3205
+  type: 'test'
+  ...
+# Subtest: Gemini HTTP 401 is classified as authentication
+ok 94 - Gemini HTTP 401 is classified as authentication
+  ---
+  duration_ms: 0.2777
+  type: 'test'
+  ...
+# Subtest: Gemini HTTP 403 is classified as permission
+ok 95 - Gemini HTTP 403 is classified as permission
+  ---
+  duration_ms: 0.1616
+  type: 'test'
+  ...
+# Subtest: Gemini HTTP 404 is classified as model_missing
+ok 96 - Gemini HTTP 404 is classified as model_missing
+  ---
+  duration_ms: 0.2658
+  type: 'test'
+  ...
+# Subtest: Gemini HTTP 429 is classified as rate_limit
+ok 97 - Gemini HTTP 429 is classified as rate_limit
+  ---
+  duration_ms: 0.7439
+  type: 'test'
+  ...
+# Subtest: Gemini HTTP 429 is classified as quota_exceeded
+ok 98 - Gemini HTTP 429 is classified as quota_exceeded
+  ---
+  duration_ms: 0.1397
+  type: 'test'
+  ...
+# Subtest: Gemini HTTP 500 is classified as server_error
+ok 99 - Gemini HTTP 500 is classified as server_error
+  ---
+  duration_ms: 0.0813
+  type: 'test'
+  ...
+# Subtest: Gemini external abort becomes a stopped generation
+ok 100 - Gemini external abort becomes a stopped generation
+  ---
+  duration_ms: 0.2916
+  type: 'test'
+  ...
+# Subtest: Gemini SSE parser retains a fragmented event until it is complete
+ok 101 - Gemini SSE parser retains a fragmented event until it is complete
+  ---
+  duration_ms: 0.0631
+  type: 'test'
+  ...
+# Subtest: Gemini SSE parser supports CRLF, comments, multiple data lines, and final flush
+ok 102 - Gemini SSE parser supports CRLF, comments, multiple data lines, and final flush
+  ---
+  duration_ms: 0.1036
+  type: 'test'
+  ...
+# Subtest: connection check returns normalized local models
+ok 103 - connection check returns normalized local models
+  ---
+  duration_ms: 1.4028
+  type: 'test'
+  ...
+# Subtest: connection check distinguishes an empty model list
+ok 104 - connection check distinguishes an empty model list
+  ---
+  duration_ms: 0.1625
+  type: 'test'
+  ...
+# Subtest: connection failures receive a stable error code
+ok 105 - connection failures receive a stable error code
+  ---
+  duration_ms: 0.3847
+  type: 'test'
+  ...
+# Subtest: invalid model-list responses are rejected
+ok 106 - invalid model-list responses are rejected
+  ---
+  duration_ms: 0.1764
+  type: 'test'
+  ...
+# Subtest: Ollama error responses remain provider errors
+ok 107 - Ollama error responses remain provider errors
+  ---
+  duration_ms: 0.2423
+  type: 'test'
+  ...
+# Subtest: connection checks time out
+ok 108 - connection checks time out
+  ---
+  duration_ms: 16.2613
+  type: 'test'
+  ...
+# Subtest: streaming generation joins split NDJSON events
+ok 109 - streaming generation joins split NDJSON events
+  ---
+  duration_ms: 1.3304
+  type: 'test'
+  ...
+# Subtest: missing model responses receive a stable error code
+ok 110 - missing model responses receive a stable error code
+  ---
+  duration_ms: 0.2317
+  type: 'test'
+  ...
+# Subtest: generation rejects a response without a readable stream
+ok 111 - generation rejects a response without a readable stream
+  ---
+  duration_ms: 0.2192
+  type: 'test'
+  ...
+# Subtest: external abort stops generation
+ok 112 - external abort stops generation
+  ---
+  duration_ms: 0.3156
+  type: 'test'
+  ...
+# Subtest: stream activity resets the inactivity timeout
+ok 113 - stream activity resets the inactivity timeout
+  ---
+  duration_ms: 48.4947
+  type: 'test'
+  ...
+# Subtest: stream reader is cancelled when generation is stopped early
+ok 114 - stream reader is cancelled when generation is stopped early
+  ---
+  duration_ms: 0.2679
+  type: 'test'
+  ...
+# Subtest: inactivity watchdog can be reset and cleaned up
+ok 115 - inactivity watchdog can be reset and cleaned up
+  ---
+  duration_ms: 0.1088
+  type: 'test'
+  ...
+# Subtest: 現在のアプリ版とリリース名を0.5.0 Bridge Updateへ統一する
+ok 116 - 現在のアプリ版とリリース名を0.5.0 Bridge Updateへ統一する
+  ---
+  duration_ms: 0.5786
+  type: 'test'
+  ...
+# Subtest: 全ローカルCSS・JavaScriptを0.5.0のキャッシュ識別子で読み込む
+ok 117 - 全ローカルCSS・JavaScriptを0.5.0のキャッシュ識別子で読み込む
+  ---
+  duration_ms: 1.2052
+  type: 'test'
+  ...
+# Subtest: 本体リリースと各形式のバージョンを確認する
+ok 118 - 本体リリースと各形式のバージョンを確認する
+  ---
+  duration_ms: 0.1073
+  type: 'test'
+  ...
+1..118
+# tests 118
+# suites 0
+# pass 118
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 2460.994

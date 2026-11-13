@@ -512,3 +512,7 @@ Figure・Comparison・Chart・Geometry/Diagramは共通の図連番、構造化T
 ## MCP検索Worker停止・復旧の研究
 
 [独立PoC](experiments/mcp-search-worker-recovery/README.md)で有限生成予算・セッション分離・安全停止を検証しています。製品検索への統合と本番採用はHOLDです。既存の検索許可・保存処理は変更しません。
+
+## AI診断（Stage 1）
+
+AIパネルの「AI診断」で要求ごとの受信・本文・完了通知・表示文字数を確認し、本文を含まない診断情報をコピーできます。最大20件・30分・64KiBをこのタブのメモリ内に保持し、オフ/消去で削除します。生成内容・プロンプト・保存方式は変更しません。実Ollamaは未検証です。[診断仕様と原因候補](docs/ai-diagnostics-stage1/README.md) / [後日用の実Ollama比較手順](docs/ai-diagnostics-stage1/MANUAL.md)。

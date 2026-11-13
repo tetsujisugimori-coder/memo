@@ -1290,6 +1290,7 @@ let aiDraftConnectionMessage = "";
 let aiConnectionRequestId = 0;
 let aiConnectionAbortController = null;
 let aiSettingsSessionId = 0;
+const aiDiagnostics = window.MemoNexusAiDiagnostics.createStore();
 let aiAbortController = null;
 let aiAssistantState = {
   panelOpen: false,
@@ -14312,6 +14313,23 @@ function setRelatedDrawerOpen(open, options = {}) {
   }
 }
 
+function renderAiDiagnostics() {
+  const host = document.getElementById("aiDiagnosticsSummary");
+  if (!host) return;
+  const latest = aiDiagnostics.snapshot().at(-1);
+  host.textContent = latest ? JSON.stringify(latest, null, 2) : "診断記録はありません。";
+}
+document.getElementById("aiDiagnosticsEnabled")?.addEventListener("change", (event) => {
+  aiDiagnostics.setEnabled(event.target.checked);
+  renderAiDiagnostics();
+});
+document.getElementById("aiDiagnosticsClear")?.addEventListener("click", () => {
+  aiDiagnostics.clear(); renderAiDiagnostics();
+});
+document.getElementById("aiDiagnosticsCopy")?.addEventListener("click", async () => {
+  try { await writeTextToClipboard(aiDiagnostics.exportJson(), { fallbackCopyText }); }
+  catch (_error) { document.getElementById("aiDiagnosticsSummary").textContent = "コピーできませんでした。"; }
+});
 function restoreAiSettings() {
   try {
     const stored = localStorage.getItem(AI_SETTINGS_STORAGE_KEY);
@@ -14736,6 +14754,7 @@ function renderAiUi() {
   renderAiReferenceUi();
   renderAiChatHistory();
   updateAiTargetPreview();
+  renderAiDiagnostics();
 }
 
 function renderAiReferenceUi() {
@@ -14924,7 +14943,17 @@ async function startAiGeneration() {
     renderAiUi();
     return;
   }
+  const diagnosticInput = {
+    purpose: aiPurposeSelect.value, translationLanguage: aiTranslationSelect.value,
+    referenceMode: reference.mode,
+    historyMessageCount: aiAssistantState.history.filter((message) => message.content).length,
+    messages
+  };
   if (note) await flushSave();
+  const diagnostic = aiDiagnostics.begin({ ...diagnosticInput, provider: aiSettings.provider,
+    model: aiSettings.selectedModel, uiPurpose: aiPurposeSelect.value, uiTranslationLanguage: aiTranslationSelect.value, secrets: [aiSettings.geminiApiKey] });
+  let diagnosticAnswerCharacters = 0;
+  let diagnosticErrorCode;
   const requestId = aiAssistantState.requestId + 1;
   const referenceSnapshot = aiReferenceSnapshot(reference);
   const userMessage = { role: "user", content: question, reference: referenceSnapshot, sentAt: Date.now() };
@@ -14949,28 +14978,36 @@ async function startAiGeneration() {
       model: aiSettings.selectedModel,
       messages,
       signal: aiAbortController.signal,
-      timeoutMs: aiSettings.timeoutMs
+      timeoutMs: aiSettings.timeoutMs,
+      onDiagnostic: diagnostic.observe
     })) {
       if (requestId !== aiAssistantState.requestId) return;
       if (event.type === "text") {
         aiAssistantState.connection = AI_CONNECTION_STATES.CONNECTED;
         aiAssistantState.answer += event.content;
+        diagnosticAnswerCharacters += event.content.length;
         aiAssistantState.history.at(-1).content = aiAssistantState.answer;
         renderAiUi();
+        diagnostic.ui(aiAssistantState.answer.trim() ? aiAnswer.textContent.length : 0);
       }
     }
     if (requestId === aiAssistantState.requestId) {
       aiAssistantState.connection = AI_CONNECTION_STATES.CONNECTED;
       aiAssistantState.generation = AI_GENERATION_STATES.COMPLETED;
       renderAiUi();
+      diagnostic.ui(aiAssistantState.answer.trim() ? aiAnswer.textContent.length : 0);
     }
   } catch (error) {
+    diagnosticErrorCode = error?.code || "unknown_error";
     if (requestId !== aiAssistantState.requestId) return;
     aiAssistantState.generation = error?.code === "aborted" ? AI_GENERATION_STATES.STOPPED : AI_GENERATION_STATES.ERROR;
     aiAssistantState.error = error?.code === "aborted" ? "" : friendlyAiError(error);
     if (error?.code === "connection") aiAssistantState.connection = AI_CONNECTION_STATES.UNAVAILABLE;
     renderAiUi();
   } finally {
+    diagnostic.finish({ characters: diagnosticAnswerCharacters, errorCode: diagnosticErrorCode,
+      stale: requestId !== aiAssistantState.requestId });
+    renderAiDiagnostics();
     if (requestId === aiAssistantState.requestId) aiAbortController = null;
   }
 }
