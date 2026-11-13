@@ -57,7 +57,7 @@ test("全ローカルCSS・JavaScriptを0.5.0のキャッシュ識別子で読�
   assert.match(html, /extensions\/web-clipper\/transfer-lifecycle\.js\?v=0\.5\.0-2/);
   assert.match(html, /web-clipper-config\.js\?v=0\.5\.0-4/);
   assert.match(html, /table-file-export-utils\.js\?v=0\.5\.0-4/);
-  assert.deepEqual(assetVersions.filter(asset => asset.path === "app.js").map(asset => asset.version), ["0.5.0-211"]);
+  assert.deepEqual(assetVersions.filter(asset => asset.path === "app.js").map(asset => asset.version), ["0.5.0-212"]);
   for (const asset of ["note-conflict-store.js", "note-conflict-ui.js", "note-conflict.css"]) {
     assert.deepEqual(assetVersions.filter(item => item.path === asset).map(item => item.version), [asset === "note-conflict.css" ? "0.5.0-2" : "0.5.0-1"]);
   }

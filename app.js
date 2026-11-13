@@ -1290,7 +1290,7 @@ let aiDraftConnectionMessage = "";
 let aiConnectionRequestId = 0;
 let aiConnectionAbortController = null;
 let aiSettingsSessionId = 0;
-const aiDiagnostics = window.MemoNexusAiDiagnostics.createStore();
+const aiDiagnostics = window.MemoNexusAiDiagnostics.createStore({ onExpire: renderAiDiagnostics });
 let aiAbortController = null;
 let aiAssistantState = {
   panelOpen: false,

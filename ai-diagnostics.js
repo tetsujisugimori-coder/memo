@@ -4,7 +4,7 @@
   const count = (n) => Number.isSafeInteger(n) && n >= 0 ? n : 0;
   const choice = (value, values) => values.includes(value) ? value : UNKNOWN;
   const errorCodes = ["aborted", "timeout", "connection", "model_missing", "provider", "invalid_response", "empty_response", "stream_parse", "stream_content_type", "authentication", "permission", "rate_limit", "quota_exceeded", "server_error", "safety_blocked", "api_key_required"];
-  function createStore({ now = Date.now, maxRecords = 20, maxAgeMs = 1800000, maxBytes = 65536 } = {}) {
+  function createStore({ now = Date.now, maxRecords = 20, maxAgeMs = 1800000, maxBytes = 65536, onExpire = () => {} } = {}) {
     let enabled = true, sequence = 0;
     const session = scope.crypto?.randomUUID?.() || `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
     const records = new Map();
@@ -13,7 +13,10 @@
       clearTimeout(expiryTimer);
       if (!records.size) return;
       const earliest = Math.min(...[...records.values()].map(r => r.startedMs));
-      expiryTimer = setTimeout(() => { prune(); scheduleExpiry(); }, Math.max(1, earliest + maxAgeMs - now()));
+      expiryTimer = setTimeout(() => {
+        prune(); scheduleExpiry();
+        try { onExpire(); } catch (_error) { /* expiration observers cannot affect generation */ }
+      }, Math.max(1, earliest + maxAgeMs - now()));
       expiryTimer.unref?.();
     }
     const bytes = () => new TextEncoder().encode(JSON.stringify([...records.values()])).length;

@@ -44,3 +44,24 @@ Verified the implementation and test working files equal that commit before inde
 Reviewed the pending docs/ai-diagnostics-stage1/README.md and MANUAL.md content separately from the fixed implementation commit. Their UNKNOWN/PENDING_MANUAL statements and distinction between EOF, parsing, DOM assignment and real painted visibility are appropriate. Suggested a copyable fixture-generation command for the manual to avoid requiring users to author their own helper. These pending documents are not claimed as part of bb52b287.
 
 The implementation author reports full suite 2019 total / 1993 PASS / 25 FAIL / 1 cancelled, including sandbox loopback EACCES constraints; this reviewer did not independently rerun that full suite. Remote CI and actual browser/model checks were not executed by this reviewer. Preserve those failures/limitations in the final report and maintain Draft. This review does not authorize merge or claim real Ollama stability.
+
+## Expiration display follow-up review
+
+Fixed target: 63dc8bd4e14857be4798e2bec2910bb3a95ba267
+Tree: 8c0442be571174af5d4d6ec3e25c3e8d72a2cdfe
+
+A further P2 retention gap was identified after the previous review: the store removed expired records, but the last metadata snapshot remained in #aiDiagnosticsSummary until another render. With no further interaction, the displayed request ID/model/timestamp outlived the advertised 30-minute retention. This was a UI retention defect, not a generated-answer defect.
+
+Reviewed the fixed commit and verified the tested implementation files exactly match it. The expiration timer now prunes the store, schedules the remaining records, and invokes onExpire inside a try/catch. The app wires that callback to the existing diagnostic renderer, so the view is refreshed when retention expires. The callback does not modify editor, save, request, or generation state. It is only scheduled after a diagnostic record begins. The updated startup-order regression retains the early initialization check.
+
+Independent execution on this fixed target: 120/120 AI-related tests PASS, fail 0, cancelled 0, skipped 0. This includes 30 diagnostic tests, including actual diagnostic-renderer DOM clearing without user interaction and isolation of throwing expiration observers. Do not add those 30 to the 120 total. Commit diff --check PASS.
+
+P2 expired DOM snapshot: CLOSED. Prior P1 startup ordering and P2 malformed thinking fixes remain intact. No remaining P1/P2 found in this bounded implementation review. Browser suspension can delay browser timers; no claim is made that a suspended tab executes at an exact wall-clock deadline.
+
+## Palette CSV CI failure: independent static assessment
+
+Assessed local df477fc39ba37deab72b7471aa719fe40f3d1b6f / tree 2eefc122443fdedd2f90cf87379f39bec7d53798, reported equivalent to submitted 389c521. The reported Chromium failure is feature-palette.e2e.js:137, after fileChooser.setFiles, waiting for #tablePasteDialog to become visible. This reviewer did not rerun the E2E or fetch its raw CI artifacts.
+
+The palette implementation, palette E2E/support, table utility files and style.css are unchanged from base. The unchanged CSV path is pointerdown snapshot -> click picker -> input change -> file.arrayBuffer -> context validity -> parse -> second context validity -> openTablePasteDialog. New diagnostic code does not write CSV input, selection, request context, file-reading state, or dialog state. The CSV handler does not directly call renderAiUi. No AI generation occurs before this step in the test, so no diagnostic record or expiration timer has been scheduled there. No direct new diagnostic-to-CSV failure path was found.
+
+Causality remains UNKNOWN. Static unchanged code is not proof that script loading, DOM size, or timing cannot indirectly influence an existing race. Missing failure-time change/read/context/exception observations prevent distinguishing event delivery, file read completion, context rejection or another cause. Do not label this as established pre-existing flakiness, do not mark it fixed, and do not call the overall CI successful. Keep the original CI failure and its exact tested SHA separate from later fixed implementation checks. No product/test modifications or E2E retries were performed for this assessment.

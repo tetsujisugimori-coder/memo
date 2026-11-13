@@ -4009,3 +4009,5 @@ Windows 11 Home 10.0.26200、Playwright 1.62.1 のローカル WebKit で、既�
 - 空done、thinking-only、欠done、UTF-8分割、切断、停止、timeout、連続2/5回、遅延旧要求、履歴/翻訳先/用途/モデル/開閉、プライバシー・上限のモックを追加。
 - 独立レビューで起動前初期化順P1と不正thinking変換P2を検出し修正、具体反例を回帰へ追加。
 - 最終検証・既存失敗・HEAD別の証拠は docs/ai-diagnostics-stage1/REPORT.md に記録。根本原因UNKNOWN、実Ollama/実ブラウザはPENDING_MANUAL。Stage 2/3は提案のみ、Draft維持・マージなし。
+
+- 提出前追補: 30分後も診断DOMにsnapshotが残るP2を独立確認し、期限通知で表示も消去、通知例外を隔離。固定63dc8bdで独立120/120 PASS（診断30を含む）。最終ローカル全体2021中1995 PASS/25 FAIL/1 cancel。先行CIの単体2019 PASS、Palette Chromium CSV timeoutとTrack A固定source guard失敗を別記。

@@ -118,6 +118,22 @@ test("age expiry removes retained records without reads", async () => {
   const store = createStore({ maxAgeMs: 5 }); store.begin();
   await new Promise(resolve => setTimeout(resolve, 15)); assert.deepEqual(store.snapshot(), []);
 });
+test("expiry also clears the actual diagnostic DOM snapshot without user interaction", async () => {
+  const host = { textContent: "" };
+  const box = { document: { getElementById: () => host } };
+  vm.createContext(box); vm.runInContext(source("renderAiDiagnostics"), box);
+  box.aiDiagnostics = createStore({ maxAgeMs: 5, onExpire: () => box.renderAiDiagnostics() });
+  box.aiDiagnostics.begin({ model: "private-model-name" }); box.renderAiDiagnostics();
+  assert.match(host.textContent, /private-model-name/);
+  await new Promise(resolve => setTimeout(resolve, 20));
+  assert.equal(host.textContent, "診断記録はありません。");
+});
+test("throwing expiry observers cannot escape the diagnostic timer", async () => {
+  let calls = 0;
+  const store = createStore({ maxAgeMs: 5, onExpire: () => { calls++; throw Error("PRIVATE_OBSERVER"); } });
+  store.begin(); await new Promise(resolve => setTimeout(resolve, 20));
+  assert.equal(calls, 1); assert.deepEqual(store.snapshot(), []);
+});
 test("final records are immutable to late callbacks and returned snapshots are copies", () => {
   const store = createStore(), h = store.begin({ messages: [{ role: "user", content: "x" }] });
   h.finish({ characters: 0 }); h.observe("body", { characters: 99 }); h.ui(99);
@@ -258,7 +274,7 @@ test("actual startup order initializes diagnostics before synchronous init rende
   const firstDbAwait = app.indexOf("  db = await openDb();", initStart);
   assert.ok(initStart >= 0 && firstDbAwait > initStart);
   const initPrefix = app.slice(initStart, firstDbAwait + "  db = await openDb();".length) + "\n}";
-  const declaration = "const aiDiagnostics = window.MemoNexusAiDiagnostics.createStore();";
+  const declaration = "const aiDiagnostics = window.MemoNexusAiDiagnostics.createStore({ onExpire: renderAiDiagnostics });";
   const declarationIndex = app.indexOf(declaration);
   const startupIndex = app.indexOf("void runGuardedStartup({");
   assert.ok(declarationIndex >= 0 && startupIndex >= 0);

@@ -1,12 +1,13 @@
 {
   "environment": "Windows / Node v24.20.0 / sandbox unchanged / dedicated TEMP",
+  "sourceCommit": "63dc8bd4e14857be4798e2bec2910bb3a95ba267",
   "command": "node --test --test-reporter=tap",
-  "tests": 2019,
-  "pass": 1993,
+  "tests": 2021,
+  "pass": 1995,
   "fail": 25,
   "cancelled": 1,
   "skipped": 0,
-  "rawSha256": "2ea89101e0e4950f43f9e244c7dc8c245ae3d6eec302f1674838479aff603205",
+  "rawSha256": "5bca3ab418e1ffeff38385cd6a816bca223c4a9cd05957e65662f00d6b7eff17",
   "rawLocation": "task-temp/all-final.tap (local only; absolute user paths not published)",
   "failures": [
     {
