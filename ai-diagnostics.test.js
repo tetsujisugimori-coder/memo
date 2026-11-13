@@ -129,9 +129,10 @@ test("expiry also clears the actual diagnostic DOM snapshot without user interac
   assert.equal(host.textContent, "診断記録はありません。");
 });
 test("throwing expiry observers cannot escape the diagnostic timer", async () => {
-  let calls = 0;
-  const store = createStore({ maxAgeMs: 5, onExpire: () => { calls++; throw Error("PRIVATE_OBSERVER"); } });
-  store.begin(); await new Promise(resolve => setTimeout(resolve, 20));
+  let calls = 0, clock = 0;
+  const store = createStore({ now: () => clock, maxAgeMs: 5, onExpire: () => { calls++; throw Error("PRIVATE_OBSERVER"); } });
+  // Make the scheduled callback due independently of wall-clock rounding on loaded CI runners.
+  store.begin(); clock = 5; await new Promise(resolve => setTimeout(resolve, 20));
   assert.equal(calls, 1); assert.deepEqual(store.snapshot(), []);
 });
 test("final records are immutable to late callbacks and returned snapshots are copies", () => {

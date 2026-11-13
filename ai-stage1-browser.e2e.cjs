@@ -9,6 +9,8 @@ const crypto = require('node:crypto');
 const {execFileSync} = require('node:child_process');
 const playwright = require('playwright');
 const {fixture,observe,PLAN} = require('./scripts/ai-stage1-validation.cjs');
+const {buildAiMessages} = require('./ai-prompts');
+const {DEFAULT_AI_SETTINGS} = require('./ai-provider');
 const {importDiagnostics,auditApplication} = require('./scripts/ai-stage1-audit.cjs');
 const engine = process.env.MEMO_NEXUS_E2E_BROWSER || 'chromium';
 if (!['chromium','webkit'].includes(engine)) throw Error('unsupported_engine');
@@ -65,6 +67,7 @@ async function main() {
     });
     const page=await context.newPage();page.setDefaultTimeout(15000);page.on('pageerror',()=>failures.push('PAGE_ERROR'));
     stage='app-startup';await page.goto(origin);await page.locator('#appStartupGuard').waitFor({state:'hidden'});
+    await page.locator('#titleInput').fill('SYNTHETIC_AI_FIXTURE');
     await page.locator('#editor').fill('The blue bird sits by the window.');
     const noteBefore=await page.locator('#editor').inputValue();
     async function settings(model='fixture-model') {
@@ -107,8 +110,12 @@ async function main() {
     for(const [i,group] of PLAN.entries()) {
       await scenario(`ABCD-${String(i+1).padStart(2,'0')}-${group}`,async()=>{
         if(group!==previous||['A','C'].includes(group)){await fresh(group);history=[];observations=[];}previous=group;
-        const expected=fixture(group,history,'ja');const request=await send(expected.purpose==='question');await complete();
-        assert.deepEqual(request,{model:'fixture-model',stream:true,messages:expected.messages,options:{}},'full synthetic message identity');
+        const expected=fixture(group,history,'ja');
+        if(expected.purpose==='translate') expected.messages=buildAiMessages({purpose:'translate',reference:{mode:'selected-text',noteTitle:'SYNTHETIC_AI_FIXTURE',content:noteBefore},userInstruction:'',history,translationLanguage:'ja',systemInstruction:DEFAULT_AI_SETTINGS.systemInstruction});
+        const request=await send(expected.purpose==='question');await complete();
+        const expectedRequest={model:'fixture-model',stream:true,messages:expected.messages,options:{}};
+        report.lastRequest={actualSha256:digest(JSON.stringify(request)),expectedSha256:digest(JSON.stringify(expectedRequest)),actualRoles:request.messages.map(m=>m.role),expectedRoles:expected.messages.map(m=>m.role),actualLengths:request.messages.map(m=>m.content.length),expectedLengths:expected.messages.map(m=>m.content.length)};
+        assert.deepEqual(request,expectedRequest,'full synthetic message identity');
         const raw=await copy(),records=importDiagnostics(raw),r=records.at(-1);
         assert.equal(records.length,observations.length+1);assert.equal(await page.locator('#aiAnswer').textContent(),text);
         let directRequest;const direct=await observe({...expected,model:request.model},'direct',async(_url,options)=>{directRequest=JSON.parse(options.body);return new Response(event(text,true,thinking));});
@@ -117,6 +124,7 @@ async function main() {
         observations.push({trialId:`${group}_${i+1}`,requestId:r.requestId,requestSha256,directRequestSha256:digest(JSON.stringify(directRequest)),model:request.model,purpose:expected.purpose,translationLanguage:'ja',referenceMode:expected.referenceMode,historyMessageCount:history.length,sentMessageCount:request.messages.length,inputCharacters:request.messages.reduce((n,m)=>n+m.content.length,0),messageRoles:request.messages.map(m=>m.role),bodyCharacters:direct.record.bodyCharacters,thinkingCharacters:direct.record.thinkingCharacters,doneCount:direct.record.doneCount,domCharacters:text.length,visible:await visible(),expectedResult:'COMPLETED_WITH_TEXT'});
         const audited=auditApplication(raw,observations);assert.equal(audited.evidence,'CONSISTENT_METADATA');
         report.cases.push({name:`metadata-${group}-${i+1}`,result:'CONSISTENT_METADATA',record:r,requestSha256,directRequestSha256:requestSha256,visible:observations.at(-1).visible,domCharacters:text.length});
+        delete report.lastRequest;
         if(expected.userInstruction) history.push({role:'user',content:expected.userInstruction});history.push({role:'assistant',content:text});
       });
     }
