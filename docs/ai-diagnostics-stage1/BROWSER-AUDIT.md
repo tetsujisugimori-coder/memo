@@ -2,6 +2,8 @@
 
 Status at implementation: PARTIAL, root cause UNKNOWN, Draft / merge NO. Production application, prompts, provider settings, save behavior and historical Track A guard are unchanged. This adds a separate test path; it does not implement a product log upload feature.
 
+The completed synthetic-service results, exact tested HEAD and remaining boundaries are recorded in [BROWSER-AUDIT-REPORT.md](BROWSER-AUDIT-REPORT.md).
+
 ## Diagnostic input
 
 `node scripts/ai-stage1-audit.cjs <local-diagnostic.json>` reads an explicitly selected local file with a 64 KiB descriptor-read bound and accepts only the application's diagnostic export array (at most 20 records). It returns a schema summary, never raw input or exception text. No network, writes or model inference. Unknown/missing fields (including arbitrary answer/thinking/error fields), duplicate JSON keys including escaped spellings, duplicate request IDs, malformed UTF-8, bad counters, inconsistent roles, HTTP/stream/done/UI and result contradictions are rejected. The descriptor stays open throughout the bounded read; symlinks are refused where O_NOFOLLOW is supported. Windows does not provide that flag: only regular files are accepted, but path provenance is not authenticated.
