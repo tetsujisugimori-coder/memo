@@ -11,7 +11,7 @@ function record() {
   h.observe('http',{status:200}); h.observe('stream-start'); h.observe('chunk'); h.observe('body',{characters:1}); h.observe('done'); h.observe('stream-end'); h.ui(1); h.finish({characters:1});
   const r=s.snapshot()[0];s.clear();return r;
 }
-function observation(r) { return {trialId:'A_01',requestId:r.requestId,requestSha256:'a'.repeat(64),directRequestSha256:'a'.repeat(64),model:r.model,purpose:r.purpose,translationLanguage:r.translationLanguage,referenceMode:r.referenceMode,historyMessageCount:r.historyMessageCount,sentMessageCount:r.sentMessageCount,inputCharacters:r.inputCharacters,messageRoles:r.messageRoles,domCharacters:1,visible:true,expectedResult:'COMPLETED_WITH_TEXT'}; }
+function observation(r) { return {trialId:'A_01',requestId:r.requestId,requestSha256:'a'.repeat(64),directRequestSha256:'a'.repeat(64),model:r.model,purpose:r.purpose,translationLanguage:r.translationLanguage,referenceMode:r.referenceMode,historyMessageCount:r.historyMessageCount,sentMessageCount:r.sentMessageCount,inputCharacters:r.inputCharacters,messageRoles:r.messageRoles,bodyCharacters:r.bodyCharacters,thinkingCharacters:r.thinkingCharacters,doneCount:r.doneCount,domCharacters:1,visible:true,expectedResult:'COMPLETED_WITH_TEXT'}; }
 test('real producer schema roundtrips; consistent metadata is not authenticated evidence',()=>{
   const r=record();assert.deepEqual(importDiagnostics(JSON.stringify([r])),[r]);
   const a=auditApplication(JSON.stringify([r]),[observation(r)]);assert.equal(a.evidence,'CONSISTENT_METADATA');assert.equal(a.authenticity,'NOT_ESTABLISHED');assert.equal(a.semanticCorrectness,'NOT_TESTED');
@@ -46,6 +46,13 @@ test('zero records, unfinished, stopped and stale samples never become applicati
   for(const [error,stale] of [['aborted',false],[undefined,true]]) {
     const s=createStore();const h=s.begin();h.finish({characters:0,errorCode:error,stale});const r=s.snapshot()[0];s.clear();
     assert.equal(auditApplication(JSON.stringify([r]),[observation(record())]).evidence,'INCOMPLETE');
+  }
+});
+test('plausible but mismatched response counts cannot pass the independent observation',()=>{
+  const r=record(),o=observation(r);
+  for(const extra of [{bodyCharacters:99},{thinkingCharacters:7,thinkingPresent:true},{doneCount:2}]) {
+    const changed={...r,...extra};assert.equal(importDiagnostics(JSON.stringify([changed])).length,1);
+    assert.equal(auditApplication(JSON.stringify([changed]),[o]).evidence,'INCOMPLETE');
   }
 });
 test('bounded file import rejects oversized and non-file input',()=>{

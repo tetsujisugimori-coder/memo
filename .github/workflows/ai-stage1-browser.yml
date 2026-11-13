@@ -32,7 +32,7 @@ jobs:
     timeout-minutes: 10
     env:
       MEMO_NEXUS_E2E_BROWSER: ${{ matrix.browser }}
-      MEMO_AI_STAGE1_OUTPUT: ${{ runner.temp }}/memo-ai-stage1
+      MEMO_AI_STAGE1_OUTPUT: e2e-artifacts/ai-stage1-${{ matrix.os }}-${{ matrix.browser }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -63,6 +63,6 @@ jobs:
         if: always()
         with:
           name: ai-stage1-${{ matrix.os }}-${{ matrix.browser }}
-          path: ${{ runner.temp }}/memo-ai-stage1/
+          path: ${{ env.MEMO_AI_STAGE1_OUTPUT }}/
           if-no-files-found: error
           retention-days: 14

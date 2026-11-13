@@ -13,7 +13,7 @@ const ENUMS = {
   result: ['UNKNOWN','TIMEOUT','INTERRUPTED','ERROR','STREAM_ENDED_WITHOUT_DONE','COMPLETED_WITH_TEXT','COMPLETED_EMPTY']
 };
 const KEYS = [...COUNTS,...BOOLS,...Object.keys(ENUMS),'requestId','startedAt','model','messageRoles','httpStatus','finalAnswerCharacters','uiCharacters'].sort();
-const OBS_KEYS = ['trialId','requestId','requestSha256','directRequestSha256','model','purpose','translationLanguage','referenceMode','historyMessageCount','sentMessageCount','inputCharacters','messageRoles','domCharacters','visible','expectedResult'].sort();
+const OBS_KEYS = ['trialId','requestId','requestSha256','directRequestSha256','model','purpose','translationLanguage','referenceMode','historyMessageCount','sentMessageCount','inputCharacters','messageRoles','bodyCharacters','thinkingCharacters','doneCount','domCharacters','visible','expectedResult'].sort();
 const integer = n => Number.isSafeInteger(n) && n >= 0 && n <= 1e9;
 const object = o => o !== null && typeof o === 'object' && !Array.isArray(o);
 const exact = (o, keys) => object(o) && JSON.stringify(Object.keys(o).sort()) === JSON.stringify(keys);
@@ -85,13 +85,13 @@ function auditApplication(input, observations) {
     if (!exact(o,OBS_KEYS) || typeof o.trialId !== 'string' || !/^[A-Z][A-Z0-9_-]{0,39}$/.test(o.trialId) ||
         typeof o.requestId !== 'string' || !/^[a-f0-9]{64}$/.test(o.requestSha256) || o.directRequestSha256 !== o.requestSha256 ||
         !integer(o.domCharacters) || typeof o.visible !== 'boolean' || !Array.isArray(o.messageRoles) ||
-        ['historyMessageCount','sentMessageCount','inputCharacters'].some(k => !integer(o[k])) ||
+        ['historyMessageCount','sentMessageCount','inputCharacters','bodyCharacters','thinkingCharacters','doneCount'].some(k => !integer(o[k])) ||
         ids.has(o.requestId) || trials.has(o.trialId)) return {...result,reason:'PAIR_IDENTITY'};
     ids.add(o.requestId); trials.add(o.trialId);
     const r = records.find(r => r.requestId === o.requestId);
     if (!r || !r.finalized || r.provider !== 'ollama' || r.model === 'UNKNOWN' ||
         r.purpose !== r.uiPurpose || r.translationLanguage !== r.uiTranslationLanguage ||
-        ['model','purpose','translationLanguage','referenceMode','historyMessageCount','sentMessageCount','inputCharacters'].some(k => r[k] !== o[k]) ||
+        ['model','purpose','translationLanguage','referenceMode','historyMessageCount','sentMessageCount','inputCharacters','bodyCharacters','thinkingCharacters','doneCount'].some(k => r[k] !== o[k]) ||
         JSON.stringify(r.messageRoles) !== JSON.stringify(o.messageRoles) || r.result !== o.expectedResult ||
         (r.result === 'COMPLETED_WITH_TEXT' && (!r.uiApplied || !o.visible || r.finalAnswerCharacters !== o.domCharacters || r.uiCharacters !== o.domCharacters)) ||
         (r.result === 'COMPLETED_EMPTY' && (!r.uiApplied || o.domCharacters !== 0 || r.uiCharacters !== 0)) ||
