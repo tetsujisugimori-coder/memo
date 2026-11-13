@@ -1,0 +1,24 @@
+✔ fixed 2/5/2/5 plan and history isolation (1.435773ms)
+✔ direct: normal (7.229693ms)
+✔ direct: empty (2.408674ms)
+✔ direct: thinking (2.620588ms)
+✔ direct: done missing (0.730491ms)
+✔ direct: bounded timeout (5.505685ms)
+✔ adapter: normal (1.628754ms)
+✔ adapter: empty (3.98176ms)
+✔ adapter: thinking (0.731402ms)
+✔ adapter: done missing (0.608738ms)
+✔ adapter: bounded timeout (5.995224ms)
+✔ explicit inference gate prevents all traffic (0.625983ms)
+✔ pair classification requires distinct requests and matched conditions (1.857448ms)
+✔ classification retains interruption, disconnect, stale and missing independently (0.184408ms)
+✔ same transport failure has same lane category (0.388755ms)
+✔ missing schema and contradictory HTTP/done evidence never pairs (0.946466ms)
+ℹ tests 16
+ℹ suites 0
+ℹ pass 16
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 214.925047
