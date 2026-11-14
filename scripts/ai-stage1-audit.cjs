@@ -94,7 +94,7 @@ function auditApplication(input, observations) {
         ['model','purpose','translationLanguage','referenceMode','historyMessageCount','sentMessageCount','inputCharacters','bodyCharacters','thinkingCharacters','doneCount'].some(k => r[k] !== o[k]) ||
         JSON.stringify(r.messageRoles) !== JSON.stringify(o.messageRoles) || r.result !== o.expectedResult ||
         (r.result === 'COMPLETED_WITH_TEXT' && (!r.uiApplied || !o.visible || r.finalAnswerCharacters !== o.domCharacters || r.uiCharacters !== o.domCharacters)) ||
-        (r.result === 'COMPLETED_EMPTY' && (!r.uiApplied || o.domCharacters !== 0 || r.uiCharacters !== 0)) ||
+        (r.result === 'COMPLETED_EMPTY' && (!r.uiApplied || r.finalAnswerCharacters !== 0 || o.domCharacters !== 0 || r.uiCharacters !== 0)) ||
         (!['COMPLETED_WITH_TEXT','COMPLETED_EMPTY'].includes(r.result))) return {...result,reason:'OBSERVATION_MISMATCH'};
     result.rows.push({trialId:o.trialId,requestId:r.requestId,requestSha256:o.requestSha256,result:r.result,visible:o.visible,domCharacters:o.domCharacters});
   }
