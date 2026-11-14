@@ -1,0 +1,12 @@
+[
+  {
+    "file": "mock-tests.txt",
+    "size": 922,
+    "sha256": "ac3628d7af8ef0d664f66fc0350c3ef5e6d5a1b88cb10c58fd8d0e87524033ad"
+  },
+  {
+    "file": "ai-regression.txt",
+    "size": 9751,
+    "sha256": "79ed080ab0473f10a0ab69028b8c74804cd809651d2e9966343b9ba1b1a222fe"
+  }
+]

@@ -1,0 +1,12 @@
+{
+  "platform": "win32",
+  "node": "v22.23.4",
+  "ollamaCli": "NOT_FOUND",
+  "version": "UNKNOWN",
+  "service": "BLOCKED",
+  "models": [],
+  "playwright": "1.62.1",
+  "browserExecution": "NOT_TESTED",
+  "windowsExecution": "PROBE_ONLY",
+  "endpoint": "http://127.0.0.1:11434"
+}

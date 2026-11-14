@@ -4001,3 +4001,13 @@ Windows 11 Home 10.0.26200、Playwright 1.62.1 のローカル WebKit で、既�
 - PC／320pxの通常・Reportのレビュー画像4枚を `docs/comparison-v1/` へ保存し、目視確認。撮影時だけ高さを増やして比較ブロック全体が収まることを検証し、通常の320×844も別に確認。図とURLは検証用。実在資料の調査結果ではない。
 - Comparison実操作はChromiumで確認。WebKit／Safari／iPhone実機のComparison操作、本番配信後のキャッシュ更新は未確認。app、attachment、backup、local-sync、CSSの配信識別子と対応する既存テストを同期。既存Figure CI jobにComparisonを1回追加し、レビュー画像artifactを保存する。GitHub Actions結果はPR作成後に確認し、PR本文へ反映する。
 - Figure・Comparison・Table・Chartから共通Sourceへの `sourceId` 接続は後続課題。FigureのsourceName／sourceUrlを維持し、自動移行、重複Sourceモデル、Source UI拡張は行っていない。
+
+## 2026-11-13 AI診断基盤 Stage 1 (#455)
+
+- main 08572bbから独立領域/専用branchを作成。既存コピーは変更しない。
+- ai-diagnostics.jsのメタデータ専用メモリログ、両adapterの観測callback、AIパネルの折りたたみ診断とコピー/消去/ON/OFFを追加。既存公開生成state、messages、モデル設定、保存・Codex・MCP・Workerは維持。
+- 空done、thinking-only、欠done、UTF-8分割、切断、停止、timeout、連続2/5回、遅延旧要求、履歴/翻訳先/用途/モデル/開閉、プライバシー・上限のモックを追加。
+- 独立レビューで起動前初期化順P1と不正thinking変換P2を検出し修正、具体反例を回帰へ追加。
+- 最終検証・既存失敗・HEAD別の証拠は docs/ai-diagnostics-stage1/REPORT.md に記録。根本原因UNKNOWN、実Ollama/実ブラウザはPENDING_MANUAL。Stage 2/3は提案のみ、Draft維持・マージなし。
+
+- 提出前追補: 30分後も診断DOMにsnapshotが残るP2を独立確認し、期限通知で表示も消去、通知例外を隔離。固定63dc8bdで独立120/120 PASS（診断30を含む）。最終ローカル全体2021中1995 PASS/25 FAIL/1 cancel。先行CIの単体2019 PASS、Palette Chromium CSV timeoutとTrack A固定source guard失敗を別記。
