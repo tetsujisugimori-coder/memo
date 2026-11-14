@@ -4,6 +4,8 @@ Status at implementation: PARTIAL, root cause UNKNOWN, Draft / merge NO. Product
 
 The completed synthetic-service results, exact tested HEAD and remaining boundaries are recorded in [BROWSER-AUDIT-REPORT.md](BROWSER-AUDIT-REPORT.md).
 
+The subsequent translation-only prompt version 2 candidate and its separate real-model acceptance boundary are described in [TRANSLATION-CANDIDATE.md](TRANSLATION-CANDIDATE.md). Historical note-title payload assertions below belong to prompt version 1; the current browser test checks the version 2 body-only single-reference contract.
+
 ## Diagnostic input
 
 `node scripts/ai-stage1-audit.cjs <local-diagnostic.json>` reads an explicitly selected local file with a 64 KiB descriptor-read bound and accepts only the application's diagnostic export array (at most 20 records). It returns a schema summary, never raw input or exception text. No network, writes or model inference. Unknown/missing fields (including arbitrary answer/thinking/error fields), duplicate JSON keys including escaped spellings, duplicate request IDs, malformed UTF-8, bad counters, inconsistent roles, HTTP/stream/done/UI and result contradictions are rejected. The descriptor stays open throughout the bounded read; symlinks are refused where O_NOFOLLOW is supported. Windows does not provide that flag: only regular files are accepted, but path provenance is not authenticated.

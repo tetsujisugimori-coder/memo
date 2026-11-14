@@ -232,11 +232,16 @@ test("actual app: translation/question, history and language changes record the 
     if (history) box.aiAssistantState.history = [{ role: "user", content: "PREVIOUS_PRIVATE" }, { role: "assistant", content: "PREVIOUS_ANSWER" }];
     box.aiInstructionInput.value = "INSTRUCTION_PRIVATE"; await box.startAiGeneration();
     const actual = sent.at(-1), record = box.aiDiagnostics.snapshot().at(-1);
-    assert.deepEqual(actual.map(m => m.role), history ? ["system", "system", "user", "assistant", "user"] : ["system", "system", "user"]);
+    const prefix = purpose === "translate" ? ["system"] : ["system", "system"];
+    assert.deepEqual(actual.map(m => m.role), [...prefix, ...(history ? ["user", "assistant"] : []), "user"]);
     assert.equal(record.sentMessageCount, actual.length); assert.equal(record.historyMessageCount, history ? 2 : 0);
     assert.equal(record.purpose, purpose); assert.equal(record.translationLanguage, language);
     assert.equal(record.inputCharacters, actual.reduce((n, m) => n + m.content.length, 0));
-    if (purpose === "translate") assert.ok(actual.at(-1).content.includes(language === "ja" ? "日本語" : "英語"));
+    if (purpose === "translate") {
+      assert.ok(actual.at(-1).content.includes(language === "ja" ? "日本語" : "英語"));
+      assert.match(actual.at(-1).content, /\[翻訳対象\]\nREFERENCE_PRIVATE$/);
+      assert.equal(actual.filter(m => m.role === "system").some(m => m.content.includes("REFERENCE_PRIVATE")), false);
+    }
     else assert.equal(actual.at(-1).content, "INSTRUCTION_PRIVATE");
   }
   assert.doesNotMatch(box.aiDiagnostics.exportJson(), /PRIVATE|PREVIOUS_ANSWER/);

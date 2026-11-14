@@ -116,6 +116,12 @@ async function main() {
         const expectedRequest={model:'fixture-model',stream:true,messages:expected.messages,options:{}};
         report.lastRequest={actualSha256:digest(JSON.stringify(request)),expectedSha256:digest(JSON.stringify(expectedRequest)),actualRoles:request.messages.map(m=>m.role),expectedRoles:expected.messages.map(m=>m.role),actualLengths:request.messages.map(m=>m.content.length),expectedLengths:expected.messages.map(m=>m.content.length)};
         assert.deepEqual(request,expectedRequest,'full synthetic message identity');
+        if(expected.purpose==='translate') {
+          assert.deepEqual(request.messages.map(m=>m.role),['system',...history.map(m=>m.role),'user']);
+          assert.ok(request.messages.at(-1).content.startsWith('次の文章を日本語に翻訳してください。'));
+          assert.ok(request.messages.at(-1).content.endsWith('[翻訳対象]\n'+noteBefore));
+          assert.equal(request.messages.filter(m=>m.role==='system').some(m=>m.content.includes(noteBefore)),false);
+        }
         const raw=await copy(),records=importDiagnostics(raw),r=records.at(-1);
         assert.equal(records.length,observations.length+1);assert.equal(await page.locator('#aiAnswer').textContent(),text);
         let directRequest;const direct=await observe({...expected,model:request.model},'direct',async(_url,options)=>{directRequest=JSON.parse(options.body);return new Response(event(text,true,thinking));});
