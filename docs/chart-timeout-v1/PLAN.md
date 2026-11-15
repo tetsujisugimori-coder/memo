@@ -25,3 +25,9 @@ DOMのinput/change/click/focusイベント（上限1000件）と、目的wait前
 
 ## 受入
 診断整合PASS、製品の原FAIL、証拠不足UNKNOWN、起動不能BLOCKED、未着手NOT_TESTEDを分離。欠測を根因断定に使わない。固定入力ドリフト・構文破損は機構異常で、製品故障検出ではない。原票と単体の合成例を区別する。後続通常CIで行われる全Chart suiteは今回有限枠とは別であり、診断枠に加算・転用しない。
+
+## 独立レビューによる事前補強
+原runnerのWindows専用Chromium1194代替起動は、診断生成コピーだけで削除する。Playwrightが解決した各engine実行物の所在とraw hashを実行前に保存し、欠測なら4枠とも未実行でBLOCKED。OS/libraryまで原CIと同一と称さない。
+再実行禁止は今回の運用契約と同出力先拒否で管理する。別ディレクトリを使った全世界共通の再実行排他を技術的に保証してはいない。新しい実行要求なしに別出力で再開しない。
+
+実行物identityは現状Playwright.executablePath()の候補パスhashに限る。Chromium headless shellやWebKit wrapper先の実際の起動物・共有ライブラリの同一性はNOT_OBTAINED。実行解禁前に実起動先を照合する必要があり、候補パスの一致だけで原CIと同build保証としない。

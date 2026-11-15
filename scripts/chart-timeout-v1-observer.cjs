@@ -5,8 +5,8 @@ function snapshot() {
  const current=utils?.splitChartBlocks(document.getElementById('editor')?.value||'').find(s=>s.type==='chart')?.chart||null;
  const totals=current ? utils.chartStackedTotals(current.items,current.series) : [];
  const labels=[...document.querySelectorAll('#preview .chart-block-stacked-total-value')].map(e=>e.textContent);
- const status=document.querySelector('.chart-block-editor .chart-block-status')?.textContent;
- const focus=document.activeElement?.getAttribute('aria-label');
+ const status=document.querySelector('.chart-block-editor .chart-block-status')?.textContent ?? null;
+ const focus=document.activeElement?.getAttribute('aria-label') ?? null;
  return {time:performance.now(),current,inputs:[...document.querySelectorAll('.chart-block-editor input')].map(e=>({value:e.value,label:e.getAttribute('aria-label'),item:e.closest('[data-chart-item-index]')?.dataset.chartItemIndex})),focus,status,labels,events:window.__chartDiagnosticEvents||[],conditions:{legacyFocus:focus==='2件目の売上の数値',legacyStatus:status==='数値は有限な数値を入力してください',stacked:current?.appearance?.barMode==='stacked',showTotals:current?.appearance?.showStackTotals===true,oneSeries:current?.series.length===1,fiveItems:current?.items.length===5,valuesMatch:JSON.stringify(current?.series[0]?.values)===JSON.stringify([Number.MAX_VALUE,1.7e308,1.6e308,1.5e308,1.4e308]),fiveLabels:labels.length===5,labelsMatch:labels.length===5&&labels.every((v,i)=>v===utils.formatChartStackTotal(totals[i]))}};
 }
 async function attach(page) {
