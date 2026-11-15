@@ -1,7 +1,8 @@
 'use strict';
 const test=require('node:test');const assert=require('node:assert/strict');const fs=require('node:fs');const vm=require('node:vm');const cp=require('node:child_process');
 const {generate,analyzeOriginal,SOURCE_HASH,hash}=require('./scripts/chart-timeout-v1.cjs');
-const source=cp.execFileSync('git',['show','87a5ac2f2dbbb940e8f4b4dd6269e5c349e75fc1:chart-block.e2e.js'],{encoding:'utf8'});
+// Read the checked-out Git blob (not CRLF-converted worktree); generate() still requires the fixed SHA-256.
+const source=cp.execFileSync('git',['show','HEAD:chart-block.e2e.js'],{encoding:'utf8'});
 for(const scenario of ['legacy','narrow'])test('fixed extraction '+scenario,()=>{const s=generate(source,scenario);new vm.Script(s);assert.match(s,/Timeout|timeout: 30000/);assert.ok(s.includes('invalidReorderValue.fill("Infinity")'));assert.equal(s.includes('const narrowTotalLayout'),false);assert.equal(s.includes('const narrowValues'),scenario==='narrow');assert.ok(s.includes('await closeStaticServer(server)'));});
 test('source drift rejected',()=>assert.throws(()=>generate(source+'\n','legacy'),/SOURCE_MISMATCH/));
 test('scenario rejected',()=>assert.throws(()=>generate(source,'unknown'),/SCENARIO/));
