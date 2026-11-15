@@ -127,6 +127,11 @@ test('collector never runs browsers or installed package code, and preserves mis
   const original=cp.spawnSync,commands=[];cp.spawnSync=(command,args)=>{commands.push([command,args]);assert.equal(command,'git');return {status:1,stdout:Buffer.alloc(0)};};
   try{const facts=collect(dir,{output:path.join(dir,'out'),browserCache:path.join(dir,'cache')});assert.ok(commands.length>0);assert.equal(facts.browsers.chromium.executable.status,'BLOCKED');assert.equal(facts.environment.launchSuccess,'UNKNOWN');const r=assess(facts);assert.notEqual(r.overall,'PASS');assert.equal(r.checks.find(c=>c.item==='head').status,'UNKNOWN');}finally{cp.spawnSync=original;}
 })));
+test('fixed commit identity requires an existing commit object, not literal SHA echo',()=>temporary(dir=>capacity(()=>{
+  const original=cp.spawnSync;let first=true;
+  cp.spawnSync=(command,args)=>{assert.equal(command,'git');if(first){assert.deepEqual(args,['rev-parse','--verify',FIXED.head+'^{commit}']);first=false;}return {status:1,stdout:Buffer.alloc(0)};};
+  try{const r=assess(collect(dir,{output:path.join(dir,'out'),browserCache:path.join(dir,'cache')}));assert.equal(r.checks.find(c=>c.item==='head').status,'UNKNOWN');}finally{cp.spawnSync=original;}
+})));
 test.after(()=>{
   if(!process.env.CHART_PREFLIGHT_CONTROLS)return;
   const out=path.resolve(process.env.CHART_PREFLIGHT_CONTROLS);fs.mkdirSync(out);

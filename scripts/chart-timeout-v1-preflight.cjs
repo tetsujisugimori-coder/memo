@@ -179,7 +179,7 @@ function collect(root, {output,dependencies,browserCache,archives={}}) {
   const facts={schema:1,createdAt:new Date().toISOString(),commands,environment:{platform:process.platform,arch:process.arch,node:process.version,osType:os.type(),release:os.release(),launchSuccess:'UNKNOWN'},source:{},diagnostic:{},dependencies:{},browsers:{},output:checkOutput(root,output),plan:{slots:[...SLOTS],attemptsPerSlot:1,retries:0,actionTimeoutMs:30000,wallMs:180000,maxBuffer:16777216,evidenceBudgetBytes:300*1024**2,executions:SLOTS.map(slot=>({slot,executions:0,status:'NOT_TESTED'}))},review:null};
   facts.preflight=fileIdentity(__filename,commands);
   try {
-    facts.source.head=git(['rev-parse',FIXED.head]).toString().trim();facts.source.tree=git(['rev-parse',FIXED.head+'^{tree}']).toString().trim();
+    facts.source.head=git(['rev-parse','--verify',FIXED.head+'^{commit}']).toString().trim();facts.source.tree=git(['rev-parse',FIXED.head+'^{tree}']).toString().trim();
     const raw=git(['show',FIXED.head+':chart-block.e2e.js']),lock=git(['show',FIXED.head+':package-lock.json']);
     facts.source.sha256=sha(raw);facts.source.lockSha256=sha(lock);facts.source.lockBytes=lock.length;
     facts.source.workingLock=fileIdentity(path.join(root,'package-lock.json'),commands);
