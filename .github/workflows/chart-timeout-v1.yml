@@ -4,6 +4,7 @@ on:
     paths:
       - 'scripts/chart-timeout-v1*.cjs'
       - 'chart-timeout-v1.test.cjs'
+      - 'chart-timeout-v1-preflight.test.cjs'
       - 'docs/chart-timeout-v1/**'
       - '.github/workflows/chart-timeout-v1.yml'
 permissions:
@@ -19,6 +20,6 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: 22
-      - run: node --test chart-timeout-v1.test.cjs
+      - run: node --test chart-timeout-v1.test.cjs chart-timeout-v1-preflight.test.cjs
       - run: git diff --check
 # No browser/dispatch job: finite plan remains gated on independent preflight review.
