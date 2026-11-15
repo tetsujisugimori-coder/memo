@@ -7,9 +7,27 @@ const { execFileSync, spawnSync } = require('node:child_process');
 const HEAD = '87a5ac2f2dbbb940e8f4b4dd6269e5c349e75fc1';
 const SOURCE_HASH = '240e906757c2514864cf1f2150cf4dfb5423abb8ba2030673ca80c49ad3a4722';
 const hash = b => crypto.createHash('sha256').update(b).digest('hex');
+// Exact fixed-source calls, not substring/first/last matching. Only the call receiver
+// changes; predicate, arguments and options are byte-preserved in the diagnostic copy.
+const TARGETS = Object.freeze({
+  "legacy": {
+    "id": "chart-v1:legacy:infinity-rejection",
+    "call": "await page.waitForFunction(() => document.activeElement?.getAttribute(\"aria-label\") === \"2件目の売上の数値\" && document.querySelector(\".chart-block-editor .chart-block-status\")?.textContent === \"数値は有限な数値を入力してください\");"
+  },
+  "narrow": {
+    "id": "chart-v1:narrow:five-items-totals",
+    "call": "await page.waitForFunction((expected) => {\n      const current = window.MemoNexusChartBlockUtils.splitChartBlocks(document.getElementById(\"editor\").value).find((segment) => segment.type === \"chart\")?.chart;\n      const labels = [...document.querySelectorAll(\"#preview .chart-block-stacked-total-value\")];\n      const totals = window.MemoNexusChartBlockUtils.chartStackedTotals(current?.items, current?.series);\n      return current?.appearance?.barMode === \"stacked\" && current?.appearance?.showStackTotals === true && current?.series.length === 1 && current?.items.length === 5\n        && JSON.stringify(current.series[0].values) === JSON.stringify(expected)\n        && labels.length === 5 && labels.every((label, index) => label.textContent === window.MemoNexusChartBlockUtils.formatChartStackTotal(totals[index]));\n    }, narrowValues);"
+  }
+});
+function identifyTargets(source) {
+  for (const {call} of Object.values(TARGETS)) {
+    if (source.split(call).length !== 2) throw Error('TARGET_MISSING_OR_AMBIGUOUS');
+  }
+}
 function generate(source, scenario) {
   if (hash(source) !== SOURCE_HASH) throw Error('SOURCE_MISMATCH');
   if (!['legacy', 'narrow'].includes(scenario)) throw Error('SCENARIO');
+  identifyTargets(source);
   const end = scenario === 'legacy' ? '    await invalidReorderValue.fill("140");' : '    const narrowTotalLayout = await page.locator';
   const cutoff = source.indexOf(end);
   const cleanup = source.lastIndexOf('  } catch (error) {\n    runError = error;');
@@ -18,6 +36,9 @@ function generate(source, scenario) {
   // Disable the original Windows Chromium fallback in this diagnostic copy only.
   result = result.replace(/    const executablePath = path\.join\(process\.env\.LOCALAPPDATA[^]*?return browserType\.launch\(\{ headless: true, executablePath \}\);/, '    throw error;');
   result = result.replace('      const pageErrors = [];', '      await require(process.env.CHART_DIAGNOSTIC_OBSERVER).attach(page);\n      const pageErrors = [];');
+  for (const {id,call} of Object.values(TARGETS)) {
+    if (result.includes(call)) result = result.replace(call, call.replace('page.waitForFunction(', `page.__chartDiagnosticWait(${JSON.stringify(id)}, `));
+  }
   return result;
 }
 function analyzeOriginal(log, engine, attempt) {
@@ -28,7 +49,8 @@ function analyzeOriginal(log, engine, attempt) {
 }
 function auditWaits(text, scenario) {
   const records = text.trim() ? text.trim().split('\n').map(line=>JSON.parse(line)) : [];
-  const target = r => scenario==='legacy' ? r.predicate?.includes('2件目の売上の数値') : r.predicate?.includes('labels.every((label, index)');
+  if (!TARGETS[scenario]) throw Error('SCENARIO');
+  const target = r => r.targetId === TARGETS[scenario].id;
   const starts = records.filter(r=>r.phase==='before' && target(r));
   if(starts.length===0) return {targetReached:false,evidence:'NOT_OBTAINED',reasons:['TARGET_NOT_REACHED']};
   const reasons=[];
@@ -36,6 +58,8 @@ function auditWaits(text, scenario) {
   if(starts.length!==1) reasons.push('DUPLICATE_TARGET');
   const before=starts[0];
   if(!Number.isSafeInteger(before.id)||before.id<1) reasons.push('INVALID_ID');
+  if(records.some(r=>r.id===before.id && r.targetId!==before.targetId)) reasons.push('TARGET_ID_MISMATCH');
+  if(records.some(r=>target(r) && r.id!==before.id)) reasons.push('CORRELATION_MISMATCH');
   const terminal=records.filter(r=>r.id===before.id && r.phase!=='before');
   if(terminal.length!==1 || !['after','failure'].includes(terminal[0]?.phase)) reasons.push('TERMINAL_MISSING_OR_INVALID');
   for(const r of [before,...terminal]) {
@@ -103,4 +127,4 @@ if(require.main===module) {
   if(command!=='--execute' || !dir) throw Error('explicit --execute NEW_OUTPUT_DIRECTORY required');
   run(path.resolve(__dirname,'..'),path.resolve(dir));
 }
-module.exports={generate,analyzeOriginal,auditWaits,hash,HEAD,SOURCE_HASH};
+module.exports={generate,analyzeOriginal,auditWaits,hash,HEAD,SOURCE_HASH,TARGETS,identifyTargets};

@@ -1,4 +1,5 @@
 'use strict';
+const {TARGETS}=require('./chart-timeout-v1.cjs');
 const fs=require('node:fs'); const path=require('node:path');
 function snapshot() {
  const utils=window.MemoNexusChartBlockUtils;
@@ -13,12 +14,13 @@ async function attach(page) {
  await page.addInitScript(()=>{window.__chartDiagnosticEvents=[];for(const type of ['input','change','click','focusin','focusout'])document.addEventListener(type,e=>{if(!e.target.closest?.('.chart-block-editor'))return;const rows=window.__chartDiagnosticEvents;rows.push({time:performance.now(),type,value:e.target.value,label:e.target.getAttribute('aria-label'),action:e.target.dataset.chartAction});if(rows.length>1000)rows.shift();},true);});
  const original=page.waitForFunction.bind(page); let seq=0;
  const write=(r)=>fs.appendFileSync(path.join(process.env.CHART_DIAGNOSTIC_OUTPUT,'waits.jsonl'),JSON.stringify(r)+'\n');
- page.waitForFunction=async function(fn,arg,options){
-   const predicate=String(fn); const targeted=predicate.includes('2件目の売上の数値')||predicate.includes('labels.every((label, index)');
-   if(!targeted)return original(fn,arg,options);
-   const id=++seq;write({id,phase:'before',predicate,snapshot:await page.evaluate(snapshot)});
-   try {const result=await original(fn,arg,options);write({id,phase:'after',snapshot:await page.evaluate(snapshot)});return result;}
-   catch(error){try {write({id,phase:'failure',error:String(error),snapshot:await page.evaluate(snapshot)});}catch(capture){write({id,phase:'capture-error',error:String(capture)});}throw error;}
+ page.__chartDiagnosticWait=async function(targetId,...args){
+   const [fn]=args;
+   if(!Object.values(TARGETS).some(t=>t.id===targetId))throw Error('UNKNOWN_TARGET_ID');
+   const predicate=String(fn);
+   const id=++seq;write({id,targetId,phase:'before',predicate,snapshot:await page.evaluate(snapshot)});
+   try {const result=await original(...args);write({id,targetId,phase:'after',snapshot:await page.evaluate(snapshot)});return result;}
+   catch(error){try {write({id,targetId,phase:'failure',error:String(error),snapshot:await page.evaluate(snapshot)});}catch(capture){write({id,targetId,phase:'capture-error',error:String(capture)});}throw error;}
  };
 }
 module.exports={attach,snapshot};

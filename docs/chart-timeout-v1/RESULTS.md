@@ -51,3 +51,19 @@ Windows既存fallbackを診断生成物だけから除去、実行前候補パ�
 関連3runのartifact一覧18件を取得。Chart専用・Windows失敗jobの原artifactは生成されていない。TrackA/Palette等の18ZIPは本診断外の回帰資料として一覧保持に限定し、保全済みとはしない。4診断関連jobのdecoded原logとmetadataを追加保存。原artifact ZIPを取得したという意味ではない。
 
 別担当は新しい単一commit fixtureを作成し、同条件旧RED→修正24PASS、CRLF作業tree24PASS、HEAD blob改変拒否を独立確認。blocking指摘なし。独立harnessの初回はstderrだけを見る補助assertが失敗したため、その誤判定も原票保存し、旧REDを再実行せずstdout/stderr両方で照合した。製品試験の反復ではない。
+
+## P2: purpose-wait identity repair (2026-11-15 JST)
+
+Review baseline: `2f1544178f23022b68c8c432071d93beae583425`, tree `e6886b9cb2a6cc98de5c0db4d65d4de99982717a`.
+Review: https://github.com/tetsujisugimori-coder/memo/pull/458#pullrequestreview-5910118367
+
+- Reconstructed the actual preceding and target wait expressions from both fixed-source generated runners. In the non-browser page mock, both old preceding-only inputs incorrectly produced `targetReached=true / COMPLETE`; both full sequences incorrectly produced `DUPLICATE_TARGET / INCOMPLETE`. This is a diagnostic-classification counterexample, not a reproduction of the product timeout.
+- `generate` checks exact complete call expressions exactly once in the SHA-256-pinned source, then substitutes only the receiver with a diagnostic entry point and a scenario-specific target ID. Missing/ambiguous targets reject. The original predicate, argument count/values/options, source assertions and preceding operations remain unchanged. Original E2E/product/lock files are untouched.
+- `attach` no longer intercepts ordinary waits. The generated entry point passes the original argument list unchanged to `waitForFunction`. `targetId` identifies a fixed purpose wait; numeric `id` correlates its before/terminal observations. `auditWaits` uses target identity and rejects correlation/target mismatches, missing terminals/snapshots and real duplicates. Measured false remains valid evidence; COMPLETE does not mean the predicate succeeded.
+- Same mock input calls after repair: preceding-only = `NOT_OBTAINED / TARGET_NOT_REACHED`; preceding + one target = `COMPLETE / after`; timeout = `COMPLETE / failure` with original error. No false duplicate. Both scenarios covered.
+- Existing 24 tests retained with target identity added to fixtures; 10 connected/identity tests added: 34/34 PASS. Chart utils 217/217 PASS. Syntax and diff checks PASS. Single-commit fixture with CRLF worktree: 34/34 PASS using HEAD Git blob; pinned source hash unchanged. Windows native execution is not implied.
+- Broader local `node --test`: 2025 tests, 2024 PASS, 1 FAIL in existing launcher configuration test (`invalid_configuration`, HTTP status 401). Original failure log retained; no expectation changes or automatic retry. This local suite is not reported as PASS.
+- The first mock harness parser accidentally included neighbouring source operations and failed with `multiEditor is not defined`; its source/output retained. Corrected syntax-complete call extraction was separately recorded. An intermediate new regression found an extra trailing undefined argument in the diagnostic wrapper; rest-argument forwarding fixed it, final 34 tests PASS. Neither failure is a product result.
+- Independent reviewer (separate agent/process) reran 34/217, reconstructed both old/new counterexamples into separate output, and independently checked exact-call cardinality and unchanged predicates/arguments. No blocking finding in these three implementation/test files. This is not independent real-browser diagnosis.
+
+Final submitted HEAD and its CI are tracked in the PR follow-up; old CI success is not reused. Fixed diagnostic four slots remain **NOT_TESTED**, root cause **UNKNOWN**, overall **PARTIAL**, limited merge recommendation **NO**, Draft maintained. No browser launch/install, extra diagnosis, manual dispatch, retry, product changes or PR456 changes.
