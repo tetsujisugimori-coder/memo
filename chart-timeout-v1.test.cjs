@@ -1,0 +1,13 @@
+'use strict';
+const test=require('node:test');const assert=require('node:assert/strict');const fs=require('node:fs');const vm=require('node:vm');const cp=require('node:child_process');
+const {generate,analyzeOriginal,SOURCE_HASH,hash}=require('./scripts/chart-timeout-v1.cjs');
+const source=cp.execFileSync('git',['show','87a5ac2f2dbbb940e8f4b4dd6269e5c349e75fc1:chart-block.e2e.js'],{encoding:'utf8'});
+for(const scenario of ['legacy','narrow'])test('fixed extraction '+scenario,()=>{const s=generate(source,scenario);new vm.Script(s);assert.match(s,/Timeout|timeout: 30000/);assert.ok(s.includes('invalidReorderValue.fill("Infinity")'));assert.equal(s.includes('const narrowTotalLayout'),false);assert.equal(s.includes('const narrowValues'),scenario==='narrow');assert.ok(s.includes('await closeStaticServer(server)'));});
+test('source drift rejected',()=>assert.throws(()=>generate(source+'\n','legacy'),/SOURCE_MISMATCH/));
+test('scenario rejected',()=>assert.throws(()=>generate(source,'unknown'),/SCENARIO/));
+test('pinned hash',()=>assert.equal(hash(source),SOURCE_HASH));
+test('missing observation stays UNKNOWN',()=>assert.equal(analyzeOriginal('','webkit',1).result,'UNKNOWN'));
+test('original failure remains FAIL',()=>{const r=analyzeOriginal('Chart failure state: {"charts":[]}\nchart-block.e2e.js:1620:16','webkit',2);assert.equal(r.result,'FAIL');assert.equal(r.cause,'UNKNOWN');assert.equal(r.dom,'NOT_OBTAINED');});
+test('malformed original state rejected',()=>assert.throws(()=>analyzeOriginal('Chart failure state: {oops}\n','webkit',1)));
+test('no inferred successful result',()=>assert.equal(analyzeOriginal('all good','chromium',2).result,'UNKNOWN'));
+test('observations do not remove source assertions',()=>{const s=generate(source,'legacy');for(const fragment of ['不正な編集中の文字列を並べ替えで破棄しない','不正値では項目を移動しない','数値は有限な数値を入力してください'])assert.ok(s.includes(fragment));});

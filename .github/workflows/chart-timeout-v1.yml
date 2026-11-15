@@ -1,0 +1,24 @@
+name: Chart timeout v1 diagnostic contracts
+on:
+  pull_request:
+    paths:
+      - 'scripts/chart-timeout-v1*.cjs'
+      - 'chart-timeout-v1.test.cjs'
+      - 'docs/chart-timeout-v1/**'
+      - '.github/workflows/chart-timeout-v1.yml'
+permissions:
+  contents: read
+jobs:
+  contracts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - run: node --test chart-timeout-v1.test.cjs
+      - run: git diff --check
+# No browser/dispatch job: finite plan remains gated on independent preflight review.
