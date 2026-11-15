@@ -36,4 +36,9 @@ test('multiple candidates do not silently select one DLL',()=>temporary(dir=>{
  const second=path.join(dir,'second');fs.mkdirSync(second);const root=path.join(dir,'root.bin');fs.writeFileSync(root,pe({delay:false}));for(const p of [dir,second])fs.writeFileSync(path.join(p,'normal-fixture.dll'),pe({direct:false,delay:false}));const r=inspectPEGraph([root],[second]);assert.equal(r.edges[0].candidates.length,2);assert.equal(r.edges[0].status,'UNKNOWN');
 }));
 test('node/depth/read budgets keep incomplete graph UNKNOWN',()=>temporary(dir=>{const root=path.join(dir,'root.bin');fs.writeFileSync(root,pe());fs.writeFileSync(path.join(dir,'normal-fixture.dll'),pe());for(const options of [{maxNodes:1},{maxDepth:0},{maxBytes:1}]){const r=inspectPEGraph([root],[dir],options);assert.equal(r.limited,true);assert.equal(r.status,'UNKNOWN');}assert.throws(()=>inspectPEGraph([],[],{maxNodes:0}),/GRAPH_LIMITS/);}));
+test('byte budget includes hashing IO and measured consumption matches actual reads',()=>temporary(dir=>{
+ const root=path.join(dir,'root.bin');fs.writeFileSync(root,pe({direct:false,delay:false}));const original=fs.readSync;let actual=0;
+ fs.readSync=function(...args){const n=original.apply(this,args);actual+=n;return n;};
+ try{const stopped=inspectPEGraph([root],[dir],{maxBytes:1});assert.equal(actual,0,'no hashing read before budget gate');assert.equal(stopped.readBytes,actual);actual=0;const normal=inspectPEGraph([root],[dir],{maxBytes:2048});assert.equal(actual,2048);assert.equal(normal.readBytes,actual);assert.equal(normal.nodes[0].pe.status,'PASS');}finally{fs.readSync=original;}
+}));
 test('missing root is BLOCKED; no input is UNKNOWN, never PASS',()=>temporary(dir=>{assert.equal(inspectPEGraph([path.join(dir,'missing')],[]).status,'BLOCKED');assert.equal(inspectPEGraph([],[]).status,'UNKNOWN');}));

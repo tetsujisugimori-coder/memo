@@ -80,7 +80,8 @@ size/SHA/realpathとPE architectureは原票に固定。期待hashとの対応�
 
 新検査器はPE bytesだけを読み、delay directory、direct import、関数名の静的候補、architecture、certificate tableの有無を分離する。certificate有無は署名検証ではない。
 直接/推移的DLL候補を再帰収集するが、同名複数候補を1つに決めない。API-setや動的LoadLibrary、SxS、KnownDLL、loaded module、package graph、PATH/current directory、AddDllDirectoryの効果はUNKNOWN。
-「検査したディレクトリにない」は全OSでの不存在や実loader失敗とはしない。graph全体はUNKNOWNのまま。上限は256 node/12階層/総読取2GiBで、不完備な閉包をPASSにしない。
+「検査したディレクトリにない」は全OSでの不存在や実loader失敗とはしない。graph全体はUNKNOWNのまま。各graphの上限は256 node/12階層/対象file data読取2GiBで、不完備な閉包をPASSにしない。
+hash前にsizeを検査し、上限内の単一fd読取りを実計量して同じbytesをhash/解析に使う。別の候補identity採取やmetadata読取りはgraphのpayload読取counterと混同しない。
 [MicrosoftのDLL探索資料](https://learn.microsoft.com/en-us/windows/win32/dlls/dynamic-link-library-search-order)にある探索条件との対応・未検証箇所を記録した。Windows ACLはSDDL hash/規則数だけを読取り、実効token/deny/AppLocker等の実行可否はUNKNOWN。
 
 [WebKit wrapper](https://github.com/microsoft/playwright/blob/26a9e470a7b3c7822084b09fb7f13902c5f37b51/browser_patches/webkit/pw_run.sh)はLinux headless時にWPE系候補へ分岐し、配置/開発treeによってMiniBrowserの候補が異なる。
@@ -109,10 +110,12 @@ Chromium側の大きいB資料は重複補助として未取得、Cの採番画�
 
 ## 検証・反例・レビューへの引継ぎ
 
-新14＋既存preflight55＋既存診断38＋Chart utils217＝324件成功、skip0。構文とgit diff --check成功。
+新15＋既存preflight55＋既存診断38＋Chart utils217＝325件成功、skip0。構文とgit diff --check成功。
 delay-only PEを既存direct-only parserが列挙しないREDを固定し、同じbytesで追加parserがdelayを列挙するGREENを確認。既存parserはdirect-onlyと明記済みであり、旧製品障害の反例とはしない。
 実測headless-shellのbthprops.cplをDLL専用suffix判定が拒否したため、DRV/CPLの正常対照とpath拒否を新設。RED13成功/1失敗→GREEN14成功を保存した。
 正常/故障JSON、旧失敗graph/通常archive不一致、各版の検査器SHAを保持し、期待値を緩めたりskip化していない。
+独立レビューで、初版graphがhash全読取りを上限検査より前に行うP2を発見。maxBytes=1で実読取2048 bytes/記録0になる同一反例をREDで保存した。
+修正後は同反例0/0、正常対照2048/2048を確認。実読取counterへhash用IOを含め、解析との二重読取りも除去した。旧static-extended-v2原票は変更せず、修正版をstatic-extended-v3へ新規保存。
 工程A–D固定後の独立レビュー、提出HEAD/tree/CI最終状態はPR追補で記録する。事前レビューPASSでも実行許可ではない。
 
 現在も元worktreeのraw lock FAIL、依存未配置BLOCKED、公式archive強い期待digest/過去取得経路/実launch chain/推移依存/実行ACL UNKNOWN。

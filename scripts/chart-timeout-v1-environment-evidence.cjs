@@ -2,7 +2,7 @@
 // Static evidence extension. No network, package loading, browser/loader execution,
 // installation, dependency placement, or qualification/review gate mutation.
 const fs=require('node:fs'),path=require('node:path');
-const {sha,fileIdentity}=require('./chart-timeout-v1-preflight.cjs');
+const {sha}=require('./chart-timeout-v1-preflight.cjs');
 const canonical=v=>Array.isArray(v)?v.map(canonical):v&&typeof v==='object'?Object.fromEntries(Object.keys(v).sort().map(k=>[k,canonical(v[k])])):v;
 function lockBytes(buffer) {
   const b=Buffer.from(buffer),text=new TextDecoder('utf-8',{fatal:true,ignoreBOM:true}).decode(b);
@@ -72,10 +72,22 @@ function inspectPEGraph(roots,searchDirectories,{maxNodes=256,maxDepth=12,maxByt
     if(nodes.length>=maxNodes){limited=true;break;}
     const {file,depth}=queue.shift();let real;try{real=fs.realpathSync(file);}catch{nodes.push({path:file,depth,status:'BLOCKED',reason:'CANDIDATE_UNAVAILABLE'});continue;}
     if(seen.has(real.toLowerCase()))continue;seen.add(real.toLowerCase());
-    const id=fileIdentity(real);
-    if(id.status!=='PASS'){nodes.push({...id,depth});continue;}
-    if(id.bytes>256*1024**2||readBytes+id.bytes>maxBytes){nodes.push({...id,depth,status:'UNKNOWN',reason:'STATIC_READ_LIMIT'});limited=true;continue;}
-    let parsed;try{const bytes=fs.readFileSync(real);readBytes+=bytes.length;if(bytes.length!==id.bytes||sha(bytes)!==id.sha256)throw Error('FILE_CHANGED_BETWEEN_READS');parsed=parsePE(bytes);}catch(e){nodes.push({...id,depth,status:'UNKNOWN',reason:e.message});continue;}
+    const id={path:file,realpath:real};let parsed;
+    try {
+      const st=fs.statSync(real);if(!st.isFile())throw Error('NOT_REGULAR_FILE');id.bytes=st.size;id.mode=st.mode&0o777;
+      if(st.size>256*1024**2||readBytes+st.size>maxBytes){nodes.push({...id,depth,status:'UNKNOWN',reason:'STATIC_READ_LIMIT'});limited=true;continue;}
+      const fd=fs.openSync(real,'r'),chunks=[];let consumed=0;
+      try {
+        const opened=fs.fstatSync(fd);if(opened.ino!==st.ino||opened.dev!==st.dev||opened.size!==st.size)throw Error('FILE_CHANGED_BEFORE_READ');
+        while(consumed<st.size){
+          const allowed=Math.min(1024**2,st.size-consumed,maxBytes-readBytes);if(allowed<=0){limited=true;throw Error('STATIC_READ_LIMIT');}
+          const chunk=Buffer.alloc(allowed),n=fs.readSync(fd,chunk,0,allowed,null);readBytes+=n;consumed+=n;
+          if(!n)throw Error('FILE_CHANGED_DURING_READ');chunks.push(chunk.subarray(0,n));
+        }
+        const ended=fs.fstatSync(fd);if(ended.size!==opened.size||ended.mtimeMs!==opened.mtimeMs)throw Error('FILE_CHANGED_DURING_READ');
+      } finally {fs.closeSync(fd);}
+      const bytes=Buffer.concat(chunks);id.sha256=sha(bytes);id.status='PASS';id.reason='HASH_AND_PARSE_SAME_BUDGETED_BYTES';id.executeAccess='UNKNOWN';parsed=parsePE(bytes);
+    } catch(e) {nodes.push({...id,depth,status:'UNKNOWN',reason:e.message});continue;}
     nodes.push({...id,depth,pe:parsed});
     for(const dep of [...parsed.direct,...parsed.delayed]) {
       const edge={from:real,name:dep.name,kind:dep.kind,candidates:[],status:'UNKNOWN'};
