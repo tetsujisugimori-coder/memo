@@ -1,0 +1,69 @@
+# Chart timeout v1: 既存原票と実装状況
+
+2026-11-15 JST。総合PARTIAL、根本原因UNKNOWN、マージ推奨NO。製品修正は未実施。
+
+## 固定版と取得範囲
+PR456の最新HEADは開始時87a5ac2f2dbbb940e8f4b4dd6269e5c349e75fc1で指定と一致。原CI run43643819571、attempt1のChart job132596999432/132596999533、attempt2の132599947194/132599947449を直接取得した。元のAPI応答と4ログを私有原記録として保存。ログ本文のSHA/サイズと実測状態は[原票解析](original-analysis.json)に記録。APIから復号されたログであり、GitHubの原ZIPそのものではない。
+
+原CIは28c2c8b2e1be596f02a4f5a9b790618d11ce6a22をcheckout。Gitで取得したtreeは固定HEADと同じb28b20bfe6a5b21da39b2c010e0ea4be42437932。mainは08572bb0f888c5e8b6f57f3c1aefe98fbf5d2e4d。新診断はmain起点で、PR456は変更しない。
+
+artifact一覧は15件取得。Chart固有のtrace/スクリーンショット/DOM原票は一覧に見当たらず、Chartジョブの診断upload各stepはskip。原CIのDOM/focus/input時系列はNOT_OBTAINED。他機能のartifactをChart証拠へ転用しない。削除済み資料の不存在まで証明するものではない。
+
+## 初回：1757
+両engineの原ログで、narrow待機は30秒timeout。待機はstacked/showStackTotals、系列1/項目5、5値完全一致、DOM total label5件と各書式値の一致をANDしていた。
+
+失敗後に取得された内部モデルは5項目・1系列・stacked/showStackTotals=true。系列は `[100,1.7e308,1.6e308,1.5e308,1.4e308]` で、期待 `[Number.MAX_VALUE,1.7e308,1.6e308,1.5e308,1.4e308]` の先頭だけ異なる。この少なくとも1条件は失敗後snapshot時に不成立。timeout全期間の内部値不一致やDOM側だけの原因とは断定しない。両engineで同じ結果がありWebKit固有と断定できない。
+
+## 再実行：1620
+WebKitはInfinity入力後の移動拒否について、focus aria-label「2件目の売上の数値」とstatus「数値は有限な数値を入力してください」の複合条件を待った。
+
+失敗後の内部項目は1月,3月,2月、3系列値もこの順に移動、statusは「『2月』を3件目へ移動しました」に相当する実テキスト。移動拒否という期待と異なる結果は確認できる。fillコマンドが例外なく通ったことと、クリック時点までInfinityがDOMに残ったことは別。後者と実focusはNOT_OBTAINED。
+
+Chromium attempt2は該当featureを含むChart script PASS。ただし同時点のモデル/DOM/eventは採取されておらず、WebKitとの差の原因はUNKNOWN。初回と再実行を同因と認定しない。
+
+## 静的仮説（未実証）
+app.jsのmove-itemはモデルcommit後にrequestAnimationFrameでfocus/statusを復元する。E2Eは直前移動のモデル順だけを待ってInfinity fillへ進む。DOMの再生成・focus復元と入力操作の競合は候補だが、今回原票にイベント時系列がなく因果は未実証。MAX_VALUE入力不反映も同じ競合とは未確定。数値パース・先行描画・入力置換を観測で分離する必要がある。
+
+## 診断実装と検証
+既存E2Eのバイトhashを固定し、元featureの先行処理を保つ隔離runner生成、目的wait前後/失敗後に内部/DOM/条件別結果と受動eventを収集する補助を追加。製品/timeout/assertionを変えない。観測awaitによる介入限界を[計画](PLAN.md)へ明記。
+
+初期局所単体10/10成功、生成JavaScript構文とsource drift拒否を確認。これは実ブラウザの成功ではない。独立事前レビューPENDING、追加ブラウザ実行0。固定4枠はすべてNOT_TESTED。
+
+作業機Debian13/Node24.22.1は原CIUbuntu26.04/Node22.23.4と異なる。npm ci成功、Playwright1.62.1。公式browser導入はZIP中央ディレクトリ欠落で失敗。別buildへの代替・追加試行・製品修正は行っていない。ブラウザ実行環境BLOCKED。loopback非ブラウザ事前確認は成功。
+
+## 未完了と次工程
+独立レビュー、最終提出HEADのCI、原記録の永続保存後の実再取得独立照合は、完了後に追記するまでPENDING。原実行の失敗時DOM/入力/focusは後から復元不能。製品修正の必要箇所は未確定。
+
+次は診断実装の独立レビューを終え、固定browserが取得可能な隔離環境で事前固定4枠だけ実施する。新たな実行環境への移動とON/OFF比較は別に条件固定し、無制限再試行しない。現時点では根因断定・製品修正・マージを推奨しない。
+
+## 独立事前レビュー補完
+実装者とは別担当が元CI解析、固定tree、生成runnerと単体を検査。証拠判定のP2二件を発見した。①beforeのみ/壊れJSONを成功扱いする抜け、②相関id・必要snapshot・元failure error欠落を受理する抜け。旧e933dedの同一合成入力を保存し、修正後に同じ入力の拒否を別担当が確認。falseの実測条件は欠測と混同せず、wait後の状態遷移として保持。今回24単体を独立再実行成功、既存Chart utils217/217も自己検証成功。合成検査であり実ブラウザの成功ではない。
+
+Windows既存fallbackを診断生成物だけから除去、実行前候補パスhash記録と欠測停止を追加した。実際のlaunch target（headless shell等）の同一性は未確認。独立レビューは実ブラウザ実行を認定していない。原記録のLibrary保存・実再取得照合とGitHub最終CIは別工程で追跡する。
+
+## 提出後CI確定とshallow-checkout修正（2026-11-15 JST）
+旧提出17353facの5workflow：専用43674835522/Palette43674835509/TrackA43674835507成功、TrackB43674835477条件skip、通常43674835500失敗。通常は13成功・Windows Received recovery 1失敗・Inspector1skip。Windowsは1991/1992、追加testが`git show 87a5ac2:chart-block.e2e.js`で履歴のないcheckoutからfixtureを取得できず失敗。製品保存破損やChart原因を示す失敗ではない。
+
+同じ履歴欠測の単一commit隔離fixtureで旧test exit1を再現。修正はtestの入力を`git show HEAD:chart-block.e2e.js`へ変更する2追加1削除のみ。固定SHA-256はgenerate()と専用試験で維持し、異なるsourceを受理しない。worktree改行ではなくGit blobを読むためCRLF変換のある作業領域でもGit原bytesを検査する。CRLF raw-byte一致を称していない。Linuxで同fixture新24/24、CRLF作業tree24/24、commitしたsource改変は拒否。Windowsネイティブの新HEAD検証は後続CI待ち。旧FAILを保存し、テストskip・期待値緩和・製品変更なし。
+
+旧提出17353facのChart両engineは通常suite成功。しかし、このPRはmain基点で、正式suiteの製品sourceは診断対象87a5ac2の全treeではない。今回の固定4枠は依然0実行/NOT_TESTEDであり、旧87a5ac2の原因解消・新観測対照として数えない。
+
+関連3runのartifact一覧18件を取得。Chart専用・Windows失敗jobの原artifactは生成されていない。TrackA/Palette等の18ZIPは本診断外の回帰資料として一覧保持に限定し、保全済みとはしない。4診断関連jobのdecoded原logとmetadataを追加保存。原artifact ZIPを取得したという意味ではない。
+
+別担当は新しい単一commit fixtureを作成し、同条件旧RED→修正24PASS、CRLF作業tree24PASS、HEAD blob改変拒否を独立確認。blocking指摘なし。独立harnessの初回はstderrだけを見る補助assertが失敗したため、その誤判定も原票保存し、旧REDを再実行せずstdout/stderr両方で照合した。製品試験の反復ではない。
+
+## P2: purpose-wait identity repair (2026-11-15 JST)
+
+Review baseline: `2f1544178f23022b68c8c432071d93beae583425`, tree `e6886b9cb2a6cc98de5c0db4d65d4de99982717a`.
+Review: https://github.com/tetsujisugimori-coder/memo/pull/458#pullrequestreview-5910118367
+
+- Reconstructed the actual preceding and target wait expressions from both fixed-source generated runners. In the non-browser page mock, both old preceding-only inputs incorrectly produced `targetReached=true / COMPLETE`; both full sequences incorrectly produced `DUPLICATE_TARGET / INCOMPLETE`. This is a diagnostic-classification counterexample, not a reproduction of the product timeout.
+- `generate` checks exact complete call expressions exactly once in the SHA-256-pinned source, then substitutes only the receiver with a diagnostic entry point and a scenario-specific target ID. Missing/ambiguous targets reject. The original predicate, argument count/values/options, source assertions and preceding operations remain unchanged. Original E2E/product/lock files are untouched.
+- `attach` no longer intercepts ordinary waits. The generated entry point passes the original argument list unchanged to `waitForFunction`. `targetId` identifies a fixed purpose wait; numeric `id` correlates its before/terminal observations. `auditWaits` uses target identity and rejects correlation/target mismatches, missing terminals/snapshots and real duplicates. Measured false remains valid evidence; COMPLETE does not mean the predicate succeeded.
+- Same mock input calls after repair: preceding-only = `NOT_OBTAINED / TARGET_NOT_REACHED`; preceding + one target = `COMPLETE / after`; timeout = `COMPLETE / failure` with original error. No false duplicate. Both scenarios covered.
+- Existing 24 tests retained with target identity added to fixtures; 10 connected/identity tests added: 34/34 PASS. Chart utils 217/217 PASS. Syntax and diff checks PASS. Single-commit fixture with CRLF worktree: 34/34 PASS using HEAD Git blob; pinned source hash unchanged. Windows native execution is not implied.
+- Broader local `node --test`: 2025 tests, 2024 PASS, 1 FAIL in existing launcher configuration test (`invalid_configuration`, HTTP status 401). Original failure log retained; no expectation changes or automatic retry. This local suite is not reported as PASS.
+- The first mock harness parser accidentally included neighbouring source operations and failed with `multiEditor is not defined`; its source/output retained. Corrected syntax-complete call extraction was separately recorded. An intermediate new regression found an extra trailing undefined argument in the diagnostic wrapper; rest-argument forwarding fixed it, final 34 tests PASS. Neither failure is a product result.
+- Independent reviewer (separate agent/process) reran 34/217, reconstructed both old/new counterexamples into separate output, and independently checked exact-call cardinality and unchanged predicates/arguments. No blocking finding in these three implementation/test files. This is not independent real-browser diagnosis.
+
+Final submitted HEAD and its CI are tracked in the PR follow-up; old CI success is not reused. Fixed diagnostic four slots remain **NOT_TESTED**, root cause **UNKNOWN**, overall **PARTIAL**, limited merge recommendation **NO**, Draft maintained. No browser launch/install, extra diagnosis, manual dispatch, retry, product changes or PR456 changes.

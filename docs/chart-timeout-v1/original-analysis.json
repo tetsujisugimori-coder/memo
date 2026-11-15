@@ -1,0 +1,272 @@
+[
+  {
+    "run": 43643819571,
+    "job": 132596999432,
+    "bytes": 48848,
+    "sha256": "e806c5aadadc78a7f76d121ed6534b2d93035a0f7d5279024474da1afbcf7418",
+    "engine": "chromium",
+    "attempt": 1,
+    "timeoutLine": "1757",
+    "state": {
+      "charts": [
+        {
+          "id": "legacy-multi",
+          "chartType": "bar",
+          "title": "月別比較",
+          "unit": "万円",
+          "items": [
+            {
+              "id": "jan",
+              "label": "最狭1"
+            },
+            {
+              "id": "feb",
+              "label": "最狭2"
+            },
+            {
+              "id": "mar",
+              "label": "最狭3"
+            },
+            {
+              "id": "f9c9d647-faf8-431a-80de-cbb0943f75e8",
+              "label": "最狭4"
+            },
+            {
+              "id": "5904063a-91b5-4cae-ba72-d4ce022b57b9",
+              "label": "最狭5"
+            }
+          ],
+          "appearance": {
+            "color": "#2563eb",
+            "showValues": true,
+            "showLegend": true,
+            "barMode": "stacked",
+            "barOrientation": "vertical",
+            "showStackTotals": true,
+            "showDataTable": false,
+            "showPoints": true,
+            "pieLabelMode": "percentage",
+            "pieSeriesId": "legacy-multi-series-1",
+            "pieItemColors": {
+              "jan": "#654321",
+              "feb": "#2468ac"
+            }
+          },
+          "type": "chart",
+          "schemaVersion": 1,
+          "series": [
+            {
+              "id": "legacy-multi-series-1",
+              "name": "売上",
+              "color": "#2563eb",
+              "values": [
+                100,
+                1.7e+308,
+                1.6e+308,
+                1.5e+308,
+                1.4e+308
+              ]
+            }
+          ]
+        }
+      ],
+      "chartStatus": [
+        "",
+        "",
+        ""
+      ]
+    },
+    "dom": "NOT_OBTAINED",
+    "events": "NOT_OBTAINED",
+    "cause": "UNKNOWN",
+    "result": "FAIL"
+  },
+  {
+    "run": 43643819571,
+    "job": 132596999533,
+    "bytes": 145932,
+    "sha256": "9249d9f5f1634a4a4edfff33d7e9a42393b8c283e049e07559b32d5160128805",
+    "engine": "webkit",
+    "attempt": 1,
+    "timeoutLine": "1757",
+    "state": {
+      "charts": [
+        {
+          "id": "legacy-multi",
+          "chartType": "bar",
+          "title": "月別比較",
+          "unit": "万円",
+          "items": [
+            {
+              "id": "jan",
+              "label": "最狭1"
+            },
+            {
+              "id": "feb",
+              "label": "最狭2"
+            },
+            {
+              "id": "mar",
+              "label": "最狭3"
+            },
+            {
+              "id": "049277a6-bc58-4c13-a978-1c285a606d65",
+              "label": "最狭4"
+            },
+            {
+              "id": "72967b6f-bb98-4475-a652-8f479f700e63",
+              "label": "最狭5"
+            }
+          ],
+          "appearance": {
+            "color": "#2563eb",
+            "showValues": true,
+            "showLegend": true,
+            "barMode": "stacked",
+            "barOrientation": "vertical",
+            "showStackTotals": true,
+            "showDataTable": false,
+            "showPoints": true,
+            "pieLabelMode": "percentage",
+            "pieSeriesId": "legacy-multi-series-1",
+            "pieItemColors": {
+              "jan": "#654321",
+              "feb": "#2468ac"
+            }
+          },
+          "type": "chart",
+          "schemaVersion": 1,
+          "series": [
+            {
+              "id": "legacy-multi-series-1",
+              "name": "売上",
+              "color": "#2563eb",
+              "values": [
+                100,
+                1.7e+308,
+                1.6e+308,
+                1.5e+308,
+                1.4e+308
+              ]
+            }
+          ]
+        }
+      ],
+      "chartStatus": [
+        "",
+        "",
+        ""
+      ]
+    },
+    "dom": "NOT_OBTAINED",
+    "events": "NOT_OBTAINED",
+    "cause": "UNKNOWN",
+    "result": "FAIL"
+  },
+  {
+    "run": 43643819571,
+    "job": 132599947194,
+    "bytes": 82720,
+    "sha256": "cc1a91f12efd6abc4b4ed5888604a9318ba749d5aa22f899148e249928497155",
+    "engine": "chromium",
+    "attempt": 2,
+    "timeoutLine": null,
+    "state": null,
+    "dom": "NOT_OBTAINED",
+    "events": "NOT_OBTAINED",
+    "cause": "UNKNOWN",
+    "result": "PASS"
+  },
+  {
+    "run": 43643819571,
+    "job": 132599947449,
+    "bytes": 145852,
+    "sha256": "e2f928ce27c63637692a8f6eb9d0c6c0e38e98373097bfaab3f5439d99893860",
+    "engine": "webkit",
+    "attempt": 2,
+    "timeoutLine": "1620",
+    "state": {
+      "charts": [
+        {
+          "id": "legacy-multi",
+          "chartType": "bar",
+          "title": "月別比較",
+          "unit": "万円",
+          "items": [
+            {
+              "id": "jan",
+              "label": "1月"
+            },
+            {
+              "id": "mar",
+              "label": "3月"
+            },
+            {
+              "id": "feb",
+              "label": "2月"
+            }
+          ],
+          "appearance": {
+            "color": "#2563eb",
+            "showValues": true,
+            "showLegend": true,
+            "barMode": "grouped",
+            "barOrientation": "vertical",
+            "showStackTotals": false,
+            "showDataTable": false,
+            "showPoints": true,
+            "pieLabelMode": "percentage",
+            "pieSeriesId": "legacy-multi-series-1",
+            "pieItemColors": {
+              "jan": "#654321",
+              "feb": "#2468ac"
+            }
+          },
+          "type": "chart",
+          "schemaVersion": 1,
+          "series": [
+            {
+              "id": "legacy-multi-series-1",
+              "name": "売上",
+              "color": "#2563eb",
+              "values": [
+                100,
+                120,
+                140
+              ]
+            },
+            {
+              "id": "f2091f67-30d4-476b-8988-3bd38fbdce13",
+              "name": "営業利益",
+              "color": "#16a34a",
+              "values": [
+                30,
+                38,
+                45
+              ]
+            },
+            {
+              "id": "99f5ddd9-8e88-40c5-a0c3-2a13a9bd2992",
+              "name": "原価",
+              "color": "#059669",
+              "values": [
+                60,
+                70,
+                80
+              ]
+            }
+          ]
+        }
+      ],
+      "chartStatus": [
+        "「2月」を3件目へ移動しました",
+        "",
+        ""
+      ]
+    },
+    "dom": "NOT_OBTAINED",
+    "events": "NOT_OBTAINED",
+    "cause": "UNKNOWN",
+    "result": "FAIL"
+  }
+]
