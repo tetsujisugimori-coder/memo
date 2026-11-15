@@ -74,6 +74,13 @@ function auditWaits(text, scenario) {
   if(records.indexOf(terminal[0])<records.indexOf(before)) reasons.push('ORDER_REVERSED');
   return {targetReached:true,targetTerminal:terminal[0]?.phase||null,evidence:reasons.length?'INCOMPLETE':'COMPLETE',reasons};
 }
+function classifySlot(primary, observation, launchBlocked) {
+  if (launchBlocked) return 'BLOCKED';
+  // Incomplete/corrupt evidence must not be reported as an unattempted target.
+  if (observation.evidence === 'INCOMPLETE') return 'INCOMPLETE';
+  if (!observation.targetReached) return 'NOT_TESTED';
+  return observation.evidence === 'COMPLETE' ? primary : 'INCOMPLETE';
+}
 function run(root, out) {
   fs.mkdirSync(out, { recursive: false }); // refuse overwrite/retry into same evidence directory
   const slots = ['chromium:legacy', 'webkit:legacy', 'chromium:narrow', 'webkit:narrow'];
@@ -114,10 +121,9 @@ function run(root, out) {
     const primary=r.status===0?'PASS':'FAIL';
     if(primary==='PASS' && observation.targetTerminal==='failure') {observation.evidence='INCOMPLETE';observation.reasons.push('EXIT_OBSERVATION_MISMATCH');}
     results[i]={slot:slots[i],status:primary,primary,exit:r.status,signal:r.signal,error:r.error?.code||null,runnerHash:hash(fs.readFileSync(runner)),...observation};
-    if(!results[i].targetReached) results[i].status='NOT_TESTED';
-    else if(results[i].evidence!=='COMPLETE') results[i].status='INCOMPLETE';
     const launchBlocked=/Executable doesn't exist|browserType.launch|EACCES|EPERM|error while loading shared libraries/.test(r.stderr||'');
-    if(launchBlocked) results[i].status='BLOCKED'; flush();
+    results[i].status=classifySlot(primary,observation,launchBlocked);
+    flush();
     if(r.error || results[i].status==='BLOCKED') break; // no environment retries; remaining slots NOT_TESTED
   }
   if(results.some(r=>r.status!=='PASS')) process.exitCode=1;
@@ -127,4 +133,4 @@ if(require.main===module) {
   if(command!=='--execute' || !dir) throw Error('explicit --execute NEW_OUTPUT_DIRECTORY required');
   run(path.resolve(__dirname,'..'),path.resolve(dir));
 }
-module.exports={generate,analyzeOriginal,auditWaits,hash,HEAD,SOURCE_HASH,TARGETS,identifyTargets};
+module.exports={generate,analyzeOriginal,auditWaits,classifySlot,hash,HEAD,SOURCE_HASH,TARGETS,identifyTargets};

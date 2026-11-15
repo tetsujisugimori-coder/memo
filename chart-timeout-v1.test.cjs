@@ -34,6 +34,31 @@ test('failure requires original error',()=>assert.equal(auditWaits(encoded(row,{
 test('empty current rejects',()=>assert.equal(auditWaits(encoded(row,{...end,snapshot:{...snapshot,current:{}}}),'legacy').evidence,'INCOMPLETE'));
 test('explicit measured false is accepted',()=>assert.equal(auditWaits(encoded(row,{...end,phase:'failure',error:'Timeout 30000ms',snapshot:{...snapshot,conditions:{legacyFocus:false,legacyStatus:false}}}),'legacy').evidence,'COMPLETE'));
 
+// P3 regression: incomplete evidence must never be relabeled NOT_TESTED.
+const {classifySlot}=require('./scripts/chart-timeout-v1.cjs');
+test('P3 malformed JSONL remains INCOMPLETE',()=>{
+  let observation;
+  try { observation=auditWaits('{','legacy'); }
+  catch { observation={targetReached:false,evidence:'INCOMPLETE',reasons:['MALFORMED_OBSERVATIONS']}; }
+  assert.equal(classifySlot('FAIL',observation,false),'INCOMPLETE');
+  assert.equal(classifySlot('PASS',observation,false),'INCOMPLETE');
+});
+test('P3 genuinely unobserved target remains NOT_TESTED',()=>{
+  const observation=auditWaits('','legacy');
+  assert.equal(observation.evidence,'NOT_OBTAINED');
+  assert.equal(classifySlot('FAIL',observation,false),'NOT_TESTED');
+});
+test('P3 complete observations preserve product result',()=>{
+  const observation=auditWaits(encoded(row,end),'legacy');
+  assert.equal(classifySlot('PASS',observation,false),'PASS');
+  assert.equal(classifySlot('FAIL',observation,false),'FAIL');
+});
+test('P3 incomplete snapshot and launch block precedence',()=>{
+  const incomplete=auditWaits(encoded(row),'legacy');
+  assert.equal(classifySlot('FAIL',incomplete,false),'INCOMPLETE');
+  assert.equal(classifySlot('FAIL',incomplete,true),'BLOCKED');
+});
+
 // Non-browser integration: execute the actual generated call expressions against
 // a mock page; predicates are forwarded, never evaluated as product evidence.
 const {TARGETS,identifyTargets}=require('./scripts/chart-timeout-v1.cjs');
