@@ -194,9 +194,14 @@ async function setText(page, value, start = 0, end = start) {
     const imageChooser = page.waitForEvent("filechooser");
     await clickPaletteControl(page,"insertImageBlockBtn"); await imageChooser;
     await page.locator("#imageBlockInput").evaluate(e=>e.dispatchEvent(new Event("cancel")));
+    await setText(page, "alpha beta gamma", 6, 10);
     await clickPaletteControl(page, "aiSendSelectionBtn");
     assert.equal(await page.locator("#featurePalette").isVisible(), false);
     assert.equal(await page.locator("#aiTargetSelect").inputValue(), "selected-text");
+    const preview = await page.locator("#aiTargetPreview").textContent();
+    assert.ok(preview.includes("AIに送信する選択文章（4文字）") && preview.endsWith("beta"));
+    await page.evaluate(() => { editor.value += "!"; editor.dispatchEvent(new Event("input", { bubbles: true })); });
+    assert.match(await page.locator("#aiTargetPreview").textContent(), /古い内容は送信しません/);
     await page.locator("#closeAiPanelBtn").click();
     await clickPaletteControl(page,"focusNoteTagBtn");
     assert.equal(await page.locator("#noteTagInput").evaluate(e=>document.activeElement===e),true);

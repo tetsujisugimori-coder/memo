@@ -1446,6 +1446,17 @@ body.layout-resizing iframe {
   line-height: 1.5;
 }
 
+.ai-target-preview[data-mode="selected-text"] {
+  max-height: 220px;
+  padding: 8px;
+  overflow: auto;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+}
+.ai-target-preview[data-state="stale"] { color: var(--danger); }
 .ai-generation-status[data-state="error"] { color: var(--danger); }
 .ai-generation-status[data-state="completed"] { color: var(--green); }
 

@@ -130,8 +130,10 @@
     ["pointerdown", "click"].forEach((type) => panel.addEventListener(type, (event) => {
       const button = event.target.closest("button");
       if (!button || !controls.has(button.id)) return;
-      if (type === "pointerdown") remember();
-      else restore();
+      // Clicking inside the palette must not replace the editor's earlier selection.
+      if (type === "pointerdown") {
+        if (doc.activeElement === editor) remember();
+      } else restore();
       if (type === "click") {
         if (beforeCommand(button.id) === false) {
           event.preventDefault();
