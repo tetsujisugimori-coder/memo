@@ -228,7 +228,11 @@ test("actual app: translation/question, history and language changes record the 
   const sent = []; const box = appHarness(async (_url, options) => { sent.push(JSON.parse(options.body).messages); return response([event("answer")]); });
   for (const purpose of ["translate", "question"]) for (const history of [false, true]) for (const language of ["ja", "en"]) {
     box.resetAiAssistantConversation(); box.aiPurposeSelect.value = purpose; box.aiTranslationSelect.value = language;
-    box.aiAssistantState.reference = { mode: "selected-text", content: "REFERENCE_PRIVATE" }; box.aiTargetSelect.value = "selected-text";
+    box.aiAssistantState.reference = { mode: "selected-text", noteId: "fixture", content: "REFERENCE_PRIVATE" };
+    box.aiAssistantState.referenceMode = "selected-text";
+    box.aiAssistantState.selectedTextSnapshot = { noteId: "fixture", selectedText: "REFERENCE_PRIVATE" };
+    box.isCurrentAiSelection = snap => snap?.noteId === "fixture" && snap.selectedText === "REFERENCE_PRIVATE";
+    box.aiTargetSelect.value = "selected-text";
     if (history) box.aiAssistantState.history = [{ role: "user", content: "PREVIOUS_PRIVATE" }, { role: "assistant", content: "PREVIOUS_ANSWER" }];
     box.aiInstructionInput.value = "INSTRUCTION_PRIVATE"; await box.startAiGeneration();
     const actual = sent.at(-1), record = box.aiDiagnostics.snapshot().at(-1);

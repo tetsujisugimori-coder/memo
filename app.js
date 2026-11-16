@@ -6668,10 +6668,7 @@ function snippet(body) {
 
 // 指定したidのメモをエディタに読み込みます。
 function openNote(id) {
-  if (currentId !== id) {
-    pendingAiTextSelection = null;
-    aiAssistantState.selectedTextSnapshot = null;
-  }
+  if (currentId !== id && typeof clearAiSelectionOnNoteSwitch === "function") clearAiSelectionOnNoteSwitch();
   if (typeof featurePalette !== "undefined") featurePalette?.close();
   if (noteSaveFoundation.isTerminal(id)) return;
   const previousId = currentId;
@@ -14572,6 +14569,10 @@ function rememberAiTextSelection() {
   pendingAiTextSelection = captureAiSelection({
     ...aiSelectionSource(), start: editor.selectionStart, end: editor.selectionEnd
   });
+}
+function clearAiSelectionOnNoteSwitch() {
+  pendingAiTextSelection = null;
+  aiAssistantState.selectedTextSnapshot = null;
 }
 function invalidateAiTextSelectionOnEdit() {
   if (pendingAiTextSelection && !isCurrentAiSelection(pendingAiTextSelection)) pendingAiTextSelection = null;

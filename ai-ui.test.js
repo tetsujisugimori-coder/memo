@@ -88,7 +88,7 @@ test("purpose and reference remain independently selectable, including shortcut 
 test("normal robot launch starts a fresh free chat while shortcuts preserve launch parameters", () => {
   assert.match(app, /setAiPanelOpen\(true, \{ launchMode: resume \? "resume" : options\.mode \? mode : null \}\)/);
   const reset = app.match(/function resetAiAssistantConversation\(\)[\s\S]*?\r?\n}\r?\n\r?\nfunction setAiPanelOpen/)?.[0] || "";
-  ["referenceMode: AI_REFERENCE_MODES.NONE", "reference: emptyAiReference\(\)", "specifiedNoteId: null", "collectionId: null", "selectedTextSnapshot: \"\"", "history: \[\]", "answer: \"\"", "error: \"\"", "requestPurpose: \"question\"", "aiInstructionInput.value = \"\""].forEach((fragment) => {
+  ["referenceMode: AI_REFERENCE_MODES.NONE", "reference: emptyAiReference\(\)", "specifiedNoteId: null", "collectionId: null", "selectedTextSnapshot: null", "history: \[\]", "answer: \"\"", "error: \"\"", "requestPurpose: \"question\"", "aiInstructionInput.value = \"\""].forEach((fragment) => {
     assert.match(reset, new RegExp(fragment.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
   });
   assert.match(app, /openAiAssistant\(\{ mode: AI_REFERENCE_MODES\.CURRENT_NOTE, purpose: "summarize", prompt:/);
