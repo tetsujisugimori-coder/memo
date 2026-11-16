@@ -250,6 +250,56 @@ test("actual app: translation/question, history and language changes record the 
   }
   assert.doesNotMatch(box.aiDiagnostics.exportJson(), /PRIVATE|PREVIOUS_ANSWER/);
 });
+test("actual selected reference: exact visible text is in request, and editing blocks network", async () => {
+  const { captureAiSelection, isAiSelectionCurrent } = require("./ai-selection-snapshot.js");
+  const sent = [];
+  const box = appHarness(async (_url, options) => {
+    sent.push(JSON.parse(options.body).messages);
+    return response([event("翻訳済み")]);
+  });
+  const sourceNote = { noteId: "memo-a", noteTitle: "架空のメモ", body: "alpha beta gamma" };
+  const selected = captureAiSelection({ ...sourceNote, start: 6, end: 10 });
+  box.isCurrentAiSelection = snap => isAiSelectionCurrent(snap, sourceNote);
+  box.aiTargetPreview = { textContent: "", dataset: {} };
+  vm.runInContext(source("updateAiTargetPreview"), box);
+  box.aiAssistantState.referenceMode = "selected-text";
+  box.aiAssistantState.selectedTextSnapshot = selected;
+  box.aiAssistantState.reference = { mode: "selected-text", noteId: "memo-a", noteTitle: "架空のメモ", content: selected.selectedText };
+  box.aiTargetSelect.value = "selected-text";
+  box.aiPurposeSelect.value = "translate";
+  box.updateAiTargetPreview();
+  const preview = box.aiTargetPreview.textContent;
+  assert.ok(preview.includes("4文字") && preview.endsWith("\\n\\nbeta"));
+  await box.startAiGeneration();
+  assert.equal(sent.length, 1);
+  assert.match(sent[0].at(-1).content, /\\[翻訳対象\\]\\nbeta$/);
+  assert.ok(preview.endsWith(selected.selectedText));
+  sourceNote.body = "alpha beta gamma!";
+  box.updateAiTargetPreview();
+  assert.match(box.aiTargetPreview.textContent, /古い内容は送信しません/);
+  await box.startAiGeneration();
+  assert.equal(sent.length, 1, "invalid selection must not reach model");
+  assert.match(box.aiAssistantState.error, /選択文章が未取得または変更済み/);
+});
+test("actual selected reference: editing during async save prevents request", async () => {
+  const { captureAiSelection, isAiSelectionCurrent } = require("./ai-selection-snapshot.js");
+  const sourceNote = { noteId: "memo-a", noteTitle: "架空のメモ", body: "alpha beta gamma" };
+  const snapshot = captureAiSelection({ ...sourceNote, start: 6, end: 10 });
+  let called = 0;
+  const box = appHarness(async () => { called += 1; return response([event("unused")]); });
+  box.currentNote = () => ({ id: "memo-a", title: "架空のメモ" });
+  box.flushSave = async () => { sourceNote.body += "!"; };
+  box.isCurrentAiSelection = snap => isAiSelectionCurrent(snap, sourceNote);
+  box.aiAssistantState.referenceMode = "selected-text";
+  box.aiAssistantState.selectedTextSnapshot = snapshot;
+  box.aiAssistantState.reference = { mode: "selected-text", noteId: "memo-a", noteTitle: "架空のメモ", content: "beta" };
+  box.aiTargetSelect.value = "selected-text";
+  box.aiPurposeSelect.value = "translate";
+  await box.startAiGeneration();
+  assert.equal(called, 0);
+  assert.match(box.aiAssistantState.error, /保存中に選択元が変わりました/);
+});
+
 test("Gemini provider finishReason and thinking-only are observed independently of its synthetic done", async () => {
   for (const [parts, finishReason, expected] of [
     [[{ text: "answer" }], "STOP", "COMPLETED_WITH_TEXT"],
