@@ -1,0 +1,33 @@
+{
+  "run": 41215047469,
+  "artifactId": 13046889601,
+  "jobId": 124577732988,
+  "files": [
+    {
+      "file": "t7-diagnostic-webkit-f628b70d-8e38-488f-b91b-1cbce6998aa5.json.gz",
+      "rawSha256": "f13497c5724e02f4931506457561a2b1d3c019f79d8a408f63a2fd9428346797"
+    },
+    {
+      "file": "webkit-job.log.gz",
+      "rawSha256": "99a96e6f1120175eb008ff099bdfd460834d6eb27ccf1d844f9bf4c0e02f839a"
+    }
+  ],
+  "sourceComparison": {
+    "suite.js": {
+      "normalizedSha256": "21150cc64ee1e56c1ad0c27fc93c045c8254eee8e8fba3636fee634acf4739c2",
+      "originalSha256": "21150cc64ee1e56c1ad0c27fc93c045c8254eee8e8fba3636fee634acf4739c2",
+      "equal": true
+    },
+    "worker.js": {
+      "normalizedSha256": "53b853238f8bb53412aeeb012df3f0598fd48b726ead76d3601bc43a904aa2fc",
+      "originalSha256": "53b853238f8bb53412aeeb012df3f0598fd48b726ead76d3601bc43a904aa2fc",
+      "equal": true
+    },
+    "cleanup.js": {
+      "normalizedSha256": "930e4d234a2169b113e67084165c694d95be2a6e2d10e61999baca2c11ce0b22",
+      "originalSha256": "930e4d234a2169b113e67084165c694d95be2a6e2d10e61999baca2c11ce0b22",
+      "equal": true
+    }
+  },
+  "logDbIdentity": "UNOBSERVED in original-primary summary; observed variants are separate databases"
+}

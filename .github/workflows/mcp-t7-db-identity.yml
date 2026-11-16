@@ -1,0 +1,32 @@
+name: T7 DB identity single observation
+on:
+  push:
+    branches: [investigate/mcp-worker-recovery]
+    paths:
+      - 'experiments/t7-db-identity/run.cjs'
+      - '.github/workflows/mcp-t7-db-identity.yml'
+permissions:
+  contents: read
+jobs:
+  identity:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps webkit
+      - name: Run exactly one T7-only identity observation
+        run: node experiments/t7-db-identity/run.cjs
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: t7-db-identity-webkit
+          path: e2e-artifacts/t7-db-identity/
+          if-no-files-found: error
+          retention-days: 14

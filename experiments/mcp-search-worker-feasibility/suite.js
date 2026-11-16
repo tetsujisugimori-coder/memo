@@ -132,8 +132,10 @@ window.runWorkerStudy = async (options = {}) => {
   });
   db.close(); record("fixture_close_called", { outcome: "returned", connectionClosed: "UNKNOWN" });
   begin("fixture.snapshot"); const before = await snapshot();
+    let a, next;
+    if (!options.t7Only) {
     begin("T1.search");
-    const startupStart = performance.now(); let a = start("A"); const normal = await phase(a, "result");
+    const startupStart = performance.now(); a = start("A"); const normal = await phase(a, "result");
     observations.searchStartupToResultMs = performance.now() - startupStart;
     assert(normal.result.length === 1 && normal.result[0].id === "n1", "T1 search"); stop(a);
     begin("T1.read"); const read = start("A", "normal", "read"); assert((await phase(read, "result")).result[0].body === "架空本文", "T1 read"); stop(read); checks.T1 = "PASS（検索・全文のPoC）";
@@ -142,7 +144,7 @@ window.runWorkerStudy = async (options = {}) => {
     assert(!a.events.some(event => event.phase === "result"), "T2 pending"); checks.T2 = "PASS";
     begin("T3.terminate"); const stopStart = performance.now(); assert(stop(a), "T3 stop");
     observations.terminateCallMs = performance.now() - stopStart; checks.T3 = "PASS";
-    begin("T4.recovery"); let next = start("A"); assert((await phase(next, "result")).result[0].id === "n1", "T4 recovery"); stop(next); checks.T4 = "PASS";
+    begin("T4.recovery"); next = start("A"); assert((await phase(next, "result")).result[0].id === "n1", "T4 recovery"); stop(next); checks.T4 = "PASS";
     begin("T5.stale");
     a = start("A", "race", "search", "架空", "destination-old"); const ready = await phase(a, "result");
     assert(ready.result.length === 1 && ready.result[0].id === "n1", "T5 fixture expectation");
@@ -182,11 +184,17 @@ window.runWorkerStudy = async (options = {}) => {
       aRequestId: a.requestId, bRequestId: b.requestId, aDestination: a.destination, bDestination: b.destination,
       aExpectedResultId: "n1", bResultId: afterStop.result[0].id, aStopRequestedBeforeGateRelease: true, bResultBeforeStop: false };
     stop(b); checks.T6 = "PASS（停止要求後のB新規配送。実認可は未実装）";
+    }
     begin("T7");
     for (let i = 0; i < 12; i++) { begin(`T7 iteration ${i + 1}.worker`); const item = start("A", "unresolved"); await phase(item, "unresolved"); stop(item); begin(`T7 iteration ${i + 1}.upgrade`); await upgrade(); }
     assert(active.size === 0 && maxActive <= 2 && created === terminated, "T7 bounds");
     observations.repetitions = 12; observations.created = created; observations.terminated = terminated; observations.maxManagedWorkers = maxActive;
     checks.T7 = "PARTIAL（12回の管理参照・DB upgrade観測のみ。実メモリとOS資源は未測定）";
+    if (options.t7Only) {
+      states.T7 = "PARTIAL";
+      report = { checks, states, timeline, observations, limitations: ["T7単独。fixture準備以外のT1〜T6を実行しない", "内部資源の解放時刻は未測定"] };
+      return report;
+    }
     for (const mode of ["reading", "transaction_wait", "generating"]) {
       begin(`T9.${mode}`);
       const item = start("A", mode); await phase(item, mode); stop(item);

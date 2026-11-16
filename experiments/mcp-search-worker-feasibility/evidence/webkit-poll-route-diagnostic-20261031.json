@@ -1,0 +1,1043 @@
+﻿{
+    "test":  "windows-webkit-route-diagnostic-20261031",
+    "baseline":  "597c1d4985724e3dd77660a3562020d7004b6d86",
+    "engine":  "WebKit 26.5",
+    "capturedAt":  "2026-10-31T05:24:42.6586698+09:00",
+    "timeline":  [
+                     {
+                         "ms":  20104.6225,
+                         "phase":  "test",
+                         "event":  "request",
+                         "id":  1,
+                         "endpoint":  "/search/poll"
+                     },
+                     {
+                         "ms":  20114.4561,
+                         "phase":  "test",
+                         "event":  "response",
+                         "id":  1,
+                         "status":  200
+                     },
+                     {
+                         "ms":  20114.4732,
+                         "phase":  "test",
+                         "event":  "requestfinished",
+                         "id":  1
+                     },
+                     {
+                         "ms":  20682.6108,
+                         "phase":  "test",
+                         "event":  "request",
+                         "id":  2,
+                         "endpoint":  "/search/poll"
+                     },
+                     {
+                         "ms":  20696.3742,
+                         "phase":  "test",
+                         "event":  "response",
+                         "id":  2,
+                         "status":  200
+                     },
+                     {
+                         "ms":  20696.5238,
+                         "phase":  "test",
+                         "event":  "requestfinished",
+                         "id":  2
+                     },
+                     {
+                         "ms":  20730.4228,
+                         "phase":  "test",
+                         "event":  "request",
+                         "id":  3,
+                         "endpoint":  "/search/poll"
+                     },
+                     {
+                         "ms":  20747.1213,
+                         "phase":  "test",
+                         "event":  "response",
+                         "id":  3,
+                         "status":  200
+                     },
+                     {
+                         "ms":  20747.3534,
+                         "phase":  "test",
+                         "event":  "requestfinished",
+                         "id":  3
+                     },
+                     {
+                         "ms":  22769.6511,
+                         "phase":  "test",
+                         "event":  "request",
+                         "id":  4,
+                         "endpoint":  "/search/poll"
+                     },
+                     {
+                         "ms":  22779.5069,
+                         "phase":  "test",
+                         "event":  "response",
+                         "id":  4,
+                         "status":  200
+                     },
+                     {
+                         "ms":  22779.7071,
+                         "phase":  "test",
+                         "event":  "requestfinished",
+                         "id":  4
+                     },
+                     {
+                         "ms":  23740.7599,
+                         "phase":  "test",
+                         "event":  "request",
+                         "id":  5,
+                         "endpoint":  "/search/poll"
+                     },
+                     {
+                         "ms":  23753.6106,
+                         "phase":  "test",
+                         "event":  "response",
+                         "id":  5,
+                         "status":  200
+                     },
+                     {
+                         "ms":  23753.8275,
+                         "phase":  "test",
+                         "event":  "requestfinished",
+                         "id":  5
+                     },
+                     {
+                         "ms":  24885.4881,
+                         "phase":  "test",
+                         "event":  "request",
+                         "id":  6,
+                         "endpoint":  "/search/poll"
+                     },
+                     {
+                         "ms":  24895.263,
+                         "phase":  "test",
+                         "event":  "response",
+                         "id":  6,
+                         "status":  200
+                     },
+                     {
+                         "ms":  24895.2741,
+                         "phase":  "test",
+                         "event":  "requestfinished",
+                         "id":  6
+                     },
+                     {
+                         "ms":  25759.3946,
+                         "phase":  "test",
+                         "event":  "request",
+                         "id":  7,
+                         "endpoint":  "/search/poll"
+                     },
+                     {
+                         "ms":  25770.1382,
+                         "phase":  "test",
+                         "event":  "response",
+                         "id":  7,
+                         "status":  200
+                     },
+                     {
+                         "ms":  25770.2552,
+                         "phase":  "test",
+                         "event":  "requestfinished",
+                         "id":  7
+                     },
+                     {
+                         "ms":  26282.6597,
+                         "phase":  "test",
+                         "event":  "request",
+                         "id":  8,
+                         "endpoint":  "/search/revoke"
+                     },
+                     {
+                         "ms":  26293.6963,
+                         "phase":  "test",
+                         "event":  "response",
+                         "id":  8,
+                         "status":  200
+                     },
+                     {
+                         "ms":  26294.4021,
+                         "phase":  "test",
+                         "event":  "requestfinished",
+                         "id":  8
+                     },
+                     {
+                         "ms":  26958.6433,
+                         "phase":  "test",
+                         "event":  "request",
+                         "id":  9,
+                         "endpoint":  "/search/poll"
+                     },
+                     {
+                         "ms":  26978.1635,
+                         "phase":  "test",
+                         "event":  "response",
+                         "id":  9,
+                         "status":  200
+                     },
+                     {
+                         "ms":  26978.7186,
+                         "phase":  "test",
+                         "event":  "requestfinished",
+                         "id":  9
+                     },
+                     {
+                         "ms":  27154.2787,
+                         "phase":  "test",
+                         "event":  "request",
+                         "id":  10,
+                         "endpoint":  "/search/revoke"
+                     },
+                     {
+                         "ms":  27162.1518,
+                         "phase":  "test",
+                         "event":  "response",
+                         "id":  10,
+                         "status":  200
+                     },
+                     {
+                         "ms":  27163.144,
+                         "phase":  "test",
+                         "event":  "requestfinished",
+                         "id":  10
+                     },
+                     {
+                         "ms":  27674.6495,
+                         "phase":  "test",
+                         "event":  "request",
+                         "id":  11,
+                         "endpoint":  "/search/poll"
+                     },
+                     {
+                         "ms":  27681.6887,
+                         "phase":  "test",
+                         "event":  "response",
+                         "id":  11,
+                         "status":  200
+                     },
+                     {
+                         "ms":  27681.9728,
+                         "phase":  "test",
+                         "event":  "requestfinished",
+                         "id":  11
+                     },
+                     {
+                         "ms":  29703.6909,
+                         "phase":  "test",
+                         "event":  "request",
+                         "id":  12,
+                         "endpoint":  "/search/poll"
+                     },
+                     {
+                         "ms":  29721.0009,
+                         "phase":  "test",
+                         "event":  "response",
+                         "id":  12,
+                         "status":  200
+                     },
+                     {
+                         "ms":  29721.0803,
+                         "phase":  "test",
+                         "event":  "requestfinished",
+                         "id":  12
+                     },
+                     {
+                         "ms":  31805.9626,
+                         "phase":  "test",
+                         "event":  "request",
+                         "id":  13,
+                         "endpoint":  "/search/poll"
+                     },
+                     {
+                         "ms":  31815.2684,
+                         "phase":  "test",
+                         "event":  "response",
+                         "id":  13,
+                         "status":  200
+                     },
+                     {
+                         "ms":  31815.3518,
+                         "phase":  "test",
+                         "event":  "requestfinished",
+                         "id":  13
+                     },
+                     {
+                         "ms":  33879.1335,
+                         "phase":  "test",
+                         "event":  "request",
+                         "id":  14,
+                         "endpoint":  "/search/poll"
+                     },
+                     {
+                         "ms":  33889.18,
+                         "phase":  "test",
+                         "event":  "response",
+                         "id":  14,
+                         "status":  200
+                     },
+                     {
+                         "ms":  33889.2613,
+                         "phase":  "test",
+                         "event":  "requestfinished",
+                         "id":  14
+                     },
+                     {
+                         "ms":  35950.3792,
+                         "phase":  "test",
+                         "event":  "request",
+                         "id":  15,
+                         "endpoint":  "/search/poll"
+                     },
+                     {
+                         "ms":  35966.6132,
+                         "phase":  "test",
+                         "event":  "response",
+                         "id":  15,
+                         "status":  200
+                     },
+                     {
+                         "ms":  35966.7072,
+                         "phase":  "test",
+                         "event":  "requestfinished",
+                         "id":  15
+                     },
+                     {
+                         "ms":  38050.7473,
+                         "phase":  "test",
+                         "event":  "request",
+                         "id":  16,
+                         "endpoint":  "/search/poll"
+                     },
+                     {
+                         "ms":  38060.5279,
+                         "phase":  "test",
+                         "event":  "response",
+                         "id":  16,
+                         "status":  200
+                     },
+                     {
+                         "ms":  38060.6241,
+                         "phase":  "test",
+                         "event":  "requestfinished",
+                         "id":  16
+                     },
+                     {
+                         "ms":  40140.9088,
+                         "phase":  "test",
+                         "event":  "request",
+                         "id":  17,
+                         "endpoint":  "/search/poll"
+                     },
+                     {
+                         "ms":  40157.427,
+                         "phase":  "test",
+                         "event":  "response",
+                         "id":  17,
+                         "status":  200
+                     },
+                     {
+                         "ms":  40157.5151,
+                         "phase":  "test",
+                         "event":  "requestfinished",
+                         "id":  17
+                     },
+                     {
+                         "ms":  42239.347,
+                         "phase":  "test",
+                         "event":  "request",
+                         "id":  18,
+                         "endpoint":  "/search/poll"
+                     },
+                     {
+                         "ms":  42251.9199,
+                         "phase":  "test",
+                         "event":  "response",
+                         "id":  18,
+                         "status":  200
+                     },
+                     {
+                         "ms":  42252.0266,
+                         "phase":  "test",
+                         "event":  "requestfinished",
+                         "id":  18
+                     },
+                     {
+                         "ms":  42774.6914,
+                         "phase":  "test",
+                         "event":  "request",
+                         "id":  19,
+                         "endpoint":  "/search/revoke"
+                     },
+                     {
+                         "ms":  42785.7589,
+                         "phase":  "test",
+                         "event":  "response",
+                         "id":  19,
+                         "status":  200
+                     },
+                     {
+                         "ms":  42786.7023,
+                         "phase":  "test",
+                         "event":  "requestfinished",
+                         "id":  19
+                     },
+                     {
+                         "ms":  43205.7178,
+                         "phase":  "test",
+                         "event":  "request",
+                         "id":  20,
+                         "endpoint":  "/search/poll"
+                     },
+                     {
+                         "ms":  43213.4534,
+                         "phase":  "test",
+                         "event":  "response",
+                         "id":  20,
+                         "status":  200
+                     },
+                     {
+                         "ms":  43213.7427,
+                         "phase":  "test",
+                         "event":  "requestfinished",
+                         "id":  20
+                     },
+                     {
+                         "ms":  45228.802,
+                         "phase":  "test",
+                         "event":  "request",
+                         "id":  21,
+                         "endpoint":  "/search/poll"
+                     },
+                     {
+                         "ms":  45237.2488,
+                         "phase":  "test",
+                         "event":  "response",
+                         "id":  21,
+                         "status":  200
+                     },
+                     {
+                         "ms":  45237.3822,
+                         "phase":  "test",
+                         "event":  "requestfinished",
+                         "id":  21
+                     },
+                     {
+                         "ms":  47290.789,
+                         "phase":  "test",
+                         "event":  "request",
+                         "id":  22,
+                         "endpoint":  "/search/poll"
+                     },
+                     {
+                         "ms":  47300.9362,
+                         "phase":  "test",
+                         "event":  "response",
+                         "id":  22,
+                         "status":  200
+                     },
+                     {
+                         "ms":  47301.0118,
+                         "phase":  "test",
+                         "event":  "requestfinished",
+                         "id":  22
+                     },
+                     {
+                         "ms":  49355.1257,
+                         "phase":  "test",
+                         "event":  "request",
+                         "id":  23,
+                         "endpoint":  "/search/poll"
+                     },
+                     {
+                         "ms":  49373.3961,
+                         "phase":  "test",
+                         "event":  "response",
+                         "id":  23,
+                         "status":  200
+                     },
+                     {
+                         "ms":  49373.4809,
+                         "phase":  "test",
+                         "event":  "requestfinished",
+                         "id":  23
+                     },
+                     {
+                         "ms":  51430.6663,
+                         "phase":  "test",
+                         "event":  "request",
+                         "id":  24,
+                         "endpoint":  "/search/poll"
+                     },
+                     {
+                         "ms":  51440.4453,
+                         "phase":  "test",
+                         "event":  "response",
+                         "id":  24,
+                         "status":  200
+                     },
+                     {
+                         "ms":  51440.5377,
+                         "phase":  "test",
+                         "event":  "requestfinished",
+                         "id":  24
+                     },
+                     {
+                         "ms":  53484.66,
+                         "phase":  "test",
+                         "event":  "request",
+                         "id":  25,
+                         "endpoint":  "/search/poll"
+                     },
+                     {
+                         "ms":  53492.7525,
+                         "phase":  "test",
+                         "event":  "response",
+                         "id":  25,
+                         "status":  200
+                     },
+                     {
+                         "ms":  53492.8428,
+                         "phase":  "test",
+                         "event":  "requestfinished",
+                         "id":  25
+                     },
+                     {
+                         "ms":  55528.6225,
+                         "phase":  "test",
+                         "event":  "request",
+                         "id":  26,
+                         "endpoint":  "/search/poll"
+                     },
+                     {
+                         "ms":  55538.3473,
+                         "phase":  "test",
+                         "event":  "response",
+                         "id":  26,
+                         "status":  200
+                     },
+                     {
+                         "ms":  55538.4321,
+                         "phase":  "test",
+                         "event":  "requestfinished",
+                         "id":  26
+                     },
+                     {
+                         "ms":  57578.9883,
+                         "phase":  "test",
+                         "event":  "request",
+                         "id":  27,
+                         "endpoint":  "/search/poll"
+                     },
+                     {
+                         "ms":  57588.4468,
+                         "phase":  "test",
+                         "event":  "response",
+                         "id":  27,
+                         "status":  200
+                     },
+                     {
+                         "ms":  57588.5993,
+                         "phase":  "test",
+                         "event":  "requestfinished",
+                         "id":  27
+                     },
+                     {
+                         "ms":  57708.5071,
+                         "phase":  "test",
+                         "event":  "request",
+                         "id":  28,
+                         "endpoint":  "/search/revoke"
+                     },
+                     {
+                         "ms":  57721.0833,
+                         "phase":  "test",
+                         "event":  "response",
+                         "id":  28,
+                         "status":  200
+                     },
+                     {
+                         "ms":  57721.3921,
+                         "phase":  "test",
+                         "event":  "requestfinished",
+                         "id":  28
+                     },
+                     {
+                         "ms":  58124.0492,
+                         "phase":  "lost_revoke_ack_held_poll",
+                         "event":  "request",
+                         "id":  29,
+                         "endpoint":  "/search/poll"
+                     },
+                     {
+                         "ms":  58140.3049,
+                         "phase":  "lost_revoke_ack_held_poll",
+                         "event":  "response",
+                         "id":  29,
+                         "status":  200
+                     },
+                     {
+                         "ms":  58140.4706,
+                         "phase":  "lost_revoke_ack_held_poll",
+                         "event":  "requestfinished",
+                         "id":  29
+                     },
+                     {
+                         "ms":  58313.5667,
+                         "phase":  "lost_revoke_ack_held_poll",
+                         "event":  "request",
+                         "id":  30,
+                         "endpoint":  "/search/poll"
+                     },
+                     {
+                         "ms":  58313.7457,
+                         "phase":  "lost_revoke_ack_held_poll",
+                         "event":  "held_route_fetch_start",
+                         "id":  30
+                     },
+                     {
+                         "ms":  58327.4318,
+                         "phase":  "lost_revoke_ack_held_poll",
+                         "event":  "held_route_fetch_return",
+                         "id":  30,
+                         "status":  200
+                     },
+                     {
+                         "ms":  58427.6784,
+                         "phase":  "lost_revoke_ack_held_poll",
+                         "event":  "request",
+                         "id":  31,
+                         "endpoint":  "/search/revoke"
+                     },
+                     {
+                         "ms":  58427.8025,
+                         "phase":  "lost_revoke_ack_held_poll",
+                         "event":  "revoke_fixture_fetch_start",
+                         "id":  31
+                     },
+                     {
+                         "ms":  58439.2946,
+                         "phase":  "lost_revoke_ack_held_poll",
+                         "event":  "revoke_fixture_abort",
+                         "id":  31
+                     },
+                     {
+                         "ms":  58440.6854,
+                         "phase":  "lost_revoke_ack_held_poll",
+                         "event":  "requestfailed",
+                         "id":  31,
+                         "error":  "Blocked by Web Inspector"
+                     },
+                     {
+                         "ms":  59018.2863,
+                         "phase":  "lost_revoke_ack_held_poll",
+                         "event":  "request",
+                         "id":  32,
+                         "endpoint":  "/search/poll"
+                     },
+                     {
+                         "ms":  59027.91,
+                         "phase":  "lost_revoke_ack_held_poll",
+                         "event":  "response",
+                         "id":  32,
+                         "status":  200
+                     },
+                     {
+                         "ms":  59027.9217,
+                         "phase":  "lost_revoke_ack_held_poll",
+                         "event":  "requestfinished",
+                         "id":  32
+                     },
+                     {
+                         "ms":  59035.0291,
+                         "phase":  "lost_revoke_ack_held_poll",
+                         "event":  "held_poll_release"
+                     },
+                     {
+                         "ms":  59035.1121,
+                         "phase":  "lost_revoke_ack_held_poll",
+                         "event":  "held_route_fulfill_start",
+                         "id":  30
+                     },
+                     {
+                         "ms":  59036.045,
+                         "phase":  "lost_revoke_ack_held_poll",
+                         "event":  "held_route_fulfill_failed",
+                         "id":  30
+                     },
+                     {
+                         "ms":  59162.5799,
+                         "phase":  "lost_revoke_ack_held_poll",
+                         "event":  "request",
+                         "id":  33,
+                         "endpoint":  "/search/poll"
+                     },
+                     {
+                         "ms":  59175.9308,
+                         "phase":  "lost_revoke_ack_held_poll",
+                         "event":  "response",
+                         "id":  33,
+                         "status":  200
+                     },
+                     {
+                         "ms":  59176.0112,
+                         "phase":  "lost_revoke_ack_held_poll",
+                         "event":  "requestfinished",
+                         "id":  33
+                     },
+                     {
+                         "ms":  59309.246,
+                         "phase":  "lost_revoke_ack_held_poll",
+                         "event":  "request",
+                         "id":  34,
+                         "endpoint":  "/search/revoke"
+                     },
+                     {
+                         "ms":  59325.0749,
+                         "phase":  "lost_revoke_ack_held_poll",
+                         "event":  "response",
+                         "id":  34,
+                         "status":  200
+                     },
+                     {
+                         "ms":  59325.3521,
+                         "phase":  "lost_revoke_ack_held_poll",
+                         "event":  "requestfinished",
+                         "id":  34
+                     },
+                     {
+                         "ms":  59761.2705,
+                         "phase":  "test",
+                         "event":  "request",
+                         "id":  35,
+                         "endpoint":  "/search/poll"
+                     },
+                     {
+                         "ms":  59779.1464,
+                         "phase":  "test",
+                         "event":  "response",
+                         "id":  35,
+                         "status":  200
+                     },
+                     {
+                         "ms":  59779.2281,
+                         "phase":  "test",
+                         "event":  "requestfinished",
+                         "id":  35
+                     },
+                     {
+                         "ms":  59892.6384,
+                         "phase":  "test",
+                         "event":  "request",
+                         "id":  36,
+                         "endpoint":  "/search/revoke"
+                     },
+                     {
+                         "ms":  59894.1277,
+                         "phase":  "test",
+                         "event":  "requestfailed",
+                         "id":  36,
+                         "error":  "Blocked by Web Inspector"
+                     },
+                     {
+                         "ms":  60128.5751,
+                         "phase":  "test",
+                         "event":  "request",
+                         "id":  37,
+                         "endpoint":  "/search/revoke"
+                     },
+                     {
+                         "ms":  60145.5567,
+                         "phase":  "test",
+                         "event":  "response",
+                         "id":  37,
+                         "status":  200
+                     },
+                     {
+                         "ms":  60146.0454,
+                         "phase":  "test",
+                         "event":  "requestfinished",
+                         "id":  37
+                     },
+                     {
+                         "ms":  60473.3069,
+                         "phase":  "test",
+                         "event":  "pageerror",
+                         "message":  "/127.0.0.1:8791/search/poll due to access control checks."
+                     },
+                     {
+                         "ms":  60473.3712,
+                         "phase":  "test",
+                         "event":  "requestfailed",
+                         "id":  30,
+                         "error":  "Could not connect to server"
+                     },
+                     {
+                         "ms":  60609.3992,
+                         "phase":  "test",
+                         "event":  "request",
+                         "id":  38,
+                         "endpoint":  "/search/poll"
+                     },
+                     {
+                         "ms":  60617.419,
+                         "phase":  "test",
+                         "event":  "response",
+                         "id":  38,
+                         "status":  200
+                     },
+                     {
+                         "ms":  60617.4972,
+                         "phase":  "test",
+                         "event":  "requestfinished",
+                         "id":  38
+                     },
+                     {
+                         "ms":  62639.0134,
+                         "phase":  "test",
+                         "event":  "request",
+                         "id":  39,
+                         "endpoint":  "/search/revoke"
+                     },
+                     {
+                         "ms":  62652.7912,
+                         "phase":  "test",
+                         "event":  "response",
+                         "id":  39,
+                         "status":  200
+                     },
+                     {
+                         "ms":  62653.0638,
+                         "phase":  "test",
+                         "event":  "requestfinished",
+                         "id":  39
+                     },
+                     {
+                         "ms":  63114.8492,
+                         "phase":  "test",
+                         "event":  "request",
+                         "id":  40,
+                         "endpoint":  "/search/poll"
+                     },
+                     {
+                         "ms":  63127.865,
+                         "phase":  "test",
+                         "event":  "response",
+                         "id":  40,
+                         "status":  200
+                     },
+                     {
+                         "ms":  63127.9536,
+                         "phase":  "test",
+                         "event":  "requestfinished",
+                         "id":  40
+                     },
+                     {
+                         "ms":  65139.3311,
+                         "phase":  "test",
+                         "event":  "request",
+                         "id":  41,
+                         "endpoint":  "/search/poll"
+                     },
+                     {
+                         "ms":  65154.5564,
+                         "phase":  "test",
+                         "event":  "response",
+                         "id":  41,
+                         "status":  409
+                     },
+                     {
+                         "ms":  65164.0798,
+                         "phase":  "test",
+                         "event":  "requestfinished",
+                         "id":  41
+                     },
+                     {
+                         "ms":  65560.882,
+                         "phase":  "test",
+                         "event":  "request",
+                         "id":  42,
+                         "endpoint":  "/search/poll"
+                     },
+                     {
+                         "ms":  65578.4925,
+                         "phase":  "test",
+                         "event":  "response",
+                         "id":  42,
+                         "status":  200
+                     },
+                     {
+                         "ms":  65578.5716,
+                         "phase":  "test",
+                         "event":  "requestfinished",
+                         "id":  42
+                     },
+                     {
+                         "ms":  67619.0574,
+                         "phase":  "injected_poll_abort",
+                         "event":  "request",
+                         "id":  43,
+                         "endpoint":  "/search/poll"
+                     },
+                     {
+                         "ms":  67626.5853,
+                         "phase":  "injected_poll_abort",
+                         "event":  "requestfailed",
+                         "id":  43,
+                         "error":  "Blocked by Web Inspector"
+                     },
+                     {
+                         "ms":  68566.1115,
+                         "phase":  "test",
+                         "event":  "request",
+                         "id":  44,
+                         "endpoint":  "/search/revoke"
+                     },
+                     {
+                         "ms":  68621.3922,
+                         "phase":  "test",
+                         "event":  "response",
+                         "id":  44,
+                         "status":  200
+                     },
+                     {
+                         "ms":  68623.4027,
+                         "phase":  "test",
+                         "event":  "requestfinished",
+                         "id":  44
+                     },
+                     {
+                         "ms":  70506.2338,
+                         "phase":  "test",
+                         "event":  "request",
+                         "id":  45,
+                         "endpoint":  "/search/poll"
+                     },
+                     {
+                         "ms":  70555.3733,
+                         "phase":  "test",
+                         "event":  "response",
+                         "id":  45,
+                         "status":  200
+                     },
+                     {
+                         "ms":  70557.0354,
+                         "phase":  "test",
+                         "event":  "requestfinished",
+                         "id":  45
+                     },
+                     {
+                         "ms":  70653.4954,
+                         "phase":  "test",
+                         "event":  "request",
+                         "id":  46,
+                         "endpoint":  "/search/revoke"
+                     },
+                     {
+                         "ms":  70822.7781,
+                         "phase":  "test",
+                         "event":  "response",
+                         "id":  46,
+                         "status":  200
+                     },
+                     {
+                         "ms":  70822.8408,
+                         "phase":  "test",
+                         "event":  "requestfinished",
+                         "id":  46
+                     },
+                     {
+                         "ms":  76636.4481,
+                         "phase":  "test",
+                         "event":  "request",
+                         "id":  47,
+                         "endpoint":  "/search/poll"
+                     },
+                     {
+                         "ms":  76664.1569,
+                         "phase":  "test",
+                         "event":  "response",
+                         "id":  47,
+                         "status":  200
+                     },
+                     {
+                         "ms":  76665.424,
+                         "phase":  "test",
+                         "event":  "requestfinished",
+                         "id":  47
+                     },
+                     {
+                         "ms":  76694.2203,
+                         "phase":  "injected_revoke_abort_and_page_close",
+                         "event":  "page_close_start"
+                     },
+                     {
+                         "ms":  76702.6432,
+                         "phase":  "injected_revoke_abort_and_page_close",
+                         "event":  "page_closed"
+                     },
+                     {
+                         "ms":  76704.5349,
+                         "phase":  "injected_revoke_abort_and_page_close",
+                         "event":  "page_close_return"
+                     },
+                     {
+                         "ms":  76759.0455,
+                         "phase":  "cleanup",
+                         "event":  "cleanup_start"
+                     },
+                     {
+                         "ms":  76759.0543,
+                         "phase":  "cleanup",
+                         "event":  "browser_close_start"
+                     },
+                     {
+                         "ms":  76814.1448,
+                         "phase":  "cleanup",
+                         "event":  "context_closed"
+                     },
+                     {
+                         "ms":  76816.5683,
+                         "phase":  "cleanup",
+                         "event":  "browser_close_return"
+                     },
+                     {
+                         "ms":  76816.6677,
+                         "phase":  "cleanup",
+                         "event":  "server_close_start",
+                         "name":  "oauth"
+                     },
+                     {
+                         "ms":  76819.389,
+                         "phase":  "cleanup",
+                         "event":  "server_close_return",
+                         "name":  "oauth"
+                     },
+                     {
+                         "ms":  76819.4133,
+                         "phase":  "cleanup",
+                         "event":  "server_close_start",
+                         "name":  "receiver"
+                     },
+                     {
+                         "ms":  76821.0191,
+                         "phase":  "cleanup",
+                         "event":  "server_close_return",
+                         "name":  "receiver"
+                     },
+                     {
+                         "ms":  76821.0344,
+                         "phase":  "cleanup",
+                         "event":  "server_close_start",
+                         "name":  "static"
+                     },
+                     {
+                         "ms":  76840.9539,
+                         "phase":  "cleanup",
+                         "event":  "server_close_return",
+                         "name":  "static"
+                     }
+                 ]
+}
