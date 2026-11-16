@@ -71,6 +71,19 @@ async function setText(page, value, start = 0, end = start) {
     const url = `http://127.0.0.1:${server.address().port}/`;
     await prepare(page, url);
     assert.equal(await page.locator("#featurePalette").isVisible(), false);
+    // Focused AI selection gate runs before legacy CSV import, which can timeout independently.
+    await setText(page, "alpha beta gamma", 6, 10);
+    await clickPaletteControl(page, "aiSendSelectionBtn");
+    assert.equal(await page.locator("#aiTargetSelect").inputValue(), "selected-text");
+    assert.ok((await page.locator("#aiTargetPreview").textContent()).endsWith("\n\nbeta"));
+    await page.locator("#closeAiPanelBtn").click();
+    await setText(page, "alpha beta gamma", 6, 10);
+    await page.locator("#aiRobotBtn").click();
+    await page.locator("#aiTargetSelect").selectOption("selected-text");
+    assert.ok((await page.locator("#aiTargetPreview").textContent()).endsWith("\n\nbeta"));
+    await page.evaluate(() => { editor.value += "!"; editor.dispatchEvent(new Event("input", { bubbles: true })); });
+    assert.match(await page.locator("#aiTargetPreview").textContent(), /古い内容は送信しません/);
+    await page.locator("#closeAiPanelBtn").click();
     await setText(page, "alpha beta gamma", 6, 10);
     const before = await snapshot(page);
     await page.locator("#featurePaletteToggle").focus();
