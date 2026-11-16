@@ -5,8 +5,19 @@ const {execFileSync}=require('node:child_process');
 const {fixture,probe,observe}=require('./ai-stage1-validation.cjs');
 const MODEL='phi4-mini:latest';
 const ANCHOR='910cace4e733d41f0a7e6eab6bdd0c2346fabd29';
-const SOURCE_FILES=['app.js','ai-prompts.js','ai-provider.js','ai-context.js',
-  'ai-selection-snapshot.js','ollama-adapter.js','feature-palette.js'];
+// Git tree blob identities from the owner-accepted selection UI code version.
+const SOURCE_BLOBS=Object.freeze({
+  'app.js':'d6e98c1e4a2baf3f5ecb8fc2f6659fa5fd939ead',
+  'ai-prompts.js':'d01889916d9ae1177eb288010b58e7fe0fe24bf0',
+  'ai-provider.js':'7c8efaf7c0bfb879e6d392a4f101d152074a9ff9',
+  'ai-context.js':'db6135a5a5607cd2e37f7b5b5b39fa292e2e7d8a',
+  'ai-selection-snapshot.js':'0cf1a975db28ab46f085a457ac7f7dc7f57e5303',
+  'ollama-adapter.js':'13f4db596973e9b16009352113e0e6e387ef7c25',
+  'feature-palette.js':'94edde6ef33239048288b98d76276619b272a19c',
+  'index.html':'d7d3543aa2934ce9739637e87306e1b1828ce230',
+  'style.css':'efa52fddd81071355732d0b712dc8412e22c0a27'
+});
+const SOURCE_FILES=Object.keys(SOURCE_BLOBS);
 const root=path.resolve(__dirname,'..');
 const sha=value=>crypto.createHash('sha256').update(value).digest('hex');
 
@@ -28,13 +39,12 @@ function sourceCheck() {
   try {
     result.head=execFileSync('git',['rev-parse','HEAD'],
       {cwd:root,encoding:'utf8',timeout:5000}).trim();
-    execFileSync('git',['merge-base','--is-ancestor',ANCHOR,'HEAD'],
-      {cwd:root,stdio:'ignore',timeout:5000});
-    const committed=execFileSync('git',['diff','--name-only',ANCHOR,'HEAD','--',...SOURCE_FILES],
-      {cwd:root,encoding:'utf8',timeout:5000}).trim();
+    // HEAD:path works for shallow checkouts and does not modify the worktree.
+    const matched=SOURCE_FILES.every(file=>execFileSync('git',['rev-parse','HEAD:'+file],
+      {cwd:root,encoding:'utf8',timeout:5000}).trim()===SOURCE_BLOBS[file]);
     const dirty=execFileSync('git',['status','--porcelain','--',...SOURCE_FILES],
       {cwd:root,encoding:'utf8',timeout:5000}).trim();
-    result.sourceUnchanged=committed==='';
+    result.sourceUnchanged=matched;
     result.worktreeClean=dirty==='';
   }catch(_){ /* Unverified source must block generation. */ }
   return result;
