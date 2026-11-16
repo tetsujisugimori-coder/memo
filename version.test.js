@@ -59,11 +59,11 @@ test("全ローカルCSS・JavaScriptを0.5.0のキャッシュ識別子で読�
   assert.match(html, /extensions\/web-clipper\/transfer-lifecycle\.js\?v=0\.5\.0-2/);
   assert.match(html, /web-clipper-config\.js\?v=0\.5\.0-4/);
   assert.match(html, /table-file-export-utils\.js\?v=0\.5\.0-4/);
-  assert.deepEqual(assetVersions.filter(asset => asset.path === "app.js").map(asset => asset.version), ["0.5.0-212"]);
+  assert.deepEqual(assetVersions.filter(asset => asset.path === "app.js").map(asset => asset.version), ["0.5.0-213"]);
   for (const asset of ["note-conflict-store.js", "note-conflict-ui.js", "note-conflict.css"]) {
     assert.deepEqual(assetVersions.filter(item => item.path === asset).map(item => item.version), [asset === "note-conflict.css" ? "0.5.0-2" : "0.5.0-1"]);
   }
-  assert.match(html, /feature-palette\.js\?v=0\.5\.0-2/);
+  assert.match(html, /feature-palette\.js\?v=0\.5\.0-3/);
   assert.match(html, /ai-prompts\.js\?v=0\.5\.0-3/);
   assert.match(html, /report-print\.css\?v=0\.5\.0-3/);
 });
