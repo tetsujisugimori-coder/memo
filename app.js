@@ -6668,7 +6668,10 @@ function snippet(body) {
 
 // 指定したidのメモをエディタに読み込みます。
 function openNote(id) {
-  if (currentId !== id) pendingAiTextSelection = null;
+  if (currentId !== id) {
+    pendingAiTextSelection = null;
+    aiAssistantState.selectedTextSnapshot = null;
+  }
   if (typeof featurePalette !== "undefined") featurePalette?.close();
   if (noteSaveFoundation.isTerminal(id)) return;
   const previousId = currentId;
@@ -14572,6 +14575,10 @@ function rememberAiTextSelection() {
 }
 function invalidateAiTextSelectionOnEdit() {
   if (pendingAiTextSelection && !isCurrentAiSelection(pendingAiTextSelection)) pendingAiTextSelection = null;
+  // Once a document changes, undoing the edit must not silently revive an old reference.
+  if (aiAssistantState.selectedTextSnapshot && !isCurrentAiSelection(aiAssistantState.selectedTextSnapshot)) {
+    aiAssistantState.selectedTextSnapshot = null;
+  }
   updateAiTargetPreview();
 }
 function snapshotSelectedTextReference() {
@@ -14896,6 +14903,7 @@ function updateAiTargetPreview() {
   const reference = createAiReferenceContext(aiAssistantState.reference);
   const selectedMode = aiAssistantState.referenceMode === AI_REFERENCE_MODES.SELECTED_TEXT;
   const selection = aiAssistantState.selectedTextSnapshot;
+  if (selection && !isCurrentAiSelection(selection)) aiAssistantState.selectedTextSnapshot = null;
   const validSelection = selectedMode && isCurrentAiSelection(selection)
     && reference.mode === AI_REFERENCE_MODES.SELECTED_TEXT
     && reference.noteId === selection.noteId && reference.content === selection.selectedText;

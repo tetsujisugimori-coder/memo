@@ -202,6 +202,8 @@ async function setText(page, value, start = 0, end = start) {
     assert.ok(preview.includes("AIに送信する選択文章（4文字）") && preview.endsWith("beta"));
     await page.evaluate(() => { editor.value += "!"; editor.dispatchEvent(new Event("input", { bubbles: true })); });
     assert.match(await page.locator("#aiTargetPreview").textContent(), /古い内容は送信しません/);
+    await page.evaluate(() => { editor.value = "alpha beta gamma"; editor.dispatchEvent(new Event("input", { bubbles: true })); });
+    assert.match(await page.locator("#aiTargetPreview").textContent(), /古い内容は送信しません/);
     await page.locator("#closeAiPanelBtn").click();
     await clickPaletteControl(page,"focusNoteTagBtn");
     assert.equal(await page.locator("#noteTagInput").evaluate(e=>document.activeElement===e),true);
