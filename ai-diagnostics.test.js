@@ -269,10 +269,10 @@ test("actual selected reference: exact visible text is in request, and editing b
   box.aiPurposeSelect.value = "translate";
   box.updateAiTargetPreview();
   const preview = box.aiTargetPreview.textContent;
-  assert.ok(preview.includes("4文字") && preview.endsWith("\\n\\nbeta"));
+  assert.ok(preview.includes("4文字") && preview.endsWith("\n\nbeta"));
   await box.startAiGeneration();
   assert.equal(sent.length, 1);
-  assert.match(sent[0].at(-1).content, /\\[翻訳対象\\]\\nbeta$/);
+  assert.match(sent[0].at(-1).content, /\[翻訳対象\]\nbeta$/);
   assert.ok(preview.endsWith(selected.selectedText));
   sourceNote.body = "alpha beta gamma!";
   box.updateAiTargetPreview();
