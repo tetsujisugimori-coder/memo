@@ -4,7 +4,7 @@
   const providerApi = typeof module !== "undefined" && module.exports
     ? require("./ai-provider")
     : globalScope.MemoNexusAiProvider;
-  const { AiProviderError, createNdjsonParser, normalizeBaseUrl, normalizeModels } = providerApi;
+  const { AiProviderError, observeAiDiagnostic, createNdjsonParser, normalizeBaseUrl, normalizeModels } = providerApi;
 
   function combinedAbortSignal(externalSignal, timeoutMs) {
     const controller = new AbortController();
@@ -109,21 +109,28 @@
           }),
           signal: signalState.signal
         });
+        observeAiDiagnostic(request, "http", { status: response.status });
         if (!response.ok) throw await responseError(response);
         if (!response.body || typeof response.body.getReader !== "function") {
           throw new AiProviderError("invalid_response", "ストリーミング応答を利用できません。");
         }
         reader = response.body.getReader();
+        observeAiDiagnostic(request, "stream-start");
         let done = false;
         while (!done) {
           const result = await reader.read();
           done = result.done;
+          if (!done) observeAiDiagnostic(request, "chunk");
+          else observeAiDiagnostic(request, "stream-end");
           if (!done) signalState.markActivity();
           else readerDone = true;
           const events = parser.push(decoder.decode(result.value || new Uint8Array(), { stream: !done }));
           for (const event of events) {
             if (event.error) throw new AiProviderError(/model.*not found/i.test(event.error) ? "model_missing" : "provider", "Ollamaがエラーを返しました。");
             const content = String(event.message?.content || event.response || "");
+            observeAiDiagnostic(request, "thinking", { characters: (typeof event.message?.thinking === "string" ? event.message.thinking.length : 0) });
+            if (content) observeAiDiagnostic(request, "body", { characters: content.length });
+            if (event.done) observeAiDiagnostic(request, "done");
             if (content) yield { type: "text", content };
             if (event.done) yield { type: "done", model: String(event.model || request.model) };
           }
@@ -131,7 +138,10 @@
         for (const event of parser.finish()) {
           if (event.error) throw new AiProviderError("provider", "Ollamaがエラーを返しました。");
           const content = String(event.message?.content || event.response || "");
-          if (content) yield { type: "text", content };
+          observeAiDiagnostic(request, "thinking", { characters: (typeof event.message?.thinking === "string" ? event.message.thinking.length : 0) });
+            if (content) observeAiDiagnostic(request, "body", { characters: content.length });
+            if (event.done) observeAiDiagnostic(request, "done");
+            if (content) yield { type: "text", content };
           if (event.done) yield { type: "done", model: String(event.model || request.model) };
         }
       } catch (error) {

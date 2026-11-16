@@ -1,0 +1,58 @@
+{
+  "testedHead": "bd919551b4741cac3f81d4ee00bc5c1d2212b7fc",
+  "testedTree": "a7a0ec9d7c80f9bcfaa8a4d6e573198196ba5e62",
+  "runId": 43524681395,
+  "archiveVerification": "ZIP digest / CRC / per-report manifest independently rechecked after retrieval",
+  "artifacts": [
+    {
+      "id": 14084104339,
+      "name": "ubuntu-chromium",
+      "zipSha256": "9970d8d2fd7fd19bcf2760b849227cad17e157a477dc4dd1e0a090d9072a9522"
+    },
+    {
+      "id": 14083548826,
+      "name": "ubuntu-webkit",
+      "zipSha256": "62f534c0b363f688438f64b4245f850919f378eb5fe4effd2595feb516091b78"
+    },
+    {
+      "id": 14084463384,
+      "name": "windows-chromium",
+      "zipSha256": "81a8e2feedb09873f2440b2d7b2745b717d04f62d05ff8165d4f0b61a2c255c9"
+    }
+  ],
+  "files": [
+    {
+      "file": "local-unit.txt",
+      "bytes": 11377,
+      "sha256": "8a3b73804b639adeddd3ad01b91cbebcae57ddf830d5322e3539637a94cf451a"
+    },
+    {
+      "file": "ubuntu-chromium-report.json",
+      "bytes": 24645,
+      "sha256": "1bbdb9d52445b53faf7e2d3d44d11304176657fa620eaadcf6450974ce8d4aca"
+    },
+    {
+      "file": "ubuntu-webkit-report.json",
+      "bytes": 24634,
+      "sha256": "3b089c54549e76060984abe50bfd265ffd82df63de7b97db1c8e706363db1965"
+    },
+    {
+      "file": "windows-chromium-report.json",
+      "bytes": 24645,
+      "sha256": "5dab38c89b540e368ed26aa55334caff3f1189989cdf9be860bb6dd83b7f80cd"
+    },
+    {
+      "file": "windows-probe.json",
+      "bytes": 278,
+      "sha256": "94a75b77cef4f6b12ebc1f4a3064620fa8210f35b4c52eb13c1f6a65f0b14ac8"
+    }
+  ],
+  "normalizations": [
+    {
+      "file": "windows-probe.json",
+      "operation": "CRLF to LF only",
+      "originalBytes": 290,
+      "originalSha256": "8fac4174f98eebc8436c3a5a30f2288b7632f8642d495e2c4b7717d557c67a35"
+    }
+  ]
+}

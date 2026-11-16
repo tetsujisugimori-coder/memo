@@ -1,0 +1,144 @@
+{
+  "environment": "Windows / Node v24.20.0 / sandbox unchanged / dedicated TEMP",
+  "sourceCommit": "63dc8bd4e14857be4798e2bec2910bb3a95ba267",
+  "command": "node --test --test-reporter=tap",
+  "tests": 2021,
+  "pass": 1995,
+  "fail": 25,
+  "cancelled": 1,
+  "skipped": 0,
+  "rawSha256": "5bca3ab418e1ffeff38385cd6a816bca223c4a9cd05957e65662f00d6b7eff17",
+  "rawLocation": "task-temp/all-final.tap (local only; absolute user paths not published)",
+  "failures": [
+    {
+      "file": "codex-bridge.test.js",
+      "line": 72,
+      "error": "fetch failed"
+    },
+    {
+      "file": "codex-bridge.test.js",
+      "line": 92,
+      "error": "fetch failed"
+    },
+    {
+      "file": "codex-bridge.test.js",
+      "line": 120,
+      "error": "fetch failed"
+    },
+    {
+      "file": "codex-bridge.test.js",
+      "line": 145,
+      "error": "fetch failed"
+    },
+    {
+      "file": "codex-bridge.test.js",
+      "line": 181,
+      "error": "connect EACCES 127.0.0.1:<ephemeral>"
+    },
+    {
+      "file": "dummy-preview.test.js",
+      "line": 53,
+      "error": "connect EACCES 127.0.0.1:<ephemeral>"
+    },
+    {
+      "file": "mcp-http-discovery.test.js",
+      "line": 42,
+      "error": "connect EACCES 127.0.0.1:<ephemeral>"
+    },
+    {
+      "file": "mcp-http-discovery.test.js",
+      "line": 59,
+      "error": "connect EACCES 127.0.0.1:<ephemeral>"
+    },
+    {
+      "file": "mcp-http-discovery.test.js",
+      "line": 75,
+      "error": "connect EACCES 127.0.0.1:<ephemeral>"
+    },
+    {
+      "file": "mcp-http-oauth.test.js",
+      "line": 13,
+      "error": "connect EACCES 127.0.0.1:<ephemeral>"
+    },
+    {
+      "file": "mcp-http-oauth.test.js",
+      "line": 113,
+      "error": "connect EACCES 127.0.0.1:<ephemeral>"
+    },
+    {
+      "file": "mcp-http-oauth.test.js",
+      "line": 172,
+      "error": "connect EACCES 127.0.0.1:<ephemeral>"
+    },
+    {
+      "file": "mcp-http-oauth.test.js",
+      "line": 266,
+      "error": "connect EACCES 127.0.0.1:<ephemeral>"
+    },
+    {
+      "file": "mcp-http-oauth.test.js",
+      "line": 368,
+      "error": "connect EACCES 127.0.0.1:<ephemeral>"
+    },
+    {
+      "file": "mcp-http-oauth.test.js",
+      "line": 391,
+      "error": "connect EACCES 127.0.0.1:<ephemeral>"
+    },
+    {
+      "file": "mcp-http-oauth.test.js",
+      "line": 464,
+      "error": "test timed out after 10000ms"
+    },
+    {
+      "file": "mcp-http-oauth.test.js",
+      "line": 568,
+      "error": "connect EACCES 127.0.0.1:<ephemeral>"
+    },
+    {
+      "file": "mcp-http-oauth.test.js",
+      "line": 590,
+      "error": "connect EACCES 127.0.0.1:<ephemeral>"
+    },
+    {
+      "file": "mcp-http-oauth.test.js",
+      "line": 626,
+      "error": "connect EACCES 127.0.0.1:<ephemeral>"
+    },
+    {
+      "file": "mcp-http-oauth.test.js",
+      "line": 645,
+      "error": "fetch failed"
+    },
+    {
+      "file": "memo-nexus-launcher.test.js",
+      "line": 8,
+      "error": "invalid_configuration"
+    },
+    {
+      "file": "memo-search.test.js",
+      "line": 258,
+      "error": "connect EACCES 127.0.0.1:<ephemeral>"
+    },
+    {
+      "file": "memo-search.test.js",
+      "line": 406,
+      "error": "connect EACCES 127.0.0.1:<ephemeral>"
+    },
+    {
+      "file": "received-history.test.js",
+      "line": 77,
+      "error": "assertion; expected True, actual False"
+    },
+    {
+      "file": "received-notes-preview.test.js",
+      "line": 112,
+      "error": "connect EACCES 127.0.0.1:<ephemeral>"
+    },
+    {
+      "file": "received-preview.test.js",
+      "line": 60,
+      "error": "connect EACCES 127.0.0.1:<ephemeral>"
+    }
+  ]
+}

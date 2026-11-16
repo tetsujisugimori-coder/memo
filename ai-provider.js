@@ -242,7 +242,13 @@
     };
   }
 
+  // Observers receive metadata only; their failures cannot affect generation.
+  function observeAiDiagnostic(request, type, data = {}) {
+    try { request?.onDiagnostic?.(type, data); } catch (_error) { /* observational only */ }
+  }
+
   const api = {
+    observeAiDiagnostic,
     AI_CONNECTION_STATES,
     AI_GENERATION_STATES,
     AI_SETTINGS_STORAGE_KEY,

@@ -1,0 +1,66 @@
+{
+  "schema": "memo-windows-translation-acceptance-v1",
+  "trial": "WINDOWS-UI-TRANSLATE-V2-01",
+  "testedCodeHead": "4ba1d625d63d0900bcbd03adf45b04df03d71083",
+  "testedCodeTree": "b7f66dc239cd1209c124f2fa5107a61128067ddd",
+  "provenance": {
+    "kind": "USER_REPORTED",
+    "material": "User-pasted checkout transcript, copied diagnostic JSON and displayed answer in chat",
+    "independentlyObservedOnDevice": false,
+    "rawHttpResponseCapturedByAgent": false,
+    "headAssociation": "User checkout transcript and subsequent manual trial; diagnostic alone does not attest source identity",
+    "requestHash": "NOT_CAPTURED"
+  },
+  "syntheticSource": "The blue bird sits by the window.",
+  "reportedVisibleAnswer": "青い鳥が窓辺にいる。",
+  "assessment": {
+    "firstAcceptance": "PASS",
+    "scope": "One sentence, model, settings and tested code HEAD only",
+    "fidelityNote": "Japanese answer conveys the blue bird by the window; sitting posture is not explicit",
+    "repeatability": "NOT_TESTED",
+    "rootCause": "UNKNOWN",
+    "overall": "PARTIAL",
+    "independentReview": "OUTSTANDING",
+    "mergeRecommendation": "NO"
+  },
+  "diagnostics": [
+    {
+      "requestId": "34fa2ee8-e384-478b-9df9-fca002117276-1",
+      "startedAt": "2026-11-14T20:14:03.390Z",
+      "durationMs": 7144,
+      "provider": "ollama",
+      "model": "phi4-mini:latest",
+      "purpose": "translate",
+      "uiPurpose": "translate",
+      "uiTranslationLanguage": "ja",
+      "translationLanguage": "ja",
+      "referenceMode": "selected-text",
+      "historyMessageCount": 0,
+      "sentMessageCount": 2,
+      "inputCharacters": 197,
+      "messageRoles": ["system", "user"],
+      "messageRolesTruncated": false,
+      "httpStatus": 200,
+      "streamStarted": true,
+      "receivedChunks": 10,
+      "bodyChunks": 9,
+      "bodyCharacters": 10,
+      "thinkingPresent": false,
+      "thinkingCharacters": 0,
+      "doneReceived": true,
+      "doneCount": 1,
+      "streamEndedNormally": true,
+      "finalAnswerCharacters": 10,
+      "uiCharacters": 10,
+      "uiApplied": true,
+      "staleResponse": false,
+      "errorType": "UNKNOWN",
+      "result": "COMPLETED_WITH_TEXT",
+      "finalized": true
+    }
+  ],
+  "codeHeadCi": [
+    {"runId": 43605824053, "kind": "synthetic browser and focused suite", "conclusion": "success"},
+    {"runId": 43605824086, "kind": "ordinary CI", "conclusion": "success"}
+  ]
+}

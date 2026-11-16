@@ -571,6 +571,7 @@ const {
   selectAllReferenceNotes,
   selectCollectionReferenceNotes
 } = window.MemoNexusAiReferenceSelection;
+const { captureAiSelection, isAiSelectionCurrent } = window.MemoNexusAiSelectionSnapshot;
 const {
   buildCalloutMarkdown,
   checklistEntries,
@@ -1290,6 +1291,7 @@ let aiDraftConnectionMessage = "";
 let aiConnectionRequestId = 0;
 let aiConnectionAbortController = null;
 let aiSettingsSessionId = 0;
+const aiDiagnostics = window.MemoNexusAiDiagnostics.createStore({ onExpire: renderAiDiagnostics });
 let aiAbortController = null;
 let aiAssistantState = {
   panelOpen: false,
@@ -1303,11 +1305,12 @@ let aiAssistantState = {
   requestPurpose: "question",
   referenceMode: AI_REFERENCE_MODES.NONE,
   reference: emptyAiReference(),
-  selectedTextSnapshot: "",
+  selectedTextSnapshot: null,
   specifiedNoteId: null,
   collectionId: null,
   history: []
 };
+let pendingAiTextSelection = null;
 const enqueueAttachmentAddition = createKeyedSerialQueue();
 const pendingAttachmentAdditions = new Map();
 
@@ -6665,6 +6668,7 @@ function snippet(body) {
 
 // 指定したidのメモをエディタに読み込みます。
 function openNote(id) {
+  if (currentId !== id && typeof clearAiSelectionOnNoteSwitch === "function") clearAiSelectionOnNoteSwitch();
   if (typeof featurePalette !== "undefined") featurePalette?.close();
   if (noteSaveFoundation.isTerminal(id)) return;
   const previousId = currentId;
@@ -14312,6 +14316,23 @@ function setRelatedDrawerOpen(open, options = {}) {
   }
 }
 
+function renderAiDiagnostics() {
+  const host = document.getElementById("aiDiagnosticsSummary");
+  if (!host) return;
+  const latest = aiDiagnostics.snapshot().at(-1);
+  host.textContent = latest ? JSON.stringify(latest, null, 2) : "診断記録はありません。";
+}
+document.getElementById("aiDiagnosticsEnabled")?.addEventListener("change", (event) => {
+  aiDiagnostics.setEnabled(event.target.checked);
+  renderAiDiagnostics();
+});
+document.getElementById("aiDiagnosticsClear")?.addEventListener("click", () => {
+  aiDiagnostics.clear(); renderAiDiagnostics();
+});
+document.getElementById("aiDiagnosticsCopy")?.addEventListener("click", async () => {
+  try { await writeTextToClipboard(aiDiagnostics.exportJson(), { fallbackCopyText }); }
+  catch (_error) { document.getElementById("aiDiagnosticsSummary").textContent = "コピーできませんでした。"; }
+});
 function restoreAiSettings() {
   try {
     const stored = localStorage.getItem(AI_SETTINGS_STORAGE_KEY);
@@ -14531,15 +14552,43 @@ function snapshotCurrentNoteReference() {
   });
 }
 
-function snapshotSelectedTextReference() {
+function aiSelectionSource() {
   const note = currentNote();
-  const content = aiAssistantState.selectedTextSnapshot
-    || editor.value.slice(editor.selectionStart, editor.selectionEnd);
-  return createAiReferenceContext({
-    mode: AI_REFERENCE_MODES.SELECTED_TEXT,
-    noteId: note?.id,
+  return {
+    noteId: note && !note.deletedAt ? note.id : null,
     noteTitle: titleInput.value || note?.title,
-    content
+    body: editor.value
+  };
+}
+function isCurrentAiSelection(snapshot) {
+  return isAiSelectionCurrent(snapshot, aiSelectionSource());
+}
+function rememberAiTextSelection() {
+  // Palette and AI controls must not replace a selection captured while editing.
+  if (document.activeElement !== editor) return;
+  pendingAiTextSelection = captureAiSelection({
+    ...aiSelectionSource(), start: editor.selectionStart, end: editor.selectionEnd
+  });
+}
+function clearAiSelectionOnNoteSwitch() {
+  pendingAiTextSelection = null;
+  aiAssistantState.selectedTextSnapshot = null;
+}
+function invalidateAiTextSelectionOnEdit() {
+  if (pendingAiTextSelection && !isCurrentAiSelection(pendingAiTextSelection)) pendingAiTextSelection = null;
+  // Once a document changes, undoing the edit must not silently revive an old reference.
+  if (aiAssistantState.selectedTextSnapshot && !isCurrentAiSelection(aiAssistantState.selectedTextSnapshot)) {
+    aiAssistantState.selectedTextSnapshot = null;
+  }
+  updateAiTargetPreview();
+}
+function snapshotSelectedTextReference() {
+  const snapshot = isCurrentAiSelection(pendingAiTextSelection) ? pendingAiTextSelection : null;
+  aiAssistantState.selectedTextSnapshot = snapshot;
+  if (!snapshot) return emptyAiReference();
+  return createAiReferenceContext({
+    mode: AI_REFERENCE_MODES.SELECTED_TEXT, noteId: snapshot.noteId,
+    noteTitle: snapshot.noteTitle, content: snapshot.selectedText
   });
 }
 
@@ -14586,6 +14635,7 @@ function snapshotCollectionReference(collectionId) {
 
 function setAiReferenceMode(mode) {
   aiAssistantState.referenceMode = mode;
+  if (mode !== AI_REFERENCE_MODES.SELECTED_TEXT) aiAssistantState.selectedTextSnapshot = null;
   aiAssistantState.error = "";
   aiAssistantState.specifiedNoteId = mode === AI_REFERENCE_MODES.SPECIFIED_NOTE
     ? aiAssistantState.specifiedNoteId
@@ -14620,9 +14670,6 @@ function openAiAssistant(options = {}) {
   const resume = options.resume === true;
   const mode = options.mode || AI_REFERENCE_MODES.NONE;
   if (!resume) {
-    aiAssistantState.selectedTextSnapshot = mode === AI_REFERENCE_MODES.SELECTED_TEXT
-      ? editor.value.slice(editor.selectionStart, editor.selectionEnd)
-      : "";
     aiPurposeSelect.value = options.purpose || "question";
     if (options.prompt !== undefined) aiInstructionInput.value = options.prompt;
     setAiReferenceMode(mode);
@@ -14642,7 +14689,7 @@ function resetAiAssistantConversation() {
     requestPurpose: "question",
     referenceMode: AI_REFERENCE_MODES.NONE,
     reference: emptyAiReference(),
-    selectedTextSnapshot: "",
+    selectedTextSnapshot: null,
     specifiedNoteId: null,
     collectionId: null,
     history: []
@@ -14736,6 +14783,7 @@ function renderAiUi() {
   renderAiReferenceUi();
   renderAiChatHistory();
   updateAiTargetPreview();
+  renderAiDiagnostics();
 }
 
 function renderAiReferenceUi() {
@@ -14854,6 +14902,20 @@ function renderAiChatHistory() {
 
 function updateAiTargetPreview() {
   const reference = createAiReferenceContext(aiAssistantState.reference);
+  const selectedMode = aiAssistantState.referenceMode === AI_REFERENCE_MODES.SELECTED_TEXT;
+  const selection = aiAssistantState.selectedTextSnapshot;
+  if (selection && !isCurrentAiSelection(selection)) aiAssistantState.selectedTextSnapshot = null;
+  const validSelection = selectedMode && isCurrentAiSelection(selection)
+    && reference.mode === AI_REFERENCE_MODES.SELECTED_TEXT
+    && reference.noteId === selection.noteId && reference.content === selection.selectedText;
+  aiTargetPreview.dataset.mode = selectedMode ? AI_REFERENCE_MODES.SELECTED_TEXT : reference.mode;
+  aiTargetPreview.dataset.state = selectedMode && !validSelection ? "stale" : "ready";
+  if (selectedMode) {
+    aiTargetPreview.textContent = validSelection
+      ? `AIに送信する選択文章（${selection.selectedText.length.toLocaleString("ja-JP")}文字）\n元メモ：${selection.noteTitle || "無題メモ"}\n\n${selection.selectedText}`
+      : "選択内容を確認できません。本文で文章を選び直し、参照範囲を再選択してください。古い内容は送信しません。";
+    return;
+  }
   const noReferenceText = aiPurposeRequiresReference(aiPurposeSelect.value)
     ? "この用途には参照範囲の選択が必要です。"
     : "送信データにメモのタイトル・本文・選択文章は含まれません。";
@@ -14876,6 +14938,15 @@ async function startAiGeneration() {
   }
   const note = currentNote();
   const reference = createAiReferenceContext(aiAssistantState.reference);
+  const selectedSnapshot = aiAssistantState.selectedTextSnapshot;
+  if (aiAssistantState.referenceMode === AI_REFERENCE_MODES.SELECTED_TEXT
+      && (!isCurrentAiSelection(selectedSnapshot) || reference.mode !== AI_REFERENCE_MODES.SELECTED_TEXT
+        || reference.noteId !== selectedSnapshot.noteId || reference.content !== selectedSnapshot.selectedText)) {
+    aiAssistantState.error = "選択文章が未取得または変更済みです。本文を選び直してから参照範囲を再選択してください。";
+    aiAssistantState.generation = AI_GENERATION_STATES.ERROR;
+    renderAiUi();
+    return;
+  }
   if (aiTargetSelect.value !== AI_REFERENCE_MODES.NONE && reference.mode === AI_REFERENCE_MODES.NONE) {
     aiAssistantState.error = aiTargetSelect.value === AI_REFERENCE_MODES.SELECTED_TEXT
       ? "選択文章を取得できませんでした。本文で文章を選択してください。"
@@ -14924,7 +14995,28 @@ async function startAiGeneration() {
     renderAiUi();
     return;
   }
+  const diagnosticInput = {
+    purpose: aiPurposeSelect.value, translationLanguage: aiTranslationSelect.value,
+    referenceMode: reference.mode,
+    historyMessageCount: aiAssistantState.history.filter((message) => message.content).length,
+    messages
+  };
   if (note) await flushSave();
+  // The note can change while an asynchronous save is completing.
+  if (reference.mode === AI_REFERENCE_MODES.SELECTED_TEXT
+      && (aiAssistantState.referenceMode !== AI_REFERENCE_MODES.SELECTED_TEXT
+        || aiAssistantState.selectedTextSnapshot !== selectedSnapshot
+        || !isCurrentAiSelection(selectedSnapshot)
+        || reference.content !== selectedSnapshot.selectedText)) {
+    aiAssistantState.error = "保存中に選択元が変わりました。本文を選び直してから送信してください。";
+    aiAssistantState.generation = AI_GENERATION_STATES.ERROR;
+    renderAiUi();
+    return;
+  }
+  const diagnostic = aiDiagnostics.begin({ ...diagnosticInput, provider: aiSettings.provider,
+    model: aiSettings.selectedModel, uiPurpose: aiPurposeSelect.value, uiTranslationLanguage: aiTranslationSelect.value, secrets: [aiSettings.geminiApiKey] });
+  let diagnosticAnswerCharacters = 0;
+  let diagnosticErrorCode;
   const requestId = aiAssistantState.requestId + 1;
   const referenceSnapshot = aiReferenceSnapshot(reference);
   const userMessage = { role: "user", content: question, reference: referenceSnapshot, sentAt: Date.now() };
@@ -14949,28 +15041,36 @@ async function startAiGeneration() {
       model: aiSettings.selectedModel,
       messages,
       signal: aiAbortController.signal,
-      timeoutMs: aiSettings.timeoutMs
+      timeoutMs: aiSettings.timeoutMs,
+      onDiagnostic: diagnostic.observe
     })) {
       if (requestId !== aiAssistantState.requestId) return;
       if (event.type === "text") {
         aiAssistantState.connection = AI_CONNECTION_STATES.CONNECTED;
         aiAssistantState.answer += event.content;
+        diagnosticAnswerCharacters += event.content.length;
         aiAssistantState.history.at(-1).content = aiAssistantState.answer;
         renderAiUi();
+        diagnostic.ui(aiAssistantState.answer.trim() ? aiAnswer.textContent.length : 0);
       }
     }
     if (requestId === aiAssistantState.requestId) {
       aiAssistantState.connection = AI_CONNECTION_STATES.CONNECTED;
       aiAssistantState.generation = AI_GENERATION_STATES.COMPLETED;
       renderAiUi();
+      diagnostic.ui(aiAssistantState.answer.trim() ? aiAnswer.textContent.length : 0);
     }
   } catch (error) {
+    diagnosticErrorCode = error?.code || "unknown_error";
     if (requestId !== aiAssistantState.requestId) return;
     aiAssistantState.generation = error?.code === "aborted" ? AI_GENERATION_STATES.STOPPED : AI_GENERATION_STATES.ERROR;
     aiAssistantState.error = error?.code === "aborted" ? "" : friendlyAiError(error);
     if (error?.code === "connection") aiAssistantState.connection = AI_CONNECTION_STATES.UNAVAILABLE;
     renderAiUi();
   } finally {
+    diagnostic.finish({ characters: diagnosticAnswerCharacters, errorCode: diagnosticErrorCode,
+      stale: requestId !== aiAssistantState.requestId });
+    renderAiDiagnostics();
     if (requestId === aiAssistantState.requestId) aiAbortController = null;
   }
 }
@@ -18210,8 +18310,13 @@ editor.addEventListener("dragover", (event) => {
 });
 editor.addEventListener("drop", handleEditorAttachmentDrop);
 titleInput.addEventListener("input", handleTitleTypingInput);
+titleInput.addEventListener("input", invalidateAiTextSelectionOnEdit);
 editor.addEventListener("input", handleEditorTypingInput);
+editor.addEventListener("input", invalidateAiTextSelectionOnEdit);
 editor.addEventListener("select", rememberEditorSelectionRange);
+["select", "keyup", "pointerup", "touchend"].forEach((type) => {
+  editor.addEventListener(type, rememberAiTextSelection);
+});
 editor.addEventListener("select", () => {
   resetEditorCaretIdle();
   updateAiTargetPreview();
