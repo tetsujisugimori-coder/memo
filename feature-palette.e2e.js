@@ -265,6 +265,11 @@ async function setText(page, value, start = 0, end = start) {
       assert.equal(await p.locator("#aiTargetSelect").inputValue(), "current-note");
       await p.locator("#closeAiPanelBtn").tap();
       await p.locator("#closeContextPanelBtn").tap();
+      // The draggable palette may overlap its original launcher. Close via its own
+      // visible close control before opening again rather than tapping through it.
+      if (await p.locator("#featurePalette").isVisible()) {
+        await p.locator("[data-palette-close]").tap();
+      }
       await p.locator("#featurePaletteToggle").tap();
       // A normal-mode command itself can enter writing mode without resizing the viewport.
       await p.locator("#insertCalloutBtn").tap();
