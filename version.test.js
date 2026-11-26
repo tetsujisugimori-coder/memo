@@ -39,7 +39,7 @@ test("全ローカルCSS・JavaScriptを0.5.0のキャッシュ識別子で読�
   assert.match(html, /draft-mirror-scheduler\.js\?v=0\.5\.0-2/);
   assert.match(html, /term-link-utils\.js\?v=0\.5\.0-6/);
   assert.match(html, /memo-link-utils\.js\?v=0\.5\.0-3/);
-  assert.match(html, /style\.css\?v=0\.5\.0-120/);
+  assert.match(html, /style\.css\?v=0\.5\.0-121/);
   assert.match(html, /<script src="source-utils\.js\?v=0\.5\.0-8"><\/script>/);
   assert.ok(html.indexOf('src="source-utils.js?v=0.5.0-8"') < html.indexOf('src="app.js?v='));
   assert.match(html, /chart-png-export\.js\?v=0\.5\.0-4/);
@@ -61,7 +61,7 @@ test("全ローカルCSS・JavaScriptを0.5.0のキャッシュ識別子で読�
   for (const asset of ["note-conflict-store.js", "note-conflict-ui.js", "note-conflict.css"]) {
     assert.deepEqual(assetVersions.filter(item => item.path === asset).map(item => item.version), [asset === "note-conflict.css" ? "0.5.0-2" : "0.5.0-1"]);
   }
-  assert.match(html, /feature-palette\.js\?v=0\.5\.0-2/);
+  assert.match(html, /feature-palette\.js\?v=0\.5\.0-3/);
   assert.match(html, /report-print\.css\?v=0\.5\.0-3/);
 });
 
