@@ -73,7 +73,10 @@ async function setText(page, value, start = 0, end = start) {
     assert.equal(await page.locator("#featurePalette").isVisible(), false);
     await setText(page, "alpha beta gamma", 6, 10);
     const before = await snapshot(page);
+    await page.locator("#titleInput").focus();
+    assert.equal(await page.locator(".title-input-wrap").evaluate(el => el.matches(":focus-within")), true);
     await page.locator("#featurePaletteToggle").focus();
+    assert.equal(await page.locator(".title-input-wrap").evaluate(el => el.matches(":focus-within")), false, "palette launcher focus must not activate title input");
     await page.keyboard.press("Enter");
     assert.equal(await page.locator("#featurePaletteToggle").getAttribute("aria-expanded"), "true");
     assert.equal(await page.locator("[data-palette-close]").evaluate(e => e === document.activeElement), true);
