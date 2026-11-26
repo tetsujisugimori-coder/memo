@@ -30,6 +30,13 @@ test("mobile drag uses the same pointer handler while retaining the position", (
   assert.match(css, /\[data-palette-drag\] \{[^}]*touch-action: none;/);
   assert.doesNotMatch(css, /\[data-palette-drag\] \{ cursor: default; touch-action: auto;/);
 });
+test("palette toggle lies outside title input active boundary", () => {
+  const css = fs.readFileSync("style.css", "utf8");
+  assert.match(html, /class="title-input-row"\s*>\s*<div class="title-input-wrap"><input id="titleInput"[^>]*><\/div>\s*<button id="featurePaletteToggle"/);
+  assert.match(css, /\.title-input-wrap:focus-within\s*\{/);
+  assert.match(css, /\.title-input-row\s*\{[^}]*display: flex/);
+  assert.match(css, /\.title-input-wrap\s*\{[^}]*flex: 1 1 0/);
+});
 test("palette is initially hidden non-modal UI and original tools are outside normal flow", () => {
   assert.match(html,/id="featurePalette"[^>]*role="dialog"[^>]*aria-modal="false"[^>]*hidden/);
   for (const id of ["featurePaletteToggle", "mobileFeaturePaletteToggle"]) assert.match(html,new RegExp(`id="${id}"[^>]*aria-expanded="false"[^>]*aria-controls="featurePalette"`));
