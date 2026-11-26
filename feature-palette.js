@@ -39,6 +39,7 @@
     const handle = panel.querySelector("[data-palette-drag]");
     const closeButton = panel.querySelector("[data-palette-close]");
     let opener = null, selection = null, position = null, drag = null;
+    let closeTouch = null;
     const controls = new Set(commands.map((command) => command.controlId));
     commands.forEach((command) => {
       const button = doc.getElementById(command.controlId);
@@ -100,6 +101,7 @@
     function close({ restoreFocus = false } = {}) {
       if (panel.hidden) return;
       finishDrag();
+      closeTouch = null;
       panel.hidden = true;
       triggers.forEach((button) => {
         button.setAttribute("aria-expanded", "false");
@@ -128,6 +130,26 @@
       else close({ restoreFocus: true });
     }));
     closeButton.addEventListener("click", () => close({ restoreFocus: true }));
+    // A touch immediately after a drag can end on the button without generating a click.
+    closeButton.addEventListener("touchstart", (event) => {
+      closeTouch = event.touches.length === 1 ? event.changedTouches[0] : null;
+    }, { passive: true });
+    closeButton.addEventListener("touchmove", (event) => {
+      const touch = event.changedTouches[0];
+      if (closeTouch && (event.touches.length !== 1 ||
+          Math.hypot(touch.clientX - closeTouch.clientX, touch.clientY - closeTouch.clientY) > 10)) closeTouch = null;
+    }, { passive: true });
+    closeButton.addEventListener("touchcancel", () => { closeTouch = null; });
+    closeButton.addEventListener("touchend", (event) => {
+      const start = closeTouch;
+      closeTouch = null;
+      if (!start || drag || event.touches.length || !event.cancelable) return;
+      const touch = event.changedTouches[0];
+      if (touch.identifier !== start.identifier ||
+          !closeButton.contains(doc.elementFromPoint(touch.clientX, touch.clientY))) return;
+      event.preventDefault();
+      close({ restoreFocus: true });
+    }, { passive: false });
     ["select", "input", "keyup", "pointerup", "scroll"].forEach((type) => editor.addEventListener(type, remember));
     // Capture runs before each original button listener, including native file pickers.
     ["pointerdown", "click"].forEach((type) => panel.addEventListener(type, (event) => {
@@ -167,7 +189,9 @@
       position = { x: drag.origin.x + event.clientX - drag.x, y: drag.origin.y + event.clientY - drag.y };
       place();
     });
-    ["pointerup", "pointercancel", "lostpointercapture"].forEach((type) => handle.addEventListener(type, finishDrag));
+    ["pointerup", "pointercancel", "lostpointercapture"].forEach((type) => handle.addEventListener(type, (event) => {
+      if (drag?.id === event.pointerId) finishDrag();
+    }));
     handle.addEventListener("keydown", (event) => {
       const steps = { ArrowLeft: [-16, 0], ArrowRight: [16, 0], ArrowUp: [0, -16], ArrowDown: [0, 16] };
       if (event.key === "Home") { event.preventDefault(); place(true); }

@@ -237,14 +237,24 @@ async function setText(page, value, start = 0, end = start) {
       await p.locator("#featurePaletteToggle").tap();await bounds(p);
       assert.deepEqual(await p.locator("#editor").boundingBox(),rect);
       // Drag the title bar in a narrow mobile viewport; keep the memo unchanged.
-      const grip = await p.locator("[data-palette-drag]").boundingBox();
-      const initial = await p.locator("#featurePalette").boundingBox();
-      assert.equal(await p.locator("[data-palette-drag]").evaluate(el => getComputedStyle(el).touchAction), "none");
+      const palettePanel = p.locator("#featurePalette");
+      const launcher = p.locator("#featurePaletteToggle");
+      const dragHandle = p.locator("[data-palette-drag]");
+      const closePalette = p.locator("[data-palette-close]");
+      const grip = await dragHandle.boundingBox();
+      const initial = await palettePanel.boundingBox();
+      assert.equal(await dragHandle.evaluate(el => getComputedStyle(el).touchAction), "none");
       const x = grip.x + Math.min(45, grip.width / 2);
       const y = grip.y + grip.height / 2;
       if (engine === "chromium") {
         const cdp = await mobile.newCDPSession(p);
         await cdp.send("Input.dispatchTouchEvent", {type: "touchStart", touchPoints: [{x, y, id: 1}]});
+        await dragHandle.evaluate(handle => {
+          // A different pointer must not end the active browser-driven drag.
+          for (const type of ["pointerup", "pointercancel", "lostpointercapture"]) {
+            handle.dispatchEvent(new PointerEvent(type, {pointerId: 999, pointerType: "touch"}));
+          }
+        });
         await cdp.send("Input.dispatchTouchEvent", {type: "touchMove", touchPoints: [{x: x - 20, y: y - 90, id: 1}]});
         await cdp.send("Input.dispatchTouchEvent", {type: "touchEnd", touchPoints: []});
         await cdp.detach();
@@ -255,14 +265,18 @@ async function setText(page, value, start = 0, end = start) {
         await p.mouse.move(x - 20, y - 90, {steps: 5});
         await p.mouse.up();
       }
-      const moved = await p.locator("#featurePalette").boundingBox();
+      const moved = await palettePanel.boundingBox();
       assert.ok(moved.y <= initial.y - 30, "drag should move the mobile palette");
       await bounds(p);
       assert.deepEqual(await p.locator("#editor").boundingBox(), rect);
-      await p.locator("[data-palette-close]").tap();
-      await p.locator("#featurePaletteToggle").tap();
-      const reopened = await p.locator("#featurePalette").boundingBox();
-      assert.ok(Math.abs(reopened.y - moved.y) < 2, "reopening preserves the moved position");
+      await closePalette.tap();
+      assert.equal(await palettePanel.isVisible(), false, `first close tap hides the dragged palette at ${width}px`);
+      assert.equal(await launcher.getAttribute("aria-expanded"), "false");
+      await launcher.tap();
+      assert.equal(await launcher.getAttribute("aria-expanded"), "true");
+      const reopened = await palettePanel.boundingBox();
+      assert.ok(Math.abs(reopened.x - moved.x) < 2 && Math.abs(reopened.y - moved.y) < 2,
+        "reopening preserves the moved position");
       // The lowest row must be tappable above the fixed related-note and AI triggers.
       await p.locator("#aiSummarizeNoteBtn").tap();
       assert.equal(await p.locator("#aiTargetSelect").inputValue(), "current-note");

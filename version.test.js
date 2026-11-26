@@ -61,7 +61,7 @@ test("全ローカルCSS・JavaScriptを0.5.0のキャッシュ識別子で読�
   for (const asset of ["note-conflict-store.js", "note-conflict-ui.js", "note-conflict.css"]) {
     assert.deepEqual(assetVersions.filter(item => item.path === asset).map(item => item.version), [asset === "note-conflict.css" ? "0.5.0-2" : "0.5.0-1"]);
   }
-  assert.match(html, /feature-palette\.js\?v=0\.5\.0-3/);
+  assert.match(html, /feature-palette\.js\?v=0\.5\.0-4/);
   assert.match(html, /report-print\.css\?v=0\.5\.0-3/);
 });
 
