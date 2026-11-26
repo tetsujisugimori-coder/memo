@@ -73,7 +73,10 @@ async function setText(page, value, start = 0, end = start) {
     assert.equal(await page.locator("#featurePalette").isVisible(), false);
     await setText(page, "alpha beta gamma", 6, 10);
     const before = await snapshot(page);
+    await page.locator("#titleInput").focus();
+    assert.equal(await page.locator(".title-input-wrap").evaluate(el => el.matches(":focus-within")), true);
     await page.locator("#featurePaletteToggle").focus();
+    assert.equal(await page.locator(".title-input-wrap").evaluate(el => el.matches(":focus-within")), false, "palette launcher focus must not activate title input");
     await page.keyboard.press("Enter");
     assert.equal(await page.locator("#featurePaletteToggle").getAttribute("aria-expanded"), "true");
     assert.equal(await page.locator("[data-palette-close]").evaluate(e => e === document.activeElement), true);
@@ -233,11 +236,57 @@ async function setText(page, value, start = 0, end = start) {
       const rect=await p.locator("#editor").boundingBox();
       await p.locator("#featurePaletteToggle").tap();await bounds(p);
       assert.deepEqual(await p.locator("#editor").boundingBox(),rect);
+      // Drag the title bar in a narrow mobile viewport; keep the memo unchanged.
+      const palettePanel = p.locator("#featurePalette");
+      const launcher = p.locator("#featurePaletteToggle");
+      const dragHandle = p.locator("[data-palette-drag]");
+      const closePalette = p.locator("[data-palette-close]");
+      const grip = await dragHandle.boundingBox();
+      const initial = await palettePanel.boundingBox();
+      assert.equal(await dragHandle.evaluate(el => getComputedStyle(el).touchAction), "none");
+      const x = grip.x + Math.min(45, grip.width / 2);
+      const y = grip.y + grip.height / 2;
+      if (engine === "chromium") {
+        const cdp = await mobile.newCDPSession(p);
+        await cdp.send("Input.dispatchTouchEvent", {type: "touchStart", touchPoints: [{x, y, id: 1}]});
+        await dragHandle.evaluate(handle => {
+          // A different pointer must not end the active browser-driven drag.
+          for (const type of ["pointerup", "pointercancel", "lostpointercapture"]) {
+            handle.dispatchEvent(new PointerEvent(type, {pointerId: 999, pointerType: "touch"}));
+          }
+        });
+        await cdp.send("Input.dispatchTouchEvent", {type: "touchMove", touchPoints: [{x: x - 20, y: y - 90, id: 1}]});
+        await cdp.send("Input.dispatchTouchEvent", {type: "touchEnd", touchPoints: []});
+        await cdp.detach();
+      } else {
+        // WebKit's portable Playwright API uses mouse-pointer drag for this mobile viewport.
+        await p.mouse.move(x, y);
+        await p.mouse.down();
+        await p.mouse.move(x - 20, y - 90, {steps: 5});
+        await p.mouse.up();
+      }
+      const moved = await palettePanel.boundingBox();
+      assert.ok(moved.y <= initial.y - 30, "drag should move the mobile palette");
+      await bounds(p);
+      assert.deepEqual(await p.locator("#editor").boundingBox(), rect);
+      await closePalette.tap();
+      assert.equal(await palettePanel.isVisible(), false, `first close tap hides the dragged palette at ${width}px`);
+      assert.equal(await launcher.getAttribute("aria-expanded"), "false");
+      await launcher.tap();
+      assert.equal(await launcher.getAttribute("aria-expanded"), "true");
+      const reopened = await palettePanel.boundingBox();
+      assert.ok(Math.abs(reopened.x - moved.x) < 2 && Math.abs(reopened.y - moved.y) < 2,
+        "reopening preserves the moved position");
       // The lowest row must be tappable above the fixed related-note and AI triggers.
       await p.locator("#aiSummarizeNoteBtn").tap();
       assert.equal(await p.locator("#aiTargetSelect").inputValue(), "current-note");
       await p.locator("#closeAiPanelBtn").tap();
       await p.locator("#closeContextPanelBtn").tap();
+      // The draggable palette may overlap its original launcher. Close via its own
+      // visible close control before opening again rather than tapping through it.
+      if (await p.locator("#featurePalette").isVisible()) {
+        await p.locator("[data-palette-close]").tap();
+      }
       await p.locator("#featurePaletteToggle").tap();
       // A normal-mode command itself can enter writing mode without resizing the viewport.
       await p.locator("#insertCalloutBtn").tap();
