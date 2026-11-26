@@ -6788,7 +6788,6 @@ body.report-preview-mode #preview > :last-child { margin-bottom: 0; }
   .note-tag-form { gap: 4px; }
   .note-meta { padding-bottom: 2px; gap: 2px 6px; overflow: visible; }
   .note-meta time { overflow: visible; text-overflow: clip; }
-  .feature-palette-head [data-palette-drag] { cursor: default; touch-action: auto; }
   body.mobile-writing-mode .mobile-writing-tools { grid-template-columns: minmax(0, 1fr) auto; }
   #mobileFeaturePaletteToggle { width: auto; font-size: 14px; }
   #mobileWritingDoneBtn { min-width: 64px; }

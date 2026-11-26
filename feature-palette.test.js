@@ -21,6 +21,15 @@ test("clamp keeps dragged palette within visual viewport, including offset and t
   assert.deepEqual(clampPosition({x:0,y:900},{width:304,height:300},{left:20,top:100,width:320,height:320}),{x:28,y:112});
   assert.deepEqual(clampPosition({x:30,y:30},{width:372,height:480},{width:320,height:200}),{x:8,y:8});
 });
+test("mobile drag uses the same pointer handler while retaining the position", () => {
+  const css = fs.readFileSync("style.css", "utf8");
+  assert.match(source, /if \(reset \|\| !position\) position =/);
+  assert.match(source, /event\.isPrimary === false/);
+  assert.match(source, /height: Math\.max\(0, v\.height - trayHeight\)/);
+  assert.doesNotMatch(source, /event\.button !== 0 \|\| win\.matchMedia/);
+  assert.match(css, /\[data-palette-drag\] \{[^}]*touch-action: none;/);
+  assert.doesNotMatch(css, /\[data-palette-drag\] \{ cursor: default; touch-action: auto;/);
+});
 test("palette is initially hidden non-modal UI and original tools are outside normal flow", () => {
   assert.match(html,/id="featurePalette"[^>]*role="dialog"[^>]*aria-modal="false"[^>]*hidden/);
   for (const id of ["featurePaletteToggle", "mobileFeaturePaletteToggle"]) assert.match(html,new RegExp(`id="${id}"[^>]*aria-expanded="false"[^>]*aria-controls="featurePalette"`));

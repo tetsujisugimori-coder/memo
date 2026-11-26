@@ -233,6 +233,33 @@ async function setText(page, value, start = 0, end = start) {
       const rect=await p.locator("#editor").boundingBox();
       await p.locator("#featurePaletteToggle").tap();await bounds(p);
       assert.deepEqual(await p.locator("#editor").boundingBox(),rect);
+      // Drag the title bar in a narrow mobile viewport; keep the memo unchanged.
+      const grip = await p.locator("[data-palette-drag]").boundingBox();
+      const initial = await p.locator("#featurePalette").boundingBox();
+      assert.equal(await p.locator("[data-palette-drag]").evaluate(el => getComputedStyle(el).touchAction), "none");
+      const x = grip.x + Math.min(45, grip.width / 2);
+      const y = grip.y + grip.height / 2;
+      if (engine === "chromium") {
+        const cdp = await mobile.newCDPSession(p);
+        await cdp.send("Input.dispatchTouchEvent", {type: "touchStart", touchPoints: [{x, y, id: 1}]});
+        await cdp.send("Input.dispatchTouchEvent", {type: "touchMove", touchPoints: [{x: x - 20, y: y - 90, id: 1}]});
+        await cdp.send("Input.dispatchTouchEvent", {type: "touchEnd", touchPoints: []});
+        await cdp.detach();
+      } else {
+        // WebKit's portable Playwright API uses mouse-pointer drag for this mobile viewport.
+        await p.mouse.move(x, y);
+        await p.mouse.down();
+        await p.mouse.move(x - 20, y - 90, {steps: 5});
+        await p.mouse.up();
+      }
+      const moved = await p.locator("#featurePalette").boundingBox();
+      assert.ok(moved.y <= initial.y - 30, "drag should move the mobile palette");
+      await bounds(p);
+      assert.deepEqual(await p.locator("#editor").boundingBox(), rect);
+      await p.locator("[data-palette-close]").tap();
+      await p.locator("#featurePaletteToggle").tap();
+      const reopened = await p.locator("#featurePalette").boundingBox();
+      assert.ok(Math.abs(reopened.y - moved.y) < 2, "reopening preserves the moved position");
       // The lowest row must be tappable above the fixed related-note and AI triggers.
       await p.locator("#aiSummarizeNoteBtn").tap();
       assert.equal(await p.locator("#aiTargetSelect").inputValue(), "current-note");

@@ -7,7 +7,7 @@
   <script>try { document.documentElement.dataset.initialTheme = localStorage.getItem("memo-nexus-theme") === "dark" ? "dark" : "light"; } catch (_) { document.documentElement.dataset.initialTheme = "light"; }</script>
   <style>html,body{background:#f6f7f4;color:#222522;color-scheme:light}html[data-initial-theme="dark"],html[data-initial-theme="dark"] body{background:#111513;color:#e7ece7;color-scheme:dark}</style>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css">
-  <link rel="stylesheet" href="style.css?v=0.5.0-120">
+  <link rel="stylesheet" href="style.css?v=0.5.0-121">
   <link rel="stylesheet" href="note-conflict.css?v=0.5.0-2">
   <style>.storage-guide-link:focus-visible { outline: 3px solid currentColor; outline-offset: 4px; }</style>
   <link id="reportPrintStyles" rel="stylesheet" href="report-print.css?v=0.5.0-3" media="print">
@@ -207,7 +207,7 @@
       </div>
       <div id="featurePalette" class="feature-palette" role="dialog" aria-modal="false" aria-labelledby="featurePaletteTitle" hidden>
         <div class="feature-palette-head">
-          <button type="button" data-palette-drag aria-label="機能パレットを移動。矢印キーで移動、Homeで初期位置"><span id="featurePaletteTitle">機能パレット</span><span aria-hidden="true"> ⠿</span></button>
+          <button type="button" data-palette-drag aria-label="機能パレットをドラッグまたは矢印キーで移動。Homeで初期位置"><span id="featurePaletteTitle">機能パレット</span><span aria-hidden="true"> ⠿</span></button>
           <button type="button" data-palette-close aria-label="機能パレットを閉じる">×</button>
         </div>
         <p class="feature-palette-hint">本文への挿入・書式・整理・AI</p>
@@ -1090,7 +1090,7 @@
   <script src="draft-mirror-scheduler.js?v=0.5.0-2"></script>
   <script src="typing-performance-monitor.js?v=0.5.0-3"></script>
   <script src="layout-resize-utils.js?v=0.5.0-2"></script>
-  <script src="feature-palette.js?v=0.5.0-2"></script>
+  <script src="feature-palette.js?v=0.5.0-3"></script>
   <script src="app.js?v=0.5.0-210"></script>
   <script src="codex-chat.js?v=0.5.0-6"></script>
   <dialog id="dummyPreviewDialog" class="dummy-preview-dialog" aria-labelledby="dummyPreviewHeading" aria-describedby="dummyPreviewHelp">

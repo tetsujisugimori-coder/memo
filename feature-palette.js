@@ -79,11 +79,14 @@
       panel.style.maxWidth = `${Math.max(0, v.width - 16)}px`;
       const box = panel.getBoundingClientRect();
       const anchor = (opener?.getClientRects().length ? opener : triggers[0]).getBoundingClientRect();
-      if (reset || !position || mobile) position = {
+      // Retain drag location across reflows on desktop and touch screens.
+      if (reset || !position) position = {
         x: mobile ? v.left + (v.width - box.width) / 2 : anchor.right - box.width,
         y: mobile ? v.top + v.height - box.height - trayHeight - 8 : anchor.bottom + 8
       };
-      position = clampPosition(position, box, v);
+      // Reserve the bottom mobile writing toolbar when clamping a dragged palette.
+      const allowedViewport = mobile ? { ...v, height: Math.max(0, v.height - trayHeight) } : v;
+      position = clampPosition(position, box, allowedViewport);
       panel.style.left = `${position.x}px`;
       panel.style.top = `${position.y}px`;
     }
@@ -153,7 +156,7 @@
       close({ restoreFocus: true });
     }, true);
     handle.addEventListener("pointerdown", (event) => {
-      if (event.button !== 0 || win.matchMedia("(max-width: 719.98px)").matches) return;
+      if (drag || event.button !== 0 || event.isPrimary === false) return;
       event.preventDefault();
       drag = { id: event.pointerId, x: event.clientX, y: event.clientY, origin: { ...position } };
       handle.setPointerCapture(event.pointerId);
